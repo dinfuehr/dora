@@ -3443,7 +3443,7 @@ fn mod_use_super() {
         }
     ");
 
-    err("use super::Foo;", pos(1, 1), SemError::NoSuperModule);
+    err("use super::Foo;", pos(1, 12), SemError::NoSuperModule);
 }
 
 #[test]
@@ -3470,16 +3470,17 @@ fn mod_use_errors() {
         "
         use foo::bar;
     ",
-        pos(2, 9),
-        SemError::ExpectedPath,
+        pos(2, 13),
+        SemError::UnknownIdentifierInModule("".into(), "foo".into()),
     );
 
     err(
         "
-        use foo::bar::baz;
+        use foo::bar;
+        mod foo {}
     ",
-        pos(2, 9),
-        SemError::ExpectedPath,
+        pos(2, 18),
+        SemError::UnknownIdentifierInModule("foo".into(), "bar".into()),
     );
 
     err(
@@ -3487,8 +3488,8 @@ fn mod_use_errors() {
         use foo::bar::baz;
         fn foo() {}
     ",
-        pos(2, 9),
-        SemError::ExpectedModule,
+        pos(2, 13),
+        SemError::ExpectedPath,
     );
 
     err(
@@ -3496,7 +3497,7 @@ fn mod_use_errors() {
         use foo::bar;
         fn foo() {}
     ",
-        pos(2, 9),
+        pos(2, 13),
         SemError::ExpectedPath,
     );
 }

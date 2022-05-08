@@ -209,8 +209,8 @@ impl<'a> Parser<'a> {
             self.expect_token(TokenKind::Super)?;
             UseContext::Super
         } else {
-            let name = self.expect_identifier()?;
-            path.push(name);
+            let component = self.parse_name_with_pos()?;
+            path.push(component);
             UseContext::This
         };
 
@@ -239,8 +239,8 @@ impl<'a> Parser<'a> {
             mapping_pos = self.token.position;
             mapping_start = self.token.span.start();
 
-            let name = self.expect_identifier()?;
-            path.push(name);
+            let component = self.parse_name_with_pos()?;
+            path.push(component);
 
             if self.token.is(TokenKind::ColonColon) {
                 continue;
@@ -254,7 +254,7 @@ impl<'a> Parser<'a> {
         let target_name = if self.token.is(TokenKind::As) {
             self.advance_token()?;
             mapping_pos = self.token.position;
-            Some(self.expect_identifier()?)
+            Some(self.parse_name_with_pos()?)
         } else {
             None
         };
@@ -279,6 +279,13 @@ impl<'a> Parser<'a> {
         })
     }
 
+    fn parse_name_with_pos(&mut self) -> Result<NameWithPosition, ParseErrorAndPos> {
+        let pos = self.token.position;
+        let name = self.expect_identifier()?;
+
+        Ok(NameWithPosition { pos, name })
+    }
+
     fn parse_use_mappings(&mut self) -> Result<Vec<UseMapping>, ParseErrorAndPos> {
         self.expect_token(TokenKind::LBrace)?;
 
@@ -292,12 +299,12 @@ impl<'a> Parser<'a> {
     fn parse_use_mapping(&mut self) -> Result<UseMapping, ParseErrorAndPos> {
         let start = self.token.span.start();
         let mut pos = self.token.position;
-        let element_name = self.expect_identifier()?;
+        let element_name = self.parse_name_with_pos()?;
 
         let target_name = if self.token.is(TokenKind::As) {
             self.advance_token()?;
             pos = self.token.position;
-            Some(self.expect_identifier()?)
+            Some(self.parse_name_with_pos()?)
         } else {
             None
         };

@@ -118,6 +118,7 @@ pub enum SemError {
     NoSuperDelegationWithPrimaryCtor(String),
     NoSuperClass(String),
     NotAccessible(String),
+    NotAccessibleInModule(String, String),
     RecursiveStructure,
     TraitMethodWithBody,
     TypeParamsExpected,
@@ -347,6 +348,9 @@ impl SemError {
             }
             SemError::NoSuperModule => "no super module.".into(),
             SemError::NotAccessible(ref name) => format!("`{}` is not accessible.", name),
+            SemError::NotAccessibleInModule(ref module, ref name) => {
+                format!("`{}` in module `{}` is not accessible.", name, module)
+            }
             SemError::LetMissingInitialization => "`let` binding is missing initialization.".into(),
             SemError::LetReassigned => "`let` binding cannot be reassigned.".into(),
             SemError::InvalidLhsAssignment => "invalid left-hand-side of assignment.".into(),

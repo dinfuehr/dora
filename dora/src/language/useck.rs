@@ -1,38 +1,61 @@
-use parking_lot::RwLock;
-
-use crate::language::access::{
-    class_accessible_from, const_accessible_from, enum_accessible_from, fct_accessible_from,
-    global_accessible_from, module_accessible_from, struct_accessible_from, trait_accessible_from,
-};
+use crate::language::access::{module_accessible_from, sym_accessible_from};
 use crate::language::error::msg::SemError;
 use crate::language::report_sym_shadow;
-use crate::language::sem_analysis::{
-    module_package, EnumDefinitionId, ModuleDefinitionId, SemAnalysis, UseDefinition,
-};
-use crate::language::sym::{NestedSymTable, Sym, SymTable};
+use crate::language::sem_analysis::{module_package, ModuleDefinitionId, SemAnalysis};
+use crate::language::sym::{NestedSymTable, Sym};
 
-use dora_parser::ast::{self, UseContext};
+use dora_parser::ast::{NameWithPosition, UseContext};
+use dora_parser::lexer::position::Position;
+
+use super::sem_analysis::SourceFileId;
 
 pub fn check<'a>(sa: &SemAnalysis) {
+    let mut all_uses = Vec::new();
+
     for use_def in &sa.uses {
-        check_use(sa, use_def);
+        for mapping in &use_def.ast.mappings {
+            let mut path = use_def.ast.path.clone();
+            path.push(mapping.element_name.clone());
+            all_uses.push(Import {
+                context: use_def.ast.context.clone(),
+                path,
+                target: mapping
+                    .target_name
+                    .clone()
+                    .unwrap_or(mapping.element_name.clone()),
+                module_id: use_def.module_id,
+                file_id: use_def.file_id,
+                pos: mapping.pos,
+            });
+        }
+    }
+
+    for use_decl in all_uses {
+        check_use(sa, &use_decl);
     }
 }
 
-fn check_use(sa: &SemAnalysis, use_def: &UseDefinition) {
-    let table = sa.module_table(use_def.module_id);
+struct Import {
+    context: UseContext,
+    path: Vec<NameWithPosition>,
+    target: NameWithPosition,
+    module_id: ModuleDefinitionId,
+    file_id: SourceFileId,
+    pos: Position,
+}
 
-    let module_id = match use_def.ast.context {
-        UseContext::This => use_def.module_id,
-        UseContext::Package => module_package(sa, use_def.module_id),
+fn check_use(sa: &SemAnalysis, use_decl: &Import) {
+    let module_id = match use_decl.context {
+        UseContext::This => use_decl.module_id,
+        UseContext::Package => module_package(sa, use_decl.module_id),
         UseContext::Super => {
-            let module = &sa.modules[use_def.module_id].read();
+            let module = &sa.modules[use_decl.module_id].read();
             if let Some(module_id) = module.parent_module_id {
                 module_id
             } else {
                 sa.diag.lock().report(
-                    use_def.file_id.into(),
-                    use_def.ast.pos,
+                    use_decl.file_id.into(),
+                    use_decl.pos,
                     SemError::NoSuperModule,
                 );
                 return;
@@ -40,273 +63,104 @@ fn check_use(sa: &SemAnalysis, use_def: &UseDefinition) {
         }
     };
 
-    let symtable = NestedSymTable::new(sa, module_id);
-
-    if use_def.ast.path.is_empty() {
-        for mapping in &use_def.ast.mappings {
-            use_module(sa, use_def, &table, module_id, mapping);
+    let sym = match read_path(sa, use_decl, module_id) {
+        Ok(sym) => sym,
+        Err(()) => {
+            return;
         }
-    } else {
-        let sym = match read_path(sa, use_def, &symtable) {
-            Ok(sym) => sym,
-            Err(()) => {
-                return;
-            }
-        };
+    };
 
-        match sym {
-            Some(Sym::Module(module_id)) => {
-                if !module_accessible_from(sa, module_id, use_def.module_id) {
-                    let module = &sa.modules[module_id].read();
-                    let msg = SemError::NotAccessible(module.name(sa));
-                    sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
-                    return;
-                }
+    let module = sa.modules.idx(use_decl.module_id);
+    let module = module.read();
 
-                for mapping in &use_def.ast.mappings {
-                    use_module(sa, use_def, &table, module_id, mapping);
-                }
-            }
+    let table = module.table.clone();
+    let mut table = table.write();
 
-            Some(Sym::Enum(enum_id)) => {
-                for mapping in &use_def.ast.mappings {
-                    use_enum(sa, use_def, &table, enum_id, mapping);
-                }
-            }
-
-            _ => {
-                sa.diag.lock().report(
-                    use_def.file_id.into(),
-                    use_def.ast.pos,
-                    SemError::ExpectedPath,
-                );
-            }
-        }
+    if let Some(old_sym) = table.insert(use_decl.target.name, sym) {
+        report_sym_shadow(
+            sa,
+            use_decl.target.name,
+            use_decl.file_id,
+            use_decl.pos,
+            old_sym,
+        );
     }
 }
 
 fn read_path(
     sa: &SemAnalysis,
-    use_def: &UseDefinition,
-    symtable: &NestedSymTable,
-) -> Result<Option<Sym>, ()> {
-    if !use_def.ast.path.is_empty() {
-        let path = &use_def.ast.path;
-        let first_name = path.first().cloned().unwrap();
-
-        let mut sym = symtable.get(first_name);
-
-        for &name in &path[1..] {
-            match sym {
-                Some(Sym::Module(module_id)) => {
-                    let module = &sa.modules[module_id].read();
-                    let symtable = module.table.read();
-
-                    if !module_accessible_from(sa, module_id, use_def.module_id) {
-                        let module = &sa.modules[module_id].read();
-                        let msg = SemError::NotAccessible(module.name(sa));
-                        sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
-                        return Err(());
-                    }
-
-                    sym = symtable.get(name);
-                }
-
-                None => {
-                    let msg = SemError::ExpectedPath;
-                    sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
-                    return Err(());
-                }
-
-                _ => {
-                    let msg = SemError::ExpectedModule;
-                    sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
-                    return Err(());
-                }
-            }
-        }
-
-        Ok(sym)
-    } else {
-        let msg = SemError::ExpectedPath;
-        sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
-        Err(())
-    }
-}
-
-fn use_module(
-    sa: &SemAnalysis,
-    use_def: &UseDefinition,
-    table: &RwLock<SymTable>,
+    use_decl: &Import,
     module_id: ModuleDefinitionId,
-    mapping: &ast::UseMapping,
-) {
-    let element_name = mapping.element_name;
-    let target_name = mapping.target_name.unwrap_or(element_name);
+) -> Result<Sym, ()> {
+    let mut previous_sym = Sym::Module(module_id);
+    debug_assert!(module_accessible_from(sa, module_id, use_decl.module_id));
 
-    let module = &sa.modules[module_id].read();
-    let sym = module.table.read().get(element_name);
-
-    match sym {
-        Some(Sym::Fct(fct_id)) => {
-            if !fct_accessible_from(sa, fct_id, use_def.module_id) {
-                let fct = &sa.fcts.idx(fct_id);
-                let fct = fct.read();
-                let msg = SemError::NotAccessible(fct.display_name(sa));
-                sa.diag.lock().report(use_def.file_id, mapping.pos, msg);
-            }
-
-            let new_sym = Sym::Fct(fct_id);
-            if let Some(old_sym) = table.write().insert(target_name, new_sym) {
-                report_sym_shadow(sa, target_name, use_def.file_id, mapping.pos, old_sym);
-            }
+    for (idx, component) in use_decl.path.iter().enumerate() {
+        if !previous_sym.is_enum() && !previous_sym.is_module() {
+            let msg = SemError::ExpectedPath;
+            let pos = use_decl.path[idx - 1].pos;
+            sa.diag.lock().report(use_decl.file_id, pos, msg);
+            return Err(());
         }
 
-        Some(Sym::Module(module_id)) => {
-            if !module_accessible_from(sa, module_id, use_def.module_id) {
-                let module = &sa.modules[module_id].read();
-                let msg = SemError::NotAccessible(module.name(sa));
-                sa.diag.lock().report(use_def.file_id, mapping.pos, msg);
-            }
-
-            let new_sym = Sym::Module(module_id);
-            if let Some(old_sym) = table.write().insert(target_name, new_sym) {
-                report_sym_shadow(sa, target_name, use_def.file_id, mapping.pos, old_sym);
-            }
-        }
-
-        Some(Sym::Global(global_id)) => {
-            if !global_accessible_from(sa, global_id, use_def.module_id) {
-                let global = &sa.globals.idx(global_id);
-                let global = global.read();
-                let msg = SemError::NotAccessible(global.name(sa));
-                sa.diag.lock().report(use_def.file_id, mapping.pos, msg);
-            }
-
-            let new_sym = Sym::Global(global_id);
-            if let Some(old_sym) = table.write().insert(target_name, new_sym) {
-                report_sym_shadow(sa, target_name, use_def.file_id, mapping.pos, old_sym);
-            }
-        }
-
-        Some(Sym::Const(const_id)) => {
-            if !const_accessible_from(sa, const_id, use_def.module_id) {
-                let const_ = &sa.consts.idx(const_id);
-                let const_ = const_.read();
-                let msg = SemError::NotAccessible(const_.name(sa));
-                sa.diag.lock().report(use_def.file_id, mapping.pos, msg);
-            }
-
-            let new_sym = Sym::Const(const_id);
-            if let Some(old_sym) = table.write().insert(target_name, new_sym) {
-                report_sym_shadow(sa, target_name, use_def.file_id, mapping.pos, old_sym);
-            }
-        }
-
-        Some(Sym::Class(cls_id)) => {
-            if !class_accessible_from(sa, cls_id, use_def.module_id) {
-                let cls = &sa.classes.idx(cls_id);
-                let cls = cls.read();
-                let msg = SemError::NotAccessible(cls.name(sa));
-                sa.diag.lock().report(use_def.file_id, mapping.pos, msg);
-            }
-
-            let new_sym = Sym::Class(cls_id);
-            let old_sym = table.write().insert(target_name, new_sym);
-            if let Some(old_sym) = old_sym {
-                report_sym_shadow(sa, target_name, use_def.file_id, mapping.pos, old_sym);
-            }
-        }
-
-        Some(Sym::Enum(enum_id)) => {
-            if !enum_accessible_from(sa, enum_id, use_def.module_id) {
-                let enum_ = sa.enums[enum_id].read();
-                let msg = SemError::NotAccessible(enum_.name(sa));
-                sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
-            }
-
-            let new_sym = Sym::Enum(enum_id);
-            if let Some(old_sym) = table.write().insert(target_name, new_sym) {
-                report_sym_shadow(sa, target_name, use_def.file_id, mapping.pos, old_sym);
-            }
-        }
-
-        Some(Sym::Struct(struct_id)) => {
-            if !struct_accessible_from(sa, struct_id, use_def.module_id) {
-                let xstruct = sa.structs.idx(struct_id);
-                let xstruct = xstruct.read();
-                let msg = SemError::NotAccessible(xstruct.name(sa));
-                sa.diag.lock().report(use_def.file_id, mapping.pos, msg);
-            }
-
-            let new_sym = Sym::Struct(struct_id);
-            let old_sym = table.write().insert(target_name, new_sym);
-            if let Some(old_sym) = old_sym {
-                report_sym_shadow(sa, target_name, use_def.file_id, mapping.pos, old_sym);
-            }
-        }
-
-        Some(Sym::Trait(trait_id)) => {
-            if !trait_accessible_from(sa, trait_id, use_def.module_id) {
-                let trait_ = sa.traits[trait_id].read();
-                let msg = SemError::NotAccessible(trait_.name(sa));
-                sa.diag.lock().report(use_def.file_id, mapping.pos, msg);
-            }
-
-            let new_sym = Sym::Trait(trait_id);
-            let old_sym = table.write().insert(target_name, new_sym);
-            if let Some(old_sym) = old_sym {
-                report_sym_shadow(sa, target_name, use_def.file_id, mapping.pos, old_sym);
-            }
-        }
-
-        None => {
-            let name = sa.interner.str(element_name).to_string();
-            let module_name = module.name(sa);
-            sa.diag.lock().report(
-                use_def.file_id.into(),
-                mapping.pos,
-                SemError::UnknownIdentifierInModule(module_name, name),
-            );
-        }
-
-        _ => {
-            sa.diag
-                .lock()
-                .report(use_def.file_id.into(), mapping.pos, SemError::ExpectedPath);
-        }
+        previous_sym = read_path_component(sa, use_decl, previous_sym, component)?;
     }
+
+    Ok(previous_sym)
 }
 
-fn use_enum(
+fn read_path_component(
     sa: &SemAnalysis,
-    use_def: &UseDefinition,
-    table: &RwLock<SymTable>,
-    enum_id: EnumDefinitionId,
-    mapping: &ast::UseMapping,
-) {
-    let element_name = mapping.element_name;
-    let target_name = mapping.target_name.unwrap_or(element_name);
+    use_decl: &Import,
+    previous_sym: Sym,
+    component: &NameWithPosition,
+) -> Result<Sym, ()> {
+    match previous_sym {
+        Sym::Module(module_id) => {
+            let symtable = NestedSymTable::new(sa, module_id);
+            let current_sym = symtable.get(component.name);
 
-    let enum_ = sa.enums[enum_id].read();
-
-    if !enum_accessible_from(sa, enum_id, use_def.module_id) {
-        let msg = SemError::NotAccessible(enum_.name(sa));
-        sa.diag.lock().report(use_def.file_id, use_def.ast.pos, msg);
-    }
-
-    if let Some(&variant_idx) = enum_.name_to_value.get(&element_name) {
-        let sym = Sym::EnumVariant(enum_id, variant_idx as usize);
-        if let Some(sym) = table.write().insert(target_name, sym) {
-            report_sym_shadow(sa, target_name, use_def.file_id.into(), mapping.pos, sym);
+            if let Some(current_sym) = current_sym {
+                if sym_accessible_from(sa, current_sym.clone(), use_decl.module_id) {
+                    Ok(current_sym)
+                } else {
+                    let module = &sa.modules[module_id].read();
+                    let name = sa.interner.str(component.name).to_string();
+                    let msg = SemError::NotAccessibleInModule(module.name(sa), name);
+                    sa.diag.lock().report(use_decl.file_id, component.pos, msg);
+                    Err(())
+                }
+            } else {
+                let module = sa.modules.idx(module_id);
+                let module = module.read();
+                let name = sa.interner.str(component.name).to_string();
+                let module_name = module.name(sa);
+                sa.diag.lock().report(
+                    use_decl.file_id,
+                    component.pos,
+                    SemError::UnknownIdentifierInModule(module_name, name),
+                );
+                Err(())
+            }
         }
-    } else {
-        let name = sa.interner.str(element_name).to_string();
-        sa.diag.lock().report(
-            use_def.file_id.into(),
-            mapping.pos,
-            SemError::UnknownEnumVariant(name),
-        );
+
+        Sym::Enum(enum_id) => {
+            let enum_ = sa.enums[enum_id].read();
+
+            if let Some(&variant_idx) = enum_.name_to_value.get(&component.name) {
+                Ok(Sym::EnumVariant(enum_id, variant_idx as usize))
+            } else {
+                let name = sa.interner.str(component.name).to_string();
+                sa.diag.lock().report(
+                    use_decl.file_id.into(),
+                    component.pos,
+                    SemError::UnknownEnumVariant(name),
+                );
+                Err(())
+            }
+        }
+
+        _ => unreachable!(),
     }
 }
 
@@ -346,8 +200,8 @@ mod tests {
                 }
             }
         ",
-            pos(2, 13),
-            SemError::NotAccessible("foo::bar".into()),
+            pos(2, 22),
+            SemError::NotAccessibleInModule("foo".into(), "bar".into()),
         );
     }
 
@@ -363,7 +217,7 @@ mod tests {
             }
         ",
             pos(2, 27),
-            SemError::NotAccessible("foo::bar::Foo".into()),
+            SemError::NotAccessibleInModule("foo::bar".into(), "Foo".into()),
         );
     }
 
@@ -377,7 +231,7 @@ mod tests {
             }
         ",
             pos(2, 22),
-            SemError::NotAccessible("foo::bar".into()),
+            SemError::NotAccessibleInModule("foo".into(), "bar".into()),
         );
     }
 
@@ -391,7 +245,7 @@ mod tests {
             }
         ",
             pos(2, 22),
-            SemError::NotAccessible("foo::bar".into()),
+            SemError::NotAccessibleInModule("foo".into(), "bar".into()),
         );
     }
 
@@ -405,7 +259,7 @@ mod tests {
             }
         ",
             pos(2, 22),
-            SemError::NotAccessible("foo::bar".into()),
+            SemError::NotAccessibleInModule("foo".into(), "bar".into()),
         );
     }
 
@@ -414,12 +268,12 @@ mod tests {
         err(
             "
             use foo::Bar;
-            mod foo {
+            @pub mod foo {
                 enum Bar { A, B, C }
             }
         ",
-            pos(2, 13),
-            SemError::NotAccessible("foo::Bar".into()),
+            pos(2, 22),
+            SemError::NotAccessibleInModule("foo".into(), "Bar".into()),
         );
     }
 
@@ -432,8 +286,8 @@ mod tests {
                 enum Bar { A, B, C }
             }
         ",
-            pos(2, 13),
-            SemError::NotAccessible("foo::Bar".into()),
+            pos(2, 22),
+            SemError::NotAccessibleInModule("foo".into(), "Bar".into()),
         );
 
         ok("
@@ -454,7 +308,7 @@ mod tests {
             }
         ",
             pos(2, 22),
-            SemError::NotAccessible("foo::Bar".into()),
+            SemError::NotAccessibleInModule("foo".into(), "Bar".into()),
         );
     }
 
@@ -475,7 +329,17 @@ mod tests {
             }
         ",
             pos(2, 22),
-            SemError::NotAccessible("foo::Bar".into()),
+            SemError::NotAccessibleInModule("foo".into(), "Bar".into()),
         );
+    }
+
+    #[test]
+    fn use_public() {
+        ok("
+            @pub use foo::Bar;
+            @pub mod foo {
+                @pub enum Bar { A, B, C }
+            }
+        ");
     }
 }

@@ -3,6 +3,25 @@ use crate::language::sem_analysis::{
     GlobalDefinitionId, ModuleDefinitionId, SemAnalysis, StructDefinitionFieldId,
     StructDefinitionId, TraitDefinitionId,
 };
+use crate::language::sym::Sym;
+
+pub fn sym_accessible_from(sa: &SemAnalysis, sym: Sym, module_id: ModuleDefinitionId) -> bool {
+    match sym {
+        Sym::Annotation(_) => unimplemented!(),
+        Sym::Class(class_id) => class_accessible_from(sa, class_id, module_id),
+        Sym::Const(const_id) => const_accessible_from(sa, const_id, module_id),
+        Sym::Enum(enum_id) => enum_accessible_from(sa, enum_id, module_id),
+        Sym::EnumVariant(_, _) => unreachable!(),
+        Sym::Fct(fct_id) => fct_accessible_from(sa, fct_id, module_id),
+        Sym::Field(_) => unreachable!(),
+        Sym::Global(global_id) => global_accessible_from(sa, global_id, module_id),
+        Sym::Module(sym_module_id) => module_accessible_from(sa, sym_module_id, module_id),
+        Sym::Struct(struct_id) => struct_accessible_from(sa, struct_id, module_id),
+        Sym::Trait(trait_id) => trait_accessible_from(sa, trait_id, module_id),
+        Sym::TypeParam(_) => unreachable!(),
+        Sym::Var(_) => unreachable!(),
+    }
+}
 
 pub fn global_accessible_from(
     sa: &SemAnalysis,
