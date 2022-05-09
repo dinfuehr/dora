@@ -199,20 +199,8 @@ impl<'a> Parser<'a> {
         let pos = self.expect_token(TokenKind::Use)?.position;
         let mut path = Vec::new();
 
-        let context = if self.token.is(TokenKind::This) {
-            self.expect_token(TokenKind::This)?;
-            UseContext::This
-        } else if self.token.is(TokenKind::Package) {
-            self.expect_token(TokenKind::Package)?;
-            UseContext::Package
-        } else if self.token.is(TokenKind::Super) {
-            self.expect_token(TokenKind::Super)?;
-            UseContext::Super
-        } else {
-            let component = self.parse_use_path_component()?;
-            path.push(component);
-            UseContext::This
-        };
+        let component = self.parse_use_path_component()?;
+        path.push(component);
 
         let mut mapping_pos;
         let mut mapping_start;
@@ -230,9 +218,8 @@ impl<'a> Parser<'a> {
                     id: self.generate_id(),
                     pos,
                     span,
-                    path,
-                    context,
-                    mappings,
+                    common_path: path,
+                    declarations: mappings,
                 });
             }
 
@@ -268,27 +255,40 @@ impl<'a> Parser<'a> {
             id: self.generate_id(),
             pos,
             span,
-            path,
-            context,
-            mappings: vec![UseMapping {
+            common_path: path,
+            declarations: vec![Box::new(UseMapping {
                 pos: mapping_pos,
                 span: mapping_span,
                 element_name,
                 target_name,
-            }],
+            })],
         })
     }
 
     fn parse_use_path_component(&mut self) -> Result<UsePathComponent, ParseErrorAndPos> {
         let pos = self.token.position;
         let start = self.token.span.start();
-        let name = self.expect_identifier()?;
+
+        let value = if self.token.is(TokenKind::This) {
+            self.expect_token(TokenKind::This)?;
+            UsePathComponentValue::This
+        } else if self.token.is(TokenKind::Package) {
+            self.expect_token(TokenKind::Package)?;
+            UsePathComponentValue::Package
+        } else if self.token.is(TokenKind::Super) {
+            self.expect_token(TokenKind::Super)?;
+            UsePathComponentValue::Super
+        } else {
+            let name = self.expect_identifier()?;
+            UsePathComponentValue::Name(name)
+        };
+
         let span = self.span_from(start);
 
-        Ok(UsePathComponent { pos, span, name })
+        Ok(UsePathComponent { pos, span, value })
     }
 
-    fn parse_use_mappings(&mut self) -> Result<Vec<UseMapping>, ParseErrorAndPos> {
+    fn parse_use_mappings(&mut self) -> Result<Vec<Box<UseMapping>>, ParseErrorAndPos> {
         self.expect_token(TokenKind::LBrace)?;
 
         let mappings = self.parse_list(TokenKind::Comma, TokenKind::RBrace, |p| {
@@ -298,7 +298,7 @@ impl<'a> Parser<'a> {
         Ok(mappings)
     }
 
-    fn parse_use_mapping(&mut self) -> Result<UseMapping, ParseErrorAndPos> {
+    fn parse_use_mapping(&mut self) -> Result<Box<UseMapping>, ParseErrorAndPos> {
         let start = self.token.span.start();
         let mut pos = self.token.position;
         let element_name = self.parse_use_path_component()?;
@@ -313,12 +313,12 @@ impl<'a> Parser<'a> {
 
         let span = self.span_from(start);
 
-        Ok(UseMapping {
+        Ok(Box::new(UseMapping {
             pos,
             span,
             element_name,
             target_name,
-        })
+        }))
     }
 
     fn parse_enum(&mut self, modifiers: &Modifiers) -> Result<Enum, ParseErrorAndPos> {

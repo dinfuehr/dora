@@ -4,7 +4,7 @@ use crate::language::report_sym_shadow;
 use crate::language::sem_analysis::{module_package, ModuleDefinitionId, SemAnalysis};
 use crate::language::sym::{NestedSymTable, Sym};
 
-use dora_parser::ast::{UseContext, UsePathComponent};
+use dora_parser::ast::{UsePathComponent, UsePathComponentValue};
 use dora_parser::lexer::position::Position;
 
 use super::sem_analysis::SourceFileId;
@@ -13,11 +13,10 @@ pub fn check<'a>(sa: &SemAnalysis) {
     let mut all_uses = Vec::new();
 
     for use_def in &sa.uses {
-        for mapping in &use_def.ast.mappings {
-            let mut path = use_def.ast.path.clone();
+        for mapping in &use_def.ast.declarations {
+            let mut path = use_def.ast.common_path.clone();
             path.push(mapping.element_name.clone());
             all_uses.push(Import {
-                context: use_def.ast.context.clone(),
                 path,
                 target: mapping
                     .target_name
@@ -36,7 +35,6 @@ pub fn check<'a>(sa: &SemAnalysis) {
 }
 
 struct Import {
-    context: UseContext,
     path: Vec<UsePathComponent>,
     target: UsePathComponent,
     module_id: ModuleDefinitionId,
@@ -45,25 +43,31 @@ struct Import {
 }
 
 fn check_use(sa: &SemAnalysis, use_decl: &Import) {
-    let module_id = match use_decl.context {
-        UseContext::This => use_decl.module_id,
-        UseContext::Package => module_package(sa, use_decl.module_id),
-        UseContext::Super => {
+    let first_component = use_decl
+        .path
+        .first()
+        .expect("there should always be at least one component");
+
+    let (start_idx, module_id) = match first_component.value {
+        UsePathComponentValue::This => (1, use_decl.module_id),
+        UsePathComponentValue::Package => (1, module_package(sa, use_decl.module_id)),
+        UsePathComponentValue::Super => {
             let module = &sa.modules[use_decl.module_id].read();
             if let Some(module_id) = module.parent_module_id {
-                module_id
+                (1, module_id)
             } else {
                 sa.diag.lock().report(
                     use_decl.file_id.into(),
-                    use_decl.pos,
+                    first_component.pos,
                     SemError::NoSuperModule,
                 );
                 return;
             }
         }
+        UsePathComponentValue::Name(_) => (0, use_decl.module_id),
     };
 
-    let sym = match read_path(sa, use_decl, module_id) {
+    let sym = match read_path(sa, use_decl, start_idx, module_id) {
         Ok(sym) => sym,
         Err(()) => {
             return;
@@ -76,26 +80,26 @@ fn check_use(sa: &SemAnalysis, use_decl: &Import) {
     let table = module.table.clone();
     let mut table = table.write();
 
-    if let Some(old_sym) = table.insert(use_decl.target.name, sym) {
-        report_sym_shadow(
-            sa,
-            use_decl.target.name,
-            use_decl.file_id,
-            use_decl.pos,
-            old_sym,
-        );
+    let target_name = match use_decl.target.value {
+        UsePathComponentValue::Name(name) => name,
+        _ => unreachable!(),
+    };
+
+    if let Some(old_sym) = table.insert(target_name, sym) {
+        report_sym_shadow(sa, target_name, use_decl.file_id, use_decl.pos, old_sym);
     }
 }
 
 fn read_path(
     sa: &SemAnalysis,
     use_decl: &Import,
+    start_idx: usize,
     module_id: ModuleDefinitionId,
 ) -> Result<Sym, ()> {
     let mut previous_sym = Sym::Module(module_id);
     debug_assert!(module_accessible_from(sa, module_id, use_decl.module_id));
 
-    for (idx, component) in use_decl.path.iter().enumerate() {
+    for (idx, component) in use_decl.path.iter().enumerate().skip(start_idx) {
         if !previous_sym.is_enum() && !previous_sym.is_module() {
             let msg = SemError::ExpectedPath;
             let pos = use_decl.path[idx - 1].pos;
@@ -115,17 +119,22 @@ fn read_path_component(
     previous_sym: Sym,
     component: &UsePathComponent,
 ) -> Result<Sym, ()> {
+    let component_name = match component.value {
+        UsePathComponentValue::Name(name) => name,
+        _ => unreachable!(),
+    };
+
     match previous_sym {
         Sym::Module(module_id) => {
             let symtable = NestedSymTable::new(sa, module_id);
-            let current_sym = symtable.get(component.name);
+            let current_sym = symtable.get(component_name);
 
             if let Some(current_sym) = current_sym {
                 if sym_accessible_from(sa, current_sym.clone(), use_decl.module_id) {
                     Ok(current_sym)
                 } else {
                     let module = &sa.modules[module_id].read();
-                    let name = sa.interner.str(component.name).to_string();
+                    let name = sa.interner.str(component_name).to_string();
                     let msg = SemError::NotAccessibleInModule(module.name(sa), name);
                     sa.diag.lock().report(use_decl.file_id, component.pos, msg);
                     Err(())
@@ -133,7 +142,7 @@ fn read_path_component(
             } else {
                 let module = sa.modules.idx(module_id);
                 let module = module.read();
-                let name = sa.interner.str(component.name).to_string();
+                let name = sa.interner.str(component_name).to_string();
                 let module_name = module.name(sa);
                 sa.diag.lock().report(
                     use_decl.file_id,
@@ -147,10 +156,10 @@ fn read_path_component(
         Sym::Enum(enum_id) => {
             let enum_ = sa.enums[enum_id].read();
 
-            if let Some(&variant_idx) = enum_.name_to_value.get(&component.name) {
+            if let Some(&variant_idx) = enum_.name_to_value.get(&component_name) {
                 Ok(Sym::EnumVariant(enum_id, variant_idx as usize))
             } else {
-                let name = sa.interner.str(component.name).to_string();
+                let name = sa.interner.str(component_name).to_string();
                 sa.diag.lock().report(
                     use_decl.file_id.into(),
                     component.pos,

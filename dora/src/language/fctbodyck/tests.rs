@@ -3443,7 +3443,7 @@ fn mod_use_super() {
         }
     ");
 
-    err("use super::Foo;", pos(1, 12), SemError::NoSuperModule);
+    err("use super::Foo;", pos(1, 5), SemError::NoSuperModule);
 }
 
 #[test]

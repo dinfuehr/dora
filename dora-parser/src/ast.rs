@@ -237,16 +237,23 @@ pub struct Use {
     pub id: NodeId,
     pub pos: Position,
     pub span: Span,
-    pub path: Vec<UsePathComponent>,
-    pub context: UseContext,
-    pub mappings: Vec<UseMapping>,
+    pub common_path: Vec<UsePathComponent>,
+    pub declarations: Vec<Box<UseMapping>>,
 }
 
 #[derive(Clone, Debug)]
 pub struct UsePathComponent {
     pub pos: Position,
     pub span: Span,
-    pub name: Name,
+    pub value: UsePathComponentValue,
+}
+
+#[derive(Clone, Debug)]
+pub enum UsePathComponentValue {
+    This,
+    Super,
+    Package,
+    Name(Name),
 }
 
 #[derive(Clone, Debug)]
@@ -255,13 +262,6 @@ pub struct UseMapping {
     pub span: Span,
     pub element_name: UsePathComponent,
     pub target_name: Option<UsePathComponent>,
-}
-
-#[derive(Clone, Debug)]
-pub enum UseContext {
-    This,
-    Super,
-    Package,
 }
 
 #[derive(Clone, Debug)]
