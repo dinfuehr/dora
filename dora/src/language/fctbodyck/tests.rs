@@ -3485,7 +3485,7 @@ fn mod_use_errors() {
 
     err(
         "
-        use foo::bar::baz;
+        use foo::bar;
         fn foo() {}
     ",
         pos(2, 13),
@@ -3494,10 +3494,10 @@ fn mod_use_errors() {
 
     err(
         "
-        use foo::bar;
-        fn foo() {}
+        use foo::bar::baz;
+        @pub mod foo { @pub fn bar() {} }
     ",
-        pos(2, 13),
+        pos(2, 18),
         SemError::ExpectedPath,
     );
 }
