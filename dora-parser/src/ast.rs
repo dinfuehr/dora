@@ -237,14 +237,15 @@ pub struct Use {
     pub id: NodeId,
     pub pos: Position,
     pub span: Span,
-    pub path: Vec<NameWithPosition>,
+    pub path: Vec<UsePathComponent>,
     pub context: UseContext,
     pub mappings: Vec<UseMapping>,
 }
 
 #[derive(Clone, Debug)]
-pub struct NameWithPosition {
+pub struct UsePathComponent {
     pub pos: Position,
+    pub span: Span,
     pub name: Name,
 }
 
@@ -252,8 +253,8 @@ pub struct NameWithPosition {
 pub struct UseMapping {
     pub pos: Position,
     pub span: Span,
-    pub element_name: NameWithPosition,
-    pub target_name: Option<NameWithPosition>,
+    pub element_name: UsePathComponent,
+    pub target_name: Option<UsePathComponent>,
 }
 
 #[derive(Clone, Debug)]

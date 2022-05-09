@@ -4,7 +4,7 @@ use crate::language::report_sym_shadow;
 use crate::language::sem_analysis::{module_package, ModuleDefinitionId, SemAnalysis};
 use crate::language::sym::{NestedSymTable, Sym};
 
-use dora_parser::ast::{NameWithPosition, UseContext};
+use dora_parser::ast::{UseContext, UsePathComponent};
 use dora_parser::lexer::position::Position;
 
 use super::sem_analysis::SourceFileId;
@@ -37,8 +37,8 @@ pub fn check<'a>(sa: &SemAnalysis) {
 
 struct Import {
     context: UseContext,
-    path: Vec<NameWithPosition>,
-    target: NameWithPosition,
+    path: Vec<UsePathComponent>,
+    target: UsePathComponent,
     module_id: ModuleDefinitionId,
     file_id: SourceFileId,
     pos: Position,
@@ -113,7 +113,7 @@ fn read_path_component(
     sa: &SemAnalysis,
     use_decl: &Import,
     previous_sym: Sym,
-    component: &NameWithPosition,
+    component: &UsePathComponent,
 ) -> Result<Sym, ()> {
     match previous_sym {
         Sym::Module(module_id) => {

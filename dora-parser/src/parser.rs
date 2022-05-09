@@ -209,7 +209,7 @@ impl<'a> Parser<'a> {
             self.expect_token(TokenKind::Super)?;
             UseContext::Super
         } else {
-            let component = self.parse_name_with_pos()?;
+            let component = self.parse_use_path_component()?;
             path.push(component);
             UseContext::This
         };
@@ -239,7 +239,7 @@ impl<'a> Parser<'a> {
             mapping_pos = self.token.position;
             mapping_start = self.token.span.start();
 
-            let component = self.parse_name_with_pos()?;
+            let component = self.parse_use_path_component()?;
             path.push(component);
 
             if self.token.is(TokenKind::ColonColon) {
@@ -254,7 +254,7 @@ impl<'a> Parser<'a> {
         let target_name = if self.token.is(TokenKind::As) {
             self.advance_token()?;
             mapping_pos = self.token.position;
-            Some(self.parse_name_with_pos()?)
+            Some(self.parse_use_path_component()?)
         } else {
             None
         };
@@ -279,11 +279,13 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_name_with_pos(&mut self) -> Result<NameWithPosition, ParseErrorAndPos> {
+    fn parse_use_path_component(&mut self) -> Result<UsePathComponent, ParseErrorAndPos> {
         let pos = self.token.position;
+        let start = self.token.span.start();
         let name = self.expect_identifier()?;
+        let span = self.span_from(start);
 
-        Ok(NameWithPosition { pos, name })
+        Ok(UsePathComponent { pos, span, name })
     }
 
     fn parse_use_mappings(&mut self) -> Result<Vec<UseMapping>, ParseErrorAndPos> {
@@ -299,12 +301,12 @@ impl<'a> Parser<'a> {
     fn parse_use_mapping(&mut self) -> Result<UseMapping, ParseErrorAndPos> {
         let start = self.token.span.start();
         let mut pos = self.token.position;
-        let element_name = self.parse_name_with_pos()?;
+        let element_name = self.parse_use_path_component()?;
 
         let target_name = if self.token.is(TokenKind::As) {
             self.advance_token()?;
             pos = self.token.position;
-            Some(self.parse_name_with_pos()?)
+            Some(self.parse_use_path_component()?)
         } else {
             None
         };
