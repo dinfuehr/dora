@@ -195,60 +195,41 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_use(&mut self) -> Result<Use, ParseErrorAndPos> {
+        self.expect_token(TokenKind::Use)?;
+        let use_declaration = self.parse_use_inner()?;
+        self.expect_semicolon()?;
+
+        Ok(use_declaration)
+    }
+
+    fn parse_use_inner(&mut self) -> Result<Use, ParseErrorAndPos> {
         let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::Use)?.position;
+        let pos = self.token.position;
         let mut path = Vec::new();
 
-        let component = self.parse_use_path_component()?;
-        path.push(component);
-
-        let mut mapping_pos;
-        let mut mapping_start;
-
         loop {
-            self.expect_token(TokenKind::ColonColon)?;
-
             if self.token.is(TokenKind::LBrace) {
-                let mappings = self.parse_use_mappings()?;
-
-                self.expect_semicolon()?;
-                let span = self.span_from(start);
-
-                return Ok(Use {
-                    id: self.generate_id(),
-                    pos,
-                    span,
-                    common_path: path,
-                    declarations: mappings,
-                });
+                break;
             }
-
-            mapping_pos = self.token.position;
-            mapping_start = self.token.span.start();
 
             let component = self.parse_use_path_component()?;
             path.push(component);
 
             if self.token.is(TokenKind::ColonColon) {
-                continue;
+                self.expect_token(TokenKind::ColonColon)?;
             } else {
                 break;
             }
         }
 
-        let element_name = path.pop().unwrap();
-
-        let target_name = if self.token.is(TokenKind::As) {
-            self.advance_token()?;
-            mapping_pos = self.token.position;
-            Some(self.parse_use_path_component()?)
+        let target = if self.token.is(TokenKind::LBrace) {
+            self.parse_use_brace()?
+        } else if self.token.is(TokenKind::As) {
+            UseTargetDescriptor::As(self.parse_use_as()?)
         } else {
-            None
+            UseTargetDescriptor::Default
         };
 
-        let mapping_span = self.span_from(mapping_start);
-
-        self.expect_semicolon()?;
         let span = self.span_from(start);
 
         Ok(Use {
@@ -256,13 +237,25 @@ impl<'a> Parser<'a> {
             pos,
             span,
             common_path: path,
-            declarations: vec![Box::new(UseMapping {
-                pos: mapping_pos,
-                span: mapping_span,
-                element_name,
-                target_name,
-            })],
+            target,
         })
+    }
+
+    fn parse_use_as(&mut self) -> Result<UseTargetName, ParseErrorAndPos> {
+        self.expect_token(TokenKind::As)?;
+
+        let pos = self.token.position;
+        let start = self.token.span.start();
+
+        let name = if self.token.is(TokenKind::Underscore) {
+            self.expect_token(TokenKind::Underscore)?;
+            None
+        } else {
+            Some(self.expect_identifier()?)
+        };
+
+        let span = self.span_from(start);
+        Ok(UseTargetName { pos, span, name })
     }
 
     fn parse_use_path_component(&mut self) -> Result<UsePathComponent, ParseErrorAndPos> {
@@ -288,37 +281,15 @@ impl<'a> Parser<'a> {
         Ok(UsePathComponent { pos, span, value })
     }
 
-    fn parse_use_mappings(&mut self) -> Result<Vec<Box<UseMapping>>, ParseErrorAndPos> {
+    fn parse_use_brace(&mut self) -> Result<UseTargetDescriptor, ParseErrorAndPos> {
         self.expect_token(TokenKind::LBrace)?;
 
-        let mappings = self.parse_list(TokenKind::Comma, TokenKind::RBrace, |p| {
-            p.parse_use_mapping()
+        let decls = self.parse_list(TokenKind::Comma, TokenKind::RBrace, |p| {
+            let use_decl = p.parse_use_inner()?;
+            Ok(Arc::new(use_decl))
         })?;
 
-        Ok(mappings)
-    }
-
-    fn parse_use_mapping(&mut self) -> Result<Box<UseMapping>, ParseErrorAndPos> {
-        let start = self.token.span.start();
-        let mut pos = self.token.position;
-        let element_name = self.parse_use_path_component()?;
-
-        let target_name = if self.token.is(TokenKind::As) {
-            self.advance_token()?;
-            pos = self.token.position;
-            Some(self.parse_use_path_component()?)
-        } else {
-            None
-        };
-
-        let span = self.span_from(start);
-
-        Ok(Box::new(UseMapping {
-            pos,
-            span,
-            element_name,
-            target_name,
-        }))
+        Ok(UseTargetDescriptor::Group(decls))
     }
 
     fn parse_enum(&mut self, modifiers: &Modifiers) -> Result<Enum, ParseErrorAndPos> {

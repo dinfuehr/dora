@@ -238,7 +238,21 @@ pub struct Use {
     pub pos: Position,
     pub span: Span,
     pub common_path: Vec<UsePathComponent>,
-    pub declarations: Vec<Box<UseMapping>>,
+    pub target: UseTargetDescriptor,
+}
+
+#[derive(Clone, Debug)]
+pub enum UseTargetDescriptor {
+    Default,
+    As(UseTargetName),
+    Group(Vec<Arc<Use>>),
+}
+
+#[derive(Clone, Debug)]
+pub struct UseTargetName {
+    pub pos: Position,
+    pub span: Span,
+    pub name: Option<Name>,
 }
 
 #[derive(Clone, Debug)]
@@ -254,14 +268,6 @@ pub enum UsePathComponentValue {
     Super,
     Package,
     Name(Name),
-}
-
-#[derive(Clone, Debug)]
-pub struct UseMapping {
-    pub pos: Position,
-    pub span: Span,
-    pub element_name: UsePathComponent,
-    pub target_name: Option<UsePathComponent>,
 }
 
 #[derive(Clone, Debug)]

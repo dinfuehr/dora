@@ -4,7 +4,9 @@ use crate::language::report_sym_shadow;
 use crate::language::sem_analysis::{module_package, ModuleDefinitionId, SemAnalysis};
 use crate::language::sym::{NestedSymTable, Sym};
 
-use dora_parser::ast::{UsePathComponent, UsePathComponentValue};
+use dora_parser::ast::{
+    self, UsePathComponent, UsePathComponentValue, UseTargetDescriptor, UseTargetName,
+};
 use dora_parser::lexer::position::Position;
 
 use super::sem_analysis::SourceFileId;
@@ -13,20 +15,13 @@ pub fn check<'a>(sa: &SemAnalysis) {
     let mut all_uses = Vec::new();
 
     for use_def in &sa.uses {
-        for mapping in &use_def.ast.declarations {
-            let mut path = use_def.ast.common_path.clone();
-            path.push(mapping.element_name.clone());
-            all_uses.push(Import {
-                path,
-                target: mapping
-                    .target_name
-                    .clone()
-                    .unwrap_or(mapping.element_name.clone()),
-                module_id: use_def.module_id,
-                file_id: use_def.file_id,
-                pos: mapping.pos,
-            });
-        }
+        create_imports(
+            use_def.module_id,
+            use_def.file_id,
+            &use_def.ast,
+            &mut all_uses,
+            &[],
+        );
     }
 
     for use_decl in all_uses {
@@ -34,9 +29,48 @@ pub fn check<'a>(sa: &SemAnalysis) {
     }
 }
 
+fn create_imports(
+    module_id: ModuleDefinitionId,
+    file_id: SourceFileId,
+    use_declaration: &ast::Use,
+    all_uses: &mut Vec<Import>,
+    outer_path: &[UsePathComponent],
+) {
+    let mut path = outer_path.to_vec();
+    path.extend_from_slice(&use_declaration.common_path);
+
+    match use_declaration.target {
+        UseTargetDescriptor::Default => {
+            let last_component = use_declaration.common_path.last().expect("no component");
+
+            all_uses.push(Import {
+                path,
+                target: None,
+                module_id,
+                file_id,
+                pos: last_component.pos,
+            })
+        }
+
+        UseTargetDescriptor::As(ref target_rename) => all_uses.push(Import {
+            path,
+            target: Some(target_rename.clone()),
+            module_id,
+            file_id,
+            pos: target_rename.pos,
+        }),
+
+        UseTargetDescriptor::Group(ref group) => {
+            for use_declaration in group {
+                create_imports(module_id, file_id, use_declaration, all_uses, &path);
+            }
+        }
+    }
+}
+
 struct Import {
     path: Vec<UsePathComponent>,
-    target: UsePathComponent,
+    target: Option<UseTargetName>,
     module_id: ModuleDefinitionId,
     file_id: SourceFileId,
     pos: Position,
@@ -80,9 +114,12 @@ fn check_use(sa: &SemAnalysis, use_decl: &Import) {
     let table = module.table.clone();
     let mut table = table.write();
 
-    let target_name = match use_decl.target.value {
-        UsePathComponentValue::Name(name) => name,
-        _ => unreachable!(),
+    let target_name = match use_decl.target {
+        Some(ref target) => target.name.expect("name expected"),
+        None => match use_decl.path.last().expect("path expected").value {
+            UsePathComponentValue::Name(name) => name,
+            _ => unreachable!(),
+        },
     };
 
     if let Some(old_sym) = table.insert(target_name, sym) {
