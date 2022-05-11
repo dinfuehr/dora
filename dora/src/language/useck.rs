@@ -29,6 +29,15 @@ pub fn check<'a>(sa: &SemAnalysis) {
     }
 }
 
+fn check_use_new(
+    _sa: &SemAnalysis,
+    _se_declaration: &ast::Use,
+    _use_module_id: ModuleDefinitionId,
+    _se_file_id: SourceFileId,
+) {
+    unimplemented!()
+}
+
 fn create_imports(
     module_id: ModuleDefinitionId,
     file_id: SourceFileId,
@@ -387,5 +396,33 @@ mod tests {
                 @pub enum Bar { A, B, C }
             }
         ");
+    }
+
+    #[test]
+    #[ignore]
+    fn use_keyword_only() {
+        err("use self;", pos(1, 1), SemError::ExpectedPath);
+        err("use super;", pos(1, 1), SemError::ExpectedPath);
+        err("use package;", pos(1, 1), SemError::ExpectedPath);
+    }
+
+    #[test]
+    #[ignore]
+    fn use_keyword_in_middle_of_path() {
+        err(
+            "use foo::bar::self; mod foo { @pub mod bar {} }",
+            pos(1, 1),
+            SemError::ExpectedPath,
+        );
+        err(
+            "use foo::bar::super; mod foo { @pub mod bar {} }",
+            pos(1, 1),
+            SemError::ExpectedPath,
+        );
+        err(
+            "use foo::bar::package; mod foo { @pub mod bar {} }",
+            pos(1, 1),
+            SemError::ExpectedPath,
+        );
     }
 }
