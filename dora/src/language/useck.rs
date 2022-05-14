@@ -1,16 +1,52 @@
+use std::collections::HashSet;
+
 use crate::language::access::sym_accessible_from;
 use crate::language::error::msg::SemError;
 use crate::language::report_sym_shadow;
 use crate::language::sem_analysis::{module_package, ModuleDefinitionId, SemAnalysis};
 use crate::language::sym::{NestedSymTable, Sym};
 
-use dora_parser::ast::{self, UsePathComponent, UsePathComponentValue, UseTargetDescriptor};
+use dora_parser::ast::{
+    self, NodeId, UsePathComponent, UsePathComponentValue, UseTargetDescriptor,
+};
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 use super::sem_analysis::SourceFileId;
 
 pub fn check<'a>(sa: &SemAnalysis) {
+    let mut all_resolved = HashSet::<(SourceFileId, NodeId)>::new();
+    let mut more_work = true;
+
+    while more_work {
+        let mut resolved = false;
+        let mut cancel = false;
+
+        for use_elem in &sa.uses {
+            let result = check_use(
+                sa,
+                &use_elem.ast,
+                use_elem.module_id,
+                use_elem.file_id,
+                None,
+                true,
+                &mut all_resolved,
+                &mut resolved,
+            );
+
+            match result {
+                Ok(()) | Err(UseError::Unresolved) => {}
+                Err(UseError::Fatal) => cancel = true,
+            }
+        }
+
+        if cancel {
+            return;
+        }
+
+        more_work = resolved;
+    }
+
     for use_elem in &sa.uses {
         let _ = check_use(
             sa,
@@ -19,6 +55,8 @@ pub fn check<'a>(sa: &SemAnalysis) {
             use_elem.file_id,
             None,
             false,
+            &mut all_resolved,
+            &mut false,
         );
     }
 }
@@ -35,7 +73,13 @@ fn check_use(
     use_file_id: SourceFileId,
     previous_sym: Option<Sym>,
     ignore_errors: bool,
+    all_resolved: &mut HashSet<(SourceFileId, NodeId)>,
+    resolved: &mut bool,
 ) -> Result<(), UseError> {
+    if all_resolved.contains(&(use_file_id, use_declaration.id)) {
+        return Ok(());
+    }
+
     let (start_idx, mut previous_sym) = initial_module(
         sa,
         use_declaration,
@@ -83,6 +127,9 @@ fn check_use(
                 }
             };
 
+            assert!(all_resolved.insert((use_file_id, use_declaration.id)));
+            *resolved = true;
+
             define_use_target(
                 sa,
                 use_file_id,
@@ -96,6 +143,9 @@ fn check_use(
             let last_component = use_declaration.common_path.last().expect("no component");
 
             let name = target.name.expect("target expected");
+
+            assert!(all_resolved.insert((use_file_id, use_declaration.id)));
+            *resolved = true;
 
             define_use_target(
                 sa,
@@ -122,6 +172,8 @@ fn check_use(
                     use_file_id,
                     Some(previous_sym.clone()),
                     ignore_errors,
+                    all_resolved,
+                    resolved,
                 )?;
             }
         }
@@ -471,6 +523,44 @@ mod tests {
             "use foo::bar:: {}; mod foo { @pub mod bar {} }",
             pos(1, 16),
             SemError::ExpectedPath,
+        );
+    }
+
+    #[test]
+    fn use_zig_zag() {
+        ok("
+            @pub use foo::f1 as f2;
+            @pub use foo::f3 as f4;
+
+            mod foo {
+                @pub use super::f2 as f3;
+                @pub use super::f4 as f5;
+
+                @pub fn f1() {}
+            }
+        ");
+    }
+
+    #[test]
+    fn use_cyclic() {
+        errors(
+            "
+            @pub use foo::f1 as f2;
+
+            mod foo {
+                @pub use super::f2 as f1;
+            }
+        ",
+            &[
+                (
+                    pos(2, 27),
+                    SemError::UnknownIdentifierInModule("foo".into(), "f1".into()),
+                ),
+                (
+                    pos(5, 33),
+                    SemError::UnknownIdentifierInModule("".into(), "f2".into()),
+                ),
+            ],
         );
     }
 }
