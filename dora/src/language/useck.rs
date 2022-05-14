@@ -54,7 +54,14 @@ fn check_use(
 
             let name = match last_component.value {
                 UsePathComponentValue::Name(name) => name,
-                _ => unreachable!(),
+                UsePathComponentValue::Package
+                | UsePathComponentValue::Super
+                | UsePathComponentValue::This => {
+                    sa.diag
+                        .lock()
+                        .report(use_file_id, last_component.pos, SemError::ExpectedPath);
+                    return Err(());
+                }
             };
 
             define_use_target(
@@ -142,7 +149,14 @@ fn process_component(
 ) -> Result<Sym, ()> {
     let component_name = match component.value {
         UsePathComponentValue::Name(name) => name,
-        _ => unreachable!(),
+        UsePathComponentValue::Package
+        | UsePathComponentValue::Super
+        | UsePathComponentValue::This => {
+            sa.diag
+                .lock()
+                .report(use_file_id, component.pos, SemError::ExpectedPath);
+            return Err(());
+        }
     };
 
     match previous_sym {
@@ -393,29 +407,27 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn use_keyword_only() {
-        err("use self;", pos(1, 1), SemError::ExpectedPath);
-        err("use super;", pos(1, 1), SemError::ExpectedPath);
-        err("use package;", pos(1, 1), SemError::ExpectedPath);
+        err("use self;", pos(1, 5), SemError::ExpectedPath);
+        err("use package;", pos(1, 5), SemError::ExpectedPath);
+        err("mod foo { use super; }", pos(1, 15), SemError::ExpectedPath);
     }
 
     #[test]
-    #[ignore]
-    fn use_keyword_in_middle_of_path() {
+    fn use_keyword_in_path() {
         err(
             "use foo::bar::self; mod foo { @pub mod bar {} }",
-            pos(1, 1),
+            pos(1, 15),
             SemError::ExpectedPath,
         );
         err(
             "use foo::bar::super; mod foo { @pub mod bar {} }",
-            pos(1, 1),
+            pos(1, 15),
             SemError::ExpectedPath,
         );
         err(
             "use foo::bar::package; mod foo { @pub mod bar {} }",
-            pos(1, 1),
+            pos(1, 15),
             SemError::ExpectedPath,
         );
     }
