@@ -354,12 +354,19 @@ pub mod tests {
             let errors = diag.errors();
 
             if errors.len() != 1 || errors[0].pos != pos || errors[0].msg != msg {
-                println!("errors = {:?}", errors);
+                println!("expected:");
+                println!("\t{:?} at {}", msg, pos);
                 println!();
-                println!("expected {:?} at {}", msg, pos);
-                println!();
-                println!("but got {:?} at {}", errors[0].msg, errors[0].pos);
-                println!();
+                if errors.is_empty() {
+                    println!("but got no error.");
+                    println!();
+                } else {
+                    println!("but got:");
+                    for error in errors {
+                        println!("\t{:?} at {}", error.msg, error.pos);
+                        println!();
+                    }
+                }
             }
 
             assert_eq!(1, errors.len(), "found {} errors instead", errors.len());

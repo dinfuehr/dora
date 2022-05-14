@@ -206,9 +206,11 @@ impl<'a> Parser<'a> {
         let start = self.token.span.start();
         let pos = self.token.position;
         let mut path = Vec::new();
+        let mut allow_brace = false;
 
         loop {
             if self.token.is(TokenKind::LBrace) {
+                allow_brace = true;
                 break;
             }
 
@@ -222,7 +224,7 @@ impl<'a> Parser<'a> {
             }
         }
 
-        let target = if self.token.is(TokenKind::LBrace) {
+        let target = if allow_brace && self.token.is(TokenKind::LBrace) {
             self.parse_use_brace()?
         } else if self.token.is(TokenKind::As) {
             UseTargetDescriptor::As(self.parse_use_as()?)
@@ -282,14 +284,21 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_use_brace(&mut self) -> Result<UseTargetDescriptor, ParseErrorAndPos> {
-        self.expect_token(TokenKind::LBrace)?;
+        let start = self.token.span.start();
+        let pos = self.expect_token(TokenKind::LBrace)?.position;
 
-        let decls = self.parse_list(TokenKind::Comma, TokenKind::RBrace, |p| {
+        let targets = self.parse_list(TokenKind::Comma, TokenKind::RBrace, |p| {
             let use_decl = p.parse_use_inner()?;
             Ok(Arc::new(use_decl))
         })?;
 
-        Ok(UseTargetDescriptor::Group(decls))
+        let span = self.span_from(start);
+
+        Ok(UseTargetDescriptor::Group(UseTargetGroup {
+            pos,
+            span,
+            targets,
+        }))
     }
 
     fn parse_enum(&mut self, modifiers: &Modifiers) -> Result<Enum, ParseErrorAndPos> {
@@ -4104,5 +4113,22 @@ mod tests {
         parse_expr("match x { }");
         parse_expr("match x { A(x, b) => 1, B => 2 }");
         parse_expr("match x { A(x, b) => 1, B | C => 2 }");
+    }
+
+    #[test]
+    fn parse_use_declaration() {
+        parse_err(
+            "use foo::bar{a, b, c}",
+            ParseError::ExpectedToken(";".into(), "{".into()),
+            1,
+            13,
+        );
+
+        parse_err(
+            "use ::foo;",
+            ParseError::ExpectedIdentifier("::".into()),
+            1,
+            5,
+        );
     }
 }

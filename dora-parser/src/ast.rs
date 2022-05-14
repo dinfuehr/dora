@@ -245,7 +245,14 @@ pub struct Use {
 pub enum UseTargetDescriptor {
     Default,
     As(UseTargetName),
-    Group(Vec<Arc<Use>>),
+    Group(UseTargetGroup),
+}
+
+#[derive(Clone, Debug)]
+pub struct UseTargetGroup {
+    pub pos: Position,
+    pub span: Span,
+    pub targets: Vec<Arc<Use>>,
 }
 
 #[derive(Clone, Debug)]

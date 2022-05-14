@@ -27,10 +27,15 @@ fn check_use(
     use_declaration: &ast::Use,
     use_module_id: ModuleDefinitionId,
     use_file_id: SourceFileId,
-    namespace: Option<Sym>,
+    previous_sym: Option<Sym>,
 ) -> Result<(), ()> {
-    let (start_idx, mut previous_sym) =
-        initial_module(sa, use_declaration, use_module_id, use_file_id, namespace)?;
+    let (start_idx, mut previous_sym) = initial_module(
+        sa,
+        use_declaration,
+        use_module_id,
+        use_file_id,
+        previous_sym,
+    )?;
 
     for (idx, component) in use_declaration
         .common_path
@@ -87,8 +92,15 @@ fn check_use(
                 previous_sym,
             )
         }
-        UseTargetDescriptor::Group(ref targets) => {
-            for nested_use in targets {
+        UseTargetDescriptor::Group(ref group) => {
+            if group.targets.is_empty() {
+                sa.diag
+                    .lock()
+                    .report(use_file_id, group.pos, SemError::ExpectedPath);
+                return Err(());
+            }
+
+            for nested_use in &group.targets {
                 check_use(
                     sa,
                     nested_use,
@@ -108,9 +120,9 @@ fn initial_module(
     use_declaration: &ast::Use,
     use_module_id: ModuleDefinitionId,
     use_file_id: SourceFileId,
-    namespace: Option<Sym>,
+    previous_sym: Option<Sym>,
 ) -> Result<(usize, Sym), ()> {
-    if let Some(namespace) = namespace {
+    if let Some(namespace) = previous_sym {
         return Ok((0, namespace));
     }
 
@@ -428,6 +440,15 @@ mod tests {
         err(
             "use foo::bar::package; mod foo { @pub mod bar {} }",
             pos(1, 15),
+            SemError::ExpectedPath,
+        );
+    }
+
+    #[test]
+    fn no_use_targets() {
+        err(
+            "use foo::bar:: {}; mod foo { @pub mod bar {} }",
+            pos(1, 16),
             SemError::ExpectedPath,
         );
     }
