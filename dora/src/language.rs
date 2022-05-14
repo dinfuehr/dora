@@ -353,7 +353,14 @@ pub mod tests {
             let diag = vm.diag.lock();
             let errors = diag.errors();
 
-            println!("errors = {:?}", errors);
+            if errors.len() != 1 || errors[0].pos != pos || errors[0].msg != msg {
+                println!("errors = {:?}", errors);
+                println!();
+                println!("expected {:?} at {}", msg, pos);
+                println!();
+                println!("but got {:?} at {}", errors[0].msg, errors[0].pos);
+                println!();
+            }
 
             assert_eq!(1, errors.len(), "found {} errors instead", errors.len());
             assert_eq!(pos, errors[0].pos);

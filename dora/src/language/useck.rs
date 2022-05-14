@@ -1,167 +1,142 @@
-use crate::language::access::{module_accessible_from, sym_accessible_from};
+use crate::language::access::sym_accessible_from;
 use crate::language::error::msg::SemError;
 use crate::language::report_sym_shadow;
 use crate::language::sem_analysis::{module_package, ModuleDefinitionId, SemAnalysis};
 use crate::language::sym::{NestedSymTable, Sym};
 
-use dora_parser::ast::{
-    self, UsePathComponent, UsePathComponentValue, UseTargetDescriptor, UseTargetName,
-};
+use dora_parser::ast::{self, UsePathComponent, UsePathComponentValue, UseTargetDescriptor};
+use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 use super::sem_analysis::SourceFileId;
 
 pub fn check<'a>(sa: &SemAnalysis) {
-    let mut all_uses = Vec::new();
-
-    for use_def in &sa.uses {
-        create_imports(
-            use_def.module_id,
-            use_def.file_id,
-            &use_def.ast,
-            &mut all_uses,
-            &[],
+    for use_elem in &sa.uses {
+        let _ = check_use(
+            sa,
+            &use_elem.ast,
+            use_elem.module_id,
+            use_elem.file_id,
+            None,
         );
     }
-
-    for use_decl in all_uses {
-        check_use(sa, &use_decl);
-    }
 }
 
-fn check_use_new(
-    _sa: &SemAnalysis,
-    _se_declaration: &ast::Use,
-    _use_module_id: ModuleDefinitionId,
-    _se_file_id: SourceFileId,
-) {
-    unimplemented!()
-}
-
-fn create_imports(
-    module_id: ModuleDefinitionId,
-    file_id: SourceFileId,
-    use_declaration: &ast::Use,
-    all_uses: &mut Vec<Import>,
-    outer_path: &[UsePathComponent],
-) {
-    let mut path = outer_path.to_vec();
-    path.extend_from_slice(&use_declaration.common_path);
-
-    match use_declaration.target {
-        UseTargetDescriptor::Default => {
-            let last_component = use_declaration.common_path.last().expect("no component");
-
-            all_uses.push(Import {
-                path,
-                target: None,
-                module_id,
-                file_id,
-                pos: last_component.pos,
-            })
-        }
-
-        UseTargetDescriptor::As(ref target_rename) => all_uses.push(Import {
-            path,
-            target: Some(target_rename.clone()),
-            module_id,
-            file_id,
-            pos: target_rename.pos,
-        }),
-
-        UseTargetDescriptor::Group(ref group) => {
-            for use_declaration in group {
-                create_imports(module_id, file_id, use_declaration, all_uses, &path);
-            }
-        }
-    }
-}
-
-struct Import {
-    path: Vec<UsePathComponent>,
-    target: Option<UseTargetName>,
-    module_id: ModuleDefinitionId,
-    file_id: SourceFileId,
-    pos: Position,
-}
-
-fn check_use(sa: &SemAnalysis, use_decl: &Import) {
-    let first_component = use_decl
-        .path
-        .first()
-        .expect("there should always be at least one component");
-
-    let (start_idx, module_id) = match first_component.value {
-        UsePathComponentValue::This => (1, use_decl.module_id),
-        UsePathComponentValue::Package => (1, module_package(sa, use_decl.module_id)),
-        UsePathComponentValue::Super => {
-            let module = &sa.modules[use_decl.module_id].read();
-            if let Some(module_id) = module.parent_module_id {
-                (1, module_id)
-            } else {
-                sa.diag.lock().report(
-                    use_decl.file_id.into(),
-                    first_component.pos,
-                    SemError::NoSuperModule,
-                );
-                return;
-            }
-        }
-        UsePathComponentValue::Name(_) => (0, use_decl.module_id),
-    };
-
-    let sym = match read_path(sa, use_decl, start_idx, module_id) {
-        Ok(sym) => sym,
-        Err(()) => {
-            return;
-        }
-    };
-
-    let module = sa.modules.idx(use_decl.module_id);
-    let module = module.read();
-
-    let table = module.table.clone();
-    let mut table = table.write();
-
-    let target_name = match use_decl.target {
-        Some(ref target) => target.name.expect("name expected"),
-        None => match use_decl.path.last().expect("path expected").value {
-            UsePathComponentValue::Name(name) => name,
-            _ => unreachable!(),
-        },
-    };
-
-    if let Some(old_sym) = table.insert(target_name, sym) {
-        report_sym_shadow(sa, target_name, use_decl.file_id, use_decl.pos, old_sym);
-    }
-}
-
-fn read_path(
+fn check_use(
     sa: &SemAnalysis,
-    use_decl: &Import,
-    start_idx: usize,
-    module_id: ModuleDefinitionId,
-) -> Result<Sym, ()> {
-    let mut previous_sym = Sym::Module(module_id);
-    debug_assert!(module_accessible_from(sa, module_id, use_decl.module_id));
+    use_declaration: &ast::Use,
+    use_module_id: ModuleDefinitionId,
+    use_file_id: SourceFileId,
+    namespace: Option<Sym>,
+) -> Result<(), ()> {
+    let (start_idx, mut previous_sym) =
+        initial_module(sa, use_declaration, use_module_id, use_file_id, namespace)?;
 
-    for (idx, component) in use_decl.path.iter().enumerate().skip(start_idx) {
+    for (idx, component) in use_declaration
+        .common_path
+        .iter()
+        .enumerate()
+        .skip(start_idx)
+    {
         if !previous_sym.is_enum() && !previous_sym.is_module() {
             let msg = SemError::ExpectedPath;
-            let pos = use_decl.path[idx - 1].pos;
-            sa.diag.lock().report(use_decl.file_id, pos, msg);
+            let pos = use_declaration.common_path[idx - 1].pos;
+            sa.diag.lock().report(use_file_id, pos, msg);
             return Err(());
         }
 
-        previous_sym = read_path_component(sa, use_decl, previous_sym, component)?;
+        previous_sym = process_component(sa, use_module_id, use_file_id, previous_sym, component)?;
     }
 
-    Ok(previous_sym)
+    match &use_declaration.target {
+        UseTargetDescriptor::Default => {
+            let last_component = use_declaration.common_path.last().expect("no component");
+
+            let name = match last_component.value {
+                UsePathComponentValue::Name(name) => name,
+                _ => unreachable!(),
+            };
+
+            define_use_target(
+                sa,
+                use_file_id,
+                last_component.pos,
+                use_module_id,
+                name,
+                previous_sym,
+            )
+        }
+        UseTargetDescriptor::As(target) => {
+            let last_component = use_declaration.common_path.last().expect("no component");
+
+            let name = target.name.expect("target expected");
+
+            define_use_target(
+                sa,
+                use_file_id,
+                last_component.pos,
+                use_module_id,
+                name,
+                previous_sym,
+            )
+        }
+        UseTargetDescriptor::Group(ref targets) => {
+            for nested_use in targets {
+                check_use(
+                    sa,
+                    nested_use,
+                    use_module_id,
+                    use_file_id,
+                    Some(previous_sym.clone()),
+                )?;
+            }
+        }
+    }
+
+    Ok(())
 }
 
-fn read_path_component(
+fn initial_module(
     sa: &SemAnalysis,
-    use_decl: &Import,
+    use_declaration: &ast::Use,
+    use_module_id: ModuleDefinitionId,
+    use_file_id: SourceFileId,
+    namespace: Option<Sym>,
+) -> Result<(usize, Sym), ()> {
+    if let Some(namespace) = namespace {
+        return Ok((0, namespace));
+    }
+
+    if let Some(first_component) = use_declaration.common_path.first() {
+        match first_component.value {
+            UsePathComponentValue::This => Ok((1, Sym::Module(use_module_id))),
+            UsePathComponentValue::Package => {
+                Ok((1, Sym::Module(module_package(sa, use_module_id))))
+            }
+            UsePathComponentValue::Super => {
+                let module = &sa.modules[use_module_id].read();
+                if let Some(module_id) = module.parent_module_id {
+                    Ok((1, Sym::Module(module_id)))
+                } else {
+                    sa.diag.lock().report(
+                        use_file_id.into(),
+                        first_component.pos,
+                        SemError::NoSuperModule,
+                    );
+                    Err(())
+                }
+            }
+            UsePathComponentValue::Name(_) => Ok((0, Sym::Module(use_module_id))),
+        }
+    } else {
+        Err(())
+    }
+}
+
+fn process_component(
+    sa: &SemAnalysis,
+    use_module_id: ModuleDefinitionId,
+    use_file_id: SourceFileId,
     previous_sym: Sym,
     component: &UsePathComponent,
 ) -> Result<Sym, ()> {
@@ -176,13 +151,13 @@ fn read_path_component(
             let current_sym = symtable.get(component_name);
 
             if let Some(current_sym) = current_sym {
-                if sym_accessible_from(sa, current_sym.clone(), use_decl.module_id) {
+                if sym_accessible_from(sa, current_sym.clone(), use_module_id) {
                     Ok(current_sym)
                 } else {
                     let module = &sa.modules[module_id].read();
                     let name = sa.interner.str(component_name).to_string();
                     let msg = SemError::NotAccessibleInModule(module.name(sa), name);
-                    sa.diag.lock().report(use_decl.file_id, component.pos, msg);
+                    sa.diag.lock().report(use_file_id, component.pos, msg);
                     Err(())
                 }
             } else {
@@ -191,7 +166,7 @@ fn read_path_component(
                 let name = sa.interner.str(component_name).to_string();
                 let module_name = module.name(sa);
                 sa.diag.lock().report(
-                    use_decl.file_id,
+                    use_file_id,
                     component.pos,
                     SemError::UnknownIdentifierInModule(module_name, name),
                 );
@@ -207,7 +182,7 @@ fn read_path_component(
             } else {
                 let name = sa.interner.str(component_name).to_string();
                 sa.diag.lock().report(
-                    use_decl.file_id.into(),
+                    use_file_id,
                     component.pos,
                     SemError::UnknownEnumVariant(name),
                 );
@@ -216,6 +191,25 @@ fn read_path_component(
         }
 
         _ => unreachable!(),
+    }
+}
+
+fn define_use_target(
+    sa: &SemAnalysis,
+    use_file_id: SourceFileId,
+    use_pos: Position,
+    module_id: ModuleDefinitionId,
+    name: Name,
+    sym: Sym,
+) {
+    let module = sa.modules.idx(module_id);
+    let module = module.read();
+
+    let table = module.table.clone();
+    let mut table = table.write();
+
+    if let Some(old_sym) = table.insert(name, sym) {
+        report_sym_shadow(sa, name, use_file_id, use_pos, old_sym);
     }
 }
 
