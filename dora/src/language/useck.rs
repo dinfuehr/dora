@@ -18,8 +18,14 @@ pub fn check<'a>(sa: &SemAnalysis) {
             use_elem.module_id,
             use_elem.file_id,
             None,
+            false,
         );
     }
+}
+
+enum UseError {
+    Unresolved,
+    Fatal,
 }
 
 fn check_use(
@@ -28,7 +34,8 @@ fn check_use(
     use_module_id: ModuleDefinitionId,
     use_file_id: SourceFileId,
     previous_sym: Option<Sym>,
-) -> Result<(), ()> {
+    ignore_errors: bool,
+) -> Result<(), UseError> {
     let (start_idx, mut previous_sym) = initial_module(
         sa,
         use_declaration,
@@ -47,10 +54,17 @@ fn check_use(
             let msg = SemError::ExpectedPath;
             let pos = use_declaration.common_path[idx - 1].pos;
             sa.diag.lock().report(use_file_id, pos, msg);
-            return Err(());
+            return Err(UseError::Fatal);
         }
 
-        previous_sym = process_component(sa, use_module_id, use_file_id, previous_sym, component)?;
+        previous_sym = process_component(
+            sa,
+            use_module_id,
+            use_file_id,
+            previous_sym,
+            component,
+            ignore_errors,
+        )?;
     }
 
     match &use_declaration.target {
@@ -65,7 +79,7 @@ fn check_use(
                     sa.diag
                         .lock()
                         .report(use_file_id, last_component.pos, SemError::ExpectedPath);
-                    return Err(());
+                    return Err(UseError::Fatal);
                 }
             };
 
@@ -76,7 +90,7 @@ fn check_use(
                 use_module_id,
                 name,
                 previous_sym,
-            )
+            )?;
         }
         UseTargetDescriptor::As(target) => {
             let last_component = use_declaration.common_path.last().expect("no component");
@@ -90,14 +104,14 @@ fn check_use(
                 use_module_id,
                 name,
                 previous_sym,
-            )
+            )?;
         }
         UseTargetDescriptor::Group(ref group) => {
             if group.targets.is_empty() {
                 sa.diag
                     .lock()
                     .report(use_file_id, group.pos, SemError::ExpectedPath);
-                return Err(());
+                return Err(UseError::Fatal);
             }
 
             for nested_use in &group.targets {
@@ -107,6 +121,7 @@ fn check_use(
                     use_module_id,
                     use_file_id,
                     Some(previous_sym.clone()),
+                    ignore_errors,
                 )?;
             }
         }
@@ -121,7 +136,7 @@ fn initial_module(
     use_module_id: ModuleDefinitionId,
     use_file_id: SourceFileId,
     previous_sym: Option<Sym>,
-) -> Result<(usize, Sym), ()> {
+) -> Result<(usize, Sym), UseError> {
     if let Some(namespace) = previous_sym {
         return Ok((0, namespace));
     }
@@ -142,13 +157,13 @@ fn initial_module(
                         first_component.pos,
                         SemError::NoSuperModule,
                     );
-                    Err(())
+                    Err(UseError::Fatal)
                 }
             }
             UsePathComponentValue::Name(_) => Ok((0, Sym::Module(use_module_id))),
         }
     } else {
-        Err(())
+        Err(UseError::Fatal)
     }
 }
 
@@ -158,7 +173,8 @@ fn process_component(
     use_file_id: SourceFileId,
     previous_sym: Sym,
     component: &UsePathComponent,
-) -> Result<Sym, ()> {
+    ignore_errors: bool,
+) -> Result<Sym, UseError> {
     let component_name = match component.value {
         UsePathComponentValue::Name(name) => name,
         UsePathComponentValue::Package
@@ -167,7 +183,7 @@ fn process_component(
             sa.diag
                 .lock()
                 .report(use_file_id, component.pos, SemError::ExpectedPath);
-            return Err(());
+            return Err(UseError::Fatal);
         }
     };
 
@@ -184,8 +200,10 @@ fn process_component(
                     let name = sa.interner.str(component_name).to_string();
                     let msg = SemError::NotAccessibleInModule(module.name(sa), name);
                     sa.diag.lock().report(use_file_id, component.pos, msg);
-                    Err(())
+                    Err(UseError::Fatal)
                 }
+            } else if ignore_errors {
+                Err(UseError::Unresolved)
             } else {
                 let module = sa.modules.idx(module_id);
                 let module = module.read();
@@ -196,7 +214,7 @@ fn process_component(
                     component.pos,
                     SemError::UnknownIdentifierInModule(module_name, name),
                 );
-                Err(())
+                Err(UseError::Unresolved)
             }
         }
 
@@ -212,7 +230,7 @@ fn process_component(
                     component.pos,
                     SemError::UnknownEnumVariant(name),
                 );
-                Err(())
+                Err(UseError::Fatal)
             }
         }
 
@@ -227,7 +245,7 @@ fn define_use_target(
     module_id: ModuleDefinitionId,
     name: Name,
     sym: Sym,
-) {
+) -> Result<(), UseError> {
     let module = sa.modules.idx(module_id);
     let module = module.read();
 
@@ -236,6 +254,9 @@ fn define_use_target(
 
     if let Some(old_sym) = table.insert(name, sym) {
         report_sym_shadow(sa, name, use_file_id, use_pos, old_sym);
+        Err(UseError::Fatal)
+    } else {
+        Ok(())
     }
 }
 
