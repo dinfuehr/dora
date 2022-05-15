@@ -129,7 +129,7 @@ impl<'a> ProgramParser<'a> {
             }
         }
 
-        eprintln!("bundled_files: {:?}", bundle);
+        eprintln!("bundled_files: {:?}", bundle.iter().map(|pair| pair.0));
         panic!("can't find file {} in bundle.", path.display())
     }
 

@@ -2969,24 +2969,33 @@ impl<'a> TypeCheck<'a> {
 
     fn check_expr_lambda(
         &mut self,
-        e: &Arc<ast::Function>,
+        node: &Arc<ast::Function>,
         _expected_ty: SourceType,
     ) -> SourceType {
-        let ret = if let Some(ref ret_type) = e.return_type {
+        let ret = if let Some(ref ret_type) = node.return_type {
             self.read_type(ret_type)
         } else {
             SourceType::Unit
         };
 
-        let params = e
+        let params = node
             .params
             .iter()
             .map(|p| self.read_type(&p.data_type))
             .collect::<Vec<_>>();
 
         let ty = SourceType::Lambda(SourceTypeArray::with(params), Box::new(ret));
+        let parent_fct_id = self.fct.id();
 
-        self.analysis.set_ty(e.id, ty.clone());
+        let lambda = FctDefinition::new(
+            self.file_id,
+            self.module_id,
+            node,
+            FctParent::Function(parent_fct_id),
+        );
+        self.sa.add_fct(lambda);
+
+        self.analysis.set_ty(node.id, ty.clone());
 
         ty
     }

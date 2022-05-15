@@ -79,6 +79,8 @@ pub fn check(sa: &SemAnalysis) {
             }
 
             FctParent::None => {}
+
+            FctParent::Function(_) => unimplemented!(),
         }
 
         let container_type_params = fct.type_params.len();
@@ -400,11 +402,11 @@ mod tests {
     fn lambdas() {
         ok("fn f() { || {}; }");
         ok("fn f() { |a: Int32| {}; }");
-        ok("fn f() { || -> Int32 { return 2; }; }");
+        ok("fn f() { ||: Int32 { return 2; }; }");
 
         err(
-            "fn f() { || -> Foo { }; }",
-            pos(1, 16),
+            "fn f() { ||: Foo { }; }",
+            pos(1, 14),
             SemError::UnknownIdentifier("Foo".into()),
         );
         err(

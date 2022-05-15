@@ -1159,12 +1159,12 @@ fn test_global_set() {
 #[test]
 fn lambda_assignment() {
     ok("fn f() { let x = || {}; }");
-    ok("fn f() { let x = || -> Int32 { return 2i32; }; }");
-    ok("fn f() { let x: () -> () = || {}; }");
-    ok("fn f() { let x: () -> () = || -> () {}; }");
-    ok("fn f() { let x: () -> Int32 = || -> Int32 { return 2i32; }; }");
+    ok("fn f() { let x = ||: Int32 { return 2i32; }; }");
+    ok("fn f() { let x: (): () = || {}; }");
+    ok("fn f() { let x: (): () = ||: () {}; }");
+    ok("fn f() { let x: (): Int32 = ||: Int32 { return 2i32; }; }");
     err(
-        "fn f() { let x: () -> Int32 = || {}; }",
+        "fn f() { let x: (): Int32 = || {}; }",
         pos(1, 10),
         SemError::AssignType("x".into(), "() -> Int32".into(), "() -> ()".into()),
     );
@@ -3669,20 +3669,20 @@ fn method_call_type_mismatch_with_type_params() {
 
 #[test]
 fn basic_lambda() {
-    ok("fn f(foo: (Int32) -> Int32): Int32 {
+    ok("fn f(foo: (Int32): Int32): Int32 {
         foo(1i32)
     }");
 
     err(
-        "fn f(foo: (Int32) -> Int32): Bool {
+        "fn f(foo: (Int32): Int32): Bool {
         foo(1i32)
     }",
-        pos(1, 35),
+        pos(1, 33),
         SemError::ReturnType("Bool".into(), "Int32".into()),
     );
 
     err(
-        "fn f(foo: (Int32, Int32) -> Int32): Int32 {
+        "fn f(foo: (Int32, Int32): Int32): Int32 {
         foo(1i32)
     }",
         pos(2, 12),
@@ -3691,4 +3691,15 @@ fn basic_lambda() {
             vec!["Int32".into()],
         ),
     );
+}
+
+#[test]
+fn lambda_body() {
+    ok("fn f(): (Int32): Int32 {
+        |x: Int32|: Int32 { x }
+    }");
+
+    ok("fn f(): (Int32): Int32 {
+        |x: Int32|: Int32 { x + 1 }
+    }");
 }

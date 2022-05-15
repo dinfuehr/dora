@@ -213,6 +213,8 @@ impl FctDefinition {
             FctParent::None => {
                 return module_path(sa, self.module_id, self.name);
             }
+
+            FctParent::Function(_) => unimplemented!(),
         };
 
         if !self.has_parent() || self.is_static {
@@ -295,6 +297,7 @@ pub enum FctParent {
     Trait(TraitDefinitionId),
     Impl(ImplDefinitionId),
     Extension(ExtensionDefinitionId),
+    Function(FctDefinitionId),
     None,
 }
 

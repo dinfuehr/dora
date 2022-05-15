@@ -81,7 +81,7 @@ pub fn method_accessible_from(
             return true;
         }
 
-        FctParent::None => unreachable!(),
+        FctParent::Function(_) | FctParent::None => unreachable!(),
     };
 
     accessible_from(sa, fct.module_id, element_pub, module_id)

@@ -1195,7 +1195,7 @@ impl<'a> Parser<'a> {
                     Ok(Box::new(ty))
                 })?;
 
-                if self.token.is(TokenKind::Arrow) {
+                if self.token.is(TokenKind::Colon) {
                     self.advance_token()?;
                     let ret = Box::new(self.parse_type()?);
                     let span = self.span_from(start);
@@ -2181,7 +2181,7 @@ impl<'a> Parser<'a> {
             })?
         };
 
-        let return_type = if self.token.is(TokenKind::Arrow) {
+        let return_type = if self.token.is(TokenKind::Colon) {
             self.advance_token()?;
             Some(self.parse_type()?)
         } else {
@@ -3259,8 +3259,8 @@ mod tests {
     }
 
     #[test]
-    fn parse_type_fct_no_params() {
-        let (ty, _) = parse_type("() -> ()");
+    fn parse_type_lambda_no_params() {
+        let (ty, _) = parse_type("(): ()");
         let fct = ty.to_fct().unwrap();
 
         assert_eq!(0, fct.params.len());
@@ -3268,8 +3268,8 @@ mod tests {
     }
 
     #[test]
-    fn parse_type_fct_one_param() {
-        let (ty, interner) = parse_type("(A) -> B");
+    fn parse_type_lambda_one_param() {
+        let (ty, interner) = parse_type("(A): B");
         let fct = ty.to_fct().unwrap();
 
         assert_eq!(1, fct.params.len());
@@ -3278,8 +3278,8 @@ mod tests {
     }
 
     #[test]
-    fn parse_type_fct_two_params() {
-        let (ty, interner) = parse_type("(A, B) -> C");
+    fn parse_type_lambda_two_params() {
+        let (ty, interner) = parse_type("(A, B): C");
         let fct = ty.to_fct().unwrap();
 
         assert_eq!(2, fct.params.len());
@@ -3938,7 +3938,7 @@ mod tests {
 
     #[test]
     fn parse_lambda_no_params_unit_as_return_value() {
-        let (expr, _) = parse_expr("|| -> () {}");
+        let (expr, _) = parse_expr("|| : () {}");
         let lambda = expr.to_lambda().unwrap();
         let ret = lambda.return_type.as_ref().unwrap();
 
@@ -3947,7 +3947,7 @@ mod tests {
 
     #[test]
     fn parse_lambda_no_params_with_return_value() {
-        let (expr, interner) = parse_expr("|| -> A {}");
+        let (expr, interner) = parse_expr("||: A {}");
         let lambda = expr.to_lambda().unwrap();
         let ret = lambda.return_type.as_ref().unwrap();
         let basic = ret.to_basic().unwrap();
@@ -3957,7 +3957,7 @@ mod tests {
 
     #[test]
     fn parse_lambda_with_one_param() {
-        let (expr, interner) = parse_expr("|a: A| -> B {}");
+        let (expr, interner) = parse_expr("|a: A|: B {}");
         let lambda = expr.to_lambda().unwrap();
 
         assert_eq!(1, lambda.params.len());
@@ -3975,7 +3975,7 @@ mod tests {
 
     #[test]
     fn parse_lambda_with_two_params() {
-        let (expr, interner) = parse_expr("|a: A, b: B| -> C {}");
+        let (expr, interner) = parse_expr("|a: A, b: B|: C {}");
         let lambda = expr.to_lambda().unwrap();
 
         assert_eq!(2, lambda.params.len());
