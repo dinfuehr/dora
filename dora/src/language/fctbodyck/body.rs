@@ -91,7 +91,7 @@ impl<'a> TypeCheck<'a> {
         self.add_hidden_parameter_self();
 
         let self_count = if self.fct.has_self() { 1 } else { 0 };
-        debug_assert_eq!(
+        assert_eq!(
             self.ast.params.len() + self_count,
             self.fct.param_types.len()
         );
@@ -2984,15 +2984,17 @@ impl<'a> TypeCheck<'a> {
             .map(|p| self.read_type(&p.data_type))
             .collect::<Vec<_>>();
 
-        let ty = SourceType::Lambda(SourceTypeArray::with(params), Box::new(ret));
+        let ty = SourceType::Lambda(SourceTypeArray::with(params.clone()), Box::new(ret.clone()));
         let parent_fct_id = self.fct.id();
 
-        let lambda = FctDefinition::new(
+        let mut lambda = FctDefinition::new(
             self.file_id,
             self.module_id,
             node,
             FctParent::Function(parent_fct_id),
         );
+        lambda.param_types = params;
+        lambda.return_type = ret;
         let lambda_fct_id = self.sa.add_fct(lambda);
         self.analysis.map_lambdas.insert(node.id, lambda_fct_id);
 
@@ -3003,7 +3005,7 @@ impl<'a> TypeCheck<'a> {
             let mut analysis = AnalysisData::new();
             let symtable = NestedSymTable::new(self.sa, self.fct.module_id);
 
-            let _typeck = TypeCheck {
+            let mut typeck = TypeCheck {
                 sa: self.sa,
                 fct: &*lambda,
                 file_id: self.fct.file_id,
@@ -3015,7 +3017,7 @@ impl<'a> TypeCheck<'a> {
                 self_ty: None,
             };
 
-            // typeck.check();
+            typeck.check();
         }
 
         self.analysis.set_ty(node.id, ty.clone());

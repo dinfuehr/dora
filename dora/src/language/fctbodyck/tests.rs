@@ -3700,6 +3700,14 @@ fn lambda_body() {
     }");
 
     ok("fn f(): (Int32): Int32 {
-        |x: Int32|: Int32 { x + 1 }
+        |x: Int32|: Int32 { x + 1i32 }
     }");
+
+    err(
+        "fn f(): (Int32): Int32 {
+        |x: Int32|: Int32 { false }
+    }",
+        pos(2, 27),
+        SemError::ReturnType("Int32".into(), "Bool".into()),
+    );
 }
