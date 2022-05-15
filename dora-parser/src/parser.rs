@@ -17,7 +17,7 @@ use crate::lexer::*;
 pub struct Parser<'a> {
     lexer: Lexer,
     token: Token,
-    id_generator: &'a NodeIdGenerator,
+    id_generator: NodeIdGenerator,
     interner: &'a mut Interner,
     param_idx: u32,
     in_class_or_module: bool,
@@ -34,36 +34,24 @@ enum StmtOrExpr {
 }
 
 impl<'a> Parser<'a> {
-    pub fn from_string(
-        code: &'static str,
-        id_generator: &'a NodeIdGenerator,
-        interner: &'a mut Interner,
-    ) -> Parser<'a> {
+    pub fn from_string(code: &'static str, interner: &'a mut Interner) -> Parser<'a> {
         let reader = Reader::from_string(code);
-        Parser::common_init(reader, id_generator, interner)
+        Parser::common_init(reader, interner)
     }
 
-    pub fn from_shared_string(
-        content: Arc<String>,
-        id_generator: &'a NodeIdGenerator,
-        interner: &'a mut Interner,
-    ) -> Parser<'a> {
+    pub fn from_shared_string(content: Arc<String>, interner: &'a mut Interner) -> Parser<'a> {
         let reader = Reader::from_shared_string(content);
-        Parser::common_init(reader, id_generator, interner)
+        Parser::common_init(reader, interner)
     }
 
-    fn common_init(
-        reader: Reader,
-        id_generator: &'a NodeIdGenerator,
-        interner: &'a mut Interner,
-    ) -> Parser<'a> {
+    fn common_init(reader: Reader, interner: &'a mut Interner) -> Parser<'a> {
         let token = Token::new(TokenKind::End, Position::new(1, 1), Span::invalid());
         let lexer = Lexer::new(reader);
 
         let parser = Parser {
             lexer,
             token,
-            id_generator,
+            id_generator: NodeIdGenerator::new(),
             interner,
             param_idx: 0,
             in_class_or_module: false,
@@ -2289,17 +2277,17 @@ impl<'a> Parser<'a> {
     }
 
     fn generate_global_initializer(&mut self, global: &Global, initializer: Box<Expr>) -> Function {
-        let builder = Builder::new(self.id_generator);
+        let builder = Builder::new();
         let mut block = builder.build_block();
 
-        let var = builder.build_ident(global.name);
-        let assignment = builder.build_initializer_assign(var, initializer);
+        let var = builder.build_ident(self.generate_id(), global.name);
+        let assignment = builder.build_initializer_assign(self.generate_id(), var, initializer);
 
-        block.add_expr(assignment);
+        block.add_expr(self.generate_id(), assignment);
 
         let mut fct = builder.build_fct(global.name);
-        fct.block(block.build());
-        fct.build()
+        fct.block(block.build(self.generate_id()));
+        fct.build(self.generate_id())
     }
 
     fn generate_constructor(
@@ -2307,7 +2295,7 @@ impl<'a> Parser<'a> {
         cls: &mut Class,
         ctor_params: Vec<ConstructorParam>,
     ) -> Function {
-        let builder = Builder::new(self.id_generator);
+        let builder = Builder::new();
         let mut block = builder.build_block();
 
         if let Some(ref parent_class) = cls.parent_class {
@@ -2318,24 +2306,36 @@ impl<'a> Parser<'a> {
                 parent_class.params.clone(),
             );
 
-            block.add_expr(Box::new(expr));
+            block.add_expr(self.generate_id(), Box::new(expr));
         }
 
         for param in ctor_params.iter().filter(|param| param.field) {
-            let this = builder.build_this();
-            let lhs = builder.build_dot(this, builder.build_ident(param.name));
-            let rhs = builder.build_ident(param.name);
-            let ass = builder.build_initializer_assign(lhs, rhs);
+            let this = builder.build_this(self.generate_id());
+            let lhs = builder.build_dot(
+                self.generate_id(),
+                this,
+                builder.build_ident(self.generate_id(), param.name),
+            );
+            let rhs = builder.build_ident(self.generate_id(), param.name);
+            let ass = builder.build_initializer_assign(self.generate_id(), lhs, rhs);
 
-            block.add_expr(ass);
+            block.add_expr(self.generate_id(), ass);
         }
 
         for field in cls.fields.iter().filter(|field| field.expr.is_some()) {
-            let this = builder.build_this();
-            let lhs = builder.build_dot(this, builder.build_ident(field.name));
-            let ass = builder.build_initializer_assign(lhs, field.expr.as_ref().unwrap().clone());
+            let this = builder.build_this(self.generate_id());
+            let lhs = builder.build_dot(
+                self.generate_id(),
+                this,
+                builder.build_ident(self.generate_id(), field.name),
+            );
+            let ass = builder.build_initializer_assign(
+                self.generate_id(),
+                lhs,
+                field.expr.as_ref().unwrap().clone(),
+            );
 
-            block.add_expr(ass);
+            block.add_expr(self.generate_id(), ass);
         }
 
         block.add_stmts(mem::replace(&mut cls.initializers, Vec::new()));
@@ -2344,6 +2344,7 @@ impl<'a> Parser<'a> {
 
         for param in &ctor_params {
             fct.add_param(
+                self.generate_id(),
                 param.pos,
                 param.name,
                 param.data_type.clone(),
@@ -2354,9 +2355,9 @@ impl<'a> Parser<'a> {
         fct.is_method(true)
             .is_public(true)
             .constructor(true)
-            .block(block.build());
+            .block(block.build(self.generate_id()));
 
-        fct.build()
+        fct.build(self.generate_id())
     }
 }
 
@@ -2387,14 +2388,13 @@ mod tests {
 
     use crate::error::ParseError;
     use crate::lexer::position::Position;
-    use crate::parser::{NodeIdGenerator, Parser};
+    use crate::parser::Parser;
 
     fn parse_expr(code: &'static str) -> (Box<Expr>, Interner) {
-        let id_generator = NodeIdGenerator::new();
         let mut interner = Interner::new();
 
         let expr = {
-            let mut parser = Parser::from_string(code, &id_generator, &mut interner);
+            let mut parser = Parser::from_string(code, &mut interner);
             assert!(parser.init().is_ok());
 
             let result = parser.parse_expression();
@@ -2411,9 +2411,8 @@ mod tests {
 
     fn err_expr(code: &'static str, msg: ParseError, line: u32, col: u32) {
         let err = {
-            let id_generator = NodeIdGenerator::new();
             let mut interner = Interner::new();
-            let mut parser = Parser::from_string(code, &id_generator, &mut interner);
+            let mut parser = Parser::from_string(code, &mut interner);
 
             assert!(parser.init().is_ok());
             parser.parse_expression().unwrap_err()
@@ -2425,9 +2424,8 @@ mod tests {
     }
 
     fn parse_stmt(code: &'static str) -> Box<Stmt> {
-        let id_generator = NodeIdGenerator::new();
         let mut interner = Interner::new();
-        let mut parser = Parser::from_string(code, &id_generator, &mut interner);
+        let mut parser = Parser::from_string(code, &mut interner);
         assert!(parser.init().is_ok());
 
         parser.parse_statement().unwrap()
@@ -2435,9 +2433,8 @@ mod tests {
 
     fn err_stmt(code: &'static str, msg: ParseError, line: u32, col: u32) {
         let err = {
-            let id_generator = NodeIdGenerator::new();
             let mut interner = Interner::new();
-            let mut parser = Parser::from_string(code, &id_generator, &mut interner);
+            let mut parser = Parser::from_string(code, &mut interner);
 
             assert!(parser.init().is_ok());
             parser.parse_statement().unwrap_err()
@@ -2451,8 +2448,7 @@ mod tests {
     fn parse_type(code: &'static str) -> (Type, Interner) {
         let mut interner = Interner::new();
         let ty = {
-            let id_generator = NodeIdGenerator::new();
-            let mut parser = Parser::from_string(code, &id_generator, &mut interner);
+            let mut parser = Parser::from_string(code, &mut interner);
             assert!(parser.init().is_ok());
 
             parser.parse_type().unwrap()
@@ -2462,21 +2458,17 @@ mod tests {
     }
 
     fn parse(code: &'static str) -> (File, Interner) {
-        let id_generator = NodeIdGenerator::new();
         let mut interner = Interner::new();
 
-        let file = Parser::from_string(code, &id_generator, &mut interner)
-            .parse()
-            .unwrap();
+        let file = Parser::from_string(code, &mut interner).parse().unwrap();
 
         (file, interner)
     }
 
     fn parse_err(code: &'static str, msg: ParseError, line: u32, col: u32) {
-        let id_generator = NodeIdGenerator::new();
         let mut interner = Interner::new();
 
-        let err = Parser::from_string(code, &id_generator, &mut interner)
+        let err = Parser::from_string(code, &mut interner)
             .parse()
             .unwrap_err();
 

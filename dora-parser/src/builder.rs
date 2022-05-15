@@ -3,28 +3,22 @@ use crate::ast::*;
 use crate::interner::*;
 use crate::lexer::position::{Position, Span};
 
-use crate::parser::NodeIdGenerator;
+pub struct Builder;
 
-pub struct Builder<'a> {
-    id_generator: &'a NodeIdGenerator,
-}
-
-impl<'a> Builder<'a> {
-    pub fn new(id_generator: &'a NodeIdGenerator) -> Builder<'a> {
-        Builder { id_generator }
+impl Builder {
+    pub fn new() -> Builder {
+        Builder
     }
 
-    pub fn build_block(&self) -> BuilderBlock<'a> {
-        BuilderBlock::new(self.id_generator)
+    pub fn build_block(&self) -> BuilderBlock {
+        BuilderBlock::new()
     }
 
-    pub fn build_fct(&self, name: Name) -> BuilderFct<'a> {
-        BuilderFct::new(self.id_generator, name)
+    pub fn build_fct(&self, name: Name) -> BuilderFct {
+        BuilderFct::new(name)
     }
 
-    pub fn build_this(&self) -> Box<Expr> {
-        let id = self.id_generator.next();
-
+    pub fn build_this(&self, id: NodeId) -> Box<Expr> {
         Box::new(Expr::This(ExprSelfType {
             id,
             pos: Position::new(1, 1),
@@ -32,9 +26,12 @@ impl<'a> Builder<'a> {
         }))
     }
 
-    pub fn build_initializer_assign(&self, lhs: Box<Expr>, rhs: Box<Expr>) -> Box<Expr> {
-        let id = self.id_generator.next();
-
+    pub fn build_initializer_assign(
+        &self,
+        id: NodeId,
+        lhs: Box<Expr>,
+        rhs: Box<Expr>,
+    ) -> Box<Expr> {
         Box::new(Expr::Bin(ExprBinType {
             id,
             pos: Position::new(1, 1),
@@ -47,9 +44,7 @@ impl<'a> Builder<'a> {
         }))
     }
 
-    pub fn build_dot(&self, lhs: Box<Expr>, rhs: Box<Expr>) -> Box<Expr> {
-        let id = self.id_generator.next();
-
+    pub fn build_dot(&self, id: NodeId, lhs: Box<Expr>, rhs: Box<Expr>) -> Box<Expr> {
         Box::new(Expr::Dot(ExprDotType {
             id,
             pos: Position::new(1, 1),
@@ -60,9 +55,7 @@ impl<'a> Builder<'a> {
         }))
     }
 
-    pub fn build_ident(&self, name: Name) -> Box<Expr> {
-        let id = self.id_generator.next();
-
+    pub fn build_ident(&self, id: NodeId, name: Name) -> Box<Expr> {
         Box::new(Expr::Ident(ExprIdentType {
             id,
             pos: Position::new(1, 1),
@@ -74,8 +67,7 @@ impl<'a> Builder<'a> {
     }
 }
 
-pub struct BuilderFct<'a> {
-    id_generator: &'a NodeIdGenerator,
+pub struct BuilderFct {
     name: Name,
     is_method: bool,
     is_public: bool,
@@ -85,10 +77,9 @@ pub struct BuilderFct<'a> {
     block: Option<Box<ExprBlockType>>,
 }
 
-impl<'a> BuilderFct<'a> {
-    pub fn new(id_generator: &'a NodeIdGenerator, name: Name) -> BuilderFct<'a> {
+impl<'a> BuilderFct {
+    pub fn new(name: Name) -> BuilderFct {
         BuilderFct {
-            id_generator,
             name,
             is_method: false,
             is_public: false,
@@ -101,13 +92,12 @@ impl<'a> BuilderFct<'a> {
 
     pub fn add_param(
         &mut self,
+        id: NodeId,
         pos: Position,
         name: Name,
         ty: Type,
         variadic: bool,
-    ) -> &mut BuilderFct<'a> {
-        let id = self.id_generator.next();
-
+    ) -> &mut BuilderFct {
         let param = Param {
             id,
             idx: self.params.len() as u32,
@@ -122,29 +112,29 @@ impl<'a> BuilderFct<'a> {
         self
     }
 
-    pub fn is_method(&mut self, value: bool) -> &mut BuilderFct<'a> {
+    pub fn is_method(&mut self, value: bool) -> &mut BuilderFct {
         self.is_method = value;
         self
     }
 
-    pub fn is_public(&mut self, value: bool) -> &mut BuilderFct<'a> {
+    pub fn is_public(&mut self, value: bool) -> &mut BuilderFct {
         self.is_public = value;
         self
     }
 
-    pub fn constructor(&mut self, constructor: bool) -> &mut BuilderFct<'a> {
+    pub fn constructor(&mut self, constructor: bool) -> &mut BuilderFct {
         self.is_constructor = constructor;
         self
     }
 
-    pub fn block(&mut self, block: Box<ExprBlockType>) -> &mut BuilderFct<'a> {
+    pub fn block(&mut self, block: Box<ExprBlockType>) -> &mut BuilderFct {
         self.block = Some(block);
         self
     }
 
-    pub fn build(self) -> Function {
+    pub fn build(self, id: NodeId) -> Function {
         Function {
-            id: self.id_generator.next(),
+            id,
             kind: FunctionKind::Function,
             pos: Position::new(1, 1),
             span: Span::invalid(),
@@ -168,27 +158,21 @@ impl<'a> BuilderFct<'a> {
     }
 }
 
-pub struct BuilderBlock<'a> {
-    id_generator: &'a NodeIdGenerator,
+pub struct BuilderBlock {
     stmts: Vec<Box<Stmt>>,
 }
 
-impl<'a> BuilderBlock<'a> {
-    pub fn new(id_generator: &'a NodeIdGenerator) -> BuilderBlock<'a> {
-        BuilderBlock {
-            id_generator,
-            stmts: Vec::new(),
-        }
+impl<'a> BuilderBlock {
+    pub fn new() -> BuilderBlock {
+        BuilderBlock { stmts: Vec::new() }
     }
 
-    pub fn add_stmts(&mut self, mut stmts: Vec<Box<Stmt>>) -> &mut BuilderBlock<'a> {
+    pub fn add_stmts(&mut self, mut stmts: Vec<Box<Stmt>>) -> &mut BuilderBlock {
         self.stmts.append(&mut stmts);
         self
     }
 
-    pub fn add_expr(&mut self, expr: Box<Expr>) -> &mut BuilderBlock<'a> {
-        let id = self.id_generator.next();
-
+    pub fn add_expr(&mut self, id: NodeId, expr: Box<Expr>) -> &mut BuilderBlock {
         let stmt = Box::new(Stmt::Expr(StmtExprType {
             id,
             pos: Position::new(1, 1),
@@ -200,9 +184,7 @@ impl<'a> BuilderBlock<'a> {
         self
     }
 
-    pub fn build(self) -> Box<ExprBlockType> {
-        let id = self.id_generator.next();
-
+    pub fn build(self, id: NodeId) -> Box<ExprBlockType> {
         Box::new(ExprBlockType {
             id,
             pos: Position::new(1, 1),

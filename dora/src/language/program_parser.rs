@@ -422,8 +422,7 @@ impl<'a> ProgramParser<'a> {
             path = file.path.clone();
         }
 
-        let parser =
-            Parser::from_shared_string(content, &self.sa.id_generator, &mut self.sa.interner);
+        let parser = Parser::from_shared_string(content, &mut self.sa.interner);
 
         match parser.parse() {
             Ok(ast) => {

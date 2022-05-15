@@ -26,7 +26,6 @@ use crate::utils::GrowableVecNonIter;
 use crate::utils::{GrowableVec, MutableVec};
 
 use dora_parser::interner::*;
-use dora_parser::parser::NodeIdGenerator;
 
 pub use self::classes::{
     create_class_instance_with_vtable, ClassInstance, ClassInstanceId, FieldInstance,
@@ -96,7 +95,6 @@ pub struct FullSemAnalysis {
     pub args: Args,
     pub test_file_as_string: Option<&'static str>,
     pub interner: Interner,
-    pub id_generator: NodeIdGenerator,
     pub source_files: Vec<SourceFile>,
     pub diag: Mutex<Diagnostic>,
     pub known: KnownElements,
@@ -148,7 +146,6 @@ impl FullSemAnalysis {
             uses: Vec::new(),
             interner,
             known: KnownElements::new(),
-            id_generator: NodeIdGenerator::new(),
             diag: Mutex::new(Diagnostic::new()),
             fcts: GrowableVec::new(),
             native_stubs: Mutex::new(NativeStubs::new()),
@@ -170,7 +167,6 @@ pub struct VM {
     pub args: Args,
     pub test_file_as_string: Option<&'static str>,
     pub interner: Interner,
-    pub id_generator: NodeIdGenerator,
     pub source_files: Vec<SourceFile>,
     pub diag: Mutex<Diagnostic>,
     pub known: KnownElements,
@@ -250,7 +246,6 @@ impl VM {
             interner,
             known: KnownElements::new(),
             gc,
-            id_generator: NodeIdGenerator::new(),
             diag: Mutex::new(Diagnostic::new()),
             fcts: GrowableVec::new(),
             compilation_database: CompilationDatabase::new(),
@@ -302,7 +297,6 @@ impl VM {
             interner: sa.interner,
             known: sa.known,
             gc,
-            id_generator: sa.id_generator,
             diag: sa.diag,
             fcts: sa.fcts,
             compilation_database: CompilationDatabase::new(),
