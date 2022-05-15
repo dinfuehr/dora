@@ -14,7 +14,7 @@ use crate::language::ty::{SourceType, SourceTypeArray};
 use dora_parser::lexer::position::Position;
 
 fn code(code: &'static str) -> Vec<Bytecode> {
-    test::parse(code, |sa| {
+    test::check_valid(code, |sa| {
         let fct_id = sa.fct_by_name("f").expect("no function `f`.");
         let fct = generate_fct(sa, fct_id);
         build(&fct)
@@ -22,7 +22,7 @@ fn code(code: &'static str) -> Vec<Bytecode> {
 }
 
 fn position(code: &'static str) -> Vec<(u32, Position)> {
-    test::parse(code, |sa| {
+    test::check_valid(code, |sa| {
         let fct_id = sa.fct_by_name("f").expect("no function `f`.");
         let fct = generate_fct(sa, fct_id);
         fct.positions().to_vec()
@@ -34,7 +34,7 @@ fn code_method(code: &'static str) -> Vec<Bytecode> {
 }
 
 fn code_method_with_class_name(code: &'static str, class_name: &'static str) -> Vec<Bytecode> {
-    test::parse(code, |sa| {
+    test::check_valid(code, |sa| {
         let fct_id = sa
             .cls_method_by_name(class_name, "f", false)
             .unwrap_or_else(|| panic!("no function `f` in Class `{}`.", class_name));
@@ -44,7 +44,7 @@ fn code_method_with_class_name(code: &'static str, class_name: &'static str) -> 
 }
 
 fn code_method_with_struct_name(code: &'static str, struct_name: &'static str) -> Vec<Bytecode> {
-    test::parse(code, |sa| {
+    test::check_valid(code, |sa| {
         let fct_id = sa
             .struct_method_by_name(struct_name, "f", false)
             .unwrap_or_else(|| panic!("no function `f` in Class `{}`.", struct_name));
@@ -57,7 +57,7 @@ fn gen<F>(code: &'static str, testfct: F)
 where
     F: FnOnce(&SemAnalysis, Vec<Bytecode>),
 {
-    test::parse(code, |sa| {
+    test::check_valid(code, |sa| {
         let fct_id = sa.fct_by_name("f").expect("no function `f`.");
         let fct = generate_fct(sa, fct_id);
         let code = build(&fct);
@@ -70,7 +70,7 @@ fn gen_fct<F>(code: &'static str, testfct: F)
 where
     F: FnOnce(&SemAnalysis, Vec<Bytecode>, BytecodeFunction),
 {
-    test::parse(code, |sa| {
+    test::check_valid(code, |sa| {
         let fct_id = sa.fct_by_name("f").expect("no function `f`.");
         let fct = generate_fct(sa, fct_id);
         let code = build(&fct);

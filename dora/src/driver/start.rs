@@ -35,22 +35,16 @@ pub fn start() -> i32 {
 
     let mut sa = SemAnalysis::new(args);
 
-    if !language::check(&mut sa) {
+    let success = language::check(&mut sa);
+    assert_eq!(success, !sa.diag.lock().has_errors());
+
+    if report_errors(&sa) {
         return 1;
     }
 
     let main_fct_id = find_main(&sa);
 
-    if sa.diag.lock().has_errors() {
-        sa.diag.lock().dump(&sa);
-        let no_errors = sa.diag.lock().errors().len();
-
-        if no_errors == 1 {
-            eprintln!("{} error found.", no_errors);
-        } else {
-            eprintln!("{} errors found.", no_errors);
-        }
-
+    if report_errors(&sa) {
         return 1;
     }
 
@@ -96,6 +90,23 @@ pub fn start() -> i32 {
     }
 
     exit_code
+}
+
+fn report_errors(sa: &SemAnalysis) -> bool {
+    if sa.diag.lock().has_errors() {
+        sa.diag.lock().dump(&sa);
+        let no_errors = sa.diag.lock().errors().len();
+
+        if no_errors == 1 {
+            eprintln!("{} error found.", no_errors);
+        } else {
+            eprintln!("{} errors found.", no_errors);
+        }
+
+        true
+    } else {
+        false
+    }
 }
 
 fn run_tests(vm: &VM, module_id: ModuleDefinitionId) -> i32 {

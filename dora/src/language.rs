@@ -46,7 +46,7 @@ mod useck;
 macro_rules! return_on_error {
     ($vm: ident) => {{
         if $vm.diag.lock().has_errors() {
-            return true;
+            return false;
         }
     }};
 }
@@ -125,6 +125,7 @@ pub fn check(sa: &mut SemAnalysis) -> bool {
     // check function body
     fctbodyck::check(sa);
     return_on_error!(sa);
+
     true
 }
 
@@ -313,7 +314,7 @@ pub mod tests {
     use dora_parser::lexer::position::Position;
 
     pub fn ok(code: &'static str) {
-        test::parse_with_errors(code, |vm| {
+        test::check(code, |vm| {
             let diag = vm.diag.lock();
             let errors = diag.errors();
 
@@ -332,7 +333,7 @@ pub mod tests {
     where
         F: FnOnce(&SemAnalysis) -> R,
     {
-        test::parse_with_errors(code, |vm| {
+        test::check(code, |vm| {
             let diag = vm.diag.lock();
             let errors = diag.errors();
 
@@ -349,7 +350,7 @@ pub mod tests {
     }
 
     pub fn err(code: &'static str, pos: Position, msg: SemError) {
-        test::parse_with_errors(code, |vm| {
+        test::check(code, |vm| {
             let diag = vm.diag.lock();
             let errors = diag.errors();
 
@@ -376,7 +377,7 @@ pub mod tests {
     }
 
     pub fn errors(code: &'static str, vec: &[(Position, SemError)]) {
-        test::parse_with_errors(code, |vm| {
+        test::check(code, |vm| {
             let diag = vm.diag.lock();
             let errors = diag.errors();
 

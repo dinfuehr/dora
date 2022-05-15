@@ -2,11 +2,11 @@ use crate::driver::cmd::Args;
 use crate::language;
 use crate::language::sem_analysis::SemAnalysis;
 
-pub fn parse<F, T>(code: &'static str, f: F) -> T
+pub fn check_valid<F, T>(code: &'static str, f: F) -> T
 where
     F: FnOnce(&SemAnalysis) -> T,
 {
-    parse_with_errors(code, |sa| {
+    check(code, |sa| {
         if sa.diag.lock().has_errors() {
             sa.diag.lock().dump(sa);
             println!("{}", code);
@@ -17,7 +17,7 @@ where
     })
 }
 
-pub fn parse_with_errors<F, T>(code: &'static str, f: F) -> T
+pub fn check<F, T>(code: &'static str, f: F) -> T
 where
     F: FnOnce(&SemAnalysis) -> T,
 {
@@ -25,7 +25,7 @@ where
     let mut sa = SemAnalysis::new(args);
     sa.test_file_as_string = Some(code);
 
-    assert!(language::check(&mut sa));
+    language::check(&mut sa);
 
     f(&sa)
 }
