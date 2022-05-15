@@ -43,6 +43,8 @@ mod type_annotations;
 mod typeparamck;
 mod useck;
 
+const USE_OLD_MODULE_MECHANISM: bool = false;
+
 macro_rules! return_on_error {
     ($vm: ident) => {{
         if $vm.diag.lock().has_errors() {

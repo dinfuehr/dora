@@ -1,3 +1,7 @@
+use std::traits::{Hash, Equals, Iterator, Default, Zero, Sortable, Identity};
+use std::string::{Stringable, StringBuffer};
+use std::{fatalError, unsafeKillRefs};
+
 @pub @internal class Array[T](values: T...) {
   @pub @internal fn size(): Int64;
   @pub @internal fn get(idx: Int64): T;

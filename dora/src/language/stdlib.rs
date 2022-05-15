@@ -220,7 +220,8 @@ fn final_path_name(sa: &mut SemAnalysis, path: &str) -> Name {
 
 pub fn discover_known_methods(sa: &mut SemAnalysis) {
     let stdlib = sa.stdlib_module_id;
-    sa.known.functions.string_buffer_empty = Some(find_static(sa, stdlib, "StringBuffer", "empty"));
+    sa.known.functions.string_buffer_empty =
+        Some(find_static(sa, stdlib, "string::StringBuffer", "empty"));
     sa.known.functions.string_buffer_append =
         Some(find_method(sa, stdlib, "string::StringBuffer", "append"));
     sa.known.functions.string_buffer_to_string =
@@ -275,7 +276,7 @@ fn resolve_name(sa: &SemAnalysis, name: &str, module_id: ModuleDefinitionId) -> 
 
     // Until stdlib switches to new module mechanism, still perform a direct lookup of name in
     // the std module without the given path.
-    if sa.stdlib_module_id == module_id {
+    if crate::language::USE_OLD_MODULE_MECHANISM {
         let last_name = path.clone().last().expect("no name");
         let interned_name = sa.interner.intern(last_name);
         let symtable = NestedSymTable::new(sa, module_id);
@@ -283,20 +284,20 @@ fn resolve_name(sa: &SemAnalysis, name: &str, module_id: ModuleDefinitionId) -> 
         if let Some(sym) = symtable.get(interned_name) {
             return sym;
         }
-    }
+    } else {
+        for name in path {
+            let module_id = sym.to_module().expect("module expected");
+            let symtable = NestedSymTable::new(sa, module_id);
 
-    for name in path {
-        let module_id = sym.to_module().expect("module expected");
-        let symtable = NestedSymTable::new(sa, module_id);
+            let interned_name = sa.interner.intern(name);
 
-        let interned_name = sa.interner.intern(name);
-
-        if let Some(current_sym) = symtable.get(interned_name) {
-            sym = current_sym;
-        } else {
-            let module = sa.modules.idx(module_id);
-            let module = module.read();
-            panic!("{} not found in module {}.", name, module.name(sa));
+            if let Some(current_sym) = symtable.get(interned_name) {
+                sym = current_sym;
+            } else {
+                let module = sa.modules.idx(module_id);
+                let module = module.read();
+                panic!("{} not found in module {}.", name, module.name(sa));
+            }
         }
     }
 
@@ -911,7 +912,7 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
     native_method(
         sa,
         stdlib,
-        "Thread",
+        "thread::Thread",
         "start",
         stdlib::start_thread as *const u8,
     );
@@ -919,17 +920,23 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
     native_method(
         sa,
         stdlib,
-        "Thread",
+        "thread::Thread",
         "join",
         stdlib::join_thread as *const u8,
     );
 
-    native_method(sa, stdlib, "Mutex", "wait", stdlib::mutex_wait as *const u8);
+    native_method(
+        sa,
+        stdlib,
+        "thread::Mutex",
+        "wait",
+        stdlib::mutex_wait as *const u8,
+    );
 
     native_method(
         sa,
         stdlib,
-        "Mutex",
+        "thread::Mutex",
         "notify",
         stdlib::mutex_notify as *const u8,
     );
@@ -937,7 +944,7 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
     native_method(
         sa,
         stdlib,
-        "Condition",
+        "thread::Condition",
         "enqueue",
         stdlib::condition_enqueue as *const u8,
     );
@@ -945,7 +952,7 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
     native_method(
         sa,
         stdlib,
-        "Condition",
+        "thread::Condition",
         "block",
         stdlib::condition_block_after_enqueue as *const u8,
     );
@@ -953,7 +960,7 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
     native_method(
         sa,
         stdlib,
-        "Condition",
+        "thread::Condition",
         "wakeupOne",
         stdlib::condition_wakeup_one as *const u8,
     );
@@ -961,7 +968,7 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
     native_method(
         sa,
         stdlib,
-        "Condition",
+        "thread::Condition",
         "wakeupAll",
         stdlib::condition_wakeup_all as *const u8,
     );
@@ -979,50 +986,74 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
     );
     sa.known.functions.option_unwrap = Some(fct_id);
 
-    intrinsic_method(sa, stdlib, "AtomicInt32", "get", Intrinsic::AtomicInt32Get);
-    intrinsic_method(sa, stdlib, "AtomicInt32", "set", Intrinsic::AtomicInt32Set);
     intrinsic_method(
         sa,
         stdlib,
-        "AtomicInt32",
+        "thread::AtomicInt32",
+        "get",
+        Intrinsic::AtomicInt32Get,
+    );
+    intrinsic_method(
+        sa,
+        stdlib,
+        "thread::AtomicInt32",
+        "set",
+        Intrinsic::AtomicInt32Set,
+    );
+    intrinsic_method(
+        sa,
+        stdlib,
+        "thread::AtomicInt32",
         "exchange",
         Intrinsic::AtomicInt32Exchange,
     );
     intrinsic_method(
         sa,
         stdlib,
-        "AtomicInt32",
+        "thread::AtomicInt32",
         "compareExchange",
         Intrinsic::AtomicInt32CompareExchange,
     );
     intrinsic_method(
         sa,
         stdlib,
-        "AtomicInt32",
+        "thread::AtomicInt32",
         "fetchAdd",
         Intrinsic::AtomicInt32FetchAdd,
     );
 
-    intrinsic_method(sa, stdlib, "AtomicInt64", "get", Intrinsic::AtomicInt64Get);
-    intrinsic_method(sa, stdlib, "AtomicInt64", "set", Intrinsic::AtomicInt64Set);
     intrinsic_method(
         sa,
         stdlib,
-        "AtomicInt64",
+        "thread::AtomicInt64",
+        "get",
+        Intrinsic::AtomicInt64Get,
+    );
+    intrinsic_method(
+        sa,
+        stdlib,
+        "thread::AtomicInt64",
+        "set",
+        Intrinsic::AtomicInt64Set,
+    );
+    intrinsic_method(
+        sa,
+        stdlib,
+        "thread::AtomicInt64",
         "exchange",
         Intrinsic::AtomicInt64Exchange,
     );
     intrinsic_method(
         sa,
         stdlib,
-        "AtomicInt64",
+        "thread::AtomicInt64",
         "compareExchange",
         Intrinsic::AtomicInt64CompareExchange,
     );
     intrinsic_method(
         sa,
         stdlib,
-        "AtomicInt64",
+        "thread::AtomicInt64",
         "fetchAdd",
         Intrinsic::AtomicInt64FetchAdd,
     );

@@ -90,7 +90,7 @@ impl<'a> ProgramParser<'a> {
         let stdlib_dir = self.sa.args.flag_stdlib.clone();
         let module_id = self.sa.stdlib_module_id;
 
-        let use_old_mechanism = true;
+        let use_old_mechanism = crate::language::USE_OLD_MODULE_MECHANISM;
 
         if use_old_mechanism {
             if let Some(stdlib) = stdlib_dir {

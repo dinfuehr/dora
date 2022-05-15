@@ -1,3 +1,18 @@
+@pub use collections::{Array, BitSet, BitVec, HashMap, HashSet, Queue, Vec};
+@pub use traits::{Comparable, Default, Equals, Hash, Iterator, Zero};
+@pub use primitives::{Bool, Char, Float32, Float64, Int32, Int64, Option, range, Result};
+@pub use rand::Random;
+@pub use string::{CodepointIterator, String, StringBuffer, Stringable};
+@pub use thread::{AtomicInt32, AtomicInt64, Condition, Mutex, Thread};
+
+@pub mod annotations;
+@pub mod collections;
+@pub mod primitives;
+@pub mod rand;
+@pub mod string;
+@pub mod thread;
+@pub mod traits;
+
 @pub @internal fn fatalError(msg: String);
 @pub @internal fn abort();
 @pub @internal fn exit(status: Int32);
@@ -107,14 +122,16 @@ fn isValidUtf8(data: Array[UInt8]): Bool {
     let backtraceLength = self.backtrace.getOrPanic().size();
     var i = 0i64;
     let len = backtraceLength / 2i64;
-    let elements = Array[StacktraceElement]::unsafeNew(len);
+    let elements = Vec[StacktraceElement]();
+    elements.reserve(len);
 
     while i < len {
-      elements.set(i, self.getStacktraceElement(i));
+      elements.push(self.getStacktraceElement(i));
       i = i + 1i64;
     }
 
-    self.elements = Some[Array[StacktraceElement]](elements);
+    let elements = elements.toArray();
+    self.elements = Some(elements);
     return elements;
   }
 

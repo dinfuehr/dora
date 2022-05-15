@@ -1,3 +1,5 @@
+use std::fatalError;
+
 @pub @internal class String {
   @pub fn equals(rhs: String): Bool {
     var i = 0i64;

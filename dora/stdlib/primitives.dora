@@ -1,3 +1,7 @@
+use std::traits::{Default, Equals, Iterator, Zero};
+use std::string::Stringable;
+use std::fatalError;
+
 @pub @internal struct Bool
 
 impl Bool {

@@ -1,5 +1,5 @@
 /* total order */
-trait Sortable {
+@pub trait Sortable {
   fn sortsAs(other: Self): Int32;
   // ideally we would be able to provide a default implementation for the next 3 methods based on `sortsAs`
   fn sortsBefore(other: Self): Bool;
@@ -56,7 +56,7 @@ impl Sortable for String {
   fn sortsSame(other: String): Bool = self == other;
 }
 
-trait Default {
+@pub trait Default {
   @static fn default(): Self;
 }
 
@@ -121,7 +121,7 @@ impl Hash for Float64 {
   fn hash(): Int32 = self.hash();
 }
 
-trait Identity {
+@pub trait Identity {
   fn identicalTo(other: Self): Bool;
 }
 
