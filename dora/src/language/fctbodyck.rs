@@ -3,8 +3,6 @@ use crate::language::fctbodyck::constck::ConstCheck;
 use crate::language::sem_analysis::{AnalysisData, SemAnalysis};
 use crate::language::sym::NestedSymTable;
 
-use dora_parser::ast::NodeId;
-
 pub mod body;
 mod constck;
 mod lookup;
@@ -55,7 +53,6 @@ pub fn check(sa: &SemAnalysis) {
             let mut constck = ConstCheck {
                 sa,
                 const_: &*const_,
-                negative_expr_id: NodeId(0),
             };
 
             constck.check_expr(&const_.expr)

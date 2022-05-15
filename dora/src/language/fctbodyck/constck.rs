@@ -10,7 +10,6 @@ use dora_parser::ast::*;
 pub struct ConstCheck<'a> {
     pub sa: &'a SemAnalysis,
     pub const_: &'a ConstDefinition,
-    pub negative_expr_id: NodeId,
 }
 
 impl<'a> ConstCheck<'a> {
