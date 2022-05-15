@@ -28,9 +28,6 @@ pub fn parse(sa: &mut SemAnalysis) -> Result<(), i32> {
 enum FileLookup {
     FileSystem,
     Bundle,
-
-    FileSystemOld,
-    BundleOld,
 }
 
 type PreparedBundle = HashMap<PathBuf, Vec<(PathBuf, String)>>;
@@ -85,57 +82,24 @@ impl<'a> ProgramParser<'a> {
     }
 
     fn add_stdlib_files(&mut self) -> Result<(), i32> {
-        use crate::driver::start::STDLIB;
-
         let stdlib_dir = self.sa.args.flag_stdlib.clone();
         let module_id = self.sa.stdlib_module_id;
 
-        let use_old_mechanism = crate::language::USE_OLD_MODULE_MECHANISM;
-
-        if use_old_mechanism {
-            if let Some(stdlib) = stdlib_dir {
-                self.add_files_in_directory(PathBuf::from(stdlib), module_id, None)?;
-            } else {
-                self.stdlib = prepare_bundle(STDLIB);
-                self.add_bundled_stdlib(module_id)?;
-            }
+        if let Some(stdlib) = stdlib_dir {
+            let file_path = PathBuf::from(stdlib);
+            let module_path = PathBuf::from(file_path.parent().expect("parent missing"));
+            self.add_file(
+                file_path,
+                module_id,
+                Some(module_path),
+                None,
+                FileLookup::FileSystem,
+            )
         } else {
-            if let Some(stdlib) = stdlib_dir {
-                let file_path = PathBuf::from(stdlib);
-                let module_path = PathBuf::from(file_path.parent().expect("parent missing"));
-                self.add_file(
-                    file_path,
-                    module_id,
-                    Some(module_path),
-                    None,
-                    FileLookup::FileSystem,
-                )?;
-            } else {
-                let file_path = PathBuf::from("stdlib/stdlib.dora");
-                let module_path = PathBuf::from(file_path.parent().expect("parent missing"));
-                self.add_bundled_file(file_path, module_id, module_path)?;
-            }
+            let file_path = PathBuf::from("stdlib/stdlib.dora");
+            let module_path = PathBuf::from(file_path.parent().expect("parent missing"));
+            self.add_bundled_file(file_path, module_id, module_path)
         }
-
-        Ok(())
-    }
-
-    fn add_bundled_stdlib(&mut self, module_id: ModuleDefinitionId) -> Result<(), i32> {
-        let path = PathBuf::from("stdlib");
-        self.add_bundled_directory(path, module_id)
-    }
-
-    fn add_bundled_directory(
-        &mut self,
-        path: PathBuf,
-        module_id: ModuleDefinitionId,
-    ) -> Result<(), i32> {
-        let files = self.stdlib.remove(&path).expect("missing directory");
-        for (path, content) in files {
-            self.add_file_from_string(path, content, module_id, None, FileLookup::BundleOld);
-        }
-
-        Ok(())
     }
 
     fn add_bundled_file(
@@ -228,7 +192,6 @@ impl<'a> ProgramParser<'a> {
     fn scan_file(
         &mut self,
         file_id: SourceFileId,
-        file_path: PathBuf,
         module_id: ModuleDefinitionId,
         module_path: Option<PathBuf>,
         file_lookup: FileLookup,
@@ -245,12 +208,7 @@ impl<'a> ProgramParser<'a> {
 
         if !gdef.external_modules.is_empty() {
             for external_module_id in gdef.external_modules {
-                self.add_module_files(
-                    file_path.clone(),
-                    external_module_id,
-                    module_path.clone(),
-                    file_lookup,
-                )?;
+                self.add_module_files(external_module_id, module_path.clone(), file_lookup)?;
             }
         }
 
@@ -259,7 +217,6 @@ impl<'a> ProgramParser<'a> {
 
     fn add_module_files(
         &mut self,
-        including_file_path: PathBuf,
         module_id: ModuleDefinitionId,
         module_path: Option<PathBuf>,
         file_lookup: FileLookup,
@@ -272,14 +229,6 @@ impl<'a> ProgramParser<'a> {
         let name = self.sa.interner.str(node.name).to_string();
 
         match file_lookup {
-            FileLookup::FileSystemOld => {
-                let mut module_directory =
-                    PathBuf::from(including_file_path.parent().expect("parent missing"));
-                module_directory.push(&name);
-
-                self.add_files_in_directory(module_directory, module_id, Some((file_id, node.pos)))
-            }
-
             FileLookup::FileSystem => {
                 let module_path = module_path.expect("missing module_path");
 
@@ -300,13 +249,6 @@ impl<'a> ProgramParser<'a> {
                 Ok(())
             }
 
-            FileLookup::BundleOld => {
-                let mut module_directory =
-                    PathBuf::from(including_file_path.parent().expect("parent missing"));
-                module_directory.push(&name);
-                self.add_bundled_directory(module_directory, module_id)
-            }
-
             FileLookup::Bundle => {
                 let module_path = module_path.expect("missing module_path");
 
@@ -320,42 +262,6 @@ impl<'a> ProgramParser<'a> {
 
                 Ok(())
             }
-        }
-    }
-
-    fn add_files_in_directory(
-        &mut self,
-        path: PathBuf,
-        module_id: ModuleDefinitionId,
-        error_location: Option<(SourceFileId, Position)>,
-    ) -> Result<(), i32> {
-        if path.is_dir() {
-            for entry in fs::read_dir(path).unwrap() {
-                let path = entry.unwrap().path();
-
-                if should_file_be_parsed(&path) {
-                    self.add_file(
-                        path.clone(),
-                        module_id,
-                        None,
-                        error_location,
-                        FileLookup::FileSystemOld,
-                    )?;
-                }
-            }
-
-            Ok(())
-        } else if let Some((file_id, pos)) = error_location {
-            self.sa
-                .diag
-                .lock()
-                .report(file_id, pos, SemError::DirectoryNotFound(path));
-
-            Ok(())
-        } else {
-            println!("directory `{:?}` does not exist.", path);
-
-            Err(1)
         }
     }
 
@@ -426,7 +332,7 @@ impl<'a> ProgramParser<'a> {
 
         match parser.parse() {
             Ok(ast) => {
-                self.scan_file(file_id, path, module_id, module_path, file_lookup, &ast)?;
+                self.scan_file(file_id, module_id, module_path, file_lookup, &ast)?;
                 Ok(())
             }
 

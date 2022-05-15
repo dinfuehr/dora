@@ -274,30 +274,18 @@ fn resolve_name(sa: &SemAnalysis, name: &str, module_id: ModuleDefinitionId) -> 
     let path = name.split("::");
     let mut sym = Sym::Module(module_id);
 
-    // Until stdlib switches to new module mechanism, still perform a direct lookup of name in
-    // the std module without the given path.
-    if crate::language::USE_OLD_MODULE_MECHANISM {
-        let last_name = path.clone().last().expect("no name");
-        let interned_name = sa.interner.intern(last_name);
+    for name in path {
+        let module_id = sym.to_module().expect("module expected");
         let symtable = NestedSymTable::new(sa, module_id);
 
-        if let Some(sym) = symtable.get(interned_name) {
-            return sym;
-        }
-    } else {
-        for name in path {
-            let module_id = sym.to_module().expect("module expected");
-            let symtable = NestedSymTable::new(sa, module_id);
+        let interned_name = sa.interner.intern(name);
 
-            let interned_name = sa.interner.intern(name);
-
-            if let Some(current_sym) = symtable.get(interned_name) {
-                sym = current_sym;
-            } else {
-                let module = sa.modules.idx(module_id);
-                let module = module.read();
-                panic!("{} not found in module {}.", name, module.name(sa));
-            }
+        if let Some(current_sym) = symtable.get(interned_name) {
+            sym = current_sym;
+        } else {
+            let module = sa.modules.idx(module_id);
+            let module = module.read();
+            panic!("{} not found in module {}.", name, module.name(sa));
         }
     }
 
