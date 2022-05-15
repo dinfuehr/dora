@@ -2993,7 +2993,30 @@ impl<'a> TypeCheck<'a> {
             node,
             FctParent::Function(parent_fct_id),
         );
-        self.sa.add_fct(lambda);
+        let lambda_fct_id = self.sa.add_fct(lambda);
+        self.analysis.map_lambdas.insert(node.id, lambda_fct_id);
+
+        {
+            let lambda = self.sa.fcts.idx(lambda_fct_id);
+            let lambda = lambda.read();
+
+            let mut analysis = AnalysisData::new();
+            let symtable = NestedSymTable::new(self.sa, self.fct.module_id);
+
+            let _typeck = TypeCheck {
+                sa: self.sa,
+                fct: &*lambda,
+                file_id: self.fct.file_id,
+                module_id: self.fct.module_id,
+                analysis: &mut analysis,
+                ast: &node,
+                symtable: symtable,
+                in_loop: false,
+                self_ty: None,
+            };
+
+            // typeck.check();
+        }
 
         self.analysis.set_ty(node.id, ty.clone());
 

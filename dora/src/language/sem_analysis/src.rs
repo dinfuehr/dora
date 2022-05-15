@@ -21,6 +21,7 @@ pub struct AnalysisData {
     pub map_convs: NodeMap<ConvInfo>,
     pub map_cls: NodeMap<ClassDefinitionId>,
     pub map_fors: NodeMap<ForTypeInfo>,
+    pub map_lambdas: NodeMap<FctDefinitionId>,
     pub vars: Vec<Var>, // variables in functions
 }
 
@@ -34,6 +35,7 @@ impl AnalysisData {
             map_convs: NodeMap::new(),
             map_cls: NodeMap::new(),
             map_fors: NodeMap::new(),
+            map_lambdas: NodeMap::new(),
 
             vars: Vec::new(),
         }
