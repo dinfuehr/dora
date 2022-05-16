@@ -80,6 +80,8 @@ use package::bytecode::data::GlobalId;
     NewStruct(BytecodeRegister, ConstPoolId),
     NewTraitObject(BytecodeRegister, ConstPoolId, BytecodeRegister),
     NilCheck(BytecodeRegister),
+    NewLambda(BytecodeRegister, ConstPoolId),
+
     ArrayLength(BytecodeRegister, BytecodeRegister),
     ArrayBoundCheck(BytecodeRegister, BytecodeRegister),
     LoadArray(BytecodeRegister, BytecodeRegister, BytecodeRegister),

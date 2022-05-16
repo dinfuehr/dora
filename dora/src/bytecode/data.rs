@@ -129,6 +129,7 @@ enumeration!(BytecodeOpcode {
     NewEnum,
     NewStruct,
     NewTraitObject,
+    NewLambda,
 
     NilCheck,
 
@@ -632,6 +633,10 @@ pub enum BytecodeInstruction {
         dest: Register,
         idx: ConstPoolIdx,
         src: Register,
+    },
+    NewLambda {
+        dest: Register,
+        idx: ConstPoolIdx,
     },
 
     NilCheck {

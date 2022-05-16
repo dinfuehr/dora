@@ -241,6 +241,9 @@ class BytecodeDumper(let bc: BytecodeFunction) {
             BytecodeInstruction::NewTraitObject(dest, idx, obj) => {
                 self.emitRegIdxReg("NewTraitObject", dest, idx, obj);
             },
+            BytecodeInstruction::NewLambda(dest, idx) => {
+                self.emitReg1AndIdx("NewLambda", dest, idx);
+            },
             BytecodeInstruction::NilCheck(src) => {
                 self.emitReg1("NilCheck", src);
             },

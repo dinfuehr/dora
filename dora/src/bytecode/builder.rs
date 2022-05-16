@@ -562,6 +562,11 @@ impl BytecodeBuilder {
         self.writer.set_position(pos);
         self.writer.emit_new_trait_object(dest, idx, src);
     }
+    pub fn emit_new_lambda(&mut self, dest: Register, idx: ConstPoolIdx, pos: Position) {
+        assert!(self.def(dest));
+        self.writer.set_position(pos);
+        self.writer.emit_new_lambda(dest, idx);
+    }
 
     pub fn emit_nil_check(&mut self, obj: Register, pos: Position) {
         assert!(self.used(obj));

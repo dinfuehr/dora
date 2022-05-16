@@ -448,6 +448,9 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
             BytecodeInstruction::NewTraitObject(dest, idx, obj) => {
                 unimplemented();
             },
+            BytecodeInstruction::NewLambda(dest, idx) => {
+                unimplemented();
+            },
             BytecodeInstruction::NilCheck(src) => {
                 unimplemented();
             },

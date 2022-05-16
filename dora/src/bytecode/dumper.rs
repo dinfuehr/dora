@@ -521,6 +521,25 @@ impl<'a> BytecodeDumper<'a> {
         fct.display_name(self.vm)
     }
 
+    fn emit_new_lambda(&mut self, name: &str, r1: Register, idx: ConstPoolIdx) {
+        self.emit_start(name);
+        let (fct_id, _type_params) = match self.bc.const_pool(idx) {
+            ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params.clone()),
+            _ => unreachable!(),
+        };
+        let fct = self.vm.fcts.idx(fct_id);
+        let fct = fct.read();
+        let fname = fct.display_name(self.vm);
+        writeln!(
+            self.w,
+            " {}, ConstPoolIdx({}) # {}",
+            r1,
+            idx.to_usize(),
+            fname
+        )
+        .expect("write! failed");
+    }
+
     fn emit_new_object(&mut self, name: &str, r1: Register, idx: ConstPoolIdx) {
         self.emit_start(name);
         let (cls_id, type_params) = match self.bc.const_pool(idx) {
@@ -905,6 +924,9 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     }
     fn visit_new_trait_object(&mut self, dest: Register, idx: ConstPoolIdx, src: Register) {
         self.emit_new_trait_object("NewTraitObject", dest, idx, src);
+    }
+    fn visit_new_lambda(&mut self, dest: Register, idx: ConstPoolIdx) {
+        self.emit_new_lambda("NewLambda", dest, idx);
     }
     fn visit_new_array(&mut self, dest: Register, idx: ConstPoolIdx, length: Register) {
         self.emit_new_array("NewArray", dest, idx, length);

@@ -409,6 +409,11 @@ impl<'a> BytecodeReader<'a> {
                 let src = self.read_register();
                 BytecodeInstruction::NewTraitObject { dest, idx, src }
             }
+            BytecodeOpcode::NewLambda => {
+                let dest = self.read_register();
+                let idx = self.read_const_pool_idx();
+                BytecodeInstruction::NewLambda { dest, idx }
+            }
 
             BytecodeOpcode::NilCheck => {
                 let obj = self.read_register();
@@ -769,6 +774,9 @@ where
             BytecodeInstruction::NewTraitObject { dest, idx, src } => {
                 self.visitor.visit_new_trait_object(dest, idx, src);
             }
+            BytecodeInstruction::NewLambda { dest, idx } => {
+                self.visitor.visit_new_lambda(dest, idx);
+            }
 
             BytecodeInstruction::NilCheck { obj } => {
                 self.visitor.visit_nil_check(obj);
@@ -1044,6 +1052,9 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_new_trait_object(&mut self, _dest: Register, _idx: ConstPoolIdx, _src: Register) {
+        unimplemented!();
+    }
+    fn visit_new_lambda(&mut self, _dest: Register, _idx: ConstPoolIdx) {
         unimplemented!();
     }
 

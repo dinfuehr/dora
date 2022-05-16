@@ -279,6 +279,10 @@ use package::bytecode::opcode as opc;
             let idx = self.readConstPoolId(wide);
             let length = self.readRegister(wide);
             BytecodeInstruction::NewArray(dest, idx, length)
+        } else if opcode == opc::BC_NEW_LAMBDA {
+            let dest = self.readRegister(wide);
+            let idx = self.readConstPoolId(wide);
+            BytecodeInstruction::NewLambda(dest, idx)
 
         } else if opcode == opc::BC_NIL_CHECK {
             let obj = self.readRegister(wide);
