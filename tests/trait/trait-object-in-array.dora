@@ -1,0 +1,21 @@
+trait Foo { fn test(); }
+
+class Baz
+impl Foo for Baz {
+    fn test() {}
+}
+
+fn foo(): Foo {
+    Baz() as Foo
+}
+
+fn main() {
+    let f = foo();
+
+    let array = Array[Foo]::fill(10, f);
+    array(0) = f;
+    array(9) = f;
+
+    assert(array(1) === f);
+
+}

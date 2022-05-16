@@ -4249,6 +4249,23 @@ fn gen_trait_object_method_call() {
     );
 }
 
+#[test]
+fn gen_new_lambda() {
+    gen_fct(
+        "
+        fn f(): (): Int32 {
+            ||: Int32 { 12 }
+        }
+    ",
+        |_sa, code, fct| {
+            let expected = vec![NewLambda(r(0), ConstPoolIdx(0)), Ret(r(0))];
+            assert_eq!(expected, code);
+
+            assert!(fct.const_pool(ConstPoolIdx(0)).is_fct());
+        },
+    );
+}
+
 fn p(line: u32, column: u32) -> Position {
     Position { line, column }
 }
@@ -4334,6 +4351,7 @@ pub enum Bytecode {
     NewEnum(Register, ConstPoolIdx),
     NewStruct(Register, ConstPoolIdx),
     NewTraitObject(Register, ConstPoolIdx, Register),
+    NewLambda(Register, ConstPoolIdx),
 
     NilCheck(Register),
 
@@ -4654,6 +4672,9 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     }
     fn visit_new_trait_object(&mut self, dest: Register, idx: ConstPoolIdx, src: Register) {
         self.emit(Bytecode::NewTraitObject(dest, idx, src));
+    }
+    fn visit_new_lambda(&mut self, dest: Register, idx: ConstPoolIdx) {
+        self.emit(Bytecode::NewLambda(dest, idx));
     }
 
     fn visit_nil_check(&mut self, obj: Register) {

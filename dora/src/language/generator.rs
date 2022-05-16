@@ -836,8 +836,18 @@ impl<'a> AstBytecodeGen<'a> {
         dest.unwrap_or(Register::invalid())
     }
 
-    fn visit_expr_lambda(&mut self, _node: &ast::Function, _dest: DataDest) -> Register {
-        unimplemented!()
+    fn visit_expr_lambda(&mut self, node: &ast::Function, dest: DataDest) -> Register {
+        let dest = self.ensure_register(dest, BytecodeType::Ptr);
+
+        let lambda_fct_id = self
+            .src
+            .map_lambdas
+            .get(node.id)
+            .expect("missing lambda id");
+        let idx = self.builder.add_const_fct(*lambda_fct_id);
+        self.builder.emit_new_lambda(dest, idx, node.pos);
+
+        dest
     }
 
     fn visit_expr_if(&mut self, expr: &ast::ExprIfType, dest: DataDest) -> Register {
@@ -2981,6 +2991,7 @@ pub fn bty_from_ty(ty: SourceType) -> BytecodeType {
         SourceType::Struct(struct_id, type_params) => BytecodeType::Struct(struct_id, type_params),
         SourceType::Tuple(subtypes) => BytecodeType::Tuple(subtypes),
         SourceType::TypeParam(idx) => BytecodeType::TypeParam(idx.to_usize() as u32),
+        SourceType::Lambda(params, return_type) => BytecodeType::Lambda(params, return_type),
         _ => panic!("BuiltinType {:?} cannot converted to BytecodeType", ty),
     }
 }
@@ -3000,6 +3011,7 @@ pub fn register_bty_from_ty(ty: SourceType) -> BytecodeType {
         SourceType::Struct(struct_id, type_params) => BytecodeType::Struct(struct_id, type_params),
         SourceType::Tuple(subtypes) => BytecodeType::Tuple(subtypes),
         SourceType::TypeParam(idx) => BytecodeType::TypeParam(idx.to_usize() as u32),
+        SourceType::Lambda(_, _) => BytecodeType::Ptr,
         _ => panic!("BuiltinType {:?} cannot converted to BytecodeType", ty),
     }
 }

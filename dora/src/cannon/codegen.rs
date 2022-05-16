@@ -264,9 +264,14 @@ impl<'a> CannonCodeGen<'a> {
                             }
                         }
                     }
-                    BytecodeType::TypeParam(_) | BytecodeType::Class(_, _) | BytecodeType::Unit => {
+
+                    BytecodeType::TypeParam(_)
+                    | BytecodeType::Class(_, _)
+                    | BytecodeType::Unit
+                    | BytecodeType::Lambda(_, _) => {
                         unreachable!()
                     }
+
                     BytecodeType::UInt8
                     | BytecodeType::Int32
                     | BytecodeType::Bool
@@ -1602,7 +1607,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.asm.store_mem(mode, dest.mem(), reg);
             }
 
-            BytecodeType::Class(_, _) => unreachable!(),
+            BytecodeType::Class(_, _) | BytecodeType::Lambda(_, _) => unreachable!(),
         }
     }
 
@@ -1855,7 +1860,10 @@ impl<'a> CannonCodeGen<'a> {
                     needs_write_barrier = mode == MachineMode::Ptr;
                 }
 
-                BytecodeType::TypeParam(_) | BytecodeType::Class(_, _) | BytecodeType::Unit => {
+                BytecodeType::TypeParam(_)
+                | BytecodeType::Class(_, _)
+                | BytecodeType::Unit
+                | BytecodeType::Lambda(_, _) => {
                     unreachable!()
                 }
                 BytecodeType::UInt8
@@ -2182,7 +2190,10 @@ impl<'a> CannonCodeGen<'a> {
                     self.emit_load_register_as(src, REG_RESULT.into(), mode);
                 }
 
-                BytecodeType::TypeParam(_) | BytecodeType::Class(_, _) | BytecodeType::Unit => {
+                BytecodeType::TypeParam(_)
+                | BytecodeType::Class(_, _)
+                | BytecodeType::Unit
+                | BytecodeType::Lambda(_, _) => {
                     unreachable!()
                 }
 
@@ -2800,8 +2811,8 @@ impl<'a> CannonCodeGen<'a> {
 
             BytecodeType::TypeParam(_)
             | BytecodeType::Class(_, _)
-            | BytecodeType::Trait(_, _)
-            | BytecodeType::Unit => {
+            | BytecodeType::Unit
+            | BytecodeType::Lambda(_, _) => {
                 unreachable!()
             }
             BytecodeType::UInt8
@@ -2811,7 +2822,8 @@ impl<'a> CannonCodeGen<'a> {
             | BytecodeType::Int64
             | BytecodeType::Float32
             | BytecodeType::Float64
-            | BytecodeType::Ptr => {
+            | BytecodeType::Ptr
+            | BytecodeType::Trait(_, _) => {
                 let src_mode = mode(self.vm, src_type.clone());
 
                 let value_reg: AnyReg = if src_mode.is_float() {
@@ -2927,8 +2939,8 @@ impl<'a> CannonCodeGen<'a> {
 
             BytecodeType::TypeParam(_)
             | BytecodeType::Class(_, _)
-            | BytecodeType::Trait(_, _)
-            | BytecodeType::Unit => {
+            | BytecodeType::Unit
+            | BytecodeType::Lambda(_, _) => {
                 unreachable!()
             }
             BytecodeType::UInt8
@@ -2938,7 +2950,8 @@ impl<'a> CannonCodeGen<'a> {
             | BytecodeType::Int64
             | BytecodeType::Float32
             | BytecodeType::Float64
-            | BytecodeType::Ptr => {
+            | BytecodeType::Ptr
+            | BytecodeType::Trait(_, _) => {
                 let register = result_reg(self.vm, dest_type.clone());
                 self.asm
                     .load_array_elem(mode(self.vm, dest_type), register, REG_RESULT, REG_TMP1);
@@ -4167,7 +4180,7 @@ impl<'a> CannonCodeGen<'a> {
             | BytecodeType::Float32
             | BytecodeType::Float64 => {}
 
-            BytecodeType::Ptr => {
+            BytecodeType::Ptr | BytecodeType::Trait(_, _) => {
                 self.emit_load_register(arguments[0], REG_RESULT.into());
                 self.emit_load_register(arguments[1], REG_TMP1.into());
 
@@ -4195,57 +4208,9 @@ impl<'a> CannonCodeGen<'a> {
 
             BytecodeType::TypeParam(_)
             | BytecodeType::Class(_, _)
-            | BytecodeType::Trait(_, _)
-            | BytecodeType::Unit => {
+            | BytecodeType::Unit
+            | BytecodeType::Lambda(_, _) => {
                 unreachable!()
-            }
-        }
-    }
-
-    fn emit_intrinsic_unsafe_is_null(
-        &mut self,
-        dest: Option<Register>,
-        _fct_id: FctDefinitionId,
-        _intrinsic: Intrinsic,
-        arguments: Vec<Register>,
-        type_params: SourceTypeArray,
-        _pos: Position,
-    ) {
-        assert_eq!(1, type_params.len());
-        assert_eq!(1, arguments.len());
-
-        let ty = type_params[0].clone();
-        let dest_reg = dest.expect("missing dest");
-
-        if ty.is_unit() {
-            self.asm.load_false(REG_RESULT);
-            self.emit_store_register(REG_RESULT.into(), dest_reg);
-            return;
-        }
-
-        let bytecode_type: BytecodeType = register_bty_from_ty(ty);
-
-        match bytecode_type {
-            BytecodeType::Bool
-            | BytecodeType::Char
-            | BytecodeType::UInt8
-            | BytecodeType::Int32
-            | BytecodeType::Int64
-            | BytecodeType::Float32
-            | BytecodeType::Float64
-            | BytecodeType::Tuple(_)
-            | BytecodeType::Enum(_, _)
-            | BytecodeType::TypeParam(_)
-            | BytecodeType::Struct(_, _)
-            | BytecodeType::Class(_, _)
-            | BytecodeType::Trait(_, _)
-            | BytecodeType::Unit => unreachable!(),
-
-            BytecodeType::Ptr => {
-                self.emit_load_register(arguments[0], REG_RESULT.into());
-                self.asm.cmp_reg_imm(MachineMode::Ptr, REG_RESULT, 0);
-                self.asm.set(REG_RESULT, CondCode::Equal);
-                self.emit_store_register_as(REG_RESULT.into(), dest_reg, MachineMode::Int8);
             }
         }
     }
@@ -4407,7 +4372,10 @@ impl<'a> CannonCodeGen<'a> {
                         }
                     }
 
-                    BytecodeType::TypeParam(_) | BytecodeType::Class(_, _) | BytecodeType::Unit => {
+                    BytecodeType::TypeParam(_)
+                    | BytecodeType::Class(_, _)
+                    | BytecodeType::Unit
+                    | BytecodeType::Lambda(_, _) => {
                         unreachable!()
                     }
                 }
@@ -5405,7 +5373,10 @@ pub fn mode(vm: &VM, ty: BytecodeType) -> MachineMode {
                 EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
             }
         }
-        BytecodeType::Struct(_, _) | BytecodeType::Class(_, _) | BytecodeType::Unit => {
+        BytecodeType::Struct(_, _)
+        | BytecodeType::Class(_, _)
+        | BytecodeType::Unit
+        | BytecodeType::Lambda(_, _) => {
             panic!("unexpected type {:?}", ty)
         }
     }
@@ -5438,6 +5409,8 @@ pub fn size(vm: &VM, ty: BytecodeType) -> i32 {
 
             sdef.size
         }
-        BytecodeType::Class(_, _) | BytecodeType::Unit => unreachable!(),
+        BytecodeType::Class(_, _) | BytecodeType::Unit | BytecodeType::Lambda(_, _) => {
+            unreachable!()
+        }
     }
 }

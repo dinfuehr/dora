@@ -40,6 +40,7 @@ pub enum BytecodeTypeKind {
     TypeParam,
     Class,
     Trait,
+    Lambda,
 }
 
 // Keep in sync with dora-boots/bytecode.dora
@@ -317,6 +318,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::NewTuple
             | BytecodeOpcode::NewStruct
             | BytecodeOpcode::NewTraitObject
+            | BytecodeOpcode::NewLambda
             | BytecodeOpcode::NilCheck
             | BytecodeOpcode::ArrayLength
             | BytecodeOpcode::ArrayBoundCheck
@@ -882,6 +884,13 @@ impl ConstPoolEntry {
         match self {
             ConstPoolEntry::Char(value) => Some(*value),
             _ => None,
+        }
+    }
+
+    pub fn is_fct(&self) -> bool {
+        match self {
+            ConstPoolEntry::Fct(_, _) => true,
+            _ => false,
         }
     }
 }

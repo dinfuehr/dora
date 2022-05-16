@@ -127,6 +127,11 @@ fn encode_bytecode_type(vm: &VM, ty: &BytecodeType, buffer: &mut ByteBuffer) {
             buffer.emit_id(trait_id.to_usize());
             encode_source_type_array(vm, source_type_array, buffer);
         }
+        BytecodeType::Lambda(params, ret) => {
+            buffer.emit_u8(BytecodeTypeKind::Lambda as u8);
+            encode_source_type_array(vm, params, buffer);
+            encode_source_type(vm, ret.as_ref().clone(), buffer);
+        }
     }
 }
 
