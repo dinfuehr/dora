@@ -2455,10 +2455,8 @@ impl<'a> CannonCodeGen<'a> {
                     self.emit_store_register_as(REG_RESULT.into(), dest, MachineMode::Ptr);
                 } else {
                     assert_eq!(1, arguments.len());
-                    assert_eq!(
-                        self.specialize_register_type(arguments[0]),
-                        BytecodeType::Ptr
-                    );
+                    let ty = self.specialize_register_type(arguments[0]);
+                    assert!(ty.is_ptr() || ty.is_trait());
                     self.emit_load_register(arguments[0], REG_RESULT.into());
                     self.emit_store_register_as(REG_RESULT.into(), dest, MachineMode::Ptr);
                 }

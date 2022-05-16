@@ -765,20 +765,20 @@ impl[T: Stringable] Array[T] {
     newarray
   }
 
-  @pub fn pop(): T {
+  @pub fn pop(): Option[T] {
     if self.len == 0i64 {
-      fatalError("no element left to pop");
+      None[T]
+    } else {
+      let newlength = self.len - 1i64;
+      let temp = self.array(newlength);
+
+      // set popped element to nil so that GC can collect object
+      // not necessary for primitive types
+      unsafeKillRefs[T](self.array, newlength);
+
+      self.len = newlength;
+      Some[T](temp)
     }
-
-    let newlength = self.len - 1i64;
-    let temp = self.array(newlength);
-
-    // set popped element to nil so that GC can collect object
-    // not necessary for primitive types
-    unsafeKillRefs[T](self.array, newlength);
-
-    self.len = newlength;
-    temp
   }
 
   @pub fn trimToLen() {

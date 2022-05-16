@@ -726,7 +726,7 @@ impl<'a> TypeCheck<'a> {
         result_type
     }
 
-    fn check_expr_if(&mut self, expr: &ast::ExprIfType, _expected_ty: SourceType) -> SourceType {
+    fn check_expr_if(&mut self, expr: &ast::ExprIfType, expected_ty: SourceType) -> SourceType {
         let expr_type = self.check_expr(&expr.cond, SourceType::Any);
 
         if !expr_type.is_bool() && !expr_type.is_error() {
@@ -735,10 +735,10 @@ impl<'a> TypeCheck<'a> {
             self.sa.diag.lock().report(self.file_id, expr.pos, msg);
         }
 
-        let then_type = self.check_expr(&expr.then_block, SourceType::Any);
+        let then_type = self.check_expr(&expr.then_block, expected_ty.clone());
 
         let merged_type = if let Some(ref else_block) = expr.else_block {
-            let else_type = self.check_expr(else_block, SourceType::Any);
+            let else_type = self.check_expr(else_block, expected_ty);
 
             if expr_always_returns(&expr.then_block) {
                 else_type

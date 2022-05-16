@@ -18,6 +18,6 @@ fn build_vec(): Vec[(Int32, String)] {
 }
 
 fn pop_vec(vec: Vec[(Int32, String)], expected: String) {
-    let (_, str) = vec.pop();
+    let (_, str) = vec.pop().getOrPanic();
     assert(str == expected);
 }

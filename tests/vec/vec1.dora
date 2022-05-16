@@ -4,7 +4,7 @@ fn main() {
     x.push(2i32);
     x.push(3i32);
 
-    assert(x.pop() == 3i32);
-    assert(x.pop() == 2i32);
-    assert(x.pop() == 1i32);
+    assert(x.pop().getOrPanic() == 3i32);
+    assert(x.pop().getOrPanic() == 2i32);
+    assert(x.pop().getOrPanic() == 1i32);
 }
