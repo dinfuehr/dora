@@ -1664,7 +1664,7 @@ impl<'a> TypeCheck<'a> {
             self.sa.diag.lock().report(self.file_id, e.pos, msg);
         }
 
-        let call_type = CallType::Lambda;
+        let call_type = CallType::Lambda(params, return_type.clone());
 
         self.analysis
             .map_calls

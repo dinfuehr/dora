@@ -357,6 +357,12 @@ impl<'a> BytecodeReader<'a> {
                 BytecodeInstruction::InvokeStatic { dest, fct }
             }
 
+            BytecodeOpcode::InvokeLambdaVoid => BytecodeInstruction::InvokeLambdaVoid,
+            BytecodeOpcode::InvokeLambda => {
+                let dest = self.read_register();
+                BytecodeInstruction::InvokeLambda { dest }
+            }
+
             BytecodeOpcode::InvokeGenericStaticVoid => {
                 let fct = self.read_const_pool_idx();
                 BytecodeInstruction::InvokeGenericStaticVoid { fct }
@@ -742,6 +748,13 @@ where
                 self.visitor.visit_invoke_static(dest, fct);
             }
 
+            BytecodeInstruction::InvokeLambdaVoid => {
+                self.visitor.visit_invoke_lambda_void();
+            }
+            BytecodeInstruction::InvokeLambda { dest } => {
+                self.visitor.visit_invoke_lambda(dest);
+            }
+
             BytecodeInstruction::InvokeGenericStaticVoid { fct } => {
                 self.visitor.visit_invoke_generic_static_void(fct);
             }
@@ -1019,6 +1032,13 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_invoke_static(&mut self, _dest: Register, _fct: ConstPoolIdx) {
+        unimplemented!();
+    }
+
+    fn visit_invoke_lambda_void(&mut self) {
+        unimplemented!();
+    }
+    fn visit_invoke_lambda(&mut self, _dest: Register) {
         unimplemented!();
     }
 

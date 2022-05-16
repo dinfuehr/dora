@@ -234,7 +234,7 @@ pub enum CallType {
     Intrinsic(Intrinsic),
 
     // Call to lambda,
-    Lambda,
+    Lambda(SourceTypeArray, SourceType),
 }
 
 impl CallType {
@@ -294,7 +294,7 @@ impl CallType {
             CallType::Intrinsic(_) => None,
             CallType::Enum(_, _) => None,
             CallType::Struct(_, _) => None,
-            CallType::Lambda => None,
+            CallType::Lambda(_, _) => None,
         }
     }
 }

@@ -1069,6 +1069,15 @@ impl<'a> AstBytecodeGen<'a> {
                 return self.visit_expr_call_struct(expr, struct_id, type_params, dest);
             }
 
+            CallType::Lambda(ref params, ref return_type) => {
+                return self.visit_expr_call_lambda(
+                    expr,
+                    params.clone(),
+                    return_type.clone(),
+                    dest,
+                );
+            }
+
             _ => {}
         }
 
@@ -1166,6 +1175,43 @@ impl<'a> AstBytecodeGen<'a> {
         let bytecode_ty = register_bty_from_ty(enum_ty);
         let dest_reg = self.ensure_register(dest, bytecode_ty);
         self.builder.emit_new_enum(dest_reg, idx, expr.pos);
+
+        for arg_reg in arguments {
+            self.free_if_temp(arg_reg);
+        }
+
+        dest_reg
+    }
+
+    fn visit_expr_call_lambda(
+        &mut self,
+        node: &ast::ExprCallType,
+        _params: SourceTypeArray,
+        return_type: SourceType,
+        dest: DataDest,
+    ) -> Register {
+        let mut arguments = Vec::new();
+
+        let lambda_object = self.visit_expr(node.object_or_callee(), DataDest::Alloc);
+        arguments.push(lambda_object);
+
+        for arg in &node.args {
+            arguments.push(self.visit_expr(arg, DataDest::Alloc));
+        }
+
+        for &arg_reg in &arguments {
+            self.builder.emit_push_register(arg_reg);
+        }
+
+        let dest_reg = if return_type.is_unit() {
+            self.builder.emit_invoke_lambda_void(node.pos);
+            Register::invalid()
+        } else {
+            let bytecode_ty = register_bty_from_ty(return_type);
+            let dest_reg = self.ensure_register(dest, bytecode_ty);
+            self.builder.emit_invoke_lambda(dest_reg, node.pos);
+            dest_reg
+        };
 
         for arg_reg in arguments {
             self.free_if_temp(arg_reg);
@@ -1446,7 +1492,7 @@ impl<'a> AstBytecodeGen<'a> {
             CallType::Enum(_, _) => unreachable!(),
             CallType::Intrinsic(_) => unreachable!(),
             CallType::Struct(_, _) => unreachable!(),
-            CallType::Lambda => unreachable!(),
+            CallType::Lambda(_, _) => unreachable!(),
         }
     }
 
@@ -2790,7 +2836,7 @@ impl<'a> AstBytecodeGen<'a> {
             CallType::Enum(_, _) => unreachable!(),
             CallType::Intrinsic(_) => unreachable!(),
             CallType::Struct(_, _) => unreachable!(),
-            CallType::Lambda => unreachable!(),
+            CallType::Lambda(_, _) => unreachable!(),
         }
     }
 
@@ -2841,7 +2887,7 @@ impl<'a> AstBytecodeGen<'a> {
             CallType::Enum(_, _) => unreachable!(),
             CallType::Intrinsic(_) => unreachable!(),
             CallType::Struct(_, _) => unreachable!(),
-            CallType::Lambda => unreachable!(),
+            CallType::Lambda(_, _) => unreachable!(),
         }
     }
 

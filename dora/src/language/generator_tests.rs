@@ -4266,6 +4266,33 @@ fn gen_new_lambda() {
     );
 }
 
+#[test]
+fn gen_invoke_lambda() {
+    gen_fct(
+        "
+        fn f(x: (): Int32): Int32 {
+            x()
+        }
+    ",
+        |_sa, code, _fct| {
+            let expected = vec![PushRegister(r(0)), InvokeLambda(r(1)), Ret(r(1))];
+            assert_eq!(expected, code);
+        },
+    );
+
+    gen_fct(
+        "
+        fn f(x: (): ()) {
+            x()
+        }
+    ",
+        |_sa, code, _fct| {
+            let expected = vec![PushRegister(r(0)), InvokeLambdaVoid, RetVoid, RetVoid];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
 fn p(line: u32, column: u32) -> Position {
     Position { line, column }
 }
@@ -4338,6 +4365,9 @@ pub enum Bytecode {
 
     InvokeStaticVoid(ConstPoolIdx),
     InvokeStatic(Register, ConstPoolIdx),
+
+    InvokeLambdaVoid,
+    InvokeLambda(Register),
 
     InvokeGenericStaticVoid(ConstPoolIdx),
     InvokeGenericStatic(Register, ConstPoolIdx),
@@ -4639,6 +4669,13 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     }
     fn visit_invoke_static(&mut self, dest: Register, fctdef: ConstPoolIdx) {
         self.emit(Bytecode::InvokeStatic(dest, fctdef));
+    }
+
+    fn visit_invoke_lambda_void(&mut self) {
+        self.emit(Bytecode::InvokeLambdaVoid);
+    }
+    fn visit_invoke_lambda(&mut self, dest: Register) {
+        self.emit(Bytecode::InvokeLambda(dest));
     }
 
     fn visit_invoke_generic_static_void(&mut self, fct_idx: ConstPoolIdx) {
