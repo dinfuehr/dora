@@ -1,4 +1,3 @@
-use crate::aot;
 use crate::driver::cmd;
 use crate::language;
 use crate::language::access::module_contains;
@@ -56,7 +55,7 @@ pub fn start() -> i32 {
     }
 
     if sa.args.command.is_build() {
-        aot::build(&sa, main_fct_id.expect("main missing"));
+        aot_build(&sa, main_fct_id.expect("main missing"));
         return 0;
     }
 
@@ -90,6 +89,17 @@ pub fn start() -> i32 {
     }
 
     exit_code
+}
+
+#[cfg(feature = "aot")]
+fn aot_build(sa: &SemAnalysis, main_fct_id: FctDefinitionId) -> i32 {
+    crate::aot::build(&sa, main_fct_id);
+    0
+}
+
+#[cfg(not(feature = "aot"))]
+fn aot_build(_sa: &SemAnalysis, _main_fct_id: FctDefinitionId) -> i32 {
+    panic!("build with AOT support")
 }
 
 fn report_errors(sa: &SemAnalysis) -> bool {

@@ -11,6 +11,7 @@ edition = "2021"
 
 [features]
 default = ["capstone"]
+aot = []
 
 [build-dependencies]
 walkdir = "2"
