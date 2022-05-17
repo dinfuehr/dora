@@ -96,11 +96,7 @@ impl<'a> ProgramParser<'a> {
                 FileLookup::FileSystem,
             )
         } else {
-            let stdlib_file = if cfg!(target_os = "windows") {
-                "stdlib\\stdlib.dora"
-            } else {
-                "stdlib/stdlib.dora"
-            };
+            let stdlib_file = format!("stdlib{}stdlib.dora", std::path::MAIN_SEPARATOR);
             let file_path = PathBuf::from(stdlib_file);
             let module_path = PathBuf::from(file_path.parent().expect("parent missing"));
             self.add_bundled_file(file_path, module_id, module_path)
