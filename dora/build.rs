@@ -55,13 +55,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         copy(root_path.join(f.path()), out_path.join(f.path()))?;
 
         let name = f.path().display().to_string();
+        let display_path = name.replace("\\", "/");
         // On Windows the directory separator needs to be escaped
-        let name = name.replace("\\", "\\\\");
+        let actual_path = name.replace("\\", "\\\\");
 
         writeln!(
             &mut stdlib,
-            r#"("{name}", include_str!("{name}")),"#,
-            name = name,
+            r#"("{display_path}", include_str!("{actual_path}")),"#,
         )?;
     }
 
