@@ -2656,6 +2656,20 @@ impl<'a> CannonCodeGen<'a> {
         self.copy_ty(object_ty, dest, src);
     }
 
+    fn emit_new_lambda(&mut self, obj: Register, idx: ConstPoolIdx) {
+        assert_eq!(self.bytecode.register_type(obj), BytecodeType::Ptr);
+
+        let (_fct_id, type_params) = match self.bytecode.const_pool(idx) {
+            ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params.clone()),
+            _ => unreachable!(),
+        };
+
+        let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
+
+        unimplemented!()
+    }
+
     fn emit_nil_check(&mut self, obj: Register) {
         assert_eq!(self.bytecode.register_type(obj), BytecodeType::Ptr);
 
@@ -5263,6 +5277,25 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             )
         });
         self.emit_new_trait_object(dest, idx, src);
+    }
+
+    fn visit_new_lambda(&mut self, dest: Register, idx: ConstPoolIdx) {
+        comment!(self, {
+            let (fct_id, _type_params) = match self.bytecode.const_pool(idx) {
+                ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params),
+                _ => unreachable!(),
+            };
+            let fct = self.vm.fcts.idx(fct_id);
+            let fct = fct.read();
+            let fct_name = fct.display_name(self.vm);
+            format!(
+                "NewLambda {}, ConstPoolIdx({}) # {}",
+                dest,
+                idx.to_usize(),
+                fct_name,
+            )
+        });
+        self.emit_new_lambda(dest, idx);
     }
 
     fn visit_nil_check(&mut self, obj: Register) {
