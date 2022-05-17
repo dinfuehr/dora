@@ -34,28 +34,27 @@ const LOCKED_CONTENDED: Int32 = 2i32;
         let previous = self.data.compareExchange(UNLOCKED, LOCKED);
 
         if previous != UNLOCKED {
-            self.lockSlow(previous);
+            assert(previous == LOCKED || previous == LOCKED_CONTENDED);
+            self.lockSlow();
         }
     }
 
-    fn lockSlow(previous: Int32) {
-        var previous = previous;
-        var lockSuccess = false;
+    fn lockSlow() {
+        var locked = false;
 
-        while !lockSuccess {
-            assert(previous == LOCKED || previous == LOCKED_CONTENDED);
-
-            if self.transitionToLockedContended(previous) {
+        while !locked {
+            if self.transitionToLockedContended() {
                 self.wait(LOCKED_CONTENDED);
             }
 
-            previous = self.data.compareExchange(UNLOCKED, LOCKED_CONTENDED);
-            lockSuccess = previous == UNLOCKED;
+            // Queue might still be non-empty, so transition to LOCKED_CONTENDED
+            // instead of LOCKED.
+            let previous = self.data.compareExchange(UNLOCKED, LOCKED_CONTENDED);
+            locked = previous == UNLOCKED;
         }
     }
 
-    fn transitionToLockedContended(previous: Int32): Bool {
-        if previous == LOCKED_CONTENDED { return true; }
+    fn transitionToLockedContended(): Bool {
         self.data.compareExchange(LOCKED, LOCKED_CONTENDED) != UNLOCKED
     }
 
