@@ -85,7 +85,23 @@ pub fn replace_type_param(
 
         SourceType::This => self_ty.expect("no type for Self given"),
 
-        SourceType::Lambda(_, _) => unimplemented!(),
+        SourceType::Lambda(params, return_type) => {
+            let new_params = SourceTypeArray::with(
+                params
+                    .iter()
+                    .map(|p| replace_type_param(sa, p, type_params, self_ty.clone()))
+                    .collect::<Vec<_>>(),
+            );
+
+            let return_type = replace_type_param(
+                sa,
+                return_type.as_ref().clone(),
+                type_params,
+                self_ty.clone(),
+            );
+
+            SourceType::Lambda(new_params, Box::new(return_type))
+        }
 
         SourceType::Tuple(subtypes) => {
             let new_subtypes = subtypes

@@ -380,7 +380,8 @@ impl<'a> CannonCodeGen<'a> {
                 | SourceType::Int32
                 | SourceType::Int64
                 | SourceType::Class(_, _)
-                | SourceType::Trait(_, _) => {
+                | SourceType::Trait(_, _)
+                | SourceType::Lambda(_, _) => {
                     self.store_params_on_stack_core(
                         &mut reg_idx,
                         &mut freg_idx,
@@ -394,7 +395,6 @@ impl<'a> CannonCodeGen<'a> {
                 | SourceType::Error
                 | SourceType::Any
                 | SourceType::This
-                | SourceType::Lambda(_, _)
                 | SourceType::Unit => unreachable!(),
             }
         }
@@ -1544,7 +1544,8 @@ impl<'a> CannonCodeGen<'a> {
             | SourceType::Float32
             | SourceType::Float64
             | SourceType::Class(_, _)
-            | SourceType::Trait(_, _) => {
+            | SourceType::Trait(_, _)
+            | SourceType::Lambda(_, _) => {
                 let mode = ty.mode();
                 let tmp = result_reg_mode(mode);
 
@@ -1552,11 +1553,9 @@ impl<'a> CannonCodeGen<'a> {
                 self.asm.store_mem(mode, dest.mem(), tmp);
             }
 
-            SourceType::TypeParam(_)
-            | SourceType::Error
-            | SourceType::Any
-            | SourceType::This
-            | SourceType::Lambda(_, _) => unreachable!(),
+            SourceType::TypeParam(_) | SourceType::Error | SourceType::Any | SourceType::This => {
+                unreachable!()
+            }
         }
     }
 

@@ -1,0 +1,12 @@
+//= vm-args "--gc=swiper --gc-verify"
+
+fn main() {
+    let l0: (): Int64 = ||: Int64 { 0 };
+    let l1: (): Int64 = ||: Int64 { 1 };
+    std::forceCollect();
+    let data = Array[(): Int64]::fill(100, l0);
+    data(98) = l1;
+    assert(data(99) === l0);
+    assert(data(0) === l0);
+    assert(data(98) === l1);
+}

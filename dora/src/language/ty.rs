@@ -484,7 +484,15 @@ impl SourceType {
 
                 true
             }
-            SourceType::Lambda(_, _) => unimplemented!(),
+            SourceType::Lambda(params, return_type) => {
+                for param in params.iter() {
+                    if !param.is_concrete_type(sa) {
+                        return false;
+                    }
+                }
+
+                return_type.is_concrete_type(sa)
+            }
             SourceType::TypeParam(_) => false,
         }
     }

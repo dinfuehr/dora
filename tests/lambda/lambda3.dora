@@ -1,0 +1,26 @@
+//= vm-args "--gc=swiper --gc-verify"
+
+fn main() {
+    let l0: (): Int64 = ||: Int64 { 0 };
+    let l1: (): Int64 = ||: Int64 { 1 };
+    assert(myid(l0) === l0);
+    assert(myid(l1) === l1);
+    std::forceCollect();
+    let x = myoption(Some[(): Int64](l0));
+    assert(x.getOrPanic() === l0);
+    let y = mytuple((l0, l1));
+    assert(y.0 === l0);
+    assert(y.1 === l1);
+}
+
+fn myid(lambda: (): Int64): (): Int64 {
+    lambda
+}
+
+fn myoption(lambda: Option[(): Int64]): Option[(): Int64] {
+    lambda
+}
+
+fn mytuple(lambda: ((): Int64, (): Int64)): ((): Int64, (): Int64) {
+    lambda
+}
