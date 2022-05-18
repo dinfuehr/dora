@@ -29,9 +29,9 @@ use crate::stdlib;
 use crate::vm::{
     get_concrete_tuple_array, get_concrete_tuple_bytecode_ty, get_concrete_tuple_ty,
     specialize_class_id_params, specialize_enum_class, specialize_enum_id_params,
-    specialize_struct_id_params, specialize_trait_object, specialize_tuple_array,
-    specialize_tuple_bty, specialize_tuple_ty, specialize_type, specialize_type_list, EnumLayout,
-    GcPoint, Trap, VM,
+    specialize_lambda, specialize_struct_id_params, specialize_trait_object,
+    specialize_tuple_array, specialize_tuple_bty, specialize_tuple_ty, specialize_type,
+    specialize_type_list, EnumLayout, GcPoint, Trap, VM,
 };
 use crate::vtable::{VTable, DISPLAY_SIZE};
 
@@ -2656,10 +2656,10 @@ impl<'a> CannonCodeGen<'a> {
         self.copy_ty(object_ty, dest, src);
     }
 
-    fn emit_new_lambda(&mut self, obj: Register, idx: ConstPoolIdx) {
-        assert_eq!(self.bytecode.register_type(obj), BytecodeType::Ptr);
+    fn emit_new_lambda(&mut self, dest: Register, idx: ConstPoolIdx) {
+        assert_eq!(self.bytecode.register_type(dest), BytecodeType::Ptr);
 
-        let (_fct_id, type_params) = match self.bytecode.const_pool(idx) {
+        let (fct_id, type_params) = match self.bytecode.const_pool(idx) {
             ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params.clone()),
             _ => unreachable!(),
         };
@@ -2667,7 +2667,61 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
 
-        unimplemented!()
+        let cls_def_id = specialize_lambda(self.vm, fct_id, type_params);
+
+        let cls = self.vm.class_instances.idx(cls_def_id);
+
+        let alloc_size = match cls.size {
+            InstanceSize::Fixed(size) => size as usize,
+            _ => unreachable!(
+                "class size type {:?} for new object not supported",
+                cls.size
+            ),
+        };
+
+        let gcpoint = self.create_gcpoint();
+        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+        let object_reg = REG_TMP1;
+
+        self.asm.allocate(
+            object_reg,
+            AllocationSize::Fixed(alloc_size),
+            position,
+            false,
+            gcpoint,
+        );
+
+        // store gc object in register
+        comment!(
+            self,
+            format!("NewTraitObject: store object address in register {}", dest)
+        );
+        self.emit_store_register_as(REG_TMP1.into(), dest, MachineMode::Ptr);
+
+        // store classptr in object
+        comment!(self, format!("NewTraitObject: initialize object header"));
+        let vtable = cls.vtable.read();
+        let vtable: &VTable = vtable.as_ref().unwrap();
+        let disp = self.asm.add_addr(Address::from_ptr(vtable as *const _));
+        let pos = self.asm.pos() as i32;
+
+        self.asm.load_constpool(REG_RESULT.into(), disp + pos);
+        self.asm.store_mem(
+            MachineMode::Ptr,
+            Mem::Base(object_reg, 0),
+            REG_RESULT.into(),
+        );
+
+        // clear mark/fwdptr word in header
+        assert!(Header::size() == 2 * mem::ptr_width());
+        self.asm.load_int_const(MachineMode::Ptr, REG_RESULT, 0);
+        self.asm.store_mem(
+            MachineMode::Ptr,
+            Mem::Base(object_reg, mem::ptr_width()),
+            REG_RESULT.into(),
+        );
+
+        self.emit_store_register(object_reg.into(), dest);
     }
 
     fn emit_nil_check(&mut self, obj: Register) {

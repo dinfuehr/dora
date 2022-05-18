@@ -2,7 +2,9 @@ use parking_lot::RwLock;
 use std::cmp::max;
 
 use crate::bytecode::BytecodeType;
-use crate::language::sem_analysis::{create_tuple, ClassDefinitionId, TraitDefinitionId};
+use crate::language::sem_analysis::{
+    create_tuple, ClassDefinitionId, FctDefinitionId, TraitDefinitionId,
+};
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::mem;
 use crate::object::Header;
@@ -261,6 +263,7 @@ pub fn specialize_enum_class(
         ClassInstance {
             id: None,
             cls_id: None,
+            fct_id: None,
             trait_object: None,
             type_params: SourceTypeArray::empty(),
             parent_id: None,
@@ -420,6 +423,7 @@ fn create_specialized_class_regular(
         ClassInstance {
             id: None,
             cls_id: Some(cls.id()),
+            fct_id: None,
             trait_object: None,
             type_params: type_params.clone(),
             parent_id,
@@ -518,6 +522,7 @@ fn create_specialized_class_array(
         ClassInstance {
             id: None,
             cls_id: Some(cls.id()),
+            fct_id: None,
             trait_object: None,
             type_params: type_params.clone(),
             parent_id: Some(parent_cls_def_id),
@@ -533,6 +538,31 @@ fn create_specialized_class_array(
     assert!(old.is_none());
 
     class_instance_id
+}
+
+pub fn specialize_lambda(
+    vm: &VM,
+    fct_id: FctDefinitionId,
+    type_params: SourceTypeArray,
+) -> ClassInstanceId {
+    let size = InstanceSize::Fixed(Header::size());
+
+    create_class_instance_with_vtable(
+        vm,
+        ClassInstance {
+            id: None,
+            cls_id: None,
+            fct_id: Some(fct_id),
+            trait_object: None,
+            type_params,
+            parent_id: None,
+            size,
+            fields: Vec::new(),
+            ref_fields: Vec::new(),
+            vtable: RwLock::new(None),
+        },
+        1,
+    )
 }
 
 pub fn specialize_trait_object(
@@ -597,6 +627,7 @@ fn create_specialized_class_for_trait_object(
             id: None,
             cls_id: None,
             trait_object: Some(object_type),
+            fct_id: None,
             type_params: SourceTypeArray::empty(),
             parent_id: None,
             size,

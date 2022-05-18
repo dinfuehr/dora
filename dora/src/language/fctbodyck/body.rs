@@ -3000,24 +3000,29 @@ impl<'a> TypeCheck<'a> {
 
         {
             let lambda = self.sa.fcts.idx(lambda_fct_id);
-            let lambda = lambda.read();
 
             let mut analysis = AnalysisData::new();
             let symtable = NestedSymTable::new(self.sa, self.fct.module_id);
 
-            let mut typeck = TypeCheck {
-                sa: self.sa,
-                fct: &*lambda,
-                file_id: self.fct.file_id,
-                module_id: self.fct.module_id,
-                analysis: &mut analysis,
-                ast: &node,
-                symtable: symtable,
-                in_loop: false,
-                self_ty: None,
-            };
+            {
+                let lambda = lambda.read();
 
-            typeck.check();
+                let mut typeck = TypeCheck {
+                    sa: self.sa,
+                    fct: &*lambda,
+                    file_id: self.fct.file_id,
+                    module_id: self.fct.module_id,
+                    analysis: &mut analysis,
+                    ast: &node,
+                    symtable: symtable,
+                    in_loop: false,
+                    self_ty: None,
+                };
+
+                typeck.check();
+            }
+
+            lambda.write().analysis = Some(analysis);
         }
 
         self.analysis.set_ty(node.id, ty.clone());

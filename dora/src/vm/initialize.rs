@@ -16,6 +16,7 @@ fn create_special_classes(vm: &mut VM) {
         ClassInstance {
             id: None,
             cls_id: None,
+            fct_id: None,
             trait_object: None,
             type_params: SourceTypeArray::empty(),
             parent_id: None,
@@ -33,6 +34,7 @@ fn create_special_classes(vm: &mut VM) {
         ClassInstance {
             id: None,
             cls_id: None,
+            fct_id: None,
             trait_object: None,
             type_params: SourceTypeArray::empty(),
             parent_id: None,
@@ -50,6 +52,7 @@ fn create_special_classes(vm: &mut VM) {
         ClassInstance {
             id: None,
             cls_id: None,
+            fct_id: None,
             trait_object: None,
             type_params: SourceTypeArray::empty(),
             parent_id: None,

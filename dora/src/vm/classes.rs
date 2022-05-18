@@ -2,7 +2,7 @@ use parking_lot::RwLock;
 
 use std::iter::Iterator;
 
-use crate::language::sem_analysis::ClassDefinitionId;
+use crate::language::sem_analysis::{ClassDefinitionId, FctDefinitionId};
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::size::InstanceSize;
 use crate::utils::Id;
@@ -40,6 +40,7 @@ impl Id for ClassInstance {
 pub struct ClassInstance {
     pub id: Option<ClassInstanceId>,
     pub cls_id: Option<ClassDefinitionId>,
+    pub fct_id: Option<FctDefinitionId>,
     pub trait_object: Option<SourceType>,
     pub type_params: SourceTypeArray,
     pub parent_id: Option<ClassInstanceId>,
