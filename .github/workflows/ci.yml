@@ -78,7 +78,7 @@ jobs:
     timeout-minutes: 60
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macOS-latest]
+        os: [ubuntu-latest, macOS-latest]
 
     steps:
       - name: Clone repository
