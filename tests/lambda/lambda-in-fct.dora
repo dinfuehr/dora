@@ -1,0 +1,13 @@
+//= vm-args "--gc=swiper --gc-verify"
+
+fn main() {
+    let l0: (): Int64 = ||: Int64 { 0 };
+    let l1: (): Int64 = ||: Int64 { 1 };
+    assert(myid(l0) === l0);
+    assert(myid(l1) === l1);
+    std::forceCollect();
+}
+
+fn myid(lambda: (): Int64): (): Int64 {
+    lambda
+}

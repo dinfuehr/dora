@@ -1,0 +1,15 @@
+//= vm-args "--gc=swiper --gc-verify"
+
+fn main() {
+    let l0: (): Int64 = ||: Int64 { 0 };
+    let l1: (): Int64 = ||: Int64 { 1 };
+    std::forceCollect();
+    let x = myoption(Some[(): Int64](l0));
+    std::forceCollect();
+    assert(x.getOrPanic() === l0);
+    std::forceCollect();
+}
+
+fn myoption(lambda: Option[(): Int64]): Option[(): Int64] {
+    lambda
+}

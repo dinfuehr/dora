@@ -1,0 +1,21 @@
+//= vm-args "--gc=swiper --gc-verify"
+
+fn main() {
+    let l0: (): Int64 = ||: Int64 { 0 };
+    let l1: (): Int64 = ||: Int64 { 1 };
+    std::forceCollect();
+    let z = mystruct(l0, l1);
+    std::forceCollect();
+    assert(z.l0 === l0);
+    assert(z.l1 === l1);
+}
+
+struct MyStruct {
+    l0: (): Int64,
+    l1: (): Int64,
+}
+
+fn mystruct(l0: (): Int64, l1: (): Int64): MyStruct {
+    MyStruct(l0, l1)
+}
+
