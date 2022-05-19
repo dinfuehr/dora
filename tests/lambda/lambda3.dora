@@ -11,6 +11,15 @@ fn main() {
     let y = mytuple((l0, l1));
     assert(y.0 === l0);
     assert(y.1 === l1);
+    let z = mystruct(l0, l1);
+    assert(z.l0 === l0);
+    assert(z.l1 === l1);
+    let cls = MyClass(l0, l1);
+    assert(cls.l0 === l0);
+    assert(cls.l1 === l1);
+    cls.l0 = l1;
+    assert(cls.l0 === l1);
+    assert(cls.l1 === l1);
 }
 
 fn myid(lambda: (): Int64): (): Int64 {
@@ -24,3 +33,14 @@ fn myoption(lambda: Option[(): Int64]): Option[(): Int64] {
 fn mytuple(lambda: ((): Int64, (): Int64)): ((): Int64, (): Int64) {
     lambda
 }
+
+struct MyStruct {
+    l0: (): Int64,
+    l1: (): Int64,
+}
+
+fn mystruct(l0: (): Int64, l1: (): Int64): MyStruct {
+    MyStruct(l0, l1)
+}
+
+class MyClass(var l0: (): Int64, let l1: (): Int64)
