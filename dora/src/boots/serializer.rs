@@ -314,6 +314,11 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
             buffer.emit_u8(ConstPoolOpcode::Tuple.to_u8());
             encode_source_type_array(vm, &source_type_array, buffer);
         }
+        &ConstPoolEntry::Lambda(ref params, ref return_type) => {
+            buffer.emit_u8(ConstPoolOpcode::Lambda.to_u8());
+            encode_source_type_array(vm, params, buffer);
+            encode_source_type(vm, return_type.clone(), buffer);
+        }
     }
 }
 

@@ -76,6 +76,9 @@ impl<'a> AstBytecodeGen<'a> {
                 let reg = self.alloc_var(register_bty);
                 self.var_registers.insert(var_id, reg);
             }
+        } else if self.fct.is_lambda() {
+            // Context is passed for lambdas as first argument.
+            let _ctxt = self.alloc_var(BytecodeType::Ptr);
         }
 
         for param in &ast.params {
@@ -1186,7 +1189,7 @@ impl<'a> AstBytecodeGen<'a> {
     fn visit_expr_call_lambda(
         &mut self,
         node: &ast::ExprCallType,
-        _params: SourceTypeArray,
+        params: SourceTypeArray,
         return_type: SourceType,
         dest: DataDest,
     ) -> Register {
@@ -1203,13 +1206,15 @@ impl<'a> AstBytecodeGen<'a> {
             self.builder.emit_push_register(arg_reg);
         }
 
+        let idx = self.builder.add_const_lambda(params, return_type.clone());
+
         let dest_reg = if return_type.is_unit() {
-            self.builder.emit_invoke_lambda_void(node.pos);
+            self.builder.emit_invoke_lambda_void(idx, node.pos);
             Register::invalid()
         } else {
             let bytecode_ty = register_bty_from_ty(return_type);
             let dest_reg = self.ensure_register(dest, bytecode_ty);
-            self.builder.emit_invoke_lambda(dest_reg, node.pos);
+            self.builder.emit_invoke_lambda(dest_reg, idx, node.pos);
             dest_reg
         };
 

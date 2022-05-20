@@ -599,9 +599,12 @@ pub enum BytecodeInstruction {
         fct: ConstPoolIdx,
     },
 
-    InvokeLambdaVoid,
+    InvokeLambdaVoid {
+        idx: ConstPoolIdx,
+    },
     InvokeLambda {
         dest: Register,
+        idx: ConstPoolIdx,
     },
 
     InvokeGenericStaticVoid {
@@ -828,7 +831,8 @@ enumeration!(ConstPoolOpcode {
     FieldFixed,
     Generic,
     TupleElement,
-    Tuple
+    Tuple,
+    Lambda
 });
 
 #[derive(Debug, PartialEq)]
@@ -852,6 +856,7 @@ pub enum ConstPoolEntry {
     Trait(TraitDefinitionId, SourceTypeArray, SourceType),
     TupleElement(SourceType, usize),
     Tuple(SourceTypeArray),
+    Lambda(SourceTypeArray, SourceType),
 }
 
 impl ConstPoolEntry {

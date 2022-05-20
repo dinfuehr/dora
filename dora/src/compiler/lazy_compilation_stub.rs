@@ -227,6 +227,8 @@ fn compile_request(ra: usize, receiver1: Address, receiver2: Address) -> Address
                 type_params,
             )
         }
+
+        LazyCompilationSite::Lambda(_) => unimplemented!(),
     }
 }
 

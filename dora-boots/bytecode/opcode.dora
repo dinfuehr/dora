@@ -113,6 +113,7 @@
 @pub const CONSTPOOL_OPCODE_GENERIC: Int32 = 16;
 @pub const CONSTPOOL_OPCODE_TUPLE_ELEMENT: Int32 = 17;
 @pub const CONSTPOOL_OPCODE_TUPLE: Int32 = 18;
+@pub const CONSTPOOL_OPCODE_LAMBDA: Int32 = 19;
 
 @pub fn bytecodeName(opcode: Int32): String {
   if opcode == BC_WIDE { return "Wide"; }

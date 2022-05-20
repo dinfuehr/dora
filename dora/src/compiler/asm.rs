@@ -13,7 +13,7 @@ use crate::masm::{CodeDescriptor, CondCode, Label, MacroAssembler, Mem, ScratchR
 use crate::mode::MachineMode;
 use crate::stdlib;
 use crate::threads::ThreadLocalData;
-use crate::vm::{GcPoint, Trap, VM};
+use crate::vm::{GcPoint, LazyCompilationSite, Trap, VM};
 
 pub struct BaselineAssembler<'a> {
     masm: MacroAssembler,
@@ -617,19 +617,18 @@ impl<'a> BaselineAssembler<'a> {
         self.call_epilog(pos, return_mode, dest, gcpoint);
     }
 
-    pub fn indirect_call(
+    pub fn virtual_call(
         &mut self,
-        fct_id: FctDefinitionId,
         vtable_index: u32,
         self_index: u32,
         pos: Position,
         gcpoint: GcPoint,
         return_mode: Option<MachineMode>,
-        type_params: SourceTypeArray,
         dest: AnyReg,
+        lazy_compilation_site: LazyCompilationSite,
     ) {
         self.masm
-            .indirect_call(pos, fct_id, vtable_index, self_index, type_params);
+            .virtual_call(pos, vtable_index, self_index, lazy_compilation_site);
         self.call_epilog(pos, return_mode, dest, gcpoint);
     }
 

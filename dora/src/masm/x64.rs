@@ -127,13 +127,12 @@ impl MacroAssembler {
         self.call_reg(REG_RESULT);
     }
 
-    pub fn indirect_call(
+    pub fn virtual_call(
         &mut self,
         pos: Position,
-        fct_id: FctDefinitionId,
         vtable_index: u32,
         self_index: u32,
-        type_params: SourceTypeArray,
+        lazy_compilation_site: LazyCompilationSite,
     ) {
         let obj = REG_PARAMS[self_index as usize];
         self.test_if_nil_bailout(pos, obj, Trap::NIL);
@@ -153,12 +152,7 @@ impl MacroAssembler {
 
         // call *REG_RESULT
         self.call_reg(REG_RESULT);
-        self.emit_lazy_compilation_site(LazyCompilationSite::Virtual(
-            self_index == 0,
-            fct_id,
-            vtable_index,
-            type_params,
-        ));
+        self.emit_lazy_compilation_site(lazy_compilation_site);
     }
 
     pub fn load_array_elem(&mut self, mode: MachineMode, dest: AnyReg, array: Reg, index: Reg) {

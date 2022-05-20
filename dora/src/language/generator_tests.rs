@@ -4267,6 +4267,29 @@ fn gen_new_lambda() {
 }
 
 #[test]
+fn gen_access_lambda_args() {
+    gen_fct(
+        "
+        fn f(): (Int32, Int32): Int32 {
+            |a: Int32, b: Int32|: Int32 { a + b }
+        }
+    ",
+        |sa, _code, fct| {
+            let lambda_id = match fct.const_pool(ConstPoolIdx(0)) {
+                ConstPoolEntry::Fct(fct_id, _) => *fct_id,
+                _ => unreachable!(),
+            };
+
+            let lambda = generate_fct(sa, lambda_id);
+            let code = build(&lambda);
+
+            let expected = vec![Add(r(3), r(1), r(2)), Ret(r(3))];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
 fn gen_invoke_lambda() {
     gen_fct(
         "
@@ -4275,7 +4298,11 @@ fn gen_invoke_lambda() {
         }
     ",
         |_sa, code, _fct| {
-            let expected = vec![PushRegister(r(0)), InvokeLambda(r(1)), Ret(r(1))];
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeLambda(r(1), ConstPoolIdx(0)),
+                Ret(r(1)),
+            ];
             assert_eq!(expected, code);
         },
     );
@@ -4287,7 +4314,12 @@ fn gen_invoke_lambda() {
         }
     ",
         |_sa, code, _fct| {
-            let expected = vec![PushRegister(r(0)), InvokeLambdaVoid, RetVoid, RetVoid];
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeLambdaVoid(ConstPoolIdx(0)),
+                RetVoid,
+                RetVoid,
+            ];
             assert_eq!(expected, code);
         },
     );
@@ -4366,8 +4398,8 @@ pub enum Bytecode {
     InvokeStaticVoid(ConstPoolIdx),
     InvokeStatic(Register, ConstPoolIdx),
 
-    InvokeLambdaVoid,
-    InvokeLambda(Register),
+    InvokeLambdaVoid(ConstPoolIdx),
+    InvokeLambda(Register, ConstPoolIdx),
 
     InvokeGenericStaticVoid(ConstPoolIdx),
     InvokeGenericStatic(Register, ConstPoolIdx),
@@ -4671,11 +4703,11 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::InvokeStatic(dest, fctdef));
     }
 
-    fn visit_invoke_lambda_void(&mut self) {
-        self.emit(Bytecode::InvokeLambdaVoid);
+    fn visit_invoke_lambda_void(&mut self, idx: ConstPoolIdx) {
+        self.emit(Bytecode::InvokeLambdaVoid(idx));
     }
-    fn visit_invoke_lambda(&mut self, dest: Register) {
-        self.emit(Bytecode::InvokeLambda(dest));
+    fn visit_invoke_lambda(&mut self, dest: Register, idx: ConstPoolIdx) {
+        self.emit(Bytecode::InvokeLambda(dest, idx));
     }
 
     fn visit_invoke_generic_static_void(&mut self, fct_idx: ConstPoolIdx) {

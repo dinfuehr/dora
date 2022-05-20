@@ -193,6 +193,11 @@ pub fn dump(vm: &VM, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
                 let tuple_name = source_type_array.tuple_name(vm);
                 println!("{}{} => Tuple {}", align, idx, tuple_name)
             }
+            ConstPoolEntry::Lambda(ref params, ref return_type) => {
+                let params = params.tuple_name(vm);
+                let return_type = return_type.name(vm);
+                println!("{}{} => Lambda {}: {}", align, idx, params, return_type)
+            }
         }
     }
 

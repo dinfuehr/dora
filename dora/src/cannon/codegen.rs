@@ -31,7 +31,7 @@ use crate::vm::{
     specialize_class_id_params, specialize_enum_class, specialize_enum_id_params,
     specialize_lambda, specialize_struct_id_params, specialize_trait_object,
     specialize_tuple_array, specialize_tuple_bty, specialize_tuple_ty, specialize_type,
-    specialize_type_list, EnumLayout, GcPoint, Trap, VM,
+    specialize_type_list, EnumLayout, GcPoint, LazyCompilationSite, Trap, VM,
 };
 use crate::vtable::{VTable, DISPLAY_SIZE};
 
@@ -3040,6 +3040,75 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_invoke_virtual(dest, fct_id, type_params, arguments, pos);
     }
 
+    fn emit_invoke_lambda_from_bytecode(&mut self, dest: Option<Register>, idx: ConstPoolIdx) {
+        let (params, return_type) = match self.bytecode.const_pool(idx) {
+            ConstPoolEntry::Lambda(params, return_type) => (params.clone(), return_type.clone()),
+            _ => unreachable!(),
+        };
+
+        let type_params = SourceTypeArray::empty();
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
+
+        let pos = self.bytecode.offset_position(self.current_offset.to_u32());
+        let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
+
+        self.emit_invoke_lambda(dest, params, return_type, type_params, arguments, pos);
+    }
+
+    fn emit_invoke_lambda(
+        &mut self,
+        dest: Option<Register>,
+        _params: SourceTypeArray,
+        return_type: SourceType,
+        type_params: SourceTypeArray,
+        arguments: Vec<Register>,
+        pos: Position,
+    ) {
+        let bytecode_type = if let Some(dest) = dest {
+            self.specialize_register_type_unit(dest)
+        } else {
+            None
+        };
+
+        let self_register = arguments[0];
+
+        let bytecode_type_self = self.bytecode.register_type(self_register);
+        assert!(bytecode_type_self.is_ptr() || bytecode_type_self.is_trait());
+
+        let fct_return_type =
+            self.specialize_type(specialize_type(self.vm, return_type.clone(), &type_params));
+        assert!(fct_return_type.is_concrete_type(self.vm));
+
+        let argsize = self.emit_invoke_arguments(dest, fct_return_type.clone(), arguments);
+
+        let vtable_index = 0;
+        let gcpoint = self.create_gcpoint();
+
+        let (result_reg, result_mode) = self.call_result_reg_and_mode(bytecode_type);
+
+        let self_index = if result_passed_as_argument(fct_return_type.clone()) {
+            1
+        } else {
+            0
+        };
+
+        let lazy_compilation_site = LazyCompilationSite::Lambda(self_index == 0);
+
+        self.asm.virtual_call(
+            vtable_index,
+            self_index,
+            pos,
+            gcpoint,
+            result_mode,
+            result_reg,
+            lazy_compilation_site,
+        );
+
+        self.asm.decrease_stack_frame(argsize);
+
+        self.store_call_result(dest, result_reg, fct_return_type);
+    }
+
     fn emit_invoke_virtual(
         &mut self,
         dest: Option<Register>,
@@ -3081,15 +3150,22 @@ impl<'a> CannonCodeGen<'a> {
         } else {
             0
         };
-        self.asm.indirect_call(
+
+        let lazy_compilation_site = LazyCompilationSite::Virtual(
+            self_index == 0,
             fct_id,
+            vtable_index,
+            type_params.clone(),
+        );
+
+        self.asm.virtual_call(
             vtable_index,
             self_index,
             pos,
             gcpoint,
             result_mode,
-            type_params,
             result_reg,
+            lazy_compilation_site,
         );
 
         self.asm.decrease_stack_frame(argsize);
@@ -5168,6 +5244,15 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             format!("InvokeVirtual {}, {}", dest, fctdef.to_usize())
         );
         self.emit_invoke_virtual_from_bytecode(Some(dest), fctdef);
+    }
+
+    fn visit_invoke_lambda_void(&mut self, idx: ConstPoolIdx) {
+        comment!(self, format!("InvokeLambdaVoid"));
+        self.emit_invoke_lambda_from_bytecode(None, idx);
+    }
+    fn visit_invoke_lambda(&mut self, dest: Register, idx: ConstPoolIdx) {
+        comment!(self, format!("InvokeLambda {}", dest));
+        self.emit_invoke_lambda_from_bytecode(Some(dest), idx);
     }
 
     fn visit_invoke_static_void(&mut self, fctdef: ConstPoolIdx) {

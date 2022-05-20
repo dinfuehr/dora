@@ -59,6 +59,15 @@ impl BytecodeBuilder {
         self.writer.add_const(entry)
     }
 
+    pub fn add_const_lambda(
+        &mut self,
+        params: SourceTypeArray,
+        return_type: SourceType,
+    ) -> ConstPoolIdx {
+        self.writer
+            .add_const(ConstPoolEntry::Lambda(params, return_type))
+    }
+
     pub fn add_const_fct(&mut self, id: FctDefinitionId) -> ConstPoolIdx {
         self.writer
             .add_const(ConstPoolEntry::Fct(id, SourceTypeArray::empty()))
@@ -498,15 +507,15 @@ impl BytecodeBuilder {
         self.writer.emit_invoke_static(dest, idx);
     }
 
-    pub fn emit_invoke_lambda_void(&mut self, pos: Position) {
+    pub fn emit_invoke_lambda_void(&mut self, idx: ConstPoolIdx, pos: Position) {
         self.writer.set_position(pos);
-        self.writer.emit_invoke_lambda_void();
+        self.writer.emit_invoke_lambda_void(idx);
     }
 
-    pub fn emit_invoke_lambda(&mut self, dest: Register, pos: Position) {
+    pub fn emit_invoke_lambda(&mut self, dest: Register, idx: ConstPoolIdx, pos: Position) {
         assert!(self.def(dest));
         self.writer.set_position(pos);
-        self.writer.emit_invoke_lambda(dest);
+        self.writer.emit_invoke_lambda(dest, idx);
     }
 
     pub fn emit_invoke_generic_static_void(&mut self, idx: ConstPoolIdx, pos: Position) {

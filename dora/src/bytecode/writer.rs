@@ -238,12 +238,12 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::Sar, dest, lhs, rhs);
     }
 
-    pub fn emit_instance_of(&mut self, dest: Register, src: Register, cls_idx: ConstPoolIdx) {
-        self.emit_reg2_cls(BytecodeOpcode::InstanceOf, dest, src, cls_idx);
+    pub fn emit_instance_of(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
+        self.emit_reg2_idx(BytecodeOpcode::InstanceOf, dest, src, idx);
     }
 
-    pub fn emit_checked_cast(&mut self, src: Register, cls_idx: ConstPoolIdx) {
-        self.emit_reg1_cls(BytecodeOpcode::CheckedCast, src, cls_idx);
+    pub fn emit_checked_cast(&mut self, src: Register, idx: ConstPoolIdx) {
+        self.emit_reg1_idx(BytecodeOpcode::CheckedCast, src, idx);
     }
 
     pub fn emit_sub(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -334,12 +334,12 @@ impl BytecodeWriter {
         self.emit_fct_void(BytecodeOpcode::InvokeStaticVoid, idx);
     }
 
-    pub fn emit_invoke_lambda(&mut self, dest: Register) {
-        self.emit_reg1(BytecodeOpcode::InvokeLambda, dest);
+    pub fn emit_invoke_lambda(&mut self, dest: Register, idx: ConstPoolIdx) {
+        self.emit_reg1_idx(BytecodeOpcode::InvokeLambda, dest, idx);
     }
 
-    pub fn emit_invoke_lambda_void(&mut self) {
-        self.emit_op(BytecodeOpcode::InvokeLambdaVoid);
+    pub fn emit_invoke_lambda_void(&mut self, idx: ConstPoolIdx) {
+        self.emit_idx(BytecodeOpcode::InvokeLambdaVoid, idx);
     }
 
     pub fn emit_invoke_static(&mut self, dest: Register, idx: ConstPoolIdx) {
@@ -528,28 +528,8 @@ impl BytecodeWriter {
         self.emit_values(inst, &values);
     }
 
-    fn emit_reg2_cls(
-        &mut self,
-        inst: BytecodeOpcode,
-        r1: Register,
-        r2: Register,
-        cls_idx: ConstPoolIdx,
-    ) {
-        let values = [
-            r1.to_usize() as u32,
-            r2.to_usize() as u32,
-            cls_idx.to_usize() as u32,
-        ];
-        self.emit_values(inst, &values);
-    }
-
     fn emit_reg1(&mut self, inst: BytecodeOpcode, r1: Register) {
         let values = [r1.to_usize() as u32];
-        self.emit_values(inst, &values);
-    }
-
-    fn emit_reg1_cls(&mut self, inst: BytecodeOpcode, r1: Register, cls_idx: ConstPoolIdx) {
-        let values = [r1.to_usize() as u32, cls_idx.to_usize() as u32];
         self.emit_values(inst, &values);
     }
 
@@ -671,6 +651,11 @@ impl BytecodeWriter {
 
     fn emit_op(&mut self, inst: BytecodeOpcode) {
         let values = [];
+        self.emit_values(inst, &values);
+    }
+
+    fn emit_idx(&mut self, inst: BytecodeOpcode, idx: ConstPoolIdx) {
+        let values = [idx.to_usize() as u32];
         self.emit_values(inst, &values);
     }
 
