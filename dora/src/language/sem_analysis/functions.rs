@@ -250,6 +250,8 @@ impl FctDefinition {
             | FctParent::Impl(_)
             | FctParent::Extension(_) => !self.is_static,
 
+            FctParent::Function(_) => true,
+
             _ => false,
         }
     }

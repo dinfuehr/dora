@@ -208,7 +208,9 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeStatic
             | BytecodeOpcode::InvokeStaticVoid
             | BytecodeOpcode::InvokeVirtual
-            | BytecodeOpcode::InvokeVirtualVoid => true,
+            | BytecodeOpcode::InvokeVirtualVoid
+            | BytecodeOpcode::InvokeLambda
+            | BytecodeOpcode::InvokeLambdaVoid => true,
             _ => false,
         }
     }

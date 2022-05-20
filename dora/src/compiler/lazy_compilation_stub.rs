@@ -228,8 +228,37 @@ fn compile_request(ra: usize, receiver1: Address, receiver2: Address) -> Address
             )
         }
 
-        LazyCompilationSite::Lambda(_) => unimplemented!(),
+        LazyCompilationSite::Lambda(receiver_is_first) => {
+            patch_lambda_call(vm, receiver_is_first, receiver1, receiver2)
+        }
     }
+}
+
+fn patch_lambda_call(
+    vm: &VM,
+    receiver_is_first: bool,
+    receiver1: Address,
+    receiver2: Address,
+) -> Address {
+    let receiver = if receiver_is_first {
+        receiver1
+    } else {
+        receiver2
+    };
+
+    let obj = unsafe { &mut *receiver.to_mut_ptr::<Obj>() };
+    let vtable = obj.header().vtbl();
+    let class_instance = vtable.class_instance();
+
+    let lambda_id = class_instance.fct_id.expect("missing fct_id");
+    let type_params = class_instance.type_params.clone();
+
+    let fct_ptr = compiler::generate(vm, lambda_id, &type_params);
+
+    let methodtable = vtable.table_mut();
+    methodtable[0] = fct_ptr.to_usize();
+
+    fct_ptr
 }
 
 fn patch_virtual_call(

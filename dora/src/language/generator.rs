@@ -76,9 +76,6 @@ impl<'a> AstBytecodeGen<'a> {
                 let reg = self.alloc_var(register_bty);
                 self.var_registers.insert(var_id, reg);
             }
-        } else if self.fct.is_lambda() {
-            // Context is passed for lambdas as first argument.
-            let _ctxt = self.alloc_var(BytecodeType::Ptr);
         }
 
         for param in &ast.params {
@@ -3043,6 +3040,7 @@ pub fn bty_from_ty(ty: SourceType) -> BytecodeType {
         SourceType::Tuple(subtypes) => BytecodeType::Tuple(subtypes),
         SourceType::TypeParam(idx) => BytecodeType::TypeParam(idx.to_usize() as u32),
         SourceType::Lambda(params, return_type) => BytecodeType::Lambda(params, return_type),
+        SourceType::Ptr => BytecodeType::Ptr,
         _ => panic!("BuiltinType {:?} cannot converted to BytecodeType", ty),
     }
 }
@@ -3063,6 +3061,7 @@ pub fn register_bty_from_ty(ty: SourceType) -> BytecodeType {
         SourceType::Tuple(subtypes) => BytecodeType::Tuple(subtypes),
         SourceType::TypeParam(idx) => BytecodeType::TypeParam(idx.to_usize() as u32),
         SourceType::Lambda(_, _) => BytecodeType::Ptr,
+        SourceType::Ptr => BytecodeType::Ptr,
         _ => panic!("BuiltinType {:?} cannot converted to BytecodeType", ty),
     }
 }

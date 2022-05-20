@@ -142,7 +142,10 @@ impl<'a> TypeCheck<'a> {
         }
 
         let self_ty = self.fct.param_types[0].clone();
-        self.self_ty = Some(self_ty.clone());
+
+        if !self.fct.is_lambda() {
+            self.self_ty = Some(self_ty.clone());
+        }
 
         let ast_id = self.fct.ast.id;
         let name = self.sa.interner.intern("self");
@@ -2978,14 +2981,17 @@ impl<'a> TypeCheck<'a> {
             SourceType::Unit
         };
 
-        let params = node
-            .params
-            .iter()
-            .map(|p| self.read_type(&p.data_type))
-            .collect::<Vec<_>>();
+        let mut params = Vec::new();
+
+        for param in &node.params {
+            params.push(self.read_type(&param.data_type));
+        }
 
         let ty = SourceType::Lambda(SourceTypeArray::with(params.clone()), Box::new(ret.clone()));
         let parent_fct_id = self.fct.id();
+
+        let mut params_with_ctxt = vec![SourceType::Ptr];
+        params_with_ctxt.append(&mut params);
 
         let mut lambda = FctDefinition::new(
             self.file_id,
@@ -2993,7 +2999,7 @@ impl<'a> TypeCheck<'a> {
             node,
             FctParent::Function(parent_fct_id),
         );
-        lambda.param_types = params;
+        lambda.param_types = params_with_ctxt;
         lambda.return_type = ret;
         let lambda_fct_id = self.sa.add_fct(lambda);
         self.analysis.map_lambdas.insert(node.id, lambda_fct_id);

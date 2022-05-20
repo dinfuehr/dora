@@ -767,9 +767,10 @@ pub fn replace_type_param(
         | SourceType::Int64
         | SourceType::Float32
         | SourceType::Float64
-        | SourceType::Error => ty,
+        | SourceType::Error
+        | SourceType::Ptr => ty,
 
-        SourceType::Any | SourceType::Ptr => {
+        SourceType::Any => {
             panic!("unexpected type = {:?}", ty);
             // unreachable!()
         }
