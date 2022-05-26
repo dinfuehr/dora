@@ -71,6 +71,8 @@ $all_configs = {
   region: '--gc=region'
 }
 $exit_after_n_failures = nil
+$env = {}
+$verbose = false
 
 def process_arguments
   idx = 0
@@ -93,6 +95,12 @@ def process_arguments
     elsif arg == "--binary"
       $binary = ARGV[idx+1].to_s.strip
       idx += 1
+    elsif arg == "--env"
+      raise "missing arguments" unless idx+1 < ARGV.length
+      name_and_value = ARGV[idx+1].to_s.split("=", 2)
+      raise "missing value" unless name_and_value.length == 2
+      $env[name_and_value[0]] = name_and_value[1]
+      idx += 1
     elsif arg == "--release"
       $release = true
     elsif arg == "--no-capture"
@@ -100,6 +108,8 @@ def process_arguments
     elsif arg == "--stress"
       $stress = true
       $stress_timeout = 60
+    elsif arg == "--verbose"
+      $verbose = true
     else
       $files.push(arg)
     end
@@ -116,7 +126,7 @@ def binary_path
 end
 
 class TestUtility
-  def self.spawn_with_timeout(cmd, timeout)
+  def self.spawn_with_timeout(env, cmd, timeout)
     result = {
       :pid     => nil,
       :status  => nil,
@@ -128,7 +138,7 @@ class TestUtility
     out_reader = nil
     err_reader = nil
 
-    Open3.popen3(cmd) do | stdin, stdout, stderr, wait_thr |
+    Open3.popen3(env, cmd) do | stdin, stdout, stderr, wait_thr |
       Timeout.timeout(timeout) do
         result[:pid] = wait_thr.pid
 
@@ -419,8 +429,15 @@ def run_test(test_case, config, mutex)
     return TestResult.new(test_case, config, :ignore, nil)
   end
 
-  cmdline = "#{binary_path} #{$all_configs[config]} #{test_case.vm_args} #{test_case.test_file} #{test_case.args}"
-  process_result = TestUtility.spawn_with_timeout(cmdline, test_case.get_timeout)
+  cmdline = "#{binary_path}"
+  cmdline << " #{$all_configs[config]}" unless $all_configs[config].empty?
+  cmdline << " #{test_case.vm_args}" unless test_case.vm_args.empty?
+  cmdline << " #{test_case.test_file}"
+  cmdline << " #{test_case.args}" unless test_case.args.empty?
+
+  puts cmdline if $verbose
+
+  process_result = TestUtility.spawn_with_timeout($env, cmdline, test_case.get_timeout)
   result = check_test_run_result(test_case, process_result)
 
   if !$capture || result != true
