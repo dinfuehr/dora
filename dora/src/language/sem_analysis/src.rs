@@ -3,7 +3,6 @@ use std::ops::{Index, IndexMut};
 use std::sync::Arc;
 
 use dora_parser::ast;
-use dora_parser::interner::Name;
 
 use crate::language::sem_analysis::{
     ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId,
@@ -22,7 +21,7 @@ pub struct AnalysisData {
     pub map_cls: NodeMap<ClassDefinitionId>,
     pub map_fors: NodeMap<ForTypeInfo>,
     pub map_lambdas: NodeMap<FctDefinitionId>,
-    pub vars: Vec<Var>, // variables in functions
+    pub vars: VarAccess, // variables in functions
 }
 
 impl AnalysisData {
@@ -37,7 +36,7 @@ impl AnalysisData {
             map_fors: NodeMap::new(),
             map_lambdas: NodeMap::new(),
 
-            vars: Vec::new(),
+            vars: VarAccess::empty(),
         }
     }
 
@@ -47,14 +46,6 @@ impl AnalysisData {
 
     pub fn ty(&self, id: ast::NodeId) -> SourceType {
         self.map_tys.get(id).expect("no type found").clone()
-    }
-
-    pub fn var_self(&self) -> &Var {
-        &self.vars[0]
-    }
-
-    pub fn var_self_mut(&mut self) -> &mut Var {
-        &mut self.vars[0]
     }
 }
 
@@ -146,7 +137,7 @@ pub enum IdentType {
 impl IdentType {
     pub fn var_id(&self) -> VarId {
         match *self {
-            IdentType::Var(varid) => varid,
+            IdentType::Var(var_id) => var_id,
             _ => panic!(),
         }
     }
@@ -305,10 +296,7 @@ pub struct VarId(pub usize);
 #[derive(Clone, Debug)]
 pub struct Var {
     pub id: VarId,
-    pub name: Name,
     pub ty: SourceType,
-    pub mutable: bool,
-    pub node_id: ast::NodeId,
 }
 
 impl Index<VarId> for Vec<Var> {
@@ -322,5 +310,32 @@ impl Index<VarId> for Vec<Var> {
 impl IndexMut<VarId> for Vec<Var> {
     fn index_mut(&mut self, index: VarId) -> &mut Var {
         &mut self[index.0]
+    }
+}
+
+#[derive(Debug)]
+pub struct VarAccess {
+    start_idx: usize,
+    vars: Vec<Var>,
+}
+
+impl VarAccess {
+    pub fn new(start_idx: usize, vars: Vec<Var>) -> VarAccess {
+        VarAccess { start_idx, vars }
+    }
+
+    fn empty() -> VarAccess {
+        VarAccess {
+            start_idx: 0,
+            vars: Vec::new(),
+        }
+    }
+
+    pub fn get_var(&self, idx: VarId) -> &Var {
+        &self.vars[idx.0 - self.start_idx]
+    }
+
+    pub fn get_self(&self) -> &Var {
+        &self.vars[0]
     }
 }

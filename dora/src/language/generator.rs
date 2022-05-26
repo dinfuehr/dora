@@ -65,7 +65,7 @@ impl<'a> AstBytecodeGen<'a> {
         let mut params = Vec::new();
 
         if self.fct.has_self() {
-            let var_self = self.src.var_self();
+            let var_self = self.src.vars.get_self();
             let var_ty = var_self.ty.clone();
 
             if !var_ty.is_unit() {
@@ -1628,7 +1628,7 @@ impl<'a> AstBytecodeGen<'a> {
         assert!(num_args > 0);
 
         assert!(callee.has_self());
-        let self_id = self.src.var_self().id;
+        let self_id = self.src.vars.get_self().id;
         let self_reg = self.var_reg(self_id);
 
         let arg_regs = expr
@@ -1661,7 +1661,7 @@ impl<'a> AstBytecodeGen<'a> {
             return Register::invalid();
         }
 
-        let var_id = self.src.var_self().id;
+        let var_id = self.src.vars.get_self().id;
         let var_reg = self.var_reg(var_id);
 
         if dest.is_alloc() {
@@ -2685,7 +2685,7 @@ impl<'a> AstBytecodeGen<'a> {
         let ident_type = self.src.map_idents.get(ident.id).unwrap();
 
         match ident_type {
-            &IdentType::Var(varid) => self.visit_expr_ident_var(varid, dest),
+            &IdentType::Var(var_id) => self.visit_expr_ident_var(var_id, dest),
             &IdentType::Global(gid) => self.visit_expr_ident_global(gid, dest),
             &IdentType::Const(cid) => self.visit_expr_ident_const(cid, dest),
             &IdentType::EnumValue(enum_id, ref type_params, variant_idx) => {
@@ -2898,7 +2898,7 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn var_ty(&self, id: VarId) -> SourceType {
-        self.src.vars[id].ty.clone()
+        self.src.vars.get_var(id).ty.clone()
     }
 
     fn get_intrinsic(&self, id: ast::NodeId) -> Option<IntrinsicInfo> {

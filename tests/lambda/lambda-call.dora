@@ -1,8 +1,12 @@
 //= vm-args "--gc=swiper --gc-verify"
 
 fn main() {
-    let lambda = |a: Int64, b: Int64|: Int64 { a + b };
+    let x = 10;
+    let lambda = |a: Int64, b: Int64|: Int64 {
+        let x = 100;
+        a + b + x
+    };
     std::forceCollect();
-    assert(lambda(1, 2) == 3);
-    assert(lambda(-2, 4) == 2);
+    assert(lambda(1, 2) == 103);
+    assert(lambda(-2, 4) == 102);
 }

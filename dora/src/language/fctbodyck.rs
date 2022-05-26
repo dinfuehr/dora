@@ -1,4 +1,4 @@
-use crate::language::fctbodyck::body::TypeCheck;
+use crate::language::fctbodyck::body::{TypeCheck, VarManager};
 use crate::language::fctbodyck::constck::ConstCheck;
 use crate::language::sem_analysis::{AnalysisData, SemAnalysis};
 use crate::language::sym::NestedSymTable;
@@ -25,6 +25,7 @@ pub fn check(sa: &SemAnalysis) {
 
             let mut analysis = AnalysisData::new();
             let symtable = NestedSymTable::new(sa, fct.module_id);
+            let mut vars = VarManager::new();
 
             let mut typeck = TypeCheck {
                 sa,
@@ -36,6 +37,7 @@ pub fn check(sa: &SemAnalysis) {
                 symtable: symtable,
                 in_loop: false,
                 self_ty: None,
+                vars: &mut vars,
             };
 
             typeck.check();

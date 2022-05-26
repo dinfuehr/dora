@@ -15,7 +15,7 @@ use crate::language::sem_analysis::{
     find_methods_in_struct, implements_trait, AnalysisData, CallType, ClassDefinitionId, ConvInfo,
     EnumDefinitionId, EnumVariant, FctDefinition, FctDefinitionId, FctParent, ForTypeInfo,
     IdentType, Intrinsic, ModuleDefinitionId, SemAnalysis, SourceFileId, StructDefinition,
-    StructDefinitionId, TypeParam, TypeParamDefinition, TypeParamId, Var, VarId,
+    StructDefinitionId, TypeParam, TypeParamDefinition, TypeParamId, Var, VarAccess, VarId,
 };
 use crate::language::specialize::replace_type_param;
 use crate::language::sym::{NestedSymTable, Sym};
@@ -41,12 +41,15 @@ pub struct TypeCheck<'a> {
     pub symtable: NestedSymTable,
     pub in_loop: bool,
     pub self_ty: Option<SourceType>,
+    pub vars: &'a mut VarManager,
 }
 
 impl<'a> TypeCheck<'a> {
     pub fn check(&mut self) {
         assert_eq!(self.symtable.levels(), 0);
         self.symtable.push_level();
+        self.vars.enter_function();
+
         self.add_type_params();
         self.add_params();
 
@@ -75,6 +78,8 @@ impl<'a> TypeCheck<'a> {
         if !returns {
             self.check_fct_return_type(block.pos, return_type);
         }
+
+        self.analysis.vars = self.vars.leave_function();
 
         self.symtable.pop_level();
         assert_eq!(self.symtable.levels(), 0);
@@ -111,15 +116,7 @@ impl<'a> TypeCheck<'a> {
                 ty.clone()
             };
 
-            let var_ctxt = Var {
-                id: VarId(0),
-                name: param.name,
-                mutable: false,
-                ty,
-                node_id: param.id,
-            };
-
-            let var_id = self.add_var(var_ctxt);
+            let var_id = self.vars.add_var(param.name, ty, false);
             self.analysis.map_vars.insert(param.id, var_id);
 
             // params are only allowed to replace functions, vars cannot be replaced
@@ -147,38 +144,18 @@ impl<'a> TypeCheck<'a> {
             self.self_ty = Some(self_ty.clone());
         }
 
-        let ast_id = self.fct.ast.id;
         let name = self.sa.interner.intern("self");
 
-        let var = Var {
-            id: VarId(0),
-            name,
-            ty: self_ty,
-            mutable: false,
-            node_id: ast_id,
-        };
-
-        assert!(self.analysis.vars.is_empty());
-        self.analysis.vars.push(var);
+        assert!(!self.vars.has_local_vars());
+        self.vars.add_var(name, self_ty, false);
     }
 
-    fn add_local(&mut self, var: Var, pos: Position) -> VarId {
-        let name = var.name;
-        let var_id = self.add_var(var);
-        match self.symtable.insert(name, Sym::Var(var_id)) {
+    fn add_local(&mut self, id: VarId, pos: Position) {
+        let name = self.vars.get_var(id).name;
+        match self.symtable.insert(name, Sym::Var(id)) {
             Some(Sym::Var(_)) | None => {}
             Some(sym) => report_sym_shadow(self.sa, name, self.fct.file_id, pos, sym),
         }
-        var_id
-    }
-
-    fn add_var(&mut self, mut var: Var) -> VarId {
-        let var_id = VarId(self.analysis.vars.len());
-
-        var.id = var_id;
-        self.analysis.vars.push(var);
-
-        var_id
     }
 
     fn check_stmt_let(&mut self, s: &ast::StmtLetType) {
@@ -257,15 +234,9 @@ impl<'a> TypeCheck<'a> {
     fn check_stmt_let_pattern(&mut self, pattern: &ast::LetPattern, ty: SourceType, mutable: bool) {
         match pattern {
             ast::LetPattern::Ident(ref ident) => {
-                let var_ctxt = Var {
-                    id: VarId(0),
-                    name: ident.name,
-                    mutable: mutable || ident.mutable,
-                    ty,
-                    node_id: ident.id,
-                };
+                let var_id = self.vars.add_var(ident.name, ty, mutable || ident.mutable);
 
-                let var_id = self.add_local(var_ctxt, ident.pos);
+                self.add_local(var_id, ident.pos);
                 self.analysis.map_vars.insert(ident.id, var_id);
             }
 
@@ -669,15 +640,8 @@ impl<'a> TypeCheck<'a> {
                                                 );
                                             }
 
-                                            let var_ctxt = Var {
-                                                id: VarId(0),
-                                                name,
-                                                mutable: param.mutable,
-                                                ty,
-                                                node_id: param.id,
-                                            };
-
-                                            let var_id = self.add_local(var_ctxt, param.pos);
+                                            let var_id = self.vars.add_var(name, ty, param.mutable);
+                                            self.add_local(var_id, param.pos);
                                             self.analysis.map_vars.insert(param.id, var_id);
                                         }
                                     }
@@ -773,11 +737,13 @@ impl<'a> TypeCheck<'a> {
         let sym = self.symtable.get(e.name);
 
         match sym {
-            Some(Sym::Var(varid)) => {
-                let ty = self.analysis.vars[varid].ty.clone();
+            Some(Sym::Var(var_id)) => {
+                let ty = self.vars.get_var(var_id).ty.clone();
                 self.analysis.set_ty(e.id, ty.clone());
 
-                self.analysis.map_idents.insert(e.id, IdentType::Var(varid));
+                self.analysis
+                    .map_idents
+                    .insert(e.id, IdentType::Var(var_id));
 
                 ty
             }
@@ -860,8 +826,8 @@ impl<'a> TypeCheck<'a> {
         let sym = self.symtable.get(lhs_ident.name);
 
         let lhs_type = match sym {
-            Some(Sym::Var(varid)) => {
-                if !self.analysis.vars[varid].mutable {
+            Some(Sym::Var(var_id)) => {
+                if !self.vars.get_var(var_id).mutable {
                     self.sa
                         .diag
                         .lock()
@@ -870,8 +836,8 @@ impl<'a> TypeCheck<'a> {
 
                 self.analysis
                     .map_idents
-                    .insert(e.lhs.id(), IdentType::Var(varid));
-                self.analysis.vars[varid].ty.clone()
+                    .insert(e.lhs.id(), IdentType::Var(var_id));
+                self.vars.get_var(var_id).ty.clone()
             }
 
             Some(Sym::Global(global_id)) => {
@@ -3023,6 +2989,7 @@ impl<'a> TypeCheck<'a> {
                     symtable: symtable,
                     in_loop: false,
                     self_ty: None,
+                    vars: self.vars,
                 };
 
                 typeck.check();
@@ -3633,4 +3600,76 @@ fn is_simple_enum(sa: &SemAnalysis, ty: SourceType) -> bool {
 
         _ => false,
     }
+}
+
+pub struct VarManager {
+    vars: Vec<VarDefinition>,
+    functions: Vec<usize>,
+}
+
+impl VarManager {
+    pub fn new() -> VarManager {
+        VarManager {
+            vars: Vec::new(),
+            functions: Vec::new(),
+        }
+    }
+
+    pub fn has_local_vars(&self) -> bool {
+        self.vars.len() > *self.functions.last().expect("no function entered")
+    }
+
+    fn add_var(&mut self, name: Name, ty: SourceType, mutable: bool) -> VarId {
+        let id = VarId(self.vars.len());
+
+        let var = VarDefinition {
+            id,
+            name,
+            ty,
+            mutable,
+            location: VarLocation::Stack,
+        };
+
+        self.vars.push(var);
+
+        id
+    }
+
+    fn get_var(&self, idx: VarId) -> &VarDefinition {
+        &self.vars[idx.0]
+    }
+
+    fn enter_function(&mut self) {
+        self.functions.push(self.vars.len());
+    }
+
+    fn leave_function(&mut self) -> VarAccess {
+        let start_idx = self.functions.pop().expect("missing function");
+
+        let vars = self
+            .vars
+            .drain(start_idx..)
+            .map(|vd| Var {
+                id: vd.id,
+                ty: vd.ty.clone(),
+            })
+            .collect();
+
+        VarAccess::new(start_idx, vars)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct VarDefinition {
+    pub id: VarId,
+    pub name: Name,
+    pub ty: SourceType,
+    pub mutable: bool,
+    pub location: VarLocation,
+}
+
+#[derive(Clone, Debug)]
+pub enum VarLocation {
+    Stack,
+    Context,
 }
