@@ -11,7 +11,6 @@ use crate::gc::swiper::on_different_cards;
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{CARD_REFS, CARD_SIZE};
 use crate::gc::{Address, Region};
-use crate::vm::get_vm;
 
 use crate::mem;
 use crate::object::{offset_of_array_data, Obj};
@@ -492,7 +491,7 @@ impl<'a> Verifier<'a> {
             let object = container_obj.to_obj();
             let cls = object.header().vtbl().class_instance();
             let size = object.size();
-            println!("\tsource object of {} (size={})", cls.name(get_vm()), size);
+            println!("\tsource object of {:?} (size={})", cls.kind, size);
         }
 
         if self.young.contains(reference)
@@ -519,7 +518,7 @@ impl<'a> Verifier<'a> {
         let object = reference.to_obj();
         println!("\tsize {}", object.size());
         let cls = object.header().vtbl().class_instance();
-        println!("\tclass {}", cls.name(get_vm()));
+        println!("\tclass {:?}", cls.kind);
 
         panic!("reference neither pointing into young nor old generation.");
     }

@@ -28,7 +28,7 @@ use crate::utils::{GrowableVec, MutableVec};
 use dora_parser::interner::*;
 
 pub use self::classes::{
-    create_class_instance_with_vtable, ClassInstance, ClassInstanceId, FieldInstance,
+    create_class_instance_with_vtable, ClassInstance, ClassInstanceId, FieldInstance, ShapeKind,
 };
 pub use self::code::{
     install_code, install_code_stub, Code, CodeId, CodeKind, CodeObjects, CommentTable, GcPoint,

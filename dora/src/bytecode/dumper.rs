@@ -458,11 +458,10 @@ impl<'a> BytecodeDumper<'a> {
 
                 (struct_name, fname)
             }
-            ConstPoolEntry::FieldFixed(cls_def_id, field_id) => {
-                let cls = self.vm.class_instances.idx(*cls_def_id);
+            ConstPoolEntry::FieldFixed(class_instance_id, field_id) => {
+                let cls = self.vm.class_instances.idx(*class_instance_id);
                 let cname = cls
-                    .trait_object
-                    .clone()
+                    .trait_object()
                     .expect("trait object expected")
                     .name(self.vm);
 

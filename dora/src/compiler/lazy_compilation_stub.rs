@@ -23,7 +23,7 @@ use crate::os;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::ThreadLocalData;
 use crate::vm::{
-    get_vm, install_code_stub, ClassInstanceId, Code, CodeKind, LazyCompilationSite, VM,
+    get_vm, install_code_stub, ClassInstanceId, Code, CodeKind, LazyCompilationSite, ShapeKind, VM,
 };
 
 // This code generates the compiler stub, there should only be one instance
@@ -250,8 +250,10 @@ fn patch_lambda_call(
     let vtable = obj.header().vtbl();
     let class_instance = vtable.class_instance();
 
-    let lambda_id = class_instance.fct_id.expect("missing fct_id");
-    let type_params = class_instance.type_params.clone();
+    let (lambda_id, type_params) = match &class_instance.kind {
+        ShapeKind::Lambda(lambda_id, type_params) => (*lambda_id, type_params.clone()),
+        _ => unreachable!(),
+    };
 
     let fct_ptr = compiler::generate(vm, lambda_id, &type_params);
 
@@ -280,27 +282,29 @@ fn patch_virtual_call(
     let vtable = obj.header().vtbl();
     let class_instance = vtable.class_instance();
 
-    let fct_ptr = if let Some(cls_id) = class_instance.cls_id {
-        let cls = vm.classes.idx(cls_id);
-        let cls = cls.read();
+    let fct_ptr = match &class_instance.kind {
+        ShapeKind::Class(cls_id, _) => {
+            let cls = vm.classes.idx(*cls_id);
+            let cls = cls.read();
 
-        let fct_id = cls.virtual_fcts[vtable_index as usize];
-        compiler::generate(vm, fct_id, type_params)
-    } else {
-        let actual_ty = class_instance
-            .trait_object
-            .clone()
-            .expect("trait object expected");
-        let all_type_params = type_params.connect_single(actual_ty.clone());
-        let thunk_fct_id = ensure_thunk(
-            vm,
-            class_instance.id(),
-            trait_fct_id,
-            type_params.clone(),
-            actual_ty,
-        );
+            let fct_id = cls.virtual_fcts[vtable_index as usize];
+            compiler::generate(vm, fct_id, type_params)
+        }
 
-        compiler::generate(vm, thunk_fct_id, &all_type_params)
+        ShapeKind::TraitObject(actual_ty, _, _) => {
+            let all_type_params = type_params.connect_single(actual_ty.clone());
+            let thunk_fct_id = ensure_thunk(
+                vm,
+                class_instance.id(),
+                trait_fct_id,
+                type_params.clone(),
+                actual_ty.clone(),
+            );
+
+            compiler::generate(vm, thunk_fct_id, &all_type_params)
+        }
+
+        _ => unreachable!(),
     };
 
     let methodtable = vtable.table_mut();

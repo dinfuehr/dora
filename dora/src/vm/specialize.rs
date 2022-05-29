@@ -10,9 +10,9 @@ use crate::mem;
 use crate::object::Header;
 use crate::size::InstanceSize;
 use crate::vm::{
-    create_class_instance_with_vtable, get_concrete_tuple_ty, ClassDefinition, ClassInstance,
-    ClassInstanceId, EnumDefinition, EnumDefinitionId, EnumInstance, EnumInstanceId, EnumLayout,
-    FieldInstance, StructDefinition, StructDefinitionId, StructInstance, StructInstanceField,
+    create_class_instance_with_vtable, get_concrete_tuple_ty, ClassDefinition, ClassInstanceId,
+    EnumDefinition, EnumDefinitionId, EnumInstance, EnumInstanceId, EnumLayout, FieldInstance,
+    ShapeKind, StructDefinition, StructDefinitionId, StructInstance, StructInstanceField,
     StructInstanceId, TraitDefinition, VM,
 };
 
@@ -260,18 +260,11 @@ pub fn specialize_enum_class(
 
     let class_instance_id = create_class_instance_with_vtable(
         vm,
-        ClassInstance {
-            id: None,
-            cls_id: None,
-            fct_id: None,
-            trait_object: None,
-            type_params: SourceTypeArray::empty(),
-            parent_id: None,
-            size: InstanceSize::Fixed(instance_size),
-            fields,
-            ref_fields,
-            vtable: RwLock::new(None),
-        },
+        ShapeKind::Enum(edef.enum_id, edef.type_params.clone()),
+        InstanceSize::Fixed(instance_size),
+        fields,
+        ref_fields,
+        None,
         0,
     );
 
@@ -420,18 +413,11 @@ fn create_specialized_class_regular(
 
     let class_instance_id = create_class_instance_with_vtable(
         vm,
-        ClassInstance {
-            id: None,
-            cls_id: Some(cls.id()),
-            fct_id: None,
-            trait_object: None,
-            type_params: type_params.clone(),
-            parent_id,
-            size,
-            fields,
-            ref_fields,
-            vtable: RwLock::new(None),
-        },
+        ShapeKind::Class(cls.id(), type_params.clone()),
+        size,
+        fields,
+        ref_fields,
+        parent_id,
         cls.virtual_fcts.len(),
     );
 
@@ -519,18 +505,11 @@ fn create_specialized_class_array(
 
     let class_instance_id = create_class_instance_with_vtable(
         vm,
-        ClassInstance {
-            id: None,
-            cls_id: Some(cls.id()),
-            fct_id: None,
-            trait_object: None,
-            type_params: type_params.clone(),
-            parent_id: Some(parent_cls_def_id),
-            size,
-            fields,
-            ref_fields,
-            vtable: RwLock::new(None),
-        },
+        ShapeKind::Class(cls.id(), type_params.clone()),
+        size,
+        fields,
+        ref_fields,
+        Some(parent_cls_def_id),
         cls.virtual_fcts.len(),
     );
 
@@ -549,18 +528,11 @@ pub fn specialize_lambda(
 
     create_class_instance_with_vtable(
         vm,
-        ClassInstance {
-            id: None,
-            cls_id: None,
-            fct_id: Some(fct_id),
-            trait_object: None,
-            type_params,
-            parent_id: None,
-            size,
-            fields: Vec::new(),
-            ref_fields: Vec::new(),
-            vtable: RwLock::new(None),
-        },
+        ShapeKind::Lambda(fct_id, type_params.clone()),
+        size,
+        Vec::new(),
+        Vec::new(),
+        None,
         1,
     )
 }
@@ -589,7 +561,7 @@ pub fn specialize_trait_object(
 fn create_specialized_class_for_trait_object(
     vm: &VM,
     trait_: &TraitDefinition,
-    combined_type_params_id: SourceTypeArray,
+    combined_type_params: SourceTypeArray,
     object_type: SourceType,
 ) -> ClassInstanceId {
     let mut csize;
@@ -617,28 +589,25 @@ fn create_specialized_class_for_trait_object(
 
     let mut vtables = vm.trait_vtables.write();
 
-    if let Some(&id) = vtables.get(&(trait_.id(), combined_type_params_id.clone())) {
+    if let Some(&id) = vtables.get(&(trait_.id(), combined_type_params.clone())) {
         return id;
     }
 
     let class_instance_id = create_class_instance_with_vtable(
         vm,
-        ClassInstance {
-            id: None,
-            cls_id: None,
-            trait_object: Some(object_type),
-            fct_id: None,
-            type_params: SourceTypeArray::empty(),
-            parent_id: None,
-            size,
-            fields,
-            ref_fields,
-            vtable: RwLock::new(None),
-        },
+        ShapeKind::TraitObject(
+            object_type.clone(),
+            trait_.id(),
+            combined_type_params.clone(),
+        ),
+        size,
+        fields,
+        ref_fields,
+        None,
         trait_.methods.len(),
     );
 
-    let old = vtables.insert((trait_.id(), combined_type_params_id), class_instance_id);
+    let old = vtables.insert((trait_.id(), combined_type_params), class_instance_id);
     assert!(old.is_none());
 
     class_instance_id

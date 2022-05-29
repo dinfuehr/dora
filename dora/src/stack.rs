@@ -233,7 +233,7 @@ fn set_backtrace(vm: &VM, mut obj: Handle<Stacktrace>, via_retrieve: bool) {
                         let throw_object_cls_id = (&obj.header)
                             .vtbl()
                             .class_instance()
-                            .cls_id
+                            .cls_id()
                             .expect("no corresponding class");
 
                         if throw_object_cls_id == owner_class {

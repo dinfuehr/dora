@@ -1,8 +1,8 @@
 use parking_lot::RwLock;
 
-use std::iter::Iterator;
-
-use crate::language::sem_analysis::{ClassDefinitionId, FctDefinitionId};
+use crate::language::sem_analysis::{
+    ClassDefinitionId, EnumDefinitionId, FctDefinitionId, TraitDefinitionId,
+};
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::size::InstanceSize;
 use crate::utils::Id;
@@ -37,13 +37,18 @@ impl Id for ClassInstance {
 }
 
 #[derive(Debug)]
+pub enum ShapeKind {
+    Class(ClassDefinitionId, SourceTypeArray),
+    Lambda(FctDefinitionId, SourceTypeArray),
+    TraitObject(SourceType, TraitDefinitionId, SourceTypeArray),
+    Enum(EnumDefinitionId, SourceTypeArray),
+    Builtin,
+}
+
+#[derive(Debug)]
 pub struct ClassInstance {
     pub id: Option<ClassInstanceId>,
-    pub cls_id: Option<ClassDefinitionId>,
-    pub fct_id: Option<FctDefinitionId>,
-    pub trait_object: Option<SourceType>,
-    pub type_params: SourceTypeArray,
-    pub parent_id: Option<ClassInstanceId>,
+    pub kind: ShapeKind,
     pub fields: Vec<FieldInstance>,
     pub size: InstanceSize,
     pub ref_fields: Vec<i32>,
@@ -55,25 +60,17 @@ impl ClassInstance {
         self.id.expect("missing id")
     }
 
-    pub fn name(&self, vm: &VM) -> String {
-        if let Some(cls_id) = self.cls_id {
-            let cls = vm.classes.idx(cls_id);
-            let cls = cls.read();
-            let name = vm.interner.str(cls.name);
+    pub fn trait_object(&self) -> Option<SourceType> {
+        match &self.kind {
+            ShapeKind::TraitObject(object, _, _) => Some(object.clone()),
+            _ => None,
+        }
+    }
 
-            let params = if self.type_params.len() > 0 {
-                self.type_params
-                    .iter()
-                    .map(|p| p.name_cls(vm, &*cls))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            } else {
-                return name.to_string();
-            };
-
-            format!("{}[{}]", name, params)
-        } else {
-            "<Unknown>".into()
+    pub fn cls_id(&self) -> Option<ClassDefinitionId> {
+        match &self.kind {
+            ShapeKind::Class(cls_id, _) => Some(*cls_id),
+            _ => None,
         }
     }
 }
@@ -86,12 +83,21 @@ pub struct FieldInstance {
 
 pub fn create_class_instance_with_vtable(
     vm: &VM,
-    class_instance: ClassInstance,
+    kind: ShapeKind,
+    size: InstanceSize,
+    fields: Vec<FieldInstance>,
+    ref_fields: Vec<i32>,
+    parent_id: Option<ClassInstanceId>,
     vtable_entries: usize,
 ) -> ClassInstanceId {
-    let size = class_instance.size;
-
-    let class_instance_id = vm.class_instances.push(class_instance);
+    let class_instance_id = vm.class_instances.push(ClassInstance {
+        id: None,
+        kind,
+        fields,
+        size,
+        ref_fields,
+        vtable: RwLock::new(None),
+    });
     let class_instance = vm.class_instances.idx(class_instance_id);
     let class_instance_ptr = &*class_instance as *const ClassInstance as *mut ClassInstance;
 
@@ -111,7 +117,7 @@ pub fn create_class_instance_with_vtable(
         element_size,
         &vtable_mtdptrs,
     );
-    ensure_display(vm, &mut vtable, class_instance.parent_id);
+    ensure_display(vm, &mut vtable, parent_id);
 
     *class_instance.vtable.write() = Some(vtable);
 

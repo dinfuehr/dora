@@ -346,8 +346,12 @@ fn thread_main(thread: &DoraThread, location: Address) {
     thread.unpark(vm);
 
     let main = {
-        let cls_id = handle.header().vtbl().class_instance().cls_id;
-        let cls_id = cls_id.expect("no corresponding class");
+        let cls_id = handle
+            .header()
+            .vtbl()
+            .class_instance()
+            .cls_id()
+            .expect("no corresponding class");
         let cls = vm.classes.idx(cls_id);
         let cls = cls.read();
         let name = vm.interner.intern("run");
