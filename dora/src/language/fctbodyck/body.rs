@@ -12,7 +12,7 @@ use crate::language::error::msg::SemError;
 use crate::language::fctbodyck::lookup::MethodLookup;
 use crate::language::sem_analysis::{
     create_tuple, find_field_in_class, find_methods_in_class, find_methods_in_enum,
-    find_methods_in_struct, implements_trait, AnalysisData, CallType, ClassDefinitionId, ConvInfo,
+    find_methods_in_struct, implements_trait, AnalysisData, CallType, ClassDefinitionId,
     EnumDefinitionId, EnumVariant, FctDefinition, FctDefinitionId, FctParent, ForTypeInfo,
     IdentType, Intrinsic, ModuleDefinitionId, SemAnalysis, SourceFileId, StructDefinition,
     StructDefinitionId, TypeParam, TypeParamDefinition, TypeParamId, Var, VarAccess, VarId,
@@ -3010,75 +3010,41 @@ impl<'a> TypeCheck<'a> {
         let check_type = self.read_type(&e.data_type);
         self.analysis.set_ty(e.data_type.id(), check_type.clone());
 
+        assert!(!e.is);
+
         if let SourceType::Trait(trait_id, _) = check_type.clone() {
-            if !e.is {
-                let implements = implements_trait(
-                    self.sa,
-                    object_type.clone(),
-                    &self.fct.type_params,
-                    trait_id,
+            let implements = implements_trait(
+                self.sa,
+                object_type.clone(),
+                &self.fct.type_params,
+                trait_id,
+            );
+
+            if !implements {
+                let object_type = object_type.name_fct(self.sa, self.fct);
+                let check_type = check_type.name_fct(self.sa, self.fct);
+
+                self.sa.diag.lock().report(
+                    self.file_id,
+                    e.pos,
+                    SemError::TypeNotImplementingTrait(object_type, check_type),
                 );
-
-                if !implements {
-                    let object_type = object_type.name_fct(self.sa, self.fct);
-                    let check_type = check_type.name_fct(self.sa, self.fct);
-
-                    self.sa.diag.lock().report(
-                        self.file_id,
-                        e.pos,
-                        SemError::TypeNotImplementingTrait(object_type, check_type),
-                    );
-                }
-
-                self.analysis.set_ty(e.id, check_type.clone());
-                return check_type;
             }
-        }
 
-        if !check_type.is_error() && !check_type.is_cls() {
+            self.analysis.set_ty(e.id, check_type.clone());
+            check_type
+        } else if !check_type.is_error() {
             let name = check_type.name_fct(self.sa, self.fct);
             self.sa
                 .diag
                 .lock()
                 .report(self.file_id, e.pos, SemError::ReferenceTypeExpected(name));
-            let ty = if e.is {
-                SourceType::Bool
-            } else {
-                SourceType::Error
-            };
+            let ty = SourceType::Error;
             self.analysis.set_ty(e.id, ty.clone());
-            return ty;
+            ty
+        } else {
+            SourceType::Error
         }
-
-        let mut valid = false;
-
-        if object_type.subclass_from(self.sa, check_type.clone()) {
-            // open class A { } class B: A { }
-            // (b is A) is valid
-
-            valid = true;
-        } else if check_type.subclass_from(self.sa, object_type.clone()) {
-            // normal check
-        } else if !object_type.is_error() && !check_type.is_error() {
-            let object_type = object_type.name_fct(self.sa, self.fct);
-            let check_type = check_type.name_fct(self.sa, self.fct);
-            let msg = SemError::TypesIncompatible(object_type, check_type);
-            self.sa.diag.lock().report(self.file_id, e.pos, msg);
-        }
-
-        self.analysis.map_convs.insert(
-            e.id,
-            ConvInfo {
-                check_type: check_type.clone(),
-                valid,
-            },
-        );
-
-        let ty = if e.is { SourceType::Bool } else { check_type };
-
-        self.analysis.set_ty(e.id, ty.clone());
-
-        ty
     }
 
     fn check_expr_lit_int(

@@ -566,51 +566,6 @@ fn same_names() {
 }
 
 #[test]
-fn check_is() {
-    ok("@open class A class B: A
-            fn f(a: A): Bool { return a is B; }");
-    ok("@open class A class B: A
-            fn f(b: B): Bool { return b is A; }");
-    ok("class A
-            fn f(a: A): Bool { return a is A; }");
-    err(
-        "@open class A class B: A
-             fn f(a: A): Bool { return a is String; }",
-        pos(2, 42),
-        SemError::TypesIncompatible("A".into(), "String".into()),
-    );
-    err(
-        "@open class A class B: A class C
-             fn f(a: A): Bool { return a is C; }",
-        pos(2, 42),
-        SemError::TypesIncompatible("A".into(), "C".into()),
-    );
-
-    ok("@open class A() class B(): A() fn f(): A { return B(); }");
-    ok("@open class A() class B(): A() fn f() { let a: A = B(); }");
-}
-
-#[test]
-fn check_as() {
-    ok("@open class A class B: A
-            fn f(a: A): B { return a as B; }");
-    ok("class A
-            fn f(a: A): A { return a as A; }");
-    err(
-        "@open class A class B: A
-             fn f(a: A): String { return a as String; }",
-        pos(2, 44),
-        SemError::TypesIncompatible("A".into(), "String".into()),
-    );
-    err(
-        "@open class A class B: A class C
-             fn f(a: A): C { return a as C; }",
-        pos(2, 39),
-        SemError::TypesIncompatible("A".into(), "C".into()),
-    );
-}
-
-#[test]
 fn check_upcast() {
     ok("@open class A class B: A
             fn f(b: B): A {
@@ -2245,22 +2200,6 @@ fn test_methods_with_generics() {
             @override fn test(x: Int32): Int32 { x+x }
         }
     ");
-}
-
-#[test]
-fn test_is_types() {
-    err(
-        "
-        class Object
-        trait SomeTrait {}
-        class Foo[A: SomeTrait] {}
-        fn test(f: Object): Bool {
-            return f is Foo[Int32];
-        }
-    ",
-        pos(6, 25),
-        SemError::TypeNotImplementingTrait("Int32".into(), "SomeTrait".into()),
-    );
 }
 
 #[test]

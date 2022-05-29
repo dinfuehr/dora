@@ -3617,60 +3617,6 @@ fn gen_truncate_float64_to_int64() {
 }
 
 #[test]
-fn gen_instanceof() {
-    gen_fct(
-        "@open class A class B: A fn f(a: A): Bool { a is B }",
-        |sa, code, fct| {
-            let cls_id = sa.cls_by_name("B");
-            let expected = vec![InstanceOf(r(1), r(0), ConstPoolIdx(0)), Ret(r(1))];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Class(cls_id, SourceTypeArray::empty())
-            );
-        },
-    );
-}
-
-#[test]
-fn gen_checked_cast() {
-    gen_fct(
-        "@open class A class B: A fn f(a: A): B { a as B }",
-        |sa, code, fct| {
-            let cls_id = sa.cls_by_name("B");
-            let expected = vec![CheckedCast(r(0), ConstPoolIdx(0)), Ret(r(0))];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Class(cls_id, SourceTypeArray::empty())
-            );
-        },
-    );
-}
-
-#[test]
-fn gen_checked_cast_effect() {
-    gen_fct(
-        "@open class A
-        class B: A
-        fn f(a: A): B { let b = a as B; b }",
-        |sa, code, fct| {
-            let cls_id = sa.cls_by_name("B");
-            let expected = vec![
-                Mov(r(1), r(0)),
-                CheckedCast(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
-            ];
-            assert_eq!(expected, code);
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Class(cls_id, SourceTypeArray::empty())
-            );
-        },
-    );
-}
-
-#[test]
 fn gen_enum_value() {
     gen_fct(
         "enum MyEnum { A, B } fn f(): MyEnum { MyEnum::A }",

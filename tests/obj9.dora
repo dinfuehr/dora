@@ -1,9 +1,0 @@
-fn main() {
-    t(B());
-    t(C() as B);
-}
-
-fn t(o: B) {}
-
-@open class B
-class C: B

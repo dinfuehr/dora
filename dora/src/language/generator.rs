@@ -684,42 +684,21 @@ impl<'a> AstBytecodeGen<'a> {
         let object_type = self.ty(expr.object.id());
         let check_type = self.ty(expr.data_type.id());
 
-        if let SourceType::Trait(trait_id, ref type_params) = check_type {
-            let object = self.visit_expr(&expr.object, DataDest::Alloc);
-            let idx = self
-                .builder
-                .add_const_trait(trait_id, check_type.type_params(), object_type);
-            let ty = BytecodeType::Trait(trait_id, type_params.clone());
-            let dest = self.ensure_register(dest, ty);
-            self.builder
-                .emit_new_trait_object(dest, idx, object, expr.pos);
-            self.free_if_temp(object);
-            return dest;
-        }
+        let (trait_id, type_params) = match check_type {
+            SourceType::Trait(trait_id, ref type_params) => (trait_id, type_params.clone()),
+            _ => unreachable!(),
+        };
 
-        let conv = self.src.map_convs.get(expr.id).clone().unwrap();
-        let ty = conv.check_type.clone();
-        let cls_id = ty.cls_id().expect("class expected");
-        let type_params = ty.type_params();
-        let cls_idx = self.builder.add_const_cls_types(cls_id, type_params);
-
-        if expr.is {
-            let object = self.visit_expr(&expr.object, DataDest::Alloc);
-            let result = self.ensure_register(dest, BytecodeType::Bool);
-            self.builder.emit_instance_of(result, object, cls_idx);
-
-            result
-        } else {
-            let dest = match dest {
-                DataDest::Effect => DataDest::Alloc,
-                DataDest::Reg(reg) => DataDest::Reg(reg),
-                DataDest::Alloc => DataDest::Alloc,
-            };
-
-            let object = self.visit_expr(&expr.object, dest);
-            self.builder.emit_checked_cast(object, cls_idx, expr.pos);
-            object
-        }
+        let object = self.visit_expr(&expr.object, DataDest::Alloc);
+        let idx = self
+            .builder
+            .add_const_trait(trait_id, check_type.type_params(), object_type);
+        let ty = BytecodeType::Trait(trait_id, type_params.clone());
+        let dest = self.ensure_register(dest, ty);
+        self.builder
+            .emit_new_trait_object(dest, idx, object, expr.pos);
+        self.free_if_temp(object);
+        dest
     }
 
     fn visit_expr_match(&mut self, node: &ast::ExprMatchType, dest: DataDest) -> Register {

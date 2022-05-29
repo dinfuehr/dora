@@ -17,7 +17,6 @@ pub struct AnalysisData {
     pub map_idents: NodeMap<IdentType>,
     pub map_tys: NodeMap<SourceType>,
     pub map_vars: NodeMap<VarId>,
-    pub map_convs: NodeMap<ConvInfo>,
     pub map_cls: NodeMap<ClassDefinitionId>,
     pub map_fors: NodeMap<ForTypeInfo>,
     pub map_lambdas: NodeMap<FctDefinitionId>,
@@ -31,7 +30,6 @@ impl AnalysisData {
             map_idents: NodeMap::new(),
             map_tys: NodeMap::new(),
             map_vars: NodeMap::new(),
-            map_convs: NodeMap::new(),
             map_cls: NodeMap::new(),
             map_fors: NodeMap::new(),
             map_lambdas: NodeMap::new(),
@@ -96,12 +94,6 @@ where
     pub fn iter(&self) -> Iter<ast::NodeId, V> {
         self.map.iter()
     }
-}
-
-#[derive(Debug, Clone)]
-pub struct ConvInfo {
-    pub check_type: SourceType,
-    pub valid: bool,
 }
 
 #[derive(Debug, Clone)]
