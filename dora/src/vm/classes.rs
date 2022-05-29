@@ -6,7 +6,7 @@ use crate::language::sem_analysis::{
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::size::InstanceSize;
 use crate::utils::Id;
-use crate::vm::VM;
+use crate::vm::{add_ref_fields, VM};
 use crate::vtable::{ensure_display, VTableBox};
 
 pub static DISPLAY_SIZE: usize = 6;
@@ -86,10 +86,11 @@ pub fn create_class_instance_with_vtable(
     kind: ShapeKind,
     size: InstanceSize,
     fields: Vec<FieldInstance>,
-    ref_fields: Vec<i32>,
     parent_id: Option<ClassInstanceId>,
     vtable_entries: usize,
 ) -> ClassInstanceId {
+    let ref_fields = build_ref_fields(vm, &kind, size, &fields, parent_id);
+
     let class_instance_id = vm.class_instances.push(ClassInstance {
         id: None,
         kind,
@@ -122,4 +123,54 @@ pub fn create_class_instance_with_vtable(
     *class_instance.vtable.write() = Some(vtable);
 
     class_instance_id
+}
+
+fn build_ref_fields(
+    vm: &VM,
+    kind: &ShapeKind,
+    size: InstanceSize,
+    fields: &[FieldInstance],
+    parent_id: Option<ClassInstanceId>,
+) -> Vec<i32> {
+    match &kind {
+        ShapeKind::Class(cls_id, type_params) => {
+            let cls = vm.classes.idx(*cls_id);
+            let cls = cls.read();
+
+            if cls.is_array {
+                if size == InstanceSize::ObjArray {
+                    Vec::new()
+                } else {
+                    create_array_ref_fields(vm, type_params[0].clone())
+                }
+            } else if cls.is_str {
+                Vec::new()
+            } else {
+                let mut ref_fields = Vec::new();
+
+                if let Some(parent_id) = parent_id {
+                    let cls = vm.class_instances.idx(parent_id);
+                    ref_fields = cls.ref_fields.clone();
+                }
+
+                create_ref_fields(vm, &fields, ref_fields)
+            }
+        }
+
+        _ => create_ref_fields(vm, &fields, Vec::new()),
+    }
+}
+
+fn create_ref_fields(vm: &VM, fields: &[FieldInstance], mut ref_fields: Vec<i32>) -> Vec<i32> {
+    for field in fields {
+        add_ref_fields(vm, &mut ref_fields, field.offset, field.ty.clone());
+    }
+
+    ref_fields
+}
+
+fn create_array_ref_fields(vm: &VM, ty: SourceType) -> Vec<i32> {
+    let mut ref_fields = Vec::new();
+    add_ref_fields(vm, &mut ref_fields, 0, ty);
+    ref_fields
 }

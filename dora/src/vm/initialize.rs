@@ -13,7 +13,6 @@ fn create_special_classes(vm: &mut VM) {
         ShapeKind::Builtin,
         InstanceSize::Fixed(Header::size()),
         Vec::new(),
-        Vec::new(),
         None,
         0,
     );
@@ -24,7 +23,6 @@ fn create_special_classes(vm: &mut VM) {
         ShapeKind::Builtin,
         InstanceSize::FreeArray,
         Vec::new(),
-        Vec::new(),
         None,
         0,
     );
@@ -34,7 +32,6 @@ fn create_special_classes(vm: &mut VM) {
         vm,
         ShapeKind::Builtin,
         InstanceSize::CodeObject,
-        Vec::new(),
         Vec::new(),
         None,
         0,

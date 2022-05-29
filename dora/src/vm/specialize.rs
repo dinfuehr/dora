@@ -263,7 +263,6 @@ pub fn specialize_enum_class(
         ShapeKind::Enum(edef.enum_id, edef.type_params.clone()),
         InstanceSize::Fixed(instance_size),
         fields,
-        ref_fields,
         None,
         0,
     );
@@ -274,6 +273,8 @@ pub fn specialize_enum_class(
 }
 
 pub fn add_ref_fields(vm: &VM, ref_fields: &mut Vec<i32>, offset: i32, ty: SourceType) {
+    assert!(ty.is_concrete_type(vm));
+
     if ty.is_tuple() {
         let tuple = get_concrete_tuple_ty(vm, &ty);
 
@@ -416,7 +417,6 @@ fn create_specialized_class_regular(
         ShapeKind::Class(cls.id(), type_params.clone()),
         size,
         fields,
-        ref_fields,
         parent_id,
         cls.virtual_fcts.len(),
     );
@@ -508,7 +508,6 @@ fn create_specialized_class_array(
         ShapeKind::Class(cls.id(), type_params.clone()),
         size,
         fields,
-        ref_fields,
         Some(parent_cls_def_id),
         cls.virtual_fcts.len(),
     );
@@ -530,7 +529,6 @@ pub fn specialize_lambda(
         vm,
         ShapeKind::Lambda(fct_id, type_params.clone()),
         size,
-        Vec::new(),
         Vec::new(),
         None,
         1,
@@ -602,7 +600,6 @@ fn create_specialized_class_for_trait_object(
         ),
         size,
         fields,
-        ref_fields,
         None,
         trait_.methods.len(),
     );
