@@ -72,13 +72,6 @@ class BytecodeDumper(let bc: BytecodeFunction) {
                 self.emitReg3("Sar", dest, lhs, rhs);
             },
 
-            BytecodeInstruction::InstanceOf(dest, src, idx) => {
-                self.emitReg2AndIdx("InstanceOf", dest, src, idx);
-            },
-            BytecodeInstruction::CheckedCast(src, idx) => {
-                self.emitReg1AndIdx("CheckedCast", src, idx);
-            },
-
             BytecodeInstruction::Mov(dest, src) => {
                 self.emitReg2("Mov", dest, src);
             },

@@ -262,13 +262,6 @@ class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap)
                 self.emitBin(dest, lhs, rhs, Op::Sar);
             },
 
-            BytecodeInstruction::InstanceOf(dest, src, idx) => {
-                unimplemented();
-            },
-            BytecodeInstruction::CheckedCast(src, idx) => {
-                unimplemented();
-            },
-
             BytecodeInstruction::Mov(dest, src) => {
                 self.emitMov(dest, src);
             },

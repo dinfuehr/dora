@@ -17,9 +17,6 @@ use package::bytecode::data::GlobalId;
     Shr(BytecodeRegister, BytecodeRegister, BytecodeRegister),
     Sar(BytecodeRegister, BytecodeRegister, BytecodeRegister),
 
-    InstanceOf(BytecodeRegister, BytecodeRegister, ConstPoolId),
-    CheckedCast(BytecodeRegister, ConstPoolId),
-
     Mov(BytecodeRegister, BytecodeRegister),
 
     LoadTupleElement(BytecodeRegister, BytecodeRegister, ConstPoolId),

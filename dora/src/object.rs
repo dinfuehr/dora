@@ -289,7 +289,7 @@ impl Obj {
     where
         F: FnMut(Slot),
     {
-        let classptr = self.header().vtbl().classptr;
+        let classptr = self.header().vtbl().class_instance_ptr;
         let cls = unsafe { &*classptr };
 
         visit_refs(self.address(), cls, None, f);
@@ -299,7 +299,7 @@ impl Obj {
     where
         F: FnMut(Slot),
     {
-        let classptr = self.header().vtbl().classptr;
+        let classptr = self.header().vtbl().class_instance_ptr;
         let cls = unsafe { &*classptr };
 
         visit_refs(self.address(), cls, Some(range), f);

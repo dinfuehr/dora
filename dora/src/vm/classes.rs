@@ -7,7 +7,7 @@ use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::size::InstanceSize;
 use crate::utils::Id;
 use crate::vm::{add_ref_fields, VM};
-use crate::vtable::{ensure_display, VTableBox};
+use crate::vtable::VTableBox;
 
 pub static DISPLAY_SIZE: usize = 6;
 
@@ -119,13 +119,12 @@ pub fn create_class_instance_with_vtable(
         Vec::new()
     };
 
-    let mut vtable = VTableBox::new(
+    let vtable = VTableBox::new(
         class_instance_ptr,
         instance_size,
         element_size,
         &vtable_mtdptrs,
     );
-    ensure_display(vm, &mut vtable, parent_id);
 
     *class_instance.vtable.write() = Some(vtable);
 

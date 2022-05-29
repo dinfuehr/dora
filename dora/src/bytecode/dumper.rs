@@ -718,13 +718,6 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_reg3("Sar", dest, lhs, rhs);
     }
 
-    fn visit_instance_of(&mut self, dest: Register, src: Register, cls_id: ConstPoolIdx) {
-        self.emit_reg2_cls("InstanceOf", dest, src, cls_id);
-    }
-    fn visit_checked_cast(&mut self, src: Register, cls_id: ConstPoolIdx) {
-        self.emit_reg1_cls("CheckedCast", src, cls_id);
-    }
-
     fn visit_mov(&mut self, dest: Register, src: Register) {
         self.emit_reg2("Mov", dest, src);
     }

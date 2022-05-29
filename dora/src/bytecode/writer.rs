@@ -238,14 +238,6 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::Sar, dest, lhs, rhs);
     }
 
-    pub fn emit_instance_of(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
-        self.emit_reg2_idx(BytecodeOpcode::InstanceOf, dest, src, idx);
-    }
-
-    pub fn emit_checked_cast(&mut self, src: Register, idx: ConstPoolIdx) {
-        self.emit_reg1_idx(BytecodeOpcode::CheckedCast, src, idx);
-    }
-
     pub fn emit_sub(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::Sub, dest, lhs, rhs);
     }

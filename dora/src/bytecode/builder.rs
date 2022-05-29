@@ -364,17 +364,6 @@ impl BytecodeBuilder {
         self.writer.emit_sar(dest, lhs, rhs);
     }
 
-    pub fn emit_instance_of(&mut self, dest: Register, src: Register, cls_idx: ConstPoolIdx) {
-        assert!(self.def(dest) && self.used(src));
-        self.writer.emit_instance_of(dest, src, cls_idx);
-    }
-
-    pub fn emit_checked_cast(&mut self, src: Register, cls_idx: ConstPoolIdx, pos: Position) {
-        assert!(self.used(src));
-        self.writer.set_position(pos);
-        self.writer.emit_checked_cast(src, cls_idx);
-    }
-
     pub fn emit_sub(&mut self, dest: Register, lhs: Register, rhs: Register, pos: Position) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
         self.writer.set_position(pos);

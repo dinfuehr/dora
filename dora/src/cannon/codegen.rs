@@ -33,7 +33,7 @@ use crate::vm::{
     specialize_tuple_array, specialize_tuple_bty, specialize_tuple_ty, specialize_type,
     specialize_type_list, EnumLayout, GcPoint, LazyCompilationSite, Trap, VM,
 };
-use crate::vtable::{VTable, DISPLAY_SIZE};
+use crate::vtable::VTable;
 
 use super::CompilationFlags;
 
@@ -1181,144 +1181,6 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_load_register(src, FREG_RESULT.into());
         self.asm.float64_to_float32(FREG_RESULT, FREG_RESULT);
         self.emit_store_register(FREG_RESULT.into(), dest);
-    }
-
-    fn emit_instanceof(
-        &mut self,
-        dest: Register,
-        src: Register,
-        cls_idx: ConstPoolIdx,
-        instanceof: bool,
-    ) {
-        let const_pool_entry = self.bytecode.const_pool(cls_idx);
-
-        let (cls_id, type_params) = match const_pool_entry {
-            ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params),
-            _ => unreachable!(),
-        };
-
-        let class_instance_id = specialize_class_id_params(self.vm, cls_id, type_params);
-        let class_instance = self.vm.class_instances.idx(class_instance_id);
-
-        let vtable = class_instance.vtable.read();
-        let vtable: &VTable = vtable.as_ref().unwrap();
-        let position = if instanceof {
-            None
-        } else {
-            Some(self.bytecode.offset_position(self.current_offset.to_u32()))
-        };
-
-        // object instanceof T
-
-        // tmp1 = <vtable of object>
-        self.emit_load_register(src, REG_TMP1.into());
-        let lbl_nil = self.asm.test_if_nil(REG_TMP1);
-        self.asm
-            .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Base(REG_TMP1, 0));
-
-        let disp = self.asm.add_addr(Address::from_ptr(vtable as *const _));
-        let pos = self.asm.pos() as i32;
-
-        // tmp2 = <vtable of T>
-        self.asm.load_constpool(REG_TMP2, disp + pos);
-
-        if vtable.subtype_depth >= DISPLAY_SIZE {
-            // cmp [tmp1 + offset T.vtable.subtype_depth], tmp3
-            self.asm.cmp_mem_imm(
-                MachineMode::Int32,
-                Mem::Base(REG_TMP1, VTable::offset_of_depth()),
-                vtable.subtype_depth as i32,
-            );
-
-            // jnz lbl_false
-            let lbl_false = self.asm.create_label();
-            self.asm.jump_if(CondCode::Less, lbl_false);
-
-            // tmp1 = tmp1.subtype_overflow
-            self.asm.load_mem(
-                MachineMode::Ptr,
-                REG_TMP1.into(),
-                Mem::Base(REG_TMP1, VTable::offset_of_overflow()),
-            );
-
-            let overflow_offset = mem::ptr_width() * (vtable.subtype_depth - DISPLAY_SIZE) as i32;
-
-            // cmp [tmp1 + 8*(vtable.subtype_depth - DISPLAY_SIZE) ], tmp2
-            self.asm.cmp_mem(
-                MachineMode::Ptr,
-                Mem::Base(REG_TMP1, overflow_offset),
-                REG_TMP2,
-            );
-
-            if instanceof {
-                // dest = if zero then true else false
-                self.asm.set(REG_RESULT, CondCode::Equal);
-
-                self.emit_store_register(REG_RESULT.into(), dest);
-            } else {
-                // jump to lbl_false if cmp did not succeed
-                self.asm.jump_if(CondCode::NonZero, lbl_false);
-            }
-
-            // jmp lbl_finished
-            let lbl_finished = self.asm.create_label();
-            self.asm.jump(lbl_finished);
-
-            // lbl_false:
-            self.asm.bind_label(lbl_false);
-
-            if instanceof {
-                // dest = false
-                self.asm.load_false(REG_RESULT);
-
-                self.emit_store_register(REG_RESULT.into(), dest);
-            } else {
-                // bailout
-                self.asm.emit_bailout_inplace(Trap::CAST, position.unwrap());
-            }
-
-            // lbl_finished:
-            self.asm.bind_label(lbl_finished);
-        } else {
-            let display_entry =
-                VTable::offset_of_display() + vtable.subtype_depth as i32 * mem::ptr_width();
-
-            // tmp1 = vtable of object
-            // tmp2 = vtable of T
-            // cmp [tmp1 + offset], tmp2
-            self.asm.cmp_mem(
-                MachineMode::Ptr,
-                Mem::Base(REG_TMP1, display_entry),
-                REG_TMP2,
-            );
-
-            if instanceof {
-                self.asm.set(REG_RESULT, CondCode::Equal);
-
-                self.emit_store_register(REG_RESULT.into(), dest);
-            } else {
-                let lbl_bailout = self.asm.create_label();
-                self.asm.jump_if(CondCode::NotEqual, lbl_bailout);
-                self.asm
-                    .emit_bailout(lbl_bailout, Trap::CAST, position.unwrap());
-            }
-        }
-
-        if instanceof {
-            let lbl_end = self.asm.create_label();
-            self.asm.jump(lbl_end);
-
-            self.asm.bind_label(lbl_nil);
-
-            // dest = false
-            self.asm.load_false(REG_RESULT);
-
-            self.emit_store_register(REG_RESULT.into(), dest);
-
-            self.asm.bind_label(lbl_end);
-        } else {
-            self.asm.bind_label(lbl_nil);
-        }
     }
 
     fn emit_mov_generic(&mut self, dest: Register, src: Register) {
@@ -4717,44 +4579,6 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
     fn visit_sar(&mut self, dest: Register, lhs: Register, rhs: Register) {
         comment!(self, format!("Sar {}, {}, {}", dest, lhs, rhs));
         self.emit_sar(dest, lhs, rhs);
-    }
-
-    fn visit_instance_of(&mut self, dest: Register, src: Register, cls_idx: ConstPoolIdx) {
-        comment!(self, {
-            let (cls_id, type_params) = match self.bytecode.const_pool(cls_idx) {
-                ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params),
-                _ => unreachable!(),
-            };
-            let cls = self.vm.classes.idx(cls_id);
-            let cls = cls.read();
-            let cname = cls.name_with_params(self.vm, type_params);
-            format!(
-                "InstanceOf {}, {}, ConstPoolIdx({}) # {}",
-                dest,
-                src,
-                cls_idx.to_usize(),
-                cname
-            )
-        });
-        self.emit_instanceof(dest, src, cls_idx, true);
-    }
-    fn visit_checked_cast(&mut self, src: Register, cls_idx: ConstPoolIdx) {
-        comment!(self, {
-            let (cls_id, type_params) = match self.bytecode.const_pool(cls_idx) {
-                ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params),
-                _ => unreachable!(),
-            };
-            let cls = self.vm.classes.idx(cls_id);
-            let cls = cls.read();
-            let cname = cls.name_with_params(self.vm, type_params);
-            format!(
-                "CheckedCast {}, ConstPoolIdx({}) # {}",
-                src,
-                cls_idx.to_usize(),
-                cname
-            )
-        });
-        self.emit_instanceof(Register::invalid(), src, cls_idx, false);
     }
 
     fn visit_mov(&mut self, dest: Register, src: Register) {

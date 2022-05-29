@@ -110,17 +110,6 @@ use package::bytecode::opcode as opc;
             let rhs = self.readRegister(wide);
             BytecodeInstruction::Sar(dest, lhs, rhs)
 
-        } else if opcode == opc::BC_INSTANCE_OF {
-            let dest = self.readRegister(wide);
-            let src = self.readRegister(wide);
-            let idx = self.readConstPoolId(wide);
-            BytecodeInstruction::InstanceOf(dest, src, idx)
-
-        } else if opcode == opc::BC_CHECKED_CAST {
-            let src = self.readRegister(wide);
-            let idx = self.readConstPoolId(wide);
-            BytecodeInstruction::CheckedCast(src, idx)
-
         } else if opcode == opc::BC_MOV {
             let dest = self.readRegister(wide);
             let src = self.readRegister(wide);

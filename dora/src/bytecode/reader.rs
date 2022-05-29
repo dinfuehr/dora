@@ -129,18 +129,6 @@ impl<'a> BytecodeReader<'a> {
                 BytecodeInstruction::Sar { dest, lhs, rhs }
             }
 
-            BytecodeOpcode::InstanceOf => {
-                let dest = self.read_register();
-                let src = self.read_register();
-                let cls_id = self.read_const_pool_idx();
-                BytecodeInstruction::InstanceOf { dest, src, cls_id }
-            }
-            BytecodeOpcode::CheckedCast => {
-                let src = self.read_register();
-                let cls_id = self.read_const_pool_idx();
-                BytecodeInstruction::CheckedCast { src, cls_id }
-            }
-
             BytecodeOpcode::Mov => {
                 let dest = self.read_register();
                 let src = self.read_register();
@@ -609,13 +597,6 @@ where
                 self.visitor.visit_sar(dest, lhs, rhs);
             }
 
-            BytecodeInstruction::InstanceOf { dest, src, cls_id } => {
-                self.visitor.visit_instance_of(dest, src, cls_id);
-            }
-            BytecodeInstruction::CheckedCast { src, cls_id } => {
-                self.visitor.visit_checked_cast(src, cls_id);
-            }
-
             BytecodeInstruction::Mov { dest, src } => {
                 self.visitor.visit_mov(dest, src);
             }
@@ -874,14 +855,6 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_sar(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
-        unimplemented!();
-    }
-
-    fn visit_instance_of(&mut self, _dest: Register, _src: Register, _cls_id: ConstPoolIdx) {
-        unimplemented!();
-    }
-
-    fn visit_checked_cast(&mut self, _src: Register, _cls_id: ConstPoolIdx) {
         unimplemented!();
     }
 

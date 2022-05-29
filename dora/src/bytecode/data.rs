@@ -61,9 +61,6 @@ enumeration!(BytecodeOpcode {
     Shr,
     Sar,
 
-    InstanceOf,
-    CheckedCast,
-
     Mov,
 
     LoadTupleElement,
@@ -237,7 +234,6 @@ impl BytecodeOpcode {
 
             BytecodeOpcode::Neg
             | BytecodeOpcode::Not
-            | BytecodeOpcode::CheckedCast
             | BytecodeOpcode::Mov
             | BytecodeOpcode::LoadGlobal
             | BytecodeOpcode::StoreGlobal
@@ -274,7 +270,6 @@ impl BytecodeOpcode {
             | BytecodeOpcode::Shl
             | BytecodeOpcode::Shr
             | BytecodeOpcode::Sar
-            | BytecodeOpcode::InstanceOf
             | BytecodeOpcode::LoadEnumVariant
             | BytecodeOpcode::LoadStructField
             | BytecodeOpcode::LoadField
@@ -304,7 +299,6 @@ impl BytecodeOpcode {
         match *self {
             BytecodeOpcode::Div
             | BytecodeOpcode::Mod
-            | BytecodeOpcode::CheckedCast
             | BytecodeOpcode::LoadField
             | BytecodeOpcode::StoreField
             | BytecodeOpcode::InvokeDirectVoid
@@ -413,16 +407,6 @@ pub enum BytecodeInstruction {
         dest: Register,
         lhs: Register,
         rhs: Register,
-    },
-
-    InstanceOf {
-        dest: Register,
-        src: Register,
-        cls_id: ConstPoolIdx,
-    },
-    CheckedCast {
-        src: Register,
-        cls_id: ConstPoolIdx,
     },
 
     Mov {

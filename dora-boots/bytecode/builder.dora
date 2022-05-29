@@ -106,14 +106,6 @@ use package::bytecode::opcode as opc;
         self.emitReg3(opc::BC_SAR, dest, lhs, rhs);
     }
 
-    @pub fn emitInstanceOf(dest: BytecodeRegister, src: BytecodeRegister, cls: ClassDefId) {
-        self.emitReg2AndCls(opc::BC_INSTANCE_OF, dest, src, cls);
-    }
-
-    @pub fn emitCheckedCast(src: BytecodeRegister, cls: ClassDefId) {
-        self.emitReg1AndCls(opc::BC_CHECKED_CAST, src, cls);
-    }
-
     @pub fn emitMov(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(opc::BC_MOV, dest, src);
     }

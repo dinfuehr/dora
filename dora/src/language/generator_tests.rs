@@ -4295,9 +4295,6 @@ pub enum Bytecode {
     Shr(Register, Register, Register),
     Sar(Register, Register, Register),
 
-    InstanceOf(Register, Register, ConstPoolIdx),
-    CheckedCast(Register, ConstPoolIdx),
-
     Mov(Register, Register),
 
     LoadTupleElement(Register, Register, ConstPoolIdx),
@@ -4482,13 +4479,6 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     }
     fn visit_sar(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::Sar(dest, lhs, rhs));
-    }
-
-    fn visit_instance_of(&mut self, dest: Register, src: Register, cls_idx: ConstPoolIdx) {
-        self.emit(Bytecode::InstanceOf(dest, src, cls_idx));
-    }
-    fn visit_checked_cast(&mut self, src: Register, cls_idx: ConstPoolIdx) {
-        self.emit(Bytecode::CheckedCast(src, cls_idx));
     }
 
     fn visit_mov(&mut self, dest: Register, src: Register) {
