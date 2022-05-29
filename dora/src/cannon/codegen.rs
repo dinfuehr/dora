@@ -2299,9 +2299,7 @@ impl<'a> CannonCodeGen<'a> {
         let array_header_size = Header::size() as usize + mem::ptr_width_usize();
 
         let alloc_size = match class_instance.size {
-            InstanceSize::PrimitiveArray(size)
-            | InstanceSize::TupleArray(size)
-            | InstanceSize::StructArray(size) => {
+            InstanceSize::PrimitiveArray(size) | InstanceSize::StructArray(size) => {
                 assert_ne!(size, 0);
                 self.asm
                     .determine_array_size(REG_TMP1, REG_TMP1, size, true);
@@ -2360,9 +2358,7 @@ impl<'a> CannonCodeGen<'a> {
         );
 
         match class_instance.size {
-            InstanceSize::PrimitiveArray(size)
-            | InstanceSize::TupleArray(size)
-            | InstanceSize::StructArray(size) => {
+            InstanceSize::PrimitiveArray(size) | InstanceSize::StructArray(size) => {
                 self.emit_array_initialization(REG_RESULT, REG_TMP1, size);
             }
             InstanceSize::ObjArray => {

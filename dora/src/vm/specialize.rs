@@ -432,53 +432,31 @@ fn create_specialized_class_array(
     cls: &ClassDefinition,
     type_params: &SourceTypeArray,
 ) -> ClassInstanceId {
-    let parent_class = cls
-        .parent_class
-        .clone()
-        .expect("Array & String should have super class");
-    let parent_cls_def_id = specialize_class_ty(vm, parent_class);
-
-    let fields = Vec::new();
-    let mut ref_fields = Vec::new();
+    assert!(cls.parent_class.is_none());
+    assert!(cls.is_array || cls.is_str);
 
     assert!(cls.fields.is_empty());
-    assert!(cls.is_array || cls.is_str);
 
     let size = if cls.is_array {
         let element_ty = type_params[0].clone();
 
         match element_ty {
             SourceType::Unit => InstanceSize::UnitArray,
-            SourceType::Ptr | SourceType::Class(_, _) | SourceType::Trait(_, _) => {
-                InstanceSize::ObjArray
-            }
+            SourceType::Ptr
+            | SourceType::Class(_, _)
+            | SourceType::Trait(_, _)
+            | SourceType::Lambda(_, _) => InstanceSize::ObjArray,
+
             SourceType::Tuple(_) => {
                 let tuple = get_concrete_tuple_ty(vm, &element_ty);
-
-                if tuple.contains_references() {
-                    for &offset in tuple.references() {
-                        ref_fields.push(offset);
-                    }
-
-                    InstanceSize::TupleArray(tuple.size())
-                } else {
-                    InstanceSize::PrimitiveArray(tuple.size())
-                }
+                InstanceSize::StructArray(tuple.size())
             }
 
             SourceType::Struct(struct_id, type_params) => {
                 let sdef_id = specialize_struct_id_params(vm, struct_id, type_params);
                 let sdef = vm.struct_instances.idx(sdef_id);
 
-                if sdef.contains_references() {
-                    for &offset in &sdef.ref_fields {
-                        ref_fields.push(offset);
-                    }
-
-                    InstanceSize::StructArray(sdef.size)
-                } else {
-                    InstanceSize::PrimitiveArray(sdef.size)
-                }
+                InstanceSize::StructArray(sdef.size)
             }
 
             SourceType::Enum(enum_id, type_params) => {
@@ -491,7 +469,17 @@ fn create_specialized_class_array(
                 }
             }
 
-            _ => InstanceSize::PrimitiveArray(element_ty.size(vm)),
+            SourceType::Bool
+            | SourceType::UInt8
+            | SourceType::Char
+            | SourceType::Int32
+            | SourceType::Int64
+            | SourceType::Float32
+            | SourceType::Float64 => InstanceSize::PrimitiveArray(element_ty.size(vm)),
+
+            SourceType::Any | SourceType::Error | SourceType::This | SourceType::TypeParam(_) => {
+                unreachable!()
+            }
         }
     } else {
         InstanceSize::Str
@@ -507,8 +495,8 @@ fn create_specialized_class_array(
         vm,
         ShapeKind::Class(cls.id(), type_params.clone()),
         size,
-        fields,
-        Some(parent_cls_def_id),
+        Vec::new(),
+        None,
         cls.virtual_fcts.len(),
     );
 

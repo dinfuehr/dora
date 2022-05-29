@@ -91,6 +91,13 @@ pub fn create_class_instance_with_vtable(
 ) -> ClassInstanceId {
     let ref_fields = build_ref_fields(vm, &kind, size, &fields, parent_id);
 
+    let size = match size {
+        InstanceSize::StructArray(element_size) if ref_fields.is_empty() => {
+            InstanceSize::PrimitiveArray(element_size)
+        }
+        _ => size,
+    };
+
     let class_instance_id = vm.class_instances.push(ClassInstance {
         id: None,
         kind,

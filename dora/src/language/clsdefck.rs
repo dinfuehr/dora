@@ -65,8 +65,6 @@ impl<'x> ClsDefCheck<'x> {
 
         if let Some(ref parent_class) = self.ast.parent_class {
             self.check_parent_class(parent_class);
-        } else {
-            self.use_object_class_as_parent();
         }
 
         self.sym.pop_level();
@@ -188,18 +186,6 @@ impl<'x> ClsDefCheck<'x> {
                     .lock()
                     .report(self.file_id.into(), parent_class.pos, msg);
             }
-        }
-    }
-
-    fn use_object_class_as_parent(&mut self) {
-        let object_cls = self.sa.known.classes.object();
-
-        if self.cls_id != object_cls {
-            let cls = self.sa.classes.idx(self.cls_id);
-            let mut cls = cls.write();
-
-            let type_params = SourceTypeArray::empty();
-            cls.parent_class = Some(SourceType::Class(object_cls, type_params));
         }
     }
 
