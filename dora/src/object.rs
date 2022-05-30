@@ -305,6 +305,9 @@ impl Obj {
         visit_refs(self.address(), cls, Some(range), f);
     }
 
+    // TODO: Remove this inline-annotation. It is only required to silence a
+    // ASAN failure.
+    #[inline(never)]
     pub fn copy_to(&self, dest: Address, size: usize) {
         unsafe {
             ptr::copy(
