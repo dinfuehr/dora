@@ -834,6 +834,32 @@ impl[T: Stringable] Array[T] {
     temp
   }
 
+/*
+  @pub fn removeIf(fct: (T): Bool) {
+    let len = self.len;
+    var destIdx = 0i64;
+    var srcIdx = 0i64;
+
+    while srcIdx < len {
+      let current = self.array(srcIdx);
+
+      if !fct(current) {
+        self.array(destIdx) = current;
+        destIdx = destIdx + 1i64;
+      }
+
+      srcIdx = srcIdx + 1i64;
+    }
+
+    self.len = destIdx;
+
+    while destIdx < srcIdx {
+      unsafeKillRefs[T](self.array, destIdx);
+      destIdx = destIdx + 1i64;
+    }
+  }
+*/
+
   @pub fn size(): Int64 {
     return self.len;
   }
