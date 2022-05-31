@@ -18,6 +18,7 @@ pub enum TokenKind {
 
     // "big" shapes
     Class,
+    Class2,
     Enum,
     Struct,
     Trait,
@@ -133,6 +134,7 @@ impl TokenKind {
 
             // "big" shapes
             TokenKind::Class => "class",
+            TokenKind::Class2 => "class",
             TokenKind::Enum => "enum",
             TokenKind::Struct => "struct",
             TokenKind::Trait => "trait",

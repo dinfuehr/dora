@@ -116,6 +116,20 @@ impl<'a> Parser<'a> {
                 Ok(Elem::Class(Arc::new(class)))
             }
 
+            TokenKind::Class2 => {
+                self.restrict_modifiers(
+                    &modifiers,
+                    &[
+                        Modifier::Abstract,
+                        Modifier::Open,
+                        Modifier::Internal,
+                        Modifier::Pub,
+                    ],
+                )?;
+                let class = self.parse_class2(&modifiers)?;
+                Ok(Elem::Class(Arc::new(class)))
+            }
+
             TokenKind::Struct => {
                 self.restrict_modifiers(&modifiers, &[Modifier::Pub, Modifier::Internal])?;
                 let struc = self.parse_struct(&modifiers)?;
@@ -573,11 +587,6 @@ impl<'a> Parser<'a> {
 
         let pos = self.expect_token(TokenKind::Class)?.position;
 
-        if self.token.is(TokenKind::Struct) {
-            self.expect_token(TokenKind::Struct)?;
-            return self.parse_class2(modifiers, start, pos);
-        }
-
         let ident = self.expect_identifier()?;
         let type_params = self.parse_type_params()?;
 
@@ -631,12 +640,10 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_class2(
-        &mut self,
-        modifiers: &Modifiers,
-        start: u32,
-        pos: Position,
-    ) -> Result<Class, ParseErrorAndPos> {
+    fn parse_class2(&mut self, modifiers: &Modifiers) -> Result<Class, ParseErrorAndPos> {
+        let start = self.token.span.start();
+        let pos = self.expect_token(TokenKind::Class2)?.position;
+
         let ident = self.expect_identifier()?;
         let type_params = self.parse_type_params()?;
 
@@ -3551,15 +3558,15 @@ mod tests {
 
     #[test]
     fn parse_class2() {
-        let (prog, _) = parse("class struct Foo { a: Int64, b: Bool }");
+        let (prog, _) = parse("class2 Foo { a: Int64, b: Bool }");
         let class = prog.cls0();
         assert_eq!(class.fields.len(), 2);
 
-        let (prog, _) = parse("class struct Foo(a: Int64, b: Bool)");
+        let (prog, _) = parse("class2 Foo(a: Int64, b: Bool)");
         let class = prog.cls0();
         assert_eq!(class.fields.len(), 2);
 
-        let (prog, _) = parse("class struct Foo");
+        let (prog, _) = parse("class2 Foo");
         let class = prog.cls0();
         assert!(class.fields.is_empty());
     }

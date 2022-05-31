@@ -557,6 +557,7 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
 
     // "big" shapes
     keywords.insert("class", TokenKind::Class);
+    keywords.insert("class2", TokenKind::Class2);
     keywords.insert("enum", TokenKind::Enum);
     keywords.insert("struct", TokenKind::Struct);
     keywords.insert("trait", TokenKind::Trait);
