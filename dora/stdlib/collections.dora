@@ -834,7 +834,7 @@ impl[T: Stringable] Array[T] {
     temp
   }
 
-/*
+
   @pub fn removeIf(fct: (T): Bool) {
     let len = self.len;
     var destIdx = 0i64;
@@ -858,7 +858,7 @@ impl[T: Stringable] Array[T] {
       destIdx = destIdx + 1i64;
     }
   }
-*/
+
 
   @pub fn size(): Int64 {
     return self.len;

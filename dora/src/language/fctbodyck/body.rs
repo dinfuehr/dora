@@ -1613,12 +1613,20 @@ impl<'a> TypeCheck<'a> {
     ) -> SourceType {
         let (params, return_type) = expr_type.to_lambda().expect("lambda expected");
 
+        // Type params are mapped to themselves.
+        let type_params_count = self.fct.all_type_params().len();
+        let type_params = (0..type_params_count)
+            .into_iter()
+            .map(|idx| SourceType::TypeParam(TypeParamId(idx)))
+            .collect::<Vec<SourceType>>();
+        let type_params = SourceTypeArray::with(type_params);
+
         if !args_compatible(
             self.sa,
             params.types(),
             false,
             arg_types,
-            &SourceTypeArray::empty(),
+            &type_params,
             None,
         ) {
             let fct_params = params
