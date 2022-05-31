@@ -572,6 +572,12 @@ impl<'a> Parser<'a> {
         let is_pub = modifiers.contains(Modifier::Pub);
 
         let pos = self.expect_token(TokenKind::Class)?.position;
+
+        if self.token.is(TokenKind::Struct) {
+            self.expect_token(TokenKind::Struct)?;
+            return self.parse_class2(modifiers, start, pos);
+        }
+
         let ident = self.expect_identifier()?;
         let type_params = self.parse_type_params()?;
 
@@ -623,6 +629,77 @@ impl<'a> Parser<'a> {
         } else {
             Ok(None)
         }
+    }
+
+    fn parse_class2(
+        &mut self,
+        modifiers: &Modifiers,
+        start: u32,
+        pos: Position,
+    ) -> Result<Class, ParseErrorAndPos> {
+        let ident = self.expect_identifier()?;
+        let type_params = self.parse_type_params()?;
+
+        let fields = if self.token.is(TokenKind::LParen) {
+            self.expect_token(TokenKind::LParen)?;
+            self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
+                p.parse_class2_field()
+            })?
+        } else if self.token.is(TokenKind::LBrace) {
+            self.expect_token(TokenKind::LBrace)?;
+            self.parse_list(TokenKind::Comma, TokenKind::RBrace, |p| {
+                p.parse_class2_field()
+            })?
+        } else {
+            Vec::new()
+        };
+
+        let span = self.span_from(start);
+
+        Ok(Class {
+            id: self.generate_id(),
+            name: ident,
+            pos,
+            span,
+            is_open: modifiers.contains(Modifier::Open),
+            internal: modifiers.contains(Modifier::Internal),
+            is_abstract: modifiers.contains(Modifier::Abstract),
+            is_pub: modifiers.contains(Modifier::Pub),
+            has_constructor: false,
+            parent_class: None,
+            constructor: None,
+            fields,
+            methods: Vec::new(),
+            initializers: Vec::new(),
+            type_params,
+        })
+    }
+
+    fn parse_class2_field(&mut self) -> Result<Field, ParseErrorAndPos> {
+        let start = self.token.span.start();
+        let pos = self.token.position;
+
+        let modifiers = self.parse_annotation_usages()?;
+        let mods = &[Modifier::Pub];
+        self.restrict_modifiers(&modifiers, mods)?;
+
+        let name = self.expect_identifier()?;
+
+        self.expect_token(TokenKind::Colon)?;
+        let data_type = self.parse_type()?;
+        let span = self.span_from(start);
+
+        Ok(Field {
+            id: self.generate_id(),
+            name,
+            pos,
+            span,
+            data_type,
+            primary_ctor: false,
+            expr: None,
+            mutable: true,
+            is_pub: modifiers.contains(Modifier::Pub),
+        })
     }
 
     fn parse_annotation(&mut self, modifiers: &Modifiers) -> Result<Annotation, ParseErrorAndPos> {
@@ -3470,6 +3547,21 @@ mod tests {
         let class = prog.cls0();
 
         assert_eq!(true, class.is_open);
+    }
+
+    #[test]
+    fn parse_class2() {
+        let (prog, _) = parse("class struct Foo { a: Int64, b: Bool }");
+        let class = prog.cls0();
+        assert_eq!(class.fields.len(), 2);
+
+        let (prog, _) = parse("class struct Foo(a: Int64, b: Bool)");
+        let class = prog.cls0();
+        assert_eq!(class.fields.len(), 2);
+
+        let (prog, _) = parse("class struct Foo");
+        let class = prog.cls0();
+        assert!(class.fields.is_empty());
     }
 
     #[test]
