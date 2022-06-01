@@ -117,15 +117,7 @@ impl<'a> Parser<'a> {
             }
 
             TokenKind::Class2 => {
-                self.restrict_modifiers(
-                    &modifiers,
-                    &[
-                        Modifier::Abstract,
-                        Modifier::Open,
-                        Modifier::Internal,
-                        Modifier::Pub,
-                    ],
-                )?;
+                self.restrict_modifiers(&modifiers, &[Modifier::Internal, Modifier::Pub])?;
                 let class = self.parse_class2(&modifiers)?;
                 Ok(Elem::Class(Arc::new(class)))
             }
@@ -668,9 +660,9 @@ impl<'a> Parser<'a> {
             name: ident,
             pos,
             span,
-            is_open: modifiers.contains(Modifier::Open),
+            is_open: false,
             internal: modifiers.contains(Modifier::Internal),
-            is_abstract: modifiers.contains(Modifier::Abstract),
+            is_abstract: false,
             is_pub: modifiers.contains(Modifier::Pub),
             has_constructor: false,
             parent_class: None,
