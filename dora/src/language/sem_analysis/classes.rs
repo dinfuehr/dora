@@ -129,6 +129,10 @@ impl ClassDefinition {
         self.id.expect("missing id")
     }
 
+    pub fn uses_new_syntax(&self) -> bool {
+        self.ast.new_syntax
+    }
+
     pub fn is_generic(&self) -> bool {
         self.type_params.len() > 0
     }
@@ -234,6 +238,16 @@ impl ClassDefinition {
                 }
             }
         }
+    }
+
+    pub fn all_fields_are_public(&self) -> bool {
+        for field in &self.fields {
+            if !field.is_pub {
+                return false;
+            }
+        }
+
+        true
     }
 }
 

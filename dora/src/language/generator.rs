@@ -1474,6 +1474,7 @@ impl<'a> AstBytecodeGen<'a> {
             CallType::Intrinsic(_) => unreachable!(),
             CallType::Struct(_, _) => unreachable!(),
             CallType::Lambda(_, _) => unreachable!(),
+            CallType::Class2Ctor(_, _) => unreachable!(),
         }
     }
 
@@ -2818,6 +2819,7 @@ impl<'a> AstBytecodeGen<'a> {
             CallType::Intrinsic(_) => unreachable!(),
             CallType::Struct(_, _) => unreachable!(),
             CallType::Lambda(_, _) => unreachable!(),
+            CallType::Class2Ctor(_, _) => unreachable!(),
         }
     }
 
@@ -2869,6 +2871,7 @@ impl<'a> AstBytecodeGen<'a> {
             CallType::Intrinsic(_) => unreachable!(),
             CallType::Struct(_, _) => unreachable!(),
             CallType::Lambda(_, _) => unreachable!(),
+            CallType::Class2Ctor(_, _) => unreachable!(),
         }
     }
 

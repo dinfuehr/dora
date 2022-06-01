@@ -3148,6 +3148,49 @@ fn mod_class() {
 }
 
 #[test]
+fn mod_class2() {
+    ok("
+        mod foo {
+            class2 Foo(let x: Bar)
+            class2 Bar
+        }
+    ");
+
+    err(
+        "
+        fn f() { foo::Foo(1i32); }
+        mod foo {
+            class2 Foo(f: Int32)
+        }
+    ",
+        pos(2, 26),
+        SemError::NotAccessible("foo::Foo".into()),
+    );
+
+    err(
+        "
+        fn f() { foo::Foo(1i32); }
+        mod foo {
+            class2 Foo(@pub f: Int32)
+        }
+    ",
+        pos(2, 26),
+        SemError::NotAccessible("foo::Foo".into()),
+    );
+
+    err(
+        "
+        fn f() { foo::Foo(1i32); }
+        mod foo {
+            @pub class2 Foo(f: Int32)
+        }
+    ",
+        pos(2, 26),
+        SemError::ClassConstructorNotAccessible("foo::Foo".into()),
+    );
+}
+
+#[test]
 fn mod_struct() {
     err(
         "

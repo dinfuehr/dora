@@ -534,6 +534,7 @@ pub struct Trait {
 #[derive(Clone, Debug)]
 pub struct Class {
     pub id: NodeId,
+    pub new_syntax: bool,
     pub name: Name,
     pub pos: Position,
     pub span: Span,

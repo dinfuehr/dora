@@ -195,6 +195,9 @@ pub enum CallType {
     // Call to parent constructor, i.e. class Foo() : Bar()
     CtorParent(SourceType, FctDefinitionId),
 
+    // Class constructor of new class syntax, i.e. ClassName(<args>).
+    Class2Ctor(ClassDefinitionId, SourceTypeArray),
+
     // Invoke on expression, e.g. <expr>(<args>)
     Expr(SourceType, FctDefinitionId, SourceTypeArray),
 
@@ -278,6 +281,7 @@ impl CallType {
             CallType::Enum(_, _) => None,
             CallType::Struct(_, _) => None,
             CallType::Lambda(_, _) => None,
+            CallType::Class2Ctor(_, _) => None,
         }
     }
 }

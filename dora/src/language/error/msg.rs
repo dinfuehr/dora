@@ -119,6 +119,7 @@ pub enum SemError {
     NoSuperClass(String),
     NotAccessible(String),
     StructConstructorNotAccessible(String),
+    ClassConstructorNotAccessible(String),
     NotAccessibleInModule(String, String),
     RecursiveStructure,
     TraitMethodWithBody,
@@ -351,6 +352,9 @@ impl SemError {
             SemError::NotAccessible(ref name) => format!("`{}` is not accessible.", name),
             SemError::StructConstructorNotAccessible(ref name) => {
                 format!("constructor of struct `{}` is not accessible.", name)
+            }
+            SemError::ClassConstructorNotAccessible(ref name) => {
+                format!("constructor of class `{}` is not accessible.", name)
             }
             SemError::NotAccessibleInModule(ref module, ref name) => {
                 format!("`{}` in module `{}` is not accessible.", name, module)

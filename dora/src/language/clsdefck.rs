@@ -82,7 +82,9 @@ impl<'x> ClsDefCheck<'x> {
         .unwrap_or(SourceType::Error);
         self.add_field(f.pos, f.name, ty, f.mutable, f.is_pub);
 
-        if !f.primary_ctor && f.expr.is_none() {
+        let cls = self.sa.classes.idx(self.cls_id);
+
+        if !f.primary_ctor && f.expr.is_none() && !cls.read().uses_new_syntax() {
             self.sa.diag.lock().report(
                 self.file_id.into(),
                 f.pos,

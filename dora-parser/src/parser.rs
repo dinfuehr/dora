@@ -584,6 +584,7 @@ impl<'a> Parser<'a> {
 
         let mut cls = Class {
             id: self.generate_id(),
+            new_syntax: false,
             name: ident,
             pos,
             span: Span::invalid(),
@@ -657,6 +658,7 @@ impl<'a> Parser<'a> {
 
         Ok(Class {
             id: self.generate_id(),
+            new_syntax: true,
             name: ident,
             pos,
             span,

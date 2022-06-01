@@ -13,10 +13,11 @@ use crate::language::error::msg::SemError;
 use crate::language::fctbodyck::lookup::MethodLookup;
 use crate::language::sem_analysis::{
     create_tuple, find_field_in_class, find_methods_in_class, find_methods_in_enum,
-    find_methods_in_struct, implements_trait, AnalysisData, CallType, ClassDefinitionId,
-    EnumDefinitionId, EnumVariant, FctDefinition, FctDefinitionId, FctParent, ForTypeInfo,
-    IdentType, Intrinsic, ModuleDefinitionId, SemAnalysis, SourceFileId, StructDefinition,
-    StructDefinitionId, TypeParam, TypeParamDefinition, TypeParamId, Var, VarAccess, VarId,
+    find_methods_in_struct, implements_trait, AnalysisData, CallType, ClassDefinition,
+    ClassDefinitionId, EnumDefinitionId, EnumVariant, FctDefinition, FctDefinitionId, FctParent,
+    ForTypeInfo, IdentType, Intrinsic, ModuleDefinitionId, SemAnalysis, SourceFileId,
+    StructDefinition, StructDefinitionId, TypeParam, TypeParamDefinition, TypeParamId, Var,
+    VarAccess, VarId,
 };
 use crate::language::specialize::replace_type_param;
 use crate::language::sym::{NestedSymTable, Sym};
@@ -1365,7 +1366,7 @@ impl<'a> TypeCheck<'a> {
             Some(Sym::Fct(fct_id)) => self.check_expr_call_fct(e, fct_id, type_params, &arg_types),
 
             Some(Sym::Class(cls_id)) => {
-                self.check_expr_call_ctor(e, expected_ty, cls_id, type_params, &arg_types)
+                self.check_expr_call_class(e, expected_ty, cls_id, type_params, &arg_types)
             }
 
             Some(Sym::Struct(struct_id)) => {
@@ -1959,7 +1960,7 @@ impl<'a> TypeCheck<'a> {
         true
     }
 
-    fn check_expr_call_ctor(
+    fn check_expr_call_class(
         &mut self,
         e: &ast::ExprCallType,
         expected_ty: SourceType,
@@ -1967,7 +1968,9 @@ impl<'a> TypeCheck<'a> {
         type_params: SourceTypeArray,
         arg_types: &[SourceType],
     ) -> SourceType {
-        if !class_accessible_from(self.sa, cls_id, self.module_id) {
+        let is_class_accessible = class_accessible_from(self.sa, cls_id, self.module_id);
+
+        if !is_class_accessible {
             let cls = self.sa.classes.idx(cls_id);
             let cls = cls.read();
             let msg = SemError::NotAccessible(cls.name(self.sa));
@@ -1993,45 +1996,99 @@ impl<'a> TypeCheck<'a> {
         let cls = self.sa.classes.idx(cls_id);
         let cls = cls.read();
 
-        if cls.constructor.is_none() {
-            self.sa
-                .diag
-                .lock()
-                .report(self.file_id, e.pos, SemError::UnknownCtor);
-        }
-
-        let ctor_id = cls.constructor.expect("missing constructor");
-        let ctor = self.sa.fcts.idx(ctor_id);
-        let ctor = ctor.read();
-
         let cls_ty = self.sa.cls_with_type_list(cls_id, type_params.clone());
 
-        if !args_compatible_fct(self.sa, &*ctor, arg_types, &type_params, None) {
-            let fct_name = self.sa.interner.str(ctor.name).to_string();
-            let fct_params = ctor
-                .params_without_self()
-                .iter()
-                .map(|a| a.name_fct(self.sa, &*ctor))
-                .collect::<Vec<_>>();
-            let call_types = arg_types
-                .iter()
-                .map(|a| a.name_fct(self.sa, &*ctor))
-                .collect::<Vec<_>>();
-            let msg = SemError::ParamTypesIncompatible(fct_name, fct_params, call_types);
-            self.sa.diag.lock().report(self.file_id, e.pos, msg);
+        if cls.uses_new_syntax() {
+            if !is_default_accessible(self.sa, cls.module_id, self.module_id)
+                && !cls.all_fields_are_public()
+                && is_class_accessible
+            {
+                let msg = SemError::ClassConstructorNotAccessible(cls.name(self.sa));
+                self.sa.diag.lock().report(self.file_id, e.pos, msg);
+            }
+
+            if !self.check_expr_call_class_args(&*cls, type_params.clone(), arg_types) {
+                let struct_name = cls.name(self.sa);
+                let field_types = cls
+                    .fields
+                    .iter()
+                    .map(|field| field.ty.name_fct(self.sa, self.fct))
+                    .collect::<Vec<_>>();
+                let arg_types = arg_types
+                    .iter()
+                    .map(|a| a.name_fct(self.sa, self.fct))
+                    .collect::<Vec<_>>();
+                let msg = SemError::StructArgsIncompatible(struct_name, field_types, arg_types);
+                self.sa.diag.lock().report(self.file_id, e.pos, msg);
+            }
+
+            self.analysis
+                .map_calls
+                .insert(e.id, Arc::new(CallType::Class2Ctor(cls.id(), type_params)));
+
+            self.analysis.set_ty(e.id, cls_ty.clone());
+            cls_ty
+        } else {
+            if cls.constructor.is_none() {
+                self.sa
+                    .diag
+                    .lock()
+                    .report(self.file_id, e.pos, SemError::UnknownCtor);
+                return cls_ty;
+            }
+
+            let ctor_id = cls.constructor.expect("missing constructor");
+            let ctor = self.sa.fcts.idx(ctor_id);
+            let ctor = ctor.read();
+
+            if !args_compatible_fct(self.sa, &*ctor, arg_types, &type_params, None) {
+                let fct_name = self.sa.interner.str(ctor.name).to_string();
+                let fct_params = ctor
+                    .params_without_self()
+                    .iter()
+                    .map(|a| a.name_fct(self.sa, &*ctor))
+                    .collect::<Vec<_>>();
+                let call_types = arg_types
+                    .iter()
+                    .map(|a| a.name_fct(self.sa, &*ctor))
+                    .collect::<Vec<_>>();
+                let msg = SemError::ParamTypesIncompatible(fct_name, fct_params, call_types);
+                self.sa.diag.lock().report(self.file_id, e.pos, msg);
+            }
+
+            let call_type = CallType::Ctor(cls_ty.clone(), ctor_id);
+            self.analysis.map_calls.insert(e.id, Arc::new(call_type));
+
+            if cls.is_abstract {
+                let msg = SemError::NewAbstractClass;
+                self.sa.diag.lock().report(self.file_id, e.pos, msg);
+            }
+
+            self.analysis.set_ty(e.id, cls_ty.clone());
+
+            cls_ty
+        }
+    }
+
+    fn check_expr_call_class_args(
+        &mut self,
+        cls: &ClassDefinition,
+        type_params: SourceTypeArray,
+        arg_types: &[SourceType],
+    ) -> bool {
+        if cls.fields.len() != arg_types.len() {
+            return false;
         }
 
-        let call_type = CallType::Ctor(cls_ty.clone(), ctor_id);
-        self.analysis.map_calls.insert(e.id, Arc::new(call_type));
+        for (def_ty, arg_ty) in cls.fields.iter().zip(arg_types) {
+            let def_ty = replace_type_param(self.sa, def_ty.ty.clone(), &type_params, None);
 
-        if cls.is_abstract {
-            let msg = SemError::NewAbstractClass;
-            self.sa.diag.lock().report(self.file_id, e.pos, msg);
+            if !def_ty.allows(self.sa, arg_ty.clone()) {
+                return false;
+            }
         }
 
-        self.analysis.set_ty(e.id, cls_ty.clone());
-
-        cls_ty
+        true
     }
 
     fn check_expr_call_generic(
