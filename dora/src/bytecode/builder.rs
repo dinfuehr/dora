@@ -534,6 +534,16 @@ impl BytecodeBuilder {
         self.writer.set_position(pos);
         self.writer.emit_new_object(dest, idx);
     }
+    pub fn emit_new_object_initialized(
+        &mut self,
+        dest: Register,
+        idx: ConstPoolIdx,
+        pos: Position,
+    ) {
+        assert!(self.def(dest));
+        self.writer.set_position(pos);
+        self.writer.emit_new_object_initialized(dest, idx);
+    }
     pub fn emit_new_array(
         &mut self,
         dest: Register,

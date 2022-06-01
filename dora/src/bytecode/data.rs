@@ -125,6 +125,7 @@ enumeration!(BytecodeOpcode {
     InvokeGenericDirect,
 
     NewObject,
+    NewObjectInitialized,
     NewArray,
     NewTuple,
     NewEnum,
@@ -610,6 +611,10 @@ pub enum BytecodeInstruction {
     },
 
     NewObject {
+        dest: Register,
+        cls: ConstPoolIdx,
+    },
+    NewObjectInitialized {
         dest: Register,
         cls: ConstPoolIdx,
     },

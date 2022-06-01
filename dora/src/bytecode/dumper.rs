@@ -919,6 +919,9 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_new_object(&mut self, dest: Register, idx: ConstPoolIdx) {
         self.emit_new_object("NewObject", dest, idx);
     }
+    fn visit_new_object_initialized(&mut self, dest: Register, idx: ConstPoolIdx) {
+        self.emit_new_object("NewObjectInitialized", dest, idx);
+    }
     fn visit_new_trait_object(&mut self, dest: Register, idx: ConstPoolIdx, src: Register) {
         self.emit_new_trait_object("NewTraitObject", dest, idx, src);
     }

@@ -357,6 +357,9 @@ impl BytecodeWriter {
     pub fn emit_new_object(&mut self, dest: Register, idx: ConstPoolIdx) {
         self.emit_new(BytecodeOpcode::NewObject, dest, idx);
     }
+    pub fn emit_new_object_initialized(&mut self, dest: Register, idx: ConstPoolIdx) {
+        self.emit_new(BytecodeOpcode::NewObjectInitialized, dest, idx);
+    }
     pub fn emit_new_array(&mut self, dest: Register, cls_id: ConstPoolIdx, length: Register) {
         self.emit_new_arr(BytecodeOpcode::NewArray, dest, cls_id, length);
     }

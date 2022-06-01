@@ -380,6 +380,11 @@ impl<'a> BytecodeReader<'a> {
                 let cls = self.read_const_pool_idx();
                 BytecodeInstruction::NewObject { dest, cls }
             }
+            BytecodeOpcode::NewObjectInitialized => {
+                let dest = self.read_register();
+                let cls = self.read_const_pool_idx();
+                BytecodeInstruction::NewObjectInitialized { dest, cls }
+            }
             BytecodeOpcode::NewArray => {
                 let dest = self.read_register();
                 let cls = self.read_const_pool_idx();
@@ -757,6 +762,9 @@ where
             BytecodeInstruction::NewObject { dest, cls } => {
                 self.visitor.visit_new_object(dest, cls);
             }
+            BytecodeInstruction::NewObjectInitialized { dest, cls } => {
+                self.visitor.visit_new_object_initialized(dest, cls);
+            }
             BytecodeInstruction::NewArray { dest, cls, length } => {
                 self.visitor.visit_new_array(dest, cls, length);
             }
@@ -1034,6 +1042,9 @@ pub trait BytecodeVisitor {
     }
 
     fn visit_new_object(&mut self, _dest: Register, _cls: ConstPoolIdx) {
+        unimplemented!();
+    }
+    fn visit_new_object_initialized(&mut self, _dest: Register, _cls: ConstPoolIdx) {
         unimplemented!();
     }
     fn visit_new_array(&mut self, _dest: Register, _cls: ConstPoolIdx, _length: Register) {
