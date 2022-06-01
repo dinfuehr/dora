@@ -5,8 +5,9 @@ use std::{f32, f64};
 
 use crate::language::access::{
     class_accessible_from, class_field_accessible_from, const_accessible_from,
-    enum_accessible_from, fct_accessible_from, global_accessible_from, method_accessible_from,
-    module_accessible_from, struct_accessible_from, struct_field_accessible_from,
+    enum_accessible_from, fct_accessible_from, global_accessible_from, is_default_accessible,
+    method_accessible_from, module_accessible_from, struct_accessible_from,
+    struct_field_accessible_from,
 };
 use crate::language::error::msg::SemError;
 use crate::language::fctbodyck::lookup::MethodLookup;
@@ -1880,7 +1881,9 @@ impl<'a> TypeCheck<'a> {
         type_params: SourceTypeArray,
         arg_types: &[SourceType],
     ) -> SourceType {
-        if !struct_accessible_from(self.sa, struct_id, self.module_id) {
+        let is_struct_accessible = struct_accessible_from(self.sa, struct_id, self.module_id);
+
+        if !is_struct_accessible {
             let xstruct = self.sa.structs.idx(struct_id);
             let xstruct = xstruct.read();
             let msg = SemError::NotAccessible(xstruct.name(self.sa));
@@ -1889,6 +1892,14 @@ impl<'a> TypeCheck<'a> {
 
         let xstruct = self.sa.structs.idx(struct_id);
         let xstruct = xstruct.read();
+
+        if !is_default_accessible(self.sa, xstruct.module_id, self.module_id)
+            && !xstruct.all_fields_are_public()
+            && is_struct_accessible
+        {
+            let msg = SemError::StructConstructorNotAccessible(xstruct.name(self.sa));
+            self.sa.diag.lock().report(self.file_id, e.pos, msg);
+        }
 
         let ty = SourceType::Struct(struct_id, type_params.clone());
         let type_params_ok = typeparamck::check_struct(

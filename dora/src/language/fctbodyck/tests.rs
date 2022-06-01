@@ -3160,10 +3160,32 @@ fn mod_struct() {
         SemError::NotAccessible("foo::Foo".into()),
     );
 
-    ok("
+    err(
+        "
+        fn f() { foo::Foo(1i32); }
+        mod foo {
+            struct Foo(@pub f: Int32)
+        }
+    ",
+        pos(2, 26),
+        SemError::NotAccessible("foo::Foo".into()),
+    );
+
+    err(
+        "
         fn f() { foo::Foo(1i32); }
         mod foo {
             @pub struct Foo(f: Int32)
+        }
+    ",
+        pos(2, 26),
+        SemError::StructConstructorNotAccessible("foo::Foo".into()),
+    );
+
+    ok("
+        fn f() { foo::Foo(1i32); }
+        mod foo {
+            @pub struct Foo(@pub f: Int32)
         }
     ");
 

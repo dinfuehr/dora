@@ -167,6 +167,20 @@ pub fn const_accessible_from(
     accessible_from(sa, const_.module_id, const_.is_pub, module_id)
 }
 
+pub fn is_default_accessible(
+    sa: &SemAnalysis,
+    target_id: ModuleDefinitionId,
+    from_id: ModuleDefinitionId,
+) -> bool {
+    // each module can access itself
+    if target_id == from_id {
+        return true;
+    }
+
+    // modules can access all their parents
+    module_contains(sa, target_id, from_id)
+}
+
 fn accessible_from(
     sa: &SemAnalysis,
     target_id: ModuleDefinitionId,

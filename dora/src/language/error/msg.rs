@@ -118,6 +118,7 @@ pub enum SemError {
     NoSuperDelegationWithPrimaryCtor(String),
     NoSuperClass(String),
     NotAccessible(String),
+    StructConstructorNotAccessible(String),
     NotAccessibleInModule(String, String),
     RecursiveStructure,
     TraitMethodWithBody,
@@ -348,6 +349,9 @@ impl SemError {
             }
             SemError::NoSuperModule => "no super module.".into(),
             SemError::NotAccessible(ref name) => format!("`{}` is not accessible.", name),
+            SemError::StructConstructorNotAccessible(ref name) => {
+                format!("constructor of struct `{}` is not accessible.", name)
+            }
             SemError::NotAccessibleInModule(ref module, ref name) => {
                 format!("`{}` in module `{}` is not accessible.", name, module)
             }

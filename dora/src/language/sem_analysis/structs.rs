@@ -134,6 +134,16 @@ impl StructDefinition {
             SourceType::Struct(self.id(), SourceTypeArray::with(type_params))
         }
     }
+
+    pub fn all_fields_are_public(&self) -> bool {
+        for field in &self.fields {
+            if !field.is_pub {
+                return false;
+            }
+        }
+
+        true
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
