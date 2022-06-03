@@ -8,15 +8,13 @@ use crate::bytecode::{
     BytecodeBuilder, BytecodeFunction, BytecodeType, ConstPoolIdx, Label, Register,
 };
 use crate::language::sem_analysis::{
-    find_impl, AnalysisData, CallType, ConstDefinitionId, EnumDefinitionId, FctDefinition,
-    FctDefinitionId, GlobalDefinitionId, IdentType, Intrinsic, SemAnalysis, StructDefinitionId,
-    VarId,
+    find_impl, AnalysisData, CallType, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId,
+    FctDefinition, FctDefinitionId, GlobalDefinitionId, IdentType, Intrinsic, SemAnalysis,
+    StructDefinitionId, VarId,
 };
 use crate::language::specialize::specialize_type;
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::language::{expr_always_returns, expr_block_always_returns};
-
-use super::sem_analysis::ClassDefinitionId;
 
 pub struct LoopLabels {
     cond: Label,
