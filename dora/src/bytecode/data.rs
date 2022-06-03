@@ -315,6 +315,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeGenericDirectVoid
             | BytecodeOpcode::InvokeGenericDirect
             | BytecodeOpcode::NewObject
+            | BytecodeOpcode::NewObjectInitialized
             | BytecodeOpcode::NewArray
             | BytecodeOpcode::NewEnum
             | BytecodeOpcode::NewTuple

@@ -2769,6 +2769,29 @@ fn gen_new_object() {
 }
 
 #[test]
+fn gen_new_object_initialized() {
+    gen_fct(
+        "
+        class2 Foo(a: Int64, b: Bool)
+        fn f(a: Int64, b: Bool): Foo { return Foo(a, b); }",
+        |sa, code, fct| {
+            let cls_id = sa.cls_by_name("Foo");
+            let expected = vec![
+                PushRegister(r(0)),
+                PushRegister(r(1)),
+                NewObjectInitialized(r(2), ConstPoolIdx(0)),
+                Ret(r(2)),
+            ];
+            assert_eq!(expected, code);
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Class(cls_id, SourceTypeArray::empty())
+            );
+        },
+    );
+}
+
+#[test]
 fn gen_new_object_assign_to_var() {
     gen_fct(
         "class Object fn f(): Object { let obj = Object(); return obj; }",
@@ -4351,6 +4374,7 @@ pub enum Bytecode {
     InvokeGenericDirect(Register, ConstPoolIdx),
 
     NewObject(Register, ConstPoolIdx),
+    NewObjectInitialized(Register, ConstPoolIdx),
     NewArray(Register, ConstPoolIdx, Register),
     NewTuple(Register, ConstPoolIdx),
     NewEnum(Register, ConstPoolIdx),
@@ -4662,6 +4686,9 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
 
     fn visit_new_object(&mut self, dest: Register, idx: ConstPoolIdx) {
         self.emit(Bytecode::NewObject(dest, idx));
+    }
+    fn visit_new_object_initialized(&mut self, dest: Register, idx: ConstPoolIdx) {
+        self.emit(Bytecode::NewObjectInitialized(dest, idx));
     }
     fn visit_new_array(&mut self, dest: Register, idx: ConstPoolIdx, length: Register) {
         self.emit(Bytecode::NewArray(dest, idx, length));

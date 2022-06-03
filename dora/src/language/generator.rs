@@ -16,6 +16,8 @@ use crate::language::specialize::specialize_type;
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::language::{expr_always_returns, expr_block_always_returns};
 
+use super::sem_analysis::ClassDefinitionId;
+
 pub struct LoopLabels {
     cond: Label,
     end: Label,
@@ -1048,6 +1050,10 @@ impl<'a> AstBytecodeGen<'a> {
                 return self.visit_expr_call_struct(expr, struct_id, type_params, dest);
             }
 
+            CallType::Class2Ctor(cls_id, ref type_params) => {
+                return self.visit_expr_call_class(expr, cls_id, type_params, dest);
+            }
+
             CallType::Lambda(ref params, ref return_type) => {
                 return self.visit_expr_call_lambda(
                     expr,
@@ -1224,6 +1230,37 @@ impl<'a> AstBytecodeGen<'a> {
         let bytecode_ty = BytecodeType::Struct(struct_id, type_params.clone());
         let dest_reg = self.ensure_register(dest, bytecode_ty);
         self.builder.emit_new_struct(dest_reg, idx, expr.pos);
+
+        for arg_reg in arguments {
+            self.free_if_temp(arg_reg);
+        }
+
+        dest_reg
+    }
+
+    fn visit_expr_call_class(
+        &mut self,
+        expr: &ast::ExprCallType,
+        cls_id: ClassDefinitionId,
+        type_params: &SourceTypeArray,
+        dest: DataDest,
+    ) -> Register {
+        let mut arguments = Vec::new();
+
+        for arg in &expr.args {
+            arguments.push(self.visit_expr(arg, DataDest::Alloc));
+        }
+
+        for &arg_reg in &arguments {
+            self.builder.emit_push_register(arg_reg);
+        }
+
+        let idx = self
+            .builder
+            .add_const_cls_types(cls_id, type_params.clone());
+        let dest_reg = self.ensure_register(dest, BytecodeType::Ptr);
+        self.builder
+            .emit_new_object_initialized(dest_reg, idx, expr.pos);
 
         for arg_reg in arguments {
             self.free_if_temp(arg_reg);
