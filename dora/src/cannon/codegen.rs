@@ -2140,6 +2140,82 @@ impl<'a> CannonCodeGen<'a> {
         }
     }
 
+    fn emit_new_object_initialized(&mut self, dest: Register, idx: ConstPoolIdx) {
+        assert_eq!(self.bytecode.register_type(dest), BytecodeType::Ptr);
+
+        let const_pool_entry = self.bytecode.const_pool(idx);
+
+        let (cls_id, type_params) = match const_pool_entry {
+            ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params),
+            _ => unreachable!(),
+        };
+
+        let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
+
+        let type_params = specialize_type_list(self.vm, type_params, self.type_params);
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
+
+        let class_instance_id = specialize_class_id_params(self.vm, cls_id, &type_params);
+        let class_instance = self.vm.class_instances.idx(class_instance_id);
+
+        let alloc_size = match class_instance.size {
+            InstanceSize::Fixed(size) => AllocationSize::Fixed(size as usize),
+            _ => unreachable!(
+                "class size type {:?} for new object not supported",
+                class_instance.size
+            ),
+        };
+
+        let gcpoint = self.create_gcpoint();
+        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+        self.asm
+            .allocate(REG_RESULT.into(), alloc_size, position, false, gcpoint);
+
+        // store gc object in temporary storage
+        self.emit_store_register(REG_RESULT.into(), dest);
+
+        // store classptr in object
+        let vtable = class_instance.vtable.read();
+        let vtable: &VTable = vtable.as_ref().unwrap();
+        let disp = self.asm.add_addr(Address::from_ptr(vtable as *const _));
+        let pos = self.asm.pos() as i32;
+
+        self.asm.load_constpool(REG_TMP1.into(), disp + pos);
+        self.asm
+            .store_mem(MachineMode::Ptr, Mem::Base(REG_RESULT, 0), REG_TMP1.into());
+
+        // clear mark/fwdptr word in header
+        assert!(Header::size() == 2 * mem::ptr_width());
+        self.asm.load_int_const(MachineMode::Ptr, REG_TMP1, 0);
+        self.asm.store_mem(
+            MachineMode::Ptr,
+            Mem::Base(REG_RESULT, mem::ptr_width()),
+            REG_TMP1.into(),
+        );
+
+        // clear object content first
+        match class_instance.size {
+            InstanceSize::Fixed(size) => {
+                self.asm.fill_zero(REG_RESULT, false, size as usize);
+            }
+            _ => unreachable!(),
+        }
+
+        self.asm.copy_reg(MachineMode::Ptr, REG_TMP1, REG_RESULT);
+
+        for (field_idx, &argument) in arguments.iter().enumerate() {
+            let field = &class_instance.fields[field_idx];
+
+            if field.ty.is_unit() {
+                continue;
+            }
+
+            let dest = RegOrOffset::RegWithOffset(REG_TMP1, field.offset);
+            let src = self.reg(argument);
+            self.copy_ty(field.ty.clone(), dest, src);
+        }
+    }
+
     fn emit_new_array(&mut self, dest: Register, idx: ConstPoolIdx, length: Register) {
         assert_eq!(self.bytecode.register_type(dest), BytecodeType::Ptr);
         assert_eq!(self.bytecode.register_type(length), BytecodeType::Int64);
@@ -4514,6 +4590,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                     || opcode.is_new_tuple()
                     || opcode.is_new_enum()
                     || opcode.is_new_struct()
+                    || opcode.is_new_object_initialized()
             );
         }
     }
@@ -5135,6 +5212,26 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         });
         self.emit_new_object(dest, idx)
     }
+
+    fn visit_new_object_initialized(&mut self, dest: Register, idx: ConstPoolIdx) {
+        comment!(self, {
+            let (cls_id, type_params) = match self.bytecode.const_pool(idx) {
+                ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params),
+                _ => unreachable!(),
+            };
+            let cls = self.vm.classes.idx(cls_id);
+            let cls = cls.read();
+            let cname = cls.name_with_params(self.vm, type_params);
+            format!(
+                "NewObjectInitialized {}, ConstPoolIdx({}) # {}",
+                dest,
+                idx.to_usize(),
+                cname
+            )
+        });
+        self.emit_new_object_initialized(dest, idx)
+    }
+
     fn visit_new_array(&mut self, dest: Register, idx: ConstPoolIdx, length: Register) {
         comment!(self, {
             let (cls_id, type_params) = match self.bytecode.const_pool(idx) {
@@ -5154,6 +5251,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         });
         self.emit_new_array(dest, idx, length);
     }
+
     fn visit_new_tuple(&mut self, dest: Register, idx: ConstPoolIdx) {
         comment!(self, {
             let subtypes = match self.bytecode.const_pool(idx) {

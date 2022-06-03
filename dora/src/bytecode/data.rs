@@ -195,6 +195,13 @@ impl BytecodeOpcode {
         }
     }
 
+    pub fn is_new_object_initialized(self) -> bool {
+        match self {
+            BytecodeOpcode::NewObjectInitialized => true,
+            _ => false,
+        }
+    }
+
     pub fn is_any_invoke(self) -> bool {
         match self {
             BytecodeOpcode::InvokeDirectVoid
