@@ -33,7 +33,8 @@ impl Graph {
     }
 
     @pub fn addBlock(block: Block) {
-        assert(block.graph.isNone() && block._id.isNone());
+        assert(block.graph.isNone());
+        assert(block._id.isNone());
 
         block.graph = Some(self);
         block._id = Some(self.nextBlockId().value);
@@ -92,11 +93,11 @@ impl Graph {
     }
 
     @pub fn postOrderIterator(): PostOrderIterator {
-        PostOrderIterator(self.postOrder.toArray())
+        PostOrderIterator::new(self.postOrder.toArray())
     }
 
     @pub fn reversePostOrderIterator(): ReversePostOrderIterator {
-        ReversePostOrderIterator(self.postOrder.toArray())
+        ReversePostOrderIterator::new(self.postOrder.toArray())
     }
 }
 
@@ -135,8 +136,15 @@ impl InsertionOrderIterator {
     }
 }
 
-class PostOrderIterator(let postOrder: Array[Block]) {
-    var idx: Int64 = 0i64;
+class2 PostOrderIterator {
+    postOrder: Array[Block],
+    idx: Int64,
+}
+
+impl PostOrderIterator {
+    @static @pub fn new(postOrder: Array[Block]): PostOrderIterator {
+        PostOrderIterator(postOrder, 0)
+    }
 
     fn next(): Option[Block] {
         if self.idx < self.postOrder.size() {
@@ -149,13 +157,20 @@ class PostOrderIterator(let postOrder: Array[Block]) {
     }
 }
 
-class ReversePostOrderIterator(let postOrder: Array[Block]) {
-    var idx: Int64 = self.postOrder.size() - 1i64;
+class2 ReversePostOrderIterator {
+    postOrder: Array[Block],
+    idx: Int64,
+}
+
+impl ReversePostOrderIterator {
+    @static @pub fn new(postOrder: Array[Block]): ReversePostOrderIterator {
+        ReversePostOrderIterator(postOrder, postOrder.size() - 1)
+    }
 
     fn next(): Option[Block] {
         if self.idx != -1 {
             let block = self.postOrder(self.idx);
-            self.idx = self.idx - 1i64;
+            self.idx = self.idx - 1;
             Some[Block](block)
         } else {
             None[Block]
@@ -165,23 +180,38 @@ class ReversePostOrderIterator(let postOrder: Array[Block]) {
 
 struct BlockId(value: Int32)
 
-@pub class Block {
-    var _id: Option[Int32] = None;
+@pub class2 Block {
+    _id: Option[Int32],
+    phis: InstLinkedList,
+    instructions: InstLinkedList,
 
-    var phis: InstLinkedList = InstLinkedList();
-    var instructions: InstLinkedList = InstLinkedList();
+    graph: Option[Graph],
 
-    var graph: Option[Graph] = None;
+    dominator: Option[Block],
+    dominatedBlocks: Vec[Block],
 
-    var dominator: Option[Block] = None;
-    var dominatedBlocks: Vec[Block] = Vec();
+    @pub predecessors: Vec[Edge],
+    @pub successors: Vec[Edge],
 
-    @pub var predecessors: Vec[Edge] = Vec();
-    @pub var successors: Vec[Edge] = Vec();
+    loopData: Option[LoopData],
+    @pub postOrderIdx: Int32,
+}
 
-    var loopData: Option[LoopData] = None;
-
-    @pub var postOrderIdx: Int32 = -1i32;
+impl Block {
+    @static @pub fn new(): Block {
+        Block(
+            None[Int32],
+            InstLinkedList(),
+            InstLinkedList(),
+            None[Graph],
+            None[Block],
+            Vec[Block](),
+            Vec[Edge](),
+            Vec[Edge](),
+            None[LoopData],
+            -1i32
+        )
+    }
 
     @pub fn id(): Int32 {
         self._id.getOrPanic()

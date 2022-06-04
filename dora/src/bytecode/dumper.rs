@@ -381,12 +381,12 @@ impl<'a> BytecodeDumper<'a> {
 
     fn emit_reg1_idx(&mut self, name: &str, r1: Register, idx: ConstPoolIdx) {
         self.emit_start(name);
-        writeln!(self.w, " {}, @{}", r1, idx.to_usize()).expect("write! failed");
+        writeln!(self.w, " {}, ConstPoolIdx({})", r1, idx.to_usize()).expect("write! failed");
     }
 
     fn emit_idx(&mut self, name: &str, idx: ConstPoolIdx) {
         self.emit_start(name);
-        writeln!(self.w, " @{}", idx.to_usize()).expect("write! failed");
+        writeln!(self.w, " ConstPoolIdx({})", idx.to_usize()).expect("write! failed");
     }
 
     fn emit_reg1_u32(&mut self, name: &str, r1: Register, value: u32) {
@@ -787,7 +787,7 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         let value = self.bc.const_pool(idx).to_char().expect("char expected");
         writeln!(
             self.w,
-            " {}, @{} # '{}' 0x{:x}",
+            " {}, ConstPoolIdx({}) # '{}' 0x{:x}",
             dest,
             idx.to_usize(),
             value,
@@ -802,12 +802,26 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_const_int32(&mut self, dest: Register, idx: ConstPoolIdx) {
         self.emit_start("ConstInt32");
         let value = self.bc.const_pool(idx).to_int32().expect("int32 expected");
-        writeln!(self.w, " {}, @{} # {}", dest, idx.to_usize(), value).expect("write! failed");
+        writeln!(
+            self.w,
+            " {}, ConstPoolIdx({}) # {}",
+            dest,
+            idx.to_usize(),
+            value
+        )
+        .expect("write! failed");
     }
     fn visit_const_int64(&mut self, dest: Register, idx: ConstPoolIdx) {
         self.emit_start("ConstInt64");
         let value = self.bc.const_pool(idx).to_int64().expect("int64 expected");
-        writeln!(self.w, " {}, @{} # {}", dest, idx.to_usize(), value).expect("write! failed");
+        writeln!(
+            self.w,
+            " {}, ConstPoolIdx({}) # {}",
+            dest,
+            idx.to_usize(),
+            value
+        )
+        .expect("write! failed");
     }
     fn visit_const_float32(&mut self, dest: Register, idx: ConstPoolIdx) {
         self.emit_start("ConstFloat32");
@@ -816,7 +830,14 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
             .const_pool(idx)
             .to_float32()
             .expect("float32 expected");
-        writeln!(self.w, " {}, @{} # {}", dest, idx.to_usize(), value).expect("write! failed");
+        writeln!(
+            self.w,
+            " {}, ConstPoolIdx({}) # {}",
+            dest,
+            idx.to_usize(),
+            value
+        )
+        .expect("write! failed");
     }
     fn visit_const_float64(&mut self, dest: Register, idx: ConstPoolIdx) {
         self.emit_start("ConstFloat64");
@@ -825,7 +846,14 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
             .const_pool(idx)
             .to_float64()
             .expect("float64 expected");
-        writeln!(self.w, " {}, @{} # {}", dest, idx.to_usize(), value).expect("write! failed");
+        writeln!(
+            self.w,
+            " {}, ConstPoolIdx({}) # {}",
+            dest,
+            idx.to_usize(),
+            value
+        )
+        .expect("write! failed");
     }
     fn visit_const_string(&mut self, dest: Register, idx: ConstPoolIdx) {
         self.emit_start("ConstString");
@@ -834,7 +862,14 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
             .const_pool(idx)
             .to_string()
             .expect("string expected");
-        writeln!(self.w, " {}, @{} # \"{}\"", dest, idx.to_usize(), value).expect("write! failed");
+        writeln!(
+            self.w,
+            " {}, ConstPoolIdx({}) # \"{}\"",
+            dest,
+            idx.to_usize(),
+            value
+        )
+        .expect("write! failed");
     }
 
     fn visit_test_eq(&mut self, dest: Register, lhs: Register, rhs: Register) {

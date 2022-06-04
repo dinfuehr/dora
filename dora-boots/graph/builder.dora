@@ -17,7 +17,7 @@ use package::graph::dump::assertGraph;
     var entryBlock: Option[Block] = None;
 
     @pub fn addBlock(): Block {
-        let block = Block();
+        let block = Block::new();
 
         if self.entryBlock.isNone() {
             self.entryBlock = Some(block);

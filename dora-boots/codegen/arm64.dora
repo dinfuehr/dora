@@ -4,7 +4,7 @@ use package::assembler::arm64::AssemblerArm64;
 use package::assembler::Label;
 
 @pub class CodeGenArm64(let info: CompilationInfo) {
-    let asm: AssemblerArm64 = AssemblerArm64();
+    let asm: AssemblerArm64 = AssemblerArm64::new();
 
     @pub fn generate(): Array[UInt8] {
       assert(self.info.arch == Architecture::Arm64);

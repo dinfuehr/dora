@@ -113,8 +113,14 @@ enum CondCode {
     LE, // signed less than or equal
 }
 
-@pub class AssemblerArm64 {
-    let buffer: AssemblerBuffer = AssemblerBuffer::new();
+@pub class2 AssemblerArm64 {
+    buffer: AssemblerBuffer,
+}
+
+impl AssemblerArm64 {
+    @pub @static fn new(): AssemblerArm64 {
+        AssemblerArm64(AssemblerBuffer::new())
+    }
 
     @pub fn ret() {
         let inst = clsx::uncondBranchReg(0b0010i32, 0b11111i32, 0i32, REG_LR, 0i32);
@@ -232,7 +238,7 @@ mod clsx {
 
 @Test
 fn testAsmRet() {
-    let asm = AssemblerArm64();
+    let asm = AssemblerArm64::new();
     asm.ret();
     asm.retReg(R0);
     asm.retReg(R10);

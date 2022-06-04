@@ -29,7 +29,11 @@ use package::codegen::arm64::CodeGenArm64;
     bc
 }
 
-@pub class CompilationInfo(let bc: BytecodeFunction, let typeParams: Array[SourceType], let arch: Architecture)
+@pub class2 CompilationInfo(
+    @pub bc: BytecodeFunction,
+    @pub typeParams: Array[SourceType],
+    @pub arch: Architecture
+)
 
 @pub enum Architecture {
     X64,

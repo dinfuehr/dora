@@ -53,9 +53,18 @@ enum JumpDistance {
     Far,
 }
 
-@pub class AssemblerX64 {
-    let buffer: AssemblerBuffer = AssemblerBuffer::new();
-    let jumps: Vec[(Int64, Label, JumpDistance)] = Vec();
+@pub class2 AssemblerX64 {
+    buffer: AssemblerBuffer,
+    jumps: Vec[(Int64, Label, JumpDistance)],
+}
+
+impl AssemblerX64 {
+    @static @pub fn new(): AssemblerX64 {
+        AssemblerX64(
+            AssemblerBuffer::new(),
+            Vec[(Int64, Label, JumpDistance)]()
+        )
+    }
 
     fn createLabel(): Label {
         self.buffer.createLabel()
@@ -1636,7 +1645,7 @@ fn testAsmRegisters() {
 
 @Test
 fn testAsmPushqr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.pushqr(RAX);
     asm.pushqr(RSP);
     asm.pushqr(R8);
@@ -1651,7 +1660,7 @@ fn testAsmPushqr() {
 
 @Test
 fn testAsmPopqr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.popqr(RAX);
     asm.popqr(RSP);
     asm.popqr(R8);
@@ -1666,7 +1675,7 @@ fn testAsmPopqr() {
 
 @Test
 fn testAsmMovqrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.movqrr(R15, RAX);
     asm.movqrr(RAX, R15);
     let buffer = asm.finalizeTesting();
@@ -1677,7 +1686,7 @@ fn testAsmMovqrr() {
 
 @Test
 fn testAsmMovlrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.movlrr(R15, RAX);
     asm.movlrr(RAX, R15);
     asm.movlrr(RCX, RAX);
@@ -1690,7 +1699,7 @@ fn testAsmMovlrr() {
 
 @Test
 fn testAsmAddqrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.addqrr(RAX, RBX);
     asm.addqrr(RAX, R12);
     asm.addqrr(R12, RAX);
@@ -1705,7 +1714,7 @@ fn testAsmAddqrr() {
 
 @Test
 fn testAsmAddlrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.addlrr(RAX, RBX);
     asm.addlrr(RCX, R15);
     let buffer = asm.finalizeTesting();
@@ -1716,7 +1725,7 @@ fn testAsmAddlrr() {
 
 @Test
 fn testAsmAddqri() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.addqri(RAX, Immediate(0x11i64));
     asm.addqri(R15, Immediate(0x11i64));
     asm.addqri(RAX, Immediate(0x2211i64));
@@ -1733,7 +1742,7 @@ fn testAsmAddqri() {
 
 @Test
 fn testAsmSubqrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.subqrr(RAX, RBX);
     asm.subqrr(RCX, R15);
     let buffer = asm.finalizeTesting();
@@ -1744,7 +1753,7 @@ fn testAsmSubqrr() {
 
 @Test
 fn testAsmSubqri() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.subqri(RAX, Immediate(0x11i64));
     asm.subqri(R15, Immediate(0x11i64));
     asm.subqri(RAX, Immediate(0x2211i64));
@@ -1761,7 +1770,7 @@ fn testAsmSubqri() {
 
 @Test
 fn testAsmRetq() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.retq();
     let buffer = asm.finalizeTesting();
     assertAsm(buffer, 0xC3u8);
@@ -1770,7 +1779,7 @@ fn testAsmRetq() {
 
 @Test
 fn testAsmNop() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.nop();
     let buffer = asm.finalizeTesting();
     assertAsm(buffer, 0x90u8);
@@ -1779,7 +1788,7 @@ fn testAsmNop() {
 
 @Test
 fn testAsmCdqCqo() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.cdq();
     asm.cqo();
     let buffer = asm.finalizeTesting();
@@ -1790,7 +1799,7 @@ fn testAsmCdqCqo() {
 
 @Test
 fn testAsmOrlrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.orlrr(RAX, R15);
     asm.orlrr(RAX, RCX);
     asm.orlrr(R15, RAX);
@@ -1804,7 +1813,7 @@ fn testAsmOrlrr() {
 
 @Test
 fn testAsmOrqrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.orqrr(RAX, R15);
     asm.orqrr(RAX, RCX);
     asm.orqrr(R15, RAX);
@@ -1818,7 +1827,7 @@ fn testAsmOrqrr() {
 
 @Test
 fn testAsmAndlrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.andlrr(RAX, R15);
     asm.andlrr(RAX, RCX);
     asm.andlrr(R15, RAX);
@@ -1832,7 +1841,7 @@ fn testAsmAndlrr() {
 
 @Test
 fn testAsmAndqrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.andqrr(RAX, R15);
     asm.andqrr(RAX, RCX);
     asm.andqrr(R15, RAX);
@@ -1846,7 +1855,7 @@ fn testAsmAndqrr() {
 
 @Test
 fn testAsmXorlrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.xorlrr(RAX, R15);
     asm.xorlrr(RAX, RCX);
     asm.xorlrr(R15, RAX);
@@ -1860,7 +1869,7 @@ fn testAsmXorlrr() {
 
 @Test
 fn testAsmXorqrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.xorqrr(RAX, R15);
     asm.xorqrr(RAX, RCX);
     asm.xorqrr(R15, RAX);
@@ -1874,7 +1883,7 @@ fn testAsmXorqrr() {
 
 @Test
 fn testAsmCmplrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.cmplrr(RAX, R15);
     asm.cmplrr(R15, RBX);
     asm.cmplrr(RAX, RBX);
@@ -1888,7 +1897,7 @@ fn testAsmCmplrr() {
 
 @Test
 fn testAsmCmpqrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.cmpqrr(RAX, R15);
     asm.cmpqrr(R15, RBX);
     asm.cmpqrr(RAX, RBX);
@@ -1902,7 +1911,7 @@ fn testAsmCmpqrr() {
 
 @Test
 fn testAsmImullrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.imullrr(RAX, RBX);
     asm.imullrr(RCX, R15);
     let buffer = asm.finalizeTesting();
@@ -1914,7 +1923,7 @@ fn testAsmImullrr() {
 
 @Test
 fn testAsmImulqrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.imulqrr(RAX, RBX);
     asm.imulqrr(RCX, R15);
     let buffer = asm.finalizeTesting();
@@ -1926,7 +1935,7 @@ fn testAsmImulqrr() {
 
 @Test
 fn testAsmIdivlr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.idivlr(RAX);
     asm.idivlr(R15);
     let buffer = asm.finalizeTesting();
@@ -1938,7 +1947,7 @@ fn testAsmIdivlr() {
 
 @Test
 fn testAsmIdivqr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.idivqr(RAX);
     asm.idivqr(R15);
     let buffer = asm.finalizeTesting();
@@ -1950,7 +1959,7 @@ fn testAsmIdivqr() {
 
 @Test
 fn testAsmSetccr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.setccr(Condition::Equal, RAX);
     asm.setccr(Condition::NotEqual, R15);
     asm.setccr(Condition::GreaterOrEqual, RCX);
@@ -1970,7 +1979,7 @@ fn testAsmSetccr() {
 
 @Test
 fn testAsmCallr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.callr(RAX);
     asm.callr(R15);
     let buffer = asm.finalizeTesting();
@@ -1982,7 +1991,7 @@ fn testAsmCallr() {
 
 @Test
 fn testAsmCmovl() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.cmovl(Condition::Equal, R15, RAX);
     asm.cmovl(Condition::NotEqual, RAX, R13);
     let buffer = asm.finalizeTesting();
@@ -1994,7 +2003,7 @@ fn testAsmCmovl() {
 
 @Test
 fn testAsmCmovq() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.cmovq(Condition::Greater, RAX, RCX);
     asm.cmovq(Condition::Equal, R15, RAX);
     asm.cmovq(Condition::NotEqual, RAX, R13);
@@ -2008,7 +2017,7 @@ fn testAsmCmovq() {
 
 @Test
 fn testAsmMovlri() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.movlri(RAX, Immediate(2i64));
     asm.movlri(R14, Immediate(3i64));
     let buffer = asm.finalizeTesting();
@@ -2020,7 +2029,7 @@ fn testAsmMovlri() {
 
 @Test
 fn testAsmMovqri() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.movqri(RAX, Immediate(1i64));
     asm.movqri(R15, Immediate(-1i64));
     let buffer = asm.finalizeTesting();
@@ -2032,7 +2041,7 @@ fn testAsmMovqri() {
 
 @Test
 fn testTestlrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.testlrr(RAX, RAX);
     asm.testlrr(RSI, RAX);
     asm.testlrr(R15, RAX);
@@ -2046,7 +2055,7 @@ fn testTestlrr() {
 
 @Test
 fn testTestqrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.testqrr(RAX, RAX);
     asm.testqrr(RSI, RAX);
     asm.testqrr(R15, RAX);
@@ -2060,7 +2069,7 @@ fn testTestqrr() {
 
 @Test
 fn testAsmMovqra() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.movqra(RAX, Address::offset(RSP, 0i32));
     asm.movqra(RAX, Address::offset(RSP, 1i32));
 
@@ -2098,7 +2107,7 @@ fn testAsmMovqra() {
 
 @Test
 fn testAsmMovqar() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.movqar(Address::offset(RBP, 0i32), RAX);
     asm.movqar(Address::array(RAX, RBP, ScaleFactor::Four, 1i32), RAX);
 
@@ -2111,7 +2120,7 @@ fn testAsmMovqar() {
 
 @Test
 fn testAsmMovlra() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.movlra(RAX, Address::offset(RBP, 0i32));
     asm.movlra(RAX, Address::rip(0i32));
 
@@ -2124,7 +2133,7 @@ fn testAsmMovlra() {
 
 @Test
 fn testAsmMovlar() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.movlar(Address::offset(RBP, 0i32), RAX);
     asm.movlar(Address::offset(RBP, 0i32), R15);
     asm.movlar(Address::offset(R8, 0i32), R15);
@@ -2143,7 +2152,7 @@ fn testAsmMovlar() {
 
 @Test
 fn testAsmLea() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.lea(RAX, Address::offset(RAX, 0i32));
     asm.lea(RAX, Address::offset(RAX, 1i32));
     asm.lea(RAX, Address::offset(R8, 0i32));
@@ -2160,7 +2169,7 @@ fn testAsmLea() {
 
 @Test
 fn testAsmMovbar() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.movbar(Address::offset(RSP, 0i32), RAX);
     asm.movbar(Address::offset(RSP, 0i32), RSI);
     asm.movbar(Address::offset(RSP, 0i32), R8);
@@ -2175,7 +2184,7 @@ fn testAsmMovbar() {
 
 @Test
 fn testAsmMovbai() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.movbai(Address::offset(RAX, 0i32), Immediate(1i64));
     asm.movbai(Address::offset(RAX, 0i32), Immediate(127i64));
     asm.movbai(Address::offset(RAX, 0i32), Immediate(255i64));
@@ -2194,7 +2203,7 @@ fn testAsmMovbai() {
 
 @Test
 fn testAsmMovqai() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.movqai(Address::offset(RAX, 0i32), Immediate(1i64));
     asm.movqai(Address::offset(R8, 0i32), Immediate(Int32::maxValue().toInt64()));
     asm.movqai(Address::offset(RDI, 0i32), Immediate(Int32::maxValue().toInt64()));
@@ -2211,7 +2220,7 @@ fn testAsmMovqai() {
 
 @Test
 fn testAsmMovlai() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.movlai(Address::offset(RAX, 0i32), Immediate(1i64));
     asm.movlai(Address::offset(R8, 0i32), Immediate((1i64 << 32i32) - 1i64));
     asm.movlai(Address::offset(RDI, 0i32), Immediate(Int32::maxValue().toInt64()));
@@ -2228,7 +2237,7 @@ fn testAsmMovlai() {
 
 @Test
 fn testAsmTestlri() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.testlri(RAX, Immediate(1i64));
     asm.testlri(RCX, Immediate(255i64));
     asm.testlri(RDX, Immediate(1i64));
@@ -2261,7 +2270,7 @@ fn testAsmTestlri() {
 
 @Test
 fn testAsmTestlar() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.testlar(Address::offset(RDI, 1i32), RAX);
     asm.testlar(Address::offset(RDI, 0i32), RAX);
 
@@ -2286,7 +2295,7 @@ fn testAsmTestlar() {
 
 @Test
 fn testAsmTestlai() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.testlai(Address::offset(RAX, 0i32), Immediate(1i64));
     asm.testlai(Address::offset(RAX, 1i32), Immediate(1i64));
 
@@ -2303,7 +2312,7 @@ fn testAsmTestlai() {
 
 @Test
 fn testAsmTestqai() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.testqai(Address::offset(RAX, 0i32), Immediate(1i64));
     asm.testqai(Address::offset(RAX, 1i32), Immediate(1i64));
 
@@ -2320,7 +2329,7 @@ fn testAsmTestqai() {
 
 @Test
 fn testAsmTestqar() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.testqar(Address::offset(RDI, 1i32), RAX);
     asm.testqar(Address::offset(R8, 0i32), R15);
 
@@ -2333,7 +2342,7 @@ fn testAsmTestqar() {
 
 @Test
 fn testAsmMovzxbrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.movzxbrr(RAX, RAX);
     asm.movzxbrr(RAX, RDI);
     asm.movzxbrr(RDI, RAX);
@@ -2354,7 +2363,7 @@ fn testAsmMovzxbrr() {
 
 @Test
 fn testAsmMovzxbra() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.movzxbra(RAX, Address::offset(RAX, 0i32));
     asm.movzxbra(R8, Address::offset(RAX, 0i32));
     asm.movzxbra(RAX, Address::offset(R8, 0i32));
@@ -2369,7 +2378,7 @@ fn testAsmMovzxbra() {
 
 @Test
 fn testAsmMovsxblrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.movsxblrr(RAX, RAX);
     asm.movsxblrr(RAX, R8);
     asm.movsxblrr(RSP, RAX);
@@ -2394,7 +2403,7 @@ fn testAsmMovsxblrr() {
 
 @Test
 fn testasmMovsxblra() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.movsxblra(RAX, Address::offset(RAX, 0i32));
     asm.movsxblra(R8, Address::offset(RAX, 0i32));
     asm.movsxblra(RSP, Address::offset(RAX, 0i32));
@@ -2411,7 +2420,7 @@ fn testasmMovsxblra() {
 
 @Test
 fn testAsmMovsxbqrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.movsxbqrr(RAX, RAX);
     asm.movsxbqrr(RAX, R8);
     asm.movsxbqrr(RSP, RAX);
@@ -2436,7 +2445,7 @@ fn testAsmMovsxbqrr() {
 
 @Test
 fn testAsmMovsxbqra() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.movsxbqra(RAX, Address::offset(RAX, 0i32));
     asm.movsxbqra(R8, Address::offset(RAX, 0i32));
     asm.movsxbqra(RSP, Address::offset(RAX, 0i32));
@@ -2453,7 +2462,7 @@ fn testAsmMovsxbqra() {
 
 @Test
 fn testAsmMovsxlqrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.movsxlqrr(R15, RAX);
     asm.movsxlqrr(RAX, R15);
 
@@ -2466,7 +2475,7 @@ fn testAsmMovsxlqrr() {
 
 @Test
 fn testAsmMovssrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.movssrr(XMM0, XMM1);
     asm.movssrr(XMM8, XMM1);
     asm.movssrr(XMM0, XMM9);
@@ -2481,7 +2490,7 @@ fn testAsmMovssrr() {
 
 @Test
 fn testAsmMovssra() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.movssra(XMM0, Address::offset(RAX, 0i32));
     asm.movssra(XMM8, Address::offset(RAX, 0i32));
 
@@ -2506,7 +2515,7 @@ fn testAsmMovssra() {
 
 @Test
 fn testAsmMovssar() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.movssar(Address::offset(RAX, 0i32), XMM0);
     asm.movssar(Address::offset(RAX, 0i32), XMM8);
 
@@ -2519,7 +2528,7 @@ fn testAsmMovssar() {
 
 @Test
 fn testAsmMovsdrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.movsdrr(XMM0, XMM1);
     asm.movsdrr(XMM8, XMM1);
     asm.movsdrr(XMM0, XMM9);
@@ -2534,7 +2543,7 @@ fn testAsmMovsdrr() {
 
 @Test
 fn testAsmMovsdra() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.movsdra(XMM0, Address::offset(RAX, 0i32));
     asm.movsdra(XMM8, Address::offset(RAX, 0i32));
 
@@ -2559,7 +2568,7 @@ fn testAsmMovsdra() {
 
 @Test
 fn testAsmMovsdar() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.movsdar(Address::offset(RAX, 0i32), XMM0);
     asm.movsdar(Address::offset(RAX, 0i32), XMM8);
 
@@ -2572,7 +2581,7 @@ fn testAsmMovsdar() {
 
 @Test
 fn testAsmAddssrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.addssrr(XMM0, XMM1);
     asm.addssrr(XMM3, XMM15);
     asm.addssrr(XMM8, XMM4);
@@ -2587,7 +2596,7 @@ fn testAsmAddssrr() {
 
 @Test
 fn testAsmAddsdrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.addsdrr(XMM0, XMM1);
     asm.addsdrr(XMM3, XMM15);
     asm.addsdrr(XMM8, XMM4);
@@ -2602,7 +2611,7 @@ fn testAsmAddsdrr() {
 
 @Test
 fn testAsmSubssrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.subssrr(XMM0, XMM1);
     asm.subssrr(XMM3, XMM15);
     asm.subssrr(XMM8, XMM4);
@@ -2617,7 +2626,7 @@ fn testAsmSubssrr() {
 
 @Test
 fn testAsmSubsdrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.subsdrr(XMM0, XMM1);
     asm.subsdrr(XMM3, XMM15);
     asm.subsdrr(XMM8, XMM4);
@@ -2632,7 +2641,7 @@ fn testAsmSubsdrr() {
 
 @Test
 fn testAsmMulssrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.mulssrr(XMM0, XMM1);
     asm.mulssrr(XMM3, XMM15);
     asm.mulssrr(XMM8, XMM4);
@@ -2647,7 +2656,7 @@ fn testAsmMulssrr() {
 
 @Test
 fn testAsmMulsdrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.mulsdrr(XMM0, XMM1);
     asm.mulsdrr(XMM3, XMM15);
     asm.mulsdrr(XMM8, XMM4);
@@ -2662,7 +2671,7 @@ fn testAsmMulsdrr() {
 
 @Test
 fn testAsmDivssrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.divssrr(XMM0, XMM1);
     asm.divssrr(XMM3, XMM15);
     asm.divssrr(XMM8, XMM4);
@@ -2677,7 +2686,7 @@ fn testAsmDivssrr() {
 
 @Test
 fn testAsmDivsdrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.divsdrr(XMM0, XMM1);
     asm.divsdrr(XMM3, XMM15);
     asm.divsdrr(XMM8, XMM4);
@@ -2692,7 +2701,7 @@ fn testAsmDivsdrr() {
 
 @Test
 fn testAsmUcomissrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.ucomissrr(XMM1, XMM0);
     asm.ucomissrr(XMM15, XMM3);
     asm.ucomissrr(XMM4, XMM8);
@@ -2707,7 +2716,7 @@ fn testAsmUcomissrr() {
 
 @Test
 fn testAsmUcomisdrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.ucomisdrr(XMM1, XMM0);
     asm.ucomisdrr(XMM15, XMM3);
     asm.ucomisdrr(XMM4, XMM8);
@@ -2722,7 +2731,7 @@ fn testAsmUcomisdrr() {
 
 @Test
 fn testAsmPxorrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.pxorrr(XMM1, XMM0);
     asm.pxorrr(XMM15, XMM3);
     asm.pxorrr(XMM4, XMM8);
@@ -2737,7 +2746,7 @@ fn testAsmPxorrr() {
 
 @Test
 fn testAsmSqrtssrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.sqrtssrr(XMM1, XMM0);
     asm.sqrtssrr(XMM15, XMM3);
     asm.sqrtssrr(XMM4, XMM8);
@@ -2752,7 +2761,7 @@ fn testAsmSqrtssrr() {
 
 @Test
 fn testAsmSqrtsdrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.sqrtsdrr(XMM1, XMM0);
     asm.sqrtsdrr(XMM15, XMM3);
     asm.sqrtsdrr(XMM4, XMM8);
@@ -2767,7 +2776,7 @@ fn testAsmSqrtsdrr() {
 
 @Test
 fn testAsmTzcntlrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.tzcntlrr(RDI, RAX);
     asm.tzcntlrr(RAX, RDI);
 
@@ -2780,7 +2789,7 @@ fn testAsmTzcntlrr() {
 
 @Test
 fn testAsmTzcntqrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.tzcntqrr(RDI, RAX);
     asm.tzcntqrr(RAX, RDI);
 
@@ -2793,7 +2802,7 @@ fn testAsmTzcntqrr() {
 
 @Test
 fn testAsmLzcntlrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.lzcntlrr(RDI, RAX);
     asm.lzcntlrr(RAX, RDI);
 
@@ -2806,7 +2815,7 @@ fn testAsmLzcntlrr() {
 
 @Test
 fn testAsmLzcntqrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.lzcntqrr(RDI, RAX);
     asm.lzcntqrr(RAX, RDI);
 
@@ -2819,7 +2828,7 @@ fn testAsmLzcntqrr() {
 
 @Test
 fn testAsmPopcntlrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.popcntlrr(RDI, RAX);
     asm.popcntlrr(RAX, RDI);
 
@@ -2832,7 +2841,7 @@ fn testAsmPopcntlrr() {
 
 @Test
 fn testAsmPopcntqrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.popcntqrr(RDI, RAX);
     asm.popcntqrr(RAX, RDI);
 
@@ -2845,7 +2854,7 @@ fn testAsmPopcntqrr() {
 
 @Test
 fn testAsmCvtss2sdrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.cvtss2sdrr(XMM0, XMM1);
     asm.cvtss2sdrr(XMM3, XMM15);
     asm.cvtss2sdrr(XMM8, XMM4);
@@ -2860,7 +2869,7 @@ fn testAsmCvtss2sdrr() {
 
 @Test
 fn testAsmCvtsd2ssrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.cvtsd2ssrr(XMM0, XMM1);
     asm.cvtsd2ssrr(XMM3, XMM15);
     asm.cvtsd2ssrr(XMM8, XMM4);
@@ -2875,7 +2884,7 @@ fn testAsmCvtsd2ssrr() {
 
 @Test
 fn testAsmMovdrx() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.movdrx(RDI, XMM0);
     asm.movdrx(R8, XMM0);
     asm.movdrx(R8, XMM7);
@@ -2902,7 +2911,7 @@ fn testAsmMovdrx() {
 
 @Test
 fn testAsmMovdxr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.movdxr(XMM0, RAX);
     asm.movdxr(XMM0, R8);
     asm.movdxr(XMM7, R8);
@@ -2929,7 +2938,7 @@ fn testAsmMovdxr() {
 
 @Test
 fn testAsmMovqrx() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.movqrx(RDI, XMM0);
     asm.movqrx(R8, XMM0);
     asm.movqrx(R8, XMM7);
@@ -2956,7 +2965,7 @@ fn testAsmMovqrx() {
 
 @Test
 fn testAsmMovqxr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.movqxr(XMM0, RAX);
     asm.movqxr(XMM0, R8);
     asm.movqxr(XMM7, R8);
@@ -2983,7 +2992,7 @@ fn testAsmMovqxr() {
 
 @Test
 fn testAsmXorpsra() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.xorpsra(XMM0, Address::offset(RBP, -8i32));
     asm.xorpsra(XMM8, Address::offset(R8, 0i32));
 
@@ -2996,7 +3005,7 @@ fn testAsmXorpsra() {
 
 @Test
 fn testAsmXorpsrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.xorpsrr(XMM0, XMM1);
     asm.xorpsrr(XMM7, XMM8);
 
@@ -3009,7 +3018,7 @@ fn testAsmXorpsrr() {
 
 @Test
 fn testAsmXorpdra() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.xorpdra(XMM0, Address::offset(RBP, -8i32));
     asm.xorpdra(XMM8, Address::offset(R8, 0i32));
 
@@ -3022,7 +3031,7 @@ fn testAsmXorpdra() {
 
 @Test
 fn testAsmXorlri() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.xorlri(RAX, Immediate(1i64));
     asm.xorlri(R8, Immediate(127i64));
     asm.xorlri(R15, Immediate(-128i64));
@@ -3045,7 +3054,7 @@ fn testAsmXorlri() {
 
 @Test
 fn testAsmCmpbar() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.cmpbar(Address::offset(RAX, 0i32), RAX);
     asm.cmpbar(Address::offset(RAX, 0i32), RBX);
     asm.cmpbar(Address::offset(RAX, 0i32), RSP);
@@ -3066,7 +3075,7 @@ fn testAsmCmpbar() {
 
 @Test
 fn testAsmCmpbai() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.cmpbai(Address::offset(RAX, 0i32), Immediate(1i64));
     asm.cmpbai(Address::offset(RAX, 0i32), Immediate(127i64));
     asm.cmpbai(Address::offset(RAX, 0i32), Immediate(-128i64));
@@ -3085,7 +3094,7 @@ fn testAsmCmpbai() {
 
 @Test
 fn testAsmCmplri() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.cmplri(RAX, Immediate(0i64));
     asm.cmplri(R15, Immediate(0i64));
     asm.cmplri(R9, Immediate(0i64));
@@ -3100,7 +3109,7 @@ fn testAsmCmplri() {
 
 @Test
 fn testAsmCmplai() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.cmplai(Address::offset(RAX, 0i32), Immediate(127i64));
     asm.cmplai(Address::offset(RAX, 0i32), Immediate(-128i64));
     asm.cmplai(Address::offset(RAX, 0i32), Immediate(128i64));
@@ -3117,7 +3126,7 @@ fn testAsmCmplai() {
 
 @Test
 fn testAsmCmplar() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.cmplar(Address::offset(RBX, 1i32), RAX);
     asm.cmplar(Address::offset(RBX, 1i32), R10);
 
@@ -3130,7 +3139,7 @@ fn testAsmCmplar() {
 
 @Test
 fn testAsmCmpqai() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.cmpqai(Address::offset(RAX, 0i32), Immediate(127i64));
     asm.cmpqai(Address::offset(RAX, 0i32), Immediate(-128i64));
     asm.cmpqai(Address::offset(RAX, 0i32), Immediate(128i64));
@@ -3147,7 +3156,7 @@ fn testAsmCmpqai() {
 
 @Test
 fn testAsmCmpqar() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.cmpqar(Address::offset(RBX, 1i32), RAX);
     asm.cmpqar(Address::offset(RBX, 256i32), RAX);
     asm.cmpqar(Address::offset(RDI, 1i32), RAX);
@@ -3168,7 +3177,7 @@ fn testAsmCmpqar() {
 
 @Test
 fn testAsmCmpqri() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.cmpqri(RAX, Immediate(127i64));
     asm.cmpqri(R15, Immediate(-128i64));
     asm.cmpqri(R9, Immediate(0i64));
@@ -3183,7 +3192,7 @@ fn testAsmCmpqri() {
 
 @Test
 fn testAsmNotlr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.notlr(RAX);
     asm.notlr(R15);
 
@@ -3196,7 +3205,7 @@ fn testAsmNotlr() {
 
 @Test
 fn testAsmNotqr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.notqr(RAX);
     asm.notqr(R15);
 
@@ -3209,7 +3218,7 @@ fn testAsmNotqr() {
 
 @Test
 fn testAsmNeglr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.neglr(RAX);
     asm.neglr(R15);
 
@@ -3222,7 +3231,7 @@ fn testAsmNeglr() {
 
 @Test
 fn testAsmNegqr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.negqr(RAX);
     asm.negqr(R15);
 
@@ -3235,7 +3244,7 @@ fn testAsmNegqr() {
 
 @Test
 fn testAsmAndqri() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.andqri(RAX, Immediate(-8i64));
     asm.andqri(RAX, Immediate(128i64));
     asm.andqri(R9, Immediate(-8i64));
@@ -3252,7 +3261,7 @@ fn testAsmAndqri() {
 
 @Test
 fn testAsmJmpr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.jmpr(RAX);
     asm.jmpr(RDI);
     asm.jmpr(R8);
@@ -3269,7 +3278,7 @@ fn testAsmJmpr() {
 
 @Test
 fn testAsmShrlri() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.shrlri(RAX, Immediate(2i64));
     asm.shrlri(R8, Immediate(2i64));
 
@@ -3282,7 +3291,7 @@ fn testAsmShrlri() {
 
 @Test
 fn testAsmShrlr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.shrlr(RAX);
     asm.shrlr(R8);
 
@@ -3295,7 +3304,7 @@ fn testAsmShrlr() {
 
 @Test
 fn testAsmShrqri() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.shrqri(RAX, Immediate(2i64));
     asm.shrqri(R8, Immediate(2i64));
 
@@ -3308,7 +3317,7 @@ fn testAsmShrqri() {
 
 @Test
 fn testAsmShrqr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.shrqr(RAX);
     asm.shrqr(R8);
 
@@ -3321,7 +3330,7 @@ fn testAsmShrqr() {
 
 @Test
 fn testAsmSarlri() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.sarlri(RAX, Immediate(2i64));
     asm.sarlri(R8, Immediate(2i64));
 
@@ -3334,7 +3343,7 @@ fn testAsmSarlri() {
 
 @Test
 fn testAsmSarlr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.sarlr(RAX);
     asm.sarlr(R8);
 
@@ -3347,7 +3356,7 @@ fn testAsmSarlr() {
 
 @Test
 fn testAsmSarqri() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.sarqri(RAX, Immediate(2i64));
     asm.sarqri(R8, Immediate(2i64));
 
@@ -3360,7 +3369,7 @@ fn testAsmSarqri() {
 
 @Test
 fn testAsmSarqr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.sarqr(RAX);
     asm.sarqr(R8);
 
@@ -3373,7 +3382,7 @@ fn testAsmSarqr() {
 
 @Test
 fn testAsmShllri() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.shllri(RAX, Immediate(2i64));
     asm.shllri(R8, Immediate(2i64));
 
@@ -3386,7 +3395,7 @@ fn testAsmShllri() {
 
 @Test
 fn testAsmShllr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.shllr(RAX);
     asm.shllr(R8);
 
@@ -3399,7 +3408,7 @@ fn testAsmShllr() {
 
 @Test
 fn testAsmShlqri() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.shlqri(RAX, Immediate(2i64));
     asm.shlqri(R8, Immediate(2i64));
 
@@ -3412,7 +3421,7 @@ fn testAsmShlqri() {
 
 @Test
 fn testAsmShlqr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.shlqr(RAX);
     asm.shlqr(R8);
 
@@ -3425,7 +3434,7 @@ fn testAsmShlqr() {
 
 @Test
 fn testAsmRollr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.rollr(RAX);
     asm.rollr(R8);
 
@@ -3438,7 +3447,7 @@ fn testAsmRollr() {
 
 @Test
 fn testAsmRolqr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.rolqr(RAX);
     asm.rolqr(R8);
 
@@ -3451,7 +3460,7 @@ fn testAsmRolqr() {
 
 @Test
 fn testAsmRorlr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.rorlr(RAX);
     asm.rorlr(R8);
 
@@ -3464,7 +3473,7 @@ fn testAsmRorlr() {
 
 @Test
 fn testAsmRorqr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.rorqr(RAX);
     asm.rorqr(R8);
 
@@ -3477,7 +3486,7 @@ fn testAsmRorqr() {
 
 @Test
 fn testAsmCvtsi2ssdrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.cvtsi2ssdrr(XMM0, RCX);
     asm.cvtsi2ssdrr(XMM3, R15);
     asm.cvtsi2ssdrr(XMM8, RSP);
@@ -3492,7 +3501,7 @@ fn testAsmCvtsi2ssdrr() {
 
 @Test
 fn testAsmCvtsi2ssqrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.cvtsi2ssqrr(XMM0, RCX);
     asm.cvtsi2ssqrr(XMM3, R15);
     asm.cvtsi2ssqrr(XMM8, RSP);
@@ -3507,7 +3516,7 @@ fn testAsmCvtsi2ssqrr() {
 
 @Test
 fn testAsmCvtsi2sddrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.cvtsi2sddrr(XMM0, RCX);
     asm.cvtsi2sddrr(XMM3, R15);
     asm.cvtsi2sddrr(XMM8, RSP);
@@ -3522,7 +3531,7 @@ fn testAsmCvtsi2sddrr() {
 
 @Test
 fn testAsmCvtsi2sdqrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.cvtsi2sdqrr(XMM0, RCX);
     asm.cvtsi2sdqrr(XMM3, R15);
     asm.cvtsi2sdqrr(XMM8, RSP);
@@ -3537,7 +3546,7 @@ fn testAsmCvtsi2sdqrr() {
 
 @Test
 fn testAsmCvttss2sidrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.cvttss2sidrr(RCX, XMM0);
     asm.cvttss2sidrr(R15, XMM3);
     asm.cvttss2sidrr(RSP, XMM8);
@@ -3552,7 +3561,7 @@ fn testAsmCvttss2sidrr() {
 
 @Test
 fn testAsmCvttss2siqrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.cvttss2siqrr(RCX, XMM0);
     asm.cvttss2siqrr(R15, XMM3);
     asm.cvttss2siqrr(RSP, XMM8);
@@ -3567,7 +3576,7 @@ fn testAsmCvttss2siqrr() {
 
 @Test
 fn testAsmCvttsd2sidrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.cvttsd2sidrr(RCX, XMM0);
     asm.cvttsd2sidrr(R15, XMM3);
     asm.cvttsd2sidrr(RSP, XMM8);
@@ -3582,7 +3591,7 @@ fn testAsmCvttsd2sidrr() {
 
 @Test
 fn testAsmCvttsd2siqrr() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     asm.cvttsd2siqrr(RCX, XMM0);
     asm.cvttsd2siqrr(R15, XMM3);
     asm.cvttsd2siqrr(RSP, XMM8);
@@ -3597,7 +3606,7 @@ fn testAsmCvttsd2siqrr() {
 
 @Test
 fn testAsmJmpBackwardNear() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     let lbl = asm.createAndBindLabel();
     asm.jmp(lbl);
 
@@ -3609,7 +3618,7 @@ fn testAsmJmpBackwardNear() {
 
 @Test
 fn testAsmJmpBackwardStillNear() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     let lbl = asm.createAndBindLabel();
     for x in std::range(0i32, 126i32) {
         asm.nop();
@@ -3625,7 +3634,7 @@ fn testAsmJmpBackwardStillNear() {
 
 @Test
 fn testAsmJmpBackwardAlreadyFar() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     let lbl = asm.createAndBindLabel();
     for x in std::range(0i32, 127i32) {
         asm.nop();
@@ -3641,7 +3650,7 @@ fn testAsmJmpBackwardAlreadyFar() {
 
 @Test
 fn testAsmJmpForward() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     let lbl = asm.createLabel();
     asm.jmp(lbl);
     asm.bindLabel(lbl);
@@ -3654,7 +3663,7 @@ fn testAsmJmpForward() {
 
 @Test
 fn testAsmJmpNearForward() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     let lbl = asm.createLabel();
     asm.jmpNear(lbl);
     asm.bindLabel(lbl);
@@ -3667,7 +3676,7 @@ fn testAsmJmpNearForward() {
 
 @Test
 fn testAsmJmpNearBackward() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     let lbl = asm.createAndBindLabel();
     asm.jmpNear(lbl);
 
@@ -3679,7 +3688,7 @@ fn testAsmJmpNearBackward() {
 
 @Test
 fn testAsmJccNearBackward() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     let lbl = asm.createAndBindLabel();
     asm.jccNear(Condition::Overflow, lbl);
 
@@ -3691,7 +3700,7 @@ fn testAsmJccNearBackward() {
 
 @Test
 fn testAsmJccNearForward() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     let lbl = asm.createLabel();
     asm.jccNear(Condition::Overflow, lbl);
     asm.bindLabel(lbl);
@@ -3704,7 +3713,7 @@ fn testAsmJccNearForward() {
 
 @Test
 fn testAsmJccBackwardNear() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     let lbl = asm.createAndBindLabel();
     asm.jcc(Condition::Overflow, lbl);
 
@@ -3716,7 +3725,7 @@ fn testAsmJccBackwardNear() {
 
 @Test
 fn testAsmJccBackwardStillNear() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     let lbl = asm.createAndBindLabel();
     for x in std::range(0i32, 126i32) {
         asm.nop();
@@ -3732,7 +3741,7 @@ fn testAsmJccBackwardStillNear() {
 
 @Test
 fn testAsmJccBackwardAlreadyFar() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     let lbl = asm.createAndBindLabel();
     for x in std::range(0i32, 127i32) {
         asm.nop();
@@ -3748,7 +3757,7 @@ fn testAsmJccBackwardAlreadyFar() {
 
 @Test
 fn testAsmJccForward() {
-    let asm = AssemblerX64();
+    let asm = AssemblerX64::new();
     let lbl = asm.createLabel();
     asm.jcc(Condition::Overflow, lbl);
     asm.bindLabel(lbl);

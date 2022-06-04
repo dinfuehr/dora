@@ -93,7 +93,7 @@ pub fn disassemble(
             writeln!(&mut w, ")").unwrap();
         }
 
-        if let Some(comment) = code.comment_for_offset(addr as u32) {
+        for comment in code.comments_for_offset(addr as u32) {
             writeln!(&mut w, "\t\t  // {}", comment).unwrap();
         }
 

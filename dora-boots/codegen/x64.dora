@@ -5,7 +5,7 @@ use package::interface::CompilationInfo;
 use package::interface::Architecture;
 
 @pub class CodeGenX64(let info: CompilationInfo) {
-    let asm: AssemblerX64 = AssemblerX64();
+    let asm: AssemblerX64 = AssemblerX64::new();
 
     @pub fn prolog() {
         self.asm.pushqr(RBP);

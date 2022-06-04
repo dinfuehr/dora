@@ -198,7 +198,7 @@ impl Code {
         self.object_end
     }
 
-    pub fn comment_for_offset(&self, offset: u32) -> Option<&String> {
+    pub fn comments_for_offset(&self, offset: u32) -> Vec<&String> {
         self.comments.get(offset)
     }
 
@@ -297,14 +297,21 @@ impl CommentTable {
         }
     }
 
-    pub fn get(&self, offset: u32) -> Option<&String> {
+    pub fn get(&self, offset: u32) -> Vec<&String> {
         let result = self
             .entries
             .binary_search_by_key(&offset, |&(offset, _)| offset);
 
         match result {
-            Ok(idx) => Some(&self.entries[idx].1),
-            Err(_) => None,
+            Ok(mut idx) => {
+                let mut comments = Vec::new();
+                while idx < self.entries.len() && self.entries[idx].0 == offset {
+                    comments.push(&self.entries[idx].1);
+                    idx += 1;
+                }
+                comments
+            }
+            Err(_) => Vec::new(),
         }
     }
 

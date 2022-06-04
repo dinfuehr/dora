@@ -205,7 +205,7 @@ class BlockCreator(let graph: Graph, let bc: BytecodeFunction, let blockMap: Blo
         let result = self.blockMap.blockAt(offset);
         if result.isSome() { return result; }
 
-        let block = Block();
+        let block = Block::new();
         self.graph.addBlock(block);
         self.blockMap.insert(offset, block);
         Some(block)

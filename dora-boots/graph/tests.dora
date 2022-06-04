@@ -10,7 +10,7 @@ use package::graph::ty::Type;
 fn simpleGraph() {
     let graph = Graph::new();
 
-    let block = Block();
+    let block = Block::new();
     graph.addBlock(block);
     graph.setEntryBlock(block);
 
@@ -22,7 +22,7 @@ fn simpleGraph() {
 fn addIntConsts() {
     let graph = Graph::new();
 
-    let block = Block();
+    let block = Block::new();
     graph.addBlock(block);
     graph.setEntryBlock(block);
 

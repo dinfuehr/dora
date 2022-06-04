@@ -2,8 +2,15 @@ use package::interface::CompilationInfo;
 use package::graph::Graph;
 use package::ssagen::createGraph;
 
-class CompilationJob(let compilation_info: CompilationInfo) {
-    var graph: Option[Graph] = None;
+class2 CompilationJob {
+    compilation_info: CompilationInfo,
+    graph: Option[Graph],
+}
+
+impl CompilationJob {
+    @static @pub fn new(info: CompilationInfo): CompilationJob {
+        CompilationJob(info, None[Graph])
+    }
 
     fn run() {
         self.createGraph();
