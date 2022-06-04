@@ -41,7 +41,9 @@ use package::assembler::assertAsmEnd;
 @pub let XMM14: XmmRegister = XmmRegister(14i32);
 @pub let XMM15: XmmRegister = XmmRegister(15i32);
 
-class XmmRegister(let value: Int32) {
+struct XmmRegister(value: Int32)
+
+impl XmmRegister {
     fn lowBits(): Int32 = self.value & 0b111i32;
     fn needsRexBit(): Bool = self.value > 7i32;
 }

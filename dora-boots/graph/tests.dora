@@ -8,7 +8,7 @@ use package::graph::ty::Type;
 
 @Test
 fn simpleGraph() {
-    let graph = Graph();
+    let graph = Graph::new();
 
     let block = Block();
     graph.addBlock(block);
@@ -20,7 +20,7 @@ fn simpleGraph() {
 
 @Test
 fn addIntConsts() {
-    let graph = Graph();
+    let graph = Graph::new();
 
     let block = Block();
     graph.addBlock(block);

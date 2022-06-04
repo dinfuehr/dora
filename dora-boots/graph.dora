@@ -13,14 +13,24 @@ use package::dominator::buildDominatorTree;
 @pub mod ty;
 @pub mod verifier;
 
-@pub class Graph {
-    var entryBlock: Option[Block] = None;
+@pub class2 Graph {
+    entryBlock: Option[Block],
+    @pub blocks: Vec[Option[Block]],
+    postOrder: Vec[Block],
+    nextBlockIdValue: Int32,
+    nextInstIdValue: Int32,
+}
 
-    @pub var blocks: Vec[Option[Block]] = Vec();
-    var postOrder: Vec[Block] = Vec();
-
-    var nextBlockIdValue: Int32 = 0i32;
-    var nextInstIdValue: Int32 = 0i32;
+impl Graph {
+    @static @pub fn new(): Graph {
+        Graph(
+            None[Block],
+            Vec[Option[Block]](),
+            Vec[Block](),
+            0i32,
+            0i32,
+        )
+    }
 
     @pub fn addBlock(block: Block) {
         assert(block.graph.isNone() && block._id.isNone());
@@ -78,7 +88,7 @@ use package::dominator::buildDominatorTree;
     }
 
     @pub fn insertionOrderIterator(): InsertionOrderIterator {
-        InsertionOrderIterator(self.blocks.toArray())
+        InsertionOrderIterator::new(self.blocks.toArray())
     }
 
     @pub fn postOrderIterator(): PostOrderIterator {
@@ -90,8 +100,15 @@ use package::dominator::buildDominatorTree;
     }
 }
 
-class InsertionOrderIterator(let blocks: Array[Option[Block]]) {
-    var idx: Int64 = 0;
+class2 InsertionOrderIterator {
+    blocks: Array[Option[Block]],
+    idx: Int64,
+} 
+
+impl InsertionOrderIterator {
+    @static fn new(blocks: Array[Option[Block]]): InsertionOrderIterator {
+        InsertionOrderIterator(blocks, 0)
+    }
 
     fn next(): Option[Block] {
         self.findNextBlock();

@@ -37,7 +37,7 @@ use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::reader::BytecodeIterator;
 
 @pub fn createGraph(bc: BytecodeFunction): Graph {
-    let graph = Graph();
+    let graph = Graph::new();
 
     // Create basic blocks and edges between them
     let blockMap = createBlocksWithEdgesFromBytecode(graph, bc);

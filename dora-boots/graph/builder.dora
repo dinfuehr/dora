@@ -12,7 +12,7 @@ use package::graph::createGotoInst;
 use package::graph::dump::assertGraph;
 
 @pub class GraphBuilder {
-    let graph: Graph = Graph();
+    let graph: Graph = Graph::new();
     var insertion: Option[Block] = None;
     var entryBlock: Option[Block] = None;
 
