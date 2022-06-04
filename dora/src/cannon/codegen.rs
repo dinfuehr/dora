@@ -2208,13 +2208,6 @@ impl<'a> CannonCodeGen<'a> {
         // Initialize all class fields.
         for (field_idx, &argument) in arguments.iter().enumerate() {
             let field = &class_instance.fields[field_idx];
-            comment!(self, {
-                let cls_id = class_instance.cls_id().expect("missing class id");
-                let cls = self.vm.classes.idx(cls_id);
-                let cls = cls.read();
-                let fname = cls.fields[field_idx].name;
-                format!("initialize field {}", self.vm.interner.str(fname))
-            });
 
             if field.ty.is_unit() {
                 continue;
@@ -4862,9 +4855,6 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
 
     fn visit_push_register(&mut self, src: Register) {
         comment!(self, format!("PushRegister {}", src));
-        if self.emit_code_comments {
-            println!("{}: PushRegister {}", self.current_offset.0, src);
-        }
         self.argument_stack.push(src);
     }
 
