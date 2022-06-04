@@ -201,8 +201,8 @@ impl Block {
     @static @pub fn new(): Block {
         Block(
             None[Int32],
-            InstLinkedList(),
-            InstLinkedList(),
+            InstLinkedList::new(),
+            InstLinkedList::new(),
             None[Graph],
             None[Block],
             Vec[Block](),
@@ -284,7 +284,7 @@ impl Block {
 
     @pub fn addBackEdge(block: Block) {
         if self.loopData.isNone() {
-            self.loopData = Some(LoopData(self));
+            self.loopData = Some(LoopData::new(self));
         }
         self.loopData.getOrPanic().addBackEdge(block);
     }
@@ -342,9 +342,16 @@ impl Equals for Block {
   fn equals(other: Block): Bool = self === other;
 }
 
-@pub class LoopData(let header: Block) {
-    @pub var backEdges: Vec[Block] = Vec();
-    let blocks: BitVec = BitVec();
+@pub class2 LoopData {
+    header: Block,
+    @pub backEdges: Vec[Block],
+    blocks: BitVec,
+}
+
+impl LoopData {
+    @pub @static fn new(header: Block): LoopData {
+        LoopData(header, Vec[Block](), BitVec())
+    }
 
     @pub fn getHeader(): Block {
         self.header
@@ -371,9 +378,24 @@ impl Equals for Block {
     }
 }
 
-@pub class Input(var idx: Int32, var value: Inst, var usedBy: Inst) {
-    var previousUse: Option[Input] = None;
-    var nextUse: Option[Input] = None;
+@pub class2 Input {
+    idx: Int32,
+    value: Inst,
+    usedBy: Inst,
+    previousUse: Option[Input],
+    nextUse: Option[Input],
+}
+
+impl Input {
+    @pub @static fn new(idx: Int32, value: Inst, usedBy: Inst): Input {
+        Input(
+            idx,
+            value,
+            usedBy,
+            None[Input],
+            None[Input],
+        )
+    }
 
     @pub fn getIdx(): Int32 {
         self.idx
@@ -486,25 +508,44 @@ fn opName(op: Op): String {
     }
 }
 
-@pub class Inst {
-    var _id: Option[Int32] = None;
-    var block: Option[Block] = None;
+@pub class2 Inst {
+    _id: Option[Int32],
+    block: Option[Block],
 
-    var _op: Option[Op] = None;
+    _op: Option[Op],
 
-    var aux: Int64 = 0;
+    aux: Int64,
 
-    var previous: Option[Inst] = None;
-    var next: Option[Inst] = None;
+    previous: Option[Inst],
+    next: Option[Inst],
 
-    var ty: Type = Type::Unit;
+    ty: Type,
 
-    var useListHead: Option[Input] = None;
-    var useListTail: Option[Input] = None;
+    useListHead: Option[Input],
+    useListTail: Option[Input],
 
-    var inputs: Vec[Input] = Vec();
-    var block1: Option[Block] = None;
-    var block2: Option[Block] = None;
+    inputs: Vec[Input],
+    block1: Option[Block],
+    block2: Option[Block],
+}
+
+impl Inst {
+    @pub @static fn new(): Inst {
+        Inst(
+            None[Int32],
+            None[Block],
+            None[Op],
+            0,
+            None[Inst],
+            None[Inst],
+            Type::Unit,
+            None[Input],
+            None[Input],
+            Vec[Input](),
+            None[Block],
+            None[Block],
+        )
+    }
 
     @pub fn id(): Int32 {
         self._id.getOrPanic()
@@ -531,7 +572,7 @@ fn opName(op: Op): String {
     }
 
     @pub fn addInput(inst: Inst) {
-        let input = Input(self.inputs.size().toInt32(), inst, self);
+        let input = Input::new(self.inputs.size().toInt32(), inst, self);
         self.inputs.push(input);
     }
 
@@ -784,41 +825,41 @@ fn removeUse(input: Input) {
 }
 
 @pub fn createNullConst(value: UInt8): Inst {
-    let inst = Inst();
+    let inst = Inst::new();
     inst._op = Some(Op::NullConst);
     inst
 }
 
 @pub fn createInt32Const(value: Int32): Inst {
-    let inst = Inst();
+    let inst = Inst::new();
     inst._op = Some(Op::Int32Const);
     inst.aux = value.toInt64();
     inst
 }
 
 @pub fn createInt64Const(value: Int64): Inst {
-    let inst = Inst();
+    let inst = Inst::new();
     inst._op = Some(Op::Int64Const);
     inst.aux = value;
     inst
 }
 
 @pub fn createFloat32Const(value: Float32): Inst {
-    let inst = Inst();
+    let inst = Inst::new();
     inst._op = Some(Op::Float32Const);
     inst.aux = value.asInt32().toInt64();
     inst
 }
 
 @pub fn createFloat64Const(value: Float64): Inst {
-    let inst = Inst();
+    let inst = Inst::new();
     inst._op = Some(Op::Float64Const);
     inst.aux = value.asInt64();
     inst
 }
 
 @pub fn createLoadGlobalInst(ty: Type, global: GlobalId): Inst {
-    let inst = Inst();
+    let inst = Inst::new();
     inst._op = Some(Op::LoadGlobal);
     inst.ty = ty;
     inst.aux = global.value.toInt64();
@@ -826,7 +867,7 @@ fn removeUse(input: Input) {
 }
 
 @pub fn createStoreGlobalInst(ty: Type, global: GlobalId, value: Inst): Inst {
-    let inst = Inst();
+    let inst = Inst::new();
     inst._op = Some(Op::StoreGlobal);
     inst.aux = global.value.toInt64();
     inst.addInput(value);
@@ -836,7 +877,7 @@ fn removeUse(input: Input) {
 
 
 @pub fn createUnaryInst(op: Op, ty: Type, opnd: Inst): Inst {
-    let inst = Inst();
+    let inst = Inst::new();
     inst._op = Some(op);
     inst.addInput(opnd);
     inst.ty = ty;
@@ -844,7 +885,7 @@ fn removeUse(input: Input) {
 }
 
 @pub fn createBinaryInst(op: Op, ty: Type, lhs: Inst, rhs: Inst): Inst {
-    let inst = Inst();
+    let inst = Inst::new();
     inst._op = Some(op);
     inst.addInput(lhs);
     inst.addInput(rhs);
@@ -853,7 +894,7 @@ fn removeUse(input: Input) {
 }
 
 @pub fn createTestInst(opcode: Op, ty: Type, lhs: Inst, rhs: Inst): Inst {
-    let inst = Inst();
+    let inst = Inst::new();
     inst._op = Some(opcode);
     inst.addInput(lhs);
     inst.addInput(rhs);
@@ -862,19 +903,19 @@ fn removeUse(input: Input) {
 }
 
 @pub fn createUndefInst(): Inst {
-    let inst = Inst();
+    let inst = Inst::new();
     inst._op = Some(Op::Undef);
     inst
 }
 
 @pub fn createPhiInst(): Inst {
-    let inst = Inst();
+    let inst = Inst::new();
     inst._op = Some(Op::Phi);
     inst
 }
 
 @pub fn createBoundsCheck(index: Inst, length: Inst): Inst {
-    let inst = Inst();
+    let inst = Inst::new();
     inst._op = Some(Op::BoundsCheck);
     inst.addInput(index);
     inst.addInput(length);
@@ -882,14 +923,14 @@ fn removeUse(input: Input) {
 }
 
 @pub fn createDivZeroCheck(value: Inst): Inst {
-    let inst = Inst();
+    let inst = Inst::new();
     inst._op = Some(Op::DivZeroCheck);
     inst.addInput(value);
     inst
 }
 
 @pub fn createArrayGet(array: Inst, index: Inst, ty: Type): Inst {
-    let inst = Inst();
+    let inst = Inst::new();
     inst._op = Some(Op::ArrayGet);
     inst.ty = ty;
     inst.addInput(array);
@@ -898,7 +939,7 @@ fn removeUse(input: Input) {
 }
 
 @pub fn createArraySet(array: Inst, index: Inst, value: Inst): Inst {
-    let inst = Inst();
+    let inst = Inst::new();
     inst._op = Some(Op::ArraySet);
     inst.addInput(array);
     inst.addInput(index);
@@ -907,7 +948,7 @@ fn removeUse(input: Input) {
 }
 
 @pub fn createArrayLength(array: Inst): Inst {
-    let inst = Inst();
+    let inst = Inst::new();
     inst._op = Some(Op::ArrayLength);
     inst.addInput(array);
     inst
@@ -916,7 +957,7 @@ fn removeUse(input: Input) {
 class FieldInfo(let offset: Int32, let volatile: Bool)
 
 @pub fn createFieldGet(obj: Inst, field: FieldInfo, ty: Type): Inst {
-    let inst = Inst();
+    let inst = Inst::new();
     inst._op = Some(Op::FieldGet);
     inst.ty = ty;
     inst.addInput(obj);
@@ -924,7 +965,7 @@ class FieldInfo(let offset: Int32, let volatile: Bool)
 }
 
 @pub fn createFieldSet(obj: Inst, field: FieldInfo, value: Inst): Inst {
-    let inst = Inst();
+    let inst = Inst::new();
     inst._op = Some(Op::FieldSet);
     inst.addInput(obj);
     inst.addInput(value);
@@ -932,7 +973,7 @@ class FieldInfo(let offset: Int32, let volatile: Bool)
 }
 
 @pub fn createArgInst(index: Int32, ty: Type): Inst {
-    let inst = Inst();
+    let inst = Inst::new();
     inst._op = Some(Op::Arg);
     inst.ty = ty;
     inst.aux = index.toInt64();
@@ -940,7 +981,7 @@ class FieldInfo(let offset: Int32, let volatile: Bool)
 }
 
 @pub fn createReturnInst(value: Inst, ty: Type): Inst {
-    let inst = Inst();
+    let inst = Inst::new();
     inst._op = Some(Op::Return);
     inst.ty = ty;
     inst.addInput(value);
@@ -948,14 +989,14 @@ class FieldInfo(let offset: Int32, let volatile: Bool)
 }
 
 @pub fn createReturnVoidInst(): Inst {
-    let inst = Inst();
+    let inst = Inst::new();
     inst._op = Some(Op::Return);
     inst.ty = Type::Unit;
     inst
 }
 
 @pub fn createIfInst(cond: Inst, thenBlock: Block, elseBlock: Block): Inst {
-    let inst = Inst();
+    let inst = Inst::new();
     inst._op = Some(Op::If);
     inst.block1 = Some(thenBlock);
     inst.block2 = Some(elseBlock);
@@ -964,15 +1005,21 @@ class FieldInfo(let offset: Int32, let volatile: Bool)
 }
 
 @pub fn createGotoInst(block: Block): Inst {
-    let inst = Inst();
+    let inst = Inst::new();
     inst._op = Some(Op::Goto);
     inst.block1 = Some(block);
     inst
 }
 
-class InstLinkedList {
-    var first: Option[Inst] = None;
-    var last: Option[Inst] = None;
+class2 InstLinkedList {
+    first: Option[Inst],
+    last: Option[Inst],
+}
+
+impl InstLinkedList {
+    @static fn new(): InstLinkedList {
+        InstLinkedList(None[Inst], None[Inst])
+    }
 
     fn isEmpty(): Bool {
         self.first.isNone()

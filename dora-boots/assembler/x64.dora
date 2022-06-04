@@ -1384,7 +1384,9 @@ impl Condition {
     }
 }
 
-class Immediate(let value: Int64) {
+struct Immediate(value: Int64)
+
+impl Immediate {
     fn isInt8(): Bool {
         let limit = 1i64 << 7i32;
         -limit <= self.value && self.value < limit
@@ -1440,10 +1442,16 @@ impl ScaleFactor {
     }
 }
 
-class Address {
-    var rex: UInt8 = 0u8;
-    var length: Int64 = 0i64;
-    let bytes: Array[UInt8] = Array[UInt8]::zero(6i64);
+class2 Address {
+    rex: UInt8,
+    length: Int64,
+    bytes: Array[UInt8],
+}
+
+impl Address {
+    @static fn new(): Address {
+        Address(0u8, 0, Array[UInt8]::zero(6i64))
+    }
 
     fn set_modrm(mode: Int32, reg: Register) {
         assert(self.length == 0i64);
@@ -1488,7 +1496,7 @@ class Address {
     }
 
     @static fn offset(base: Register, offset: Int32): Address {
-        let address = Address();
+        let address = Address::new();
 
         let mode = if offset == 0i32 && base != RBP {
             0b00i32
@@ -1518,7 +1526,7 @@ class Address {
     }
 
     @static fn index(index: Register, factor: ScaleFactor, disp: Int32): Address {
-        let address = Address();
+        let address = Address::new();
 
         address.set_modrm(0b00i32, RSP);
         assert(index != RSP);
@@ -1530,7 +1538,7 @@ class Address {
     }
 
     @static fn array(base: Register, index: Register, factor: ScaleFactor, disp: Int32): Address {
-        let address = Address();
+        let address = Address::new();
 
         let mode = if disp == 0i32 && base != RBP {
             0b00i32
@@ -1559,7 +1567,7 @@ class Address {
     }
 
     @static fn rip(disp: Int32): Address {
-        let address = Address();
+        let address = Address::new();
 
         address.set_modrm(0b00i32, RBP);
         address.set_disp32(disp);
