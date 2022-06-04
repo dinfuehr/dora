@@ -2193,7 +2193,7 @@ impl<'a> CannonCodeGen<'a> {
             REG_TMP1.into(),
         );
 
-        // clear object content first
+        // Clear object content first.
         match class_instance.size {
             InstanceSize::Fixed(size) => {
                 self.asm.fill_zero(REG_RESULT, false, size as usize);
@@ -2203,6 +2203,9 @@ impl<'a> CannonCodeGen<'a> {
 
         self.asm.copy_reg(MachineMode::Ptr, REG_TMP1, REG_RESULT);
 
+        assert_eq!(arguments.len(), class_instance.fields.len());
+
+        // Initialize all class fields.
         for (field_idx, &argument) in arguments.iter().enumerate() {
             let field = &class_instance.fields[field_idx];
 

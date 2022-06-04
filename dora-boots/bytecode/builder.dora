@@ -9,12 +9,24 @@ use package::bytecode::data::GlobalId;
 use package::bytecode::data::ClassDefId;
 use package::bytecode::opcode as opc;
 
-@pub class BytecodeBuilder {
-    let code: Vec[UInt8] = Vec();
-    let constPool: Vec[ConstPoolEntry] = Vec();
-    let registers: Vec[BytecodeType] = Vec();
-    let unresolvedJumps: Vec[UnresolvedJump] = Vec();
-    var arguments: Int32 = 0i32;
+@pub class2 BytecodeBuilder {
+    @pub code: Vec[UInt8],
+    @pub constPool: Vec[ConstPoolEntry],
+    @pub registers: Vec[BytecodeType],
+    @pub unresolvedJumps: Vec[UnresolvedJump],
+    @pub arguments: Int32,
+}
+
+impl BytecodeBuilder {
+    @pub @static fn new(): BytecodeBuilder {
+        BytecodeBuilder(
+            Vec[UInt8](),
+            Vec[ConstPoolEntry](),
+            Vec[BytecodeType](),
+            Vec[UnresolvedJump](),
+            0i32
+        )
+    }
 
     @pub fn addRegister(ty: BytecodeType): BytecodeRegister {
         self.registers.push(ty);
@@ -39,11 +51,11 @@ use package::bytecode::opcode as opc;
     }
 
     @pub fn createLabel(): BytecodeLabel {
-        BytecodeLabel()
+        BytecodeLabel::new()
     }
 
     @pub fn defineLabel(): BytecodeLabel {
-        BytecodeLabel().bindTo(self.code.size().toInt32())
+        BytecodeLabel::new().bindTo(self.code.size().toInt32())
     }
 
     @pub fn bindLabel(lbl: BytecodeLabel) {
@@ -504,8 +516,12 @@ use package::bytecode::opcode as opc;
 
 fn isWide(val: Int32): Bool = val > 255i32;
 
-class BytecodeLabel {
-    var off: Int32 = -1i32;
+class2 BytecodeLabel(off: Int32)
+
+impl BytecodeLabel {
+    @static fn new(): BytecodeLabel {
+        BytecodeLabel(-1i32)
+    }
 
     fn bindTo(offset: Int32): BytecodeLabel {
         assert(offset >= 0i32);
@@ -521,4 +537,4 @@ class BytecodeLabel {
     }
 }
 
-class UnresolvedJump(let inst: Int32, let target: Int32, let label: BytecodeLabel)
+class2 UnresolvedJump(inst: Int32, target: Int32, label: BytecodeLabel)

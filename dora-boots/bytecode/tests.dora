@@ -6,7 +6,7 @@ use package::bytecode::data::ConstPoolId;
 
 @Test
 fn testBytecodeRetVoid() {
-    let writer = BytecodeBuilder();
+    let writer = BytecodeBuilder::new();
     writer.emitRetVoid();
     let fct = writer.generate();
     let instructions = decodeBytecode(fct.code);
@@ -21,7 +21,7 @@ fn testBytecodeRetVoid() {
 
 @Test
 fn testBytecodeRetInt() {
-    let writer = BytecodeBuilder();
+    let writer = BytecodeBuilder::new();
     writer.emitRet(BytecodeRegister(17i32));
     let fct = writer.generate();
     let instructions = decodeBytecode(fct.code);
@@ -38,7 +38,7 @@ fn testBytecodeRetInt() {
 
 @Test
 fn testBytecodeRetWide() {
-    let writer = BytecodeBuilder();
+    let writer = BytecodeBuilder::new();
     writer.emitRet(BytecodeRegister(256i32));
     let fct = writer.generate();
     let instructions = decodeBytecode(fct.code);
@@ -55,7 +55,7 @@ fn testBytecodeRetWide() {
 
 @Test
 fn testBytecodeMov() {
-    let writer = BytecodeBuilder();
+    let writer = BytecodeBuilder::new();
     writer.emitMov(BytecodeRegister(0i32), BytecodeRegister(1i32));
     let fct = writer.generate();
     let instructions = decodeBytecode(fct.code);
@@ -72,7 +72,7 @@ fn testBytecodeMov() {
 
 @Test
 fn testBytecodeMovWide() {
-    let writer = BytecodeBuilder();
+    let writer = BytecodeBuilder::new();
     writer.emitMov(BytecodeRegister(256i32), BytecodeRegister(255i32));
     let fct = writer.generate();
     let instructions = decodeBytecode(fct.code);
@@ -89,7 +89,7 @@ fn testBytecodeMovWide() {
 
 @Test
 fn testBytecodeConstByte() {
-    let writer = BytecodeBuilder();
+    let writer = BytecodeBuilder::new();
     writer.emitConstByte(BytecodeRegister(255i32), 255u8);
     let fct = writer.generate();
     let instructions = decodeBytecode(fct.code);
@@ -106,7 +106,7 @@ fn testBytecodeConstByte() {
 
 @Test
 fn testBytecodeConstByteWide() {
-    let writer = BytecodeBuilder();
+    let writer = BytecodeBuilder::new();
     writer.emitConstByte(BytecodeRegister(256i32), 255u8);
     let fct = writer.generate();
     let instructions = decodeBytecode(fct.code);
@@ -123,7 +123,7 @@ fn testBytecodeConstByteWide() {
 
 @Test
 fn testBytecodeConstString() {
-    let writer = BytecodeBuilder();
+    let writer = BytecodeBuilder::new();
     writer.emitConstString(BytecodeRegister(7i32), ConstPoolId(0i32));
     let fct = writer.generate();
     let instructions = decodeBytecode(fct.code);
@@ -140,7 +140,7 @@ fn testBytecodeConstString() {
 
 @Test
 fn testBytecodeSubFloat32() {
-    let writer = BytecodeBuilder();
+    let writer = BytecodeBuilder::new();
     writer.emitSub(BytecodeRegister(2i32), BytecodeRegister(9i32), BytecodeRegister(255i32));
     let fct = writer.generate();
     let instructions = decodeBytecode(fct.code);
@@ -157,7 +157,7 @@ fn testBytecodeSubFloat32() {
 
 @Test
 fn testBytecodeJumpBack() {
-    let writer = BytecodeBuilder();
+    let writer = BytecodeBuilder::new();
     let lbl = writer.defineLabel();
     writer.emitJumpLoop(lbl);
     let fct = writer.generate();
@@ -175,7 +175,7 @@ fn testBytecodeJumpBack() {
 
 @Test
 fn testBytecodeJumpBackWide() {
-    let writer = BytecodeBuilder();
+    let writer = BytecodeBuilder::new();
     let lbl = writer.defineLabel();
     var i = 0i32;
     while i < 256i32 {
@@ -198,7 +198,7 @@ fn testBytecodeJumpBackWide() {
 
 @Test
 fn testBytecodeJump() {
-    let writer = BytecodeBuilder();
+    let writer = BytecodeBuilder::new();
     let lbl = writer.createLabel();
     writer.emitJump(lbl);
     writer.bindLabel(lbl);
@@ -217,7 +217,7 @@ fn testBytecodeJump() {
 
 @Test
 fn testBytecodeJumpFar() {
-    let writer = BytecodeBuilder();
+    let writer = BytecodeBuilder::new();
     let lbl = writer.createLabel();
     writer.emitJump(lbl);
     var i = 0i32;
@@ -241,7 +241,7 @@ fn testBytecodeJumpFar() {
 
 @Test
 fn testBytecodeCondJump() {
-    let writer = BytecodeBuilder();
+    let writer = BytecodeBuilder::new();
     let lbl = writer.createLabel();
     writer.emitJumpIfTrue(BytecodeRegister(9i32), lbl);
     writer.bindLabel(lbl);
@@ -260,7 +260,7 @@ fn testBytecodeCondJump() {
 
 @Test
 fn testBytecodeCondJumpFar() {
-    let writer = BytecodeBuilder();
+    let writer = BytecodeBuilder::new();
     let lbl = writer.createLabel();
     writer.emitJumpIfFalse(BytecodeRegister(9i32), lbl);
     var i = 0i32;
@@ -284,7 +284,7 @@ fn testBytecodeCondJumpFar() {
 
 @Test
 fn testBytecodeCondJumpWide() {
-    let writer = BytecodeBuilder();
+    let writer = BytecodeBuilder::new();
     let lbl = writer.createLabel();
     writer.emitJumpIfTrue(BytecodeRegister(256i32), lbl);
     writer.bindLabel(lbl);

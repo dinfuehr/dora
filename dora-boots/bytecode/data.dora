@@ -5,7 +5,22 @@ use std::Hash;
 use package::graph::Block;
 use package::ssagen_block::BlockMap;
 
-@pub class BytecodeFunction(let code: Array[UInt8], let const_pool: Array[ConstPoolEntry], let registers: Array[BytecodeType], let arguments: Int32) {
+@pub class2 BytecodeFunction {
+    @pub code: Array[UInt8],
+    @pub const_pool: Array[ConstPoolEntry],
+    @pub registers: Array[BytecodeType],
+    @pub arguments: Int32,
+}
+
+impl BytecodeFunction {
+    @static fn new(
+            code: Array[UInt8],
+            const_pool: Array[ConstPoolEntry],
+            registers: Array[BytecodeType],
+            arguments: Int32): BytecodeFunction {
+        BytecodeFunction(code, const_pool, registers, arguments)
+    }
+
     @pub fn constPool(idx: ConstPoolId): ConstPoolEntry {
         self.const_pool(idx.value.toInt64())
     }

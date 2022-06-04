@@ -31,7 +31,7 @@ fn assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
 
 @Test
 fn testDominatorRetVoid() {
-    let writer = BytecodeBuilder();
+    let writer = BytecodeBuilder::new();
     writer.emitRetVoid();
     let fct = writer.generate();
 
@@ -40,7 +40,7 @@ fn testDominatorRetVoid() {
 
 @Test
 fn testDominatorEmptyBlocks() {
-    let writer = BytecodeBuilder();
+    let writer = BytecodeBuilder::new();
     let next = writer.createLabel();
     writer.emitJump(next);
     writer.bindLabel(next);
@@ -55,7 +55,7 @@ fn testDominatorEmptyBlocks() {
 
 @Test
 fn testDominatorSimple() {
-    let writer = BytecodeBuilder();
+    let writer = BytecodeBuilder::new();
     let arg0 = writer.addRegister(BytecodeType::Bool);
     writer.setArguments(1i32);
     let elseBlock = writer.createLabel();

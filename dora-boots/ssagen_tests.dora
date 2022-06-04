@@ -9,7 +9,7 @@ use package::interface::getBytecodeFunctionByName;
 
 @Test
 fn testSsaGenRetVoid() {
-    let b = BytecodeBuilder();
+    let b = BytecodeBuilder::new();
     b.emitRetVoid();
     let fct = b.generate();
 
@@ -23,7 +23,7 @@ fn testSsaGenRetVoid() {
 
 @Test
 fn testSsaGenRetIntConst() {
-    let b = BytecodeBuilder();
+    let b = BytecodeBuilder::new();
     let r0 = b.addRegister(BytecodeType::Int32);
     let idx = b.addConst(ConstPoolEntry::Int32(4711i32));
     b.emitConstInt32(r0, idx);
@@ -40,7 +40,7 @@ fn testSsaGenRetIntConst() {
 
 @Test
 fn testSsaGenRetInt64Const() {
-    let b = BytecodeBuilder();
+    let b = BytecodeBuilder::new();
     let r0 = b.addRegister(BytecodeType::Int64);
     let idx = b.addConst(ConstPoolEntry::Int64(4711));
     b.emitConstInt64(r0, idx);
@@ -57,7 +57,7 @@ fn testSsaGenRetInt64Const() {
 
 @Test
 fn testSsaGenIdInt() {
-    let b = BytecodeBuilder();
+    let b = BytecodeBuilder::new();
     let r0 = b.addRegister(BytecodeType::Int32);
     b.setArguments(1i32);
     b.emitRet(r0);
@@ -74,7 +74,7 @@ fn testSsaGenIdInt() {
 
 @Test
 fn testSsaGenAddIntArguments() {
-    let b = BytecodeBuilder();
+    let b = BytecodeBuilder::new();
     b.addNRegisters(BytecodeType::Int32, 3);
     b.setArguments(2i32);
     b.emitAdd(r(2), r(0), r(1));
@@ -94,7 +94,7 @@ fn testSsaGenAddIntArguments() {
 
 @Test
 fn testSsaGenAddFloat32Arguments() {
-    let b = BytecodeBuilder();
+    let b = BytecodeBuilder::new();
     b.addNRegisters(BytecodeType::Float32, 3);
     b.setArguments(2i32);
     b.emitAdd(r(2), r(0), r(1));
@@ -116,7 +116,7 @@ fn bcSsaGenAddFloat32Arguments(a: Float32, b: Float32): Float32 = a + b;
 
 @Test
 fn testSsaGenMultipleAssignments() {
-    let b = BytecodeBuilder();
+    let b = BytecodeBuilder::new();
     b.addNRegisters(BytecodeType::Int32, 5);
     b.setArguments(1i32);
     let idx = b.addConst(ConstPoolEntry::Int32(42i32));
@@ -148,7 +148,7 @@ fn testSsaGenMultipleAssignments() {
 
 @Test
 fn testSsaGenSubIntArguments() {
-    let b = BytecodeBuilder();
+    let b = BytecodeBuilder::new();
     b.addNRegisters(BytecodeType::Int32, 3);
     b.setArguments(2i32);
     b.emitSub(r(2), r(0), r(1));
@@ -168,7 +168,7 @@ fn testSsaGenSubIntArguments() {
 
 @Test
 fn testSsaGenNegIntArgument() {
-    let b = BytecodeBuilder();
+    let b = BytecodeBuilder::new();
     b.addNRegisters(BytecodeType::Int32, 2);
     b.setArguments(1i32);
     b.emitNeg(r(1), r(0));
@@ -187,7 +187,7 @@ fn testSsaGenNegIntArgument() {
 
 @Test
 fn testSsaGenMulIntArguments() {
-    let b = BytecodeBuilder();
+    let b = BytecodeBuilder::new();
     b.addNRegisters(BytecodeType::Int32, 3);
     b.setArguments(2i32);
     b.emitMul(r(2), r(0), r(1));
@@ -207,7 +207,7 @@ fn testSsaGenMulIntArguments() {
 
 @Test
 fn testSsaGenSimpleIf() {
-    let b = BytecodeBuilder();
+    let b = BytecodeBuilder::new();
     b.addRegisters(BytecodeType::Bool, BytecodeType::Int32);
     let end = b.createLabel();
     b.setArguments(1i32);
@@ -353,7 +353,7 @@ fn testSsaGenWhileCountDownWithSum() {
 
 @Test
 fn testSsaGenLoadArrayElementInt32() {
-    let b = BytecodeBuilder();
+    let b = BytecodeBuilder::new();
     b.setArguments(2i32);
     b.addRegisters(BytecodeType::Ptr, BytecodeType::Int64, BytecodeType::Int32);
     b.emitLoadArray(r(2), r(0), r(1));
@@ -375,7 +375,7 @@ fn testSsaGenLoadArrayElementInt32() {
 
 @Test
 fn testSsaGenStoreArrayElementInt32() {
-    let b = BytecodeBuilder();
+    let b = BytecodeBuilder::new();
     b.setArguments(3i32);
     b.addRegisters(BytecodeType::Ptr, BytecodeType::Int64, BytecodeType::Int32);
     b.emitStoreArray(r(2), r(0), r(1));
@@ -398,7 +398,7 @@ fn testSsaGenStoreArrayElementInt32() {
 
 @Test
 fn testSsaGenDivInt32() {
-    let b = BytecodeBuilder();
+    let b = BytecodeBuilder::new();
     b.addNRegisters(BytecodeType::Int32, 3);
     b.setArguments(2i32);
     b.emitDiv(r(2), r(0), r(1));
@@ -419,7 +419,7 @@ fn testSsaGenDivInt32() {
 
 @Test
 fn testSsaGenDivInt64() {
-    let b = BytecodeBuilder();
+    let b = BytecodeBuilder::new();
     b.addNRegisters(BytecodeType::Int64, 3);
     b.setArguments(2i32);
     b.emitDiv(r(2), r(0), r(1));
