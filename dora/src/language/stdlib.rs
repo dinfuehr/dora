@@ -905,6 +905,13 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
         stdlib::start_thread as *const u8,
     );
 
+    native_fct(
+        sa,
+        stdlib,
+        "thread::spawn",
+        stdlib::spawn_thread as *const u8,
+    );
+
     native_method(
         sa,
         stdlib,

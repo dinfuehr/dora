@@ -69,7 +69,7 @@ impl HandleMemoryInner {
     }
 
     pub fn handle<T>(&mut self, obj: Ref<T>) -> Handle<T> {
-        debug_assert!(current_thread().state_relaxed().is_running());
+        debug_assert!(current_thread().is_running());
 
         if self.free >= HANDLE_SIZE {
             self.push_buffer();

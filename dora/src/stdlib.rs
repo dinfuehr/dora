@@ -296,6 +296,10 @@ pub extern "C" fn trap(trap_id: u32) {
     }
 }
 
+pub extern "C" fn spawn_thread(_runner: Handle<Obj>) {
+    unimplemented!()
+}
+
 pub extern "C" fn start_thread(managed_thread: Handle<ManagedThread>) {
     let vm = get_vm();
 
@@ -314,12 +318,12 @@ pub extern "C" fn start_thread(managed_thread: Handle<ManagedThread>) {
     // afterwards.
     vm.threads.attach_thread(thread.clone());
 
-    // Now we can create a handle for that newly created thread. Since the thread
+    // Now we can create a handle in that newly created thread. Since the thread
     // is now registered, the handle is updated as well by the GC.
     // We create the handle in the new Parked thread, normally this would be unsafe.
     // Here it should be safe though, because the current thread is still Running
     // and therefore the GC can't run at this point.
-    debug_assert!(current_thread().state_relaxed().is_running());
+    debug_assert!(current_thread().is_running());
     let location = thread.handles.handle(managed_thread.direct()).location();
 
     thread::spawn(move || {

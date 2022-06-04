@@ -204,6 +204,14 @@ impl DoraThread {
         self.state.load(Ordering::Relaxed).into()
     }
 
+    pub fn is_running(&self) -> bool {
+        self.state_relaxed().is_running()
+    }
+
+    pub fn is_parked(&self) -> bool {
+        self.state_relaxed().is_parked()
+    }
+
     pub fn park(&self, vm: &VM) {
         if self
             .state
