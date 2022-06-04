@@ -1,9 +1,15 @@
 @pub mod arm64;
 @pub mod x64;
 
-class AssemblerBuffer {
-    let buffer: Vec[UInt8] = Vec();
-    var pos: Int64 = 0i64;
+class2 AssemblerBuffer {
+    buffer: Vec[UInt8],
+    pos: Int64,
+}
+
+impl AssemblerBuffer {
+    @static fn new(): AssemblerBuffer {
+        AssemblerBuffer(Vec[UInt8](), 0)
+    }
 
     fn position(): Int64 {
         self.pos
@@ -53,7 +59,7 @@ class AssemblerBuffer {
     }
 
     fn createLabel(): Label {
-        Label()
+        Label::new()
     }
 
     fn bindLabel(lbl: Label) {
@@ -68,8 +74,14 @@ class AssemblerBuffer {
     }
 }
 
-@pub class Label {
-    var offset: Int64 = -1i64;
+@pub class2 Label {
+    offset: Int64
+}
+
+impl Label {
+    @static fn new(): Label {
+        Label(-1)
+    }
 
     fn bindTo(pos: Int64) {
         assert(pos >= 0i64 && self.offset < 0i64);
@@ -83,7 +95,7 @@ class AssemblerBuffer {
 
 @Test
 fn testAssemblerBufferEmitByte() {
-    let buffer = AssemblerBuffer();
+    let buffer = AssemblerBuffer::new();
     buffer.emitByte(0x01u8);
     buffer.emitByte(0x02u8);
     assert(buffer.size() == 2i64);
@@ -91,7 +103,7 @@ fn testAssemblerBufferEmitByte() {
 
 @Test
 fn testAssemblerBufferEmitInt() {
-    let asm = AssemblerBuffer();
+    let asm = AssemblerBuffer::new();
     asm.emitInt32(0x11223344i32);
     let buffer = asm.toArray();
     assert(buffer(0i64) == 0x44u8);
@@ -101,14 +113,23 @@ fn testAssemblerBufferEmitInt() {
     assert(buffer.size() == 4i64);
 }
 
-@pub class Register(let value: Int32) {
+@pub struct Register(value: Int32)
+
+impl Register {
     fn equals(rhs: Register): Bool {
         self.value == rhs.value
     }
 }
 
-class MachineCode(let bytes: Array[UInt8]) {
-    var start: Int64 = 0i64;
+class2 MachineCode {
+    bytes: Array[UInt8],
+    start: Int64,
+}
+
+impl MachineCode {
+    @static fn new(bytes: Array[UInt8]): MachineCode {
+        MachineCode(bytes, 0)
+    }
 
     fn getInt32(idx: Int64): Int32 {
         self.bytes(idx).toInt32() |

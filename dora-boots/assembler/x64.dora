@@ -52,7 +52,7 @@ enum JumpDistance {
 }
 
 @pub class AssemblerX64 {
-    let buffer: AssemblerBuffer = AssemblerBuffer();
+    let buffer: AssemblerBuffer = AssemblerBuffer::new();
     let jumps: Vec[(Int64, Label, JumpDistance)] = Vec();
 
     fn createLabel(): Label {
@@ -1255,7 +1255,7 @@ enum JumpDistance {
 
     @pub fn finalizeTesting(): MachineCode {
         self.resolveJumps();
-        MachineCode(self.buffer.toArray())
+        MachineCode::new(self.buffer.toArray())
     }
 
     fn resolveJumps() {

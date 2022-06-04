@@ -190,8 +190,15 @@ fn decodeSourceType(reader: ByteReader): SourceType {
     }
 }
 
-@pub class ByteReader(let array: Array[UInt8]) {
-    var idx: Int64 = 0i64;
+@pub class2 ByteReader {
+    array: Array[UInt8],
+    idx: Int64,
+}
+
+impl ByteReader {
+    @static @pub fn new(array: Array[UInt8]): ByteReader {
+        ByteReader(array, 0)
+    }
 
     @pub fn moreBytes(): Bool {
         self.idx < self.array.size()

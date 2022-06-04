@@ -114,7 +114,7 @@ enum CondCode {
 }
 
 @pub class AssemblerArm64 {
-    let buffer: AssemblerBuffer = AssemblerBuffer();
+    let buffer: AssemblerBuffer = AssemblerBuffer::new();
 
     @pub fn ret() {
         let inst = clsx::uncondBranchReg(0b0010i32, 0b11111i32, 0i32, REG_LR, 0i32);
@@ -152,7 +152,7 @@ enum CondCode {
     }
 
     fn finalizeTesting(): MachineCode {
-        MachineCode(self.buffer.toArray())
+        MachineCode::new(self.buffer.toArray())
     }
 }
 
