@@ -241,6 +241,7 @@ impl SourceType {
             SourceType::Ptr => true,
             SourceType::Class(_, _) => true,
             SourceType::Trait(_, _) => true,
+            SourceType::Lambda(_, _) => true,
             _ => false,
         }
     }

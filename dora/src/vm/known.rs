@@ -136,6 +136,10 @@ impl KnownClasses {
     pub fn thread(&self) -> ClassDefinitionId {
         self.thread.expect("uninitialized")
     }
+
+    pub fn thread_class_instance(&self, vm: &VM) -> ClassInstanceId {
+        specialize_class_id(vm, self.thread())
+    }
 }
 
 #[derive(Debug)]

@@ -218,7 +218,7 @@ impl FctDefinition {
                 return module_path(sa, self.module_id, self.name);
             }
 
-            FctParent::Function(_) => unimplemented!(),
+            FctParent::Function(_) => "lamba".into(),
         };
 
         if !self.has_parent() || self.is_static {

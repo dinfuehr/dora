@@ -2630,12 +2630,12 @@ impl<'a> CannonCodeGen<'a> {
         // store gc object in register
         comment!(
             self,
-            format!("NewTraitObject: store object address in register {}", dest)
+            format!("NewLambda: store object address in register {}", dest)
         );
         self.emit_store_register_as(REG_TMP1.into(), dest, MachineMode::Ptr);
 
         // store classptr in object
-        comment!(self, format!("NewTraitObject: initialize object header"));
+        comment!(self, format!("NewLambda: initialize object header"));
         let vtable = cls.vtable.read();
         let vtable: &VTable = vtable.as_ref().unwrap();
         let disp = self.asm.add_addr(Address::from_ptr(vtable as *const _));
@@ -2656,8 +2656,6 @@ impl<'a> CannonCodeGen<'a> {
             Mem::Base(object_reg, mem::ptr_width()),
             REG_RESULT.into(),
         );
-
-        self.emit_store_register(object_reg.into(), dest);
     }
 
     fn emit_nil_check(&mut self, obj: Register) {

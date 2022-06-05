@@ -9,15 +9,15 @@ use std::time::Duration;
 
 use crate::boots;
 use crate::gc::{Address, GcReason};
-use crate::handle::{handle_scope, Handle};
+use crate::handle::{handle, handle_scope, Handle};
 use crate::language::ty::SourceTypeArray;
-use crate::object::{Obj, Ref, Str, UInt8Array};
+use crate::object::{alloc, Obj, Ref, Str, UInt8Array};
 use crate::stack::stacktrace_from_last_dtn;
 use crate::threads::{
     current_thread, deinit_current_thread, init_current_thread, DoraThread, ManagedThread,
     ThreadState, STACK_SIZE,
 };
-use crate::vm::{get_vm, stack_pointer, ManagedCondition, ManagedMutex, Trap};
+use crate::vm::{get_vm, stack_pointer, ManagedCondition, ManagedMutex, ShapeKind, Trap};
 
 pub extern "C" fn uint8_to_string(val: u8) -> Ref<Str> {
     handle_scope(|| {
@@ -294,8 +294,91 @@ pub extern "C" fn trap(trap_id: u32) {
     }
 }
 
-pub extern "C" fn spawn_thread(_runner: Handle<Obj>) {
-    unimplemented!()
+pub extern "C" fn spawn_thread(runner: Handle<Obj>) -> Address {
+    let vm = get_vm();
+
+    let cls_id = vm.known.classes.thread_class_instance(vm);
+    let managed_thread = alloc(vm, cls_id).cast();
+    let managed_thread: Handle<ManagedThread> = handle(managed_thread);
+
+    // Create new thread in Parked state.
+    let thread = DoraThread::new(vm, ThreadState::Parked);
+
+    if !managed_thread.install_native_thread(&thread) {
+        panic!("Thread was already started!");
+    }
+
+    vm.gc
+        .add_finalizer(managed_thread.direct_ptr(), thread.clone());
+
+    // Add thread to our list of all threads first. This method parks
+    // and unparks the current thread, this means the handle needs to be created
+    // afterwards.
+    vm.threads.attach_thread(thread.clone());
+
+    // Now we can create a handle in that newly created thread. Since the thread
+    // is now registered, the handle is updated as well by the GC.
+    // We create the handle in the new Parked thread, normally this would be unsafe.
+    // Here it should be safe though, because the current thread is still Running
+    // and therefore the GC can't run at this point.
+    debug_assert!(current_thread().is_running());
+    let thread_location = thread.handles.handle(managed_thread.direct()).location();
+    let runner_location = thread.handles.handle(runner.direct()).location();
+
+    thread::spawn(move || {
+        // Initialize thread-local variable with thread
+        let thread = init_current_thread(thread);
+        thread_runner(thread, thread_location, runner_location);
+        deinit_current_thread();
+    });
+
+    managed_thread.direct_ptr()
+}
+
+fn thread_runner(thread: &DoraThread, thread_location: Address, runner_location: Address) {
+    use crate::compiler;
+    use crate::stack::DoraToNativeInfo;
+
+    let vm = get_vm();
+    let _thread_handle: Handle<ManagedThread> = Handle::from_address(thread_location);
+    let runner_handle: Handle<Obj> = Handle::from_address(runner_location);
+
+    let stack_top = stack_pointer();
+    let stack_limit = stack_top.sub(STACK_SIZE);
+    thread.tld.set_stack_limit(stack_limit);
+
+    // Thread was created in Parked state, so we need to Unpark
+    // before we dereference handle.
+    thread.unpark(vm);
+
+    let obj = unsafe { &mut *runner_handle.direct_ptr().to_mut_ptr::<Obj>() };
+    let vtable = obj.header().vtbl();
+    let class_instance = vtable.class_instance();
+
+    let (lambda_id, type_params) = match &class_instance.kind {
+        ShapeKind::Lambda(lambda_id, type_params) => (*lambda_id, type_params.clone()),
+        _ => unreachable!(),
+    };
+
+    let tld = thread.tld_address();
+
+    let fct_ptr = {
+        let mut dtn = DoraToNativeInfo::new();
+
+        thread.use_dtn(&mut dtn, || compiler::generate(vm, lambda_id, &type_params))
+    };
+
+    // execute the runner/lambda
+    let dora_stub_address = vm.stubs.dora_entry();
+    let fct: extern "C" fn(Address, Address, Ref<Obj>) =
+        unsafe { mem::transmute(dora_stub_address) };
+    fct(tld, fct_ptr, runner_handle.direct());
+
+    // remove thread from list of all threads
+    vm.threads.detach_current_thread();
+
+    // notify threads waiting in join() for this thread's end
+    thread.stop();
 }
 
 pub extern "C" fn start_thread(managed_thread: Handle<ManagedThread>) {

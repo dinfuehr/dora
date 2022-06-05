@@ -7,9 +7,7 @@
   @pub @abstract fn run();
 }
 
-class2 Thread2
-
-@internal @pub fn spawn(action: (): ()): Thread2;
+@internal @pub fn spawn(action: (): ()): Thread;
 
 @pub class AtomicInt32(let value: Int32) {
     @pub @internal fn get(): Int32;

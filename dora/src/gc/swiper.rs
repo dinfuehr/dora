@@ -163,12 +163,13 @@ impl Swiper {
 
         if args.flag_gc_verbose {
             println!(
-                "GC: heap info: {}, eden {}, semi {}, card {}, crossing {}",
+                "GC: heap info: {}, eden {}, semi {}, card {}, crossing {} (region {})",
                 formatted_size(max_heap_size),
                 formatted_size(eden_size),
                 formatted_size(semi_size),
                 formatted_size(card_size),
-                formatted_size(crossing_size)
+                formatted_size(crossing_size),
+                Region::new(heap_start, heap_end),
             );
         }
 

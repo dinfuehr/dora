@@ -1,0 +1,9 @@
+//= stdout "one\ntwo\n"
+
+fn main() {
+    std::thread::spawn(|| {
+        println("one")
+    }).join();
+
+    println("two");
+}
