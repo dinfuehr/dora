@@ -106,7 +106,11 @@ impl KnownClasses {
     }
 
     pub fn atomic_int32(&self) -> ClassDefinitionId {
-        self.object.expect("uninitialized")
+        self.atomic_int32.expect("uninitialized")
+    }
+
+    pub fn atomic_int64(&self) -> ClassDefinitionId {
+        self.atomic_int64.expect("uninitialized")
     }
 
     pub fn object(&self) -> ClassDefinitionId {
