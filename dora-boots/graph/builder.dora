@@ -11,10 +11,20 @@ use package::graph::createReturnVoidInst;
 use package::graph::createGotoInst;
 use package::graph::dump::assertGraph;
 
-@pub class GraphBuilder {
-    let graph: Graph = Graph::new();
-    var insertion: Option[Block] = None;
-    var entryBlock: Option[Block] = None;
+@pub class2 GraphBuilder {
+    graph: Graph,
+    insertion: Option[Block],
+    entryBlock: Option[Block],
+}
+
+impl GraphBuilder {
+    @pub @static fn new(): GraphBuilder {
+        GraphBuilder(
+            Graph::new(),
+            None[Block],
+            None[Block],
+        )
+    }
 
     @pub fn addBlock(): Block {
         let block = Block::new();
@@ -74,7 +84,7 @@ use package::graph::dump::assertGraph;
 
 @Test
 fn testEmptyGraph() {
-    let builder = GraphBuilder();
+    let builder = GraphBuilder::new();
     let block = builder.addBlock();
     let value = builder.createInt32Const(12i32);
     builder.createReturn(value, Type::Int32);

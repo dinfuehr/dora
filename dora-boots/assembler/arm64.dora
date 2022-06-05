@@ -86,7 +86,11 @@ let F29: NeonRegister = NeonRegister(29i32);
 let F30: NeonRegister = NeonRegister(30i32);
 let F31: NeonRegister = NeonRegister(31i32);
 
-class ForwardJump(let offset: Int32, let label: Label, let kind: JumpKind)
+class2 ForwardJump {
+    offset: Int32,
+    label: Label,
+    kind: JumpKind
+}
 
 enum JumpKind {
     Unconditional,

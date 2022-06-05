@@ -43,32 +43,52 @@ use package::bytecode::reader::BytecodeIterator;
     let blockMap = createBlocksWithEdgesFromBytecode(graph, bc);
 
     // Fill basic blocks with instructions
-    let ssagen = SsaGen(graph, bc, blockMap);
+    let ssagen = SsaGen::new(graph, bc, blockMap);
     ssagen.run();
 
     graph
 }
 
-class SsaGen(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap) {
-    var currentBlock: Option[Block] = None;
-    var offset: Int32 = 0i32;
-    var currentDef: Array[HashMap[Block, Inst]] = Array[HashMap[Block, Inst]]::empty();
-    var blockTerminated: Bool = false;
+class2 SsaGen {
+    graph: Graph,
+    bc: BytecodeFunction,
+    blockMap: BlockMap,
+    currentBlock: Option[Block],
+    offset: Int32,
+    currentDef: Array[HashMap[Block, Inst]],
+    blockTerminated: Bool,
 
     // a block is considered filled when all instructions are inserted
-    var filledBlocks: BitSet = BitSet(0i64);
+    filledBlocks: BitSet,
 
     // block is considered sealed when the set of predecessors is final
-    var sealedBlocks: BitSet = BitSet(0i64);
+    sealedBlocks: BitSet,
 
     // tracks all incomplete phi instructions inserted into unsealed blocks
-    let incompletePhis: HashMap[Block, HashMap[BytecodeRegister, Inst]] = HashMap();
+    incompletePhis: HashMap[Block, HashMap[BytecodeRegister, Inst]],
+}
+
+impl SsaGen {
+    @static fn new(graph: Graph, bc: BytecodeFunction, blockMap: BlockMap): SsaGen {
+        SsaGen(
+            graph,
+            bc,
+            blockMap,
+            None[Block],
+            0i32,
+            Array[HashMap[Block, Inst]]::empty(),
+            false,
+            BitSet(0),
+            BitSet(0),
+            HashMap[Block, HashMap[BytecodeRegister, Inst]](),
+        )
+    }
 
     fn run() {
         self.prepare();
         self.setupArguments();
 
-        for instInfo in BytecodeIterator(self.bc.code) {
+        for instInfo in BytecodeIterator::new(self.bc.code) {
             self.instructionStart(instInfo.start.toInt32());
             self.processInstruction(instInfo.inst);
         }

@@ -13,8 +13,8 @@ use package::codegen::arm64::CodeGenArm64;
     // bytecodeDump(info.bc);
 
     match ci.arch {
-        Architecture::X64 => CodeGenX64(ci).generate(),
-        Architecture::Arm64 => CodeGenArm64(ci).generate(),
+        Architecture::X64 => CodeGenX64::new(ci).generate(),
+        Architecture::Arm64 => CodeGenArm64::new(ci).generate(),
     }
 }
 

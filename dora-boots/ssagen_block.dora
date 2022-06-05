@@ -65,7 +65,7 @@ impl EdgeCreator {
     }
 
     fn run() {
-        for instInfo in BytecodeIterator(self.bc.code) {
+        for instInfo in BytecodeIterator::new(self.bc.code) {
             self.offset = instInfo.start;
             self.instructionStart();
             self.processInstruction(instInfo.start, instInfo.size, instInfo.inst);
@@ -166,7 +166,7 @@ impl BlockCreator {
         let entryBlock = self.ensureBlock(0).getOrPanic();
         self.graph.setEntryBlock(entryBlock);
 
-        for instInfo in BytecodeIterator(self.bc.code) {
+        for instInfo in BytecodeIterator::new(self.bc.code) {
             let start = instInfo.start;
 
             if self.blockStarts.contains(start) {

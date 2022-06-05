@@ -4,8 +4,15 @@ use package::assembler::x64::RSP;
 use package::interface::CompilationInfo;
 use package::interface::Architecture;
 
-@pub class CodeGenX64(let info: CompilationInfo) {
-    let asm: AssemblerX64 = AssemblerX64::new();
+@pub class2 CodeGenX64 {
+    info: CompilationInfo,
+    asm: AssemblerX64,
+}
+
+impl CodeGenX64 {
+    @pub @static fn new(info: CompilationInfo): CodeGenX64 {
+        CodeGenX64(info, AssemblerX64::new())
+    }
 
     @pub fn prolog() {
         self.asm.pushqr(RBP);

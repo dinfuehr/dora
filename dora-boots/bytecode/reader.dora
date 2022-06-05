@@ -7,16 +7,23 @@ use package::bytecode::opcode as opc;
 @pub fn decodeBytecode(code: Array[UInt8]): Array[BytecodeInstructionInfo] {
     let result = Vec[BytecodeInstructionInfo]();
 
-    for instInfo in BytecodeIterator(code) {
+    for instInfo in BytecodeIterator::new(code) {
         result.push(instInfo);
     }
 
     result.toArray()
 }
 
-@pub class BytecodeIterator(let data: Array[UInt8]) {
-    var pos: Int64 = 0;
-    var length: Int64 = data.size();
+@pub class2 BytecodeIterator {
+    data: Array[UInt8],
+    pos: Int64,
+    length: Int64,
+}
+
+impl BytecodeIterator {
+    @pub @static fn new(data: Array[UInt8]): BytecodeIterator {
+        BytecodeIterator(data, 0, data.size())
+    }
 
     @pub fn next(): Option[BytecodeInstructionInfo] {
         if self.pos < self.length {

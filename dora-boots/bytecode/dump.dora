@@ -6,9 +6,9 @@ use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::reader::BytecodeIterator;
 
 @pub fn bytecodeDump(bc: BytecodeFunction) {
-    let dumper = BytecodeDumper(bc);
+    let dumper = BytecodeDumper::new(bc);
 
-    for instInfo in BytecodeIterator(bc.code) {
+    for instInfo in BytecodeIterator::new(bc.code) {
         dumper.pos = instInfo.start.toInt32();
         dumper.dumpInstruction(instInfo.inst);
     }
@@ -27,8 +27,15 @@ use package::bytecode::reader::BytecodeIterator;
     }
 }
 
-class BytecodeDumper(let bc: BytecodeFunction) {
-    var pos: Int32 = 0;
+class2 BytecodeDumper {
+    bc: BytecodeFunction,
+    pos: Int32,
+}
+
+impl BytecodeDumper {
+    @static fn new(bc: BytecodeFunction): BytecodeDumper {
+        BytecodeDumper(bc, 0i32)
+    }
 
     fn dumpInstruction(inst: BytecodeInstruction) {
         match inst {

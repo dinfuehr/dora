@@ -5,16 +5,30 @@ fn readGraph(data: String): Graph {
     unreachable[Graph]()
 }
 
-class GraphReader(let content: String) {
-    let lexer: Lexer = Lexer(content);
+class2 GraphReader {
+    content: String,
+    lexer: Lexer,
+}
+
+impl GraphReader {
+    @static fn new(content: String): GraphReader {
+        GraphReader(content, Lexer::new(content))
+    }
 
     fn read() {
 
     }
 }
 
-class Lexer(let content: String) {
-    var idx: Int64 = 0i64;
+class2 Lexer {
+    content: String,
+    idx: Int64,
+}
+
+impl Lexer {
+    @static fn new(content: String): Lexer {
+        Lexer(content, 0)
+    }
 
     fn look(): Option[Char] {
         if self.idx == self.content.size() {
@@ -180,14 +194,14 @@ mod tests {
 
     @Test
     fn readSingleIdentifier() {
-        let lexer = Lexer("foo");
+        let lexer = Lexer::new("foo");
         assertIdent(lexer, "foo");
         assertEnd(lexer);
     }
 
     @Test
     fn readMultipleIdentifiers() {
-        let lexer = Lexer("foo bar baz");
+        let lexer = Lexer::new("foo bar baz");
         assertIdent(lexer, "foo");
         assertIdent(lexer, "bar");
         assertIdent(lexer, "baz");
@@ -196,7 +210,7 @@ mod tests {
 
     @Test
     fn readMultipleLines() {
-        let lexer = Lexer("foo\nbar\nbaz");
+        let lexer = Lexer::new("foo\nbar\nbaz");
         assertIdent(lexer, "foo");
         assertNewline(lexer);
         assertIdent(lexer, "bar");
@@ -207,7 +221,7 @@ mod tests {
 
     @Test
     fn readOperators() {
-        let lexer = Lexer(":=@%");
+        let lexer = Lexer::new(":=@%");
         assertColon(lexer);
         assertEq(lexer);
         assertAt(lexer);
@@ -217,7 +231,7 @@ mod tests {
 
     @Test
     fn readNumbers() {
-        let lexer = Lexer("11212 17");
+        let lexer = Lexer::new("11212 17");
         assertNumber(lexer, 11212i64);
         assertNumber(lexer, 17i64);
         assertEnd(lexer);

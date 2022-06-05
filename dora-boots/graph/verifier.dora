@@ -3,11 +3,21 @@ use package::graph::Block;
 use package::graph::Inst;
 
 @pub fn verifyGraph(graph: Graph) {
-    GraphVerifier(graph).run()
+    GraphVerifier::new(graph).run()
 }
 
-class GraphVerifier(let graph: Graph) {
-    var currentBlock: Block = graph.getEntryBlock();
+class2 GraphVerifier {
+    graph: Graph,
+    currentBlock: Block,
+}
+
+impl GraphVerifier {
+    @static fn new(graph: Graph): GraphVerifier {
+        GraphVerifier(
+            graph,
+            graph.getEntryBlock(),
+        )
+    }
 
     fn run() {
         for block in self.graph.insertionOrderIterator() {

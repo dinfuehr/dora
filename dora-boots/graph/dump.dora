@@ -7,11 +7,18 @@ use package::graph::Inst;
 use package::graph::Op;
 
 @pub fn dumpGraph(graph: Graph): String {
-    GraphDumper(graph).dump()
+    GraphDumper::new(graph).dump()
 }
 
-class GraphDumper(let graph: Graph) {
-    let buffer: StringBuffer = StringBuffer();
+class2 GraphDumper {
+    graph: Graph,
+    buffer: StringBuffer,
+}
+
+impl GraphDumper {
+    @static fn new(graph: Graph): GraphDumper {
+        GraphDumper(graph, StringBuffer())
+    }
 
     fn dump(): String {
         for block in self.graph.insertionOrderIterator() {
@@ -189,8 +196,8 @@ fn dumpInstName(inst: Inst): String {
 }
 
 fn compareStrings(lhs: String, rhs: String): Bool {
-    var lhs = Output(lhs);
-    var rhs = Output(rhs);
+    var lhs = Output::new(lhs);
+    var rhs = Output::new(rhs);
 
     skipWhite(lhs);
     skipWhite(rhs);
@@ -227,13 +234,25 @@ fn compareStrings(lhs: String, rhs: String): Bool {
     false
 }
 
-class Output(text: String) {
-    let iterator: CodepointIterator = CodepointIterator(text, 0);
-    var current: Char = '\0';
-    var next: Char = '\0';
+class2 Output {
+    iterator: CodepointIterator,
+    current: Char,
+    next: Char,
+}
 
-    self.advance();
-    self.advance();
+impl Output {
+    @static fn new(text: String): Output {
+        let output = Output(
+            CodepointIterator(text, 0),
+            '\0',
+            '\0',
+        );
+
+        output.advance();
+        output.advance();
+
+        output
+    }
 
     fn advance() {
         self.current = self.next;
