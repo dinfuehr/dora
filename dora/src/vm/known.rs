@@ -83,7 +83,6 @@ impl KnownEnums {
 pub struct KnownClasses {
     pub atomic_int32: Option<ClassDefinitionId>,
     pub atomic_int64: Option<ClassDefinitionId>,
-    pub object: Option<ClassDefinitionId>,
     pub array: Option<ClassDefinitionId>,
     pub string: Option<ClassDefinitionId>,
     pub string_buffer: Option<ClassDefinitionId>,
@@ -96,7 +95,6 @@ impl KnownClasses {
         KnownClasses {
             atomic_int32: None,
             atomic_int64: None,
-            object: None,
             array: None,
             string: None,
             string_buffer: None,
@@ -111,10 +109,6 @@ impl KnownClasses {
 
     pub fn atomic_int64(&self) -> ClassDefinitionId {
         self.atomic_int64.expect("uninitialized")
-    }
-
-    pub fn object(&self) -> ClassDefinitionId {
-        self.object.expect("uninitialized")
     }
 
     pub fn array(&self) -> ClassDefinitionId {
@@ -395,18 +389,6 @@ impl KnownElements {
         } else {
             let cls_id = specialize_class_id(vm, self.classes.string());
             *str_class_def = Some(cls_id);
-            cls_id
-        }
-    }
-
-    pub fn obj(&self, vm: &VM) -> ClassInstanceId {
-        let mut obj_class_def = self.obj_class_instance.lock();
-
-        if let Some(cls_id) = *obj_class_def {
-            cls_id
-        } else {
-            let cls_id = specialize_class_id(vm, self.classes.object());
-            *obj_class_def = Some(cls_id);
             cls_id
         }
     }

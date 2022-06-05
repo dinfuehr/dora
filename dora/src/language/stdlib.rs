@@ -120,7 +120,6 @@ pub fn resolve_internal_classes(sa: &mut SemAnalysis) {
         Some(SourceType::Float64),
     ));
 
-    sa.known.classes.object = Some(find_class(sa, stdlib, "Object"));
     sa.known.classes.string = Some(internal_class(sa, stdlib, "string::String"));
 
     sa.known.classes.string_buffer = Some(find_class(sa, stdlib, "string::StringBuffer"));
