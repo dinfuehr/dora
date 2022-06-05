@@ -19,8 +19,6 @@ use crate::threads::{
 };
 use crate::vm::{get_vm, stack_pointer, ManagedCondition, ManagedMutex, Trap};
 
-pub mod process;
-
 pub extern "C" fn uint8_to_string(val: u8) -> Ref<Str> {
     handle_scope(|| {
         let buffer = val.to_string();

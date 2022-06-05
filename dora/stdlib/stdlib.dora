@@ -30,7 +30,6 @@
 @pub @internal fn forceMinorCollect();
 
 @pub @internal fn timestamp(): Int64;
-@pub @internal fn spawn(path: String, arguments: String...);
 
 fn isValidUtf8(data: Array[UInt8]): Bool {
   var i = 0i64;

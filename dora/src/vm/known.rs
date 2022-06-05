@@ -88,6 +88,7 @@ pub struct KnownClasses {
     pub string_buffer: Option<ClassDefinitionId>,
     pub stacktrace: Option<ClassDefinitionId>,
     pub stacktrace_element: Option<ClassDefinitionId>,
+    pub thread: Option<ClassDefinitionId>,
 }
 
 impl KnownClasses {
@@ -100,6 +101,7 @@ impl KnownClasses {
             string_buffer: None,
             stacktrace: None,
             stacktrace_element: None,
+            thread: None,
         }
     }
 
@@ -129,6 +131,10 @@ impl KnownClasses {
 
     pub fn stacktrace_element(&self) -> ClassDefinitionId {
         self.stacktrace_element.expect("uninitialized")
+    }
+
+    pub fn thread(&self) -> ClassDefinitionId {
+        self.thread.expect("uninitialized")
     }
 }
 

@@ -139,6 +139,7 @@ pub fn resolve_internal_classes(sa: &mut SemAnalysis) {
 
     sa.known.classes.stacktrace = Some(find_class(sa, stdlib, "Stacktrace"));
     sa.known.classes.stacktrace_element = Some(find_class(sa, stdlib, "StacktraceElement"));
+    sa.known.classes.thread = Some(find_class(sa, stdlib, "thread::Thread"));
 
     sa.known.traits.stringable = Some(find_trait(sa, stdlib, "string::Stringable"));
     sa.known.traits.zero = Some(find_trait(sa, stdlib, "traits::Zero"));
@@ -347,12 +348,6 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
         stdlib::gc_minor_collect as *const u8,
     );
     native_fct(sa, stdlib, "sleep", stdlib::sleep as *const u8);
-    native_fct(
-        sa,
-        stdlib,
-        "spawn",
-        stdlib::process::spawn_process as *const u8,
-    );
 
     if sa.args.flag_boots.is_some() {
         native_fct(
