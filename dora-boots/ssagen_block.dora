@@ -11,7 +11,7 @@ use package::graph::Block;
     let blockMap = BlockMap::new(bc);
 
     // The first pass creates blocks
-    BlockCreator(graph, bc, blockMap).run();
+    BlockCreator::new(graph, bc, blockMap).run();
 
     // The second pass creates edges between blocks
     EdgeCreator::new(graph, bc, blockMap).run();
@@ -144,8 +144,22 @@ impl EdgeCreator {
     }
 }
 
-class BlockCreator(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap) {
-    let blockStarts: BitSet = BitSet(bc.code.size());
+class2 BlockCreator {
+    graph: Graph,
+    bc: BytecodeFunction,
+    blockMap: BlockMap,
+    blockStarts: BitSet,
+}
+
+impl BlockCreator {
+    @static fn new(graph: Graph, bc: BytecodeFunction, blockMap: BlockMap): BlockCreator {
+        BlockCreator(
+            graph,
+            bc,
+            blockMap,
+            BitSet(bc.code.size())
+        )
+    }
 
     fn run() {
         // create block for first instruction
