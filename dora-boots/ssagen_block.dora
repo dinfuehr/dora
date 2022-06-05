@@ -8,19 +8,26 @@ use package::graph::Graph;
 use package::graph::Block;
 
 @pub fn createBlocksWithEdgesFromBytecode(graph: Graph, bc: BytecodeFunction): BlockMap {
-    let blockMap = BlockMap(bc);
+    let blockMap = BlockMap::new(bc);
 
     // The first pass creates blocks
     BlockCreator(graph, bc, blockMap).run();
 
     // The second pass creates edges between blocks
-    EdgeCreator(graph, bc, blockMap).run();
+    EdgeCreator::new(graph, bc, blockMap).run();
 
     blockMap
 }
 
-@pub class BlockMap(let bc: BytecodeFunction) {
-    let blocks: HashMap[Int64, Block] = HashMap();
+@pub class2 BlockMap {
+    bc: BytecodeFunction,
+    blocks: HashMap[Int64, Block],
+}
+
+impl BlockMap {
+    @static fn new(bc: BytecodeFunction): BlockMap {
+        BlockMap(bc, HashMap[Int64, Block]())
+    }
 
     @pub fn insert(offset: Int64, block: Block) {
         self.blocks.insert(offset, block);
@@ -43,10 +50,19 @@ use package::graph::Block;
     }
 }
 
-class EdgeCreator(let graph: Graph, let bc: BytecodeFunction, let blockMap: BlockMap) {
-    var offset: Int64 = 0;
-    var currentBlock: Option[Block] = None;
-    var blockTerminated: Bool = false;
+class2 EdgeCreator {
+    graph: Graph,
+    bc: BytecodeFunction,
+    blockMap: BlockMap,
+    offset: Int64,
+    currentBlock: Option[Block],
+    blockTerminated: Bool,
+}
+
+impl EdgeCreator {
+    @static fn new(graph: Graph, bc: BytecodeFunction, blockMap: BlockMap): EdgeCreator {
+        EdgeCreator(graph, bc, blockMap, 0, None[Block], false)
+    }
 
     fn run() {
         for instInfo in BytecodeIterator(self.bc.code) {
