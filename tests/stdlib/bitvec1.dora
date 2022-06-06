@@ -1,5 +1,5 @@
 fn main() {
-    let set = std::BitVec();
+    let set = std::BitVec::new();
     set.insert(0i64);
     set.insert(63i64);
     assert(set.contains(0i64));

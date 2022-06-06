@@ -1,7 +1,7 @@
 use std::Queue;
 
 fn main() {
-    let q = Queue[Int32]();
+    let q = Queue[Int32]::new();
 
     for i in std::range(0i32, 100i32) {
         q.enqueue(i);

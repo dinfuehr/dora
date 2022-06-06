@@ -10,11 +10,11 @@ use std::{fatalError, unsafeKillRefs};
   @pub fn isEmpty(): Bool = self.size() == 0i64;
 
   @pub fn makeIterator(): ArrayIter[T] {
-    ArrayIter[T](self)
+    ArrayIter[T]::new(self)
   }
 
   @pub fn enumerate(): ArrayEnumerator[T] {
-    ArrayEnumerator[T](self)
+    ArrayEnumerator[T]::new(self)
   }
 
   @pub @static fn empty(): Array[T] {
@@ -66,8 +66,15 @@ impl[T: Zero] Array[T] {
   }
 }
 
-@pub class ArrayIter[T](let array: Array[T]) {
-  var idx: Int64 = 0;
+@pub class2 ArrayIter[T] {
+  array: Array[T],
+  idx: Int64,
+}
+
+impl[T] ArrayIter[T] {
+  @static fn new(data: Array[T]): ArrayIter[T] {
+    ArrayIter[T](data, 0)
+  }
 
   @pub fn next(): Option[T] {
     if self.idx < self.array.size() {
@@ -80,8 +87,15 @@ impl[T: Zero] Array[T] {
   }
 }
 
-@pub class ArrayEnumerator[T](let array: Array[T]) {
-  var idx: Int64 = 0;
+@pub class2 ArrayEnumerator[T] {
+  array: Array[T],
+  idx: Int64,
+}
+
+impl[T] ArrayEnumerator[T] {
+  @static fn new(data: Array[T]): ArrayEnumerator[T] {
+    ArrayEnumerator[T](data, 0)
+  }
 
   @pub fn next(): Option[(Int64, T)] {
     if self.idx < self.array.size() {
@@ -198,135 +212,152 @@ impl[T: Stringable] Array[T] {
   }
 }
 
-@pub class BitSet(capacity: Int64) {
-    var data: Array[Int32] = Array[Int32]::empty();
-    var capacity: Int64 = 0i64;
-
-    if capacity > 0i64 {
-        let entries = (capacity + 31i64) / 32i64;
-        self.data = Array[Int32]::zero(entries);
-        self.capacity = capacity;
-    }
-
-    @pub fn size(): Int64 {
-        self.capacity
-    }
-
-    @pub fn contains(idx: Int64): Bool {
-        if idx < 0i64 || idx >= self.capacity {
-            fatalError("index out of bounds");
-        }
-
-        let entry_idx = idx / 32i64;
-        let value = self.data.get(entry_idx);
-        let value_idx = idx - entry_idx;
-
-        return value & (1i32 << value_idx.toInt32()) != 0i32;
-    }
-
-    @pub fn insert(idx: Int64) {
-        if idx < 0i64 || idx >= self.capacity {
-            fatalError("index out of bounds");
-        }
-
-        let entry_idx = idx / 32i64;
-        var value = self.data.get(entry_idx);
-        let value_idx = idx - entry_idx;
-
-        value = value | (1i32 << value_idx.toInt32());
-
-        self.data.set(entry_idx, value);
-    }
-
-    @pub fn remove(idx: Int64) {
-        if idx < 0i64 || idx >= self.capacity {
-            fatalError("index out of bounds");
-        }
-
-        let entry_idx = idx / 32i64;
-        var value = self.data.get(entry_idx);
-        let value_idx = idx - entry_idx;
-
-        value = value & !(1i32 << value_idx.toInt32());
-
-        self.data.set(entry_idx, value);
-    }
+@pub class2 BitSet {
+  data: Array[Int32],
+  capacity: Int64,
 }
 
-@pub class BitVec {
-    var data: Array[Int32] = Array[Int32]::empty();
+impl BitSet {
+  @pub @static fn new(capacity: Int64): BitSet {
+    if capacity == 0 {
+      BitSet(Array[Int32]::empty(), 0)
+    } else {
+      let entries = (capacity + 31) / 32;
+      BitSet(Array[Int32]::zero(entries), capacity)
+    }
+  }
 
-    @pub fn contains(idx: Int64): Bool {
-        if idx < 0i64 {
-            fatalError("index out of bounds");
-        }
+  @pub fn size(): Int64 {
+    self.capacity
+  }
 
-        if idx >= self.data.size() * 32i64 {
-            return false;
-        }
-
-        let entry_idx = idx / 32i64;
-        let value = self.data.get(entry_idx);
-        let value_idx = idx - entry_idx;
-
-        return value & (1i32 << value_idx.toInt32()) != 0i32;
+  @pub fn contains(idx: Int64): Bool {
+    if idx < 0i64 || idx >= self.capacity {
+      fatalError("index out of bounds");
     }
 
-    @pub fn insert(idx: Int64) {
-        if idx < 0i64 {
-            fatalError("index out of bounds");
-        }
+    let entry_idx = idx / 32i64;
+    let value = self.data.get(entry_idx);
+    let value_idx = idx - entry_idx;
 
-        self.ensureCapacity(idx+1i64);
+    return value & (1i32 << value_idx.toInt32()) != 0i32;
+  }
 
-        let entry_idx = idx / 32i64;
-        var value = self.data.get(entry_idx);
-        let value_idx = idx - entry_idx;
-
-        value = value | (1i32 << value_idx.toInt32());
-
-        self.data.set(entry_idx, value);
+  @pub fn insert(idx: Int64) {
+    if idx < 0i64 || idx >= self.capacity {
+      fatalError("index out of bounds");
     }
 
-    @pub fn remove(idx: Int64) {
-        if idx < 0i64 {
-            fatalError("index out of bounds");
-        }
+    let entry_idx = idx / 32i64;
+    var value = self.data.get(entry_idx);
+    let value_idx = idx - entry_idx;
 
-        if idx >= self.data.size() * 32i64 {
-            return;
-        }
+    value = value | (1i32 << value_idx.toInt32());
 
-        let entry_idx = idx / 32i64;
-        var value = self.data.get(entry_idx);
-        let value_idx = idx - entry_idx;
+    self.data.set(entry_idx, value);
+  }
 
-        value = value & !(1i32 << value_idx.toInt32());
-
-        self.data.set(entry_idx, value);
+  @pub fn remove(idx: Int64) {
+    if idx < 0i64 || idx >= self.capacity {
+      fatalError("index out of bounds");
     }
 
-    @pub fn ensureCapacity(newcap: Int64) {
-        if newcap < self.data.size() * 32i64 || newcap == 0i64 {
-            return;
-        }
+    let entry_idx = idx / 32i64;
+    var value = self.data.get(entry_idx);
+    let value_idx = idx - entry_idx;
 
-        let newcap = (newcap + 31i64) / 32i64;
+    value = value & !(1i32 << value_idx.toInt32());
 
-        let newarray = Array[Int32]::zero(newcap);
-        Array[Int32]::copy(self.data, 0i64, newarray, 0i64, self.data.size());
-        self.data = newarray;
-    }
-
-    @pub fn capacity(): Int64 {
-        self.data.size() * 32i64
-    }
+    self.data.set(entry_idx, value);
+  }
 }
 
-@pub class Queue[T] {
-  var elements: Array[T] = Array[T]::unsafeNew(4i64);
-  var front: Int64 = 0i64;
-  var count: Int64 = 0i64;
+@pub class2 BitVec {
+  data: Array[Int32],
+}
+
+impl BitVec {
+  @pub @static fn new(): BitVec {
+    BitVec(Array[Int32]::empty())
+  }
+
+  @pub fn contains(idx: Int64): Bool {
+    if idx < 0i64 {
+      fatalError("index out of bounds");
+    }
+
+    if idx >= self.data.size() * 32i64 {
+      return false;
+    }
+
+    let entry_idx = idx / 32i64;
+    let value = self.data.get(entry_idx);
+    let value_idx = idx - entry_idx;
+
+    return value & (1i32 << value_idx.toInt32()) != 0i32;
+  }
+
+  @pub fn insert(idx: Int64) {
+    if idx < 0i64 {
+      fatalError("index out of bounds");
+    }
+
+    self.ensureCapacity(idx+1i64);
+
+    let entry_idx = idx / 32i64;
+    var value = self.data.get(entry_idx);
+    let value_idx = idx - entry_idx;
+
+    value = value | (1i32 << value_idx.toInt32());
+
+    self.data.set(entry_idx, value);
+  }
+
+  @pub fn remove(idx: Int64) {
+    if idx < 0i64 {
+      fatalError("index out of bounds");
+    }
+
+    if idx >= self.data.size() * 32i64 {
+        return;
+    }
+
+    let entry_idx = idx / 32i64;
+    var value = self.data.get(entry_idx);
+    let value_idx = idx - entry_idx;
+
+    value = value & !(1i32 << value_idx.toInt32());
+
+    self.data.set(entry_idx, value);
+  }
+
+  @pub fn ensureCapacity(newcap: Int64) {
+    if newcap < self.data.size() * 32i64 || newcap == 0i64 {
+      return;
+    }
+
+    let newcap = (newcap + 31i64) / 32i64;
+
+    let newarray = Array[Int32]::zero(newcap);
+    Array[Int32]::copy(self.data, 0i64, newarray, 0i64, self.data.size());
+    self.data = newarray;
+  }
+
+  @pub fn capacity(): Int64 {
+    self.data.size() * 32i64
+  }
+}
+
+@pub class2 Queue[T] {
+  elements: Array[T],
+  front: Int64,
+  count: Int64,
+}
+
+impl[T] Queue[T] {
+  @pub @static fn new(): Queue[T] {
+    Queue[T](Array[T]::unsafeNew(4), 0, 0)
+  }
 
   @pub fn enqueue(value: T) {
     if self.count == self.elements.size() {
@@ -393,7 +424,7 @@ impl[T: Stringable] Array[T] {
 @pub class HashMap[K: Hash + Equals, V](entries: (K, V)...) {
     // BitSet.size == capacity * 2
     // [bit 0: inserted; bit 1: deleted] * capacity
-    var inserted_and_deleted: BitSet = BitSet(0i64);
+    var inserted_and_deleted: BitSet = BitSet::new(0i64);
     var keys: Array[K] = Array[K]::empty();
     var values: Array[V] = Array[V]::empty();
     var entries: Int64 = 0i64;
@@ -575,7 +606,7 @@ impl[T: Stringable] Array[T] {
         let old_capacity = self.cap;
 
         let new_map = HashMap[K, V]();
-        new_map.inserted_and_deleted = BitSet(2i64 * new_capacity);
+        new_map.inserted_and_deleted = BitSet::new(2 * new_capacity);
         new_map.keys = Array[K]::unsafeNew(new_capacity);
         new_map.values = Array[V]::unsafeNew(new_capacity);
         new_map.entries = 0i64;
@@ -623,12 +654,19 @@ impl[T: Stringable] Array[T] {
     }
 
     @pub fn makeIterator(): HashMapIter[K, V] {
-        HashMapIter[K, V](self)
+        HashMapIter[K, V]::new(self)
     }
 }
 
-@pub class HashMapIter[K: Hash + Equals, V](let map: HashMap[K, V]) {
-    var idx: Int64 = 0i64;
+@pub class2 HashMapIter[K: Hash + Equals, V] {
+  map: HashMap[K, V],
+  idx: Int64,
+}
+
+impl[K: Hash + Equals, V] HashMapIter[K, V] {
+    @pub @static fn new(map: HashMap[K, V]): HashMapIter[K, V] {
+      HashMapIter[K, V](map, 0)
+    }
 
     @pub fn next(): Option[(K, V)] {
         while self.idx < self.map.capacity() {
@@ -894,20 +932,27 @@ impl[T: Stringable] Array[T] {
   }
 
   @pub fn makeIterator(): VecIter[T] {
-    VecIter[T](self)
+    VecIter[T]::new(self)
   }
 
   @pub fn makeReverseIterator(): ReverseVecIter[T] {
-    ReverseVecIter[T](self)
+    ReverseVecIter[T]::new(self)
   }
 
   @pub fn enumerate(): VecEnumerator[T] {
-    VecEnumerator[T](self)
+    VecEnumerator[T]::new(self)
   }
 }
 
-@pub class VecEnumerator[T](let data: Vec[T]) {
-  var idx: Int64 = 0;
+@pub class2 VecEnumerator[T] {
+  data: Vec[T],
+  idx: Int64,
+}
+
+impl[T] VecEnumerator[T] {
+  @static fn new(data: Vec[T]): VecEnumerator[T] {
+    VecEnumerator[T](data, 0)
+  }
 
   @pub fn next(): Option[(Int64, T)] {
     if self.idx < self.data.size() {
@@ -920,8 +965,15 @@ impl[T: Stringable] Array[T] {
   }
 }
 
-@pub class VecIter[T](let data: Vec[T]) {
-  var idx: Int64 = 0;
+@pub class2 VecIter[T] {
+  data: Vec[T],
+  idx: Int64,
+}
+
+impl[T] VecIter[T] {
+  @static fn new(data: Vec[T]): VecIter[T] {
+    VecIter[T](data, 0)
+  }
 
   @pub fn next(): Option[T] {
     if self.idx < self.data.size() {
@@ -934,8 +986,15 @@ impl[T: Stringable] Array[T] {
   }
 }
 
-@pub class ReverseVecIter[T](let data: Vec[T]) {
-  var idx: Int64 = data.size() - 1;
+@pub class2 ReverseVecIter[T] {
+  data: Vec[T],
+  idx: Int64,
+}
+
+impl[T] ReverseVecIter[T] {
+  @static fn new(data: Vec[T]): ReverseVecIter[T] {
+    ReverseVecIter(data, data.size() - 1)
+  }
 
   @pub fn next(): Option[T] {
     if self.idx != -1 {

@@ -1,7 +1,7 @@
 use std::Queue;
 
 fn main() {
-    let q = Queue[Int32]();
+    let q = Queue[Int32]::new();
     assert(q.size() == 0i64);
     assert(q.isEmpty());
     q.enqueue(1i32);

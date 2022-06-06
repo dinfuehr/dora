@@ -157,7 +157,7 @@ impl BlockCreator {
             graph,
             bc,
             blockMap,
-            BitSet(bc.code.size())
+            BitSet::new(bc.code.size())
         )
     }
 

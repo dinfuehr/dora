@@ -38,7 +38,7 @@ fn main() {
 }
 
 fn check_iterator1(map: HashMap[Int32, String]) {
-    let set = BitSet(3i64);
+    let set = BitSet::new(3i64);
 
     for (key, value) in map {
         if key == 1i32 {
@@ -64,7 +64,7 @@ fn check_iterator1(map: HashMap[Int32, String]) {
 }
 
 fn check_iterator2(map: HashMap[Int32, String]) {
-    let set = BitSet(3i64);
+    let set = BitSet::new(3i64);
 
     for (key, value) in map {
         if key == 1i32 {

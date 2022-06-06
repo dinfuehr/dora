@@ -7,10 +7,10 @@ const ITERATIONS: Int32 = 10_000i32;
 const QUEUE_SIZE: Int64 = 20i64;
 
 class SharedQueue[T](let capacity: Int64) {
-    let mtx: std::Mutex = std::Mutex();
-    let conditionNonEmpty: std::Condition = std::Condition();
-    let conditionNonFull: std::Condition = std::Condition();
-    let queue: Queue[T] = Queue[T]();
+    let mtx: std::Mutex = std::Mutex::new();
+    let conditionNonEmpty: std::Condition = std::Condition::new();
+    let conditionNonFull: std::Condition = std::Condition::new();
+    let queue: Queue[T] = Queue[T]::new();
 
     fn enqueue(value: T) {
         self.mtx.lock();

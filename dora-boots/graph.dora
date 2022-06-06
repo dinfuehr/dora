@@ -350,7 +350,7 @@ impl Equals for Block {
 
 impl LoopData {
     @pub @static fn new(header: Block): LoopData {
-        LoopData(header, Vec[Block](), BitVec())
+        LoopData(header, Vec[Block](), BitVec::new())
     }
 
     @pub fn getHeader(): Block {

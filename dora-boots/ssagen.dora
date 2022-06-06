@@ -78,8 +78,8 @@ impl SsaGen {
             0i32,
             Array[HashMap[Block, Inst]]::empty(),
             false,
-            BitSet(0),
-            BitSet(0),
+            BitSet::new(0),
+            BitSet::new(0),
             HashMap[Block, HashMap[BytecodeRegister, Inst]](),
         )
     }
@@ -100,8 +100,8 @@ impl SsaGen {
         self.currentBlock = None;
         let blockCount = self.graph.blockCount();
 
-        self.filledBlocks = BitSet(blockCount.toInt64());
-        self.sealedBlocks = BitSet(blockCount.toInt64());
+        self.filledBlocks = BitSet::new(blockCount.toInt64());
+        self.sealedBlocks = BitSet::new(blockCount.toInt64());
 
         let data = Vec[HashMap[Block, Inst]]();
 

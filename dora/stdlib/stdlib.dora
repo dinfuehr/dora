@@ -145,6 +145,13 @@ fn isValidUtf8(data: Array[UInt8]): Bool {
   @internal fn getStacktraceElement(idx: Int64): StacktraceElement;
 }
 
-class StacktraceElement(let name: String, let line: Int32) {
-  fn toString(): String = "${self.name}: ${self.line}";
+class2 StacktraceElement {
+  name: String,
+  line: Int32,
+}
+
+impl StacktraceElement {
+  fn toString(): String {
+    "${self.name}: ${self.line}"
+  }
 }
