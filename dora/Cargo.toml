@@ -19,9 +19,9 @@ walkdir = "2"
 [dependencies]
 byteorder = "*"
 lazy_static = "*"
-libc = "0.2.*"
+libc = "*"
 time = "0.1.*"
-capstone = { version = "0.6.*", optional = true }
+capstone = { version = "*", optional = true }
 dora-asm = { path = "../dora-asm", version = "0.0.1" }
 dora-parser = { path = "../dora-parser", version = "0.0.2" }
 threadpool = "*"
