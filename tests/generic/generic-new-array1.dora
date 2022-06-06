@@ -4,5 +4,5 @@ fn main() {
 }
 
 fn newArray[T](): Array[T] {
-    Array[T]::empty()
+    Array[T]::new()
 }

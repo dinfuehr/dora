@@ -261,6 +261,7 @@ fn internal_class(
 
     let cls = sa.classes.idx(cls_id);
     let mut cls = cls.write();
+    assert!(cls.internal);
     cls.internal_resolved = true;
 
     cls_id
@@ -887,12 +888,12 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
         stdlib::str_from_bytes as *const u8,
     );
 
-    intrinsic_ctor(sa, stdlib, "Array", Intrinsic::ArrayWithValues);
     intrinsic_method(sa, stdlib, "Array", "size", Intrinsic::ArrayLen);
     intrinsic_method(sa, stdlib, "Array", "get", Intrinsic::ArrayGet);
     intrinsic_method(sa, stdlib, "Array", "set", Intrinsic::ArraySet);
 
     intrinsic_static(sa, stdlib, "Array", "unsafeNew", Intrinsic::ArrayNewOfSize);
+    intrinsic_static(sa, stdlib, "Array", "new", Intrinsic::ArrayWithValues);
 
     native_method(
         sa,
@@ -1064,25 +1065,6 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
         "fetchAdd",
         Intrinsic::AtomicInt64FetchAdd,
     );
-}
-
-fn intrinsic_ctor(
-    sa: &SemAnalysis,
-    module_id: ModuleDefinitionId,
-    name: &str,
-    intrinsic: Intrinsic,
-) {
-    let cls_id = resolve_name(sa, name, module_id)
-        .to_class()
-        .expect("class expected");
-
-    let cls = sa.classes.idx(cls_id);
-    let cls = cls.read();
-
-    let ctor_id = cls.constructor.expect("no constructor");
-    let ctor = sa.fcts.idx(ctor_id);
-    let mut ctor = ctor.write();
-    ctor.intrinsic = Some(intrinsic);
 }
 
 fn find_instance_method(

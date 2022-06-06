@@ -2,7 +2,11 @@ use std::traits::{Hash, Equals, Iterator, Default, Zero, Sortable, Identity};
 use std::string::{Stringable, StringBuffer};
 use std::{fatalError, unsafeKillRefs};
 
-@pub @internal class Array[T](values: T...) {
+@pub @internal class2 Array[T]
+
+impl[T] Array[T] {
+  @pub @static @internal fn new(values: T...): Array[T];
+
   @pub @internal fn size(): Int64;
   @pub @internal fn get(idx: Int64): T;
   @pub @internal fn set(idx: Int64, val: T);
@@ -15,10 +19,6 @@ use std::{fatalError, unsafeKillRefs};
 
   @pub fn enumerate(): ArrayEnumerator[T] {
     ArrayEnumerator[T]::new(self)
-  }
-
-  @pub @static fn empty(): Array[T] {
-    Array[T]::unsafeNew(0i64)
   }
 
   @static @internal fn unsafeNew(size: Int64): Array[T];
@@ -46,7 +46,7 @@ use std::{fatalError, unsafeKillRefs};
 }
 
 impl[T: Default] Array[T] {
-  @pub @static fn new(len: Int64): Array[T] {
+  @pub @static fn newDefault(len: Int64): Array[T] {
     let array = Array[T]::unsafeNew(len);
     var i = 0i64;
     let value = T::default();
@@ -220,7 +220,7 @@ impl[T: Stringable] Array[T] {
 impl BitSet {
   @pub @static fn new(capacity: Int64): BitSet {
     if capacity == 0 {
-      BitSet(Array[Int32]::empty(), 0)
+      BitSet(Array[Int32]::new(), 0)
     } else {
       let entries = (capacity + 31) / 32;
       BitSet(Array[Int32]::zero(entries), capacity)
@@ -278,7 +278,7 @@ impl BitSet {
 
 impl BitVec {
   @pub @static fn new(): BitVec {
-    BitVec(Array[Int32]::empty())
+    BitVec(Array[Int32]::new())
   }
 
   @pub fn contains(idx: Int64): Bool {
@@ -435,8 +435,8 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
     // [bit 0: inserted; bit 1: deleted] * capacity
     let map = HashMap[K, V](
       BitSet::new(0),
-      Array[K]::empty(),
-      Array[V]::empty(),
+      Array[K]::new(),
+      Array[V]::new(),
       0,
       0,
     );
@@ -855,7 +855,7 @@ impl[T] Vec[T] {
   @pub fn trimToLen() {
     if self.len != self.capacity() {
       if self.len == 0i64 {
-        self.array = Array[T]::empty();
+        self.array = Array[T]::new();
       } else {
         let newarray = Array[T]::unsafeNew(self.len);
         Array[T]::copy(self.array, 0i64, newarray, 0i64, self.len);
@@ -961,7 +961,7 @@ impl[T] Vec[T] {
 
   @pub fn clear() {
     self.len = 0;
-    self.array = Array[T]::empty();
+    self.array = Array[T]::new();
   }
 
   @pub fn makeIterator(): VecIter[T] {

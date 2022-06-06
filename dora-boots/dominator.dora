@@ -96,7 +96,7 @@ fn computePostOrder(graph: Graph) {
     let worklist = Vec[Block]::new();
 
     // number of successors visited per block
-    let successorsVisited = Array[Int64]::new(graph.blockCount().toInt64());
+    let successorsVisited = Array[Int64]::newDefault(graph.blockCount().toInt64());
 
     // all blocks that have been visited
     let visited = BitSet::new(graph.blockCount().toInt64());

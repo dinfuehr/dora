@@ -1,5 +1,5 @@
 fn main() {
-    let ba = Array[UInt8]::empty();
+    let ba = Array[UInt8]::new();
     assert(ba.size() == 0i64);
 
     let ba = Array[UInt8]::fill(10i64, 2u8);

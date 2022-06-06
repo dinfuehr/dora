@@ -1,5 +1,5 @@
 fn main() {
-  let x = Array[Int32]::empty();
+  let x = Array[Int32]::new();
   assert(x.size() == 0i64);
   assert(int32_array_len(x) == 0i64);
 
@@ -7,7 +7,7 @@ fn main() {
   assert(x.size() == 5i64);
   assert(int32_array_len(x) == 5i64);
 
-  let x = Array[Int64]::empty();
+  let x = Array[Int64]::new();
   assert(x.size() == 0i64);
   assert(int64_array_len(x) == 0i64);
 
@@ -15,7 +15,7 @@ fn main() {
   assert(x.size() == 7i64);
   assert(int64_array_len(x) == 7i64);
 
-  let x = Array[Float32]::empty();
+  let x = Array[Float32]::new();
   assert(x.size() == 0i64);
   assert(float_array_len(x) == 0i64);
 
@@ -23,7 +23,7 @@ fn main() {
   assert(x.size() == 6i64);
   assert(float_array_len(x) == 6i64);
 
-  let x = Array[Float64]::empty();
+  let x = Array[Float64]::new();
   assert(x.size() == 0i64);
   assert(double_array_len(x) == 0i64);
 
@@ -31,7 +31,7 @@ fn main() {
   assert(x.size() == 4i64);
   assert(double_array_len(x) == 4i64);
 
-  let x = Array[String]::empty();
+  let x = Array[String]::new();
   assert(x.size() == 0i64);
   assert(str_array_len(x) == 0i64);
 
@@ -39,7 +39,7 @@ fn main() {
   assert(x.size() == 3i64);
   assert(str_array_len(x) == 3i64);
 
-  let x = Array[Foo]::empty();
+  let x = Array[Foo]::new();
   assert(x.size() == 0i64);
   assert(foo_array_len(x) == 0i64);
 

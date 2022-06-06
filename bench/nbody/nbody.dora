@@ -15,10 +15,10 @@ fn main() {
 }
 
 class NBodySystem {
-    var bodies: Array[Body] = Array[Body]::empty();
+    var bodies: Array[Body] = Array[Body]::new();
 
     {
-        self.bodies = Array[Body](
+        self.bodies = Array[Body]::new(
             Body::sun(),
             Body::jupiter(),
             Body::saturn(),

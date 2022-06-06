@@ -356,7 +356,7 @@ class Packet(var link: Option[Packet], var id: Int32, let kind: Int32, var a1: I
     }
 
     @static fn new(link: Option[Packet], id: Int32, kind: Int32): Packet {
-        let array: Array[Int32] = Array[Int32]::new(DATA_SIZE.toInt64());
+        let array: Array[Int32] = Array[Int32]::newDefault(DATA_SIZE.toInt64());
         return Packet(link, id, kind, 0i32, array);
     }
 }

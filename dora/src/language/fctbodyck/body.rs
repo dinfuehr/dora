@@ -2007,6 +2007,14 @@ impl<'a> TypeCheck<'a> {
                 self.sa.diag.lock().report(self.file_id, e.pos, msg);
             }
 
+            if cls.is_array {
+                println!(
+                    "class {} is array: internal={}",
+                    cls.name(self.sa),
+                    cls.internal
+                );
+            }
+
             if !self.check_expr_call_class_args(&*cls, type_params.clone(), arg_types) {
                 let class_name = cls.name(self.sa);
                 let field_types = cls

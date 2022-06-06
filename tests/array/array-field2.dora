@@ -1,5 +1,5 @@
 class Foo {
-    let array: Array[Int32] = Array[Int32](1i32, 2i32, 3i32);
+    let array: Array[Int32] = Array[Int32]::new(1i32, 2i32, 3i32);
 }
 
 fn main() {

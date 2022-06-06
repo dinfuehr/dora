@@ -1,5 +1,5 @@
 fn main() {
-  foo(Array[Int32]());
+  foo(Array[Int32]::new());
 }
 
 fn foo(a: Array[Int32]) {}

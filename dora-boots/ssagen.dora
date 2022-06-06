@@ -76,7 +76,7 @@ impl SsaGen {
             blockMap,
             None[Block],
             0i32,
-            Array[HashMap[Block, Inst]]::empty(),
+            Array[HashMap[Block, Inst]]::new(),
             false,
             BitSet::new(0),
             BitSet::new(0),

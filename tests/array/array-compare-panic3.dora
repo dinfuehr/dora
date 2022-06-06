@@ -1,8 +1,8 @@
 //= error
 
 fn main() {
-  let a = Array[Int32](1i32, 2i32, 3i32, 3i32, 4i32, 5i32, 4i32, 5i32, 4i32, 3i32, 3i32);
-  let e = Array[Int32]();
+  let a = Array[Int32]::new(1i32, 2i32, 3i32, 3i32, 4i32, 5i32, 4i32, 5i32, 4i32, 3i32, 3i32);
+  let e = Array[Int32]::new();
 
   assert(Array[Int32]::compare(e, 0i64, a, 0i64, 2i64));
 }

@@ -16,7 +16,7 @@ fn main() {
     std::forceCollect();
 
     i = 0i64;
-    var empty = Array[Int32]::empty();
+    var empty = Array[Int32]::new();
 
     while i < SIZE {
         x(i) = empty;

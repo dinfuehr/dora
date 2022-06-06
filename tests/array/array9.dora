@@ -2,6 +2,6 @@
 //= stderr "array index out of bounds\n    main (tests/array/array9.dora:6)\n"
 
 fn main() {
-  let array = Array[Int32]::empty();
+  let array = Array[Int32]::new();
   array(-1i64) = 10i32;
 }

@@ -26,7 +26,7 @@ fn main() {
 }
 
 fn createArray(): Array[Foo] {
-    Array[Foo](Foo::B)
+    Array[Foo]::new(Foo::B)
 }
 
 fn updateArray(object: Array[Foo]) {

@@ -16,5 +16,5 @@ fn main() {
 }
 
 fn createArray(): Array[Foo] {
-    Array[Foo](Foo::A(112i32, "abc", 17.5f32))
+    Array[Foo]::new(Foo::A(112i32, "abc", 17.5f32))
 }

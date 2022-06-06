@@ -1,7 +1,7 @@
 //= stdout "abxy\n"
 
 fn main() {
-    let x = Array[String]::empty();
+    let x = Array[String]::new();
     assert(x.size() == 0i64);
 
     let emptyString = "".clone();

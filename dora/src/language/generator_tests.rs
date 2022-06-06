@@ -2828,7 +2828,7 @@ fn gen_position_new_object() {
 #[test]
 fn gen_new_array() {
     gen_fct(
-        "fn f(): Array[Int32] { Array[Int32](1i32, 2i32, 3i32) }",
+        "fn f(): Array[Int32] { Array[Int32]::new(1i32, 2i32, 3i32) }",
         |sa, code, fct| {
             let cls_id = sa.cls_by_name("Array");
             let expected = vec![

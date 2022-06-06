@@ -1,5 +1,5 @@
 fn main() {
-    let x = Array[Char]::empty();
+    let x = Array[Char]::new();
     assert(x.size() == 0i64);
 
     let x = Array[Char]::fill(10i64, '\0');

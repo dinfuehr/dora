@@ -1,5 +1,5 @@
 fn main() {
-    let x = Array[Bool]::empty();
+    let x = Array[Bool]::new();
     assert(x.size() == 0i64);
 
     let y = Array[Bool]::fill(10i64, true);

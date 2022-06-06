@@ -2968,7 +2968,7 @@ fn mod_class_field() {
     err(
         "
         fn f(x: foo::Foo) { let a = x.bar(10i64); }
-        mod foo { @pub class Foo { var bar: Array[Int32] = Array[Int32](); } }
+        mod foo { @pub class Foo { var bar: Array[Int32] = Array[Int32]::new(); } }
     ",
         pos(2, 42),
         SemError::NotAccessible("bar".into()),
@@ -2977,7 +2977,7 @@ fn mod_class_field() {
     err(
         "
         fn f(x: foo::Foo) { x.bar(10i64) = 10i32; }
-        mod foo { @pub class Foo { var bar: Array[Int32] = Array[Int32](); } }
+        mod foo { @pub class Foo { var bar: Array[Int32] = Array[Int32]::new(); } }
     ",
         pos(2, 30),
         SemError::NotAccessible("bar".into()),
@@ -3706,5 +3706,27 @@ fn lambda_body() {
     }",
         pos(2, 27),
         SemError::ReturnType("Int32".into(), "Bool".into()),
+    );
+}
+
+#[test]
+fn internal_class_ctor() {
+    err(
+        "fn f(): Array[Int32] {
+        Array[Int32]()
+    }",
+        pos(2, 21),
+        SemError::ClassConstructorNotAccessible("std::collections::Array".into()),
+    );
+}
+
+#[test]
+fn internal_struct_ctor() {
+    err(
+        "fn f() {
+        Int32();
+    }",
+        pos(2, 14),
+        SemError::StructConstructorNotAccessible("std::primitives::Int32".into()),
     );
 }

@@ -117,7 +117,7 @@ impl Stacktrace {
     }
 
     if self.backtrace.isNone() {
-      let elements = Array[StacktraceElement]::empty();
+      let elements = Array[StacktraceElement]::new();
       self.elements = Some[Array[StacktraceElement]](elements);
       return elements;
     }

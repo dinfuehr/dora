@@ -252,7 +252,7 @@ impl Stringable for Char {
 
 impl StringBuffer {
   @pub @static fn new(): StringBuffer {
-    StringBuffer(Array[UInt8]::empty(), 0)
+    StringBuffer(Array[UInt8]::new(), 0)
   }
 
   @pub fn size(): Int64 {

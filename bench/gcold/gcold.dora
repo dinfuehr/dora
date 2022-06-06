@@ -13,9 +13,9 @@ var youngBytes: Int64 = 0i64;
 var nodes: Int64 = 0i64;
 var actuallyMut: Int64 = 0i64;
 var mutatorSum: Int64 = 0i64;
-var aexport: Array[Int64] = Array[Int64]::empty();
+var aexport: Array[Int64] = Array[Int64]::new();
 
-var trees: Array[TreeNode] = Array[TreeNode]::empty();
+var trees: Array[TreeNode] = Array[TreeNode]::new();
 var where: Int32 = 0i32;
 var rnd: std::Random = std::Random::new(0i64);
 

@@ -1,11 +1,11 @@
 fn main() {
-  assert(Array[Int32]() == Array[Int32]());
-  assert(Array[Int32]().equals(Array[Int32]()));
-  assert(Array[Int32](1i32) == Array[Int32](1i32));
-  assert(Array[Int32](1i32).equals(Array[Int32](1i32)));
-  assert(Array[Int32](1i32, 2i32, 3i32) == Array[Int32](1i32, 2i32, 3i32));
-  assert(Array[Int32](1i32, 2i32, 3i32).equals(Array[Int32](1i32, 2i32, 3i32)));
+  assert(Array[Int32]::new() == Array[Int32]::new());
+  assert(Array[Int32]::new().equals(Array[Int32]::new()));
+  assert(Array[Int32]::new(1i32) == Array[Int32]::new(1i32));
+  assert(Array[Int32]::new(1i32).equals(Array[Int32]::new(1i32)));
+  assert(Array[Int32]::new(1i32, 2i32, 3i32) == Array[Int32]::new(1i32, 2i32, 3i32));
+  assert(Array[Int32]::new(1i32, 2i32, 3i32).equals(Array[Int32]::new(1i32, 2i32, 3i32)));
 
-  assert(Array[Int32](1i32, 2i32, 3i32) != Array[Int32](2i32, 3i32, 4i32));
-  assert(Array[Int32](1i32, 2i32, 3i32) != Array[Int32](1i32, 2i32, 3i32, 4i32));
+  assert(Array[Int32]::new(1i32, 2i32, 3i32) != Array[Int32]::new(2i32, 3i32, 4i32));
+  assert(Array[Int32]::new(1i32, 2i32, 3i32) != Array[Int32]::new(1i32, 2i32, 3i32, 4i32));
 }

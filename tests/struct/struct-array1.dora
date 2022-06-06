@@ -10,6 +10,6 @@ fn main() {
     assert(arr(0i64).f1 == 100i32);
     assert(arr(0i64).f2 == 170i32);
 
-    let arr = Array[Foo]::empty();
+    let arr = Array[Foo]::new();
     assert(arr.size() == 0i64);
 }

@@ -1,5 +1,5 @@
 fn main() {
-    let array = Array[(Int32, String)]((1i32, "abc"), (2i32, "def"), (3i32, "ghi"));
+    let array = Array[(Int32, String)]::new((1i32, "abc"), (2i32, "def"), (3i32, "ghi"));
     for (idx, name) in array {
         if idx == 1i32 {
             assert(name == "abc");

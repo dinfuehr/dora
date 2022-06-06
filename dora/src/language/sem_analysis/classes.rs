@@ -241,6 +241,11 @@ impl ClassDefinition {
     }
 
     pub fn all_fields_are_public(&self) -> bool {
+        // "Internal" classes don't have any outside visible fields.
+        if self.internal {
+            return false;
+        }
+
         for field in &self.fields {
             if !field.is_pub {
                 return false;

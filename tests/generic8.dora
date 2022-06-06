@@ -4,7 +4,7 @@ fn main() {
 }
 
 class A[T] {
-    let x: Array[T] = Array[T]::empty();
+    let x: Array[T] = Array[T]::new();
 }
 
 fn consume(x: Array[Int32]) {
