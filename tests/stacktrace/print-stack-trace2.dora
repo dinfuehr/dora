@@ -16,5 +16,5 @@ fn a(): std::Stacktrace {
 }
 
 fn b(): std::Stacktrace {
-  return std::Stacktrace();
+  return std::Stacktrace::new();
 }

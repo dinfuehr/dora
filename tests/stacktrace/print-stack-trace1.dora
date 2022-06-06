@@ -2,6 +2,6 @@
 //= stdout "main: 5\n"
 
 fn main() {
-  let e = std::Stacktrace();
+  let e = std::Stacktrace::new();
   e.printStacktrace();
 }

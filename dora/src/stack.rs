@@ -212,14 +212,10 @@ fn set_backtrace(vm: &VM, mut obj: Handle<Stacktrace>, via_retrieve: bool) {
             let fct = fct.read();
 
             if !skip_retrieve_stack {
-                let stacktrace_cls = vm.classes.idx(vm.known.classes.stacktrace());
-                let stacktrace_cls = stacktrace_cls.read();
-                let retrieve_stacktrace_fct_id = stacktrace_cls
-                    .find_method(vm, vm.interner.intern("retrieveStacktrace"), false)
-                    .expect("retrieveStacktrace not found in Stacktrace");
+                let retrieve_stacktrace_fct_id = vm.known.functions.stacktrace_retrieve();
 
                 if retrieve_stacktrace_fct_id == fct_id {
-                    skip += 1;
+                    skip += 2;
                     continue;
                 } else {
                     skip_retrieve_stack = true;

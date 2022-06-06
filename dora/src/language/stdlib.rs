@@ -238,6 +238,12 @@ pub fn discover_known_methods(sa: &mut SemAnalysis) {
         "string::StringBuffer",
         "toString",
     ));
+    sa.known.functions.stacktrace_retrieve = Some(find_instance_method(
+        sa,
+        stdlib,
+        "Stacktrace",
+        "retrieveStacktrace",
+    ))
 }
 
 fn find_class(sa: &SemAnalysis, module_id: ModuleDefinitionId, name: &str) -> ClassDefinitionId {

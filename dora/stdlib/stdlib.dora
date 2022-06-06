@@ -99,11 +99,17 @@ fn isValidUtf8(data: Array[UInt8]): Bool {
 
 @pub @internal fn sleep(seconds: Int32);
 
-@pub class Stacktrace() {
-  var backtrace: Option[Array[Int32]] = None[Array[Int32]];
-  var elements: Option[Array[StacktraceElement]] = None[Array[StacktraceElement]];
+@pub class2 Stacktrace {
+  backtrace: Option[Array[Int32]],
+  elements: Option[Array[StacktraceElement]],
+}
 
-  self.retrieveStacktrace();
+impl Stacktrace {
+  @pub @static fn new(): Stacktrace {
+    let trace = Stacktrace(None[Array[Int32]], None[Array[StacktraceElement]]);
+    trace.retrieveStacktrace();
+    trace
+  }
 
   @pub fn getStacktrace(): Array[StacktraceElement] {
     if self.elements.isSome() {
