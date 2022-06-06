@@ -1,6 +1,6 @@
-//= error at 6:34
+//= error at 6:38
 
 fn main() {}
 
-@open class X(let a: Int32)
-class Y(let b: Int32, a: Int32): X {}
+@open class_old X(let a: Int32)
+class_old Y(let b: Int32, a: Int32): X {}

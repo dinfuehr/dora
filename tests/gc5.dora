@@ -13,4 +13,4 @@ fn nested(): Foo {
   return z;
 }
 
-class Foo(let value: Int32, let next: Option[Foo])
+class_new Foo(value: Int32, next: Option[Foo])

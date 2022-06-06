@@ -5,4 +5,4 @@ fn main() {
     print(a.x.toString());
 }
 
-class A[T](let x: T)
+class_new A[T](x: T)

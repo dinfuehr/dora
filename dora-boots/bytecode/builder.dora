@@ -9,7 +9,7 @@ use package::bytecode::data::GlobalId;
 use package::bytecode::data::ClassDefId;
 use package::bytecode::opcode as opc;
 
-@pub class2 BytecodeBuilder {
+@pub class_new BytecodeBuilder {
     @pub code: Vec[UInt8],
     @pub constPool: Vec[ConstPoolEntry],
     @pub registers: Vec[BytecodeType],
@@ -516,7 +516,7 @@ impl BytecodeBuilder {
 
 fn isWide(val: Int32): Bool = val > 255i32;
 
-class2 BytecodeLabel(off: Int32)
+class_new BytecodeLabel(off: Int32)
 
 impl BytecodeLabel {
     @static fn new(): BytecodeLabel {
@@ -537,4 +537,4 @@ impl BytecodeLabel {
     }
 }
 
-class2 UnresolvedJump(inst: Int32, target: Int32, label: BytecodeLabel)
+class_new UnresolvedJump(inst: Int32, target: Int32, label: BytecodeLabel)

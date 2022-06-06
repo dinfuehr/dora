@@ -99,7 +99,7 @@ fn isValidUtf8(data: Array[UInt8]): Bool {
 
 @pub @internal fn sleep(seconds: Int32);
 
-@pub class2 Stacktrace {
+@pub class_new Stacktrace {
   backtrace: Option[Array[Int32]],
   elements: Option[Array[StacktraceElement]],
 }
@@ -151,7 +151,7 @@ impl Stacktrace {
   @internal fn getStacktraceElement(idx: Int64): StacktraceElement;
 }
 
-class2 StacktraceElement {
+class_new StacktraceElement {
   name: String,
   line: Int32,
 }

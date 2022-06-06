@@ -102,7 +102,7 @@ impl<'a> Parser<'a> {
                 Ok(Elem::Function(Arc::new(fct)))
             }
 
-            TokenKind::Class => {
+            TokenKind::Class | TokenKind::ClassOld => {
                 self.restrict_modifiers(
                     &modifiers,
                     &[
@@ -116,7 +116,7 @@ impl<'a> Parser<'a> {
                 Ok(Elem::Class(Arc::new(class)))
             }
 
-            TokenKind::Class2 => {
+            TokenKind::ClassNew => {
                 self.restrict_modifiers(&modifiers, &[Modifier::Internal, Modifier::Pub])?;
                 let class = self.parse_class2(&modifiers)?;
                 Ok(Elem::Class(Arc::new(class)))
@@ -577,7 +577,7 @@ impl<'a> Parser<'a> {
         let is_abstract = modifiers.contains(Modifier::Abstract);
         let is_pub = modifiers.contains(Modifier::Pub);
 
-        let pos = self.expect_token(TokenKind::Class)?.position;
+        let pos = self.advance_token()?.position;
 
         let ident = self.expect_identifier()?;
         let type_params = self.parse_type_params()?;
@@ -635,7 +635,7 @@ impl<'a> Parser<'a> {
 
     fn parse_class2(&mut self, modifiers: &Modifiers) -> Result<Class, ParseErrorAndPos> {
         let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::Class2)?.position;
+        let pos = self.expect_token(TokenKind::ClassNew)?.position;
 
         let ident = self.expect_identifier()?;
         let type_params = self.parse_type_params()?;
@@ -3552,15 +3552,15 @@ mod tests {
 
     #[test]
     fn parse_class2() {
-        let (prog, _) = parse("class2 Foo { a: Int64, b: Bool }");
+        let (prog, _) = parse("class_new Foo { a: Int64, b: Bool }");
         let class = prog.cls0();
         assert_eq!(class.fields.len(), 2);
 
-        let (prog, _) = parse("class2 Foo(a: Int64, b: Bool)");
+        let (prog, _) = parse("class_new Foo(a: Int64, b: Bool)");
         let class = prog.cls0();
         assert_eq!(class.fields.len(), 2);
 
-        let (prog, _) = parse("class2 Foo");
+        let (prog, _) = parse("class_new Foo");
         let class = prog.cls0();
         assert!(class.fields.is_empty());
     }

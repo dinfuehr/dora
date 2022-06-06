@@ -2,8 +2,8 @@
 
 struct MyStruct(x: Int64, y: Foo)
 
-class2 Foo(a: Int64, b: Bool)
-class2 Bar(c: (Int64, Foo), d: MyStruct)
+class_new Foo(a: Int64, b: Bool)
+class_new Bar(c: (Int64, Foo), d: MyStruct)
 
 fn main() {
     let foo1 = Foo(1, false);

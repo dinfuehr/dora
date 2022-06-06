@@ -5,6 +5,8 @@ fn main() {
   assert(o1 === o2);
 }
 
-class Foo {
+class_new Foo 
+
+impl Foo {
   fn me(): Foo { return self; }
 }

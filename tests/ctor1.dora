@@ -1,6 +1,6 @@
 //= stdout "xyz"
 
-class X(msg: String) {
+class_old X(msg: String) {
     print(msg);
 }
 

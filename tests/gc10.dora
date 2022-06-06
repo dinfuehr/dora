@@ -8,7 +8,9 @@ fn main() {
     assert(x == 10i32);
 }
 
-class A(let a: Int32) {
+class_new A(a: Int32) 
+
+impl A {
     fn test(): Int32 {
         std::forceCollect();
         return self.a;

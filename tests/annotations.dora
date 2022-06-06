@@ -1,5 +1,5 @@
 @abstract @open
-class Bar() {
+class_old Bar() {
   @abstract
   fn foo(): Int32;
 }
@@ -8,7 +8,7 @@ annotation derive[T]
 
 annotation flurbs[S, T](x: Int, y: Double)
 
-class Boo(): Bar {
+class_old Boo(): Bar {
   @override
   fn foo(): Int32 = 1i32;
 

@@ -2772,7 +2772,7 @@ fn gen_new_object() {
 fn gen_new_object_initialized() {
     gen_fct(
         "
-        class2 Foo(a: Int64, b: Bool)
+        class_new Foo(a: Int64, b: Bool)
         fn f(a: Int64, b: Bool): Foo { return Foo(a, b); }",
         |sa, code, fct| {
             let cls_id = sa.cls_by_name("Foo");

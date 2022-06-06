@@ -53,7 +53,7 @@ enum JumpDistance {
     Far,
 }
 
-@pub class2 AssemblerX64 {
+@pub class_new AssemblerX64 {
     buffer: AssemblerBuffer,
     jumps: Vec[(Int64, Label, JumpDistance)],
 }
@@ -1442,7 +1442,7 @@ impl ScaleFactor {
     }
 }
 
-class2 Address {
+class_new Address {
     rex: UInt8,
     length: Int64,
     bytes: Array[UInt8],

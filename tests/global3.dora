@@ -14,4 +14,4 @@ fn create(): A {
     return A(10i32);
 }
 
-class A(let val: Int32)
+class_new A(val: Int32)

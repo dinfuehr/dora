@@ -2,4 +2,4 @@ fn main() {
   Foo();
 }
 
-class Foo
+class_new Foo

@@ -6,7 +6,7 @@ use package::graph::Inst;
     GraphVerifier::new(graph).run()
 }
 
-class2 GraphVerifier {
+class_new GraphVerifier {
     graph: Graph,
     currentBlock: Block,
 }

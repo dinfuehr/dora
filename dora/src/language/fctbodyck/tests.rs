@@ -3148,7 +3148,7 @@ fn mod_class() {
 }
 
 #[test]
-fn mod_class2() {
+fn mod_class_new() {
     ok("
         mod foo {
             class2 Foo(let x: Bar)
@@ -3160,7 +3160,7 @@ fn mod_class2() {
         "
         fn f() { foo::Foo(1i32); }
         mod foo {
-            class2 Foo(f: Int32)
+            class_new Foo(f: Int32)
         }
     ",
         pos(2, 26),
@@ -3171,7 +3171,7 @@ fn mod_class2() {
         "
         fn f() { foo::Foo(1i32); }
         mod foo {
-            class2 Foo(@pub f: Int32)
+            class_new Foo(@pub f: Int32)
         }
     ",
         pos(2, 26),
@@ -3182,7 +3182,7 @@ fn mod_class2() {
         "
         fn f() { foo::Foo(1i32); }
         mod foo {
-            @pub class2 Foo(f: Int32)
+            @pub class_new Foo(f: Int32)
         }
     ",
         pos(2, 26),

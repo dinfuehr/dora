@@ -8,7 +8,7 @@ fn foo[T: Foo](t: T): Int32 {
     return t.bar();
 }
 
-class X
+class_new X
 
 impl Foo for X {
     fn bar(): Int32 {

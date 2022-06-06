@@ -1,6 +1,6 @@
 //= stdout "78"
 
-class X(j: Int32) {
+class_old X(j: Int32) {
   var i: Int32 = 0i32;
   {
     let x = 2i32;

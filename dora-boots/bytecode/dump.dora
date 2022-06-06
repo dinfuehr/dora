@@ -27,7 +27,7 @@ use package::bytecode::reader::BytecodeIterator;
     }
 }
 
-class2 BytecodeDumper {
+class_new BytecodeDumper {
     bc: BytecodeFunction,
     pos: Int32,
 }

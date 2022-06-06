@@ -1,6 +1,6 @@
 //= stdout "Foo\nsomeInt\nbar\n"
 
-class Foo() {
+class_old Foo() {
   println("Foo");
   fn bar(x: Int32) { println("bar"); }
 }

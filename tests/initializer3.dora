@@ -1,6 +1,6 @@
 //= stdout "abc!xyz"
 
-class X(msg: String) {
+class_old X(msg: String) {
   if msg == "abc" {
     print("abc!");
   } else {

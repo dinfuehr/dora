@@ -19,7 +19,7 @@ use package::graph::Block;
     blockMap
 }
 
-@pub class2 BlockMap {
+@pub class_new BlockMap {
     bc: BytecodeFunction,
     blocks: HashMap[Int64, Block],
 }
@@ -50,7 +50,7 @@ impl BlockMap {
     }
 }
 
-class2 EdgeCreator {
+class_new EdgeCreator {
     graph: Graph,
     bc: BytecodeFunction,
     blockMap: BlockMap,
@@ -144,7 +144,7 @@ impl EdgeCreator {
     }
 }
 
-class2 BlockCreator {
+class_new BlockCreator {
     graph: Graph,
     bc: BytecodeFunction,
     blockMap: BlockMap,

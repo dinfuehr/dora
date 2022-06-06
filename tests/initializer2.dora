@@ -1,6 +1,6 @@
 //= error
 
-class X(msg: String) {
+class_old X(msg: String) {
   if self.msg == "abc" {
     print("abc!");
   } else {

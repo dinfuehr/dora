@@ -5,7 +5,7 @@ fn main() {
     assert(x.y == 10i32);
 }
 
-class X(py: Int32) {
+class_old X(py: Int32) {
     var x : Int32 = 1i32;
     var y : Int32 = py;
 }

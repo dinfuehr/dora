@@ -4,7 +4,9 @@ fn main() {
     assert(-x == 2.0f32);
 }
 
-class SomeTest {
+class_new SomeTest
+
+impl SomeTest {
     fn unaryPlus(): Float32 {
         return 1.0f32;
     }

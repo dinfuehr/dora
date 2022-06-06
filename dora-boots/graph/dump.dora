@@ -10,7 +10,7 @@ use package::graph::Op;
     GraphDumper::new(graph).dump()
 }
 
-class2 GraphDumper {
+class_new GraphDumper {
     graph: Graph,
     buffer: StringBuffer,
 }
@@ -234,7 +234,7 @@ fn compareStrings(lhs: String, rhs: String): Bool {
     false
 }
 
-class2 Output {
+class_new Output {
     iterator: CodepointIterator,
     current: Char,
     next: Char,

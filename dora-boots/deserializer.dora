@@ -190,7 +190,7 @@ fn decodeSourceType(reader: ByteReader): SourceType {
     }
 }
 
-@pub class2 ByteReader {
+@pub class_new ByteReader {
     array: Array[UInt8],
     idx: Int64,
 }

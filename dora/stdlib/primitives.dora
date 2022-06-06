@@ -122,7 +122,7 @@ impl Int32 {
   @pub @static fn max(lhs: Int32, rhs: Int32): Int32 = if lhs < rhs { rhs } else { lhs };
 }
 
-@pub class2 Int32Range(lower: Int32, upper: Int32)
+@pub class_new Int32Range(lower: Int32, upper: Int32)
 
 impl Int32Range {
   @pub fn makeIterator(): Int32RangeIter {
@@ -132,7 +132,7 @@ impl Int32Range {
 
 @pub fn range(lower: Int32, upper: Int32): Int32Range = Int32Range(lower, upper);
 
-class2 Int32RangeIter {
+class_new Int32RangeIter {
   range: Int32Range,
   value: Int32,
 }

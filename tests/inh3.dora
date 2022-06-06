@@ -6,7 +6,7 @@ fn main() {
   assert(a.y.data == 20i32);
 }
 
-class A(let x: Data, d: Data): B(d)
-@open class B(let y: Data)
+class_old A(let x: Data, d: Data): B(d)
+@open class_old B(let y: Data)
 
-class Data(let data: Int32)
+class_old Data(let data: Int32)

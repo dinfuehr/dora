@@ -6,10 +6,10 @@ fn main() {
     assert(bar.a == 125i32);
 }
 
-class Foo(x: Int32) {
+class_old Foo(x: Int32) {
     let a: Int32 = x+1i32;
 }
 
-class Bar(x: Int32) {
+class_old Bar(x: Int32) {
     var a: Int32 = x+1i32;
 }

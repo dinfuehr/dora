@@ -4,7 +4,7 @@ fn main() {
   assert(x.x == 2i32);
 }
 
-class X(something: Int32) {
+class_old X(something: Int32) {
   let x: Int32 = something;
 
   @static fn empty(): X {

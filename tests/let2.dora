@@ -4,7 +4,7 @@ fn main() {
   let x = X(1i32);
 }
 
-class X(let a: Int32) {
+class_old X(let a: Int32) {
   fn set(b: Int32) {
     self.a = b;
   }

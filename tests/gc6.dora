@@ -8,4 +8,4 @@ fn main() {
   std::forceCollect();
 }
 
-class Foo
+class_new Foo

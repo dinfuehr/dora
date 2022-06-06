@@ -2,7 +2,7 @@ use std::traits::{Hash, Equals, Iterator, Default, Zero, Sortable, Identity};
 use std::string::{Stringable, StringBuffer};
 use std::{fatalError, unsafeKillRefs};
 
-@pub @internal class2 Array[T]
+@pub @internal class_new Array[T]
 
 impl[T] Array[T] {
   @pub @static @internal fn new(values: T...): Array[T];
@@ -66,7 +66,7 @@ impl[T: Zero] Array[T] {
   }
 }
 
-@pub class2 ArrayIter[T] {
+@pub class_new ArrayIter[T] {
   array: Array[T],
   idx: Int64,
 }
@@ -87,7 +87,7 @@ impl[T] ArrayIter[T] {
   }
 }
 
-@pub class2 ArrayEnumerator[T] {
+@pub class_new ArrayEnumerator[T] {
   array: Array[T],
   idx: Int64,
 }
@@ -212,7 +212,7 @@ impl[T: Stringable] Array[T] {
   }
 }
 
-@pub class2 BitSet {
+@pub class_new BitSet {
   data: Array[Int32],
   capacity: Int64,
 }
@@ -272,7 +272,7 @@ impl BitSet {
   }
 }
 
-@pub class2 BitVec {
+@pub class_new BitVec {
   data: Array[Int32],
 }
 
@@ -348,7 +348,7 @@ impl BitVec {
   }
 }
 
-@pub class2 Queue[T] {
+@pub class_new Queue[T] {
   elements: Array[T],
   front: Int64,
   count: Int64,
@@ -421,7 +421,7 @@ impl[T] Queue[T] {
   }
 }
 
-@pub class2 HashMap[K: Hash + Equals, V] {
+@pub class_new HashMap[K: Hash + Equals, V] {
   inserted_and_deleted: BitSet,
   keys: Array[K],
   values: Array[V],
@@ -674,7 +674,7 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
     }
 }
 
-@pub class2 HashMapIter[K: Hash + Equals, V] {
+@pub class_new HashMapIter[K: Hash + Equals, V] {
   map: HashMap[K, V],
   idx: Int64,
 }
@@ -700,7 +700,7 @@ impl[K: Hash + Equals, V] HashMapIter[K, V] {
     }
 }
 
-@pub class2 HashSet[K: Hash + Equals] {
+@pub class_new HashSet[K: Hash + Equals] {
   map: HashMap[K, ()],
 }
 
@@ -740,7 +740,7 @@ impl[K: Hash + Equals] HashSet[K] {
   }
 }
 
-@pub class2 Vec[T] {
+@pub class_new Vec[T] {
   array: Array[T],
   len: Int64,
 }
@@ -977,7 +977,7 @@ impl[T] Vec[T] {
   }
 }
 
-@pub class2 VecEnumerator[T] {
+@pub class_new VecEnumerator[T] {
   data: Vec[T],
   idx: Int64,
 }
@@ -998,7 +998,7 @@ impl[T] VecEnumerator[T] {
   }
 }
 
-@pub class2 VecIter[T] {
+@pub class_new VecIter[T] {
   data: Vec[T],
   idx: Int64,
 }
@@ -1019,7 +1019,7 @@ impl[T] VecIter[T] {
   }
 }
 
-@pub class2 ReverseVecIter[T] {
+@pub class_new ReverseVecIter[T] {
   data: Vec[T],
   idx: Int64,
 }

@@ -5,5 +5,5 @@ fn main() {
     assert(y.b == 101i32);
 }
 
-@open class X(let a: Int32)
-class Y(let b: Int32, a: Int32): X(a) {}
+@open class_old X(let a: Int32)
+class_old Y(let b: Int32, a: Int32): X(a) {}

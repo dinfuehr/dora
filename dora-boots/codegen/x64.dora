@@ -4,7 +4,7 @@ use package::assembler::x64::RSP;
 use package::interface::CompilationInfo;
 use package::interface::Architecture;
 
-@pub class2 CodeGenX64 {
+@pub class_new CodeGenX64 {
     info: CompilationInfo,
     asm: AssemblerX64,
 }

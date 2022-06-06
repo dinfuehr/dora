@@ -40,7 +40,9 @@ fn g(a: String, b: String, c: String, d: String,
    assert(h == "h");
 }
 
-class Foo1 {
+class_new Foo1
+
+impl Foo1 {
   fn f(a: Int32, b: Int32, c: Int32, d: Int32,
        e: Int32, f: Int32, g: Int32, h: Int32) {
     assert(a == 1i32);
@@ -54,5 +56,13 @@ class Foo1 {
   }
 }
 
-class Foo2(let a: Int32, let b: Int32, let c: Int32, let d: Int32,
-           let e: Int32, let f: Int32, let g: Int32, let h: Int32)
+class_new Foo2 {
+  a: Int32,
+  b: Int32,
+  c: Int32,
+  d: Int32,
+  e: Int32,
+  f: Int32,
+  g: Int32,
+  h: Int32
+}

@@ -4,7 +4,7 @@ trait Foo {
     fn bla();
 }
 
-class A
+class_new A
 
 impl Foo for A {
     fn bla() {

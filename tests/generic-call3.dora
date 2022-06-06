@@ -4,13 +4,15 @@ trait Foo {
     fn bar();
 }
 
-class A[T: Foo](let t: T) {
+class_new A[T: Foo](t: T)
+
+impl[T: Foo] A[T] {
     fn bar() {
         self.t.bar();
     }
 }
 
-class X
+class_new X
 
 impl Foo for X {
     fn bar() {

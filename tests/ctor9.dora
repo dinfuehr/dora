@@ -5,5 +5,5 @@ fn main() {
   assert(x.b == 2i32);
 }
 
-@open class Y(let a: Int32) {}
-class X(let b: Int32, a: Int32): Y(a) {}
+@open class_old Y(let a: Int32) {}
+class_old X(let b: Int32, a: Int32): Y(a) {}
