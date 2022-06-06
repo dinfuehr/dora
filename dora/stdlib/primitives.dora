@@ -122,16 +122,19 @@ impl Int32 {
   @pub @static fn max(lhs: Int32, rhs: Int32): Int32 = if lhs < rhs { rhs } else { lhs };
 }
 
-@pub class Int32Range(let lower: Int32, let upper: Int32) {
+@pub class2 Int32Range(lower: Int32, upper: Int32)
+
+impl Int32Range {
   @pub fn makeIterator(): Int32RangeIter {
-    return Int32RangeIter(self);
+    return Int32RangeIter(self, 0i32);
   }
 }
 
 @pub fn range(lower: Int32, upper: Int32): Int32Range = Int32Range(lower, upper);
 
-class Int32RangeIter(let range: Int32Range) {
-  var value: Int32 = range.lower;
+class2 Int32RangeIter {
+  range: Int32Range,
+  value: Int32,
 }
 
 impl Iterator for Int32RangeIter {

@@ -17,7 +17,7 @@ var aexport: Array[Int64] = Array[Int64]::empty();
 
 var trees: Array[TreeNode] = Array[TreeNode]::empty();
 var where: Int32 = 0i32;
-var rnd: std::Random = std::Random(0i64);
+var rnd: std::Random = std::Random::new(0i64);
 
 var size: Int32 = 0i32;
 var workUnits: Int32 = 0i32;
@@ -265,7 +265,7 @@ fn doStep(n: Int64) {
 }
 
 fn main() {
-    rnd = std::Random(1234567890i64);
+    rnd = std::Random::new(1234567890i64);
 
     if std::argc() != 5i32 {
         println("Usage: java GCOld <size> <work> <ratio> <mutation> <steps>");

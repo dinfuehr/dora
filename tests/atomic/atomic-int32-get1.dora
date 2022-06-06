@@ -1,5 +1,5 @@
 fn main() {
-    let value = std::AtomicInt32(10i32);
+    let value = std::AtomicInt32::new(10i32);
     assert(value.get() == 10i32);
     value.set(20i32);
     assert(value.get() == 20i32);

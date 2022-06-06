@@ -23,7 +23,7 @@ fn main() {
 
     var i = 0i32;
     let threads = Vec[TreeThread]();
-    let nextDepth = std::AtomicInt32(MIN_DEPTH);
+    let nextDepth = std::AtomicInt32::new(MIN_DEPTH);
     let results = Array[String]::fill((maxDepth - MIN_DEPTH).toInt64() / 2i64 + 1i64, "");
 
     while i < number_threads {

@@ -7,7 +7,7 @@ fn main() {
         std::exit(1i32);
     }
 
-    rnd = std::Random(std::argv(0i32).toInt64().getOrPanic());
+    rnd = std::Random::new(std::argv(0i32).toInt64().getOrPanic());
     splayTreeSize = std::argv(1i32).toInt32().getOrPanic();
     let iterations = std::argv(2i32).toInt32().getOrPanic();
 
@@ -23,7 +23,7 @@ fn main() {
     bench.tearDown();
 }
 
-var rnd: std::Random = std::Random(0i64);
+var rnd: std::Random = std::Random::new(0i64);
 
 var splayTreeSize: Int32 = 0i32;
 const splayTreeModifications: Int32 = 1000i32;

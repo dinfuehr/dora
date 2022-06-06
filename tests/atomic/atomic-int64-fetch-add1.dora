@@ -1,5 +1,5 @@
 fn main() {
-    let value = std::AtomicInt64(10i64);
+    let value = std::AtomicInt64::new(10i64);
     assert(value.fetchAdd(2i64) == 10i64);
     assert(value.fetchAdd(5i64) == 12i64);
     assert(value.get() == 17i64);

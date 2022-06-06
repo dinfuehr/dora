@@ -9,7 +9,13 @@
 
 @internal @pub fn spawn(action: (): ()): Thread;
 
-@pub class AtomicInt32(let value: Int32) {
+@pub class2 AtomicInt32(value: Int32)
+
+impl AtomicInt32 {
+    @pub @static fn new(value: Int32): AtomicInt32 {
+        AtomicInt32(value)
+    }
+
     @pub @internal fn get(): Int32;
     @pub @internal fn set(value: Int32);
     @pub @internal fn exchange(value: Int32): Int32;
@@ -17,7 +23,13 @@
     @pub @internal fn fetchAdd(value: Int32): Int32;
 }
 
-@pub class AtomicInt64(let value: Int64) {
+@pub class2 AtomicInt64(value: Int64)
+
+impl AtomicInt64 {
+    @pub @static fn new(value: Int64): AtomicInt64 {
+        AtomicInt64(value)
+    }
+
     @pub @internal fn get(): Int64;
     @pub @internal fn set(value: Int64);
     @pub @internal fn exchange(value: Int64): Int64;

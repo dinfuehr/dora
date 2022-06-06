@@ -220,12 +220,24 @@ fn final_path_name(sa: &mut SemAnalysis, path: &str) -> Name {
 
 pub fn discover_known_methods(sa: &mut SemAnalysis) {
     let stdlib = sa.stdlib_module_id;
-    sa.known.functions.string_buffer_empty =
-        Some(find_static(sa, stdlib, "string::StringBuffer", "empty"));
-    sa.known.functions.string_buffer_append =
-        Some(find_method(sa, stdlib, "string::StringBuffer", "append"));
-    sa.known.functions.string_buffer_to_string =
-        Some(find_method(sa, stdlib, "string::StringBuffer", "toString"));
+    sa.known.functions.string_buffer_empty = Some(find_static_method(
+        sa,
+        stdlib,
+        "string::StringBuffer",
+        "empty",
+    ));
+    sa.known.functions.string_buffer_append = Some(find_instance_method(
+        sa,
+        stdlib,
+        "string::StringBuffer",
+        "append",
+    ));
+    sa.known.functions.string_buffer_to_string = Some(find_instance_method(
+        sa,
+        stdlib,
+        "string::StringBuffer",
+        "toString",
+    ));
 }
 
 fn find_class(sa: &SemAnalysis, module_id: ModuleDefinitionId, name: &str) -> ClassDefinitionId {
@@ -1067,11 +1079,30 @@ fn intrinsic_ctor(
     ctor.intrinsic = Some(intrinsic);
 }
 
-fn find_method(
+fn find_instance_method(
     sa: &SemAnalysis,
     module_id: ModuleDefinitionId,
     container_name: &str,
     name: &str,
+) -> FctDefinitionId {
+    find_class_method(sa, module_id, container_name, name, false)
+}
+
+fn find_static_method(
+    sa: &SemAnalysis,
+    module_id: ModuleDefinitionId,
+    container_name: &str,
+    name: &str,
+) -> FctDefinitionId {
+    find_class_method(sa, module_id, container_name, name, true)
+}
+
+fn find_class_method(
+    sa: &SemAnalysis,
+    module_id: ModuleDefinitionId,
+    container_name: &str,
+    name: &str,
+    is_static: bool,
 ) -> FctDefinitionId {
     let cls_id = resolve_name(sa, container_name, module_id)
         .to_class()
@@ -1085,38 +1116,26 @@ fn find_method(
         let mtd = sa.fcts.idx(mid);
         let mtd = mtd.read();
 
-        if mtd.name == intern_name {
+        if mtd.name == intern_name && mtd.is_static == is_static {
             return mid;
+        }
+    }
+
+    for &extension_id in &cls.extensions {
+        let extension = sa.extensions.idx(extension_id);
+        let extension = extension.read();
+
+        for &mid in &extension.methods {
+            let mtd = sa.fcts.idx(mid);
+            let mtd = mtd.read();
+
+            if mtd.name == intern_name && mtd.is_static == is_static {
+                return mid;
+            }
         }
     }
 
     panic!("cannot find class method `{}`", name)
-}
-
-fn find_static(
-    sa: &SemAnalysis,
-    module_id: ModuleDefinitionId,
-    container_name: &str,
-    name: &str,
-) -> FctDefinitionId {
-    let cls_id = resolve_name(sa, container_name, module_id)
-        .to_class()
-        .expect("class expected");
-    let intern_name = sa.interner.intern(name);
-
-    let cls = sa.classes.idx(cls_id);
-    let cls = cls.read();
-
-    for &mid in &cls.methods {
-        let mtd = sa.fcts.idx(mid);
-        let mtd = mtd.read();
-
-        if mtd.name == intern_name && mtd.is_static {
-            return mid;
-        }
-    }
-
-    panic!("method {} not found", name)
 }
 
 fn native_fct(sa: &mut SemAnalysis, module_id: ModuleDefinitionId, name: &str, fctptr: *const u8) {

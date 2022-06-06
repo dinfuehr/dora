@@ -1,5 +1,5 @@
 fn main() {
-    let rnd = std::Random(0i64);
+    let rnd = std::Random::new(0);
 
     assert(rnd.nextInt32() == -1155484576i32);
     assert(rnd.nextInt32() == -723955400i32);

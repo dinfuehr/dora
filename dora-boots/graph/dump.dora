@@ -17,7 +17,7 @@ class2 GraphDumper {
 
 impl GraphDumper {
     @static fn new(graph: Graph): GraphDumper {
-        GraphDumper(graph, StringBuffer())
+        GraphDumper(graph, StringBuffer::new())
     }
 
     fn dump(): String {
@@ -243,7 +243,7 @@ class2 Output {
 impl Output {
     @static fn new(text: String): Output {
         let output = Output(
-            CodepointIterator(text, 0),
+            CodepointIterator::new(text),
             '\0',
             '\0',
         );

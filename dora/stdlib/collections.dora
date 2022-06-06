@@ -181,7 +181,7 @@ impl[T: Identity] Array[T] {
 
 impl[T: Stringable] Array[T] {
   @pub fn toString(): String {
-    let sb = StringBuffer();
+    let sb = StringBuffer::new();
     sb.append("Array(");
     let size = self.size();
     if size != 0i64 {
@@ -1007,7 +1007,7 @@ impl[T: Identity] Vec[T] {
 
 impl[T: Stringable] Vec[T] {
   @pub fn toString(): String {
-    let sb = StringBuffer();
+    let sb = StringBuffer::new();
     sb.append("Vec(");
     let size = self.len;
     if size != 0i64 {

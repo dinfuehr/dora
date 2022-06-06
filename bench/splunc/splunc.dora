@@ -164,7 +164,7 @@ fn main() {
         exit(1i32);
     }
 
-    let rnd = std::Random(argv(0i32).toInt64().getOrPanic());
+    let rnd = std::Random::new(argv(0i32).toInt64().getOrPanic());
     let max_size = argv(1i32).toInt32().getOrPanic();
     var date = 0i32;
 
