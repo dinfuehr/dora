@@ -80,7 +80,7 @@ impl SsaGen {
             false,
             BitSet::new(0),
             BitSet::new(0),
-            HashMap[Block, HashMap[BytecodeRegister, Inst]](),
+            HashMap[Block, HashMap[BytecodeRegister, Inst]]::new(),
         )
     }
 
@@ -106,7 +106,7 @@ impl SsaGen {
         let data = Vec[HashMap[Block, Inst]]::new();
 
         for i in std::range(0i32, self.bc.registers.size().toInt32()) {
-            data.push(HashMap[Block, Inst]());
+            data.push(HashMap[Block, Inst]::new());
         }
 
         self.currentDef = data.toArray();
@@ -151,7 +151,7 @@ impl SsaGen {
             if self.incompletePhis.contains(block) {
                 self.incompletePhis(block).getOrPanic().insert(register, incomplete);
             } else {
-                let map = HashMap[BytecodeRegister, Inst]();
+                let map = HashMap[BytecodeRegister, Inst]::new();
                 map.insert(register, incomplete);
                 self.incompletePhis.insert(block, map);
             }

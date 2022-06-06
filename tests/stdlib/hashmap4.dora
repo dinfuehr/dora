@@ -1,5 +1,5 @@
 fn main() {
-    let map = std::HashMap[Int32, String]();
+    let map = std::HashMap[Int32, String]::new();
 
     assert(map.insert(1024i32, "1024").isNone());
     assert(map.insert(2048i32, "2048").isNone());

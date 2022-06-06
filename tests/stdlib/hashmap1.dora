@@ -2,7 +2,7 @@ use std::BitSet;
 use std::HashMap;
 
 fn main() {
-    let map = HashMap[Int32, String]();
+    let map = HashMap[Int32, String]::new();
     map.insert(1i32, "a");
     map.insert(10000i32, "b");
     map.insert(7i32, "c");

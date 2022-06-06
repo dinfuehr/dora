@@ -1,7 +1,7 @@
 use std::HashMap;
 
 fn main() {
-    let map = HashMap[Int32, String]();
+    let map = HashMap[Int32, String]::new();
     assert(map.isEmpty());
 
     var i = 0i32;

@@ -9,7 +9,7 @@ impl std::Hash for MyOwnType {
 }
 
 class Foo {
-    let x: std::HashMap[MyOwnType, String] = std::HashMap[MyOwnType, String]();
+    let x: std::HashMap[MyOwnType, String] = std::HashMap[MyOwnType, String]::new();
 }
 
 fn main() {

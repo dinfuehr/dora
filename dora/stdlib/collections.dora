@@ -421,17 +421,33 @@ impl[T] Queue[T] {
   }
 }
 
-@pub class HashMap[K: Hash + Equals, V](entries: (K, V)...) {
+@pub class2 HashMap[K: Hash + Equals, V] {
+  inserted_and_deleted: BitSet,
+  keys: Array[K],
+  values: Array[V],
+  entries: Int64,
+  cap: Int64,
+}
+
+impl[K: Hash + Equals, V] HashMap[K, V] {
+  @pub @static fn new(entries: (K, V)...): HashMap[K, V] {
     // BitSet.size == capacity * 2
     // [bit 0: inserted; bit 1: deleted] * capacity
-    var inserted_and_deleted: BitSet = BitSet::new(0i64);
-    var keys: Array[K] = Array[K]::empty();
-    var values: Array[V] = Array[V]::empty();
-    var entries: Int64 = 0i64;
-    var cap: Int64 = 0i64;
+    let map = HashMap[K, V](
+      BitSet::new(0),
+      Array[K]::empty(),
+      Array[V]::empty(),
+      0,
+      0,
+    );
+
     for entry in entries {
-        self.insert(entry.0, entry.1);
+        map.insert(entry.0, entry.1);
     }
+
+    map
+  }
+
 
     @pub fn insert(key: K, value: V): Option[V] {
         self.ensureCapacity(1i64);
@@ -605,7 +621,7 @@ impl[T] Queue[T] {
     fn rehash(new_capacity: Int64) {
         let old_capacity = self.cap;
 
-        let new_map = HashMap[K, V]();
+        let new_map = HashMap[K, V]::new();
         new_map.inserted_and_deleted = BitSet::new(2 * new_capacity);
         new_map.keys = Array[K]::unsafeNew(new_capacity);
         new_map.values = Array[V]::unsafeNew(new_capacity);
@@ -684,33 +700,44 @@ impl[K: Hash + Equals, V] HashMapIter[K, V] {
     }
 }
 
-@pub class HashSet[K: Hash + Equals](keys: K...) {
-    let map: HashMap[K, ()] = HashMap[K, ()]();
+@pub class2 HashSet[K: Hash + Equals] {
+  map: HashMap[K, ()],
+}
+
+impl[K: Hash + Equals] HashSet[K] {
+  @pub @static fn new(keys: K...): HashSet[K] {
+    let map: HashMap[K, ()] = HashMap[K, ()]::new();
+
     for key in keys {
-        self.insert(key);
+        map.insert(key, ());
     }
 
-    @pub fn insert(key: K) {
-        self.map.insert(key, ());
-    }
+    HashSet[K](map)
+  }
 
-    @pub fn contains(key: K): Bool {
-        self.map.contains(key)
-    }
+  @pub fn insert(key: K) {
+    self.map.insert(key, ());
+  }
 
-    @pub fn remove(key: K): Bool = self.map.remove(key).isSome();
+  @pub fn contains(key: K): Bool {
+    self.map.contains(key)
+  }
 
-    @pub fn size(): Int64 {
-        self.map.size()
-    }
+  @pub fn remove(key: K): Bool {
+    self.map.remove(key).isSome()
+  }
 
-    @pub fn isEmpty(): Bool {
-        self.map.isEmpty()
-    }
+  @pub fn size(): Int64 {
+    self.map.size()
+  }
 
-    @pub fn capacity(): Int64 {
-        self.map.capacity()
-    }
+  @pub fn isEmpty(): Bool {
+    self.map.isEmpty()
+  }
+
+  @pub fn capacity(): Int64 {
+    self.map.capacity()
+  }
 }
 
 @pub class2 Vec[T] {

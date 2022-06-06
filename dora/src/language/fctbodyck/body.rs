@@ -1921,7 +1921,7 @@ impl<'a> TypeCheck<'a> {
             let field_types = xstruct
                 .fields
                 .iter()
-                .map(|field| field.ty.name_fct(self.sa, self.fct))
+                .map(|field| field.ty.name_struct(self.sa, &*xstruct))
                 .collect::<Vec<_>>();
             let arg_types = arg_types
                 .iter()

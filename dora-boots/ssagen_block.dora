@@ -26,7 +26,7 @@ use package::graph::Block;
 
 impl BlockMap {
     @static fn new(bc: BytecodeFunction): BlockMap {
-        BlockMap(bc, HashMap[Int64, Block]())
+        BlockMap(bc, HashMap[Int64, Block]::new())
     }
 
     @pub fn insert(offset: Int64, block: Block) {
