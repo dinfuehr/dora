@@ -1,7 +1,7 @@
 //= vm-args "--gc-parallel-minor --gc-worker=2 --gc-verify"
 
 fn main() {
-    var x = Vec[Array[Int32]]();
+    var x = Vec[Array[Int32]]::new();
     var i = 0i32;
 
     while i < 100i32 {

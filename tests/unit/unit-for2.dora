@@ -1,6 +1,6 @@
 fn main() {
     var sum = 0i64;
-    for x in Vec[()]((), (), (), ()) {
+    for x in Vec[()]::new((), (), (), ()) {
         sum = sum + 1i64;
     }
     assert(sum == 4i64);

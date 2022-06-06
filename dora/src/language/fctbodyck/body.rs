@@ -2008,17 +2008,17 @@ impl<'a> TypeCheck<'a> {
             }
 
             if !self.check_expr_call_class_args(&*cls, type_params.clone(), arg_types) {
-                let struct_name = cls.name(self.sa);
+                let class_name = cls.name(self.sa);
                 let field_types = cls
                     .fields
                     .iter()
-                    .map(|field| field.ty.name_fct(self.sa, self.fct))
+                    .map(|field| field.ty.name_cls(self.sa, &*cls))
                     .collect::<Vec<_>>();
                 let arg_types = arg_types
                     .iter()
                     .map(|a| a.name_fct(self.sa, self.fct))
                     .collect::<Vec<_>>();
-                let msg = SemError::StructArgsIncompatible(struct_name, field_types, arg_types);
+                let msg = SemError::StructArgsIncompatible(class_name, field_types, arg_types);
                 self.sa.diag.lock().report(self.file_id, e.pos, msg);
             }
 

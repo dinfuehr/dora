@@ -1,5 +1,5 @@
 fn main() {
-    let vec = Vec[Int32]();
+    let vec = Vec[Int32]::new();
     assert(vec.size() == 0i64);
     assert(vec.capacity() == 0i64);
 

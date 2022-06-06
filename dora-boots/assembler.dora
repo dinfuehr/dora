@@ -8,7 +8,7 @@ class2 AssemblerBuffer {
 
 impl AssemblerBuffer {
     @static fn new(): AssemblerBuffer {
-        AssemblerBuffer(Vec[UInt8](), 0)
+        AssemblerBuffer(Vec[UInt8]::new(), 0)
     }
 
     fn position(): Int64 {

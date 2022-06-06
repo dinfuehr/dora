@@ -1,5 +1,5 @@
 class Foo {
-    let vec: Vec[Int32] = Vec[Int32](1i32, 2i32, 3i32);
+    let vec: Vec[Int32] = Vec[Int32]::new(1i32, 2i32, 3i32);
 }
 
 fn main() {

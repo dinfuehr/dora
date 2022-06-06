@@ -62,7 +62,7 @@ impl AssemblerX64 {
     @static @pub fn new(): AssemblerX64 {
         AssemblerX64(
             AssemblerBuffer::new(),
-            Vec[(Int64, Label, JumpDistance)]()
+            Vec[(Int64, Label, JumpDistance)]::new()
         )
     }
 

@@ -1,7 +1,7 @@
 //= stdout "321"
 
 fn main() {
-    let x = Vec[String]();
+    let x = Vec[String]::new();
     x.push(1i32.toString());
     x.push(2i32.toString());
     x.push(3i32.toString());

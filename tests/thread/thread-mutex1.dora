@@ -38,7 +38,7 @@ class SharedInt(var value: Int32) {
 
 fn main() {
     var i = 0i32;
-    var threads = Vec[MyThread]();
+    var threads = Vec[MyThread]::new();
     var mtx = std::Mutex::new();
     var shared = SharedInt(0i32);
 

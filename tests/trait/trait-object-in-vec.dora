@@ -14,7 +14,7 @@ fn main() {
     let g = foo();
     let h = foo();
 
-    let data = Vec[Foo]();
+    let data = Vec[Foo]::new();
     data.push(f);
     data.push(g);
     data.push(h);

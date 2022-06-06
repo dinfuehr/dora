@@ -713,9 +713,15 @@ impl[K: Hash + Equals, V] HashMapIter[K, V] {
     }
 }
 
-@pub class Vec[T](values: T...) {
-  var array: Array[T] = values;
-  var len: Int64 = values.size();
+@pub class2 Vec[T] {
+  array: Array[T],
+  len: Int64,
+}
+
+impl[T] Vec[T] {
+  @pub @static fn new(values: T...): Vec[T] {
+    Vec[T](values, values.size())
+  }
 
   @pub fn get(idx: Int64): T {
     if idx < 0i64 || idx >= self.len {

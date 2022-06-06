@@ -71,7 +71,7 @@ class Consumer(let queue: SharedQueue[Int32]): std::Thread {
 fn main() {
     var i = 0i32;
     let queue = SharedQueue[Int32](QUEUE_SIZE);
-    let producers = Vec[Producer]();
+    let producers = Vec[Producer]::new();
 
     while i < THREADS {
         let producer = Producer(queue);

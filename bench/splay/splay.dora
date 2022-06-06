@@ -264,7 +264,7 @@ class SplayTree {
     }
 
     fn exportKeys(): Vec[Int32] {
-        let keys = Vec[Int32]();
+        let keys = Vec[Int32]::new();
         exportKeysTraverse(keys, self.root);
         return keys;
     }

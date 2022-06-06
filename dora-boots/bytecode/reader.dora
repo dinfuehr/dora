@@ -5,7 +5,7 @@ use package::bytecode::data::ConstPoolId;
 use package::bytecode::opcode as opc;
 
 @pub fn decodeBytecode(code: Array[UInt8]): Array[BytecodeInstructionInfo] {
-    let result = Vec[BytecodeInstructionInfo]();
+    let result = Vec[BytecodeInstructionInfo]::new();
 
     for instInfo in BytecodeIterator::new(code) {
         result.push(instInfo);

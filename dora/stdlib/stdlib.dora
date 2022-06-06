@@ -119,7 +119,7 @@ fn isValidUtf8(data: Array[UInt8]): Bool {
     let backtraceLength = self.backtrace.getOrPanic().size();
     var i = 0i64;
     let len = backtraceLength / 2i64;
-    let elements = Vec[StacktraceElement]();
+    let elements = Vec[StacktraceElement]::new();
     elements.reserve(len);
 
     while i < len {

@@ -20,10 +20,10 @@ use package::bytecode::opcode as opc;
 impl BytecodeBuilder {
     @pub @static fn new(): BytecodeBuilder {
         BytecodeBuilder(
-            Vec[UInt8](),
-            Vec[ConstPoolEntry](),
-            Vec[BytecodeType](),
-            Vec[UnresolvedJump](),
+            Vec[UInt8]::new(),
+            Vec[ConstPoolEntry]::new(),
+            Vec[BytecodeType]::new(),
+            Vec[UnresolvedJump]::new(),
             0i32
         )
     }

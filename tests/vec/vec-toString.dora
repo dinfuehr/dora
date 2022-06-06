@@ -1,5 +1,5 @@
 fn main() {
-  assert(Vec[Int32]().toString() == "Vec()");
-  assert(Vec[Int32](1i32).toString() == "Vec(1)");
-  assert(Vec[Int32](1i32, 2i32, 3i32).toString() == "Vec(1, 2, 3)");
+  assert(Vec[Int32]::new().toString() == "Vec()");
+  assert(Vec[Int32]::new(1i32).toString() == "Vec(1)");
+  assert(Vec[Int32]::new(1i32, 2i32, 3i32).toString() == "Vec(1, 2, 3)");
 }

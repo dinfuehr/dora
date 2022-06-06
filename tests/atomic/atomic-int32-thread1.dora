@@ -15,7 +15,7 @@ class MyThread(let counter: AtomicInt32): std::Thread {
 
 fn main() {
     let shared = AtomicInt32::new(0i32);
-    let threads = Vec[MyThread]();
+    let threads = Vec[MyThread]::new();
 
     var i = 0i32;
 

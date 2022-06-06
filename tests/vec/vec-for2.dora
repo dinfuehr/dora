@@ -1,11 +1,11 @@
 fn main() {
-    assert(mysum1(Vec[Int32]()) == 0i32);
-    assert(mysum1(Vec[Int32](1i32)) == 1i32);
-    assert(mysum1(Vec[Int32](1i32, 2i32, 3i32, 4i32, 5i32)) == 15i32);
+    assert(mysum1(Vec[Int32]::new()) == 0i32);
+    assert(mysum1(Vec[Int32]::new(1i32)) == 1i32);
+    assert(mysum1(Vec[Int32]::new(1i32, 2i32, 3i32, 4i32, 5i32)) == 15i32);
 
-    assert(mysum2(Vec[Float32]()) == 0.0f32);
-    assert(mysum2(Vec[Float32](1.0f32)) == 1.0f32);
-    assert(mysum2(Vec[Float32](1.0f32, 2.0f32, 3.0f32, 4.0f32, 5.0f32)) == 15.0f32);
+    assert(mysum2(Vec[Float32]::new()) == 0.0f32);
+    assert(mysum2(Vec[Float32]::new(1.0f32)) == 1.0f32);
+    assert(mysum2(Vec[Float32]::new(1.0f32, 2.0f32, 3.0f32, 4.0f32, 5.0f32)) == 15.0f32);
 }
 
 fn mysum1(x: Vec[Int32]): Int32 {

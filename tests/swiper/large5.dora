@@ -2,7 +2,7 @@
 //= error oom
 
 fn main() {
-    var x = Vec[Array[Int32]]();
+    var x = Vec[Array[Int32]]::new();
     var i = 0i32;
 
     while i < 100_000i32 {

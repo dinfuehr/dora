@@ -1,5 +1,5 @@
 fn main() {
-    let x = Vec[Int32]();
+    let x = Vec[Int32]::new();
     x.push(1i32);
     x.push(2i32);
     x.push(3i32);

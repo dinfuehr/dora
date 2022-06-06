@@ -103,7 +103,7 @@ impl SsaGen {
         self.filledBlocks = BitSet::new(blockCount.toInt64());
         self.sealedBlocks = BitSet::new(blockCount.toInt64());
 
-        let data = Vec[HashMap[Block, Inst]]();
+        let data = Vec[HashMap[Block, Inst]]::new();
 
         for i in std::range(0i32, self.bc.registers.size().toInt32()) {
             data.push(HashMap[Block, Inst]());

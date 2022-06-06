@@ -14,7 +14,7 @@ use package::graph::LoopData;
 
 fn findBackEdges(graph: Graph): BitSet {
     // worklist contains current path in the graph
-    let worklist = Vec[Block]();
+    let worklist = Vec[Block]::new();
 
     // number of successors visited per block
     let successorsVisited = Array[Int64]::zero(graph.blockCount().toInt64());
@@ -89,11 +89,11 @@ fn removeUnreachableBlocks(graph: Graph, visited: BitSet) {
 }
 
 fn computePostOrder(graph: Graph) {
-    let postOrder = Vec[Block]();
+    let postOrder = Vec[Block]::new();
     postOrder.reserve(graph.blockCount().toInt64());
 
     // worklist contains current path in the graph
-    let worklist = Vec[Block]();
+    let worklist = Vec[Block]::new();
 
     // number of successors visited per block
     let successorsVisited = Array[Int64]::new(graph.blockCount().toInt64());

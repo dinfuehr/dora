@@ -1,7 +1,7 @@
 fn main() {
-    let data = Vec[()]();
+    let data = Vec[()]::new();
     assert(data.size() == 0i64);
 
-    let data = Vec[()]((), (), ());
+    let data = Vec[()]::new((), (), ());
     assert(data.size() == 3i64);
 }

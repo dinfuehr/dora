@@ -25,8 +25,8 @@ impl Graph {
     @static @pub fn new(): Graph {
         Graph(
             None[Block],
-            Vec[Option[Block]](),
-            Vec[Block](),
+            Vec[Option[Block]]::new(),
+            Vec[Block]::new(),
             0i32,
             0i32,
         )
@@ -205,9 +205,9 @@ impl Block {
             InstLinkedList::new(),
             None[Graph],
             None[Block],
-            Vec[Block](),
-            Vec[Edge](),
-            Vec[Edge](),
+            Vec[Block]::new(),
+            Vec[Edge]::new(),
+            Vec[Edge]::new(),
             None[LoopData],
             -1i32
         )
@@ -350,7 +350,7 @@ impl Equals for Block {
 
 impl LoopData {
     @pub @static fn new(header: Block): LoopData {
-        LoopData(header, Vec[Block](), BitVec::new())
+        LoopData(header, Vec[Block]::new(), BitVec::new())
     }
 
     @pub fn getHeader(): Block {
@@ -541,7 +541,7 @@ impl Inst {
             Type::Unit,
             None[Input],
             None[Input],
-            Vec[Input](),
+            Vec[Input]::new(),
             None[Block],
             None[Block],
         )
@@ -653,7 +653,7 @@ impl Inst {
     }
 
     @pub fn users(): Array[Inst] {
-        let data = Vec[Inst]();
+        let data = Vec[Inst]::new();
         var current = self.useListHead;
 
         while current.isSome() {

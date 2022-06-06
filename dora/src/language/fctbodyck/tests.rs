@@ -3649,13 +3649,6 @@ fn infer_enum_type() {
 }
 
 #[test]
-fn infer_ctor_type() {
-    ok("fn f(): Vec[Int32] {
-        Vec(1i32, 2i32, 3i32)
-    }");
-}
-
-#[test]
 fn method_call_type_mismatch_with_type_params() {
     err(
         "
