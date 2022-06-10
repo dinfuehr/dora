@@ -53,4 +53,4 @@ fn loadGlobalString(): String = glob_string;
 
 fn loadGlobalPtr(): Foo = glob_obj;
 
-class Foo()
+class_new Foo

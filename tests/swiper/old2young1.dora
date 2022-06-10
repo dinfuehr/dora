@@ -10,4 +10,4 @@ fn main() {
   assert(x.next.getOrPanic().a == 2i32);
 }
 
-class Foo(let a: Int32, var next: Option[Foo])
+class_new Foo(a: Int32, next: Option[Foo])

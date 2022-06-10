@@ -1,12 +1,12 @@
-@open @abstract class Foo[A] {
+@open @abstract class_old Foo[A] {
     @open fn test(x: A): A = x;
 }
 
-class Bar[A](let bar: A): Foo[A] {
+class_old Bar[A](let bar: A): Foo[A] {
     @override fn test(x: A): A = self.bar;
 }
 
-class Baz[A](let baz: A): Foo[Int32] {
+class_old Baz[A](let baz: A): Foo[Int32] {
     @override fn test(x: Int32): Int32 = x+x;
 }
 

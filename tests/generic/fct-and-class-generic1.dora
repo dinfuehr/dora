@@ -1,4 +1,6 @@
-class A[X] {
+class_new A[X]
+
+impl[X] A[X] {
     fn t1[Y](x: X, y: Y): Y { return y; }
     fn t2[Y](x: X, y: Y): X { return x; }
 }

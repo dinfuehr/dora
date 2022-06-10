@@ -2,9 +2,9 @@
 
 fn main() { }
 
-@open class A { }
+@open class_old A { }
 
-class B: A {
+class_old B: A {
   fn foo() {
     super.bar();
   }

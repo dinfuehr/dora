@@ -46,7 +46,7 @@ fn main() {
     assert(!bar[Foo](f1, f2));
 }
 
-class Foo(i: Int32) {}
+class_new Foo(i: Int32)
 
 fn bar[T](a: T, b: T): Bool {
     return a === b;

@@ -1,13 +1,13 @@
 fn main() {
-    let fooBool = FooBool();
-    let fooByte = FooByte();
-    let fooChar = FooChar();
-    let fooInt32 = FooInt32();
-    let fooInt64 = FooInt64();
-    let fooFloat32 = FooFloat32();
-    let fooFloat64 = FooFloat64();
-    let fooString = FooString();
-    let fooPtr = FooPtr();
+    let fooBool = FooBool::new();
+    let fooByte = FooByte::new();
+    let fooChar = FooChar::new();
+    let fooInt32 = FooInt32::new();
+    let fooInt64 = FooInt64::new();
+    let fooFloat32 = FooFloat32::new();
+    let fooFloat64 = FooFloat64::new();
+    let fooString = FooString::new();
+    let fooPtr = FooPtr::new();
 
     storeBool(fooBool, true);
     storeByte(fooByte, 1u8);
@@ -67,30 +67,58 @@ fn storePtr(x: FooPtr, z: FooInt32) {
     x.y = z;
 }
 
-class FooBool() {
-    var y: Bool = false;
+class_new FooBool(y: Bool)
+impl FooBool {
+    @static fn new(): FooBool {
+        FooBool(false)
+    }
 }
-class FooByte() {
-    var y: UInt8 = 0u8;
+class_new FooByte(y: UInt8)
+impl FooByte {
+    @static fn new(): FooByte {
+        FooByte(0u8)
+    }
 }
-class FooChar() {
-    var y: Char = '\0';
+
+class_new FooChar(y: Char)
+impl FooChar {
+    @static fn new(): FooChar {
+        FooChar('\0')
+    }
 }
-class FooInt32() {
-    var y: Int32 = 0i32;
+class_new FooInt32(y: Int32)
+impl FooInt32 {
+    @static fn new(): FooInt32 {
+        FooInt32(0i32)
+    }
 }
-class FooInt64() {
-    var y: Int64 = 0i64;
+class_new FooInt64(y: Int64)
+impl FooInt64 {
+    @static fn new(): FooInt64 {
+        FooInt64(0)
+    }
 }
-class FooFloat32() {
-    var y: Float32 = 0.0f32;
+class_new FooFloat32(y: Float32)
+impl FooFloat32 {
+    @static fn new(): FooFloat32 {
+        FooFloat32(0.0f32)
+    }
 }
-class FooFloat64() {
-    var y: Float64 = 0.0;
+class_new FooFloat64(y: Float64)
+impl FooFloat64 {
+    @static fn new(): FooFloat64 {
+        FooFloat64(0.0)
+    }
 }
-class FooString() {
-    var y: String = "";
+class_new FooString(y: String)
+impl FooString {
+    @static fn new(): FooString {
+        FooString("")
+    }
 }
-class FooPtr() {
-    var y: FooInt32 = FooInt32();
+class_new FooPtr(y: FooInt32) 
+impl FooPtr {
+    @static fn new(): FooPtr {
+        FooPtr(FooInt32(0i32))
+    }
 }

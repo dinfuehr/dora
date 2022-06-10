@@ -5,15 +5,15 @@ fn main() {
     assert(c.foo(2i32) == 3i32);
 }
 
-@open class A {
+@open class_old A {
   @open fn foo(a: Int32): Int32 {
     return a;
   }
 }
 
-@open class B: A {}
+@open class_old B: A {}
 
-class C: B {
+class_old C: B {
   @override fn foo(a: Int32): Int32 {
     return super.foo(a) + 1i32;
   }

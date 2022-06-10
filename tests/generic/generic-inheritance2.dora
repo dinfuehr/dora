@@ -5,6 +5,6 @@ fn main() {
     assert(x.value == 100i32);
 }
 
-@open @abstract class Foo[A](var value: A)
-class Bar: Foo[Int32](10i32)
+@open @abstract class_old Foo[A](var value: A)
+class_old Bar: Foo[Int32](10i32)
 

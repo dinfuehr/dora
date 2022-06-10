@@ -1,6 +1,6 @@
 //= vm-args "--gc=swiper --gc-verify"
 
-class Foo(let x: Int32)
+class_new Foo(x: Int32)
 
 fn main() {
     let default = Foo(17i32);

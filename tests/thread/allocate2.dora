@@ -1,19 +1,14 @@
 //= vm-args "--gc-young-size=64M --max-heap-size=128M"
 //= config region
 
-class MyThread(): std::Thread {
-    @override fn run() {
-        allocator();
-        println("done");
-    }
-}
-
 fn main() {
     var i = 0i32;
 
     while i < 4i32 {
-        let thread = MyThread();
-        thread.start();
+        std::thread::spawn(|| {
+            allocator();
+            println("done");
+        });
         i = i + 1i32;
     }
 
@@ -41,4 +36,4 @@ fn allocator() {
     assert(list.prev.isNone());
 }
 
-class Foo(let key: Int32, let prev: Option[Foo])
+class_new Foo(key: Int32, prev: Option[Foo])

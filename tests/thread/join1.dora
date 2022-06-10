@@ -1,15 +1,10 @@
 //= stdout "one\ntwo\n"
 
-class MyThread: std::Thread {
-    @override fn run() {
+fn main() {
+    let thread = std::thread::spawn(|| {
         std::sleep(2i32);
         println("one");
-    }
-}
-
-fn main() {
-    let thread = MyThread();
-    thread.start();
+    });
     thread.join();
     println("two");
 }

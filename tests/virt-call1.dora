@@ -1,8 +1,8 @@
-@open @abstract class Foo {
+@open @abstract class_old Foo {
     @open @abstract fn test(): Int32;
 }
 
-class Bar: Foo {
+class_old Bar: Foo {
     @override fn test(): Int32 = 17i32;
 }
 

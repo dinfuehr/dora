@@ -4,8 +4,9 @@ fn main() {
     assert(-x == 1i32);
 }
 
-class SomeTest[T](let x: T) {
-    fn unaryPlus(): T = self.x;
+class_new SomeTest[T](x: T)
 
+impl[T] SomeTest[T] {
+    fn unaryPlus(): T = self.x;
     fn unaryMinus(): T = self.x;
 }

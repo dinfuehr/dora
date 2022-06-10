@@ -18,4 +18,4 @@ fn tpl[T](value: T): Foo[T] {
 
 struct Foo[T](first: T, second: Bool)
 
-class Bar(let value: Int32)
+class_new Bar(value: Int32)

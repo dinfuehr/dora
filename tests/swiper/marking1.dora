@@ -30,4 +30,4 @@ fn tree(depth: Int32): Foo {
     );
 }
 
-class Foo(let a: Foo, let b: Foo, let c: Foo, let d: Foo, let e: Foo)
+class_new Foo(a: Foo, b: Foo, c: Foo, d: Foo, e: Foo)

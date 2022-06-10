@@ -35,4 +35,4 @@ fn init_globs(bool: Bool, char: Char, byte: UInt8, int32: Int32, int64: Int64, f
     glob_obj = obj;  
 }
 
-class Foo()
+class_new Foo

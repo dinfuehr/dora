@@ -1,12 +1,7 @@
-class MyThread(): std::Thread {
-    @override fn run() {
-        nativeCalls();
-    }
-}
-
 fn main() {
-    let thread = MyThread();
-    thread.start();
+    std::thread::spawn(|| {
+        nativeCalls();
+    });
 
     nativeCalls();
 }

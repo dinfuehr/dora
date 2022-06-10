@@ -4,5 +4,5 @@ fn main() {
   assert(a.y == 20i32);
 }
 
-class A(let x: Int32): B(x*2i32)
-@open class B(let y: Int32)
+class_old A(let x: Int32): B(x*2i32)
+@open class_old B(let y: Int32)

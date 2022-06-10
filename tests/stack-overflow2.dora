@@ -1,14 +1,9 @@
 //= error stack-overflow
 
 fn main() {
-    let thread = MyThread();
-    thread.start();
-}
-
-class MyThread: std::Thread {
-    @override fn run() {
+    std::thread::spawn(|| {
         g();
-    }
+    });
 }
 
 fn g() {

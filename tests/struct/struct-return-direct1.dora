@@ -8,11 +8,13 @@ fn main() {
 
 struct Pair(first: Int32, second: Foo)
 
-class Bar(let value: Int32) {
+class_new Bar(value: Int32)
+
+impl Bar {
     fn tpl1(): Pair {
         assert(self.value == 42i32);
         Pair(1i32, Foo(17i32))
     }
 }
 
-class Foo(let value: Int32)
+class_new Foo(value: Int32)

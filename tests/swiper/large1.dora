@@ -1,6 +1,6 @@
 //= vm-args "--gc=swiper --gc-verify"
 
-class Foo
+class_new Foo
 
 fn main() {
     let filler = Foo();

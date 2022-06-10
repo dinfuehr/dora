@@ -1,5 +1,13 @@
-class SomeIterator(let start: Int64, let end: Int64) {
-    var current: Int64 = start;
+class_new SomeIterator {
+    start: Int64,
+    end: Int64,
+    current: Int64,
+}
+
+impl SomeIterator {
+    @static fn new(start: Int64, end: Int64): SomeIterator {
+        SomeIterator(start, end, start)
+    }
 
     fn next(): Option[Int64] {
         if self.current < self.end {
@@ -14,7 +22,7 @@ class SomeIterator(let start: Int64, let end: Int64) {
 
 fn main() {
     var sum = 0;
-    let iterator = SomeIterator(0, 10);
+    let iterator = SomeIterator::new(0, 10);
 
     for value in iterator {
         sum = sum + value;

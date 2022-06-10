@@ -1,9 +1,13 @@
-class Foo {
-    let array: Array[Int32] = Array[Int32]::new(1i32, 2i32, 3i32);
+class_new Foo(array: Array[Int32]) 
+
+impl Foo {
+    @static fn new(): Foo {
+        Foo(Array[Int32]::new(1i32, 2i32, 3i32))
+    }
 }
 
 fn main() {
-    let foo = Foo();
+    let foo = Foo::new();
     assert((foo.array)(0i64) == 1i32);
     assert((foo.array)(1i64) == 2i32);
     assert((foo.array)(2i64) == 3i32);

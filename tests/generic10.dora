@@ -1,15 +1,19 @@
 fn main() {
-    let bar = Bar[Int32](11i32);
+    let bar = Bar[Int32]::new(11i32);
     assert(bar.x.fst == 11i32);
     assert(bar.x.snd == 10i32);
 
-    let bar = Bar[String]("hello");
+    let bar = Bar[String]::new("hello");
     assert(bar.x.fst == "hello");
     assert(bar.x.snd == 10i32);
 }
 
-class Bar[T](val: T) {
-    let x: Pair[T, Int32] = Pair[T, Int32](val, 10i32);
+class_new Bar[T](val: T, x: Pair[T, Int32])
+
+impl[T] Bar[T] {
+    @static fn new(val: T): Bar[T] {
+        Bar[T](val, Pair[T, Int32](val, 10i32))
+    }
 }
 
-class Pair[A, B](let fst: A, let snd: B)
+class_new Pair[A, B](fst: A, snd: B)

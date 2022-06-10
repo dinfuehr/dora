@@ -1,4 +1,6 @@
-class A[X: std::Stringable](let x: X) {
+class_new A[X: std::Stringable](x: X)
+
+impl[X: std::Stringable] A[X] {
     fn msg[Y: std::Stringable](y: Y): String { return "x${self.x}x${y}x"; }
 }
 

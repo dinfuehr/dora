@@ -1,7 +1,7 @@
 //= vm-args "--gc=copy --disable-tlab --gc-stress"
 
 struct Bar(first: Foo, second: Foo)
-class Foo(let value: Int32)
+class_new Foo(value: Int32)
 
 fn main() {
     let tpl: Bar = if false {

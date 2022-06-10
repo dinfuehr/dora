@@ -1,14 +1,18 @@
 //= vm-args "--gc=swiper --gc-verify"
 
-class TupleClass {
-    var value: Pair = Pair(Foo(0i32), 0i64);
+class_new TupleClass(value: Pair)
+
+impl TupleClass {
+    @static fn new(): TupleClass {
+        TupleClass(Pair(Foo(0i32), 0))
+    }
 }
 
 struct Pair(first: Foo, second: Int64)
-class Foo(let value: Int32)
+class_new Foo(value: Int32)
 
 fn main() {
-    let tpl = TupleClass();
+    let tpl = TupleClass::new();
     std::forceCollect();
     tpl.value = Pair(Foo(4711i32), 4712i64);
     std::forceMinorCollect();

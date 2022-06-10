@@ -8,6 +8,6 @@ fn main() {
 }
 
 struct Bar(first: String, second: Foo)
-class Foo(let value: Int32)
+class_new Foo(value: Int32)
 
 fn id[T](x: T): T { x }

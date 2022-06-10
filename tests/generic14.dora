@@ -4,8 +4,9 @@ fn main() {
     assert(x-0i32 == 1i32);
 }
 
-class SomeTest[T](let x: T) {
-    fn plus(y: Int32): T = self.x;
+class_new SomeTest[T](x: T)
 
+impl[T] SomeTest[T] {
+    fn plus(y: Int32): T = self.x;
     fn minus(y: Int32): T = self.x;
 }

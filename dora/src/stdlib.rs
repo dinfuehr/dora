@@ -11,7 +11,7 @@ use crate::boots;
 use crate::gc::{Address, GcReason};
 use crate::handle::{handle, handle_scope, Handle};
 use crate::language::ty::SourceTypeArray;
-use crate::object::{alloc, Obj, Ref, Str, UInt8Array};
+use crate::object::{Obj, Ref, Str, UInt8Array};
 use crate::stack::stacktrace_from_last_dtn;
 use crate::threads::{
     current_thread, deinit_current_thread, init_current_thread, DoraThread, ManagedThread,
@@ -297,8 +297,7 @@ pub extern "C" fn trap(trap_id: u32) {
 pub extern "C" fn spawn_thread(runner: Handle<Obj>) -> Address {
     let vm = get_vm();
 
-    let cls_id = vm.known.classes.thread_class_instance(vm);
-    let managed_thread = alloc(vm, cls_id).cast();
+    let managed_thread = ManagedThread::alloc(vm);
     let managed_thread: Handle<ManagedThread> = handle(managed_thread);
 
     // Create new thread in Parked state.

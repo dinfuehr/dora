@@ -1,7 +1,6 @@
 //= stdout "xyz"
 
-class X(let msg: String) {
-}
+class_new X(msg: String)
 
 fn cannonMain(): X {
     return X("xyz");

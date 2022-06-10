@@ -4,11 +4,11 @@ fn main() {
     assert(x.1.value == 17i32);
 }
 
-@open class Bar(let value: Int32) {
+@open class_old Bar(let value: Int32) {
     @open fn tpl1(): (Int32, Foo) {
         assert(self.value == 42i32);
         (1i32, Foo(17i32))
     }
 }
 
-class Foo(let value: Int32)
+class_new Foo(value: Int32)

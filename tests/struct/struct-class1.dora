@@ -1,13 +1,13 @@
 //= vm-args "--gc=copy --disable-tlab"
 
-class TupleClass {
-    var value: Pair = Pair(Foo(0i32), 0i64);
+class_new TupleClass {
+    value: Pair,
 }
 
-class Foo(let value: Int32)
+class_new Foo(value: Int32)
 
 fn main() {
-    let tpl = TupleClass();
+    let tpl = TupleClass(Pair(Foo(0i32), 0i64));
     std::forceCollect();
     tpl.value = Pair(Foo(4711i32), 4712i64);
     std::forceCollect();

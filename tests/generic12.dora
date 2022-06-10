@@ -6,7 +6,9 @@ fn main() {
   assert(foo.x == "hey");
 }
 
-class Foo[T](let x: T) {
+class_new Foo[T](x: T)
+
+impl[T] Foo[T] {
   fn getx(): T {
     return id[T](self.x);
   }

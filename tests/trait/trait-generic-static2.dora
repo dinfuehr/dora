@@ -8,7 +8,7 @@ trait X {
 
 fn f[T: X + std::Stringable](): String = T::foo().toString();
 
-class Bar(let x: Int32)
+class_new Bar(x: Int32)
 
 impl std::Stringable for Bar {
     fn toString(): String = "BAR${self.x}";
@@ -18,7 +18,7 @@ impl X for Bar {
     @static fn foo(): Bar = Bar(1i32);
 }
 
-class Baz(let x: Int32)
+class_new Baz(x: Int32)
 
 impl std::Stringable for Baz {
     fn toString(): String = "BAZ${self.x}";

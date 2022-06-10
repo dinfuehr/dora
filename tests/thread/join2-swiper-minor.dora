@@ -1,15 +1,10 @@
 //= vm-args "--gc=swiper"
 
-class MyThread: std::Thread {
-    @override fn run() {}
-}
-
 fn main() {
     var i = 0i32;
 
     while i < 10_000i32 {
-        let thread = MyThread();
-        thread.start();
+        std::thread::spawn(|| {});
 
         if i % 1_000i32 == 0i32 {
             std::forceMinorCollect();

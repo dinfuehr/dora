@@ -19,4 +19,4 @@ fn main() {
     }
 }
 
-class Foo(let next: Foo)
+class_new Foo(next: Foo)

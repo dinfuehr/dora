@@ -10,7 +10,9 @@ fn main() {
   assert(foo.foo_string() == "3");
 }
 
-class Foo {
+class_new Foo
+
+impl Foo {
   fn foo_bool(): Bool {
     return self.bar_bool();
   }

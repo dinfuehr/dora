@@ -1,7 +1,7 @@
 //= vm-args "--gc=copy --disable-tlab --gc-stress"
 
 struct Foo(f1: Int32, f2: Bar)
-class Bar(let value: Int32)
+class_new Bar(value: Int32)
 
 fn main() {
     let x = Array[Foo]::fill(10i64, Foo(0i32, Bar(0i32)));

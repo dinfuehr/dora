@@ -16,4 +16,4 @@ fn main() {
     std::forceCollect();
 }
 
-class Foo(var val: Int32, var next: Foo)
+class_new Foo(val: Int32, next: Foo)

@@ -1,13 +1,17 @@
 //= vm-args "--gc=copy --disable-tlab --gc-stress"
 
-class TupleClass {
-    var value: (Foo, Int64) = (Foo(4711i32), 4712i64);
+class_new TupleClass(value: (Foo, Int64))
+
+impl TupleClass {
+    @static fn new(): TupleClass {
+        TupleClass((Foo(4711i32), 4712i64))
+    }
 }
 
-class Foo(let value: Int32)
+class_new Foo(value: Int32)
 
 fn main() {
-    let tpl = TupleClass();
+    let tpl = TupleClass::new();
     std::forceCollect();
     assert(tpl.value.0.value == 4711i32);
     assert(tpl.value.1 == 4712i64);

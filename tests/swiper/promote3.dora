@@ -14,7 +14,7 @@ fn main() {
   assert(x.getOrPanic().next.getOrPanic().next.getOrPanic().next.getOrPanic().next.getOrPanic().next.isNone());
 }
 
-class Foo(let a: Int32, var next: Option[Foo])
+class_new Foo(a: Int32, next: Option[Foo])
 
 fn foo(a: Int32, next: Option[Foo]): Option[Foo] {
   Some[Foo](Foo(a, next))

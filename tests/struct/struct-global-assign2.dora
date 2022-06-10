@@ -14,4 +14,4 @@ fn main() {
     assert(x.second.value == 42i32);
 }
 
-class Foo(let value: Int32)
+class_new Foo(value: Int32)

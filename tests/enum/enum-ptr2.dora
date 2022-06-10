@@ -2,7 +2,7 @@
 
 enum Foo { A(Bar), B }
 enum Bar { C(MyClass), D }
-class MyClass(let value: Int32)
+class_new MyClass(value: Int32)
 
 fn main() {
     let f = foo();

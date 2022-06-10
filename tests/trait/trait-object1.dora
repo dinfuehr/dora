@@ -1,6 +1,7 @@
 trait Foo { fn test(); }
 
-class Baz
+class_new Baz
+
 impl Foo for Baz {
     fn test() {}
 }

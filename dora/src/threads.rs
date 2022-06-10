@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use crate::gc::{tlab, Address, Region, K};
 use crate::handle::HandleMemory;
-use crate::object::Header;
+use crate::object::{alloc, Header, Ref};
 use crate::stack::DoraToNativeInfo;
 use crate::vm::{get_vm, VM};
 
@@ -602,6 +602,13 @@ pub struct ManagedThread {
 }
 
 impl ManagedThread {
+    pub fn alloc(vm: &VM) -> Ref<ManagedThread> {
+        let cls_id = vm.known.classes.thread_class_instance(vm);
+        let managed_thread: Ref<ManagedThread> = alloc(vm, cls_id).cast();
+        managed_thread.native_ptr.store(0, Ordering::Relaxed);
+        managed_thread
+    }
+
     pub fn install_native_thread(&self, native_thread: &Arc<DoraThread>) -> bool {
         self.native_ptr
             .compare_exchange(
