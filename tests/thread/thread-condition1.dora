@@ -6,11 +6,24 @@ const THREADS: Int32 = 10i32;
 const ITERATIONS: Int32 = 10_000i32;
 const QUEUE_SIZE: Int64 = 20i64;
 
-class SharedQueue[T](let capacity: Int64) {
-    let mtx: std::Mutex = std::Mutex::new();
-    let conditionNonEmpty: std::Condition = std::Condition::new();
-    let conditionNonFull: std::Condition = std::Condition::new();
-    let queue: Queue[T] = Queue[T]::new();
+class_new SharedQueue[T] {
+    capacity: Int64,
+    mtx: std::Mutex,
+    conditionNonEmpty: std::Condition,
+    conditionNonFull: std::Condition,
+    queue: Queue[T],
+}
+
+impl[T] SharedQueue[T] {
+    @static fn new(capacity: Int64): SharedQueue[T] {
+        SharedQueue[T](
+            capacity,
+            std::Mutex::new(),
+            std::Condition::new(),
+            std::Condition::new(),
+            Queue[T]::new(),
+        )
+    }
 
     fn enqueue(value: T) {
         self.mtx.lock();
@@ -38,7 +51,7 @@ class SharedQueue[T](let capacity: Int64) {
     }
 }
 
-class Producer(let queue: SharedQueue[Int32]): std::Thread {
+class_old Producer(let queue: SharedQueue[Int32]): std::Thread {
     var sum: Int32 = 0i32;
 
     @override fn run() {
@@ -52,7 +65,7 @@ class Producer(let queue: SharedQueue[Int32]): std::Thread {
     }
 }
 
-class Consumer(let queue: SharedQueue[Int32]): std::Thread {
+class_old Consumer(let queue: SharedQueue[Int32]): std::Thread {
     var sum: Int32 = 0i32;
 
     @override fn run() {
@@ -70,7 +83,7 @@ class Consumer(let queue: SharedQueue[Int32]): std::Thread {
 
 fn main() {
     var i = 0i32;
-    let queue = SharedQueue[Int32](QUEUE_SIZE);
+    let queue = SharedQueue[Int32]::new(QUEUE_SIZE);
     let producers = Vec[Producer]::new();
 
     while i < THREADS {

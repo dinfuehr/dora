@@ -1,11 +1,11 @@
 //= vm-args "--gc=copy"
 
-class Object
+class_new Object
 
 const THREADS: Int32 = 20i32;
 const ITERATIONS: Int32 = 10_000i32;
 
-class MyThread(let mtx: std::Mutex, let value: SharedInt): std::Thread {
+class_old MyThread(let mtx: std::Mutex, let value: SharedInt): std::Thread {
     @override fn run() {
         var i = 0i32;
         var last: Object = Object();
@@ -28,7 +28,15 @@ class MyThread(let mtx: std::Mutex, let value: SharedInt): std::Thread {
     }
 }
 
-class SharedInt(var value: Int32) {
+class_new SharedInt {
+    value: Int32,
+}
+
+impl SharedInt {
+    @static fn new(): SharedInt {
+        SharedInt(0i32)
+    }
+
     fn increment(): Int32 {
         let old = self.value;
         self.value = self.value + 1i32;
@@ -40,7 +48,7 @@ fn main() {
     var i = 0i32;
     var threads = Vec[MyThread]::new();
     var mtx = std::Mutex::new();
-    var shared = SharedInt(0i32);
+    var shared = SharedInt::new();
 
     while i < THREADS {
         let thread = MyThread(mtx, shared);
