@@ -4383,7 +4383,6 @@ pub enum Bytecode {
     NewLambda(Register, ConstPoolIdx),
 
     ArrayLength(Register, Register),
-    ArrayBoundCheck(Register, Register),
 
     LoadArray(Register, Register, Register),
     StoreArray(Register, Register, Register),
@@ -4709,9 +4708,6 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
 
     fn visit_array_length(&mut self, dest: Register, arr: Register) {
         self.emit(Bytecode::ArrayLength(dest, arr));
-    }
-    fn visit_array_bound_check(&mut self, arr: Register, idx: Register) {
-        self.emit(Bytecode::ArrayBoundCheck(arr, idx));
     }
 
     fn visit_load_array(&mut self, dest: Register, arr: Register, idx: Register) {

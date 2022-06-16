@@ -467,9 +467,6 @@ impl SsaGen {
             BytecodeInstruction::ArrayLength(dest, src) => {
                 unimplemented();
             },
-            BytecodeInstruction::ArrayBoundCheck(dest, src) => {
-                unimplemented();
-            },
             BytecodeInstruction::LoadArray(dest, arr, idx) => {
                 self.emitLoadArray(dest, arr, idx);
             },

@@ -247,9 +247,6 @@ impl BytecodeDumper {
             BytecodeInstruction::ArrayLength(dest, src) => {
                 self.emitReg2("ArrayLength", dest, src);
             },
-            BytecodeInstruction::ArrayBoundCheck(dest, src) => {
-                self.emitReg2("ArrayBoundCheck", dest, src);
-            },
             BytecodeInstruction::LoadArray(dest, arr, index) => {
                 self.emitReg3("LoadArray", dest, arr, index);
             },

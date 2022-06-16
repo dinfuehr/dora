@@ -255,10 +255,6 @@ impl BytecodeBuilder {
         self.emitReg1(opc::BC_ARRAY_LENGTH, dest);
     }
 
-    @pub fn emitArrayBoundCheck(arr: BytecodeRegister, idx: BytecodeRegister) {
-        self.emitReg2(opc::BC_ARRAY_BOUND_CHECK, arr, idx);
-    }
-
     @pub fn emitLoadArray(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {
         self.emitReg3(opc::BC_LOAD_ARRAY, dest, arr, idx);
     }

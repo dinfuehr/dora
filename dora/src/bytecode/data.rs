@@ -134,7 +134,6 @@ enumeration!(BytecodeOpcode {
     NewLambda,
 
     ArrayLength,
-    ArrayBoundCheck,
 
     LoadArray,
     StoreArray,
@@ -249,7 +248,6 @@ impl BytecodeOpcode {
             | BytecodeOpcode::ConstFloat64
             | BytecodeOpcode::ConstString
             | BytecodeOpcode::ArrayLength
-            | BytecodeOpcode::ArrayBoundCheck
             | BytecodeOpcode::NewObject
             | BytecodeOpcode::NewTuple
             | BytecodeOpcode::NewEnum
@@ -327,7 +325,6 @@ impl BytecodeOpcode {
             | BytecodeOpcode::NewTraitObject
             | BytecodeOpcode::NewLambda
             | BytecodeOpcode::ArrayLength
-            | BytecodeOpcode::ArrayBoundCheck
             | BytecodeOpcode::LoadArray
             | BytecodeOpcode::StoreArray
             | BytecodeOpcode::LoadEnumElement
@@ -652,10 +649,6 @@ pub enum BytecodeInstruction {
     ArrayLength {
         dest: Register,
         arr: Register,
-    },
-    ArrayBoundCheck {
-        arr: Register,
-        idx: Register,
     },
 
     LoadArray {

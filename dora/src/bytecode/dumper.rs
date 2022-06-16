@@ -987,9 +987,6 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_array_length(&mut self, dest: Register, arr: Register) {
         self.emit_reg2("ArrayLength", dest, arr);
     }
-    fn visit_array_bound_check(&mut self, arr: Register, idx: Register) {
-        self.emit_reg2("ArrayBoundCheck", arr, idx);
-    }
 
     fn visit_ret_void(&mut self) {
         self.emit_inst("RetVoid");

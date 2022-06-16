@@ -2108,28 +2108,9 @@ impl<'a> AstBytecodeGen<'a> {
     ) -> Register {
         assert!(dest.is_unit());
 
-        let ty = self.ty(arr.id());
-        let ty = ty.type_params();
-        let ty = ty[0].clone();
-        let ty: Option<BytecodeType> = if ty.is_unit() {
-            None
-        } else {
-            Some(bty_from_ty(ty))
-        };
-
         let arr = self.visit_expr(arr, DataDest::Alloc);
         let idx = self.visit_expr(idx, DataDest::Alloc);
         let src = self.visit_expr(src, DataDest::Alloc);
-
-        if ty.is_none() {
-            self.builder.emit_array_bound_check(arr, idx, pos);
-
-            self.free_if_temp(arr);
-            self.free_if_temp(idx);
-            self.free_if_temp(src);
-
-            return Register::invalid();
-        }
 
         self.builder.emit_store_array(src, arr, idx, pos);
 
@@ -2202,40 +2183,19 @@ impl<'a> AstBytecodeGen<'a> {
         match intrinsic {
             Intrinsic::ArrayGet | Intrinsic::StrGet => {
                 let ty = self.ty(lhs.id());
-                let ty: Option<BytecodeType> =
-                    if ty.cls_id() == Some(self.sa.known.classes.string()) {
-                        Some(BytecodeType::UInt8)
-                    } else {
-                        let ty = ty.type_params();
-                        let ty = ty[0].clone();
-
-                        if ty.is_unit() {
-                            assert!(dest.is_unit());
-                            None
-                        } else {
-                            Some(register_bty_from_ty(ty))
-                        }
-                    };
-
-                let dest = if let Some(ref ty) = ty {
-                    Some(self.ensure_register(dest, ty.clone()))
+                let ty: BytecodeType = if ty.cls_id() == Some(self.sa.known.classes.string()) {
+                    BytecodeType::UInt8
                 } else {
-                    None
+                    let ty = ty.type_params();
+                    let ty = ty[0].clone();
+
+                    register_bty_from_ty(ty)
                 };
+
+                let dest = self.ensure_register(dest, ty.clone());
 
                 let arr = self.visit_expr(lhs, DataDest::Alloc);
                 let idx = self.visit_expr(rhs, DataDest::Alloc);
-
-                if ty.is_none() {
-                    self.builder.emit_array_bound_check(arr, idx, pos);
-
-                    self.free_if_temp(arr);
-                    self.free_if_temp(idx);
-
-                    return Register::invalid();
-                }
-
-                let dest = dest.unwrap();
 
                 self.builder.emit_load_array(dest, arr, idx, pos);
 
@@ -2774,7 +2734,13 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn ensure_register(&mut self, dest: DataDest, ty: BytecodeType) -> Register {
         match dest {
-            DataDest::Effect | DataDest::Alloc => self.alloc_temp(ty),
+            DataDest::Effect | DataDest::Alloc => {
+                if ty.is_unit() {
+                    self.ensure_unit_register()
+                } else {
+                    self.alloc_temp(ty)
+                }
+            }
             DataDest::Reg(reg) => reg,
         }
     }

@@ -423,11 +423,6 @@ impl<'a> BytecodeReader<'a> {
                 let arr = self.read_register();
                 BytecodeInstruction::ArrayLength { dest, arr }
             }
-            BytecodeOpcode::ArrayBoundCheck => {
-                let arr = self.read_register();
-                let idx = self.read_register();
-                BytecodeInstruction::ArrayBoundCheck { arr, idx }
-            }
 
             BytecodeOpcode::LoadArray => {
                 let dest = self.read_register();
@@ -782,9 +777,6 @@ where
             BytecodeInstruction::ArrayLength { dest, arr } => {
                 self.visitor.visit_array_length(dest, arr);
             }
-            BytecodeInstruction::ArrayBoundCheck { arr, idx } => {
-                self.visitor.visit_array_bound_check(arr, idx);
-            }
 
             BytecodeInstruction::LoadArray { dest, arr, idx } => {
                 self.visitor.visit_load_array(dest, arr, idx);
@@ -1058,9 +1050,6 @@ pub trait BytecodeVisitor {
     }
 
     fn visit_array_length(&mut self, _dest: Register, _arr: Register) {
-        unimplemented!();
-    }
-    fn visit_array_bound_check(&mut self, _arr: Register, _idx: Register) {
         unimplemented!();
     }
 

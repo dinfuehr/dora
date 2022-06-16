@@ -69,11 +69,10 @@
 @pub const BC_NEW_TRAIT_OBJECT: Int32 = 66;
 @pub const BC_NEW_LAMBDA: Int32 = 67;
 @pub const BC_ARRAY_LENGTH: Int32 = 68;
-@pub const BC_ARRAY_BOUND_CHECK: Int32 = 69;
-@pub const BC_LOAD_ARRAY: Int32 = 70;
-@pub const BC_STORE_ARRAY: Int32 = 71;
-@pub const BC_RET_VOID: Int32 = 72;
-@pub const BC_RET: Int32 = 73;
+@pub const BC_LOAD_ARRAY: Int32 = 69;
+@pub const BC_STORE_ARRAY: Int32 = 70;
+@pub const BC_RET_VOID: Int32 = 71;
+@pub const BC_RET: Int32 = 72;
 
 @pub const BC_TYPE_UNIT: Int32 = 0;
 @pub const BC_TYPE_BOOL: Int32 = 1;
@@ -183,7 +182,6 @@
   if opcode == BC_NEW_TRAIT_OBJECT { return "NewTraitObject"; }
   if opcode == BC_NEW_LAMBDA { return "NewLambda"; }
   if opcode == BC_ARRAY_LENGTH { return "ArrayLength"; }
-  if opcode == BC_ARRAY_BOUND_CHECK { return "ArrayBoundCheck"; }
   if opcode == BC_LOAD_ARRAY { return "LoadArray"; }
   if opcode == BC_STORE_ARRAY { return "StoreArray"; }
   if opcode == BC_RET_VOID { return "RetVoid"; }

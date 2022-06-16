@@ -391,9 +391,6 @@ impl BytecodeWriter {
     pub fn emit_array_length(&mut self, dest: Register, array: Register) {
         self.emit_reg2(BytecodeOpcode::ArrayLength, dest, array);
     }
-    pub fn emit_array_bound_check(&mut self, arr: Register, idx: Register) {
-        self.emit_reg2(BytecodeOpcode::ArrayBoundCheck, arr, idx);
-    }
 
     pub fn emit_store_array(&mut self, src: Register, array: Register, idx: Register) {
         self.emit_reg3(BytecodeOpcode::StoreArray, src, array, idx);

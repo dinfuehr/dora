@@ -2732,6 +2732,8 @@ impl<'a> CannonCodeGen<'a> {
         let src_type = src_type.unwrap();
 
         match src_type {
+            BytecodeType::Unit => {}
+
             BytecodeType::Tuple(ref subtypes) => {
                 let tuple = get_concrete_tuple_bytecode_ty(self.vm, &src_type);
                 let element_size = tuple.size();
@@ -2809,10 +2811,7 @@ impl<'a> CannonCodeGen<'a> {
                 }
             }
 
-            BytecodeType::TypeParam(_)
-            | BytecodeType::Class(_, _)
-            | BytecodeType::Unit
-            | BytecodeType::Lambda(_, _) => {
+            BytecodeType::TypeParam(_) | BytecodeType::Class(_, _) | BytecodeType::Lambda(_, _) => {
                 unreachable!()
             }
             BytecodeType::UInt8
@@ -2892,6 +2891,8 @@ impl<'a> CannonCodeGen<'a> {
         let dest_type = dest_type.unwrap();
 
         match dest_type {
+            BytecodeType::Unit => {}
+
             BytecodeType::Tuple(ref subtypes) => {
                 let element_size = get_concrete_tuple_bytecode_ty(self.vm, &dest_type).size();
                 self.asm
@@ -2937,10 +2938,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_store_register_as(REG_RESULT.into(), dest, mode);
             }
 
-            BytecodeType::TypeParam(_)
-            | BytecodeType::Class(_, _)
-            | BytecodeType::Unit
-            | BytecodeType::Lambda(_, _) => {
+            BytecodeType::TypeParam(_) | BytecodeType::Class(_, _) | BytecodeType::Lambda(_, _) => {
                 unreachable!()
             }
             BytecodeType::UInt8
@@ -5359,10 +5357,6 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
     fn visit_array_length(&mut self, dest: Register, arr: Register) {
         comment!(self, format!("ArrayLength {}, {}", dest, arr));
         self.emit_array_length(dest, arr);
-    }
-    fn visit_array_bound_check(&mut self, arr: Register, idx: Register) {
-        comment!(self, format!("ArrayBoundCheck {}, {}", arr, idx));
-        self.emit_array_bound_check(arr, idx);
     }
 
     fn visit_load_array(&mut self, dest: Register, arr: Register, idx: Register) {

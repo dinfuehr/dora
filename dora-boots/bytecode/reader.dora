@@ -280,10 +280,6 @@ impl BytecodeIterator {
             let idx = self.readConstPoolId(wide);
             BytecodeInstruction::NewLambda(dest, idx)
 
-        } else if opcode == opc::BC_ARRAY_BOUND_CHECK {
-            let arr = self.readRegister(wide);
-            let idx = self.readRegister(wide);
-            BytecodeInstruction::ArrayBoundCheck(arr, idx)
         } else if opcode == opc::BC_ARRAY_LENGTH {
             let dest = self.readRegister(wide);
             let arr = self.readRegister(wide);

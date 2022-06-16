@@ -592,11 +592,6 @@ impl BytecodeBuilder {
         self.writer.set_position(pos);
         self.writer.emit_array_length(dest, array);
     }
-    pub fn emit_array_bound_check(&mut self, arr: Register, idx: Register, pos: Position) {
-        assert!(self.used(arr) && self.used(idx));
-        self.writer.set_position(pos);
-        self.writer.emit_array_bound_check(arr, idx);
-    }
 
     pub fn emit_store_array(
         &mut self,
