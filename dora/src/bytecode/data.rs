@@ -109,8 +109,6 @@ enumeration!(BytecodeOpcode {
     InvokeDirect,
     InvokeVirtual,
     InvokeStatic,
-
-    InvokeLambdaVoid,
     InvokeLambda,
 
     InvokeGenericStaticVoid,
@@ -203,8 +201,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeGenericStaticVoid
             | BytecodeOpcode::InvokeStatic
             | BytecodeOpcode::InvokeVirtual
-            | BytecodeOpcode::InvokeLambda
-            | BytecodeOpcode::InvokeLambdaVoid => true,
+            | BytecodeOpcode::InvokeLambda => true,
             _ => false,
         }
     }
@@ -297,7 +294,6 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeVirtual
             | BytecodeOpcode::InvokeStatic
             | BytecodeOpcode::InvokeLambda
-            | BytecodeOpcode::InvokeLambdaVoid
             | BytecodeOpcode::InvokeGenericStaticVoid
             | BytecodeOpcode::InvokeGenericStatic
             | BytecodeOpcode::InvokeGenericDirectVoid
@@ -564,9 +560,6 @@ pub enum BytecodeInstruction {
         fct: ConstPoolIdx,
     },
 
-    InvokeLambdaVoid {
-        idx: ConstPoolIdx,
-    },
     InvokeLambda {
         dest: Register,
         idx: ConstPoolIdx,

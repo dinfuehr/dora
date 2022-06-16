@@ -4285,7 +4285,7 @@ fn gen_invoke_lambda() {
         |_sa, code, _fct| {
             let expected = vec![
                 PushRegister(r(0)),
-                InvokeLambdaVoid(ConstPoolIdx(0)),
+                InvokeLambda(r(1), ConstPoolIdx(0)),
                 RetVoid,
                 RetVoid,
             ];
@@ -4358,8 +4358,6 @@ pub enum Bytecode {
     InvokeDirect(Register, ConstPoolIdx),
     InvokeVirtual(Register, ConstPoolIdx),
     InvokeStatic(Register, ConstPoolIdx),
-
-    InvokeLambdaVoid(ConstPoolIdx),
     InvokeLambda(Register, ConstPoolIdx),
 
     InvokeGenericStaticVoid(ConstPoolIdx),
@@ -4646,9 +4644,6 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::InvokeStatic(dest, fctdef));
     }
 
-    fn visit_invoke_lambda_void(&mut self, idx: ConstPoolIdx) {
-        self.emit(Bytecode::InvokeLambdaVoid(idx));
-    }
     fn visit_invoke_lambda(&mut self, dest: Register, idx: ConstPoolIdx) {
         self.emit(Bytecode::InvokeLambda(dest, idx));
     }

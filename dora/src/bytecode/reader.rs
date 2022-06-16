@@ -333,10 +333,6 @@ impl<'a> BytecodeReader<'a> {
                 BytecodeInstruction::InvokeStatic { dest, fct }
             }
 
-            BytecodeOpcode::InvokeLambdaVoid => {
-                let idx = self.read_const_pool_idx();
-                BytecodeInstruction::InvokeLambdaVoid { idx }
-            }
             BytecodeOpcode::InvokeLambda => {
                 let dest = self.read_register();
                 let idx = self.read_const_pool_idx();
@@ -707,9 +703,6 @@ where
                 self.visitor.visit_invoke_static(dest, fct);
             }
 
-            BytecodeInstruction::InvokeLambdaVoid { idx } => {
-                self.visitor.visit_invoke_lambda_void(idx);
-            }
             BytecodeInstruction::InvokeLambda { dest, idx } => {
                 self.visitor.visit_invoke_lambda(dest, idx);
             }
@@ -973,9 +966,6 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_invoke_lambda_void(&mut self, _idx: ConstPoolIdx) {
-        unimplemented!();
-    }
     fn visit_invoke_lambda(&mut self, _dest: Register, _idx: ConstPoolIdx) {
         unimplemented!();
     }

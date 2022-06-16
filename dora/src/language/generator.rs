@@ -1173,8 +1173,9 @@ impl<'a> AstBytecodeGen<'a> {
         let idx = self.builder.add_const_lambda(params, return_type.clone());
 
         let dest_reg = if return_type.is_unit() {
-            self.builder.emit_invoke_lambda_void(idx, node.pos);
-            Register::invalid()
+            let dest = self.ensure_unit_register();
+            self.builder.emit_invoke_lambda(dest, idx, node.pos);
+            dest
         } else {
             let bytecode_ty = register_bty_from_ty(return_type);
             let dest_reg = self.ensure_register(dest, bytecode_ty);

@@ -51,25 +51,24 @@
 @pub const BC_INVOKE_DIRECT: Int32 = 48;
 @pub const BC_INVOKE_VIRTUAL: Int32 = 49;
 @pub const BC_INVOKE_STATIC: Int32 = 50;
-@pub const BC_INVOKE_LAMBDA_VOID: Int32 = 51;
-@pub const BC_INVOKE_LAMBDA: Int32 = 52;
-@pub const BC_INVOKE_GENERIC_STATIC_VOID: Int32 = 53;
-@pub const BC_INVOKE_GENERIC_STATIC: Int32 = 54;
-@pub const BC_INVOKE_GENERIC_DIRECT_VOID: Int32 = 55;
-@pub const BC_INVOKE_GENERIC_DIRECT: Int32 = 56;
-@pub const BC_NEW_OBJECT: Int32 = 57;
-@pub const BC_NEW_OBJECT_INITIALIZED: Int32 = 58;
-@pub const BC_NEW_ARRAY: Int32 = 59;
-@pub const BC_NEW_TUPLE: Int32 = 60;
-@pub const BC_NEW_ENUM: Int32 = 61;
-@pub const BC_NEW_STRUCT: Int32 = 62;
-@pub const BC_NEW_TRAIT_OBJECT: Int32 = 63;
-@pub const BC_NEW_LAMBDA: Int32 = 64;
-@pub const BC_ARRAY_LENGTH: Int32 = 65;
-@pub const BC_LOAD_ARRAY: Int32 = 66;
-@pub const BC_STORE_ARRAY: Int32 = 67;
-@pub const BC_RET_VOID: Int32 = 68;
-@pub const BC_RET: Int32 = 69;
+@pub const BC_INVOKE_LAMBDA: Int32 = 51;
+@pub const BC_INVOKE_GENERIC_STATIC_VOID: Int32 = 52;
+@pub const BC_INVOKE_GENERIC_STATIC: Int32 = 53;
+@pub const BC_INVOKE_GENERIC_DIRECT_VOID: Int32 = 54;
+@pub const BC_INVOKE_GENERIC_DIRECT: Int32 = 55;
+@pub const BC_NEW_OBJECT: Int32 = 56;
+@pub const BC_NEW_OBJECT_INITIALIZED: Int32 = 57;
+@pub const BC_NEW_ARRAY: Int32 = 58;
+@pub const BC_NEW_TUPLE: Int32 = 59;
+@pub const BC_NEW_ENUM: Int32 = 60;
+@pub const BC_NEW_STRUCT: Int32 = 61;
+@pub const BC_NEW_TRAIT_OBJECT: Int32 = 62;
+@pub const BC_NEW_LAMBDA: Int32 = 63;
+@pub const BC_ARRAY_LENGTH: Int32 = 64;
+@pub const BC_LOAD_ARRAY: Int32 = 65;
+@pub const BC_STORE_ARRAY: Int32 = 66;
+@pub const BC_RET_VOID: Int32 = 67;
+@pub const BC_RET: Int32 = 68;
 
 @pub const BC_TYPE_UNIT: Int32 = 0;
 @pub const BC_TYPE_BOOL: Int32 = 1;
@@ -161,7 +160,6 @@
   if opcode == BC_INVOKE_DIRECT { return "InvokeDirect"; }
   if opcode == BC_INVOKE_VIRTUAL { return "InvokeVirtual"; }
   if opcode == BC_INVOKE_STATIC { return "InvokeStatic"; }
-  if opcode == BC_INVOKE_LAMBDA_VOID { return "InvokeLambdaVoid"; }
   if opcode == BC_INVOKE_LAMBDA { return "InvokeLambda"; }
   if opcode == BC_INVOKE_GENERIC_STATIC_VOID { return "InvokeGenericStaticVoid"; }
   if opcode == BC_INVOKE_GENERIC_STATIC { return "InvokeGenericStatic"; }

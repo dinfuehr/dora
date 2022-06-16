@@ -5140,10 +5140,6 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         self.emit_invoke_virtual_from_bytecode(Some(dest), fctdef);
     }
 
-    fn visit_invoke_lambda_void(&mut self, idx: ConstPoolIdx) {
-        comment!(self, format!("InvokeLambdaVoid"));
-        self.emit_invoke_lambda_from_bytecode(None, idx);
-    }
     fn visit_invoke_lambda(&mut self, dest: Register, idx: ConstPoolIdx) {
         comment!(self, format!("InvokeLambda {}", dest));
         self.emit_invoke_lambda_from_bytecode(Some(dest), idx);

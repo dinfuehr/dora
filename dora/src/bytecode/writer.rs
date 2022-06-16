@@ -318,10 +318,6 @@ impl BytecodeWriter {
         self.emit_reg1_idx(BytecodeOpcode::InvokeLambda, dest, idx);
     }
 
-    pub fn emit_invoke_lambda_void(&mut self, idx: ConstPoolIdx) {
-        self.emit_idx(BytecodeOpcode::InvokeLambdaVoid, idx);
-    }
-
     pub fn emit_invoke_static(&mut self, dest: Register, idx: ConstPoolIdx) {
         self.emit_fct(BytecodeOpcode::InvokeStatic, dest, idx);
     }
