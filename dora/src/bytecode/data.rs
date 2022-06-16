@@ -133,8 +133,6 @@ enumeration!(BytecodeOpcode {
     NewTraitObject,
     NewLambda,
 
-    NilCheck,
-
     ArrayLength,
     ArrayBoundCheck,
 
@@ -230,7 +228,6 @@ impl BytecodeOpcode {
             | BytecodeOpcode::ConstTrue
             | BytecodeOpcode::ConstFalse
             | BytecodeOpcode::Ret
-            | BytecodeOpcode::NilCheck
             | BytecodeOpcode::InvokeGenericDirectVoid
             | BytecodeOpcode::InvokeGenericStaticVoid
             | BytecodeOpcode::InvokeStaticVoid
@@ -329,7 +326,6 @@ impl BytecodeOpcode {
             | BytecodeOpcode::NewStruct
             | BytecodeOpcode::NewTraitObject
             | BytecodeOpcode::NewLambda
-            | BytecodeOpcode::NilCheck
             | BytecodeOpcode::ArrayLength
             | BytecodeOpcode::ArrayBoundCheck
             | BytecodeOpcode::LoadArray
@@ -651,10 +647,6 @@ pub enum BytecodeInstruction {
     NewLambda {
         dest: Register,
         idx: ConstPoolIdx,
-    },
-
-    NilCheck {
-        obj: Register,
     },
 
     ArrayLength {

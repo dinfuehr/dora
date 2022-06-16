@@ -2872,7 +2872,7 @@ fn gen_position_array_length() {
 #[test]
 fn gen_array_length_effect() {
     let result = code("fn f(a: Array[Int32]) { a.size(); }");
-    let expected = vec![NilCheck(r(0)), RetVoid];
+    let expected = vec![ArrayLength(r(1), r(0)), RetVoid];
     assert_eq!(expected, result);
 }
 
@@ -4382,8 +4382,6 @@ pub enum Bytecode {
     NewTraitObject(Register, ConstPoolIdx, Register),
     NewLambda(Register, ConstPoolIdx),
 
-    NilCheck(Register),
-
     ArrayLength(Register, Register),
     ArrayBoundCheck(Register, Register),
 
@@ -4707,10 +4705,6 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     }
     fn visit_new_lambda(&mut self, dest: Register, idx: ConstPoolIdx) {
         self.emit(Bytecode::NewLambda(dest, idx));
-    }
-
-    fn visit_nil_check(&mut self, obj: Register) {
-        self.emit(Bytecode::NilCheck(obj));
     }
 
     fn visit_array_length(&mut self, dest: Register, arr: Register) {

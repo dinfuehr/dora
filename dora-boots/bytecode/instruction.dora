@@ -76,7 +76,6 @@ use package::bytecode::data::GlobalId;
     NewEnum(BytecodeRegister, ConstPoolId),
     NewStruct(BytecodeRegister, ConstPoolId),
     NewTraitObject(BytecodeRegister, ConstPoolId, BytecodeRegister),
-    NilCheck(BytecodeRegister),
     NewLambda(BytecodeRegister, ConstPoolId),
 
     ArrayLength(BytecodeRegister, BytecodeRegister),

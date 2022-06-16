@@ -464,9 +464,6 @@ impl SsaGen {
             BytecodeInstruction::NewLambda(dest, idx) => {
                 unimplemented();
             },
-            BytecodeInstruction::NilCheck(src) => {
-                unimplemented();
-            },
             BytecodeInstruction::ArrayLength(dest, src) => {
                 unimplemented();
             },

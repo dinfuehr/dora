@@ -251,10 +251,6 @@ impl BytecodeBuilder {
         self.emitVal3(opc::BC_NEW_OBJECT, dest.value, cls.value);
     }
 
-    @pub fn emitNilCheck(obj: BytecodeRegister) {
-        self.emitReg1(opc::BC_NIL_CHECK, obj);
-    }
-
     @pub fn emitArrayLength(dest: BytecodeRegister) {
         self.emitReg1(opc::BC_ARRAY_LENGTH, dest);
     }

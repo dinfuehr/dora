@@ -924,14 +924,6 @@ impl<'a> AstBytecodeGen<'a> {
 
         let field_ty = specialize_type(self.sa, field_ty, &type_params);
 
-        if field_ty.is_unit() {
-            assert!(dest.is_unit());
-            let obj = self.visit_expr(&expr.lhs, DataDest::Alloc);
-            self.builder.emit_nil_check(obj, expr.pos);
-            self.free_if_temp(obj);
-            return Register::invalid();
-        }
-
         let field_bc_ty: BytecodeType = register_bty_from_ty(field_ty);
         let dest = self.ensure_register(dest, field_bc_ty);
         let obj = self.visit_expr(&expr.lhs, DataDest::Alloc);
@@ -2157,22 +2149,6 @@ impl<'a> AstBytecodeGen<'a> {
     ) -> Register {
         let intrinsic = info.intrinsic;
 
-        if dest.is_effect() {
-            match intrinsic {
-                Intrinsic::ArrayLen | Intrinsic::StrLen => {
-                    let src = self.visit_expr(opnd, DataDest::Alloc);
-                    self.builder.emit_nil_check(src, pos);
-                    self.free_if_temp(src);
-                    return Register::invalid();
-                }
-
-                _ => {}
-            }
-
-            self.emit_expr_for_effect(opnd);
-            return Register::invalid();
-        }
-
         match intrinsic {
             Intrinsic::Int32Plus
             | Intrinsic::Int64Plus
@@ -2628,25 +2604,8 @@ impl<'a> AstBytecodeGen<'a> {
             .builder
             .add_const_field_types(cls_id, type_params.clone(), field_id);
 
-        let cls = self.sa.classes.idx(cls_id);
-        let cls = cls.read();
-        let field = &cls.fields[field_id.to_usize()];
-        let field_ty = field.ty.clone();
-        let field_ty = specialize_type(self.sa, field_ty, &type_params);
-
-        let field_ty: Option<BytecodeType> = if field_ty.is_unit() {
-            None
-        } else {
-            Some(bty_from_ty(field_ty))
-        };
-
         let obj = self.visit_expr(&dot.lhs, DataDest::Alloc);
         let src = self.visit_expr(&expr.rhs, DataDest::Alloc);
-
-        if field_ty.is_none() {
-            self.builder.emit_nil_check(obj, expr.pos);
-            return;
-        }
 
         self.builder.emit_store_field(src, obj, field_idx, expr.pos);
 

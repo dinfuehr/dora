@@ -418,11 +418,6 @@ impl<'a> BytecodeReader<'a> {
                 BytecodeInstruction::NewLambda { dest, idx }
             }
 
-            BytecodeOpcode::NilCheck => {
-                let obj = self.read_register();
-                BytecodeInstruction::NilCheck { obj }
-            }
-
             BytecodeOpcode::ArrayLength => {
                 let dest = self.read_register();
                 let arr = self.read_register();
@@ -784,10 +779,6 @@ where
                 self.visitor.visit_new_lambda(dest, idx);
             }
 
-            BytecodeInstruction::NilCheck { obj } => {
-                self.visitor.visit_nil_check(obj);
-            }
-
             BytecodeInstruction::ArrayLength { dest, arr } => {
                 self.visitor.visit_array_length(dest, arr);
             }
@@ -1063,10 +1054,6 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_new_lambda(&mut self, _dest: Register, _idx: ConstPoolIdx) {
-        unimplemented!();
-    }
-
-    fn visit_nil_check(&mut self, _obj: Register) {
         unimplemented!();
     }
 

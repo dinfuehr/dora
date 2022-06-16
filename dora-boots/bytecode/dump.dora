@@ -244,9 +244,6 @@ impl BytecodeDumper {
             BytecodeInstruction::NewLambda(dest, idx) => {
                 self.emitReg1AndIdx("NewLambda", dest, idx);
             },
-            BytecodeInstruction::NilCheck(src) => {
-                self.emitReg1("NilCheck", src);
-            },
             BytecodeInstruction::ArrayLength(dest, src) => {
                 self.emitReg2("ArrayLength", dest, src);
             },

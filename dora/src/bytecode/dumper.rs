@@ -976,10 +976,6 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_new_struct("NewStruct", dest, idx);
     }
 
-    fn visit_nil_check(&mut self, obj: Register) {
-        self.emit_reg1("NilCheck", obj);
-    }
-
     fn visit_load_array(&mut self, dest: Register, arr: Register, idx: Register) {
         self.emit_reg3("LoadArray", dest, arr, idx);
     }

@@ -388,10 +388,6 @@ impl BytecodeWriter {
         self.emit_values(BytecodeOpcode::NewLambda, &values);
     }
 
-    pub fn emit_nil_check(&mut self, obj: Register) {
-        self.emit_reg1(BytecodeOpcode::NilCheck, obj);
-    }
-
     pub fn emit_array_length(&mut self, dest: Register, array: Register) {
         self.emit_reg2(BytecodeOpcode::ArrayLength, dest, array);
     }

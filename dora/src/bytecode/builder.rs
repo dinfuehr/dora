@@ -587,12 +587,6 @@ impl BytecodeBuilder {
         self.writer.emit_new_lambda(dest, idx);
     }
 
-    pub fn emit_nil_check(&mut self, obj: Register, pos: Position) {
-        assert!(self.used(obj));
-        self.writer.set_position(pos);
-        self.writer.emit_nil_check(obj);
-    }
-
     pub fn emit_array_length(&mut self, dest: Register, array: Register, pos: Position) {
         assert!(self.def(dest) && self.used(array));
         self.writer.set_position(pos);

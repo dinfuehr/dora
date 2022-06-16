@@ -1681,6 +1681,11 @@ impl<'a> CannonCodeGen<'a> {
             let needs_write_barrier;
 
             match &bytecode_type {
+                BytecodeType::Unit => {
+                    // nothing to do
+                    needs_write_barrier = false;
+                }
+
                 BytecodeType::Tuple(subtypes) => {
                     let src_offset = self.register_offset(src);
                     self.copy_tuple(
@@ -1727,7 +1732,6 @@ impl<'a> CannonCodeGen<'a> {
 
                 BytecodeType::TypeParam(_)
                 | BytecodeType::Class(_, _)
-                | BytecodeType::Unit
                 | BytecodeType::Lambda(_, _) => {
                     unreachable!()
                 }
@@ -2664,18 +2668,8 @@ impl<'a> CannonCodeGen<'a> {
         );
     }
 
-    fn emit_nil_check(&mut self, obj: Register) {
-        assert_eq!(self.bytecode.register_type(obj), BytecodeType::Ptr);
-
-        let position = self.bytecode.offset_position(self.current_offset.to_u32());
-
-        self.emit_load_register(obj, REG_RESULT.into());
-        self.asm
-            .test_if_nil_bailout(position, REG_RESULT, Trap::NIL);
-    }
-
     fn emit_array_length(&mut self, dest: Register, arr: Register) {
-        // assert_eq!(self.bytecode.register_type(dest), BytecodeType::Int32);
+        assert_eq!(self.bytecode.register_type(dest), BytecodeType::Int64);
         assert_eq!(self.bytecode.register_type(arr), BytecodeType::Ptr);
 
         let position = self.bytecode.offset_position(self.current_offset.to_u32());
@@ -5360,11 +5354,6 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             )
         });
         self.emit_new_lambda(dest, idx);
-    }
-
-    fn visit_nil_check(&mut self, obj: Register) {
-        comment!(self, format!("NilCheck {}", obj));
-        self.emit_nil_check(obj);
     }
 
     fn visit_array_length(&mut self, dest: Register, arr: Register) {
