@@ -1,8 +1,7 @@
-class_new A(value: ())
+struct A(value: ())
 
 fn main() {
     let a = A(());
-    a.value = ();
     let x: () = foo(a);
 
     let b1 = B[()](());
@@ -15,4 +14,4 @@ fn bar[T](value: T): B[T] {
     B[T](value)
 }
 
-class_new B[T](value: T)
+struct B[T](value: T)

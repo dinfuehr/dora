@@ -1423,6 +1423,10 @@ impl<'a> CannonCodeGen<'a> {
 
     fn copy_bytecode_ty(&mut self, ty: BytecodeType, dest: RegOrOffset, src: RegOrOffset) {
         match ty {
+            BytecodeType::Unit => {
+                // nothing to do
+            }
+
             BytecodeType::Tuple(subtypes) => {
                 self.copy_tuple(subtypes, dest, src);
             }
@@ -1444,7 +1448,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.copy_struct(struct_id, type_params, dest, src);
             }
 
-            BytecodeType::TypeParam(_) | BytecodeType::Unit => unreachable!(),
+            BytecodeType::TypeParam(_) => unreachable!(),
 
             BytecodeType::Ptr | BytecodeType::Trait(_, _) => {
                 let mode = MachineMode::Ptr;
@@ -2497,6 +2501,8 @@ impl<'a> CannonCodeGen<'a> {
 
         let dest_offset = self.register_offset(dest);
         self.asm.lea(REG_TMP1, Mem::Local(dest_offset));
+
+        assert_eq!(arguments.len(), struct_instance.fields.len());
 
         for (field_idx, &arg) in arguments.iter().enumerate() {
             if let Some(ty) = self.specialize_register_type_unit(arg) {
