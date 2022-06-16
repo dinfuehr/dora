@@ -4387,6 +4387,8 @@ impl<'a> CannonCodeGen<'a> {
                 let offset = self.register_offset(src);
 
                 match bytecode_type {
+                    BytecodeType::Unit => {}
+
                     BytecodeType::Tuple(_) | BytecodeType::Struct(_, _) => {
                         if reg_idx < REG_PARAMS.len() {
                             let reg = REG_PARAMS[reg_idx];
@@ -4450,7 +4452,6 @@ impl<'a> CannonCodeGen<'a> {
 
                     BytecodeType::TypeParam(_)
                     | BytecodeType::Class(_, _)
-                    | BytecodeType::Unit
                     | BytecodeType::Lambda(_, _) => {
                         unreachable!()
                     }

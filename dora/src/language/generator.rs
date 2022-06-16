@@ -70,29 +70,23 @@ impl<'a> AstBytecodeGen<'a> {
             let var_self = self.src.vars.get_self();
             let var_ty = var_self.ty.clone();
 
-            if !var_ty.is_unit() {
-                let var_id = var_self.id;
-                let bty = bty_from_ty(var_ty.clone());
-                params.push(bty);
-                let register_bty = register_bty_from_ty(var_ty);
-                let reg = self.alloc_var(register_bty);
-                self.var_registers.insert(var_id, reg);
-            }
+            let var_id = var_self.id;
+            let bty = bty_from_ty(var_ty.clone());
+            params.push(bty);
+            let register_bty = register_bty_from_ty(var_ty);
+            let reg = self.alloc_var(register_bty);
+            self.var_registers.insert(var_id, reg);
         }
 
         for param in &ast.params {
             let var_id = *self.src.map_vars.get(param.id).unwrap();
             let ty = self.var_ty(var_id);
 
-            if ty.is_unit() {
-                // no register needed for unit
-            } else {
-                let bty = bty_from_ty(ty.clone());
-                let register_bty = register_bty_from_ty(ty);
-                params.push(bty);
-                let reg = self.alloc_var(register_bty);
-                self.var_registers.insert(var_id, reg);
-            }
+            let bty = bty_from_ty(ty.clone());
+            let register_bty = register_bty_from_ty(ty);
+            params.push(bty);
+            let reg = self.alloc_var(register_bty);
+            self.var_registers.insert(var_id, reg);
         }
 
         self.builder.set_params(params);
@@ -1362,15 +1356,9 @@ impl<'a> AstBytecodeGen<'a> {
         };
 
         // Evaluate non-variadic arguments and track registers.
-        for (idx, arg) in expr.args.iter().take(non_variadic_arguments).enumerate() {
-            let ty = arg_types[idx + arg_start_offset].clone();
-
-            if ty.is_unit() {
-                self.emit_expr_for_effect(arg);
-            } else {
-                let reg = self.visit_expr(arg, DataDest::Alloc);
-                registers.push(reg);
-            };
+        for arg in expr.args.iter().take(non_variadic_arguments) {
+            let reg = self.visit_expr(arg, DataDest::Alloc);
+            registers.push(reg);
         }
 
         if callee.is_variadic {
@@ -2803,7 +2791,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         if ty.is_unit() {
             assert!(dest.is_alloc());
-            return Register::invalid();
+            return self.ensure_unit_register();
         }
 
         let var_reg = self.var_reg(var_id);
@@ -3055,6 +3043,7 @@ impl DataDest {
 
 pub fn bty_from_ty(ty: SourceType) -> BytecodeType {
     match ty {
+        SourceType::Unit => BytecodeType::Unit,
         SourceType::Bool => BytecodeType::Bool,
         SourceType::UInt8 => BytecodeType::UInt8,
         SourceType::Char => BytecodeType::Char,
@@ -3070,12 +3059,13 @@ pub fn bty_from_ty(ty: SourceType) -> BytecodeType {
         SourceType::TypeParam(idx) => BytecodeType::TypeParam(idx.to_usize() as u32),
         SourceType::Lambda(params, return_type) => BytecodeType::Lambda(params, return_type),
         SourceType::Ptr => BytecodeType::Ptr,
-        _ => panic!("BuiltinType {:?} cannot converted to BytecodeType", ty),
+        _ => panic!("SourceType {:?} cannot be converted to BytecodeType", ty),
     }
 }
 
 pub fn register_bty_from_ty(ty: SourceType) -> BytecodeType {
     match ty {
+        SourceType::Unit => BytecodeType::Unit,
         SourceType::Bool => BytecodeType::Bool,
         SourceType::UInt8 => BytecodeType::UInt8,
         SourceType::Char => BytecodeType::Char,
@@ -3091,6 +3081,6 @@ pub fn register_bty_from_ty(ty: SourceType) -> BytecodeType {
         SourceType::TypeParam(idx) => BytecodeType::TypeParam(idx.to_usize() as u32),
         SourceType::Lambda(_, _) => BytecodeType::Ptr,
         SourceType::Ptr => BytecodeType::Ptr,
-        _ => panic!("BuiltinType {:?} cannot converted to BytecodeType", ty),
+        _ => panic!("SourceType {:?} cannot be converted to BytecodeType", ty),
     }
 }
