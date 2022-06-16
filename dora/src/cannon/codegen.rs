@@ -267,7 +267,6 @@ impl<'a> CannonCodeGen<'a> {
 
                     BytecodeType::TypeParam(_)
                     | BytecodeType::Class(_, _)
-                    | BytecodeType::Unit
                     | BytecodeType::Lambda(_, _) => {
                         unreachable!()
                     }
@@ -278,7 +277,8 @@ impl<'a> CannonCodeGen<'a> {
                     | BytecodeType::Char
                     | BytecodeType::Int64
                     | BytecodeType::Float32
-                    | BytecodeType::Float64 => {
+                    | BytecodeType::Float64
+                    | BytecodeType::Unit => {
                         // type does not contain reference
                     }
                 }
@@ -5472,6 +5472,7 @@ pub fn mode(vm: &VM, ty: BytecodeType) -> MachineMode {
 
 pub fn size(vm: &VM, ty: BytecodeType) -> i32 {
     match ty {
+        BytecodeType::Unit => 0,
         BytecodeType::Bool => 1,
         BytecodeType::UInt8 => 1,
         BytecodeType::Char => 4,
@@ -5497,7 +5498,7 @@ pub fn size(vm: &VM, ty: BytecodeType) -> i32 {
 
             sdef.size
         }
-        BytecodeType::Class(_, _) | BytecodeType::Unit | BytecodeType::Lambda(_, _) => {
+        BytecodeType::Class(_, _) | BytecodeType::Lambda(_, _) => {
             unreachable!()
         }
     }

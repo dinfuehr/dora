@@ -663,6 +663,11 @@ impl BytecodeBuilder {
         self.registers.alloc_temp(ty)
     }
 
+    pub fn alloc_global(&mut self, ty: BytecodeType) -> Register {
+        assert!(!ty.is_class());
+        self.registers.alloc_global(ty)
+    }
+
     pub fn free_if_temp(&mut self, reg: Register) {
         self.registers.free_if_temp(reg);
     }
@@ -723,6 +728,18 @@ impl Registers {
     fn alloc_temp(&mut self, ty: BytecodeType) -> Register {
         let reg = self.alloc_internal(ty);
         assert!(self.temps.insert(reg));
+        assert!(self.used.insert(reg));
+        reg
+    }
+
+    fn alloc_global(&mut self, ty: BytecodeType) -> Register {
+        let reg = self.alloc_internal(ty);
+        assert!(self
+            .scopes
+            .first_mut()
+            .expect("missing scope")
+            .0
+            .insert(reg));
         assert!(self.used.insert(reg));
         reg
     }

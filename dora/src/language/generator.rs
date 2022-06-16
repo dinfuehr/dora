@@ -44,6 +44,7 @@ pub fn generate(sa: &SemAnalysis, fct: &FctDefinition, src: &AnalysisData) -> By
         builder: BytecodeBuilder::new(),
         loops: Vec::new(),
         var_registers: HashMap::new(),
+        unit_register: None,
     };
     ast_bytecode_generator.generate(&fct.ast)
 }
@@ -56,6 +57,7 @@ struct AstBytecodeGen<'a> {
     builder: BytecodeBuilder,
     loops: Vec<LoopLabels>,
     var_registers: HashMap<VarId, Register>,
+    unit_register: Option<Register>,
 }
 
 impl<'a> AstBytecodeGen<'a> {
@@ -1807,7 +1809,7 @@ impl<'a> AstBytecodeGen<'a> {
     fn visit_expr_tuple(&mut self, e: &ast::ExprTupleType, dest: DataDest) -> Register {
         if e.values.is_empty() {
             assert!(dest.is_unit());
-            return Register::invalid();
+            return self.ensure_unit_register();
         }
 
         let ty = self.ty(e.id);
@@ -2944,6 +2946,16 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         None
+    }
+
+    fn ensure_unit_register(&mut self) -> Register {
+        if let Some(register) = self.unit_register {
+            return register;
+        }
+
+        let register = self.builder.alloc_global(BytecodeType::Unit);
+        self.unit_register = Some(register);
+        register
     }
 
     fn push_scope(&mut self) {
