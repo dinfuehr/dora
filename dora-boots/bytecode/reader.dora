@@ -242,9 +242,6 @@ impl BytecodeIterator {
             let idx = self.readConstPoolId(wide);
             BytecodeInstruction::JumpConst(idx)
 
-        } else if opcode == opc::BC_INVOKE_DIRECT_VOID {
-            let fct = self.readConstPoolId(wide);
-            BytecodeInstruction::InvokeDirectVoid(fct)
         } else if opcode == opc::BC_INVOKE_DIRECT {
             let dest = self.readRegister(wide);
             let fct = self.readConstPoolId(wide);

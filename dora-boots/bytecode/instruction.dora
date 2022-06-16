@@ -59,7 +59,6 @@ use package::bytecode::data::GlobalId;
     JumpIfTrue(BytecodeRegister, Int32),
     JumpIfTrueConst(BytecodeRegister, ConstPoolId),
 
-    InvokeDirectVoid(ConstPoolId),
     InvokeDirect(BytecodeRegister, ConstPoolId),
     InvokeVirtualVoid(ConstPoolId),
     InvokeVirtual(BytecodeRegister, ConstPoolId),

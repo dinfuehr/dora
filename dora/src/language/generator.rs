@@ -628,7 +628,8 @@ impl<'a> AstBytecodeGen<'a> {
             let fct_idx = self.builder.add_const_fct(fct_id);
             self.builder.emit_push_register(buffer_register);
             self.builder.emit_push_register(part_register);
-            self.builder.emit_invoke_direct_void(fct_idx, expr.pos);
+            let dest_reg = self.ensure_unit_register();
+            self.builder.emit_invoke_direct(dest_reg, fct_idx, expr.pos);
         }
 
         self.free_temp(part_register);
@@ -1445,7 +1446,8 @@ impl<'a> AstBytecodeGen<'a> {
     ) {
         match *call_type {
             CallType::CtorParent(_, _) | CallType::Ctor(_, _) => {
-                self.builder.emit_invoke_direct_void(callee_idx, pos);
+                let dest_reg = self.ensure_unit_register();
+                self.builder.emit_invoke_direct(dest_reg, callee_idx, pos);
             }
 
             CallType::Method(_, _, _) => {
@@ -1543,7 +1545,8 @@ impl<'a> AstBytecodeGen<'a> {
         pos: Position,
     ) {
         if return_type.is_unit() {
-            self.builder.emit_invoke_direct_void(callee_id, pos);
+            let reg = self.ensure_unit_register();
+            self.builder.emit_invoke_direct(reg, callee_id, pos);
         } else {
             self.builder.emit_invoke_direct(return_reg, callee_id, pos);
         }
@@ -1634,7 +1637,8 @@ impl<'a> AstBytecodeGen<'a> {
 
         match *call_type {
             CallType::CtorParent(_, _) => {
-                self.builder.emit_invoke_direct_void(callee_idx, expr.pos);
+                let dest = self.ensure_unit_register();
+                self.builder.emit_invoke_direct(dest, callee_idx, expr.pos);
             }
 
             _ => unreachable!(),
@@ -2535,7 +2539,8 @@ impl<'a> AstBytecodeGen<'a> {
             let type_params = obj_ty.type_params();
 
             let callee_idx = self.builder.add_const_fct_types(fct_id, type_params);
-            self.builder.emit_invoke_direct_void(callee_idx, expr.pos);
+            let dest = self.ensure_unit_register();
+            self.builder.emit_invoke_direct(dest, callee_idx, expr.pos);
 
             self.free_if_temp(obj_reg);
             self.free_if_temp(idx_reg);

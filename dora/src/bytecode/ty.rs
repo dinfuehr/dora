@@ -83,6 +83,20 @@ impl BytecodeType {
         }
     }
 
+    pub fn is_struct(&self) -> bool {
+        match self {
+            BytecodeType::Struct(_, _) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_tuple(&self) -> bool {
+        match self {
+            BytecodeType::Tuple(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn is_trait(&self) -> bool {
         match self {
             BytecodeType::Trait(_, _) => true,

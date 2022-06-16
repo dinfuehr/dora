@@ -412,9 +412,6 @@ impl SsaGen {
                 self.emitConditionalJump(opnd, distance, true);
             },
 
-            BytecodeInstruction::InvokeDirectVoid(idx) => {
-                unimplemented();
-            },
             BytecodeInstruction::InvokeDirect(dest, idx) => {
                 unimplemented();
             },

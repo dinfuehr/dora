@@ -916,9 +916,6 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_jump_const("JumpConst", idx);
     }
 
-    fn visit_invoke_direct_void(&mut self, fctdef: ConstPoolIdx) {
-        self.emit_fct_void("InvokeDirectVoid", fctdef);
-    }
     fn visit_invoke_direct(&mut self, dest: Register, fctdef: ConstPoolIdx) {
         self.emit_fct("InvokeDirect", dest, fctdef);
     }

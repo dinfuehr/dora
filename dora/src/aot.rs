@@ -165,8 +165,7 @@ impl<'a> ReachableFunction<'a> {
             match inst {
                 BytecodeInstruction::InvokeStatic { fct: idx, dest: _ }
                 | BytecodeInstruction::InvokeStaticVoid { fct: idx }
-                | BytecodeInstruction::InvokeDirect { fct: idx, dest: _ }
-                | BytecodeInstruction::InvokeDirectVoid { fct: idx } => {
+                | BytecodeInstruction::InvokeDirect { fct: idx, dest: _ } => {
                     let entry = bytecode_fct.const_pool(idx);
                     match entry {
                         ConstPoolEntry::Fct(fct_id, type_params) => {

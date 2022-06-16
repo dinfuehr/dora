@@ -3279,10 +3279,12 @@ impl<'a> CannonCodeGen<'a> {
         self.store_call_result(dest, result_reg, fct_return_type);
     }
 
-    fn store_call_result(&mut self, dest: Option<Register>, reg: AnyReg, ty: SourceType) {
+    fn store_call_result(&mut self, dest: Option<Register>, reg: AnyReg, _ty: SourceType) {
         if let Some(dest) = dest {
-            if !ty.is_struct() && !ty.is_tuple() && !ty.is_unit() {
-                self.emit_store_register(reg, dest);
+            if let Some(bytecode_ty) = self.specialize_register_type_unit(dest) {
+                if !bytecode_ty.is_struct() && !bytecode_ty.is_tuple() && !bytecode_ty.is_unit() {
+                    self.emit_store_register(reg, dest);
+                }
             }
         }
     }
@@ -3294,6 +3296,7 @@ impl<'a> CannonCodeGen<'a> {
         match bytecode_type {
             Some(BytecodeType::Struct(_, _)) => (REG_RESULT.into(), None),
             Some(BytecodeType::Tuple(_)) => (REG_RESULT.into(), None),
+            Some(BytecodeType::Unit) => (REG_RESULT.into(), None),
             Some(bytecode_type) => (
                 result_reg(self.vm, bytecode_type.clone()),
                 Some(mode(self.vm, bytecode_type)),
@@ -5121,10 +5124,6 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         self.offset_to_label.insert(self.current_offset, label);
     }
 
-    fn visit_invoke_direct_void(&mut self, fctdef: ConstPoolIdx) {
-        comment!(self, format!("InvokeDirectVoid {}", fctdef.to_usize()));
-        self.emit_invoke_direct_from_bytecode(None, fctdef)
-    }
     fn visit_invoke_direct(&mut self, dest: Register, fctdef: ConstPoolIdx) {
         comment!(
             self,

@@ -306,10 +306,6 @@ impl BytecodeWriter {
         self.emit_reg1(BytecodeOpcode::PushRegister, src);
     }
 
-    pub fn emit_invoke_direct_void(&mut self, fid: ConstPoolIdx) {
-        self.emit_fct_void(BytecodeOpcode::InvokeDirectVoid, fid);
-    }
-
     pub fn emit_invoke_direct(&mut self, dest: Register, fid: ConstPoolIdx) {
         self.emit_fct(BytecodeOpcode::InvokeDirect, dest, fid);
     }

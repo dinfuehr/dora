@@ -463,11 +463,6 @@ impl BytecodeBuilder {
         self.writer.emit_push_register(src);
     }
 
-    pub fn emit_invoke_direct_void(&mut self, fid: ConstPoolIdx, pos: Position) {
-        self.writer.set_position(pos);
-        self.writer.emit_invoke_direct_void(fid);
-    }
-
     pub fn emit_invoke_direct(&mut self, dest: Register, fid: ConstPoolIdx, pos: Position) {
         assert!(self.def(dest));
         self.writer.set_position(pos);

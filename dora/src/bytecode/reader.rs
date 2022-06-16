@@ -315,10 +315,6 @@ impl<'a> BytecodeReader<'a> {
                 BytecodeInstruction::JumpConst { idx }
             }
 
-            BytecodeOpcode::InvokeDirectVoid => {
-                let fct = self.read_const_pool_idx();
-                BytecodeInstruction::InvokeDirectVoid { fct }
-            }
             BytecodeOpcode::InvokeDirect => {
                 let dest = self.read_register();
                 let fct = self.read_const_pool_idx();
@@ -707,9 +703,6 @@ where
                 self.visitor.visit_jump_const(idx);
             }
 
-            BytecodeInstruction::InvokeDirectVoid { fct } => {
-                self.visitor.visit_invoke_direct_void(fct);
-            }
             BytecodeInstruction::InvokeDirect { dest, fct } => {
                 self.visitor.visit_invoke_direct(dest, fct);
             }
@@ -982,9 +975,6 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_invoke_direct_void(&mut self, _fct: ConstPoolIdx) {
-        unimplemented!();
-    }
     fn visit_invoke_direct(&mut self, _dest: Register, _fct: ConstPoolIdx) {
         unimplemented!();
     }

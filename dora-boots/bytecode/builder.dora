@@ -223,11 +223,7 @@ impl BytecodeBuilder {
         self.emitJmpForward(opc::BC_JUMP, opc::BC_JUMP_CONST, None[BytecodeRegister], lbl);
     }
 
-    @pub fn emitInvokeDirectVoid(fct: FctId, start: BytecodeRegister, count: Int32) {
-        self.emitFctVoid(opc::BC_INVOKE_DIRECT_VOID, fct, start, count);
-    }
-
-    @pub fn emitInvokeDirectBool(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
+    @pub fn emitInvokeDirect(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFct(opc::BC_INVOKE_DIRECT, dest, fct, start, count);
     }
 

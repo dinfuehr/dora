@@ -192,9 +192,6 @@ impl BytecodeDumper {
                 self.emitReg1AndIdx("JumpIfTrueConst", opnd, idx);
             },
 
-            BytecodeInstruction::InvokeDirectVoid(idx) => {
-                self.emitIdx("InvokeDirectVoid", idx);
-            },
             BytecodeInstruction::InvokeDirect(dest, idx) => {
                 self.emitReg1AndIdx("InvokeDirect", dest, idx);
             },

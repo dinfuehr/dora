@@ -106,7 +106,6 @@ enumeration!(BytecodeOpcode {
     JumpIfTrue,
     JumpIfTrueConst,
 
-    InvokeDirectVoid,
     InvokeDirect,
 
     InvokeVirtualVoid,
@@ -201,8 +200,7 @@ impl BytecodeOpcode {
 
     pub fn is_any_invoke(self) -> bool {
         match self {
-            BytecodeOpcode::InvokeDirectVoid
-            | BytecodeOpcode::InvokeDirect
+            BytecodeOpcode::InvokeDirect
             | BytecodeOpcode::InvokeGenericDirect
             | BytecodeOpcode::InvokeGenericDirectVoid
             | BytecodeOpcode::InvokeGenericStatic
@@ -230,7 +228,6 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeGenericDirectVoid
             | BytecodeOpcode::InvokeGenericStaticVoid
             | BytecodeOpcode::InvokeStaticVoid
-            | BytecodeOpcode::InvokeDirectVoid
             | BytecodeOpcode::InvokeVirtualVoid
             | BytecodeOpcode::JumpConst
             | BytecodeOpcode::Jump
@@ -304,7 +301,6 @@ impl BytecodeOpcode {
             | BytecodeOpcode::Mod
             | BytecodeOpcode::LoadField
             | BytecodeOpcode::StoreField
-            | BytecodeOpcode::InvokeDirectVoid
             | BytecodeOpcode::InvokeDirect
             | BytecodeOpcode::InvokeVirtualVoid
             | BytecodeOpcode::InvokeVirtual
@@ -563,9 +559,6 @@ pub enum BytecodeInstruction {
         idx: ConstPoolIdx,
     },
 
-    InvokeDirectVoid {
-        fct: ConstPoolIdx,
-    },
     InvokeDirect {
         dest: Register,
         fct: ConstPoolIdx,

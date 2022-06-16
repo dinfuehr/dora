@@ -1248,7 +1248,7 @@ fn gen_method_call_void_check_correct_self() {
                 .expect("g not found");
             let expected = vec![
                 PushRegister(r(1)),
-                InvokeDirectVoid(ConstPoolIdx(0)),
+                InvokeDirect(r(2), ConstPoolIdx(0)),
                 RetVoid,
             ];
             assert_eq!(expected, code);
@@ -1275,7 +1275,7 @@ fn gen_method_call_void_with_0_args() {
                 .expect("g not found");
             let expected = vec![
                 PushRegister(r(0)),
-                InvokeDirectVoid(ConstPoolIdx(0)),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
                 RetVoid,
             ];
             assert_eq!(expected, code);
@@ -1304,7 +1304,7 @@ fn gen_method_call_void_with_1_arg() {
                 ConstInt32(r(1), 1),
                 PushRegister(r(0)),
                 PushRegister(r(1)),
-                InvokeDirectVoid(ConstPoolIdx(0)),
+                InvokeDirect(r(2), ConstPoolIdx(0)),
                 RetVoid,
             ];
             assert_eq!(expected, code);
@@ -1337,7 +1337,7 @@ fn gen_method_call_void_with_3_args() {
                 PushRegister(r(1)),
                 PushRegister(r(2)),
                 PushRegister(r(3)),
-                InvokeDirectVoid(ConstPoolIdx(0)),
+                InvokeDirect(r(4), ConstPoolIdx(0)),
                 RetVoid,
             ];
             assert_eq!(expected, code);
@@ -2752,7 +2752,7 @@ fn gen_new_object() {
             let expected = vec![
                 NewObject(r(0), ConstPoolIdx(1)),
                 PushRegister(r(0)),
-                InvokeDirectVoid(ConstPoolIdx(0)),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
                 Ret(r(0)),
             ];
             assert_eq!(expected, code);
@@ -2801,7 +2801,7 @@ fn gen_new_object_assign_to_var() {
             let expected = vec![
                 NewObject(r(1), ConstPoolIdx(1)),
                 PushRegister(r(1)),
-                InvokeDirectVoid(ConstPoolIdx(0)),
+                InvokeDirect(r(2), ConstPoolIdx(0)),
                 Mov(r(0), r(1)),
                 Ret(r(0)),
             ];
@@ -3144,7 +3144,7 @@ fn gen_new_object_with_multiple_args() {
                 PushRegister(r(1)),
                 PushRegister(r(2)),
                 PushRegister(r(3)),
-                InvokeDirectVoid(ConstPoolIdx(0)),
+                InvokeDirect(r(4), ConstPoolIdx(0)),
                 Ret(r(0)),
             ];
             assert_eq!(expected, code);
@@ -4061,7 +4061,7 @@ fn gen_vec_store() {
                 PushRegister(r(0)),
                 PushRegister(r(1)),
                 PushRegister(r(2)),
-                InvokeDirectVoid(ConstPoolIdx(0)),
+                InvokeDirect(r(3), ConstPoolIdx(0)),
                 RetVoid,
             ];
             assert_eq!(expected, code);
@@ -4355,7 +4355,6 @@ pub enum Bytecode {
     JumpIfFalse(Register, usize),
     JumpIfTrue(Register, usize),
 
-    InvokeDirectVoid(ConstPoolIdx),
     InvokeDirect(Register, ConstPoolIdx),
 
     InvokeVirtualVoid(ConstPoolIdx),
@@ -4639,9 +4638,6 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::LoopStart);
     }
 
-    fn visit_invoke_direct_void(&mut self, fctdef: ConstPoolIdx) {
-        self.emit(Bytecode::InvokeDirectVoid(fctdef));
-    }
     fn visit_invoke_direct(&mut self, dest: Register, fctdef: ConstPoolIdx) {
         self.emit(Bytecode::InvokeDirect(dest, fctdef));
     }
