@@ -90,7 +90,7 @@ pub struct CannonCodeGen<'a> {
 
     slow_paths: Vec<(
         Label,
-        Option<Register>,
+        Register,
         FctDefinitionId,
         Vec<Register>,
         SourceTypeArray,
@@ -190,11 +190,10 @@ impl<'a> CannonCodeGen<'a> {
         let mut stacksize: i32 = start;
 
         for (index, ty) in self.bytecode.registers().iter().enumerate() {
-            if let Some(ty) = self.specialize_bytecode_type_unit(ty.clone()) {
-                let sz = size(self.vm, ty);
-                stacksize = align_i32(stacksize + sz, sz);
-                offset[index] = Some(-stacksize);
-            }
+            let ty = self.specialize_bytecode_type(ty.clone());
+            let sz = size(self.vm, ty);
+            stacksize = align_i32(stacksize + sz, sz);
+            offset[index] = Some(-stacksize);
         }
 
         stacksize = align_i32(stacksize, STACK_FRAME_ALIGNMENT as i32);
@@ -223,64 +222,62 @@ impl<'a> CannonCodeGen<'a> {
     fn initialize_references(&mut self) {
         assert!(self.references.is_empty());
         for (idx, ty) in self.bytecode.registers().iter().enumerate() {
-            if let Some(ty) = self.specialize_bytecode_type_unit(ty.clone()) {
-                match ty {
-                    BytecodeType::Ptr | BytecodeType::Trait(_, _) => {
-                        let offset = self.register_offset(Register(idx));
-                        self.references.push(offset);
-                    }
+            let ty = self.specialize_bytecode_type(ty.clone());
+            match ty {
+                BytecodeType::Ptr | BytecodeType::Trait(_, _) => {
+                    let offset = self.register_offset(Register(idx));
+                    self.references.push(offset);
+                }
 
-                    BytecodeType::Tuple(_) => {
-                        let offset = self.register_offset(Register(idx));
-                        let tuple = get_concrete_tuple_bytecode_ty(self.vm, &ty);
-                        for &ref_offset in tuple.references() {
-                            self.references.push(offset + ref_offset);
+                BytecodeType::Tuple(_) => {
+                    let offset = self.register_offset(Register(idx));
+                    let tuple = get_concrete_tuple_bytecode_ty(self.vm, &ty);
+                    for &ref_offset in tuple.references() {
+                        self.references.push(offset + ref_offset);
+                    }
+                }
+
+                BytecodeType::Struct(struct_id, type_params) => {
+                    let offset = self.register_offset(Register(idx));
+                    let struct_instance_id =
+                        specialize_struct_id_params(self.vm, struct_id, type_params);
+                    let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
+
+                    for &ref_offset in &struct_instance.ref_fields {
+                        self.references.push(offset + ref_offset);
+                    }
+                }
+
+                BytecodeType::Enum(enum_id, type_params) => {
+                    let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+                    let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
+
+                    match enum_instance.layout {
+                        EnumLayout::Int => {
+                            // type does not contain reference
+                        }
+                        EnumLayout::Ptr | EnumLayout::Tagged => {
+                            let offset = self.register_offset(Register(idx));
+                            self.references.push(offset);
                         }
                     }
+                }
 
-                    BytecodeType::Struct(struct_id, type_params) => {
-                        let offset = self.register_offset(Register(idx));
-                        let struct_instance_id =
-                            specialize_struct_id_params(self.vm, struct_id, type_params);
-                        let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
+                BytecodeType::TypeParam(_)
+                | BytecodeType::Class(_, _)
+                | BytecodeType::Lambda(_, _) => {
+                    unreachable!()
+                }
 
-                        for &ref_offset in &struct_instance.ref_fields {
-                            self.references.push(offset + ref_offset);
-                        }
-                    }
-
-                    BytecodeType::Enum(enum_id, type_params) => {
-                        let enum_instance_id =
-                            specialize_enum_id_params(self.vm, enum_id, type_params);
-                        let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
-
-                        match enum_instance.layout {
-                            EnumLayout::Int => {
-                                // type does not contain reference
-                            }
-                            EnumLayout::Ptr | EnumLayout::Tagged => {
-                                let offset = self.register_offset(Register(idx));
-                                self.references.push(offset);
-                            }
-                        }
-                    }
-
-                    BytecodeType::TypeParam(_)
-                    | BytecodeType::Class(_, _)
-                    | BytecodeType::Lambda(_, _) => {
-                        unreachable!()
-                    }
-
-                    BytecodeType::UInt8
-                    | BytecodeType::Int32
-                    | BytecodeType::Bool
-                    | BytecodeType::Char
-                    | BytecodeType::Int64
-                    | BytecodeType::Float32
-                    | BytecodeType::Float64
-                    | BytecodeType::Unit => {
-                        // type does not contain reference
-                    }
+                BytecodeType::UInt8
+                | BytecodeType::Int32
+                | BytecodeType::Bool
+                | BytecodeType::Char
+                | BytecodeType::Int64
+                | BytecodeType::Float32
+                | BytecodeType::Float64
+                | BytecodeType::Unit => {
+                    // type does not contain reference
                 }
             }
         }
@@ -1189,11 +1186,10 @@ impl<'a> CannonCodeGen<'a> {
             self.bytecode.register_type(dest)
         );
 
-        if let Some(bytecode_type) = self.specialize_register_type_unit(src) {
-            let src = self.reg(src);
-            let dest = self.reg(dest);
-            self.copy_bytecode_ty(bytecode_type, dest, src);
-        }
+        let bytecode_type = self.specialize_register_type(src);
+        let src = self.reg(src);
+        let dest = self.reg(dest);
+        self.copy_bytecode_ty(bytecode_type, dest, src);
     }
 
     fn emit_load_tuple_element(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
@@ -1206,15 +1202,14 @@ impl<'a> CannonCodeGen<'a> {
         let tuple = get_concrete_tuple_ty(self.vm, &tuple_ty);
         let offset = tuple.offsets()[subtype_idx as usize];
 
-        if let Some(dest_type) = self.specialize_register_type_unit(dest) {
-            let src_offset = self.register_offset(src);
+        let dest_type = self.specialize_register_type(dest);
+        let src_offset = self.register_offset(src);
 
-            self.copy_bytecode_ty(
-                dest_type,
-                self.reg(dest),
-                RegOrOffset::Offset(src_offset + offset),
-            );
-        }
+        self.copy_bytecode_ty(
+            dest_type,
+            self.reg(dest),
+            RegOrOffset::Offset(src_offset + offset),
+        );
     }
 
     fn emit_load_enum_element(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
@@ -1273,21 +1268,15 @@ impl<'a> CannonCodeGen<'a> {
                 let field_id = enum_instance.field_id(&*enum_, variant_idx, element_idx);
                 let field = &cls.fields[field_id];
 
-                if field.ty.is_unit() {
-                    assert_eq!(self.specialize_register_type_unit(dest), None);
-                    return;
-                }
-
                 let bty = register_bty_from_ty(field.ty.clone());
                 assert_eq!(bty, self.specialize_register_type(dest));
 
-                if let Some(bytecode_type) = self.specialize_register_type_unit(dest) {
-                    assert_eq!(bytecode_type, register_bty_from_ty(field.ty.clone()));
-                    let dest = self.register_offset(dest);
-                    let dest = RegOrOffset::Offset(dest);
-                    let src = RegOrOffset::RegWithOffset(REG_TMP1, field.offset);
-                    self.copy_bytecode_ty(bytecode_type, dest, src);
-                }
+                let bytecode_type = self.specialize_register_type(dest);
+                assert_eq!(bytecode_type, register_bty_from_ty(field.ty.clone()));
+                let dest = self.register_offset(dest);
+                let dest = RegOrOffset::Offset(dest);
+                let src = RegOrOffset::RegWithOffset(REG_TMP1, field.offset);
+                self.copy_bytecode_ty(bytecode_type, dest, src);
             }
         }
     }
@@ -1603,12 +1592,11 @@ impl<'a> CannonCodeGen<'a> {
 
         let field = &struct_instance.fields[field_id.to_usize()];
 
-        if let Some(bytecode_type) = self.specialize_register_type_unit(dest) {
-            assert_eq!(bytecode_type, register_bty_from_ty(field.ty.clone()));
-            let dest = self.reg(dest);
-            let src = self.reg(obj).offset(field.offset);
-            self.copy_bytecode_ty(bytecode_type, dest, src);
-        }
+        let bytecode_type = self.specialize_register_type(dest);
+        assert_eq!(bytecode_type, register_bty_from_ty(field.ty.clone()));
+        let dest = self.reg(dest);
+        let src = self.reg(obj).offset(field.offset);
+        self.copy_bytecode_ty(bytecode_type, dest, src);
     }
 
     fn emit_load_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
@@ -1642,12 +1630,11 @@ impl<'a> CannonCodeGen<'a> {
         let pos = self.bytecode.offset_position(self.current_offset.to_u32());
         self.asm.test_if_nil_bailout(pos, obj_reg, Trap::NIL);
 
-        if let Some(bytecode_type) = self.specialize_register_type_unit(dest) {
-            assert_eq!(bytecode_type, register_bty_from_ty(field.ty.clone()));
-            let dest = self.reg(dest);
-            let src = RegOrOffset::RegWithOffset(obj_reg, field.offset);
-            self.copy_bytecode_ty(bytecode_type, dest, src);
-        }
+        let bytecode_type = self.specialize_register_type(dest);
+        assert_eq!(bytecode_type, register_bty_from_ty(field.ty.clone()));
+        let dest = self.reg(dest);
+        let src = RegOrOffset::RegWithOffset(obj_reg, field.offset);
+        self.copy_bytecode_ty(bytecode_type, dest, src);
     }
 
     fn emit_store_field(&mut self, src: Register, obj: Register, field_idx: ConstPoolIdx) {
@@ -2963,7 +2950,7 @@ impl<'a> CannonCodeGen<'a> {
         }
     }
 
-    fn emit_invoke_virtual_from_bytecode(&mut self, dest: Option<Register>, fct_idx: ConstPoolIdx) {
+    fn emit_invoke_virtual_from_bytecode(&mut self, dest: Register, fct_idx: ConstPoolIdx) {
         let (fct_id, type_params) = match self.bytecode.const_pool(fct_idx) {
             ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params.clone()),
             _ => unreachable!(),
@@ -2978,7 +2965,7 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_invoke_virtual(dest, fct_id, type_params, arguments, pos);
     }
 
-    fn emit_invoke_lambda_from_bytecode(&mut self, dest: Option<Register>, idx: ConstPoolIdx) {
+    fn emit_invoke_lambda_from_bytecode(&mut self, dest: Register, idx: ConstPoolIdx) {
         let (params, return_type) = match self.bytecode.const_pool(idx) {
             ConstPoolEntry::Lambda(params, return_type) => (params.clone(), return_type.clone()),
             _ => unreachable!(),
@@ -2995,18 +2982,14 @@ impl<'a> CannonCodeGen<'a> {
 
     fn emit_invoke_lambda(
         &mut self,
-        dest: Option<Register>,
+        dest: Register,
         _params: SourceTypeArray,
         return_type: SourceType,
         type_params: SourceTypeArray,
         arguments: Vec<Register>,
         pos: Position,
     ) {
-        let bytecode_type = if let Some(dest) = dest {
-            self.specialize_register_type_unit(dest)
-        } else {
-            None
-        };
+        let bytecode_type = self.specialize_register_type(dest);
 
         let self_register = arguments[0];
 
@@ -3049,17 +3032,13 @@ impl<'a> CannonCodeGen<'a> {
 
     fn emit_invoke_virtual(
         &mut self,
-        dest: Option<Register>,
+        dest: Register,
         fct_id: FctDefinitionId,
         type_params: SourceTypeArray,
         arguments: Vec<Register>,
         pos: Position,
     ) {
-        let bytecode_type = if let Some(dest) = dest {
-            self.specialize_register_type_unit(dest)
-        } else {
-            None
-        };
+        let bytecode_type = self.specialize_register_type(dest);
 
         let self_register = arguments[0];
 
@@ -3111,7 +3090,7 @@ impl<'a> CannonCodeGen<'a> {
         self.store_call_result(dest, result_reg, fct_return_type);
     }
 
-    fn emit_invoke_direct_from_bytecode(&mut self, dest: Option<Register>, fct_idx: ConstPoolIdx) {
+    fn emit_invoke_direct_from_bytecode(&mut self, dest: Register, fct_idx: ConstPoolIdx) {
         let (fct_id, type_params) = match self.bytecode.const_pool(fct_idx) {
             ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params.clone()),
             _ => unreachable!(),
@@ -3128,7 +3107,7 @@ impl<'a> CannonCodeGen<'a> {
 
     fn emit_invoke_direct_or_intrinsic(
         &mut self,
-        dest: Option<Register>,
+        dest: Register,
         fct_id: FctDefinitionId,
         type_params: SourceTypeArray,
         arguments: Vec<Register>,
@@ -3147,7 +3126,7 @@ impl<'a> CannonCodeGen<'a> {
 
     fn emit_invoke_direct(
         &mut self,
-        dest: Option<Register>,
+        dest: Register,
         fct_id: FctDefinitionId,
         type_params: SourceTypeArray,
         arguments: Vec<Register>,
@@ -3155,11 +3134,7 @@ impl<'a> CannonCodeGen<'a> {
     ) {
         let self_register = arguments[0];
 
-        let dest_ty = if let Some(dest) = dest {
-            self.specialize_register_type_unit(dest)
-        } else {
-            None
-        };
+        let dest_ty = self.specialize_register_type(dest);
 
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
@@ -3202,7 +3177,7 @@ impl<'a> CannonCodeGen<'a> {
         self.store_call_result(dest, result_reg, fct_return_type);
     }
 
-    fn emit_invoke_static_from_bytecode(&mut self, dest: Option<Register>, fct_idx: ConstPoolIdx) {
+    fn emit_invoke_static_from_bytecode(&mut self, dest: Register, fct_idx: ConstPoolIdx) {
         let (fct_id, type_params) = match self.bytecode.const_pool(fct_idx) {
             ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params.clone()),
             _ => unreachable!(),
@@ -3219,7 +3194,7 @@ impl<'a> CannonCodeGen<'a> {
 
     fn emit_invoke_static_or_intrinsic(
         &mut self,
-        dest: Option<Register>,
+        dest: Register,
         fct_id: FctDefinitionId,
         type_params: SourceTypeArray,
         arguments: Vec<Register>,
@@ -3238,17 +3213,13 @@ impl<'a> CannonCodeGen<'a> {
 
     fn emit_invoke_static(
         &mut self,
-        dest: Option<Register>,
+        dest: Register,
         fct_id: FctDefinitionId,
         type_params: SourceTypeArray,
         arguments: Vec<Register>,
         pos: Position,
     ) {
-        let bytecode_type = if let Some(dest) = dest {
-            self.specialize_register_type_unit(dest)
-        } else {
-            None
-        };
+        let bytecode_type = self.specialize_register_type(dest);
 
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
@@ -3282,38 +3253,29 @@ impl<'a> CannonCodeGen<'a> {
         self.store_call_result(dest, result_reg, fct_return_type);
     }
 
-    fn store_call_result(&mut self, dest: Option<Register>, reg: AnyReg, _ty: SourceType) {
-        if let Some(dest) = dest {
-            if let Some(bytecode_ty) = self.specialize_register_type_unit(dest) {
-                if !bytecode_ty.is_struct() && !bytecode_ty.is_tuple() && !bytecode_ty.is_unit() {
-                    self.emit_store_register(reg, dest);
-                }
-            }
+    fn store_call_result(&mut self, dest: Register, reg: AnyReg, _ty: SourceType) {
+        let bytecode_ty = self.specialize_register_type(dest);
+        if !bytecode_ty.is_struct() && !bytecode_ty.is_tuple() && !bytecode_ty.is_unit() {
+            self.emit_store_register(reg, dest);
         }
     }
 
     fn call_result_reg_and_mode(
         &self,
-        bytecode_type: Option<BytecodeType>,
+        bytecode_type: BytecodeType,
     ) -> (AnyReg, Option<MachineMode>) {
         match bytecode_type {
-            Some(BytecodeType::Struct(_, _)) => (REG_RESULT.into(), None),
-            Some(BytecodeType::Tuple(_)) => (REG_RESULT.into(), None),
-            Some(BytecodeType::Unit) => (REG_RESULT.into(), None),
-            Some(bytecode_type) => (
+            BytecodeType::Struct(_, _) => (REG_RESULT.into(), None),
+            BytecodeType::Tuple(_) => (REG_RESULT.into(), None),
+            BytecodeType::Unit => (REG_RESULT.into(), None),
+            bytecode_type => (
                 result_reg(self.vm, bytecode_type.clone()),
                 Some(mode(self.vm, bytecode_type)),
             ),
-            None => (REG_RESULT.into(), None),
         }
     }
 
-    fn emit_invoke_generic(
-        &mut self,
-        dest: Option<Register>,
-        fct_idx: ConstPoolIdx,
-        is_static: bool,
-    ) {
+    fn emit_invoke_generic(&mut self, dest: Register, fct_idx: ConstPoolIdx, is_static: bool) {
         let (id, trait_fct_id, type_params) = match self.bytecode.const_pool(fct_idx) {
             ConstPoolEntry::Generic(id, fct_id, type_params) => (*id, *fct_id, type_params.clone()),
             _ => unreachable!(),
@@ -3339,7 +3301,7 @@ impl<'a> CannonCodeGen<'a> {
 
     fn emit_invoke_intrinsic(
         &mut self,
-        dest: Option<Register>,
+        dest: Register,
         fct_id: FctDefinitionId,
         intrinsic: Intrinsic,
         type_params: SourceTypeArray,
@@ -3349,9 +3311,8 @@ impl<'a> CannonCodeGen<'a> {
         match intrinsic {
             Intrinsic::Float32Abs | Intrinsic::Float64Abs => {
                 debug_assert_eq!(arguments.len(), 1);
-                let dest_reg = dest.expect("missing dest");
                 let src_reg = arguments[0];
-                self.emit_intrinsic_abs_float(dest_reg, src_reg);
+                self.emit_intrinsic_abs_float(dest, src_reg);
             }
 
             Intrinsic::Float32RoundToZero | Intrinsic::Float64RoundToZero => {
@@ -3433,10 +3394,9 @@ impl<'a> CannonCodeGen<'a> {
             | Intrinsic::ReinterpretFloat64AsInt64
             | Intrinsic::ReinterpretInt64AsFloat64 => {
                 debug_assert_eq!(arguments.len(), 1);
-                let dest_reg = dest.expect("missing dest");
                 let src_reg = arguments[0];
 
-                self.emit_reinterpret(dest_reg, src_reg);
+                self.emit_reinterpret(dest, src_reg);
             }
 
             Intrinsic::Unreachable => {
@@ -3456,27 +3416,24 @@ impl<'a> CannonCodeGen<'a> {
 
             Intrinsic::PromoteFloat32ToFloat64 => {
                 assert_eq!(arguments.len(), 1);
-                let dest_reg = dest.expect("missing dest");
                 let src_reg = arguments[0];
-                self.emit_promote_float(dest_reg, src_reg);
+                self.emit_promote_float(dest, src_reg);
             }
 
             Intrinsic::DemoteFloat64ToFloat32 => {
                 assert_eq!(arguments.len(), 1);
-                let dest_reg = dest.expect("missing dest");
                 let src_reg = arguments[0];
-                self.emit_demote_float64(dest_reg, src_reg);
+                self.emit_demote_float64(dest, src_reg);
             }
 
             Intrinsic::BoolToInt32 | Intrinsic::BoolToInt64 => {
                 assert_eq!(arguments.len(), 1);
-                let dest_reg = dest.expect("missing dest");
                 let src_reg = arguments[0];
 
                 self.emit_load_register(src_reg, REG_RESULT.into());
                 self.asm
                     .extend_byte(MachineMode::Int64, REG_RESULT, REG_RESULT);
-                self.emit_store_register(REG_RESULT.into(), dest_reg);
+                self.emit_store_register(REG_RESULT.into(), dest);
             }
 
             Intrinsic::Float32ToInt32
@@ -3484,7 +3441,6 @@ impl<'a> CannonCodeGen<'a> {
             | Intrinsic::Float64ToInt32
             | Intrinsic::Float64ToInt64 => {
                 assert_eq!(arguments.len(), 1);
-                let dest_reg = dest.expect("missing dest");
                 let src_reg = arguments[0];
 
                 self.emit_load_register(src_reg, FREG_RESULT.into());
@@ -3497,12 +3453,11 @@ impl<'a> CannonCodeGen<'a> {
                 };
                 self.asm
                     .float_to_int(dest_mode, REG_RESULT, src_mode, FREG_RESULT);
-                self.emit_store_register(REG_RESULT.into(), dest_reg);
+                self.emit_store_register(REG_RESULT.into(), dest);
             }
 
             Intrinsic::Int32Cmp | Intrinsic::Int64Cmp | Intrinsic::ByteCmp | Intrinsic::CharCmp => {
                 assert_eq!(arguments.len(), 2);
-                let dest_reg = dest.expect("missing dest");
                 let lhs_reg = arguments[0];
                 let rhs_reg = arguments[1];
 
@@ -3517,12 +3472,11 @@ impl<'a> CannonCodeGen<'a> {
                 };
 
                 self.asm.cmp_int(mode, REG_RESULT, REG_TMP1, REG_TMP2);
-                self.emit_store_register(REG_RESULT.into(), dest_reg);
+                self.emit_store_register(REG_RESULT.into(), dest);
             }
 
             Intrinsic::Float32Cmp | Intrinsic::Float64Cmp => {
                 assert_eq!(arguments.len(), 2);
-                let dest_reg = dest.expect("missing dest");
                 let lhs_reg = arguments[0];
                 let rhs_reg = arguments[1];
 
@@ -3537,7 +3491,7 @@ impl<'a> CannonCodeGen<'a> {
 
                 self.asm
                     .float_cmp_int(mode, REG_RESULT, FREG_RESULT, FREG_TMP1);
-                self.emit_store_register(REG_RESULT.into(), dest_reg);
+                self.emit_store_register(REG_RESULT.into(), dest);
             }
 
             Intrinsic::Int32ToFloat32
@@ -3545,7 +3499,6 @@ impl<'a> CannonCodeGen<'a> {
             | Intrinsic::Int64ToFloat32
             | Intrinsic::Int64ToFloat64 => {
                 assert_eq!(arguments.len(), 1);
-                let dest_reg = dest.expect("missing dest");
                 let src_reg = arguments[0];
 
                 self.emit_load_register(src_reg, REG_RESULT.into());
@@ -3558,12 +3511,12 @@ impl<'a> CannonCodeGen<'a> {
                 };
                 self.asm
                     .int_to_float(dest_mode, FREG_RESULT, src_mode, REG_RESULT);
-                self.emit_store_register(FREG_RESULT.into(), dest_reg);
+                self.emit_store_register(FREG_RESULT.into(), dest);
             }
 
             Intrinsic::UnsafeKillRefs => {
                 self.emit_intrinsic_unsafe_kill_refs(
-                    dest.expect("missing dest"),
+                    dest,
                     fct_id,
                     intrinsic,
                     arguments,
@@ -3600,7 +3553,6 @@ impl<'a> CannonCodeGen<'a> {
 
             Intrinsic::AtomicInt32Get => {
                 assert_eq!(arguments.len(), 1);
-                let dest_reg = dest.expect("missing dest");
                 let obj_reg = arguments[0];
 
                 self.emit_load_register(obj_reg, REG_RESULT.into());
@@ -3611,12 +3563,11 @@ impl<'a> CannonCodeGen<'a> {
                     Header::size() as i64,
                 );
                 self.asm.load_int32_synchronized(REG_RESULT, REG_RESULT);
-                self.emit_store_register(REG_RESULT.into(), dest_reg);
+                self.emit_store_register(REG_RESULT.into(), dest);
             }
 
             Intrinsic::AtomicInt64Get => {
                 assert_eq!(arguments.len(), 1);
-                let dest_reg = dest.expect("missing dest");
                 let obj_reg = arguments[0];
 
                 self.emit_load_register(obj_reg, REG_RESULT.into());
@@ -3627,12 +3578,11 @@ impl<'a> CannonCodeGen<'a> {
                     Header::size() as i64,
                 );
                 self.asm.load_int64_synchronized(REG_RESULT, REG_RESULT);
-                self.emit_store_register(REG_RESULT.into(), dest_reg);
+                self.emit_store_register(REG_RESULT.into(), dest);
             }
 
             Intrinsic::AtomicInt32Exchange => {
                 assert_eq!(arguments.len(), 2);
-                let dest_reg = dest.expect("missing dest");
                 let obj_reg = arguments[0];
                 let value_reg = arguments[1];
 
@@ -3646,12 +3596,11 @@ impl<'a> CannonCodeGen<'a> {
                 );
                 self.asm
                     .exchange_int32_synchronized(REG_TMP2, REG_TMP1, REG_RESULT);
-                self.emit_store_register(REG_TMP2.into(), dest_reg);
+                self.emit_store_register(REG_TMP2.into(), dest);
             }
 
             Intrinsic::AtomicInt32CompareExchange => {
                 assert_eq!(arguments.len(), 3);
-                let dest_reg = dest.expect("missing dest");
                 let obj_reg = arguments[0];
                 let expected_reg = arguments[1];
                 let value_reg = arguments[2];
@@ -3664,12 +3613,11 @@ impl<'a> CannonCodeGen<'a> {
                 let current = self
                     .asm
                     .compare_exchange_int32_synchronized(REG_RESULT, REG_TMP2, REG_TMP1);
-                self.emit_store_register(current.into(), dest_reg);
+                self.emit_store_register(current.into(), dest);
             }
 
             Intrinsic::AtomicInt64CompareExchange => {
                 assert_eq!(arguments.len(), 3);
-                let dest_reg = dest.expect("missing dest");
                 let obj_reg = arguments[0];
                 let expected_reg = arguments[1];
                 let value_reg = arguments[2];
@@ -3682,12 +3630,11 @@ impl<'a> CannonCodeGen<'a> {
                 let current = self
                     .asm
                     .compare_exchange_int64_synchronized(REG_RESULT, REG_TMP2, REG_TMP1);
-                self.emit_store_register(current.into(), dest_reg);
+                self.emit_store_register(current.into(), dest);
             }
 
             Intrinsic::AtomicInt32FetchAdd => {
                 assert_eq!(arguments.len(), 2);
-                let dest_reg = dest.expect("missing dest");
                 let obj_reg = arguments[0];
                 let value_reg = arguments[1];
 
@@ -3702,12 +3649,11 @@ impl<'a> CannonCodeGen<'a> {
                 let previous = self
                     .asm
                     .fetch_add_int32_synchronized(REG_TMP2, REG_TMP1, REG_RESULT);
-                self.emit_store_register(previous.into(), dest_reg);
+                self.emit_store_register(previous.into(), dest);
             }
 
             Intrinsic::AtomicInt64FetchAdd => {
                 assert_eq!(arguments.len(), 2);
-                let dest_reg = dest.expect("missing dest");
                 let obj_reg = arguments[0];
                 let value_reg = arguments[1];
 
@@ -3722,12 +3668,11 @@ impl<'a> CannonCodeGen<'a> {
                 let previous = self
                     .asm
                     .fetch_add_int64_synchronized(REG_TMP2, REG_TMP1, REG_RESULT);
-                self.emit_store_register(previous.into(), dest_reg);
+                self.emit_store_register(previous.into(), dest);
             }
 
             Intrinsic::AtomicInt64Exchange => {
                 assert_eq!(arguments.len(), 2);
-                let dest_reg = dest.expect("missing dest");
                 let obj_reg = arguments[0];
                 let value_reg = arguments[1];
 
@@ -3741,7 +3686,7 @@ impl<'a> CannonCodeGen<'a> {
                 );
                 self.asm
                     .exchange_int64_synchronized(REG_TMP2, REG_TMP1, REG_RESULT);
-                self.emit_store_register(REG_TMP2.into(), dest_reg);
+                self.emit_store_register(REG_TMP2.into(), dest);
             }
 
             Intrinsic::AtomicInt32Set => {
@@ -3779,7 +3724,6 @@ impl<'a> CannonCodeGen<'a> {
             Intrinsic::Int32MulUnchecked | Intrinsic::Int64MulUnchecked => {
                 assert_eq!(arguments.len(), 2);
 
-                let dest_reg = dest.expect("missing dest");
                 let lhs_reg = arguments[0];
                 let rhs_reg = arguments[1];
 
@@ -3792,13 +3736,12 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_load_register(lhs_reg, REG_RESULT.into());
                 self.emit_load_register(rhs_reg, REG_TMP1.into());
                 self.asm.int_mul(mode, REG_RESULT, REG_RESULT, REG_TMP1);
-                self.emit_store_register(REG_RESULT.into(), dest_reg);
+                self.emit_store_register(REG_RESULT.into(), dest);
             }
 
             Intrinsic::Int32SubUnchecked | Intrinsic::Int64SubUnchecked => {
                 assert_eq!(arguments.len(), 2);
 
-                let dest_reg = dest.expect("missing dest");
                 let lhs_reg = arguments[0];
                 let rhs_reg = arguments[1];
 
@@ -3811,13 +3754,12 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_load_register(lhs_reg, REG_RESULT.into());
                 self.emit_load_register(rhs_reg, REG_TMP1.into());
                 self.asm.int_sub(mode, REG_RESULT, REG_RESULT, REG_TMP1);
-                self.emit_store_register(REG_RESULT.into(), dest_reg);
+                self.emit_store_register(REG_RESULT.into(), dest);
             }
 
             Intrinsic::Int32AddUnchecked | Intrinsic::Int64AddUnchecked => {
                 assert_eq!(arguments.len(), 2);
 
-                let dest_reg = dest.expect("missing dest");
                 let lhs_reg = arguments[0];
                 let rhs_reg = arguments[1];
 
@@ -3830,43 +3772,39 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_load_register(lhs_reg, REG_RESULT.into());
                 self.emit_load_register(rhs_reg, REG_TMP1.into());
                 self.asm.int_add(mode, REG_RESULT, REG_RESULT, REG_TMP1);
-                self.emit_store_register(REG_RESULT.into(), dest_reg);
+                self.emit_store_register(REG_RESULT.into(), dest);
             }
 
             Intrinsic::ByteToChar | Intrinsic::ByteToInt32 => {
                 assert_eq!(arguments.len(), 1);
 
-                let dest_reg = dest.expect("missing dest");
                 let src_reg = arguments[0];
 
-                self.emit_extend_uint8(dest_reg, src_reg, MachineMode::Int32);
+                self.emit_extend_uint8(dest, src_reg, MachineMode::Int32);
             }
 
             Intrinsic::ByteToInt64 => {
                 assert_eq!(arguments.len(), 1);
 
-                let dest_reg = dest.expect("missing dest");
                 let src_reg = arguments[0];
 
-                self.emit_extend_uint8(dest_reg, src_reg, MachineMode::Int64);
+                self.emit_extend_uint8(dest, src_reg, MachineMode::Int64);
             }
 
             Intrinsic::Int32ToInt64 => {
                 assert_eq!(arguments.len(), 1);
 
-                let dest_reg = dest.expect("missing dest");
                 let src_reg = arguments[0];
 
-                self.emit_int_to_int64(dest_reg, src_reg);
+                self.emit_int_to_int64(dest, src_reg);
             }
 
             Intrinsic::CharToInt64 => {
                 assert_eq!(arguments.len(), 1);
 
-                let dest_reg = dest.expect("missing dest");
                 let src_reg = arguments[0];
 
-                self.emit_shrink(dest_reg, MachineMode::Int64, src_reg, MachineMode::Int32);
+                self.emit_shrink(dest, MachineMode::Int64, src_reg, MachineMode::Int32);
             }
 
             Intrinsic::Assert => {
@@ -3877,60 +3815,52 @@ impl<'a> CannonCodeGen<'a> {
 
             Intrinsic::Int64ToInt32 => {
                 assert_eq!(arguments.len(), 1);
-                let dest_reg = dest.expect("missing dest");
                 let src_reg = arguments[0];
-                self.emit_int64_to_int(dest_reg, src_reg);
+                self.emit_int64_to_int(dest, src_reg);
             }
 
             Intrinsic::Int64ToChar => {
                 assert_eq!(arguments.len(), 1);
-                let dest_reg = dest.expect("missing dest");
                 let src_reg = arguments[0];
-                self.emit_shrink(dest_reg, MachineMode::Int32, src_reg, MachineMode::Int64);
+                self.emit_shrink(dest, MachineMode::Int32, src_reg, MachineMode::Int64);
             }
 
             Intrinsic::Int64ToByte => {
                 assert_eq!(arguments.len(), 1);
-                let dest_reg = dest.expect("missing dest");
                 let src_reg = arguments[0];
-                self.emit_shrink(dest_reg, MachineMode::Int8, src_reg, MachineMode::Int64);
+                self.emit_shrink(dest, MachineMode::Int8, src_reg, MachineMode::Int64);
             }
 
             Intrinsic::Int32ToChar => {
                 assert_eq!(arguments.len(), 1);
-                let dest_reg = dest.expect("missing dest");
                 let src_reg = arguments[0];
-                self.emit_shrink(dest_reg, MachineMode::Int32, src_reg, MachineMode::Int32);
+                self.emit_shrink(dest, MachineMode::Int32, src_reg, MachineMode::Int32);
             }
 
             Intrinsic::Int32ToByte => {
                 assert_eq!(arguments.len(), 1);
-                let dest_reg = dest.expect("missing dest");
                 let src_reg = arguments[0];
-                self.emit_shrink(dest_reg, MachineMode::Int8, src_reg, MachineMode::Int32);
+                self.emit_shrink(dest, MachineMode::Int8, src_reg, MachineMode::Int32);
             }
 
             Intrinsic::CharToInt32 => {
                 assert_eq!(arguments.len(), 1);
-                let dest_reg = dest.expect("missing dest");
                 let src_reg = arguments[0];
-                self.emit_shrink(dest_reg, MachineMode::Int32, src_reg, MachineMode::Int32);
+                self.emit_shrink(dest, MachineMode::Int32, src_reg, MachineMode::Int32);
             }
 
             Intrinsic::Int32RotateLeft | Intrinsic::Int64RotateLeft => {
                 assert_eq!(arguments.len(), 2);
-                let dest_reg = dest.expect("missing dest");
                 let lhs_reg = arguments[0];
                 let rhs_reg = arguments[1];
-                self.emit_rol_int(dest_reg, lhs_reg, rhs_reg);
+                self.emit_rol_int(dest, lhs_reg, rhs_reg);
             }
 
             Intrinsic::Int32RotateRight | Intrinsic::Int64RotateRight => {
                 assert_eq!(arguments.len(), 2);
-                let dest_reg = dest.expect("missing dest");
                 let lhs_reg = arguments[0];
                 let rhs_reg = arguments[1];
-                self.emit_ror_int(dest_reg, lhs_reg, rhs_reg);
+                self.emit_ror_int(dest, lhs_reg, rhs_reg);
             }
 
             _ => panic!("unimplemented intrinsic {:?}", intrinsic),
@@ -3939,7 +3869,7 @@ impl<'a> CannonCodeGen<'a> {
 
     fn emit_intrinsic_count_bits(
         &mut self,
-        dest: Option<Register>,
+        dest: Register,
         fct_id: FctDefinitionId,
         intrinsic: Intrinsic,
         arguments: Vec<Register>,
@@ -3971,7 +3901,7 @@ impl<'a> CannonCodeGen<'a> {
                 if has_popcnt() {
                     self.emit_load_register(arguments[0], reg.into());
                     self.asm.count_bits(mode, reg, reg, false);
-                    self.emit_store_register(reg.into(), dest.expect("dest missing"));
+                    self.emit_store_register(reg.into(), dest);
                 } else {
                     self.emit_invoke_direct(dest, fct_id, type_params, arguments, pos);
                 }
@@ -3980,7 +3910,7 @@ impl<'a> CannonCodeGen<'a> {
                 if has_popcnt() {
                     self.emit_load_register(arguments[0], reg.into());
                     self.asm.count_bits(mode, reg, reg, true);
-                    self.emit_store_register(reg.into(), dest.expect("dest missing"));
+                    self.emit_store_register(reg.into(), dest);
                 } else {
                     self.emit_invoke_direct(dest, fct_id, type_params, arguments, pos);
                 }
@@ -3989,7 +3919,7 @@ impl<'a> CannonCodeGen<'a> {
                 if has_lzcnt() {
                     self.emit_load_register(arguments[0], reg.into());
                     self.asm.count_bits_leading(mode, reg, reg, false);
-                    self.emit_store_register(reg.into(), dest.expect("dest missing"));
+                    self.emit_store_register(reg.into(), dest);
                 } else {
                     self.emit_invoke_direct(dest, fct_id, type_params, arguments, pos);
                 }
@@ -3998,7 +3928,7 @@ impl<'a> CannonCodeGen<'a> {
                 if has_lzcnt() {
                     self.emit_load_register(arguments[0], reg.into());
                     self.asm.count_bits_leading(mode, reg, reg, true);
-                    self.emit_store_register(reg.into(), dest.expect("dest missing"));
+                    self.emit_store_register(reg.into(), dest);
                 } else {
                     self.emit_invoke_direct(dest, fct_id, type_params, arguments, pos);
                 }
@@ -4008,7 +3938,7 @@ impl<'a> CannonCodeGen<'a> {
                 if has_tzcnt() {
                     self.emit_load_register(arguments[0], reg.into());
                     self.asm.count_bits_trailing(mode, reg, reg, false);
-                    self.emit_store_register(reg.into(), dest.expect("dest missing"));
+                    self.emit_store_register(reg.into(), dest);
                 } else {
                     self.emit_invoke_direct(dest, fct_id, type_params, arguments, pos);
                 }
@@ -4017,7 +3947,7 @@ impl<'a> CannonCodeGen<'a> {
                 if has_tzcnt() {
                     self.emit_load_register(arguments[0], reg.into());
                     self.asm.count_bits_trailing(mode, reg, reg, true);
-                    self.emit_store_register(reg.into(), dest.expect("dest missing"));
+                    self.emit_store_register(reg.into(), dest);
                 } else {
                     self.emit_invoke_direct(dest, fct_id, type_params, arguments, pos);
                 }
@@ -4028,7 +3958,7 @@ impl<'a> CannonCodeGen<'a> {
 
     fn emit_intrinsic_float_round_tozero(
         &mut self,
-        dest: Option<Register>,
+        dest: Register,
         _fct_id: FctDefinitionId,
         intrinsic: Intrinsic,
         arguments: Vec<Register>,
@@ -4046,12 +3976,12 @@ impl<'a> CannonCodeGen<'a> {
 
         self.emit_load_register(arguments[0], FREG_RESULT.into());
         self.asm.float_round_tozero(mode, FREG_RESULT, FREG_RESULT);
-        self.emit_store_register(FREG_RESULT.into(), dest.expect("dest expected"));
+        self.emit_store_register(FREG_RESULT.into(), dest);
     }
 
     fn emit_intrinsic_float_round_up(
         &mut self,
-        dest: Option<Register>,
+        dest: Register,
         _fct_id: FctDefinitionId,
         intrinsic: Intrinsic,
         arguments: Vec<Register>,
@@ -4069,12 +3999,12 @@ impl<'a> CannonCodeGen<'a> {
 
         self.emit_load_register(arguments[0], FREG_RESULT.into());
         self.asm.float_round_up(mode, FREG_RESULT, FREG_RESULT);
-        self.emit_store_register(FREG_RESULT.into(), dest.expect("dest expected"));
+        self.emit_store_register(FREG_RESULT.into(), dest);
     }
 
     fn emit_intrinsic_float_round_down(
         &mut self,
-        dest: Option<Register>,
+        dest: Register,
         _fct_id: FctDefinitionId,
         intrinsic: Intrinsic,
         arguments: Vec<Register>,
@@ -4092,12 +4022,12 @@ impl<'a> CannonCodeGen<'a> {
 
         self.emit_load_register(arguments[0], FREG_RESULT.into());
         self.asm.float_round_down(mode, FREG_RESULT, FREG_RESULT);
-        self.emit_store_register(FREG_RESULT.into(), dest.expect("dest expected"));
+        self.emit_store_register(FREG_RESULT.into(), dest);
     }
 
     fn emit_intrinsic_float_round_halfeven(
         &mut self,
-        dest: Option<Register>,
+        dest: Register,
         _fct_id: FctDefinitionId,
         intrinsic: Intrinsic,
         arguments: Vec<Register>,
@@ -4116,12 +4046,12 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_load_register(arguments[0], FREG_RESULT.into());
         self.asm
             .float_round_halfeven(mode, FREG_RESULT, FREG_RESULT);
-        self.emit_store_register(FREG_RESULT.into(), dest.expect("dest expected"));
+        self.emit_store_register(FREG_RESULT.into(), dest);
     }
 
     fn emit_intrinsic_float_sqrt(
         &mut self,
-        dest: Option<Register>,
+        dest: Register,
         _fct_id: FctDefinitionId,
         intrinsic: Intrinsic,
         arguments: Vec<Register>,
@@ -4139,12 +4069,12 @@ impl<'a> CannonCodeGen<'a> {
 
         self.emit_load_register(arguments[0], FREG_RESULT.into());
         self.asm.float_sqrt(mode, FREG_RESULT, FREG_RESULT);
-        self.emit_store_register(FREG_RESULT.into(), dest.expect("dest expected"));
+        self.emit_store_register(FREG_RESULT.into(), dest);
     }
 
     fn emit_intrinsic_option_get_or_panic(
         &mut self,
-        dest: Option<Register>,
+        dest: Register,
         fct_id: FctDefinitionId,
         _intrinsic: Intrinsic,
         arguments: Vec<Register>,
@@ -4171,11 +4101,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_load_register_as(arguments[0], REG_RESULT.into(), MachineMode::Ptr);
                 let lbl_slow_path = self.asm.test_if_nil(REG_RESULT);
                 self.add_slow_path(lbl_slow_path, dest, fct_id, arguments, type_params, pos);
-                self.emit_store_register_as(
-                    REG_RESULT.into(),
-                    dest.expect("dest expected"),
-                    MachineMode::Ptr,
-                );
+                self.emit_store_register_as(REG_RESULT.into(), dest, MachineMode::Ptr);
             }
 
             EnumLayout::Tagged => {
@@ -4208,7 +4134,7 @@ impl<'a> CannonCodeGen<'a> {
                 let cls = self.vm.class_instances.idx(class_instance_id);
 
                 let field = &cls.fields[1];
-                let dest_offset = self.register_offset(dest.expect("dest missing"));
+                let dest_offset = self.register_offset(dest);
 
                 self.copy_ty(
                     field.ty.clone(),
@@ -4222,7 +4148,7 @@ impl<'a> CannonCodeGen<'a> {
     fn add_slow_path(
         &mut self,
         lbl: Label,
-        dest: Option<Register>,
+        dest: Register,
         fct_id: FctDefinitionId,
         arguments: Vec<Register>,
         type_params: SourceTypeArray,
@@ -4299,7 +4225,7 @@ impl<'a> CannonCodeGen<'a> {
 
     fn emit_intrinsic_option_is_none(
         &mut self,
-        dest: Option<Register>,
+        dest: Register,
         _fct_id: FctDefinitionId,
         intrinsic: Intrinsic,
         arguments: Vec<Register>,
@@ -4330,11 +4256,7 @@ impl<'a> CannonCodeGen<'a> {
                     _ => unreachable!(),
                 };
                 self.asm.set(REG_RESULT, cond);
-                self.emit_store_register_as(
-                    REG_RESULT.into(),
-                    dest.expect("dest expected"),
-                    MachineMode::Int8,
-                );
+                self.emit_store_register_as(REG_RESULT.into(), dest, MachineMode::Int8);
             }
 
             EnumLayout::Tagged => {
@@ -4359,18 +4281,14 @@ impl<'a> CannonCodeGen<'a> {
                 };
                 self.asm.set(REG_RESULT, cond);
 
-                self.emit_store_register_as(
-                    REG_RESULT.into(),
-                    dest.expect("dest expected"),
-                    MachineMode::Int8,
-                );
+                self.emit_store_register_as(REG_RESULT.into(), dest, MachineMode::Int8);
             }
         }
     }
 
     fn emit_invoke_arguments(
         &mut self,
-        dest: Option<Register>,
+        dest: Register,
         fct_return_type: SourceType,
         arguments: Vec<Register>,
     ) -> i32 {
@@ -4383,7 +4301,7 @@ impl<'a> CannonCodeGen<'a> {
         let mut sp_offset = 0;
 
         if result_passed_as_argument(fct_return_type) {
-            let offset = self.register_offset(dest.expect("need register for tuple result"));
+            let offset = self.register_offset(dest);
             self.asm.lea(REG_PARAMS[0], Mem::Local(offset));
             reg_idx += 1;
         }
@@ -4540,41 +4458,28 @@ impl<'a> CannonCodeGen<'a> {
 
     fn specialize_register_type_unit(&self, reg: Register) -> Option<BytecodeType> {
         let ty = self.bytecode.register_type(reg);
-        self.specialize_bytecode_type_unit(ty)
+        Some(self.specialize_bytecode_type(ty))
     }
 
     fn specialize_bytecode_type(&self, ty: BytecodeType) -> BytecodeType {
-        self.specialize_bytecode_type_unit(ty)
-            .expect("unexpected unit")
-    }
-
-    fn specialize_bytecode_type_unit(&self, ty: BytecodeType) -> Option<BytecodeType> {
         match ty {
             BytecodeType::TypeParam(id) => {
                 let ty = self.type_params[id as usize].clone();
-
-                if ty.is_unit() {
-                    None
-                } else {
-                    Some(register_bty_from_ty(ty))
-                }
+                register_bty_from_ty(ty)
             }
-            BytecodeType::Tuple(_) => {
-                let ty = specialize_tuple_bty(self.vm, ty, self.type_params);
-                Some(ty)
-            }
+            BytecodeType::Tuple(_) => specialize_tuple_bty(self.vm, ty, self.type_params),
 
-            BytecodeType::Enum(enum_id, type_params) => Some(BytecodeType::Enum(
+            BytecodeType::Enum(enum_id, type_params) => BytecodeType::Enum(
                 enum_id,
                 specialize_type_list(self.vm, &type_params, &self.type_params),
-            )),
+            ),
 
-            BytecodeType::Struct(struct_id, type_params) => Some(BytecodeType::Struct(
+            BytecodeType::Struct(struct_id, type_params) => BytecodeType::Struct(
                 struct_id,
                 specialize_type_list(self.vm, &type_params, &self.type_params),
-            )),
+            ),
 
-            _ => Some(ty),
+            _ => ty,
         }
     }
 }
@@ -5132,7 +5037,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             self,
             format!("InvokeDirect {}, {}", dest, fctdef.to_usize())
         );
-        self.emit_invoke_direct_from_bytecode(Some(dest), fctdef);
+        self.emit_invoke_direct_from_bytecode(dest, fctdef);
     }
 
     fn visit_invoke_virtual(&mut self, dest: Register, fctdef: ConstPoolIdx) {
@@ -5140,12 +5045,12 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             self,
             format!("InvokeVirtual {}, {}", dest, fctdef.to_usize())
         );
-        self.emit_invoke_virtual_from_bytecode(Some(dest), fctdef);
+        self.emit_invoke_virtual_from_bytecode(dest, fctdef);
     }
 
     fn visit_invoke_lambda(&mut self, dest: Register, idx: ConstPoolIdx) {
         comment!(self, format!("InvokeLambda {}", dest));
-        self.emit_invoke_lambda_from_bytecode(Some(dest), idx);
+        self.emit_invoke_lambda_from_bytecode(dest, idx);
     }
 
     fn visit_invoke_static(&mut self, dest: Register, fctdef: ConstPoolIdx) {
@@ -5153,7 +5058,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             self,
             format!("InvokeStatic {}, {}", dest, fctdef.to_usize())
         );
-        self.emit_invoke_static_from_bytecode(Some(dest), fctdef);
+        self.emit_invoke_static_from_bytecode(dest, fctdef);
     }
 
     fn visit_invoke_generic_direct(&mut self, dest: Register, fctdef: ConstPoolIdx) {
@@ -5161,7 +5066,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             self,
             format!("InvokeGenericDirect {}, {}", dest, fctdef.to_usize())
         );
-        self.emit_invoke_generic(Some(dest), fctdef, false);
+        self.emit_invoke_generic(dest, fctdef, false);
     }
 
     fn visit_invoke_generic_static(&mut self, dest: Register, fctdef: ConstPoolIdx) {
@@ -5169,7 +5074,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             self,
             format!("InvokeGenericStatic {}, {}", dest, fctdef.to_usize())
         );
-        self.emit_invoke_generic(Some(dest), fctdef, true);
+        self.emit_invoke_generic(dest, fctdef, true);
     }
 
     fn visit_new_object(&mut self, dest: Register, idx: ConstPoolIdx) {
