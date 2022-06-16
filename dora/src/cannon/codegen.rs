@@ -2473,6 +2473,8 @@ impl<'a> CannonCodeGen<'a> {
 
                 let mut field_idx = 1; // first field is variant_idx
 
+                assert_eq!(arguments.len(), cls.fields.len() - 1);
+
                 for arg in arguments {
                     if let Some(ty) = self.specialize_register_type_unit(arg) {
                         let field = &cls.fields[field_idx];

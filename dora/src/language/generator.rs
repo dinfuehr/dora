@@ -1124,13 +1124,7 @@ impl<'a> AstBytecodeGen<'a> {
         let mut arguments = Vec::new();
 
         for arg in &expr.args {
-            let ty = self.ty(arg.id());
-
-            if ty.is_unit() {
-                self.visit_expr(arg, DataDest::Effect);
-            } else {
-                arguments.push(self.visit_expr(arg, DataDest::Alloc));
-            }
+            arguments.push(self.visit_expr(arg, DataDest::Alloc));
         }
 
         for &arg_reg in &arguments {

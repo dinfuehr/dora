@@ -238,10 +238,6 @@ pub fn specialize_enum_class(
         let ty = replace_type_param(vm, ty.clone(), &edef.type_params, None);
         assert!(ty.is_concrete_type(vm));
 
-        if ty.is_unit() {
-            continue;
-        }
-
         let field_size = ty.size(vm);
         let field_align = ty.align(vm);
 
