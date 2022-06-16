@@ -1578,7 +1578,9 @@ impl<'a> AstBytecodeGen<'a> {
         pos: Position,
     ) {
         if return_type.is_unit() {
-            self.builder.emit_invoke_generic_static_void(callee_id, pos);
+            let dest = self.ensure_unit_register();
+            self.builder
+                .emit_invoke_generic_static(dest, callee_id, pos);
         } else {
             self.builder
                 .emit_invoke_generic_static(return_reg, callee_id, pos);
@@ -1593,7 +1595,9 @@ impl<'a> AstBytecodeGen<'a> {
         pos: Position,
     ) {
         if return_type.is_unit() {
-            self.builder.emit_invoke_generic_direct_void(callee_id, pos);
+            let dest = self.ensure_unit_register();
+            self.builder
+                .emit_invoke_generic_direct(dest, callee_id, pos);
         } else {
             self.builder
                 .emit_invoke_generic_direct(return_reg, callee_id, pos);

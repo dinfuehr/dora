@@ -110,11 +110,7 @@ enumeration!(BytecodeOpcode {
     InvokeVirtual,
     InvokeStatic,
     InvokeLambda,
-
-    InvokeGenericStaticVoid,
     InvokeGenericStatic,
-
-    InvokeGenericDirectVoid,
     InvokeGenericDirect,
 
     NewObject,
@@ -196,9 +192,7 @@ impl BytecodeOpcode {
         match self {
             BytecodeOpcode::InvokeDirect
             | BytecodeOpcode::InvokeGenericDirect
-            | BytecodeOpcode::InvokeGenericDirectVoid
             | BytecodeOpcode::InvokeGenericStatic
-            | BytecodeOpcode::InvokeGenericStaticVoid
             | BytecodeOpcode::InvokeStatic
             | BytecodeOpcode::InvokeVirtual
             | BytecodeOpcode::InvokeLambda => true,
@@ -216,8 +210,6 @@ impl BytecodeOpcode {
             | BytecodeOpcode::ConstTrue
             | BytecodeOpcode::ConstFalse
             | BytecodeOpcode::Ret
-            | BytecodeOpcode::InvokeGenericDirectVoid
-            | BytecodeOpcode::InvokeGenericStaticVoid
             | BytecodeOpcode::JumpConst
             | BytecodeOpcode::Jump
             | BytecodeOpcode::JumpLoop => opcode_size(width) + 1 * operand_size(width),
@@ -294,9 +286,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeVirtual
             | BytecodeOpcode::InvokeStatic
             | BytecodeOpcode::InvokeLambda
-            | BytecodeOpcode::InvokeGenericStaticVoid
             | BytecodeOpcode::InvokeGenericStatic
-            | BytecodeOpcode::InvokeGenericDirectVoid
             | BytecodeOpcode::InvokeGenericDirect
             | BytecodeOpcode::NewObject
             | BytecodeOpcode::NewObjectInitialized
@@ -565,17 +555,11 @@ pub enum BytecodeInstruction {
         idx: ConstPoolIdx,
     },
 
-    InvokeGenericStaticVoid {
-        fct: ConstPoolIdx,
-    },
     InvokeGenericStatic {
         dest: Register,
         fct: ConstPoolIdx,
     },
 
-    InvokeGenericDirectVoid {
-        fct: ConstPoolIdx,
-    },
     InvokeGenericDirect {
         dest: Register,
         fct: ConstPoolIdx,

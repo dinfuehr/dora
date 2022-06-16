@@ -487,20 +487,10 @@ impl BytecodeBuilder {
         self.writer.emit_invoke_lambda(dest, idx);
     }
 
-    pub fn emit_invoke_generic_static_void(&mut self, idx: ConstPoolIdx, pos: Position) {
-        self.writer.set_position(pos);
-        self.writer.emit_invoke_generic_static_void(idx);
-    }
-
     pub fn emit_invoke_generic_static(&mut self, dest: Register, idx: ConstPoolIdx, pos: Position) {
         assert!(self.def(dest));
         self.writer.set_position(pos);
         self.writer.emit_invoke_generic_static(dest, idx);
-    }
-
-    pub fn emit_invoke_generic_direct_void(&mut self, idx: ConstPoolIdx, pos: Position) {
-        self.writer.set_position(pos);
-        self.writer.emit_invoke_generic_direct_void(idx);
     }
 
     pub fn emit_invoke_generic_direct(&mut self, dest: Register, idx: ConstPoolIdx, pos: Position) {

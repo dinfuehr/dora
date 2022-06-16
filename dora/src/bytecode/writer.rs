@@ -322,16 +322,8 @@ impl BytecodeWriter {
         self.emit_fct(BytecodeOpcode::InvokeStatic, dest, idx);
     }
 
-    pub fn emit_invoke_generic_static_void(&mut self, idx: ConstPoolIdx) {
-        self.emit_fct_void(BytecodeOpcode::InvokeGenericStaticVoid, idx);
-    }
-
     pub fn emit_invoke_generic_static(&mut self, dest: Register, idx: ConstPoolIdx) {
         self.emit_fct(BytecodeOpcode::InvokeGenericStatic, dest, idx);
-    }
-
-    pub fn emit_invoke_generic_direct_void(&mut self, idx: ConstPoolIdx) {
-        self.emit_fct_void(BytecodeOpcode::InvokeGenericDirectVoid, idx);
     }
 
     pub fn emit_invoke_generic_direct(&mut self, dest: Register, idx: ConstPoolIdx) {

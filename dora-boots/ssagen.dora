@@ -421,13 +421,7 @@ impl SsaGen {
             BytecodeInstruction::InvokeStatic(dest, idx) => {
                 unimplemented();
             },
-            BytecodeInstruction::InvokeGenericStaticVoid(idx) => {
-                unimplemented();
-            },
             BytecodeInstruction::InvokeGenericStatic(dest, idx) => {
-                unimplemented();
-            },
-            BytecodeInstruction::InvokeGenericDirectVoid(idx) => {
                 unimplemented();
             },
             BytecodeInstruction::InvokeGenericDirect(dest, idx) => {

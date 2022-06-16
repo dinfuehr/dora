@@ -201,14 +201,8 @@ impl BytecodeDumper {
             BytecodeInstruction::InvokeStatic(dest, idx) => {
                 self.emitReg1AndIdx("InvokeStatic", dest, idx);
             },
-            BytecodeInstruction::InvokeGenericStaticVoid(idx) => {
-                self.emitIdx("InvokeGenericStaticVoid", idx);
-            },
             BytecodeInstruction::InvokeGenericStatic(dest, idx) => {
                 self.emitReg1AndIdx("InvokeGenericStatic", dest, idx);
-            },
-            BytecodeInstruction::InvokeGenericDirectVoid(idx) => {
-                self.emitIdx("InvokeGenericDirectVoid", idx);
             },
             BytecodeInstruction::InvokeGenericDirect(dest, idx) => {
                 self.emitReg1AndIdx("InvokeGenericDirect", dest, idx);

@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::mem::size_of;
 use std::sync::Arc;
 
-use crate::bytecode::{self, BytecodeBuilder, BytecodeFunction, Register};
+use crate::bytecode::{self, BytecodeBuilder, BytecodeFunction, BytecodeType, Register};
 use crate::compiler;
 use crate::compiler::codegen::should_emit_bytecode;
 use crate::cpu::{
@@ -435,7 +435,8 @@ fn generate_bytecode_for_thunk(
         gen.emit_invoke_generic_direct(result_reg, target_fct_idx, trait_fct.pos);
         gen.emit_ret(result_reg);
     } else {
-        gen.emit_invoke_generic_direct_void(target_fct_idx, trait_fct.pos);
+        let dest = gen.alloc_var(BytecodeType::Unit);
+        gen.emit_invoke_generic_direct(dest, target_fct_idx, trait_fct.pos);
         gen.emit_ret_void();
     }
 

@@ -339,20 +339,12 @@ impl<'a> BytecodeReader<'a> {
                 BytecodeInstruction::InvokeLambda { dest, idx }
             }
 
-            BytecodeOpcode::InvokeGenericStaticVoid => {
-                let fct = self.read_const_pool_idx();
-                BytecodeInstruction::InvokeGenericStaticVoid { fct }
-            }
             BytecodeOpcode::InvokeGenericStatic => {
                 let dest = self.read_register();
                 let fct = self.read_const_pool_idx();
                 BytecodeInstruction::InvokeGenericStatic { dest, fct }
             }
 
-            BytecodeOpcode::InvokeGenericDirectVoid => {
-                let fct = self.read_const_pool_idx();
-                BytecodeInstruction::InvokeGenericDirectVoid { fct }
-            }
             BytecodeOpcode::InvokeGenericDirect => {
                 let dest = self.read_register();
                 let fct = self.read_const_pool_idx();
@@ -707,16 +699,10 @@ where
                 self.visitor.visit_invoke_lambda(dest, idx);
             }
 
-            BytecodeInstruction::InvokeGenericStaticVoid { fct } => {
-                self.visitor.visit_invoke_generic_static_void(fct);
-            }
             BytecodeInstruction::InvokeGenericStatic { dest, fct } => {
                 self.visitor.visit_invoke_generic_static(dest, fct);
             }
 
-            BytecodeInstruction::InvokeGenericDirectVoid { fct } => {
-                self.visitor.visit_invoke_generic_direct_void(fct);
-            }
             BytecodeInstruction::InvokeGenericDirect { dest, fct } => {
                 self.visitor.visit_invoke_generic_direct(dest, fct);
             }

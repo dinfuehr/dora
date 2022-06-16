@@ -928,16 +928,10 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_fct("InvokeStatic", dest, fctdef);
     }
 
-    fn visit_invoke_generic_static_void(&mut self, fct: ConstPoolIdx) {
-        self.emit_fct_void("InvokeGenericStaticVoid", fct);
-    }
     fn visit_invoke_generic_static(&mut self, dest: Register, fct: ConstPoolIdx) {
         self.emit_fct("InvokeGenericStatic", dest, fct);
     }
 
-    fn visit_invoke_generic_direct_void(&mut self, fct: ConstPoolIdx) {
-        self.emit_fct_void("InvokeGenericDirectVoid", fct);
-    }
     fn visit_invoke_generic_direct(&mut self, dest: Register, fct: ConstPoolIdx) {
         self.emit_fct("InvokeGenericDirect", dest, fct);
     }

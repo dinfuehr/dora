@@ -5153,13 +5153,6 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         self.emit_invoke_static_from_bytecode(Some(dest), fctdef);
     }
 
-    fn visit_invoke_generic_direct_void(&mut self, fctdef: ConstPoolIdx) {
-        comment!(
-            self,
-            format!("InvokeGenericDirectVoid {}", fctdef.to_usize())
-        );
-        self.emit_invoke_generic(None, fctdef, false);
-    }
     fn visit_invoke_generic_direct(&mut self, dest: Register, fctdef: ConstPoolIdx) {
         comment!(
             self,
@@ -5168,13 +5161,6 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         self.emit_invoke_generic(Some(dest), fctdef, false);
     }
 
-    fn visit_invoke_generic_static_void(&mut self, fctdef: ConstPoolIdx) {
-        comment!(
-            self,
-            format!("InvokeGenericStaticVoid {}", fctdef.to_usize())
-        );
-        self.emit_invoke_generic(None, fctdef, true);
-    }
     fn visit_invoke_generic_static(&mut self, dest: Register, fctdef: ConstPoolIdx) {
         comment!(
             self,

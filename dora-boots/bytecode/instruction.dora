@@ -62,9 +62,7 @@ use package::bytecode::data::GlobalId;
     InvokeDirect(BytecodeRegister, ConstPoolId),
     InvokeVirtual(BytecodeRegister, ConstPoolId),
     InvokeStatic(BytecodeRegister, ConstPoolId),
-    InvokeGenericStaticVoid(ConstPoolId),
     InvokeGenericStatic(BytecodeRegister, ConstPoolId),
-    InvokeGenericDirectVoid(ConstPoolId),
     InvokeGenericDirect(BytecodeRegister, ConstPoolId),
 
     NewObject(BytecodeRegister, ConstPoolId),
