@@ -321,20 +321,12 @@ impl<'a> BytecodeReader<'a> {
                 BytecodeInstruction::InvokeDirect { dest, fct }
             }
 
-            BytecodeOpcode::InvokeVirtualVoid => {
-                let fct = self.read_const_pool_idx();
-                BytecodeInstruction::InvokeVirtualVoid { fct }
-            }
             BytecodeOpcode::InvokeVirtual => {
                 let dest = self.read_register();
                 let fct = self.read_const_pool_idx();
                 BytecodeInstruction::InvokeVirtual { dest, fct }
             }
 
-            BytecodeOpcode::InvokeStaticVoid => {
-                let fct = self.read_const_pool_idx();
-                BytecodeInstruction::InvokeStaticVoid { fct }
-            }
             BytecodeOpcode::InvokeStatic => {
                 let dest = self.read_register();
                 let fct = self.read_const_pool_idx();
@@ -707,16 +699,10 @@ where
                 self.visitor.visit_invoke_direct(dest, fct);
             }
 
-            BytecodeInstruction::InvokeVirtualVoid { fct } => {
-                self.visitor.visit_invoke_virtual_void(fct);
-            }
             BytecodeInstruction::InvokeVirtual { dest, fct } => {
                 self.visitor.visit_invoke_virtual(dest, fct);
             }
 
-            BytecodeInstruction::InvokeStaticVoid { fct } => {
-                self.visitor.visit_invoke_static_void(fct);
-            }
             BytecodeInstruction::InvokeStatic { dest, fct } => {
                 self.visitor.visit_invoke_static(dest, fct);
             }
@@ -979,16 +965,10 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_invoke_virtual_void(&mut self, _fct: ConstPoolIdx) {
-        unimplemented!();
-    }
     fn visit_invoke_virtual(&mut self, _dest: Register, _fct: ConstPoolIdx) {
         unimplemented!();
     }
 
-    fn visit_invoke_static_void(&mut self, _fct: ConstPoolIdx) {
-        unimplemented!();
-    }
     fn visit_invoke_static(&mut self, _dest: Register, _fct: ConstPoolIdx) {
         unimplemented!();
     }

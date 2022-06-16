@@ -3560,7 +3560,7 @@ impl<'a> CannonCodeGen<'a> {
 
             Intrinsic::UnsafeKillRefs => {
                 self.emit_intrinsic_unsafe_kill_refs(
-                    dest,
+                    dest.expect("missing dest"),
                     fct_id,
                     intrinsic,
                     arguments,
@@ -4231,7 +4231,7 @@ impl<'a> CannonCodeGen<'a> {
 
     fn emit_intrinsic_unsafe_kill_refs(
         &mut self,
-        dest: Option<Register>,
+        dest: Register,
         _fct_id: FctDefinitionId,
         _intrinsic: Intrinsic,
         arguments: Vec<Register>,
@@ -4240,7 +4240,7 @@ impl<'a> CannonCodeGen<'a> {
     ) {
         assert_eq!(1, type_params.len());
         assert_eq!(2, arguments.len());
-        assert!(dest.is_none());
+        assert!(self.bytecode.register_type(dest).is_unit());
 
         let ty = type_params[0].clone();
 
@@ -5132,10 +5132,6 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         self.emit_invoke_direct_from_bytecode(Some(dest), fctdef);
     }
 
-    fn visit_invoke_virtual_void(&mut self, fctdef: ConstPoolIdx) {
-        comment!(self, format!("InvokeVirtualVoid {}", fctdef.to_usize()));
-        self.emit_invoke_virtual_from_bytecode(None, fctdef);
-    }
     fn visit_invoke_virtual(&mut self, dest: Register, fctdef: ConstPoolIdx) {
         comment!(
             self,
@@ -5153,10 +5149,6 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         self.emit_invoke_lambda_from_bytecode(Some(dest), idx);
     }
 
-    fn visit_invoke_static_void(&mut self, fctdef: ConstPoolIdx) {
-        comment!(self, format!("InvokeStaticVoid {}", fctdef.to_usize()));
-        self.emit_invoke_static_from_bytecode(None, fctdef)
-    }
     fn visit_invoke_static(&mut self, dest: Register, fctdef: ConstPoolIdx) {
         comment!(
             self,

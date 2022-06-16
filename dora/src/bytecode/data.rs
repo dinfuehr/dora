@@ -107,11 +107,7 @@ enumeration!(BytecodeOpcode {
     JumpIfTrueConst,
 
     InvokeDirect,
-
-    InvokeVirtualVoid,
     InvokeVirtual,
-
-    InvokeStaticVoid,
     InvokeStatic,
 
     InvokeLambdaVoid,
@@ -206,9 +202,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeGenericStatic
             | BytecodeOpcode::InvokeGenericStaticVoid
             | BytecodeOpcode::InvokeStatic
-            | BytecodeOpcode::InvokeStaticVoid
             | BytecodeOpcode::InvokeVirtual
-            | BytecodeOpcode::InvokeVirtualVoid
             | BytecodeOpcode::InvokeLambda
             | BytecodeOpcode::InvokeLambdaVoid => true,
             _ => false,
@@ -227,8 +221,6 @@ impl BytecodeOpcode {
             | BytecodeOpcode::Ret
             | BytecodeOpcode::InvokeGenericDirectVoid
             | BytecodeOpcode::InvokeGenericStaticVoid
-            | BytecodeOpcode::InvokeStaticVoid
-            | BytecodeOpcode::InvokeVirtualVoid
             | BytecodeOpcode::JumpConst
             | BytecodeOpcode::Jump
             | BytecodeOpcode::JumpLoop => opcode_size(width) + 1 * operand_size(width),
@@ -302,9 +294,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::LoadField
             | BytecodeOpcode::StoreField
             | BytecodeOpcode::InvokeDirect
-            | BytecodeOpcode::InvokeVirtualVoid
             | BytecodeOpcode::InvokeVirtual
-            | BytecodeOpcode::InvokeStaticVoid
             | BytecodeOpcode::InvokeStatic
             | BytecodeOpcode::InvokeLambda
             | BytecodeOpcode::InvokeLambdaVoid
@@ -564,17 +554,11 @@ pub enum BytecodeInstruction {
         fct: ConstPoolIdx,
     },
 
-    InvokeVirtualVoid {
-        fct: ConstPoolIdx,
-    },
     InvokeVirtual {
         dest: Register,
         fct: ConstPoolIdx,
     },
 
-    InvokeStaticVoid {
-        fct: ConstPoolIdx,
-    },
     InvokeStatic {
         dest: Register,
         fct: ConstPoolIdx,

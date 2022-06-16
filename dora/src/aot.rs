@@ -164,7 +164,6 @@ impl<'a> ReachableFunction<'a> {
         while let Some(inst) = reader.next() {
             match inst {
                 BytecodeInstruction::InvokeStatic { fct: idx, dest: _ }
-                | BytecodeInstruction::InvokeStaticVoid { fct: idx }
                 | BytecodeInstruction::InvokeDirect { fct: idx, dest: _ } => {
                     let entry = bytecode_fct.const_pool(idx);
                     match entry {

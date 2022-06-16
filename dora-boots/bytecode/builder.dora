@@ -227,16 +227,8 @@ impl BytecodeBuilder {
         self.emitFct(opc::BC_INVOKE_DIRECT, dest, fct, start, count);
     }
 
-    @pub fn emitInvokeVirtualVoid(fct: FctId, start: BytecodeRegister, count: Int32) {
-        self.emitFctVoid(opc::BC_INVOKE_VIRTUAL_VOID, fct, start, count);
-    }
-
     @pub fn emitInvokeVirtual(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFct(opc::BC_INVOKE_VIRTUAL, dest, fct, start, count);
-    }
-
-    @pub fn emitInvokeStaticVoid(fct: FctId, start: BytecodeRegister, count: Int32) {
-        self.emitFctVoid(opc::BC_INVOKE_STATIC_VOID, fct, start, count);
     }
 
     @pub fn emitInvokeStatic(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {

@@ -1081,7 +1081,7 @@ fn gen_fct_call_void_with_0_args() {
             ",
         |sa, code, fct| {
             let fct_id = sa.fct_by_name("g").expect("g not found");
-            let expected = vec![InvokeStaticVoid(ConstPoolIdx(0)), RetVoid];
+            let expected = vec![InvokeStatic(r(0), ConstPoolIdx(0)), RetVoid];
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
@@ -1141,7 +1141,7 @@ fn gen_fct_call_void_with_1_arg() {
             let expected = vec![
                 ConstInt32(r(0), 1),
                 PushRegister(r(0)),
-                InvokeStaticVoid(ConstPoolIdx(0)),
+                InvokeStatic(r(1), ConstPoolIdx(0)),
                 RetVoid,
             ];
             assert_eq!(expected, code);
@@ -1169,7 +1169,7 @@ fn gen_fct_call_void_with_3_args() {
                 PushRegister(r(0)),
                 PushRegister(r(1)),
                 PushRegister(r(2)),
-                InvokeStaticVoid(ConstPoolIdx(0)),
+                InvokeStatic(r(3), ConstPoolIdx(0)),
                 RetVoid,
             ];
             assert_eq!(expected, code);
@@ -2295,7 +2295,7 @@ fn gen_virtual_method_call_void_check_correct_self() {
                 .expect("g not found");
             let expected = vec![
                 PushRegister(r(1)),
-                InvokeVirtualVoid(ConstPoolIdx(0)),
+                InvokeVirtual(r(2), ConstPoolIdx(0)),
                 RetVoid,
             ];
             assert_eq!(expected, code);
@@ -2325,7 +2325,7 @@ fn gen_virtual_method_call_void_with_0_args() {
                 .expect("g not found");
             let expected = vec![
                 PushRegister(r(0)),
-                InvokeVirtualVoid(ConstPoolIdx(0)),
+                InvokeVirtual(r(1), ConstPoolIdx(0)),
                 RetVoid,
             ];
             assert_eq!(expected, code);
@@ -2357,7 +2357,7 @@ fn gen_virtual_method_call_void_with_1_arg() {
                 ConstInt32(r(1), 1),
                 PushRegister(r(0)),
                 PushRegister(r(1)),
-                InvokeVirtualVoid(ConstPoolIdx(0)),
+                InvokeVirtual(r(2), ConstPoolIdx(0)),
                 RetVoid,
             ];
             assert_eq!(expected, code);
@@ -2393,7 +2393,7 @@ fn gen_virtual_method_call_void_with_3_args() {
                 PushRegister(r(1)),
                 PushRegister(r(2)),
                 PushRegister(r(3)),
-                InvokeVirtualVoid(ConstPoolIdx(0)),
+                InvokeVirtual(r(4), ConstPoolIdx(0)),
                 RetVoid,
             ];
             assert_eq!(expected, code);
@@ -4356,11 +4356,7 @@ pub enum Bytecode {
     JumpIfTrue(Register, usize),
 
     InvokeDirect(Register, ConstPoolIdx),
-
-    InvokeVirtualVoid(ConstPoolIdx),
     InvokeVirtual(Register, ConstPoolIdx),
-
-    InvokeStaticVoid(ConstPoolIdx),
     InvokeStatic(Register, ConstPoolIdx),
 
     InvokeLambdaVoid(ConstPoolIdx),
@@ -4642,16 +4638,10 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::InvokeDirect(dest, fctdef));
     }
 
-    fn visit_invoke_virtual_void(&mut self, fct_idx: ConstPoolIdx) {
-        self.emit(Bytecode::InvokeVirtualVoid(fct_idx));
-    }
     fn visit_invoke_virtual(&mut self, dest: Register, fct_idx: ConstPoolIdx) {
         self.emit(Bytecode::InvokeVirtual(dest, fct_idx));
     }
 
-    fn visit_invoke_static_void(&mut self, fctdef: ConstPoolIdx) {
-        self.emit(Bytecode::InvokeStaticVoid(fctdef));
-    }
     fn visit_invoke_static(&mut self, dest: Register, fctdef: ConstPoolIdx) {
         self.emit(Bytecode::InvokeStatic(dest, fctdef));
     }

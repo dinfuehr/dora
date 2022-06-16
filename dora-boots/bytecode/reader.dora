@@ -247,17 +247,11 @@ impl BytecodeIterator {
             let fct = self.readConstPoolId(wide);
             BytecodeInstruction::InvokeDirect(dest, fct)
 
-        } else if opcode == opc::BC_INVOKE_VIRTUAL_VOID {
-            let fct = self.readConstPoolId(wide);
-            BytecodeInstruction::InvokeVirtualVoid(fct)
         } else if opcode == opc::BC_INVOKE_VIRTUAL {
             let dest = self.readRegister(wide);
             let fct = self.readConstPoolId(wide);
             BytecodeInstruction::InvokeVirtual(dest, fct)
 
-        } else if opcode == opc::BC_INVOKE_STATIC_VOID {
-            let fct = self.readConstPoolId(wide);
-            BytecodeInstruction::InvokeStaticVoid(fct)
         } else if opcode == opc::BC_INVOKE_STATIC {
             let dest = self.readRegister(wide);
             let fct = self.readConstPoolId(wide);

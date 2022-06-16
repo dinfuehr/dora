@@ -1015,7 +1015,8 @@ impl<'a> AstBytecodeGen<'a> {
         self.builder.emit_push_register(assert_reg);
         let fid = self.sa.known.functions.assert();
         let idx = self.builder.add_const_fct(fid);
-        self.builder.emit_invoke_static_void(idx, expr.pos);
+        let dest = self.ensure_unit_register();
+        self.builder.emit_invoke_static(dest, idx, expr.pos);
         self.free_if_temp(assert_reg);
     }
 
@@ -1531,7 +1532,8 @@ impl<'a> AstBytecodeGen<'a> {
         pos: Position,
     ) {
         if return_type.is_unit() {
-            self.builder.emit_invoke_virtual_void(callee_id, pos);
+            let reg = self.ensure_unit_register();
+            self.builder.emit_invoke_virtual(reg, callee_id, pos);
         } else {
             self.builder.emit_invoke_virtual(return_reg, callee_id, pos);
         }
@@ -1560,7 +1562,8 @@ impl<'a> AstBytecodeGen<'a> {
         pos: Position,
     ) {
         if return_type.is_unit() {
-            self.builder.emit_invoke_static_void(callee_id, pos);
+            let reg = self.ensure_unit_register();
+            self.builder.emit_invoke_static(reg, callee_id, pos);
         } else {
             self.builder.emit_invoke_static(return_reg, callee_id, pos);
         }
