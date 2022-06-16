@@ -458,11 +458,6 @@ impl SsaGen {
             BytecodeInstruction::StoreArray(src, arr, idx) => {
                 self.emitStoreArray(src, arr, idx);
             },
-            BytecodeInstruction::RetVoid => {
-                let inst = createReturnVoidInst();
-                self.current().appendInst(inst);
-                self.markBlockTerminated();
-            },
             BytecodeInstruction::Ret(opnd) => {
                 let ty = self.bc.registers(opnd.value.toInt64());
                 let ty = Type::fromBytecodeType(ty);
@@ -672,9 +667,15 @@ impl SsaGen {
     }
 
     fn emitRet(opnd: BytecodeRegister, ty: Type) {
-        let value = self.readVariable(opnd, self.current());
-        let inst = createReturnInst(value, ty);
-        self.current().appendInst(inst);
-        self.markBlockTerminated();
+        if ty.isUnit() {
+            let inst = createReturnVoidInst();
+            self.current().appendInst(inst);
+            self.markBlockTerminated();
+        } else {
+            let value = self.readVariable(opnd, self.current());
+            let inst = createReturnInst(value, ty);
+            self.current().appendInst(inst);
+            self.markBlockTerminated();
+        }
     }
 }

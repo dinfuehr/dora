@@ -1,20 +1,23 @@
 use package::bytecode::reader::decodeBytecode;
 use package::bytecode::builder::BytecodeBuilder;
-use package::bytecode::data::BytecodeRegister;
+use package::bytecode::data::{BytecodeRegister, BytecodeType};
 use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::data::ConstPoolId;
 
 @Test
-fn testBytecodeRetVoid() {
+fn testBytecodeRet() {
     let writer = BytecodeBuilder::new();
-    writer.emitRetVoid();
+    let r0 = writer.addRegister(BytecodeType::Unit);
+    writer.emitRet(r0);
     let fct = writer.generate();
     let instructions = decodeBytecode(fct.code);
     assert(instructions.size() == 1);
-    assert(instructions(0).size == 1);
+    assert(instructions(0).size == 2);
 
     match instructions(0).inst {
-        BytecodeInstruction::RetVoid => {},
+        BytecodeInstruction::Ret(reg) => {
+            assert(r0 == reg);
+        },
         _ => unreachable[()]()
     }
 }
@@ -176,19 +179,20 @@ fn testBytecodeJumpBack() {
 @Test
 fn testBytecodeJumpBackWide() {
     let writer = BytecodeBuilder::new();
+    let r0 = writer.addRegister(BytecodeType::Unit);
     let lbl = writer.defineLabel();
     var i = 0i32;
-    while i < 256i32 {
-        writer.emitRetVoid();
+    while i < 128i32 {
+        writer.emitRet(r0);
         i = i + 1i32;
     }
     writer.emitJumpLoop(lbl);
     let fct = writer.generate();
     let instructions = decodeBytecode(fct.code);
-    assert(instructions.size() == 257);
-    assert(instructions(256).size == 6);
+    assert(instructions.size() == 129);
+    assert(instructions(128).size == 6);
 
-    match instructions(256).inst {
+    match instructions(128).inst {
         BytecodeInstruction::JumpLoop(distance) => {
             assert(distance == 256i32);
         },
@@ -218,11 +222,12 @@ fn testBytecodeJump() {
 @Test
 fn testBytecodeJumpFar() {
     let writer = BytecodeBuilder::new();
+    let r0 = writer.addRegister(BytecodeType::Unit);
     let lbl = writer.createLabel();
     writer.emitJump(lbl);
     var i = 0i32;
     while i < 256i32 {
-        writer.emitRetVoid();
+        writer.emitRet(r0);
         i = i + 1i32;
     }
     writer.bindLabel(lbl);
@@ -261,11 +266,12 @@ fn testBytecodeCondJump() {
 @Test
 fn testBytecodeCondJumpFar() {
     let writer = BytecodeBuilder::new();
+    let r0 = writer.addRegister(BytecodeType::Unit);
     let lbl = writer.createLabel();
     writer.emitJumpIfFalse(BytecodeRegister(9i32), lbl);
     var i = 0i32;
     while i < 256i32 {
-        writer.emitRetVoid();
+        writer.emitRet(r0);
         i = i + 1i32;
     }
     writer.bindLabel(lbl);

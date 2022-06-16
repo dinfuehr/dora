@@ -288,8 +288,6 @@ impl BytecodeIterator {
             let idx = self.readRegister(wide);
             BytecodeInstruction::StoreArray(src, arr, idx)
 
-        } else if opcode == opc::BC_RET_VOID {
-            BytecodeInstruction::RetVoid
         } else if opcode == opc::BC_RET {
             let opnd = self.readRegister(wide);
             BytecodeInstruction::Ret(opnd)

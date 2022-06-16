@@ -65,8 +65,7 @@
 @pub const BC_ARRAY_LENGTH: Int32 = 62;
 @pub const BC_LOAD_ARRAY: Int32 = 63;
 @pub const BC_STORE_ARRAY: Int32 = 64;
-@pub const BC_RET_VOID: Int32 = 65;
-@pub const BC_RET: Int32 = 66;
+@pub const BC_RET: Int32 = 65;
 
 @pub const BC_TYPE_UNIT: Int32 = 0;
 @pub const BC_TYPE_BOOL: Int32 = 1;
@@ -172,7 +171,6 @@
   if opcode == BC_ARRAY_LENGTH { return "ArrayLength"; }
   if opcode == BC_LOAD_ARRAY { return "LoadArray"; }
   if opcode == BC_STORE_ARRAY { return "StoreArray"; }
-  if opcode == BC_RET_VOID { return "RetVoid"; }
   if opcode == BC_RET { return "Ret"; }
   "UNKNOWN(${opcode})"
 }

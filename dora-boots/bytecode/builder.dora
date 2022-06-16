@@ -251,10 +251,6 @@ impl BytecodeBuilder {
         self.emitReg3(opc::BC_STORE_ARRAY, src, arr, idx);
     }
 
-    @pub fn emitRetVoid() {
-        self.emitInst(opc::BC_RET_VOID);
-    }
-
     @pub fn emitRet(opnd: BytecodeRegister) {
         self.emitReg1(opc::BC_RET, opnd);
     }

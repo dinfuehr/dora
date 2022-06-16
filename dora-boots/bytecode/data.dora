@@ -139,6 +139,7 @@ impl ConstPoolId {
 @pub struct FctId(@pub value: Int32)
 
 @pub enum BytecodeType {
+    Unit,
     Ptr,
     UInt8,
     Bool,
@@ -155,6 +156,7 @@ impl ConstPoolId {
 impl Stringable for BytecodeType {
     fn toString(): String {
         match self {
+            BytecodeType::Unit => "Unit",
             BytecodeType::Ptr => "Ptr",
             BytecodeType::UInt8 => "UInt8",
             BytecodeType::Bool => "Bool",

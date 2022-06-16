@@ -93,7 +93,11 @@ fn gen_generic_identity() {
 #[test]
 fn gen_generic_static_trait() {
     let result = code("trait Foo { @static fn baz(); } fn f[T: Foo]() { T::baz() }");
-    let expected = vec![InvokeGenericStatic(r(0), ConstPoolIdx(0)), RetVoid, RetVoid];
+    let expected = vec![
+        InvokeGenericStatic(r(0), ConstPoolIdx(0)),
+        Ret(r(0)),
+        Ret(r(0)),
+    ];
     assert_eq!(expected, result);
 }
 
@@ -103,8 +107,8 @@ fn gen_generic_direct_trait() {
     let expected = vec![
         PushRegister(r(0)),
         InvokeGenericDirect(r(1), ConstPoolIdx(0)),
-        RetVoid,
-        RetVoid,
+        Ret(r(1)),
+        Ret(r(1)),
     ];
     assert_eq!(expected, result);
 }
@@ -139,7 +143,7 @@ fn gen_store_field_uint8() {
         "class Foo(var bar: UInt8) fn f(a: Foo, b: UInt8) { a.bar = b; }",
         |sa, code, fct| {
             let (cls, field) = sa.field_by_name("Foo", "bar");
-            let expected = vec![StoreField(r(1), r(0), ConstPoolIdx(0)), RetVoid];
+            let expected = vec![StoreField(r(1), r(0), ConstPoolIdx(0)), Ret(r(2))];
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
@@ -288,7 +292,7 @@ fn gen_mul_float64() {
 #[test]
 fn gen_stmt_var_init() {
     let result = code("fn f() { let x = 1i32; }");
-    let expected = vec![ConstInt32(r(0), 1), RetVoid];
+    let expected = vec![ConstInt32(r(0), 1), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
@@ -391,11 +395,11 @@ fn gen_stmt_let_tuple() {
 #[test]
 fn gen_stmt_let_unit() {
     let result = code("fn f(value: ()) { let () = value; }");
-    let expected = vec![RetVoid];
+    let expected = vec![Ret(r(1))];
     assert_eq!(expected, result);
 
     let result = code("fn f() { let x = (); }");
-    let expected = vec![RetVoid];
+    let expected = vec![Ret(r(0))];
     assert_eq!(expected, result);
 
     gen_fct(
@@ -469,7 +473,7 @@ fn gen_stmt_while() {
         ConstTrue(r(0)),
         JumpIfFalse(r(0), 4),
         JumpLoop(0),
-        RetVoid,
+        Ret(r(1)),
     ];
     assert_eq!(code, result);
 }
@@ -529,7 +533,7 @@ fn gen_stmt_break() {
         JumpIfFalse(r(0), 5),
         Jump(5),
         JumpLoop(0),
-        RetVoid,
+        Ret(r(1)),
     ];
     assert_eq!(expected, result);
 }
@@ -543,7 +547,7 @@ fn gen_stmt_continue() {
         JumpIfFalse(r(0), 5),
         JumpLoop(0),
         JumpLoop(0),
-        RetVoid,
+        Ret(r(1)),
     ];
     assert_eq!(expected, result);
 }
@@ -603,7 +607,7 @@ fn gen_expr_lit_string_duplicate() {
     let expected = vec![
         ConstString(r(0), "z".to_string()),
         ConstString(r(1), "z".to_string()),
-        RetVoid,
+        Ret(r(2)),
     ];
     assert_eq!(expected, result);
 }
@@ -614,7 +618,7 @@ fn gen_expr_lit_string_multiple() {
     let expected = vec![
         ConstString(r(0), "z".to_string()),
         ConstString(r(1), "y".to_string()),
-        RetVoid,
+        Ret(r(2)),
     ];
     assert_eq!(expected, result);
 }
@@ -1009,7 +1013,7 @@ fn gen_expr_ident() {
 #[test]
 fn gen_expr_assign() {
     let result = code("fn f() { var x = 1i32; x = 2i32; }");
-    let expected = vec![ConstInt32(r(0), 1), ConstInt32(r(0), 2), RetVoid];
+    let expected = vec![ConstInt32(r(0), 1), ConstInt32(r(0), 2), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
@@ -1023,7 +1027,7 @@ fn gen_expr_self() {
 #[test]
 fn gen_expr_self_assign() {
     let result = code_method("class Foo() { fn f() { let x = self; } }");
-    let expected = vec![Mov(r(1), r(0)), RetVoid];
+    let expected = vec![Mov(r(1), r(0)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -1037,7 +1041,7 @@ fn gen_expr_return() {
 #[test]
 fn gen_expr_returnvoid() {
     let result = code("fn f() { }");
-    let expected = vec![RetVoid];
+    let expected = vec![Ret(r(0))];
     assert_eq!(expected, result);
 }
 
@@ -1059,7 +1063,7 @@ fn gen_store_global() {
         "var a: Bool = false; fn f(x: Bool) { a = x; }",
         |sa, code| {
             let gid = sa.global_by_name("a");
-            let expected = vec![StoreGlobal(r(0), gid), RetVoid];
+            let expected = vec![StoreGlobal(r(0), gid), Ret(r(1))];
             assert_eq!(expected, code);
         },
     );
@@ -1068,7 +1072,7 @@ fn gen_store_global() {
 #[test]
 fn gen_side_effect() {
     let result = code("fn f(a: Int32) { 1; 2; 3i32 * a; \"foo\"; 1.0f32; 1.0f64; a; }");
-    let expected = vec![RetVoid];
+    let expected = vec![Ret(r(1))];
     assert_eq!(expected, result);
 }
 
@@ -1081,7 +1085,7 @@ fn gen_fct_call_void_with_0_args() {
             ",
         |sa, code, fct| {
             let fct_id = sa.fct_by_name("g").expect("g not found");
-            let expected = vec![InvokeStatic(r(0), ConstPoolIdx(0)), RetVoid];
+            let expected = vec![InvokeStatic(r(0), ConstPoolIdx(0)), Ret(r(0))];
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
@@ -1119,7 +1123,7 @@ fn gen_fct_call_int_with_0_args_and_unused_result() {
             ",
         |sa, code, fct| {
             let fct_id = sa.fct_by_name("g").expect("g not found");
-            let expected = vec![InvokeStatic(r(0), ConstPoolIdx(0)), RetVoid];
+            let expected = vec![InvokeStatic(r(0), ConstPoolIdx(0)), Ret(r(1))];
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
@@ -1142,7 +1146,7 @@ fn gen_fct_call_void_with_1_arg() {
                 ConstInt32(r(0), 1),
                 PushRegister(r(0)),
                 InvokeStatic(r(1), ConstPoolIdx(0)),
-                RetVoid,
+                Ret(r(1)),
             ];
             assert_eq!(expected, code);
             assert_eq!(
@@ -1170,7 +1174,7 @@ fn gen_fct_call_void_with_3_args() {
                 PushRegister(r(1)),
                 PushRegister(r(2)),
                 InvokeStatic(r(3), ConstPoolIdx(0)),
-                RetVoid,
+                Ret(r(3)),
             ];
             assert_eq!(expected, code);
             assert_eq!(
@@ -1249,7 +1253,7 @@ fn gen_method_call_void_check_correct_self() {
             let expected = vec![
                 PushRegister(r(1)),
                 InvokeDirect(r(2), ConstPoolIdx(0)),
-                RetVoid,
+                Ret(r(2)),
             ];
             assert_eq!(expected, code);
             assert_eq!(
@@ -1276,7 +1280,7 @@ fn gen_method_call_void_with_0_args() {
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirect(r(1), ConstPoolIdx(0)),
-                RetVoid,
+                Ret(r(1)),
             ];
             assert_eq!(expected, code);
             assert_eq!(
@@ -1305,7 +1309,7 @@ fn gen_method_call_void_with_1_arg() {
                 PushRegister(r(0)),
                 PushRegister(r(1)),
                 InvokeDirect(r(2), ConstPoolIdx(0)),
-                RetVoid,
+                Ret(r(2)),
             ];
             assert_eq!(expected, code);
             assert_eq!(
@@ -1338,7 +1342,7 @@ fn gen_method_call_void_with_3_args() {
                 PushRegister(r(2)),
                 PushRegister(r(3)),
                 InvokeDirect(r(4), ConstPoolIdx(0)),
-                RetVoid,
+                Ret(r(4)),
             ];
             assert_eq!(expected, code);
             assert_eq!(
@@ -1392,7 +1396,7 @@ fn gen_method_call_bool_with_0_args_and_unused_result() {
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirect(r(1), ConstPoolIdx(0)),
-                RetVoid,
+                Ret(r(2)),
             ];
             assert_eq!(expected, code);
             assert_eq!(
@@ -1508,7 +1512,7 @@ fn gen_method_call_byte_with_0_args_and_unused_result() {
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirect(r(1), ConstPoolIdx(0)),
-                RetVoid,
+                Ret(r(2)),
             ];
             assert_eq!(expected, code);
             assert_eq!(
@@ -1624,7 +1628,7 @@ fn gen_method_call_char_with_0_args_and_unused_result() {
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirect(r(1), ConstPoolIdx(0)),
-                RetVoid,
+                Ret(r(2)),
             ];
             assert_eq!(expected, code);
             assert_eq!(
@@ -1740,7 +1744,7 @@ fn gen_method_call_int_with_0_args_and_unused_result() {
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirect(r(1), ConstPoolIdx(0)),
-                RetVoid,
+                Ret(r(2)),
             ];
             assert_eq!(expected, code);
             assert_eq!(
@@ -1856,7 +1860,7 @@ fn gen_method_call_int64_with_0_args_and_unused_result() {
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirect(r(1), ConstPoolIdx(0)),
-                RetVoid,
+                Ret(r(2)),
             ];
             assert_eq!(expected, code);
             assert_eq!(
@@ -1972,7 +1976,7 @@ fn gen_method_call_float32_with_0_args_and_unused_result() {
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirect(r(1), ConstPoolIdx(0)),
-                RetVoid,
+                Ret(r(2)),
             ];
             assert_eq!(expected, code);
             assert_eq!(
@@ -2088,7 +2092,7 @@ fn gen_method_call_float64_with_0_args_and_unused_result() {
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirect(r(1), ConstPoolIdx(0)),
-                RetVoid,
+                Ret(r(2)),
             ];
             assert_eq!(expected, code);
             assert_eq!(
@@ -2204,7 +2208,7 @@ fn gen_method_call_ptr_with_0_args_and_unused_result() {
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeDirect(r(1), ConstPoolIdx(0)),
-                RetVoid,
+                Ret(r(2)),
             ];
             assert_eq!(expected, code);
             assert_eq!(
@@ -2296,7 +2300,7 @@ fn gen_virtual_method_call_void_check_correct_self() {
             let expected = vec![
                 PushRegister(r(1)),
                 InvokeVirtual(r(2), ConstPoolIdx(0)),
-                RetVoid,
+                Ret(r(2)),
             ];
             assert_eq!(expected, code);
             assert_eq!(
@@ -2326,7 +2330,7 @@ fn gen_virtual_method_call_void_with_0_args() {
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeVirtual(r(1), ConstPoolIdx(0)),
-                RetVoid,
+                Ret(r(1)),
             ];
             assert_eq!(expected, code);
             assert_eq!(
@@ -2358,7 +2362,7 @@ fn gen_virtual_method_call_void_with_1_arg() {
                 PushRegister(r(0)),
                 PushRegister(r(1)),
                 InvokeVirtual(r(2), ConstPoolIdx(0)),
-                RetVoid,
+                Ret(r(2)),
             ];
             assert_eq!(expected, code);
             assert_eq!(
@@ -2394,7 +2398,7 @@ fn gen_virtual_method_call_void_with_3_args() {
                 PushRegister(r(2)),
                 PushRegister(r(3)),
                 InvokeVirtual(r(4), ConstPoolIdx(0)),
-                RetVoid,
+                Ret(r(4)),
             ];
             assert_eq!(expected, code);
             assert_eq!(
@@ -2424,7 +2428,7 @@ fn gen_virtual_method_call_int_with_0_args() {
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeVirtual(r(1), ConstPoolIdx(0)),
-                RetVoid,
+                Ret(r(2)),
             ];
             assert_eq!(expected, code);
             assert_eq!(
@@ -2456,7 +2460,7 @@ fn gen_virtual_method_call_int_with_1_arg() {
                 PushRegister(r(0)),
                 PushRegister(r(2)),
                 InvokeVirtual(r(1), ConstPoolIdx(0)),
-                RetVoid,
+                Ret(r(3)),
             ];
             assert_eq!(expected, code);
             assert_eq!(
@@ -2492,7 +2496,7 @@ fn gen_virtual_method_call_int_with_3_args() {
                 PushRegister(r(3)),
                 PushRegister(r(4)),
                 InvokeVirtual(r(1), ConstPoolIdx(0)),
-                RetVoid,
+                Ret(r(5)),
             ];
             assert_eq!(expected, code);
             assert_eq!(
@@ -2628,7 +2632,7 @@ fn gen_struct_array() {
         fn f(x: Array[Foo], idx: Int64, value: Foo) { x(idx) = value; }
     ",
     );
-    let expected = vec![StoreArray(r(2), r(0), r(1)), RetVoid];
+    let expected = vec![StoreArray(r(2), r(0), r(1)), Ret(r(3))];
     assert_eq!(expected, result);
 }
 
@@ -2872,7 +2876,7 @@ fn gen_position_array_length() {
 #[test]
 fn gen_array_length_effect() {
     let result = code("fn f(a: Array[Int32]) { a.size(); }");
-    let expected = vec![ArrayLength(r(1), r(0)), RetVoid];
+    let expected = vec![ArrayLength(r(1), r(0)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -2994,7 +2998,7 @@ fn gen_store_array_uint8() {
     let expected = vec![
         ConstInt64(Register(2), 0),
         StoreArray(r(1), r(0), r(2)),
-        RetVoid,
+        Ret(r(3)),
     ];
     assert_eq!(expected, result);
 }
@@ -3005,7 +3009,7 @@ fn gen_store_array_bool() {
     let expected = vec![
         ConstInt64(Register(2), 0),
         StoreArray(r(1), r(0), r(2)),
-        RetVoid,
+        Ret(r(3)),
     ];
     assert_eq!(expected, result);
 }
@@ -3016,7 +3020,7 @@ fn gen_store_array_char() {
     let expected = vec![
         ConstInt64(Register(2), 0),
         StoreArray(r(1), r(0), r(2)),
-        RetVoid,
+        Ret(r(3)),
     ];
     assert_eq!(expected, result);
 }
@@ -3027,7 +3031,7 @@ fn gen_store_array_int32() {
     let expected = vec![
         ConstInt64(Register(2), 0),
         StoreArray(r(1), r(0), r(2)),
-        RetVoid,
+        Ret(r(3)),
     ];
     assert_eq!(expected, result);
 }
@@ -3038,7 +3042,7 @@ fn gen_store_array_int64() {
     let expected = vec![
         ConstInt64(Register(2), 0),
         StoreArray(r(1), r(0), r(2)),
-        RetVoid,
+        Ret(r(3)),
     ];
     assert_eq!(expected, result);
 }
@@ -3049,7 +3053,7 @@ fn gen_store_array_float32() {
     let expected = vec![
         ConstInt64(Register(2), 0),
         StoreArray(r(1), r(0), r(2)),
-        RetVoid,
+        Ret(r(3)),
     ];
     assert_eq!(expected, result);
 }
@@ -3060,7 +3064,7 @@ fn gen_store_array_float64() {
     let expected = vec![
         ConstInt64(Register(2), 0),
         StoreArray(r(1), r(0), r(2)),
-        RetVoid,
+        Ret(r(3)),
     ];
     assert_eq!(expected, result);
 }
@@ -3071,7 +3075,7 @@ fn gen_store_array_ptr() {
     let expected = vec![
         ConstInt64(Register(2), 0),
         StoreArray(r(1), r(0), r(2)),
-        RetVoid,
+        Ret(r(3)),
     ];
     assert_eq!(expected, result);
 }
@@ -3263,7 +3267,7 @@ fn gen_self_assign_for_bool() {
             ",
         "Bool",
     );
-    let expected = vec![Mov(r(1), r(0)), RetVoid];
+    let expected = vec![Mov(r(1), r(0)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -3275,7 +3279,7 @@ fn gen_self_assign_for_uint8() {
             ",
         "UInt8",
     );
-    let expected = vec![Mov(r(1), r(0)), RetVoid];
+    let expected = vec![Mov(r(1), r(0)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -3287,7 +3291,7 @@ fn gen_self_assign_for_int() {
             ",
         "Int32",
     );
-    let expected = vec![Mov(r(1), r(0)), RetVoid];
+    let expected = vec![Mov(r(1), r(0)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -3299,7 +3303,7 @@ fn gen_self_assign_for_int64() {
             ",
         "Int64",
     );
-    let expected = vec![Mov(r(1), r(0)), RetVoid];
+    let expected = vec![Mov(r(1), r(0)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -3311,7 +3315,7 @@ fn gen_self_assign_for_float32() {
             ",
         "Float32",
     );
-    let expected = vec![Mov(r(1), r(0)), RetVoid];
+    let expected = vec![Mov(r(1), r(0)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -3323,7 +3327,7 @@ fn gen_self_assign_for_float64() {
             ",
         "Float64",
     );
-    let expected = vec![Mov(r(1), r(0)), RetVoid];
+    let expected = vec![Mov(r(1), r(0)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -3335,7 +3339,7 @@ fn gen_self_assign_for_string() {
             ",
         "String",
     );
-    let expected = vec![Mov(r(1), r(0)), RetVoid];
+    let expected = vec![Mov(r(1), r(0)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -3702,7 +3706,7 @@ fn gen_enum_array() {
             arr(idx) = value;
         }",
     );
-    let expected = vec![StoreArray(r(2), r(0), r(1)), RetVoid];
+    let expected = vec![StoreArray(r(2), r(0), r(1)), Ret(r(3))];
     assert_eq!(expected, result);
 }
 
@@ -3737,7 +3741,7 @@ fn gen_array_get_method() {
 #[test]
 fn gen_array_set_method() {
     let result = code("fn f(x: Array[Float32], idx: Int64, value: Float32) { x.set(idx, value); }");
-    let expected = vec![StoreArray(r(2), r(0), r(1)), RetVoid];
+    let expected = vec![StoreArray(r(2), r(0), r(1)), Ret(r(3))];
     assert_eq!(expected, result);
 }
 
@@ -4025,7 +4029,7 @@ fn gen_while_with_break() {
         JumpIfFalse(r(0), 4),
         Jump(4),
         JumpLoop(0),
-        RetVoid,
+        Ret(r(1)),
     ];
     assert_eq!(expected, result);
 }
@@ -4062,7 +4066,7 @@ fn gen_vec_store() {
                 PushRegister(r(1)),
                 PushRegister(r(2)),
                 InvokeDirect(r(3), ConstPoolIdx(0)),
-                RetVoid,
+                Ret(r(3)),
             ];
             assert_eq!(expected, code);
             assert_eq!(
@@ -4122,7 +4126,7 @@ fn gen_tuple_var() {
             PushRegister(r(1)),
             PushRegister(r(2)),
             NewTuple(r(0), ConstPoolIdx(2)),
-            RetVoid,
+            Ret(r(3)),
         ];
         assert_eq!(expected, code);
 
@@ -4136,7 +4140,7 @@ fn gen_tuple_var() {
 #[test]
 fn gen_tuple_move() {
     let result = code("fn f(x: (Int32, Int32)) { let y = x; }");
-    let expected = vec![Mov(r(1), r(0)), RetVoid];
+    let expected = vec![Mov(r(1), r(0)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -4286,8 +4290,8 @@ fn gen_invoke_lambda() {
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeLambda(r(1), ConstPoolIdx(0)),
-                RetVoid,
-                RetVoid,
+                Ret(r(1)),
+                Ret(r(1)),
             ];
             assert_eq!(expected, code);
         },
@@ -4376,7 +4380,6 @@ pub enum Bytecode {
     LoadArray(Register, Register, Register),
     StoreArray(Register, Register, Register),
 
-    RetVoid,
     Ret(Register),
 }
 
@@ -4689,9 +4692,6 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::StoreArray(src, arr, idx));
     }
 
-    fn visit_ret_void(&mut self) {
-        self.emit(Bytecode::RetVoid);
-    }
     fn visit_ret(&mut self, opnd: Register) {
         self.emit(Bytecode::Ret(opnd));
     }

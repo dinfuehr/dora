@@ -74,8 +74,9 @@ use package::bytecode::data::GlobalId;
     NewLambda(BytecodeRegister, ConstPoolId),
 
     ArrayLength(BytecodeRegister, BytecodeRegister),
+
     LoadArray(BytecodeRegister, BytecodeRegister, BytecodeRegister),
     StoreArray(BytecodeRegister, BytecodeRegister, BytecodeRegister),
-    RetVoid,
+
     Ret(BytecodeRegister),
 }

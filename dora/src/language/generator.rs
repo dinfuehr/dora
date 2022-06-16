@@ -117,7 +117,8 @@ impl<'a> AstBytecodeGen<'a> {
         self.builder.set_return_type(return_type);
 
         if self.fct.return_type.is_unit() {
-            self.builder.emit_ret_void();
+            let dest = self.ensure_unit_register();
+            self.builder.emit_ret(dest);
         }
 
         self.pop_scope();
@@ -478,7 +479,8 @@ impl<'a> AstBytecodeGen<'a> {
             self.emit_ret_value(result_reg);
             self.free_if_temp(result_reg);
         } else {
-            self.builder.emit_ret_void();
+            let dest = self.ensure_unit_register();
+            self.builder.emit_ret(dest);
         }
     }
 
@@ -486,7 +488,8 @@ impl<'a> AstBytecodeGen<'a> {
         let ret_ty = self.fct.return_type.clone();
 
         if ret_ty.is_unit() {
-            self.builder.emit_ret_void();
+            let dest = self.ensure_unit_register();
+            self.builder.emit_ret(dest);
             return;
         }
 

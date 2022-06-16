@@ -30,9 +30,10 @@ fn assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
 }
 
 @Test
-fn testDominatorRetVoid() {
+fn testDominatorRet() {
     let writer = BytecodeBuilder::new();
-    writer.emitRetVoid();
+    let regUnit = writer.addRegister(BytecodeType::Unit);
+    writer.emitRet(regUnit);
     let fct = writer.generate();
 
     assertDominatedBlocks(fct);
@@ -41,13 +42,14 @@ fn testDominatorRetVoid() {
 @Test
 fn testDominatorEmptyBlocks() {
     let writer = BytecodeBuilder::new();
+    let regUnit = writer.addRegister(BytecodeType::Unit);
     let next = writer.createLabel();
     writer.emitJump(next);
     writer.bindLabel(next);
     let next = writer.createLabel();
     writer.emitJump(next);
     writer.bindLabel(next);
-    writer.emitRetVoid();
+    writer.emitRet(regUnit);
     let fct = writer.generate();
 
     assertDominatedBlocks(fct, 0i32, 1i32);
@@ -58,6 +60,7 @@ fn testDominatorSimple() {
     let writer = BytecodeBuilder::new();
     let arg0 = writer.addRegister(BytecodeType::Bool);
     writer.setArguments(1i32);
+    let regUnit = writer.addRegister(BytecodeType::Unit);
     let elseBlock = writer.createLabel();
     writer.emitJumpIfFalse(arg0, elseBlock);
     let returnBlock = writer.createLabel();
@@ -65,7 +68,7 @@ fn testDominatorSimple() {
     writer.bindLabel(elseBlock);
     writer.emitJump(returnBlock);
     writer.bindLabel(returnBlock);
-    writer.emitRetVoid();
+    writer.emitRet(regUnit);
     let fct = writer.generate();
 
     assertDominatedBlocks(fct, 0i32, 0i32, 0i32);

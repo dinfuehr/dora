@@ -127,7 +127,6 @@ enumeration!(BytecodeOpcode {
     LoadArray,
     StoreArray,
 
-    RetVoid,
     Ret
 });
 
@@ -204,7 +203,7 @@ impl BytecodeOpcode {
         match self {
             BytecodeOpcode::Wide => unreachable!(),
 
-            BytecodeOpcode::RetVoid | BytecodeOpcode::LoopStart => opcode_size(width),
+            BytecodeOpcode::LoopStart => opcode_size(width),
 
             BytecodeOpcode::PushRegister
             | BytecodeOpcode::ConstTrue
@@ -616,7 +615,6 @@ pub enum BytecodeInstruction {
         idx: Register,
     },
 
-    RetVoid,
     Ret {
         opnd: Register,
     },

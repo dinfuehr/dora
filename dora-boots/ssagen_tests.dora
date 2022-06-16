@@ -8,9 +8,10 @@ use package::graph::dump::assertGraph;
 use package::interface::getBytecodeFunctionByName;
 
 @Test
-fn testSsaGenRetVoid() {
+fn testSsaGenRet() {
     let b = BytecodeBuilder::new();
-    b.emitRetVoid();
+    let r0 = b.addRegister(BytecodeType::Unit);
+    b.emitRet(r0);
     let fct = b.generate();
 
     let graph = createGraph(fct);
@@ -377,9 +378,9 @@ fn testSsaGenLoadArrayElementInt32() {
 fn testSsaGenStoreArrayElementInt32() {
     let b = BytecodeBuilder::new();
     b.setArguments(3i32);
-    b.addRegisters(BytecodeType::Ptr, BytecodeType::Int64, BytecodeType::Int32);
+    b.addRegisters(BytecodeType::Ptr, BytecodeType::Int64, BytecodeType::Int32, BytecodeType::Unit);
     b.emitStoreArray(r(2), r(0), r(1));
-    b.emitRetVoid();
+    b.emitRet(r(3));
     let fct = b.generate();
 
     let graph = createGraph(fct);

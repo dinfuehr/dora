@@ -414,7 +414,6 @@ impl<'a> BytecodeReader<'a> {
                 BytecodeInstruction::StoreArray { src, arr, idx }
             }
 
-            BytecodeOpcode::RetVoid => BytecodeInstruction::RetVoid,
             BytecodeOpcode::Ret => {
                 let opnd = self.read_register();
                 BytecodeInstruction::Ret { opnd }
@@ -744,9 +743,6 @@ where
                 self.visitor.visit_store_array(src, arr, idx);
             }
 
-            BytecodeInstruction::RetVoid => {
-                self.visitor.visit_ret_void();
-            }
             BytecodeInstruction::Ret { opnd } => {
                 self.visitor.visit_ret(opnd);
             }
@@ -1007,9 +1003,6 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_ret_void(&mut self) {
-        unimplemented!();
-    }
     fn visit_ret(&mut self, _opnd: Register) {
         unimplemented!();
     }

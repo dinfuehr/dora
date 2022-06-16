@@ -973,9 +973,6 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_reg2("ArrayLength", dest, arr);
     }
 
-    fn visit_ret_void(&mut self) {
-        self.emit_inst("RetVoid");
-    }
     fn visit_ret(&mut self, opnd: Register) {
         self.emit_reg1("Ret", opnd);
     }

@@ -262,10 +262,6 @@ impl BytecodeWriter {
         self.emit_reg1(BytecodeOpcode::Ret, src);
     }
 
-    pub fn emit_ret_void(&mut self) {
-        self.emit_op(BytecodeOpcode::RetVoid);
-    }
-
     pub fn emit_test_identity(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3(BytecodeOpcode::TestIdentity, dest, lhs, rhs);
     }

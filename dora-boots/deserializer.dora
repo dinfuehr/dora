@@ -46,7 +46,9 @@ fn decodeRegisters(reader: ByteReader): Array[BytecodeType] {
 fn decodeBytecodeType(reader: ByteReader): BytecodeType {
     let opcode = reader.readUInt8().toInt32();
 
-    if opcode == opc::BC_TYPE_BOOL {
+    if opcode == opc::BC_TYPE_UNIT {
+        BytecodeType::Unit
+    } else if opcode == opc::BC_TYPE_BOOL {
         BytecodeType::Bool
     } else if opcode == opc::BC_TYPE_U_INT8 {
         BytecodeType::UInt8

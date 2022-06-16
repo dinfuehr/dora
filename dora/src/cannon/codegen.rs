@@ -2014,6 +2014,10 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_return_generic(&mut self, src: Register) {
         if let Some(bytecode_type) = self.specialize_register_type_unit(src) {
             match bytecode_type {
+                BytecodeType::Unit => {
+                    // nothing to do
+                }
+
                 BytecodeType::Tuple(subtypes) => {
                     let src_offset = self.register_offset(src);
 
@@ -2061,7 +2065,6 @@ impl<'a> CannonCodeGen<'a> {
 
                 BytecodeType::TypeParam(_)
                 | BytecodeType::Class(_, _)
-                | BytecodeType::Unit
                 | BytecodeType::Lambda(_, _) => {
                     unreachable!()
                 }
@@ -5344,10 +5347,6 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         self.emit_store_array(src, arr, idx);
     }
 
-    fn visit_ret_void(&mut self) {
-        comment!(self, format!("RetVoid"));
-        self.emit_epilog();
-    }
     fn visit_ret(&mut self, opnd: Register) {
         comment!(self, format!("Ret {}", opnd));
         self.emit_return_generic(opnd);

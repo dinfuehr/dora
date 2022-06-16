@@ -108,9 +108,6 @@ impl EdgeCreator {
                 self.currentBlock.getOrPanic().addSuccessor(targetBlock);
                 self.markBlockTerminated();
             },
-            BytecodeInstruction::RetVoid => {
-                self.markBlockTerminated();
-            },
             BytecodeInstruction::Ret(_) => {
                 self.markBlockTerminated();
             },
@@ -179,9 +176,6 @@ impl BlockCreator {
 
     fn processInstruction(start: Int64, size: Int64, inst: BytecodeInstruction) {
         match inst {
-            BytecodeInstruction::RetVoid => {
-                self.ensureBlock(start + size);
-            },
             BytecodeInstruction::Ret(_) => {
                 self.ensureBlock(start + size);
             },

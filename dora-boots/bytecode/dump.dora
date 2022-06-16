@@ -238,9 +238,6 @@ impl BytecodeDumper {
             BytecodeInstruction::StoreArray(src, arr, index) => {
                 self.emitReg3("StoreArray", src, arr, index);
             },
-            BytecodeInstruction::RetVoid => {
-                self.emitInst("RetVoid");
-            },
             BytecodeInstruction::Ret(opnd) => {
                 self.emitReg1("Ret", opnd);
             },
