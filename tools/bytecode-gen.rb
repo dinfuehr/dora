@@ -90,7 +90,7 @@ def output
             f.puts "  if opcode == BC_#{snake_case(bytecode)} { return #{bytecode.inspect}; }"
         end
 
-        f.puts "  \"UNKNOWN(${opcode})\""
+        f.puts "  unreachable[String]()"
         f.puts "}"
         f.puts
 
@@ -100,7 +100,7 @@ def output
             f.puts "  if code == BC_TYPE_#{snake_case(type)} { return #{type.inspect}; }"
         end
 
-        f.puts "  \"UNKNOWN(${code})\""
+        f.puts "  unreachable[String]()"
         f.puts "}"
 
         f.puts

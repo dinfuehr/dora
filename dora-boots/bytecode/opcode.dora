@@ -172,7 +172,7 @@
   if opcode == BC_LOAD_ARRAY { return "LoadArray"; }
   if opcode == BC_STORE_ARRAY { return "StoreArray"; }
   if opcode == BC_RET { return "Ret"; }
-  "UNKNOWN(${opcode})"
+  unreachable[String]()
 }
 
 @pub fn bytecodeTypeName(code: Int32): String {
@@ -192,7 +192,7 @@
   if code == BC_TYPE_CLASS { return "Class"; }
   if code == BC_TYPE_TRAIT { return "Trait"; }
   if code == BC_TYPE_LAMBDA { return "Lambda"; }
-  "UNKNOWN(${code})"
+  unreachable[String]()
 }
 
 @pub const INSTRUCTION_SET_X64: Int32 = 0;
