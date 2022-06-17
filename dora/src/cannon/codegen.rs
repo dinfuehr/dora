@@ -2219,10 +2219,17 @@ impl<'a> CannonCodeGen<'a> {
         let obj_reg = REG_TMP1;
         self.emit_load_register(dest, obj_reg.into());
 
+        // Store object pointer in scratch register.
+        let scratch_reg = self.asm.get_scratch();
+        self.asm.copy_reg(MachineMode::Ptr, *scratch_reg, obj_reg);
+
         assert_eq!(arguments.len(), class_instance.fields.len());
 
         // Initialize all class fields.
         for (&argument, field) in arguments.iter().zip(class_instance.fields.iter()) {
+            // Reinitialize obj_reg for each field since write barrier overwrites it on x64.
+            self.asm.copy_reg(MachineMode::Ptr, obj_reg, *scratch_reg);
+
             self.emit_store_field_raw(obj_reg, field.offset, argument);
         }
     }
