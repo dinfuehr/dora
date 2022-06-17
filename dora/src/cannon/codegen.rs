@@ -1665,32 +1665,37 @@ impl<'a> CannonCodeGen<'a> {
         let bytecode_type = self.specialize_register_type(src);
         assert_eq!(bytecode_type, register_bty_from_ty(field.ty.clone()));
 
+        self.emit_store_field_raw(obj_reg, field.offset, src);
+    }
+
+    fn emit_store_field_raw(&mut self, obj_reg: Reg, offset: i32, value: Register) {
+        let ty = self.specialize_register_type(value);
         let needs_write_barrier;
 
-        match &bytecode_type {
+        match &ty {
             BytecodeType::Unit => {
                 // nothing to do
                 needs_write_barrier = false;
             }
 
             BytecodeType::Tuple(subtypes) => {
-                let src_offset = self.register_offset(src);
+                let src_offset = self.register_offset(value);
                 self.copy_tuple(
                     subtypes.clone(),
-                    RegOrOffset::RegWithOffset(obj_reg, field.offset),
+                    RegOrOffset::RegWithOffset(obj_reg, offset),
                     RegOrOffset::Offset(src_offset),
                 );
 
                 needs_write_barrier =
-                    get_concrete_tuple_bytecode_ty(self.vm, &bytecode_type).contains_references()
+                    get_concrete_tuple_bytecode_ty(self.vm, &ty).contains_references()
             }
 
             BytecodeType::Struct(struct_id, type_params) => {
-                let src_offset = self.register_offset(src);
+                let src_offset = self.register_offset(value);
                 self.copy_struct(
                     *struct_id,
                     type_params.clone(),
-                    RegOrOffset::RegWithOffset(obj_reg, field.offset),
+                    RegOrOffset::RegWithOffset(obj_reg, offset),
                     RegOrOffset::Offset(src_offset),
                 );
 
@@ -1710,9 +1715,9 @@ impl<'a> CannonCodeGen<'a> {
                     EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
                 };
 
-                self.emit_load_register_as(src, REG_RESULT.into(), mode);
+                self.emit_load_register_as(value, REG_RESULT.into(), mode);
                 self.asm
-                    .store_mem(mode, Mem::Base(obj_reg, field.offset), REG_RESULT.into());
+                    .store_mem(mode, Mem::Base(obj_reg, offset), REG_RESULT.into());
 
                 needs_write_barrier = mode == MachineMode::Ptr;
             }
@@ -1727,24 +1732,23 @@ impl<'a> CannonCodeGen<'a> {
             | BytecodeType::Int64
             | BytecodeType::Float32
             | BytecodeType::Float64 => {
-                let value = result_reg(self.vm, bytecode_type);
-                let mode = field.ty.mode();
+                let value_reg = result_reg(self.vm, ty.clone());
+                let mode = mode(self.vm, ty.clone());
 
-                self.emit_load_register(src, value.into());
+                self.emit_load_register(value, value_reg.into());
                 self.asm
-                    .store_mem(mode, Mem::Base(obj_reg, field.offset), value);
+                    .store_mem(mode, Mem::Base(obj_reg, offset), value_reg);
 
                 needs_write_barrier = false;
             }
 
             BytecodeType::Ptr | BytecodeType::Trait(_, _) => {
-                let value = REG_RESULT;
+                let value_reg = REG_RESULT;
                 let mode = MachineMode::Ptr;
 
-                self.emit_load_register(src, value.into());
-                self.asm.test_if_nil_bailout(pos, value, Trap::NIL);
+                self.emit_load_register(value, value_reg.into());
                 self.asm
-                    .store_mem(mode, Mem::Base(obj_reg, field.offset), value.into());
+                    .store_mem(mode, Mem::Base(obj_reg, offset), value_reg.into());
 
                 needs_write_barrier = true;
             }
@@ -2212,21 +2216,14 @@ impl<'a> CannonCodeGen<'a> {
             _ => unreachable!(),
         }
 
-        self.emit_load_register(dest, REG_TMP1.into());
+        let obj_reg = REG_TMP1;
+        self.emit_load_register(dest, obj_reg.into());
 
         assert_eq!(arguments.len(), class_instance.fields.len());
 
         // Initialize all class fields.
-        for (field_idx, &argument) in arguments.iter().enumerate() {
-            let field = &class_instance.fields[field_idx];
-
-            if field.ty.is_unit() {
-                continue;
-            }
-
-            let dest = RegOrOffset::RegWithOffset(REG_TMP1, field.offset);
-            let src = self.reg(argument);
-            self.copy_ty(field.ty.clone(), dest, src);
+        for (&argument, field) in arguments.iter().zip(class_instance.fields.iter()) {
+            self.emit_store_field_raw(obj_reg, field.offset, argument);
         }
     }
 
