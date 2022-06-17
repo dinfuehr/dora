@@ -7,7 +7,10 @@ fn main() {
     assert(call_my_lambda(l0) == 0);
     assert(myid(l1) === l1);
     assert(call_my_lambda(l1) == 1);
+    assert(create_lambda()() == 2);
+    let l0 = create_lambda();
     std::forceCollect();
+    assert(l0() == 2);
 }
 
 fn myid(lambda: (): Int64): (): Int64 {
@@ -16,4 +19,8 @@ fn myid(lambda: (): Int64): (): Int64 {
 
 fn call_my_lambda(lambda: (): Int64): Int64 {
     lambda()
+}
+
+fn create_lambda(): (): Int64 {
+    ||: Int64 { 2 }
 }
