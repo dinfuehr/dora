@@ -740,6 +740,9 @@ impl<'a> TypeCheck<'a> {
 
         match sym {
             Some(Sym::Var(var_id)) => {
+                // Variable is used in this function.
+                self.vars.access(var_id);
+
                 let ty = self.vars.get_var(var_id).ty.clone();
                 self.analysis.set_ty(e.id, ty.clone());
 
@@ -829,6 +832,9 @@ impl<'a> TypeCheck<'a> {
 
         let lhs_type = match sym {
             Some(Sym::Var(var_id)) => {
+                // Variable is used in this function.
+                self.vars.access(var_id);
+
                 if !self.vars.get_var(var_id).mutable {
                     self.sa
                         .diag
@@ -3667,6 +3673,15 @@ impl VarManager {
 
     pub fn has_local_vars(&self) -> bool {
         self.vars.len() > *self.functions.last().expect("no function entered")
+    }
+
+    fn access(&mut self, var_id: VarId) {
+        let start_idx = *self.functions.last().expect("missing function");
+        let escapes = var_id.0 < start_idx;
+
+        if escapes {
+            self.vars[var_id.0].location = VarLocation::Context;
+        }
     }
 
     fn add_var(&mut self, name: Name, ty: SourceType, mutable: bool) -> VarId {
