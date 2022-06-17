@@ -3711,9 +3711,23 @@ fn lambda_body() {
 
 #[test]
 fn lambda_closure() {
+    ok("fn f() {
+        let x: Int32 = 10i32;
+        ||: Int32 { x };
+    }");
+
     ok("fn f(x: Int32) {
         ||: Int32 { x };
     }");
+
+    err(
+        "fn f() {
+        ||: Int32 { x };
+        let x: Int32 = 10i32;
+    }",
+        pos(2, 21),
+        SemError::UnknownIdentifier("x".into()),
+    );
 }
 
 #[test]
