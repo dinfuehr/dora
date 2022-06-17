@@ -24,7 +24,7 @@ pub fn check(sa: &SemAnalysis) {
             }
 
             let mut analysis = AnalysisData::new();
-            let symtable = NestedSymTable::new(sa, fct.module_id);
+            let mut symtable = NestedSymTable::new(sa, fct.module_id);
             let mut vars = VarManager::new();
 
             let mut typeck = TypeCheck {
@@ -34,7 +34,7 @@ pub fn check(sa: &SemAnalysis) {
                 module_id: fct.module_id,
                 analysis: &mut analysis,
                 ast: &fct.ast,
-                symtable: symtable,
+                symtable: &mut symtable,
                 in_loop: false,
                 self_ty: None,
                 vars: &mut vars,

@@ -3710,6 +3710,13 @@ fn lambda_body() {
 }
 
 #[test]
+fn lambda_closure() {
+    ok("fn f(x: Int32) {
+        ||: Int32 { x };
+    }");
+}
+
+#[test]
 fn internal_class_ctor() {
     err(
         "fn f(): Array[Int32] {

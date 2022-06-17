@@ -40,7 +40,7 @@ pub struct TypeCheck<'a> {
     pub module_id: ModuleDefinitionId,
     pub analysis: &'a mut AnalysisData,
     pub ast: &'a ast::Function,
-    pub symtable: NestedSymTable,
+    pub symtable: &'a mut NestedSymTable,
     pub in_loop: bool,
     pub self_ty: Option<SourceType>,
     pub vars: &'a mut VarManager,
@@ -48,7 +48,7 @@ pub struct TypeCheck<'a> {
 
 impl<'a> TypeCheck<'a> {
     pub fn check(&mut self) {
-        assert_eq!(self.symtable.levels(), 0);
+        let start_level = self.symtable.levels();
         self.symtable.push_level();
         self.vars.enter_function();
 
@@ -84,7 +84,7 @@ impl<'a> TypeCheck<'a> {
         self.analysis.vars = self.vars.leave_function();
 
         self.symtable.pop_level();
-        assert_eq!(self.symtable.levels(), 0);
+        assert_eq!(self.symtable.levels(), start_level);
     }
 
     fn add_type_params(&mut self) {
@@ -3064,7 +3064,6 @@ impl<'a> TypeCheck<'a> {
             let lambda = self.sa.fcts.idx(lambda_fct_id);
 
             let mut analysis = AnalysisData::new();
-            let symtable = NestedSymTable::new(self.sa, self.fct.module_id);
 
             {
                 let lambda = lambda.read();
@@ -3076,7 +3075,7 @@ impl<'a> TypeCheck<'a> {
                     module_id: self.fct.module_id,
                     analysis: &mut analysis,
                     ast: &node,
-                    symtable: symtable,
+                    symtable: &mut self.symtable,
                     in_loop: false,
                     self_ty: None,
                     vars: self.vars,
