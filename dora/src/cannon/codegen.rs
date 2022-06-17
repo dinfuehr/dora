@@ -1662,100 +1662,97 @@ impl<'a> CannonCodeGen<'a> {
         let pos = self.bytecode.offset_position(self.current_offset.to_u32());
         self.asm.test_if_nil_bailout(pos, obj_reg, Trap::NIL);
 
-        if let Some(bytecode_type) = self.specialize_register_type_unit(src) {
-            assert_eq!(bytecode_type, register_bty_from_ty(field.ty.clone()));
+        let bytecode_type = self.specialize_register_type(src);
+        assert_eq!(bytecode_type, register_bty_from_ty(field.ty.clone()));
 
-            let needs_write_barrier;
+        let needs_write_barrier;
 
-            match &bytecode_type {
-                BytecodeType::Unit => {
-                    // nothing to do
-                    needs_write_barrier = false;
-                }
-
-                BytecodeType::Tuple(subtypes) => {
-                    let src_offset = self.register_offset(src);
-                    self.copy_tuple(
-                        subtypes.clone(),
-                        RegOrOffset::RegWithOffset(obj_reg, field.offset),
-                        RegOrOffset::Offset(src_offset),
-                    );
-
-                    needs_write_barrier = get_concrete_tuple_bytecode_ty(self.vm, &bytecode_type)
-                        .contains_references()
-                }
-
-                BytecodeType::Struct(struct_id, type_params) => {
-                    let src_offset = self.register_offset(src);
-                    self.copy_struct(
-                        *struct_id,
-                        type_params.clone(),
-                        RegOrOffset::RegWithOffset(obj_reg, field.offset),
-                        RegOrOffset::Offset(src_offset),
-                    );
-
-                    let struct_instance_id =
-                        specialize_struct_id_params(self.vm, *struct_id, type_params.clone());
-                    let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
-                    needs_write_barrier = struct_instance.contains_references();
-                }
-
-                BytecodeType::Enum(enum_id, type_params) => {
-                    let enum_instance_id =
-                        specialize_enum_id_params(self.vm, *enum_id, type_params.clone());
-                    let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
-
-                    let mode = match enum_instance.layout {
-                        EnumLayout::Int => MachineMode::Int32,
-                        EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
-                    };
-
-                    self.emit_load_register_as(src, REG_RESULT.into(), mode);
-                    self.asm
-                        .store_mem(mode, Mem::Base(obj_reg, field.offset), REG_RESULT.into());
-
-                    needs_write_barrier = mode == MachineMode::Ptr;
-                }
-
-                BytecodeType::TypeParam(_)
-                | BytecodeType::Class(_, _)
-                | BytecodeType::Lambda(_, _) => {
-                    unreachable!()
-                }
-                BytecodeType::UInt8
-                | BytecodeType::Bool
-                | BytecodeType::Char
-                | BytecodeType::Int32
-                | BytecodeType::Int64
-                | BytecodeType::Float32
-                | BytecodeType::Float64 => {
-                    let value = result_reg(self.vm, bytecode_type);
-                    let mode = field.ty.mode();
-
-                    self.emit_load_register(src, value.into());
-                    self.asm
-                        .store_mem(mode, Mem::Base(obj_reg, field.offset), value);
-
-                    needs_write_barrier = false;
-                }
-
-                BytecodeType::Ptr | BytecodeType::Trait(_, _) => {
-                    let value = REG_RESULT;
-                    let mode = MachineMode::Ptr;
-
-                    self.emit_load_register(src, value.into());
-                    self.asm.test_if_nil_bailout(pos, value, Trap::NIL);
-                    self.asm
-                        .store_mem(mode, Mem::Base(obj_reg, field.offset), value.into());
-
-                    needs_write_barrier = true;
-                }
+        match &bytecode_type {
+            BytecodeType::Unit => {
+                // nothing to do
+                needs_write_barrier = false;
             }
 
-            if self.vm.gc.needs_write_barrier() && needs_write_barrier {
-                let card_table_offset = self.vm.gc.card_table_offset();
-                self.asm.emit_barrier(obj_reg, card_table_offset);
+            BytecodeType::Tuple(subtypes) => {
+                let src_offset = self.register_offset(src);
+                self.copy_tuple(
+                    subtypes.clone(),
+                    RegOrOffset::RegWithOffset(obj_reg, field.offset),
+                    RegOrOffset::Offset(src_offset),
+                );
+
+                needs_write_barrier =
+                    get_concrete_tuple_bytecode_ty(self.vm, &bytecode_type).contains_references()
             }
+
+            BytecodeType::Struct(struct_id, type_params) => {
+                let src_offset = self.register_offset(src);
+                self.copy_struct(
+                    *struct_id,
+                    type_params.clone(),
+                    RegOrOffset::RegWithOffset(obj_reg, field.offset),
+                    RegOrOffset::Offset(src_offset),
+                );
+
+                let struct_instance_id =
+                    specialize_struct_id_params(self.vm, *struct_id, type_params.clone());
+                let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
+                needs_write_barrier = struct_instance.contains_references();
+            }
+
+            BytecodeType::Enum(enum_id, type_params) => {
+                let enum_instance_id =
+                    specialize_enum_id_params(self.vm, *enum_id, type_params.clone());
+                let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
+
+                let mode = match enum_instance.layout {
+                    EnumLayout::Int => MachineMode::Int32,
+                    EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
+                };
+
+                self.emit_load_register_as(src, REG_RESULT.into(), mode);
+                self.asm
+                    .store_mem(mode, Mem::Base(obj_reg, field.offset), REG_RESULT.into());
+
+                needs_write_barrier = mode == MachineMode::Ptr;
+            }
+
+            BytecodeType::TypeParam(_) | BytecodeType::Class(_, _) | BytecodeType::Lambda(_, _) => {
+                unreachable!()
+            }
+            BytecodeType::UInt8
+            | BytecodeType::Bool
+            | BytecodeType::Char
+            | BytecodeType::Int32
+            | BytecodeType::Int64
+            | BytecodeType::Float32
+            | BytecodeType::Float64 => {
+                let value = result_reg(self.vm, bytecode_type);
+                let mode = field.ty.mode();
+
+                self.emit_load_register(src, value.into());
+                self.asm
+                    .store_mem(mode, Mem::Base(obj_reg, field.offset), value);
+
+                needs_write_barrier = false;
+            }
+
+            BytecodeType::Ptr | BytecodeType::Trait(_, _) => {
+                let value = REG_RESULT;
+                let mode = MachineMode::Ptr;
+
+                self.emit_load_register(src, value.into());
+                self.asm.test_if_nil_bailout(pos, value, Trap::NIL);
+                self.asm
+                    .store_mem(mode, Mem::Base(obj_reg, field.offset), value.into());
+
+                needs_write_barrier = true;
+            }
+        }
+
+        if self.vm.gc.needs_write_barrier() && needs_write_barrier {
+            let card_table_offset = self.vm.gc.card_table_offset();
+            self.asm.emit_barrier(obj_reg, card_table_offset);
         }
     }
 
@@ -1921,10 +1918,18 @@ impl<'a> CannonCodeGen<'a> {
 
         let op = CondCode::Equal;
 
-        if let Some(bytecode_type) = self.specialize_register_type_unit(lhs) {
-            if let BytecodeType::Tuple(_tuple_id) = bytecode_type {
-                unimplemented!()
-            } else if bytecode_type.is_any_float() {
+        let bytecode_type = self.specialize_register_type(lhs);
+
+        match bytecode_type {
+            BytecodeType::Tuple(_) => unimplemented!(),
+
+            BytecodeType::Class(_, _)
+            | BytecodeType::TypeParam(_)
+            | BytecodeType::Struct(_, _)
+            | BytecodeType::Lambda(_, _) => {
+                unreachable!()
+            }
+            BytecodeType::Float32 | BytecodeType::Float64 => {
                 let mode = match bytecode_type {
                     BytecodeType::Float32 => MachineMode::Int32,
                     BytecodeType::Float64 => MachineMode::Int64,
@@ -1938,7 +1943,20 @@ impl<'a> CannonCodeGen<'a> {
                 self.asm.set(REG_RESULT, op);
 
                 self.emit_store_register(REG_RESULT.into(), dest);
-            } else {
+            }
+
+            BytecodeType::Unit => {
+                self.emit_const_bool(dest, true);
+            }
+
+            BytecodeType::Bool
+            | BytecodeType::UInt8
+            | BytecodeType::Char
+            | BytecodeType::Int32
+            | BytecodeType::Int64
+            | BytecodeType::Ptr
+            | BytecodeType::Trait(_, _)
+            | BytecodeType::Enum(_, _) => {
                 self.emit_load_register(lhs, REG_RESULT.into());
                 self.emit_load_register(rhs, REG_TMP1.into());
 
@@ -1948,8 +1966,6 @@ impl<'a> CannonCodeGen<'a> {
 
                 self.emit_store_register(REG_RESULT.into(), dest);
             }
-        } else {
-            self.emit_const_bool(dest, true);
         }
     }
 
@@ -1999,80 +2015,77 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn emit_return_generic(&mut self, src: Register) {
-        if let Some(bytecode_type) = self.specialize_register_type_unit(src) {
-            match bytecode_type {
-                BytecodeType::Unit => {
-                    // nothing to do
-                }
+        let bytecode_type = self.specialize_register_type(src);
+        match bytecode_type {
+            BytecodeType::Unit => {
+                // nothing to do
+            }
 
-                BytecodeType::Tuple(subtypes) => {
-                    let src_offset = self.register_offset(src);
+            BytecodeType::Tuple(subtypes) => {
+                let src_offset = self.register_offset(src);
 
-                    self.asm.load_mem(
-                        MachineMode::Ptr,
-                        REG_TMP1.into(),
-                        Mem::Local(result_address_offset()),
-                    );
+                self.asm.load_mem(
+                    MachineMode::Ptr,
+                    REG_TMP1.into(),
+                    Mem::Local(result_address_offset()),
+                );
 
-                    self.copy_tuple(
-                        subtypes,
-                        RegOrOffset::Reg(REG_TMP1),
-                        RegOrOffset::Offset(src_offset),
-                    );
-                }
+                self.copy_tuple(
+                    subtypes,
+                    RegOrOffset::Reg(REG_TMP1),
+                    RegOrOffset::Offset(src_offset),
+                );
+            }
 
-                BytecodeType::Struct(struct_id, type_params) => {
-                    let src_offset = self.register_offset(src);
+            BytecodeType::Struct(struct_id, type_params) => {
+                let src_offset = self.register_offset(src);
 
-                    self.asm.load_mem(
-                        MachineMode::Ptr,
-                        REG_TMP1.into(),
-                        Mem::Local(result_address_offset()),
-                    );
+                self.asm.load_mem(
+                    MachineMode::Ptr,
+                    REG_TMP1.into(),
+                    Mem::Local(result_address_offset()),
+                );
 
-                    self.copy_struct(
-                        struct_id,
-                        type_params.clone(),
-                        RegOrOffset::Reg(REG_TMP1),
-                        RegOrOffset::Offset(src_offset),
-                    );
-                }
+                self.copy_struct(
+                    struct_id,
+                    type_params.clone(),
+                    RegOrOffset::Reg(REG_TMP1),
+                    RegOrOffset::Offset(src_offset),
+                );
+            }
 
-                BytecodeType::Enum(enum_id, type_params) => {
-                    let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-                    let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
+            BytecodeType::Enum(enum_id, type_params) => {
+                let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+                let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
-                    let mode = match enum_instance.layout {
-                        EnumLayout::Int => MachineMode::Int32,
-                        EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
-                    };
+                let mode = match enum_instance.layout {
+                    EnumLayout::Int => MachineMode::Int32,
+                    EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
+                };
 
-                    self.emit_load_register_as(src, REG_RESULT.into(), mode);
-                }
+                self.emit_load_register_as(src, REG_RESULT.into(), mode);
+            }
 
-                BytecodeType::TypeParam(_)
-                | BytecodeType::Class(_, _)
-                | BytecodeType::Lambda(_, _) => {
-                    unreachable!()
-                }
+            BytecodeType::TypeParam(_) | BytecodeType::Class(_, _) | BytecodeType::Lambda(_, _) => {
+                unreachable!()
+            }
 
-                BytecodeType::UInt8
-                | BytecodeType::Int32
-                | BytecodeType::Bool
-                | BytecodeType::Char
-                | BytecodeType::Int64
-                | BytecodeType::Float32
-                | BytecodeType::Float64 => {
-                    let reg = result_reg(self.vm, bytecode_type);
-                    self.emit_load_register(src, reg.into());
-                }
+            BytecodeType::UInt8
+            | BytecodeType::Int32
+            | BytecodeType::Bool
+            | BytecodeType::Char
+            | BytecodeType::Int64
+            | BytecodeType::Float32
+            | BytecodeType::Float64 => {
+                let reg = result_reg(self.vm, bytecode_type);
+                self.emit_load_register(src, reg.into());
+            }
 
-                BytecodeType::Ptr | BytecodeType::Trait(_, _) => {
-                    let reg = REG_RESULT;
-                    self.emit_load_register(src, reg.into());
-                    self.asm
-                        .test_if_nil_bailout(Position::new(1, 1), REG_RESULT, Trap::ILLEGAL);
-                }
+            BytecodeType::Ptr | BytecodeType::Trait(_, _) => {
+                let reg = REG_RESULT;
+                self.emit_load_register(src, reg.into());
+                self.asm
+                    .test_if_nil_bailout(Position::new(1, 1), REG_RESULT, Trap::ILLEGAL);
             }
         }
 
@@ -2466,16 +2479,15 @@ impl<'a> CannonCodeGen<'a> {
                 assert_eq!(arguments.len(), cls.fields.len() - 1);
 
                 for arg in arguments {
-                    if let Some(ty) = self.specialize_register_type_unit(arg) {
-                        let field = &cls.fields[field_idx];
-                        comment!(self, format!("NewEnum: store register {} in object", arg));
+                    let ty = self.specialize_register_type(arg);
+                    let field = &cls.fields[field_idx];
+                    comment!(self, format!("NewEnum: store register {} in object", arg));
 
-                        let dest = RegOrOffset::RegWithOffset(REG_TMP1, field.offset);
-                        let src = self.reg(arg);
+                    let dest = RegOrOffset::RegWithOffset(REG_TMP1, field.offset);
+                    let src = self.reg(arg);
 
-                        self.copy_bytecode_ty(ty, dest, src);
-                        field_idx += 1;
-                    }
+                    self.copy_bytecode_ty(ty, dest, src);
+                    field_idx += 1;
                 }
             }
         }
@@ -2501,15 +2513,14 @@ impl<'a> CannonCodeGen<'a> {
         assert_eq!(arguments.len(), struct_instance.fields.len());
 
         for (field_idx, &arg) in arguments.iter().enumerate() {
-            if let Some(ty) = self.specialize_register_type_unit(arg) {
-                let field = &struct_instance.fields[field_idx];
-                comment!(self, format!("NewStruct: store register {} in struct", arg));
+            let ty = self.specialize_register_type(arg);
+            let field = &struct_instance.fields[field_idx];
+            comment!(self, format!("NewStruct: store register {} in struct", arg));
 
-                let dest = RegOrOffset::RegWithOffset(REG_TMP1, field.offset);
-                let src = self.reg(arg);
+            let dest = RegOrOffset::RegWithOffset(REG_TMP1, field.offset);
+            let src = self.reg(arg);
 
-                self.copy_bytecode_ty(ty, dest, src);
-            }
+            self.copy_bytecode_ty(ty, dest, src);
         }
     }
 
@@ -2714,14 +2725,7 @@ impl<'a> CannonCodeGen<'a> {
                 .check_index_out_of_bounds(position, REG_RESULT, REG_TMP1);
         }
 
-        let src_type = self.specialize_register_type_unit(src);
-
-        if src_type.is_none() {
-            // nothing to do for the unit type
-            return;
-        }
-
-        let src_type = src_type.unwrap();
+        let src_type = self.specialize_register_type(src);
 
         match src_type {
             BytecodeType::Unit => {}
@@ -2873,14 +2877,7 @@ impl<'a> CannonCodeGen<'a> {
                 .check_index_out_of_bounds(position, REG_RESULT, REG_TMP1);
         }
 
-        let dest_type = self.specialize_register_type_unit(dest);
-
-        if dest_type.is_none() {
-            // nothing to do for the unit type
-            return;
-        }
-
-        let dest_type = dest_type.unwrap();
+        let dest_type = self.specialize_register_type(dest);
 
         match dest_type {
             BytecodeType::Unit => {}
@@ -4307,78 +4304,71 @@ impl<'a> CannonCodeGen<'a> {
         }
 
         for src in arguments {
-            if let Some(bytecode_type) = self.specialize_register_type_unit(src) {
-                let offset = self.register_offset(src);
+            let bytecode_type = self.specialize_register_type(src);
+            let offset = self.register_offset(src);
 
-                match bytecode_type {
-                    BytecodeType::Unit => {}
+            match bytecode_type {
+                BytecodeType::Unit => {}
 
-                    BytecodeType::Tuple(_) | BytecodeType::Struct(_, _) => {
-                        if reg_idx < REG_PARAMS.len() {
-                            let reg = REG_PARAMS[reg_idx];
-                            self.asm.lea(reg, Mem::Local(offset));
-                            reg_idx += 1;
-                        } else {
-                            self.asm.lea(REG_TMP1, Mem::Local(offset));
-                            self.asm.store_mem(
-                                MachineMode::Ptr,
-                                Mem::Base(REG_SP, sp_offset),
-                                REG_TMP1.into(),
-                            );
+                BytecodeType::Tuple(_) | BytecodeType::Struct(_, _) => {
+                    if reg_idx < REG_PARAMS.len() {
+                        let reg = REG_PARAMS[reg_idx];
+                        self.asm.lea(reg, Mem::Local(offset));
+                        reg_idx += 1;
+                    } else {
+                        self.asm.lea(REG_TMP1, Mem::Local(offset));
+                        self.asm.store_mem(
+                            MachineMode::Ptr,
+                            Mem::Base(REG_SP, sp_offset),
+                            REG_TMP1.into(),
+                        );
 
-                            sp_offset += 8;
-                        }
+                        sp_offset += 8;
                     }
-                    BytecodeType::Float32 | BytecodeType::Float64 => {
-                        let mode = mode(self.vm, bytecode_type);
+                }
+                BytecodeType::Float32 | BytecodeType::Float64 => {
+                    let mode = mode(self.vm, bytecode_type);
 
-                        if freg_idx < FREG_PARAMS.len() {
-                            self.asm.load_mem(
-                                mode,
-                                FREG_PARAMS[freg_idx].into(),
-                                Mem::Local(offset),
-                            );
-                            freg_idx += 1;
-                        } else {
-                            self.asm
-                                .load_mem(mode, FREG_TMP1.into(), Mem::Local(offset));
-                            self.asm.store_mem(
-                                mode,
-                                Mem::Base(REG_SP, sp_offset),
-                                FREG_TMP1.into(),
-                            );
+                    if freg_idx < FREG_PARAMS.len() {
+                        self.asm
+                            .load_mem(mode, FREG_PARAMS[freg_idx].into(), Mem::Local(offset));
+                        freg_idx += 1;
+                    } else {
+                        self.asm
+                            .load_mem(mode, FREG_TMP1.into(), Mem::Local(offset));
+                        self.asm
+                            .store_mem(mode, Mem::Base(REG_SP, sp_offset), FREG_TMP1.into());
 
-                            sp_offset += 8;
-                        }
+                        sp_offset += 8;
                     }
+                }
 
-                    BytecodeType::Bool
-                    | BytecodeType::UInt8
-                    | BytecodeType::Char
-                    | BytecodeType::Int32
-                    | BytecodeType::Int64
-                    | BytecodeType::Ptr
-                    | BytecodeType::Enum(_, _)
-                    | BytecodeType::Trait(_, _) => {
-                        let mode = mode(self.vm, bytecode_type);
+                BytecodeType::Bool
+                | BytecodeType::UInt8
+                | BytecodeType::Char
+                | BytecodeType::Int32
+                | BytecodeType::Int64
+                | BytecodeType::Ptr
+                | BytecodeType::Enum(_, _)
+                | BytecodeType::Trait(_, _) => {
+                    let mode = mode(self.vm, bytecode_type);
 
-                        if reg_idx < REG_PARAMS.len() {
-                            self.asm
-                                .load_mem(mode, REG_PARAMS[reg_idx].into(), Mem::Local(offset));
-                            reg_idx += 1;
-                        } else {
-                            self.asm.load_mem(mode, REG_TMP1.into(), Mem::Local(offset));
-                            self.asm
-                                .store_mem(mode, Mem::Base(REG_SP, sp_offset), REG_TMP1.into());
-                            sp_offset += 8;
-                        }
+                    if reg_idx < REG_PARAMS.len() {
+                        self.asm
+                            .load_mem(mode, REG_PARAMS[reg_idx].into(), Mem::Local(offset));
+                        reg_idx += 1;
+                    } else {
+                        self.asm.load_mem(mode, REG_TMP1.into(), Mem::Local(offset));
+                        self.asm
+                            .store_mem(mode, Mem::Base(REG_SP, sp_offset), REG_TMP1.into());
+                        sp_offset += 8;
                     }
+                }
 
-                    BytecodeType::TypeParam(_)
-                    | BytecodeType::Class(_, _)
-                    | BytecodeType::Lambda(_, _) => {
-                        unreachable!()
-                    }
+                BytecodeType::TypeParam(_)
+                | BytecodeType::Class(_, _)
+                | BytecodeType::Lambda(_, _) => {
+                    unreachable!()
                 }
             }
         }
@@ -4454,11 +4444,6 @@ impl<'a> CannonCodeGen<'a> {
     fn specialize_register_type(&self, reg: Register) -> BytecodeType {
         let ty = self.bytecode.register_type(reg);
         self.specialize_bytecode_type(ty)
-    }
-
-    fn specialize_register_type_unit(&self, reg: Register) -> Option<BytecodeType> {
-        let ty = self.bytecode.register_type(reg);
-        Some(self.specialize_bytecode_type(ty))
     }
 
     fn specialize_bytecode_type(&self, ty: BytecodeType) -> BytecodeType {
