@@ -3657,9 +3657,15 @@ fn is_simple_enum(sa: &SemAnalysis, ty: SourceType) -> bool {
     }
 }
 
+struct VarAccessPerFunction {
+    start_idx: usize,
+    context_vars: HashSet<VarId>,
+    next_context_id: usize,
+}
+
 pub struct VarManager {
     vars: Vec<VarDefinition>,
-    functions: Vec<usize>,
+    functions: Vec<VarAccessPerFunction>,
 }
 
 impl VarManager {
@@ -3671,16 +3677,49 @@ impl VarManager {
     }
 
     pub fn has_local_vars(&self) -> bool {
-        self.vars.len() > *self.functions.last().expect("no function entered")
+        self.vars.len() > self.current_function().start_idx
+    }
+
+    fn current_function(&self) -> &VarAccessPerFunction {
+        self.functions.last().expect("no function entered")
+    }
+
+    fn current_function_mut(&mut self) -> &mut VarAccessPerFunction {
+        self.functions.last_mut().expect("no function entered")
+    }
+
+    fn outer_function(&mut self) -> &mut VarAccessPerFunction {
+        let length = self.functions.len();
+        &mut self.functions[length - 1]
+    }
+
+    fn function_for_var(&mut self, var_id: VarId) -> &mut VarAccessPerFunction {
+        for function in self.functions.iter_mut().rev() {
+            if function.start_idx >= var_id.0 {
+                return function;
+            }
+        }
+
+        panic!("function not found")
     }
 
     fn access(&mut self, var_id: VarId) {
-        let start_idx = *self.functions.last().expect("missing function");
-        let escapes = var_id.0 < start_idx;
+        let escapes = var_id.0 < self.current_function().start_idx;
 
         if escapes {
-            self.vars[var_id.0].location = VarLocation::Context;
+            self.ensure_context_allocated(var_id);
         }
+    }
+
+    fn ensure_context_allocated(&mut self, var_id: VarId) {
+        if self.vars[var_id.0].location.is_context() {
+            return;
+        }
+
+        let function = self.function_for_var(var_id);
+        let context_idx = function.next_context_id;
+        function.next_context_id += 1;
+        self.vars[var_id.0].location = VarLocation::Context(context_idx);
     }
 
     fn add_var(&mut self, name: Name, ty: SourceType, mutable: bool) -> VarId {
@@ -3704,22 +3743,26 @@ impl VarManager {
     }
 
     fn enter_function(&mut self) {
-        self.functions.push(self.vars.len());
+        self.functions.push(VarAccessPerFunction {
+            start_idx: self.vars.len(),
+            context_vars: HashSet::new(),
+            next_context_id: 0,
+        });
     }
 
     fn leave_function(&mut self) -> VarAccess {
-        let start_idx = self.functions.pop().expect("missing function");
+        let function = self.functions.pop().expect("missing function");
 
         let vars = self
             .vars
-            .drain(start_idx..)
+            .drain(function.start_idx..)
             .map(|vd| Var {
                 id: vd.id,
                 ty: vd.ty.clone(),
             })
             .collect();
 
-        VarAccess::new(start_idx, vars)
+        VarAccess::new(function.start_idx, vars)
     }
 }
 
@@ -3735,5 +3778,21 @@ pub struct VarDefinition {
 #[derive(Clone, Debug)]
 pub enum VarLocation {
     Stack,
-    Context,
+    Context(usize),
+}
+
+impl VarLocation {
+    fn is_stack(&self) -> bool {
+        match self {
+            VarLocation::Stack => true,
+            VarLocation::Context(_) => false,
+        }
+    }
+
+    fn is_context(&self) -> bool {
+        match self {
+            VarLocation::Context(_) => true,
+            VarLocation::Stack => false,
+        }
+    }
 }
