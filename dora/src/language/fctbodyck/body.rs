@@ -3688,14 +3688,9 @@ impl VarManager {
         self.functions.last_mut().expect("no function entered")
     }
 
-    fn outer_function(&mut self) -> &mut VarAccessPerFunction {
-        let length = self.functions.len();
-        &mut self.functions[length - 1]
-    }
-
     fn function_for_var(&mut self, var_id: VarId) -> &mut VarAccessPerFunction {
         for function in self.functions.iter_mut().rev() {
-            if function.start_idx >= var_id.0 {
+            if var_id.0 >= function.start_idx {
                 return function;
             }
         }
