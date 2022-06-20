@@ -293,6 +293,7 @@ pub struct VarId(pub usize);
 pub struct Var {
     pub id: VarId,
     pub ty: SourceType,
+    pub location: VarLocation,
 }
 
 impl Index<VarId> for Vec<Var> {
@@ -309,21 +310,49 @@ impl IndexMut<VarId> for Vec<Var> {
     }
 }
 
+#[derive(Clone, Debug)]
+pub enum VarLocation {
+    Stack,
+    Context(usize),
+}
+
+impl VarLocation {
+    pub fn is_stack(&self) -> bool {
+        match self {
+            VarLocation::Stack => true,
+            VarLocation::Context(_) => false,
+        }
+    }
+
+    pub fn is_context(&self) -> bool {
+        match self {
+            VarLocation::Context(_) => true,
+            VarLocation::Stack => false,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct VarAccess {
     start_idx: usize,
     vars: Vec<Var>,
+    outer_vars: HashMap<VarId, Var>,
 }
 
 impl VarAccess {
-    pub fn new(start_idx: usize, vars: Vec<Var>) -> VarAccess {
-        VarAccess { start_idx, vars }
+    pub fn new(start_idx: usize, vars: Vec<Var>, outer_vars: HashMap<VarId, Var>) -> VarAccess {
+        VarAccess {
+            start_idx,
+            vars,
+            outer_vars,
+        }
     }
 
     fn empty() -> VarAccess {
         VarAccess {
             start_idx: 0,
             vars: Vec::new(),
+            outer_vars: HashMap::new(),
         }
     }
 

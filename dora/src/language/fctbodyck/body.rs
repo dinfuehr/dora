@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::convert::TryFrom;
 use std::sync::Arc;
 use std::{f32, f64};
@@ -17,7 +17,7 @@ use crate::language::sem_analysis::{
     ClassDefinitionId, EnumDefinitionId, EnumVariant, FctDefinition, FctDefinitionId, FctParent,
     ForTypeInfo, IdentType, Intrinsic, ModuleDefinitionId, SemAnalysis, SourceFileId,
     StructDefinition, StructDefinitionId, TypeParam, TypeParamDefinition, TypeParamId, Var,
-    VarAccess, VarId,
+    VarAccess, VarId, VarLocation,
 };
 use crate::language::specialize::replace_type_param;
 use crate::language::sym::{NestedSymTable, Sym};
@@ -3711,6 +3711,10 @@ impl VarManager {
             return;
         }
 
+        // Remember that we used this context variable.
+        self.current_function_mut().context_vars.insert(var_id);
+
+        // Allocate slot in context class.
         let function = self.function_for_var(var_id);
         let context_idx = function.next_context_id;
         function.next_context_id += 1;
@@ -3754,10 +3758,27 @@ impl VarManager {
             .map(|vd| Var {
                 id: vd.id,
                 ty: vd.ty.clone(),
+                location: vd.location,
             })
             .collect();
 
-        VarAccess::new(function.start_idx, vars)
+        let mut outer_vars = HashMap::new();
+
+        for var_id in function.context_vars {
+            let vd = &self.vars[var_id.0];
+            assert!(vd.location.is_context());
+            assert!(vd.id.0 < function.start_idx);
+            outer_vars.insert(
+                var_id,
+                Var {
+                    id: vd.id,
+                    ty: vd.ty.clone(),
+                    location: vd.location.clone(),
+                },
+            );
+        }
+
+        VarAccess::new(function.start_idx, vars, outer_vars)
     }
 }
 
@@ -3768,26 +3789,4 @@ pub struct VarDefinition {
     pub ty: SourceType,
     pub mutable: bool,
     pub location: VarLocation,
-}
-
-#[derive(Clone, Debug)]
-pub enum VarLocation {
-    Stack,
-    Context(usize),
-}
-
-impl VarLocation {
-    fn is_stack(&self) -> bool {
-        match self {
-            VarLocation::Stack => true,
-            VarLocation::Context(_) => false,
-        }
-    }
-
-    fn is_context(&self) -> bool {
-        match self {
-            VarLocation::Context(_) => true,
-            VarLocation::Stack => false,
-        }
-    }
 }
