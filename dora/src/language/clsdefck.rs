@@ -16,7 +16,12 @@ pub fn check(sa: &SemAnalysis) {
     for cls in sa.classes.iter() {
         let (cls_id, file_id, ast, module_id) = {
             let cls = cls.read();
-            (cls.id(), cls.file_id, cls.ast.clone(), cls.module_id)
+            (
+                cls.id(),
+                cls.file_id,
+                cls.ast.as_ref().expect("missing ast").clone(),
+                cls.module_id,
+            )
         };
 
         let mut clsck = ClsDefCheck {
@@ -222,8 +227,9 @@ impl<'x> ClsDefCheck<'x> {
 pub fn check_super_definition(sa: &SemAnalysis) {
     for cls in sa.classes.iter() {
         let cls = cls.read();
+        let ast = cls.ast.as_ref().expect("ast missing");
 
-        if let Some(ref parent_class) = &cls.ast.parent_class {
+        if let Some(ref parent_class) = &ast.parent_class {
             let error = ErrorReporting::Yes(cls.file_id, parent_class.pos);
             typeparamck::check_super(sa, &*cls, error);
         }

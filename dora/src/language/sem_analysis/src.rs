@@ -21,6 +21,7 @@ pub struct AnalysisData {
     pub map_fors: NodeMap<ForTypeInfo>,
     pub map_lambdas: NodeMap<FctDefinitionId>,
     pub vars: VarAccess, // variables in functions
+    pub context_cls_id: Option<ClassDefinitionId>,
 }
 
 impl AnalysisData {
@@ -35,6 +36,7 @@ impl AnalysisData {
             map_lambdas: NodeMap::new(),
 
             vars: VarAccess::empty(),
+            context_cls_id: None,
         }
     }
 

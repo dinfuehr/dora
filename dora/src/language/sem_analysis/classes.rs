@@ -48,7 +48,7 @@ impl Id for ClassDefinition {
 pub struct ClassDefinition {
     pub id: Option<ClassDefinitionId>,
     pub file_id: SourceFileId,
-    pub ast: Arc<ast::Class>,
+    pub ast: Option<Arc<ast::Class>>,
     pub module_id: ModuleDefinitionId,
     pub pos: Position,
     pub name: Name,
@@ -94,7 +94,7 @@ impl ClassDefinition {
         ClassDefinition {
             id: None,
             file_id,
-            ast: ast.clone(),
+            ast: Some(ast.clone()),
             module_id,
             pos: ast.pos,
             name: ast.name,
@@ -125,12 +125,57 @@ impl ClassDefinition {
         }
     }
 
+    pub fn new_context(
+        file_id: SourceFileId,
+        ast: &Arc<ast::Function>,
+        module_id: ModuleDefinitionId,
+    ) -> ClassDefinition {
+        let type_params = ast.type_params.as_ref().map_or(Vec::new(), |type_params| {
+            type_params
+                .iter()
+                .map(|type_param| TypeParam::new(type_param.name))
+                .collect()
+        });
+        ClassDefinition {
+            id: None,
+            file_id,
+            ast: None,
+            module_id,
+            pos: ast.pos,
+            name: ast.name,
+            ty: None,
+            parent_class: None,
+            is_open: false,
+            is_abstract: false,
+            internal: false,
+            internal_resolved: false,
+            has_constructor: false,
+            is_pub: ast.is_pub,
+            table: SymTable::new(),
+
+            constructor: None,
+            fields: Vec::new(),
+            methods: Vec::new(),
+            virtual_fcts: Vec::new(),
+
+            impls: Vec::new(),
+            extensions: Vec::new(),
+
+            type_params,
+            type_params2: TypeParamDefinition::new(),
+
+            is_array: false,
+            is_str: false,
+            primitive_type: None,
+        }
+    }
+
     pub fn id(&self) -> ClassDefinitionId {
         self.id.expect("missing id")
     }
 
     pub fn uses_new_syntax(&self) -> bool {
-        self.ast.new_syntax
+        self.ast.as_ref().expect("missing ast").new_syntax
     }
 
     pub fn is_generic(&self) -> bool {

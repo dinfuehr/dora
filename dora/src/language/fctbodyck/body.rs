@@ -81,10 +81,15 @@ impl<'a> TypeCheck<'a> {
             self.check_fct_return_type(block.pos, return_type);
         }
 
-        self.analysis.vars = self.vars.leave_function();
-
         self.symtable.pop_level();
         assert_eq!(self.symtable.levels(), start_level);
+
+        self.prepare_local_and_context_vars();
+    }
+
+    fn prepare_local_and_context_vars(&mut self) {
+        // Store var definitions for all local and context vars defined in this function.
+        self.analysis.vars = self.vars.leave_function();
     }
 
     fn add_type_params(&mut self) {
@@ -3678,6 +3683,10 @@ impl VarManager {
 
     pub fn has_local_vars(&self) -> bool {
         self.vars.len() > self.current_function().start_idx
+    }
+
+    pub fn has_context_vars(&self) -> bool {
+        self.current_function().next_context_id > 0
     }
 
     fn current_function(&self) -> &VarAccessPerFunction {
