@@ -98,6 +98,8 @@ impl<'a> TypeCheck<'a> {
                     continue;
                 }
 
+                assert_eq!(var.location, VarLocation::Context(idx));
+
                 fields.push(Field {
                     id: FieldId(idx),
                     name: var.name,

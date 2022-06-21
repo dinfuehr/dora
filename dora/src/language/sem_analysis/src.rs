@@ -103,6 +103,9 @@ pub enum IdentType {
     /// name of local variable
     Var(VarId),
 
+    // context variable
+    Context(usize, FieldId),
+
     /// name of a global variable
     Global(GlobalDefinitionId),
 
@@ -312,7 +315,7 @@ impl IndexMut<VarId> for Vec<Var> {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum VarLocation {
     Stack,
     Context(usize),

@@ -9,7 +9,7 @@ use crate::bytecode::{
 };
 use crate::language::sem_analysis::{
     find_impl, AnalysisData, CallType, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId,
-    FctDefinition, FctDefinitionId, GlobalDefinitionId, IdentType, Intrinsic, SemAnalysis,
+    FctDefinition, FctDefinitionId, FieldId, GlobalDefinitionId, IdentType, Intrinsic, SemAnalysis,
     StructDefinitionId, VarId,
 };
 use crate::language::specialize::specialize_type;
@@ -45,6 +45,7 @@ pub fn generate(sa: &SemAnalysis, fct: &FctDefinition, src: &AnalysisData) -> By
         loops: Vec::new(),
         var_registers: HashMap::new(),
         unit_register: None,
+        context_register: None,
     };
     ast_bytecode_generator.generate(&fct.ast)
 }
@@ -57,6 +58,7 @@ struct AstBytecodeGen<'a> {
     builder: BytecodeBuilder,
     loops: Vec<LoopLabels>,
     var_registers: HashMap<VarId, Register>,
+    context_register: Option<Register>,
     unit_register: Option<Register>,
 }
 
@@ -91,6 +93,8 @@ impl<'a> AstBytecodeGen<'a> {
 
         self.builder.set_params(params);
 
+        self.create_context();
+
         if let Some(ref block) = ast.block {
             for stmt in &block.stmts {
                 self.visit_stmt(stmt);
@@ -123,6 +127,18 @@ impl<'a> AstBytecodeGen<'a> {
 
         self.pop_scope();
         self.builder.generate(self.sa)
+    }
+
+    fn create_context(&mut self) {
+        if let Some(cls_id) = self.src.context_cls_id {
+            let context_register = self.builder.alloc_global(BytecodeType::Ptr);
+            let idx = self
+                .builder
+                .add_const_cls_types(cls_id, SourceTypeArray::empty());
+            self.builder
+                .emit_new_object(context_register, idx, self.fct.pos);
+            self.context_register = Some(context_register);
+        }
     }
 
     fn visit_stmt(&mut self, stmt: &ast::Stmt) {
@@ -2620,6 +2636,9 @@ impl<'a> AstBytecodeGen<'a> {
 
         match ident_type {
             &IdentType::Var(var_id) => self.visit_expr_ident_var(var_id, dest),
+            &IdentType::Context(distance, field_id) => {
+                self.visit_expr_ident_context(distance, field_id, dest, ident.pos)
+            }
             &IdentType::Global(gid) => self.visit_expr_ident_global(gid, dest),
             &IdentType::Const(cid) => self.visit_expr_ident_const(cid, dest),
             &IdentType::EnumValue(enum_id, ref type_params, variant_idx) => {
@@ -2633,6 +2652,51 @@ impl<'a> AstBytecodeGen<'a> {
             &IdentType::Fct(_, _) => unreachable!(),
             &IdentType::Class(_, _) => unreachable!(),
         }
+    }
+
+    fn visit_expr_ident_context(
+        &mut self,
+        distance: usize,
+        field_id: FieldId,
+        dest: DataDest,
+        pos: Position,
+    ) -> Register {
+        assert_eq!(distance, 1);
+
+        let self_id = self.src.vars.get_self().id;
+        let self_reg = self.var_reg(self_id);
+
+        // Load context field of
+        let context_reg = self.alloc_temp(BytecodeType::Ptr);
+        let cls_id = self.src.context_cls_id.expect("class missing");
+        let idx = self
+            .builder
+            .add_const_field_types(cls_id, SourceTypeArray::empty(), FieldId(0));
+        self.builder
+            .emit_load_field(context_reg, self_reg, idx, pos);
+
+        let outer_fct_id = self.fct.parent.fct_id();
+        let outer_fct = self.sa.fcts.idx(outer_fct_id);
+        let outer_cls_id = outer_fct
+            .read()
+            .analysis()
+            .context_cls_id
+            .expect("context class missing");
+        let outer_cls = self.sa.classes.idx(outer_cls_id);
+        let outer_cls = outer_cls.read();
+
+        let field = &outer_cls.fields[field_id];
+
+        let ty: BytecodeType = register_bty_from_ty(field.ty.clone());
+        let value_reg = self.ensure_register(dest, ty);
+
+        let idx =
+            self.builder
+                .add_const_field_types(outer_cls_id, SourceTypeArray::empty(), field_id);
+        self.builder
+            .emit_load_field(value_reg, context_reg, idx, pos);
+
+        value_reg
     }
 
     fn visit_expr_ident_const(&mut self, const_id: ConstDefinitionId, dest: DataDest) -> Register {
@@ -2716,9 +2780,9 @@ impl<'a> AstBytecodeGen<'a> {
             return Register::invalid();
         }
 
-        let ty = self.var_ty(var_id);
+        let var = self.src.vars.get_var(var_id);
 
-        if ty.is_unit() {
+        if var.ty.is_unit() {
             assert!(dest.is_alloc());
             return self.ensure_unit_register();
         }

@@ -322,6 +322,13 @@ impl FctParent {
         }
     }
 
+    pub fn fct_id(&self) -> FctDefinitionId {
+        match self {
+            &FctParent::Function(id) => id,
+            _ => unreachable!(),
+        }
+    }
+
     pub fn cls_id(&self) -> ClassDefinitionId {
         match self {
             &FctParent::Class(id) => id,
