@@ -1,6 +1,6 @@
 use crate::language::fctbodyck::body::{TypeCheck, VarManager};
 use crate::language::fctbodyck::constck::ConstCheck;
-use crate::language::sem_analysis::{AnalysisData, SemAnalysis};
+use crate::language::sem_analysis::{AnalysisData, FctDefinitionId, SemAnalysis};
 use crate::language::sym::NestedSymTable;
 
 pub mod body;
@@ -9,43 +9,12 @@ mod lookup;
 #[cfg(test)]
 mod tests;
 
-pub fn check(sa: &SemAnalysis) {
-    for fct in sa.fcts.iter() {
-        let analysis = {
-            let fct = fct.read();
+pub fn check(sa: &mut SemAnalysis) {
+    let mut idx = 0;
 
-            if !fct.has_body() {
-                continue;
-            }
-
-            if fct.is_lambda() {
-                // Lambdas will be type-checked by their parent.
-                continue;
-            }
-
-            let mut analysis = AnalysisData::new();
-            let mut symtable = NestedSymTable::new(sa, fct.module_id);
-            let mut vars = VarManager::new();
-
-            let mut typeck = TypeCheck {
-                sa,
-                fct: &fct,
-                file_id: fct.file_id,
-                module_id: fct.module_id,
-                analysis: &mut analysis,
-                ast: &fct.ast,
-                symtable: &mut symtable,
-                in_loop: false,
-                self_ty: None,
-                vars: &mut vars,
-            };
-
-            typeck.check();
-
-            analysis
-        };
-
-        fct.write().analysis = Some(analysis);
+    while idx < sa.fcts.len() {
+        check_function(sa, FctDefinitionId(idx));
+        idx += 1;
     }
 
     for const_ in sa.consts.iter() {
@@ -62,4 +31,44 @@ pub fn check(sa: &SemAnalysis) {
 
         const_.value = value;
     }
+}
+
+fn check_function(sa: &mut SemAnalysis, id: FctDefinitionId) {
+    let fct = sa.fcts.idx(id);
+
+    let analysis = {
+        let fct = fct.read();
+
+        if !fct.has_body() {
+            return;
+        }
+
+        if fct.is_lambda() {
+            // Lambdas will be type-checked by their parent.
+            return;
+        }
+
+        let mut analysis = AnalysisData::new();
+        let mut symtable = NestedSymTable::new(sa, fct.module_id);
+        let mut vars = VarManager::new();
+
+        let mut typeck = TypeCheck {
+            sa,
+            fct: &fct,
+            file_id: fct.file_id,
+            module_id: fct.module_id,
+            analysis: &mut analysis,
+            ast: &fct.ast,
+            symtable: &mut symtable,
+            in_loop: false,
+            self_ty: None,
+            vars: &mut vars,
+        };
+
+        typeck.check();
+
+        analysis
+    };
+
+    fct.write().analysis = Some(analysis);
 }

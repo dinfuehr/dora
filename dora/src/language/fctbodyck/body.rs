@@ -34,7 +34,7 @@ use dora_parser::lexer::token::{FloatSuffix, IntBase, IntSuffix};
 use fixedbitset::FixedBitSet;
 
 pub struct TypeCheck<'a> {
-    pub sa: &'a SemAnalysis,
+    pub sa: &'a mut SemAnalysis,
     pub fct: &'a FctDefinition,
     pub file_id: SourceFileId,
     pub module_id: ModuleDefinitionId,
@@ -598,7 +598,8 @@ impl<'a> TypeCheck<'a> {
                                     ),
                                 );
 
-                                let enum_ = self.sa.enums[enum_id].read();
+                                let enum_ = self.sa.enums.idx(enum_id);
+                                let enum_ = enum_.read();
                                 let variant = &enum_.variants[variant_idx];
 
                                 let given_params = if let Some(ref params) = ident.params {
@@ -1417,7 +1418,8 @@ impl<'a> TypeCheck<'a> {
         variant_idx: usize,
         arg_types: &[SourceType],
     ) -> SourceType {
-        let enum_ = self.sa.enums[enum_id].read();
+        let enum_ = self.sa.enums.idx(enum_id);
+        let enum_ = enum_.read();
         let variant = &enum_.variants[variant_idx as usize];
 
         if !enum_accessible_from(self.sa, enum_id, self.module_id) {
@@ -2280,7 +2282,8 @@ impl<'a> TypeCheck<'a> {
             }
 
             Some(Sym::Enum(enum_id)) => {
-                let enum_ = self.sa.enums[enum_id].read();
+                let enum_ = self.sa.enums.idx(enum_id);
+                let enum_ = enum_.read();
 
                 if let Some(&variant_idx) = enum_.name_to_value.get(&method_name) {
                     if !container_type_params.is_empty() && !type_params.is_empty() {
@@ -2597,7 +2600,8 @@ impl<'a> TypeCheck<'a> {
         module_id: ModuleDefinitionId,
         element_name: Name,
     ) -> SourceType {
-        let module = &self.sa.modules[module_id].read();
+        let module = &self.sa.modules.idx(module_id);
+        let module = module.read();
         let table = module.table.read();
 
         let sym = table.get(element_name);
