@@ -127,8 +127,9 @@ impl ClassDefinition {
 
     pub fn new_context(
         file_id: SourceFileId,
-        ast: &Arc<ast::Function>,
+        ast: &ast::Function,
         module_id: ModuleDefinitionId,
+        fields: Vec<Field>,
     ) -> ClassDefinition {
         let type_params = ast.type_params.as_ref().map_or(Vec::new(), |type_params| {
             type_params
@@ -154,7 +155,7 @@ impl ClassDefinition {
             table: SymTable::new(),
 
             constructor: None,
-            fields: Vec::new(),
+            fields,
             methods: Vec::new(),
             virtual_fcts: Vec::new(),
 
@@ -302,7 +303,7 @@ impl ClassDefinition {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct FieldId(usize);
+pub struct FieldId(pub usize);
 
 impl FieldId {
     pub fn to_usize(self) -> usize {

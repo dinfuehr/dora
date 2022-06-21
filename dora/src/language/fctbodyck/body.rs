@@ -15,9 +15,9 @@ use crate::language::sem_analysis::{
     create_tuple, find_field_in_class, find_methods_in_class, find_methods_in_enum,
     find_methods_in_struct, implements_trait, AnalysisData, CallType, ClassDefinition,
     ClassDefinitionId, EnumDefinitionId, EnumVariant, FctDefinition, FctDefinitionId, FctParent,
-    ForTypeInfo, IdentType, Intrinsic, ModuleDefinitionId, SemAnalysis, SourceFileId,
-    StructDefinition, StructDefinitionId, TypeParam, TypeParamDefinition, TypeParamId, Var,
-    VarAccess, VarId, VarLocation,
+    Field, FieldId, ForTypeInfo, IdentType, Intrinsic, ModuleDefinitionId, SemAnalysis,
+    SourceFileId, StructDefinition, StructDefinitionId, TypeParam, TypeParamDefinition,
+    TypeParamId, Var, VarAccess, VarId, VarLocation,
 };
 use crate::language::specialize::replace_type_param;
 use crate::language::sym::{NestedSymTable, Sym};
@@ -88,6 +88,33 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn prepare_local_and_context_vars(&mut self) {
+        if self.vars.has_context_vars() {
+            let start_index = self.vars.current_function().start_idx;
+            let mut fields = Vec::new();
+            let mut idx = 0;
+
+            for var in self.vars.vars.iter().skip(start_index) {
+                if !var.location.is_context() {
+                    continue;
+                }
+
+                fields.push(Field {
+                    id: FieldId(idx),
+                    name: var.name,
+                    ty: var.ty.clone(),
+                    mutable: true,
+                    is_pub: false,
+                });
+
+                idx += 1;
+            }
+
+            let class =
+                ClassDefinition::new_context(self.file_id, &*self.ast, self.module_id, fields);
+            let class_id = self.sa.classes.push(class);
+            self.analysis.context_cls_id = Some(class_id);
+        }
+
         // Store var definitions for all local and context vars defined in this function.
         self.analysis.vars = self.vars.leave_function();
     }
