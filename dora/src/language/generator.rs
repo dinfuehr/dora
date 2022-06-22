@@ -2638,20 +2638,35 @@ impl<'a> AstBytecodeGen<'a> {
         distance: usize,
         field_id: FieldId,
     ) {
+        assert_eq!(distance, 1);
         let value_reg = self.visit_expr(&expr.rhs, DataDest::Alloc);
 
-        if distance == 0 {
-            // Load context object.
-            let context_register = self.context_register.expect("context register missing");
-            let cls_id = self.src.context_cls_id.expect("class missing");
-            let field_idx =
-                self.builder
-                    .add_const_field_types(cls_id, SourceTypeArray::empty(), field_id);
+        let self_id = self.src.vars.get_self().id;
+        let self_reg = self.var_reg(self_id);
+
+        // Load context field of self
+        let context_reg = self.alloc_temp(BytecodeType::Ptr);
+        let cls_id = self.src.context_cls_id.expect("class missing");
+        let idx = self
+            .builder
+            .add_const_field_types(cls_id, SourceTypeArray::empty(), FieldId(0));
+        self.builder
+            .emit_load_field(context_reg, self_reg, idx, expr.pos);
+
+        let outer_fct_id = self.fct.parent.fct_id();
+        let outer_fct = self.sa.fcts.idx(outer_fct_id);
+        let outer_cls_id = outer_fct
+            .read()
+            .analysis()
+            .context_cls_id
+            .expect("context class missing");
+
+        // Store value in context field
+        let idx =
             self.builder
-                .emit_store_field(value_reg, context_register, field_idx, expr.pos);
-        } else {
-            unimplemented!()
-        }
+                .add_const_field_types(outer_cls_id, SourceTypeArray::empty(), field_id);
+        self.builder
+            .emit_store_field(value_reg, context_reg, idx, expr.pos);
     }
 
     fn visit_expr_assign_var(&mut self, expr: &ast::ExprBinType, var_id: VarId) {
@@ -2739,62 +2754,40 @@ impl<'a> AstBytecodeGen<'a> {
     ) -> Register {
         assert_eq!(distance, 1);
 
-        if distance == 0 {
-            let cls_id = self.src.context_cls_id.expect("class missing");
-            let cls = self.sa.classes.idx(cls_id);
-            let cls = cls.read();
-            let field = &cls.fields[field_id];
+        let self_id = self.src.vars.get_self().id;
+        let self_reg = self.var_reg(self_id);
 
-            let context_reg = self.context_register.expect("context register missing");
+        // Load context field of
+        let context_reg = self.alloc_temp(BytecodeType::Ptr);
+        let cls_id = self.src.context_cls_id.expect("class missing");
+        let idx = self
+            .builder
+            .add_const_field_types(cls_id, SourceTypeArray::empty(), FieldId(0));
+        self.builder
+            .emit_load_field(context_reg, self_reg, idx, pos);
 
-            let ty: BytecodeType = register_bty_from_ty(field.ty.clone());
-            let value_reg = self.ensure_register(dest, ty);
+        let outer_fct_id = self.fct.parent.fct_id();
+        let outer_fct = self.sa.fcts.idx(outer_fct_id);
+        let outer_cls_id = outer_fct
+            .read()
+            .analysis()
+            .context_cls_id
+            .expect("context class missing");
+        let outer_cls = self.sa.classes.idx(outer_cls_id);
+        let outer_cls = outer_cls.read();
 
-            let field_idx =
-                self.builder
-                    .add_const_field_types(cls_id, SourceTypeArray::empty(), FieldId(0));
+        let field = &outer_cls.fields[field_id];
+
+        let ty: BytecodeType = register_bty_from_ty(field.ty.clone());
+        let value_reg = self.ensure_register(dest, ty);
+
+        let idx =
             self.builder
-                .emit_load_field(value_reg, context_reg, field_idx, pos);
+                .add_const_field_types(outer_cls_id, SourceTypeArray::empty(), field_id);
+        self.builder
+            .emit_load_field(value_reg, context_reg, idx, pos);
 
-            value_reg
-        } else {
-            let self_id = self.src.vars.get_self().id;
-            let self_reg = self.var_reg(self_id);
-
-            // Load context field of
-            let context_reg = self.alloc_temp(BytecodeType::Ptr);
-            let cls_id = self.src.context_cls_id.expect("class missing");
-            let idx =
-                self.builder
-                    .add_const_field_types(cls_id, SourceTypeArray::empty(), FieldId(0));
-            self.builder
-                .emit_load_field(context_reg, self_reg, idx, pos);
-
-            let outer_fct_id = self.fct.parent.fct_id();
-            let outer_fct = self.sa.fcts.idx(outer_fct_id);
-            let outer_cls_id = outer_fct
-                .read()
-                .analysis()
-                .context_cls_id
-                .expect("context class missing");
-            let outer_cls = self.sa.classes.idx(outer_cls_id);
-            let outer_cls = outer_cls.read();
-
-            let field = &outer_cls.fields[field_id];
-
-            let ty: BytecodeType = register_bty_from_ty(field.ty.clone());
-            let value_reg = self.ensure_register(dest, ty);
-
-            let idx = self.builder.add_const_field_types(
-                outer_cls_id,
-                SourceTypeArray::empty(),
-                field_id,
-            );
-            self.builder
-                .emit_load_field(value_reg, context_reg, idx, pos);
-
-            value_reg
-        }
+        value_reg
     }
 
     fn visit_expr_ident_const(&mut self, const_id: ConstDefinitionId, dest: DataDest) -> Register {
