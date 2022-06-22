@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::convert::TryFrom;
 use std::sync::Arc;
 use std::{f32, f64};
@@ -775,15 +775,12 @@ impl<'a> TypeCheck<'a> {
 
         match sym {
             Some(Sym::Var(var_id)) => {
-                // Variable is used in this function.
-                self.vars.access(var_id);
-
                 let ty = self.vars.get_var(var_id).ty.clone();
                 self.analysis.set_ty(e.id, ty.clone());
 
-                self.analysis
-                    .map_idents
-                    .insert(e.id, IdentType::Var(var_id));
+                // Variable may have to be context-allocated.
+                let ident = self.vars.check_context_allocated(var_id);
+                self.analysis.map_idents.insert(e.id, ident);
 
                 ty
             }
@@ -867,9 +864,6 @@ impl<'a> TypeCheck<'a> {
 
         let lhs_type = match sym {
             Some(Sym::Var(var_id)) => {
-                // Variable is used in this function.
-                self.vars.access(var_id);
-
                 if !self.vars.get_var(var_id).mutable {
                     self.sa
                         .diag
@@ -877,9 +871,10 @@ impl<'a> TypeCheck<'a> {
                         .report(self.file_id, e.pos, SemError::LetReassigned);
                 }
 
-                self.analysis
-                    .map_idents
-                    .insert(e.lhs.id(), IdentType::Var(var_id));
+                // Variable may have to be context-allocated.
+                let ident = self.vars.check_context_allocated(var_id);
+                self.analysis.map_idents.insert(e.lhs.id(), ident);
+
                 self.vars.get_var(var_id).ty.clone()
             }
 
@@ -3696,8 +3691,8 @@ fn is_simple_enum(sa: &SemAnalysis, ty: SourceType) -> bool {
 }
 
 struct VarAccessPerFunction {
+    level: usize,
     start_idx: usize,
-    context_vars: HashSet<VarId>,
     next_context_id: usize,
 }
 
@@ -3740,27 +3735,31 @@ impl VarManager {
         panic!("function not found")
     }
 
-    fn access(&mut self, var_id: VarId) {
-        let escapes = var_id.0 < self.current_function().start_idx;
+    fn check_context_allocated(&mut self, var_id: VarId) -> IdentType {
+        let in_outer_function = var_id.0 < self.current_function().start_idx;
 
-        if escapes {
-            self.ensure_context_allocated(var_id);
+        if in_outer_function {
+            let field_id = self.ensure_context_allocated(var_id);
+            let distance = self.current_function().level - self.function_for_var(var_id).level;
+            IdentType::Context(distance, field_id)
+        } else {
+            IdentType::Var(var_id)
         }
     }
 
-    fn ensure_context_allocated(&mut self, var_id: VarId) {
-        if self.vars[var_id.0].location.is_context() {
-            return;
+    fn ensure_context_allocated(&mut self, var_id: VarId) -> FieldId {
+        match self.vars[var_id.0].location {
+            VarLocation::Context(field_id) => return FieldId(field_id),
+            VarLocation::Stack => {}
         }
-
-        // Remember that we used this context variable.
-        self.current_function_mut().context_vars.insert(var_id);
 
         // Allocate slot in context class.
         let function = self.function_for_var(var_id);
         let context_idx = function.next_context_id;
         function.next_context_id += 1;
         self.vars[var_id.0].location = VarLocation::Context(context_idx);
+
+        FieldId(context_idx)
     }
 
     fn add_var(&mut self, name: Name, ty: SourceType, mutable: bool) -> VarId {
@@ -3785,8 +3784,8 @@ impl VarManager {
 
     fn enter_function(&mut self) {
         self.functions.push(VarAccessPerFunction {
+            level: self.functions.len(),
             start_idx: self.vars.len(),
-            context_vars: HashSet::new(),
             next_context_id: 0,
         });
     }
@@ -3804,23 +3803,7 @@ impl VarManager {
             })
             .collect();
 
-        let mut outer_vars = HashMap::new();
-
-        for var_id in function.context_vars {
-            let vd = &self.vars[var_id.0];
-            assert!(vd.location.is_context());
-            assert!(vd.id.0 < function.start_idx);
-            outer_vars.insert(
-                var_id,
-                Var {
-                    id: vd.id,
-                    ty: vd.ty.clone(),
-                    location: vd.location.clone(),
-                },
-            );
-        }
-
-        VarAccess::new(function.start_idx, vars, outer_vars)
+        VarAccess::new(function.start_idx, vars)
     }
 }
 

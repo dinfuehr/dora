@@ -4240,6 +4240,33 @@ fn gen_new_lambda() {
 }
 
 #[test]
+fn gen_context_allocated_var() {
+    gen_fct(
+        "
+        fn f(): (): Int64 {
+            var x = 10;
+            x = 11;
+            let y = x;
+            ||: Int64 { x }
+        }
+    ",
+        |_sa, code, _fct| {
+            let expected = vec![
+                NewObject(r(0), ConstPoolIdx(0)),
+                ConstInt64(r(1), 10),
+                StoreField(r(1), r(0), ConstPoolIdx(2)),
+                ConstInt64(r(1), 11),
+                StoreField(r(1), r(0), ConstPoolIdx(4)),
+                LoadField(r(1), r(0), ConstPoolIdx(5)),
+                NewLambda(r(2), ConstPoolIdx(6)),
+                Ret(r(2)),
+            ];
+            assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
 fn gen_access_lambda_args() {
     gen_fct(
         "

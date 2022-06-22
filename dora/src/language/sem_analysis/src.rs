@@ -341,23 +341,17 @@ impl VarLocation {
 pub struct VarAccess {
     start_idx: usize,
     vars: Vec<Var>,
-    outer_vars: HashMap<VarId, Var>,
 }
 
 impl VarAccess {
-    pub fn new(start_idx: usize, vars: Vec<Var>, outer_vars: HashMap<VarId, Var>) -> VarAccess {
-        VarAccess {
-            start_idx,
-            vars,
-            outer_vars,
-        }
+    pub fn new(start_idx: usize, vars: Vec<Var>) -> VarAccess {
+        VarAccess { start_idx, vars }
     }
 
     fn empty() -> VarAccess {
         VarAccess {
             start_idx: 0,
             vars: Vec::new(),
-            outer_vars: HashMap::new(),
         }
     }
 
