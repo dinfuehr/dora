@@ -64,7 +64,7 @@ pub fn check_abstract(
 
             sa.diag.lock().report(
                 cls.file_id(),
-                cls.pos,
+                cls.pos(),
                 SemError::MissingAbstractOverride(cls_name, mtd_name),
             );
         }

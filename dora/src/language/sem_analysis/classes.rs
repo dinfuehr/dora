@@ -50,7 +50,7 @@ pub struct ClassDefinition {
     pub file_id: Option<SourceFileId>,
     pub ast: Option<Arc<ast::Class>>,
     pub module_id: ModuleDefinitionId,
-    pub pos: Position,
+    pub pos: Option<Position>,
     pub name: Name,
     pub primitive_type: Option<SourceType>,
     pub ty: Option<SourceType>,
@@ -96,7 +96,7 @@ impl ClassDefinition {
             file_id: Some(file_id),
             ast: Some(ast.clone()),
             module_id,
-            pos: ast.pos,
+            pos: Some(ast.pos),
             name: ast.name,
             ty: None,
             parent_class: None,
@@ -126,24 +126,20 @@ impl ClassDefinition {
     }
 
     pub fn new_without_source(
-        file_id: Option<SourceFileId>,
         module_id: ModuleDefinitionId,
-        ast: &ast::Function,
+        file_id: Option<SourceFileId>,
+        pos: Option<Position>,
+        name: Name,
+        is_pub: bool,
         fields: Vec<Field>,
     ) -> ClassDefinition {
-        let type_params = ast.type_params.as_ref().map_or(Vec::new(), |type_params| {
-            type_params
-                .iter()
-                .map(|type_param| TypeParam::new(type_param.name))
-                .collect()
-        });
         ClassDefinition {
             id: None,
             file_id,
             ast: None,
             module_id,
-            pos: ast.pos,
-            name: ast.name,
+            pos,
+            name,
             ty: None,
             parent_class: None,
             is_open: false,
@@ -151,7 +147,7 @@ impl ClassDefinition {
             internal: false,
             internal_resolved: false,
             has_constructor: false,
-            is_pub: ast.is_pub,
+            is_pub,
             table: SymTable::new(),
 
             constructor: None,
@@ -162,7 +158,7 @@ impl ClassDefinition {
             impls: Vec::new(),
             extensions: Vec::new(),
 
-            type_params,
+            type_params: Vec::new(),
             type_params2: TypeParamDefinition::new(),
 
             is_array: false,
@@ -177,6 +173,10 @@ impl ClassDefinition {
 
     pub fn file_id(&self) -> SourceFileId {
         self.file_id.expect("missing source file")
+    }
+
+    pub fn pos(&self) -> Position {
+        self.pos.expect("missing position")
     }
 
     pub fn uses_new_syntax(&self) -> bool {

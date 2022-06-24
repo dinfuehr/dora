@@ -111,10 +111,17 @@ impl<'a> TypeCheck<'a> {
                 idx += 1;
             }
 
+            let mut name = self.fct.display_name(self.sa);
+            name.push_str("$Context");
+
+            let name = self.sa.interner.intern(&name);
+
             let class = ClassDefinition::new_without_source(
-                Some(self.file_id),
                 self.module_id,
-                &*self.ast,
+                Some(self.file_id),
+                Some(self.ast.pos),
+                name,
+                self.ast.is_pub,
                 fields,
             );
             let class_id = self.sa.classes.push(class);
