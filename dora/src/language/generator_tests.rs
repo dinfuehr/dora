@@ -4258,6 +4258,7 @@ fn gen_context_allocated_var() {
                 ConstInt64(r(1), 11),
                 StoreField(r(1), r(0), ConstPoolIdx(4)),
                 LoadField(r(1), r(0), ConstPoolIdx(5)),
+                PushRegister(r(0)),
                 NewLambda(r(2), ConstPoolIdx(6)),
                 Ret(r(2)),
             ];

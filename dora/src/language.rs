@@ -110,6 +110,7 @@ pub fn check(sa: &mut SemAnalysis) -> bool {
     // define internal functions & methods
     stdlib::resolve_internal_functions(sa);
     stdlib::discover_known_methods(sa);
+    stdlib::create_lambda_class(sa);
 
     // check for internal functions or classes
     internalck(sa);

@@ -187,6 +187,13 @@ impl BytecodeOpcode {
         }
     }
 
+    pub fn is_new_lambda(self) -> bool {
+        match self {
+            BytecodeOpcode::NewLambda => true,
+            _ => false,
+        }
+    }
+
     pub fn is_any_invoke(self) -> bool {
         match self {
             BytecodeOpcode::InvokeDirect

@@ -2622,6 +2622,8 @@ impl<'a> CannonCodeGen<'a> {
 
         let cls_def_id = specialize_lambda(self.vm, fct_id, type_params);
 
+        let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
+
         let cls = self.vm.class_instances.idx(cls_def_id);
 
         let alloc_size = match cls.size {
@@ -2671,6 +2673,20 @@ impl<'a> CannonCodeGen<'a> {
         self.asm.store_mem(
             MachineMode::Ptr,
             Mem::Base(object_reg, mem::ptr_width()),
+            REG_RESULT.into(),
+        );
+
+        // Store context pointer.
+        if arguments.is_empty() {
+            self.asm.load_int_const(MachineMode::Ptr, REG_RESULT, 0);
+        } else {
+            assert_eq!(arguments.len(), 1);
+            self.emit_load_register(arguments[0], REG_RESULT.into());
+        }
+
+        self.asm.store_mem(
+            MachineMode::Ptr,
+            Mem::Base(object_reg, Header::size()),
             REG_RESULT.into(),
         );
     }
@@ -4493,6 +4509,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                     || opcode.is_new_enum()
                     || opcode.is_new_struct()
                     || opcode.is_new_object_initialized()
+                    || opcode.is_new_lambda()
             );
         }
     }

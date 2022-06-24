@@ -516,6 +516,7 @@ impl<'a> BytecodeDumper<'a> {
         let fct_id = match self.bc.const_pool(idx) {
             ConstPoolEntry::Fct(fct_id, _) => fct_id,
             ConstPoolEntry::Generic(_, fct_id, _) => fct_id,
+            ConstPoolEntry::Lambda(_, _) => return "lambda".into(),
             _ => unreachable!(),
         };
 
@@ -926,6 +927,10 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
 
     fn visit_invoke_static(&mut self, dest: Register, fctdef: ConstPoolIdx) {
         self.emit_fct("InvokeStatic", dest, fctdef);
+    }
+
+    fn visit_invoke_lambda(&mut self, dest: Register, fct: ConstPoolIdx) {
+        self.emit_fct("InvokeLambda", dest, fct);
     }
 
     fn visit_invoke_generic_static(&mut self, dest: Register, fct: ConstPoolIdx) {

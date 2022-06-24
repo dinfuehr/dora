@@ -1,8 +1,8 @@
 use crate::gc::Address;
 use crate::language::sem_analysis::{
-    AnnotationDefinitionId, ClassDefinitionId, EnumDefinitionId, ExtensionDefinitionId,
-    FctDefinitionId, Intrinsic, ModuleDefinitionId, SemAnalysis, StructDefinitionId,
-    TraitDefinitionId,
+    AnnotationDefinitionId, ClassDefinition, ClassDefinitionId, EnumDefinitionId,
+    ExtensionDefinitionId, FctDefinitionId, Field, FieldId, Intrinsic, ModuleDefinitionId,
+    SemAnalysis, StructDefinitionId, TraitDefinitionId,
 };
 use crate::language::sym::Sym;
 use crate::language::ty::SourceType;
@@ -244,6 +244,30 @@ pub fn discover_known_methods(sa: &mut SemAnalysis) {
         "Stacktrace",
         "retrieveStacktrace",
     ))
+}
+
+pub fn create_lambda_class(sa: &mut SemAnalysis) {
+    let class_name = sa.interner.intern("$Lambda");
+    let context_name = sa.interner.intern("context");
+
+    let fields = vec![Field {
+        id: FieldId(0),
+        name: context_name,
+        ty: SourceType::Ptr,
+        mutable: false,
+        is_pub: true,
+    }];
+
+    let class = ClassDefinition::new_without_source(
+        sa.stdlib_module_id,
+        None,
+        None,
+        class_name,
+        true,
+        fields,
+    );
+    let class_id = sa.classes.push(class);
+    sa.known.classes.lambda = Some(class_id);
 }
 
 fn find_class(sa: &SemAnalysis, module_id: ModuleDefinitionId, name: &str) -> ClassDefinitionId {

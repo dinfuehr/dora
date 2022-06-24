@@ -507,13 +507,18 @@ pub fn specialize_lambda(
     fct_id: FctDefinitionId,
     type_params: SourceTypeArray,
 ) -> ClassInstanceId {
-    let size = InstanceSize::Fixed(Header::size());
+    // Lambda object only has context field at the moment.
+    let size = InstanceSize::Fixed(Header::size() + mem::ptr_width());
+    let fields = vec![FieldInstance {
+        offset: Header::size(),
+        ty: SourceType::Ptr,
+    }];
 
     create_class_instance_with_vtable(
         vm,
         ShapeKind::Lambda(fct_id, type_params.clone()),
         size,
-        Vec::new(),
+        fields,
         None,
         1,
     )
