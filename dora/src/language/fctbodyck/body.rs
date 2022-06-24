@@ -111,8 +111,12 @@ impl<'a> TypeCheck<'a> {
                 idx += 1;
             }
 
-            let class =
-                ClassDefinition::new_context(self.file_id, &*self.ast, self.module_id, fields);
+            let class = ClassDefinition::new_without_source(
+                Some(self.file_id),
+                self.module_id,
+                &*self.ast,
+                fields,
+            );
             let class_id = self.sa.classes.push(class);
             self.analysis.context_cls_id = Some(class_id);
         }

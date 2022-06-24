@@ -47,7 +47,7 @@ impl Id for ClassDefinition {
 #[derive(Debug)]
 pub struct ClassDefinition {
     pub id: Option<ClassDefinitionId>,
-    pub file_id: SourceFileId,
+    pub file_id: Option<SourceFileId>,
     pub ast: Option<Arc<ast::Class>>,
     pub module_id: ModuleDefinitionId,
     pub pos: Position,
@@ -93,7 +93,7 @@ impl ClassDefinition {
         });
         ClassDefinition {
             id: None,
-            file_id,
+            file_id: Some(file_id),
             ast: Some(ast.clone()),
             module_id,
             pos: ast.pos,
@@ -125,10 +125,10 @@ impl ClassDefinition {
         }
     }
 
-    pub fn new_context(
-        file_id: SourceFileId,
-        ast: &ast::Function,
+    pub fn new_without_source(
+        file_id: Option<SourceFileId>,
         module_id: ModuleDefinitionId,
+        ast: &ast::Function,
         fields: Vec<Field>,
     ) -> ClassDefinition {
         let type_params = ast.type_params.as_ref().map_or(Vec::new(), |type_params| {
@@ -173,6 +173,10 @@ impl ClassDefinition {
 
     pub fn id(&self) -> ClassDefinitionId {
         self.id.expect("missing id")
+    }
+
+    pub fn file_id(&self) -> SourceFileId {
+        self.file_id.expect("missing source file")
     }
 
     pub fn uses_new_syntax(&self) -> bool {

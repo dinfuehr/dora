@@ -1,0 +1,12 @@
+//= vm-args "--gc=swiper --gc-verify"
+//= ignore
+
+fn main() {
+    var x = 10;
+    x = 11;
+    let y = x;
+    std::forceCollect();
+    let fct = ||: Int64 { x };
+    std::forceCollect();
+    assert(x == 11);
+}

@@ -183,7 +183,7 @@ fn internalck(sa: &SemAnalysis) {
         if cls.internal && !cls.internal_resolved {
             sa.diag
                 .lock()
-                .report(cls.file_id, cls.pos, SemError::UnresolvedInternal);
+                .report(cls.file_id(), cls.pos, SemError::UnresolvedInternal);
         }
 
         for method in &cls.methods {

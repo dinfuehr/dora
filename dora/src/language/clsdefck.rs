@@ -18,7 +18,7 @@ pub fn check(sa: &SemAnalysis) {
             let cls = cls.read();
             (
                 cls.id(),
-                cls.file_id,
+                cls.file_id(),
                 cls.ast.as_ref().expect("missing ast").clone(),
                 cls.module_id,
             )
@@ -230,7 +230,7 @@ pub fn check_super_definition(sa: &SemAnalysis) {
         let ast = cls.ast.as_ref().expect("ast missing");
 
         if let Some(ref parent_class) = &ast.parent_class {
-            let error = ErrorReporting::Yes(cls.file_id, parent_class.pos);
+            let error = ErrorReporting::Yes(cls.file_id(), parent_class.pos);
             typeparamck::check_super(sa, &*cls, error);
         }
     }

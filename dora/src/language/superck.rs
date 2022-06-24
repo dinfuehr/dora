@@ -32,7 +32,7 @@ fn cycle_detection(sa: &mut SemAnalysis) {
             if !map.insert(parent_class_id) {
                 sa.diag
                     .lock()
-                    .report(cls.file_id, cls.pos, SemError::CycleInHierarchy);
+                    .report(cls.file_id(), cls.pos, SemError::CycleInHierarchy);
                 break;
             }
 

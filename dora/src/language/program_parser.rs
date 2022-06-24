@@ -566,7 +566,7 @@ fn find_methods_in_class(
 
     if let Some(ref ctor_node) = node.constructor {
         let fct = FctDefinition::new(
-            class.file_id,
+            class.file_id(),
             class.module_id,
             ctor_node,
             FctParent::Class(class_id),
@@ -578,7 +578,7 @@ fn find_methods_in_class(
 
     for method_node in &node.methods {
         let fct = FctDefinition::new(
-            class.file_id,
+            class.file_id(),
             class.module_id,
             method_node,
             FctParent::Class(class_id),
