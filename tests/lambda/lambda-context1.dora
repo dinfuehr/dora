@@ -5,11 +5,16 @@ fn main() {
     x = 11;
     let y = x;
     std::forceCollect();
-    let fct = ||: Int64 { x };
+    let fct1 = ||: Int64 { x };
     std::forceCollect();
     assert(x == 11);
-    assert(fct() == 11);
+    assert(fct1() == 11);
     x = 12;
     assert(x == 12);
-    assert(fct() == 12);
+    assert(fct1() == 12);
+    std::forceCollect();
+    let fct2 = ||: Int64 { x = 13; x };
+    std::forceCollect();
+    assert(fct2() == 13);
+    assert(x == 13);
 }

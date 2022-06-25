@@ -2648,14 +2648,14 @@ impl<'a> AstBytecodeGen<'a> {
         let self_id = self.src.vars.get_self().id;
         let self_reg = self.var_reg(self_id);
 
-        // Load context field of self
-        let context_reg = self.alloc_temp(BytecodeType::Ptr);
-        let cls_id = self.src.context_cls_id.expect("class missing");
-        let idx = self
-            .builder
-            .add_const_field_types(cls_id, SourceTypeArray::empty(), FieldId(0));
+        // Load context field of lambda object in self.
+        let outer_context_reg = self.alloc_temp(BytecodeType::Ptr);
+        let lambda_cls_id = self.sa.known.classes.lambda();
+        let idx =
+            self.builder
+                .add_const_field_types(lambda_cls_id, SourceTypeArray::empty(), FieldId(0));
         self.builder
-            .emit_load_field(context_reg, self_reg, idx, expr.pos);
+            .emit_load_field(outer_context_reg, self_reg, idx, expr.pos);
 
         let outer_fct_id = self.fct.parent.fct_id();
         let outer_fct = self.sa.fcts.idx(outer_fct_id);
@@ -2670,7 +2670,10 @@ impl<'a> AstBytecodeGen<'a> {
             self.builder
                 .add_const_field_types(outer_cls_id, SourceTypeArray::empty(), field_id);
         self.builder
-            .emit_store_field(value_reg, context_reg, idx, expr.pos);
+            .emit_store_field(value_reg, outer_context_reg, idx, expr.pos);
+
+        self.free_temp(outer_context_reg);
+        self.free_if_temp(value_reg);
     }
 
     fn visit_expr_assign_var(&mut self, expr: &ast::ExprBinType, var_id: VarId) {
