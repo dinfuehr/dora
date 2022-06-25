@@ -485,9 +485,7 @@ impl<'a> AstDumper<'a> {
             Expr::Call(ref call) => self.dump_expr_call(call),
             Expr::TypeParam(ref expr) => self.dump_expr_type_param(expr),
             Expr::Path(ref path) => self.dump_expr_path(path),
-            Expr::Delegation(ref call) => self.dump_expr_delegation(call),
             Expr::This(ref selfie) => self.dump_expr_self(selfie),
-            Expr::Super(ref expr) => self.dump_expr_super(expr),
             Expr::Conv(ref expr) => self.dump_expr_conv(expr),
             Expr::Lambda(ref expr) => self.dump_expr_lambda(expr),
             Expr::Block(ref expr) => self.dump_expr_block(expr),
@@ -550,22 +548,8 @@ impl<'a> AstDumper<'a> {
         self.indent(|d| d.dump_type(&expr.data_type));
     }
 
-    fn dump_expr_delegation(&mut self, expr: &ExprDelegationType) {
-        dump!(self, "super @ {} {}", expr.pos, expr.id);
-
-        self.indent(|d| {
-            for arg in &expr.args {
-                d.dump_expr(arg);
-            }
-        });
-    }
-
     fn dump_expr_self(&mut self, selfie: &ExprSelfType) {
         dump!(self, "self @ {} {}", selfie.pos, selfie.id);
-    }
-
-    fn dump_expr_super(&mut self, selfie: &ExprSuperType) {
-        dump!(self, "super @ {} {}", selfie.pos, selfie.id);
     }
 
     fn dump_expr_lit_char(&mut self, lit: &ExprLitCharType) {

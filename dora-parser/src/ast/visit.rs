@@ -297,12 +297,6 @@ pub fn walk_expr<V: Visitor>(v: &mut V, e: &Expr) {
             v.visit_expr(&path.rhs);
         }
 
-        Expr::Delegation(ref call) => {
-            for arg in &call.args {
-                v.visit_expr(arg);
-            }
-        }
-
         Expr::Dot(ref value) => {
             v.visit_expr(&value.lhs);
             v.visit_expr(&value.rhs);
@@ -354,7 +348,6 @@ pub fn walk_expr<V: Visitor>(v: &mut V, e: &Expr) {
             v.visit_expr(&value.expr);
         }
 
-        Expr::Super(_) => {}
         Expr::This(_) => {}
         Expr::LitChar(_) => {}
         Expr::LitInt(_) => {}

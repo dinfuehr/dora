@@ -569,9 +569,7 @@ impl<'a> AstBytecodeGen<'a> {
             ast::Expr::LitBool(ref lit) => self.visit_expr_lit_bool(lit, dest),
             ast::Expr::Ident(ref ident) => self.visit_expr_ident(ident, dest),
             ast::Expr::Call(ref call) => self.visit_expr_call(call, dest),
-            ast::Expr::Delegation(ref call) => self.visit_expr_delegation(call, dest),
             ast::Expr::This(_) => self.visit_expr_self(dest),
-            ast::Expr::Super(_) => self.visit_expr_self(dest),
             ast::Expr::Conv(ref conv) => self.visit_expr_conv(conv, dest),
             ast::Expr::Tuple(ref tuple) => self.visit_expr_tuple(tuple, dest),
             ast::Expr::Paren(ref paren) => self.visit_expr(&paren.expr, dest),
@@ -1143,14 +1141,7 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         // Emit the actual Invoke(Direct|Static|Virtual)XXX instruction
-        self.emit_call_inst(
-            expr,
-            &call_type,
-            return_type,
-            expr.pos,
-            callee_idx,
-            return_reg,
-        );
+        self.emit_call_inst(&call_type, return_type, expr.pos, callee_idx, return_reg);
 
         // Store result
         let result_reg = self.emit_call_result(&call_type, dest, return_reg, object_argument);
@@ -1490,7 +1481,6 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn emit_call_inst(
         &mut self,
-        expr: &ast::ExprCallType,
         call_type: &CallType,
         return_type: SourceType,
         pos: Position,
@@ -1504,16 +1494,7 @@ impl<'a> AstBytecodeGen<'a> {
             }
 
             CallType::Method(_, _, _) => {
-                let is_super_call = expr
-                    .object()
-                    .map(|object| object.is_super())
-                    .unwrap_or(false);
-
-                if is_super_call {
-                    self.emit_invoke_direct(return_type, return_reg, callee_idx, pos);
-                } else {
-                    self.emit_invoke_direct(return_type, return_reg, callee_idx, pos);
-                }
+                self.emit_invoke_direct(return_type, return_reg, callee_idx, pos);
             }
             CallType::ModuleMethod(_, _, _) | CallType::Fct(_, _) => {
                 self.emit_invoke_static(return_type, return_reg, callee_idx, pos);
@@ -1647,61 +1628,6 @@ impl<'a> AstBytecodeGen<'a> {
             self.builder
                 .emit_invoke_generic_direct(return_reg, callee_id, pos);
         }
-    }
-
-    fn visit_expr_delegation(
-        &mut self,
-        expr: &ast::ExprDelegationType,
-        dest: DataDest,
-    ) -> Register {
-        assert!(dest.is_unit());
-        let call_type = self.src.map_calls.get(expr.id).unwrap().clone();
-        let fct_id = call_type.fct_id().unwrap();
-
-        let callee_id = fct_id;
-        let callee = self.sa.fcts.idx(callee_id);
-        let callee = callee.read();
-
-        let callee_idx = self.specialize_call(&callee, &call_type);
-
-        assert!(callee.return_type.is_unit());
-        let arg_types = callee
-            .params_with_self()
-            .iter()
-            .map(|arg| bty_from_ty(self.specialize_type_for_call(&call_type, arg.clone())))
-            .collect::<Vec<BytecodeType>>();
-        let num_args = arg_types.len();
-
-        assert!(num_args > 0);
-
-        assert!(callee.has_self());
-        let self_id = self.src.vars.get_self().id;
-        let self_reg = self.var_reg(self_id);
-
-        let arg_regs = expr
-            .args
-            .iter()
-            .map(|arg| self.visit_expr(arg, DataDest::Alloc))
-            .collect::<Vec<_>>();
-        self.builder.emit_push_register(self_reg);
-        for &reg in &arg_regs {
-            self.builder.emit_push_register(reg);
-        }
-
-        match *call_type {
-            CallType::CtorParent(_, _) => {
-                let dest = self.ensure_unit_register();
-                self.builder.emit_invoke_direct(dest, callee_idx, expr.pos);
-            }
-
-            _ => unreachable!(),
-        }
-
-        for arg in arg_regs {
-            self.free_if_temp(arg);
-        }
-
-        Register::invalid()
     }
 
     fn visit_expr_self(&mut self, dest: DataDest) -> Register {

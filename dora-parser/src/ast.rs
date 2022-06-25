@@ -1239,10 +1239,8 @@ pub enum Expr {
     Call(ExprCallType),
     TypeParam(ExprTypeParamType),
     Path(ExprPathType),
-    Delegation(ExprDelegationType),
     Dot(ExprDotType),
     This(ExprSelfType),
-    Super(ExprSuperType),
     Conv(ExprConvType),
     Lambda(Arc<Function>),
     Block(ExprBlockType),
@@ -1434,10 +1432,6 @@ impl Expr {
         Expr::This(ExprSelfType { id, pos, span })
     }
 
-    pub fn create_super(id: NodeId, pos: Position, span: Span) -> Expr {
-        Expr::Super(ExprSuperType { id, pos, span })
-    }
-
     pub fn create_ident(
         id: NodeId,
         pos: Position,
@@ -1513,16 +1507,6 @@ impl Expr {
 
             lhs,
             rhs,
-        })
-    }
-
-    pub fn create_delegation(id: NodeId, pos: Position, span: Span, args: Vec<Box<Expr>>) -> Expr {
-        Expr::Delegation(ExprDelegationType {
-            id,
-            pos,
-            span,
-
-            args,
         })
     }
 
@@ -1759,38 +1743,10 @@ impl Expr {
         }
     }
 
-    pub fn to_delegation(&self) -> Option<&ExprDelegationType> {
-        match *self {
-            Expr::Delegation(ref val) => Some(val),
-            _ => None,
-        }
-    }
-
-    pub fn is_delegation(&self) -> bool {
-        match *self {
-            Expr::Delegation(_) => true,
-            _ => false,
-        }
-    }
-
     pub fn is_this(&self) -> bool {
         match *self {
             Expr::This(_) => true,
             _ => false,
-        }
-    }
-
-    pub fn is_super(&self) -> bool {
-        match *self {
-            Expr::Super(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn to_super(&self) -> Option<&ExprSuperType> {
-        match *self {
-            Expr::Super(ref val) => Some(val),
-            _ => None,
         }
     }
 
@@ -1887,10 +1843,8 @@ impl Expr {
             Expr::Call(ref val) => val.pos,
             Expr::TypeParam(ref val) => val.pos,
             Expr::Path(ref val) => val.pos,
-            Expr::Delegation(ref val) => val.pos,
             Expr::Dot(ref val) => val.pos,
             Expr::This(ref val) => val.pos,
-            Expr::Super(ref val) => val.pos,
             Expr::Conv(ref val) => val.pos,
             Expr::Lambda(ref val) => val.pos,
             Expr::Block(ref val) => val.pos,
@@ -1915,10 +1869,8 @@ impl Expr {
             Expr::Call(ref val) => val.span,
             Expr::TypeParam(ref val) => val.span,
             Expr::Path(ref val) => val.span,
-            Expr::Delegation(ref val) => val.span,
             Expr::Dot(ref val) => val.span,
             Expr::This(ref val) => val.span,
-            Expr::Super(ref val) => val.span,
             Expr::Conv(ref val) => val.span,
             Expr::Lambda(ref val) => val.span,
             Expr::Block(ref val) => val.span,
@@ -1943,10 +1895,8 @@ impl Expr {
             Expr::Call(ref val) => val.id,
             Expr::TypeParam(ref val) => val.id,
             Expr::Path(ref val) => val.id,
-            Expr::Delegation(ref val) => val.id,
             Expr::Dot(ref val) => val.id,
             Expr::This(ref val) => val.id,
-            Expr::Super(ref val) => val.id,
             Expr::Conv(ref val) => val.id,
             Expr::Lambda(ref val) => val.id,
             Expr::Block(ref val) => val.id,
@@ -1987,15 +1937,6 @@ pub struct ExprConvType {
     pub object: Box<Expr>,
     pub is: bool,
     pub data_type: Box<Type>,
-}
-
-#[derive(Clone, Debug)]
-pub struct ExprDelegationType {
-    pub id: NodeId,
-    pub pos: Position,
-    pub span: Span,
-
-    pub args: Vec<Box<Expr>>,
 }
 
 #[derive(Clone, Debug)]
@@ -2085,13 +2026,6 @@ pub struct ExprBlockType {
 
     pub stmts: Vec<Box<Stmt>>,
     pub expr: Option<Box<Expr>>,
-}
-
-#[derive(Clone, Debug)]
-pub struct ExprSuperType {
-    pub id: NodeId,
-    pub pos: Position,
-    pub span: Span,
 }
 
 #[derive(Clone, Debug)]

@@ -1375,11 +1375,7 @@ impl<'a> TypeCheck<'a> {
 
             self.check_expr_call_sym(e, expected_ty, callee, sym, type_params, &arg_types)
         } else if let Some(expr_dot) = callee.to_dot() {
-            let object_type = if expr_dot.lhs.is_super() {
-                self.super_type(expr_dot.lhs.pos())
-            } else {
-                self.check_expr(&expr_dot.lhs, SourceType::Any)
-            };
+            let object_type = self.check_expr(&expr_dot.lhs, SourceType::Any);
 
             let method_name = match expr_dot.rhs.to_ident() {
                 Some(ident) => ident.name,
@@ -2412,65 +2408,6 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn check_expr_delegation(
-        &mut self,
-        e: &ast::ExprDelegationType,
-        _expected_ty: SourceType,
-    ) -> SourceType {
-        let arg_types: Vec<SourceType> = e
-            .args
-            .iter()
-            .map(|arg| self.check_expr(arg, SourceType::Any))
-            .collect();
-
-        let owner = self.sa.classes.idx(self.fct.cls_id());
-        let owner = owner.read();
-
-        let parent_class = owner.parent_class.clone().unwrap();
-        let cls_id = parent_class.cls_id().expect("no class");
-        let cls = self.sa.classes.idx(cls_id);
-        let cls = cls.read();
-
-        if let Some(ctor_id) = cls.constructor {
-            let ctor = self.sa.fcts.idx(ctor_id);
-            let ctor = ctor.read();
-
-            let parent_class_type_params = parent_class.type_params();
-
-            if args_compatible_fct(self.sa, &*ctor, &arg_types, &parent_class_type_params, None) {
-                self.analysis.map_tys.insert(e.id, parent_class);
-
-                let cls_ty = self.sa.cls_with_type_list(cls_id, parent_class_type_params);
-                let call_type = CallType::CtorParent(cls_ty, ctor.id());
-                self.analysis.map_calls.insert(e.id, Arc::new(call_type));
-                return SourceType::Error;
-            }
-        }
-
-        self.sa
-            .diag
-            .lock()
-            .report(self.file_id, e.pos, SemError::UnknownCtor);
-
-        SourceType::Error
-    }
-
-    fn super_type(&self, pos: Position) -> SourceType {
-        if let FctParent::Class(clsid) = self.fct.parent {
-            let cls = self.sa.classes.idx(clsid);
-            let cls = cls.read();
-
-            if let Some(parent_class) = cls.parent_class.clone() {
-                return parent_class;
-            }
-        }
-
-        let msg = SemError::SuperUnavailable;
-        self.sa.diag.lock().report(self.file_id, pos, msg);
-
-        SourceType::Error
-    }
-
     fn check_expr_path(&mut self, e: &ast::ExprPathType, expected_ty: SourceType) -> SourceType {
         let (container_expr, type_params) = if let Some(expr_type_params) = e.lhs.to_type_param() {
             let type_params: Vec<SourceType> = expr_type_params
@@ -2937,11 +2874,7 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn check_expr_dot(&mut self, e: &ast::ExprDotType, _expected_ty: SourceType) -> SourceType {
-        let object_type = if e.lhs.is_super() {
-            self.super_type(e.lhs.pos())
-        } else {
-            self.check_expr(&e.lhs, SourceType::Any)
-        };
+        let object_type = self.check_expr(&e.lhs, SourceType::Any);
 
         if object_type.is_tuple() {
             return self.check_expr_dot_tuple(e, object_type);
@@ -3064,14 +2997,6 @@ impl<'a> TypeCheck<'a> {
 
         self.analysis.set_ty(e.id, self_ty.clone());
         self_ty
-    }
-
-    fn check_expr_super(&mut self, e: &ast::ExprSuperType, _expected_ty: SourceType) -> SourceType {
-        let msg = SemError::SuperNeedsMethodCall;
-        self.sa.diag.lock().report(self.file_id, e.pos, msg);
-        self.analysis.set_ty(e.id, SourceType::Unit);
-
-        SourceType::Unit
     }
 
     fn check_expr_lambda(
@@ -3303,10 +3228,8 @@ impl<'a> TypeCheck<'a> {
             ast::Expr::Call(ref expr) => self.check_expr_call(expr, expected_ty),
             ast::Expr::TypeParam(ref expr) => self.check_expr_type_param(expr, expected_ty),
             ast::Expr::Path(ref expr) => self.check_expr_path(expr, expected_ty),
-            ast::Expr::Delegation(ref expr) => self.check_expr_delegation(expr, expected_ty),
             ast::Expr::Dot(ref expr) => self.check_expr_dot(expr, expected_ty),
             ast::Expr::This(ref expr) => self.check_expr_this(expr, expected_ty),
-            ast::Expr::Super(ref expr) => self.check_expr_super(expr, expected_ty),
             ast::Expr::Conv(ref expr) => self.check_expr_conv(expr, expected_ty),
             ast::Expr::Lambda(ref expr) => self.check_expr_lambda(expr, expected_ty),
             ast::Expr::Block(ref expr) => self.check_expr_block(expr, expected_ty),

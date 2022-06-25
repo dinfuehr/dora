@@ -1930,7 +1930,6 @@ impl<'a> Parser<'a> {
             TokenKind::True => self.parse_bool_literal(),
             TokenKind::False => self.parse_bool_literal(),
             TokenKind::This => self.parse_this(),
-            TokenKind::Super => self.parse_super(),
             TokenKind::Or | TokenKind::OrOr => self.parse_lambda(),
             _ => Err(ParseErrorAndPos::new(
                 self.token.position,
@@ -2162,17 +2161,6 @@ impl<'a> Parser<'a> {
         let tok = self.advance_token()?;
 
         Ok(Box::new(Expr::create_this(
-            self.generate_id(),
-            tok.position,
-            span,
-        )))
-    }
-
-    fn parse_super(&mut self) -> ExprResult {
-        let span = self.token.span;
-        let tok = self.advance_token()?;
-
-        Ok(Box::new(Expr::create_super(
             self.generate_id(),
             tok.position,
             span,
