@@ -207,10 +207,10 @@ mod tests {
     #[test]
     fn test_cycle() {
         errors(
-            "@open class A: B @open class B: A",
+            "@open class_old A: B @open class_old B: A",
             &[
                 (pos(1, 7), SemError::CycleInHierarchy),
-                (pos(1, 24), SemError::CycleInHierarchy),
+                (pos(1, 28), SemError::CycleInHierarchy),
             ],
         );
     }
@@ -218,23 +218,23 @@ mod tests {
     #[test]
     fn test_superfluous_override() {
         err(
-            "class A { @override fn f() {} }",
-            pos(1, 21),
+            "class_old A { @override fn f() {} }",
+            pos(1, 25),
             SemError::SuperfluousOverride("f".into()),
         );
         err(
-            "@open class B { } class A: B { @override fn f() {} }",
-            pos(1, 42),
+            "@open class_old B { } class_old A: B { @override fn f() {} }",
+            pos(1, 50),
             SemError::SuperfluousOverride("f".into()),
         );
         err(
-            "@open class B { fn g() {} } class A: B { @override fn f() {} }",
-            pos(1, 52),
+            "@open class_old B { fn g() {} } class_old A: B { @override fn f() {} }",
+            pos(1, 60),
             SemError::SuperfluousOverride("f".into()),
         );
         err(
-            "@open class B { @open fn f(a: Int32) {} } class A: B { @override fn f() {} }",
-            pos(1, 66),
+            "@open class_old B { @open fn f(a: Int32) {} } class_old A: B { @override fn f() {} }",
+            pos(1, 74),
             SemError::OverrideMismatch,
         );
     }
@@ -242,24 +242,24 @@ mod tests {
     #[test]
     fn test_override() {
         err(
-            "@open class A { fn f() {} } class B: A { @override fn f() {} }",
-            pos(1, 52),
+            "@open class_old A { fn f() {} } class_old B: A { @override fn f() {} }",
+            pos(1, 60),
             SemError::MethodNotOverridable("f".into()),
         );
-        ok("@open class A { @open fn f() {} } class B: A { @override fn f() {} }");
-        ok("@open class A { @open fn f() {} }
-            @open class B: A { @override fn f() {} }
-            @open class C: B { @override fn f() {} }");
+        ok("@open class_old A { @open fn f() {} } class_old B: A { @override fn f() {} }");
+        ok("@open class_old A { @open fn f() {} }
+            @open class_old B: A { @override fn f() {} }
+            @open class_old C: B { @override fn f() {} }");
         err(
-            "@open class A { @open fn f() {} } class B: A { fn f() {} }",
-            pos(1, 48),
+            "@open class_old A { @open fn f() {} } class_old B: A { fn f() {} }",
+            pos(1, 56),
             SemError::MissingOverride("f".into()),
         );
         err(
-            "@open class A { @open fn f() {} }
-             @open class B: A { @final @override fn f() {} }
-             class C: B { @override fn f() {} }",
-            pos(3, 37),
+            "@open class_old A { @open fn f() {} }
+             @open class_old B: A { @final @override fn f() {} }
+             class_old C: B { @override fn f() {} }",
+            pos(3, 41),
             SemError::MethodNotOverridable("f".into()),
         );
     }
@@ -267,24 +267,24 @@ mod tests {
     #[test]
     fn test_overload_method_in_super_class() {
         errors(
-            "@open class A { @open fn f() {} }
-            class B: A { fn f(a: Int32) {} }",
+            "@open class_old A { @open fn f() {} }
+            class_old B: A { fn f(a: Int32) {} }",
             &[
-                (pos(2, 26), SemError::MissingOverride("f".into())),
-                (pos(2, 26), SemError::OverrideMismatch),
+                (pos(2, 30), SemError::MissingOverride("f".into())),
+                (pos(2, 30), SemError::OverrideMismatch),
             ],
         );
 
-        ok("@open class A { @static fn f() {} }
-            class B: A { @static fn f(a: Int32) {} }");
+        ok("@open class_old A { @static fn f() {} }
+            class_old B: A { @static fn f(a: Int32) {} }");
     }
 
     #[test]
     fn test_override_with_wrong_return_type() {
         err(
-            "@open class A { @open fn f() {} }
-             class B: A { @override fn f(): Int32 { return 1; } }",
-            pos(2, 37),
+            "@open class_old A { @open fn f() {} }
+             class_old B: A { @override fn f(): Int32 { return 1; } }",
+            pos(2, 41),
             SemError::OverrideMismatch,
         );
     }
@@ -293,11 +293,11 @@ mod tests {
     fn test_wrong_parameters_in_override() {
         err(
             "
-        @open @abstract class Foo {
+        @open @abstract class_old Foo {
             @open fn test(x: Int32): Int32 { x * 2 }
         }
 
-        class Bar: Foo {
+        class_old Bar: Foo {
             @override fn test(x: String): Int32 { 0 }
         }
     ",
@@ -308,33 +308,33 @@ mod tests {
 
     #[test]
     fn test_open() {
-        ok("@open class A { @open fn f() {} }");
+        ok("@open class_old A { @open fn f() {} }");
     }
 
     #[test]
     fn test_superfluous_open() {
         err(
-            "class A { @open fn f() {} }",
-            pos(1, 17),
+            "class_old A { @open fn f() {} }",
+            pos(1, 21),
             SemError::SuperfluousOpen("f".into()),
         );
     }
 
     #[test]
     fn test_final() {
-        ok("@open class A { @final fn f() {} }");
+        ok("@open class_old A { @final fn f() {} }");
     }
 
     #[test]
     fn test_vtable_index_and_len() {
-        ok_with_test("class A {}", |sa| {
+        ok_with_test("class_old A {}", |sa| {
             let cls_id = sa.cls_by_name("A");
             let cls = sa.classes.idx(cls_id);
             let cls = cls.read();
             assert_eq!(cls.virtual_fcts.len(), 0);
         });
 
-        ok_with_test("@open class A { @open fn f() {} }", |sa| {
+        ok_with_test("@open class_old A { @open fn f() {} }", |sa| {
             let cls_id = sa.cls_by_name("A");
             let cls = sa.classes.idx(cls_id);
             let cls = cls.read();
@@ -342,8 +342,8 @@ mod tests {
         });
 
         ok_with_test(
-            "@open class A { @open fn f() {} }
-                      @open class B: A { @override fn f() {}
+            "@open class_old A { @open fn f() {} }
+                      @open class_old B: A { @override fn f() {}
                                         @open fn g() {} }",
             |sa| {
                 let cls_id = sa.cls_by_name("A");

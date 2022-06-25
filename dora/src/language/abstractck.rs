@@ -127,27 +127,27 @@ mod tests {
 
     #[test]
     fn test_abstract_class_without_abstract_methods() {
-        ok("@open @abstract class A class B: A");
+        ok("@open @abstract class_old A class_old B: A");
     }
 
     #[test]
     fn test_override_abstract_method() {
-        ok("@open @abstract class A { @abstract fn foo(); }
-            class B: A { @override fn foo() {} }");
+        ok("@open @abstract class_old A { @abstract fn foo(); }
+            class_old B: A { @override fn foo() {} }");
     }
 
     #[test]
     fn test_override_abstract_method_in_super_class() {
-        ok("@open @abstract class A { @abstract fn foo(); }
-            @open @abstract class B: A { @override fn foo() {} }
-            class C: B { }");
+        ok("@open @abstract class_old A { @abstract fn foo(); }
+            @open @abstract class_old B: A { @override fn foo() {} }
+            class_old C: B { }");
     }
 
     #[test]
     fn test_missing_abstract_override() {
         err(
-            "@open @abstract class A { @abstract fn foo(); }
-            class B: A { }",
+            "@open @abstract class_old A { @abstract fn foo(); }
+            class_old B: A { }",
             pos(2, 13),
             SemError::MissingAbstractOverride("A".into(), "foo".into()),
         );
@@ -156,9 +156,9 @@ mod tests {
     #[test]
     fn test_missing_abstract_override_indirect() {
         err(
-            "@open @abstract class A { @abstract fn foo(); }
-            @open @abstract class B: A {}
-            class C: B { }",
+            "@open @abstract class_old A { @abstract fn foo(); }
+            @open @abstract class_old B: A {}
+            class_old C: B { }",
             pos(3, 13),
             SemError::MissingAbstractOverride("A".into(), "foo".into()),
         );
