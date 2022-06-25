@@ -51,10 +51,17 @@ impl[T] SharedQueue[T] {
     }
 }
 
-class_old Producer(let queue: SharedQueue[Int32]): std::Thread {
-    var sum: Int32 = 0i32;
+class_new Producer {
+    queue: SharedQueue[Int32],
+    sum: Int32,
+}
 
-    @override fn run() {
+impl Producer {
+    @static fn new(queue: SharedQueue[Int32]): Producer {
+        Producer(queue, 0i32)
+    }
+
+    fn run() {
         var i = 0i32;
 
         while i < ITERATIONS {
@@ -65,10 +72,20 @@ class_old Producer(let queue: SharedQueue[Int32]): std::Thread {
     }
 }
 
-class_old Consumer(let queue: SharedQueue[Int32]): std::Thread {
-    var sum: Int32 = 0i32;
+class_new Consumer {
+    queue: SharedQueue[Int32],
+    sum: Int32,
+}
 
-    @override fn run() {
+impl Consumer {
+    @static fn new(queue: SharedQueue[Int32]): Consumer {
+        Consumer(
+            queue,
+            0i32,
+        )
+    }
+
+    fn run() {
         while true {
             let value = self.queue.dequeue();
 
@@ -84,27 +101,42 @@ class_old Consumer(let queue: SharedQueue[Int32]): std::Thread {
 fn main() {
     var i = 0i32;
     let queue = SharedQueue[Int32]::new(QUEUE_SIZE);
+    let producerThreads = Vec[std::Thread]::new();
     let producers = Vec[Producer]::new();
 
     while i < THREADS {
-        let producer = Producer(queue);
-        producer.start();
+        let (producer, thread) = spawn_producer(queue);
         producers.push(producer);
+        producerThreads.push(thread);
         i = i + 1i32;
     }
 
-    let consumer = Consumer(queue);
-    consumer.start();
+    let consumer = Consumer::new(queue);
+    let consumerThread = std::thread::spawn(|| {
+        consumer.run();
+    });
+
+    for producer in producerThreads {
+        producer.join();
+    }
 
     var producerSum = 0i32;
 
     for producer in producers {
-        producer.join();
         producerSum = producerSum + producer.sum;
     }
 
     queue.enqueue(-1i32);
-    consumer.join();
+    consumerThread.join();
 
     assert(consumer.sum == producerSum);
+}
+
+fn spawn_producer(queue: SharedQueue[Int32]): (Producer, std::Thread) {
+    let producer = Producer::new(queue);
+    let thread = std::thread::spawn(|| {
+        producer.run();
+    });
+
+    (producer, thread)
 }

@@ -5,8 +5,10 @@ class_new Object
 const THREADS: Int32 = 20i32;
 const ITERATIONS: Int32 = 10_000i32;
 
-class_old MyThread(let mtx: std::Mutex, let value: SharedInt): std::Thread {
-    @override fn run() {
+class_new MyThread(mtx: std::Mutex, value: SharedInt)
+
+impl MyThread {
+    fn run() {
         var i = 0i32;
         var last: Object = Object();
 
@@ -46,13 +48,14 @@ impl SharedInt {
 
 fn main() {
     var i = 0i32;
-    var threads = Vec[MyThread]::new();
+    var threads = Vec[std::thread::Thread]::new();
     var mtx = std::Mutex::new();
     var shared = SharedInt::new();
 
     while i < THREADS {
-        let thread = MyThread(mtx, shared);
-        thread.start();
+        let thread = std::thread::spawn(|| {
+            MyThread(mtx, shared).run();
+        });
         threads.push(thread);
         i = i + 1i32;
     }
