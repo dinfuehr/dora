@@ -103,7 +103,7 @@ impl<'a> Parser<'a> {
             }
 
             TokenKind::Class | TokenKind::ClassOld => {
-                self.restrict_modifiers(&modifiers, &[Modifier::Open, Modifier::Pub])?;
+                self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
                 let class = self.parse_class(&modifiers)?;
                 Ok(Elem::Class(Arc::new(class)))
             }
@@ -564,7 +564,6 @@ impl<'a> Parser<'a> {
 
     fn parse_class(&mut self, modifiers: &Modifiers) -> Result<Class, ParseErrorAndPos> {
         let start = self.token.span.start();
-        let is_open = modifiers.contains(Modifier::Open);
         let internal = modifiers.contains(Modifier::Internal);
         let is_pub = modifiers.contains(Modifier::Pub);
 
@@ -579,11 +578,9 @@ impl<'a> Parser<'a> {
             name: ident,
             pos,
             span: Span::invalid(),
-            is_open,
             internal,
             is_pub,
             has_constructor: false,
-            parent_class: None,
             constructor: None,
             fields: Vec::new(),
             methods: Vec::new(),
@@ -594,8 +591,6 @@ impl<'a> Parser<'a> {
         self.in_class_or_module = true;
         let ctor_params = self.parse_constructor(&mut cls)?;
 
-        cls.parent_class = self.parse_class_parent()?;
-
         self.parse_class_body(&mut cls)?;
         let span = self.span_from(start);
 
@@ -605,22 +600,6 @@ impl<'a> Parser<'a> {
         self.in_class_or_module = false;
 
         Ok(cls)
-    }
-
-    fn parse_class_parent(&mut self) -> Result<Option<ParentClass>, ParseErrorAndPos> {
-        if self.token.is(TokenKind::Colon) {
-            self.advance_token()?;
-
-            let start = self.token.span.start();
-            let pos = self.token.position;
-            let parent_ty = self.parse_type()?;
-            let params = self.parse_parent_class_params()?;
-            let span = self.span_from(start);
-
-            Ok(Some(ParentClass::new(pos, span, parent_ty, params)))
-        } else {
-            Ok(None)
-        }
     }
 
     fn parse_class2(&mut self, modifiers: &Modifiers) -> Result<Class, ParseErrorAndPos> {
@@ -652,11 +631,9 @@ impl<'a> Parser<'a> {
             name: ident,
             pos,
             span,
-            is_open: false,
             internal: modifiers.contains(Modifier::Internal),
             is_pub: modifiers.contains(Modifier::Pub),
             has_constructor: false,
-            parent_class: None,
             constructor: None,
             fields,
             methods: Vec::new(),
@@ -819,20 +796,6 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_parent_class_params(&mut self) -> Result<Vec<Box<Expr>>, ParseErrorAndPos> {
-        if !self.token.is(TokenKind::LParen) {
-            return Ok(Vec::new());
-        }
-
-        self.expect_token(TokenKind::LParen)?;
-
-        let params = self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
-            p.parse_expression()
-        })?;
-
-        Ok(params)
-    }
-
     fn parse_constructor(
         &mut self,
         cls: &mut Class,
@@ -916,14 +879,7 @@ impl<'a> Parser<'a> {
 
             match self.token.kind {
                 TokenKind::Fn => {
-                    let mods = &[
-                        Modifier::Internal,
-                        Modifier::Open,
-                        Modifier::Override,
-                        Modifier::Final,
-                        Modifier::Pub,
-                        Modifier::Static,
-                    ];
+                    let mods = &[Modifier::Internal, Modifier::Pub, Modifier::Static];
                     self.restrict_modifiers(&modifiers, mods)?;
 
                     let fct = self.parse_function(&modifiers)?;
@@ -957,9 +913,6 @@ impl<'a> Parser<'a> {
             self.advance_token()?;
             let ident = self.expect_identifier()?;
             let modifier = match self.interner.str(ident).as_str() {
-                "open" => Modifier::Open,
-                "override" => Modifier::Override,
-                "final" => Modifier::Final,
                 "internal" => Modifier::Internal,
                 "pub" => Modifier::Pub,
                 "static" => Modifier::Static,
@@ -1064,9 +1017,6 @@ impl<'a> Parser<'a> {
             pos,
             span,
             method: self.in_class_or_module,
-            is_open: modifiers.contains(Modifier::Open),
-            is_override: modifiers.contains(Modifier::Override),
-            is_final: modifiers.contains(Modifier::Final),
             is_optimize_immediately: modifiers.contains(Modifier::OptimizeImmediately),
             is_pub: modifiers.contains(Modifier::Pub),
             is_static: modifiers.contains(Modifier::Static),
@@ -2270,9 +2220,6 @@ impl<'a> Parser<'a> {
             pos,
             span,
             method: self.in_class_or_module,
-            is_open: false,
-            is_override: false,
-            is_final: false,
             is_optimize_immediately: false,
             is_pub: false,
             is_static: false,
@@ -2360,17 +2307,6 @@ impl<'a> Parser<'a> {
     ) -> Function {
         let builder = Builder::new();
         let mut block = builder.build_block();
-
-        if let Some(ref parent_class) = cls.parent_class {
-            let expr = Expr::create_delegation(
-                self.generate_id(),
-                parent_class.pos,
-                parent_class.span,
-                parent_class.params.clone(),
-            );
-
-            block.add_expr(self.generate_id(), Box::new(expr));
-        }
 
         for param in ctor_params.iter().filter(|param| param.field) {
             let this = builder.build_this(self.generate_id());
@@ -3430,19 +3366,7 @@ mod tests {
         let class = prog.cls0();
 
         assert_eq!(0, class.fields.len());
-        assert_eq!(false, class.is_open);
         assert_eq!(Position::new(1, 1), class.pos);
-        assert_eq!("Foo", *interner.str(class.name));
-    }
-
-    #[test]
-    fn parse_class_with_parens_but_no_params() {
-        let (prog, interner) = parse("@open class Foo()");
-        let class = prog.cls0();
-
-        assert_eq!(0, class.fields.len());
-        assert_eq!(true, class.is_open);
-        assert_eq!(Position::new(1, 7), class.pos);
         assert_eq!("Foo", *interner.str(class.name));
     }
 
@@ -3487,22 +3411,6 @@ mod tests {
 
         assert_eq!(0, class.fields.len());
         assert_eq!(2, class.constructor.clone().unwrap().params.len());
-    }
-
-    #[test]
-    fn parse_class_with_parent_class() {
-        let (prog, _interner) = parse("class Foo: Bar");
-        let class = prog.cls0();
-
-        assert!(class.parent_class.is_some());
-    }
-
-    #[test]
-    fn parse_class_with_open() {
-        let (prog, _) = parse("@open class Foo");
-        let class = prog.cls0();
-
-        assert_eq!(true, class.is_open);
     }
 
     #[test]
@@ -3559,60 +3467,6 @@ mod tests {
         let f2 = &cls.fields[1];
         assert_eq!("f2", &interner.str(f2.name).to_string());
         assert_eq!(false, f2.mutable);
-    }
-
-    #[test]
-    fn parse_open_method() {
-        let (prog, _) = parse("class A { @open fn f() {} fn g() {} }");
-        let cls = prog.cls0();
-
-        let m1 = &cls.methods[0];
-        assert_eq!(true, m1.is_open);
-
-        let m2 = &cls.methods[1];
-        assert_eq!(false, m2.is_open);
-    }
-
-    #[test]
-    fn parse_override_method() {
-        let (prog, _) = parse(
-            "class A { fn f() {}
-                @override fn g() {}
-                @open fn h() {} }",
-        );
-        let cls = prog.cls0();
-
-        let m1 = &cls.methods[0];
-        assert_eq!(false, m1.is_override);
-        assert_eq!(false, m1.is_open);
-
-        let m2 = &cls.methods[1];
-        assert_eq!(true, m2.is_override);
-        assert_eq!(false, m2.is_open);
-
-        let m3 = &cls.methods[2];
-        assert_eq!(false, m3.is_override);
-        assert_eq!(true, m3.is_open);
-    }
-
-    #[test]
-    fn parse_parent_class_params() {
-        let (prog, _) = parse("class A: B(1, 2)");
-        let cls = prog.cls0();
-
-        let parent_class = cls.parent_class.as_ref().unwrap();
-        assert_eq!(2, parent_class.params.len());
-    }
-
-    #[test]
-    fn parse_final_method() {
-        let (prog, _) = parse("@open class A { @final @override fn g() {} }");
-        let cls = prog.cls0();
-
-        let m1 = &cls.methods[0];
-        assert_eq!(true, m1.is_override);
-        assert_eq!(false, m1.is_open);
-        assert_eq!(true, m1.is_final);
     }
 
     #[test]
@@ -3951,22 +3805,6 @@ mod tests {
 
         let type_param = &cls.type_params.as_ref().unwrap()[0];
         assert_eq!(2, type_param.bounds.len());
-    }
-
-    #[test]
-    fn parse_generic_super_class() {
-        let (prog, _) = parse("class A: B[SomeType, SomeOtherType]");
-        let cls = prog.cls0();
-
-        assert!(cls.parent_class.is_some());
-    }
-
-    #[test]
-    fn parse_generic_super_class_with_nested_type_definition() {
-        let (prog, _) = parse("class A: B[SomeType[SomeOtherType[Int]]]");
-        let cls = prog.cls0();
-
-        assert!(cls.parent_class.is_some());
     }
 
     #[test]

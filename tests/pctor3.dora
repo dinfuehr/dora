@@ -1,9 +1,0 @@
-fn main() {
-    let y = Y(101i32, 3i32);
-
-    assert(y.a == 3i32);
-    assert(y.b == 101i32);
-}
-
-@open class_old X(let a: Int32)
-class_old Y(let b: Int32, a: Int32): X(a) {}

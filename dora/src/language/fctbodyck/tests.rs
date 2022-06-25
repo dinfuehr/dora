@@ -551,68 +551,9 @@ fn reassign_self() {
 }
 
 #[test]
-fn super_class() {
-    ok("@open class_old A class_old B: A");
-    ok("@open class_old A class_old B: A()");
-    ok("@open class_old A(a: Int32) class_old B: A(1i32)");
-    err(
-        "@open class_old A(a: Int32) class_old B: A(true)",
-        pos(1, 42),
-        SemError::UnknownCtor,
-    );
-}
-
-#[test]
-fn access_super_class_field() {
-    ok("@open class_old A(var a: Int32)
-        class_old B(x: Int32): A(x*2i32)
-            fn foo(b: B) { b.a = b.a + 10i32; }");
-}
-
-#[test]
 fn same_names() {
     ok("class_new Foo { var Foo: Foo = Foo(); }");
     ok("class_new Foo fn foo() { let Foo: Int32 = 1i32; }");
-}
-
-#[test]
-fn check_upcast() {
-    ok("@open class_old A class_old B: A
-            fn f(b: B): A {
-                let a: A = b;
-                return a;
-                //g(b);
-                //return b;
-            }
-
-            fn g(a: A) {}");
-}
-
-#[test]
-fn super_delegation() {
-    ok("@open class_old A { fn f() {} }
-            class_old B: A { fn g() {} }
-
-            fn foo(b: B) {
-                b.f();
-                b.g();
-            }");
-}
-
-#[test]
-fn super_method_call() {
-    ok("@open class_old A { @open fn f(): Int32 { return 1i32; } }
-            class_old B: A { @override fn f(): Int32 { return super.f() + 1i32; } }");
-}
-
-#[test]
-fn super_as_normal_expression() {
-    err(
-        "@open class_old A { }
-            class_old B: A { fn me() { let x = super; } }",
-        pos(2, 48),
-        SemError::SuperNeedsMethodCall,
-    );
 }
 
 #[test]
@@ -1583,17 +1524,6 @@ fn test_fct_and_class_type_params() {
 }
 
 #[test]
-fn test_subtyping() {
-    ok("
-    @open class A class B: A
-    class Test {
-        fn foo(a: A) {}
-    }
-    fn bar(t: Test) { t.foo(B()); }
-    ");
-}
-
-#[test]
 fn test_struct() {
     ok("
         struct Foo(f1: Int32)
@@ -2157,97 +2087,6 @@ fn test_tuple_element() {
     ",
         pos(3, 13),
         SemError::ReturnType("String".into(), "Bool".into()),
-    );
-}
-
-#[test]
-fn test_inheritance_with_generics() {
-    ok("
-        @open class Foo[A](let a: A)
-        class Bar: Foo[Int32](10i32)
-    ");
-
-    err(
-        "
-        @open class Foo[A](let a: A)
-        class Bar: Foo(10i32)
-    ",
-        pos(3, 20),
-        SemError::WrongNumberTypeParams(1, 0),
-    );
-
-    ok("
-        @open class Foo[A](let a: A)
-        class Bar[A](x: A): Foo[A](x)
-    ");
-}
-
-#[test]
-fn test_fields_with_generics() {
-    ok("
-        @open @abstract class Foo[A](var a: A)
-        @open class Bar[A]: Foo[Int32](10i32)
-        class Baz[A]: Bar[A] {
-            fn test(): Int32 { self.a }
-            fn assignMe() { self.a = 10i32; }
-        }
-    ");
-}
-
-#[test]
-fn test_methods_with_generics() {
-    ok("
-        @open @abstract class Foo[A] {
-            @abstract fn test(): A;
-        }
-
-        class Bar[A](let bar: A): Foo[A] {
-            @override fn test(): A { self.bar }
-        }
-
-        class Baz[A](let baz: A): Foo[Int32] {
-            @override fn test(): Int32 { 0i32 }
-        }
-    ");
-
-    ok("
-        @open @abstract class Foo[A] {
-            @open fn test(x: A): A { x }
-        }
-
-        class Bar[A](let bar: A): Foo[A] {
-            @override fn test(x: A): A { self.bar }
-        }
-
-        class Baz[A](let baz: A): Foo[Int32] {
-            @override fn test(x: Int32): Int32 { x+x }
-        }
-    ");
-}
-
-#[test]
-fn test_type_params_with_bounds_in_subclass() {
-    err(
-        "
-        trait SomeTrait {}
-        @open class Foo[A: SomeTrait]
-        class Bar: Foo[Int32]
-    ",
-        pos(4, 20),
-        SemError::TypeNotImplementingTrait("Int32".into(), "SomeTrait".into()),
-    );
-}
-
-#[test]
-fn test_type_params_with_bounds_in_subclass_wrong_order() {
-    err(
-        "
-        trait SomeTrait {}
-        class Bar: Foo[Int32]
-        @open class Foo[A: SomeTrait]
-    ",
-        pos(3, 20),
-        SemError::TypeNotImplementingTrait("Int32".into(), "SomeTrait".into()),
     );
 }
 

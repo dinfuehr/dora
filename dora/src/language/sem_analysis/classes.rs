@@ -55,7 +55,6 @@ pub struct ClassDefinition {
     pub primitive_type: Option<SourceType>,
     pub ty: Option<SourceType>,
     pub parent_class: Option<SourceType>,
-    pub is_open: bool,
     pub internal: bool,
     pub internal_resolved: bool,
     pub has_constructor: bool,
@@ -65,7 +64,6 @@ pub struct ClassDefinition {
     pub constructor: Option<FctDefinitionId>,
     pub fields: Vec<Field>,
     pub methods: Vec<FctDefinitionId>,
-    pub virtual_fcts: Vec<FctDefinitionId>,
 
     pub impls: Vec<ImplDefinitionId>,
     pub extensions: Vec<ExtensionDefinitionId>,
@@ -99,7 +97,6 @@ impl ClassDefinition {
             name: ast.name,
             ty: None,
             parent_class: None,
-            is_open: ast.is_open,
             internal: ast.internal,
             internal_resolved: false,
             has_constructor: ast.has_constructor,
@@ -109,7 +106,6 @@ impl ClassDefinition {
             constructor: None,
             fields: Vec::new(),
             methods: Vec::new(),
-            virtual_fcts: Vec::new(),
 
             impls: Vec::new(),
             extensions: Vec::new(),
@@ -140,7 +136,6 @@ impl ClassDefinition {
             name,
             ty: None,
             parent_class: None,
-            is_open: false,
             internal: false,
             internal_resolved: false,
             has_constructor: false,
@@ -150,7 +145,6 @@ impl ClassDefinition {
             constructor: None,
             fields,
             methods: Vec::new(),
-            virtual_fcts: Vec::new(),
 
             impls: Vec::new(),
             extensions: Vec::new(),
@@ -419,7 +413,6 @@ pub fn find_methods_in_class(
     is_static: bool,
 ) -> Vec<Candidate> {
     let mut candidates = Vec::new();
-    let mut ignores = HashSet::new();
 
     let mut class_type = object_type.clone();
 
@@ -433,17 +426,11 @@ pub fn find_methods_in_class(
             let method = method.read();
 
             if method.name == name && method.is_static == is_static {
-                if let Some(overrides) = method.overrides {
-                    ignores.insert(overrides);
-                }
-
-                if !ignores.contains(&method.id()) {
-                    return vec![Candidate {
-                        object_type: class_type.clone(),
-                        container_type_params: class_type.type_params(),
-                        fct_id: method.id(),
-                    }];
-                }
+                return vec![Candidate {
+                    object_type: class_type.clone(),
+                    container_type_params: class_type.type_params(),
+                    fct_id: method.id(),
+                }];
             }
         }
 

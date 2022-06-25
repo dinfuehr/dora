@@ -414,7 +414,7 @@ fn create_specialized_class_regular(
         size,
         fields,
         parent_id,
-        cls.virtual_fcts.len(),
+        0,
     );
 
     let old = specializations.insert((cls.id(), type_params.clone()), class_instance_id);
@@ -493,7 +493,7 @@ fn create_specialized_class_array(
         size,
         Vec::new(),
         None,
-        cls.virtual_fcts.len(),
+        0,
     );
 
     let old = specializations.insert((cls.id(), type_params.clone()), class_instance_id);

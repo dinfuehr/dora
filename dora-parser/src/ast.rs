@@ -538,8 +538,6 @@ pub struct Class {
     pub name: Name,
     pub pos: Position,
     pub span: Span,
-    pub parent_class: Option<ParentClass>,
-    pub is_open: bool,
     pub internal: bool,
     pub has_constructor: bool,
     pub is_pub: bool,
@@ -591,25 +589,6 @@ pub struct AnnotationParam {
 }
 
 #[derive(Clone, Debug)]
-pub struct ParentClass {
-    pub pos: Position,
-    pub span: Span,
-    pub parent_ty: Type,
-    pub params: Vec<Box<Expr>>,
-}
-
-impl ParentClass {
-    pub fn new(pos: Position, span: Span, parent_ty: Type, params: Vec<Box<Expr>>) -> ParentClass {
-        ParentClass {
-            pos,
-            span,
-            parent_ty,
-            params,
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
 pub struct Field {
     pub id: NodeId,
     pub name: Name,
@@ -645,9 +624,6 @@ pub struct Function {
     pub pos: Position,
     pub span: Span,
     pub method: bool,
-    pub is_open: bool,
-    pub is_override: bool,
-    pub is_final: bool,
     pub is_optimize_immediately: bool,
     pub is_pub: bool,
     pub is_static: bool,
@@ -736,9 +712,6 @@ pub struct AnnotationUsage {
 // rename to InternalAnnotation in next step
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Modifier {
-    Override,
-    Open,
-    Final,
     Internal,
     Pub,
     Static,
@@ -749,9 +722,6 @@ pub enum Modifier {
 impl Modifier {
     pub fn find(name: &str) -> Option<Modifier> {
         match name {
-            "open" => Some(Modifier::Open),
-            "override" => Some(Modifier::Override),
-            "final" => Some(Modifier::Final),
             "internal" => Some(Modifier::Internal),
             "pub" => Some(Modifier::Pub),
             "static" => Some(Modifier::Static),
@@ -763,9 +733,6 @@ impl Modifier {
 
     pub fn name(&self) -> &'static str {
         match *self {
-            Modifier::Open => "open",
-            Modifier::Override => "override",
-            Modifier::Final => "final",
             Modifier::Internal => "internal",
             Modifier::Pub => "pub",
             Modifier::Static => "static",

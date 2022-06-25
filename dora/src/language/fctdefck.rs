@@ -13,9 +13,6 @@ pub fn check(sa: &SemAnalysis) {
         let mut fct = fct.write();
         let ast = fct.ast.clone();
 
-        // check modifiers for function
-        check_static(sa, &*fct);
-
         let mut sym_table = NestedSymTable::new(sa, fct.module_id);
         sym_table.push_level();
 
@@ -210,26 +207,6 @@ pub fn check(sa: &SemAnalysis) {
 
             _ => {}
         }
-    }
-}
-
-fn check_static(sa: &SemAnalysis, fct: &FctDefinition) {
-    if !fct.is_static {
-        return;
-    }
-
-    // static isn't allowed with these modifiers
-    if fct.is_open || fct.is_override || fct.is_final {
-        let modifier = if fct.is_open {
-            "open"
-        } else if fct.is_override {
-            "override"
-        } else {
-            "final"
-        };
-
-        let msg = SemError::ModifierNotAllowedForStaticMethod(modifier.into());
-        sa.diag.lock().report(fct.file_id, fct.pos, msg);
     }
 }
 

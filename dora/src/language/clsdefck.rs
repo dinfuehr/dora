@@ -5,7 +5,6 @@ use crate::language::sem_analysis::{
 };
 use crate::language::sym::{NestedSymTable, Sym, SymTable};
 use crate::language::ty::{SourceType, SourceTypeArray};
-use crate::language::typeparamck::{self, ErrorReporting};
 use crate::language::{self, read_type, AllowSelf, TypeParamContext};
 
 use dora_parser::ast;
@@ -66,10 +65,6 @@ impl<'x> ClsDefCheck<'x> {
 
         for method_id in methods {
             self.visit_method(method_id);
-        }
-
-        if let Some(ref parent_class) = self.ast.parent_class {
-            self.check_parent_class(parent_class);
         }
 
         self.sym.pop_level();
@@ -153,49 +148,6 @@ impl<'x> ClsDefCheck<'x> {
         cls.ty = Some(SourceType::Class(self.cls_id, params));
     }
 
-    fn check_parent_class(&mut self, parent_class: &ast::ParentClass) {
-        let parent_ty = read_type(
-            self.sa,
-            &self.sym,
-            self.file_id,
-            &parent_class.parent_ty,
-            TypeParamContext::Class(self.cls_id),
-            AllowSelf::No,
-        )
-        .unwrap_or(SourceType::Error);
-
-        match parent_ty.clone() {
-            SourceType::Class(cls_id, _type_list_id) => {
-                let super_cls = self.sa.classes.idx(cls_id);
-                let super_cls = super_cls.read();
-
-                if !super_cls.is_open {
-                    let msg = SemError::UnderivableType(super_cls.name(self.sa));
-                    self.sa
-                        .diag
-                        .lock()
-                        .report(self.file_id.into(), parent_class.pos, msg);
-                }
-
-                let cls = self.sa.classes.idx(self.cls_id);
-                let mut cls = cls.write();
-                cls.parent_class = Some(parent_ty);
-            }
-
-            SourceType::Error => {
-                // error was already reported
-            }
-
-            _ => {
-                let msg = SemError::ClassExpected;
-                self.sa
-                    .diag
-                    .lock()
-                    .report(self.file_id.into(), parent_class.pos, msg);
-            }
-        }
-    }
-
     fn check_if_symbol_exists(&mut self, name: Name, pos: Position, table: &SymTable) {
         if let Some(sym) = table.get(name) {
             let file: SourceFileId = self.file_id.into();
@@ -224,18 +176,6 @@ impl<'x> ClsDefCheck<'x> {
     }
 }
 
-pub fn check_super_definition(sa: &SemAnalysis) {
-    for cls in sa.classes.iter() {
-        let cls = cls.read();
-        let ast = cls.ast.as_ref().expect("ast missing");
-
-        if let Some(ref parent_class) = &ast.parent_class {
-            let error = ErrorReporting::Yes(cls.file_id(), parent_class.pos);
-            typeparamck::check_super(sa, &*cls, error);
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::language::error::msg::SemError;
@@ -258,32 +198,6 @@ mod tests {
             "class Foo(let a: Int32, let a: Int32)",
             pos(1, 29),
             SemError::ShadowField("a".to_string()),
-        );
-    }
-
-    #[test]
-    fn class_with_unknown_super_class() {
-        err(
-            "class B: A {}",
-            pos(1, 10),
-            SemError::UnknownIdentifier("A".into()),
-        );
-        err(
-            "@open class B: A {}",
-            pos(1, 16),
-            SemError::UnknownIdentifier("A".into()),
-        );
-        err("class B: Int32 {}", pos(1, 10), SemError::ClassExpected);
-    }
-
-    #[test]
-    fn class_with_open_modifier() {
-        ok("@open class A {}");
-        ok("@open class A {} class B: A {}");
-        err(
-            "class A {} class B: A {}",
-            pos(1, 21),
-            SemError::UnderivableType("A".into()),
         );
     }
 
@@ -393,17 +307,6 @@ mod tests {
             class A[T: Foo + Foo]",
             pos(2, 21),
             SemError::DuplicateTraitBound,
-        );
-    }
-
-    #[test]
-    fn test_super_class_with_superfluous_type_params() {
-        err(
-            "
-            @open class A
-            class B: A[Int32] {}",
-            pos(3, 22),
-            SemError::WrongNumberTypeParams(0, 1),
         );
     }
 

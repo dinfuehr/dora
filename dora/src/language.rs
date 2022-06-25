@@ -32,7 +32,6 @@ pub mod sem_analysis;
 mod specialize;
 mod stdlib;
 mod structdefck;
-mod superck;
 pub(crate) mod sym;
 #[cfg(test)]
 mod test;
@@ -91,15 +90,8 @@ pub fn check(sa: &mut SemAnalysis) -> bool {
     extensiondefck::check(sa);
     return_on_error!(sa);
 
-    // check super class definition of classes
-    clsdefck::check_super_definition(sa);
-    return_on_error!(sa);
-
     // check type definitions of params and return types in functions
     fctdefck::check(sa);
-    return_on_error!(sa);
-
-    superck::check_override(sa);
     return_on_error!(sa);
 
     // check impl methods against trait definition
@@ -113,10 +105,6 @@ pub fn check(sa: &mut SemAnalysis) -> bool {
 
     // check for internal functions or classes
     internalck(sa);
-    return_on_error!(sa);
-
-    // add size of super classes to field offsets
-    superck::check(sa);
     return_on_error!(sa);
 
     // check function body

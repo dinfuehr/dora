@@ -45,16 +45,12 @@ pub struct FctDefinition {
     pub name: Name,
     pub module_id: ModuleDefinitionId,
     pub parent: FctParent,
-    pub is_open: bool,
-    pub is_override: bool,
-    pub is_final: bool,
     pub is_optimize_immediately: bool,
     pub is_static: bool,
     pub is_pub: bool,
     pub is_test: bool,
     pub internal: bool,
     pub internal_resolved: bool,
-    pub overrides: Option<FctDefinitionId>,
     pub param_types: Vec<SourceType>,
     pub return_type: SourceType,
     pub is_constructor: bool,
@@ -90,16 +86,12 @@ impl FctDefinition {
             param_types: Vec::new(),
             return_type: SourceType::Error,
             parent,
-            is_override: ast.is_override,
-            is_open: ast.is_open,
-            is_final: ast.is_final,
             is_optimize_immediately: ast.is_optimize_immediately,
             is_pub: ast.is_pub,
             is_static: ast.is_static,
             is_test: ast.is_test,
             internal: ast.internal,
             internal_resolved: false,
-            overrides: None,
             is_constructor: ast.is_constructor,
             vtable_index: None,
             initialized: false,
@@ -132,10 +124,6 @@ impl FctDefinition {
 
     pub fn type_param(&self, id: TypeParamId) -> &TypeParam {
         &self.type_params[id.to_usize()]
-    }
-
-    pub fn is_virtual(&self) -> bool {
-        (self.is_open || self.is_override) && !self.is_final
     }
 
     pub fn has_parent(&self) -> bool {

@@ -1145,7 +1145,6 @@ impl<'a> AstBytecodeGen<'a> {
         // Emit the actual Invoke(Direct|Static|Virtual)XXX instruction
         self.emit_call_inst(
             expr,
-            &*callee,
             &call_type,
             return_type,
             expr.pos,
@@ -1492,7 +1491,6 @@ impl<'a> AstBytecodeGen<'a> {
     fn emit_call_inst(
         &mut self,
         expr: &ast::ExprCallType,
-        fct: &FctDefinition,
         call_type: &CallType,
         return_type: SourceType,
         pos: Position,
@@ -1513,8 +1511,6 @@ impl<'a> AstBytecodeGen<'a> {
 
                 if is_super_call {
                     self.emit_invoke_direct(return_type, return_reg, callee_idx, pos);
-                } else if fct.is_virtual() {
-                    self.emit_invoke_virtual(return_type, return_reg, callee_idx, pos);
                 } else {
                     self.emit_invoke_direct(return_type, return_reg, callee_idx, pos);
                 }
@@ -1523,11 +1519,7 @@ impl<'a> AstBytecodeGen<'a> {
                 self.emit_invoke_static(return_type, return_reg, callee_idx, pos);
             }
             CallType::Expr(_, _, _) => {
-                if fct.is_virtual() {
-                    self.emit_invoke_virtual(return_type, return_reg, callee_idx, pos);
-                } else {
-                    self.emit_invoke_direct(return_type, return_reg, callee_idx, pos);
-                }
+                self.emit_invoke_direct(return_type, return_reg, callee_idx, pos);
             }
             CallType::TraitObjectMethod(_, _) => {
                 self.emit_invoke_virtual(return_type, return_reg, callee_idx, pos);

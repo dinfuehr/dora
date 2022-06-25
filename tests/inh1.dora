@@ -1,8 +1,0 @@
-fn main() {
-  let a = A(10i32);
-  assert(a.x == 10i32);
-  assert(a.y == 20i32);
-}
-
-class_old A(let x: Int32): B(x*2i32)
-@open class_old B(let y: Int32)

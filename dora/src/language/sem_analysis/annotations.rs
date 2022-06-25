@@ -75,14 +75,6 @@ impl AnnotationDefinition {
         self.internal_annotation.is_some()
     }
 
-    pub fn is_final(annotation_usages: &AnnotationUsages, sa: &SemAnalysis) -> bool {
-        let name = sa
-            .annotations
-            .idx(sa.known.annotations.final_())
-            .read()
-            .name;
-        annotation_usages.contains(name)
-    }
     pub fn is_internal(annotation_usages: &AnnotationUsages, sa: &SemAnalysis) -> bool {
         let name = sa
             .annotations
@@ -91,18 +83,7 @@ impl AnnotationDefinition {
             .name;
         annotation_usages.contains(name)
     }
-    pub fn is_open(annotation_usages: &AnnotationUsages, sa: &SemAnalysis) -> bool {
-        let name = sa.annotations.idx(sa.known.annotations.open()).read().name;
-        annotation_usages.contains(name)
-    }
-    pub fn is_override(annotation_usages: &AnnotationUsages, sa: &SemAnalysis) -> bool {
-        let name = sa
-            .annotations
-            .idx(sa.known.annotations.override_())
-            .read()
-            .name;
-        annotation_usages.contains(name)
-    }
+
     pub fn is_pub(annotation_usages: &AnnotationUsages, sa: &SemAnalysis) -> bool {
         let name = sa.annotations.idx(sa.known.annotations.pub_()).read().name;
         annotation_usages.contains(name)
