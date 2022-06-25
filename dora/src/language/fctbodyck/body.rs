@@ -90,15 +90,26 @@ impl<'a> TypeCheck<'a> {
     fn prepare_local_and_context_vars(&mut self) {
         if self.vars.has_context_vars() {
             let start_index = self.vars.current_function().start_idx;
-            let mut fields = Vec::new();
-            let mut idx = 0;
+            let number_fields = self.vars.current_function().next_context_id;
+            let mut fields = Vec::with_capacity(number_fields);
+            let mut map: Vec<Option<VarId>> = vec![None; number_fields];
 
             for var in self.vars.vars.iter().skip(start_index) {
                 if !var.location.is_context() {
                     continue;
                 }
 
-                assert_eq!(var.location, VarLocation::Context(idx));
+                match var.location {
+                    VarLocation::Context(field_id) => {
+                        map[field_id] = Some(var.id);
+                    }
+                    VarLocation::Stack => {}
+                }
+            }
+
+            for (idx, var_id) in map.into_iter().enumerate() {
+                let var_id = var_id.expect("missing field");
+                let var = self.vars.get_var(var_id);
 
                 fields.push(Field {
                     id: FieldId(idx),
@@ -107,8 +118,6 @@ impl<'a> TypeCheck<'a> {
                     mutable: true,
                     is_pub: false,
                 });
-
-                idx += 1;
             }
 
             let mut name = self.fct.display_name(self.sa);

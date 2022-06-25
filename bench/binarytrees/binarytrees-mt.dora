@@ -22,13 +22,14 @@ fn main() {
     let longLastingNode = createTree(maxDepth);
 
     var i = 0i32;
-    let threads = Vec[TreeThread]::new();
+    let threads = Vec[std::Thread]::new();
     let nextDepth = std::AtomicInt32::new(MIN_DEPTH);
     let results = Array[String]::fill((maxDepth - MIN_DEPTH).toInt64() / 2i64 + 1i64, "");
 
     while i < number_threads {
-        let thread = TreeThread(nextDepth, maxDepth, results);
-        thread.start();
+        let thread = std::thread::spawn(|| {
+            TreeThread::new(nextDepth, maxDepth, results).run();
+        });
         threads.push(thread);
         i = i + 1i32;
     }
@@ -45,8 +46,18 @@ fn main() {
         + "\t check: " + checkTree(longLastingNode).toString());
 }
 
-class TreeThread(let nextDepth: std::AtomicInt32, let maxDepth: Int32, let results: Array[String]): std::Thread {
-    @override fn run() {
+class_new TreeThread {
+    nextDepth: std::AtomicInt32,
+    maxDepth: Int32,
+    results: Array[String],
+}
+
+impl TreeThread {
+    @static fn new(nextDepth: std::AtomicInt32, maxDepth: Int32, results: Array[String]): TreeThread {
+        TreeThread(nextDepth, maxDepth, results)
+    }
+
+    fn run() {
         while true {
             let depth = self.nextDepth.fetchAdd(2i32);
             if depth > self.maxDepth { return; }
@@ -92,4 +103,8 @@ fn checkTree(node: TreeNode): Int32 {
          checkTree(node.right.getOrPanic()) + 1i32;
 }
 
-class TreeNode(let item: Int32, var left: Option[TreeNode], var right: Option[TreeNode])
+class_new TreeNode {
+    item: Int32,
+    left: Option[TreeNode],
+    right: Option[TreeNode]
+}
