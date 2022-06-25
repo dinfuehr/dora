@@ -2124,11 +2124,6 @@ impl<'a> TypeCheck<'a> {
             let call_type = CallType::Ctor(cls_ty.clone(), ctor_id);
             self.analysis.map_calls.insert(e.id, Arc::new(call_type));
 
-            if cls.is_abstract {
-                let msg = SemError::NewAbstractClass;
-                self.sa.diag.lock().report(self.file_id, e.pos, msg);
-            }
-
             self.analysis.set_ty(e.id, cls_ty.clone());
 
             cls_ty

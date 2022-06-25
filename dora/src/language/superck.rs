@@ -290,23 +290,6 @@ mod tests {
     }
 
     #[test]
-    fn test_wrong_parameters_in_override() {
-        err(
-            "
-        @open @abstract class_old Foo {
-            @open fn test(x: Int32): Int32 { x * 2 }
-        }
-
-        class_old Bar: Foo {
-            @override fn test(x: String): Int32 { 0 }
-        }
-    ",
-            pos(7, 23),
-            SemError::OverrideMismatch,
-        );
-    }
-
-    #[test]
     fn test_open() {
         ok("@open class_old A { @open fn f() {} }");
     }

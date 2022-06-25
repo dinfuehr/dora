@@ -103,15 +103,7 @@ impl<'a> Parser<'a> {
             }
 
             TokenKind::Class | TokenKind::ClassOld => {
-                self.restrict_modifiers(
-                    &modifiers,
-                    &[
-                        Modifier::Abstract,
-                        Modifier::Open,
-                        Modifier::Internal,
-                        Modifier::Pub,
-                    ],
-                )?;
+                self.restrict_modifiers(&modifiers, &[Modifier::Open, Modifier::Pub])?;
                 let class = self.parse_class(&modifiers)?;
                 Ok(Elem::Class(Arc::new(class)))
             }
@@ -574,7 +566,6 @@ impl<'a> Parser<'a> {
         let start = self.token.span.start();
         let is_open = modifiers.contains(Modifier::Open);
         let internal = modifiers.contains(Modifier::Internal);
-        let is_abstract = modifiers.contains(Modifier::Abstract);
         let is_pub = modifiers.contains(Modifier::Pub);
 
         let pos = self.advance_token()?.position;
@@ -590,7 +581,6 @@ impl<'a> Parser<'a> {
             span: Span::invalid(),
             is_open,
             internal,
-            is_abstract,
             is_pub,
             has_constructor: false,
             parent_class: None,
@@ -664,7 +654,6 @@ impl<'a> Parser<'a> {
             span,
             is_open: false,
             internal: modifiers.contains(Modifier::Internal),
-            is_abstract: false,
             is_pub: modifiers.contains(Modifier::Pub),
             has_constructor: false,
             parent_class: None,
@@ -928,7 +917,6 @@ impl<'a> Parser<'a> {
             match self.token.kind {
                 TokenKind::Fn => {
                     let mods = &[
-                        Modifier::Abstract,
                         Modifier::Internal,
                         Modifier::Open,
                         Modifier::Override,
@@ -969,7 +957,6 @@ impl<'a> Parser<'a> {
             self.advance_token()?;
             let ident = self.expect_identifier()?;
             let modifier = match self.interner.str(ident).as_str() {
-                "abstract" => Modifier::Abstract,
                 "open" => Modifier::Open,
                 "override" => Modifier::Override,
                 "final" => Modifier::Final,
@@ -1084,7 +1071,6 @@ impl<'a> Parser<'a> {
             is_pub: modifiers.contains(Modifier::Pub),
             is_static: modifiers.contains(Modifier::Static),
             internal: modifiers.contains(Modifier::Internal),
-            is_abstract: modifiers.contains(Modifier::Abstract),
             is_constructor: false,
             is_test: modifiers.contains(Modifier::Test),
             params,
@@ -2291,7 +2277,6 @@ impl<'a> Parser<'a> {
             is_pub: false,
             is_static: false,
             internal: false,
-            is_abstract: false,
             is_constructor: false,
             is_test: false,
             params,
@@ -3440,43 +3425,13 @@ mod tests {
     }
 
     #[test]
-    fn parse_abstract_method() {
-        let (prog, _) = parse(
-            "class Foo {
-            @abstract fn zero();
-            fn foo();
-        }",
-        );
-
-        let cls = prog.cls0();
-        assert_eq!(0, cls.fields.len());
-        assert_eq!(2, cls.methods.len());
-
-        let mtd1 = &cls.methods[0];
-        assert_eq!(true, mtd1.is_abstract);
-
-        let mtd2 = &cls.methods[1];
-        assert_eq!(false, mtd2.is_abstract);
-    }
-
-    #[test]
     fn parse_class() {
         let (prog, interner) = parse("class Foo");
         let class = prog.cls0();
 
         assert_eq!(0, class.fields.len());
         assert_eq!(false, class.is_open);
-        assert_eq!(false, class.is_abstract);
         assert_eq!(Position::new(1, 1), class.pos);
-        assert_eq!("Foo", *interner.str(class.name));
-    }
-
-    #[test]
-    fn parse_class_abstract() {
-        let (prog, interner) = parse("@abstract class Foo");
-        let class = prog.cls0();
-
-        assert_eq!(true, class.is_abstract);
         assert_eq!("Foo", *interner.str(class.name));
     }
 
@@ -3688,13 +3643,6 @@ mod tests {
         let (prog, _) = parse("fn foo();");
         let fct = prog.fct0();
         assert!(fct.block.is_none());
-    }
-
-    #[test]
-    fn parse_internal_class() {
-        let (prog, _) = parse("@internal class Foo {}");
-        let cls = prog.cls0();
-        assert!(cls.internal);
     }
 
     #[test]

@@ -244,7 +244,6 @@ impl KnownTraits {
 
 #[derive(Debug)]
 pub struct KnownAnnotations {
-    pub abstract_: Option<AnnotationDefinitionId>,
     pub final_: Option<AnnotationDefinitionId>,
     pub internal: Option<AnnotationDefinitionId>,
     pub override_: Option<AnnotationDefinitionId>,
@@ -259,7 +258,6 @@ pub struct KnownAnnotations {
 impl KnownAnnotations {
     pub fn new() -> KnownAnnotations {
         KnownAnnotations {
-            abstract_: None,
             final_: None,
             internal: None,
             override_: None,
@@ -270,10 +268,6 @@ impl KnownAnnotations {
             cannon: None,
             optimize_immediately: None,
         }
-    }
-
-    pub fn abstract_(&self) -> AnnotationDefinitionId {
-        self.abstract_.expect("uninitialized")
     }
 
     pub fn final_(&self) -> AnnotationDefinitionId {

@@ -1,7 +1,0 @@
-fn main() {
-    let x = Bar();
-}
-
-@open @abstract class_old Foo[A]
-class_old Bar: Foo[Int32]
-

@@ -11,7 +11,6 @@ use dora_parser::lexer::position::Position;
 pub use program_parser::should_file_be_parsed;
 pub use readty::{read_type, read_type_unchecked, AllowSelf, TypeParamContext};
 
-mod abstractck;
 pub(crate) mod access;
 mod clsdefck;
 mod constdefck;
@@ -120,9 +119,6 @@ pub fn check(sa: &mut SemAnalysis) -> bool {
     superck::check(sa);
     return_on_error!(sa);
 
-    abstractck::check(sa);
-    return_on_error!(sa);
-
     // check function body
     fctbodyck::check(sa);
     return_on_error!(sa);
@@ -197,7 +193,7 @@ fn internalck(sa: &SemAnalysis) {
                     .report(method.file_id, method.pos, SemError::UnresolvedInternal);
             }
 
-            if !method.has_body() && !method.is_abstract && !method.internal {
+            if !method.has_body() && !method.internal {
                 sa.diag
                     .lock()
                     .report(method.file_id, method.pos, SemError::MissingFctBody);

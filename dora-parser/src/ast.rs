@@ -540,7 +540,6 @@ pub struct Class {
     pub span: Span,
     pub parent_class: Option<ParentClass>,
     pub is_open: bool,
-    pub is_abstract: bool,
     pub internal: bool,
     pub has_constructor: bool,
     pub is_pub: bool,
@@ -652,7 +651,6 @@ pub struct Function {
     pub is_optimize_immediately: bool,
     pub is_pub: bool,
     pub is_static: bool,
-    pub is_abstract: bool,
     pub is_test: bool,
     pub internal: bool,
     pub is_constructor: bool,
@@ -738,7 +736,6 @@ pub struct AnnotationUsage {
 // rename to InternalAnnotation in next step
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Modifier {
-    Abstract,
     Override,
     Open,
     Final,
@@ -752,7 +749,6 @@ pub enum Modifier {
 impl Modifier {
     pub fn find(name: &str) -> Option<Modifier> {
         match name {
-            "abstract" => Some(Modifier::Abstract),
             "open" => Some(Modifier::Open),
             "override" => Some(Modifier::Override),
             "final" => Some(Modifier::Final),
@@ -767,7 +763,6 @@ impl Modifier {
 
     pub fn name(&self) -> &'static str {
         match *self {
-            Modifier::Abstract => "abstract",
             Modifier::Open => "open",
             Modifier::Override => "override",
             Modifier::Final => "final",

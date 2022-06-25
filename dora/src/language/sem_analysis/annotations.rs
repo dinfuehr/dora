@@ -75,14 +75,6 @@ impl AnnotationDefinition {
         self.internal_annotation.is_some()
     }
 
-    pub fn is_abstract(annotation_usages: &AnnotationUsages, sa: &SemAnalysis) -> bool {
-        let name = sa
-            .annotations
-            .idx(sa.known.annotations.abstract_())
-            .read()
-            .name;
-        annotation_usages.contains(name)
-    }
     pub fn is_final(annotation_usages: &AnnotationUsages, sa: &SemAnalysis) -> bool {
         let name = sa
             .annotations

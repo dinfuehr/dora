@@ -14,7 +14,6 @@ pub fn check(sa: &SemAnalysis) {
         let ast = fct.ast.clone();
 
         // check modifiers for function
-        check_abstract(sa, &*fct);
         check_static(sa, &*fct);
 
         let mut sym_table = NestedSymTable::new(sa, fct.module_id);
@@ -214,36 +213,14 @@ pub fn check(sa: &SemAnalysis) {
     }
 }
 
-fn check_abstract(sa: &SemAnalysis, fct: &FctDefinition) {
-    if !fct.is_abstract {
-        return;
-    }
-
-    let cls_id = fct.cls_id();
-    let cls = sa.classes.idx(cls_id);
-    let cls = cls.read();
-
-    if fct.has_body() {
-        let msg = SemError::AbstractMethodWithImplementation;
-        sa.diag.lock().report(fct.file_id, fct.pos, msg);
-    }
-
-    if !cls.is_abstract {
-        let msg = SemError::AbstractMethodNotInAbstractClass;
-        sa.diag.lock().report(fct.file_id, fct.pos, msg);
-    }
-}
-
 fn check_static(sa: &SemAnalysis, fct: &FctDefinition) {
     if !fct.is_static {
         return;
     }
 
     // static isn't allowed with these modifiers
-    if fct.is_abstract || fct.is_open || fct.is_override || fct.is_final {
-        let modifier = if fct.is_abstract {
-            "abstract"
-        } else if fct.is_open {
+    if fct.is_open || fct.is_override || fct.is_final {
+        let modifier = if fct.is_open {
             "open"
         } else if fct.is_override {
             "override"
@@ -342,60 +319,6 @@ mod tests {
     #[test]
     fn fct_with_type_param_in_annotation() {
         ok("fn f[T](val: T) {}");
-    }
-
-    #[test]
-    fn abstract_method_in_non_abstract_class() {
-        err(
-            "class A { @abstract fn foo(); }",
-            pos(1, 21),
-            SemError::AbstractMethodNotInAbstractClass,
-        );
-    }
-
-    #[test]
-    fn abstract_method_with_implementation() {
-        err(
-            "@abstract class A { @abstract fn foo() {} }",
-            pos(1, 31),
-            SemError::AbstractMethodWithImplementation,
-        );
-    }
-
-    #[test]
-    fn abstract_static_method() {
-        err(
-            "@abstract class A { @static @abstract fn foo(); }",
-            pos(1, 39),
-            SemError::ModifierNotAllowedForStaticMethod("abstract".into()),
-        );
-    }
-
-    #[test]
-    fn open_static_method() {
-        err(
-            "@abstract class A { @static @open fn foo() {} }",
-            pos(1, 35),
-            SemError::ModifierNotAllowedForStaticMethod("open".into()),
-        );
-    }
-
-    #[test]
-    fn override_static_method() {
-        err(
-            "@abstract class A { @static @override fn foo() {} }",
-            pos(1, 39),
-            SemError::ModifierNotAllowedForStaticMethod("override".into()),
-        );
-    }
-
-    #[test]
-    fn final_static_method() {
-        err(
-            "@abstract class A { @final @static fn foo() {} }",
-            pos(1, 36),
-            SemError::ModifierNotAllowedForStaticMethod("final".into()),
-        );
     }
 
     #[test]

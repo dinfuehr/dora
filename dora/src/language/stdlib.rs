@@ -15,12 +15,6 @@ use dora_parser::interner::Name;
 
 pub fn resolve_internal_annotations(sa: &mut SemAnalysis) {
     let stdlib = sa.stdlib_module_id;
-    sa.known.annotations.abstract_ = Some(internal_annotation(
-        sa,
-        stdlib,
-        "annotations::abstract",
-        Modifier::Abstract,
-    ));
     sa.known.annotations.final_ = Some(internal_annotation(
         sa,
         stdlib,

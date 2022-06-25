@@ -1120,16 +1120,6 @@ fn test_find_class_method_precedence() {
 }
 
 #[test]
-fn test_invoke_abstract_class_ctor() {
-    err(
-        "@abstract class A
-            fn test(): A { return A(); }",
-        pos(2, 36),
-        SemError::NewAbstractClass,
-    );
-}
-
-#[test]
 fn test_global_get() {
     ok("var x: Int32 = 0i32; fn foo(): Int32 { return x; }");
 }
