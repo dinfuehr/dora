@@ -48,7 +48,7 @@ impl SharedInt {
 
 fn main() {
     var i = 0i32;
-    var threads = Vec[std::thread::Thread]::new();
+    var threads = Vec[std::Thread]::new();
     var mtx = std::Mutex::new();
     var shared = SharedInt::new();
 

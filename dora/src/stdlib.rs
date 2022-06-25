@@ -10,7 +10,6 @@ use std::time::Duration;
 use crate::boots;
 use crate::gc::{Address, GcReason};
 use crate::handle::{handle, handle_scope, Handle};
-use crate::language::ty::SourceTypeArray;
 use crate::object::{Obj, Ref, Str, UInt8Array};
 use crate::stack::stacktrace_from_last_dtn;
 use crate::threads::{
@@ -327,14 +326,14 @@ pub extern "C" fn spawn_thread(runner: Handle<Obj>) -> Address {
     thread::spawn(move || {
         // Initialize thread-local variable with thread
         let thread = init_current_thread(thread);
-        thread_runner(thread, thread_location, runner_location);
+        thread_main(thread, thread_location, runner_location);
         deinit_current_thread();
     });
 
     managed_thread.direct_ptr()
 }
 
-fn thread_runner(thread: &DoraThread, thread_location: Address, runner_location: Address) {
+fn thread_main(thread: &DoraThread, thread_location: Address, runner_location: Address) {
     use crate::compiler;
     use crate::stack::DoraToNativeInfo;
 
@@ -372,91 +371,6 @@ fn thread_runner(thread: &DoraThread, thread_location: Address, runner_location:
     let fct: extern "C" fn(Address, Address, Ref<Obj>) =
         unsafe { mem::transmute(dora_stub_address) };
     fct(tld, fct_ptr, runner_handle.direct());
-
-    // remove thread from list of all threads
-    vm.threads.detach_current_thread();
-
-    // notify threads waiting in join() for this thread's end
-    thread.stop();
-}
-
-pub extern "C" fn start_thread(managed_thread: Handle<ManagedThread>) {
-    let vm = get_vm();
-
-    // Create new thread in Parked state.
-    let thread = DoraThread::new(vm, ThreadState::Parked);
-
-    if !managed_thread.install_native_thread(&thread) {
-        panic!("Thread was already started!");
-    }
-
-    vm.gc
-        .add_finalizer(managed_thread.direct_ptr(), thread.clone());
-
-    // Add thread to our list of all threads first. This method parks
-    // and unparks the current thread, this means the handle needs to be created
-    // afterwards.
-    vm.threads.attach_thread(thread.clone());
-
-    // Now we can create a handle in that newly created thread. Since the thread
-    // is now registered, the handle is updated as well by the GC.
-    // We create the handle in the new Parked thread, normally this would be unsafe.
-    // Here it should be safe though, because the current thread is still Running
-    // and therefore the GC can't run at this point.
-    debug_assert!(current_thread().is_running());
-    let location = thread.handles.handle(managed_thread.direct()).location();
-
-    thread::spawn(move || {
-        // Initialize thread-local variable with thread
-        let thread = init_current_thread(thread);
-        thread_main(thread, location);
-        deinit_current_thread();
-    });
-}
-
-fn thread_main(thread: &DoraThread, location: Address) {
-    use crate::compiler;
-    use crate::stack::DoraToNativeInfo;
-
-    let vm = get_vm();
-    let handle: Handle<Obj> = Handle::from_address(location);
-
-    let stack_top = stack_pointer();
-    let stack_limit = stack_top.sub(STACK_SIZE);
-    thread.tld.set_stack_limit(stack_limit);
-
-    // Thread was created in Parked state, so we need to Unpark
-    // before we dereference handle.
-    thread.unpark(vm);
-
-    let main = {
-        let cls_id = handle
-            .header()
-            .vtbl()
-            .class_instance()
-            .cls_id()
-            .expect("no corresponding class");
-        let cls = vm.classes.idx(cls_id);
-        let cls = cls.read();
-        let name = vm.interner.intern("run");
-        cls.find_method(vm, name, false)
-            .expect("run() method not found")
-    };
-
-    let tld = thread.tld_address();
-
-    let fct_ptr = {
-        let mut dtn = DoraToNativeInfo::new();
-        let type_params = SourceTypeArray::empty();
-
-        thread.use_dtn(&mut dtn, || compiler::generate(vm, main, &type_params))
-    };
-
-    // execute the thread object's run-method
-    let dora_stub_address = vm.stubs.dora_entry();
-    let fct: extern "C" fn(Address, Address, Ref<Obj>) =
-        unsafe { mem::transmute(dora_stub_address) };
-    fct(tld, fct_ptr, handle.direct());
 
     // remove thread from list of all threads
     vm.threads.detach_current_thread();

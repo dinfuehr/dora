@@ -3,8 +3,10 @@ use std::AtomicInt32;
 const THREADS: Int32 = 4i32;
 const ITERATIONS: Int32 = 100_000i32;
 
-class_old MyThread(let counter: AtomicInt32): std::Thread {
-    @override fn run() {
+class_new MyThread(counter: AtomicInt32)
+
+impl MyThread {
+   fn run() {
         var i = 0i32;
         while i < ITERATIONS {
             self.counter.fetchAdd(1i32);
@@ -15,13 +17,14 @@ class_old MyThread(let counter: AtomicInt32): std::Thread {
 
 fn main() {
     let shared = AtomicInt32::new(0i32);
-    let threads = Vec[MyThread]::new();
+    let threads = Vec[std::Thread]::new();
 
     var i = 0i32;
 
     while i < THREADS {
-        let thread = MyThread(shared);
-        thread.start();
+        let thread = std::thread::spawn(|| {
+            MyThread(shared).run();
+        });
         threads.push(thread);
         i = i + 1i32;
     }

@@ -1,10 +1,9 @@
-@pub @open @abstract class_old Thread {
-  var native_ptr: Int64 = 0i64;
+@pub class_new Thread {
+  native_ptr: Int64,
+}
 
-  @pub @internal fn start();
+impl Thread {
   @pub @internal fn join();
-
-  @pub @abstract fn run();
 }
 
 @internal @pub fn spawn(action: (): ()): Thread;
