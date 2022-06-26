@@ -2,11 +2,18 @@ use std::argc;
 use std::argv;
 use std::exit;
 
-class Node(let payload: Option[Array[Int32]]) {
-    var birthday: Int32 = 0;
-    var value: Int32 = 0;
-    var left: Option[Node] = None;
-    var right: Option[Node] = None;
+class_new Node {
+    payload: Option[Array[Int32]],
+    birthday: Int32,
+    value: Int32,
+    left: Option[Node],
+    right: Option[Node],
+}
+
+impl Node {
+    @static fn new(payload: Option[Array[Int32]]): Node {
+        Node(payload, 0i32, 0i32, None[Node], None[Node])
+    }
 
     fn printAge(date: Int32) {
         println((date - self.birthday).toString());
@@ -40,12 +47,12 @@ class Node(let payload: Option[Array[Int32]]) {
 
     @static fn splay(tree: Option[Node], node: Node): Option[Node] {
         if tree.isNone() {
-            return Option[Node]::None;
+            return None;
         }
         var tree = tree.getOrPanic();
 
-        node.left = Option[Node]::None;
-        node.right = Option[Node]::None;
+        node.left = None;
+        node.right = None;
 
         var l: Node = node;
         var r: Node = node;
@@ -102,7 +109,7 @@ class Node(let payload: Option[Array[Int32]]) {
         r.left = tree.right;
         tree.left = node.right;
         tree.right = node.left;
-        Option[Node]::Some(tree)
+        Some[Node](tree)
     }
 
     @static fn insert(tree: Option[Node], node: Node): Node {
@@ -114,12 +121,12 @@ class Node(let payload: Option[Array[Int32]]) {
 
         if node.value <= tree.value {
             node.left = tree.left;
-            node.right = Option[Node]::Some(tree);
-            tree.left = Option[Node]::None;
-        } else { // if (node.value > true.value)
+            node.right = Some(tree);
+            tree.left = None;
+        } else {
             node.right = tree.right;
-            node.left = Option[Node]::Some(tree);
-            tree.right = Option[Node]::None;
+            node.left = Some(tree);
+            tree.right = None;
         }
 
         return node;
@@ -128,10 +135,7 @@ class Node(let payload: Option[Array[Int32]]) {
     @static fn trunc(date: Int32, tree: Node, depth: Int32) {
         if tree.left.isSome() {
             if depth == 0i32 {
-                /*if tree.left !== nil {
-                    println("truncate left");
-                }*/
-                tree.left = Option[Node]::None;
+                tree.left = None;
             } else {
                 Node::trunc(date, tree.left.getOrPanic(), depth-1i32);
             }
@@ -139,10 +143,7 @@ class Node(let payload: Option[Array[Int32]]) {
 
         if tree.right.isSome() {
             if depth == 0i32 {
-                /*if tree.right !== nil {
-                    println("truncate right");
-                }*/
-                tree.right = Option[Node]::None;
+                tree.right = None;
             } else {
                 Node::trunc(date, tree.right.getOrPanic(), depth-1i32);
             }
@@ -168,7 +169,7 @@ fn main() {
     let max_size = argv(1i32).toInt32().getOrPanic();
     var date = 0i32;
 
-    var tree: Node = Node(Option[Array[Int32]]::None);
+    var tree: Node = Node::new(None[Array[Int32]]);
     tree.birthday = date;
     date = date + 1i32;
     tree.value = rnd.nextInt32WithBound(max_size);
@@ -184,14 +185,14 @@ fn main() {
             let value = rnd.nextInt32WithBound(4i32);
 
             let node = if value == 0i32 {
-                Node(Option[Array[Int32]]::None)
+                Node::new(None[Array[Int32]])
             } else if value == 1i32 {
-                Node(Option[Array[Int32]]::Some(Array[Int32]::zero(1)))
+                Node::new(Some[Array[Int32]](Array[Int32]::zero(1)))
             } else if value == 2i32 {
-                Node(Option[Array[Int32]]::Some(Array[Int32]::zero(2)))
+                Node::new(Some[Array[Int32]](Array[Int32]::zero(2)))
             } else {
                 assert(value == 3i32);
-                Node(Option[Array[Int32]]::Some(Array[Int32]::zero(3)))
+                Node::new(Some[Array[Int32]](Array[Int32]::zero(3)))
             };
 
             node.birthday = date;
@@ -200,8 +201,6 @@ fn main() {
 
             tree = Node::insert(Option[Node]::Some(tree), node);
             Node::trunc(date, tree, depth);
-
-            // println("nodes in tree: " + Node::countNodes(tree).toString());
 
             i = i + 1i32;
         }

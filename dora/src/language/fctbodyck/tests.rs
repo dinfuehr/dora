@@ -1040,21 +1040,24 @@ fn test_operator_on_generic_type() {
 fn test_find_class_method_precedence() {
     // finding class method should have precedence over
     // trait methods
-    ok("class A { fn foo() {} }
+    ok("class_new A
+            impl A { fn foo() {} }
             trait Foo { fn foo(); }
             impl Foo for A { fn foo() {} }
             fn test(a: A) { a.foo(); }");
 
     err(
-        "class A { fn foo() {} }
+        "class_new A
+            impl A { fn foo() {} }
             trait Foo { fn foo(a: Int32); }
             impl Foo for A { fn foo(a: Int32) {} }
             fn test(a: A) { a.foo(1i32); }",
-        pos(4, 34),
+        pos(5, 34),
         SemError::ParamTypesIncompatible("foo".into(), Vec::new(), vec!["Int32".into()]),
     );
 
-    ok("class A { @static fn foo() {} }
+    ok("class_new A
+            impl A { @static fn foo() {} }
             trait Foo { fn foo(a: Int32); }
             impl Foo for A { fn foo(a:  Int32) {} }
             fn test(a: A) { a.foo(1i32); }");
@@ -1110,7 +1113,8 @@ fn generic_trait_method_call() {
     ok("trait Foo { fn bar(); }
             fn f[T: Foo](t: T) { t.bar(); }");
     ok("trait Foo { fn bar(); }
-            class A[T: Foo](let t: T) {
+            class_new A[T: Foo](t: T)
+            impl[T: Foo] A[T] {
                 fn baz() { self.t.bar(); }
             }");
 }
@@ -1145,27 +1149,28 @@ fn test_for_supports_make_iterator() {
 
     err(
         "
-            class Foo() { fn makeIterator(): Bool { return true; } }
+            class Foo
+            impl Foo { fn makeIterator(): Bool { return true; } }
             fn f() { for i in Foo() {} }",
-        pos(3, 34),
+        pos(4, 34),
         SemError::TypeNotUsableInForIn("Foo".into()),
     );
 
-    ok(
-        "class Foo { fn makeIterator(): FooIter { return FooIter(); } }
+    ok("class Foo
+            impl Foo { fn makeIterator(): FooIter { return FooIter(); } }
             class FooIter
             impl std::Iterator for FooIter {
                 fn next(): Option[Int32] { Some[Int32](0i32) }
             }
-            fn f(): Int32 { for i in Foo() { return i; } return 0i32; }",
-    );
+            fn f(): Int32 { for i in Foo() { return i; } return 0i32; }");
 }
 
 #[test]
 fn test_ctor_with_type_param() {
     err(
         "
-            class Foo[T] {
+            class Foo[T]
+            impl[T] Foo[T] {
                 fn foo(a: Int32) {
                     Bar[T](a);
                 }
@@ -1173,7 +1178,7 @@ fn test_ctor_with_type_param() {
 
             class Bar[T](a: T)
             ",
-        pos(4, 27),
+        pos(5, 27),
         SemError::ParamTypesIncompatible("Bar".into(), vec!["T".into()], vec!["Int32".into()]),
     );
 }
@@ -1240,14 +1245,14 @@ fn test_new_call_fct_with_wrong_type_params() {
 
 #[test]
 fn test_new_call_static_method() {
-    ok("class Foo { @static fn bar() {} }
+    ok("class_new Foo impl Foo { @static fn bar() {} }
             fn f() { Foo::bar(); }");
 }
 
 #[test]
 fn test_new_call_static_method_wrong_params() {
     err(
-        "class Foo { @static fn bar() {} }
+        "class_new Foo impl Foo { @static fn bar() {} }
             fn f() { Foo::bar(1i32); }",
         pos(2, 30),
         SemError::ParamTypesIncompatible("bar".into(), Vec::new(), vec!["Int32".into()]),
@@ -1256,7 +1261,7 @@ fn test_new_call_static_method_wrong_params() {
 
 #[test]
 fn test_new_call_static_method_type_params() {
-    ok("class Foo { @static fn bar[T]() {} }
+    ok("class_new Foo impl Foo { @static fn bar[T]() {} }
             fn f() { Foo::bar[Int32](); }");
 }
 
@@ -1290,21 +1295,30 @@ fn test_new_call_class_with_wrong_type_params() {
 
 #[test]
 fn test_new_call_method() {
-    ok("class X { fn f() {} }
-            fn f(x: X) { x.f(); }");
+    ok("
+        class X
+        impl X { fn f() {} }
+        fn f(x: X) { x.f(); }
+    ");
 }
 
 #[test]
 fn test_new_call_method_type_param() {
-    ok("class X { fn f[T]() {} }
-            fn f(x: X) { x.f[Int32](); }");
+    ok("
+        class X
+        impl X { fn f[T]() {} }
+        fn f(x: X) { x.f[Int32](); }
+    ");
 }
 
 #[test]
 fn test_new_call_method_wrong_params() {
     err(
-        "class X { fn f() {} } fn f(x: X) { x.f(1i32); }",
-        pos(1, 39),
+        "
+        class X
+        impl X { fn f() {} }
+        fn f(x: X) { x.f(1i32); }",
+        pos(4, 25),
         SemError::ParamTypesIncompatible("f".into(), Vec::new(), vec!["Int32".into()]),
     );
 }
@@ -1403,10 +1417,11 @@ fn test_type_param_used_as_value() {
     );
 
     err(
-        "class SomeClass[T] {
+        "class_new SomeClass[T]
+        impl[T] SomeClass[T] {
             fn f(): Int32 { return T; }
         }",
-        pos(2, 36),
+        pos(3, 36),
         SemError::ValueExpected,
     );
 }
@@ -1420,10 +1435,11 @@ fn test_assign_to_type_param() {
     );
 
     err(
-        "class SomeClass[T] {
+        "class SomeClass[T]
+        impl[T] SomeClass[T] {
             fn f() { T = 10; }
         }",
-        pos(2, 22),
+        pos(3, 22),
         SemError::LvalueExpected,
     );
 }
@@ -1439,10 +1455,11 @@ fn test_type_param_with_name_but_no_call() {
 
     err(
         "trait X { fn foo(): Int32; }
-        class SomeClass[T: X] {
+        class SomeClass[T: X]
+        impl[T: X] SomeClass[T] {
             fn f() { T::foo; }
         }",
-        pos(3, 22),
+        pos(4, 22),
         SemError::InvalidLeftSideOfSeparator,
     );
 }
@@ -1458,10 +1475,11 @@ fn test_type_param_call() {
 
     err(
         "trait X { fn foo(): Int32; }
-        class SomeClass[T: X] {
+        class SomeClass[T: X]
+        impl[T: X] SomeClass[T] {
             fn f() { T(); }
         }",
-        pos(3, 22),
+        pos(4, 22),
         SemError::ValueExpected,
     );
 }
@@ -1504,11 +1522,13 @@ fn test_type_param_with_let() {
 
 #[test]
 fn test_fct_and_class_type_params() {
-    ok("class A[X] {
+    ok("class A[X]
+    impl[X] A[X] {
         fn test[Y]() {}
     }");
 
-    ok("class A[X] {
+    ok("class A[X]
+    impl[X] A[X] {
         fn t1[Y](x: X, y: Y): Y { return y; }
         fn t2[Y](x: X, y: Y): X { return x; }
     }
@@ -2110,7 +2130,8 @@ fn test_type_without_make_iterator() {
 fn test_type_make_iterator_not_implementing_iterator() {
     err(
         "
-        class Foo {
+        class Foo
+        impl Foo {
             fn makeIterator(): Int32 { 0i32 }
         }
         fn bar(x: Foo) {
@@ -2119,7 +2140,7 @@ fn test_type_make_iterator_not_implementing_iterator() {
             }
         }
     ",
-        pos(6, 22),
+        pos(7, 22),
         SemError::TypeNotUsableInForIn("Foo".into()),
     );
 }
@@ -2816,7 +2837,7 @@ fn mod_class_field() {
     err(
         "
         fn f(x: foo::Foo) { let a = x.bar; }
-        mod foo { @pub class Foo { var bar: Int32 = 0i32; } }
+        mod foo { @pub class_new Foo(bar: Int32) }
     ",
         pos(2, 38),
         SemError::NotAccessible("bar".into()),
@@ -2825,7 +2846,7 @@ fn mod_class_field() {
     err(
         "
         fn f(x: foo::Foo) { let a = x.bar(10i64); }
-        mod foo { @pub class Foo { var bar: Array[Int32] = Array[Int32]::new(); } }
+        mod foo { @pub class_new Foo(bar: Array[Int32]) }
     ",
         pos(2, 42),
         SemError::NotAccessible("bar".into()),
@@ -2834,7 +2855,7 @@ fn mod_class_field() {
     err(
         "
         fn f(x: foo::Foo) { x.bar(10i64) = 10i32; }
-        mod foo { @pub class Foo { var bar: Array[Int32] = Array[Int32]::new(); } }
+        mod foo { @pub class_new Foo(bar: Array[Int32]) }
     ",
         pos(2, 30),
         SemError::NotAccessible("bar".into()),
@@ -2842,7 +2863,7 @@ fn mod_class_field() {
 
     ok("
         fn f(x: foo::Foo) { let a = x.bar; }
-        mod foo { @pub class Foo { @pub var bar: Int32 = 0i32; } }
+        mod foo { @pub class Foo(@pub bar: Int32) }
     ");
 }
 
@@ -2850,13 +2871,19 @@ fn mod_class_field() {
 fn mod_class_method() {
     ok("
         fn f(x: foo::Foo) { x.bar(); }
-        mod foo { @pub class Foo { @pub fn bar() {} } }
+        mod foo {
+            @pub class Foo
+            impl Foo { @pub fn bar() {} }
+        }
     ");
 
     err(
         "
         fn f(x: foo::Foo) { x.bar(); }
-        mod foo { @pub class Foo { fn bar() {} } }
+        mod foo {
+            @pub class Foo
+            impl Foo { fn bar() {} }
+        }
     ",
         pos(2, 34),
         SemError::NotAccessible("foo::Foo#bar".into()),
@@ -2867,13 +2894,19 @@ fn mod_class_method() {
 fn mod_class_static_method() {
     ok("
         fn f() { foo::Foo::bar(); }
-        mod foo { @pub class Foo { @pub @static fn bar() {} } }
+        mod foo {
+            @pub class Foo
+            impl Foo { @pub @static fn bar() {} }
+        }
     ");
 
     err(
         "
         fn f() { foo::Foo::bar(); }
-        mod foo { @pub class Foo { @static fn bar() {} } }
+        mod foo {
+            @pub class Foo
+            impl Foo { @static fn bar() {} }
+        }
     ",
         pos(2, 31),
         SemError::NotAccessible("foo::Foo::bar".into()),
@@ -2996,7 +3029,8 @@ fn mod_impl() {
 fn mod_class() {
     ok("
         mod foo {
-            class Foo(let x: Bar) {
+            class_new Foo(x: Bar)
+            impl Foo {
                 fn foo(x: Bar) {}
             }
             class Bar
@@ -3008,8 +3042,8 @@ fn mod_class() {
 fn mod_class_new() {
     ok("
         mod foo {
-            class2 Foo(let x: Bar)
-            class2 Bar
+            class_new Foo(x: Bar)
+            class_new Bar
         }
     ");
 
@@ -3248,7 +3282,7 @@ fn mod_use_class() {
     ok("
         use foo::Bar;
         fn f() { Bar(); }
-        mod foo { @pub class Bar }
+        mod foo { @pub class_new Bar }
     ");
 
     ok("
@@ -3258,7 +3292,8 @@ fn mod_use_class() {
             Bar::baz();
         }
         mod foo {
-            @pub class Bar {
+            @pub class_new Bar
+            impl Bar {
                 @pub @static fn baz() {}
             }
         }
@@ -3398,7 +3433,7 @@ fn different_fct_call_kinds() {
         pos(1, 26),
         SemError::NoTypeParamsExpected,
     );
-    ok("class Foo fn f() { Foo(); }");
+    ok("class_new Foo fn f() { Foo(); }");
     errors(
         "fn f() { 1i32[Int32](); }",
         &[
@@ -3418,8 +3453,8 @@ fn different_fct_call_kinds() {
         SemError::NoTypeParamsExpected,
     );
     ok("trait MyTrait { @static fn foo(); } fn f[T: MyTrait]() { T::foo(); }");
-    ok("class Foo { fn bar() {} } fn f(g: Foo) { g.bar(); }");
-    ok("class Foo { fn bar[T]() {} } fn f(g: Foo) { g.bar[Int32](); }");
+    ok("class Foo impl Foo { fn bar() {} } fn f(g: Foo) { g.bar(); }");
+    ok("class Foo impl Foo { fn bar[T]() {} } fn f(g: Foo) { g.bar[Int32](); }");
 }
 
 #[test]

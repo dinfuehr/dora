@@ -368,13 +368,6 @@ mod tests {
     #[test]
     fn extension_defined_twice() {
         err(
-            "class A { fn foo() {} }
-            impl A { fn foo() {} }",
-            pos(2, 22),
-            SemError::MethodExists("foo".into(), pos(1, 11)),
-        );
-
-        err(
             "class A
             impl A { fn foo() {} }
             impl A { fn foo() {} }",

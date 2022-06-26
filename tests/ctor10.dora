@@ -1,3 +1,0 @@
-fn main() { f(); }
-class_old Foo(i: Int32)
-fn f() { assert(Foo(1i32) !== Foo(2i32)); }

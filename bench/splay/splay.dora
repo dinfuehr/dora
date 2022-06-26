@@ -11,7 +11,7 @@ fn main() {
     splayTreeSize = std::argv(1i32).toInt32().getOrPanic();
     let iterations = std::argv(2i32).toInt32().getOrPanic();
 
-    let bench = Benchmark();
+    let bench = Benchmark::new();
     bench.setup();
 
     var i = 0i32;
@@ -29,11 +29,22 @@ var splayTreeSize: Int32 = 0i32;
 const splayTreeModifications: Int32 = 1000i32;
 const splayTreePayloadDepth: Int32 = 5i32;
 
-class Benchmark {
-    var splayTree: SplayTree = SplayTree();
-    var splaySamples: Int32 = 0i32;
-    var splaySampleTimeStart: Int64 = 0i64;
-    var splaySumOfSquaredPauses: Int64 = 0i64;
+class_new Benchmark {
+    splayTree: SplayTree,
+    splaySamples: Int32,
+    splaySampleTimeStart: Int64,
+    splaySumOfSquaredPauses: Int64,
+}
+
+impl Benchmark {
+    @static fn new(): Benchmark {
+        Benchmark(
+            SplayTree::new(),
+            0i32,
+            0,
+            0,
+        )
+    }
 
     fn setup() {
         var i = 0i32;
@@ -150,8 +161,14 @@ fn generatePayloadTree(depth: Int32, tag: String): PayloadNode {
     }
 }
 
-class SplayTree {
-    var root: Option[SplayNode] = Option[SplayNode]::None;
+class_new SplayTree {
+    root: Option[SplayNode],
+}
+
+impl SplayTree {
+    @static fn new(): SplayTree {
+        SplayTree(None[SplayNode])
+    }
 
     fn isEmpty(): Bool {
         return self.root.isNone();
@@ -159,7 +176,7 @@ class SplayTree {
 
     fn insert(key: Int32, value: PayloadNode) {
         if self.isEmpty() {
-            self.root = Option[SplayNode]::Some(SplayNode(key, Option[PayloadNode]::Some(value)));
+            self.root = Some(SplayNode::new(key, Some[PayloadNode](value)));
             return;
         }
 
@@ -171,20 +188,20 @@ class SplayTree {
             return;
         }
 
-        let node = SplayNode(key, Option[PayloadNode]::Some(value));
+        let node = SplayNode::new(key, Some[PayloadNode](value));
 
         if key > root.key {
             node.left = self.root;
             node.right = root.right;
-            root.right = Option[SplayNode]::None;
+            root.right = None;
 
         } else {
             node.right = self.root;
             node.left = root.left;
-            root.left = Option[SplayNode]::None;
+            root.left = None;
         }
 
-        self.root = Option[SplayNode]::Some(node);
+        self.root = Some(node);
     }
 
     fn remove(key: Int32): Option[SplayNode] {
@@ -196,7 +213,7 @@ class SplayTree {
         let root = self.root.getOrPanic();
 
         if root.key != key {
-            return Option[SplayNode]::None;
+            return None;
         }
 
         let removed = self.root;
@@ -215,7 +232,7 @@ class SplayTree {
 
     fn find(key: Int32): Option[SplayNode] {
         if self.isEmpty() {
-            return Option[SplayNode]::None;
+            return None;
         }
 
         self.splay(key);
@@ -224,13 +241,13 @@ class SplayTree {
         if root.key == key {
             return self.root;
         } else {
-            return Option[SplayNode]::None;
+            return None;
         }
     }
 
     fn findMax(startNode: Option[SplayNode]): Option[SplayNode] {
         if self.isEmpty() {
-            return Option[SplayNode]::None;
+            return None;
         }
 
         var current = if startNode.isNone() {
@@ -243,12 +260,12 @@ class SplayTree {
             current = current.right.getOrPanic();
         }
 
-        Option[SplayNode]::Some(current)
+        Some(current)
     }
 
     fn findGreatestLessThan(key: Int32): Option[SplayNode] {
         if self.isEmpty() {
-            return Option[SplayNode]::None;
+            return None;
         }
 
         self.splay(key);
@@ -259,7 +276,7 @@ class SplayTree {
         } else if root.left.isSome() {
             self.findMax(root.left)
         } else {
-            Option[SplayNode]::None
+            None[SplayNode]
         }
     }
 
@@ -274,7 +291,7 @@ class SplayTree {
             return;
         }
 
-        var dummy = SplayNode(0i32, Option[PayloadNode]::None);
+        var dummy = SplayNode::new(0i32, Option[PayloadNode]::None);
         var left = dummy;
         var right = dummy;
 
@@ -290,7 +307,7 @@ class SplayTree {
                     // Rotate right
                     let tmp = current.left.getOrPanic();
                     current.left = tmp.right;
-                    tmp.right = Option[SplayNode]::Some(current);
+                    tmp.right = Some[SplayNode](current);
                     current = tmp;
 
                     if current.left.isNone() {
@@ -299,7 +316,7 @@ class SplayTree {
                 }
 
                 // Link right
-                right.left = Option[SplayNode]::Some(current);
+                right.left = Some[SplayNode](current);
                 right = current;
                 current = current.left.getOrPanic();
             } else if key > current.key {
@@ -311,7 +328,7 @@ class SplayTree {
                     // Rotate left
                     let tmp = current.right.getOrPanic();
                     current.right = tmp.left;
-                    tmp.left = Option[SplayNode]::Some(current);
+                    tmp.left = Some(current);
                     current = tmp;
 
                     if current.right.isNone() {
@@ -320,7 +337,7 @@ class SplayTree {
                 }
 
                 // Link left
-                left.right = Option[SplayNode]::Some(current);
+                left.right = Some(current);
                 left = current;
                 current = current.right.getOrPanic();
             } else {
@@ -333,7 +350,7 @@ class SplayTree {
         right.left = current.right;
         current.left = dummy.right;
         current.right = dummy.left;
-        self.root = Option[SplayNode]::Some(current);
+        self.root = Some(current);
     }
 }
 
@@ -351,9 +368,22 @@ fn exportKeysTraverse(list: Vec[Int32], node: Option[SplayNode]) {
     }
 }
 
-class SplayNode(var key: Int32, var value: Option[PayloadNode]) {
-    var left: Option[SplayNode] = Option[SplayNode]::None;
-    var right: Option[SplayNode] = Option[SplayNode]::None;
+class_new SplayNode {
+    key: Int32,
+    value: Option[PayloadNode],
+    left: Option[SplayNode],
+    right: Option[SplayNode],
 }
 
-class PayloadNode(let array: Option[Array[Int32]], let text: String, let left: Option[PayloadNode], let right: Option[PayloadNode])
+impl SplayNode {
+    @static fn new(key: Int32, value: Option[PayloadNode]): SplayNode {
+        SplayNode(key, value, None[SplayNode], None[SplayNode])
+    }
+}
+
+class_new PayloadNode {
+    array: Option[Array[Int32]],
+    text: String,
+    left: Option[PayloadNode],
+    right: Option[PayloadNode],
+}

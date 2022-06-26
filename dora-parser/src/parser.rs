@@ -591,7 +591,6 @@ impl<'a> Parser<'a> {
         self.in_class_or_module = true;
         let ctor_params = self.parse_constructor_old(&mut cls)?;
 
-        self.parse_class_body_old(&mut cls)?;
         let span = self.span_from(start);
 
         let constructor = self.generate_constructor_old(&mut cls, ctor_params);
@@ -861,40 +860,6 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_class_body_old(&mut self, cls: &mut Class) -> Result<(), ParseErrorAndPos> {
-        if !self.token.is(TokenKind::LBrace) {
-            return Ok(());
-        }
-
-        self.advance_token()?;
-
-        while !self.token.is(TokenKind::RBrace) {
-            let modifiers = self.parse_annotation_usages()?;
-
-            match self.token.kind {
-                TokenKind::Fn => {
-                    let mods = &[Modifier::Internal, Modifier::Pub, Modifier::Static];
-                    self.restrict_modifiers(&modifiers, mods)?;
-
-                    let fct = self.parse_function(&modifiers)?;
-                    cls.methods.push(Arc::new(fct));
-                }
-
-                TokenKind::Var | TokenKind::Let => {
-                    self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
-
-                    let field = self.parse_field(&modifiers)?;
-                    cls.fields.push(field);
-                }
-
-                _ => unreachable!(),
-            }
-        }
-
-        self.advance_token()?;
-        Ok(())
-    }
-
     fn parse_annotation_usages(&mut self) -> Result<Modifiers, ParseErrorAndPos> {
         let mut modifiers = Modifiers::new();
         loop {
@@ -949,46 +914,6 @@ impl<'a> Parser<'a> {
         }
 
         Ok(())
-    }
-
-    fn parse_field(&mut self, modifiers: &Modifiers) -> Result<Field, ParseErrorAndPos> {
-        let start = self.token.span.start();
-        let pos = self.token.position;
-        let mutable = if self.token.is(TokenKind::Var) {
-            self.expect_token(TokenKind::Var)?;
-
-            true
-        } else {
-            self.expect_token(TokenKind::Let)?;
-
-            false
-        };
-
-        let name = self.expect_identifier()?;
-        self.expect_token(TokenKind::Colon)?;
-        let data_type = self.parse_type()?;
-
-        let expr = if self.token.is(TokenKind::Eq) {
-            self.expect_token(TokenKind::Eq)?;
-            Some(self.parse_expression()?)
-        } else {
-            None
-        };
-
-        self.expect_semicolon()?;
-        let span = self.span_from(start);
-
-        Ok(Field {
-            id: self.generate_id(),
-            name,
-            pos,
-            span,
-            data_type,
-            primary_ctor: false,
-            expr,
-            mutable: mutable,
-            is_pub: modifiers.contains(Modifier::Pub),
-        })
     }
 
     fn parse_function(&mut self, modifiers: &Modifiers) -> Result<Function, ParseErrorAndPos> {
@@ -3301,46 +3226,6 @@ mod tests {
     }
 
     #[test]
-    fn parse_method() {
-        let (prog, interner) = parse(
-            "class Foo {
-            fn zero(): int { return 0; }
-            fn id(a: String): String { return a; }
-        }",
-        );
-
-        let cls = prog.cls0();
-        assert_eq!(0, cls.fields.len());
-        assert_eq!(2, cls.methods.len());
-
-        let mtd1 = &cls.methods[0];
-        assert_eq!("zero", *interner.str(mtd1.name));
-        assert_eq!(0, mtd1.params.len());
-        assert_eq!(true, mtd1.method);
-        let rt1 = mtd1
-            .return_type
-            .as_ref()
-            .unwrap()
-            .to_basic()
-            .unwrap()
-            .name();
-        assert_eq!("int", *interner.str(rt1));
-
-        let mtd2 = &cls.methods[1];
-        assert_eq!("id", *interner.str(mtd2.name));
-        assert_eq!(1, mtd2.params.len());
-        assert_eq!(true, mtd2.method);
-        let rt2 = mtd2
-            .return_type
-            .as_ref()
-            .unwrap()
-            .to_basic()
-            .unwrap()
-            .name();
-        assert_eq!("String", *interner.str(rt2));
-    }
-
-    #[test]
     fn parse_class() {
         let (prog, interner) = parse("class Foo");
         let class = prog.cls0();
@@ -3437,7 +3322,7 @@ mod tests {
 
     #[test]
     fn parse_field() {
-        let (prog, interner) = parse("class A { var f1: int; let f2: int = 0; }");
+        let (prog, interner) = parse("class_new A { f1: int, f2: int }");
         let cls = prog.cls0();
 
         let f1 = &cls.fields[0];
@@ -3446,7 +3331,7 @@ mod tests {
 
         let f2 = &cls.fields[1];
         assert_eq!("f2", &interner.str(f2.name).to_string());
-        assert_eq!(false, f2.mutable);
+        assert_eq!(true, f2.mutable);
     }
 
     #[test]
@@ -3728,20 +3613,6 @@ mod tests {
         let call = expr.to_call().unwrap();
 
         assert!(call.callee.is_ident());
-    }
-
-    #[test]
-    fn parse_static_method() {
-        let (prog, _) = parse(
-            "class A {
-                @static fn test() {}
-              }",
-        );
-        let cls = prog.cls0();
-        assert_eq!(1, cls.methods.len());
-
-        let mtd = &cls.methods[0];
-        assert!(mtd.is_static);
     }
 
     #[test]

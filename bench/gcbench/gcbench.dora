@@ -2,11 +2,19 @@ use std::argc;
 use std::argv;
 use std::timestamp;
 
-class Node(var left: Option[Node], var right: Option[Node]) {
-    var i: Int32 = 0i32;
-    var j: Int32 = 0i32;
+class_new Node {
+    left: Option[Node],
+    right: Option[Node],
+    i: Int32,
+    j: Int32,
+}
 
-    @static fn leaf(): Node = Node(Option[Node]::None, Option[Node]::None);
+impl Node {
+    @static fn new(left: Option[Node], right: Option[Node]): Node {
+        Node(left, right, 0i32, 0i32)
+    }
+
+    @static fn leaf(): Node = Node::new(Option[Node]::None, Option[Node]::None);
 }
 
 var stretchTreeDepth: Int32 = 0i32;
@@ -40,7 +48,7 @@ fn makeTree(iDepth: Int32): Node {
     if iDepth <= 0i32 {
         return Node::leaf();
     } else {
-        return Node(Option[Node]::Some(makeTree(iDepth-1i32)), Option[Node]::Some(makeTree(iDepth-1i32)));
+        return Node::new(Option[Node]::Some(makeTree(iDepth-1i32)), Option[Node]::Some(makeTree(iDepth-1i32)));
     }
 }
 

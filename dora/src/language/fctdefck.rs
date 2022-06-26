@@ -271,14 +271,11 @@ mod tests {
 
     #[test]
     fn allow_same_method_as_static_and_non_static() {
-        err(
-            "class Foo {
+        ok("class_new Foo
+            impl Foo {
                 @static fn foo() {}
                 fn foo() {}
-            }",
-            pos(3, 17),
-            SemError::MethodExists("foo".into(), pos(2, 25)),
-        );
+            }");
     }
 
     #[test]

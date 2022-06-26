@@ -233,36 +233,9 @@ mod tests {
     #[test]
     fn field_defined_twice() {
         err(
-            "class Foo { var a: Int32 = 0; var a: Int32 = 0; }",
-            pos(1, 31),
+            "class_new Foo(a: Int32, a: Int32)",
+            pos(1, 25),
             SemError::ShadowField("a".into()),
-        );
-    }
-
-    #[test]
-    fn field_defined_twice_via_constructor() {
-        err(
-            "class Foo(let a: Int32) { var a: Int32 = 0; }",
-            pos(1, 27),
-            SemError::ShadowField("a".into()),
-        );
-    }
-
-    #[test]
-    fn let_field_without_initialization() {
-        err(
-            "class Foo { let a: Int32; }",
-            pos(1, 13),
-            SemError::LetMissingInitialization,
-        );
-    }
-
-    #[test]
-    fn field_self_assignment() {
-        err(
-            "class Foo(a: Int32) { var b: Int32 = b; }",
-            pos(1, 38),
-            SemError::UnknownIdentifier("b".into()),
         );
     }
 
@@ -313,9 +286,11 @@ mod tests {
     #[test]
     fn test_defining_static_method_twice() {
         err(
-            "class X { @static fn foo() {} @static fn foo(a: String) {} }",
-            pos(1, 39),
-            SemError::MethodExists("foo".into(), pos(1, 19)),
+            "
+            class X
+            impl X { @static fn foo() {} @static fn foo(a: String) {} }",
+            pos(3, 50),
+            SemError::MethodExists("foo".into(), pos(3, 30)),
         );
     }
 }
