@@ -1,7 +1,7 @@
 fn main() {
     SOLAR_MASS = 4.0 * PI * PI;
     let n = std::argv(0i32).toInt32().getOrPanic();
-    let bodies = NBodySystem();
+    let bodies = NBodySystem::new();
 
     var i = 0i32;
     println(bodies.energy().toString());
@@ -14,11 +14,13 @@ fn main() {
     println(bodies.energy().toString());
 }
 
-class NBodySystem {
-    var bodies: Array[Body] = Array[Body]::new();
+class_new NBodySystem {
+    bodies: Array[Body],
+}
 
-    {
-        self.bodies = Array[Body]::new(
+impl NBodySystem {
+    @static fn new(): NBodySystem {
+        let bodies = Array[Body]::new(
             Body::sun(),
             Body::jupiter(),
             Body::saturn(),
@@ -30,13 +32,15 @@ class NBodySystem {
         var py = 0.0;
         var pz = 0.0;
 
-        for body in self.bodies {
+        for body in bodies {
             px = px + body.vx * body.mass;
             py = py + body.vy * body.mass;
             pz = pz + body.vz * body.mass;
         }
 
-        self.bodies(0i64).offsetMomentum(px, py, pz);
+        bodies(0).offsetMomentum(px, py, pz);
+
+        NBodySystem(bodies)
     }
 
     fn advance(dt: Float64) {
@@ -110,14 +114,24 @@ const PI: Float64 = 3.141592653589793;
 var SOLAR_MASS: Float64 = 0.0;
 const DAYS_PER_YEAR: Float64 = 365.24;
 
-class Body {
-    var x: Float64 = 0.0;
-    var y: Float64 = 0.0;
-    var z: Float64 = 0.0;
-    var vx: Float64 = 0.0;
-    var vy: Float64 = 0.0;
-    var vz: Float64 = 0.0;
-    var mass: Float64 = 0.0;
+class_new Body {
+    x: Float64,
+    y: Float64,
+    z: Float64,
+    vx: Float64,
+    vy: Float64,
+    vz: Float64,
+    mass: Float64,
+}
+
+impl Body {
+    @static fn new(): Body {
+        Body(
+            0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0,
+            0.0,
+        )
+    }
 
    fn offsetMomentum(px: Float64, py: Float64, pz: Float64): Body {
       self.vx = -px / SOLAR_MASS;
@@ -127,7 +141,7 @@ class Body {
    }
 
     @static fn jupiter(): Body {
-        let p = Body();
+        let p = Body::new();
         p.x = 4.84143144246472090e+00;
         p.y = -1.16032004402742839e+00;
         p.z = -1.03622044471123109e-01;
@@ -139,7 +153,7 @@ class Body {
     }
 
    @static fn saturn(): Body {
-      let p = Body();
+      let p = Body::new();
       p.x = 8.34336671824457987e+00;
       p.y = 4.12479856412430479e+00;
       p.z = -4.03523417114321381e-01;
@@ -151,7 +165,7 @@ class Body {
    }
 
    @static fn uranus(): Body {
-      let p = Body();
+      let p = Body::new();
       p.x = 1.28943695621391310e+01;
       p.y = -1.51111514016986312e+01;
       p.z = -2.23307578892655734e-01;
@@ -163,7 +177,7 @@ class Body {
    }
 
    @static fn neptune(): Body {
-      let p = Body();
+      let p = Body::new();
       p.x = 1.53796971148509165e+01;
       p.y = -2.59193146099879641e+01;
       p.z = 1.79258772950371181e-01;
@@ -175,7 +189,7 @@ class Body {
    }
 
    @static fn sun(): Body {
-      let p = Body();
+      let p = Body::new();
       p.mass = SOLAR_MASS;
       return p;
    }

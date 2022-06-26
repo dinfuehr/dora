@@ -135,10 +135,6 @@ fn internalck(sa: &SemAnalysis) {
     for fct in sa.fcts.iter() {
         let fct = fct.read();
 
-        if fct.in_class() {
-            continue;
-        }
-
         if fct.internal && !fct.internal_resolved && !fct.has_body() {
             sa.diag
                 .lock()
@@ -169,23 +165,6 @@ fn internalck(sa: &SemAnalysis) {
             sa.diag
                 .lock()
                 .report(cls.file_id(), cls.pos(), SemError::UnresolvedInternal);
-        }
-
-        for method in &cls.methods {
-            let method = sa.fcts.idx(*method);
-            let method = method.read();
-
-            if method.internal && !method.internal_resolved && !method.has_body() {
-                sa.diag
-                    .lock()
-                    .report(method.file_id, method.pos, SemError::UnresolvedInternal);
-            }
-
-            if !method.has_body() && !method.internal {
-                sa.diag
-                    .lock()
-                    .report(method.file_id, method.pos, SemError::MissingFctBody);
-            }
         }
     }
 }

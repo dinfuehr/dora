@@ -104,13 +104,13 @@ impl<'a> Parser<'a> {
 
             TokenKind::Class | TokenKind::ClassOld => {
                 self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
-                let class = self.parse_class(&modifiers)?;
+                let class = self.parse_class_old(&modifiers)?;
                 Ok(Elem::Class(Arc::new(class)))
             }
 
             TokenKind::ClassNew => {
                 self.restrict_modifiers(&modifiers, &[Modifier::Internal, Modifier::Pub])?;
-                let class = self.parse_class2(&modifiers)?;
+                let class = self.parse_class(&modifiers)?;
                 Ok(Elem::Class(Arc::new(class)))
             }
 
@@ -562,7 +562,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_class(&mut self, modifiers: &Modifiers) -> Result<Class, ParseErrorAndPos> {
+    fn parse_class_old(&mut self, modifiers: &Modifiers) -> Result<Class, ParseErrorAndPos> {
         let start = self.token.span.start();
         let internal = modifiers.contains(Modifier::Internal);
         let is_pub = modifiers.contains(Modifier::Pub);
@@ -589,12 +589,12 @@ impl<'a> Parser<'a> {
         };
 
         self.in_class_or_module = true;
-        let ctor_params = self.parse_constructor(&mut cls)?;
+        let ctor_params = self.parse_constructor_old(&mut cls)?;
 
-        self.parse_class_body(&mut cls)?;
+        self.parse_class_body_old(&mut cls)?;
         let span = self.span_from(start);
 
-        let constructor = self.generate_constructor(&mut cls, ctor_params);
+        let constructor = self.generate_constructor_old(&mut cls, ctor_params);
         cls.constructor = Some(Arc::new(constructor));
         cls.span = span;
         self.in_class_or_module = false;
@@ -602,7 +602,7 @@ impl<'a> Parser<'a> {
         Ok(cls)
     }
 
-    fn parse_class2(&mut self, modifiers: &Modifiers) -> Result<Class, ParseErrorAndPos> {
+    fn parse_class(&mut self, modifiers: &Modifiers) -> Result<Class, ParseErrorAndPos> {
         let start = self.token.span.start();
         let pos = self.expect_token(TokenKind::ClassNew)?.position;
 
@@ -612,12 +612,12 @@ impl<'a> Parser<'a> {
         let fields = if self.token.is(TokenKind::LParen) {
             self.expect_token(TokenKind::LParen)?;
             self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
-                p.parse_class2_field()
+                p.parse_class_field()
             })?
         } else if self.token.is(TokenKind::LBrace) {
             self.expect_token(TokenKind::LBrace)?;
             self.parse_list(TokenKind::Comma, TokenKind::RBrace, |p| {
-                p.parse_class2_field()
+                p.parse_class_field()
             })?
         } else {
             Vec::new()
@@ -642,7 +642,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_class2_field(&mut self) -> Result<Field, ParseErrorAndPos> {
+    fn parse_class_field(&mut self) -> Result<Field, ParseErrorAndPos> {
         let start = self.token.span.start();
         let pos = self.token.position;
 
@@ -796,7 +796,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_constructor(
+    fn parse_constructor_old(
         &mut self,
         cls: &mut Class,
     ) -> Result<Vec<ConstructorParam>, ParseErrorAndPos> {
@@ -833,13 +833,7 @@ impl<'a> Parser<'a> {
         self.expect_token(TokenKind::Colon)?;
         let data_type = self.parse_type()?;
 
-        let variadic = if self.token.is(TokenKind::DotDotDot) {
-            self.advance_token()?;
-            true
-        } else {
-            false
-        };
-
+        let variadic = false;
         let span = self.span_from(start);
 
         if field {
@@ -867,7 +861,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_class_body(&mut self, cls: &mut Class) -> Result<(), ParseErrorAndPos> {
+    fn parse_class_body_old(&mut self, cls: &mut Class) -> Result<(), ParseErrorAndPos> {
         if !self.token.is(TokenKind::LBrace) {
             return Ok(());
         }
@@ -893,10 +887,7 @@ impl<'a> Parser<'a> {
                     cls.fields.push(field);
                 }
 
-                _ => {
-                    let initializer = self.parse_statement()?;
-                    cls.initializers.push(initializer);
-                }
+                _ => unreachable!(),
             }
         }
 
@@ -1261,6 +1252,7 @@ impl<'a> Parser<'a> {
         })
     }
 
+    #[cfg(test)]
     fn parse_statement(&mut self) -> StmtResult {
         let stmt_or_expr = self.parse_statement_or_expression()?;
 
@@ -2288,7 +2280,7 @@ impl<'a> Parser<'a> {
         fct.build(self.generate_id())
     }
 
-    fn generate_constructor(
+    fn generate_constructor_old(
         &mut self,
         cls: &mut Class,
         ctor_params: Vec<ConstructorParam>,

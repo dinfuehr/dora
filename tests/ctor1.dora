@@ -1,9 +1,0 @@
-//= stdout "xyz"
-
-class_old X(msg: String) {
-    print(msg);
-}
-
-fn main() {
-    X("xyz");
-}
