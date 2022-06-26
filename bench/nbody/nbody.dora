@@ -14,7 +14,7 @@ fn main() {
     println(bodies.energy().toString());
 }
 
-class_new NBodySystem {
+class NBodySystem {
     bodies: Array[Body],
 }
 
@@ -114,7 +114,7 @@ const PI: Float64 = 3.141592653589793;
 var SOLAR_MASS: Float64 = 0.0;
 const DAYS_PER_YEAR: Float64 = 365.24;
 
-class_new Body {
+class Body {
     x: Float64,
     y: Float64,
     z: Float64,

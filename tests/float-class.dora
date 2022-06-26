@@ -3,4 +3,4 @@ fn main() {
     assert(f.x * 2.0 == 2.0);
 }
 
-class_new Foo(x: Float64) 
+class Foo(x: Float64) 

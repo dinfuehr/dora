@@ -10,7 +10,7 @@ fn main() {
   assert(foo.foo_string() == "33");
 }
 
-class_new Foo
+class Foo
 
 impl Foo {
   fn foo_bool(): Bool {

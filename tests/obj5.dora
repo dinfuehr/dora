@@ -6,4 +6,4 @@ fn foo(): Foo {
   return Foo();
 }
 
-class_new Foo
+class Foo

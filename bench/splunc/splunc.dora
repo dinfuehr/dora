@@ -2,7 +2,7 @@ use std::argc;
 use std::argv;
 use std::exit;
 
-class_new Node {
+class Node {
     payload: Option[Array[Int32]],
     birthday: Int32,
     value: Int32,

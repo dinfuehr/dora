@@ -1,4 +1,4 @@
-class_new A(value: ())
+class A(value: ())
 
 fn main() {
     let a = A(());
@@ -15,4 +15,4 @@ fn bar[T](value: T): B[T] {
     B[T](value)
 }
 
-class_new B[T](value: T)
+class B[T](value: T)

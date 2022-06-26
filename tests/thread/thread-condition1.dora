@@ -6,7 +6,7 @@ const THREADS: Int32 = 10i32;
 const ITERATIONS: Int32 = 10_000i32;
 const QUEUE_SIZE: Int64 = 20i64;
 
-class_new SharedQueue[T] {
+class SharedQueue[T] {
     capacity: Int64,
     mtx: std::Mutex,
     conditionNonEmpty: std::Condition,
@@ -51,7 +51,7 @@ impl[T] SharedQueue[T] {
     }
 }
 
-class_new Producer {
+class Producer {
     queue: SharedQueue[Int32],
     sum: Int32,
 }
@@ -72,7 +72,7 @@ impl Producer {
     }
 }
 
-class_new Consumer {
+class Consumer {
     queue: SharedQueue[Int32],
     sum: Int32,
 }

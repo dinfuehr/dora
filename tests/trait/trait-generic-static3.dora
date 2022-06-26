@@ -17,14 +17,14 @@ fn g[T: X](): String {
     return T::makeString(value);
 }
 
-class_new Bar(x: Int32)
+class Bar(x: Int32)
 
 impl X for Bar {
     @static fn foo(): Bar = Bar(1i32);
     @static fn makeString(value: Bar): String = "BAR${value.x}";
 }
 
-class_new Baz(x: Int32)
+class Baz(x: Int32)
 
 impl X for Baz {
     @static fn foo(): Baz = Baz(2i32);

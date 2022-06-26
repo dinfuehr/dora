@@ -18,14 +18,6 @@ impl Builder {
         BuilderFct::new(name)
     }
 
-    pub fn build_this(&self, id: NodeId) -> Box<Expr> {
-        Box::new(Expr::This(ExprSelfType {
-            id,
-            pos: Position::new(1, 1),
-            span: Span::invalid(),
-        }))
-    }
-
     pub fn build_initializer_assign(
         &self,
         id: NodeId,
@@ -39,17 +31,6 @@ impl Builder {
 
             op: BinOp::Assign,
             initializer: true,
-            lhs,
-            rhs,
-        }))
-    }
-
-    pub fn build_dot(&self, id: NodeId, lhs: Box<Expr>, rhs: Box<Expr>) -> Box<Expr> {
-        Box::new(Expr::Dot(ExprDotType {
-            id,
-            pos: Position::new(1, 1),
-            span: Span::invalid(),
-
             lhs,
             rhs,
         }))
@@ -90,43 +71,6 @@ impl<'a> BuilderFct {
         }
     }
 
-    pub fn add_param(
-        &mut self,
-        id: NodeId,
-        pos: Position,
-        name: Name,
-        ty: Type,
-        variadic: bool,
-    ) -> &mut BuilderFct {
-        let param = Param {
-            id,
-            idx: self.params.len() as u32,
-            name,
-            variadic,
-            pos,
-            span: Span::invalid(),
-            data_type: ty,
-        };
-
-        self.params.push(param);
-        self
-    }
-
-    pub fn is_method(&mut self, value: bool) -> &mut BuilderFct {
-        self.is_method = value;
-        self
-    }
-
-    pub fn is_public(&mut self, value: bool) -> &mut BuilderFct {
-        self.is_public = value;
-        self
-    }
-
-    pub fn constructor(&mut self, constructor: bool) -> &mut BuilderFct {
-        self.is_constructor = constructor;
-        self
-    }
-
     pub fn block(&mut self, block: Box<ExprBlockType>) -> &mut BuilderFct {
         self.block = Some(block);
         self
@@ -161,11 +105,6 @@ pub struct BuilderBlock {
 impl<'a> BuilderBlock {
     pub fn new() -> BuilderBlock {
         BuilderBlock { stmts: Vec::new() }
-    }
-
-    pub fn add_stmts(&mut self, mut stmts: Vec<Box<Stmt>>) -> &mut BuilderBlock {
-        self.stmts.append(&mut stmts);
-        self
     }
 
     pub fn add_expr(&mut self, id: NodeId, expr: Box<Expr>) -> &mut BuilderBlock {

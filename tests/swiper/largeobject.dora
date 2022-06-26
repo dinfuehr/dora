@@ -9,7 +9,7 @@ fn main() {
     assert(x.val1 + x.val512 == 513i64);
 }
 
-class_new LargeObject {
+class LargeObject {
    val1: Int64,
    val2: Int64,
    val3: Int64,

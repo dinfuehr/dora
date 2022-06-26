@@ -1,4 +1,4 @@
-class_new Foo(array: Array[Int32])
+class Foo(array: Array[Int32])
 
 impl Foo {
     @static fn new(): Foo {

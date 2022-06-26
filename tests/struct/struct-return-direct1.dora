@@ -8,7 +8,7 @@ fn main() {
 
 struct Pair(first: Int32, second: Foo)
 
-class_new Bar(value: Int32)
+class Bar(value: Int32)
 
 impl Bar {
     fn tpl1(): Pair {
@@ -17,4 +17,4 @@ impl Bar {
     }
 }
 
-class_new Foo(value: Int32)
+class Foo(value: Int32)

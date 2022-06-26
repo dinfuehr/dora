@@ -29,7 +29,7 @@ use package::codegen::arm64::CodeGenArm64;
     bc
 }
 
-@pub class_new CompilationInfo(
+@pub class CompilationInfo(
     @pub bc: BytecodeFunction,
     @pub typeParams: Array[SourceType],
     @pub arch: Architecture

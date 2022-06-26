@@ -211,7 +211,7 @@ mod tests {
             trait Foo {
                 fn foo(): Int32;
             }
-            class_new Bar
+            class Bar
             impl Foo for Bar { fn foo(): Int32; }",
             pos(6, 32),
             SemError::MissingFctBody,
@@ -225,7 +225,7 @@ mod tests {
             trait Foo {
                 fn foo(): Int32;
             }
-            class_new Bar
+            class Bar
             impl Foo for Bar {
                 fn foo(): Int32 { return 0; }
                 fn foo(): Int32 { return 1; }
@@ -238,8 +238,8 @@ mod tests {
     #[test]
     fn impl_for_unknown_trait() {
         err(
-            "class_new A impl Foo for A {}",
-            pos(1, 18),
+            "class A impl Foo for A {}",
+            pos(1, 14),
             SemError::UnknownIdentifier("Foo".into()),
         );
     }

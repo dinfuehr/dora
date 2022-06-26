@@ -2,7 +2,7 @@ use std::argc;
 use std::argv;
 use std::timestamp;
 
-class_new Node {
+class Node {
     left: Option[Node],
     right: Option[Node],
     i: Int32,

@@ -46,7 +46,7 @@ fn main() {
         + "\t check: " + checkTree(longLastingNode).toString());
 }
 
-class_new TreeThread {
+class TreeThread {
     nextDepth: std::AtomicInt32,
     maxDepth: Int32,
     results: Array[String],
@@ -103,7 +103,7 @@ fn checkTree(node: TreeNode): Int32 {
          checkTree(node.right.getOrPanic()) + 1i32;
 }
 
-class_new TreeNode {
+class TreeNode {
     item: Int32,
     left: Option[TreeNode],
     right: Option[TreeNode]

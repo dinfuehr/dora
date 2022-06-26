@@ -1,6 +1,6 @@
 use std::fatalError;
 
-@pub @internal class_new String
+@pub @internal class String
 
 impl String {
   @pub fn equals(rhs: String): Bool {
@@ -245,7 +245,7 @@ impl Stringable for Char {
   fn toString(): String = self.toString();
 }
 
-@pub class_new StringBuffer {
+@pub class StringBuffer {
   buf: Array[UInt8],
   len: Int64,
 }
@@ -333,7 +333,7 @@ impl StringBuffer {
   }
 }
 
-@pub class_new CodepointIterator(value: String, start: Int64)
+@pub class CodepointIterator(value: String, start: Int64)
 
 impl CodepointIterator {
   @pub @static fn new(value: String): CodepointIterator {

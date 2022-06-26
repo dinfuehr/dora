@@ -4,7 +4,7 @@ fn main() {
     assert(-x == 1i32);
 }
 
-class_new SomeTest[T](x: T)
+class SomeTest[T](x: T)
 
 impl[T] SomeTest[T] {
     fn unaryPlus(): T = self.x;

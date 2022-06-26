@@ -1,7 +1,7 @@
 //= stdout "self=1 another=101\nself=2 another=102\n"
 
-class_new MyClass[T](value: Int32)
-class_new Foo
+class MyClass[T](value: Int32)
+class Foo
 
 impl MyClass[Foo] {
     fn do[T](another: MyClass[T]) {

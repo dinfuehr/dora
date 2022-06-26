@@ -14,7 +14,7 @@ use package::bytecode::opcode as opc;
     result.toArray()
 }
 
-@pub class_new BytecodeIterator {
+@pub class BytecodeIterator {
     data: Array[UInt8],
     pos: Int64,
     length: Int64,

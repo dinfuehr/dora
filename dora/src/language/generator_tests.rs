@@ -116,7 +116,7 @@ fn gen_generic_direct_trait() {
 #[test]
 fn gen_load_field_uint8() {
     gen_fct(
-        "class_new Foo(bar: UInt8) fn f(a: Foo): UInt8 { return a.bar; }",
+        "class Foo(bar: UInt8) fn f(a: Foo): UInt8 { return a.bar; }",
         |sa, code, fct| {
             let (cls, field) = sa.field_by_name("Foo", "bar");
             let expected = vec![LoadField(r(1), r(0), ConstPoolIdx(0)), Ret(r(1))];
@@ -132,15 +132,15 @@ fn gen_load_field_uint8() {
 
 #[test]
 fn gen_position_load_field_uint8() {
-    let result = position("class_new Foo(bar: UInt8) fn f(a: Foo): UInt8 { return a.bar; }");
-    let expected = vec![(0, p(1, 57))];
+    let result = position("class Foo(bar: UInt8) fn f(a: Foo): UInt8 { return a.bar; }");
+    let expected = vec![(0, p(1, 53))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_store_field_uint8() {
     gen_fct(
-        "class_new Foo(bar: UInt8) fn f(a: Foo, b: UInt8) { a.bar = b; }",
+        "class Foo(bar: UInt8) fn f(a: Foo, b: UInt8) { a.bar = b; }",
         |sa, code, fct| {
             let (cls, field) = sa.field_by_name("Foo", "bar");
             let expected = vec![StoreField(r(1), r(0), ConstPoolIdx(0)), Ret(r(2))];
@@ -155,8 +155,8 @@ fn gen_store_field_uint8() {
 
 #[test]
 fn gen_position_store_field_uint8() {
-    let result = position("class_new Foo(bar: UInt8) fn f(a: Foo, b: UInt8) { a.bar = b; }");
-    let expected = vec![(0, p(1, 58))];
+    let result = position("class Foo(bar: UInt8) fn f(a: Foo, b: UInt8) { a.bar = b; }");
+    let expected = vec![(0, p(1, 54))];
     assert_eq!(expected, result);
 }
 
@@ -200,21 +200,21 @@ fn gen_id_int() {
 
 #[test]
 fn gen_id_ptr() {
-    let result = code("class_new Object fn f(a: Object): Object { return a; }");
+    let result = code("class Object fn f(a: Object): Object { return a; }");
     let expected = vec![Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_ptr_is() {
-    let result = code("class_new Object fn f(a: Object, b: Object): Bool { return a === b; }");
+    let result = code("class Object fn f(a: Object, b: Object): Bool { return a === b; }");
     let expected = vec![TestIdentity(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_ptr_is_not() {
-    let result = code("class_new Object fn f(a: Object, b: Object): Bool { return a !== b; }");
+    let result = code("class Object fn f(a: Object, b: Object): Bool { return a !== b; }");
     let expected = vec![TestIdentity(r(2), r(0), r(1)), Not(r(2), r(2)), Ret(r(2))];
     assert_eq!(expected, result);
 }
@@ -1019,14 +1019,14 @@ fn gen_expr_assign() {
 
 #[test]
 fn gen_expr_self() {
-    let result = code_method("class_new Foo impl Foo { fn f(): Foo { return self; } }");
+    let result = code_method("class Foo impl Foo { fn f(): Foo { return self; } }");
     let expected = vec![Ret(r(0))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_expr_self_assign() {
-    let result = code_method("class_new Foo impl Foo { fn f() { let x = self; } }");
+    let result = code_method("class Foo impl Foo { fn f() { let x = self; } }");
     let expected = vec![Mov(r(1), r(0)), Ret(r(2))];
     assert_eq!(expected, result);
 }
@@ -1242,7 +1242,7 @@ fn gen_method_call_void_check_correct_self() {
     gen_fct(
         "
             fn f(i: Int32, foo: Foo) { foo.g(); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g() { }
             }
@@ -1270,7 +1270,7 @@ fn gen_method_call_void_with_0_args() {
     gen_fct(
         "
             fn f(foo: Foo) { foo.g(); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g() { }
             }
@@ -1298,7 +1298,7 @@ fn gen_method_call_void_with_1_arg() {
     gen_fct(
         "
             fn f(foo: Foo) { foo.g(1i32); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g(a: Int32) { }
             }
@@ -1328,7 +1328,7 @@ fn gen_method_call_void_with_3_args() {
     gen_fct(
         "
             fn f(foo: Foo) { foo.g(1i32, 2i32, 3i32); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g(a: Int32, b: Int32, c: Int32) { }
             }
@@ -1362,7 +1362,7 @@ fn gen_method_call_bool_with_0_args() {
     gen_fct(
         "
             fn f(foo: Foo): Bool { return foo.g(); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g(): Bool { return true; }
             }
@@ -1390,7 +1390,7 @@ fn gen_method_call_bool_with_0_args_and_unused_result() {
     gen_fct(
         "
             fn f(foo: Foo) { foo.g(); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g(): Bool { return true; }
             }
@@ -1418,7 +1418,7 @@ fn gen_method_call_bool_with_1_arg() {
     gen_fct(
         "
             fn f(foo: Foo): Bool { return foo.g(true); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g(a: Bool): Bool { return true; }
             }
@@ -1448,7 +1448,7 @@ fn gen_method_call_bool_with_3_args() {
     gen_fct(
         "
             fn f(foo: Foo): Bool { return foo.g(true, false, true); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g(a: Bool, b: Bool, c: Bool): Bool { return true; }
             }
@@ -1482,7 +1482,7 @@ fn gen_method_call_byte_with_0_args() {
     gen_fct(
         "
             fn f(foo: Foo): UInt8 { return foo.g(); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g(): UInt8 { return 1u8; }
             }
@@ -1510,7 +1510,7 @@ fn gen_method_call_byte_with_0_args_and_unused_result() {
     gen_fct(
         "
             fn f(foo: Foo) { foo.g(); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g(): UInt8 { return 1u8; }
             }
@@ -1538,7 +1538,7 @@ fn gen_method_call_byte_with_1_arg() {
     gen_fct(
         "
             fn f(foo: Foo): UInt8 { return foo.g(1u8); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g(a: UInt8): UInt8 { return 1u8; }
             }
@@ -1568,7 +1568,7 @@ fn gen_method_call_byte_with_3_args() {
     gen_fct(
         "
             fn f(foo: Foo): UInt8 { return foo.g(1u8, 2u8, 3u8); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g(a: UInt8, b: UInt8, c: UInt8): UInt8 { return 1u8; }
             }
@@ -1602,7 +1602,7 @@ fn gen_method_call_char_with_0_args() {
     gen_fct(
         "
             fn f(foo: Foo): Char { return foo.g(); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g(): Char { return '1'; }
             }
@@ -1630,7 +1630,7 @@ fn gen_method_call_char_with_0_args_and_unused_result() {
     gen_fct(
         "
             fn f(foo: Foo) { foo.g(); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g(): Char { return '1'; }
             }
@@ -1658,7 +1658,7 @@ fn gen_method_call_char_with_1_arg() {
     gen_fct(
         "
             fn f(foo: Foo): Char { return foo.g('1'); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g(a: Char): Char { return '1'; }
             }
@@ -1688,7 +1688,7 @@ fn gen_method_call_char_with_3_args() {
     gen_fct(
         "
             fn f(foo: Foo): Char { return foo.g('1', '2', '3'); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g(a: Char, b: Char, c: Char): Char { return '1'; }
             }
@@ -1722,7 +1722,7 @@ fn gen_method_call_int_with_0_args() {
     gen_fct(
         "
             fn f(foo: Foo): Int32 { return foo.g(); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g(): Int32 { return 1; }
             }
@@ -1750,7 +1750,7 @@ fn gen_method_call_int_with_0_args_and_unused_result() {
     gen_fct(
         "
             fn f(foo: Foo) { foo.g(); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g(): Int32 { return 1; }
             }
@@ -1778,7 +1778,7 @@ fn gen_method_call_int_with_1_arg() {
     gen_fct(
         "
             fn f(foo: Foo): Int32 { return foo.g(1i32); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g(a: Int32): Int32 { return 1i32; }
             }
@@ -1808,7 +1808,7 @@ fn gen_method_call_int_with_3_args() {
     gen_fct(
         "
             fn f(foo: Foo): Int32 { return foo.g(1i32, 2i32, 3i32); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g(a: Int32, b: Int32, c: Int32): Int32 { return 1i32; }
             }
@@ -1842,7 +1842,7 @@ fn gen_method_call_int64_with_0_args() {
     gen_fct(
         "
             fn f(foo: Foo): Int64 { return foo.g(); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g(): Int64 { return 1i64; }
             }
@@ -1870,7 +1870,7 @@ fn gen_method_call_int64_with_0_args_and_unused_result() {
     gen_fct(
         "
             fn f(foo: Foo) { foo.g(); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g(): Int64 { return 1i64; }
             }
@@ -1898,7 +1898,7 @@ fn gen_method_call_int64_with_1_arg() {
     gen_fct(
         "
             fn f(foo: Foo): Int64 { return foo.g(1i64); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g(a: Int64): Int64 { return 1i64; }
             }
@@ -1928,7 +1928,7 @@ fn gen_method_call_int64_with_3_args() {
     gen_fct(
         "
             fn f(foo: Foo): Int64 { return foo.g(1i64, 2i64, 3i64); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g(a: Int64, b: Int64, c: Int64): Int64 { return 1i64; }
             }
@@ -1962,7 +1962,7 @@ fn gen_method_call_float32_with_0_args() {
     gen_fct(
         "
             fn f(foo: Foo): Float32 { return foo.g(); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g(): Float32 { return 1f32; }
             }
@@ -1990,7 +1990,7 @@ fn gen_method_call_float32_with_0_args_and_unused_result() {
     gen_fct(
         "
             fn f(foo: Foo) { foo.g(); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g(): Float32 { return 1f32; }
             }
@@ -2018,7 +2018,7 @@ fn gen_method_call_float32_with_1_arg() {
     gen_fct(
         "
             fn f(foo: Foo): Float32 { return foo.g(1f32); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g(a: Float32): Float32 { return 1f32; }
             }
@@ -2048,7 +2048,7 @@ fn gen_method_call_float32_with_3_args() {
     gen_fct(
         "
             fn f(foo: Foo): Float32 { return foo.g(1f32, 2f32, 3f32); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g(a: Float32, b: Float32, c: Float32): Float32 { return 1f32; }
             }
@@ -2082,7 +2082,7 @@ fn gen_method_call_float64_with_0_args() {
     gen_fct(
         "
             fn f(foo: Foo): Float64 { return foo.g(); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g(): Float64 { return 1f64; }
             }
@@ -2110,7 +2110,7 @@ fn gen_method_call_float64_with_0_args_and_unused_result() {
     gen_fct(
         "
             fn f(foo: Foo) { foo.g(); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g(): Float64 { return 1f64; }
             }
@@ -2138,7 +2138,7 @@ fn gen_method_call_float64_with_1_arg() {
     gen_fct(
         "
             fn f(foo: Foo): Float64 { return foo.g(1f64); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g(a: Float64): Float64 { return 1f64; }
             }
@@ -2168,7 +2168,7 @@ fn gen_method_call_float64_with_3_args() {
     gen_fct(
         "
             fn f(foo: Foo): Float64 { return foo.g(1f64, 2f64, 3f64); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g(a: Float64, b: Float64, c: Float64): Float64 { return 1f64; }
             }
@@ -2202,7 +2202,7 @@ fn gen_method_call_ptr_with_0_args() {
     gen_fct(
         "
             fn f(foo: Foo): String { return foo.g(); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g(): String { return \"1\"; }
             }
@@ -2230,7 +2230,7 @@ fn gen_method_call_ptr_with_0_args_and_unused_result() {
     gen_fct(
         "
             fn f(foo: Foo) { foo.g(); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g(): String { return \"1\"; }
             }
@@ -2258,7 +2258,7 @@ fn gen_method_call_ptr_with_1_arg() {
     gen_fct(
         "
             fn f(foo: Foo): String { return foo.g(\"1\"); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g(a: String): String { return \"1\"; }
             }
@@ -2288,7 +2288,7 @@ fn gen_method_call_ptr_with_3_args() {
     gen_fct(
         "
             fn f(foo: Foo): String { return foo.g(\"1\", \"2\", \"3\"); }
-            class_new Foo
+            class Foo
             impl Foo {
                 fn g(a: String, b: String, c: String): String { return \"1\"; }
             }
@@ -2559,7 +2559,7 @@ fn gen_new_enum() {
 #[test]
 fn gen_new_object() {
     gen_fct(
-        "class_new Object fn f(): Object { return Object(); }",
+        "class Object fn f(): Object { return Object(); }",
         |sa, code, fct| {
             let cls_id = sa.cls_by_name("Object");
             let expected = vec![NewObjectInitialized(r(0), ConstPoolIdx(0)), Ret(r(0))];
@@ -2576,7 +2576,7 @@ fn gen_new_object() {
 fn gen_new_object_initialized() {
     gen_fct(
         "
-        class_new Foo(a: Int64, b: Bool)
+        class Foo(a: Int64, b: Bool)
         fn f(a: Int64, b: Bool): Foo { return Foo(a, b); }",
         |sa, code, fct| {
             let cls_id = sa.cls_by_name("Foo");
@@ -2597,8 +2597,8 @@ fn gen_new_object_initialized() {
 
 #[test]
 fn gen_position_new_object() {
-    let result = position("class_new Object fn f(): Object { return Object(); }");
-    let expected = vec![(0, p(1, 48))];
+    let result = position("class Object fn f(): Object { return Object(); }");
+    let expected = vec![(0, p(1, 44))];
     assert_eq!(expected, result);
 }
 
@@ -2711,8 +2711,7 @@ fn gen_load_array_float64() {
 
 #[test]
 fn gen_load_array_ptr() {
-    let result =
-        code("class_new Object fn f(a: Array[Object], idx: Int64): Object { return a(idx); }");
+    let result = code("class Object fn f(a: Array[Object], idx: Int64): Object { return a(idx); }");
     let expected = vec![LoadArray(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
@@ -2761,8 +2760,8 @@ fn gen_position_load_array_float64() {
 
 #[test]
 fn gen_position_load_array_ptr() {
-    let result = position("class_new Object fn f(a: Array[Object]): Object { return a(0); }");
-    let expected = vec![(3, p(1, 59))];
+    let result = position("class Object fn f(a: Array[Object]): Object { return a(0); }");
+    let expected = vec![(3, p(1, 55))];
     assert_eq!(expected, result);
 }
 
@@ -2845,7 +2844,7 @@ fn gen_store_array_float64() {
 
 #[test]
 fn gen_store_array_ptr() {
-    let result = code("class_new Object fn f(a: Array[Object], b: Object) { a(0) = b; }");
+    let result = code("class Object fn f(a: Array[Object], b: Object) { a(0) = b; }");
     let expected = vec![
         ConstInt64(Register(2), 0),
         StoreArray(r(1), r(0), r(2)),
@@ -2898,8 +2897,8 @@ fn gen_position_store_array_float64() {
 
 #[test]
 fn gen_position_store_array_ptr() {
-    let result = position("class_new Object fn f(a: Array[Object], b: Object) { a(0) = b; }");
-    let expected = vec![(3, p(1, 59))];
+    let result = position("class Object fn f(a: Array[Object], b: Object) { a(0) = b; }");
+    let expected = vec![(3, p(1, 55))];
     assert_eq!(expected, result);
 }
 
@@ -2907,7 +2906,7 @@ fn gen_position_store_array_ptr() {
 fn gen_new_object_with_multiple_args() {
     gen_fct(
         "
-            class_new Foo(a: Int32, b: Int32, c: Int32)
+            class Foo(a: Int32, b: Int32, c: Int32)
             fn f(): Foo { return Foo(1i32, 2i32, 3i32); }
             ",
         |sa, code, fct| {
@@ -2935,7 +2934,7 @@ fn gen_new_object_with_multiple_args() {
 fn gen_position_new_object_with_multiple_args() {
     let result = position(
         "
-            class_new Foo(a: Int32, b: Int32, c: Int32)
+            class Foo(a: Int32, b: Int32, c: Int32)
             fn f(): Foo { return Foo(1i32, 2i32, 3i32); }",
     );
     let expected = vec![(15, p(3, 37))];
@@ -3930,7 +3929,7 @@ fn gen_trait_object() {
     gen_fct(
         "
         trait Foo { fn bar(): Int32; }
-        class_new Bar
+        class Bar
         impl Foo for Bar {
             fn bar(): Int32 { 1i32 }
         }

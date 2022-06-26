@@ -1,4 +1,4 @@
-class_new Foo {
+class Foo {
     vec: Vec[Int32],
 }
 

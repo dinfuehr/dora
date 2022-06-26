@@ -102,13 +102,7 @@ impl<'a> Parser<'a> {
                 Ok(Elem::Function(Arc::new(fct)))
             }
 
-            TokenKind::Class | TokenKind::ClassOld => {
-                self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
-                let class = self.parse_class_old(&modifiers)?;
-                Ok(Elem::Class(Arc::new(class)))
-            }
-
-            TokenKind::ClassNew => {
+            TokenKind::Class => {
                 self.restrict_modifiers(&modifiers, &[Modifier::Internal, Modifier::Pub])?;
                 let class = self.parse_class(&modifiers)?;
                 Ok(Elem::Class(Arc::new(class)))
@@ -562,48 +556,9 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_class_old(&mut self, modifiers: &Modifiers) -> Result<Class, ParseErrorAndPos> {
-        let start = self.token.span.start();
-        let internal = modifiers.contains(Modifier::Internal);
-        let is_pub = modifiers.contains(Modifier::Pub);
-
-        let pos = self.advance_token()?.position;
-
-        let ident = self.expect_identifier()?;
-        let type_params = self.parse_type_params()?;
-
-        let mut cls = Class {
-            id: self.generate_id(),
-            new_syntax: false,
-            name: ident,
-            pos,
-            span: Span::invalid(),
-            internal,
-            is_pub,
-            has_constructor: false,
-            constructor: None,
-            fields: Vec::new(),
-            methods: Vec::new(),
-            initializers: Vec::new(),
-            type_params,
-        };
-
-        self.in_class_or_module = true;
-        let ctor_params = self.parse_constructor_old(&mut cls)?;
-
-        let span = self.span_from(start);
-
-        let constructor = self.generate_constructor_old(&mut cls, ctor_params);
-        cls.constructor = Some(Arc::new(constructor));
-        cls.span = span;
-        self.in_class_or_module = false;
-
-        Ok(cls)
-    }
-
     fn parse_class(&mut self, modifiers: &Modifiers) -> Result<Class, ParseErrorAndPos> {
         let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::ClassNew)?.position;
+        let pos = self.expect_token(TokenKind::Class)?.position;
 
         let ident = self.expect_identifier()?;
         let type_params = self.parse_type_params()?;
@@ -792,71 +747,6 @@ impl<'a> Parser<'a> {
             span,
             pos,
             bounds,
-        })
-    }
-
-    fn parse_constructor_old(
-        &mut self,
-        cls: &mut Class,
-    ) -> Result<Vec<ConstructorParam>, ParseErrorAndPos> {
-        if !self.token.is(TokenKind::LParen) {
-            return Ok(Vec::new());
-        }
-
-        self.expect_token(TokenKind::LParen)?;
-        cls.has_constructor = true;
-
-        let params = self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
-            p.parse_constructor_param(cls)
-        })?;
-
-        Ok(params)
-    }
-
-    fn parse_constructor_param(
-        &mut self,
-        cls: &mut Class,
-    ) -> Result<ConstructorParam, ParseErrorAndPos> {
-        let start = self.token.span.start();
-        let field = self.token.is(TokenKind::Var) || self.token.is(TokenKind::Let);
-        let mutable = self.token.is(TokenKind::Var);
-
-        // consume var and let
-        if field {
-            self.advance_token()?;
-        }
-
-        let pos = self.token.position;
-        let name = self.expect_identifier()?;
-
-        self.expect_token(TokenKind::Colon)?;
-        let data_type = self.parse_type()?;
-
-        let variadic = false;
-        let span = self.span_from(start);
-
-        if field {
-            cls.fields.push(Field {
-                id: self.generate_id(),
-                name,
-                pos,
-                span,
-                data_type: data_type.clone(),
-                primary_ctor: true,
-                expr: None,
-                mutable,
-                is_pub: true,
-            })
-        }
-
-        Ok(ConstructorParam {
-            name,
-            pos,
-            span,
-            data_type,
-            variadic,
-            field,
-            mutable: mutable,
         })
     }
 
@@ -2204,65 +2094,6 @@ impl<'a> Parser<'a> {
         fct.block(block.build(self.generate_id()));
         fct.build(self.generate_id())
     }
-
-    fn generate_constructor_old(
-        &mut self,
-        cls: &mut Class,
-        ctor_params: Vec<ConstructorParam>,
-    ) -> Function {
-        let builder = Builder::new();
-        let mut block = builder.build_block();
-
-        for param in ctor_params.iter().filter(|param| param.field) {
-            let this = builder.build_this(self.generate_id());
-            let lhs = builder.build_dot(
-                self.generate_id(),
-                this,
-                builder.build_ident(self.generate_id(), param.name),
-            );
-            let rhs = builder.build_ident(self.generate_id(), param.name);
-            let ass = builder.build_initializer_assign(self.generate_id(), lhs, rhs);
-
-            block.add_expr(self.generate_id(), ass);
-        }
-
-        for field in cls.fields.iter().filter(|field| field.expr.is_some()) {
-            let this = builder.build_this(self.generate_id());
-            let lhs = builder.build_dot(
-                self.generate_id(),
-                this,
-                builder.build_ident(self.generate_id(), field.name),
-            );
-            let ass = builder.build_initializer_assign(
-                self.generate_id(),
-                lhs,
-                field.expr.as_ref().unwrap().clone(),
-            );
-
-            block.add_expr(self.generate_id(), ass);
-        }
-
-        block.add_stmts(mem::replace(&mut cls.initializers, Vec::new()));
-
-        let mut fct = builder.build_fct(cls.name);
-
-        for param in &ctor_params {
-            fct.add_param(
-                self.generate_id(),
-                param.pos,
-                param.name,
-                param.data_type.clone(),
-                param.variadic,
-            );
-        }
-
-        fct.is_method(true)
-            .is_public(true)
-            .constructor(true)
-            .block(block.build(self.generate_id()));
-
-        fct.build(self.generate_id())
-    }
 }
 
 #[derive(Debug)]
@@ -3239,34 +3070,16 @@ mod tests {
     fn parse_class_with_param() {
         let (prog, _) = parse("class Foo(a: int)");
         let class = prog.cls0();
-        let ctor = class.constructor.clone().unwrap();
-
-        assert_eq!(0, class.fields.len());
-        assert_eq!(true, class.has_constructor);
-        assert_eq!(1, ctor.params.len());
+        assert_eq!(1, class.fields.len());
     }
 
     #[test]
     fn parse_class_with_param_var() {
-        let (prog, _) = parse("class Foo(var a: int)");
+        let (prog, _) = parse("class Foo(a: int)");
         let class = prog.cls0();
 
         assert_eq!(1, class.fields.len());
         assert_eq!(true, class.fields[0].mutable);
-        assert_eq!(true, class.has_constructor);
-        assert_eq!(1, class.constructor.clone().unwrap().params.len());
-    }
-
-    #[test]
-    fn parse_class_with_param_let() {
-        let (prog, _) = parse("class Foo(let a: int)");
-        let class = prog.cls0();
-        let ctor = class.constructor.clone().unwrap();
-
-        assert_eq!(1, class.fields.len());
-        assert_eq!(false, class.fields[0].mutable);
-        assert_eq!(true, class.has_constructor);
-        assert_eq!(1, ctor.params.len());
     }
 
     #[test]
@@ -3274,21 +3087,20 @@ mod tests {
         let (prog, _) = parse("class Foo(a: int, b: int)");
         let class = prog.cls0();
 
-        assert_eq!(0, class.fields.len());
-        assert_eq!(2, class.constructor.clone().unwrap().params.len());
+        assert_eq!(2, class.fields.len());
     }
 
     #[test]
     fn parse_class2() {
-        let (prog, _) = parse("class_new Foo { a: Int64, b: Bool }");
+        let (prog, _) = parse("class Foo { a: Int64, b: Bool }");
         let class = prog.cls0();
         assert_eq!(class.fields.len(), 2);
 
-        let (prog, _) = parse("class_new Foo(a: Int64, b: Bool)");
+        let (prog, _) = parse("class Foo(a: Int64, b: Bool)");
         let class = prog.cls0();
         assert_eq!(class.fields.len(), 2);
 
-        let (prog, _) = parse("class_new Foo");
+        let (prog, _) = parse("class Foo");
         let class = prog.cls0();
         assert!(class.fields.is_empty());
     }
@@ -3322,7 +3134,7 @@ mod tests {
 
     #[test]
     fn parse_field() {
-        let (prog, interner) = parse("class_new A { f1: int, f2: int }");
+        let (prog, interner) = parse("class A { f1: int, f2: int }");
         let cls = prog.cls0();
 
         let f1 = &cls.fields[0];

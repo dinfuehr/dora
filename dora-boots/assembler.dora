@@ -1,7 +1,7 @@
 @pub mod arm64;
 @pub mod x64;
 
-class_new AssemblerBuffer {
+class AssemblerBuffer {
     buffer: Vec[UInt8],
     pos: Int64,
 }
@@ -74,7 +74,7 @@ impl AssemblerBuffer {
     }
 }
 
-@pub class_new Label {
+@pub class Label {
     offset: Int64
 }
 
@@ -121,7 +121,7 @@ impl Register {
     }
 }
 
-class_new MachineCode {
+class MachineCode {
     bytes: Array[UInt8],
     start: Int64,
 }

@@ -6,7 +6,7 @@ fn main() {
   print(a.x);
 }
 
-class_new A[T](x: T)
+class A[T](x: T)
 
 fn foo(a: Int32): String {
   return "hello" + a.toString();

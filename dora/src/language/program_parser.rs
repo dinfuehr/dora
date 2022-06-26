@@ -679,7 +679,7 @@ mod tests {
             SemError::ShadowStruct("Foo".into()),
         );
         err(
-            "struct Foo {} class_new Foo",
+            "struct Foo {} class Foo",
             pos(1, 15),
             SemError::ShadowStruct("Foo".into()),
         );
@@ -719,7 +719,7 @@ mod tests {
             SemError::ShadowTrait("Foo".into()),
         );
         err(
-            "trait Foo {} class_new Foo",
+            "trait Foo {} class Foo",
             pos(1, 14),
             SemError::ShadowTrait("Foo".into()),
         );
@@ -734,7 +734,7 @@ mod tests {
             SemError::ShadowConst("foo".into()),
         );
         err(
-            "const foo: Int32 = 0i32; class_new foo",
+            "const foo: Int32 = 0i32; class foo",
             pos(1, 26),
             SemError::ShadowConst("foo".into()),
         );

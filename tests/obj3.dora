@@ -5,4 +5,4 @@ fn main() {
   assert(o1 === o2);
 }
 
-class_new Foo
+class Foo

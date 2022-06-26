@@ -67,7 +67,7 @@ const NUMBER_OF_IDS: Int32 = 6i32;
 const KIND_DEVICE: Int32 = 0i32;
 const KIND_WORK: Int32 = 1i32;
 
-class_new Scheduler {
+class Scheduler {
     queueCount: Int32,
     holdCount: Int32,
     blocks: Array[Option[TaskControlBlock]],
@@ -174,7 +174,7 @@ const STATE_HELD: Int32 = 4i32;
 var STATE_SUSPENDED_RUNNABLE: Int32 = STATE_SUSPENDED | STATE_RUNNABLE;
 var STATE_NOT_HELD: Int32 = STATE_HELD.not();
 
-class_new TaskControlBlock {
+class TaskControlBlock {
     link: Option[TaskControlBlock],
     id: Int32,
     priority: Int32,
@@ -238,7 +238,7 @@ trait Task {
     fn toString(): String;
 }
 
-class_new IdleTask {
+class IdleTask {
     scheduler: Scheduler,
     seed: Int32,
     count: Int32
@@ -270,7 +270,7 @@ impl Task for IdleTask {
     }
 }
 
-class_new DeviceTask {
+class DeviceTask {
     scheduler: Scheduler,
     seed: Option[Packet],
 }
@@ -301,7 +301,7 @@ impl Task for DeviceTask {
     }
 }
 
-class_new WorkerTask {
+class WorkerTask {
     scheduler: Scheduler,
     v1: Int32,
     v2: Int32,
@@ -343,7 +343,7 @@ impl Task for WorkerTask {
     }
 }
 
-class_new HandlerTask {
+class HandlerTask {
     scheduler: Scheduler,
     v1: Option[Packet],
     v2: Option[Packet],
@@ -393,7 +393,13 @@ impl Task for HandlerTask {
 
 var DATA_SIZE: Int32 = 4i32;
 
-class Packet(var link: Option[Packet], var id: Int32, let kind: Int32, var a1: Int32, let a2: Array[Int32])
+class Packet {
+    link: Option[Packet],
+    id: Int32,
+    kind: Int32,
+    a1: Int32,
+    a2: Array[Int32],
+}
 
 impl Packet {
     fn addTo(queue: Option[Packet]): Packet {

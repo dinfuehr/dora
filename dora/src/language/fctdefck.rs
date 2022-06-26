@@ -271,7 +271,7 @@ mod tests {
 
     #[test]
     fn allow_same_method_as_static_and_non_static() {
-        ok("class_new Foo
+        ok("class Foo
             impl Foo {
                 @static fn foo() {}
                 fn foo() {}

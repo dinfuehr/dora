@@ -44,4 +44,4 @@ fn allocator() {
     }
 }
 
-class_new Foo(value: Int32, next: Option[Foo])
+class Foo(value: Int32, next: Option[Foo])

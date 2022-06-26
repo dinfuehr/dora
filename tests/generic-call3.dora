@@ -4,7 +4,7 @@ trait Foo {
     fn bar();
 }
 
-class_new A[T: Foo](t: T)
+class A[T: Foo](t: T)
 
 impl[T: Foo] A[T] {
     fn bar() {
@@ -12,7 +12,7 @@ impl[T: Foo] A[T] {
     }
 }
 
-class_new X
+class X
 
 impl Foo for X {
     fn bar() {

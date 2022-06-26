@@ -29,7 +29,7 @@ var splayTreeSize: Int32 = 0i32;
 const splayTreeModifications: Int32 = 1000i32;
 const splayTreePayloadDepth: Int32 = 5i32;
 
-class_new Benchmark {
+class Benchmark {
     splayTree: SplayTree,
     splaySamples: Int32,
     splaySampleTimeStart: Int64,
@@ -161,7 +161,7 @@ fn generatePayloadTree(depth: Int32, tag: String): PayloadNode {
     }
 }
 
-class_new SplayTree {
+class SplayTree {
     root: Option[SplayNode],
 }
 
@@ -368,7 +368,7 @@ fn exportKeysTraverse(list: Vec[Int32], node: Option[SplayNode]) {
     }
 }
 
-class_new SplayNode {
+class SplayNode {
     key: Int32,
     value: Option[PayloadNode],
     left: Option[SplayNode],
@@ -381,7 +381,7 @@ impl SplayNode {
     }
 }
 
-class_new PayloadNode {
+class PayloadNode {
     array: Option[Array[Int32]],
     text: String,
     left: Option[PayloadNode],

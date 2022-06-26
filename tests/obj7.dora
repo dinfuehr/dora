@@ -4,5 +4,5 @@ fn main() {
   assert(f2.a == 1i32);
 }
 
-class_new Foo1(a: Int32)
-class_new Foo2(a: Int32, b: Int32)
+class Foo1(a: Int32)
+class Foo2(a: Int32, b: Int32)

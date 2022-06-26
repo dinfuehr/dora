@@ -2,7 +2,7 @@ const RANDOM_MULTIPLIER: Int64 = 25214903917i64;
 const RANDOM_INCREMENT: Int64 = 11i64;
 const RANDOM_MASK: Int64 = 0xFF_FF_FF_FF_FF_FFi64;
 
-@pub class_new Random {
+@pub class Random {
   seed: Int64
 }
 

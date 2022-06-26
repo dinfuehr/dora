@@ -3,7 +3,7 @@
 struct Foo(f1: AnotherStruct, f2: MyClass, f3: MyEnum)
 
 struct AnotherStruct(first: Float32, second: MyClass)
-class_new MyClass(value: Int32)
+class MyClass(value: Int32)
 enum MyEnum {
     A(Int32),
     B(MyClass)

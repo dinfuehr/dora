@@ -32,12 +32,12 @@ fn loadString(x: FooString): String = x.y;
 
 fn loadPtr(x: FooPtr): FooInt32 = x.y;
 
-class_new FooBool(y: Bool)
-class_new FooByte(y: UInt8)
-class_new FooChar(y: Char)
-class_new FooInt32(y: Int32)
-class_new FooInt64(y: Int64)
-class_new FooFloat32(y: Float32)
-class_new FooFloat64(y: Float64)
-class_new FooString(y: String)
-class_new FooPtr(y: FooInt32)
+class FooBool(y: Bool)
+class FooByte(y: UInt8)
+class FooChar(y: Char)
+class FooInt32(y: Int32)
+class FooInt64(y: Int64)
+class FooFloat32(y: Float32)
+class FooFloat64(y: Float64)
+class FooString(y: String)
+class FooPtr(y: FooInt32)

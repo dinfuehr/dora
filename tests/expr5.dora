@@ -2,7 +2,7 @@ fn main() {
   Bar(1i32).exec();
 }
 
-class_new Bar(a: Int32)
+class Bar(a: Int32)
 
 impl Bar {
   fn exec() {
@@ -25,4 +25,4 @@ impl Bar {
   }
 }
 
-class_new Foo(a: Int32)
+class Foo(a: Int32)

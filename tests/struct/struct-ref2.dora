@@ -1,11 +1,11 @@
 //= vm-args "--gc=copy --disable-tlab --gc-stress"
 
-class_new TupleClass {
+class TupleClass {
     value: Pair,
 }
 
 struct Pair(first: Foo, second: Int64)
-class_new Foo(value: Int32)
+class Foo(value: Int32)
 
 fn main() {
     let tpl = TupleClass(Pair(Foo(0i32), 0i64));

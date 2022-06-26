@@ -1,10 +1,10 @@
 //= vm-args "--gc=copy --disable-tlab"
 
-class_new TupleClass {
+class TupleClass {
     value: Pair,
 }
 
-class_new Foo(value: Int32)
+class Foo(value: Int32)
 
 fn main() {
     let tpl = TupleClass(Pair(Foo(0i32), 0i64));

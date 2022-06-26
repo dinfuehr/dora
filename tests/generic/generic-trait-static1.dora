@@ -11,13 +11,13 @@ trait Foo {
     @static fn baz(): Int32;
 }
 
-class_new SomeClass
+class SomeClass
 
 impl Foo for SomeClass {
     @static fn baz(): Int32 = 17i32;
 }
 
-class_new OtherClass
+class OtherClass
 
 impl Foo for OtherClass {
     @static fn baz(): Int32 = 42i32;

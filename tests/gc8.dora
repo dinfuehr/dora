@@ -8,4 +8,4 @@ fn main() {
   assert(node.rhs.getOrPanic().value == 11i32);
 }
 
-class_new Node(value: Int32, lhs: Option[Node], rhs: Option[Node])
+class Node(value: Int32, lhs: Option[Node], rhs: Option[Node])

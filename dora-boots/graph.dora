@@ -13,7 +13,7 @@ use package::dominator::buildDominatorTree;
 @pub mod ty;
 @pub mod verifier;
 
-@pub class_new Graph {
+@pub class Graph {
     entryBlock: Option[Block],
     @pub blocks: Vec[Option[Block]],
     postOrder: Vec[Block],
@@ -101,7 +101,7 @@ impl Graph {
     }
 }
 
-class_new InsertionOrderIterator {
+class InsertionOrderIterator {
     blocks: Array[Option[Block]],
     idx: Int64,
 } 
@@ -136,7 +136,7 @@ impl InsertionOrderIterator {
     }
 }
 
-class_new PostOrderIterator {
+class PostOrderIterator {
     postOrder: Array[Block],
     idx: Int64,
 }
@@ -157,7 +157,7 @@ impl PostOrderIterator {
     }
 }
 
-class_new ReversePostOrderIterator {
+class ReversePostOrderIterator {
     postOrder: Array[Block],
     idx: Int64,
 }
@@ -180,7 +180,7 @@ impl ReversePostOrderIterator {
 
 struct BlockId(value: Int32)
 
-@pub class_new Block {
+@pub class Block {
     _id: Option[Int32],
     phis: InstLinkedList,
     instructions: InstLinkedList,
@@ -342,7 +342,7 @@ impl Equals for Block {
   fn equals(other: Block): Bool = self === other;
 }
 
-@pub class_new LoopData {
+@pub class LoopData {
     header: Block,
     @pub backEdges: Vec[Block],
     blocks: BitVec,
@@ -378,7 +378,7 @@ impl LoopData {
     }
 }
 
-@pub class_new Input {
+@pub class Input {
     idx: Int32,
     value: Inst,
     usedBy: Inst,
@@ -508,7 +508,7 @@ fn opName(op: Op): String {
     }
 }
 
-@pub class_new Inst {
+@pub class Inst {
     _id: Option[Int32],
     block: Option[Block],
 
@@ -789,7 +789,7 @@ impl Inst {
     }
 }
 
-class_new UseIterator {
+class UseIterator {
     current: Option[Input],
 }
 
@@ -960,7 +960,7 @@ fn removeUse(input: Input) {
     inst
 }
 
-class_new FieldInfo {
+class FieldInfo {
     offset: Int32,
     volatile: Bool
 }
@@ -1020,7 +1020,7 @@ class_new FieldInfo {
     inst
 }
 
-class_new InstLinkedList {
+class InstLinkedList {
     first: Option[Inst],
     last: Option[Inst],
 }
@@ -1076,7 +1076,7 @@ impl InstLinkedList {
     }
 }
 
-class_new InstIterator {
+class InstIterator {
     current: Option[Inst]
 }
 
@@ -1096,7 +1096,7 @@ impl InstIterator {
     }
 }
 
-class_new PhiInstIterator {
+class PhiInstIterator {
     current: Option[Inst],
 }
 
@@ -1116,7 +1116,7 @@ impl PhiInstIterator {
     }
 }
 
-class_new BackwardInstIterator {
+class BackwardInstIterator {
     current: Option[Inst],
 }
 
@@ -1136,7 +1136,7 @@ impl BackwardInstIterator {
     }
 }
 
-@pub class_new Edge {
+@pub class Edge {
     @pub source: Block,
     @pub target: Block,
     backward: Bool,

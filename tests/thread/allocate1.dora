@@ -25,4 +25,4 @@ fn allocator() {
     }
 }
 
-class_new Foo
+class Foo

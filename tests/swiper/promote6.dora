@@ -1,6 +1,6 @@
 //= vm-args "--gc=swiper --gc-verify"
 
-class_new Foo(x: Int32)
+class Foo(x: Int32)
 
 fn main() {
     let a = Array[Int64]::fill(70i64, 0i64);
@@ -20,7 +20,7 @@ fn main() {
     assert(x.field64 === f1);
 }
 
-class_new CardSpanningObject {
+class CardSpanningObject {
     field0: Foo,
     field1: Foo,
     field2: Foo,

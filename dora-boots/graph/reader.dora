@@ -5,7 +5,7 @@ fn readGraph(data: String): Graph {
     unreachable[Graph]()
 }
 
-class_new GraphReader {
+class GraphReader {
     content: String,
     lexer: Lexer,
 }
@@ -20,7 +20,7 @@ impl GraphReader {
     }
 }
 
-class_new Lexer {
+class Lexer {
     content: String,
     idx: Int64,
 }

@@ -1,6 +1,6 @@
 trait Foo { fn test(): Int64; }
 
-class_new Baz
+class Baz
 
 impl Foo for Baz {
     fn test(): Int64 {
@@ -8,7 +8,7 @@ impl Foo for Baz {
     }
 }
 
-class_new FooBar
+class FooBar
 
 impl Foo for FooBar {
     fn test(): Int64 {
@@ -20,7 +20,7 @@ struct SomeData {
     foo: Foo,
 }
 
-class_new SomeClass(foo: Foo)
+class SomeClass(foo: Foo)
 
 fn main() {
     let data = SomeData(Baz() as Foo);

@@ -1,4 +1,4 @@
-class_new MyOwnType
+class MyOwnType
 
 impl std::Equals for MyOwnType {
     fn equals(other: MyOwnType): Bool = true;
@@ -8,7 +8,7 @@ impl std::Hash for MyOwnType {
     fn hash(): Int32 = 0i32;
 }
 
-class_new Foo {
+class Foo {
     x: std::HashMap[MyOwnType, String],
 }
 

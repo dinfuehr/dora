@@ -66,4 +66,8 @@ fn checkTree(node: TreeNode): Int32 {
          checkTree(node.right.getOrPanic()) + 1i32;
 }
 
-class TreeNode(let item: Int32, var left: Option[TreeNode], var right: Option[TreeNode])
+class TreeNode {
+  item: Int32,
+  left: Option[TreeNode],
+  right: Option[TreeNode],
+}

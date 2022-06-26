@@ -11,4 +11,4 @@ fn main() {
   assert(x.next.getOrPanic().next.getOrPanic().a == 3i32);
 }
 
-class_new Foo(a: Int32, next: Option[Foo])
+class Foo(a: Int32, next: Option[Foo])

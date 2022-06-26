@@ -2079,7 +2079,7 @@ impl<'a> TypeCheck<'a> {
                     .iter()
                     .map(|a| a.name_fct(self.sa, self.fct))
                     .collect::<Vec<_>>();
-                let msg = SemError::StructArgsIncompatible(class_name, field_types, arg_types);
+                let msg = SemError::ParamTypesIncompatible(class_name, field_types, arg_types);
                 self.sa.diag.lock().report(self.file_id, e.pos, msg);
             }
 

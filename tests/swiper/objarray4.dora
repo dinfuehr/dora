@@ -11,4 +11,4 @@ fn main() {
     assert(b(5i64).a == 1i32);
 }
 
-class_new Foo(a: Int32)
+class Foo(a: Int32)

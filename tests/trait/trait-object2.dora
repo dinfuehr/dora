@@ -1,6 +1,6 @@
 trait Foo { fn test(): Int32; }
 
-class_new Baz(value: Int32)
+class Baz(value: Int32)
 
 impl Foo for Baz {
     fn test(): Int32 = self.value;

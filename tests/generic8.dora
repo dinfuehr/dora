@@ -3,7 +3,7 @@ fn main() {
     consume(a.x);
 }
 
-class_new A[T](x: Array[T])
+class A[T](x: Array[T])
 
 impl[T] A[T] {
     @static fn new(): A[T] {

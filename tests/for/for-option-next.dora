@@ -1,4 +1,4 @@
-class_new SomeIterator {
+class SomeIterator {
     start: Int64,
     end: Int64,
     current: Int64,

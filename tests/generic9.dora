@@ -6,7 +6,7 @@ fn main() {
     consume2(b.x);
 }
 
-class_new A[T](default: T, x: Array[T])
+class A[T](default: T, x: Array[T])
 
 impl[T] A[T] {
     @static fn new(default: T): A[T] {

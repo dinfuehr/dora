@@ -2,7 +2,7 @@ trait Adder {
     fn add_me(other: Self): Self;
 }
 
-class_new A(a: Int32)
+class A(a: Int32)
 
 impl Adder for A {
     fn add_me(other: A): A {

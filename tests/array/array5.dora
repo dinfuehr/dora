@@ -5,13 +5,13 @@ fn main() {
   assert(!B()(false));
 }
 
-class_new A
+class A
 
 impl A {
   fn get(index: String): Int32 = 1i32;
 }
 
-class_new B 
+class B 
 
 impl B {
   fn get(index: Bool): Bool = index;

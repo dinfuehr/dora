@@ -49,7 +49,7 @@ use package::bytecode::reader::BytecodeIterator;
     graph
 }
 
-class_new SsaGen {
+class SsaGen {
     graph: Graph,
     bc: BytecodeFunction,
     blockMap: BlockMap,

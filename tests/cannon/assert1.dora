@@ -6,7 +6,7 @@ fn main() {
   x.test2(1i32);
 }
 
-class_new Foo(i: Int32)
+class Foo(i: Int32)
 
 impl Foo {
   fn test() {

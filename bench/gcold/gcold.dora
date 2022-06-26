@@ -1,4 +1,8 @@
-class TreeNode(var left: Option[TreeNode], var right: Option[TreeNode], var value: Int32)
+class TreeNode {
+    left: Option[TreeNode],
+    right: Option[TreeNode],
+    value: Int32,
+}
 
 const MEG: Int32 = 1_000_000i32;
 const INSIGNIFICANT: Int64 = 999i64;

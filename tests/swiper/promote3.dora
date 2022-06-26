@@ -14,7 +14,7 @@ fn main() {
   assert(x.getOrPanic().next.getOrPanic().next.getOrPanic().next.getOrPanic().next.getOrPanic().next.isNone());
 }
 
-class_new Foo(a: Int32, next: Option[Foo])
+class Foo(a: Int32, next: Option[Foo])
 
 fn foo(a: Int32, next: Option[Foo]): Option[Foo] {
   Some[Foo](Foo(a, next))

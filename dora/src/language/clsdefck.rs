@@ -185,56 +185,27 @@ mod tests {
     fn test_class_definition() {
         ok("class Foo");
         ok("class Foo()");
-        ok("class Foo(let a: Int32)");
-        ok("class Foo(let a: Int32, let b:Int32)");
-        ok("class Foo(let a: Foo)");
-        ok("class Foo(let a: Bar) class Bar");
+        ok("class Foo(a: Int32)");
+        ok("class Foo(a: Int32, b:Int32)");
+        ok("class Foo(a: Foo)");
+        ok("class Foo(a: Bar) class Bar");
         err(
-            "class Foo(let a: Unknown)",
-            pos(1, 18),
+            "class Foo(a: Unknown)",
+            pos(1, 14),
             SemError::UnknownIdentifier("Unknown".into()),
         );
         err(
-            "class Foo(let a: Int32, let a: Int32)",
-            pos(1, 29),
+            "class Foo(a: Int32, a: Int32)",
+            pos(1, 21),
             SemError::ShadowField("a".to_string()),
         );
     }
 
     #[test]
-    fn non_field_ctor_arguments() {
-        ok("class Foo(a: Int32, b: Int32)");
-        ok("class Foo(let a: Int32, b: Int32)");
-        ok("class Foo(a: Int32, var b: Int32)");
+    fn field_defined_twice() {
         err(
             "class Foo(a: Int32, a: Int32)",
             pos(1, 21),
-            SemError::ShadowParam("a".into()),
-        );
-        err(
-            "class Foo(a: Int32, let a: Int32)",
-            pos(1, 25),
-            SemError::ShadowParam("a".into()),
-        );
-        err(
-            "class Foo(let a: Int32, a: Int32)",
-            pos(1, 25),
-            SemError::ShadowParam("a".into()),
-        );
-        err(
-            "class Foo(a: Int32) fn f(x: Foo) { x.a = 1i32; }",
-            pos(1, 37),
-            SemError::UnknownField("a".into(), "Foo".into()),
-        );
-
-        ok("class Foo(a: Int32) fn foo(): Foo { return Foo(1i32); } ");
-    }
-
-    #[test]
-    fn field_defined_twice() {
-        err(
-            "class_new Foo(a: Int32, a: Int32)",
-            pos(1, 25),
             SemError::ShadowField("a".into()),
         );
     }

@@ -9,4 +9,4 @@ fn main() {
 
 }
 
-class_new A(a: Int32)
+class A(a: Int32)

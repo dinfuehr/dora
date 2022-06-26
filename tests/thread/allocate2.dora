@@ -36,4 +36,4 @@ fn allocator() {
     assert(list.prev.isNone());
 }
 
-class_new Foo(key: Int32, prev: Option[Foo])
+class Foo(key: Int32, prev: Option[Foo])

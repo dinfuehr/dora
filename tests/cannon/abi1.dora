@@ -17,7 +17,7 @@ fn testFloat32(x: Float32): Float32 = x;
 
 fn testPtr(x: Foo): Foo = x;
 
-class_new Foo
+class Foo
 
 impl Foo {
     fn testSelf(): Foo = self;

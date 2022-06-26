@@ -86,7 +86,7 @@ let F29: NeonRegister = NeonRegister(29i32);
 let F30: NeonRegister = NeonRegister(30i32);
 let F31: NeonRegister = NeonRegister(31i32);
 
-class_new ForwardJump {
+class ForwardJump {
     offset: Int32,
     label: Label,
     kind: JumpKind
@@ -117,7 +117,7 @@ enum CondCode {
     LE, // signed less than or equal
 }
 
-@pub class_new AssemblerArm64 {
+@pub class AssemblerArm64 {
     buffer: AssemblerBuffer,
 }
 

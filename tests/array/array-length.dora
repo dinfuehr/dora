@@ -72,4 +72,4 @@ fn foo_array_len(x: Array[Foo]): Int64 {
   return x.size();
 }
 
-class_new Foo
+class Foo

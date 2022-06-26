@@ -1,6 +1,6 @@
 //= vm-args "--gc=copy --disable-tlab --gc-stress"
 
-class_new Foo(value: Int32)
+class Foo(value: Int32)
 
 fn main() {
     let tpl: Foo = if false {

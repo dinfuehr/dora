@@ -11,7 +11,7 @@ use package::graph::createReturnVoidInst;
 use package::graph::createGotoInst;
 use package::graph::dump::assertGraph;
 
-@pub class_new GraphBuilder {
+@pub class GraphBuilder {
     graph: Graph,
     insertion: Option[Block],
     entryBlock: Option[Block],

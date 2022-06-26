@@ -1,11 +1,11 @@
 //= vm-args "--gc=copy"
 
-class_new Object
+class Object
 
 const THREADS: Int32 = 20i32;
 const ITERATIONS: Int32 = 10_000i32;
 
-class_new MyThread(mtx: std::Mutex, value: SharedInt)
+class MyThread(mtx: std::Mutex, value: SharedInt)
 
 impl MyThread {
     fn run() {
@@ -30,7 +30,7 @@ impl MyThread {
     }
 }
 
-class_new SharedInt {
+class SharedInt {
     value: Int32,
 }
 

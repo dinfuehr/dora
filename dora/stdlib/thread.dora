@@ -1,4 +1,4 @@
-@pub class_new Thread {
+@pub class Thread {
   native_ptr: Int64,
 }
 
@@ -8,7 +8,7 @@ impl Thread {
 
 @internal @pub fn spawn(action: (): ()): Thread;
 
-@pub class_new AtomicInt32(value: Int32)
+@pub class AtomicInt32(value: Int32)
 
 impl AtomicInt32 {
     @pub @static fn new(value: Int32): AtomicInt32 {
@@ -22,7 +22,7 @@ impl AtomicInt32 {
     @pub @internal fn fetchAdd(value: Int32): Int32;
 }
 
-@pub class_new AtomicInt64(value: Int64)
+@pub class AtomicInt64(value: Int64)
 
 impl AtomicInt64 {
     @pub @static fn new(value: Int64): AtomicInt64 {
@@ -40,7 +40,7 @@ const UNLOCKED: Int32 = 0i32;
 const LOCKED: Int32 = 1i32;
 const LOCKED_CONTENDED: Int32 = 2i32;
 
-@pub class_new Mutex {
+@pub class Mutex {
     data: AtomicInt32,
 }
 
@@ -94,7 +94,7 @@ impl Mutex {
     @internal fn notify();
 }
 
-@pub class_new Condition {
+@pub class Condition {
     waiters: AtomicInt32,
 }
 

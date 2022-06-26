@@ -27,4 +27,4 @@ fn main() {
     assert(x.next.getOrPanic().next.isSome());
 }
 
-class_new Foo(next: Option[Foo])
+class Foo(next: Option[Foo])

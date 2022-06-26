@@ -3,7 +3,7 @@
 use std::forceCollect;
 use std::forceMinorCollect;
 
-class_new Foo(x: Int32)
+class Foo(x: Int32)
 
 fn main() {
     let default = Foo(100i32);
@@ -27,7 +27,7 @@ fn main() {
     assert(x.field16383.x == 2i32);
 }
 
-class_new LargeObject {
+class LargeObject {
     field0: Foo,
     field1: Int64,
     field2: Int64,

@@ -1,4 +1,4 @@
-class_new Foo[T]
+class Foo[T]
 
 impl Foo[Int32] {
     fn foo(): Int32 = 1i32;
