@@ -237,14 +237,6 @@ fn set_backtrace(vm: &VM, mut obj: Handle<Stacktrace>, via_retrieve: bool) {
                             skip_constructor = true;
                             break;
                         }
-
-                        let throw_object_cls = vm.classes.idx(throw_object_cls_id);
-                        let throw_object_cls = throw_object_cls.read();
-
-                        if throw_object_cls.subclass_from(vm, owner_class) {
-                            skip += 1;
-                            continue;
-                        }
                     } else {
                         skip_constructor = true;
                         break;

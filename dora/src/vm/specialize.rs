@@ -358,29 +358,9 @@ fn create_specialized_class_regular(
     cls: &ClassDefinition,
     type_params: &SourceTypeArray,
 ) -> ClassInstanceId {
-    let mut csize;
-    let mut fields;
-    let mut ref_fields;
-    let parent_id;
-
-    if let Some(parent_class) = cls.parent_class.clone() {
-        let parent_class = specialize_type(vm, parent_class, type_params);
-        let id = specialize_class_ty(vm, parent_class);
-        let cls_def = vm.class_instances.idx(id);
-
-        fields = Vec::new();
-        ref_fields = cls_def.ref_fields.clone();
-        csize = match cls_def.size {
-            InstanceSize::Fixed(size) => size,
-            _ => unreachable!(),
-        };
-        parent_id = Some(id);
-    } else {
-        fields = Vec::with_capacity(cls.fields.len());
-        ref_fields = Vec::new();
-        csize = Header::size();
-        parent_id = None;
-    };
+    let mut csize = Header::size();
+    let mut fields = Vec::new();
+    let mut ref_fields = Vec::new();
 
     for f in &cls.fields {
         let ty = specialize_type(vm, f.ty.clone(), &type_params);
@@ -413,7 +393,7 @@ fn create_specialized_class_regular(
         ShapeKind::Class(cls.id(), type_params.clone()),
         size,
         fields,
-        parent_id,
+        None,
         0,
     );
 
@@ -428,7 +408,6 @@ fn create_specialized_class_array(
     cls: &ClassDefinition,
     type_params: &SourceTypeArray,
 ) -> ClassInstanceId {
-    assert!(cls.parent_class.is_none());
     assert!(cls.is_array || cls.is_str);
 
     assert!(cls.fields.is_empty());

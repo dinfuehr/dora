@@ -676,15 +676,10 @@ fn read_type_class(
     let cls = cls.read();
 
     if check_type_params(sa, &cls.type_params, &type_params, file_id, basic.pos, ctxt) {
-        if let Some(ref primitive_ty) = cls.primitive_type {
-            assert!(type_params.is_empty());
-            Some(primitive_ty.clone())
-        } else {
-            Some(SourceType::Class(
-                cls_id,
-                SourceTypeArray::with(type_params),
-            ))
-        }
+        Some(SourceType::Class(
+            cls_id,
+            SourceTypeArray::with(type_params),
+        ))
     } else {
         None
     }

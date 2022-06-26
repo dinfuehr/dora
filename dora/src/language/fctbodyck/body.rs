@@ -3389,10 +3389,6 @@ fn arg_allows(
                 }
             };
 
-            if params.len() == 0 && other_params.len() == 0 {
-                return arg.subclass_from(sa, def);
-            }
-
             if cls_id != other_cls_id || params.len() != other_params.len() {
                 return false;
             }

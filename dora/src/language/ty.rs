@@ -259,20 +259,6 @@ impl SourceType {
         }
     }
 
-    pub fn subclass_from(&self, sa: &SemAnalysis, ty: SourceType) -> bool {
-        if !self.is_cls() {
-            return false;
-        }
-        if !ty.is_cls() {
-            return false;
-        }
-
-        let cls_id = self.cls_id().unwrap();
-        let cls = sa.classes.idx(cls_id);
-        let cls = cls.read();
-        cls.subclass_from(sa, ty.cls_id().unwrap())
-    }
-
     pub fn name(&self, sa: &SemAnalysis) -> String {
         let writer = SourceTypePrinter {
             sa,
@@ -383,11 +369,7 @@ impl SourceType {
                     }
                 };
 
-                if *self_cls_id == other_cls_id {
-                    self_list == &other_list
-                } else {
-                    other.subclass_from(sa, self.clone())
-                }
+                *self_cls_id == other_cls_id && self_list == &other_list
             }
             SourceType::Tuple(subtypes) => match other {
                 SourceType::Tuple(other_subtypes) => {

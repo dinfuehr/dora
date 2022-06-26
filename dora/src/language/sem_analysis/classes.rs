@@ -52,9 +52,7 @@ pub struct ClassDefinition {
     pub module_id: ModuleDefinitionId,
     pub pos: Option<Position>,
     pub name: Name,
-    pub primitive_type: Option<SourceType>,
     pub ty: Option<SourceType>,
-    pub parent_class: Option<SourceType>,
     pub internal: bool,
     pub internal_resolved: bool,
     pub has_constructor: bool,
@@ -96,7 +94,6 @@ impl ClassDefinition {
             pos: Some(ast.pos),
             name: ast.name,
             ty: None,
-            parent_class: None,
             internal: ast.internal,
             internal_resolved: false,
             has_constructor: ast.has_constructor,
@@ -115,7 +112,6 @@ impl ClassDefinition {
 
             is_array: false,
             is_str: false,
-            primitive_type: None,
         }
     }
 
@@ -135,7 +131,6 @@ impl ClassDefinition {
             pos,
             name,
             ty: None,
-            parent_class: None,
             internal: false,
             internal_resolved: false,
             has_constructor: false,
@@ -154,7 +149,6 @@ impl ClassDefinition {
 
             is_array: false,
             is_str: false,
-            primitive_type: None,
         }
     }
 
@@ -192,11 +186,7 @@ impl ClassDefinition {
     }
 
     pub fn ty(&self) -> SourceType {
-        if let Some(ref primitive_ty) = self.primitive_type {
-            primitive_ty.clone()
-        } else {
-            self.ty.clone().expect("not initialized")
-        }
+        self.ty.clone().expect("not initialized")
     }
 
     pub fn field_by_name(&self, name: Name) -> FieldId {
@@ -235,50 +225,19 @@ impl ClassDefinition {
         name: Name,
         is_static: bool,
     ) -> Option<FctDefinitionId> {
-        let mut classid = self.id();
+        let cls = sa.classes.idx(self.id());
+        let cls = cls.read();
 
-        loop {
-            let cls = sa.classes.idx(classid);
-            let cls = cls.read();
+        for &method in &cls.methods {
+            let method = sa.fcts.idx(method);
+            let method = method.read();
 
-            for &method in &cls.methods {
-                let method = sa.fcts.idx(method);
-                let method = method.read();
-
-                if method.name == name && method.is_static == is_static {
-                    return Some(method.id());
-                }
-            }
-
-            if let Some(ref parent_class) = cls.parent_class {
-                classid = parent_class.cls_id().expect("no class");
-            } else {
-                return None;
+            if method.name == name && method.is_static == is_static {
+                return Some(method.id());
             }
         }
-    }
 
-    pub fn subclass_from(&self, sa: &SemAnalysis, super_id: ClassDefinitionId) -> bool {
-        let mut cls_id = self.id();
-
-        loop {
-            if cls_id == super_id {
-                return true;
-            }
-
-            let cls = sa.classes.idx(cls_id);
-            let cls = cls.read();
-
-            match cls.parent_class {
-                Some(ref parent_class) => {
-                    cls_id = parent_class.cls_id().expect("no class");
-                }
-
-                None => {
-                    return false;
-                }
-            }
-        }
+        None
     }
 
     pub fn all_fields_are_public(&self) -> bool {
@@ -337,65 +296,30 @@ impl IndexMut<FieldId> for Vec<Field> {
 
 pub fn find_field_in_class(
     sa: &SemAnalysis,
-    mut class: SourceType,
+    class: SourceType,
     name: Name,
 ) -> Option<(SourceType, FieldId, SourceType)> {
     if class.cls_id().is_none() {
         return None;
     }
 
-    loop {
-        let cls_id = class.cls_id().expect("no class");
-        let cls = sa.classes.idx(cls_id);
-        let cls = cls.read();
+    let cls_id = class.cls_id().expect("no class");
+    let cls = sa.classes.idx(cls_id);
+    let cls = cls.read();
 
-        let type_list = class.type_params();
+    let type_list = class.type_params();
 
-        for field in &cls.fields {
-            if field.name == name {
-                return Some((
-                    class,
-                    field.id,
-                    replace_type_param(sa, field.ty.clone(), &type_list, None),
-                ));
-            }
-        }
-
-        if let Some(ref parent_class) = cls.parent_class {
-            let type_list = parent_class.type_params();
-            class = replace_type_param(sa, parent_class.clone(), &type_list, None);
-        } else {
-            return None;
+    for field in &cls.fields {
+        if field.name == name {
+            return Some((
+                class,
+                field.id,
+                replace_type_param(sa, field.ty.clone(), &type_list, None),
+            ));
         }
     }
-}
 
-pub fn find_method_in_class(
-    sa: &SemAnalysis,
-    mut class: SourceType,
-    name: Name,
-) -> Option<(SourceType, FctDefinitionId)> {
-    loop {
-        let cls_id = class.cls_id().expect("no class");
-        let cls = sa.classes.idx(cls_id);
-        let cls = cls.read();
-
-        for &method in &cls.methods {
-            let method = sa.fcts.idx(method);
-            let method = method.read();
-
-            if method.name == name && method.is_static == false {
-                return Some((class, method.id()));
-            }
-        }
-
-        if let Some(ref parent_class) = cls.parent_class {
-            let type_list = parent_class.type_params();
-            class = replace_type_param(sa, parent_class.clone(), &type_list, None);
-        } else {
-            return None;
-        }
-    }
+    None
 }
 
 pub struct Candidate {
@@ -414,31 +338,20 @@ pub fn find_methods_in_class(
 ) -> Vec<Candidate> {
     let mut candidates = Vec::new();
 
-    let mut class_type = object_type.clone();
+    let cls_id = object_type.cls_id().expect("no class");
+    let cls = sa.classes.idx(cls_id);
+    let cls = cls.read();
 
-    loop {
-        let cls_id = class_type.cls_id().expect("no class");
-        let cls = sa.classes.idx(cls_id);
-        let cls = cls.read();
+    for &method in &cls.methods {
+        let method = sa.fcts.idx(method);
+        let method = method.read();
 
-        for &method in &cls.methods {
-            let method = sa.fcts.idx(method);
-            let method = method.read();
-
-            if method.name == name && method.is_static == is_static {
-                return vec![Candidate {
-                    object_type: class_type.clone(),
-                    container_type_params: class_type.type_params(),
-                    fct_id: method.id(),
-                }];
-            }
-        }
-
-        if let Some(ref parent_class) = cls.parent_class {
-            let type_list = class_type.type_params();
-            class_type = replace_type_param(sa, parent_class.clone(), &type_list, None);
-        } else {
-            break;
+        if method.name == name && method.is_static == is_static {
+            return vec![Candidate {
+                object_type: object_type.clone(),
+                container_type_params: object_type.type_params(),
+                fct_id: method.id(),
+            }];
         }
     }
 
@@ -475,44 +388,33 @@ pub fn find_methods_in_class(
         }
     }
 
-    let mut class_type = object_type;
+    let cls_id = object_type.cls_id().expect("no class");
+    let cls = sa.classes.idx(cls_id);
+    let cls = cls.read();
 
-    loop {
-        let cls_id = class_type.cls_id().expect("no class");
-        let cls = sa.classes.idx(cls_id);
-        let cls = cls.read();
+    for &impl_id in &cls.impls {
+        if let Some(bindings) = impl_matches(
+            sa,
+            object_type.clone(),
+            type_param_defs,
+            type_param_defs2,
+            impl_id,
+        ) {
+            let impl_ = sa.impls[impl_id].read();
 
-        for &impl_id in &cls.impls {
-            if let Some(bindings) = impl_matches(
-                sa,
-                class_type.clone(),
-                type_param_defs,
-                type_param_defs2,
-                impl_id,
-            ) {
-                let impl_ = sa.impls[impl_id].read();
+            let table = if is_static {
+                &impl_.static_names
+            } else {
+                &impl_.instance_names
+            };
 
-                let table = if is_static {
-                    &impl_.static_names
-                } else {
-                    &impl_.instance_names
-                };
-
-                if let Some(&method_id) = table.get(&name) {
-                    candidates.push(Candidate {
-                        object_type: class_type.clone(),
-                        container_type_params: bindings.clone(),
-                        fct_id: method_id,
-                    });
-                }
+            if let Some(&method_id) = table.get(&name) {
+                candidates.push(Candidate {
+                    object_type: object_type.clone(),
+                    container_type_params: bindings.clone(),
+                    fct_id: method_id,
+                });
             }
-        }
-
-        if let Some(parent_class) = cls.parent_class.clone() {
-            let type_list = class_type.type_params();
-            class_type = replace_type_param(sa, parent_class, &type_list, None);
-        } else {
-            break;
         }
     }
 

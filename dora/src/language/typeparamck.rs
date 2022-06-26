@@ -2,8 +2,8 @@ use dora_parser::lexer::position::Position;
 
 use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
-    implements_trait, ClassDefinition, ClassDefinitionId, EnumDefinitionId, FctDefinition,
-    SemAnalysis, SourceFileId, StructDefinitionId, TraitDefinitionId, TypeParam,
+    implements_trait, ClassDefinitionId, EnumDefinitionId, FctDefinition, SemAnalysis,
+    SourceFileId, StructDefinitionId, TraitDefinitionId, TypeParam,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 
@@ -70,25 +70,6 @@ pub fn check_class(
     };
 
     checker.check(type_params)
-}
-
-pub fn check_super<'a>(sa: &SemAnalysis, cls: &ClassDefinition, error: ErrorReporting) -> bool {
-    let object_type = cls.parent_class.clone().expect("parent_class missing");
-
-    let super_cls_id = object_type.cls_id().expect("no class");
-    let super_cls = sa.classes.idx(super_cls_id);
-    let super_cls = super_cls.read();
-
-    let checker = TypeParamCheck {
-        sa,
-        caller_type_param_defs: &cls.type_params,
-        callee_type_param_defs: &super_cls.type_params,
-        error,
-    };
-
-    let params = object_type.type_params();
-
-    checker.check(&params)
 }
 
 pub fn check_params<'a>(
