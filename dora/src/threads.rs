@@ -66,10 +66,18 @@ impl Threads {
     }
 
     pub fn attach_thread(&self, thread: Arc<DoraThread>) {
+        assert!(thread.is_parked());
         parked_scope(|| {
             let mut threads = self.threads.lock();
             threads.push(thread);
         });
+    }
+
+    pub fn attach_main_thread(&self, thread: Arc<DoraThread>) {
+        assert!(thread.is_running());
+        let mut threads = self.threads.lock();
+        assert!(threads.is_empty());
+        threads.push(thread);
     }
 
     pub fn next_id(&self) -> usize {

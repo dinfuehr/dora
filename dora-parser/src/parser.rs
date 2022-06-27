@@ -3057,16 +3057,6 @@ mod tests {
     }
 
     #[test]
-    fn parse_class() {
-        let (prog, interner) = parse("class Foo");
-        let class = prog.cls0();
-
-        assert_eq!(0, class.fields.len());
-        assert_eq!(Position::new(1, 1), class.pos);
-        assert_eq!("Foo", *interner.str(class.name));
-    }
-
-    #[test]
     fn parse_class_with_param() {
         let (prog, _) = parse("class Foo(a: int)");
         let class = prog.cls0();
@@ -3091,7 +3081,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_class2() {
+    fn parse_class() {
         let (prog, _) = parse("class Foo { a: Int64, b: Bool }");
         let class = prog.cls0();
         assert_eq!(class.fields.len(), 2);

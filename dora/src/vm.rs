@@ -428,7 +428,7 @@ where
     let vm = get_vm();
     let thread = DoraThread::new(vm, ThreadState::Running);
     init_current_thread(thread.clone());
-    vm.threads.attach_thread(thread);
+    vm.threads.attach_main_thread(thread);
 
     let stack_top = stack_pointer();
     let stack_limit = stack_top.sub(STACK_SIZE);
