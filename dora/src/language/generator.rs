@@ -140,6 +140,37 @@ impl<'a> AstBytecodeGen<'a> {
             self.builder
                 .emit_new_object(context_register, idx, self.fct.pos);
             self.context_register = Some(context_register);
+
+            if self.fct.is_lambda() {
+                let self_id = self.src.vars.get_self().id;
+                let self_reg = self.var_reg(self_id);
+
+                // Load context field of lambda object in self.
+                let outer_context_reg = self.alloc_temp(BytecodeType::Ptr);
+                let lambda_cls_id = self.sa.known.classes.lambda();
+                let idx = self.builder.add_const_field_types(
+                    lambda_cls_id,
+                    SourceTypeArray::empty(),
+                    FieldId(0),
+                );
+                self.builder
+                    .emit_load_field(outer_context_reg, self_reg, idx, self.fct.pos);
+
+                // Store value in outer_context field of context object.
+                let idx = self.builder.add_const_field_types(
+                    cls_id,
+                    SourceTypeArray::empty(),
+                    FieldId(0),
+                );
+                self.builder.emit_store_field(
+                    outer_context_reg,
+                    context_register,
+                    idx,
+                    self.fct.pos,
+                );
+
+                self.free_temp(outer_context_reg);
+            }
         }
     }
 
@@ -2702,8 +2733,6 @@ impl<'a> AstBytecodeGen<'a> {
         dest: DataDest,
         pos: Position,
     ) -> Register {
-        assert_eq!(distance, 1);
-
         let self_id = self.src.vars.get_self().id;
         let self_reg = self.var_reg(self_id);
 

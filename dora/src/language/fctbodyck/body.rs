@@ -44,6 +44,7 @@ pub struct TypeCheck<'a> {
     pub in_loop: bool,
     pub self_ty: Option<SourceType>,
     pub vars: &'a mut VarManager,
+    pub contains_lambda: bool,
 }
 
 impl<'a> TypeCheck<'a> {
@@ -88,11 +89,29 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn prepare_local_and_context_vars(&mut self) {
-        if self.vars.has_context_vars() {
-            let start_index = self.vars.current_function().start_idx;
-            let number_fields = self.vars.current_function().next_context_id;
+        if self.contains_lambda {
+            let function = self.vars.current_function();
+            let start_index = function.start_idx;
+            let number_fields = function.next_context_id;
             let mut fields = Vec::with_capacity(number_fields);
             let mut map: Vec<Option<VarId>> = vec![None; number_fields];
+
+            let skip = if self.fct.is_lambda() {
+                assert!(map[0].is_none());
+                let name = self.sa.interner.intern("outer_context");
+
+                fields.push(Field {
+                    id: FieldId(0),
+                    name,
+                    ty: SourceType::Ptr,
+                    mutable: true,
+                    is_pub: false,
+                });
+
+                1
+            } else {
+                0
+            };
 
             for var in self.vars.vars.iter().skip(start_index) {
                 if !var.location.is_context() {
@@ -107,12 +126,14 @@ impl<'a> TypeCheck<'a> {
                 }
             }
 
-            for (idx, var_id) in map.into_iter().enumerate() {
+            for var_id in map.into_iter().skip(skip) {
                 let var_id = var_id.expect("missing field");
                 let var = self.vars.get_var(var_id);
 
+                let id = FieldId(fields.len());
+
                 fields.push(Field {
-                    id: FieldId(idx),
+                    id,
                     name: var.name,
                     ty: var.ty.clone(),
                     mutable: true,
@@ -3010,6 +3031,8 @@ impl<'a> TypeCheck<'a> {
             SourceType::Unit
         };
 
+        self.contains_lambda = true;
+
         let mut params = Vec::new();
 
         for param in &node.params {
@@ -3052,6 +3075,7 @@ impl<'a> TypeCheck<'a> {
                     in_loop: false,
                     self_ty: None,
                     vars: self.vars,
+                    contains_lambda: false,
                 };
 
                 typeck.check();
@@ -3717,10 +3741,12 @@ impl VarManager {
     }
 
     fn enter_function(&mut self) {
+        let start_idx = if self.functions.is_empty() { 0 } else { 1 };
+
         self.functions.push(VarAccessPerFunction {
             level: self.functions.len(),
             start_idx: self.vars.len(),
-            next_context_id: 0,
+            next_context_id: start_idx,
         });
     }
 

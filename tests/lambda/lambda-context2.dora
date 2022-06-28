@@ -1,0 +1,36 @@
+fn main() {
+    assert(f_depth1() == 10);
+    assert(f_depth2() == 10);
+    assert(f_depth3() == 10);
+}
+
+fn f_depth1(): Int64 {
+    let x = 10;
+    let f1 = ||: Int64 { x };
+
+    f1()
+}
+
+fn f_depth2(): Int64 {
+    let x = 10;
+    let f1 = ||: (): Int64 {
+        let f2 = ||: Int64 { x };
+        f2
+    };
+
+    f1()()
+}
+
+fn f_depth3(): Int64 {
+    let x = 10;
+    let f1 = ||: (): (): Int64 {
+        let f2 = ||: (): Int64 {
+            let f3 = ||: Int64 { x };
+            f3
+        };
+
+        f2
+    };
+
+    f1()()()
+}

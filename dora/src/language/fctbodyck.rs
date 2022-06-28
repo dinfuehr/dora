@@ -63,6 +63,7 @@ fn check_function(sa: &mut SemAnalysis, id: FctDefinitionId) {
             in_loop: false,
             self_ty: None,
             vars: &mut vars,
+            contains_lambda: false,
         };
 
         typeck.check();

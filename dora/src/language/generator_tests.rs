@@ -3997,10 +3997,15 @@ fn gen_new_lambda() {
         }
     ",
         |_sa, code, fct| {
-            let expected = vec![NewLambda(r(0), ConstPoolIdx(0)), Ret(r(0))];
+            let expected = vec![
+                NewObject(r(0), ConstPoolIdx(0)),
+                PushRegister(r(0)),
+                NewLambda(r(1), ConstPoolIdx(1)),
+                Ret(r(1)),
+            ];
             assert_eq!(expected, code);
 
-            assert!(fct.const_pool(ConstPoolIdx(0)).is_fct());
+            assert!(fct.const_pool(ConstPoolIdx(1)).is_fct());
         },
     );
 }
@@ -4042,7 +4047,7 @@ fn gen_access_lambda_args() {
         }
     ",
         |sa, _code, fct| {
-            let lambda_id = match fct.const_pool(ConstPoolIdx(0)) {
+            let lambda_id = match fct.const_pool(ConstPoolIdx(1)) {
                 ConstPoolEntry::Fct(fct_id, _) => *fct_id,
                 _ => unreachable!(),
             };
