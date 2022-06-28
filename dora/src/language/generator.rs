@@ -2560,7 +2560,6 @@ impl<'a> AstBytecodeGen<'a> {
         distance: usize,
         field_id: FieldId,
     ) {
-        assert_eq!(distance, 1);
         let value_reg = self.visit_expr(&expr.rhs, DataDest::Alloc);
 
         let self_id = self.src.vars.get_self().id;
@@ -2575,7 +2574,34 @@ impl<'a> AstBytecodeGen<'a> {
         self.builder
             .emit_load_field(outer_context_reg, self_reg, idx, expr.pos);
 
-        let outer_fct_id = self.fct.parent.fct_id();
+        assert!(distance >= 1);
+
+        let mut outer_fct_id = self.fct.parent.fct_id();
+        let mut distance_left = distance;
+
+        while distance_left > 1 {
+            let outer_fct = self.sa.fcts.idx(outer_fct_id);
+            let outer_fct = outer_fct.read();
+            let outer_cls_id = outer_fct
+                .analysis()
+                .context_cls_id
+                .expect("context class missing");
+
+            let idx = self.builder.add_const_field_types(
+                outer_cls_id,
+                SourceTypeArray::empty(),
+                FieldId(0),
+            );
+            self.builder
+                .emit_load_field(outer_context_reg, outer_context_reg, idx, expr.pos);
+
+            distance_left -= 1;
+            outer_fct_id = outer_fct.parent.fct_id();
+        }
+
+        assert_eq!(distance_left, 1);
+
+        // Store value in context field
         let outer_fct = self.sa.fcts.idx(outer_fct_id);
         let outer_cls_id = outer_fct
             .read()
@@ -2583,7 +2609,6 @@ impl<'a> AstBytecodeGen<'a> {
             .context_cls_id
             .expect("context class missing");
 
-        // Store value in context field
         let idx =
             self.builder
                 .add_const_field_types(outer_cls_id, SourceTypeArray::empty(), field_id);
@@ -2682,7 +2707,7 @@ impl<'a> AstBytecodeGen<'a> {
         let self_id = self.src.vars.get_self().id;
         let self_reg = self.var_reg(self_id);
 
-        // Load context field of
+        // Load context field of lambda object (in self register).
         let outer_context_reg = self.alloc_temp(BytecodeType::Ptr);
         let lambda_cls_id = self.sa.known.classes.lambda();
         let idx =
@@ -2691,13 +2716,40 @@ impl<'a> AstBytecodeGen<'a> {
         self.builder
             .emit_load_field(outer_context_reg, self_reg, idx, pos);
 
-        let outer_fct_id = self.fct.parent.fct_id();
+        assert!(distance >= 1);
+
+        let mut outer_fct_id = self.fct.parent.fct_id();
+        let mut distance_left = distance;
+
+        while distance_left > 1 {
+            let outer_fct = self.sa.fcts.idx(outer_fct_id);
+            let outer_fct = outer_fct.read();
+            let outer_cls_id = outer_fct
+                .analysis()
+                .context_cls_id
+                .expect("context class missing");
+
+            let idx = self.builder.add_const_field_types(
+                outer_cls_id,
+                SourceTypeArray::empty(),
+                FieldId(0),
+            );
+            self.builder
+                .emit_load_field(outer_context_reg, outer_context_reg, idx, pos);
+
+            distance_left -= 1;
+            outer_fct_id = outer_fct.parent.fct_id();
+        }
+
+        assert_eq!(distance_left, 1);
+
         let outer_fct = self.sa.fcts.idx(outer_fct_id);
         let outer_cls_id = outer_fct
             .read()
             .analysis()
             .context_cls_id
             .expect("context class missing");
+
         let outer_cls = self.sa.classes.idx(outer_cls_id);
         let outer_cls = outer_cls.read();
 
