@@ -96,8 +96,7 @@ impl<'a> TypeCheck<'a> {
             let mut fields = Vec::with_capacity(number_fields);
             let mut map: Vec<Option<VarId>> = vec![None; number_fields];
 
-            let skip = if self.fct.is_lambda() {
-                assert!(map[0].is_none());
+            if self.fct.is_lambda() {
                 let name = self.sa.interner.intern("outer_context");
 
                 fields.push(Field {
@@ -107,11 +106,7 @@ impl<'a> TypeCheck<'a> {
                     mutable: true,
                     is_pub: false,
                 });
-
-                1
-            } else {
-                0
-            };
+            }
 
             for var in self.vars.vars.iter().skip(start_index) {
                 if !var.location.is_context() {
@@ -126,7 +121,7 @@ impl<'a> TypeCheck<'a> {
                 }
             }
 
-            for var_id in map.into_iter().skip(skip) {
+            for var_id in map {
                 let var_id = var_id.expect("missing field");
                 let var = self.vars.get_var(var_id);
 
@@ -3705,9 +3700,9 @@ impl VarManager {
         }
     }
 
-    fn ensure_context_allocated(&mut self, var_id: VarId) -> FieldId {
+    fn ensure_context_allocated(&mut self, var_id: VarId) -> usize {
         match self.vars[var_id.0].location {
-            VarLocation::Context(field_id) => return FieldId(field_id),
+            VarLocation::Context(field_id) => return field_id,
             VarLocation::Stack => {}
         }
 
@@ -3717,7 +3712,7 @@ impl VarManager {
         function.next_context_id += 1;
         self.vars[var_id.0].location = VarLocation::Context(context_idx);
 
-        FieldId(context_idx)
+        context_idx
     }
 
     fn add_var(&mut self, name: Name, ty: SourceType, mutable: bool) -> VarId {
@@ -3741,12 +3736,10 @@ impl VarManager {
     }
 
     fn enter_function(&mut self) {
-        let start_idx = if self.functions.is_empty() { 0 } else { 1 };
-
         self.functions.push(VarAccessPerFunction {
             level: self.functions.len(),
             start_idx: self.vars.len(),
-            next_context_id: start_idx,
+            next_context_id: 0,
         });
     }
 

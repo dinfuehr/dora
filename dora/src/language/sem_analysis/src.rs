@@ -104,7 +104,7 @@ pub enum IdentType {
     Var(VarId),
 
     // context variable
-    Context(usize, FieldId),
+    Context(usize, usize),
 
     /// name of a global variable
     Global(GlobalDefinitionId),

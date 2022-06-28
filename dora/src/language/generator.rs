@@ -2589,7 +2589,7 @@ impl<'a> AstBytecodeGen<'a> {
         &mut self,
         expr: &ast::ExprBinType,
         distance: usize,
-        field_id: FieldId,
+        context_idx: usize,
     ) {
         let value_reg = self.visit_expr(&expr.rhs, DataDest::Alloc);
 
@@ -2634,12 +2634,14 @@ impl<'a> AstBytecodeGen<'a> {
 
         // Store value in context field
         let outer_fct = self.sa.fcts.idx(outer_fct_id);
+        let outer_fct = outer_fct.read();
         let outer_cls_id = outer_fct
-            .read()
             .analysis()
             .context_cls_id
             .expect("context class missing");
 
+        let start_idx = if outer_fct.is_lambda() { 1 } else { 0 };
+        let field_id = FieldId(start_idx + context_idx);
         let idx =
             self.builder
                 .add_const_field_types(outer_cls_id, SourceTypeArray::empty(), field_id);
@@ -2729,7 +2731,7 @@ impl<'a> AstBytecodeGen<'a> {
     fn visit_expr_ident_context(
         &mut self,
         distance: usize,
-        field_id: FieldId,
+        context_idx: usize,
         dest: DataDest,
         pos: Position,
     ) -> Register {
@@ -2773,8 +2775,8 @@ impl<'a> AstBytecodeGen<'a> {
         assert_eq!(distance_left, 1);
 
         let outer_fct = self.sa.fcts.idx(outer_fct_id);
+        let outer_fct = outer_fct.read();
         let outer_cls_id = outer_fct
-            .read()
             .analysis()
             .context_cls_id
             .expect("context class missing");
@@ -2782,6 +2784,8 @@ impl<'a> AstBytecodeGen<'a> {
         let outer_cls = self.sa.classes.idx(outer_cls_id);
         let outer_cls = outer_cls.read();
 
+        let start_idx = if outer_fct.is_lambda() { 1 } else { 0 };
+        let field_id = FieldId(start_idx + context_idx);
         let field = &outer_cls.fields[field_id];
 
         let ty: BytecodeType = register_bty_from_ty(field.ty.clone());
