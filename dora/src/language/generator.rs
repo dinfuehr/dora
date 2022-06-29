@@ -97,6 +97,65 @@ impl<'a> AstBytecodeGen<'a> {
 
         self.create_context();
 
+        let next_register_idx = if self.fct.has_self() {
+            let var_self = self.src.vars.get_self();
+            let reg = Register(0);
+
+            match var_self.location {
+                VarLocation::Context(context_idx) => {
+                    let context_register = self.context_register.expect("context register missing");
+                    let cls_id = self.src.context_cls_id.expect("class missing");
+                    let field_id = field_id_from_context_idx(
+                        context_idx,
+                        self.src.context_has_outer_context_slot(),
+                    );
+                    let field_idx = self.builder.add_const_field_types(
+                        cls_id,
+                        SourceTypeArray::empty(),
+                        field_id,
+                    );
+                    self.builder
+                        .emit_store_field(reg, context_register, field_idx, self.fct.pos);
+                }
+
+                VarLocation::Stack => {
+                    self.var_registers.insert(var_self.id, reg);
+                }
+            }
+
+            1
+        } else {
+            0
+        };
+
+        for (param_idx, param) in ast.params.iter().enumerate() {
+            let var_id = *self.src.map_vars.get(param.id).unwrap();
+            let var = self.src.vars.get_var(var_id);
+            let reg = Register(next_register_idx + param_idx);
+
+            match var.location {
+                VarLocation::Context(context_idx) => {
+                    let context_register = self.context_register.expect("context register missing");
+                    let cls_id = self.src.context_cls_id.expect("class missing");
+                    let field_id = field_id_from_context_idx(
+                        context_idx,
+                        self.src.context_has_outer_context_slot(),
+                    );
+                    let field_idx = self.builder.add_const_field_types(
+                        cls_id,
+                        SourceTypeArray::empty(),
+                        field_id,
+                    );
+                    self.builder
+                        .emit_store_field(reg, context_register, field_idx, self.fct.pos);
+                }
+
+                VarLocation::Stack => {
+                    self.var_registers.insert(var_id, reg);
+                }
+            }
+        }
+
         if let Some(ref block) = ast.block {
             for stmt in &block.stmts {
                 self.visit_stmt(stmt);
