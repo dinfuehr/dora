@@ -27,7 +27,8 @@ pub use self::impls::{
 pub use self::modules::{module_package, module_path, ModuleDefinition, ModuleDefinitionId};
 pub use self::source_files::{SourceFile, SourceFileId};
 pub use self::src::{
-    AnalysisData, CallType, ForTypeInfo, IdentType, NodeMap, Var, VarAccess, VarId, VarLocation,
+    AnalysisData, CallType, ContextIdx, ForTypeInfo, IdentType, NodeMap, Var, VarAccess, VarId,
+    VarLocation,
 };
 pub use self::structs::{
     find_methods_in_struct, StructDefinition, StructDefinitionField, StructDefinitionFieldId,

@@ -8,9 +8,9 @@ use crate::bytecode::{
     BytecodeBuilder, BytecodeFunction, BytecodeType, ConstPoolIdx, Label, Register,
 };
 use crate::language::sem_analysis::{
-    find_impl, AnalysisData, CallType, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId,
-    FctDefinition, FctDefinitionId, FieldId, GlobalDefinitionId, IdentType, Intrinsic, SemAnalysis,
-    StructDefinitionId, VarId,
+    find_impl, AnalysisData, CallType, ClassDefinitionId, ConstDefinitionId, ContextIdx,
+    EnumDefinitionId, FctDefinition, FctDefinitionId, FieldId, GlobalDefinitionId, IdentType,
+    Intrinsic, SemAnalysis, StructDefinitionId, VarId,
 };
 use crate::language::specialize::specialize_type;
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -141,7 +141,7 @@ impl<'a> AstBytecodeGen<'a> {
                 .emit_new_object(context_register, idx, self.fct.pos);
             self.context_register = Some(context_register);
 
-            if self.fct.is_lambda() {
+            if self.src.context_has_outer_context_slot() {
                 let self_id = self.src.vars.get_self().id;
                 let self_reg = self.var_reg(self_id);
 
@@ -446,9 +446,14 @@ impl<'a> AstBytecodeGen<'a> {
         let ty: BytecodeType = register_bty_from_ty(var.ty.clone());
 
         match var.location {
-            VarLocation::Context(field_id) => {
+            VarLocation::Context(context_idx) => {
                 if let Some(ref expr) = stmt.expr {
                     let value_reg = self.visit_expr(expr, DataDest::Alloc);
+
+                    let field_id = field_id_from_context_idx(
+                        context_idx,
+                        self.src.context_has_outer_context_slot(),
+                    );
 
                     // Load context object.
                     let context_register = self.context_register.expect("context register missing");
@@ -456,7 +461,7 @@ impl<'a> AstBytecodeGen<'a> {
                     let field_idx = self.builder.add_const_field_types(
                         cls_id,
                         SourceTypeArray::empty(),
-                        FieldId(field_id),
+                        field_id,
                     );
                     self.builder.emit_store_field(
                         value_reg,
@@ -2589,7 +2594,7 @@ impl<'a> AstBytecodeGen<'a> {
         &mut self,
         expr: &ast::ExprBinType,
         distance: usize,
-        context_idx: usize,
+        context_idx: ContextIdx,
     ) {
         let value_reg = self.visit_expr(&expr.rhs, DataDest::Alloc);
 
@@ -2635,13 +2640,11 @@ impl<'a> AstBytecodeGen<'a> {
         // Store value in context field
         let outer_fct = self.sa.fcts.idx(outer_fct_id);
         let outer_fct = outer_fct.read();
-        let outer_cls_id = outer_fct
-            .analysis()
-            .context_cls_id
-            .expect("context class missing");
+        let analysis = outer_fct.analysis();
+        let outer_cls_id = analysis.context_cls_id.expect("context class missing");
 
-        let start_idx = if outer_fct.is_lambda() { 1 } else { 0 };
-        let field_id = FieldId(start_idx + context_idx);
+        let field_id =
+            field_id_from_context_idx(context_idx, analysis.context_has_outer_context_slot());
         let idx =
             self.builder
                 .add_const_field_types(outer_cls_id, SourceTypeArray::empty(), field_id);
@@ -2656,17 +2659,20 @@ impl<'a> AstBytecodeGen<'a> {
         let var = self.src.vars.get_var(var_id);
 
         match var.location {
-            VarLocation::Context(field_id) => {
+            VarLocation::Context(context_idx) => {
                 let value_reg = self.visit_expr(&expr.rhs, DataDest::Alloc);
+
+                let field_id = field_id_from_context_idx(
+                    context_idx,
+                    self.src.context_has_outer_context_slot(),
+                );
 
                 // Load context object.
                 let context_register = self.context_register.expect("context register missing");
                 let cls_id = self.src.context_cls_id.expect("class missing");
-                let field_idx = self.builder.add_const_field_types(
-                    cls_id,
-                    SourceTypeArray::empty(),
-                    FieldId(field_id),
-                );
+                let field_idx =
+                    self.builder
+                        .add_const_field_types(cls_id, SourceTypeArray::empty(), field_id);
                 self.builder
                     .emit_store_field(value_reg, context_register, field_idx, expr.pos);
 
@@ -2731,7 +2737,7 @@ impl<'a> AstBytecodeGen<'a> {
     fn visit_expr_ident_context(
         &mut self,
         distance: usize,
-        context_idx: usize,
+        context_idx: ContextIdx,
         dest: DataDest,
         pos: Position,
     ) -> Register {
@@ -2776,16 +2782,14 @@ impl<'a> AstBytecodeGen<'a> {
 
         let outer_fct = self.sa.fcts.idx(outer_fct_id);
         let outer_fct = outer_fct.read();
-        let outer_cls_id = outer_fct
-            .analysis()
-            .context_cls_id
-            .expect("context class missing");
+        let analysis = outer_fct.analysis();
+        let outer_cls_id = analysis.context_cls_id.expect("context class missing");
 
         let outer_cls = self.sa.classes.idx(outer_cls_id);
         let outer_cls = outer_cls.read();
 
-        let start_idx = if outer_fct.is_lambda() { 1 } else { 0 };
-        let field_id = FieldId(start_idx + context_idx);
+        let field_id =
+            field_id_from_context_idx(context_idx, analysis.context_has_outer_context_slot());
         let field = &outer_cls.fields[field_id];
 
         let ty: BytecodeType = register_bty_from_ty(field.ty.clone());
@@ -2891,18 +2895,21 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         match var.location {
-            VarLocation::Context(field_id) => {
+            VarLocation::Context(context_idx) => {
                 let ty = register_bty_from_ty(var.ty.clone());
                 let dest_reg = self.ensure_register(dest, ty);
+
+                let field_id = field_id_from_context_idx(
+                    context_idx,
+                    self.src.context_has_outer_context_slot(),
+                );
 
                 // Load context object.
                 let context_register = self.context_register.expect("context register missing");
                 let cls_id = self.src.context_cls_id.expect("class missing");
-                let field_idx = self.builder.add_const_field_types(
-                    cls_id,
-                    SourceTypeArray::empty(),
-                    FieldId(field_id),
-                );
+                let field_idx =
+                    self.builder
+                        .add_const_field_types(cls_id, SourceTypeArray::empty(), field_id);
                 self.builder
                     .emit_load_field(dest_reg, context_register, field_idx, pos);
 
@@ -3207,4 +3214,10 @@ pub fn register_bty_from_ty(ty: SourceType) -> BytecodeType {
         SourceType::Ptr => BytecodeType::Ptr,
         _ => panic!("SourceType {:?} cannot be converted to BytecodeType", ty),
     }
+}
+
+fn field_id_from_context_idx(context_idx: ContextIdx, has_outer_context_slot: bool) -> FieldId {
+    let start_idx = if has_outer_context_slot { 1 } else { 0 };
+    let ContextIdx(context_idx) = context_idx;
+    FieldId(start_idx + context_idx)
 }

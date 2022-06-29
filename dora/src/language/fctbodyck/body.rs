@@ -14,8 +14,8 @@ use crate::language::fctbodyck::lookup::MethodLookup;
 use crate::language::sem_analysis::{
     create_tuple, find_field_in_class, find_methods_in_class, find_methods_in_enum,
     find_methods_in_struct, implements_trait, AnalysisData, CallType, ClassDefinition,
-    ClassDefinitionId, EnumDefinitionId, EnumVariant, FctDefinition, FctDefinitionId, FctParent,
-    Field, FieldId, ForTypeInfo, IdentType, Intrinsic, ModuleDefinitionId, SemAnalysis,
+    ClassDefinitionId, ContextIdx, EnumDefinitionId, EnumVariant, FctDefinition, FctDefinitionId,
+    FctParent, Field, FieldId, ForTypeInfo, IdentType, Intrinsic, ModuleDefinitionId, SemAnalysis,
     SourceFileId, StructDefinition, StructDefinitionId, TypeParam, TypeParamDefinition,
     TypeParamId, Var, VarAccess, VarId, VarLocation,
 };
@@ -89,72 +89,85 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn prepare_local_and_context_vars(&mut self) {
-        if self.contains_lambda {
-            let function = self.vars.current_function();
-            let start_index = function.start_idx;
-            let number_fields = function.next_context_id;
-            let mut fields = Vec::with_capacity(number_fields);
-            let mut map: Vec<Option<VarId>> = vec![None; number_fields];
-
-            if self.fct.is_lambda() {
-                let name = self.sa.interner.intern("outer_context");
-
-                fields.push(Field {
-                    id: FieldId(0),
-                    name,
-                    ty: SourceType::Ptr,
-                    mutable: true,
-                    is_pub: false,
-                });
-            }
-
-            for var in self.vars.vars.iter().skip(start_index) {
-                if !var.location.is_context() {
-                    continue;
-                }
-
-                match var.location {
-                    VarLocation::Context(field_id) => {
-                        map[field_id] = Some(var.id);
-                    }
-                    VarLocation::Stack => {}
-                }
-            }
-
-            for var_id in map {
-                let var_id = var_id.expect("missing field");
-                let var = self.vars.get_var(var_id);
-
-                let id = FieldId(fields.len());
-
-                fields.push(Field {
-                    id,
-                    name: var.name,
-                    ty: var.ty.clone(),
-                    mutable: true,
-                    is_pub: false,
-                });
-            }
-
-            let mut name = self.fct.display_name(self.sa);
-            name.push_str("$Context");
-
-            let name = self.sa.interner.intern(&name);
-
-            let class = ClassDefinition::new_without_source(
-                self.module_id,
-                Some(self.file_id),
-                Some(self.ast.pos),
-                name,
-                self.ast.is_pub,
-                fields,
-            );
-            let class_id = self.sa.classes.push(class);
-            self.analysis.context_cls_id = Some(class_id);
+        if self.needs_context() {
+            self.setup_context_class();
         }
 
         // Store var definitions for all local and context vars defined in this function.
         self.analysis.vars = self.vars.leave_function();
+    }
+
+    fn needs_context(&self) -> bool {
+        self.contains_lambda
+    }
+
+    fn setup_context_class(&mut self) {
+        let function = self.vars.current_function();
+        let start_index = function.start_idx;
+        let number_fields = function.next_context_id;
+        let mut fields = Vec::with_capacity(number_fields);
+        let mut map: Vec<Option<VarId>> = vec![None; number_fields];
+
+        let has_outer_context_slot = self.fct.is_lambda();
+
+        if has_outer_context_slot {
+            let name = self.sa.interner.intern("outer_context");
+
+            fields.push(Field {
+                id: FieldId(0),
+                name,
+                ty: SourceType::Ptr,
+                mutable: true,
+                is_pub: false,
+            });
+        }
+
+        for var in self.vars.vars.iter().skip(start_index) {
+            if !var.location.is_context() {
+                continue;
+            }
+
+            match var.location {
+                VarLocation::Context(field_id) => {
+                    let ContextIdx(field_id) = field_id;
+                    map[field_id] = Some(var.id);
+                }
+                VarLocation::Stack => {}
+            }
+        }
+
+        for var_id in map {
+            let var_id = var_id.expect("missing field");
+            let var = self.vars.get_var(var_id);
+
+            let id = FieldId(fields.len());
+
+            fields.push(Field {
+                id,
+                name: var.name,
+                ty: var.ty.clone(),
+                mutable: true,
+                is_pub: false,
+            });
+        }
+
+        let mut name = self.fct.display_name(self.sa);
+        name.push_str("$Context");
+
+        let name = self.sa.interner.intern(&name);
+
+        let class = ClassDefinition::new_without_source(
+            self.module_id,
+            Some(self.file_id),
+            Some(self.ast.pos),
+            name,
+            self.ast.is_pub,
+            fields,
+        );
+        let class_id = self.sa.classes.push(class);
+        self.analysis.context_cls_id = Some(class_id);
+
+        self.analysis.context_has_outer_context_slot = Some(has_outer_context_slot);
     }
 
     fn add_type_params(&mut self) {
@@ -3700,7 +3713,7 @@ impl VarManager {
         }
     }
 
-    fn ensure_context_allocated(&mut self, var_id: VarId) -> usize {
+    fn ensure_context_allocated(&mut self, var_id: VarId) -> ContextIdx {
         match self.vars[var_id.0].location {
             VarLocation::Context(field_id) => return field_id,
             VarLocation::Stack => {}
@@ -3708,7 +3721,7 @@ impl VarManager {
 
         // Allocate slot in context class.
         let function = self.function_for_var(var_id);
-        let context_idx = function.next_context_id;
+        let context_idx = ContextIdx(function.next_context_id);
         function.next_context_id += 1;
         self.vars[var_id.0].location = VarLocation::Context(context_idx);
 

@@ -22,6 +22,7 @@ pub struct AnalysisData {
     pub map_lambdas: NodeMap<FctDefinitionId>,
     pub vars: VarAccess, // variables in functions
     pub context_cls_id: Option<ClassDefinitionId>,
+    pub context_has_outer_context_slot: Option<bool>,
 }
 
 impl AnalysisData {
@@ -37,6 +38,7 @@ impl AnalysisData {
 
             vars: VarAccess::empty(),
             context_cls_id: None,
+            context_has_outer_context_slot: None,
         }
     }
 
@@ -46,6 +48,10 @@ impl AnalysisData {
 
     pub fn ty(&self, id: ast::NodeId) -> SourceType {
         self.map_tys.get(id).expect("no type found").clone()
+    }
+
+    pub fn context_has_outer_context_slot(&self) -> bool {
+        self.context_has_outer_context_slot.expect("missing")
     }
 }
 
@@ -104,7 +110,7 @@ pub enum IdentType {
     Var(VarId),
 
     // context variable
-    Context(usize, usize),
+    Context(usize, ContextIdx),
 
     /// name of a global variable
     Global(GlobalDefinitionId),
@@ -174,6 +180,9 @@ impl IdentType {
         }
     }
 }
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct ContextIdx(pub usize);
 
 #[derive(Debug, Clone)]
 pub struct ForTypeInfo {
@@ -318,7 +327,7 @@ impl IndexMut<VarId> for Vec<Var> {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum VarLocation {
     Stack,
-    Context(usize),
+    Context(ContextIdx),
 }
 
 impl VarLocation {
