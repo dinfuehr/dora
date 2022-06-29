@@ -228,13 +228,22 @@ impl<'a> AstBytecodeGen<'a> {
     fn visit_stmt_for_pattern_setup(&mut self, pattern: &ast::LetPattern) {
         match pattern {
             ast::LetPattern::Ident(ref ident) => {
-                let for_var_id = *self.src.map_vars.get(ident.id).unwrap();
-                let var_ty = self.var_ty(for_var_id);
+                let var_id = *self.src.map_vars.get(ident.id).unwrap();
+                let var = self.src.vars.get_var(var_id);
 
-                if !var_ty.is_unit() {
-                    let bty: BytecodeType = register_bty_from_ty(var_ty);
-                    let var_reg = self.alloc_var(bty);
-                    self.var_registers.insert(for_var_id, var_reg);
+                if !var.ty.is_unit() {
+                    let bty: BytecodeType = register_bty_from_ty(var.ty.clone());
+
+                    match var.location {
+                        VarLocation::Context(_) => {
+                            // Nothing to do here.
+                        }
+
+                        VarLocation::Stack => {
+                            let var_reg = self.alloc_var(bty);
+                            self.var_registers.insert(var_id, var_reg);
+                        }
+                    }
                 }
             }
             ast::LetPattern::Underscore(_) => {
@@ -293,11 +302,19 @@ impl<'a> AstBytecodeGen<'a> {
         match pattern {
             ast::LetPattern::Ident(ref ident) => {
                 let var_id = *self.src.map_vars.get(ident.id).unwrap();
-                let var_ty = self.var_ty(var_id);
+                let var = self.src.vars.get_var(var_id);
 
-                if !var_ty.is_unit() {
-                    let var_reg = self.var_reg(var_id);
-                    self.emit_mov(var_reg, next_reg)
+                if !var.ty.is_unit() {
+                    match var.location {
+                        VarLocation::Context(context_idx) => {
+                            self.store_in_context(next_reg, context_idx, ident.pos);
+                        }
+
+                        VarLocation::Stack => {
+                            let var_reg = self.var_reg(var_id);
+                            self.emit_mov(var_reg, next_reg);
+                        }
+                    }
                 }
             }
 
