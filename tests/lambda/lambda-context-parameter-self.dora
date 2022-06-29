@@ -1,0 +1,31 @@
+//= ignore
+
+fn main() {
+    let foo = Foo();
+    let f1 = foo.create_lambda();
+    assert(f1() === foo);
+    assert(f1() !== foo);
+    assert(f1() === foo);
+    assert(f1() !== foo);
+}
+
+class Foo
+
+impl Foo {
+    fn create_lambda(): (): Foo {
+        let mut step = 0;
+        let lambda = ||: Foo {
+            let result = if step % 2 == 0 {
+                self
+            } else {
+                Foo()
+            };
+
+            step = step + 1;
+            result
+        };
+
+        lambda
+    }
+}
+
