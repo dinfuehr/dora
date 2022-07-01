@@ -104,16 +104,14 @@ pub fn install_code(vm: &VM, code_descriptor: CodeDescriptor, kind: CodeKind) ->
     let vtable = cls.vtable.read();
     let vtable: &VTable = vtable.as_ref().expect("missing vtable");
 
-    unsafe {
-        let code_header = object_start.to_mut_ptr::<ManagedCodeHeader>();
-        let code_header = &mut *code_header;
-        code_header
-            .object_header
-            .set_vtblptr(Address::from_ptr(vtable as *const VTable));
-        code_header.object_header.clear_fwdptr();
-        code_header.length = array_length;
-        code_header.native_code_object = Address::null();
-    }
+    let code_header = object_start.to_mut_ptr::<ManagedCodeHeader>();
+    let code_header = unsafe { &mut *code_header };
+    code_header
+        .object_header
+        .set_vtblptr(Address::from_ptr(vtable as *const VTable));
+    code_header.object_header.clear_fwdptr();
+    code_header.length = array_length;
+    code_header.native_code_object = Address::null();
 
     code_descriptor.constpool.install(constpool_start.to_ptr());
 
@@ -136,12 +134,9 @@ pub fn install_code(vm: &VM, code_descriptor: CodeDescriptor, kind: CodeKind) ->
         positions: code_descriptor.positions,
     });
 
-    unsafe {
-        let code_header = object_start.to_mut_ptr::<ManagedCodeHeader>();
-        let code_header = &mut *code_header;
-        code_header.native_code_object =
-            Address::from_ptr(Arc::into_raw(native_code_object.clone()));
-    }
+    let code_header = object_start.to_mut_ptr::<ManagedCodeHeader>();
+    let code_header = unsafe { &mut *code_header };
+    code_header.native_code_object = Address::from_ptr(Arc::into_raw(native_code_object.clone()));
 
     os::jit_executable();
 

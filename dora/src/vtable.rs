@@ -25,8 +25,8 @@ impl VTableBox {
             table: [0],
         };
 
+        let lay = Layout::from_size_align(size, align_of::<VTable>()).unwrap();
         unsafe {
-            let lay = Layout::from_size_align(size, align_of::<VTable>()).unwrap();
             let ptr = alloc(lay) as *mut VTable;
             ptr::write(ptr, vtable);
 

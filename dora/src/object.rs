@@ -548,9 +548,8 @@ impl Str {
         let mut handle = str_alloc_perm(vm, buf.len());
         handle.length = buf.len();
 
+        let data = handle.data() as *mut u8;
         unsafe {
-            let data = handle.data() as *mut u8;
-
             // copy buffer content into Str
             ptr::copy_nonoverlapping(buf.as_ptr(), data, buf.len());
         }
@@ -563,9 +562,8 @@ impl Str {
         let mut handle = str_alloc_heap(vm, buf.len());
         handle.length = buf.len();
 
+        let data = handle.data() as *mut u8;
         unsafe {
-            let data = handle.data() as *mut u8;
-
             // copy buffer content into Str
             ptr::copy_nonoverlapping(buf.as_ptr(), data, buf.len());
         }
@@ -591,8 +589,8 @@ impl Str {
             let mut handle = str_alloc_heap(vm, len);
             handle.length = len;
 
+            let dest = handle.data() as *mut u8;
             unsafe {
-                let dest = handle.data() as *mut u8;
                 let src = val.data().offset(offset as isize);
 
                 // copy buffer content into Str
@@ -609,9 +607,8 @@ impl Str {
         let len = lhs.len() + rhs.len();
         let mut handle = handle(str_alloc_heap(vm, len));
 
+        handle.length = len;
         unsafe {
-            handle.length = len;
-
             ptr::copy_nonoverlapping(lhs.data(), handle.data() as *mut u8, lhs.len());
             ptr::copy_nonoverlapping(
                 rhs.data(),
@@ -628,9 +625,8 @@ impl Str {
         let len = self.len();
         let mut handle = str_alloc_heap(vm, len);
 
+        handle.length = len;
         unsafe {
-            handle.length = len;
-
             ptr::copy_nonoverlapping(self.data(), handle.data() as *mut u8, len);
         }
 
@@ -642,9 +638,8 @@ pub fn byte_array_from_buffer(vm: &VM, buf: &[u8]) -> Ref<UInt8Array> {
     let mut handle = byte_array_alloc_heap(vm, buf.len());
     handle.length = buf.len();
 
+    let data = handle.data() as *mut u8;
     unsafe {
-        let data = handle.data() as *mut u8;
-
         // copy buffer content into Str
         ptr::copy_nonoverlapping(buf.as_ptr(), data, buf.len());
     }
