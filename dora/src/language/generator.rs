@@ -928,18 +928,24 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn visit_expr_lambda(&mut self, node: &ast::Function, dest: DataDest) -> Register {
-        if let Some(context_register) = self.context_register {
-            self.builder.emit_push_register(context_register);
-        }
-
         let dest = self.ensure_register(dest, BytecodeType::Ptr);
 
-        let lambda_fct_id = self
+        let lambda_fct_id = *self
             .src
             .map_lambdas
             .get(node.id)
             .expect("missing lambda id");
-        let idx = self.builder.add_const_fct(*lambda_fct_id);
+
+        let lambda_fct = self.sa.fcts.idx(lambda_fct_id);
+        let lambda_fct = lambda_fct.read();
+        let lambda_analysis = lambda_fct.analysis();
+
+        if lambda_analysis.vars.outer_context_access() {
+            self.builder
+                .emit_push_register(self.context_register.expect("missing context"));
+        }
+
+        let idx = self.builder.add_const_fct(lambda_fct_id);
         self.builder.emit_new_lambda(dest, idx, node.pos);
 
         dest

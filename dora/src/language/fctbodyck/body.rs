@@ -45,6 +45,7 @@ pub struct TypeCheck<'a> {
     pub self_ty: Option<SourceType>,
     pub vars: &'a mut VarManager,
     pub contains_lambda: bool,
+    pub outer_context_access: bool,
 }
 
 impl<'a> TypeCheck<'a> {
@@ -94,11 +95,20 @@ impl<'a> TypeCheck<'a> {
         }
 
         // Store var definitions for all local and context vars defined in this function.
-        self.analysis.vars = self.vars.leave_function();
+        self.analysis.vars = self.vars.leave_function(self.outer_context_access);
     }
 
     fn needs_context(&self) -> bool {
-        self.contains_lambda
+        // As soon as this function has context variables,
+        // it definitely needs a Context object.
+        if self.vars.has_context_vars() {
+            return true;
+        }
+
+        // We also need a Context object, when any lambda
+        // defined in this function, accesses some outside
+        // context variables.
+        self.outer_context_access
     }
 
     fn setup_context_class(&mut self) {
@@ -108,9 +118,9 @@ impl<'a> TypeCheck<'a> {
         let mut fields = Vec::with_capacity(number_fields);
         let mut map: Vec<Option<VarId>> = vec![None; number_fields];
 
-        let has_outer_context_slot = self.fct.is_lambda();
+        let needs_outer_context_slot = self.fct.is_lambda() && self.outer_context_access;
 
-        if has_outer_context_slot {
+        if needs_outer_context_slot {
             let name = self.sa.interner.intern("outer_context");
 
             fields.push(Field {
@@ -167,7 +177,7 @@ impl<'a> TypeCheck<'a> {
         let class_id = self.sa.classes.push(class);
         self.analysis.context_cls_id = Some(class_id);
 
-        self.analysis.context_has_outer_context_slot = Some(has_outer_context_slot);
+        self.analysis.context_has_outer_context_slot = Some(needs_outer_context_slot);
     }
 
     fn add_type_params(&mut self) {
@@ -828,7 +838,9 @@ impl<'a> TypeCheck<'a> {
                 self.analysis.set_ty(e.id, ty.clone());
 
                 // Variable may have to be context-allocated.
-                let ident = self.vars.check_context_allocated(var_id);
+                let ident = self
+                    .vars
+                    .check_context_allocated(var_id, &mut self.outer_context_access);
                 self.analysis.map_idents.insert(e.id, ident);
 
                 ty
@@ -921,7 +933,9 @@ impl<'a> TypeCheck<'a> {
                 }
 
                 // Variable may have to be context-allocated.
-                let ident = self.vars.check_context_allocated(var_id);
+                let ident = self
+                    .vars
+                    .check_context_allocated(var_id, &mut self.outer_context_access);
                 self.analysis.map_idents.insert(e.lhs.id(), ident);
 
                 self.vars.get_var(var_id).ty.clone()
@@ -3084,9 +3098,14 @@ impl<'a> TypeCheck<'a> {
                     self_ty: None,
                     vars: self.vars,
                     contains_lambda: false,
+                    outer_context_access: false,
                 };
 
                 typeck.check();
+            }
+
+            if analysis.vars.outer_context_access() {
+                self.outer_context_access = true
             }
 
             lambda.write().analysis = Some(analysis);
@@ -3701,12 +3720,17 @@ impl VarManager {
         panic!("function not found")
     }
 
-    fn check_context_allocated(&mut self, var_id: VarId) -> IdentType {
+    fn check_context_allocated(
+        &mut self,
+        var_id: VarId,
+        outer_context_access: &mut bool,
+    ) -> IdentType {
         let in_outer_function = var_id.0 < self.current_function().start_idx;
 
         if in_outer_function {
             let field_id = self.ensure_context_allocated(var_id);
             let distance = self.current_function().level - self.function_for_var(var_id).level;
+            *outer_context_access = true;
             IdentType::Context(distance, field_id)
         } else {
             IdentType::Var(var_id)
@@ -3756,7 +3780,7 @@ impl VarManager {
         });
     }
 
-    fn leave_function(&mut self) -> VarAccess {
+    fn leave_function(&mut self, outer_context_access: bool) -> VarAccess {
         let function = self.functions.pop().expect("missing function");
 
         let vars = self
@@ -3769,7 +3793,7 @@ impl VarManager {
             })
             .collect();
 
-        VarAccess::new(function.start_idx, vars)
+        VarAccess::new(function.start_idx, vars, outer_context_access)
     }
 }
 

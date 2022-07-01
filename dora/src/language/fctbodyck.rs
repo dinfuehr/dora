@@ -64,6 +64,7 @@ fn check_function(sa: &mut SemAnalysis, id: FctDefinitionId) {
             self_ty: None,
             vars: &mut vars,
             contains_lambda: false,
+            outer_context_access: false,
         };
 
         typeck.check();

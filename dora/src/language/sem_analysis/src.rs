@@ -50,6 +50,10 @@ impl AnalysisData {
         self.map_tys.get(id).expect("no type found").clone()
     }
 
+    pub fn has_context_class(&self) -> bool {
+        self.context_cls_id.is_some()
+    }
+
     pub fn context_has_outer_context_slot(&self) -> bool {
         self.context_has_outer_context_slot.expect("missing")
     }
@@ -350,17 +354,23 @@ impl VarLocation {
 pub struct VarAccess {
     start_idx: usize,
     vars: Vec<Var>,
+    outer_context_access: bool,
 }
 
 impl VarAccess {
-    pub fn new(start_idx: usize, vars: Vec<Var>) -> VarAccess {
-        VarAccess { start_idx, vars }
+    pub fn new(start_idx: usize, vars: Vec<Var>, outer_context_access: bool) -> VarAccess {
+        VarAccess {
+            start_idx,
+            vars,
+            outer_context_access,
+        }
     }
 
     fn empty() -> VarAccess {
         VarAccess {
             start_idx: 0,
             vars: Vec::new(),
+            outer_context_access: false,
         }
     }
 
@@ -370,5 +380,9 @@ impl VarAccess {
 
     pub fn get_self(&self) -> &Var {
         &self.vars[0]
+    }
+
+    pub fn outer_context_access(&self) -> bool {
+        self.outer_context_access
     }
 }
