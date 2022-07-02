@@ -9,7 +9,6 @@ use crate::interner::Name;
 use crate::lexer::position::{Position, Span};
 use crate::lexer::token::{FloatSuffix, IntBase, IntSuffix};
 
-pub mod dump;
 pub mod visit;
 
 #[derive(Clone, Debug)]
