@@ -299,6 +299,8 @@ pub fn parse_arguments() -> Result<Args, String> {
             args.flag_check = true;
         } else if arg == "-h" || arg == "--help" {
             args.flag_help = true;
+        } else if arg == "--emit-ast" {
+            args.flag_emit_ast = true;
         } else if arg.starts_with("--emit-asm=") {
             args.flag_emit_asm = Some(argument_value(arg).into());
         } else if arg == "--emit-asm-file" {
