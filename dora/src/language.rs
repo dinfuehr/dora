@@ -1,7 +1,10 @@
 use std::collections::HashSet;
 
+use crate::bytecode;
 use crate::language::error::msg::SemError;
-use crate::language::sem_analysis::{SemAnalysis, SourceFileId, TypeParam, TypeParamId};
+use crate::language::sem_analysis::{
+    FctDefinition, SemAnalysis, SourceFileId, TypeParam, TypeParamId,
+};
 use crate::language::sym::{NestedSymTable, Sym};
 use crate::language::ty::SourceType;
 use dora_parser::ast;
@@ -128,7 +131,39 @@ pub fn generate_bytecode(sa: &SemAnalysis) {
         };
 
         fct.write().bytecode = Some(bc);
+
+        {
+            let fct = fct.read();
+
+            if should_emit_bytecode(sa, &*fct) {
+                bytecode::dump(sa, Some(&*fct), fct.bytecode.as_ref().unwrap());
+            }
+        }
     }
+}
+
+fn should_emit_bytecode(sa: &SemAnalysis, fct: &FctDefinition) -> bool {
+    if let Some(ref dbg_names) = sa.args.flag_emit_bytecode {
+        fct_pattern_match(sa, fct, dbg_names)
+    } else {
+        false
+    }
+}
+
+fn fct_pattern_match(sa: &SemAnalysis, fct: &FctDefinition, pattern: &str) -> bool {
+    if pattern == "all" {
+        return true;
+    }
+
+    let fct_name = fct.display_name(sa);
+
+    for part in pattern.split(',') {
+        if fct_name.contains(part) {
+            return true;
+        }
+    }
+
+    false
 }
 
 fn internalck(sa: &SemAnalysis) {

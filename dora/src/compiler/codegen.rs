@@ -1,7 +1,7 @@
 use dora_parser::Position;
 
 use crate::boots;
-use crate::bytecode::{self, BytecodeFunction};
+use crate::bytecode::BytecodeFunction;
 use crate::cannon::{self, CompilationFlags};
 use crate::compiler::{dora_exit_stubs, NativeFct};
 use crate::cpu::{FReg, Reg, FREG_RESULT, REG_RESULT};
@@ -38,10 +38,6 @@ pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray)
     };
 
     let bytecode_fct = fct.bytecode.as_ref().expect("bytecode missing");
-
-    if should_emit_bytecode(vm, fct) {
-        bytecode::dump(vm, Some(fct), bytecode_fct);
-    }
 
     let emit_debug = should_emit_debug(vm, fct);
     let emit_asm = should_emit_asm(vm, fct);
@@ -121,14 +117,6 @@ pub fn should_emit_asm(vm: &VM, fct: &FctDefinition) -> bool {
     }
 
     if let Some(ref dbg_names) = vm.args.flag_emit_asm {
-        fct_pattern_match(vm, fct, dbg_names)
-    } else {
-        false
-    }
-}
-
-pub fn should_emit_bytecode(vm: &VM, fct: &FctDefinition) -> bool {
-    if let Some(ref dbg_names) = vm.args.flag_emit_bytecode {
         fct_pattern_match(vm, fct, dbg_names)
     } else {
         false

@@ -2,9 +2,8 @@ use std::collections::HashSet;
 use std::mem::size_of;
 use std::sync::Arc;
 
-use crate::bytecode::{self, BytecodeBuilder, BytecodeFunction, Register};
+use crate::bytecode::{BytecodeBuilder, BytecodeFunction, Register};
 use crate::compiler;
-use crate::compiler::codegen::should_emit_bytecode;
 use crate::cpu::{
     CCALL_REG_PARAMS, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1,
 };
@@ -370,15 +369,6 @@ fn ensure_thunk(
     thunk_fct.param_types = param_types;
     thunk_fct.return_type = fct.return_type.clone();
     let thunk_fct_id = vm.add_fct(thunk_fct);
-
-    {
-        let thunk_fct = vm.fcts.idx(thunk_fct_id);
-        let thunk_fct = thunk_fct.read();
-
-        if should_emit_bytecode(vm, &*fct) {
-            bytecode::dump(vm, Some(&*fct), thunk_fct.bytecode.as_ref().unwrap());
-        }
-    }
 
     thunk_fct_id
 }

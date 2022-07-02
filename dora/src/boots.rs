@@ -4,8 +4,7 @@ use std::ptr;
 use crate::boots::serializer::{
     allocate_encoded_bytecode_function, allocate_encoded_compilation_info,
 };
-use crate::bytecode::{self, InstructionSet};
-use crate::compiler::codegen::should_emit_bytecode;
+use crate::bytecode::InstructionSet;
 use crate::gc::Address;
 use crate::handle::handle;
 use crate::language::sem_analysis::FctDefinition;
@@ -22,10 +21,6 @@ mod ssagen;
 
 pub fn compile(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray) -> CodeDescriptor {
     let bytecode_fct = fct.bytecode.as_ref().expect("bytecode missing");
-
-    if should_emit_bytecode(vm, fct) {
-        bytecode::dump(vm, Some(fct), &bytecode_fct);
-    }
 
     let compile_name = vm.interner.intern("compile");
     let compile_fct_id = NestedSymTable::new(vm, vm.boots_module_id)
@@ -94,10 +89,6 @@ pub fn get_encoded_bytecode_function_by_name(vm: &VM, name: &str) -> Ref<Obj> {
     let fct = fct.read();
 
     let bytecode_fct = fct.bytecode.as_ref().expect("bytecode missing");
-
-    if should_emit_bytecode(vm, &*fct) {
-        bytecode::dump(vm, Some(&*fct), bytecode_fct);
-    }
 
     allocate_encoded_bytecode_function(vm, bytecode_fct)
 }
