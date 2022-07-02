@@ -16,7 +16,7 @@ Usage: dora test [options] [<file>]
 Options:
     -h, --help              Shows this text.
     --version               Shows version.
-    --emit-ast              Emits AST to stdout.
+    --emit-ast=<fct>        Emits AST to stdout.
     --emit-asm=<fct>        Emits assembly code to stdout.
     --emit-asm-file         Emits assembly code into file `dora-<pid>.asm`.
     --emit-bytecode=<fct>   Emits bytecode to stdout.
@@ -67,7 +67,7 @@ pub struct Args {
     pub arg_argument: Option<Vec<String>>,
     pub arg_file: String,
 
-    pub flag_emit_ast: bool,
+    pub flag_emit_ast: Option<String>,
     pub flag_emit_asm: Option<String>,
     pub flag_emit_asm_file: bool,
     pub flag_emit_bytecode: Option<String>,
@@ -172,7 +172,7 @@ impl Default for Args {
             arg_argument: None,
             arg_file: "".into(),
 
-            flag_emit_ast: false,
+            flag_emit_ast: None,
             flag_emit_asm: None,
             flag_emit_asm_file: false,
             flag_emit_bytecode: None,
@@ -299,8 +299,8 @@ pub fn parse_arguments() -> Result<Args, String> {
             args.flag_check = true;
         } else if arg == "-h" || arg == "--help" {
             args.flag_help = true;
-        } else if arg == "--emit-ast" {
-            args.flag_emit_ast = true;
+        } else if arg.starts_with("--emit-ast=") {
+            args.flag_emit_ast = Some(argument_value(arg).into());
         } else if arg.starts_with("--emit-asm=") {
             args.flag_emit_asm = Some(argument_value(arg).into());
         } else if arg == "--emit-asm-file" {

@@ -47,6 +47,8 @@ pub fn start() -> i32 {
         return 1;
     }
 
+    language::emit_ast(&sa);
+
     language::generate_bytecode(&sa);
 
     // if --check given, stop after type/semantic check
