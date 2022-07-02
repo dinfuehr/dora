@@ -38,7 +38,7 @@ impl BlockMap {
     }
 
     @pub fn nextBlockAt(offset: Int64): Option[Block] {
-        var offset = offset;
+        let mut offset = offset;
 
         while offset < self.bc.code.size() {
             let result = self.blockAt(offset);

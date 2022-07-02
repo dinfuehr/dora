@@ -9,8 +9,8 @@ class MyThread(mtx: std::Mutex, value: SharedInt)
 
 impl MyThread {
     fn run() {
-        var i = 0i32;
-        var last: Object = Object();
+        let mut i = 0i32;
+        let mut last: Object = Object();
 
         while i < ITERATIONS {
             Object();
@@ -47,10 +47,10 @@ impl SharedInt {
 }
 
 fn main() {
-    var i = 0i32;
-    var threads = Vec[std::Thread]::new();
-    var mtx = std::Mutex::new();
-    var shared = SharedInt::new();
+    let mut i = 0i32;
+    let mut threads = Vec[std::Thread]::new();
+    let mut mtx = std::Mutex::new();
+    let mut shared = SharedInt::new();
 
     while i < THREADS {
         let thread = std::thread::spawn(|| {

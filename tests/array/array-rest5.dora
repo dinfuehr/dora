@@ -5,8 +5,8 @@ fn main() {
 }
 
 fn sum_args(x: (Int32, Int32)...): Int32 {
-    var result = 0i32;
-    var idx = 0i64;
+    let mut result = 0i32;
+    let mut idx = 0i64;
 
     while idx < x.size() {
         let elem = x(idx);

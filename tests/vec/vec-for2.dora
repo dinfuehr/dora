@@ -9,7 +9,7 @@ fn main() {
 }
 
 fn mysum1(x: Vec[Int32]): Int32 {
-    var entries = 0i32;
+    let mut entries = 0i32;
     for val in x {
         entries = entries + val;
     }
@@ -17,7 +17,7 @@ fn mysum1(x: Vec[Int32]): Int32 {
 }
 
 fn mysum2(x: Vec[Float32]): Float32 {
-    var entries = 0.0f32;
+    let mut entries = 0.0f32;
     for val in x {
         entries = entries + val;
     }

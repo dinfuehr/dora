@@ -33,7 +33,7 @@ fn decodeRegisters(reader: ByteReader): Array[BytecodeType] {
     let size = reader.readInt32().toInt64();
     let data = Array[BytecodeType]::fill(size, BytecodeType::UInt8);
 
-    var i = 0i64;
+    let mut i = 0i64;
 
     while i < size {
         data(i) = decodeBytecodeType(reader);
@@ -84,7 +84,7 @@ fn decodeConstPool(reader: ByteReader): Array[ConstPoolEntry] {
     let size = reader.readInt32().toInt64();
 
     let data = Array[ConstPoolEntry]::fill(size, ConstPoolEntry::Int32(0i32));
-    var i = 0i64;
+    let mut i = 0i64;
 
     while i < size {
         data(i) = decodeConstPoolEntry(reader);
@@ -139,7 +139,7 @@ fn decodeSourceTypeArray(reader: ByteReader): Array[SourceType] {
     let size = reader.readInt32().toInt64();
     let data = Array[SourceType]::fill(size, SourceType::Unit);
 
-    var i = 0i64;
+    let mut i = 0i64;
 
     while i < size {
         data(i) = decodeSourceType(reader);
@@ -242,7 +242,7 @@ impl ByteReader {
         let len = self.readInt32().toInt64();
         let data = Array[UInt8]::zero(len);
 
-        var idx = 0i64;
+        let mut idx = 0i64;
 
         while idx < len {
             data(idx) = self.readUInt8();

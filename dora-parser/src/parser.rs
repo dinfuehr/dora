@@ -137,7 +137,7 @@ impl<'a> Parser<'a> {
                 Ok(Elem::Alias(Arc::new(alias)))
             }
 
-            TokenKind::Let | TokenKind::Var => {
+            TokenKind::Let => {
                 self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
                 let global = self.parse_global(&modifiers)?;
                 Ok(Elem::Global(Arc::new(global)))
@@ -428,9 +428,15 @@ impl<'a> Parser<'a> {
     fn parse_global(&mut self, modifiers: &Modifiers) -> Result<Global, ParseErrorAndPos> {
         let start = self.token.span.start();
         let pos = self.token.position;
-        let mutable = self.token.is(TokenKind::Var);
-
         self.advance_token()?;
+
+        let mutable = if self.token.is(TokenKind::Mut) {
+            self.advance_token()?;
+            true
+        } else {
+            false
+        };
+
         let name = self.expect_identifier()?;
 
         self.expect_token(TokenKind::Colon)?;
@@ -452,7 +458,7 @@ impl<'a> Parser<'a> {
             pos,
             span,
             data_type,
-            mutable: mutable,
+            mutable,
             initializer: None,
             is_pub: modifiers.contains(Modifier::Pub),
         };
@@ -3363,15 +3369,6 @@ mod tests {
         assert_eq!("B", impl_.extended_type.to_string(&interner));
         assert_eq!(1, impl_.methods.len());
         assert_eq!(true, impl_.methods[0].is_static);
-    }
-
-    #[test]
-    fn parse_global_var() {
-        let (prog, interner) = parse("var a: int = 0;");
-        let global = prog.global0();
-
-        assert_eq!("a", *interner.str(global.name));
-        assert_eq!(true, global.mutable);
     }
 
     #[test]

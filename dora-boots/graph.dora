@@ -235,7 +235,7 @@ impl Block {
         };
 
     @pub fn strictlyDominates(other: Block): Bool {
-        var current = other.getDominator();
+        let mut current = other.getDominator();
 
         while current.isSome() {
             if self === current.getOrPanic() { return true; }
@@ -654,7 +654,7 @@ impl Inst {
 
     @pub fn users(): Array[Inst] {
         let data = Vec[Inst]::new();
-        var current = self.useListHead;
+        let mut current = self.useListHead;
 
         while current.isSome() {
             let cur = current.getOrPanic();
@@ -674,7 +674,7 @@ impl Inst {
         let oblock = other.block.getOrPanic();
 
         if sblock === oblock {
-            var current = self.next;
+            let mut current = self.next;
 
             while current.isSome() {
                 let currentInst = current.getOrPanic();

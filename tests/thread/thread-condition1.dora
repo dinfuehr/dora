@@ -62,7 +62,7 @@ impl Producer {
     }
 
     fn run() {
-        var i = 0i32;
+        let mut i = 0i32;
 
         while i < ITERATIONS {
             self.queue.enqueue(i);
@@ -99,7 +99,7 @@ impl Consumer {
 }
 
 fn main() {
-    var i = 0i32;
+    let mut i = 0i32;
     let queue = SharedQueue[Int32]::new(QUEUE_SIZE);
     let producerThreads = Vec[std::Thread]::new();
     let producers = Vec[Producer]::new();
@@ -120,7 +120,7 @@ fn main() {
         producer.join();
     }
 
-    var producerSum = 0i32;
+    let mut producerSum = 0i32;
 
     for producer in producers {
         producerSum = producerSum + producer.sum;

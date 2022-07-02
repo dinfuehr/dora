@@ -7,7 +7,7 @@ fn main() {
 }
 
 fn nativeCalls() {
-    var i = 0i32;
+    let mut i = 0i32;
 
     while i < 100_000i32 {
         std::sleep(0i32);

@@ -281,8 +281,8 @@ fn testSsaGenIfWithConditionalAssignment() {
 }
 
 @pub fn bcSsaGenIfWithConditionalAssignment(a: Bool): Int32 {
-    var x = 1i32;
-    var y = 27i32;
+    let mut x = 1i32;
+    let mut y = 27i32;
     if a { x = 4i32; }
     x + y
 }
@@ -311,7 +311,7 @@ fn testSsaGenWhileCountDown() {
 }
 
 @pub fn bcSsaGenWhileCountDown(x: Int32): Int32 {
-    var x = x;
+    let mut x = x;
     while x > 0i32 { x = x - 1i32; }
     x
 }
@@ -343,8 +343,8 @@ fn testSsaGenWhileCountDownWithSum() {
 }
 
 @pub fn bcSsaGenWhileCountDownWithSum(x: Int32): Int32 {
-    var x = x;
-    var sum = 0i32;
+    let mut x = x;
+    let mut sum = 0i32;
     while x > 0i32 {
         x = x - 1i32;
         sum = sum + x;

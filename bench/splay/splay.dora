@@ -14,7 +14,7 @@ fn main() {
     let bench = Benchmark::new();
     bench.setup();
 
-    var i = 0i32;
+    let mut i = 0i32;
     while i < iterations {
         bench.run();
         i = i + 1i32;
@@ -23,9 +23,9 @@ fn main() {
     bench.tearDown();
 }
 
-var rnd: std::Random = std::Random::new(0i64);
+let mut rnd: std::Random = std::Random::new(0i64);
 
-var splayTreeSize: Int32 = 0i32;
+let mut splayTreeSize: Int32 = 0i32;
 const splayTreeModifications: Int32 = 1000i32;
 const splayTreePayloadDepth: Int32 = 5i32;
 
@@ -47,7 +47,7 @@ impl Benchmark {
     }
 
     fn setup() {
-        var i = 0i32;
+        let mut i = 0i32;
         self.splaySampleTimeStart = timestamp();
 
         while i < splayTreeSize {
@@ -74,13 +74,13 @@ impl Benchmark {
         self.splaySamples = 0i32;
         self.splaySumOfSquaredPauses = 0i64;
 
-        var length = keys.size();
+        let mut length = keys.size();
 
         if length != splayTreeSize.toInt64() {
             fatalError("Splay tree has wrong sie");
         }
 
-        var i = 0i64;
+        let mut i = 0i64;
 
         while i < length - 1i64 {
             if keys(i) >= keys(i+1i64) {
@@ -92,7 +92,7 @@ impl Benchmark {
     }
 
     fn run() {
-        var i = 0i32;
+        let mut i = 0i32;
 
         while i < splayTreeModifications {
             let key = self.insertNewNode();
@@ -111,7 +111,7 @@ impl Benchmark {
     }
 
     fn insertNewNode(): Int32 {
-        var key: Int32 = 0i32;
+        let mut key: Int32 = 0i32;
 
         while true {
             key = self.generateKey();
@@ -142,7 +142,7 @@ impl Benchmark {
 fn generatePayloadTree(depth: Int32, tag: String): PayloadNode {
     if depth == 0i32 {
         let arr = Array[Int32]::zero(10i64);
-        var i = 0i32;
+        let mut i = 0i32;
 
         while i < 10i32 {
             arr(i.toInt64()) = i;
@@ -250,7 +250,7 @@ impl SplayTree {
             return None;
         }
 
-        var current = if startNode.isNone() {
+        let mut current = if startNode.isNone() {
             self.root.getOrPanic()
         } else {
             startNode.getOrPanic()
@@ -291,11 +291,11 @@ impl SplayTree {
             return;
         }
 
-        var dummy = SplayNode::new(0i32, Option[PayloadNode]::None);
-        var left = dummy;
-        var right = dummy;
+        let mut dummy = SplayNode::new(0i32, Option[PayloadNode]::None);
+        let mut left = dummy;
+        let mut right = dummy;
 
-        var current = self.root.getOrPanic();
+        let mut current = self.root.getOrPanic();
 
         while true {
             if key < current.key {
@@ -355,11 +355,11 @@ impl SplayTree {
 }
 
 fn exportKeysTraverse(list: Vec[Int32], node: Option[SplayNode]) {
-    var current = node;
+    let mut current = node;
 
     while current.isSome() {
         let c = current.getOrPanic();
-        var left = c.left;
+        let mut left = c.left;
         if left.isSome() {
             exportKeysTraverse(list, left);
         }

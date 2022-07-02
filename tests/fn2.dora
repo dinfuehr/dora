@@ -1,5 +1,5 @@
 fn main() {
-  var result = fact(5i32);
+  let mut result = fact(5i32);
   assert(result == 120i32);
 
   result = fact(-10i32);

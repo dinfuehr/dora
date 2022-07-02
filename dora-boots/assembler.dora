@@ -148,7 +148,7 @@ fn assertAsm(code: MachineCode, bytes: UInt8...) {
         if exp != got {
             println("expected ${exp.toStringHex()} at index ${code.start + idx} but got ${got.toStringHex()}");
 
-            var i = 0i64;
+            let mut i = 0i64;
             print("buffer:   ");
 
             while i < bytes.size() {
@@ -183,7 +183,7 @@ fn assertAsm32(code: MachineCode, values: Int32...) {
 
     assert(code.start + values.size() * 4i64 <= code.bytes.size());
 
-    var idx = 0i64;
+    let mut idx = 0i64;
 
     while idx < values.size() {
         let exp = values(idx);
@@ -192,7 +192,7 @@ fn assertAsm32(code: MachineCode, values: Int32...) {
         if exp != got {
             println("expected ${exp.toStringHex()} at index ${code.start + idx} but got ${got.toStringHex()}");
 
-            var i = 0i64;
+            let mut i = 0i64;
             print("buffer:   ");
 
             for (idx, value) in values.enumerate() {

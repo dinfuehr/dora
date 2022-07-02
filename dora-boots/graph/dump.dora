@@ -33,7 +33,7 @@ impl GraphDumper {
 
         if !block.predecessors.isEmpty() {
             self.buffer.append(" pred = [");
-            var first: Bool = true;
+            let mut first: Bool = true;
 
             for pred in block.predecessors {
                 if first {
@@ -50,7 +50,7 @@ impl GraphDumper {
 
         if !block.successors.isEmpty() {
             self.buffer.append(" succ = [");
-            var first: Bool = true;
+            let mut first: Bool = true;
 
             for succ in block.successors {
                 if first {
@@ -80,7 +80,7 @@ impl GraphDumper {
         self.buffer.append("  %${inst.id()}: ${dumpInstName(inst)}");
 
         if !inst.getInputs().isEmpty() {
-            var first = true;
+            let mut first = true;
 
             for inp in inst.getInputs() {
                 if first {
@@ -95,7 +95,7 @@ impl GraphDumper {
 
         if inst.hasUses() {
             self.buffer.append(" [");
-            var first = true;
+            let mut first = true;
 
             for input in inst.uses() {
                 if first {
@@ -196,8 +196,8 @@ fn dumpInstName(inst: Inst): String {
 }
 
 fn compareStrings(lhs: String, rhs: String): Bool {
-    var lhs = Output::new(lhs);
-    var rhs = Output::new(rhs);
+    let mut lhs = Output::new(lhs);
+    let mut rhs = Output::new(rhs);
 
     skipWhite(lhs);
     skipWhite(rhs);

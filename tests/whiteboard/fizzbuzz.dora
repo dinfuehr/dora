@@ -1,7 +1,7 @@
 //= stdout file
 
 fn main() {
-    var i = 1i32;
+    let mut i = 1i32;
 
     while i <= 100i32 {
         if i % 15i32 == 0i32 {

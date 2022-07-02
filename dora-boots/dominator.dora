@@ -133,7 +133,7 @@ fn computeDominators(graph: Graph) {
             continue;
         }
 
-        var newIdom: Option[Block] = None;
+        let mut newIdom: Option[Block] = None;
 
         for pred in block.predecessors {
             let pred = pred.source;
@@ -171,7 +171,7 @@ fn computeDominators(graph: Graph) {
             continue;
         }
 
-        var newIdom: Option[Block] = None;
+        let mut newIdom: Option[Block] = None;
 
         for pred in block.predecessors {
             let pred = pred.source;
@@ -202,8 +202,8 @@ fn computeDominators(graph: Graph) {
 }
 
 fn commonDominator(b1: Block, b2: Block): Block {
-    var finger1 = b1;
-    var finger2 = b2;
+    let mut finger1 = b1;
+    let mut finger2 = b2;
 
     while finger1 != finger2 {
         while finger1.postOrderIdx < finger2.postOrderIdx {

@@ -49,13 +49,13 @@ impl Node {
         if tree.isNone() {
             return None;
         }
-        var tree = tree.getOrPanic();
+        let mut tree = tree.getOrPanic();
 
         node.left = None;
         node.right = None;
 
-        var l: Node = node;
-        var r: Node = node;
+        let mut l: Node = node;
+        let mut r: Node = node;
 
         while true {
             if node.value <= tree.value {
@@ -167,20 +167,20 @@ fn main() {
 
     let rnd = std::Random::new(argv(0i32).toInt64().getOrPanic());
     let max_size = argv(1i32).toInt32().getOrPanic();
-    var date = 0i32;
+    let mut date = 0i32;
 
-    var tree: Node = Node::new(None[Array[Int32]]);
+    let mut tree: Node = Node::new(None[Array[Int32]]);
     tree.birthday = date;
     date = date + 1i32;
     tree.value = rnd.nextInt32WithBound(max_size);
 
-    var j = 2i32;
+    let mut j = 2i32;
 
     while j + 2i32 <= argc() {
         let n = argv(j).toInt32().getOrPanic();
         let depth = argv(j).toInt32().getOrPanic();
 
-        var i = 0i32;
+        let mut i = 0i32;
         while i < n {
             let value = rnd.nextInt32WithBound(4i32);
 

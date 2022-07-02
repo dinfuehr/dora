@@ -113,7 +113,7 @@ impl SsaGen {
     }
 
     fn setupArguments() {
-        var i = 0i32;
+        let mut i = 0i32;
         let entryBlock = self.graph.getEntryBlock();
         while i < self.bc.arguments {
             let ty = Type::fromBytecodeType(self.bc.registers(i.toInt64()));
@@ -180,7 +180,7 @@ impl SsaGen {
     }
 
     fn tryRemoveTrivialPhi(phi: Inst): Inst {
-        var same = None[Inst];
+        let mut same = None[Inst];
 
         for inp in phi.getInputs() {
             let op = inp.getValue();

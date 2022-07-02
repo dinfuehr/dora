@@ -2,7 +2,7 @@
 
 enum Foo { A(Int32, String, Float32), B }
 
-var foo_value: Foo = Foo::B;
+let mut foo_value: Foo = Foo::B;
 
 fn main() {
     match foo_value {

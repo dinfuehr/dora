@@ -2,7 +2,7 @@
 
 struct Bar(first: Foo, second: Foo)
 
-var x: Bar = Bar(Foo(0i32), Foo(0i32));
+let mut x: Bar = Bar(Foo(0i32), Foo(0i32));
 
 fn main() {
     std::forceCollect();

@@ -181,7 +181,7 @@ fn testBytecodeJumpBackWide() {
     let writer = BytecodeBuilder::new();
     let r0 = writer.addRegister(BytecodeType::Unit);
     let lbl = writer.defineLabel();
-    var i = 0i32;
+    let mut i = 0i32;
     while i < 128i32 {
         writer.emitRet(r0);
         i = i + 1i32;
@@ -225,7 +225,7 @@ fn testBytecodeJumpFar() {
     let r0 = writer.addRegister(BytecodeType::Unit);
     let lbl = writer.createLabel();
     writer.emitJump(lbl);
-    var i = 0i32;
+    let mut i = 0i32;
     while i < 256i32 {
         writer.emitRet(r0);
         i = i + 1i32;
@@ -269,7 +269,7 @@ fn testBytecodeCondJumpFar() {
     let r0 = writer.addRegister(BytecodeType::Unit);
     let lbl = writer.createLabel();
     writer.emitJumpIfFalse(BytecodeRegister(9i32), lbl);
-    var i = 0i32;
+    let mut i = 0i32;
     while i < 256i32 {
         writer.emitRet(r0);
         i = i + 1i32;

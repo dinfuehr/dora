@@ -13,7 +13,7 @@ use package::bytecode::reader::BytecodeIterator;
         dumper.dumpInstruction(instInfo.inst);
     }
 
-    var i = 0i64;
+    let mut i = 0i64;
 
     for entry in bc.const_pool {
         println("@${i} = ${entry.toString()}");

@@ -1,4 +1,4 @@
-var x: Float64 = 0.0;
+let mut x: Float64 = 0.0;
 
 fn main() {
     assert(getx() == 0.0);

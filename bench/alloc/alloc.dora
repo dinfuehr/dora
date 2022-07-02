@@ -1,7 +1,7 @@
 fn main() {
     let threads = argv(0).toInt().getOrPanic();
 
-    var i = 0;
+    let mut i = 0;
 
     while i < threads {
         let thread = MyThread();
@@ -17,7 +17,7 @@ class MyThread() extends Thread {
 }
 
 fn allocator() {
-    var i = 0;
+    let mut i = 0;
 
     while i < 20_000_000 {
         Foo();

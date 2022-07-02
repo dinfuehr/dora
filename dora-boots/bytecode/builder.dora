@@ -34,7 +34,7 @@ impl BytecodeBuilder {
     }
 
     @pub fn addNRegisters(ty: BytecodeType, count: Int64) {
-        var idx = 0;
+        let mut idx = 0;
 
         while idx < count {
             self.registers.push(ty);
@@ -318,7 +318,7 @@ impl BytecodeBuilder {
         assert(!isWide(inst));
         assert(!isWide(instConst));
         let start = self.code.size().toInt32();
-        var target = 0i32;
+        let mut target = 0i32;
 
         if (opnd.isSome() && isWide(opnd.getOrPanic().value)) || isWide(self.constPool.size().toInt32()) {
             self.emitWide();

@@ -654,7 +654,7 @@ mod tests {
             SemError::ShadowClass("Foo".into()),
         );
         err(
-            "class Foo var Foo: Int32 = 1;",
+            "class Foo let mut Foo: Int32 = 1;",
             pos(1, 11),
             SemError::ShadowClass("Foo".into()),
         );
@@ -699,7 +699,7 @@ mod tests {
             SemError::ShadowStruct("Foo".into()),
         );
         err(
-            "struct Foo {} var Foo: Int32 = 1;",
+            "struct Foo {} let mut Foo: Int32 = 1;",
             pos(1, 15),
             SemError::ShadowStruct("Foo".into()),
         );

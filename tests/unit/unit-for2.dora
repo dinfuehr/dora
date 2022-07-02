@@ -1,5 +1,5 @@
 fn main() {
-    var sum = 0i64;
+    let mut sum = 0i64;
     for x in Vec[()]::new((), (), (), ()) {
         sum = sum + 1i64;
     }

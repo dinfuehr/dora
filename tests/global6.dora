@@ -1,6 +1,6 @@
 //= stdout "before\nfoo\nx = 17\nmiddle\nx = 17\nafter\n"
 
-var x: Int32 = foo();
+let mut x: Int32 = foo();
 
 fn main() {
     println("before");

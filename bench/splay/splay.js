@@ -33,19 +33,19 @@
 // also has to deal with a lot of changes to the large tree object
 // graph.
 
-var Splay = new BenchmarkSuite('Splay', [81491, 2739514], [
+let mut Splay = new BenchmarkSuite('Splay', [81491, 2739514], [
   new Benchmark("Splay", true, false, 1400,
     SplayRun, SplaySetup, SplayTearDown, SplayRMS)
 ]);
 
 
 // Configuration.
-var kSplayTreeSize = 8000;
-var kSplayTreeModifications = 80;
-var kSplayTreePayloadDepth = 5;
+let mut kSplayTreeSize = 8000;
+let mut kSplayTreeModifications = 80;
+let mut kSplayTreePayloadDepth = 5;
 
-var splayTree = null;
-var splaySampleTimeStart = 0.0;
+let mut splayTree = null;
+let mut splaySampleTimeStart = 0.0;
 
 function GeneratePayloadTree(depth, tag) {
   if (depth == 0) {
@@ -68,15 +68,15 @@ function GenerateKey() {
   return Math.random();
 }
 
-var splaySamples = 0;
-var splaySumOfSquaredPauses = 0;
+let mut splaySamples = 0;
+let mut splaySumOfSquaredPauses = 0;
 
 function SplayRMS() {
   return Math.round(Math.sqrt(splaySumOfSquaredPauses / splaySamples) * 10000);
 }
 
 function SplayUpdateStats(time) {
-  var pause = time - splaySampleTimeStart;
+  let mut pause = time - splaySampleTimeStart;
   splaySampleTimeStart = time;
   splaySamples++;
   splaySumOfSquaredPauses += pause * pause;
@@ -84,11 +84,11 @@ function SplayUpdateStats(time) {
 
 function InsertNewNode() {
   // Insert new node with a unique key.
-  var key;
+  let mut key;
   do {
     key = GenerateKey();
   } while (splayTree.find(key) != null);
-  var payload = GeneratePayloadTree(kSplayTreePayloadDepth, String(key));
+  let mut payload = GeneratePayloadTree(kSplayTreePayloadDepth, String(key));
   splayTree.insert(key, payload);
   return key;
 }
@@ -103,7 +103,7 @@ function SplaySetup() {
 
   splayTree = new SplayTree();
   splaySampleTimeStart = performance.now()
-  for (var i = 0; i < kSplayTreeSize; i++) {
+  for (let mut i = 0; i < kSplayTreeSize; i++) {
     InsertNewNode();
     if ((i+1) % 20 == 19) {
       SplayUpdateStats(performance.now());
@@ -116,20 +116,20 @@ function SplayTearDown() {
   // Allow the garbage collector to reclaim the memory
   // used by the splay tree no matter how we exit the
   // tear down function.
-  var keys = splayTree.exportKeys();
+  let mut keys = splayTree.exportKeys();
   splayTree = null;
 
   splaySamples = 0;
   splaySumOfSquaredPauses = 0;
 
   // Verify that the splay tree has the right size.
-  var length = keys.length;
+  let mut length = keys.length;
   if (length != kSplayTreeSize) {
     throw new Error("Splay tree has wrong size");
   }
 
   // Verify that the splay tree has sorted, unique keys.
-  for (var i = 0; i < length - 1; i++) {
+  for (let mut i = 0; i < length - 1; i++) {
     if (keys[i] >= keys[i + 1]) {
       throw new Error("Splay tree not sorted");
     }
@@ -139,9 +139,9 @@ function SplayTearDown() {
 
 function SplayRun() {
   // Replace a few nodes in the splay tree.
-  for (var i = 0; i < kSplayTreeModifications; i++) {
-    var key = InsertNewNode();
-    var greatest = splayTree.findGreatestLessThan(key);
+  for (let mut i = 0; i < kSplayTreeModifications; i++) {
+    let mut key = InsertNewNode();
+    let mut greatest = splayTree.findGreatestLessThan(key);
     if (greatest == null) splayTree.remove(key);
     else splayTree.remove(greatest.key);
   }
@@ -197,7 +197,7 @@ SplayTree.prototype.insert = function(key, value) {
   if (this.root_.key == key) {
     return;
   }
-  var node = new SplayTree.Node(key, value);
+  let mut node = new SplayTree.Node(key, value);
   if (key > this.root_.key) {
     node.left = this.root_;
     node.right = this.root_.right;
@@ -227,11 +227,11 @@ SplayTree.prototype.remove = function(key) {
   if (this.root_.key != key) {
     throw Error('Key not found: ' + key);
   }
-  var removed = this.root_;
+  let mut removed = this.root_;
   if (!this.root_.left) {
     this.root_ = this.root_.right;
   } else {
-    var right = this.root_.right;
+    let mut right = this.root_.right;
     this.root_ = this.root_.left;
     // Splay to make sure that the new root has an empty right child.
     this.splay_(key);
@@ -266,7 +266,7 @@ SplayTree.prototype.findMax = function(opt_startNode) {
   if (this.isEmpty()) {
     return null;
   }
-  var current = opt_startNode || this.root_;
+  let mut current = opt_startNode || this.root_;
   while (current.right) {
     current = current.right;
   }
@@ -301,7 +301,7 @@ SplayTree.prototype.findGreatestLessThan = function(key) {
  * @return {Array<*>} An array containing all the keys of tree's nodes.
  */
 SplayTree.prototype.exportKeys = function() {
-  var result = [];
+  let mut result = [];
   if (!this.isEmpty()) {
     this.root_.traverse_(function(node) { result.push(node.key); });
   }
@@ -328,9 +328,9 @@ SplayTree.prototype.splay_ = function(key) {
   // the L tree of the algorithm.  The left child of the dummy node
   // will hold the R tree of the algorithm.  Using a dummy node, left
   // and right will always be nodes and we avoid special cases.
-  var dummy, left, right;
+  let mut dummy, left, right;
   dummy = left = right = new SplayTree.Node(null, null);
-  var current = this.root_;
+  let mut current = this.root_;
   while (true) {
     if (key < current.key) {
       if (!current.left) {
@@ -338,7 +338,7 @@ SplayTree.prototype.splay_ = function(key) {
       }
       if (key < current.left.key) {
         // Rotate right.
-        var tmp = current.left;
+        let mut tmp = current.left;
         current.left = tmp.right;
         tmp.right = current;
         current = tmp;
@@ -356,7 +356,7 @@ SplayTree.prototype.splay_ = function(key) {
       }
       if (key > current.right.key) {
         // Rotate left.
-        var tmp = current.right;
+        let mut tmp = current.right;
         current.right = tmp.left;
         tmp.left = current;
         current = tmp;
@@ -413,9 +413,9 @@ SplayTree.Node.prototype.right = null;
  * @private
  */
 SplayTree.Node.prototype.traverse_ = function(f) {
-  var current = this;
+  let mut current = this;
   while (current) {
-    var left = current.left;
+    let mut left = current.left;
     if (left) left.traverse_(f);
     f(current);
     current = current.right;

@@ -3011,13 +3011,13 @@ fn mod_path_in_type() {
 fn mod_global() {
     ok("
         fn f(): Int32 { foo::x }
-        mod foo { @pub var x: Int32 = 1i32; }
+        mod foo { @pub let x: Int32 = 1i32; }
     ");
 
     err(
         "
         fn f(): Int32 { foo::x }
-        mod foo { var x: Int32 = 1i32; }
+        mod foo { let x: Int32 = 1i32; }
     ",
         pos(2, 28),
         SemError::NotAccessible("foo::x".into()),

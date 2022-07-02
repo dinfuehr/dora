@@ -2,8 +2,8 @@
 //= error oom
 
 fn main() {
-    var x = Vec[Array[Int32]]::new();
-    var i = 0i32;
+    let mut x = Vec[Array[Int32]]::new();
+    let mut i = 0i32;
 
     while i < 100_000i32 {
         x.push(Array[Int32]::zero(32i64 * 1024i64));

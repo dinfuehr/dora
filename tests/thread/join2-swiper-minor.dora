@@ -1,7 +1,7 @@
 //= vm-args "--gc=swiper"
 
 fn main() {
-    var i = 0i32;
+    let mut i = 0i32;
 
     while i < 10_000i32 {
         std::thread::spawn(|| {});

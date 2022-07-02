@@ -74,10 +74,10 @@ mod tests {
     #[test]
     fn check_initializer() {
         ok("let a: Int32 = 0i32;");
-        ok("let a: Int32 = 0i32; var b: Int32 = a + 1i32;");
+        ok("let a: Int32 = 0i32; let mut b: Int32 = a + 1i32;");
         err(
-            "var a: Int32 = foo;",
-            pos(1, 16),
+            "let mut a: Int32 = foo;",
+            pos(1, 20),
             SemError::UnknownIdentifier("foo".into()),
         );
     }
@@ -85,8 +85,8 @@ mod tests {
     #[test]
     fn check_type() {
         err(
-            "var x: Foo = 0;",
-            pos(1, 8),
+            "let mut x: Foo = 0;",
+            pos(1, 12),
             SemError::UnknownIdentifier("Foo".into()),
         );
     }

@@ -5,7 +5,7 @@ fn main() {
 }
 
 fn mysum(x: Array[Int32]): Int32 {
-    var entries = 0i32;
+    let mut entries = 0i32;
     for val in x {
         entries = entries + val;
     }

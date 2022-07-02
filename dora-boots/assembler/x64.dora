@@ -1203,7 +1203,7 @@ impl AssemblerX64 {
 
         self.emitByte((reg_or_opcode << 3i32 | address.bytes(0i64).toInt32()).toUInt8());
 
-        var i = 1i64;
+        let mut i = 1i64;
 
         while i < address.length {
             self.emitByte(address.bytes(i));
@@ -3779,7 +3779,7 @@ fn testAsmJccForward() {
 fn assertAsmNop(code: MachineCode, length: Int64) {
     assert(length > 0i64);
 
-    var idx = 0i64;
+    let mut idx = 0i64;
     while idx < length {
         assert(0x90u8 == code.bytes(code.start + idx));
         idx = idx + 1i64;

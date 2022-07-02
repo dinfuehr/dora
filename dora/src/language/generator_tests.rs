@@ -508,7 +508,7 @@ fn gen_stmt_if_else_with_return() {
 fn gen_stmt_if_else_without_return() {
     let result = code(
         "fn f(b: Bool): Bool {
-        var a = b;
+        let mut a = b;
         if a { a = false; } else { a = true; }
         return a;
     }",
@@ -1012,7 +1012,7 @@ fn gen_expr_ident() {
 
 #[test]
 fn gen_expr_assign() {
-    let result = code("fn f() { var x = 1i32; x = 2i32; }");
+    let result = code("fn f() { let mut x = 1i32; x = 2i32; }");
     let expected = vec![ConstInt32(r(0), 1), ConstInt32(r(0), 2), Ret(r(1))];
     assert_eq!(expected, result);
 }
@@ -1048,7 +1048,7 @@ fn gen_expr_returnvoid() {
 #[test]
 fn gen_load_global() {
     gen(
-        "var a: Int32 = 0i32; fn f(): Int32 { return a; }",
+        "let a: Int32 = 0i32; fn f(): Int32 { return a; }",
         |sa, code| {
             let gid = sa.global_by_name("a");
             let expected = vec![LoadGlobal(r(0), gid), Ret(r(0))];
@@ -1060,7 +1060,7 @@ fn gen_load_global() {
 #[test]
 fn gen_store_global() {
     gen(
-        "var a: Bool = false; fn f(x: Bool) { a = x; }",
+        "let mut a: Bool = false; fn f(x: Bool) { a = x; }",
         |sa, code| {
             let gid = sa.global_by_name("a");
             let expected = vec![StoreGlobal(r(0), gid), Ret(r(1))];
@@ -4010,7 +4010,7 @@ fn gen_context_allocated_var() {
     gen_fct(
         "
         fn f(): (): Int64 {
-            var x = 10;
+            let mut x = 10;
             x = 11;
             let y = x;
             ||: Int64 { x }

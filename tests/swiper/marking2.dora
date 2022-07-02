@@ -1,8 +1,8 @@
 //= ignore
 
 fn main() {
-    var list: Foo = nil;
-    var i = 1i32;
+    let mut list: Foo = nil;
+    let mut i = 1i32;
 
     while i <= 10_000_000 {
         list = Foo(i, list);

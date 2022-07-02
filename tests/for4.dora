@@ -1,5 +1,5 @@
 fn main() {
-    var counter = 0i32;
+    let mut counter = 0i32;
     for i in std::range(0i32, 0i32) {
         counter = counter + 1i32;
     }

@@ -5,7 +5,7 @@ fn main() {
     assert(set.contains(0i64));
     assert(set.contains(63i64));
 
-    var i = 1i32;
+    let mut i = 1i32;
     while i < 63i32 {
         assert(!set.contains(i.toInt64()));
         i = i + 1i32;
