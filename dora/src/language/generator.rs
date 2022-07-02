@@ -10,7 +10,7 @@ use crate::bytecode::{
 use crate::language::sem_analysis::{
     find_impl, AnalysisData, CallType, ClassDefinitionId, ConstDefinitionId, ContextIdx,
     EnumDefinitionId, FctDefinition, FctDefinitionId, FieldId, GlobalDefinitionId, IdentType,
-    Intrinsic, LocalVarId, SemAnalysis, StructDefinitionId,
+    Intrinsic, SemAnalysis, StructDefinitionId, VarId,
 };
 use crate::language::specialize::specialize_type;
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -52,7 +52,7 @@ pub fn generate(sa: &SemAnalysis, fct: &FctDefinition, src: &AnalysisData) -> By
     ast_bytecode_generator.generate(&fct.ast)
 }
 
-const SELF_VAR_ID: LocalVarId = LocalVarId(0);
+const SELF_VAR_ID: VarId = VarId(0);
 
 struct AstBytecodeGen<'a> {
     sa: &'a SemAnalysis,
@@ -61,7 +61,7 @@ struct AstBytecodeGen<'a> {
 
     builder: BytecodeBuilder,
     loops: Vec<LoopLabels>,
-    var_registers: HashMap<LocalVarId, Register>,
+    var_registers: HashMap<VarId, Register>,
     context_register: Option<Register>,
     unit_register: Option<Register>,
 }
@@ -2691,7 +2691,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.free_if_temp(value_reg);
     }
 
-    fn visit_expr_assign_var(&mut self, expr: &ast::ExprBinType, var_id: LocalVarId) {
+    fn visit_expr_assign_var(&mut self, expr: &ast::ExprBinType, var_id: VarId) {
         let var = self.src.vars.get_var(var_id);
 
         match var.location {
@@ -2903,12 +2903,7 @@ impl<'a> AstBytecodeGen<'a> {
         dest
     }
 
-    fn visit_expr_ident_var(
-        &mut self,
-        var_id: LocalVarId,
-        dest: DataDest,
-        pos: Position,
-    ) -> Register {
+    fn visit_expr_ident_var(&mut self, var_id: VarId, dest: DataDest, pos: Position) -> Register {
         let var = self.src.vars.get_var(var_id);
 
         if dest.is_effect() {
@@ -2968,7 +2963,7 @@ impl<'a> AstBytecodeGen<'a> {
             .emit_load_field(dest, context_register, field_idx, pos);
     }
 
-    fn var_reg(&self, var_id: LocalVarId) -> Register {
+    fn var_reg(&self, var_id: VarId) -> Register {
         *self
             .var_registers
             .get(&var_id)
@@ -3072,7 +3067,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.src.ty(id)
     }
 
-    fn var_ty(&self, id: LocalVarId) -> SourceType {
+    fn var_ty(&self, id: VarId) -> SourceType {
         self.src.vars.get_var(id).ty.clone()
     }
 

@@ -16,7 +16,7 @@ pub struct AnalysisData {
     pub map_calls: NodeMap<Arc<CallType>>, // maps function call to FctId
     pub map_idents: NodeMap<IdentType>,
     pub map_tys: NodeMap<SourceType>,
-    pub map_vars: NodeMap<LocalVarId>,
+    pub map_vars: NodeMap<VarId>,
     pub map_cls: NodeMap<ClassDefinitionId>,
     pub map_fors: NodeMap<ForTypeInfo>,
     pub map_lambdas: NodeMap<FctDefinitionId>,
@@ -117,7 +117,7 @@ where
 #[derive(Debug, Clone)]
 pub enum IdentType {
     /// name of local variable
-    Var(LocalVarId),
+    Var(VarId),
 
     // context variable
     Context(usize, ContextIdx),
@@ -148,7 +148,7 @@ pub enum IdentType {
 }
 
 impl IdentType {
-    pub fn var_id(&self) -> LocalVarId {
+    pub fn var_id(&self) -> VarId {
         match *self {
             IdentType::Var(var_id) => var_id,
             _ => panic!(),
@@ -311,10 +311,10 @@ impl CallType {
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
-pub struct GlobalVarId(pub usize);
+pub struct NestedVarId(pub usize);
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
-pub struct LocalVarId(pub usize);
+pub struct VarId(pub usize);
 
 #[derive(Clone, Debug)]
 pub struct Var {
@@ -322,16 +322,16 @@ pub struct Var {
     pub location: VarLocation,
 }
 
-impl Index<GlobalVarId> for Vec<Var> {
+impl Index<NestedVarId> for Vec<Var> {
     type Output = Var;
 
-    fn index(&self, index: GlobalVarId) -> &Var {
+    fn index(&self, index: NestedVarId) -> &Var {
         &self[index.0]
     }
 }
 
-impl IndexMut<GlobalVarId> for Vec<Var> {
-    fn index_mut(&mut self, index: GlobalVarId) -> &mut Var {
+impl IndexMut<NestedVarId> for Vec<Var> {
+    fn index_mut(&mut self, index: NestedVarId) -> &mut Var {
         &mut self[index.0]
     }
 }
@@ -372,7 +372,7 @@ impl VarAccess {
         VarAccess { vars: Vec::new() }
     }
 
-    pub fn get_var(&self, idx: LocalVarId) -> &Var {
+    pub fn get_var(&self, idx: VarId) -> &Var {
         &self.vars[idx.0]
     }
 

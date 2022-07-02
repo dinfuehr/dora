@@ -15,9 +15,9 @@ use crate::language::sem_analysis::{
     create_tuple, find_field_in_class, find_methods_in_class, find_methods_in_enum,
     find_methods_in_struct, implements_trait, AnalysisData, CallType, ClassDefinition,
     ClassDefinitionId, ContextIdx, EnumDefinitionId, EnumVariant, FctDefinition, FctDefinitionId,
-    FctParent, Field, FieldId, ForTypeInfo, GlobalVarId, IdentType, Intrinsic, LocalVarId,
-    ModuleDefinitionId, SemAnalysis, SourceFileId, StructDefinition, StructDefinitionId, TypeParam,
-    TypeParamDefinition, TypeParamId, Var, VarAccess, VarLocation,
+    FctParent, Field, FieldId, ForTypeInfo, IdentType, Intrinsic, ModuleDefinitionId, NestedVarId,
+    SemAnalysis, SourceFileId, StructDefinition, StructDefinitionId, TypeParam,
+    TypeParamDefinition, TypeParamId, Var, VarAccess, VarId, VarLocation,
 };
 use crate::language::specialize::replace_type_param;
 use crate::language::sym::{NestedSymTable, Sym};
@@ -118,7 +118,7 @@ impl<'a> TypeCheck<'a> {
         let start_index = function.start_idx;
         let number_fields = function.next_context_id;
         let mut fields = Vec::with_capacity(number_fields);
-        let mut map: Vec<Option<GlobalVarId>> = vec![None; number_fields];
+        let mut map: Vec<Option<NestedVarId>> = vec![None; number_fields];
 
         let needs_outer_context_slot = self.fct.is_lambda() && self.outer_context_access;
 
@@ -249,7 +249,7 @@ impl<'a> TypeCheck<'a> {
         self.vars.add_var(name, self_ty, false);
     }
 
-    fn add_local(&mut self, id: GlobalVarId, pos: Position) {
+    fn add_local(&mut self, id: NestedVarId, pos: Position) {
         let name = self.vars.get_var(id).name;
         match self.symtable.insert(name, Sym::Var(id)) {
             Some(Sym::Var(_)) | None => {}
@@ -3718,7 +3718,7 @@ impl VarManager {
         self.functions.last_mut().expect("no function entered")
     }
 
-    fn function_for_var(&mut self, var_id: GlobalVarId) -> &mut VarAccessPerFunction {
+    fn function_for_var(&mut self, var_id: NestedVarId) -> &mut VarAccessPerFunction {
         for function in self.functions.iter_mut().rev() {
             if var_id.0 >= function.start_idx {
                 return function;
@@ -3728,13 +3728,14 @@ impl VarManager {
         panic!("function not found")
     }
 
-    fn local_var_id(&self, var_id: GlobalVarId) -> LocalVarId {
-        LocalVarId(var_id.0 - self.current_function().start_idx)
+    fn local_var_id(&self, var_id: NestedVarId) -> VarId {
+        assert!(var_id.0 >= self.current_function().start_idx);
+        VarId(var_id.0 - self.current_function().start_idx)
     }
 
     fn check_context_allocated(
         &mut self,
-        var_id: GlobalVarId,
+        var_id: NestedVarId,
         outer_context_access: &mut bool,
     ) -> IdentType {
         let in_outer_function = var_id.0 < self.current_function().start_idx;
@@ -3749,7 +3750,7 @@ impl VarManager {
         }
     }
 
-    fn ensure_context_allocated(&mut self, var_id: GlobalVarId) -> ContextIdx {
+    fn ensure_context_allocated(&mut self, var_id: NestedVarId) -> ContextIdx {
         match self.vars[var_id.0].location {
             VarLocation::Context(field_id) => return field_id,
             VarLocation::Stack => {}
@@ -3764,8 +3765,8 @@ impl VarManager {
         context_idx
     }
 
-    fn add_var(&mut self, name: Name, ty: SourceType, mutable: bool) -> GlobalVarId {
-        let id = GlobalVarId(self.vars.len());
+    fn add_var(&mut self, name: Name, ty: SourceType, mutable: bool) -> NestedVarId {
+        let id = NestedVarId(self.vars.len());
 
         let var = VarDefinition {
             id,
@@ -3780,7 +3781,7 @@ impl VarManager {
         id
     }
 
-    fn get_var(&self, idx: GlobalVarId) -> &VarDefinition {
+    fn get_var(&self, idx: NestedVarId) -> &VarDefinition {
         &self.vars[idx.0]
     }
 
@@ -3810,7 +3811,7 @@ impl VarManager {
 
 #[derive(Clone, Debug)]
 pub struct VarDefinition {
-    pub id: GlobalVarId,
+    pub id: NestedVarId,
     pub name: Name,
     pub ty: SourceType,
     pub mutable: bool,
