@@ -3789,7 +3789,6 @@ impl VarManager {
             .vars
             .drain(function.start_idx..)
             .map(|vd| Var {
-                id: vd.id,
                 ty: vd.ty.clone(),
                 location: vd.location,
             })

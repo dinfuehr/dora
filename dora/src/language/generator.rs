@@ -52,6 +52,8 @@ pub fn generate(sa: &SemAnalysis, fct: &FctDefinition, src: &AnalysisData) -> By
     ast_bytecode_generator.generate(&fct.ast)
 }
 
+const SELF_VAR_ID: VarId = VarId(0);
+
 struct AstBytecodeGen<'a> {
     sa: &'a SemAnalysis,
     fct: &'a FctDefinition,
@@ -74,12 +76,11 @@ impl<'a> AstBytecodeGen<'a> {
             let var_self = self.src.vars.get_self();
             let var_ty = var_self.ty.clone();
 
-            let var_id = var_self.id;
             let bty = bty_from_ty(var_ty.clone());
             params.push(bty);
             let register_bty = register_bty_from_ty(var_ty);
             let reg = self.alloc_var(register_bty);
-            self.var_registers.insert(var_id, reg);
+            self.var_registers.insert(SELF_VAR_ID, reg);
         }
 
         for param in &ast.params {
@@ -107,7 +108,7 @@ impl<'a> AstBytecodeGen<'a> {
                 }
 
                 VarLocation::Stack => {
-                    self.var_registers.insert(var_self.id, reg);
+                    self.var_registers.insert(SELF_VAR_ID, reg);
                 }
             }
 
@@ -177,8 +178,7 @@ impl<'a> AstBytecodeGen<'a> {
             self.context_register = Some(context_register);
 
             if self.src.context_has_outer_context_slot() {
-                let self_id = self.src.vars.get_self().id;
-                let self_reg = self.var_reg(self_id);
+                let self_reg = self.var_reg(SELF_VAR_ID);
 
                 // Load context field of lambda object in self.
                 let outer_context_reg = self.alloc_temp(BytecodeType::Ptr);
@@ -1709,8 +1709,7 @@ impl<'a> AstBytecodeGen<'a> {
             return Register::invalid();
         }
 
-        let var_id = self.src.vars.get_self().id;
-        let var_reg = self.var_reg(var_id);
+        let var_reg = self.var_reg(SELF_VAR_ID);
 
         if dest.is_alloc() {
             return var_reg;
@@ -2636,8 +2635,7 @@ impl<'a> AstBytecodeGen<'a> {
     ) {
         let value_reg = self.visit_expr(&expr.rhs, DataDest::Alloc);
 
-        let self_id = self.src.vars.get_self().id;
-        let self_reg = self.var_reg(self_id);
+        let self_reg = self.var_reg(SELF_VAR_ID);
 
         // Load context field of lambda object in self.
         let outer_context_reg = self.alloc_temp(BytecodeType::Ptr);
@@ -2765,8 +2763,7 @@ impl<'a> AstBytecodeGen<'a> {
         dest: DataDest,
         pos: Position,
     ) -> Register {
-        let self_id = self.src.vars.get_self().id;
-        let self_reg = self.var_reg(self_id);
+        let self_reg = self.var_reg(SELF_VAR_ID);
 
         // Load context field of lambda object (in self register).
         let outer_context_reg = self.alloc_temp(BytecodeType::Ptr);

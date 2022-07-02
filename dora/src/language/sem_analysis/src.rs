@@ -315,7 +315,6 @@ pub struct VarId(pub usize);
 
 #[derive(Clone, Debug)]
 pub struct Var {
-    pub id: VarId,
     pub ty: SourceType,
     pub location: VarLocation,
 }
