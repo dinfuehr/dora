@@ -291,7 +291,7 @@ impl<'a> TypeCheck<'a> {
         }
 
         // update type of variable, necessary when stmt has initializer expression but no type
-        self.check_stmt_let_pattern(&s.pattern, defined_type.clone(), s.mutable);
+        self.check_stmt_let_pattern(&s.pattern, defined_type.clone());
 
         if s.expr.is_some() {
             if !expr_type.is_error()
@@ -330,10 +330,10 @@ impl<'a> TypeCheck<'a> {
         .unwrap_or(SourceType::Error)
     }
 
-    fn check_stmt_let_pattern(&mut self, pattern: &ast::LetPattern, ty: SourceType, mutable: bool) {
+    fn check_stmt_let_pattern(&mut self, pattern: &ast::LetPattern, ty: SourceType) {
         match pattern {
             ast::LetPattern::Ident(ref ident) => {
-                let var_id = self.vars.add_var(ident.name, ty, mutable || ident.mutable);
+                let var_id = self.vars.add_var(ident.name, ty, ident.mutable);
 
                 self.add_local(var_id, ident.pos);
                 self.analysis
@@ -370,7 +370,7 @@ impl<'a> TypeCheck<'a> {
 
                 if ty.is_error() {
                     for part in &tuple.parts {
-                        self.check_stmt_let_pattern(part, SourceType::Error, mutable);
+                        self.check_stmt_let_pattern(part, SourceType::Error);
                     }
                     return;
                 }
@@ -392,7 +392,7 @@ impl<'a> TypeCheck<'a> {
                 }
 
                 for (part, subtype) in tuple.parts.iter().zip(subtypes.iter()) {
-                    self.check_stmt_let_pattern(&*part, subtype.clone(), mutable);
+                    self.check_stmt_let_pattern(&*part, subtype.clone());
                 }
             }
         }
@@ -403,7 +403,7 @@ impl<'a> TypeCheck<'a> {
 
         if object_type.is_error() {
             self.symtable.push_level();
-            self.check_stmt_let_pattern(&stmt.pattern, SourceType::Error, false);
+            self.check_stmt_let_pattern(&stmt.pattern, SourceType::Error);
             self.visit_stmt(&stmt.block);
             self.symtable.pop_level();
             return;
@@ -414,7 +414,7 @@ impl<'a> TypeCheck<'a> {
         {
             self.symtable.push_level();
             // set variable type to return type of next
-            self.check_stmt_let_pattern(&stmt.pattern, ret_type, false);
+            self.check_stmt_let_pattern(&stmt.pattern, ret_type);
             // store fct ids for code generation
             self.analysis.map_fors.insert(stmt.id, for_type_info);
             self.check_loop_body(&stmt.block);
@@ -431,7 +431,7 @@ impl<'a> TypeCheck<'a> {
                 self.symtable.push_level();
 
                 // set variable type to return type of next
-                self.check_stmt_let_pattern(&stmt.pattern, ret_type, false);
+                self.check_stmt_let_pattern(&stmt.pattern, ret_type);
 
                 // store fct ids for code generation
                 for_type_info.make_iterator = Some(make_iterator);
@@ -452,7 +452,7 @@ impl<'a> TypeCheck<'a> {
 
         // set invalid error type
         self.symtable.push_level();
-        self.check_stmt_let_pattern(&stmt.pattern, SourceType::Error, false);
+        self.check_stmt_let_pattern(&stmt.pattern, SourceType::Error);
         self.check_loop_body(&stmt.block);
         self.symtable.pop_level();
     }
@@ -3131,8 +3131,6 @@ impl<'a> TypeCheck<'a> {
         let check_type = self.read_type(&e.data_type);
         self.analysis.set_ty(e.data_type.id(), check_type.clone());
 
-        assert!(!e.is);
-
         if let SourceType::Trait(trait_id, _) = check_type.clone() {
             let implements = implements_trait(
                 self.sa,
@@ -3159,7 +3157,7 @@ impl<'a> TypeCheck<'a> {
             self.sa
                 .diag
                 .lock()
-                .report(self.file_id, e.pos, SemError::ReferenceTypeExpected(name));
+                .report(self.file_id, e.pos, SemError::TraitExpected(name));
             let ty = SourceType::Error;
             self.analysis.set_ty(e.id, ty.clone());
             ty

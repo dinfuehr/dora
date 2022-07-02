@@ -70,7 +70,7 @@ pub enum SemError {
     SelfTypeUnavailable,
     SuperUnavailable,
     SuperNeedsMethodCall,
-    ReferenceTypeExpected(String),
+    TraitExpected(String),
     NoSuperModule,
     LetMissingInitialization,
     LetReassigned,
@@ -345,8 +345,8 @@ impl SemError {
                 "`super` only available in methods of classes with parent class".into()
             }
             SemError::SuperNeedsMethodCall => "`super` only allowed in method calls".into(),
-            SemError::ReferenceTypeExpected(ref name) => {
-                format!("`{}` is not a reference type.", name)
+            SemError::TraitExpected(ref name) => {
+                format!("`{}` is not a trait.", name)
             }
             SemError::NoSuperModule => "no super module.".into(),
             SemError::NotAccessible(ref name) => format!("`{}` is not accessible.", name),

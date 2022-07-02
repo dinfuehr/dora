@@ -543,8 +543,7 @@ impl<'a> AstDumper<'a> {
 
     fn dump_expr_conv(&mut self, expr: &ExprConvType) {
         self.indent(|d| d.dump_expr(&expr.object));
-        let op = if expr.is { "is" } else { "as" };
-        dump!(self, "{} @ {} {}", op, expr.pos, expr.id);
+        dump!(self, "as @ {} {}", expr.pos, expr.id);
         self.indent(|d| d.dump_type(&expr.data_type));
     }
 

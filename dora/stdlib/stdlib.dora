@@ -32,14 +32,14 @@
 @pub @internal fn timestamp(): Int64;
 
 fn isValidUtf8(data: Array[UInt8]): Bool {
-  var i = 0i64;
+  let mut i = 0i64;
 
   while i < data.size() {
     let by = data(i).toInt32();
-    var codepoint = 0i32;
-    var bytes = 0i32;
-    var min = 0i32;
-    var max = 0i32;
+    let mut codepoint = 0i32;
+    let mut bytes = 0i32;
+    let mut min = 0i32;
+    let mut max = 0i32;
 
     if by & 0x80i32 == 0i32 {
       bytes = 0;
@@ -123,7 +123,7 @@ impl Stacktrace {
     }
 
     let backtraceLength = self.backtrace.getOrPanic().size();
-    var i = 0i64;
+    let mut i = 0i64;
     let len = backtraceLength / 2i64;
     let elements = Vec[StacktraceElement]::new();
     elements.reserve(len);
@@ -140,7 +140,7 @@ impl Stacktrace {
 
   @pub fn printStacktrace() {
     let x = self.getStacktrace();
-    var i = 0i64;
+    let mut i = 0i64;
 
     for frame in self.getStacktrace() {
       println(frame.toString());

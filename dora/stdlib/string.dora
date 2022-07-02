@@ -4,7 +4,7 @@ use std::fatalError;
 
 impl String {
   @pub fn equals(rhs: String): Bool {
-    var i = 0i64;
+    let mut i = 0i64;
 
     if self.size() != rhs.size() {
         return false;
@@ -94,9 +94,9 @@ impl String {
       return None;
     }
 
-    var j = 0i64;
-    var k = 0i64;
-    var ell = 0i64;
+    let mut j = 0i64;
+    let mut k = 0i64;
+    let mut ell = 0i64;
 
     if val.getByte(0i64) == val.getByte(1i64) {
        k = 2i64;
@@ -121,7 +121,7 @@ impl String {
   }
 
   @static fn compare(a: String, aPos: Int64, b: String, bPos: Int64, len: Int64): Bool {
-    var i = 0i64;
+    let mut i = 0i64;
 
     while i < len {
       if a.getByte(aPos+i) != b.getByte(bPos+i) {
@@ -138,7 +138,7 @@ impl String {
     if valLen > self.size() {
       return false;
     }
-    var i = 0i64;
+    let mut i = 0i64;
     while i < valLen {
       if self.getByte(i) !== val.getByte(i) {
         return false;
@@ -154,8 +154,8 @@ impl String {
     if valLen > slfLen {
       return false;
     }
-    var iSlf = 0i64;
-    var iVal = slfLen - valLen;
+    let mut iSlf = 0i64;
+    let mut iVal = slfLen - valLen;
     while iSlf < valLen {
       if self.getByte(iSlf + iVal) !== val.getByte(iSlf) {
         return false;
@@ -176,10 +176,10 @@ impl String {
   @pub @static @internal fn fromStringPart(val: String, offset: Int64, len: Int64): Option[String];
 
   @pub @static fn binary(data: Int64): String {
-    var data = data;
+    let mut data = data;
     if data == 0i64 { return "0"; }
     let array = Array[UInt8]::zero(64i64);
-    var at = array.size();
+    let mut at = array.size();
     while data != 0i64 {
       array(at - 1i64) = ('0'.toInt64() + (data & 1i64)).toUInt8();
       data = data.shiftRight(1i32);
@@ -189,10 +189,10 @@ impl String {
   }
 
   @pub @static fn hex(data: Int64): String {
-    var data = data;
+    let mut data = data;
     if data == 0i64 { return "0"; }
     let array = Array[UInt8]::zero(16i64);
-    var at = array.size();
+    let mut at = array.size();
     while data != 0i64 {
       let digit = (data & 0xFi64).toInt32();
 
@@ -272,7 +272,7 @@ impl StringBuffer {
 
     let newcap = self.newCapacity(elements);
     let newbuf = Array[UInt8]::zero(newcap);
-    var i = 0i64;
+    let mut i = 0i64;
 
     while i < self.buf.size() {
       newbuf.set(i, self.buf.get(i));
@@ -283,7 +283,7 @@ impl StringBuffer {
   }
 
   @pub fn newCapacity(reserve: Int64): Int64 {
-    var len = self.len;
+    let mut len = self.len;
 
     if len == 0i64 {
       len = 4i64;
@@ -311,7 +311,7 @@ impl StringBuffer {
 
   @pub fn append(value: String): StringBuffer {
     self.reserve(value.size());
-    var i = 0i64;
+    let mut i = 0i64;
 
     while i < value.size() {
       self.buf.set(self.len + i, value.getByte(i));
@@ -349,7 +349,7 @@ impl CodepointIterator {
   }
 
   fn readChar(): Char {
-    var ch = self.value.getByte(self.start);
+    let mut ch = self.value.getByte(self.start);
 
     if ch <= 0x7Fu8 {
       self.start = self.start + 1i64;
@@ -388,7 +388,7 @@ impl CodepointIterator {
   }
 
   @pub fn peek(): Char {
-    var ch = self.value.getByte(self.start);
+    let mut ch = self.value.getByte(self.start);
 
     if ch <= 0x7Fu8 {
       return ch.toInt32().toCharUnchecked();
@@ -423,7 +423,7 @@ impl CodepointIterator {
   }
 
   @pub fn size(): Int64 {
-    var i = 0;
+    let mut i = 0;
 
     while self.next().isSome() {
       i = i + 1;

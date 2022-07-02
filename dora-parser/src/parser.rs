@@ -1096,13 +1096,6 @@ impl<'a> Parser<'a> {
 
     fn parse_let(&mut self) -> StmtResult {
         let start = self.token.span.start();
-        let mutable = if self.token.is(TokenKind::Let) {
-            false
-        } else if self.token.is(TokenKind::Var) {
-            true
-        } else {
-            panic!("let or var expected")
-        };
 
         let pos = self.advance_token()?.position;
         let pattern = self.parse_let_pattern()?;
@@ -1117,7 +1110,6 @@ impl<'a> Parser<'a> {
             pos,
             span,
             pattern,
-            mutable,
             data_type,
             expr,
         )))
@@ -1247,7 +1239,7 @@ impl<'a> Parser<'a> {
 
     fn parse_statement_or_expression(&mut self) -> StmtOrExprResult {
         match self.token.kind {
-            TokenKind::Let | TokenKind::Var => Ok(StmtOrExpr::Stmt(self.parse_let()?)),
+            TokenKind::Let => Ok(StmtOrExpr::Stmt(self.parse_let()?)),
             TokenKind::While => Ok(StmtOrExpr::Stmt(self.parse_while()?)),
             TokenKind::Break => Ok(StmtOrExpr::Stmt(self.parse_break()?)),
             TokenKind::Continue => Ok(StmtOrExpr::Stmt(self.parse_continue()?)),
@@ -1554,7 +1546,7 @@ impl<'a> Parser<'a> {
                 | TokenKind::LtLt
                 | TokenKind::GtGt
                 | TokenKind::GtGtGt => 6,
-                TokenKind::Is | TokenKind::As => 7,
+                TokenKind::As => 7,
                 _ => {
                     return Ok(left);
                 }
@@ -1567,13 +1559,11 @@ impl<'a> Parser<'a> {
             let tok = self.advance_token()?;
 
             left = match tok.kind {
-                TokenKind::Is | TokenKind::As => {
-                    let is = tok.is(TokenKind::Is);
-
+                TokenKind::As => {
                     let right = Box::new(self.parse_type()?);
                     let span = self.span_from(start);
                     let expr =
-                        Expr::create_conv(self.generate_id(), tok.position, span, left, right, is);
+                        Expr::create_conv(self.generate_id(), tok.position, span, left, right);
 
                     Box::new(expr)
                 }
@@ -2717,17 +2707,6 @@ mod tests {
         let stmt = parse_stmt("let a = 1;");
         let var = stmt.to_let().unwrap();
 
-        assert_eq!(false, var.mutable);
-        assert!(var.data_type.is_none());
-        assert!(var.expr.as_ref().unwrap().is_lit_int());
-    }
-
-    #[test]
-    fn parse_var_without_type() {
-        let stmt = parse_stmt("var a = 1;");
-        let var = stmt.to_let().unwrap();
-
-        assert_eq!(true, var.mutable);
         assert!(var.data_type.is_none());
         assert!(var.expr.as_ref().unwrap().is_lit_int());
     }
@@ -2737,7 +2716,6 @@ mod tests {
         let stmt = parse_stmt("let x : int = 1;");
         let var = stmt.to_let().unwrap();
 
-        assert_eq!(false, var.mutable);
         assert!(var.data_type.is_some());
         assert!(var.expr.as_ref().unwrap().is_lit_int());
     }
@@ -2781,31 +2759,10 @@ mod tests {
     }
 
     #[test]
-    fn parse_var_with_type() {
-        let stmt = parse_stmt("var x : int = 1;");
-        let var = stmt.to_let().unwrap();
-
-        assert_eq!(true, var.mutable);
-        assert!(var.data_type.is_some());
-        assert!(var.expr.as_ref().unwrap().is_lit_int());
-    }
-
-    #[test]
     fn parse_let_with_type_but_without_assignment() {
         let stmt = parse_stmt("let x : int;");
         let var = stmt.to_let().unwrap();
 
-        assert_eq!(false, var.mutable);
-        assert!(var.data_type.is_some());
-        assert!(var.expr.is_none());
-    }
-
-    #[test]
-    fn parse_var_with_type_but_without_assignment() {
-        let stmt = parse_stmt("var x : int;");
-        let var = stmt.to_let().unwrap();
-
-        assert_eq!(true, var.mutable);
         assert!(var.data_type.is_some());
         assert!(var.expr.is_none());
     }
@@ -2815,17 +2772,6 @@ mod tests {
         let stmt = parse_stmt("let x;");
         let var = stmt.to_let().unwrap();
 
-        assert_eq!(false, var.mutable);
-        assert!(var.data_type.is_none());
-        assert!(var.expr.is_none());
-    }
-
-    #[test]
-    fn parse_var_without_type_and_assignment() {
-        let stmt = parse_stmt("var x;");
-        let var = stmt.to_let().unwrap();
-
-        assert_eq!(true, var.mutable);
         assert!(var.data_type.is_none());
         assert!(var.expr.is_none());
     }
@@ -3143,19 +3089,10 @@ mod tests {
     }
 
     #[test]
-    fn parse_is_expr() {
-        let (expr, _) = parse_expr("a is String");
-        let expr = expr.to_conv().unwrap();
-        assert_eq!(true, expr.object.is_ident());
-        assert_eq!(true, expr.is);
-    }
-
-    #[test]
     fn parse_as_expr() {
         let (expr, _) = parse_expr("a as String");
         let expr = expr.to_conv().unwrap();
         assert_eq!(true, expr.object.is_ident());
-        assert_eq!(false, expr.is);
     }
 
     #[test]

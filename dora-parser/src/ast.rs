@@ -770,7 +770,6 @@ impl Stmt {
         pos: Position,
         span: Span,
         pattern: Box<LetPattern>,
-        mutable: bool,
         data_type: Option<Type>,
         expr: Option<Box<Expr>>,
     ) -> Stmt {
@@ -780,7 +779,6 @@ impl Stmt {
             span,
 
             pattern,
-            mutable,
             data_type,
             expr,
         })
@@ -992,7 +990,6 @@ pub struct StmtLetType {
     pub span: Span,
 
     pub pattern: Box<LetPattern>,
-    pub mutable: bool,
 
     pub data_type: Option<Type>,
     pub expr: Option<Box<Expr>>,
@@ -1340,7 +1337,6 @@ impl Expr {
         span: Span,
         object: Box<Expr>,
         data_type: Box<Type>,
-        is: bool,
     ) -> Expr {
         Expr::Conv(ExprConvType {
             id,
@@ -1349,7 +1345,6 @@ impl Expr {
 
             object,
             data_type,
-            is,
         })
     }
 
@@ -1935,7 +1930,6 @@ pub struct ExprConvType {
     pub span: Span,
 
     pub object: Box<Expr>,
-    pub is: bool,
     pub data_type: Box<Type>,
 }
 

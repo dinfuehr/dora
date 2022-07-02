@@ -570,7 +570,6 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     keywords.insert("fn", TokenKind::Fn);
     keywords.insert("let", TokenKind::Let);
     keywords.insert("mut", TokenKind::Mut);
-    keywords.insert("var", TokenKind::Var);
     keywords.insert("const", TokenKind::Const);
 
     // control flow
@@ -589,7 +588,6 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     keywords.insert("super", TokenKind::Super);
 
     // casting
-    keywords.insert("is", TokenKind::Is);
     keywords.insert("as", TokenKind::As);
 
     // unused

@@ -31,7 +31,6 @@ pub enum TokenKind {
     Fn,
     Let,
     Mut,
-    Var,
     Const,
 
     // control flow
@@ -50,7 +49,6 @@ pub enum TokenKind {
     Super,
 
     // casting
-    Is,
     As,
 
     // operators – numbers
@@ -146,7 +144,6 @@ impl TokenKind {
             TokenKind::Fn => "fn",
             TokenKind::Let => "let",
             TokenKind::Mut => "mut",
-            TokenKind::Var => "var",
             TokenKind::Const => "const",
 
             // control flow
@@ -165,7 +162,6 @@ impl TokenKind {
             TokenKind::Super => "super",
 
             // casting
-            TokenKind::Is => "is",
             TokenKind::As => "as",
 
             // operators – arithmetic
