@@ -893,6 +893,13 @@ impl<'a> Parser<'a> {
         let start = self.token.span.start();
         let pos = self.token.position;
 
+        let mutable = if self.token.is(TokenKind::Mut) {
+            self.advance_token()?;
+            true
+        } else {
+            false
+        };
+
         let name = self.expect_identifier()?;
 
         self.expect_token(TokenKind::Colon)?;
@@ -915,6 +922,7 @@ impl<'a> Parser<'a> {
             name,
             pos,
             span,
+            mutable,
             data_type,
         })
     }

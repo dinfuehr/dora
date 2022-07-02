@@ -3668,3 +3668,13 @@ fn internal_struct_ctor() {
         SemError::StructConstructorNotAccessible("std::primitives::Int32".into()),
     );
 }
+
+#[test]
+fn mutable_param() {
+    ok("fn f(mut x: Int64) { x = 10; }");
+    err(
+        "fn f(x: Int64) { x = 10; }",
+        pos(1, 20),
+        SemError::LetReassigned,
+    );
+}

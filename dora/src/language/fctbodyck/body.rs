@@ -213,7 +213,7 @@ impl<'a> TypeCheck<'a> {
                 ty.clone()
             };
 
-            let var_id = self.vars.add_var(param.name, ty, false);
+            let var_id = self.vars.add_var(param.name, ty, param.mutable);
             self.analysis
                 .map_vars
                 .insert(param.id, self.vars.local_var_id(var_id));

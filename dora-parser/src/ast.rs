@@ -749,6 +749,7 @@ pub struct Param {
     pub name: Name,
     pub pos: Position,
     pub span: Span,
+    pub mutable: bool,
     pub data_type: Type,
     pub variadic: bool,
 }
