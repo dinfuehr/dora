@@ -23,6 +23,7 @@ pub struct AnalysisData {
     pub vars: VarAccess, // variables in functions
     pub context_cls_id: Option<ClassDefinitionId>,
     pub context_has_outer_context_slot: Option<bool>,
+    pub outer_context_access: Option<bool>,
 }
 
 impl AnalysisData {
@@ -39,6 +40,7 @@ impl AnalysisData {
             vars: VarAccess::empty(),
             context_cls_id: None,
             context_has_outer_context_slot: None,
+            outer_context_access: None,
         }
     }
 
@@ -56,6 +58,10 @@ impl AnalysisData {
 
     pub fn context_has_outer_context_slot(&self) -> bool {
         self.context_has_outer_context_slot.expect("missing")
+    }
+
+    pub fn outer_context_access(&self) -> bool {
+        self.outer_context_access.expect("missing")
     }
 }
 
@@ -354,23 +360,17 @@ impl VarLocation {
 pub struct VarAccess {
     start_idx: usize,
     vars: Vec<Var>,
-    outer_context_access: bool,
 }
 
 impl VarAccess {
-    pub fn new(start_idx: usize, vars: Vec<Var>, outer_context_access: bool) -> VarAccess {
-        VarAccess {
-            start_idx,
-            vars,
-            outer_context_access,
-        }
+    pub fn new(start_idx: usize, vars: Vec<Var>) -> VarAccess {
+        VarAccess { start_idx, vars }
     }
 
     fn empty() -> VarAccess {
         VarAccess {
             start_idx: 0,
             vars: Vec::new(),
-            outer_context_access: false,
         }
     }
 
@@ -380,9 +380,5 @@ impl VarAccess {
 
     pub fn get_self(&self) -> &Var {
         &self.vars[0]
-    }
-
-    pub fn outer_context_access(&self) -> bool {
-        self.outer_context_access
     }
 }

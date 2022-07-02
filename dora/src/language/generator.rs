@@ -940,7 +940,7 @@ impl<'a> AstBytecodeGen<'a> {
         let lambda_fct = lambda_fct.read();
         let lambda_analysis = lambda_fct.analysis();
 
-        if lambda_analysis.vars.outer_context_access() {
+        if lambda_analysis.outer_context_access() {
             self.builder
                 .emit_push_register(self.context_register.expect("missing context"));
         }

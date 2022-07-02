@@ -95,7 +95,9 @@ impl<'a> TypeCheck<'a> {
         }
 
         // Store var definitions for all local and context vars defined in this function.
-        self.analysis.vars = self.vars.leave_function(self.outer_context_access);
+        self.analysis.vars = self.vars.leave_function();
+
+        self.analysis.outer_context_access = Some(self.outer_context_access);
     }
 
     fn needs_context(&self) -> bool {
@@ -3104,7 +3106,7 @@ impl<'a> TypeCheck<'a> {
                 typeck.check();
             }
 
-            if analysis.vars.outer_context_access() {
+            if analysis.outer_context_access() {
                 self.outer_context_access = true
             }
 
@@ -3780,7 +3782,7 @@ impl VarManager {
         });
     }
 
-    fn leave_function(&mut self, outer_context_access: bool) -> VarAccess {
+    fn leave_function(&mut self) -> VarAccess {
         let function = self.functions.pop().expect("missing function");
 
         let vars = self
@@ -3793,7 +3795,7 @@ impl VarManager {
             })
             .collect();
 
-        VarAccess::new(function.start_idx, vars, outer_context_access)
+        VarAccess::new(function.start_idx, vars)
     }
 }
 
