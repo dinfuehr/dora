@@ -7,8 +7,8 @@ use self::Sym::*;
 
 use crate::language::sem_analysis::{
     AnnotationDefinitionId, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId,
-    FctDefinitionId, FieldId, GlobalDefinitionId, ModuleDefinitionId, SemAnalysis,
-    StructDefinitionId, TraitDefinitionId, TypeParamId, VarId,
+    FctDefinitionId, FieldId, GlobalDefinitionId, GlobalVarId, ModuleDefinitionId, SemAnalysis,
+    StructDefinitionId, TraitDefinitionId, TypeParamId,
 };
 use dora_parser::interner::Name;
 
@@ -95,7 +95,7 @@ impl NestedSymTable {
         self.get(name).and_then(|n| n.to_global())
     }
 
-    pub fn get_var(&self, name: Name) -> Option<VarId> {
+    pub fn get_var(&self, name: Name) -> Option<GlobalVarId> {
         self.get(name).and_then(|n| n.to_var())
     }
 
@@ -173,7 +173,7 @@ pub enum Sym {
     Enum(EnumDefinitionId),
     Field(FieldId),
     Fct(FctDefinitionId),
-    Var(VarId),
+    Var(GlobalVarId),
     Annotation(AnnotationDefinitionId),
     Global(GlobalDefinitionId),
     Const(ConstDefinitionId),
@@ -266,7 +266,7 @@ impl Sym {
         }
     }
 
-    pub fn to_var(&self) -> Option<VarId> {
+    pub fn to_var(&self) -> Option<GlobalVarId> {
         match *self {
             Var(id) => Some(id),
             _ => None,

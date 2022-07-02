@@ -16,7 +16,7 @@ pub struct AnalysisData {
     pub map_calls: NodeMap<Arc<CallType>>, // maps function call to FctId
     pub map_idents: NodeMap<IdentType>,
     pub map_tys: NodeMap<SourceType>,
-    pub map_vars: NodeMap<VarId>,
+    pub map_vars: NodeMap<LocalVarId>,
     pub map_cls: NodeMap<ClassDefinitionId>,
     pub map_fors: NodeMap<ForTypeInfo>,
     pub map_lambdas: NodeMap<FctDefinitionId>,
@@ -117,7 +117,7 @@ where
 #[derive(Debug, Clone)]
 pub enum IdentType {
     /// name of local variable
-    Var(VarId),
+    Var(LocalVarId),
 
     // context variable
     Context(usize, ContextIdx),
@@ -148,7 +148,7 @@ pub enum IdentType {
 }
 
 impl IdentType {
-    pub fn var_id(&self) -> VarId {
+    pub fn var_id(&self) -> LocalVarId {
         match *self {
             IdentType::Var(var_id) => var_id,
             _ => panic!(),
@@ -311,7 +311,10 @@ impl CallType {
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
-pub struct VarId(pub usize);
+pub struct GlobalVarId(pub usize);
+
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
+pub struct LocalVarId(pub usize);
 
 #[derive(Clone, Debug)]
 pub struct Var {
@@ -319,16 +322,16 @@ pub struct Var {
     pub location: VarLocation,
 }
 
-impl Index<VarId> for Vec<Var> {
+impl Index<GlobalVarId> for Vec<Var> {
     type Output = Var;
 
-    fn index(&self, index: VarId) -> &Var {
+    fn index(&self, index: GlobalVarId) -> &Var {
         &self[index.0]
     }
 }
 
-impl IndexMut<VarId> for Vec<Var> {
-    fn index_mut(&mut self, index: VarId) -> &mut Var {
+impl IndexMut<GlobalVarId> for Vec<Var> {
+    fn index_mut(&mut self, index: GlobalVarId) -> &mut Var {
         &mut self[index.0]
     }
 }
@@ -357,24 +360,20 @@ impl VarLocation {
 
 #[derive(Debug)]
 pub struct VarAccess {
-    start_idx: usize,
     vars: Vec<Var>,
 }
 
 impl VarAccess {
-    pub fn new(start_idx: usize, vars: Vec<Var>) -> VarAccess {
-        VarAccess { start_idx, vars }
+    pub fn new(vars: Vec<Var>) -> VarAccess {
+        VarAccess { vars }
     }
 
     fn empty() -> VarAccess {
-        VarAccess {
-            start_idx: 0,
-            vars: Vec::new(),
-        }
+        VarAccess { vars: Vec::new() }
     }
 
-    pub fn get_var(&self, idx: VarId) -> &Var {
-        &self.vars[idx.0 - self.start_idx]
+    pub fn get_var(&self, idx: LocalVarId) -> &Var {
+        &self.vars[idx.0]
     }
 
     pub fn get_self(&self) -> &Var {
