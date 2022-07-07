@@ -587,17 +587,12 @@ impl<'a> Parser<'a> {
 
         Ok(Class {
             id: self.generate_id(),
-            new_syntax: true,
             name: ident,
             pos,
             span,
             internal: modifiers.contains(Modifier::Internal),
             is_pub: modifiers.contains(Modifier::Pub),
-            has_constructor: false,
-            constructor: None,
             fields,
-            methods: Vec::new(),
-            initializers: Vec::new(),
             type_params,
         })
     }

@@ -1,7 +1,6 @@
 use std::ptr;
 
 use crate::handle::{handle, Handle};
-use crate::language::sem_analysis::FctParent;
 use crate::object::{alloc, Array, Int32Array, Ref, Stacktrace, StacktraceElement, Str};
 use crate::threads::current_thread;
 use crate::vm::{get_vm, CodeId, CodeKind, VM};
@@ -200,7 +199,6 @@ fn set_backtrace(vm: &VM, mut obj: Handle<Stacktrace>, via_retrieve: bool) {
     let mut skip = 0;
 
     let mut skip_retrieve_stack = false;
-    let mut skip_constructor = false;
 
     // ignore every element until first not inside susubclass of Stacktrace (ctor of Exception)
     if via_retrieve {
@@ -208,8 +206,6 @@ fn set_backtrace(vm: &VM, mut obj: Handle<Stacktrace>, via_retrieve: bool) {
             let code_id = elem.fct_id.idx().into();
             let code = vm.code_objects.get(code_id);
             let fct_id = code.fct_id();
-            let fct = vm.fcts.idx(fct_id);
-            let fct = fct.read();
 
             if !skip_retrieve_stack {
                 let retrieve_stacktrace_fct_id = vm.known.functions.stacktrace_retrieve();
@@ -221,33 +217,7 @@ fn set_backtrace(vm: &VM, mut obj: Handle<Stacktrace>, via_retrieve: bool) {
                     skip_retrieve_stack = true;
                 }
             }
-
-            if !skip_constructor {
-                assert!(skip_retrieve_stack);
-                if let FctParent::Class(owner_class) = fct.parent {
-                    if fct.is_constructor {
-                        let throw_object_cls_id = (&obj.header)
-                            .vtbl()
-                            .class_instance()
-                            .cls_id()
-                            .expect("no corresponding class");
-
-                        if throw_object_cls_id == owner_class {
-                            skip += 1;
-                            skip_constructor = true;
-                            break;
-                        }
-                    } else {
-                        skip_constructor = true;
-                        break;
-                    }
-                } else {
-                    skip_constructor = true;
-                    break;
-                }
-            }
         }
-        assert!(skip_constructor);
     }
 
     let len = stacktrace.len() - skip;

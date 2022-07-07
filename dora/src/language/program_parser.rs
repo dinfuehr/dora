@@ -7,10 +7,10 @@ use std::sync::Arc;
 use crate::language::error::msg::SemError;
 use crate::language::report_sym_shadow;
 use crate::language::sem_analysis::{
-    AnnotationDefinition, ClassDefinition, ClassDefinitionId, ConstDefinition, EnumDefinition,
-    ExtensionDefinition, ExtensionDefinitionId, FctDefinition, FctParent, GlobalDefinition,
-    GlobalDefinitionId, ImplDefinition, ImplDefinitionId, ModuleDefinition, ModuleDefinitionId,
-    SemAnalysis, SourceFileId, StructDefinition, TraitDefinition, TraitDefinitionId, UseDefinition,
+    AnnotationDefinition, ClassDefinition, ConstDefinition, EnumDefinition, ExtensionDefinition,
+    ExtensionDefinitionId, FctDefinition, FctParent, GlobalDefinition, GlobalDefinitionId,
+    ImplDefinition, ImplDefinitionId, ModuleDefinition, ModuleDefinitionId, SemAnalysis,
+    SourceFileId, StructDefinition, TraitDefinition, TraitDefinitionId, UseDefinition,
 };
 use crate::language::sym::Sym;
 use dora_parser::ast::visit::Visitor;
@@ -445,8 +445,6 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         let class = ClassDefinition::new(self.file_id, node, self.module_id);
         let class_id = self.sa.classes.push(class);
 
-        find_methods_in_class(self.sa, class_id, node);
-
         let sym = Sym::Class(class_id);
 
         if let Some(sym) = self.insert(node.name, sym) {
@@ -553,39 +551,6 @@ fn find_methods_in_extension(
 
         let fct_id = sa.add_fct(fct);
         extension.methods.push(fct_id);
-    }
-}
-
-fn find_methods_in_class(
-    sa: &mut SemAnalysis,
-    class_id: ClassDefinitionId,
-    node: &Arc<ast::Class>,
-) {
-    let class = sa.classes.idx(class_id);
-    let mut class = class.write();
-
-    if let Some(ref ctor_node) = node.constructor {
-        let fct = FctDefinition::new(
-            class.file_id(),
-            class.module_id,
-            ctor_node,
-            FctParent::Class(class_id),
-        );
-
-        let ctor_id = sa.add_fct(fct);
-        class.constructor = Some(ctor_id);
-    }
-
-    for method_node in &node.methods {
-        let fct = FctDefinition::new(
-            class.file_id(),
-            class.module_id,
-            method_node,
-            FctParent::Class(class_id),
-        );
-
-        let fct_id = sa.add_fct(fct);
-        class.methods.push(fct_id);
     }
 }
 

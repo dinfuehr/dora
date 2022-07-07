@@ -17,21 +17,6 @@ pub fn check(sa: &SemAnalysis) {
         sym_table.push_level();
 
         match fct.parent {
-            FctParent::Class(owner_class) => {
-                let cls = sa.classes.idx(owner_class);
-                let cls = cls.read();
-
-                for (type_param_id, param) in cls.type_params.iter().enumerate() {
-                    let sym = Sym::TypeParam(TypeParamId(type_param_id));
-                    sym_table.insert(param.name, sym);
-                    fct.type_params.push(param.clone());
-                }
-
-                if fct.has_self() {
-                    fct.param_types.push(cls.ty());
-                }
-            }
-
             FctParent::Impl(impl_id) => {
                 let impl_ = sa.impls[impl_id].read();
 
@@ -189,12 +174,6 @@ pub fn check(sa: &SemAnalysis) {
         check_test(sa, &*fct);
 
         match fct.parent {
-            FctParent::Class(clsid) => {
-                let cls = sa.classes.idx(clsid);
-                let cls = cls.read();
-                check_against_methods(sa, &*fct, &cls.methods);
-            }
-
             FctParent::Trait(traitid) => {
                 let trait_ = sa.traits[traitid].read();
                 check_against_methods(sa, &*fct, &trait_.methods);

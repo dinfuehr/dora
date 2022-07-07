@@ -2111,79 +2111,35 @@ impl<'a> TypeCheck<'a> {
 
         let cls_ty = self.sa.cls_with_type_list(cls_id, type_params.clone());
 
-        if cls.uses_new_syntax() {
-            if !is_default_accessible(self.sa, cls.module_id, self.module_id)
-                && !cls.all_fields_are_public()
-                && is_class_accessible
-            {
-                let msg = SemError::ClassConstructorNotAccessible(cls.name(self.sa));
-                self.sa.diag.lock().report(self.file_id, e.pos, msg);
-            }
-
-            if cls.is_array {
-                println!(
-                    "class {} is array: internal={}",
-                    cls.name(self.sa),
-                    cls.internal
-                );
-            }
-
-            if !self.check_expr_call_class_args(&*cls, type_params.clone(), arg_types) {
-                let class_name = cls.name(self.sa);
-                let field_types = cls
-                    .fields
-                    .iter()
-                    .map(|field| field.ty.name_cls(self.sa, &*cls))
-                    .collect::<Vec<_>>();
-                let arg_types = arg_types
-                    .iter()
-                    .map(|a| a.name_fct(self.sa, self.fct))
-                    .collect::<Vec<_>>();
-                let msg = SemError::ParamTypesIncompatible(class_name, field_types, arg_types);
-                self.sa.diag.lock().report(self.file_id, e.pos, msg);
-            }
-
-            self.analysis
-                .map_calls
-                .insert(e.id, Arc::new(CallType::Class2Ctor(cls.id(), type_params)));
-
-            self.analysis.set_ty(e.id, cls_ty.clone());
-            cls_ty
-        } else {
-            if cls.constructor.is_none() {
-                self.sa
-                    .diag
-                    .lock()
-                    .report(self.file_id, e.pos, SemError::UnknownCtor);
-                return cls_ty;
-            }
-
-            let ctor_id = cls.constructor.expect("missing constructor");
-            let ctor = self.sa.fcts.idx(ctor_id);
-            let ctor = ctor.read();
-
-            if !args_compatible_fct(self.sa, &*ctor, arg_types, &type_params, None) {
-                let fct_name = self.sa.interner.str(ctor.name).to_string();
-                let fct_params = ctor
-                    .params_without_self()
-                    .iter()
-                    .map(|a| a.name_fct(self.sa, &*ctor))
-                    .collect::<Vec<_>>();
-                let call_types = arg_types
-                    .iter()
-                    .map(|a| a.name_fct(self.sa, &*ctor))
-                    .collect::<Vec<_>>();
-                let msg = SemError::ParamTypesIncompatible(fct_name, fct_params, call_types);
-                self.sa.diag.lock().report(self.file_id, e.pos, msg);
-            }
-
-            let call_type = CallType::Ctor(cls_ty.clone(), ctor_id);
-            self.analysis.map_calls.insert(e.id, Arc::new(call_type));
-
-            self.analysis.set_ty(e.id, cls_ty.clone());
-
-            cls_ty
+        if !is_default_accessible(self.sa, cls.module_id, self.module_id)
+            && !cls.all_fields_are_public()
+            && is_class_accessible
+        {
+            let msg = SemError::ClassConstructorNotAccessible(cls.name(self.sa));
+            self.sa.diag.lock().report(self.file_id, e.pos, msg);
         }
+
+        if !self.check_expr_call_class_args(&*cls, type_params.clone(), arg_types) {
+            let class_name = cls.name(self.sa);
+            let field_types = cls
+                .fields
+                .iter()
+                .map(|field| field.ty.name_cls(self.sa, &*cls))
+                .collect::<Vec<_>>();
+            let arg_types = arg_types
+                .iter()
+                .map(|a| a.name_fct(self.sa, self.fct))
+                .collect::<Vec<_>>();
+            let msg = SemError::ParamTypesIncompatible(class_name, field_types, arg_types);
+            self.sa.diag.lock().report(self.file_id, e.pos, msg);
+        }
+
+        self.analysis
+            .map_calls
+            .insert(e.id, Arc::new(CallType::Class2Ctor(cls.id(), type_params)));
+
+        self.analysis.set_ty(e.id, cls_ty.clone());
+        cls_ty
     }
 
     fn check_expr_call_class_args(

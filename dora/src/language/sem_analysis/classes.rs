@@ -11,7 +11,6 @@ use crate::language::sem_analysis::{
     ImplDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId, TraitDefinitionId,
 };
 use crate::language::specialize::replace_type_param;
-use crate::language::sym::SymTable;
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;
 
@@ -55,13 +54,9 @@ pub struct ClassDefinition {
     pub ty: Option<SourceType>,
     pub internal: bool,
     pub internal_resolved: bool,
-    pub has_constructor: bool,
     pub is_pub: bool,
-    pub table: SymTable,
 
-    pub constructor: Option<FctDefinitionId>,
     pub fields: Vec<Field>,
-    pub methods: Vec<FctDefinitionId>,
 
     pub impls: Vec<ImplDefinitionId>,
     pub extensions: Vec<ExtensionDefinitionId>,
@@ -96,13 +91,9 @@ impl ClassDefinition {
             ty: None,
             internal: ast.internal,
             internal_resolved: false,
-            has_constructor: ast.has_constructor,
             is_pub: ast.is_pub,
-            table: SymTable::new(),
 
-            constructor: None,
             fields: Vec::new(),
-            methods: Vec::new(),
 
             impls: Vec::new(),
             extensions: Vec::new(),
@@ -133,13 +124,9 @@ impl ClassDefinition {
             ty: None,
             internal: false,
             internal_resolved: false,
-            has_constructor: false,
             is_pub,
-            table: SymTable::new(),
 
-            constructor: None,
             fields,
-            methods: Vec::new(),
 
             impls: Vec::new(),
             extensions: Vec::new(),
@@ -162,10 +149,6 @@ impl ClassDefinition {
 
     pub fn pos(&self) -> Position {
         self.pos.expect("missing position")
-    }
-
-    pub fn uses_new_syntax(&self) -> bool {
-        self.ast.as_ref().expect("missing ast").new_syntax
     }
 
     pub fn is_generic(&self) -> bool {
@@ -217,27 +200,6 @@ impl ClassDefinition {
         } else {
             name.to_string()
         }
-    }
-
-    pub fn find_method(
-        &self,
-        sa: &SemAnalysis,
-        name: Name,
-        is_static: bool,
-    ) -> Option<FctDefinitionId> {
-        let cls = sa.classes.idx(self.id());
-        let cls = cls.read();
-
-        for &method in &cls.methods {
-            let method = sa.fcts.idx(method);
-            let method = method.read();
-
-            if method.name == name && method.is_static == is_static {
-                return Some(method.id());
-            }
-        }
-
-        None
     }
 
     pub fn all_fields_are_public(&self) -> bool {
@@ -337,23 +299,6 @@ pub fn find_methods_in_class(
     is_static: bool,
 ) -> Vec<Candidate> {
     let mut candidates = Vec::new();
-
-    let cls_id = object_type.cls_id().expect("no class");
-    let cls = sa.classes.idx(cls_id);
-    let cls = cls.read();
-
-    for &method in &cls.methods {
-        let method = sa.fcts.idx(method);
-        let method = method.read();
-
-        if method.name == name && method.is_static == is_static {
-            return vec![Candidate {
-                object_type: object_type.clone(),
-                container_type_params: object_type.type_params(),
-                fct_id: method.id(),
-            }];
-        }
-    }
 
     // Find extension methods
     {

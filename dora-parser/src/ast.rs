@@ -534,18 +534,13 @@ pub struct Trait {
 #[derive(Clone, Debug)]
 pub struct Class {
     pub id: NodeId,
-    pub new_syntax: bool,
     pub name: Name,
     pub pos: Position,
     pub span: Span,
     pub internal: bool,
-    pub has_constructor: bool,
     pub is_pub: bool,
 
-    pub constructor: Option<Arc<Function>>,
     pub fields: Vec<Field>,
-    pub methods: Vec<Arc<Function>>,
-    pub initializers: Vec<Box<Stmt>>,
     pub type_params: Option<Vec<TypeParam>>,
 }
 

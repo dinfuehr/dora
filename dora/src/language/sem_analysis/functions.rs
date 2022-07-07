@@ -9,8 +9,8 @@ use dora_parser::lexer::position::Position;
 use crate::bytecode::{BytecodeFunction, BytecodeType};
 use crate::gc::Address;
 use crate::language::sem_analysis::{
-    AnalysisData, ClassDefinitionId, ExtensionDefinitionId, ImplDefinitionId, ModuleDefinitionId,
-    SemAnalysis, SourceFileId, TraitDefinitionId, TypeParam, TypeParamId,
+    AnalysisData, ExtensionDefinitionId, ImplDefinitionId, ModuleDefinitionId, SemAnalysis,
+    SourceFileId, TraitDefinitionId, TypeParam, TypeParamId,
 };
 use crate::language::ty::SourceType;
 use crate::utils::GrowableVec;
@@ -133,31 +133,10 @@ impl FctDefinition {
         }
     }
 
-    pub fn in_class(&self) -> bool {
-        match self.parent {
-            FctParent::Class(_) => true,
-            _ => false,
-        }
-    }
-
     pub fn in_trait(&self) -> bool {
         match self.parent {
             FctParent::Trait(_) => true,
             _ => false,
-        }
-    }
-
-    pub fn parent_cls_id(&self) -> Option<ClassDefinitionId> {
-        match self.parent {
-            FctParent::Class(cls_id) => Some(cls_id),
-            _ => None,
-        }
-    }
-
-    pub fn cls_id(&self) -> ClassDefinitionId {
-        match self.parent {
-            FctParent::Class(clsid) => clsid,
-            _ => unreachable!(),
         }
     }
 
@@ -170,19 +149,6 @@ impl FctDefinition {
 
     pub fn display_name(&self, sa: &SemAnalysis) -> String {
         let mut repr = match self.parent {
-            FctParent::Class(class_id) => {
-                let cls = sa.classes.idx(class_id);
-                let cls = cls.read();
-                let name = cls.name(sa);
-
-                if self.is_constructor {
-                    // do nothing
-                    return name;
-                }
-
-                name
-            }
-
             FctParent::Trait(trait_id) => {
                 let trait_ = sa.traits[trait_id].read();
                 trait_.name(sa)
@@ -235,10 +201,7 @@ impl FctDefinition {
 
     pub fn has_self(&self) -> bool {
         match self.parent {
-            FctParent::Class(_)
-            | FctParent::Trait(_)
-            | FctParent::Impl(_)
-            | FctParent::Extension(_) => !self.is_static,
+            FctParent::Trait(_) | FctParent::Impl(_) | FctParent::Extension(_) => !self.is_static,
 
             FctParent::Function(_) => true,
 
@@ -285,7 +248,6 @@ fn path_for_type(sa: &SemAnalysis, ty: SourceType) -> String {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FctParent {
-    Class(ClassDefinitionId),
     Trait(TraitDefinitionId),
     Impl(ImplDefinitionId),
     Extension(ExtensionDefinitionId),
@@ -311,13 +273,6 @@ impl FctParent {
     pub fn fct_id(&self) -> FctDefinitionId {
         match self {
             &FctParent::Function(id) => id,
-            _ => unreachable!(),
-        }
-    }
-
-    pub fn cls_id(&self) -> ClassDefinitionId {
-        match self {
-            &FctParent::Class(id) => id,
             _ => unreachable!(),
         }
     }

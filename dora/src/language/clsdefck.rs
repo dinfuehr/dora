@@ -1,9 +1,10 @@
+use std::collections::HashSet;
+
 use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
-    ClassDefinitionId, FctDefinitionId, Field, FieldId, ModuleDefinitionId, SemAnalysis,
-    SourceFileId,
+    ClassDefinitionId, Field, FieldId, ModuleDefinitionId, SemAnalysis, SourceFileId,
 };
-use crate::language::sym::{NestedSymTable, Sym, SymTable};
+use crate::language::sym::NestedSymTable;
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::language::{self, read_type, AllowSelf, TypeParamContext};
 
@@ -30,6 +31,7 @@ pub fn check(sa: &SemAnalysis) {
             ast: &ast,
             module_id,
             sym: NestedSymTable::new(sa, module_id),
+            table: HashSet::new(),
         };
 
         clsck.check();
@@ -43,6 +45,7 @@ struct ClsDefCheck<'x> {
     ast: &'x ast::Class,
     module_id: ModuleDefinitionId,
     sym: NestedSymTable,
+    table: HashSet<Name>,
 }
 
 impl<'x> ClsDefCheck<'x> {
@@ -61,12 +64,6 @@ impl<'x> ClsDefCheck<'x> {
             self.visit_field(field);
         }
 
-        let methods = self.sa.classes.idx(self.cls_id).read().methods.clone();
-
-        for method_id in methods {
-            self.visit_method(method_id);
-        }
-
         self.sym.pop_level();
     }
 
@@ -81,27 +78,6 @@ impl<'x> ClsDefCheck<'x> {
         )
         .unwrap_or(SourceType::Error);
         self.add_field(f.pos, f.name, ty, f.mutable, f.is_pub);
-
-        let cls = self.sa.classes.idx(self.cls_id);
-
-        if !f.primary_ctor && f.expr.is_none() && !cls.read().uses_new_syntax() {
-            self.sa.diag.lock().report(
-                self.file_id.into(),
-                f.pos,
-                SemError::LetMissingInitialization,
-            );
-        }
-    }
-
-    fn visit_method(&mut self, fct_id: FctDefinitionId) {
-        let fct = self.sa.fcts.idx(fct_id);
-        let fct = fct.read();
-
-        let cls = self.sa.classes.idx(self.cls_id);
-        let mut cls = cls.write();
-
-        self.check_if_symbol_exists(fct.name, fct.pos, &cls.table);
-        cls.table.insert(fct.name, Sym::Fct(fct_id));
     }
 
     fn add_field(
@@ -125,10 +101,9 @@ impl<'x> ClsDefCheck<'x> {
             is_pub,
         };
 
-        self.check_if_symbol_exists(name, pos, &cls.table);
+        self.check_if_symbol_exists(name, pos);
 
         cls.fields.push(field);
-        cls.table.insert(name, Sym::Field(id));
     }
 
     fn check_type_params(&mut self, ast_type_params: &[ast::TypeParam]) {
@@ -148,30 +123,15 @@ impl<'x> ClsDefCheck<'x> {
         cls.ty = Some(SourceType::Class(self.cls_id, params));
     }
 
-    fn check_if_symbol_exists(&mut self, name: Name, pos: Position, table: &SymTable) {
-        if let Some(sym) = table.get(name) {
+    fn check_if_symbol_exists(&mut self, name: Name, pos: Position) {
+        if !self.table.insert(name) {
             let file: SourceFileId = self.file_id.into();
 
-            match sym {
-                Sym::Fct(method) => {
-                    let method = self.sa.fcts.idx(method);
-                    let method = method.read();
-
-                    let method_name = self.sa.interner.str(method.name).to_string();
-                    let msg = SemError::MethodExists(method_name, method.pos);
-                    self.sa.diag.lock().report(file, pos, msg);
-                }
-
-                Sym::Field(_) => {
-                    let name = self.sa.interner.str(name).to_string();
-                    self.sa
-                        .diag
-                        .lock()
-                        .report(file, pos, SemError::ShadowField(name));
-                }
-
-                _ => unreachable!(),
-            }
+            let name = self.sa.interner.str(name).to_string();
+            self.sa
+                .diag
+                .lock()
+                .report(file, pos, SemError::ShadowField(name));
         }
     }
 }

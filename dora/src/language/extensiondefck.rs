@@ -229,18 +229,6 @@ impl<'x> ExtensionCheck<'x> {
         let cls = self.sa.classes.idx(cls_id);
         let cls = cls.read();
 
-        for &method in &cls.methods {
-            let method = self.sa.fcts.idx(method);
-            let method = method.read();
-
-            if method.name == f.name && method.is_static == f.is_static {
-                let method_name = self.sa.interner.str(method.name).to_string();
-                let msg = SemError::MethodExists(method_name, method.pos);
-                self.sa.diag.lock().report(self.file_id.into(), f.pos, msg);
-                return false;
-            }
-        }
-
         for &extension_id in &cls.extensions {
             if !self.check_extension(f, extension_id) {
                 return false;

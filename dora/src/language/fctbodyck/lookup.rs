@@ -1,9 +1,8 @@
 use crate::language::error::msg::SemError;
 use crate::language::fctbodyck::body::args_compatible_fct;
 use crate::language::sem_analysis::{
-    find_methods_in_class, find_methods_in_enum, find_methods_in_struct, ClassDefinitionId,
-    FctDefinition, FctDefinitionId, SemAnalysis, SourceFileId, TraitDefinitionId, TypeParam,
-    TypeParamDefinition,
+    find_methods_in_class, find_methods_in_enum, find_methods_in_struct, FctDefinition,
+    FctDefinitionId, SemAnalysis, SourceFileId, TraitDefinitionId, TypeParam, TypeParamDefinition,
 };
 use crate::language::specialize::replace_type_param;
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -257,13 +256,6 @@ impl<'a> MethodLookup<'a> {
         } else {
             false
         }
-    }
-
-    fn find_ctor(&self, cls_id: ClassDefinitionId) -> Option<FctDefinitionId> {
-        let cls = self.sa.classes.idx(cls_id);
-        let cls = cls.read();
-
-        cls.constructor
     }
 
     fn find_method(

@@ -179,18 +179,6 @@ impl SemAnalysis {
     }
 
     #[cfg(test)]
-    pub fn ctor_by_name(&self, name: &str) -> FctDefinitionId {
-        let name = self.interner.intern(name);
-        let cls_id = NestedSymTable::new(self, self.program_module_id)
-            .get_class(name)
-            .expect("class not found");
-        let cls = self.classes.idx(cls_id);
-        let cls = cls.read();
-
-        cls.constructor.expect("no ctor found")
-    }
-
-    #[cfg(test)]
     pub fn trait_by_name(&self, name: &str) -> TraitDefinitionId {
         let name = self.interner.intern(name);
         let trait_id = NestedSymTable::new(self, self.program_module_id)

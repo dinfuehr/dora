@@ -68,13 +68,6 @@ pub fn method_accessible_from(
     let fct = fct.read();
 
     let element_pub = match fct.parent {
-        FctParent::Class(cls_id) => {
-            let cls = sa.classes.idx(cls_id);
-            let cls = cls.read();
-
-            cls.is_pub && fct.is_pub
-        }
-
         FctParent::Extension(_) => fct.is_pub,
         FctParent::Impl(_) | FctParent::Trait(_) => {
             // TODO: This should probably be limited

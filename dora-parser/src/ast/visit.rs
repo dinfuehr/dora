@@ -133,14 +133,6 @@ pub fn walk_class<V: Visitor>(v: &mut V, c: &Arc<Class>) {
     for f in &c.fields {
         v.visit_field(f);
     }
-
-    if let Some(ctor) = &c.constructor {
-        v.visit_ctor(ctor);
-    }
-
-    for m in &c.methods {
-        v.visit_method(m);
-    }
 }
 
 pub fn walk_annotation<V: Visitor>(_v: &mut V, _a: &Arc<Annotation>) {}

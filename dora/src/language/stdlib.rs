@@ -1092,15 +1092,6 @@ fn find_class_method(
     let cls = cls.read();
     let intern_name = sa.interner.intern(name);
 
-    for &mid in &cls.methods {
-        let mtd = sa.fcts.idx(mid);
-        let mtd = mtd.read();
-
-        if mtd.name == intern_name && mtd.is_static == is_static {
-            return mid;
-        }
-    }
-
     for &extension_id in &cls.extensions {
         let extension = sa.extensions.idx(extension_id);
         let extension = extension.read();
@@ -1282,23 +1273,6 @@ fn internal_class_method(
 ) -> FctDefinitionId {
     let cls = sa.classes.idx(cls_id);
     let cls = cls.read();
-    let name_interned = sa.interner.intern(name);
-
-    for &mid in &cls.methods {
-        let mtd = sa.fcts.idx(mid);
-        let mut mtd = mtd.write();
-
-        if mtd.name == name_interned && mtd.is_static == is_static {
-            match kind {
-                FctImplementation::Intrinsic(intrinsic) => mtd.intrinsic = Some(intrinsic),
-                FctImplementation::Native(address) => {
-                    mtd.native_pointer = Some(address);
-                }
-            }
-            mtd.internal_resolved = true;
-            return mid;
-        }
-    }
 
     internal_extension_method(sa, &cls.extensions, name, is_static, kind)
 }
