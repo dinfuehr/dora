@@ -42,10 +42,11 @@ pub struct TypeCheck<'a> {
     pub ast: &'a ast::Function,
     pub symtable: &'a mut NestedSymTable,
     pub in_loop: bool,
-    pub self_ty: Option<SourceType>,
+    pub self_available: bool,
     pub vars: &'a mut VarManager,
     pub contains_lambda: bool,
-    pub outer_context_access: bool,
+    pub outer_context_access_in_function: bool,
+    pub outer_context_access_from_lambda: bool,
 }
 
 impl<'a> TypeCheck<'a> {
@@ -97,7 +98,8 @@ impl<'a> TypeCheck<'a> {
         // Store var definitions for all local and context vars defined in this function.
         self.analysis.vars = self.vars.leave_function();
 
-        self.analysis.outer_context_access = Some(self.outer_context_access);
+        self.analysis.outer_context_access =
+            Some(self.outer_context_access_in_function || self.outer_context_access_from_lambda);
     }
 
     fn needs_context(&self) -> bool {
@@ -110,7 +112,7 @@ impl<'a> TypeCheck<'a> {
         // We also need a Context object, when any lambda
         // defined in this function, accesses some outside
         // context variables.
-        self.outer_context_access
+        self.outer_context_access_from_lambda
     }
 
     fn setup_context_class(&mut self) {
@@ -120,7 +122,8 @@ impl<'a> TypeCheck<'a> {
         let mut fields = Vec::with_capacity(number_fields);
         let mut map: Vec<Option<NestedVarId>> = vec![None; number_fields];
 
-        let needs_outer_context_slot = self.fct.is_lambda() && self.outer_context_access;
+        let needs_outer_context_slot = self.fct.is_lambda()
+            && (self.outer_context_access_in_function || self.outer_context_access_from_lambda);
 
         if needs_outer_context_slot {
             let name = self.sa.interner.intern("outer_context");
@@ -168,7 +171,7 @@ impl<'a> TypeCheck<'a> {
 
         let name = self.sa.interner.intern(&name);
 
-        let class = ClassDefinition::new_without_source(
+        let mut class = ClassDefinition::new_without_source(
             self.module_id,
             Some(self.file_id),
             Some(self.ast.pos),
@@ -176,6 +179,7 @@ impl<'a> TypeCheck<'a> {
             self.ast.is_pub,
             fields,
         );
+        class.type_params = self.fct.type_params.clone();
         let class_id = self.sa.classes.push(class);
         self.analysis.context_cls_id = Some(class_id);
 
@@ -239,14 +243,19 @@ impl<'a> TypeCheck<'a> {
 
         let self_ty = self.fct.param_types[0].clone();
 
+        // The lambda-object isn't available through `self` in lambdas.
         if !self.fct.is_lambda() {
-            self.self_ty = Some(self_ty.clone());
+            assert!(!self.self_available);
+            self.self_available = true;
         }
 
         let name = self.sa.interner.intern("self");
 
         assert!(!self.vars.has_local_vars());
-        self.vars.add_var(name, self_ty, false);
+        let var_id = self.vars.add_var(name, self_ty, false);
+        if !self.fct.is_lambda() {
+            assert_eq!(NestedVarId(0), var_id);
+        }
     }
 
     fn add_local(&mut self, id: NestedVarId, pos: Position) {
@@ -848,7 +857,7 @@ impl<'a> TypeCheck<'a> {
                 // Variable may have to be context-allocated.
                 let ident = self
                     .vars
-                    .check_context_allocated(var_id, &mut self.outer_context_access);
+                    .check_context_allocated(var_id, &mut self.outer_context_access_in_function);
                 self.analysis.map_idents.insert(e.id, ident);
 
                 ty
@@ -943,7 +952,7 @@ impl<'a> TypeCheck<'a> {
                 // Variable may have to be context-allocated.
                 let ident = self
                     .vars
-                    .check_context_allocated(var_id, &mut self.outer_context_access);
+                    .check_context_allocated(var_id, &mut self.outer_context_access_in_function);
                 self.analysis.map_idents.insert(e.lhs.id(), ident);
 
                 self.vars.get_var(var_id).ty.clone()
@@ -3038,16 +3047,23 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn check_expr_this(&mut self, e: &ast::ExprSelfType, _expected_ty: SourceType) -> SourceType {
-        let self_ty = if let Some(ref self_ty) = self.self_ty {
-            self_ty.clone()
-        } else {
+        if !self.self_available {
             let msg = SemError::ThisUnavailable;
             self.sa.diag.lock().report(self.file_id, e.pos, msg);
-            SourceType::Error
-        };
+            self.analysis.set_ty(e.id, SourceType::Error);
+            return SourceType::Error;
+        }
 
-        self.analysis.set_ty(e.id, self_ty.clone());
-        self_ty
+        assert!(self.self_available);
+        let var_id = NestedVarId(0);
+        let ident = self
+            .vars
+            .check_context_allocated(var_id, &mut self.outer_context_access_in_function);
+        self.analysis.map_idents.insert(e.id, ident);
+
+        let var = self.vars.get_var(var_id);
+        self.analysis.set_ty(e.id, var.ty.clone());
+        var.ty.clone()
     }
 
     fn check_expr_lambda(
@@ -3083,6 +3099,7 @@ impl<'a> TypeCheck<'a> {
         );
         lambda.param_types = params_with_ctxt;
         lambda.return_type = ret;
+        lambda.type_params = self.fct.type_params.clone();
         let lambda_fct_id = self.sa.add_fct(lambda);
         self.analysis.map_lambdas.insert(node.id, lambda_fct_id);
 
@@ -3103,17 +3120,18 @@ impl<'a> TypeCheck<'a> {
                     ast: &node,
                     symtable: &mut self.symtable,
                     in_loop: false,
-                    self_ty: None,
+                    self_available: self.self_available.clone(),
                     vars: self.vars,
                     contains_lambda: false,
-                    outer_context_access: false,
+                    outer_context_access_in_function: false,
+                    outer_context_access_from_lambda: false,
                 };
 
                 typeck.check();
             }
 
             if analysis.outer_context_access() {
-                self.outer_context_access = true
+                self.outer_context_access_from_lambda = true
             }
 
             lambda.write().analysis = Some(analysis);

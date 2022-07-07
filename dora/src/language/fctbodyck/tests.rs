@@ -3678,3 +3678,12 @@ fn mutable_param() {
         SemError::LetReassigned,
     );
 }
+
+#[test]
+fn self_unavailable_in_lambda() {
+    err(
+        "fn f() { || { self; }; }",
+        pos(1, 15),
+        SemError::ThisUnavailable,
+    );
+}

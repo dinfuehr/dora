@@ -107,7 +107,7 @@ impl EnumDefinition {
         if type_list.len() > 0 {
             let type_list = type_list
                 .iter()
-                .map(|p| p.name_enum(sa, self))
+                .map(|p| p.name(sa))
                 .collect::<Vec<_>>()
                 .join(", ");
 

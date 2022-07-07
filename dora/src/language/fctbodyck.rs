@@ -61,10 +61,11 @@ fn check_function(sa: &mut SemAnalysis, id: FctDefinitionId) {
             ast: &fct.ast,
             symtable: &mut symtable,
             in_loop: false,
-            self_ty: None,
+            self_available: false,
             vars: &mut vars,
             contains_lambda: false,
-            outer_context_access: false,
+            outer_context_access_in_function: false,
+            outer_context_access_from_lambda: false,
         };
 
         typeck.check();

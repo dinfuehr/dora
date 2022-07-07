@@ -10,7 +10,7 @@ use crate::bytecode::{
 use crate::language::sem_analysis::{
     find_impl, AnalysisData, CallType, ClassDefinitionId, ConstDefinitionId, ContextIdx,
     EnumDefinitionId, FctDefinition, FctDefinitionId, FieldId, GlobalDefinitionId, IdentType,
-    Intrinsic, SemAnalysis, StructDefinitionId, VarId,
+    Intrinsic, SemAnalysis, StructDefinitionId, TypeParamId, VarId,
 };
 use crate::language::specialize::specialize_type;
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -41,7 +41,7 @@ pub fn generate(sa: &SemAnalysis, fct: &FctDefinition, src: &AnalysisData) -> By
     let ast_bytecode_generator = AstBytecodeGen {
         sa,
         fct,
-        src,
+        analysis: src,
 
         builder: BytecodeBuilder::new(),
         loops: Vec::new(),
@@ -57,7 +57,7 @@ const SELF_VAR_ID: VarId = VarId(0);
 struct AstBytecodeGen<'a> {
     sa: &'a SemAnalysis,
     fct: &'a FctDefinition,
-    src: &'a AnalysisData,
+    analysis: &'a AnalysisData,
 
     builder: BytecodeBuilder,
     loops: Vec<LoopLabels>,
@@ -73,7 +73,7 @@ impl<'a> AstBytecodeGen<'a> {
         let mut params = Vec::new();
 
         if self.fct.has_self() {
-            let var_self = self.src.vars.get_self();
+            let var_self = self.analysis.vars.get_self();
             let var_ty = var_self.ty.clone();
 
             let bty = bty_from_ty(var_ty.clone());
@@ -84,7 +84,7 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         for param in &ast.params {
-            let var_id = *self.src.map_vars.get(param.id).unwrap();
+            let var_id = *self.analysis.map_vars.get(param.id).unwrap();
             let ty = self.var_ty(var_id);
 
             let bty = bty_from_ty(ty.clone());
@@ -99,7 +99,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.create_context();
 
         let next_register_idx = if self.fct.has_self() {
-            let var_self = self.src.vars.get_self();
+            let var_self = self.analysis.vars.get_self();
             let reg = Register(0);
 
             match var_self.location {
@@ -118,8 +118,8 @@ impl<'a> AstBytecodeGen<'a> {
         };
 
         for (param_idx, param) in ast.params.iter().enumerate() {
-            let var_id = *self.src.map_vars.get(param.id).unwrap();
-            let var = self.src.vars.get_var(var_id);
+            let var_id = *self.analysis.map_vars.get(param.id).unwrap();
+            let var = self.analysis.vars.get_var(var_id);
             let reg = Register(next_register_idx + param_idx);
 
             match var.location {
@@ -168,16 +168,16 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn create_context(&mut self) {
-        if let Some(cls_id) = self.src.context_cls_id {
+        if let Some(cls_id) = self.analysis.context_cls_id {
             let context_register = self.builder.alloc_global(BytecodeType::Ptr);
             let idx = self
                 .builder
-                .add_const_cls_types(cls_id, SourceTypeArray::empty());
+                .add_const_cls_types(cls_id, self.identity_type_params());
             self.builder
                 .emit_new_object(context_register, idx, self.fct.pos);
             self.context_register = Some(context_register);
 
-            if self.src.context_has_outer_context_slot() {
+            if self.analysis.context_has_outer_context_slot() {
                 let self_reg = self.var_reg(SELF_VAR_ID);
 
                 // Load context field of lambda object in self.
@@ -194,7 +194,7 @@ impl<'a> AstBytecodeGen<'a> {
                 // Store value in outer_context field of context object.
                 let idx = self.builder.add_const_field_types(
                     cls_id,
-                    SourceTypeArray::empty(),
+                    self.identity_type_params(),
                     FieldId(0),
                 );
                 self.builder.emit_store_field(
@@ -228,8 +228,8 @@ impl<'a> AstBytecodeGen<'a> {
     fn visit_stmt_for_pattern_setup(&mut self, pattern: &ast::LetPattern) {
         match pattern {
             ast::LetPattern::Ident(ref ident) => {
-                let var_id = *self.src.map_vars.get(ident.id).unwrap();
-                let var = self.src.vars.get_var(var_id);
+                let var_id = *self.analysis.map_vars.get(ident.id).unwrap();
+                let var = self.analysis.vars.get_var(var_id);
 
                 if !var.ty.is_unit() {
                     let bty: BytecodeType = register_bty_from_ty(var.ty.clone());
@@ -266,7 +266,7 @@ impl<'a> AstBytecodeGen<'a> {
     ) {
         match pattern {
             ast::LetPattern::Ident(ref ident) => {
-                let var_id = *self.src.map_vars.get(ident.id).unwrap();
+                let var_id = *self.analysis.map_vars.get(ident.id).unwrap();
                 let var_ty = self.var_ty(var_id);
 
                 if !var_ty.is_unit() {
@@ -301,8 +301,8 @@ impl<'a> AstBytecodeGen<'a> {
     ) {
         match pattern {
             ast::LetPattern::Ident(ref ident) => {
-                let var_id = *self.src.map_vars.get(ident.id).unwrap();
-                let var = self.src.vars.get_var(var_id);
+                let var_id = *self.analysis.map_vars.get(ident.id).unwrap();
+                let var = self.analysis.vars.get_var(var_id);
 
                 if !var.ty.is_unit() {
                     match var.location {
@@ -340,7 +340,7 @@ impl<'a> AstBytecodeGen<'a> {
         for (idx, part) in tuple.parts.iter().enumerate() {
             match &**part {
                 ast::LetPattern::Ident(ref ident) => {
-                    let var_id = *self.src.map_vars.get(ident.id).unwrap();
+                    let var_id = *self.analysis.map_vars.get(ident.id).unwrap();
                     let ty = self.var_ty(var_id);
 
                     if !ty.is_unit() {
@@ -377,7 +377,7 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_stmt_for_iterator(&mut self, stmt: &ast::StmtForType) {
         self.push_scope();
-        let for_type_info = self.src.map_fors.get(stmt.id).unwrap().clone();
+        let for_type_info = self.analysis.map_fors.get(stmt.id).unwrap().clone();
 
         // Emit: <obj> = <expr> (for <var> in <expr> { ... })
         let object_reg = self.visit_expr(&stmt.expr, DataDest::Alloc);
@@ -492,8 +492,8 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn visit_stmt_let_ident(&mut self, stmt: &ast::StmtLetType, ident: &ast::LetIdentType) {
-        let var_id = *self.src.map_vars.get(ident.id).unwrap();
-        let var = self.src.vars.get_var(var_id);
+        let var_id = *self.analysis.map_vars.get(ident.id).unwrap();
+        let var = self.analysis.vars.get_var(var_id);
 
         let ty: BytecodeType = register_bty_from_ty(var.ty.clone());
 
@@ -550,7 +550,7 @@ impl<'a> AstBytecodeGen<'a> {
         for part in &tuple.parts {
             match &**part {
                 ast::LetPattern::Ident(ref ident) => {
-                    let var_id = *self.src.map_vars.get(ident.id).unwrap();
+                    let var_id = *self.analysis.map_vars.get(ident.id).unwrap();
                     let ty = self.var_ty(var_id);
                     let ty: BytecodeType = register_bty_from_ty(ty);
                     let var_reg = self.alloc_var(ty.clone());
@@ -637,7 +637,7 @@ impl<'a> AstBytecodeGen<'a> {
             ast::Expr::LitBool(ref lit) => self.visit_expr_lit_bool(lit, dest),
             ast::Expr::Ident(ref ident) => self.visit_expr_ident(ident, dest),
             ast::Expr::Call(ref call) => self.visit_expr_call(call, dest),
-            ast::Expr::This(_) => self.visit_expr_self(dest),
+            ast::Expr::This(ref expr) => self.visit_expr_self(expr, dest),
             ast::Expr::Conv(ref conv) => self.visit_expr_conv(conv, dest),
             ast::Expr::Tuple(ref tuple) => self.visit_expr_tuple(tuple, dest),
             ast::Expr::Paren(ref paren) => self.visit_expr(&paren.expr, dest),
@@ -652,7 +652,7 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn visit_expr_type_param(&mut self, expr: &ast::ExprTypeParamType, dest: DataDest) -> Register {
-        let ident_type = self.src.map_idents.get(expr.id).cloned().unwrap();
+        let ident_type = self.analysis.map_idents.get(expr.id).cloned().unwrap();
 
         match ident_type {
             IdentType::EnumValue(enum_id, type_params, variant_idx) => {
@@ -760,7 +760,7 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn visit_expr_path(&mut self, expr: &ast::ExprPathType, dest: DataDest) -> Register {
-        let ident_type = self.src.map_idents.get(expr.id).cloned().unwrap();
+        let ident_type = self.analysis.map_idents.get(expr.id).cloned().unwrap();
 
         match ident_type {
             IdentType::EnumValue(enum_id, type_params, variant_idx) => {
@@ -855,7 +855,7 @@ impl<'a> AstBytecodeGen<'a> {
 
                 ast::MatchPatternData::Ident(ref ident) => {
                     let variant_idx: i32 = {
-                        let ident_type = self.src.map_idents.get(pattern.id).unwrap();
+                        let ident_type = self.analysis.map_idents.get(pattern.id).unwrap();
 
                         match ident_type {
                             IdentType::EnumValue(_, _, variant_idx) => {
@@ -890,7 +890,7 @@ impl<'a> AstBytecodeGen<'a> {
                                     subtype_idx,
                                 );
 
-                                let var_id = *self.src.map_vars.get(param.id).unwrap();
+                                let var_id = *self.analysis.map_vars.get(param.id).unwrap();
 
                                 let ty = self.var_ty(var_id);
 
@@ -931,7 +931,7 @@ impl<'a> AstBytecodeGen<'a> {
         let dest = self.ensure_register(dest, BytecodeType::Ptr);
 
         let lambda_fct_id = *self
-            .src
+            .analysis
             .map_lambdas
             .get(node.id)
             .expect("missing lambda id");
@@ -945,7 +945,9 @@ impl<'a> AstBytecodeGen<'a> {
                 .emit_push_register(self.context_register.expect("missing context"));
         }
 
-        let idx = self.builder.add_const_fct(lambda_fct_id);
+        let idx = self
+            .builder
+            .add_const_fct_types(lambda_fct_id, self.identity_type_params());
         self.builder.emit_new_lambda(dest, idx, node.pos);
 
         dest
@@ -1026,7 +1028,7 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         let (cls_ty, field_id) = {
-            let ident_type = self.src.map_idents.get(expr.id).unwrap();
+            let ident_type = self.analysis.map_idents.get(expr.id).unwrap();
 
             match ident_type {
                 IdentType::Field(ty, field) => (ty.clone(), *field),
@@ -1069,7 +1071,7 @@ impl<'a> AstBytecodeGen<'a> {
     ) -> Register {
         let struct_obj = self.visit_expr(&expr.lhs, DataDest::Alloc);
 
-        let ident_type = self.src.map_idents.get(expr.id).unwrap();
+        let ident_type = self.analysis.map_idents.get(expr.id).unwrap();
 
         let field_idx = match ident_type {
             IdentType::StructField(_, field_idx) => *field_idx,
@@ -1152,7 +1154,7 @@ impl<'a> AstBytecodeGen<'a> {
             }
         }
 
-        let call_type = self.src.map_calls.get(expr.id).unwrap().clone();
+        let call_type = self.analysis.map_calls.get(expr.id).unwrap().clone();
 
         match *call_type {
             CallType::Enum(ref enum_ty, variant_idx) => {
@@ -1704,22 +1706,35 @@ impl<'a> AstBytecodeGen<'a> {
         }
     }
 
-    fn visit_expr_self(&mut self, dest: DataDest) -> Register {
+    fn visit_expr_self(&mut self, expr: &ast::ExprSelfType, dest: DataDest) -> Register {
         if dest.is_effect() {
             return Register::invalid();
         }
 
-        let var_reg = self.var_reg(SELF_VAR_ID);
+        if self.fct.is_lambda() {
+            let ident = self
+                .analysis
+                .map_idents
+                .get(expr.id)
+                .expect("missing ident");
+            let (distance, context_idx) = match ident {
+                IdentType::Context(distance, context_idx) => (*distance, *context_idx),
+                _ => unreachable!(),
+            };
+            self.visit_expr_ident_context(distance, context_idx, dest, expr.pos)
+        } else {
+            let var_reg = self.var_reg(SELF_VAR_ID);
 
-        if dest.is_alloc() {
-            return var_reg;
+            if dest.is_alloc() {
+                return var_reg;
+            }
+
+            let dest = dest.reg();
+
+            self.emit_mov(dest, var_reg);
+
+            dest
         }
-
-        let dest = dest.reg();
-
-        self.emit_mov(dest, var_reg);
-
-        dest
     }
 
     fn visit_expr_lit_char(&mut self, lit: &ast::ExprLitCharType, dest: DataDest) -> Register {
@@ -1744,7 +1759,7 @@ impl<'a> AstBytecodeGen<'a> {
             return Register::invalid();
         }
 
-        let ty = self.src.ty(lit.id);
+        let ty = self.analysis.ty(lit.id);
 
         let ty = match ty {
             SourceType::UInt8 => BytecodeType::UInt8,
@@ -1790,7 +1805,7 @@ impl<'a> AstBytecodeGen<'a> {
             return Register::invalid();
         }
 
-        let ty = self.src.ty(lit.id);
+        let ty = self.analysis.ty(lit.id);
 
         let ty = match ty {
             SourceType::Float32 => BytecodeType::Float32,
@@ -1886,7 +1901,7 @@ impl<'a> AstBytecodeGen<'a> {
     fn visit_expr_un_method(&mut self, expr: &ast::ExprUnType, dest: DataDest) -> Register {
         let opnd = self.visit_expr(&expr.opnd, DataDest::Alloc);
 
-        let call_type = self.src.map_calls.get(expr.id).unwrap();
+        let call_type = self.analysis.map_calls.get(expr.id).unwrap();
         let callee_id = self.determine_callee(call_type);
 
         let callee = self.sa.fcts.idx(callee_id);
@@ -1932,7 +1947,7 @@ impl<'a> AstBytecodeGen<'a> {
         let lhs = self.visit_expr(&expr.lhs, DataDest::Alloc);
         let rhs = self.visit_expr(&expr.rhs, DataDest::Alloc);
 
-        let call_type = self.src.map_calls.get(expr.id).unwrap();
+        let call_type = self.analysis.map_calls.get(expr.id).unwrap();
         let callee_id = self.determine_callee(call_type);
 
         let callee = self.sa.fcts.idx(callee_id);
@@ -2008,7 +2023,7 @@ impl<'a> AstBytecodeGen<'a> {
         dest: DataDest,
     ) -> Register {
         let intrinsic = info.intrinsic;
-        let call_type = self.src.map_calls.get(expr.id).unwrap().clone();
+        let call_type = self.analysis.map_calls.get(expr.id).unwrap().clone();
 
         if call_type.is_method() {
             let object = expr.object().unwrap();
@@ -2545,7 +2560,7 @@ impl<'a> AstBytecodeGen<'a> {
         assert!(dest.is_unit());
 
         if expr.lhs.is_ident() {
-            let ident_type = self.src.map_idents.get(expr.lhs.id()).unwrap();
+            let ident_type = self.analysis.map_idents.get(expr.lhs.id()).unwrap();
             match ident_type {
                 &IdentType::Var(var_id) => self.visit_expr_assign_var(expr, var_id),
                 &IdentType::Context(distance, field_id) => {
@@ -2578,7 +2593,7 @@ impl<'a> AstBytecodeGen<'a> {
                 _ => panic!("unexpected intrinsic {:?}", info.intrinsic),
             }
         } else {
-            let call_type = self.src.map_calls.get(expr.id).unwrap();
+            let call_type = self.analysis.map_calls.get(expr.id).unwrap();
             let fct_id = call_type.fct_id().unwrap();
 
             let obj_reg = self.visit_expr(object, DataDest::Alloc);
@@ -2605,7 +2620,7 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_expr_assign_dot(&mut self, expr: &ast::ExprBinType, dot: &ast::ExprDotType) {
         let (cls_ty, field_id) = {
-            let ident_type = self.src.map_idents.get(dot.id).cloned().unwrap();
+            let ident_type = self.analysis.map_idents.get(dot.id).cloned().unwrap();
             match ident_type {
                 IdentType::Field(class, field) => (class, field),
                 _ => unreachable!(),
@@ -2661,7 +2676,7 @@ impl<'a> AstBytecodeGen<'a> {
 
             let idx = self.builder.add_const_field_types(
                 outer_cls_id,
-                SourceTypeArray::empty(),
+                self.identity_type_params(),
                 FieldId(0),
             );
             self.builder
@@ -2683,7 +2698,7 @@ impl<'a> AstBytecodeGen<'a> {
             field_id_from_context_idx(context_idx, analysis.context_has_outer_context_slot());
         let idx =
             self.builder
-                .add_const_field_types(outer_cls_id, SourceTypeArray::empty(), field_id);
+                .add_const_field_types(outer_cls_id, self.identity_type_params(), field_id);
         self.builder
             .emit_store_field(value_reg, outer_context_reg, idx, expr.pos);
 
@@ -2692,7 +2707,7 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn visit_expr_assign_var(&mut self, expr: &ast::ExprBinType, var_id: VarId) {
-        let var = self.src.vars.get_var(var_id);
+        let var = self.analysis.vars.get_var(var_id);
 
         match var.location {
             VarLocation::Context(context_idx) => {
@@ -2734,7 +2749,7 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn visit_expr_ident(&mut self, ident: &ast::ExprIdentType, dest: DataDest) -> Register {
-        let ident_type = self.src.map_idents.get(ident.id).unwrap();
+        let ident_type = self.analysis.map_idents.get(ident.id).unwrap();
 
         match ident_type {
             &IdentType::Var(var_id) => self.visit_expr_ident_var(var_id, dest, ident.pos),
@@ -2789,7 +2804,7 @@ impl<'a> AstBytecodeGen<'a> {
 
             let idx = self.builder.add_const_field_types(
                 outer_cls_id,
-                SourceTypeArray::empty(),
+                self.identity_type_params(),
                 FieldId(0),
             );
             self.builder
@@ -2818,7 +2833,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         let idx =
             self.builder
-                .add_const_field_types(outer_cls_id, SourceTypeArray::empty(), field_id);
+                .add_const_field_types(outer_cls_id, self.identity_type_params(), field_id);
         self.builder
             .emit_load_field(value_reg, outer_context_reg, idx, pos);
 
@@ -2904,7 +2919,7 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn visit_expr_ident_var(&mut self, var_id: VarId, dest: DataDest, pos: Position) -> Register {
-        let var = self.src.vars.get_var(var_id);
+        let var = self.analysis.vars.get_var(var_id);
 
         if dest.is_effect() {
             return Register::invalid();
@@ -2940,12 +2955,12 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn store_in_context(&mut self, src: Register, context_idx: ContextIdx, pos: Position) {
         let context_register = self.context_register.expect("context register missing");
-        let cls_id = self.src.context_cls_id.expect("class missing");
+        let cls_id = self.analysis.context_cls_id.expect("class missing");
         let field_id =
-            field_id_from_context_idx(context_idx, self.src.context_has_outer_context_slot());
+            field_id_from_context_idx(context_idx, self.analysis.context_has_outer_context_slot());
         let field_idx =
             self.builder
-                .add_const_field_types(cls_id, SourceTypeArray::empty(), field_id);
+                .add_const_field_types(cls_id, self.identity_type_params(), field_id);
         self.builder
             .emit_store_field(src, context_register, field_idx, pos);
     }
@@ -2953,12 +2968,12 @@ impl<'a> AstBytecodeGen<'a> {
     fn load_from_context(&mut self, dest: Register, context_idx: ContextIdx, pos: Position) {
         // Load context object.
         let context_register = self.context_register.expect("context register missing");
-        let cls_id = self.src.context_cls_id.expect("class missing");
+        let cls_id = self.analysis.context_cls_id.expect("class missing");
         let field_id =
-            field_id_from_context_idx(context_idx, self.src.context_has_outer_context_slot());
+            field_id_from_context_idx(context_idx, self.analysis.context_has_outer_context_slot());
         let field_idx =
             self.builder
-                .add_const_field_types(cls_id, SourceTypeArray::empty(), field_id);
+                .add_const_field_types(cls_id, self.identity_type_params(), field_id);
         self.builder
             .emit_load_field(dest, context_register, field_idx, pos);
     }
@@ -3064,15 +3079,15 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn ty(&self, id: ast::NodeId) -> SourceType {
-        self.src.ty(id)
+        self.analysis.ty(id)
     }
 
     fn var_ty(&self, id: VarId) -> SourceType {
-        self.src.vars.get_var(id).ty.clone()
+        self.analysis.vars.get_var(id).ty.clone()
     }
 
     fn get_intrinsic(&self, id: ast::NodeId) -> Option<IntrinsicInfo> {
-        let call_type = self.src.map_calls.get(id).expect("missing CallType");
+        let call_type = self.analysis.map_calls.get(id).expect("missing CallType");
 
         if let Some(intrinsic) = call_type.to_intrinsic() {
             return Some(intrinsic.into());
@@ -3097,6 +3112,21 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         None
+    }
+
+    fn identity_type_params(&self) -> SourceTypeArray {
+        let len = self.fct.type_params.len();
+
+        if len == 0 {
+            return SourceTypeArray::empty();
+        }
+
+        let type_params = (0..len)
+            .into_iter()
+            .map(|idx| SourceType::TypeParam(TypeParamId(idx)))
+            .collect::<Vec<SourceType>>();
+
+        SourceTypeArray::with(type_params)
     }
 
     fn ensure_unit_register(&mut self) -> Register {

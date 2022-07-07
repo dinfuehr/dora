@@ -891,6 +891,9 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_test_le(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit_reg3("TestLe", dest, lhs, rhs);
     }
+    fn visit_test_identity(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("TestIdentity", dest, lhs, rhs);
+    }
 
     fn visit_jump_if_false(&mut self, opnd: Register, offset: u32) {
         self.emit_cond_jump("JumpIfFalse", opnd, offset as i32);

@@ -1,0 +1,17 @@
+fn main() {
+    let l1 = foo[Int64](0);
+    assert(l1(1) == 0);
+    assert(l1(2) == 1);
+
+    let l2 = foo[String]("foo");
+    assert(l2("bar") == "foo");
+    assert(l2("baz") == "bar");
+}
+
+fn foo[T](mut value: T): (T): T {
+    |next: T|: T {
+        let result = value;
+        value = next;
+        result
+    }
+}
