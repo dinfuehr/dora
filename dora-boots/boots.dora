@@ -3,8 +3,6 @@ use interface::getEncodedBytecodeFunctionByName;
 
 use ssagen_tests::bcSsaGenWhileCountDown;
 use ssagen_tests::bcSsaGenIfReturnInBothBranches;
-use ssagen_tests::bcSsaGenIfWithConditionalAssignment;
-use ssagen_tests::bcSsaGenWhileCountDownWithSum;
 
 mod assembler;
 mod bytecode;

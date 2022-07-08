@@ -2,6 +2,7 @@ use package::bytecode::data::BytecodeRegister;
 use package::bytecode::data::BytecodeFunction;
 use package::bytecode::data::BytecodeType;
 use package::bytecode::data::ConstPoolEntry;
+use package::bytecode::dump::bytecodeDump;
 use package::bytecode::builder::BytecodeBuilder;
 use package::ssagen::createGraph;
 use package::graph::dump::assertGraph;
@@ -239,7 +240,24 @@ fn testSsaGenSimpleIf() {
 
 @Test
 fn testSsaGenIfReturnInBothBranches() {
-    let fct = getBytecodeFunctionByName("bcSsaGenIfReturnInBothBranches");
+    // fn bcSsaGenIfReturnInBothBranches(a: Bool): Int32 {
+    //    if a { return 1; } else { return 2; }
+    // }
+
+    let b = BytecodeBuilder::new();
+    let lblElse = b.createLabel();
+    b.addRegisters(BytecodeType::Bool, BytecodeType::Int32);
+    b.setArguments(1i32);
+    b.emitJumpIfFalse(r(0), lblElse);
+    let idx = b.addConst(ConstPoolEntry::Int32(1i32));
+    b.emitConstInt32(r(1), idx);
+    b.emitRet(r(1));
+    b.bindLabel(lblElse);
+    let idx = b.addConst(ConstPoolEntry::Int32(2i32));
+    b.emitConstInt32(r(1), idx);
+    b.emitRet(r(1));
+    let fct = b.generate();
+
     let graph = createGraph(fct);
 
     assertGraph(graph, "
@@ -261,7 +279,28 @@ fn testSsaGenIfReturnInBothBranches() {
 
 @Test
 fn testSsaGenIfWithConditionalAssignment() {
-    let fct = getBytecodeFunctionByName("bcSsaGenIfWithConditionalAssignment");
+    // fn bcSsaGenIfWithConditionalAssignment(a: Bool): Int32 {
+    //    let mut x = 1i32;
+    //    let mut y = 27i32;
+    //    if a { x = 4i32; }
+    //    x + y
+    // }
+
+    let b = BytecodeBuilder::new();
+    b.addRegisters(BytecodeType::Bool, BytecodeType::Int32, BytecodeType::Int32, BytecodeType::Int32);
+    b.setArguments(1i32);
+    let lblEndif = b.createLabel();
+    let idx = b.addConst(ConstPoolEntry::Int32(1i32));
+    b.emitConstInt32(r(1), idx);
+    let idx = b.addConst(ConstPoolEntry::Int32(27i32));
+    b.emitConstInt32(r(2), idx);
+    b.emitJumpIfFalse(r(0), lblEndif);
+    let idx = b.addConst(ConstPoolEntry::Int32(4i32));
+    b.emitConstInt32(r(1), idx);
+    b.bindLabel(lblEndif);
+    b.emitAdd(r(3), r(1), r(2));
+    b.emitRet(r(3));
+    let fct = b.generate();
     let graph = createGraph(fct);
 
     assertGraph(graph, "
@@ -280,16 +319,34 @@ fn testSsaGenIfWithConditionalAssignment() {
 ");
 }
 
-@pub fn bcSsaGenIfWithConditionalAssignment(a: Bool): Int32 {
-    let mut x = 1i32;
-    let mut y = 27i32;
-    if a { x = 4i32; }
-    x + y
-}
-
 @Test
 fn testSsaGenWhileCountDown() {
-    let fct = getBytecodeFunctionByName("bcSsaGenWhileCountDown");
+    // fn bcSsaGenWhileCountDown(x: Int32): Int32 {
+    //    let mut x = x;
+    //    while x > 0i32 { x = x - 1i32; }
+    //    x
+    // }
+
+    let b = BytecodeBuilder::new();
+    b.setArguments(1i32);
+    b.addRegisters(BytecodeType::Int32, BytecodeType::Int32, BytecodeType::Bool, BytecodeType::Int32);
+    let lblEnd = b.createLabel();
+    b.emitMov(r(1), r(0));
+    let lblStart = b.createLabel();
+    b.bindLabel(lblStart);
+    b.emitLoopStart();
+    let idx = b.addConst(ConstPoolEntry::Int32(0i32));
+    b.emitConstInt32(r(3), idx);
+    b.emitTestGt(r(2), r(1), r(3));
+    b.emitJumpIfFalse(r(2), lblEnd);
+    let idx = b.addConst(ConstPoolEntry::Int32(1i32));
+    b.emitConstInt32(r(3), idx);
+    b.emitSub(r(1), r(1), r(3));
+    b.emitJumpLoop(lblStart);
+    b.bindLabel(lblEnd);
+    b.emitRet(r(1));
+    let fct = b.generate();
+
     let graph = createGraph(fct);
 
     assertGraph(graph, "
@@ -310,7 +367,7 @@ fn testSsaGenWhileCountDown() {
 ");
 }
 
-@pub fn bcSsaGenWhileCountDown(x: Int32): Int32 {
+@pub fn bcSsaGenWhileCountDown(mut x: Int32): Int32 {
     let mut x = x;
     while x > 0i32 { x = x - 1i32; }
     x
@@ -318,7 +375,45 @@ fn testSsaGenWhileCountDown() {
 
 @Test
 fn testSsaGenWhileCountDownWithSum() {
-    let fct = getBytecodeFunctionByName("bcSsaGenWhileCountDownWithSum");
+    // fn bcSsaGenWhileCountDownWithSum(x: Int32): Int32 {
+    //    let mut x = x;
+    //    let mut sum = 0i32;
+    //    while x > 0i32 {
+    //        x = x - 1i32;
+    //        sum = sum + x;
+    //    }
+    //    sum
+    // }
+
+    let b = BytecodeBuilder::new();
+    b.setArguments(1i32);
+    b.addRegisters(
+      BytecodeType::Int32,
+      BytecodeType::Int32,
+      BytecodeType::Int32,
+      BytecodeType::Bool,
+      BytecodeType::Int32
+    );
+    let lblEnd = b.createLabel();
+    b.emitMov(r(1), r(0));
+    let idx = b.addConst(ConstPoolEntry::Int32(0i32));
+    b.emitConstInt32(r(2), idx);
+    let lblStart = b.createLabel();
+    b.bindLabel(lblStart);
+    b.emitLoopStart();
+    let idx = b.addConst(ConstPoolEntry::Int32(0i32));
+    b.emitConstInt32(r(4), idx);
+    b.emitTestGt(r(3), r(1), r(4));
+    b.emitJumpIfFalse(r(3), lblEnd);
+    let idx = b.addConst(ConstPoolEntry::Int32(1i32));
+    b.emitConstInt32(r(4), idx);
+    b.emitSub(r(1), r(1), r(4));
+    b.emitAdd(r(2), r(2), r(1));
+    b.emitJumpLoop(lblStart);
+    b.bindLabel(lblEnd);
+    b.emitRet(r(2));
+    let fct = b.generate();
+
     let graph = createGraph(fct);
 
     assertGraph(graph, "
@@ -340,16 +435,6 @@ fn testSsaGenWhileCountDownWithSum() {
 @3: pred = [@1]
   %12: Ret.Int32 %9
 ");
-}
-
-@pub fn bcSsaGenWhileCountDownWithSum(x: Int32): Int32 {
-    let mut x = x;
-    let mut sum = 0i32;
-    while x > 0i32 {
-        x = x - 1i32;
-        sum = sum + x;
-    }
-    sum
 }
 
 @Test

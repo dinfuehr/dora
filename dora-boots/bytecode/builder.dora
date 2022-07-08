@@ -202,6 +202,10 @@ impl BytecodeBuilder {
         self.emitReg3(opc::BC_TEST_LE, dest, lhs, rhs);
     }
 
+    @pub fn emitLoopStart() {
+        self.emitInst(opc::BC_LOOP_START);
+    }
+
     @pub fn emitJumpLoop(lbl: BytecodeLabel) {
         assert(lbl.isBound());
         let offset = self.code.size().toInt32() - lbl.offset();
