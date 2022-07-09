@@ -2,9 +2,10 @@ use package::bytecode::builder::BytecodeBuilder;
 use package::bytecode::data::BytecodeFunction;
 use package::bytecode::data::BytecodeType;
 use package::ssagen::createGraph;
-use package::interface::getBytecodeFunctionByName;
 use package::graph::Block;
 use package::graph::dump::dumpGraph;
+use package::bcSsaGenWhileCountDown;
+use package::bcSsaGenIfReturnInBothBranches;
 
 fn assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
     let graph = createGraph(fct);
@@ -76,7 +77,7 @@ fn testDominatorSimple() {
 
 @Test
 fn testDominatorIfReturnInBothBranches() {
-    let fct = getBytecodeFunctionByName("bcSsaGenIfReturnInBothBranches");
+    let fct = bcSsaGenIfReturnInBothBranches();
     let graph = createGraph(fct);
     graph.buildDominatorTree();
 
@@ -96,7 +97,7 @@ fn testDominatorIfReturnInBothBranches() {
 
 @Test
 fn testDominatorWhileCountDown() {
-    let fct = getBytecodeFunctionByName("bcSsaGenWhileCountDown");
+    let fct = bcSsaGenWhileCountDown();
     let graph = createGraph(fct);
     graph.buildDominatorTree();
 
@@ -108,11 +109,11 @@ fn testDominatorWhileCountDown() {
     assert(varBlock.getDominator().isNone());
 
     assert(whileHeader.getDominator().getOrPanic() === varBlock);
-    assert(whileHeader.getDominatedBlocks().size() == 2i64);
+    assert(whileHeader.getDominatedBlocks().size() == 2);
 
     assert(whileBody.getDominator().getOrPanic() === whileHeader);
-    assert(whileBody.getDominatedBlocks().size() == 0i64);
+    assert(whileBody.getDominatedBlocks().size() == 0);
 
     assert(returnBlock.getDominator().getOrPanic() === whileHeader);
-    assert(returnBlock.getDominatedBlocks().size() == 0i64);
+    assert(returnBlock.getDominatedBlocks().size() == 0);
 }

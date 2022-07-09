@@ -18,17 +18,6 @@ use package::codegen::arm64::CodeGenArm64;
     }
 }
 
-@pub @internal fn getEncodedBytecodeFunctionByName(fct: String): Array[UInt8];
-
-@pub fn getBytecodeFunctionByName(fct: String): BytecodeFunction {
-    let encoded = getEncodedBytecodeFunctionByName(fct);
-    let reader = ByteReader::new(encoded);
-    let bc = decodeBytecodeFunction(reader);
-    assert(!reader.moreBytes());
-
-    bc
-}
-
 @pub class CompilationInfo(
     @pub bc: BytecodeFunction,
     @pub typeParams: Array[SourceType],

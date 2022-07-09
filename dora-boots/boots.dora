@@ -1,5 +1,4 @@
 use interface::compile;
-use interface::getEncodedBytecodeFunctionByName;
 
 use ssagen_tests::bcSsaGenWhileCountDown;
 use ssagen_tests::bcSsaGenIfReturnInBothBranches;

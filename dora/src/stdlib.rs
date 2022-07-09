@@ -7,7 +7,6 @@ use std::str;
 use std::thread;
 use std::time::Duration;
 
-use crate::boots;
 use crate::gc::{Address, GcReason};
 use crate::handle::{handle, handle_scope, Handle};
 use crate::object::{Obj, Ref, Str, UInt8Array};
@@ -128,15 +127,6 @@ pub extern "C" fn println(val: Handle<Str>) {
 pub extern "C" fn sleep(seconds: i32) {
     assert!(seconds >= 0);
     thread::sleep(Duration::from_secs(seconds as u64));
-}
-
-pub extern "C" fn get_encoded_bytecode_function_by_name(name: Handle<Str>) -> Ref<Obj> {
-    let fct_name = name.to_cstring();
-    let fct_name = fct_name.to_str().unwrap();
-
-    let vm = get_vm();
-
-    boots::get_encoded_bytecode_function_by_name(vm, &fct_name)
 }
 
 pub extern "C" fn strcmp(lhs: Handle<Str>, rhs: Handle<Str>) -> i32 {

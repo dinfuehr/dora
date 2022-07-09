@@ -1,9 +1,7 @@
 use std::mem;
 use std::ptr;
 
-use crate::boots::serializer::{
-    allocate_encoded_bytecode_function, allocate_encoded_compilation_info,
-};
+use crate::boots::serializer::allocate_encoded_compilation_info;
 use crate::bytecode::InstructionSet;
 use crate::gc::Address;
 use crate::handle::handle;
@@ -11,7 +9,7 @@ use crate::language::sem_analysis::FctDefinition;
 use crate::language::sym::NestedSymTable;
 use crate::language::ty::SourceTypeArray;
 use crate::masm::CodeDescriptor;
-use crate::object::{Obj, Ref, UInt8Array};
+use crate::object::{Ref, UInt8Array};
 use crate::threads::current_thread;
 use crate::vm::VM;
 
@@ -59,16 +57,6 @@ pub fn compile(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray) -> C
     CodeDescriptor::from_buffer(code)
 }
 
-pub fn encode_test(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray) {
-    let bytecode_fct = fct.bytecode.as_ref().expect("bytecode missing");
-    let _encoded_compilation_info = handle(allocate_encoded_compilation_info(
-        vm,
-        bytecode_fct,
-        type_params,
-        get_architecture(),
-    ));
-}
-
 fn get_architecture() -> InstructionSet {
     if cfg!(target_arch = "x86_64") {
         InstructionSet::X64
@@ -77,18 +65,4 @@ fn get_architecture() -> InstructionSet {
     } else {
         panic!("unsupported architecture")
     }
-}
-
-pub fn get_encoded_bytecode_function_by_name(vm: &VM, name: &str) -> Ref<Obj> {
-    let fct_name = vm.interner.intern(name);
-    let bc_fct_id = NestedSymTable::new(vm, vm.boots_module_id)
-        .get_fct(fct_name)
-        .expect("method not found");
-
-    let fct = vm.fcts.idx(bc_fct_id);
-    let fct = fct.read();
-
-    let bytecode_fct = fct.bytecode.as_ref().expect("bytecode missing");
-
-    allocate_encoded_bytecode_function(vm, bytecode_fct)
 }

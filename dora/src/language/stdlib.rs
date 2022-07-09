@@ -368,15 +368,6 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
     );
     native_fct(sa, stdlib, "sleep", stdlib::sleep as *const u8);
 
-    if sa.args.flag_boots.is_some() {
-        native_fct(
-            sa,
-            sa.boots_module_id,
-            "getEncodedBytecodeFunctionByName",
-            stdlib::get_encoded_bytecode_function_by_name as *const u8,
-        );
-    }
-
     intrinsic_fct(sa, stdlib, "unsafeKillRefs", Intrinsic::UnsafeKillRefs);
 
     native_method(
