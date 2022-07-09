@@ -299,6 +299,7 @@ pub struct KnownFunctions {
     pub option_is_none: Option<FctDefinitionId>,
     pub option_unwrap: Option<FctDefinitionId>,
     pub stacktrace_retrieve: Option<FctDefinitionId>,
+    pub compile: Option<FctDefinitionId>,
 }
 
 impl KnownFunctions {
@@ -312,6 +313,7 @@ impl KnownFunctions {
             option_is_some: None,
             option_unwrap: None,
             stacktrace_retrieve: None,
+            compile: None,
         }
     }
 
@@ -345,6 +347,10 @@ impl KnownFunctions {
 
     pub fn stacktrace_retrieve(&self) -> FctDefinitionId {
         self.stacktrace_retrieve.expect("uninitialized")
+    }
+
+    pub fn compile(&self) -> FctDefinitionId {
+        self.compile.expect("uninitialized")
     }
 }
 

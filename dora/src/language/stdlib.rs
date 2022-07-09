@@ -219,7 +219,10 @@ pub fn discover_known_methods(sa: &mut SemAnalysis) {
         stdlib,
         "Stacktrace",
         "retrieveStacktrace",
-    ))
+    ));
+    if sa.args.flag_boots.is_some() {
+        sa.known.functions.compile = Some(find_function(sa, sa.boots_module_id, "compile"));
+    }
 }
 
 pub fn create_lambda_class(sa: &mut SemAnalysis) {
@@ -1057,6 +1060,14 @@ fn find_instance_method(
     name: &str,
 ) -> FctDefinitionId {
     find_class_method(sa, module_id, container_name, name, false)
+}
+
+fn find_function(sa: &SemAnalysis, module_id: ModuleDefinitionId, name: &str) -> FctDefinitionId {
+    let fct_id = resolve_name(sa, name, module_id)
+        .to_fct()
+        .expect("function expected");
+
+    fct_id
 }
 
 fn find_static_method(

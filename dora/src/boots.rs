@@ -6,7 +6,6 @@ use crate::bytecode::InstructionSet;
 use crate::gc::Address;
 use crate::handle::handle;
 use crate::language::sem_analysis::FctDefinition;
-use crate::language::sym::NestedSymTable;
 use crate::language::ty::SourceTypeArray;
 use crate::masm::CodeDescriptor;
 use crate::object::{Ref, UInt8Array};
@@ -20,10 +19,7 @@ mod ssagen;
 pub fn compile(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray) -> CodeDescriptor {
     let bytecode_fct = fct.bytecode.as_ref().expect("bytecode missing");
 
-    let compile_name = vm.interner.intern("compile");
-    let compile_fct_id = NestedSymTable::new(vm, vm.boots_module_id)
-        .get_fct(compile_name)
-        .expect("compile()-method missing");
+    let compile_fct_id = vm.known.functions.compile();
     let compile_address = vm.ensure_compiled(compile_fct_id);
 
     let encoded_compilation_info = handle(allocate_encoded_compilation_info(
