@@ -259,7 +259,6 @@ pub fn specialize_enum_class(
         ShapeKind::Enum(edef.enum_id, edef.type_params.clone()),
         InstanceSize::Fixed(instance_size),
         fields,
-        None,
         0,
     );
 
@@ -393,7 +392,6 @@ fn create_specialized_class_regular(
         ShapeKind::Class(cls.id(), type_params.clone()),
         size,
         fields,
-        None,
         0,
     );
 
@@ -471,7 +469,6 @@ fn create_specialized_class_array(
         ShapeKind::Class(cls.id(), type_params.clone()),
         size,
         Vec::new(),
-        None,
         0,
     );
 
@@ -498,7 +495,6 @@ pub fn specialize_lambda(
         ShapeKind::Lambda(fct_id, type_params.clone()),
         size,
         fields,
-        None,
         1,
     )
 }
@@ -568,7 +564,6 @@ fn create_specialized_class_for_trait_object(
         },
         size,
         fields,
-        None,
         trait_.methods.len(),
     );
 

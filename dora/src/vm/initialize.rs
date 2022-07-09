@@ -13,7 +13,6 @@ fn create_special_classes(vm: &mut VM) {
         ShapeKind::Builtin,
         InstanceSize::Fixed(Header::size()),
         Vec::new(),
-        None,
         0,
     );
     vm.known.free_object_class_instance = Some(free_object_class_id);
@@ -23,7 +22,6 @@ fn create_special_classes(vm: &mut VM) {
         ShapeKind::Builtin,
         InstanceSize::FreeArray,
         Vec::new(),
-        None,
         0,
     );
     vm.known.free_array_class_instance = Some(free_array_class_id);
@@ -33,7 +31,6 @@ fn create_special_classes(vm: &mut VM) {
         ShapeKind::Builtin,
         InstanceSize::CodeObject,
         Vec::new(),
-        None,
         0,
     );
     vm.known.code_class_instance = Some(code_class_id);

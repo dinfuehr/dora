@@ -90,10 +90,9 @@ pub fn create_class_instance_with_vtable(
     kind: ShapeKind,
     size: InstanceSize,
     fields: Vec<FieldInstance>,
-    parent_id: Option<ClassInstanceId>,
     vtable_entries: usize,
 ) -> ClassInstanceId {
-    let ref_fields = build_ref_fields(vm, &kind, size, &fields, parent_id);
+    let ref_fields = build_ref_fields(vm, &kind, size, &fields);
 
     let size = match size {
         InstanceSize::StructArray(element_size) if ref_fields.is_empty() => {
@@ -140,7 +139,6 @@ fn build_ref_fields(
     kind: &ShapeKind,
     size: InstanceSize,
     fields: &[FieldInstance],
-    parent_id: Option<ClassInstanceId>,
 ) -> Vec<i32> {
     match &kind {
         ShapeKind::Class(cls_id, type_params) => {
@@ -156,13 +154,7 @@ fn build_ref_fields(
             } else if cls.is_str {
                 Vec::new()
             } else {
-                let mut ref_fields = Vec::new();
-
-                if let Some(parent_id) = parent_id {
-                    let cls = vm.class_instances.idx(parent_id);
-                    ref_fields = cls.ref_fields.clone();
-                }
-
+                let ref_fields = Vec::new();
                 create_ref_fields(vm, &fields, ref_fields)
             }
         }
