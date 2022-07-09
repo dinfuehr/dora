@@ -40,7 +40,11 @@ impl Id for ClassInstance {
 pub enum ShapeKind {
     Class(ClassDefinitionId, SourceTypeArray),
     Lambda(FctDefinitionId, SourceTypeArray),
-    TraitObject(SourceType, TraitDefinitionId, SourceTypeArray),
+    TraitObject {
+        object_ty: SourceType,
+        trait_id: TraitDefinitionId,
+        combined_type_params: SourceTypeArray,
+    },
     Enum(EnumDefinitionId, SourceTypeArray),
     Builtin,
 }
@@ -62,7 +66,7 @@ impl ClassInstance {
 
     pub fn trait_object(&self) -> Option<SourceType> {
         match &self.kind {
-            ShapeKind::TraitObject(object, _, _) => Some(object.clone()),
+            ShapeKind::TraitObject { object_ty, .. } => Some(object_ty.clone()),
             _ => None,
         }
     }

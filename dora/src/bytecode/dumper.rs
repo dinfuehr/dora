@@ -3,10 +3,9 @@ use std::io;
 use crate::bytecode::{
     read, BytecodeFunction, BytecodeOffset, BytecodeVisitor, ConstPoolEntry, ConstPoolIdx, Register,
 };
-use crate::language::sem_analysis::{FctDefinition, GlobalDefinitionId};
-use crate::vm::VM;
+use crate::language::sem_analysis::{FctDefinition, GlobalDefinitionId, SemAnalysis};
 
-pub fn dump(vm: &VM, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
+pub fn dump(vm: &SemAnalysis, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
     let mut stdout = io::stdout();
     if let Some(fct) = fct {
         println!("{}", fct.display_name(vm));
@@ -15,7 +14,7 @@ pub fn dump(vm: &VM, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
         bc,
         pos: BytecodeOffset(0),
         w: &mut stdout,
-        vm,
+        sa: vm,
     };
     read(bc.code(), &mut visitor);
 
@@ -213,7 +212,7 @@ struct BytecodeDumper<'a> {
     bc: &'a BytecodeFunction,
     pos: BytecodeOffset,
     w: &'a mut dyn io::Write,
-    vm: &'a VM,
+    sa: &'a SemAnalysis,
 }
 
 impl<'a> BytecodeDumper<'a> {
@@ -263,7 +262,7 @@ impl<'a> BytecodeDumper<'a> {
             " {}, {}, {}, {}",
             r1,
             r2,
-            tuple_ty.name(self.vm),
+            tuple_ty.name(self.sa),
             subtype_idx
         )
         .expect("write! failed");
@@ -275,9 +274,9 @@ impl<'a> BytecodeDumper<'a> {
             ConstPoolEntry::Enum(enum_id, type_params) => (*enum_id, type_params),
             _ => unreachable!(),
         };
-        let enum_ = &self.vm.enums[enum_id];
+        let enum_ = &self.sa.enums[enum_id];
         let enum_ = enum_.read();
-        let enum_name = enum_.name_with_params(self.vm, type_params);
+        let enum_name = enum_.name_with_params(self.sa, type_params);
         writeln!(
             self.w,
             " {}, {}, ConstPoolIdx({}) # {}",
@@ -297,10 +296,10 @@ impl<'a> BytecodeDumper<'a> {
             }
             _ => unreachable!(),
         };
-        let enum_ = &self.vm.enums[enum_id];
+        let enum_ = &self.sa.enums[enum_id];
         let enum_ = enum_.read();
-        let enum_name = enum_.name_with_params(self.vm, type_params);
-        let variant_name = self.vm.interner.str(enum_.variants[variant_idx].name);
+        let enum_name = enum_.name_with_params(self.sa, type_params);
+        let variant_name = self.sa.interner.str(enum_.variants[variant_idx].name);
         writeln!(
             self.w,
             " {}, {}, ConstPoolIdx({}), {} # {}::{}.{}",
@@ -321,9 +320,9 @@ impl<'a> BytecodeDumper<'a> {
             ConstPoolEntry::Enum(enum_id, type_params) => (*enum_id, type_params),
             _ => unreachable!(),
         };
-        let enum_ = &self.vm.enums[enum_id];
+        let enum_ = &self.sa.enums[enum_id];
         let enum_ = enum_.read();
-        let enum_name = enum_.name_with_params(self.vm, type_params);
+        let enum_name = enum_.name_with_params(self.sa, type_params);
         writeln!(
             self.w,
             " {}, {}, ConstPoolIdx({}) # {}",
@@ -341,9 +340,9 @@ impl<'a> BytecodeDumper<'a> {
             ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params.clone()),
             _ => unreachable!(),
         };
-        let cls = self.vm.classes.idx(cls_id);
+        let cls = self.sa.classes.idx(cls_id);
         let cls = cls.read();
-        let cname = cls.name_with_params(self.vm, &type_params);
+        let cname = cls.name_with_params(self.sa, &type_params);
         writeln!(
             self.w,
             " {}, {}, ConstPoolIdx({}) # {}",
@@ -366,9 +365,9 @@ impl<'a> BytecodeDumper<'a> {
             ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params.clone()),
             _ => unreachable!(),
         };
-        let cls = self.vm.classes.idx(cls_id);
+        let cls = self.sa.classes.idx(cls_id);
         let cls = cls.read();
-        let cname = cls.name_with_params(self.vm, &type_params);
+        let cname = cls.name_with_params(self.sa, &type_params);
         writeln!(
             self.w,
             " {}, ConstPoolIdx({}) # {}",
@@ -439,31 +438,31 @@ impl<'a> BytecodeDumper<'a> {
         self.emit_start(name);
         let (cname, fname) = match self.bc.const_pool(field_idx) {
             ConstPoolEntry::Field(cls_id, type_params, field_id) => {
-                let cls = self.vm.classes.idx(*cls_id);
+                let cls = self.sa.classes.idx(*cls_id);
                 let cls = cls.read();
-                let cname = cls.name_with_params(self.vm, type_params);
+                let cname = cls.name_with_params(self.sa, type_params);
 
                 let field = &cls.fields[field_id.to_usize()];
-                let fname = self.vm.interner.str(field.name).to_string();
+                let fname = self.sa.interner.str(field.name).to_string();
 
                 (cname, fname)
             }
             ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
-                let struct_ = self.vm.structs.idx(*struct_id);
+                let struct_ = self.sa.structs.idx(*struct_id);
                 let struct_ = struct_.read();
-                let struct_name = struct_.name_with_params(self.vm, type_params);
+                let struct_name = struct_.name_with_params(self.sa, type_params);
 
                 let field = &struct_.fields[field_id.to_usize()];
-                let fname = self.vm.interner.str(field.name).to_string();
+                let fname = self.sa.interner.str(field.name).to_string();
 
                 (struct_name, fname)
             }
             ConstPoolEntry::FieldFixed(class_instance_id, field_id) => {
-                let cls = self.vm.class_instances.idx(*class_instance_id);
+                let cls = self.sa.class_instances.idx(*class_instance_id);
                 let cname = cls
                     .trait_object()
                     .expect("trait object expected")
-                    .name(self.vm);
+                    .name(self.sa);
 
                 let fname = format!("{}", field_id.to_usize());
 
@@ -486,9 +485,9 @@ impl<'a> BytecodeDumper<'a> {
 
     fn emit_global(&mut self, name: &str, r1: Register, gid: GlobalDefinitionId) {
         self.emit_start(name);
-        let global_var = self.vm.globals.idx(gid);
+        let global_var = self.sa.globals.idx(gid);
         let global_var = global_var.read();
-        let name = self.vm.interner.str(global_var.name);
+        let name = self.sa.interner.str(global_var.name);
         writeln!(self.w, " {}, GlobalId({}) # {}", r1, gid.to_usize(), name)
             .expect("write! failed");
     }
@@ -520,10 +519,10 @@ impl<'a> BytecodeDumper<'a> {
             _ => unreachable!(),
         };
 
-        let fct = self.vm.fcts.idx(*fct_id);
+        let fct = self.sa.fcts.idx(*fct_id);
         let fct = fct.read();
 
-        fct.display_name(self.vm)
+        fct.display_name(self.sa)
     }
 
     fn emit_new_lambda(&mut self, name: &str, r1: Register, idx: ConstPoolIdx) {
@@ -532,9 +531,9 @@ impl<'a> BytecodeDumper<'a> {
             ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params.clone()),
             _ => unreachable!(),
         };
-        let fct = self.vm.fcts.idx(fct_id);
+        let fct = self.sa.fcts.idx(fct_id);
         let fct = fct.read();
-        let fname = fct.display_name(self.vm);
+        let fname = fct.display_name(self.sa);
         writeln!(
             self.w,
             " {}, ConstPoolIdx({}) # {}",
@@ -551,9 +550,9 @@ impl<'a> BytecodeDumper<'a> {
             ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params.clone()),
             _ => unreachable!(),
         };
-        let cls = self.vm.classes.idx(cls_id);
+        let cls = self.sa.classes.idx(cls_id);
         let cls = cls.read();
-        let cname = cls.name_with_params(self.vm, &type_params);
+        let cname = cls.name_with_params(self.sa, &type_params);
         writeln!(
             self.w,
             " {}, ConstPoolIdx({}) # {}",
@@ -572,9 +571,9 @@ impl<'a> BytecodeDumper<'a> {
             }
             _ => unreachable!(),
         };
-        let trait_ = self.vm.traits.idx(trait_id);
+        let trait_ = self.sa.traits.idx(trait_id);
         let trait_ = trait_.read();
-        let trait_name = trait_.name_with_params(self.vm, &type_params);
+        let trait_name = trait_.name_with_params(self.sa, &type_params);
         writeln!(
             self.w,
             " {}, ConstPoolIdx({}), {} # {} wrapping {}",
@@ -582,7 +581,7 @@ impl<'a> BytecodeDumper<'a> {
             idx.to_usize(),
             r2,
             trait_name,
-            actual_ty.name(self.vm),
+            actual_ty.name(self.sa),
         )
         .expect("write! failed");
     }
@@ -593,9 +592,9 @@ impl<'a> BytecodeDumper<'a> {
             ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params),
             _ => unreachable!(),
         };
-        let cls = self.vm.classes.idx(cls_id);
+        let cls = self.sa.classes.idx(cls_id);
         let cls = cls.read();
-        let cname = cls.name_with_params(self.vm, type_params);
+        let cname = cls.name_with_params(self.sa, type_params);
         writeln!(
             self.w,
             " {}, ConstPoolIdx({}), {} # {}",
@@ -613,7 +612,7 @@ impl<'a> BytecodeDumper<'a> {
             ConstPoolEntry::Tuple(ref source_type_array) => source_type_array.clone(),
             _ => unreachable!(),
         };
-        let tuple_name = source_type_array.tuple_name(self.vm);
+        let tuple_name = source_type_array.tuple_name(self.sa);
         writeln!(self.w, " {}, {}", r1, tuple_name).expect("write! failed");
     }
 
@@ -625,10 +624,10 @@ impl<'a> BytecodeDumper<'a> {
             }
             _ => unreachable!(),
         };
-        let enum_ = &self.vm.enums[enum_id];
+        let enum_ = &self.sa.enums[enum_id];
         let enum_ = enum_.read();
-        let enum_name = enum_.name_with_params(self.vm, type_params);
-        let variant_name = self.vm.interner.str(enum_.variants[variant_idx].name);
+        let enum_name = enum_.name_with_params(self.sa, type_params);
+        let variant_name = self.sa.interner.str(enum_.variants[variant_idx].name);
         writeln!(
             self.w,
             " {}, ConstPoolIdx({}) # {}::{}",
@@ -646,9 +645,9 @@ impl<'a> BytecodeDumper<'a> {
             ConstPoolEntry::Struct(struct_id, type_params) => (*struct_id, type_params),
             _ => unreachable!(),
         };
-        let xstruct = self.vm.structs.idx(struct_id);
+        let xstruct = self.sa.structs.idx(struct_id);
         let xstruct = xstruct.read();
-        let xstruct_name = xstruct.name_with_params(self.vm, type_params);
+        let xstruct_name = xstruct.name_with_params(self.sa, type_params);
         writeln!(
             self.w,
             " {}, ConstPoolIdx({}) # {}",

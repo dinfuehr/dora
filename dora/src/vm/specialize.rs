@@ -561,11 +561,11 @@ fn create_specialized_class_for_trait_object(
 
     let class_instance_id = create_class_instance_with_vtable(
         vm,
-        ShapeKind::TraitObject(
-            object_type.clone(),
-            trait_.id(),
-            combined_type_params.clone(),
-        ),
+        ShapeKind::TraitObject {
+            object_ty: object_type.clone(),
+            trait_id: trait_.id(),
+            combined_type_params: combined_type_params.clone(),
+        },
         size,
         fields,
         None,

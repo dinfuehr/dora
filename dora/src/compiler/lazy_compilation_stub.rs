@@ -282,14 +282,14 @@ fn patch_virtual_call(
     let class_instance = vtable.class_instance();
 
     let fct_ptr = match &class_instance.kind {
-        ShapeKind::TraitObject(actual_ty, _, _) => {
-            let all_type_params = type_params.connect_single(actual_ty.clone());
+        ShapeKind::TraitObject { object_ty, .. } => {
+            let all_type_params = type_params.connect_single(object_ty.clone());
             let thunk_fct_id = ensure_thunk(
                 vm,
                 class_instance.id(),
                 trait_fct_id,
                 type_params.clone(),
-                actual_ty.clone(),
+                object_ty.clone(),
             );
 
             compiler::generate(vm, thunk_fct_id, &all_type_params)

@@ -7,11 +7,11 @@ use crate::bytecode::{
     Register,
 };
 use crate::language::sem_analysis::{
-    ClassDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId, GlobalDefinitionId,
+    ClassDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId, GlobalDefinitionId, SemAnalysis,
     StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
-use crate::vm::{ClassInstanceId, VM};
+use crate::vm::ClassInstanceId;
 
 pub struct BytecodeBuilder {
     writer: BytecodeWriter,
@@ -583,7 +583,7 @@ impl BytecodeBuilder {
         self.writer.emit_load_array(dest, array, index);
     }
 
-    pub fn generate(self, vm: &VM) -> BytecodeFunction {
+    pub fn generate(self, sa: &SemAnalysis) -> BytecodeFunction {
         for reg in &self.registers.used {
             println!("used reg {}", reg);
         }
@@ -593,7 +593,7 @@ impl BytecodeBuilder {
         let bc = self.writer.generate_with_registers(self.registers.all());
 
         if used {
-            dump(vm, None, &bc);
+            dump(sa, None, &bc);
             panic!("all registers should be freed.");
         }
 
