@@ -2542,10 +2542,10 @@ impl<'a> CannonCodeGen<'a> {
         let object_ty = specialize_type(self.vm, object_ty, self.type_params);
         debug_assert!(object_ty.is_concrete_type(self.vm));
 
-        let cls_def_id =
+        let class_instance_id =
             specialize_trait_object(self.vm, trait_id, &type_params, object_ty.clone());
 
-        let cls = self.vm.class_instances.idx(cls_def_id);
+        let cls = self.vm.class_instances.idx(class_instance_id);
 
         let alloc_size = match cls.size {
             InstanceSize::Fixed(size) => size as usize,

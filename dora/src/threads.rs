@@ -50,7 +50,7 @@ pub struct Threads {
     pub threads: Mutex<Vec<Arc<DoraThread>>>,
     pub cv_join: Condvar,
 
-    pub next_id: AtomicUsize,
+    pub next_thread_id: AtomicUsize,
 
     pub barrier: Barrier,
 }
@@ -60,7 +60,7 @@ impl Threads {
         Threads {
             threads: Mutex::new(Vec::new()),
             cv_join: Condvar::new(),
-            next_id: AtomicUsize::new(1),
+            next_thread_id: AtomicUsize::new(1),
             barrier: Barrier::new(),
         }
     }
@@ -80,8 +80,8 @@ impl Threads {
         threads.push(thread);
     }
 
-    pub fn next_id(&self) -> usize {
-        self.next_id.fetch_add(1, Ordering::SeqCst)
+    pub fn next_thread_id(&self) -> usize {
+        self.next_thread_id.fetch_add(1, Ordering::Relaxed)
     }
 
     pub fn detach_current_thread(&self) {
@@ -155,7 +155,7 @@ unsafe impl Send for DoraThread {}
 
 impl DoraThread {
     pub fn new(vm: &VM, initial_state: ThreadState) -> Arc<DoraThread> {
-        DoraThread::with_id(vm.threads.next_id(), initial_state)
+        DoraThread::with_id(vm.threads.next_thread_id(), initial_state)
     }
 
     fn with_id(id: usize, initial_state: ThreadState) -> Arc<DoraThread> {
@@ -606,29 +606,25 @@ impl BarrierData {
 #[repr(C)]
 pub struct ManagedThread {
     header: Header,
-    native_ptr: AtomicUsize,
+    native_thread_ptr: u64,
+    id: u64,
 }
 
 impl ManagedThread {
     pub fn alloc(vm: &VM) -> Ref<ManagedThread> {
         let cls_id = vm.known.classes.thread_class_instance(vm);
-        let managed_thread: Ref<ManagedThread> = alloc(vm, cls_id).cast();
-        managed_thread.native_ptr.store(0, Ordering::Relaxed);
+        let mut managed_thread: Ref<ManagedThread> = alloc(vm, cls_id).cast();
+        managed_thread.native_thread_ptr = 0;
+        managed_thread.id = 0;
         managed_thread
     }
 
-    pub fn install_native_thread(&self, native_thread: &Arc<DoraThread>) -> bool {
-        self.native_ptr
-            .compare_exchange(
-                0,
-                Arc::as_ptr(native_thread) as usize,
-                Ordering::SeqCst,
-                Ordering::SeqCst,
-            )
-            .is_ok()
+    pub fn install_native_thread(&mut self, native_thread: &Arc<DoraThread>) {
+        self.native_thread_ptr = Arc::as_ptr(native_thread) as usize as u64;
+        self.id = native_thread.id() as u64;
     }
 
     pub fn native_thread(&self) -> &'static DoraThread {
-        unsafe { &*(self.native_ptr.load(Ordering::Relaxed) as *const _) }
+        unsafe { &*(self.native_thread_ptr as *const _) }
     }
 }

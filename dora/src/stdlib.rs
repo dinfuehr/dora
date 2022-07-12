@@ -287,14 +287,12 @@ pub extern "C" fn spawn_thread(runner: Handle<Obj>) -> Address {
     let vm = get_vm();
 
     let managed_thread = ManagedThread::alloc(vm);
-    let managed_thread: Handle<ManagedThread> = handle(managed_thread);
+    let mut managed_thread: Handle<ManagedThread> = handle(managed_thread);
 
     // Create new thread in Parked state.
     let thread = DoraThread::new(vm, ThreadState::Parked);
 
-    if !managed_thread.install_native_thread(&thread) {
-        panic!("Thread was already started!");
-    }
+    managed_thread.install_native_thread(&thread);
 
     vm.gc
         .add_finalizer(managed_thread.direct_ptr(), thread.clone());

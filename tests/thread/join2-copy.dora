@@ -1,10 +1,14 @@
 //= vm-args "--gc=copy"
+use std::collections::BitVec;
 
 fn main() {
     let mut i = 0i32;
+    let ids = BitVec::new();
 
     while i < 10_000i32 {
-        std::thread::spawn(|| {});
+        let thread = std::thread::spawn(|| {});
+        assert(!ids.contains(thread.id()));
+        ids.insert(thread.id());
 
         if i % 1_000i32 == 0i32 {
             std::forceCollect();

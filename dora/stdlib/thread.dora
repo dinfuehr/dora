@@ -1,9 +1,14 @@
 @pub class Thread {
-  native_ptr: Int64,
+    native_ptr: Int64,
+    id: Int64,
 }
 
 impl Thread {
-  @pub @internal fn join();
+    @pub fn id(): Int64 {
+        self.id
+    }
+
+    @pub @internal fn join();
 }
 
 @internal @pub fn spawn(action: (): ()): Thread;
