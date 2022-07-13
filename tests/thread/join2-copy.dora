@@ -1,12 +1,30 @@
 //= vm-args "--gc=copy"
 use std::collections::BitVec;
+use std::thread::Mutex;
+use std::Thread;
 
 fn main() {
     let mut i = 0i32;
     let ids = BitVec::new();
+    let mtx = Mutex::new();
+    let protectedIds = BitVec::new();
+
+    let main = Thread::current();
+
+    assert(!ids.contains(main.id()));
+    ids.insert(main.id());
+
+    assert(!protectedIds.contains(main.id()));
+    protectedIds.insert(main.id());
 
     while i < 10_000i32 {
-        let thread = std::thread::spawn(|| {});
+        let thread = std::thread::spawn(|| {
+            mtx.lock();
+            let current = Thread::current();
+            assert(!protectedIds.contains(current.id()));
+            protectedIds.insert(current.id());
+            mtx.unlock();
+        });
         assert(!ids.contains(thread.id()));
         ids.insert(thread.id());
 
@@ -16,4 +34,7 @@ fn main() {
 
         i = i + 1i32;
     }
+
+    assert(!ids.contains(0));
+    assert(!protectedIds.contains(0));
 }

@@ -8,6 +8,8 @@ impl Thread {
         self.id
     }
 
+    @pub @static @internal fn current(): Thread;
+
     @pub @internal fn join();
 }
 

@@ -919,6 +919,14 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
         stdlib::join_thread as *const u8,
     );
 
+    intrinsic_static(
+        sa,
+        stdlib,
+        "thread::Thread",
+        "current",
+        Intrinsic::ThreadCurrent,
+    );
+
     native_method(
         sa,
         stdlib,

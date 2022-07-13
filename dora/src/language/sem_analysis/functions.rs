@@ -471,6 +471,8 @@ pub enum Intrinsic {
     AtomicInt64Exchange,
     AtomicInt64CompareExchange,
     AtomicInt64FetchAdd,
+
+    ThreadCurrent,
 }
 
 impl Intrinsic {
@@ -551,7 +553,8 @@ impl Intrinsic {
             | Intrinsic::Int32RotateLeft
             | Intrinsic::Int32RotateRight
             | Intrinsic::Int64RotateLeft
-            | Intrinsic::Int64RotateRight => true,
+            | Intrinsic::Int64RotateRight
+            | Intrinsic::ThreadCurrent => true,
             _ => false,
         }
     }

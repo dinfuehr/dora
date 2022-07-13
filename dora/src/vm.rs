@@ -18,6 +18,7 @@ use crate::language::sem_analysis::{
 };
 use crate::language::ty::SourceTypeArray;
 use crate::stack::DoraToNativeInfo;
+use crate::threads::ManagedThread;
 use crate::threads::{
     current_thread, deinit_current_thread, init_current_thread, DoraThread, ThreadState, Threads,
     STACK_SIZE,
@@ -426,9 +427,20 @@ where
     F: FnOnce() -> R,
 {
     let vm = get_vm();
-    let thread = DoraThread::new(vm, ThreadState::Running);
-    init_current_thread(thread.clone());
-    vm.threads.attach_main_thread(thread);
+
+    let native_thread = DoraThread::new(vm, ThreadState::Running);
+    init_current_thread(native_thread.clone());
+
+    vm.threads.add_main_thread(native_thread.clone());
+
+    let mut managed_thread = ManagedThread::alloc(vm);
+    managed_thread.install_native_thread(&native_thread);
+
+    let managed_thread_handle = native_thread.handles.handle(managed_thread);
+
+    native_thread
+        .tld
+        .set_managed_thread_handle(managed_thread_handle.location());
 
     let stack_top = stack_pointer();
     let stack_limit = stack_top.sub(STACK_SIZE);
@@ -438,7 +450,7 @@ where
 
     let result = callback();
 
-    vm.threads.detach_current_thread();
+    vm.threads.remove_current_thread();
     deinit_current_thread();
 
     result

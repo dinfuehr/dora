@@ -300,7 +300,7 @@ pub extern "C" fn spawn_thread(runner: Handle<Obj>) -> Address {
     // Add thread to our list of all threads first. This method parks
     // and unparks the current thread, this means the handle needs to be created
     // afterwards.
-    vm.threads.attach_thread(thread.clone());
+    vm.threads.add_thread(thread.clone());
 
     // Now we can create a handle in that newly created thread. Since the thread
     // is now registered, the handle is updated as well by the GC.
@@ -328,6 +328,8 @@ fn thread_main(thread: &DoraThread, thread_location: Address, runner_location: A
     let vm = get_vm();
     let _thread_handle: Handle<ManagedThread> = Handle::from_address(thread_location);
     let runner_handle: Handle<Obj> = Handle::from_address(runner_location);
+
+    thread.tld.set_managed_thread_handle(thread_location);
 
     let stack_top = stack_pointer();
     let stack_limit = stack_top.sub(STACK_SIZE);
@@ -361,7 +363,7 @@ fn thread_main(thread: &DoraThread, thread_location: Address, runner_location: A
     fct(tld, fct_ptr, runner_handle.direct());
 
     // remove thread from list of all threads
-    vm.threads.detach_current_thread();
+    vm.threads.remove_current_thread();
 
     // notify threads waiting in join() for this thread's end
     thread.stop();

@@ -65,7 +65,7 @@ impl Threads {
         }
     }
 
-    pub fn attach_thread(&self, thread: Arc<DoraThread>) {
+    pub fn add_thread(&self, thread: Arc<DoraThread>) {
         assert!(thread.is_parked());
         parked_scope(|| {
             let mut threads = self.threads.lock();
@@ -73,7 +73,7 @@ impl Threads {
         });
     }
 
-    pub fn attach_main_thread(&self, thread: Arc<DoraThread>) {
+    pub fn add_main_thread(&self, thread: Arc<DoraThread>) {
         assert!(thread.is_running());
         let mut threads = self.threads.lock();
         assert!(threads.is_empty());
@@ -84,7 +84,7 @@ impl Threads {
         self.next_thread_id.fetch_add(1, Ordering::Relaxed)
     }
 
-    pub fn detach_current_thread(&self) {
+    pub fn remove_current_thread(&self) {
         let vm = get_vm();
 
         // Other threads might still be running and perform a GC.
@@ -105,17 +105,6 @@ impl Threads {
 
         while threads.len() > 0 {
             self.cv_join.wait(&mut threads);
-        }
-    }
-
-    pub fn each<F>(&self, mut f: F)
-    where
-        F: FnMut(&Arc<DoraThread>),
-    {
-        let threads = self.threads.lock();
-
-        for thread in threads.iter() {
-            f(thread)
         }
     }
 }
@@ -435,6 +424,7 @@ pub struct ThreadLocalData {
     stack_limit: AtomicUsize,
     safepoint_requested: AtomicBool,
     dtn: AtomicUsize,
+    managed_thread_handle: AtomicUsize,
 }
 
 impl ThreadLocalData {
@@ -446,6 +436,7 @@ impl ThreadLocalData {
             stack_limit: AtomicUsize::new(0),
             safepoint_requested: AtomicBool::new(false),
             dtn: AtomicUsize::new(0),
+            managed_thread_handle: AtomicUsize::new(0),
         }
     }
 
@@ -475,6 +466,11 @@ impl ThreadLocalData {
             .store(stack_limit.to_usize(), Ordering::Relaxed);
     }
 
+    pub fn set_managed_thread_handle(&self, location: Address) {
+        self.managed_thread_handle
+            .store(location.to_usize(), Ordering::Relaxed);
+    }
+
     pub fn tlab_top_offset() -> i32 {
         offset_of!(ThreadLocalData, tlab_top) as i32
     }
@@ -501,6 +497,10 @@ impl ThreadLocalData {
 
     pub fn dtn_offset() -> i32 {
         offset_of!(ThreadLocalData, dtn) as i32
+    }
+
+    pub fn managed_thread_handle_offset() -> i32 {
+        offset_of!(ThreadLocalData, managed_thread_handle) as i32
     }
 
     pub fn set_safepoint_requested(&self) {

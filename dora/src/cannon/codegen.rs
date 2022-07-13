@@ -3880,6 +3880,12 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_ror_int(dest, lhs_reg, rhs_reg);
             }
 
+            Intrinsic::ThreadCurrent => {
+                assert_eq!(arguments.len(), 0);
+                self.asm.thread_current(REG_RESULT);
+                self.emit_store_register(REG_RESULT.into(), dest);
+            }
+
             _ => panic!("unimplemented intrinsic {:?}", intrinsic),
         }
     }

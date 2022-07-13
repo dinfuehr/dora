@@ -662,6 +662,16 @@ impl<'a> BaselineAssembler<'a> {
         }
     }
 
+    pub fn thread_current(&mut self, dest: Reg) {
+        self.masm.load_mem(
+            MachineMode::Ptr,
+            dest.into(),
+            Mem::Base(REG_THREAD, ThreadLocalData::managed_thread_handle_offset()),
+        );
+        self.masm
+            .load_mem(MachineMode::Ptr, dest.into(), Mem::Base(dest, 0));
+    }
+
     pub fn gc_allocate(
         &mut self,
         dest: Reg,
