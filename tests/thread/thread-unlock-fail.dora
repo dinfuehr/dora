@@ -1,0 +1,13 @@
+//= error assert
+
+fn main() {
+    let mtx = std::Mutex::new();
+
+    mtx.lock();
+
+    let thread = std::thread::spawn(|| {
+        mtx.unlock();
+    });
+
+    thread.join();
+}

@@ -49,11 +49,12 @@ const LOCKED_CONTENDED: Int32 = 2i32;
 
 @pub class Mutex {
     data: AtomicInt32,
+    owner_thread_id: Int64,
 }
 
 impl Mutex {
     @pub @static fn new(): Mutex {
-        Mutex(AtomicInt32::new(UNLOCKED))
+        Mutex(AtomicInt32::new(UNLOCKED), 0)
     }
 
     @pub fn lock() {
@@ -63,6 +64,9 @@ impl Mutex {
             assert(previous == LOCKED || previous == LOCKED_CONTENDED);
             self.lockSlow();
         }
+
+        assert(self.owner_thread_id == 0);
+        self.owner_thread_id = Thread::current().id();
     }
 
     fn lockSlow() {
@@ -85,6 +89,9 @@ impl Mutex {
     }
 
     @pub fn unlock() {
+        assert(self.owner_thread_id == Thread::current().id());
+        self.owner_thread_id = 0;
+
         let previous = self.data.exchange(UNLOCKED);
 
         if previous != LOCKED {
