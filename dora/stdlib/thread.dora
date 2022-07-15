@@ -57,6 +57,12 @@ impl Mutex {
         Mutex(AtomicInt32::new(UNLOCKED), 0)
     }
 
+    @pub fn lock2(fct: (): ()) {
+        self.lock();
+        fct();
+        self.unlock();
+    }
+
     @pub fn lock() {
         let previous = self.data.compareExchange(UNLOCKED, LOCKED);
 

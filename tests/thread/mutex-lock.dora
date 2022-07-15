@@ -1,0 +1,68 @@
+//= vm-args "--gc=copy"
+
+class Object
+
+const THREADS: Int32 = 20i32;
+const ITERATIONS: Int32 = 10_000i32;
+
+class MyThread(mtx: std::Mutex, value: SharedInt)
+
+impl MyThread {
+    fn run() {
+        let mut i = 0i32;
+        let mut last: Object = Object();
+
+        while i < ITERATIONS {
+            Object();
+
+            self.mtx.lock2(|| {
+                let value = self.value.increment();
+
+                last = Object();
+
+                if value % 100i32 == 0i32 {
+                    std::forceCollect();
+                }
+            });
+
+            i = i + 1i32;
+        }
+    }
+}
+
+class SharedInt {
+    value: Int32,
+}
+
+impl SharedInt {
+    @static fn new(): SharedInt {
+        SharedInt(0i32)
+    }
+
+    fn increment(): Int32 {
+        let old = self.value;
+        self.value = self.value + 1i32;
+        old
+    }
+}
+
+fn main() {
+    let mut i = 0i32;
+    let mut threads = Vec[std::Thread]::new();
+    let mut mtx = std::Mutex::new();
+    let mut shared = SharedInt::new();
+
+    while i < THREADS {
+        let thread = std::thread::spawn(|| {
+            MyThread(mtx, shared).run();
+        });
+        threads.push(thread);
+        i = i + 1i32;
+    }
+
+    for thread in threads {
+        thread.join();
+    }
+
+    assert(shared.value == THREADS * ITERATIONS);
+}
