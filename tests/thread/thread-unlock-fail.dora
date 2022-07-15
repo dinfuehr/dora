@@ -2,12 +2,13 @@
 
 fn main() {
     let mtx = std::Mutex::new();
+    let cv = std::Condition::new();
 
-    mtx.lock();
+    mtx.lock(|| {
+        let thread = std::thread::spawn(|| {
+            cv.wait(mtx);
+        });
 
-    let thread = std::thread::spawn(|| {
-        mtx.unlock();
+        thread.join();
     });
-
-    thread.join();
 }

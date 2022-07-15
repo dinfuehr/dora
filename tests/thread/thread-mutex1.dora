@@ -15,16 +15,16 @@ impl MyThread {
         while i < ITERATIONS {
             Object();
 
-            self.mtx.lock();
-            let value = self.value.increment();
+            self.mtx.lock(|| {
+                let value = self.value.increment();
 
-            last = Object();
+                last = Object();
 
-            if value % 100i32 == 0i32 {
-                std::forceCollect();
-            }
+                if value % 100i32 == 0i32 {
+                    std::forceCollect();
+                }
+            });
 
-            self.mtx.unlock();
             i = i + 1i32;
         }
     }

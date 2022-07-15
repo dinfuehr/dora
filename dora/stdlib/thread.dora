@@ -57,13 +57,13 @@ impl Mutex {
         Mutex(AtomicInt32::new(UNLOCKED), 0)
     }
 
-    @pub fn lock2(fct: (): ()) {
-        self.lock();
+    @pub fn lock(fct: (): ()) {
+        self.lockOp();
         fct();
-        self.unlock();
+        self.unlockOp();
     }
 
-    @pub fn lock() {
+    fn lockOp() {
         let previous = self.data.compareExchange(UNLOCKED, LOCKED);
 
         if previous != UNLOCKED {
@@ -94,7 +94,7 @@ impl Mutex {
         self.data.compareExchange(LOCKED, LOCKED_CONTENDED) != UNLOCKED
     }
 
-    @pub fn unlock() {
+    fn unlockOp() {
         assert(self.owner_thread_id == Thread::current().id());
         self.owner_thread_id = 0;
 
@@ -125,9 +125,9 @@ impl Condition {
 
     @pub fn wait(mtx: Mutex) {
         self.enqueue();
-        mtx.unlock();
+        mtx.unlockOp();
         self.block();
-        mtx.lock();
+        mtx.lockOp();
     }
 
     @pub fn notifyOne() {
