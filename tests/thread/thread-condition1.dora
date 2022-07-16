@@ -26,7 +26,7 @@ impl[T] SharedQueue[T] {
     }
 
     fn enqueue(value: T) {
-        self.mtx.lock(|| {
+        self.mtx.lock[()](|| {
             while self.queue.size() == self.capacity {
                 self.conditionNonFull.wait(self.mtx);
             }
@@ -38,18 +38,16 @@ impl[T] SharedQueue[T] {
     }
 
     fn dequeue(): T {
-        let mut value: Option[T] = None;
-
-        self.mtx.lock(|| {
-            while self.queue.size() == 0i64 {
+        let value = self.mtx.lock[T](||: T {
+            while self.queue.size() == 0 {
                 self.conditionNonEmpty.wait(self.mtx);
             }
 
-            value = Some[T](self.queue.dequeue());
+            self.queue.dequeue()
         });
 
         self.conditionNonFull.notifyAll();
-        value.getOrPanic()
+        value
     }
 }
 

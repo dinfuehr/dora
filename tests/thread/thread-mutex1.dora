@@ -15,7 +15,7 @@ impl MyThread {
         while i < ITERATIONS {
             Object();
 
-            self.mtx.lock(|| {
+            self.mtx.lock[()](|| {
                 let value = self.value.increment();
 
                 last = Object();

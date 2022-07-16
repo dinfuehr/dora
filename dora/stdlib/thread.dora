@@ -57,10 +57,11 @@ impl Mutex {
         Mutex(AtomicInt32::new(UNLOCKED), 0)
     }
 
-    @pub fn lock(fct: (): ()) {
+    @pub fn lock[T](fct: (): T): T {
         self.lockOp();
-        fct();
+        let result = fct();
         self.unlockOp();
+        result
     }
 
     fn lockOp() {

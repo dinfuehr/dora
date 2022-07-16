@@ -2988,13 +2988,10 @@ impl<'a> CannonCodeGen<'a> {
             _ => unreachable!(),
         };
 
-        let type_params = SourceTypeArray::empty();
-        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
-
         let pos = self.bytecode.offset_position(self.current_offset.to_u32());
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
-        self.emit_invoke_lambda(dest, params, return_type, type_params, arguments, pos);
+        self.emit_invoke_lambda(dest, params, return_type, arguments, pos);
     }
 
     fn emit_invoke_lambda(
@@ -3002,7 +2999,6 @@ impl<'a> CannonCodeGen<'a> {
         dest: Register,
         _params: SourceTypeArray,
         return_type: SourceType,
-        type_params: SourceTypeArray,
         arguments: Vec<Register>,
         pos: Position,
     ) {
@@ -3013,8 +3009,7 @@ impl<'a> CannonCodeGen<'a> {
         let bytecode_type_self = self.bytecode.register_type(self_register);
         assert!(bytecode_type_self.is_ptr() || bytecode_type_self.is_trait());
 
-        let fct_return_type =
-            self.specialize_type(specialize_type(self.vm, return_type.clone(), &type_params));
+        let fct_return_type = self.specialize_type(return_type);
         assert!(fct_return_type.is_concrete_type(self.vm));
 
         let argsize = self.emit_invoke_arguments(dest, fct_return_type.clone(), arguments);

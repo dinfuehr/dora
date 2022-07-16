@@ -19,7 +19,7 @@ fn main() {
 
     while i < 10_000i32 {
         let thread = std::thread::spawn(|| {
-            mtx.lock(|| {
+            mtx.lock[()](|| {
                 let current = Thread::current();
                 assert(!protectedIds.contains(current.id()));
                 protectedIds.insert(current.id());
