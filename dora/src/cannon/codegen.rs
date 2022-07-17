@@ -2997,7 +2997,7 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_invoke_lambda(
         &mut self,
         dest: Register,
-        _params: SourceTypeArray,
+        params: SourceTypeArray,
         return_type: SourceType,
         arguments: Vec<Register>,
         pos: Position,
@@ -3011,6 +3011,10 @@ impl<'a> CannonCodeGen<'a> {
 
         let fct_return_type = self.specialize_type(return_type);
         assert!(fct_return_type.is_concrete_type(self.vm));
+
+        debug_assert!(params
+            .iter()
+            .all(|ty| self.specialize_type(ty).is_concrete_type(self.vm)));
 
         let argsize = self.emit_invoke_arguments(dest, fct_return_type.clone(), arguments);
 
