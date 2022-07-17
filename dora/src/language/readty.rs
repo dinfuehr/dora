@@ -510,97 +510,58 @@ fn check_bounds_for_type_param_id(
             let cls = sa.classes.idx(cls_id);
             let cls = cls.read();
 
-            check_bounds_for_type_param(
-                sa,
-                tp_definition,
-                cls.type_param(tp_id),
-                success,
-                file_id,
-                pos,
-                ctxt,
-            )
+            let type_param = &cls.type_params[tp_id.to_usize()];
+
+            check_bounds_for_type_param(sa, tp_definition, type_param, success, file_id, pos, ctxt)
         }
 
         TypeParamContext::Enum(enum_id) => {
             let enum_ = &sa.enums[enum_id];
             let enum_ = enum_.read();
 
-            check_bounds_for_type_param(
-                sa,
-                tp_definition,
-                enum_.type_param(tp_id),
-                success,
-                file_id,
-                pos,
-                ctxt,
-            )
+            let type_param = &enum_.type_params[tp_id.to_usize()];
+
+            check_bounds_for_type_param(sa, tp_definition, type_param, success, file_id, pos, ctxt)
         }
 
         TypeParamContext::Struct(struct_id) => {
             let xstruct = &sa.structs.idx(struct_id);
             let xstruct = xstruct.read();
 
-            check_bounds_for_type_param(
-                sa,
-                tp_definition,
-                xstruct.type_param(tp_id),
-                success,
-                file_id,
-                pos,
-                ctxt,
-            )
+            let type_param = &xstruct.type_params[tp_id.to_usize()];
+
+            check_bounds_for_type_param(sa, tp_definition, type_param, success, file_id, pos, ctxt)
         }
 
-        TypeParamContext::Impl(impl_) => check_bounds_for_type_param(
-            sa,
-            tp_definition,
-            impl_.type_param(tp_id),
-            success,
-            file_id,
-            pos,
-            ctxt,
-        ),
+        TypeParamContext::Impl(impl_) => {
+            let type_param = &impl_.type_params[tp_id.to_usize()];
+
+            check_bounds_for_type_param(sa, tp_definition, type_param, success, file_id, pos, ctxt)
+        }
 
         TypeParamContext::Extension(extension_id) => {
             let extension = &sa.extensions[extension_id];
             let extension = extension.read();
 
-            check_bounds_for_type_param(
-                sa,
-                tp_definition,
-                extension.type_param(tp_id),
-                success,
-                file_id,
-                pos,
-                ctxt,
-            )
+            let type_param = &extension.type_params[tp_id.to_usize()];
+
+            check_bounds_for_type_param(sa, tp_definition, type_param, success, file_id, pos, ctxt)
         }
 
         TypeParamContext::Trait(trait_id) => {
             let trait_ = &sa.traits[trait_id];
             let trait_ = trait_.read();
 
-            check_bounds_for_type_param(
-                sa,
-                tp_definition,
-                trait_.type_param(tp_id),
-                success,
-                file_id,
-                pos,
-                ctxt,
-            )
+            let type_param = &trait_.type_params[tp_id.to_usize()];
+
+            check_bounds_for_type_param(sa, tp_definition, type_param, success, file_id, pos, ctxt)
         }
 
-        TypeParamContext::Fct(fct) => check_bounds_for_type_param(
-            sa,
-            tp_definition,
-            fct.type_param(tp_id),
-            success,
-            file_id,
-            pos,
-            ctxt,
-        ),
+        TypeParamContext::Fct(fct) => {
+            let type_param = &fct.type_params[tp_id.to_usize()];
 
+            check_bounds_for_type_param(sa, tp_definition, type_param, success, file_id, pos, ctxt)
+        }
         TypeParamContext::None => unreachable!(),
     }
 }

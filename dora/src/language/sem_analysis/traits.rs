@@ -10,7 +10,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
     module_path, FctDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId, TypeParam,
-    TypeParamDefinition, TypeParamId,
+    TypeParamDefinition,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;
@@ -145,10 +145,6 @@ impl TraitDefinition {
         }
 
         None
-    }
-
-    pub fn type_param(&self, id: TypeParamId) -> &TypeParam {
-        &self.type_params[id.to_usize()]
     }
 }
 

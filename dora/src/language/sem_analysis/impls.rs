@@ -11,7 +11,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
     extension_matches_ty, FctDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId,
-    TraitDefinitionId, TypeParam, TypeParamDefinition, TypeParamId,
+    TraitDefinitionId, TypeParam, TypeParamDefinition,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;
@@ -86,10 +86,6 @@ impl ImplDefinition {
 
     pub fn trait_id(&self) -> TraitDefinitionId {
         self.trait_ty.trait_id().expect("trait expected")
-    }
-
-    pub fn type_param(&self, id: TypeParamId) -> &TypeParam {
-        &self.type_params[id.to_usize()]
     }
 }
 

@@ -9,7 +9,7 @@ use dora_parser::lexer::position::Position;
 use crate::language::sem_analysis::{
     extension_matches, impl_matches, module_path, Candidate, ExtensionDefinitionId,
     ImplDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId, TypeParam,
-    TypeParamDefinition, TypeParamId,
+    TypeParamDefinition,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;
@@ -91,10 +91,6 @@ impl EnumDefinition {
 
     pub fn id(&self) -> EnumDefinitionId {
         self.id.expect("id missing")
-    }
-
-    pub fn type_param(&self, id: TypeParamId) -> &TypeParam {
-        &self.type_params[id.to_usize()]
     }
 
     pub fn name(&self, sa: &SemAnalysis) -> String {

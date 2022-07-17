@@ -119,10 +119,6 @@ impl StructDefinition {
         name
     }
 
-    pub fn type_param(&self, id: TypeParamId) -> &TypeParam {
-        &self.type_params[id.to_usize()]
-    }
-
     pub fn ty(&self) -> SourceType {
         if let Some(ref primitive_ty) = self.primitive_ty {
             primitive_ty.clone()

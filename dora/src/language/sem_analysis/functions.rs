@@ -114,14 +114,6 @@ impl FctDefinition {
         &self.type_params
     }
 
-    pub fn container_type_params(&self) -> &[TypeParam] {
-        &self.type_params[0..self.container_type_params]
-    }
-
-    pub fn fct_type_params(&self) -> &[TypeParam] {
-        &self.type_params[self.container_type_params..]
-    }
-
     pub fn type_param(&self, id: TypeParamId) -> &TypeParam {
         &self.type_params[id.to_usize()]
     }

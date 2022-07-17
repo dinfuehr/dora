@@ -5,9 +5,7 @@ use std::convert::TryInto;
 use std::ops::Index;
 use std::sync::Arc;
 
-use crate::language::sem_analysis::{
-    FctDefinitionId, ModuleDefinitionId, SourceFileId, TypeParam, TypeParamId,
-};
+use crate::language::sem_analysis::{FctDefinitionId, ModuleDefinitionId, SourceFileId, TypeParam};
 use crate::language::ty::SourceType;
 use crate::utils::Id;
 
@@ -84,10 +82,6 @@ impl ExtensionDefinition {
 
     pub fn id(&self) -> ExtensionDefinitionId {
         self.id.expect("id missing")
-    }
-
-    pub fn type_param(&self, id: TypeParamId) -> &TypeParam {
-        &self.type_params[id.to_usize()]
     }
 }
 

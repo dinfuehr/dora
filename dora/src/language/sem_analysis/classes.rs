@@ -151,23 +151,6 @@ impl ClassDefinition {
         self.pos.expect("missing position")
     }
 
-    pub fn is_generic(&self) -> bool {
-        self.type_params.len() > 0
-    }
-
-    pub fn type_param(&self, id: TypeParamId) -> &TypeParam {
-        &self.type_params[id.to_usize()]
-    }
-
-    pub fn type_param_ty(&self, ty: SourceType) -> &TypeParam {
-        let id = match ty {
-            SourceType::TypeParam(id) => id,
-            _ => unimplemented!(),
-        };
-
-        &self.type_params[id.to_usize()]
-    }
-
     pub fn ty(&self) -> SourceType {
         self.ty.clone().expect("not initialized")
     }
