@@ -1729,7 +1729,7 @@ impl<'a> TypeCheck<'a> {
         let (params, return_type) = expr_type.to_lambda().expect("lambda expected");
 
         // Type params are mapped to themselves.
-        let type_params_count = self.fct.all_type_params().len();
+        let type_params_count = self.fct.type_params.len();
         let type_params = (0..type_params_count)
             .into_iter()
             .map(|idx| SourceType::TypeParam(TypeParamId(idx)))

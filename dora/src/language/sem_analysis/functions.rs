@@ -110,10 +110,6 @@ impl FctDefinition {
         self.id.expect("id missing")
     }
 
-    pub fn all_type_params(&self) -> &[TypeParam] {
-        &self.type_params
-    }
-
     pub fn type_param(&self, id: TypeParamId) -> &TypeParam {
         &self.type_params[id.to_usize()]
     }
