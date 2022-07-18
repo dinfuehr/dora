@@ -11,7 +11,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
     extension_matches_ty, FctDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId,
-    TraitDefinitionId, TypeParam, TypeParamDefinition,
+    TraitDefinitionId, TypeParam,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;
@@ -101,7 +101,6 @@ pub fn impl_matches(
     sa: &SemAnalysis,
     check_ty: SourceType,
     check_type_param_defs: &[TypeParam],
-    check_type_param_defs2: Option<&TypeParamDefinition>,
     impl_id: ImplDefinitionId,
 ) -> Option<SourceTypeArray> {
     let impl_ = sa.impls[impl_id].read();
@@ -109,7 +108,6 @@ pub fn impl_matches(
         sa,
         check_ty,
         check_type_param_defs,
-        check_type_param_defs2,
         impl_.extended_ty.clone(),
         &impl_.type_params,
     )
@@ -149,15 +147,7 @@ pub fn implements_trait(
 
         SourceType::Enum(enum_id, _) => {
             let enum_ = sa.enums[enum_id].read();
-            check_impls(
-                sa,
-                check_ty,
-                check_type_param_defs,
-                None,
-                trait_id,
-                &enum_.impls,
-            )
-            .is_some()
+            check_impls(sa, check_ty, check_type_param_defs, trait_id, &enum_.impls).is_some()
         }
 
         SourceType::Bool
@@ -181,7 +171,6 @@ pub fn implements_trait(
                 sa,
                 check_ty,
                 check_type_param_defs,
-                None,
                 trait_id,
                 &xstruct.impls,
             )
@@ -196,7 +185,6 @@ pub fn implements_trait(
                 sa,
                 check_ty,
                 check_type_param_defs,
-                None,
                 trait_id,
                 &xstruct.impls,
             )
@@ -212,7 +200,6 @@ pub fn implements_trait(
                 sa,
                 check_ty.clone(),
                 check_type_param_defs,
-                None,
                 trait_id,
                 &cls.impls,
             )
@@ -242,14 +229,7 @@ pub fn find_impl(
 
         SourceType::Enum(enum_id, _) => {
             let enum_ = sa.enums[enum_id].read();
-            check_impls(
-                sa,
-                check_ty,
-                check_type_param_defs,
-                None,
-                trait_id,
-                &enum_.impls,
-            )
+            check_impls(sa, check_ty, check_type_param_defs, trait_id, &enum_.impls)
         }
 
         SourceType::Bool
@@ -269,7 +249,6 @@ pub fn find_impl(
                 sa,
                 check_ty,
                 check_type_param_defs,
-                None,
                 trait_id,
                 &xstruct.impls,
             )
@@ -283,7 +262,6 @@ pub fn find_impl(
                 sa,
                 check_ty,
                 check_type_param_defs,
-                None,
                 trait_id,
                 &xstruct.impls,
             )
@@ -298,7 +276,6 @@ pub fn find_impl(
                 sa,
                 check_ty.clone(),
                 check_type_param_defs,
-                None,
                 trait_id,
                 &cls.impls,
             )
@@ -313,7 +290,6 @@ pub fn check_impls(
     sa: &SemAnalysis,
     check_ty: SourceType,
     check_type_param_defs: &[TypeParam],
-    check_type_param_defs2: Option<&TypeParamDefinition>,
     trait_id: TraitDefinitionId,
     impls: &[ImplDefinitionId],
 ) -> Option<ImplDefinitionId> {
@@ -325,15 +301,7 @@ pub fn check_impls(
             continue;
         }
 
-        if impl_matches(
-            sa,
-            check_ty.clone(),
-            check_type_param_defs,
-            check_type_param_defs2,
-            impl_id,
-        )
-        .is_some()
-        {
+        if impl_matches(sa, check_ty.clone(), check_type_param_defs, impl_id).is_some() {
             return Some(impl_id);
         }
     }

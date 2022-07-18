@@ -62,7 +62,6 @@ pub struct ClassDefinition {
     pub extensions: Vec<ExtensionDefinitionId>,
 
     pub type_params: Vec<TypeParam>,
-    pub type_params2: TypeParamDefinition,
 
     // true if this class is the generic Array class
     pub is_array: bool,
@@ -99,7 +98,6 @@ impl ClassDefinition {
             extensions: Vec::new(),
 
             type_params,
-            type_params2: TypeParamDefinition::new(),
 
             is_array: false,
             is_str: false,
@@ -132,7 +130,6 @@ impl ClassDefinition {
             extensions: Vec::new(),
 
             type_params: Vec::new(),
-            type_params2: TypeParamDefinition::new(),
 
             is_array: false,
             is_str: false,
@@ -277,7 +274,6 @@ pub fn find_methods_in_class(
     sa: &SemAnalysis,
     object_type: SourceType,
     type_param_defs: &[TypeParam],
-    type_param_defs2: Option<&TypeParamDefinition>,
     name: Name,
     is_static: bool,
 ) -> Vec<Candidate> {
@@ -290,13 +286,9 @@ pub fn find_methods_in_class(
         let cls = cls.read();
 
         for &extension_id in &cls.extensions {
-            if let Some(bindings) = extension_matches(
-                sa,
-                object_type.clone(),
-                type_param_defs,
-                type_param_defs2,
-                extension_id,
-            ) {
+            if let Some(bindings) =
+                extension_matches(sa, object_type.clone(), type_param_defs, extension_id)
+            {
                 let extension = sa.extensions[extension_id].read();
 
                 let table = if is_static {
@@ -321,13 +313,7 @@ pub fn find_methods_in_class(
     let cls = cls.read();
 
     for &impl_id in &cls.impls {
-        if let Some(bindings) = impl_matches(
-            sa,
-            object_type.clone(),
-            type_param_defs,
-            type_param_defs2,
-            impl_id,
-        ) {
+        if let Some(bindings) = impl_matches(sa, object_type.clone(), type_param_defs, impl_id) {
             let impl_ = sa.impls[impl_id].read();
 
             let table = if is_static {

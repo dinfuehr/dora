@@ -16,8 +16,8 @@ use crate::language::sem_analysis::{
     find_methods_in_struct, implements_trait, AnalysisData, CallType, ClassDefinition,
     ClassDefinitionId, ContextIdx, EnumDefinitionId, EnumVariant, FctDefinition, FctDefinitionId,
     FctParent, Field, FieldId, ForTypeInfo, IdentType, Intrinsic, ModuleDefinitionId, NestedVarId,
-    SemAnalysis, SourceFileId, StructDefinition, StructDefinitionId, TypeParam,
-    TypeParamDefinition, TypeParamId, Var, VarAccess, VarId, VarLocation,
+    SemAnalysis, SourceFileId, StructDefinition, StructDefinitionId, TypeParam, TypeParamId, Var,
+    VarAccess, VarId, VarLocation,
 };
 use crate::language::specialize::replace_type_param;
 use crate::language::sym::{NestedSymTable, Sym};
@@ -1133,7 +1133,6 @@ impl<'a> TypeCheck<'a> {
             self.sa,
             object_type.clone(),
             &self.fct.type_params,
-            None,
             is_static,
             name,
             args,
@@ -1191,7 +1190,6 @@ impl<'a> TypeCheck<'a> {
                 self.sa,
                 ty.clone(),
                 &self.fct.type_params,
-                None,
                 false,
                 name,
                 &call_types,
@@ -1290,7 +1288,6 @@ impl<'a> TypeCheck<'a> {
             self.sa,
             lhs_type.clone(),
             &self.fct.type_params,
-            None,
             false,
             name,
             &call_types,
@@ -3585,39 +3582,17 @@ fn lookup_method(
     sa: &SemAnalysis,
     object_type: SourceType,
     type_param_defs: &[TypeParam],
-    type_param_defs2: Option<&TypeParamDefinition>,
     is_static: bool,
     name: Name,
     args: &[SourceType],
     fct_type_params: &SourceTypeArray,
 ) -> Option<MethodDescriptor> {
     let candidates = if object_type.is_enum() {
-        find_methods_in_enum(
-            sa,
-            object_type,
-            type_param_defs,
-            type_param_defs2,
-            name,
-            is_static,
-        )
+        find_methods_in_enum(sa, object_type, type_param_defs, name, is_static)
     } else if object_type.is_struct() || object_type.is_primitive() {
-        find_methods_in_struct(
-            sa,
-            object_type,
-            type_param_defs,
-            type_param_defs2,
-            name,
-            is_static,
-        )
+        find_methods_in_struct(sa, object_type, type_param_defs, name, is_static)
     } else if object_type.cls_id().is_some() {
-        find_methods_in_class(
-            sa,
-            object_type,
-            type_param_defs,
-            type_param_defs2,
-            name,
-            is_static,
-        )
+        find_methods_in_class(sa, object_type, type_param_defs, name, is_static)
     } else {
         Vec::new()
     };

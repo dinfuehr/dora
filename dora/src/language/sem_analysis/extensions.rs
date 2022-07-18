@@ -95,7 +95,7 @@ impl Index<ExtensionDefinitionId> for Vec<RwLock<ExtensionDefinition>> {
 
 mod matching {
     use crate::language::sem_analysis::{
-        implements_trait, ExtensionDefinitionId, SemAnalysis, TypeParam, TypeParamDefinition,
+        implements_trait, ExtensionDefinitionId, SemAnalysis, TypeParam,
     };
     use crate::language::ty::{SourceType, SourceTypeArray};
 
@@ -103,7 +103,6 @@ mod matching {
         sa: &SemAnalysis,
         check_ty: SourceType,
         check_type_param_defs: &[TypeParam],
-        check_type_param_defs2: Option<&TypeParamDefinition>,
         extension_id: ExtensionDefinitionId,
     ) -> Option<SourceTypeArray> {
         let extension = sa.extensions[extension_id].read();
@@ -111,7 +110,6 @@ mod matching {
             sa,
             check_ty,
             check_type_param_defs,
-            check_type_param_defs2,
             extension.ty.clone(),
             &extension.type_params,
         )
@@ -121,7 +119,6 @@ mod matching {
         sa: &SemAnalysis,
         check_ty: SourceType,
         check_type_param_defs: &[TypeParam],
-        check_type_param_defs2: Option<&TypeParamDefinition>,
         ext_ty: SourceType,
         ext_type_param_defs: &[TypeParam],
     ) -> Option<SourceTypeArray> {
@@ -131,10 +128,8 @@ mod matching {
             sa,
             check_ty,
             check_type_param_defs,
-            check_type_param_defs2,
             ext_ty.clone(),
             ext_type_param_defs,
-            None,
             &mut bindings,
         );
 
@@ -151,10 +146,8 @@ mod matching {
         sa: &SemAnalysis,
         check_ty: SourceType,
         check_type_param_defs: &[TypeParam],
-        check_type_param_defs2: Option<&TypeParamDefinition>,
         ext_ty: SourceType,
         ext_type_param_defs: &[TypeParam],
-        ext_type_param_defs2: Option<&TypeParamDefinition>,
         bindings: &mut [Option<SourceType>],
     ) -> bool {
         if let SourceType::TypeParam(tp_id) = ext_ty {
@@ -165,10 +158,8 @@ mod matching {
                     sa,
                     check_ty,
                     check_type_param_defs,
-                    check_type_param_defs2,
                     binding,
                     ext_type_param_defs,
-                    ext_type_param_defs2,
                     bindings,
                 )
             } else {
@@ -177,20 +168,16 @@ mod matching {
                         sa,
                         check_ty.clone(),
                         check_type_param_defs,
-                        check_type_param_defs2,
                         ext_ty,
                         ext_type_param_defs,
-                        ext_type_param_defs2,
                     )
                 } else {
                     concrete_type_fulfills_bounds(
                         sa,
                         check_ty.clone(),
                         check_type_param_defs,
-                        check_type_param_defs2,
                         ext_ty,
                         ext_type_param_defs,
-                        ext_type_param_defs2,
                     )
                 };
 
@@ -206,10 +193,8 @@ mod matching {
                     sa,
                     check_ty,
                     check_type_param_defs,
-                    check_type_param_defs2,
                     ext_ty,
                     ext_type_param_defs,
-                    ext_type_param_defs2,
                     bindings,
                 )
             }
@@ -220,10 +205,8 @@ mod matching {
         _sa: &SemAnalysis,
         check_ty: SourceType,
         check_type_param_defs: &[TypeParam],
-        _check_type_param_defs2: Option<&TypeParamDefinition>,
         ext_ty: SourceType,
         ext_type_param_defs: &[TypeParam],
-        _ext_type_param_defs2: Option<&TypeParamDefinition>,
     ) -> bool {
         let ext_tp_id = ext_ty.type_param_id().expect("expected type param");
         let ext_tp_def = &ext_type_param_defs[ext_tp_id.to_usize()];
@@ -244,10 +227,8 @@ mod matching {
         sa: &SemAnalysis,
         check_ty: SourceType,
         check_type_param_defs: &[TypeParam],
-        _check_type_param_defs2: Option<&TypeParamDefinition>,
         ext_ty: SourceType,
         ext_type_param_defs: &[TypeParam],
-        _ext_type_param_defs2: Option<&TypeParamDefinition>,
     ) -> bool {
         let ext_tp_id = ext_ty.type_param_id().expect("expected type param");
         let ext_tp_def = &ext_type_param_defs[ext_tp_id.to_usize()];
@@ -265,10 +246,8 @@ mod matching {
         sa: &SemAnalysis,
         check_ty: SourceType,
         check_type_param_defs: &[TypeParam],
-        check_type_param_defs2: Option<&TypeParamDefinition>,
         ext_ty: SourceType,
         ext_type_param_defs: &[TypeParam],
-        ext_type_param_defs2: Option<&TypeParamDefinition>,
         bindings: &mut [Option<SourceType>],
     ) -> bool {
         match check_ty {
@@ -302,10 +281,8 @@ mod matching {
                         sa,
                         check_subty.clone(),
                         check_type_param_defs,
-                        None,
                         ext_subty.clone(),
                         ext_type_param_defs,
-                        None,
                         bindings,
                     ) {
                         return false;
@@ -330,10 +307,8 @@ mod matching {
                     sa,
                     check_ty,
                     check_type_param_defs,
-                    check_type_param_defs2,
                     ext_ty,
                     ext_type_param_defs,
-                    ext_type_param_defs2,
                     bindings,
                 )
             }
@@ -353,10 +328,8 @@ mod matching {
                     sa,
                     check_ty,
                     check_type_param_defs,
-                    check_type_param_defs2,
                     ext_ty,
                     ext_type_param_defs,
-                    ext_type_param_defs2,
                     bindings,
                 )
             }
@@ -376,10 +349,8 @@ mod matching {
                     sa,
                     check_ty,
                     check_type_param_defs,
-                    check_type_param_defs2,
                     ext_ty,
                     ext_type_param_defs,
-                    ext_type_param_defs2,
                     bindings,
                 )
             }
@@ -394,10 +365,8 @@ mod matching {
         sa: &SemAnalysis,
         check_ty: SourceType,
         check_type_param_defs: &[TypeParam],
-        check_type_param_defs2: Option<&TypeParamDefinition>,
         ext_ty: SourceType,
         ext_type_param_defs: &[TypeParam],
-        ext_type_param_defs2: Option<&TypeParamDefinition>,
         bindings: &mut [Option<SourceType>],
     ) -> bool {
         let check_tps = check_ty.type_params();
@@ -410,10 +379,8 @@ mod matching {
                 sa,
                 check_tp,
                 check_type_param_defs,
-                check_type_param_defs2,
                 ext_tp,
                 ext_type_param_defs,
-                ext_type_param_defs2,
                 bindings,
             ) {
                 return false;

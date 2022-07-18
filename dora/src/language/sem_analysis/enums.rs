@@ -9,7 +9,6 @@ use dora_parser::lexer::position::Position;
 use crate::language::sem_analysis::{
     extension_matches, impl_matches, module_path, Candidate, ExtensionDefinitionId,
     ImplDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId, TypeParam,
-    TypeParamDefinition,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;
@@ -49,7 +48,6 @@ pub struct EnumDefinition {
     pub name: Name,
     pub is_pub: bool,
     pub type_params: Vec<TypeParam>,
-    pub type_params2: TypeParamDefinition,
     pub variants: Vec<EnumVariant>,
     pub name_to_value: HashMap<Name, u32>,
     pub impls: Vec<ImplDefinitionId>,
@@ -79,7 +77,6 @@ impl EnumDefinition {
             pos: node.pos,
             name: node.name,
             type_params,
-            type_params2: TypeParamDefinition::new(),
             is_pub: node.is_pub,
             variants: Vec::new(),
             name_to_value: HashMap::new(),
@@ -125,7 +122,6 @@ pub fn find_methods_in_enum(
     sa: &SemAnalysis,
     object_type: SourceType,
     type_param_defs: &[TypeParam],
-    type_param_defs2: Option<&TypeParamDefinition>,
     name: Name,
     is_static: bool,
 ) -> Vec<Candidate> {
@@ -134,13 +130,9 @@ pub fn find_methods_in_enum(
     let enum_ = enum_.read();
 
     for &extension_id in &enum_.extensions {
-        if let Some(bindings) = extension_matches(
-            sa,
-            object_type.clone(),
-            type_param_defs,
-            type_param_defs2,
-            extension_id,
-        ) {
+        if let Some(bindings) =
+            extension_matches(sa, object_type.clone(), type_param_defs, extension_id)
+        {
             let extension = sa.extensions[extension_id].read();
 
             let table = if is_static {
@@ -162,13 +154,7 @@ pub fn find_methods_in_enum(
     let mut candidates = Vec::new();
 
     for &impl_id in &enum_.impls {
-        if let Some(bindings) = impl_matches(
-            sa,
-            object_type.clone(),
-            type_param_defs,
-            type_param_defs2,
-            impl_id,
-        ) {
+        if let Some(bindings) = impl_matches(sa, object_type.clone(), type_param_defs, impl_id) {
             let impl_ = sa.impls[impl_id].read();
 
             let table = if is_static {

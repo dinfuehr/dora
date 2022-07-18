@@ -106,14 +106,8 @@ impl SemAnalysis {
         let cls = self.classes.idx(cls_id);
         let cls = cls.read();
 
-        let candidates = find_methods_in_class(
-            self,
-            cls.ty(),
-            &cls.type_params,
-            None,
-            function_name,
-            is_static,
-        );
+        let candidates =
+            find_methods_in_class(self, cls.ty(), &cls.type_params, function_name, is_static);
         if candidates.len() == 1 {
             Some(candidates[0].fct_id)
         } else {
@@ -141,7 +135,6 @@ impl SemAnalysis {
             self,
             xstruct.ty(),
             &xstruct.type_params,
-            None,
             function_name,
             is_static,
         );
