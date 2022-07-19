@@ -92,10 +92,10 @@ pub fn check(sa: &SemAnalysis) {
 
                         match ty {
                             Some(SourceType::Trait(trait_id, _)) => {
-                                if !fct.type_params[container_type_params + type_param_id]
-                                    .trait_bounds
-                                    .insert(trait_id)
-                                {
+                                if !fct.type_params.add_bound(
+                                    TypeParamId(container_type_params + type_param_id),
+                                    trait_id,
+                                ) {
                                     let msg = SemError::DuplicateTraitBound;
                                     sa.diag.lock().report(fct.file_id, type_param.pos, msg);
                                 }

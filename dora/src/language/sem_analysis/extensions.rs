@@ -6,7 +6,7 @@ use std::ops::Index;
 use std::sync::Arc;
 
 use crate::language::sem_analysis::{
-    FctDefinitionId, ModuleDefinitionId, SourceFileId, TypeParam, TypeParamDefinition,
+    FctDefinitionId, ModuleDefinitionId, SourceFileId, TypeParamsDefinition,
 };
 use crate::language::ty::SourceType;
 use crate::utils::Id;
@@ -48,7 +48,7 @@ pub struct ExtensionDefinition {
     pub ast: Arc<ast::Impl>,
     pub module_id: ModuleDefinitionId,
     pub pos: Position,
-    pub type_params: TypeParamDefinition,
+    pub type_params: TypeParamsDefinition,
     pub ty: SourceType,
     pub methods: Vec<FctDefinitionId>,
     pub instance_names: HashMap<Name, FctDefinitionId>,
@@ -61,20 +61,13 @@ impl ExtensionDefinition {
         module_id: ModuleDefinitionId,
         node: &Arc<ast::Impl>,
     ) -> ExtensionDefinition {
-        let mut type_params = Vec::new();
-        if let Some(ref ast_type_params) = node.type_params {
-            for param in ast_type_params {
-                type_params.push(TypeParam::new(param.name));
-            }
-        }
-
         ExtensionDefinition {
             id: None,
             file_id,
             module_id,
             ast: node.clone(),
             pos: node.pos,
-            type_params,
+            type_params: TypeParamsDefinition::new_ast(&node.type_params),
             ty: SourceType::Error,
             methods: Vec::new(),
             instance_names: HashMap::new(),
@@ -97,14 +90,14 @@ impl Index<ExtensionDefinitionId> for Vec<RwLock<ExtensionDefinition>> {
 
 mod matching {
     use crate::language::sem_analysis::{
-        implements_trait, ExtensionDefinitionId, SemAnalysis, TypeParam,
+        implements_trait, ExtensionDefinitionId, SemAnalysis, TypeParamsDefinition,
     };
     use crate::language::ty::{SourceType, SourceTypeArray};
 
     pub fn extension_matches(
         sa: &SemAnalysis,
         check_ty: SourceType,
-        check_type_param_defs: &[TypeParam],
+        check_type_param_defs: &TypeParamsDefinition,
         extension_id: ExtensionDefinitionId,
     ) -> Option<SourceTypeArray> {
         let extension = sa.extensions[extension_id].read();
@@ -120,9 +113,9 @@ mod matching {
     pub fn extension_matches_ty(
         sa: &SemAnalysis,
         check_ty: SourceType,
-        check_type_param_defs: &[TypeParam],
+        check_type_param_defs: &TypeParamsDefinition,
         ext_ty: SourceType,
-        ext_type_param_defs: &[TypeParam],
+        ext_type_param_defs: &TypeParamsDefinition,
     ) -> Option<SourceTypeArray> {
         let mut bindings = vec![None; ext_type_param_defs.len()];
 
@@ -147,9 +140,9 @@ mod matching {
     fn matches(
         sa: &SemAnalysis,
         check_ty: SourceType,
-        check_type_param_defs: &[TypeParam],
+        check_type_param_defs: &TypeParamsDefinition,
         ext_ty: SourceType,
-        ext_type_param_defs: &[TypeParam],
+        ext_type_param_defs: &TypeParamsDefinition,
         bindings: &mut [Option<SourceType>],
     ) -> bool {
         if let SourceType::TypeParam(tp_id) = ext_ty {
@@ -206,18 +199,18 @@ mod matching {
     fn compare_type_param_bounds(
         _sa: &SemAnalysis,
         check_ty: SourceType,
-        check_type_param_defs: &[TypeParam],
+        check_type_param_defs: &TypeParamsDefinition,
         ext_ty: SourceType,
-        ext_type_param_defs: &[TypeParam],
+        ext_type_param_defs: &TypeParamsDefinition,
     ) -> bool {
         let ext_tp_id = ext_ty.type_param_id().expect("expected type param");
-        let ext_tp_def = &ext_type_param_defs[ext_tp_id.to_usize()];
+        let ext_tp_bounds = ext_type_param_defs.bounds(ext_tp_id);
 
         let check_tp_id = check_ty.type_param_id().expect("expected type param");
-        let check_tp_def = &check_type_param_defs[check_tp_id.to_usize()];
+        let check_tp_bounds = check_type_param_defs.bounds(check_tp_id);
 
-        for &trait_id in &ext_tp_def.trait_bounds {
-            if !check_tp_def.trait_bounds.contains(&trait_id) {
+        for &trait_id in ext_tp_bounds {
+            if !check_tp_bounds.contains(&trait_id) {
                 return false;
             }
         }
@@ -228,14 +221,14 @@ mod matching {
     fn concrete_type_fulfills_bounds(
         sa: &SemAnalysis,
         check_ty: SourceType,
-        check_type_param_defs: &[TypeParam],
+        check_type_param_defs: &TypeParamsDefinition,
         ext_ty: SourceType,
-        ext_type_param_defs: &[TypeParam],
+        ext_type_param_defs: &TypeParamsDefinition,
     ) -> bool {
         let ext_tp_id = ext_ty.type_param_id().expect("expected type param");
-        let ext_tp_def = &ext_type_param_defs[ext_tp_id.to_usize()];
+        let ext_tp_bounds = ext_type_param_defs.bounds(ext_tp_id);
 
-        for &trait_id in &ext_tp_def.trait_bounds {
+        for &trait_id in ext_tp_bounds {
             if !implements_trait(sa, check_ty.clone(), check_type_param_defs, trait_id) {
                 return false;
             }
@@ -247,9 +240,9 @@ mod matching {
     fn compare_concrete_types(
         sa: &SemAnalysis,
         check_ty: SourceType,
-        check_type_param_defs: &[TypeParam],
+        check_type_param_defs: &TypeParamsDefinition,
         ext_ty: SourceType,
-        ext_type_param_defs: &[TypeParam],
+        ext_type_param_defs: &TypeParamsDefinition,
         bindings: &mut [Option<SourceType>],
     ) -> bool {
         match check_ty {
@@ -366,9 +359,9 @@ mod matching {
     fn compare_type_params(
         sa: &SemAnalysis,
         check_ty: SourceType,
-        check_type_param_defs: &[TypeParam],
+        check_type_param_defs: &TypeParamsDefinition,
         ext_ty: SourceType,
-        ext_type_param_defs: &[TypeParam],
+        ext_type_param_defs: &TypeParamsDefinition,
         bindings: &mut [Option<SourceType>],
     ) -> bool {
         let check_tps = check_ty.type_params();

@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 use std::ops::{Index, IndexMut};
+use std::slice::Iter;
 use std::sync::Arc;
 
 use dora_parser::ast;
@@ -43,8 +44,6 @@ impl Id for ClassDefinition {
     }
 }
 
-pub type TypeParamDefinition = Vec<TypeParam>;
-
 #[derive(Debug)]
 pub struct ClassDefinition {
     pub id: Option<ClassDefinitionId>,
@@ -63,7 +62,7 @@ pub struct ClassDefinition {
     pub impls: Vec<ImplDefinitionId>,
     pub extensions: Vec<ExtensionDefinitionId>,
 
-    pub type_params: TypeParamDefinition,
+    pub type_params: TypeParamsDefinition,
 
     // true if this class is the generic Array class
     pub is_array: bool,
@@ -76,12 +75,6 @@ impl ClassDefinition {
         ast: &Arc<ast::Class>,
         module_id: ModuleDefinitionId,
     ) -> ClassDefinition {
-        let type_params = ast.type_params.as_ref().map_or(Vec::new(), |type_params| {
-            type_params
-                .iter()
-                .map(|type_param| TypeParam::new(type_param.name))
-                .collect()
-        });
         ClassDefinition {
             id: None,
             file_id: Some(file_id),
@@ -99,7 +92,7 @@ impl ClassDefinition {
             impls: Vec::new(),
             extensions: Vec::new(),
 
-            type_params,
+            type_params: TypeParamsDefinition::new_ast(&ast.type_params),
 
             is_array: false,
             is_str: false,
@@ -131,7 +124,7 @@ impl ClassDefinition {
             impls: Vec::new(),
             extensions: Vec::new(),
 
-            type_params: Vec::new(),
+            type_params: TypeParamsDefinition::new(),
 
             is_array: false,
             is_str: false,
@@ -275,7 +268,7 @@ pub struct Candidate {
 pub fn find_methods_in_class(
     sa: &SemAnalysis,
     object_type: SourceType,
-    type_param_defs: &[TypeParam],
+    type_param_defs: &TypeParamsDefinition,
     name: Name,
     is_static: bool,
 ) -> Vec<Candidate> {
@@ -335,6 +328,68 @@ pub fn find_methods_in_class(
     }
 
     candidates
+}
+
+#[derive(Clone, Debug)]
+pub struct TypeParamsDefinition {
+    type_params: Vec<TypeParam>,
+}
+
+impl TypeParamsDefinition {
+    pub fn new() -> TypeParamsDefinition {
+        TypeParamsDefinition {
+            type_params: Vec::new(),
+        }
+    }
+
+    pub fn new_ast(type_params: &Option<Vec<ast::TypeParam>>) -> TypeParamsDefinition {
+        let type_params = if let Some(ast_type_params) = type_params {
+            ast_type_params
+                .iter()
+                .map(|type_param| TypeParam::new(type_param.name))
+                .collect()
+        } else {
+            Vec::new()
+        };
+
+        TypeParamsDefinition { type_params }
+    }
+
+    pub fn len(&self) -> usize {
+        self.type_params.len()
+    }
+
+    pub fn at(&self, idx: TypeParamId) -> &TypeParam {
+        &self.type_params[idx.to_usize()]
+    }
+
+    pub fn name(&self, idx: TypeParamId) -> Name {
+        self.type_params[idx.to_usize()].name
+    }
+
+    pub fn add_bound(&mut self, idx: TypeParamId, trait_it: TraitDefinitionId) -> bool {
+        self.type_params[idx.to_usize()]
+            .trait_bounds
+            .insert(trait_it)
+    }
+
+    pub fn bounds(&self, idx: TypeParamId) -> &HashSet<TraitDefinitionId> {
+        &self.type_params[idx.to_usize()].trait_bounds
+    }
+
+    pub fn push(&mut self, type_param: TypeParam) -> TypeParamId {
+        let id = TypeParamId(self.type_params.len());
+        self.type_params.push(type_param);
+        id
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.type_params.is_empty()
+    }
+
+    pub fn iter(&self) -> Iter<TypeParam> {
+        self.type_params.iter()
+    }
 }
 
 #[derive(Clone, Debug)]

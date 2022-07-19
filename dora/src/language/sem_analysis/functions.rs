@@ -10,7 +10,7 @@ use crate::bytecode::{BytecodeFunction, BytecodeType};
 use crate::gc::Address;
 use crate::language::sem_analysis::{
     module_path, AnalysisData, ExtensionDefinitionId, ImplDefinitionId, ModuleDefinitionId,
-    SemAnalysis, SourceFileId, TraitDefinitionId, TypeParam, TypeParamDefinition, TypeParamId,
+    SemAnalysis, SourceFileId, TraitDefinitionId, TypeParamsDefinition,
 };
 use crate::language::ty::SourceType;
 use crate::utils::GrowableVec;
@@ -59,7 +59,7 @@ pub struct FctDefinition {
     pub initialized: bool,
     pub analysis: Option<AnalysisData>,
 
-    pub type_params: TypeParamDefinition,
+    pub type_params: TypeParamsDefinition,
     pub container_type_params: usize,
     pub bytecode: Option<BytecodeFunction>,
     pub intrinsic: Option<Intrinsic>,
@@ -95,7 +95,7 @@ impl FctDefinition {
             initialized: false,
             is_variadic: false,
             analysis: None,
-            type_params: Vec::new(),
+            type_params: TypeParamsDefinition::new(),
             container_type_params: 0,
             bytecode: None,
             intrinsic: None,
@@ -106,10 +106,6 @@ impl FctDefinition {
 
     pub fn id(&self) -> FctDefinitionId {
         self.id.expect("id missing")
-    }
-
-    pub fn type_param(&self, id: TypeParamId) -> &TypeParam {
-        &self.type_params[id.to_usize()]
     }
 
     pub fn has_parent(&self) -> bool {

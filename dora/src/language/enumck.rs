@@ -4,7 +4,6 @@ use std::sync::Arc;
 use parking_lot::RwLock;
 
 use dora_parser::ast;
-use dora_parser::ast::TypeParam;
 
 use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
@@ -80,7 +79,7 @@ impl<'x> EnumCheck<'x> {
         symtable.pop_level();
     }
 
-    fn check_type_params(&mut self, type_params: &[TypeParam], symtable: &mut NestedSymTable) {
+    fn check_type_params(&mut self, type_params: &[ast::TypeParam], symtable: &mut NestedSymTable) {
         if type_params.len() > 0 {
             let mut names = HashSet::new();
             let mut type_param_id = 0;
@@ -110,9 +109,11 @@ impl<'x> EnumCheck<'x> {
 
                     match ty {
                         Some(SourceType::Trait(trait_id, _)) => {
-                            if !self.enum_.write().type_params[type_param_id]
-                                .trait_bounds
-                                .insert(trait_id)
+                            if !self
+                                .enum_
+                                .write()
+                                .type_params
+                                .add_bound(TypeParamId(type_param_id), trait_id)
                             {
                                 let msg = SemError::DuplicateTraitBound;
                                 self.sa

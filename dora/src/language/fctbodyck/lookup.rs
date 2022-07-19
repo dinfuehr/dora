@@ -2,7 +2,7 @@ use crate::language::error::msg::SemError;
 use crate::language::fctbodyck::body::args_compatible_fct;
 use crate::language::sem_analysis::{
     find_methods_in_class, find_methods_in_enum, find_methods_in_struct, FctDefinition,
-    FctDefinitionId, SemAnalysis, SourceFileId, TraitDefinitionId, TypeParam,
+    FctDefinitionId, SemAnalysis, SourceFileId, TraitDefinitionId, TypeParamsDefinition,
 };
 use crate::language::specialize::replace_type_param;
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -27,7 +27,7 @@ pub struct MethodLookup<'a> {
     name: Option<Name>,
     args: Option<&'a [SourceType]>,
     fct_tps: Option<&'a SourceTypeArray>,
-    type_param_defs: Option<&'a [TypeParam]>,
+    type_param_defs: Option<&'a TypeParamsDefinition>,
     ret: Option<SourceType>,
     pos: Option<Position>,
     report_errors: bool,
@@ -104,7 +104,7 @@ impl<'a> MethodLookup<'a> {
         self
     }
 
-    pub fn type_param_defs(mut self, tp_defs: &'a [TypeParam]) -> MethodLookup<'a> {
+    pub fn type_param_defs(mut self, tp_defs: &'a TypeParamsDefinition) -> MethodLookup<'a> {
         self.type_param_defs = Some(tp_defs);
         self
     }
@@ -309,7 +309,7 @@ impl<'a> MethodLookup<'a> {
         trait_.find_method(self.sa, name, is_static)
     }
 
-    fn check_tps(&self, specified_tps: &[TypeParam], tps: &SourceTypeArray) -> bool {
+    fn check_tps(&self, specified_tps: &TypeParamsDefinition, tps: &SourceTypeArray) -> bool {
         let error = if self.report_errors {
             ErrorReporting::Yes(self.file, self.pos.expect("no pos"))
         } else {

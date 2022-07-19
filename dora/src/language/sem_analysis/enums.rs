@@ -8,8 +8,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
     extension_matches, impl_matches, module_path, Candidate, ExtensionDefinitionId,
-    ImplDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId, TypeParam,
-    TypeParamDefinition,
+    ImplDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId, TypeParamsDefinition,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;
@@ -48,7 +47,7 @@ pub struct EnumDefinition {
     pub pos: Position,
     pub name: Name,
     pub is_pub: bool,
-    pub type_params: TypeParamDefinition,
+    pub type_params: TypeParamsDefinition,
     pub variants: Vec<EnumVariant>,
     pub name_to_value: HashMap<Name, u32>,
     pub impls: Vec<ImplDefinitionId>,
@@ -62,14 +61,6 @@ impl EnumDefinition {
         module_id: ModuleDefinitionId,
         node: &Arc<ast::Enum>,
     ) -> EnumDefinition {
-        let mut type_params = Vec::new();
-
-        if let Some(ref ast_type_params) = node.type_params {
-            for param in ast_type_params {
-                type_params.push(TypeParam::new(param.name));
-            }
-        }
-
         EnumDefinition {
             id: None,
             file_id: file_id,
@@ -77,7 +68,7 @@ impl EnumDefinition {
             ast: node.clone(),
             pos: node.pos,
             name: node.name,
-            type_params,
+            type_params: TypeParamsDefinition::new_ast(&node.type_params),
             is_pub: node.is_pub,
             variants: Vec::new(),
             name_to_value: HashMap::new(),
@@ -122,7 +113,7 @@ pub struct EnumVariant {
 pub fn find_methods_in_enum(
     sa: &SemAnalysis,
     object_type: SourceType,
-    type_param_defs: &[TypeParam],
+    type_param_defs: &TypeParamsDefinition,
     name: Name,
     is_static: bool,
 ) -> Vec<Candidate> {

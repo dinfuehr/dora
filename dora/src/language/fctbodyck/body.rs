@@ -16,8 +16,8 @@ use crate::language::sem_analysis::{
     find_methods_in_struct, implements_trait, AnalysisData, CallType, ClassDefinition,
     ClassDefinitionId, ContextIdx, EnumDefinitionId, EnumVariant, FctDefinition, FctDefinitionId,
     FctParent, Field, FieldId, ForTypeInfo, IdentType, Intrinsic, ModuleDefinitionId, NestedVarId,
-    SemAnalysis, SourceFileId, StructDefinition, StructDefinitionId, TypeParam, TypeParamId, Var,
-    VarAccess, VarId, VarLocation,
+    SemAnalysis, SourceFileId, StructDefinition, StructDefinitionId, TypeParam, TypeParamId,
+    TypeParamsDefinition, Var, VarAccess, VarId, VarLocation,
 };
 use crate::language::specialize::replace_type_param;
 use crate::language::sym::{NestedSymTable, Sym};
@@ -1606,9 +1606,7 @@ impl<'a> TypeCheck<'a> {
     ) -> SourceType {
         let mut fcts = Vec::new();
 
-        let type_param = self.fct.type_param(tp_id);
-
-        for &trait_id in &type_param.trait_bounds {
+        for &trait_id in self.fct.type_params.bounds(tp_id) {
             let trait_ = self.sa.traits[trait_id].read();
 
             if let Some(fct_id) = trait_.find_method(self.sa, name, true) {
@@ -2167,7 +2165,7 @@ impl<'a> TypeCheck<'a> {
         name: Name,
         arg_types: &[SourceType],
     ) -> SourceType {
-        let tp = self.fct.type_param(tp_id);
+        let tp = self.fct.type_params.at(tp_id);
         self.check_expr_call_generic_type_param(
             e,
             SourceType::TypeParam(tp_id),
@@ -3210,8 +3208,7 @@ impl<'a> TypeCheck<'a> {
                 }
 
                 let implements_stringable = if let SourceType::TypeParam(id) = part_expr {
-                    let tp = self.fct.type_param(id);
-                    tp.trait_bounds.contains(&stringable_trait)
+                    self.fct.type_params.bounds(id).contains(&stringable_trait)
                 } else {
                     implements_trait(
                         self.sa,
@@ -3581,7 +3578,7 @@ struct MethodDescriptor {
 fn lookup_method(
     sa: &SemAnalysis,
     object_type: SourceType,
-    type_param_defs: &[TypeParam],
+    type_param_defs: &TypeParamsDefinition,
     is_static: bool,
     name: Name,
     args: &[SourceType],

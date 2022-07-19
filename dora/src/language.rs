@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use crate::bytecode;
 use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
-    FctDefinition, SemAnalysis, SourceFileId, TypeParam, TypeParamId,
+    FctDefinition, SemAnalysis, SourceFileId, TypeParamId, TypeParamsDefinition,
 };
 use crate::language::sym::{NestedSymTable, Sym};
 use crate::language::ty::SourceType;
@@ -267,7 +267,7 @@ pub fn report_sym_shadow(
 fn check_type_params(
     sa: &SemAnalysis,
     ast_type_params: &[ast::TypeParam],
-    type_params: &mut Vec<TypeParam>,
+    type_params: &mut TypeParamsDefinition,
     symtable: &mut NestedSymTable,
     file_id: SourceFileId,
     pos: Position,
@@ -297,7 +297,7 @@ fn check_type_params(
 
                 match ty {
                     Some(SourceType::Trait(trait_id, _)) => {
-                        if !type_params[type_param_id].trait_bounds.insert(trait_id) {
+                        if !type_params.add_bound(TypeParamId(type_param_id), trait_id) {
                             let msg = SemError::DuplicateTraitBound;
                             sa.diag.lock().report(file_id, type_param.pos, msg);
                         }

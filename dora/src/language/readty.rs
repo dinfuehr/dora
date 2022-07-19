@@ -8,7 +8,7 @@ use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
     create_tuple, implements_trait, ClassDefinitionId, EnumDefinitionId, ExtensionDefinitionId,
     FctDefinition, ImplDefinition, SemAnalysis, SourceFileId, StructDefinitionId,
-    TraitDefinitionId, TypeParam, TypeParamId,
+    TraitDefinitionId, TypeParam, TypeParamId, TypeParamsDefinition,
 };
 use crate::language::sym::{NestedSymTable, Sym, SymTable};
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -417,7 +417,7 @@ fn read_type_trait(
 
 fn check_type_params(
     sa: &SemAnalysis,
-    tp_definitions: &[TypeParam],
+    tp_definitions: &TypeParamsDefinition,
     type_params: &[SourceType],
     file_id: SourceFileId,
     pos: Position,
@@ -451,7 +451,7 @@ fn check_type_params(
 
 fn use_type_params<F, R>(sa: &SemAnalysis, ctxt: TypeParamContext, callback: F) -> R
 where
-    F: FnOnce(&[TypeParam]) -> R,
+    F: FnOnce(&TypeParamsDefinition) -> R,
 {
     match ctxt {
         TypeParamContext::Class(cls_id) => {
@@ -492,7 +492,7 @@ where
         }
 
         TypeParamContext::Fct(fct) => callback(&fct.type_params),
-        TypeParamContext::None => callback(&[]),
+        TypeParamContext::None => callback(&TypeParamsDefinition::new()),
     }
 }
 
@@ -510,7 +510,7 @@ fn check_bounds_for_type_param_id(
             let cls = sa.classes.idx(cls_id);
             let cls = cls.read();
 
-            let type_param = &cls.type_params[tp_id.to_usize()];
+            let type_param = cls.type_params.at(tp_id);
 
             check_bounds_for_type_param(sa, tp_definition, type_param, success, file_id, pos, ctxt)
         }
@@ -519,7 +519,7 @@ fn check_bounds_for_type_param_id(
             let enum_ = &sa.enums[enum_id];
             let enum_ = enum_.read();
 
-            let type_param = &enum_.type_params[tp_id.to_usize()];
+            let type_param = enum_.type_params.at(tp_id);
 
             check_bounds_for_type_param(sa, tp_definition, type_param, success, file_id, pos, ctxt)
         }
@@ -528,13 +528,13 @@ fn check_bounds_for_type_param_id(
             let xstruct = &sa.structs.idx(struct_id);
             let xstruct = xstruct.read();
 
-            let type_param = &xstruct.type_params[tp_id.to_usize()];
+            let type_param = xstruct.type_params.at(tp_id);
 
             check_bounds_for_type_param(sa, tp_definition, type_param, success, file_id, pos, ctxt)
         }
 
         TypeParamContext::Impl(impl_) => {
-            let type_param = &impl_.type_params[tp_id.to_usize()];
+            let type_param = impl_.type_params.at(tp_id);
 
             check_bounds_for_type_param(sa, tp_definition, type_param, success, file_id, pos, ctxt)
         }
@@ -543,7 +543,7 @@ fn check_bounds_for_type_param_id(
             let extension = &sa.extensions[extension_id];
             let extension = extension.read();
 
-            let type_param = &extension.type_params[tp_id.to_usize()];
+            let type_param = extension.type_params.at(tp_id);
 
             check_bounds_for_type_param(sa, tp_definition, type_param, success, file_id, pos, ctxt)
         }
@@ -552,13 +552,13 @@ fn check_bounds_for_type_param_id(
             let trait_ = &sa.traits[trait_id];
             let trait_ = trait_.read();
 
-            let type_param = &trait_.type_params[tp_id.to_usize()];
+            let type_param = trait_.type_params.at(tp_id);
 
             check_bounds_for_type_param(sa, tp_definition, type_param, success, file_id, pos, ctxt)
         }
 
         TypeParamContext::Fct(fct) => {
-            let type_param = &fct.type_params[tp_id.to_usize()];
+            let type_param = fct.type_params.at(tp_id);
 
             check_bounds_for_type_param(sa, tp_definition, type_param, success, file_id, pos, ctxt)
         }

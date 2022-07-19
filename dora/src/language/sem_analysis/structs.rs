@@ -8,8 +8,8 @@ use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
     extension_matches, impl_matches, module_path, Candidate, ExtensionDefinitionId,
-    ImplDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId, TypeParam,
-    TypeParamDefinition, TypeParamId,
+    ImplDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId, TypeParamId,
+    TypeParamsDefinition,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;
@@ -46,7 +46,7 @@ pub struct StructDefinition {
     pub ast: Arc<ast::Struct>,
     pub primitive_ty: Option<SourceType>,
     pub module_id: ModuleDefinitionId,
-    pub type_params: TypeParamDefinition,
+    pub type_params: TypeParamsDefinition,
     pub is_pub: bool,
     pub internal: bool,
     pub internal_resolved: bool,
@@ -64,14 +64,6 @@ impl StructDefinition {
         module_id: ModuleDefinitionId,
         node: &Arc<ast::Struct>,
     ) -> StructDefinition {
-        let mut type_params = Vec::new();
-
-        if let Some(ref ast_type_params) = node.type_params {
-            for param in ast_type_params {
-                type_params.push(TypeParam::new(param.name));
-            }
-        }
-
         StructDefinition {
             id: None,
             file_id,
@@ -83,7 +75,7 @@ impl StructDefinition {
             name: node.name,
             internal: node.internal,
             internal_resolved: false,
-            type_params,
+            type_params: TypeParamsDefinition::new_ast(&node.type_params),
             fields: Vec::new(),
             field_names: HashMap::new(),
             impls: Vec::new(),
@@ -172,7 +164,7 @@ pub struct StructDefinitionField {
 pub fn find_methods_in_struct(
     sa: &SemAnalysis,
     object_type: SourceType,
-    type_param_defs: &[TypeParam],
+    type_param_defs: &TypeParamsDefinition,
     name: Name,
     is_static: bool,
 ) -> Vec<Candidate> {

@@ -3,7 +3,8 @@ use std::sync::Arc;
 
 use crate::language::sem_analysis::{
     ClassDefinition, ClassDefinitionId, EnumDefinition, EnumDefinitionId, FctDefinition,
-    SemAnalysis, StructDefinition, StructDefinitionId, TraitDefinitionId, TypeParam, TypeParamId,
+    SemAnalysis, StructDefinition, StructDefinitionId, TraitDefinitionId, TypeParamId,
+    TypeParamsDefinition,
 };
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -268,7 +269,11 @@ impl SourceType {
         writer.name(self.clone())
     }
 
-    pub fn name_with_type_params(&self, sa: &SemAnalysis, type_params: &[TypeParam]) -> String {
+    pub fn name_with_type_params(
+        &self,
+        sa: &SemAnalysis,
+        type_params: &TypeParamsDefinition,
+    ) -> String {
         let writer = SourceTypePrinter {
             sa,
             type_params: Some(type_params),
@@ -644,7 +649,7 @@ impl<'a> Iterator for SourceTypeArrayIter<'a> {
 
 struct SourceTypePrinter<'a> {
     sa: &'a SemAnalysis,
-    type_params: Option<&'a [TypeParam]>,
+    type_params: Option<&'a TypeParamsDefinition>,
 }
 
 impl<'a> SourceTypePrinter<'a> {
@@ -732,10 +737,7 @@ impl<'a> SourceTypePrinter<'a> {
 
             SourceType::TypeParam(idx) => {
                 if let Some(type_params) = self.type_params {
-                    self.sa
-                        .interner
-                        .str(type_params[idx.to_usize()].name)
-                        .to_string()
+                    self.sa.interner.str(type_params.name(idx)).to_string()
                 } else {
                     format!("TypeParam({})", idx.to_usize())
                 }

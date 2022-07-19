@@ -1,7 +1,7 @@
 use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
     EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId, ModuleDefinitionId, SemAnalysis,
-    SourceFileId, StructDefinitionId, TypeParam,
+    SourceFileId, StructDefinitionId, TypeParamId, TypeParamsDefinition,
 };
 use crate::language::sym::NestedSymTable;
 use crate::language::ty::SourceType;
@@ -267,7 +267,7 @@ impl<'x> ExtensionCheck<'x> {
 pub fn check_for_unconstrained_type_params(
     sa: &SemAnalysis,
     ty: SourceType,
-    type_params_defs: &[TypeParam],
+    type_params_defs: &TypeParamsDefinition,
     file_id: SourceFileId,
     pos: Position,
 ) {
@@ -278,8 +278,8 @@ pub fn check_for_unconstrained_type_params(
     bitset.toggle_range(..);
 
     for idx in bitset.ones() {
-        let type_param_def = &type_params_defs[idx];
-        let tp_name = sa.interner.str(type_param_def.name).to_string();
+        let type_param_def = type_params_defs.name(TypeParamId(idx));
+        let tp_name = sa.interner.str(type_param_def).to_string();
         sa.diag
             .lock()
             .report(file_id, pos, SemError::UnconstrainedTypeParam(tp_name));

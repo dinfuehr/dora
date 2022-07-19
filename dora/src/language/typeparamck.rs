@@ -3,7 +3,7 @@ use dora_parser::lexer::position::Position;
 use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
     implements_trait, ClassDefinitionId, EnumDefinitionId, FctDefinition, SemAnalysis,
-    SourceFileId, StructDefinitionId, TraitDefinitionId, TypeParam,
+    SourceFileId, StructDefinitionId, TraitDefinitionId, TypeParamsDefinition,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 
@@ -76,7 +76,7 @@ pub fn check_params<'a>(
     sa: &'a SemAnalysis,
     fct: &'a FctDefinition,
     error: ErrorReporting,
-    callee_type_param_defs: &'a [TypeParam],
+    callee_type_param_defs: &'a TypeParamsDefinition,
     params: &'a SourceTypeArray,
 ) -> bool {
     let checker = TypeParamCheck {
@@ -91,8 +91,8 @@ pub fn check_params<'a>(
 
 struct TypeParamCheck<'a> {
     sa: &'a SemAnalysis,
-    caller_type_param_defs: &'a [TypeParam],
-    callee_type_param_defs: &'a [TypeParam],
+    caller_type_param_defs: &'a TypeParamsDefinition,
+    callee_type_param_defs: &'a TypeParamsDefinition,
     error: ErrorReporting,
 }
 

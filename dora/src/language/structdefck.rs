@@ -95,9 +95,9 @@ impl<'x> StructCheck<'x> {
                         Some(SourceType::Trait(trait_id, _)) => {
                             let xstruct = self.sa.structs.idx(self.struct_id);
                             let mut xstruct = xstruct.write();
-                            if !xstruct.type_params[type_param_id]
-                                .trait_bounds
-                                .insert(trait_id)
+                            if !xstruct
+                                .type_params
+                                .add_bound(TypeParamId(type_param_id), trait_id)
                             {
                                 let msg = SemError::DuplicateTraitBound;
                                 self.sa
