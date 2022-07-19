@@ -1,10 +1,10 @@
 use std::convert::TryInto;
 
-use dora_parser::ast::{AnnotationParam, AnnotationUsages, Modifier};
+use dora_parser::ast::{AnnotationUsages, Modifier};
 use dora_parser::interner::Name;
 use dora_parser::Position;
 
-use crate::language::sem_analysis::{ModuleDefinitionId, SemAnalysis, SourceFileId, TypeParam};
+use crate::language::sem_analysis::{ModuleDefinitionId, SemAnalysis, SourceFileId};
 use crate::language::ty::SourceType;
 use crate::utils::Id;
 
@@ -42,9 +42,6 @@ pub struct AnnotationDefinition {
     pub module_id: ModuleDefinitionId,
     pub ty: SourceType,
     pub internal_annotation: Option<Modifier>,
-
-    pub type_params: Option<Vec<TypeParam>>,
-    pub term_params: Option<Vec<AnnotationParam>>,
 }
 
 impl AnnotationDefinition {
@@ -62,8 +59,6 @@ impl AnnotationDefinition {
             module_id,
             ty: SourceType::Error,
             internal_annotation: None,
-            type_params: None,
-            term_params: None,
         }
     }
 

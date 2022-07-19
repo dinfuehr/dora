@@ -8,7 +8,8 @@ use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
     extension_matches, impl_matches, module_path, Candidate, ExtensionDefinitionId,
-    ImplDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId, TypeParam, TypeParamId,
+    ImplDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId, TypeParam,
+    TypeParamDefinition, TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;
@@ -45,7 +46,7 @@ pub struct StructDefinition {
     pub ast: Arc<ast::Struct>,
     pub primitive_ty: Option<SourceType>,
     pub module_id: ModuleDefinitionId,
-    pub type_params: Vec<TypeParam>,
+    pub type_params: TypeParamDefinition,
     pub is_pub: bool,
     pub internal: bool,
     pub internal_resolved: bool,

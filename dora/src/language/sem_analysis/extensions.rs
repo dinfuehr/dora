@@ -5,7 +5,9 @@ use std::convert::TryInto;
 use std::ops::Index;
 use std::sync::Arc;
 
-use crate::language::sem_analysis::{FctDefinitionId, ModuleDefinitionId, SourceFileId, TypeParam};
+use crate::language::sem_analysis::{
+    FctDefinitionId, ModuleDefinitionId, SourceFileId, TypeParam, TypeParamDefinition,
+};
 use crate::language::ty::SourceType;
 use crate::utils::Id;
 
@@ -46,7 +48,7 @@ pub struct ExtensionDefinition {
     pub ast: Arc<ast::Impl>,
     pub module_id: ModuleDefinitionId,
     pub pos: Position,
-    pub type_params: Vec<TypeParam>,
+    pub type_params: TypeParamDefinition,
     pub ty: SourceType,
     pub methods: Vec<FctDefinitionId>,
     pub instance_names: HashMap<Name, FctDefinitionId>,

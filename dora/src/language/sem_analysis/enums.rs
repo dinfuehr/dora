@@ -9,6 +9,7 @@ use dora_parser::lexer::position::Position;
 use crate::language::sem_analysis::{
     extension_matches, impl_matches, module_path, Candidate, ExtensionDefinitionId,
     ImplDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId, TypeParam,
+    TypeParamDefinition,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;
@@ -47,7 +48,7 @@ pub struct EnumDefinition {
     pub pos: Position,
     pub name: Name,
     pub is_pub: bool,
-    pub type_params: Vec<TypeParam>,
+    pub type_params: TypeParamDefinition,
     pub variants: Vec<EnumVariant>,
     pub name_to_value: HashMap<Name, u32>,
     pub impls: Vec<ImplDefinitionId>,

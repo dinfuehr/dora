@@ -9,13 +9,11 @@ use dora_parser::lexer::position::Position;
 use crate::bytecode::{BytecodeFunction, BytecodeType};
 use crate::gc::Address;
 use crate::language::sem_analysis::{
-    AnalysisData, ExtensionDefinitionId, ImplDefinitionId, ModuleDefinitionId, SemAnalysis,
-    SourceFileId, TraitDefinitionId, TypeParam, TypeParamId,
+    module_path, AnalysisData, ExtensionDefinitionId, ImplDefinitionId, ModuleDefinitionId,
+    SemAnalysis, SourceFileId, TraitDefinitionId, TypeParam, TypeParamDefinition, TypeParamId,
 };
 use crate::language::ty::SourceType;
 use crate::utils::GrowableVec;
-
-use super::module_path;
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub struct FctDefinitionId(pub usize);
@@ -61,7 +59,7 @@ pub struct FctDefinition {
     pub initialized: bool,
     pub analysis: Option<AnalysisData>,
 
-    pub type_params: Vec<TypeParam>,
+    pub type_params: TypeParamDefinition,
     pub container_type_params: usize,
     pub bytecode: Option<BytecodeFunction>,
     pub intrinsic: Option<Intrinsic>,

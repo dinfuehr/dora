@@ -9,7 +9,8 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
-    module_path, FctDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId, TypeParam,
+    module_path, FctDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId,
+    TypeParamDefinition,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;
@@ -50,7 +51,7 @@ pub struct TraitDefinition {
     pub name: Name,
     pub is_trait_object: bool,
     pub ty: SourceType,
-    pub type_params: Vec<TypeParam>,
+    pub type_params: TypeParamDefinition,
     pub methods: Vec<FctDefinitionId>,
     pub instance_names: HashMap<Name, FctDefinitionId>,
     pub static_names: HashMap<Name, FctDefinitionId>,

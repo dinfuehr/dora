@@ -11,7 +11,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
     extension_matches_ty, FctDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId,
-    TraitDefinitionId, TypeParam,
+    TraitDefinitionId, TypeParam, TypeParamDefinition,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;
@@ -42,7 +42,7 @@ pub struct ImplDefinition {
     pub ast: Arc<ast::Impl>,
     pub module_id: ModuleDefinitionId,
     pub pos: Position,
-    pub type_params: Vec<TypeParam>,
+    pub type_params: TypeParamDefinition,
     pub trait_ty: SourceType,
     pub extended_ty: SourceType,
     pub methods: Vec<FctDefinitionId>,

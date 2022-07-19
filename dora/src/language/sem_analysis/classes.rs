@@ -43,6 +43,8 @@ impl Id for ClassDefinition {
     }
 }
 
+pub type TypeParamDefinition = Vec<TypeParam>;
+
 #[derive(Debug)]
 pub struct ClassDefinition {
     pub id: Option<ClassDefinitionId>,
@@ -61,7 +63,7 @@ pub struct ClassDefinition {
     pub impls: Vec<ImplDefinitionId>,
     pub extensions: Vec<ExtensionDefinitionId>,
 
-    pub type_params: Vec<TypeParam>,
+    pub type_params: TypeParamDefinition,
 
     // true if this class is the generic Array class
     pub is_array: bool,
@@ -357,62 +359,4 @@ impl TypeParamId {
     pub fn to_usize(self) -> usize {
         self.0
     }
-}
-
-#[derive(Debug)]
-pub struct TypeParamDefinition {
-    pub names: Vec<Name>,
-    pub bounds: Vec<TypeParamBound>,
-}
-
-impl TypeParamDefinition {
-    pub fn new() -> TypeParamDefinition {
-        TypeParamDefinition {
-            names: Vec::new(),
-            bounds: Vec::new(),
-        }
-    }
-
-    pub fn len(&self) -> usize {
-        self.names.len()
-    }
-
-    pub fn add_bound(&mut self, type_param_id: TypeParamId, trait_id: TraitDefinitionId) {
-        self.bounds.push(TypeParamBound {
-            type_param_id,
-            trait_id,
-        });
-    }
-
-    pub fn iter(&self) -> TypeParamIter {
-        TypeParamIter {
-            next: 0,
-            limit: self.len(),
-        }
-    }
-}
-
-pub struct TypeParamIter {
-    next: usize,
-    limit: usize,
-}
-
-impl Iterator for TypeParamIter {
-    type Item = TypeParamId;
-
-    fn next(&mut self) -> Option<TypeParamId> {
-        if self.next < self.limit {
-            let current = self.next;
-            self.next += 1;
-            Some(TypeParamId(current))
-        } else {
-            None
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct TypeParamBound {
-    pub type_param_id: TypeParamId,
-    pub trait_id: TraitDefinitionId,
 }
