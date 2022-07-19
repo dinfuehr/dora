@@ -359,8 +359,15 @@ impl TypeParamsDefinition {
         self.type_params.len()
     }
 
-    pub fn at(&self, idx: TypeParamId) -> &TypeParam {
+    fn get(&self, idx: TypeParamId) -> &TypeParam {
         &self.type_params[idx.to_usize()]
+    }
+
+    pub fn at(&self, idx: TypeParamId) -> TypeParamDefinition {
+        TypeParamDefinition {
+            type_params: self,
+            idx,
+        }
     }
 
     pub fn name(&self, idx: TypeParamId) -> Name {
@@ -389,6 +396,21 @@ impl TypeParamsDefinition {
 
     pub fn iter(&self) -> Iter<TypeParam> {
         self.type_params.iter()
+    }
+}
+
+pub struct TypeParamDefinition<'a> {
+    type_params: &'a TypeParamsDefinition,
+    idx: TypeParamId,
+}
+
+impl<'a> TypeParamDefinition<'a> {
+    pub fn name(&self) -> Name {
+        self.type_params.get(self.idx).name
+    }
+
+    pub fn bounds(&self) -> &HashSet<TraitDefinitionId> {
+        &self.type_params.get(self.idx).trait_bounds
     }
 }
 

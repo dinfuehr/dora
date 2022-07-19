@@ -16,8 +16,8 @@ use crate::language::sem_analysis::{
     find_methods_in_struct, implements_trait, AnalysisData, CallType, ClassDefinition,
     ClassDefinitionId, ContextIdx, EnumDefinitionId, EnumVariant, FctDefinition, FctDefinitionId,
     FctParent, Field, FieldId, ForTypeInfo, IdentType, Intrinsic, ModuleDefinitionId, NestedVarId,
-    SemAnalysis, SourceFileId, StructDefinition, StructDefinitionId, TypeParam, TypeParamId,
-    TypeParamsDefinition, Var, VarAccess, VarId, VarLocation,
+    SemAnalysis, SourceFileId, StructDefinition, StructDefinitionId, TypeParamDefinition,
+    TypeParamId, TypeParamsDefinition, Var, VarAccess, VarId, VarLocation,
 };
 use crate::language::specialize::replace_type_param;
 use crate::language::sym::{NestedSymTable, Sym};
@@ -2181,13 +2181,13 @@ impl<'a> TypeCheck<'a> {
         e: &ast::ExprCallType,
         object_type: SourceType,
         id: TypeParamId,
-        tp: &TypeParam,
+        tp: TypeParamDefinition,
         name: Name,
         args: &[SourceType],
     ) -> SourceType {
         let mut found_fcts = Vec::new();
 
-        for &trait_id in &tp.trait_bounds {
+        for &trait_id in tp.bounds() {
             let trait_ = self.sa.traits[trait_id].read();
 
             if let Some(fid) = trait_.find_method_with_replace(self.sa, false, name, None, args) {

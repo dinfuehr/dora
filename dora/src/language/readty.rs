@@ -8,7 +8,7 @@ use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
     create_tuple, implements_trait, ClassDefinitionId, EnumDefinitionId, ExtensionDefinitionId,
     FctDefinition, ImplDefinition, SemAnalysis, SourceFileId, StructDefinitionId,
-    TraitDefinitionId, TypeParam, TypeParamId, TypeParamsDefinition,
+    TraitDefinitionId, TypeParam, TypeParamDefinition, TypeParamId, TypeParamsDefinition,
 };
 use crate::language::sym::{NestedSymTable, Sym, SymTable};
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -498,7 +498,7 @@ where
 
 fn check_bounds_for_type_param_id(
     sa: &SemAnalysis,
-    tp_definition: &TypeParam,
+    tp_definition: TypeParamDefinition,
     tp_id: TypeParamId,
     success: &mut bool,
     file_id: SourceFileId,
@@ -568,17 +568,17 @@ fn check_bounds_for_type_param_id(
 
 fn check_bounds_for_type_param(
     sa: &SemAnalysis,
-    tp_definition: &TypeParam,
-    tp_definition_arg: &TypeParam,
+    tp_definition: TypeParamDefinition,
+    tp_definition_arg: TypeParamDefinition,
     success: &mut bool,
     file_id: SourceFileId,
     pos: Position,
     _ctxt: TypeParamContext,
 ) {
-    for &trait_bound in &tp_definition.trait_bounds {
-        if !tp_definition_arg.trait_bounds.contains(&trait_bound) {
+    for &trait_bound in tp_definition.bounds() {
+        if !tp_definition_arg.bounds().contains(&trait_bound) {
             let bound = sa.traits[trait_bound].read();
-            let name = sa.interner.str(tp_definition_arg.name).to_string();
+            let name = sa.interner.str(tp_definition_arg.name()).to_string();
             let trait_name = sa.interner.str(bound.name).to_string();
             let msg = SemError::TypeNotImplementingTrait(name, trait_name);
             sa.diag.lock().report(file_id, pos, msg);
