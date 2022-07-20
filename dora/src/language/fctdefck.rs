@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
-    FctDefinition, FctDefinitionId, FctParent, SemAnalysis, TypeParam, TypeParamId,
+    FctDefinition, FctDefinitionId, FctParent, SemAnalysis, TypeParamId,
 };
 use crate::language::sym::{NestedSymTable, Sym};
 use crate::language::ty::SourceType;
@@ -20,10 +20,9 @@ pub fn check(sa: &SemAnalysis) {
             FctParent::Impl(impl_id) => {
                 let impl_ = sa.impls[impl_id].read();
 
-                for (type_param_id, param) in impl_.type_params.iter().enumerate() {
-                    let sym = Sym::TypeParam(TypeParamId(type_param_id));
-                    sym_table.insert(param.name, sym);
-                    fct.type_params.push(param.clone());
+                for param in impl_.type_params.iter() {
+                    sym_table.insert(param.name(), Sym::TypeParam(param.id()));
+                    fct.type_params.push(&param);
                 }
 
                 if fct.has_self() {
@@ -34,10 +33,9 @@ pub fn check(sa: &SemAnalysis) {
             FctParent::Extension(extension_id) => {
                 let extension = sa.extensions[extension_id].read();
 
-                for (type_param_id, param) in extension.type_params.iter().enumerate() {
-                    let sym = Sym::TypeParam(TypeParamId(type_param_id));
-                    sym_table.insert(param.name, sym);
-                    fct.type_params.push(param.clone());
+                for param in extension.type_params.iter() {
+                    sym_table.insert(param.name(), Sym::TypeParam(param.id()));
+                    fct.type_params.push(&param);
                 }
 
                 if fct.has_self() {
@@ -48,10 +46,9 @@ pub fn check(sa: &SemAnalysis) {
             FctParent::Trait(trait_id) => {
                 let trait_ = sa.traits[trait_id].read();
 
-                for (type_param_id, param) in trait_.type_params.iter().enumerate() {
-                    let sym = Sym::TypeParam(TypeParamId(type_param_id));
-                    sym_table.insert(param.name, sym);
-                    fct.type_params.push(param.clone());
+                for param in trait_.type_params.iter() {
+                    sym_table.insert(param.name(), Sym::TypeParam(param.id()));
+                    fct.type_params.push(&param);
                 }
 
                 if fct.has_self() {
@@ -78,7 +75,7 @@ pub fn check(sa: &SemAnalysis) {
                         sa.diag.lock().report(fct.file_id, type_param.pos, msg);
                     }
 
-                    fct.type_params.push(TypeParam::new(type_param.name));
+                    fct.type_params.add_type_param(type_param.name);
 
                     for bound in &type_param.bounds {
                         let ty = language::read_type(

@@ -110,7 +110,7 @@ impl<'a> TypeParamCheck<'a> {
         let mut succeeded = true;
 
         for (tp_def, ty) in self.callee_type_param_defs.iter().zip(tps.iter()) {
-            for &trait_bound in &tp_def.trait_bounds {
+            for &trait_bound in tp_def.bounds() {
                 if !implements_trait(
                     self.sa,
                     ty.clone(),

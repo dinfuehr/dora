@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 use std::ops::{Index, IndexMut};
-use std::slice::Iter;
 use std::sync::Arc;
 
 use dora_parser::ast;
@@ -374,6 +373,12 @@ impl TypeParamsDefinition {
         self.type_params[idx.to_usize()].name
     }
 
+    pub fn add_type_param(&mut self, name: Name) -> TypeParamId {
+        let id = TypeParamId(self.type_params.len());
+        self.type_params.push(TypeParam::new(name));
+        id
+    }
+
     pub fn add_bound(&mut self, idx: TypeParamId, trait_it: TraitDefinitionId) -> bool {
         self.type_params[idx.to_usize()]
             .trait_bounds
@@ -384,9 +389,12 @@ impl TypeParamsDefinition {
         &self.type_params[idx.to_usize()].trait_bounds
     }
 
-    pub fn push(&mut self, type_param: TypeParam) -> TypeParamId {
+    pub fn push(&mut self, type_param: &TypeParamDefinition) -> TypeParamId {
         let id = TypeParamId(self.type_params.len());
-        self.type_params.push(type_param);
+        self.type_params.push(TypeParam {
+            name: type_param.name(),
+            trait_bounds: type_param.bounds().clone(),
+        });
         id
     }
 
@@ -394,8 +402,8 @@ impl TypeParamsDefinition {
         self.type_params.is_empty()
     }
 
-    pub fn iter(&self) -> Iter<TypeParam> {
-        self.type_params.iter()
+    pub fn iter(&self) -> TypeParamsDefinitionIter {
+        TypeParamsDefinitionIter { data: self, idx: 0 }
     }
 }
 
@@ -405,6 +413,10 @@ pub struct TypeParamDefinition<'a> {
 }
 
 impl<'a> TypeParamDefinition<'a> {
+    pub fn id(&self) -> TypeParamId {
+        self.idx
+    }
+
     pub fn name(&self) -> Name {
         self.type_params.get(self.idx).name
     }
@@ -414,14 +426,33 @@ impl<'a> TypeParamDefinition<'a> {
     }
 }
 
+pub struct TypeParamsDefinitionIter<'a> {
+    data: &'a TypeParamsDefinition,
+    idx: usize,
+}
+
+impl<'a> Iterator for TypeParamsDefinitionIter<'a> {
+    type Item = TypeParamDefinition<'a>;
+
+    fn next(&mut self) -> Option<TypeParamDefinition<'a>> {
+        if self.idx < self.data.len() {
+            let current = TypeParamId(self.idx);
+            self.idx += 1;
+            Some(self.data.at(current))
+        } else {
+            None
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
-pub struct TypeParam {
-    pub name: Name,
-    pub trait_bounds: HashSet<TraitDefinitionId>,
+struct TypeParam {
+    name: Name,
+    trait_bounds: HashSet<TraitDefinitionId>,
 }
 
 impl TypeParam {
-    pub fn new(name: Name) -> TypeParam {
+    fn new(name: Name) -> TypeParam {
         TypeParam {
             name,
             trait_bounds: HashSet::new(),
