@@ -3,8 +3,8 @@ use std::sync::Arc;
 
 use crate::language::sem_analysis::{
     ClassDefinition, ClassDefinitionId, EnumDefinition, EnumDefinitionId, FctDefinition,
-    SemAnalysis, StructDefinition, StructDefinitionId, TraitDefinitionId, TypeParamId,
-    TypeParamsDefinition,
+    SemAnalysis, StructDefinition, StructDefinitionId, TraitDefinitionId, TypeParamDefinition,
+    TypeParamId,
 };
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -272,7 +272,7 @@ impl SourceType {
     pub fn name_with_type_params(
         &self,
         sa: &SemAnalysis,
-        type_params: &TypeParamsDefinition,
+        type_params: &TypeParamDefinition,
     ) -> String {
         let writer = SourceTypePrinter {
             sa,
@@ -649,7 +649,7 @@ impl<'a> Iterator for SourceTypeArrayIter<'a> {
 
 struct SourceTypePrinter<'a> {
     sa: &'a SemAnalysis,
-    type_params: Option<&'a TypeParamsDefinition>,
+    type_params: Option<&'a TypeParamDefinition>,
 }
 
 impl<'a> SourceTypePrinter<'a> {

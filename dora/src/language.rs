@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use crate::bytecode;
 use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
-    FctDefinition, SemAnalysis, SourceFileId, TypeParamId, TypeParamsDefinition,
+    FctDefinition, SemAnalysis, SourceFileId, TypeParamDefinition, TypeParamId,
 };
 use crate::language::sym::{NestedSymTable, Sym};
 use crate::language::ty::SourceType;
@@ -267,7 +267,7 @@ pub fn report_sym_shadow(
 fn check_type_params(
     sa: &SemAnalysis,
     ast_type_params: &[ast::TypeParam],
-    type_params: &mut TypeParamsDefinition,
+    type_params: &mut TypeParamDefinition,
     symtable: &mut NestedSymTable,
     file_id: SourceFileId,
     pos: Position,

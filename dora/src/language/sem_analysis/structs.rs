@@ -8,8 +8,8 @@ use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
     extension_matches, impl_matches, module_path, Candidate, ExtensionDefinitionId,
-    ImplDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId, TypeParamId,
-    TypeParamsDefinition,
+    ImplDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId, TypeParamDefinition,
+    TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;
@@ -46,7 +46,7 @@ pub struct StructDefinition {
     pub ast: Arc<ast::Struct>,
     pub primitive_ty: Option<SourceType>,
     pub module_id: ModuleDefinitionId,
-    pub type_params: TypeParamsDefinition,
+    pub type_params: TypeParamDefinition,
     pub is_pub: bool,
     pub internal: bool,
     pub internal_resolved: bool,
@@ -75,7 +75,7 @@ impl StructDefinition {
             name: node.name,
             internal: node.internal,
             internal_resolved: false,
-            type_params: TypeParamsDefinition::new_ast(&node.type_params),
+            type_params: TypeParamDefinition::new_ast(&node.type_params),
             fields: Vec::new(),
             field_names: HashMap::new(),
             impls: Vec::new(),
@@ -164,7 +164,7 @@ pub struct StructDefinitionField {
 pub fn find_methods_in_struct(
     sa: &SemAnalysis,
     object_type: SourceType,
-    type_param_defs: &TypeParamsDefinition,
+    type_param_defs: &TypeParamDefinition,
     name: Name,
     is_static: bool,
 ) -> Vec<Candidate> {

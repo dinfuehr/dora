@@ -3,7 +3,7 @@ use dora_parser::lexer::position::Position;
 use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
     implements_trait, ClassDefinitionId, EnumDefinitionId, FctDefinition, SemAnalysis,
-    SourceFileId, StructDefinitionId, TraitDefinitionId, TypeParamsDefinition,
+    SourceFileId, StructDefinitionId, TraitDefinitionId, TypeParamDefinition,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 
@@ -76,7 +76,7 @@ pub fn check_params<'a>(
     sa: &'a SemAnalysis,
     fct: &'a FctDefinition,
     error: ErrorReporting,
-    callee_type_param_defs: &'a TypeParamsDefinition,
+    callee_type_param_defs: &'a TypeParamDefinition,
     params: &'a SourceTypeArray,
 ) -> bool {
     let checker = TypeParamCheck {
@@ -91,8 +91,8 @@ pub fn check_params<'a>(
 
 struct TypeParamCheck<'a> {
     sa: &'a SemAnalysis,
-    caller_type_param_defs: &'a TypeParamsDefinition,
-    callee_type_param_defs: &'a TypeParamsDefinition,
+    caller_type_param_defs: &'a TypeParamDefinition,
+    callee_type_param_defs: &'a TypeParamDefinition,
     error: ErrorReporting,
 }
 
@@ -110,7 +110,7 @@ impl<'a> TypeParamCheck<'a> {
         let mut succeeded = true;
 
         for (tp_def, ty) in self.callee_type_param_defs.iter().zip(tps.iter()) {
-            for &trait_bound in tp_def.bounds() {
+            for trait_bound in tp_def.bounds() {
                 if !implements_trait(
                     self.sa,
                     ty.clone(),

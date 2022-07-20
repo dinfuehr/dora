@@ -11,7 +11,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
     extension_matches_ty, FctDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId,
-    TraitDefinitionId, TypeParamsDefinition,
+    TraitDefinitionId, TypeParamDefinition,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;
@@ -42,7 +42,7 @@ pub struct ImplDefinition {
     pub ast: Arc<ast::Impl>,
     pub module_id: ModuleDefinitionId,
     pub pos: Position,
-    pub type_params: TypeParamsDefinition,
+    pub type_params: TypeParamDefinition,
     pub trait_ty: SourceType,
     pub extended_ty: SourceType,
     pub methods: Vec<FctDefinitionId>,
@@ -62,7 +62,7 @@ impl ImplDefinition {
             file_id,
             ast: node.clone(),
             module_id,
-            type_params: TypeParamsDefinition::new_ast(&node.type_params),
+            type_params: TypeParamDefinition::new_ast(&node.type_params),
             pos: node.pos,
             trait_ty: SourceType::Error,
             extended_ty: SourceType::Error,
@@ -93,7 +93,7 @@ impl Index<ImplDefinitionId> for Vec<RwLock<ImplDefinition>> {
 pub fn impl_matches(
     sa: &SemAnalysis,
     check_ty: SourceType,
-    check_type_param_defs: &TypeParamsDefinition,
+    check_type_param_defs: &TypeParamDefinition,
     impl_id: ImplDefinitionId,
 ) -> Option<SourceTypeArray> {
     let impl_ = sa.impls[impl_id].read();
@@ -113,7 +113,7 @@ pub fn find_trait_impl(
     object_type: SourceType,
 ) -> FctDefinitionId {
     debug_assert!(object_type.is_concrete_type(sa));
-    let impl_id = find_impl(sa, object_type, &TypeParamsDefinition::new(), trait_id)
+    let impl_id = find_impl(sa, object_type, &TypeParamDefinition::new(), trait_id)
         .expect("no impl found for generic trait method call");
 
     let impl_ = sa.impls[impl_id].read();
@@ -129,7 +129,7 @@ pub fn find_trait_impl(
 pub fn implements_trait(
     sa: &SemAnalysis,
     check_ty: SourceType,
-    check_type_param_defs: &TypeParamsDefinition,
+    check_type_param_defs: &TypeParamDefinition,
     trait_id: TraitDefinitionId,
 ) -> bool {
     match check_ty {
@@ -208,7 +208,7 @@ pub fn implements_trait(
 pub fn find_impl(
     sa: &SemAnalysis,
     check_ty: SourceType,
-    check_type_param_defs: &TypeParamsDefinition,
+    check_type_param_defs: &TypeParamDefinition,
     trait_id: TraitDefinitionId,
 ) -> Option<ImplDefinitionId> {
     match check_ty {
@@ -279,7 +279,7 @@ pub fn find_impl(
 pub fn check_impls(
     sa: &SemAnalysis,
     check_ty: SourceType,
-    check_type_param_defs: &TypeParamsDefinition,
+    check_type_param_defs: &TypeParamDefinition,
     trait_id: TraitDefinitionId,
     impls: &[ImplDefinitionId],
 ) -> Option<ImplDefinitionId> {

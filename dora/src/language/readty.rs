@@ -7,8 +7,8 @@ use crate::language::access::{
 use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
     create_tuple, implements_trait, ClassDefinitionId, EnumDefinitionId, ExtensionDefinitionId,
-    FctDefinition, ImplDefinition, SemAnalysis, SourceFileId, StructDefinitionId,
-    TraitDefinitionId, TypeParamDefinition, TypeParamId, TypeParamsDefinition,
+    FctDefinition, ImplDefinition, SemAnalysis, SingleTypeParamDefinition, SourceFileId,
+    StructDefinitionId, TraitDefinitionId, TypeParamDefinition, TypeParamId,
 };
 use crate::language::sym::{NestedSymTable, Sym, SymTable};
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -417,7 +417,7 @@ fn read_type_trait(
 
 fn check_type_params(
     sa: &SemAnalysis,
-    tp_definitions: &TypeParamsDefinition,
+    tp_definitions: &TypeParamDefinition,
     type_params: &[SourceType],
     file_id: SourceFileId,
     pos: Position,
@@ -433,7 +433,7 @@ fn check_type_params(
 
     for (tp_definition, tp_ty) in tp_definitions.iter().zip(type_params.iter()) {
         use_type_params(sa, ctxt, |check_type_param_defs| {
-            for &trait_bound in tp_definition.bounds() {
+            for trait_bound in tp_definition.bounds() {
                 if !implements_trait(sa, tp_ty.clone(), check_type_param_defs, trait_bound) {
                     let bound = sa.traits[trait_bound].read();
                     let name = tp_ty.name_with_type_params(sa, check_type_param_defs);
@@ -451,7 +451,7 @@ fn check_type_params(
 
 fn use_type_params<F, R>(sa: &SemAnalysis, ctxt: TypeParamContext, callback: F) -> R
 where
-    F: FnOnce(&TypeParamsDefinition) -> R,
+    F: FnOnce(&TypeParamDefinition) -> R,
 {
     match ctxt {
         TypeParamContext::Class(cls_id) => {
@@ -492,13 +492,13 @@ where
         }
 
         TypeParamContext::Fct(fct) => callback(&fct.type_params),
-        TypeParamContext::None => callback(&TypeParamsDefinition::new()),
+        TypeParamContext::None => callback(&TypeParamDefinition::new()),
     }
 }
 
 fn check_bounds_for_type_param_id(
     sa: &SemAnalysis,
-    tp_definition: TypeParamDefinition,
+    tp_definition: SingleTypeParamDefinition,
     tp_id: TypeParamId,
     success: &mut bool,
     file_id: SourceFileId,
@@ -568,15 +568,15 @@ fn check_bounds_for_type_param_id(
 
 fn check_bounds_for_type_param(
     sa: &SemAnalysis,
-    tp_definition: TypeParamDefinition,
-    tp_definition_arg: TypeParamDefinition,
+    tp_definition: SingleTypeParamDefinition,
+    tp_definition_arg: SingleTypeParamDefinition,
     success: &mut bool,
     file_id: SourceFileId,
     pos: Position,
     _ctxt: TypeParamContext,
 ) {
-    for &trait_bound in tp_definition.bounds() {
-        if !tp_definition_arg.bounds().contains(&trait_bound) {
+    for trait_bound in tp_definition.bounds() {
+        if !tp_definition_arg.implements_trait(trait_bound) {
             let bound = sa.traits[trait_bound].read();
             let name = sa.interner.str(tp_definition_arg.name()).to_string();
             let trait_name = sa.interner.str(bound.name).to_string();

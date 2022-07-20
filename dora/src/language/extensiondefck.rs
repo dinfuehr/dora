@@ -1,7 +1,7 @@
 use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
     EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId, ModuleDefinitionId, SemAnalysis,
-    SourceFileId, StructDefinitionId, TypeParamId, TypeParamsDefinition,
+    SourceFileId, StructDefinitionId, TypeParamDefinition, TypeParamId,
 };
 use crate::language::sym::NestedSymTable;
 use crate::language::ty::SourceType;
@@ -267,7 +267,7 @@ impl<'x> ExtensionCheck<'x> {
 pub fn check_for_unconstrained_type_params(
     sa: &SemAnalysis,
     ty: SourceType,
-    type_params_defs: &TypeParamsDefinition,
+    type_params_defs: &TypeParamDefinition,
     file_id: SourceFileId,
     pos: Position,
 ) {

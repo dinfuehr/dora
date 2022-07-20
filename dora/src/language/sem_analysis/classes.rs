@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::ops::{Index, IndexMut};
 use std::sync::Arc;
 
@@ -61,7 +60,7 @@ pub struct ClassDefinition {
     pub impls: Vec<ImplDefinitionId>,
     pub extensions: Vec<ExtensionDefinitionId>,
 
-    pub type_params: TypeParamsDefinition,
+    pub type_params: TypeParamDefinition,
 
     // true if this class is the generic Array class
     pub is_array: bool,
@@ -91,7 +90,7 @@ impl ClassDefinition {
             impls: Vec::new(),
             extensions: Vec::new(),
 
-            type_params: TypeParamsDefinition::new_ast(&ast.type_params),
+            type_params: TypeParamDefinition::new_ast(&ast.type_params),
 
             is_array: false,
             is_str: false,
@@ -123,7 +122,7 @@ impl ClassDefinition {
             impls: Vec::new(),
             extensions: Vec::new(),
 
-            type_params: TypeParamsDefinition::new(),
+            type_params: TypeParamDefinition::new(),
 
             is_array: false,
             is_str: false,
@@ -267,7 +266,7 @@ pub struct Candidate {
 pub fn find_methods_in_class(
     sa: &SemAnalysis,
     object_type: SourceType,
-    type_param_defs: &TypeParamsDefinition,
+    type_param_defs: &TypeParamDefinition,
     name: Name,
     is_static: bool,
 ) -> Vec<Candidate> {
@@ -330,33 +329,32 @@ pub fn find_methods_in_class(
 }
 
 #[derive(Clone, Debug)]
-pub struct TypeParamsDefinition {
+pub struct TypeParamDefinition {
     type_params: Vec<TypeParam>,
     bounds: Vec<Bound>,
 }
 
-impl TypeParamsDefinition {
-    pub fn new() -> TypeParamsDefinition {
-        TypeParamsDefinition {
+impl TypeParamDefinition {
+    pub fn new() -> TypeParamDefinition {
+        TypeParamDefinition {
             type_params: Vec::new(),
             bounds: Vec::new(),
         }
     }
 
-    pub fn new_ast(type_params: &Option<Vec<ast::TypeParam>>) -> TypeParamsDefinition {
+    pub fn new_ast(type_params: &Option<Vec<ast::TypeParam>>) -> TypeParamDefinition {
         let type_params = if let Some(ast_type_params) = type_params {
             ast_type_params
                 .iter()
                 .map(|type_param| TypeParam {
                     name: type_param.name,
-                    trait_bounds: HashSet::new(),
                 })
                 .collect()
         } else {
             Vec::new()
         };
 
-        TypeParamsDefinition {
+        TypeParamDefinition {
             type_params,
             bounds: Vec::new(),
         }
@@ -370,62 +368,53 @@ impl TypeParamsDefinition {
         &self.type_params[idx.to_usize()]
     }
 
-    pub fn at(&self, idx: TypeParamId) -> TypeParamDefinition {
-        TypeParamDefinition {
+    pub fn at(&self, idx: TypeParamId) -> SingleTypeParamDefinition {
+        SingleTypeParamDefinition {
             type_params: self,
-            idx,
+            id: idx,
         }
     }
 
-    pub fn name(&self, idx: TypeParamId) -> Name {
-        self.type_params[idx.to_usize()].name
+    pub fn name(&self, id: TypeParamId) -> Name {
+        self.type_params[id.to_usize()].name
     }
 
     pub fn add_type_param(&mut self, name: Name) -> TypeParamId {
         let id = TypeParamId(self.type_params.len());
-        self.type_params.push(TypeParam {
-            name,
-            trait_bounds: HashSet::new(),
-        });
+        self.type_params.push(TypeParam { name });
         id
     }
 
-    pub fn add_bound(&mut self, idx: TypeParamId, trait_id: TraitDefinitionId) -> bool {
-        let result = self.type_params[idx.to_usize()]
-            .trait_bounds
-            .insert(trait_id);
+    pub fn add_bound(&mut self, id: TypeParamId, trait_id: TraitDefinitionId) -> bool {
+        let contains = self.bounds.contains(&Bound { id, trait_id });
 
-        self.bounds.push(Bound { id: idx, trait_id });
-
-        result
-    }
-
-    pub fn implements_trait(&self, idx: TypeParamId, trait_id: TraitDefinitionId) -> bool {
-        self.type_params[idx.to_usize()]
-            .trait_bounds
-            .contains(&trait_id)
-    }
-
-    pub fn bounds(&self, idx: TypeParamId) -> TypeParamBoundsIter {
-        let bounds = &self.type_params[idx.to_usize()].trait_bounds;
-        let bounds = bounds.iter().map(|bound| *bound);
-        let bounds = Vec::from_iter(bounds);
-
-        TypeParamBoundsIter {
-            type_params: self,
-            bounds,
-            idx: 0,
+        if contains {
+            false
+        } else {
+            self.bounds.push(Bound { id, trait_id });
+            true
         }
     }
 
-    pub fn push(&mut self, type_param: &TypeParamDefinition) -> TypeParamId {
+    pub fn implements_trait(&self, id: TypeParamId, trait_id: TraitDefinitionId) -> bool {
+        self.bounds.contains(&Bound { id, trait_id })
+    }
+
+    pub fn bounds(&self, id: TypeParamId) -> TypeParamBoundsIter {
+        TypeParamBoundsIter {
+            bounds: &self.bounds,
+            current: 0,
+            id,
+        }
+    }
+
+    pub fn push(&mut self, type_param: &SingleTypeParamDefinition) -> TypeParamId {
         let id = TypeParamId(self.type_params.len());
         self.type_params.push(TypeParam {
             name: type_param.name(),
-            trait_bounds: type_param.bounds().clone(),
         });
 
-        for &trait_id in type_param.bounds() {
+        for trait_id in type_param.bounds() {
             self.bounds.push(Bound { id, trait_id });
         }
 
@@ -436,68 +425,79 @@ impl TypeParamsDefinition {
         self.type_params.is_empty()
     }
 
-    pub fn iter(&self) -> TypeParamsDefinitionIter {
-        TypeParamsDefinitionIter { data: self, idx: 0 }
+    pub fn iter(&self) -> TypeParamDefinitionIter {
+        TypeParamDefinitionIter {
+            data: self,
+            current: 0,
+        }
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 struct Bound {
     id: TypeParamId,
     trait_id: TraitDefinitionId,
 }
 
 pub struct TypeParamBoundsIter<'a> {
-    type_params: &'a TypeParamsDefinition,
-    bounds: Vec<TraitDefinitionId>,
-    idx: usize,
+    bounds: &'a [Bound],
+    current: usize,
+    id: TypeParamId,
 }
 
 impl<'a> Iterator for TypeParamBoundsIter<'a> {
     type Item = TraitDefinitionId;
 
     fn next(&mut self) -> Option<TraitDefinitionId> {
-        if self.idx < self.bounds.len() {
-            let current = self.idx;
-            self.idx += 1;
-            Some(self.bounds[current])
-        } else {
-            None
+        while self.current < self.bounds.len() {
+            let bound = &self.bounds[self.current];
+            if bound.id == self.id {
+                self.current += 1;
+                return Some(bound.trait_id);
+            }
+
+            self.current += 1;
         }
+
+        None
     }
 }
 
-pub struct TypeParamDefinition<'a> {
-    type_params: &'a TypeParamsDefinition,
-    idx: TypeParamId,
+pub struct SingleTypeParamDefinition<'a> {
+    type_params: &'a TypeParamDefinition,
+    id: TypeParamId,
 }
 
-impl<'a> TypeParamDefinition<'a> {
+impl<'a> SingleTypeParamDefinition<'a> {
     pub fn id(&self) -> TypeParamId {
-        self.idx
+        self.id
     }
 
     pub fn name(&self) -> Name {
-        self.type_params.get(self.idx).name
+        self.type_params.get(self.id).name
     }
 
-    pub fn bounds(&self) -> &HashSet<TraitDefinitionId> {
-        &self.type_params.get(self.idx).trait_bounds
+    pub fn bounds(&self) -> TypeParamBoundsIter {
+        self.type_params.bounds(self.id)
+    }
+
+    pub fn implements_trait(&self, trait_id: TraitDefinitionId) -> bool {
+        self.type_params.implements_trait(self.id, trait_id)
     }
 }
 
-pub struct TypeParamsDefinitionIter<'a> {
-    data: &'a TypeParamsDefinition,
-    idx: usize,
+pub struct TypeParamDefinitionIter<'a> {
+    data: &'a TypeParamDefinition,
+    current: usize,
 }
 
-impl<'a> Iterator for TypeParamsDefinitionIter<'a> {
-    type Item = TypeParamDefinition<'a>;
+impl<'a> Iterator for TypeParamDefinitionIter<'a> {
+    type Item = SingleTypeParamDefinition<'a>;
 
-    fn next(&mut self) -> Option<TypeParamDefinition<'a>> {
-        if self.idx < self.data.len() {
-            let current = TypeParamId(self.idx);
-            self.idx += 1;
+    fn next(&mut self) -> Option<SingleTypeParamDefinition<'a>> {
+        if self.current < self.data.len() {
+            let current = TypeParamId(self.current);
+            self.current += 1;
             Some(self.data.at(current))
         } else {
             None
@@ -508,7 +508,6 @@ impl<'a> Iterator for TypeParamsDefinitionIter<'a> {
 #[derive(Clone, Debug)]
 struct TypeParam {
     name: Name,
-    trait_bounds: HashSet<TraitDefinitionId>,
 }
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]

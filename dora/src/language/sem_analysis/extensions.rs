@@ -6,7 +6,7 @@ use std::ops::Index;
 use std::sync::Arc;
 
 use crate::language::sem_analysis::{
-    FctDefinitionId, ModuleDefinitionId, SourceFileId, TypeParamsDefinition,
+    FctDefinitionId, ModuleDefinitionId, SourceFileId, TypeParamDefinition,
 };
 use crate::language::ty::SourceType;
 use crate::utils::Id;
@@ -48,7 +48,7 @@ pub struct ExtensionDefinition {
     pub ast: Arc<ast::Impl>,
     pub module_id: ModuleDefinitionId,
     pub pos: Position,
-    pub type_params: TypeParamsDefinition,
+    pub type_params: TypeParamDefinition,
     pub ty: SourceType,
     pub methods: Vec<FctDefinitionId>,
     pub instance_names: HashMap<Name, FctDefinitionId>,
@@ -67,7 +67,7 @@ impl ExtensionDefinition {
             module_id,
             ast: node.clone(),
             pos: node.pos,
-            type_params: TypeParamsDefinition::new_ast(&node.type_params),
+            type_params: TypeParamDefinition::new_ast(&node.type_params),
             ty: SourceType::Error,
             methods: Vec::new(),
             instance_names: HashMap::new(),
@@ -90,14 +90,14 @@ impl Index<ExtensionDefinitionId> for Vec<RwLock<ExtensionDefinition>> {
 
 mod matching {
     use crate::language::sem_analysis::{
-        implements_trait, ExtensionDefinitionId, SemAnalysis, TypeParamsDefinition,
+        implements_trait, ExtensionDefinitionId, SemAnalysis, TypeParamDefinition,
     };
     use crate::language::ty::{SourceType, SourceTypeArray};
 
     pub fn extension_matches(
         sa: &SemAnalysis,
         check_ty: SourceType,
-        check_type_param_defs: &TypeParamsDefinition,
+        check_type_param_defs: &TypeParamDefinition,
         extension_id: ExtensionDefinitionId,
     ) -> Option<SourceTypeArray> {
         let extension = sa.extensions[extension_id].read();
@@ -113,9 +113,9 @@ mod matching {
     pub fn extension_matches_ty(
         sa: &SemAnalysis,
         check_ty: SourceType,
-        check_type_param_defs: &TypeParamsDefinition,
+        check_type_param_defs: &TypeParamDefinition,
         ext_ty: SourceType,
-        ext_type_param_defs: &TypeParamsDefinition,
+        ext_type_param_defs: &TypeParamDefinition,
     ) -> Option<SourceTypeArray> {
         let mut bindings = vec![None; ext_type_param_defs.len()];
 
@@ -140,9 +140,9 @@ mod matching {
     fn matches(
         sa: &SemAnalysis,
         check_ty: SourceType,
-        check_type_param_defs: &TypeParamsDefinition,
+        check_type_param_defs: &TypeParamDefinition,
         ext_ty: SourceType,
-        ext_type_param_defs: &TypeParamsDefinition,
+        ext_type_param_defs: &TypeParamDefinition,
         bindings: &mut [Option<SourceType>],
     ) -> bool {
         if let SourceType::TypeParam(tp_id) = ext_ty {
@@ -199,9 +199,9 @@ mod matching {
     fn compare_type_param_bounds(
         _sa: &SemAnalysis,
         check_ty: SourceType,
-        check_type_param_defs: &TypeParamsDefinition,
+        check_type_param_defs: &TypeParamDefinition,
         ext_ty: SourceType,
-        ext_type_param_defs: &TypeParamsDefinition,
+        ext_type_param_defs: &TypeParamDefinition,
     ) -> bool {
         let ext_tp_id = ext_ty.type_param_id().expect("expected type param");
 
@@ -219,9 +219,9 @@ mod matching {
     fn concrete_type_fulfills_bounds(
         sa: &SemAnalysis,
         check_ty: SourceType,
-        check_type_param_defs: &TypeParamsDefinition,
+        check_type_param_defs: &TypeParamDefinition,
         ext_ty: SourceType,
-        ext_type_param_defs: &TypeParamsDefinition,
+        ext_type_param_defs: &TypeParamDefinition,
     ) -> bool {
         let ext_tp_id = ext_ty.type_param_id().expect("expected type param");
 
@@ -237,9 +237,9 @@ mod matching {
     fn compare_concrete_types(
         sa: &SemAnalysis,
         check_ty: SourceType,
-        check_type_param_defs: &TypeParamsDefinition,
+        check_type_param_defs: &TypeParamDefinition,
         ext_ty: SourceType,
-        ext_type_param_defs: &TypeParamsDefinition,
+        ext_type_param_defs: &TypeParamDefinition,
         bindings: &mut [Option<SourceType>],
     ) -> bool {
         match check_ty {
@@ -356,9 +356,9 @@ mod matching {
     fn compare_type_params(
         sa: &SemAnalysis,
         check_ty: SourceType,
-        check_type_param_defs: &TypeParamsDefinition,
+        check_type_param_defs: &TypeParamDefinition,
         ext_ty: SourceType,
-        ext_type_param_defs: &TypeParamsDefinition,
+        ext_type_param_defs: &TypeParamDefinition,
         bindings: &mut [Option<SourceType>],
     ) -> bool {
         let check_tps = check_ty.type_params();

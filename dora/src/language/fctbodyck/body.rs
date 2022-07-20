@@ -17,7 +17,7 @@ use crate::language::sem_analysis::{
     ClassDefinitionId, ContextIdx, EnumDefinitionId, EnumVariant, FctDefinition, FctDefinitionId,
     FctParent, Field, FieldId, ForTypeInfo, IdentType, Intrinsic, ModuleDefinitionId, NestedVarId,
     SemAnalysis, SourceFileId, StructDefinition, StructDefinitionId, TypeParamDefinition,
-    TypeParamId, TypeParamsDefinition, Var, VarAccess, VarId, VarLocation,
+    TypeParamId, Var, VarAccess, VarId, VarLocation,
 };
 use crate::language::specialize::replace_type_param;
 use crate::language::sym::{NestedSymTable, Sym};
@@ -2165,12 +2165,10 @@ impl<'a> TypeCheck<'a> {
         name: Name,
         arg_types: &[SourceType],
     ) -> SourceType {
-        let tp = self.fct.type_params.at(tp_id);
         self.check_expr_call_generic_type_param(
             e,
             SourceType::TypeParam(tp_id),
             tp_id,
-            tp,
             name,
             arg_types,
         )
@@ -2181,13 +2179,12 @@ impl<'a> TypeCheck<'a> {
         e: &ast::ExprCallType,
         object_type: SourceType,
         id: TypeParamId,
-        tp: TypeParamDefinition,
         name: Name,
         args: &[SourceType],
     ) -> SourceType {
         let mut found_fcts = Vec::new();
 
-        for &trait_id in tp.bounds() {
+        for trait_id in self.fct.type_params.bounds(id) {
             let trait_ = self.sa.traits[trait_id].read();
 
             if let Some(fid) = trait_.find_method_with_replace(self.sa, false, name, None, args) {
@@ -3578,7 +3575,7 @@ struct MethodDescriptor {
 fn lookup_method(
     sa: &SemAnalysis,
     object_type: SourceType,
-    type_param_defs: &TypeParamsDefinition,
+    type_param_defs: &TypeParamDefinition,
     is_static: bool,
     name: Name,
     args: &[SourceType],

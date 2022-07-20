@@ -10,7 +10,7 @@ use crate::bytecode::{BytecodeFunction, BytecodeType};
 use crate::gc::Address;
 use crate::language::sem_analysis::{
     module_path, AnalysisData, ExtensionDefinitionId, ImplDefinitionId, ModuleDefinitionId,
-    SemAnalysis, SourceFileId, TraitDefinitionId, TypeParamsDefinition,
+    SemAnalysis, SourceFileId, TraitDefinitionId, TypeParamDefinition,
 };
 use crate::language::ty::SourceType;
 use crate::utils::GrowableVec;
@@ -59,7 +59,7 @@ pub struct FctDefinition {
     pub initialized: bool,
     pub analysis: Option<AnalysisData>,
 
-    pub type_params: TypeParamsDefinition,
+    pub type_params: TypeParamDefinition,
     pub container_type_params: usize,
     pub bytecode: Option<BytecodeFunction>,
     pub intrinsic: Option<Intrinsic>,
@@ -95,7 +95,7 @@ impl FctDefinition {
             initialized: false,
             is_variadic: false,
             analysis: None,
-            type_params: TypeParamsDefinition::new(),
+            type_params: TypeParamDefinition::new(),
             container_type_params: 0,
             bytecode: None,
             intrinsic: None,
