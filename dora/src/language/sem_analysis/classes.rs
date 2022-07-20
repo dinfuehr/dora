@@ -345,7 +345,10 @@ impl TypeParamsDefinition {
         let type_params = if let Some(ast_type_params) = type_params {
             ast_type_params
                 .iter()
-                .map(|type_param| TypeParam::new(type_param.name))
+                .map(|type_param| TypeParam {
+                    name: type_param.name,
+                    trait_bounds: HashSet::new(),
+                })
                 .collect()
         } else {
             Vec::new()
@@ -375,7 +378,10 @@ impl TypeParamsDefinition {
 
     pub fn add_type_param(&mut self, name: Name) -> TypeParamId {
         let id = TypeParamId(self.type_params.len());
-        self.type_params.push(TypeParam::new(name));
+        self.type_params.push(TypeParam {
+            name,
+            trait_bounds: HashSet::new(),
+        });
         id
     }
 
@@ -449,15 +455,6 @@ impl<'a> Iterator for TypeParamsDefinitionIter<'a> {
 struct TypeParam {
     name: Name,
     trait_bounds: HashSet<TraitDefinitionId>,
-}
-
-impl TypeParam {
-    fn new(name: Name) -> TypeParam {
-        TypeParam {
-            name,
-            trait_bounds: HashSet::new(),
-        }
-    }
 }
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
