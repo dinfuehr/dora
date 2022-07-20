@@ -332,12 +332,14 @@ pub fn find_methods_in_class(
 #[derive(Clone, Debug)]
 pub struct TypeParamsDefinition {
     type_params: Vec<TypeParam>,
+    bounds: Vec<Bound>,
 }
 
 impl TypeParamsDefinition {
     pub fn new() -> TypeParamsDefinition {
         TypeParamsDefinition {
             type_params: Vec::new(),
+            bounds: Vec::new(),
         }
     }
 
@@ -354,7 +356,10 @@ impl TypeParamsDefinition {
             Vec::new()
         };
 
-        TypeParamsDefinition { type_params }
+        TypeParamsDefinition {
+            type_params,
+            bounds: Vec::new(),
+        }
     }
 
     pub fn len(&self) -> usize {
@@ -385,14 +390,32 @@ impl TypeParamsDefinition {
         id
     }
 
-    pub fn add_bound(&mut self, idx: TypeParamId, trait_it: TraitDefinitionId) -> bool {
-        self.type_params[idx.to_usize()]
+    pub fn add_bound(&mut self, idx: TypeParamId, trait_id: TraitDefinitionId) -> bool {
+        let result = self.type_params[idx.to_usize()]
             .trait_bounds
-            .insert(trait_it)
+            .insert(trait_id);
+
+        self.bounds.push(Bound { id: idx, trait_id });
+
+        result
     }
 
-    pub fn bounds(&self, idx: TypeParamId) -> &HashSet<TraitDefinitionId> {
-        &self.type_params[idx.to_usize()].trait_bounds
+    pub fn implements_trait(&self, idx: TypeParamId, trait_id: TraitDefinitionId) -> bool {
+        self.type_params[idx.to_usize()]
+            .trait_bounds
+            .contains(&trait_id)
+    }
+
+    pub fn bounds(&self, idx: TypeParamId) -> TypeParamBoundsIter {
+        let bounds = &self.type_params[idx.to_usize()].trait_bounds;
+        let bounds = bounds.iter().map(|bound| *bound);
+        let bounds = Vec::from_iter(bounds);
+
+        TypeParamBoundsIter {
+            type_params: self,
+            bounds,
+            idx: 0,
+        }
     }
 
     pub fn push(&mut self, type_param: &TypeParamDefinition) -> TypeParamId {
@@ -401,6 +424,11 @@ impl TypeParamsDefinition {
             name: type_param.name(),
             trait_bounds: type_param.bounds().clone(),
         });
+
+        for &trait_id in type_param.bounds() {
+            self.bounds.push(Bound { id, trait_id });
+        }
+
         id
     }
 
@@ -410,6 +438,32 @@ impl TypeParamsDefinition {
 
     pub fn iter(&self) -> TypeParamsDefinitionIter {
         TypeParamsDefinitionIter { data: self, idx: 0 }
+    }
+}
+
+#[derive(Clone, Debug)]
+struct Bound {
+    id: TypeParamId,
+    trait_id: TraitDefinitionId,
+}
+
+pub struct TypeParamBoundsIter<'a> {
+    type_params: &'a TypeParamsDefinition,
+    bounds: Vec<TraitDefinitionId>,
+    idx: usize,
+}
+
+impl<'a> Iterator for TypeParamBoundsIter<'a> {
+    type Item = TraitDefinitionId;
+
+    fn next(&mut self) -> Option<TraitDefinitionId> {
+        if self.idx < self.bounds.len() {
+            let current = self.idx;
+            self.idx += 1;
+            Some(self.bounds[current])
+        } else {
+            None
+        }
     }
 }
 

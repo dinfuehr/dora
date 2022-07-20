@@ -204,13 +204,11 @@ mod matching {
         ext_type_param_defs: &TypeParamsDefinition,
     ) -> bool {
         let ext_tp_id = ext_ty.type_param_id().expect("expected type param");
-        let ext_tp_bounds = ext_type_param_defs.bounds(ext_tp_id);
 
         let check_tp_id = check_ty.type_param_id().expect("expected type param");
-        let check_tp_bounds = check_type_param_defs.bounds(check_tp_id);
 
-        for &trait_id in ext_tp_bounds {
-            if !check_tp_bounds.contains(&trait_id) {
+        for trait_id in ext_type_param_defs.bounds(ext_tp_id) {
+            if !check_type_param_defs.implements_trait(check_tp_id, trait_id) {
                 return false;
             }
         }
@@ -226,9 +224,8 @@ mod matching {
         ext_type_param_defs: &TypeParamsDefinition,
     ) -> bool {
         let ext_tp_id = ext_ty.type_param_id().expect("expected type param");
-        let ext_tp_bounds = ext_type_param_defs.bounds(ext_tp_id);
 
-        for &trait_id in ext_tp_bounds {
+        for trait_id in ext_type_param_defs.bounds(ext_tp_id) {
             if !implements_trait(sa, check_ty.clone(), check_type_param_defs, trait_id) {
                 return false;
             }

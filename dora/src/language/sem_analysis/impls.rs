@@ -199,7 +199,7 @@ pub fn implements_trait(
             .is_some()
         }
 
-        SourceType::TypeParam(tp_id) => check_type_param_defs.bounds(tp_id).contains(&trait_id),
+        SourceType::TypeParam(tp_id) => check_type_param_defs.implements_trait(tp_id, trait_id),
 
         SourceType::Error | SourceType::Ptr | SourceType::This | SourceType::Any => unreachable!(),
     }
