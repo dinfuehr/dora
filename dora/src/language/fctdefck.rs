@@ -49,8 +49,8 @@ pub fn check(sa: &SemAnalysis) {
             FctParent::Function(_) => unimplemented!(),
         }
 
-        for param in fct.type_params.iter() {
-            sym_table.insert(param.name(), Sym::TypeParam(param.id()));
+        for (id, name) in fct.type_params.names() {
+            sym_table.insert(name, Sym::TypeParam(id));
         }
 
         let container_type_params = fct.type_params.len();

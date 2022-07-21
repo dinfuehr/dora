@@ -187,9 +187,8 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn add_type_params(&mut self) {
-        for type_param in self.fct.type_params.iter() {
-            self.symtable
-                .insert(type_param.name(), Sym::TypeParam(type_param.id()));
+        for (id, name) in self.fct.type_params.names() {
+            self.symtable.insert(name, Sym::TypeParam(id));
         }
     }
 

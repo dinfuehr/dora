@@ -5,6 +5,7 @@ use crate::language::sem_analysis::{
     implements_trait, ClassDefinitionId, EnumDefinitionId, FctDefinition, SemAnalysis,
     SourceFileId, StructDefinitionId, TraitDefinitionId, TypeParamDefinition,
 };
+use crate::language::specialize::specialize_type;
 use crate::language::ty::{SourceType, SourceTypeArray};
 
 pub enum ErrorReporting {
@@ -109,19 +110,17 @@ impl<'a> TypeParamCheck<'a> {
 
         let mut succeeded = true;
 
-        for (tp_def, ty) in self.callee_type_param_defs.iter().zip(tps.iter()) {
-            for trait_bound in tp_def.bounds() {
-                if !implements_trait(
-                    self.sa,
-                    ty.clone(),
-                    self.caller_type_param_defs,
-                    trait_bound,
-                ) {
-                    if let ErrorReporting::Yes(file_id, pos) = self.error {
-                        self.fail_trait_bound(file_id, pos, trait_bound, ty.clone());
-                    }
-                    succeeded = false;
+        for bound in self.callee_type_param_defs.all_bounds() {
+            let tp_id = bound.id();
+            let trait_id = bound.trait_id();
+
+            let ty = specialize_type(self.sa, SourceType::TypeParam(tp_id), tps);
+
+            if !implements_trait(self.sa, ty.clone(), self.caller_type_param_defs, trait_id) {
+                if let ErrorReporting::Yes(file_id, pos) = self.error {
+                    self.fail_trait_bound(file_id, pos, trait_id, ty.clone());
                 }
+                succeeded = false;
             }
         }
 

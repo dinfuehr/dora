@@ -10,6 +10,7 @@ use crate::language::sem_analysis::{
     FctDefinition, ImplDefinition, SemAnalysis, SourceFileId, StructDefinitionId,
     TraitDefinitionId, TypeParamDefinition,
 };
+use crate::language::specialize::specialize_type;
 use crate::language::sym::{NestedSymTable, Sym, SymTable};
 use crate::language::ty::{SourceType, SourceTypeArray};
 
@@ -429,22 +430,27 @@ fn check_type_params(
         return false;
     }
 
+    let type_params_sta = SourceTypeArray::with(type_params.to_vec());
+
     let mut success = true;
 
-    for (tp_definition, tp_ty) in tp_definitions.iter().zip(type_params.iter()) {
-        use_type_params(sa, ctxt, |check_type_param_defs| {
-            for trait_bound in tp_definition.bounds() {
-                if !implements_trait(sa, tp_ty.clone(), check_type_param_defs, trait_bound) {
-                    let bound = sa.traits[trait_bound].read();
-                    let name = tp_ty.name_with_type_params(sa, check_type_param_defs);
-                    let trait_name = sa.interner.str(bound.name).to_string();
-                    let msg = SemError::TypeNotImplementingTrait(name, trait_name);
-                    sa.diag.lock().report(file_id, pos, msg);
-                    success = false;
-                }
+    use_type_params(sa, ctxt, |check_type_param_defs| {
+        for bound in tp_definitions.all_bounds() {
+            let tp_id = bound.id();
+            let trait_id = bound.trait_id();
+
+            let ty = specialize_type(sa, SourceType::TypeParam(tp_id), &type_params_sta);
+
+            if !implements_trait(sa, ty.clone(), check_type_param_defs, trait_id) {
+                let bound = sa.traits[trait_id].read();
+                let name = ty.name_with_type_params(sa, check_type_param_defs);
+                let trait_name = sa.interner.str(bound.name).to_string();
+                let msg = SemError::TypeNotImplementingTrait(name, trait_name);
+                sa.diag.lock().report(file_id, pos, msg);
+                success = false;
             }
-        });
-    }
+        }
+    });
 
     success
 }

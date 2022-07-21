@@ -364,13 +364,6 @@ impl TypeParamDefinition {
         self.type_params.len()
     }
 
-    fn at(&self, idx: TypeParamId) -> SingleTypeParamDefinition {
-        SingleTypeParamDefinition {
-            type_params: self,
-            id: idx,
-        }
-    }
-
     pub fn name(&self, id: TypeParamId) -> Name {
         self.type_params[id.to_usize()].name
     }
@@ -396,6 +389,10 @@ impl TypeParamDefinition {
         self.bounds.contains(&Bound { id, trait_id })
     }
 
+    pub fn all_bounds(&self) -> &[Bound] {
+        &self.bounds
+    }
+
     pub fn bounds(&self, id: TypeParamId) -> TypeParamBoundsIter {
         TypeParamBoundsIter {
             bounds: &self.bounds,
@@ -416,8 +413,8 @@ impl TypeParamDefinition {
         self.type_params.is_empty()
     }
 
-    pub fn iter(&self) -> TypeParamDefinitionIter {
-        TypeParamDefinitionIter {
+    pub fn names(&self) -> TypeParamNameIter {
+        TypeParamNameIter {
             data: self,
             current: 0,
         }
@@ -425,9 +422,19 @@ impl TypeParamDefinition {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-struct Bound {
+pub struct Bound {
     id: TypeParamId,
     trait_id: TraitDefinitionId,
+}
+
+impl Bound {
+    pub fn id(&self) -> TypeParamId {
+        self.id
+    }
+
+    pub fn trait_id(&self) -> TraitDefinitionId {
+        self.trait_id
+    }
 }
 
 pub struct TypeParamBoundsIter<'a> {
@@ -454,42 +461,19 @@ impl<'a> Iterator for TypeParamBoundsIter<'a> {
     }
 }
 
-pub struct SingleTypeParamDefinition<'a> {
-    type_params: &'a TypeParamDefinition,
-    id: TypeParamId,
-}
-
-impl<'a> SingleTypeParamDefinition<'a> {
-    pub fn id(&self) -> TypeParamId {
-        self.id
-    }
-
-    pub fn name(&self) -> Name {
-        self.type_params.name(self.id)
-    }
-
-    pub fn bounds(&self) -> TypeParamBoundsIter {
-        self.type_params.bounds(self.id)
-    }
-
-    pub fn implements_trait(&self, trait_id: TraitDefinitionId) -> bool {
-        self.type_params.implements_trait(self.id, trait_id)
-    }
-}
-
-pub struct TypeParamDefinitionIter<'a> {
+pub struct TypeParamNameIter<'a> {
     data: &'a TypeParamDefinition,
     current: usize,
 }
 
-impl<'a> Iterator for TypeParamDefinitionIter<'a> {
-    type Item = SingleTypeParamDefinition<'a>;
+impl<'a> Iterator for TypeParamNameIter<'a> {
+    type Item = (TypeParamId, Name);
 
-    fn next(&mut self) -> Option<SingleTypeParamDefinition<'a>> {
+    fn next(&mut self) -> Option<(TypeParamId, Name)> {
         if self.current < self.data.len() {
             let current = TypeParamId(self.current);
             self.current += 1;
-            Some(self.data.at(current))
+            Some((current, self.data.name(current)))
         } else {
             None
         }
