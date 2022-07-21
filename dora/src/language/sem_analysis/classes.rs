@@ -364,11 +364,7 @@ impl TypeParamDefinition {
         self.type_params.len()
     }
 
-    fn get(&self, idx: TypeParamId) -> &TypeParam {
-        &self.type_params[idx.to_usize()]
-    }
-
-    pub fn at(&self, idx: TypeParamId) -> SingleTypeParamDefinition {
+    fn at(&self, idx: TypeParamId) -> SingleTypeParamDefinition {
         SingleTypeParamDefinition {
             type_params: self,
             id: idx,
@@ -408,17 +404,12 @@ impl TypeParamDefinition {
         }
     }
 
-    pub fn push(&mut self, type_param: &SingleTypeParamDefinition) -> TypeParamId {
-        let id = TypeParamId(self.type_params.len());
-        self.type_params.push(TypeParam {
-            name: type_param.name(),
-        });
+    pub fn append(&mut self, other: &TypeParamDefinition) {
+        assert_eq!(self.type_params.len(), 0);
+        assert_eq!(self.bounds.len(), 0);
 
-        for trait_id in type_param.bounds() {
-            self.bounds.push(Bound { id, trait_id });
-        }
-
-        id
+        self.type_params = other.type_params.clone();
+        self.bounds = other.bounds.clone();
     }
 
     pub fn is_empty(&self) -> bool {
@@ -474,7 +465,7 @@ impl<'a> SingleTypeParamDefinition<'a> {
     }
 
     pub fn name(&self) -> Name {
-        self.type_params.get(self.id).name
+        self.type_params.name(self.id)
     }
 
     pub fn bounds(&self) -> TypeParamBoundsIter {

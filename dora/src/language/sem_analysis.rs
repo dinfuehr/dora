@@ -12,7 +12,7 @@ use crate::vm::VM;
 pub use self::annotations::{AnnotationDefinition, AnnotationDefinitionId};
 pub use self::classes::{
     find_field_in_class, find_methods_in_class, Candidate, ClassDefinition, ClassDefinitionId,
-    Field, FieldId, SingleTypeParamDefinition, TypeParamDefinition, TypeParamId,
+    Field, FieldId, TypeParamDefinition, TypeParamId,
 };
 pub use self::consts::{ConstDefinition, ConstDefinitionId, ConstValue};
 pub use self::enums::{find_methods_in_enum, EnumDefinition, EnumDefinitionId, EnumVariant};

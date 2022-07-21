@@ -19,11 +19,7 @@ pub fn check(sa: &SemAnalysis) {
         match fct.parent {
             FctParent::Impl(impl_id) => {
                 let impl_ = sa.impls[impl_id].read();
-
-                for param in impl_.type_params.iter() {
-                    sym_table.insert(param.name(), Sym::TypeParam(param.id()));
-                    fct.type_params.push(&param);
-                }
+                fct.type_params.append(&impl_.type_params);
 
                 if fct.has_self() {
                     fct.param_types.push(impl_.extended_ty.clone());
@@ -32,11 +28,7 @@ pub fn check(sa: &SemAnalysis) {
 
             FctParent::Extension(extension_id) => {
                 let extension = sa.extensions[extension_id].read();
-
-                for param in extension.type_params.iter() {
-                    sym_table.insert(param.name(), Sym::TypeParam(param.id()));
-                    fct.type_params.push(&param);
-                }
+                fct.type_params.append(&extension.type_params);
 
                 if fct.has_self() {
                     fct.param_types.push(extension.ty.clone());
@@ -45,11 +37,7 @@ pub fn check(sa: &SemAnalysis) {
 
             FctParent::Trait(trait_id) => {
                 let trait_ = sa.traits[trait_id].read();
-
-                for param in trait_.type_params.iter() {
-                    sym_table.insert(param.name(), Sym::TypeParam(param.id()));
-                    fct.type_params.push(&param);
-                }
+                fct.type_params.append(&trait_.type_params);
 
                 if fct.has_self() {
                     fct.param_types.push(SourceType::This);
@@ -59,6 +47,10 @@ pub fn check(sa: &SemAnalysis) {
             FctParent::None => {}
 
             FctParent::Function(_) => unimplemented!(),
+        }
+
+        for param in fct.type_params.iter() {
+            sym_table.insert(param.name(), Sym::TypeParam(param.id()));
         }
 
         let container_type_params = fct.type_params.len();

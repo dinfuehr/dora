@@ -7,8 +7,8 @@ use crate::language::access::{
 use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
     create_tuple, implements_trait, ClassDefinitionId, EnumDefinitionId, ExtensionDefinitionId,
-    FctDefinition, ImplDefinition, SemAnalysis, SingleTypeParamDefinition, SourceFileId,
-    StructDefinitionId, TraitDefinitionId, TypeParamDefinition, TypeParamId,
+    FctDefinition, ImplDefinition, SemAnalysis, SourceFileId, StructDefinitionId,
+    TraitDefinitionId, TypeParamDefinition,
 };
 use crate::language::sym::{NestedSymTable, Sym, SymTable};
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -493,97 +493,6 @@ where
 
         TypeParamContext::Fct(fct) => callback(&fct.type_params),
         TypeParamContext::None => callback(&TypeParamDefinition::new()),
-    }
-}
-
-fn check_bounds_for_type_param_id(
-    sa: &SemAnalysis,
-    tp_definition: SingleTypeParamDefinition,
-    tp_id: TypeParamId,
-    success: &mut bool,
-    file_id: SourceFileId,
-    pos: Position,
-    ctxt: TypeParamContext,
-) {
-    match ctxt {
-        TypeParamContext::Class(cls_id) => {
-            let cls = sa.classes.idx(cls_id);
-            let cls = cls.read();
-
-            let type_param = cls.type_params.at(tp_id);
-
-            check_bounds_for_type_param(sa, tp_definition, type_param, success, file_id, pos, ctxt)
-        }
-
-        TypeParamContext::Enum(enum_id) => {
-            let enum_ = &sa.enums[enum_id];
-            let enum_ = enum_.read();
-
-            let type_param = enum_.type_params.at(tp_id);
-
-            check_bounds_for_type_param(sa, tp_definition, type_param, success, file_id, pos, ctxt)
-        }
-
-        TypeParamContext::Struct(struct_id) => {
-            let xstruct = &sa.structs.idx(struct_id);
-            let xstruct = xstruct.read();
-
-            let type_param = xstruct.type_params.at(tp_id);
-
-            check_bounds_for_type_param(sa, tp_definition, type_param, success, file_id, pos, ctxt)
-        }
-
-        TypeParamContext::Impl(impl_) => {
-            let type_param = impl_.type_params.at(tp_id);
-
-            check_bounds_for_type_param(sa, tp_definition, type_param, success, file_id, pos, ctxt)
-        }
-
-        TypeParamContext::Extension(extension_id) => {
-            let extension = &sa.extensions[extension_id];
-            let extension = extension.read();
-
-            let type_param = extension.type_params.at(tp_id);
-
-            check_bounds_for_type_param(sa, tp_definition, type_param, success, file_id, pos, ctxt)
-        }
-
-        TypeParamContext::Trait(trait_id) => {
-            let trait_ = &sa.traits[trait_id];
-            let trait_ = trait_.read();
-
-            let type_param = trait_.type_params.at(tp_id);
-
-            check_bounds_for_type_param(sa, tp_definition, type_param, success, file_id, pos, ctxt)
-        }
-
-        TypeParamContext::Fct(fct) => {
-            let type_param = fct.type_params.at(tp_id);
-
-            check_bounds_for_type_param(sa, tp_definition, type_param, success, file_id, pos, ctxt)
-        }
-        TypeParamContext::None => unreachable!(),
-    }
-}
-
-fn check_bounds_for_type_param(
-    sa: &SemAnalysis,
-    tp_definition: SingleTypeParamDefinition,
-    tp_definition_arg: SingleTypeParamDefinition,
-    success: &mut bool,
-    file_id: SourceFileId,
-    pos: Position,
-    _ctxt: TypeParamContext,
-) {
-    for trait_bound in tp_definition.bounds() {
-        if !tp_definition_arg.implements_trait(trait_bound) {
-            let bound = sa.traits[trait_bound].read();
-            let name = sa.interner.str(tp_definition_arg.name()).to_string();
-            let trait_name = sa.interner.str(bound.name).to_string();
-            let msg = SemError::TypeNotImplementingTrait(name, trait_name);
-            sa.diag.lock().report(file_id, pos, msg);
-            *success = false;
-        }
     }
 }
 
