@@ -272,59 +272,55 @@ fn check_type_params(
     file_id: SourceFileId,
     pos: Position,
 ) -> Vec<SourceType> {
-    if ast_type_params.len() > 0 {
-        let mut names = HashSet::new();
-        let mut params = Vec::new();
-
-        for (type_param_id, type_param) in ast_type_params.iter().enumerate() {
-            if !names.insert(type_param.name) {
-                let name = sa.interner.str(type_param.name).to_string();
-                let msg = SemError::TypeParamNameNotUnique(name);
-                sa.diag.lock().report(file_id, type_param.pos, msg);
-            }
-
-            params.push(SourceType::TypeParam(TypeParamId(type_param_id)));
-
-            for bound in &type_param.bounds {
-                let ty = read_type(
-                    sa,
-                    symtable,
-                    file_id,
-                    bound,
-                    TypeParamContext::None,
-                    AllowSelf::No,
-                );
-
-                match ty {
-                    Some(SourceType::Trait(trait_id, _)) => {
-                        if !type_params.add_bound(TypeParamId(type_param_id), trait_id) {
-                            let msg = SemError::DuplicateTraitBound;
-                            sa.diag.lock().report(file_id, type_param.pos, msg);
-                        }
-                    }
-
-                    None => {
-                        // unknown type, error is already thrown
-                    }
-
-                    _ => {
-                        let msg = SemError::BoundExpected;
-                        sa.diag.lock().report(file_id, bound.pos(), msg);
-                    }
-                }
-            }
-
-            let sym = Sym::TypeParam(TypeParamId(type_param_id));
-            symtable.insert(type_param.name, sym);
-        }
-
-        params
-    } else {
+    if ast_type_params.len() == 0 {
         let msg = SemError::TypeParamsExpected;
         sa.diag.lock().report(file_id, pos, msg);
 
-        Vec::new()
+        return Vec::new();
     }
+
+    let mut names = HashSet::new();
+    let mut params = Vec::new();
+
+    for (type_param_id, type_param) in ast_type_params.iter().enumerate() {
+        if !names.insert(type_param.name) {
+            let name = sa.interner.str(type_param.name).to_string();
+            let msg = SemError::TypeParamNameNotUnique(name);
+            sa.diag.lock().report(file_id, type_param.pos, msg);
+        }
+
+        params.push(SourceType::TypeParam(TypeParamId(type_param_id)));
+
+        for bound in &type_param.bounds {
+            let ty = read_type(
+                sa,
+                symtable,
+                file_id,
+                bound,
+                TypeParamContext::None,
+                AllowSelf::No,
+            );
+
+            if let Some(ty) = ty {
+                if ty.is_trait() {
+                    if !type_params.add_bound(TypeParamId(type_param_id), ty) {
+                        let msg = SemError::DuplicateTraitBound;
+                        sa.diag.lock().report(file_id, type_param.pos, msg);
+                    }
+                } else {
+                    let msg = SemError::BoundExpected;
+                    sa.diag.lock().report(file_id, bound.pos(), msg);
+                }
+            } else {
+                // unknown type, error is already thrown
+            }
+        }
+
+        let sym = Sym::TypeParam(TypeParamId(type_param_id));
+        symtable.insert(type_param.name, sym);
+    }
+
+    params
 }
 
 #[cfg(test)]

@@ -7,7 +7,7 @@ use dora_parser::Position;
 
 use crate::language::sem_analysis::{
     extension_matches, impl_matches, module_path, ExtensionDefinitionId, FctDefinitionId,
-    ImplDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId, TraitDefinitionId,
+    ImplDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId,
 };
 use crate::language::specialize::replace_type_param;
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -374,26 +374,37 @@ impl TypeParamDefinition {
         id
     }
 
-    pub fn add_bound(&mut self, id: TypeParamId, trait_id: TraitDefinitionId) -> bool {
-        let contains = self.bounds.contains(&Bound { id, trait_id });
+    pub fn add_bound(&mut self, id: TypeParamId, trait_ty: SourceType) -> bool {
+        assert!(trait_ty.is_trait());
+
+        let bound = Bound {
+            ty: SourceType::TypeParam(id),
+            trait_ty: trait_ty.clone(),
+        };
+
+        let contains = self.bounds.contains(&bound);
 
         if contains {
             false
         } else {
-            self.bounds.push(Bound { id, trait_id });
+            self.bounds.push(bound);
+
             true
         }
     }
 
-    pub fn implements_trait(&self, id: TypeParamId, trait_id: TraitDefinitionId) -> bool {
-        self.bounds.contains(&Bound { id, trait_id })
+    pub fn implements_trait(&self, id: TypeParamId, trait_ty: SourceType) -> bool {
+        self.bounds.contains(&Bound {
+            ty: SourceType::TypeParam(id),
+            trait_ty,
+        })
     }
 
-    pub fn all_bounds(&self) -> &[Bound] {
+    pub fn bounds(&self) -> &[Bound] {
         &self.bounds
     }
 
-    pub fn bounds(&self, id: TypeParamId) -> TypeParamBoundsIter {
+    pub fn bounds_for_type_param(&self, id: TypeParamId) -> TypeParamBoundsIter {
         TypeParamBoundsIter {
             bounds: &self.bounds,
             current: 0,
@@ -423,21 +434,18 @@ impl TypeParamDefinition {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Bound {
-    id: TypeParamId,
-    trait_id: TraitDefinitionId,
+    ty: SourceType,
+    trait_ty: SourceType,
 }
 
 impl Bound {
-    pub fn id(&self) -> TypeParamId {
-        self.id
-    }
-
-    pub fn trait_id(&self) -> TraitDefinitionId {
-        self.trait_id
+    pub fn ty(&self) -> SourceType {
+        self.ty.clone()
     }
 
     pub fn trait_ty(&self) -> SourceType {
-        SourceType::Trait(self.trait_id, SourceTypeArray::empty())
+        debug_assert!(self.trait_ty.is_trait());
+        self.trait_ty.clone()
     }
 }
 
@@ -448,14 +456,14 @@ pub struct TypeParamBoundsIter<'a> {
 }
 
 impl<'a> Iterator for TypeParamBoundsIter<'a> {
-    type Item = TraitDefinitionId;
+    type Item = SourceType;
 
-    fn next(&mut self) -> Option<TraitDefinitionId> {
+    fn next(&mut self) -> Option<SourceType> {
         while self.current < self.bounds.len() {
             let bound = &self.bounds[self.current];
-            if bound.id == self.id {
+            if bound.ty() == SourceType::TypeParam(self.id) {
                 self.current += 1;
-                return Some(bound.trait_id);
+                return Some(bound.trait_ty());
             }
 
             self.current += 1;

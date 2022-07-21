@@ -109,15 +109,23 @@ pub fn impl_matches(
 pub fn find_trait_impl(
     sa: &SemAnalysis,
     fct_id: FctDefinitionId,
-    trait_id: TraitDefinitionId,
+    trait_ty: SourceType,
     object_type: SourceType,
 ) -> FctDefinitionId {
     debug_assert!(object_type.is_concrete_type(sa));
-    let impl_id = find_impl(sa, object_type, &TypeParamDefinition::new(), trait_id)
-        .expect("no impl found for generic trait method call");
+    let impl_id = find_impl(
+        sa,
+        object_type,
+        &TypeParamDefinition::new(),
+        trait_ty.clone(),
+    )
+    .expect("no impl found for generic trait method call");
 
     let impl_ = sa.impls[impl_id].read();
-    assert_eq!(impl_.trait_id(), trait_id);
+    assert_eq!(
+        impl_.trait_id(),
+        trait_ty.trait_id().expect("trait expected")
+    );
 
     impl_
         .impl_for
@@ -143,7 +151,7 @@ pub fn implements_trait(
 
         SourceType::Enum(enum_id, _) => {
             let enum_ = sa.enums[enum_id].read();
-            check_impls(sa, check_ty, check_type_param_defs, trait_id, &enum_.impls).is_some()
+            check_impls(sa, check_ty, check_type_param_defs, trait_ty, &enum_.impls).is_some()
         }
 
         SourceType::Bool
@@ -167,7 +175,7 @@ pub fn implements_trait(
                 sa,
                 check_ty,
                 check_type_param_defs,
-                trait_id,
+                trait_ty,
                 &xstruct.impls,
             )
             .is_some()
@@ -181,7 +189,7 @@ pub fn implements_trait(
                 sa,
                 check_ty,
                 check_type_param_defs,
-                trait_id,
+                trait_ty,
                 &xstruct.impls,
             )
             .is_some()
@@ -196,13 +204,13 @@ pub fn implements_trait(
                 sa,
                 check_ty.clone(),
                 check_type_param_defs,
-                trait_id,
+                trait_ty,
                 &cls.impls,
             )
             .is_some()
         }
 
-        SourceType::TypeParam(tp_id) => check_type_param_defs.implements_trait(tp_id, trait_id),
+        SourceType::TypeParam(tp_id) => check_type_param_defs.implements_trait(tp_id, trait_ty),
 
         SourceType::Error | SourceType::Ptr | SourceType::This | SourceType::Any => unreachable!(),
     }
@@ -212,7 +220,7 @@ pub fn find_impl(
     sa: &SemAnalysis,
     check_ty: SourceType,
     check_type_param_defs: &TypeParamDefinition,
-    trait_id: TraitDefinitionId,
+    trait_ty: SourceType,
 ) -> Option<ImplDefinitionId> {
     match check_ty {
         SourceType::Tuple(_)
@@ -222,7 +230,7 @@ pub fn find_impl(
 
         SourceType::Enum(enum_id, _) => {
             let enum_ = sa.enums[enum_id].read();
-            check_impls(sa, check_ty, check_type_param_defs, trait_id, &enum_.impls)
+            check_impls(sa, check_ty, check_type_param_defs, trait_ty, &enum_.impls)
         }
 
         SourceType::Bool
@@ -242,7 +250,7 @@ pub fn find_impl(
                 sa,
                 check_ty,
                 check_type_param_defs,
-                trait_id,
+                trait_ty,
                 &xstruct.impls,
             )
         }
@@ -255,7 +263,7 @@ pub fn find_impl(
                 sa,
                 check_ty,
                 check_type_param_defs,
-                trait_id,
+                trait_ty,
                 &xstruct.impls,
             )
         }
@@ -269,7 +277,7 @@ pub fn find_impl(
                 sa,
                 check_ty.clone(),
                 check_type_param_defs,
-                trait_id,
+                trait_ty,
                 &cls.impls,
             )
         }
@@ -283,9 +291,11 @@ pub fn check_impls(
     sa: &SemAnalysis,
     check_ty: SourceType,
     check_type_param_defs: &TypeParamDefinition,
-    trait_id: TraitDefinitionId,
+    trait_ty: SourceType,
     impls: &[ImplDefinitionId],
 ) -> Option<ImplDefinitionId> {
+    let trait_id = trait_ty.trait_id().expect("trait expected");
+
     for &impl_id in impls {
         let impl_ = &sa.impls[impl_id];
         let impl_ = impl_.read();

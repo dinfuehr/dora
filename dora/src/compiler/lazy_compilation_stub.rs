@@ -341,14 +341,16 @@ fn ensure_thunk(
         return thunk_id;
     }
 
-    let callee_id = find_trait_impl(vm, fct_id, trait_id, actual_ty.clone());
+    let callee_id = find_trait_impl(vm, fct_id, trait_object_ty.clone(), actual_ty.clone());
 
     let mut thunk_fct = FctDefinition::new(fct.file_id, fct.module_id, &fct.ast, FctParent::None);
     thunk_fct.type_params = fct.type_params.clone();
 
     let tp_name = vm.interner.intern("new_self");
     let tp_id = thunk_fct.type_params.add_type_param(tp_name);
-    thunk_fct.type_params.add_bound(tp_id, trait_id);
+    thunk_fct
+        .type_params
+        .add_bound(tp_id, trait_object_ty.clone());
     thunk_fct.bytecode = Some(generate_bytecode_for_thunk(
         vm,
         cls_def_id,

@@ -107,13 +107,13 @@ impl<'x> EnumCheck<'x> {
                         AllowSelf::No,
                     );
 
-                    match ty {
-                        Some(SourceType::Trait(trait_id, _)) => {
+                    if let Some(ty) = ty {
+                        if ty.is_trait() {
                             if !self
                                 .enum_
                                 .write()
                                 .type_params
-                                .add_bound(TypeParamId(type_param_id), trait_id)
+                                .add_bound(TypeParamId(type_param_id), ty)
                             {
                                 let msg = SemError::DuplicateTraitBound;
                                 self.sa
@@ -121,16 +121,12 @@ impl<'x> EnumCheck<'x> {
                                     .lock()
                                     .report(self.file_id, type_param.pos, msg);
                             }
-                        }
-
-                        None => {
-                            // unknown type, error is already thrown
-                        }
-
-                        _ => {
+                        } else {
                             let msg = SemError::BoundExpected;
                             self.sa.diag.lock().report(self.file_id, bound.pos(), msg);
                         }
+                    } else {
+                        // unknown type, error is already thrown
                     }
                 }
 

@@ -24,7 +24,7 @@ pub fn check(sa: &SemAnalysis) {
         let trait_ = &sa.traits[trait_id];
         let mut trait_ = trait_.write();
 
-        let mut clsck = TraitCheck {
+        let mut traitck = TraitCheck {
             sa,
             trait_id,
             file_id,
@@ -35,7 +35,7 @@ pub fn check(sa: &SemAnalysis) {
             vtable_index: 0,
         };
 
-        clsck.check();
+        traitck.check();
     }
 }
 

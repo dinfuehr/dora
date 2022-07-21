@@ -1605,7 +1605,8 @@ impl<'a> TypeCheck<'a> {
     ) -> SourceType {
         let mut fcts = Vec::new();
 
-        for trait_id in self.fct.type_params.bounds(tp_id) {
+        for trait_ty in self.fct.type_params.bounds_for_type_param(tp_id) {
+            let trait_id = trait_ty.trait_id().expect("trait expected");
             let trait_ = self.sa.traits[trait_id].read();
 
             if let Some(fct_id) = trait_.find_method(self.sa, name, true) {
@@ -2183,7 +2184,8 @@ impl<'a> TypeCheck<'a> {
     ) -> SourceType {
         let mut found_fcts = Vec::new();
 
-        for trait_id in self.fct.type_params.bounds(id) {
+        for trait_ty in self.fct.type_params.bounds_for_type_param(id) {
+            let trait_id = trait_ty.trait_id().expect("trait expected");
             let trait_ = self.sa.traits[trait_id].read();
 
             if let Some(fid) = trait_.find_method_with_replace(self.sa, false, name, None, args) {
@@ -3205,7 +3207,9 @@ impl<'a> TypeCheck<'a> {
                 }
 
                 let implements_stringable = if let SourceType::TypeParam(id) = part_expr {
-                    self.fct.type_params.implements_trait(id, stringable_trait)
+                    self.fct
+                        .type_params
+                        .implements_trait(id, stringable_trait_ty.clone())
                 } else {
                     implements_trait(
                         self.sa,

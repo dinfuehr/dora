@@ -3301,9 +3301,10 @@ impl<'a> CannonCodeGen<'a> {
         let fct = fct.read();
 
         let trait_id = fct.trait_id();
+        let trait_ty = SourceType::new_trait(trait_id);
 
         let ty = self.type_params[id.to_usize()].clone();
-        let callee_id = find_trait_impl(self.vm, trait_fct_id, trait_id, ty);
+        let callee_id = find_trait_impl(self.vm, trait_fct_id, trait_ty, ty);
 
         let pos = self.bytecode.offset_position(self.current_offset.to_u32());
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();

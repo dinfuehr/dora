@@ -435,16 +435,14 @@ fn check_type_params(
     let mut success = true;
 
     use_type_params(sa, ctxt, |check_type_param_defs| {
-        for bound in tp_definitions.all_bounds() {
-            let tp_id = bound.id();
-            let trait_id = bound.trait_id();
+        for bound in tp_definitions.bounds() {
+            let tp_ty = bound.ty();
+            let trait_ty = bound.trait_ty();
+            let tp_ty = specialize_type(sa, tp_ty, &type_params_sta);
 
-            let ty = specialize_type(sa, SourceType::TypeParam(tp_id), &type_params_sta);
-
-            if !implements_trait(sa, ty.clone(), check_type_param_defs, bound.trait_ty()) {
-                let bound = sa.traits[trait_id].read();
-                let name = ty.name_with_type_params(sa, check_type_param_defs);
-                let trait_name = sa.interner.str(bound.name).to_string();
+            if !implements_trait(sa, tp_ty.clone(), check_type_param_defs, bound.trait_ty()) {
+                let name = tp_ty.name_with_type_params(sa, check_type_param_defs);
+                let trait_name = trait_ty.name_with_type_params(sa, check_type_param_defs);
                 let msg = SemError::TypeNotImplementingTrait(name, trait_name);
                 sa.diag.lock().report(file_id, pos, msg);
                 success = false;

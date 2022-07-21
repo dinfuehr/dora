@@ -207,8 +207,8 @@ mod matching {
 
         let check_tp_id = check_ty.type_param_id().expect("expected type param");
 
-        for trait_id in ext_type_param_defs.bounds(ext_tp_id) {
-            if !check_type_param_defs.implements_trait(check_tp_id, trait_id) {
+        for trait_ty in ext_type_param_defs.bounds_for_type_param(ext_tp_id) {
+            if !check_type_param_defs.implements_trait(check_tp_id, trait_ty) {
                 return false;
             }
         }
@@ -225,8 +225,7 @@ mod matching {
     ) -> bool {
         let ext_tp_id = ext_ty.type_param_id().expect("expected type param");
 
-        for trait_id in ext_type_param_defs.bounds(ext_tp_id) {
-            let trait_ty = SourceType::new_trait(trait_id);
+        for trait_ty in ext_type_param_defs.bounds_for_type_param(ext_tp_id) {
             if !implements_trait(sa, check_ty.clone(), check_type_param_defs, trait_ty) {
                 return false;
             }

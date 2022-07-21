@@ -79,25 +79,21 @@ pub fn check(sa: &SemAnalysis) {
                             AllowSelf::No,
                         );
 
-                        match ty {
-                            Some(SourceType::Trait(trait_id, _)) => {
+                        if let Some(ty) = ty {
+                            if ty.is_trait() {
                                 if !fct.type_params.add_bound(
                                     TypeParamId(container_type_params + type_param_id),
-                                    trait_id,
+                                    ty,
                                 ) {
                                     let msg = SemError::DuplicateTraitBound;
                                     sa.diag.lock().report(fct.file_id, type_param.pos, msg);
                                 }
-                            }
-
-                            None => {
-                                // unknown type, error is already thrown
-                            }
-
-                            _ => {
+                            } else {
                                 let msg = SemError::BoundExpected;
                                 sa.diag.lock().report(fct.file_id, bound.pos(), msg);
                             }
+                        } else {
+                            // unknown type, error is already thrown
                         }
                     }
 

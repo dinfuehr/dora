@@ -720,7 +720,7 @@ impl<'a> AstBytecodeGen<'a> {
                         self.sa,
                         ty,
                         &self.fct.type_params,
-                        self.sa.known.traits.stringable(),
+                        SourceType::new_trait(self.sa.known.traits.stringable()),
                     )
                     .expect("impl of Stringable not found");
                     let impl_ = self.sa.impls[stringable_impl_id].read();
