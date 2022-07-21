@@ -130,8 +130,11 @@ pub fn implements_trait(
     sa: &SemAnalysis,
     check_ty: SourceType,
     check_type_param_defs: &TypeParamDefinition,
-    trait_id: TraitDefinitionId,
+    trait_ty: SourceType,
 ) -> bool {
+    let trait_id = trait_ty.trait_id().expect("trait expected");
+    assert!(trait_ty.type_params().is_empty());
+
     match check_ty {
         SourceType::Tuple(_)
         | SourceType::Unit

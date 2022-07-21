@@ -435,6 +435,10 @@ impl Bound {
     pub fn trait_id(&self) -> TraitDefinitionId {
         self.trait_id
     }
+
+    pub fn trait_ty(&self) -> SourceType {
+        SourceType::Trait(self.trait_id, SourceTypeArray::empty())
+    }
 }
 
 pub struct TypeParamBoundsIter<'a> {

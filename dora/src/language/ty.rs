@@ -56,6 +56,10 @@ pub enum SourceType {
 }
 
 impl SourceType {
+    pub fn new_trait(trait_id: TraitDefinitionId) -> SourceType {
+        SourceType::Trait(trait_id, SourceTypeArray::empty())
+    }
+
     pub fn is_error(&self) -> bool {
         match self {
             SourceType::Error => true,

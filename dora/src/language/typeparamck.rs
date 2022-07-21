@@ -3,7 +3,7 @@ use dora_parser::lexer::position::Position;
 use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
     implements_trait, ClassDefinitionId, EnumDefinitionId, FctDefinition, SemAnalysis,
-    SourceFileId, StructDefinitionId, TraitDefinitionId, TypeParamDefinition,
+    SourceFileId, StructDefinitionId, TypeParamDefinition,
 };
 use crate::language::specialize::specialize_type;
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -112,13 +112,18 @@ impl<'a> TypeParamCheck<'a> {
 
         for bound in self.callee_type_param_defs.all_bounds() {
             let tp_id = bound.id();
-            let trait_id = bound.trait_id();
+            let trait_ty = bound.trait_ty();
 
             let ty = specialize_type(self.sa, SourceType::TypeParam(tp_id), tps);
 
-            if !implements_trait(self.sa, ty.clone(), self.caller_type_param_defs, trait_id) {
+            if !implements_trait(
+                self.sa,
+                ty.clone(),
+                self.caller_type_param_defs,
+                trait_ty.clone(),
+            ) {
                 if let ErrorReporting::Yes(file_id, pos) = self.error {
-                    self.fail_trait_bound(file_id, pos, trait_id, ty.clone());
+                    self.fail_trait_bound(file_id, pos, trait_ty, ty.clone());
                 }
                 succeeded = false;
             }
@@ -131,12 +136,11 @@ impl<'a> TypeParamCheck<'a> {
         &self,
         file_id: SourceFileId,
         pos: Position,
-        trait_id: TraitDefinitionId,
+        trait_ty: SourceType,
         ty: SourceType,
     ) {
         let name = ty.name_with_type_params(self.sa, self.caller_type_param_defs);
-        let trait_ = self.sa.traits[trait_id].read();
-        let trait_name = self.sa.interner.str(trait_.name).to_string();
+        let trait_name = trait_ty.name_with_type_params(self.sa, self.caller_type_param_defs);
         let msg = SemError::TypeNotImplementingTrait(name, trait_name);
         self.sa.diag.lock().report(file_id, pos, msg);
     }

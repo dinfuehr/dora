@@ -3096,12 +3096,12 @@ impl<'a> TypeCheck<'a> {
         let check_type = self.read_type(&e.data_type);
         self.analysis.set_ty(e.data_type.id(), check_type.clone());
 
-        if let SourceType::Trait(trait_id, _) = check_type.clone() {
+        if check_type.is_trait() {
             let implements = implements_trait(
                 self.sa,
                 object_type.clone(),
                 &self.fct.type_params,
-                trait_id,
+                check_type.clone(),
             );
 
             if !implements {
@@ -3194,6 +3194,7 @@ impl<'a> TypeCheck<'a> {
         _expected_ty: SourceType,
     ) -> SourceType {
         let stringable_trait = self.sa.known.traits.stringable();
+        let stringable_trait_ty = SourceType::new_trait(stringable_trait);
 
         for (idx, part) in e.parts.iter().enumerate() {
             if idx % 2 != 0 {
@@ -3210,7 +3211,7 @@ impl<'a> TypeCheck<'a> {
                         self.sa,
                         part_expr.clone(),
                         &self.fct.type_params,
-                        stringable_trait,
+                        stringable_trait_ty.clone(),
                     )
                 };
 

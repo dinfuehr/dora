@@ -441,7 +441,7 @@ fn check_type_params(
 
             let ty = specialize_type(sa, SourceType::TypeParam(tp_id), &type_params_sta);
 
-            if !implements_trait(sa, ty.clone(), check_type_param_defs, trait_id) {
+            if !implements_trait(sa, ty.clone(), check_type_param_defs, bound.trait_ty()) {
                 let bound = sa.traits[trait_id].read();
                 let name = ty.name_with_type_params(sa, check_type_param_defs);
                 let trait_name = sa.interner.str(bound.name).to_string();

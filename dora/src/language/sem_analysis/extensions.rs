@@ -226,7 +226,8 @@ mod matching {
         let ext_tp_id = ext_ty.type_param_id().expect("expected type param");
 
         for trait_id in ext_type_param_defs.bounds(ext_tp_id) {
-            if !implements_trait(sa, check_ty.clone(), check_type_param_defs, trait_id) {
+            let trait_ty = SourceType::new_trait(trait_id);
+            if !implements_trait(sa, check_ty.clone(), check_type_param_defs, trait_ty) {
                 return false;
             }
         }
