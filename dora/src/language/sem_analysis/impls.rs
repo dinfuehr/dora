@@ -80,6 +80,10 @@ impl ImplDefinition {
     pub fn trait_id(&self) -> TraitDefinitionId {
         self.trait_ty.trait_id().expect("trait expected")
     }
+
+    pub fn trait_ty(&self) -> SourceType {
+        self.trait_ty.clone()
+    }
 }
 
 impl Index<ImplDefinitionId> for Vec<RwLock<ImplDefinition>> {
@@ -292,17 +296,15 @@ pub fn check_impls(
     trait_ty: SourceType,
     impls: &[ImplDefinitionId],
 ) -> Option<ImplDefinitionId> {
-    let trait_id = trait_ty.trait_id().expect("trait expected");
-
     for &impl_id in impls {
         let impl_ = &sa.impls[impl_id];
         let impl_ = impl_.read();
 
-        if impl_.trait_id() != trait_id {
+        debug_assert!(impl_.trait_ty().is_concrete_type(sa));
+
+        if impl_.trait_ty() != trait_ty {
             continue;
         }
-
-        // TODO: check type params for trait as well
 
         if impl_matches(sa, check_ty.clone(), check_type_param_defs, impl_id).is_some() {
             return Some(impl_id);
