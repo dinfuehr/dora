@@ -84,17 +84,17 @@ impl<'x> ExtensionCheck<'x> {
                     let struct_id = extension_ty
                         .primitive_struct_id(self.sa)
                         .expect("primitive expected");
-                    let xstruct = self.sa.structs.idx(struct_id);
-                    let mut xstruct = xstruct.write();
+                    let struct_ = self.sa.structs.idx(struct_id);
+                    let mut struct_ = struct_.write();
 
-                    xstruct.extensions.push(self.extension_id);
+                    struct_.extensions.push(self.extension_id);
                 }
 
                 SourceType::Struct(struct_id, _) => {
-                    let xstruct = self.sa.structs.idx(struct_id);
-                    let mut xstruct = xstruct.write();
+                    let struct_ = self.sa.structs.idx(struct_id);
+                    let mut struct_ = struct_.write();
 
-                    xstruct.extensions.push(self.extension_id);
+                    struct_.extensions.push(self.extension_id);
                 }
 
                 _ => {
@@ -212,10 +212,10 @@ impl<'x> ExtensionCheck<'x> {
     }
 
     fn check_in_struct(&self, f: &ast::Function, struct_id: StructDefinitionId) -> bool {
-        let xstruct = self.sa.structs.idx(struct_id);
-        let xstruct = xstruct.read();
+        let struct_ = self.sa.structs.idx(struct_id);
+        let struct_ = struct_.read();
 
-        for &extension_id in &xstruct.extensions {
+        for &extension_id in &struct_.extensions {
             if !self.check_extension(f, extension_id) {
                 return false;
             }

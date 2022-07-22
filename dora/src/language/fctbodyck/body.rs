@@ -1946,13 +1946,13 @@ impl<'a> TypeCheck<'a> {
         }
 
         if let Some(struct_id) = object_type.struct_id() {
-            let xstruct = self.sa.structs.idx(struct_id);
-            let xstruct = xstruct.read();
-            if let Some(&field_id) = xstruct.field_names.get(&method_name) {
+            let struct_ = self.sa.structs.idx(struct_id);
+            let struct_ = struct_.read();
+            if let Some(&field_id) = struct_.field_names.get(&method_name) {
                 let ident_type = IdentType::StructField(object_type.clone(), field_id);
                 self.analysis.map_idents.insert_or_replace(e.id, ident_type);
 
-                let field = &xstruct.fields[field_id.to_usize()];
+                let field = &struct_.fields[field_id.to_usize()];
                 let struct_type_params = object_type.type_params();
                 let field_type =
                     replace_type_param(self.sa, field.ty.clone(), &struct_type_params, None);
@@ -1993,20 +1993,20 @@ impl<'a> TypeCheck<'a> {
         let is_struct_accessible = struct_accessible_from(self.sa, struct_id, self.module_id);
 
         if !is_struct_accessible {
-            let xstruct = self.sa.structs.idx(struct_id);
-            let xstruct = xstruct.read();
-            let msg = SemError::NotAccessible(xstruct.name(self.sa));
+            let struct_ = self.sa.structs.idx(struct_id);
+            let struct_ = struct_.read();
+            let msg = SemError::NotAccessible(struct_.name(self.sa));
             self.sa.diag.lock().report(self.file_id, e.pos, msg);
         }
 
-        let xstruct = self.sa.structs.idx(struct_id);
-        let xstruct = xstruct.read();
+        let struct_ = self.sa.structs.idx(struct_id);
+        let struct_ = struct_.read();
 
-        if !is_default_accessible(self.sa, xstruct.module_id, self.module_id)
-            && !xstruct.all_fields_are_public()
+        if !is_default_accessible(self.sa, struct_.module_id, self.module_id)
+            && !struct_.all_fields_are_public()
             && is_struct_accessible
         {
-            let msg = SemError::StructConstructorNotAccessible(xstruct.name(self.sa));
+            let msg = SemError::StructConstructorNotAccessible(struct_.name(self.sa));
             self.sa.diag.lock().report(self.file_id, e.pos, msg);
         }
 
@@ -2024,12 +2024,12 @@ impl<'a> TypeCheck<'a> {
             return SourceType::Error;
         }
 
-        if !self.check_expr_call_struct_args(&*xstruct, type_params.clone(), arg_types) {
-            let struct_name = self.sa.interner.str(xstruct.name).to_string();
-            let field_types = xstruct
+        if !self.check_expr_call_struct_args(&*struct_, type_params.clone(), arg_types) {
+            let struct_name = self.sa.interner.str(struct_.name).to_string();
+            let field_types = struct_
                 .fields
                 .iter()
-                .map(|field| field.ty.name_struct(self.sa, &*xstruct))
+                .map(|field| field.ty.name_struct(self.sa, &*struct_))
                 .collect::<Vec<_>>();
             let arg_types = arg_types
                 .iter()
@@ -2049,15 +2049,15 @@ impl<'a> TypeCheck<'a> {
 
     fn check_expr_call_struct_args(
         &mut self,
-        xstruct: &StructDefinition,
+        struct_: &StructDefinition,
         type_params: SourceTypeArray,
         arg_types: &[SourceType],
     ) -> bool {
-        if xstruct.fields.len() != arg_types.len() {
+        if struct_.fields.len() != arg_types.len() {
             return false;
         }
 
-        for (def_ty, arg_ty) in xstruct.fields.iter().zip(arg_types) {
+        for (def_ty, arg_ty) in struct_.fields.iter().zip(arg_types) {
             let def_ty = replace_type_param(self.sa, def_ty.ty.clone(), &type_params, None);
 
             if !def_ty.allows(self.sa, arg_ty.clone()) {
@@ -2296,8 +2296,8 @@ impl<'a> TypeCheck<'a> {
             }
 
             Some(Sym::Struct(struct_id)) => {
-                let xstruct = self.sa.structs.idx(struct_id);
-                let xstruct = xstruct.read();
+                let struct_ = self.sa.structs.idx(struct_id);
+                let struct_ = struct_.read();
 
                 if typeparamck::check_struct(
                     self.sa,
@@ -2306,7 +2306,7 @@ impl<'a> TypeCheck<'a> {
                     &container_type_params,
                     ErrorReporting::Yes(self.file_id, e.pos),
                 ) {
-                    let object_ty = if let Some(ref primitive_ty) = xstruct.primitive_ty {
+                    let object_ty = if let Some(ref primitive_ty) = struct_.primitive_ty {
                         assert!(container_type_params.is_empty());
                         primitive_ty.clone()
                     } else {
@@ -2902,13 +2902,13 @@ impl<'a> TypeCheck<'a> {
         };
 
         if let Some(struct_id) = object_type.struct_id() {
-            let xstruct = self.sa.structs.idx(struct_id);
-            let xstruct = xstruct.read();
-            if let Some(&field_id) = xstruct.field_names.get(&name) {
+            let struct_ = self.sa.structs.idx(struct_id);
+            let struct_ = struct_.read();
+            if let Some(&field_id) = struct_.field_names.get(&name) {
                 let ident_type = IdentType::StructField(object_type.clone(), field_id);
                 self.analysis.map_idents.insert_or_replace(e.id, ident_type);
 
-                let field = &xstruct.fields[field_id.to_usize()];
+                let field = &struct_.fields[field_id.to_usize()];
                 let struct_type_params = object_type.type_params();
                 let fty = replace_type_param(self.sa, field.ty.clone(), &struct_type_params, None);
 

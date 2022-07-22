@@ -176,10 +176,10 @@ pub fn find_methods_in_struct(
         object_type.struct_id().expect("struct expected")
     };
 
-    let xstruct = sa.structs.idx(struct_id);
-    let xstruct = xstruct.read();
+    let struct_ = sa.structs.idx(struct_id);
+    let struct_ = struct_.read();
 
-    for &extension_id in &xstruct.extensions {
+    for &extension_id in &struct_.extensions {
         if let Some(bindings) =
             extension_matches(sa, object_type.clone(), type_param_defs, extension_id)
         {
@@ -203,7 +203,7 @@ pub fn find_methods_in_struct(
 
     let mut candidates = Vec::new();
 
-    for &impl_id in &xstruct.impls {
+    for &impl_id in &struct_.impls {
         if let Some(bindings) = impl_matches(sa, object_type.clone(), type_param_defs, impl_id) {
             let impl_ = sa.impls[impl_id].read();
 

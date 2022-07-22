@@ -1078,9 +1078,9 @@ impl<'a> AstBytecodeGen<'a> {
             _ => unreachable!(),
         };
 
-        let xstruct = self.sa.structs.idx(struct_id);
-        let xstruct = xstruct.read();
-        let field = &xstruct.fields[field_idx.to_usize()];
+        let struct_ = self.sa.structs.idx(struct_id);
+        let struct_ = struct_.read();
+        let field = &struct_.fields[field_idx.to_usize()];
         let ty = specialize_type(self.sa, field.ty.clone(), &type_params);
 
         if ty.is_unit() {

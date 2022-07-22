@@ -13,14 +13,14 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 
 pub fn check(sa: &SemAnalysis) {
-    for xstruct in sa.structs.iter() {
+    for struct_ in sa.structs.iter() {
         let (struct_id, file_id, ast, module_id) = {
-            let xstruct = xstruct.read();
+            let struct_ = struct_.read();
             (
-                xstruct.id(),
-                xstruct.file_id,
-                xstruct.ast.clone(),
-                xstruct.module_id,
+                struct_.id(),
+                struct_.file_id,
+                struct_.ast.clone(),
+                struct_.module_id,
             )
         };
 
@@ -93,9 +93,9 @@ impl<'x> StructCheck<'x> {
 
                     if let Some(ty) = ty {
                         if ty.is_trait() {
-                            let xstruct = self.sa.structs.idx(self.struct_id);
-                            let mut xstruct = xstruct.write();
-                            if !xstruct
+                            let struct_ = self.sa.structs.idx(self.struct_id);
+                            let mut struct_ = struct_.write();
+                            if !struct_
                                 .type_params
                                 .add_bound(TypeParamId(type_param_id), ty)
                             {
@@ -135,8 +135,8 @@ impl<'x> StructCheck<'x> {
         )
         .unwrap_or(SourceType::Error);
 
-        let xstruct = self.sa.structs.idx(self.struct_id);
-        let mut xstruct = xstruct.write();
+        let struct_ = self.sa.structs.idx(self.struct_id);
+        let mut struct_ = struct_.write();
 
         if !self.fields.insert(f.name) {
             let name = self.sa.interner.str(f.name).to_string();
@@ -155,8 +155,8 @@ impl<'x> StructCheck<'x> {
             is_pub: f.is_pub,
         };
 
-        xstruct.fields.push(field);
-        let old = xstruct.field_names.insert(f.name, id);
+        struct_.fields.push(field);
+        let old = struct_.field_names.insert(f.name, id);
         assert!(old.is_none());
     }
 }

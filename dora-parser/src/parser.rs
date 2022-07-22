@@ -3161,11 +3161,11 @@ mod tests {
             f1: T1, f2: T2,
         }",
         );
-        let xstruct = prog.struct0();
-        assert_eq!(2, xstruct.fields.len());
-        assert_eq!("Bar", *interner.str(xstruct.name));
+        let struct_ = prog.struct0();
+        assert_eq!(2, struct_.fields.len());
+        assert_eq!("Bar", *interner.str(struct_.name));
 
-        assert_eq!(2, xstruct.type_params.as_ref().unwrap().len());
+        assert_eq!(2, struct_.type_params.as_ref().unwrap().len());
     }
 
     #[test]

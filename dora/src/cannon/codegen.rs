@@ -4666,11 +4666,11 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 }
                 _ => unreachable!(),
             };
-            let xstruct = self.vm.structs.idx(struct_id);
-            let xstruct = xstruct.read();
-            let xstruct_name = xstruct.name_with_params(self.vm, type_params);
+            let struct_ = self.vm.structs.idx(struct_id);
+            let struct_ = struct_.read();
+            let struct_name = struct_.name_with_params(self.vm, type_params);
 
-            let field = &xstruct.fields[field_id.to_usize()];
+            let field = &struct_.fields[field_id.to_usize()];
             let fname = self.vm.interner.str(field.name);
 
             format!(
@@ -4678,7 +4678,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 dest,
                 obj,
                 field_idx.to_usize(),
-                xstruct_name,
+                struct_name,
                 fname
             )
         });
@@ -5194,14 +5194,14 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 ConstPoolEntry::Struct(enum_id, type_params) => (*enum_id, type_params),
                 _ => unreachable!(),
             };
-            let xstruct = self.vm.structs.idx(struct_id);
-            let xstruct = xstruct.read();
-            let xstruct_name = xstruct.name_with_params(self.vm, type_params);
+            let struct_ = self.vm.structs.idx(struct_id);
+            let struct_ = struct_.read();
+            let struct_name = struct_.name_with_params(self.vm, type_params);
             format!(
                 "NewStruct {}, ConstPoolIdx({}) # {}",
                 dest,
                 idx.to_usize(),
-                xstruct_name,
+                struct_name,
             )
         });
         self.emit_new_struct(dest, idx);

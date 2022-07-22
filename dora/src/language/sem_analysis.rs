@@ -128,13 +128,13 @@ impl SemAnalysis {
         let struct_id = NestedSymTable::new(self, self.program_module_id)
             .get_struct(struct_name)
             .expect("struct not found");
-        let xstruct = self.structs.idx(struct_id);
-        let xstruct = xstruct.read();
+        let struct_ = self.structs.idx(struct_id);
+        let struct_ = struct_.read();
 
         let candidates = find_methods_in_struct(
             self,
-            xstruct.ty(),
-            &xstruct.type_params,
+            struct_.ty(),
+            &struct_.type_params,
             function_name,
             is_static,
         );

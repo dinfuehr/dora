@@ -106,10 +106,10 @@ pub fn struct_accessible_from(
     struct_id: StructDefinitionId,
     module_id: ModuleDefinitionId,
 ) -> bool {
-    let xstruct = sa.structs.idx(struct_id);
-    let xstruct = xstruct.read();
+    let struct_ = sa.structs.idx(struct_id);
+    let struct_ = struct_.read();
 
-    accessible_from(sa, xstruct.module_id, xstruct.is_pub, module_id)
+    accessible_from(sa, struct_.module_id, struct_.is_pub, module_id)
 }
 
 pub fn struct_field_accessible_from(
@@ -118,15 +118,15 @@ pub fn struct_field_accessible_from(
     field_id: StructDefinitionFieldId,
     module_id: ModuleDefinitionId,
 ) -> bool {
-    let xstruct = sa.structs.idx(struct_id);
-    let xstruct = xstruct.read();
+    let struct_ = sa.structs.idx(struct_id);
+    let struct_ = struct_.read();
 
-    let field = &xstruct.fields[field_id.to_usize()];
+    let field = &struct_.fields[field_id.to_usize()];
 
     accessible_from(
         sa,
-        xstruct.module_id,
-        xstruct.is_pub && field.is_pub,
+        struct_.module_id,
+        struct_.is_pub && field.is_pub,
         module_id,
     )
 }

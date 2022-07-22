@@ -265,13 +265,13 @@ impl SemError {
                     enum_, name, def, name, expr
                 )
             }
-            SemError::StructArgsIncompatible(ref xstruct, ref def, ref expr) => {
+            SemError::StructArgsIncompatible(ref struct_, ref def, ref expr) => {
                 let def = def.join(", ");
                 let expr = expr.join(", ");
 
                 format!(
                     "struct `{}({})` cannot be called as `{}({})`",
-                    xstruct, def, xstruct, expr
+                    struct_, def, struct_, expr
                 )
             }
             SemError::EnumArgsNoParens(ref name, ref variant) => {

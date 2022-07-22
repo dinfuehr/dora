@@ -140,9 +140,6 @@ pub fn implements_trait(
     check_type_param_defs: &TypeParamDefinition,
     trait_ty: SourceType,
 ) -> bool {
-    let trait_id = trait_ty.trait_id().expect("trait expected");
-    assert!(trait_ty.type_params().is_empty());
-
     match check_ty {
         SourceType::Tuple(_)
         | SourceType::Unit
@@ -161,36 +158,37 @@ pub fn implements_trait(
         | SourceType::Int64
         | SourceType::Float32
         | SourceType::Float64 => {
-            if sa.known.traits.zero() == trait_id {
+            if sa.known.traits.zero() == trait_ty.trait_id().expect("trait expected") {
+                assert!(trait_ty.type_params().is_empty());
                 return true;
             }
 
             let struct_id = check_ty
                 .primitive_struct_id(sa)
                 .expect("primitive expected");
-            let xstruct = sa.structs.idx(struct_id);
-            let xstruct = xstruct.read();
+            let struct_ = sa.structs.idx(struct_id);
+            let struct_ = struct_.read();
 
             check_impls(
                 sa,
                 check_ty,
                 check_type_param_defs,
                 trait_ty,
-                &xstruct.impls,
+                &struct_.impls,
             )
             .is_some()
         }
 
         SourceType::Struct(struct_id, _) => {
-            let xstruct = sa.structs.idx(struct_id);
-            let xstruct = xstruct.read();
+            let struct_ = sa.structs.idx(struct_id);
+            let struct_ = struct_.read();
 
             check_impls(
                 sa,
                 check_ty,
                 check_type_param_defs,
                 trait_ty,
-                &xstruct.impls,
+                &struct_.impls,
             )
             .is_some()
         }
@@ -243,28 +241,28 @@ pub fn find_impl(
             let struct_id = check_ty
                 .primitive_struct_id(sa)
                 .expect("primitive expected");
-            let xstruct = sa.structs.idx(struct_id);
-            let xstruct = xstruct.read();
+            let struct_ = sa.structs.idx(struct_id);
+            let struct_ = struct_.read();
 
             check_impls(
                 sa,
                 check_ty,
                 check_type_param_defs,
                 trait_ty,
-                &xstruct.impls,
+                &struct_.impls,
             )
         }
 
         SourceType::Struct(struct_id, _) => {
-            let xstruct = sa.structs.idx(struct_id);
-            let xstruct = xstruct.read();
+            let struct_ = sa.structs.idx(struct_id);
+            let struct_ = struct_.read();
 
             check_impls(
                 sa,
                 check_ty,
                 check_type_param_defs,
                 trait_ty,
-                &xstruct.impls,
+                &struct_.impls,
             )
         }
 
@@ -303,6 +301,8 @@ pub fn check_impls(
         if impl_.trait_id() != trait_id {
             continue;
         }
+
+        // TODO: check type params for trait as well
 
         if impl_matches(sa, check_ty.clone(), check_type_param_defs, impl_id).is_some() {
             return Some(impl_id);

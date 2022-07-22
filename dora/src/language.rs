@@ -205,13 +205,13 @@ fn internalck(sa: &SemAnalysis) {
         }
     }
 
-    for xstruct in sa.structs.iter() {
-        let xstruct = xstruct.read();
+    for struct_ in sa.structs.iter() {
+        let struct_ = struct_.read();
 
-        if xstruct.internal && !xstruct.internal_resolved {
+        if struct_.internal && !struct_.internal_resolved {
             sa.diag
                 .lock()
-                .report(xstruct.file_id, xstruct.pos, SemError::UnresolvedInternal);
+                .report(struct_.file_id, struct_.pos, SemError::UnresolvedInternal);
         }
     }
 

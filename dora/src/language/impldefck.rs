@@ -132,15 +132,15 @@ impl<'x> ImplCheck<'x> {
                         .extended_ty
                         .primitive_struct_id(self.sa)
                         .expect("primitive expected");
-                    let xstruct = self.sa.structs.idx(struct_id);
-                    let mut xstruct = xstruct.write();
-                    xstruct.impls.push(impl_.id());
+                    let struct_ = self.sa.structs.idx(struct_id);
+                    let mut struct_ = struct_.write();
+                    struct_.impls.push(impl_.id());
                 }
 
                 SourceType::Struct(struct_id, _) => {
-                    let xstruct = self.sa.structs.idx(struct_id);
-                    let mut xstruct = xstruct.write();
-                    xstruct.impls.push(impl_.id());
+                    let struct_ = self.sa.structs.idx(struct_id);
+                    let mut struct_ = struct_.write();
+                    struct_.impls.push(impl_.id());
                 }
 
                 SourceType::Class(cls_id, _) => {

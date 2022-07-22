@@ -453,8 +453,8 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_struct(&mut self, node: &Arc<ast::Struct>) {
-        let xstruct = StructDefinition::new(self.file_id, self.module_id, node);
-        let id = self.sa.structs.push(xstruct);
+        let struct_ = StructDefinition::new(self.file_id, self.module_id, node);
+        let id = self.sa.structs.push(struct_);
 
         let sym = Sym::Struct(id);
         if let Some(sym) = self.insert(node.name, sym) {

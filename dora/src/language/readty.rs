@@ -328,9 +328,9 @@ fn read_type_struct(
     allow_self: AllowSelf,
 ) -> Option<SourceType> {
     if !struct_accessible_from(sa, struct_id, table.module_id()) {
-        let xstruct = sa.structs.idx(struct_id);
-        let xstruct = xstruct.read();
-        let msg = SemError::NotAccessible(xstruct.name(sa));
+        let struct_ = sa.structs.idx(struct_id);
+        let struct_ = struct_.read();
+        let msg = SemError::NotAccessible(struct_.name(sa));
         sa.diag.lock().report(file_id, basic.pos, msg);
     }
 
@@ -346,18 +346,18 @@ fn read_type_struct(
         }
     }
 
-    let xstruct = sa.structs.idx(struct_id);
-    let xstruct = xstruct.read();
+    let struct_ = sa.structs.idx(struct_id);
+    let struct_ = struct_.read();
 
     if check_type_params(
         sa,
-        &xstruct.type_params,
+        &struct_.type_params,
         &type_params,
         file_id,
         basic.pos,
         ctxt,
     ) {
-        if let Some(ref primitive_ty) = xstruct.primitive_ty {
+        if let Some(ref primitive_ty) = struct_.primitive_ty {
             Some(primitive_ty.clone())
         } else {
             Some(SourceType::Struct(
@@ -440,7 +440,7 @@ fn check_type_params(
             let trait_ty = bound.trait_ty();
             let tp_ty = specialize_type(sa, tp_ty, &type_params_sta);
 
-            if !implements_trait(sa, tp_ty.clone(), check_type_param_defs, bound.trait_ty()) {
+            if !implements_trait(sa, tp_ty.clone(), check_type_param_defs, trait_ty.clone()) {
                 let name = tp_ty.name_with_type_params(sa, check_type_param_defs);
                 let trait_name = trait_ty.name_with_type_params(sa, check_type_param_defs);
                 let msg = SemError::TypeNotImplementingTrait(name, trait_name);
@@ -473,10 +473,10 @@ where
         }
 
         TypeParamContext::Struct(struct_id) => {
-            let xstruct = &sa.structs.idx(struct_id);
-            let xstruct = xstruct.read();
+            let struct_ = &sa.structs.idx(struct_id);
+            let struct_ = struct_.read();
 
-            callback(&xstruct.type_params)
+            callback(&struct_.type_params)
         }
 
         TypeParamContext::Impl(impl_) => callback(&impl_.type_params),

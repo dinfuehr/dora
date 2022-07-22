@@ -280,12 +280,12 @@ fn internal_struct(
         .to_struct()
         .expect("struct expected");
 
-    let xstruct = sa.structs.idx(struct_id);
-    let mut xstruct = xstruct.write();
+    let struct_ = sa.structs.idx(struct_id);
+    let mut struct_ = struct_.write();
 
-    assert!(xstruct.internal);
-    xstruct.primitive_ty = ty;
-    xstruct.internal_resolved = true;
+    assert!(struct_.internal);
+    struct_.primitive_ty = ty;
+    struct_.internal_resolved = true;
 
     struct_id
 }
@@ -1249,11 +1249,11 @@ fn common_method(
         }
 
         Sym::Struct(struct_id) => {
-            let xstruct = sa.structs.idx(struct_id);
-            let xstruct = xstruct.read();
+            let struct_ = sa.structs.idx(struct_id);
+            let struct_ = struct_.read();
             internal_extension_method(
                 sa,
-                &xstruct.extensions,
+                &struct_.extensions,
                 method_name,
                 is_static,
                 implementation,

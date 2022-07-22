@@ -51,25 +51,25 @@ pub fn dump(vm: &SemAnalysis, fct: Option<&FctDefinition>, bc: &BytecodeFunction
                 )
             }
             ConstPoolEntry::Struct(struct_id, type_params) => {
-                let xstruct = vm.structs.idx(*struct_id);
-                let xstruct = xstruct.read();
+                let struct_ = vm.structs.idx(*struct_id);
+                let struct_ = struct_.read();
                 println!(
                     "{}{} => Struct {}",
                     align,
                     idx,
-                    xstruct.name_with_params(vm, type_params)
+                    struct_.name_with_params(vm, type_params)
                 )
             }
             ConstPoolEntry::StructField(struct_id, type_params, field_idx) => {
-                let xstruct = vm.structs.idx(*struct_id);
-                let xstruct = xstruct.read();
-                let field = &xstruct.fields[field_idx.to_usize()];
+                let struct_ = vm.structs.idx(*struct_id);
+                let struct_ = struct_.read();
+                let field = &struct_.fields[field_idx.to_usize()];
                 let fname = vm.interner.str(field.name);
                 println!(
                     "{}{} => StructField {}.{}",
                     align,
                     idx,
-                    xstruct.name_with_params(vm, type_params),
+                    struct_.name_with_params(vm, type_params),
                     fname
                 )
             }
@@ -645,15 +645,15 @@ impl<'a> BytecodeDumper<'a> {
             ConstPoolEntry::Struct(struct_id, type_params) => (*struct_id, type_params),
             _ => unreachable!(),
         };
-        let xstruct = self.sa.structs.idx(struct_id);
-        let xstruct = xstruct.read();
-        let xstruct_name = xstruct.name_with_params(self.sa, type_params);
+        let struct_ = self.sa.structs.idx(struct_id);
+        let struct_ = struct_.read();
+        let struct_name = struct_.name_with_params(self.sa, type_params);
         writeln!(
             self.w,
             " {}, ConstPoolIdx({}) # {}",
             r1,
             idx.to_usize(),
-            xstruct_name,
+            struct_name,
         )
         .expect("write! failed");
     }
