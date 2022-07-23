@@ -48,7 +48,7 @@ pub struct ExtensionDefinition {
     pub ast: Arc<ast::Impl>,
     pub module_id: ModuleDefinitionId,
     pub pos: Position,
-    pub type_params: TypeParamDefinition,
+    pub type_params: Option<TypeParamDefinition>,
     pub ty: SourceType,
     pub methods: Vec<FctDefinitionId>,
     pub instance_names: HashMap<Name, FctDefinitionId>,
@@ -67,7 +67,7 @@ impl ExtensionDefinition {
             module_id,
             ast: node.clone(),
             pos: node.pos,
-            type_params: TypeParamDefinition::new_ast(&node.type_params),
+            type_params: None,
             ty: SourceType::Error,
             methods: Vec::new(),
             instance_names: HashMap::new(),
@@ -77,6 +77,10 @@ impl ExtensionDefinition {
 
     pub fn id(&self) -> ExtensionDefinitionId {
         self.id.expect("id missing")
+    }
+
+    pub fn type_params(&self) -> &TypeParamDefinition {
+        self.type_params.as_ref().expect("uninitialized")
     }
 }
 
@@ -106,7 +110,7 @@ mod matching {
             check_ty,
             check_type_param_defs,
             extension.ty.clone(),
-            &extension.type_params,
+            extension.type_params(),
         )
     }
 

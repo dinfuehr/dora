@@ -28,7 +28,7 @@ pub fn check(sa: &SemAnalysis) {
 
             FctParent::Extension(extension_id) => {
                 let extension = sa.extensions[extension_id].read();
-                fct.type_params.append(&extension.type_params);
+                fct.type_params.append(extension.type_params());
 
                 if fct.has_self() {
                     fct.param_types.push(extension.ty.clone());

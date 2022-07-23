@@ -3,9 +3,9 @@ use crate::language::sem_analysis::{
     EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId, ModuleDefinitionId, SemAnalysis,
     SourceFileId, StructDefinitionId, TypeParamDefinition, TypeParamId,
 };
-use crate::language::sym::NestedSymTable;
+use crate::language::sym::{NestedSymTable, Sym};
 use crate::language::ty::SourceType;
-use crate::language::{self, read_type, AllowSelf, TypeParamContext};
+use crate::language::{read_type, AllowSelf, TypeParamContext};
 
 use dora_parser::ast;
 use dora_parser::lexer::position::Position;
@@ -54,8 +54,13 @@ impl<'x> ExtensionCheck<'x> {
 
         self.sym.push_level();
 
-        if let Some(ref type_params) = self.ast.type_params {
-            self.check_type_params(type_params);
+        {
+            let extension = self.sa.extensions.idx(self.extension_id);
+            let extension = extension.read();
+
+            for (id, name) in extension.type_params().names() {
+                self.sym.insert(name, Sym::TypeParam(id));
+            }
         }
 
         if let Some(extension_ty) = read_type(
@@ -110,7 +115,7 @@ impl<'x> ExtensionCheck<'x> {
             check_for_unconstrained_type_params(
                 self.sa,
                 extension_ty.clone(),
-                &extension.type_params,
+                extension.type_params(),
                 self.file_id,
                 self.ast.pos,
             );
@@ -183,20 +188,6 @@ impl<'x> ExtensionCheck<'x> {
         if !table.contains_key(&fct.name) {
             table.insert(fct.name, fct_id);
         }
-    }
-
-    fn check_type_params(&mut self, ast_type_params: &[ast::TypeParam]) {
-        let extension = &self.sa.extensions[self.extension_id];
-        let mut extension = extension.write();
-
-        language::check_type_params(
-            self.sa,
-            ast_type_params,
-            &mut extension.type_params,
-            &mut self.sym,
-            self.file_id,
-            self.ast.pos,
-        );
     }
 
     fn check_in_enum(&self, f: &ast::Function, enum_id: EnumDefinitionId) -> bool {

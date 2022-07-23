@@ -15,6 +15,7 @@ pub fn check(sa: &SemAnalysis) {
     check_classes(sa);
     check_enums(sa);
     check_structs(sa);
+    check_extensions(sa);
 }
 
 fn check_traits(sa: &SemAnalysis) {
@@ -143,6 +144,30 @@ fn check_structs(sa: &SemAnalysis) {
         }
 
         struct_.write().type_params = Some(type_param_definition);
+    }
+}
+
+fn check_extensions(sa: &SemAnalysis) {
+    for extension in sa.extensions.iter() {
+        let type_param_definition;
+
+        {
+            let extension = extension.read();
+            let mut symtable = NestedSymTable::new(sa, extension.module_id);
+            symtable.push_level();
+
+            type_param_definition = read_type_param_definition(
+                sa,
+                extension.ast.type_params.as_ref(),
+                &mut symtable,
+                extension.file_id,
+                extension.pos,
+            );
+
+            symtable.pop_level();
+        }
+
+        extension.write().type_params = Some(type_param_definition);
     }
 }
 
