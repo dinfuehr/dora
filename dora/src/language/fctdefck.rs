@@ -37,7 +37,7 @@ pub fn check(sa: &SemAnalysis) {
 
             FctParent::Trait(trait_id) => {
                 let trait_ = sa.traits[trait_id].read();
-                fct.type_params.append(&trait_.type_params);
+                fct.type_params.append(&trait_.type_params());
 
                 if fct.has_self() {
                     fct.param_types.push(SourceType::This);

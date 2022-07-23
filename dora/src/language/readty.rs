@@ -401,7 +401,7 @@ fn read_type_trait(
 
     if check_type_params(
         sa,
-        &trait_.type_params,
+        &trait_.type_params(),
         &type_params,
         file_id,
         basic.pos,
@@ -492,7 +492,7 @@ where
             let trait_ = &sa.traits[trait_id];
             let trait_ = trait_.read();
 
-            callback(&trait_.type_params)
+            callback(&trait_.type_params())
         }
 
         TypeParamContext::Fct(fct) => callback(&fct.type_params),

@@ -35,7 +35,7 @@ fn check_traits(sa: &SemAnalysis) {
             symtable.pop_level();
         }
 
-        trait_.write().type_params = type_param_definition;
+        trait_.write().type_params = Some(type_param_definition);
     }
 }
 

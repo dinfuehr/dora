@@ -50,7 +50,7 @@ pub struct TraitDefinition {
     pub pos: Position,
     pub name: Name,
     pub is_trait_object: bool,
-    pub type_params: TypeParamDefinition,
+    pub type_params: Option<TypeParamDefinition>,
     pub methods: Vec<FctDefinitionId>,
     pub instance_names: HashMap<Name, FctDefinitionId>,
     pub static_names: HashMap<Name, FctDefinitionId>,
@@ -71,7 +71,7 @@ impl TraitDefinition {
             pos: node.pos,
             name: node.name,
             is_trait_object: false,
-            type_params: TypeParamDefinition::new(),
+            type_params: None,
             methods: Vec::new(),
             instance_names: HashMap::new(),
             static_names: HashMap::new(),
@@ -80,6 +80,10 @@ impl TraitDefinition {
 
     pub fn id(&self) -> TraitDefinitionId {
         self.id.expect("id missing")
+    }
+
+    pub fn type_params(&self) -> &TypeParamDefinition {
+        self.type_params.as_ref().expect("uninitialized")
     }
 
     pub fn name(&self, sa: &SemAnalysis) -> String {
