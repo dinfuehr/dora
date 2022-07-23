@@ -1,13 +1,12 @@
+use dora_parser::ast;
+
 use crate::language;
 use crate::language::sem_analysis::{
     FctDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId, TraitDefinition,
     TraitDefinitionId,
 };
 use crate::language::sym::NestedSymTable;
-
-use dora_parser::ast;
-
-use super::ty::{SourceType, SourceTypeArray};
+use crate::language::ty::{SourceType, SourceTypeArray};
 
 pub fn check(sa: &SemAnalysis) {
     for trait_ in sa.traits.iter() {

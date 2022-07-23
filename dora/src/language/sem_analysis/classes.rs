@@ -133,6 +133,10 @@ impl ClassDefinition {
         self.id.expect("missing id")
     }
 
+    pub fn ast(&self) -> &Arc<ast::Class> {
+        self.ast.as_ref().expect("ast expected")
+    }
+
     pub fn file_id(&self) -> SourceFileId {
         self.file_id.expect("missing source file")
     }
