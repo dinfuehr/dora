@@ -134,7 +134,7 @@ impl SemAnalysis {
         let candidates = find_methods_in_struct(
             self,
             struct_.ty(),
-            &struct_.type_params,
+            struct_.type_params(),
             function_name,
             is_static,
         );

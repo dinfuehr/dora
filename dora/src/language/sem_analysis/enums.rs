@@ -47,7 +47,7 @@ pub struct EnumDefinition {
     pub pos: Position,
     pub name: Name,
     pub is_pub: bool,
-    pub type_params: TypeParamDefinition,
+    pub type_params: Option<TypeParamDefinition>,
     pub variants: Vec<EnumVariant>,
     pub name_to_value: HashMap<Name, u32>,
     pub impls: Vec<ImplDefinitionId>,
@@ -68,7 +68,7 @@ impl EnumDefinition {
             ast: node.clone(),
             pos: node.pos,
             name: node.name,
-            type_params: TypeParamDefinition::new_ast(&node.type_params),
+            type_params: None,
             is_pub: node.is_pub,
             variants: Vec::new(),
             name_to_value: HashMap::new(),
@@ -80,6 +80,10 @@ impl EnumDefinition {
 
     pub fn id(&self) -> EnumDefinitionId {
         self.id.expect("id missing")
+    }
+
+    pub fn type_params(&self) -> &TypeParamDefinition {
+        self.type_params.as_ref().expect("uninitialized")
     }
 
     pub fn name(&self, sa: &SemAnalysis) -> String {

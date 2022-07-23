@@ -26,7 +26,7 @@ pub fn check_enum(
     let checker = TypeParamCheck {
         sa,
         caller_type_param_defs: &fct.type_params,
-        callee_type_param_defs: &enum_.type_params,
+        callee_type_param_defs: enum_.type_params(),
         error,
     };
 
@@ -46,7 +46,7 @@ pub fn check_struct(
     let checker = TypeParamCheck {
         sa,
         caller_type_param_defs: &fct.type_params,
-        callee_type_param_defs: &struct_.type_params,
+        callee_type_param_defs: struct_.type_params(),
         error,
     };
 

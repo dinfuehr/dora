@@ -46,7 +46,7 @@ pub struct StructDefinition {
     pub ast: Arc<ast::Struct>,
     pub primitive_ty: Option<SourceType>,
     pub module_id: ModuleDefinitionId,
-    pub type_params: TypeParamDefinition,
+    pub type_params: Option<TypeParamDefinition>,
     pub is_pub: bool,
     pub internal: bool,
     pub internal_resolved: bool,
@@ -75,7 +75,7 @@ impl StructDefinition {
             name: node.name,
             internal: node.internal,
             internal_resolved: false,
-            type_params: TypeParamDefinition::new_ast(&node.type_params),
+            type_params: None,
             fields: Vec::new(),
             field_names: HashMap::new(),
             impls: Vec::new(),
@@ -85,6 +85,10 @@ impl StructDefinition {
 
     pub fn id(&self) -> StructDefinitionId {
         self.id.expect("missing id")
+    }
+
+    pub fn type_params(&self) -> &TypeParamDefinition {
+        self.type_params.as_ref().expect("uninitialized")
     }
 
     pub fn name(&self, sa: &SemAnalysis) -> String {
@@ -113,7 +117,7 @@ impl StructDefinition {
         if let Some(ref primitive_ty) = self.primitive_ty {
             primitive_ty.clone()
         } else {
-            let type_params = (0..self.type_params.len())
+            let type_params = (0..self.type_params().len())
                 .into_iter()
                 .map(|id| SourceType::TypeParam(TypeParamId(id)))
                 .collect();

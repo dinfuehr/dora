@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::sync::Arc;
 
 use parking_lot::RwLock;
@@ -6,9 +5,7 @@ use parking_lot::RwLock;
 use dora_parser::ast;
 
 use crate::language::error::msg::SemError;
-use crate::language::sem_analysis::{
-    EnumDefinition, EnumVariant, SemAnalysis, SourceFileId, TypeParamId,
-};
+use crate::language::sem_analysis::{EnumDefinition, EnumVariant, SemAnalysis, SourceFileId};
 use crate::language::sym::{NestedSymTable, Sym};
 use crate::language::ty::SourceType;
 use crate::language::{read_type, AllowSelf, TypeParamContext};
@@ -41,8 +38,12 @@ impl<'x> EnumCheck<'x> {
 
         symtable.push_level();
 
-        if let Some(ref type_params) = self.ast.type_params {
-            self.check_type_params(type_params, &mut symtable);
+        {
+            let enum_ = self.enum_.read();
+
+            for (id, name) in enum_.type_params().names() {
+                symtable.insert(name, Sym::TypeParam(id));
+            }
         }
 
         let mut variant_idx: usize = 0;
@@ -77,67 +78,6 @@ impl<'x> EnumCheck<'x> {
         self.enum_.write().simple_enumeration = simple_enumeration;
 
         symtable.pop_level();
-    }
-
-    fn check_type_params(&mut self, type_params: &[ast::TypeParam], symtable: &mut NestedSymTable) {
-        if type_params.len() > 0 {
-            let mut names = HashSet::new();
-            let mut type_param_id = 0;
-            let mut params = Vec::new();
-
-            for type_param in type_params {
-                if !names.insert(type_param.name) {
-                    let name = self.sa.interner.str(type_param.name).to_string();
-                    let msg = SemError::TypeParamNameNotUnique(name);
-                    self.sa
-                        .diag
-                        .lock()
-                        .report(self.file_id, type_param.pos, msg);
-                }
-
-                params.push(SourceType::TypeParam(TypeParamId(type_param_id)));
-
-                for bound in &type_param.bounds {
-                    let ty = read_type(
-                        self.sa,
-                        symtable,
-                        self.file_id,
-                        bound,
-                        TypeParamContext::Enum(self.enum_.read().id()),
-                        AllowSelf::No,
-                    );
-
-                    if let Some(ty) = ty {
-                        if ty.is_trait() {
-                            if !self
-                                .enum_
-                                .write()
-                                .type_params
-                                .add_bound(TypeParamId(type_param_id), ty)
-                            {
-                                let msg = SemError::DuplicateTraitBound;
-                                self.sa
-                                    .diag
-                                    .lock()
-                                    .report(self.file_id, type_param.pos, msg);
-                            }
-                        } else {
-                            let msg = SemError::BoundExpected;
-                            self.sa.diag.lock().report(self.file_id, bound.pos(), msg);
-                        }
-                    } else {
-                        // unknown type, error is already thrown
-                    }
-                }
-
-                let sym = Sym::TypeParam(TypeParamId(type_param_id));
-                symtable.insert(type_param.name, sym);
-                type_param_id += 1;
-            }
-        } else {
-            let msg = SemError::TypeParamsExpected;
-            self.sa.diag.lock().report(self.file_id, self.ast.pos, msg);
-        }
     }
 }
 

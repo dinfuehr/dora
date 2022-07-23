@@ -13,6 +13,8 @@ pub fn check(sa: &SemAnalysis) {
     check_traits(sa);
     check_impls(sa);
     check_classes(sa);
+    check_enums(sa);
+    check_structs(sa);
 }
 
 fn check_traits(sa: &SemAnalysis) {
@@ -93,6 +95,54 @@ fn check_classes(sa: &SemAnalysis) {
             cls_id,
             build_type_params(number_type_params),
         ));
+    }
+}
+
+fn check_enums(sa: &SemAnalysis) {
+    for enum_ in sa.enums.iter() {
+        let type_param_definition;
+
+        {
+            let enum_ = enum_.read();
+            let mut symtable = NestedSymTable::new(sa, enum_.module_id);
+            symtable.push_level();
+
+            type_param_definition = read_type_param_definition(
+                sa,
+                enum_.ast.type_params.as_ref(),
+                &mut symtable,
+                enum_.file_id,
+                enum_.pos,
+            );
+
+            symtable.pop_level();
+        }
+
+        enum_.write().type_params = Some(type_param_definition);
+    }
+}
+
+fn check_structs(sa: &SemAnalysis) {
+    for struct_ in sa.structs.iter() {
+        let type_param_definition;
+
+        {
+            let struct_ = struct_.read();
+            let mut symtable = NestedSymTable::new(sa, struct_.module_id);
+            symtable.push_level();
+
+            type_param_definition = read_type_param_definition(
+                sa,
+                struct_.ast.type_params.as_ref(),
+                &mut symtable,
+                struct_.file_id,
+                struct_.pos,
+            );
+
+            symtable.pop_level();
+        }
+
+        struct_.write().type_params = Some(type_param_definition);
     }
 }
 

@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
     ModuleDefinitionId, SemAnalysis, SourceFileId, StructDefinitionField, StructDefinitionFieldId,
-    StructDefinitionId, TypeParamId,
+    StructDefinitionId,
 };
 use crate::language::sym::{NestedSymTable, Sym};
 use crate::language::ty::SourceType;
@@ -52,8 +52,13 @@ impl<'x> StructCheck<'x> {
     fn check(&mut self) {
         self.symtable.push_level();
 
-        if let Some(ref type_params) = self.ast.type_params {
-            self.check_type_params(type_params);
+        {
+            let struct_ = self.sa.structs.idx(self.struct_id);
+            let struct_ = struct_.read();
+
+            for (id, name) in struct_.type_params().names() {
+                self.symtable.insert(name, Sym::TypeParam(id));
+            }
         }
 
         for (idx, field) in self.ast.fields.iter().enumerate() {
@@ -61,67 +66,6 @@ impl<'x> StructCheck<'x> {
         }
 
         self.symtable.pop_level();
-    }
-
-    fn check_type_params(&mut self, type_params: &[ast::TypeParam]) {
-        if type_params.len() > 0 {
-            let mut names = HashSet::new();
-            let mut type_param_id = 0;
-            let mut params = Vec::new();
-
-            for type_param in type_params {
-                if !names.insert(type_param.name) {
-                    let name = self.sa.interner.str(type_param.name).to_string();
-                    let msg = SemError::TypeParamNameNotUnique(name);
-                    self.sa
-                        .diag
-                        .lock()
-                        .report(self.file_id, type_param.pos, msg);
-                }
-
-                params.push(SourceType::TypeParam(TypeParamId(type_param_id)));
-
-                for bound in &type_param.bounds {
-                    let ty = language::read_type(
-                        self.sa,
-                        &self.symtable,
-                        self.file_id,
-                        bound,
-                        TypeParamContext::Struct(self.struct_id),
-                        AllowSelf::No,
-                    );
-
-                    if let Some(ty) = ty {
-                        if ty.is_trait() {
-                            let struct_ = self.sa.structs.idx(self.struct_id);
-                            let mut struct_ = struct_.write();
-                            if !struct_
-                                .type_params
-                                .add_bound(TypeParamId(type_param_id), ty)
-                            {
-                                let msg = SemError::DuplicateTraitBound;
-                                self.sa
-                                    .diag
-                                    .lock()
-                                    .report(self.file_id, type_param.pos, msg);
-                            }
-                        } else {
-                            let msg = SemError::BoundExpected;
-                            self.sa.diag.lock().report(self.file_id, bound.pos(), msg);
-                        }
-                    } else {
-                        // unknown type, error is already thrown
-                    }
-                }
-
-                let sym = Sym::TypeParam(TypeParamId(type_param_id));
-                self.symtable.insert(type_param.name, sym);
-                type_param_id += 1;
-            }
-        } else {
-            let msg = SemError::TypeParamsExpected;
-            self.sa.diag.lock().report(self.file_id, self.ast.pos, msg);
-        }
     }
 
     fn visit_struct_field(&mut self, f: &ast::StructField, id: StructDefinitionFieldId) {

@@ -305,7 +305,7 @@ fn read_type_enum(
 
     if check_type_params(
         sa,
-        &enum_.type_params,
+        enum_.type_params(),
         &type_params,
         file_id,
         basic.pos,
@@ -351,7 +351,7 @@ fn read_type_struct(
 
     if check_type_params(
         sa,
-        &struct_.type_params,
+        struct_.type_params(),
         &type_params,
         file_id,
         basic.pos,
@@ -469,14 +469,14 @@ where
             let enum_ = &sa.enums[enum_id];
             let enum_ = enum_.read();
 
-            callback(&enum_.type_params)
+            callback(enum_.type_params())
         }
 
         TypeParamContext::Struct(struct_id) => {
             let struct_ = &sa.structs.idx(struct_id);
             let struct_ = struct_.read();
 
-            callback(&struct_.type_params)
+            callback(struct_.type_params())
         }
 
         TypeParamContext::Impl(impl_) => callback(&impl_.type_params),

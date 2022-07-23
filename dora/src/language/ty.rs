@@ -307,7 +307,7 @@ impl SourceType {
     pub fn name_struct(&self, sa: &SemAnalysis, struct_: &StructDefinition) -> String {
         let writer = SourceTypePrinter {
             sa,
-            type_params: Some(&struct_.type_params),
+            type_params: Some(struct_.type_params()),
         };
 
         writer.name(self.clone())
@@ -316,7 +316,7 @@ impl SourceType {
     pub fn name_enum(&self, sa: &SemAnalysis, enum_: &EnumDefinition) -> String {
         let writer = SourceTypePrinter {
             sa,
-            type_params: Some(&enum_.type_params),
+            type_params: Some(enum_.type_params()),
         };
 
         writer.name(self.clone())
