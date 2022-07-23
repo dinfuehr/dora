@@ -1,12 +1,10 @@
 use dora_parser::ast;
 
-use crate::language;
 use crate::language::sem_analysis::{
     FctDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId, TraitDefinition,
     TraitDefinitionId,
 };
 use crate::language::sym::NestedSymTable;
-use crate::language::ty::{SourceType, SourceTypeArray};
 
 pub fn check(sa: &SemAnalysis) {
     for trait_ in sa.traits.iter() {
@@ -51,32 +49,11 @@ struct TraitCheck<'x> {
 
 impl<'x> TraitCheck<'x> {
     fn check(&mut self) {
-        self.sym.push_level();
-
-        if let Some(ref type_params) = self.ast.type_params {
-            self.check_type_params(type_params);
-        }
-
-        self.sym.pop_level();
-
         let methods = self.trait_.methods.clone();
 
         for method_id in methods {
             self.visit_method(method_id);
         }
-    }
-
-    fn check_type_params(&mut self, ast_type_params: &[ast::TypeParam]) {
-        let type_params = language::check_type_params(
-            self.sa,
-            ast_type_params,
-            &mut self.trait_.type_params,
-            &mut self.sym,
-            self.file_id,
-            self.ast.pos,
-        );
-
-        self.trait_.ty = SourceType::Trait(self.trait_id, SourceTypeArray::with(type_params));
     }
 
     fn visit_method(&mut self, fct_id: FctDefinitionId) {

@@ -7,6 +7,7 @@ use crate::language::error::msg::SemError;
 use crate::language::readty::read_type_unchecked;
 use crate::language::sem_analysis::{SemAnalysis, SourceFileId, TypeParamDefinition, TypeParamId};
 use crate::language::sym::{NestedSymTable, Sym};
+use crate::language::ty::{SourceType, SourceTypeArray};
 
 pub fn check(sa: &SemAnalysis) {
     check_traits(sa);
@@ -16,25 +17,31 @@ pub fn check(sa: &SemAnalysis) {
 
 fn check_traits(sa: &SemAnalysis) {
     for trait_ in sa.traits.iter() {
-        let trait_ = trait_.write();
-        let mut symtable = NestedSymTable::new(sa, trait_.module_id);
-        symtable.push_level();
+        let type_param_definition;
 
-        let _type_param_definition = read_type_param_definition(
-            sa,
-            trait_.ast.type_params.as_ref(),
-            &mut symtable,
-            trait_.file_id,
-            trait_.pos,
-        );
+        {
+            let trait_ = trait_.read();
+            let mut symtable = NestedSymTable::new(sa, trait_.module_id);
+            symtable.push_level();
 
-        symtable.pop_level();
+            type_param_definition = read_type_param_definition(
+                sa,
+                trait_.ast.type_params.as_ref(),
+                &mut symtable,
+                trait_.file_id,
+                trait_.pos,
+            );
+
+            symtable.pop_level();
+        }
+
+        trait_.write().type_params = type_param_definition;
     }
 }
 
 fn check_impls(sa: &SemAnalysis) {
     for impl_ in sa.impls.iter() {
-        let impl_ = impl_.write();
+        let impl_ = impl_.read();
         let mut symtable = NestedSymTable::new(sa, impl_.module_id);
         symtable.push_level();
 
@@ -54,20 +61,42 @@ fn check_impls(sa: &SemAnalysis) {
 
 fn check_classes(sa: &SemAnalysis) {
     for cls in sa.classes.iter() {
-        let cls = cls.write();
-        let mut symtable = NestedSymTable::new(sa, cls.module_id);
-        symtable.push_level();
+        let _type_param_definition;
 
-        let _type_param_definition = read_type_param_definition(
-            sa,
-            cls.ast().type_params.as_ref(),
-            &mut symtable,
-            cls.file_id(),
-            cls.pos(),
-        );
+        {
+            let cls = cls.read();
+            let mut symtable = NestedSymTable::new(sa, cls.module_id);
+            symtable.push_level();
 
-        symtable.pop_level();
+            _type_param_definition = read_type_param_definition(
+                sa,
+                cls.ast().type_params.as_ref(),
+                &mut symtable,
+                cls.file_id(),
+                cls.pos(),
+            );
+
+            symtable.pop_level();
+        }
+
+        // let number_type_params = _type_param_definition.len();
+
+        // cls.write().type_params = _type_param_definition;
+
+        // let cls_id = cls.read().id();
+        // cls.write().ty = Some(SourceType::Class(
+        //     cls_id,
+        //     build_type_params(number_type_params),
+        // ));
     }
+}
+
+fn build_type_params(number_type_params: usize) -> SourceTypeArray {
+    let type_params = (0..number_type_params)
+        .into_iter()
+        .map(|id| SourceType::TypeParam(TypeParamId(id)))
+        .collect::<Vec<_>>();
+    SourceTypeArray::with(type_params)
 }
 
 fn read_type_param_definition(
