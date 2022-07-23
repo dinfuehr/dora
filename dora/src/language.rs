@@ -40,7 +40,7 @@ pub(crate) mod sym;
 mod test;
 mod traitdefck;
 pub(crate) mod ty;
-mod type_annotations;
+mod type_params;
 mod typeparamck;
 mod useck;
 
@@ -75,7 +75,7 @@ pub fn check(sa: &mut SemAnalysis) -> bool {
     useck::check(sa);
     return_on_error!(sa);
 
-    type_annotations::check(sa);
+    type_params::check(sa);
     return_on_error!(sa);
 
     // find all trait implementations for classes
