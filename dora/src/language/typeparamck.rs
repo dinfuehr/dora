@@ -66,7 +66,7 @@ pub fn check_class(
     let checker = TypeParamCheck {
         sa,
         caller_type_param_defs: &fct.type_params,
-        callee_type_param_defs: &cls.type_params,
+        callee_type_param_defs: cls.type_params(),
         error,
     };
 

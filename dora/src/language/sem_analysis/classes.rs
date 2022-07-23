@@ -60,7 +60,7 @@ pub struct ClassDefinition {
     pub impls: Vec<ImplDefinitionId>,
     pub extensions: Vec<ExtensionDefinitionId>,
 
-    pub type_params: TypeParamDefinition,
+    pub type_params: Option<TypeParamDefinition>,
 
     // true if this class is the generic Array class
     pub is_array: bool,
@@ -90,7 +90,7 @@ impl ClassDefinition {
             impls: Vec::new(),
             extensions: Vec::new(),
 
-            type_params: TypeParamDefinition::new_ast(&ast.type_params),
+            type_params: None,
 
             is_array: false,
             is_str: false,
@@ -122,7 +122,7 @@ impl ClassDefinition {
             impls: Vec::new(),
             extensions: Vec::new(),
 
-            type_params: TypeParamDefinition::new(),
+            type_params: None,
 
             is_array: false,
             is_str: false,
@@ -143,6 +143,14 @@ impl ClassDefinition {
 
     pub fn pos(&self) -> Position {
         self.pos.expect("missing position")
+    }
+
+    pub fn type_params(&self) -> &TypeParamDefinition {
+        self.type_params.as_ref().expect("uninitialized")
+    }
+
+    pub fn type_params_mut(&mut self) -> &mut TypeParamDefinition {
+        self.type_params.as_mut().expect("uninitialized")
     }
 
     pub fn ty(&self) -> SourceType {

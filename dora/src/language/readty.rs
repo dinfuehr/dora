@@ -462,7 +462,7 @@ where
             let cls = sa.classes.idx(cls_id);
             let cls = cls.read();
 
-            callback(&cls.type_params)
+            callback(cls.type_params())
         }
 
         TypeParamContext::Enum(enum_id) => {
@@ -531,7 +531,14 @@ fn read_type_class(
     let cls = sa.classes.idx(cls_id);
     let cls = cls.read();
 
-    if check_type_params(sa, &cls.type_params, &type_params, file_id, basic.pos, ctxt) {
+    if check_type_params(
+        sa,
+        cls.type_params(),
+        &type_params,
+        file_id,
+        basic.pos,
+        ctxt,
+    ) {
         Some(SourceType::Class(
             cls_id,
             SourceTypeArray::with(type_params),

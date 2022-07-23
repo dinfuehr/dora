@@ -41,34 +41,40 @@ fn check_traits(sa: &SemAnalysis) {
 
 fn check_impls(sa: &SemAnalysis) {
     for impl_ in sa.impls.iter() {
-        let impl_ = impl_.read();
-        let mut symtable = NestedSymTable::new(sa, impl_.module_id);
-        symtable.push_level();
+        let type_param_definition;
 
-        let _type_param_definition = read_type_param_definition(
-            sa,
-            impl_.ast.type_params.as_ref(),
-            &mut symtable,
-            impl_.file_id,
-            impl_.pos,
-        );
+        {
+            let impl_ = impl_.read();
+            let mut symtable = NestedSymTable::new(sa, impl_.module_id);
+            symtable.push_level();
 
-        read_type_unchecked(sa, &symtable, impl_.file_id, &impl_.ast.extended_type);
+            type_param_definition = read_type_param_definition(
+                sa,
+                impl_.ast.type_params.as_ref(),
+                &mut symtable,
+                impl_.file_id,
+                impl_.pos,
+            );
 
-        symtable.pop_level();
+            read_type_unchecked(sa, &symtable, impl_.file_id, &impl_.ast.extended_type);
+
+            symtable.pop_level();
+        }
+
+        impl_.write().type_params = type_param_definition;
     }
 }
 
 fn check_classes(sa: &SemAnalysis) {
     for cls in sa.classes.iter() {
-        let _type_param_definition;
+        let type_param_definition;
 
         {
             let cls = cls.read();
             let mut symtable = NestedSymTable::new(sa, cls.module_id);
             symtable.push_level();
 
-            _type_param_definition = read_type_param_definition(
+            type_param_definition = read_type_param_definition(
                 sa,
                 cls.ast().type_params.as_ref(),
                 &mut symtable,
@@ -79,15 +85,14 @@ fn check_classes(sa: &SemAnalysis) {
             symtable.pop_level();
         }
 
-        // let number_type_params = _type_param_definition.len();
+        let number_type_params = type_param_definition.len();
+        cls.write().type_params = Some(type_param_definition);
 
-        // cls.write().type_params = _type_param_definition;
-
-        // let cls_id = cls.read().id();
-        // cls.write().ty = Some(SourceType::Class(
-        //     cls_id,
-        //     build_type_params(number_type_params),
-        // ));
+        let cls_id = cls.read().id();
+        cls.write().ty = Some(SourceType::Class(
+            cls_id,
+            build_type_params(number_type_params),
+        ));
     }
 }
 
@@ -135,6 +140,8 @@ fn read_type_param_definition(
 
         let sym = Sym::TypeParam(id);
         symtable.insert(type_param.name, sym);
+
+        result_type_params.add_type_param(type_param.name);
     }
 
     // 2) Read bounds for type parameters.

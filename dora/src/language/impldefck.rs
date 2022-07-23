@@ -3,7 +3,7 @@ use crate::language::extensiondefck::check_for_unconstrained_type_params;
 use crate::language::sem_analysis::{
     FctDefinitionId, ImplDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId,
 };
-use crate::language::sym::NestedSymTable;
+use crate::language::sym::{NestedSymTable, Sym};
 use crate::language::ty::SourceType;
 use crate::language::{self, AllowSelf, TypeParamContext};
 
@@ -52,8 +52,13 @@ impl<'x> ImplCheck<'x> {
 
         self.sym.push_level();
 
-        if let Some(ref type_params) = self.ast.type_params {
-            self.check_type_params(type_params);
+        {
+            let impl_ = self.sa.impls.idx(self.impl_id);
+            let impl_ = impl_.read();
+
+            for (id, name) in impl_.type_params.names() {
+                self.sym.insert(name, Sym::TypeParam(id));
+            }
         }
 
         let mut impl_ = self.sa.impls[self.impl_id].write();
@@ -160,20 +165,6 @@ impl<'x> ImplCheck<'x> {
         for method_id in methods {
             self.visit_method(&mut *impl_, method_id);
         }
-    }
-
-    fn check_type_params(&mut self, ast_type_params: &[ast::TypeParam]) {
-        let impl_ = &self.sa.impls[self.impl_id];
-        let mut impl_ = impl_.write();
-
-        language::check_type_params(
-            self.sa,
-            ast_type_params,
-            &mut impl_.type_params,
-            &mut self.sym,
-            self.file_id,
-            self.ast.pos,
-        );
     }
 
     fn visit_method(&mut self, impl_: &mut ImplDefinition, fct_id: FctDefinitionId) {

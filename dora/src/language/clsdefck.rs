@@ -4,9 +4,9 @@ use crate::language::error::msg::SemError;
 use crate::language::sem_analysis::{
     ClassDefinitionId, Field, FieldId, ModuleDefinitionId, SemAnalysis, SourceFileId,
 };
-use crate::language::sym::NestedSymTable;
-use crate::language::ty::{SourceType, SourceTypeArray};
-use crate::language::{self, read_type, AllowSelf, TypeParamContext};
+use crate::language::sym::{NestedSymTable, Sym};
+use crate::language::ty::SourceType;
+use crate::language::{read_type, AllowSelf, TypeParamContext};
 
 use dora_parser::ast;
 use dora_parser::interner::Name;
@@ -52,12 +52,13 @@ impl<'x> ClsDefCheck<'x> {
     fn check(&mut self) {
         self.sym.push_level();
 
-        if let Some(ref type_params) = self.ast.type_params {
-            self.check_type_params(type_params);
-        } else {
+        {
             let cls = self.sa.classes.idx(self.cls_id);
-            let mut cls = cls.write();
-            cls.ty = Some(SourceType::Class(self.cls_id, SourceTypeArray::empty()));
+            let cls = cls.read();
+
+            for (id, name) in cls.type_params().names() {
+                self.sym.insert(name, Sym::TypeParam(id));
+            }
         }
 
         for field in &self.ast.fields {
@@ -104,23 +105,6 @@ impl<'x> ClsDefCheck<'x> {
         self.check_if_symbol_exists(name, pos);
 
         cls.fields.push(field);
-    }
-
-    fn check_type_params(&mut self, ast_type_params: &[ast::TypeParam]) {
-        let cls = self.sa.classes.idx(self.cls_id);
-        let mut cls = cls.write();
-
-        let type_params = language::check_type_params(
-            self.sa,
-            ast_type_params,
-            &mut cls.type_params,
-            &mut self.sym,
-            self.file_id,
-            self.ast.pos,
-        );
-
-        let params = SourceTypeArray::with(type_params);
-        cls.ty = Some(SourceType::Class(self.cls_id, params));
     }
 
     fn check_if_symbol_exists(&mut self, name: Name, pos: Position) {

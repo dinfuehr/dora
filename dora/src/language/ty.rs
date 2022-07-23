@@ -298,7 +298,7 @@ impl SourceType {
     pub fn name_cls(&self, sa: &SemAnalysis, cls: &ClassDefinition) -> String {
         let writer = SourceTypePrinter {
             sa,
-            type_params: Some(&cls.type_params),
+            type_params: Some(cls.type_params()),
         };
 
         writer.name(self.clone())

@@ -179,7 +179,7 @@ impl<'a> TypeCheck<'a> {
             self.ast.is_pub,
             fields,
         );
-        class.type_params = self.fct.type_params.clone();
+        class.type_params = Some(self.fct.type_params.clone());
         let class_id = self.sa.classes.push(class);
         self.analysis.context_cls_id = Some(class_id);
 
