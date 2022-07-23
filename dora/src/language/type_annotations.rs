@@ -64,7 +64,7 @@ fn check_impls(sa: &SemAnalysis) {
             symtable.pop_level();
         }
 
-        impl_.write().type_params = type_param_definition;
+        impl_.write().type_params = Some(type_param_definition);
     }
 }
 

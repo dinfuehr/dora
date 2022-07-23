@@ -479,7 +479,7 @@ where
             callback(struct_.type_params())
         }
 
-        TypeParamContext::Impl(impl_) => callback(&impl_.type_params),
+        TypeParamContext::Impl(impl_) => callback(impl_.type_params()),
 
         TypeParamContext::Extension(extension_id) => {
             let extension = &sa.extensions[extension_id];

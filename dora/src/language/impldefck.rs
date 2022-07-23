@@ -56,7 +56,7 @@ impl<'x> ImplCheck<'x> {
             let impl_ = self.sa.impls.idx(self.impl_id);
             let impl_ = impl_.read();
 
-            for (id, name) in impl_.type_params.names() {
+            for (id, name) in impl_.type_params().names() {
                 self.sym.insert(name, Sym::TypeParam(id));
             }
         }
@@ -105,7 +105,7 @@ impl<'x> ImplCheck<'x> {
                 check_for_unconstrained_type_params(
                     self.sa,
                     class_ty.clone(),
-                    &impl_.type_params,
+                    impl_.type_params(),
                     self.file_id,
                     self.ast.pos,
                 );

@@ -42,7 +42,7 @@ pub struct ImplDefinition {
     pub ast: Arc<ast::Impl>,
     pub module_id: ModuleDefinitionId,
     pub pos: Position,
-    pub type_params: TypeParamDefinition,
+    pub type_params: Option<TypeParamDefinition>,
     pub trait_ty: SourceType,
     pub extended_ty: SourceType,
     pub methods: Vec<FctDefinitionId>,
@@ -62,7 +62,7 @@ impl ImplDefinition {
             file_id,
             ast: node.clone(),
             module_id,
-            type_params: TypeParamDefinition::new_ast(&node.type_params),
+            type_params: None,
             pos: node.pos,
             trait_ty: SourceType::Error,
             extended_ty: SourceType::Error,
@@ -75,6 +75,10 @@ impl ImplDefinition {
 
     pub fn id(&self) -> ImplDefinitionId {
         self.id.expect("id missing")
+    }
+
+    pub fn type_params(&self) -> &TypeParamDefinition {
+        self.type_params.as_ref().expect("uninitialized")
     }
 
     pub fn trait_id(&self) -> TraitDefinitionId {
@@ -106,7 +110,7 @@ pub fn impl_matches(
         check_ty,
         check_type_param_defs,
         impl_.extended_ty.clone(),
-        &impl_.type_params,
+        impl_.type_params(),
     )
 }
 

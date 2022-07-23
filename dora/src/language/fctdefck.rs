@@ -19,7 +19,7 @@ pub fn check(sa: &SemAnalysis) {
         match fct.parent {
             FctParent::Impl(impl_id) => {
                 let impl_ = sa.impls[impl_id].read();
-                fct.type_params.append(&impl_.type_params);
+                fct.type_params.append(impl_.type_params());
 
                 if fct.has_self() {
                     fct.param_types.push(impl_.extended_ty.clone());
