@@ -4,7 +4,7 @@ use parking_lot::RwLock;
 
 use dora_parser::ast;
 
-use crate::language::error::msg::SemError;
+use crate::language::error::msg::ErrorMessage;
 use crate::language::sem_analysis::{EnumDefinition, EnumVariant, SemAnalysis, SourceFileId};
 use crate::language::sym::{NestedSymTable, Sym};
 use crate::language::ty::SourceType;
@@ -123,7 +123,7 @@ impl<'x> EnumCheckVariants<'x> {
                 self.sa.diag.lock().report(
                     self.enum_.file_id,
                     value.pos,
-                    SemError::ShadowEnumVariant(name),
+                    ErrorMessage::ShadowEnumVariant(name),
                 );
             }
 
@@ -131,27 +131,28 @@ impl<'x> EnumCheckVariants<'x> {
         }
 
         if self.ast.variants.is_empty() {
-            self.sa
-                .diag
-                .lock()
-                .report(self.enum_.file_id, self.ast.pos, SemError::NoEnumVariant);
+            self.sa.diag.lock().report(
+                self.enum_.file_id,
+                self.ast.pos,
+                ErrorMessage::NoEnumVariant,
+            );
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::language::error::msg::SemError;
+    use crate::language::error::msg::ErrorMessage;
     use crate::language::tests::*;
 
     #[test]
     fn enum_definitions() {
-        err("enum Foo {}", pos(1, 1), SemError::NoEnumVariant);
+        err("enum Foo {}", pos(1, 1), ErrorMessage::NoEnumVariant);
         ok("enum Foo { A, B, C }");
         err(
             "enum Foo { A, A }",
             pos(1, 15),
-            SemError::ShadowEnumVariant("A".into()),
+            ErrorMessage::ShadowEnumVariant("A".into()),
         );
     }
 
@@ -175,7 +176,7 @@ mod tests {
 
         ",
             pos(3, 41),
-            SemError::EnumArgsIncompatible(
+            ErrorMessage::EnumArgsIncompatible(
                 "Foo".into(),
                 "A".into(),
                 vec!["Int32".into()],
@@ -193,7 +194,7 @@ mod tests {
 
         ",
             pos(3, 38),
-            SemError::EnumArgsIncompatible(
+            ErrorMessage::EnumArgsIncompatible(
                 "Foo".into(),
                 "A".into(),
                 vec!["Int32".into()],
@@ -211,7 +212,7 @@ mod tests {
 
         ",
             pos(3, 41),
-            SemError::EnumArgsIncompatible(
+            ErrorMessage::EnumArgsIncompatible(
                 "Foo".into(),
                 "C".into(),
                 Vec::new(),
@@ -228,7 +229,7 @@ mod tests {
             fn give_me_c(): Foo { Foo::C() }
         ",
             pos(3, 41),
-            SemError::EnumArgsNoParens("Foo".into(), "C".into()),
+            ErrorMessage::EnumArgsNoParens("Foo".into(), "C".into()),
         );
     }
 
@@ -257,19 +258,19 @@ mod tests {
         err(
             "enum MyOption[] { A, B }",
             pos(1, 1),
-            SemError::TypeParamsExpected,
+            ErrorMessage::TypeParamsExpected,
         );
 
         err(
             "enum MyOption[X, X] { A, B }",
             pos(1, 18),
-            SemError::TypeParamNameNotUnique("X".into()),
+            ErrorMessage::TypeParamNameNotUnique("X".into()),
         );
 
         err(
             "enum MyOption[X: NonExistingTrait] { A, B }",
             pos(1, 18),
-            SemError::UnknownIdentifier("NonExistingTrait".into()),
+            ErrorMessage::UnknownIdentifier("NonExistingTrait".into()),
         );
     }
 
@@ -281,7 +282,7 @@ mod tests {
                 fn foo(v: MyOption) {}
             ",
             pos(3, 27),
-            SemError::WrongNumberTypeParams(1, 0),
+            ErrorMessage::WrongNumberTypeParams(1, 0),
         );
     }
 
@@ -299,7 +300,7 @@ mod tests {
             fn foo(): Foo { Foo::A(true) }
         ",
             pos(3, 35),
-            SemError::EnumArgsIncompatible(
+            ErrorMessage::EnumArgsIncompatible(
                 "Foo".into(),
                 "A".into(),
                 vec!["Int32".into()],
@@ -322,7 +323,7 @@ mod tests {
             fn foo() { let tmp = Foo[String]::B; }
         ",
             pos(4, 45),
-            SemError::TypeNotImplementingTrait("String".into(), "SomeTrait".into()),
+            ErrorMessage::TypeNotImplementingTrait("String".into(), "SomeTrait".into()),
         );
     }
 
@@ -339,7 +340,7 @@ mod tests {
             fn foo() { let tmp = Foo[Int32]::A(true); }
         ",
             pos(3, 47),
-            SemError::EnumArgsIncompatible(
+            ErrorMessage::EnumArgsIncompatible(
                 "Foo".into(),
                 "A".into(),
                 vec!["T".into()],
@@ -361,7 +362,7 @@ mod tests {
             fn foo(x: Foo[Int32]): Foo[Float32] { x }
         ",
             pos(3, 49),
-            SemError::ReturnType("Foo[Float32]".into(), "Foo[Int32]".into()),
+            ErrorMessage::ReturnType("Foo[Float32]".into(), "Foo[Int32]".into()),
         );
     }
 

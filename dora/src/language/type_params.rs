@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use dora_parser::ast;
 use dora_parser::Position;
 
-use crate::language::error::msg::SemError;
+use crate::language::error::msg::ErrorMessage;
 use crate::language::readty::read_type_unchecked;
 use crate::language::sem_analysis::{SemAnalysis, SourceFileId, TypeParamDefinition, TypeParamId};
 use crate::language::sym::{NestedSymTable, Sym};
@@ -193,7 +193,7 @@ fn read_type_param_definition(
     let ast_type_params = ast_type_params.expect("type params expected");
 
     if ast_type_params.len() == 0 {
-        let msg = SemError::TypeParamsExpected;
+        let msg = ErrorMessage::TypeParamsExpected;
         sa.diag.lock().report(file_id, pos, msg);
 
         return TypeParamDefinition::new();
@@ -209,7 +209,7 @@ fn read_type_param_definition(
 
         if !names.insert(type_param.name) {
             let name = sa.interner.str(type_param.name).to_string();
-            let msg = SemError::TypeParamNameNotUnique(name);
+            let msg = ErrorMessage::TypeParamNameNotUnique(name);
             sa.diag.lock().report(file_id, type_param.pos, msg);
         }
 
@@ -229,11 +229,11 @@ fn read_type_param_definition(
 
             if ty.is_trait() {
                 if !result_type_params.add_bound(id, ty) {
-                    let msg = SemError::DuplicateTraitBound;
+                    let msg = ErrorMessage::DuplicateTraitBound;
                     sa.diag.lock().report(file_id, type_param.pos, msg);
                 }
             } else if !ty.is_error() {
-                let msg = SemError::BoundExpected;
+                let msg = ErrorMessage::BoundExpected;
                 sa.diag.lock().report(file_id, bound.pos(), msg);
             }
         }

@@ -1,4 +1,4 @@
-use crate::language::error::msg::SemError;
+use crate::language::error::msg::ErrorMessage;
 use crate::language::sem_analysis::{
     GlobalDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId,
 };
@@ -60,7 +60,7 @@ impl<'a> GlobalDefCheck<'a> {
         global_var.ty = ty;
 
         if global_var.initializer.is_none() {
-            let msg = SemError::LetMissingInitialization;
+            let msg = ErrorMessage::LetMissingInitialization;
             self.sa.diag.lock().report(self.file_id, self.ast.pos, msg);
         }
     }
@@ -68,7 +68,7 @@ impl<'a> GlobalDefCheck<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::language::error::msg::SemError;
+    use crate::language::error::msg::ErrorMessage;
     use crate::language::tests::*;
 
     #[test]
@@ -78,7 +78,7 @@ mod tests {
         err(
             "let mut a: Int32 = foo;",
             pos(1, 20),
-            SemError::UnknownIdentifier("foo".into()),
+            ErrorMessage::UnknownIdentifier("foo".into()),
         );
     }
 
@@ -87,7 +87,7 @@ mod tests {
         err(
             "let mut x: Foo = 0;",
             pos(1, 12),
-            SemError::UnknownIdentifier("Foo".into()),
+            ErrorMessage::UnknownIdentifier("Foo".into()),
         );
     }
 }

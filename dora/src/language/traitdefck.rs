@@ -77,7 +77,7 @@ impl<'x> TraitCheck<'x> {
 
 #[cfg(test)]
 mod tests {
-    use crate::language::error::msg::SemError;
+    use crate::language::error::msg::ErrorMessage;
     use crate::language::tests::*;
 
     #[test]
@@ -87,13 +87,13 @@ mod tests {
         err(
             "trait Foo { fn foo() { self.bar(); } }",
             pos(1, 32),
-            SemError::UnknownMethod("Self".into(), "bar".into(), Vec::new()),
+            ErrorMessage::UnknownMethod("Self".into(), "bar".into(), Vec::new()),
         );
 
         err(
             "trait Foo { fn foo(): Int32 { return false; } }",
             pos(1, 31),
-            SemError::ReturnType("Int32".into(), "Bool".into()),
+            ErrorMessage::ReturnType("Int32".into(), "Bool".into()),
         );
     }
 
@@ -109,18 +109,18 @@ mod tests {
         err(
             "trait Bar { fn foo(): Unknown; }",
             pos(1, 23),
-            SemError::UnknownIdentifier("Unknown".into()),
+            ErrorMessage::UnknownIdentifier("Unknown".into()),
         );
         err(
             "trait Foo { fn foo(); fn foo(): Int32; }",
             pos(1, 23),
-            SemError::MethodExists("foo".into(), pos(1, 13)),
+            ErrorMessage::MethodExists("foo".into(), pos(1, 13)),
         );
 
         err(
             "trait Foo { fn foo(); fn foo(); }",
             pos(1, 23),
-            SemError::MethodExists("foo".into(), pos(1, 13)),
+            ErrorMessage::MethodExists("foo".into(), pos(1, 13)),
         );
     }
 
@@ -132,7 +132,7 @@ mod tests {
             fn foo(): Self;
         }",
             pos(3, 13),
-            SemError::MethodExists("foo".into(), pos(2, 13)),
+            ErrorMessage::MethodExists("foo".into(), pos(2, 13)),
         );
     }
 }

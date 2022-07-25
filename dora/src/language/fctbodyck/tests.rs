@@ -1,4 +1,4 @@
-use crate::language::error::msg::SemError;
+use crate::language::error::msg::ErrorMessage;
 use crate::language::sem_analysis::ConstValue;
 use crate::language::tests::*;
 
@@ -15,12 +15,12 @@ fn type_object_field() {
     err(
         "class Foo(a:Int32) fn f(x: Foo): Bool { return x.a; }",
         pos(1, 41),
-        SemError::ReturnType("Bool".into(), "Int32".into()),
+        ErrorMessage::ReturnType("Bool".into(), "Int32".into()),
     );
     err(
         "class Foo(a:Int32) fn f(x: Foo): Int32 { return x.b; }",
         pos(1, 50),
-        SemError::UnknownField("b".into(), "Foo".into()),
+        ErrorMessage::UnknownField("b".into(), "Foo".into()),
     );
 }
 
@@ -30,7 +30,7 @@ fn type_object_set_field() {
     err(
         "class Foo(a: Int32) fn f(x: Foo) { x.a = false; }",
         pos(1, 40),
-        SemError::AssignField("a".into(), "Foo".into(), "Int32".into(), "Bool".into()),
+        ErrorMessage::AssignField("a".into(), "Foo".into(), "Int32".into(), "Bool".into()),
     );
 }
 
@@ -39,12 +39,12 @@ fn type_object_field_without_self() {
     err(
         "class Foo(a: Int32) impl Foo { fn f(): Int32 { return a; } }",
         pos(1, 55),
-        SemError::UnknownIdentifier("a".into()),
+        ErrorMessage::UnknownIdentifier("a".into()),
     );
     err(
         "class Foo(a: Int32) impl Foo { fn set(x: Int32) { a = x; } }",
         pos(1, 51),
-        SemError::UnknownIdentifier("a".into()),
+        ErrorMessage::UnknownIdentifier("a".into()),
     );
 }
 
@@ -69,7 +69,7 @@ fn type_class_method_call() {
 
         fn f(x: Foo): String { return x.bar(); }",
         pos(7, 32),
-        SemError::ReturnType("String".into(), "Int32".into()),
+        ErrorMessage::ReturnType("String".into(), "Int32".into()),
     );
 }
 
@@ -81,7 +81,7 @@ fn return_type() {
         fn f(): Foo[Int32] { Foo[Int64]() }
     ",
         pos(3, 28),
-        SemError::ReturnType("Foo[Int32]".into(), "Foo[Int64]".into()),
+        ErrorMessage::ReturnType("Foo[Int32]".into(), "Foo[Int64]".into()),
     );
 }
 
@@ -94,7 +94,7 @@ fn type_method_defined_twice() {
                  fn bar() {}
              }",
         pos(4, 18),
-        SemError::MethodExists("bar".into(), pos(3, 18)),
+        ErrorMessage::MethodExists("bar".into(), pos(3, 18)),
     );
 
     err(
@@ -104,7 +104,7 @@ fn type_method_defined_twice() {
                  fn bar(): Int32 {}
              }",
         pos(4, 18),
-        SemError::MethodExists("bar".into(), pos(3, 18)),
+        ErrorMessage::MethodExists("bar".into(), pos(3, 18)),
     );
 
     err(
@@ -114,7 +114,7 @@ fn type_method_defined_twice() {
                  fn bar(a: Int32): Int32 {}
              }",
         pos(4, 18),
-        SemError::MethodExists("bar".into(), pos(3, 18)),
+        ErrorMessage::MethodExists("bar".into(), pos(3, 18)),
     );
 
     err(
@@ -124,7 +124,7 @@ fn type_method_defined_twice() {
                 fn bar(a: String) {}
             }",
         pos(4, 17),
-        SemError::MethodExists("bar".into(), pos(3, 17)),
+        ErrorMessage::MethodExists("bar".into(), pos(3, 17)),
     );
 }
 
@@ -134,7 +134,7 @@ fn type_self() {
     err(
         "class Foo fn me() { return self; }",
         pos(1, 28),
-        SemError::ThisUnavailable,
+        ErrorMessage::ThisUnavailable,
     );
 
     ok("class Foo(a: Int32, b: Int32)
@@ -169,14 +169,14 @@ fn type_unknown_method() {
 
             fn f(x: Foo) { x.bar(); }",
         pos(6, 33),
-        SemError::ParamTypesIncompatible("bar".into(), vec!["Int32".into()], Vec::new()),
+        ErrorMessage::ParamTypesIncompatible("bar".into(), vec!["Int32".into()], Vec::new()),
     );
 
     err(
         "class Foo
               fn f(x: Foo) { x.bar(1i32); }",
         pos(2, 35),
-        SemError::UnknownMethod("Foo".into(), "bar".into(), vec!["Int32".into()]),
+        ErrorMessage::UnknownMethod("Foo".into(), "bar".into(), vec!["Int32".into()]),
     );
 }
 
@@ -187,7 +187,7 @@ fn type_ctor() {
     err(
         "class Foo fn f(): Foo { return 1i32; }",
         pos(1, 25),
-        SemError::ReturnType("Foo".into(), "Int32".into()),
+        ErrorMessage::ReturnType("Foo".into(), "Int32".into()),
     );
 }
 
@@ -197,7 +197,7 @@ fn type_def_for_return_type() {
     err(
         "fn a(): unknown {}",
         pos(1, 9),
-        SemError::UnknownIdentifier("unknown".into()),
+        ErrorMessage::UnknownIdentifier("unknown".into()),
     );
 }
 
@@ -207,7 +207,7 @@ fn type_def_for_param() {
     err(
         "fn a(b: foo) {}",
         pos(1, 9),
-        SemError::UnknownIdentifier("foo".into()),
+        ErrorMessage::UnknownIdentifier("foo".into()),
     );
 }
 
@@ -217,7 +217,7 @@ fn type_def_for_var() {
     err(
         "fn a() { let a : test = 1; }",
         pos(1, 18),
-        SemError::UnknownIdentifier("test".into()),
+        ErrorMessage::UnknownIdentifier("test".into()),
     );
 }
 
@@ -230,12 +230,12 @@ fn type_var_wrong_type_defined() {
     err(
         "fn f() { let a : Int32 = true; }",
         pos(1, 10),
-        SemError::AssignType("a".into(), "Int32".into(), "Bool".into()),
+        ErrorMessage::AssignType("a".into(), "Int32".into(), "Bool".into()),
     );
     err(
         "fn f() { let b : Bool = 2i32; }",
         pos(1, 10),
-        SemError::AssignType("b".into(), "Bool".into(), "Int32".into()),
+        ErrorMessage::AssignType("b".into(), "Bool".into(), "Int32".into()),
     );
 }
 
@@ -246,7 +246,7 @@ fn type_while() {
     err(
         "fn x() { while 2i32 { } }",
         pos(1, 10),
-        SemError::WhileCondType("Int32".into()),
+        ErrorMessage::WhileCondType("Int32".into()),
     );
 }
 
@@ -257,7 +257,7 @@ fn type_if() {
     err(
         "fn x() { if 4i32 { } }",
         pos(1, 10),
-        SemError::IfCondType("Int32".into()),
+        ErrorMessage::IfCondType("Int32".into()),
     );
 }
 
@@ -267,7 +267,7 @@ fn type_return_unit() {
     err(
         "fn f() { return 1i32; }",
         pos(1, 10),
-        SemError::ReturnType("()".into(), "Int32".into()),
+        ErrorMessage::ReturnType("()".into(), "Int32".into()),
     );
 }
 
@@ -278,7 +278,7 @@ fn type_return() {
     err(
         "fn f(): Int32 { return; }",
         pos(1, 17),
-        SemError::ReturnType("Int32".into(), "()".into()),
+        ErrorMessage::ReturnType("Int32".into(), "()".into()),
     );
 
     ok("fn f(): Int32 { return 0i32; }
@@ -287,7 +287,7 @@ fn type_return() {
         "fn f() { }
              fn g(): Int32 { return f(); }",
         pos(2, 30),
-        SemError::ReturnType("Int32".into(), "()".into()),
+        ErrorMessage::ReturnType("Int32".into(), "()".into()),
     );
 }
 
@@ -302,30 +302,30 @@ fn type_let() {
     err(
         "fn f() { let (a, b) = true; }",
         pos(1, 14),
-        SemError::LetPatternExpectedTuple("Bool".into()),
+        ErrorMessage::LetPatternExpectedTuple("Bool".into()),
     );
 
     ok("fn f(value: ()) { let () = value; }");
     err(
         "fn f() { let () = true; }",
         pos(1, 14),
-        SemError::LetPatternExpectedTuple("Bool".into()),
+        ErrorMessage::LetPatternExpectedTuple("Bool".into()),
     );
     err(
         "fn f() { let (a, b) = (); }",
         pos(1, 14),
-        SemError::LetPatternShouldBeUnit,
+        ErrorMessage::LetPatternShouldBeUnit,
     );
 
     err(
         "fn f() { let (a, b) = (true,); }",
         pos(1, 14),
-        SemError::LetPatternExpectedTupleWithLength("(Bool)".into(), 1, 2),
+        ErrorMessage::LetPatternExpectedTupleWithLength("(Bool)".into(), 1, 2),
     );
     err(
         "fn f() { let () = (true,); }",
         pos(1, 14),
-        SemError::LetPatternExpectedTupleWithLength("(Bool)".into(), 1, 0),
+        ErrorMessage::LetPatternExpectedTupleWithLength("(Bool)".into(), 1, 0),
     );
 
     ok("fn f(value: (Int32, (Int32, Int32))): Int32 { let (a, (b, c)) = value; a+b+c }");
@@ -333,7 +333,11 @@ fn type_let() {
 
 #[test]
 fn type_assign_lvalue() {
-    err("fn f() { 1 = 3; }", pos(1, 12), SemError::LvalueExpected);
+    err(
+        "fn f() { 1 = 3; }",
+        pos(1, 12),
+        ErrorMessage::LvalueExpected,
+    );
 }
 
 #[test]
@@ -342,12 +346,12 @@ fn type_un_op() {
     err(
         "fn f(a: Bool) { -a; }",
         pos(1, 17),
-        SemError::UnOpType("-".into(), "Bool".into()),
+        ErrorMessage::UnOpType("-".into(), "Bool".into()),
     );
     err(
         "fn f(a: Bool) { +a; }",
         pos(1, 17),
-        SemError::UnOpType("+".into(), "Bool".into()),
+        ErrorMessage::UnOpType("+".into(), "Bool".into()),
     );
 }
 
@@ -364,47 +368,47 @@ fn type_bin_op() {
     err(
         "class A class B fn f(a: A, b: B) { a === b; }",
         pos(1, 38),
-        SemError::TypesIncompatible("A".into(), "B".into()),
+        ErrorMessage::TypesIncompatible("A".into(), "B".into()),
     );
     err(
         "class A class B fn f(a: A, b: B) { b !== a; }",
         pos(1, 38),
-        SemError::TypesIncompatible("B".into(), "A".into()),
+        ErrorMessage::TypesIncompatible("B".into(), "A".into()),
     );
     err(
         "fn f(a: Bool) { a+a; }",
         pos(1, 18),
-        SemError::BinOpType("+".into(), "Bool".into(), "Bool".into()),
+        ErrorMessage::BinOpType("+".into(), "Bool".into(), "Bool".into()),
     );
     err(
         "fn f(a: Bool) { a^a; }",
         pos(1, 18),
-        SemError::BinOpType("^".into(), "Bool".into(), "Bool".into()),
+        ErrorMessage::BinOpType("^".into(), "Bool".into(), "Bool".into()),
     );
     err(
         "fn f(a: Int32) { a||a; }",
         pos(1, 19),
-        SemError::BinOpType("||".into(), "Int32".into(), "Int32".into()),
+        ErrorMessage::BinOpType("||".into(), "Int32".into(), "Int32".into()),
     );
     err(
         "fn f(a: Int32) { a&&a; }",
         pos(1, 19),
-        SemError::BinOpType("&&".into(), "Int32".into(), "Int32".into()),
+        ErrorMessage::BinOpType("&&".into(), "Int32".into(), "Int32".into()),
     );
     err(
         "fn f(a: String) { a-a; }",
         pos(1, 20),
-        SemError::BinOpType("-".into(), "String".into(), "String".into()),
+        ErrorMessage::BinOpType("-".into(), "String".into(), "String".into()),
     );
     err(
         "fn f(a: String) { a*a; }",
         pos(1, 20),
-        SemError::BinOpType("*".into(), "String".into(), "String".into()),
+        ErrorMessage::BinOpType("*".into(), "String".into(), "String".into()),
     );
     err(
         "fn f(a: String) { a%a; }",
         pos(1, 20),
-        SemError::BinOpType("%".into(), "String".into(), "String".into()),
+        ErrorMessage::BinOpType("%".into(), "String".into(), "String".into()),
     );
 }
 
@@ -416,7 +420,7 @@ fn type_function_return_type() {
         fn foo(): Int32 { return 1i32; }
         fn f() { let i: Bool = foo(); }",
         pos(3, 18),
-        SemError::AssignType("i".into(), "Bool".into(), "Int32".into()),
+        ErrorMessage::AssignType("i".into(), "Bool".into(), "Int32".into()),
     );
 }
 
@@ -443,21 +447,25 @@ fn type_function_params() {
         fn foo() {}
         fn f() { foo(1i32); }",
         pos(3, 21),
-        SemError::ParamTypesIncompatible("foo".into(), vec![], vec!["Int32".into()]),
+        ErrorMessage::ParamTypesIncompatible("foo".into(), vec![], vec!["Int32".into()]),
     );
     err(
         "
         fn foo(a: Int32) {}
         fn f() { foo(true); }",
         pos(3, 21),
-        SemError::ParamTypesIncompatible("foo".into(), vec!["Int32".into()], vec!["Bool".into()]),
+        ErrorMessage::ParamTypesIncompatible(
+            "foo".into(),
+            vec!["Int32".into()],
+            vec!["Bool".into()],
+        ),
     );
     err(
         "
         fn foo(a: Int32, b: Bool) {}
         fn f() { foo(1i32, 2i32); }",
         pos(3, 21),
-        SemError::ParamTypesIncompatible(
+        ErrorMessage::ParamTypesIncompatible(
             "foo".into(),
             vec!["Int32".into(), "Bool".into()],
             vec!["Int32".into(), "Int32".into()],
@@ -471,7 +479,7 @@ fn type_array() {
     err(
         "fn f(a: Array[Int32]): String { return a(1i64); }",
         pos(1, 33),
-        SemError::ReturnType("String".into(), "Int32".into()),
+        ErrorMessage::ReturnType("String".into(), "Int32".into()),
     );
 }
 
@@ -480,12 +488,12 @@ fn type_array_assign() {
     err(
         "fn f(a: Array[Int32]): Int32 { return a(3) = 4i32; }",
         pos(1, 32),
-        SemError::ReturnType("Int32".into(), "()".into()),
+        ErrorMessage::ReturnType("Int32".into(), "()".into()),
     );
     err(
         "fn f(a: Array[Int32]) { a(3) = \"b\"; }",
         pos(1, 30),
-        SemError::UnknownMethod(
+        ErrorMessage::UnknownMethod(
             "Array[Int32]".into(),
             "set".into(),
             vec!["Int64".into(), "String".into()],
@@ -506,7 +514,7 @@ fn let_without_initialization() {
     err(
         "fn f() { let x: Int32; }",
         pos(1, 10),
-        SemError::LetMissingInitialization,
+        ErrorMessage::LetMissingInitialization,
     );
 }
 
@@ -515,7 +523,7 @@ fn reassign_param() {
     err(
         "fn f(a: Int32) { a = 1; }",
         pos(1, 20),
-        SemError::LetReassigned,
+        ErrorMessage::LetReassigned,
     );
 }
 
@@ -534,7 +542,7 @@ fn reassign_let() {
     err(
         "fn f() { let a=1; a=2; }",
         pos(1, 20),
-        SemError::LetReassigned,
+        ErrorMessage::LetReassigned,
     );
 }
 
@@ -546,7 +554,7 @@ fn reassign_self() {
             fn f() { self = Foo(); }
         }",
         pos(3, 27),
-        SemError::LvalueExpected,
+        ErrorMessage::LvalueExpected,
     );
 }
 
@@ -561,7 +569,7 @@ fn lit_int64() {
     ok("fn f(): Int64 { return 1i64; }");
     ok("fn f(): Int32 { return 1i32; }");
 
-    let ret = SemError::ReturnType("Int32".into(), "Int64".into());
+    let ret = ErrorMessage::ReturnType("Int32".into(), "Int64".into());
     err("fn f(): Int32 { return 1i64; }", pos(1, 17), ret);
 
     ok("fn f(): Int64 { return 1; }");
@@ -703,13 +711,13 @@ fn test_literal_int_overflow() {
     err(
         "fn f() { let x = 2147483648i32; }",
         pos(1, 18),
-        SemError::NumberOverflow("Int32".into()),
+        ErrorMessage::NumberOverflow("Int32".into()),
     );
     ok("fn f() { let x = 2147483647i32; }");
     err(
         "fn f() { let x = -2147483649i32; }",
         pos(1, 19),
-        SemError::NumberOverflow("Int32".into()),
+        ErrorMessage::NumberOverflow("Int32".into()),
     );
     ok("fn f() { let x = -2147483648i32; }");
 }
@@ -719,7 +727,7 @@ fn test_literal_hex_int_overflow() {
     err(
         "fn f() { let x = 0x1_FF_FF_FF_FFi32; }",
         pos(1, 18),
-        SemError::NumberOverflow("Int32".into()),
+        ErrorMessage::NumberOverflow("Int32".into()),
     );
     ok("fn f() { let x: Int32 = 0xFF_FF_FF_FFi32; }");
 }
@@ -729,7 +737,7 @@ fn test_literal_bin_int_overflow() {
     err(
         "fn f() { let x = 0b1_11111111_11111111_11111111_11111111i32; }",
         pos(1, 18),
-        SemError::NumberOverflow("Int32".into()),
+        ErrorMessage::NumberOverflow("Int32".into()),
     );
     ok("fn f() { let x: Int32 = 0b11111111_11111111_11111111_11111111i32; }");
 }
@@ -739,13 +747,13 @@ fn test_literal_int64_overflow() {
     err(
         "fn f() { let x = 9223372036854775808i64; }",
         pos(1, 18),
-        SemError::NumberOverflow("Int64".into()),
+        ErrorMessage::NumberOverflow("Int64".into()),
     );
     ok("fn f() { let x = 9223372036854775807i64; }");
     err(
         "fn f() { let x = -9223372036854775809i64; }",
         pos(1, 19),
-        SemError::NumberOverflow("Int64".into()),
+        ErrorMessage::NumberOverflow("Int64".into()),
     );
     ok("fn f() { let x = -9223372036854775808i64; }");
 }
@@ -755,13 +763,13 @@ fn test_literal_float_overflow() {
     err(
         "fn f() { let x = -340282350000000000000000000000000000000f32; }",
         pos(1, 19),
-        SemError::NumberOverflow("Float32".into()),
+        ErrorMessage::NumberOverflow("Float32".into()),
     );
     ok("fn f() { let x = -340282340000000000000000000000000000000f32; }");
     err(
         "fn f() { let x = 340282350000000000000000000000000000001f32; }",
         pos(1, 18),
-        SemError::NumberOverflow("Float32".into()),
+        ErrorMessage::NumberOverflow("Float32".into()),
     );
     ok("fn f() { let x = 340282340000000000000000000000000000000f32; }");
 }
@@ -773,12 +781,12 @@ fn test_char() {
     err(
         "fn foo(): Char { return false; }",
         pos(1, 18),
-        SemError::ReturnType("Char".into(), "Bool".into()),
+        ErrorMessage::ReturnType("Char".into(), "Bool".into()),
     );
     err(
         "fn foo(): Char { return 10i32; }",
         pos(1, 18),
-        SemError::ReturnType("Char".into(), "Int32".into()),
+        ErrorMessage::ReturnType("Char".into(), "Int32".into()),
     );
 }
 
@@ -790,7 +798,7 @@ fn test_generic_arguments_mismatch() {
                 let a = A[Int32, Int32]();
             }",
         pos(3, 40),
-        SemError::WrongNumberTypeParams(1, 2),
+        ErrorMessage::WrongNumberTypeParams(1, 2),
     );
 
     err(
@@ -799,7 +807,7 @@ fn test_generic_arguments_mismatch() {
                 let a = A();
             }",
         pos(3, 26),
-        SemError::WrongNumberTypeParams(1, 0),
+        ErrorMessage::WrongNumberTypeParams(1, 0),
     );
 
     err(
@@ -808,7 +816,7 @@ fn test_generic_arguments_mismatch() {
                 let a = A[Int32]();
             }",
         pos(3, 33),
-        SemError::WrongNumberTypeParams(0, 1),
+        ErrorMessage::WrongNumberTypeParams(0, 1),
     );
 }
 
@@ -821,7 +829,7 @@ fn test_invoke_static_method_as_instance_method() {
             fn test() { self.foo(); }
         }",
         pos(4, 33),
-        SemError::UnknownMethod("A".into(), "foo".into(), vec![]),
+        ErrorMessage::UnknownMethod("A".into(), "foo".into(), vec![]),
     );
 }
 
@@ -834,7 +842,7 @@ fn test_invoke_method_as_static() {
             @static fn test() { A::foo(); }
         }",
         pos(4, 39),
-        SemError::UnknownStaticMethod("A".into(), "foo".into(), vec![]),
+        ErrorMessage::UnknownStaticMethod("A".into(), "foo".into(), vec![]),
     );
 }
 
@@ -843,12 +851,12 @@ fn test_fct_with_type_params() {
     err(
         "fn f() {} fn g() { f[Int32](); }",
         pos(1, 28),
-        SemError::WrongNumberTypeParams(0, 1),
+        ErrorMessage::WrongNumberTypeParams(0, 1),
     );
     err(
         "fn f[T]() {} fn g() { f(); }",
         pos(1, 24),
-        SemError::WrongNumberTypeParams(1, 0),
+        ErrorMessage::WrongNumberTypeParams(1, 0),
     );
     ok("fn f[T]() {} fn g() { f[Int32](); }");
     ok("fn f[T1, T2]() {} fn g() { f[Int32, String](); }");
@@ -863,7 +871,7 @@ fn test_type_param_bounds_in_definition() {
             fn bar[T](arg: Foo[T]) {}
         ",
         pos(4, 28),
-        SemError::TypeNotImplementingTrait("T".into(), "MyTrait".into()),
+        ErrorMessage::TypeNotImplementingTrait("T".into(), "MyTrait".into()),
     );
 
     err(
@@ -874,7 +882,7 @@ fn test_type_param_bounds_in_definition() {
             fn bar[T: MyTraitA](arg: Foo[T]) {}
         ",
         pos(5, 38),
-        SemError::TypeNotImplementingTrait("T".into(), "MyTraitB".into()),
+        ErrorMessage::TypeNotImplementingTrait("T".into(), "MyTraitB".into()),
     );
 
     err(
@@ -888,7 +896,7 @@ fn test_type_param_bounds_in_definition() {
             }
         ",
         pos(7, 42),
-        SemError::TypeNotImplementingTrait("T".into(), "MyTraitB".into()),
+        ErrorMessage::TypeNotImplementingTrait("T".into(), "MyTraitB".into()),
     );
 }
 
@@ -898,14 +906,14 @@ fn test_const_check() {
         "const one: Int32 = 1i32;
             fn f(): Int64 { return one; }",
         pos(2, 29),
-        SemError::ReturnType("Int64".into(), "Int32".into()),
+        ErrorMessage::ReturnType("Int64".into(), "Int32".into()),
     );
 
     err(
         "const one: Int32 = 1i32;
             fn f() { let x: String = one; }",
         pos(2, 22),
-        SemError::AssignType("x".into(), "String".into(), "Int32".into()),
+        ErrorMessage::AssignType("x".into(), "String".into(), "Int32".into()),
     );
 }
 
@@ -978,7 +986,7 @@ fn test_assignment_to_const() {
         "const one: Int32 = 1i32;
             fn f() { one = 2i32; }",
         pos(2, 22),
-        SemError::LvalueExpected,
+        ErrorMessage::LvalueExpected,
     );
 }
 
@@ -987,7 +995,7 @@ fn test_unary_minus_byte() {
     err(
         "const m1: UInt8 = -1u8;",
         pos(1, 19),
-        SemError::UnOpType("-".into(), "UInt8".into()),
+        ErrorMessage::UnOpType("-".into(), "UInt8".into()),
     );
     ok("const m1: Int32 = -1i32;");
     ok("const m1: Int64 = -1i64;");
@@ -1007,7 +1015,7 @@ fn test_generic_trait_bounds() {
             class A[T: Foo]
             fn f(): A[X] { A[X]() }",
         pos(4, 21),
-        SemError::TypeNotImplementingTrait("X".into(), "Foo".into()),
+        ErrorMessage::TypeNotImplementingTrait("X".into(), "Foo".into()),
     );
 
     err(
@@ -1015,7 +1023,7 @@ fn test_generic_trait_bounds() {
             fn f[T: Foo]() {}
             fn t() { f[Int32](); }",
         pos(3, 30),
-        SemError::TypeNotImplementingTrait("Int32".into(), "Foo".into()),
+        ErrorMessage::TypeNotImplementingTrait("Int32".into(), "Foo".into()),
     );
 }
 
@@ -1024,7 +1032,7 @@ fn test_operator_on_generic_type() {
     err(
         "fn f[T](a: T, b: T) { a + b; }",
         pos(1, 25),
-        SemError::BinOpType("+".into(), "T".into(), "T".into()),
+        ErrorMessage::BinOpType("+".into(), "T".into(), "T".into()),
     );
 }
 
@@ -1045,7 +1053,7 @@ fn test_find_class_method_precedence() {
             impl Foo for A { fn foo(a: Int32) {} }
             fn test(a: A) { a.foo(1i32); }",
         pos(5, 34),
-        SemError::ParamTypesIncompatible("foo".into(), Vec::new(), vec!["Int32".into()]),
+        ErrorMessage::ParamTypesIncompatible("foo".into(), Vec::new(), vec!["Int32".into()]),
     );
 
     ok("class A
@@ -1066,7 +1074,7 @@ fn test_global_set() {
     err(
         "let x: Int32 = 0i32; fn foo(a: Int32) { x = a; }",
         pos(1, 43),
-        SemError::LetReassigned,
+        ErrorMessage::LetReassigned,
     );
 }
 
@@ -1080,7 +1088,7 @@ fn lambda_assignment() {
     err(
         "fn f() { let x: (): Int32 = || {}; }",
         pos(1, 10),
-        SemError::AssignType("x".into(), "() -> Int32".into(), "() -> ()".into()),
+        ErrorMessage::AssignType("x".into(), "() -> Int32".into(), "() -> ()".into()),
     );
 }
 
@@ -1096,7 +1104,7 @@ fn method_call_with_multiple_matching_traits() {
 
             fn g(a: A) { a.f(); }",
         pos(8, 29),
-        SemError::MultipleCandidatesForMethod("A".into(), "f".into(), Vec::new()),
+        ErrorMessage::MultipleCandidatesForMethod("A".into(), "f".into(), Vec::new()),
     );
 }
 
@@ -1117,7 +1125,7 @@ fn test_generic_ctor_without_type_params() {
         "class Foo[A, B]
             fn test() { Foo(); }",
         pos(2, 28),
-        SemError::WrongNumberTypeParams(2, 0),
+        ErrorMessage::WrongNumberTypeParams(2, 0),
     );
 }
 
@@ -1127,7 +1135,7 @@ fn test_generic_argument_with_trait_bound() {
         "fn f[X: std::Comparable](x: X) {}
             fn g[T](t: T) { f[T](t); }",
         pos(2, 33),
-        SemError::TypeNotImplementingTrait("T".into(), "Comparable".into()),
+        ErrorMessage::TypeNotImplementingTrait("T".into(), "Comparable".into()),
     );
 }
 
@@ -1136,7 +1144,7 @@ fn test_for_supports_make_iterator() {
     err(
         "fn f() { for i in 1i32 {} }",
         pos(1, 19),
-        SemError::TypeNotUsableInForIn("Int32".into()),
+        ErrorMessage::TypeNotUsableInForIn("Int32".into()),
     );
 
     err(
@@ -1145,7 +1153,7 @@ fn test_for_supports_make_iterator() {
             impl Foo { fn makeIterator(): Bool { return true; } }
             fn f() { for i in Foo() {} }",
         pos(4, 34),
-        SemError::TypeNotUsableInForIn("Foo".into()),
+        ErrorMessage::TypeNotUsableInForIn("Foo".into()),
     );
 
     ok("
@@ -1172,7 +1180,7 @@ fn test_ctor_with_type_param() {
             class Bar[T](a: T)
             ",
         pos(5, 27),
-        SemError::ParamTypesIncompatible("Bar".into(), vec!["T".into()], vec!["Int32".into()]),
+        ErrorMessage::ParamTypesIncompatible("Bar".into(), vec!["T".into()], vec!["Int32".into()]),
     );
 }
 
@@ -1181,13 +1189,17 @@ fn test_fct_used_as_identifier() {
     err(
         "fn foo() {} fn bar() { foo; }",
         pos(1, 24),
-        SemError::ValueExpected,
+        ErrorMessage::ValueExpected,
     );
 }
 
 #[test]
 fn test_cls_used_as_identifier() {
-    err("class X fn f() { X; }", pos(1, 18), SemError::ValueExpected);
+    err(
+        "class X fn f() { X; }",
+        pos(1, 18),
+        ErrorMessage::ValueExpected,
+    );
 }
 
 #[test]
@@ -1195,7 +1207,7 @@ fn test_assign_fct() {
     err(
         "fn foo() {} fn bar() { foo = 1i32; }",
         pos(1, 24),
-        SemError::LvalueExpected,
+        ErrorMessage::LvalueExpected,
     );
 }
 
@@ -1207,7 +1219,7 @@ fn test_assign_class() {
             fn foo() { X = 2i32; }
         ",
         pos(3, 24),
-        SemError::LvalueExpected,
+        ErrorMessage::LvalueExpected,
     );
 }
 
@@ -1221,7 +1233,7 @@ fn test_new_call_fct_wrong_params() {
     err(
         "fn g() {} fn f() { g(1i32); }",
         pos(1, 21),
-        SemError::ParamTypesIncompatible("g".into(), Vec::new(), vec!["Int32".into()]),
+        ErrorMessage::ParamTypesIncompatible("g".into(), Vec::new(), vec!["Int32".into()]),
     );
 }
 
@@ -1235,7 +1247,7 @@ fn test_new_call_fct_with_wrong_type_params() {
     err(
         "fn g() {} fn f() { g[Int32](); }",
         pos(1, 28),
-        SemError::WrongNumberTypeParams(0, 1),
+        ErrorMessage::WrongNumberTypeParams(0, 1),
     );
 }
 
@@ -1251,7 +1263,7 @@ fn test_new_call_static_method_wrong_params() {
         "class Foo impl Foo { @static fn bar() {} }
             fn f() { Foo::bar(1i32); }",
         pos(2, 30),
-        SemError::ParamTypesIncompatible("bar".into(), Vec::new(), vec!["Int32".into()]),
+        ErrorMessage::ParamTypesIncompatible("bar".into(), Vec::new(), vec!["Int32".into()]),
     );
 }
 
@@ -1277,7 +1289,7 @@ fn test_new_call_class_wrong_params() {
         fn f() { X(1i32); }
     ",
         pos(3, 19),
-        SemError::ParamTypesIncompatible("X".into(), Vec::new(), vec!["Int32".into()]),
+        ErrorMessage::ParamTypesIncompatible("X".into(), Vec::new(), vec!["Int32".into()]),
     );
 }
 
@@ -1297,7 +1309,7 @@ fn test_new_call_class_with_wrong_type_params() {
             fn f() { X[Int32](); }
         ",
         pos(3, 30),
-        SemError::WrongNumberTypeParams(0, 1),
+        ErrorMessage::WrongNumberTypeParams(0, 1),
     );
 }
 
@@ -1327,7 +1339,7 @@ fn test_new_call_method_wrong_params() {
         impl X { fn f() {} }
         fn f(x: X) { x.f(1i32); }",
         pos(4, 25),
-        SemError::ParamTypesIncompatible("f".into(), Vec::new(), vec!["Int32".into()]),
+        ErrorMessage::ParamTypesIncompatible("f".into(), Vec::new(), vec!["Int32".into()]),
     );
 }
 
@@ -1341,7 +1353,7 @@ fn test_new_call_method_generic_error() {
     err(
         "fn f[T](t: T) { t.hash(); }",
         pos(1, 23),
-        SemError::UnknownMethodForTypeParam("T".into(), "hash".into(), Vec::new()),
+        ErrorMessage::UnknownMethodForTypeParam("T".into(), "hash".into(), Vec::new()),
     );
 }
 
@@ -1353,7 +1365,7 @@ fn test_new_call_method_generic_error_multiple() {
             trait TraitB { fn id(); }
             fn f[T: TraitA + TraitB](t: T) { t.id(); }",
         pos(4, 50),
-        SemError::MultipleCandidatesForTypeParam("T".into(), "id".into(), Vec::new()),
+        ErrorMessage::MultipleCandidatesForTypeParam("T".into(), "id".into(), Vec::new()),
     );
 }
 
@@ -1372,7 +1384,7 @@ fn test_array_syntax_set_wrong_value() {
     err(
         "fn f(t: Array[Int32]){ t(0) = true; }",
         pos(1, 29),
-        SemError::UnknownMethod(
+        ErrorMessage::UnknownMethod(
             "Array[Int32]".into(),
             "set".into(),
             vec!["Int64".into(), "Bool".into()],
@@ -1385,7 +1397,7 @@ fn test_array_syntax_set_wrong_index() {
     err(
         "fn f(t: Array[Int32]){ t(\"bla\") = 9i32; }",
         pos(1, 33),
-        SemError::UnknownMethod(
+        ErrorMessage::UnknownMethod(
             "Array[Int32]".into(),
             "set".into(),
             vec!["String".into(), "Int32".into()],
@@ -1402,7 +1414,7 @@ fn test_template() {
             fn f(x: Foo): String { return \"x = ${x}\"; }
         ",
         pos(3, 50),
-        SemError::ExpectedStringable("Foo".into()),
+        ErrorMessage::ExpectedStringable("Foo".into()),
     );
     ok("fn f[T: std::Stringable](x: T): String { return \"${x}\"; }");
 }
@@ -1415,7 +1427,7 @@ fn test_trait_object_as_argument() {
         "trait Foo { fn baz(); }
         fn f(x: Foo): String { return x.baz(); }",
         pos(2, 32),
-        SemError::ReturnType("String".into(), "()".into()),
+        ErrorMessage::ReturnType("String".into(), "()".into()),
     );
 }
 
@@ -1424,7 +1436,7 @@ fn test_type_param_used_as_value() {
     err(
         "fn f[T](): Int32 { return T; }",
         pos(1, 27),
-        SemError::ValueExpected,
+        ErrorMessage::ValueExpected,
     );
 
     err(
@@ -1433,7 +1445,7 @@ fn test_type_param_used_as_value() {
             fn f(): Int32 { return T; }
         }",
         pos(3, 36),
-        SemError::ValueExpected,
+        ErrorMessage::ValueExpected,
     );
 }
 
@@ -1442,7 +1454,7 @@ fn test_assign_to_type_param() {
     err(
         "fn f[T]() { T = 10; }",
         pos(1, 13),
-        SemError::LvalueExpected,
+        ErrorMessage::LvalueExpected,
     );
 
     err(
@@ -1452,7 +1464,7 @@ fn test_assign_to_type_param() {
             fn f() { T = 10; }
         }",
         pos(4, 22),
-        SemError::LvalueExpected,
+        ErrorMessage::LvalueExpected,
     );
 }
 
@@ -1462,7 +1474,7 @@ fn test_type_param_with_name_but_no_call() {
         "trait X { fn foo(): Int32; }
         fn f[T: X]() { T::foo; }",
         pos(2, 24),
-        SemError::InvalidLeftSideOfSeparator,
+        ErrorMessage::InvalidLeftSideOfSeparator,
     );
 
     err(
@@ -1472,7 +1484,7 @@ fn test_type_param_with_name_but_no_call() {
             fn f() { T::foo; }
         }",
         pos(4, 22),
-        SemError::InvalidLeftSideOfSeparator,
+        ErrorMessage::InvalidLeftSideOfSeparator,
     );
 }
 
@@ -1482,7 +1494,7 @@ fn test_type_param_call() {
         "trait X { fn foo(): Int32; }
         fn f[T: X]() { T(); }",
         pos(2, 24),
-        SemError::ValueExpected,
+        ErrorMessage::ValueExpected,
     );
 
     err(
@@ -1492,7 +1504,7 @@ fn test_type_param_call() {
             fn f() { T(); }
         }",
         pos(4, 22),
-        SemError::ValueExpected,
+        ErrorMessage::ValueExpected,
     );
 }
 
@@ -1502,7 +1514,7 @@ fn test_static_method_call_with_type_param() {
         "trait X { @static fn bar(): Int32; }
         fn f[T: X]() { T::foo(); }",
         pos(2, 30),
-        SemError::UnknownStaticMethodWithTypeParam,
+        ErrorMessage::UnknownStaticMethodWithTypeParam,
     );
 
     err(
@@ -1510,14 +1522,14 @@ fn test_static_method_call_with_type_param() {
         trait Y { @static fn foo(): String; }
         fn f[T: X + Y]() { T::foo(); }",
         pos(3, 34),
-        SemError::MultipleCandidatesForStaticMethodWithTypeParam,
+        ErrorMessage::MultipleCandidatesForStaticMethodWithTypeParam,
     );
 
     err(
         "trait X { @static fn foo(): Int32; }
         fn f[T: X](): Int32 { return T::foo(1i32); }",
         pos(2, 44),
-        SemError::ParamTypesIncompatible("foo".into(), Vec::new(), vec!["Int32".into()]),
+        ErrorMessage::ParamTypesIncompatible("foo".into(), Vec::new(), vec!["Int32".into()]),
     );
 
     ok("trait X { @static fn foo(): Int32; }
@@ -1568,14 +1580,18 @@ fn test_struct() {
         struct Foo(f1: Int32)
         fn f(): Foo { Foo() }",
         pos(3, 26),
-        SemError::StructArgsIncompatible("Foo".into(), vec!["Int32".into()], Vec::new()),
+        ErrorMessage::StructArgsIncompatible("Foo".into(), vec!["Int32".into()], Vec::new()),
     );
     err(
         "
         struct Foo(f1: Int32)
         fn f(): Foo { Foo(true) }",
         pos(3, 26),
-        SemError::StructArgsIncompatible("Foo".into(), vec!["Int32".into()], vec!["Bool".into()]),
+        ErrorMessage::StructArgsIncompatible(
+            "Foo".into(),
+            vec!["Int32".into()],
+            vec!["Bool".into()],
+        ),
     );
 }
 
@@ -1592,7 +1608,7 @@ fn test_struct_field() {
         fn f(x: Foo): Int32 { x.f1 }
     ",
         pos(3, 29),
-        SemError::ReturnType("Int32".into(), "Bool".into()),
+        ErrorMessage::ReturnType("Int32".into(), "Bool".into()),
     );
 
     err(
@@ -1601,7 +1617,7 @@ fn test_struct_field() {
         fn f(x: Foo): Int32 { x.unknown }
     ",
         pos(3, 32),
-        SemError::UnknownField("unknown".into(), "Foo".into()),
+        ErrorMessage::UnknownField("unknown".into(), "Foo".into()),
     );
 }
 
@@ -1625,7 +1641,7 @@ fn test_struct_with_type_params() {
         fn f(): Foo[Int32] { Foo(1i32) }
     ",
         pos(3, 33),
-        SemError::WrongNumberTypeParams(1, 0),
+        ErrorMessage::WrongNumberTypeParams(1, 0),
     );
     err(
         "
@@ -1633,7 +1649,7 @@ fn test_struct_with_type_params() {
         fn f(): Foo[Int32] { Foo[Int32, Bool](1i32) }
     ",
         pos(3, 46),
-        SemError::WrongNumberTypeParams(1, 2),
+        ErrorMessage::WrongNumberTypeParams(1, 2),
     );
     err(
         "
@@ -1642,7 +1658,7 @@ fn test_struct_with_type_params() {
         fn f(): Foo[Int32] { Foo[Int32](1i32) }
     ",
         pos(4, 17),
-        SemError::TypeNotImplementingTrait("Int32".into(), "MyTrait".into()),
+        ErrorMessage::TypeNotImplementingTrait("Int32".into(), "MyTrait".into()),
     );
     ok("
         trait MyTrait {}
@@ -1657,14 +1673,14 @@ fn test_struct_with_type_params() {
         fn f(): Foo[Int32] { Foo[Bool](1i32) }
     ",
         pos(3, 28),
-        SemError::ReturnType("Foo[Int32]".into(), "Foo[Bool]".into()),
+        ErrorMessage::ReturnType("Foo[Int32]".into(), "Foo[Bool]".into()),
     );
     err(
         "
         struct Foo[T](f1: T, f2: Bool)
         fn f[T](val: T): Foo[T] { Foo(val, false) }",
         pos(3, 38),
-        SemError::WrongNumberTypeParams(1, 0),
+        ErrorMessage::WrongNumberTypeParams(1, 0),
     );
 }
 
@@ -1676,7 +1692,7 @@ fn test_struct_mod() {
         mod foo { struct Foo(f1: Int32) }
         ",
         pos(2, 26),
-        SemError::NotAccessible("foo::Foo".into()),
+        ErrorMessage::NotAccessible("foo::Foo".into()),
     );
 }
 
@@ -1710,7 +1726,7 @@ fn test_struct_with_static_method() {
             }
             ",
         pos(4, 32),
-        SemError::WrongNumberTypeParams(0, 1),
+        ErrorMessage::WrongNumberTypeParams(0, 1),
     );
 }
 
@@ -1734,7 +1750,7 @@ fn test_enum_with_static_method() {
         }
         ",
         pos(4, 28),
-        SemError::WrongNumberTypeParams(0, 1),
+        ErrorMessage::WrongNumberTypeParams(0, 1),
     );
 }
 
@@ -1750,31 +1766,31 @@ fn test_enum() {
     err(
         "enum A { V1 } fn f(): A { A }",
         pos(1, 27),
-        SemError::ValueExpected,
+        ErrorMessage::ValueExpected,
     );
 
     err(
         "enum A { V1 } fn f() { A = 1; }",
         pos(1, 24),
-        SemError::LvalueExpected,
+        ErrorMessage::LvalueExpected,
     );
 
     err(
         "enum A { V1, V2 } fn f(): A { A::V3 }",
         pos(1, 32),
-        SemError::UnknownEnumVariant("V3".into()),
+        ErrorMessage::UnknownEnumVariant("V3".into()),
     );
 
     err(
         "enum A[T] { V1, V2 } fn f(): A[Int32] { A::V1 }",
         pos(1, 42),
-        SemError::WrongNumberTypeParams(1, 0),
+        ErrorMessage::WrongNumberTypeParams(1, 0),
     );
 
     err(
         "enum A[T] { V1(T), V2 } fn f(): A[Int32] { A[Int32]::V1 }",
         pos(1, 52),
-        SemError::EnumArgsIncompatible("A".into(), "V1".into(), vec!["T".into()], Vec::new()),
+        ErrorMessage::EnumArgsIncompatible("A".into(), "V1".into(), vec!["T".into()], Vec::new()),
     );
 
     err(
@@ -1782,7 +1798,7 @@ fn test_enum() {
         enum Foo[T] { A(T, Bool), B }
         fn f[T](val: T): Foo[T] { Foo::A[T, String](val, false) }",
         pos(3, 52),
-        SemError::WrongNumberTypeParams(1, 2),
+        ErrorMessage::WrongNumberTypeParams(1, 2),
     );
 
     ok("
@@ -1813,7 +1829,7 @@ fn test_enum_match() {
         }
     ",
         pos(6, 26),
-        SemError::MatchBranchTypesIncompatible("Int32".into(), "String".into()),
+        ErrorMessage::MatchBranchTypesIncompatible("Int32".into(), "String".into()),
     );
 }
 
@@ -1830,7 +1846,7 @@ fn test_enum_match_with_parens() {
         }
     ",
         pos(5, 17),
-        SemError::MatchPatternNoParens,
+        ErrorMessage::MatchPatternNoParens,
     );
 }
 
@@ -1847,7 +1863,7 @@ fn test_enum_match_wrong_number_params() {
         }
     ",
         pos(5, 17),
-        SemError::MatchPatternWrongNumberOfParams(0, 1),
+        ErrorMessage::MatchPatternWrongNumberOfParams(0, 1),
     );
 
     err(
@@ -1861,7 +1877,7 @@ fn test_enum_match_wrong_number_params() {
         }
     ",
         pos(5, 17),
-        SemError::MatchPatternWrongNumberOfParams(4, 3),
+        ErrorMessage::MatchPatternWrongNumberOfParams(4, 3),
     );
 }
 
@@ -1888,7 +1904,7 @@ fn test_enum_match_params() {
         }
     ",
         pos(6, 26),
-        SemError::UnknownIdentifier("a".into()),
+        ErrorMessage::UnknownIdentifier("a".into()),
     );
 
     err(
@@ -1902,7 +1918,7 @@ fn test_enum_match_params() {
         }
     ",
         pos(5, 26),
-        SemError::VarAlreadyInPattern,
+        ErrorMessage::VarAlreadyInPattern,
     );
 }
 
@@ -1919,7 +1935,7 @@ fn test_enum_match_missing_variants() {
         }
     ",
         pos(4, 13),
-        SemError::MatchUncoveredVariant,
+        ErrorMessage::MatchUncoveredVariant,
     );
 
     err(
@@ -1935,7 +1951,7 @@ fn test_enum_match_missing_variants() {
         }
     ",
         pos(8, 17),
-        SemError::MatchUnreachablePattern,
+        ErrorMessage::MatchUnreachablePattern,
     );
 }
 
@@ -1962,7 +1978,7 @@ fn test_enum_match_underscore() {
         }
     ",
         pos(6, 17),
-        SemError::MatchUnreachablePattern,
+        ErrorMessage::MatchUnreachablePattern,
     );
 }
 
@@ -1983,7 +1999,7 @@ fn test_enum_equals() {
         }
     ",
         pos(4, 15),
-        SemError::BinOpType("==".into(), "A".into(), "A".into()),
+        ErrorMessage::BinOpType("==".into(), "A".into(), "A".into()),
     );
 }
 
@@ -1998,13 +2014,23 @@ fn test_use_enum_value() {
     err(
         "enum A { V1(Int32), V2 } use A::V1; fn f(): A { V1 }",
         pos(1, 49),
-        SemError::EnumArgsIncompatible("A".into(), "V1".into(), vec!["Int32".into()], Vec::new()),
+        ErrorMessage::EnumArgsIncompatible(
+            "A".into(),
+            "V1".into(),
+            vec!["Int32".into()],
+            Vec::new(),
+        ),
     );
 
     err(
         "enum A { V1(Int32), V2 } use A::V2; fn f(): A { V2(0i32) }",
         pos(1, 51),
-        SemError::EnumArgsIncompatible("A".into(), "V2".into(), Vec::new(), vec!["Int32".into()]),
+        ErrorMessage::EnumArgsIncompatible(
+            "A".into(),
+            "V2".into(),
+            Vec::new(),
+            vec!["Int32".into()],
+        ),
     );
 
     ok("enum A[T] { V1(Int32), V2 } use A::V2; fn f(): A[Int32] { V2 }");
@@ -2014,7 +2040,7 @@ fn test_use_enum_value() {
     err(
         "enum A[T] { V1, V2 } use A::V2; fn f(): A[Int32] { V2[Int32, Float32] }",
         pos(1, 54),
-        SemError::WrongNumberTypeParams(1, 2),
+        ErrorMessage::WrongNumberTypeParams(1, 2),
     );
 }
 
@@ -2025,7 +2051,7 @@ fn test_enum_value_with_type_param() {
     err(
         "enum A[T] { V1, V2 } fn f(): A[Int32] { A[Int32]::V2[Int32] }",
         pos(1, 42),
-        SemError::ExpectedSomeIdentifier,
+        ErrorMessage::ExpectedSomeIdentifier,
     );
 }
 
@@ -2057,12 +2083,12 @@ fn test_tuple() {
     err(
         "fn f(a: (Int32, Bool)): (Int32) { return a; }",
         pos(1, 35),
-        SemError::ReturnType("(Int32)".into(), "(Int32, Bool)".into()),
+        ErrorMessage::ReturnType("(Int32)".into(), "(Int32, Bool)".into()),
     );
     err(
         "fn f(a: (Int32, Bool)): (Int32, Float32) { return a; }",
         pos(1, 44),
-        SemError::ReturnType("(Int32, Float32)".into(), "(Int32, Bool)".into()),
+        ErrorMessage::ReturnType("(Int32, Float32)".into(), "(Int32, Bool)".into()),
     );
 }
 
@@ -2077,7 +2103,7 @@ fn test_tuple_literal() {
         return (1i32);
     }",
         pos(2, 9),
-        SemError::ReturnType("(Int32)".into(), "Int32".into()),
+        ErrorMessage::ReturnType("(Int32)".into(), "Int32".into()),
     );
 
     err(
@@ -2085,7 +2111,7 @@ fn test_tuple_literal() {
         return (1i32, false);
     }",
         pos(2, 9),
-        SemError::ReturnType("(Int32, Int32)".into(), "(Int32, Bool)".into()),
+        ErrorMessage::ReturnType("(Int32, Int32)".into(), "(Int32, Bool)".into()),
     );
 }
 
@@ -2120,7 +2146,7 @@ fn test_tuple_element() {
         }
     ",
         pos(3, 13),
-        SemError::ReturnType("String".into(), "Bool".into()),
+        ErrorMessage::ReturnType("String".into(), "Bool".into()),
     );
 }
 
@@ -2136,7 +2162,7 @@ fn test_type_without_make_iterator() {
         }
     ",
         pos(4, 22),
-        SemError::TypeNotUsableInForIn("Foo".into()),
+        ErrorMessage::TypeNotUsableInForIn("Foo".into()),
     );
 }
 
@@ -2155,7 +2181,7 @@ fn test_type_make_iterator_not_implementing_iterator() {
         }
     ",
         pos(7, 22),
-        SemError::TypeNotUsableInForIn("Foo".into()),
+        ErrorMessage::TypeNotUsableInForIn("Foo".into()),
     );
 }
 
@@ -2169,7 +2195,11 @@ fn zero_trait_err() {
     err(
         "fn f() { Array[String]::zero(12i64); }",
         pos(1, 29),
-        SemError::UnknownStaticMethod("Array[String]".into(), "zero".into(), vec!["Int64".into()]),
+        ErrorMessage::UnknownStaticMethod(
+            "Array[String]".into(),
+            "zero".into(),
+            vec!["Int64".into()],
+        ),
     );
 }
 
@@ -2207,7 +2237,7 @@ fn extension_class_with_type_param() {
         fn f(x: Foo[Int32]) { x.bar() }
     ",
         pos(4, 36),
-        SemError::UnknownMethod("Foo[Int32]".into(), "bar".into(), Vec::new()),
+        ErrorMessage::UnknownMethod("Foo[Int32]".into(), "bar".into(), Vec::new()),
     );
 }
 
@@ -2245,7 +2275,7 @@ fn extension_class_tuple() {
         }
     ",
         pos(7, 18),
-        SemError::UnknownMethod("Foo[(Int32, Int32)]".into(), "bar".into(), Vec::new()),
+        ErrorMessage::UnknownMethod("Foo[(Int32, Int32)]".into(), "bar".into(), Vec::new()),
     );
 }
 
@@ -2265,7 +2295,7 @@ fn extension_nested() {
         }
     ",
         pos(10, 22),
-        SemError::UnknownMethod("Foo[Foo[Int32]]".into(), "bar".into(), Vec::new()),
+        ErrorMessage::UnknownMethod("Foo[Foo[Int32]]".into(), "bar".into(), Vec::new()),
     );
 }
 
@@ -2302,7 +2332,7 @@ fn extension_bind_type_param_twice() {
         }
     ",
         pos(7, 18),
-        SemError::UnknownMethod("Foo[(Int32, Float32)]".into(), "bar".into(), Vec::new()),
+        ErrorMessage::UnknownMethod("Foo[(Int32, Float32)]".into(), "bar".into(), Vec::new()),
     );
 
     err(
@@ -2316,7 +2346,7 @@ fn extension_bind_type_param_twice() {
         }
     ",
         pos(7, 18),
-        SemError::UnknownMethod("Foo[(T, Float32)]".into(), "bar".into(), Vec::new()),
+        ErrorMessage::UnknownMethod("Foo[(T, Float32)]".into(), "bar".into(), Vec::new()),
     );
 }
 
@@ -2345,7 +2375,7 @@ fn extension_struct_with_type_param() {
         fn f(x: Foo[Int32]) { x.bar() }
     ",
         pos(4, 36),
-        SemError::UnknownMethod("Foo[Int32]".into(), "bar".into(), Vec::new()),
+        ErrorMessage::UnknownMethod("Foo[Int32]".into(), "bar".into(), Vec::new()),
     );
 }
 
@@ -2374,7 +2404,7 @@ fn extension_enum_with_type_param() {
         fn f(x: Foo[Int32]) { x.bar() }
     ",
         pos(4, 36),
-        SemError::UnknownMethod("Foo[Int32]".into(), "bar".into(), Vec::new()),
+        ErrorMessage::UnknownMethod("Foo[Int32]".into(), "bar".into(), Vec::new()),
     );
 }
 
@@ -2388,7 +2418,7 @@ fn impl_class_type_params() {
         fn bar(x: Foo[Int32]) { x.bar(); }
     ",
         pos(5, 38),
-        SemError::UnknownMethod("Foo[Int32]".into(), "bar".into(), Vec::new()),
+        ErrorMessage::UnknownMethod("Foo[Int32]".into(), "bar".into(), Vec::new()),
     );
 
     ok("
@@ -2424,7 +2454,7 @@ fn impl_struct_type_params() {
         fn bar(x: Foo[Int32]) { x.bar(); }
     ",
         pos(5, 38),
-        SemError::UnknownMethod("Foo[Int32]".into(), "bar".into(), Vec::new()),
+        ErrorMessage::UnknownMethod("Foo[Int32]".into(), "bar".into(), Vec::new()),
     );
 
     ok("
@@ -2469,7 +2499,7 @@ fn impl_enum_type_params() {
         fn bar(x: Foo[Int32]) { x.bar(); }
     ",
         pos(5, 38),
-        SemError::UnknownMethod("Foo[Int32]".into(), "bar".into(), Vec::new()),
+        ErrorMessage::UnknownMethod("Foo[Int32]".into(), "bar".into(), Vec::new()),
     );
 
     ok("
@@ -2485,7 +2515,7 @@ fn method_call_on_unit() {
     err(
         "fn foo(a: ()) { a.foo(); }",
         pos(1, 22),
-        SemError::UnknownMethod("()".into(), "foo".into(), Vec::new()),
+        ErrorMessage::UnknownMethod("()".into(), "foo".into(), Vec::new()),
     );
 }
 
@@ -2504,7 +2534,7 @@ fn literal_without_suffix_byte() {
     err(
         "fn f(): UInt8 { 256 }",
         pos(1, 17),
-        SemError::NumberOverflow("UInt8".into()),
+        ErrorMessage::NumberOverflow("UInt8".into()),
     );
     ok("fn f() { let x: UInt8 = 1; }");
 }
@@ -2535,7 +2565,7 @@ fn variadic_parameter() {
         }
     ",
         pos(4, 14),
-        SemError::ParamTypesIncompatible("f".into(), vec!["Int32".into()], vec!["Bool".into()]),
+        ErrorMessage::ParamTypesIncompatible("f".into(), vec!["Int32".into()], vec!["Bool".into()]),
     );
     ok("
         fn f(x: Int32, y: Int32...) {}
@@ -2553,7 +2583,7 @@ fn variadic_parameter() {
         }
     ",
         pos(4, 14),
-        SemError::ParamTypesIncompatible(
+        ErrorMessage::ParamTypesIncompatible(
             "f".into(),
             vec!["Int32".into(), "Int32".into()],
             Vec::new(),
@@ -2562,7 +2592,7 @@ fn variadic_parameter() {
     err(
         "fn f(x: Int32..., y: Int32) {}",
         pos(1, 19),
-        SemError::VariadicParameterNeedsToBeLast,
+        ErrorMessage::VariadicParameterNeedsToBeLast,
     );
 }
 
@@ -2628,7 +2658,7 @@ fn check_no_type_params_with_generic_type() {
             fn f(x: Bar) {}
         ",
         pos(3, 21),
-        SemError::WrongNumberTypeParams(1, 0),
+        ErrorMessage::WrongNumberTypeParams(1, 0),
     );
 }
 
@@ -2640,7 +2670,7 @@ fn check_wrong_number_type_params() {
             fn bar[T](x: T) {}
         ",
         pos(2, 34),
-        SemError::ParamTypesIncompatible("bar".into(), vec!["T".into()], vec!["Bool".into()]),
+        ErrorMessage::ParamTypesIncompatible("bar".into(), vec!["T".into()], vec!["Bool".into()]),
     );
 }
 
@@ -2656,7 +2686,7 @@ fn redefine_function() {
         fn f() {}
         fn f() {}",
         pos(3, 9),
-        SemError::ShadowFunction("f".into()),
+        ErrorMessage::ShadowFunction("f".into()),
     );
 }
 
@@ -2668,7 +2698,7 @@ fn shadow_type_with_function() {
         fn FooBar() {}
         ",
         pos(3, 9),
-        SemError::ShadowClass("FooBar".into()),
+        ErrorMessage::ShadowClass("FooBar".into()),
     );
 }
 
@@ -2677,7 +2707,7 @@ fn define_param_name_twice() {
     err(
         "fn test(x: String, x: Int32) {}",
         pos(1, 20),
-        SemError::ShadowParam("x".into()),
+        ErrorMessage::ShadowParam("x".into()),
     );
 }
 
@@ -2686,7 +2716,7 @@ fn show_type_param_with_name() {
     err(
         "fn test[T](T: Int32) {}",
         pos(1, 12),
-        SemError::ShadowTypeParam("T".into()),
+        ErrorMessage::ShadowTypeParam("T".into()),
     );
 }
 
@@ -2701,7 +2731,7 @@ fn shadow_function() {
     err(
         "fn f() { let f = 1i32; f(); }",
         pos(1, 25),
-        SemError::UnknownMethod("Int32".into(), "get".into(), Vec::new()),
+        ErrorMessage::UnknownMethod("Int32".into(), "get".into(), Vec::new()),
     );
 }
 
@@ -2715,7 +2745,7 @@ fn shadow_param() {
     err(
         "fn f(a: Int32, b: Int32, a: String) {}",
         pos(1, 26),
-        SemError::ShadowParam("a".into()),
+        ErrorMessage::ShadowParam("a".into()),
     );
 }
 
@@ -2729,12 +2759,12 @@ fn undefined_variable() {
     err(
         "fn f() { let b = a; }",
         pos(1, 18),
-        SemError::UnknownIdentifier("a".into()),
+        ErrorMessage::UnknownIdentifier("a".into()),
     );
     err(
         "fn f() { a; }",
         pos(1, 10),
-        SemError::UnknownIdentifier("a".into()),
+        ErrorMessage::UnknownIdentifier("a".into()),
     );
 }
 
@@ -2743,7 +2773,7 @@ fn undefined_function() {
     err(
         "fn f() { foo(); }",
         pos(1, 10),
-        SemError::UnknownIdentifier("foo".into()),
+        ErrorMessage::UnknownIdentifier("foo".into()),
     );
 }
 
@@ -2765,7 +2795,7 @@ fn variable_outside_of_scope() {
     err(
         "fn f(): Int32 { { let a = 1i32; } return a; }",
         pos(1, 42),
-        SemError::UnknownIdentifier("a".into()),
+        ErrorMessage::UnknownIdentifier("a".into()),
     );
 
     ok("fn f(): Int32 { let a = 1i32; { let a = 2i32; } return a; }");
@@ -2790,7 +2820,7 @@ fn mod_fct_call() {
         mod foo { fn g() {} }
     ",
         pos(2, 24),
-        SemError::NotAccessible("foo::g".into()),
+        ErrorMessage::NotAccessible("foo::g".into()),
     );
 
     ok("
@@ -2817,7 +2847,7 @@ fn mod_fct_call() {
         }
     ",
         pos(2, 31),
-        SemError::NotAccessible("foo::bar::baz".into()),
+        ErrorMessage::NotAccessible("foo::bar::baz".into()),
     );
 }
 
@@ -2834,7 +2864,7 @@ fn mod_ctor_call() {
         mod foo { class Foo }
     ",
         pos(2, 26),
-        SemError::NotAccessible("foo::Foo".into()),
+        ErrorMessage::NotAccessible("foo::Foo".into()),
     );
 
     ok("
@@ -2848,7 +2878,7 @@ fn mod_ctor_call() {
         mod foo { @pub mod bar { class Foo } }
     ",
         pos(2, 31),
-        SemError::NotAccessible("foo::bar::Foo".into()),
+        ErrorMessage::NotAccessible("foo::bar::Foo".into()),
     );
 }
 
@@ -2860,7 +2890,7 @@ fn mod_class_field() {
         mod foo { @pub class Foo(bar: Int32) }
     ",
         pos(2, 38),
-        SemError::NotAccessible("bar".into()),
+        ErrorMessage::NotAccessible("bar".into()),
     );
 
     err(
@@ -2869,7 +2899,7 @@ fn mod_class_field() {
         mod foo { @pub class Foo(bar: Array[Int32]) }
     ",
         pos(2, 42),
-        SemError::NotAccessible("bar".into()),
+        ErrorMessage::NotAccessible("bar".into()),
     );
 
     err(
@@ -2878,7 +2908,7 @@ fn mod_class_field() {
         mod foo { @pub class Foo(bar: Array[Int32]) }
     ",
         pos(2, 30),
-        SemError::NotAccessible("bar".into()),
+        ErrorMessage::NotAccessible("bar".into()),
     );
 
     ok("
@@ -2906,7 +2936,7 @@ fn mod_class_method() {
         }
     ",
         pos(2, 34),
-        SemError::NotAccessible("foo::Foo#bar".into()),
+        ErrorMessage::NotAccessible("foo::Foo#bar".into()),
     );
 }
 
@@ -2929,7 +2959,7 @@ fn mod_class_static_method() {
         }
     ",
         pos(2, 31),
-        SemError::NotAccessible("foo::Foo::bar".into()),
+        ErrorMessage::NotAccessible("foo::Foo::bar".into()),
     );
 }
 
@@ -2941,7 +2971,7 @@ fn mod_struct_field() {
         mod foo { @pub struct Foo(bar: Int32) }
     ",
         pos(2, 38),
-        SemError::NotAccessible("bar".into()),
+        ErrorMessage::NotAccessible("bar".into()),
     );
 
     ok("
@@ -2955,7 +2985,7 @@ fn mod_struct_field() {
         mod foo { @pub struct Foo(bar: Array[Int32]) }
     ",
         pos(2, 42),
-        SemError::NotAccessible("bar".into()),
+        ErrorMessage::NotAccessible("bar".into()),
     );
 
     err(
@@ -2964,7 +2994,7 @@ fn mod_struct_field() {
         mod foo { @pub struct Foo(bar: Array[Int32]) }
     ",
         pos(2, 30),
-        SemError::NotAccessible("bar".into()),
+        ErrorMessage::NotAccessible("bar".into()),
     );
 
     ok("
@@ -2985,7 +3015,7 @@ fn mod_path_in_type() {
         fn f(): bar::Foo { 1i32 }
     ",
         pos(2, 17),
-        SemError::ExpectedModule,
+        ErrorMessage::ExpectedModule,
     );
 
     err(
@@ -2994,7 +3024,7 @@ fn mod_path_in_type() {
         fn f(): bar::Foo { 1i32 }
     ",
         pos(3, 17),
-        SemError::ExpectedModule,
+        ErrorMessage::ExpectedModule,
     );
 
     err(
@@ -3003,7 +3033,7 @@ fn mod_path_in_type() {
         mod foo {}
     ",
         pos(2, 17),
-        SemError::ExpectedModule,
+        ErrorMessage::ExpectedModule,
     );
 }
 
@@ -3020,7 +3050,7 @@ fn mod_global() {
         mod foo { let x: Int32 = 1i32; }
     ",
         pos(2, 28),
-        SemError::NotAccessible("foo::x".into()),
+        ErrorMessage::NotAccessible("foo::x".into()),
     );
 }
 
@@ -3078,7 +3108,7 @@ fn mod_class_new() {
         }
     ",
         pos(2, 26),
-        SemError::NotAccessible("foo::Foo".into()),
+        ErrorMessage::NotAccessible("foo::Foo".into()),
     );
 
     err(
@@ -3089,7 +3119,7 @@ fn mod_class_new() {
         }
     ",
         pos(2, 26),
-        SemError::NotAccessible("foo::Foo".into()),
+        ErrorMessage::NotAccessible("foo::Foo".into()),
     );
 
     err(
@@ -3100,7 +3130,7 @@ fn mod_class_new() {
         }
     ",
         pos(2, 26),
-        SemError::ClassConstructorNotAccessible("foo::Foo".into()),
+        ErrorMessage::ClassConstructorNotAccessible("foo::Foo".into()),
     );
 }
 
@@ -3114,7 +3144,7 @@ fn mod_struct() {
         }
     ",
         pos(2, 26),
-        SemError::NotAccessible("foo::Foo".into()),
+        ErrorMessage::NotAccessible("foo::Foo".into()),
     );
 
     err(
@@ -3125,7 +3155,7 @@ fn mod_struct() {
         }
     ",
         pos(2, 26),
-        SemError::NotAccessible("foo::Foo".into()),
+        ErrorMessage::NotAccessible("foo::Foo".into()),
     );
 
     err(
@@ -3136,7 +3166,7 @@ fn mod_struct() {
         }
     ",
         pos(2, 26),
-        SemError::StructConstructorNotAccessible("foo::Foo".into()),
+        ErrorMessage::StructConstructorNotAccessible("foo::Foo".into()),
     );
 
     ok("
@@ -3161,7 +3191,7 @@ fn mod_struct() {
         }
     ",
         pos(2, 21),
-        SemError::NotAccessible("foo::Foo".into()),
+        ErrorMessage::NotAccessible("foo::Foo".into()),
     );
 }
 
@@ -3178,7 +3208,7 @@ fn mod_const() {
         mod foo { const x: Int32 = 1i32; }
     ",
         pos(2, 28),
-        SemError::NotAccessible("foo::x".into()),
+        ErrorMessage::NotAccessible("foo::x".into()),
     );
 
     ok("
@@ -3200,7 +3230,7 @@ fn mod_enum_value() {
         mod foo { enum Foo { A, B } use Foo::A; }
     ",
         pos(2, 21),
-        SemError::NotAccessible("foo::Foo".into()),
+        ErrorMessage::NotAccessible("foo::Foo".into()),
     );
 
     ok("
@@ -3214,7 +3244,7 @@ fn mod_enum_value() {
         mod foo { @pub mod bar { enum Foo { A, B } use Foo::A; } }
     ",
         pos(2, 26),
-        SemError::NotAccessible("foo::bar::Foo".into()),
+        ErrorMessage::NotAccessible("foo::bar::Foo".into()),
     );
 }
 
@@ -3228,7 +3258,7 @@ fn mod_enum() {
         mod foo { enum Foo { A(Bar), B } class Bar }
     ",
         pos(3, 21),
-        SemError::NotAccessible("foo::Foo".into()),
+        ErrorMessage::NotAccessible("foo::Foo".into()),
     );
 
     ok("
@@ -3253,7 +3283,7 @@ fn mod_enum() {
         mod foo { enum Foo { A(Int32), B } }
     ",
         pos(3, 24),
-        SemError::NotAccessible("foo::Foo".into()),
+        ErrorMessage::NotAccessible("foo::Foo".into()),
     );
 }
 
@@ -3362,7 +3392,7 @@ fn mod_use_super() {
         }
     ");
 
-    err("use super::Foo;", pos(1, 5), SemError::NoSuperModule);
+    err("use super::Foo;", pos(1, 5), ErrorMessage::NoSuperModule);
 }
 
 #[test]
@@ -3382,7 +3412,7 @@ fn mod_use_errors() {
         mod foo { @pub mod bar {} }
     ",
         pos(2, 23),
-        SemError::UnknownIdentifierInModule("foo::bar".into(), "baz".into()),
+        ErrorMessage::UnknownIdentifierInModule("foo::bar".into(), "baz".into()),
     );
 
     err(
@@ -3390,7 +3420,7 @@ fn mod_use_errors() {
         use foo::bar;
     ",
         pos(2, 13),
-        SemError::UnknownIdentifierInModule("".into(), "foo".into()),
+        ErrorMessage::UnknownIdentifierInModule("".into(), "foo".into()),
     );
 
     err(
@@ -3399,7 +3429,7 @@ fn mod_use_errors() {
         mod foo {}
     ",
         pos(2, 18),
-        SemError::UnknownIdentifierInModule("foo".into(), "bar".into()),
+        ErrorMessage::UnknownIdentifierInModule("foo".into(), "bar".into()),
     );
 
     err(
@@ -3408,7 +3438,7 @@ fn mod_use_errors() {
         fn foo() {}
     ",
         pos(2, 13),
-        SemError::ExpectedPath,
+        ErrorMessage::ExpectedPath,
     );
 
     err(
@@ -3417,7 +3447,7 @@ fn mod_use_errors() {
         @pub mod foo { @pub fn bar() {} }
     ",
         pos(2, 18),
-        SemError::ExpectedPath,
+        ErrorMessage::ExpectedPath,
     );
 }
 
@@ -3442,7 +3472,7 @@ fn mod_inside() {
         mod foo { class Foo }
     ",
         pos(2, 17),
-        SemError::NotAccessible("foo::Foo".into()),
+        ErrorMessage::NotAccessible("foo::Foo".into()),
     );
 }
 
@@ -3454,16 +3484,16 @@ fn different_fct_call_kinds() {
     err(
         "fn f(g: Array[Int32]) { g[Float32](0); }",
         pos(1, 26),
-        SemError::NoTypeParamsExpected,
+        ErrorMessage::NoTypeParamsExpected,
     );
     ok("class Foo fn f() { Foo(); }");
     errors(
         "fn f() { 1i32[Int32](); }",
         &[
-            (pos(1, 14), SemError::NoTypeParamsExpected),
+            (pos(1, 14), ErrorMessage::NoTypeParamsExpected),
             (
                 pos(1, 21),
-                SemError::UnknownMethod("Int32".into(), "get".into(), Vec::new()),
+                ErrorMessage::UnknownMethod("Int32".into(), "get".into(), Vec::new()),
             ),
         ],
     );
@@ -3473,7 +3503,7 @@ fn different_fct_call_kinds() {
     err(
         "enum Foo[T] { A(Int32), B } fn f() { Foo[Int32]::A[Int32](1i32); }",
         pos(1, 41),
-        SemError::NoTypeParamsExpected,
+        ErrorMessage::NoTypeParamsExpected,
     );
     ok("trait MyTrait { @static fn foo(); } fn f[T: MyTrait]() { T::foo(); }");
     ok("class Foo impl Foo { fn bar() {} } fn f(g: Foo) { g.bar(); }");
@@ -3531,7 +3561,7 @@ fn trait_object_cast() {
         }
     ",
         pos(6, 21),
-        SemError::TypeNotImplementingTrait("Bar".into(), "Foo".into()),
+        ErrorMessage::TypeNotImplementingTrait("Bar".into(), "Foo".into()),
     );
 }
 
@@ -3577,7 +3607,7 @@ fn method_call_type_mismatch_with_type_params() {
         }
     ",
         pos(7, 18),
-        SemError::ParamTypesIncompatible("f".into(), vec!["String".into()], vec!["T".into()]),
+        ErrorMessage::ParamTypesIncompatible("f".into(), vec!["String".into()], vec!["T".into()]),
     );
 }
 
@@ -3592,7 +3622,7 @@ fn basic_lambda() {
         foo(1i32)
     }",
         pos(1, 33),
-        SemError::ReturnType("Bool".into(), "Int32".into()),
+        ErrorMessage::ReturnType("Bool".into(), "Int32".into()),
     );
 
     err(
@@ -3600,7 +3630,7 @@ fn basic_lambda() {
         foo(1i32)
     }",
         pos(2, 12),
-        SemError::LambdaParamTypesIncompatible(
+        ErrorMessage::LambdaParamTypesIncompatible(
             vec!["Int32".into(), "Int32".into()],
             vec!["Int32".into()],
         ),
@@ -3622,7 +3652,7 @@ fn lambda_body() {
         |x: Int32|: Int32 { false }
     }",
         pos(2, 27),
-        SemError::ReturnType("Int32".into(), "Bool".into()),
+        ErrorMessage::ReturnType("Int32".into(), "Bool".into()),
     );
 }
 
@@ -3643,7 +3673,7 @@ fn lambda_closure() {
         let x: Int32 = 10i32;
     }",
         pos(2, 21),
-        SemError::UnknownIdentifier("x".into()),
+        ErrorMessage::UnknownIdentifier("x".into()),
     );
 }
 
@@ -3654,7 +3684,7 @@ fn internal_class_ctor() {
         Array[Int32]()
     }",
         pos(2, 21),
-        SemError::ClassConstructorNotAccessible("std::collections::Array".into()),
+        ErrorMessage::ClassConstructorNotAccessible("std::collections::Array".into()),
     );
 }
 
@@ -3665,7 +3695,7 @@ fn internal_struct_ctor() {
         Int32();
     }",
         pos(2, 14),
-        SemError::StructConstructorNotAccessible("std::primitives::Int32".into()),
+        ErrorMessage::StructConstructorNotAccessible("std::primitives::Int32".into()),
     );
 }
 
@@ -3675,7 +3705,7 @@ fn mutable_param() {
     err(
         "fn f(x: Int64) { x = 10; }",
         pos(1, 20),
-        SemError::LetReassigned,
+        ErrorMessage::LetReassigned,
     );
 }
 
@@ -3684,6 +3714,6 @@ fn self_unavailable_in_lambda() {
     err(
         "fn f() { || { self; }; }",
         pos(1, 15),
-        SemError::ThisUnavailable,
+        ErrorMessage::ThisUnavailable,
     );
 }

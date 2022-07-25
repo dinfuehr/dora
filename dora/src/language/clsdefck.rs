@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::language::error::msg::SemError;
+use crate::language::error::msg::ErrorMessage;
 use crate::language::sem_analysis::{
     ClassDefinitionId, Field, FieldId, ModuleDefinitionId, SemAnalysis, SourceFileId,
 };
@@ -115,14 +115,14 @@ impl<'x> ClsDefCheck<'x> {
             self.sa
                 .diag
                 .lock()
-                .report(file, pos, SemError::ShadowField(name));
+                .report(file, pos, ErrorMessage::ShadowField(name));
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::language::error::msg::SemError;
+    use crate::language::error::msg::ErrorMessage;
     use crate::language::tests::*;
 
     #[test]
@@ -136,12 +136,12 @@ mod tests {
         err(
             "class Foo(a: Unknown)",
             pos(1, 14),
-            SemError::UnknownIdentifier("Unknown".into()),
+            ErrorMessage::UnknownIdentifier("Unknown".into()),
         );
         err(
             "class Foo(a: Int32, a: Int32)",
             pos(1, 21),
-            SemError::ShadowField("a".to_string()),
+            ErrorMessage::ShadowField("a".to_string()),
         );
     }
 
@@ -150,7 +150,7 @@ mod tests {
         err(
             "class Foo(a: Int32, a: Int32)",
             pos(1, 21),
-            SemError::ShadowField("a".into()),
+            ErrorMessage::ShadowField("a".into()),
         );
     }
 
@@ -161,9 +161,9 @@ mod tests {
         err(
             "class A[T, T]",
             pos(1, 12),
-            SemError::TypeParamNameNotUnique("T".into()),
+            ErrorMessage::TypeParamNameNotUnique("T".into()),
         );
-        err("class A[]", pos(1, 1), SemError::TypeParamsExpected);
+        err("class A[]", pos(1, 1), ErrorMessage::TypeParamsExpected);
     }
 
     #[test]
@@ -178,12 +178,12 @@ mod tests {
         err(
             "class A[T: Foo]",
             pos(1, 12),
-            SemError::UnknownIdentifier("Foo".into()),
+            ErrorMessage::UnknownIdentifier("Foo".into()),
         );
         err(
             "class Foo class A[T: Foo]",
             pos(1, 22),
-            SemError::BoundExpected,
+            ErrorMessage::BoundExpected,
         );
         ok("trait Foo {} class A[T: Foo]");
     }
@@ -194,7 +194,7 @@ mod tests {
             "trait Foo {}
             class A[T: Foo + Foo]",
             pos(2, 21),
-            SemError::DuplicateTraitBound,
+            ErrorMessage::DuplicateTraitBound,
         );
     }
 
@@ -205,7 +205,7 @@ mod tests {
             class X
             impl X { @static fn foo() {} @static fn foo(a: String) {} }",
             pos(3, 50),
-            SemError::MethodExists("foo".into(), pos(3, 30)),
+            ErrorMessage::MethodExists("foo".into(), pos(3, 30)),
         );
     }
 }

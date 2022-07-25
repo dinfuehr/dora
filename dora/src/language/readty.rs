@@ -4,7 +4,7 @@ use std::sync::Arc;
 use crate::language::access::{
     class_accessible_from, enum_accessible_from, struct_accessible_from, trait_accessible_from,
 };
-use crate::language::error::msg::SemError;
+use crate::language::error::msg::ErrorMessage;
 use crate::language::sem_analysis::{
     create_tuple, implements_trait, ClassDefinitionId, EnumDefinitionId, ExtensionDefinitionId,
     FctDefinition, ImplDefinition, SemAnalysis, SourceFileId, StructDefinitionId,
@@ -81,7 +81,7 @@ fn read_type_basic_unchecked(
         Some(Sym::Enum(enum_id)) => SourceType::Enum(enum_id, type_params),
         Some(Sym::TypeParam(type_param_id)) => {
             if node.params.len() > 0 {
-                let msg = SemError::NoTypeParamsExpected;
+                let msg = ErrorMessage::NoTypeParamsExpected;
                 sa.diag.lock().report(file_id, node.pos, msg);
             }
 
@@ -93,7 +93,7 @@ fn read_type_basic_unchecked(
                 .interner
                 .str(node.path.names.last().cloned().unwrap())
                 .to_string();
-            let msg = SemError::UnknownType(name);
+            let msg = ErrorMessage::UnknownType(name);
             sa.diag.lock().report(file_id, node.pos, msg);
             SourceType::Error
         }
@@ -102,7 +102,7 @@ fn read_type_basic_unchecked(
                 .interner
                 .str(node.path.names.last().cloned().unwrap())
                 .to_string();
-            let msg = SemError::UnknownIdentifier(name);
+            let msg = ErrorMessage::UnknownIdentifier(name);
             sa.diag.lock().report(file_id, node.pos, msg);
             SourceType::Error
         }
@@ -163,7 +163,7 @@ pub fn read_type(
             AllowSelf::No => {
                 sa.diag
                     .lock()
-                    .report(file_id, node.pos, SemError::SelfTypeUnavailable);
+                    .report(file_id, node.pos, ErrorMessage::SelfTypeUnavailable);
 
                 None
             }
@@ -197,7 +197,7 @@ fn read_type_basic(
             .interner
             .str(basic.path.names.last().cloned().unwrap())
             .to_string();
-        let msg = SemError::UnknownIdentifier(name);
+        let msg = ErrorMessage::UnknownIdentifier(name);
         sa.diag.lock().report(file_id, basic.pos, msg);
         return None;
     }
@@ -219,7 +219,7 @@ fn read_type_basic(
 
         Sym::TypeParam(type_param_id) => {
             if basic.params.len() > 0 {
-                let msg = SemError::NoTypeParamsExpected;
+                let msg = ErrorMessage::NoTypeParamsExpected;
                 sa.diag.lock().report(file_id, basic.pos, msg);
             }
 
@@ -266,7 +266,7 @@ fn table_for_module(
         Some(Sym::Module(module_id)) => Ok(sa.modules[module_id].read().table.clone()),
 
         _ => {
-            let msg = SemError::ExpectedModule;
+            let msg = ErrorMessage::ExpectedModule;
             sa.diag.lock().report(file_id, basic.pos, msg);
             Err(())
         }
@@ -284,7 +284,7 @@ fn read_type_enum(
 ) -> Option<SourceType> {
     if !enum_accessible_from(sa, enum_id, table.module_id()) {
         let enum_ = sa.enums[enum_id].read();
-        let msg = SemError::NotAccessible(enum_.name(sa));
+        let msg = ErrorMessage::NotAccessible(enum_.name(sa));
         sa.diag.lock().report(file_id, basic.pos, msg);
     }
 
@@ -330,7 +330,7 @@ fn read_type_struct(
     if !struct_accessible_from(sa, struct_id, table.module_id()) {
         let struct_ = sa.structs.idx(struct_id);
         let struct_ = struct_.read();
-        let msg = SemError::NotAccessible(struct_.name(sa));
+        let msg = ErrorMessage::NotAccessible(struct_.name(sa));
         sa.diag.lock().report(file_id, basic.pos, msg);
     }
 
@@ -381,7 +381,7 @@ fn read_type_trait(
 ) -> Option<SourceType> {
     if !trait_accessible_from(sa, trait_id, table.module_id()) {
         let trait_ = sa.traits[trait_id].read();
-        let msg = SemError::NotAccessible(trait_.name(sa));
+        let msg = ErrorMessage::NotAccessible(trait_.name(sa));
         sa.diag.lock().report(file_id, basic.pos, msg);
     }
 
@@ -425,7 +425,7 @@ fn check_type_params(
     ctxt: TypeParamContext,
 ) -> bool {
     if tp_definitions.len() != type_params.len() {
-        let msg = SemError::WrongNumberTypeParams(tp_definitions.len(), type_params.len());
+        let msg = ErrorMessage::WrongNumberTypeParams(tp_definitions.len(), type_params.len());
         sa.diag.lock().report(file_id, pos, msg);
         return false;
     }
@@ -443,7 +443,7 @@ fn check_type_params(
             if !implements_trait(sa, tp_ty.clone(), check_type_param_defs, trait_ty.clone()) {
                 let name = tp_ty.name_with_type_params(sa, check_type_param_defs);
                 let trait_name = trait_ty.name_with_type_params(sa, check_type_param_defs);
-                let msg = SemError::TypeNotImplementingTrait(name, trait_name);
+                let msg = ErrorMessage::TypeNotImplementingTrait(name, trait_name);
                 sa.diag.lock().report(file_id, pos, msg);
                 success = false;
             }
@@ -512,7 +512,7 @@ fn read_type_class(
     if !class_accessible_from(sa, cls_id, table.module_id()) {
         let cls = sa.classes.idx(cls_id);
         let cls = cls.read();
-        let msg = SemError::NotAccessible(cls.name(sa));
+        let msg = ErrorMessage::NotAccessible(cls.name(sa));
         sa.diag.lock().report(file_id, basic.pos, msg);
     }
 
@@ -604,7 +604,7 @@ fn read_type_lambda(
 
 #[cfg(test)]
 mod tests {
-    use crate::language::error::msg::SemError;
+    use crate::language::error::msg::ErrorMessage;
     use crate::language::tests::*;
 
     #[test]
@@ -620,7 +620,7 @@ mod tests {
             mod foo { class Foo }
         ",
             pos(2, 21),
-            SemError::NotAccessible("foo::Foo".into()),
+            ErrorMessage::NotAccessible("foo::Foo".into()),
         );
     }
 
@@ -637,7 +637,7 @@ mod tests {
             mod foo { enum Foo { A, B } }
         ",
             pos(2, 21),
-            SemError::NotAccessible("foo::Foo".into()),
+            ErrorMessage::NotAccessible("foo::Foo".into()),
         );
     }
 
@@ -654,7 +654,7 @@ mod tests {
             mod foo { trait Foo {} }
         ",
             pos(2, 21),
-            SemError::NotAccessible("foo::Foo".into()),
+            ErrorMessage::NotAccessible("foo::Foo".into()),
         );
     }
 }

@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::language::error::msg::SemError;
+use crate::language::error::msg::ErrorMessage;
 use crate::language::sem_analysis::{
     FctDefinition, FctDefinitionId, FctParent, SemAnalysis, TypeParamId,
 };
@@ -63,7 +63,7 @@ pub fn check(sa: &SemAnalysis) {
                 for (type_param_id, type_param) in type_params.iter().enumerate() {
                     if !names.insert(type_param.name) {
                         let name = sa.interner.str(type_param.name).to_string();
-                        let msg = SemError::TypeParamNameNotUnique(name);
+                        let msg = ErrorMessage::TypeParamNameNotUnique(name);
                         sa.diag.lock().report(fct.file_id, type_param.pos, msg);
                     }
 
@@ -85,11 +85,11 @@ pub fn check(sa: &SemAnalysis) {
                                     TypeParamId(container_type_params + type_param_id),
                                     ty,
                                 ) {
-                                    let msg = SemError::DuplicateTraitBound;
+                                    let msg = ErrorMessage::DuplicateTraitBound;
                                     sa.diag.lock().report(fct.file_id, type_param.pos, msg);
                                 }
                             } else {
-                                let msg = SemError::BoundExpected;
+                                let msg = ErrorMessage::BoundExpected;
                                 sa.diag.lock().report(fct.file_id, bound.pos(), msg);
                             }
                         } else {
@@ -101,16 +101,18 @@ pub fn check(sa: &SemAnalysis) {
                     sym_table.insert(type_param.name, sym);
                 }
             } else {
-                let msg = SemError::TypeParamsExpected;
+                let msg = ErrorMessage::TypeParamsExpected;
                 sa.diag.lock().report(fct.file_id, fct.pos, msg);
             }
         }
 
         for p in &ast.params {
             if fct.is_variadic {
-                sa.diag
-                    .lock()
-                    .report(fct.file_id, p.pos, SemError::VariadicParameterNeedsToBeLast);
+                sa.diag.lock().report(
+                    fct.file_id,
+                    p.pos,
+                    ErrorMessage::VariadicParameterNeedsToBeLast,
+                );
             }
 
             let ty = language::read_type(
@@ -186,7 +188,7 @@ fn check_test(sa: &SemAnalysis, fct: &FctDefinition) {
         || !fct.param_types.is_empty()
         || (!fct.return_type.is_unit() && !fct.return_type.is_error())
     {
-        let msg = SemError::InvalidTestAnnotationUsage;
+        let msg = ErrorMessage::InvalidTestAnnotationUsage;
         sa.diag.lock().report(fct.file_id, fct.pos, msg);
     }
 }
@@ -203,7 +205,7 @@ fn check_against_methods(sa: &SemAnalysis, fct: &FctDefinition, methods: &[FctDe
         if method.initialized && method.name == fct.name && method.is_static == fct.is_static {
             let method_name = sa.interner.str(method.name).to_string();
 
-            let msg = SemError::MethodExists(method_name, method.pos);
+            let msg = ErrorMessage::MethodExists(method_name, method.pos);
             sa.diag.lock().report(fct.file_id, fct.ast.pos, msg);
             return;
         }
@@ -212,7 +214,7 @@ fn check_against_methods(sa: &SemAnalysis, fct: &FctDefinition, methods: &[FctDe
 
 #[cfg(test)]
 mod tests {
-    use crate::language::error::msg::SemError;
+    use crate::language::error::msg::ErrorMessage;
     use crate::language::tests::*;
 
     #[test]
@@ -220,7 +222,7 @@ mod tests {
         err(
             "fn foo(x: Self) {}",
             pos(1, 11),
-            SemError::SelfTypeUnavailable,
+            ErrorMessage::SelfTypeUnavailable,
         );
     }
 
@@ -229,7 +231,7 @@ mod tests {
         err(
             "fn foo(): Self {}",
             pos(1, 11),
-            SemError::SelfTypeUnavailable,
+            ErrorMessage::SelfTypeUnavailable,
         );
     }
 
@@ -249,9 +251,9 @@ mod tests {
         err(
             "fn f[T, T]() {}",
             pos(1, 9),
-            SemError::TypeParamNameNotUnique("T".into()),
+            ErrorMessage::TypeParamNameNotUnique("T".into()),
         );
-        err("fn f[]() {}", pos(1, 1), SemError::TypeParamsExpected);
+        err("fn f[]() {}", pos(1, 1), ErrorMessage::TypeParamsExpected);
     }
 
     #[test]
@@ -268,12 +270,12 @@ mod tests {
         err(
             "fn f() { ||: Foo { }; }",
             pos(1, 14),
-            SemError::UnknownIdentifier("Foo".into()),
+            ErrorMessage::UnknownIdentifier("Foo".into()),
         );
         err(
             "fn f() { |a: Foo| { }; }",
             pos(1, 14),
-            SemError::UnknownIdentifier("Foo".into()),
+            ErrorMessage::UnknownIdentifier("Foo".into()),
         );
     }
 
@@ -282,12 +284,12 @@ mod tests {
         err(
             "fn f[T: Foo]() {}",
             pos(1, 9),
-            SemError::UnknownIdentifier("Foo".into()),
+            ErrorMessage::UnknownIdentifier("Foo".into()),
         );
         err(
             "class Foo fn f[T: Foo]() {}",
             pos(1, 19),
-            SemError::BoundExpected,
+            ErrorMessage::BoundExpected,
         );
         ok("trait Foo {} fn f[T: Foo]() {}");
 
@@ -295,7 +297,7 @@ mod tests {
             "trait Foo {}
             fn f[T: Foo + Foo]() {  }",
             pos(2, 18),
-            SemError::DuplicateTraitBound,
+            ErrorMessage::DuplicateTraitBound,
         );
     }
 
@@ -305,7 +307,7 @@ mod tests {
         err(
             "fn f(a: T) {}",
             pos(1, 9),
-            SemError::UnknownIdentifier("T".into()),
+            ErrorMessage::UnknownIdentifier("T".into()),
         );
     }
 }

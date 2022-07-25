@@ -1,4 +1,4 @@
-use crate::language::error::msg::SemError;
+use crate::language::error::msg::ErrorMessage;
 use crate::language::sem_analysis::{
     EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId, ModuleDefinitionId, SemAnalysis,
     SourceFileId, StructDefinitionId, TypeParamDefinition, TypeParamId,
@@ -146,7 +146,7 @@ impl<'x> ExtensionCheck<'x> {
             self.sa
                 .diag
                 .lock()
-                .report(self.file_id.into(), fct.pos, SemError::MissingFctBody);
+                .report(self.file_id.into(), fct.pos, ErrorMessage::MissingFctBody);
         }
 
         if self.extension_ty.is_error() {
@@ -246,7 +246,7 @@ impl<'x> ExtensionCheck<'x> {
             let method = self.sa.fcts.idx(method_id);
             let method = method.read();
             let method_name = self.sa.interner.str(method.name).to_string();
-            let msg = SemError::MethodExists(method_name, method.pos);
+            let msg = ErrorMessage::MethodExists(method_name, method.pos);
             self.sa.diag.lock().report(self.file_id.into(), f.pos, msg);
             false
         } else {
@@ -273,7 +273,7 @@ pub fn check_for_unconstrained_type_params(
         let tp_name = sa.interner.str(type_param_def).to_string();
         sa.diag
             .lock()
-            .report(file_id, pos, SemError::UnconstrainedTypeParam(tp_name));
+            .report(file_id, pos, ErrorMessage::UnconstrainedTypeParam(tp_name));
     }
 }
 
@@ -313,7 +313,7 @@ fn discover_type_params(sa: &SemAnalysis, ty: SourceType, used_type_params: &mut
 
 #[cfg(test)]
 mod tests {
-    use crate::language::error::msg::SemError;
+    use crate::language::error::msg::ErrorMessage;
     use crate::language::tests::*;
 
     #[test]
@@ -323,14 +323,14 @@ mod tests {
         err(
             "class A impl A[String] {}",
             pos(1, 14),
-            SemError::WrongNumberTypeParams(0, 1),
+            ErrorMessage::WrongNumberTypeParams(0, 1),
         );
 
         ok("class A[T] impl A[Int32] {} impl A[String] {}");
         err(
             "class A[T: std::Zero] impl A[Int32] {} impl A[String] {}",
             pos(1, 45),
-            SemError::TypeNotImplementingTrait("String".into(), "Zero".into()),
+            ErrorMessage::TypeNotImplementingTrait("String".into(), "Zero".into()),
         );
     }
 
@@ -340,7 +340,7 @@ mod tests {
         err(
             "class A impl A { fn foo() {} fn foo() {} }",
             pos(1, 30),
-            SemError::MethodExists("foo".into(), pos(1, 18)),
+            ErrorMessage::MethodExists("foo".into(), pos(1, 18)),
         );
     }
 
@@ -351,7 +351,7 @@ mod tests {
             impl A { fn foo() {} }
             impl A { fn foo() {} }",
             pos(3, 22),
-            SemError::MethodExists("foo".into(), pos(2, 22)),
+            ErrorMessage::MethodExists("foo".into(), pos(2, 22)),
         );
     }
 
@@ -362,7 +362,7 @@ mod tests {
             impl Foo[Int32] { fn foo() {} }
             impl Foo[Int32] { fn foo() {} }",
             pos(3, 31),
-            SemError::MethodExists("foo".into(), pos(2, 31)),
+            ErrorMessage::MethodExists("foo".into(), pos(2, 31)),
         );
 
         ok("class Foo[T]
@@ -378,7 +378,7 @@ mod tests {
             impl Foo[String] {}
         ",
             pos(3, 18),
-            SemError::TypeNotImplementingTrait("String".into(), "MyTrait".into()),
+            ErrorMessage::TypeNotImplementingTrait("String".into(), "MyTrait".into()),
         );
     }
 
@@ -391,7 +391,7 @@ mod tests {
         err(
             "enum MyEnum { A, B } impl MyEnum { fn foo() {} fn foo() {} }",
             pos(1, 48),
-            SemError::MethodExists("foo".into(), pos(1, 36)),
+            ErrorMessage::MethodExists("foo".into(), pos(1, 36)),
         );
     }
 
@@ -414,7 +414,7 @@ mod tests {
             impl[T] MyFoo[Int32] {}
         ",
             pos(3, 13),
-            SemError::UnconstrainedTypeParam("T".into()),
+            ErrorMessage::UnconstrainedTypeParam("T".into()),
         );
 
         err(
@@ -423,7 +423,7 @@ mod tests {
             impl[A, B] MyFoo[(A, A)] {}
         ",
             pos(3, 13),
-            SemError::UnconstrainedTypeParam("B".into()),
+            ErrorMessage::UnconstrainedTypeParam("B".into()),
         );
     }
 
@@ -461,7 +461,7 @@ mod tests {
             mod foo { class MyFoo }
         ",
             pos(2, 18),
-            SemError::NotAccessible("foo::MyFoo".into()),
+            ErrorMessage::NotAccessible("foo::MyFoo".into()),
         );
 
         ok("

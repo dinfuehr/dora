@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::language::error::msg::SemError;
+use crate::language::error::msg::ErrorMessage;
 use crate::language::sem_analysis::{SemAnalysis, SourceFileId};
 
 use dora_parser::lexer::position::Position;
@@ -44,7 +44,8 @@ pub fn check(sa: &mut SemAnalysis) {
                         let trait_return_type =
                             trait_method.return_type.name_fct(sa, &*trait_method);
 
-                        let msg = SemError::ReturnTypeMismatch(impl_return_type, trait_return_type);
+                        let msg =
+                            ErrorMessage::ReturnTypeMismatch(impl_return_type, trait_return_type);
                         sa.diag.lock().report(impl_.file_id, method.pos, msg);
                     }
                 } else {
@@ -57,9 +58,9 @@ pub fn check(sa: &mut SemAnalysis) {
                     let trait_name = sa.interner.str(trait_.name).to_string();
 
                     let msg = if method.is_static {
-                        SemError::StaticMethodNotInTrait(trait_name, mtd_name, args)
+                        ErrorMessage::StaticMethodNotInTrait(trait_name, mtd_name, args)
                     } else {
-                        SemError::MethodNotInTrait(trait_name, mtd_name, args)
+                        ErrorMessage::MethodNotInTrait(trait_name, mtd_name, args)
                     };
 
                     report(sa, impl_.file_id, method.pos, msg);
@@ -85,9 +86,9 @@ pub fn check(sa: &mut SemAnalysis) {
                 let trait_name = sa.interner.str(trait_.name).to_string();
 
                 let msg = if method.is_static {
-                    SemError::StaticMethodMissingFromTrait(trait_name, mtd_name, args)
+                    ErrorMessage::StaticMethodMissingFromTrait(trait_name, mtd_name, args)
                 } else {
-                    SemError::MethodMissingFromTrait(trait_name, mtd_name, args)
+                    ErrorMessage::MethodMissingFromTrait(trait_name, mtd_name, args)
                 };
 
                 report(sa, impl_.file_id, impl_.pos, msg);
@@ -100,13 +101,13 @@ pub fn check(sa: &mut SemAnalysis) {
     }
 }
 
-fn report(sa: &SemAnalysis, file: SourceFileId, pos: Position, msg: SemError) {
+fn report(sa: &SemAnalysis, file: SourceFileId, pos: Position, msg: ErrorMessage) {
     sa.diag.lock().report(file, pos, msg);
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::language::error::msg::SemError;
+    use crate::language::error::msg::ErrorMessage;
     use crate::language::tests::*;
 
     #[test]
@@ -119,7 +120,7 @@ mod tests {
                 fn bar() {}
             }",
             pos(5, 17),
-            SemError::MethodNotInTrait("Foo".into(), "bar".into(), vec![]),
+            ErrorMessage::MethodNotInTrait("Foo".into(), "bar".into(), vec![]),
         );
     }
 
@@ -133,7 +134,7 @@ mod tests {
             class A
             impl Foo for A {}",
             pos(6, 13),
-            SemError::MethodMissingFromTrait("Foo".into(), "bar".into(), vec![]),
+            ErrorMessage::MethodMissingFromTrait("Foo".into(), "bar".into(), vec![]),
         );
     }
 
@@ -160,7 +161,7 @@ mod tests {
                 @static fn bar() {}
             }",
             pos(5, 25),
-            SemError::StaticMethodNotInTrait("Foo".into(), "bar".into(), vec![]),
+            ErrorMessage::StaticMethodNotInTrait("Foo".into(), "bar".into(), vec![]),
         );
     }
 
@@ -174,7 +175,7 @@ mod tests {
             class A
             impl Foo for A {}",
             pos(6, 13),
-            SemError::StaticMethodMissingFromTrait("Foo".into(), "bar".into(), vec![]),
+            ErrorMessage::StaticMethodMissingFromTrait("Foo".into(), "bar".into(), vec![]),
         );
     }
 
@@ -193,7 +194,7 @@ mod tests {
                 fn n(): Bool = true;
               }",
             pos(9, 17),
-            SemError::ReturnTypeMismatch("Int32".into(), "Bool".into()),
+            ErrorMessage::ReturnTypeMismatch("Int32".into(), "Bool".into()),
         );
     }
 

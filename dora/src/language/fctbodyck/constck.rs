@@ -1,4 +1,4 @@
-use crate::language::error::msg::SemError;
+use crate::language::error::msg::ErrorMessage;
 use crate::language::fctbodyck::body::{
     check_lit_float, check_lit_int, determine_type_literal_int,
 };
@@ -36,7 +36,7 @@ impl<'a> ConstCheck<'a> {
 
                 if ty == SourceType::UInt8 {
                     let ty = SourceType::UInt8.name(self.sa);
-                    let msg = SemError::UnOpType(expr.op.as_str().into(), ty);
+                    let msg = ErrorMessage::UnOpType(expr.op.as_str().into(), ty);
                     self.sa
                         .diag
                         .lock()
@@ -65,7 +65,7 @@ impl<'a> ConstCheck<'a> {
             }
 
             _ => {
-                let msg = SemError::ConstValueExpected;
+                let msg = ErrorMessage::ConstValueExpected;
                 self.sa
                     .diag
                     .lock()
@@ -78,7 +78,7 @@ impl<'a> ConstCheck<'a> {
             let name = self.sa.interner.str(self.const_.name).to_string();
             let const_ty = self.const_.ty.name(self.sa);
             let ty = ty.name(self.sa);
-            let msg = SemError::AssignType(name, const_ty, ty);
+            let msg = ErrorMessage::AssignType(name, const_ty, ty);
             self.sa
                 .diag
                 .lock()

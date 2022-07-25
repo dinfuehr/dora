@@ -1,6 +1,6 @@
 use dora_parser::lexer::position::Position;
 
-use crate::language::error::msg::SemError;
+use crate::language::error::msg::ErrorMessage;
 use crate::language::sem_analysis::{
     implements_trait, ClassDefinitionId, EnumDefinitionId, FctDefinition, SemAnalysis,
     SourceFileId, StructDefinitionId, TypeParamDefinition,
@@ -101,8 +101,10 @@ impl<'a> TypeParamCheck<'a> {
     fn check(&self, tps: &SourceTypeArray) -> bool {
         if self.callee_type_param_defs.len() != tps.len() {
             if let ErrorReporting::Yes(file_id, pos) = self.error {
-                let msg =
-                    SemError::WrongNumberTypeParams(self.callee_type_param_defs.len(), tps.len());
+                let msg = ErrorMessage::WrongNumberTypeParams(
+                    self.callee_type_param_defs.len(),
+                    tps.len(),
+                );
                 self.sa.diag.lock().report(file_id, pos, msg);
             }
             return false;
@@ -141,7 +143,7 @@ impl<'a> TypeParamCheck<'a> {
     ) {
         let name = ty.name_with_type_params(self.sa, self.caller_type_param_defs);
         let trait_name = trait_ty.name_with_type_params(self.sa, self.caller_type_param_defs);
-        let msg = SemError::TypeNotImplementingTrait(name, trait_name);
+        let msg = ErrorMessage::TypeNotImplementingTrait(name, trait_name);
         self.sa.diag.lock().report(file_id, pos, msg);
     }
 }

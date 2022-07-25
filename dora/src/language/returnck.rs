@@ -49,7 +49,7 @@ fn expr_if_returns_value(e: &ExprIfType) -> Result<(), Position> {
 
 #[cfg(test)]
 mod tests {
-    use crate::language::error::msg::SemError;
+    use crate::language::error::msg::ErrorMessage;
     use crate::language::tests::*;
 
     #[test]
@@ -64,22 +64,22 @@ mod tests {
         err(
             "fn f(): Int32 { }",
             pos(1, 15),
-            SemError::ReturnType("Int32".into(), "()".into()),
+            ErrorMessage::ReturnType("Int32".into(), "()".into()),
         );
         err(
             "fn f(): Int32 { if true { return 1; } }",
             pos(1, 15),
-            SemError::ReturnType("Int32".into(), "()".into()),
+            ErrorMessage::ReturnType("Int32".into(), "()".into()),
         );
         err(
             "fn f(): Int32 { if true { } else { return 1; } }",
             pos(1, 15),
-            SemError::ReturnType("Int32".into(), "()".into()),
+            ErrorMessage::ReturnType("Int32".into(), "()".into()),
         );
         err(
             "fn f(): Int32 { while true { return 1; } }",
             pos(1, 15),
-            SemError::ReturnType("Int32".into(), "()".into()),
+            ErrorMessage::ReturnType("Int32".into(), "()".into()),
         );
         ok("fn f(): Int32 { if true { return 1; } else { return 2; } }");
         ok("fn f(): Int32 { return 1; 1+2; }");

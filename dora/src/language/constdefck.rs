@@ -61,7 +61,7 @@ impl<'x> ConstCheck<'x> {
 
 #[cfg(test)]
 mod tests {
-    use crate::language::error::msg::SemError;
+    use crate::language::error::msg::ErrorMessage;
     use crate::language::tests::*;
 
     #[test]
@@ -69,7 +69,7 @@ mod tests {
         err(
             "const x: Foo = 0;",
             pos(1, 10),
-            SemError::UnknownIdentifier("Foo".into()),
+            ErrorMessage::UnknownIdentifier("Foo".into()),
         );
 
         ok("const x: Int32 = 0i32;");

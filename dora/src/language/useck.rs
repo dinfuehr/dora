@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::language::access::sym_accessible_from;
-use crate::language::error::msg::SemError;
+use crate::language::error::msg::ErrorMessage;
 use crate::language::report_sym_shadow;
 use crate::language::sem_analysis::{module_package, ModuleDefinitionId, SemAnalysis};
 use crate::language::sym::{NestedSymTable, Sym};
@@ -95,7 +95,7 @@ fn check_use(
         .skip(start_idx)
     {
         if !previous_sym.is_enum() && !previous_sym.is_module() {
-            let msg = SemError::ExpectedPath;
+            let msg = ErrorMessage::ExpectedPath;
             let pos = use_declaration.common_path[idx - 1].pos;
             sa.diag.lock().report(use_file_id, pos, msg);
             return Err(UseError::Fatal);
@@ -120,9 +120,11 @@ fn check_use(
                 UsePathComponentValue::Package
                 | UsePathComponentValue::Super
                 | UsePathComponentValue::This => {
-                    sa.diag
-                        .lock()
-                        .report(use_file_id, last_component.pos, SemError::ExpectedPath);
+                    sa.diag.lock().report(
+                        use_file_id,
+                        last_component.pos,
+                        ErrorMessage::ExpectedPath,
+                    );
                     return Err(UseError::Fatal);
                 }
             };
@@ -160,7 +162,7 @@ fn check_use(
             if group.targets.is_empty() {
                 sa.diag
                     .lock()
-                    .report(use_file_id, group.pos, SemError::ExpectedPath);
+                    .report(use_file_id, group.pos, ErrorMessage::ExpectedPath);
                 return Err(UseError::Fatal);
             }
 
@@ -207,7 +209,7 @@ fn initial_module(
                     sa.diag.lock().report(
                         use_file_id.into(),
                         first_component.pos,
-                        SemError::NoSuperModule,
+                        ErrorMessage::NoSuperModule,
                     );
                     Err(UseError::Fatal)
                 }
@@ -234,7 +236,7 @@ fn process_component(
         | UsePathComponentValue::This => {
             sa.diag
                 .lock()
-                .report(use_file_id, component.pos, SemError::ExpectedPath);
+                .report(use_file_id, component.pos, ErrorMessage::ExpectedPath);
             return Err(UseError::Fatal);
         }
     };
@@ -250,7 +252,7 @@ fn process_component(
                 } else {
                     let module = &sa.modules[module_id].read();
                     let name = sa.interner.str(component_name).to_string();
-                    let msg = SemError::NotAccessibleInModule(module.name(sa), name);
+                    let msg = ErrorMessage::NotAccessibleInModule(module.name(sa), name);
                     sa.diag.lock().report(use_file_id, component.pos, msg);
                     Err(UseError::Fatal)
                 }
@@ -264,7 +266,7 @@ fn process_component(
                 sa.diag.lock().report(
                     use_file_id,
                     component.pos,
-                    SemError::UnknownIdentifierInModule(module_name, name),
+                    ErrorMessage::UnknownIdentifierInModule(module_name, name),
                 );
                 Err(UseError::Unresolved)
             }
@@ -280,7 +282,7 @@ fn process_component(
                 sa.diag.lock().report(
                     use_file_id,
                     component.pos,
-                    SemError::UnknownEnumVariant(name),
+                    ErrorMessage::UnknownEnumVariant(name),
                 );
                 Err(UseError::Fatal)
             }
@@ -314,7 +316,7 @@ fn define_use_target(
 
 #[cfg(test)]
 mod tests {
-    use crate::language::error::msg::SemError;
+    use crate::language::error::msg::ErrorMessage;
     use crate::language::tests::*;
 
     #[test]
@@ -324,7 +326,7 @@ mod tests {
         err(
             "let mut a: Int32 = foo;",
             pos(1, 20),
-            SemError::UnknownIdentifier("foo".into()),
+            ErrorMessage::UnknownIdentifier("foo".into()),
         );
     }
 
@@ -333,7 +335,7 @@ mod tests {
         err(
             "let mut x: Foo = 0;",
             pos(1, 12),
-            SemError::UnknownIdentifier("Foo".into()),
+            ErrorMessage::UnknownIdentifier("Foo".into()),
         );
     }
 
@@ -349,7 +351,7 @@ mod tests {
             }
         ",
             pos(2, 22),
-            SemError::NotAccessibleInModule("foo".into(), "bar".into()),
+            ErrorMessage::NotAccessibleInModule("foo".into(), "bar".into()),
         );
     }
 
@@ -365,7 +367,7 @@ mod tests {
             }
         ",
             pos(2, 27),
-            SemError::NotAccessibleInModule("foo::bar".into(), "Foo".into()),
+            ErrorMessage::NotAccessibleInModule("foo::bar".into(), "Foo".into()),
         );
     }
 
@@ -379,7 +381,7 @@ mod tests {
             }
         ",
             pos(2, 22),
-            SemError::NotAccessibleInModule("foo".into(), "bar".into()),
+            ErrorMessage::NotAccessibleInModule("foo".into(), "bar".into()),
         );
     }
 
@@ -393,7 +395,7 @@ mod tests {
             }
         ",
             pos(2, 22),
-            SemError::NotAccessibleInModule("foo".into(), "bar".into()),
+            ErrorMessage::NotAccessibleInModule("foo".into(), "bar".into()),
         );
     }
 
@@ -407,7 +409,7 @@ mod tests {
             }
         ",
             pos(2, 22),
-            SemError::NotAccessibleInModule("foo".into(), "bar".into()),
+            ErrorMessage::NotAccessibleInModule("foo".into(), "bar".into()),
         );
     }
 
@@ -421,7 +423,7 @@ mod tests {
             }
         ",
             pos(2, 22),
-            SemError::NotAccessibleInModule("foo".into(), "Bar".into()),
+            ErrorMessage::NotAccessibleInModule("foo".into(), "Bar".into()),
         );
     }
 
@@ -435,7 +437,7 @@ mod tests {
             }
         ",
             pos(2, 22),
-            SemError::NotAccessibleInModule("foo".into(), "Bar".into()),
+            ErrorMessage::NotAccessibleInModule("foo".into(), "Bar".into()),
         );
 
         ok("
@@ -456,7 +458,7 @@ mod tests {
             }
         ",
             pos(2, 22),
-            SemError::NotAccessibleInModule("foo".into(), "Bar".into()),
+            ErrorMessage::NotAccessibleInModule("foo".into(), "Bar".into()),
         );
     }
 
@@ -477,7 +479,7 @@ mod tests {
             }
         ",
             pos(2, 22),
-            SemError::NotAccessibleInModule("foo".into(), "Bar".into()),
+            ErrorMessage::NotAccessibleInModule("foo".into(), "Bar".into()),
         );
     }
 
@@ -493,9 +495,13 @@ mod tests {
 
     #[test]
     fn use_keyword_only() {
-        err("use self;", pos(1, 5), SemError::ExpectedPath);
-        err("use package;", pos(1, 5), SemError::ExpectedPath);
-        err("mod foo { use super; }", pos(1, 15), SemError::ExpectedPath);
+        err("use self;", pos(1, 5), ErrorMessage::ExpectedPath);
+        err("use package;", pos(1, 5), ErrorMessage::ExpectedPath);
+        err(
+            "mod foo { use super; }",
+            pos(1, 15),
+            ErrorMessage::ExpectedPath,
+        );
     }
 
     #[test]
@@ -503,17 +509,17 @@ mod tests {
         err(
             "use foo::bar::self; mod foo { @pub mod bar {} }",
             pos(1, 15),
-            SemError::ExpectedPath,
+            ErrorMessage::ExpectedPath,
         );
         err(
             "use foo::bar::super; mod foo { @pub mod bar {} }",
             pos(1, 15),
-            SemError::ExpectedPath,
+            ErrorMessage::ExpectedPath,
         );
         err(
             "use foo::bar::package; mod foo { @pub mod bar {} }",
             pos(1, 15),
-            SemError::ExpectedPath,
+            ErrorMessage::ExpectedPath,
         );
     }
 
@@ -522,7 +528,7 @@ mod tests {
         err(
             "use foo::bar:: {}; mod foo { @pub mod bar {} }",
             pos(1, 16),
-            SemError::ExpectedPath,
+            ErrorMessage::ExpectedPath,
         );
     }
 
@@ -554,11 +560,11 @@ mod tests {
             &[
                 (
                     pos(2, 27),
-                    SemError::UnknownIdentifierInModule("foo".into(), "f1".into()),
+                    ErrorMessage::UnknownIdentifierInModule("foo".into(), "f1".into()),
                 ),
                 (
                     pos(5, 33),
-                    SemError::UnknownIdentifierInModule("".into(), "f2".into()),
+                    ErrorMessage::UnknownIdentifierInModule("".into(), "f2".into()),
                 ),
             ],
         );

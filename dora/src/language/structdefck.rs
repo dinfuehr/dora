@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::language::error::msg::SemError;
+use crate::language::error::msg::ErrorMessage;
 use crate::language::sem_analysis::{
     ModuleDefinitionId, SemAnalysis, SourceFileId, StructDefinitionField, StructDefinitionFieldId,
     StructDefinitionId,
@@ -87,7 +87,7 @@ impl<'x> StructCheck<'x> {
             self.sa
                 .diag
                 .lock()
-                .report(self.file_id, f.pos, SemError::ShadowField(name));
+                .report(self.file_id, f.pos, ErrorMessage::ShadowField(name));
             return;
         }
 
@@ -107,7 +107,7 @@ impl<'x> StructCheck<'x> {
 
 #[cfg(test)]
 mod tests {
-    use crate::language::error::msg::SemError;
+    use crate::language::error::msg::ErrorMessage;
     use crate::language::tests::*;
 
     #[test]
@@ -119,12 +119,12 @@ mod tests {
         err(
             "struct Bar { a: Unknown }",
             pos(1, 17),
-            SemError::UnknownIdentifier("Unknown".into()),
+            ErrorMessage::UnknownIdentifier("Unknown".into()),
         );
         err(
             "struct Foo { a: Int32, a: Int32 }",
             pos(1, 24),
-            SemError::ShadowField("a".into()),
+            ErrorMessage::ShadowField("a".into()),
         );
     }
 
@@ -145,7 +145,7 @@ mod tests {
         err(
             "@internal struct Foo",
             pos(1, 11),
-            SemError::UnresolvedInternal,
+            ErrorMessage::UnresolvedInternal,
         );
     }
 
@@ -154,19 +154,19 @@ mod tests {
         err(
             "struct MyStruct[] { f1: Int32 }",
             pos(1, 1),
-            SemError::TypeParamsExpected,
+            ErrorMessage::TypeParamsExpected,
         );
 
         err(
             "struct MyStruct[X, X] { f1: X }",
             pos(1, 20),
-            SemError::TypeParamNameNotUnique("X".into()),
+            ErrorMessage::TypeParamNameNotUnique("X".into()),
         );
 
         err(
             "struct MyStruct[X: NonExistingTrait] { f1: X }",
             pos(1, 20),
-            SemError::UnknownIdentifier("NonExistingTrait".into()),
+            ErrorMessage::UnknownIdentifier("NonExistingTrait".into()),
         );
     }
 }

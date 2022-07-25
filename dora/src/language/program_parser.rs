@@ -4,7 +4,7 @@ use std::io::{Error, Read};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use crate::language::error::msg::SemError;
+use crate::language::error::msg::ErrorMessage;
 use crate::language::report_sym_shadow;
 use crate::language::sem_analysis::{
     AnnotationDefinition, ClassDefinition, ConstDefinition, EnumDefinition, ExtensionDefinition,
@@ -289,7 +289,7 @@ impl<'a> ProgramParser<'a> {
                     self.sa
                         .diag
                         .lock()
-                        .report(file_id, pos, SemError::FileNoAccess(path));
+                        .report(file_id, pos, ErrorMessage::FileNoAccess(path));
                     Ok(())
                 } else {
                     println!("unable to read file `{:?}`", path);
@@ -593,7 +593,7 @@ pub fn should_file_be_parsed(path: &Path) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use crate::language::error::msg::SemError;
+    use crate::language::error::msg::ErrorMessage;
     use crate::language::tests::*;
 
     #[test]
@@ -601,32 +601,32 @@ mod tests {
         err(
             "class Foo class Foo",
             pos(1, 11),
-            SemError::ShadowClass("Foo".into()),
+            ErrorMessage::ShadowClass("Foo".into()),
         );
         err(
             "fn Foo() {} class Foo",
             pos(1, 13),
-            SemError::ShadowFunction("Foo".into()),
+            ErrorMessage::ShadowFunction("Foo".into()),
         );
         err(
             "class Foo fn Foo() {}",
             pos(1, 11),
-            SemError::ShadowClass("Foo".into()),
+            ErrorMessage::ShadowClass("Foo".into()),
         );
         err(
             "class Foo let Foo: Int32 = 1;",
             pos(1, 11),
-            SemError::ShadowClass("Foo".into()),
+            ErrorMessage::ShadowClass("Foo".into()),
         );
         err(
             "class Foo let mut Foo: Int32 = 1;",
             pos(1, 11),
-            SemError::ShadowClass("Foo".into()),
+            ErrorMessage::ShadowClass("Foo".into()),
         );
         err(
             "class Foo const Foo: Int32 = 1;",
             pos(1, 11),
-            SemError::ShadowClass("Foo".into()),
+            ErrorMessage::ShadowClass("Foo".into()),
         );
     }
 
@@ -636,42 +636,42 @@ mod tests {
         err(
             "struct Foo {} struct Foo {}",
             pos(1, 15),
-            SemError::ShadowStruct("Foo".into()),
+            ErrorMessage::ShadowStruct("Foo".into()),
         );
         err(
             "struct Foo {} struct Foo {}",
             pos(1, 15),
-            SemError::ShadowStruct("Foo".into()),
+            ErrorMessage::ShadowStruct("Foo".into()),
         );
         err(
             "struct Foo {} class Foo",
             pos(1, 15),
-            SemError::ShadowStruct("Foo".into()),
+            ErrorMessage::ShadowStruct("Foo".into()),
         );
         err(
             "fn Foo() {} struct Foo {}",
             pos(1, 13),
-            SemError::ShadowFunction("Foo".into()),
+            ErrorMessage::ShadowFunction("Foo".into()),
         );
         err(
             "struct Foo {} fn Foo() {}",
             pos(1, 15),
-            SemError::ShadowStruct("Foo".into()),
+            ErrorMessage::ShadowStruct("Foo".into()),
         );
         err(
             "struct Foo {} let Foo: Int32 = 1;",
             pos(1, 15),
-            SemError::ShadowStruct("Foo".into()),
+            ErrorMessage::ShadowStruct("Foo".into()),
         );
         err(
             "struct Foo {} let mut Foo: Int32 = 1;",
             pos(1, 15),
-            SemError::ShadowStruct("Foo".into()),
+            ErrorMessage::ShadowStruct("Foo".into()),
         );
         err(
             "struct Foo {} const Foo: Int32 = 1;",
             pos(1, 15),
-            SemError::ShadowStruct("Foo".into()),
+            ErrorMessage::ShadowStruct("Foo".into()),
         );
     }
 
@@ -681,12 +681,12 @@ mod tests {
         err(
             "trait Foo {} struct Foo {}",
             pos(1, 14),
-            SemError::ShadowTrait("Foo".into()),
+            ErrorMessage::ShadowTrait("Foo".into()),
         );
         err(
             "trait Foo {} class Foo",
             pos(1, 14),
-            SemError::ShadowTrait("Foo".into()),
+            ErrorMessage::ShadowTrait("Foo".into()),
         );
     }
 
@@ -696,17 +696,17 @@ mod tests {
         err(
             "const foo: Int32 = 0i32; fn foo() {}",
             pos(1, 26),
-            SemError::ShadowConst("foo".into()),
+            ErrorMessage::ShadowConst("foo".into()),
         );
         err(
             "const foo: Int32 = 0i32; class foo",
             pos(1, 26),
-            SemError::ShadowConst("foo".into()),
+            ErrorMessage::ShadowConst("foo".into()),
         );
         err(
             "const foo: Int32 = 0i32; struct foo {}",
             pos(1, 26),
-            SemError::ShadowConst("foo".into()),
+            ErrorMessage::ShadowConst("foo".into()),
         );
     }
 
@@ -717,7 +717,7 @@ mod tests {
         err(
             "enum Foo { A } class Foo",
             pos(1, 16),
-            SemError::ShadowEnum("Foo".into()),
+            ErrorMessage::ShadowEnum("Foo".into()),
         );
     }
 
@@ -729,13 +729,13 @@ mod tests {
         err(
             "mod foo {} mod foo {}",
             pos(1, 12),
-            SemError::ShadowModule("foo".into()),
+            ErrorMessage::ShadowModule("foo".into()),
         );
 
         err(
             "mod foo { fn bar() {} fn bar() {} }",
             pos(1, 23),
-            SemError::ShadowFunction("bar".into()),
+            ErrorMessage::ShadowFunction("bar".into()),
         );
     }
 }

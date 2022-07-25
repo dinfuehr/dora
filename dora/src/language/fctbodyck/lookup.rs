@@ -1,4 +1,4 @@
-use crate::language::error::msg::SemError;
+use crate::language::error::msg::ErrorMessage;
 use crate::language::fctbodyck::body::args_compatible_fct;
 use crate::language::sem_analysis::{
     find_methods_in_class, find_methods_in_enum, find_methods_in_struct, FctDefinition,
@@ -161,9 +161,9 @@ impl<'a> MethodLookup<'a> {
                     let type_name = obj.name_fct(self.sa, self.caller);
 
                     if self.found_multiple_functions {
-                        SemError::MultipleCandidatesForMethod(type_name, name, param_names)
+                        ErrorMessage::MultipleCandidatesForMethod(type_name, name, param_names)
                     } else {
-                        SemError::UnknownMethod(type_name, name, param_names)
+                        ErrorMessage::UnknownMethod(type_name, name, param_names)
                     }
                 }
 
@@ -171,12 +171,12 @@ impl<'a> MethodLookup<'a> {
                     let trait_ = &self.sa.traits[trait_id];
                     let trait_ = trait_.read();
                     let type_name = self.sa.interner.str(trait_.name).to_string();
-                    SemError::UnknownMethod(type_name, name, param_names)
+                    ErrorMessage::UnknownMethod(type_name, name, param_names)
                 }
 
                 LookupKind::Static(ref obj) => {
                     let type_name = obj.name_fct(self.sa, self.caller);
-                    SemError::UnknownStaticMethod(type_name, name, param_names)
+                    ErrorMessage::UnknownStaticMethod(type_name, name, param_names)
                 }
             };
 
@@ -230,7 +230,7 @@ impl<'a> MethodLookup<'a> {
                 .iter()
                 .map(|a| a.name_fct(self.sa, self.caller))
                 .collect::<Vec<_>>();
-            let msg = SemError::ParamTypesIncompatible(fct_name, fct_params, call_types);
+            let msg = ErrorMessage::ParamTypesIncompatible(fct_name, fct_params, call_types);
             self.sa
                 .diag
                 .lock()

@@ -1,4 +1,4 @@
-use crate::language::error::msg::SemError;
+use crate::language::error::msg::ErrorMessage;
 use crate::language::extensiondefck::check_for_unconstrained_type_params;
 use crate::language::sem_analysis::{
     FctDefinitionId, ImplDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId,
@@ -79,10 +79,11 @@ impl<'x> ImplCheck<'x> {
                 }
 
                 _ => {
-                    self.sa
-                        .diag
-                        .lock()
-                        .report(self.file_id, self.ast.pos, SemError::ExpectedTrait);
+                    self.sa.diag.lock().report(
+                        self.file_id,
+                        self.ast.pos,
+                        ErrorMessage::ExpectedTrait,
+                    );
                 }
             }
         }
@@ -113,7 +114,7 @@ impl<'x> ImplCheck<'x> {
                 self.sa.diag.lock().report(
                     self.file_id,
                     self.ast.extended_type.pos(),
-                    SemError::ClassEnumStructExpected,
+                    ErrorMessage::ClassEnumStructExpected,
                 );
             }
         }
@@ -172,10 +173,11 @@ impl<'x> ImplCheck<'x> {
         let method = method.read();
 
         if method.ast.block.is_none() && !method.internal {
-            self.sa
-                .diag
-                .lock()
-                .report(self.file_id.into(), method.pos, SemError::MissingFctBody);
+            self.sa.diag.lock().report(
+                self.file_id.into(),
+                method.pos,
+                ErrorMessage::MissingFctBody,
+            );
         }
 
         let table = if method.is_static {
@@ -192,7 +194,7 @@ impl<'x> ImplCheck<'x> {
 
 #[cfg(test)]
 mod tests {
-    use crate::language::error::msg::SemError;
+    use crate::language::error::msg::ErrorMessage;
     use crate::language::tests::*;
 
     #[test]
@@ -205,7 +207,7 @@ mod tests {
             class Bar
             impl Foo for Bar { fn foo(): Int32; }",
             pos(6, 32),
-            SemError::MissingFctBody,
+            ErrorMessage::MissingFctBody,
         );
     }
 
@@ -222,7 +224,7 @@ mod tests {
                 fn foo(): Int32 { return 1; }
             }",
             pos(8, 17),
-            SemError::MethodExists("foo".into(), pos(7, 17)),
+            ErrorMessage::MethodExists("foo".into(), pos(7, 17)),
         );
     }
 
@@ -231,7 +233,7 @@ mod tests {
         err(
             "class A impl Foo for A {}",
             pos(1, 14),
-            SemError::UnknownIdentifier("Foo".into()),
+            ErrorMessage::UnknownIdentifier("Foo".into()),
         );
     }
 
@@ -240,13 +242,13 @@ mod tests {
         err(
             "trait Foo {} impl Foo for A {}",
             pos(1, 27),
-            SemError::UnknownIdentifier("A".into()),
+            ErrorMessage::UnknownIdentifier("A".into()),
         );
 
         err(
             "trait Foo {} trait A {} impl Foo for A {}",
             pos(1, 38),
-            SemError::ClassEnumStructExpected,
+            ErrorMessage::ClassEnumStructExpected,
         );
     }
 
@@ -312,7 +314,7 @@ mod tests {
             impl[T] MyTrait for MyFoo[Int32] {}
         ",
             pos(4, 13),
-            SemError::UnconstrainedTypeParam("T".into()),
+            ErrorMessage::UnconstrainedTypeParam("T".into()),
         );
     }
 
@@ -324,7 +326,7 @@ mod tests {
             class Foo
             impl foo::MyTrait for Foo {}",
             pos(4, 18),
-            SemError::NotAccessible("foo::MyTrait".into()),
+            ErrorMessage::NotAccessible("foo::MyTrait".into()),
         );
 
         err(
@@ -333,7 +335,7 @@ mod tests {
             trait MyTrait {}
             impl MyTrait for foo::Foo {}",
             pos(4, 30),
-            SemError::NotAccessible("foo::Foo".into()),
+            ErrorMessage::NotAccessible("foo::Foo".into()),
         );
     }
 

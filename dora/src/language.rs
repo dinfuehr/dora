@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::bytecode;
-use crate::language::error::msg::SemError;
+use crate::language::error::msg::ErrorMessage;
 use crate::language::sem_analysis::{
     FctDefinition, SemAnalysis, SourceFileId, TypeParamDefinition, TypeParamId,
 };
@@ -195,13 +195,13 @@ fn internalck(sa: &SemAnalysis) {
         if fct.internal && !fct.internal_resolved && !fct.has_body() {
             sa.diag
                 .lock()
-                .report(fct.file_id, fct.pos, SemError::UnresolvedInternal);
+                .report(fct.file_id, fct.pos, ErrorMessage::UnresolvedInternal);
         }
 
         if !fct.has_body() && !fct.in_trait() && !fct.internal {
             sa.diag
                 .lock()
-                .report(fct.file_id, fct.pos, SemError::MissingFctBody);
+                .report(fct.file_id, fct.pos, ErrorMessage::MissingFctBody);
         }
     }
 
@@ -209,9 +209,11 @@ fn internalck(sa: &SemAnalysis) {
         let struct_ = struct_.read();
 
         if struct_.internal && !struct_.internal_resolved {
-            sa.diag
-                .lock()
-                .report(struct_.file_id, struct_.pos, SemError::UnresolvedInternal);
+            sa.diag.lock().report(
+                struct_.file_id,
+                struct_.pos,
+                ErrorMessage::UnresolvedInternal,
+            );
         }
     }
 
@@ -221,7 +223,7 @@ fn internalck(sa: &SemAnalysis) {
         if cls.internal && !cls.internal_resolved {
             sa.diag
                 .lock()
-                .report(cls.file_id(), cls.pos(), SemError::UnresolvedInternal);
+                .report(cls.file_id(), cls.pos(), ErrorMessage::UnresolvedInternal);
         }
     }
 }
@@ -248,16 +250,16 @@ pub fn report_sym_shadow(
     let name = sa.interner.str(name).to_string();
 
     let msg = match sym {
-        Sym::Class(_) => SemError::ShadowClass(name),
-        Sym::Struct(_) => SemError::ShadowStruct(name),
-        Sym::Trait(_) => SemError::ShadowTrait(name),
-        Sym::Enum(_) => SemError::ShadowEnum(name),
-        Sym::Fct(_) => SemError::ShadowFunction(name),
-        Sym::Global(_) => SemError::ShadowGlobal(name),
-        Sym::Const(_) => SemError::ShadowConst(name),
-        Sym::Var(_) => SemError::ShadowParam(name),
-        Sym::Module(_) => SemError::ShadowModule(name),
-        Sym::TypeParam(_) => SemError::ShadowTypeParam(name),
+        Sym::Class(_) => ErrorMessage::ShadowClass(name),
+        Sym::Struct(_) => ErrorMessage::ShadowStruct(name),
+        Sym::Trait(_) => ErrorMessage::ShadowTrait(name),
+        Sym::Enum(_) => ErrorMessage::ShadowEnum(name),
+        Sym::Fct(_) => ErrorMessage::ShadowFunction(name),
+        Sym::Global(_) => ErrorMessage::ShadowGlobal(name),
+        Sym::Const(_) => ErrorMessage::ShadowConst(name),
+        Sym::Var(_) => ErrorMessage::ShadowParam(name),
+        Sym::Module(_) => ErrorMessage::ShadowModule(name),
+        Sym::TypeParam(_) => ErrorMessage::ShadowTypeParam(name),
         _ => unreachable!(),
     };
 
@@ -273,7 +275,7 @@ fn check_type_params(
     pos: Position,
 ) -> Vec<SourceType> {
     if ast_type_params.len() == 0 {
-        let msg = SemError::TypeParamsExpected;
+        let msg = ErrorMessage::TypeParamsExpected;
         sa.diag.lock().report(file_id, pos, msg);
 
         return Vec::new();
@@ -285,7 +287,7 @@ fn check_type_params(
     for (type_param_id, type_param) in ast_type_params.iter().enumerate() {
         if !names.insert(type_param.name) {
             let name = sa.interner.str(type_param.name).to_string();
-            let msg = SemError::TypeParamNameNotUnique(name);
+            let msg = ErrorMessage::TypeParamNameNotUnique(name);
             sa.diag.lock().report(file_id, type_param.pos, msg);
         }
 
@@ -304,11 +306,11 @@ fn check_type_params(
             if let Some(ty) = ty {
                 if ty.is_trait() {
                     if !type_params.add_bound(TypeParamId(type_param_id), ty) {
-                        let msg = SemError::DuplicateTraitBound;
+                        let msg = ErrorMessage::DuplicateTraitBound;
                         sa.diag.lock().report(file_id, type_param.pos, msg);
                     }
                 } else {
-                    let msg = SemError::BoundExpected;
+                    let msg = ErrorMessage::BoundExpected;
                     sa.diag.lock().report(file_id, bound.pos(), msg);
                 }
             } else {
@@ -325,7 +327,7 @@ fn check_type_params(
 
 #[cfg(test)]
 pub mod tests {
-    use crate::language::error::msg::SemError;
+    use crate::language::error::msg::ErrorMessage;
     use crate::language::sem_analysis::SemAnalysis;
     use crate::language::test;
     use dora_parser::lexer::position::Position;
@@ -366,7 +368,7 @@ pub mod tests {
         })
     }
 
-    pub fn err(code: &'static str, pos: Position, msg: SemError) {
+    pub fn err(code: &'static str, pos: Position, msg: ErrorMessage) {
         test::check(code, |vm| {
             let diag = vm.diag.lock();
             let errors = diag.errors();
@@ -393,7 +395,7 @@ pub mod tests {
         });
     }
 
-    pub fn errors(code: &'static str, vec: &[(Position, SemError)]) {
+    pub fn errors(code: &'static str, vec: &[(Position, ErrorMessage)]) {
         test::check(code, |vm| {
             let diag = vm.diag.lock();
             let errors = diag.errors();

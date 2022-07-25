@@ -1,7 +1,7 @@
 use crate::driver::cmd;
 use crate::language;
 use crate::language::access::module_contains;
-use crate::language::error::msg::SemError;
+use crate::language::error::msg::ErrorMessage;
 use crate::language::sem_analysis::{
     FctDefinition, FctDefinitionId, ModuleDefinitionId, SemAnalysis,
 };
@@ -222,7 +222,7 @@ fn find_main(sa: &SemAnalysis) -> Option<FctDefinitionId> {
         let pos = fct.ast.pos;
         sa.diag
             .lock()
-            .report(fct.file_id, pos, SemError::WrongMainDefinition);
+            .report(fct.file_id, pos, ErrorMessage::WrongMainDefinition);
         return None;
     }
 

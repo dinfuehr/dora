@@ -1,10 +1,10 @@
-use crate::language::error::msg::{SemError, SemErrorAndPos};
+use crate::language::error::msg::{ErrorDescriptor, ErrorMessage};
 use crate::language::sem_analysis::{SemAnalysis, SourceFileId};
 
 use dora_parser::lexer::position::Position;
 
 pub struct Diagnostic {
-    errors: Vec<SemErrorAndPos>,
+    errors: Vec<ErrorDescriptor>,
 }
 
 impl Diagnostic {
@@ -12,12 +12,12 @@ impl Diagnostic {
         Diagnostic { errors: Vec::new() }
     }
 
-    pub fn errors(&self) -> &[SemErrorAndPos] {
+    pub fn errors(&self) -> &[ErrorDescriptor] {
         &self.errors
     }
 
-    pub fn report(&mut self, file: SourceFileId, pos: Position, msg: SemError) {
-        self.errors.push(SemErrorAndPos::new(file, pos, msg));
+    pub fn report(&mut self, file: SourceFileId, pos: Position, msg: ErrorMessage) {
+        self.errors.push(ErrorDescriptor::new(file, pos, msg));
     }
 
     pub fn has_errors(&self) -> bool {
