@@ -337,14 +337,13 @@ pub mod tests {
             let diag = vm.diag.lock();
             let errors = diag.errors();
 
-            println!("errors = {:?}", errors);
-            println!();
-
             for e in errors {
                 println!("{}", e.message(vm));
+                println!("{:?}", e);
+                println!();
             }
 
-            assert!(!diag.has_errors());
+            assert!(!diag.has_errors(), "program should not have errors.");
         });
     }
 
@@ -356,10 +355,10 @@ pub mod tests {
             let diag = vm.diag.lock();
             let errors = diag.errors();
 
-            println!("errors = {:?}", errors);
-
             for e in errors {
                 println!("{}", e.message(vm));
+                println!("{:?}", e);
+                println!();
             }
 
             assert!(!diag.has_errors());
