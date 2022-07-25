@@ -124,18 +124,21 @@ impl SsaGen {
         }
     }
 
-    fn current(): Block = self.currentBlock.getOrPanic();
+    fn current(): Block {
+        self.currentBlock.getOrPanic()
+    }
 
     fn writeVariable(register: BytecodeRegister, block: Block, value: Inst) {
         self.currentDef(register.value.toInt64()).insert(block, value);
     }
 
-    fn readVariable(register: BytecodeRegister, block: Block): Inst =
+    fn readVariable(register: BytecodeRegister, block: Block): Inst {
         if self.currentDef(register.value.toInt64()).contains(block) {
             self.currentDef(register.value.toInt64())(block).getOrPanic()
         } else {
             self.readVariableRecursive(register, block)
-        };
+        }
+    }
 
     fn readVariableRecursive(register: BytecodeRegister, block: Block): Inst {
         let value: Inst = if !self.sealedBlocks.contains(block.id().toInt64()) {

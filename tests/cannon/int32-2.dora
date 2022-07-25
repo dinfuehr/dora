@@ -8,6 +8,6 @@ fn main() {
     assert(rotateRight(-12i32, -1i32) == -23i32);
 }
 
-fn rotateLeft(x: Int32, y: Int32): Int32 = x.rotateLeft(y);
+fn rotateLeft(x: Int32, y: Int32): Int32 { x.rotateLeft(y) }
 
-fn rotateRight(x: Int32, y: Int32): Int32 = x.rotateRight(y);
+fn rotateRight(x: Int32, y: Int32): Int32 { x.rotateRight(y) }

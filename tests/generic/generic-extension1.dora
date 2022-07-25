@@ -1,11 +1,11 @@
 class Foo[T]
 
 impl Foo[Int32] {
-    fn foo(): Int32 = 1i32;
+    fn foo(): Int32 { 1i32 }
 }
 
 impl Foo[Int64] {
-    fn foo(): Int32 = 2i32;
+    fn foo(): Int32 { 2i32 }
 }
 
 fn main() {

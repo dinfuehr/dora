@@ -122,7 +122,7 @@ impl Hash for BytecodeRegister {
 }
 
 impl Stringable for BytecodeRegister {
-    fn toString(): String = "r${self.value}";
+    fn toString(): String { "r${self.value}" }
 }
 
 @pub struct ClassDefId(@pub value: Int32)

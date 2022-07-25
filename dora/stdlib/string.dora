@@ -23,7 +23,7 @@ impl String {
     return true;
   }
 
-  @pub fn toString(): String = self;
+  @pub fn toString(): String { self }
 
   @pub @internal fn compareTo(rhs: String): Int32;
 
@@ -79,9 +79,13 @@ impl String {
 
   @pub @internal fn clone(): String;
 
-  @pub fn isEmpty(): Bool = self.size() == 0i64;
+  @pub fn isEmpty(): Bool {
+    self.size() == 0i64
+  }
 
-  @pub fn contains(val: String): Bool = self.indexOfFirst(val).isSome();
+  @pub fn contains(val: String): Bool {
+    self.indexOfFirst(val).isSome()
+  }
 
   @pub fn indexOfFirst(val: String): Option[Int64] {
     let m = val.size();
@@ -165,9 +169,11 @@ impl String {
     return true;
   }
 
-  @pub fn codePoints(): CodepointIterator = CodepointIterator(self, 0i64);
+  @pub fn codePoints(): CodepointIterator {
+    CodepointIterator(self, 0i64)
+  }
 
-  @pub @static @internal fn fromBytesPart(val: Array[UInt8], offset: Int64, len: Int64): Option[String] ;
+  @pub @static @internal fn fromBytesPart(val: Array[UInt8], offset: Int64, len: Int64): Option[String];
 
   @pub @static fn fromBytes(val: Array[UInt8]): Option[String] {
     String::fromBytesPart(val, 0i64, val.size())
@@ -214,35 +220,51 @@ impl String {
 }
 
 impl Stringable for Bool {
-  fn toString(): String = self.toString();
+  fn toString(): String {
+    self.toString()
+  }
 }
 
 impl Stringable for UInt8 {
-  fn toString(): String = self.toString();
+  fn toString(): String {
+    self.toString()
+  }
 }
 
 impl Stringable for Int32 {
-  fn toString(): String = self.toString();
+  fn toString(): String {
+    self.toString()
+  }
 }
 
 impl Stringable for Int64 {
-  fn toString(): String = self.toString();
+  fn toString(): String {
+    self.toString()
+  }
 }
 
 impl Stringable for Float32 {
-  fn toString(): String = self.toString();
+  fn toString(): String {
+    self.toString()
+  }
 }
 
 impl Stringable for Float64 {
-  fn toString(): String = self.toString();
+  fn toString(): String {
+    self.toString()
+  }
 }
 
 impl Stringable for String {
-  fn toString(): String = self.toString();
+  fn toString(): String {
+    self.toString()
+  }
 }
 
 impl Stringable for Char {
-  fn toString(): String = self.toString();
+  fn toString(): String {
+    self.toString()
+  }
 }
 
 @pub class StringBuffer {
@@ -326,7 +348,9 @@ impl StringBuffer {
     self.appendChar('\n')
   }
 
-  @pub fn toString(): String = String::fromBytesPart(self.buf, 0i64, self.size()).getOrPanic();
+  @pub fn toString(): String {
+    String::fromBytesPart(self.buf, 0i64, self.size()).getOrPanic()
+  }
 
   @pub @static fn empty(): StringBuffer {
     StringBuffer::new()

@@ -113,7 +113,7 @@ fn testSsaGenAddFloat32Arguments() {
 ");
 }
 
-fn bcSsaGenAddFloat32Arguments(a: Float32, b: Float32): Float32 = a + b;
+fn bcSsaGenAddFloat32Arguments(a: Float32, b: Float32): Float32 { a + b }
 
 @Test
 fn testSsaGenMultipleAssignments() {

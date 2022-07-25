@@ -7,6 +7,6 @@ fn main() {
 class SomeTest[T](x: T)
 
 impl[T] SomeTest[T] {
-    fn plus(y: Int32): T = self.x;
-    fn minus(y: Int32): T = self.x;
+    fn plus(y: Int32): T { self.x }
+    fn minus(y: Int32): T { self.x }
 }

@@ -35,22 +35,22 @@ fn init_globs() {
     glob_obj = Foo();  
 }
 
-fn loadGlobalBool(): Bool = glob_bool;
+fn loadGlobalBool(): Bool { glob_bool }
 
-fn loadGlobalByte(): UInt8 = glob_byte;
+fn loadGlobalByte(): UInt8 { glob_byte }
 
-fn loadGlobalChar(): Char = glob_char;
+fn loadGlobalChar(): Char { glob_char }
 
-fn loadGlobalInt32(): Int32 = glob_int;
+fn loadGlobalInt32(): Int32 { glob_int }
 
-fn loadGlobalInt64(): Int64 = glob_long;
+fn loadGlobalInt64(): Int64 { glob_long }
 
-fn loadGlobalFloat32(): Float32 = glob_float;
+fn loadGlobalFloat32(): Float32 { glob_float }
 
-fn loadGlobalFloat64(): Float64 = glob_double;
+fn loadGlobalFloat64(): Float64 { glob_double }
 
-fn loadGlobalString(): String = glob_string;
+fn loadGlobalString(): String { glob_string }
 
-fn loadGlobalPtr(): Foo = glob_obj;
+fn loadGlobalPtr(): Foo { glob_obj }
 
 class Foo

@@ -14,7 +14,9 @@ impl Node {
         Node(left, right, 0i32, 0i32)
     }
 
-    @static fn leaf(): Node = Node::new(Option[Node]::None, Option[Node]::None);
+    @static fn leaf(): Node {
+        Node::new(Option[Node]::None, Option[Node]::None)
+    }
 }
 
 let mut stretchTreeDepth: Int32 = 0i32;

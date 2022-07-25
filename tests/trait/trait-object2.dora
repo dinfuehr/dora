@@ -3,13 +3,13 @@ trait Foo { fn test(): Int32; }
 class Baz(value: Int32)
 
 impl Foo for Baz {
-    fn test(): Int32 = self.value;
+    fn test(): Int32 { self.value }
 }
 
 struct Bar(value: Int32)
 
 impl Foo for Bar {
-    fn test(): Int32 = self.value;
+    fn test(): Int32 { self.value }
 }
 
 fn main() {
@@ -22,8 +22,8 @@ fn main() {
     assert(invoke(bar(101i32)) == 101i32);
 }
 
-fn baz(value: Int32): Foo = Baz(value) as Foo;
+fn baz(value: Int32): Foo { Baz(value) as Foo }
 
-fn bar(value: Int32): Foo = Bar(value) as Foo;
+fn bar(value: Int32): Foo { Bar(value) as Foo }
 
-fn invoke(foo: Foo): Int32 = foo.test();
+fn invoke(foo: Foo): Int32 { foo.test() }

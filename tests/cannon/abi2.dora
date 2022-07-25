@@ -10,12 +10,12 @@ fn main() {
     assert(abi_9(1i32, 2i32, 3i32, 4i32, 5i32, 6i32, 7i32, 8i32, 9i32) == 9i32);
 }
 
-fn abi_1(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 = x;
-fn abi_2(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 = y;
-fn abi_3(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 = z;
-fn abi_4(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 = a;
-fn abi_5(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 = b;
-fn abi_6(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 = c;
-fn abi_7(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 = i;
-fn abi_8(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 = j;
-fn abi_9(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 = k;
+fn abi_1(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 { x }
+fn abi_2(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 { y }
+fn abi_3(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 { z }
+fn abi_4(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 { a }
+fn abi_5(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 { b }
+fn abi_6(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 { c }
+fn abi_7(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 { i }
+fn abi_8(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 { j }
+fn abi_9(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 { k }

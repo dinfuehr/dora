@@ -8,11 +8,11 @@ impl Bool {
   @pub @internal fn toInt32(): Int32;
   @pub @internal fn toInt64(): Int64;
 
-  @pub fn hash(): Int32 = self.toInt32();
+  @pub fn hash(): Int32 { self.toInt32() }
 
-  @pub fn toString(): String = if self { "true" } else { "false" };
-  @pub fn toStringBinary(): String = if self { "1" } else { "0" };
-  @pub fn toStringHex(): String = if self { "1" } else { "0" };
+  @pub fn toString(): String { if self { "true" } else { "false" } }
+  @pub fn toStringBinary(): String { if self { "1" } else { "0" } }
+  @pub fn toStringHex(): String { if self { "1" } else { "0" } }
 
   @pub @internal fn equals(rhs: Bool): Bool;
   @pub @internal fn not(): Bool;
@@ -33,8 +33,8 @@ impl Int32 {
   @pub @internal fn toInt64(): Int64;
   @pub @internal fn toString(): String;
 
-  @pub fn toStringBinary(): String = String::binary(self.toInt64() & 0xFFFFFFFFi64);
-  @pub fn toStringHex(): String = String::hex(self.toInt64() & 0xFFFFFFFFi64);
+  @pub fn toStringBinary(): String { String::binary(self.toInt64() & 0xFFFFFFFFi64) }
+  @pub fn toStringHex(): String { String::hex(self.toInt64() & 0xFFFFFFFFi64) }
 
   @pub @internal fn toFloat32(): Float32;
   @pub @internal fn toFloat64(): Float64;
@@ -73,7 +73,7 @@ impl Int32 {
     return self.bitwiseXor(s).wrappingSub(s);
   }
 
-  @pub @internal fn countZeroBits(): Int32 = self.not().countOneBits();
+  @pub @internal fn countZeroBits(): Int32 { self.not().countOneBits() }
   @pub @internal fn countOneBits(): Int32 {
     let mut x = self;
     let mut c = 0i32;
@@ -95,7 +95,7 @@ impl Int32 {
     }
     return r;
   }
-  @pub @internal fn countOneBitsLeading(): Int32 = self.not().countZeroBitsLeading();
+  @pub @internal fn countOneBitsLeading(): Int32 { self.not().countZeroBitsLeading() }
   @pub @internal fn countZeroBitsTrailing(): Int32 {
     if self == 0i32 {
       return Int32::bits();
@@ -108,18 +108,18 @@ impl Int32 {
     }
     return r;
   }
-  @pub @internal fn countOneBitsTrailing(): Int32 = self.not().countZeroBitsTrailing();
+  @pub @internal fn countOneBitsTrailing(): Int32 { self.not().countZeroBitsTrailing() }
 
-  @pub fn hash(): Int32 = self;
+  @pub fn hash(): Int32 { self }
 
-  @pub @static fn bits(): Int32 = 32i32;
-  @pub @static fn bytes(): Int32 = 4i32;
+  @pub @static fn bits(): Int32 { 32i32 }
+  @pub @static fn bytes(): Int32 { 4i32 }
 
-  @pub @static fn maxValue(): Int32 = 2147483647i32;
-  @pub @static fn minValue(): Int32 = -2147483648i32;
+  @pub @static fn maxValue(): Int32 { 2147483647i32 }
+  @pub @static fn minValue(): Int32 { -2147483648i32 }
 
-  @pub @static fn min(lhs: Int32, rhs: Int32): Int32 = if lhs < rhs { lhs } else { rhs };
-  @pub @static fn max(lhs: Int32, rhs: Int32): Int32 = if lhs < rhs { rhs } else { lhs };
+  @pub @static fn min(lhs: Int32, rhs: Int32): Int32 { if lhs < rhs { lhs } else { rhs } }
+  @pub @static fn max(lhs: Int32, rhs: Int32): Int32 { if lhs < rhs { rhs } else { lhs } }
 }
 
 @pub class Int32Range(lower: Int32, upper: Int32)
@@ -130,7 +130,9 @@ impl Int32Range {
   }
 }
 
-@pub fn range(lower: Int32, upper: Int32): Int32Range = Int32Range(lower, upper);
+@pub fn range(lower: Int32, upper: Int32): Int32Range {
+  Int32Range(lower, upper)
+}
 
 class Int32RangeIter {
   range: Int32Range,
@@ -159,7 +161,7 @@ impl Char {
   @pub @internal fn equals(rhs: Char): Bool;
   @pub @internal fn compareTo(rhs: Char): Int32;
 
-  @pub fn hash(): Int32 = self.toInt32();
+  @pub fn hash(): Int32 { self.toInt32() }
 
   @pub fn encodeUtf8(bytes: Array[UInt8], offset: Int64) {
     let val = self.toInt32();
@@ -212,7 +214,7 @@ impl Int64 {
   @pub @internal fn toString(): String;
   @pub fn toStringHex(): String { String::hex(self) }
 
-  @pub fn toStringBinary(): String = String::binary(self);
+  @pub fn toStringBinary(): String { String::binary(self) }
 
   @pub @internal fn toFloat32(): Float32;
   @pub @internal fn toFloat64(): Float64;
@@ -251,7 +253,7 @@ impl Int64 {
     return self.bitwiseXor(s).wrappingSub(s);
   }
 
-  @pub @internal fn countZeroBits(): Int32 = self.not().countOneBits();
+  @pub @internal fn countZeroBits(): Int32 { self.not().countOneBits() }
   @pub @internal fn countOneBits(): Int32 {
     let mut x = self;
     let mut c = 0i32;
@@ -273,7 +275,10 @@ impl Int64 {
     }
     return r;
   }
-  @pub @internal fn countOneBitsLeading(): Int32 = self.not().countZeroBitsLeading();
+  @pub @internal fn countOneBitsLeading(): Int32 {
+    self.not().countZeroBitsLeading()
+  }
+
   @pub @internal fn countZeroBitsTrailing(): Int32 {
     if self == 0i64 {
       return Int64::bits();
@@ -286,18 +291,18 @@ impl Int64 {
     }
     return r;
   }
-  @pub @internal fn countOneBitsTrailing(): Int32 = self.not().countZeroBitsTrailing();
+  @pub @internal fn countOneBitsTrailing(): Int32 { self.not().countZeroBitsTrailing() }
 
-  @pub fn hash(): Int32 = self.toInt32();
+  @pub fn hash(): Int32 { self.toInt32() }
 
-  @pub @static fn bits(): Int32 = 64i32;
-  @pub @static fn bytes(): Int32 = 8i32;
+  @pub @static fn bits(): Int32 { 64i32 }
+  @pub @static fn bytes(): Int32 { 8i32 }
 
-  @pub @static fn maxValue(): Int64 = 9223372036854775807i64;
-  @pub @static fn minValue(): Int64 = -9223372036854775808i64;
+  @pub @static fn maxValue(): Int64 { 9223372036854775807i64 }
+  @pub @static fn minValue(): Int64 { -9223372036854775808i64 }
 
-  @pub @static fn min(lhs: Int64, rhs: Int64): Int64 = if lhs < rhs { lhs } else { rhs };
-  @pub @static fn max(lhs: Int64, rhs: Int64): Int64 = if lhs < rhs { rhs } else { lhs };
+  @pub @static fn min(lhs: Int64, rhs: Int64): Int64 { if lhs < rhs { lhs } else { rhs } }
+  @pub @static fn max(lhs: Int64, rhs: Int64): Int64 { if lhs < rhs { rhs } else { lhs } }
 }
 
 @pub @internal struct Float32
@@ -344,14 +349,14 @@ impl Float32 {
   @pub @internal fn isNan(): Bool;
   @pub @internal fn sqrt(): Float32;
 
-  @pub fn hash(): Int32 = self.asInt32();
+  @pub fn hash(): Int32 { self.asInt32() }
 
   // should be lets, not funs
-  @pub @static fn bits(): Int32 = 32i32;
-  @pub @static fn bytes(): Int32 = 4i32;
-  @pub @static fn infinityPositive(): Float32 = 0x7f800000i32.asFloat32();
-  @pub @static fn infinityNegative(): Float32 = 0xff800000i32.asFloat32();
-  @pub @static fn notANumber(): Float32 = 0x7fC00000i32.asFloat32();
+  @pub @static fn bits(): Int32 { 32i32 }
+  @pub @static fn bytes(): Int32 { 4i32 }
+  @pub @static fn infinityPositive(): Float32 { 0x7f800000i32.asFloat32() }
+  @pub @static fn infinityNegative(): Float32 { 0xff800000i32.asFloat32() }
+  @pub @static fn notANumber(): Float32 { 0x7fC00000i32.asFloat32() }
 }
 
 @pub @internal struct Float64
@@ -398,14 +403,14 @@ impl Float64 {
   @pub @internal fn isNan(): Bool;
   @pub @internal fn sqrt(): Float64;
 
-  @pub fn hash(): Int32 = self.asInt64().toInt32();
+  @pub fn hash(): Int32 { self.asInt64().toInt32() }
 
   // should be lets, not funs
-  @pub @static fn bits(): Int32 = 64i32;
-  @pub @static fn bytes(): Int32 = 8i32;
-  @pub @static fn infinityPositive(): Float64 = 0x7ff0000000000000i64.asFloat64();
-  @pub @static fn infinityNegative(): Float64 = 0xfff0000000000000i64.asFloat64();
-  @pub @static fn notANumber(): Float64 = 0x7ff8000000000000i64.asFloat64();
+  @pub @static fn bits(): Int32 { 64i32 }
+  @pub @static fn bytes(): Int32 { 8i32 }
+  @pub @static fn infinityPositive(): Float64 { 0x7ff0000000000000i64.asFloat64() }
+  @pub @static fn infinityNegative(): Float64 { 0xfff0000000000000i64.asFloat64() }
+  @pub @static fn notANumber(): Float64 { 0x7ff8000000000000i64.asFloat64() }
 }
 
 @pub @internal struct UInt8
@@ -416,19 +421,19 @@ impl UInt8 {
   @pub @internal fn toInt64(): Int64;
   @pub @internal fn toString(): String;
 
-  @pub fn toStringBinary(): String = String::binary(self.toInt64());
-  @pub fn toStringHex(): String = String::hex(self.toInt64());
+  @pub fn toStringBinary(): String { String::binary(self.toInt64()) }
+  @pub fn toStringHex(): String { String::hex(self.toInt64()) }
 
   @pub @internal fn equals(rhs: UInt8): Bool;
   @pub @internal fn compareTo(rhs: UInt8): Int32;
 
-  @pub fn hash(): Int32 = self.toInt32();
+  @pub fn hash(): Int32 { self.toInt32() }
 
-  @pub @static fn bits(): Int32 = 8;
-  @pub @static fn bytes(): Int32 = 1;
+  @pub @static fn bits(): Int32 { 8 }
+  @pub @static fn bytes(): Int32 { 1 }
 
-  @pub @static fn maxValue(): UInt8 = 255u8;
-  @pub @static fn minValue(): UInt8 = 0u8;
+  @pub @static fn maxValue(): UInt8 { 255u8 }
+  @pub @static fn minValue(): UInt8 { 0u8 }
 }
 
 @pub enum Option[T] {

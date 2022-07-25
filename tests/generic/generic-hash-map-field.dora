@@ -1,11 +1,11 @@
 class MyOwnType
 
 impl std::Equals for MyOwnType {
-    fn equals(other: MyOwnType): Bool = true;
+    fn equals(other: MyOwnType): Bool { true }
 }
 
 impl std::Hash for MyOwnType {
-    fn hash(): Int32 = 0i32;
+    fn hash(): Int32 { 0i32 }
 }
 
 class Foo {

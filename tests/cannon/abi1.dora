@@ -11,14 +11,14 @@ fn main() {
     assert(foo.testSelf() === foo);
 }
 
-fn testInt32(x: Int32): Int32 = x;
+fn testInt32(x: Int32): Int32 { x }
 
-fn testFloat32(x: Float32): Float32 = x;
+fn testFloat32(x: Float32): Float32 { x }
 
-fn testPtr(x: Foo): Foo = x;
+fn testPtr(x: Foo): Foo { x }
 
 class Foo
 
 impl Foo {
-    fn testSelf(): Foo = self;
+    fn testSelf(): Foo { self }
 }
