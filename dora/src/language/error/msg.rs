@@ -163,6 +163,7 @@ pub enum ErrorMessage {
     FileForModuleNotFound,
     FileNoAccess(PathBuf),
     FileDoesNotExist(PathBuf),
+    Custom(String),
 }
 
 impl ErrorMessage {
@@ -588,6 +589,7 @@ impl ErrorMessage {
             ErrorMessage::FileDoesNotExist(ref path) => {
                 format!("file `{}` does not exist.", path.display())
             }
+            ErrorMessage::Custom(ref msg) => msg.clone(),
         }
     }
 }

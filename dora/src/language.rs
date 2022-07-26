@@ -54,9 +54,7 @@ macro_rules! return_on_error {
 
 pub fn check(sa: &mut SemAnalysis) -> bool {
     // This phase loads and parses all files. Also creates top-level-elements.
-    if let Err(_) = program_parser::parse(sa) {
-        return false;
-    }
+    program_parser::parse(sa);
     return_on_error!(sa);
 
     // add internal annotations early
