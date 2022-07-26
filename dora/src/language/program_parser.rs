@@ -170,8 +170,10 @@ impl<'a> ProgramParser<'a> {
                     FileLookup::FileSystem,
                 )?;
             } else {
-                println!("file `{}` does not exist.", &arg_file);
-                return Err(1);
+                self.sa
+                    .diag
+                    .lock()
+                    .report_without_location(ErrorMessage::FileDoesNotExist(path));
             }
         }
 
@@ -281,7 +283,6 @@ impl<'a> ProgramParser<'a> {
         match result {
             Ok(content) => {
                 self.add_file_from_string(path, content, module_id, module_path, file_lookup);
-                Ok(())
             }
 
             Err(_) => {
@@ -290,13 +291,16 @@ impl<'a> ProgramParser<'a> {
                         .diag
                         .lock()
                         .report(file_id, pos, ErrorMessage::FileNoAccess(path));
-                    Ok(())
                 } else {
-                    println!("unable to read file `{:?}`", path);
-                    Err(1)
+                    self.sa
+                        .diag
+                        .lock()
+                        .report_without_location(ErrorMessage::FileNoAccess(path));
                 }
             }
         }
+
+        Ok(())
     }
 
     fn add_file_from_string(

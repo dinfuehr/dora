@@ -162,6 +162,7 @@ pub enum ErrorMessage {
     DirectoryNotFound(PathBuf),
     FileForModuleNotFound,
     FileNoAccess(PathBuf),
+    FileDoesNotExist(PathBuf),
 }
 
 impl ErrorMessage {
@@ -581,7 +582,12 @@ impl ErrorMessage {
                 format!("directory `{:?}` not found.", path)
             }
             ErrorMessage::FileForModuleNotFound => "file for module not found.".into(),
-            ErrorMessage::FileNoAccess(ref path) => format!("cannot access file `{:?}`", path),
+            ErrorMessage::FileNoAccess(ref path) => {
+                format!("could not read file `{}`.", path.display())
+            }
+            ErrorMessage::FileDoesNotExist(ref path) => {
+                format!("file `{}` does not exist.", path.display())
+            }
         }
     }
 }
@@ -602,16 +608,28 @@ impl ErrorDescriptor {
         }
     }
 
-    pub fn message(&self, sa: &SemAnalysis) -> String {
-        let file = self.file.expect("uninitialized file");
-        let pos = self.pos.expect("uninitialized pos");
+    pub fn new_without_location(msg: ErrorMessage) -> ErrorDescriptor {
+        ErrorDescriptor {
+            file: None,
+            pos: None,
+            msg,
+        }
+    }
 
-        let file = sa.source_file(file);
-        format!(
-            "error in {:?} at {}: {}",
-            file.path,
-            pos,
-            self.msg.message()
-        )
+    pub fn message(&self, sa: &SemAnalysis) -> String {
+        if let Some(file) = self.file {
+            let pos = self.pos.expect("uninitialized pos");
+
+            let file = sa.source_file(file);
+            format!(
+                "error in {:?} at {}: {}",
+                file.path,
+                pos,
+                self.msg.message()
+            )
+        } else {
+            assert!(self.pos.is_none());
+            format!("error: {}", self.msg.message())
+        }
     }
 }

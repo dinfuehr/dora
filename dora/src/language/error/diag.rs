@@ -20,6 +20,10 @@ impl Diagnostic {
         self.errors.push(ErrorDescriptor::new(file, pos, msg));
     }
 
+    pub fn report_without_location(&mut self, msg: ErrorMessage) {
+        self.errors.push(ErrorDescriptor::new_without_location(msg));
+    }
+
     pub fn has_errors(&self) -> bool {
         !self.errors.is_empty()
     }
