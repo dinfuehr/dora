@@ -372,7 +372,7 @@ pub mod tests {
             let diag = vm.diag.lock();
             let errors = diag.errors();
 
-            if errors.len() != 1 || errors[0].pos != pos || errors[0].msg != msg {
+            if errors.len() != 1 || errors[0].pos != Some(pos) || errors[0].msg != msg {
                 println!("expected:");
                 println!("\t{:?} at {}", msg, pos);
                 println!();
@@ -382,14 +382,14 @@ pub mod tests {
                 } else {
                     println!("but got:");
                     for error in errors {
-                        println!("\t{:?} at {}", error.msg, error.pos);
+                        println!("\t{:?} at {:?}", error.msg, error.pos);
                         println!();
                     }
                 }
             }
 
             assert_eq!(1, errors.len(), "found {} errors instead", errors.len());
-            assert_eq!(pos, errors[0].pos);
+            assert_eq!(Some(pos), errors[0].pos);
             assert_eq!(msg, errors[0].msg);
         });
     }
@@ -403,7 +403,7 @@ pub mod tests {
             assert_eq!(vec.len(), errors.len());
 
             for (ind, error) in errors.iter().enumerate() {
-                assert_eq!(vec[ind].0, error.pos);
+                assert_eq!(Some(vec[ind].0), error.pos);
                 assert_eq!(vec[ind].1, error.msg);
             }
         });

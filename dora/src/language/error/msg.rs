@@ -588,22 +588,29 @@ impl ErrorMessage {
 
 #[derive(Clone, Debug)]
 pub struct ErrorDescriptor {
-    pub file: SourceFileId,
-    pub pos: Position,
+    pub file: Option<SourceFileId>,
+    pub pos: Option<Position>,
     pub msg: ErrorMessage,
 }
 
 impl ErrorDescriptor {
     pub fn new(file: SourceFileId, pos: Position, msg: ErrorMessage) -> ErrorDescriptor {
-        ErrorDescriptor { file, pos, msg }
+        ErrorDescriptor {
+            file: Some(file),
+            pos: Some(pos),
+            msg,
+        }
     }
 
     pub fn message(&self, sa: &SemAnalysis) -> String {
-        let file = sa.source_file(self.file);
+        let file = self.file.expect("uninitialized file");
+        let pos = self.pos.expect("uninitialized pos");
+
+        let file = sa.source_file(file);
         format!(
             "error in {:?} at {}: {}",
             file.path,
-            self.pos,
+            pos,
             self.msg.message()
         )
     }
