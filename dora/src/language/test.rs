@@ -25,7 +25,8 @@ where
     let mut sa = SemAnalysis::new(args);
     sa.test_file_as_string = Some(code);
 
-    language::check(&mut sa);
+    let result = language::check(&mut sa);
+    assert_eq!(result, !sa.diag.lock().has_errors());
 
     f(&sa)
 }

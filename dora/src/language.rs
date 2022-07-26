@@ -361,7 +361,7 @@ pub mod tests {
                 println!();
             }
 
-            assert!(!diag.has_errors());
+            assert!(!diag.has_errors(), "program should not have errors.");
 
             f(vm)
         })

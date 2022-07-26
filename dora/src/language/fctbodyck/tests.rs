@@ -504,7 +504,7 @@ fn type_array_assign() {
 #[test]
 fn type_array_field() {
     ok("
-        class Foo(let x: Array[Int32])
+        class Foo(x: Array[Int32])
         fn f(a: Foo): Int32 { return a.x(1i64); }
     ");
 }
@@ -534,7 +534,7 @@ fn reassign_field() {
 
 #[test]
 fn reassign_var() {
-    ok("fn f() { var a=1; a=2; }");
+    ok("fn f() { let mut a=1; a=2; }");
 }
 
 #[test]
@@ -560,7 +560,7 @@ fn reassign_self() {
 
 #[test]
 fn same_names() {
-    ok("class Foo { var Foo: Foo = Foo(); }");
+    ok("class Foo { Foo: Foo }");
     ok("class Foo fn foo() { let Foo: Int32 = 1i32; }");
 }
 
@@ -1065,12 +1065,12 @@ fn test_find_class_method_precedence() {
 
 #[test]
 fn test_global_get() {
-    ok("var x: Int32 = 0i32; fn foo(): Int32 { return x; }");
+    ok("let mut x: Int32 = 0i32; fn foo(): Int32 { return x; }");
 }
 
 #[test]
 fn test_global_set() {
-    ok("var x: Int32 = 0i32; fn foo(a: Int32) { x = a; }");
+    ok("let mut x: Int32 = 0i32; fn foo(a: Int32) { x = a; }");
     err(
         "let x: Int32 = 0i32; fn foo(a: Int32) { x = a; }",
         pos(1, 43),
@@ -2599,7 +2599,7 @@ fn variadic_parameter() {
 #[test]
 fn for_with_array() {
     ok("fn f(x: Array[Int32]): Int32 {
-        var result = 0i32;
+        let mut result = 0i32;
         for i in x {
             result = result + i;
         }
@@ -2607,7 +2607,7 @@ fn for_with_array() {
     }");
 
     ok("fn f(x: Array[Float32]): Float32 {
-        var result = 0.0f32;
+        let mut result = 0.0f32;
         for i in x {
             result = result + i;
         }
@@ -2618,7 +2618,7 @@ fn for_with_array() {
 #[test]
 fn for_with_vec() {
     ok("fn f(x: Vec[Int32]): Int32 {
-        var result = 0i32;
+        let mut result = 0i32;
         for i in x.makeIterator() {
             result = result + i;
         }
@@ -2626,7 +2626,7 @@ fn for_with_vec() {
     }");
 
     ok("fn f(x: Vec[Int32]): Int32 {
-        var result = 0i32;
+        let mut result = 0i32;
         for i in x {
             result = result + i;
         }
@@ -2634,7 +2634,7 @@ fn for_with_vec() {
     }");
 
     ok("fn f(x: Vec[Float32]): Float32 {
-        var result = 0.0f32;
+        let mut result = 0.0f32;
         for i in x.makeReverseIterator() {
             result = result + i;
         }
@@ -2642,7 +2642,7 @@ fn for_with_vec() {
     }");
 
     ok("fn f(x: Vec[Float32]): Float32 {
-        var result = 0.0f32;
+        let mut result = 0.0f32;
         for i in x {
             result = result + i;
         }
@@ -3312,21 +3312,21 @@ fn mod_use() {
     ok("
         use foo::bar;
         fn f(): Int32 { bar }
-        mod foo { @pub var bar: Int32 = 10i32; }
+        mod foo { @pub let bar: Int32 = 10i32; }
     ");
 
     ok("
         use foo::bar::baz;
         fn f(): Int32 { baz }
         mod foo { @pub mod bar {
-            @pub var baz: Int32 = 10i32;
+            @pub let baz: Int32 = 10i32;
         } }
     ");
 
     ok("
         use foo::bar;
         fn f(): Int32 { bar }
-        mod foo { @pub var bar: Int32 = 10i32; }
+        mod foo { @pub let bar: Int32 = 10i32; }
     ");
 }
 
@@ -3572,10 +3572,9 @@ fn infer_enum_type() {
     }");
 
     ok("
-        class X
-        impl X {
-            var a: Option[Int32] = None;
-            var b: Option[Int32] = Some(10i32);
+        class X {
+            a: Option[Int32],
+            b: Option[Int32],
         }
 
         fn f(x: X) {
@@ -3585,8 +3584,8 @@ fn infer_enum_type() {
     ");
 
     ok("fn f() {
-        var x: Option[Int32] = None; x = Some(10i32);
-        var y: Option[Int32] = Some(10i32); y = None;
+        let mut x: Option[Int32] = None; x = Some(10i32);
+        let mut y: Option[Int32] = Some(10i32); y = None;
     }");
 
     ok("fn f(): Option[Int32] {
