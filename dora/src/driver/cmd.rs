@@ -65,7 +65,7 @@ Options:
 #[derive(Debug)]
 pub struct Args {
     pub arg_argument: Option<Vec<String>>,
-    pub arg_file: String,
+    pub arg_file: Option<String>,
 
     pub flag_emit_ast: Option<String>,
     pub flag_emit_asm: Option<String>,
@@ -170,7 +170,7 @@ impl Default for Args {
     fn default() -> Args {
         Args {
             arg_argument: None,
-            arg_file: "".into(),
+            arg_file: None,
 
             flag_emit_ast: None,
             flag_emit_asm: None,
@@ -390,7 +390,7 @@ pub fn parse_arguments() -> Result<Args, String> {
         } else if arg.starts_with("-") {
             return Err(format!("unknown flag {}", arg));
         } else {
-            args.arg_file = arg.clone();
+            args.arg_file = Some(arg.clone());
 
             let count = cli_arguments.len() - idx - 1;
             let mut arguments: Vec<String> = Vec::with_capacity(count);

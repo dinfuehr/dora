@@ -147,26 +147,29 @@ impl<'a> ProgramParser<'a> {
     }
 
     fn add_program_files(&mut self) {
-        if !self.sa.args.arg_file.is_empty() {
-            let arg_file = self.sa.args.arg_file.clone();
-            let path = PathBuf::from(&arg_file);
+        if self.sa.args.arg_file.is_none() {
+            return;
+        }
 
-            if path.is_file() {
-                let file_path = PathBuf::from(path);
-                let module_path = PathBuf::from(file_path.parent().expect("parent missing"));
-                self.add_file(
-                    file_path,
-                    self.sa.program_module_id,
-                    Some(module_path),
-                    None,
-                    FileLookup::FileSystem,
-                );
-            } else {
-                self.sa
-                    .diag
-                    .lock()
-                    .report_without_location(ErrorMessage::FileDoesNotExist(path));
-            }
+        let arg_file = self.sa.args.arg_file.as_ref().expect("argument expected");
+        let arg_file = arg_file.clone();
+        let path = PathBuf::from(&arg_file);
+
+        if path.is_file() {
+            let file_path = PathBuf::from(path);
+            let module_path = PathBuf::from(file_path.parent().expect("parent missing"));
+            self.add_file(
+                file_path,
+                self.sa.program_module_id,
+                Some(module_path),
+                None,
+                FileLookup::FileSystem,
+            );
+        } else {
+            self.sa
+                .diag
+                .lock()
+                .report_without_location(ErrorMessage::FileDoesNotExist(path));
         }
     }
 
