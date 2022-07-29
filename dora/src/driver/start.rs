@@ -32,7 +32,7 @@ pub fn start() -> i32 {
         return 0;
     }
 
-    if args.command.is_build_or_run() && args.arg_file.is_none() {
+    if args.arg_file.is_none() {
         cmd::print_help();
         println!();
         println!("missing file argument.");
@@ -79,13 +79,7 @@ pub fn start() -> i32 {
     let mut timer = Timer::new(vm.args.flag_gc_stats);
 
     let exit_code = if vm.args.command.is_test() {
-        let module_id = if vm.args.flag_test_boots {
-            vm.boots_module_id
-        } else {
-            vm.program_module_id
-        };
-
-        run_tests(&vm, module_id)
+        run_tests(&vm, vm.program_module_id)
     } else {
         run_main(&vm, main_fct_id.expect("main missing"))
     };

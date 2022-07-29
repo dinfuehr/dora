@@ -59,7 +59,6 @@ Options:
 
     --stdlib=<path>         Load standard library from the given path.
     --boots=<path>          Load boots source from the given path.
-    --test-boots            Run unit tests for boots.
 ";
 
 #[derive(Debug)]
@@ -108,7 +107,6 @@ pub struct Args {
     pub flag_test_filter: Option<String>,
 
     pub command: Command,
-    pub flag_test_boots: bool,
 }
 
 impl Args {
@@ -213,7 +211,6 @@ impl Default for Args {
             flag_test_filter: None,
 
             command: Command::Run,
-            flag_test_boots: false,
         }
     }
 }
@@ -392,8 +389,6 @@ pub fn parse_arguments() -> Result<Args, String> {
             args.flag_stdlib = Some(argument_value(arg).to_string());
         } else if arg.starts_with("--boots=") {
             args.flag_boots = Some(argument_value(arg).to_string());
-        } else if arg == "--test-boots" {
-            args.flag_test_boots = true;
         } else if arg.starts_with("-") {
             return Err(format!("unknown flag {}", arg));
         } else {
