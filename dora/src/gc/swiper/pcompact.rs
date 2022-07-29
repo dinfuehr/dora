@@ -1,6 +1,7 @@
 use parking_lot::{Mutex, MutexGuard};
 use scoped_threadpool::Pool;
 use std::cmp;
+use std::sync::Arc;
 
 use crate::gc::root::Slot;
 use crate::gc::space::Space;
@@ -18,6 +19,7 @@ use crate::gc::{iterate_weak_roots, pmarking};
 use crate::gc::{Address, GcReason, Region, K, M};
 use crate::os;
 use crate::stdlib;
+use crate::threads::DoraThread;
 use crate::timer::Timer;
 use crate::vm::{Trap, VM};
 
@@ -29,6 +31,7 @@ pub struct ParallelFullCollector<'a> {
     old_protected: MutexGuard<'a, OldGenProtected>,
     large_space: &'a LargeSpace,
     rootset: &'a [Slot],
+    threads: &'a [Arc<DoraThread>],
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
     readonly_space: &'a Space,
@@ -59,6 +62,7 @@ impl<'a> ParallelFullCollector<'a> {
         crossing_map: &'a CrossingMap,
         readonly_space: &'a Space,
         rootset: &'a [Slot],
+        threads: &'a [Arc<DoraThread>],
         reason: GcReason,
         number_workers: usize,
         min_heap_size: usize,
@@ -72,6 +76,7 @@ impl<'a> ParallelFullCollector<'a> {
             old_protected: old.protected(),
             large_space,
             rootset,
+            threads,
             card_table,
             crossing_map,
             readonly_space,

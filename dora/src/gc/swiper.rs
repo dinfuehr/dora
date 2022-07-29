@@ -373,6 +373,7 @@ impl Swiper {
                 &self.crossing_map,
                 &vm.gc.readonly_space,
                 rootset,
+                threads,
                 reason,
                 pool.thread_count() as usize,
                 self.min_heap_size,
