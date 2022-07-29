@@ -1,8 +1,10 @@
 use parking_lot::Mutex;
 
+use std::sync::Arc;
+
 use crate::driver::cmd::Args;
 use crate::gc::bump::BumpAllocator;
-use crate::gc::root::{determine_strong_roots, Slot};
+use crate::gc::root::iterate_strong_roots;
 use crate::gc::tlab;
 use crate::gc::{
     formatted_size, iterate_weak_roots, Address, CollectionStats, Collector, GcReason, Region,
@@ -11,6 +13,7 @@ use crate::mem;
 use crate::object::Obj;
 use crate::os::{self, MemoryPermission};
 use crate::safepoint;
+use crate::threads::DoraThread;
 use crate::timer::Timer;
 use crate::vm::VM;
 
@@ -89,8 +92,7 @@ impl Collector for CopyCollector {
 
         safepoint::stop_the_world(vm, |threads| {
             tlab::make_iterable_all(vm, &*threads);
-            let rootset = determine_strong_roots(vm, &*threads);
-            self.copy_collect(vm, &rootset, reason);
+            self.copy_collect(vm, &*threads, reason);
         });
 
         if vm.args.flag_gc_stats {
@@ -135,7 +137,7 @@ impl Drop for CopyCollector {
 }
 
 impl CopyCollector {
-    fn copy_collect(&self, vm: &VM, rootset: &[Slot], reason: GcReason) {
+    fn copy_collect(&self, vm: &VM, threads: &[Arc<DoraThread>], reason: GcReason) {
         let timer = Timer::new(vm.args.flag_gc_verbose);
 
         // enable writing into to-space again (for debug builds)
@@ -154,13 +156,13 @@ impl CopyCollector {
         let mut top = to_space.start;
         let mut scan = top;
 
-        for root in rootset {
+        iterate_strong_roots(vm, threads, |root| {
             let root_ptr = root.get();
 
             if from_space.contains(root_ptr) {
                 root.set(self.copy(root_ptr, &mut top));
             }
-        }
+        });
 
         while scan < top {
             let object: &mut Obj = scan.to_mut_obj();
