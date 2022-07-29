@@ -2,10 +2,10 @@ use parking_lot::Mutex;
 
 use crate::driver::cmd::Args;
 use crate::gc::bump::BumpAllocator;
-use crate::gc::root::{get_rootset, Slot};
+use crate::gc::root::{determine_strong_roots, Slot};
 use crate::gc::tlab;
 use crate::gc::{
-    formatted_size, iterate_weak_refs, Address, CollectionStats, Collector, GcReason, Region,
+    formatted_size, iterate_weak_roots, Address, CollectionStats, Collector, GcReason, Region,
 };
 use crate::mem;
 use crate::object::Obj;
@@ -89,7 +89,7 @@ impl Collector for CopyCollector {
 
         safepoint::stop_the_world(vm, |threads| {
             tlab::make_iterable_all(vm, &*threads);
-            let rootset = get_rootset(vm, &*threads);
+            let rootset = determine_strong_roots(vm, &*threads);
             self.copy_collect(vm, &rootset, reason);
         });
 
@@ -176,7 +176,7 @@ impl CopyCollector {
             scan = scan.offset(object.size());
         }
 
-        self.iterate_weak_refs(vm);
+        self.iterate_weak_roots(vm);
 
         // disable access in current from-space
         // makes sure that no pointer into from-space is left (in debug-builds)
@@ -207,8 +207,8 @@ impl CopyCollector {
         });
     }
 
-    fn iterate_weak_refs(&self, vm: &VM) {
-        iterate_weak_refs(vm, |current_address| {
+    fn iterate_weak_roots(&self, vm: &VM) {
+        iterate_weak_roots(vm, |current_address| {
             debug_assert!(self.from_space().contains(current_address));
             let obj = current_address.to_mut_obj();
 

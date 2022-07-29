@@ -9,29 +9,42 @@ use crate::vm::{
     EnumLayout, VM,
 };
 
-pub fn get_rootset(vm: &VM, threads: &[Arc<DoraThread>]) -> Vec<Slot> {
+pub fn determine_strong_roots(vm: &VM, threads: &[Arc<DoraThread>]) -> Vec<Slot> {
     let mut rootset = Vec::new();
 
-    determine_rootset_from_stack(&mut rootset, vm, threads);
-    determine_rootset_from_handles(&mut rootset, threads);
-    determine_rootset_from_code_space(&mut rootset, vm);
-
-    determine_rootset_from_globals(&mut rootset, vm);
-    determine_rootset_from_wait_list(&mut rootset, vm);
+    iterate_strong_roots(vm, threads, |slot| {
+        rootset.push(slot);
+    });
 
     rootset
 }
 
-fn determine_rootset_from_handles(rootset: &mut Vec<Slot>, threads: &[Arc<DoraThread>]) {
+pub fn iterate_strong_roots<F: FnMut(Slot)>(vm: &VM, threads: &[Arc<DoraThread>], mut callback: F) {
     for thread in threads {
-        for rooted in thread.handles.iter() {
-            let slot = Slot::at(rooted.location());
-            rootset.push(slot);
-        }
+        iterate_roots_from_stack(vm, thread, &mut callback);
+        iterate_roots_from_handles(thread, &mut callback);
+    }
+
+    iterate_roots_from_code_space(vm, &mut callback);
+
+    iterate_roots_from_globals(vm, &mut callback);
+    iterate_roots_from_wait_list(vm, &mut callback);
+}
+
+fn iterate_roots_from_wait_list<F: FnMut(Slot)>(vm: &VM, callback: &mut F) {
+    vm.wait_lists.visit_roots(|slot| {
+        callback(slot);
+    });
+}
+
+fn iterate_roots_from_handles<F: FnMut(Slot)>(thread: &DoraThread, callback: &mut F) {
+    for rooted in thread.handles.iter() {
+        let slot = Slot::at(rooted.location());
+        callback(slot);
     }
 }
 
-fn determine_rootset_from_code_space(_rootset: &mut Vec<Slot>, vm: &VM) {
+fn iterate_roots_from_code_space<F: FnMut(Slot)>(vm: &VM, _callback: &mut F) {
     let allocated_region = vm.gc.code_space.allocated_region();
     let mut current = allocated_region.start;
 
@@ -43,7 +56,7 @@ fn determine_rootset_from_code_space(_rootset: &mut Vec<Slot>, vm: &VM) {
     assert_eq!(current, allocated_region.end);
 }
 
-fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, vm: &VM) {
+fn iterate_roots_from_globals<F: FnMut(Slot)>(vm: &VM, callback: &mut F) {
     for global_var in vm.globals.iter() {
         let global_var = global_var.read();
 
@@ -55,7 +68,7 @@ fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, vm: &VM) {
                 for &offset in &sdef.ref_fields {
                     let slot_address = global_var.address_value.offset(offset as usize);
                     let slot = Slot::at(slot_address);
-                    rootset.push(slot);
+                    callback(slot);
                 }
             }
 
@@ -67,7 +80,7 @@ fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, vm: &VM) {
                     EnumLayout::Int => {}
                     EnumLayout::Ptr | EnumLayout::Tagged => {
                         let slot = Slot::at(global_var.address_value);
-                        rootset.push(slot);
+                        callback(slot);
                     }
                 }
             }
@@ -78,7 +91,7 @@ fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, vm: &VM) {
                 for &offset in tuple.references() {
                     let slot_address = global_var.address_value.offset(offset as usize);
                     let slot = Slot::at(slot_address);
-                    rootset.push(slot);
+                    callback(slot);
                 }
             }
 
@@ -93,7 +106,7 @@ fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, vm: &VM) {
 
             SourceType::Class(_, _) | SourceType::Trait(_, _) => {
                 let slot = Slot::at(global_var.address_value);
-                rootset.push(slot);
+                callback(slot);
             }
 
             SourceType::TypeParam(_)
@@ -106,25 +119,18 @@ fn determine_rootset_from_globals(rootset: &mut Vec<Slot>, vm: &VM) {
     }
 }
 
-fn determine_rootset_from_stack(rootset: &mut Vec<Slot>, vm: &VM, threads: &[Arc<DoraThread>]) {
-    for thread in threads {
-        let dtn = Address::from_ptr(thread.dtn());
-        determine_rootset_from_stack_for_thread(rootset, vm, dtn);
-    }
-}
-
-fn determine_rootset_from_stack_for_thread(rootset: &mut Vec<Slot>, vm: &VM, dtn: Address) {
-    let mut dtn = dtn.to_ptr::<DoraToNativeInfo>();
+fn iterate_roots_from_stack<F: FnMut(Slot)>(vm: &VM, thread: &DoraThread, callback: &mut F) {
+    let mut dtn = thread.dtn();
 
     while !dtn.is_null() {
-        dtn = from_dora_to_native_info(rootset, vm, dtn);
+        dtn = iterate_roots_from_dora_to_native_info(vm, dtn, callback);
     }
 }
 
-fn from_dora_to_native_info(
-    rootset: &mut Vec<Slot>,
+fn iterate_roots_from_dora_to_native_info<F: FnMut(Slot)>(
     vm: &VM,
     dtn: *const DoraToNativeInfo,
+    callback: &mut F,
 ) -> *const DoraToNativeInfo {
     let dtn = unsafe { &*dtn };
 
@@ -132,7 +138,7 @@ fn from_dora_to_native_info(
     let mut fp: usize = dtn.fp;
 
     while fp != 0 {
-        if !determine_rootset(rootset, vm, fp, pc) {
+        if !iterate_roots_from_stack_frame(vm, fp, pc, callback) {
             break;
         }
 
@@ -143,7 +149,12 @@ fn from_dora_to_native_info(
     dtn.last
 }
 
-fn determine_rootset(rootset: &mut Vec<Slot>, vm: &VM, fp: usize, pc: usize) -> bool {
+fn iterate_roots_from_stack_frame<F: FnMut(Slot)>(
+    vm: &VM,
+    fp: usize,
+    pc: usize,
+    callback: &mut F,
+) -> bool {
     let code_id = vm.code_map.get(pc.into());
 
     if let Some(code_id) = code_id {
@@ -156,7 +167,7 @@ fn determine_rootset(rootset: &mut Vec<Slot>, vm: &VM, fp: usize, pc: usize) -> 
 
                 for &offset in &gcpoint.offsets {
                     let addr = (fp as isize + offset as isize) as usize;
-                    rootset.push(Slot::at(addr.into()));
+                    callback(Slot::at(addr.into()));
                 }
 
                 true
@@ -167,7 +178,7 @@ fn determine_rootset(rootset: &mut Vec<Slot>, vm: &VM, fp: usize, pc: usize) -> 
 
                 for &offset in &gcpoint.offsets {
                     let addr = (fp as isize + offset as isize) as usize;
-                    rootset.push(Slot::at(addr.into()));
+                    callback(Slot::at(addr.into()));
                 }
 
                 true

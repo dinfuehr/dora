@@ -5,7 +5,7 @@ use std::mem::size_of;
 use std::sync::Arc;
 
 use crate::driver::cmd::Args;
-use crate::gc::root::{get_rootset, Slot};
+use crate::gc::root::{determine_strong_roots, Slot};
 use crate::gc::swiper::card::CardTable;
 use crate::gc::swiper::compact::FullCollector;
 use crate::gc::swiper::controller::{HeapConfig, SharedHeapConfig};
@@ -224,7 +224,7 @@ impl Swiper {
             controller::start(&self.config, &self.young, &self.old, &self.large);
 
             tlab::make_iterable_all(vm, threads);
-            let rootset = get_rootset(vm, threads);
+            let rootset = determine_strong_roots(vm, threads);
 
             let kind = match kind {
                 CollectionKind::Minor => {

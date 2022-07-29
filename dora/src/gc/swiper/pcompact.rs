@@ -14,7 +14,7 @@ use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{
     forward_full, walk_region, walk_region_and_skip_garbage, CardIdx, CARD_REFS,
 };
-use crate::gc::{iterate_weak_refs, pmarking};
+use crate::gc::{iterate_weak_roots, pmarking};
 use crate::gc::{Address, GcReason, Region, K, M};
 use crate::os;
 use crate::stdlib;
@@ -716,7 +716,7 @@ impl<'a> ParallelFullCollector<'a> {
             }
         });
 
-        iterate_weak_refs(self.vm, |current_address| {
+        iterate_weak_roots(self.vm, |current_address| {
             forward_full(
                 current_address,
                 self.heap,

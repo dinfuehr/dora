@@ -627,4 +627,8 @@ impl ManagedThread {
     pub fn native_thread(&self) -> &'static DoraThread {
         unsafe { &*(self.native_thread_ptr as *const _) }
     }
+
+    pub fn id(&self) -> u64 {
+        self.id
+    }
 }

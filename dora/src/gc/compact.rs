@@ -3,11 +3,11 @@ use parking_lot::Mutex;
 use crate::driver::cmd::Args;
 use crate::gc::bump::BumpAllocator;
 use crate::gc::marking;
-use crate::gc::root::{get_rootset, Slot};
+use crate::gc::root::{determine_strong_roots, Slot};
 use crate::gc::space::Space;
 use crate::gc::tlab;
 use crate::gc::{
-    formatted_size, iterate_weak_refs, Address, CollectionStats, Collector, GcReason, Region,
+    formatted_size, iterate_weak_roots, Address, CollectionStats, Collector, GcReason, Region,
 };
 use crate::object::Obj;
 use crate::os;
@@ -84,7 +84,7 @@ impl Collector for MarkCompactCollector {
 
         safepoint::stop_the_world(vm, |threads| {
             tlab::make_iterable_all(vm, threads);
-            let rootset = get_rootset(vm, threads);
+            let rootset = determine_strong_roots(vm, threads);
             self.mark_compact(vm, &rootset, reason);
         });
 
@@ -202,7 +202,7 @@ impl<'a> MarkCompact<'a> {
             }
         });
 
-        iterate_weak_refs(self.vm, |current_address| {
+        iterate_weak_roots(self.vm, |current_address| {
             let obj = current_address.to_mut_obj();
 
             if obj.header().is_marked_non_atomic() {

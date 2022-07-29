@@ -339,8 +339,7 @@ fn thread_main(thread: &DoraThread, thread_location: Address, runner_location: A
     // before we dereference handle.
     thread.unpark(vm);
 
-    let obj = unsafe { &mut *runner_handle.direct_ptr().to_mut_ptr::<Obj>() };
-    let vtable = obj.header().vtbl();
+    let vtable = runner_handle.header().vtbl();
     let class_instance = vtable.class_instance();
 
     let (lambda_id, type_params) = match &class_instance.kind {

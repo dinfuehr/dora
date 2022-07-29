@@ -133,10 +133,12 @@ pub struct Handle<T>(*mut Ref<T>);
 
 impl<T> Handle<T> {
     pub fn direct(self) -> Ref<T> {
+        debug_assert!(current_thread().is_running());
         unsafe { *self.0 }
     }
 
     pub fn direct_ptr(self) -> Address {
+        debug_assert!(current_thread().is_running());
         unsafe { *self.0 }.address()
     }
 

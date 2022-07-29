@@ -14,7 +14,7 @@ use crate::gc::swiper::on_different_cards;
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{forward_minor, CardIdx, CARD_SIZE, LARGE_OBJECT_SIZE};
 use crate::gc::tlab::{TLAB_OBJECT_SIZE, TLAB_SIZE};
-use crate::gc::{fill_region, iterate_weak_refs, Address, GcReason, Region};
+use crate::gc::{fill_region, iterate_weak_roots, Address, GcReason, Region};
 use crate::object::{offset_of_array_data, Obj};
 use crate::timer::Timer;
 use crate::vm::VM;
@@ -338,7 +338,7 @@ impl<'a> ParallelMinorCollector<'a> {
     }
 
     fn iterate_weak_refs(&mut self) {
-        iterate_weak_refs(self.vm, |current_address| {
+        iterate_weak_roots(self.vm, |current_address| {
             forward_minor(current_address, self.young.total())
         });
     }

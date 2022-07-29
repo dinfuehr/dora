@@ -3,11 +3,11 @@ use parking_lot::Mutex;
 use crate::driver::cmd::Args;
 use crate::gc::freelist::FreeList;
 use crate::gc::marking;
-use crate::gc::root::{get_rootset, Slot};
+use crate::gc::root::{determine_strong_roots, Slot};
 use crate::gc::space::Space;
 use crate::gc::tlab;
 use crate::gc::{
-    fill_region_with_free, formatted_size, iterate_weak_refs, Address, CollectionStats, Collector,
+    fill_region_with_free, formatted_size, iterate_weak_roots, Address, CollectionStats, Collector,
     GcReason, Region,
 };
 use crate::os;
@@ -84,7 +84,7 @@ impl Collector for SweepCollector {
 
         safepoint::stop_the_world(vm, |threads| {
             tlab::make_iterable_all(vm, threads);
-            let rootset = get_rootset(vm, threads);
+            let rootset = determine_strong_roots(vm, threads);
             self.mark_sweep(vm, &rootset, reason);
         });
 
@@ -193,7 +193,7 @@ impl<'a> MarkSweep<'a> {
     }
 
     fn iterate_weak_refs(&mut self) {
-        iterate_weak_refs(self.vm, |current_address| {
+        iterate_weak_roots(self.vm, |current_address| {
             let obj = current_address.to_mut_obj();
 
             if obj.header().is_marked_non_atomic() {

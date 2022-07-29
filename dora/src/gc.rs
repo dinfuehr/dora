@@ -662,7 +662,7 @@ impl fmt::Display for AllNumbers {
     }
 }
 
-fn iterate_weak_refs<F>(vm: &VM, object_updater: F)
+fn iterate_weak_roots<F>(vm: &VM, object_updater: F)
 where
     F: Fn(Address) -> Option<Address>,
 {
