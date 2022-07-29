@@ -25,6 +25,7 @@ use crate::mem;
 use crate::object::Obj;
 use crate::os::{self, MemoryPermission};
 use crate::safepoint;
+use crate::threads::DoraThread;
 use crate::vm::VM;
 
 pub mod card;
@@ -232,7 +233,7 @@ impl Swiper {
 
                     if promotion_failed {
                         reason = GcReason::PromotionFailure;
-                        self.full_collect(vm, reason, &rootset);
+                        self.full_collect(vm, reason, threads, &rootset);
                         CollectionKind::Full
                     } else {
                         CollectionKind::Minor
@@ -240,7 +241,7 @@ impl Swiper {
                 }
 
                 CollectionKind::Full => {
-                    self.full_collect(vm, reason, &rootset);
+                    self.full_collect(vm, reason, threads, &rootset);
                     CollectionKind::Full
                 }
             };
@@ -342,7 +343,13 @@ impl Swiper {
         promotion_failed
     }
 
-    fn full_collect(&self, vm: &VM, reason: GcReason, rootset: &[Slot]) {
+    fn full_collect(
+        &self,
+        vm: &VM,
+        reason: GcReason,
+        threads: &[Arc<DoraThread>],
+        rootset: &[Slot],
+    ) {
         self.verify(
             vm,
             VerifierPhase::PreFull,
@@ -388,6 +395,7 @@ impl Swiper {
                 &self.crossing_map,
                 &vm.gc.readonly_space,
                 rootset,
+                threads,
                 reason,
                 self.min_heap_size,
                 self.max_heap_size,

@@ -1,7 +1,9 @@
-use parking_lot::MutexGuard;
 use std::cmp;
+use std::sync::Arc;
 
-use crate::gc::root::Slot;
+use parking_lot::MutexGuard;
+
+use crate::gc::root::{iterate_strong_roots, Slot};
 use crate::gc::space::Space;
 use crate::gc::swiper::card::CardTable;
 use crate::gc::swiper::controller::FullCollectorPhases;
@@ -14,6 +16,7 @@ use crate::gc::{iterate_weak_roots, marking};
 use crate::gc::{Address, GcReason, Region};
 use crate::object::Obj;
 use crate::stdlib;
+use crate::threads::DoraThread;
 use crate::timer::Timer;
 use crate::vm::{Trap, VM};
 
@@ -25,6 +28,7 @@ pub struct FullCollector<'a> {
     old_protected: MutexGuard<'a, OldGenProtected>,
     large_space: &'a LargeSpace,
     rootset: &'a [Slot],
+    threads: &'a [Arc<DoraThread>],
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
     readonly_space: &'a Space,
@@ -53,6 +57,7 @@ impl<'a> FullCollector<'a> {
         crossing_map: &'a CrossingMap,
         readonly_space: &'a Space,
         rootset: &'a [Slot],
+        threads: &'a [Arc<DoraThread>],
         reason: GcReason,
         min_heap_size: usize,
         max_heap_size: usize,
@@ -67,6 +72,7 @@ impl<'a> FullCollector<'a> {
             old_protected: old.protected(),
             large_space,
             rootset,
+            threads,
             card_table,
             crossing_map,
             readonly_space,
@@ -219,9 +225,9 @@ impl<'a> FullCollector<'a> {
             }
         });
 
-        for root in self.rootset {
-            self.forward_reference(*root);
-        }
+        iterate_strong_roots(self.vm, self.threads, |slot| {
+            self.forward_reference(slot);
+        });
 
         iterate_weak_roots(self.vm, |current_address| {
             forward_full(
