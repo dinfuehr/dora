@@ -268,6 +268,13 @@ impl Command {
             _ => false,
         }
     }
+
+    pub fn is_build_or_run(&self) -> bool {
+        match self {
+            Command::Build | Command::Run => true,
+            _ => false,
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug)]

@@ -140,10 +140,6 @@ impl<T> Handle<T> {
         unsafe { *self.0 }.address()
     }
 
-    pub fn raw(self) -> *mut Ref<T> {
-        self.0
-    }
-
     pub fn location(&self) -> Address {
         Address::from_ptr(self.0)
     }
@@ -161,14 +157,14 @@ impl<T> Deref for Handle<T> {
     type Target = T;
 
     fn deref(&self) -> &T {
-        debug_assert!(current_thread().state_relaxed().is_running());
+        debug_assert!(current_thread().is_running());
         unsafe { &*self.0 }.deref()
     }
 }
 
 impl<T> DerefMut for Handle<T> {
     fn deref_mut(&mut self) -> &mut T {
-        debug_assert!(current_thread().state_relaxed().is_running());
+        debug_assert!(current_thread().is_running());
         unsafe { &mut *self.0 }.deref_mut()
     }
 }
