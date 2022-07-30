@@ -1,7 +1,7 @@
 use parking_lot::Mutex;
 use std::cmp;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use std::sync::Barrier;
+use std::sync::{Arc, Barrier};
 
 use crate::gc::pmarking::Terminator;
 use crate::gc::root::Slot;
@@ -16,6 +16,7 @@ use crate::gc::swiper::{forward_minor, CardIdx, CARD_SIZE, LARGE_OBJECT_SIZE};
 use crate::gc::tlab::{TLAB_OBJECT_SIZE, TLAB_SIZE};
 use crate::gc::{fill_region, iterate_weak_roots, Address, GcReason, Region};
 use crate::object::{offset_of_array_data, Obj};
+use crate::threads::DoraThread;
 use crate::timer::Timer;
 use crate::vm::VM;
 use crate::vtable::VTable;
@@ -35,6 +36,7 @@ pub struct ParallelMinorCollector<'a> {
     crossing_map: &'a CrossingMap,
 
     rootset: &'a [Slot],
+    threads: &'a [Arc<DoraThread>],
     reason: GcReason,
 
     young_top: Address,
@@ -66,6 +68,7 @@ impl<'a> ParallelMinorCollector<'a> {
         card_table: &'a CardTable,
         crossing_map: &'a CrossingMap,
         rootset: &'a [Slot],
+        threads: &'a [Arc<DoraThread>],
         reason: GcReason,
         min_heap_size: usize,
         max_heap_size: usize,
@@ -78,6 +81,7 @@ impl<'a> ParallelMinorCollector<'a> {
             old,
             large,
             rootset,
+            threads,
             card_table,
             crossing_map,
 

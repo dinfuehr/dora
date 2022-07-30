@@ -6,8 +6,8 @@ use crate::language::access::{
 };
 use crate::language::error::msg::ErrorMessage;
 use crate::language::sem_analysis::{
-    create_tuple, implements_trait, ClassDefinitionId, EnumDefinitionId, ExtensionDefinitionId,
-    FctDefinition, ImplDefinition, SemAnalysis, SourceFileId, StructDefinitionId,
+    implements_trait, ClassDefinitionId, EnumDefinitionId, ExtensionDefinitionId, FctDefinition,
+    ImplDefinition, ModuleDefinitionId, SemAnalysis, SourceFileId, StructDefinitionId,
     TraitDefinitionId, TypeParamDefinition,
 };
 use crate::language::specialize::specialize_type;
@@ -29,7 +29,7 @@ pub enum TypeParamContext<'a> {
     None,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub enum AllowSelf {
     Yes,
     No,
@@ -77,7 +77,22 @@ fn read_type_basic_unchecked(
     match sym {
         Some(Sym::Class(class_id)) => SourceType::Class(class_id, type_params),
         Some(Sym::Trait(trait_id)) => SourceType::Trait(trait_id, type_params),
-        Some(Sym::Struct(struct_id)) => SourceType::Struct(struct_id, type_params),
+        Some(Sym::Struct(struct_id)) => {
+            let struct_ = sa.structs.idx(struct_id);
+            let struct_ = struct_.read();
+
+            if let Some(ref primitive_ty) = struct_.primitive_ty {
+                if type_params.is_empty() {
+                    primitive_ty.clone()
+                } else {
+                    let msg = ErrorMessage::WrongNumberTypeParams(0, type_params.len());
+                    sa.diag.lock().report(file_id, node.pos, msg);
+                    SourceType::Error
+                }
+            } else {
+                SourceType::Struct(struct_id, type_params)
+            }
+        }
         Some(Sym::Enum(enum_id)) => SourceType::Enum(enum_id, type_params),
         Some(Sym::TypeParam(type_param_id)) => {
             if node.params.len() > 0 {
@@ -97,6 +112,7 @@ fn read_type_basic_unchecked(
             sa.diag.lock().report(file_id, node.pos, msg);
             SourceType::Error
         }
+
         None => {
             let name = sa
                 .interner
@@ -149,6 +165,270 @@ fn read_type_tuple_unchecked(
     SourceType::Tuple(subtypes)
 }
 
+pub fn verify_type(
+    sa: &SemAnalysis,
+    module_id: ModuleDefinitionId,
+    file_id: SourceFileId,
+    t: &ast::Type,
+    ty: SourceType,
+    ctxt: TypeParamContext,
+    allow_self: AllowSelf,
+) -> bool {
+    match t {
+        &ast::Type::This(ref node) => {
+            assert_eq!(ty, SourceType::This);
+
+            if allow_self == AllowSelf::No {
+                sa.diag
+                    .lock()
+                    .report(file_id, node.pos, ErrorMessage::SelfTypeUnavailable);
+                return false;
+            }
+        }
+
+        &ast::Type::Basic(ref node) => {
+            if !verify_type_basic(sa, module_id, file_id, node, ty, ctxt, allow_self) {
+                return false;
+            }
+        }
+
+        &ast::Type::Tuple(ref node) => {
+            assert!(ty.is_tuple_or_unit());
+
+            if ty.is_unit() {
+                assert_eq!(node.subtypes.len(), 0);
+                return true;
+            }
+
+            let subtypes = ty.tuple_subtypes();
+            assert_eq!(subtypes.len(), node.subtypes.len());
+
+            for (subtype, ast_param) in subtypes.iter().zip(node.subtypes.iter()) {
+                if !verify_type(sa, module_id, file_id, ast_param, subtype, ctxt, allow_self) {
+                    return false;
+                }
+            }
+        }
+
+        &ast::Type::Lambda(ref node) => {
+            assert!(ty.is_lambda());
+
+            let (params, return_type) = ty.to_lambda().expect("lambda expected");
+
+            assert_eq!(params.len(), node.params.len());
+
+            for (param, ast_param) in params.iter().zip(node.params.iter()) {
+                if !verify_type(sa, module_id, file_id, ast_param, param, ctxt, allow_self) {
+                    return false;
+                }
+            }
+
+            if !verify_type(
+                sa,
+                module_id,
+                file_id,
+                &node.ret,
+                return_type,
+                ctxt,
+                allow_self,
+            ) {
+                return false;
+            }
+        }
+    }
+
+    true
+}
+
+fn verify_type_basic(
+    sa: &SemAnalysis,
+    module_id: ModuleDefinitionId,
+    file_id: SourceFileId,
+    node: &ast::TypeBasicType,
+    ty: SourceType,
+    ctxt: TypeParamContext,
+    allow_self: AllowSelf,
+) -> bool {
+    match ty {
+        SourceType::TypeParam(_) => {}
+
+        SourceType::Class(cls_id, type_params) => {
+            let cls = sa.classes.idx(cls_id);
+            let cls = cls.read();
+
+            if !class_accessible_from(sa, cls_id, module_id) {
+                let msg = ErrorMessage::NotAccessible(cls.name(sa));
+                sa.diag.lock().report(file_id, node.pos, msg);
+                return false;
+            }
+
+            for (type_param, ast_type_param) in type_params.iter().zip(node.params.iter()) {
+                if !verify_type(
+                    sa,
+                    module_id,
+                    file_id,
+                    ast_type_param,
+                    type_param,
+                    ctxt,
+                    allow_self,
+                ) {
+                    return false;
+                }
+            }
+
+            if !check_type_params(
+                sa,
+                cls.type_params(),
+                type_params.types(),
+                file_id,
+                node.pos,
+                ctxt,
+            ) {
+                return false;
+            }
+        }
+
+        SourceType::Enum(enum_id, type_params) => {
+            let enum_ = sa.enums.idx(enum_id);
+            let enum_ = enum_.read();
+
+            if !enum_accessible_from(sa, enum_id, module_id) {
+                let msg = ErrorMessage::NotAccessible(enum_.name(sa));
+                sa.diag.lock().report(file_id, node.pos, msg);
+                return false;
+            }
+
+            for (type_param, ast_type_param) in type_params.iter().zip(node.params.iter()) {
+                if !verify_type(
+                    sa,
+                    module_id,
+                    file_id,
+                    ast_type_param,
+                    type_param,
+                    ctxt,
+                    allow_self,
+                ) {
+                    return false;
+                }
+            }
+
+            if !check_type_params(
+                sa,
+                enum_.type_params(),
+                type_params.types(),
+                file_id,
+                node.pos,
+                ctxt,
+            ) {
+                return false;
+            }
+        }
+
+        SourceType::Bool
+        | SourceType::UInt8
+        | SourceType::Char
+        | SourceType::Int32
+        | SourceType::Int64
+        | SourceType::Float32
+        | SourceType::Float64 => {
+            let struct_id = ty
+                .primitive_struct_id(sa)
+                .expect("primitive struct expected");
+
+            if !struct_accessible_from(sa, struct_id, module_id) {
+                let struct_ = sa.structs.idx(struct_id);
+                let struct_ = struct_.read();
+                let msg = ErrorMessage::NotAccessible(struct_.name(sa));
+                sa.diag.lock().report(file_id, node.pos, msg);
+                return false;
+            }
+        }
+
+        SourceType::Struct(struct_id, type_params) => {
+            let struct_ = sa.structs.idx(struct_id);
+            let struct_ = struct_.read();
+
+            if !struct_accessible_from(sa, struct_id, module_id) {
+                let msg = ErrorMessage::NotAccessible(struct_.name(sa));
+                sa.diag.lock().report(file_id, node.pos, msg);
+                return false;
+            }
+
+            for (type_param, ast_type_param) in type_params.iter().zip(node.params.iter()) {
+                if !verify_type(
+                    sa,
+                    module_id,
+                    file_id,
+                    ast_type_param,
+                    type_param,
+                    ctxt,
+                    allow_self,
+                ) {
+                    return false;
+                }
+            }
+
+            if !check_type_params(
+                sa,
+                struct_.type_params(),
+                type_params.types(),
+                file_id,
+                node.pos,
+                ctxt,
+            ) {
+                return false;
+            }
+        }
+
+        SourceType::Trait(trait_id, type_params) => {
+            let trait_ = sa.traits.idx(trait_id);
+            let trait_ = trait_.read();
+
+            if !trait_accessible_from(sa, trait_id, module_id) {
+                let msg = ErrorMessage::NotAccessible(trait_.name(sa));
+                sa.diag.lock().report(file_id, node.pos, msg);
+                return false;
+            }
+
+            for (type_param, ast_type_param) in type_params.iter().zip(node.params.iter()) {
+                if !verify_type(
+                    sa,
+                    module_id,
+                    file_id,
+                    ast_type_param,
+                    type_param,
+                    ctxt,
+                    allow_self,
+                ) {
+                    return false;
+                }
+            }
+
+            if !check_type_params(
+                sa,
+                trait_.type_params(),
+                type_params.types(),
+                file_id,
+                node.pos,
+                ctxt,
+            ) {
+                return false;
+            }
+        }
+
+        SourceType::Error => {
+            return false;
+        }
+
+        _ => {
+            println!("ty = {} {:?}", ty.name(sa), ty);
+            unreachable!()
+        }
+    }
+
+    true
+}
+
 pub fn read_type(
     sa: &SemAnalysis,
     table: &NestedSymTable,
@@ -157,76 +437,20 @@ pub fn read_type(
     ctxt: TypeParamContext,
     allow_self: AllowSelf,
 ) -> Option<SourceType> {
-    match *t {
-        ast::Type::This(ref node) => match allow_self {
-            AllowSelf::Yes => Some(SourceType::This),
-            AllowSelf::No => {
-                sa.diag
-                    .lock()
-                    .report(file_id, node.pos, ErrorMessage::SelfTypeUnavailable);
+    let ty = read_type_unchecked(sa, table, file_id, t);
 
-                None
-            }
-        },
-        ast::Type::Basic(ref basic) => read_type_basic(sa, table, file_id, basic, ctxt, allow_self),
-        ast::Type::Tuple(ref tuple) => read_type_tuple(sa, table, file_id, tuple, ctxt, allow_self),
-        ast::Type::Lambda(ref lambda) => {
-            read_type_lambda(sa, table, file_id, lambda, ctxt, allow_self)
-        }
-    }
-}
-
-fn read_type_basic(
-    sa: &SemAnalysis,
-    table: &NestedSymTable,
-    file_id: SourceFileId,
-    basic: &TypeBasicType,
-    ctxt: TypeParamContext,
-    allow_self: AllowSelf,
-) -> Option<SourceType> {
-    let sym = read_type_path(sa, table, file_id, basic);
-
-    if sym.is_err() {
-        return None;
-    }
-
-    let sym = sym.unwrap();
-
-    if sym.is_none() {
-        let name = sa
-            .interner
-            .str(basic.path.names.last().cloned().unwrap())
-            .to_string();
-        let msg = ErrorMessage::UnknownIdentifier(name);
-        sa.diag.lock().report(file_id, basic.pos, msg);
-        return None;
-    }
-
-    let sym = sym.unwrap();
-
-    match sym {
-        Sym::Class(cls_id) => read_type_class(sa, table, file_id, basic, cls_id, ctxt, allow_self),
-
-        Sym::Trait(trait_id) => {
-            read_type_trait(sa, table, file_id, basic, trait_id, ctxt, allow_self)
-        }
-
-        Sym::Struct(struct_id) => {
-            read_type_struct(sa, table, file_id, basic, struct_id, ctxt, allow_self)
-        }
-
-        Sym::Enum(enum_id) => read_type_enum(sa, table, file_id, basic, enum_id, ctxt, allow_self),
-
-        Sym::TypeParam(type_param_id) => {
-            if basic.params.len() > 0 {
-                let msg = ErrorMessage::NoTypeParamsExpected;
-                sa.diag.lock().report(file_id, basic.pos, msg);
-            }
-
-            Some(SourceType::TypeParam(type_param_id))
-        }
-
-        _ => unreachable!(),
+    if verify_type(
+        sa,
+        table.module_id(),
+        file_id,
+        t,
+        ty.clone(),
+        ctxt,
+        allow_self,
+    ) {
+        Some(ty)
+    } else {
+        None
     }
 }
 
@@ -270,149 +494,6 @@ fn table_for_module(
             sa.diag.lock().report(file_id, basic.pos, msg);
             Err(())
         }
-    }
-}
-
-fn read_type_enum(
-    sa: &SemAnalysis,
-    table: &NestedSymTable,
-    file_id: SourceFileId,
-    basic: &TypeBasicType,
-    enum_id: EnumDefinitionId,
-    ctxt: TypeParamContext,
-    allow_self: AllowSelf,
-) -> Option<SourceType> {
-    if !enum_accessible_from(sa, enum_id, table.module_id()) {
-        let enum_ = sa.enums[enum_id].read();
-        let msg = ErrorMessage::NotAccessible(enum_.name(sa));
-        sa.diag.lock().report(file_id, basic.pos, msg);
-    }
-
-    let mut type_params = Vec::new();
-
-    for param in &basic.params {
-        let param = read_type(sa, table, file_id, param, ctxt, allow_self);
-
-        if let Some(param) = param {
-            type_params.push(param);
-        } else {
-            return None;
-        }
-    }
-
-    let enum_ = &sa.enums[enum_id];
-    let enum_ = enum_.read();
-
-    if check_type_params(
-        sa,
-        enum_.type_params(),
-        &type_params,
-        file_id,
-        basic.pos,
-        ctxt,
-    ) {
-        let type_params = SourceTypeArray::with(type_params);
-        Some(SourceType::Enum(enum_id, type_params))
-    } else {
-        None
-    }
-}
-
-fn read_type_struct(
-    sa: &SemAnalysis,
-    table: &NestedSymTable,
-    file_id: SourceFileId,
-    basic: &TypeBasicType,
-    struct_id: StructDefinitionId,
-    ctxt: TypeParamContext,
-    allow_self: AllowSelf,
-) -> Option<SourceType> {
-    if !struct_accessible_from(sa, struct_id, table.module_id()) {
-        let struct_ = sa.structs.idx(struct_id);
-        let struct_ = struct_.read();
-        let msg = ErrorMessage::NotAccessible(struct_.name(sa));
-        sa.diag.lock().report(file_id, basic.pos, msg);
-    }
-
-    let mut type_params = Vec::new();
-
-    for param in &basic.params {
-        let param = read_type(sa, table, file_id, param, ctxt, allow_self);
-
-        if let Some(param) = param {
-            type_params.push(param);
-        } else {
-            return None;
-        }
-    }
-
-    let struct_ = sa.structs.idx(struct_id);
-    let struct_ = struct_.read();
-
-    if check_type_params(
-        sa,
-        struct_.type_params(),
-        &type_params,
-        file_id,
-        basic.pos,
-        ctxt,
-    ) {
-        if let Some(ref primitive_ty) = struct_.primitive_ty {
-            Some(primitive_ty.clone())
-        } else {
-            Some(SourceType::Struct(
-                struct_id,
-                SourceTypeArray::with(type_params),
-            ))
-        }
-    } else {
-        None
-    }
-}
-
-fn read_type_trait(
-    sa: &SemAnalysis,
-    table: &NestedSymTable,
-    file_id: SourceFileId,
-    basic: &TypeBasicType,
-    trait_id: TraitDefinitionId,
-    ctxt: TypeParamContext,
-    allow_self: AllowSelf,
-) -> Option<SourceType> {
-    if !trait_accessible_from(sa, trait_id, table.module_id()) {
-        let trait_ = sa.traits[trait_id].read();
-        let msg = ErrorMessage::NotAccessible(trait_.name(sa));
-        sa.diag.lock().report(file_id, basic.pos, msg);
-    }
-
-    let mut type_params = Vec::new();
-
-    for param in &basic.params {
-        let param = read_type(sa, table, file_id, param, ctxt, allow_self);
-
-        if let Some(param) = param {
-            type_params.push(param);
-        } else {
-            return None;
-        }
-    }
-
-    let trait_ = sa.traits[trait_id].read();
-
-    if check_type_params(
-        sa,
-        &trait_.type_params(),
-        &type_params,
-        file_id,
-        basic.pos,
-        ctxt,
-    ) {
-        Some(SourceType::Trait(
-            trait_id,
-            SourceTypeArray::with(type_params),
-        ))
-    } else {
-        None
     }
 }
 
@@ -498,108 +579,6 @@ where
         TypeParamContext::Fct(fct) => callback(&fct.type_params),
         TypeParamContext::None => callback(&TypeParamDefinition::new()),
     }
-}
-
-fn read_type_class(
-    sa: &SemAnalysis,
-    table: &NestedSymTable,
-    file_id: SourceFileId,
-    basic: &TypeBasicType,
-    cls_id: ClassDefinitionId,
-    ctxt: TypeParamContext,
-    allow_self: AllowSelf,
-) -> Option<SourceType> {
-    if !class_accessible_from(sa, cls_id, table.module_id()) {
-        let cls = sa.classes.idx(cls_id);
-        let cls = cls.read();
-        let msg = ErrorMessage::NotAccessible(cls.name(sa));
-        sa.diag.lock().report(file_id, basic.pos, msg);
-    }
-
-    let mut type_params = Vec::new();
-
-    for param in &basic.params {
-        let param = read_type(sa, table, file_id, param, ctxt, allow_self);
-
-        if let Some(param) = param {
-            type_params.push(param);
-        } else {
-            return None;
-        }
-    }
-
-    let cls = sa.classes.idx(cls_id);
-    let cls = cls.read();
-
-    if check_type_params(
-        sa,
-        cls.type_params(),
-        &type_params,
-        file_id,
-        basic.pos,
-        ctxt,
-    ) {
-        Some(SourceType::Class(
-            cls_id,
-            SourceTypeArray::with(type_params),
-        ))
-    } else {
-        None
-    }
-}
-
-fn read_type_tuple(
-    sa: &SemAnalysis,
-    table: &NestedSymTable,
-    file_id: SourceFileId,
-    tuple: &TypeTupleType,
-    ctxt: TypeParamContext,
-    allow_self: AllowSelf,
-) -> Option<SourceType> {
-    if tuple.subtypes.len() == 0 {
-        Some(SourceType::Unit)
-    } else {
-        let mut subtypes = Vec::new();
-
-        for subtype in &tuple.subtypes {
-            if let Some(ty) = read_type(sa, table, file_id, subtype, ctxt, allow_self) {
-                subtypes.push(ty);
-            } else {
-                return None;
-            }
-        }
-
-        Some(create_tuple(sa, subtypes))
-    }
-}
-
-fn read_type_lambda(
-    sa: &SemAnalysis,
-    table: &NestedSymTable,
-    file_id: SourceFileId,
-    lambda: &TypeLambdaType,
-    ctxt: TypeParamContext,
-    allow_self: AllowSelf,
-) -> Option<SourceType> {
-    let mut params = vec![];
-
-    for param in &lambda.params {
-        if let Some(p) = read_type(sa, table, file_id, param, ctxt, allow_self) {
-            params.push(p);
-        } else {
-            return None;
-        }
-    }
-
-    let ret = if let Some(ret) = read_type(sa, table, file_id, &lambda.ret, ctxt, allow_self) {
-        ret
-    } else {
-        return None;
-    };
-
-    let ty = SourceType::Lambda(SourceTypeArray::with(params), Box::new(ret));
-
-    Some(ty)
 }
 
 #[cfg(test)]

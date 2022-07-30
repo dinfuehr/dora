@@ -1,7 +1,8 @@
 use parking_lot::MutexGuard;
 use std::cmp;
+use std::sync::Arc;
 
-use crate::gc::root::Slot;
+use crate::gc::root::{iterate_strong_roots, Slot};
 use crate::gc::swiper::card::{CardEntry, CardTable};
 use crate::gc::swiper::controller::{MinorCollectorPhases, SharedHeapConfig};
 use crate::gc::swiper::crossing::{CrossingEntry, CrossingMap};
@@ -12,6 +13,7 @@ use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{forward_minor, CardIdx, CARD_SIZE};
 use crate::gc::{iterate_weak_roots, Address, GcReason, Region};
 use crate::object::{offset_of_array_data, Obj};
+use crate::threads::DoraThread;
 use crate::timer::Timer;
 use crate::vm::VM;
 
@@ -26,6 +28,7 @@ pub struct MinorCollector<'a> {
     crossing_map: &'a CrossingMap,
 
     rootset: &'a [Slot],
+    threads: &'a [Arc<DoraThread>],
     reason: GcReason,
 
     young_top: Address,
@@ -54,6 +57,7 @@ impl<'a> MinorCollector<'a> {
         card_table: &'a CardTable,
         crossing_map: &'a CrossingMap,
         rootset: &'a [Slot],
+        threads: &'a [Arc<DoraThread>],
         reason: GcReason,
         min_heap_size: usize,
         max_heap_size: usize,
@@ -66,6 +70,7 @@ impl<'a> MinorCollector<'a> {
             old_protected: old.protected(),
             large,
             rootset,
+            threads,
             card_table,
             crossing_map,
 
@@ -166,13 +171,13 @@ impl<'a> MinorCollector<'a> {
 
     fn visit_roots(&mut self) {
         // detect all references from roots into young generation
-        for &root in self.rootset {
+        iterate_strong_roots(self.vm, self.threads, |root| {
             let root_ptr = root.get();
 
             if self.young.contains(root_ptr) {
                 root.set(self.copy(root_ptr));
             }
-        }
+        });
     }
 
     fn visit_dirty_cards(&mut self) {

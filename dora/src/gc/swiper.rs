@@ -229,7 +229,7 @@ impl Swiper {
 
             let kind = match kind {
                 CollectionKind::Minor => {
-                    let promotion_failed = self.minor_collect(vm, reason, &rootset);
+                    let promotion_failed = self.minor_collect(vm, reason, &rootset, threads);
 
                     if promotion_failed {
                         reason = GcReason::PromotionFailure;
@@ -260,7 +260,13 @@ impl Swiper {
         })
     }
 
-    fn minor_collect(&self, vm: &VM, reason: GcReason, rootset: &[Slot]) -> bool {
+    fn minor_collect(
+        &self,
+        vm: &VM,
+        reason: GcReason,
+        rootset: &[Slot],
+        threads: &[Arc<DoraThread>],
+    ) -> bool {
         self.verify(
             vm,
             VerifierPhase::PreMinor,
@@ -290,6 +296,7 @@ impl Swiper {
                 &self.card_table,
                 &self.crossing_map,
                 rootset,
+                threads,
                 reason,
                 self.min_heap_size,
                 self.max_heap_size,
@@ -314,6 +321,7 @@ impl Swiper {
                 &self.card_table,
                 &self.crossing_map,
                 rootset,
+                threads,
                 reason,
                 self.min_heap_size,
                 self.max_heap_size,

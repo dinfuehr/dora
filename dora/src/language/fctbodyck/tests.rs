@@ -510,6 +510,17 @@ fn type_array_field() {
 }
 
 #[test]
+fn wrong_type_params_for_primitive() {
+    err(
+        "
+        fn f() { let a: Int32[Bool, Char] = 10; }
+    ",
+        pos(2, 25),
+        ErrorMessage::WrongNumberTypeParams(0, 2),
+    );
+}
+
+#[test]
 fn let_without_initialization() {
     err(
         "fn f() { let x: Int32; }",
