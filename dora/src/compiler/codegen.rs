@@ -4,13 +4,12 @@ use crate::boots;
 use crate::bytecode::BytecodeFunction;
 use crate::cannon::{self, CompilationFlags};
 use crate::compiler::{dora_exit_stubs, NativeFct};
-use crate::cpu::{FReg, Reg, FREG_RESULT, REG_RESULT};
+use crate::cpu::{FReg, Reg};
 use crate::disassembler;
 use crate::driver::cmd::{AsmSyntax, CompilerName};
 use crate::gc::Address;
 use crate::language::sem_analysis::{FctDefinition, FctDefinitionId};
 use crate::language::ty::{SourceType, SourceTypeArray};
-use crate::mode::MachineMode;
 use crate::os;
 use crate::vm::{install_code, CodeKind, VM};
 
@@ -95,14 +94,6 @@ pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray)
     code.instruction_start()
 }
 
-pub fn register_for_mode(mode: MachineMode) -> AnyReg {
-    if mode.is_float() {
-        FREG_RESULT.into()
-    } else {
-        REG_RESULT.into()
-    }
-}
-
 pub fn should_emit_debug(vm: &VM, fct: &FctDefinition) -> bool {
     if let Some(ref dbg_names) = vm.args.flag_emit_debug {
         fct_pattern_match(vm, fct, dbg_names)
@@ -153,6 +144,7 @@ impl AnyReg {
         }
     }
 
+    #[allow(dead_code)]
     pub fn is_freg(&self) -> bool {
         match self {
             &AnyReg::FReg(_) => true,

@@ -226,26 +226,6 @@ impl<'a> BytecodeDumper<'a> {
         writeln!(self.w, " {}, {}, {}", r1, r2, r3).expect("write! failed");
     }
 
-    fn emit_reg3_idx(
-        &mut self,
-        name: &str,
-        r1: Register,
-        r2: Register,
-        r3: Register,
-        idx: ConstPoolIdx,
-    ) {
-        self.emit_start(name);
-        writeln!(
-            self.w,
-            " {}, {}, {}, ConstPoolIdx({})",
-            r1,
-            r2,
-            r3,
-            idx.to_usize()
-        )
-        .expect("write! failed");
-    }
-
     fn emit_reg2(&mut self, name: &str, r1: Register, r2: Register) {
         self.emit_start(name);
         writeln!(self.w, " {}, {}", r1, r2).expect("write! failed");
@@ -264,26 +244,6 @@ impl<'a> BytecodeDumper<'a> {
             r2,
             tuple_ty.name(self.sa),
             subtype_idx
-        )
-        .expect("write! failed");
-    }
-
-    fn emit_reg2_enum(&mut self, name: &str, r1: Register, r2: Register, idx: ConstPoolIdx) {
-        self.emit_start(name);
-        let (enum_id, type_params) = match self.bc.const_pool(idx) {
-            ConstPoolEntry::Enum(enum_id, type_params) => (*enum_id, type_params),
-            _ => unreachable!(),
-        };
-        let enum_ = &self.sa.enums[enum_id];
-        let enum_ = enum_.read();
-        let enum_name = enum_.name_with_params(self.sa, type_params);
-        writeln!(
-            self.w,
-            " {}, {}, ConstPoolIdx({}) # {}",
-            r1,
-            r2,
-            idx.to_usize(),
-            enum_name,
         )
         .expect("write! failed");
     }
@@ -334,63 +294,9 @@ impl<'a> BytecodeDumper<'a> {
         .expect("write! failed");
     }
 
-    fn emit_reg2_cls(&mut self, name: &str, r1: Register, r2: Register, cls_idx: ConstPoolIdx) {
-        self.emit_start(name);
-        let (cls_id, type_params) = match self.bc.const_pool(cls_idx) {
-            ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params.clone()),
-            _ => unreachable!(),
-        };
-        let cls = self.sa.classes.idx(cls_id);
-        let cls = cls.read();
-        let cname = cls.name_with_params(self.sa, &type_params);
-        writeln!(
-            self.w,
-            " {}, {}, ConstPoolIdx({}) # {}",
-            r1,
-            r2,
-            cls_idx.to_usize(),
-            cname,
-        )
-        .expect("write! failed");
-    }
-
     fn emit_reg1(&mut self, name: &str, r1: Register) {
         self.emit_start(name);
         writeln!(self.w, " {}", r1).expect("write! failed");
-    }
-
-    fn emit_reg1_cls(&mut self, name: &str, r1: Register, cls_idx: ConstPoolIdx) {
-        self.emit_start(name);
-        let (cls_id, type_params) = match self.bc.const_pool(cls_idx) {
-            ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params.clone()),
-            _ => unreachable!(),
-        };
-        let cls = self.sa.classes.idx(cls_id);
-        let cls = cls.read();
-        let cname = cls.name_with_params(self.sa, &type_params);
-        writeln!(
-            self.w,
-            " {}, ConstPoolIdx({}) # {}",
-            r1,
-            cls_idx.to_usize(),
-            cname
-        )
-        .expect("write! failed");
-    }
-
-    fn emit_reg1_idx(&mut self, name: &str, r1: Register, idx: ConstPoolIdx) {
-        self.emit_start(name);
-        writeln!(self.w, " {}, ConstPoolIdx({})", r1, idx.to_usize()).expect("write! failed");
-    }
-
-    fn emit_idx(&mut self, name: &str, idx: ConstPoolIdx) {
-        self.emit_start(name);
-        writeln!(self.w, " ConstPoolIdx({})", idx.to_usize()).expect("write! failed");
-    }
-
-    fn emit_reg1_u32(&mut self, name: &str, r1: Register, value: u32) {
-        self.emit_start(name);
-        writeln!(self.w, " {}, 0x{:x}/{}", r1, value, value).expect("write! failed");
     }
 
     fn emit_cond_jump(&mut self, name: &str, opnd: Register, offset: i32) {
@@ -490,12 +396,6 @@ impl<'a> BytecodeDumper<'a> {
         let name = self.sa.interner.str(global_var.name);
         writeln!(self.w, " {}, GlobalId({}) # {}", r1, gid.to_usize(), name)
             .expect("write! failed");
-    }
-
-    fn emit_fct_void(&mut self, name: &str, fid: ConstPoolIdx) {
-        self.emit_start(name);
-        let fname = self.get_fct_name(fid);
-        writeln!(self.w, " ConstPoolIdx({}) # {}", fid.to_usize(), fname).expect("write! failed");
     }
 
     fn emit_fct(&mut self, name: &str, r1: Register, fid: ConstPoolIdx) {

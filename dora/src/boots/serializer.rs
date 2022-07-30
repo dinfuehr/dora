@@ -21,12 +21,6 @@ pub fn allocate_encoded_compilation_info(
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
-pub fn allocate_encoded_bytecode_function(vm: &VM, bytecode_fct: &BytecodeFunction) -> Ref<Obj> {
-    let mut buffer = ByteBuffer::new();
-    encode_bytecode_function(vm, bytecode_fct, &mut buffer);
-    byte_array_from_buffer(vm, &buffer.data()).cast()
-}
-
 fn encode_compilation_info(
     vm: &VM,
     bytecode_fct: &BytecodeFunction,
@@ -335,10 +329,12 @@ impl ByteBuffer {
         &self.data
     }
 
+    #[allow(dead_code)]
     pub fn len(&self) -> usize {
         self.data.len()
     }
 
+    #[allow(dead_code)]
     pub fn extend_from_slice(&mut self, data: &[u8]) {
         self.data.extend_from_slice(data);
     }

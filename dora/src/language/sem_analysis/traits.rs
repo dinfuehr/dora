@@ -148,11 +148,6 @@ impl TraitDefinition {
     }
 }
 
-struct TraitType {
-    trait_id: TraitDefinitionId,
-    type_params: SourceTypeArray,
-}
-
 fn params_match(
     replace: Option<SourceType>,
     trait_args: &[SourceType],

@@ -65,12 +65,6 @@ pub struct CannonCodeGen<'a> {
     emit_debug: bool,
     emit_code_comments: bool,
 
-    temporary_stack: Vec<BytecodeType>,
-    temporary_stack_size: i32,
-
-    lbl_break: Option<Label>,
-    lbl_continue: Option<Label>,
-
     type_params: &'a SourceTypeArray,
 
     offset_to_address: HashMap<BytecodeOffset, usize>,
@@ -114,11 +108,7 @@ impl<'a> CannonCodeGen<'a> {
             emit_debug: compilation_data.emit_debug,
             asm: BaselineAssembler::new(vm),
             bytecode: compilation_data.bytecode_fct,
-            temporary_stack: Vec::new(),
-            temporary_stack_size: 0,
             emit_code_comments: compilation_data.emit_code_comments,
-            lbl_break: None,
-            lbl_continue: None,
             type_params: compilation_data.type_params,
             offset_to_address: HashMap::new(),
             offset_to_label: HashMap::new(),
@@ -1132,34 +1122,6 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_load_register(src, REG_RESULT.into());
 
         self.emit_store_register(REG_RESULT.into(), dest);
-    }
-
-    fn emit_int_to_float(&mut self, dest: Register, src: Register) {
-        let src_type = self.bytecode.register_type(src);
-        let dest_type = self.bytecode.register_type(dest);
-
-        let (dest_mode, src_mode) = match (dest_type, src_type) {
-            (BytecodeType::Float32, BytecodeType::Int32) => {
-                (MachineMode::Float32, MachineMode::Int32)
-            }
-            (BytecodeType::Float32, BytecodeType::Int64) => {
-                (MachineMode::Float32, MachineMode::Int64)
-            }
-            (BytecodeType::Float64, BytecodeType::Int32) => {
-                (MachineMode::Float64, MachineMode::Int32)
-            }
-            (BytecodeType::Float64, BytecodeType::Int64) => {
-                (MachineMode::Float64, MachineMode::Int64)
-            }
-            _ => unreachable!(),
-        };
-
-        self.emit_load_register(src, REG_RESULT.into());
-
-        self.asm
-            .int_to_float(dest_mode, FREG_RESULT, src_mode, REG_RESULT);
-
-        self.emit_store_register(FREG_RESULT.into(), dest);
     }
 
     fn emit_promote_float(&mut self, dest: Register, src: Register) {
@@ -2708,24 +2670,6 @@ impl<'a> CannonCodeGen<'a> {
         );
 
         self.emit_store_register(REG_RESULT.into(), dest);
-    }
-
-    fn emit_array_bound_check(&mut self, arr: Register, idx: Register) {
-        assert_eq!(self.bytecode.register_type(arr), BytecodeType::Ptr);
-        assert_eq!(self.bytecode.register_type(idx), BytecodeType::Int64);
-
-        let position = self.bytecode.offset_position(self.current_offset.to_u32());
-
-        self.emit_load_register(arr, REG_RESULT.into());
-        self.asm
-            .test_if_nil_bailout(position, REG_RESULT, Trap::NIL);
-
-        self.emit_load_register(idx, REG_TMP1.into());
-
-        if !self.vm.args.flag_omit_bounds_check {
-            self.asm
-                .check_index_out_of_bounds(position, REG_RESULT, REG_TMP1);
-        }
     }
 
     fn emit_store_array(&mut self, src: Register, arr: Register, idx: Register) {

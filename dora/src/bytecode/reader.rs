@@ -493,7 +493,6 @@ impl<'a> Iterator for BytecodeReader<'a> {
 
 struct BytecodeFullIteration<'a, T: BytecodeVisitor> {
     iterator: BytecodeReader<'a>,
-    current: usize,
     visitor: &'a mut T,
 }
 
@@ -504,7 +503,6 @@ where
     fn new(code: &'a [u8], visitor: &'a mut T) -> BytecodeFullIteration<'a, T> {
         BytecodeFullIteration {
             iterator: BytecodeReader::new(code),
-            current: 0,
             visitor,
         }
     }
