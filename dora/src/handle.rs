@@ -192,7 +192,7 @@ impl<'a> Iterator for HandleMemoryIter<'a> {
     type Item = Handle<Obj>;
 
     fn next(&mut self) -> Option<Handle<Obj>> {
-        if self.buffer_idx < self.full_buffer_len {
+        while self.buffer_idx < self.full_buffer_len {
             if self.element_idx < HANDLE_SIZE {
                 let idx = self.element_idx;
                 self.element_idx += 1;
@@ -211,13 +211,13 @@ impl<'a> Iterator for HandleMemoryIter<'a> {
                 self.element_idx += 1;
 
                 let buffer = &mut self.mem.buffers[self.buffer_idx];
-                return Some(Handle(&mut buffer.elements[idx] as *mut Ref<Obj>));
+                Some(Handle(&mut buffer.elements[idx] as *mut Ref<Obj>))
             } else {
-                return None;
+                None
             }
+        } else {
+            None
         }
-
-        None
     }
 }
 
