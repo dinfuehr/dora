@@ -198,16 +198,6 @@ impl LargeSpaceProtected {
         self.elements.truncate(last_element + 1);
     }
 
-    fn contains(&self, ptr: Address) -> bool {
-        for element in &self.elements {
-            if element.contains(ptr) {
-                return true;
-            }
-        }
-
-        false
-    }
-
     fn append_large_alloc(&mut self, addr: Address, size: usize) {
         if !self.head.is_null() {
             let old_head = LargeAlloc::from_address(self.head);

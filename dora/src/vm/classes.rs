@@ -9,8 +9,6 @@ use crate::utils::Id;
 use crate::vm::{add_ref_fields, VM};
 use crate::vtable::VTableBox;
 
-pub static DISPLAY_SIZE: usize = 6;
-
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct ClassInstanceId(usize);
 

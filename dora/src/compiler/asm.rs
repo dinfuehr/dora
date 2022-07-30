@@ -34,12 +34,8 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.debug();
     }
 
-    pub fn prolog_size(&mut self, stacksize: i32) {
-        self.masm.prolog_size(stacksize);
-    }
-
-    pub fn prolog(&mut self) -> usize {
-        self.masm.prolog()
+    pub fn prolog(&mut self, stacksize: i32) {
+        self.masm.prolog(stacksize);
     }
 
     pub fn stack_guard(&mut self, pos: Position, gcpoint: GcPoint) {
@@ -68,10 +64,6 @@ impl<'a> BaselineAssembler<'a> {
             pos,
             gcpoint,
         ));
-    }
-
-    pub fn patch_stacksize(&mut self, patch_offset: usize, stacksize: i32) {
-        self.masm.patch_stacksize(patch_offset, stacksize);
     }
 
     pub fn assert(&mut self, value: Reg, pos: Position) {
@@ -250,10 +242,6 @@ impl<'a> BaselineAssembler<'a> {
 
     pub fn emit_bailout(&mut self, lbl: Label, trap: Trap, pos: Position) {
         self.masm.emit_bailout(lbl, trap, pos);
-    }
-
-    pub fn emit_bailout_inplace(&mut self, trap: Trap, pos: Position) {
-        self.masm.emit_bailout_inplace(trap, pos)
     }
 
     pub fn get_scratch(&self) -> ScratchReg {

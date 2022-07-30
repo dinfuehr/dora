@@ -17,21 +17,7 @@ pub use dora_asm::arm64::AssemblerArm64 as Assembler;
 use dora_asm::arm64::{self as asm, Cond, Extend, NeonRegister, Shift};
 
 impl MacroAssembler {
-    pub fn prolog(&mut self) -> usize {
-        self.asm
-            .stp_pre(REG_FP.into(), REG_LR.into(), REG_SP.into(), -2);
-        self.asm.add(REG_FP.into(), REG_SP.into(), REG_ZERO.into());
-
-        let patch_offset = self.pos();
-
-        self.asm.movz(REG_TMP1.into(), 0, 0);
-        self.asm.movk(REG_TMP1.into(), 0, 1);
-        self.asm.sub(REG_SP.into(), REG_SP.into(), REG_TMP1.into());
-
-        patch_offset
-    }
-
-    pub fn prolog_size(&mut self, stacksize: i32) {
+    pub fn prolog(&mut self, stacksize: i32) {
         self.asm
             .stp_pre(REG_FP.into(), REG_LR.into(), REG_SP.into(), -2);
         self.asm.add(REG_FP.into(), REG_SP.into(), REG_ZERO.into());
@@ -40,15 +26,6 @@ impl MacroAssembler {
             self.load_int_const(MachineMode::Ptr, REG_TMP1, stacksize as i64);
             self.asm.sub(REG_SP.into(), REG_SP.into(), REG_TMP1.into());
         }
-    }
-
-    pub fn patch_stacksize(&mut self, patch_offset: usize, stacksize: i32) {
-        let stacksize = stacksize as u32;
-        self.asm.set_position(patch_offset);
-        self.asm.movz(REG_TMP1.into(), stacksize & 0xFFFF, 0);
-        self.asm
-            .movk(REG_TMP1.into(), (stacksize >> 16) & 0xFFFF, 1);
-        self.asm.set_position_end();
     }
 
     pub fn check_stack_pointer(&mut self, lbl_overflow: Label) {

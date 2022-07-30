@@ -392,6 +392,7 @@ pub enum LazyCompilationSite {
 
 #[derive(Debug)]
 pub struct RelocationTable {
+    #[allow(dead_code)]
     entries: Vec<(u32, RelocationKind)>,
 }
 
@@ -404,6 +405,7 @@ impl RelocationTable {
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub enum RelocationKind {
     CodeTarget,
     Object,

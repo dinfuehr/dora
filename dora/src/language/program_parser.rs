@@ -1,4 +1,4 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 use std::fs;
 use std::io::{Error, Read};
 use std::path::{Path, PathBuf};
@@ -30,27 +30,9 @@ enum FileLookup {
     Bundle,
 }
 
-type PreparedBundle = HashMap<PathBuf, Vec<(PathBuf, String)>>;
-
-fn prepare_bundle(files: &[(&'static str, &'static str)]) -> PreparedBundle {
-    let mut result = HashMap::new();
-
-    for (file, content) in files {
-        let file_path = PathBuf::from(file);
-        let mut directory = file_path.clone();
-        directory.pop();
-
-        let files_in_directory = result.entry(directory).or_insert_with(|| Vec::new());
-        files_in_directory.push((file_path, content.to_string()));
-    }
-
-    result
-}
-
 struct ProgramParser<'a> {
     sa: &'a mut SemAnalysis,
     files_to_parse: VecDeque<(SourceFileId, FileLookup, Option<PathBuf>)>,
-    stdlib: PreparedBundle,
 }
 
 impl<'a> ProgramParser<'a> {
@@ -58,7 +40,6 @@ impl<'a> ProgramParser<'a> {
         ProgramParser {
             sa,
             files_to_parse: VecDeque::new(),
-            stdlib: HashMap::new(),
         }
     }
 
@@ -561,14 +542,6 @@ impl<'x> GlobalDef<'x> {
         let mut level = level.write();
         level.insert(name, sym)
     }
-}
-
-pub fn should_file_be_parsed(path: &Path) -> bool {
-    if !path.is_file() {
-        return false;
-    }
-
-    path.to_string_lossy().ends_with(".dora")
 }
 
 #[cfg(test)]

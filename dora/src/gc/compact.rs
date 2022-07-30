@@ -140,7 +140,7 @@ impl MarkCompactCollector {
             top: self.heap.start,
 
             rootset,
-            reason,
+            _reason: reason,
         };
 
         mark_compact.collect();
@@ -157,7 +157,7 @@ struct MarkCompact<'a> {
     top: Address,
 
     rootset: &'a [Slot],
-    reason: GcReason,
+    _reason: GcReason,
 }
 
 impl<'a> MarkCompact<'a> {

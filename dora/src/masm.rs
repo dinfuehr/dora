@@ -213,10 +213,6 @@ impl MacroAssembler {
         self.emit_bailout(lbl, trap, pos);
     }
 
-    pub fn emit_bailout_inplace(&mut self, trap: Trap, pos: Position) {
-        self.trap(trap, pos);
-    }
-
     pub fn get_scratch(&self) -> ScratchReg {
         self.scratch_registers.get()
     }

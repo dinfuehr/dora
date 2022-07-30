@@ -66,7 +66,7 @@ impl<'a> DoraCompileGen<'a> {
         }
 
         // the return address is the call-site we need to patch
-        self.masm.prolog_size(framesize);
+        self.masm.prolog(framesize);
 
         // store params passed in registers on the stack
         self.store_params(offset_params);

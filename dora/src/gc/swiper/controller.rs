@@ -15,7 +15,6 @@ use crate::timer;
 use crate::vm::Trap;
 
 const INIT_HEAP_SIZE_RATIO: usize = 2;
-const INIT_YOUNG_RATIO: usize = 4;
 const INIT_SEMI_RATIO: usize = 3;
 
 pub fn init(config: &mut HeapConfig, args: &Args) {
@@ -374,11 +373,6 @@ impl HeapConfig {
         } else {
             false
         }
-    }
-
-    pub fn shrink_old(&mut self, size: usize) {
-        assert!(self.old_size >= size);
-        self.old_size -= size;
     }
 }
 

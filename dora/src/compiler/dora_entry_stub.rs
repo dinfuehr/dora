@@ -49,7 +49,7 @@ impl<'a> DoraEntryGen<'a> {
             self.masm.debug();
         }
 
-        self.masm.prolog_size(framesize);
+        self.masm.prolog(framesize);
         self.masm.store_mem(
             MachineMode::Ptr,
             Mem::Base(REG_SP, offset_thread),

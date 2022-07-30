@@ -57,16 +57,6 @@ fn test_page_align() {
 
 /// rounds the given value `val` up to the nearest multiple
 /// of `align`
-pub fn align(value: u32, align: u32) -> u32 {
-    if align == 0 {
-        return value;
-    }
-
-    ((value + align - 1) / align) * align
-}
-
-/// rounds the given value `val` up to the nearest multiple
-/// of `align`
 pub fn align_i32(value: i32, align: i32) -> i32 {
     if align == 0 {
         return value;
@@ -85,17 +75,6 @@ pub fn align_usize(value: usize, align: usize) -> usize {
     ((value + align - 1) / align) * align
 }
 
-/// returns 'true' if th given `value` is already aligned
-/// to `align`.
-pub fn is_aligned(value: usize, align: usize) -> bool {
-    align_usize(value, align) == value
-}
-
-/// returns true if value fits into u8 (unsigned 8bits).
-pub fn fits_u8(value: i64) -> bool {
-    0 <= value && value <= 255
-}
-
 /// returns true if value fits into i32 (signed 32bits).
 pub fn fits_i32(value: i64) -> bool {
     i32::MIN as i64 <= value && value <= i32::MAX as i64
@@ -104,14 +83,6 @@ pub fn fits_i32(value: i64) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_fits_u8() {
-        assert_eq!(true, fits_u8(0));
-        assert_eq!(true, fits_u8(255));
-        assert_eq!(false, fits_u8(256));
-        assert_eq!(false, fits_u8(-1));
-    }
 
     #[test]
     fn test_fits_i32() {

@@ -542,7 +542,7 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn emit_prolog(&mut self) {
-        self.asm.prolog_size(self.framesize);
+        self.asm.prolog(self.framesize);
     }
 
     fn emit_stack_guard(&mut self) {

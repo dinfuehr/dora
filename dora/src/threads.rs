@@ -628,6 +628,7 @@ impl ManagedThread {
         unsafe { &*(self.native_thread_ptr as *const _) }
     }
 
+    #[allow(dead_code)]
     pub fn id(&self) -> u64 {
         self.id
     }

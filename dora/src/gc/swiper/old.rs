@@ -14,7 +14,7 @@ pub struct OldGen {
     protected: Mutex<OldGenProtected>,
 
     crossing_map: CrossingMap,
-    card_table: CardTable,
+    _card_table: CardTable,
     config: SharedHeapConfig,
 }
 
@@ -33,7 +33,7 @@ impl OldGen {
             protected: Mutex::new(OldGenProtected::new(total)),
 
             crossing_map,
-            card_table,
+            _card_table: card_table,
             config,
         };
 
@@ -112,31 +112,6 @@ impl OldGenProtected {
         false
     }
 
-    pub fn with_single_region(&mut self, top: Address) -> usize {
-        let limit = top.align_gen();
-        assert!(self.total.valid_top(limit));
-
-        let mut last_mapped = self.total.start;
-        let mut committed = 0;
-
-        for region in &self.regions {
-            let mapping_end = min(region.mapping_start(), limit);
-
-            if mapping_end > last_mapped {
-                committed += mapping_end.offset_from(last_mapped);
-            }
-
-            committed += region.mapping_end().offset_from(region.mapping_start());
-            last_mapped = region.mapping_end();
-        }
-
-        if limit > last_mapped {
-            committed += limit.offset_from(last_mapped);
-        }
-
-        committed
-    }
-
     pub fn commit_single_region(&mut self, top: Address) {
         let limit = top.align_gen();
         assert!(self.total.valid_top(limit));
@@ -162,56 +137,6 @@ impl OldGenProtected {
             let size = limit.offset_from(last_mapped);
             os::commit_at(last_mapped, size, MemoryPermission::ReadWrite);
         }
-    }
-
-    pub fn with_regions(&mut self, new_regions: &[Region]) -> usize {
-        let mut idx = 0;
-        let mut committed = 0;
-        let mut start = self.total.start;
-
-        for new in new_regions {
-            start = max(new.start, start);
-            let end = new.end;
-
-            while idx < self.regions.len() && start < end {
-                let old = &self.regions[idx];
-
-                // old region fully after new region
-                if old.mapping_start() >= end {
-                    break;
-
-                // old region fully before new region
-                } else if old.mapping_end() <= start {
-                    committed += old.mapping_size();
-                    idx += 1;
-                    continue;
-
-                // we know now that old and new regions overlap
-                } else {
-                    // new region starts before old region
-                    // memory needs to be committed
-                    if start < old.mapping_start() {
-                        committed += old.mapping_start().offset_from(start);
-                    }
-
-                    committed += old.mapping_size();
-                    start = old.mapping_end();
-                    idx += 1;
-                }
-            }
-
-            if start < end {
-                committed += end.offset_from(start);
-            }
-        }
-
-        while idx < self.regions.len() {
-            let old = &self.regions[idx];
-            committed += old.mapping_size();
-            idx += 1;
-        }
-
-        committed
     }
 
     pub fn commit_regions(&mut self, new_regions: &[Region]) {
@@ -471,6 +396,7 @@ impl OldGenRegion {
         self.top
     }
 
+    #[allow(dead_code)]
     pub fn size(&self) -> usize {
         self.total.size()
     }
@@ -499,6 +425,7 @@ impl OldGenRegion {
         self.mapping_top
     }
 
+    #[allow(dead_code)]
     fn mapping_size(&self) -> usize {
         self.mapping_end().offset_from(self.mapping_start())
     }

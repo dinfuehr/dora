@@ -18,7 +18,7 @@ use dora_asm::x64::Register as AsmRegister;
 use dora_asm::x64::{Address as AsmAddress, Condition, Immediate, ScaleFactor, XmmRegister};
 
 impl MacroAssembler {
-    pub fn prolog_size(&mut self, stacksize: i32) {
+    pub fn prolog(&mut self, stacksize: i32) {
         self.asm.pushq_r(RBP.into());
         self.asm.movq_rr(RBP.into(), RSP.into());
         debug_assert!(stacksize as usize % STACK_FRAME_ALIGNMENT == 0);
@@ -26,22 +26,6 @@ impl MacroAssembler {
         if stacksize > 0 {
             self.asm.subq_ri(RSP.into(), Immediate(stacksize as i64));
         }
-    }
-
-    pub fn prolog(&mut self) -> usize {
-        self.asm.pushq_r(RBP.into());
-        self.asm.movq_rr(RBP.into(), RSP.into());
-
-        self.asm.subq_ri32(RSP.into(), Immediate(0));
-        let patch_offset = self.pos() - 4;
-
-        patch_offset
-    }
-
-    pub fn patch_stacksize(&mut self, patch_offset: usize, stacksize: i32) {
-        self.asm.set_position(patch_offset);
-        self.asm.emit_u32(stacksize as u32);
-        self.asm.set_position_end();
     }
 
     pub fn check_stack_pointer(&mut self, lbl_overflow: Label) {

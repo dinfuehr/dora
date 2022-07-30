@@ -159,12 +159,6 @@ fn determine_stack_entry(stacktrace: &mut NativeStacktrace, vm: &VM, pc: usize) 
     }
 }
 
-pub struct ThrowResume {
-    pc: usize,
-    sp: usize,
-    fp: usize,
-}
-
 pub extern "C" fn retrieve_stack_trace(obj: Handle<Stacktrace>) {
     let vm = get_vm();
     set_backtrace(vm, obj, true);

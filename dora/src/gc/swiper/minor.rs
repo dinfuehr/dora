@@ -27,9 +27,9 @@ pub struct MinorCollector<'a> {
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
 
-    rootset: &'a [Slot],
+    _rootset: &'a [Slot],
     threads: &'a [Arc<DoraThread>],
-    reason: GcReason,
+    _reason: GcReason,
 
     young_top: Address,
     young_limit: Address,
@@ -41,8 +41,8 @@ pub struct MinorCollector<'a> {
     from_active: Region,
     eden_active: Region,
 
-    min_heap_size: usize,
-    max_heap_size: usize,
+    _min_heap_size: usize,
+    _max_heap_size: usize,
 
     config: &'a SharedHeapConfig,
     phases: MinorCollectorPhases,
@@ -69,7 +69,7 @@ impl<'a> MinorCollector<'a> {
             old,
             old_protected: old.protected(),
             large,
-            rootset,
+            _rootset: rootset,
             threads,
             card_table,
             crossing_map,
@@ -84,10 +84,10 @@ impl<'a> MinorCollector<'a> {
             from_active: Default::default(),
             eden_active: young.eden_active(),
 
-            reason,
+            _reason: reason,
 
-            min_heap_size,
-            max_heap_size,
+            _min_heap_size: min_heap_size,
+            _max_heap_size: max_heap_size,
 
             config,
             phases: MinorCollectorPhases::new(),

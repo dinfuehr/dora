@@ -97,11 +97,6 @@ impl CardTable {
         }
     }
 
-    pub fn is_dirty(&self, addr: Address) -> bool {
-        let card_idx = self.card_idx(addr);
-        self.get(card_idx) == CardEntry::Dirty
-    }
-
     pub fn get(&self, card: CardIdx) -> CardEntry {
         let card = self.index_from_card_idx(card);
         let ptr = self.start.offset(card);

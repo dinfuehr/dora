@@ -1,17 +1,11 @@
-use std::collections::HashSet;
-
 use crate::bytecode;
 use crate::language::error::msg::ErrorMessage;
-use crate::language::sem_analysis::{
-    FctDefinition, SemAnalysis, SourceFileId, TypeParamDefinition, TypeParamId,
-};
-use crate::language::sym::{NestedSymTable, Sym};
-use crate::language::ty::SourceType;
+use crate::language::sem_analysis::{FctDefinition, SemAnalysis, SourceFileId};
+use crate::language::sym::Sym;
 use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-pub use program_parser::should_file_be_parsed;
 pub use readty::{read_type, read_type_unchecked, AllowSelf, TypeParamContext};
 
 pub(crate) mod access;
@@ -262,65 +256,6 @@ pub fn report_sym_shadow(
     };
 
     sa.diag.lock().report(file, pos, msg);
-}
-
-fn check_type_params(
-    sa: &SemAnalysis,
-    ast_type_params: &[ast::TypeParam],
-    type_params: &mut TypeParamDefinition,
-    symtable: &mut NestedSymTable,
-    file_id: SourceFileId,
-    pos: Position,
-) -> Vec<SourceType> {
-    if ast_type_params.len() == 0 {
-        let msg = ErrorMessage::TypeParamsExpected;
-        sa.diag.lock().report(file_id, pos, msg);
-
-        return Vec::new();
-    }
-
-    let mut names = HashSet::new();
-    let mut params = Vec::new();
-
-    for (type_param_id, type_param) in ast_type_params.iter().enumerate() {
-        if !names.insert(type_param.name) {
-            let name = sa.interner.str(type_param.name).to_string();
-            let msg = ErrorMessage::TypeParamNameNotUnique(name);
-            sa.diag.lock().report(file_id, type_param.pos, msg);
-        }
-
-        params.push(SourceType::TypeParam(TypeParamId(type_param_id)));
-
-        for bound in &type_param.bounds {
-            let ty = read_type(
-                sa,
-                symtable,
-                file_id,
-                bound,
-                TypeParamContext::None,
-                AllowSelf::No,
-            );
-
-            if let Some(ty) = ty {
-                if ty.is_trait() {
-                    if !type_params.add_bound(TypeParamId(type_param_id), ty) {
-                        let msg = ErrorMessage::DuplicateTraitBound;
-                        sa.diag.lock().report(file_id, type_param.pos, msg);
-                    }
-                } else {
-                    let msg = ErrorMessage::BoundExpected;
-                    sa.diag.lock().report(file_id, bound.pos(), msg);
-                }
-            } else {
-                // unknown type, error is already thrown
-            }
-        }
-
-        let sym = Sym::TypeParam(TypeParamId(type_param_id));
-        symtable.insert(type_param.name, sym);
-    }
-
-    params
 }
 
 #[cfg(test)]

@@ -884,28 +884,15 @@ fn next(next_large: &Mutex<Address>) -> Option<Address> {
 struct Unit {
     region: Region,
     live: usize,
-    young: bool,
 }
 
 impl Unit {
     fn old(region: Region) -> Unit {
-        Unit {
-            region,
-            live: 0,
-            young: false,
-        }
+        Unit { region, live: 0 }
     }
 
     fn young(region: Region) -> Unit {
-        Unit {
-            region,
-            live: 0,
-            young: true,
-        }
-    }
-
-    fn size(&self) -> usize {
-        self.region.size()
+        Unit { region, live: 0 }
     }
 }
 
@@ -987,9 +974,5 @@ impl CollectRegion {
         } else {
             self.compact.start
         }
-    }
-
-    fn live(&self) -> usize {
-        self.compact.size()
     }
 }

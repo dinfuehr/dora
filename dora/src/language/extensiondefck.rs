@@ -1,7 +1,7 @@
 use crate::language::error::msg::ErrorMessage;
 use crate::language::sem_analysis::{
-    EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId, ModuleDefinitionId, SemAnalysis,
-    SourceFileId, StructDefinitionId, TypeParamDefinition, TypeParamId,
+    EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId, SemAnalysis, SourceFileId,
+    StructDefinitionId, TypeParamDefinition, TypeParamId,
 };
 use crate::language::sym::{NestedSymTable, Sym};
 use crate::language::ty::SourceType;
@@ -28,7 +28,6 @@ pub fn check(sa: &SemAnalysis) {
             sa,
             extension_id,
             sym: NestedSymTable::new(sa, module_id),
-            module_id,
             file_id,
             ast: &ast,
             extension_ty: SourceType::Error,
@@ -41,7 +40,6 @@ pub fn check(sa: &SemAnalysis) {
 struct ExtensionCheck<'x> {
     sa: &'x SemAnalysis,
     file_id: SourceFileId,
-    module_id: ModuleDefinitionId,
     sym: NestedSymTable,
     extension_id: ExtensionDefinitionId,
     extension_ty: SourceType,

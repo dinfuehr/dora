@@ -92,7 +92,7 @@ impl<'a> NativeGen<'a> {
             self.masm.debug();
         }
 
-        self.masm.prolog_size(framesize);
+        self.masm.prolog(framesize);
 
         for desc in temporaries_desc {
             match desc {

@@ -36,8 +36,8 @@ pub struct ParallelMinorCollector<'a> {
     crossing_map: &'a CrossingMap,
 
     rootset: &'a [Slot],
-    threads: &'a [Arc<DoraThread>],
-    reason: GcReason,
+    _threads: &'a [Arc<DoraThread>],
+    _reason: GcReason,
 
     young_top: Address,
     young_limit: Address,
@@ -49,8 +49,8 @@ pub struct ParallelMinorCollector<'a> {
     from_active: Region,
     eden_active: Region,
 
-    min_heap_size: usize,
-    max_heap_size: usize,
+    _min_heap_size: usize,
+    _max_heap_size: usize,
 
     threadpool: &'a mut Pool,
     number_workers: usize,
@@ -81,7 +81,7 @@ impl<'a> ParallelMinorCollector<'a> {
             old,
             large,
             rootset,
-            threads,
+            _threads: threads,
             card_table,
             crossing_map,
 
@@ -95,10 +95,10 @@ impl<'a> ParallelMinorCollector<'a> {
             from_active: Default::default(),
             eden_active: young.eden_active(),
 
-            reason,
+            _reason: reason,
 
-            min_heap_size,
-            max_heap_size,
+            _min_heap_size: min_heap_size,
+            _max_heap_size: max_heap_size,
 
             number_workers: threadpool.thread_count() as usize,
             threadpool,
@@ -184,7 +184,6 @@ impl<'a> ParallelMinorCollector<'a> {
         }
 
         let terminator = Terminator::new(self.number_workers);
-        let number_workers = self.number_workers;
         let young_region = self.young.total();
         let vm = self.vm;
 
@@ -196,7 +195,6 @@ impl<'a> ParallelMinorCollector<'a> {
         let crossing_map = self.crossing_map;
         let young = self.young;
         let old = self.old;
-        let large = self.large;
         let rootset = self.rootset;
         let init_old_top = &self.init_old_top;
         let old_region_start = {
@@ -253,12 +251,10 @@ impl<'a> ParallelMinorCollector<'a> {
                         injector,
                         stealers,
                         terminator,
-                        number_workers,
 
                         vm,
                         young,
                         old,
-                        large,
                         young_region,
                         card_table,
                         crossing_map,
@@ -413,12 +409,10 @@ struct CopyTask<'a> {
     injector: &'a Injector<Address>,
     stealers: &'a [Stealer<Address>],
     terminator: &'a Terminator,
-    number_workers: usize,
 
     vm: &'a VM,
     young: &'a YoungGen,
     old: &'a OldGen,
-    large: &'a LargeSpace,
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
     rootset: &'a [Slot],

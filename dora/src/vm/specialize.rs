@@ -314,14 +314,6 @@ pub fn specialize_class_id_params(
     specialize_class(vm, &*cls, &type_params)
 }
 
-pub fn specialize_class_ty(vm: &VM, ty: SourceType) -> ClassInstanceId {
-    match ty {
-        SourceType::Class(cls_id, params) => specialize_class_id_params(vm, cls_id, &params),
-
-        _ => unreachable!(),
-    }
-}
-
 pub fn specialize_class(
     vm: &VM,
     cls: &ClassDefinition,

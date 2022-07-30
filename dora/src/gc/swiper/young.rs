@@ -44,6 +44,7 @@ impl YoungGen {
         self.eden.active()
     }
 
+    #[allow(dead_code)]
     pub fn eden_committed(&self) -> Region {
         self.eden.committed()
     }
@@ -56,6 +57,7 @@ impl YoungGen {
         self.semi.from_active()
     }
 
+    #[allow(dead_code)]
     pub fn from_committed(&self) -> Region {
         self.semi.from_committed()
     }
@@ -84,10 +86,6 @@ impl YoungGen {
         self.total.contains(addr)
     }
 
-    pub fn valid_top(&self, addr: Address) -> bool {
-        self.total.valid_top(addr)
-    }
-
     pub fn clear(&self) {
         self.eden.reset_top();
         self.semi.clear_from();
@@ -107,10 +105,6 @@ impl YoungGen {
 
     pub fn protect_from(&self) {
         self.semi.protect_from();
-    }
-
-    pub fn clear_eden(&self) {
-        self.eden.reset_top();
     }
 
     pub fn swap_semi(&self) {
@@ -163,19 +157,13 @@ impl YoungGen {
 }
 
 struct Eden {
-    total: Region,
     block: Block,
-    alloc: BumpAllocator,
 }
 
 impl Eden {
     fn new(total: Region, committed_size: usize) -> Eden {
-        let limit = total.start.offset(committed_size);
-
         Eden {
-            total: total.clone(),
             block: Block::new(total.clone(), committed_size),
-            alloc: BumpAllocator::new(total.start, limit),
         }
     }
 
@@ -222,7 +210,6 @@ struct SemiSpace {
     from_index: AtomicUsize,
 
     protect: bool,
-    alloc: BumpAllocator,
     age_marker: AtomicUsize,
 }
 
@@ -236,8 +223,6 @@ impl SemiSpace {
         let second = Region::new(first.end, total.end);
         assert!(first.size() == second.size());
 
-        let limit = first.start.offset(committed_semi_size);
-
         SemiSpace {
             total: total.clone(),
 
@@ -246,7 +231,6 @@ impl SemiSpace {
 
             from_index: AtomicUsize::new(2),
             protect,
-            alloc: BumpAllocator::new(first.start, limit),
             age_marker: AtomicUsize::new(first.start.to_usize()),
         }
     }

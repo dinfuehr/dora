@@ -176,6 +176,7 @@ pub const R4: Reg = Reg(4);
 pub const R5: Reg = Reg(5);
 pub const R6: Reg = Reg(6);
 pub const R7: Reg = Reg(7);
+#[allow(dead_code)]
 pub const R8: Reg = Reg(8);
 pub const R9: Reg = Reg(9);
 pub const R10: Reg = Reg(10);
@@ -184,17 +185,29 @@ pub const R12: Reg = Reg(12);
 pub const R13: Reg = Reg(13);
 pub const R14: Reg = Reg(14);
 pub const R15: Reg = Reg(15);
+#[allow(dead_code)]
 pub const R16: Reg = Reg(16);
+#[allow(dead_code)]
 pub const R17: Reg = Reg(17);
+#[allow(dead_code)]
 pub const R18: Reg = Reg(18);
+#[allow(dead_code)]
 pub const R19: Reg = Reg(19);
+#[allow(dead_code)]
 pub const R20: Reg = Reg(20);
+#[allow(dead_code)]
 pub const R21: Reg = Reg(21);
+#[allow(dead_code)]
 pub const R22: Reg = Reg(22);
+#[allow(dead_code)]
 pub const R23: Reg = Reg(23);
+#[allow(dead_code)]
 pub const R24: Reg = Reg(24);
+#[allow(dead_code)]
 pub const R25: Reg = Reg(25);
+#[allow(dead_code)]
 pub const R26: Reg = Reg(26);
+#[allow(dead_code)]
 pub const R27: Reg = Reg(27);
 pub const R28: Reg = Reg(28);
 pub const R29: Reg = Reg(29);

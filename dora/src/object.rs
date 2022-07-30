@@ -1,6 +1,5 @@
 use std;
 use std::cmp;
-use std::ffi::CString;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use std::ptr;
@@ -11,8 +10,6 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use crate::gc::root::Slot;
 use crate::gc::{Address, Region};
 use crate::handle::{handle, Handle};
-use crate::language::sem_analysis::FieldId;
-use crate::language::ty::SourceType;
 use crate::mem;
 use crate::size::InstanceSize;
 use crate::vm::{ClassInstance, ClassInstanceId, VM};
@@ -494,18 +491,6 @@ impl<T> Into<Ref<T>> for Address {
 }
 
 #[repr(C)]
-pub struct Testing {
-    header: Header,
-    failed: bool,
-}
-
-impl Testing {
-    pub fn has_failed(&self) -> bool {
-        self.failed
-    }
-}
-
-#[repr(C)]
 pub struct Str {
     header: Header,
     length: usize,
@@ -513,6 +498,7 @@ pub struct Str {
 }
 
 impl Str {
+    #[allow(dead_code)]
     pub fn header(&self) -> &Header {
         &self.header
     }
@@ -531,16 +517,6 @@ impl Str {
 
     pub fn content(&self) -> &[u8] {
         unsafe { slice::from_raw_parts(self.data(), self.len()) }
-    }
-
-    pub fn to_cstring(&self) -> CString {
-        let view = self.content();
-
-        CString::new(view).unwrap()
-    }
-
-    pub fn empty(vm: &VM) -> Ref<Str> {
-        str_alloc_heap(vm, 0)
     }
 
     /// allocates string from buffer in permanent space
@@ -669,28 +645,6 @@ fn byte_array_alloc_heap(vm: &VM, len: usize) -> Ref<UInt8Array> {
     handle
 }
 
-pub fn int_array_alloc_heap(vm: &VM, len: usize) -> Ref<Int32Array> {
-    let size = Header::size() as usize      // Object header
-                + mem::ptr_width() as usize // length field
-                + len * 4; // array content
-
-    let size = mem::align_usize(size, mem::ptr_width() as usize);
-    let ptr = vm.gc.alloc(vm, size, false);
-
-    let clsid = vm.known.int_array(vm);
-    let cls = vm.class_instances.idx(clsid);
-    let vtable = cls.vtable.read();
-    let vtable: &VTable = vtable.as_ref().unwrap();
-    let mut handle: Ref<Int32Array> = ptr.into();
-    handle
-        .header_mut()
-        .set_vtblptr(Address::from_ptr(vtable as *const VTable));
-    handle.header_mut().clear_fwdptr();
-    handle.length = len;
-
-    handle
-}
-
 fn str_alloc_heap(vm: &VM, len: usize) -> Ref<Str> {
     str_alloc(vm, len, |vm, size| vm.gc.alloc(vm, size, false))
 }
@@ -770,6 +724,7 @@ impl<T> Array<T>
 where
     T: Copy + ArrayElement,
 {
+    #[allow(dead_code)]
     pub fn header(&self) -> &Header {
         &self.header
     }
@@ -838,14 +793,8 @@ pub fn offset_of_array_data() -> i32 {
     offset_of!(Array<i32>, data) as i32
 }
 
-pub type BoolArray = Array<bool>;
 pub type UInt8Array = Array<u8>;
-pub type CharArray = Array<char>;
 pub type Int32Array = Array<i32>;
-pub type Int64Array = Array<i64>;
-pub type Float32Array = Array<f32>;
-pub type Float64Array = Array<f64>;
-pub type ObjArray = Array<Ref<Obj>>;
 pub type StrArray = Array<Ref<Str>>;
 
 pub fn alloc(vm: &VM, clsid: ClassInstanceId) -> Ref<Obj> {
@@ -866,28 +815,6 @@ pub fn alloc(vm: &VM, clsid: ClassInstanceId) -> Ref<Obj> {
     handle.header_mut().clear_fwdptr();
 
     handle
-}
-
-pub fn write_ref(vm: &VM, obj: Ref<Obj>, cls_id: ClassInstanceId, fid: FieldId, value: Ref<Obj>) {
-    let cls_def = vm.class_instances.idx(cls_id);
-    let field = &cls_def.fields[fid.to_usize()];
-    let slot = obj.address().offset(field.offset as usize);
-    assert!(field.ty.reference_type());
-
-    unsafe {
-        *slot.to_mut_ptr::<Address>() = value.address();
-    }
-}
-
-pub fn write_int32(vm: &VM, obj: Ref<Obj>, cls_id: ClassInstanceId, fid: FieldId, value: i32) {
-    let cls_def = vm.class_instances.idx(cls_id);
-    let field = &cls_def.fields[fid.to_usize()];
-    let slot = obj.address().offset(field.offset as usize);
-    assert!(field.ty == SourceType::Int32);
-
-    unsafe {
-        *slot.to_mut_ptr::<i32>() = value;
-    }
 }
 
 pub struct Stacktrace {

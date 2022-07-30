@@ -47,6 +47,7 @@ impl VerifierPhase {
         }
     }
 
+    #[allow(dead_code)]
     fn is_pre_full(self) -> bool {
         match self {
             VerifierPhase::PreFull => true,

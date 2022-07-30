@@ -24,15 +24,6 @@ pub const SIZE_HUGE: usize = 32 * K;
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub struct SizeClass(usize);
 
-pub const SIZES: [usize; SIZE_CLASSES] = [
-    SIZE_SMALLEST,
-    SIZE_TINY,
-    SIZE_SMALL,
-    SIZE_MEDIUM,
-    SIZE_LARGE,
-    SIZE_HUGE,
-];
-
 impl SizeClass {
     fn next_up(size: usize) -> SizeClass {
         assert!(size >= SIZE_SMALLEST);
@@ -72,10 +63,6 @@ impl SizeClass {
 
     fn idx(self) -> usize {
         self.0
-    }
-
-    fn size(self) -> usize {
-        SIZES[self.0]
     }
 }
 
@@ -134,11 +121,6 @@ impl FreeListClass {
         FreeListClass {
             head: FreeSpace::null(),
         }
-    }
-
-    fn add(&mut self, addr: FreeSpace) {
-        addr.set_next(self.head);
-        self.head = addr;
     }
 
     fn first(&mut self) -> FreeSpace {
