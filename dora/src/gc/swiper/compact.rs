@@ -3,7 +3,6 @@ use std::sync::Arc;
 
 use parking_lot::MutexGuard;
 
-use crate::gc::root::{iterate_strong_roots, Slot};
 use crate::gc::space::Space;
 use crate::gc::swiper::card::CardTable;
 use crate::gc::swiper::controller::FullCollectorPhases;
@@ -12,7 +11,7 @@ use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::old::{OldGen, OldGenProtected};
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{forward_full, walk_region, walk_region_and_skip_garbage};
-use crate::gc::{iterate_weak_roots, marking};
+use crate::gc::{iterate_strong_roots, iterate_weak_roots, marking, Slot};
 use crate::gc::{Address, GcReason, Region};
 use crate::object::Obj;
 use crate::stdlib;

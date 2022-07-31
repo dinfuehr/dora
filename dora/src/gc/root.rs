@@ -199,10 +199,25 @@ fn iterate_roots_from_stack_frame<F: FnMut(Slot)>(
     }
 }
 
-fn determine_rootset_from_wait_list(rootset: &mut Vec<Slot>, vm: &VM) {
-    vm.wait_lists.visit_roots(|slot| {
-        rootset.push(slot);
-    });
+pub fn iterate_weak_roots<F>(vm: &VM, object_updater: F)
+where
+    F: Fn(Address) -> Option<Address>,
+{
+    let mut finalizers = vm.gc.finalizers.lock();
+    let mut deleted = false;
+
+    for (address, _) in &mut *finalizers {
+        *address = if let Some(new_address) = object_updater(*address) {
+            new_address
+        } else {
+            deleted = true;
+            Address::null()
+        };
+    }
+
+    if deleted {
+        finalizers.retain(|(address, _)| !address.is_null());
+    }
 }
 
 #[derive(Copy, Clone)]

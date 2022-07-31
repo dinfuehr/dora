@@ -2,7 +2,6 @@ use parking_lot::MutexGuard;
 use std::cmp;
 use std::sync::Arc;
 
-use crate::gc::root::{iterate_strong_roots, Slot};
 use crate::gc::swiper::card::{CardEntry, CardTable};
 use crate::gc::swiper::controller::{MinorCollectorPhases, SharedHeapConfig};
 use crate::gc::swiper::crossing::{CrossingEntry, CrossingMap};
@@ -11,7 +10,7 @@ use crate::gc::swiper::old::{OldGen, OldGenProtected};
 use crate::gc::swiper::on_different_cards;
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{forward_minor, CardIdx, CARD_SIZE};
-use crate::gc::{iterate_weak_roots, Address, GcReason, Region};
+use crate::gc::{iterate_strong_roots, iterate_weak_roots, Address, GcReason, Region, Slot};
 use crate::object::{offset_of_array_data, Obj};
 use crate::threads::DoraThread;
 use crate::timer::Timer;

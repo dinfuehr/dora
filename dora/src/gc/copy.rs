@@ -4,10 +4,10 @@ use std::sync::Arc;
 
 use crate::driver::cmd::Args;
 use crate::gc::bump::BumpAllocator;
-use crate::gc::root::iterate_strong_roots;
 use crate::gc::tlab;
 use crate::gc::{
-    formatted_size, iterate_weak_roots, Address, CollectionStats, Collector, GcReason, Region,
+    formatted_size, iterate_strong_roots, iterate_weak_roots, Address, CollectionStats, Collector,
+    GcReason, Region,
 };
 use crate::mem;
 use crate::object::Obj;

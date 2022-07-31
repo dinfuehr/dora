@@ -22,6 +22,8 @@ use crate::threads::DoraThread;
 use crate::vm::VM;
 use crate::vtable::VTable;
 
+pub use crate::gc::root::{iterate_strong_roots, iterate_weak_roots, Slot};
+
 pub mod bump;
 pub mod code;
 pub mod compact;
@@ -659,26 +661,5 @@ impl fmt::Display for AllNumbers {
             first = false;
         }
         write!(f, "]")
-    }
-}
-
-fn iterate_weak_roots<F>(vm: &VM, object_updater: F)
-where
-    F: Fn(Address) -> Option<Address>,
-{
-    let mut finalizers = vm.gc.finalizers.lock();
-    let mut deleted = false;
-
-    for (address, _) in &mut *finalizers {
-        *address = if let Some(new_address) = object_updater(*address) {
-            new_address
-        } else {
-            deleted = true;
-            Address::null()
-        };
-    }
-
-    if deleted {
-        finalizers.retain(|(address, _)| !address.is_null());
     }
 }
