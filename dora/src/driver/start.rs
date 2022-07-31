@@ -6,9 +6,7 @@ use crate::language::sem_analysis::{
     FctDefinition, FctDefinitionId, ModuleDefinitionId, SemAnalysis,
 };
 use crate::timer::Timer;
-use crate::vm::execute_on_main;
-use crate::vm::set_vm;
-use crate::vm::VM;
+use crate::vm::{clear_vm, execute_on_main, set_vm, VM};
 
 pub fn start() -> i32 {
     let args = cmd::parse_arguments();
@@ -90,6 +88,8 @@ pub fn start() -> i32 {
         let duration = timer.stop();
         vm.dump_gc_summary(duration);
     }
+
+    clear_vm();
 
     exit_code
 }

@@ -75,14 +75,23 @@ mod waitlists;
 static mut VM_GLOBAL: *const u8 = ptr::null();
 
 pub fn get_vm() -> &'static VM {
-    unsafe { &*(VM_GLOBAL as *const VM) }
+    unsafe {
+        debug_assert!(!VM_GLOBAL.is_null());
+        &*(VM_GLOBAL as *const VM)
+    }
 }
 
 pub fn set_vm(vm: &VM) {
-    let ptr = vm as *const _ as *const u8;
-
     unsafe {
-        VM_GLOBAL = ptr;
+        debug_assert!(VM_GLOBAL.is_null());
+        VM_GLOBAL = vm as *const _ as *const u8;
+    }
+}
+
+pub fn clear_vm() {
+    unsafe {
+        debug_assert!(!VM_GLOBAL.is_null());
+        VM_GLOBAL = ptr::null();
     }
 }
 
