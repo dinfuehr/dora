@@ -105,6 +105,7 @@ pub struct Args {
     pub flag_stdlib: Option<String>,
     pub flag_boots: Option<String>,
     pub flag_test_filter: Option<String>,
+    pub packages: Vec<(String, String)>,
 
     pub command: Command,
 }
@@ -209,6 +210,7 @@ impl Default for Args {
             flag_stdlib: None,
             flag_boots: None,
             flag_test_filter: None,
+            packages: Vec::new(),
 
             command: Command::Run,
         }
@@ -389,6 +391,16 @@ pub fn parse_arguments() -> Result<Args, String> {
             args.flag_stdlib = Some(argument_value(arg).to_string());
         } else if arg.starts_with("--boots=") {
             args.flag_boots = Some(argument_value(arg).to_string());
+        } else if arg == "--package" {
+            if idx + 2 >= cli_arguments.len() {
+                return Err("--package needs two arguments".into());
+            }
+
+            let name = cli_arguments[idx + 1].clone();
+            let directory = cli_arguments[idx + 2].clone();
+
+            args.packages.push((name, directory));
+            idx += 2;
         } else if arg.starts_with("-") {
             return Err(format!("unknown flag {}", arg));
         } else {
