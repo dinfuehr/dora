@@ -2,6 +2,7 @@ use num_cpus;
 use std::cmp::{max, min};
 use std::default::Default;
 use std::ops::Deref;
+use std::path::PathBuf;
 
 use crate::gc::M;
 
@@ -105,7 +106,7 @@ pub struct Args {
     pub flag_stdlib: Option<String>,
     pub flag_boots: Option<String>,
     pub flag_test_filter: Option<String>,
-    pub packages: Vec<(String, String)>,
+    pub packages: Vec<(String, PathBuf)>,
 
     pub command: Command,
 }
@@ -397,9 +398,10 @@ pub fn parse_arguments() -> Result<Args, String> {
             }
 
             let name = cli_arguments[idx + 1].clone();
-            let directory = cli_arguments[idx + 2].clone();
+            let path = cli_arguments[idx + 2].clone();
+            let path = PathBuf::from(path);
 
-            args.packages.push((name, directory));
+            args.packages.push((name, path));
             idx += 2;
         } else if arg.starts_with("-") {
             return Err(format!("unknown flag {}", arg));

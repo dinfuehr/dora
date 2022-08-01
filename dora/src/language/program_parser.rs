@@ -56,6 +56,7 @@ impl<'a> ProgramParser<'a> {
         self.add_boots_files();
         self.add_program_files();
         self.add_test_files();
+        self.add_package_files();
     }
 
     fn add_stdlib_files(&mut self) {
@@ -152,6 +153,17 @@ impl<'a> ProgramParser<'a> {
                 .lock()
                 .report_without_location(ErrorMessage::FileDoesNotExist(path));
         }
+    }
+
+    fn add_package_files(&mut self) {
+        if self.sa.args.packages.is_empty() {
+            return;
+        }
+
+        self.sa
+            .diag
+            .lock()
+            .report_without_location(ErrorMessage::Unimplemented);
     }
 
     fn add_test_files(&mut self) {
