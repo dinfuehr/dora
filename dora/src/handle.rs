@@ -5,7 +5,7 @@ use crate::gc::Address;
 use crate::object::{Obj, Ref};
 use crate::threads::current_thread;
 
-pub const HANDLE_SIZE: usize = 256;
+pub const HANDLE_BLOCK_SIZE: usize = 256;
 
 pub struct HandleMemory {
     inner: Mutex<HandleMemoryInner>,
@@ -19,7 +19,14 @@ impl HandleMemory {
     }
 
     pub fn handle<T>(&self, obj: Ref<T>) -> Handle<T> {
-        self.inner.lock().handle(obj)
+        debug_assert!(current_thread().is_running());
+        let address = self.inner.lock().handle(obj.address());
+        Handle(address.to_mut_ptr())
+    }
+
+    #[cfg(test)]
+    fn handle_address(&self, object_address: Address) {
+        self.inner.lock().handle(object_address);
     }
 
     pub fn push_border(&self) {
@@ -32,76 +39,74 @@ impl HandleMemory {
 
     pub fn iter(&self) -> HandleMemoryIter {
         let inner = self.inner.lock();
-        let len = inner.buffers.len();
+        let len = inner.blocks.len();
         let free = inner.free;
 
         HandleMemoryIter {
             mem: inner,
-            buffer_idx: 0,
+            block_idx: 0,
             element_idx: 0,
-            full_buffer_len: if len == 0 { 0 } else { len - 1 },
-            last_buffer_len: free,
+            filled_blocks: if len == 0 { 0 } else { len - 1 },
+            handles_in_last_block: free,
         }
     }
 }
 
 pub struct HandleMemoryInner {
-    /// all buffers, Box is important since HandleBuffer
-    /// is a big struct that needs to get moved/copied on resizes
-    buffers: Vec<Box<HandleBuffer>>,
+    /// All blocks, Box is important since HandleBlock
+    /// is a big struct that needs to get moved/copied on resizes.
+    blocks: Vec<Box<HandleBlock>>,
 
-    // store addresses of inserted borders
+    // Store addresses of inserted borders.
     borders: Vec<BorderData>,
 
-    // index of next free position in buffer
+    // Index of next free position in block.
     free: usize,
 }
 
 impl HandleMemoryInner {
     pub fn new() -> HandleMemoryInner {
-        let buffer = Box::new(HandleBuffer::new());
+        let initial_block = Box::new(HandleBlock::new());
 
         HandleMemoryInner {
-            buffers: vec![buffer],
+            blocks: vec![initial_block],
             borders: Vec::new(),
             free: 0,
         }
     }
 
-    pub fn handle<T>(&mut self, obj: Ref<T>) -> Handle<T> {
-        debug_assert!(current_thread().is_running());
-
-        if self.free >= HANDLE_SIZE {
-            self.push_buffer();
+    pub fn handle(&mut self, object_address: Address) -> Address {
+        if self.free >= HANDLE_BLOCK_SIZE {
+            self.push_block();
             self.free = 0;
         }
 
-        let buffer = self.buffers.last_mut().unwrap();
+        let block = self.blocks.last_mut().unwrap();
 
         let idx = self.free;
-        let elem = &mut buffer.elements[idx];
+        let elem = &mut block.elements[idx];
         self.free = idx + 1;
 
-        *elem = obj.cast::<Obj>();
+        *elem = object_address;
 
-        Handle(elem as *mut Ref<Obj> as *mut Ref<T>)
+        Address::from_ptr(elem)
     }
 
-    pub fn push_buffer(&mut self) {
-        self.buffers.push(Box::new(HandleBuffer::new()));
+    fn push_block(&mut self) {
+        self.blocks.push(Box::new(HandleBlock::new()));
     }
 
     pub fn push_border(&mut self) {
-        let buffer = self.buffers.len();
+        let blocks = self.blocks.len();
         let element = self.free;
 
-        self.borders.push(BorderData { buffer, element });
+        self.borders.push(BorderData { blocks, element });
     }
 
     pub fn pop_border(&mut self) {
         let border = self.borders.pop().expect("no border left");
 
-        self.buffers.truncate(border.buffer);
+        self.blocks.truncate(border.blocks);
         self.free = border.element;
     }
 }
@@ -112,20 +117,20 @@ pub fn handle<T>(obj: Ref<T>) -> Handle<T> {
     thread.handles.handle(obj)
 }
 
-struct HandleBuffer {
-    elements: [Ref<Obj>; HANDLE_SIZE],
+struct HandleBlock {
+    elements: [Address; HANDLE_BLOCK_SIZE],
 }
 
-impl HandleBuffer {
-    fn new() -> HandleBuffer {
-        HandleBuffer {
-            elements: [Ref::null(); HANDLE_SIZE],
+impl HandleBlock {
+    fn new() -> HandleBlock {
+        HandleBlock {
+            elements: [Address::null(); HANDLE_BLOCK_SIZE],
         }
     }
 }
 
 struct BorderData {
-    buffer: usize,
+    blocks: usize,
     element: usize,
 }
 #[repr(C)]
@@ -139,6 +144,12 @@ impl<T> Handle<T> {
 
     pub fn direct_ptr(self) -> Address {
         debug_assert!(current_thread().is_running());
+        self.raw_load()
+    }
+
+    // Internal method for dereferencing this handle, does not
+    // check thread on purpose for testing purposes.
+    fn raw_load(self) -> Address {
         unsafe { *self.0 }.address()
     }
 
@@ -182,42 +193,68 @@ impl<T> Clone for Handle<T> {
 
 pub struct HandleMemoryIter<'a> {
     mem: MutexGuard<'a, HandleMemoryInner>,
-    buffer_idx: usize,
+    block_idx: usize,
     element_idx: usize,
-    full_buffer_len: usize,
-    last_buffer_len: usize,
+    filled_blocks: usize,
+    handles_in_last_block: usize,
 }
 
 impl<'a> Iterator for HandleMemoryIter<'a> {
     type Item = Handle<Obj>;
 
     fn next(&mut self) -> Option<Handle<Obj>> {
-        while self.buffer_idx < self.full_buffer_len {
-            if self.element_idx < HANDLE_SIZE {
-                let idx = self.element_idx;
-                self.element_idx += 1;
-
-                let buffer = &mut self.mem.buffers[self.buffer_idx];
-                return Some(Handle(&mut buffer.elements[idx] as *mut Ref<Obj>));
-            } else {
-                self.buffer_idx += 1;
-                self.element_idx = 0;
-            }
+        if self.element_idx == HANDLE_BLOCK_SIZE {
+            self.block_idx += 1;
+            self.element_idx = 0;
         }
 
-        if self.buffer_idx == self.full_buffer_len {
-            if self.element_idx < self.last_buffer_len {
-                let idx = self.element_idx;
-                self.element_idx += 1;
+        if (self.block_idx < self.filled_blocks)
+            || (self.block_idx == self.filled_blocks
+                && self.element_idx < self.handles_in_last_block)
+        {
+            let idx = self.element_idx;
+            self.element_idx += 1;
 
-                let buffer = &mut self.mem.buffers[self.buffer_idx];
-                Some(Handle(&mut buffer.elements[idx] as *mut Ref<Obj>))
-            } else {
-                None
-            }
+            let block = &self.mem.blocks[self.block_idx];
+            return Some(Handle::from_address(Address::from_ptr(
+                &block.elements[idx],
+            )));
         } else {
             None
         }
+    }
+}
+
+#[test]
+fn test_handle_iteration() {
+    let sizes = [
+        0,
+        4,
+        HANDLE_BLOCK_SIZE / 4,
+        3 * HANDLE_BLOCK_SIZE,
+        3 * HANDLE_BLOCK_SIZE + HANDLE_BLOCK_SIZE / 2,
+        3 * HANDLE_BLOCK_SIZE + HANDLE_BLOCK_SIZE / 4,
+    ];
+
+    for size in sizes {
+        let hm = HandleMemory::new();
+
+        for _ in 0..size {
+            hm.handle_address(1.into());
+        }
+
+        hm.push_border();
+
+        for _ in 0..size {
+            hm.handle_address(2.into());
+        }
+
+        hm.handle_address(2.into());
+
+        hm.pop_border();
+
+        assert_eq!(hm.iter().count(), size);
+        assert!(hm.iter().all(|x| x.raw_load() == 1.into()));
     }
 }
 
