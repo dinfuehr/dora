@@ -286,39 +286,41 @@ pub extern "C" fn trap(trap_id: u32) {
 pub extern "C" fn spawn_thread(runner: Handle<Obj>) -> Address {
     let vm = get_vm();
 
-    let managed_thread = ManagedThread::alloc(vm);
-    let mut managed_thread: Handle<ManagedThread> = handle(managed_thread);
+    handle_scope(|| {
+        let managed_thread = ManagedThread::alloc(vm);
+        let mut managed_thread: Handle<ManagedThread> = handle(managed_thread);
 
-    // Create new thread in Parked state.
-    let thread = DoraThread::new(vm, ThreadState::Parked);
+        // Create new thread in Parked state.
+        let thread = DoraThread::new(vm, ThreadState::Parked);
 
-    managed_thread.install_native_thread(&thread);
+        managed_thread.install_native_thread(&thread);
 
-    vm.gc
-        .add_finalizer(managed_thread.direct_ptr(), thread.clone());
+        vm.gc
+            .add_finalizer(managed_thread.direct_ptr(), thread.clone());
 
-    // Add thread to our list of all threads first. This method parks
-    // and unparks the current thread, this means the handle needs to be created
-    // afterwards.
-    vm.threads.add_thread(thread.clone());
+        // Add thread to our list of all threads first. This method parks
+        // and unparks the current thread, this means the handle needs to be created
+        // afterwards.
+        vm.threads.add_thread(thread.clone());
 
-    // Now we can create a handle in that newly created thread. Since the thread
-    // is now registered, the handle is updated as well by the GC.
-    // We create the handle in the new Parked thread, normally this would be unsafe.
-    // Here it should be safe though, because the current thread is still Running
-    // and therefore the GC can't run at this point.
-    debug_assert!(current_thread().is_running());
-    let thread_location = thread.handles.handle(managed_thread.direct()).location();
-    let runner_location = thread.handles.handle(runner.direct()).location();
+        // Now we can create a handle in that newly created thread. Since the thread
+        // is now registered, the handle is updated as well by the GC.
+        // We create the handle in the new Parked thread, normally this would be unsafe.
+        // Here it should be safe though, because the current thread is still Running
+        // and therefore the GC can't run at this point.
+        debug_assert!(current_thread().is_running());
+        let thread_location = thread.handles.handle(managed_thread.direct()).location();
+        let runner_location = thread.handles.handle(runner.direct()).location();
 
-    thread::spawn(move || {
-        // Initialize thread-local variable with thread
-        let thread = init_current_thread(thread);
-        thread_main(thread, thread_location, runner_location);
-        deinit_current_thread();
-    });
+        thread::spawn(move || {
+            // Initialize thread-local variable with thread
+            let thread = init_current_thread(thread);
+            thread_main(thread, thread_location, runner_location);
+            deinit_current_thread();
+        });
 
-    managed_thread.direct_ptr()
+        managed_thread.direct_ptr()
+    })
 }
 
 fn thread_main(thread: &DoraThread, thread_location: Address, runner_location: Address) {
