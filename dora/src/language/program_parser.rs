@@ -171,10 +171,6 @@ impl<'a> ProgramParser<'a> {
     }
 
     fn add_package_files(&mut self) {
-        if self.sa.args.packages.is_empty() {
-            return;
-        }
-
         let packages = self.sa.args.packages.clone();
 
         for (name, path) in packages {
