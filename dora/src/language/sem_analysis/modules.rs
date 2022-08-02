@@ -1,7 +1,7 @@
 use parking_lot::RwLock;
 use std::sync::Arc;
 
-use crate::language::sem_analysis::SemAnalysis;
+use crate::language::sem_analysis::{PackageDefinitionId, SemAnalysis};
 use crate::language::sym::SymTable;
 use crate::language::SourceFileId;
 use crate::utils::Id;
@@ -37,6 +37,7 @@ impl Id for ModuleDefinition {
 #[derive(Debug)]
 pub struct ModuleDefinition {
     pub id: Option<ModuleDefinitionId>,
+    pub package_id: Option<PackageDefinitionId>,
     pub parent_module_id: Option<ModuleDefinitionId>,
     pub file_id: Option<SourceFileId>,
     pub ast: Option<Arc<ast::Module>>,
@@ -48,9 +49,10 @@ pub struct ModuleDefinition {
 }
 
 impl ModuleDefinition {
-    pub fn predefined(name: Option<Name>) -> ModuleDefinition {
+    pub fn new_top_level(name: Option<Name>) -> ModuleDefinition {
         ModuleDefinition {
             id: None,
+            package_id: None,
             ast: None,
             file_id: None,
             parent_module_id: None,
@@ -62,8 +64,9 @@ impl ModuleDefinition {
         }
     }
 
-    pub fn new(
+    pub fn new_inner(
         sa: &mut SemAnalysis,
+        package_id: PackageDefinitionId,
         parent_id: ModuleDefinitionId,
         file_id: SourceFileId,
         ast: &Arc<ast::Module>,
@@ -76,6 +79,7 @@ impl ModuleDefinition {
 
         ModuleDefinition {
             id: None,
+            package_id: Some(package_id),
             ast: Some(ast.clone()),
             file_id: Some(file_id),
             parent_module_id: Some(parent_id),
@@ -85,6 +89,10 @@ impl ModuleDefinition {
             parents,
             depth,
         }
+    }
+
+    pub fn package_id(&self) -> PackageDefinitionId {
+        self.package_id.expect("uninitialized package_id")
     }
 
     pub fn name(&self, sa: &SemAnalysis) -> String {

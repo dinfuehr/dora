@@ -3,6 +3,8 @@ use std::sync::Arc;
 
 use parking_lot::RwLock;
 
+use dora_parser::interner::Name;
+
 #[cfg(test)]
 use crate::language::sym::ModuleSymTable;
 use crate::language::sym::SymTable;
@@ -215,13 +217,15 @@ impl SemAnalysis {
 
     pub fn add_source_file(
         &mut self,
+        package_id: PackageDefinitionId,
+        module_id: ModuleDefinitionId,
         path: PathBuf,
         content: Arc<String>,
-        module_id: ModuleDefinitionId,
     ) -> SourceFileId {
         let file_id = SourceFileId(self.source_files.len());
         self.source_files.push(SourceFile {
             id: file_id,
+            package_id,
             path,
             content,
             module_id,
@@ -278,5 +282,21 @@ impl SemAnalysis {
     pub fn set_program_module_id(&mut self, module_id: ModuleDefinitionId) {
         assert!(self.program_module_id.is_none());
         self.program_module_id = Some(module_id);
+    }
+
+    pub fn add_package(
+        &mut self,
+        package_name: PackageName,
+        module_name: Option<Name>,
+    ) -> (PackageDefinitionId, ModuleDefinitionId) {
+        let module = ModuleDefinition::new_top_level(module_name);
+        let module_id = self.modules.push(module);
+
+        let package = PackageDefinition::new(package_name, module_id);
+        let package_id = self.packages.push(package);
+
+        self.modules.idx(module_id).write().package_id = Some(package_id);
+
+        (package_id, module_id)
     }
 }

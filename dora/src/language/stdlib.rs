@@ -149,7 +149,7 @@ pub fn fill_prelude(sa: &mut SemAnalysis) {
         "primitives::Result",
     ];
 
-    let module = ModuleDefinition::predefined(None);
+    let module = ModuleDefinition::new_top_level(None);
     let module_id = sa.modules.push(module);
     sa.set_prelude_module_id(module_id);
 

@@ -9,7 +9,7 @@ use crate::language::report_sym_shadow;
 use crate::language::sem_analysis::{
     AnnotationDefinition, ClassDefinition, ConstDefinition, EnumDefinition, ExtensionDefinition,
     ExtensionDefinitionId, FctDefinition, FctParent, GlobalDefinition, GlobalDefinitionId,
-    ImplDefinition, ImplDefinitionId, ModuleDefinition, ModuleDefinitionId, PackageDefinition,
+    ImplDefinition, ImplDefinitionId, ModuleDefinition, ModuleDefinitionId, PackageDefinitionId,
     PackageName, SemAnalysis, SourceFileId, StructDefinition, TraitDefinition, TraitDefinitionId,
     UseDefinition,
 };
@@ -60,37 +60,26 @@ impl<'a> ProgramParser<'a> {
     }
 
     fn add_stdlib_files(&mut self) {
-        let stdlib_dir = self.sa.args.flag_stdlib.clone();
-
         let stdlib_name = self.sa.interner.intern("std");
-        let module = ModuleDefinition::predefined(Some(stdlib_name));
-        let module_id = self.sa.modules.push(module);
+        let (package_id, module_id) = self.sa.add_package(PackageName::Stdlib, Some(stdlib_name));
         self.sa.set_stdlib_module_id(module_id);
 
-        let package = PackageDefinition::new(PackageName::Stdlib, module_id);
-        self.sa.packages.push(package);
+        let stdlib_dir = self.sa.args.flag_stdlib.clone();
 
         if let Some(stdlib) = stdlib_dir {
-            let file_path = PathBuf::from(stdlib);
-            let module_path = PathBuf::from(file_path.parent().expect("parent missing"));
-            self.add_file(
-                file_path,
-                module_id,
-                Some(module_path),
-                None,
-                FileLookup::FileSystem,
-            );
+            self.add_file_from_filesystem(PathBuf::from(stdlib), package_id, module_id);
         } else {
             let stdlib_file = format!("stdlib{}stdlib.dora", std::path::MAIN_SEPARATOR);
             let file_path = PathBuf::from(stdlib_file);
             let module_path = PathBuf::from(file_path.parent().expect("parent missing"));
-            self.add_bundled_file(file_path, module_id, module_path);
+            self.add_bundled_file(file_path, package_id, module_id, module_path);
         }
     }
 
     fn add_bundled_file(
         &mut self,
         file_path: PathBuf,
+        package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         module_path: PathBuf,
     ) {
@@ -98,6 +87,7 @@ impl<'a> ProgramParser<'a> {
         self.add_file_from_string(
             file_path,
             content.into(),
+            package_id,
             module_id,
             Some(module_path),
             FileLookup::Bundle,
@@ -124,39 +114,23 @@ impl<'a> ProgramParser<'a> {
 
         if let Some(boots_path) = boots_path {
             let boots_name = self.sa.interner.intern("boots");
-            let module = ModuleDefinition::predefined(Some(boots_name));
-            let module_id = self.sa.modules.push(module);
+            let (package_id, module_id) = self.sa.add_package(PackageName::Boots, Some(boots_name));
             self.sa.set_boots_module_id(module_id);
-
-            let package = PackageDefinition::new(PackageName::Boots, module_id);
-            self.sa.packages.push(package);
-
-            let file_path = PathBuf::from(boots_path);
-            let module_path = PathBuf::from(file_path.parent().expect("missing parent"));
-            self.add_file(
-                file_path,
-                self.sa.boots_module_id(),
-                Some(module_path),
-                None,
-                FileLookup::FileSystem,
-            );
+            self.add_file_from_filesystem(PathBuf::from(boots_path), package_id, module_id)
         }
     }
 
     fn add_program_files(&mut self) {
-        let module = ModuleDefinition::predefined(None);
-        let module_id = self.sa.modules.push(module);
+        let (package_id, module_id) = self.sa.add_package(PackageName::Program, None);
         self.sa.set_program_module_id(module_id);
-
-        let package = PackageDefinition::new(PackageName::Program, module_id);
-        self.sa.packages.push(package);
 
         if self.sa.args.arg_file.is_none() {
             if let Some(content) = self.sa.test_file_as_string {
                 self.add_file_from_string(
                     PathBuf::from("<<code>>"),
                     content.to_string(),
-                    self.sa.program_module_id(),
+                    package_id,
+                    module_id,
                     None,
                     FileLookup::FileSystem,
                 );
@@ -166,7 +140,7 @@ impl<'a> ProgramParser<'a> {
             let arg_file = arg_file.clone();
             let path = PathBuf::from(&arg_file);
 
-            self.add_file_from_filesystem(path, self.sa.program_module_id());
+            self.add_file_from_filesystem(path, package_id, module_id);
         }
     }
 
@@ -175,21 +149,17 @@ impl<'a> ProgramParser<'a> {
 
         for (name, path) in packages {
             let iname = self.sa.interner.intern(&name);
-
-            let module = ModuleDefinition::predefined(Some(iname));
-            let module_id = self.sa.modules.push(module);
-
             let package_name = PackageName::External(name);
-            let package = PackageDefinition::new(package_name, module_id);
-            self.sa.packages.push(package);
+            let (package_id, module_id) = self.sa.add_package(package_name, Some(iname));
 
-            self.add_file_from_filesystem(path, module_id);
+            self.add_file_from_filesystem(path, package_id, module_id);
         }
     }
 
     fn scan_file(
         &mut self,
         file_id: SourceFileId,
+        package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         module_path: Option<PathBuf>,
         file_lookup: FileLookup,
@@ -197,8 +167,9 @@ impl<'a> ProgramParser<'a> {
     ) {
         let mut gdef = GlobalDef {
             sa: self.sa,
-            file_id,
+            package_id,
             module_id,
+            file_id,
             external_modules: Vec::new(),
         };
 
@@ -206,13 +177,19 @@ impl<'a> ProgramParser<'a> {
 
         if !gdef.external_modules.is_empty() {
             for external_module_id in gdef.external_modules {
-                self.add_module_files(external_module_id, module_path.clone(), file_lookup);
+                self.add_module_files(
+                    package_id,
+                    external_module_id,
+                    module_path.clone(),
+                    file_lookup,
+                );
             }
         }
     }
 
     fn add_module_files(
         &mut self,
+        package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         module_path: Option<PathBuf>,
         file_lookup: FileLookup,
@@ -236,6 +213,7 @@ impl<'a> ProgramParser<'a> {
 
                 self.add_file(
                     file_path,
+                    package_id,
                     module_id,
                     Some(module_path),
                     Some((file_id, node.pos)),
@@ -252,7 +230,7 @@ impl<'a> ProgramParser<'a> {
                 let mut module_path = module_path;
                 module_path.push(&name);
 
-                self.add_bundled_file(file_path, module_id, module_path);
+                self.add_bundled_file(file_path, package_id, module_id, module_path);
             }
         }
     }
@@ -260,6 +238,7 @@ impl<'a> ProgramParser<'a> {
     fn add_file(
         &mut self,
         path: PathBuf,
+        package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         module_path: Option<PathBuf>,
         error_location: Option<(SourceFileId, Position)>,
@@ -269,7 +248,14 @@ impl<'a> ProgramParser<'a> {
 
         match result {
             Ok(content) => {
-                self.add_file_from_string(path, content, module_id, module_path, file_lookup);
+                self.add_file_from_string(
+                    path,
+                    content,
+                    package_id,
+                    module_id,
+                    module_path,
+                    file_lookup,
+                );
             }
 
             Err(_) => {
@@ -288,12 +274,18 @@ impl<'a> ProgramParser<'a> {
         }
     }
 
-    fn add_file_from_filesystem(&mut self, path: PathBuf, module_id: ModuleDefinitionId) {
+    fn add_file_from_filesystem(
+        &mut self,
+        path: PathBuf,
+        package_id: PackageDefinitionId,
+        module_id: ModuleDefinitionId,
+    ) {
         if path.is_file() {
             let file_path = PathBuf::from(path);
             let module_path = PathBuf::from(file_path.parent().expect("parent missing"));
             self.add_file(
                 file_path,
+                package_id,
                 module_id,
                 Some(module_path),
                 None,
@@ -311,13 +303,14 @@ impl<'a> ProgramParser<'a> {
         &mut self,
         file_path: PathBuf,
         content: String,
+        package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         module_path: Option<PathBuf>,
         file_lookup: FileLookup,
     ) {
         let file_id = self
             .sa
-            .add_source_file(file_path, Arc::new(content), module_id);
+            .add_source_file(package_id, module_id, file_path, Arc::new(content));
         self.files_to_parse
             .push_back((file_id, file_lookup, module_path));
     }
@@ -328,11 +321,13 @@ impl<'a> ProgramParser<'a> {
         file_lookup: FileLookup,
         module_path: Option<PathBuf>,
     ) {
+        let package_id;
         let module_id;
         let content;
 
         {
             let file = self.sa.source_file(file_id);
+            package_id = file.package_id;
             module_id = file.module_id;
             content = file.content.clone();
         }
@@ -341,7 +336,14 @@ impl<'a> ProgramParser<'a> {
 
         match parser.parse() {
             Ok(ast) => {
-                self.scan_file(file_id, module_id, module_path, file_lookup, &ast);
+                self.scan_file(
+                    file_id,
+                    package_id,
+                    module_id,
+                    module_path,
+                    file_lookup,
+                    &ast,
+                );
             }
 
             Err(error) => {
@@ -364,6 +366,7 @@ fn file_as_string(path: &PathBuf) -> Result<String, Error> {
 
 struct GlobalDef<'x> {
     sa: &'x mut SemAnalysis,
+    package_id: PackageDefinitionId,
     file_id: SourceFileId,
     module_id: ModuleDefinitionId,
     external_modules: Vec<ModuleDefinitionId>,
@@ -371,7 +374,13 @@ struct GlobalDef<'x> {
 
 impl<'x> visit::Visitor for GlobalDef<'x> {
     fn visit_module(&mut self, node: &Arc<ast::Module>) {
-        let module = ModuleDefinition::new(self.sa, self.module_id, self.file_id, node);
+        let module = ModuleDefinition::new_inner(
+            self.sa,
+            self.package_id,
+            self.module_id,
+            self.file_id,
+            node,
+        );
         let id = self.sa.modules.push(module);
         let sym = Sym::Module(id);
 
