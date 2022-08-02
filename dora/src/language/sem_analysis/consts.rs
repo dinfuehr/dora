@@ -4,7 +4,9 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-use crate::language::sem_analysis::{module_path, ModuleDefinitionId, SemAnalysis, SourceFileId};
+use crate::language::sem_analysis::{
+    module_path, ModuleDefinitionId, PackageDefinitionId, SemAnalysis, SourceFileId,
+};
 use crate::language::ty::SourceType;
 use crate::utils::Id;
 
@@ -30,9 +32,10 @@ impl Id for ConstDefinition {
 #[derive(Clone, Debug)]
 pub struct ConstDefinition {
     pub id: Option<ConstDefinitionId>,
+    pub package_id: PackageDefinitionId,
+    pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
     pub ast: Arc<ast::Const>,
-    pub module_id: ModuleDefinitionId,
     pub is_pub: bool,
     pub pos: Position,
     pub name: Name,
@@ -43,15 +46,17 @@ pub struct ConstDefinition {
 
 impl ConstDefinition {
     pub fn new(
-        file_id: SourceFileId,
+        package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
+        file_id: SourceFileId,
         node: &Arc<ast::Const>,
     ) -> ConstDefinition {
         ConstDefinition {
             id: None,
+            package_id,
+            module_id,
             file_id,
             ast: node.clone(),
-            module_id,
             pos: node.pos,
             name: node.name,
             is_pub: node.is_pub,

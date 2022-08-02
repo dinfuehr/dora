@@ -16,8 +16,8 @@ use crate::language::sem_analysis::{
     find_methods_in_struct, implements_trait, AnalysisData, CallType, ClassDefinition,
     ClassDefinitionId, ContextIdx, EnumDefinitionId, EnumVariant, FctDefinition, FctDefinitionId,
     FctParent, Field, FieldId, ForTypeInfo, IdentType, Intrinsic, ModuleDefinitionId, NestedVarId,
-    SemAnalysis, SourceFileId, StructDefinition, StructDefinitionId, TypeParamDefinition,
-    TypeParamId, Var, VarAccess, VarId, VarLocation,
+    PackageDefinitionId, SemAnalysis, SourceFileId, StructDefinition, StructDefinitionId,
+    TypeParamDefinition, TypeParamId, Var, VarAccess, VarId, VarLocation,
 };
 use crate::language::specialize::replace_type_param;
 use crate::language::sym::{ModuleSymTable, Sym};
@@ -36,8 +36,9 @@ use fixedbitset::FixedBitSet;
 pub struct TypeCheck<'a> {
     pub sa: &'a mut SemAnalysis,
     pub fct: &'a FctDefinition,
-    pub file_id: SourceFileId,
+    pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
+    pub file_id: SourceFileId,
     pub analysis: &'a mut AnalysisData,
     pub ast: &'a ast::Function,
     pub symtable: &'a mut ModuleSymTable,
@@ -172,6 +173,7 @@ impl<'a> TypeCheck<'a> {
         let name = self.sa.interner.intern(&name);
 
         let mut class = ClassDefinition::new_without_source(
+            self.package_id,
             self.module_id,
             Some(self.file_id),
             Some(self.ast.pos),
@@ -3053,8 +3055,9 @@ impl<'a> TypeCheck<'a> {
         params_with_ctxt.append(&mut params);
 
         let mut lambda = FctDefinition::new(
-            self.file_id,
+            self.package_id,
             self.module_id,
+            self.file_id,
             node,
             FctParent::Function(parent_fct_id),
         );
@@ -3075,8 +3078,9 @@ impl<'a> TypeCheck<'a> {
                 let mut typeck = TypeCheck {
                     sa: self.sa,
                     fct: &*lambda,
-                    file_id: self.fct.file_id,
+                    package_id: self.fct.package_id,
                     module_id: self.fct.module_id,
+                    file_id: self.fct.file_id,
                     analysis: &mut analysis,
                     ast: &node,
                     symtable: &mut self.symtable,

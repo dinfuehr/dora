@@ -284,6 +284,21 @@ impl SemAnalysis {
         self.program_module_id = Some(module_id);
     }
 
+    pub fn set_stdlib_package_id(&mut self, package_id: PackageDefinitionId) {
+        assert!(self.stdlib_package_id.is_none());
+        self.stdlib_package_id = Some(package_id);
+    }
+
+    pub fn set_program_package_id(&mut self, package_id: PackageDefinitionId) {
+        assert!(self.program_package_id.is_none());
+        self.program_package_id = Some(package_id);
+    }
+
+    pub fn set_boots_package_id(&mut self, package_id: PackageDefinitionId) {
+        assert!(self.boots_package_id.is_none());
+        self.boots_package_id = Some(package_id);
+    }
+
     pub fn add_package(
         &mut self,
         package_name: PackageName,

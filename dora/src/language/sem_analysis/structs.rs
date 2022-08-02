@@ -8,8 +8,8 @@ use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
     extension_matches, impl_matches, module_path, Candidate, ExtensionDefinitionId,
-    ImplDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId, TypeParamDefinition,
-    TypeParamId,
+    ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId, SemAnalysis, SourceFileId,
+    TypeParamDefinition, TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;
@@ -42,10 +42,11 @@ impl Id for StructDefinition {
 #[derive(Debug)]
 pub struct StructDefinition {
     pub id: Option<StructDefinitionId>,
+    pub package_id: PackageDefinitionId,
+    pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
     pub ast: Arc<ast::Struct>,
     pub primitive_ty: Option<SourceType>,
-    pub module_id: ModuleDefinitionId,
     pub type_params: Option<TypeParamDefinition>,
     pub is_pub: bool,
     pub internal: bool,
@@ -60,15 +61,17 @@ pub struct StructDefinition {
 
 impl StructDefinition {
     pub fn new(
-        file_id: SourceFileId,
+        package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
+        file_id: SourceFileId,
         node: &Arc<ast::Struct>,
     ) -> StructDefinition {
         StructDefinition {
             id: None,
+            package_id,
+            module_id,
             file_id,
             ast: node.clone(),
-            module_id,
             primitive_ty: None,
             is_pub: node.is_pub,
             pos: node.pos,

@@ -6,7 +6,7 @@ use std::ops::Index;
 use std::sync::Arc;
 
 use crate::language::sem_analysis::{
-    FctDefinitionId, ModuleDefinitionId, SourceFileId, TypeParamDefinition,
+    FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, SourceFileId, TypeParamDefinition,
 };
 use crate::language::ty::SourceType;
 use crate::utils::Id;
@@ -44,9 +44,10 @@ impl Id for ExtensionDefinition {
 #[derive(Debug)]
 pub struct ExtensionDefinition {
     pub id: Option<ExtensionDefinitionId>,
+    pub package_id: PackageDefinitionId,
+    pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
     pub ast: Arc<ast::Impl>,
-    pub module_id: ModuleDefinitionId,
     pub pos: Position,
     pub type_params: Option<TypeParamDefinition>,
     pub ty: SourceType,
@@ -57,14 +58,16 @@ pub struct ExtensionDefinition {
 
 impl ExtensionDefinition {
     pub fn new(
-        file_id: SourceFileId,
+        package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
+        file_id: SourceFileId,
         node: &Arc<ast::Impl>,
     ) -> ExtensionDefinition {
         ExtensionDefinition {
             id: None,
-            file_id,
+            package_id,
             module_id,
+            file_id,
             ast: node.clone(),
             pos: node.pos,
             type_params: None,

@@ -248,6 +248,7 @@ pub fn create_lambda_class(sa: &mut SemAnalysis) {
     }];
 
     let class = ClassDefinition::new_without_source(
+        sa.stdlib_package_id(),
         sa.stdlib_module_id(),
         None,
         None,

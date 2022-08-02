@@ -10,8 +10,8 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
-    extension_matches_ty, FctDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId,
-    TraitDefinitionId, TypeParamDefinition,
+    extension_matches_ty, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, SemAnalysis,
+    SourceFileId, TraitDefinitionId, TypeParamDefinition,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;
@@ -38,9 +38,10 @@ impl Id for ImplDefinition {
 #[derive(Debug)]
 pub struct ImplDefinition {
     pub id: Option<ImplDefinitionId>,
+    pub package_id: PackageDefinitionId,
+    pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
     pub ast: Arc<ast::Impl>,
-    pub module_id: ModuleDefinitionId,
     pub pos: Position,
     pub type_params: Option<TypeParamDefinition>,
     pub trait_ty: SourceType,
@@ -53,15 +54,17 @@ pub struct ImplDefinition {
 
 impl ImplDefinition {
     pub fn new(
-        file_id: SourceFileId,
+        package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
+        file_id: SourceFileId,
         node: &Arc<ast::Impl>,
     ) -> ImplDefinition {
         ImplDefinition {
             id: None,
+            package_id,
+            module_id,
             file_id,
             ast: node.clone(),
-            module_id,
             type_params: None,
             pos: node.pos,
             trait_ty: SourceType::Error,

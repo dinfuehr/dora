@@ -164,6 +164,7 @@ pub enum ErrorMessage {
     FileNoAccess(PathBuf),
     FileDoesNotExist(PathBuf),
     Custom(String),
+    MissingFileArgument,
 }
 
 impl ErrorMessage {
@@ -590,6 +591,7 @@ impl ErrorMessage {
                 format!("file `{}` does not exist.", path.display())
             }
             ErrorMessage::Custom(ref msg) => msg.clone(),
+            ErrorMessage::MissingFileArgument => format!("no file argument given."),
         }
     }
 }

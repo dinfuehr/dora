@@ -10,7 +10,7 @@ use crate::bytecode::{BytecodeFunction, BytecodeType};
 use crate::gc::Address;
 use crate::language::sem_analysis::{
     module_path, AnalysisData, ExtensionDefinitionId, ImplDefinitionId, ModuleDefinitionId,
-    SemAnalysis, SourceFileId, TraitDefinitionId, TypeParamDefinition,
+    PackageDefinitionId, SemAnalysis, SourceFileId, TraitDefinitionId, TypeParamDefinition,
 };
 use crate::language::ty::SourceType;
 use crate::utils::GrowableVec;
@@ -38,10 +38,12 @@ impl GrowableVec<RwLock<FctDefinition>> {
 
 pub struct FctDefinition {
     pub id: Option<FctDefinitionId>,
+    pub package_id: PackageDefinitionId,
+    pub module_id: ModuleDefinitionId,
+    pub file_id: SourceFileId,
     pub ast: Arc<ast::Function>,
     pub pos: Position,
     pub name: Name,
-    pub module_id: ModuleDefinitionId,
     pub parent: FctParent,
     pub is_optimize_immediately: bool,
     pub is_static: bool,
@@ -52,7 +54,6 @@ pub struct FctDefinition {
     pub param_types: Vec<SourceType>,
     pub return_type: SourceType,
     pub is_constructor: bool,
-    pub file_id: SourceFileId,
     pub is_variadic: bool,
 
     pub vtable_index: Option<u32>,
@@ -69,18 +70,20 @@ pub struct FctDefinition {
 
 impl FctDefinition {
     pub fn new(
-        file_id: SourceFileId,
+        package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
+        file_id: SourceFileId,
         ast: &Arc<ast::Function>,
         parent: FctParent,
     ) -> FctDefinition {
         FctDefinition {
             id: None,
+            package_id,
+            module_id,
             file_id,
             pos: ast.pos,
             ast: ast.clone(),
             name: ast.name,
-            module_id,
             param_types: Vec::new(),
             return_type: SourceType::Error,
             parent,

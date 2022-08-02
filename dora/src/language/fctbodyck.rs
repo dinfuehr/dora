@@ -55,8 +55,9 @@ fn check_function(sa: &mut SemAnalysis, id: FctDefinitionId) {
         let mut typeck = TypeCheck {
             sa,
             fct: &fct,
-            file_id: fct.file_id,
+            package_id: fct.package_id,
             module_id: fct.module_id,
+            file_id: fct.file_id,
             analysis: &mut analysis,
             ast: &fct.ast,
             symtable: &mut symtable,

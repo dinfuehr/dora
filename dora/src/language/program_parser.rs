@@ -63,32 +63,33 @@ impl<'a> ProgramParser<'a> {
         let stdlib_name = self.sa.interner.intern("std");
         let (package_id, module_id) = self.sa.add_package(PackageName::Stdlib, Some(stdlib_name));
         self.sa.set_stdlib_module_id(module_id);
+        self.sa.set_stdlib_package_id(package_id);
 
         let stdlib_dir = self.sa.args.flag_stdlib.clone();
 
         if let Some(stdlib) = stdlib_dir {
-            self.add_file_from_filesystem(PathBuf::from(stdlib), package_id, module_id);
+            self.add_file_from_filesystem(package_id, module_id, PathBuf::from(stdlib));
         } else {
             let stdlib_file = format!("stdlib{}stdlib.dora", std::path::MAIN_SEPARATOR);
             let file_path = PathBuf::from(stdlib_file);
             let module_path = PathBuf::from(file_path.parent().expect("parent missing"));
-            self.add_bundled_file(file_path, package_id, module_id, module_path);
+            self.add_bundled_file(package_id, module_id, file_path, module_path);
         }
     }
 
     fn add_bundled_file(
         &mut self,
-        file_path: PathBuf,
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
+        file_path: PathBuf,
         module_path: PathBuf,
     ) {
         let content = self.get_bundled_file(&file_path);
         self.add_file_from_string(
-            file_path,
-            content.into(),
             package_id,
             module_id,
+            file_path,
+            content.into(),
             Some(module_path),
             FileLookup::Bundle,
         );
@@ -116,31 +117,38 @@ impl<'a> ProgramParser<'a> {
             let boots_name = self.sa.interner.intern("boots");
             let (package_id, module_id) = self.sa.add_package(PackageName::Boots, Some(boots_name));
             self.sa.set_boots_module_id(module_id);
-            self.add_file_from_filesystem(PathBuf::from(boots_path), package_id, module_id)
+            self.sa.set_boots_package_id(package_id);
+            self.add_file_from_filesystem(package_id, module_id, PathBuf::from(boots_path));
         }
     }
 
     fn add_program_files(&mut self) {
         let (package_id, module_id) = self.sa.add_package(PackageName::Program, None);
         self.sa.set_program_module_id(module_id);
+        self.sa.set_program_package_id(package_id);
 
         if self.sa.args.arg_file.is_none() {
             if let Some(content) = self.sa.test_file_as_string {
                 self.add_file_from_string(
-                    PathBuf::from("<<code>>"),
-                    content.to_string(),
                     package_id,
                     module_id,
+                    PathBuf::from("<<code>>"),
+                    content.to_string(),
                     None,
                     FileLookup::FileSystem,
                 );
+            } else {
+                self.sa
+                    .diag
+                    .lock()
+                    .report_without_location(ErrorMessage::MissingFileArgument);
             }
         } else {
             let arg_file = self.sa.args.arg_file.as_ref().expect("argument expected");
             let arg_file = arg_file.clone();
             let path = PathBuf::from(&arg_file);
 
-            self.add_file_from_filesystem(path, package_id, module_id);
+            self.add_file_from_filesystem(package_id, module_id, path);
         }
     }
 
@@ -152,15 +160,15 @@ impl<'a> ProgramParser<'a> {
             let package_name = PackageName::External(name);
             let (package_id, module_id) = self.sa.add_package(package_name, Some(iname));
 
-            self.add_file_from_filesystem(path, package_id, module_id);
+            self.add_file_from_filesystem(package_id, module_id, path);
         }
     }
 
     fn scan_file(
         &mut self,
-        file_id: SourceFileId,
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
+        file_id: SourceFileId,
         module_path: Option<PathBuf>,
         file_lookup: FileLookup,
         ast: &ast::File,
@@ -212,9 +220,9 @@ impl<'a> ProgramParser<'a> {
                 module_path.push(&name);
 
                 self.add_file(
-                    file_path,
                     package_id,
                     module_id,
+                    file_path,
                     Some(module_path),
                     Some((file_id, node.pos)),
                     FileLookup::FileSystem,
@@ -230,16 +238,16 @@ impl<'a> ProgramParser<'a> {
                 let mut module_path = module_path;
                 module_path.push(&name);
 
-                self.add_bundled_file(file_path, package_id, module_id, module_path);
+                self.add_bundled_file(package_id, module_id, file_path, module_path);
             }
         }
     }
 
     fn add_file(
         &mut self,
-        path: PathBuf,
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
+        path: PathBuf,
         module_path: Option<PathBuf>,
         error_location: Option<(SourceFileId, Position)>,
         file_lookup: FileLookup,
@@ -249,10 +257,10 @@ impl<'a> ProgramParser<'a> {
         match result {
             Ok(content) => {
                 self.add_file_from_string(
-                    path,
-                    content,
                     package_id,
                     module_id,
+                    path,
+                    content,
                     module_path,
                     file_lookup,
                 );
@@ -276,17 +284,17 @@ impl<'a> ProgramParser<'a> {
 
     fn add_file_from_filesystem(
         &mut self,
-        path: PathBuf,
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
+        path: PathBuf,
     ) {
         if path.is_file() {
             let file_path = PathBuf::from(path);
             let module_path = PathBuf::from(file_path.parent().expect("parent missing"));
             self.add_file(
-                file_path,
                 package_id,
                 module_id,
+                file_path,
                 Some(module_path),
                 None,
                 FileLookup::FileSystem,
@@ -301,10 +309,10 @@ impl<'a> ProgramParser<'a> {
 
     fn add_file_from_string(
         &mut self,
-        file_path: PathBuf,
-        content: String,
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
+        file_path: PathBuf,
+        content: String,
         module_path: Option<PathBuf>,
         file_lookup: FileLookup,
     ) {
@@ -321,25 +329,19 @@ impl<'a> ProgramParser<'a> {
         file_lookup: FileLookup,
         module_path: Option<PathBuf>,
     ) {
-        let package_id;
-        let module_id;
-        let content;
-
-        {
-            let file = self.sa.source_file(file_id);
-            package_id = file.package_id;
-            module_id = file.module_id;
-            content = file.content.clone();
-        }
+        let file = self.sa.source_file(file_id);
+        let package_id = file.package_id;
+        let module_id = file.module_id;
+        let content = file.content.clone();
 
         let parser = Parser::from_shared_string(content, &mut self.sa.interner);
 
         match parser.parse() {
             Ok(ast) => {
                 self.scan_file(
-                    file_id,
                     package_id,
                     module_id,
+                    file_id,
                     module_path,
                     file_lookup,
                     &ast,
@@ -399,7 +401,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_trait(&mut self, node: &Arc<ast::Trait>) {
-        let trait_ = TraitDefinition::new(self.file_id, self.module_id, node);
+        let trait_ = TraitDefinition::new(self.package_id, self.module_id, self.file_id, node);
         let trait_id = self.sa.traits.push(trait_);
 
         find_methods_in_trait(self.sa, trait_id, node);
@@ -411,12 +413,12 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_use(&mut self, node: &Arc<ast::Use>) {
-        let use_def = UseDefinition::new(self.file_id, self.module_id, node);
+        let use_def = UseDefinition::new(self.package_id, self.module_id, self.file_id, node);
         self.sa.uses.push(use_def);
     }
 
     fn visit_global(&mut self, node: &Arc<ast::Global>) {
-        let global = GlobalDefinition::new(self.file_id, self.module_id, node);
+        let global = GlobalDefinition::new(self.package_id, self.module_id, self.file_id, node);
         let global_id = self.sa.globals.push(global);
 
         find_methods_in_global(self.sa, global_id, node);
@@ -429,12 +431,13 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
     fn visit_impl(&mut self, node: &Arc<ast::Impl>) {
         if node.trait_type.is_some() {
-            let impl_ = ImplDefinition::new(self.file_id, self.module_id, node);
+            let impl_ = ImplDefinition::new(self.package_id, self.module_id, self.file_id, node);
             let impl_id = self.sa.impls.push(impl_);
 
             find_methods_in_impl(self.sa, impl_id, node);
         } else {
-            let extension = ExtensionDefinition::new(self.file_id, self.module_id, node);
+            let extension =
+                ExtensionDefinition::new(self.package_id, self.module_id, self.file_id, node);
             let extension_id = self.sa.extensions.push(extension);
 
             find_methods_in_extension(self.sa, extension_id, node);
@@ -442,7 +445,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_const(&mut self, node: &Arc<ast::Const>) {
-        let const_ = ConstDefinition::new(self.file_id, self.module_id, node);
+        let const_ = ConstDefinition::new(self.package_id, self.module_id, self.file_id, node);
         let id = self.sa.consts.push(const_);
 
         let sym = Sym::Const(id);
@@ -452,7 +455,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_class(&mut self, node: &Arc<ast::Class>) {
-        let class = ClassDefinition::new(self.file_id, node, self.module_id);
+        let class = ClassDefinition::new(self.package_id, self.module_id, self.file_id, node);
         let class_id = self.sa.classes.push(class);
 
         let sym = Sym::Class(class_id);
@@ -463,7 +466,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_struct(&mut self, node: &Arc<ast::Struct>) {
-        let struct_ = StructDefinition::new(self.file_id, self.module_id, node);
+        let struct_ = StructDefinition::new(self.package_id, self.module_id, self.file_id, node);
         let id = self.sa.structs.push(struct_);
 
         let sym = Sym::Struct(id);
@@ -473,8 +476,13 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_annotation(&mut self, node: &Arc<ast::Annotation>) {
-        let annotation =
-            AnnotationDefinition::new(self.file_id, node.pos, node.name, self.module_id);
+        let annotation = AnnotationDefinition::new(
+            self.package_id,
+            self.module_id,
+            self.file_id,
+            node.pos,
+            node.name,
+        );
         let id = self.sa.annotations.push(annotation);
 
         let sym = Sym::Annotation(id);
@@ -485,7 +493,13 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_fct(&mut self, node: &Arc<ast::Function>) {
-        let fct = FctDefinition::new(self.file_id, self.module_id, node, FctParent::None);
+        let fct = FctDefinition::new(
+            self.package_id,
+            self.module_id,
+            self.file_id,
+            node,
+            FctParent::None,
+        );
         let fctid = self.sa.add_fct(fct);
         let sym = Sym::Fct(fctid);
 
@@ -495,7 +509,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
     }
 
     fn visit_enum(&mut self, node: &Arc<ast::Enum>) {
-        let enum_ = EnumDefinition::new(self.file_id, self.module_id, node);
+        let enum_ = EnumDefinition::new(self.package_id, self.module_id, self.file_id, node);
         let id = self.sa.enums.push(enum_);
 
         let sym = Sym::Enum(id);
@@ -515,8 +529,9 @@ fn find_methods_in_trait(
 
     for method_node in &node.methods {
         let fct = FctDefinition::new(
-            trait_.file_id,
+            trait_.package_id,
             trait_.module_id,
+            trait_.file_id,
             method_node,
             FctParent::Trait(trait_id),
         );
@@ -532,8 +547,9 @@ fn find_methods_in_impl(sa: &mut SemAnalysis, impl_id: ImplDefinitionId, node: &
 
     for method_node in &node.methods {
         let fct = FctDefinition::new(
-            impl_.file_id,
+            impl_.package_id,
             impl_.module_id,
+            impl_.file_id,
             method_node,
             FctParent::Impl(impl_id),
         );
@@ -553,8 +569,9 @@ fn find_methods_in_extension(
 
     for method_node in &node.methods {
         let fct = FctDefinition::new(
-            extension.file_id,
+            extension.package_id,
             extension.module_id,
+            extension.file_id,
             method_node,
             FctParent::Extension(extension_id),
         );
@@ -574,8 +591,9 @@ fn find_methods_in_global(
         let mut global = global.write();
 
         let fct = FctDefinition::new(
-            global.file_id,
+            global.package_id,
             global.module_id,
+            global.file_id,
             initializer,
             FctParent::None,
         );

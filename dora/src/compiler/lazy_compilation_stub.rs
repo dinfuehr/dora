@@ -343,7 +343,13 @@ fn ensure_thunk(
 
     let callee_id = find_trait_impl(vm, fct_id, trait_object_ty.clone(), actual_ty.clone());
 
-    let mut thunk_fct = FctDefinition::new(fct.file_id, fct.module_id, &fct.ast, FctParent::None);
+    let mut thunk_fct = FctDefinition::new(
+        fct.package_id,
+        fct.module_id,
+        fct.file_id,
+        &fct.ast,
+        FctParent::None,
+    );
     thunk_fct.type_params = fct.type_params.clone();
 
     let tp_name = vm.interner.intern("new_self");

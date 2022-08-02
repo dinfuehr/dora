@@ -4,7 +4,9 @@ use dora_parser::ast::{AnnotationUsages, Modifier};
 use dora_parser::interner::Name;
 use dora_parser::Position;
 
-use crate::language::sem_analysis::{ModuleDefinitionId, SemAnalysis, SourceFileId};
+use crate::language::sem_analysis::{
+    ModuleDefinitionId, PackageDefinitionId, SemAnalysis, SourceFileId,
+};
 use crate::language::ty::SourceType;
 use crate::utils::Id;
 
@@ -36,27 +38,30 @@ impl Id for AnnotationDefinition {
 #[derive(Debug)]
 pub struct AnnotationDefinition {
     pub id: Option<AnnotationDefinitionId>,
+    pub package_id: PackageDefinitionId,
+    pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
     pub pos: Position,
     pub name: Name,
-    pub module_id: ModuleDefinitionId,
     pub ty: SourceType,
     pub internal_annotation: Option<Modifier>,
 }
 
 impl AnnotationDefinition {
     pub fn new(
+        package_id: PackageDefinitionId,
+        module_id: ModuleDefinitionId,
         file_id: SourceFileId,
         pos: Position,
         name: Name,
-        module_id: ModuleDefinitionId,
     ) -> AnnotationDefinition {
         AnnotationDefinition {
             id: None,
+            package_id,
+            module_id,
             file_id,
             pos,
             name,
-            module_id,
             ty: SourceType::Error,
             internal_annotation: None,
         }

@@ -30,13 +30,6 @@ pub fn start() -> i32 {
         return 0;
     }
 
-    if args.arg_file.is_none() {
-        cmd::print_help();
-        println!();
-        println!("missing file argument.");
-        return 1;
-    }
-
     let mut sa = SemAnalysis::new(args);
 
     let success = language::check(&mut sa);

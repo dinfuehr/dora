@@ -7,7 +7,7 @@ use dora_parser::Position;
 
 use crate::language::sem_analysis::{
     extension_matches, impl_matches, module_path, ExtensionDefinitionId, FctDefinitionId,
-    ImplDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId,
+    ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId, SemAnalysis, SourceFileId,
 };
 use crate::language::specialize::replace_type_param;
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -45,9 +45,10 @@ impl Id for ClassDefinition {
 #[derive(Debug)]
 pub struct ClassDefinition {
     pub id: Option<ClassDefinitionId>,
+    pub package_id: PackageDefinitionId,
+    pub module_id: ModuleDefinitionId,
     pub file_id: Option<SourceFileId>,
     pub ast: Option<Arc<ast::Class>>,
-    pub module_id: ModuleDefinitionId,
     pub pos: Option<Position>,
     pub name: Name,
     pub ty: Option<SourceType>,
@@ -69,15 +70,17 @@ pub struct ClassDefinition {
 
 impl ClassDefinition {
     pub fn new(
+        package_id: PackageDefinitionId,
+        module_id: ModuleDefinitionId,
         file_id: SourceFileId,
         ast: &Arc<ast::Class>,
-        module_id: ModuleDefinitionId,
     ) -> ClassDefinition {
         ClassDefinition {
             id: None,
+            package_id,
+            module_id,
             file_id: Some(file_id),
             ast: Some(ast.clone()),
-            module_id,
             pos: Some(ast.pos),
             name: ast.name,
             ty: None,
@@ -98,6 +101,7 @@ impl ClassDefinition {
     }
 
     pub fn new_without_source(
+        package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: Option<SourceFileId>,
         pos: Option<Position>,
@@ -107,9 +111,10 @@ impl ClassDefinition {
     ) -> ClassDefinition {
         ClassDefinition {
             id: None,
+            package_id,
+            module_id,
             file_id,
             ast: None,
-            module_id,
             pos,
             name,
             ty: None,

@@ -8,7 +8,8 @@ use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
     extension_matches, impl_matches, module_path, Candidate, ExtensionDefinitionId,
-    ImplDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId, TypeParamDefinition,
+    ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId, SemAnalysis, SourceFileId,
+    TypeParamDefinition,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;
@@ -41,8 +42,9 @@ impl Id for EnumDefinition {
 #[derive(Debug)]
 pub struct EnumDefinition {
     pub id: Option<EnumDefinitionId>,
-    pub file_id: SourceFileId,
+    pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
+    pub file_id: SourceFileId,
     pub ast: Arc<ast::Enum>,
     pub pos: Position,
     pub name: Name,
@@ -57,14 +59,16 @@ pub struct EnumDefinition {
 
 impl EnumDefinition {
     pub fn new(
-        file_id: SourceFileId,
+        package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
+        file_id: SourceFileId,
         node: &Arc<ast::Enum>,
     ) -> EnumDefinition {
         EnumDefinition {
             id: None,
-            file_id: file_id,
+            package_id,
             module_id,
+            file_id,
             ast: node.clone(),
             pos: node.pos,
             name: node.name,
