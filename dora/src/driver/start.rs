@@ -77,7 +77,7 @@ pub fn start() -> i32 {
     let mut timer = Timer::new(vm.args.flag_gc_stats);
 
     let exit_code = if vm.args.command.is_test() {
-        run_tests(&vm, vm.program_module_id)
+        run_tests(&vm, vm.program_module_id())
     } else {
         run_main(&vm, main_fct_id.expect("main missing"))
     };
@@ -206,7 +206,7 @@ fn find_main(sa: &SemAnalysis) -> Option<FctDefinitionId> {
     }
 
     let name = sa.interner.intern("main");
-    let fctid = if let Some(id) = sa.module_table(sa.program_module_id).read().get_fct(name) {
+    let fctid = if let Some(id) = sa.module_table(sa.program_module_id()).read().get_fct(name) {
         id
     } else {
         return None;

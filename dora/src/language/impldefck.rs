@@ -3,7 +3,7 @@ use crate::language::extensiondefck::check_for_unconstrained_type_params;
 use crate::language::sem_analysis::{
     FctDefinitionId, ImplDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId,
 };
-use crate::language::sym::{NestedSymTable, Sym};
+use crate::language::sym::{ModuleSymTable, Sym};
 use crate::language::ty::SourceType;
 use crate::language::{self, AllowSelf, TypeParamContext};
 
@@ -29,7 +29,7 @@ pub fn check(sa: &SemAnalysis) {
             impl_id,
             file_id,
             module_id,
-            sym: NestedSymTable::new(sa, module_id),
+            sym: ModuleSymTable::new(sa, module_id),
             ast: &ast,
         };
 
@@ -42,7 +42,7 @@ struct ImplCheck<'x> {
     file_id: SourceFileId,
     impl_id: ImplDefinitionId,
     module_id: ModuleDefinitionId,
-    sym: NestedSymTable,
+    sym: ModuleSymTable,
     ast: &'x ast::Impl,
 }
 

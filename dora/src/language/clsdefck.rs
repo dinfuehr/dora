@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::language::error::msg::ErrorMessage;
 use crate::language::sem_analysis::{ClassDefinitionId, Field, FieldId, SemAnalysis, SourceFileId};
-use crate::language::sym::{NestedSymTable, Sym};
+use crate::language::sym::{ModuleSymTable, Sym};
 use crate::language::ty::SourceType;
 use crate::language::{read_type, AllowSelf, TypeParamContext};
 
@@ -27,7 +27,7 @@ pub fn check(sa: &SemAnalysis) {
             cls_id,
             file_id,
             ast: &ast,
-            sym: NestedSymTable::new(sa, module_id),
+            sym: ModuleSymTable::new(sa, module_id),
             table: HashSet::new(),
         };
 
@@ -40,7 +40,7 @@ struct ClsDefCheck<'x> {
     cls_id: ClassDefinitionId,
     file_id: SourceFileId,
     ast: &'x ast::Class,
-    sym: NestedSymTable,
+    sym: ModuleSymTable,
     table: HashSet<Name>,
 }
 

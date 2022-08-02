@@ -1,8 +1,8 @@
 use crate::gc::Address;
 use crate::language::sem_analysis::{
     AnnotationDefinitionId, ClassDefinition, ClassDefinitionId, EnumDefinitionId,
-    ExtensionDefinitionId, FctDefinitionId, Field, FieldId, Intrinsic, ModuleDefinitionId,
-    SemAnalysis, StructDefinitionId, TraitDefinitionId,
+    ExtensionDefinitionId, FctDefinitionId, Field, FieldId, Intrinsic, ModuleDefinition,
+    ModuleDefinitionId, SemAnalysis, StructDefinitionId, TraitDefinitionId,
 };
 use crate::language::sym::Sym;
 use crate::language::ty::SourceType;
@@ -14,117 +14,121 @@ use dora_parser::ast::Modifier;
 use dora_parser::interner::Name;
 
 pub fn resolve_internal_annotations(sa: &mut SemAnalysis) {
-    let stdlib = sa.stdlib_module_id;
+    let stdlib_id = sa.stdlib_module_id();
+
     sa.known.annotations.internal = Some(internal_annotation(
         sa,
-        stdlib,
+        stdlib_id,
         "annotations::internal",
         Modifier::Internal,
     ));
     sa.known.annotations.pub_ = Some(internal_annotation(
         sa,
-        stdlib,
+        stdlib_id,
         "annotations::pub",
         Modifier::Pub,
     ));
     sa.known.annotations.static_ = Some(internal_annotation(
         sa,
-        stdlib,
+        stdlib_id,
         "annotations::static",
         Modifier::Static,
     ));
 
     sa.known.annotations.test = Some(internal_annotation(
         sa,
-        stdlib,
+        stdlib_id,
         "annotations::Test",
         Modifier::Test,
     ));
 
     sa.known.annotations.optimize_immediately = Some(internal_annotation(
         sa,
-        stdlib,
+        stdlib_id,
         "annotations::optimizeImmediately",
         Modifier::OptimizeImmediately,
     ));
 }
 
 pub fn resolve_internal_classes(sa: &mut SemAnalysis) {
-    let stdlib = sa.stdlib_module_id;
+    let stdlib_id = sa.stdlib_module_id();
+
     sa.known.structs.bool = Some(internal_struct(
         sa,
-        stdlib,
+        stdlib_id,
         "primitives::Bool",
         Some(SourceType::Bool),
     ));
 
     sa.known.structs.uint8 = Some(internal_struct(
         sa,
-        stdlib,
+        stdlib_id,
         "primitives::UInt8",
         Some(SourceType::UInt8),
     ));
     sa.known.structs.char = Some(internal_struct(
         sa,
-        stdlib,
+        stdlib_id,
         "primitives::Char",
         Some(SourceType::Char),
     ));
     sa.known.structs.int32 = Some(internal_struct(
         sa,
-        stdlib,
+        stdlib_id,
         "primitives::Int32",
         Some(SourceType::Int32),
     ));
     sa.known.structs.int64 = Some(internal_struct(
         sa,
-        stdlib,
+        stdlib_id,
         "primitives::Int64",
         Some(SourceType::Int64),
     ));
 
     sa.known.structs.float32 = Some(internal_struct(
         sa,
-        stdlib,
+        stdlib_id,
         "primitives::Float32",
         Some(SourceType::Float32),
     ));
     sa.known.structs.float64 = Some(internal_struct(
         sa,
-        stdlib,
+        stdlib_id,
         "primitives::Float64",
         Some(SourceType::Float64),
     ));
 
-    sa.known.classes.string = Some(internal_class(sa, stdlib, "string::String"));
+    sa.known.classes.string = Some(internal_class(sa, stdlib_id, "string::String"));
 
-    sa.known.classes.string_buffer = Some(find_class(sa, stdlib, "string::StringBuffer"));
+    sa.known.classes.string_buffer = Some(find_class(sa, stdlib_id, "string::StringBuffer"));
 
-    sa.known.classes.atomic_int32 = Some(find_class(sa, stdlib, "thread::AtomicInt32"));
-    sa.known.classes.atomic_int64 = Some(find_class(sa, stdlib, "thread::AtomicInt64"));
+    sa.known.classes.atomic_int32 = Some(find_class(sa, stdlib_id, "thread::AtomicInt32"));
+    sa.known.classes.atomic_int64 = Some(find_class(sa, stdlib_id, "thread::AtomicInt64"));
 
     let cls = sa.classes.idx(sa.known.classes.string());
     let mut cls = cls.write();
     cls.is_str = true;
 
-    sa.known.classes.array = Some(internal_class(sa, stdlib, "collections::Array"));
+    sa.known.classes.array = Some(internal_class(sa, stdlib_id, "collections::Array"));
 
     let cls = sa.classes.idx(sa.known.classes.array());
     let mut cls = cls.write();
     cls.is_array = true;
 
-    sa.known.classes.stacktrace = Some(find_class(sa, stdlib, "Stacktrace"));
-    sa.known.classes.stacktrace_element = Some(find_class(sa, stdlib, "StacktraceElement"));
-    sa.known.classes.thread = Some(find_class(sa, stdlib, "thread::Thread"));
+    sa.known.classes.stacktrace = Some(find_class(sa, stdlib_id, "Stacktrace"));
+    sa.known.classes.stacktrace_element = Some(find_class(sa, stdlib_id, "StacktraceElement"));
+    sa.known.classes.thread = Some(find_class(sa, stdlib_id, "thread::Thread"));
 
-    sa.known.traits.stringable = Some(find_trait(sa, stdlib, "string::Stringable"));
-    sa.known.traits.zero = Some(find_trait(sa, stdlib, "traits::Zero"));
-    sa.known.traits.iterator = Some(find_trait(sa, stdlib, "traits::Iterator"));
+    sa.known.traits.stringable = Some(find_trait(sa, stdlib_id, "string::Stringable"));
+    sa.known.traits.zero = Some(find_trait(sa, stdlib_id, "traits::Zero"));
+    sa.known.traits.iterator = Some(find_trait(sa, stdlib_id, "traits::Iterator"));
 
-    sa.known.enums.option = Some(find_enum(sa, stdlib, "primitives::Option"));
+    sa.known.enums.option = Some(find_enum(sa, stdlib_id, "primitives::Option"));
 }
 
 pub fn fill_prelude(sa: &mut SemAnalysis) {
+    let stdlib_id = sa.stdlib_module_id();
+
     let symbols = [
         "primitives::Bool",
         "primitives::UInt8",
@@ -145,22 +149,26 @@ pub fn fill_prelude(sa: &mut SemAnalysis) {
         "primitives::Result",
     ];
 
+    let module = ModuleDefinition::predefined(None);
+    let module_id = sa.modules.push(module);
+    sa.set_prelude_module_id(module_id);
+
     let prelude = sa.prelude_module();
     let mut prelude = prelude.write();
 
     for name in &symbols {
-        let sym = resolve_name(sa, name, sa.stdlib_module_id);
+        let sym = resolve_name(sa, name, stdlib_id);
         let name = final_path_name(sa, name);
         let old_sym = prelude.insert(name, sym);
         assert!(old_sym.is_none());
     }
 
     let stdlib_name = sa.interner.intern("std");
-    prelude.insert(stdlib_name, Sym::Module(sa.stdlib_module_id));
+    prelude.insert(stdlib_name, Sym::Module(stdlib_id));
 
     {
         // include None and Some from Option
-        let enum_id = resolve_name(sa, "primitives::Option", sa.stdlib_module_id)
+        let enum_id = resolve_name(sa, "primitives::Option", stdlib_id)
             .to_enum()
             .expect("enum expected");
 
@@ -175,7 +183,7 @@ pub fn fill_prelude(sa: &mut SemAnalysis) {
 
     {
         // include Ok and Err from Result
-        let enum_id = resolve_name(sa, "primitives::Result", sa.stdlib_module_id)
+        let enum_id = resolve_name(sa, "primitives::Result", stdlib_id)
             .to_enum()
             .expect("enum expected");
 
@@ -195,33 +203,35 @@ fn final_path_name(sa: &mut SemAnalysis, path: &str) -> Name {
 }
 
 pub fn discover_known_methods(sa: &mut SemAnalysis) {
-    let stdlib = sa.stdlib_module_id;
+    let stdlib_id = sa.stdlib_module_id();
+
     sa.known.functions.string_buffer_empty = Some(find_static_method(
         sa,
-        stdlib,
+        stdlib_id,
         "string::StringBuffer",
         "empty",
     ));
     sa.known.functions.string_buffer_append = Some(find_instance_method(
         sa,
-        stdlib,
+        stdlib_id,
         "string::StringBuffer",
         "append",
     ));
     sa.known.functions.string_buffer_to_string = Some(find_instance_method(
         sa,
-        stdlib,
+        stdlib_id,
         "string::StringBuffer",
         "toString",
     ));
     sa.known.functions.stacktrace_retrieve = Some(find_instance_method(
         sa,
-        stdlib,
+        stdlib_id,
         "Stacktrace",
         "retrieveStacktrace",
     ));
+
     if sa.args.flag_boots.is_some() {
-        sa.known.functions.compile = Some(find_function(sa, sa.boots_module_id, "compile"));
+        sa.known.functions.compile = Some(find_function(sa, sa.boots_module_id(), "compile"));
     }
 }
 
@@ -238,7 +248,7 @@ pub fn create_lambda_class(sa: &mut SemAnalysis) {
     }];
 
     let class = ClassDefinition::new_without_source(
-        sa.stdlib_module_id,
+        sa.stdlib_module_id(),
         None,
         None,
         class_name,
@@ -291,18 +301,17 @@ fn internal_struct(
 }
 
 fn resolve_name(sa: &SemAnalysis, name: &str, module_id: ModuleDefinitionId) -> Sym {
-    use crate::language::sym::NestedSymTable;
-
     let path = name.split("::");
     let mut sym = Sym::Module(module_id);
 
     for name in path {
         let module_id = sym.to_module().expect("module expected");
-        let symtable = NestedSymTable::new(sa, module_id);
+        let table = sa.modules.idx(module_id).read().table.clone();
+        let table = table.read();
 
         let interned_name = sa.interner.intern(name);
 
-        if let Some(current_sym) = symtable.get(interned_name) {
+        if let Some(current_sym) = table.get(interned_name) {
             sym = current_sym;
         } else {
             let module = sa.modules.idx(module_id);
@@ -348,557 +357,1090 @@ fn find_enum(sa: &mut SemAnalysis, module_id: ModuleDefinitionId, name: &str) ->
 }
 
 pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
-    let stdlib = sa.stdlib_module_id;
-    native_fct(sa, stdlib, "fatalError", stdlib::fatal_error as *const u8);
-    native_fct(sa, stdlib, "abort", stdlib::abort as *const u8);
-    native_fct(sa, stdlib, "exit", stdlib::exit as *const u8);
-    intrinsic_fct(sa, stdlib, "unreachable", Intrinsic::Unreachable);
+    let stdlib_id = sa.stdlib_module_id();
 
-    native_fct(sa, stdlib, "print", stdlib::print as *const u8);
-    native_fct(sa, stdlib, "println", stdlib::println as *const u8);
-    let fid = intrinsic_fct(sa, stdlib, "assert", Intrinsic::Assert);
-    sa.known.functions.assert = Some(fid);
-    intrinsic_fct(sa, stdlib, "debug", Intrinsic::Debug);
-    native_fct(sa, stdlib, "argc", stdlib::argc as *const u8);
-    native_fct(sa, stdlib, "argv", stdlib::argv as *const u8);
-    native_fct(sa, stdlib, "forceCollect", stdlib::gc_collect as *const u8);
-    native_fct(sa, stdlib, "timestamp", stdlib::timestamp as *const u8);
     native_fct(
         sa,
-        stdlib,
+        stdlib_id,
+        "fatalError",
+        stdlib::fatal_error as *const u8,
+    );
+    native_fct(sa, stdlib_id, "abort", stdlib::abort as *const u8);
+    native_fct(sa, stdlib_id, "exit", stdlib::exit as *const u8);
+    intrinsic_fct(sa, stdlib_id, "unreachable", Intrinsic::Unreachable);
+
+    native_fct(sa, stdlib_id, "print", stdlib::print as *const u8);
+    native_fct(sa, stdlib_id, "println", stdlib::println as *const u8);
+    let fid = intrinsic_fct(sa, stdlib_id, "assert", Intrinsic::Assert);
+    sa.known.functions.assert = Some(fid);
+    intrinsic_fct(sa, stdlib_id, "debug", Intrinsic::Debug);
+    native_fct(sa, stdlib_id, "argc", stdlib::argc as *const u8);
+    native_fct(sa, stdlib_id, "argv", stdlib::argv as *const u8);
+    native_fct(
+        sa,
+        stdlib_id,
+        "forceCollect",
+        stdlib::gc_collect as *const u8,
+    );
+    native_fct(sa, stdlib_id, "timestamp", stdlib::timestamp as *const u8);
+    native_fct(
+        sa,
+        stdlib_id,
         "forceMinorCollect",
         stdlib::gc_minor_collect as *const u8,
     );
-    native_fct(sa, stdlib, "sleep", stdlib::sleep as *const u8);
+    native_fct(sa, stdlib_id, "sleep", stdlib::sleep as *const u8);
 
-    intrinsic_fct(sa, stdlib, "unsafeKillRefs", Intrinsic::UnsafeKillRefs);
+    intrinsic_fct(sa, stdlib_id, "unsafeKillRefs", Intrinsic::UnsafeKillRefs);
 
     native_method(
         sa,
-        stdlib,
-        "UInt8",
+        stdlib_id,
+        "primitives::UInt8",
         "toString",
         stdlib::uint8_to_string as *const u8,
     );
 
-    intrinsic_method(sa, stdlib, "UInt8", "toInt64", Intrinsic::ByteToInt64);
-    intrinsic_method(sa, stdlib, "UInt8", "toInt32", Intrinsic::ByteToInt32);
-    intrinsic_method(sa, stdlib, "UInt8", "toChar", Intrinsic::ByteToChar);
-    intrinsic_method(sa, stdlib, "UInt8", "equals", Intrinsic::ByteEq);
-    intrinsic_method(sa, stdlib, "UInt8", "compareTo", Intrinsic::ByteCmp);
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::UInt8",
+        "toInt64",
+        Intrinsic::ByteToInt64,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::UInt8",
+        "toInt32",
+        Intrinsic::ByteToInt32,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::UInt8",
+        "toChar",
+        Intrinsic::ByteToChar,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::UInt8",
+        "equals",
+        Intrinsic::ByteEq,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::UInt8",
+        "compareTo",
+        Intrinsic::ByteCmp,
+    );
 
     native_method(
         sa,
-        stdlib,
-        "Char",
+        stdlib_id,
+        "primitives::Char",
         "toString",
         stdlib::char_to_string as *const u8,
     );
-    intrinsic_method(sa, stdlib, "Char", "toInt64", Intrinsic::CharToInt64);
-    intrinsic_method(sa, stdlib, "Char", "toInt32", Intrinsic::CharToInt32);
-    intrinsic_method(sa, stdlib, "Char", "equals", Intrinsic::CharEq);
-    intrinsic_method(sa, stdlib, "Char", "compareTo", Intrinsic::CharCmp);
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Char",
+        "toInt64",
+        Intrinsic::CharToInt64,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Char",
+        "toInt32",
+        Intrinsic::CharToInt32,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Char",
+        "equals",
+        Intrinsic::CharEq,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Char",
+        "compareTo",
+        Intrinsic::CharCmp,
+    );
 
     native_method(
         sa,
-        stdlib,
-        "Int32",
+        stdlib_id,
+        "primitives::Int32",
         "toString",
         stdlib::int32_to_string as *const u8,
     );
 
-    intrinsic_method(sa, stdlib, "Int32", "toUInt8", Intrinsic::Int32ToByte);
     intrinsic_method(
         sa,
-        stdlib,
-        "Int32",
+        stdlib_id,
+        "primitives::Int32",
+        "toUInt8",
+        Intrinsic::Int32ToByte,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int32",
         "toCharUnchecked",
         Intrinsic::Int32ToChar,
     );
-    intrinsic_method(sa, stdlib, "Int32", "toInt64", Intrinsic::Int32ToInt64);
-
-    intrinsic_method(sa, stdlib, "Int32", "toFloat32", Intrinsic::Int32ToFloat32);
-    intrinsic_method(sa, stdlib, "Int32", "toFloat64", Intrinsic::Int32ToFloat64);
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int32",
+        "toInt64",
+        Intrinsic::Int32ToInt64,
+    );
 
     intrinsic_method(
         sa,
-        stdlib,
+        stdlib_id,
+        "primitives::Int32",
+        "toFloat32",
+        Intrinsic::Int32ToFloat32,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "Int32",
+        "toFloat64",
+        Intrinsic::Int32ToFloat64,
+    );
+
+    intrinsic_method(
+        sa,
+        stdlib_id,
         "Int32",
         "asFloat32",
         Intrinsic::ReinterpretInt32AsFloat32,
     );
 
-    intrinsic_method(sa, stdlib, "Int32", "equals", Intrinsic::Int32Eq);
-    intrinsic_method(sa, stdlib, "Int32", "compareTo", Intrinsic::Int32Cmp);
-
-    intrinsic_method(sa, stdlib, "Int32", "plus", Intrinsic::Int32Add);
-    intrinsic_method(sa, stdlib, "Int32", "minus", Intrinsic::Int32Sub);
-    intrinsic_method(sa, stdlib, "Int32", "times", Intrinsic::Int32Mul);
-    intrinsic_method(sa, stdlib, "Int32", "div", Intrinsic::Int32Div);
-    intrinsic_method(sa, stdlib, "Int32", "modulo", Intrinsic::Int32Mod);
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int32",
+        "equals",
+        Intrinsic::Int32Eq,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int32",
+        "compareTo",
+        Intrinsic::Int32Cmp,
+    );
 
     intrinsic_method(
         sa,
-        stdlib,
-        "Int32",
+        stdlib_id,
+        "primitives::Int32",
+        "plus",
+        Intrinsic::Int32Add,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int32",
+        "minus",
+        Intrinsic::Int32Sub,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int32",
+        "times",
+        Intrinsic::Int32Mul,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int32",
+        "div",
+        Intrinsic::Int32Div,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int32",
+        "modulo",
+        Intrinsic::Int32Mod,
+    );
+
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int32",
         "wrappingAdd",
         Intrinsic::Int32AddUnchecked,
     );
     intrinsic_method(
         sa,
-        stdlib,
-        "Int32",
+        stdlib_id,
+        "primitives::Int32",
         "wrappingSub",
         Intrinsic::Int32SubUnchecked,
     );
     intrinsic_method(
         sa,
-        stdlib,
-        "Int32",
+        stdlib_id,
+        "primitives::Int32",
         "wrappingMul",
         Intrinsic::Int32MulUnchecked,
     );
 
-    intrinsic_method(sa, stdlib, "Int32", "bitwiseOr", Intrinsic::Int32Or);
-    intrinsic_method(sa, stdlib, "Int32", "bitwiseAnd", Intrinsic::Int32And);
-    intrinsic_method(sa, stdlib, "Int32", "bitwiseXor", Intrinsic::Int32Xor);
-
-    intrinsic_method(sa, stdlib, "Int32", "shiftLeft", Intrinsic::Int32Shl);
-    intrinsic_method(sa, stdlib, "Int32", "shiftRight", Intrinsic::Int32Shr);
-    intrinsic_method(sa, stdlib, "Int32", "shiftRightSigned", Intrinsic::Int32Sar);
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int32",
+        "bitwiseOr",
+        Intrinsic::Int32Or,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int32",
+        "bitwiseAnd",
+        Intrinsic::Int32And,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int32",
+        "bitwiseXor",
+        Intrinsic::Int32Xor,
+    );
 
     intrinsic_method(
         sa,
-        stdlib,
-        "Int32",
+        stdlib_id,
+        "primitives::Int32",
+        "shiftLeft",
+        Intrinsic::Int32Shl,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int32",
+        "shiftRight",
+        Intrinsic::Int32Shr,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int32",
+        "shiftRightSigned",
+        Intrinsic::Int32Sar,
+    );
+
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int32",
         "rotateLeft",
         Intrinsic::Int32RotateLeft,
     );
     intrinsic_method(
         sa,
-        stdlib,
-        "Int32",
+        stdlib_id,
+        "primitives::Int32",
         "rotateRight",
         Intrinsic::Int32RotateRight,
     );
 
-    intrinsic_method(sa, stdlib, "Int32", "unaryPlus", Intrinsic::Int32Plus);
-    intrinsic_method(sa, stdlib, "Int32", "unaryMinus", Intrinsic::Int32Neg);
-    intrinsic_method(sa, stdlib, "Int32", "not", Intrinsic::Int32Not);
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int32",
+        "unaryPlus",
+        Intrinsic::Int32Plus,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int32",
+        "unaryMinus",
+        Intrinsic::Int32Neg,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int32",
+        "not",
+        Intrinsic::Int32Not,
+    );
 
     intrinsic_method(
         sa,
-        stdlib,
-        "Int32",
+        stdlib_id,
+        "primitives::Int32",
         "countZeroBits",
         Intrinsic::Int32CountZeroBits,
     );
     intrinsic_method(
         sa,
-        stdlib,
-        "Int32",
+        stdlib_id,
+        "primitives::Int32",
         "countOneBits",
         Intrinsic::Int32CountOneBits,
     );
     intrinsic_method(
         sa,
-        stdlib,
-        "Int32",
+        stdlib_id,
+        "primitives::Int32",
         "countZeroBitsLeading",
         Intrinsic::Int32CountZeroBitsLeading,
     );
     intrinsic_method(
         sa,
-        stdlib,
-        "Int32",
+        stdlib_id,
+        "primitives::Int32",
         "countOneBitsLeading",
         Intrinsic::Int32CountOneBitsLeading,
     );
     intrinsic_method(
         sa,
-        stdlib,
-        "Int32",
+        stdlib_id,
+        "primitives::Int32",
         "countZeroBitsTrailing",
         Intrinsic::Int32CountZeroBitsTrailing,
     );
     intrinsic_method(
         sa,
-        stdlib,
-        "Int32",
+        stdlib_id,
+        "primitives::Int32",
         "countOneBitsTrailing",
         Intrinsic::Int32CountOneBitsTrailing,
     );
 
     native_method(
         sa,
-        stdlib,
-        "Int64",
+        stdlib_id,
+        "primitives::Int64",
         "toString",
         stdlib::int64_to_string as *const u8,
     );
 
     intrinsic_method(
         sa,
-        stdlib,
-        "Int64",
+        stdlib_id,
+        "primitives::Int64",
         "toCharUnchecked",
         Intrinsic::Int64ToChar,
     );
-    intrinsic_method(sa, stdlib, "Int64", "toInt32", Intrinsic::Int64ToInt32);
-    intrinsic_method(sa, stdlib, "Int64", "toUInt8", Intrinsic::Int64ToByte);
-
-    intrinsic_method(sa, stdlib, "Int64", "toFloat32", Intrinsic::Int64ToFloat32);
-    intrinsic_method(sa, stdlib, "Int64", "toFloat64", Intrinsic::Int64ToFloat64);
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int64",
+        "toInt32",
+        Intrinsic::Int64ToInt32,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int64",
+        "toUInt8",
+        Intrinsic::Int64ToByte,
+    );
 
     intrinsic_method(
         sa,
-        stdlib,
-        "Int64",
+        stdlib_id,
+        "primitives::Int64",
+        "toFloat32",
+        Intrinsic::Int64ToFloat32,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int64",
+        "toFloat64",
+        Intrinsic::Int64ToFloat64,
+    );
+
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int64",
         "asFloat64",
         Intrinsic::ReinterpretInt64AsFloat64,
     );
 
-    intrinsic_method(sa, stdlib, "Int64", "equals", Intrinsic::Int64Eq);
-    intrinsic_method(sa, stdlib, "Int64", "compareTo", Intrinsic::Int64Cmp);
-
-    intrinsic_method(sa, stdlib, "Int64", "plus", Intrinsic::Int64Add);
-    intrinsic_method(sa, stdlib, "Int64", "minus", Intrinsic::Int64Sub);
-    intrinsic_method(sa, stdlib, "Int64", "times", Intrinsic::Int64Mul);
-    intrinsic_method(sa, stdlib, "Int64", "div", Intrinsic::Int64Div);
-    intrinsic_method(sa, stdlib, "Int64", "modulo", Intrinsic::Int64Mod);
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int64",
+        "equals",
+        Intrinsic::Int64Eq,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int64",
+        "compareTo",
+        Intrinsic::Int64Cmp,
+    );
 
     intrinsic_method(
         sa,
-        stdlib,
-        "Int64",
+        stdlib_id,
+        "primitives::Int64",
+        "plus",
+        Intrinsic::Int64Add,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int64",
+        "minus",
+        Intrinsic::Int64Sub,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int64",
+        "times",
+        Intrinsic::Int64Mul,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int64",
+        "div",
+        Intrinsic::Int64Div,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int64",
+        "modulo",
+        Intrinsic::Int64Mod,
+    );
+
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int64",
         "wrappingAdd",
         Intrinsic::Int64AddUnchecked,
     );
     intrinsic_method(
         sa,
-        stdlib,
-        "Int64",
+        stdlib_id,
+        "primitives::Int64",
         "wrappingSub",
         Intrinsic::Int64SubUnchecked,
     );
     intrinsic_method(
         sa,
-        stdlib,
-        "Int64",
+        stdlib_id,
+        "primitives::Int64",
         "wrappingMul",
         Intrinsic::Int64MulUnchecked,
     );
 
-    intrinsic_method(sa, stdlib, "Int64", "bitwiseOr", Intrinsic::Int64Or);
-    intrinsic_method(sa, stdlib, "Int64", "bitwiseAnd", Intrinsic::Int64And);
-    intrinsic_method(sa, stdlib, "Int64", "bitwiseXor", Intrinsic::Int64Xor);
-
-    intrinsic_method(sa, stdlib, "Int64", "shiftLeft", Intrinsic::Int64Shl);
-    intrinsic_method(sa, stdlib, "Int64", "shiftRight", Intrinsic::Int64Shr);
-    intrinsic_method(sa, stdlib, "Int64", "shiftRightSigned", Intrinsic::Int64Sar);
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int64",
+        "bitwiseOr",
+        Intrinsic::Int64Or,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int64",
+        "bitwiseAnd",
+        Intrinsic::Int64And,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int64",
+        "bitwiseXor",
+        Intrinsic::Int64Xor,
+    );
 
     intrinsic_method(
         sa,
-        stdlib,
-        "Int64",
+        stdlib_id,
+        "primitives::Int64",
+        "shiftLeft",
+        Intrinsic::Int64Shl,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int64",
+        "shiftRight",
+        Intrinsic::Int64Shr,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int64",
+        "shiftRightSigned",
+        Intrinsic::Int64Sar,
+    );
+
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int64",
         "rotateLeft",
         Intrinsic::Int64RotateLeft,
     );
     intrinsic_method(
         sa,
-        stdlib,
-        "Int64",
+        stdlib_id,
+        "primitives::Int64",
         "rotateRight",
         Intrinsic::Int64RotateRight,
     );
 
-    intrinsic_method(sa, stdlib, "Int64", "unaryPlus", Intrinsic::Int64Plus);
-    intrinsic_method(sa, stdlib, "Int64", "unaryMinus", Intrinsic::Int64Neg);
-    intrinsic_method(sa, stdlib, "Int64", "not", Intrinsic::Int64Not);
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int64",
+        "unaryPlus",
+        Intrinsic::Int64Plus,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int64",
+        "unaryMinus",
+        Intrinsic::Int64Neg,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int64",
+        "not",
+        Intrinsic::Int64Not,
+    );
 
     intrinsic_method(
         sa,
-        stdlib,
-        "Int64",
+        stdlib_id,
+        "primitives::Int64",
         "countZeroBits",
         Intrinsic::Int64CountZeroBits,
     );
     intrinsic_method(
         sa,
-        stdlib,
-        "Int64",
+        stdlib_id,
+        "primitives::Int64",
         "countOneBits",
         Intrinsic::Int64CountOneBits,
     );
     intrinsic_method(
         sa,
-        stdlib,
-        "Int64",
+        stdlib_id,
+        "primitives::Int64",
         "countZeroBitsLeading",
         Intrinsic::Int64CountZeroBitsLeading,
     );
     intrinsic_method(
         sa,
-        stdlib,
-        "Int64",
+        stdlib_id,
+        "primitives::Int64",
         "countOneBitsLeading",
         Intrinsic::Int64CountOneBitsLeading,
     );
     intrinsic_method(
         sa,
-        stdlib,
-        "Int64",
+        stdlib_id,
+        "primitives::Int64",
         "countZeroBitsTrailing",
         Intrinsic::Int64CountZeroBitsTrailing,
     );
     intrinsic_method(
         sa,
-        stdlib,
-        "Int64",
+        stdlib_id,
+        "primitives::Int64",
         "countOneBitsTrailing",
         Intrinsic::Int64CountOneBitsTrailing,
     );
 
-    intrinsic_method(sa, stdlib, "Bool", "toInt32", Intrinsic::BoolToInt32);
-    intrinsic_method(sa, stdlib, "Bool", "toInt64", Intrinsic::BoolToInt64);
-    intrinsic_method(sa, stdlib, "Bool", "equals", Intrinsic::BoolEq);
-    intrinsic_method(sa, stdlib, "Bool", "not", Intrinsic::BoolNot);
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Bool",
+        "toInt32",
+        Intrinsic::BoolToInt32,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Bool",
+        "toInt64",
+        Intrinsic::BoolToInt64,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Bool",
+        "equals",
+        Intrinsic::BoolEq,
+    );
+    intrinsic_method(sa, stdlib_id, "primitives::Bool", "not", Intrinsic::BoolNot);
 
     native_method(
         sa,
-        stdlib,
-        "String",
+        stdlib_id,
+        "string::String",
         "compareTo",
         stdlib::strcmp as *const u8,
     );
     native_method(
         sa,
-        stdlib,
-        "String",
+        stdlib_id,
+        "string::String",
         "toInt32Success",
         stdlib::str_to_int32_success as *const u8,
     );
     native_method(
         sa,
-        stdlib,
-        "String",
+        stdlib_id,
+        "string::String",
         "toInt64Success",
         stdlib::str_to_int64_success as *const u8,
     );
     native_method(
         sa,
-        stdlib,
-        "String",
+        stdlib_id,
+        "string::String",
         "toFloat32Success",
         stdlib::str_to_float32_success as *const u8,
     );
     native_method(
         sa,
-        stdlib,
-        "String",
+        stdlib_id,
+        "string::String",
         "toFloat64Success",
         stdlib::str_to_float64_success as *const u8,
     );
     native_method(
         sa,
-        stdlib,
-        "String",
+        stdlib_id,
+        "string::String",
         "toInt32OrZero",
         stdlib::str_to_int32 as *const u8,
     );
     native_method(
         sa,
-        stdlib,
-        "String",
+        stdlib_id,
+        "string::String",
         "toInt64OrZero",
         stdlib::str_to_int64 as *const u8,
     );
     native_method(
         sa,
-        stdlib,
-        "String",
+        stdlib_id,
+        "string::String",
         "toFloat32OrZero",
         stdlib::str_to_float32 as *const u8,
     );
     native_method(
         sa,
-        stdlib,
-        "String",
+        stdlib_id,
+        "string::String",
         "toFloat64OrZero",
         stdlib::str_to_float64 as *const u8,
     );
-    native_method(sa, stdlib, "String", "plus", stdlib::strcat as *const u8);
-
-    intrinsic_method(sa, stdlib, "String", "size", Intrinsic::StrLen);
-    intrinsic_method(sa, stdlib, "String", "getByte", Intrinsic::StrGet);
     native_method(
         sa,
-        stdlib,
-        "String",
+        stdlib_id,
+        "string::String",
+        "plus",
+        stdlib::strcat as *const u8,
+    );
+
+    intrinsic_method(sa, stdlib_id, "string::String", "size", Intrinsic::StrLen);
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "string::String",
+        "getByte",
+        Intrinsic::StrGet,
+    );
+    native_method(
+        sa,
+        stdlib_id,
+        "string::String",
         "clone",
         stdlib::str_clone as *const u8,
     );
 
     native_method(
         sa,
-        stdlib,
-        "Float32",
+        stdlib_id,
+        "primitives::Float32",
         "toString",
         stdlib::float32_to_string as *const u8,
     );
-    intrinsic_method(sa, stdlib, "Float32", "toInt32", Intrinsic::Float32ToInt32);
-    intrinsic_method(sa, stdlib, "Float32", "toInt64", Intrinsic::Float32ToInt64);
     intrinsic_method(
         sa,
-        stdlib,
-        "Float32",
+        stdlib_id,
+        "primitives::Float32",
+        "toInt32",
+        Intrinsic::Float32ToInt32,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
+        "toInt64",
+        Intrinsic::Float32ToInt64,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
         "toFloat64",
         Intrinsic::PromoteFloat32ToFloat64,
     );
 
     intrinsic_method(
         sa,
-        stdlib,
-        "Float32",
+        stdlib_id,
+        "primitives::Float32",
         "asInt32",
         Intrinsic::ReinterpretFloat32AsInt32,
     );
 
-    intrinsic_method(sa, stdlib, "Float32", "equals", Intrinsic::Float32Eq);
-    intrinsic_method(sa, stdlib, "Float32", "compareTo", Intrinsic::Float32Cmp);
-
-    intrinsic_method(sa, stdlib, "Float32", "plus", Intrinsic::Float32Add);
-    intrinsic_method(sa, stdlib, "Float32", "minus", Intrinsic::Float32Sub);
-    intrinsic_method(sa, stdlib, "Float32", "times", Intrinsic::Float32Mul);
-    intrinsic_method(sa, stdlib, "Float32", "div", Intrinsic::Float32Div);
-
-    intrinsic_method(sa, stdlib, "Float32", "unaryPlus", Intrinsic::Float32Plus);
-    intrinsic_method(sa, stdlib, "Float32", "unaryMinus", Intrinsic::Float32Neg);
-
-    intrinsic_method(sa, stdlib, "Float32", "isNan", Intrinsic::Float32IsNan);
-    intrinsic_method(sa, stdlib, "Float32", "abs", Intrinsic::Float32Abs);
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
+        "equals",
+        Intrinsic::Float32Eq,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
+        "compareTo",
+        Intrinsic::Float32Cmp,
+    );
 
     intrinsic_method(
         sa,
-        stdlib,
-        "Float32",
+        stdlib_id,
+        "primitives::Float32",
+        "plus",
+        Intrinsic::Float32Add,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
+        "minus",
+        Intrinsic::Float32Sub,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
+        "times",
+        Intrinsic::Float32Mul,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
+        "div",
+        Intrinsic::Float32Div,
+    );
+
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
+        "unaryPlus",
+        Intrinsic::Float32Plus,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
+        "unaryMinus",
+        Intrinsic::Float32Neg,
+    );
+
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
+        "isNan",
+        Intrinsic::Float32IsNan,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
+        "abs",
+        Intrinsic::Float32Abs,
+    );
+
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
         "roundToZero",
         Intrinsic::Float32RoundToZero,
     );
-    intrinsic_method(sa, stdlib, "Float32", "roundUp", Intrinsic::Float32RoundUp);
     intrinsic_method(
         sa,
-        stdlib,
-        "Float32",
+        stdlib_id,
+        "primitives::Float32",
+        "roundUp",
+        Intrinsic::Float32RoundUp,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
         "roundDown",
         Intrinsic::Float32RoundDown,
     );
     intrinsic_method(
         sa,
-        stdlib,
-        "Float32",
+        stdlib_id,
+        "primitives::Float32",
         "roundHalfEven",
         Intrinsic::Float32RoundHalfEven,
     );
 
-    intrinsic_method(sa, stdlib, "Float32", "sqrt", Intrinsic::Float32Sqrt);
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
+        "sqrt",
+        Intrinsic::Float32Sqrt,
+    );
 
     native_method(
         sa,
-        stdlib,
-        "Float64",
+        stdlib_id,
+        "primitives::Float64",
         "toString",
         stdlib::float64_to_string as *const u8,
     );
-    intrinsic_method(sa, stdlib, "Float64", "toInt32", Intrinsic::Float64ToInt32);
-    intrinsic_method(sa, stdlib, "Float64", "toInt64", Intrinsic::Float64ToInt64);
     intrinsic_method(
         sa,
-        stdlib,
-        "Float64",
+        stdlib_id,
+        "primitives::Float64",
+        "toInt32",
+        Intrinsic::Float64ToInt32,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
+        "toInt64",
+        Intrinsic::Float64ToInt64,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
         "toFloat32",
         Intrinsic::DemoteFloat64ToFloat32,
     );
 
     intrinsic_method(
         sa,
-        stdlib,
-        "Float64",
+        stdlib_id,
+        "primitives::Float64",
         "asInt64",
         Intrinsic::ReinterpretFloat64AsInt64,
     );
 
-    intrinsic_method(sa, stdlib, "Float64", "equals", Intrinsic::Float64Eq);
-    intrinsic_method(sa, stdlib, "Float64", "compareTo", Intrinsic::Float64Cmp);
-
-    intrinsic_method(sa, stdlib, "Float64", "plus", Intrinsic::Float64Add);
-    intrinsic_method(sa, stdlib, "Float64", "minus", Intrinsic::Float64Sub);
-    intrinsic_method(sa, stdlib, "Float64", "times", Intrinsic::Float64Mul);
-    intrinsic_method(sa, stdlib, "Float64", "div", Intrinsic::Float64Div);
-
-    intrinsic_method(sa, stdlib, "Float64", "unaryPlus", Intrinsic::Float64Plus);
-    intrinsic_method(sa, stdlib, "Float64", "unaryMinus", Intrinsic::Float64Neg);
-
-    intrinsic_method(sa, stdlib, "Float64", "isNan", Intrinsic::Float64IsNan);
-    intrinsic_method(sa, stdlib, "Float64", "abs", Intrinsic::Float64Abs);
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
+        "equals",
+        Intrinsic::Float64Eq,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
+        "compareTo",
+        Intrinsic::Float64Cmp,
+    );
 
     intrinsic_method(
         sa,
-        stdlib,
-        "Float64",
+        stdlib_id,
+        "primitives::Float64",
+        "plus",
+        Intrinsic::Float64Add,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
+        "minus",
+        Intrinsic::Float64Sub,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
+        "times",
+        Intrinsic::Float64Mul,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
+        "div",
+        Intrinsic::Float64Div,
+    );
+
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
+        "unaryPlus",
+        Intrinsic::Float64Plus,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
+        "unaryMinus",
+        Intrinsic::Float64Neg,
+    );
+
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
+        "isNan",
+        Intrinsic::Float64IsNan,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
+        "abs",
+        Intrinsic::Float64Abs,
+    );
+
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
         "roundToZero",
         Intrinsic::Float64RoundToZero,
     );
-    intrinsic_method(sa, stdlib, "Float64", "roundUp", Intrinsic::Float64RoundUp);
     intrinsic_method(
         sa,
-        stdlib,
-        "Float64",
+        stdlib_id,
+        "primitives::Float64",
+        "roundUp",
+        Intrinsic::Float64RoundUp,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
         "roundDown",
         Intrinsic::Float64RoundDown,
     );
     intrinsic_method(
         sa,
-        stdlib,
-        "Float64",
+        stdlib_id,
+        "primitives::Float64",
         "roundHalfEven",
         Intrinsic::Float64RoundHalfEven,
     );
 
-    intrinsic_method(sa, stdlib, "Float64", "sqrt", Intrinsic::Float64Sqrt);
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
+        "sqrt",
+        Intrinsic::Float64Sqrt,
+    );
 
     native_static(
         sa,
-        stdlib,
-        "String",
+        stdlib_id,
+        "string::String",
         "fromBytesPart",
         stdlib::str_from_bytes as *const u8,
     );
     native_static(
         sa,
-        stdlib,
-        "String",
+        stdlib_id,
+        "string::String",
         "fromStringPart",
         stdlib::str_from_bytes as *const u8,
     );
 
-    intrinsic_method(sa, stdlib, "Array", "size", Intrinsic::ArrayLen);
-    intrinsic_method(sa, stdlib, "Array", "get", Intrinsic::ArrayGet);
-    intrinsic_method(sa, stdlib, "Array", "set", Intrinsic::ArraySet);
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "collections::Array",
+        "size",
+        Intrinsic::ArrayLen,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "collections::Array",
+        "get",
+        Intrinsic::ArrayGet,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "collections::Array",
+        "set",
+        Intrinsic::ArraySet,
+    );
 
-    intrinsic_static(sa, stdlib, "Array", "unsafeNew", Intrinsic::ArrayNewOfSize);
-    intrinsic_static(sa, stdlib, "Array", "new", Intrinsic::ArrayWithValues);
+    intrinsic_static(
+        sa,
+        stdlib_id,
+        "collections::Array",
+        "unsafeNew",
+        Intrinsic::ArrayNewOfSize,
+    );
+    intrinsic_static(
+        sa,
+        stdlib_id,
+        "collections::Array",
+        "new",
+        Intrinsic::ArrayWithValues,
+    );
 
     native_method(
         sa,
-        stdlib,
+        stdlib_id,
         "Stacktrace",
         "retrieveStacktrace",
         stack::retrieve_stack_trace as *const u8,
     );
     native_method(
         sa,
-        stdlib,
+        stdlib_id,
         "Stacktrace",
         "getStacktraceElement",
         stack::stack_element as *const u8,
@@ -906,14 +1448,14 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
 
     native_fct(
         sa,
-        stdlib,
+        stdlib_id,
         "thread::spawn",
         stdlib::spawn_thread as *const u8,
     );
 
     native_method(
         sa,
-        stdlib,
+        stdlib_id,
         "thread::Thread",
         "join",
         stdlib::join_thread as *const u8,
@@ -921,7 +1463,7 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
 
     intrinsic_static(
         sa,
-        stdlib,
+        stdlib_id,
         "thread::Thread",
         "current",
         Intrinsic::ThreadCurrent,
@@ -929,7 +1471,7 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
 
     native_method(
         sa,
-        stdlib,
+        stdlib_id,
         "thread::Mutex",
         "wait",
         stdlib::mutex_wait as *const u8,
@@ -937,7 +1479,7 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
 
     native_method(
         sa,
-        stdlib,
+        stdlib_id,
         "thread::Mutex",
         "notify",
         stdlib::mutex_notify as *const u8,
@@ -945,7 +1487,7 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
 
     native_method(
         sa,
-        stdlib,
+        stdlib_id,
         "thread::Condition",
         "enqueue",
         stdlib::condition_enqueue as *const u8,
@@ -953,7 +1495,7 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
 
     native_method(
         sa,
-        stdlib,
+        stdlib_id,
         "thread::Condition",
         "block",
         stdlib::condition_block_after_enqueue as *const u8,
@@ -961,7 +1503,7 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
 
     native_method(
         sa,
-        stdlib,
+        stdlib_id,
         "thread::Condition",
         "wakeupOne",
         stdlib::condition_wakeup_one as *const u8,
@@ -969,19 +1511,19 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
 
     native_method(
         sa,
-        stdlib,
+        stdlib_id,
         "thread::Condition",
         "wakeupAll",
         stdlib::condition_wakeup_all as *const u8,
     );
 
-    let fct_id = intrinsic_method(sa, stdlib, "Option", "isNone", Intrinsic::OptionIsNone);
+    let fct_id = intrinsic_method(sa, stdlib_id, "Option", "isNone", Intrinsic::OptionIsNone);
     sa.known.functions.option_is_none = Some(fct_id);
-    let fct_id = intrinsic_method(sa, stdlib, "Option", "isSome", Intrinsic::OptionIsSome);
+    let fct_id = intrinsic_method(sa, stdlib_id, "Option", "isSome", Intrinsic::OptionIsSome);
     sa.known.functions.option_is_some = Some(fct_id);
     let fct_id = intrinsic_method(
         sa,
-        stdlib,
+        stdlib_id,
         "Option",
         "getOrPanic",
         Intrinsic::OptionGetOrPanic,
@@ -990,35 +1532,35 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
 
     intrinsic_method(
         sa,
-        stdlib,
+        stdlib_id,
         "thread::AtomicInt32",
         "get",
         Intrinsic::AtomicInt32Get,
     );
     intrinsic_method(
         sa,
-        stdlib,
+        stdlib_id,
         "thread::AtomicInt32",
         "set",
         Intrinsic::AtomicInt32Set,
     );
     intrinsic_method(
         sa,
-        stdlib,
+        stdlib_id,
         "thread::AtomicInt32",
         "exchange",
         Intrinsic::AtomicInt32Exchange,
     );
     intrinsic_method(
         sa,
-        stdlib,
+        stdlib_id,
         "thread::AtomicInt32",
         "compareExchange",
         Intrinsic::AtomicInt32CompareExchange,
     );
     intrinsic_method(
         sa,
-        stdlib,
+        stdlib_id,
         "thread::AtomicInt32",
         "fetchAdd",
         Intrinsic::AtomicInt32FetchAdd,
@@ -1026,35 +1568,35 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
 
     intrinsic_method(
         sa,
-        stdlib,
+        stdlib_id,
         "thread::AtomicInt64",
         "get",
         Intrinsic::AtomicInt64Get,
     );
     intrinsic_method(
         sa,
-        stdlib,
+        stdlib_id,
         "thread::AtomicInt64",
         "set",
         Intrinsic::AtomicInt64Set,
     );
     intrinsic_method(
         sa,
-        stdlib,
+        stdlib_id,
         "thread::AtomicInt64",
         "exchange",
         Intrinsic::AtomicInt64Exchange,
     );
     intrinsic_method(
         sa,
-        stdlib,
+        stdlib_id,
         "thread::AtomicInt64",
         "compareExchange",
         Intrinsic::AtomicInt64CompareExchange,
     );
     intrinsic_method(
         sa,
-        stdlib,
+        stdlib_id,
         "thread::AtomicInt64",
         "fetchAdd",
         Intrinsic::AtomicInt64FetchAdd,

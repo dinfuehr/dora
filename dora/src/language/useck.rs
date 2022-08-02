@@ -4,7 +4,7 @@ use crate::language::access::sym_accessible_from;
 use crate::language::error::msg::ErrorMessage;
 use crate::language::report_sym_shadow;
 use crate::language::sem_analysis::{module_package, ModuleDefinitionId, SemAnalysis};
-use crate::language::sym::{NestedSymTable, Sym};
+use crate::language::sym::{ModuleSymTable, Sym};
 
 use dora_parser::ast::{
     self, NodeId, UsePathComponent, UsePathComponentValue, UseTargetDescriptor,
@@ -243,7 +243,7 @@ fn process_component(
 
     match previous_sym {
         Sym::Module(module_id) => {
-            let symtable = NestedSymTable::new(sa, module_id);
+            let symtable = ModuleSymTable::new(sa, module_id);
             let current_sym = symtable.get(component_name);
 
             if let Some(current_sym) = current_sym {

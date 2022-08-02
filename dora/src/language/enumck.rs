@@ -6,7 +6,7 @@ use dora_parser::ast;
 
 use crate::language::error::msg::ErrorMessage;
 use crate::language::sem_analysis::{EnumDefinition, EnumVariant, SemAnalysis, SourceFileId};
-use crate::language::sym::{NestedSymTable, Sym};
+use crate::language::sym::{ModuleSymTable, Sym};
 use crate::language::ty::SourceType;
 use crate::language::{read_type, AllowSelf, TypeParamContext};
 
@@ -34,7 +34,7 @@ struct EnumCheck<'x> {
 
 impl<'x> EnumCheck<'x> {
     fn check(&mut self) {
-        let mut symtable = NestedSymTable::new(self.sa, self.enum_.read().module_id);
+        let mut symtable = ModuleSymTable::new(self.sa, self.enum_.read().module_id);
 
         symtable.push_level();
 

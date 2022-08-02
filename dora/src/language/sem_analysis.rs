@@ -4,7 +4,7 @@ use std::sync::Arc;
 use parking_lot::RwLock;
 
 #[cfg(test)]
-use crate::language::sym::NestedSymTable;
+use crate::language::sym::ModuleSymTable;
 use crate::language::sym::SymTable;
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::vm::VM;
@@ -25,6 +25,7 @@ pub use self::impls::{
     find_impl, find_trait_impl, impl_matches, implements_trait, ImplDefinition, ImplDefinitionId,
 };
 pub use self::modules::{module_package, module_path, ModuleDefinition, ModuleDefinitionId};
+pub use self::packages::{PackageDefinition, PackageDefinitionId, PackageName};
 pub use self::source_files::{SourceFile, SourceFileId};
 pub use self::src::{
     AnalysisData, CallType, ContextIdx, ForTypeInfo, IdentType, NestedVarId, NodeMap, Var,
@@ -47,6 +48,7 @@ mod functions;
 mod globals;
 mod impls;
 mod modules;
+mod packages;
 mod source_files;
 mod src;
 mod structs;
@@ -61,7 +63,7 @@ impl SemAnalysis {
     pub fn cls_by_name(&self, name: &'static str) -> ClassDefinitionId {
         let name = self.interner.intern(name);
 
-        NestedSymTable::new(self, self.program_module_id)
+        ModuleSymTable::new(self, self.program_module_id())
             .get_class(name)
             .expect("class not found")
     }
@@ -69,7 +71,7 @@ impl SemAnalysis {
     #[cfg(test)]
     pub fn struct_by_name(&self, name: &'static str) -> StructDefinitionId {
         let name = self.interner.intern(name);
-        NestedSymTable::new(self, self.program_module_id)
+        ModuleSymTable::new(self, self.program_module_id())
             .get_struct(name)
             .expect("class not found")
     }
@@ -77,7 +79,7 @@ impl SemAnalysis {
     #[cfg(test)]
     pub fn enum_by_name(&self, name: &'static str) -> EnumDefinitionId {
         let name = self.interner.intern(name);
-        NestedSymTable::new(self, self.program_module_id)
+        ModuleSymTable::new(self, self.program_module_id())
             .get_enum(name)
             .expect("class not found")
     }
@@ -85,7 +87,7 @@ impl SemAnalysis {
     #[cfg(test)]
     pub fn const_by_name(&self, name: &'static str) -> ConstDefinitionId {
         let name = self.interner.intern(name);
-        NestedSymTable::new(self, self.program_module_id)
+        ModuleSymTable::new(self, self.program_module_id())
             .get_const(name)
             .expect("class not found")
     }
@@ -100,7 +102,7 @@ impl SemAnalysis {
         let class_name = self.interner.intern(class_name);
         let function_name = self.interner.intern(function_name);
 
-        let cls_id = NestedSymTable::new(self, self.program_module_id)
+        let cls_id = ModuleSymTable::new(self, self.program_module_id())
             .get_class(class_name)
             .expect("class not found");
         let cls = self.classes.idx(cls_id);
@@ -125,7 +127,7 @@ impl SemAnalysis {
         let struct_name = self.interner.intern(struct_name);
         let function_name = self.interner.intern(function_name);
 
-        let struct_id = NestedSymTable::new(self, self.program_module_id)
+        let struct_id = ModuleSymTable::new(self, self.program_module_id())
             .get_struct(struct_name)
             .expect("struct not found");
         let struct_ = self.structs.idx(struct_id);
@@ -155,7 +157,7 @@ impl SemAnalysis {
         let class_name = self.interner.intern(class_name);
         let field_name = self.interner.intern(field_name);
 
-        let cls_id = NestedSymTable::new(self, self.program_module_id)
+        let cls_id = ModuleSymTable::new(self, self.program_module_id())
             .get_class(class_name)
             .expect("class not found");
         let cls = self.classes.idx(cls_id);
@@ -168,13 +170,13 @@ impl SemAnalysis {
     #[cfg(test)]
     pub fn fct_by_name(&self, name: &str) -> Option<FctDefinitionId> {
         let name = self.interner.intern(name);
-        NestedSymTable::new(self, self.program_module_id).get_fct(name)
+        ModuleSymTable::new(self, self.program_module_id()).get_fct(name)
     }
 
     #[cfg(test)]
     pub fn trait_by_name(&self, name: &str) -> TraitDefinitionId {
         let name = self.interner.intern(name);
-        let trait_id = NestedSymTable::new(self, self.program_module_id)
+        let trait_id = ModuleSymTable::new(self, self.program_module_id())
             .get_trait(name)
             .expect("class not found");
 
@@ -198,7 +200,7 @@ impl SemAnalysis {
     #[cfg(test)]
     pub fn global_by_name(&self, name: &str) -> GlobalDefinitionId {
         let name = self.interner.intern(name);
-        NestedSymTable::new(self, self.program_module_id)
+        ModuleSymTable::new(self, self.program_module_id())
             .get_global(name)
             .expect("global not found")
     }
@@ -232,11 +234,11 @@ impl SemAnalysis {
     }
 
     pub fn stdlib_module(&self) -> Arc<RwLock<SymTable>> {
-        self.modules[self.stdlib_module_id].read().table.clone()
+        self.modules[self.stdlib_module_id()].read().table.clone()
     }
 
     pub fn prelude_module(&self) -> Arc<RwLock<SymTable>> {
-        self.modules[self.prelude_module_id].read().table.clone()
+        self.modules[self.prelude_module_id()].read().table.clone()
     }
 
     pub fn cls(&self, cls_id: ClassDefinitionId) -> SourceType {
@@ -256,5 +258,25 @@ impl SemAnalysis {
         fcts.push(Arc::new(RwLock::new(fct)));
 
         fctid
+    }
+
+    pub fn set_prelude_module_id(&mut self, module_id: ModuleDefinitionId) {
+        assert!(self.prelude_module_id.is_none());
+        self.prelude_module_id = Some(module_id);
+    }
+
+    pub fn set_stdlib_module_id(&mut self, module_id: ModuleDefinitionId) {
+        assert!(self.stdlib_module_id.is_none());
+        self.stdlib_module_id = Some(module_id);
+    }
+
+    pub fn set_boots_module_id(&mut self, module_id: ModuleDefinitionId) {
+        assert!(self.boots_module_id.is_none());
+        self.boots_module_id = Some(module_id);
+    }
+
+    pub fn set_program_module_id(&mut self, module_id: ModuleDefinitionId) {
+        assert!(self.program_module_id.is_none());
+        self.program_module_id = Some(module_id);
     }
 }

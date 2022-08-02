@@ -6,7 +6,7 @@ use dora_parser::Position;
 use crate::language::error::msg::ErrorMessage;
 use crate::language::readty::read_type_unchecked;
 use crate::language::sem_analysis::{SemAnalysis, SourceFileId, TypeParamDefinition, TypeParamId};
-use crate::language::sym::{NestedSymTable, Sym};
+use crate::language::sym::{ModuleSymTable, Sym};
 use crate::language::ty::{SourceType, SourceTypeArray};
 
 pub fn check(sa: &SemAnalysis) {
@@ -24,7 +24,7 @@ fn check_traits(sa: &SemAnalysis) {
 
         {
             let trait_ = trait_.read();
-            let mut symtable = NestedSymTable::new(sa, trait_.module_id);
+            let mut symtable = ModuleSymTable::new(sa, trait_.module_id);
             symtable.push_level();
 
             type_param_definition = read_type_param_definition(
@@ -48,7 +48,7 @@ fn check_impls(sa: &SemAnalysis) {
 
         {
             let impl_ = impl_.read();
-            let mut symtable = NestedSymTable::new(sa, impl_.module_id);
+            let mut symtable = ModuleSymTable::new(sa, impl_.module_id);
             symtable.push_level();
 
             type_param_definition = read_type_param_definition(
@@ -74,7 +74,7 @@ fn check_classes(sa: &SemAnalysis) {
 
         {
             let cls = cls.read();
-            let mut symtable = NestedSymTable::new(sa, cls.module_id);
+            let mut symtable = ModuleSymTable::new(sa, cls.module_id);
             symtable.push_level();
 
             type_param_definition = read_type_param_definition(
@@ -105,7 +105,7 @@ fn check_enums(sa: &SemAnalysis) {
 
         {
             let enum_ = enum_.read();
-            let mut symtable = NestedSymTable::new(sa, enum_.module_id);
+            let mut symtable = ModuleSymTable::new(sa, enum_.module_id);
             symtable.push_level();
 
             type_param_definition = read_type_param_definition(
@@ -129,7 +129,7 @@ fn check_structs(sa: &SemAnalysis) {
 
         {
             let struct_ = struct_.read();
-            let mut symtable = NestedSymTable::new(sa, struct_.module_id);
+            let mut symtable = ModuleSymTable::new(sa, struct_.module_id);
             symtable.push_level();
 
             type_param_definition = read_type_param_definition(
@@ -153,7 +153,7 @@ fn check_extensions(sa: &SemAnalysis) {
 
         {
             let extension = extension.read();
-            let mut symtable = NestedSymTable::new(sa, extension.module_id);
+            let mut symtable = ModuleSymTable::new(sa, extension.module_id);
             symtable.push_level();
 
             type_param_definition = read_type_param_definition(
@@ -182,7 +182,7 @@ fn build_type_params(number_type_params: usize) -> SourceTypeArray {
 fn read_type_param_definition(
     sa: &SemAnalysis,
     ast_type_params: Option<&Vec<ast::TypeParam>>,
-    symtable: &mut NestedSymTable,
+    symtable: &mut ModuleSymTable,
     file_id: SourceFileId,
     pos: Position,
 ) -> TypeParamDefinition {

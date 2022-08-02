@@ -4,7 +4,7 @@ use crate::language::sem_analysis::{
     FctDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId, TraitDefinition,
     TraitDefinitionId,
 };
-use crate::language::sym::NestedSymTable;
+use crate::language::sym::ModuleSymTable;
 
 pub fn check(sa: &SemAnalysis) {
     for trait_ in sa.traits.iter() {
@@ -28,7 +28,7 @@ pub fn check(sa: &SemAnalysis) {
             ast: &ast,
             module_id,
             trait_: &mut *trait_,
-            sym: NestedSymTable::new(sa, module_id),
+            sym: ModuleSymTable::new(sa, module_id),
             vtable_index: 0,
         };
 
@@ -43,7 +43,7 @@ struct TraitCheck<'x> {
     ast: &'x ast::Trait,
     module_id: ModuleDefinitionId,
     trait_: &'x mut TraitDefinition,
-    sym: NestedSymTable,
+    sym: ModuleSymTable,
     vtable_index: u32,
 }
 

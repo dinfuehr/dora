@@ -12,19 +12,19 @@ use crate::language::sem_analysis::{
 };
 use dora_parser::interner::Name;
 
-pub struct NestedSymTable {
+pub struct ModuleSymTable {
     module_id: ModuleDefinitionId,
     outer: Arc<RwLock<SymTable>>,
     prelude: Arc<RwLock<SymTable>>,
     levels: Vec<SymTable>,
 }
 
-impl NestedSymTable {
-    pub fn new(sa: &SemAnalysis, module_id: ModuleDefinitionId) -> NestedSymTable {
+impl ModuleSymTable {
+    pub fn new(sa: &SemAnalysis, module_id: ModuleDefinitionId) -> ModuleSymTable {
         let outer = sa.modules[module_id].read().table.clone();
-        let prelude = sa.modules[sa.prelude_module_id].read().table.clone();
+        let prelude = sa.modules[sa.prelude_module_id()].read().table.clone();
 
-        NestedSymTable {
+        ModuleSymTable {
             module_id,
             outer,
             prelude,

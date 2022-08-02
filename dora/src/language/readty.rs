@@ -11,7 +11,7 @@ use crate::language::sem_analysis::{
     TraitDefinitionId, TypeParamDefinition,
 };
 use crate::language::specialize::specialize_type;
-use crate::language::sym::{NestedSymTable, Sym, SymTable};
+use crate::language::sym::{ModuleSymTable, Sym, SymTable};
 use crate::language::ty::{SourceType, SourceTypeArray};
 
 use dora_parser::ast::{self, TypeBasicType, TypeLambdaType, TypeTupleType};
@@ -37,7 +37,7 @@ pub enum AllowSelf {
 
 pub fn read_type_unchecked(
     sa: &SemAnalysis,
-    table: &NestedSymTable,
+    table: &ModuleSymTable,
     file_id: SourceFileId,
     t: &ast::Type,
 ) -> SourceType {
@@ -51,7 +51,7 @@ pub fn read_type_unchecked(
 
 fn read_type_basic_unchecked(
     sa: &SemAnalysis,
-    table: &NestedSymTable,
+    table: &ModuleSymTable,
     file_id: SourceFileId,
     node: &TypeBasicType,
 ) -> SourceType {
@@ -127,7 +127,7 @@ fn read_type_basic_unchecked(
 
 fn read_type_lambda_unchecked(
     sa: &SemAnalysis,
-    table: &NestedSymTable,
+    table: &ModuleSymTable,
     file_id: SourceFileId,
     node: &TypeLambdaType,
 ) -> SourceType {
@@ -146,7 +146,7 @@ fn read_type_lambda_unchecked(
 
 fn read_type_tuple_unchecked(
     sa: &SemAnalysis,
-    table: &NestedSymTable,
+    table: &ModuleSymTable,
     file_id: SourceFileId,
     node: &TypeTupleType,
 ) -> SourceType {
@@ -431,7 +431,7 @@ fn verify_type_basic(
 
 pub fn read_type(
     sa: &SemAnalysis,
-    table: &NestedSymTable,
+    table: &ModuleSymTable,
     file_id: SourceFileId,
     t: &ast::Type,
     ctxt: TypeParamContext,
@@ -456,7 +456,7 @@ pub fn read_type(
 
 fn read_type_path(
     sa: &SemAnalysis,
-    table: &NestedSymTable,
+    table: &ModuleSymTable,
     file_id: SourceFileId,
     basic: &TypeBasicType,
 ) -> Result<Option<Sym>, ()> {

@@ -9,8 +9,9 @@ use crate::language::report_sym_shadow;
 use crate::language::sem_analysis::{
     AnnotationDefinition, ClassDefinition, ConstDefinition, EnumDefinition, ExtensionDefinition,
     ExtensionDefinitionId, FctDefinition, FctParent, GlobalDefinition, GlobalDefinitionId,
-    ImplDefinition, ImplDefinitionId, ModuleDefinition, ModuleDefinitionId, SemAnalysis,
-    SourceFileId, StructDefinition, TraitDefinition, TraitDefinitionId, UseDefinition,
+    ImplDefinition, ImplDefinitionId, ModuleDefinition, ModuleDefinitionId, PackageDefinition,
+    PackageName, SemAnalysis, SourceFileId, StructDefinition, TraitDefinition, TraitDefinitionId,
+    UseDefinition,
 };
 use crate::language::sym::Sym;
 use dora_parser::ast::visit::Visitor;
@@ -55,13 +56,19 @@ impl<'a> ProgramParser<'a> {
         self.add_stdlib_files();
         self.add_boots_files();
         self.add_program_files();
-        self.add_test_files();
         self.add_package_files();
     }
 
     fn add_stdlib_files(&mut self) {
         let stdlib_dir = self.sa.args.flag_stdlib.clone();
-        let module_id = self.sa.stdlib_module_id;
+
+        let stdlib_name = self.sa.interner.intern("std");
+        let module = ModuleDefinition::predefined(Some(stdlib_name));
+        let module_id = self.sa.modules.push(module);
+        self.sa.set_stdlib_module_id(module_id);
+
+        let package = PackageDefinition::new(PackageName::Stdlib, module_id);
+        self.sa.packages.push(package);
 
         if let Some(stdlib) = stdlib_dir {
             let file_path = PathBuf::from(stdlib);
@@ -116,11 +123,19 @@ impl<'a> ProgramParser<'a> {
         let boots_path = self.sa.args.flag_boots.clone();
 
         if let Some(boots_path) = boots_path {
+            let boots_name = self.sa.interner.intern("boots");
+            let module = ModuleDefinition::predefined(Some(boots_name));
+            let module_id = self.sa.modules.push(module);
+            self.sa.set_boots_module_id(module_id);
+
+            let package = PackageDefinition::new(PackageName::Boots, module_id);
+            self.sa.packages.push(package);
+
             let file_path = PathBuf::from(boots_path);
             let module_path = PathBuf::from(file_path.parent().expect("missing parent"));
             self.add_file(
                 file_path,
-                self.sa.boots_module_id,
+                self.sa.boots_module_id(),
                 Some(module_path),
                 None,
                 FileLookup::FileSystem,
@@ -129,29 +144,29 @@ impl<'a> ProgramParser<'a> {
     }
 
     fn add_program_files(&mut self) {
+        let module = ModuleDefinition::predefined(None);
+        let module_id = self.sa.modules.push(module);
+        self.sa.set_program_module_id(module_id);
+
+        let package = PackageDefinition::new(PackageName::Program, module_id);
+        self.sa.packages.push(package);
+
         if self.sa.args.arg_file.is_none() {
-            return;
-        }
-
-        let arg_file = self.sa.args.arg_file.as_ref().expect("argument expected");
-        let arg_file = arg_file.clone();
-        let path = PathBuf::from(&arg_file);
-
-        if path.is_file() {
-            let file_path = PathBuf::from(path);
-            let module_path = PathBuf::from(file_path.parent().expect("parent missing"));
-            self.add_file(
-                file_path,
-                self.sa.program_module_id,
-                Some(module_path),
-                None,
-                FileLookup::FileSystem,
-            );
+            if let Some(content) = self.sa.test_file_as_string {
+                self.add_file_from_string(
+                    PathBuf::from("<<code>>"),
+                    content.to_string(),
+                    self.sa.program_module_id(),
+                    None,
+                    FileLookup::FileSystem,
+                );
+            }
         } else {
-            self.sa
-                .diag
-                .lock()
-                .report_without_location(ErrorMessage::FileDoesNotExist(path));
+            let arg_file = self.sa.args.arg_file.as_ref().expect("argument expected");
+            let arg_file = arg_file.clone();
+            let path = PathBuf::from(&arg_file);
+
+            self.add_file_from_filesystem(path, self.sa.program_module_id());
         }
     }
 
@@ -160,21 +175,19 @@ impl<'a> ProgramParser<'a> {
             return;
         }
 
-        self.sa
-            .diag
-            .lock()
-            .report_without_location(ErrorMessage::Unimplemented);
-    }
+        let packages = self.sa.args.packages.clone();
 
-    fn add_test_files(&mut self) {
-        if let Some(content) = self.sa.test_file_as_string {
-            self.add_file_from_string(
-                PathBuf::from("<<code>>"),
-                content.to_string(),
-                self.sa.program_module_id,
-                None,
-                FileLookup::FileSystem,
-            );
+        for (name, path) in packages {
+            let iname = self.sa.interner.intern(&name);
+
+            let module = ModuleDefinition::predefined(Some(iname));
+            let module_id = self.sa.modules.push(module);
+
+            let package_name = PackageName::External(name);
+            let package = PackageDefinition::new(package_name, module_id);
+            self.sa.packages.push(package);
+
+            self.add_file_from_filesystem(path, module_id);
         }
     }
 
@@ -276,6 +289,25 @@ impl<'a> ProgramParser<'a> {
                         .report_without_location(ErrorMessage::FileNoAccess(path));
                 }
             }
+        }
+    }
+
+    fn add_file_from_filesystem(&mut self, path: PathBuf, module_id: ModuleDefinitionId) {
+        if path.is_file() {
+            let file_path = PathBuf::from(path);
+            let module_path = PathBuf::from(file_path.parent().expect("parent missing"));
+            self.add_file(
+                file_path,
+                module_id,
+                Some(module_path),
+                None,
+                FileLookup::FileSystem,
+            );
+        } else {
+            self.sa
+                .diag
+                .lock()
+                .report_without_location(ErrorMessage::FileDoesNotExist(path));
         }
     }
 

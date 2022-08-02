@@ -149,7 +149,7 @@ pub fn generate_bytecode(sa: &SemAnalysis) {
         {
             let fct = fct.read();
 
-            if fct.module_id == sa.program_module_id && should_emit_bytecode(sa, &*fct) {
+            if fct.module_id == sa.program_module_id() && should_emit_bytecode(sa, &*fct) {
                 bytecode::dump(sa, Some(&*fct), fct.bytecode.as_ref().unwrap());
             }
         }

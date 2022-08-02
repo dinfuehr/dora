@@ -2,7 +2,7 @@ use crate::language::error::msg::ErrorMessage;
 use crate::language::sem_analysis::{
     GlobalDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId,
 };
-use crate::language::sym::NestedSymTable;
+use crate::language::sym::ModuleSymTable;
 use crate::language::ty::SourceType;
 use crate::language::{self, AllowSelf, TypeParamContext};
 use dora_parser::ast;
@@ -19,7 +19,7 @@ pub fn check<'a>(sa: &SemAnalysis) {
             )
         };
 
-        let symtable = NestedSymTable::new(sa, module_id);
+        let symtable = ModuleSymTable::new(sa, module_id);
 
         let mut checker = GlobalDefCheck {
             sa,
@@ -40,7 +40,7 @@ struct GlobalDefCheck<'a> {
     module_id: ModuleDefinitionId,
     global_id: GlobalDefinitionId,
     ast: &'a ast::Global,
-    symtable: NestedSymTable,
+    symtable: ModuleSymTable,
 }
 
 impl<'a> GlobalDefCheck<'a> {

@@ -13,8 +13,8 @@ use crate::language::sem_analysis::{
     AnnotationDefinition, AnnotationDefinitionId, ClassDefinition, ClassDefinitionId,
     ConstDefinition, EnumDefinition, EnumDefinitionId, ExtensionDefinition, FctDefinition,
     FctDefinitionId, GlobalDefinition, ImplDefinition, ModuleDefinition, ModuleDefinitionId,
-    SourceFile, StructDefinition, StructDefinitionId, TraitDefinition, TraitDefinitionId,
-    UseDefinition,
+    PackageDefinition, SourceFile, StructDefinition, StructDefinitionId, TraitDefinition,
+    TraitDefinitionId, UseDefinition,
 };
 use crate::language::ty::SourceTypeArray;
 use crate::stack::DoraToNativeInfo;
@@ -121,24 +121,15 @@ pub struct FullSemAnalysis {
     pub globals: MutableVec<GlobalDefinition>, // stores all global variables
     pub uses: Vec<UseDefinition>,            // stores all uses
     pub native_stubs: Mutex<NativeStubs>,
-    pub prelude_module_id: ModuleDefinitionId,
-    pub stdlib_module_id: ModuleDefinitionId,
-    pub program_module_id: ModuleDefinitionId,
-    pub boots_module_id: ModuleDefinitionId,
+    pub packages: MutableVec<PackageDefinition>,
+    pub prelude_module_id: Option<ModuleDefinitionId>,
+    pub stdlib_module_id: Option<ModuleDefinitionId>,
+    pub program_module_id: Option<ModuleDefinitionId>,
+    pub boots_module_id: Option<ModuleDefinitionId>,
 }
 
 impl FullSemAnalysis {
     pub fn new(args: Args) -> Box<FullSemAnalysis> {
-        let interner = Interner::new();
-        let stdlib_name = interner.intern("std");
-        let boots_name = interner.intern("boots");
-
-        let mut modules = MutableVec::new();
-        let prelude_module_id = modules.push(ModuleDefinition::predefined(None));
-        let stdlib_module_id = modules.push(ModuleDefinition::predefined(Some(stdlib_name)));
-        let program_module_id = modules.push(ModuleDefinition::predefined(None));
-        let boots_module_id = modules.push(ModuleDefinition::predefined(Some(boots_name)));
-
         let sa = Box::new(FullSemAnalysis {
             args,
             test_file_as_string: None,
@@ -148,21 +139,22 @@ impl FullSemAnalysis {
             classes: MutableVec::new(),
             extensions: MutableVec::new(),
             annotations: MutableVec::new(),
-            modules,
+            modules: MutableVec::new(),
             enums: MutableVec::new(),
             traits: MutableVec::new(),
             impls: MutableVec::new(),
             globals: MutableVec::new(),
             uses: Vec::new(),
-            interner,
+            interner: Interner::new(),
             known: KnownElements::new(),
             diag: Mutex::new(Diagnostic::new()),
             fcts: GrowableVec::new(),
             native_stubs: Mutex::new(NativeStubs::new()),
-            prelude_module_id,
-            stdlib_module_id,
-            program_module_id,
-            boots_module_id,
+            packages: MutableVec::new(),
+            prelude_module_id: None,
+            stdlib_module_id: None,
+            program_module_id: None,
+            boots_module_id: None,
         });
 
         sa
@@ -170,6 +162,22 @@ impl FullSemAnalysis {
 
     pub fn new_from_sa(sa: Box<FullSemAnalysis>) -> Box<VM> {
         VM::new_from_full_sa(sa)
+    }
+
+    pub fn prelude_module_id(&self) -> ModuleDefinitionId {
+        self.prelude_module_id.expect("uninitialized module id")
+    }
+
+    pub fn stdlib_module_id(&self) -> ModuleDefinitionId {
+        self.stdlib_module_id.expect("uninitialized module id")
+    }
+
+    pub fn boots_module_id(&self) -> ModuleDefinitionId {
+        self.boots_module_id.expect("uninitialized module id")
+    }
+
+    pub fn program_module_id(&self) -> ModuleDefinitionId {
+        self.program_module_id.expect("uninitialized module id")
     }
 }
 
@@ -209,26 +217,17 @@ pub struct VM {
     pub native_stubs: Mutex<NativeStubs>,
     pub stubs: Stubs,
     pub threads: Threads,
-    pub prelude_module_id: ModuleDefinitionId,
-    pub stdlib_module_id: ModuleDefinitionId,
-    pub program_module_id: ModuleDefinitionId,
-    pub boots_module_id: ModuleDefinitionId,
+    pub packages: MutableVec<PackageDefinition>,
+    pub prelude_module_id: Option<ModuleDefinitionId>,
+    pub stdlib_module_id: Option<ModuleDefinitionId>,
+    pub program_module_id: Option<ModuleDefinitionId>,
+    pub boots_module_id: Option<ModuleDefinitionId>,
     pub wait_lists: WaitLists,
 }
 
 impl VM {
     pub fn new(args: Args) -> Box<VM> {
         let gc = Gc::new(&args);
-
-        let interner = Interner::new();
-        let stdlib_name = interner.intern("std");
-        let boots_name = interner.intern("boots");
-
-        let mut modules = MutableVec::new();
-        let prelude_module_id = modules.push(ModuleDefinition::predefined(None));
-        let stdlib_module_id = modules.push(ModuleDefinition::predefined(Some(stdlib_name)));
-        let program_module_id = modules.push(ModuleDefinition::predefined(None));
-        let boots_module_id = modules.push(ModuleDefinition::predefined(Some(boots_name)));
 
         let vm = Box::new(VM {
             args,
@@ -243,7 +242,7 @@ impl VM {
             class_instances: GrowableVecNonIter::new(),
             extensions: MutableVec::new(),
             annotations: MutableVec::new(),
-            modules,
+            modules: MutableVec::new(),
             enums: MutableVec::new(),
             enum_specializations: RwLock::new(HashMap::new()),
             enum_instances: GrowableVecNonIter::new(),
@@ -253,7 +252,7 @@ impl VM {
             globals: MutableVec::new(),
             global_variable_memory: None,
             uses: Vec::new(),
-            interner,
+            interner: Interner::new(),
             known: KnownElements::new(),
             gc,
             diag: Mutex::new(Diagnostic::new()),
@@ -264,10 +263,11 @@ impl VM {
             native_stubs: Mutex::new(NativeStubs::new()),
             stubs: Stubs::new(),
             threads: Threads::new(),
-            prelude_module_id,
-            stdlib_module_id,
-            program_module_id,
-            boots_module_id,
+            packages: MutableVec::new(),
+            prelude_module_id: None,
+            stdlib_module_id: None,
+            program_module_id: None,
+            boots_module_id: None,
             wait_lists: WaitLists::new(),
         });
 
@@ -315,6 +315,7 @@ impl VM {
             native_stubs: sa.native_stubs,
             stubs: Stubs::new(),
             threads: Threads::new(),
+            packages: sa.packages,
             prelude_module_id: sa.prelude_module_id,
             stdlib_module_id: sa.stdlib_module_id,
             program_module_id: sa.program_module_id,
@@ -376,6 +377,22 @@ impl VM {
         self.code_map.insert(code_start, code_end, code_id);
 
         code_id
+    }
+
+    pub fn prelude_module_id(&self) -> ModuleDefinitionId {
+        self.prelude_module_id.expect("uninitialized module id")
+    }
+
+    pub fn stdlib_module_id(&self) -> ModuleDefinitionId {
+        self.stdlib_module_id.expect("uninitialized module id")
+    }
+
+    pub fn boots_module_id(&self) -> ModuleDefinitionId {
+        self.boots_module_id.expect("uninitialized module id")
+    }
+
+    pub fn program_module_id(&self) -> ModuleDefinitionId {
+        self.program_module_id.expect("uninitialized module id")
     }
 }
 

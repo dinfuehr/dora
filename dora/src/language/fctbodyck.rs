@@ -1,7 +1,7 @@
 use crate::language::fctbodyck::body::{TypeCheck, VarManager};
 use crate::language::fctbodyck::constck::ConstCheck;
 use crate::language::sem_analysis::{AnalysisData, FctDefinitionId, SemAnalysis};
-use crate::language::sym::NestedSymTable;
+use crate::language::sym::ModuleSymTable;
 
 pub mod body;
 mod constck;
@@ -49,7 +49,7 @@ fn check_function(sa: &mut SemAnalysis, id: FctDefinitionId) {
         }
 
         let mut analysis = AnalysisData::new();
-        let mut symtable = NestedSymTable::new(sa, fct.module_id);
+        let mut symtable = ModuleSymTable::new(sa, fct.module_id);
         let mut vars = VarManager::new();
 
         let mut typeck = TypeCheck {

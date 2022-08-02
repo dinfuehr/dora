@@ -3,7 +3,7 @@ use crate::language::sem_analysis::{
     EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId, SemAnalysis, SourceFileId,
     StructDefinitionId, TypeParamDefinition, TypeParamId,
 };
-use crate::language::sym::{NestedSymTable, Sym};
+use crate::language::sym::{ModuleSymTable, Sym};
 use crate::language::ty::SourceType;
 use crate::language::{read_type, AllowSelf, TypeParamContext};
 
@@ -27,7 +27,7 @@ pub fn check(sa: &SemAnalysis) {
         let mut extck = ExtensionCheck {
             sa,
             extension_id,
-            sym: NestedSymTable::new(sa, module_id),
+            sym: ModuleSymTable::new(sa, module_id),
             file_id,
             ast: &ast,
             extension_ty: SourceType::Error,
@@ -40,7 +40,7 @@ pub fn check(sa: &SemAnalysis) {
 struct ExtensionCheck<'x> {
     sa: &'x SemAnalysis,
     file_id: SourceFileId,
-    sym: NestedSymTable,
+    sym: ModuleSymTable,
     extension_id: ExtensionDefinitionId,
     extension_ty: SourceType,
     ast: &'x ast::Impl,

@@ -20,7 +20,7 @@ use crate::language::sem_analysis::{
     TypeParamId, Var, VarAccess, VarId, VarLocation,
 };
 use crate::language::specialize::replace_type_param;
-use crate::language::sym::{NestedSymTable, Sym};
+use crate::language::sym::{ModuleSymTable, Sym};
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::language::typeparamck::{self, ErrorReporting};
 use crate::language::{always_returns, expr_always_returns, read_type, AllowSelf};
@@ -40,7 +40,7 @@ pub struct TypeCheck<'a> {
     pub module_id: ModuleDefinitionId,
     pub analysis: &'a mut AnalysisData,
     pub ast: &'a ast::Function,
-    pub symtable: &'a mut NestedSymTable,
+    pub symtable: &'a mut ModuleSymTable,
     pub in_loop: bool,
     pub self_available: bool,
     pub vars: &'a mut VarManager,

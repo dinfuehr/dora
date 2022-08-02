@@ -4,7 +4,7 @@ use crate::language::error::msg::ErrorMessage;
 use crate::language::sem_analysis::{
     FctDefinition, FctDefinitionId, FctParent, SemAnalysis, TypeParamId,
 };
-use crate::language::sym::{NestedSymTable, Sym};
+use crate::language::sym::{ModuleSymTable, Sym};
 use crate::language::ty::SourceType;
 use crate::language::{self, AllowSelf, TypeParamContext};
 
@@ -13,7 +13,7 @@ pub fn check(sa: &SemAnalysis) {
         let mut fct = fct.write();
         let ast = fct.ast.clone();
 
-        let mut sym_table = NestedSymTable::new(sa, fct.module_id);
+        let mut sym_table = ModuleSymTable::new(sa, fct.module_id);
         sym_table.push_level();
 
         match fct.parent {

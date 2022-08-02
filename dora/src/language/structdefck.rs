@@ -5,7 +5,7 @@ use crate::language::sem_analysis::{
     ModuleDefinitionId, SemAnalysis, SourceFileId, StructDefinitionField, StructDefinitionFieldId,
     StructDefinitionId,
 };
-use crate::language::sym::{NestedSymTable, Sym};
+use crate::language::sym::{ModuleSymTable, Sym};
 use crate::language::ty::SourceType;
 use crate::language::{self, AllowSelf, TypeParamContext};
 
@@ -30,7 +30,7 @@ pub fn check(sa: &SemAnalysis) {
             file_id,
             ast: &ast,
             module_id,
-            symtable: NestedSymTable::new(sa, module_id),
+            symtable: ModuleSymTable::new(sa, module_id),
             fields: HashSet::new(),
         };
 
@@ -44,7 +44,7 @@ struct StructCheck<'x> {
     file_id: SourceFileId,
     ast: &'x ast::Struct,
     module_id: ModuleDefinitionId,
-    symtable: NestedSymTable,
+    symtable: ModuleSymTable,
     fields: HashSet<Name>,
 }
 
