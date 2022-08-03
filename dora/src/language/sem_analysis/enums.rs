@@ -9,7 +9,7 @@ use dora_parser::lexer::position::Position;
 use crate::language::sem_analysis::{
     extension_matches, impl_matches, module_path, Candidate, ExtensionDefinitionId,
     ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId, SemAnalysis, SourceFileId,
-    TypeParamDefinition,
+    TypeParamDefinition, Visibility,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;
@@ -48,7 +48,7 @@ pub struct EnumDefinition {
     pub ast: Arc<ast::Enum>,
     pub pos: Position,
     pub name: Name,
-    pub is_pub: bool,
+    pub visibility: Visibility,
     pub type_params: Option<TypeParamDefinition>,
     pub variants: Vec<EnumVariant>,
     pub name_to_value: HashMap<Name, u32>,
@@ -73,7 +73,7 @@ impl EnumDefinition {
             pos: node.pos,
             name: node.name,
             type_params: None,
-            is_pub: node.is_pub,
+            visibility: Visibility::from_ast(node.is_pub),
             variants: Vec::new(),
             name_to_value: HashMap::new(),
             impls: Vec::new(),

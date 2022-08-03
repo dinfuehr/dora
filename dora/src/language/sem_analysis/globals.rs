@@ -4,7 +4,7 @@ use std::sync::Arc;
 use crate::gc::Address;
 use crate::language::sem_analysis::{
     module_path, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, SemAnalysis,
-    SourceFileId,
+    SourceFileId, Visibility,
 };
 use crate::language::ty::SourceType;
 use crate::utils::Id;
@@ -46,7 +46,7 @@ pub struct GlobalDefinition {
     pub file_id: SourceFileId,
     pub ast: Arc<ast::Global>,
     pub pos: Position,
-    pub is_pub: bool,
+    pub visibility: Visibility,
     pub ty: SourceType,
     pub mutable: bool,
     pub name: Name,
@@ -70,7 +70,7 @@ impl GlobalDefinition {
             ast: node.clone(),
             pos: node.pos,
             name: node.name,
-            is_pub: node.is_pub,
+            visibility: Visibility::from_ast(node.is_pub),
             ty: SourceType::Unit,
             mutable: node.mutable,
             initializer: None,

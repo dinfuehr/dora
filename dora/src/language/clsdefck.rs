@@ -1,7 +1,9 @@
 use std::collections::HashSet;
 
 use crate::language::error::msg::ErrorMessage;
-use crate::language::sem_analysis::{ClassDefinitionId, Field, FieldId, SemAnalysis, SourceFileId};
+use crate::language::sem_analysis::{
+    ClassDefinitionId, Field, FieldId, SemAnalysis, SourceFileId, Visibility,
+};
 use crate::language::sym::{ModuleSymTable, Sym};
 use crate::language::ty::SourceType;
 use crate::language::{read_type, AllowSelf, TypeParamContext};
@@ -95,7 +97,7 @@ impl<'x> ClsDefCheck<'x> {
             name,
             ty,
             mutable,
-            is_pub,
+            visibility: Visibility::from_ast(is_pub),
         };
 
         self.check_if_symbol_exists(name, pos);

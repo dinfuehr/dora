@@ -1,7 +1,7 @@
 use crate::language::sem_analysis::{
     ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId, FctParent, FieldId,
     GlobalDefinitionId, ModuleDefinitionId, SemAnalysis, StructDefinitionFieldId,
-    StructDefinitionId, TraitDefinitionId,
+    StructDefinitionId, TraitDefinitionId, Visibility,
 };
 use crate::language::sym::Sym;
 
@@ -31,7 +31,7 @@ pub fn global_accessible_from(
     let global = sa.globals.idx(global_id);
     let global = global.read();
 
-    accessible_from(sa, global.module_id, global.is_pub, module_id)
+    accessible_from(sa, global.module_id, global.visibility, module_id)
 }
 
 pub fn class_accessible_from(
@@ -42,7 +42,7 @@ pub fn class_accessible_from(
     let cls = sa.classes.idx(cls_id);
     let cls = cls.read();
 
-    accessible_from(sa, cls.module_id, cls.is_pub, module_id)
+    accessible_from(sa, cls.module_id, cls.visibility, module_id)
 }
 
 pub fn class_field_accessible_from(
@@ -56,7 +56,16 @@ pub fn class_field_accessible_from(
 
     let field = &cls.fields[field_id];
 
-    accessible_from(sa, cls.module_id, cls.is_pub && field.is_pub, module_id)
+    accessible_from(
+        sa,
+        cls.module_id,
+        if cls.visibility.is_public() && field.visibility.is_public() {
+            Visibility::Public
+        } else {
+            Visibility::ModulePrivate
+        },
+        module_id,
+    )
 }
 
 pub fn method_accessible_from(
@@ -67,17 +76,17 @@ pub fn method_accessible_from(
     let fct = sa.fcts.idx(fct_id);
     let fct = fct.read();
 
-    let element_pub = match fct.parent {
-        FctParent::Extension(_) => fct.is_pub,
+    let element_visibility = match fct.parent {
+        FctParent::Extension(_) => fct.visibility,
         FctParent::Impl(_) | FctParent::Trait(_) => {
             // TODO: This should probably be limited
-            return true;
+            Visibility::Public
         }
 
         FctParent::Function(_) | FctParent::None => unreachable!(),
     };
 
-    accessible_from(sa, fct.module_id, element_pub, module_id)
+    accessible_from(sa, fct.module_id, element_visibility, module_id)
 }
 
 pub fn fct_accessible_from(
@@ -88,7 +97,7 @@ pub fn fct_accessible_from(
     let fct = sa.fcts.idx(fct_id);
     let fct = fct.read();
 
-    accessible_from(sa, fct.module_id, fct.is_pub, module_id)
+    accessible_from(sa, fct.module_id, fct.visibility, module_id)
 }
 
 pub fn enum_accessible_from(
@@ -98,7 +107,7 @@ pub fn enum_accessible_from(
 ) -> bool {
     let enum_ = sa.enums[enum_id].read();
 
-    accessible_from(sa, enum_.module_id, enum_.is_pub, module_id)
+    accessible_from(sa, enum_.module_id, enum_.visibility, module_id)
 }
 
 pub fn struct_accessible_from(
@@ -109,7 +118,7 @@ pub fn struct_accessible_from(
     let struct_ = sa.structs.idx(struct_id);
     let struct_ = struct_.read();
 
-    accessible_from(sa, struct_.module_id, struct_.is_pub, module_id)
+    accessible_from(sa, struct_.module_id, struct_.visibility, module_id)
 }
 
 pub fn struct_field_accessible_from(
@@ -126,7 +135,11 @@ pub fn struct_field_accessible_from(
     accessible_from(
         sa,
         struct_.module_id,
-        struct_.is_pub && field.is_pub,
+        if struct_.visibility.is_public() && field.is_pub {
+            Visibility::Public
+        } else {
+            Visibility::ModulePrivate
+        },
         module_id,
     )
 }
@@ -136,7 +149,7 @@ pub fn module_accessible_from(
     target_id: ModuleDefinitionId,
     from_id: ModuleDefinitionId,
 ) -> bool {
-    accessible_from(sa, target_id, true, from_id)
+    accessible_from(sa, target_id, Visibility::Public, from_id)
 }
 
 pub fn trait_accessible_from(
@@ -146,7 +159,7 @@ pub fn trait_accessible_from(
 ) -> bool {
     let trait_ = sa.traits[trait_id].read();
 
-    accessible_from(sa, trait_.module_id, trait_.is_pub, module_id)
+    accessible_from(sa, trait_.module_id, trait_.visibility, module_id)
 }
 
 pub fn const_accessible_from(
@@ -157,7 +170,7 @@ pub fn const_accessible_from(
     let const_ = sa.consts.idx(const_id);
     let const_ = const_.read();
 
-    accessible_from(sa, const_.module_id, const_.is_pub, module_id)
+    accessible_from(sa, const_.module_id, const_.visibility, module_id)
 }
 
 pub fn is_default_accessible(
@@ -176,53 +189,70 @@ pub fn is_default_accessible(
 
 fn accessible_from(
     sa: &SemAnalysis,
-    target_id: ModuleDefinitionId,
-    element_pub: bool,
-    from_id: ModuleDefinitionId,
+    target_module_id: ModuleDefinitionId,
+    element_visibility: Visibility,
+    user_module_id: ModuleDefinitionId,
 ) -> bool {
-    // each module can access itself
-    if target_id == from_id {
+    // Each module can access stuff in itself.
+    if target_module_id == user_module_id {
         return true;
     }
 
-    // modules can access all their parents
-    if module_contains(sa, target_id, from_id) {
+    // Modules can always access all their parents.
+    if module_contains(sa, target_module_id, user_module_id) {
         return true;
     }
 
-    // find the common parent of both modules
-    let common_parent_id = common_parent(sa, target_id, from_id);
+    // Find the common parent of both modules.
+    let common_parent_id = common_parent(sa, target_module_id, user_module_id);
 
-    let target = &sa.modules[target_id].read();
+    let target_module = &sa.modules[target_module_id].read();
+
+    {
+        let target_module = sa.modules.idx(target_module_id);
+        let target_module = target_module.read();
+
+        let user_module = sa.modules.idx(user_module_id);
+        let user_module = user_module.read();
+
+        if target_module.package_id == user_module.package_id {
+            assert!(common_parent_id.is_some());
+        } else {
+            assert!(common_parent_id.is_none());
+        }
+    }
 
     if let Some(common_parent_id) = common_parent_id {
         let common_parent_depth = sa.modules[common_parent_id].read().depth;
 
-        if common_parent_depth + 1 == target.depth {
-            // siblings are accessible
-            element_pub
+        // The common parent module is an ancestor of the user module, which means
+        // the user module has access to everything along that path including the
+        // common parent modules direct children.
+        if common_parent_depth + 1 == target_module.depth {
+            element_visibility.is_public()
         } else {
             let start_depth = common_parent_depth + 2;
-            for &ns_id in &target.parents[start_depth..] {
+            for &ns_id in &target_module.parents[start_depth..] {
                 let ns = &sa.modules[ns_id].read();
-                if !ns.is_pub {
+                if !ns.visibility.is_public() {
                     return false;
                 }
             }
 
-            target.is_pub && element_pub
+            target_module.visibility.is_public() && element_visibility.is_public()
         }
     } else {
-        // no common parent: means we try to access another package
+        // No common parent: means we try to access another package
         // the whole path needs to be public
-        for &ns_id in &target.parents {
+
+        for &ns_id in &target_module.parents {
             let ns = &sa.modules[ns_id].read();
-            if !ns.is_pub {
+            if !ns.visibility.is_public() {
                 return false;
             }
         }
 
-        target.is_pub && element_pub
+        target_module.visibility.is_public() && element_visibility.is_public()
     }
 }
 

@@ -11,6 +11,7 @@ use crate::gc::Address;
 use crate::language::sem_analysis::{
     module_path, AnalysisData, ExtensionDefinitionId, ImplDefinitionId, ModuleDefinitionId,
     PackageDefinitionId, SemAnalysis, SourceFileId, TraitDefinitionId, TypeParamDefinition,
+    Visibility,
 };
 use crate::language::ty::SourceType;
 use crate::utils::GrowableVec;
@@ -47,7 +48,7 @@ pub struct FctDefinition {
     pub parent: FctParent,
     pub is_optimize_immediately: bool,
     pub is_static: bool,
-    pub is_pub: bool,
+    pub visibility: Visibility,
     pub is_test: bool,
     pub internal: bool,
     pub internal_resolved: bool,
@@ -88,7 +89,7 @@ impl FctDefinition {
             return_type: SourceType::Error,
             parent,
             is_optimize_immediately: ast.is_optimize_immediately,
-            is_pub: ast.is_pub,
+            visibility: Visibility::from_ast(ast.is_pub),
             is_static: ast.is_static,
             is_test: ast.is_test,
             internal: ast.internal,

@@ -1,7 +1,7 @@
 use parking_lot::RwLock;
 use std::sync::Arc;
 
-use crate::language::sem_analysis::{PackageDefinitionId, SemAnalysis};
+use crate::language::sem_analysis::{PackageDefinitionId, SemAnalysis, Visibility};
 use crate::language::sym::SymTable;
 use crate::language::SourceFileId;
 use crate::utils::Id;
@@ -43,7 +43,7 @@ pub struct ModuleDefinition {
     pub ast: Option<Arc<ast::Module>>,
     pub name: Option<Name>,
     pub table: Arc<RwLock<SymTable>>,
-    pub is_pub: bool,
+    pub visibility: Visibility,
     pub parents: Vec<ModuleDefinitionId>,
     pub depth: usize,
 }
@@ -58,7 +58,7 @@ impl ModuleDefinition {
             parent_module_id: None,
             name,
             table: Arc::new(RwLock::new(SymTable::new())),
-            is_pub: true,
+            visibility: Visibility::Public,
             parents: Vec::new(),
             depth: 0,
         }
@@ -85,7 +85,7 @@ impl ModuleDefinition {
             parent_module_id: Some(parent_id),
             name: Some(ast.name),
             table: Arc::new(RwLock::new(SymTable::new())),
-            is_pub: ast.is_pub,
+            visibility: Visibility::from_ast(ast.is_pub),
             parents,
             depth,
         }

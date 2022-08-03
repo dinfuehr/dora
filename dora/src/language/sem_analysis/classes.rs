@@ -54,7 +54,7 @@ pub struct ClassDefinition {
     pub ty: Option<SourceType>,
     pub internal: bool,
     pub internal_resolved: bool,
-    pub is_pub: bool,
+    pub visibility: Visibility,
 
     pub fields: Vec<Field>,
 
@@ -86,7 +86,7 @@ impl ClassDefinition {
             ty: None,
             internal: ast.internal,
             internal_resolved: false,
-            is_pub: ast.is_pub,
+            visibility: Visibility::from_ast(ast.is_pub),
 
             fields: Vec::new(),
 
@@ -120,7 +120,7 @@ impl ClassDefinition {
             ty: None,
             internal: false,
             internal_resolved: false,
-            is_pub,
+            visibility: Visibility::from_ast(is_pub),
 
             fields,
 
@@ -199,7 +199,7 @@ impl ClassDefinition {
         }
 
         for field in &self.fields {
-            if !field.is_pub {
+            if !field.visibility.is_public() {
                 return false;
             }
         }
@@ -229,7 +229,7 @@ pub struct Field {
     pub name: Name,
     pub ty: SourceType,
     pub mutable: bool,
-    pub is_pub: bool,
+    pub visibility: Visibility,
 }
 
 impl Index<FieldId> for Vec<Field> {
@@ -520,5 +520,28 @@ pub struct TypeParamId(pub usize);
 impl TypeParamId {
     pub fn to_usize(self) -> usize {
         self.0
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum Visibility {
+    Public,
+    ModulePrivate,
+}
+
+impl Visibility {
+    pub fn from_ast(is_pub: bool) -> Visibility {
+        if is_pub {
+            Visibility::Public
+        } else {
+            Visibility::ModulePrivate
+        }
+    }
+
+    pub fn is_public(&self) -> bool {
+        match self {
+            Visibility::Public => true,
+            Visibility::ModulePrivate => false,
+        }
     }
 }

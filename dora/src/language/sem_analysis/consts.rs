@@ -5,7 +5,7 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
-    module_path, ModuleDefinitionId, PackageDefinitionId, SemAnalysis, SourceFileId,
+    module_path, ModuleDefinitionId, PackageDefinitionId, SemAnalysis, SourceFileId, Visibility,
 };
 use crate::language::ty::SourceType;
 use crate::utils::Id;
@@ -36,7 +36,7 @@ pub struct ConstDefinition {
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
     pub ast: Arc<ast::Const>,
-    pub is_pub: bool,
+    pub visibility: Visibility,
     pub pos: Position,
     pub name: Name,
     pub ty: SourceType,
@@ -59,7 +59,7 @@ impl ConstDefinition {
             ast: node.clone(),
             pos: node.pos,
             name: node.name,
-            is_pub: node.is_pub,
+            visibility: Visibility::from_ast(node.is_pub),
             ty: SourceType::Error,
             expr: node.expr.clone(),
             value: ConstValue::None,

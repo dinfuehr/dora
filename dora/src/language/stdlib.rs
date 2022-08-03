@@ -2,7 +2,7 @@ use crate::gc::Address;
 use crate::language::sem_analysis::{
     AnnotationDefinitionId, ClassDefinition, ClassDefinitionId, EnumDefinitionId,
     ExtensionDefinitionId, FctDefinitionId, Field, FieldId, Intrinsic, ModuleDefinition,
-    ModuleDefinitionId, SemAnalysis, StructDefinitionId, TraitDefinitionId,
+    ModuleDefinitionId, SemAnalysis, StructDefinitionId, TraitDefinitionId, Visibility,
 };
 use crate::language::sym::Sym;
 use crate::language::ty::SourceType;
@@ -244,7 +244,7 @@ pub fn create_lambda_class(sa: &mut SemAnalysis) {
         name: context_name,
         ty: SourceType::Ptr,
         mutable: false,
-        is_pub: true,
+        visibility: Visibility::Public,
     }];
 
     let class = ClassDefinition::new_without_source(

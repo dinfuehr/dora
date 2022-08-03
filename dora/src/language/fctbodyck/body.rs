@@ -17,7 +17,7 @@ use crate::language::sem_analysis::{
     ClassDefinitionId, ContextIdx, EnumDefinitionId, EnumVariant, FctDefinition, FctDefinitionId,
     FctParent, Field, FieldId, ForTypeInfo, IdentType, Intrinsic, ModuleDefinitionId, NestedVarId,
     PackageDefinitionId, SemAnalysis, SourceFileId, StructDefinition, StructDefinitionId,
-    TypeParamDefinition, TypeParamId, Var, VarAccess, VarId, VarLocation,
+    TypeParamDefinition, TypeParamId, Var, VarAccess, VarId, VarLocation, Visibility,
 };
 use crate::language::specialize::replace_type_param;
 use crate::language::sym::{ModuleSymTable, Sym};
@@ -134,7 +134,7 @@ impl<'a> TypeCheck<'a> {
                 name,
                 ty: SourceType::Ptr,
                 mutable: true,
-                is_pub: false,
+                visibility: Visibility::ModulePrivate,
             });
         }
 
@@ -163,7 +163,7 @@ impl<'a> TypeCheck<'a> {
                 name: var.name,
                 ty: var.ty.clone(),
                 mutable: true,
-                is_pub: false,
+                visibility: Visibility::ModulePrivate,
             });
         }
 

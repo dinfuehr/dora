@@ -10,7 +10,7 @@ use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
     module_path, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, SemAnalysis,
-    SourceFileId, TypeParamDefinition,
+    SourceFileId, TypeParamDefinition, Visibility,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;
@@ -46,7 +46,7 @@ pub struct TraitDefinition {
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
-    pub is_pub: bool,
+    pub visibility: Visibility,
     pub ast: Arc<ast::Trait>,
     pub pos: Position,
     pub name: Name,
@@ -70,7 +70,7 @@ impl TraitDefinition {
             module_id,
             file_id,
             ast: node.clone(),
-            is_pub: node.is_pub,
+            visibility: Visibility::from_ast(node.is_pub),
             pos: node.pos,
             name: node.name,
             is_trait_object: false,
