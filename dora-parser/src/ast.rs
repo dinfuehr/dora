@@ -2161,4 +2161,31 @@ pub struct ExprDotType {
     pub rhs: Box<Expr>,
 }
 
-pub type Visibility = bool;
+#[derive(Copy, Clone, Debug)]
+pub enum Visibility {
+    Public,
+    Default,
+}
+
+impl Visibility {
+    pub fn from_modifiers(modifiers: &Modifiers) -> Visibility {
+        if modifiers.contains(Modifier::Pub) {
+            Visibility::Public
+        } else {
+            Visibility::Default
+        }
+    }
+    pub fn is_public(self) -> bool {
+        match self {
+            Visibility::Public => true,
+            Visibility::Default => false,
+        }
+    }
+
+    pub fn is_default(self) -> bool {
+        match self {
+            Visibility::Public => false,
+            Visibility::Default => true,
+        }
+    }
+}

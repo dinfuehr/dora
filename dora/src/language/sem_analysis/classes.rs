@@ -526,22 +526,23 @@ impl TypeParamId {
 #[derive(Copy, Clone, Debug)]
 pub enum Visibility {
     Public,
-    ModulePrivate,
+    Module,
 }
 
 impl Visibility {
     pub fn from_ast(visibility: ast::Visibility) -> Visibility {
-        if visibility {
+        if visibility.is_public() {
             Visibility::Public
         } else {
-            Visibility::ModulePrivate
+            assert!(visibility.is_default());
+            Visibility::Module
         }
     }
 
     pub fn is_public(&self) -> bool {
         match self {
             Visibility::Public => true,
-            Visibility::ModulePrivate => false,
+            Visibility::Module => false,
         }
     }
 }

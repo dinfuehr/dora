@@ -300,7 +300,7 @@ impl<'a> Parser<'a> {
             name,
             type_params,
             variants,
-            visibility: modifiers.contains(Modifier::Pub),
+            visibility: Visibility::from_modifiers(modifiers),
         })
     }
 
@@ -333,7 +333,7 @@ impl<'a> Parser<'a> {
             span,
             name,
             elements,
-            visibility: modifiers.contains(Modifier::Pub),
+            visibility: Visibility::from_modifiers(modifiers),
         })
     }
 
@@ -378,7 +378,7 @@ impl<'a> Parser<'a> {
             name,
             data_type: ty,
             expr,
-            visibility: modifiers.contains(Modifier::Pub),
+            visibility: Visibility::from_modifiers(modifiers),
         })
     }
 
@@ -460,7 +460,7 @@ impl<'a> Parser<'a> {
             data_type,
             mutable,
             initializer: None,
-            visibility: modifiers.contains(Modifier::Pub),
+            visibility: Visibility::from_modifiers(modifiers),
         };
 
         if let Some(expr) = expr {
@@ -500,7 +500,7 @@ impl<'a> Parser<'a> {
             pos,
             span,
             methods,
-            visibility: modifiers.contains(Modifier::Pub),
+            visibility: Visibility::from_modifiers(modifiers),
         })
     }
 
@@ -532,7 +532,7 @@ impl<'a> Parser<'a> {
             pos,
             span,
             fields,
-            visibility: modifiers.contains(Modifier::Pub),
+            visibility: Visibility::from_modifiers(modifiers),
             internal: modifiers.contains(Modifier::Internal),
             type_params,
         })
@@ -558,7 +558,7 @@ impl<'a> Parser<'a> {
             pos,
             span,
             data_type: ty,
-            visibility: modifiers.contains(Modifier::Pub),
+            visibility: Visibility::from_modifiers(&modifiers),
         })
     }
 
@@ -591,7 +591,7 @@ impl<'a> Parser<'a> {
             pos,
             span,
             internal: modifiers.contains(Modifier::Internal),
-            visibility: modifiers.contains(Modifier::Pub),
+            visibility: Visibility::from_modifiers(modifiers),
             fields,
             type_params,
         })
@@ -620,7 +620,7 @@ impl<'a> Parser<'a> {
             primary_ctor: false,
             expr: None,
             mutable: true,
-            visibility: modifiers.contains(Modifier::Pub),
+            visibility: Visibility::from_modifiers(&modifiers),
         })
     }
 
@@ -699,7 +699,7 @@ impl<'a> Parser<'a> {
             name,
             span,
             ty,
-            visibility: modifiers.contains(Modifier::Pub),
+            visibility: Visibility::from_modifiers(modifiers),
         })
     }
 
@@ -825,7 +825,7 @@ impl<'a> Parser<'a> {
             span,
             method: self.in_class_or_module,
             is_optimize_immediately: modifiers.contains(Modifier::OptimizeImmediately),
-            visibility: modifiers.contains(Modifier::Pub),
+            visibility: Visibility::from_modifiers(modifiers),
             is_static: modifiers.contains(Modifier::Static),
             internal: modifiers.contains(Modifier::Internal),
             is_constructor: false,
@@ -1982,7 +1982,7 @@ impl<'a> Parser<'a> {
             span,
             method: self.in_class_or_module,
             is_optimize_immediately: false,
-            visibility: false,
+            visibility: Visibility::Default,
             is_static: false,
             internal: false,
             is_constructor: false,

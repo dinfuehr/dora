@@ -134,7 +134,7 @@ impl<'a> TypeCheck<'a> {
                 name,
                 ty: SourceType::Ptr,
                 mutable: true,
-                visibility: Visibility::ModulePrivate,
+                visibility: Visibility::Module,
             });
         }
 
@@ -163,7 +163,7 @@ impl<'a> TypeCheck<'a> {
                 name: var.name,
                 ty: var.ty.clone(),
                 mutable: true,
-                visibility: Visibility::ModulePrivate,
+                visibility: Visibility::Module,
             });
         }
 

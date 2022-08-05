@@ -62,7 +62,7 @@ pub fn class_field_accessible_from(
         if cls.visibility.is_public() && field.visibility.is_public() {
             Visibility::Public
         } else {
-            Visibility::ModulePrivate
+            Visibility::Module
         },
         module_id,
     )
@@ -138,7 +138,7 @@ pub fn struct_field_accessible_from(
         if struct_.visibility.is_public() && field.visibility.is_public() {
             Visibility::Public
         } else {
-            Visibility::ModulePrivate
+            Visibility::Module
         },
         module_id,
     )

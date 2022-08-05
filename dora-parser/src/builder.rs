@@ -51,7 +51,7 @@ impl Builder {
 pub struct BuilderFct {
     name: Name,
     is_method: bool,
-    is_public: bool,
+    visibility: Visibility,
     is_constructor: bool,
     return_type: Option<Type>,
     params: Vec<Param>,
@@ -63,7 +63,7 @@ impl<'a> BuilderFct {
         BuilderFct {
             name,
             is_method: false,
-            is_public: false,
+            visibility: Visibility::Public,
             is_constructor: false,
             return_type: None,
             params: Vec::new(),
@@ -85,7 +85,7 @@ impl<'a> BuilderFct {
             name: self.name,
             method: self.is_method,
             is_optimize_immediately: false,
-            visibility: self.is_public,
+            visibility: self.visibility,
             is_static: false,
             internal: false,
             is_constructor: self.is_constructor,
