@@ -219,7 +219,7 @@ pub struct Global {
     pub mutable: bool,
     pub data_type: Type,
     pub initializer: Option<Arc<Function>>,
-    pub is_pub: bool,
+    pub visibility: Visibility,
 }
 
 #[derive(Clone, Debug)]
@@ -229,7 +229,7 @@ pub struct Module {
     pub span: Span,
     pub name: Name,
     pub elements: Option<Vec<Elem>>,
-    pub is_pub: bool,
+    pub visibility: Visibility,
 }
 
 #[derive(Clone, Debug)]
@@ -285,7 +285,7 @@ pub struct Const {
     pub name: Name,
     pub data_type: Type,
     pub expr: Box<Expr>,
-    pub is_pub: bool,
+    pub visibility: Visibility,
 }
 
 #[derive(Clone, Debug)]
@@ -296,7 +296,7 @@ pub struct Enum {
     pub name: Name,
     pub type_params: Option<Vec<TypeParam>>,
     pub variants: Vec<EnumVariant>,
-    pub is_pub: bool,
+    pub visibility: Visibility,
 }
 
 #[derive(Clone, Debug)]
@@ -315,7 +315,7 @@ pub struct Alias {
     pub span: Span,
     pub name: Name,
     pub ty: Type,
-    pub is_pub: bool,
+    pub visibility: Visibility,
 }
 
 #[derive(Clone, Debug)]
@@ -325,7 +325,7 @@ pub struct Struct {
     pub span: Span,
     pub name: Name,
     pub fields: Vec<StructField>,
-    pub is_pub: bool,
+    pub visibility: Visibility,
     pub internal: bool,
     pub type_params: Option<Vec<TypeParam>>,
 }
@@ -337,7 +337,7 @@ pub struct StructField {
     pub pos: Position,
     pub span: Span,
     pub data_type: Type,
-    pub is_pub: bool,
+    pub visibility: Visibility,
 }
 
 #[derive(Clone, Debug)]
@@ -528,7 +528,7 @@ pub struct Trait {
     pub pos: Position,
     pub span: Span,
     pub methods: Vec<Arc<Function>>,
-    pub is_pub: bool,
+    pub visibility: Visibility,
 }
 
 #[derive(Clone, Debug)]
@@ -538,7 +538,7 @@ pub struct Class {
     pub pos: Position,
     pub span: Span,
     pub internal: bool,
-    pub is_pub: bool,
+    pub visibility: Visibility,
 
     pub fields: Vec<Field>,
     pub type_params: Option<Vec<TypeParam>>,
@@ -593,7 +593,7 @@ pub struct Field {
     pub primary_ctor: bool,
     pub expr: Option<Box<Expr>>,
     pub mutable: bool,
-    pub is_pub: bool,
+    pub visibility: Visibility,
 }
 
 #[derive(Clone, Debug)]
@@ -620,7 +620,7 @@ pub struct Function {
     pub span: Span,
     pub method: bool,
     pub is_optimize_immediately: bool,
-    pub is_pub: bool,
+    pub visibility: Visibility,
     pub is_static: bool,
     pub is_test: bool,
     pub internal: bool,
@@ -2160,3 +2160,5 @@ pub struct ExprDotType {
     pub lhs: Box<Expr>,
     pub rhs: Box<Expr>,
 }
+
+pub type Visibility = bool;

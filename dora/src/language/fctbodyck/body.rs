@@ -178,7 +178,7 @@ impl<'a> TypeCheck<'a> {
             Some(self.file_id),
             Some(self.ast.pos),
             name,
-            self.ast.is_pub,
+            Visibility::from_ast(self.ast.visibility),
             fields,
         );
         class.type_params = Some(self.fct.type_params.clone());

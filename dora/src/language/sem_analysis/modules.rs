@@ -85,7 +85,7 @@ impl ModuleDefinition {
             parent_module_id: Some(parent_id),
             name: Some(ast.name),
             table: Arc::new(RwLock::new(SymTable::new())),
-            visibility: Visibility::from_ast(ast.is_pub),
+            visibility: Visibility::from_ast(ast.visibility),
             parents,
             depth,
         }

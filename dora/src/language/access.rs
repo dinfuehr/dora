@@ -135,7 +135,7 @@ pub fn struct_field_accessible_from(
     accessible_from(
         sa,
         struct_.module_id,
-        if struct_.visibility.is_public() && field.is_pub {
+        if struct_.visibility.is_public() && field.visibility.is_public() {
             Visibility::Public
         } else {
             Visibility::ModulePrivate

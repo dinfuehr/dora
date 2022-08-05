@@ -89,7 +89,7 @@ impl FctDefinition {
             return_type: SourceType::Error,
             parent,
             is_optimize_immediately: ast.is_optimize_immediately,
-            visibility: Visibility::from_ast(ast.is_pub),
+            visibility: Visibility::from_ast(ast.visibility),
             is_static: ast.is_static,
             is_test: ast.is_test,
             internal: ast.internal,

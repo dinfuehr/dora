@@ -70,7 +70,7 @@ impl GlobalDefinition {
             ast: node.clone(),
             pos: node.pos,
             name: node.name,
-            visibility: Visibility::from_ast(node.is_pub),
+            visibility: Visibility::from_ast(node.visibility),
             ty: SourceType::Unit,
             mutable: node.mutable,
             initializer: None,

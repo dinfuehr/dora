@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use crate::language::error::msg::ErrorMessage;
 use crate::language::sem_analysis::{
     ModuleDefinitionId, SemAnalysis, SourceFileId, StructDefinitionField, StructDefinitionFieldId,
-    StructDefinitionId,
+    StructDefinitionId, Visibility,
 };
 use crate::language::sym::{ModuleSymTable, Sym};
 use crate::language::ty::SourceType;
@@ -96,7 +96,7 @@ impl<'x> StructCheck<'x> {
             pos: f.pos,
             name: f.name,
             ty,
-            is_pub: f.is_pub,
+            visibility: Visibility::from_ast(f.visibility),
         };
 
         struct_.fields.push(field);

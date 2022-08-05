@@ -76,7 +76,7 @@ impl<'x> ClsDefCheck<'x> {
             AllowSelf::No,
         )
         .unwrap_or(SourceType::Error);
-        self.add_field(f.pos, f.name, ty, f.mutable, f.is_pub);
+        self.add_field(f.pos, f.name, ty, f.mutable, f.visibility);
     }
 
     fn add_field(
@@ -85,7 +85,7 @@ impl<'x> ClsDefCheck<'x> {
         name: Name,
         ty: SourceType,
         mutable: bool,
-        is_pub: bool,
+        visibility: ast::Visibility,
     ) {
         let cls = self.sa.classes.idx(self.cls_id);
         let mut cls = cls.write();
@@ -97,7 +97,7 @@ impl<'x> ClsDefCheck<'x> {
             name,
             ty,
             mutable,
-            visibility: Visibility::from_ast(is_pub),
+            visibility: Visibility::from_ast(visibility),
         };
 
         self.check_if_symbol_exists(name, pos);

@@ -73,7 +73,7 @@ impl StructDefinition {
             file_id,
             ast: node.clone(),
             primitive_ty: None,
-            visibility: Visibility::from_ast(node.is_pub),
+            visibility: Visibility::from_ast(node.visibility),
             pos: node.pos,
             name: node.name,
             internal: node.internal,
@@ -135,7 +135,7 @@ impl StructDefinition {
         }
 
         for field in &self.fields {
-            if !field.is_pub {
+            if field.visibility.is_public() {
                 return false;
             }
         }
@@ -165,7 +165,7 @@ pub struct StructDefinitionField {
     pub pos: Position,
     pub name: Name,
     pub ty: SourceType,
-    pub is_pub: bool,
+    pub visibility: Visibility,
 }
 
 pub fn find_methods_in_struct(

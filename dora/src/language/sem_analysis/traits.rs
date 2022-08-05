@@ -70,7 +70,7 @@ impl TraitDefinition {
             module_id,
             file_id,
             ast: node.clone(),
-            visibility: Visibility::from_ast(node.is_pub),
+            visibility: Visibility::from_ast(node.visibility),
             pos: node.pos,
             name: node.name,
             is_trait_object: false,

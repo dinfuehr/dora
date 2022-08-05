@@ -253,7 +253,7 @@ pub fn create_lambda_class(sa: &mut SemAnalysis) {
         None,
         None,
         class_name,
-        true,
+        Visibility::Public,
         fields,
     );
     let class_id = sa.classes.push(class);

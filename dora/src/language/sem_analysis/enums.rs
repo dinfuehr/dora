@@ -73,7 +73,7 @@ impl EnumDefinition {
             pos: node.pos,
             name: node.name,
             type_params: None,
-            visibility: Visibility::from_ast(node.is_pub),
+            visibility: Visibility::from_ast(node.visibility),
             variants: Vec::new(),
             name_to_value: HashMap::new(),
             impls: Vec::new(),

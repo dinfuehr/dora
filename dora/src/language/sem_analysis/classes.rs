@@ -86,7 +86,7 @@ impl ClassDefinition {
             ty: None,
             internal: ast.internal,
             internal_resolved: false,
-            visibility: Visibility::from_ast(ast.is_pub),
+            visibility: Visibility::from_ast(ast.visibility),
 
             fields: Vec::new(),
 
@@ -106,7 +106,7 @@ impl ClassDefinition {
         file_id: Option<SourceFileId>,
         pos: Option<Position>,
         name: Name,
-        is_pub: bool,
+        visibility: Visibility,
         fields: Vec<Field>,
     ) -> ClassDefinition {
         ClassDefinition {
@@ -120,7 +120,7 @@ impl ClassDefinition {
             ty: None,
             internal: false,
             internal_resolved: false,
-            visibility: Visibility::from_ast(is_pub),
+            visibility,
 
             fields,
 
@@ -530,8 +530,8 @@ pub enum Visibility {
 }
 
 impl Visibility {
-    pub fn from_ast(is_pub: bool) -> Visibility {
-        if is_pub {
+    pub fn from_ast(visibility: ast::Visibility) -> Visibility {
+        if visibility {
             Visibility::Public
         } else {
             Visibility::ModulePrivate
