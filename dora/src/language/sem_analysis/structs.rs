@@ -135,7 +135,7 @@ impl StructDefinition {
         }
 
         for field in &self.fields {
-            if field.visibility.is_public() {
+            if !field.visibility.is_public() {
                 return false;
             }
         }
