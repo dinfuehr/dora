@@ -57,9 +57,6 @@ Options:
     --max-heap-size=<SIZE>  Set maximum heap size.
     --code-size=<SIZE>      Set code size limit.
     --perm-size=<SIZE>      Set perm size limit.
-
-    --stdlib=<path>         Load standard library from the given path.
-    --boots=<path>          Load boots source from the given path.
 ";
 
 #[derive(Debug)]
@@ -103,8 +100,6 @@ pub struct Args {
     pub flag_check: bool,
     pub flag_disable_tlab: bool,
     pub flag_disable_barrier: bool,
-    pub flag_stdlib: Option<String>,
-    pub flag_boots: Option<String>,
     pub flag_test_filter: Option<String>,
     pub packages: Vec<(String, PathBuf)>,
 
@@ -208,8 +203,6 @@ impl Default for Args {
             flag_check: false,
             flag_disable_tlab: false,
             flag_disable_barrier: false,
-            flag_stdlib: None,
-            flag_boots: None,
             flag_test_filter: None,
             packages: Vec::new(),
 
@@ -388,10 +381,6 @@ pub fn parse_arguments() -> Result<Args, String> {
             args.flag_code_size = Some(argument_mem_size(arg)?);
         } else if arg.starts_with("--readonly-size=") {
             args.flag_readonly_size = Some(argument_mem_size(arg)?);
-        } else if arg.starts_with("--stdlib=") {
-            args.flag_stdlib = Some(argument_value(arg).to_string());
-        } else if arg.starts_with("--boots=") {
-            args.flag_boots = Some(argument_value(arg).to_string());
         } else if arg == "--package" {
             if idx + 2 >= cli_arguments.len() {
                 return Err("--package needs two arguments".into());

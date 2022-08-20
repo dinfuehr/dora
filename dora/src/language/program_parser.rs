@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::fs;
 use std::io::{Error, Read};
 use std::path::{Path, PathBuf};
@@ -34,6 +34,7 @@ enum FileLookup {
 struct ProgramParser<'a> {
     sa: &'a mut SemAnalysis,
     files_to_parse: VecDeque<(SourceFileId, FileLookup, Option<PathBuf>)>,
+    packages: HashMap<String, PathBuf>,
 }
 
 impl<'a> ProgramParser<'a> {
@@ -41,33 +42,50 @@ impl<'a> ProgramParser<'a> {
         ProgramParser {
             sa,
             files_to_parse: VecDeque::new(),
+            packages: HashMap::new(),
         }
     }
 
     fn parse_all(&mut self) {
-        self.add_initial_files();
+        self.prepare_packages();
+        self.add_all_packages();
 
         while let Some((file_id, file_lookup, module_path)) = self.files_to_parse.pop_front() {
             self.parse_file(file_id, file_lookup, module_path);
         }
     }
 
-    fn add_initial_files(&mut self) {
-        self.add_stdlib_files();
-        self.add_boots_files();
-        self.add_program_files();
-        self.add_package_files();
+    fn prepare_packages(&mut self) {
+        for (name, file) in &self.sa.args.packages {
+            if self.packages.contains_key(name) {
+                self.sa
+                    .diag
+                    .lock()
+                    .report_without_location(ErrorMessage::PackageAlreadyExists(name.clone()));
+            } else {
+                let result = self.packages.insert(name.into(), file.clone());
+                assert!(result.is_none());
+            }
+        }
     }
 
-    fn add_stdlib_files(&mut self) {
-        let stdlib_name = self.sa.interner.intern("std");
-        let (package_id, module_id) = self.sa.add_package(PackageName::Stdlib, Some(stdlib_name));
+    fn add_all_packages(&mut self) {
+        self.add_stdlib_package();
+        self.add_boots_package();
+        self.add_program_package();
+        self.add_dependency_packages();
+    }
+
+    fn add_stdlib_package(&mut self) {
+        let stdlib_name = "std";
+        let stdlib_name_interned = self.sa.interner.intern(stdlib_name);
+        let (package_id, module_id) = self
+            .sa
+            .add_package(PackageName::Stdlib, Some(stdlib_name_interned));
         self.sa.set_stdlib_module_id(module_id);
         self.sa.set_stdlib_package_id(package_id);
 
-        let stdlib_dir = self.sa.args.flag_stdlib.clone();
-
-        if let Some(stdlib) = stdlib_dir {
+        if let Some(stdlib) = self.packages.remove(stdlib_name) {
             self.add_file_from_filesystem(package_id, module_id, PathBuf::from(stdlib));
         } else {
             let stdlib_file = format!("stdlib{}stdlib.dora", std::path::MAIN_SEPARATOR);
@@ -110,11 +128,10 @@ impl<'a> ProgramParser<'a> {
         panic!("can't find file {} in bundle.", path.display())
     }
 
-    fn add_boots_files(&mut self) {
-        let boots_path = self.sa.args.flag_boots.clone();
-
-        if let Some(boots_path) = boots_path {
-            let boots_name = self.sa.interner.intern("boots");
+    fn add_boots_package(&mut self) {
+        let boots_name = "boots";
+        if let Some(boots_path) = self.packages.remove(boots_name) {
+            let boots_name = self.sa.interner.intern(boots_name);
             let (package_id, module_id) = self.sa.add_package(PackageName::Boots, Some(boots_name));
             self.sa.set_boots_module_id(module_id);
             self.sa.set_boots_package_id(package_id);
@@ -122,7 +139,7 @@ impl<'a> ProgramParser<'a> {
         }
     }
 
-    fn add_program_files(&mut self) {
+    fn add_program_package(&mut self) {
         let (package_id, module_id) = self.sa.add_package(PackageName::Program, None);
         self.sa.set_program_module_id(module_id);
         self.sa.set_program_package_id(package_id);
@@ -152,8 +169,8 @@ impl<'a> ProgramParser<'a> {
         }
     }
 
-    fn add_package_files(&mut self) {
-        let packages = self.sa.args.packages.clone();
+    fn add_dependency_packages(&mut self) {
+        let packages = std::mem::replace(&mut self.packages, HashMap::new());
 
         for (name, path) in packages {
             let iname = self.sa.interner.intern(&name);

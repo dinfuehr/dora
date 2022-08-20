@@ -676,7 +676,7 @@ def parse_test_file(file)
         test_case.vm_args = arguments[1..-1].join(" ")
 
       when "boots"
-        test_case.vm_args += '--boots=dora-boots/boots.dora --gc-verify'
+        test_case.vm_args += '--package boots dora-boots/boots.dora --gc-verify'
 
       when "timeout"
         test_case.timeout = arguments[1].to_i

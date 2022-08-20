@@ -165,6 +165,7 @@ pub enum ErrorMessage {
     FileDoesNotExist(PathBuf),
     Custom(String),
     MissingFileArgument,
+    PackageAlreadyExists(String),
 }
 
 impl ErrorMessage {
@@ -592,6 +593,9 @@ impl ErrorMessage {
             }
             ErrorMessage::Custom(ref msg) => msg.clone(),
             ErrorMessage::MissingFileArgument => format!("no file argument given."),
+            ErrorMessage::PackageAlreadyExists(ref name) => {
+                format!("A package with name `{}` already exists.", name)
+            }
         }
     }
 }

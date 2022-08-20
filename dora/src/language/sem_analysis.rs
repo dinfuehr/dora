@@ -299,6 +299,10 @@ impl SemAnalysis {
         self.boots_package_id = Some(package_id);
     }
 
+    pub fn has_boots_package(&mut self) -> bool {
+        self.boots_package_id.is_some()
+    }
+
     pub fn add_package(
         &mut self,
         package_name: PackageName,
