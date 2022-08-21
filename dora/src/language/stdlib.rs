@@ -163,9 +163,6 @@ pub fn fill_prelude(sa: &mut SemAnalysis) {
         assert!(old_sym.is_none());
     }
 
-    let stdlib_name = sa.interner.intern("std");
-    prelude.insert(stdlib_name, Sym::Module(stdlib_id));
-
     {
         // include None and Some from Option
         let enum_id = resolve_name(sa, "primitives::Option", stdlib_id)
@@ -193,6 +190,17 @@ pub fn fill_prelude(sa: &mut SemAnalysis) {
         for variant in &enum_.variants {
             let old_sym = prelude.insert(variant.name, Sym::EnumVariant(enum_id, variant.id));
             assert!(old_sym.is_none());
+        }
+    }
+
+    let stdlib_name = sa.interner.intern("std");
+    prelude.insert(stdlib_name, Sym::Module(stdlib_id));
+
+    for package in sa.packages.iter() {
+        let package = package.read();
+
+        if let Some(name) = package.iname() {
+            prelude.insert(name, Sym::Module(package.top_level_module_id()));
         }
     }
 }

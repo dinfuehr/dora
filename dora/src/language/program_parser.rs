@@ -174,7 +174,7 @@ impl<'a> ProgramParser<'a> {
 
         for (name, path) in packages {
             let iname = self.sa.interner.intern(&name);
-            let package_name = PackageName::External(name);
+            let package_name = PackageName::External(iname);
             let (package_id, module_id) = self.sa.add_package(package_name, Some(iname));
             self.sa.package_names.insert(iname, package_id);
 

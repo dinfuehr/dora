@@ -1,3 +1,5 @@
+use dora_parser::interner::Name;
+
 use crate::language::sem_analysis::ModuleDefinitionId;
 use crate::utils::Id;
 
@@ -42,6 +44,13 @@ impl PackageDefinition {
         }
     }
 
+    pub fn iname(&self) -> Option<Name> {
+        match self.name {
+            PackageName::External(name) => Some(name),
+            _ => None,
+        }
+    }
+
     pub fn top_level_module_id(&self) -> ModuleDefinitionId {
         self.top_level_module_id.expect("uninitialized module id")
     }
@@ -52,5 +61,5 @@ pub enum PackageName {
     Stdlib,
     Boots,
     Program,
-    External(String),
+    External(Name),
 }
