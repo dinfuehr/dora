@@ -1249,15 +1249,6 @@ impl<'a> TypeCheck<'a> {
             ast::BinOp::BitXor => {
                 self.check_expr_bin_method(e, e.op, "bitwiseXor", lhs_type, rhs_type)
             }
-            ast::BinOp::ShiftL => {
-                self.check_expr_bin_method(e, e.op, "shiftLeft", lhs_type, rhs_type)
-            }
-            ast::BinOp::ArithShiftR => {
-                self.check_expr_bin_method(e, e.op, "shiftRightSigned", lhs_type, rhs_type)
-            }
-            ast::BinOp::LogicalShiftR => {
-                self.check_expr_bin_method(e, e.op, "shiftRight", lhs_type, rhs_type)
-            }
             ast::BinOp::Assign => unreachable!(),
         }
     }

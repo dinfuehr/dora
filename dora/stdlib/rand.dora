@@ -17,7 +17,7 @@ impl Random {
 
     if (bound & bound_minus_1) == 0i32 {
       let num = self.nextInt31().toInt64();
-      return ((bound.toInt64().wrappingMul(num)) >>> 31i32).toInt32();
+      return (bound.toInt64().wrappingMul(num)).shiftRight(31i32).toInt32();
     }
 
     let mut modulo = 0i32;
@@ -36,7 +36,7 @@ impl Random {
 
   @pub fn nextInt32(): Int32 {
     self.seed = self.seed.wrappingMul(RANDOM_MULTIPLIER).wrappingAdd(RANDOM_INCREMENT) & RANDOM_MASK;
-    return (self.seed >>> 16i32).toInt32();
+    return self.seed.shiftRight(16i32).toInt32();
   }
 
   @pub fn nextInt31(): Int32 {
@@ -47,6 +47,6 @@ impl Random {
     let w1 = self.nextInt32();
     let w2 = self.nextInt32();
 
-    return (w1.toInt64() << 32i32) | w2.toInt64();
+    return (w1.toInt64().shiftLeft(32i32)) | w2.toInt64();
   }
 }

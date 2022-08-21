@@ -169,16 +169,16 @@ impl Char {
     if val < 0x80i32 {
       bytes.set(offset, val.toUInt8());
     } else if val < 0x800i32 {
-      bytes.set(offset, (0xC0i32 | ((val >> 6i32) & 0x1Fi32)).toUInt8());
+      bytes.set(offset, (0xC0i32 | (val.shiftRightSigned(6i32) & 0x1Fi32)).toUInt8());
       bytes.set(offset+1i64, (0x80i32 | (val & 0x3Fi32)).toUInt8());
     } else if val < 0x10000i32 {
-      bytes.set(offset, (0xE0i32 | ((val >> 12i32) & 0x0Fi32)).toUInt8());
-      bytes.set(offset+1i64, (0x80i32 | ((val >> 6i32) & 0x3Fi32)).toUInt8());
+      bytes.set(offset, (0xE0i32 | (val.shiftRightSigned(12i32) & 0x0Fi32)).toUInt8());
+      bytes.set(offset+1i64, (0x80i32 | (val.shiftRightSigned(6i32) & 0x3Fi32)).toUInt8());
       bytes.set(offset+2i64, (0x80i32 | (val & 0x3Fi32)).toUInt8());
     } else {
-      bytes.set(offset, (0xF0i32 | ((val >> 18i32) & 0x07i32)).toUInt8());
-      bytes.set(offset+1i64, (0x80i32 | ((val >> 12i32) & 0x3Fi32)).toUInt8());
-      bytes.set(offset+2i64, (0x80i32 | ((val >> 6i32) & 0x3Fi32)).toUInt8());
+      bytes.set(offset, (0xF0i32 | (val.shiftRightSigned(18i32) & 0x07i32)).toUInt8());
+      bytes.set(offset+1i64, (0x80i32 | (val.shiftRightSigned(12i32) & 0x3Fi32)).toUInt8());
+      bytes.set(offset+2i64, (0x80i32 | (val.shiftRightSigned(6i32) & 0x3Fi32)).toUInt8());
       bytes.set(offset+3i64, (0x80i32 | (val & 0x3Fi32)).toUInt8());
     }
   }

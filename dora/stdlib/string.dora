@@ -385,23 +385,23 @@ impl CodepointIterator {
     }
 
     if ch <= 0xDFu8 {
-      let cp = (ch.toInt32() & 0x1Fi32) << 6i32 | (self.value.getByte(self.start + 1i64).toInt32() & 0x3Fi32);
+      let cp = (ch.toInt32() & 0x1Fi32).shiftLeft(6i32) | (self.value.getByte(self.start + 1i64).toInt32() & 0x3Fi32);
       self.start = self.start + 2i64;
       return cp.toCharUnchecked();
     }
 
     if ch <= 0xEFu8 {
-      let cp = (ch.toInt32() & 0xFi32) << 12i32 |
-            (self.value.getByte(self.start + 1i64).toInt32() & 0x3Fi32) << 6i32 |
+      let cp = (ch.toInt32() & 0xFi32).shiftLeft(12i32) |
+            (self.value.getByte(self.start + 1i64).toInt32() & 0x3Fi32).shiftLeft(6i32) |
             (self.value.getByte(self.start + 2i64).toInt32() & 0x3Fi32);
       self.start = self.start + 3i64;
       return cp.toCharUnchecked();
     }
 
     if ch <= 0xF7u8 {
-      let cp = (ch.toInt32() & 0x03i32) << 18i32 |
-            (self.value.getByte(self.start + 1i64).toInt32() & 0x3Fi32) << 12i32 |
-            (self.value.getByte(self.start + 2i64).toInt32() & 0x3Fi32) << 6i32 |
+      let cp = (ch.toInt32() & 0x03i32).shiftLeft(18i32) |
+            (self.value.getByte(self.start + 1i64).toInt32() & 0x3Fi32).shiftLeft(12i32) |
+            (self.value.getByte(self.start + 2i64).toInt32() & 0x3Fi32).shiftLeft(6i32) |
             (self.value.getByte(self.start + 3i64).toInt32() & 0x3Fi32);
       self.start = self.start + 4i64;
       return cp.toCharUnchecked();
@@ -423,21 +423,21 @@ impl CodepointIterator {
     }
 
     if ch <= 0xDFu8 {
-      let cp = (ch.toInt32() & 0x1Fi32) << 6i32 | (self.value.getByte(self.start + 1i64).toInt32() & 0x3Fi32);
+      let cp = (ch.toInt32() & 0x1Fi32).shiftLeft(6i32) | (self.value.getByte(self.start + 1i64).toInt32() & 0x3Fi32);
       return cp.toCharUnchecked();
     }
 
     if ch <= 0xEFu8 {
-      let cp = (ch.toInt32() & 0xFi32) << 12i32 |
-            (self.value.getByte(self.start + 1i64).toInt32() & 0x3Fi32) << 6i32 |
+      let cp = (ch.toInt32() & 0xFi32).shiftLeft(12i32) |
+            (self.value.getByte(self.start + 1i64).toInt32() & 0x3Fi32).shiftLeft(6i32) |
             (self.value.getByte(self.start + 2i64).toInt32() & 0x3Fi32);
       return cp.toCharUnchecked();
     }
 
     if ch <= 0xF7u8 {
-      let cp = (ch.toInt32() & 0x03i32) << 18i32 |
-            (self.value.getByte(self.start + 1i64).toInt32() & 0x3Fi32) << 12i32 |
-            (self.value.getByte(self.start + 2i64).toInt32() & 0x3Fi32) << 6i32 |
+      let cp = (ch.toInt32() & 0x03i32).shiftLeft(18i32) |
+            (self.value.getByte(self.start + 1i64).toInt32() & 0x3Fi32).shiftLeft(12i32) |
+            (self.value.getByte(self.start + 2i64).toInt32() & 0x3Fi32).shiftLeft(6i32) |
             (self.value.getByte(self.start + 3i64).toInt32() & 0x3Fi32);
       return cp.toCharUnchecked();
     }

@@ -35,7 +35,7 @@ impl BytecodeFunction {
         let byte3 = self.codeAt(idx+2i32);
         let byte4 = self.codeAt(idx+3i32);
 
-        (byte4 << 24i32) | (byte3 << 16i32) | (byte2 << 8i32) | byte1
+        byte4.shiftLeft(24i32) | byte3.shiftLeft(16i32) | byte2.shiftLeft(8i32) | byte1
     }
 }
 

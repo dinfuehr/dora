@@ -1194,14 +1194,14 @@ impl AssemblerX64 {
         // r - extension of modrm-reg field
         // x - extension of sib index field
         // b - extension of modrm-rm/sib base/opcode reg field
-        let opcode = 0x40i32 | w.toInt32() << 3i32 | r.toInt32() << 2i32 | x.toInt32() << 1i32 | b.toInt32();
+        let opcode = 0x40i32 | w.toInt32().shiftLeft(3i32) | r.toInt32().shiftLeft(2i32) | x.toInt32().shiftLeft(1i32) | b.toInt32();
         self.emitByte(opcode.toUInt8());
     }
 
     fn emitAddress(reg_or_opcode: Int32, address: Address) {
         assert(reg_or_opcode < 8i32);
 
-        self.emitByte((reg_or_opcode << 3i32 | address.bytes(0i64).toInt32()).toUInt8());
+        self.emitByte((reg_or_opcode.shiftLeft(3i32) | address.bytes(0i64).toInt32()).toUInt8());
 
         let mut i = 1i64;
 
@@ -1225,14 +1225,14 @@ impl AssemblerX64 {
 
     fn emitModRm(mode: Int32, reg: Int32, rm: Int32) {
         assert(mode < 4i32 && reg < 8i32 && rm < 8i32);
-        self.emitByte((mode << 6i32 | reg << 3i32 | rm).toUInt8());
+        self.emitByte((mode.shiftLeft(6i32) | reg.shiftLeft(3i32) | rm).toUInt8());
     }
 
     fn emitSib(scale: Int32, index: Int32, base: Int32) {
         assert(scale < 4i32);
         assert(index < 8i32);
         assert(base < 8i32);
-        self.emitByte((scale << 6i32 | index << 3i32 | base).toUInt8());
+        self.emitByte((scale.shiftLeft(6i32) | index.shiftLeft(3i32) | base).toUInt8());
     }
 
     fn emitByte(value: UInt8) {
@@ -1388,7 +1388,7 @@ struct Immediate(value: Int64)
 
 impl Immediate {
     fn isInt8(): Bool {
-        let limit = 1i64 << 7i32;
+        let limit = 1i64.shiftLeft(7i32);
         -limit <= self.value && self.value < limit
     }
 
@@ -1397,12 +1397,12 @@ impl Immediate {
     }
 
     fn isInt32(): Bool {
-        let limit = 1i64 << 32i32;
+        let limit = 1i64.shiftLeft(32i32);
         -limit <= self.value && self.value < limit
     }
 
     fn isUInt32(): Bool {
-        let limit = 1i64 << 32i32;
+        let limit = 1i64.shiftLeft(32i32);
         0i64 <= self.value && self.value < limit
     }
 
@@ -1461,7 +1461,7 @@ impl Address {
             self.rex = (self.rex.toInt32() | 0x41i32).toUInt8();
         }
 
-        self.bytes(0i64) = (mode << 6i32 | reg.lowBits()).toUInt8();
+        self.bytes(0i64) = (mode.shiftLeft(6i32) | reg.lowBits()).toUInt8();
         self.length = self.length + 1i64;
     }
 
@@ -1476,7 +1476,7 @@ impl Address {
             self.rex = (self.rex.toInt32() | 0x42i32).toUInt8();
         }
 
-        self.bytes(1i64) = (scale.value() << 6i32 | index.lowBits() << 3i32 | base.lowBits()).toUInt8();
+        self.bytes(1i64) = (scale.value().shiftLeft(6i32) | index.lowBits().shiftLeft(3i32) | base.lowBits()).toUInt8();
         self.length = self.length + 1i64;
     }
 
@@ -1489,9 +1489,9 @@ impl Address {
     fn set_disp32(imm: Int32) {
         assert(self.length == 1i64 || self.length == 2i64);
         self.bytes(self.length) = imm.toUInt8();
-        self.bytes(self.length + 1i64) = (imm >> 8i32).toUInt8();
-        self.bytes(self.length + 2i64) = (imm >> 16i32).toUInt8();
-        self.bytes(self.length + 3i64) = (imm >> 24i32).toUInt8();
+        self.bytes(self.length + 1i64) = imm.shiftRightSigned(8i32).toUInt8();
+        self.bytes(self.length + 2i64) = imm.shiftRightSigned(16i32).toUInt8();
+        self.bytes(self.length + 3i64) = imm.shiftRightSigned(24i32).toUInt8();
         self.length = self.length + 4i64;
     }
 
@@ -2229,7 +2229,7 @@ fn testAsmMovqai() {
 fn testAsmMovlai() {
     let asm = AssemblerX64::new();
     asm.movlai(Address::offset(RAX, 0i32), Immediate(1i64));
-    asm.movlai(Address::offset(R8, 0i32), Immediate((1i64 << 32i32) - 1i64));
+    asm.movlai(Address::offset(R8, 0i32), Immediate(1i64.shiftLeft(32i32) - 1i64));
     asm.movlai(Address::offset(RDI, 0i32), Immediate(Int32::maxValue().toInt64()));
     asm.movlai(Address::offset(R15, 0i32), Immediate(Int32::minValue().toInt64()));
 

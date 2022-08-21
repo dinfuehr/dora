@@ -212,7 +212,7 @@ mod clsx {
         assert(fitsUnsigned(op, 1i32));
         assert(fitsSigned(imm26, 26i32));
 
-        0b101i32 << 26i32 | op << 31i32 | (imm26 & 0x3FFFFFFi32)
+        0b101i32.shiftLeft(26i32) | op.shiftLeft(31i32) | (imm26 & 0x3FFFFFFi32)
     }
 
     @pub fn uncondBranchReg(opc: Int32, op2: Int32, op3: Int32, rn: Register, op4: Int32): Int32 {
@@ -222,7 +222,7 @@ mod clsx {
         assert(rn.isGpr());
         assert(fitsUnsigned(op4, 5i32));
 
-        0b1101011i32 << 25i32 | opc << 21i32 | op2 << 16i32 | op3 << 10i32 | rn.encoding() << 5i32 | op4
+        0b1101011i32.shiftLeft(25i32) | opc.shiftLeft(21i32) | op2.shiftLeft(16i32) | op3.shiftLeft(10i32) | rn.encoding().shiftLeft(5i32) | op4
     }
 
     fn fitsBit(value: Int32): Bool {
@@ -231,12 +231,12 @@ mod clsx {
 
     fn fitsSigned(value: Int32, bits: Int32): Bool {
         assert(bits > 0i32 && bits < 32i32);
-        -(1i32 << (bits - 1i32)) <= value && value < (1i32 << (bits - 1i32))
+        -(1i32.shiftLeft(bits - 1i32)) <= value && value < (1i32.shiftLeft(bits - 1i32))
     }
 
     fn fitsUnsigned(value: Int32, bits: Int32): Bool {
         assert(bits > 0i32 && bits < 32i32);
-        value >= 0i32 && value < (1i32 << bits)
+        value >= 0i32 && value < 1i32.shiftLeft(bits)
     }
 }
 

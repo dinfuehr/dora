@@ -1,25 +1,25 @@
 fn main() {
-  assert(8i32 == 8i32 >> 0i32);
-  assert(4i32 == 8i32 >> 1i32);
-  assert(2i32 == 8i32 >> 2i32);
-  assert(1i32 == 8i32 >> 3i32);
-  assert(0i32 == 8i32 >> 4i32);
+  assert(8i32 == 8i32.shiftRightSigned(0i32));
+  assert(4i32 == 8i32.shiftRightSigned(1i32));
+  assert(2i32 == 8i32.shiftRightSigned(2i32));
+  assert(1i32 == 8i32.shiftRightSigned(3i32));
+  assert(0i32 == 8i32.shiftRightSigned(4i32));
 
-  assert(-8i32 == -8i32 >> 0i32);
-  assert(-4i32 == -8i32 >> 1i32);
-  assert(-2i32 == -8i32 >> 2i32);
-  assert(-1i32 == -8i32 >> 3i32);
-  assert(-1i32 == -8i32 >> 4i32);
+  assert(-8i32 == (-8i32).shiftRightSigned(0i32));
+  assert(-4i32 == (-8i32).shiftRightSigned(1i32));
+  assert(-2i32 == (-8i32).shiftRightSigned(2i32));
+  assert(-1i32 == (-8i32).shiftRightSigned(3i32));
+  assert(-1i32 == (-8i32).shiftRightSigned(4i32));
 
-  assert(8i32 == 8i32 >>> 0i32);
-  assert(4i32 == 8i32 >>> 1i32);
-  assert(2i32 == 8i32 >>> 2i32);
-  assert(1i32 == 8i32 >>> 3i32);
-  assert(0i32 == 8i32 >>> 4i32);
+  assert(8i32 == 8i32.shiftRight(0i32));
+  assert(4i32 == 8i32.shiftRight(1i32));
+  assert(2i32 == 8i32.shiftRight(2i32));
+  assert(1i32 == 8i32.shiftRight(3i32));
+  assert(0i32 == 8i32.shiftRight(4i32));
 
-  assert(-8i32 == -8i32 >>> 0i32);
-  assert(2147483644i32 == -8i32 >>> 1i32);
-  assert(1073741822i32 == -8i32 >>> 2i32);
-  assert(536870911i32 == -8i32 >>> 3i32);
-  assert(268435455i32 == -8i32 >>> 4i32);
+  assert(-8i32 == -8i32.shiftRight(0i32));
+  assert(2147483644i32 == (-8i32).shiftRight(1i32));
+  assert(1073741822i32 == (-8i32).shiftRight(2i32));
+  assert(536870911i32 == (-8i32).shiftRight(3i32));
+  assert(268435455i32 == (-8i32).shiftRight(4i32));
 }

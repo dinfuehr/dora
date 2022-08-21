@@ -25,14 +25,14 @@ impl AssemblerBuffer {
 
     fn emitInt32(value: Int32) {
         self.emitByte((value & 0xFFi32).toUInt8());
-        self.emitByte(((value >>> 8i32) & 0xFFi32).toUInt8());
-        self.emitByte(((value >>> 16i32) & 0xFFi32).toUInt8());
-        self.emitByte(((value >>> 24i32) & 0xFFi32).toUInt8());
+        self.emitByte((value.shiftRight(8i32) & 0xFFi32).toUInt8());
+        self.emitByte((value.shiftRight(16i32) & 0xFFi32).toUInt8());
+        self.emitByte((value.shiftRight(24i32) & 0xFFi32).toUInt8());
     }
 
     fn emitInt64(value: Int64) {
         self.emitInt32(value.toInt32());
-        self.emitInt32((value >>> 32i32).toInt32());
+        self.emitInt32(value.shiftRight(32i32).toInt32());
     }
 
     fn patchUInt8(offset: Int64, value: UInt8) {
@@ -41,9 +41,9 @@ impl AssemblerBuffer {
 
     fn patchInt32(offset: Int64, value: Int32) {
         self.buffer(offset) = (value & 0xFFi32).toUInt8();
-        self.buffer(offset + 1i64) = ((value >>> 8i32) & 0xFFi32).toUInt8();
-        self.buffer(offset + 2i64) = ((value >>> 16i32) & 0xFFi32).toUInt8();
-        self.buffer(offset + 3i64) = ((value >>> 24i32) & 0xFFi32).toUInt8();
+        self.buffer(offset + 1i64) = (value.shiftRight(8i32) & 0xFFi32).toUInt8();
+        self.buffer(offset + 2i64) = (value.shiftRight(16i32) & 0xFFi32).toUInt8();
+        self.buffer(offset + 3i64) = (value.shiftRight(24i32) & 0xFFi32).toUInt8();
     }
 
     fn size(): Int64 {
@@ -133,9 +133,9 @@ impl MachineCode {
 
     fn getInt32(idx: Int64): Int32 {
         self.bytes(idx).toInt32() |
-            self.bytes(idx+1i64).toInt32() << 8i32 |
-            self.bytes(idx+2i64).toInt32() << 16i32 |
-            self.bytes(idx+3i64).toInt32() << 24i32
+            self.bytes(idx+1i64).toInt32().shiftLeft(8i32) |
+            self.bytes(idx+2i64).toInt32().shiftLeft(16i32) |
+            self.bytes(idx+3i64).toInt32().shiftLeft(24i32)
     }
 }
 

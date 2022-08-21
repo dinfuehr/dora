@@ -15,10 +15,6 @@ fn main() {
     assert(xor(20i64, 5i64) == 17i64);
     assert(and(20i64, 5i64) == 4i64);
 
-    assert(shl(20i64, 2i32) == 80i64);
-    assert(shr(20i64, 2i32) == 5i64);
-    assert(sar(20i64, 2i32) == 5i64);
-
     assert(!eq(20i64, 5i64));
     assert(eq(5i64, 5i64));
     assert(!eq(5i64, 20i64));
@@ -79,18 +75,6 @@ fn xor(x: Int64, y: Int64): Int64 {
 
 fn and(x: Int64, y: Int64): Int64 {
     return x & y;
-}
-
-fn shl(x: Int64, y: Int32): Int64 {
-    return x << y;
-}
-
-fn shr(x: Int64, y: Int32): Int64 {
-    return x >>> y;
-}
-
-fn sar(x: Int64, y: Int32): Int64 {
-    return x >> y;
 }
 
 fn eq(x: Int64, y: Int64): Bool {

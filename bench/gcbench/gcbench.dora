@@ -26,7 +26,7 @@ const kMinTreeDepth: Int32 = 4i32;
 const kMaxTreeDepth: Int32 = 16i32;
 
 fn treeSize (i: Int32): Int32 {
-    return (1i32 << (i + 1i32)) - 1i32;
+    return 1i32.shiftLeft(i + 1i32) - 1i32;
 }
 
 fn numIters(i: Int32): Int32 {

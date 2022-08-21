@@ -64,7 +64,7 @@ class Mandelbrot(let size: Int) {
                 i = i - 1;
             }
 
-            bits = bits << 1;
+            bits = bits.shiftLeft(1);
 
             if i == 0 {
                 bits = bits + 1;
@@ -86,7 +86,7 @@ class Mandelbrot(let size: Int) {
         }
 
         if self.shift != 0 {
-            bits = bits << self.shift;
+            bits = bits.shiftLeft(self.shift);
             bufferVar(self.bufferLen) = bits.toByte();
             self.bufferLen = self.bufferLen + 1;
 

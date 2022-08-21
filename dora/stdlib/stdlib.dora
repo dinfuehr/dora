@@ -84,7 +84,7 @@ fn isValidUtf8(data: Array[UInt8]): Bool {
         return false;
       }
 
-      codepoint = (codepoint << 6i32) | (by & 0x3Fi32);
+      codepoint = codepoint.shiftLeft(6i32) | (by & 0x3Fi32);
     }
 
     if codepoint < min || codepoint > max {

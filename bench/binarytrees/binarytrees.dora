@@ -21,7 +21,7 @@ fn trees(maxDepth: Int32) {
   let mut depth = 4i32;
 
   while depth <= maxDepth {
-    let iterations = 16i32 << (maxDepth - depth);
+    let iterations = 16i32.shiftLeft(maxDepth - depth);
 
     loops(iterations, depth);
     depth = depth + 2i32;

@@ -208,7 +208,7 @@ fn oldGenSwapSubtrees() {
             tn2 = tn2.right.getOrPanic();
         }
 
-        path = path >> 1i32;
+        path = path.shiftRightSigned(1i32);
         i = i + 1i32;
     }
 

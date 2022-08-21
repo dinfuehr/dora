@@ -1509,13 +1509,7 @@ impl<'a> Parser<'a> {
                 | TokenKind::EqEqEq
                 | TokenKind::NeEqEq => 4,
                 TokenKind::Add | TokenKind::Sub | TokenKind::Or | TokenKind::Caret => 5,
-                TokenKind::Mul
-                | TokenKind::Div
-                | TokenKind::Modulo
-                | TokenKind::And
-                | TokenKind::LtLt
-                | TokenKind::GtGt
-                | TokenKind::GtGtGt => 6,
+                TokenKind::Mul | TokenKind::Div | TokenKind::Modulo | TokenKind::And => 6,
                 TokenKind::As => 7,
                 _ => {
                     return Ok(left);
@@ -1672,9 +1666,6 @@ impl<'a> Parser<'a> {
             TokenKind::Mul => BinOp::Mul,
             TokenKind::Div => BinOp::Div,
             TokenKind::Modulo => BinOp::Mod,
-            TokenKind::LtLt => BinOp::ShiftL,
-            TokenKind::GtGt => BinOp::ArithShiftR,
-            TokenKind::GtGtGt => BinOp::LogicalShiftR,
             _ => panic!("unimplemented token {:?}", tok),
         };
 
@@ -2544,30 +2535,6 @@ mod tests {
         assert!(assign.lhs.is_ident());
         assert_eq!(BinOp::Assign, assign.op);
         assert_eq!(4, assign.rhs.to_lit_int().unwrap().value);
-    }
-
-    #[test]
-    fn parse_shift_right() {
-        let (expr, _) = parse_expr("a>>4");
-
-        let bin = expr.to_bin().unwrap();
-        assert_eq!(BinOp::ArithShiftR, bin.op);
-    }
-
-    #[test]
-    fn parse_unsigned_shift_right() {
-        let (expr, _) = parse_expr("a>>>4");
-
-        let bin = expr.to_bin().unwrap();
-        assert_eq!(BinOp::LogicalShiftR, bin.op);
-    }
-
-    #[test]
-    fn parse_left() {
-        let (expr, _) = parse_expr("a<<4");
-
-        let bin = expr.to_bin().unwrap();
-        assert_eq!(BinOp::ShiftL, bin.op);
     }
 
     #[test]

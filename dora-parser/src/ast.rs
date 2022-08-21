@@ -1177,9 +1177,6 @@ pub enum BinOp {
     BitOr,
     BitAnd,
     BitXor,
-    ShiftL,
-    ArithShiftR,
-    LogicalShiftR,
 }
 
 impl BinOp {
@@ -1197,9 +1194,6 @@ impl BinOp {
             BinOp::BitOr => "|",
             BinOp::BitAnd => "&",
             BinOp::BitXor => "^",
-            BinOp::ShiftL => "<<",
-            BinOp::ArithShiftR => ">>",
-            BinOp::LogicalShiftR => ">>>",
         }
     }
 

@@ -1,6 +1,6 @@
 fn main() {
-  assert(1i32 == 1i32 << 0i32);
-  assert(2i32 == 1i32 << 1i32);
-  assert(4i32 == 1i32 << 2i32);
-  assert(8i32 == 1i32 << 3i32);
+  assert(1i32 == 1i32.shiftLeft(0i32));
+  assert(2i32 == 1i32.shiftLeft(1i32));
+  assert(4i32 == 1i32.shiftLeft(2i32));
+  assert(8i32 == 1i32.shiftLeft(3i32));
 }

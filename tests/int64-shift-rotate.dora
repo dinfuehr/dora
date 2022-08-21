@@ -2,19 +2,10 @@ fn main() {
     let x = 1i64.shiftLeft(1i32);
     assert(x == 2i64);
 
-    let x = 1i64 << 1i32;
-    assert(x == 2i64);
-
     let x = 6i64.shiftRightSigned(1i32);
     assert(x == 3i64);
 
-    let x = 6i64 >> 1i32;
-    assert(x == 3i64);
-
     let x = 12i64.shiftRight(2i32);
-    assert(x == 3i64);
-
-    let x = 12i64 >> 2i32;
     assert(x == 3i64);
 
     let x = (-12i64).rotateLeft(1i32);

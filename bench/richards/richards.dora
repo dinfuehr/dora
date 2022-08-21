@@ -257,10 +257,10 @@ impl Task for IdleTask {
             return self.scheduler.holdCurrent();
         }
         if self.seed & 1i32 == 0i32 {
-            self.seed = self.seed >> 1i32;
+            self.seed = self.seed.shiftRightSigned(1i32);
             return self.scheduler.release(ID_DEVICE_A);
         } else {
-            self.seed = (self.seed >> 1i32) ^ 0xD008i32;
+            self.seed = self.seed.shiftRightSigned(1i32) ^ 0xD008i32;
             return self.scheduler.release(ID_DEVICE_B);
         }
     }

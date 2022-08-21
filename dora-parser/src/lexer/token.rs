@@ -76,11 +76,6 @@ pub enum TokenKind {
     Gt,
     Ge,
 
-    // operators – shifts
-    GtGt,
-    GtGtGt,
-    LtLt,
-
     // basic syntax
     Eq,
     Comma,
@@ -188,11 +183,6 @@ impl TokenKind {
             TokenKind::Le => "<=",
             TokenKind::Gt => ">",
             TokenKind::Ge => ">=",
-
-            // operators – shifts
-            TokenKind::GtGt => ">>",
-            TokenKind::GtGtGt => ">>>",
-            TokenKind::LtLt => "<<",
 
             // basic syntax
             TokenKind::Eq => "=",

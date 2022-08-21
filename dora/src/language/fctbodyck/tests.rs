@@ -650,30 +650,6 @@ fn overload_bitwise_xor() {
 }
 
 #[test]
-fn overload_shl() {
-    ok(
-        "class A impl A { fn shiftLeft(rhs: A): Int32 { return 0i32; } }
-            fn f(): Int32 { return A() << A(); }",
-    );
-}
-
-#[test]
-fn overload_sar() {
-    ok(
-        "class A impl A { fn shiftRightSigned(rhs: A): Int32 { return 0i32; } }
-            fn f(): Int32 { return A() >> A(); }",
-    );
-}
-
-#[test]
-fn overload_shr() {
-    ok(
-        "class A impl A { fn shiftRight(rhs: A): Int32 { return 0i32; } }
-            fn f(): Int32 { return A() >>> A(); }",
-    );
-}
-
-#[test]
 fn overload_equals() {
     ok("class A impl A { fn equals(rhs: A): Bool { return true; } }
             fn f1(): Bool { return A() == A(); }
@@ -701,9 +677,6 @@ fn int64_operations() {
     ok("fn f(a: Int64, b: Int64): Int64 { return a | b; }");
     ok("fn f(a: Int64, b: Int64): Int64 { return a & b; }");
     ok("fn f(a: Int64, b: Int64): Int64 { return a ^ b; }");
-    ok("fn f(a: Int64, b: Int32): Int64 { return a << b; }");
-    ok("fn f(a: Int64, b: Int32): Int64 { return a >> b; }");
-    ok("fn f(a: Int64, b: Int32): Int64 { return a >>> b; }");
     ok("fn f(a: Int64, b: Int64): Bool { return a == b; }");
     ok("fn f(a: Int64, b: Int64): Bool { return a != b; }");
     ok("fn f(a: Int64, b: Int64): Bool { return a === b; }");

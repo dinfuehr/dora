@@ -218,7 +218,7 @@ impl ByteReader {
         let by3 = self.readUInt8().toInt32();
         let by4 = self.readUInt8().toInt32();
 
-        (by4 << 24i32) | (by3 << 16i32) | (by2 << 8i32) | by1
+        by4.shiftLeft(24i32) | by3.shiftLeft(16i32) | by2.shiftLeft(8i32) | by1
     }
 
     @pub fn readId(): Int32 {
@@ -235,7 +235,7 @@ impl ByteReader {
         let by7 = self.readUInt8().toInt64();
         let by8 = self.readUInt8().toInt64();
 
-        (by8 << 56i32) | (by7 << 48i32) | (by6 << 40i32) | (by5 << 32i32) | (by4 << 24i32) | (by3 << 16i32) | (by2 << 8i32) | by1
+        by8.shiftLeft(56i32) | by7.shiftLeft(48i32) | by6.shiftLeft(40i32) | by5.shiftLeft(32i32) | by4.shiftLeft(24i32) | by3.shiftLeft(16i32) | by2.shiftLeft(8i32) | by1
     }
 
     @pub fn readByteArray(): Array[UInt8] {

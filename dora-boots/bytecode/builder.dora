@@ -479,18 +479,18 @@ impl BytecodeBuilder {
     fn emitInt32(val: Int32) {
         assert(val >= 0i32);
         self.emitByte(val & 0xFFi32);
-        self.emitByte((val >>> 8i32) & 0xFFi32);
-        self.emitByte((val >>> 16i32) & 0xFFi32);
-        self.emitByte((val >>> 24i32) & 0xFFi32);
+        self.emitByte(val.shiftRight(8i32) & 0xFFi32);
+        self.emitByte(val.shiftRight(16i32) & 0xFFi32);
+        self.emitByte(val.shiftRight(24i32) & 0xFFi32);
     }
 
     fn patchInt32(idx: Int32, val: Int32) {
         assert(val >= 0i32);
         let idx = idx.toInt64();
         self.code(idx) = (val & 0xFFi32).toUInt8();
-        self.code(idx + 1i64) = ((val >>> 8i32) & 0xFFi32).toUInt8();
-        self.code(idx + 2i64) = ((val >>> 16i32) & 0xFFi32).toUInt8();
-        self.code(idx + 3i64) = ((val >>> 24i32) & 0xFFi32).toUInt8();
+        self.code(idx + 1i64) = (val.shiftRight(8i32) & 0xFFi32).toUInt8();
+        self.code(idx + 2i64) = (val.shiftRight(16i32) & 0xFFi32).toUInt8();
+        self.code(idx + 3i64) = (val.shiftRight(24i32) & 0xFFi32).toUInt8();
     }
 }
 

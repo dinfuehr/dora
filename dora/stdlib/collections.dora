@@ -240,7 +240,7 @@ impl BitSet {
     let value = self.data.get(entry_idx);
     let value_idx = idx - entry_idx;
 
-    return value & (1i32 << value_idx.toInt32()) != 0i32;
+    return value & 1i32.shiftLeft(value_idx.toInt32()) != 0i32;
   }
 
   @pub fn insert(idx: Int64) {
@@ -252,7 +252,7 @@ impl BitSet {
     let mut value = self.data.get(entry_idx);
     let value_idx = idx - entry_idx;
 
-    value = value | (1i32 << value_idx.toInt32());
+    value = value | 1i32.shiftLeft(value_idx.toInt32());
 
     self.data.set(entry_idx, value);
   }
@@ -266,7 +266,7 @@ impl BitSet {
     let mut value = self.data.get(entry_idx);
     let value_idx = idx - entry_idx;
 
-    value = value & !(1i32 << value_idx.toInt32());
+    value = value & !(1i32.shiftLeft(value_idx.toInt32()));
 
     self.data.set(entry_idx, value);
   }
@@ -294,7 +294,7 @@ impl BitVec {
     let value = self.data.get(entry_idx);
     let value_idx = idx - entry_idx;
 
-    return value & (1i32 << value_idx.toInt32()) != 0i32;
+    return value & 1i32.shiftLeft(value_idx.toInt32()) != 0i32;
   }
 
   @pub fn insert(idx: Int64) {
@@ -308,7 +308,7 @@ impl BitVec {
     let mut value = self.data.get(entry_idx);
     let value_idx = idx - entry_idx;
 
-    value = value | (1i32 << value_idx.toInt32());
+    value = value | 1i32.shiftLeft(value_idx.toInt32());
 
     self.data.set(entry_idx, value);
   }
@@ -326,7 +326,7 @@ impl BitVec {
     let mut value = self.data.get(entry_idx);
     let value_idx = idx - entry_idx;
 
-    value = value & !(1i32 << value_idx.toInt32());
+    value = value & !(1i32.shiftLeft(value_idx.toInt32()));
 
     self.data.set(entry_idx, value);
   }
