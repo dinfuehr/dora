@@ -78,10 +78,9 @@ impl<'a> ProgramParser<'a> {
 
     fn add_stdlib_package(&mut self) {
         let stdlib_name = "std";
-        let stdlib_name_interned = self.sa.interner.intern(stdlib_name);
-        let (package_id, module_id) = self
-            .sa
-            .add_package(PackageName::Stdlib, Some(stdlib_name_interned));
+        let stdlib_iname = self.sa.interner.intern(stdlib_name);
+        let (package_id, module_id) = self.sa.add_package(PackageName::Stdlib, Some(stdlib_iname));
+        self.sa.package_names.insert(stdlib_iname, package_id);
         self.sa.set_stdlib_module_id(module_id);
         self.sa.set_stdlib_package_id(package_id);
 
@@ -133,6 +132,7 @@ impl<'a> ProgramParser<'a> {
         if let Some(boots_path) = self.packages.remove(boots_name) {
             let boots_name = self.sa.interner.intern(boots_name);
             let (package_id, module_id) = self.sa.add_package(PackageName::Boots, Some(boots_name));
+            self.sa.package_names.insert(boots_name, package_id);
             self.sa.set_boots_module_id(module_id);
             self.sa.set_boots_package_id(package_id);
             self.add_file_from_filesystem(package_id, module_id, PathBuf::from(boots_path));
@@ -176,6 +176,7 @@ impl<'a> ProgramParser<'a> {
             let iname = self.sa.interner.intern(&name);
             let package_name = PackageName::External(name);
             let (package_id, module_id) = self.sa.add_package(package_name, Some(iname));
+            self.sa.package_names.insert(iname, package_id);
 
             self.add_file_from_filesystem(package_id, module_id, path);
         }

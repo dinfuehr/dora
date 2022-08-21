@@ -214,7 +214,16 @@ fn initial_module(
                     Err(UseError::Fatal)
                 }
             }
-            UsePathComponentValue::Name(_) => Ok((0, Sym::Module(use_module_id))),
+            UsePathComponentValue::Name(name) => {
+                if let Some(package_id) = sa.package_names.get(&name).cloned() {
+                    let package = sa.packages.idx(package_id);
+                    let package = package.read();
+
+                    Ok((1, Sym::Module(package.top_level_module_id())))
+                } else {
+                    Ok((0, Sym::Module(use_module_id)))
+                }
+            }
         }
     } else {
         Err(UseError::Fatal)

@@ -122,6 +122,7 @@ pub struct FullSemAnalysis {
     pub uses: Vec<UseDefinition>,            // stores all uses
     pub native_stubs: Mutex<NativeStubs>,
     pub packages: MutableVec<PackageDefinition>,
+    pub package_names: HashMap<Name, PackageDefinitionId>,
     pub prelude_module_id: Option<ModuleDefinitionId>,
     pub stdlib_module_id: Option<ModuleDefinitionId>,
     pub program_module_id: Option<ModuleDefinitionId>,
@@ -154,6 +155,7 @@ impl FullSemAnalysis {
             fcts: GrowableVec::new(),
             native_stubs: Mutex::new(NativeStubs::new()),
             packages: MutableVec::new(),
+            package_names: HashMap::new(),
             prelude_module_id: None,
             stdlib_module_id: None,
             program_module_id: None,
@@ -224,6 +226,7 @@ pub struct VM {
     pub stubs: Stubs,
     pub threads: Threads,
     pub packages: MutableVec<PackageDefinition>,
+    pub package_names: HashMap<Name, PackageDefinitionId>,
     pub prelude_module_id: Option<ModuleDefinitionId>,
     pub stdlib_module_id: Option<ModuleDefinitionId>,
     pub program_module_id: Option<ModuleDefinitionId>,
@@ -280,6 +283,7 @@ impl VM {
             stdlib_package_id: None,
             program_package_id: None,
             boots_package_id: None,
+            package_names: HashMap::new(),
             wait_lists: WaitLists::new(),
         });
 
@@ -335,6 +339,7 @@ impl VM {
             stdlib_package_id: sa.stdlib_package_id,
             program_package_id: sa.program_package_id,
             boots_package_id: sa.boots_package_id,
+            package_names: sa.package_names,
             wait_lists: WaitLists::new(),
         });
 
