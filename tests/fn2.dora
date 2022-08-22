@@ -9,10 +9,9 @@ fun main(): Unit {
   assert(result == 6i32);
 }
 
-fun fact(x: Int32): Int32 {
+fun fact(x: Int32): Int32 =
   if x <= 1i32 {
-    return 1i32;
+    1i32
   } else {
-    return x*fact(x-1i32);
-  }
-}
+    x * fact(x - 1i32)
+  };

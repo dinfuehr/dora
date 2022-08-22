@@ -7,18 +7,17 @@ struct Data {
 enum Foo { A(Int32, String, Data, (Int32, Int32), Float64), B }
 
 fun main(): Unit {
-    let value = Foo::A(112i32, "abc", Data(12i32, 47i32, "def"), (3i32, 4i32), 105.5);
-    match value {
-        Foo::A(a, b, c, d, e) => {
-            assert(a == 112i32);
-            assert(b == "abc");
-            assert(c.x == 12i32);
-            assert(c.y == 47i32);
-            assert(c.z == "def");
-            assert(d.0 == 3i32);
-            assert(d.1 == 4i32);
-            assert(e == 105.5);
-        },
-        Foo::B => unreachable[()](),
-    }
+  let value = Foo::A(112i32, "abc", Data(12i32, 47i32, "def"), (3i32, 4i32), 105.5);
+  if value
+  ... is Foo::A(a, b, c, d, e) {
+    assert(a == 112i32);
+    assert(b == "abc");
+    assert(c.x == 12i32);
+    assert(c.y == 47i32);
+    assert(c.z == "def");
+    assert(d.0 == 3i32);
+    assert(d.1 == 4i32);
+    assert(e == 105.5);
+  }
+  ... is Foo::B { unreachable[()]() }
 }

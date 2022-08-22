@@ -59,10 +59,9 @@ impl Node {
 
         var continue = true;
         while continue {
-            if node.value <= tree.value {
-                if tree.left.isNone() {
-                    continue = false;
-                } else if node.value <= tree.left.getOrPanic().value {
+            if node.value
+            ... < tree.value && tree.left.isSome() {
+                if node.value <= tree.left.getOrPanic().value {
                     // rotate right
                     let y = tree.left.getOrPanic();
                     tree.left = y.right;
@@ -78,10 +77,9 @@ impl Node {
                     r = tree;
                     tree = tree.left.getOrPanic();
                 }
-            } else if node.value > tree.value {
-                if tree.right.isNone() {
-                    continue = false;
-                } else if node.value > tree.right.getOrPanic().value {
+            }
+            ... > tree.value && tree.right.isSome() {
+                if node.value > tree.right.getOrPanic().value {
                     // rotate left
                     let y = tree.right.getOrPanic();
                     tree.right = y.left;
@@ -97,9 +95,8 @@ impl Node {
                     l = tree;
                     tree = tree.right.getOrPanic();
                 }
-            } else {
-                continue = false;
             }
+            else { continue = false; }
         }
 
         l.right = tree.left;
@@ -181,16 +178,12 @@ fun main(): Unit {
         while i < n {
             let value = rnd.nextInt32WithBound(4i32);
 
-            let node = if value == 0i32 {
-                Node::new(None[Array[Int32]])
-            } else if value == 1i32 {
-                Node::new(Some[Array[Int32]](Array[Int32]::zero(1)))
-            } else if value == 2i32 {
-                Node::new(Some[Array[Int32]](Array[Int32]::zero(2)))
-            } else {
-                assert(value == 3i32);
-                Node::new(Some[Array[Int32]](Array[Int32]::zero(3)))
-            };
+            let node = if value
+            ... == 0i32 { Node::new(None[Array[Int32]]) }
+            ... == 1i32 { Node::new(Some[Array[Int32]](Array[Int32]::zero(1))) }
+            ... == 2i32 { Node::new(Some[Array[Int32]](Array[Int32]::zero(2))) }
+            ... == 3i32 { Node::new(Some[Array[Int32]](Array[Int32]::zero(3))) }
+            else        { unreachable[Node]() };
 
             node.birthday = date;
             date = date + 1i32;

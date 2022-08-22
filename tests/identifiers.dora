@@ -1,0 +1,10 @@
+fun main(): Unit {
+  let is = is();
+  assert(is.is() == 1);
+}
+
+class is {}
+
+impl is {
+  fun is(): Int64 = 1;
+}

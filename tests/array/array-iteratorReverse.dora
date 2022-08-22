@@ -17,13 +17,11 @@ fun iterateManually(): Unit {
 fun iterateWithForIn(): Unit {
   var idx = 0;
   for value in Array[String]::new("a", "b", "c").iteratorReverse() {
-
-    if idx == 0i64 { assert(value == "c"); }
-    else if idx == 1i64 { assert(value == "b"); }
-    else if idx == 2i64 { assert(value == "a"); }
-    else {
-      unreachable[()]();
-    }
+    if idx
+    ... == 0i64 { assert(value == "c"); }
+    ... == 1i64 { assert(value == "b"); }
+    ... == 2i64 { assert(value == "a"); }
+    else        { unreachable[()](); }
     idx = idx + 1;
   }
 }

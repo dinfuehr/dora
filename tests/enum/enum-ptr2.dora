@@ -5,19 +5,15 @@ enum Bar { C(MyClass), D }
 class MyClass(value: Int32)
 
 fun main(): Unit {
-    let f = foo();
-    std::forceCollect();
-    let bar = match f {
-        Foo::A(bar) => bar,
-        Foo::B => unreachable[Bar](),
-    };
-    let myclass = match bar {
-        Bar::C(myclass) => myclass,
-        Bar::D => unreachable[MyClass](),
-    };
-    assert(myclass.value == 17i32);
+  let f = foo();
+  std::forceCollect();
+  let bar = if f
+  ... is Foo::A(bar) { bar }
+  ... is Foo::B      { unreachable[Bar]() };
+  let myclass = if bar
+  ... is Bar::C(myclass) { myclass }
+  ... is Bar::D          { unreachable[MyClass]() };
+  assert(myclass.value == 17i32);
 }
 
-fun foo(): Foo {
-    Foo::A(Bar::C(MyClass(17i32)))
-}
+fun foo(): Foo = Foo::A(Bar::C(MyClass(17i32)));

@@ -140,7 +140,7 @@ impl Benchmark {
     }
 }
 
-fun generatePayloadTree(depth: Int32, tag: String): PayloadNode {
+fun generatePayloadTree(depth: Int32, tag: String): PayloadNode =
     if depth == 0i32 {
         let arr = Array[Int32]::zero(10i64);
         var i = 0i32;
@@ -151,16 +151,14 @@ fun generatePayloadTree(depth: Int32, tag: String): PayloadNode {
         }
 
         let text = "String for key " + tag + " in leaf node";
-        return PayloadNode(Option[Array[Int32]]::Some(arr), text, Option[PayloadNode]::None, Option[PayloadNode]::None);
+        PayloadNode(Option[Array[Int32]]::Some(arr), text, Option[PayloadNode]::None, Option[PayloadNode]::None)
     } else {
-        return PayloadNode(
+        PayloadNode(
             Option[Array[Int32]]::None,
             "",
             Option[PayloadNode]::Some(generatePayloadTree(depth-1i32, tag)),
-            Option[PayloadNode]::Some(generatePayloadTree(depth-1i32, tag)),
-        );
-    }
-}
+            Option[PayloadNode]::Some(generatePayloadTree(depth-1i32, tag)))
+    };
 
 class SplayTree {
     root: Option[SplayNode],
@@ -240,9 +238,9 @@ impl SplayTree {
         let root = self.root.getOrPanic();
 
         if root.key == key {
-            return self.root;
+            self.root
         } else {
-            return None;
+            None[SplayNode]
         }
     }
 
@@ -300,10 +298,13 @@ impl SplayTree {
 
         var continue = true;
         while continue {
-            if key < current.key {
-                if current.left.isNone() {
+            if key
+            ... < current.key {
+                if current.left
+                ... .isNone() {
                     continue = false;
-                } else if key < current.left.getOrPanic().key {
+                }
+                ... .getOrPanic().key > key {
                     // Rotate right
                     let tmp = current.left.getOrPanic();
                     current.left = tmp.right;
@@ -314,13 +315,15 @@ impl SplayTree {
                         continue = false;
                     }
                 }
+                else {}
                 if continue {
                     // Link right
                     right.left = Some[SplayNode](current);
                     right = current;
                     current = current.left.getOrPanic();
                 }
-            } else if key > current.key {
+            }
+            ... > current.key {
                 if current.right.isNone() {
                     continue = false;
                 }
@@ -344,9 +347,8 @@ impl SplayTree {
                         current = current.right.getOrPanic();
                     }
                 }
-            } else {
-                continue = false;
             }
+            else { continue = false; }
         }
 
         // Assemble

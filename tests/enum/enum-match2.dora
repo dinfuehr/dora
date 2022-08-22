@@ -1,13 +1,10 @@
-enum Foo { A(Int32, Int32), B }
+enum Foo { A(Int64, Int64), B }
 
 fun main(): Unit {
-    assert(value(Foo::A(2i32, 3i32)) == 5i32);
-    assert(value(Foo::B) == 0i32);
+  assert(value(Foo::A(2, 3)) == 5);
+  assert(value(Foo::B) == 0);
 }
 
-fun value(foo: Foo): Int32 {
-    match foo {
-        Foo::A(a, b) => a + b,
-        Foo::B => 0
-    }
-}
+fun value(foo: Foo): Int64 = if foo
+  ... is Foo::A(a, b) { a + b }
+  ... is Foo::B       { 0 };

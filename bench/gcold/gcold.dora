@@ -29,21 +29,19 @@ var promoteRate: Int32 = 0i32;
 var ptrMutRate: Int32 = 0i32;
 var steps: Int32 = 0i32;
 
-fun height(t: Option[TreeNode]): Int32 {
+fun height(t: Option[TreeNode]): Int32 =
     if t.isNone() {
-        return 0i32;
+        0i32
     } else {
-        return 1i32 + Int32::max(height(t.getOrPanic().left), height(t.getOrPanic().right));
-    }
-}
+        1i32 + Int32::max(height(t.getOrPanic().left), height(t.getOrPanic().right))
+    };
 
-fun shortestPath(t: Option[TreeNode]): Int32 {
+fun shortestPath(t: Option[TreeNode]): Int32 =
     if t.isNone() {
-        return 0i32;
+        0i32
     } else {
-        return 1i32 + Int32::min(shortestPath(t.getOrPanic().left), shortestPath(t.getOrPanic().right));
-    }
-}
+        1i32 + Int32::min(shortestPath(t.getOrPanic().left), shortestPath(t.getOrPanic().right))
+    };
 
 fun heightToNodes(h: Int32): Int64 {
     var h = h;

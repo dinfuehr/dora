@@ -1177,7 +1177,6 @@ pub enum Expr {
     If(ExprIfType),
     Tuple(ExprTupleType),
     Paren(ExprParenType),
-    Match(ExprMatchType),
 }
 
 impl Expr {
@@ -1202,34 +1201,17 @@ impl Expr {
         id: NodeId,
         pos: Position,
         span: Span,
-        cond: Box<Expr>,
-        then_block: Box<Expr>,
+        cond: Box<StmtLetType>,
+        cases: Vec<IfCaseType>,
         else_block: Option<Box<Expr>>,
     ) -> Expr {
         Expr::If(ExprIfType {
             id,
             pos,
             span,
-
             cond,
-            then_block,
-            else_block,
-        })
-    }
-
-    pub fn create_match(
-        id: NodeId,
-        pos: Position,
-        span: Span,
-        expr: Box<Expr>,
-        cases: Vec<MatchCaseType>,
-    ) -> Expr {
-        Expr::Match(ExprMatchType {
-            id,
-            pos,
-            span,
-            expr,
             cases,
+            else_block,
         })
     }
 
@@ -1752,7 +1734,6 @@ impl Expr {
         match self {
             &Expr::Block(_) => false,
             &Expr::If(_) => false,
-            &Expr::Match(_) => false,
             _ => true,
         }
     }
@@ -1779,7 +1760,6 @@ impl Expr {
             Expr::If(ref val) => val.pos,
             Expr::Tuple(ref val) => val.pos,
             Expr::Paren(ref val) => val.pos,
-            Expr::Match(ref val) => val.pos,
         }
     }
 
@@ -1805,7 +1785,6 @@ impl Expr {
             Expr::If(ref val) => val.span,
             Expr::Tuple(ref val) => val.span,
             Expr::Paren(ref val) => val.span,
-            Expr::Match(ref val) => val.span,
         }
     }
 
@@ -1831,20 +1810,14 @@ impl Expr {
             Expr::If(ref val) => val.id,
             Expr::Tuple(ref val) => val.id,
             Expr::Paren(ref val) => val.id,
-            Expr::Match(ref val) => val.id,
         }
     }
 }
 
 #[derive(Clone, Debug)]
-pub struct ExprIfType {
-    pub id: NodeId,
-    pub pos: Position,
-    pub span: Span,
-
-    pub cond: Box<Expr>,
+pub struct Branch {
+    pub cond_tail: Option<Box<Expr>>,
     pub then_block: Box<Expr>,
-    pub else_block: Option<Box<Expr>>,
 }
 
 #[derive(Clone, Debug)]
@@ -2016,47 +1989,45 @@ pub struct ExprParenType {
 }
 
 #[derive(Clone, Debug)]
-pub struct ExprMatchType {
+pub struct ExprIfType {
     pub id: NodeId,
     pub pos: Position,
     pub span: Span,
 
-    pub expr: Box<Expr>,
-    pub cases: Vec<MatchCaseType>,
+    pub cond: Box<StmtLetType>,
+    pub cases: Vec<IfCaseType>,
+    pub else_block: Option<Box<Expr>>,
 }
 
 #[derive(Clone, Debug)]
-pub struct MatchCaseType {
+pub struct IfCaseType {
     pub id: NodeId,
     pub pos: Position,
     pub span: Span,
 
-    pub patterns: Vec<MatchPattern>,
+    pub data: IfCaseData,
     pub value: Box<Expr>,
 }
 
 #[derive(Clone, Debug)]
-pub struct MatchPattern {
+pub enum IfCaseData {
+    Simple,
+    Continuation(Box<Expr>),
+    Patterns(Vec<IfPattern>),
+}
+
+#[derive(Clone, Debug)]
+pub struct IfPattern {
     pub id: NodeId,
     pub pos: Position,
     pub span: Span,
-    pub data: MatchPatternData,
-}
 
-#[derive(Clone, Debug)]
-pub enum MatchPatternData {
-    Underscore,
-    Ident(MatchPatternIdent),
-}
-
-#[derive(Clone, Debug)]
-pub struct MatchPatternIdent {
     pub path: Path,
-    pub params: Option<Vec<MatchPatternParam>>,
+    pub params: Option<Vec<IfPatternParam>>,
 }
 
 #[derive(Clone, Debug)]
-pub struct MatchPatternParam {
+pub struct IfPatternParam {
     pub id: NodeId,
     pub pos: Position,
     pub span: Span,

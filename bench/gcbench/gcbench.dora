@@ -44,13 +44,12 @@ fun populate(depth: Int32, thisNode: Node): Unit {
     }
 }
 
-fun makeTree(iDepth: Int32): Node {
+fun makeTree(iDepth: Int32): Node =
     if iDepth <= 0i32 {
-        return Node::leaf();
+        Node::leaf()
     } else {
-        return Node::new(Option[Node]::Some(makeTree(iDepth-1i32)), Option[Node]::Some(makeTree(iDepth-1i32)));
-    }
-}
+        Node::new(Option[Node]::Some(makeTree(iDepth-1i32)), Option[Node]::Some(makeTree(iDepth-1i32)))
+    };
 
 fun timeConstruction(depth: Int32): Unit {
     let iNumIters = numIters(depth);

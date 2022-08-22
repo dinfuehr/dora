@@ -6,19 +6,13 @@ enum Either[A, B] {
 }
 
 impl[A, B] Either[A, B] {
-    fun toRight(): Option[B] {
-        match self {
-            Either::Left(_) => None[B],
-            Either::Right(b) => Some[B](b),
-        }
-    }
+    fun toRight(): Option[B] = if self
+        ... is Either::Left(_)  { None[B]    }
+        ... is Either::Right(b) { Some[B](b) };
 
-    fun toLeft(): Option[A] {
-        match self {
-            Either::Left(a) => Some[A](a),
-            Either::Right(_) => None[A],
-        }
-    }
+    fun toLeft(): Option[A] = if self
+        ... is Either::Left(a)  { Some[A](a) }
+        ... is Either::Right(_) { None[A]    };
 }
 
 impl[T1] Foo[T1] {

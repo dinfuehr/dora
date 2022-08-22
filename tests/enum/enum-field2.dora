@@ -4,18 +4,15 @@ enum Foo { A(Int32, String, Float32), B }
 class Bar(foo: Foo)
 
 fun main(): Unit {
-    let object = createObject();
-    std::forceCollect();
-    match object.foo {
-        Foo::A(a, b, c) => {
-            assert(a == 112i32);
-            assert(b == "abc");
-            assert(c == 17.5f32);
-        },
-        Foo::B => unreachable[()](),
-    }
+  let object = createObject();
+  std::forceCollect();
+  if object.foo
+  ... is Foo::A(a, b, c) {
+    assert(a == 112i32);
+    assert(b == "abc");
+    assert(c == 17.5f32);
+  }
+  ... is Foo::B { unreachable[()]() }
 }
 
-fun createObject(): Bar {
-    Bar(Foo::A(112i32, "abc", 17.5f32))
-}
+fun createObject(): Bar = Bar(Foo::A(112i32, "abc", 17.5f32));

@@ -1,23 +1,19 @@
 enum Foo[T] { A(T), B }
 
 fun main(): Unit {
-    let value = Foo[String]::A("abc");
-    foo(value);
-    match value {
-        Foo::A(str) => {
-            assert(str == "abc");
-        },
-        Foo::B => unreachable[()](),
-    }
+  let value = Foo[String]::A("abc");
+  foo(value);
+  if value
+  ... is Foo::A(str) { assert(str == "abc"); }
+  ... is Foo::B      { unreachable[()]() }
 
-    let value = Foo[String]::B;
-    match value {
-        Foo::A(_) => unreachable[()](),
-        Foo::B => (),
-    }
+  let value = Foo[String]::B;
+  if value
+  ... is Foo::A(_) { unreachable[()]() }
+  ... is Foo::B    { }
 }
 
 fun foo(x: Foo[String]): Foo[String] {
-    let y = x;
-    y
+  let y = x;
+  y
 }

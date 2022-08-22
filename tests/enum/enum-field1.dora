@@ -4,20 +4,17 @@ enum Foo { A(Int32, String, Float32), B }
 class Bar(foo: Foo)
 
 fun main(): Unit {
-    let object = Bar(Foo::B);
-    std::forceCollect();
-    updateObject(object);
-    std::forceMinorCollect();
-    match object.foo {
-        Foo::A(a, b, c) => {
-            assert(a == 112i32);
-            assert(b == "abc");
-            assert(c == 17.5f32);
-        },
-        Foo::B => unreachable[()](),
-    }
+  let object = Bar(Foo::B);
+  std::forceCollect();
+  updateObject(object);
+  std::forceMinorCollect();
+  if object.foo
+  ... is Foo::A(a, b, c) {
+    assert(a == 112i32);
+    assert(b == "abc");
+    assert(c == 17.5f32);
+  }
+  ... is Foo::B { unreachable[()]() }
 }
 
-fun updateObject(object: Bar): Unit {
-    object.foo = Foo::A(112i32, "abc", 17.5f32);
-}
+fun updateObject(object: Bar): Unit = object.foo = Foo::A(112i32, "abc", 17.5f32);

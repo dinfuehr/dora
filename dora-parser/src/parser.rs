@@ -977,7 +977,7 @@ impl<'a> Parser<'a> {
                 Ok(Type::create_self(self.generate_id(), pos, span))
             }
 
-            TokenKind::Identifier(_) => {
+            TokenKind::Identifier(_) | TokenKind::Is => {
                 let pos = self.token.position;
                 let start = self.token.span.start();
                 let path = self.parse_path()?;
@@ -1261,9 +1261,22 @@ impl<'a> Parser<'a> {
         let start = self.token.span.start();
         let pos = self.expect_token(TokenKind::If)?.position;
 
-        let cond = self.parse_expression()?;
+        let expr = self.parse_expression()?;
+        let mut cases = Vec::new();
 
-        let then_block = self.parse_block()?;
+        if !self.token.is(TokenKind::DotDotDot) {
+            cases.push(self.parse_if_case_data_simple()?);
+        }
+
+        while self.token.is(TokenKind::DotDotDot) {
+            // remove this lookahead hack after `is` is handled as a binary operator
+            let case = if self.lexer.peek_next_token()?.is(TokenKind::Is) {
+                self.parse_if_case_data_pattern()?
+            } else {
+                self.parse_if_case_data_continuation()?
+            };
+            cases.push(case);
+        }
 
         let else_block = if self.token.is(TokenKind::Else) {
             self.advance_token()?;
@@ -1279,116 +1292,103 @@ impl<'a> Parser<'a> {
 
         let span = self.span_from(start);
 
+        let let_pattern = LetPattern::Ident(LetIdentType {
+            id: self.generate_id(),
+            pos,
+            span,
+            name: self.interner.intern(TokenKind::DotDotDot.name()),
+        });
+        let let_condition = StmtLetType {
+            id: self.generate_id(),
+            pos,
+            span,
+            pattern: Box::from(let_pattern),
+            mutable: false,
+            data_type: None,
+            expr: Some(expr),
+        };
+
         Ok(Box::new(Expr::create_if(
             self.generate_id(),
             pos,
             span,
-            cond,
-            then_block,
+            Box::from(let_condition),
+            cases,
             else_block,
         )))
     }
 
-    fn parse_match(&mut self) -> ExprResult {
-        let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::Match)?.position;
-
-        let expr = self.parse_expression()?;
-        let mut cases = Vec::new();
-        let mut comma = true;
-
-        self.expect_token(TokenKind::LBrace)?;
-
-        while !self.token.is(TokenKind::RBrace) && !self.token.is_eof() {
-            if !comma {
-                return Err(ParseErrorAndPos::new(
-                    self.token.position,
-                    ParseError::ExpectedToken(TokenKind::Comma.name().into(), self.token.name()),
-                ));
-            }
-
-            let case = self.parse_match_case()?;
-            cases.push(case);
-
-            comma = self.token.is(TokenKind::Comma);
-
-            if comma {
-                self.advance_token()?;
-            }
-        }
-
-        self.expect_token(TokenKind::RBrace)?;
-        let span = self.span_from(start);
-
-        Ok(Box::new(Expr::create_match(
-            self.generate_id(),
-            pos,
-            span,
-            expr,
-            cases,
-        )))
-    }
-
-    fn parse_match_case(&mut self) -> Result<MatchCaseType, ParseErrorAndPos> {
+    fn parse_if_case_data_simple(&mut self) -> Result<IfCaseType, ParseErrorAndPos> {
         let start = self.token.span.start();
         let pos = self.token.position;
-        let mut patterns = Vec::new();
-        patterns.push(self.parse_match_pattern()?);
 
-        while self.token.is(TokenKind::Or) {
-            self.advance_token()?;
-            patterns.push(self.parse_match_pattern()?);
-        }
-
-        self.expect_token(TokenKind::DoubleArrow)?;
-
-        let value = self.parse_expression()?;
+        let value = self.parse_block()?;
         let span = self.span_from(start);
 
-        Ok(MatchCaseType {
+        Ok(IfCaseType {
             id: self.generate_id(),
             pos,
             span,
-            patterns,
+            data: IfCaseData::Simple,
             value,
         })
     }
 
-    fn parse_match_pattern(&mut self) -> Result<MatchPattern, ParseErrorAndPos> {
+    fn parse_if_case_data_pattern(&mut self) -> Result<IfCaseType, ParseErrorAndPos> {
+        self.expect_token(TokenKind::DotDotDot)?;
+        self.expect_token(TokenKind::Is)?;
+
+        let start = self.token.span.start();
+        let pos = self.token.position;
+        let mut patterns = Vec::new();
+        patterns.push(self.parse_if_pattern()?);
+
+        while self.token.is(TokenKind::Or) {
+            self.advance_token()?;
+            patterns.push(self.parse_if_pattern()?);
+        }
+
+        let value = self.parse_block()?;
+        let span = self.span_from(start);
+
+        Ok(IfCaseType {
+            id: self.generate_id(),
+            pos,
+            span,
+            data: IfCaseData::Patterns(patterns),
+            value,
+        })
+    }
+
+    fn parse_if_pattern(&mut self) -> Result<IfPattern, ParseErrorAndPos> {
         let start = self.token.span.start();
         let pos = self.token.position;
 
-        let data = if self.token.is(TokenKind::Underscore) {
-            self.expect_token(TokenKind::Underscore)?;
-            MatchPatternData::Underscore
+        let path = self.parse_path()?;
+
+        let params = if self.token.is(TokenKind::LParen) {
+            self.expect_token(TokenKind::LParen)?;
+            let params = self.parse_list(TokenKind::Comma, TokenKind::RParen, |this| {
+                this.parse_if_pattern_param()
+            })?;
+
+            Some(params)
         } else {
-            let path = self.parse_path()?;
-
-            let params = if self.token.is(TokenKind::LParen) {
-                self.expect_token(TokenKind::LParen)?;
-                let params = self.parse_list(TokenKind::Comma, TokenKind::RParen, |this| {
-                    this.parse_match_pattern_param()
-                })?;
-
-                Some(params)
-            } else {
-                None
-            };
-
-            MatchPatternData::Ident(MatchPatternIdent { path, params })
+            None
         };
 
         let span = self.span_from(start);
 
-        Ok(MatchPattern {
+        Ok(IfPattern {
             id: self.generate_id(),
             pos,
             span,
-            data,
+            path,
+            params,
         })
     }
 
-    fn parse_match_pattern_param(&mut self) -> Result<MatchPatternParam, ParseErrorAndPos> {
+    fn parse_if_pattern_param(&mut self) -> Result<IfPatternParam, ParseErrorAndPos> {
         let start = self.token.span.start();
         let pos = self.token.position;
 
@@ -1402,11 +1402,29 @@ impl<'a> Parser<'a> {
 
         let span = self.span_from(start);
 
-        Ok(MatchPatternParam {
+        Ok(IfPatternParam {
             id: self.generate_id(),
             pos,
             span,
             name,
+        })
+    }
+
+    fn parse_if_case_data_continuation(&mut self) -> Result<IfCaseType, ParseErrorAndPos> {
+        let start = self.token.span.start();
+        let pos = self.token.position;
+
+        let continuation = self.parse_expression()?;
+
+        let value = self.parse_block()?;
+        let span = self.span_from(start);
+
+        Ok(IfCaseType {
+            id: self.generate_id(),
+            pos,
+            span,
+            data: IfCaseData::Continuation(continuation),
+            value,
         })
     }
 
@@ -1470,7 +1488,6 @@ impl<'a> Parser<'a> {
         let result = match self.token.kind {
             TokenKind::LBrace => self.parse_block(),
             TokenKind::If => self.parse_if(),
-            TokenKind::Match => self.parse_match(),
             _ => self.parse_binary(0),
         };
 
@@ -1696,11 +1713,12 @@ impl<'a> Parser<'a> {
             TokenKind::LParen => self.parse_parentheses(),
             TokenKind::LBrace => self.parse_block(),
             TokenKind::If => self.parse_if(),
+            TokenKind::DotDotDot => self.parse_dotdotdot(),
             TokenKind::LitChar(_) => self.parse_lit_char(),
             TokenKind::LitInt(_, _, _) => self.parse_lit_int(),
             TokenKind::LitFloat(_, _) => self.parse_lit_float(),
             TokenKind::StringTail(_) | TokenKind::StringExpr(_) => self.parse_string(),
-            TokenKind::Identifier(_) => self.parse_identifier(),
+            TokenKind::Identifier(_) | TokenKind::Is => self.parse_identifier(),
             TokenKind::True => self.parse_bool_literal(),
             TokenKind::False => self.parse_bool_literal(),
             TokenKind::This => self.parse_this(),
@@ -1710,6 +1728,20 @@ impl<'a> Parser<'a> {
                 ParseError::ExpectedFactor(self.token.name().clone()),
             )),
         }
+    }
+
+    fn parse_dotdotdot(&mut self) -> ExprResult {
+        let pos = self.token.position;
+        let span = self.token.span;
+        self.expect_token(TokenKind::DotDotDot)?;
+
+        Ok(Box::new(Expr::create_ident(
+            self.generate_id(),
+            pos,
+            span,
+            self.interner.intern(TokenKind::DotDotDot.name()),
+            None,
+        )))
     }
 
     fn parse_identifier(&mut self) -> ExprResult {
@@ -2003,15 +2035,13 @@ impl<'a> Parser<'a> {
     fn expect_identifier(&mut self) -> Result<Name, ParseErrorAndPos> {
         let tok = self.advance_token()?;
 
-        if let TokenKind::Identifier(ref value) = tok.kind {
-            let interned = self.interner.intern(value);
-
-            Ok(interned)
-        } else {
-            Err(ParseErrorAndPos::new(
+        match tok.kind {
+            TokenKind::Identifier(ref value) => Ok(self.interner.intern(value)),
+            TokenKind::Is => Ok(self.interner.intern(tok.kind.name())),
+            _ => Err(ParseErrorAndPos::new(
                 tok.position,
                 ParseError::ExpectedIdentifier(tok.name()),
-            ))
+            )),
         }
     }
 
@@ -2778,7 +2808,7 @@ mod tests {
         let (expr, _) = parse_expr("if true { 2; } else { 3; }");
         let ifexpr = expr.to_if().unwrap();
 
-        assert!(ifexpr.cond.is_lit_bool());
+        assert!(ifexpr.cond.expr.as_ref().unwrap().is_lit_bool());
         assert!(ifexpr.else_block.is_some());
     }
 
@@ -2787,7 +2817,7 @@ mod tests {
         let (expr, _) = parse_expr("if true { 2; }");
         let ifexpr = expr.to_if().unwrap();
 
-        assert!(ifexpr.cond.is_lit_bool());
+        assert!(ifexpr.cond.expr.as_ref().unwrap().is_lit_bool());
         assert!(ifexpr.else_block.is_none());
     }
 
@@ -3132,7 +3162,7 @@ mod tests {
     fn parse_struct_lit_if() {
         let (expr, _) = parse_expr("if i < n { }");
         let ifexpr = expr.to_if().unwrap();
-        let bin = ifexpr.cond.to_bin().unwrap();
+        let bin = ifexpr.cond.expr.as_ref().unwrap().to_bin().unwrap();
 
         assert!(bin.lhs.is_ident());
         assert!(bin.rhs.is_ident());
@@ -3486,6 +3516,53 @@ mod tests {
     }
 
     #[test]
+    fn parse_if_pattern() {
+        let (expr, _) = parse_expr(
+            "if true
+          ... == 5 { \"\" }
+          ... == 6.0 { '2' }
+          else { 4 }",
+        );
+
+        let expr = expr.to_if().unwrap();
+
+        let branch0 = &expr.cases[0];
+        //let branch0_cond_tail = &branch0.data.as_ref().unwrap().to_bin().unwrap();
+        //assert!(branch0_cond_tail.lhs.is_ident());
+        //assert!(branch0_cond_tail.rhs.is_lit_int());
+        assert!(branch0
+            .value
+            .to_block()
+            .unwrap()
+            .expr
+            .as_ref()
+            .unwrap()
+            .is_lit_str());
+
+        let branch1 = &expr.cases[1];
+        //let branch1_cond_tail = &branch1.cond_tail.as_ref().unwrap().to_bin().unwrap();
+        //assert!(branch1_cond_tail.lhs.is_ident());
+        //assert!(branch1_cond_tail.rhs.is_lit_float());
+        assert!(branch1
+            .value
+            .to_block()
+            .unwrap()
+            .expr
+            .as_ref()
+            .unwrap()
+            .is_lit_char());
+
+        let else_block = expr.else_block.as_ref().unwrap();
+        assert!(else_block
+            .to_block()
+            .unwrap()
+            .expr
+            .as_ref()
+            .unwrap()
+            .is_lit_int())
+    }
+
+    #[test]
     fn parse_tuple() {
         let (expr, _) = parse_expr("(1,)");
         assert_eq!(expr.to_tuple().unwrap().values.len(), 1);
@@ -3537,13 +3614,6 @@ mod tests {
         let (prog, _) = parse("mod foo;");
         let module = prog.module0();
         assert!(module.elements.is_none());
-    }
-
-    #[test]
-    fn parse_match() {
-        parse_expr("match x { }");
-        parse_expr("match x { A(x, b) => 1, B => 2 }");
-        parse_expr("match x { A(x, b) => 1, B | C => 2 }");
     }
 
     #[test]

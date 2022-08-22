@@ -40,11 +40,13 @@ pub enum TokenKind {
     While,
     For,
     In,
-    Match,
 
     // qualifiers
     This,
     Super,
+
+    // pattern matching
+    Is,
 
     // casting
     As,
@@ -81,7 +83,6 @@ pub enum TokenKind {
     Colon,
     ColonColon,
     At,
-    DoubleArrow,
 
     // brackets
     LParen,
@@ -143,11 +144,13 @@ impl TokenKind {
             TokenKind::While => "while",
             TokenKind::For => "for",
             TokenKind::In => "in",
-            TokenKind::Match => "match",
 
             // qualifiers
             TokenKind::This => "self",
             TokenKind::Super => "super",
+
+            // pattern matching
+            TokenKind::Is => "is",
 
             // casting
             TokenKind::As => "as",
@@ -184,7 +187,6 @@ impl TokenKind {
             TokenKind::Colon => ":",
             TokenKind::ColonColon => "::",
             TokenKind::At => "@",
-            TokenKind::DoubleArrow => "=>",
 
             // brackets
             TokenKind::LParen => "(",

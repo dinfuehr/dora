@@ -1,0 +1,13 @@
+fun main(): Unit {
+  let x = if "abc"
+    ... == "bcd" { 1 }
+    ... != "abc" { 2 }
+    ... .size() == 3 {
+    if "def"
+        ... == "bcd" { 3 }
+        ... == "def" { 4 }
+        else { 5 }
+    }
+    else { -1 };
+  assert(x == 4);
+}

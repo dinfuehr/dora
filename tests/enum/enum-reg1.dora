@@ -3,14 +3,13 @@
 enum Foo { A(Int32, String, Float32), B }
 
 fun main(): Unit {
-    let value = Foo::A(112i32, "abc", 17.5f32);
-    std::forceCollect();
-    match value {
-        Foo::A(a, b, c) => {
-            assert(a == 112i32);
-            assert(b == "abc");
-            assert(c == 17.5f32);
-        },
-        Foo::B => unreachable[()](),
-    }
+  let value = Foo::A(112i32, "abc", 17.5f32);
+  std::forceCollect();
+  if value
+  ... is Foo::A(a, b, c) {
+    assert(a == 112i32);
+    assert(b == "abc");
+    assert(c == 17.5f32);
+  }
+  ... is Foo::B { unreachable[()]() }
 }

@@ -3,18 +3,14 @@
 enum Foo { A(Int32, String, Float32), B }
 
 fun main(): Unit {
-    let tuple = createTuple();
-    match tuple.0 {
-        Foo::A(_, _, _) => {},
-        Foo::B => unreachable[()](),
-    }
-    std::forceCollect();
-    match tuple.0 {
-        Foo::A(_, _, _) => {},
-        Foo::B => unreachable[()](),
-    }
+  let tuple = createTuple();
+  if tuple.0
+  ... is Foo::A(_, _, _) { }
+  ... is Foo::B { unreachable[()]() }
+  std::forceCollect();
+  if tuple.0
+  ... is Foo::A(_, _, _) { }
+  ... is Foo::B { unreachable[()]() }
 }
 
-fun createTuple(): (Foo, Float32) {
-    (Foo::A(112i32, "abc", 17.5f32), 2.5f32)
-}
+fun createTuple(): (Foo, Float32) = (Foo::A(112i32, "abc", 17.5f32), 2.5f32);

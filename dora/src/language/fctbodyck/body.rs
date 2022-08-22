@@ -635,20 +635,11 @@ impl<'a> TypeCheck<'a> {
         ty
     }
 
-    fn check_expr_match(
-        &mut self,
-        node: &ast::ExprMatchType,
-        expected_ty: SourceType,
-    ) -> SourceType {
-        let expr_type = self.check_expr(&node.expr, SourceType::Any);
+    fn check_expr_if(&mut self, node: &ast::ExprIfType, expected_ty: SourceType) -> SourceType {
+        self.check_stmt_let(&node.cond);
+        let cond = node.cond.expr.as_ref().unwrap();
+        let expr_type = self.analysis.ty(cond.id());
         let mut result_type = SourceType::Error;
-
-        if !expr_type.is_enum() {
-            self.sa
-                .diag
-                .lock()
-                .report(self.file_id, node.pos, ErrorMessage::EnumExpected);
-        }
 
         let expr_enum_id = expr_type.enum_id();
         let expr_type_params = expr_type.type_params();
@@ -661,28 +652,33 @@ impl<'a> TypeCheck<'a> {
         };
 
         let mut used_variants = FixedBitSet::with_capacity(enum_variants);
+        let mut non_variant_cases = false;
 
         for case in &node.cases {
             self.symtable.push_level();
 
-            debug_assert_eq!(case.patterns.len(), 1);
-            let pattern = case.patterns.first().expect("no pattern");
-
-            match pattern.data {
-                ast::MatchPatternData::Underscore => {
-                    let mut negated_used_variants = used_variants.clone();
-                    negated_used_variants.toggle_range(..);
-
-                    if negated_used_variants.count_ones(..) == 0 {
-                        let msg = ErrorMessage::MatchUnreachablePattern;
-                        self.sa.diag.lock().report(self.file_id, case.pos, msg);
-                    }
-
-                    used_variants.insert_range(..);
+            match &case.data {
+                ast::IfCaseData::Simple => {
+                    self.check_if_condition_is_bool(expr_type.clone(), cond);
+                    non_variant_cases = true;
                 }
 
-                ast::MatchPatternData::Ident(ref ident) => {
-                    let sym = self.read_path(&ident.path);
+                ast::IfCaseData::Continuation(continuation) => {
+                    let cont_type = self.check_expr(&continuation, expected_ty.clone());
+                    self.check_if_condition_is_bool(cont_type, continuation);
+                    non_variant_cases = true;
+                }
+                ast::IfCaseData::Patterns(patterns) => {
+                    debug_assert_eq!(patterns.len(), 1);
+                    if !expr_type.is_enum() {
+                        self.sa.diag.lock().report(
+                            self.file_id,
+                            node.pos,
+                            ErrorMessage::EnumExpected,
+                        );
+                    }
+                    let pattern = patterns.first().expect("no pattern");
+                    let sym = self.read_path(&pattern.path);
 
                     let mut used_idents: HashSet<Name> = HashSet::new();
 
@@ -690,7 +686,7 @@ impl<'a> TypeCheck<'a> {
                         Ok(Sym::EnumVariant(enum_id, variant_idx)) => {
                             if Some(enum_id) == expr_enum_id {
                                 if used_variants.contains(variant_idx) {
-                                    let msg = ErrorMessage::MatchUnreachablePattern;
+                                    let msg = ErrorMessage::IfPatternUnreachable;
                                     self.sa.diag.lock().report(self.file_id, case.pos, msg);
                                 }
 
@@ -708,28 +704,28 @@ impl<'a> TypeCheck<'a> {
                                 let enum_ = enum_.read();
                                 let variant = &enum_.variants[variant_idx];
 
-                                let given_params = if let Some(ref params) = ident.params {
+                                let given_params = if let Some(ref params) = pattern.params {
                                     params.len()
                                 } else {
                                     0
                                 };
 
-                                if given_params == 0 && ident.params.is_some() {
-                                    let msg = ErrorMessage::MatchPatternNoParens;
+                                if given_params == 0 && pattern.params.is_some() {
+                                    let msg = ErrorMessage::IfPatternNoParens;
                                     self.sa.diag.lock().report(self.file_id, case.pos, msg);
                                 }
 
                                 let expected_params = variant.types.len();
 
                                 if given_params != expected_params {
-                                    let msg = ErrorMessage::MatchPatternWrongNumberOfParams(
+                                    let msg = ErrorMessage::IfPatternWrongNumberOfParams(
                                         given_params,
                                         expected_params,
                                     );
                                     self.sa.diag.lock().report(self.file_id, case.pos, msg);
                                 }
 
-                                if let Some(ref params) = ident.params {
+                                if let Some(ref params) = pattern.params {
                                     for (idx, param) in params.iter().enumerate() {
                                         if let Some(name) = param.name {
                                             let ty = if idx < variant.types.len() {
@@ -746,7 +742,7 @@ impl<'a> TypeCheck<'a> {
                                             );
 
                                             if used_idents.insert(name) == false {
-                                                let msg = ErrorMessage::VarAlreadyInPattern;
+                                                let msg = ErrorMessage::IfPatternBindingAlreadyUsed;
                                                 self.sa.diag.lock().report(
                                                     self.file_id,
                                                     param.pos,
@@ -787,8 +783,7 @@ impl<'a> TypeCheck<'a> {
             } else if !result_type.allows(self.sa, case_ty.clone()) {
                 let result_type_name = result_type.name_fct(self.sa, self.fct);
                 let case_ty_name = case_ty.name_fct(self.sa, self.fct);
-                let msg =
-                    ErrorMessage::MatchBranchTypesIncompatible(result_type_name, case_ty_name);
+                let msg = ErrorMessage::IfBranchTypesIncompatible(result_type_name, case_ty_name);
                 self.sa
                     .diag
                     .lock()
@@ -799,10 +794,35 @@ impl<'a> TypeCheck<'a> {
         }
 
         used_variants.toggle_range(..);
-
-        if used_variants.count_ones(..) != 0 {
-            let msg = ErrorMessage::MatchUncoveredVariant;
+        let is_exhaustive = used_variants.count_ones(..) == 0;
+        if !is_exhaustive && node.else_block.is_none() {
+            let msg = ErrorMessage::IfPatternVariantUncovered;
             self.sa.diag.lock().report(self.file_id, node.pos, msg);
+        } else if let Some(else_block) = &node.else_block {
+            if is_exhaustive && !non_variant_cases {
+                let msg = ErrorMessage::IfPatternUnreachable;
+                self.sa
+                    .diag
+                    .lock()
+                    .report(self.file_id, else_block.pos(), msg)
+            } else {
+                let else_ty = self.check_expr(&else_block, expected_ty.clone());
+
+                if result_type.is_error() {
+                    result_type = else_ty;
+                } else if else_ty.is_error() {
+                    // ignore this case
+                } else if !result_type.allows(self.sa, else_ty.clone()) {
+                    let result_type_name = result_type.name_fct(self.sa, self.fct);
+                    let else_ty_name = else_ty.name_fct(self.sa, self.fct);
+                    let msg =
+                        ErrorMessage::IfBranchTypesIncompatible(result_type_name, else_ty_name);
+                    self.sa
+                        .diag
+                        .lock()
+                        .report(self.file_id, else_block.pos(), msg);
+                }
+            }
         }
 
         self.analysis.set_ty(node.id, result_type.clone());
@@ -810,44 +830,39 @@ impl<'a> TypeCheck<'a> {
         result_type
     }
 
-    fn check_expr_if(&mut self, expr: &ast::ExprIfType, expected_ty: SourceType) -> SourceType {
-        let expr_type = self.check_expr(&expr.cond, SourceType::Any);
-
-        if !expr_type.is_bool() && !expr_type.is_error() {
-            let expr_type = expr_type.name_fct(self.sa, self.fct);
+    fn check_if_condition_is_bool(&mut self, cond_type: SourceType, cond: &Box<ast::Expr>) {
+        if !cond_type.is_bool() && !cond_type.is_error() {
+            let expr_type = cond_type.name_fct(self.sa, self.fct);
             let msg = ErrorMessage::IfCondType(expr_type);
-            self.sa.diag.lock().report(self.file_id, expr.pos, msg);
+            self.sa.diag.lock().report(self.file_id, cond.pos(), msg);
         }
+    }
 
-        let then_type = self.check_expr(&expr.then_block, expected_ty.clone());
-
-        let merged_type = if let Some(ref else_block) = expr.else_block {
-            let else_type = self.check_expr(else_block, expected_ty);
-
-            if expr_always_returns(&expr.then_block) {
-                else_type
-            } else if expr_always_returns(else_block) {
-                then_type
-            } else if then_type.is_error() {
-                else_type
-            } else if else_type.is_error() {
-                then_type
-            } else if !then_type.allows(self.sa, else_type.clone()) {
-                let then_type_name = then_type.name_fct(self.sa, self.fct);
-                let else_type_name = else_type.name_fct(self.sa, self.fct);
-                let msg = ErrorMessage::IfBranchTypesIncompatible(then_type_name, else_type_name);
-                self.sa.diag.lock().report(self.file_id, expr.pos, msg);
-                then_type
-            } else {
-                then_type
-            }
+    fn merge_branch_types(
+        &mut self,
+        expr: &ast::ExprIfType,
+        type1: SourceType,
+        always_returns1: bool,
+        type2: SourceType,
+        always_returns2: bool,
+    ) -> SourceType {
+        if always_returns1 {
+            type2
+        } else if always_returns2 {
+            type1
+        } else if type1.is_error() {
+            type2
+        } else if type2.is_error() {
+            type1
+        } else if !type1.allows(self.sa, type2.clone()) {
+            let then_type_name = type1.name_fct(self.sa, self.fct);
+            let else_type_name = type2.name_fct(self.sa, self.fct);
+            let msg = ErrorMessage::IfBranchTypesIncompatible(then_type_name, else_type_name);
+            self.sa.diag.lock().report(self.file_id, expr.pos, msg);
+            type1
         } else {
-            SourceType::Unit
-        };
-
-        self.analysis.set_ty(expr.id, merged_type.clone());
-
-        merged_type
+            type1
+        }
     }
 
     fn check_expr_ident(&mut self, e: &ast::ExprIdentType, expected_ty: SourceType) -> SourceType {
@@ -3348,7 +3363,6 @@ impl<'a> TypeCheck<'a> {
             ast::Expr::If(ref expr) => self.check_expr_if(expr, expected_ty),
             ast::Expr::Tuple(ref expr) => self.check_expr_tuple(expr, expected_ty),
             ast::Expr::Paren(ref expr) => self.check_expr_paren(expr, expected_ty),
-            ast::Expr::Match(ref expr) => self.check_expr_match(expr, expected_ty),
         }
     }
 }

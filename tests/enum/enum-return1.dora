@@ -3,18 +3,14 @@
 enum Foo { A(Int32, String, Float32), B }
 
 fun main(): Unit {
-    let foo = createFoo();
-    match foo {
-        Foo::A(_, _, _) => (),
-        Foo::B => unreachable[()](),
-    }
-    std::forceCollect();
-    match foo {
-        Foo::A(_, _, _) => (),
-        Foo::B => unreachable[()](),
-    }
+  let foo = createFoo();
+  if foo
+  ... is Foo::A(_, _, _) { }
+  ... is Foo::B          { unreachable[()]() }
+  std::forceCollect();
+  if foo
+  ... is Foo::A(_, _, _) { }
+  ... is Foo::B          { unreachable[()]() }
 }
 
-fun createFoo(): Foo {
-    Foo::A(112i32, "abc", 17.5f32)
-}
+fun createFoo(): Foo = Foo::A(112i32, "abc", 17.5f32);

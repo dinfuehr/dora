@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use crate::ast::*;
-
 use crate::interner::{ArcStr, Interner, Name};
 
 macro_rules! dump {
@@ -476,7 +475,6 @@ impl<'a> AstDumper<'a> {
             Expr::If(ref expr) => self.dump_expr_if(expr),
             Expr::Tuple(ref expr) => self.dump_expr_tuple(expr),
             Expr::Paren(ref expr) => self.dump_expr_paren(expr),
-            Expr::Match(ref expr) => self.dump_expr_match(expr),
         }
     }
 
@@ -504,19 +502,26 @@ impl<'a> AstDumper<'a> {
 
     fn dump_expr_if(&mut self, expr: &ExprIfType) {
         dump!(self, "if @ {} {}", expr.pos, expr.id);
-
         self.indent(|d| {
-            d.indent(|d| {
-                d.dump_expr(&expr.cond);
-            });
-            dump!(d, "then");
-            d.indent(|d| {
-                d.dump_expr(&expr.then_block);
-            });
-            dump!(d, "else");
-            d.indent(|d| {
-                d.dump_expr(&expr.then_block);
-            });
+            d.dump_expr(&expr.cond.expr.as_ref().unwrap());
+            for case in &expr.cases {
+                dump!(d, "case");
+                d.indent(|d| match &case.data {
+                    IfCaseData::Simple => {}
+                    IfCaseData::Continuation(expr) => {
+                        d.dump_expr(expr);
+                    }
+                    IfCaseData::Patterns(_) => {}
+                });
+                dump!(d, "then");
+                d.indent(|d| {
+                    d.dump_expr(&case.value);
+                });
+            }
+            if let Some(else_block) = &expr.else_block {
+                dump!(d, "else");
+                d.dump_expr(else_block);
+            }
         });
     }
 
@@ -636,13 +641,6 @@ impl<'a> AstDumper<'a> {
 
     fn dump_expr_paren(&mut self, expr: &ExprParenType) {
         dump!(self, "paren @ {} {}", expr.pos, expr.id);
-        self.indent(|d| {
-            d.dump_expr(&expr.expr);
-        });
-    }
-
-    fn dump_expr_match(&mut self, expr: &ExprMatchType) {
-        dump!(self, "match @ {} {}", expr.pos, expr.id);
         self.indent(|d| {
             d.dump_expr(&expr.expr);
         });

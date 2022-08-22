@@ -314,15 +314,6 @@ pub fn walk_expr<V: Visitor>(v: &mut V, e: &Expr) {
             }
         }
 
-        Expr::If(ref value) => {
-            v.visit_expr(&value.cond);
-            v.visit_expr(&value.then_block);
-
-            if let Some(ref b) = value.else_block {
-                v.visit_expr(b);
-            }
-        }
-
         Expr::Tuple(ref value) => {
             for expr in &value.values {
                 v.visit_expr(expr);
@@ -333,8 +324,20 @@ pub fn walk_expr<V: Visitor>(v: &mut V, e: &Expr) {
             v.visit_expr(&value.expr);
         }
 
-        Expr::Match(ref value) => {
-            v.visit_expr(&value.expr);
+        Expr::If(ref value) => {
+            v.visit_stmt(&Stmt::Let(value.cond.as_ref().clone()));
+            for case in &value.cases {
+                match &case.data {
+                    IfCaseData::Simple => {}
+                    IfCaseData::Continuation(expr) => v.visit_expr(expr),
+                    IfCaseData::Patterns(_) => {}
+                }
+                v.visit_expr(&case.value);
+            }
+
+            if let Some(ref b) = value.else_block {
+                v.visit_expr(b);
+            }
         }
 
         Expr::This(_) => {}

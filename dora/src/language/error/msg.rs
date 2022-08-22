@@ -1,7 +1,8 @@
 use std::path::PathBuf;
 
-use crate::language::sem_analysis::{SemAnalysis, SourceFileId};
 use dora_parser::lexer::position::Position;
+
+use crate::language::sem_analysis::{SemAnalysis, SourceFileId};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum ErrorMessage {
@@ -44,12 +45,14 @@ pub enum ErrorMessage {
     EnumArgsIncompatible(String, String, Vec<String>, Vec<String>),
     StructArgsIncompatible(String, Vec<String>, Vec<String>),
     EnumArgsNoParens(String, String),
-    MatchPatternNoParens,
-    MatchPatternWrongNumberOfParams(usize, usize),
+    IfPatternNoParens,
+    IfPatternWrongNumberOfParams(usize, usize),
+    IfPatternVariantUncovered,
+    IfPatternUnreachable,
+    IfBranchTypesIncompatible(String, String),
+    IfPatternBindingAlreadyUsed,
     EnumExpected,
     EnumVariantExpected,
-    MatchUncoveredVariant,
-    MatchUnreachablePattern,
     VarNeedsTypeInfo(String),
     ParamTypesIncompatible(String, Vec<String>, Vec<String>),
     ArgumentNameMismatch(String, Vec<String>, Vec<String>),
@@ -153,9 +156,6 @@ pub enum ErrorMessage {
     InvalidLeftSideOfSeparator,
     InvalidUseOfTypeParams,
     NameOfStaticMethodExpected,
-    IfBranchTypesIncompatible(String, String),
-    MatchBranchTypesIncompatible(String, String),
-    VarAlreadyInPattern,
     NameExpected,
     IndexExpected,
     IllegalTupleIndex(u64, String),
@@ -286,18 +286,18 @@ impl ErrorMessage {
             ErrorMessage::EnumArgsNoParens(ref name, ref variant) => {
                 format!("{}::{} needs to be used without parens.", name, variant)
             }
-            ErrorMessage::MatchPatternNoParens => "pattern should be used without parens.".into(),
-            ErrorMessage::MatchPatternWrongNumberOfParams(given_params, expected_params) => {
+            ErrorMessage::IfPatternNoParens => "pattern should be used without parens.".into(),
+            ErrorMessage::IfPatternWrongNumberOfParams(given_params, expected_params) => {
                 format!(
                     "pattern expects {} params but got {}.",
                     given_params, expected_params
                 )
             }
-            ErrorMessage::VarAlreadyInPattern => "var is already used in pattern.".into(),
+            ErrorMessage::IfPatternBindingAlreadyUsed => "var is already used in pattern.".into(),
             ErrorMessage::EnumExpected => format!("enum expected."),
             ErrorMessage::EnumVariantExpected => format!("enum variant expected."),
-            ErrorMessage::MatchUncoveredVariant => "not all variants are covered.".into(),
-            ErrorMessage::MatchUnreachablePattern => "not all variants are covered.".into(),
+            ErrorMessage::IfPatternVariantUncovered => "not all variants are covered.".into(),
+            ErrorMessage::IfPatternUnreachable => "variant not reachable.".into(),
             ErrorMessage::VarNeedsTypeInfo(ref name) => format!(
                 "variable `{}` needs either type declaration or expression.",
                 name
@@ -577,13 +577,9 @@ impl ErrorMessage {
                 "type params need to be used on class or function.".into()
             }
             ErrorMessage::NameOfStaticMethodExpected => "name of static method expected.".into(),
-            ErrorMessage::IfBranchTypesIncompatible(ref then_block, ref else_block) => format!(
+            ErrorMessage::IfBranchTypesIncompatible(ref type1, ref type2) => format!(
                 "if-branches have incompatible types `{}` and `{}`.",
-                then_block, else_block
-            ),
-            ErrorMessage::MatchBranchTypesIncompatible(ref expected_ty, ref value_ty) => format!(
-                "match arms have incompatible types `{}` and `{}`.",
-                expected_ty, value_ty
+                type1, type2
             ),
             ErrorMessage::NameExpected => "name expected for dot-operator.".into(),
             ErrorMessage::IndexExpected => "index expected as right-hand-side for tuple.".into(),

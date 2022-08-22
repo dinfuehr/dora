@@ -509,9 +509,9 @@ impl[T] Queue[T] {
     let end = self.front + self.count;
 
     if end < self.elements.size() {
-      return end;
+      end
     } else {
-      return end - self.elements.size();
+      end - self.elements.size()
     }
   }
 
@@ -561,7 +561,8 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
         var insert_idx = None[Int64];
 
         while true {
-            if self.isLive(idx) {
+            if self
+            ... .isLive(idx) {
                 let current_key = self.keys.get(idx);
 
                 if current_key.hash() == hash && current_key.equals(key) {
@@ -569,15 +570,15 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
                     self.values.set(idx, value);
                     return Some[V](old_value);
                 }
-
-            } else if self.isDeleted(idx) {
+            }
+            ... .isDeleted(idx) {
                 // There might be live entries after a deleted one.
 
                 if insert_idx.isNone() {
                     insert_idx = Some[Int64](idx);
                 }
-
-            } else {
+            }
+            else {
                 let insert_idx = insert_idx.unwrapOr(idx);
 
                 self.inserted_and_deleted.insert(2i64 * insert_idx);
@@ -589,7 +590,6 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
                 self.entries = self.entries + 1i64;
                 return None[V];
             }
-
             idx = (idx + 1i64) & (self.cap - 1i64);
         }
 
@@ -607,17 +607,20 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
         var idx = hash.toInt64() & (self.cap - 1i64);
 
         while true {
-            if self.isLive(idx) {
+            if self
+            ... .isLive(idx) {
                 let current_key = self.keys.get(idx);
 
                 if current_key.hash() == hash && current_key.equals(key) {
                     return true;
                 }
                 idx = (idx + 1i64) & (self.cap - 1i64);
-            } else if self.isDeleted(idx) {
+            }
+            ... .isDeleted(idx) {
                 // There might be live entries after a deleted one.
                 idx = (idx + 1i64) & (self.cap - 1i64);
-            } else {
+            }
+            else {
                 return false;
             }
         }
@@ -636,17 +639,20 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
         var idx = hash.toInt64() & (self.cap - 1i64);
 
         while true {
-            if self.isLive(idx) {
+            if self
+            ... .isLive(idx) {
                 let current_key = self.keys.get(idx);
 
                 if current_key.hash() == hash && current_key.equals(key) {
                     return Option[V]::Some(self.values.get(idx));
                 }
                 idx = (idx + 1i64) & (self.cap - 1i64);
-            } else if self.isDeleted(idx) {
+            }
+            ... .isDeleted(idx) {
                 // There might be live entries after a deleted one.
                 idx = (idx + 1i64) & (self.cap - 1i64);
-            } else {
+            }
+            else {
                 return Option[V]::None;
             }
         }
@@ -661,7 +667,8 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
         var idx = hash.toInt64() & (self.cap - 1i64);
 
         while true {
-            if self.isLive(idx) {
+            if self
+            ... .isLive(idx) {
                 let current_key = self.keys.get(idx);
 
                 if current_key.hash() == hash && current_key.equals(key) {
@@ -675,10 +682,12 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
                     return Option[V]::Some(value);
                 }
                 idx = (idx + 1i64) & (self.cap - 1i64);
-            } else if self.isDeleted(idx) {
+            }
+            ... .isDeleted(idx) {
                 // There might be live entries after a deleted one.
                 idx = (idx + 1i64) & (self.cap - 1i64);
-            } else {
+            }
+            else {
                 Option[V]::None;
             }
         }

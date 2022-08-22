@@ -164,16 +164,20 @@ impl Char {
   @pub fun encodeUtf8(bytes: Array[UInt8], offset: Int64): Unit {
     let val = self.toInt32();
 
-    if val < 0x80i32 {
+    if val
+    ... < 0x80i32 {
       bytes.set(offset, val.toUInt8());
-    } else if val < 0x800i32 {
+    }
+    ... < 0x800i32 {
       bytes.set(offset, (0xC0i32 | (val.shiftRightSigned(6i32) & 0x1Fi32)).toUInt8());
       bytes.set(offset+1i64, (0x80i32 | (val & 0x3Fi32)).toUInt8());
-    } else if val < 0x10000i32 {
+    }
+    ... < 0x10000i32 {
       bytes.set(offset, (0xE0i32 | (val.shiftRightSigned(12i32) & 0x0Fi32)).toUInt8());
       bytes.set(offset+1i64, (0x80i32 | (val.shiftRightSigned(6i32) & 0x3Fi32)).toUInt8());
       bytes.set(offset+2i64, (0x80i32 | (val & 0x3Fi32)).toUInt8());
-    } else {
+    }
+    else {
       bytes.set(offset, (0xF0i32 | (val.shiftRightSigned(18i32) & 0x07i32)).toUInt8());
       bytes.set(offset+1i64, (0x80i32 | (val.shiftRightSigned(12i32) & 0x3Fi32)).toUInt8());
       bytes.set(offset+2i64, (0x80i32 | (val.shiftRightSigned(6i32) & 0x3Fi32)).toUInt8());
@@ -184,15 +188,11 @@ impl Char {
   @pub fun lenUtf8(): Int32 {
     let val = self.toInt32();
 
-    if val < 0x80i32 {
-      return 1i32;
-    } else if val < 0x800i32 {
-      return 2i32;
-    } else if val < 0x10000i32 {
-      return 3i32;
-    } else {
-      return 4i32;
-    }
+    return if val
+    ... < 0x80i32    { 1i32 }
+    ... < 0x800i32   { 2i32 }
+    ... < 0x10000i32 { 3i32 }
+    else             { 4i32 };
   }
 }
 
@@ -440,99 +440,67 @@ use Option::Some;
 use Option::None;
 
 impl[T] Option[T] {
-  @pub fun isNone(): Bool {
-    match self {
-      Some(_) => false,
-      None => true,
-    }
-  }
+  @pub fun isNone(): Bool = if self
+    ... is Some(_) { false }
+    ... is None    { true  };
 
-  @pub fun isSome(): Bool {
-    match self {
-      Some(_) => true,
-      None => false,
-    }
-  }
+  @pub fun isSome(): Bool = if self
+    ... is Some(_) { true  }
+    ... is None    { false };
 
-  @pub fun getOrPanic(): T {
-    match self {
-      Some(value) => value,
-      None => {
-        fatalError("cannot unwrap None.");
-        unreachable[T]()
-      }
-    }
-  }
+  @pub fun getOrPanic(): T = if self
+    ... is Some(value) { value }
+    ... is None { fatalError("cannot unwrap None."); unreachable[T]() };
 
-  @pub fun unwrapNone(): Unit {
-    match self {
-      Some(_) => {
-        fatalError("cannot unwrap Some.");
-      },
-      None => (),
-    }
-  }
+  @pub fun unwrapNone(): Unit = if self
+    ... is Some(_) { fatalError("cannot unwrap Some."); }
+    ... is None    { };
 
-  @pub fun unwrapOr(alt: T): T {
-    match self {
-      Some(value) => value,
-      None => alt,
-    }
-  }
+  @pub fun unwrapOr(alt: T): T = if self
+    ... is Some(value) { value }
+    ... is None        { alt   };
 
-  @pub fun has(val: T): Bool {
-    match self {
-      Some(actual) => actual === val,
-      None => false,
-    }
-  }
+  @pub fun has(val: T): Bool = if self
+    ... is Some(actual) { actual === val }
+    ... is None         { false };
 
-  @pub fun all(fct: (T): Bool): Bool = match self {
-    Some(val) => fct(val),
-    None => true,
-  };
+  @pub fun all(fct: (T): Bool): Bool = if self
+    ... is Some(val) { fct(val) }
+    ... is None      { true     };
 
-  @pub fun any(fct: (T): Bool): Bool = match self {
-    Some(val) => fct(val),
-    None => false,
-  };
+  @pub fun any(fct: (T): Bool): Bool = if self
+    ... is Some(val) { fct(val) }
+    ... is None      { false    };
 
-  @pub fun or(alt: Option[T]): Option[T] = match self {
-    Some(_) => self,
-    None    => alt,
-  };
+  @pub fun or(alt: Option[T]): Option[T] = if self
+    ... is Some(_) { self }
+    ... is None    { alt  };
 
-  @pub fun each(fct: (T): Unit): Unit = match self {
-    Some(val) => fct(val),
-    None      => (),
-  };
+  @pub fun each(fct: (T): Unit): Unit = if self
+    ... is Some(val) { fct(val) }
+    ... is None      { };
 
-  @pub fun map[U](fct: (T): U): Option[U] = match self {
-    Some(val) => Some[U](fct(val)),
-    None      => None[U],
-  };
+  @pub fun map[U](fct: (T): U): Option[U] = if self
+    ... is Some(val) { Some[U](fct(val)) }
+    ... is None      { None[U]           };
 
-  @pub fun flatMap[U](fct: (T): Option[U]): Option[U] = match self {
-    Some(val) => fct(val),
-    None      => None[U],
-  };
+  @pub fun flatMap[U](fct: (T): Option[U]): Option[U] = if self
+    ... is Some(val) { fct(val) }
+    ... is None      { None[U]  };
 
-  @pub fun retain(fct: (T): Bool): Option[T] = match self {
-    Some(val) => if fct(val) { self } else { Option[T]::None },
-    None      => self,
-  };
+  @pub fun retain(fct: (T): Bool): Option[T] = if self
+    ... is Some(val) { if fct(val) { self } else { Option[T]::None } }
+    ... is None      { self };
 
-  @pub fun reject(fct: (T): Bool): Option[T] = match self {
-    Some(val) => if fct(val) { Option[T]::None } else { self },
-    None      => self,
-  };
+  @pub fun reject(fct: (T): Bool): Option[T] = if self
+    ... is Some(val) { if fct(val) { Option[T]::None } else { self } }
+    ... is None      { self };
 }
 
 impl[T] Option[Option[T]] {
-  @pub fun flatten(): Option[T] = match self {
-    Some(val) => val,
-    None      => None[T],
-  };
+  @pub fun flatten(): Option[T] = if self
+    ... is Some(val) { val }
+    ... is None      { None[T] };
 }
 
 impl[T: Equals] Equals for Option[T] {
@@ -552,38 +520,33 @@ impl[T: Equals] Equals for Option[T] {
 }
 
 impl[T: Equals] Option[T] {
-  @pub fun contains(rhs: T): Bool = match self {
-    Some(val) => val.equals(rhs),
-    None      => false,
-  };
+  @pub fun contains(rhs: T): Bool = if self
+    ... is Some(val) { val.equals(rhs) }
+    ... is None      { false };
 }
 
 impl[T: Hash] Hash for Option[T] {
-  @pub fun hash(): Int32 = match self {
-    Some(val) => 23i32.wrappingMul(val.hash()),
-    None      => 31i32,
-  };
+  @pub fun hash(): Int32 = if self
+    ... is Some(val) { 23i32.wrappingMul(val.hash()) }
+    ... is None      { 31i32 };
 }
 
 impl[T: Stringable] Stringable for Option[T] {
-  @pub fun toString(): String = match self {
-    Some(value) => "Some(${value})",
-    None        => "None",
-  };
+  @pub fun toString(): String = if self
+    ... is Some(val) { "Some(${val})" }
+    ... is None      { "None" };
 }
 
 impl[T: Default] Option[T] {
-  @pub fun getOrDefault(): T = match self {
-    Some(val) => val,
-    None      => T::default(),
-  };
+  @pub fun getOrDefault(): T = if self
+    ... is Some(val) { val }
+    ... is None      { T::default() };
 }
 
 impl[T: Zero] Option[T] {
-  @pub fun getOrZero(): T = match self {
-    Some(val) => val,
-    None      => T::zero(),
-  };
+  @pub fun getOrZero(): T = if self
+    ... is Some(val) { val }
+    ... is None      { T::zero() };
 }
 
 @pub enum Result[T, E] {
@@ -595,103 +558,71 @@ use Result::Ok;
 use Result::Err;
 
 impl[T, E] Result[T, E] {
-  @pub fun isOk(): Bool {
-    match self {
-      Ok(_) => true,
-      Err(_) => false,
-    }
-  }
+  @pub fun isOk(): Bool = if self
+    ... is Ok(_)  { true  }
+    ... is Err(_) { false };
 
-  @pub fun isErr(): Bool {
-    match self {
-      Ok(_) => false,
-      Err(_) => true,
-    }
-  }
+  @pub fun isErr(): Bool = if self
+    ... is Ok(_)  { false }
+    ... is Err(_) { true  };
 
-  @pub fun getOrPanic(): T {
-    match self {
-      Ok(value) => value,
-      Err(_) => {
-        fatalError("cannot unwrap Err.");
-        unreachable[T]()
-      }
-    }
-  }
+  @pub fun getOrPanic(): T = if self
+    ... is Ok(val) { val }
+    ... is Err(_)  { fatalError("cannot unwrap Err."); unreachable[T]() };
 
-  @pub fun getErrOrPanic(): E {
-    match self {
-      Ok(_) => {
-        fatalError("cannot unwrap Ok.");
-        unreachable[E]()
-      },
-      Err(value) => value,
-    }
-  }
+  @pub fun getErrOrPanic(): E = if self
+    ... is Ok(_)      { fatalError("cannot unwrap Ok."); unreachable[E]() }
+    ... is Err(value) { value };
 
-  @pub fun has(val: T): Bool {
-    match self {
-      Ok(actual) => actual === val,
-      Err(_) => false,
-    }
-  }
+  @pub fun has(val: T): Bool = if self
+    ... is Ok(actual) { actual === val }
+    ... is Err(_)     { false };
 
-  @pub fun all(fct: (T): Bool): Bool = match self {
-    Ok(val) => fct(val),
-    Err(_)  => true,
-  };
+  @pub fun all(fct: (T): Bool): Bool = if self
+    ... is Ok(val) { fct(val) }
+    ... is Err(_)  { true     };
 
-  @pub fun any(fct: (T): Bool): Bool = match self {
-    Ok(val) => fct(val),
-    Err(_)  => false,
-  };
+  @pub fun any(fct: (T): Bool): Bool = if self
+    ... is Ok(val) { fct(val) }
+    ... is Err(_)  { false    };
 
-  @pub fun or(alt: Result[T, E]): Result[T, E] = match self {
-    Ok(_)  => self,
-    Err(_) => alt,
-  };
+  @pub fun or(alt: Result[T, E]): Result[T, E] = if self
+    ... is Ok(_)  { self }
+    ... is Err(_) { alt  };
 
-  @pub fun each(fct: (T): Unit): Unit = match self {
-    Ok(val) => fct(val),
-    Err(_)  => (),
-  };
+  @pub fun each(fct: (T): Unit): Unit = if self
+    ... is Ok(val) { fct(val) }
+    ... is Err(_)  { };
 
-  @pub fun map[U](fct: (T): U): Result[U, E] = match self {
-    Ok(val)  => Ok[U, E](fct(val)),
-    Err(err) => Err[U, E](err),
-  };
+  @pub fun map[U](fct: (T): U): Result[U, E] = if self
+    ... is Ok (val) { Ok [U, E](fct(val)) }
+    ... is Err(err) { Err[U, E](err)      };
 
-  @pub fun flatMap[U](fct: (T): Result[U, E]): Result[U, E] = match self {
-    Ok(val)  => fct(val),
-    Err(err) => Err[U, E](err),
-  };
+  @pub fun flatMap[U](fct: (T): Result[U, E]): Result[U, E] = if self
+    ... is Ok (val) { fct(val) }
+    ... is Err(err) { Err[U, E](err) };
 
-  @pub fun retain(fct: (T): Bool, err: E): Result[T, E] = match self {
-    Ok(val) => if fct(val) { self } else { Err[T, E](err) },
-    Err(_)  => self,
-  };
+  @pub fun retain(fct: (T): Bool, err: E): Result[T, E] = if self
+    ... is Ok(val) { if fct(val) { self } else { Err[T, E](err) } }
+    ... is Err(_)  { self };
 
-  @pub fun reject(fct: (T): Bool, err: E): Result[T, E] = match self {
-    Ok(val) => if fct(val) { Err[T, E](err) } else { self },
-    Err(_)  => self,
-  };
+  @pub fun reject(fct: (T): Bool, err: E): Result[T, E] = if self
+    ... is Ok(val) { if fct(val) { Err[T, E](err) } else { self } }
+    ... is Err(_)  { self };
 
-  @pub fun swap(): Result[E, T] = match self {
-    Ok(val) => Err[E, T](val),
-    Err(err) => Ok[E, T](err),
-  };
+  @pub fun swap(): Result[E, T] = if self
+    ... is Ok (val) { Err[E, T](val) }
+    ... is Err(err) { Ok [E, T](err) };
 
-  @pub fun toOption(): Option[T] = match self {
-    Ok(val) => Some[T](val),
-    Err(_)  => None[T],
-  };
+  @pub fun toOption(): Option[T] = if self
+    ... is Ok(val) { Some[T](val) }
+    ... is Err(_)  { None[T] };
 }
 
 impl[T: Equals, E] Result[T, E] {
-  @pub fun contains(rhs: T): Bool = match self {
-    Ok(val) => val.equals(rhs),
-    Err(_)  => false,
-  };
+  @pub fun contains(rhs: T): Bool = if self
+    ... is Ok(val) { val.equals(rhs) }
+    ... is Err(_)  { false };
 }
 
 impl[T: Equals, E: Equals] Equals for Result[T, E] {
@@ -717,43 +648,37 @@ impl[T: Equals, E: Equals] Equals for Result[T, E] {
 }
 
 impl[T: Hash, E: Hash] Hash for Result[T, E] {
-  @pub fun hash(): Int32 = match self {
-    Ok(val)  => 29i32.wrappingMul(val.hash()),
-    Err(err) => 37i32.wrappingMul(err.hash()),
-  };
+  @pub fun hash(): Int32 = if self
+    ... is Ok (val) { 29i32.wrappingMul(val.hash()) }
+    ... is Err(err) { 37i32.wrappingMul(err.hash()) };
 }
 
 impl[T: Stringable, E: Stringable] Stringable for Result[T, E] {
-  @pub fun toString(): String = match self {
-    Ok(val)  => "Ok(${val})",
-    Err(err) => "Err(${err})",
-  };
+  @pub fun toString(): String = if self
+    ... is Ok (val) { "Ok (${val})" }
+    ... is Err(err) { "Err(${err})" };
 }
 
 impl[T: Default, E] Result[T, E] {
-  @pub fun getOrDefault(): T = match self {
-    Ok(val) => val,
-    Err(_)  => T::default(),
-  };
+  @pub fun getOrDefault(): T = if self
+    ... is Ok(val) { val }
+    ... is Err(_)  { T::default() };
 }
 
 impl[T, E: Default] Result[T, E] {
-  @pub fun getErrOrDefault(): E = match self {
-    Ok(_)    => E::default(),
-    Err(err) => err,
-  };
+  @pub fun getErrOrDefault(): E = if self
+    ... is Ok(_)    { E::default() }
+    ... is Err(err) { err };
 }
 
 impl[T: Zero, E] Result[T, E] {
-  @pub fun getOrZero(): T = match self {
-    Ok(val) => val,
-    Err(_)  => T::zero(),
-  };
+  @pub fun getOrZero(): T = if self
+    ... is Ok(val) { val }
+    ... is Err(_)  { T::zero() };
 }
 
 impl[T, E: Zero] Result[T, E] {
-  @pub fun getErrOrZero(): E = match self {
-    Ok(_)    => E::zero(),
-    Err(err) => err,
-  };
+  @pub fun getErrOrZero(): E = if self
+    ... is Ok(_)    { E::zero() }
+    ... is Err(err) { err };
 }

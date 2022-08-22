@@ -15,15 +15,12 @@ fun iterateManually(): Unit {
 }
 
 fun iterateWithForIn(): Unit {
-    for idx_and_value in Array[String]::new("a", "b", "c").enumerate() {
-        let (idx, value) = idx_and_value;
-
-        if idx == 0i64 { assert(value == "a"); }
-        else if idx == 1i64 { assert(value == "b"); }
-        else if idx == 2i64 { assert(value == "c"); }
-        else {
-            unreachable[()]();
-        }
-
-    }
+  for idx_and_value in Array[String]::new("a", "b", "c").enumerate() {
+    let (idx, value) = idx_and_value;
+    if idx
+    ... == 0i64 { assert(value == "a"); }
+    ... == 1i64 { assert(value == "b"); }
+    ... == 2i64 { assert(value == "c"); }
+    else        { unreachable[()](); }
+  }
 }

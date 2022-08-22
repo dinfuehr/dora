@@ -135,9 +135,9 @@ impl Scheduler {
         let tcb = blockTcb.getOrPanic();
         tcb.markAsNotHeld();
         if tcb.priority > self.currentTcb.getOrPanic().priority {
-            return blockTcb;
+            blockTcb
         } else {
-            return self.currentTcb;
+            self.currentTcb
         }
     }
 
@@ -218,13 +218,12 @@ impl TaskControlBlock {
         return task;
     }
 
-    @static fun new(link: Option[TaskControlBlock], id: Int32, priority: Int32, queue: Option[Packet], task: Task): TaskControlBlock {
+    @static fun new(link: Option[TaskControlBlock], id: Int32, priority: Int32, queue: Option[Packet], task: Task): TaskControlBlock =
         if queue.isNone() {
-            return TaskControlBlock(link, id, priority, queue, task, STATE_SUSPENDED);
+            TaskControlBlock(link, id, priority, queue, task, STATE_SUSPENDED)
         } else {
-            return TaskControlBlock(link, id, priority, queue, task, STATE_SUSPENDED_RUNNABLE);
-        }
-    }
+            TaskControlBlock(link, id, priority, queue, task, STATE_SUSPENDED_RUNNABLE)
+        };
 }
 
 impl std::Stringable for TaskControlBlock {
@@ -258,10 +257,10 @@ impl Task for IdleTask {
         }
         if self.seed & 1i32 == 0i32 {
             self.seed = self.seed.shiftRightSigned(1i32);
-            return self.scheduler.release(ID_DEVICE_A);
+            self.scheduler.release(ID_DEVICE_A)
         } else {
             self.seed = self.seed.shiftRightSigned(1i32) ^ 0xD008i32;
-            return self.scheduler.release(ID_DEVICE_B);
+            self.scheduler.release(ID_DEVICE_B)
         }
     }
 
@@ -289,16 +288,14 @@ impl Task for DeviceTask {
             }
             let v = self.seed.getOrPanic();
             self.seed = Option[Packet]::None;
-            return self.scheduler.queue(v);
+            self.scheduler.queue(v)
         } else {
             self.seed = packet;
-            return self.scheduler.holdCurrent();
+            self.scheduler.holdCurrent()
         }
     }
 
-    fun toString(): String {
-        return "DeviceTask";
-    }
+    fun toString(): String = "DeviceTask";
 }
 
 class WorkerTask {
@@ -314,9 +311,9 @@ impl WorkerTask {
 }
 
 impl Task for WorkerTask {
-    fun run(packet: Option[Packet]): Option[TaskControlBlock] {
+    fun run(packet: Option[Packet]): Option[TaskControlBlock] =
         if packet.isNone() {
-            return self.scheduler.suspendCurrent();
+            self.scheduler.suspendCurrent()
         } else {
             let p = packet.getOrPanic();
             if self.v1 == ID_HANDLER_A {
@@ -334,13 +331,10 @@ impl Task for WorkerTask {
                 }
                 i = i + 1i32;
             }
-            return self.scheduler.queue(p);
-        }
-    }
+            self.scheduler.queue(p)
+        };
 
-    fun toString(): String {
-        return "WorkerTask";
-    }
+    fun toString(): String = "WorkerTask";
 }
 
 class HandlerTask {

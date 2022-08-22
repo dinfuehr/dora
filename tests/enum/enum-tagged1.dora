@@ -1,25 +1,23 @@
 enum Foo { A(Int32, String, Float32), B }
 
 fun main(): Unit {
-    let value = Foo::A(112i32, "abc", 17.5f32);
-    foo(value);
-    match value {
-        Foo::A(a, b, c) => {
-            assert(a == 112i32);
-            assert(b == "abc");
-            assert(c == 17.5f32);
-        },
-        Foo::B => unreachable[()](),
-    }
+  let value = Foo::A(112i32, "abc", 17.5f32);
+  foo(value);
+  if value
+  ... is Foo::A(a, b, c) {
+    assert(a == 112i32);
+    assert(b == "abc");
+    assert(c == 17.5f32);
+  }
+  ... is Foo::B { unreachable[()]() }
 
-    let value = Foo::B;
-    match value {
-        Foo::A(_, _, _) => unreachable[()](),
-        Foo::B => (),
-    }
+  let value = Foo::B;
+  if value
+  ... is Foo::A(_, _, _) { unreachable[()]() }
+  ... is Foo::B          { }
 }
 
 fun foo(x: Foo): Foo {
-    let y = x;
-    y
+  let y = x;
+  y
 }

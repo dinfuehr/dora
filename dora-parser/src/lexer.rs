@@ -302,9 +302,6 @@ impl Lexer {
                     } else {
                         TokenKind::EqEq
                     }
-                } else if nch == '>' {
-                    self.read_char();
-                    TokenKind::DoubleArrow
                 } else {
                     TokenKind::Eq
                 }
@@ -565,11 +562,13 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     keywords.insert("while", TokenKind::While);
     keywords.insert("for", TokenKind::For);
     keywords.insert("in", TokenKind::In);
-    keywords.insert("match", TokenKind::Match);
 
     // qualifiers
     keywords.insert("self", TokenKind::This);
     keywords.insert("super", TokenKind::Super);
+
+    // pattern matching
+    keywords.insert("is", TokenKind::Is);
 
     // casting
     keywords.insert("as", TokenKind::As);
@@ -1047,12 +1046,11 @@ mod tests {
         assert_tok(&mut reader, TokenKind::Let, 1, 5);
         assert_tok(&mut reader, TokenKind::Var, 1, 9);
 
-        let mut reader = Lexer::from_str("while if else match return");
+        let mut reader = Lexer::from_str("while if else return");
         assert_tok(&mut reader, TokenKind::While, 1, 1);
         assert_tok(&mut reader, TokenKind::If, 1, 7);
         assert_tok(&mut reader, TokenKind::Else, 1, 10);
-        assert_tok(&mut reader, TokenKind::Match, 1, 15);
-        assert_tok(&mut reader, TokenKind::Return, 1, 21);
+        assert_tok(&mut reader, TokenKind::Return, 1, 15);
 
         let mut reader = Lexer::from_str("self class super mod");
         assert_tok(&mut reader, TokenKind::This, 1, 1);
@@ -1100,9 +1098,6 @@ mod tests {
 
         let mut reader = Lexer::from_str("!=");
         assert_tok(&mut reader, TokenKind::NotEq, 1, 1);
-
-        let mut reader = Lexer::from_str("=>");
-        assert_tok(&mut reader, TokenKind::DoubleArrow, 1, 1);
 
         let mut reader = Lexer::from_str("_::");
         assert_tok(&mut reader, TokenKind::Underscore, 1, 1);

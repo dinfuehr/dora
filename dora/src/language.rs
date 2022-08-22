@@ -315,7 +315,12 @@ pub mod tests {
                 } else {
                     println!("but got:");
                     for error in errors {
-                        println!("\t{:?} at {:?}", error.msg, error.pos);
+                        println!(
+                            "\t{:?} at {:?} in {:?}",
+                            error.msg,
+                            error.pos.unwrap(),
+                            vm.source_file(error.file.unwrap()).path
+                        );
                         println!();
                     }
                 }

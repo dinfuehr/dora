@@ -3,32 +3,25 @@
 enum Foo { A(Int32, String, Float32), B }
 
 fun main(): Unit {
-    let object = createArray();
-    match object(0i64) {
-        Foo::A(a, b, c) => unreachable[()](),
-        Foo::B => (),
-    }
-    std::forceCollect();
-    match object(0i64) {
-        Foo::A(a, b, c) => unreachable[()](),
-        Foo::B => (),
-    }
-    updateArray(object);
-    std::forceMinorCollect();
-    match object(0i64) {
-        Foo::A(a, b, c) => {
-            assert(a == 112i32);
-            assert(b == "abc");
-            assert(c == 17.5f32);
-        },
-        Foo::B => unreachable[()](),
-    }
+  let object = createArray();
+  if object(0i64)
+  ... is Foo::A(a, b, c) { unreachable[()]() }
+  ... is Foo::B          { }
+  std::forceCollect();
+  if object(0i64)
+  ... is Foo::A(a, b, c) { unreachable[()]() }
+  ... is Foo::B          { }
+  updateArray(object);
+  std::forceMinorCollect();
+  if object(0i64)
+  ... is Foo::A(a, b, c) {
+    assert(a == 112i32);
+    assert(b == "abc");
+    assert(c == 17.5f32);
+  }
+  ... is Foo::B { unreachable[()]() }
 }
 
-fun createArray(): Array[Foo] {
-    Array[Foo]::new(Foo::B)
-}
+fun createArray(): Array[Foo] = Array[Foo]::new(Foo::B);
 
-fun updateArray(object: Array[Foo]): Unit {
-    object(0i64) = Foo::A(112i32, "abc", 17.5f32);
-}
+fun updateArray(object: Array[Foo]): Unit = object(0i64) = Foo::A(112i32, "abc", 17.5f32);

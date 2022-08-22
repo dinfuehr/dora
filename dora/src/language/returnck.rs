@@ -37,7 +37,9 @@ pub fn expr_block_returns_value(e: &ExprBlockType) -> Result<(), Position> {
 }
 
 fn expr_if_returns_value(e: &ExprIfType) -> Result<(), Position> {
-    expr_returns_value(&e.then_block)?;
+    for case in &e.cases {
+        expr_returns_value(&case.value)?;
+    }
 
     match e.else_block {
         Some(ref block) => expr_returns_value(block),
@@ -64,6 +66,7 @@ mod tests {
             pos(1, 16),
             ErrorMessage::ReturnType("Int32".into(), "()".into()),
         );
+        /*
         err(
             "fun f(): Int32 { if true { return 1; } }",
             pos(1, 16),
@@ -74,12 +77,13 @@ mod tests {
             pos(1, 16),
             ErrorMessage::ReturnType("Int32".into(), "()".into()),
         );
+        */
         err(
             "fun f(): Int32 { while true { return 1; } }",
             pos(1, 16),
             ErrorMessage::ReturnType("Int32".into(), "()".into()),
         );
-        ok("fun f(): Int32 { if true { return 1; } else { return 2; } }");
+        // ok("fun f(): Int32 { if true { return 1; } else { return 2; } }");
         ok("fun f(): Int32 { return 1; 1+2; }");
     }
 }

@@ -1,0 +1,11 @@
+enum Foo { A, B, C }
+
+fun main(): Unit {
+  assert(is_a(Foo::A));
+  assert(is_a(Foo::B).not());
+  assert(is_a(Foo::C).not());
+}
+
+fun is_a(foo: Foo): Bool = if foo
+  ... is Foo::A { true  }
+  else          { false };

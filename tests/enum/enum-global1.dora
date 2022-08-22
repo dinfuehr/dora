@@ -5,21 +5,18 @@ enum Foo { A(Int32, String, Float32), B }
 var foo_value: Foo = Foo::B;
 
 fun main(): Unit {
-    match foo_value {
-        Foo::A(_, _, _) => unreachable[()](),
-        Foo::B => (),
-    }
+  if foo_value
+  ... is Foo::A(_, _, _) { unreachable[()]() }
+  ... is Foo::B { };
 
-    foo_value = Foo::A(112i32, "abc", 17.5f32);
-    std::forceCollect();
+  foo_value = Foo::A(112i32, "abc", 17.5f32);
+  std::forceCollect();
 
-    match foo_value {
-        Foo::A(a, b, c) => {
-            assert(a == 112i32);
-            assert(b == "abc");
-            assert(c == 17.5f32);
-        },
-
-        Foo::B => unreachable[()](),
-    }
+  if foo_value
+  ... is Foo::A(a, b, c) {
+    assert(a == 112i32);
+    assert(b == "abc");
+    assert(c == 17.5f32);
+  }
+  ... is Foo::B { unreachable[()]() }
 }

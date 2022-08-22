@@ -1,21 +1,14 @@
 //= stdout file
 
 fun main(): Unit {
-    var i = 1i32;
+  var i = 1i32;
 
-    while i <= 100i32 {
-        if i.remainder(15i32) == 0i32 {
-            println("FizzBuzz");
-
-        } else if i.remainder(5i32) == 0i32 {
-            println("Buzz");
-
-        } else if i.remainder(3i32) == 0i32 {
-            println("Fizz");
-        } else {
-            println(i.toString());
-        }
-
-        i = i + 1i32;
-    }
+  while i <= 100i32 {
+    if i
+    ... .remainder(15i32) == 0i32 { println("FizzBuzz"); }
+    ... .remainder( 5i32) == 0i32 { println("Buzz"); }
+    ... .remainder( 3i32) == 0i32 { println("Fizz"); }
+    else                          { println(i.toString()); }
+    i = i + 1i32;
+  }
 }
