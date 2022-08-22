@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
     assert(test_with_epsilon(add(20f32, 5f32, 2f32), 27f32));
     assert(test_with_epsilon(sub(20f32, 5f32, 2f32), 13f32));
     assert(test_with_epsilon(mul(20f32, 5f32, 2f32), 200f32));
@@ -33,51 +33,51 @@ fn main() {
     assert(gt(5f32, 20f32).not());
 }
 
-fn test_with_epsilon(expected: Float32, value: Float32): Bool {
+fun test_with_epsilon(expected: Float32, value: Float32): Bool {
     let epsilon = 0.01f32;
     return value >= (expected-epsilon) && value <= (expected+epsilon);
 }
 
-fn add(x: Float32, y: Float32, z: Float32): Float32 {
+fun add(x: Float32, y: Float32, z: Float32): Float32 {
     return x+y+z;
 }
 
-fn sub(x: Float32, y: Float32, z: Float32): Float32 {
+fun sub(x: Float32, y: Float32, z: Float32): Float32 {
     return x-y-z;
 }
 
-fn mul(x: Float32, y: Float32, z: Float32): Float32 {
+fun mul(x: Float32, y: Float32, z: Float32): Float32 {
     return x*y*z;
 }
 
-fn div(x: Float32, y: Float32, z: Float32): Float32 {
+fun div(x: Float32, y: Float32, z: Float32): Float32 {
     return x/y/z;
 }
 
-fn eq(x: Float32, y: Float32): Bool {
+fun eq(x: Float32, y: Float32): Bool {
     return x == y;
 }
 
-fn ne(x: Float32, y: Float32): Bool {
+fun ne(x: Float32, y: Float32): Bool {
     return x != y;
 }
 
-fn lt(x: Float32, y: Float32): Bool {
+fun lt(x: Float32, y: Float32): Bool {
     return x < y;
 }
 
-fn le(x: Float32, y: Float32): Bool {
+fun le(x: Float32, y: Float32): Bool {
     return x <= y;
 }
 
-fn ge(x: Float32, y: Float32): Bool {
+fun ge(x: Float32, y: Float32): Bool {
     return x >= y;
 }
 
-fn gt(x: Float32, y: Float32): Bool {
+fun gt(x: Float32, y: Float32): Bool {
     return x > y;
 }
 
-fn neg(x: Float32): Float32 {
+fun neg(x: Float32): Float32 {
     return -x;
 }

@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
     let x = SomeTest();
     assert(+x == 1.0f32);
     assert(-x == 2.0f32);
@@ -7,11 +7,11 @@ fn main() {
 class SomeTest
 
 impl SomeTest {
-    fn unaryPlus(): Float32 {
+    fun unaryPlus(): Float32 {
         return 1.0f32;
     }
 
-    fn unaryMinus(): Float32 {
+    fun unaryMinus(): Float32 {
         return 2.0f32;
     }
 }

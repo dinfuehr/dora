@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
     let a = Array[Int32]::zero(10i64);
     assert(array_get(a, 0i64) == 0i32);
 
@@ -6,8 +6,8 @@ fn main() {
     assert(array_get(a, 0i64) == 7i32);
 }
 
-fn array_set(a: Array[Int32], idx: Int64, value: Int32) {
+fun array_set(a: Array[Int32], idx: Int64, value: Int32) {
     a(idx) = value;
 }
 
-fn array_get(a: Array[Int32], idx: Int64): Int32 { a(idx) }
+fun array_get(a: Array[Int32], idx: Int64): Int32 { a(idx) }

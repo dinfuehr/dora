@@ -1,9 +1,9 @@
-fn main() {
+fun main() {
     f();
 }
 
-fn f() {
+fun f() {
     g();
 }
 
-fn g() {}
+fun g() {}

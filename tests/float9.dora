@@ -1,6 +1,6 @@
 //= stdout "1\n1\n"
 
-fn main() {
+fun main() {
     let x = 1f32;
     println(x.toString());
 

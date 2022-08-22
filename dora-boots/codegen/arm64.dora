@@ -9,11 +9,11 @@ use package::assembler::Label;
 }
 
 impl CodeGenArm64 {
-  @pub @static fn new(info: CompilationInfo): CodeGenArm64 {
+  @pub @static fun new(info: CompilationInfo): CodeGenArm64 {
     CodeGenArm64(info, AssemblerArm64::new())
   }
 
-  @pub fn generate(): Array[UInt8] {
+  @pub fun generate(): Array[UInt8] {
     assert(self.info.arch == Architecture::Arm64);
     self.asm.ret();
     self.asm.finalize()

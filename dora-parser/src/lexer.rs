@@ -551,7 +551,7 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     keywords.insert("package", TokenKind::Package);
 
     // "small" shapes
-    keywords.insert("fn", TokenKind::Fn);
+    keywords.insert("fun", TokenKind::Fun);
     keywords.insert("let", TokenKind::Let);
     keywords.insert("mut", TokenKind::Mut);
     keywords.insert("const", TokenKind::Const);
@@ -1024,13 +1024,13 @@ mod tests {
 
     #[test]
     fn test_keywords() {
-        let mut reader = Lexer::from_str("fn let while if else match");
-        assert_tok(&mut reader, TokenKind::Fn, 1, 1);
-        assert_tok(&mut reader, TokenKind::Let, 1, 4);
-        assert_tok(&mut reader, TokenKind::While, 1, 8);
-        assert_tok(&mut reader, TokenKind::If, 1, 14);
-        assert_tok(&mut reader, TokenKind::Else, 1, 17);
-        assert_tok(&mut reader, TokenKind::Match, 1, 22);
+        let mut reader = Lexer::from_str("fun let while if else match");
+        assert_tok(&mut reader, TokenKind::Fun, 1, 1);
+        assert_tok(&mut reader, TokenKind::Let, 1, 5);
+        assert_tok(&mut reader, TokenKind::While, 1, 9);
+        assert_tok(&mut reader, TokenKind::If, 1, 15);
+        assert_tok(&mut reader, TokenKind::Else, 1, 18);
+        assert_tok(&mut reader, TokenKind::Match, 1, 23);
 
         let mut reader = Lexer::from_str("self class super mod");
         assert_tok(&mut reader, TokenKind::This, 1, 1);

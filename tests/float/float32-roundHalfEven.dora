@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
   let x = Float32::infinityNegative().roundHalfEven();
   assert(x == Float32::infinityNegative());
 

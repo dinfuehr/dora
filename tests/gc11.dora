@@ -1,11 +1,11 @@
-fn main() {
+fun main() {
     let y = test(A(10i32));
     assert(y == 10i32);
 }
 
 class A(x: Int32)
 
-fn test(a: A): Int32 {
+fun test(a: A): Int32 {
     std::forceCollect();
     return a.x;
 }

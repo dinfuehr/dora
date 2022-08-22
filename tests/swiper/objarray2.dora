@@ -1,6 +1,6 @@
 //= vm-args "--gc=swiper --gc-verify"
 
-fn main() {
+fun main() {
     let filler = Foo(101i32);
     let a = Array[Foo]::fill(61i64, filler);
     let b = Array[Foo]::fill(61i64, filler);

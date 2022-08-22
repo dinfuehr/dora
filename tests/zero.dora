@@ -1,5 +1,5 @@
-fn main() {
+fun main() {
   assert(zero() == 0i32);
 }
 
-fn zero(): Int32 { 0i32 }
+fun zero(): Int32 { 0i32 }

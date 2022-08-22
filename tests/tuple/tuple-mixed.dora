@@ -1,14 +1,14 @@
 class Foo(value: Int32)
 
 impl Foo {
-    @static fn new(value: Int32): Foo {
+    @static fun new(value: Int32): Foo {
         std::forceCollect();
         Foo(value)
     }
     
 }
 
-fn main() {
+fun main() {
     assert(tpl1() == 17i32);
     assert(tpl2() == 19i64);
     assert(tpl3() == 42i32);
@@ -19,49 +19,49 @@ fn main() {
     assert(tplsum() == "(17, 19, Foo(42), 2.5, 5, true, text)");
 }
 
-fn tpl1(): Int32 {
+fun tpl1(): Int32 {
     let x = (17i32, 19i64, Foo::new(42i32), 2.5f32, 5.0, true, "text");
     std::forceCollect();
     x.0
 }
 
-fn tpl2(): Int64 {
+fun tpl2(): Int64 {
     let x = (17i32, 19i64, Foo::new(42i32), 2.5f32, 5.0, true, "text");
     std::forceCollect();
     x.1
 }
 
-fn tpl3(): Int32 {
+fun tpl3(): Int32 {
     let x = (17i32, 19i64, Foo::new(42i32), 2.5f32, 5.0, true, "text");
     std::forceCollect();
     x.2.value
 }
 
-fn tpl4(): Float32 {
+fun tpl4(): Float32 {
     let x = (17i32, 19i64, Foo::new(42i32), 2.5f32, 5.0, true, "text");
     std::forceCollect();
     x.3
 }
 
-fn tpl5(): Float64 {
+fun tpl5(): Float64 {
     let x = (17i32, 19i64, Foo::new(42i32), 2.5f32, 5.0, true, "text");
     std::forceCollect();
     x.4
 }
 
-fn tpl6(): Bool {
+fun tpl6(): Bool {
     let x = (17i32, 19i64, Foo::new(42i32), 2.5f32, 5.0, true, "text");
     std::forceCollect();
     x.5
 }
 
-fn tpl7(): String {
+fun tpl7(): String {
     let x = (17i32, 19i64, Foo::new(42i32), 2.5f32, 5.0, true, "text");
     std::forceCollect();
     x.6
 }
 
-fn tplsum(): String {
+fun tplsum(): String {
     let x = (17i32, 19i64, Foo::new(42i32), 2.5f32, 5.0, true, "text");
     std::forceCollect();
     "(${x.0}, ${x.1}, Foo(${x.2.value}), ${x.3}, ${x.4}, ${x.5}, ${x.6})"

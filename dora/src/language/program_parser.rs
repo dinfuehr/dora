@@ -642,12 +642,12 @@ mod tests {
             ErrorMessage::ShadowClass("Foo".into()),
         );
         err(
-            "fn Foo() {} class Foo",
-            pos(1, 13),
+            "fun Foo() {} class Foo",
+            pos(1, 14),
             ErrorMessage::ShadowFunction("Foo".into()),
         );
         err(
-            "class Foo fn Foo() {}",
+            "class Foo fun Foo() {}",
             pos(1, 11),
             ErrorMessage::ShadowClass("Foo".into()),
         );
@@ -687,12 +687,12 @@ mod tests {
             ErrorMessage::ShadowStruct("Foo".into()),
         );
         err(
-            "fn Foo() {} struct Foo {}",
-            pos(1, 13),
+            "fun Foo() {} struct Foo {}",
+            pos(1, 14),
             ErrorMessage::ShadowFunction("Foo".into()),
         );
         err(
-            "struct Foo {} fn Foo() {}",
+            "struct Foo {} fun Foo() {}",
             pos(1, 15),
             ErrorMessage::ShadowStruct("Foo".into()),
         );
@@ -732,7 +732,7 @@ mod tests {
     fn test_const() {
         ok("const foo: Int32 = 0i32;");
         err(
-            "const foo: Int32 = 0i32; fn foo() {}",
+            "const foo: Int32 = 0i32; fun foo() {}",
             pos(1, 26),
             ErrorMessage::ShadowConst("foo".into()),
         );
@@ -762,7 +762,7 @@ mod tests {
     #[test]
     fn test_mod() {
         ok("mod foo {} mod bar {}");
-        ok("fn bar() {} mod foo { fn bar() {} }");
+        ok("fun bar() {} mod foo { fun bar() {} }");
 
         err(
             "mod foo {} mod foo {}",
@@ -771,8 +771,8 @@ mod tests {
         );
 
         err(
-            "mod foo { fn bar() {} fn bar() {} }",
-            pos(1, 23),
+            "mod foo { fun bar() {} fun bar() {} }",
+            pos(1, 24),
             ErrorMessage::ShadowFunction("bar".into()),
         );
     }

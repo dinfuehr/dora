@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
     assert(mysum1(Vec[Int32]::new()) == 0i32);
     assert(mysum1(Vec[Int32]::new(1i32)) == 1i32);
     assert(mysum1(Vec[Int32]::new(1i32, 2i32, 3i32, 4i32, 5i32)) == 15i32);
@@ -8,7 +8,7 @@ fn main() {
     assert(mysum2(Vec[Float32]::new(1.0f32, 2.0f32, 3.0f32, 4.0f32, 5.0f32)) == 15.0f32);
 }
 
-fn mysum1(x: Vec[Int32]): Int32 {
+fun mysum1(x: Vec[Int32]): Int32 {
     let mut entries = 0i32;
     for val in x.makeIterator() {
         entries = entries + val;
@@ -16,7 +16,7 @@ fn mysum1(x: Vec[Int32]): Int32 {
     entries
 }
 
-fn mysum2(x: Vec[Float32]): Float32 {
+fun mysum2(x: Vec[Float32]): Float32 {
     let mut entries = 0.0f32;
     for val in x.makeReverseIterator() {
         entries = entries + val;

@@ -1,31 +1,31 @@
-fn main() {
+fun main() {
     assert("x${f[Bar]()}y${f[Baz]()}z" == "xBAR1yBAZ2z");
 }
 
 trait X {
-    @static fn foo(): Self;
+    @static fun foo(): Self;
 }
 
-fn f[T: X + std::Stringable](): String {
+fun f[T: X + std::Stringable](): String {
     T::foo().toString()
 }
 
 class Bar(x: Int32)
 
 impl std::Stringable for Bar {
-    fn toString(): String { "BAR${self.x}" }
+    fun toString(): String { "BAR${self.x}" }
 }
 
 impl X for Bar {
-    @static fn foo(): Bar { Bar(1i32) }
+    @static fun foo(): Bar { Bar(1i32) }
 }
 
 class Baz(x: Int32)
 
 impl std::Stringable for Baz {
-    fn toString(): String { "BAZ${self.x}" }
+    fun toString(): String { "BAZ${self.x}" }
 }
 
 impl X for Baz {
-    @static fn foo(): Baz { Baz(2i32) }
+    @static fun foo(): Baz { Baz(2i32) }
 }

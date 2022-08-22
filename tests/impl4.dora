@@ -1,16 +1,16 @@
-fn main() {
+fun main() {
     let x = A::default();
     assert(x.a == 0i32);
 }
 
 trait DefaultValue {
-    @static fn default(): Self;
+    @static fun default(): Self;
 }
 
 class A(a: Int32)
 
 impl DefaultValue for A {
-    @static fn default(): A {
+    @static fun default(): A {
         return A(0i32);
     }
 }

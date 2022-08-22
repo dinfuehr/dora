@@ -5,25 +5,25 @@ use std::{fatalError, unsafeKillRefs};
 @pub @internal class Array[T]
 
 impl[T] Array[T] {
-  @pub @static @internal fn new(values: T...): Array[T];
+  @pub @static @internal fun new(values: T...): Array[T];
 
-  @pub @internal fn size(): Int64;
-  @pub @internal fn get(idx: Int64): T;
-  @pub @internal fn set(idx: Int64, val: T);
+  @pub @internal fun size(): Int64;
+  @pub @internal fun get(idx: Int64): T;
+  @pub @internal fun set(idx: Int64, val: T);
 
-  @pub fn isEmpty(): Bool { self.size() == 0i64 }
+  @pub fun isEmpty(): Bool { self.size() == 0i64 }
 
-  @pub fn makeIterator(): ArrayIter[T] {
+  @pub fun makeIterator(): ArrayIter[T] {
     ArrayIter[T]::new(self)
   }
 
-  @pub fn enumerate(): ArrayEnumerator[T] {
+  @pub fun enumerate(): ArrayEnumerator[T] {
     ArrayEnumerator[T]::new(self)
   }
 
-  @static @internal fn unsafeNew(size: Int64): Array[T];
+  @static @internal fun unsafeNew(size: Int64): Array[T];
 
-  @pub @static fn fill(len: Int64, value: T): Array[T] {
+  @pub @static fun fill(len: Int64, value: T): Array[T] {
     let array = Array[T]::unsafeNew(len);
     let mut i = 0i64;
 
@@ -35,7 +35,7 @@ impl[T] Array[T] {
     return array;
   }
 
-  @pub @static fn copy(src: Array[T], srcPos: Int64, dest: Array[T], destPos: Int64, len: Int64) {
+  @pub @static fun copy(src: Array[T], srcPos: Int64, dest: Array[T], destPos: Int64, len: Int64) {
     let mut i = 0i64;
 
     while i < len {
@@ -46,7 +46,7 @@ impl[T] Array[T] {
 }
 
 impl[T: Default] Array[T] {
-  @pub @static fn newDefault(len: Int64): Array[T] {
+  @pub @static fun newDefault(len: Int64): Array[T] {
     let array = Array[T]::unsafeNew(len);
     let mut i = 0i64;
     let value = T::default();
@@ -61,7 +61,7 @@ impl[T: Default] Array[T] {
 }
 
 impl[T: Zero] Array[T] {
-  @pub @static fn zero(len: Int64): Array[T] {
+  @pub @static fun zero(len: Int64): Array[T] {
     Array[T]::unsafeNew(len)
   }
 }
@@ -72,11 +72,11 @@ impl[T: Zero] Array[T] {
 }
 
 impl[T] ArrayIter[T] {
-  @static fn new(data: Array[T]): ArrayIter[T] {
+  @static fun new(data: Array[T]): ArrayIter[T] {
     ArrayIter[T](data, 0)
   }
 
-  @pub fn next(): Option[T] {
+  @pub fun next(): Option[T] {
     if self.idx < self.array.size() {
       let current = self.array(self.idx);
       self.idx = self.idx + 1;
@@ -93,11 +93,11 @@ impl[T] ArrayIter[T] {
 }
 
 impl[T] ArrayEnumerator[T] {
-  @static fn new(data: Array[T]): ArrayEnumerator[T] {
+  @static fun new(data: Array[T]): ArrayEnumerator[T] {
     ArrayEnumerator[T](data, 0)
   }
 
-  @pub fn next(): Option[(Int64, T)] {
+  @pub fun next(): Option[(Int64, T)] {
     if self.idx < self.array.size() {
       let current_idx = self.idx;
       self.idx = self.idx + 1i64;
@@ -111,7 +111,7 @@ impl[T] ArrayEnumerator[T] {
 impl[T: Sortable] Array[T] {
   // a stable in-place sort, currently implemented by insertion sort
   @pub @static
-  fn sortStable(array: Array[T]) {
+  fun sortStable(array: Array[T]) {
     let mut i = 1i64;
     while i < array.size() {
       let mut temp: T = array.get(i);
@@ -127,7 +127,7 @@ impl[T: Sortable] Array[T] {
 }
 
 impl[T: Equals] Array[T] {
-  @pub fn equals(other: Array[T]): Bool {
+  @pub fun equals(other: Array[T]): Bool {
     if self.size() != other.size() {
       return false;
     }
@@ -141,7 +141,7 @@ impl[T: Equals] Array[T] {
     return true;
   }
 
-  @pub fn contains(value: T): Bool {
+  @pub fun contains(value: T): Bool {
     let mut i = 0i64;
 
     while i < self.size() {
@@ -155,7 +155,7 @@ impl[T: Equals] Array[T] {
     return false;
   }
 
-  @pub @static fn compare(a: Array[T], aPos: Int64, b: Array[T], bPos: Int64, len: Int64): Bool {
+  @pub @static fun compare(a: Array[T], aPos: Int64, b: Array[T], bPos: Int64, len: Int64): Bool {
     let aSize = a.size() - aPos;
     let bSize = b.size() - bPos;
     if aSize < len || bSize < len {
@@ -179,7 +179,7 @@ impl[T: Equals] Array[T] {
 }
 
 impl[T: Identity] Array[T] {
-  @pub fn has(value: T): Bool {
+  @pub fun has(value: T): Bool {
     let mut i = 0i64;
 
     while i < self.size() {
@@ -194,7 +194,7 @@ impl[T: Identity] Array[T] {
 }
 
 impl[T: Stringable] Array[T] {
-  @pub fn toString(): String {
+  @pub fun toString(): String {
     let sb = StringBuffer::new();
     sb.append("Array(");
     let size = self.size();
@@ -218,7 +218,7 @@ impl[T: Stringable] Array[T] {
 }
 
 impl BitSet {
-  @pub @static fn new(capacity: Int64): BitSet {
+  @pub @static fun new(capacity: Int64): BitSet {
     if capacity == 0 {
       BitSet(Array[Int32]::new(), 0)
     } else {
@@ -227,11 +227,11 @@ impl BitSet {
     }
   }
 
-  @pub fn size(): Int64 {
+  @pub fun size(): Int64 {
     self.capacity
   }
 
-  @pub fn contains(idx: Int64): Bool {
+  @pub fun contains(idx: Int64): Bool {
     if idx < 0i64 || idx >= self.capacity {
       fatalError("index out of bounds");
     }
@@ -243,7 +243,7 @@ impl BitSet {
     return value & 1i32.shiftLeft(value_idx.toInt32()) != 0i32;
   }
 
-  @pub fn insert(idx: Int64) {
+  @pub fun insert(idx: Int64) {
     if idx < 0i64 || idx >= self.capacity {
       fatalError("index out of bounds");
     }
@@ -257,7 +257,7 @@ impl BitSet {
     self.data.set(entry_idx, value);
   }
 
-  @pub fn remove(idx: Int64) {
+  @pub fun remove(idx: Int64) {
     if idx < 0i64 || idx >= self.capacity {
       fatalError("index out of bounds");
     }
@@ -277,11 +277,11 @@ impl BitSet {
 }
 
 impl BitVec {
-  @pub @static fn new(): BitVec {
+  @pub @static fun new(): BitVec {
     BitVec(Array[Int32]::new())
   }
 
-  @pub fn contains(idx: Int64): Bool {
+  @pub fun contains(idx: Int64): Bool {
     if idx < 0i64 {
       fatalError("index out of bounds");
     }
@@ -297,7 +297,7 @@ impl BitVec {
     return value & 1i32.shiftLeft(value_idx.toInt32()) != 0i32;
   }
 
-  @pub fn insert(idx: Int64) {
+  @pub fun insert(idx: Int64) {
     if idx < 0i64 {
       fatalError("index out of bounds");
     }
@@ -313,7 +313,7 @@ impl BitVec {
     self.data.set(entry_idx, value);
   }
 
-  @pub fn remove(idx: Int64) {
+  @pub fun remove(idx: Int64) {
     if idx < 0i64 {
       fatalError("index out of bounds");
     }
@@ -331,7 +331,7 @@ impl BitVec {
     self.data.set(entry_idx, value);
   }
 
-  @pub fn ensureCapacity(newcap: Int64) {
+  @pub fun ensureCapacity(newcap: Int64) {
     if newcap < self.data.size() * 32i64 || newcap == 0i64 {
       return;
     }
@@ -343,7 +343,7 @@ impl BitVec {
     self.data = newarray;
   }
 
-  @pub fn capacity(): Int64 {
+  @pub fun capacity(): Int64 {
     self.data.size() * 32i64
   }
 }
@@ -355,11 +355,11 @@ impl BitVec {
 }
 
 impl[T] Queue[T] {
-  @pub @static fn new(): Queue[T] {
+  @pub @static fun new(): Queue[T] {
     Queue[T](Array[T]::unsafeNew(4), 0, 0)
   }
 
-  @pub fn enqueue(value: T) {
+  @pub fun enqueue(value: T) {
     if self.count == self.elements.size() {
       // copy into larger array
       let newelements = Array[T]::unsafeNew(self.elements.size() * 2i64);
@@ -380,7 +380,7 @@ impl[T] Queue[T] {
     self.count = self.count + 1i64;
   }
 
-  @pub fn dequeue(): T {
+  @pub fun dequeue(): T {
     assert(self.count > 0i64);
 
     let value = self.elements.get(self.front);
@@ -392,7 +392,7 @@ impl[T] Queue[T] {
     return value;
   }
 
-  fn moveFront(): Int64 {
+  fun moveFront(): Int64 {
     self.front = self.front + 1i64;
 
     if self.front == self.elements.size() {
@@ -402,7 +402,7 @@ impl[T] Queue[T] {
     return self.front;
   }
 
-  fn getEnd(): Int64 {
+  fun getEnd(): Int64 {
     let end = self.front + self.count;
 
     if end < self.elements.size() {
@@ -412,11 +412,11 @@ impl[T] Queue[T] {
     }
   }
 
-  @pub fn size(): Int64 {
+  @pub fun size(): Int64 {
     return self.count;
   }
 
-  @pub fn isEmpty(): Bool {
+  @pub fun isEmpty(): Bool {
     return self.count == 0i64;
   }
 }
@@ -430,7 +430,7 @@ impl[T] Queue[T] {
 }
 
 impl[K: Hash + Equals, V] HashMap[K, V] {
-  @pub @static fn new(entries: (K, V)...): HashMap[K, V] {
+  @pub @static fun new(entries: (K, V)...): HashMap[K, V] {
     // BitSet.size == capacity * 2
     // [bit 0: inserted; bit 1: deleted] * capacity
     let map = HashMap[K, V](
@@ -449,7 +449,7 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
   }
 
 
-    @pub fn insert(key: K, value: V): Option[V] {
+    @pub fun insert(key: K, value: V): Option[V] {
         self.ensureCapacity(1i64);
         assert(self.entries < self.cap);
 
@@ -493,7 +493,7 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
         unreachable[Option[V]]()
     }
 
-    @pub fn contains(key: K): Bool {
+    @pub fun contains(key: K): Bool {
         assert(self.entries <= self.cap);
 
         if self.entries == 0i64 {
@@ -522,7 +522,7 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
         false
     }
 
-    @pub fn get(key: K): Option[V] {
+    @pub fun get(key: K): Option[V] {
         assert(self.entries <= self.cap);
 
         if self.entries == 0i64 {
@@ -551,7 +551,7 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
         Option[V]::None
     }
 
-    @pub fn remove(key: K): Option[V] {
+    @pub fun remove(key: K): Option[V] {
         self.shrink();
 
         let mut hash = key.hash();
@@ -583,7 +583,7 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
         Option[V]::None
     }
 
-    fn ensureCapacity(elements_to_add: Int64) {
+    fun ensureCapacity(elements_to_add: Int64) {
         if self.entries + elements_to_add < self.cap {
             if self.entries <= (self.cap - (self.cap / 4i64)) {
                 return;
@@ -602,7 +602,7 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
         self.rehash(new_capacity);
     }
 
-    fn shrink() {
+    fun shrink() {
         if self.entries > (self.cap / 4i64) {
             return;
         }
@@ -618,7 +618,7 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
         self.rehash(new_capacity);
     }
 
-    fn rehash(new_capacity: Int64) {
+    fun rehash(new_capacity: Int64) {
         let old_capacity = self.cap;
 
         let new_map = HashMap[K, V]::new();
@@ -648,28 +648,28 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
         self.cap = new_capacity;
     }
 
-    fn isLive(idx: Int64): Bool {
+    fun isLive(idx: Int64): Bool {
         return self.inserted_and_deleted.contains(2i64 * idx) &&
                self.inserted_and_deleted.contains(2i64 * idx + 1i64).not();
     }
 
-    fn isDeleted(idx: Int64): Bool {
+    fun isDeleted(idx: Int64): Bool {
         self.inserted_and_deleted.contains(2i64 * idx + 1i64)
     }
 
-    @pub fn size(): Int64 {
+    @pub fun size(): Int64 {
         return self.entries;
     }
 
-    @pub fn isEmpty(): Bool {
+    @pub fun isEmpty(): Bool {
         return self.entries == 0i64;
     }
 
-    @pub fn capacity(): Int64 {
+    @pub fun capacity(): Int64 {
         return self.cap;
     }
 
-    @pub fn makeIterator(): HashMapIter[K, V] {
+    @pub fun makeIterator(): HashMapIter[K, V] {
         HashMapIter[K, V]::new(self)
     }
 }
@@ -680,11 +680,11 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
 }
 
 impl[K: Hash + Equals, V] HashMapIter[K, V] {
-    @pub @static fn new(map: HashMap[K, V]): HashMapIter[K, V] {
+    @pub @static fun new(map: HashMap[K, V]): HashMapIter[K, V] {
       HashMapIter[K, V](map, 0)
     }
 
-    @pub fn next(): Option[(K, V)] {
+    @pub fun next(): Option[(K, V)] {
         while self.idx < self.map.capacity() {
             if self.map.isLive(self.idx) {
                 let key = self.map.keys.get(self.idx);
@@ -705,7 +705,7 @@ impl[K: Hash + Equals, V] HashMapIter[K, V] {
 }
 
 impl[K: Hash + Equals] HashSet[K] {
-  @pub @static fn new(keys: K...): HashSet[K] {
+  @pub @static fun new(keys: K...): HashSet[K] {
     let map: HashMap[K, ()] = HashMap[K, ()]::new();
 
     for key in keys {
@@ -715,27 +715,27 @@ impl[K: Hash + Equals] HashSet[K] {
     HashSet[K](map)
   }
 
-  @pub fn insert(key: K) {
+  @pub fun insert(key: K) {
     self.map.insert(key, ());
   }
 
-  @pub fn contains(key: K): Bool {
+  @pub fun contains(key: K): Bool {
     self.map.contains(key)
   }
 
-  @pub fn remove(key: K): Bool {
+  @pub fun remove(key: K): Bool {
     self.map.remove(key).isSome()
   }
 
-  @pub fn size(): Int64 {
+  @pub fun size(): Int64 {
     self.map.size()
   }
 
-  @pub fn isEmpty(): Bool {
+  @pub fun isEmpty(): Bool {
     self.map.isEmpty()
   }
 
-  @pub fn capacity(): Int64 {
+  @pub fun capacity(): Int64 {
     self.map.capacity()
   }
 }
@@ -746,11 +746,11 @@ impl[K: Hash + Equals] HashSet[K] {
 }
 
 impl[T] Vec[T] {
-  @pub @static fn new(values: T...): Vec[T] {
+  @pub @static fun new(values: T...): Vec[T] {
     Vec[T](values, values.size())
   }
 
-  @pub fn get(idx: Int64): T {
+  @pub fun get(idx: Int64): T {
     if idx < 0i64 || idx >= self.len {
       fatalError("index out of bounds for vector");
     }
@@ -758,7 +758,7 @@ impl[T] Vec[T] {
     return self.array(idx);
   }
 
-  @pub fn set(idx: Int64, val: T) {
+  @pub fun set(idx: Int64, val: T) {
     if idx < 0i64 || idx >= self.len {
       fatalError("index out of bounds for vector");
     }
@@ -766,7 +766,7 @@ impl[T] Vec[T] {
     self.array.set(idx, val);
   }
 
-  @pub fn reserve(newcap: Int64) {
+  @pub fun reserve(newcap: Int64) {
     assert(newcap >= 0i64);
 
     if self.capacity() >= newcap {
@@ -778,7 +778,7 @@ impl[T] Vec[T] {
     self.array = newarray;
   }
 
-  @pub fn push(val: T) {
+  @pub fun push(val: T) {
     let currentCapacity = self.capacity();
 
     if self.len == currentCapacity {
@@ -793,7 +793,7 @@ impl[T] Vec[T] {
     self.len = self.len + 1i64;
   }
 
-  @pub fn insertAt(idx: Int64, val: T) {
+  @pub fun insertAt(idx: Int64, val: T) {
     assert(idx <= self.len);
     if idx == self.len {
       self.push(val);
@@ -822,7 +822,7 @@ impl[T] Vec[T] {
     self.len = self.len + 1i64;
   }
 
-  fn newCapacity(currentCapacity: Int64): Int64 {
+  fun newCapacity(currentCapacity: Int64): Int64 {
     if currentCapacity == 0i64 {
       4i64
     } else {
@@ -830,13 +830,13 @@ impl[T] Vec[T] {
     }
   }
 
-  @pub fn toArray(): Array[T] {
+  @pub fun toArray(): Array[T] {
     let newarray = Array[T]::unsafeNew(self.len);
     Array[T]::copy(self.array, 0i64, newarray, 0i64, self.len);
     newarray
   }
 
-  @pub fn pop(): Option[T] {
+  @pub fun pop(): Option[T] {
     if self.len == 0i64 {
       None[T]
     } else {
@@ -852,7 +852,7 @@ impl[T] Vec[T] {
     }
   }
 
-  @pub fn trimToLen() {
+  @pub fun trimToLen() {
     if self.len != self.capacity() {
       if self.len == 0i64 {
         self.array = Array[T]::new();
@@ -864,7 +864,7 @@ impl[T] Vec[T] {
     }
   }
 
-  @pub fn removeItem(value: T) {
+  @pub fun removeItem(value: T) {
     let len = self.len;
     let mut destIdx = 0i64;
     let mut srcIdx = 0i64;
@@ -888,7 +888,7 @@ impl[T] Vec[T] {
     }
   }
 
-  @pub fn removeAt(ind: Int64): T {
+  @pub fun removeAt(ind: Int64): T {
     let mut ind = ind;
     assert(ind < self.len);
     let temp = self.get(ind);
@@ -906,7 +906,7 @@ impl[T] Vec[T] {
   }
 
 
-  @pub fn removeIf(fct: (T): Bool) {
+  @pub fun removeIf(fct: (T): Bool) {
     let len = self.len;
     let mut destIdx = 0i64;
     let mut srcIdx = 0i64;
@@ -931,19 +931,19 @@ impl[T] Vec[T] {
   }
 
 
-  @pub fn size(): Int64 {
+  @pub fun size(): Int64 {
     return self.len;
   }
 
-  @pub fn isEmpty(): Bool {
+  @pub fun isEmpty(): Bool {
     self.len == 0
   }
 
-  @pub fn capacity(): Int64 {
+  @pub fun capacity(): Int64 {
     self.array.size()
   }
 
-  @pub fn first(): Option[T] {
+  @pub fun first(): Option[T] {
     if self.len == 0 {
       Option[T]::None
     } else {
@@ -951,7 +951,7 @@ impl[T] Vec[T] {
     }
   }
 
-  @pub fn last(): Option[T] {
+  @pub fun last(): Option[T] {
     if self.len == 0 {
       Option[T]::None
     } else {
@@ -959,20 +959,20 @@ impl[T] Vec[T] {
     }
   }
 
-  @pub fn clear() {
+  @pub fun clear() {
     self.len = 0;
     self.array = Array[T]::new();
   }
 
-  @pub fn makeIterator(): VecIter[T] {
+  @pub fun makeIterator(): VecIter[T] {
     VecIter[T]::new(self)
   }
 
-  @pub fn makeReverseIterator(): ReverseVecIter[T] {
+  @pub fun makeReverseIterator(): ReverseVecIter[T] {
     ReverseVecIter[T]::new(self)
   }
 
-  @pub fn enumerate(): VecEnumerator[T] {
+  @pub fun enumerate(): VecEnumerator[T] {
     VecEnumerator[T]::new(self)
   }
 }
@@ -983,11 +983,11 @@ impl[T] Vec[T] {
 }
 
 impl[T] VecEnumerator[T] {
-  @static fn new(data: Vec[T]): VecEnumerator[T] {
+  @static fun new(data: Vec[T]): VecEnumerator[T] {
     VecEnumerator[T](data, 0)
   }
 
-  @pub fn next(): Option[(Int64, T)] {
+  @pub fun next(): Option[(Int64, T)] {
     if self.idx < self.data.size() {
       let current_idx = self.idx;
       self.idx = self.idx + 1i64;
@@ -1004,11 +1004,11 @@ impl[T] VecEnumerator[T] {
 }
 
 impl[T] VecIter[T] {
-  @static fn new(data: Vec[T]): VecIter[T] {
+  @static fun new(data: Vec[T]): VecIter[T] {
     VecIter[T](data, 0)
   }
 
-  @pub fn next(): Option[T] {
+  @pub fun next(): Option[T] {
     if self.idx < self.data.size() {
       let result = self.data(self.idx);
       self.idx = self.idx + 1i64;
@@ -1025,11 +1025,11 @@ impl[T] VecIter[T] {
 }
 
 impl[T] ReverseVecIter[T] {
-  @static fn new(data: Vec[T]): ReverseVecIter[T] {
+  @static fun new(data: Vec[T]): ReverseVecIter[T] {
     ReverseVecIter(data, data.size() - 1)
   }
 
-  @pub fn next(): Option[T] {
+  @pub fun next(): Option[T] {
     if self.idx != -1 {
       let result = self.data(self.idx);
       self.idx = self.idx - 1i64;
@@ -1041,7 +1041,7 @@ impl[T] ReverseVecIter[T] {
 }
 
 impl[T: Equals] Vec[T] {
-  @pub fn equals(other: Vec[T]): Bool {
+  @pub fun equals(other: Vec[T]): Bool {
     if self.size() != other.size() {
       return false;
     }
@@ -1055,7 +1055,7 @@ impl[T: Equals] Vec[T] {
     return true;
   }
 
-  @pub fn contains(value: T): Bool {
+  @pub fun contains(value: T): Bool {
     let mut i = 0i64;
 
     while i < self.size() {
@@ -1069,7 +1069,7 @@ impl[T: Equals] Vec[T] {
     return false;
   }
 
-  @pub fn removeEquals(elem: T) {
+  @pub fun removeEquals(elem: T) {
     let mut i = 0i64;
 
     while i < self.size() {
@@ -1083,7 +1083,7 @@ impl[T: Equals] Vec[T] {
 }
 
 impl[T: Identity] Vec[T] {
-  @pub fn has(value: T): Bool {
+  @pub fun has(value: T): Bool {
     let mut i = 0i64;
 
     while i < self.size() {
@@ -1098,7 +1098,7 @@ impl[T: Identity] Vec[T] {
 }
 
 impl[T: Stringable] Vec[T] {
-  @pub fn toString(): String {
+  @pub fun toString(): String {
     let sb = StringBuffer::new();
     sb.append("Vec(");
     let size = self.len;

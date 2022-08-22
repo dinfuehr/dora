@@ -3,14 +3,14 @@
 class TupleClass(value: (Foo, Int64))
 
 impl TupleClass {
-    @static fn new(): TupleClass {
+    @static fun new(): TupleClass {
         TupleClass((Foo(0i32), 0i64))
     }
 }
 
 class Foo(value: Int32)
 
-fn main() {
+fun main() {
     let tpl = TupleClass::new();
     std::forceCollect();
     tpl.value = (Foo(4711i32), 4712i64);

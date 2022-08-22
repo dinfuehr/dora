@@ -1,7 +1,7 @@
 //= vm-args "--gc=copy --gc-stress --disable-tlab"
 //= stdout "b: 19\na: 15\nmain: 5\n"
 
-fn main() {
+fun main() {
   let e = a();
 
   // this should test if backtrace in Exception is created the right way
@@ -11,10 +11,10 @@ fn main() {
   e.printStacktrace();
 }
 
-fn a(): std::Stacktrace {
+fun a(): std::Stacktrace {
   return b();
 }
 
-fn b(): std::Stacktrace {
+fun b(): std::Stacktrace {
   return std::Stacktrace::new();
 }

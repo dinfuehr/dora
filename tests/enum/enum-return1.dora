@@ -2,7 +2,7 @@
 
 enum Foo { A(Int32, String, Float32), B }
 
-fn main() {
+fun main() {
     let foo = createFoo();
     match foo {
         Foo::A(_, _, _) => (),
@@ -15,6 +15,6 @@ fn main() {
     }
 }
 
-fn createFoo(): Foo {
+fun createFoo(): Foo {
     Foo::A(112i32, "abc", 17.5f32)
 }

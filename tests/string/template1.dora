@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
     let x = "a${1}b${2}c${3}d";
     assert(x == "a1b2c3d");
 
@@ -16,7 +16,7 @@ fn main() {
 class Foo(i: Int32)
 
 impl std::Stringable for Foo {
-    fn toString(): String {
+    fun toString(): String {
         std::forceCollect();
         return self.i.toString();
     }

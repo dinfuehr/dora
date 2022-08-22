@@ -1,6 +1,6 @@
 //= vm-args "--gc=swiper --gc-verify"
 
-fn main() {
+fun main() {
   let x = Foo(1i32, None[Foo]);
   std::forceMinorCollect();
   x.next = Some[Foo](Foo(2i32, None[Foo]));

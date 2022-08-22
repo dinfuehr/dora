@@ -8,7 +8,7 @@ let mut glob_double: Float64 = 0.0;
 let mut glob_string: String = "";
 let mut glob_obj: Foo = Foo();
 
-fn main() {
+fun main() {
     init_globs();
     
     assert(loadGlobalBool() == true);
@@ -23,7 +23,7 @@ fn main() {
     assert(loadGlobalPtr() === glob_obj);
 }
 
-fn init_globs() {
+fun init_globs() {
     glob_bool = true;
     glob_char = '5';
     glob_byte = 5u8;
@@ -35,22 +35,22 @@ fn init_globs() {
     glob_obj = Foo();  
 }
 
-fn loadGlobalBool(): Bool { glob_bool }
+fun loadGlobalBool(): Bool { glob_bool }
 
-fn loadGlobalByte(): UInt8 { glob_byte }
+fun loadGlobalByte(): UInt8 { glob_byte }
 
-fn loadGlobalChar(): Char { glob_char }
+fun loadGlobalChar(): Char { glob_char }
 
-fn loadGlobalInt32(): Int32 { glob_int }
+fun loadGlobalInt32(): Int32 { glob_int }
 
-fn loadGlobalInt64(): Int64 { glob_long }
+fun loadGlobalInt64(): Int64 { glob_long }
 
-fn loadGlobalFloat32(): Float32 { glob_float }
+fun loadGlobalFloat32(): Float32 { glob_float }
 
-fn loadGlobalFloat64(): Float64 { glob_double }
+fun loadGlobalFloat64(): Float64 { glob_double }
 
-fn loadGlobalString(): String { glob_string }
+fun loadGlobalString(): String { glob_string }
 
-fn loadGlobalPtr(): Foo { glob_obj }
+fun loadGlobalPtr(): Foo { glob_obj }
 
 class Foo

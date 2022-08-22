@@ -1,23 +1,23 @@
-fn main() {
+fun main() {
   Bar(1i32).exec();
 }
 
 class Bar(a: Int32)
 
 impl Bar {
-  fn exec() {
+  fun exec() {
     Foo(self.f()).a = self.g();
     assert(self.a == 100i32);
   }
 
-  fn f(): Int32 {
+  fun f(): Int32 {
     assert(self.a == 1i32);
     self.a = 10i32;
 
     return self.a;
   }
 
-  fn g(): Int32 {
+  fun g(): Int32 {
     assert(self.a == 10i32);
     self.a = 100i32;
 

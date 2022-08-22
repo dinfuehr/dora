@@ -2,7 +2,7 @@
 
 class Foo(x: Int32)
 
-fn main() {
+fun main() {
     let a = Array[Int64]::fill(70i64, 0i64);
     let f1 = Foo(3i32);
     let x = CardSpanningObject::new(f1);
@@ -89,7 +89,7 @@ class CardSpanningObject {
 }
 
 impl CardSpanningObject {
-    @static fn new(f: Foo): CardSpanningObject {
+    @static fun new(f: Foo): CardSpanningObject {
         CardSpanningObject(
             f,
             f,

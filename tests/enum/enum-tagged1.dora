@@ -1,6 +1,6 @@
 enum Foo { A(Int32, String, Float32), B }
 
-fn main() {
+fun main() {
     let value = Foo::A(112i32, "abc", 17.5f32);
     foo(value);
     match value {
@@ -19,7 +19,7 @@ fn main() {
     }
 }
 
-fn foo(x: Foo): Foo {
+fun foo(x: Foo): Foo {
     let y = x;
     y
 }

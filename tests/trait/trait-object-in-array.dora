@@ -1,16 +1,16 @@
-trait Foo { fn test(); }
+trait Foo { fun test(); }
 
 class Baz
 
 impl Foo for Baz {
-    fn test() {}
+    fun test() {}
 }
 
-fn foo(): Foo {
+fun foo(): Foo {
     Baz() as Foo
 }
 
-fn main() {
+fun main() {
     let f = foo();
 
     let array = Array[Foo]::fill(10, f);

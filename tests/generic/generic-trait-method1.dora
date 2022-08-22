@@ -1,28 +1,28 @@
 //= vm-args --gc=copy --gc-stress --gc-verify
 
-fn main() {
+fun main() {
     assert(17i32 * 17i32 == bar[SomeClass](SomeClass(17i32)));
     assert(42i32 * 42i32 == bar[OtherClass](OtherClass(42i32)));
 }
 
-fn bar[T: Foo](obj: T): Int32 {
+fun bar[T: Foo](obj: T): Int32 {
     let tmp = obj;
     std::forceCollect();
     tmp.baz() * obj.baz()
 }
 
 trait Foo {
-    fn baz(): Int32;
+    fun baz(): Int32;
 }
 
 class SomeClass(value: Int32)
 
 impl Foo for SomeClass {
-    fn baz(): Int32 { self.value }
+    fun baz(): Int32 { self.value }
 }
 
 class OtherClass(value: Int32)
 
 impl Foo for OtherClass {
-    fn baz(): Int32 { self.value }
+    fun baz(): Int32 { self.value }
 }

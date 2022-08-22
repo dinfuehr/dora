@@ -1,6 +1,6 @@
 //= vm-args "--gc=swiper --gc-verify"
 
-fn main() {
+fun main() {
     let lambda: (): Int64 = ||: Int64 { 0 };
     std::forceCollect();
 }

@@ -1,7 +1,7 @@
 //= vm-args "--gc=copy --gc-stress --disable-tlab"
 //= stdout "main: 5\n"
 
-fn main() {
+fun main() {
   let e = std::Stacktrace::new();
   e.printStacktrace();
 }

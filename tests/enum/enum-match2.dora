@@ -1,11 +1,11 @@
 enum Foo { A(Int32, Int32), B }
 
-fn main() {
+fun main() {
     assert(value(Foo::A(2i32, 3i32)) == 5i32);
     assert(value(Foo::B) == 0i32);
 }
 
-fn value(foo: Foo): Int32 {
+fun value(foo: Foo): Int32 {
     match foo {
         Foo::A(a, b) => a + b,
         Foo::B => 0

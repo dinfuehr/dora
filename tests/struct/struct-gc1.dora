@@ -3,7 +3,7 @@
 struct Bar(first: Foo, second: Foo)
 class Foo(value: Int32)
 
-fn main() {
+fun main() {
     let tpl: Bar = if false {
         Bar(createFoo(), createFoo())
     } else {
@@ -12,4 +12,4 @@ fn main() {
     };
 }
 
-fn createFoo(): Foo { Foo(1i32) }
+fun createFoo(): Foo { Foo(1i32) }

@@ -1,11 +1,11 @@
 struct Foo(f1: Int32, f2: Bool)
 
-fn f(): Foo {
+fun f(): Foo {
     let x = Foo(10i32, false);
     let y = x;
     y
 }
 
-fn main() {
+fun main() {
     f();
 }

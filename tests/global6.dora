@@ -2,7 +2,7 @@
 
 let mut x: Int32 = foo();
 
-fn main() {
+fun main() {
     println("before");
     println("x = ${x}");
     println("middle");
@@ -10,7 +10,7 @@ fn main() {
     println("after");
 }
 
-fn foo(): Int32 {
+fun foo(): Int32 {
     println("foo");
     17i32
 }

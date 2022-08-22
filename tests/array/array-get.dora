@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
   let x = Array[Int32]::fill(5i64, 100i32);
   assert(x(0i64) == 100i32);
   assert(int32_array_get(x, 4i64) == 100i32);
@@ -24,27 +24,27 @@ fn main() {
   assert(foo_array_get(x, 0i64).y == 1i32);
 }
 
-fn int32_array_get(x: Array[Int32], idx: Int64): Int32 {
+fun int32_array_get(x: Array[Int32], idx: Int64): Int32 {
   return x(idx);
 }
 
-fn int64_array_get(x: Array[Int64], idx: Int64): Int64 {
+fun int64_array_get(x: Array[Int64], idx: Int64): Int64 {
   return x(idx);
 }
 
-fn float_array_get(x: Array[Float32], idx: Int64): Float32 {
+fun float_array_get(x: Array[Float32], idx: Int64): Float32 {
   return x(idx);
 }
 
-fn double_array_get(x: Array[Float64], idx: Int64): Float64 {
+fun double_array_get(x: Array[Float64], idx: Int64): Float64 {
   return x(idx);
 }
 
-fn str_array_get(x: Array[String], idx: Int64): String {
+fun str_array_get(x: Array[String], idx: Int64): String {
   return x(idx);
 }
 
-fn foo_array_get(x: Array[Foo], idx: Int64): Foo {
+fun foo_array_get(x: Array[Foo], idx: Int64): Foo {
   return x(idx);
 }
 

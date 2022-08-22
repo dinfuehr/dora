@@ -5,11 +5,11 @@ class SomeIterator {
 }
 
 impl SomeIterator {
-    @static fn new(start: Int64, end: Int64): SomeIterator {
+    @static fun new(start: Int64, end: Int64): SomeIterator {
         SomeIterator(start, end, start)
     }
 
-    fn next(): Option[Int64] {
+    fun next(): Option[Int64] {
         if self.current < self.end {
             let result = self.current;
             self.current = self.current + 1;
@@ -20,7 +20,7 @@ impl SomeIterator {
     } 
 }
 
-fn main() {
+fun main() {
     let mut sum = 0;
     let iterator = SomeIterator::new(0, 10);
 

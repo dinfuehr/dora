@@ -13,27 +13,27 @@
 @pub mod thread;
 @pub mod traits;
 
-@pub @internal fn fatalError(msg: String);
-@pub @internal fn abort();
-@pub @internal fn exit(status: Int32);
-@pub @internal fn unreachable[T](): T;
+@pub @internal fun fatalError(msg: String);
+@pub @internal fun abort();
+@pub @internal fun exit(status: Int32);
+@pub @internal fun unreachable[T](): T;
 
-@pub fn unimplemented() {
+@pub fun unimplemented() {
   fatalError("not yet implemented");
 }
 
-@pub @internal fn print(text: String);
-@pub @internal fn println(text: String);
-@pub @internal fn assert(val: Bool);
-@pub @internal fn debug();
-@pub @internal fn argc(): Int32;
-@pub @internal fn argv(idx: Int32): String;
-@pub @internal fn forceCollect();
-@pub @internal fn forceMinorCollect();
+@pub @internal fun print(text: String);
+@pub @internal fun println(text: String);
+@pub @internal fun assert(val: Bool);
+@pub @internal fun debug();
+@pub @internal fun argc(): Int32;
+@pub @internal fun argv(idx: Int32): String;
+@pub @internal fun forceCollect();
+@pub @internal fun forceMinorCollect();
 
-@pub @internal fn timestamp(): Int64;
+@pub @internal fun timestamp(): Int64;
 
-fn isValidUtf8(data: Array[UInt8]): Bool {
+fun isValidUtf8(data: Array[UInt8]): Bool {
   let mut i = 0i64;
 
   while i < data.size() {
@@ -97,9 +97,9 @@ fn isValidUtf8(data: Array[UInt8]): Bool {
   return true;
 }
 
-@internal fn unsafeKillRefs[T](arr: Array[T], idx: Int64);
+@internal fun unsafeKillRefs[T](arr: Array[T], idx: Int64);
 
-@pub @internal fn sleep(seconds: Int32);
+@pub @internal fun sleep(seconds: Int32);
 
 @pub class Stacktrace {
   backtrace: Option[Array[Int32]],
@@ -107,13 +107,13 @@ fn isValidUtf8(data: Array[UInt8]): Bool {
 }
 
 impl Stacktrace {
-  @pub @static fn new(): Stacktrace {
+  @pub @static fun new(): Stacktrace {
     let trace = Stacktrace(None[Array[Int32]], None[Array[StacktraceElement]]);
     trace.retrieveStacktrace();
     trace
   }
 
-  @pub fn getStacktrace(): Array[StacktraceElement] {
+  @pub fun getStacktrace(): Array[StacktraceElement] {
     if self.elements.isSome() {
       return self.elements.getOrPanic();
     }
@@ -140,7 +140,7 @@ impl Stacktrace {
     return elements;
   }
 
-  @pub fn printStacktrace() {
+  @pub fun printStacktrace() {
     let x = self.getStacktrace();
     let mut i = 0i64;
 
@@ -149,8 +149,8 @@ impl Stacktrace {
     }
   }
 
-  @internal fn retrieveStacktrace();
-  @internal fn getStacktraceElement(idx: Int64): StacktraceElement;
+  @internal fun retrieveStacktrace();
+  @internal fun getStacktraceElement(idx: Int64): StacktraceElement;
 }
 
 class StacktraceElement {
@@ -159,7 +159,7 @@ class StacktraceElement {
 }
 
 impl StacktraceElement {
-  fn toString(): String {
+  fun toString(): String {
     "${self.name}: ${self.line}"
   }
 }

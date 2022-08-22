@@ -1,7 +1,7 @@
 use std::StringBuffer;
 use package::graph::Graph;
 
-fn readGraph(data: String): Graph {
+fun readGraph(data: String): Graph {
     unreachable[Graph]()
 }
 
@@ -11,11 +11,11 @@ class GraphReader {
 }
 
 impl GraphReader {
-    @static fn new(content: String): GraphReader {
+    @static fun new(content: String): GraphReader {
         GraphReader(content, Lexer::new(content))
     }
 
-    fn read() {
+    fun read() {
 
     }
 }
@@ -26,11 +26,11 @@ class Lexer {
 }
 
 impl Lexer {
-    @static fn new(content: String): Lexer {
+    @static fun new(content: String): Lexer {
         Lexer(content, 0)
     }
 
-    fn look(): Option[Char] {
+    fun look(): Option[Char] {
         if self.idx == self.content.size() {
             return None;
         }
@@ -38,7 +38,7 @@ impl Lexer {
         Some(self.content.getByte(self.idx).toChar())
     }
 
-    fn readChar() {
+    fun readChar() {
         if self.idx == self.content.size() {
             std::fatalError("already at end of file");
         } else {
@@ -46,7 +46,7 @@ impl Lexer {
         }
     }
 
-    fn readToken(): Token {
+    fun readToken(): Token {
         while true {
             self.skipWhitespace();
 
@@ -72,13 +72,13 @@ impl Lexer {
         unreachable[Token]()
     }
 
-    fn skipWhitespace() {
+    fun skipWhitespace() {
         while isWhitespace(self.look()) {
             self.readChar();
         }
     }
 
-    fn readIdentifier(): Token {
+    fun readIdentifier(): Token {
         let buffer = StringBuffer::empty();
 
         while isIdentifierStart(self.look()) || isDigit(self.look()) {
@@ -90,7 +90,7 @@ impl Lexer {
         Token::Ident(buffer.toString())
     }
 
-    fn readNewline(): Token {
+    fun readNewline(): Token {
         let ch = self.look().getOrPanic();
         assert(ch == '\n');
         self.readChar();
@@ -98,7 +98,7 @@ impl Lexer {
         Token::Newline
     }
 
-    fn readOperator(): Token {
+    fun readOperator(): Token {
         let ch = self.look().getOrPanic();
         self.readChar();
 
@@ -115,7 +115,7 @@ impl Lexer {
         }
     }
 
-    fn readNumber(): Token {
+    fun readNumber(): Token {
         let buffer = StringBuffer::empty();
 
         while isDigit(self.look()) {
@@ -129,7 +129,7 @@ impl Lexer {
     }
 }
 
-fn isWhitespace(ch: Option[Char]): Bool {
+fun isWhitespace(ch: Option[Char]): Bool {
     if ch.isNone() {
         return false;
     }
@@ -139,7 +139,7 @@ fn isWhitespace(ch: Option[Char]): Bool {
     ch == ' ' || ch == '\t'
 }
 
-fn isOperator(ch: Option[Char]): Bool {
+fun isOperator(ch: Option[Char]): Bool {
     if ch.isNone() {
         return false;
     }
@@ -149,7 +149,7 @@ fn isOperator(ch: Option[Char]): Bool {
     ch == ':' || ch == '=' || ch == '%' || ch == '@'
 }
 
-fn isIdentifierStart(ch: Option[Char]): Bool {
+fun isIdentifierStart(ch: Option[Char]): Bool {
     if ch.isNone() {
         return false;
     }
@@ -159,7 +159,7 @@ fn isIdentifierStart(ch: Option[Char]): Bool {
     (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_'
 }
 
-fn isDigit(ch: Option[Char]): Bool {
+fun isDigit(ch: Option[Char]): Bool {
     if ch.isNone() {
         return false;
     }
@@ -169,7 +169,7 @@ fn isDigit(ch: Option[Char]): Bool {
     (ch >= '0' && ch <= '9')
 }
 
-fn isNewline(ch: Option[Char]): Bool {
+fun isNewline(ch: Option[Char]): Bool {
     if ch.isNone() {
         return false;
     }
@@ -193,14 +193,14 @@ mod tests {
     use super::Lexer;
 
     @Test
-    fn readSingleIdentifier() {
+    fun readSingleIdentifier() {
         let lexer = Lexer::new("foo");
         assertIdent(lexer, "foo");
         assertEnd(lexer);
     }
 
     @Test
-    fn readMultipleIdentifiers() {
+    fun readMultipleIdentifiers() {
         let lexer = Lexer::new("foo bar baz");
         assertIdent(lexer, "foo");
         assertIdent(lexer, "bar");
@@ -209,7 +209,7 @@ mod tests {
     }
 
     @Test
-    fn readMultipleLines() {
+    fun readMultipleLines() {
         let lexer = Lexer::new("foo\nbar\nbaz");
         assertIdent(lexer, "foo");
         assertNewline(lexer);
@@ -220,7 +220,7 @@ mod tests {
     }
 
     @Test
-    fn readOperators() {
+    fun readOperators() {
         let lexer = Lexer::new(":=@%");
         assertColon(lexer);
         assertEq(lexer);
@@ -230,14 +230,14 @@ mod tests {
     }
 
     @Test
-    fn readNumbers() {
+    fun readNumbers() {
         let lexer = Lexer::new("11212 17");
         assertNumber(lexer, 11212i64);
         assertNumber(lexer, 17i64);
         assertEnd(lexer);
     }
 
-    fn assertIdent(lexer: Lexer, ident: String) {
+    fun assertIdent(lexer: Lexer, ident: String) {
         let token = lexer.readToken();
 
         match token {
@@ -251,7 +251,7 @@ mod tests {
         }
     }
 
-    fn assertNumber(lexer: Lexer, number: Int64) {
+    fun assertNumber(lexer: Lexer, number: Int64) {
         let token = lexer.readToken();
 
         match token {
@@ -265,7 +265,7 @@ mod tests {
         }
     }
 
-    fn assertNewline(lexer: Lexer) {
+    fun assertNewline(lexer: Lexer) {
         let token = lexer.readToken();
 
         match token {
@@ -276,7 +276,7 @@ mod tests {
         }
     }
 
-    fn assertEq(lexer: Lexer) {
+    fun assertEq(lexer: Lexer) {
         let token = lexer.readToken();
 
         match token {
@@ -287,7 +287,7 @@ mod tests {
         }
     }
 
-    fn assertColon(lexer: Lexer) {
+    fun assertColon(lexer: Lexer) {
         let token = lexer.readToken();
 
         match token {
@@ -298,7 +298,7 @@ mod tests {
         }
     }
 
-    fn assertAt(lexer: Lexer) {
+    fun assertAt(lexer: Lexer) {
         let token = lexer.readToken();
 
         match token {
@@ -309,7 +309,7 @@ mod tests {
         }
     }
 
-    fn assertPercent(lexer: Lexer) {
+    fun assertPercent(lexer: Lexer) {
         let token = lexer.readToken();
 
         match token {
@@ -320,7 +320,7 @@ mod tests {
         }
     }
 
-    fn assertEnd(lexer: Lexer) {
+    fun assertEnd(lexer: Lexer) {
         let token = lexer.readToken();
 
         match token {

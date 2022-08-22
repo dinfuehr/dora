@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
   let i = 1i32;
   let o1 = Foo();
   let o2 = o1.me();
@@ -8,5 +8,5 @@ fn main() {
 class Foo 
 
 impl Foo {
-  fn me(): Foo { return self; }
+  fun me(): Foo { return self; }
 }

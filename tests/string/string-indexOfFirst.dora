@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
   testBothEmpty();
   testNeedleEmpty();
   testHaystackEmpty();
@@ -8,33 +8,33 @@ fn main() {
   testFailure();
 }
 
-fn testBothEmpty() {
+fun testBothEmpty() {
   assert("".indexOfFirst("").has(0i64));
 }
 
-fn testNeedleEmpty() {
+fun testNeedleEmpty() {
   assert("abc".indexOfFirst("").has(0i64));
 }
 
-fn testHaystackEmpty() {
+fun testHaystackEmpty() {
   assert("".indexOfFirst("abc").isNone());
 }
 
-fn testNeedleLarger() {
+fun testNeedleLarger() {
   assert("abc".indexOfFirst("abcdef").isNone());
 }
 
-fn testSuccess() {
+fun testSuccess() {
   assert("abcdef".indexOfFirst("abc").has(0i64));
   assert("defabc".indexOfFirst("abc").has(3i64));
   assert("ababbaadef".indexOfFirst("aa").has(5i64));
   assert("apapplapple".indexOfFirst("apple").has(6i64));
 }
 
-fn testMultipleMatch() {
+fun testMultipleMatch() {
   assert("abcdefabc".indexOfFirst("abc").has(0i64));
 }
 
-fn testFailure() {
+fun testFailure() {
   assert("def".indexOfFirst("abc").isNone());
 }

@@ -1,6 +1,6 @@
 //= vm-args "--gc=swiper --gc-verify"
 
-fn main() {
+fun main() {
     let l0: (): Int64 = ||: Int64 { 0 };
     let l1: (): Int64 = ||: Int64 { 1 };
     std::forceCollect();
@@ -14,15 +14,15 @@ fn main() {
     std::forceCollect();
 }
 
-fn myid(lambda: (): Int64): (): Int64 {
+fun myid(lambda: (): Int64): (): Int64 {
     lambda
 }
 
-fn myoption(lambda: Option[(): Int64]): Option[(): Int64] {
+fun myoption(lambda: Option[(): Int64]): Option[(): Int64] {
     lambda
 }
 
-fn mytuple(lambda: ((): Int64, (): Int64)): ((): Int64, (): Int64) {
+fun mytuple(lambda: ((): Int64, (): Int64)): ((): Int64, (): Int64) {
     lambda
 }
 
@@ -31,7 +31,7 @@ struct MyStruct {
     l1: (): Int64,
 }
 
-fn mystruct(l0: (): Int64, l1: (): Int64): MyStruct {
+fun mystruct(l0: (): Int64, l1: (): Int64): MyStruct {
     MyStruct(l0, l1)
 }
 

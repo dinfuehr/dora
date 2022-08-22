@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
   let val = 101i32.toString();
   assert(val == "101");
 }

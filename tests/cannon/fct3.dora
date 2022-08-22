@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
   let foo = Foo();
   assert(foo.foo_bool() == true);
   assert(foo.foo_byte() == 3u8);
@@ -13,67 +13,67 @@ fn main() {
 class Foo
 
 impl Foo {
-  fn foo_bool(): Bool {
+  fun foo_bool(): Bool {
     return self.bar_bool();
   }
   
-  fn bar_bool(): Bool {
+  fun bar_bool(): Bool {
     return true;
   }
 
-  fn foo_byte(): UInt8 {
+  fun foo_byte(): UInt8 {
     return self.bar_byte();
   }
   
-  fn bar_byte(): UInt8 {
+  fun bar_byte(): UInt8 {
     return 3u8;
   }
 
-  fn foo_char(): Char {
+  fun foo_char(): Char {
     return self.bar_char();
   }
 
-  fn bar_char(): Char {
+  fun bar_char(): Char {
     return '3';
   }
 
-  fn foo_int32(): Int32 {
+  fun foo_int32(): Int32 {
     return self.bar_int32();
   }
 
-  fn bar_int32(): Int32 {
+  fun bar_int32(): Int32 {
     return 3i32;
   }
 
-  fn foo_int64(): Int64 {
+  fun foo_int64(): Int64 {
     return self.bar_int64();
   }
 
-  fn bar_int64(): Int64 {
+  fun bar_int64(): Int64 {
     return 3i64;
   }
 
-  fn foo_float(): Float32 {
+  fun foo_float(): Float32 {
     return self.bar_float();
   }
 
-  fn bar_float(): Float32 {
+  fun bar_float(): Float32 {
     return 3f32;
   }
 
-  fn foo_double(): Float64 {
+  fun foo_double(): Float64 {
     return self.bar_double();
   }
 
-  fn bar_double(): Float64 {
+  fun bar_double(): Float64 {
     return 3f64;
   }
 
-  fn foo_string(): String {
+  fun foo_string(): String {
     return self.bar_string();
   }
 
-  fn bar_string(): String {
+  fun bar_string(): String {
     return "3";
   }
 }

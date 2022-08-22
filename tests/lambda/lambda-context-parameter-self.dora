@@ -1,6 +1,6 @@
 //= ignore
 
-fn main() {
+fun main() {
     let foo = Foo();
     let f1 = foo.create_lambda();
     assert(f1() === foo);
@@ -12,7 +12,7 @@ fn main() {
 class Foo
 
 impl Foo {
-    fn create_lambda(): (): Foo {
+    fun create_lambda(): (): Foo {
         let mut step = 0;
         let lambda = ||: Foo {
             let result = if step % 2 == 0 {

@@ -1,6 +1,6 @@
 //= vm-args "--gc=swiper --gc-verify"
 
-fn main() {
+fun main() {
     let x = LargeObject::new();
     x.val1 = 1i64;
     x.val512 = 512i64;
@@ -525,7 +525,7 @@ class LargeObject {
 }
 
 impl LargeObject {
-    @static fn new(): LargeObject {
+    @static fun new(): LargeObject {
         LargeObject(
             0,
             0,

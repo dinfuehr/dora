@@ -1,6 +1,6 @@
 //= stdout "abc\n"
 
-fn main() {
+fun main() {
     let x = "abc";
     let y = x.clone();
 

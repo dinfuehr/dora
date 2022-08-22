@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
     let threads = argv(0).toInt().getOrPanic();
 
     let mut i = 0;
@@ -11,12 +11,12 @@ fn main() {
 }
 
 class MyThread() extends Thread {
-    @override fn run() {
+    @override fun run() {
         allocator();
     }
 }
 
-fn allocator() {
+fun allocator() {
     let mut i = 0;
 
     while i < 20_000_000 {

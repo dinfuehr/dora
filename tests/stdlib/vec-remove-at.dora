@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
     let x = Vec[Int32]::new();
 
     x.push(1i32);

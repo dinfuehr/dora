@@ -202,10 +202,10 @@ mod tests {
         err(
             "
             trait Foo {
-                fn foo(): Int32;
+                fun foo(): Int32;
             }
             class Bar
-            impl Foo for Bar { fn foo(): Int32; }",
+            impl Foo for Bar { fun foo(): Int32; }",
             pos(6, 32),
             ErrorMessage::MissingFctBody,
         );
@@ -216,12 +216,12 @@ mod tests {
         err(
             "
             trait Foo {
-                fn foo(): Int32;
+                fun foo(): Int32;
             }
             class Bar
             impl Foo for Bar {
-                fn foo(): Int32 { return 0; }
-                fn foo(): Int32 { return 1; }
+                fun foo(): Int32 { return 0; }
+                fun foo(): Int32 { return 1; }
             }",
             pos(8, 17),
             ErrorMessage::MethodExists("foo".into(), pos(7, 17)),
@@ -255,9 +255,9 @@ mod tests {
     #[test]
     fn impl_definitions() {
         ok("trait Foo {} class A {} impl Foo for A {}");
-        ok("trait Foo { fn toBool(): Bool; }
+        ok("trait Foo { fun toBool(): Bool; }
             class A {}
-            impl Foo for A { fn toBool(): Bool { return false; } }");
+            impl Foo for A { fun toBool(): Bool { return false; } }");
     }
 
     #[test]
@@ -343,10 +343,10 @@ mod tests {
     #[ignore]
     fn impl_trait_with_type_params() {
         ok("
-            trait MyEquals[T] { fn equals(val: T): Bool; }
+            trait MyEquals[T] { fun equals(val: T): Bool; }
             class Foo(x: Int64)
             impl MyEquals[Foo] for Foo {
-                fn equals(val: Foo): Bool {
+                fun equals(val: Foo): Bool {
                     self.x == val.x
                 }
             }

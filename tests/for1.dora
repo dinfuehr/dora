@@ -1,6 +1,6 @@
 //= stdout "01234"
 
-fn main() {
+fun main() {
     for i in std::range(0i32, 5i32) {
         print(i.toString());
     }

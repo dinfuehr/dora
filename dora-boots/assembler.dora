@@ -7,66 +7,66 @@ class AssemblerBuffer {
 }
 
 impl AssemblerBuffer {
-    @static fn new(): AssemblerBuffer {
+    @static fun new(): AssemblerBuffer {
         AssemblerBuffer(Vec[UInt8]::new(), 0)
     }
 
-    fn position(): Int64 {
+    fun position(): Int64 {
         self.pos
     }
 
-    fn setPosition(newpos: Int64) {
+    fun setPosition(newpos: Int64) {
         self.pos = newpos;
     }
 
-    fn emitByte(value: UInt8) {
+    fun emitByte(value: UInt8) {
         self.buffer.push(value);
     }
 
-    fn emitInt32(value: Int32) {
+    fun emitInt32(value: Int32) {
         self.emitByte((value & 0xFFi32).toUInt8());
         self.emitByte((value.shiftRight(8i32) & 0xFFi32).toUInt8());
         self.emitByte((value.shiftRight(16i32) & 0xFFi32).toUInt8());
         self.emitByte((value.shiftRight(24i32) & 0xFFi32).toUInt8());
     }
 
-    fn emitInt64(value: Int64) {
+    fun emitInt64(value: Int64) {
         self.emitInt32(value.toInt32());
         self.emitInt32(value.shiftRight(32i32).toInt32());
     }
 
-    fn patchUInt8(offset: Int64, value: UInt8) {
+    fun patchUInt8(offset: Int64, value: UInt8) {
         self.buffer(offset) = value;
     }
 
-    fn patchInt32(offset: Int64, value: Int32) {
+    fun patchInt32(offset: Int64, value: Int32) {
         self.buffer(offset) = (value & 0xFFi32).toUInt8();
         self.buffer(offset + 1i64) = (value.shiftRight(8i32) & 0xFFi32).toUInt8();
         self.buffer(offset + 2i64) = (value.shiftRight(16i32) & 0xFFi32).toUInt8();
         self.buffer(offset + 3i64) = (value.shiftRight(24i32) & 0xFFi32).toUInt8();
     }
 
-    fn size(): Int64 {
+    fun size(): Int64 {
         self.buffer.size()
     }
 
-    fn capacity(): Int64 {
+    fun capacity(): Int64 {
         self.buffer.capacity()
     }
 
-    fn toArray(): Array[UInt8] {
+    fun toArray(): Array[UInt8] {
         self.buffer.toArray()
     }
 
-    fn createLabel(): Label {
+    fun createLabel(): Label {
         Label::new()
     }
 
-    fn bindLabel(lbl: Label) {
+    fun bindLabel(lbl: Label) {
         lbl.bindTo(self.size());
     }
 
-    fn createAndBindLabel(): Label {
+    fun createAndBindLabel(): Label {
         let lbl = self.createLabel();
         self.bindLabel(lbl);
 
@@ -79,22 +79,22 @@ impl AssemblerBuffer {
 }
 
 impl Label {
-    @static fn new(): Label {
+    @static fun new(): Label {
         Label(-1)
     }
 
-    fn bindTo(pos: Int64) {
+    fun bindTo(pos: Int64) {
         assert(pos >= 0i64 && self.offset < 0i64);
         self.offset = pos;
     }
 
-    fn isBound(): Bool {
+    fun isBound(): Bool {
         self.offset >= 0i64
     }
 }
 
 @Test
-fn testAssemblerBufferEmitByte() {
+fun testAssemblerBufferEmitByte() {
     let buffer = AssemblerBuffer::new();
     buffer.emitByte(0x01u8);
     buffer.emitByte(0x02u8);
@@ -102,7 +102,7 @@ fn testAssemblerBufferEmitByte() {
 }
 
 @Test
-fn testAssemblerBufferEmitInt() {
+fun testAssemblerBufferEmitInt() {
     let asm = AssemblerBuffer::new();
     asm.emitInt32(0x11223344i32);
     let buffer = asm.toArray();
@@ -116,7 +116,7 @@ fn testAssemblerBufferEmitInt() {
 @pub struct Register(value: Int32)
 
 impl Register {
-    fn equals(rhs: Register): Bool {
+    fun equals(rhs: Register): Bool {
         self.value == rhs.value
     }
 }
@@ -127,11 +127,11 @@ class MachineCode {
 }
 
 impl MachineCode {
-    @static fn new(bytes: Array[UInt8]): MachineCode {
+    @static fun new(bytes: Array[UInt8]): MachineCode {
         MachineCode(bytes, 0)
     }
 
-    fn getInt32(idx: Int64): Int32 {
+    fun getInt32(idx: Int64): Int32 {
         self.bytes(idx).toInt32() |
             self.bytes(idx+1i64).toInt32().shiftLeft(8i32) |
             self.bytes(idx+2i64).toInt32().shiftLeft(16i32) |
@@ -139,7 +139,7 @@ impl MachineCode {
     }
 }
 
-fn assertAsm(code: MachineCode, bytes: UInt8...) {
+fun assertAsm(code: MachineCode, bytes: UInt8...) {
     assert(code.start + bytes.size() <= code.bytes.size());
 
     for (idx, exp) in bytes.enumerate() {
@@ -177,7 +177,7 @@ fn assertAsm(code: MachineCode, bytes: UInt8...) {
     code.start = code.start + bytes.size();
 }
 
-fn assertAsm32(code: MachineCode, values: Int32...) {
+fun assertAsm32(code: MachineCode, values: Int32...) {
     assert(code.start % 4i64 == 0i64);
     assert(code.bytes.size() % 4i64 == 0i64);
 
@@ -223,6 +223,6 @@ fn assertAsm32(code: MachineCode, values: Int32...) {
     code.start = code.start + values.size() * 4i64;
 }
 
-fn assertAsmEnd(code: MachineCode) {
+fun assertAsmEnd(code: MachineCode) {
     assert(code.start == code.bytes.size());
 }

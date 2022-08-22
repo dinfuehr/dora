@@ -1,7 +1,7 @@
-fn main() {
+fun main() {
     assert(1i32 == foo[Int32](1i32));
     assert(3f32 == foo[Float32](3f32));
     assert("hel" + "lo" == foo[String]("hello"));
 }
 
-fn foo[T](val: T): T { return val; }
+fun foo[T](val: T): T { return val; }

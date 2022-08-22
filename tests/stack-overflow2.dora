@@ -1,15 +1,15 @@
 //= error stack-overflow
 
-fn main() {
+fun main() {
     std::thread::spawn(|| {
         g();
     });
 }
 
-fn g() {
+fun g() {
     f();
 }
 
-fn f() {
+fun f() {
     f();
 }

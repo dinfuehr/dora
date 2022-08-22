@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
     let x = 1i32.toInt64();
     let y = id(x);
 
@@ -9,6 +9,6 @@ fn main() {
     assert((x < y).not());
 }
 
-fn id(val: Int64): Int64 {
+fun id(val: Int64): Int64 {
     return val;
 }

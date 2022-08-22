@@ -1,6 +1,6 @@
 //= stdout "a\n"
 
-fn main() {
+fun main() {
     let ch = 'a';
     println(ch.toString());
 

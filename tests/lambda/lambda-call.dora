@@ -1,6 +1,6 @@
 //= vm-args "--gc=swiper --gc-verify"
 
-fn main() {
+fun main() {
     let x = 10;
     let lambda = |a: Int64, b: Int64|: Int64 {
         let x = 100;

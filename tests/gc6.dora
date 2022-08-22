@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
   let mut x : Option[Foo] = None[Foo];
 
   if false {

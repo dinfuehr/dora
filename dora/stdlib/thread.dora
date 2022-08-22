@@ -4,43 +4,43 @@
 }
 
 impl Thread {
-    @pub fn id(): Int64 {
+    @pub fun id(): Int64 {
         self.id
     }
 
-    @pub @static @internal fn current(): Thread;
+    @pub @static @internal fun current(): Thread;
 
-    @pub @internal fn join();
+    @pub @internal fun join();
 }
 
-@internal @pub fn spawn(action: (): ()): Thread;
+@internal @pub fun spawn(action: (): ()): Thread;
 
 @pub class AtomicInt32(value: Int32)
 
 impl AtomicInt32 {
-    @pub @static fn new(value: Int32): AtomicInt32 {
+    @pub @static fun new(value: Int32): AtomicInt32 {
         AtomicInt32(value)
     }
 
-    @pub @internal fn get(): Int32;
-    @pub @internal fn set(value: Int32);
-    @pub @internal fn exchange(value: Int32): Int32;
-    @pub @internal fn compareExchange(expected: Int32, value: Int32): Int32;
-    @pub @internal fn fetchAdd(value: Int32): Int32;
+    @pub @internal fun get(): Int32;
+    @pub @internal fun set(value: Int32);
+    @pub @internal fun exchange(value: Int32): Int32;
+    @pub @internal fun compareExchange(expected: Int32, value: Int32): Int32;
+    @pub @internal fun fetchAdd(value: Int32): Int32;
 }
 
 @pub class AtomicInt64(value: Int64)
 
 impl AtomicInt64 {
-    @pub @static fn new(value: Int64): AtomicInt64 {
+    @pub @static fun new(value: Int64): AtomicInt64 {
         AtomicInt64(value)
     }
 
-    @pub @internal fn get(): Int64;
-    @pub @internal fn set(value: Int64);
-    @pub @internal fn exchange(value: Int64): Int64;
-    @pub @internal fn compareExchange(expected: Int64, value: Int64): Int64;
-    @pub @internal fn fetchAdd(value: Int64): Int64;
+    @pub @internal fun get(): Int64;
+    @pub @internal fun set(value: Int64);
+    @pub @internal fun exchange(value: Int64): Int64;
+    @pub @internal fun compareExchange(expected: Int64, value: Int64): Int64;
+    @pub @internal fun fetchAdd(value: Int64): Int64;
 }
 
 const UNLOCKED: Int32 = 0i32;
@@ -53,18 +53,18 @@ const LOCKED_CONTENDED: Int32 = 2i32;
 }
 
 impl Mutex {
-    @pub @static fn new(): Mutex {
+    @pub @static fun new(): Mutex {
         Mutex(AtomicInt32::new(UNLOCKED), 0)
     }
 
-    @pub fn lock[T](fct: (): T): T {
+    @pub fun lock[T](fct: (): T): T {
         self.lockOp();
         let result = fct();
         self.unlockOp();
         result
     }
 
-    fn lockOp() {
+    fun lockOp() {
         let previous = self.data.compareExchange(UNLOCKED, LOCKED);
 
         if previous != UNLOCKED {
@@ -76,7 +76,7 @@ impl Mutex {
         self.owner_thread_id = Thread::current().id();
     }
 
-    fn lockSlow() {
+    fun lockSlow() {
         let mut locked = false;
 
         while locked.not() {
@@ -91,11 +91,11 @@ impl Mutex {
         }
     }
 
-    fn transitionToLockedContended(): Bool {
+    fun transitionToLockedContended(): Bool {
         self.data.compareExchange(LOCKED, LOCKED_CONTENDED) != UNLOCKED
     }
 
-    fn unlockOp() {
+    fun unlockOp() {
         assert(self.owner_thread_id == Thread::current().id());
         self.owner_thread_id = 0;
 
@@ -106,13 +106,13 @@ impl Mutex {
         }
     }
 
-    fn unlockSlow(previous: Int32) {
+    fun unlockSlow(previous: Int32) {
         assert(previous == LOCKED_CONTENDED);
         self.notify();
     }
 
-    @internal fn wait(status: Int32);
-    @internal fn notify();
+    @internal fun wait(status: Int32);
+    @internal fun notify();
 }
 
 @pub class Condition {
@@ -120,18 +120,18 @@ impl Mutex {
 }
 
 impl Condition {
-    @pub @static fn new(): Condition {
+    @pub @static fun new(): Condition {
         Condition(AtomicInt32::new(0i32))
     }
 
-    @pub fn wait(mtx: Mutex) {
+    @pub fun wait(mtx: Mutex) {
         self.enqueue();
         mtx.unlockOp();
         self.block();
         mtx.lockOp();
     }
 
-    @pub fn notifyOne() {
+    @pub fun notifyOne() {
         if self.waiters.get() == 0i32 {
             return;
         }
@@ -139,7 +139,7 @@ impl Condition {
         self.wakeupOne();
     }
 
-    @pub fn notifyAll() {
+    @pub fun notifyAll() {
         if self.waiters.get() == 0i32 {
             return;
         }
@@ -148,9 +148,9 @@ impl Condition {
         self.wakeupAll();
     }
 
-    @internal fn enqueue();
-    @internal fn block();
+    @internal fun enqueue();
+    @internal fun block();
 
-    @internal fn wakeupOne();
-    @internal fn wakeupAll();
+    @internal fun wakeupOne();
+    @internal fun wakeupAll();
 }

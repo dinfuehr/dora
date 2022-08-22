@@ -1,8 +1,8 @@
-fn main() {
+fun main() {
   assert(eq("a"));
   assert(eq("aa").not());
 }
 
-fn eq(a: String): Bool {
+fun eq(a: String): Bool {
   return "ab" == a + "b";
 }

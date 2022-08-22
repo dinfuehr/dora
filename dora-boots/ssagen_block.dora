@@ -7,7 +7,7 @@ use package::bytecode::reader::BytecodeIterator;
 use package::graph::Graph;
 use package::graph::Block;
 
-@pub fn createBlocksWithEdgesFromBytecode(graph: Graph, bc: BytecodeFunction): BlockMap {
+@pub fun createBlocksWithEdgesFromBytecode(graph: Graph, bc: BytecodeFunction): BlockMap {
     let blockMap = BlockMap::new(bc);
 
     // The first pass creates blocks
@@ -25,19 +25,19 @@ use package::graph::Block;
 }
 
 impl BlockMap {
-    @static fn new(bc: BytecodeFunction): BlockMap {
+    @static fun new(bc: BytecodeFunction): BlockMap {
         BlockMap(bc, HashMap[Int64, Block]::new())
     }
 
-    @pub fn insert(offset: Int64, block: Block) {
+    @pub fun insert(offset: Int64, block: Block) {
         self.blocks.insert(offset, block);
     }
 
-    @pub fn blockAt(offset: Int64): Option[Block] {
+    @pub fun blockAt(offset: Int64): Option[Block] {
         self.blocks(offset)
     }
 
-    @pub fn nextBlockAt(offset: Int64): Option[Block] {
+    @pub fun nextBlockAt(offset: Int64): Option[Block] {
         let mut offset = offset;
 
         while offset < self.bc.code.size() {
@@ -60,11 +60,11 @@ class EdgeCreator {
 }
 
 impl EdgeCreator {
-    @static fn new(graph: Graph, bc: BytecodeFunction, blockMap: BlockMap): EdgeCreator {
+    @static fun new(graph: Graph, bc: BytecodeFunction, blockMap: BlockMap): EdgeCreator {
         EdgeCreator(graph, bc, blockMap, 0, None[Block], false)
     }
 
-    fn run() {
+    fun run() {
         for instInfo in BytecodeIterator::new(self.bc.code) {
             self.offset = instInfo.start;
             self.instructionStart();
@@ -72,7 +72,7 @@ impl EdgeCreator {
         }
     }
 
-    fn processInstruction(start: Int64, size: Int64, inst: BytecodeInstruction) {
+    fun processInstruction(start: Int64, size: Int64, inst: BytecodeInstruction) {
         match inst {
             BytecodeInstruction::JumpLoop(distance) => {
                 let targetBlock = self.blockMap.blockAt(self.offset - distance.toInt64()).getOrPanic();
@@ -118,7 +118,7 @@ impl EdgeCreator {
         }
     }
 
-    fn instructionStart() {
+    fun instructionStart() {
         let result = self.blockMap.blocks(self.offset);
 
         if result.isSome() {
@@ -136,7 +136,7 @@ impl EdgeCreator {
         self.blockTerminated = false;
     }
 
-    fn markBlockTerminated() {
+    fun markBlockTerminated() {
         self.blockTerminated = true;
     }
 }
@@ -149,7 +149,7 @@ class BlockCreator {
 }
 
 impl BlockCreator {
-    @static fn new(graph: Graph, bc: BytecodeFunction, blockMap: BlockMap): BlockCreator {
+    @static fun new(graph: Graph, bc: BytecodeFunction, blockMap: BlockMap): BlockCreator {
         BlockCreator(
             graph,
             bc,
@@ -158,7 +158,7 @@ impl BlockCreator {
         )
     }
 
-    fn run() {
+    fun run() {
         // create block for first instruction
         let entryBlock = self.ensureBlock(0).getOrPanic();
         self.graph.setEntryBlock(entryBlock);
@@ -174,7 +174,7 @@ impl BlockCreator {
         }
     }
 
-    fn processInstruction(start: Int64, size: Int64, inst: BytecodeInstruction) {
+    fun processInstruction(start: Int64, size: Int64, inst: BytecodeInstruction) {
         match inst {
             BytecodeInstruction::Ret(_) => {
                 self.ensureBlock(start + size);
@@ -220,7 +220,7 @@ impl BlockCreator {
         }
     }
 
-    fn ensureBlock(offset: Int64): Option[Block] {
+    fun ensureBlock(offset: Int64): Option[Block] {
         assert(offset <= self.bc.code.size());
         if offset == self.bc.code.size() {
             return None;
@@ -235,7 +235,7 @@ impl BlockCreator {
         Some(block)
     }
 
-    fn ensureBlockLazy(offset: Int64) {
+    fun ensureBlockLazy(offset: Int64) {
         self.blockStarts.insert(offset);
     }
 }

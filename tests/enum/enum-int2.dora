@@ -1,7 +1,7 @@
 enum Foo { A, B }
 
 impl Foo {
-    fn toString(): String {
+    fun toString(): String {
         if self == Foo::A {
             "A"
         } else {
@@ -9,7 +9,7 @@ impl Foo {
         }
     }
 
-    fn toInt32(): Int32 {
+    fun toInt32(): Int32 {
         if self == Foo::A {
             0i32
         } else {
@@ -18,7 +18,7 @@ impl Foo {
     }
 }
 
-fn main() {
+fun main() {
     assert("A" == asString(Foo::A));
     assert("B" == asString(Foo::B));
 
@@ -26,10 +26,10 @@ fn main() {
     assert(1i32 == asInt(Foo::B));
 }
 
-fn asString(foo: Foo): String {
+fun asString(foo: Foo): String {
     foo.toString()
 }
 
-fn asInt(foo: Foo): Int32 {
+fun asInt(foo: Foo): Int32 {
     foo.toInt32()
 }

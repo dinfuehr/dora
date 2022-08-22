@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
   let a = 1i32;
   let b = 2i32;
   let c = true;

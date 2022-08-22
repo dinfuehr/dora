@@ -47,7 +47,7 @@ let REG_LR: Register = R30;
 struct NeonRegister(value: Int32)
 
 impl NeonRegister {
-    fn encoding(): Int32 {
+    fun encoding(): Int32 {
         self.value
     }
 }
@@ -122,69 +122,69 @@ enum CondCode {
 }
 
 impl AssemblerArm64 {
-    @pub @static fn new(): AssemblerArm64 {
+    @pub @static fun new(): AssemblerArm64 {
         AssemblerArm64(AssemblerBuffer::new())
     }
 
-    @pub fn ret() {
+    @pub fun ret() {
         let inst = clsx::uncondBranchReg(0b0010i32, 0b11111i32, 0i32, REG_LR, 0i32);
         self.buffer.emitInt32(inst);
     }
 
-    @pub fn retReg(rn: Register) {
+    @pub fun retReg(rn: Register) {
         let inst = clsx::uncondBranchReg(0b0010i32, 0b11111i32, 0i32, rn, 0i32);
         self.buffer.emitInt32(inst);
     }
 
-    @pub fn b(label: Label) {
+    @pub fun b(label: Label) {
         unreachable[()]();
     }
 
-    @pub fn bl(label: Label) {
+    @pub fun bl(label: Label) {
         unreachable[()]();
     }
 
-    @pub fn blr(rn: Register) {
+    @pub fun blr(rn: Register) {
         let inst = clsx::uncondBranchReg(0b0001i32, 0b11111i32, 0i32, rn, 0i32);
         self.buffer.emitInt32(inst);
     }
 
-    @pub fn br(rn: Register) {
+    @pub fun br(rn: Register) {
         let inst = clsx::uncondBranchReg(0b0000i32, 0b11111i32, 0i32, rn, 0i32);
         self.buffer.emitInt32(inst);
     }
 
-    @pub fn finalize(): Array[UInt8] {
+    @pub fun finalize(): Array[UInt8] {
         while self.buffer.size() % 16 != 0 {
             self.ret();
         }
         self.buffer.toArray()
     }
 
-    fn finalizeTesting(): MachineCode {
+    fun finalizeTesting(): MachineCode {
         MachineCode::new(self.buffer.toArray())
     }
 }
 
 impl Register {
-    fn isGpr(): Bool {
+    fun isGpr(): Bool {
         self.value <= 30i32
     }
 
-    fn isGprOrZero(): Bool {
+    fun isGprOrZero(): Bool {
         self.isGpr() || self == REG_ZERO
     }
 
-    fn isGprOrSp(): Bool {
+    fun isGprOrSp(): Bool {
         self.isGpr() || self == REG_SP
     }
 
-    fn encoding(): Int32 {
+    fun encoding(): Int32 {
         assert(self.isGpr());
         self.value
     }
 
-    fn encodingZero(): Int32 {
+    fun encodingZero(): Int32 {
         assert(self.isGprOrZero());
 
         if self.isGpr() {
@@ -194,7 +194,7 @@ impl Register {
         }
     }
 
-    fn encodingSp(): Int32 {
+    fun encodingSp(): Int32 {
         assert(self.isGprOrSp());
 
         if self.isGpr() {
@@ -208,14 +208,14 @@ impl Register {
 mod clsx {
     use package::assembler::Register;
 
-    @pub fn uncondBranchImm(op: Int32, imm26: Int32): Int32 {
+    @pub fun uncondBranchImm(op: Int32, imm26: Int32): Int32 {
         assert(fitsUnsigned(op, 1i32));
         assert(fitsSigned(imm26, 26i32));
 
         0b101i32.shiftLeft(26i32) | op.shiftLeft(31i32) | (imm26 & 0x3FFFFFFi32)
     }
 
-    @pub fn uncondBranchReg(opc: Int32, op2: Int32, op3: Int32, rn: Register, op4: Int32): Int32 {
+    @pub fun uncondBranchReg(opc: Int32, op2: Int32, op3: Int32, rn: Register, op4: Int32): Int32 {
         assert(fitsUnsigned(opc, 4i32));
         assert(fitsUnsigned(op2, 5i32));
         assert(fitsUnsigned(op3, 6i32));
@@ -225,23 +225,23 @@ mod clsx {
         0b1101011i32.shiftLeft(25i32) | opc.shiftLeft(21i32) | op2.shiftLeft(16i32) | op3.shiftLeft(10i32) | rn.encoding().shiftLeft(5i32) | op4
     }
 
-    fn fitsBit(value: Int32): Bool {
+    fun fitsBit(value: Int32): Bool {
         value >= 0i32 && value < 2i32
     }
 
-    fn fitsSigned(value: Int32, bits: Int32): Bool {
+    fun fitsSigned(value: Int32, bits: Int32): Bool {
         assert(bits > 0i32 && bits < 32i32);
         -(1i32.shiftLeft(bits - 1i32)) <= value && value < (1i32.shiftLeft(bits - 1i32))
     }
 
-    fn fitsUnsigned(value: Int32, bits: Int32): Bool {
+    fun fitsUnsigned(value: Int32, bits: Int32): Bool {
         assert(bits > 0i32 && bits < 32i32);
         value >= 0i32 && value < 1i32.shiftLeft(bits)
     }
 }
 
 @Test
-fn testAsmRet() {
+fun testAsmRet() {
     let asm = AssemblerArm64::new();
     asm.ret();
     asm.retReg(R0);

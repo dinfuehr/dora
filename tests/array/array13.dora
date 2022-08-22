@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
     let x = Array[Int32]::zero(100i64);
     assert(x.size() == 100i64);
     assert(x(0i64) == 0i32);

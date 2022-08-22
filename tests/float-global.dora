@@ -1,6 +1,6 @@
 let mut x: Float64 = 0.0;
 
-fn main() {
+fun main() {
     assert(getx() == 0.0);
 
     x = 4.0;
@@ -10,6 +10,6 @@ fn main() {
     assert(getx() == 10.0);
 }
 
-fn getx(): Float64 {
+fun getx(): Float64 {
     return x * 2.0;
 }

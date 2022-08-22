@@ -1,7 +1,7 @@
 use std::BitSet;
 use std::HashMap;
 
-fn main() {
+fun main() {
     let map = HashMap[Int32, String]::new();
     map.insert(1i32, "a");
     map.insert(10000i32, "b");
@@ -37,7 +37,7 @@ fn main() {
     check_iterator2(map);
 }
 
-fn check_iterator1(map: HashMap[Int32, String]) {
+fun check_iterator1(map: HashMap[Int32, String]) {
     let set = BitSet::new(3i64);
 
     for (key, value) in map {
@@ -63,7 +63,7 @@ fn check_iterator1(map: HashMap[Int32, String]) {
     assert(set.contains(2i64));
 }
 
-fn check_iterator2(map: HashMap[Int32, String]) {
+fun check_iterator2(map: HashMap[Int32, String]) {
     let set = BitSet::new(3i64);
 
     for (key, value) in map {

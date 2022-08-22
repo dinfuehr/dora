@@ -1,17 +1,17 @@
 //= error assert
 
-fn main() {
+fun main() {
   f(false);
 }
 
-fn f(a: Bool) {
+fun f(a: Bool) {
     g(a);
 }
 
-fn g(a: Bool) {
+fun g(a: Bool) {
     h(a);
 }
 
-fn h(a: Bool) {
+fun h(a: Bool) {
     assert(a);
 }

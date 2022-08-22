@@ -1,7 +1,7 @@
 use std::fatalError;
 use std::timestamp;
 
-fn main() {
+fun main() {
     if std::argc() != 3i32 {
         println("usage: splay <seed> <tree-size> <iterations>");
         std::exit(1i32);
@@ -37,7 +37,7 @@ class Benchmark {
 }
 
 impl Benchmark {
-    @static fn new(): Benchmark {
+    @static fun new(): Benchmark {
         Benchmark(
             SplayTree::new(),
             0i32,
@@ -46,7 +46,7 @@ impl Benchmark {
         )
     }
 
-    fn setup() {
+    fun setup() {
         let mut i = 0i32;
         self.splaySampleTimeStart = timestamp();
 
@@ -61,14 +61,14 @@ impl Benchmark {
         }
     }
 
-    fn updateStats(time: Int64) {
+    fun updateStats(time: Int64) {
         let pause = time - self.splaySampleTimeStart;
         self.splaySampleTimeStart = time;
         self.splaySamples = self.splaySamples + 1i32;
         self.splaySumOfSquaredPauses = self.splaySumOfSquaredPauses + pause * pause;
     }
 
-    fn tearDown() {
+    fun tearDown() {
         let keys = self.splayTree.exportKeys();
 
         self.splaySamples = 0i32;
@@ -91,7 +91,7 @@ impl Benchmark {
         }
     }
 
-    fn run() {
+    fun run() {
         let mut i = 0i32;
 
         while i < splayTreeModifications {
@@ -110,7 +110,7 @@ impl Benchmark {
         // self.updateStats(timestamp());
     }
 
-    fn insertNewNode(): Int32 {
+    fun insertNewNode(): Int32 {
         let mut key: Int32 = 0i32;
 
         while true {
@@ -127,11 +127,11 @@ impl Benchmark {
         return key;
     }
 
-    fn generateKey(): Int32 {
+    fun generateKey(): Int32 {
         return rnd.nextInt32();
     }
 
-    fn rms() {
+    fun rms() {
         let pauses = self.splaySumOfSquaredPauses;
         let samples = self.splaySamples;
 
@@ -139,7 +139,7 @@ impl Benchmark {
     }
 }
 
-fn generatePayloadTree(depth: Int32, tag: String): PayloadNode {
+fun generatePayloadTree(depth: Int32, tag: String): PayloadNode {
     if depth == 0i32 {
         let arr = Array[Int32]::zero(10i64);
         let mut i = 0i32;
@@ -166,15 +166,15 @@ class SplayTree {
 }
 
 impl SplayTree {
-    @static fn new(): SplayTree {
+    @static fun new(): SplayTree {
         SplayTree(None[SplayNode])
     }
 
-    fn isEmpty(): Bool {
+    fun isEmpty(): Bool {
         return self.root.isNone();
     }
 
-    fn insert(key: Int32, value: PayloadNode) {
+    fun insert(key: Int32, value: PayloadNode) {
         if self.isEmpty() {
             self.root = Some(SplayNode::new(key, Some[PayloadNode](value)));
             return;
@@ -204,7 +204,7 @@ impl SplayTree {
         self.root = Some(node);
     }
 
-    fn remove(key: Int32): Option[SplayNode] {
+    fun remove(key: Int32): Option[SplayNode] {
         if self.isEmpty() {
             return Option[SplayNode]::None;
         }
@@ -230,7 +230,7 @@ impl SplayTree {
         return removed;
     }
 
-    fn find(key: Int32): Option[SplayNode] {
+    fun find(key: Int32): Option[SplayNode] {
         if self.isEmpty() {
             return None;
         }
@@ -245,7 +245,7 @@ impl SplayTree {
         }
     }
 
-    fn findMax(startNode: Option[SplayNode]): Option[SplayNode] {
+    fun findMax(startNode: Option[SplayNode]): Option[SplayNode] {
         if self.isEmpty() {
             return None;
         }
@@ -263,7 +263,7 @@ impl SplayTree {
         Some(current)
     }
 
-    fn findGreatestLessThan(key: Int32): Option[SplayNode] {
+    fun findGreatestLessThan(key: Int32): Option[SplayNode] {
         if self.isEmpty() {
             return None;
         }
@@ -280,13 +280,13 @@ impl SplayTree {
         }
     }
 
-    fn exportKeys(): Vec[Int32] {
+    fun exportKeys(): Vec[Int32] {
         let keys = Vec[Int32]::new();
         exportKeysTraverse(keys, self.root);
         return keys;
     }
 
-    fn splay(key: Int32) {
+    fun splay(key: Int32) {
         if self.isEmpty() {
             return;
         }
@@ -354,7 +354,7 @@ impl SplayTree {
     }
 }
 
-fn exportKeysTraverse(list: Vec[Int32], node: Option[SplayNode]) {
+fun exportKeysTraverse(list: Vec[Int32], node: Option[SplayNode]) {
     let mut current = node;
 
     while current.isSome() {
@@ -376,7 +376,7 @@ class SplayNode {
 }
 
 impl SplayNode {
-    @static fn new(key: Int32, value: Option[PayloadNode]): SplayNode {
+    @static fun new(key: Int32, value: Option[PayloadNode]): SplayNode {
         SplayNode(key, value, None[SplayNode], None[SplayNode])
     }
 }

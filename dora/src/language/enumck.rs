@@ -160,9 +160,9 @@ mod tests {
     fn enum_with_argument() {
         ok("
             enum Foo { A(Int32), B(Float32), C}
-            fn give_me_a(): Foo { Foo::A(1i32) }
-            fn give_me_b(): Foo { Foo::B(2.0f32) }
-            fn give_me_c(): Foo { Foo::C }
+            fun give_me_a(): Foo { Foo::A(1i32) }
+            fun give_me_b(): Foo { Foo::B(2.0f32) }
+            fun give_me_c(): Foo { Foo::C }
 
         ");
     }
@@ -172,10 +172,10 @@ mod tests {
         err(
             "
             enum Foo { A(Int32), B(Float32), C}
-            fn give_me_a(): Foo { Foo::A(2.0f32) }
+            fun give_me_a(): Foo { Foo::A(2.0f32) }
 
         ",
-            pos(3, 41),
+            pos(3, 42),
             ErrorMessage::EnumArgsIncompatible(
                 "Foo".into(),
                 "A".into(),
@@ -190,10 +190,10 @@ mod tests {
         err(
             "
             enum Foo { A(Int32), B(Float32), C}
-            fn give_me_a(): Foo { Foo::A }
+            fun give_me_a(): Foo { Foo::A }
 
         ",
-            pos(3, 38),
+            pos(3, 39),
             ErrorMessage::EnumArgsIncompatible(
                 "Foo".into(),
                 "A".into(),
@@ -208,10 +208,10 @@ mod tests {
         err(
             "
             enum Foo { A(Int32), B(Float32), C}
-            fn give_me_c(): Foo { Foo::C(12.0f32) }
+            fun give_me_c(): Foo { Foo::C(12.0f32) }
 
         ",
-            pos(3, 41),
+            pos(3, 42),
             ErrorMessage::EnumArgsIncompatible(
                 "Foo".into(),
                 "C".into(),
@@ -226,9 +226,9 @@ mod tests {
         err(
             "
             enum Foo { A(Int32), B(Float32), C}
-            fn give_me_c(): Foo { Foo::C() }
+            fun give_me_c(): Foo { Foo::C() }
         ",
-            pos(3, 41),
+            pos(3, 42),
             ErrorMessage::EnumArgsNoParens("Foo".into(), "C".into()),
         );
     }
@@ -237,7 +237,7 @@ mod tests {
     fn enum_copy() {
         ok("
             enum Foo { A(Int32), B(Float32), C}
-            fn foo_test(y: Foo): Foo { let x: Foo = y; x }
+            fun foo_test(y: Foo): Foo { let x: Foo = y; x }
         ");
     }
 
@@ -279,9 +279,9 @@ mod tests {
         err(
             "
                 enum MyOption[X] { A, B }
-                fn foo(v: MyOption) {}
+                fun foo(v: MyOption) {}
             ",
-            pos(3, 27),
+            pos(3, 28),
             ErrorMessage::WrongNumberTypeParams(1, 0),
         );
     }
@@ -290,16 +290,16 @@ mod tests {
     fn check_enum_value() {
         ok("
             enum Foo { A(Int32), B }
-            fn foo(): Foo { Foo::A(1i32) }
-            fn bar(): Foo { Foo::B }
+            fun foo(): Foo { Foo::A(1i32) }
+            fun bar(): Foo { Foo::B }
         ");
 
         err(
             "
             enum Foo { A(Int32), B }
-            fn foo(): Foo { Foo::A(true) }
+            fun foo(): Foo { Foo::A(true) }
         ",
-            pos(3, 35),
+            pos(3, 36),
             ErrorMessage::EnumArgsIncompatible(
                 "Foo".into(),
                 "A".into(),
@@ -313,16 +313,16 @@ mod tests {
     fn check_enum_value_generic() {
         ok("
             enum Foo[T] { A, B }
-            fn foo() { let tmp = Foo[String]::B; }
+            fun foo() { let tmp = Foo[String]::B; }
         ");
 
         err(
             "
             trait SomeTrait {}
             enum Foo[T: SomeTrait] { A, B }
-            fn foo() { let tmp = Foo[String]::B; }
+            fun foo() { let tmp = Foo[String]::B; }
         ",
-            pos(4, 45),
+            pos(4, 46),
             ErrorMessage::TypeNotImplementingTrait("String".into(), "SomeTrait".into()),
         );
     }
@@ -331,15 +331,15 @@ mod tests {
     fn enum_with_generic_argument() {
         ok("
             enum Foo[T] { A(T), B }
-            fn foo() { let tmp = Foo[Int32]::A(0i32); }
+            fun foo() { let tmp = Foo[Int32]::A(0i32); }
         ");
 
         err(
             "
             enum Foo[T] { A(T), B }
-            fn foo() { let tmp = Foo[Int32]::A(true); }
+            fun foo() { let tmp = Foo[Int32]::A(true); }
         ",
-            pos(3, 47),
+            pos(3, 48),
             ErrorMessage::EnumArgsIncompatible(
                 "Foo".into(),
                 "A".into(),
@@ -353,15 +353,15 @@ mod tests {
     fn enum_move_generic() {
         ok("
             enum Foo[T] { A(T), B }
-            fn foo(x: Foo[Int32]): Foo[Int32] { x }
+            fun foo(x: Foo[Int32]): Foo[Int32] { x }
         ");
 
         err(
             "
             enum Foo[T] { A(T), B }
-            fn foo(x: Foo[Int32]): Foo[Float32] { x }
+            fun foo(x: Foo[Int32]): Foo[Float32] { x }
         ",
-            pos(3, 49),
+            pos(3, 50),
             ErrorMessage::ReturnType("Foo[Float32]".into(), "Foo[Int32]".into()),
         );
     }

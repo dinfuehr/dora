@@ -1,11 +1,11 @@
-fn main() {
+fun main() {
     assert(sum_args(1i32, 2i32) == 3i32);
     assert(sum_args(7i32) == 7i32);
     assert(sum_args() == 0i32);
     assert(sum_args(1i32, 2i32, 3i32, 4i32, 5i32) == 15i32);
 }
 
-fn sum_args(x: Int32...): Int32 {
+fun sum_args(x: Int32...): Int32 {
     let mut result = 0i32;
     let mut idx = 0i64;
     

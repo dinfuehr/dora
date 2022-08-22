@@ -1,6 +1,6 @@
 //= vm-args "--gc=swiper --gc-verify"
 
-fn main() {
+fun main() {
     let l0: (): Int64 = ||: Int64 { 0 };
     let l1: (): Int64 = ||: Int64 { 1 };
     assert(myid(l0) === l0);
@@ -13,14 +13,14 @@ fn main() {
     assert(l0() == 2);
 }
 
-fn myid(lambda: (): Int64): (): Int64 {
+fun myid(lambda: (): Int64): (): Int64 {
     lambda
 }
 
-fn call_my_lambda(lambda: (): Int64): Int64 {
+fun call_my_lambda(lambda: (): Int64): Int64 {
     lambda()
 }
 
-fn create_lambda(): (): Int64 {
+fun create_lambda(): (): Int64 {
     ||: Int64 { 2 }
 }

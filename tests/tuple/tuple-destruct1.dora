@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
     assert(myadd1((1i32, 4i32)) == 5i32);
     assert(myadd1((3i32, 1i32)) == 4i32);
 
@@ -6,19 +6,19 @@ fn main() {
     assert(myadd3((3i32, (100i32, 9i32))) == 12i32);
 }
 
-fn myadd1(x: (Int32, Int32)): Int32 {
+fun myadd1(x: (Int32, Int32)): Int32 {
     let (a, b) = x;
 
     a + b
 }
 
-fn myadd2(x: (Int32, (Int32, Int32))): Int32 {
+fun myadd2(x: (Int32, (Int32, Int32))): Int32 {
     let (a, (b, c)) = x;
 
     a + b + c
 }
 
-fn myadd3(x: (Int32, (Int32, Int32))): Int32 {
+fun myadd3(x: (Int32, (Int32, Int32))): Int32 {
     let (a, (_, b)) = x;
 
     a + b

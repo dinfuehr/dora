@@ -8,7 +8,7 @@ use package::ssagen::createGraph;
 use package::graph::dump::assertGraph;
 
 @Test
-fn testSsaGenRet() {
+fun testSsaGenRet() {
     let b = BytecodeBuilder::new();
     let r0 = b.addRegister(BytecodeType::Unit);
     b.emitRet(r0);
@@ -23,7 +23,7 @@ fn testSsaGenRet() {
 }
 
 @Test
-fn testSsaGenRetIntConst() {
+fun testSsaGenRetIntConst() {
     let b = BytecodeBuilder::new();
     let r0 = b.addRegister(BytecodeType::Int32);
     let idx = b.addConst(ConstPoolEntry::Int32(4711i32));
@@ -40,7 +40,7 @@ fn testSsaGenRetIntConst() {
 }
 
 @Test
-fn testSsaGenRetInt64Const() {
+fun testSsaGenRetInt64Const() {
     let b = BytecodeBuilder::new();
     let r0 = b.addRegister(BytecodeType::Int64);
     let idx = b.addConst(ConstPoolEntry::Int64(4711));
@@ -57,7 +57,7 @@ fn testSsaGenRetInt64Const() {
 }
 
 @Test
-fn testSsaGenIdInt() {
+fun testSsaGenIdInt() {
     let b = BytecodeBuilder::new();
     let r0 = b.addRegister(BytecodeType::Int32);
     b.setArguments(1i32);
@@ -74,7 +74,7 @@ fn testSsaGenIdInt() {
 }
 
 @Test
-fn testSsaGenAddIntArguments() {
+fun testSsaGenAddIntArguments() {
     let b = BytecodeBuilder::new();
     b.addNRegisters(BytecodeType::Int32, 3);
     b.setArguments(2i32);
@@ -94,7 +94,7 @@ fn testSsaGenAddIntArguments() {
 }
 
 @Test
-fn testSsaGenAddFloat32Arguments() {
+fun testSsaGenAddFloat32Arguments() {
     let b = BytecodeBuilder::new();
     b.addNRegisters(BytecodeType::Float32, 3);
     b.setArguments(2i32);
@@ -113,10 +113,10 @@ fn testSsaGenAddFloat32Arguments() {
 ");
 }
 
-fn bcSsaGenAddFloat32Arguments(a: Float32, b: Float32): Float32 { a + b }
+fun bcSsaGenAddFloat32Arguments(a: Float32, b: Float32): Float32 { a + b }
 
 @Test
-fn testSsaGenMultipleAssignments() {
+fun testSsaGenMultipleAssignments() {
     let b = BytecodeBuilder::new();
     b.addNRegisters(BytecodeType::Int32, 5);
     b.setArguments(1i32);
@@ -148,7 +148,7 @@ fn testSsaGenMultipleAssignments() {
 }
 
 @Test
-fn testSsaGenSubIntArguments() {
+fun testSsaGenSubIntArguments() {
     let b = BytecodeBuilder::new();
     b.addNRegisters(BytecodeType::Int32, 3);
     b.setArguments(2i32);
@@ -168,7 +168,7 @@ fn testSsaGenSubIntArguments() {
 }
 
 @Test
-fn testSsaGenNegIntArgument() {
+fun testSsaGenNegIntArgument() {
     let b = BytecodeBuilder::new();
     b.addNRegisters(BytecodeType::Int32, 2);
     b.setArguments(1i32);
@@ -187,7 +187,7 @@ fn testSsaGenNegIntArgument() {
 }
 
 @Test
-fn testSsaGenMulIntArguments() {
+fun testSsaGenMulIntArguments() {
     let b = BytecodeBuilder::new();
     b.addNRegisters(BytecodeType::Int32, 3);
     b.setArguments(2i32);
@@ -207,7 +207,7 @@ fn testSsaGenMulIntArguments() {
 }
 
 @Test
-fn testSsaGenSimpleIf() {
+fun testSsaGenSimpleIf() {
     let b = BytecodeBuilder::new();
     b.addRegisters(BytecodeType::Bool, BytecodeType::Int32);
     let end = b.createLabel();
@@ -238,7 +238,7 @@ fn testSsaGenSimpleIf() {
 }
 
 @Test
-fn testSsaGenIfReturnInBothBranches() {
+fun testSsaGenIfReturnInBothBranches() {
     let fct = bcSsaGenIfReturnInBothBranches();
     let graph = createGraph(fct);
 
@@ -255,8 +255,8 @@ fn testSsaGenIfReturnInBothBranches() {
 ");
 }
 
-@pub fn bcSsaGenIfReturnInBothBranches(): BytecodeFunction {
-    // fn bcSsaGenIfReturnInBothBranches(a: Bool): Int32 {
+@pub fun bcSsaGenIfReturnInBothBranches(): BytecodeFunction {
+    // fun bcSsaGenIfReturnInBothBranches(a: Bool): Int32 {
     //    if a { return 1; } else { return 2; }
     // }
 
@@ -276,8 +276,8 @@ fn testSsaGenIfReturnInBothBranches() {
 }
 
 @Test
-fn testSsaGenIfWithConditionalAssignment() {
-    // fn bcSsaGenIfWithConditionalAssignment(a: Bool): Int32 {
+fun testSsaGenIfWithConditionalAssignment() {
+    // fun bcSsaGenIfWithConditionalAssignment(a: Bool): Int32 {
     //    let mut x = 1i32;
     //    let mut y = 27i32;
     //    if a { x = 4i32; }
@@ -318,8 +318,8 @@ fn testSsaGenIfWithConditionalAssignment() {
 }
 
 @Test
-fn testSsaGenWhileCountDown() {
-    // fn bcSsaGenWhileCountDown(x: Int32): Int32 {
+fun testSsaGenWhileCountDown() {
+    // fun bcSsaGenWhileCountDown(x: Int32): Int32 {
     //    let mut x = x;
     //    while x > 0i32 { x = x - 1i32; }
     //    x
@@ -346,7 +346,7 @@ fn testSsaGenWhileCountDown() {
 ");
 }
 
-@pub fn bcSsaGenWhileCountDown(): BytecodeFunction {
+@pub fun bcSsaGenWhileCountDown(): BytecodeFunction {
     let b = BytecodeBuilder::new();
     b.setArguments(1i32);
     b.addRegisters(BytecodeType::Int32, BytecodeType::Int32, BytecodeType::Bool, BytecodeType::Int32);
@@ -369,8 +369,8 @@ fn testSsaGenWhileCountDown() {
 }
 
 @Test
-fn testSsaGenWhileCountDownWithSum() {
-    // fn bcSsaGenWhileCountDownWithSum(x: Int32): Int32 {
+fun testSsaGenWhileCountDownWithSum() {
+    // fun bcSsaGenWhileCountDownWithSum(x: Int32): Int32 {
     //    let mut x = x;
     //    let mut sum = 0i32;
     //    while x > 0i32 {
@@ -433,7 +433,7 @@ fn testSsaGenWhileCountDownWithSum() {
 }
 
 @Test
-fn testSsaGenLoadArrayElementInt32() {
+fun testSsaGenLoadArrayElementInt32() {
     let b = BytecodeBuilder::new();
     b.setArguments(2i32);
     b.addRegisters(BytecodeType::Ptr, BytecodeType::Int64, BytecodeType::Int32);
@@ -455,7 +455,7 @@ fn testSsaGenLoadArrayElementInt32() {
 }
 
 @Test
-fn testSsaGenStoreArrayElementInt32() {
+fun testSsaGenStoreArrayElementInt32() {
     let b = BytecodeBuilder::new();
     b.setArguments(3i32);
     b.addRegisters(BytecodeType::Ptr, BytecodeType::Int64, BytecodeType::Int32, BytecodeType::Unit);
@@ -478,7 +478,7 @@ fn testSsaGenStoreArrayElementInt32() {
 }
 
 @Test
-fn testSsaGenDivInt32() {
+fun testSsaGenDivInt32() {
     let b = BytecodeBuilder::new();
     b.addNRegisters(BytecodeType::Int32, 3);
     b.setArguments(2i32);
@@ -499,7 +499,7 @@ fn testSsaGenDivInt32() {
 }
 
 @Test
-fn testSsaGenDivInt64() {
+fun testSsaGenDivInt64() {
     let b = BytecodeBuilder::new();
     b.addNRegisters(BytecodeType::Int64, 3);
     b.setArguments(2i32);
@@ -519,13 +519,13 @@ fn testSsaGenDivInt64() {
 ");
 }
 
-fn bytecodeEquals(f1: BytecodeFunction, f2: BytecodeFunction) {
+fun bytecodeEquals(f1: BytecodeFunction, f2: BytecodeFunction) {
   assert(f1.code.equals(f2.code));
   assert(f1.arguments == f2.arguments);
   assert(f1.registers.size() == f2.registers.size());
   assert(f1.const_pool.size() == f2.const_pool.size());
 }
 
-fn r(id: Int64): BytecodeRegister {
+fun r(id: Int64): BytecodeRegister {
   BytecodeRegister(id.toInt32())
 }

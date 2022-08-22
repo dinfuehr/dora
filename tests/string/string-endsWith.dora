@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
   testBothEmpty();
   testNeedleEmpty();
   testHaystackEmpty();
@@ -7,26 +7,26 @@ fn main() {
   testFailure();
 }
 
-fn testBothEmpty() {
+fun testBothEmpty() {
   assert("".endsWith("") == true);
 }
 
-fn testNeedleEmpty() {
+fun testNeedleEmpty() {
   assert("abc".endsWith("") == true);
 }
 
-fn testHaystackEmpty() {
+fun testHaystackEmpty() {
   assert("".endsWith("abc") == false);
 }
 
-fn testNeedleLarger() {
+fun testNeedleLarger() {
   assert("abc".endsWith("abcdef") == false);
 }
 
-fn testSuccess() {
+fun testSuccess() {
   assert("abcdef".endsWith("def") == true);
 }
 
-fn testFailure() {
+fun testFailure() {
   assert("defabc".endsWith("def") == false);
 }

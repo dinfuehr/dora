@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
     let a = A[Int32]::new(0i32);
     consume(a.x);
 
@@ -9,15 +9,15 @@ fn main() {
 class A[T](default: T, x: Array[T])
 
 impl[T] A[T] {
-    @static fn new(default: T): A[T] {
+    @static fun new(default: T): A[T] {
         A[T](default, Array[T]::fill(10, default))
     }
 }
 
-fn consume(x: Array[Int32]) {
+fun consume(x: Array[Int32]) {
     assert(x(9i64) == 0i32);
 }
 
-fn consume2(x: Array[String]) {
+fun consume2(x: Array[String]) {
     assert(x.size() == 10);
 }

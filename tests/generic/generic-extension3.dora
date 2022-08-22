@@ -4,32 +4,32 @@ class MyClass[T](value: Int32)
 class Foo
 
 impl[X: TypeDescriptor] MyClass[X] {
-    fn do[T: TypeDescriptor](another: MyClass[T]) {
+    fun do[T: TypeDescriptor](another: MyClass[T]) {
         println("self=${X::name()}:${self.value} another=${T::name()}:${another.value}");
     }
 }
 
 trait TypeDescriptor {
-    @static fn name(): String;
+    @static fun name(): String;
 }
 
 impl TypeDescriptor for Foo {
-    @static fn name(): String { "Foo" }
+    @static fun name(): String { "Foo" }
 }
 
 impl TypeDescriptor for Int32 {
-    @static fn name(): String { "Int32" }
+    @static fun name(): String { "Int32" }
 }
 
 impl TypeDescriptor for Float32 {
-    @static fn name(): String { "Float32" }
+    @static fun name(): String { "Float32" }
 }
 
-fn f() {
+fun f() {
     MyClass[Foo](1i32).do[Int32](MyClass[Int32](101i32));
     MyClass[Int32](2i32).do[Float32](MyClass[Float32](102i32));
 }
 
-fn main() {
+fun main() {
     f();
 }

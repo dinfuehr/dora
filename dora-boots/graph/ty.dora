@@ -15,66 +15,66 @@ use package::bytecode::data::BytecodeType;
 }
 
 impl Type {
-    @pub fn isUnit(): Bool {
+    @pub fun isUnit(): Bool {
         match self {
             Type::Unit => true,
             _ => false,
         }
     }
 
-    @pub fn isUInt8(): Bool {
+    @pub fun isUInt8(): Bool {
         match self {
             Type::UInt8 => true,
             _ => false,
         }
     }
 
-    @pub fn isInt32(): Bool {
+    @pub fun isInt32(): Bool {
         match self {
             Type::Int32 => true,
             _ => false,
         }
     }
 
-    @pub fn isInt64(): Bool {
+    @pub fun isInt64(): Bool {
         match self {
             Type::Int64 => true,
             _ => false,
         }
     }
 
-    fn isFloat32(): Bool {
+    fun isFloat32(): Bool {
         match self {
             Type::Float32 => true,
             _ => false,
         }
     }
 
-    @pub fn isFloat64(): Bool {
+    @pub fun isFloat64(): Bool {
         match self {
             Type::Float64 => true,
             _ => false,
         }
     }
 
-    @pub fn isPtr(): Bool {
+    @pub fun isPtr(): Bool {
         match self {
             Type::Ptr => true,
             _ => false,
         }
     }
 
-    @pub @static fn unit(): Type { Type::Unit }
-    @pub @static fn bool(): Type { Type::Bool }
-    @pub @static fn uint8(): Type { Type::UInt8 }
-    @pub @static fn char(): Type { Type::Char }
-    @pub @static fn int32(): Type { Type::Int32 }
-    @pub @static fn int64(): Type { Type::Int64 }
-    @pub @static fn float32(): Type { Type::Float32 }
-    @pub @static fn float64(): Type { Type::Float64 }
-    @pub @static fn ptr(): Type { Type::Ptr }
+    @pub @static fun unit(): Type { Type::Unit }
+    @pub @static fun bool(): Type { Type::Bool }
+    @pub @static fun uint8(): Type { Type::UInt8 }
+    @pub @static fun char(): Type { Type::Char }
+    @pub @static fun int32(): Type { Type::Int32 }
+    @pub @static fun int64(): Type { Type::Int64 }
+    @pub @static fun float32(): Type { Type::Float32 }
+    @pub @static fun float64(): Type { Type::Float64 }
+    @pub @static fun ptr(): Type { Type::Ptr }
 
-    @pub @static fn fromBytecodeType(ty: BytecodeType): Type {
+    @pub @static fun fromBytecodeType(ty: BytecodeType): Type {
         match ty {
             BytecodeType::Unit => Type::Unit,
             BytecodeType::Bool => Type::Bool,
@@ -91,7 +91,7 @@ impl Type {
 }
 
 impl Stringable for Type {
-    fn toString(): String {
+    fun toString(): String {
         match self {
             Type::Unit => "Unit",
             Type::Bool => "Bool",

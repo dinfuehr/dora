@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
     let x = Array[()]::fill(7i64, ());
     assert(x.size() == 7i64);
     let y = Array[()]::new();

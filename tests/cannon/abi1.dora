@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
     assert(testInt32(3i32) == 3i32);
     assert(testInt32(122i32) == 122i32);
 
@@ -11,14 +11,14 @@ fn main() {
     assert(foo.testSelf() === foo);
 }
 
-fn testInt32(x: Int32): Int32 { x }
+fun testInt32(x: Int32): Int32 { x }
 
-fn testFloat32(x: Float32): Float32 { x }
+fun testFloat32(x: Float32): Float32 { x }
 
-fn testPtr(x: Foo): Foo { x }
+fun testPtr(x: Foo): Foo { x }
 
 class Foo
 
 impl Foo {
-    fn testSelf(): Foo { self }
+    fun testSelf(): Foo { self }
 }

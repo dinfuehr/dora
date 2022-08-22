@@ -4,7 +4,7 @@ enum Foo { A(Bar), B }
 enum Bar { C(MyClass), D }
 class MyClass(value: Int32)
 
-fn main() {
+fun main() {
     let f = foo();
     std::forceCollect();
     let bar = match f {
@@ -18,6 +18,6 @@ fn main() {
     assert(myclass.value == 17i32);
 }
 
-fn foo(): Foo {
+fun foo(): Foo {
     Foo::A(Bar::C(MyClass(17i32)))
 }

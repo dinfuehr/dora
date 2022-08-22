@@ -117,7 +117,7 @@ mod tests {
             trait Foo {}
             class A
             impl Foo for A {
-                fn bar() {}
+                fun bar() {}
             }",
             pos(5, 17),
             ErrorMessage::MethodNotInTrait("Foo".into(), "bar".into(), vec![]),
@@ -129,7 +129,7 @@ mod tests {
         err(
             "
             trait Foo {
-                fn bar();
+                fun bar();
             }
             class A
             impl Foo for A {}",
@@ -141,13 +141,13 @@ mod tests {
     #[test]
     fn method_returning_self() {
         ok("trait Foo {
-                fn foo(): Self;
+                fun foo(): Self;
             }
 
             class A
 
             impl Foo for A {
-                fn foo(): A { return A(); }
+                fun foo(): A { return A(); }
             }");
     }
 
@@ -158,7 +158,7 @@ mod tests {
             trait Foo {}
             class A
             impl Foo for A {
-                @static fn bar() {}
+                @static fun bar() {}
             }",
             pos(5, 25),
             ErrorMessage::StaticMethodNotInTrait("Foo".into(), "bar".into(), vec![]),
@@ -170,7 +170,7 @@ mod tests {
         err(
             "
             trait Foo {
-                @static fn bar();
+                @static fun bar();
             }
             class A
             impl Foo for A {}",
@@ -183,15 +183,15 @@ mod tests {
     fn method_return_type_check() {
         err(
             "trait X {
-                fn m(): Bool;
-                fn n(): Bool;
+                fun m(): Bool;
+                fun n(): Bool;
               }
               
               class CX
               
               impl X for CX {
-                fn m(): Int32 { 0 }
-                fn n(): Bool { true }
+                fun m(): Int32 { 0 }
+                fun n(): Bool { true }
               }",
             pos(9, 17),
             ErrorMessage::ReturnTypeMismatch("Int32".into(), "Bool".into()),
@@ -202,7 +202,7 @@ mod tests {
     fn impl_method_with_default_body() {
         ok("
             trait Foo {
-                fn foo(): Int32 { 1 }
+                fun foo(): Int32 { 1 }
             }
             class Bar {}
             impl Foo for Bar {}");

@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
     let x = 257i32.toUInt8();
     assert(x == 1i32.toUInt8());
 

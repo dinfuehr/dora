@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
     test_arg1(1f32, 2f32, 3f32, 4f32, 5f32, 6f32, 7f32, 8f32, 9f32, 10f32);
     test_arg2(1f32, 2f32, 3f32, 4f32, 5f32, 6f32, 7f32, 8f32, 9f32, 10f32);
     test_arg3(1f32, 2f32, 3f32, 4f32, 5f32, 6f32, 7f32, 8f32, 9f32, 10f32);
@@ -11,42 +11,42 @@ fn main() {
     test_arg10(1f32, 2f32, 3f32, 4f32, 5f32, 6f32, 7f32, 8f32, 9f32, 10f32);
 }
 
-fn test_arg1(a: Float32, b: Float32, c: Float32, d: Float32, e: Float32, f: Float32, g: Float32, h: Float32, i: Float32, j: Float32) {
+fun test_arg1(a: Float32, b: Float32, c: Float32, d: Float32, e: Float32, f: Float32, g: Float32, h: Float32, i: Float32, j: Float32) {
     assert(a == 1f32);
 }
 
-fn test_arg2(a: Float32, b: Float32, c: Float32, d: Float32, e: Float32, f: Float32, g: Float32, h: Float32, i: Float32, j: Float32) {
+fun test_arg2(a: Float32, b: Float32, c: Float32, d: Float32, e: Float32, f: Float32, g: Float32, h: Float32, i: Float32, j: Float32) {
     assert(b == 2f32);
 }
 
-fn test_arg3(a: Float32, b: Float32, c: Float32, d: Float32, e: Float32, f: Float32, g: Float32, h: Float32, i: Float32, j: Float32) {
+fun test_arg3(a: Float32, b: Float32, c: Float32, d: Float32, e: Float32, f: Float32, g: Float32, h: Float32, i: Float32, j: Float32) {
     assert(c == 3f32);
 }
 
-fn test_arg4(a: Float32, b: Float32, c: Float32, d: Float32, e: Float32, f: Float32, g: Float32, h: Float32, i: Float32, j: Float32) {
+fun test_arg4(a: Float32, b: Float32, c: Float32, d: Float32, e: Float32, f: Float32, g: Float32, h: Float32, i: Float32, j: Float32) {
     assert(d == 4f32);
 }
 
-fn test_arg5(a: Float32, b: Float32, c: Float32, d: Float32, e: Float32, f: Float32, g: Float32, h: Float32, i: Float32, j: Float32) {
+fun test_arg5(a: Float32, b: Float32, c: Float32, d: Float32, e: Float32, f: Float32, g: Float32, h: Float32, i: Float32, j: Float32) {
     assert(e == 5f32);
 }
 
-fn test_arg6(a: Float32, b: Float32, c: Float32, d: Float32, e: Float32, f: Float32, g: Float32, h: Float32, i: Float32, j: Float32) {
+fun test_arg6(a: Float32, b: Float32, c: Float32, d: Float32, e: Float32, f: Float32, g: Float32, h: Float32, i: Float32, j: Float32) {
     assert(f == 6f32);
 }
 
-fn test_arg7(a: Float32, b: Float32, c: Float32, d: Float32, e: Float32, f: Float32, g: Float32, h: Float32, i: Float32, j: Float32) {
+fun test_arg7(a: Float32, b: Float32, c: Float32, d: Float32, e: Float32, f: Float32, g: Float32, h: Float32, i: Float32, j: Float32) {
     assert(g == 7f32);
 }
 
-fn test_arg8(a: Float32, b: Float32, c: Float32, d: Float32, e: Float32, f: Float32, g: Float32, h: Float32, i: Float32, j: Float32) {
+fun test_arg8(a: Float32, b: Float32, c: Float32, d: Float32, e: Float32, f: Float32, g: Float32, h: Float32, i: Float32, j: Float32) {
     assert(h == 8f32);
 }
 
-fn test_arg9(a: Float32, b: Float32, c: Float32, d: Float32, e: Float32, f: Float32, g: Float32, h: Float32, i: Float32, j: Float32) {
+fun test_arg9(a: Float32, b: Float32, c: Float32, d: Float32, e: Float32, f: Float32, g: Float32, h: Float32, i: Float32, j: Float32) {
     assert(i == 9f32);
 }
 
-fn test_arg10(a: Float32, b: Float32, c: Float32, d: Float32, e: Float32, f: Float32, g: Float32, h: Float32, i: Float32, j: Float32) {
+fun test_arg10(a: Float32, b: Float32, c: Float32, d: Float32, e: Float32, f: Float32, g: Float32, h: Float32, i: Float32, j: Float32) {
     assert(j == 10f32);
 }

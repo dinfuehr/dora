@@ -15,7 +15,7 @@ class SharedQueue[T] {
 }
 
 impl[T] SharedQueue[T] {
-    @static fn new(capacity: Int64): SharedQueue[T] {
+    @static fun new(capacity: Int64): SharedQueue[T] {
         SharedQueue[T](
             capacity,
             std::Mutex::new(),
@@ -25,7 +25,7 @@ impl[T] SharedQueue[T] {
         )
     }
 
-    fn enqueue(value: T) {
+    fun enqueue(value: T) {
         self.mtx.lock[()](|| {
             while self.queue.size() == self.capacity {
                 self.conditionNonFull.wait(self.mtx);
@@ -37,7 +37,7 @@ impl[T] SharedQueue[T] {
         self.conditionNonEmpty.notifyAll();
     }
 
-    fn dequeue(): T {
+    fun dequeue(): T {
         let value = self.mtx.lock[T](||: T {
             while self.queue.size() == 0 {
                 self.conditionNonEmpty.wait(self.mtx);
@@ -57,11 +57,11 @@ class Producer {
 }
 
 impl Producer {
-    @static fn new(queue: SharedQueue[Int32]): Producer {
+    @static fun new(queue: SharedQueue[Int32]): Producer {
         Producer(queue, 0i32)
     }
 
-    fn run() {
+    fun run() {
         let mut i = 0i32;
 
         while i < ITERATIONS {
@@ -78,14 +78,14 @@ class Consumer {
 }
 
 impl Consumer {
-    @static fn new(queue: SharedQueue[Int32]): Consumer {
+    @static fun new(queue: SharedQueue[Int32]): Consumer {
         Consumer(
             queue,
             0i32,
         )
     }
 
-    fn run() {
+    fun run() {
         while true {
             let value = self.queue.dequeue();
 
@@ -98,7 +98,7 @@ impl Consumer {
     }
 }
 
-fn main() {
+fun main() {
     let mut i = 0i32;
     let queue = SharedQueue[Int32]::new(QUEUE_SIZE);
     let producerThreads = Vec[std::Thread]::new();
@@ -132,7 +132,7 @@ fn main() {
     assert(consumer.sum == producerSum);
 }
 
-fn spawn_producer(queue: SharedQueue[Int32]): (Producer, std::Thread) {
+fun spawn_producer(queue: SharedQueue[Int32]): (Producer, std::Thread) {
     let producer = Producer::new(queue);
     let thread = std::thread::spawn(|| {
         producer.run();

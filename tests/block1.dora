@@ -1,22 +1,22 @@
-fn main() {
+fun main() {
     t1();
     t2();
     t3();
 }
 
-fn g(): Int32 { 1i32 }
+fun g(): Int32 { 1i32 }
 
-fn t1() {
+fun t1() {
     let x: Int32 = { g() };
     assert(x == 1i32);
 }
 
-fn t2() {
+fun t2() {
     let x: Int32 = { g(); 1i32 };
     assert(x == 1i32);
 }
 
-fn t3() {
+fun t3() {
     let x: String = "x${1}y" + { std::forceCollect(); "end" };
     assert(x == "x1yend");
 }

@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
     test_multiple_ascii_chars();
 
     test_1byte();
@@ -9,7 +9,7 @@ fn main() {
     test_invalid();
 }
 
-fn test_multiple_ascii_chars() {
+fun test_multiple_ascii_chars() {
     let bytes = Array[UInt8]::zero(3i64);
     bytes(0i64) = 'a'.toInt32().toUInt8();
     bytes(1i64) = 'b'.toInt32().toUInt8();
@@ -19,14 +19,14 @@ fn test_multiple_ascii_chars() {
     assert(val == "abc");
 }
 
-fn test_1byte() {
+fun test_1byte() {
     let bytes = Array[UInt8]::zero(1i64);
     bytes(0i64) = 0x24u8;
 
     String::fromBytes(bytes).getOrPanic();
 }
 
-fn test_2bytes() {
+fun test_2bytes() {
     let bytes = Array[UInt8]::zero(2i64);
     bytes(0i64) = 0xC2u8;
     bytes(1i64) = 0xA2u8;
@@ -34,7 +34,7 @@ fn test_2bytes() {
     String::fromBytes(bytes).getOrPanic();
 }
 
-fn test_3bytes() {
+fun test_3bytes() {
     let bytes = Array[UInt8]::zero(3i64);
     bytes(0i64) = 0xE2u8;
     bytes(1i64) = 0x82u8;
@@ -43,7 +43,7 @@ fn test_3bytes() {
     String::fromBytes(bytes).getOrPanic();
 }
 
-fn test_4bytes() {
+fun test_4bytes() {
     let bytes = Array[UInt8]::zero(4i64);
     bytes(0i64) = 0xF0u8;
     bytes(1i64) = 0x90u8;
@@ -53,7 +53,7 @@ fn test_4bytes() {
     String::fromBytes(bytes).getOrPanic();
 }
 
-fn test_invalid() {
+fun test_invalid() {
     let bytes = Array[UInt8]::zero(1i64);
     bytes(0i64) = 0x80u8;
 

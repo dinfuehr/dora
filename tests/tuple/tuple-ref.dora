@@ -2,32 +2,32 @@
 
 class Foo(value: Int32)
 
-fn main() {
+fun main() {
     assert(tpl1() == 1i32);
     assert(tpl2() == 2i32);
     assert(tpl3() == 3i32);
     assert(tplsum() == 6i32);
 }
 
-fn tpl1(): Int32 {
+fun tpl1(): Int32 {
     let x = (Foo(1i32), Foo(2i32), Foo(3i32));
     std::forceCollect();
     x.0.value
 }
 
-fn tpl2(): Int32 {
+fun tpl2(): Int32 {
     let x = (Foo(1i32), Foo(2i32), Foo(3i32));
     std::forceCollect();
     x.1.value
 }
 
-fn tpl3(): Int32 {
+fun tpl3(): Int32 {
     let x = (Foo(1i32), Foo(2i32), Foo(3i32));
     std::forceCollect();
     x.2.value
 }
 
-fn tplsum(): Int32 {
+fun tplsum(): Int32 {
     let x = (Foo(1i32), Foo(2i32), Foo(3i32));
     std::forceCollect();
     x.0.value + x.1.value + x.2.value

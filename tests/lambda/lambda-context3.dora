@@ -1,17 +1,17 @@
-fn main() {
+fun main() {
     assert(f_depth1() == 20);
     assert(f_depth2() == 20);
     assert(f_depth3() == 20);
 }
 
-fn f_depth1(): Int64 {
+fun f_depth1(): Int64 {
     let mut x = 10;
     let f1 = || { x = 20; };
     f1();
     x
 }
 
-fn f_depth2(): Int64 {
+fun f_depth2(): Int64 {
     let mut x = 10;
     let f1 = ||: (): () {
         let f2 = || { x = 20; };
@@ -21,7 +21,7 @@ fn f_depth2(): Int64 {
     x
 }
 
-fn f_depth3(): Int64 {
+fun f_depth3(): Int64 {
     let mut x = 10;
     let f1 = ||: (): (): () {
         let f2 = ||: (): () {

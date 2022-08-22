@@ -1,6 +1,6 @@
 //= vm-args "--gc=swiper --gc-verify"
 
-fn main() {
+fun main() {
     let a = Array[Foo]::fill(16i64 * 1024i64, Foo());
     a(16i64 * 1024i64 - 1i64) = Foo();
     std::forceCollect();

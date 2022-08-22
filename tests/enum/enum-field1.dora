@@ -3,7 +3,7 @@
 enum Foo { A(Int32, String, Float32), B }
 class Bar(foo: Foo)
 
-fn main() {
+fun main() {
     let object = Bar(Foo::B);
     std::forceCollect();
     updateObject(object);
@@ -18,6 +18,6 @@ fn main() {
     }
 }
 
-fn updateObject(object: Bar) {
+fun updateObject(object: Bar) {
     object.foo = Foo::A(112i32, "abc", 17.5f32);
 }

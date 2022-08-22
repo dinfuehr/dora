@@ -1,6 +1,6 @@
 //= error array
 
-fn main() {
+fun main() {
     let x = Array[(Int32, Int64)]::fill(7i64, (0i32, 0i64));
     let y: (Int32, Int64) = x(10i64);
 }

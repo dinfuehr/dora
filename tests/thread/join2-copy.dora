@@ -3,7 +3,7 @@ use std::collections::BitVec;
 use std::thread::Mutex;
 use std::Thread;
 
-fn main() {
+fun main() {
     let mut i = 0i32;
     let ids = BitVec::new();
     let mtx = Mutex::new();

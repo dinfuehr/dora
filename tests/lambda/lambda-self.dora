@@ -1,12 +1,12 @@
 class Foo(value: Int64)
 
 impl Foo {
-    fn bar(): (): Int64 {
+    fun bar(): (): Int64 {
         ||: Int64 { self.value }
     }
 }
 
-fn main() {
+fun main() {
     let b1 = Foo(10).bar();
     assert(b1() == 10);
 

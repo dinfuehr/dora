@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
   let x = 1.0f32.unaryPlus();
   assert(x == +1.0f32);
 

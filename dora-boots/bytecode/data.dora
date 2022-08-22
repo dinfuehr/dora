@@ -13,7 +13,7 @@ use package::ssagen_block::BlockMap;
 }
 
 impl BytecodeFunction {
-    @static fn new(
+    @static fun new(
             code: Array[UInt8],
             const_pool: Array[ConstPoolEntry],
             registers: Array[BytecodeType],
@@ -21,15 +21,15 @@ impl BytecodeFunction {
         BytecodeFunction(code, const_pool, registers, arguments)
     }
 
-    @pub fn constPool(idx: ConstPoolId): ConstPoolEntry {
+    @pub fun constPool(idx: ConstPoolId): ConstPoolEntry {
         self.const_pool(idx.value.toInt64())
     }
 
-    @pub fn codeAt(idx: Int32): Int32 {
+    @pub fun codeAt(idx: Int32): Int32 {
         self.code(idx.toInt64()).toInt32()
     }
 
-    @pub fn codeInt32At(idx: Int32): Int32 {
+    @pub fun codeInt32At(idx: Int32): Int32 {
         let byte1 = self.codeAt(idx);
         let byte2 = self.codeAt(idx+1i32);
         let byte3 = self.codeAt(idx+2i32);
@@ -49,28 +49,28 @@ impl BytecodeFunction {
 }
 
 impl ConstPoolEntry {
-    @pub fn toInt32(): Option[Int32] {
+    @pub fun toInt32(): Option[Int32] {
         match self {
             ConstPoolEntry::Int32(value) => Some(value),
             _ => None,
         }
     }
 
-    @pub fn toInt64(): Option[Int64] {
+    @pub fun toInt64(): Option[Int64] {
         match self {
             ConstPoolEntry::Int64(value) => Some(value),
             _ => None,
         }
     }
 
-    @pub fn toFloat32(): Option[Float32] {
+    @pub fun toFloat32(): Option[Float32] {
         match self {
             ConstPoolEntry::Float32(value) => Some(value),
             _ => None,
         }
     }
 
-    @pub fn toFloat64(): Option[Float64] {
+    @pub fun toFloat64(): Option[Float64] {
         match self {
             ConstPoolEntry::Float64(value) => Some(value),
             _ => None,
@@ -79,7 +79,7 @@ impl ConstPoolEntry {
 }
 
 impl Stringable for ConstPoolEntry {
-    fn toString(): String {
+    fun toString(): String {
         match self {
             ConstPoolEntry::Int32(value) => "Int32 ${value}",
             ConstPoolEntry::Int64(value) => "Int64 ${value}",
@@ -110,19 +110,19 @@ impl Stringable for ConstPoolEntry {
 @pub struct BytecodeRegister(@pub value: Int32)
 
 impl Equals for BytecodeRegister {
-    fn equals(other: BytecodeRegister): Bool {
+    fun equals(other: BytecodeRegister): Bool {
         self.value == other.value
     }
 }
 
 impl Hash for BytecodeRegister {
-    fn hash(): Int32 {
+    fun hash(): Int32 {
         self.value
     }
 }
 
 impl Stringable for BytecodeRegister {
-    fn toString(): String { "r${self.value}" }
+    fun toString(): String { "r${self.value}" }
 }
 
 @pub struct ClassDefId(@pub value: Int32)
@@ -131,7 +131,7 @@ impl Stringable for BytecodeRegister {
 @pub struct ConstPoolId(@pub value: Int32)
 
 impl ConstPoolId {
-    fn equals(rhs: ConstPoolId): Bool {
+    fun equals(rhs: ConstPoolId): Bool {
         self.value == rhs.value
     }
 }
@@ -154,7 +154,7 @@ impl ConstPoolId {
 }
 
 impl Stringable for BytecodeType {
-    fn toString(): String {
+    fun toString(): String {
         match self {
             BytecodeType::Unit => "Unit",
             BytecodeType::Ptr => "Ptr",

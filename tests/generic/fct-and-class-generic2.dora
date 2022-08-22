@@ -1,10 +1,10 @@
 class A[X: std::Stringable](x: X)
 
 impl[X: std::Stringable] A[X] {
-    fn msg[Y: std::Stringable](y: Y): String { return "x${self.x}x${y}x"; }
+    fun msg[Y: std::Stringable](y: Y): String { return "x${self.x}x${y}x"; }
 }
 
-fn main() {
+fun main() {
     assert("x1xblax" == A[Int32](1i32).msg[String]("bla"));
     assert("xblax1x" == A[String]("bla").msg[Int32](1i32));
 }

@@ -105,7 +105,7 @@
 @pub const CONSTPOOL_OPCODE_TUPLE: Int32 = 18;
 @pub const CONSTPOOL_OPCODE_LAMBDA: Int32 = 19;
 
-@pub fn bytecodeName(opcode: Int32): String {
+@pub fun bytecodeName(opcode: Int32): String {
   if opcode == BC_WIDE { return "Wide"; }
   if opcode == BC_ADD { return "Add"; }
   if opcode == BC_SUB { return "Sub"; }
@@ -175,7 +175,7 @@
   unreachable[String]()
 }
 
-@pub fn bytecodeTypeName(code: Int32): String {
+@pub fun bytecodeTypeName(code: Int32): String {
   if code == BC_TYPE_UNIT { return "Unit"; }
   if code == BC_TYPE_BOOL { return "Bool"; }
   if code == BC_TYPE_U_INT8 { return "UInt8"; }

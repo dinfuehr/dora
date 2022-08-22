@@ -2,7 +2,7 @@
 
 enum Foo { A(Int32, String, Float32), B }
 
-fn main() {
+fun main() {
     let object = createArray();
     match object(0i64) {
         Foo::A(a, b, c) => unreachable[()](),
@@ -25,10 +25,10 @@ fn main() {
     }
 }
 
-fn createArray(): Array[Foo] {
+fun createArray(): Array[Foo] {
     Array[Foo]::new(Foo::B)
 }
 
-fn updateArray(object: Array[Foo]) {
+fun updateArray(object: Array[Foo]) {
     object(0i64) = Foo::A(112i32, "abc", 17.5f32);
 }

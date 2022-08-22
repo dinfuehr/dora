@@ -1,13 +1,13 @@
 //= stdout "world\n"
 
 trait Foo {
-    fn bar(): Int32;
+    fun bar(): Int32;
 }
 
 class A[T: Foo](t: T)
 
 impl[T: Foo] A[T] {
-    fn bar(): Int32 {
+    fun bar(): Int32 {
         return self.t.bar();
     }
 }
@@ -15,12 +15,12 @@ impl[T: Foo] A[T] {
 class X
 
 impl Foo for X {
-    fn bar(): Int32 {
+    fun bar(): Int32 {
         println("world");
         return 2i32;
     }
 }
 
-fn main() {
+fun main() {
     assert(2i32 == A[X](X()).bar());
 }

@@ -1,9 +1,9 @@
-trait Foo { fn test(): Int64; }
+trait Foo { fun test(): Int64; }
 
 class Baz
 
 impl Foo for Baz {
-    fn test(): Int64 {
+    fun test(): Int64 {
         4711
     }
 }
@@ -11,7 +11,7 @@ impl Foo for Baz {
 class FooBar
 
 impl Foo for FooBar {
-    fn test(): Int64 {
+    fun test(): Int64 {
         42
     }
 }
@@ -22,7 +22,7 @@ struct SomeData {
 
 class SomeClass(foo: Foo)
 
-fn main() {
+fun main() {
     let data = SomeData(Baz() as Foo);
     let foo = data.foo;
     assert(foo.test() == 4711);

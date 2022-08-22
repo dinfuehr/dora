@@ -1,10 +1,10 @@
-fn main() {
+fun main() {
     assert(slowLength(Array[Int32]::new()) == 0i64);
     assert(slowLength(Array[Int32]::new(1i32)) == 1i64);
     assert(slowLength(Array[Int32]::new(1i32, 2i32)) == 2i64);
 }
 
-fn slowLength(x: Array[Int32]): Int64 {
+fun slowLength(x: Array[Int32]): Int64 {
     let mut entries = 0i64;
     for val in x {
         entries = entries + 1i64;

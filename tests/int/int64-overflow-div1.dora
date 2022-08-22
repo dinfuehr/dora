@@ -1,5 +1,5 @@
 //= error overflow
 
-fn main() {
+fun main() {
     let x = Int64::minValue() / -1i64;
 }

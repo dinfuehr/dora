@@ -1,7 +1,7 @@
-fn main() {
+fun main() {
     let result: () = tpl[()](());
 }
 
-fn tpl[T](value: T): T {
+fun tpl[T](value: T): T {
     value
 }

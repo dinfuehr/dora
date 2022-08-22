@@ -1,18 +1,18 @@
 //= stdout "1\n"
 
 trait Foo {
-    fn bla();
+    fun bla();
 }
 
 class A(val: Int32)
 
 impl Foo for A {
-    fn bla() {
+    fun bla() {
         println(self.val.toString());
     }
 }
 
-fn main() {
+fun main() {
     let a = A(1i32);
     a.bla();
 }

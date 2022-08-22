@@ -2,7 +2,7 @@
 
 enum Foo { A(Int32, String, Float32), B }
 
-fn main() {
+fun main() {
     let tuple = createTuple();
     match tuple.0 {
         Foo::A(_, _, _) => {},
@@ -15,6 +15,6 @@ fn main() {
     }
 }
 
-fn createTuple(): (Foo, Float32) {
+fun createTuple(): (Foo, Float32) {
     (Foo::A(112i32, "abc", 17.5f32), 2.5f32)
 }

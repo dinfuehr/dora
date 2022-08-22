@@ -1,10 +1,10 @@
 let mut x: () = ();
 
-fn main() {
+fun main() {
     x = ();
     foo();
 }
 
-fn foo(): () {
+fun foo(): () {
     x
 }

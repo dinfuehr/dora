@@ -4,7 +4,7 @@ use package::graph::Graph;
 use package::graph::Block;
 use package::graph::LoopData;
 
-@pub fn buildDominatorTree(graph: Graph) {
+@pub fun buildDominatorTree(graph: Graph) {
     let visited = findBackEdges(graph);
     removeUnreachableBlocks(graph, visited);
     computePostOrder(graph);
@@ -12,7 +12,7 @@ use package::graph::LoopData;
     discoverLoopBlocks(graph);
 }
 
-fn findBackEdges(graph: Graph): BitSet {
+fun findBackEdges(graph: Graph): BitSet {
     // worklist contains current path in the graph
     let worklist = Vec[Block]::new();
 
@@ -56,7 +56,7 @@ fn findBackEdges(graph: Graph): BitSet {
     visited
 }
 
-fn removeUnreachableBlocks(graph: Graph, visited: BitSet) {
+fun removeUnreachableBlocks(graph: Graph, visited: BitSet) {
     // Remove instructions as user from other instructions
     for block in graph.insertionOrderIterator() {
         if visited.contains(block.id().toInt64()) {
@@ -88,7 +88,7 @@ fn removeUnreachableBlocks(graph: Graph, visited: BitSet) {
     }
 }
 
-fn computePostOrder(graph: Graph) {
+fun computePostOrder(graph: Graph) {
     let postOrder = Vec[Block]::new();
     postOrder.reserve(graph.blockCount().toInt64());
 
@@ -126,7 +126,7 @@ fn computePostOrder(graph: Graph) {
     graph.setPostOrder(postOrder);
 }
 
-fn computeDominators(graph: Graph) {
+fun computeDominators(graph: Graph) {
     // Algorithm from paper "A Simple, Fast Dominance Algorithm"
     for block in graph.reversePostOrderIterator() {
         if block.isEntryBlock() {
@@ -201,7 +201,7 @@ fn computeDominators(graph: Graph) {
     }
 }
 
-fn commonDominator(b1: Block, b2: Block): Block {
+fun commonDominator(b1: Block, b2: Block): Block {
     let mut finger1 = b1;
     let mut finger2 = b2;
 
@@ -220,7 +220,7 @@ fn commonDominator(b1: Block, b2: Block): Block {
     finger1
 }
 
-fn discoverLoopBlocks(graph: Graph) {
+fun discoverLoopBlocks(graph: Graph) {
     for block in graph.postOrderIterator() {
         if block.isLoopHeader() {
             let loop = block.getLoopData().getOrPanic();
@@ -233,7 +233,7 @@ fn discoverLoopBlocks(graph: Graph) {
     }
 }
 
-fn discoverBlocks(block: Block, loop: LoopData) {
+fun discoverBlocks(block: Block, loop: LoopData) {
     if loop.containsBlock(block) {
         return;
     }
@@ -246,7 +246,7 @@ fn discoverBlocks(block: Block, loop: LoopData) {
     }
 }
 
-fn updateLoopData(block: Block, loop: LoopData) {
+fun updateLoopData(block: Block, loop: LoopData) {
     let currentLoop = block.getLoopData();
 
     if currentLoop.isNone() {

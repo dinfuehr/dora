@@ -1,7 +1,7 @@
 //= vm-args "--gc-young-size=64M --max-heap-size=128M"
 //= config region
 
-fn main() {
+fun main() {
     let mut i = 0i32;
 
     while i < 4i32 {
@@ -16,7 +16,7 @@ fn main() {
     println("done");
 }
 
-fn allocator() {
+fun allocator() {
     let mut i = 0i32;
 
     while i < 10_000i32 {

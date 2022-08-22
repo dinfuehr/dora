@@ -2,7 +2,7 @@ const MIN_DEPTH: Int32 = 4i32;
 const DEFAULT_DEPTH: Int32 = 6i32;
 const DEFAULT_THREADS: Int32 = 4i32;
 
-fn main() {
+fun main() {
     let maxDepth = if std::argc() > 0i32 {
         std::argv(0i32).toInt32().getOrPanic()
     } else {
@@ -53,11 +53,11 @@ class TreeThread {
 }
 
 impl TreeThread {
-    @static fn new(nextDepth: std::AtomicInt32, maxDepth: Int32, results: Array[String]): TreeThread {
+    @static fun new(nextDepth: std::AtomicInt32, maxDepth: Int32, results: Array[String]): TreeThread {
         TreeThread(nextDepth, maxDepth, results)
     }
 
-    fn run() {
+    fun run() {
         while true {
             let depth = self.nextDepth.fetchAdd(2i32);
             if depth > self.maxDepth { return; }
@@ -67,7 +67,7 @@ impl TreeThread {
     }
 }
 
-fn loops(maxDepth: Int32, depth: Int32): String {
+fun loops(maxDepth: Int32, depth: Int32): String {
     let iterations = 16i32.shiftLeft(maxDepth - depth);
     let mut check = 0i32;
     let mut item = 0i32;
@@ -81,7 +81,7 @@ fn loops(maxDepth: Int32, depth: Int32): String {
         depth.toString() + "\t check: " + check.toString()
 }
 
-fn createTree(depth: Int32): TreeNode {
+fun createTree(depth: Int32): TreeNode {
     let mut depth = depth;
     let node = TreeNode(0i32, Option[TreeNode]::None, Option[TreeNode]::None);
 
@@ -94,7 +94,7 @@ fn createTree(depth: Int32): TreeNode {
     return node;
 }
 
-fn checkTree(node: TreeNode): Int32 {
+fun checkTree(node: TreeNode): Int32 {
   if node.left.isNone() {
     return 1i32;
   }

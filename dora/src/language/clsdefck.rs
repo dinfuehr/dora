@@ -199,8 +199,8 @@ mod tests {
         err(
             "
             class X
-            impl X { @static fn foo() {} @static fn foo(a: String) {} }",
-            pos(3, 50),
+            impl X { @static fun foo() {} @static fun foo(a: String) {} }",
+            pos(3, 51),
             ErrorMessage::MethodExists("foo".into(), pos(3, 30)),
         );
     }

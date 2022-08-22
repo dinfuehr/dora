@@ -1,24 +1,24 @@
-fn main() {
+fun main() {
     assert(17i32 == bar[SomeClass]());
     assert(42i32 == bar[OtherClass]());
 }
 
-fn bar[T: Foo](): Int32 {
+fun bar[T: Foo](): Int32 {
     T::baz()
 }
 
 trait Foo {
-    @static fn baz(): Int32;
+    @static fun baz(): Int32;
 }
 
 class SomeClass
 
 impl Foo for SomeClass {
-    @static fn baz(): Int32 { 17i32 }
+    @static fun baz(): Int32 { 17i32 }
 }
 
 class OtherClass
 
 impl Foo for OtherClass {
-    @static fn baz(): Int32 { 42i32 }
+    @static fun baz(): Int32 { 42i32 }
 }

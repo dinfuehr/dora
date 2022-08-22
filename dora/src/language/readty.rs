@@ -589,16 +589,16 @@ mod tests {
     #[test]
     fn module_class() {
         ok("
-            fn f(x: foo::Foo) {}
+            fun f(x: foo::Foo) {}
             mod foo { @pub class Foo }
         ");
 
         err(
             "
-            fn f(x: foo::Foo) {}
+            fun f(x: foo::Foo) {}
             mod foo { class Foo }
         ",
-            pos(2, 21),
+            pos(2, 22),
             ErrorMessage::NotAccessible("foo::Foo".into()),
         );
     }
@@ -606,16 +606,16 @@ mod tests {
     #[test]
     fn mod_enum() {
         ok("
-            fn f(x: foo::Foo) {}
+            fun f(x: foo::Foo) {}
             mod foo { @pub enum Foo { A, B } }
         ");
 
         err(
             "
-            fn f(x: foo::Foo) {}
+            fun f(x: foo::Foo) {}
             mod foo { enum Foo { A, B } }
         ",
-            pos(2, 21),
+            pos(2, 22),
             ErrorMessage::NotAccessible("foo::Foo".into()),
         );
     }
@@ -623,16 +623,16 @@ mod tests {
     #[test]
     fn mod_trait() {
         ok("
-            fn f(x: foo::Foo) {}
+            fun f(x: foo::Foo) {}
             mod foo { @pub trait Foo {} }
         ");
 
         err(
             "
-            fn f(x: foo::Foo) {}
+            fun f(x: foo::Foo) {}
             mod foo { trait Foo {} }
         ",
-            pos(2, 21),
+            pos(2, 22),
             ErrorMessage::NotAccessible("foo::Foo".into()),
         );
     }

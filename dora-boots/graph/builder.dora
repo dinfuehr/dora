@@ -18,7 +18,7 @@ use package::graph::dump::assertGraph;
 }
 
 impl GraphBuilder {
-    @pub @static fn new(): GraphBuilder {
+    @pub @static fun new(): GraphBuilder {
         GraphBuilder(
             Graph::new(),
             None[Block],
@@ -26,7 +26,7 @@ impl GraphBuilder {
         )
     }
 
-    @pub fn addBlock(): Block {
+    @pub fun addBlock(): Block {
         let block = Block::new();
 
         if self.entryBlock.isNone() {
@@ -39,32 +39,32 @@ impl GraphBuilder {
         block
     }
 
-    @pub fn createInt32Const(value: Int32): Inst {
+    @pub fun createInt32Const(value: Int32): Inst {
         let inst = createInt32Const(value);
         self.appendInst(inst)
     }
 
-    @pub fn createAdd(lhs: Inst, rhs: Inst, ty: Type): Inst {
+    @pub fun createAdd(lhs: Inst, rhs: Inst, ty: Type): Inst {
         let inst = createBinaryInst(Op::Add, ty, lhs, rhs);
         self.appendInst(inst)
     }
 
-    @pub fn createReturn(inst: Inst, ty: Type): Inst {
+    @pub fun createReturn(inst: Inst, ty: Type): Inst {
         let inst = createReturnInst(inst, ty);
         self.appendInst(inst)
     }
 
-    @pub fn createReturnVoid(): Inst {
+    @pub fun createReturnVoid(): Inst {
         let inst = createReturnVoidInst();
         self.appendInst(inst)
     }
 
-    @pub fn createGoto(block: Block): Inst {
+    @pub fun createGoto(block: Block): Inst {
         let inst = createGotoInst(block);
         self.appendInst(inst)
     }
 
-    fn appendInst(inst: Inst): Inst {
+    fun appendInst(inst: Inst): Inst {
         let block = self.insertion.getOrPanic();
         block.appendInst(inst);
 
@@ -75,7 +75,7 @@ impl GraphBuilder {
         inst
     }
 
-    @pub fn build(): Graph {
+    @pub fun build(): Graph {
         assert(self.entryBlock.isSome());
 
         self.graph
@@ -83,7 +83,7 @@ impl GraphBuilder {
 }
 
 @Test
-fn testEmptyGraph() {
+fun testEmptyGraph() {
     let builder = GraphBuilder::new();
     let block = builder.addBlock();
     let value = builder.createInt32Const(12i32);

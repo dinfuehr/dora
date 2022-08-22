@@ -1,8 +1,8 @@
-fn main() {
+fun main() {
   let result = 1i32 + myzero();
   assert(result == 1i32);
 }
 
-fn myzero(): Int32 {
+fun myzero(): Int32 {
   return 0i32;
 }

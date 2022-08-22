@@ -1,156 +1,156 @@
 /* total order */
 @pub trait Sortable {
-  fn sortsAs(other: Self): Int32;
+  fun sortsAs(other: Self): Int32;
   // ideally we would be able to provide a default implementation for the next 3 methods based on `sortsAs`
-  fn sortsBefore(other: Self): Bool;
-  fn sortsAfter(other: Self): Bool;
-  fn sortsSame(other: Self): Bool;
+  fun sortsBefore(other: Self): Bool;
+  fun sortsAfter(other: Self): Bool;
+  fun sortsSame(other: Self): Bool;
 }
 
 impl Sortable for Bool {
-  fn sortsAs(other: Bool): Int32 { self.compareTo(other) }
-  fn sortsBefore(other: Bool): Bool { self < other }
-  fn sortsAfter(other: Bool): Bool { self > other }
-  fn sortsSame(other: Bool): Bool { self == other }
+  fun sortsAs(other: Bool): Int32 { self.compareTo(other) }
+  fun sortsBefore(other: Bool): Bool { self < other }
+  fun sortsAfter(other: Bool): Bool { self > other }
+  fun sortsSame(other: Bool): Bool { self == other }
 }
 
 impl Sortable for UInt8 {
-  fn sortsAs(other: UInt8): Int32 { self.compareTo(other) }
-  fn sortsBefore(other: UInt8): Bool { self < other }
-  fn sortsAfter(other: UInt8): Bool { self > other }
-  fn sortsSame(other: UInt8): Bool { self == other }
+  fun sortsAs(other: UInt8): Int32 { self.compareTo(other) }
+  fun sortsBefore(other: UInt8): Bool { self < other }
+  fun sortsAfter(other: UInt8): Bool { self > other }
+  fun sortsSame(other: UInt8): Bool { self == other }
 }
 
 impl Sortable for Int32 {
-  fn sortsAs(other: Int32): Int32 { self.compareTo(other) }
-  fn sortsBefore(other: Int32): Bool { self < other }
-  fn sortsAfter(other: Int32): Bool { self > other }
-  fn sortsSame(other: Int32): Bool { self == other }
+  fun sortsAs(other: Int32): Int32 { self.compareTo(other) }
+  fun sortsBefore(other: Int32): Bool { self < other }
+  fun sortsAfter(other: Int32): Bool { self > other }
+  fun sortsSame(other: Int32): Bool { self == other }
 }
 
 impl Sortable for Int64 {
-  fn sortsAs(other: Int64): Int32 { self.compareTo(other) }
-  fn sortsBefore(other: Int64): Bool { self < other }
-  fn sortsAfter(other: Int64): Bool { self > other }
-  fn sortsSame(other: Int64): Bool { self == other }
+  fun sortsAs(other: Int64): Int32 { self.compareTo(other) }
+  fun sortsBefore(other: Int64): Bool { self < other }
+  fun sortsAfter(other: Int64): Bool { self > other }
+  fun sortsSame(other: Int64): Bool { self == other }
 }
 
 impl Sortable for Float32 {
-  fn sortsAs(other: Float32): Int32 { self.sortsAs(other) }
-  fn sortsBefore(other: Float32): Bool { self.sortsAs(other) < 0i32 }
-  fn sortsAfter(other: Float32): Bool { self.sortsAs(other) > 0i32 }
-  fn sortsSame(other: Float32): Bool { self.sortsAs(other) == 0i32 }
+  fun sortsAs(other: Float32): Int32 { self.sortsAs(other) }
+  fun sortsBefore(other: Float32): Bool { self.sortsAs(other) < 0i32 }
+  fun sortsAfter(other: Float32): Bool { self.sortsAs(other) > 0i32 }
+  fun sortsSame(other: Float32): Bool { self.sortsAs(other) == 0i32 }
 }
 
 impl Sortable for Float64 {
-  fn sortsAs(other: Float64): Int32 { self.sortsAs(other) }
-  fn sortsBefore(other: Float64): Bool { self.sortsAs(other) < 0i32 }
-  fn sortsAfter(other: Float64): Bool { self.sortsAs(other) > 0i32 }
-  fn sortsSame(other: Float64): Bool { self.sortsAs(other) == 0i32 }
+  fun sortsAs(other: Float64): Int32 { self.sortsAs(other) }
+  fun sortsBefore(other: Float64): Bool { self.sortsAs(other) < 0i32 }
+  fun sortsAfter(other: Float64): Bool { self.sortsAs(other) > 0i32 }
+  fun sortsSame(other: Float64): Bool { self.sortsAs(other) == 0i32 }
 }
 
 impl Sortable for String {
-  fn sortsAs(other: String): Int32 { self.compareTo(other) }
-  fn sortsBefore(other: String): Bool { self < other }
-  fn sortsAfter(other: String): Bool { self > other }
-  fn sortsSame(other: String): Bool { self == other }
+  fun sortsAs(other: String): Int32 { self.compareTo(other) }
+  fun sortsBefore(other: String): Bool { self < other }
+  fun sortsAfter(other: String): Bool { self > other }
+  fun sortsSame(other: String): Bool { self == other }
 }
 
 @pub trait Default {
-  @static fn default(): Self;
+  @static fun default(): Self;
 }
 
 impl Default for Bool {
-  @static fn default(): Bool { false }
+  @static fun default(): Bool { false }
 }
 
 impl Default for UInt8 {
-  @static fn default(): UInt8 { 0u8 }
+  @static fun default(): UInt8 { 0u8 }
 }
 
 impl Default for Char {
-  @static fn default(): Char { '\0' }
+  @static fun default(): Char { '\0' }
 }
 
 impl Default for Int32 {
-  @static fn default(): Int32 { 0 }
+  @static fun default(): Int32 { 0 }
 }
 
 impl Default for Int64 {
-  @static fn default(): Int64 { 0i64 }
+  @static fun default(): Int64 { 0i64 }
 }
 
 impl Default for Float32 {
-  @static fn default(): Float32 { 0.0f32 }
+  @static fun default(): Float32 { 0.0f32 }
 }
 
 impl Default for Float64 {
-  @static fn default(): Float64 { 0.0 }
+  @static fun default(): Float64 { 0.0 }
 }
 
 impl Default for String {
-  @static fn default(): String { "" }
+  @static fun default(): String { "" }
 }
 
 @pub trait Hash {
-  fn hash(): Int32;
-  // fn hashTo(hasher: Hasher);
+  fun hash(): Int32;
+  // fun hashTo(hasher: Hasher);
 }
 
 impl Hash for Bool {
-  fn hash(): Int32 { self.hash() }
+  fun hash(): Int32 { self.hash() }
 }
 
 impl Hash for UInt8 {
-  fn hash(): Int32 { self.hash() }
+  fun hash(): Int32 { self.hash() }
 }
 
 impl Hash for Int32 {
-  fn hash(): Int32 { self.hash() }
+  fun hash(): Int32 { self.hash() }
 }
 
 impl Hash for Int64 {
-  fn hash(): Int32 { self.hash() }
+  fun hash(): Int32 { self.hash() }
 }
 
 impl Hash for Float32 {
-  fn hash(): Int32 { self.hash() }
+  fun hash(): Int32 { self.hash() }
 }
 
 impl Hash for Float64 {
-  fn hash(): Int32 { self.hash() }
+  fun hash(): Int32 { self.hash() }
 }
 
 @pub trait Identity {
-  fn identicalTo(other: Self): Bool;
+  fun identicalTo(other: Self): Bool;
 }
 
 impl Identity for Bool {
-  fn identicalTo(other: Bool): Bool { self === other }
+  fun identicalTo(other: Bool): Bool { self === other }
 }
 
 impl Identity for UInt8 {
-  fn identicalTo(other: UInt8): Bool { self === other }
+  fun identicalTo(other: UInt8): Bool { self === other }
 }
 
 impl Identity for Int32 {
-  fn identicalTo(other: Int32): Bool { self === other }
+  fun identicalTo(other: Int32): Bool { self === other }
 }
 
 impl Identity for Int64 {
-  fn identicalTo(other: Int64): Bool { self === other }
+  fun identicalTo(other: Int64): Bool { self === other }
 }
 
 impl Identity for Float32 {
-  fn identicalTo(other: Float32): Bool { self === other }
+  fun identicalTo(other: Float32): Bool { self === other }
 }
 
 impl Identity for Float64 {
-  fn identicalTo(other: Float64): Bool { self === other }
+  fun identicalTo(other: Float64): Bool { self === other }
 }
 
 impl Identity for String {
-  fn identicalTo(other: String): Bool { self === other }
+  fun identicalTo(other: String): Bool { self === other }
 }
 
 // Implementations of the `Zero` trait indicate that zero-initialized memory of the appropriate size can be allocated to
@@ -175,78 +175,78 @@ impl Identity for String {
 
 // @restricted / @internal
 @pub trait Zero {
-  @static fn zero(): Self; // should be `let` instead of `fn`
+  @static fun zero(): Self; // should be `let` instead of `fn`
 }
 
 /* partial order */
 @pub trait Comparable {
-  fn compareTo(other: Self): Int32;
-  // fn <  (other: Self): Int32;
-  // fn <= (other: Self): Int32;
-  // fn >  (other: Self): Int32;
-  // fn >= (other: Self): Int32;
+  fun compareTo(other: Self): Int32;
+  // fun <  (other: Self): Int32;
+  // fun <= (other: Self): Int32;
+  // fun >  (other: Self): Int32;
+  // fun >= (other: Self): Int32;
 }
 
 impl Comparable for Bool {
-  fn compareTo(other: Bool): Int32 { self.compareTo(other) }
+  fun compareTo(other: Bool): Int32 { self.compareTo(other) }
 }
 
 impl Comparable for UInt8 {
-  fn compareTo(other: UInt8): Int32 { self.compareTo(other) }
+  fun compareTo(other: UInt8): Int32 { self.compareTo(other) }
 }
 
 impl Comparable for Int32 {
-  fn compareTo(other: Int32): Int32 { self.compareTo(other) }
+  fun compareTo(other: Int32): Int32 { self.compareTo(other) }
 }
 
 impl Comparable for Int64 {
-  fn compareTo(other: Int64): Int32 { self.compareTo(other) }
+  fun compareTo(other: Int64): Int32 { self.compareTo(other) }
 }
 
 impl Comparable for Float32 {
-  fn compareTo(other: Float32): Int32 { self.compareTo(other) }
+  fun compareTo(other: Float32): Int32 { self.compareTo(other) }
 }
 
 impl Comparable for Float64 {
-  fn compareTo(other: Float64): Int32 { self.compareTo(other) }
+  fun compareTo(other: Float64): Int32 { self.compareTo(other) }
 }
 
 impl Comparable for String {
-  fn compareTo(other: String): Int32 { self.compareTo(other) }
+  fun compareTo(other: String): Int32 { self.compareTo(other) }
 }
 
 @pub trait Equals {
-  fn equals(other: Self): Bool;
+  fun equals(other: Self): Bool;
 }
 
 impl Equals for Bool {
-  fn equals(other: Bool): Bool { self == other }
+  fun equals(other: Bool): Bool { self == other }
 }
 
 impl Equals for UInt8 {
-  fn equals(other: UInt8): Bool { self == other }
+  fun equals(other: UInt8): Bool { self == other }
 }
 
 impl Equals for Int32 {
-  fn equals(other: Int32): Bool { self == other }
+  fun equals(other: Int32): Bool { self == other }
 }
 
 impl Equals for Int64 {
-  fn equals(other: Int64): Bool { self == other }
+  fun equals(other: Int64): Bool { self == other }
 }
 
 impl Equals for Float32 {
-  fn equals(other: Float32): Bool { self == other }
+  fun equals(other: Float32): Bool { self == other }
 }
 
 impl Equals for Float64 {
-  fn equals(other: Float64): Bool { self == other }
+  fun equals(other: Float64): Bool { self == other }
 }
 
 impl Equals for String {
-  fn equals(other: String): Bool { self == other }
+  fun equals(other: String): Bool { self == other }
 }
 
 @pub trait Iterator {
-  fn next(): Option[Int32]; // this should be made generic
+  fun next(): Option[Int32]; // this should be made generic
 }

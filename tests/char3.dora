@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
     let x = 97i32.toChar().getOrPanic();
     assert(x == 'a');
 

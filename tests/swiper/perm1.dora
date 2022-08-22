@@ -1,6 +1,6 @@
 //= vm-args "--gc=swiper --gc-verify"
 
-fn main() {
+fun main() {
   let x = "perm";
   std::forceMinorCollect();
   assert(x.size() == 4i64);

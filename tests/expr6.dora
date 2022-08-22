@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
   let a = 1i32;
   let b = 2i32;
 
@@ -11,13 +11,13 @@ fn main() {
   assert(f(g(a + h(), b * i()), j()) == 288i32);
 }
 
-fn h(): Int32 { return 3i32; }
-fn i(): Int32 { return 5i32; }
-fn j(): Int32 { return 7i32; }
+fun h(): Int32 { return 3i32; }
+fun i(): Int32 { return 5i32; }
+fun j(): Int32 { return 7i32; }
 
-fn f(x: Int32, y: Int32): Int32 {
+fun f(x: Int32, y: Int32): Int32 {
   return x * (y+1i32);
 }
-fn g(x: Int32, y: Int32): Int32 {
+fun g(x: Int32, y: Int32): Int32 {
   return x * (y-1i32);
 }

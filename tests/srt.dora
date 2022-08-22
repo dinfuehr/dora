@@ -1,9 +1,9 @@
-fn main() {
+fun main() {
   float64();
   float32();
 }
 
-fn float64() {
+fun float64() {
   // 1111111111111000000000000000000000000000000000000000000000000000
   let nanQuietNegative = (-2251799813685248i64).asFloat64();
   // 1111111111110000000000000000000000000000000000000000000000000001
@@ -59,7 +59,7 @@ fn float64() {
   assert(nanQuietPositive.sortsSame(nanQuietPositive));
 }
 
-fn float32() {
+fun float32() {
   assert(0.0f32.sortsAs(0.0f32) == 0i32);
   assert((-0.0f32).sortsAs(-0.0f32) == 0i32);
   assert(1.0f32.sortsAs(1.0f32) == 0i32);

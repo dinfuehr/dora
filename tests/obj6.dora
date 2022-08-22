@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
   let f = Foo(12i32);
   let mut a1 = f.a1();
   let a2 = f.a2();
@@ -12,8 +12,8 @@ fn main() {
 class Foo(a: Int32)
 
 impl Foo {
-  fn a1(): Int32 { return self.a; }
-  fn a2(): Int32 { return self.a; }
+  fun a1(): Int32 { return self.a; }
+  fun a2(): Int32 { return self.a; }
 
-  fn setA(a: Int32) { self.a = a; }
+  fun setA(a: Int32) { self.a = a; }
 }

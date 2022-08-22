@@ -4,16 +4,16 @@ class MyClass[T](value: Int32)
 class Foo
 
 impl MyClass[Foo] {
-    fn do[T](another: MyClass[T]) {
+    fun do[T](another: MyClass[T]) {
         println("self=${self.value} another=${another.value}");
     }
 }
 
-fn f() {
+fun f() {
     MyClass[Foo](1i32).do[Int32](MyClass[Int32](101i32));
     MyClass[Foo](2i32).do[Float32](MyClass[Float32](102i32));
 }
 
-fn main() {
+fun main() {
     f();
 }

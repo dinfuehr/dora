@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
     let fooBool = FooBool::new();
     let fooByte = FooByte::new();
     let fooChar = FooChar::new();
@@ -31,94 +31,94 @@ fn main() {
     assert(fooPtr.y.y == 23i32)
 }
 
-fn storeBool(x: FooBool, z: Bool) {
+fun storeBool(x: FooBool, z: Bool) {
     x.y = z;
 }
 
-fn storeByte(x: FooByte, z: UInt8) {
+fun storeByte(x: FooByte, z: UInt8) {
     x.y = z;
 }
 
-fn storeChar(x: FooChar, z: Char) {
+fun storeChar(x: FooChar, z: Char) {
     x.y = z;
 }
 
-fn storeInt32(x: FooInt32, z: Int32) {
+fun storeInt32(x: FooInt32, z: Int32) {
     x.y = z;
 }
 
-fn storeInt64(x: FooInt64, z: Int64) {
+fun storeInt64(x: FooInt64, z: Int64) {
     x.y = z;
 }
 
-fn storeFloat32(x: FooFloat32, z: Float32) {
+fun storeFloat32(x: FooFloat32, z: Float32) {
     x.y = z;
 }
 
-fn storeFloat64(x: FooFloat64, z: Float64) {
+fun storeFloat64(x: FooFloat64, z: Float64) {
     x.y = z;
 }
 
-fn storeString(x: FooString, z: String) {
+fun storeString(x: FooString, z: String) {
     x.y = z;
 }
 
-fn storePtr(x: FooPtr, z: FooInt32) {
+fun storePtr(x: FooPtr, z: FooInt32) {
     x.y = z;
 }
 
 class FooBool(y: Bool)
 impl FooBool {
-    @static fn new(): FooBool {
+    @static fun new(): FooBool {
         FooBool(false)
     }
 }
 class FooByte(y: UInt8)
 impl FooByte {
-    @static fn new(): FooByte {
+    @static fun new(): FooByte {
         FooByte(0u8)
     }
 }
 
 class FooChar(y: Char)
 impl FooChar {
-    @static fn new(): FooChar {
+    @static fun new(): FooChar {
         FooChar('\0')
     }
 }
 class FooInt32(y: Int32)
 impl FooInt32 {
-    @static fn new(): FooInt32 {
+    @static fun new(): FooInt32 {
         FooInt32(0i32)
     }
 }
 class FooInt64(y: Int64)
 impl FooInt64 {
-    @static fn new(): FooInt64 {
+    @static fun new(): FooInt64 {
         FooInt64(0)
     }
 }
 class FooFloat32(y: Float32)
 impl FooFloat32 {
-    @static fn new(): FooFloat32 {
+    @static fun new(): FooFloat32 {
         FooFloat32(0.0f32)
     }
 }
 class FooFloat64(y: Float64)
 impl FooFloat64 {
-    @static fn new(): FooFloat64 {
+    @static fun new(): FooFloat64 {
         FooFloat64(0.0)
     }
 }
 class FooString(y: String)
 impl FooString {
-    @static fn new(): FooString {
+    @static fun new(): FooString {
         FooString("")
     }
 }
 class FooPtr(y: FooInt32) 
 impl FooPtr {
-    @static fn new(): FooPtr {
+    @static fun new(): FooPtr {
         FooPtr(FooInt32(0i32))
     }
 }

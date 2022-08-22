@@ -82,17 +82,17 @@ mod tests {
 
     #[test]
     fn trait_method_with_body() {
-        ok("trait Foo { fn foo(): Int32 { return 1; } }");
+        ok("trait Foo { fun foo(): Int32 { return 1; } }");
 
         err(
-            "trait Foo { fn foo() { self.bar(); } }",
-            pos(1, 32),
+            "trait Foo { fun foo() { self.bar(); } }",
+            pos(1, 33),
             ErrorMessage::UnknownMethod("Self".into(), "bar".into(), Vec::new()),
         );
 
         err(
-            "trait Foo { fn foo(): Int32 { return false; } }",
-            pos(1, 31),
+            "trait Foo { fun foo(): Int32 { return false; } }",
+            pos(1, 32),
             ErrorMessage::ReturnType("Int32".into(), "Bool".into()),
         );
     }
@@ -100,26 +100,26 @@ mod tests {
     #[test]
     fn trait_definitions() {
         ok("trait Foo {}");
-        ok("trait Foo { fn toBool(): Bool; }");
+        ok("trait Foo { fun toBool(): Bool; }");
         ok("trait Foo {
-                fn toFloat32(): Float32;
-                fn toFloat64(): Float64;
+                fun toFloat32(): Float32;
+                fun toFloat64(): Float64;
             }");
 
         err(
-            "trait Bar { fn foo(): Unknown; }",
-            pos(1, 23),
+            "trait Bar { fun foo(): Unknown; }",
+            pos(1, 24),
             ErrorMessage::UnknownIdentifier("Unknown".into()),
         );
         err(
-            "trait Foo { fn foo(); fn foo(): Int32; }",
-            pos(1, 23),
+            "trait Foo { fun foo(); fun foo(): Int32; }",
+            pos(1, 24),
             ErrorMessage::MethodExists("foo".into(), pos(1, 13)),
         );
 
         err(
-            "trait Foo { fn foo(); fn foo(); }",
-            pos(1, 23),
+            "trait Foo { fun foo(); fun foo(); }",
+            pos(1, 24),
             ErrorMessage::MethodExists("foo".into(), pos(1, 13)),
         );
     }
@@ -128,8 +128,8 @@ mod tests {
     fn trait_with_self() {
         err(
             "trait Foo {
-            fn foo(): Int32;
-            fn foo(): Self;
+            fun foo(): Int32;
+            fun foo(): Self;
         }",
             pos(3, 13),
             ErrorMessage::MethodExists("foo".into(), pos(2, 13)),

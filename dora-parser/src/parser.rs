@@ -88,7 +88,7 @@ impl<'a> Parser<'a> {
         let modifiers = self.parse_annotation_usages()?;
 
         match self.token.kind {
-            TokenKind::Fn => {
+            TokenKind::Fun => {
                 self.restrict_modifiers(
                     &modifiers,
                     &[
@@ -809,7 +809,7 @@ impl<'a> Parser<'a> {
 
     fn parse_function(&mut self, modifiers: &Modifiers) -> Result<Function, ParseErrorAndPos> {
         let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::Fn)?.position;
+        let pos = self.expect_token(TokenKind::Fun)?.position;
         let ident = self.expect_identifier()?;
         let type_params = self.parse_type_params()?;
         let params = self.parse_function_params()?;
@@ -2564,7 +2564,7 @@ mod tests {
 
     #[test]
     fn parse_function() {
-        let (prog, interner) = parse("fn b() { }");
+        let (prog, interner) = parse("fun b() { }");
         let fct = prog.fct0();
 
         assert_eq!("b", *interner.str(fct.name));
@@ -2575,10 +2575,10 @@ mod tests {
 
     #[test]
     fn parse_function_with_single_param() {
-        let (p1, interner1) = parse("fn f(a:int) { }");
+        let (p1, interner1) = parse("fun f(a:int) { }");
         let f1 = p1.fct0();
 
-        let (p2, interner2) = parse("fn f(a:int,) { }");
+        let (p2, interner2) = parse("fun f(a:int,) { }");
         let f2 = p2.fct0();
 
         assert_eq!(f1.params.len(), 1);
@@ -2602,10 +2602,10 @@ mod tests {
 
     #[test]
     fn parse_function_with_multiple_params() {
-        let (p1, interner1) = parse("fn f(a:int, b:str) { }");
+        let (p1, interner1) = parse("fun f(a:int, b:str) { }");
         let f1 = p1.fct0();
 
-        let (p2, interner2) = parse("fn f(a:int, b:str,) { }");
+        let (p2, interner2) = parse("fun f(a:int, b:str,) { }");
         let f2 = p2.fct0();
 
         let p1a = &f1.params[0];
@@ -2714,7 +2714,7 @@ mod tests {
 
     #[test]
     fn parse_multiple_functions() {
-        let (prog, interner) = parse("fn f() { } fn g() { }");
+        let (prog, interner) = parse("fun f() { } fun g() { }");
 
         let f = prog.fct0();
         assert_eq!("f", *interner.str(f.name));
@@ -2724,7 +2724,7 @@ mod tests {
         let g = prog.fct(1);
         assert_eq!("g", *interner.str(g.name));
         assert_eq!(false, g.method);
-        assert_eq!(Position::new(1, 12), g.pos);
+        assert_eq!(Position::new(1, 13), g.pos);
     }
 
     #[test]
@@ -3033,14 +3033,14 @@ mod tests {
 
     #[test]
     fn parse_internal() {
-        let (prog, _) = parse("@internal fn foo();");
+        let (prog, _) = parse("@internal fun foo();");
         let fct = prog.fct0();
         assert!(fct.internal);
     }
 
     #[test]
     fn parse_function_without_body() {
-        let (prog, _) = parse("fn foo();");
+        let (prog, _) = parse("fun foo();");
         let fct = prog.fct0();
         assert!(fct.block.is_none());
     }
@@ -3185,7 +3185,7 @@ mod tests {
 
     #[test]
     fn parse_trait_with_function() {
-        let (prog, interner) = parse("trait Foo { fn empty(); }");
+        let (prog, interner) = parse("trait Foo { fun empty(); }");
         let trait_ = prog.trait0();
 
         assert_eq!("Foo", *interner.str(trait_.name));
@@ -3195,7 +3195,7 @@ mod tests {
 
     #[test]
     fn parse_trait_with_static_function() {
-        let (prog, interner) = parse("trait Foo { @static fn empty(); }");
+        let (prog, interner) = parse("trait Foo { @static fun empty(); }");
         let trait_ = prog.trait0();
 
         assert_eq!("Foo", *interner.str(trait_.name));
@@ -3218,7 +3218,7 @@ mod tests {
 
     #[test]
     fn parse_impl_with_function() {
-        let (prog, interner) = parse("impl Bar for B { fn foo(); }");
+        let (prog, interner) = parse("impl Bar for B { fun foo(); }");
         let impl_ = prog.impl0();
 
         assert_eq!(
@@ -3232,7 +3232,7 @@ mod tests {
 
     #[test]
     fn parse_impl_with_static_function() {
-        let (prog, interner) = parse("impl Bar for B { @static fn foo(); }");
+        let (prog, interner) = parse("impl Bar for B { @static fun foo(); }");
         let impl_ = prog.impl0();
 
         assert_eq!(
@@ -3298,7 +3298,7 @@ mod tests {
 
     #[test]
     fn parse_fct_with_type_params() {
-        let (prog, _) = parse("fn f[T]() {}");
+        let (prog, _) = parse("fun f[T]() {}");
         let fct = prog.fct0();
 
         assert_eq!(1, fct.type_params.as_ref().unwrap().len());
@@ -3441,10 +3441,10 @@ mod tests {
     #[test]
     fn parse_if_expr() {
         parse_err(
-            "fn f() { if true { 1 } else { 2 } * 4 }",
+            "fun f() { if true { 1 } else { 2 } * 4 }",
             ParseError::ExpectedFactor("*".into()),
             1,
-            35,
+            36,
         );
     }
 
@@ -3487,7 +3487,7 @@ mod tests {
 
     #[test]
     fn parse_module() {
-        let (prog, _) = parse("mod foo { fn bar() {} fn baz() {} }");
+        let (prog, _) = parse("mod foo { fun bar() {} fun baz() {} }");
         let module = prog.module0();
         let elements = module.elements.as_ref().unwrap();
         assert_eq!(elements.len(), 2);

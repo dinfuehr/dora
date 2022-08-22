@@ -5,7 +5,7 @@ use package::bytecode::data::GlobalId;
 use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::reader::BytecodeIterator;
 
-@pub fn bytecodeDump(bc: BytecodeFunction) {
+@pub fun bytecodeDump(bc: BytecodeFunction) {
     let dumper = BytecodeDumper::new(bc);
 
     for instInfo in BytecodeIterator::new(bc.code) {
@@ -33,11 +33,11 @@ class BytecodeDumper {
 }
 
 impl BytecodeDumper {
-    @static fn new(bc: BytecodeFunction): BytecodeDumper {
+    @static fun new(bc: BytecodeFunction): BytecodeDumper {
         BytecodeDumper(bc, 0i32)
     }
 
-    fn dumpInstruction(inst: BytecodeInstruction) {
+    fun dumpInstruction(inst: BytecodeInstruction) {
         match inst {
             BytecodeInstruction::Add(dest, lhs, rhs) => {
                 self.emitReg3("Add", dest, lhs, rhs);
@@ -244,62 +244,62 @@ impl BytecodeDumper {
         }
     }
 
-    fn emitInst(name: String) {
+    fun emitInst(name: String) {
         self.emitStart(name);
         println("");
     }
 
-    fn emitReg3(name: String, r1: BytecodeRegister, r2: BytecodeRegister, r3: BytecodeRegister) {
+    fun emitReg3(name: String, r1: BytecodeRegister, r2: BytecodeRegister, r3: BytecodeRegister) {
         self.emitStart(name);
         println(" ${r1}, ${r2}, ${r3}");
     }
 
-    fn emitReg2(name: String, r1: BytecodeRegister, r2: BytecodeRegister) {
+    fun emitReg2(name: String, r1: BytecodeRegister, r2: BytecodeRegister) {
         self.emitStart(name);
         println(" ${r1}, ${r2}");
     }
 
-    fn emitReg2AndIdx(name: String, r1: BytecodeRegister, r2: BytecodeRegister, idx: ConstPoolId) {
+    fun emitReg2AndIdx(name: String, r1: BytecodeRegister, r2: BytecodeRegister, idx: ConstPoolId) {
         self.emitStart(name);
         println(" ${r1}, ${r2}, @${idx.value}");
     }
 
-    fn emitReg1(name: String, r1: BytecodeRegister) {
+    fun emitReg1(name: String, r1: BytecodeRegister) {
         self.emitStart(name);
         println(" ${r1}")
     }
 
-    fn emitReg1AndIdx(name: String, r1: BytecodeRegister, idx: ConstPoolId) {
+    fun emitReg1AndIdx(name: String, r1: BytecodeRegister, idx: ConstPoolId) {
         self.emitStart(name);
         println(" ${r1}, @${idx.value}")
     }
 
-    fn emitRegIdxReg(name: String, r1: BytecodeRegister, idx: ConstPoolId, r2: BytecodeRegister) {
+    fun emitRegIdxReg(name: String, r1: BytecodeRegister, idx: ConstPoolId, r2: BytecodeRegister) {
         self.emitStart(name);
         println(" ${r1}, @${idx.value}, ${r2}");
     }
 
-    fn emitIdx(name: String, idx: ConstPoolId) {
+    fun emitIdx(name: String, idx: ConstPoolId) {
         self.emitStart(name);
         println(" @${idx.value}");
     }
 
-    fn emitReg1AndInt(name: String, r1: BytecodeRegister, value: Int32) {
+    fun emitReg1AndInt(name: String, r1: BytecodeRegister, value: Int32) {
         self.emitStart(name);
         println(" ${r1}, ${value}");
     }
 
-    fn emitInt(name: String, value: Int32) {
+    fun emitInt(name: String, value: Int32) {
         self.emitStart(name);
         println(" ${value}");
     }
 
-    fn emitGlobal(name: String, r1: BytecodeRegister, gid: GlobalId) {
+    fun emitGlobal(name: String, r1: BytecodeRegister, gid: GlobalId) {
         self.emitStart(name);
         println(" ${r1}, ${gid.value}");
     }
 
-    fn emitStart(name: String) {
+    fun emitStart(name: String) {
         print("${self.pos}: ${name}");
     }
 }

@@ -1,6 +1,6 @@
 struct A(value: ())
 
-fn main() {
+fun main() {
     let a = A(());
     let x: () = foo(a);
 
@@ -8,9 +8,9 @@ fn main() {
     let b2 = bar[()](());
 }
 
-fn foo(a: A): () { a.value }
+fun foo(a: A): () { a.value }
 
-fn bar[T](value: T): B[T] {
+fun bar[T](value: T): B[T] {
     B[T](value)
 }
 

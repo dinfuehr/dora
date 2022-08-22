@@ -1,8 +1,8 @@
-fn main() {
+fun main() {
     let x = foo(());
     foo(x);
 }
 
-fn foo(x: ()): () {
+fun foo(x: ()): () {
     x
 }

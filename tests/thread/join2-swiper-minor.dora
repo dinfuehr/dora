@@ -1,6 +1,6 @@
 //= vm-args "--gc=swiper"
 
-fn main() {
+fun main() {
     let mut i = 0i32;
 
     while i < 10_000i32 {

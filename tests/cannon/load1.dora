@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
     assert(loadBool(FooBool(true)) == true);
     assert(loadByte(FooByte(1u8)) == 1u8);
     assert(loadChar(FooChar('1')) == '1');
@@ -14,23 +14,23 @@ fn main() {
     assert(loadPtr(fooPtr).y == 1i32);
 }
 
-fn loadBool(x: FooBool): Bool { x.y }
+fun loadBool(x: FooBool): Bool { x.y }
 
-fn loadByte(x: FooByte): UInt8 { x.y }
+fun loadByte(x: FooByte): UInt8 { x.y }
 
-fn loadChar(x: FooChar): Char { x.y }
+fun loadChar(x: FooChar): Char { x.y }
 
-fn loadInt32(x: FooInt32): Int32 { x.y }
+fun loadInt32(x: FooInt32): Int32 { x.y }
 
-fn loadInt64(x: FooInt64): Int64 { x.y }
+fun loadInt64(x: FooInt64): Int64 { x.y }
 
-fn loadFloat32(x: FooFloat32): Float32 { x.y }
+fun loadFloat32(x: FooFloat32): Float32 { x.y }
 
-fn loadFloat64(x: FooFloat64): Float64 { x.y }
+fun loadFloat64(x: FooFloat64): Float64 { x.y }
 
-fn loadString(x: FooString): String { x.y }
+fun loadString(x: FooString): String { x.y }
 
-fn loadPtr(x: FooPtr): FooInt32 { x.y }
+fun loadPtr(x: FooPtr): FooInt32 { x.y }
 
 class FooBool(y: Bool)
 class FooByte(y: UInt8)

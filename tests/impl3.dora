@@ -1,16 +1,16 @@
 trait Adder {
-    fn add_me(other: Self): Self;
+    fun add_me(other: Self): Self;
 }
 
 class A(a: Int32)
 
 impl Adder for A {
-    fn add_me(other: A): A {
+    fun add_me(other: A): A {
         return A(self.a + other.a);
     }
 }
 
-fn main() {
+fun main() {
     let x = A(3i32).add_me(A(7i32));
     assert(x.a == 10i32);
 }

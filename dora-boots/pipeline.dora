@@ -8,26 +8,26 @@ class CompilationJob {
 }
 
 impl CompilationJob {
-    @static @pub fn new(info: CompilationInfo): CompilationJob {
+    @static @pub fun new(info: CompilationInfo): CompilationJob {
         CompilationJob(info, None[Graph])
     }
 
-    fn run() {
+    fun run() {
         self.createGraph();
         self.optimizeGraph();
         self.assembleCode();
     }
 
-    fn createGraph() {
+    fun createGraph() {
         let graph = createGraph(self.compilation_info.bc);
         self.graph = Some(graph);
     }
 
-    fn optimizeGraph() {
+    fun optimizeGraph() {
         // TODO
     }
 
-    fn assembleCode() {
+    fun assembleCode() {
         // TODO
     }
 }

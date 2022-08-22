@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
     let x = Option[Int32]::None;
     assert(2i32 == x.unwrapOr(2i32));
 

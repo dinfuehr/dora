@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
     let x = Array[Bool]::new();
     assert(x.size() == 0i64);
 

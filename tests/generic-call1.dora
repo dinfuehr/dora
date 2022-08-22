@@ -1,21 +1,21 @@
 //= stdout "hello\n"
 
 trait Foo {
-    fn bar();
+    fun bar();
 }
 
-fn foo[T: Foo](t: T) {
+fun foo[T: Foo](t: T) {
     t.bar();
 }
 
 class X
 
 impl Foo for X {
-    fn bar() {
+    fun bar() {
         println("hello");
     }
 }
 
-fn main() {
+fun main() {
     foo[X](X());
 }

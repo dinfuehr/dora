@@ -1,3 +1,3 @@
-fn main() {
+fun main() {
     std::sleep(1i32);
 }

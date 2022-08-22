@@ -2,7 +2,7 @@
 
 enum Foo { A(Int32, String, Float32), B }
 
-fn main() {
+fun main() {
     let array = createArray();
     std::forceCollect();
     match array(0i64) {
@@ -15,6 +15,6 @@ fn main() {
     }
 }
 
-fn createArray(): Array[Foo] {
+fun createArray(): Array[Foo] {
     Array[Foo]::new(Foo::A(112i32, "abc", 17.5f32))
 }

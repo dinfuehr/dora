@@ -5,11 +5,11 @@ use package::graph::verifier::verifyGraph;
 use package::graph::ty::Type;
 use package::dominator::buildDominatorTree;
 
-@pub fn deadCodeElimination(graph: Graph) {
+@pub fun deadCodeElimination(graph: Graph) {
     removeDeadInstructions(graph)
 }
 
-fn removeDeadInstructions(graph: Graph) {
+fun removeDeadInstructions(graph: Graph) {
     for block in graph.postOrderIterator() {
         for inst in block.reverseInstructionsIterator() {
             if inst.hasUses().not() && inst.hasSideEffects().not() {
@@ -19,7 +19,7 @@ fn removeDeadInstructions(graph: Graph) {
     }
 }
 
-fn performDce(graph: Graph) {
+fun performDce(graph: Graph) {
     verifyGraph(graph);
     buildDominatorTree(graph);
     verifyGraph(graph);
@@ -29,7 +29,7 @@ fn performDce(graph: Graph) {
 
 
 @Test
-fn testRemoveUnusedConstant() {
+fun testRemoveUnusedConstant() {
     let builder = GraphBuilder::new();
     let block = builder.addBlock();
     let value = builder.createInt32Const(12i32);
@@ -43,7 +43,7 @@ fn testRemoveUnusedConstant() {
 }
 
 @Test
-fn testRemoveUnusedAdd() {
+fun testRemoveUnusedAdd() {
     let builder = GraphBuilder::new();
     let block = builder.addBlock();
     let lhs = builder.createInt32Const(12i32);

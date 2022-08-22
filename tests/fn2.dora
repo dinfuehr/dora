@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
   let mut result = fact(5i32);
   assert(result == 120i32);
 
@@ -9,7 +9,7 @@ fn main() {
   assert(result == 6i32);
 }
 
-fn fact(x: Int32): Int32 {
+fun fact(x: Int32): Int32 {
   if x <= 1i32 {
     return 1i32;
   } else {

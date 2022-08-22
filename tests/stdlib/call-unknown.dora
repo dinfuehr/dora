@@ -1,5 +1,5 @@
 //= error
 
-fn main() {
+fun main() {
     std::call("unknown fct");
 }

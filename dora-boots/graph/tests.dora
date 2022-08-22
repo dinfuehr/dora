@@ -7,7 +7,7 @@ use package::graph::createInt32Const;
 use package::graph::ty::Type;
 
 @Test
-fn simpleGraph() {
+fun simpleGraph() {
     let graph = Graph::new();
 
     let block = Block::new();
@@ -19,7 +19,7 @@ fn simpleGraph() {
 }
 
 @Test
-fn addIntConsts() {
+fun addIntConsts() {
     let graph = Graph::new();
 
     let block = Block::new();

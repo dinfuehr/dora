@@ -1,6 +1,6 @@
 //= stdout "abxy\n"
 
-fn main() {
+fun main() {
     let x = Array[String]::new();
     assert(x.size() == 0i64);
 

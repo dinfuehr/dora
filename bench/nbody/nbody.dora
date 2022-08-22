@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
     SOLAR_MASS = 4.0 * PI * PI;
     let n = std::argv(0i32).toInt32().getOrPanic();
     let bodies = NBodySystem::new();
@@ -19,7 +19,7 @@ class NBodySystem {
 }
 
 impl NBodySystem {
-    @static fn new(): NBodySystem {
+    @static fun new(): NBodySystem {
         let bodies = Array[Body]::new(
             Body::sun(),
             Body::jupiter(),
@@ -43,7 +43,7 @@ impl NBodySystem {
         NBodySystem(bodies)
     }
 
-    fn advance(dt: Float64) {
+    fun advance(dt: Float64) {
         for (i, iBody) in self.bodies.enumerate() {
             let mut j = i + 1i64;
 
@@ -77,7 +77,7 @@ impl NBodySystem {
         }
    }
 
-   fn energy(): Float64 {
+   fun energy(): Float64 {
       let mut dx = 0.0;
       let mut dy = 0.0;
       let mut dz = 0.0;
@@ -125,7 +125,7 @@ class Body {
 }
 
 impl Body {
-    @static fn new(): Body {
+    @static fun new(): Body {
         Body(
             0.0, 0.0, 0.0,
             0.0, 0.0, 0.0,
@@ -133,14 +133,14 @@ impl Body {
         )
     }
 
-   fn offsetMomentum(px: Float64, py: Float64, pz: Float64): Body {
+   fun offsetMomentum(px: Float64, py: Float64, pz: Float64): Body {
       self.vx = -px / SOLAR_MASS;
       self.vy = -py / SOLAR_MASS;
       self.vz = -pz / SOLAR_MASS;
       return self;
    }
 
-    @static fn jupiter(): Body {
+    @static fun jupiter(): Body {
         let p = Body::new();
         p.x = 4.84143144246472090e+00;
         p.y = -1.16032004402742839e+00;
@@ -152,7 +152,7 @@ impl Body {
         return p;
     }
 
-   @static fn saturn(): Body {
+   @static fun saturn(): Body {
       let p = Body::new();
       p.x = 8.34336671824457987e+00;
       p.y = 4.12479856412430479e+00;
@@ -164,7 +164,7 @@ impl Body {
       return p;
    }
 
-   @static fn uranus(): Body {
+   @static fun uranus(): Body {
       let p = Body::new();
       p.x = 1.28943695621391310e+01;
       p.y = -1.51111514016986312e+01;
@@ -176,7 +176,7 @@ impl Body {
       return p;
    }
 
-   @static fn neptune(): Body {
+   @static fun neptune(): Body {
       let p = Body::new();
       p.x = 1.53796971148509165e+01;
       p.y = -2.59193146099879641e+01;
@@ -188,7 +188,7 @@ impl Body {
       return p;
    }
 
-   @static fn sun(): Body {
+   @static fun sun(): Body {
       let p = Body::new();
       p.mass = SOLAR_MASS;
       return p;

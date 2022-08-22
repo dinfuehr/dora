@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
   let foo = Foo[Int32](10i32);
   assert(foo.x == 10i32);
 
@@ -9,9 +9,9 @@ fn main() {
 class Foo[T](x: T)
 
 impl[T] Foo[T] {
-  fn getx(): T {
+  fun getx(): T {
     return id[T](self.x);
   }
 }
 
-fn id[T](val: T): T { return val; }
+fun id[T](val: T): T { return val; }

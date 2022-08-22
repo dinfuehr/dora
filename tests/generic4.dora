@@ -1,6 +1,6 @@
 //= stdout "hello1"
 
-fn main() {
+fun main() {
   let a = A[String](foo(1i32));
   std::forceCollect();
   print(a.getx());
@@ -9,11 +9,11 @@ fn main() {
 class A[T](x: T)
 
 impl[T] A[T] {
-    fn getx(): T {
+    fun getx(): T {
         return self.x;
     }
 }
 
-fn foo(a: Int32): String {
+fun foo(a: Int32): String {
   return "hello" + a.toString();
 }

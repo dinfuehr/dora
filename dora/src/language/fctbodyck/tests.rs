@@ -4,32 +4,32 @@ use crate::language::tests::*;
 
 #[test]
 fn type_method_len() {
-    ok("fn f(a: String): Int64 { return a.size(); }");
-    ok("fn f(a: String): Int64 { return \"abc\".size(); }");
+    ok("fun f(a: String): Int64 { return a.size(); }");
+    ok("fun f(a: String): Int64 { return \"abc\".size(); }");
 }
 
 #[test]
 fn type_object_field() {
-    ok("class Foo(a:Int32) fn f(x: Foo): Int32 { return x.a; }");
-    ok("class Foo(a:String) fn f(x: Foo): String { return x.a; }");
+    ok("class Foo(a:Int32) fun f(x: Foo): Int32 { return x.a; }");
+    ok("class Foo(a:String) fun f(x: Foo): String { return x.a; }");
     err(
-        "class Foo(a:Int32) fn f(x: Foo): Bool { return x.a; }",
-        pos(1, 41),
+        "class Foo(a:Int32) fun f(x: Foo): Bool { return x.a; }",
+        pos(1, 42),
         ErrorMessage::ReturnType("Bool".into(), "Int32".into()),
     );
     err(
-        "class Foo(a:Int32) fn f(x: Foo): Int32 { return x.b; }",
-        pos(1, 50),
+        "class Foo(a:Int32) fun f(x: Foo): Int32 { return x.b; }",
+        pos(1, 51),
         ErrorMessage::UnknownField("b".into(), "Foo".into()),
     );
 }
 
 #[test]
 fn type_object_set_field() {
-    ok("class Foo(a: Int32) fn f(x: Foo) { x.a = 1; }");
+    ok("class Foo(a: Int32) fun f(x: Foo) { x.a = 1; }");
     err(
-        "class Foo(a: Int32) fn f(x: Foo) { x.a = false; }",
-        pos(1, 40),
+        "class Foo(a: Int32) fun f(x: Foo) { x.a = false; }",
+        pos(1, 41),
         ErrorMessage::AssignField("a".into(), "Foo".into(), "Int32".into(), "Bool".into()),
     );
 }
@@ -37,13 +37,13 @@ fn type_object_set_field() {
 #[test]
 fn type_object_field_without_self() {
     err(
-        "class Foo(a: Int32) impl Foo { fn f(): Int32 { return a; } }",
-        pos(1, 55),
+        "class Foo(a: Int32) impl Foo { fun f(): Int32 { return a; } }",
+        pos(1, 56),
         ErrorMessage::UnknownIdentifier("a".into()),
     );
     err(
-        "class Foo(a: Int32) impl Foo { fn set(x: Int32) { a = x; } }",
-        pos(1, 51),
+        "class Foo(a: Int32) impl Foo { fun set(x: Int32) { a = x; } }",
+        pos(1, 52),
         ErrorMessage::UnknownIdentifier("a".into()),
     );
 }
@@ -53,22 +53,22 @@ fn type_class_method_call() {
     ok("
         class Foo
         impl Foo {
-            fn bar() {}
-            fn baz(): Int32 { return 1; }
+            fun bar() {}
+            fun baz(): Int32 { return 1; }
         }
 
-        fn f(x: Foo) { x.bar(); }
-        fn g(x: Foo): Int32 { return x.baz(); }");
+        fun f(x: Foo) { x.bar(); }
+        fun g(x: Foo): Int32 { return x.baz(); }");
 
     err(
         "
         class Foo
         impl Foo {
-            fn bar(): Int32 { return 0; }
+            fun bar(): Int32 { return 0; }
         }
 
-        fn f(x: Foo): String { return x.bar(); }",
-        pos(7, 32),
+        fun f(x: Foo): String { return x.bar(); }",
+        pos(7, 33),
         ErrorMessage::ReturnType("String".into(), "Int32".into()),
     );
 }
@@ -78,9 +78,9 @@ fn return_type() {
     err(
         "
         class Foo[T]
-        fn f(): Foo[Int32] { Foo[Int64]() }
+        fun f(): Foo[Int32] { Foo[Int64]() }
     ",
-        pos(3, 28),
+        pos(3, 29),
         ErrorMessage::ReturnType("Foo[Int32]".into(), "Foo[Int64]".into()),
     );
 }
@@ -90,8 +90,8 @@ fn type_method_defined_twice() {
     err(
         "class Foo
         impl Foo {
-                 fn bar() {}
-                 fn bar() {}
+                 fun bar() {}
+                 fun bar() {}
              }",
         pos(4, 18),
         ErrorMessage::MethodExists("bar".into(), pos(3, 18)),
@@ -100,8 +100,8 @@ fn type_method_defined_twice() {
     err(
         "class Foo
         impl Foo{
-                 fn bar() {}
-                 fn bar(): Int32 {}
+                 fun bar() {}
+                 fun bar(): Int32 {}
              }",
         pos(4, 18),
         ErrorMessage::MethodExists("bar".into(), pos(3, 18)),
@@ -110,8 +110,8 @@ fn type_method_defined_twice() {
     err(
         "class Foo
         impl Foo {
-                 fn bar(a: Int32) {}
-                 fn bar(a: Int32): Int32 {}
+                 fun bar(a: Int32) {}
+                 fun bar(a: Int32): Int32 {}
              }",
         pos(4, 18),
         ErrorMessage::MethodExists("bar".into(), pos(3, 18)),
@@ -120,8 +120,8 @@ fn type_method_defined_twice() {
     err(
         "class Foo
         impl Foo {
-                fn bar(a: Int32) {}
-                fn bar(a: String) {}
+                fun bar(a: Int32) {}
+                fun bar(a: String) {}
             }",
         pos(4, 17),
         ErrorMessage::MethodExists("bar".into(), pos(3, 17)),
@@ -130,32 +130,32 @@ fn type_method_defined_twice() {
 
 #[test]
 fn type_self() {
-    ok("class Foo impl Foo { fn me(): Foo { return self; } }");
+    ok("class Foo impl Foo { fun me(): Foo { return self; } }");
     err(
-        "class Foo fn me() { return self; }",
-        pos(1, 28),
+        "class Foo fun me() { return self; }",
+        pos(1, 29),
         ErrorMessage::ThisUnavailable,
     );
 
     ok("class Foo(a: Int32, b: Int32)
         impl Foo {
-            fn bar(): Int32 { return self.a + self.b; }
+            fun bar(): Int32 { return self.a + self.b; }
         }");
 
     ok("class Foo(a: Int32)
         impl Foo {
-            fn setA(a: Int32) { self.a = a; }
+            fun setA(a: Int32) { self.a = a; }
         }");
 
     ok("class Foo
         impl Foo {
-            fn zero(): Int32 { return 0i32; }
-            fn other(): Int32 { return self.zero(); }
+            fun zero(): Int32 { return 0i32; }
+            fun other(): Int32 { return self.zero(); }
         }");
 
     ok("class Foo
         impl Foo {
-            fn bar() { self.bar(); }
+            fun bar() { self.bar(); }
         }");
 }
 
@@ -164,262 +164,262 @@ fn type_unknown_method() {
     err(
         "class Foo
             impl Foo {
-                 fn bar(a: Int32) { }
+                 fun bar(a: Int32) { }
             }
 
-            fn f(x: Foo) { x.bar(); }",
-        pos(6, 33),
+            fun f(x: Foo) { x.bar(); }",
+        pos(6, 34),
         ErrorMessage::ParamTypesIncompatible("bar".into(), vec!["Int32".into()], Vec::new()),
     );
 
     err(
         "class Foo
-              fn f(x: Foo) { x.bar(1i32); }",
-        pos(2, 35),
+              fun f(x: Foo) { x.bar(1i32); }",
+        pos(2, 36),
         ErrorMessage::UnknownMethod("Foo".into(), "bar".into(), vec!["Int32".into()]),
     );
 }
 
 #[test]
 fn type_ctor() {
-    ok("class Foo fn f(): Foo { return Foo(); }");
-    ok("class Foo(a: Int32) fn f(): Foo { return Foo(1i32); }");
+    ok("class Foo fun f(): Foo { return Foo(); }");
+    ok("class Foo(a: Int32) fun f(): Foo { return Foo(1i32); }");
     err(
-        "class Foo fn f(): Foo { return 1i32; }",
-        pos(1, 25),
+        "class Foo fun f(): Foo { return 1i32; }",
+        pos(1, 26),
         ErrorMessage::ReturnType("Foo".into(), "Int32".into()),
     );
 }
 
 #[test]
 fn type_def_for_return_type() {
-    ok("fn a(): Int32 { return 1i32; }");
+    ok("fun a(): Int32 { return 1i32; }");
     err(
-        "fn a(): unknown {}",
-        pos(1, 9),
+        "fun a(): unknown {}",
+        pos(1, 10),
         ErrorMessage::UnknownIdentifier("unknown".into()),
     );
 }
 
 #[test]
 fn type_def_for_param() {
-    ok("fn a(b: Int32) {}");
+    ok("fun a(b: Int32) {}");
     err(
-        "fn a(b: foo) {}",
-        pos(1, 9),
+        "fun a(b: foo) {}",
+        pos(1, 10),
         ErrorMessage::UnknownIdentifier("foo".into()),
     );
 }
 
 #[test]
 fn type_def_for_var() {
-    ok("fn a() { let a : Int32 = 1i32; }");
+    ok("fun a() { let a : Int32 = 1i32; }");
     err(
-        "fn a() { let a : test = 1; }",
-        pos(1, 18),
+        "fun a() { let a : test = 1; }",
+        pos(1, 19),
         ErrorMessage::UnknownIdentifier("test".into()),
     );
 }
 
 #[test]
 fn type_var_wrong_type_defined() {
-    ok("fn f() { let a : Int32 = 1i32; }");
-    ok("fn f() { let a : Bool = false; }");
-    ok("fn f() { let a : String = \"f\"; }");
+    ok("fun f() { let a : Int32 = 1i32; }");
+    ok("fun f() { let a : Bool = false; }");
+    ok("fun f() { let a : String = \"f\"; }");
 
     err(
-        "fn f() { let a : Int32 = true; }",
-        pos(1, 10),
+        "fun f() { let a : Int32 = true; }",
+        pos(1, 11),
         ErrorMessage::AssignType("a".into(), "Int32".into(), "Bool".into()),
     );
     err(
-        "fn f() { let b : Bool = 2i32; }",
-        pos(1, 10),
+        "fun f() { let b : Bool = 2i32; }",
+        pos(1, 11),
         ErrorMessage::AssignType("b".into(), "Bool".into(), "Int32".into()),
     );
 }
 
 #[test]
 fn type_while() {
-    ok("fn x() { while true { } }");
-    ok("fn x() { while false { } }");
+    ok("fun x() { while true { } }");
+    ok("fun x() { while false { } }");
     err(
-        "fn x() { while 2i32 { } }",
-        pos(1, 10),
+        "fun x() { while 2i32 { } }",
+        pos(1, 11),
         ErrorMessage::WhileCondType("Int32".into()),
     );
 }
 
 #[test]
 fn type_if() {
-    ok("fn x() { if true { } }");
-    ok("fn x() { if false { } }");
+    ok("fun x() { if true { } }");
+    ok("fun x() { if false { } }");
     err(
-        "fn x() { if 4i32 { } }",
-        pos(1, 10),
+        "fun x() { if 4i32 { } }",
+        pos(1, 11),
         ErrorMessage::IfCondType("Int32".into()),
     );
 }
 
 #[test]
 fn type_return_unit() {
-    ok("fn f() { return; }");
+    ok("fun f() { return; }");
     err(
-        "fn f() { return 1i32; }",
-        pos(1, 10),
+        "fun f() { return 1i32; }",
+        pos(1, 11),
         ErrorMessage::ReturnType("()".into(), "Int32".into()),
     );
 }
 
 #[test]
 fn type_return() {
-    ok("fn f(): Int32 { let a = 1i32; return a; }");
-    ok("fn f(): Int32 { return 1i32; }");
+    ok("fun f(): Int32 { let a = 1i32; return a; }");
+    ok("fun f(): Int32 { return 1i32; }");
     err(
-        "fn f(): Int32 { return; }",
-        pos(1, 17),
+        "fun f(): Int32 { return; }",
+        pos(1, 18),
         ErrorMessage::ReturnType("Int32".into(), "()".into()),
     );
 
-    ok("fn f(): Int32 { return 0i32; }
-            fn g(): Int32 { return f(); }");
+    ok("fun f(): Int32 { return 0i32; }
+            fun g(): Int32 { return f(); }");
     err(
-        "fn f() { }
-             fn g(): Int32 { return f(); }",
-        pos(2, 30),
+        "fun f() { }
+             fun g(): Int32 { return f(); }",
+        pos(2, 31),
         ErrorMessage::ReturnType("Int32".into(), "()".into()),
     );
 }
 
 #[test]
 fn type_variable() {
-    ok("fn f(a: Int32) { let b: Int32 = a; }");
+    ok("fun f(a: Int32) { let b: Int32 = a; }");
 }
 
 #[test]
 fn type_let() {
-    ok("fn f(value: (Int32, Int32)): Int32 { let (a, b) = value; a+b }");
+    ok("fun f(value: (Int32, Int32)): Int32 { let (a, b) = value; a+b }");
     err(
-        "fn f() { let (a, b) = true; }",
-        pos(1, 14),
+        "fun f() { let (a, b) = true; }",
+        pos(1, 15),
         ErrorMessage::LetPatternExpectedTuple("Bool".into()),
     );
 
-    ok("fn f(value: ()) { let () = value; }");
+    ok("fun f(value: ()) { let () = value; }");
     err(
-        "fn f() { let () = true; }",
-        pos(1, 14),
+        "fun f() { let () = true; }",
+        pos(1, 15),
         ErrorMessage::LetPatternExpectedTuple("Bool".into()),
     );
     err(
-        "fn f() { let (a, b) = (); }",
-        pos(1, 14),
+        "fun f() { let (a, b) = (); }",
+        pos(1, 15),
         ErrorMessage::LetPatternShouldBeUnit,
     );
 
     err(
-        "fn f() { let (a, b) = (true,); }",
-        pos(1, 14),
+        "fun f() { let (a, b) = (true,); }",
+        pos(1, 15),
         ErrorMessage::LetPatternExpectedTupleWithLength("(Bool)".into(), 1, 2),
     );
     err(
-        "fn f() { let () = (true,); }",
-        pos(1, 14),
+        "fun f() { let () = (true,); }",
+        pos(1, 15),
         ErrorMessage::LetPatternExpectedTupleWithLength("(Bool)".into(), 1, 0),
     );
 
-    ok("fn f(value: (Int32, (Int32, Int32))): Int32 { let (a, (b, c)) = value; a+b+c }");
+    ok("fun f(value: (Int32, (Int32, Int32))): Int32 { let (a, (b, c)) = value; a+b+c }");
 }
 
 #[test]
 fn type_assign_lvalue() {
     err(
-        "fn f() { 1 = 3; }",
-        pos(1, 12),
+        "fun f() { 1 = 3; }",
+        pos(1, 13),
         ErrorMessage::LvalueExpected,
     );
 }
 
 #[test]
 fn type_un_op() {
-    ok("fn f(a: Int32) { -a; +a; }");
+    ok("fun f(a: Int32) { -a; +a; }");
     err(
-        "fn f(a: Bool) { -a; }",
-        pos(1, 17),
+        "fun f(a: Bool) { -a; }",
+        pos(1, 18),
         ErrorMessage::UnOpType("-".into(), "Bool".into()),
     );
     err(
-        "fn f(a: Bool) { +a; }",
-        pos(1, 17),
+        "fun f(a: Bool) { +a; }",
+        pos(1, 18),
         ErrorMessage::UnOpType("+".into(), "Bool".into()),
     );
 }
 
 #[test]
 fn type_bin_op() {
-    ok("fn f(a: Int32) { a+a; a-a; a*a; a/a; a%a; }");
-    ok("fn f(a: Int32) { a<a; a<=a; a==a; a!=a; a>a; a>=a; }");
-    ok("fn f(a: String) { a<a; a<=a; a==a; a!=a; a>a; a>=a; }");
-    ok("fn f(a: String) { a===a; a!==a; a+a; }");
-    ok("class Foo fn f(a: Foo) { a===a; a!==a; }");
-    ok("fn f(a: Int32) { a|a; a&a; a^a; }");
-    ok("fn f(a: Bool) { a||a; a&&a; }");
+    ok("fun f(a: Int32) { a+a; a-a; a*a; a/a; a%a; }");
+    ok("fun f(a: Int32) { a<a; a<=a; a==a; a!=a; a>a; a>=a; }");
+    ok("fun f(a: String) { a<a; a<=a; a==a; a!=a; a>a; a>=a; }");
+    ok("fun f(a: String) { a===a; a!==a; a+a; }");
+    ok("class Foo fun f(a: Foo) { a===a; a!==a; }");
+    ok("fun f(a: Int32) { a|a; a&a; a^a; }");
+    ok("fun f(a: Bool) { a||a; a&&a; }");
 
     err(
-        "class A class B fn f(a: A, b: B) { a === b; }",
-        pos(1, 38),
+        "class A class B fun f(a: A, b: B) { a === b; }",
+        pos(1, 39),
         ErrorMessage::TypesIncompatible("A".into(), "B".into()),
     );
     err(
-        "class A class B fn f(a: A, b: B) { b !== a; }",
-        pos(1, 38),
+        "class A class B fun f(a: A, b: B) { b !== a; }",
+        pos(1, 39),
         ErrorMessage::TypesIncompatible("B".into(), "A".into()),
     );
     err(
-        "fn f(a: Bool) { a+a; }",
-        pos(1, 18),
+        "fun f(a: Bool) { a+a; }",
+        pos(1, 19),
         ErrorMessage::BinOpType("+".into(), "Bool".into(), "Bool".into()),
     );
     err(
-        "fn f(a: Bool) { a^a; }",
-        pos(1, 18),
+        "fun f(a: Bool) { a^a; }",
+        pos(1, 19),
         ErrorMessage::BinOpType("^".into(), "Bool".into(), "Bool".into()),
     );
     err(
-        "fn f(a: Int32) { a||a; }",
-        pos(1, 19),
+        "fun f(a: Int32) { a||a; }",
+        pos(1, 20),
         ErrorMessage::BinOpType("||".into(), "Int32".into(), "Int32".into()),
     );
     err(
-        "fn f(a: Int32) { a&&a; }",
-        pos(1, 19),
+        "fun f(a: Int32) { a&&a; }",
+        pos(1, 20),
         ErrorMessage::BinOpType("&&".into(), "Int32".into(), "Int32".into()),
     );
     err(
-        "fn f(a: String) { a-a; }",
-        pos(1, 20),
+        "fun f(a: String) { a-a; }",
+        pos(1, 21),
         ErrorMessage::BinOpType("-".into(), "String".into(), "String".into()),
     );
     err(
-        "fn f(a: String) { a*a; }",
-        pos(1, 20),
+        "fun f(a: String) { a*a; }",
+        pos(1, 21),
         ErrorMessage::BinOpType("*".into(), "String".into(), "String".into()),
     );
     err(
-        "fn f(a: String) { a%a; }",
-        pos(1, 20),
+        "fun f(a: String) { a%a; }",
+        pos(1, 21),
         ErrorMessage::BinOpType("%".into(), "String".into(), "String".into()),
     );
 }
 
 #[test]
 fn type_function_return_type() {
-    ok("fn foo(): Int32 { return 1i32; } fn f() { let i: Int32 = foo(); }");
+    ok("fun foo(): Int32 { return 1i32; } fun f() { let i: Int32 = foo(); }");
     err(
         "
-        fn foo(): Int32 { return 1i32; }
-        fn f() { let i: Bool = foo(); }",
-        pos(3, 18),
+        fun foo(): Int32 { return 1i32; }
+        fun f() { let i: Bool = foo(); }",
+        pos(3, 19),
         ErrorMessage::AssignType("i".into(), "Bool".into(), "Int32".into()),
     );
 }
@@ -427,33 +427,33 @@ fn type_function_return_type() {
 #[test]
 fn type_ident_in_function_params() {
     ok("
-    fn f(a: Int32) {}
-    fn g() { let a = 1i32; f(a); }");
+    fun f(a: Int32) {}
+    fun g() { let a = 1i32; f(a); }");
 }
 
 #[test]
 fn type_recursive_function_call() {
-    ok("fn f(a: Int32) { f(a); }");
+    ok("fun f(a: Int32) { f(a); }");
 }
 
 #[test]
 fn type_function_params() {
-    ok("fn foo() {} fn f() { foo(); }");
-    ok("fn foo(a: Int32) {} fn f() { foo(1i32); }");
-    ok("fn foo(a: Int32, b: Bool) {} fn f() { foo(1i32, true); }");
+    ok("fun foo() {} fun f() { foo(); }");
+    ok("fun foo(a: Int32) {} fun f() { foo(1i32); }");
+    ok("fun foo(a: Int32, b: Bool) {} fun f() { foo(1i32, true); }");
 
     err(
         "
-        fn foo() {}
-        fn f() { foo(1i32); }",
-        pos(3, 21),
+        fun foo() {}
+        fun f() { foo(1i32); }",
+        pos(3, 22),
         ErrorMessage::ParamTypesIncompatible("foo".into(), vec![], vec!["Int32".into()]),
     );
     err(
         "
-        fn foo(a: Int32) {}
-        fn f() { foo(true); }",
-        pos(3, 21),
+        fun foo(a: Int32) {}
+        fun f() { foo(true); }",
+        pos(3, 22),
         ErrorMessage::ParamTypesIncompatible(
             "foo".into(),
             vec!["Int32".into()],
@@ -462,9 +462,9 @@ fn type_function_params() {
     );
     err(
         "
-        fn foo(a: Int32, b: Bool) {}
-        fn f() { foo(1i32, 2i32); }",
-        pos(3, 21),
+        fun foo(a: Int32, b: Bool) {}
+        fun f() { foo(1i32, 2i32); }",
+        pos(3, 22),
         ErrorMessage::ParamTypesIncompatible(
             "foo".into(),
             vec!["Int32".into(), "Bool".into()],
@@ -475,10 +475,10 @@ fn type_function_params() {
 
 #[test]
 fn type_array() {
-    ok("fn f(a: Array[Int32]): Int32 { return a(1i64); }");
+    ok("fun f(a: Array[Int32]): Int32 { return a(1i64); }");
     err(
-        "fn f(a: Array[Int32]): String { return a(1i64); }",
-        pos(1, 33),
+        "fun f(a: Array[Int32]): String { return a(1i64); }",
+        pos(1, 34),
         ErrorMessage::ReturnType("String".into(), "Int32".into()),
     );
 }
@@ -486,13 +486,13 @@ fn type_array() {
 #[test]
 fn type_array_assign() {
     err(
-        "fn f(a: Array[Int32]): Int32 { return a(3) = 4i32; }",
-        pos(1, 32),
+        "fun f(a: Array[Int32]): Int32 { return a(3) = 4i32; }",
+        pos(1, 33),
         ErrorMessage::ReturnType("Int32".into(), "()".into()),
     );
     err(
-        "fn f(a: Array[Int32]) { a(3) = \"b\"; }",
-        pos(1, 30),
+        "fun f(a: Array[Int32]) { a(3) = \"b\"; }",
+        pos(1, 31),
         ErrorMessage::UnknownMethod(
             "Array[Int32]".into(),
             "set".into(),
@@ -505,7 +505,7 @@ fn type_array_assign() {
 fn type_array_field() {
     ok("
         class Foo(x: Array[Int32])
-        fn f(a: Foo): Int32 { return a.x(1i64); }
+        fun f(a: Foo): Int32 { return a.x(1i64); }
     ");
 }
 
@@ -513,9 +513,9 @@ fn type_array_field() {
 fn wrong_type_params_for_primitive() {
     err(
         "
-        fn f() { let a: Int32[Bool, Char] = 10; }
+        fun f() { let a: Int32[Bool, Char] = 10; }
     ",
-        pos(2, 25),
+        pos(2, 26),
         ErrorMessage::WrongNumberTypeParams(0, 2),
     );
 }
@@ -523,8 +523,8 @@ fn wrong_type_params_for_primitive() {
 #[test]
 fn let_without_initialization() {
     err(
-        "fn f() { let x: Int32; }",
-        pos(1, 10),
+        "fun f() { let x: Int32; }",
+        pos(1, 11),
         ErrorMessage::LetMissingInitialization,
     );
 }
@@ -532,27 +532,27 @@ fn let_without_initialization() {
 #[test]
 fn reassign_param() {
     err(
-        "fn f(a: Int32) { a = 1; }",
-        pos(1, 20),
+        "fun f(a: Int32) { a = 1; }",
+        pos(1, 21),
         ErrorMessage::LetReassigned,
     );
 }
 
 #[test]
 fn reassign_field() {
-    ok("class Foo(x: Int32) fn foo(f: Foo) { f.x = 1; }");
+    ok("class Foo(x: Int32) fun foo(f: Foo) { f.x = 1; }");
 }
 
 #[test]
 fn reassign_var() {
-    ok("fn f() { let mut a=1; a=2; }");
+    ok("fun f() { let mut a=1; a=2; }");
 }
 
 #[test]
 fn reassign_let() {
     err(
-        "fn f() { let a=1; a=2; }",
-        pos(1, 20),
+        "fun f() { let a=1; a=2; }",
+        pos(1, 21),
         ErrorMessage::LetReassigned,
     );
 }
@@ -562,9 +562,9 @@ fn reassign_self() {
     err(
         "class Foo
         impl Foo {
-            fn f() { self = Foo(); }
+            fun f() { self = Foo(); }
         }",
-        pos(3, 27),
+        pos(3, 28),
         ErrorMessage::LvalueExpected,
     );
 }
@@ -572,24 +572,24 @@ fn reassign_self() {
 #[test]
 fn same_names() {
     ok("class Foo { Foo: Foo }");
-    ok("class Foo fn foo() { let Foo: Int32 = 1i32; }");
+    ok("class Foo fun foo() { let Foo: Int32 = 1i32; }");
 }
 
 #[test]
 fn lit_int64() {
-    ok("fn f(): Int64 { return 1i64; }");
-    ok("fn f(): Int32 { return 1i32; }");
+    ok("fun f(): Int64 { return 1i64; }");
+    ok("fun f(): Int32 { return 1i32; }");
 
     let ret = ErrorMessage::ReturnType("Int32".into(), "Int64".into());
-    err("fn f(): Int32 { return 1i64; }", pos(1, 17), ret);
+    err("fun f(): Int32 { return 1i64; }", pos(1, 18), ret);
 
-    ok("fn f(): Int64 { return 1; }");
+    ok("fun f(): Int64 { return 1; }");
 }
 
 #[test]
 fn lit_int64_as_default() {
-    ok("fn f(): Int64 { return 1; }");
-    ok("fn f(): Int64 {
+    ok("fun f(): Int64 { return 1; }");
+    ok("fun f(): Int64 {
         let x = 1;
         return x;
     }");
@@ -597,178 +597,180 @@ fn lit_int64_as_default() {
 
 #[test]
 fn overload_plus() {
-    ok("class A impl A { fn plus(rhs: A): Int32 { return 0; } }
-            fn f(): Int32 { return A() + A(); }");
+    ok("class A impl A { fun plus(rhs: A): Int32 { return 0; } }
+            fun f(): Int32 { return A() + A(); }");
 }
 
 #[test]
 fn overload_minus() {
-    ok("class A impl A { fn minus(rhs: A): Int32 { return 0; } }
-            fn f(): Int32 { return A() - A(); }");
+    ok("class A impl A { fun minus(rhs: A): Int32 { return 0; } }
+            fun f(): Int32 { return A() - A(); }");
 }
 
 #[test]
 fn overload_times() {
-    ok("class A impl A { fn times(rhs: A): Int32 { return 0; } }
-            fn f(): Int32 { return A() * A(); }");
+    ok("class A impl A { fun times(rhs: A): Int32 { return 0; } }
+            fun f(): Int32 { return A() * A(); }");
 }
 
 #[test]
 fn overload_div() {
-    ok("class A impl A { fn div(rhs: A): Int32 { return 0; } }
-            fn f(): Int32 { return A() / A(); }");
+    ok("class A impl A { fun div(rhs: A): Int32 { return 0; } }
+            fun f(): Int32 { return A() / A(); }");
 }
 
 #[test]
 fn overload_mod() {
-    ok("class A impl A { fn modulo(rhs: A): Int32 { return 0; } }
-            fn f(): Int32 { return A() % A(); }");
+    ok("class A impl A { fun modulo(rhs: A): Int32 { return 0; } }
+            fun f(): Int32 { return A() % A(); }");
 }
 
 #[test]
 fn overload_bitwise_or() {
     ok(
-        "class A impl A { fn bitwiseOr(rhs: A): Int32 { return 0; } }
-            fn f(): Int32 { return A() | A(); }",
+        "class A impl A { fun bitwiseOr(rhs: A): Int32 { return 0; } }
+            fun f(): Int32 { return A() | A(); }",
     );
 }
 
 #[test]
 fn overload_bitwise_and() {
     ok(
-        "class A impl A { fn bitwiseAnd(rhs: A): Int32 { return 0i32; } }
-            fn f(): Int32 { return A() & A(); }",
+        "class A impl A { fun bitwiseAnd(rhs: A): Int32 { return 0i32; } }
+            fun f(): Int32 { return A() & A(); }",
     );
 }
 
 #[test]
 fn overload_bitwise_xor() {
     ok(
-        "class A impl A { fn bitwiseXor(rhs: A): Int32 { return 0i32; } }
-            fn f(): Int32 { return A() ^ A(); }",
+        "class A impl A { fun bitwiseXor(rhs: A): Int32 { return 0i32; } }
+            fun f(): Int32 { return A() ^ A(); }",
     );
 }
 
 #[test]
 fn overload_equals() {
-    ok("class A impl A { fn equals(rhs: A): Bool { return true; } }
-            fn f1(): Bool { return A() == A(); }
-            fn f2(): Bool { return A() != A(); }");
+    ok(
+        "class A impl A { fun equals(rhs: A): Bool { return true; } }
+            fun f1(): Bool { return A() == A(); }
+            fun f2(): Bool { return A() != A(); }",
+    );
 }
 
 #[test]
 fn overload_compare_to() {
     ok(
-        "class A impl A { fn compareTo(rhs: A): Int32 { return 0; } }
-            fn f1(): Bool { return A() < A(); }
-            fn f2(): Bool { return A() <= A(); }
-            fn f3(): Bool { return A() > A(); }
-            fn f4(): Bool { return A() >= A(); }",
+        "class A impl A { fun compareTo(rhs: A): Int32 { return 0; } }
+            fun f1(): Bool { return A() < A(); }
+            fun f2(): Bool { return A() <= A(); }
+            fun f3(): Bool { return A() > A(); }
+            fun f4(): Bool { return A() >= A(); }",
     );
 }
 
 #[test]
 fn int64_operations() {
-    ok("fn f(a: Int64, b: Int64): Int64 { return a + b; }");
-    ok("fn f(a: Int64, b: Int64): Int64 { return a - b; }");
-    ok("fn f(a: Int64, b: Int64): Int64 { return a * b; }");
-    ok("fn f(a: Int64, b: Int64): Int64 { return a / b; }");
-    ok("fn f(a: Int64, b: Int64): Int64 { return a % b; }");
-    ok("fn f(a: Int64, b: Int64): Int64 { return a | b; }");
-    ok("fn f(a: Int64, b: Int64): Int64 { return a & b; }");
-    ok("fn f(a: Int64, b: Int64): Int64 { return a ^ b; }");
-    ok("fn f(a: Int64, b: Int64): Bool { return a == b; }");
-    ok("fn f(a: Int64, b: Int64): Bool { return a != b; }");
-    ok("fn f(a: Int64, b: Int64): Bool { return a === b; }");
-    ok("fn f(a: Int64, b: Int64): Bool { return a !== b; }");
-    ok("fn f(a: Int64, b: Int64): Bool { return a < b; }");
-    ok("fn f(a: Int64, b: Int64): Bool { return a <= b; }");
-    ok("fn f(a: Int64, b: Int64): Bool { return a > b; }");
-    ok("fn f(a: Int64, b: Int64): Bool { return a >= b; }");
-    ok("fn f(a: Int64): Int64 { return -a; }");
-    ok("fn f(a: Int64): Int64 { return +a; }");
+    ok("fun f(a: Int64, b: Int64): Int64 { return a + b; }");
+    ok("fun f(a: Int64, b: Int64): Int64 { return a - b; }");
+    ok("fun f(a: Int64, b: Int64): Int64 { return a * b; }");
+    ok("fun f(a: Int64, b: Int64): Int64 { return a / b; }");
+    ok("fun f(a: Int64, b: Int64): Int64 { return a % b; }");
+    ok("fun f(a: Int64, b: Int64): Int64 { return a | b; }");
+    ok("fun f(a: Int64, b: Int64): Int64 { return a & b; }");
+    ok("fun f(a: Int64, b: Int64): Int64 { return a ^ b; }");
+    ok("fun f(a: Int64, b: Int64): Bool { return a == b; }");
+    ok("fun f(a: Int64, b: Int64): Bool { return a != b; }");
+    ok("fun f(a: Int64, b: Int64): Bool { return a === b; }");
+    ok("fun f(a: Int64, b: Int64): Bool { return a !== b; }");
+    ok("fun f(a: Int64, b: Int64): Bool { return a < b; }");
+    ok("fun f(a: Int64, b: Int64): Bool { return a <= b; }");
+    ok("fun f(a: Int64, b: Int64): Bool { return a > b; }");
+    ok("fun f(a: Int64, b: Int64): Bool { return a >= b; }");
+    ok("fun f(a: Int64): Int64 { return -a; }");
+    ok("fun f(a: Int64): Int64 { return +a; }");
 }
 
 #[test]
 fn test_literal_int_overflow() {
     err(
-        "fn f() { let x = 2147483648i32; }",
-        pos(1, 18),
-        ErrorMessage::NumberOverflow("Int32".into()),
-    );
-    ok("fn f() { let x = 2147483647i32; }");
-    err(
-        "fn f() { let x = -2147483649i32; }",
+        "fun f() { let x = 2147483648i32; }",
         pos(1, 19),
         ErrorMessage::NumberOverflow("Int32".into()),
     );
-    ok("fn f() { let x = -2147483648i32; }");
+    ok("fun f() { let x = 2147483647i32; }");
+    err(
+        "fun f() { let x = -2147483649i32; }",
+        pos(1, 20),
+        ErrorMessage::NumberOverflow("Int32".into()),
+    );
+    ok("fun f() { let x = -2147483648i32; }");
 }
 
 #[test]
 fn test_literal_hex_int_overflow() {
     err(
-        "fn f() { let x = 0x1_FF_FF_FF_FFi32; }",
-        pos(1, 18),
+        "fun f() { let x = 0x1_FF_FF_FF_FFi32; }",
+        pos(1, 19),
         ErrorMessage::NumberOverflow("Int32".into()),
     );
-    ok("fn f() { let x: Int32 = 0xFF_FF_FF_FFi32; }");
+    ok("fun f() { let x: Int32 = 0xFF_FF_FF_FFi32; }");
 }
 
 #[test]
 fn test_literal_bin_int_overflow() {
     err(
-        "fn f() { let x = 0b1_11111111_11111111_11111111_11111111i32; }",
-        pos(1, 18),
+        "fun f() { let x = 0b1_11111111_11111111_11111111_11111111i32; }",
+        pos(1, 19),
         ErrorMessage::NumberOverflow("Int32".into()),
     );
-    ok("fn f() { let x: Int32 = 0b11111111_11111111_11111111_11111111i32; }");
+    ok("fun f() { let x: Int32 = 0b11111111_11111111_11111111_11111111i32; }");
 }
 
 #[test]
 fn test_literal_int64_overflow() {
     err(
-        "fn f() { let x = 9223372036854775808i64; }",
-        pos(1, 18),
-        ErrorMessage::NumberOverflow("Int64".into()),
-    );
-    ok("fn f() { let x = 9223372036854775807i64; }");
-    err(
-        "fn f() { let x = -9223372036854775809i64; }",
+        "fun f() { let x = 9223372036854775808i64; }",
         pos(1, 19),
         ErrorMessage::NumberOverflow("Int64".into()),
     );
-    ok("fn f() { let x = -9223372036854775808i64; }");
+    ok("fun f() { let x = 9223372036854775807i64; }");
+    err(
+        "fun f() { let x = -9223372036854775809i64; }",
+        pos(1, 20),
+        ErrorMessage::NumberOverflow("Int64".into()),
+    );
+    ok("fun f() { let x = -9223372036854775808i64; }");
 }
 
 #[test]
 fn test_literal_float_overflow() {
     err(
-        "fn f() { let x = -340282350000000000000000000000000000000f32; }",
+        "fun f() { let x = -340282350000000000000000000000000000000f32; }",
+        pos(1, 20),
+        ErrorMessage::NumberOverflow("Float32".into()),
+    );
+    ok("fun f() { let x = -340282340000000000000000000000000000000f32; }");
+    err(
+        "fun f() { let x = 340282350000000000000000000000000000001f32; }",
         pos(1, 19),
         ErrorMessage::NumberOverflow("Float32".into()),
     );
-    ok("fn f() { let x = -340282340000000000000000000000000000000f32; }");
-    err(
-        "fn f() { let x = 340282350000000000000000000000000000001f32; }",
-        pos(1, 18),
-        ErrorMessage::NumberOverflow("Float32".into()),
-    );
-    ok("fn f() { let x = 340282340000000000000000000000000000000f32; }");
+    ok("fun f() { let x = 340282340000000000000000000000000000000f32; }");
 }
 
 #[test]
 fn test_char() {
-    ok("fn foo(): Char { return 'c'; }");
-    ok("fn foo(a: Char): Char { return a; }");
+    ok("fun foo(): Char { return 'c'; }");
+    ok("fun foo(a: Char): Char { return a; }");
     err(
-        "fn foo(): Char { return false; }",
-        pos(1, 18),
+        "fun foo(): Char { return false; }",
+        pos(1, 19),
         ErrorMessage::ReturnType("Char".into(), "Bool".into()),
     );
     err(
-        "fn foo(): Char { return 10i32; }",
-        pos(1, 18),
+        "fun foo(): Char { return 10i32; }",
+        pos(1, 19),
         ErrorMessage::ReturnType("Char".into(), "Int32".into()),
     );
 }
@@ -777,7 +779,7 @@ fn test_char() {
 fn test_generic_arguments_mismatch() {
     err(
         "class A[T]
-            fn foo() {
+            fun foo() {
                 let a = A[Int32, Int32]();
             }",
         pos(3, 40),
@@ -786,7 +788,7 @@ fn test_generic_arguments_mismatch() {
 
     err(
         "class A[T]
-            fn foo() {
+            fun foo() {
                 let a = A();
             }",
         pos(3, 26),
@@ -795,7 +797,7 @@ fn test_generic_arguments_mismatch() {
 
     err(
         "class A
-            fn foo() {
+            fun foo() {
                 let a = A[Int32]();
             }",
         pos(3, 33),
@@ -808,10 +810,10 @@ fn test_invoke_static_method_as_instance_method() {
     err(
         "class A
         impl A {
-            @static fn foo() {}
-            fn test() { self.foo(); }
+            @static fun foo() {}
+            fun test() { self.foo(); }
         }",
-        pos(4, 33),
+        pos(4, 34),
         ErrorMessage::UnknownMethod("A".into(), "foo".into(), vec![]),
     );
 }
@@ -821,10 +823,10 @@ fn test_invoke_method_as_static() {
     err(
         "class A
         impl A {
-            fn foo() {}
-            @static fn test() { A::foo(); }
+            fun foo() {}
+            @static fun test() { A::foo(); }
         }",
-        pos(4, 39),
+        pos(4, 40),
         ErrorMessage::UnknownStaticMethod("A".into(), "foo".into(), vec![]),
     );
 }
@@ -832,17 +834,17 @@ fn test_invoke_method_as_static() {
 #[test]
 fn test_fct_with_type_params() {
     err(
-        "fn f() {} fn g() { f[Int32](); }",
-        pos(1, 28),
+        "fun f() {} fun g() { f[Int32](); }",
+        pos(1, 30),
         ErrorMessage::WrongNumberTypeParams(0, 1),
     );
     err(
-        "fn f[T]() {} fn g() { f(); }",
-        pos(1, 24),
+        "fun f[T]() {} fun g() { f(); }",
+        pos(1, 26),
         ErrorMessage::WrongNumberTypeParams(1, 0),
     );
-    ok("fn f[T]() {} fn g() { f[Int32](); }");
-    ok("fn f[T1, T2]() {} fn g() { f[Int32, String](); }");
+    ok("fun f[T]() {} fun g() { f[Int32](); }");
+    ok("fun f[T1, T2]() {} fun g() { f[Int32, String](); }");
 }
 
 #[test]
@@ -851,9 +853,9 @@ fn test_type_param_bounds_in_definition() {
         "
             trait MyTrait {}
             class Foo[T: MyTrait]
-            fn bar[T](arg: Foo[T]) {}
+            fun bar[T](arg: Foo[T]) {}
         ",
-        pos(4, 28),
+        pos(4, 29),
         ErrorMessage::TypeNotImplementingTrait("T".into(), "MyTrait".into()),
     );
 
@@ -862,9 +864,9 @@ fn test_type_param_bounds_in_definition() {
             trait MyTraitA {}
             trait MyTraitB {}
             class Foo[T: MyTraitA + MyTraitB]
-            fn bar[T: MyTraitA](arg: Foo[T]) {}
+            fun bar[T: MyTraitA](arg: Foo[T]) {}
         ",
-        pos(5, 38),
+        pos(5, 39),
         ErrorMessage::TypeNotImplementingTrait("T".into(), "MyTraitB".into()),
     );
 
@@ -875,10 +877,10 @@ fn test_type_param_bounds_in_definition() {
             class Foo[T: MyTraitA + MyTraitB]
             class Baz[X]
             impl[X] Baz[X] {
-                fn bar[T: MyTraitA](arg: Foo[T]) {}
+                fun bar[T: MyTraitA](arg: Foo[T]) {}
             }
         ",
-        pos(7, 42),
+        pos(7, 43),
         ErrorMessage::TypeNotImplementingTrait("T".into(), "MyTraitB".into()),
     );
 }
@@ -887,15 +889,15 @@ fn test_type_param_bounds_in_definition() {
 fn test_const_check() {
     err(
         "const one: Int32 = 1i32;
-            fn f(): Int64 { return one; }",
-        pos(2, 29),
+            fun f(): Int64 { return one; }",
+        pos(2, 30),
         ErrorMessage::ReturnType("Int64".into(), "Int32".into()),
     );
 
     err(
         "const one: Int32 = 1i32;
-            fn f() { let x: String = one; }",
-        pos(2, 22),
+            fun f() { let x: String = one; }",
+        pos(2, 23),
         ErrorMessage::AssignType("x".into(), "String".into(), "Int32".into()),
     );
 }
@@ -967,8 +969,8 @@ fn test_const_values() {
 fn test_assignment_to_const() {
     err(
         "const one: Int32 = 1i32;
-            fn f() { one = 2i32; }",
-        pos(2, 22),
+            fun f() { one = 2i32; }",
+        pos(2, 23),
         ErrorMessage::LvalueExpected,
     );
 }
@@ -990,22 +992,22 @@ fn test_generic_trait_bounds() {
             class X
             impl Foo for X {}
             class A[T: Foo]
-            fn f(): A[X] { A[X]() }");
+            fun f(): A[X] { A[X]() }");
 
     err(
         "trait Foo {}
             class X
             class A[T: Foo]
-            fn f(): A[X] { A[X]() }",
-        pos(4, 21),
+            fun f(): A[X] { A[X]() }",
+        pos(4, 22),
         ErrorMessage::TypeNotImplementingTrait("X".into(), "Foo".into()),
     );
 
     err(
         "trait Foo {}
-            fn f[T: Foo]() {}
-            fn t() { f[Int32](); }",
-        pos(3, 30),
+            fun f[T: Foo]() {}
+            fun t() { f[Int32](); }",
+        pos(3, 31),
         ErrorMessage::TypeNotImplementingTrait("Int32".into(), "Foo".into()),
     );
 }
@@ -1013,8 +1015,8 @@ fn test_generic_trait_bounds() {
 #[test]
 fn test_operator_on_generic_type() {
     err(
-        "fn f[T](a: T, b: T) { a + b; }",
-        pos(1, 25),
+        "fun f[T](a: T, b: T) { a + b; }",
+        pos(1, 26),
         ErrorMessage::BinOpType("+".into(), "T".into(), "T".into()),
     );
 }
@@ -1024,53 +1026,53 @@ fn test_find_class_method_precedence() {
     // finding class method should have precedence over
     // trait methods
     ok("class A
-            impl A { fn foo() {} }
-            trait Foo { fn foo(); }
-            impl Foo for A { fn foo() {} }
-            fn test(a: A) { a.foo(); }");
+            impl A { fun foo() {} }
+            trait Foo { fun foo(); }
+            impl Foo for A { fun foo() {} }
+            fun test(a: A) { a.foo(); }");
 
     err(
         "class A
-            impl A { fn foo() {} }
-            trait Foo { fn foo(a: Int32); }
-            impl Foo for A { fn foo(a: Int32) {} }
-            fn test(a: A) { a.foo(1i32); }",
-        pos(5, 34),
+            impl A { fun foo() {} }
+            trait Foo { fun foo(a: Int32); }
+            impl Foo for A { fun foo(a: Int32) {} }
+            fun test(a: A) { a.foo(1i32); }",
+        pos(5, 35),
         ErrorMessage::ParamTypesIncompatible("foo".into(), Vec::new(), vec!["Int32".into()]),
     );
 
     ok("class A
-            impl A { @static fn foo() {} }
-            trait Foo { fn foo(a: Int32); }
-            impl Foo for A { fn foo(a:  Int32) {} }
-            fn test(a: A) { a.foo(1i32); }");
+            impl A { @static fun foo() {} }
+            trait Foo { fun foo(a: Int32); }
+            impl Foo for A { fun foo(a:  Int32) {} }
+            fun test(a: A) { a.foo(1i32); }");
 }
 
 #[test]
 fn test_global_get() {
-    ok("let mut x: Int32 = 0i32; fn foo(): Int32 { return x; }");
+    ok("let mut x: Int32 = 0i32; fun foo(): Int32 { return x; }");
 }
 
 #[test]
 fn test_global_set() {
-    ok("let mut x: Int32 = 0i32; fn foo(a: Int32) { x = a; }");
+    ok("let mut x: Int32 = 0i32; fun foo(a: Int32) { x = a; }");
     err(
-        "let x: Int32 = 0i32; fn foo(a: Int32) { x = a; }",
-        pos(1, 43),
+        "let x: Int32 = 0i32; fun foo(a: Int32) { x = a; }",
+        pos(1, 44),
         ErrorMessage::LetReassigned,
     );
 }
 
 #[test]
 fn lambda_assignment() {
-    ok("fn f() { let x = || {}; }");
-    ok("fn f() { let x = ||: Int32 { return 2i32; }; }");
-    ok("fn f() { let x: (): () = || {}; }");
-    ok("fn f() { let x: (): () = ||: () {}; }");
-    ok("fn f() { let x: (): Int32 = ||: Int32 { return 2i32; }; }");
+    ok("fun f() { let x = || {}; }");
+    ok("fun f() { let x = ||: Int32 { return 2i32; }; }");
+    ok("fun f() { let x: (): () = || {}; }");
+    ok("fun f() { let x: (): () = ||: () {}; }");
+    ok("fun f() { let x: (): Int32 = ||: Int32 { return 2i32; }; }");
     err(
-        "fn f() { let x: (): Int32 = || {}; }",
-        pos(1, 10),
+        "fun f() { let x: (): Int32 = || {}; }",
+        pos(1, 11),
         ErrorMessage::AssignType("x".into(), "() -> Int32".into(), "() -> ()".into()),
     );
 }
@@ -1079,26 +1081,26 @@ fn lambda_assignment() {
 fn method_call_with_multiple_matching_traits() {
     err(
         "class A
-            trait X { fn f(); }
-            trait Y { fn f(); }
+            trait X { fun f(); }
+            trait Y { fun f(); }
 
-            impl X for A { fn f() {} }
-            impl Y for A { fn f() {} }
+            impl X for A { fun f() {} }
+            impl Y for A { fun f() {} }
 
-            fn g(a: A) { a.f(); }",
-        pos(8, 29),
+            fun g(a: A) { a.f(); }",
+        pos(8, 30),
         ErrorMessage::MultipleCandidatesForMethod("A".into(), "f".into(), Vec::new()),
     );
 }
 
 #[test]
 fn generic_trait_method_call() {
-    ok("trait Foo { fn bar(); }
-            fn f[T: Foo](t: T) { t.bar(); }");
-    ok("trait Foo { fn bar(); }
+    ok("trait Foo { fun bar(); }
+            fun f[T: Foo](t: T) { t.bar(); }");
+    ok("trait Foo { fun bar(); }
             class A[T: Foo](t: T)
             impl[T: Foo] A[T] {
-                fn baz() { self.t.bar(); }
+                fun baz() { self.t.bar(); }
             }");
 }
 
@@ -1106,8 +1108,8 @@ fn generic_trait_method_call() {
 fn test_generic_ctor_without_type_params() {
     err(
         "class Foo[A, B]
-            fn test() { Foo(); }",
-        pos(2, 28),
+            fun test() { Foo(); }",
+        pos(2, 29),
         ErrorMessage::WrongNumberTypeParams(2, 0),
     );
 }
@@ -1115,9 +1117,9 @@ fn test_generic_ctor_without_type_params() {
 #[test]
 fn test_generic_argument_with_trait_bound() {
     err(
-        "fn f[X: std::Comparable](x: X) {}
-            fn g[T](t: T) { f[T](t); }",
-        pos(2, 33),
+        "fun f[X: std::Comparable](x: X) {}
+            fun g[T](t: T) { f[T](t); }",
+        pos(2, 34),
         ErrorMessage::TypeNotImplementingTrait("T".into(), "Comparable".into()),
     );
 }
@@ -1125,28 +1127,28 @@ fn test_generic_argument_with_trait_bound() {
 #[test]
 fn test_for_supports_make_iterator() {
     err(
-        "fn f() { for i in 1i32 {} }",
-        pos(1, 19),
+        "fun f() { for i in 1i32 {} }",
+        pos(1, 20),
         ErrorMessage::TypeNotUsableInForIn("Int32".into()),
     );
 
     err(
         "
             class Foo
-            impl Foo { fn makeIterator(): Bool { return true; } }
-            fn f() { for i in Foo() {} }",
-        pos(4, 34),
+            impl Foo { fun makeIterator(): Bool { return true; } }
+            fun f() { for i in Foo() {} }",
+        pos(4, 35),
         ErrorMessage::TypeNotUsableInForIn("Foo".into()),
     );
 
     ok("
             class Foo
-            impl Foo { fn makeIterator(): FooIter { return FooIter(); } }
+            impl Foo { fun makeIterator(): FooIter { return FooIter(); } }
             class FooIter
             impl std::Iterator for FooIter {
-                fn next(): Option[Int32] { Some[Int32](0i32) }
+                fun next(): Option[Int32] { Some[Int32](0i32) }
             }
-            fn f(): Int32 { for i in Foo() { return i; } return 0i32; }");
+            fun f(): Int32 { for i in Foo() { return i; } return 0i32; }");
 }
 
 #[test]
@@ -1155,7 +1157,7 @@ fn test_ctor_with_type_param() {
         "
             class Foo[T]
             impl[T] Foo[T] {
-                fn foo(a: Int32) {
+                fun foo(a: Int32) {
                     Bar[T](a);
                 }
             }
@@ -1170,8 +1172,8 @@ fn test_ctor_with_type_param() {
 #[test]
 fn test_fct_used_as_identifier() {
     err(
-        "fn foo() {} fn bar() { foo; }",
-        pos(1, 24),
+        "fun foo() {} fun bar() { foo; }",
+        pos(1, 26),
         ErrorMessage::ValueExpected,
     );
 }
@@ -1179,8 +1181,8 @@ fn test_fct_used_as_identifier() {
 #[test]
 fn test_cls_used_as_identifier() {
     err(
-        "class X fn f() { X; }",
-        pos(1, 18),
+        "class X fun f() { X; }",
+        pos(1, 19),
         ErrorMessage::ValueExpected,
     );
 }
@@ -1188,8 +1190,8 @@ fn test_cls_used_as_identifier() {
 #[test]
 fn test_assign_fct() {
     err(
-        "fn foo() {} fn bar() { foo = 1i32; }",
-        pos(1, 24),
+        "fun foo() {} fun bar() { foo = 1i32; }",
+        pos(1, 26),
         ErrorMessage::LvalueExpected,
     );
 }
@@ -1199,68 +1201,68 @@ fn test_assign_class() {
     err(
         "
             class X
-            fn foo() { X = 2i32; }
+            fun foo() { X = 2i32; }
         ",
-        pos(3, 24),
+        pos(3, 25),
         ErrorMessage::LvalueExpected,
     );
 }
 
 #[test]
 fn test_new_call_fct() {
-    ok("fn g() {} fn f() { g(); }");
+    ok("fun g() {} fun f() { g(); }");
 }
 
 #[test]
 fn test_new_call_fct_wrong_params() {
     err(
-        "fn g() {} fn f() { g(1i32); }",
-        pos(1, 21),
+        "fun g() {} fun f() { g(1i32); }",
+        pos(1, 23),
         ErrorMessage::ParamTypesIncompatible("g".into(), Vec::new(), vec!["Int32".into()]),
     );
 }
 
 #[test]
 fn test_new_call_fct_with_type_params() {
-    ok("fn g[T]() {} fn f() { g[Int32](); }");
+    ok("fun g[T]() {} fun f() { g[Int32](); }");
 }
 
 #[test]
 fn test_new_call_fct_with_wrong_type_params() {
     err(
-        "fn g() {} fn f() { g[Int32](); }",
-        pos(1, 28),
+        "fun g() {} fun f() { g[Int32](); }",
+        pos(1, 30),
         ErrorMessage::WrongNumberTypeParams(0, 1),
     );
 }
 
 #[test]
 fn test_new_call_static_method() {
-    ok("class Foo impl Foo { @static fn bar() {} }
-            fn f() { Foo::bar(); }");
+    ok("class Foo impl Foo { @static fun bar() {} }
+            fun f() { Foo::bar(); }");
 }
 
 #[test]
 fn test_new_call_static_method_wrong_params() {
     err(
-        "class Foo impl Foo { @static fn bar() {} }
-            fn f() { Foo::bar(1i32); }",
-        pos(2, 30),
+        "class Foo impl Foo { @static fun bar() {} }
+            fun f() { Foo::bar(1i32); }",
+        pos(2, 31),
         ErrorMessage::ParamTypesIncompatible("bar".into(), Vec::new(), vec!["Int32".into()]),
     );
 }
 
 #[test]
 fn test_new_call_static_method_type_params() {
-    ok("class Foo impl Foo { @static fn bar[T]() {} }
-            fn f() { Foo::bar[Int32](); }");
+    ok("class Foo impl Foo { @static fun bar[T]() {} }
+            fun f() { Foo::bar[Int32](); }");
 }
 
 #[test]
 fn test_new_call_class() {
     ok("
         class X
-        fn f() { X(); }
+        fun f() { X(); }
     ");
 }
 
@@ -1269,9 +1271,9 @@ fn test_new_call_class_wrong_params() {
     err(
         "
         class X
-        fn f() { X(1i32); }
+        fun f() { X(1i32); }
     ",
-        pos(3, 19),
+        pos(3, 20),
         ErrorMessage::ParamTypesIncompatible("X".into(), Vec::new(), vec!["Int32".into()]),
     );
 }
@@ -1280,7 +1282,7 @@ fn test_new_call_class_wrong_params() {
 fn test_new_call_class_with_type_params() {
     ok("
         class X[T]
-        fn f() { X[Int32](); }
+        fun f() { X[Int32](); }
     ");
 }
 
@@ -1289,9 +1291,9 @@ fn test_new_call_class_with_wrong_type_params() {
     err(
         "
             class X
-            fn f() { X[Int32](); }
+            fun f() { X[Int32](); }
         ",
-        pos(3, 30),
+        pos(3, 31),
         ErrorMessage::WrongNumberTypeParams(0, 1),
     );
 }
@@ -1300,8 +1302,8 @@ fn test_new_call_class_with_wrong_type_params() {
 fn test_new_call_method() {
     ok("
         class X
-        impl X { fn f() {} }
-        fn f(x: X) { x.f(); }
+        impl X { fun f() {} }
+        fun f(x: X) { x.f(); }
     ");
 }
 
@@ -1309,8 +1311,8 @@ fn test_new_call_method() {
 fn test_new_call_method_type_param() {
     ok("
         class X
-        impl X { fn f[T]() {} }
-        fn f(x: X) { x.f[Int32](); }
+        impl X { fun f[T]() {} }
+        fun f(x: X) { x.f[Int32](); }
     ");
 }
 
@@ -1319,23 +1321,23 @@ fn test_new_call_method_wrong_params() {
     err(
         "
         class X
-        impl X { fn f() {} }
-        fn f(x: X) { x.f(1i32); }",
-        pos(4, 25),
+        impl X { fun f() {} }
+        fun f(x: X) { x.f(1i32); }",
+        pos(4, 26),
         ErrorMessage::ParamTypesIncompatible("f".into(), Vec::new(), vec!["Int32".into()]),
     );
 }
 
 #[test]
 fn test_new_call_method_generic() {
-    ok("fn f[T: std::Hash](t: T) { t.hash(); }");
+    ok("fun f[T: std::Hash](t: T) { t.hash(); }");
 }
 
 #[test]
 fn test_new_call_method_generic_error() {
     err(
-        "fn f[T](t: T) { t.hash(); }",
-        pos(1, 23),
+        "fun f[T](t: T) { t.hash(); }",
+        pos(1, 24),
         ErrorMessage::UnknownMethodForTypeParam("T".into(), "hash".into(), Vec::new()),
     );
 }
@@ -1344,29 +1346,29 @@ fn test_new_call_method_generic_error() {
 fn test_new_call_method_generic_error_multiple() {
     err(
         "
-            trait TraitA { fn id(); }
-            trait TraitB { fn id(); }
-            fn f[T: TraitA + TraitB](t: T) { t.id(); }",
-        pos(4, 50),
+            trait TraitA { fun id(); }
+            trait TraitB { fun id(); }
+            fun f[T: TraitA + TraitB](t: T) { t.id(); }",
+        pos(4, 51),
         ErrorMessage::MultipleCandidatesForTypeParam("T".into(), "id".into(), Vec::new()),
     );
 }
 
 #[test]
 fn test_array_syntax_get() {
-    ok("fn f(t: Array[Int32]): Int32 { return t(0); }");
+    ok("fun f(t: Array[Int32]): Int32 { return t(0); }");
 }
 
 #[test]
 fn test_array_syntax_set() {
-    ok("fn f(t: Array[Int32]){ t(0) = 10i32; }");
+    ok("fun f(t: Array[Int32]){ t(0) = 10i32; }");
 }
 
 #[test]
 fn test_array_syntax_set_wrong_value() {
     err(
-        "fn f(t: Array[Int32]){ t(0) = true; }",
-        pos(1, 29),
+        "fun f(t: Array[Int32]){ t(0) = true; }",
+        pos(1, 30),
         ErrorMessage::UnknownMethod(
             "Array[Int32]".into(),
             "set".into(),
@@ -1378,8 +1380,8 @@ fn test_array_syntax_set_wrong_value() {
 #[test]
 fn test_array_syntax_set_wrong_index() {
     err(
-        "fn f(t: Array[Int32]){ t(\"bla\") = 9i32; }",
-        pos(1, 33),
+        "fun f(t: Array[Int32]){ t(\"bla\") = 9i32; }",
+        pos(1, 34),
         ErrorMessage::UnknownMethod(
             "Array[Int32]".into(),
             "set".into(),
@@ -1390,26 +1392,26 @@ fn test_array_syntax_set_wrong_index() {
 
 #[test]
 fn test_template() {
-    ok("fn f(x: Int32): String { return \"x = ${x}\"; }");
+    ok("fun f(x: Int32): String { return \"x = ${x}\"; }");
     err(
         "
             class Foo
-            fn f(x: Foo): String { return \"x = ${x}\"; }
+            fun f(x: Foo): String { return \"x = ${x}\"; }
         ",
-        pos(3, 50),
+        pos(3, 51),
         ErrorMessage::ExpectedStringable("Foo".into()),
     );
-    ok("fn f[T: std::Stringable](x: T): String { return \"${x}\"; }");
+    ok("fun f[T: std::Stringable](x: T): String { return \"${x}\"; }");
 }
 
 #[test]
 fn test_trait_object_as_argument() {
-    ok("trait Foo { fn bar(): Int32; }
-        fn f(x: Foo): Int32 { return x.bar(); }");
+    ok("trait Foo { fun bar(): Int32; }
+        fun f(x: Foo): Int32 { return x.bar(); }");
     err(
-        "trait Foo { fn baz(); }
-        fn f(x: Foo): String { return x.baz(); }",
-        pos(2, 32),
+        "trait Foo { fun baz(); }
+        fun f(x: Foo): String { return x.baz(); }",
+        pos(2, 33),
         ErrorMessage::ReturnType("String".into(), "()".into()),
     );
 }
@@ -1417,17 +1419,17 @@ fn test_trait_object_as_argument() {
 #[test]
 fn test_type_param_used_as_value() {
     err(
-        "fn f[T](): Int32 { return T; }",
-        pos(1, 27),
+        "fun f[T](): Int32 { return T; }",
+        pos(1, 28),
         ErrorMessage::ValueExpected,
     );
 
     err(
         "class SomeClass[T]
         impl[T] SomeClass[T] {
-            fn f(): Int32 { return T; }
+            fun f(): Int32 { return T; }
         }",
-        pos(3, 36),
+        pos(3, 37),
         ErrorMessage::ValueExpected,
     );
 }
@@ -1435,8 +1437,8 @@ fn test_type_param_used_as_value() {
 #[test]
 fn test_assign_to_type_param() {
     err(
-        "fn f[T]() { T = 10; }",
-        pos(1, 13),
+        "fun f[T]() { T = 10; }",
+        pos(1, 14),
         ErrorMessage::LvalueExpected,
     );
 
@@ -1444,9 +1446,9 @@ fn test_assign_to_type_param() {
         "
         class SomeClass[T]
         impl[T] SomeClass[T] {
-            fn f() { T = 10; }
+            fun f() { T = 10; }
         }",
-        pos(4, 22),
+        pos(4, 23),
         ErrorMessage::LvalueExpected,
     );
 }
@@ -1454,19 +1456,19 @@ fn test_assign_to_type_param() {
 #[test]
 fn test_type_param_with_name_but_no_call() {
     err(
-        "trait X { fn foo(): Int32; }
-        fn f[T: X]() { T::foo; }",
-        pos(2, 24),
+        "trait X { fun foo(): Int32; }
+        fun f[T: X]() { T::foo; }",
+        pos(2, 25),
         ErrorMessage::InvalidLeftSideOfSeparator,
     );
 
     err(
-        "trait X { fn foo(): Int32; }
+        "trait X { fun foo(): Int32; }
         class SomeClass[T: X]
         impl[T: X] SomeClass[T] {
-            fn f() { T::foo; }
+            fun f() { T::foo; }
         }",
-        pos(4, 22),
+        pos(4, 23),
         ErrorMessage::InvalidLeftSideOfSeparator,
     );
 }
@@ -1474,19 +1476,19 @@ fn test_type_param_with_name_but_no_call() {
 #[test]
 fn test_type_param_call() {
     err(
-        "trait X { fn foo(): Int32; }
-        fn f[T: X]() { T(); }",
-        pos(2, 24),
+        "trait X { fun foo(): Int32; }
+        fun f[T: X]() { T(); }",
+        pos(2, 25),
         ErrorMessage::ValueExpected,
     );
 
     err(
-        "trait X { fn foo(): Int32; }
+        "trait X { fun foo(): Int32; }
         class SomeClass[T: X]
         impl[T: X] SomeClass[T] {
-            fn f() { T(); }
+            fun f() { T(); }
         }",
-        pos(4, 22),
+        pos(4, 23),
         ErrorMessage::ValueExpected,
     );
 }
@@ -1494,34 +1496,34 @@ fn test_type_param_call() {
 #[test]
 fn test_static_method_call_with_type_param() {
     err(
-        "trait X { @static fn bar(): Int32; }
-        fn f[T: X]() { T::foo(); }",
-        pos(2, 30),
+        "trait X { @static fun bar(): Int32; }
+        fun f[T: X]() { T::foo(); }",
+        pos(2, 31),
         ErrorMessage::UnknownStaticMethodWithTypeParam,
     );
 
     err(
-        "trait X { @static fn foo(): Int32; }
-        trait Y { @static fn foo(): String; }
-        fn f[T: X + Y]() { T::foo(); }",
-        pos(3, 34),
+        "trait X { @static fun foo(): Int32; }
+        trait Y { @static fun foo(): String; }
+        fun f[T: X + Y]() { T::foo(); }",
+        pos(3, 35),
         ErrorMessage::MultipleCandidatesForStaticMethodWithTypeParam,
     );
 
     err(
-        "trait X { @static fn foo(): Int32; }
-        fn f[T: X](): Int32 { return T::foo(1i32); }",
-        pos(2, 44),
+        "trait X { @static fun foo(): Int32; }
+        fun f[T: X](): Int32 { return T::foo(1i32); }",
+        pos(2, 45),
         ErrorMessage::ParamTypesIncompatible("foo".into(), Vec::new(), vec!["Int32".into()]),
     );
 
-    ok("trait X { @static fn foo(): Int32; }
-        fn f[T: X](): Int32 { return T::foo(); }");
+    ok("trait X { @static fun foo(): Int32; }
+        fun f[T: X](): Int32 { return T::foo(); }");
 }
 
 #[test]
 fn test_type_param_with_let() {
-    ok("fn myid[T](val: T): T {
+    ok("fun myid[T](val: T): T {
         let tmp: T = val;
         return tmp;
     }");
@@ -1532,21 +1534,21 @@ fn test_fct_and_class_type_params() {
     ok("
     class A[X]
     impl[X] A[X] {
-        fn test[Y]() {}
+        fun test[Y]() {}
     }");
 
     ok("
     class A[X]
     impl[X] A[X] {
-        fn t1[Y](x: X, y: Y): Y { return y; }
-        fn t2[Y](x: X, y: Y): X { return x; }
+        fun t1[Y](x: X, y: Y): Y { return y; }
+        fun t2[Y](x: X, y: Y): X { return x; }
     }
 
-    fn t1(a: A[Int32]): String {
+    fun t1(a: A[Int32]): String {
         return a.t1[String](1i32, \"bla\");
     }
 
-    fn t2(a: A[Int32]): Int32 {
+    fun t2(a: A[Int32]): Int32 {
         return a.t2[String](1i32, \"bla\");
     }
     ");
@@ -1556,20 +1558,20 @@ fn test_fct_and_class_type_params() {
 fn test_struct() {
     ok("
         struct Foo(f1: Int32)
-        fn f(): Foo { Foo(1i32) }
+        fun f(): Foo { Foo(1i32) }
     ");
     err(
         "
         struct Foo(f1: Int32)
-        fn f(): Foo { Foo() }",
-        pos(3, 26),
+        fun f(): Foo { Foo() }",
+        pos(3, 27),
         ErrorMessage::StructArgsIncompatible("Foo".into(), vec!["Int32".into()], Vec::new()),
     );
     err(
         "
         struct Foo(f1: Int32)
-        fn f(): Foo { Foo(true) }",
-        pos(3, 26),
+        fun f(): Foo { Foo(true) }",
+        pos(3, 27),
         ErrorMessage::StructArgsIncompatible(
             "Foo".into(),
             vec!["Int32".into()],
@@ -1582,24 +1584,24 @@ fn test_struct() {
 fn test_struct_field() {
     ok("
         struct Foo(f1: Int32)
-        fn f(x: Foo): Int32 { x.f1 }
+        fun f(x: Foo): Int32 { x.f1 }
     ");
 
     err(
         "
         struct Foo(f1: Bool)
-        fn f(x: Foo): Int32 { x.f1 }
+        fun f(x: Foo): Int32 { x.f1 }
     ",
-        pos(3, 29),
+        pos(3, 30),
         ErrorMessage::ReturnType("Int32".into(), "Bool".into()),
     );
 
     err(
         "
         struct Foo(f1: Bool)
-        fn f(x: Foo): Int32 { x.unknown }
+        fun f(x: Foo): Int32 { x.unknown }
     ",
-        pos(3, 32),
+        pos(3, 33),
         ErrorMessage::UnknownField("unknown".into(), "Foo".into()),
     );
 }
@@ -1608,7 +1610,7 @@ fn test_struct_field() {
 fn test_struct_field_array() {
     ok("
         struct Foo(f1: Array[Int32])
-        fn f(x: Foo): Int32 { x.f1(0) }
+        fun f(x: Foo): Int32 { x.f1(0) }
     ");
 }
 
@@ -1616,31 +1618,31 @@ fn test_struct_field_array() {
 fn test_struct_with_type_params() {
     ok("
         struct Foo[T](f1: Int32)
-        fn f(): Foo[Int32] { Foo[Int32](1i32) }
+        fun f(): Foo[Int32] { Foo[Int32](1i32) }
     ");
     err(
         "
         struct Foo[T](f1: Int32)
-        fn f(): Foo[Int32] { Foo(1i32) }
+        fun f(): Foo[Int32] { Foo(1i32) }
     ",
-        pos(3, 33),
+        pos(3, 34),
         ErrorMessage::WrongNumberTypeParams(1, 0),
     );
     err(
         "
         struct Foo[T](f1: Int32)
-        fn f(): Foo[Int32] { Foo[Int32, Bool](1i32) }
+        fun f(): Foo[Int32] { Foo[Int32, Bool](1i32) }
     ",
-        pos(3, 46),
+        pos(3, 47),
         ErrorMessage::WrongNumberTypeParams(1, 2),
     );
     err(
         "
         trait MyTrait {}
         struct Foo[T: MyTrait](f1: Int32)
-        fn f(): Foo[Int32] { Foo[Int32](1i32) }
+        fun f(): Foo[Int32] { Foo[Int32](1i32) }
     ",
-        pos(4, 17),
+        pos(4, 18),
         ErrorMessage::TypeNotImplementingTrait("Int32".into(), "MyTrait".into()),
     );
     ok("
@@ -1648,21 +1650,21 @@ fn test_struct_with_type_params() {
         class Bar
         impl MyTrait for Bar {}
         struct Foo[T: MyTrait](f1: Int32)
-        fn f(): Foo[Bar] { Foo[Bar](1i32) }
+        fun f(): Foo[Bar] { Foo[Bar](1i32) }
     ");
     err(
         "
         struct Foo[T](f1: Int32)
-        fn f(): Foo[Int32] { Foo[Bool](1i32) }
+        fun f(): Foo[Int32] { Foo[Bool](1i32) }
     ",
-        pos(3, 28),
+        pos(3, 29),
         ErrorMessage::ReturnType("Foo[Int32]".into(), "Foo[Bool]".into()),
     );
     err(
         "
         struct Foo[T](f1: T, f2: Bool)
-        fn f[T](val: T): Foo[T] { Foo(val, false) }",
-        pos(3, 38),
+        fun f[T](val: T): Foo[T] { Foo(val, false) }",
+        pos(3, 39),
         ErrorMessage::WrongNumberTypeParams(1, 0),
     );
 }
@@ -1671,10 +1673,10 @@ fn test_struct_with_type_params() {
 fn test_struct_mod() {
     err(
         "
-        fn f() { foo::Foo(1i32); }
+        fun f() { foo::Foo(1i32); }
         mod foo { struct Foo(f1: Int32) }
         ",
-        pos(2, 26),
+        pos(2, 27),
         ErrorMessage::NotAccessible("foo::Foo".into()),
     );
 }
@@ -1684,9 +1686,9 @@ fn test_struct_with_static_method() {
     ok("
         struct Foo(value: Int32)
         impl Foo {
-            @static fn bar() {}
+            @static fun bar() {}
         }
-        fn f() {
+        fun f() {
             Foo::bar();
         }
         ");
@@ -1694,9 +1696,9 @@ fn test_struct_with_static_method() {
     ok("
         struct Foo[T](value: Int32)
         impl[T] Foo[T] {
-            @static fn bar() {}
+            @static fun bar() {}
         }
-        fn f() {
+        fun f() {
             Foo[Int32]::bar();
         }
         ");
@@ -1704,7 +1706,7 @@ fn test_struct_with_static_method() {
     err(
         "
             struct Foo(value: Int32)
-            fn f() {
+            fun f() {
                 Foo[Int32]::bar();
             }
             ",
@@ -1718,9 +1720,9 @@ fn test_enum_with_static_method() {
     ok("
         enum Foo { A, B }
         impl Foo {
-            @static fn bar() {}
+            @static fun bar() {}
         }
-        fn f() {
+        fun f() {
             Foo::bar();
         }
         ");
@@ -1728,7 +1730,7 @@ fn test_enum_with_static_method() {
     err(
         "
         enum Foo { A, B }
-        fn f() {
+        fun f() {
             Foo[Int32]::bar();
         }
         ",
@@ -1740,60 +1742,60 @@ fn test_enum_with_static_method() {
 #[test]
 fn test_enum() {
     ok("enum A { V1, V2 }");
-    ok("enum A { V1, V2 } fn f(a: A): A { return a; }");
-    ok("enum A { V1, V2 } fn f(): A { return A::V1; }");
+    ok("enum A { V1, V2 } fun f(a: A): A { return a; }");
+    ok("enum A { V1, V2 } fun f(): A { return A::V1; }");
 
-    ok("enum A { V1, V2 } fn f(): Bool { return A::V1 == A::V2; }");
-    ok("enum A { V1, V2 } fn f(): Bool { return A::V1 != A::V2; }");
+    ok("enum A { V1, V2 } fun f(): Bool { return A::V1 == A::V2; }");
+    ok("enum A { V1, V2 } fun f(): Bool { return A::V1 != A::V2; }");
 
     err(
-        "enum A { V1 } fn f(): A { A }",
-        pos(1, 27),
+        "enum A { V1 } fun f(): A { A }",
+        pos(1, 28),
         ErrorMessage::ValueExpected,
     );
 
     err(
-        "enum A { V1 } fn f() { A = 1; }",
-        pos(1, 24),
+        "enum A { V1 } fun f() { A = 1; }",
+        pos(1, 25),
         ErrorMessage::LvalueExpected,
     );
 
     err(
-        "enum A { V1, V2 } fn f(): A { A::V3 }",
-        pos(1, 32),
+        "enum A { V1, V2 } fun f(): A { A::V3 }",
+        pos(1, 33),
         ErrorMessage::UnknownEnumVariant("V3".into()),
     );
 
     err(
-        "enum A[T] { V1, V2 } fn f(): A[Int32] { A::V1 }",
-        pos(1, 42),
+        "enum A[T] { V1, V2 } fun f(): A[Int32] { A::V1 }",
+        pos(1, 43),
         ErrorMessage::WrongNumberTypeParams(1, 0),
     );
 
     err(
-        "enum A[T] { V1(T), V2 } fn f(): A[Int32] { A[Int32]::V1 }",
-        pos(1, 52),
+        "enum A[T] { V1(T), V2 } fun f(): A[Int32] { A[Int32]::V1 }",
+        pos(1, 53),
         ErrorMessage::EnumArgsIncompatible("A".into(), "V1".into(), vec!["T".into()], Vec::new()),
     );
 
     err(
         "
         enum Foo[T] { A(T, Bool), B }
-        fn f[T](val: T): Foo[T] { Foo::A[T, String](val, false) }",
-        pos(3, 52),
+        fun f[T](val: T): Foo[T] { Foo::A[T, String](val, false) }",
+        pos(3, 53),
         ErrorMessage::WrongNumberTypeParams(1, 2),
     );
 
     ok("
         enum Foo[T] { A(T, Bool), B }
-        fn f[T](val: T): Foo[T] { Foo::A(val, false) }");
+        fun f[T](val: T): Foo[T] { Foo::A(val, false) }");
 }
 
 #[test]
 fn test_enum_match() {
     ok("
         enum A { V1, V2 }
-        fn f(x: A): Int32 {
+        fun f(x: A): Int32 {
             match x {
                 A::V1 => 0i32,
                 A::V2 => 1i32
@@ -1804,7 +1806,7 @@ fn test_enum_match() {
     err(
         "
         enum A { V1, V2 }
-        fn f(x: A): Int32 {
+        fun f(x: A): Int32 {
             match x {
                 A::V1 => 0i32,
                 A::V2 => \"foo\"
@@ -1821,7 +1823,7 @@ fn test_enum_match_with_parens() {
     err(
         "
         enum A { V1, V2 }
-        fn f(x: A): Int32 {
+        fun f(x: A): Int32 {
             match x {
                 A::V1() => 0i32,
                 A::V2 => 1i32
@@ -1838,7 +1840,7 @@ fn test_enum_match_wrong_number_params() {
     err(
         "
         enum A { V1(Int32), V2 }
-        fn f(x: A): Int32 {
+        fun f(x: A): Int32 {
             match x {
                 A::V1 => 0i32,
                 A::V2 => 1i32
@@ -1852,7 +1854,7 @@ fn test_enum_match_wrong_number_params() {
     err(
         "
         enum A { V1(Int32, Float32, Bool), V2 }
-        fn f(x: A): Int32 {
+        fun f(x: A): Int32 {
             match x {
                 A::V1(a, b, c, d) => 0i32,
                 A::V2 => 1i32
@@ -1868,7 +1870,7 @@ fn test_enum_match_wrong_number_params() {
 fn test_enum_match_params() {
     ok("
         enum A { V1(Int32, Int32, Int32), V2 }
-        fn f(x: A): Int32 {
+        fun f(x: A): Int32 {
             match x {
                 A::V1(a, _, c) => a + c,
                 A::V2 => 1i32
@@ -1879,7 +1881,7 @@ fn test_enum_match_params() {
     err(
         "
         enum A { V1(Int32, Int32, Int32), V2 }
-        fn f(x: A): Int32 {
+        fun f(x: A): Int32 {
             match x {
                 A::V1(a, _, c) => a + c,
                 A::V2 => a
@@ -1893,7 +1895,7 @@ fn test_enum_match_params() {
     err(
         "
         enum A { V1(Int32, Int32), V2 }
-        fn f(x: A): Int32 {
+        fun f(x: A): Int32 {
             match x {
                 A::V1(a, a) => a + a,
                 A::V2 => 1i32
@@ -1910,7 +1912,7 @@ fn test_enum_match_missing_variants() {
     err(
         "
         enum A { V1(Int32, Int32, Int32), V2, V3 }
-        fn f(x: A): Int32 {
+        fun f(x: A): Int32 {
             match x {
                 A::V1(a, _, c) => a + c,
                 A::V2 => 1i32,
@@ -1924,7 +1926,7 @@ fn test_enum_match_missing_variants() {
     err(
         "
         enum A { V1(Int32, Int32, Int32), V2, V3 }
-        fn f(x: A): Int32 {
+        fun f(x: A): Int32 {
             match x {
                 A::V1(a, _, c) => a + c,
                 A::V2 => 1i32,
@@ -1942,7 +1944,7 @@ fn test_enum_match_missing_variants() {
 fn test_enum_match_underscore() {
     ok("
         enum A { V1, V2, V3 }
-        fn f(x: A): Bool {
+        fun f(x: A): Bool {
             match x {
                 A::V1 => true,
                 _ => false,
@@ -1953,7 +1955,7 @@ fn test_enum_match_underscore() {
     err(
         "
         enum A { V1, V2, V3 }
-        fn f(x: A): Bool {
+        fun f(x: A): Bool {
             match x {
                 _ => false,
                 A::V1 => true,
@@ -1969,7 +1971,7 @@ fn test_enum_match_underscore() {
 fn test_enum_equals() {
     ok("
         enum A { V1, V2 }
-        fn f(x: A, y: A): Bool {
+        fun f(x: A, y: A): Bool {
             x == y
         }
     ");
@@ -1977,7 +1979,7 @@ fn test_enum_equals() {
     err(
         "
         enum A { V1(Int32), V2 }
-        fn f(x: A, y: A): Bool {
+        fun f(x: A, y: A): Bool {
             x == y
         }
     ",
@@ -1988,15 +1990,15 @@ fn test_enum_equals() {
 
 #[test]
 fn test_use_enum_value() {
-    ok("enum A { V1(Int32), V2 } use A::V1; fn f(): A { V1(1i32) }");
-    ok("enum A[T] { V1(Int32), V2 } use A::V1; fn f(): A[Int32] { V1[Int32](1i32) }");
-    ok("enum A[T] { V1(Int32), V2 } use A::V1; fn f(): A[Int32] { V1(1i32) }");
+    ok("enum A { V1(Int32), V2 } use A::V1; fun f(): A { V1(1i32) }");
+    ok("enum A[T] { V1(Int32), V2 } use A::V1; fun f(): A[Int32] { V1[Int32](1i32) }");
+    ok("enum A[T] { V1(Int32), V2 } use A::V1; fun f(): A[Int32] { V1(1i32) }");
 
-    ok("enum A { V1, V2 } use A::V2; fn f(): A { V2 }");
+    ok("enum A { V1, V2 } use A::V2; fun f(): A { V2 }");
 
     err(
-        "enum A { V1(Int32), V2 } use A::V1; fn f(): A { V1 }",
-        pos(1, 49),
+        "enum A { V1(Int32), V2 } use A::V1; fun f(): A { V1 }",
+        pos(1, 50),
         ErrorMessage::EnumArgsIncompatible(
             "A".into(),
             "V1".into(),
@@ -2006,8 +2008,8 @@ fn test_use_enum_value() {
     );
 
     err(
-        "enum A { V1(Int32), V2 } use A::V2; fn f(): A { V2(0i32) }",
-        pos(1, 51),
+        "enum A { V1(Int32), V2 } use A::V2; fun f(): A { V2(0i32) }",
+        pos(1, 52),
         ErrorMessage::EnumArgsIncompatible(
             "A".into(),
             "V2".into(),
@@ -2016,73 +2018,73 @@ fn test_use_enum_value() {
         ),
     );
 
-    ok("enum A[T] { V1(Int32), V2 } use A::V2; fn f(): A[Int32] { V2 }");
+    ok("enum A[T] { V1(Int32), V2 } use A::V2; fun f(): A[Int32] { V2 }");
 
-    ok("enum A[T] { V1, V2 } use A::V2; fn f(): A[Int32] { V2[Int32] }");
+    ok("enum A[T] { V1, V2 } use A::V2; fun f(): A[Int32] { V2[Int32] }");
 
     err(
-        "enum A[T] { V1, V2 } use A::V2; fn f(): A[Int32] { V2[Int32, Float32] }",
-        pos(1, 54),
+        "enum A[T] { V1, V2 } use A::V2; fun f(): A[Int32] { V2[Int32, Float32] }",
+        pos(1, 55),
         ErrorMessage::WrongNumberTypeParams(1, 2),
     );
 }
 
 #[test]
 fn test_enum_value_with_type_param() {
-    ok("enum A[T] { V1, V2 } fn f(): A[Int32] { A::V2[Int32] }");
-    ok("enum A[T] { V1, V2 } fn f(): A[Int32] { A[Int32]::V2 }");
+    ok("enum A[T] { V1, V2 } fun f(): A[Int32] { A::V2[Int32] }");
+    ok("enum A[T] { V1, V2 } fun f(): A[Int32] { A[Int32]::V2 }");
     err(
-        "enum A[T] { V1, V2 } fn f(): A[Int32] { A[Int32]::V2[Int32] }",
-        pos(1, 42),
+        "enum A[T] { V1, V2 } fun f(): A[Int32] { A[Int32]::V2[Int32] }",
+        pos(1, 43),
         ErrorMessage::ExpectedSomeIdentifier,
     );
 }
 
 #[test]
 fn test_block_value() {
-    ok("fn f(): Int32 { 1i32 }");
-    ok("fn f() { let x = { 1i32 }; }");
-    ok("fn g(): Int32 { return 1i32; } fn f() { let x: Int32 = { g() }; }");
-    ok("fn g(): Int32 { return 1i32; } fn f() { let x: Int32 = { g(); 1i32 }; }");
+    ok("fun f(): Int32 { 1i32 }");
+    ok("fun f() { let x = { 1i32 }; }");
+    ok("fun g(): Int32 { return 1i32; } fun f() { let x: Int32 = { g() }; }");
+    ok("fun g(): Int32 { return 1i32; } fun f() { let x: Int32 = { g(); 1i32 }; }");
 }
 
 #[test]
 fn test_if_expression() {
-    ok("fn f(): Int32 { if true { 1i32 } else { 2i32 } }");
-    ok("fn f(): Float32 { if true { 1.0f32 } else { 2.0f32 } }");
-    ok("fn f(): Float64 { if true { 1.0 } else { 2.0 } }");
+    ok("fun f(): Int32 { if true { 1i32 } else { 2i32 } }");
+    ok("fun f(): Float32 { if true { 1.0f32 } else { 2.0f32 } }");
+    ok("fun f(): Float64 { if true { 1.0 } else { 2.0 } }");
 
-    ok("fn f(): Int32 { 4i32 * if true { 1i32 } else { 2i32 } }");
+    ok("fun f(): Int32 { 4i32 * if true { 1i32 } else { 2i32 } }");
 }
 
 #[test]
 fn test_tuple() {
-    ok("fn f(a: (Int32, Bool)) {}");
-    ok("fn f(a: (Int32, Bool)): (Int32, Bool) { return a; }");
-    ok("fn f(a: (Int32, Bool)): (Int32, Bool) {
+    ok("fun f(a: (Int32, Bool)) {}");
+    ok("fun f(a: (Int32, Bool)): (Int32, Bool) { return a; }");
+    ok("fun f(a: (Int32, Bool)): (Int32, Bool) {
             let tmp = a;
             return tmp;
         }");
     err(
-        "fn f(a: (Int32, Bool)): (Int32) { return a; }",
-        pos(1, 35),
+        "fun f(a: (Int32, Bool)): (Int32) { return a; }",
+        pos(1, 36),
         ErrorMessage::ReturnType("(Int32)".into(), "(Int32, Bool)".into()),
     );
     err(
-        "fn f(a: (Int32, Bool)): (Int32, Float32) { return a; }",
-        pos(1, 44),
+        "fun f(a: (Int32, Bool)): (Int32, Float32) { return a; }",
+        pos(1, 45),
         ErrorMessage::ReturnType("(Int32, Float32)".into(), "(Int32, Bool)".into()),
     );
 }
 
 #[test]
 fn test_tuple_literal() {
-    ok("fn f(): (Int32, Bool) {
+    ok("fun f(): (Int32, Bool) {
         return (1i32, false);
     }");
 
     err(
-        "fn f(): (Int32) {
+        "fun f(): (Int32) {
         return (1i32);
     }",
         pos(2, 9),
@@ -2090,7 +2092,7 @@ fn test_tuple_literal() {
     );
 
     err(
-        "fn f(): (Int32, Int32) {
+        "fun f(): (Int32, Int32) {
         return (1i32, false);
     }",
         pos(2, 9),
@@ -2101,8 +2103,8 @@ fn test_tuple_literal() {
 #[test]
 fn test_tuple_in_call() {
     ok("
-        fn f(a: (Int32, Bool)) {}
-        fn g() {
+        fun f(a: (Int32, Bool)) {}
+        fun g() {
             f((1i32, true));
         }
     ")
@@ -2111,20 +2113,20 @@ fn test_tuple_in_call() {
 #[test]
 fn test_tuple_element() {
     ok("
-        fn f(a: (Int32, Bool)): Int32 {
+        fun f(a: (Int32, Bool)): Int32 {
             return a.0;
         }
     ");
 
     ok("
-        fn f(a: (Int32, Bool)): Bool {
+        fun f(a: (Int32, Bool)): Bool {
             return a.1;
         }
     ");
 
     err(
         "
-        fn f(a: (Int32, Bool)): String {
+        fun f(a: (Int32, Bool)): String {
             return a.1;
         }
     ",
@@ -2138,7 +2140,7 @@ fn test_type_without_make_iterator() {
     err(
         "
         class Foo
-        fn bar(x: Foo) {
+        fun bar(x: Foo) {
             for i in x {
                 let x: Foo = i;
             }
@@ -2155,9 +2157,9 @@ fn test_type_make_iterator_not_implementing_iterator() {
         "
         class Foo
         impl Foo {
-            fn makeIterator(): Int32 { 0i32 }
+            fun makeIterator(): Int32 { 0i32 }
         }
-        fn bar(x: Foo) {
+        fun bar(x: Foo) {
             for i in x {
                 let x: Foo = i;
             }
@@ -2170,14 +2172,14 @@ fn test_type_make_iterator_not_implementing_iterator() {
 
 #[test]
 fn zero_trait_ok() {
-    ok("fn f() { Array[Int32]::zero(12i64); }");
+    ok("fun f() { Array[Int32]::zero(12i64); }");
 }
 
 #[test]
 fn zero_trait_err() {
     err(
-        "fn f() { Array[String]::zero(12i64); }",
-        pos(1, 29),
+        "fun f() { Array[String]::zero(12i64); }",
+        pos(1, 30),
         ErrorMessage::UnknownStaticMethod(
             "Array[String]".into(),
             "zero".into(),
@@ -2190,8 +2192,8 @@ fn zero_trait_err() {
 fn extension_method_call() {
     ok("
         class Foo(value: Int32)
-        impl Foo { fn foo(): Int32 { self.value } }
-        fn bar(x: Foo): Int32 { x.foo() }
+        impl Foo { fun foo(): Int32 { self.value } }
+        fun bar(x: Foo): Int32 { x.foo() }
     ");
 }
 
@@ -2200,26 +2202,26 @@ fn extension_class_with_type_param() {
     ok("
         class Foo[T](value: T)
         trait MyTrait {}
-        impl[T: MyTrait] Foo[T] { fn foo(): Int32 { 12i32 } }
+        impl[T: MyTrait] Foo[T] { fun foo(): Int32 { 12i32 } }
         impl MyTrait for Int32 {}
-        fn bar(x: Foo[Int32]): Int32 { x.foo() }
+        fun bar(x: Foo[Int32]): Int32 { x.foo() }
     ");
 
     ok("
         class Foo[T](value: T)
-        impl Foo[Int32] { fn foo() {} }
-        impl Foo[Float32] { fn bar() {} }
-        fn f(x: Foo[Int32]) { x.foo() }
-        fn g(x: Foo[Float32]) { x.bar() }
+        impl Foo[Int32] { fun foo() {} }
+        impl Foo[Float32] { fun bar() {} }
+        fun f(x: Foo[Int32]) { x.foo() }
+        fun g(x: Foo[Float32]) { x.bar() }
     ");
 
     err(
         "
         class Foo[T](value: T)
-        impl Foo[Float32] { fn bar() {} }
-        fn f(x: Foo[Int32]) { x.bar() }
+        impl Foo[Float32] { fun bar() {} }
+        fun f(x: Foo[Int32]) { x.bar() }
     ",
-        pos(4, 36),
+        pos(4, 37),
         ErrorMessage::UnknownMethod("Foo[Int32]".into(), "bar".into(), Vec::new()),
     );
 }
@@ -2229,9 +2231,9 @@ fn extension_class_tuple() {
     ok("
         class Foo[T](value: T)
         impl Foo[(Int32, Int32)] {
-            fn bar() {}
+            fun bar() {}
         }
-        fn f(x: Foo[(Int32, Int32)]) {
+        fun f(x: Foo[(Int32, Int32)]) {
             x.bar();
         }
     ");
@@ -2239,9 +2241,9 @@ fn extension_class_tuple() {
     ok("
         class Foo[T]
         impl[T] Foo[(T, Int32)] {
-            fn bar() {}
+            fun bar() {}
         }
-        fn f() {
+        fun f() {
             Foo[(Int32, Int32)]().bar();
             Foo[(Float32, Int32)]().bar();
         }
@@ -2251,9 +2253,9 @@ fn extension_class_tuple() {
         "
         class Foo[T]
         impl Foo[(Int32, Float32)] {
-            fn bar() {}
+            fun bar() {}
         }
-        fn f(x: Foo[(Int32, Int32)]) {
+        fun f(x: Foo[(Int32, Int32)]) {
             x.bar();
         }
     ",
@@ -2268,12 +2270,12 @@ fn extension_nested() {
         "
         class Foo[T]
         impl Foo[Foo[Foo[Int32]]] {
-            fn bar() {}
+            fun bar() {}
         }
-        fn f(value: Foo[Foo[Foo[Int32]]]) {
+        fun f(value: Foo[Foo[Foo[Int32]]]) {
             value.bar();
         }
-        fn g(value: Foo[Foo[Int32]]) {
+        fun g(value: Foo[Foo[Int32]]) {
             value.bar();
         }
     ",
@@ -2287,9 +2289,9 @@ fn extension_bind_type_param_twice() {
     ok("
         class Foo[T]
         impl[T] Foo[(T, T)] {
-            fn bar() {}
+            fun bar() {}
         }
-        fn f(x: Foo[(Int32, Int32)]) {
+        fun f(x: Foo[(Int32, Int32)]) {
             x.bar();
         }
     ");
@@ -2297,9 +2299,9 @@ fn extension_bind_type_param_twice() {
     ok("
         class Foo[T]
         impl[T] Foo[(T, T)] {
-            fn bar() {}
+            fun bar() {}
         }
-        fn f[T](x: Foo[(T, T)]) {
+        fun f[T](x: Foo[(T, T)]) {
             x.bar();
         }
     ");
@@ -2308,9 +2310,9 @@ fn extension_bind_type_param_twice() {
         "
         class Foo[T]
         impl[T] Foo[(T, T)] {
-            fn bar() {}
+            fun bar() {}
         }
-        fn f(x: Foo[(Int32, Float32)]) {
+        fun f(x: Foo[(Int32, Float32)]) {
             x.bar();
         }
     ",
@@ -2322,9 +2324,9 @@ fn extension_bind_type_param_twice() {
         "
         class Foo[T]
         impl[T] Foo[(T, T)] {
-            fn bar() {}
+            fun bar() {}
         }
-        fn f[T](x: Foo[(T, Float32)]) {
+        fun f[T](x: Foo[(T, Float32)]) {
             x.bar();
         }
     ",
@@ -2338,26 +2340,26 @@ fn extension_struct_with_type_param() {
     ok("
         struct Foo[T](value: T)
         trait MyTrait {}
-        impl[T: MyTrait] Foo[T] { fn foo(): Int32 { 12i32 } }
+        impl[T: MyTrait] Foo[T] { fun foo(): Int32 { 12i32 } }
         impl MyTrait for Int32 {}
-        fn bar(x: Foo[Int32]): Int32 { x.foo() }
+        fun bar(x: Foo[Int32]): Int32 { x.foo() }
     ");
 
     ok("
         struct Foo[T](value: T)
-        impl Foo[Int32] { fn foo() {} }
-        impl Foo[Float32] { fn bar() {} }
-        fn f(x: Foo[Int32]) { x.foo() }
-        fn g(x: Foo[Float32]) { x.bar() }
+        impl Foo[Int32] { fun foo() {} }
+        impl Foo[Float32] { fun bar() {} }
+        fun f(x: Foo[Int32]) { x.foo() }
+        fun g(x: Foo[Float32]) { x.bar() }
     ");
 
     err(
         "
         struct Foo[T](value: T)
-        impl Foo[Float32] { fn bar() {} }
-        fn f(x: Foo[Int32]) { x.bar() }
+        impl Foo[Float32] { fun bar() {} }
+        fun f(x: Foo[Int32]) { x.bar() }
     ",
-        pos(4, 36),
+        pos(4, 37),
         ErrorMessage::UnknownMethod("Foo[Int32]".into(), "bar".into(), Vec::new()),
     );
 }
@@ -2367,26 +2369,26 @@ fn extension_enum_with_type_param() {
     ok("
         enum Foo[T] { A(T), B }
         trait MyTrait {}
-        impl[T: MyTrait] Foo[T] { fn foo(): Int32 { 12i32 } }
+        impl[T: MyTrait] Foo[T] { fun foo(): Int32 { 12i32 } }
         impl MyTrait for Int32 {}
-        fn bar(x: Foo[Int32]): Int32 { x.foo() }
+        fun bar(x: Foo[Int32]): Int32 { x.foo() }
     ");
 
     ok("
         enum Foo[T] { A(T), B }
-        impl Foo[Int32] { fn foo() {} }
-        impl Foo[Float32] { fn bar() {} }
-        fn f(x: Foo[Int32]) { x.foo() }
-        fn g(x: Foo[Float32]) { x.bar() }
+        impl Foo[Int32] { fun foo() {} }
+        impl Foo[Float32] { fun bar() {} }
+        fun f(x: Foo[Int32]) { x.foo() }
+        fun g(x: Foo[Float32]) { x.bar() }
     ");
 
     err(
         "
         enum Foo[T] { A(T), B }
-        impl Foo[Float32] { fn bar() {} }
-        fn f(x: Foo[Int32]) { x.bar() }
+        impl Foo[Float32] { fun bar() {} }
+        fun f(x: Foo[Int32]) { x.bar() }
     ",
-        pos(4, 36),
+        pos(4, 37),
         ErrorMessage::UnknownMethod("Foo[Int32]".into(), "bar".into(), Vec::new()),
     );
 }
@@ -2395,20 +2397,20 @@ fn extension_enum_with_type_param() {
 fn impl_class_type_params() {
     err(
         "
-        trait MyTrait { fn bar(); }
+        trait MyTrait { fun bar(); }
         class Foo[T]
-        impl MyTrait for Foo[String] { fn bar() {} }
-        fn bar(x: Foo[Int32]) { x.bar(); }
+        impl MyTrait for Foo[String] { fun bar() {} }
+        fun bar(x: Foo[Int32]) { x.bar(); }
     ",
-        pos(5, 38),
+        pos(5, 39),
         ErrorMessage::UnknownMethod("Foo[Int32]".into(), "bar".into(), Vec::new()),
     );
 
     ok("
-        trait MyTrait { fn bar(); }
+        trait MyTrait { fun bar(); }
         class Foo[T]
-        impl MyTrait for Foo[Int32] { fn bar() {} }
-        fn bar(x: Foo[Int32]) { x.bar(); }
+        impl MyTrait for Foo[Int32] { fun bar() {} }
+        fun bar(x: Foo[Int32]) { x.bar(); }
     ");
 }
 
@@ -2418,9 +2420,9 @@ fn extension_with_fct_type_param() {
         class MyClass[T]
         class Foo
         impl MyClass[Foo] {
-            fn do[T](another: MyClass[T]) {}
+            fun do[T](another: MyClass[T]) {}
         }
-        fn f() {
+        fun f() {
             MyClass[Foo]().do[Int32](MyClass[Int32]());
             MyClass[Foo]().do[Float32](MyClass[Float32]());
         }
@@ -2431,20 +2433,20 @@ fn extension_with_fct_type_param() {
 fn impl_struct_type_params() {
     err(
         "
-        trait MyTrait { fn bar(); }
+        trait MyTrait { fun bar(); }
         struct Foo[T](value: T)
-        impl MyTrait for Foo[String] { fn bar() {} }
-        fn bar(x: Foo[Int32]) { x.bar(); }
+        impl MyTrait for Foo[String] { fun bar() {} }
+        fun bar(x: Foo[Int32]) { x.bar(); }
     ",
-        pos(5, 38),
+        pos(5, 39),
         ErrorMessage::UnknownMethod("Foo[Int32]".into(), "bar".into(), Vec::new()),
     );
 
     ok("
-        trait MyTrait { fn bar(); }
+        trait MyTrait { fun bar(); }
         struct Foo[T](value: T)
-        impl MyTrait for Foo[Int32] { fn bar() {} }
-        fn bar(x: Foo[Int32]) { x.bar(); }
+        impl MyTrait for Foo[Int32] { fun bar() {} }
+        fun bar(x: Foo[Int32]) { x.bar(); }
     ");
 }
 
@@ -2452,8 +2454,8 @@ fn impl_struct_type_params() {
 fn impl_struct_method_with_self() {
     ok("
         struct Foo(value: Int32)
-        trait AsInt32 { fn value(): Int32; }
-        impl AsInt32 for Foo { fn value(): Int32 { self.value } }
+        trait AsInt32 { fun value(): Int32; }
+        impl AsInt32 for Foo { fun value(): Int32 { self.value } }
     ");
 }
 
@@ -2462,11 +2464,11 @@ fn impl_struct_with_method_overload() {
     ok("
         struct Foo(value: Int32)
         impl Foo {
-            fn plus(other: Foo): Foo {
+            fun plus(other: Foo): Foo {
                 Foo(self.value + other.value)
             }
         }
-        fn f(a: Foo, b: Foo): Foo {
+        fun f(a: Foo, b: Foo): Foo {
             a + b
         }
     ");
@@ -2476,28 +2478,28 @@ fn impl_struct_with_method_overload() {
 fn impl_enum_type_params() {
     err(
         "
-        trait MyTrait { fn bar(); }
+        trait MyTrait { fun bar(); }
         enum Foo[T] { A(T), B }
-        impl MyTrait for Foo[String] { fn bar() {} }
-        fn bar(x: Foo[Int32]) { x.bar(); }
+        impl MyTrait for Foo[String] { fun bar() {} }
+        fun bar(x: Foo[Int32]) { x.bar(); }
     ",
-        pos(5, 38),
+        pos(5, 39),
         ErrorMessage::UnknownMethod("Foo[Int32]".into(), "bar".into(), Vec::new()),
     );
 
     ok("
-        trait MyTrait { fn bar(); }
+        trait MyTrait { fun bar(); }
         enum Foo[T] { A(T), B }
-        impl MyTrait for Foo[Int32] { fn bar() {} }
-        fn bar(x: Foo[Int32]) { x.bar(); }
+        impl MyTrait for Foo[Int32] { fun bar() {} }
+        fun bar(x: Foo[Int32]) { x.bar(); }
     ");
 }
 
 #[test]
 fn method_call_on_unit() {
     err(
-        "fn foo(a: ()) { a.foo(); }",
-        pos(1, 22),
+        "fun foo(a: ()) { a.foo(); }",
+        pos(1, 23),
         ErrorMessage::UnknownMethod("()".into(), "foo".into(), Vec::new()),
     );
 }
@@ -2506,35 +2508,35 @@ fn method_call_on_unit() {
 fn method_on_enum() {
     ok("
         enum MyEnum { A, B }
-        impl MyEnum { fn foo() {} }
-        fn f(x: MyEnum) { x.foo(); }
+        impl MyEnum { fun foo() {} }
+        fun f(x: MyEnum) { x.foo(); }
     ");
 }
 
 #[test]
 fn literal_without_suffix_byte() {
-    ok("fn f(): UInt8 { 1 }");
+    ok("fun f(): UInt8 { 1 }");
     err(
-        "fn f(): UInt8 { 256 }",
-        pos(1, 17),
+        "fun f(): UInt8 { 256 }",
+        pos(1, 18),
         ErrorMessage::NumberOverflow("UInt8".into()),
     );
-    ok("fn f() { let x: UInt8 = 1; }");
+    ok("fun f() { let x: UInt8 = 1; }");
 }
 
 #[test]
 fn literal_without_suffix_long() {
-    ok("fn f(): Int64 { 1 }");
-    ok("fn f() { let x: Int64 = 1; }");
+    ok("fun f(): Int64 { 1 }");
+    ok("fun f() { let x: Int64 = 1; }");
 }
 
 #[test]
 fn variadic_parameter() {
     ok("
-        fn f(x: Int32...): Int64 {
+        fun f(x: Int32...): Int64 {
             x.size()
         }
-        fn g() {
+        fun g() {
             f(1i32, 2i32, 3i32, 4i32);
             f();
             f(1i32);
@@ -2542,8 +2544,8 @@ fn variadic_parameter() {
     ");
     err(
         "
-        fn f(x: Int32...) {}
-        fn g() {
+        fun f(x: Int32...) {}
+        fun g() {
             f(true);
         }
     ",
@@ -2551,8 +2553,8 @@ fn variadic_parameter() {
         ErrorMessage::ParamTypesIncompatible("f".into(), vec!["Int32".into()], vec!["Bool".into()]),
     );
     ok("
-        fn f(x: Int32, y: Int32...) {}
-        fn g() {
+        fun f(x: Int32, y: Int32...) {}
+        fun g() {
             f(1i32, 2i32, 3i32, 4i32);
             f(1i32, 2i32);
             f(1i32);
@@ -2560,8 +2562,8 @@ fn variadic_parameter() {
     ");
     err(
         "
-        fn f(x: Int32, y: Int32...) {}
-        fn g() {
+        fun f(x: Int32, y: Int32...) {}
+        fun g() {
             f();
         }
     ",
@@ -2573,15 +2575,15 @@ fn variadic_parameter() {
         ),
     );
     err(
-        "fn f(x: Int32..., y: Int32) {}",
-        pos(1, 19),
+        "fun f(x: Int32..., y: Int32) {}",
+        pos(1, 20),
         ErrorMessage::VariadicParameterNeedsToBeLast,
     );
 }
 
 #[test]
 fn for_with_array() {
-    ok("fn f(x: Array[Int32]): Int32 {
+    ok("fun f(x: Array[Int32]): Int32 {
         let mut result = 0i32;
         for i in x {
             result = result + i;
@@ -2589,7 +2591,7 @@ fn for_with_array() {
         result
     }");
 
-    ok("fn f(x: Array[Float32]): Float32 {
+    ok("fun f(x: Array[Float32]): Float32 {
         let mut result = 0.0f32;
         for i in x {
             result = result + i;
@@ -2600,7 +2602,7 @@ fn for_with_array() {
 
 #[test]
 fn for_with_vec() {
-    ok("fn f(x: Vec[Int32]): Int32 {
+    ok("fun f(x: Vec[Int32]): Int32 {
         let mut result = 0i32;
         for i in x.makeIterator() {
             result = result + i;
@@ -2608,7 +2610,7 @@ fn for_with_vec() {
         result
     }");
 
-    ok("fn f(x: Vec[Int32]): Int32 {
+    ok("fun f(x: Vec[Int32]): Int32 {
         let mut result = 0i32;
         for i in x {
             result = result + i;
@@ -2616,7 +2618,7 @@ fn for_with_vec() {
         result
     }");
 
-    ok("fn f(x: Vec[Float32]): Float32 {
+    ok("fun f(x: Vec[Float32]): Float32 {
         let mut result = 0.0f32;
         for i in x.makeReverseIterator() {
             result = result + i;
@@ -2624,7 +2626,7 @@ fn for_with_vec() {
         result
     }");
 
-    ok("fn f(x: Vec[Float32]): Float32 {
+    ok("fun f(x: Vec[Float32]): Float32 {
         let mut result = 0.0f32;
         for i in x {
             result = result + i;
@@ -2638,9 +2640,9 @@ fn check_no_type_params_with_generic_type() {
     err(
         "
             class Bar[T]
-            fn f(x: Bar) {}
+            fun f(x: Bar) {}
         ",
-        pos(3, 21),
+        pos(3, 22),
         ErrorMessage::WrongNumberTypeParams(1, 0),
     );
 }
@@ -2649,25 +2651,25 @@ fn check_no_type_params_with_generic_type() {
 fn check_wrong_number_type_params() {
     err(
         "
-            fn foo() { bar[Int32](false); }
-            fn bar[T](x: T) {}
+            fun foo() { bar[Int32](false); }
+            fun bar[T](x: T) {}
         ",
-        pos(2, 34),
+        pos(2, 35),
         ErrorMessage::ParamTypesIncompatible("bar".into(), vec!["T".into()], vec!["Bool".into()]),
     );
 }
 
 #[test]
 fn multiple_functions() {
-    ok("fn f() {} fn g() {}");
+    ok("fun f() {} fun g() {}");
 }
 
 #[test]
 fn redefine_function() {
     err(
         "
-        fn f() {}
-        fn f() {}",
+        fun f() {}
+        fun f() {}",
         pos(3, 9),
         ErrorMessage::ShadowFunction("f".into()),
     );
@@ -2678,7 +2680,7 @@ fn shadow_type_with_function() {
     err(
         "
         class FooBar
-        fn FooBar() {}
+        fun FooBar() {}
         ",
         pos(3, 9),
         ErrorMessage::ShadowClass("FooBar".into()),
@@ -2688,8 +2690,8 @@ fn shadow_type_with_function() {
 #[test]
 fn define_param_name_twice() {
     err(
-        "fn test(x: String, x: Int32) {}",
-        pos(1, 20),
+        "fun test(x: String, x: Int32) {}",
+        pos(1, 21),
         ErrorMessage::ShadowParam("x".into()),
     );
 }
@@ -2697,56 +2699,56 @@ fn define_param_name_twice() {
 #[test]
 fn show_type_param_with_name() {
     err(
-        "fn test[T](T: Int32) {}",
-        pos(1, 12),
+        "fun test[T](T: Int32) {}",
+        pos(1, 13),
         ErrorMessage::ShadowTypeParam("T".into()),
     );
 }
 
 #[test]
 fn shadow_type_with_var() {
-    ok("fn test() { let String = 3i32; }");
+    ok("fun test() { let String = 3i32; }");
 }
 
 #[test]
 fn shadow_function() {
-    ok("fn f() { let f = 1i32; }");
+    ok("fun f() { let f = 1i32; }");
     err(
-        "fn f() { let f = 1i32; f(); }",
-        pos(1, 25),
+        "fun f() { let f = 1i32; f(); }",
+        pos(1, 26),
         ErrorMessage::UnknownMethod("Int32".into(), "get".into(), Vec::new()),
     );
 }
 
 #[test]
 fn shadow_var() {
-    ok("fn f() { let f = 1i32; let f = 2i32; }");
+    ok("fun f() { let f = 1i32; let f = 2i32; }");
 }
 
 #[test]
 fn shadow_param() {
     err(
-        "fn f(a: Int32, b: Int32, a: String) {}",
-        pos(1, 26),
+        "fun f(a: Int32, b: Int32, a: String) {}",
+        pos(1, 27),
         ErrorMessage::ShadowParam("a".into()),
     );
 }
 
 #[test]
 fn multiple_params() {
-    ok("fn f(a: Int32, b: Int32, c:String) {}");
+    ok("fun f(a: Int32, b: Int32, c:String) {}");
 }
 
 #[test]
 fn undefined_variable() {
     err(
-        "fn f() { let b = a; }",
-        pos(1, 18),
+        "fun f() { let b = a; }",
+        pos(1, 19),
         ErrorMessage::UnknownIdentifier("a".into()),
     );
     err(
-        "fn f() { a; }",
-        pos(1, 10),
+        "fun f() { a; }",
+        pos(1, 11),
         ErrorMessage::UnknownIdentifier("a".into()),
     );
 }
@@ -2754,82 +2756,82 @@ fn undefined_variable() {
 #[test]
 fn undefined_function() {
     err(
-        "fn f() { foo(); }",
-        pos(1, 10),
+        "fun f() { foo(); }",
+        pos(1, 11),
         ErrorMessage::UnknownIdentifier("foo".into()),
     );
 }
 
 #[test]
 fn recursive_function_call() {
-    ok("fn f() { f(); }");
+    ok("fun f() { f(); }");
 }
 
 #[test]
 fn function_call() {
-    ok("fn a() {} fn b() { a(); }");
+    ok("fun a() {} fun b() { a(); }");
 
     // non-forward definition of functions
-    ok("fn a() { b(); } fn b() {}");
+    ok("fun a() { b(); } fun b() {}");
 }
 
 #[test]
 fn variable_outside_of_scope() {
     err(
-        "fn f(): Int32 { { let a = 1i32; } return a; }",
-        pos(1, 42),
+        "fun f(): Int32 { { let a = 1i32; } return a; }",
+        pos(1, 43),
         ErrorMessage::UnknownIdentifier("a".into()),
     );
 
-    ok("fn f(): Int32 { let a = 1i32; { let a = 2i32; } return a; }");
+    ok("fun f(): Int32 { let a = 1i32; { let a = 2i32; } return a; }");
 }
 
 #[test]
 fn const_value() {
     ok("const one: Int32 = 1i32;
-        fn f(): Int32 { return one; }");
+        fun f(): Int32 { return one; }");
 }
 
 #[test]
 fn for_var() {
-    ok("fn f() { for i in std::range(0i32, 4i32) { i; } }");
+    ok("fun f() { for i in std::range(0i32, 4i32) { i; } }");
 }
 
 #[test]
 fn mod_fct_call() {
     err(
         "
-        fn f() { foo::g(); }
-        mod foo { fn g() {} }
+        fun f() { foo::g(); }
+        mod foo { fun g() {} }
     ",
-        pos(2, 24),
+        pos(2, 25),
         ErrorMessage::NotAccessible("foo::g".into()),
     );
 
     ok("
-        fn f() { foo::g(); }
-        mod foo { @pub fn g() {} }
+        fun f() { foo::g(); }
+        mod foo { @pub fun g() {} }
     ");
 
     ok("
-        fn f() { foo::bar::baz(); }
+        fun f() { foo::bar::baz(); }
         mod foo {
             @pub mod bar {
-                @pub fn baz() {}
+                @pub fun baz() {}
             }
         }
     ");
 
     err(
         "
-        fn f() { foo::bar::baz(); }
+        fun f() { foo::bar::baz(); }
         mod foo {
             @pub mod bar {
-                fn baz() {}
+                fun baz() {}
             }
         }
     ",
-        pos(2, 31),
+        pos(2, 32),
         ErrorMessage::NotAccessible("foo::bar::baz".into()),
     );
 }
@@ -2837,30 +2839,30 @@ fn mod_fct_call() {
 #[test]
 fn mod_ctor_call() {
     ok("
-        fn f() { foo::Foo(); }
+        fun f() { foo::Foo(); }
         mod foo { @pub class Foo }
     ");
 
     err(
         "
-        fn f() { foo::Foo(); }
+        fun f() { foo::Foo(); }
         mod foo { class Foo }
     ",
-        pos(2, 26),
+        pos(2, 27),
         ErrorMessage::NotAccessible("foo::Foo".into()),
     );
 
     ok("
-        fn f() { foo::bar::Foo(); }
+        fun f() { foo::bar::Foo(); }
         mod foo { @pub mod bar { @pub class Foo } }
     ");
 
     err(
         "
-        fn f() { foo::bar::Foo(); }
+        fun f() { foo::bar::Foo(); }
         mod foo { @pub mod bar { class Foo } }
     ",
-        pos(2, 31),
+        pos(2, 32),
         ErrorMessage::NotAccessible("foo::bar::Foo".into()),
     );
 }
@@ -2869,33 +2871,33 @@ fn mod_ctor_call() {
 fn mod_class_field() {
     err(
         "
-        fn f(x: foo::Foo) { let a = x.bar; }
+        fun f(x: foo::Foo) { let a = x.bar; }
         mod foo { @pub class Foo(bar: Int32) }
     ",
-        pos(2, 38),
+        pos(2, 39),
         ErrorMessage::NotAccessible("bar".into()),
     );
 
     err(
         "
-        fn f(x: foo::Foo) { let a = x.bar(10i64); }
+        fun f(x: foo::Foo) { let a = x.bar(10i64); }
         mod foo { @pub class Foo(bar: Array[Int32]) }
     ",
-        pos(2, 42),
+        pos(2, 43),
         ErrorMessage::NotAccessible("bar".into()),
     );
 
     err(
         "
-        fn f(x: foo::Foo) { x.bar(10i64) = 10i32; }
+        fun f(x: foo::Foo) { x.bar(10i64) = 10i32; }
         mod foo { @pub class Foo(bar: Array[Int32]) }
     ",
-        pos(2, 30),
+        pos(2, 31),
         ErrorMessage::NotAccessible("bar".into()),
     );
 
     ok("
-        fn f(x: foo::Foo) { let a = x.bar; }
+        fun f(x: foo::Foo) { let a = x.bar; }
         mod foo { @pub class Foo(@pub bar: Int32) }
     ");
 }
@@ -2903,22 +2905,22 @@ fn mod_class_field() {
 #[test]
 fn mod_class_method() {
     ok("
-        fn f(x: foo::Foo) { x.bar(); }
+        fun f(x: foo::Foo) { x.bar(); }
         mod foo {
             @pub class Foo
-            impl Foo { @pub fn bar() {} }
+            impl Foo { @pub fun bar() {} }
         }
     ");
 
     err(
         "
-        fn f(x: foo::Foo) { x.bar(); }
+        fun f(x: foo::Foo) { x.bar(); }
         mod foo {
             @pub class Foo
-            impl Foo { fn bar() {} }
+            impl Foo { fun bar() {} }
         }
     ",
-        pos(2, 34),
+        pos(2, 35),
         ErrorMessage::NotAccessible("foo::Foo#bar".into()),
     );
 }
@@ -2926,22 +2928,22 @@ fn mod_class_method() {
 #[test]
 fn mod_class_static_method() {
     ok("
-        fn f() { foo::Foo::bar(); }
+        fun f() { foo::Foo::bar(); }
         mod foo {
             @pub class Foo
-            impl Foo { @pub @static fn bar() {} }
+            impl Foo { @pub @static fun bar() {} }
         }
     ");
 
     err(
         "
-        fn f() { foo::Foo::bar(); }
+        fun f() { foo::Foo::bar(); }
         mod foo {
             @pub class Foo
-            impl Foo { @static fn bar() {} }
+            impl Foo { @static fun bar() {} }
         }
     ",
-        pos(2, 31),
+        pos(2, 32),
         ErrorMessage::NotAccessible("foo::Foo::bar".into()),
     );
 }
@@ -2950,38 +2952,38 @@ fn mod_class_static_method() {
 fn mod_struct_field() {
     err(
         "
-        fn f(x: foo::Foo) { let a = x.bar; }
+        fun f(x: foo::Foo) { let a = x.bar; }
         mod foo { @pub struct Foo(bar: Int32) }
     ",
-        pos(2, 38),
+        pos(2, 39),
         ErrorMessage::NotAccessible("bar".into()),
     );
 
     ok("
-        fn f(x: foo::Foo) { let a = x.bar(10i64); }
+        fun f(x: foo::Foo) { let a = x.bar(10i64); }
         mod foo { @pub struct Foo(@pub bar: Array[Int32]) }
     ");
 
     err(
         "
-        fn f(x: foo::Foo) { let a = x.bar(10i64); }
+        fun f(x: foo::Foo) { let a = x.bar(10i64); }
         mod foo { @pub struct Foo(bar: Array[Int32]) }
     ",
-        pos(2, 42),
+        pos(2, 43),
         ErrorMessage::NotAccessible("bar".into()),
     );
 
     err(
         "
-        fn f(x: foo::Foo) { x.bar(10i64) = 10i32; }
+        fun f(x: foo::Foo) { x.bar(10i64) = 10i32; }
         mod foo { @pub struct Foo(bar: Array[Int32]) }
     ",
-        pos(2, 30),
+        pos(2, 31),
         ErrorMessage::NotAccessible("bar".into()),
     );
 
     ok("
-        fn f(x: foo::Foo) { let a = x.bar; }
+        fun f(x: foo::Foo) { let a = x.bar; }
         mod foo { @pub struct Foo(@pub bar: Int32) }
     ");
 }
@@ -2989,33 +2991,33 @@ fn mod_struct_field() {
 #[test]
 fn mod_path_in_type() {
     ok("
-        fn f(): foo::Foo { foo::Foo() }
+        fun f(): foo::Foo { foo::Foo() }
         mod foo { @pub class Foo }
     ");
 
     err(
         "
-        fn f(): bar::Foo { 1i32 }
+        fun f(): bar::Foo { 1i32 }
     ",
-        pos(2, 17),
+        pos(2, 18),
         ErrorMessage::ExpectedModule,
     );
 
     err(
         "
-        fn bar() {}
-        fn f(): bar::Foo { 1i32 }
+        fun bar() {}
+        fun f(): bar::Foo { 1i32 }
     ",
-        pos(3, 17),
+        pos(3, 18),
         ErrorMessage::ExpectedModule,
     );
 
     err(
         "
-        fn f(): foo::bar::Foo { 1i32 }
+        fun f(): foo::bar::Foo { 1i32 }
         mod foo {}
     ",
-        pos(2, 17),
+        pos(2, 18),
         ErrorMessage::ExpectedModule,
     );
 }
@@ -3023,16 +3025,16 @@ fn mod_path_in_type() {
 #[test]
 fn mod_global() {
     ok("
-        fn f(): Int32 { foo::x }
+        fun f(): Int32 { foo::x }
         mod foo { @pub let x: Int32 = 1i32; }
     ");
 
     err(
         "
-        fn f(): Int32 { foo::x }
+        fun f(): Int32 { foo::x }
         mod foo { let x: Int32 = 1i32; }
     ",
-        pos(2, 28),
+        pos(2, 29),
         ErrorMessage::NotAccessible("foo::x".into()),
     );
 }
@@ -3042,7 +3044,7 @@ fn mod_trait() {
     ok("
         mod foo {
             class Foo
-            trait Bar { fn f(x: Foo); }
+            trait Bar { fun f(x: Foo); }
         }
     ");
 }
@@ -3052,10 +3054,10 @@ fn mod_impl() {
     ok("
         mod foo {
             class Foo
-            trait Bar { fn f(x: Foo); }
+            trait Bar { fun f(x: Foo); }
             class AnotherClass
             impl Bar for AnotherClass {
-                fn f(x: Foo) {}
+                fun f(x: Foo) {}
             }
         }
     ");
@@ -3067,7 +3069,7 @@ fn mod_class() {
         mod foo {
             class Foo(x: Bar)
             impl Foo {
-                fn foo(x: Bar) {}
+                fun foo(x: Bar) {}
             }
             class Bar
         }
@@ -3085,34 +3087,34 @@ fn mod_class_new() {
 
     err(
         "
-        fn f() { foo::Foo(1i32); }
+        fun f() { foo::Foo(1i32); }
         mod foo {
             class Foo(f: Int32)
         }
     ",
-        pos(2, 26),
+        pos(2, 27),
         ErrorMessage::NotAccessible("foo::Foo".into()),
     );
 
     err(
         "
-        fn f() { foo::Foo(1i32); }
+        fun f() { foo::Foo(1i32); }
         mod foo {
             class Foo(@pub f: Int32)
         }
     ",
-        pos(2, 26),
+        pos(2, 27),
         ErrorMessage::NotAccessible("foo::Foo".into()),
     );
 
     err(
         "
-        fn f() { foo::Foo(1i32); }
+        fun f() { foo::Foo(1i32); }
         mod foo {
             @pub class Foo(f: Int32)
         }
     ",
-        pos(2, 26),
+        pos(2, 27),
         ErrorMessage::ClassConstructorNotAccessible("foo::Foo".into()),
     );
 }
@@ -3121,46 +3123,46 @@ fn mod_class_new() {
 fn mod_struct() {
     err(
         "
-        fn f() { foo::Foo(1i32); }
+        fun f() { foo::Foo(1i32); }
         mod foo {
             struct Foo(f: Int32)
         }
     ",
-        pos(2, 26),
+        pos(2, 27),
         ErrorMessage::NotAccessible("foo::Foo".into()),
     );
 
     err(
         "
-        fn f() { foo::Foo(1i32); }
+        fun f() { foo::Foo(1i32); }
         mod foo {
             struct Foo(@pub f: Int32)
         }
     ",
-        pos(2, 26),
+        pos(2, 27),
         ErrorMessage::NotAccessible("foo::Foo".into()),
     );
 
     err(
         "
-        fn f() { foo::Foo(1i32); }
+        fun f() { foo::Foo(1i32); }
         mod foo {
             @pub struct Foo(f: Int32)
         }
     ",
-        pos(2, 26),
+        pos(2, 27),
         ErrorMessage::StructConstructorNotAccessible("foo::Foo".into()),
     );
 
     ok("
-        fn f() { foo::Foo(1i32); }
+        fun f() { foo::Foo(1i32); }
         mod foo {
             @pub struct Foo(@pub f: Int32)
         }
     ");
 
     ok("
-        fn f(value: foo::Foo) {}
+        fun f(value: foo::Foo) {}
         mod foo {
             @pub struct Foo(f: Int32)
         }
@@ -3168,12 +3170,12 @@ fn mod_struct() {
 
     err(
         "
-        fn f(value: foo::Foo) {}
+        fun f(value: foo::Foo) {}
         mod foo {
             struct Foo(f: Int32)
         }
     ",
-        pos(2, 21),
+        pos(2, 22),
         ErrorMessage::NotAccessible("foo::Foo".into()),
     );
 }
@@ -3181,21 +3183,21 @@ fn mod_struct() {
 #[test]
 fn mod_const() {
     ok("
-        fn f(): Int32 { foo::x }
+        fun f(): Int32 { foo::x }
         mod foo { @pub const x: Int32 = 1i32; }
     ");
 
     err(
         "
-        fn f(): Int32 { foo::x }
+        fun f(): Int32 { foo::x }
         mod foo { const x: Int32 = 1i32; }
     ",
-        pos(2, 28),
+        pos(2, 29),
         ErrorMessage::NotAccessible("foo::x".into()),
     );
 
     ok("
-        fn f(): Int32 { foo::bar::x }
+        fun f(): Int32 { foo::bar::x }
         mod foo { @pub mod bar { @pub const x: Int32 = 1i32; } }
     ");
 }
@@ -3203,30 +3205,30 @@ fn mod_const() {
 #[test]
 fn mod_enum_value() {
     ok("
-        fn f() { foo::A; }
+        fun f() { foo::A; }
         mod foo { @pub enum Foo { A, B } use Foo::A; }
     ");
 
     err(
         "
-        fn f() { foo::A; }
+        fun f() { foo::A; }
         mod foo { enum Foo { A, B } use Foo::A; }
     ",
-        pos(2, 21),
+        pos(2, 22),
         ErrorMessage::NotAccessible("foo::Foo".into()),
     );
 
     ok("
-        fn f() { foo::bar::A; }
+        fun f() { foo::bar::A; }
         mod foo { @pub mod bar { @pub enum Foo { A, B } use Foo::A; } }
     ");
 
     err(
         "
-        fn f() { foo::bar::A; }
+        fun f() { foo::bar::A; }
         mod foo { @pub mod bar { enum Foo { A, B } use Foo::A; } }
     ",
-        pos(2, 26),
+        pos(2, 27),
         ErrorMessage::NotAccessible("foo::bar::Foo".into()),
     );
 }
@@ -3235,7 +3237,7 @@ fn mod_enum_value() {
 fn mod_enum() {
     err(
         "
-        fn f() {
+        fun f() {
             foo::Foo::B;
         }
         mod foo { enum Foo { A(Bar), B } class Bar }
@@ -3245,14 +3247,14 @@ fn mod_enum() {
     );
 
     ok("
-        fn f() {
+        fun f() {
             foo::Foo::B;
         }
         mod foo { @pub enum Foo { A, B } }
     ");
 
     ok("
-        fn f() {
+        fun f() {
             foo::Foo::A(1i32);
         }
         mod foo { @pub enum Foo { A(Int32), B } }
@@ -3260,7 +3262,7 @@ fn mod_enum() {
 
     err(
         "
-        fn f() {
+        fun f() {
             foo::Foo::A(1i32);
         }
         mod foo { enum Foo { A(Int32), B } }
@@ -3274,33 +3276,33 @@ fn mod_enum() {
 fn mod_use() {
     ok("
         use foo::bar;
-        fn f() { bar(); }
-        mod foo { @pub fn bar() {} }
+        fun f() { bar(); }
+        mod foo { @pub fun bar() {} }
     ");
 
     ok("
         use foo::bar::baz;
-        fn f() { baz(); }
+        fun f() { baz(); }
         mod foo { @pub mod bar {
-            @pub fn baz() {}
+            @pub fun baz() {}
         } }
     ");
 
     ok("
         use foo::bar as baz;
-        fn f() { baz(); }
-        mod foo { @pub fn bar() {} }
+        fun f() { baz(); }
+        mod foo { @pub fun bar() {} }
     ");
 
     ok("
         use foo::bar;
-        fn f(): Int32 { bar }
+        fun f(): Int32 { bar }
         mod foo { @pub let bar: Int32 = 10i32; }
     ");
 
     ok("
         use foo::bar::baz;
-        fn f(): Int32 { baz }
+        fun f(): Int32 { baz }
         mod foo { @pub mod bar {
             @pub let baz: Int32 = 10i32;
         } }
@@ -3308,7 +3310,7 @@ fn mod_use() {
 
     ok("
         use foo::bar;
-        fn f(): Int32 { bar }
+        fun f(): Int32 { bar }
         mod foo { @pub let bar: Int32 = 10i32; }
     ");
 }
@@ -3317,20 +3319,20 @@ fn mod_use() {
 fn mod_use_class() {
     ok("
         use foo::Bar;
-        fn f() { Bar(); }
+        fun f() { Bar(); }
         mod foo { @pub class Bar }
     ");
 
     ok("
         use foo::Bar;
-        fn f() {
+        fun f() {
             Bar();
             Bar::baz();
         }
         mod foo {
             @pub class Bar
             impl Bar {
-                @pub @static fn baz() {}
+                @pub @static fun baz() {}
             }
         }
     ");
@@ -3357,7 +3359,7 @@ fn mod_use_package() {
         class Foo
         mod bar {
             use package::Foo;
-            fn getfoo(): Foo { Foo() }
+            fun getfoo(): Foo { Foo() }
         }
     ");
 }
@@ -3370,7 +3372,7 @@ fn mod_use_super() {
             mod bar {
                 use super::Foo;
 
-                fn getfoo(): Foo { Foo() }
+                fun getfoo(): Foo { Foo() }
             }
         }
     ");
@@ -3382,7 +3384,7 @@ fn mod_use_super() {
 fn mod_use_self() {
     ok("
         use self::bar::Foo;
-        fn getfoo(): Foo { Foo() }
+        fun getfoo(): Foo { Foo() }
         mod bar { @pub class Foo }
     ");
 }
@@ -3418,7 +3420,7 @@ fn mod_use_errors() {
     err(
         "
         use foo::bar;
-        fn foo() {}
+        fun foo() {}
     ",
         pos(2, 13),
         ErrorMessage::ExpectedPath,
@@ -3427,7 +3429,7 @@ fn mod_use_errors() {
     err(
         "
         use foo::bar::baz;
-        @pub mod foo { @pub fn bar() {} }
+        @pub mod foo { @pub fun bar() {} }
     ",
         pos(2, 18),
         ErrorMessage::ExpectedPath,
@@ -3437,67 +3439,67 @@ fn mod_use_errors() {
 #[test]
 fn mod_inside() {
     ok("
-        mod foo { fn f() { g() } fn g() {} }
+        mod foo { fun f() { g() } fun g() {} }
     ");
 
     ok("
-        mod foo { class Foo fn g(x: Foo) {} }
+        mod foo { class Foo fun g(x: Foo) {} }
     ");
 
     ok("
-        fn f(x: foo::Foo) {}
+        fun f(x: foo::Foo) {}
         mod foo { @pub class Foo }
     ");
 
     err(
         "
-        fn f(x: foo::Foo) {}
+        fun f(x: foo::Foo) {}
         mod foo { class Foo }
     ",
-        pos(2, 17),
+        pos(2, 18),
         ErrorMessage::NotAccessible("foo::Foo".into()),
     );
 }
 
 #[test]
 fn different_fct_call_kinds() {
-    ok("fn f() { g(); } fn g() {}");
-    ok("fn f() { g[Int32](); } fn g[T]() {}");
-    ok("fn f(g: Array[Int32]) { g(0); }");
+    ok("fun f() { g(); } fun g() {}");
+    ok("fun f() { g[Int32](); } fun g[T]() {}");
+    ok("fun f(g: Array[Int32]) { g(0); }");
     err(
-        "fn f(g: Array[Int32]) { g[Float32](0); }",
-        pos(1, 26),
+        "fun f(g: Array[Int32]) { g[Float32](0); }",
+        pos(1, 27),
         ErrorMessage::NoTypeParamsExpected,
     );
-    ok("class Foo fn f() { Foo(); }");
+    ok("class Foo fun f() { Foo(); }");
     errors(
-        "fn f() { 1i32[Int32](); }",
+        "fun f() { 1i32[Int32](); }",
         &[
-            (pos(1, 14), ErrorMessage::NoTypeParamsExpected),
+            (pos(1, 15), ErrorMessage::NoTypeParamsExpected),
             (
-                pos(1, 21),
+                pos(1, 22),
                 ErrorMessage::UnknownMethod("Int32".into(), "get".into(), Vec::new()),
             ),
         ],
     );
-    ok("enum Foo { A(Int32), B } fn f() { Foo::A(1i32); }");
-    ok("enum Foo[T] { A(Int32), B } fn f() { Foo[Int32]::A(1i32); }");
-    ok("enum Foo[T] { A(Int32), B } fn f() { Foo::A[Int32](1i32); }");
+    ok("enum Foo { A(Int32), B } fun f() { Foo::A(1i32); }");
+    ok("enum Foo[T] { A(Int32), B } fun f() { Foo[Int32]::A(1i32); }");
+    ok("enum Foo[T] { A(Int32), B } fun f() { Foo::A[Int32](1i32); }");
     err(
-        "enum Foo[T] { A(Int32), B } fn f() { Foo[Int32]::A[Int32](1i32); }",
-        pos(1, 41),
+        "enum Foo[T] { A(Int32), B } fun f() { Foo[Int32]::A[Int32](1i32); }",
+        pos(1, 42),
         ErrorMessage::NoTypeParamsExpected,
     );
-    ok("trait MyTrait { @static fn foo(); } fn f[T: MyTrait]() { T::foo(); }");
-    ok("class Foo impl Foo { fn bar() {} } fn f(g: Foo) { g.bar(); }");
-    ok("class Foo impl Foo { fn bar[T]() {} } fn f(g: Foo) { g.bar[Int32](); }");
+    ok("trait MyTrait { @static fun foo(); } fun f[T: MyTrait]() { T::foo(); }");
+    ok("class Foo impl Foo { fun bar() {} } fun f(g: Foo) { g.bar(); }");
+    ok("class Foo impl Foo { fun bar[T]() {} } fun f(g: Foo) { g.bar[Int32](); }");
 }
 
 #[test]
 fn trait_object_method_call() {
     ok("
-        trait Foo { fn bar(): Int32; }
-        fn f(x: Foo): Int32 {
+        trait Foo { fun bar(): Int32; }
+        fun f(x: Foo): Int32 {
             x.bar()
         }
     ");
@@ -3506,29 +3508,29 @@ fn trait_object_method_call() {
 #[test]
 fn trait_object_cast() {
     ok("
-        trait Foo { fn bar(): Int32; }
+        trait Foo { fun bar(): Int32; }
         class Bar
         impl Foo for Bar {
-            fn bar(): Int32 { 1i32 }
+            fun bar(): Int32 { 1i32 }
         }
-        fn f(x: Foo): Int32 { x.bar() }
-        fn g(): Int32 {
+        fun f(x: Foo): Int32 { x.bar() }
+        fun g(): Int32 {
             f(Bar() as Foo)
         }
     ");
 
     ok("
-        trait Foo { fn bar(): Int32; }
+        trait Foo { fun bar(): Int32; }
         class Bar
         impl Foo for Bar {
-            fn bar(): Int32 { 1i32 }
+            fun bar(): Int32 { 1i32 }
         }
-        fn f(): Foo { Bar() as Foo }
+        fun f(): Foo { Bar() as Foo }
     ");
 
     ok("
-        trait Foo { fn bar(): Int32; }
-        fn f(x: Foo): Foo {
+        trait Foo { fun bar(): Int32; }
+        fun f(x: Foo): Foo {
             let y = x;
             y
         }
@@ -3536,10 +3538,10 @@ fn trait_object_cast() {
 
     err(
         "
-        trait Foo { fn bar(): Int32; }
+        trait Foo { fun bar(): Int32; }
         class Bar
-        fn f(x: Foo) {}
-        fn g() {
+        fun f(x: Foo) {}
+        fun g() {
             f(Bar() as Foo)
         }
     ",
@@ -3550,7 +3552,7 @@ fn trait_object_cast() {
 
 #[test]
 fn infer_enum_type() {
-    ok("fn f(): Option[Int32] {
+    ok("fun f(): Option[Int32] {
         None
     }");
 
@@ -3560,18 +3562,18 @@ fn infer_enum_type() {
             b: Option[Int32],
         }
 
-        fn f(x: X) {
+        fun f(x: X) {
             x.a = Some(10i32);
             x.b = None;
         }
     ");
 
-    ok("fn f() {
+    ok("fun f() {
         let mut x: Option[Int32] = None; x = Some(10i32);
         let mut y: Option[Int32] = Some(10i32); y = None;
     }");
 
-    ok("fn f(): Option[Int32] {
+    ok("fun f(): Option[Int32] {
         Some(10i32)
     }");
 }
@@ -3582,9 +3584,9 @@ fn method_call_type_mismatch_with_type_params() {
         "
         class Foo
         impl Foo {
-            fn f(a: String) {}
+            fun f(a: String) {}
         }
-        fn g[T](foo: Foo, value: T) {
+        fun g[T](foo: Foo, value: T) {
             foo.f(value);
         }
     ",
@@ -3595,20 +3597,20 @@ fn method_call_type_mismatch_with_type_params() {
 
 #[test]
 fn basic_lambda() {
-    ok("fn f(foo: (Int32): Int32): Int32 {
+    ok("fun f(foo: (Int32): Int32): Int32 {
         foo(1i32)
     }");
 
     err(
-        "fn f(foo: (Int32): Int32): Bool {
+        "fun f(foo: (Int32): Int32): Bool {
         foo(1i32)
     }",
-        pos(1, 33),
+        pos(1, 34),
         ErrorMessage::ReturnType("Bool".into(), "Int32".into()),
     );
 
     err(
-        "fn f(foo: (Int32, Int32): Int32): Int32 {
+        "fun f(foo: (Int32, Int32): Int32): Int32 {
         foo(1i32)
     }",
         pos(2, 12),
@@ -3621,16 +3623,16 @@ fn basic_lambda() {
 
 #[test]
 fn lambda_body() {
-    ok("fn f(): (Int32): Int32 {
+    ok("fun f(): (Int32): Int32 {
         |x: Int32|: Int32 { x }
     }");
 
-    ok("fn f(): (Int32): Int32 {
+    ok("fun f(): (Int32): Int32 {
         |x: Int32|: Int32 { x + 1i32 }
     }");
 
     err(
-        "fn f(): (Int32): Int32 {
+        "fun f(): (Int32): Int32 {
         |x: Int32|: Int32 { false }
     }",
         pos(2, 27),
@@ -3640,17 +3642,17 @@ fn lambda_body() {
 
 #[test]
 fn lambda_closure() {
-    ok("fn f() {
+    ok("fun f() {
         let x: Int32 = 10i32;
         ||: Int32 { x };
     }");
 
-    ok("fn f(x: Int32) {
+    ok("fun f(x: Int32) {
         ||: Int32 { x };
     }");
 
     err(
-        "fn f() {
+        "fun f() {
         ||: Int32 { x };
         let x: Int32 = 10i32;
     }",
@@ -3662,7 +3664,7 @@ fn lambda_closure() {
 #[test]
 fn internal_class_ctor() {
     err(
-        "fn f(): Array[Int32] {
+        "fun f(): Array[Int32] {
         Array[Int32]()
     }",
         pos(2, 21),
@@ -3673,7 +3675,7 @@ fn internal_class_ctor() {
 #[test]
 fn internal_struct_ctor() {
     err(
-        "fn f() {
+        "fun f() {
         Int32();
     }",
         pos(2, 14),
@@ -3683,10 +3685,10 @@ fn internal_struct_ctor() {
 
 #[test]
 fn mutable_param() {
-    ok("fn f(mut x: Int64) { x = 10; }");
+    ok("fun f(mut x: Int64) { x = 10; }");
     err(
-        "fn f(x: Int64) { x = 10; }",
-        pos(1, 20),
+        "fun f(x: Int64) { x = 10; }",
+        pos(1, 21),
         ErrorMessage::LetReassigned,
     );
 }
@@ -3694,8 +3696,8 @@ fn mutable_param() {
 #[test]
 fn self_unavailable_in_lambda() {
     err(
-        "fn f() { || { self; }; }",
-        pos(1, 15),
+        "fun f() { || { self; }; }",
+        pos(1, 16),
         ErrorMessage::ThisUnavailable,
     );
 }

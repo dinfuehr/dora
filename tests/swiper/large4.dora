@@ -5,7 +5,7 @@ use std::forceMinorCollect;
 
 class Foo(x: Int32)
 
-fn main() {
+fun main() {
     let default = Foo(100i32);
     let x = LargeObject::new(default);
     forceCollect();
@@ -16415,7 +16415,7 @@ class LargeObject {
 }
 
 impl LargeObject {
-    @static fn new(f: Foo): LargeObject {
+    @static fun new(f: Foo): LargeObject {
         LargeObject(
             f,
             0,

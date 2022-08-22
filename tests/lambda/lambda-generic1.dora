@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
     let l1 = foo[Int64](0);
     assert(l1(1) == 0);
     assert(l1(2) == 1);
@@ -8,7 +8,7 @@ fn main() {
     assert(l2("baz") == "bar");
 }
 
-fn foo[T](mut value: T): (T): T {
+fun foo[T](mut value: T): (T): T {
     |next: T|: T {
         let result = value;
         value = next;

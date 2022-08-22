@@ -1,6 +1,6 @@
 //= error assert
 
-fn main() {
+fun main() {
   let mut x = Foo(12i32);
   x.test();
   x.test2(1i32);
@@ -9,11 +9,11 @@ fn main() {
 class Foo(i: Int32)
 
 impl Foo {
-  fn test() {
+  fun test() {
     let mut x = self.i;
   }
 
-  fn test2(i: Int32) {
+  fun test2(i: Int32) {
     assert(i == 2i32);
   }
 }

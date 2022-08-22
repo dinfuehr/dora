@@ -6,7 +6,7 @@ use package::deserializer::ByteReader;
 use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
 
-@pub fn compile(encoded: Array[UInt8]): Array[UInt8] {
+@pub fun compile(encoded: Array[UInt8]): Array[UInt8] {
     let reader = ByteReader::new(encoded);
     let ci = decodeCompilationInfo(reader);
     assert(reader.moreBytes().not());

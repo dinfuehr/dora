@@ -1,4 +1,4 @@
-fn main() {
+fun main() {
   let x = 3i32 | 7i32 & 4i32;
   assert(x == 7i32);
 }

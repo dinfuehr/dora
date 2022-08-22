@@ -29,7 +29,7 @@ let mut promoteRate: Int32 = 0i32;
 let mut ptrMutRate: Int32 = 0i32;
 let mut steps: Int32 = 0i32;
 
-fn height(t: Option[TreeNode]): Int32 {
+fun height(t: Option[TreeNode]): Int32 {
     if t.isNone() {
         return 0i32;
     } else {
@@ -37,7 +37,7 @@ fn height(t: Option[TreeNode]): Int32 {
     }
 }
 
-fn shortestPath(t: Option[TreeNode]): Int32 {
+fun shortestPath(t: Option[TreeNode]): Int32 {
     if t.isNone() {
         return 0i32;
     } else {
@@ -45,7 +45,7 @@ fn shortestPath(t: Option[TreeNode]): Int32 {
     }
 }
 
-fn heightToNodes(h: Int32): Int64 {
+fun heightToNodes(h: Int32): Int64 {
     let mut h = h;
     if (h == 0i32) {
         return 0i64;
@@ -61,11 +61,11 @@ fn heightToNodes(h: Int32): Int64 {
     return n + n - 1i64;
 }
 
-fn heightToBytes(h: Int32): Int64 {
+fun heightToBytes(h: Int32): Int64 {
     return BYTES_PER_NODE.toInt64() * heightToNodes(h);
 }
 
-fn nodesToHeight(nnodes: Int64): Int32 {
+fun nodesToHeight(nnodes: Int64): Int32 {
     let mut h = 1i32;
     let mut n = 1i64;
 
@@ -77,11 +77,11 @@ fn nodesToHeight(nnodes: Int64): Int32 {
     return h - 1i32;
 }
 
-fn bytesToHeight(bytes: Int64): Int32 {
+fun bytesToHeight(bytes: Int64): Int32 {
     return nodesToHeight(bytes / BYTES_PER_NODE.toInt64());
 }
 
-fn makeTree(h: Int32): TreeNode {
+fun makeTree(h: Int32): TreeNode {
     let res = TreeNode(Option[TreeNode]::None, Option[TreeNode]::None, 0i32);
     nodes = nodes + 1i64;
     if h > 1i32 {
@@ -92,7 +92,7 @@ fn makeTree(h: Int32): TreeNode {
     res
 }
 
-fn initialize() {
+fun initialize() {
     let ntrees = (size * MEG).toInt64() / treeSize;
     let default = TreeNode(Option[TreeNode]::None, Option[TreeNode]::None, 0i32);
     trees = Array[TreeNode]::fill(ntrees, default);
@@ -110,7 +110,7 @@ fn initialize() {
     println("  (" + nodes.toString() + " nodes)");
 }
 
-fn checkTrees() {
+fun checkTrees() {
     let ntrees = trees.size();
 
     let mut i = 0i64;
@@ -129,7 +129,7 @@ fn checkTrees() {
     }
 }
 
-fn replaceTreeWork(full: TreeNode, partial: TreeNode, dir: Bool) {
+fun replaceTreeWork(full: TreeNode, partial: TreeNode, dir: Bool) {
     let canGoLeft = full.left.isSome() && full.left.getOrPanic().value > partial.value;
     let canGoRight = full.right.isSome() && full.right.getOrPanic().value > partial.value;
 
@@ -152,13 +152,13 @@ fn replaceTreeWork(full: TreeNode, partial: TreeNode, dir: Bool) {
     }
 }
 
-fn replaceTree(full: TreeNode, partial: TreeNode) {
+fun replaceTree(full: TreeNode, partial: TreeNode) {
     let dir = (partial.value % 2i32) == 0i32;
     actuallyMut = actuallyMut + 1i64;
     replaceTreeWork(full, partial, dir);
 }
 
-fn oldGenAlloc(n: Int64) {
+fun oldGenAlloc(n: Int64) {
     let full = n / treeSize;
     let mut partial = n % treeSize;
 
@@ -188,7 +188,7 @@ fn oldGenAlloc(n: Int64) {
     }
 }
 
-fn oldGenSwapSubtrees() {
+fun oldGenSwapSubtrees() {
     let index1 = rnd.nextInt32WithBound(trees.size().toInt32());
     let index2 = rnd.nextInt32WithBound(trees.size().toInt32());
     let depth = rnd.nextInt32WithBound(treeHeight);
@@ -224,7 +224,7 @@ fn oldGenSwapSubtrees() {
     actuallyMut = actuallyMut + 2i64;
 }
 
-fn oldGenMut(n: Int64) {
+fun oldGenMut(n: Int64) {
     let mut i = 0i64;
 
     while i < n/2i64 {
@@ -233,7 +233,7 @@ fn oldGenMut(n: Int64) {
     }
 }
 
-fn doMutWork(n: Int64) {
+fun doMutWork(n: Int64) {
     let mut sum = 0i32;
     let limit = workUnits.toInt64() * n / 10i64;
 
@@ -247,7 +247,7 @@ fn doMutWork(n: Int64) {
     mutatorSum = mutatorSum + sum.toInt64();
 }
 
-fn doYoungGenAlloc(n: Int64, nwords: Int32) {
+fun doYoungGenAlloc(n: Int64, nwords: Int32) {
     let nbytes = nwords * BYTES_PER_WORD;
     let mut allocated = 0i64;
 
@@ -259,7 +259,7 @@ fn doYoungGenAlloc(n: Int64, nwords: Int32) {
     youngBytes = youngBytes + allocated;
 }
 
-fn doStep(n: Int64) {
+fun doStep(n: Int64) {
     let mutations = actuallyMut;
 
     doYoungGenAlloc(n, WORDS_DEAD);
@@ -268,7 +268,7 @@ fn doStep(n: Int64) {
     oldGenMut(Int64::max(0i64, (mutations + ptrMutRate.toInt64()) - actuallyMut));
 }
 
-fn main() {
+fun main() {
     rnd = std::Random::new(1234567890i64);
 
     if std::argc() != 5i32 {

@@ -1,6 +1,6 @@
 enum Foo { A, B }
 
-fn main() {
+fun main() {
     assert(is_a(Foo::A));
     assert(is_a(Foo::B).not());
     assert(Foo::A == myid(Foo::A));
@@ -9,10 +9,10 @@ fn main() {
     assert(Foo::B != myid(Foo::A));
 }
 
-fn is_a(foo: Foo): Bool {
+fun is_a(foo: Foo): Bool {
     return foo == Foo::A;
 }
 
-fn myid(foo: Foo): Foo {
+fun myid(foo: Foo): Foo {
     return foo;
 }

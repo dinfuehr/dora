@@ -65,7 +65,7 @@ pub fn disassemble(
 
     writeln!(
         &mut w,
-        "fn {}{} {:#x} {:#x}",
+        "fun {}{} {:#x} {:#x}",
         &name, type_params, start_addr, end_addr
     )
     .unwrap();
