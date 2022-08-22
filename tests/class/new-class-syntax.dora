@@ -8,7 +8,7 @@ class Bar(c: (Int64, Foo), d: MyStruct)
 fn main() {
     let foo1 = Foo(1, false);
     std::forceCollect();
-    assert(foo1.a == 1 && !foo1.b);
+    assert(foo1.a == 1 && foo1.b.not());
 
     let foo2 = Foo(101, true);
     std::forceCollect();

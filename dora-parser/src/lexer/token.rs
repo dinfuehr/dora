@@ -59,7 +59,6 @@ pub enum TokenKind {
     Modulo,
 
     // operators – logic
-    Not,
     Or,
     And,
     Caret,
@@ -167,7 +166,6 @@ impl TokenKind {
             TokenKind::Modulo => "%",
 
             // operators – logic
-            TokenKind::Not => "!",
             TokenKind::Or => "|",
             TokenKind::And => "&",
             TokenKind::Caret => "^",

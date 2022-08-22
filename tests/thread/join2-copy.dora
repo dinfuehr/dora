@@ -11,21 +11,21 @@ fn main() {
 
     let main = Thread::current();
 
-    assert(!ids.contains(main.id()));
+    assert(ids.contains(main.id()).not());
     ids.insert(main.id());
 
-    assert(!protectedIds.contains(main.id()));
+    assert(protectedIds.contains(main.id()).not());
     protectedIds.insert(main.id());
 
     while i < 10_000i32 {
         let thread = std::thread::spawn(|| {
             mtx.lock[()](|| {
                 let current = Thread::current();
-                assert(!protectedIds.contains(current.id()));
+                assert(protectedIds.contains(current.id()).not());
                 protectedIds.insert(current.id());
             });
         });
-        assert(!ids.contains(thread.id()));
+        assert(ids.contains(thread.id()).not());
         ids.insert(thread.id());
 
         if i % 1_000i32 == 0i32 {
@@ -35,6 +35,6 @@ fn main() {
         i = i + 1i32;
     }
 
-    assert(!ids.contains(0));
-    assert(!protectedIds.contains(0));
+    assert(ids.contains(0).not());
+    assert(protectedIds.contains(0).not());
 }

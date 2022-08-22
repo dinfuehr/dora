@@ -15,34 +15,34 @@ fn main() {
     assert(xor(20i64, 5i64) == 17i64);
     assert(and(20i64, 5i64) == 4i64);
 
-    assert(!eq(20i64, 5i64));
+    assert(eq(20i64, 5i64).not());
     assert(eq(5i64, 5i64));
-    assert(!eq(5i64, 20i64));
+    assert(eq(5i64, 20i64).not());
 
     assert(ne(20i64, 5i64));
-    assert(!ne(5i64, 5i64));
+    assert(ne(5i64, 5i64).not());
     assert(ne(5i64, 20i64));
 
 
-    assert(!lt(20i64, 5i64));
-    assert(!lt(5i64, 5i64));
+    assert(lt(20i64, 5i64).not());
+    assert(lt(5i64, 5i64).not());
     assert(lt(5i64, 20i64));
 
-    assert(!le(20i64, 5i64));
+    assert(le(20i64, 5i64).not());
     assert(le(5i64, 5i64));
     assert(le(5i64, 20i64));
 
     assert(ge(20i64, 5i64));
     assert(ge(5i64, 5i64));
-    assert(!ge(5i64, 20i64));
+    assert(ge(5i64, 20i64).not());
 
     assert(gt(20i64, 5i64));
-    assert(!gt(5i64, 5i64));
-    assert(!gt(5i64, 20i64));
+    assert(gt(5i64, 5i64).not());
+    assert(gt(5i64, 20i64).not());
 }
 
 fn not(x: Int64): Int64 {
-    return !x;
+    return x.not();
 }
 
 fn add(x: Int64, y: Int64): Int64 {

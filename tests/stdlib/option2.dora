@@ -1,21 +1,21 @@
 fn main() {
   let x = None[Int32];
   assert(x.isNone());
-  assert(!x.isSome());
-  assert(!x.has(0i32));
-  assert(!x.contains(0i32));
+  assert(x.isSome().not());
+  assert(x.has(0i32).not());
+  assert(x.contains(0i32).not());
   assert(x.equals(None[Int32]));
-  assert(!x.equals(Some[Int32](0i32)));
+  assert(x.equals(Some[Int32](0i32)).not());
   assert(x.toString() == "None");
 
   let x = Some[Int32](42i32);
   assert(x.isSome());
-  assert(!x.isNone());
+  assert(x.isNone().not());
   assert(x.getOrPanic() == 42i32);
   assert(x.has(42i32));
   assert(x.contains(42i32));
   assert(x.equals(Some[Int32](42i32)));
-  assert(!x.equals(Some[Int32](2i32)));
-  assert(!x.equals(None[Int32]));
+  assert(x.equals(Some[Int32](2i32)).not());
+  assert(x.equals(None[Int32]).not());
   assert(x.toString() == "Some(42)");
 }

@@ -6,7 +6,7 @@ fn main() {
     assert(map.contains(2i32));
     assert(map.contains(3i32));
     assert(map.contains(4i32));
-    assert(!map.contains(0i32));
+    assert(map.contains(0i32).not());
 
     assert(map.get(1i32).getOrPanic() == "a");
     assert(map.get(2i32).getOrPanic() == "b");

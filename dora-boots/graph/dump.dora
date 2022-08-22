@@ -31,7 +31,7 @@ impl GraphDumper {
     fn dumpBlock(block: Block) {
         self.buffer.append("@${block.id()}:");
 
-        if !block.predecessors.isEmpty() {
+        if block.predecessors.isEmpty().not() {
             self.buffer.append(" pred = [");
             let mut first: Bool = true;
 
@@ -48,7 +48,7 @@ impl GraphDumper {
             self.buffer.append("]");
         }
 
-        if !block.successors.isEmpty() {
+        if block.successors.isEmpty().not() {
             self.buffer.append(" succ = [");
             let mut first: Bool = true;
 
@@ -79,7 +79,7 @@ impl GraphDumper {
     fn dumpInst(inst: Inst) {
         self.buffer.append("  %${inst.id()}: ${dumpInstName(inst)}");
 
-        if !inst.getInputs().isEmpty() {
+        if inst.getInputs().isEmpty().not() {
             let mut first = true;
 
             for inp in inst.getInputs() {
@@ -173,7 +173,7 @@ fn dumpInstName(inst: Inst): String {
 @pub fn assertGraph(graph: Graph, output: String) {
     let graphOutput = dumpGraph(graph);
 
-    if !compareStrings(graphOutput, output) {
+    if compareStrings(graphOutput, output).not() {
         println("got: \"${graphOutput}\"");
         println("expected: \"${output}\"");
 

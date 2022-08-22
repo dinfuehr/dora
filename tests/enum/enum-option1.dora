@@ -1,11 +1,11 @@
 fn main() {
     assert(Option[String]::None.isNone());
     assert(Option[Int32]::None.isNone());
-    assert(!Option[String]::None.isSome());
-    assert(!Option[Int32]::None.isSome());
+    assert(Option[String]::None.isSome().not());
+    assert(Option[Int32]::None.isSome().not());
 
-    assert(!Option[String]::Some("abc").isNone());
-    assert(!Option[Int32]::Some(12i32).isNone());
+    assert(Option[String]::Some("abc").isNone().not());
+    assert(Option[Int32]::Some(12i32).isNone().not());
     assert(Option[String]::Some("abc").isSome());
     assert(Option[Int32]::Some(12i32).isSome());
 

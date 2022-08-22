@@ -9,7 +9,7 @@ use package::codegen::arm64::CodeGenArm64;
 @pub fn compile(encoded: Array[UInt8]): Array[UInt8] {
     let reader = ByteReader::new(encoded);
     let ci = decodeCompilationInfo(reader);
-    assert(!reader.moreBytes());
+    assert(reader.moreBytes().not());
     // bytecodeDump(info.bc);
 
     match ci.arch {

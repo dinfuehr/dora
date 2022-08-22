@@ -56,9 +56,6 @@ fn main() {
     let x = 1i64.not();
     assert(x == -2i64);
 
-    let x = !1i64;
-    assert(x == -2i64);
-
     let x = 3i64;
     assert(x.toInt32() == 3i32);
 

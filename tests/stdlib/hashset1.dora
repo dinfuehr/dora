@@ -10,7 +10,7 @@ fn main() {
     assert(set.contains(1i32));
     assert(set.contains(10000i32));
     assert(set.contains(7i32));
-    assert(!set.contains(2i32));
+    assert(set.contains(2i32).not());
 
     set.remove(10000i32);
 
@@ -18,6 +18,6 @@ fn main() {
     assert(set.isEmpty().not());
 
     assert(set.contains(1i32));
-    assert(!set.contains(10000i32));
+    assert(set.contains(10000i32).not());
     assert(set.contains(7i32));
 }

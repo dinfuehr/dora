@@ -605,7 +605,7 @@ impl Inst {
     }
 
     @pub fn remove() {
-        assert(!self.hasUses());
+        assert(self.hasUses().not());
         assert(self.block.isSome());
 
         self.removeAsUser();
@@ -1157,7 +1157,7 @@ impl Edge {
     }
 
     @pub fn markAsBackwardEdge() {
-        assert(!self.backward);
+        assert(self.backward.not());
         self.backward = true;
     }
 }

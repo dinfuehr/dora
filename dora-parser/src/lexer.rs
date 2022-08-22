@@ -336,7 +336,7 @@ impl Lexer {
                         TokenKind::NotEq
                     }
                 } else {
-                    TokenKind::Not
+                    return Err(ParseErrorAndPos::new(pos, ParseError::UnknownChar(ch)));
                 }
             }
             '@' => TokenKind::At,
@@ -1079,14 +1079,12 @@ mod tests {
         assert_tok(&mut reader, TokenKind::Gt, 1, 6);
         assert_tok(&mut reader, TokenKind::Lt, 1, 7);
 
-        let mut reader = Lexer::from_str("!=====!");
+        let mut reader = Lexer::from_str("!=====");
         assert_tok(&mut reader, TokenKind::NeEqEq, 1, 1);
         assert_tok(&mut reader, TokenKind::EqEqEq, 1, 4);
-        assert_tok(&mut reader, TokenKind::Not, 1, 7);
 
-        let mut reader = Lexer::from_str("!=!");
+        let mut reader = Lexer::from_str("!=");
         assert_tok(&mut reader, TokenKind::NotEq, 1, 1);
-        assert_tok(&mut reader, TokenKind::Not, 1, 3);
 
         let mut reader = Lexer::from_str("=>->");
         assert_tok(&mut reader, TokenKind::DoubleArrow, 1, 1);

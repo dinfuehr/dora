@@ -12,7 +12,7 @@ use package::dominator::buildDominatorTree;
 fn removeDeadInstructions(graph: Graph) {
     for block in graph.postOrderIterator() {
         for inst in block.reverseInstructionsIterator() {
-            if !inst.hasUses() && !inst.hasSideEffects() {
+            if inst.hasUses().not() && inst.hasSideEffects().not() {
                 inst.remove();
             }
         }

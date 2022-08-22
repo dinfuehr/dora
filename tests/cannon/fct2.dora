@@ -15,7 +15,7 @@ fn foo_bool(): Bool {
 
 fn bar_bool(a: Bool): Bool {
   assert(a == true);
-  return !a;
+  return a.not();
 }
 
 fn foo_byte(): UInt8 {

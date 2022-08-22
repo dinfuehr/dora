@@ -39,7 +39,7 @@ impl GraphVerifier {
             self.verifyInst(inst);
 
             if inst !== block.lastInst() {
-                assert(!inst.isTerminator());
+                assert(inst.isTerminator().not());
             }
         }
 

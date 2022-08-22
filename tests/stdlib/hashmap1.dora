@@ -19,7 +19,7 @@ fn main() {
     assert(map.contains(1i32));
     assert(map.contains(10000i32));
     assert(map.contains(7i32));
-    assert(!map.contains(2i32));
+    assert(map.contains(2i32).not());
 
     map.remove(10000i32);
 
@@ -31,7 +31,7 @@ fn main() {
     assert(map.isEmpty().not());
 
     assert(map.contains(1i32));
-    assert(!map.contains(10000i32));
+    assert(map.contains(10000i32).not());
     assert(map.contains(7i32));
 
     check_iterator2(map);
@@ -43,15 +43,15 @@ fn check_iterator1(map: HashMap[Int32, String]) {
     for (key, value) in map {
         if key == 1i32 {
             assert(value == "a");
-            assert(!set.contains(0i64));
+            assert(set.contains(0i64).not());
             set.insert(0i64);
         } else if key == 10000i32 {
             assert(value == "b");
-            assert(!set.contains(1i64));
+            assert(set.contains(1i64).not());
             set.insert(1i64);
         } else if key == 7i32 {
             assert(value == "c");
-            assert(!set.contains(2i64));
+            assert(set.contains(2i64).not());
             set.insert(2i64);
         } else {
             unreachable[()]();
@@ -69,11 +69,11 @@ fn check_iterator2(map: HashMap[Int32, String]) {
     for (key, value) in map {
         if key == 1i32 {
             assert(value == "a");
-            assert(!set.contains(0i64));
+            assert(set.contains(0i64).not());
             set.insert(0i64);
         } else if key == 7i32 {
             assert(value == "c");
-            assert(!set.contains(1i64));
+            assert(set.contains(1i64).not());
             set.insert(1i64);
         } else {
             unreachable[()]();

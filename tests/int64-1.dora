@@ -5,8 +5,8 @@ fn main() {
     assert(x == y);
     assert(x >= y);
     assert(x <= y);
-    assert(!(x > y));
-    assert(!(x < y));
+    assert((x > y).not());
+    assert((x < y).not());
 }
 
 fn id(val: Int64): Int64 {

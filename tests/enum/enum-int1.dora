@@ -2,7 +2,7 @@ enum Foo { A, B }
 
 fn main() {
     assert(is_a(Foo::A));
-    assert(!is_a(Foo::B));
+    assert(is_a(Foo::B).not());
     assert(Foo::A == myid(Foo::A));
     assert(Foo::B == myid(Foo::B));
     assert(Foo::A != myid(Foo::B));

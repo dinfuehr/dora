@@ -12,8 +12,8 @@ fn main() {
     assert(set.size() == 1000i64);
     assert(set.isEmpty().not());
     assert(set.capacity() == 2048i64);
-    assert(!set.contains(-1i32));
-    assert(!set.contains(1000i32));
+    assert(set.contains(-1i32).not());
+    assert(set.contains(1000i32).not());
 
     i = 0i32;
 
@@ -26,7 +26,7 @@ fn main() {
 
     while i < 1000i32 {
         set.remove(i);
-        assert(!set.contains(i));
+        assert(set.contains(i).not());
         i = i + 1i32;
     }
 
@@ -45,7 +45,7 @@ fn main() {
 
     while i < 900i32 {
         set.remove(i);
-        assert(!set.contains(i));
+        assert(set.contains(i).not());
         i = i + 1i32;
     }
 

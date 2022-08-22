@@ -7,30 +7,30 @@ fn main() {
     assert(neg(20f32) == -20f32);
     assert(neg(-5f32) == 5f32);
 
-    assert(!eq(20f32, 5f32));
+    assert(eq(20f32, 5f32).not());
     assert(eq(5f32, 5f32));
-    assert(!eq(5f32, 20f32));
+    assert(eq(5f32, 20f32).not());
 
     assert(ne(20f32, 5f32));
-    assert(!ne(5f32, 5f32));
+    assert(ne(5f32, 5f32).not());
     assert(ne(5f32, 20f32));
 
 
-    assert(!lt(20f32, 5f32));
-    assert(!lt(5f32, 5f32));
+    assert(lt(20f32, 5f32).not());
+    assert(lt(5f32, 5f32).not());
     assert(lt(5f32, 20f32));
 
-    assert(!le(20f32, 5f32));
+    assert(le(20f32, 5f32).not());
     assert(le(5f32, 5f32));
     assert(le(5f32, 20f32));
 
     assert(ge(20f32, 5f32));
     assert(ge(5f32, 5f32));
-    assert(!ge(5f32, 20f32));
+    assert(ge(5f32, 20f32).not());
 
     assert(gt(20f32, 5f32));
-    assert(!gt(5f32, 5f32));
-    assert(!gt(5f32, 20f32));
+    assert(gt(5f32, 5f32).not());
+    assert(gt(5f32, 20f32).not());
 }
 
 fn test_with_epsilon(expected: Float32, value: Float32): Bool {

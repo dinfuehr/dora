@@ -16,5 +16,5 @@ fn main() {
     assert(y.second);
 
     assert(x.first == "another string");
-    assert(!x.second);
+    assert(x.second.not());
 }

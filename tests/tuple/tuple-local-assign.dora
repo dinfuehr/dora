@@ -7,5 +7,5 @@ fn main() {
     assert(y.0 == "my string");
     assert(y.1);
     assert(x.0 == "another string");
-    assert(!x.1);
+    assert(x.1.not());
 }

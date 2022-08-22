@@ -1542,13 +1542,12 @@ impl<'a> Parser<'a> {
 
     fn parse_unary(&mut self) -> ExprResult {
         match self.token.kind {
-            TokenKind::Add | TokenKind::Sub | TokenKind::Not => {
+            TokenKind::Add | TokenKind::Sub => {
                 let start = self.token.span.start();
                 let tok = self.advance_token()?;
                 let op = match tok.kind {
                     TokenKind::Add => UnOp::Plus,
                     TokenKind::Sub => UnOp::Neg,
-                    TokenKind::Not => UnOp::Not,
                     _ => unreachable!(),
                 };
 

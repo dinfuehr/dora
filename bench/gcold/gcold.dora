@@ -135,17 +135,17 @@ fn replaceTreeWork(full: TreeNode, partial: TreeNode, dir: Bool) {
 
     if canGoLeft && canGoRight {
         if dir {
-            replaceTreeWork(full.left.getOrPanic(), partial, !dir);
+            replaceTreeWork(full.left.getOrPanic(), partial, dir.not());
         } else {
-            replaceTreeWork(full.right.getOrPanic(), partial, !dir);
+            replaceTreeWork(full.right.getOrPanic(), partial, dir.not());
         }
-    } else if !canGoLeft && !canGoRight {
+    } else if canGoLeft.not() && canGoRight.not() {
         if dir {
             full.left = Option[TreeNode]::Some(partial);
         } else {
             full.right = Option[TreeNode]::Some(partial);
         }
-    } else if !canGoLeft {
+    } else if canGoLeft.not() {
         full.left = Option[TreeNode]::Some(partial);
     } else {
         full.right = Option[TreeNode]::Some(partial);

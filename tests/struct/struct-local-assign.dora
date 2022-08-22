@@ -7,7 +7,7 @@ fn main() {
     assert(y.first == "my string");
     assert(y.second);
     assert(x.first == "another string");
-    assert(!x.second);
+    assert(x.second.not());
 }
 
 struct Pair(first: String, second: Bool)

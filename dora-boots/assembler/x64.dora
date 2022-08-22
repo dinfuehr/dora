@@ -1631,14 +1631,14 @@ impl Register {
 
 @Test
 fn testAsmRegisters() {
-    assert(RAX.lowBits() == 0i32 && !RAX.needsRexBit());
-    assert(RCX.lowBits() == 1i32 && !RCX.needsRexBit());
-    assert(RDX.lowBits() == 2i32 && !RDX.needsRexBit());
-    assert(RBX.lowBits() == 3i32 && !RBX.needsRexBit());
-    assert(RSP.lowBits() == 4i32 && !RSP.needsRexBit());
-    assert(RBP.lowBits() == 5i32 && !RBP.needsRexBit());
-    assert(RSI.lowBits() == 6i32 && !RSI.needsRexBit());
-    assert(RDI.lowBits() == 7i32 && !RDI.needsRexBit());
+    assert(RAX.lowBits() == 0i32 && RAX.needsRexBit().not());
+    assert(RCX.lowBits() == 1i32 && RCX.needsRexBit().not());
+    assert(RDX.lowBits() == 2i32 && RDX.needsRexBit().not());
+    assert(RBX.lowBits() == 3i32 && RBX.needsRexBit().not());
+    assert(RSP.lowBits() == 4i32 && RSP.needsRexBit().not());
+    assert(RBP.lowBits() == 5i32 && RBP.needsRexBit().not());
+    assert(RSI.lowBits() == 6i32 && RSI.needsRexBit().not());
+    assert(RDI.lowBits() == 7i32 && RDI.needsRexBit().not());
 
     assert(R8.lowBits() == 0i32 && R8.needsRexBit());
     assert(R9.lowBits() == 1i32 && R9.needsRexBit());

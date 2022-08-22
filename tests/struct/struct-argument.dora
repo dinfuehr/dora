@@ -12,5 +12,5 @@ fn f2(x: Foo, control: Int32): Bool {
 
 fn main() {
     assert(f1(Foo(10i32, false), 4711i32) == 10i32);
-    assert(!f2(Foo(10i32, false), 90210i32));
+    assert(f2(Foo(10i32, false), 90210i32).not());
 }

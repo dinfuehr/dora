@@ -6,7 +6,7 @@ fn main() {
     assert(q.isEmpty());
     q.enqueue(1i32);
     assert(q.size() == 1i64);
-    assert(!q.isEmpty());
+    assert(q.isEmpty().not());
     q.enqueue(2i32);
     assert(q.size() == 2i64);
     assert(q.dequeue() == 1i32);

@@ -4,5 +4,5 @@ fn main() {
     assert(set.contains(1i32));
     assert(set.contains(10_000i32));
     assert(set.contains(7i32));
-    assert(!set.contains(0i32));
+    assert(set.contains(0i32).not());
 }

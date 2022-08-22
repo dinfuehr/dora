@@ -125,7 +125,7 @@ impl EdgeCreator {
             let nextBlock = result.getOrPanic();
 
             if self.currentBlock.isSome() {
-                if !self.blockTerminated {
+                if self.blockTerminated.not() {
                     self.currentBlock.getOrPanic().addSuccessor(nextBlock);
                 }
             }

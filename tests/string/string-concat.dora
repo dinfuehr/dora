@@ -1,6 +1,6 @@
 fn main() {
   assert(eq("a"));
-  assert(!eq("aa"));
+  assert(eq("aa").not());
 }
 
 fn eq(a: String): Bool {

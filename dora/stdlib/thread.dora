@@ -79,7 +79,7 @@ impl Mutex {
     fn lockSlow() {
         let mut locked = false;
 
-        while !locked {
+        while locked.not() {
             if self.transitionToLockedContended() {
                 self.wait(LOCKED_CONTENDED);
             }

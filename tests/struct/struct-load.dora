@@ -12,5 +12,5 @@ fn g(): Bool {
 
 fn main() {
     assert(f() == 10i32);
-    assert(!g());
+    assert(g().not());
 }

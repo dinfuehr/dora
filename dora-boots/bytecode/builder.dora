@@ -213,17 +213,17 @@ impl BytecodeBuilder {
     }
 
     @pub fn emitJumpIfFalse(opnd: BytecodeRegister, lbl: BytecodeLabel) {
-        assert(!lbl.isBound());
+        assert(lbl.isBound().not());
         self.emitJmpForward(opc::BC_JUMP_IF_FALSE, opc::BC_JUMP_IF_FALSE_CONST, Some[BytecodeRegister](opnd), lbl);
     }
 
     @pub fn emitJumpIfTrue(opnd: BytecodeRegister, lbl: BytecodeLabel) {
-        assert(!lbl.isBound());
+        assert(lbl.isBound().not());
         self.emitJmpForward(opc::BC_JUMP_IF_TRUE, opc::BC_JUMP_IF_TRUE_CONST, Some[BytecodeRegister](opnd), lbl);
     }
 
     @pub fn emitJump(lbl: BytecodeLabel) {
-        assert(!lbl.isBound());
+        assert(lbl.isBound().not());
         self.emitJmpForward(opc::BC_JUMP, opc::BC_JUMP_CONST, None[BytecodeRegister], lbl);
     }
 
@@ -319,8 +319,8 @@ impl BytecodeBuilder {
     }
 
     fn emitJmpForward(inst: Int32, instConst: Int32, opnd: Option[BytecodeRegister], lbl: BytecodeLabel) {
-        assert(!isWide(inst));
-        assert(!isWide(instConst));
+        assert(isWide(inst).not());
+        assert(isWide(instConst).not());
         let start = self.code.size().toInt32();
         let mut target = 0i32;
 

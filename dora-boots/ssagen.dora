@@ -141,7 +141,7 @@ impl SsaGen {
     }
 
     fn readVariableRecursive(register: BytecodeRegister, block: Block): Inst {
-        let value: Inst = if !self.sealedBlocks.contains(block.id().toInt64()) {
+        let value: Inst = if self.sealedBlocks.contains(block.id().toInt64()).not() {
             // While all blocks are created with predecessors and successors before
             // this pass in the BlockBuilder already, we still need to handle unsealed blocks.
             // E.g. Register is accessed in while header and updated in the while body.
@@ -472,7 +472,7 @@ impl SsaGen {
     fn blockEndReached(next: Option[Block]) {
         let block = self.current();
 
-        if !self.blockTerminated {
+        if self.blockTerminated.not() {
             let gotoInst = createGotoInst(next.getOrPanic());
             block.appendInst(gotoInst);
         }
@@ -495,7 +495,7 @@ impl SsaGen {
     }
 
     fn fillBlock(block: Block) {
-        assert(!self.filledBlocks.contains(block.id().toInt64()));
+        assert(self.filledBlocks.contains(block.id().toInt64()).not());
         self.filledBlocks.insert(block.id().toInt64());
     }
 
@@ -506,7 +506,7 @@ impl SsaGen {
 
         // all predecessors need to be filled
         for edge in block.predecessors {
-            if !self.filledBlocks.contains(edge.source.id().toInt64()) {
+            if self.filledBlocks.contains(edge.source.id().toInt64()).not() {
                 return;
             }
         }
@@ -515,7 +515,7 @@ impl SsaGen {
     }
 
     fn sealBlock(block: Block) {
-        assert(!self.sealedBlocks.contains(block.id().toInt64()));
+        assert(self.sealedBlocks.contains(block.id().toInt64()).not());
         self.sealedBlocks.insert(block.id().toInt64());
 
         let map = self.incompletePhis(block);

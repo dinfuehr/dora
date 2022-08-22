@@ -266,7 +266,7 @@ impl BitSet {
     let mut value = self.data.get(entry_idx);
     let value_idx = idx - entry_idx;
 
-    value = value & !(1i32.shiftLeft(value_idx.toInt32()));
+    value = value & 1i32.shiftLeft(value_idx.toInt32()).not();
 
     self.data.set(entry_idx, value);
   }
@@ -326,7 +326,7 @@ impl BitVec {
     let mut value = self.data.get(entry_idx);
     let value_idx = idx - entry_idx;
 
-    value = value & !(1i32.shiftLeft(value_idx.toInt32()));
+    value = value & 1i32.shiftLeft(value_idx.toInt32()).not();
 
     self.data.set(entry_idx, value);
   }
@@ -650,7 +650,7 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
 
     fn isLive(idx: Int64): Bool {
         return self.inserted_and_deleted.contains(2i64 * idx) &&
-               !self.inserted_and_deleted.contains(2i64 * idx + 1i64);
+               self.inserted_and_deleted.contains(2i64 * idx + 1i64).not();
     }
 
     fn isDeleted(idx: Int64): Bool {
@@ -914,7 +914,7 @@ impl[T] Vec[T] {
     while srcIdx < len {
       let current = self.array(srcIdx);
 
-      if !fct(current) {
+      if fct(current).not() {
         self.array(destIdx) = current;
         destIdx = destIdx + 1i64;
       }

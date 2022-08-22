@@ -40,5 +40,5 @@ fn addIntConsts() {
 
     assert(const1.hasUses());
     assert(const2.hasUses());
-    assert(!inst.hasUses());
+    assert(inst.hasUses().not());
 }

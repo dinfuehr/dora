@@ -698,7 +698,7 @@ fn gen_expr_neg() {
 
 #[test]
 fn gen_expr_not() {
-    let result = code("fn f(a: Bool): Bool { return !a; }");
+    let result = code("fn f(a: Bool): Bool { return a.not(); }");
     let expected = vec![Not(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }

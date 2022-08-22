@@ -1,10 +1,10 @@
 fn main() {    
-    assert(!eq(Foo::A, Foo::B));
+    assert(eq(Foo::A, Foo::B).not());
     assert(eq(Foo::B, Foo::B));
-    assert(!eq(Foo::B, Foo::A));
+    assert(eq(Foo::B, Foo::A).not());
 
     assert(ne(Foo::A, Foo::B));
-    assert(!ne(Foo::B, Foo::B));
+    assert(ne(Foo::B, Foo::B).not());
     assert(ne(Foo::B, Foo::A));
 }
 

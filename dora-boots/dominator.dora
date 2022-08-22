@@ -28,7 +28,7 @@ fn findBackEdges(graph: Graph): BitSet {
     worklist.push(graph.getEntryBlock());
     visiting.insert(graph.getEntryBlock().id().toInt64());
 
-    while !worklist.isEmpty() {
+    while worklist.isEmpty().not() {
         let block = worklist.last().getOrPanic();
         let successorIndex = successorsVisited(block.id().toInt64());
 
@@ -103,7 +103,7 @@ fn computePostOrder(graph: Graph) {
 
     worklist.push(graph.getEntryBlock());
 
-    while !worklist.isEmpty() {
+    while worklist.isEmpty().not() {
         let block = worklist.last().getOrPanic();
         let successorIndex = successorsVisited(block.id().toInt64());
 

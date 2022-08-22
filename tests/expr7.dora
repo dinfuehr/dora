@@ -1,6 +1,6 @@
 fn main() {
   assert(true);
-  assert(!false);
+  assert(false.not());
 
   assert(true == true);
   assert(true != false);

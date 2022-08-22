@@ -14,8 +14,8 @@ fn main() {
     assert(map.size() == 1000i64);
     assert(map.isEmpty().not());
     assert(map.capacity() == 2048i64);
-    assert(!map.contains(-1i32));
-    assert(!map.contains(1000i32));
+    assert(map.contains(-1i32).not());
+    assert(map.contains(1000i32).not());
 
     i = 0i32;
 
@@ -29,7 +29,7 @@ fn main() {
 
     while i < 1000i32 {
         map.remove(i);
-        assert(!map.contains(i));
+        assert(map.contains(i).not());
         i = i + 1i32;
     }
 
@@ -49,7 +49,7 @@ fn main() {
 
     while i < 900i32 {
         map.remove(i);
-        assert(!map.contains(i));
+        assert(map.contains(i).not());
         i = i + 1i32;
     }
 

@@ -311,7 +311,7 @@ impl StringBuffer {
       len = 4i64;
     }
 
-    let c1 = (len + reserve + 7i64) & !7i64;
+    let c1 = (len + reserve + 7i64) & 7i64.not();
     let c2 = len * 2i64;
 
     if c1 > c2 {

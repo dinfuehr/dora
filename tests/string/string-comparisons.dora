@@ -24,6 +24,6 @@ fn main() {
   assert("b".compareTo("b") == 0i32);
   assert("b".compareTo("a") > 0i32);
 
-  assert(!"a".equals("b"));
+  assert("a".equals("b").not());
   assert("a".equals("a"));
 }

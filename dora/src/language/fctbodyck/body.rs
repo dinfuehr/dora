@@ -1173,7 +1173,6 @@ impl<'a> TypeCheck<'a> {
         match e.op {
             ast::UnOp::Plus => self.check_expr_un_method(e, e.op, "unaryPlus", opnd),
             ast::UnOp::Neg => self.check_expr_un_method(e, e.op, "unaryMinus", opnd),
-            ast::UnOp::Not => self.check_expr_un_method(e, e.op, "not", opnd),
         }
     }
 

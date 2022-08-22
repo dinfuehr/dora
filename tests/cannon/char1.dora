@@ -1,28 +1,28 @@
 fn main() {    
-    assert(!eq('2', '5'));
+    assert(eq('2', '5').not());
     assert(eq('5', '5'));
-    assert(!eq('5', '2'));
+    assert(eq('5', '2').not());
 
     assert(ne('2', '5'));
-    assert(!ne('5', '5'));
+    assert(ne('5', '5').not());
     assert(ne('5', '2'));
 
 
-    assert(!lt('7', '5'));
-    assert(!lt('5', '5'));
+    assert(lt('7', '5').not());
+    assert(lt('5', '5').not());
     assert(lt('5', '7'));
 
-    assert(!le('7', '5'));
+    assert(le('7', '5').not());
     assert(le('5', '5'));
     assert(le('5', '7'));
 
     assert(ge('7', '5'));
     assert(ge('5', '5'));
-    assert(!ge('5', '7'));
+    assert(ge('5', '7').not());
 
     assert(gt('7', '5'));
-    assert(!gt('5', '5'));
-    assert(!gt('5', '7'));
+    assert(gt('5', '5').not());
+    assert(gt('5', '7').not());
 }
 
 fn eq(x: Char, y: Char): Bool {

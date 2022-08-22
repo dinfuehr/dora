@@ -7,13 +7,13 @@ fn main() {
 
     let mut i = 1i32;
     while i < 63i32 {
-        assert(!set.contains(i.toInt64()));
+        assert(set.contains(i.toInt64()).not());
         i = i + 1i32;
     }
 
     assert(set.capacity() == 64i64);
-    assert(!set.contains(64i64));
-    assert(!set.contains(128i64));
+    assert(set.contains(64i64).not());
+    assert(set.contains(128i64).not());
 
     set.insert(0i64);
     set.insert(1i64);
@@ -23,24 +23,24 @@ fn main() {
 
     assert(set.contains(0i64));
     assert(set.contains(1i64));
-    assert(!set.contains(2i64));
-    assert(!set.contains(30i64));
+    assert(set.contains(2i64).not());
+    assert(set.contains(30i64).not());
     assert(set.contains(31i64));
     assert(set.contains(32i64));
-    assert(!set.contains(33i64));
-    assert(!set.contains(62i64));
+    assert(set.contains(33i64).not());
+    assert(set.contains(62i64).not());
     assert(set.contains(63i64));
 
     set.remove(0i64);
     set.remove(63i64);
 
-    assert(!set.contains(0i64));
+    assert(set.contains(0i64).not());
     assert(set.contains(1i64));
     assert(set.contains(31i64));
     assert(set.contains(32i64));
-    assert(!set.contains(63i64));
-    assert(!set.contains(64i64));
-    assert(!set.contains(128i64));
+    assert(set.contains(63i64).not());
+    assert(set.contains(64i64).not());
+    assert(set.contains(128i64).not());
     assert(set.capacity() == 64i64);
 
     set.insert(64i64);

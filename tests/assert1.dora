@@ -3,5 +3,5 @@ fn main() {
   assert(a);
 
   let b = false;
-  assert(!b);
+  assert(b.not());
 }

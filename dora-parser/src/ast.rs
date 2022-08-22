@@ -1123,7 +1123,6 @@ pub struct StmtContinueType {
 pub enum UnOp {
     Plus,
     Neg,
-    Not,
 }
 
 impl UnOp {
@@ -1131,7 +1130,6 @@ impl UnOp {
         match *self {
             UnOp::Plus => "+",
             UnOp::Neg => "-",
-            UnOp::Not => "!",
         }
     }
 }

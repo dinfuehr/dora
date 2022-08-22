@@ -55,7 +55,7 @@ class Mandelbrot(let size: Int) {
 
             i = i - 1;
 
-            while !(ZiN + ZrN > 4.0) && i > 0 {
+            while (ZiN + ZrN > 4.0).not() && i > 0 {
                 Zi = 2.0 * Zr * Zi + Ci;
                 Zr = ZrN - ZiN + Cr;
                 ZiN = Zi * Zi;
