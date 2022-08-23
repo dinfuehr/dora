@@ -8,6 +8,6 @@ fun main() {
     assert(rotateRight(-12i64, -1i32) == -23i64);
 }
 
-fun rotateLeft(x: Int64, y: Int32): Int64 { x.rotateLeft(y) }
+fun rotateLeft(x: Int64, y: Int32): Int64 = x.rotateLeft(y);
 
-fun rotateRight(x: Int64, y: Int32): Int64 { x.rotateRight(y) }
+fun rotateRight(x: Int64, y: Int32): Int64 = x.rotateRight(y);

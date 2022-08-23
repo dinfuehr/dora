@@ -11,7 +11,7 @@ impl[T] Array[T] {
   @pub @internal fun get(idx: Int64): T;
   @pub @internal fun set(idx: Int64, val: T);
 
-  @pub fun isEmpty(): Bool { self.size() == 0i64 }
+  @pub fun isEmpty(): Bool = self.size() == 0i64;
 
   @pub fun makeIterator(): ArrayIter[T] {
     ArrayIter[T]::new(self)

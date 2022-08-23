@@ -6,7 +6,7 @@ impl Foo {
     }
 }
 
-fun f(a: Foo, b: Foo): Foo { a + b }
+fun f(a: Foo, b: Foo): Foo = a + b;
 
 fun main() {
     assert(f(Foo(11i32), Foo(17i32)).value == 28i32);

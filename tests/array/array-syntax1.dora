@@ -10,4 +10,4 @@ fun array_set(a: Array[Int32], idx: Int64, value: Int32) {
     a(idx) = value;
 }
 
-fun array_get(a: Array[Int32], idx: Int64): Int32 { a(idx) }
+fun array_get(a: Array[Int32], idx: Int64): Int32 = a(idx);

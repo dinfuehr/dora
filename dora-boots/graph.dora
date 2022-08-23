@@ -221,21 +221,18 @@ impl Block {
         self.graph.getOrPanic()
     }
 
-    @pub fun getDominator(): Option[Block] {
-        self.dominator
-    }
+    @pub fun getDominator(): Option[Block] = self.dominator;
 
     @pub fun setDominator(block: Block) {
         self.dominator = Some(block);
     }
 
-    @pub fun dominates(other: Block): Bool {
+    @pub fun dominates(other: Block): Bool =
         if self == other {
             true
         } else {
             self.strictlyDominates(other)
-        }
-    }
+        };
 
     @pub fun strictlyDominates(other: Block): Bool {
         let mut current = other.getDominator();
@@ -248,9 +245,7 @@ impl Block {
         false
     }
 
-    @pub fun getDominatedBlocks(): Vec[Block] {
-        self.dominatedBlocks
-    }
+    @pub fun getDominatedBlocks(): Vec[Block] = self.dominatedBlocks;
 
     @pub fun addDominatedBlock(block: Block) {
         self.dominatedBlocks.push(block);
@@ -340,11 +335,11 @@ impl Block {
 }
 
 impl Hash for Block {
-  fun hash(): Int32 { self.id().hash() }
+  fun hash(): Int32 = self.id().hash();
 }
 
 impl Equals for Block {
-  fun equals(other: Block): Bool { self === other }
+  fun equals(other: Block): Bool = self === other;
 }
 
 @pub class LoopData {

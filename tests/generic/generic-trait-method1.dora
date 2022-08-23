@@ -18,11 +18,11 @@ trait Foo {
 class SomeClass(value: Int32)
 
 impl Foo for SomeClass {
-    fun baz(): Int32 { self.value }
+    fun baz(): Int32 = self.value;
 }
 
 class OtherClass(value: Int32)
 
 impl Foo for OtherClass {
-    fun baz(): Int32 { self.value }
+    fun baz(): Int32 = self.value;
 }

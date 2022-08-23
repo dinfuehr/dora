@@ -44,8 +44,8 @@ use package::assembler::assertAsmEnd;
 struct XmmRegister(value: Int32)
 
 impl XmmRegister {
-    fun lowBits(): Int32 { self.value & 0b111i32 }
-    fun needsRexBit(): Bool { self.value > 7i32 }
+    fun lowBits(): Int32 = self.value & 0b111i32;
+    fun needsRexBit(): Bool = self.value > 7i32;
 }
 
 enum JumpDistance {
@@ -1625,8 +1625,9 @@ fun testConditionCodes() {
 }
 
 impl Register {
-    fun lowBits(): Int32 { self.value & 0b111i32 }
-    fun needsRexBit(): Bool { self.value > 7i32 }
+    fun lowBits(): Int32 = self.value & 0b111i32;
+
+    fun needsRexBit(): Bool = self.value > 7i32;
 }
 
 @Test

@@ -41,34 +41,34 @@ fun main() {
     assert(gt(5i32, 20i32).not());
 }
 
-fun not(x: Int32): Int32 { x.not() }
+fun not(x: Int32): Int32 = x.not();
 
-fun add(x: Int32, y: Int32): Int32 { x+y }
+fun add(x: Int32, y: Int32): Int32 = x+y;
 
-fun sub(x: Int32, y: Int32): Int32 { x-y }
+fun sub(x: Int32, y: Int32): Int32 = x-y;
 
-fun mul(x: Int32, y: Int32): Int32 { x*y }
+fun mul(x: Int32, y: Int32): Int32 = x*y;
 
-fun div(x: Int32, y: Int32): Int32 { x/y }
+fun div(x: Int32, y: Int32): Int32 = x/y;
 
-fun modulo(y: Int32, z: Int32): Int32 { y%z }
+fun modulo(y: Int32, z: Int32): Int32 = y%z;
 
-fun or(x: Int32, y: Int32): Int32 { x | y }
+fun or(x: Int32, y: Int32): Int32 = x | y;
 
-fun xor(x: Int32, y: Int32): Int32 { x ^ y }
+fun xor(x: Int32, y: Int32): Int32 = x ^ y;
 
-fun and(x: Int32, y: Int32): Int32 { x & y }
+fun and(x: Int32, y: Int32): Int32 = x & y;
 
-fun eq(x: Int32, y: Int32): Bool { x == y }
+fun eq(x: Int32, y: Int32): Bool = x == y;
 
-fun ne(x: Int32, y: Int32): Bool { x != y }
+fun ne(x: Int32, y: Int32): Bool = x != y;
 
-fun lt(x: Int32, y: Int32): Bool { x < y }
+fun lt(x: Int32, y: Int32): Bool = x < y;
 
-fun le(x: Int32, y: Int32): Bool { x <= y }
+fun le(x: Int32, y: Int32): Bool = x <= y;
 
-fun ge(x: Int32, y: Int32): Bool { x >= y }
+fun ge(x: Int32, y: Int32): Bool = x >= y;
 
-fun gt(x: Int32, y: Int32): Bool { x > y }
+fun gt(x: Int32, y: Int32): Bool = x > y;
 
-fun neg(x: Int32): Int32 { -x }
+fun neg(x: Int32): Int32 = -x;

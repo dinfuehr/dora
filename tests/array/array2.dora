@@ -2,4 +2,4 @@ fun main() {
   assert(0 == len(Array[Int32]::new()));
 }
 
-fun len(a: Array[Int32]): Int64 { a.size() }
+fun len(a: Array[Int32]): Int64 = a.size();

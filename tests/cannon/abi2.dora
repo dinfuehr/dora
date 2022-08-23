@@ -10,12 +10,12 @@ fun main() {
     assert(abi_9(1i32, 2i32, 3i32, 4i32, 5i32, 6i32, 7i32, 8i32, 9i32) == 9i32);
 }
 
-fun abi_1(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 { x }
-fun abi_2(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 { y }
-fun abi_3(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 { z }
-fun abi_4(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 { a }
-fun abi_5(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 { b }
-fun abi_6(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 { c }
-fun abi_7(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 { i }
-fun abi_8(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 { j }
-fun abi_9(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 { k }
+fun abi_1(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 = x;
+fun abi_2(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 = y;
+fun abi_3(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 = z;
+fun abi_4(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 = a;
+fun abi_5(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 = b;
+fun abi_6(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 = c;
+fun abi_7(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 = i;
+fun abi_8(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 = j;
+fun abi_9(x: Int32, y: Int32, z: Int32, a: Int32, b: Int32, c: Int32, i: Int32, j: Int32, k: Int32): Int32 = k;

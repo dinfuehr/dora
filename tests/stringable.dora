@@ -8,6 +8,4 @@ fun main() {
   str[Float64](1f64);
 }
 
-fun str[T : std::Stringable](val: T): String {
-  val.toString()
-}
+fun str[T : std::Stringable](val: T): String = val.toString();

@@ -2,4 +2,4 @@ fun main() {
   assert(zero() == 0i32);
 }
 
-fun zero(): Int32 { 0i32 }
+fun zero(): Int32 = 0i32;

@@ -14,11 +14,11 @@ trait Foo {
 class SomeClass
 
 impl Foo for SomeClass {
-    @static fun baz(): Int32 { 17i32 }
+    @static fun baz(): Int32 = 17i32;
 }
 
 class OtherClass
 
 impl Foo for OtherClass {
-    @static fun baz(): Int32 { 42i32 }
+    @static fun baz(): Int32 = 42i32;
 }

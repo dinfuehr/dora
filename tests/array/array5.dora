@@ -8,15 +8,11 @@ fun main() {
 class A
 
 impl A {
-  fun get(index: String): Int32 {
-    1i32
-  }
+  fun get(index: String): Int32 = 1i32;
 }
 
 class B 
 
 impl B {
-  fun get(index: Bool): Bool {
-    index
-  }
+  fun get(index: Bool): Bool = index;
 }

@@ -7,6 +7,6 @@ fun main() {
 class SomeTest[T](x: T)
 
 impl[T] SomeTest[T] {
-    fun unaryPlus(): T { self.x }
-    fun unaryMinus(): T { self.x }
+    fun unaryPlus(): T = self.x;
+    fun unaryMinus(): T = self.x;
 }

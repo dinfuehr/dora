@@ -8,21 +8,17 @@ trait X {
 }
 
 fun f[T: X](): Int32 {
-    T::foo()
+    return T::foo();
 }
 
 class Bar
 
 impl X for Bar {
-    @static fun foo(): Int32 {
-        1i32
-    }
+    @static fun foo(): Int32 = 1i32;
 }
 
 class Baz
 
 impl X for Baz {
-    @static fun foo(): Int32 {
-        2i32
-    }
+    @static fun foo(): Int32 = 2i32;
 }

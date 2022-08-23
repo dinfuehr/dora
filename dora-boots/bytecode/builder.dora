@@ -494,9 +494,7 @@ impl BytecodeBuilder {
     }
 }
 
-fun isWide(val: Int32): Bool {
-    val > 255i32
-}
+fun isWide(val: Int32): Bool = val > 255i32;
 
 class BytecodeLabel(off: Int32)
 
@@ -511,9 +509,7 @@ impl BytecodeLabel {
         self
     }
 
-    fun isBound(): Bool {
-        self.off >= 0i32
-    }
+    fun isBound(): Bool = self.off >= 0i32;
 
     fun offset(): Int32 {
         assert(self.isBound());

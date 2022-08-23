@@ -4,7 +4,7 @@ fun main() {
     t3();
 }
 
-fun g(): Int32 { 1i32 }
+fun g(): Int32 = 1i32;
 
 fun t1() {
     let x: Int32 = { g() };

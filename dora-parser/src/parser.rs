@@ -938,6 +938,10 @@ impl<'a> Parser<'a> {
             self.advance_token()?;
 
             Ok(None)
+        } else if self.token.is(TokenKind::Eq) {
+            let expr = self.parse_function_block_expression()?;
+
+            Ok(Some(expr))
         } else {
             let block = self.parse_block()?;
 
@@ -945,6 +949,35 @@ impl<'a> Parser<'a> {
                 Ok(Some(Box::new(block_type)))
             } else {
                 unreachable!()
+            }
+        }
+    }
+
+    fn parse_function_block_expression(&mut self) -> Result<Box<ExprBlockType>, ParseErrorAndPos> {
+        self.expect_token(TokenKind::Eq)?;
+
+        match self.token.kind {
+            TokenKind::Return => {
+                let stmt = self.parse_return()?;
+                Ok(Box::new(ExprBlockType {
+                    id: self.generate_id(),
+                    pos: stmt.pos(),
+                    span: stmt.span(),
+                    stmts: vec![stmt],
+                    expr: None,
+                }))
+            }
+
+            _ => {
+                let expr = self.parse_expression()?;
+                self.expect_token(TokenKind::Semicolon)?;
+                Ok(Box::new(ExprBlockType {
+                    id: self.generate_id(),
+                    pos: expr.pos(),
+                    span: expr.span(),
+                    stmts: Vec::new(),
+                    expr: Some(expr),
+                }))
             }
         }
     }

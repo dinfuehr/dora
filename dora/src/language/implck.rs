@@ -190,8 +190,8 @@ mod tests {
               class CX
               
               impl X for CX {
-                fun m(): Int32 { 0 }
-                fun n(): Bool { true }
+                fun m(): Int32 = 0;
+                fun n(): Bool = true;
               }",
             pos(9, 17),
             ErrorMessage::ReturnTypeMismatch("Int32".into(), "Bool".into()),

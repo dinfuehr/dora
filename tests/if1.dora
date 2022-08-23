@@ -14,9 +14,7 @@ fun main() {
     assert(i(false) == "not one");
 }
 
-fun f(x: Bool): Int32 {
-    if x { 1i32 } else { 2i32 }
-}
+fun f(x: Bool): Int32 = if x { 1i32 } else { 2i32 };
 
 fun g(x: Bool): Int32 {
     let ret = if x { 1i32 } else { 2i32 };

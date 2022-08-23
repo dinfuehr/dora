@@ -18,9 +18,7 @@
 @pub @internal fun exit(status: Int32);
 @pub @internal fun unreachable[T](): T;
 
-@pub fun unimplemented() {
-  fatalError("not yet implemented");
-}
+@pub fun unimplemented() = fatalError("not yet implemented");
 
 @pub @internal fun print(text: String);
 @pub @internal fun println(text: String);

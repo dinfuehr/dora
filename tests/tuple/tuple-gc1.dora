@@ -11,4 +11,4 @@ fun main() {
     };
 }
 
-fun createFoo(): Foo { Foo(1i32) }
+fun createFoo(): Foo = Foo(1i32);

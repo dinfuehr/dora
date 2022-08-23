@@ -7,6 +7,6 @@ fun main() {
 class SomeTest[T](x: T)
 
 impl[T] SomeTest[T] {
-    fun plus(y: Int32): T { self.x }
-    fun minus(y: Int32): T { self.x }
+    fun plus(y: Int32): T = self.x;
+    fun minus(y: Int32): T = self.x;
 }

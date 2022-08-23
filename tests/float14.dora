@@ -7,6 +7,6 @@ fun main() {
 class SomeTest 
 
 impl SomeTest {
-    fun plus(y: Int32): Float32 { 1.0f32 }
-    fun minus(y: Int32): Float32 { 2.0f32 }
+    fun plus(y: Int32): Float32 = 1.0f32;
+    fun minus(y: Int32): Float32 = 2.0f32;
 }
