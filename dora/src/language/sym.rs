@@ -14,21 +14,30 @@ use dora_parser::interner::Name;
 
 pub struct ModuleSymTable {
     module_id: ModuleDefinitionId,
-    outer: Arc<RwLock<SymTable>>,
-    prelude: Arc<RwLock<SymTable>>,
     levels: Vec<SymTable>,
+    outer: Arc<RwLock<SymTable>>,
+    dependencies: Arc<RwLock<SymTable>>,
+    prelude: Arc<RwLock<SymTable>>,
 }
 
 impl ModuleSymTable {
     pub fn new(sa: &SemAnalysis, module_id: ModuleDefinitionId) -> ModuleSymTable {
-        let outer = sa.modules[module_id].read().table.clone();
+        let module = sa.modules.idx(module_id);
+        let module = module.read();
+        let outer = module.table.clone();
+
+        let package = sa.packages.idx(module.package_id());
+        let package = package.read();
+        let dependencies = package.table.clone();
+
         let prelude = sa.modules[sa.prelude_module_id()].read().table.clone();
 
         ModuleSymTable {
             module_id,
-            outer,
-            prelude,
             levels: Vec::new(),
+            outer,
+            dependencies,
+            prelude,
         }
     }
 
@@ -57,6 +66,10 @@ impl ModuleSymTable {
         }
 
         if let Some(sym) = self.outer.read().get(name) {
+            return Some(sym.clone());
+        }
+
+        if let Some(sym) = self.dependencies.read().get(name) {
             return Some(sym.clone());
         }
 

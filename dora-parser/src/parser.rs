@@ -167,11 +167,42 @@ impl<'a> Parser<'a> {
                 Ok(Elem::Use(Arc::new(use_stmt)))
             }
 
+            TokenKind::Extern => {
+                self.ban_modifiers(&modifiers)?;
+                let extern_stmt = self.parse_extern()?;
+                Ok(Elem::Extern(Arc::new(extern_stmt)))
+            }
+
             _ => {
                 let msg = ParseError::ExpectedTopLevelElement(self.token.name());
                 return Err(ParseErrorAndPos::new(self.token.position, msg));
             }
         }
+    }
+
+    fn parse_extern(&mut self) -> Result<ExternPackage, ParseErrorAndPos> {
+        let start = self.token.span.start();
+        let pos = self.token.position;
+
+        self.expect_token(TokenKind::Extern)?;
+        self.expect_token(TokenKind::Package)?;
+        let name = self.expect_identifier()?;
+        let identifier = if self.token.is(TokenKind::As) {
+            self.expect_token(TokenKind::As)?;
+            self.expect_identifier()?
+        } else {
+            name
+        };
+
+        let span = self.span_from(start);
+
+        Ok(ExternPackage {
+            id: self.generate_id(),
+            pos,
+            span,
+            name,
+            identifier,
+        })
     }
 
     fn parse_use(&mut self) -> Result<Use, ParseErrorAndPos> {

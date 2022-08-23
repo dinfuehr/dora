@@ -76,6 +76,7 @@ impl<'a> AstDumper<'a> {
             Elem::Alias(ref node) => self.dump_alias(node),
             Elem::Module(ref node) => self.dump_module(node),
             Elem::Use(ref node) => self.dump_use(node),
+            Elem::Extern(ref node) => self.dump_extern(node),
         }
     }
 
@@ -97,6 +98,17 @@ impl<'a> AstDumper<'a> {
                 dump!(d, "<no expr given>");
             }
         });
+    }
+
+    fn dump_extern(&mut self, stmt: &ExternPackage) {
+        dump!(
+            self,
+            "extern package {} as {} @ {} {}",
+            self.str(stmt.name),
+            self.str(stmt.identifier),
+            stmt.pos,
+            stmt.id
+        );
     }
 
     fn dump_const(&mut self, const_: &Const) {

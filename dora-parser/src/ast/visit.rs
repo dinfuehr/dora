@@ -5,6 +5,10 @@ pub trait Visitor: Sized {
         walk_file(self, a);
     }
 
+    fn visit_extern(&mut self, stmt: &Arc<ExternPackage>) {
+        walk_extern(self, stmt);
+    }
+
     fn visit_global(&mut self, g: &Arc<Global>) {
         walk_global(self, g);
     }
@@ -106,6 +110,7 @@ pub fn walk_elem<V: Visitor>(v: &mut V, e: &Elem) {
         Elem::Alias(ref e) => v.visit_alias(e),
         Elem::Module(ref e) => v.visit_module(e),
         Elem::Use(ref i) => v.visit_use(i),
+        Elem::Extern(ref stmt) => v.visit_extern(stmt),
     }
 }
 
@@ -159,6 +164,10 @@ pub fn walk_module<V: Visitor>(v: &mut V, node: &Arc<Module>) {
 }
 
 pub fn walk_use<V: Visitor>(_v: &mut V, _use: &Arc<Use>) {
+    // nothing to do
+}
+
+pub fn walk_extern<V: Visitor>(_v: &mut V, _use: &Arc<ExternPackage>) {
     // nothing to do
 }
 

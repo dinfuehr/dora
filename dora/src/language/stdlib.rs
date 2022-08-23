@@ -195,14 +195,6 @@ pub fn fill_prelude(sa: &mut SemAnalysis) {
 
     let stdlib_name = sa.interner.intern("std");
     prelude.insert(stdlib_name, Sym::Module(stdlib_id));
-
-    for package in sa.packages.iter() {
-        let package = package.read();
-
-        if let Some(name) = package.iname() {
-            prelude.insert(name, Sym::Module(package.top_level_module_id()));
-        }
-    }
 }
 
 fn final_path_name(sa: &mut SemAnalysis, path: &str) -> Name {

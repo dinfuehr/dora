@@ -26,6 +26,7 @@ pub enum TokenKind {
     Mod,
     Use,
     Package,
+    Extern,
 
     // "small" shapes
     Fn,
@@ -139,6 +140,7 @@ impl TokenKind {
             TokenKind::Mod => "mod",
             TokenKind::Use => "use",
             TokenKind::Package => "package",
+            TokenKind::Extern => "extern",
 
             // "small" shapes
             TokenKind::Fn => "fn",

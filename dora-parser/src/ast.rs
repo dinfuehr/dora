@@ -112,6 +112,7 @@ pub enum Elem {
     Alias(Arc<Alias>),
     Module(Arc<Module>),
     Use(Arc<Use>),
+    Extern(Arc<ExternPackage>),
 }
 
 impl Elem {
@@ -129,6 +130,7 @@ impl Elem {
             &Elem::Alias(ref e) => e.id,
             &Elem::Module(ref e) => e.id,
             &Elem::Use(ref e) => e.id,
+            &Elem::Extern(ref e) => e.id,
         }
     }
 
@@ -542,6 +544,15 @@ pub struct Class {
 
     pub fields: Vec<Field>,
     pub type_params: Option<Vec<TypeParam>>,
+}
+
+#[derive(Clone, Debug)]
+pub struct ExternPackage {
+    pub id: NodeId,
+    pub pos: Position,
+    pub span: Span,
+    pub name: Name,
+    pub identifier: Name,
 }
 
 #[derive(Clone, Debug)]

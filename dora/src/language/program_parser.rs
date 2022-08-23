@@ -393,6 +393,35 @@ struct GlobalDef<'x> {
 }
 
 impl<'x> visit::Visitor for GlobalDef<'x> {
+    fn visit_extern(&mut self, stmt: &Arc<ast::ExternPackage>) {
+        if let Some(package_id) = self.sa.package_names.get(&stmt.name).cloned() {
+            let top_level_module_id = {
+                let package = self.sa.packages.idx(package_id);
+                let package = package.read();
+
+                package.top_level_module_id()
+            };
+
+            let package = self.sa.packages.idx(package_id);
+            let mut package = package.write();
+
+            if !package.add_dependency(stmt.name, package_id, top_level_module_id) {
+                let name = self.sa.interner.str(stmt.name).to_string();
+                self.sa.diag.lock().report(
+                    self.file_id,
+                    stmt.pos,
+                    ErrorMessage::PackageAlreadyExists(name),
+                );
+            }
+        } else {
+            let name = self.sa.interner.str(stmt.name).to_string();
+            self.sa
+                .diag
+                .lock()
+                .report(self.file_id, stmt.pos, ErrorMessage::UnknownPackage(name));
+        }
+    }
+
     fn visit_module(&mut self, node: &Arc<ast::Module>) {
         let module = ModuleDefinition::new_inner(
             self.sa,
