@@ -1,0 +1,12 @@
+fun main() {
+  Foo(x = 23, y = true);
+  Foo(x = 23, true);
+  Foo(23, y = true);
+
+  Bar(x = 23, y = true);
+  Bar(x = 23, true);
+  Bar(23, y = true);
+}
+
+class Foo(x: Int64, y: Bool)
+struct Bar(x: Int64, y: Bool)

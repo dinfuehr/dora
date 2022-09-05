@@ -32,6 +32,7 @@ parking_lot = "*"
 fixedbitset = "*"
 num_cpus = "*"
 memoffset = "*"
+option-ext = "0.1.0"
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "*", features = ["memoryapi"] }

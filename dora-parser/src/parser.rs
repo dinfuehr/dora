@@ -1621,9 +1621,8 @@ impl<'a> Parser<'a> {
 
                 TokenKind::LParen => {
                     let tok = self.advance_token()?;
-                    let args = self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
-                        p.parse_expression()
-                    })?;
+                    let args =
+                        self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| p.parse_arg())?;
                     let span = self.span_from(start);
 
                     Box::new(Expr::create_call(
@@ -1669,6 +1668,33 @@ impl<'a> Parser<'a> {
                 }
             }
         }
+    }
+
+    fn parse_arg(&mut self) -> Result<Box<Arg>, ParseErrorAndPos> {
+        let pos = self.token.position;
+        let start = self.token.span.start();
+
+        let mut expr = self.parse_expression()?;
+        let mut name = None;
+
+        // Instead of duplicating large swaths of expression parsing to deal with named args, use
+        // existing parsing code (at least for now) and unpack the AST if named args are present.
+        if expr
+            .to_bin()
+            .map(|bin| bin.lhs.is_ident() && bin.op == BinOp::Assign)
+            .unwrap_or(false)
+        {
+            let bin = expr.to_bin().unwrap().clone();
+            expr = bin.rhs;
+            name = Some(bin.lhs.to_ident().unwrap().name);
+        }
+        let arg = Arg {
+            name,
+            pos,
+            span: self.span_from(start),
+            expr,
+        };
+        Ok(Box::new(arg))
     }
 
     fn create_binary(
@@ -2590,7 +2616,7 @@ mod tests {
         assert_eq!(3, call.args.len());
 
         for i in 0..3 {
-            let lit = call.args[i as usize].to_lit_int().unwrap();
+            let lit = call.args[i as usize].expr.to_lit_int().unwrap();
             assert_eq!(i + 1, lit.value);
         }
     }
@@ -3040,7 +3066,10 @@ mod tests {
         let call = expr.to_call().unwrap();
         assert_eq!("a", *interner.str(call.callee.to_ident().unwrap().name));
         assert_eq!(1, call.args.len());
-        assert_eq!("b", *interner.str(call.args[0].to_ident().unwrap().name));
+        assert_eq!(
+            "b",
+            *interner.str(call.args[0].expr.to_ident().unwrap().name)
+        );
     }
 
     #[test]

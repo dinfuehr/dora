@@ -584,6 +584,14 @@ pub struct AnnotationParam {
 }
 
 #[derive(Clone, Debug)]
+pub struct Arg {
+    pub name: Option<Name>,
+    pub pos: Position,
+    pub span: Span,
+    pub expr: Box<Expr>,
+}
+
+#[derive(Clone, Debug)]
 pub struct Field {
     pub id: NodeId,
     pub name: Name,
@@ -1447,7 +1455,7 @@ impl Expr {
         pos: Position,
         span: Span,
         callee: Box<Expr>,
-        args: Vec<Box<Expr>>,
+        args: Vec<Box<Arg>>,
     ) -> Expr {
         Expr::Call(ExprCallType {
             id,
@@ -2034,7 +2042,7 @@ pub struct ExprCallType {
     pub span: Span,
 
     pub callee: Box<Expr>,
-    pub args: Vec<Box<Expr>>,
+    pub args: Vec<Box<Arg>>,
 }
 
 impl ExprCallType {
@@ -2054,6 +2062,10 @@ impl ExprCallType {
 
     pub fn object_or_callee(&self) -> &Expr {
         self.object().unwrap_or(&self.callee)
+    }
+
+    pub fn arg_names(&self) -> Vec<&Option<Name>> {
+        self.args.iter().map(|arg| &arg.name).collect()
     }
 }
 

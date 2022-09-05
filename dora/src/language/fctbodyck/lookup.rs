@@ -1,5 +1,5 @@
 use crate::language::error::msg::ErrorMessage;
-use crate::language::fctbodyck::body::args_compatible_fct;
+use crate::language::fctbodyck::body::{arg_names_valid, args_compatible_fct};
 use crate::language::sem_analysis::{
     find_methods_in_class, find_methods_in_enum, find_methods_in_struct, FctDefinition,
     FctDefinitionId, SemAnalysis, SourceFileId, TraitDefinitionId, TypeParamDefinition,
@@ -25,7 +25,8 @@ pub struct MethodLookup<'a> {
     file: SourceFileId,
     kind: Option<LookupKind>,
     name: Option<Name>,
-    args: Option<&'a [SourceType]>,
+    arg_types: Option<&'a [SourceType]>,
+    arg_names: Vec<&'a Option<Name>>,
     fct_tps: Option<&'a SourceTypeArray>,
     type_param_defs: Option<&'a TypeParamDefinition>,
     ret: Option<SourceType>,
@@ -48,7 +49,8 @@ impl<'a> MethodLookup<'a> {
             file: caller.file_id,
             kind: None,
             name: None,
-            args: None,
+            arg_types: None,
+            arg_names: Vec::new(),
             fct_tps: None,
             ret: None,
             pos: None,
@@ -89,8 +91,13 @@ impl<'a> MethodLookup<'a> {
         self
     }
 
-    pub fn args(mut self, args: &'a [SourceType]) -> MethodLookup<'a> {
-        self.args = Some(args);
+    pub fn arg_types(mut self, arg_types: &'a [SourceType]) -> MethodLookup<'a> {
+        self.arg_types = Some(arg_types);
+        self
+    }
+
+    pub fn arg_names(mut self, arg_names: Vec<&'a Option<Name>>) -> MethodLookup<'a> {
+        self.arg_names = arg_names;
         self
     }
 
@@ -121,7 +128,7 @@ impl<'a> MethodLookup<'a> {
 
     pub fn find(&mut self) -> bool {
         let kind = self.kind.clone().expect("kind not set");
-        let args = self.args.expect("args not set");
+        let arg_types = self.arg_types.expect("args not set");
 
         let fct_id = match kind {
             LookupKind::Callee(fct_id) => Some(fct_id),
@@ -150,7 +157,7 @@ impl<'a> MethodLookup<'a> {
             let name = self.name.expect("name not set");
 
             let name = self.sa.interner.str(name).to_string();
-            let param_names = args
+            let param_type_names = arg_types
                 .iter()
                 .map(|a| a.name_fct(self.sa, self.caller))
                 .collect::<Vec<String>>();
@@ -161,9 +168,9 @@ impl<'a> MethodLookup<'a> {
                     let type_name = obj.name_fct(self.sa, self.caller);
 
                     if self.found_multiple_functions {
-                        ErrorMessage::MultipleCandidatesForMethod(type_name, name, param_names)
+                        ErrorMessage::MultipleCandidatesForMethod(type_name, name, param_type_names)
                     } else {
-                        ErrorMessage::UnknownMethod(type_name, name, param_names)
+                        ErrorMessage::UnknownMethod(type_name, name, param_type_names)
                     }
                 }
 
@@ -171,12 +178,12 @@ impl<'a> MethodLookup<'a> {
                     let trait_ = &self.sa.traits[trait_id];
                     let trait_ = trait_.read();
                     let type_name = self.sa.interner.str(trait_.name).to_string();
-                    ErrorMessage::UnknownMethod(type_name, name, param_names)
+                    ErrorMessage::UnknownMethod(type_name, name, param_type_names)
                 }
 
                 LookupKind::Static(ref obj) => {
                     let type_name = obj.name_fct(self.sa, self.caller);
-                    ErrorMessage::UnknownStaticMethod(type_name, name, param_names)
+                    ErrorMessage::UnknownStaticMethod(type_name, name, param_type_names)
                 }
             };
 
@@ -211,26 +218,40 @@ impl<'a> MethodLookup<'a> {
             return false;
         }
 
-        if args.contains(&SourceType::Error) {
+        if arg_types.contains(&SourceType::Error) {
             return false;
         }
 
-        if !args_compatible_fct(self.sa, &*fct, args, &type_params, None) {
+        if !args_compatible_fct(self.sa, &*fct, arg_types, &type_params, None) {
             if !self.report_errors {
                 return false;
             }
 
             let fct_name = self.sa.interner.str(fct.name).to_string();
-            let fct_params = fct
+            let param_type_names = fct
                 .params_without_self()
                 .iter()
                 .map(|a| a.name_fct(self.sa, &*fct))
                 .collect::<Vec<_>>();
-            let call_types = args
+            let arg_type_names = arg_types
                 .iter()
                 .map(|a| a.name_fct(self.sa, self.caller))
                 .collect::<Vec<_>>();
-            let msg = ErrorMessage::ParamTypesIncompatible(fct_name, fct_params, call_types);
+            let msg =
+                ErrorMessage::ParamTypesIncompatible(fct_name, param_type_names, arg_type_names);
+
+            self.sa
+                .diag
+                .lock()
+                .report(self.file, self.pos.expect("pos not set"), msg);
+            return false;
+        }
+        if !arg_names_valid(&fct.param_names, &self.arg_names) {
+            if !self.report_errors {
+                return false;
+            }
+
+            let msg = self.argument_name_mismatch_message(&*fct);
             self.sa
                 .diag
                 .lock()
@@ -249,6 +270,42 @@ impl<'a> MethodLookup<'a> {
         } else {
             false
         }
+    }
+
+    fn argument_name_mismatch_message(&mut self, fct: &FctDefinition) -> ErrorMessage {
+        let fct_name = self.sa.interner.str(fct.name).to_string();
+        let param_names = fct
+            .param_names
+            .iter()
+            .map(|n| self.sa.interner.str(*n).to_string());
+        let param_type_names = fct
+            .params_without_self()
+            .iter()
+            .map(|a| a.name_fct(self.sa, &*fct));
+        let params = param_names
+            .zip(param_type_names)
+            .map(|(n, t)| n + ": " + t.as_str())
+            .collect();
+        let arg_names = &self.arg_names;
+        let arg_names = arg_names
+            .iter()
+            .map(|on| on.map(|n| self.sa.interner.str(n).to_string()));
+        let arg_type_names = self
+            .arg_types
+            .expect("args not set")
+            .iter()
+            .map(|a| a.name_fct(self.sa, self.caller));
+        let args = arg_names
+            .zip(arg_type_names)
+            .map(|(arg_name, type_name)| {
+                if arg_name.is_some() {
+                    arg_name.unwrap() + ": " + type_name.as_str()
+                } else {
+                    type_name
+                }
+            })
+            .collect();
+        ErrorMessage::ArgumentNameMismatch(fct_name, params, args)
     }
 
     fn find_method(

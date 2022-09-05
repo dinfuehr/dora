@@ -1355,6 +1355,99 @@ fn test_new_call_method_generic_error_multiple() {
 }
 
 #[test]
+fn test_named_arguments_fail_method() {
+    err(
+        "
+            class Foo()
+            impl Foo { fun foo(x: Int64, y: Bool) {} }
+            fun x() { Foo().foo(z = 23, y = true); }",
+        pos(4, 32),
+        ErrorMessage::ArgumentNameMismatch(
+            "foo".into(),
+            vec!["x: Int64".into(), "y: Bool".into()],
+            vec!["z: Int64".into(), "y: Bool".into()],
+        ),
+    );
+}
+
+#[test]
+fn test_named_arguments_fail_method_static() {
+    err(
+        "
+            class Foo()
+            impl Foo { @static fun foo(x: Int64, y: Bool) {} }
+            fun x() { Foo::foo(z = 23, y = true); }",
+        pos(4, 31),
+        ErrorMessage::ArgumentNameMismatch(
+            "foo".into(),
+            vec!["x: Int64".into(), "y: Bool".into()],
+            vec!["z: Int64".into(), "y: Bool".into()],
+        ),
+    );
+}
+
+#[test]
+fn test_named_arguments_fail_method_static_generic() {
+    err(
+        "
+            class Foo()
+            impl Foo { @static fun foo[T](x: T, y: Bool) {} }
+            fun x() { Foo::foo[Int64](z = 23, y = true); }",
+        pos(4, 38),
+        ErrorMessage::ArgumentNameMismatch(
+            "foo".into(),
+            vec!["x: T".into(), "y: Bool".into()],
+            vec!["z: Int64".into(), "y: Bool".into()],
+        ),
+    );
+}
+
+#[test]
+fn test_named_arguments_fail_function() {
+    err(
+        "
+            fun foo(x: Int64, y: Bool) {}
+            fun x() { foo(z = 23, y = true); }",
+        pos(3, 26),
+        ErrorMessage::ArgumentNameMismatch(
+            "foo".into(),
+            vec!["x: Int64".into(), "y: Bool".into()],
+            vec!["z: Int64".into(), "y: Bool".into()],
+        ),
+    );
+}
+
+#[test]
+fn test_named_arguments_fail_class() {
+    err(
+        "
+            class Foo(x: Int64, y: Bool)
+            fun x() { Foo(z = 23, y = true); }",
+        pos(3, 26),
+        ErrorMessage::ArgumentNameMismatch(
+            "Foo".into(),
+            vec!["x: Int64".into(), "y: Bool".into()],
+            vec!["z: Int64".into(), "y: Bool".into()],
+        ),
+    );
+}
+
+#[test]
+fn test_named_arguments_fail_struct() {
+    err(
+        "
+            struct Foo(x: Int64, y: Bool)
+            fun x() { Foo(z = 23, y = true); }",
+        pos(3, 26),
+        ErrorMessage::ArgumentNameMismatch(
+            "Foo".into(),
+            vec!["x: Int64".into(), "y: Bool".into()],
+            vec!["z: Int64".into(), "y: Bool".into()],
+        ),
+    );
+}
+
+#[test]
 fn test_array_syntax_get() {
     ok("fun f(t: Array[Int32]): Int32 { return t(0); }");
 }

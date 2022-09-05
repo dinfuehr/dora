@@ -52,6 +52,7 @@ pub enum ErrorMessage {
     MatchUnreachablePattern,
     VarNeedsTypeInfo(String),
     ParamTypesIncompatible(String, Vec<String>, Vec<String>),
+    ArgumentNameMismatch(String, Vec<String>, Vec<String>),
     LambdaParamTypesIncompatible(Vec<String>, Vec<String>),
     WhileCondType(String),
     IfCondType(String),
@@ -308,6 +309,15 @@ impl ErrorMessage {
                 format!(
                     "function `{}({})` cannot be called as `{}({})`",
                     name, def, name, expr
+                )
+            }
+            ErrorMessage::ArgumentNameMismatch(ref name, ref params, ref args) => {
+                let params = params.join(", ");
+                let args = args.join(", ");
+
+                format!(
+                    "argument name mismatch `{}({})` cannot be called as `{}({})`",
+                    name, params, name, args
                 )
             }
             ErrorMessage::LambdaParamTypesIncompatible(ref def, ref expr) => {

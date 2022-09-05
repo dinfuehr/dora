@@ -101,6 +101,7 @@ dependencies = [
  "libc",
  "memoffset",
  "num_cpus",
+ "option-ext",
  "parking_lot",
  "rand",
  "scoped_threadpool",
@@ -190,6 +191,12 @@ dependencies = [
  "hermit-abi",
  "libc",
 ]
+
+[[package]]
+name = "option-ext"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9387ee2bda639d1af08bacbb76f1b3a032e0e133b8db3a0f35d5b51f97d7b5f1"
 
 [[package]]
 name = "parking_lot"

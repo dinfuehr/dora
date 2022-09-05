@@ -630,9 +630,17 @@ impl<'a> AstDumper<'a> {
             d.indent(|d| d.dump_expr(&expr.callee));
 
             for arg in &expr.args {
-                d.dump_expr(arg);
+                d.dump_arg(arg);
             }
         });
+    }
+
+    fn dump_arg(&mut self, arg: &Arg) {
+        match arg.name {
+            None => dump!(self, "arg @ {}", arg.pos),
+            Some(name) => dump!(self, "arg @ {} {}", arg.pos, self.str(name)),
+        };
+        self.indent(|d| d.dump_expr(&arg.expr));
     }
 
     fn dump_expr_paren(&mut self, expr: &ExprParenType) {

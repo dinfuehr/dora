@@ -1,0 +1,21 @@
+fun main() {
+  Foo().foo(x = 23, y = true);
+  Foo().foo(x = 23, true);
+  Foo().foo(23, y = true);
+
+  Foo::bar(x = 23, y = true);
+  Foo::bar(x = 23, true);
+  Foo::bar(23, y = true);
+
+  Foo::qux[Int64](x = 23, y = true);
+  Foo::qux[Int64](x = 23, true);
+  Foo::qux[Int64](23, y = true);
+}
+
+class Foo()
+
+impl Foo {
+  fun foo(x: Int64, y: Bool) {}
+  @static fun bar(x: Int64, y: Bool) {}
+  @static fun qux[T](x: T, y: Bool) {}
+}

@@ -1,0 +1,7 @@
+fun main() {
+  foo(x = 23, y = true);
+  foo(x = 23, true);
+  foo(23, y = true);
+}
+
+fun foo(x: Int64, y: Bool) {}
