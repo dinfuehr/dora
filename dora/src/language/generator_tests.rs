@@ -3483,14 +3483,14 @@ fn gen_enum_array() {
 #[test]
 fn gen_string_length() {
     let result = code("fun f(x: String): Int64 { x.size() }");
-    let expected = vec![ArrayLength(r(1), r(0)), Ret(r(1))];
+    let expected = vec![StringLength(r(1), r(0)), Ret(r(1))];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_string_get_uint8() {
     let result = code("fun f(x: String, idx: Int64): UInt8 { x.getByte(idx) }");
-    let expected = vec![LoadArray(r(2), r(0), r(1)), Ret(r(2))];
+    let expected = vec![LoadStringUInt8(r(2), r(0), r(1)), Ret(r(2))];
     assert_eq!(expected, result);
 }
 
@@ -4185,6 +4185,9 @@ pub enum Bytecode {
     LoadArray(Register, Register, Register),
     StoreArray(Register, Register, Register),
 
+    StringLength(Register, Register),
+    LoadStringUInt8(Register, Register, Register),
+
     Ret(Register),
 }
 
@@ -4495,6 +4498,14 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
 
     fn visit_store_array(&mut self, src: Register, arr: Register, idx: Register) {
         self.emit(Bytecode::StoreArray(src, arr, idx));
+    }
+
+    fn visit_string_length(&mut self, dest: Register, arr: Register) {
+        self.emit(Bytecode::StringLength(dest, arr));
+    }
+
+    fn visit_load_string_uint8(&mut self, dest: Register, arr: Register, idx: Register) {
+        self.emit(Bytecode::LoadStringUInt8(dest, arr, idx));
     }
 
     fn visit_ret(&mut self, opnd: Register) {

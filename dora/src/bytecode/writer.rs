@@ -372,6 +372,14 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::LoadArray, dest, array, idx);
     }
 
+    pub fn emit_string_length(&mut self, dest: Register, string: Register) {
+        self.emit_reg2(BytecodeOpcode::StringLength, dest, string);
+    }
+
+    pub fn emit_load_string_uint8(&mut self, dest: Register, string: Register, idx: Register) {
+        self.emit_reg3(BytecodeOpcode::LoadStringUInt8, dest, string, idx);
+    }
+
     pub fn generate(mut self) -> BytecodeFunction {
         self.resolve_forward_jumps();
 

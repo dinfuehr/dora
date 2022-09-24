@@ -121,6 +121,10 @@ impl Hash for Float64 {
   fun hash(): Int32 = self.hash();
 }
 
+impl Hash for String {
+  fun hash(): Int32 = self.hash();
+}
+
 @pub trait Identity {
   fun identicalTo(other: Self): Bool;
 }

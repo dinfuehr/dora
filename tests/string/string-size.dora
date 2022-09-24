@@ -1,0 +1,13 @@
+fun main() {
+  assert("abc".size() == 3);
+
+  let x = "abcdef";
+  assert(x.size() == 6);
+
+  let y = x + "123456";
+  assert(y.size() == 12);
+  assert(y.size() == y.clone().size());
+
+  let z = "";
+  assert(z.size() == 0);
+}

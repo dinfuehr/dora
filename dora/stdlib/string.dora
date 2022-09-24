@@ -23,6 +23,8 @@ impl String {
     return true;
   }
 
+  @pub @internal fun hash(): Int32;
+
   @pub fun toString(): String = self;
 
   @pub @internal fun compareTo(rhs: String): Int32;

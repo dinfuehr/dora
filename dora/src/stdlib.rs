@@ -129,6 +129,10 @@ pub extern "C" fn sleep(seconds: i32) {
     thread::sleep(Duration::from_secs(seconds as u64));
 }
 
+pub extern "C" fn strhash(val: Handle<Str>) -> i32 {
+    val.hash() as i32
+}
+
 pub extern "C" fn strcmp(lhs: Handle<Str>, rhs: Handle<Str>) -> i32 {
     unsafe {
         libc::strcmp(
@@ -153,7 +157,7 @@ pub extern "C" fn str_clone(val: Handle<Str>) -> Ref<Str> {
     })
 }
 
-pub extern "C" fn str_from_bytes(val: Handle<UInt8Array>, offset: usize, len: usize) -> Ref<Str> {
+pub extern "C" fn str_from_bytes(val: Handle<UInt8Array>, offset: u64, len: u64) -> Ref<Str> {
     handle_scope(|| {
         let vm = get_vm();
         let val: Handle<Str> = val.cast();

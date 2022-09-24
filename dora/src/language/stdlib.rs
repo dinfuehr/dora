@@ -1005,6 +1005,13 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
         sa,
         stdlib_id,
         "string::String",
+        "hash",
+        stdlib::strhash as *const u8,
+    );
+    native_method(
+        sa,
+        stdlib_id,
+        "string::String",
         "compareTo",
         stdlib::strcmp as *const u8,
     );

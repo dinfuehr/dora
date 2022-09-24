@@ -23,7 +23,7 @@ use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::masm::{CodeDescriptor, CondCode, Label, Mem};
 use crate::mem::{self, align_i32};
 use crate::mode::MachineMode;
-use crate::object::{offset_of_array_data, Header, Str};
+use crate::object::{offset_of_array_data, Header, Str, STR_LEN_MASK};
 use crate::size::InstanceSize;
 use crate::stdlib;
 use crate::vm::{
@@ -2911,6 +2911,64 @@ impl<'a> CannonCodeGen<'a> {
         }
     }
 
+    fn emit_load_string_uint8(&mut self, dest: Register, arr: Register, idx: Register) {
+        assert_eq!(self.bytecode.register_type(idx), BytecodeType::Int64);
+        assert_eq!(self.bytecode.register_type(arr), BytecodeType::Ptr);
+
+        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+
+        self.emit_load_register(arr, REG_RESULT.into());
+        self.asm
+            .test_if_nil_bailout(position, REG_RESULT, Trap::NIL);
+
+        self.emit_load_register(idx, REG_TMP1.into());
+
+        if !self.vm.args.flag_omit_bounds_check {
+            self.asm
+                .check_string_index_out_of_bounds(position, REG_RESULT, REG_TMP1);
+        }
+
+        let dest_type = self.specialize_register_type(dest);
+
+        match dest_type {
+            BytecodeType::UInt8 => {
+                let register = result_reg(self.vm, dest_type.clone());
+                self.asm
+                    .load_string_elem(mode(self.vm, dest_type), register, REG_RESULT, REG_TMP1);
+                self.emit_store_register(register, dest);
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    fn emit_string_length(&mut self, dest: Register, arr: Register) {
+        assert_eq!(self.bytecode.register_type(dest), BytecodeType::Int64);
+        assert_eq!(self.bytecode.register_type(arr), BytecodeType::Ptr);
+
+        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+
+        self.emit_load_register(arr, REG_RESULT.into());
+        self.asm
+            .test_if_nil_bailout(position, REG_RESULT, Trap::NIL);
+
+        self.asm.load_mem(
+            MachineMode::Int64,
+            REG_RESULT.into(),
+            Mem::Base(REG_RESULT, Header::size()),
+        );
+
+        self.asm
+            .load_int_const(MachineMode::Int64, REG_TMP1.into(), STR_LEN_MASK as i64);
+        self.asm.int_and(
+            MachineMode::Int64,
+            REG_RESULT.into(),
+            REG_RESULT.into(),
+            REG_TMP1,
+        );
+
+        self.emit_store_register(REG_RESULT.into(), dest);
+    }
+
     fn emit_invoke_virtual_from_bytecode(&mut self, dest: Register, fct_idx: ConstPoolIdx) {
         let (fct_id, type_params) = match self.bytecode.const_pool(fct_idx) {
             ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params.clone()),
@@ -5223,6 +5281,16 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
     fn visit_store_array(&mut self, src: Register, arr: Register, idx: Register) {
         comment!(self, format!("StoreArray {}, {}, {}", src, arr, idx));
         self.emit_store_array(src, arr, idx);
+    }
+
+    fn visit_string_length(&mut self, dest: Register, arr: Register) {
+        comment!(self, format!("StringLength {}, {}", dest, arr));
+        self.emit_string_length(dest, arr);
+    }
+
+    fn visit_load_string_uint8(&mut self, dest: Register, arr: Register, idx: Register) {
+        comment!(self, format!("LoadStringUInt8 {}, {}, {}", dest, arr, idx));
+        self.emit_load_string_uint8(dest, arr, idx);
     }
 
     fn visit_ret(&mut self, opnd: Register) {

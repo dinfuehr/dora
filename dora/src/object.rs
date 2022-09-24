@@ -1,6 +1,7 @@
 use std;
 use std::cmp;
 use std::marker::PhantomData;
+use std::mem::size_of;
 use std::ops::{Deref, DerefMut};
 use std::ptr;
 use std::slice;
@@ -275,7 +276,11 @@ impl Obj {
             return instance_size;
         }
 
-        determine_array_size(self, vtbl.element_size)
+        if unsafe { &*vtbl.class_instance_ptr }.size == InstanceSize::Str {
+            determine_string_size(self, vtbl.element_size)
+        } else {
+            determine_array_size(self, vtbl.element_size)
+        }
     }
 
     pub fn size(&self) -> usize {
@@ -425,6 +430,17 @@ fn determine_array_size(obj: &Obj, element_size: usize) -> usize {
     mem::align_usize(calc, mem::ptr_width_usize())
 }
 
+fn determine_string_size(obj: &Obj, element_size: usize) -> usize {
+    let handle: Ref<Str> = Ref {
+        ptr: obj as *const Obj as *const Str,
+    };
+
+    let calc =
+        Header::size() as usize + mem::ptr_width_usize() + element_size * handle.len() as usize;
+
+    mem::align_usize(calc, mem::ptr_width_usize())
+}
+
 #[repr(C)]
 pub struct Ref<T> {
     ptr: *const T,
@@ -493,9 +509,12 @@ impl<T> Into<Ref<T>> for Address {
 #[repr(C)]
 pub struct Str {
     header: Header,
-    length: usize,
+    hash_and_length: u64,
     data: u8,
 }
+
+pub const STR_LEN_MASK: u64 = 0b1111_11111111111111111111111111111111;
+const STR_HASH_MASK: u32 = 0b1111;
 
 impl Str {
     #[allow(dead_code)]
@@ -507,8 +526,16 @@ impl Str {
         &mut self.header
     }
 
-    pub fn len(&self) -> usize {
-        self.length
+    // trade-off:
+    // - using the upper 32 bits requires less instructions, but 4 bits will almost always be zero
+    // - using the upper 28 bits and the lower 4 bits requires more instructions, but improves the hash slightly
+    pub fn hash(&self) -> u32 {
+        ((self.hash_and_length >> 32) as u32 & !STR_HASH_MASK)
+            | self.hash_and_length as u32 & STR_HASH_MASK
+    }
+
+    pub fn len(&self) -> u64 {
+        self.hash_and_length & STR_LEN_MASK
     }
 
     pub fn data(&self) -> *const u8 {
@@ -516,19 +543,26 @@ impl Str {
     }
 
     pub fn content(&self) -> &[u8] {
-        unsafe { slice::from_raw_parts(self.data(), self.len()) }
+        unsafe { slice::from_raw_parts(self.data(), self.len() as usize) }
+    }
+
+    fn init_hash_and_length(&mut self, len: u64) {
+        // can't use content(), the function expects that len is initialized
+        let content = unsafe { slice::from_raw_parts(self.data(), len as usize) };
+        self.hash_and_length = seahash::hash(content) & !STR_LEN_MASK | len & STR_LEN_MASK;
     }
 
     /// allocates string from buffer in permanent space
     pub fn from_buffer_in_perm(vm: &VM, buf: &[u8]) -> Ref<Str> {
         let mut handle = str_alloc_perm(vm, buf.len());
-        handle.length = buf.len();
 
         let data = handle.data() as *mut u8;
         unsafe {
             // copy buffer content into Str
             ptr::copy_nonoverlapping(buf.as_ptr(), data, buf.len());
         }
+
+        handle.init_hash_and_length(buf.len() as u64);
 
         handle
     }
@@ -536,7 +570,6 @@ impl Str {
     /// allocates string from buffer in heap
     pub fn from_buffer(vm: &VM, buf: &[u8]) -> Ref<Str> {
         let mut handle = str_alloc_heap(vm, buf.len());
-        handle.length = buf.len();
 
         let data = handle.data() as *mut u8;
         unsafe {
@@ -544,34 +577,37 @@ impl Str {
             ptr::copy_nonoverlapping(buf.as_ptr(), data, buf.len());
         }
 
+        handle.init_hash_and_length(buf.len() as u64);
+
         handle
     }
 
-    pub fn from_str(vm: &VM, val: Handle<Str>, offset: usize, len: usize) -> Ref<Str> {
+    pub fn from_str(vm: &VM, val: Handle<Str>, offset: u64, len: u64) -> Ref<Str> {
         let total_len = val.len();
 
         if offset > total_len {
             return Ref::null();
         }
 
-        let len = std::cmp::min(total_len - offset, len);
+        let len = cmp::min(total_len - offset, len);
 
         let slice = unsafe {
             let data = val.data().offset(offset as isize);
-            slice::from_raw_parts(data, len)
+            slice::from_raw_parts(data, len as usize)
         };
 
         if let Ok(_) = str::from_utf8(slice) {
-            let mut handle = str_alloc_heap(vm, len);
-            handle.length = len;
+            let mut handle = str_alloc_heap(vm, len as usize);
 
             let dest = handle.data() as *mut u8;
             unsafe {
                 let src = val.data().offset(offset as isize);
 
                 // copy buffer content into Str
-                ptr::copy_nonoverlapping(src, dest, len);
+                ptr::copy_nonoverlapping(src, dest, len as usize);
             }
+
+            handle.init_hash_and_length(len);
 
             handle
         } else {
@@ -581,17 +617,18 @@ impl Str {
 
     pub fn concat(vm: &VM, lhs: Handle<Str>, rhs: Handle<Str>) -> Handle<Str> {
         let len = lhs.len() + rhs.len();
-        let mut handle = handle(str_alloc_heap(vm, len));
+        let mut handle = handle(str_alloc_heap(vm, len as usize));
 
-        handle.length = len;
         unsafe {
-            ptr::copy_nonoverlapping(lhs.data(), handle.data() as *mut u8, lhs.len());
+            ptr::copy_nonoverlapping(lhs.data(), handle.data() as *mut u8, lhs.len() as usize);
             ptr::copy_nonoverlapping(
                 rhs.data(),
                 handle.data().offset(lhs.len() as isize) as *mut u8,
-                rhs.len(),
+                rhs.len() as usize,
             );
         }
+
+        handle.init_hash_and_length(len);
 
         handle
     }
@@ -599,12 +636,12 @@ impl Str {
     // duplicate string into a new object
     pub fn dup(&self, vm: &VM) -> Ref<Str> {
         let len = self.len();
-        let mut handle = str_alloc_heap(vm, len);
+        let mut handle = str_alloc_heap(vm, len as usize);
 
-        handle.length = len;
         unsafe {
-            ptr::copy_nonoverlapping(self.data(), handle.data() as *mut u8, len);
+            ptr::copy_nonoverlapping(self.data(), handle.data() as *mut u8, len as usize);
         }
+        handle.hash_and_length = self.hash_and_length;
 
         handle
     }
@@ -658,7 +695,7 @@ where
     F: FnOnce(&VM, usize) -> Address,
 {
     let size = Header::size() as usize      // Object header
-                + mem::ptr_width() as usize // length field
+                + size_of::<u64>()          // hash and length field
                 + len; // string content
 
     let size = mem::align_usize(size, mem::ptr_width() as usize);
@@ -673,6 +710,7 @@ where
         .header_mut()
         .set_vtblptr(Address::from_ptr(vtable as *const VTable));
 
+    //println!("allocating size {} for len {}", size, len);
     handle
 }
 
@@ -762,7 +800,7 @@ where
     pub fn alloc(vm: &VM, len: usize, elem: T, clsid: ClassInstanceId) -> Ref<Array<T>> {
         let size = Header::size() as usize        // Object header
                    + mem::ptr_width() as usize    // length field
-                   + len * std::mem::size_of::<T>(); // array content
+                   + len * size_of::<T>(); // array content
 
         let ptr = vm.gc.alloc(vm, size, T::REF).to_usize();
         let cls = vm.class_instances.idx(clsid);
@@ -791,6 +829,10 @@ pub fn offset_of_array_length() -> i32 {
 
 pub fn offset_of_array_data() -> i32 {
     offset_of!(Array<i32>, data) as i32
+}
+
+pub fn offset_of_string_data() -> i32 {
+    offset_of!(Str, data) as i32
 }
 
 pub type UInt8Array = Array<u8>;

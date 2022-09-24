@@ -1,0 +1,8 @@
+fun main() {
+  let x = "ABC";
+  assert(x.hash() == 1867602035i32);
+  assert("1234".hash() == -409991756i32);
+  assert("".hash() == -920597952i32);
+
+  assert(x.hash() == x.clone().hash());
+}

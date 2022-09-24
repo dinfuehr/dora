@@ -583,6 +583,24 @@ impl BytecodeBuilder {
         self.writer.emit_load_array(dest, array, index);
     }
 
+    pub fn emit_string_length(&mut self, dest: Register, string: Register, pos: Position) {
+        assert!(self.def(dest) && self.used(string));
+        self.writer.set_position(pos);
+        self.writer.emit_string_length(dest, string);
+    }
+
+    pub fn emit_load_string_uint8(
+        &mut self,
+        dest: Register,
+        string: Register,
+        index: Register,
+        pos: Position,
+    ) {
+        assert!(self.def(dest) && self.used(string) && self.used(index));
+        self.writer.set_position(pos);
+        self.writer.emit_load_string_uint8(dest, string, index);
+    }
+
     pub fn generate(self, sa: &SemAnalysis) -> BytecodeFunction {
         for reg in &self.registers.used {
             println!("used reg {}", reg);

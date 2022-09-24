@@ -2218,8 +2218,11 @@ impl<'a> AstBytecodeGen<'a> {
         let src = self.visit_expr(opnd, DataDest::Alloc);
 
         match intrinsic {
-            Intrinsic::ArrayLen | Intrinsic::StrLen => {
+            Intrinsic::ArrayLen => {
                 self.builder.emit_array_length(dest, src, pos);
+            }
+            Intrinsic::StrLen => {
+                self.builder.emit_string_length(dest, src, pos);
             }
             Intrinsic::Int32Neg
             | Intrinsic::Int64Neg
@@ -2269,7 +2272,11 @@ impl<'a> AstBytecodeGen<'a> {
                 let arr = self.visit_expr(lhs, DataDest::Alloc);
                 let idx = self.visit_expr(rhs, DataDest::Alloc);
 
-                self.builder.emit_load_array(dest, arr, idx, pos);
+                if intrinsic == Intrinsic::ArrayGet {
+                    self.builder.emit_load_array(dest, arr, idx, pos);
+                } else {
+                    self.builder.emit_load_string_uint8(dest, arr, idx, pos);
+                }
 
                 self.free_if_temp(arr);
                 self.free_if_temp(idx);

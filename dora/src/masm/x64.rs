@@ -9,7 +9,9 @@ use crate::language::ty::SourceTypeArray;
 use crate::masm::{CondCode, Label, MacroAssembler, Mem};
 use crate::mem::{fits_i32, ptr_width};
 use crate::mode::MachineMode;
-use crate::object::{offset_of_array_data, offset_of_array_length, Header};
+use crate::object::{
+    offset_of_array_data, offset_of_array_length, offset_of_string_data, Header, STR_LEN_MASK,
+};
 use crate::threads::ThreadLocalData;
 use crate::vm::{get_vm, LazyCompilationSite, Trap};
 use crate::vtable::VTable;
@@ -144,6 +146,14 @@ impl MacroAssembler {
             mode,
             dest,
             Mem::Index(array, index, mode.size(), offset_of_array_data()),
+        );
+    }
+
+    pub fn load_string_elem(&mut self, mode: MachineMode, dest: AnyReg, array: Reg, index: Reg) {
+        self.load_mem(
+            mode,
+            dest,
+            Mem::Index(array, index, mode.size(), offset_of_string_data()),
         );
     }
 
@@ -954,6 +964,23 @@ impl MacroAssembler {
             Mem::Base(array, offset_of_array_length()),
         );
         self.asm.cmpq_rr(index.into(), (*scratch).into());
+
+        let lbl = self.create_label();
+        self.jump_if(CondCode::UnsignedGreaterEq, lbl);
+        self.emit_bailout(lbl, Trap::INDEX_OUT_OF_BOUNDS, pos);
+    }
+
+    pub fn check_string_index_out_of_bounds(&mut self, pos: Position, array: Reg, index: Reg) {
+        let scratch1 = self.get_scratch();
+        let scratch2 = self.get_scratch();
+        self.load_mem(
+            MachineMode::Int64,
+            (*scratch1).into(),
+            Mem::Base(array, offset_of_array_length()),
+        );
+        self.load_int_const(MachineMode::Int64, *scratch2, STR_LEN_MASK as i64);
+        self.asm.andq_rr((*scratch1).into(), (*scratch2).into());
+        self.asm.cmpq_rr(index.into(), (*scratch1).into());
 
         let lbl = self.create_label();
         self.jump_if(CondCode::UnsignedGreaterEq, lbl);

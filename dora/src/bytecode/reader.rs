@@ -414,6 +414,19 @@ impl<'a> BytecodeReader<'a> {
                 BytecodeInstruction::StoreArray { src, arr, idx }
             }
 
+            BytecodeOpcode::StringLength => {
+                let dest = self.read_register();
+                let str = self.read_register();
+                BytecodeInstruction::StringLength { dest, str }
+            }
+
+            BytecodeOpcode::LoadStringUInt8 => {
+                let dest = self.read_register();
+                let str = self.read_register();
+                let idx = self.read_register();
+                BytecodeInstruction::LoadStringUInt8 { dest, str, idx }
+            }
+
             BytecodeOpcode::Ret => {
                 let opnd = self.read_register();
                 BytecodeInstruction::Ret { opnd }
@@ -741,6 +754,14 @@ where
                 self.visitor.visit_store_array(src, arr, idx);
             }
 
+            BytecodeInstruction::StringLength { dest, str } => {
+                self.visitor.visit_string_length(dest, str);
+            }
+
+            BytecodeInstruction::LoadStringUInt8 { dest, str, idx } => {
+                self.visitor.visit_load_string_uint8(dest, str, idx);
+            }
+
             BytecodeInstruction::Ret { opnd } => {
                 self.visitor.visit_ret(opnd);
             }
@@ -998,6 +1019,14 @@ pub trait BytecodeVisitor {
     }
 
     fn visit_store_array(&mut self, _src: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+
+    fn visit_string_length(&mut self, _dest: Register, _arr: Register) {
+        unimplemented!();
+    }
+
+    fn visit_load_string_uint8(&mut self, _dest: Register, _arr: Register, _idx: Register) {
         unimplemented!();
     }
 

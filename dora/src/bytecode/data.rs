@@ -126,6 +126,9 @@ enumeration!(BytecodeOpcode {
     LoadArray,
     StoreArray,
 
+    StringLength,
+    LoadStringUInt8,
+
     Ret
 });
 
@@ -304,6 +307,8 @@ impl BytecodeOpcode {
             | BytecodeOpcode::ArrayLength
             | BytecodeOpcode::LoadArray
             | BytecodeOpcode::StoreArray
+            | BytecodeOpcode::StringLength
+            | BytecodeOpcode::LoadStringUInt8
             | BytecodeOpcode::LoadEnumElement
             | BytecodeOpcode::LoadEnumVariant
             | BytecodeOpcode::Add
@@ -618,6 +623,16 @@ pub enum BytecodeInstruction {
     StoreArray {
         src: Register,
         arr: Register,
+        idx: Register,
+    },
+
+    StringLength {
+        dest: Register,
+        str: Register,
+    },
+    LoadStringUInt8 {
+        dest: Register,
+        str: Register,
         idx: Register,
     },
 

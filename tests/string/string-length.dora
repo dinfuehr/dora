@@ -1,6 +1,0 @@
-fun main() {
-  assert("abc".size() == 3i64);
-
-  let x = "abcdef";
-  assert(x.size() == 6i64);
-}

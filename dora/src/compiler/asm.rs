@@ -473,6 +473,10 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.load_array_elem(mode, dest, array, index);
     }
 
+    pub fn load_string_elem(&mut self, mode: MachineMode, dest: AnyReg, array: Reg, index: Reg) {
+        self.masm.load_string_elem(mode, dest, array, index);
+    }
+
     pub fn array_address(&mut self, dest: Reg, obj: Reg, index: Reg, element_size: i32) {
         self.masm.array_address(dest, obj, index, element_size);
     }
@@ -503,6 +507,11 @@ impl<'a> BaselineAssembler<'a> {
 
     pub fn check_index_out_of_bounds(&mut self, pos: Position, array: Reg, index: Reg) {
         self.masm.check_index_out_of_bounds(pos, array, index);
+    }
+
+    pub fn check_string_index_out_of_bounds(&mut self, pos: Position, array: Reg, index: Reg) {
+        self.masm
+            .check_string_index_out_of_bounds(pos, array, index);
     }
 
     pub fn extend_byte(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
