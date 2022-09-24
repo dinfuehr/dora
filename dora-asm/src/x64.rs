@@ -59,6 +59,24 @@ pub const XMM13: XmmRegister = XmmRegister(13);
 pub const XMM14: XmmRegister = XmmRegister(14);
 pub const XMM15: XmmRegister = XmmRegister(15);
 
+#[allow(dead_code)]
+const VEXM_0F: u8 = 1;
+const VEXM_0F38: u8 = 2;
+#[allow(dead_code)]
+const VEXM_0F3A: u8 = 3;
+
+const VEXL_Z: u8 = 0;
+#[allow(dead_code)]
+const VEXL_128: u8 = 0;
+#[allow(dead_code)]
+const VEXL_256: u8 = 1;
+
+#[allow(dead_code)]
+const VEXP_NONE: u8 = 0;
+const VEXP_66: u8 = 1;
+const VEXP_F3: u8 = 2;
+const VEXP_F2: u8 = 3;
+
 struct ForwardJump {
     offset: u32,
     label: Label,
@@ -1246,6 +1264,27 @@ impl AssemblerX64 {
         self.emit_u8(rhs.int8() as u8);
     }
 
+    pub fn shlx(&mut self, x64: bool, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_vex3_rxbm(dest.needs_rex(), 0, lhs.needs_rex(), VEXM_0F38);
+        self.emit_vex3_wvlp(x64, rhs.value(), VEXL_Z, VEXP_66);
+        self.emit_u8(0xF7);
+        self.emit_modrm(0b11, dest.low_bits(), lhs.low_bits());
+    }
+
+    pub fn shrx(&mut self, x64: bool, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_vex3_rxbm(dest.needs_rex(), 0, lhs.needs_rex(), VEXM_0F38);
+        self.emit_vex3_wvlp(x64, rhs.value(), VEXL_Z, VEXP_F2);
+        self.emit_u8(0xF7);
+        self.emit_modrm(0b11, dest.low_bits(), lhs.low_bits());
+    }
+
+    pub fn sarx(&mut self, x64: bool, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_vex3_rxbm(dest.needs_rex(), 0, lhs.needs_rex(), VEXM_0F38);
+        self.emit_vex3_wvlp(x64, rhs.value(), VEXL_Z, VEXP_F3);
+        self.emit_u8(0xF7);
+        self.emit_modrm(0b11, dest.low_bits(), lhs.low_bits());
+    }
+
     pub fn roll_r(&mut self, opnd: Register) {
         self.emit_rex32_rm_optional(opnd);
         self.emit_u8(0xd3);
@@ -1405,6 +1444,22 @@ impl AssemblerX64 {
         assert!(reg < 8);
         assert!(rm < 8);
         self.emit_u8(mode << 6 | reg << 3 | rm);
+    }
+
+    fn emit_vex3_rxbm(&mut self, r: bool, x: u8, b: bool, m: u8) {
+        assert!(x == 0 || x == 1);
+        assert!(m > 1 && m < 4);
+
+        self.emit_u8(0b11000100);
+        self.emit_u8((!r as u8) << 7 | (!x << 6) & 0b1000000 | ((!b as u8) << 5) & 0b100000 | m);
+    }
+
+    fn emit_vex3_wvlp(&mut self, w: bool, v: u8, l: u8, p: u8) {
+        assert!(v < 16);
+        assert!(l == 0 || l == 1);
+        assert!(p < 4);
+
+        self.emit_u8((w as u8) << 7 | (!v << 3) & 0b1111000 | l << 2 | p);
     }
 
     fn emit_address(&mut self, reg_or_opcode: u8, address: Address) {
@@ -2703,6 +2758,24 @@ mod tests {
     fn test_shlq_r() {
         assert_emit!(0x48, 0xd3, 0xe0; shlq_r(RAX));
         assert_emit!(0x49, 0xd3, 0xe0; shlq_r(R8));
+    }
+
+    #[test]
+    fn test_int_shlx() {
+        assert_emit!(0xC4, 0xE2, 0xE1, 0xF7, 0xC2; shlx(true, RAX, RDX, RBX));
+        assert_emit!(0xC4, 0x42, 0x29, 0xF7, 0xC1; shlx(false, R8, R9, R10));
+    }
+
+    #[test]
+    fn test_int_shrx() {
+        assert_emit!(0xC4, 0xE2, 0xE3, 0xF7, 0xC2; shrx(true, RAX, RDX, RBX));
+        assert_emit!(0xC4, 0x42, 0x2B, 0xF7, 0xC1; shrx(false, R8, R9, R10));
+    }
+
+    #[test]
+    fn test_int_sarx() {
+        assert_emit!(0xC4, 0xE2, 0xE2, 0xF7, 0xC2; sarx(true, RAX, RDX, RBX));
+        assert_emit!(0xC4, 0x42, 0x22, 0xF7, 0xCA; sarx(false, R9, R10, R11));
     }
 
     #[test]

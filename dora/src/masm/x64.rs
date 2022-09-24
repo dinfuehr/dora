@@ -534,6 +534,11 @@ impl MacroAssembler {
     }
 
     pub fn int_shl(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        if has_x_ops() {
+            self.asm
+                .shlx(mode.is64(), dest.into(), lhs.into(), rhs.into());
+            return;
+        }
         if rhs != RCX {
             assert!(lhs != RCX);
             self.mov_rr(mode.is64(), RCX.into(), rhs.into());
@@ -551,6 +556,11 @@ impl MacroAssembler {
     }
 
     pub fn int_shr(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        if has_x_ops() {
+            self.asm
+                .shrx(mode.is64(), dest.into(), lhs.into(), rhs.into());
+            return;
+        }
         if rhs != RCX {
             assert!(lhs != RCX);
             self.mov_rr(mode.is64(), RCX.into(), rhs.into());
@@ -568,6 +578,11 @@ impl MacroAssembler {
     }
 
     pub fn int_sar(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        if has_x_ops() {
+            self.asm
+                .sarx(mode.is64(), dest.into(), lhs.into(), rhs.into());
+            return;
+        }
         if rhs != RCX {
             assert!(lhs != RCX);
             self.mov_rr(mode.is64(), RCX.into(), rhs.into());
