@@ -192,6 +192,10 @@ impl MacroAssembler {
         }
     }
 
+    pub fn float_srt(&mut self, _mode: MachineMode, _dest: Reg, _lhs: FReg, _rhs: FReg) {
+        unreachable!("float_srt not intrinsified on ARM64")
+    }
+
     pub fn test_and_jump_if(&mut self, cond: CondCode, reg: Reg, lbl: Label) {
         assert!(cond == CondCode::Zero || cond == CondCode::NonZero);
 

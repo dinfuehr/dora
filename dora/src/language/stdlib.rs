@@ -1143,6 +1143,14 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
         "compareTo",
         Intrinsic::Float32Cmp,
     );
+    #[cfg(target_arch = "x86_64")]
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
+        "sortsAs",
+        Intrinsic::Float32Srt,
+    );
 
     intrinsic_method(
         sa,
@@ -1290,6 +1298,14 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
         "primitives::Float64",
         "compareTo",
         Intrinsic::Float64Cmp,
+    );
+    #[cfg(target_arch = "x86_64")]
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
+        "sortsAs",
+        Intrinsic::Float64Srt,
     );
 
     intrinsic_method(

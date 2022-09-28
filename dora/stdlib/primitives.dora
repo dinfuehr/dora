@@ -312,7 +312,7 @@ impl Float32 {
 
   @pub @internal fun equals(rhs: Float32): Bool;
   @pub @internal fun compareTo(rhs: Float32): Int32;
-  @pub fun sortsAs(rhs: Float32): Int32 {
+  @pub @internal fun sortsAs(rhs: Float32): Int32 {
     let mut ix = self.asInt32();
     let mut iy = rhs.asInt32();
 
@@ -366,7 +366,7 @@ impl Float64 {
 
   @pub @internal fun equals(rhs: Float64): Bool;
   @pub @internal fun compareTo(rhs: Float64): Int32;
-  @pub fun sortsAs(rhs: Float64): Int32 {
+  @pub @internal fun sortsAs(rhs: Float64): Int32 {
     let mut ix = self.asInt64();
     let mut iy = rhs.asInt64();
 

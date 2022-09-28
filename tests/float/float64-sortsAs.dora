@@ -1,0 +1,64 @@
+fun main() {
+  assert(0.0.sortsAs(0.0) == 0i32);
+  assert((-0.0).sortsAs(-0.0) == 0i32);
+  assert(1.0.sortsAs(1.0) == 0i32);
+  assert(0.0.sortsAs(1.0) == -1i32);
+  assert(1.0.sortsAs(0.0) == 1i32);
+  assert((-0.0).sortsAs(0.0) == -1i32);
+  assert(0.0.sortsAs(-0.0) == 1i32);
+  assert((0.0/0.0).sortsAs(0.0/0.0) == 0i32);
+
+  // 1111111111111000000000000000000000000000000000000000000000000000
+  let nanQuietNegative = (-2251799813685248).asFloat64();
+  // 1111111111110000000000000000000000000000000000000000000000000001
+  let nanSignaNegative = (-4503599627370495).asFloat64();
+  // 1111111111110000000000000000000000000000000000000000000000000000
+  let infNegative = (-4503599627370496).asFloat64();
+  // negative numbers
+  // positive numbers
+  // 0111111111110000000000000000000000000000000000000000000000000000
+  let infPositive = 9218868437227405312.asFloat64();
+  // 0111111111110000000000000000000000000000000000000000000000000001
+  let nanSignaPositive = 9218868437227405313.asFloat64();
+  // 0111111111111000000000000000000000000000000000000000000000000000
+  let nanQuietPositive = 9221120237041090560.asFloat64();
+
+  assert(nanQuietNegative.sortsAs(nanSignaNegative) == -1i32);
+  assert(nanSignaNegative.sortsAs(infNegative) == -1i32);
+  assert(infNegative.sortsAs(infPositive) == -1i32);
+  assert(infPositive.sortsAs(nanSignaPositive) == -1i32);
+  assert(nanSignaPositive.sortsAs(nanQuietPositive) == -1i32);
+
+  assert(nanQuietNegative.sortsAs(-1.0) == -1i32);
+  assert(nanSignaNegative.sortsAs(-1.0) == -1i32);
+  assert(infNegative.sortsAs(-1.0) == -1i32);
+  assert(infPositive.sortsAs(-1.0) == 1i32);
+  assert(nanSignaPositive.sortsAs(-1.0) == 1i32);
+
+  assert(nanQuietNegative.sortsAs(1.0) == -1i32);
+  assert(nanSignaNegative.sortsAs(1.0) == -1i32);
+  assert(infNegative.sortsAs(1.0) == -1i32);
+  assert(infPositive.sortsAs(1.0) == 1i32);
+  assert(nanSignaPositive.sortsAs(1.0) == 1i32);
+
+  // -qNaN  -sNaN  +sNaN  +qNaN
+  assert(nanQuietNegative.sortsSame(nanQuietNegative));
+  assert(nanQuietNegative.sortsBefore(nanSignaNegative));
+  assert(nanQuietNegative.sortsBefore(nanSignaPositive));
+  assert(nanQuietNegative.sortsBefore(nanQuietPositive));
+
+  assert(nanSignaNegative.sortsAfter(nanQuietNegative));
+  assert(nanSignaNegative.sortsSame(nanSignaNegative));
+  assert(nanSignaNegative.sortsBefore(nanSignaPositive));
+  assert(nanSignaNegative.sortsBefore(nanQuietPositive));
+
+  assert(nanSignaPositive.sortsAfter(nanQuietNegative));
+  assert(nanSignaPositive.sortsAfter(nanSignaNegative));
+  assert(nanSignaPositive.sortsSame(nanSignaPositive));
+  assert(nanSignaPositive.sortsBefore(nanQuietPositive));
+
+  assert(nanQuietPositive.sortsAfter(nanQuietNegative));
+  assert(nanQuietPositive.sortsAfter(nanSignaNegative));
+  assert(nanQuietPositive.sortsAfter(nanSignaPositive));
+  assert(nanQuietPositive.sortsSame(nanQuietPositive));
+}
