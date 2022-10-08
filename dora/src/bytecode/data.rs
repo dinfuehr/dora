@@ -43,7 +43,6 @@ pub enum BytecodeTypeKind {
     Lambda,
 }
 
-// Keep in sync with dora-boots/bytecode.dora
 enumeration!(BytecodeOpcode {
     Wide,
 

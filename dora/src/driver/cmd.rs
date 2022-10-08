@@ -224,7 +224,6 @@ pub enum CollectorName {
 #[derive(Copy, Clone, Debug)]
 pub enum CompilerName {
     Cannon,
-    Boots,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -363,7 +362,6 @@ pub fn parse_arguments() -> Result<Args, String> {
             let value = argument_value(arg);
             let value = match value {
                 "cannon" => CompilerName::Cannon,
-                "boots" => CompilerName::Boots,
                 _ => return Err(format!("--compiler: unknown compiler '{}'", value)),
             };
             args.flag_compiler = Some(value);

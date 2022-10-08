@@ -1,9 +1,0 @@
-//= boots
-
-fun main() {
-    f();
-    // assert(g() == 17i32);
-}
-
-@optimizeImmediately fun f() {}
-@optimizeImmediately fun g(): Int32 { 17i32 }

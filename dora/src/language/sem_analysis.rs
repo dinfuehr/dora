@@ -274,11 +274,6 @@ impl SemAnalysis {
         self.stdlib_module_id = Some(module_id);
     }
 
-    pub fn set_boots_module_id(&mut self, module_id: ModuleDefinitionId) {
-        assert!(self.boots_module_id.is_none());
-        self.boots_module_id = Some(module_id);
-    }
-
     pub fn set_program_module_id(&mut self, module_id: ModuleDefinitionId) {
         assert!(self.program_module_id.is_none());
         self.program_module_id = Some(module_id);
@@ -292,15 +287,6 @@ impl SemAnalysis {
     pub fn set_program_package_id(&mut self, package_id: PackageDefinitionId) {
         assert!(self.program_package_id.is_none());
         self.program_package_id = Some(package_id);
-    }
-
-    pub fn set_boots_package_id(&mut self, package_id: PackageDefinitionId) {
-        assert!(self.boots_package_id.is_none());
-        self.boots_package_id = Some(package_id);
-    }
-
-    pub fn has_boots_package(&mut self) -> bool {
-        self.boots_package_id.is_some()
     }
 
     pub fn add_package(

@@ -71,7 +71,6 @@ impl<'a> ProgramParser<'a> {
 
     fn add_all_packages(&mut self) {
         self.add_stdlib_package();
-        self.add_boots_package();
         self.add_program_package();
         self.add_dependency_packages();
     }
@@ -125,18 +124,6 @@ impl<'a> ProgramParser<'a> {
             eprintln!("\t{}", bundled_file_path);
         }
         panic!("can't find file {} in bundle.", path.display())
-    }
-
-    fn add_boots_package(&mut self) {
-        let boots_name = "boots";
-        if let Some(boots_path) = self.packages.remove(boots_name) {
-            let boots_name = self.sa.interner.intern(boots_name);
-            let (package_id, module_id) = self.sa.add_package(PackageName::Boots, Some(boots_name));
-            self.sa.package_names.insert(boots_name, package_id);
-            self.sa.set_boots_module_id(module_id);
-            self.sa.set_boots_package_id(package_id);
-            self.add_file_from_filesystem(package_id, module_id, PathBuf::from(boots_path));
-        }
     }
 
     fn add_program_package(&mut self) {

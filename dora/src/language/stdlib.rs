@@ -237,10 +237,6 @@ pub fn discover_known_methods(sa: &mut SemAnalysis) {
         "Stacktrace",
         "retrieveStacktrace",
     ));
-
-    if sa.has_boots_package() {
-        sa.known.functions.compile = Some(find_function(sa, sa.boots_module_id(), "compile"));
-    }
 }
 
 pub fn create_lambda_class(sa: &mut SemAnalysis) {

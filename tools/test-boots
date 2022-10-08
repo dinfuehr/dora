@@ -1,5 +1,0 @@
-#!/bin/sh
-
-set -e
-
-cargo run -- test dora-boots/boots.dora --gc-verify && ruby tools/tester.rb tests/boots

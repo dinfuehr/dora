@@ -59,7 +59,6 @@ impl PackageDefinition {
 #[derive(Debug)]
 pub enum PackageName {
     Stdlib,
-    Boots,
     Program,
     External(Name),
 }

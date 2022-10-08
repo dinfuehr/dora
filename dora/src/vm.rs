@@ -126,10 +126,8 @@ pub struct FullSemAnalysis {
     pub prelude_module_id: Option<ModuleDefinitionId>,
     pub stdlib_module_id: Option<ModuleDefinitionId>,
     pub program_module_id: Option<ModuleDefinitionId>,
-    pub boots_module_id: Option<ModuleDefinitionId>,
     pub stdlib_package_id: Option<PackageDefinitionId>,
     pub program_package_id: Option<PackageDefinitionId>,
-    pub boots_package_id: Option<PackageDefinitionId>,
 }
 
 impl FullSemAnalysis {
@@ -159,10 +157,8 @@ impl FullSemAnalysis {
             prelude_module_id: None,
             stdlib_module_id: None,
             program_module_id: None,
-            boots_module_id: None,
             stdlib_package_id: None,
             program_package_id: None,
-            boots_package_id: None,
         });
 
         sa
@@ -178,10 +174,6 @@ impl FullSemAnalysis {
 
     pub fn stdlib_module_id(&self) -> ModuleDefinitionId {
         self.stdlib_module_id.expect("uninitialized module id")
-    }
-
-    pub fn boots_module_id(&self) -> ModuleDefinitionId {
-        self.boots_module_id.expect("uninitialized module id")
     }
 
     pub fn program_module_id(&self) -> ModuleDefinitionId {
@@ -230,10 +222,8 @@ pub struct VM {
     pub prelude_module_id: Option<ModuleDefinitionId>,
     pub stdlib_module_id: Option<ModuleDefinitionId>,
     pub program_module_id: Option<ModuleDefinitionId>,
-    pub boots_module_id: Option<ModuleDefinitionId>,
     pub stdlib_package_id: Option<PackageDefinitionId>,
     pub program_package_id: Option<PackageDefinitionId>,
-    pub boots_package_id: Option<PackageDefinitionId>,
     pub wait_lists: WaitLists,
 }
 
@@ -279,10 +269,8 @@ impl VM {
             prelude_module_id: None,
             stdlib_module_id: None,
             program_module_id: None,
-            boots_module_id: None,
             stdlib_package_id: None,
             program_package_id: None,
-            boots_package_id: None,
             package_names: HashMap::new(),
             wait_lists: WaitLists::new(),
         });
@@ -335,10 +323,8 @@ impl VM {
             prelude_module_id: sa.prelude_module_id,
             stdlib_module_id: sa.stdlib_module_id,
             program_module_id: sa.program_module_id,
-            boots_module_id: sa.boots_module_id,
             stdlib_package_id: sa.stdlib_package_id,
             program_package_id: sa.program_package_id,
-            boots_package_id: sa.boots_package_id,
             package_names: sa.package_names,
             wait_lists: WaitLists::new(),
         });
@@ -407,20 +393,12 @@ impl VM {
         self.stdlib_module_id.expect("uninitialized module id")
     }
 
-    pub fn boots_module_id(&self) -> ModuleDefinitionId {
-        self.boots_module_id.expect("uninitialized module id")
-    }
-
     pub fn program_module_id(&self) -> ModuleDefinitionId {
         self.program_module_id.expect("uninitialized module id")
     }
 
     pub fn stdlib_package_id(&self) -> PackageDefinitionId {
         self.stdlib_package_id.expect("uninitialized package id")
-    }
-
-    pub fn boots_package_id(&self) -> PackageDefinitionId {
-        self.boots_package_id.expect("uninitialized package id")
     }
 
     pub fn program_package_id(&self) -> PackageDefinitionId {

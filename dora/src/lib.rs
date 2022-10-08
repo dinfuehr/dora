@@ -12,7 +12,6 @@ extern crate winapi;
 extern crate memoffset;
 
 mod aot;
-mod boots;
 mod bytecode;
 mod cannon;
 mod compiler;

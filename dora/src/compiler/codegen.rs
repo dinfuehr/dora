@@ -1,12 +1,11 @@
 use dora_parser::Position;
 
-use crate::boots;
 use crate::bytecode::BytecodeFunction;
 use crate::cannon::{self, CompilationFlags};
 use crate::compiler::{dora_exit_stubs, NativeFct};
 use crate::cpu::{FReg, Reg};
 use crate::disassembler;
-use crate::driver::cmd::{AsmSyntax, CompilerName};
+use crate::driver::cmd::AsmSyntax;
 use crate::gc::Address;
 use crate::language::sem_analysis::{FctDefinition, FctDefinitionId};
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -30,40 +29,31 @@ pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray)
         return instruction_start;
     }
 
-    let bc = if fct.is_optimize_immediately {
-        CompilerName::Boots
-    } else {
-        CompilerName::Cannon
-    };
-
     let bytecode_fct = fct.bytecode.as_ref().expect("bytecode missing");
 
     let emit_debug = should_emit_debug(vm, fct);
     let emit_asm = should_emit_asm(vm, fct);
 
-    let code_descriptor = match bc {
-        CompilerName::Cannon => {
-            let pos = fct.pos;
-            let params = fct.params_with_self();
-            let params = SourceTypeArray::with(params.to_vec());
-            let return_type = fct.return_type.clone();
-            let has_variadic_parameter = fct.is_variadic;
+    let code_descriptor = {
+        let pos = fct.pos;
+        let params = fct.params_with_self();
+        let params = SourceTypeArray::with(params.to_vec());
+        let return_type = fct.return_type.clone();
+        let has_variadic_parameter = fct.is_variadic;
 
-            let compilation_data = CompilationData {
-                bytecode_fct,
-                params,
-                has_variadic_parameter,
-                return_type,
-                type_params,
-                pos,
+        let compilation_data = CompilationData {
+            bytecode_fct,
+            params,
+            has_variadic_parameter,
+            return_type,
+            type_params,
+            pos,
 
-                emit_debug,
-                emit_code_comments: emit_asm,
-            };
+            emit_debug,
+            emit_code_comments: emit_asm,
+        };
 
-            cannon::compile(vm, compilation_data, CompilationFlags::jit())
-        }
-        CompilerName::Boots => boots::compile(vm, &fct, &type_params),
+        cannon::compile(vm, compilation_data, CompilationFlags::jit())
     };
 
     let code = install_code(vm, code_descriptor, CodeKind::DoraFct(fct.id()));
