@@ -57,51 +57,48 @@ impl Node {
         let mut l: Node = node;
         let mut r: Node = node;
 
-        while true {
+        let mut continue = true;
+        while continue {
             if node.value <= tree.value {
                 if tree.left.isNone() {
-                    break;
-                }
-
-                if node.value <= tree.left.getOrPanic().value {
+                    continue = false;
+                } else if node.value <= tree.left.getOrPanic().value {
                     // rotate right
                     let y = tree.left.getOrPanic();
                     tree.left = y.right;
                     y.right = Option[Node]::Some(tree);
                     tree = y;
                     if tree.left.isNone() {
-                        break;
+                        continue = false;
                     }
                 }
-
-                // link right
-                r.left = Option[Node]::Some(tree);
-                r = tree;
-                tree = tree.left.getOrPanic();
-
+                if continue {
+                    // link right
+                    r.left = Option[Node]::Some(tree);
+                    r = tree;
+                    tree = tree.left.getOrPanic();
+                }
             } else if node.value > tree.value {
                 if tree.right.isNone() {
-                    break;
-                }
-
-                if node.value > tree.right.getOrPanic().value {
+                    continue = false;
+                } else if node.value > tree.right.getOrPanic().value {
                     // rotate left
                     let y = tree.right.getOrPanic();
                     tree.right = y.left;
                     y.left = Option[Node]::Some(tree);
                     tree = y;
                     if tree.right.isNone() {
-                        break;
+                        continue = false;
                     }
                 }
-
-                // link left
-                l.right = Option[Node]::Some(tree);
-                l = tree;
-                tree = tree.right.getOrPanic();
-
+                if continue {
+                    // link left
+                    l.right = Option[Node]::Some(tree);
+                    l = tree;
+                    tree = tree.right.getOrPanic();
+                }
             } else {
-                break;
+                continue = false;
             }
         }
 

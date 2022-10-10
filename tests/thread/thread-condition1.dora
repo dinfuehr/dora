@@ -86,14 +86,15 @@ impl Consumer {
     }
 
     fun run() {
-        while true {
+        let mut continue = true;
+        while continue {
             let value = self.queue.dequeue();
 
             if value == -1i32 {
-                break;
+                continue = false;
+            } else {
+                self.sum = self.sum + value;
             }
-
-            self.sum = self.sum + value;
         }
     }
 }

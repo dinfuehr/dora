@@ -251,9 +251,6 @@ pub fn walk_stmt<V: Visitor>(v: &mut V, s: &Stmt) {
                 v.visit_expr(e);
             }
         }
-
-        Stmt::Break(_) => {}
-        Stmt::Continue(_) => {}
     }
 }
 

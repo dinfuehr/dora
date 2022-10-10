@@ -113,11 +113,12 @@ impl Benchmark {
     fun insertNewNode(): Int32 {
         let mut key: Int32 = 0i32;
 
-        while true {
+        let mut continue = true;
+        while continue {
             key = self.generateKey();
 
             if self.splayTree.find(key).isNone() {
-                break;
+                continue = false;
             }
         }
 
@@ -297,13 +298,12 @@ impl SplayTree {
 
         let mut current = self.root.getOrPanic();
 
-        while true {
+        let mut continue = true;
+        while continue {
             if key < current.key {
                 if current.left.isNone() {
-                    break;
-                }
-
-                if key < current.left.getOrPanic().key {
+                    continue = false;
+                } else if key < current.left.getOrPanic().key {
                     // Rotate right
                     let tmp = current.left.getOrPanic();
                     current.left = tmp.right;
@@ -311,37 +311,41 @@ impl SplayTree {
                     current = tmp;
 
                     if current.left.isNone() {
-                        break;
+                        continue = false;
                     }
                 }
-
-                // Link right
-                right.left = Some[SplayNode](current);
-                right = current;
-                current = current.left.getOrPanic();
+                if continue {
+                    // Link right
+                    right.left = Some[SplayNode](current);
+                    right = current;
+                    current = current.left.getOrPanic();
+                }
             } else if key > current.key {
                 if current.right.isNone() {
-                    break;
+                    continue = false;
                 }
+                if continue {
+                    if key > current.right.getOrPanic().key {
+                        // Rotate left
+                        let tmp = current.right.getOrPanic();
+                        current.right = tmp.left;
+                        tmp.left = Some(current);
+                        current = tmp;
 
-                if key > current.right.getOrPanic().key {
-                    // Rotate left
-                    let tmp = current.right.getOrPanic();
-                    current.right = tmp.left;
-                    tmp.left = Some(current);
-                    current = tmp;
+                        if current.right.isNone() {
+                            continue = false;
+                        }
+                    }
 
-                    if current.right.isNone() {
-                        break;
+                    if continue {
+                        // Link left
+                        left.right = Some(current);
+                        left = current;
+                        current = current.right.getOrPanic();
                     }
                 }
-
-                // Link left
-                left.right = Some(current);
-                left = current;
-                current = current.right.getOrPanic();
             } else {
-                break;
+                continue = false;
             }
         }
 

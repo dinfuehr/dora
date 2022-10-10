@@ -6,8 +6,6 @@ pub fn returns_value(s: &Stmt) -> Result<(), Position> {
         Stmt::Return(_) => Ok(()),
         Stmt::For(ref stmt) => Err(stmt.pos),
         Stmt::While(ref stmt) => Err(stmt.pos),
-        Stmt::Break(ref stmt) => Err(stmt.pos),
-        Stmt::Continue(ref stmt) => Err(stmt.pos),
         Stmt::Let(ref stmt) => Err(stmt.pos),
         Stmt::Expr(ref stmt) => expr_returns_value(&stmt.expr),
     }

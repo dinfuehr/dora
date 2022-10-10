@@ -212,8 +212,6 @@ impl<'a> AstBytecodeGen<'a> {
     fn visit_stmt(&mut self, stmt: &ast::Stmt) {
         match *stmt {
             ast::Stmt::Return(ref ret) => self.visit_stmt_return(ret),
-            ast::Stmt::Break(ref stmt) => self.visit_stmt_break(stmt),
-            ast::Stmt::Continue(ref stmt) => self.visit_stmt_continue(stmt),
             ast::Stmt::Expr(ref expr) => self.visit_stmt_expr(expr),
             ast::Stmt::Let(ref stmt) => self.visit_stmt_let(stmt),
             ast::Stmt::While(ref stmt) => self.visit_stmt_while(stmt),
@@ -608,16 +606,6 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         self.builder.emit_ret(result_reg);
-    }
-
-    fn visit_stmt_break(&mut self, _stmt: &ast::StmtBreakType) {
-        let end = self.loops.last().unwrap().end;
-        self.builder.emit_jump(end);
-    }
-
-    fn visit_stmt_continue(&mut self, _stmt: &ast::StmtContinueType) {
-        let cond = self.loops.last().unwrap().cond;
-        self.builder.emit_jump_loop(cond);
     }
 
     fn visit_expr(&mut self, expr: &ast::Expr, dest: DataDest) -> Register {

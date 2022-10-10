@@ -525,34 +525,6 @@ fn gen_stmt_if_else_without_return() {
 }
 
 #[test]
-fn gen_stmt_break() {
-    let result = code("fun f() { while true { break; } }");
-    let expected = vec![
-        LoopStart,
-        ConstTrue(r(0)),
-        JumpIfFalse(r(0), 5),
-        Jump(5),
-        JumpLoop(0),
-        Ret(r(1)),
-    ];
-    assert_eq!(expected, result);
-}
-
-#[test]
-fn gen_stmt_continue() {
-    let result = code("fun f() { while true { continue; } }");
-    let expected = vec![
-        LoopStart,
-        ConstTrue(r(0)),
-        JumpIfFalse(r(0), 5),
-        JumpLoop(0),
-        JumpLoop(0),
-        Ret(r(1)),
-    ];
-    assert_eq!(expected, result);
-}
-
-#[test]
 fn gen_expr_lit_char() {
     let result = code("fun f(): Char { return '1'; }");
     let expected = vec![ConstChar(r(0), '1'), Ret(r(0))];
@@ -3792,19 +3764,6 @@ fn gen_compare_to_method() {
 fn gen_const_int() {
     let result = code("const X: Int32 = 1i32; fun f(): Int32 { X }");
     let expected = vec![ConstInt32(r(0), 1), Ret(r(0))];
-    assert_eq!(expected, result);
-}
-
-#[test]
-fn gen_while_with_break() {
-    let result = code("fun f(x: Bool) { while x { break; } }");
-    let expected = vec![
-        LoopStart,
-        JumpIfFalse(r(0), 4),
-        Jump(4),
-        JumpLoop(0),
-        Ret(r(1)),
-    ];
     assert_eq!(expected, result);
 }
 

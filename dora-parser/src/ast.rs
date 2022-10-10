@@ -762,8 +762,6 @@ pub enum Stmt {
     Let(StmtLetType),
     While(StmtWhileType),
     Expr(StmtExprType),
-    Break(StmtBreakType),
-    Continue(StmtContinueType),
     Return(StmtReturnType),
     For(StmtForType),
 }
@@ -834,14 +832,6 @@ impl Stmt {
         })
     }
 
-    pub fn create_break(id: NodeId, pos: Position, span: Span) -> Stmt {
-        Stmt::Break(StmtBreakType { id, pos, span })
-    }
-
-    pub fn create_continue(id: NodeId, pos: Position, span: Span) -> Stmt {
-        Stmt::Continue(StmtContinueType { id, pos, span })
-    }
-
     pub fn create_return(id: NodeId, pos: Position, span: Span, expr: Option<Box<Expr>>) -> Stmt {
         Stmt::Return(StmtReturnType {
             id,
@@ -858,8 +848,6 @@ impl Stmt {
             Stmt::While(ref stmt) => stmt.id,
             Stmt::For(ref stmt) => stmt.id,
             Stmt::Expr(ref stmt) => stmt.id,
-            Stmt::Break(ref stmt) => stmt.id,
-            Stmt::Continue(ref stmt) => stmt.id,
             Stmt::Return(ref stmt) => stmt.id,
         }
     }
@@ -870,8 +858,6 @@ impl Stmt {
             Stmt::While(ref stmt) => stmt.pos,
             Stmt::For(ref stmt) => stmt.pos,
             Stmt::Expr(ref stmt) => stmt.pos,
-            Stmt::Break(ref stmt) => stmt.pos,
-            Stmt::Continue(ref stmt) => stmt.pos,
             Stmt::Return(ref stmt) => stmt.pos,
         }
     }
@@ -882,8 +868,6 @@ impl Stmt {
             Stmt::While(ref stmt) => stmt.span,
             Stmt::For(ref stmt) => stmt.span,
             Stmt::Expr(ref stmt) => stmt.span,
-            Stmt::Break(ref stmt) => stmt.span,
-            Stmt::Continue(ref stmt) => stmt.span,
             Stmt::Return(ref stmt) => stmt.span,
         }
     }
@@ -954,34 +938,6 @@ impl Stmt {
     pub fn is_return(&self) -> bool {
         match *self {
             Stmt::Return(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn to_break(&self) -> Option<&StmtBreakType> {
-        match *self {
-            Stmt::Break(ref val) => Some(val),
-            _ => None,
-        }
-    }
-
-    pub fn is_break(&self) -> bool {
-        match *self {
-            Stmt::Break(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn to_continue(&self) -> Option<&StmtContinueType> {
-        match *self {
-            Stmt::Continue(ref val) => Some(val),
-            _ => None,
-        }
-    }
-
-    pub fn is_continue(&self) -> bool {
-        match *self {
-            Stmt::Continue(_) => true,
             _ => false,
         }
     }
@@ -1111,20 +1067,6 @@ pub struct StmtReturnType {
     pub span: Span,
 
     pub expr: Option<Box<Expr>>,
-}
-
-#[derive(Clone, Debug)]
-pub struct StmtBreakType {
-    pub id: NodeId,
-    pub pos: Position,
-    pub span: Span,
-}
-
-#[derive(Clone, Debug)]
-pub struct StmtContinueType {
-    pub id: NodeId,
-    pub pos: Position,
-    pub span: Span,
 }
 
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]

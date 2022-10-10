@@ -510,13 +510,13 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
                 if current_key.hash() == hash && current_key.equals(key) {
                     return true;
                 }
+                idx = (idx + 1i64) & (self.cap - 1i64);
             } else if self.isDeleted(idx) {
                 // There might be live entries after a deleted one.
+                idx = (idx + 1i64) & (self.cap - 1i64);
             } else {
-                break;
+                return false;
             }
-
-            idx = (idx + 1i64) & (self.cap - 1i64);
         }
 
         false
@@ -539,13 +539,13 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
                 if current_key.hash() == hash && current_key.equals(key) {
                     return Option[V]::Some(self.values.get(idx));
                 }
+                idx = (idx + 1i64) & (self.cap - 1i64);
             } else if self.isDeleted(idx) {
                 // There might be live entries after a deleted one.
+                idx = (idx + 1i64) & (self.cap - 1i64);
             } else {
-                break;
+                return Option[V]::None;
             }
-
-            idx = (idx + 1i64) & (self.cap - 1i64);
         }
 
         Option[V]::None
@@ -571,13 +571,13 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
                     self.entries = self.entries - 1i64;
                     return Option[V]::Some(value);
                 }
+                idx = (idx + 1i64) & (self.cap - 1i64);
             } else if self.isDeleted(idx) {
                 // There might be live entries after a deleted one.
+                idx = (idx + 1i64) & (self.cap - 1i64);
             } else {
-                break;
+                Option[V]::None;
             }
-
-            idx = (idx + 1i64) & (self.cap - 1i64);
         }
 
         Option[V]::None

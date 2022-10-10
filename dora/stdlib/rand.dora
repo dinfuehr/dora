@@ -27,7 +27,7 @@ impl Random {
       modulo = num % bound;
 
       if num - modulo + bound_minus_1 >= 0i32 {
-        break;
+        return modulo;
       }
     }
 

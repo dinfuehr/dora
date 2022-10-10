@@ -40,8 +40,6 @@ pub enum TokenKind {
     While,
     For,
     In,
-    Break,
-    Continue,
     Match,
 
     // qualifiers
@@ -147,8 +145,6 @@ impl TokenKind {
             TokenKind::While => "while",
             TokenKind::For => "for",
             TokenKind::In => "in",
-            TokenKind::Break => "break",
-            TokenKind::Continue => "continue",
             TokenKind::Match => "match",
 
             // qualifiers

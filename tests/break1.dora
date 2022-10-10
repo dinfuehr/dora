@@ -2,10 +2,14 @@ fun main() {
   let mut i = 0i32;
   let mut sum = 0i32;
 
-  while i < 10i32 {
-    if i == 4i32 { break; }
-    i = i + 1i32;
-    sum = sum + i;
+  let mut continue = true;
+  while i < 10i32 && continue {
+    if i == 4i32 {
+      continue = false;
+    } else {
+      i = i + 1i32;
+      sum = sum + i;
+    }
   }
 
   assert(i == 4i32);

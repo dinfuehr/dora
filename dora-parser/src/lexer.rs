@@ -563,8 +563,6 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     keywords.insert("while", TokenKind::While);
     keywords.insert("for", TokenKind::For);
     keywords.insert("in", TokenKind::In);
-    keywords.insert("break", TokenKind::Break);
-    keywords.insert("continue", TokenKind::Continue);
     keywords.insert("match", TokenKind::Match);
 
     // qualifiers
@@ -1024,24 +1022,20 @@ mod tests {
 
     #[test]
     fn test_keywords() {
-        let mut reader = Lexer::from_str("fun let while if else match");
+        let mut reader = Lexer::from_str("fun let while if else match return");
         assert_tok(&mut reader, TokenKind::Fun, 1, 1);
         assert_tok(&mut reader, TokenKind::Let, 1, 5);
         assert_tok(&mut reader, TokenKind::While, 1, 9);
         assert_tok(&mut reader, TokenKind::If, 1, 15);
         assert_tok(&mut reader, TokenKind::Else, 1, 18);
         assert_tok(&mut reader, TokenKind::Match, 1, 23);
+        assert_tok(&mut reader, TokenKind::Return, 1, 29);
 
         let mut reader = Lexer::from_str("self class super mod");
         assert_tok(&mut reader, TokenKind::This, 1, 1);
         assert_tok(&mut reader, TokenKind::Class, 1, 6);
         assert_tok(&mut reader, TokenKind::Super, 1, 12);
         assert_tok(&mut reader, TokenKind::Mod, 1, 18);
-
-        let mut reader = Lexer::from_str("break continue return");
-        assert_tok(&mut reader, TokenKind::Break, 1, 1);
-        assert_tok(&mut reader, TokenKind::Continue, 1, 7);
-        assert_tok(&mut reader, TokenKind::Return, 1, 16);
 
         let mut reader = Lexer::from_str("type struct enum alias trait const");
         assert_tok(&mut reader, TokenKind::Type, 1, 1);

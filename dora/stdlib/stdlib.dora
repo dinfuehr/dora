@@ -44,52 +44,49 @@ fun isValidUtf8(data: Array[UInt8]): Bool {
     if by & 0x80i32 == 0i32 {
       bytes = 0;
       i = i + 1i64;
-      continue;
+    } else {
+      if by & 0xC0i32 == 0x80i32 {
+        return false;
+      } else if by & 0xE0i32 == 0xC0i32 {
+        codepoint = by & 0x1Fi32;
+        bytes = 1;
+        min = 0x80;
+        max = 0x7FFi32;
+      } else if by & 0xF0i32 == 0xE0i32 {
+        codepoint = by & 0xFi32;
+        bytes = 2i32;
+        min = 0x800i32;
+        max = 0xFFFFi32;
+      } else if by & 0xF8i32 == 0xF0i32 {
+        codepoint = by & 0x7i32;
+        bytes = 3;
+        min = 0x10000;
+        max = 0x10FFFFi32;
+      }
 
-    } else if by & 0xC0i32 == 0x80i32 {
-      return false;
+      while bytes > 0i32 {
+        bytes = bytes - 1i32;
+        i = i + 1i64;
 
-    } else if by & 0xE0i32 == 0xC0i32 {
-      codepoint = by & 0x1Fi32;
-      bytes = 1;
-      min = 0x80;
-      max = 0x7FFi32;
+        if i >= data.size() {
+          return false;
+        }
 
-    } else if by & 0xF0i32 == 0xE0i32 {
-      codepoint = by & 0xFi32;
-      bytes = 2i32;
-      min = 0x800i32;
-      max = 0xFFFFi32;
+        let by = data(i).toInt32();
 
-    } else if by & 0xF8i32 == 0xF0i32 {
-      codepoint = by & 0x7i32;
-      bytes = 3;
-      min = 0x10000;
-      max = 0x10FFFFi32;
-    }
+        if by & 0xC0i32 != 0x80i32 {
+          return false;
+        }
 
-    while bytes > 0i32 {
-      bytes = bytes - 1i32;
+        codepoint = codepoint.shiftLeft(6i32) | (by & 0x3Fi32);
+      }
+
+      if codepoint < min || codepoint > max {
+        return false;
+      }
+
       i = i + 1i64;
-
-      if i >= data.size() {
-        return false;
-      }
-
-      let by = data(i).toInt32();
-
-      if by & 0xC0i32 != 0x80i32 {
-        return false;
-      }
-
-      codepoint = codepoint.shiftLeft(6i32) | (by & 0x3Fi32);
     }
-
-    if codepoint < min || codepoint > max {
-      return false;
-    }
-
-    i = i + 1i64;
   }
 
   return true;
