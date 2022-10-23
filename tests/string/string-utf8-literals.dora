@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let val = "abc";
     assert(val.size() == 3i64);
     assert(val.codePoints().size() == 3i64);

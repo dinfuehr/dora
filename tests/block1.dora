@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     t1();
     t2();
     t3();
@@ -6,17 +6,17 @@ fun main() {
 
 fun g(): Int32 = 1i32;
 
-fun t1() {
+fun t1(): Unit {
     let x: Int32 = { g() };
     assert(x == 1i32);
 }
 
-fun t2() {
+fun t2(): Unit {
     let x: Int32 = { g(); 1i32 };
     assert(x == 1i32);
 }
 
-fun t3() {
+fun t3(): Unit {
     let x: String = "x${1}y" + { std::forceCollect(); "end" };
     assert(x == "x1yend");
 }

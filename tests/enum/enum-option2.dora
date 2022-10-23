@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     assert(Option[String]::Some("abc").getOrPanic() == "abc");
     assert(Option[Int32]::Some(12i32).getOrPanic() == 12i32);
 }

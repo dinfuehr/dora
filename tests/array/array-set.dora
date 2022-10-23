@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   let x = Array[Int32]::fill(2i64, 100i32);
   int32_array_set(x, 1i64, 200i32);
   assert(x(0i64) == 100i32);
@@ -30,27 +30,27 @@ fun main() {
   assert(x(1i64).y == 2i32);
 }
 
-fun int32_array_set(x: Array[Int32], idx: Int64, val: Int32) {
+fun int32_array_set(x: Array[Int32], idx: Int64, val: Int32): Unit {
   x(idx) = val;
 }
 
-fun int64_array_set(x: Array[Int64], idx: Int64, val: Int64) {
+fun int64_array_set(x: Array[Int64], idx: Int64, val: Int64): Unit {
   x(idx) = val;
 }
 
-fun float_array_set(x: Array[Float32], idx: Int64, val: Float32) {
+fun float_array_set(x: Array[Float32], idx: Int64, val: Float32): Unit {
   x(idx) = val;
 }
 
-fun double_array_set(x: Array[Float64], idx: Int64, val: Float64) {
+fun double_array_set(x: Array[Float64], idx: Int64, val: Float64): Unit {
   x(idx) = val;
 }
 
-fun str_array_set(x: Array[String], idx: Int64, val: String) {
+fun str_array_set(x: Array[String], idx: Int64, val: String): Unit {
   x(idx) = val;
 }
 
-fun foo_array_set(x: Array[Foo], idx: Int64, val: Foo) {
+fun foo_array_set(x: Array[Foo], idx: Int64, val: Foo): Unit {
   x(idx) = val;
 }
 

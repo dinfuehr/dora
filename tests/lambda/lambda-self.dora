@@ -6,7 +6,7 @@ impl Foo {
     }
 }
 
-fun main() {
+fun main(): Unit {
     let b1 = Foo(10).bar();
     assert(b1() == 10);
 

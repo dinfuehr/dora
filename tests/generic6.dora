@@ -1,7 +1,7 @@
-fun main() {
+fun main(): Unit {
     foo[Int32](1i32);
     foo[Float32](3f32);
     foo[String]("hello");
 }
 
-fun foo[T](val: T) {}
+fun foo[T](val: T): Unit {}

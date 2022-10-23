@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     std::forceCollect();
     std::forceCollect();
     std::forceCollect();

@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   assert("1".toInt32().getOrPanic() == 1i32);
   assert("100".toInt32().getOrPanic() == 100i32);
   assert("789".toInt32().getOrPanic() == 789i32);

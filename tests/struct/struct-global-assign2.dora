@@ -4,7 +4,7 @@ struct Bar(first: Foo, second: Foo)
 
 let mut x: Bar = Bar(Foo(0i32), Foo(0i32));
 
-fun main() {
+fun main(): Unit {
     std::forceCollect();
     x = Bar(Foo(17i32), Foo(42i32));
     assert(x.first.value == 17i32);

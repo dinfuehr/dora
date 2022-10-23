@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let result = tpl[String]("test");
     assert(result.0 == "test");
     assert(result.1);

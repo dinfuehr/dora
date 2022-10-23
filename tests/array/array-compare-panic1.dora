@@ -1,6 +1,6 @@
 //= error
 
-fun main() {
+fun main(): Unit {
   let a = Array[Int32]::new(1i32, 2i32, 3i32, 3i32, 4i32, 5i32, 4i32, 5i32, 4i32, 3i32, 3i32);
 
   assert(Array[Int32]::compare(a, 0i64, a, 0i64, 12i64));

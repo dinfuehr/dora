@@ -12,6 +12,6 @@ class Foo {
     x: std::HashMap[MyOwnType, String],
 }
 
-fun main() {
+fun main(): Unit {
     let foo = Foo(std::HashMap[MyOwnType, String]::new());
 }

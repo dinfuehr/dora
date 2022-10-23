@@ -1,6 +1,6 @@
 let mut a: A = A(42i32);
 
-fun main() {
+fun main(): Unit {
     std::forceCollect();
     assert(a.val == 42i32);
     std::forceCollect();

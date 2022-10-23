@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     assert(1i32 == identity[Int32](1i32));
     assert(42.5f32 == identity[Float32](42.5f32));
     assert("abc" == identity[String]("abc"));

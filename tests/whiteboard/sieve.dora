@@ -1,6 +1,6 @@
 //= stdout file
 
-fun main() {
+fun main(): Unit {
     let primes = sieve(100i64);
     let mut i = 0i64;
 

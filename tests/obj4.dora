@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   let i = 1i32;
   let o1 = Foo();
   let o2 = o1.me();

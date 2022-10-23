@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   let foo = Foo();
   assert(foo.foo_bool() == false);
   assert(foo.foo_byte() == 6u8);

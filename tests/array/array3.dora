@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   assert(1i64 == len(Array[Int32]::fill(1i64, 0i32)));
 }
 

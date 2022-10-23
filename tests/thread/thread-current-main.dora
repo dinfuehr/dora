@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let thread = std::Thread::current();
     assert(thread.id() == 1);
 }

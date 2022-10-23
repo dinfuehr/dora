@@ -20,7 +20,7 @@ impl SomeIterator {
     } 
 }
 
-fun main() {
+fun main(): Unit {
     let mut sum = 0;
     let iterator = SomeIterator::new(0, 10);
 

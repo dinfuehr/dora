@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   Foo().foo(x = 23, y = true);
   Foo().foo(x = 23, true);
   Foo().foo(23, y = true);
@@ -15,7 +15,7 @@ fun main() {
 class Foo()
 
 impl Foo {
-  fun foo(x: Int64, y: Bool) {}
-  @static fun bar(x: Int64, y: Bool) {}
-  @static fun qux[T](x: T, y: Bool) {}
+  fun foo(x: Int64, y: Bool): Unit {}
+  @static fun bar(x: Int64, y: Bool): Unit {}
+  @static fun qux[T](x: T, y: Bool): Unit {}
 }

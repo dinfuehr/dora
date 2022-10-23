@@ -1,6 +1,6 @@
 //= ignore
 
-fun main() {
+fun main(): Unit {
     let mut list: Foo = nil;
     let mut i = 1i32;
 

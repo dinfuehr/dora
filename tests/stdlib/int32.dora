@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let x = 1i32.unaryPlus();
     assert(x == (+1i32));
 

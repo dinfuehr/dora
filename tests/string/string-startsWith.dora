@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   testBothEmpty();
   testNeedleEmpty();
   testHaystackEmpty();
@@ -7,26 +7,26 @@ fun main() {
   testFailure();
 }
 
-fun testBothEmpty() {
+fun testBothEmpty(): Unit {
   assert("".startsWith("") == true);
 }
 
-fun testNeedleEmpty() {
+fun testNeedleEmpty(): Unit {
   assert("abc".startsWith("") == true);
 }
 
-fun testHaystackEmpty() {
+fun testHaystackEmpty(): Unit {
   assert("".startsWith("abc") == false);
 }
 
-fun testNeedleLarger() {
+fun testNeedleLarger(): Unit {
   assert("abc".startsWith("abcdef") == false);
 }
 
-fun testSuccess() {
+fun testSuccess(): Unit {
   assert("abcdef".startsWith("abc") == true);
 }
 
-fun testFailure() {
+fun testFailure(): Unit {
   assert("defabc".startsWith("abc") == false);
 }

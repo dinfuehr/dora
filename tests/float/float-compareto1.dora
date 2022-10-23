@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     assert(2.0f32.compareTo(4.0f32) == -1i32);
     assert(4.0f32.compareTo(2.0f32) == 1i32);
     assert(4.0f32.compareTo(4.0f32) == 0i32);

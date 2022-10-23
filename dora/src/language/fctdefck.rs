@@ -220,7 +220,7 @@ mod tests {
     #[test]
     fn self_param() {
         err(
-            "fun foo(x: Self) {}",
+            "fun foo(x: Self): Unit {}",
             pos(1, 12),
             ErrorMessage::SelfTypeUnavailable,
         );
@@ -239,42 +239,46 @@ mod tests {
     fn allow_same_method_as_static_and_non_static() {
         ok("class Foo
             impl Foo {
-                @static fun foo() {}
-                fun foo() {}
+                @static fun foo(): Unit {}
+                fun foo(): Unit {}
             }");
     }
 
     #[test]
     fn fct_with_type_params() {
-        ok("fun f[T]() {}");
-        ok("fun f[X, Y]() {}");
+        ok("fun f[T](): Unit {}");
+        ok("fun f[X, Y](): Unit {}");
         err(
-            "fun f[T, T]() {}",
+            "fun f[T, T](): Unit {}",
             pos(1, 10),
             ErrorMessage::TypeParamNameNotUnique("T".into()),
         );
-        err("fun f[]() {}", pos(1, 1), ErrorMessage::TypeParamsExpected);
+        err(
+            "fun f[](): Unit {}",
+            pos(1, 1),
+            ErrorMessage::TypeParamsExpected,
+        );
     }
 
     #[test]
     fn fct_with_type_param_in_annotation() {
-        ok("fun f[T](val: T) {}");
+        ok("fun f[T](val: T): Unit {}");
     }
 
     #[test]
     fn lambdas() {
-        ok("fun f() { || {}; }");
-        ok("fun f() { |a: Int32| {}; }");
-        ok("fun f() { ||: Int32 { return 2; }; }");
+        ok("fun f(): Unit { || {}; }");
+        ok("fun f(): Unit { |a: Int32| {}; }");
+        ok("fun f(): Unit { ||: Int32 { return 2; }; }");
 
         err(
-            "fun f() { ||: Foo { }; }",
-            pos(1, 15),
+            "fun f(): Unit { ||: Foo { }; }",
+            pos(1, 21),
             ErrorMessage::UnknownIdentifier("Foo".into()),
         );
         err(
-            "fun f() { |a: Foo| { }; }",
-            pos(1, 15),
+            "fun f(): Unit { |a: Foo| { }; }",
+            pos(1, 21),
             ErrorMessage::UnknownIdentifier("Foo".into()),
         );
     }
@@ -282,20 +286,20 @@ mod tests {
     #[test]
     fn generic_bounds() {
         err(
-            "fun f[T: Foo]() {}",
+            "fun f[T: Foo](): Unit {}",
             pos(1, 10),
             ErrorMessage::UnknownIdentifier("Foo".into()),
         );
         err(
-            "class Foo fun f[T: Foo]() {}",
+            "class Foo fun f[T: Foo](): Unit {}",
             pos(1, 20),
             ErrorMessage::BoundExpected,
         );
-        ok("trait Foo {} fun f[T: Foo]() {}");
+        ok("trait Foo {} fun f[T: Foo](): Unit {}");
 
         err(
             "trait Foo {}
-            fun f[T: Foo + Foo]() {  }",
+            fun f[T: Foo + Foo](): Unit {  }",
             pos(2, 19),
             ErrorMessage::DuplicateTraitBound,
         );
@@ -305,7 +309,7 @@ mod tests {
     fn check_previous_defined_type_params() {
         // Type params need to be cleaned up such that the following code is an error:
         err(
-            "fun f(a: T) {}",
+            "fun f(a: T): Unit {}",
             pos(1, 10),
             ErrorMessage::UnknownIdentifier("T".into()),
         );

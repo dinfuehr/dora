@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     assert(moveBool(true) == true);
     assert(moveBool(false) == false);
 

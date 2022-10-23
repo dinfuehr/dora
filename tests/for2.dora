@@ -1,6 +1,6 @@
 //= stdout "012"
 
-fun main() {
+fun main(): Unit {
     for i in std::range(0i32, 5i32) {
         if i == 3i32 { return; }
         print(i.toString());

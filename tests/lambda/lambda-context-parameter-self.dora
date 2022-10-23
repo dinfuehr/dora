@@ -1,6 +1,6 @@
 //= ignore
 
-fun main() {
+fun main(): Unit {
     let foo = Foo();
     let f1 = foo.create_lambda();
     assert(f1() === foo);

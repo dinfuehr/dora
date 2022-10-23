@@ -1,6 +1,6 @@
 //= stdout "10\n10\n"
 
-fun main() {
+fun main(): Unit {
     let a = A(10i32);
     let x = a.test();
     println(a.a.toString());

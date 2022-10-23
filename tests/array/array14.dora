@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let x = Array[String]::fill(1i64, "");
     x(0i64) = "a" + "b";
 }

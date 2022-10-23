@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let buffer = write('$');
     assert(buffer(0i64) == 0x24u8);
     assert(buffer(1i64) == 0u8);

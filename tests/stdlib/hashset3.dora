@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let set = std::HashSet[Int32]::new(1i32, 10_000i32, 7i32);
     assert(set.size() == 3i64);
     assert(set.contains(1i32));

@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     assert(abi_1(1i32, 2i32, 3i32, 4i32, 5i32, 6i32, 7i32, 8i32, 9i32) == 1i32);
     assert(abi_2(1i32, 2i32, 3i32, 4i32, 5i32, 6i32, 7i32, 8i32, 9i32) == 2i32);
     assert(abi_3(1i32, 2i32, 3i32, 4i32, 5i32, 6i32, 7i32, 8i32, 9i32) == 3i32);

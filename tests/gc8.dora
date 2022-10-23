@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   let node = Node(10i32,
       Some[Node](Node(9i32, None[Node], None[Node])),
       Some[Node](Node(11i32, None[Node], None[Node])));

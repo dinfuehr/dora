@@ -1,6 +1,6 @@
 use std::Queue;
 
-fun main() {
+fun main(): Unit {
     let q = Queue[Int32]::new();
 
     for i in std::range(0i32, 100i32) {

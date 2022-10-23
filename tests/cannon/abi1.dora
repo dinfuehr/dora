@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     assert(testInt32(3i32) == 3i32);
     assert(testInt32(122i32) == 122i32);
 

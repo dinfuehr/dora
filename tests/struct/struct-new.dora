@@ -4,6 +4,6 @@ fun f(): Foo {
     Foo(10i32, false)
 }
 
-fun main() {
+fun main(): Unit {
     f();
 }

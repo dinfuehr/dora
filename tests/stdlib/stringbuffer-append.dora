@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let buf = std::StringBuffer::empty();
     buf.appendChar('a');
     buf.appendChar('b');

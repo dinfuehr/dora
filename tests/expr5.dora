@@ -1,11 +1,11 @@
-fun main() {
+fun main(): Unit {
   Bar(1i32).exec();
 }
 
 class Bar(a: Int32)
 
 impl Bar {
-  fun exec() {
+  fun exec(): Unit {
     Foo(self.f()).a = self.g();
     assert(self.a == 100i32);
   }

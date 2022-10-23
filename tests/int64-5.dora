@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let ba = Array[Int64]::zero(0i64);
     assert(ba.size() == 0i64);
 

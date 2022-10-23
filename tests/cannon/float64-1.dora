@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     assert(test_with_epsilon(add(20f64, 5f64, 2f64), 27f64));
     assert(test_with_epsilon(sub(20f64, 5f64, 2f64), 13f64));
     assert(test_with_epsilon(mul(20f64, 5f64, 2f64), 200f64));

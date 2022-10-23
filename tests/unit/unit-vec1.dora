@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let data = Vec[()]::new();
     assert(data.size() == 0i64);
 

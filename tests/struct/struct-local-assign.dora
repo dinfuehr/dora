@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let mut x = Pair("my string", true);
     let mut y = Pair("another string", false);
     let mut tmp = x;

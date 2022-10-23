@@ -1,6 +1,6 @@
 //= ignore
 
-fun main() {
+fun main(): Unit {
     let arr = Vec[Foo]();
 
     let mut i = 0i32;

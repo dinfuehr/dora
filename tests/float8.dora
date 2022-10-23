@@ -1,8 +1,8 @@
-fun main() {
+fun main(): Unit {
     test(1f32, 2f64, 3i32, 4i64, 5f32, 6f64);
 }
 
-fun test(a: Float32, b: Float64, c: Int32, d: Int64, e: Float32, f: Float64) {
+fun test(a: Float32, b: Float64, c: Int32, d: Int64, e: Float32, f: Float64): Unit {
     assert(a == 1f32);
     assert(b == 2f64);
     assert(c == 3i32);

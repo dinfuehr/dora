@@ -195,6 +195,7 @@ impl SourceType {
 
     pub fn primitive_struct_id(&self, sa: &SemAnalysis) -> Option<StructDefinitionId> {
         match self {
+            SourceType::Unit => Some(sa.known.structs.unit()),
             SourceType::Bool => Some(sa.known.structs.bool()),
             SourceType::UInt8 => Some(sa.known.structs.uint8()),
             SourceType::Char => Some(sa.known.structs.char()),

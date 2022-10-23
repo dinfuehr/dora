@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     assert(rotateLeft(-12i64, 1i32) == -23i64);
     assert(rotateLeft(-12i64, 64i32) == -12i64);
     assert(rotateLeft(-12i64, -1i32) == 9223372036854775802i64);

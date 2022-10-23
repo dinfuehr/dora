@@ -3,7 +3,7 @@
 struct Bar(first: Foo, second: Foo)
 class Foo(value: Int32)
 
-fun main() {
+fun main(): Unit {
     let tpl: Bar = if false {
         Bar(createFoo(), createFoo())
     } else {

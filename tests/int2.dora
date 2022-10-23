@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let x: Int32 = 2147483647i32;
     let y: Int32 = -2147483648i32;
 }

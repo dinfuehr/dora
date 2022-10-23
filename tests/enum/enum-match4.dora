@@ -1,6 +1,6 @@
 enum Foo { A(Int32, ()), B }
 
-fun main() {
+fun main(): Unit {
     assert(value(Foo::A(2i32, ())) == 2i32);
     assert(value(Foo::B) == 0i32);
 }

@@ -1,6 +1,6 @@
 enum Foo { A, B }
 
-fun main() {
+fun main(): Unit {
     assert(is_a(Foo::A));
     assert(is_a(Foo::B).not());
     assert(Foo::A == myid(Foo::A));

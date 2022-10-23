@@ -1,6 +1,6 @@
 class A(value: ())
 
-fun main() {
+fun main(): Unit {
     let a = A(());
     a.value = ();
     let x: () = foo(a);

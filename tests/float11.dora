@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let x = 1.1f32;
     assert(1i32 == x.toInt32());
 

@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     assert(1f32 < 3f32);
     assert((1f32 < 1f32).not());
     assert(1f32 <= 1f32);

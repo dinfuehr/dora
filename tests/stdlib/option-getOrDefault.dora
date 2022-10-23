@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   let some1 = Option[Int32]::Some(23i32);
   let none1 = Option[Int32]::None;
   let some2 = Option[String]::Some("some");

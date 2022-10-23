@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     assert(0xFFi32 == 255i32);
     assert(0x10i32 == 16i32);
 

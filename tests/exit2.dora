@@ -1,5 +1,5 @@
 //= error code 2
 
-fun main() {
+fun main(): Unit {
     std::exit(2i32);
 }

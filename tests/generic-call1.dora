@@ -1,21 +1,21 @@
 //= stdout "hello\n"
 
 trait Foo {
-    fun bar();
+    fun bar(): Unit;
 }
 
-fun foo[T: Foo](t: T) {
+fun foo[T: Foo](t: T): Unit {
     t.bar();
 }
 
 class X
 
 impl Foo for X {
-    fun bar() {
+    fun bar(): Unit {
         println("hello");
     }
 }
 
-fun main() {
+fun main(): Unit {
     foo[X](X());
 }

@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let x = A::default();
     assert(x.a == 0i32);
 }

@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   assert(0.0 == 0.0);
   assert(0.0.equals(0.0));
   assert(0.0 === 0.0);

@@ -1,3 +1,3 @@
-fun main() {
+fun main(): Unit {
     std::exit(0i32);
 }

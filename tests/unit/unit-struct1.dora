@@ -1,6 +1,6 @@
 struct A(value: ())
 
-fun main() {
+fun main(): Unit {
     let a = A(());
     let x: () = foo(a);
 

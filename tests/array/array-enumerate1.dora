@@ -1,6 +1,6 @@
 //= stdout "0 -> 2\n1 -> 4\n2 -> 8\n"
 
-fun main() {
+fun main(): Unit {
     for idx_and_value in Array[Int32]::new(2i32, 4i32, 8i32).enumerate() {
         let (idx, value) = idx_and_value;
         println("${idx} -> ${value}");

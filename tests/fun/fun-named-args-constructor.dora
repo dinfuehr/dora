@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   Foo(x = 23, y = true);
   Foo(x = 23, true);
   Foo(23, y = true);

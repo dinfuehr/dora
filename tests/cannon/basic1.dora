@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     assert(returnBool() == true);
     assert(returnChar() == '5');
     assert(returnByte() == 5u8);

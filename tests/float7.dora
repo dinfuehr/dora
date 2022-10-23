@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let array = Array[Float32]::new();
     assert(0i64 == array.size());
 

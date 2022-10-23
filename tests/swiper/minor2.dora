@@ -1,6 +1,6 @@
 //= vm-args "--gc-parallel-minor --gc-worker=2 --gc-verify"
 
-fun main() {
+fun main(): Unit {
     let mut x = Foo(Option[Foo]::None);
     let mut i = 0i32;
 

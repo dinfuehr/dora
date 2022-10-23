@@ -8,7 +8,7 @@ impl Foo {
     
 }
 
-fun main() {
+fun main(): Unit {
     assert(tpl1() == 17i32);
     assert(tpl2() == 19i64);
     assert(tpl3() == 42i32);

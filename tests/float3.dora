@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let x = 1f32;
     let y = 2f32;
     let z = 0f32 / 0f32;

@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let x = 1.75f32;
     assert(1.75f64 == x.toFloat64());
 

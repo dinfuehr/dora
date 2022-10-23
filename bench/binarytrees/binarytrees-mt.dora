@@ -2,7 +2,7 @@ const MIN_DEPTH: Int32 = 4i32;
 const DEFAULT_DEPTH: Int32 = 6i32;
 const DEFAULT_THREADS: Int32 = 4i32;
 
-fun main() {
+fun main(): Unit {
     let maxDepth = if std::argc() > 0i32 {
         std::argv(0i32).toInt32().getOrPanic()
     } else {
@@ -57,7 +57,7 @@ impl TreeThread {
         TreeThread(nextDepth, maxDepth, results)
     }
 
-    fun run() {
+    fun run(): Unit {
         while true {
             let depth = self.nextDepth.fetchAdd(2i32);
             if depth > self.maxDepth { return; }

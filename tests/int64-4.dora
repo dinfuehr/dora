@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     assert(three().toInt32() == 3i32);
 }
 

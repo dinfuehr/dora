@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let array = Array[Bool]::zero(10i64);
     assert(array(0i64) == false);
     assert(array(9i64) == false);

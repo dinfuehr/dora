@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let nan = 0.0 / 0.0;
     assert((nan < 0.0).not());
     assert((nan > 0.0).not());

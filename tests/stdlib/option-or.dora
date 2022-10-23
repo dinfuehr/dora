@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   let some1 = Option[String]::Some("some1");
   let some2 = Option[String]::Some("some2");
   let none  = Option[String]::None;

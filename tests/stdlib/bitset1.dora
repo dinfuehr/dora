@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let set = std::BitSet::new(64i64);
     set.insert(0i64);
     set.insert(63i64);

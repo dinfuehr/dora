@@ -2,7 +2,7 @@
 
 class Foo(value: Int32)
 
-fun main() {
+fun main(): Unit {
     let tpl: (Foo) = if false {
         (createFoo(),)
     } else {

@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let array = Array[String]::newDefault(10);
     assert(array(0i64) == "");
     assert(array(0i64) == array(9i64));

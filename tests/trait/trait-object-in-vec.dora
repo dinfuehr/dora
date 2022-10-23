@@ -1,16 +1,16 @@
-trait Foo { fun test(); }
+trait Foo { fun test(): Unit; }
 
 class Baz
 
 impl Foo for Baz {
-    fun test() {}
+    fun test(): Unit {}
 }
 
 fun foo(): Foo {
     Baz() as Foo
 }
 
-fun main() {
+fun main(): Unit {
     let f = foo();
     let g = foo();
     let h = foo();

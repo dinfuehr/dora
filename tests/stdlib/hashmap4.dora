@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let map = std::HashMap[Int32, String]::new();
 
     assert(map.insert(1024i32, "1024").isNone());

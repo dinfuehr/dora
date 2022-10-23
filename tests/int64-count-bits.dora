@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   let x = 0i64.countZeroBits();
   assert(x == 64i32);
   let x = 1i64.countZeroBits();

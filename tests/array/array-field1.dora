@@ -6,7 +6,7 @@ impl Foo {
     }
 }
 
-fun main() {
+fun main(): Unit {
     let foo = Foo::new();
     assert((foo.array)(0i64) == 1i32);
     assert((foo.array)(1i64) == 2i32);

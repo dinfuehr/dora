@@ -8,7 +8,7 @@ let mut glob_double: Float64 = 0.0;
 let mut glob_string: String = "";
 let mut glob_obj: Foo = Foo();
 
-fun main() {
+fun main(): Unit {
     let obj = Foo();
     init_globs(true, '5', 5u8, 5i32, 5i64, 5f32, 5f64, "5", obj);
     
@@ -23,7 +23,7 @@ fun main() {
     assert(glob_obj === obj);
 }
 
-fun init_globs(bool: Bool, char: Char, byte: UInt8, int32: Int32, int64: Int64, float32: Float32, float64: Float64, string: String, obj: Foo) {
+fun init_globs(bool: Bool, char: Char, byte: UInt8, int32: Int32, int64: Int64, float32: Float32, float64: Float64, string: String, obj: Foo): Unit {
     glob_bool = bool;
     glob_char = char;
     glob_byte = byte;

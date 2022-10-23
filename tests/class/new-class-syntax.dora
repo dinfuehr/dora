@@ -5,7 +5,7 @@ struct MyStruct(x: Int64, y: Foo)
 class Foo(a: Int64, b: Bool)
 class Bar(c: (Int64, Foo), d: MyStruct)
 
-fun main() {
+fun main(): Unit {
     let foo1 = Foo(1, false);
     std::forceCollect();
     assert(foo1.a == 1 && foo1.b.not());

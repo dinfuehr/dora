@@ -1,6 +1,6 @@
 use std::HashMap;
 
-fun main() {
+fun main(): Unit {
     let map = HashMap[Int32, String]::new();
     assert(map.isEmpty());
 

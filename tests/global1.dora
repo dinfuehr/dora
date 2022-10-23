@@ -4,7 +4,7 @@ let mut x: Int32 = 0i32;
 let mut y: Int32 = 0i32;
 let mut z: Int32 = 0i32;
 
-fun main() {
+fun main(): Unit {
     println("x = " + x.toString());
     println("y = " + y.toString());
     println("z = " + z.toString());

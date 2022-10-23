@@ -1,6 +1,6 @@
 let mut x: () = ();
 
-fun main() {
+fun main(): Unit {
     x = ();
     foo();
 }

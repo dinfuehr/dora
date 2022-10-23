@@ -10,7 +10,7 @@ impl Adder for A {
     }
 }
 
-fun main() {
+fun main(): Unit {
     let x = A(3i32).add_me(A(7i32));
     assert(x.a == 10i32);
 }

@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     assert(number_args(1i32, 2i32) == 2i64);
     assert(number_args(7i32) == 1i64);
     assert(number_args() == 0i64);

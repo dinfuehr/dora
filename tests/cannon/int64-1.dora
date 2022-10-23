@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     assert(not(20i64) == -21i64);
 
     assert(add(20i64, 7i64) == 27i64);

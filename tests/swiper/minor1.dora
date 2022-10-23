@@ -1,6 +1,6 @@
 //= vm-args "--gc-parallel-minor --gc-worker=2 --gc-verify"
 
-fun main() {
+fun main(): Unit {
     let x = Foo(Some[Foo](Foo(None[Foo])));
     std::forceMinorCollect();
     assert(x.next.getOrPanic().next.isNone());

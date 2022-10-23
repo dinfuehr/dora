@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   let foo = Foo[Int32](10i32);
   assert(foo.x == 10i32);
 

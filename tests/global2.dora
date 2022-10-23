@@ -4,25 +4,25 @@ let mut x: Int32 = 0i32;
 let mut y: Int32 = 0i32;
 let mut z: Int32 = 0i32;
 
-fun main() {
+fun main(): Unit {
     init_globals();
     assert_globals();
     dump_globals();
 }
 
-fun init_globals() {
+fun init_globals(): Unit {
     x = 1i32;
     y = 2i32;
     z = 3i32;
 }
 
-fun assert_globals() {
+fun assert_globals(): Unit {
     assert(x == 1i32);
     assert(y == 2i32);
     assert(z == 3i32);
 }
 
-fun dump_globals() {
+fun dump_globals(): Unit {
     println("x = " + x.toString());
     println("y = " + y.toString());
     println("z = " + z.toString());

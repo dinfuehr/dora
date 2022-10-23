@@ -53,6 +53,13 @@ pub fn resolve_internal_annotations(sa: &mut SemAnalysis) {
 pub fn resolve_internal_classes(sa: &mut SemAnalysis) {
     let stdlib_id = sa.stdlib_module_id();
 
+    sa.known.structs.unit = Some(internal_struct(
+        sa,
+        stdlib_id,
+        "primitives::Unit",
+        Some(SourceType::Unit),
+    ));
+
     sa.known.structs.bool = Some(internal_struct(
         sa,
         stdlib_id,
@@ -130,6 +137,7 @@ pub fn fill_prelude(sa: &mut SemAnalysis) {
     let stdlib_id = sa.stdlib_module_id();
 
     let symbols = [
+        "primitives::Unit",
         "primitives::Bool",
         "primitives::UInt8",
         "primitives::Char",
@@ -1899,8 +1907,8 @@ mod tests {
 
     #[test]
     fn builtin_functions() {
-        ok("fun f() { assert(true); }");
-        ok("fun f() { print(\"test\"); }");
-        ok("fun f() { println(\"test\"); }");
+        ok("fun f(): Unit { assert(true); }");
+        ok("fun f(): Unit { print(\"test\"); }");
+        ok("fun f(): Unit { println(\"test\"); }");
     }
 }

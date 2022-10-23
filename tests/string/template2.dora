@@ -2,7 +2,7 @@ fun stringify[T: std::Stringable](t: T): String {
     return "${t}";
 }
 
-fun main() {
+fun main(): Unit {
     assert(stringify[Int32](1i32) == "1");
     assert(stringify[Float32](1.0f32) == "1");
     assert(stringify[Float64](0.2) == "0.2");

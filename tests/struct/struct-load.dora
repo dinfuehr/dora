@@ -10,7 +10,7 @@ fun g(): Bool {
     x.f2
 }
 
-fun main() {
+fun main(): Unit {
     assert(f() == 10i32);
     assert(g().not());
 }

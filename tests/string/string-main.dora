@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     test_multiple_ascii_chars();
 
     test_1byte();
@@ -9,7 +9,7 @@ fun main() {
     test_invalid();
 }
 
-fun test_multiple_ascii_chars() {
+fun test_multiple_ascii_chars(): Unit {
     let bytes = Array[UInt8]::zero(3i64);
     bytes(0i64) = 'a'.toInt32().toUInt8();
     bytes(1i64) = 'b'.toInt32().toUInt8();
@@ -24,7 +24,7 @@ fun test_multiple_ascii_chars() {
     it.next().unwrapNone();
 }
 
-fun test_1byte() {
+fun test_1byte(): Unit {
     let bytes = Array[UInt8]::zero(1i64);
     bytes(0i64) = 0x24u8;
 
@@ -35,7 +35,7 @@ fun test_1byte() {
     it.next().unwrapNone();
 }
 
-fun test_2bytes() {
+fun test_2bytes(): Unit {
     let bytes = Array[UInt8]::zero(2i64);
     bytes(0i64) = 0xC2u8;
     bytes(1i64) = 0xA2u8;
@@ -47,7 +47,7 @@ fun test_2bytes() {
     it.next().unwrapNone();
 }
 
-fun test_3bytes() {
+fun test_3bytes(): Unit {
     let bytes = Array[UInt8]::zero(3i64);
     bytes(0i64) = 0xE2u8;
     bytes(1i64) = 0x82u8;
@@ -60,7 +60,7 @@ fun test_3bytes() {
     it.next().unwrapNone();
 }
 
-fun test_4bytes() {
+fun test_4bytes(): Unit {
     let bytes = Array[UInt8]::zero(4i64);
     bytes(0i64) = 0xF0u8;
     bytes(1i64) = 0x90u8;
@@ -74,7 +74,7 @@ fun test_4bytes() {
     it.next().unwrapNone()
 }
 
-fun test_invalid() {
+fun test_invalid(): Unit {
     let bytes = Array[UInt8]::zero(1i64);
     bytes(0i64) = 0x80u8;
 

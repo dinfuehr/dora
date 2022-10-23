@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   let x = 3i32 | 7i32 & 4i32;
   assert(x == 7i32);
 }

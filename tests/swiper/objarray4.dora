@@ -1,6 +1,6 @@
 //= vm-args "--gc=swiper --gc-verify"
 
-fun main() {
+fun main(): Unit {
     let filler = Foo(101i32);
     let a = Array[Foo]::fill(60i64, filler);
     let b = Array[Foo]::fill(60i64, filler);

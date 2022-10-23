@@ -334,10 +334,10 @@ mod tests {
 
     #[test]
     fn extension_method() {
-        ok("class A impl A { fun foo() {} fun bar() {} }");
+        ok("class A impl A { fun foo(): Unit {} fun bar(): Unit {} }");
         err(
-            "class A impl A { fun foo() {} fun foo() {} }",
-            pos(1, 31),
+            "class A impl A { fun foo(): Unit {} fun foo(): Unit {} }",
+            pos(1, 37),
             ErrorMessage::MethodExists("foo".into(), pos(1, 18)),
         );
     }
@@ -346,8 +346,8 @@ mod tests {
     fn extension_defined_twice() {
         err(
             "class A
-            impl A { fun foo() {} }
-            impl A { fun foo() {} }",
+            impl A { fun foo(): Unit {} }
+            impl A { fun foo(): Unit {} }",
             pos(3, 22),
             ErrorMessage::MethodExists("foo".into(), pos(2, 22)),
         );
@@ -357,15 +357,15 @@ mod tests {
     fn extension_defined_twice_with_type_params_in_class() {
         err(
             "class Foo[T]
-            impl Foo[Int32] { fun foo() {} }
-            impl Foo[Int32] { fun foo() {} }",
+            impl Foo[Int32] { fun foo(): Unit {} }
+            impl Foo[Int32] { fun foo(): Unit {} }",
             pos(3, 31),
             ErrorMessage::MethodExists("foo".into(), pos(2, 31)),
         );
 
         ok("class Foo[T]
-            impl Foo[Int32] { fun foo() {} }
-            impl Foo[Int64] { fun foo() {} }");
+            impl Foo[Int32] { fun foo(): Unit {} }
+            impl Foo[Int64] { fun foo(): Unit {} }");
     }
 
     #[test]
@@ -384,11 +384,11 @@ mod tests {
     fn extension_enum() {
         ok("enum MyEnum { A, B } impl MyEnum {}");
         ok("enum MyEnum { A, B } impl MyEnum {} impl MyEnum {}");
-        ok("enum MyEnum { A, B } impl MyEnum { fun foo() {} fun bar() {} }");
+        ok("enum MyEnum { A, B } impl MyEnum { fun foo(): Unit {} fun bar(): Unit {} }");
 
         err(
-            "enum MyEnum { A, B } impl MyEnum { fun foo() {} fun foo() {} }",
-            pos(1, 49),
+            "enum MyEnum { A, B } impl MyEnum { fun foo(): Unit {} fun foo(): Unit {} }",
+            pos(1, 55),
             ErrorMessage::MethodExists("foo".into(), pos(1, 36)),
         );
     }
@@ -398,9 +398,9 @@ mod tests {
         ok("
             enum MyFoo[T] { A(T), B }
             impl[T] MyFoo[T] {
-                fun test(x: T) {}
+                fun test(x: T): Unit {}
             }
-            fun test(x: MyFoo[Int32]) { x.test(1i32); }
+            fun test(x: MyFoo[Int32]): Unit { x.test(1i32); }
         ");
     }
 
@@ -455,7 +455,7 @@ mod tests {
     fn extension_mod() {
         err(
             "
-            impl foo::MyFoo { fun bar() {} }
+            impl foo::MyFoo { fun bar(): Unit {} }
             mod foo { class MyFoo }
         ",
             pos(2, 18),
@@ -463,7 +463,7 @@ mod tests {
         );
 
         ok("
-            impl foo::MyFoo { fun bar() {} }
+            impl foo::MyFoo { fun bar(): Unit {} }
             mod foo { @pub class MyFoo }
         ");
     }

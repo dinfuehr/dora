@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   testBothEmpty();
   testNeedleEmpty();
   testHaystackEmpty();
@@ -7,26 +7,26 @@ fun main() {
   testFailure();
 }
 
-fun testBothEmpty() {
+fun testBothEmpty(): Unit {
   assert("".endsWith("") == true);
 }
 
-fun testNeedleEmpty() {
+fun testNeedleEmpty(): Unit {
   assert("abc".endsWith("") == true);
 }
 
-fun testHaystackEmpty() {
+fun testHaystackEmpty(): Unit {
   assert("".endsWith("abc") == false);
 }
 
-fun testNeedleLarger() {
+fun testNeedleLarger(): Unit {
   assert("abc".endsWith("abcdef") == false);
 }
 
-fun testSuccess() {
+fun testSuccess(): Unit {
   assert("abcdef".endsWith("def") == true);
 }
 
-fun testFailure() {
+fun testFailure(): Unit {
   assert("defabc".endsWith("def") == false);
 }

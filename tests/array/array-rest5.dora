@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     assert(sum_args((1i32, 2i32), (3i32, 4i32)) == 10i32);
     assert(sum_args() == 0i32);
     assert(sum_args((0i32, 1i32)) == 1i32);

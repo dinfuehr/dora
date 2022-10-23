@@ -1,7 +1,7 @@
 //= error array
 //= stderr "array index out of bounds\n    main (tests/array/array8.dora:6)\n"
 
-fun main() {
+fun main(): Unit {
   let array = Array[Int32]::zero(0i64);
   array(0i64) = 10i32;
 }

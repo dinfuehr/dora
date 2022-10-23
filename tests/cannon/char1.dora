@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     assert(eq('2', '5').not());
     assert(eq('5', '5'));
     assert(eq('5', '2').not());

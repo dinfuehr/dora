@@ -1,9 +1,9 @@
-fun main() {
+fun main(): Unit {
     f();
 }
 
-fun f() {
+fun f(): Unit {
     g();
 }
 
-fun g() {}
+fun g(): Unit {}

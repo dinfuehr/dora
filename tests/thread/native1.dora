@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     std::thread::spawn(|| {
         nativeCalls();
     });
@@ -6,7 +6,7 @@ fun main() {
     nativeCalls();
 }
 
-fun nativeCalls() {
+fun nativeCalls(): Unit {
     let mut i = 0i32;
 
     while i < 100_000i32 {

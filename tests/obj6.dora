@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   let f = Foo(12i32);
   let mut a1 = f.a1();
   let a2 = f.a2();
@@ -15,5 +15,5 @@ impl Foo {
   fun a1(): Int32 { return self.a; }
   fun a2(): Int32 { return self.a; }
 
-  fun setA(a: Int32) { self.a = a; }
+  fun setA(a: Int32): Unit { self.a = a; }
 }

@@ -267,7 +267,7 @@ impl StringBuffer {
 
   // reserve `elements` bytes
   // (capacity - length >= elements)
-  @pub fun reserve(elements: Int64) {
+  @pub fun reserve(elements: Int64): Unit {
     if self.capacity() - self.size() >= elements {
       return;
     }

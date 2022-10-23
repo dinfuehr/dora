@@ -1,6 +1,6 @@
 //= error assert
 
-fun main() {
+fun main(): Unit {
   let a = false;
   assert(a);
 }

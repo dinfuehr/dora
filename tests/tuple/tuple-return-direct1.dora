@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let x = Bar(42i32).tpl1();
     std::forceCollect();
     assert(x.1.value == 17i32);

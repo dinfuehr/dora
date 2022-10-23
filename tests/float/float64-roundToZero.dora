@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   let x = Float64::infinityNegative().roundToZero();
   assert(x == Float64::infinityNegative());
 

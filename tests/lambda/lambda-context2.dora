@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     assert(f_depth1() == 10);
     assert(f_depth2() == 10);
     assert(f_depth3() == 10);

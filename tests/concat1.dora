@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let x = "hello " + "world";
     assert(x.size() == 11i64);
 }

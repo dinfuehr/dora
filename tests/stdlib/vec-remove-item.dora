@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let vec = Vec[Int32]::new();
     vec.push(1i32);
     vec.push(2i32);

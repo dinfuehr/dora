@@ -1,6 +1,6 @@
 //= stdout "one\ntwo\n"
 
-fun main() {
+fun main(): Unit {
     std::thread::spawn(|| {
         println("one")
     }).join();

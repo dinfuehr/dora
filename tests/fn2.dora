@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   let mut result = fact(5i32);
   assert(result == 120i32);
 

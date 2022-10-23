@@ -2,6 +2,8 @@ use std::traits::{Default, Equals, Iterator, Zero};
 use std::string::Stringable;
 use std::fatalError;
 
+@pub @internal struct Unit
+
 @pub @internal struct Bool
 
 impl Bool {
@@ -161,7 +163,7 @@ impl Char {
 
   @pub fun hash(): Int32 = self.toInt32();
 
-  @pub fun encodeUtf8(bytes: Array[UInt8], offset: Int64) {
+  @pub fun encodeUtf8(bytes: Array[UInt8], offset: Int64): Unit {
     let val = self.toInt32();
 
     if val < 0x80i32 {
@@ -464,7 +466,7 @@ impl[T] Option[T] {
     }
   }
 
-  @pub fun unwrapNone() {
+  @pub fun unwrapNone(): Unit {
     match self {
       Some(_) => {
         fatalError("cannot unwrap Some.");

@@ -1,6 +1,6 @@
 let mut x: (String, Bool) = ("", false);
 
-fun main() {
+fun main(): Unit {
     std::forceCollect();
     x = ("my string", true);
     std::forceCollect();

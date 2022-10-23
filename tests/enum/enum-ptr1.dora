@@ -1,6 +1,6 @@
 enum Foo[T] { A(T), B }
 
-fun main() {
+fun main(): Unit {
     let value = Foo[String]::A("abc");
     foo(value);
     match value {

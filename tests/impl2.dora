@@ -1,18 +1,18 @@
 //= stdout "1\n"
 
 trait Foo {
-    fun bla();
+    fun bla(): Unit;
 }
 
 class A(val: Int32)
 
 impl Foo for A {
-    fun bla() {
+    fun bla(): Unit {
         println(self.val.toString());
     }
 }
 
-fun main() {
+fun main(): Unit {
     let a = A(1i32);
     a.bla();
 }

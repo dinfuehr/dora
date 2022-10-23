@@ -10,7 +10,7 @@ impl Thread {
 
     @pub @static @internal fun current(): Thread;
 
-    @pub @internal fun join();
+    @pub @internal fun join(): Unit;
 }
 
 @internal @pub fun spawn(action: (): ()): Thread;
@@ -23,7 +23,7 @@ impl AtomicInt32 {
     }
 
     @pub @internal fun get(): Int32;
-    @pub @internal fun set(value: Int32);
+    @pub @internal fun set(value: Int32): Unit;
     @pub @internal fun exchange(value: Int32): Int32;
     @pub @internal fun compareExchange(expected: Int32, value: Int32): Int32;
     @pub @internal fun fetchAdd(value: Int32): Int32;
@@ -37,7 +37,7 @@ impl AtomicInt64 {
     }
 
     @pub @internal fun get(): Int64;
-    @pub @internal fun set(value: Int64);
+    @pub @internal fun set(value: Int64): Unit;
     @pub @internal fun exchange(value: Int64): Int64;
     @pub @internal fun compareExchange(expected: Int64, value: Int64): Int64;
     @pub @internal fun fetchAdd(value: Int64): Int64;
@@ -64,7 +64,7 @@ impl Mutex {
         result
     }
 
-    fun lockOp() {
+    fun lockOp(): Unit {
         let previous = self.data.compareExchange(UNLOCKED, LOCKED);
 
         if previous != UNLOCKED {
@@ -76,7 +76,7 @@ impl Mutex {
         self.owner_thread_id = Thread::current().id();
     }
 
-    fun lockSlow() {
+    fun lockSlow(): Unit {
         let mut locked = false;
 
         while locked.not() {
@@ -95,7 +95,7 @@ impl Mutex {
         self.data.compareExchange(LOCKED, LOCKED_CONTENDED) != UNLOCKED
     }
 
-    fun unlockOp() {
+    fun unlockOp(): Unit {
         assert(self.owner_thread_id == Thread::current().id());
         self.owner_thread_id = 0;
 
@@ -106,13 +106,13 @@ impl Mutex {
         }
     }
 
-    fun unlockSlow(previous: Int32) {
+    fun unlockSlow(previous: Int32): Unit {
         assert(previous == LOCKED_CONTENDED);
         self.notify();
     }
 
-    @internal fun wait(status: Int32);
-    @internal fun notify();
+    @internal fun wait(status: Int32): Unit;
+    @internal fun notify(): Unit;
 }
 
 @pub class Condition {
@@ -124,14 +124,14 @@ impl Condition {
         Condition(AtomicInt32::new(0i32))
     }
 
-    @pub fun wait(mtx: Mutex) {
+    @pub fun wait(mtx: Mutex): Unit {
         self.enqueue();
         mtx.unlockOp();
         self.block();
         mtx.lockOp();
     }
 
-    @pub fun notifyOne() {
+    @pub fun notifyOne(): Unit {
         if self.waiters.get() == 0i32 {
             return;
         }
@@ -139,7 +139,7 @@ impl Condition {
         self.wakeupOne();
     }
 
-    @pub fun notifyAll() {
+    @pub fun notifyAll(): Unit {
         if self.waiters.get() == 0i32 {
             return;
         }
@@ -148,9 +148,9 @@ impl Condition {
         self.wakeupAll();
     }
 
-    @internal fun enqueue();
-    @internal fun block();
+    @internal fun enqueue(): Unit;
+    @internal fun block(): Unit;
 
-    @internal fun wakeupOne();
-    @internal fun wakeupAll();
+    @internal fun wakeupOne(): Unit;
+    @internal fun wakeupAll(): Unit;
 }

@@ -2,7 +2,7 @@
 
 class Foo
 
-fun main() {
+fun main(): Unit {
     let filler = Foo();
 
     {

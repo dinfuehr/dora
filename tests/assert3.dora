@@ -1,17 +1,17 @@
 //= error assert
 
-fun main() {
+fun main(): Unit {
   f(false);
 }
 
-fun f(a: Bool) {
+fun f(a: Bool): Unit {
     g(a);
 }
 
-fun g(a: Bool) {
+fun g(a: Bool): Unit {
     h(a);
 }
 
-fun h(a: Bool) {
+fun h(a: Bool): Unit {
     assert(a);
 }

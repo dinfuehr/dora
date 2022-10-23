@@ -8,7 +8,7 @@ impl Foo[Int64] {
     fun foo(): Int32 = 2i32;
 }
 
-fun main() {
+fun main(): Unit {
     assert(f1(Foo[Int32]()) == 1i32);
     assert(f2(Foo[Int64]()) == 2i32);
 }

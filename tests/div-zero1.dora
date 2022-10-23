@@ -1,7 +1,7 @@
 //= error div0
 //= stderr "division by 0\n    divide (tests/div-zero1.dora:9)\n    main (tests/div-zero1.dora:5)\n"
 
-fun main() {
+fun main(): Unit {
     divide(0i32);
 }
 

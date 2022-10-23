@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   assert(0.0.sortsAs(0.0) == 0i32);
   assert((-0.0).sortsAs(-0.0) == 0i32);
   assert(1.0.sortsAs(1.0) == 0i32);

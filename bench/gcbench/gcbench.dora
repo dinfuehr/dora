@@ -31,7 +31,7 @@ fun numIters(i: Int32): Int32 {
     return 4i32 * treeSize(stretchTreeDepth) / treeSize(i);
 }
 
-fun populate(depth: Int32, thisNode: Node) {
+fun populate(depth: Int32, thisNode: Node): Unit {
     let mut depth = depth;
     if depth <= 0i32 {
         return;
@@ -52,7 +52,7 @@ fun makeTree(iDepth: Int32): Node {
     }
 }
 
-fun timeConstruction(depth: Int32) {
+fun timeConstruction(depth: Int32): Unit {
     let iNumIters = numIters(depth);
     println("Creating " + iNumIters.toString() + " trees of depth " + depth.toString());
     let start = timestamp();
@@ -83,7 +83,7 @@ fun timeConstruction(depth: Int32) {
     println("\tBottom up construction took " + msecs.toString() + "ms");
 }
 
-fun main() {
+fun main(): Unit {
     if argc() != 1i32 {
         println("usage: gcbench <depth>");
         std::exit(1i32);

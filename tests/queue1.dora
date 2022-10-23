@@ -1,6 +1,6 @@
 use std::Queue;
 
-fun main() {
+fun main(): Unit {
     let q = Queue[Int32]::new();
     assert(q.size() == 0i64);
     assert(q.isEmpty());

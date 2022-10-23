@@ -1,6 +1,6 @@
 //= vm-args "--gc=copy"
 
-fun main() {
+fun main(): Unit {
     assert(f(true) == 1i32);
     assert(f(false) == 2i32);
 

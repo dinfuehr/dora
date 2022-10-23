@@ -1,9 +1,9 @@
-fun main() {
+fun main(): Unit {
   str();
   std::forceCollect();
 }
 
-fun str() {
+fun str(): Unit {
   let x = "abc";
   let y = "def";
 }

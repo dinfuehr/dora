@@ -1,6 +1,6 @@
 //= vm-args "--gc=copy --disable-tlab --gc-stress"
 
-fun main() {
+fun main(): Unit {
     let x = tpl1(42i32);
     std::forceCollect();
     assert(x.second.value == 17i32);

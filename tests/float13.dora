@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let x = SomeTest();
     assert(+x == 1.0f32);
     assert(-x == 2.0f32);

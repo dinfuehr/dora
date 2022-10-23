@@ -1,6 +1,6 @@
 @pub use collections::{Array, BitSet, BitVec, HashMap, HashSet, Queue, Vec};
 @pub use traits::{Comparable, Default, Equals, Hash, Iterator, Zero};
-@pub use primitives::{Bool, Char, Float32, Float64, Int32, Int64, Option, range, Result};
+@pub use primitives::{Unit, Bool, Char, Float32, Float64, Int32, Int64, Option, range, Result};
 @pub use rand::Random;
 @pub use string::{CodepointIterator, String, StringBuffer, Stringable};
 @pub use thread::{AtomicInt32, AtomicInt64, Condition, Mutex, Thread};
@@ -13,21 +13,21 @@
 @pub mod thread;
 @pub mod traits;
 
-@pub @internal fun fatalError(msg: String);
-@pub @internal fun abort();
-@pub @internal fun exit(status: Int32);
+@pub @internal fun fatalError(msg: String): Unit;
+@pub @internal fun abort(): Unit;
+@pub @internal fun exit(status: Int32): Unit;
 @pub @internal fun unreachable[T](): T;
 
-@pub fun unimplemented() = fatalError("not yet implemented");
+@pub fun unimplemented(): Unit = fatalError("not yet implemented");
 
-@pub @internal fun print(text: String);
-@pub @internal fun println(text: String);
-@pub @internal fun assert(val: Bool);
-@pub @internal fun debug();
+@pub @internal fun print(text: String): Unit;
+@pub @internal fun println(text: String): Unit;
+@pub @internal fun assert(val: Bool): Unit;
+@pub @internal fun debug(): Unit;
 @pub @internal fun argc(): Int32;
 @pub @internal fun argv(idx: Int32): String;
-@pub @internal fun forceCollect();
-@pub @internal fun forceMinorCollect();
+@pub @internal fun forceCollect(): Unit;
+@pub @internal fun forceMinorCollect(): Unit;
 
 @pub @internal fun timestamp(): Int64;
 
@@ -92,9 +92,9 @@ fun isValidUtf8(data: Array[UInt8]): Bool {
   return true;
 }
 
-@internal fun unsafeKillRefs[T](arr: Array[T], idx: Int64);
+@internal fun unsafeKillRefs[T](arr: Array[T], idx: Int64): Unit;
 
-@pub @internal fun sleep(seconds: Int32);
+@pub @internal fun sleep(seconds: Int32): Unit;
 
 @pub class Stacktrace {
   backtrace: Option[Array[Int32]],
@@ -135,7 +135,7 @@ impl Stacktrace {
     return elements;
   }
 
-  @pub fun printStacktrace() {
+  @pub fun printStacktrace(): Unit {
     let x = self.getStacktrace();
     let mut i = 0i64;
 
@@ -144,7 +144,7 @@ impl Stacktrace {
     }
   }
 
-  @internal fun retrieveStacktrace();
+  @internal fun retrieveStacktrace(): Unit;
   @internal fun getStacktraceElement(idx: Int64): StacktraceElement;
 }
 

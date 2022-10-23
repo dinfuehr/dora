@@ -13,7 +13,7 @@ fun t2(a: A[Int32]): Int32 {
     return a.t2[String](1i32, "bla");
 }
 
-fun main() {
+fun main(): Unit {
     assert("bla" == t1(A[Int32]()));
     assert(1i32 == t2(A[Int32]()));
 }

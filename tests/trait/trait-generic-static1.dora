@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     assert(f[Bar]() == 1i32);
     assert(f[Baz]() == 2i32);
 }

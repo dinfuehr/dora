@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     assert(tpl1() == 1i32);
     assert(tpl2() == 2i32);
     assert(tpl3() == 3i32);

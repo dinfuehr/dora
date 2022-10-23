@@ -1,5 +1,5 @@
-fun main() {
+fun main(): Unit {
   foo(Array[Int32]::new());
 }
 
-fun foo(a: Array[Int32]) {}
+fun foo(a: Array[Int32]): Unit {}

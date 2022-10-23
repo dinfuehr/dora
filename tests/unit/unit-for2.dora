@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let mut sum = 0i64;
     for x in Vec[()]::new((), (), (), ()) {
         sum = sum + 1i64;

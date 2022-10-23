@@ -12,7 +12,7 @@ impl Foo for Bar {
     fun test(): Int32 = self.value;
 }
 
-fun main() {
+fun main(): Unit {
     assert(invoke(baz(17i32)) == 17i32);
     assert(invoke(baz(0i32)) == 0i32);
     assert(invoke(baz(101i32)) == 101i32);

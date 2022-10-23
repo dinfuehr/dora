@@ -4,7 +4,7 @@ let mut x: Bar = Bar("", false);
 let mut y: Bar = Bar("", false);
 let mut tmp: Bar = Bar("", false);
 
-fun main() {
+fun main(): Unit {
     x = Bar("my string", true);
     y = Bar("another string", false);
     tmp = x;

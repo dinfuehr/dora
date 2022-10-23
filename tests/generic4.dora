@@ -1,6 +1,6 @@
 //= stdout "hello1"
 
-fun main() {
+fun main(): Unit {
   let a = A[String](foo(1i32));
   std::forceCollect();
   print(a.getx());

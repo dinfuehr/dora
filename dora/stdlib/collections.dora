@@ -9,7 +9,7 @@ impl[T] Array[T] {
 
   @pub @internal fun size(): Int64;
   @pub @internal fun get(idx: Int64): T;
-  @pub @internal fun set(idx: Int64, val: T);
+  @pub @internal fun set(idx: Int64, val: T): Unit;
 
   @pub fun isEmpty(): Bool = self.size() == 0i64;
 
@@ -35,7 +35,7 @@ impl[T] Array[T] {
     return array;
   }
 
-  @pub @static fun copy(src: Array[T], srcPos: Int64, dest: Array[T], destPos: Int64, len: Int64) {
+  @pub @static fun copy(src: Array[T], srcPos: Int64, dest: Array[T], destPos: Int64, len: Int64): Unit {
     let mut i = 0i64;
 
     while i < len {
@@ -111,7 +111,7 @@ impl[T] ArrayEnumerator[T] {
 impl[T: Sortable] Array[T] {
   // a stable in-place sort, currently implemented by insertion sort
   @pub @static
-  fun sortStable(array: Array[T]) {
+  fun sortStable(array: Array[T]): Unit {
     let mut i = 1i64;
     while i < array.size() {
       let mut temp: T = array.get(i);
@@ -243,7 +243,7 @@ impl BitSet {
     return value & 1i32.shiftLeft(value_idx.toInt32()) != 0i32;
   }
 
-  @pub fun insert(idx: Int64) {
+  @pub fun insert(idx: Int64): Unit {
     if idx < 0i64 || idx >= self.capacity {
       fatalError("index out of bounds");
     }
@@ -257,7 +257,7 @@ impl BitSet {
     self.data.set(entry_idx, value);
   }
 
-  @pub fun remove(idx: Int64) {
+  @pub fun remove(idx: Int64): Unit {
     if idx < 0i64 || idx >= self.capacity {
       fatalError("index out of bounds");
     }
@@ -297,7 +297,7 @@ impl BitVec {
     return value & 1i32.shiftLeft(value_idx.toInt32()) != 0i32;
   }
 
-  @pub fun insert(idx: Int64) {
+  @pub fun insert(idx: Int64): Unit {
     if idx < 0i64 {
       fatalError("index out of bounds");
     }
@@ -313,7 +313,7 @@ impl BitVec {
     self.data.set(entry_idx, value);
   }
 
-  @pub fun remove(idx: Int64) {
+  @pub fun remove(idx: Int64): Unit {
     if idx < 0i64 {
       fatalError("index out of bounds");
     }
@@ -331,7 +331,7 @@ impl BitVec {
     self.data.set(entry_idx, value);
   }
 
-  @pub fun ensureCapacity(newcap: Int64) {
+  @pub fun ensureCapacity(newcap: Int64): Unit {
     if newcap < self.data.size() * 32i64 || newcap == 0i64 {
       return;
     }
@@ -359,7 +359,7 @@ impl[T] Queue[T] {
     Queue[T](Array[T]::unsafeNew(4), 0, 0)
   }
 
-  @pub fun enqueue(value: T) {
+  @pub fun enqueue(value: T): Unit {
     if self.count == self.elements.size() {
       // copy into larger array
       let newelements = Array[T]::unsafeNew(self.elements.size() * 2i64);
@@ -583,7 +583,7 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
         Option[V]::None
     }
 
-    fun ensureCapacity(elements_to_add: Int64) {
+    fun ensureCapacity(elements_to_add: Int64): Unit {
         if self.entries + elements_to_add < self.cap {
             if self.entries <= (self.cap - (self.cap / 4i64)) {
                 return;
@@ -602,7 +602,7 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
         self.rehash(new_capacity);
     }
 
-    fun shrink() {
+    fun shrink(): Unit {
         if self.entries > (self.cap / 4i64) {
             return;
         }
@@ -618,7 +618,7 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
         self.rehash(new_capacity);
     }
 
-    fun rehash(new_capacity: Int64) {
+    fun rehash(new_capacity: Int64): Unit {
         let old_capacity = self.cap;
 
         let new_map = HashMap[K, V]::new();
@@ -715,7 +715,7 @@ impl[K: Hash + Equals] HashSet[K] {
     HashSet[K](map)
   }
 
-  @pub fun insert(key: K) {
+  @pub fun insert(key: K): Unit {
     self.map.insert(key, ());
   }
 
@@ -758,7 +758,7 @@ impl[T] Vec[T] {
     return self.array(idx);
   }
 
-  @pub fun set(idx: Int64, val: T) {
+  @pub fun set(idx: Int64, val: T): Unit {
     if idx < 0i64 || idx >= self.len {
       fatalError("index out of bounds for vector");
     }
@@ -766,7 +766,7 @@ impl[T] Vec[T] {
     self.array.set(idx, val);
   }
 
-  @pub fun reserve(newcap: Int64) {
+  @pub fun reserve(newcap: Int64): Unit {
     assert(newcap >= 0i64);
 
     if self.capacity() >= newcap {
@@ -778,7 +778,7 @@ impl[T] Vec[T] {
     self.array = newarray;
   }
 
-  @pub fun push(val: T) {
+  @pub fun push(val: T): Unit {
     let currentCapacity = self.capacity();
 
     if self.len == currentCapacity {
@@ -793,7 +793,7 @@ impl[T] Vec[T] {
     self.len = self.len + 1i64;
   }
 
-  @pub fun insertAt(idx: Int64, val: T) {
+  @pub fun insertAt(idx: Int64, val: T): Unit {
     assert(idx <= self.len);
     if idx == self.len {
       self.push(val);
@@ -852,7 +852,7 @@ impl[T] Vec[T] {
     }
   }
 
-  @pub fun trimToLen() {
+  @pub fun trimToLen(): Unit {
     if self.len != self.capacity() {
       if self.len == 0i64 {
         self.array = Array[T]::new();
@@ -864,7 +864,7 @@ impl[T] Vec[T] {
     }
   }
 
-  @pub fun removeItem(value: T) {
+  @pub fun removeItem(value: T): Unit {
     let len = self.len;
     let mut destIdx = 0i64;
     let mut srcIdx = 0i64;
@@ -906,7 +906,7 @@ impl[T] Vec[T] {
   }
 
 
-  @pub fun removeIf(fct: (T): Bool) {
+  @pub fun removeIf(fct: (T): Bool): Unit {
     let len = self.len;
     let mut destIdx = 0i64;
     let mut srcIdx = 0i64;
@@ -959,7 +959,7 @@ impl[T] Vec[T] {
     }
   }
 
-  @pub fun clear() {
+  @pub fun clear(): Unit {
     self.len = 0;
     self.array = Array[T]::new();
   }
@@ -1069,7 +1069,7 @@ impl[T: Equals] Vec[T] {
     return false;
   }
 
-  @pub fun removeEquals(elem: T) {
+  @pub fun removeEquals(elem: T): Unit {
     let mut i = 0i64;
 
     while i < self.size() {

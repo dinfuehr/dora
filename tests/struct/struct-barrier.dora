@@ -11,7 +11,7 @@ impl TupleClass {
 struct Pair(first: Foo, second: Int64)
 class Foo(value: Int32)
 
-fun main() {
+fun main(): Unit {
     let tpl = TupleClass::new();
     std::forceCollect();
     tpl.value = Pair(Foo(4711i32), 4712i64);

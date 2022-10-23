@@ -117,7 +117,7 @@ mod tests {
             trait Foo {}
             class A
             impl Foo for A {
-                fun bar() {}
+                fun bar(): Unit {}
             }",
             pos(5, 17),
             ErrorMessage::MethodNotInTrait("Foo".into(), "bar".into(), vec![]),
@@ -129,7 +129,7 @@ mod tests {
         err(
             "
             trait Foo {
-                fun bar();
+                fun bar(): Unit;
             }
             class A
             impl Foo for A {}",
@@ -158,7 +158,7 @@ mod tests {
             trait Foo {}
             class A
             impl Foo for A {
-                @static fun bar() {}
+                @static fun bar(): Unit {}
             }",
             pos(5, 25),
             ErrorMessage::StaticMethodNotInTrait("Foo".into(), "bar".into(), vec![]),
@@ -170,7 +170,7 @@ mod tests {
         err(
             "
             trait Foo {
-                @static fun bar();
+                @static fun bar(): Unit;
             }
             class A
             impl Foo for A {}",

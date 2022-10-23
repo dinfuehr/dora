@@ -1,6 +1,6 @@
 //= stdout "321"
 
-fun main() {
+fun main(): Unit {
     let x = Vec[String]::new();
     x.push(1i32.toString());
     x.push(2i32.toString());

@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   let a = Array[Int32]::new(1i32, 2i32, 3i32, 3i32, 4i32, 5i32, 4i32, 5i32, 4i32, 3i32, 3i32);
   let b = Array[Int32]::new(1i32, 2i32, 3i32, 3i32, 4i32, 5i32, 4i32, 5i32, 4i32, 3i32, 4i32);
   let c = Array[Int32]::new(1i32, 2i32, 3i32, 3i32, 4i32, 5i32, 4i32, 5i32, 4i32, 3i32);

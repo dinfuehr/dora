@@ -1,6 +1,6 @@
 //= vm-args "--gc=swiper --gc-verify"
 
-fun main() {
+fun main(): Unit {
   let x = Foo(1i32, Option[Foo]::None);
   std::forceMinorCollect();
   x.next = Option[Foo]::Some(Foo(2i32, Option[Foo]::None));

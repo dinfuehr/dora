@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     assert(sum_args(1.0f32, 2.0f32) == 3.0f32);
     assert(sum_args(7.0f32) == 7.0f32);
     assert(sum_args() == 0.0f32);

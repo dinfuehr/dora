@@ -85,8 +85,8 @@ mod tests {
         ok("trait Foo { fun foo(): Int32 { return 1; } }");
 
         err(
-            "trait Foo { fun foo() { self.bar(); } }",
-            pos(1, 33),
+            "trait Foo { fun foo(): Unit { self.bar(); } }",
+            pos(1, 39),
             ErrorMessage::UnknownMethod("Self".into(), "bar".into(), Vec::new()),
         );
 
@@ -112,14 +112,14 @@ mod tests {
             ErrorMessage::UnknownIdentifier("Unknown".into()),
         );
         err(
-            "trait Foo { fun foo(); fun foo(): Int32; }",
-            pos(1, 24),
+            "trait Foo { fun foo(): Unit; fun foo(): Int32; }",
+            pos(1, 30),
             ErrorMessage::MethodExists("foo".into(), pos(1, 13)),
         );
 
         err(
-            "trait Foo { fun foo(); fun foo(); }",
-            pos(1, 24),
+            "trait Foo { fun foo(): Unit; fun foo(): Unit; }",
+            pos(1, 30),
             ErrorMessage::MethodExists("foo".into(), pos(1, 13)),
         );
     }

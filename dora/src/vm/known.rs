@@ -150,6 +150,7 @@ impl KnownClasses {
 
 #[derive(Debug)]
 pub struct KnownStructs {
+    pub unit: Option<StructDefinitionId>,
     pub bool: Option<StructDefinitionId>,
     pub uint8: Option<StructDefinitionId>,
     pub char: Option<StructDefinitionId>,
@@ -162,6 +163,7 @@ pub struct KnownStructs {
 impl KnownStructs {
     pub fn new() -> KnownStructs {
         KnownStructs {
+            unit: None,
             bool: None,
             uint8: None,
             char: None,
@@ -170,6 +172,10 @@ impl KnownStructs {
             float32: None,
             float64: None,
         }
+    }
+
+    pub fn unit(&self) -> StructDefinitionId {
+        self.unit.expect("uninitialized")
     }
 
     pub fn bool(&self) -> StructDefinitionId {

@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   let x = Array[Int32]::new();
   assert(x.size() == 0i64);
   assert(int32_array_len(x) == 0i64);

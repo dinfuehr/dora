@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     assert(loadBool(FooBool(true)) == true);
     assert(loadByte(FooByte(1u8)) == 1u8);
     assert(loadChar(FooChar('1')) == '1');

@@ -1,6 +1,6 @@
 //= vm-args "--max-heap-size=128M --gc-verify"
 
-fun main() {
+fun main(): Unit {
     let a = Array[Foo]::fill(1_000_000i64, Foo());
     let mut i = 0i64;
     while i < a.size() {

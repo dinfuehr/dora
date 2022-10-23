@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   assert(Array[Int32]::new().toString() == "Array()");
   assert(Array[Int32]::new(1i32).toString() == "Array(1)");
   assert(Array[Int32]::new(1i32, 2i32, 3i32).toString() == "Array(1, 2, 3)");

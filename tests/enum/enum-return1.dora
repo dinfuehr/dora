@@ -2,7 +2,7 @@
 
 enum Foo { A(Int32, String, Float32), B }
 
-fun main() {
+fun main(): Unit {
     let foo = createFoo();
     match foo {
         Foo::A(_, _, _) => (),

@@ -18,6 +18,6 @@ impl Foo for X {
     }
 }
 
-fun main() {
+fun main(): Unit {
     assert(4i32 == foo[X](X()));
 }

@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let rnd = std::Random::new(0);
 
     assert(rnd.nextInt32() == -1155484576i32);

@@ -1,7 +1,7 @@
 use std::fatalError;
 use std::timestamp;
 
-fun main() {
+fun main(): Unit {
     if std::argc() != 3i32 {
         println("usage: splay <seed> <tree-size> <iterations>");
         std::exit(1i32);
@@ -46,7 +46,7 @@ impl Benchmark {
         )
     }
 
-    fun setup() {
+    fun setup(): Unit {
         let mut i = 0i32;
         self.splaySampleTimeStart = timestamp();
 
@@ -61,14 +61,14 @@ impl Benchmark {
         }
     }
 
-    fun updateStats(time: Int64) {
+    fun updateStats(time: Int64): Unit {
         let pause = time - self.splaySampleTimeStart;
         self.splaySampleTimeStart = time;
         self.splaySamples = self.splaySamples + 1i32;
         self.splaySumOfSquaredPauses = self.splaySumOfSquaredPauses + pause * pause;
     }
 
-    fun tearDown() {
+    fun tearDown(): Unit {
         let keys = self.splayTree.exportKeys();
 
         self.splaySamples = 0i32;
@@ -91,7 +91,7 @@ impl Benchmark {
         }
     }
 
-    fun run() {
+    fun run(): Unit {
         let mut i = 0i32;
 
         while i < splayTreeModifications {
@@ -132,7 +132,7 @@ impl Benchmark {
         return rnd.nextInt32();
     }
 
-    fun rms() {
+    fun rms(): Unit {
         let pauses = self.splaySumOfSquaredPauses;
         let samples = self.splaySamples;
 
@@ -175,7 +175,7 @@ impl SplayTree {
         return self.root.isNone();
     }
 
-    fun insert(key: Int32, value: PayloadNode) {
+    fun insert(key: Int32, value: PayloadNode): Unit {
         if self.isEmpty() {
             self.root = Some(SplayNode::new(key, Some[PayloadNode](value)));
             return;
@@ -287,7 +287,7 @@ impl SplayTree {
         return keys;
     }
 
-    fun splay(key: Int32) {
+    fun splay(key: Int32): Unit {
         if self.isEmpty() {
             return;
         }
@@ -358,7 +358,7 @@ impl SplayTree {
     }
 }
 
-fun exportKeysTraverse(list: Vec[Int32], node: Option[SplayNode]) {
+fun exportKeysTraverse(list: Vec[Int32], node: Option[SplayNode]): Unit {
     let mut current = node;
 
     while current.isSome() {

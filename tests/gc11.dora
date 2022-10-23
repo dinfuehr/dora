@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let y = test(A(10i32));
     assert(y == 10i32);
 }

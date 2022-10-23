@@ -1,9 +1,9 @@
 //= error stack-overflow
 
-fun main() {
+fun main(): Unit {
     f();
 }
 
-fun f() {
+fun f(): Unit {
     f();
 }

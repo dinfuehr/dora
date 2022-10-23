@@ -1,11 +1,11 @@
-fun main() {
+fun main(): Unit {
   float32();
   float64();
   int32();
   int64();
 }
 
-fun float32() {
+fun float32(): Unit {
   assert(Float32::notANumber().unaryMinus().abs() === Float32::notANumber());
   assert(Float32::infinityNegative().abs() == Float32::infinityPositive());
   assert((-1.0f32).abs() == 1.0f32);
@@ -15,7 +15,7 @@ fun float32() {
   assert(Float32::notANumber().abs() === Float32::notANumber());
 }
 
-fun float64() {
+fun float64(): Unit {
   assert(Float64::notANumber().unaryMinus().abs() === Float64::notANumber());
   assert(Float64::infinityNegative().abs() == Float64::infinityPositive());
   assert((-1.0).abs() == 1.0);
@@ -26,7 +26,7 @@ fun float64() {
 }
 
 
-fun int32() {
+fun int32(): Unit {
   assert(Int32::minValue().abs() == Int32::minValue());
   assert((-1i32).abs() == 1i32);
   assert(0i32.abs() == 0i32);
@@ -34,7 +34,7 @@ fun int32() {
   assert(Int32::maxValue().abs() == Int32::maxValue());
 }
 
-fun int64() {
+fun int64(): Unit {
   assert(Int64::minValue().abs() == Int64::minValue());
   assert((-1i64).abs() == 1i64);
   assert(0i64.abs() == 0i64);

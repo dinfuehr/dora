@@ -8,7 +8,7 @@ impl Foo {
 
 fun f(a: Foo, b: Foo): Foo = a + b;
 
-fun main() {
+fun main(): Unit {
     assert(f(Foo(11i32), Foo(17i32)).value == 28i32);
     assert(f(Foo(-12i32), Foo(12i32)).value == 0i32);
     assert(f(Foo(3i32), Foo(7i32)).value == 10i32);

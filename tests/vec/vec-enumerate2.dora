@@ -1,9 +1,9 @@
-fun main() {
+fun main(): Unit {
     iterateManually();
     iterateWithForIn();
 }
 
-fun iterateManually() {
+fun iterateManually(): Unit {
     let it = Vec[String]::new("a", "b", "c").enumerate();
     let (idx, value) = it.next().getOrPanic();
     assert(idx == 0i64 && value == "a");
@@ -14,7 +14,7 @@ fun iterateManually() {
     it.next().unwrapNone();
 }
 
-fun iterateWithForIn() {
+fun iterateWithForIn(): Unit {
     for idx_and_value in Vec[String]::new("a", "b", "c").enumerate() {
         let (idx, value) = idx_and_value;
 
@@ -28,7 +28,7 @@ fun iterateWithForIn() {
     }
 }
 
-fun iterateWithForInPattern() {
+fun iterateWithForInPattern(): Unit {
     for (idx, value) in Vec[String]::new("a", "b", "c").enumerate() {
         if idx == 0i64 { assert(value == "a"); }
         else if idx == 1i64 { assert(value == "b"); }

@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   insertFirst();
   insertFirstNoResize();
   insertMiddle();
@@ -8,46 +8,46 @@ fun main() {
   insertEmpty();
 }
 
-fun insertFirst() {
+fun insertFirst(): Unit {
   let xs = Vec[Int32]::new(1i32, 2i32, 3i32);
   xs.insertAt(0i64, -23i32);
   assert(xs == Vec[Int32]::new(-23i32, 1i32, 2i32, 3i32));
 }
 
-fun insertFirstNoResize() {
+fun insertFirstNoResize(): Unit {
   let xs = Vec[Int32]::new(1i32, 2i32, 3i32);
   xs.removeAt(0i64);
   xs.insertAt(0i64, -23i32);
   assert(xs == Vec[Int32]::new(-23i32, 2i32, 3i32));
 }
 
-fun insertMiddle() {
+fun insertMiddle(): Unit {
   let xs = Vec[Int32]::new(1i32, 2i32, 3i32);
   xs.insertAt(1i64, -23i32);
   assert(xs == Vec[Int32]::new(1i32, -23i32, 2i32, 3i32));
 }
 
-fun insertMiddleNoResize() {
+fun insertMiddleNoResize(): Unit {
   let xs = Vec[Int32]::new(1i32, 2i32, 3i32);
   xs.removeAt(1i64);
   xs.insertAt(1i64, -23i32);
   assert(xs == Vec[Int32]::new(1i32, -23i32, 3i32));
 }
 
-fun insertLast() {
+fun insertLast(): Unit {
   let xs = Vec[Int32]::new(1i32, 2i32, 3i32);
   xs.insertAt(xs.size(), -23i32);
   assert(xs == Vec[Int32]::new(1i32, 2i32, 3i32, -23i32));
 }
 
-fun insertLastNoResize() {
+fun insertLastNoResize(): Unit {
   let xs = Vec[Int32]::new(1i32, 2i32, 3i32);
   xs.removeAt(xs.size() - 1i64);
   xs.insertAt(xs.size(), -23i32);
   assert(xs == Vec[Int32]::new(1i32, 2i32, -23i32));
 }
 
-fun insertEmpty() {
+fun insertEmpty(): Unit {
   let xs = Vec[Int32]::new();
   xs.insertAt(0i64, -23i32);
   assert(xs == Vec[Int32]::new(-23i32));

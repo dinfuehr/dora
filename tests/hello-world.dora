@@ -1,5 +1,5 @@
 //= stdout "Hello, world!\n"
 
-fun main() {
+fun main(): Unit {
   println("Hello, world!");
 }

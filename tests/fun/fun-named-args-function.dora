@@ -1,7 +1,7 @@
-fun main() {
+fun main(): Unit {
   foo(x = 23, y = true);
   foo(x = 23, true);
   foo(23, y = true);
 }
 
-fun foo(x: Int64, y: Bool) {}
+fun foo(x: Int64, y: Bool): Unit {}

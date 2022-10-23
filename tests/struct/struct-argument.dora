@@ -10,7 +10,7 @@ fun f2(x: Foo, control: Int32): Bool {
     x.f2
 }
 
-fun main() {
+fun main(): Unit {
     assert(f1(Foo(10i32, false), 4711i32) == 10i32);
     assert(f2(Foo(10i32, false), 90210i32).not());
 }

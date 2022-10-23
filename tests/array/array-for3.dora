@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     assert(mysum(Array[Int32]::new()) == 0i32);
     assert(mysum(Array[Int32]::new(1i32)) == 1i32);
     assert(mysum(Array[Int32]::new(1i32, 2i32, 3i32, 4i32, 5i32)) == 15i32);

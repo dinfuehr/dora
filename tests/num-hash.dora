@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   assert(true.hash() == 1i32);
   assert(false.hash() == 0i32);
   assert(1.toUInt8().hash() == 1i32);

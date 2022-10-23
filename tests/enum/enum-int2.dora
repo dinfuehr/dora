@@ -18,7 +18,7 @@ impl Foo {
     }
 }
 
-fun main() {
+fun main(): Unit {
     assert("A" == asString(Foo::A));
     assert("B" == asString(Foo::B));
 

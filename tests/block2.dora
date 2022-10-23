@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     assert(myid[Int32](1i32) == 1i32);
     assert(myid[Int32](100i32) == 100i32);
     assert(myid[Int32](4i32) == 4i32);

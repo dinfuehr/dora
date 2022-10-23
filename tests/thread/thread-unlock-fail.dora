@@ -1,6 +1,6 @@
 //= error assert
 
-fun main() {
+fun main(): Unit {
     let mtx = std::Mutex::new();
     let cv = std::Condition::new();
 

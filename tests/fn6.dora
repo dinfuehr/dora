@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   f(1i32, 2i32, 3i32, 4i32, 5i32, 6i32, 7i32, 8i32);
   g("a", "b", "c", "d", "e", "f", "g", "h");
 
@@ -16,8 +16,7 @@ fun main() {
   assert(x.h == 8i32);
 }
 
-fun f(a: Int32, b: Int32, c: Int32, d: Int32,
-     e: Int32, f: Int32, g: Int32, h: Int32) {
+fun f(a: Int32, b: Int32, c: Int32, d: Int32, e: Int32, f: Int32, g: Int32, h: Int32): Unit {
    assert(a == 1i32);
    assert(b == 2i32);
    assert(c == 3i32);
@@ -28,8 +27,7 @@ fun f(a: Int32, b: Int32, c: Int32, d: Int32,
    assert(h == 8i32);
 }
 
-fun g(a: String, b: String, c: String, d: String,
-     e: String, f: String, g: String, h: String) {
+fun g(a: String, b: String, c: String, d: String, e: String, f: String, g: String, h: String): Unit {
    assert(a == "a");
    assert(b == "b");
    assert(c == "c");
@@ -43,8 +41,7 @@ fun g(a: String, b: String, c: String, d: String,
 class Foo1
 
 impl Foo1 {
-  fun f(a: Int32, b: Int32, c: Int32, d: Int32,
-       e: Int32, f: Int32, g: Int32, h: Int32) {
+  fun f(a: Int32, b: Int32, c: Int32, d: Int32, e: Int32, f: Int32, g: Int32, h: Int32): Unit {
     assert(a == 1i32);
     assert(b == 2i32);
     assert(c == 3i32);

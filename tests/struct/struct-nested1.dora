@@ -9,7 +9,7 @@ enum MyEnum {
     B(MyClass)
 }
 
-fun main() {
+fun main(): Unit {
     let foo = Foo(
         AnotherStruct(3.5f32, MyClass(10i32)),
         MyClass(11i32),

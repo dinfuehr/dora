@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     assert(myadd1((1i32, 4i32)) == 5i32);
     assert(myadd1((3i32, 1i32)) == 4i32);
 

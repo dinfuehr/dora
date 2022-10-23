@@ -22,7 +22,7 @@ struct SomeData {
 
 class SomeClass(foo: Foo)
 
-fun main() {
+fun main(): Unit {
     let data = SomeData(Baz() as Foo);
     let foo = data.foo;
     assert(foo.test() == 4711);

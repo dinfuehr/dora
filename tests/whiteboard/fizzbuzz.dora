@@ -1,6 +1,6 @@
 //= stdout file
 
-fun main() {
+fun main(): Unit {
     let mut i = 1i32;
 
     while i <= 100i32 {

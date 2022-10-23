@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   let mut i = 0;
 
   while i < 10000000 {

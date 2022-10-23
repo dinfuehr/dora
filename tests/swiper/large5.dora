@@ -1,7 +1,7 @@
 //= vm-args "--gc=swiper --gc-verify --max-heap-size=32M"
 //= error oom
 
-fun main() {
+fun main(): Unit {
     let mut x = Vec[Array[Int32]]::new();
     let mut i = 0i32;
 

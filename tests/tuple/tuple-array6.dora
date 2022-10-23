@@ -2,7 +2,7 @@
 
 class Foo (value: Int32)
 
-fun main() {
+fun main(): Unit {
     let x = Array[(Int32, Foo)]::fill(1024i64, (0i32, Foo(0i32)));
     for i in std::range(0i32, x.size().toInt32()) {
         x(i.toInt64()) = (i, Foo(i));

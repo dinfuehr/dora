@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let x = (1i32, 2i32, (3i32, 4i32));
     assert(x.0 == 1i32);
     assert(x.1 == 2i32);

@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let map = std::HashMap[Int32, String]::new((1i32, "a"), (2i32, "b"), (3i32, "c"), (4i32, "d"));
     assert(map.size() == 4i64);
 

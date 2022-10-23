@@ -2,7 +2,7 @@
 
 class Foo (value: Int32)
 
-fun main() {
+fun main(): Unit {
     let x = Array[(Int32, Foo)]::fill(7i64, (0i32, Foo(100i32)));
     x(0i64) = (1i32, Foo(1i32));
     x(4i64) = (4i32, Foo(4i32));

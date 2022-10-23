@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   assert(1i32 == 1i32.shiftLeft(0i32));
   assert(2i32 == 1i32.shiftLeft(1i32));
   assert(4i32 == 1i32.shiftLeft(2i32));

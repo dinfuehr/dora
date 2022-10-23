@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   let x = Array[Int32]::fill(5i64, 100i32);
   assert(x(0i64) == 100i32);
   assert(int32_array_get(x, 4i64) == 100i32);

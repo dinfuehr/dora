@@ -279,7 +279,7 @@ mod tests {
         err(
             "
                 enum MyOption[X] { A, B }
-                fun foo(v: MyOption) {}
+                fun foo(v: MyOption): Unit {}
             ",
             pos(3, 28),
             ErrorMessage::WrongNumberTypeParams(1, 0),
@@ -313,16 +313,16 @@ mod tests {
     fn check_enum_value_generic() {
         ok("
             enum Foo[T] { A, B }
-            fun foo() { let tmp = Foo[String]::B; }
+            fun foo(): Unit { let tmp = Foo[String]::B; }
         ");
 
         err(
             "
             trait SomeTrait {}
             enum Foo[T: SomeTrait] { A, B }
-            fun foo() { let tmp = Foo[String]::B; }
+            fun foo(): Unit { let tmp = Foo[String]::B; }
         ",
-            pos(4, 46),
+            pos(4, 52),
             ErrorMessage::TypeNotImplementingTrait("String".into(), "SomeTrait".into()),
         );
     }
@@ -331,15 +331,15 @@ mod tests {
     fn enum_with_generic_argument() {
         ok("
             enum Foo[T] { A(T), B }
-            fun foo() { let tmp = Foo[Int32]::A(0i32); }
+            fun foo(): Unit { let tmp = Foo[Int32]::A(0i32); }
         ");
 
         err(
             "
             enum Foo[T] { A(T), B }
-            fun foo() { let tmp = Foo[Int32]::A(true); }
+            fun foo(): Unit { let tmp = Foo[Int32]::A(true); }
         ",
-            pos(3, 48),
+            pos(3, 54),
             ErrorMessage::EnumArgsIncompatible(
                 "Foo".into(),
                 "A".into(),

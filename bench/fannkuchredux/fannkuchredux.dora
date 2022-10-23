@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   let mut n = 7i32;
   if std::argc() > 0i32 { n = std::argv(0i32).toInt32().getOrPanic(); }
   println("Pfannkuchen ("+n.toString()+") = " + fannkuch(n).toString());

@@ -386,7 +386,7 @@ mod tests {
             "
             use foo::bar;
             mod foo {
-                fun bar() {}
+                fun bar(): Unit {}
             }
         ",
             pos(2, 22),
@@ -551,7 +551,7 @@ mod tests {
                 @pub use super::f2 as f3;
                 @pub use super::f4 as f5;
 
-                @pub fun f1() {}
+                @pub fun f1(): Unit {}
             }
         ");
     }

@@ -6,7 +6,7 @@ const ITERATIONS: Int32 = 100_000i32;
 class MyThread(counter: AtomicInt32)
 
 impl MyThread {
-   fun run() {
+   fun run(): Unit {
         let mut i = 0i32;
         while i < ITERATIONS {
             self.counter.fetchAdd(1i32);
@@ -15,7 +15,7 @@ impl MyThread {
     }
 }
 
-fun main() {
+fun main(): Unit {
     let shared = AtomicInt32::new(0i32);
     let threads = Vec[std::Thread]::new();
 

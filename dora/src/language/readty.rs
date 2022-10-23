@@ -324,7 +324,8 @@ fn verify_type_basic(
             }
         }
 
-        SourceType::Bool
+        SourceType::Unit
+        | SourceType::Bool
         | SourceType::UInt8
         | SourceType::Char
         | SourceType::Int32
@@ -589,13 +590,13 @@ mod tests {
     #[test]
     fn module_class() {
         ok("
-            fun f(x: foo::Foo) {}
+            fun f(x: foo::Foo): Unit {}
             mod foo { @pub class Foo }
         ");
 
         err(
             "
-            fun f(x: foo::Foo) {}
+            fun f(x: foo::Foo): Unit {}
             mod foo { class Foo }
         ",
             pos(2, 22),
@@ -606,13 +607,13 @@ mod tests {
     #[test]
     fn mod_enum() {
         ok("
-            fun f(x: foo::Foo) {}
+            fun f(x: foo::Foo): Unit {}
             mod foo { @pub enum Foo { A, B } }
         ");
 
         err(
             "
-            fun f(x: foo::Foo) {}
+            fun f(x: foo::Foo): Unit {}
             mod foo { enum Foo { A, B } }
         ",
             pos(2, 22),
@@ -623,13 +624,13 @@ mod tests {
     #[test]
     fn mod_trait() {
         ok("
-            fun f(x: foo::Foo) {}
+            fun f(x: foo::Foo): Unit {}
             mod foo { @pub trait Foo {} }
         ");
 
         err(
             "
-            fun f(x: foo::Foo) {}
+            fun f(x: foo::Foo): Unit {}
             mod foo { trait Foo {} }
         ",
             pos(2, 22),

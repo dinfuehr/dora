@@ -2,7 +2,7 @@ let mut x: (String, Bool) = ("", false);
 let mut y: (String, Bool) = ("", false);
 let mut tmp: (String, Bool) = ("", false);
 
-fun main() {
+fun main(): Unit {
     x = ("my string", true);
     y = ("another string", false);
     tmp = x;

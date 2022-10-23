@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   assert("abc".size() == 3);
 
   let x = "abcdef";

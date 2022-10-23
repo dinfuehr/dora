@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   let x = "ABC";
   assert(x.hash() == 1867602035i32);
   assert("1234".hash() == -409991756i32);

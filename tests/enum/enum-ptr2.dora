@@ -4,7 +4,7 @@ enum Foo { A(Bar), B }
 enum Bar { C(MyClass), D }
 class MyClass(value: Int32)
 
-fun main() {
+fun main(): Unit {
     let f = foo();
     std::forceCollect();
     let bar = match f {

@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let a = A[Int32]::new(0i32);
     consume(a.x);
 
@@ -14,10 +14,10 @@ impl[T] A[T] {
     }
 }
 
-fun consume(x: Array[Int32]) {
+fun consume(x: Array[Int32]): Unit {
     assert(x(9i64) == 0i32);
 }
 
-fun consume2(x: Array[String]) {
+fun consume2(x: Array[String]): Unit {
     assert(x.size() == 10);
 }

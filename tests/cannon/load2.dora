@@ -8,7 +8,7 @@ let mut glob_double: Float64 = 0.0;
 let mut glob_string: String = "";
 let mut glob_obj: Foo = Foo();
 
-fun main() {
+fun main(): Unit {
     init_globs();
     
     assert(loadGlobalBool() == true);
@@ -23,7 +23,7 @@ fun main() {
     assert(loadGlobalPtr() === glob_obj);
 }
 
-fun init_globs() {
+fun init_globs(): Unit {
     glob_bool = true;
     glob_char = '5';
     glob_byte = 5u8;

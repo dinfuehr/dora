@@ -92,7 +92,7 @@ fun makeTree(h: Int32): TreeNode {
     res
 }
 
-fun initialize() {
+fun initialize(): Unit {
     let ntrees = (size * MEG).toInt64() / treeSize;
     let default = TreeNode(Option[TreeNode]::None, Option[TreeNode]::None, 0i32);
     trees = Array[TreeNode]::fill(ntrees, default);
@@ -110,7 +110,7 @@ fun initialize() {
     println("  (" + nodes.toString() + " nodes)");
 }
 
-fun checkTrees() {
+fun checkTrees(): Unit {
     let ntrees = trees.size();
 
     let mut i = 0i64;
@@ -129,7 +129,7 @@ fun checkTrees() {
     }
 }
 
-fun replaceTreeWork(full: TreeNode, partial: TreeNode, dir: Bool) {
+fun replaceTreeWork(full: TreeNode, partial: TreeNode, dir: Bool): Unit {
     let canGoLeft = full.left.isSome() && full.left.getOrPanic().value > partial.value;
     let canGoRight = full.right.isSome() && full.right.getOrPanic().value > partial.value;
 
@@ -152,13 +152,13 @@ fun replaceTreeWork(full: TreeNode, partial: TreeNode, dir: Bool) {
     }
 }
 
-fun replaceTree(full: TreeNode, partial: TreeNode) {
+fun replaceTree(full: TreeNode, partial: TreeNode): Unit {
     let dir = (partial.value % 2i32) == 0i32;
     actuallyMut = actuallyMut + 1i64;
     replaceTreeWork(full, partial, dir);
 }
 
-fun oldGenAlloc(n: Int64) {
+fun oldGenAlloc(n: Int64): Unit {
     let full = n / treeSize;
     let mut partial = n % treeSize;
 
@@ -188,7 +188,7 @@ fun oldGenAlloc(n: Int64) {
     }
 }
 
-fun oldGenSwapSubtrees() {
+fun oldGenSwapSubtrees(): Unit {
     let index1 = rnd.nextInt32WithBound(trees.size().toInt32());
     let index2 = rnd.nextInt32WithBound(trees.size().toInt32());
     let depth = rnd.nextInt32WithBound(treeHeight);
@@ -224,7 +224,7 @@ fun oldGenSwapSubtrees() {
     actuallyMut = actuallyMut + 2i64;
 }
 
-fun oldGenMut(n: Int64) {
+fun oldGenMut(n: Int64): Unit {
     let mut i = 0i64;
 
     while i < n/2i64 {
@@ -233,7 +233,7 @@ fun oldGenMut(n: Int64) {
     }
 }
 
-fun doMutWork(n: Int64) {
+fun doMutWork(n: Int64): Unit {
     let mut sum = 0i32;
     let limit = workUnits.toInt64() * n / 10i64;
 
@@ -247,7 +247,7 @@ fun doMutWork(n: Int64) {
     mutatorSum = mutatorSum + sum.toInt64();
 }
 
-fun doYoungGenAlloc(n: Int64, nwords: Int32) {
+fun doYoungGenAlloc(n: Int64, nwords: Int32): Unit {
     let nbytes = nwords * BYTES_PER_WORD;
     let mut allocated = 0i64;
 
@@ -259,7 +259,7 @@ fun doYoungGenAlloc(n: Int64, nwords: Int32) {
     youngBytes = youngBytes + allocated;
 }
 
-fun doStep(n: Int64) {
+fun doStep(n: Int64): Unit {
     let mutations = actuallyMut;
 
     doYoungGenAlloc(n, WORDS_DEAD);
@@ -268,7 +268,7 @@ fun doStep(n: Int64) {
     oldGenMut(Int64::max(0i64, (mutations + ptrMutRate.toInt64()) - actuallyMut));
 }
 
-fun main() {
+fun main(): Unit {
     rnd = std::Random::new(1234567890i64);
 
     if std::argc() != 5i32 {

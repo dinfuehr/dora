@@ -25,7 +25,7 @@ impl[T] SharedQueue[T] {
         )
     }
 
-    fun enqueue(value: T) {
+    fun enqueue(value: T): Unit {
         self.mtx.lock[()](|| {
             while self.queue.size() == self.capacity {
                 self.conditionNonFull.wait(self.mtx);
@@ -61,7 +61,7 @@ impl Producer {
         Producer(queue, 0i32)
     }
 
-    fun run() {
+    fun run(): Unit {
         let mut i = 0i32;
 
         while i < ITERATIONS {
@@ -85,7 +85,7 @@ impl Consumer {
         )
     }
 
-    fun run() {
+    fun run(): Unit {
         let mut continue = true;
         while continue {
             let value = self.queue.dequeue();
@@ -99,7 +99,7 @@ impl Consumer {
     }
 }
 
-fun main() {
+fun main(): Unit {
     let mut i = 0i32;
     let queue = SharedQueue[Int32]::new(QUEUE_SIZE);
     let producerThreads = Vec[std::Thread]::new();

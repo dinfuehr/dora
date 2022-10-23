@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let l1 = foo[Int64](0);
     assert(l1(1) == 0);
     assert(l1(2) == 1);

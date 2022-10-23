@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     assert("x${f[Bar]()}y${f[Baz]()}z" == "xBAR1yBAZ2z");
 }
 

@@ -21,6 +21,6 @@ impl Foo for X {
     }
 }
 
-fun main() {
+fun main(): Unit {
     assert(2i32 == A[X](X()).bar());
 }

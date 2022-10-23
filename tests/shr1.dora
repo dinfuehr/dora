@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   assert(8i32 == 8i32.shiftRightSigned(0i32));
   assert(4i32 == 8i32.shiftRightSigned(1i32));
   assert(2i32 == 8i32.shiftRightSigned(2i32));

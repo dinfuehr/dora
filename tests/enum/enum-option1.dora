@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     assert(Option[String]::None.isNone());
     assert(Option[Int32]::None.isNone());
     assert(Option[String]::None.isSome().not());

@@ -1,9 +1,9 @@
-fun main() {
+fun main(): Unit {
     iterateManually();
     iterateWithForIn();
 }
 
-fun iterateManually() {
+fun iterateManually(): Unit {
     let it = Array[String]::new("a", "b", "c").enumerate();
     let (idx, value) = it.next().getOrPanic();
     assert(idx == 0i64 && value == "a");
@@ -14,7 +14,7 @@ fun iterateManually() {
     it.next().unwrapNone();
 }
 
-fun iterateWithForIn() {
+fun iterateWithForIn(): Unit {
     for idx_and_value in Array[String]::new("a", "b", "c").enumerate() {
         let (idx, value) = idx_and_value;
 

@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     Mandelbrot(argv(0).toInt().getOrPanic()).compute();
 }
 
@@ -16,7 +16,7 @@ class Mandelbrot(let size: Int) {
         self.shift = (8 - size % 8);
     }
     
-    fun compute() {
+    fun compute(): Unit {
         let mut y = 0;
 
         println("P4");
@@ -31,7 +31,7 @@ class Mandelbrot(let size: Int) {
         write(self.buf, 0, self.bufferLen);
     }
 
-    fun computeRow(y: Int) {
+    fun computeRow(y: Int): Unit {
         let mut bits = 0;
         let Ci = (y.toFloat64() * self.fac - 1.0);
         let bufferVar = self.buf;
@@ -97,6 +97,6 @@ class Mandelbrot(let size: Int) {
     }
 }
 
-fun write(buf: Array[Byte], offset: Int, len: Int) {
+fun write(buf: Array[Byte], offset: Int, len: Int): Unit {
     unimplemented();
 }

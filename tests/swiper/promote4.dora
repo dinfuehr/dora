@@ -1,6 +1,6 @@
 //= vm-args "--gc=swiper --gc-verify"
 
-fun main() {
+fun main(): Unit {
   let default = Foo(42i32);
   let mut x = Array[Foo]::fill(128i64, default);
   std::forceMinorCollect();

@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let bar = Bar[Int32]::new(11i32);
     assert(bar.x.fst == 11i32);
     assert(bar.x.snd == 10i32);

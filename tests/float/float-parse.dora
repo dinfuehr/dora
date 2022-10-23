@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     assert("5".toFloat64().getOrPanic() == 5.0);
     assert("-127.5".toFloat64().getOrPanic() == -127.5);
     assert("0".toFloat64().getOrPanic() == 0.0);

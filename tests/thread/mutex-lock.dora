@@ -8,7 +8,7 @@ const ITERATIONS: Int32 = 10_000i32;
 class MyThread(mtx: std::Mutex, value: SharedInt)
 
 impl MyThread {
-    fun run() {
+    fun run(): Unit {
         let mut i = 0i32;
         let mut last: Object = Object();
 
@@ -46,7 +46,7 @@ impl SharedInt {
     }
 }
 
-fun main() {
+fun main(): Unit {
     let mut i = 0i32;
     let mut threads = Vec[std::Thread]::new();
     let mut mtx = std::Mutex::new();

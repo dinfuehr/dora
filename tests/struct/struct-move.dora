@@ -6,6 +6,6 @@ fun f(): Foo {
     y
 }
 
-fun main() {
+fun main(): Unit {
     f();
 }

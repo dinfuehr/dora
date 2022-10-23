@@ -5,7 +5,7 @@ const zero: UInt8 = 0u8;
 const f: Float32 = 3.0f32;
 const d: Float64 = 4.0;
 
-fun main() {
+fun main(): Unit {
     assert(i == 1i32);
     assert(l == 2i64);
     assert(yes == true);

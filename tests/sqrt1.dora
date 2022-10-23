@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     assert(9f64.sqrt() == 3f64);
 
     let x = 0f64 / 0f64;

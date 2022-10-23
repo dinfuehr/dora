@@ -1,22 +1,22 @@
-fun main() {
+fun main(): Unit {
   int32();
   int64();
   float64();
 }
 
-fun int32() {
+fun int32(): Unit {
   let x = Array[Int32]::new(2i32, 3i32, 0i32, 4i32);
   Array[Int32]::sortStable(x);
   assert(x == Array[Int32]::new(0i32, 2i32, 3i32, 4i32));
 }
 
-fun int64() {
+fun int64(): Unit {
   let x = Array[Int64]::new(5i64, 1i64, 4i64, 2i64, 8i64);
   Array[Int64]::sortStable(x);
   assert(x == Array[Int64]::new(1i64, 2i64, 4i64, 5i64, 8i64));
 }
 
-fun float64() {
+fun float64(): Unit {
   // as x86 returns a negative NaN for 0.0/0.0, but Arm&RiscV return a positive NaN,
   // we need to make extra efforts to ensure the NaNs we are using have the desired signs.
 

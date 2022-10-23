@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   let result = 1i32 + myzero();
   assert(result == 1i32);
 }

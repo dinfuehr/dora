@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let testBuggy = true;
 
     assert(0.0f32.asInt32() == 0i32);

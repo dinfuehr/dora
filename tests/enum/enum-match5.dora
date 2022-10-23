@@ -1,7 +1,7 @@
 enum MyOption[T] { Some(T), None }
 
 impl[T] MyOption[T] {
-    fun unwrapNone() {
+    fun unwrapNone(): Unit {
         match self {
             MyOption::Some(value) => {
                 std::fatalError("cannot unwrap Some.");
@@ -12,6 +12,6 @@ impl[T] MyOption[T] {
     }
 }
 
-fun main() {
+fun main(): Unit {
     MyOption::None[Int32].unwrapNone();
 }

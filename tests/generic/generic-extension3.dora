@@ -4,7 +4,7 @@ class MyClass[T](value: Int32)
 class Foo
 
 impl[X: TypeDescriptor] MyClass[X] {
-    fun do[T: TypeDescriptor](another: MyClass[T]) {
+    fun do[T: TypeDescriptor](another: MyClass[T]): Unit {
         println("self=${X::name()}:${self.value} another=${T::name()}:${another.value}");
     }
 }
@@ -25,11 +25,11 @@ impl TypeDescriptor for Float32 {
     @static fun name(): String { "Float32" }
 }
 
-fun f() {
+fun f(): Unit {
     MyClass[Foo](1i32).do[Int32](MyClass[Int32](101i32));
     MyClass[Int32](2i32).do[Float32](MyClass[Float32](102i32));
 }
 
-fun main() {
+fun main(): Unit {
     f();
 }

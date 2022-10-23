@@ -33,7 +33,7 @@ impl[T1] Foo[T1] {
     }
 }
 
-fun main() {
+fun main(): Unit {
     let l1 = Foo[Int64](100).bar[String]("bar");
     assert(l1(true).toLeft().getOrPanic() == 100);
     assert(l1(false).toRight().getOrPanic() == "bar");

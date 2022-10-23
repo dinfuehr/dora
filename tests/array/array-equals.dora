@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   assert(Array[Int32]::new() == Array[Int32]::new());
   assert(Array[Int32]::new().equals(Array[Int32]::new()));
   assert(Array[Int32]::new(1i32) == Array[Int32]::new(1i32));

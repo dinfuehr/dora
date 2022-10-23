@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let value = std::AtomicInt32::new(10i32);
     assert(value.fetchAdd(2i32) == 10i32);
     assert(value.fetchAdd(5i32) == 12i32);

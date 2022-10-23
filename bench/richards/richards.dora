@@ -2,7 +2,7 @@
 // Originally implemented in BCPL (http://www.cl.cam.ac.uk/~mr10/Bench.html)
 // Used in Octane 2.0 (https://developers.google.com/octane/benchmark)
 
-fun main() {
+fun main(): Unit {
     let mut iterations = 8200i32;
 
     if std::argc() > 0i32 {
@@ -25,7 +25,7 @@ const EXPECTED_HOLD_COUNT: Int32 = 928i32;
 class Benchmark
 
 impl Benchmark {
-    fun runRichards() {
+    fun runRichards(): Unit {
         let scheduler = Scheduler::new();
         scheduler.addIdleTask(ID_IDLE, 0i32, Option[Packet]::None, COUNT);
 
@@ -87,34 +87,34 @@ impl Scheduler {
             None[Int32],
         )
     }
-    fun addIdleTask(id: Int32, priority: Int32, queue: Option[Packet], count: Int32) {
+    fun addIdleTask(id: Int32, priority: Int32, queue: Option[Packet], count: Int32): Unit {
         self.addRunningTask(id, priority, queue, IdleTask::new(self, 1i32, count) as Task);
     }
 
-    fun addWorkerTask(id: Int32, priority: Int32, queue: Option[Packet]) {
+    fun addWorkerTask(id: Int32, priority: Int32, queue: Option[Packet]): Unit {
         self.addTask(id, priority, queue, WorkerTask::new(self, ID_HANDLER_A, 0i32) as Task);
     }
 
-    fun addHandlerTask(id: Int32, priority: Int32, queue: Option[Packet]) {
+    fun addHandlerTask(id: Int32, priority: Int32, queue: Option[Packet]): Unit {
         self.addTask(id, priority, queue, HandlerTask::new(self) as Task);
     }
 
-    fun addDeviceTask(id: Int32, priority: Int32, queue: Option[Packet]) {
+    fun addDeviceTask(id: Int32, priority: Int32, queue: Option[Packet]): Unit {
         self.addTask(id, priority, queue, DeviceTask::new(self) as Task);
     }
 
-    fun addRunningTask(id: Int32, priority: Int32, queue: Option[Packet], task: Task) {
+    fun addRunningTask(id: Int32, priority: Int32, queue: Option[Packet], task: Task): Unit {
         self.addTask(id, priority, queue, task);
         self.currentTcb.getOrPanic().setRunning();
     }
 
-    fun addTask(id: Int32, priority: Int32, queue: Option[Packet], task: Task) {
+    fun addTask(id: Int32, priority: Int32, queue: Option[Packet], task: Task): Unit {
         self.currentTcb = Some(TaskControlBlock::new(self.list, id, priority, queue, task));
         self.list = self.currentTcb;
         self.blocks.set(id.toInt64(), self.currentTcb);
     }
 
-    fun schedule() {
+    fun schedule(): Unit {
         self.currentTcb = self.list;
         while(self.currentTcb.isSome()) {
             let tcb = self.currentTcb.getOrPanic();
@@ -184,12 +184,12 @@ class TaskControlBlock {
 }
 
 impl TaskControlBlock {
-    fun setRunning() { self.state = STATE_RUNNING; }
-    fun markAsNotHeld() { self.state = self.state & STATE_NOT_HELD; }
-    fun markAsHeld() { self.state = self.state | STATE_HELD; }
+    fun setRunning(): Unit { self.state = STATE_RUNNING; }
+    fun markAsNotHeld(): Unit { self.state = self.state & STATE_NOT_HELD; }
+    fun markAsHeld(): Unit { self.state = self.state | STATE_HELD; }
     fun isHeldOrSuspended(): Bool { return (self.state & STATE_HELD) != 0i32 || (self.state == STATE_SUSPENDED); }
-    fun markAsSuspended() { self.state = self.state | STATE_SUSPENDED; }
-    fun markAsRunnable() { self.state = self.state | STATE_RUNNABLE; }
+    fun markAsSuspended(): Unit { self.state = self.state | STATE_SUSPENDED; }
+    fun markAsRunnable(): Unit { self.state = self.state | STATE_RUNNABLE; }
 
     fun run(): Option[TaskControlBlock] {
         let mut packet: Option[Packet] = Option[Packet]::None;

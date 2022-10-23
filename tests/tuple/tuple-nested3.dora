@@ -1,6 +1,6 @@
 class Foo(value: (Int32, Int32, (Int32, Int32)))
 
-fun main() {
+fun main(): Unit {
     let x = (1i32, 2i32, (3i32, 4i32));
     let foo = Foo(x);
     foo.value = (10i32, 11i32, (12i32, 13i32));

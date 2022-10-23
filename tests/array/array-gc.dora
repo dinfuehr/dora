@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   let x = Array[Foo]::fill(5i64, Foo(17i32));
   x(0i64) = Foo(1i32);
   x(4i64) = Foo(2i32);

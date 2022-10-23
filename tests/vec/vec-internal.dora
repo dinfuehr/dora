@@ -1,6 +1,6 @@
 //= error at 5:8
 
-fun main() {
+fun main(): Unit {
     let foo = Vec[Int32]::new();
     foo.array.size();
 }

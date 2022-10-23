@@ -2,7 +2,7 @@
 
 let mut x: Int32 = foo();
 
-fun main() {
+fun main(): Unit {
     println("before");
     println("x = ${x}");
     println("middle");

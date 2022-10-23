@@ -1,6 +1,6 @@
 //= error at 6:13
 
-fun main() {
+fun main(): Unit {
     let a = 255u8;
     let b = 0u8;
     let c = 256u8;

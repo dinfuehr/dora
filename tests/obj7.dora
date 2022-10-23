@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   let f1 = Foo1(1i32);
   let f2 = Foo2(1i32, 2i32);
   assert(f2.a == 1i32);

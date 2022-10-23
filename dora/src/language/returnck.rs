@@ -52,9 +52,9 @@ mod tests {
 
     #[test]
     fn returns_unit() {
-        ok("fun f() {}");
-        ok("fun f() { if true { return; } }");
-        ok("fun f() { while true { return; } }");
+        ok("fun f(): Unit {}");
+        ok("fun f(): Unit { if true { return; } }");
+        ok("fun f(): Unit { while true { return; } }");
     }
 
     #[test]

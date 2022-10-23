@@ -1,10 +1,10 @@
-fun main() {
+fun main(): Unit {
   foo();
   std::forceCollect();
   foo();
 }
 
-fun foo() {
+fun foo(): Unit {
   let x = "abc";
   assert(x.size() == 3i64);
   println(x);

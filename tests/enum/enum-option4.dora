@@ -1,5 +1,5 @@
 //= error
 
-fun main() {
+fun main(): Unit {
     Option[Int32]::None.getOrPanic();
 }

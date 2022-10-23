@@ -10,7 +10,7 @@ impl TupleClass {
 
 class Foo(value: Int32)
 
-fun main() {
+fun main(): Unit {
     let tpl = TupleClass::new();
     std::forceCollect();
     assert(tpl.value.0.value == 4711i32);

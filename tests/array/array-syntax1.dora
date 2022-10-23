@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let a = Array[Int32]::zero(10i64);
     assert(array_get(a, 0i64) == 0i32);
 
@@ -6,7 +6,7 @@ fun main() {
     assert(array_get(a, 0i64) == 7i32);
 }
 
-fun array_set(a: Array[Int32], idx: Int64, value: Int32) {
+fun array_set(a: Array[Int32], idx: Int64, value: Int32): Unit {
     a(idx) = value;
 }
 

@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     assert(-2147483648i32 == Int32::minValue());
     assert(2147483647i32 == Int32::maxValue());
 

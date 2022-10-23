@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     assert(2i64.compareTo(4i64) == -1i32);
     assert(4i64.compareTo(2i64) == 1i32);
     assert(4i64.compareTo(4i64) == 0i32);

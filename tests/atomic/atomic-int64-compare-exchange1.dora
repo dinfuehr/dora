@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
     let value = std::AtomicInt64::new(10i64);
     assert(value.compareExchange(12i64, 20i64) == 10i64);
     assert(value.get() == 10i64);

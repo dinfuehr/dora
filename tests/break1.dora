@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   let mut i = 0i32;
   let mut sum = 0i32;
 

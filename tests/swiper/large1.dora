@@ -2,7 +2,7 @@
 
 class Foo
 
-fun main() {
+fun main(): Unit {
     let filler = Foo();
     let x = Array[Foo]::fill(16i64 * 1024i64, filler);
     let y = Array[Foo]::fill(16i64 * 1024i64, filler);

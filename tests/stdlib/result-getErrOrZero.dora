@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   let ok = Result[String, Int32]::Ok("ok");
   let er = Result[String, Int32]::Err(23i32);
 

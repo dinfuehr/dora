@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   let val = 101i32.toString();
   assert(val == "101");
 }

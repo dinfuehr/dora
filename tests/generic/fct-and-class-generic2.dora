@@ -4,7 +4,7 @@ impl[X: std::Stringable] A[X] {
     fun msg[Y: std::Stringable](y: Y): String { return "x${self.x}x${y}x"; }
 }
 
-fun main() {
+fun main(): Unit {
     assert("x1xblax" == A[Int32](1i32).msg[String]("bla"));
     assert("xblax1x" == A[String]("bla").msg[Int32](1i32));
 }

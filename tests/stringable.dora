@@ -1,4 +1,4 @@
-fun main() {
+fun main(): Unit {
   str[Bool](true);
   str[Bool](false);
   str[UInt8](1.toUInt8());
