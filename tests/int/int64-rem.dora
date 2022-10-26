@@ -1,0 +1,11 @@
+fun main(): Unit {
+    assert(8.remainder(2) == 0);
+    assert(7.remainder(2) == 1);
+    assert((-3).remainder(2) == -1);
+    assert((-2).remainder(2) == 0);
+
+    assert((-7).remainder(-2) == -1);
+    assert((-7).remainder(2) == -1);
+    assert(7.remainder(-2) == 1);
+    assert(7.remainder(2) == 1);
+}

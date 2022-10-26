@@ -1,0 +1,5 @@
+//= error overflow
+
+fun main(): Unit {
+    let x = Int64::minValue().remainder(-1i64);
+}

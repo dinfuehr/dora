@@ -50,7 +50,7 @@ impl Int32 {
   @pub @internal fun minus(rhs: Int32): Int32;
   @pub @internal fun times(rhs: Int32): Int32;
   @pub @internal fun div(rhs: Int32): Int32;
-  @pub @internal fun modulo(rhs: Int32): Int32;
+  @pub @internal fun remainder(rhs: Int32): Int32;
 
   @pub @internal fun wrappingAdd(rhs: Int32): Int32;
   @pub @internal fun wrappingSub(rhs: Int32): Int32;
@@ -228,7 +228,7 @@ impl Int64 {
   @pub @internal fun minus(rhs: Int64): Int64;
   @pub @internal fun times(rhs: Int64): Int64;
   @pub @internal fun div(rhs: Int64): Int64;
-  @pub @internal fun modulo(rhs: Int64): Int64;
+  @pub @internal fun remainder(rhs: Int64): Int64;
 
   @pub @internal fun wrappingAdd(rhs: Int64): Int64;
   @pub @internal fun wrappingSub(rhs: Int64): Int64;

@@ -10,10 +10,10 @@ class Mandelbrot(let size: Int) {
     let buf: Array[Byte] = Array[Byte](BUFFER_SIZE);
     let mut bufferLen: Int;
 
-    if size % 8 == 0 {
+    if size.remainder(8) == 0 {
         self.shift = 0;
     } else {
-        self.shift = (8 - size % 8);
+        self.shift = 8 - size.remainder(8);
     }
     
     fun compute(): Unit {
@@ -70,7 +70,7 @@ class Mandelbrot(let size: Int) {
                 bits = bits + 1;
             }
 
-            if x % 8 == 7 {
+            if x.remainder(8) == 7 {
                 bufferVar(self.bufferLen) = bits.toByte();
                 self.bufferLen = self.bufferLen + 1;
 

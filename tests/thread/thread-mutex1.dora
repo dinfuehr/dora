@@ -20,7 +20,7 @@ impl MyThread {
 
                 last = Object();
 
-                if value % 100i32 == 0i32 {
+                if value.remainder(100i32) == 0i32 {
                     std::forceCollect();
                 }
             });

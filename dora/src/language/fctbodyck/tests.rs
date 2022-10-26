@@ -357,7 +357,7 @@ fn type_un_op() {
 
 #[test]
 fn type_bin_op() {
-    ok("fun f(a: Int32): Unit { a+a; a-a; a*a; a/a; a%a; }");
+    ok("fun f(a: Int32): Unit { a+a; a-a; a*a; a/a; }");
     ok("fun f(a: Int32): Unit { a<a; a<=a; a==a; a!=a; a>a; a>=a; }");
     ok("fun f(a: String): Unit { a<a; a<=a; a==a; a!=a; a>a; a>=a; }");
     ok("fun f(a: String): Unit { a===a; a!==a; a+a; }");
@@ -404,11 +404,6 @@ fn type_bin_op() {
         "fun f(a: String): Unit { a*a; }",
         pos(1, 27),
         ErrorMessage::BinOpType("*".into(), "String".into(), "String".into()),
-    );
-    err(
-        "fun f(a: String): Unit { a%a; }",
-        pos(1, 27),
-        ErrorMessage::BinOpType("%".into(), "String".into(), "String".into()),
     );
 }
 
@@ -620,12 +615,6 @@ fn overload_div() {
 }
 
 #[test]
-fn overload_mod() {
-    ok("class A impl A { fun modulo(rhs: A): Int32 { return 0; } }
-            fun f(): Int32 { return A() % A(); }");
-}
-
-#[test]
 fn overload_bitwise_or() {
     ok(
         "class A impl A { fun bitwiseOr(rhs: A): Int32 { return 0; } }
@@ -675,7 +664,6 @@ fn int64_operations() {
     ok("fun f(a: Int64, b: Int64): Int64 { return a - b; }");
     ok("fun f(a: Int64, b: Int64): Int64 { return a * b; }");
     ok("fun f(a: Int64, b: Int64): Int64 { return a / b; }");
-    ok("fun f(a: Int64, b: Int64): Int64 { return a % b; }");
     ok("fun f(a: Int64, b: Int64): Int64 { return a | b; }");
     ok("fun f(a: Int64, b: Int64): Int64 { return a & b; }");
     ok("fun f(a: Int64, b: Int64): Int64 { return a ^ b; }");

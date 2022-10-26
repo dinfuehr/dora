@@ -3,7 +3,7 @@ fun main(): Unit {
   let mut i = 0;
 
   while i < 10000000 {
-    if i % 5 != 0 {
+    if i.remainder(5) != 0 {
       list = Foo(i, list);
     }
 

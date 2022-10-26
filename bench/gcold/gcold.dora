@@ -153,14 +153,14 @@ fun replaceTreeWork(full: TreeNode, partial: TreeNode, dir: Bool): Unit {
 }
 
 fun replaceTree(full: TreeNode, partial: TreeNode): Unit {
-    let dir = (partial.value % 2i32) == 0i32;
+    let dir = partial.value.remainder(2i32) == 0i32;
     actuallyMut = actuallyMut + 1i64;
     replaceTreeWork(full, partial, dir);
 }
 
 fun oldGenAlloc(n: Int64): Unit {
     let full = n / treeSize;
-    let mut partial = n % treeSize;
+    let mut partial = n.remainder(treeSize);
 
     let mut i = 0i64;
     while i < full {

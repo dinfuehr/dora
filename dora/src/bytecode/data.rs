@@ -1,5 +1,7 @@
 use std::fmt;
 
+use dora_parser::lexer::position::Position;
+
 use crate::bytecode::{BytecodeReader, BytecodeType};
 use crate::language::sem_analysis::{
     ClassDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId, GlobalDefinitionId,
@@ -8,7 +10,6 @@ use crate::language::sem_analysis::{
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::enumeration;
 use crate::vm::ClassInstanceId;
-use dora_parser::lexer::position::Position;
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct BytecodeOffset(pub u32);
@@ -51,7 +52,7 @@ enumeration!(BytecodeOpcode {
     Neg,
     Mul,
     Div,
-    Mod,
+    Rem,
     And,
     Or,
     Xor,
@@ -252,7 +253,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::Sub
             | BytecodeOpcode::Mul
             | BytecodeOpcode::Div
-            | BytecodeOpcode::Mod
+            | BytecodeOpcode::Rem
             | BytecodeOpcode::And
             | BytecodeOpcode::Or
             | BytecodeOpcode::Xor
@@ -287,7 +288,7 @@ impl BytecodeOpcode {
     pub fn needs_position(&self) -> bool {
         match *self {
             BytecodeOpcode::Div
-            | BytecodeOpcode::Mod
+            | BytecodeOpcode::Rem
             | BytecodeOpcode::LoadField
             | BytecodeOpcode::StoreField
             | BytecodeOpcode::InvokeDirect
@@ -349,7 +350,7 @@ pub enum BytecodeInstruction {
         rhs: Register,
     },
 
-    Mod {
+    Rem {
         dest: Register,
         lhs: Register,
         rhs: Register,

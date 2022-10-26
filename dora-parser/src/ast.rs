@@ -4,7 +4,6 @@ use std::sync::Arc;
 
 #[cfg(test)]
 use crate::interner::Interner;
-
 use crate::interner::Name;
 use crate::lexer::position::{Position, Span};
 use crate::lexer::token::{FloatSuffix, IntBase, IntSuffix};
@@ -1118,7 +1117,6 @@ pub enum BinOp {
     Sub,
     Mul,
     Div,
-    Mod,
     Cmp(CmpOp),
     Or,
     And,
@@ -1135,7 +1133,6 @@ impl BinOp {
             BinOp::Sub => "-",
             BinOp::Mul => "*",
             BinOp::Div => "/",
-            BinOp::Mod => "%",
             BinOp::Cmp(op) => op.as_str(),
             BinOp::Or => "||",
             BinOp::And => "&&",

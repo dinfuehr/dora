@@ -28,7 +28,7 @@ fun main(): Unit {
         assert(ids.contains(thread.id()).not());
         ids.insert(thread.id());
 
-        if i % 1_000i32 == 0i32 {
+        if i.remainder(1_000i32) == 0i32 {
             std::forceCollect();
         }
 

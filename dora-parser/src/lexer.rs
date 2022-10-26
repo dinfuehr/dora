@@ -242,7 +242,6 @@ impl Lexer {
             }
             '*' => TokenKind::Mul,
             '/' => TokenKind::Div,
-            '%' => TokenKind::Modulo,
 
             '(' => TokenKind::LParen,
             ')' => TokenKind::RParen,
@@ -517,7 +516,7 @@ fn is_char_quote(ch: Option<char>) -> bool {
 }
 
 fn is_operator(ch: Option<char>) -> bool {
-    ch.map(|ch| "^+-*/%&|,=!~;:.()[]{}<>@".contains(ch))
+    ch.map(|ch| "^+-*/&|,=!~;:.()[]{}<>@".contains(ch))
         .unwrap_or(false)
 }
 
@@ -582,9 +581,10 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::lexer::reader::Reader;
     use crate::lexer::token::TokenKind;
+
+    use super::*;
 
     fn assert_end(reader: &mut Lexer, l: u32, c: u32) {
         assert_tok(reader, TokenKind::End, l, c);
@@ -1055,16 +1055,15 @@ mod tests {
 
     #[test]
     fn test_operators() {
-        let mut reader = Lexer::from_str("==-*/%.@...,");
+        let mut reader = Lexer::from_str("==-*/.@...,");
         assert_tok(&mut reader, TokenKind::EqEq, 1, 1);
         assert_tok(&mut reader, TokenKind::Sub, 1, 3);
         assert_tok(&mut reader, TokenKind::Mul, 1, 4);
         assert_tok(&mut reader, TokenKind::Div, 1, 5);
-        assert_tok(&mut reader, TokenKind::Modulo, 1, 6);
-        assert_tok(&mut reader, TokenKind::Dot, 1, 7);
-        assert_tok(&mut reader, TokenKind::At, 1, 8);
-        assert_tok(&mut reader, TokenKind::DotDotDot, 1, 9);
-        assert_tok(&mut reader, TokenKind::Comma, 1, 12);
+        assert_tok(&mut reader, TokenKind::Dot, 1, 6);
+        assert_tok(&mut reader, TokenKind::At, 1, 7);
+        assert_tok(&mut reader, TokenKind::DotDotDot, 1, 8);
+        assert_tok(&mut reader, TokenKind::Comma, 1, 11);
 
         let mut reader = Lexer::from_str("<=<>=><");
         assert_tok(&mut reader, TokenKind::Le, 1, 1);

@@ -52,7 +52,7 @@ class MyThread(let thread_idx: Int64, let threads: Int64, let iters: Int32, let 
   @override fun run(): Unit {
 	let size = self.objects.size();
 	let objects_per_thread = size / self.threads;
-	assert(size % self.threads == 0i64);
+	assert(size.remainder(self.threads) == 0i64);
 	let start_idx = self.thread_idx  * objects_per_thread;
 	let end_idx = start_idx + objects_per_thread;
 

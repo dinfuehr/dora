@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 use std::mem;
 
-use self::Bytecode::*;
+use dora_parser::lexer::position::Position;
+
 use crate::bytecode::{
     self, BytecodeFunction, BytecodeOffset, BytecodeVisitor, ConstPoolEntry, ConstPoolIdx, Register,
 };
@@ -11,7 +12,8 @@ use crate::language::sem_analysis::{
 };
 use crate::language::test;
 use crate::language::ty::{SourceType, SourceTypeArray};
-use dora_parser::lexer::position::Position;
+
+use self::Bytecode::*;
 
 fn code(code: &'static str) -> Vec<Bytecode> {
     test::check_valid(code, |sa| {
@@ -672,20 +674,6 @@ fn gen_expr_neg() {
 fn gen_expr_not() {
     let result = code("fun f(a: Bool): Bool { return a.not(); }");
     let expected = vec![Not(r(1), r(0)), Ret(r(1))];
-    assert_eq!(expected, result);
-}
-
-#[test]
-fn gen_expr_mod() {
-    let result = code("fun f(a: Int32, b: Int32): Int32 { return a % b; }");
-    let expected = vec![Mod(r(2), r(0), r(1)), Ret(r(2))];
-    assert_eq!(expected, result);
-}
-
-#[test]
-fn gen_position_mod_int32() {
-    let result = position("fun f(a: Int32, b: Int32): Int32 { return a % b; }");
-    let expected = vec![(0, p(1, 45))];
     assert_eq!(expected, result);
 }
 
@@ -4231,7 +4219,7 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::Div(dest, lhs, rhs));
     }
 
-    fn visit_mod(&mut self, dest: Register, lhs: Register, rhs: Register) {
+    fn visit_rem(&mut self, dest: Register, lhs: Register, rhs: Register) {
         self.emit(Bytecode::Mod(dest, lhs, rhs));
     }
 

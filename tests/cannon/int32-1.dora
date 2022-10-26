@@ -6,7 +6,7 @@ fun main(): Unit {
     assert(mul(20i32, 7i32) == 140i32);
     assert(div(20i32, 7i32) == 2i32);
     
-    assert(modulo(20i32, 7i32) == 6i32);
+    assert(rem(20i32, 7i32) == 6i32);
 
     assert(neg(20i32) == -20i32);
     assert(neg(-5i32) == 5i32);
@@ -51,7 +51,7 @@ fun mul(x: Int32, y: Int32): Int32 = x*y;
 
 fun div(x: Int32, y: Int32): Int32 = x/y;
 
-fun modulo(y: Int32, z: Int32): Int32 = y%z;
+fun rem(y: Int32, z: Int32): Int32 = y.remainder(z);
 
 fun or(x: Int32, y: Int32): Int32 = x | y;
 

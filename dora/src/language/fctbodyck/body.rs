@@ -3,6 +3,15 @@ use std::convert::TryFrom;
 use std::sync::Arc;
 use std::{f32, f64};
 
+use fixedbitset::FixedBitSet;
+use option_ext::OptionExt;
+
+use dora_parser::ast;
+use dora_parser::ast::visit::Visitor;
+use dora_parser::interner::Name;
+use dora_parser::lexer::position::Position;
+use dora_parser::lexer::token::{FloatSuffix, IntBase, IntSuffix};
+
 use crate::language::access::{
     class_accessible_from, class_field_accessible_from, const_accessible_from,
     enum_accessible_from, fct_accessible_from, global_accessible_from, is_default_accessible,
@@ -25,14 +34,6 @@ use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::language::typeparamck::{self, ErrorReporting};
 use crate::language::{always_returns, expr_always_returns, read_type, AllowSelf};
 use crate::language::{report_sym_shadow, TypeParamContext};
-
-use dora_parser::ast;
-use dora_parser::ast::visit::Visitor;
-use dora_parser::interner::Name;
-use dora_parser::lexer::position::Position;
-use dora_parser::lexer::token::{FloatSuffix, IntBase, IntSuffix};
-use fixedbitset::FixedBitSet;
-use option_ext::OptionExt;
 
 pub struct TypeCheck<'a> {
     pub sa: &'a mut SemAnalysis,
@@ -1239,7 +1240,6 @@ impl<'a> TypeCheck<'a> {
             ast::BinOp::Sub => self.check_expr_bin_method(e, e.op, "minus", lhs_type, rhs_type),
             ast::BinOp::Mul => self.check_expr_bin_method(e, e.op, "times", lhs_type, rhs_type),
             ast::BinOp::Div => self.check_expr_bin_method(e, e.op, "div", lhs_type, rhs_type),
-            ast::BinOp::Mod => self.check_expr_bin_method(e, e.op, "modulo", lhs_type, rhs_type),
             ast::BinOp::BitOr => {
                 self.check_expr_bin_method(e, e.op, "bitwiseOr", lhs_type, rhs_type)
             }

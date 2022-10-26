@@ -1,5 +1,6 @@
-use dora_parser::lexer::position::Position;
 use std::collections::HashMap;
+
+use dora_parser::lexer::position::Position;
 
 use crate::bytecode::{
     self, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeVisitor, ConstPoolEntry,
@@ -4564,8 +4565,8 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         self.emit_div(dest, lhs, rhs);
     }
 
-    fn visit_mod(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        comment!(self, format!("Mod {}, {}, {}", dest, lhs, rhs));
+    fn visit_rem(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        comment!(self, format!("Rem {}, {}, {}", dest, lhs, rhs));
         self.emit_mod(dest, lhs, rhs);
     }
 

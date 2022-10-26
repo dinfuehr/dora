@@ -4,13 +4,13 @@ fun main(): Unit {
     let mut i = 1i32;
 
     while i <= 100i32 {
-        if i % 15i32 == 0i32 {
+        if i.remainder(15i32) == 0i32 {
             println("FizzBuzz");
 
-        } else if i % 5i32 == 0i32 {
+        } else if i.remainder(5i32) == 0i32 {
             println("Buzz");
 
-        } else if i % 3i32 == 0i32 {
+        } else if i.remainder(3i32) == 0i32 {
             println("Fizz");
         } else {
             println(i.toString());

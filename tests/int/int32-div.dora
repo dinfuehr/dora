@@ -1,0 +1,6 @@
+fun main(): Unit {
+    assert(-7i32 / -2i32 == 3i32);
+    assert(-7i32 / 2i32 == -3i32);
+    assert(7i32 / -2i32 == -3i32);
+    assert(7i32 / 2i32 == 3i32);
+}

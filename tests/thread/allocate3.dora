@@ -27,7 +27,7 @@ fun allocator(): Unit {
             Foo(i + 4i32, Some[Foo](v4))
         };
 
-        if i % 500i32 == 0i32 { std::forceMinorCollect(); }
+        if i.remainder(500i32) == 0i32 { std::forceMinorCollect(); }
 
         let mut tmp = foo;
         assert(tmp.value == i + 4i32);

@@ -1,0 +1,11 @@
+fun main(): Unit {
+    assert(8i32.remainder(2i32) == 0i32);
+    assert(7i32.remainder(2i32) == 1i32);
+    assert((-3i32).remainder(2i32) == -1i32);
+    assert((-2i32).remainder(2i32) == 0i32);
+
+    assert((-7i32).remainder(-2i32) == -1i32);
+    assert((-7i32).remainder(2i32) == -1i32);
+    assert(7i32.remainder(-2i32) == 1i32);
+    assert(7i32.remainder(2i32) == 1i32);
+}

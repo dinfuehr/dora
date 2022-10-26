@@ -1,12 +1,12 @@
 use std::mem;
 
+use dora_parser::lexer::position::Position;
+
 use crate::bytecode::{
     BytecodeFunction, BytecodeOffset, BytecodeOpcode, BytecodeType, ConstPoolEntry, ConstPoolIdx,
     Register,
 };
 use crate::language::sem_analysis::GlobalDefinitionId;
-
-use dora_parser::lexer::position::Position;
 
 #[derive(Copy, Clone, PartialEq, Debug, Eq, Hash)]
 pub struct Label(pub usize);
@@ -214,8 +214,8 @@ impl BytecodeWriter {
         self.emit_jmp_forward(BytecodeOpcode::Jump, BytecodeOpcode::JumpConst, None, lbl);
     }
 
-    pub fn emit_mod(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3(BytecodeOpcode::Mod, dest, lhs, rhs);
+    pub fn emit_rem(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3(BytecodeOpcode::Rem, dest, lhs, rhs);
     }
 
     pub fn emit_mul(&mut self, dest: Register, lhs: Register, rhs: Register) {

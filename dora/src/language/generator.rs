@@ -1,8 +1,8 @@
-use dora_parser::lexer::position::Position;
 use std::collections::HashMap;
 use std::convert::TryInto;
 
 use dora_parser::ast;
+use dora_parser::lexer::position::Position;
 
 use crate::bytecode::{
     BytecodeBuilder, BytecodeFunction, BytecodeType, ConstPoolIdx, Label, Register,
@@ -2519,7 +2519,7 @@ impl<'a> AstBytecodeGen<'a> {
             Intrinsic::Int32Sub => self.builder.emit_sub(dest, lhs_reg, rhs_reg, pos),
             Intrinsic::Int32Mul => self.builder.emit_mul(dest, lhs_reg, rhs_reg, pos),
             Intrinsic::Int32Div => self.builder.emit_div(dest, lhs_reg, rhs_reg, pos),
-            Intrinsic::Int32Mod => self.builder.emit_mod(dest, lhs_reg, rhs_reg, pos),
+            Intrinsic::Int32Rem => self.builder.emit_rem(dest, lhs_reg, rhs_reg, pos),
             Intrinsic::Int32Or => self.builder.emit_or(dest, lhs_reg, rhs_reg),
             Intrinsic::Int32And => self.builder.emit_and(dest, lhs_reg, rhs_reg),
             Intrinsic::Int32Xor => self.builder.emit_xor(dest, lhs_reg, rhs_reg),
@@ -2531,7 +2531,7 @@ impl<'a> AstBytecodeGen<'a> {
             Intrinsic::Int64Sub => self.builder.emit_sub(dest, lhs_reg, rhs_reg, pos),
             Intrinsic::Int64Mul => self.builder.emit_mul(dest, lhs_reg, rhs_reg, pos),
             Intrinsic::Int64Div => self.builder.emit_div(dest, lhs_reg, rhs_reg, pos),
-            Intrinsic::Int64Mod => self.builder.emit_mod(dest, lhs_reg, rhs_reg, pos),
+            Intrinsic::Int64Rem => self.builder.emit_rem(dest, lhs_reg, rhs_reg, pos),
             Intrinsic::Int64Or => self.builder.emit_or(dest, lhs_reg, rhs_reg),
             Intrinsic::Int64And => self.builder.emit_and(dest, lhs_reg, rhs_reg),
             Intrinsic::Int64Xor => self.builder.emit_xor(dest, lhs_reg, rhs_reg),

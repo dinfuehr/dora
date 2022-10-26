@@ -24,7 +24,7 @@ impl Random {
 
     while true {
       let num = self.nextInt31();
-      modulo = num % bound;
+      modulo = num.remainder(bound);
 
       if num - modulo + bound_minus_1 >= 0i32 {
         return modulo;

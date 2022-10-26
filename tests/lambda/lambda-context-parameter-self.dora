@@ -15,7 +15,7 @@ impl Foo {
     fun create_lambda(): (): Foo {
         let mut step = 0;
         let lambda = ||: Foo {
-            let result = if step % 2 == 0 {
+            let result = if step.remainder(2) == 0 {
                 self
             } else {
                 Foo()

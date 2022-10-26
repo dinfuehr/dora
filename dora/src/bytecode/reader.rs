@@ -76,11 +76,11 @@ impl<'a> BytecodeReader<'a> {
                 BytecodeInstruction::Div { dest, lhs, rhs }
             }
 
-            BytecodeOpcode::Mod => {
+            BytecodeOpcode::Rem => {
                 let dest = self.read_register();
                 let lhs = self.read_register();
                 let rhs = self.read_register();
-                BytecodeInstruction::Mod { dest, lhs, rhs }
+                BytecodeInstruction::Rem { dest, lhs, rhs }
             }
 
             BytecodeOpcode::And => {
@@ -548,8 +548,8 @@ where
                 self.visitor.visit_div(dest, lhs, rhs);
             }
 
-            BytecodeInstruction::Mod { dest, lhs, rhs } => {
-                self.visitor.visit_mod(dest, lhs, rhs);
+            BytecodeInstruction::Rem { dest, lhs, rhs } => {
+                self.visitor.visit_rem(dest, lhs, rhs);
             }
 
             BytecodeInstruction::And { dest, lhs, rhs } => {
@@ -792,7 +792,7 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_mod(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
+    fn visit_rem(&mut self, _dest: Register, _lhs: Register, _rhs: Register) {
         unimplemented!();
     }
 

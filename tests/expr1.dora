@@ -35,7 +35,6 @@ fun main(): Unit {
 
     assert(6i32 == 2i32*3i32);
     assert(2i32 == 8i32/3i32);
-    assert(0i32 == 9i32%3i32);
 
     assert(true == (true || true));
     assert(true == (true || false));

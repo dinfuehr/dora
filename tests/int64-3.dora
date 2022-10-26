@@ -29,10 +29,7 @@ fun main(): Unit {
     let x = 9i64 / 8i64;
     assert(x == 1i64);
 
-    let x = 10i64.modulo(8i64);
-    assert(x == 2i64);
-
-    let x = 10i64 % 8i64;
+    let x = 10i64.remainder(8i64);
     assert(x == 2i64);
 
     let x = 1i64.bitwiseOr(2i64);

@@ -53,7 +53,7 @@ impl Benchmark {
         while i < splayTreeSize {
             self.insertNewNode();
 
-            if (i+1i32) % 20i32 == 19i32 {
+            if (i+1i32).remainder(20i32) == 19i32 {
                 // self.updateStats(timestamp());
             }
 

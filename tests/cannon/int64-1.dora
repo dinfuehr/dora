@@ -6,7 +6,7 @@ fun main(): Unit {
     assert(mul(20i64, 7i64) == 140i64);
     assert(div(20i64, 7i64) == 2i64);
     
-    assert(modulo(20i64, 7i64) == 6i64);
+    assert(rem(20i64, 7i64) == 6i64);
 
     assert(neg(20i64) == -20i64);
     assert(neg(-5i64) == 5i64);
@@ -61,8 +61,8 @@ fun div(x: Int64, y: Int64): Int64 {
     return x/y;
 }
 
-fun modulo(y: Int64, z: Int64): Int64 {
-    return y%z;
+fun rem(y: Int64, z: Int64): Int64 {
+    return y.remainder(z);
 }
 
 fun or(x: Int64, y: Int64): Int64 {

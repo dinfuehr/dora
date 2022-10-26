@@ -5,14 +5,14 @@ fun main(): Unit {
     let mut i = 0i32;
 
     while i < 100i32 {
-        if i % 2i32 == 0i32 {
+        if i.remainder(2i32) == 0i32 {
             x.push(Array[Int32]::zero(2i64));
         } else {
             x.push(Array[Int32]::zero(4i64));
         }
         x.push(Array[Int32]::zero(512i64));
         x.push(Array[Int32]::zero(2048i64));
-        if i % 5i32 == 0i32 {
+        if i.remainder(5i32) == 0i32 {
             std::forceMinorCollect();
         }
         i = i + 1i32;

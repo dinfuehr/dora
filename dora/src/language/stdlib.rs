@@ -1,3 +1,6 @@
+use dora_parser::ast::Modifier;
+use dora_parser::interner::Name;
+
 use crate::gc::Address;
 use crate::language::sem_analysis::{
     AnnotationDefinitionId, ClassDefinition, ClassDefinitionId, EnumDefinitionId,
@@ -6,12 +9,8 @@ use crate::language::sem_analysis::{
 };
 use crate::language::sym::Sym;
 use crate::language::ty::SourceType;
-
 use crate::stack;
 use crate::stdlib;
-
-use dora_parser::ast::Modifier;
-use dora_parser::interner::Name;
 
 pub fn resolve_internal_annotations(sa: &mut SemAnalysis) {
     let stdlib_id = sa.stdlib_module_id();
@@ -586,8 +585,8 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
         sa,
         stdlib_id,
         "primitives::Int32",
-        "modulo",
-        Intrinsic::Int32Mod,
+        "remainder",
+        Intrinsic::Int32Rem,
     );
 
     intrinsic_method(
@@ -836,8 +835,8 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
         sa,
         stdlib_id,
         "primitives::Int64",
-        "modulo",
-        Intrinsic::Int64Mod,
+        "remainder",
+        Intrinsic::Int64Rem,
     );
 
     intrinsic_method(

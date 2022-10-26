@@ -332,10 +332,10 @@ impl BytecodeBuilder {
         self.writer.emit_jump(lbl);
     }
 
-    pub fn emit_mod(&mut self, dest: Register, lhs: Register, rhs: Register, pos: Position) {
+    pub fn emit_rem(&mut self, dest: Register, lhs: Register, rhs: Register, pos: Position) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
         self.writer.set_position(pos);
-        self.writer.emit_mod(dest, lhs, rhs);
+        self.writer.emit_rem(dest, lhs, rhs);
     }
 
     pub fn emit_mul(&mut self, dest: Register, lhs: Register, rhs: Register, pos: Position) {

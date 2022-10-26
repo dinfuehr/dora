@@ -588,8 +588,8 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_reg3("Div", dest, lhs, rhs);
     }
 
-    fn visit_mod(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        self.emit_reg3("Mod", dest, lhs, rhs);
+    fn visit_rem(&mut self, dest: Register, lhs: Register, rhs: Register) {
+        self.emit_reg3("Rem", dest, lhs, rhs);
     }
 
     fn visit_and(&mut self, dest: Register, lhs: Register, rhs: Register) {

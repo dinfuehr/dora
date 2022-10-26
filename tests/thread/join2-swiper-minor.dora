@@ -6,7 +6,7 @@ fun main(): Unit {
     while i < 10_000i32 {
         std::thread::spawn(|| {});
 
-        if i % 1_000i32 == 0i32 {
+        if i.remainder(1_000i32) == 0i32 {
             std::forceMinorCollect();
         }
 

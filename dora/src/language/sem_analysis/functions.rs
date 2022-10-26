@@ -1,6 +1,6 @@
-use parking_lot::RwLock;
-
 use std::sync::Arc;
+
+use parking_lot::RwLock;
 
 use dora_parser::ast;
 use dora_parser::interner::Name;
@@ -329,7 +329,7 @@ pub enum Intrinsic {
     Int32Mul,
     Int32MulUnchecked,
     Int32Div,
-    Int32Mod,
+    Int32Rem,
 
     Int32Or,
     Int32And,
@@ -370,7 +370,7 @@ pub enum Intrinsic {
     Int64Mul,
     Int64MulUnchecked,
     Int64Div,
-    Int64Mod,
+    Int64Rem,
 
     Int64Or,
     Int64And,
@@ -560,7 +560,7 @@ impl Intrinsic {
             | Intrinsic::Int32Mul
             | Intrinsic::Int32MulUnchecked
             | Intrinsic::Int32Div
-            | Intrinsic::Int32Mod
+            | Intrinsic::Int32Rem
             | Intrinsic::Int32Or
             | Intrinsic::Int32And
             | Intrinsic::Int32Xor
@@ -607,7 +607,7 @@ impl Intrinsic {
             | Intrinsic::Int64Mul
             | Intrinsic::Int64MulUnchecked
             | Intrinsic::Int64Div
-            | Intrinsic::Int64Mod
+            | Intrinsic::Int64Rem
             | Intrinsic::Int64Or
             | Intrinsic::Int64And
             | Intrinsic::Int64Xor

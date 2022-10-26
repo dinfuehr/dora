@@ -9,7 +9,7 @@ fun main(): Unit {
     assert(x == "a1.1b2.3c4.3d");
 
     let val = 4i32;
-    let x = "a${val*3i32}b${1i32+val}c${val%2i32}d${val.toString()}e";
+    let x = "a${val*3i32}b${1i32+val}c${val.remainder(2i32)}d${val.toString()}e";
     assert(x == "a12b5c0d4e");
 }
 

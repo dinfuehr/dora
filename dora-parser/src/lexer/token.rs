@@ -54,7 +54,6 @@ pub enum TokenKind {
     Sub,
     Mul,
     Div,
-    Modulo,
 
     // operators – logic
     Or,
@@ -159,7 +158,6 @@ impl TokenKind {
             TokenKind::Sub => "-",
             TokenKind::Mul => "*",
             TokenKind::Div => "/",
-            TokenKind::Modulo => "%",
 
             // operators – logic
             TokenKind::Or => "|",

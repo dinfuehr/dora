@@ -53,7 +53,7 @@ fun fannkuch(n: Int32): Int32 {
 
     maxFlipsCount = Int32::max(maxFlipsCount, flipsCount);
 
-    if permCount % 2i32 == 0i32 {
+    if permCount.remainder(2i32) == 0i32 {
       checksum = checksum + flipsCount;
     } else {
       checksum = checksum - flipsCount;
