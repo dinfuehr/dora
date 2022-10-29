@@ -1,4 +1,4 @@
-use std::traits::{Default, Equals, Iterator, Zero};
+use std::traits::{Default, Equals, Hash, Iterator, Zero};
 use std::string::Stringable;
 use std::fatalError;
 
@@ -537,34 +537,7 @@ impl[T] Option[Option[T]] {
   };
 }
 
-impl[T: Default] Option[T] {
-  @pub fun getOrDefault(): T {
-    match self {
-      Some(actual) => actual,
-      None => T::default(),
-    }
-  }
-}
-
-impl[T: Zero] Option[T] {
-  @pub fun getOrZero(): T {
-    match self {
-      Some(actual) => actual,
-      None => T::zero(),
-    }
-  }
-}
-
-impl[T: Equals] Option[T] {
-  @pub fun contains(rhs: T): Bool {
-    if self.isSome() {
-      let lhs = self.getOrPanic();
-      lhs.equals(rhs)
-    } else {
-      false
-    }
-  }
-
+impl[T: Equals] Equals for Option[T] {
   @pub fun equals(rhs: Option[T]): Bool {
     if self.isSome() {
       if rhs.isSome() {
@@ -580,13 +553,39 @@ impl[T: Equals] Option[T] {
   }
 }
 
-impl[T: Stringable] Option[T] {
-  @pub fun toString(): String {
-    match self {
-      Some(value) => "Some(${value})",
-      None => "None",
-    }
-  }
+impl[T: Equals] Option[T] {
+  @pub fun contains(rhs: T): Bool = match self {
+    Some(val) => val.equals(rhs),
+    None      => false,
+  };
+}
+
+impl[T: Hash] Hash for Option[T] {
+  @pub fun hash(): Int32 = match self {
+    Some(val) => 23i32.wrappingMul(val.hash()),
+    None      => 31i32,
+  };
+}
+
+impl[T: Stringable] Stringable for Option[T] {
+  @pub fun toString(): String = match self {
+    Some(value) => "Some(${value})",
+    None        => "None",
+  };
+}
+
+impl[T: Default] Option[T] {
+  @pub fun getOrDefault(): T = match self {
+    Some(val) => val,
+    None      => T::default(),
+  };
+}
+
+impl[T: Zero] Option[T] {
+  @pub fun getOrZero(): T = match self {
+    Some(val) => val,
+    None      => T::zero(),
+  };
 }
 
 @pub enum Result[V, E] {

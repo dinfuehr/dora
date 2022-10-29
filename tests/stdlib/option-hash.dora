@@ -1,0 +1,4 @@
+fun main(): Unit {
+  let map = std::HashMap[Option[String], Int64]::new();
+  let set = std::HashSet[Option[String]]::new();
+}
