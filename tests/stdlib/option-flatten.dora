@@ -1,0 +1,7 @@
+fun main(): Unit {
+  let some = Some[Option[String]](Some[String]("abc"));
+  let none = None[Option[String]];
+
+  assert(some.flatten().contains("abc"));
+  assert(none.flatten() == None[String]);
+}

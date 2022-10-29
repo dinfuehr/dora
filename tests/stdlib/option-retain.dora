@@ -1,0 +1,8 @@
+fun main(): Unit {
+  let some = Some[String]("some");
+  let none = None[String];
+
+  assert(some.retain(|val: String|: Bool { val == "some" }).contains("some"));
+  assert(some.retain(|val: String|: Bool { val == "none" }).isNone());
+  assert(none.retain(|val: String|: Bool { val == "some" }).isNone());
+}

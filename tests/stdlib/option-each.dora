@@ -1,0 +1,10 @@
+fun main(): Unit {
+  let some = Some[String]("some");
+  let none = None[String];
+  let mut x = 0;
+
+  some.each(|val: String|: Unit { x = x + 1 });
+  assert(x == 1);
+  none.each(|val: String|: Unit { x = x + 1 });
+  assert(x == 1);
+}

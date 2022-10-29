@@ -1,0 +1,9 @@
+fun main(): Unit {
+  let some = Some[String]("some");
+  let none = None[String];
+
+  assert(some.flatMap[Int64](|val: String|: Option[Int64] { Some[Int64](val.size()) }).contains(4));
+  assert(some.flatMap[Int64](|val: String|: Option[Int64] { None[Int64]             }).isNone());
+  assert(none.flatMap[Int64](|val: String|: Option[Int64] { Some[Int64](val.size()) }).isNone());
+  assert(none.flatMap[Int64](|val: String|: Option[Int64] { None[Int64]             }).isNone());
+}

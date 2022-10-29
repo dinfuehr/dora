@@ -1,0 +1,7 @@
+fun main(): Unit {
+  let some = Some[String]("some");
+  let none = None[String];
+
+  assert(some.map[Int64](|val: String|: Int64 { val.size() }).contains(4));
+  assert(none.map[Int64](|val: String|: Int64 { val.size() }).isNone());
+}

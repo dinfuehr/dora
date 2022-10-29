@@ -489,13 +489,52 @@ impl[T] Option[T] {
     }
   }
 
-  @pub fun or(alt: Option[T]): Option[T] {
-    if self.isSome() {
-      return self;
-    } else {
-      return alt;
-    }
-  }
+  @pub fun all(fct: (T): Bool): Bool = match self {
+    Some(val) => fct(val),
+    None => true,
+  };
+
+  @pub fun any(fct: (T): Bool): Bool = match self {
+    Some(val) => fct(val),
+    None => false,
+  };
+
+  @pub fun or(alt: Option[T]): Option[T] = match self {
+    Some(_) => self,
+    None    => alt,
+  };
+
+  @pub fun each(fct: (T): Unit): Unit = match self {
+    Some(val) => fct(val),
+    None      => (),
+  };
+
+  @pub fun map[U](fct: (T): U): Option[U] = match self {
+    Some(val) => Some[U](fct(val)),
+    None      => None[U],
+  };
+
+  @pub fun flatMap[U](fct: (T): Option[U]): Option[U] = match self {
+    Some(val) => fct(val),
+    None      => None[U],
+  };
+
+  @pub fun retain(fct: (T): Bool): Option[T] = match self {
+    Some(val) => if fct(val) { self } else { Option[T]::None },
+    None      => self,
+  };
+
+  @pub fun reject(fct: (T): Bool): Option[T] = match self {
+    Some(val) => if fct(val) { Option[T]::None } else { self },
+    None      => self,
+  };
+}
+
+impl[T] Option[Option[T]] {
+  @pub fun flatten(): Option[T] = match self {
+    Some(val) => val,
+    None      => None[T],
+  };
 }
 
 impl[T: Default] Option[T] {
