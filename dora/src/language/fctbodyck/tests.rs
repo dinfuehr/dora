@@ -698,21 +698,21 @@ fn test_literal_int_overflow() {
 #[test]
 fn test_literal_hex_int_overflow() {
     err(
-        "fun f(): Unit { let x = 0x1_FF_FF_FF_FFi32; }",
+        "fun f(): Unit { let x = 0x1'FF'FF'FF'FFi32; }",
         pos(1, 25),
         ErrorMessage::NumberOverflow("Int32".into()),
     );
-    ok("fun f(): Unit { let x: Int32 = 0xFF_FF_FF_FFi32; }");
+    ok("fun f(): Unit { let x: Int32 = 0xFF'FF'FF'FFi32; }");
 }
 
 #[test]
 fn test_literal_bin_int_overflow() {
     err(
-        "fun f(): Unit { let x = 0b1_11111111_11111111_11111111_11111111i32; }",
+        "fun f(): Unit { let x = 0b1'11111111'11111111'11111111'11111111i32; }",
         pos(1, 25),
         ErrorMessage::NumberOverflow("Int32".into()),
     );
-    ok("fun f(): Unit { let x: Int32 = 0b11111111_11111111_11111111_11111111i32; }");
+    ok("fun f(): Unit { let x: Int32 = 0b11111111'11111111'11111111'11111111i32; }");
 }
 
 #[test]

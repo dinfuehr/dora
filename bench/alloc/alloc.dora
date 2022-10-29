@@ -19,7 +19,7 @@ class MyThread() extends Thread {
 fun allocator(): Unit {
     let mut i = 0;
 
-    while i < 20_000_000 {
+    while i < 20'000'000 {
         Foo();
         i = i + 1;
     }

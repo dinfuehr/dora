@@ -3,7 +3,7 @@
 use std::Queue;
 
 const THREADS: Int32 = 10i32;
-const ITERATIONS: Int32 = 10_000i32;
+const ITERATIONS: Int32 = 10'000i32;
 const QUEUE_SIZE: Int64 = 20i64;
 
 class SharedQueue[T] {

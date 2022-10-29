@@ -20,12 +20,12 @@ fun allocator(): Unit {
     let mut i = 1i32;
     let mut list = Foo(0i32, None[Foo]);
 
-    while i < 10_000i32 {
+    while i < 10'000i32 {
         list = Foo(i, Some[Foo](list));
         i = i + 1i32;
     }
 
-    i = 10_000i32;
+    i = 10'000i32;
 
     while i > 1i32 {
         i = i - 1i32;

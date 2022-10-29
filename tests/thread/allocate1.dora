@@ -19,7 +19,7 @@ fun main(): Unit {
 fun allocator(): Unit {
     let mut i = 0i32;
 
-    while i < 10_000i32 {
+    while i < 10'000i32 {
         Foo();
         i = i + 1i32;
     }

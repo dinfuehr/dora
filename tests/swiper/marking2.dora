@@ -4,7 +4,7 @@ fun main(): Unit {
     let mut list: Foo = nil;
     let mut i = 1i32;
 
-    while i <= 10_000_000 {
+    while i <= 10'000'000 {
         list = Foo(i, list);
         i = i + 1i32;
     }

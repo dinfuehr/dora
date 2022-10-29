@@ -9,14 +9,14 @@ fun main(): Unit {
 
     // x64 and AArch64 use different sign bits for the NaN returned
     // by 0.0f32/0.0f32, be more forgiving here and mask out the sign bit.
-    assert((0.0f32/0.0f32).asInt32() & 1i32.shiftLeft(31i32).not() == 0x7FC0_0000i32);
+    assert((0.0f32/0.0f32).asInt32() & 1i32.shiftLeft(31i32).not() == 0x7FC0'0000i32);
 
     assert(0.0.asInt64() == 0i64);
     assert(1.4E-45.asInt64() == 3936137728114922858i64);
     assert(4.2E-45.asInt64() == 3942895214107701263i64);
     assert((-1.0).asInt64() == (-4616189618054758400i64));
     assert((-0.0).asInt64() == (-9223372036854775808i64));
-    assert((0.0/0.0).asInt64() & 1i64.shiftLeft(63i32).not() == 0x7FF8_0000_0000_0000i64);
+    assert((0.0/0.0).asInt64() & 1i64.shiftLeft(63i32).not() == 0x7FF8'0000'0000'0000i64);
 
     assert(0.0f32 == 0i32.asFloat32());
     assert(1.4E-45f32 == 1i32.asFloat32());

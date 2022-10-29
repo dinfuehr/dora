@@ -18,7 +18,7 @@ fun main(): Unit {
 fun allocator(): Unit {
     let mut i = 0i32;
 
-    while i < 10_000i32 {
+    while i < 10'000i32 {
         let foo = {
             let v1 = Foo(i, None[Foo]);
             let v2 = Foo(i + 1i32, Some[Foo](v1));

@@ -4,7 +4,7 @@ class TreeNode {
     value: Int32,
 }
 
-const MEG: Int32 = 1_000_000i32;
+const MEG: Int32 = 1'000'000i32;
 const INSIGNIFICANT: Int64 = 999i64;
 const BYTES_PER_WORD: Int32 = 8i32;
 const BYTES_PER_NODE: Int32 = 40i32;

@@ -17,7 +17,7 @@ fun main(): Unit {
     assert(protectedIds.contains(main.id()).not());
     protectedIds.insert(main.id());
 
-    while i < 10_000i32 {
+    while i < 10'000i32 {
         let thread = std::thread::spawn(|| {
             mtx.lock[()](|| {
                 let current = Thread::current();
@@ -28,7 +28,7 @@ fun main(): Unit {
         assert(ids.contains(thread.id()).not());
         ids.insert(thread.id());
 
-        if i.remainder(1_000i32) == 0i32 {
+        if i.remainder(1'000i32) == 0i32 {
             std::forceCollect();
         }
 

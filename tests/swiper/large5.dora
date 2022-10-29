@@ -5,7 +5,7 @@ fun main(): Unit {
     let mut x = Vec[Array[Int32]]::new();
     let mut i = 0i32;
 
-    while i < 100_000i32 {
+    while i < 100'000i32 {
         x.push(Array[Int32]::zero(32i64 * 1024i64));
         i = i + 1i32;
     }

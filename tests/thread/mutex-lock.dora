@@ -3,7 +3,7 @@
 class Object
 
 const THREADS: Int32 = 20i32;
-const ITERATIONS: Int32 = 10_000i32;
+const ITERATIONS: Int32 = 10'000i32;
 
 class MyThread(mtx: std::Mutex, value: SharedInt)
 

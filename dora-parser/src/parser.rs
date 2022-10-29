@@ -1837,7 +1837,7 @@ impl<'a> Parser<'a> {
             _ => unreachable!(),
         };
 
-        let filtered = value.chars().filter(|&ch| ch != '_').collect::<String>();
+        let filtered = value.chars().filter(|&ch| ch != '\'').collect::<String>();
         let parsed = u64::from_str_radix(&filtered, base.num());
 
         match parsed {
@@ -1859,7 +1859,7 @@ impl<'a> Parser<'a> {
             _ => unreachable!(),
         };
 
-        let filtered = value.chars().filter(|&ch| ch != '_').collect::<String>();
+        let filtered = value.chars().filter(|&ch| ch != '\'').collect::<String>();
         let parsed = filtered.parse::<f64>();
 
         let num = parsed.expect("unparsable float");
@@ -2219,8 +2219,8 @@ mod tests {
     }
 
     #[test]
-    fn parse_number_with_underscore() {
-        let (expr, _) = parse_expr("1____0");
+    fn parse_number_with_separator() {
+        let (expr, _) = parse_expr("1''''0");
 
         let lit = expr.to_lit_int().unwrap();
         assert_eq!(10, lit.value);

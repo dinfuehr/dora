@@ -1,6 +1,6 @@
 const RANDOM_MULTIPLIER: Int64 = 25214903917i64;
 const RANDOM_INCREMENT: Int64 = 11i64;
-const RANDOM_MASK: Int64 = 0xFF_FF_FF_FF_FF_FFi64;
+const RANDOM_MASK: Int64 = 0xFF'FF'FF'FF'FF'FFi64;
 
 @pub class Random {
   seed: Int64
@@ -40,7 +40,7 @@ impl Random {
   }
 
   @pub fun nextInt31(): Int32 {
-    return self.nextInt32() & 0x7F_FF_FF_FFi32;
+    return self.nextInt32() & 0x7F'FF'FF'FFi32;
   }
 
   @pub fun nextInt64(): Int64 {

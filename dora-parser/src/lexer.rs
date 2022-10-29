@@ -458,7 +458,7 @@ impl Lexer {
     }
 
     fn read_digits(&mut self, buffer: &mut String, base: IntBase) {
-        while is_digit_or_underscore(self.curr(), base) {
+        while is_digit_or_separator(self.curr(), base) {
             let ch = self.curr().unwrap();
             self.read_char();
             buffer.push(ch);
@@ -494,8 +494,8 @@ fn is_digit(ch: Option<char>) -> bool {
     ch.map(|ch| ch.is_digit(10)).unwrap_or(false)
 }
 
-fn is_digit_or_underscore(ch: Option<char>, base: IntBase) -> bool {
-    ch.map(|ch| ch.is_digit(base.num()) || ch == '_')
+fn is_digit_or_separator(ch: Option<char>, base: IntBase) -> bool {
+    ch.map(|ch| ch.is_digit(base.num()) || ch == '\'')
         .unwrap_or(false)
 }
 
@@ -640,7 +640,7 @@ mod tests {
         );
         assert_end(&mut reader, 2, 8);
 
-        let mut reader = Lexer::from_str("12u8 300u8 1_000 1__1");
+        let mut reader = Lexer::from_str("12u8 300u8 1'000 1''1");
         assert_tok(
             &mut reader,
             TokenKind::LitInt("12".into(), IntBase::Dec, IntSuffix::UInt8),
@@ -655,13 +655,13 @@ mod tests {
         );
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("1_000".into(), IntBase::Dec, IntSuffix::None),
+            TokenKind::LitInt("1'000".into(), IntBase::Dec, IntSuffix::None),
             1,
             12,
         );
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("1__1".into(), IntBase::Dec, IntSuffix::None),
+            TokenKind::LitInt("1''1".into(), IntBase::Dec, IntSuffix::None),
             1,
             18,
         );

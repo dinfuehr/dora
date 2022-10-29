@@ -3,10 +3,10 @@
 fun main(): Unit {
     let mut i = 0i32;
 
-    while i < 10_000i32 {
+    while i < 10'000i32 {
         std::thread::spawn(|| {});
 
-        if i.remainder(1_000i32) == 0i32 {
+        if i.remainder(1'000i32) == 0i32 {
             std::forceMinorCollect();
         }
 
