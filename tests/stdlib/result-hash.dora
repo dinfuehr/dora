@@ -1,0 +1,4 @@
+fun main(): Unit {
+  let map = std::HashMap[Result[String, Float64], Int64]::new();
+  let set = std::HashSet[Result[String, Float64]]::new();
+}

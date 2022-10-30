@@ -690,17 +690,13 @@ impl[T, E] Result[T, E] {
 }
 
 impl[T: Equals, E] Result[T, E] {
-  @pub fun contains(rhs: T): Bool {
-    if self.isOk() {
-      let lhs = self.getOrPanic();
-      lhs.equals(rhs)
-    } else {
-      false
-    }
-  }
+  @pub fun contains(rhs: T): Bool = match self {
+    Ok(val) => val.equals(rhs),
+    Err(_)  => false,
+  };
 }
 
-impl[T: Equals, E: Equals] Result[T, E] {
+impl[T: Equals, E: Equals] Equals for Result[T, E] {
   @pub fun equals(rhs: Result[T, E]): Bool {
     if self.isOk() {
       if rhs.isOk() {
@@ -722,38 +718,44 @@ impl[T: Equals, E: Equals] Result[T, E] {
   }
 }
 
-impl[T: Default, E] Result[T, E] {
-  @pub fun getOrDefault(): T {
-    match self {
-      Ok(actual) => actual,
-      Err(_) => T::default(),
-    }
-  }
+impl[T: Hash, E: Hash] Hash for Result[T, E] {
+  @pub fun hash(): Int32 = match self {
+    Ok(val)  => 29i32.wrappingMul(val.hash()),
+    Err(err) => 37i32.wrappingMul(err.hash()),
+  };
 }
 
-impl[T: Zero, E] Result[T, E] {
-  @pub fun getOrZero(): T {
-    match self {
-      Ok(actual) => actual,
-      Err(_) => T::zero(),
-    }
-  }
+impl[T: Stringable, E: Stringable] Stringable for Result[T, E] {
+  @pub fun toString(): String = match self {
+    Ok(val)  => "Ok(${val})",
+    Err(err) => "Err(${err})",
+  };
+}
+
+impl[T: Default, E] Result[T, E] {
+  @pub fun getOrDefault(): T = match self {
+    Ok(val) => val,
+    Err(_)  => T::default(),
+  };
 }
 
 impl[T, E: Default] Result[T, E] {
-  @pub fun getErrOrDefault(): E {
-    match self {
-      Ok(_) => E::default(),
-      Err(actual) => actual,
-    }
-  }
+  @pub fun getErrOrDefault(): E = match self {
+    Ok(_)    => E::default(),
+    Err(err) => err,
+  };
+}
+
+impl[T: Zero, E] Result[T, E] {
+  @pub fun getOrZero(): T = match self {
+    Ok(val) => val,
+    Err(_)  => T::zero(),
+  };
 }
 
 impl[T, E: Zero] Result[T, E] {
-  @pub fun getErrOrZero(): E {
-    match self {
-      Ok(_) => E::zero(),
-      Err(actual) => actual,
-    }
-  }
+  @pub fun getErrOrZero(): E = match self {
+    Ok(_)    => E::zero(),
+    Err(err) => err,
+  };
 }
