@@ -1,0 +1,8 @@
+fun main(): Unit {
+  let ok1  = Ok[String, Int64]("ok");
+  let err = Err[String, Int64](-1);
+
+  assert(ok1.all(|val: String|: Bool { val == "ok" }));
+  assert(ok1.all(|val: String|: Bool { val == "err" }).not());
+  assert(err.all(|val: String|: Bool { val == "ok" }));
+}

@@ -1,0 +1,9 @@
+fun main(): Unit {
+  let ok1 = Ok[String, Int64]("some");
+  let err = Err[String, Int64](-1);
+
+  assert(ok1.flatMap[Int64](|val: String|: Result[Int64, Int64] { Ok [Int64, Int64](val.size()) }).contains(4));
+  assert(ok1.flatMap[Int64](|val: String|: Result[Int64, Int64] { Err[Int64, Int64](-1)         }).isErr());
+  assert(err.flatMap[Int64](|val: String|: Result[Int64, Int64] { Ok [Int64, Int64](val.size()) }).isErr());
+  assert(err.flatMap[Int64](|val: String|: Result[Int64, Int64] { Err[Int64, Int64](-1)         }).isErr());
+}

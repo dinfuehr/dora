@@ -638,13 +638,55 @@ impl[T, E] Result[T, E] {
     }
   }
 
-  @pub fun or(alt: Result[T, E]): Result[T, E] {
-    if self.isOk() {
-      return self;
-    } else {
-      return alt;
-    }
-  }
+  @pub fun all(fct: (T): Bool): Bool = match self {
+    Ok(val) => fct(val),
+    Err(_)  => true,
+  };
+
+  @pub fun any(fct: (T): Bool): Bool = match self {
+    Ok(val) => fct(val),
+    Err(_)  => false,
+  };
+
+  @pub fun or(alt: Result[T, E]): Result[T, E] = match self {
+    Ok(_)  => self,
+    Err(_) => alt,
+  };
+
+  @pub fun each(fct: (T): Unit): Unit = match self {
+    Ok(val) => fct(val),
+    Err(_)  => (),
+  };
+
+  @pub fun map[U](fct: (T): U): Result[U, E] = match self {
+    Ok(val)  => Ok[U, E](fct(val)),
+    Err(err) => Err[U, E](err),
+  };
+
+  @pub fun flatMap[U](fct: (T): Result[U, E]): Result[U, E] = match self {
+    Ok(val)  => fct(val),
+    Err(err) => Err[U, E](err),
+  };
+
+  @pub fun retain(fct: (T): Bool, err: E): Result[T, E] = match self {
+    Ok(val) => if fct(val) { self } else { Err[T, E](err) },
+    Err(_)  => self,
+  };
+
+  @pub fun reject(fct: (T): Bool, err: E): Result[T, E] = match self {
+    Ok(val) => if fct(val) { Err[T, E](err) } else { self },
+    Err(_)  => self,
+  };
+
+  @pub fun swap(): Result[E, T] = match self {
+    Ok(val) => Err[E, T](val),
+    Err(err) => Ok[E, T](err),
+  };
+
+  @pub fun toOption(): Option[T] = match self {
+    Ok(val) => Some[T](val),
+    Err(_)  => None[T],
+  };
 }
 
 impl[T: Equals, E] Result[T, E] {
