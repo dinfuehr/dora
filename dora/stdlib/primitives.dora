@@ -588,15 +588,15 @@ impl[T: Zero] Option[T] {
   };
 }
 
-@pub enum Result[V, E] {
-  Ok(V),
+@pub enum Result[T, E] {
+  Ok(T),
   Err(E),
 }
 
 use Result::Ok;
 use Result::Err;
 
-impl[V, E] Result[V, E] {
+impl[T, E] Result[T, E] {
   @pub fun isOk(): Bool {
     match self {
       Ok(_) => true,
@@ -611,12 +611,12 @@ impl[V, E] Result[V, E] {
     }
   }
 
-  @pub fun getOrPanic(): V {
+  @pub fun getOrPanic(): T {
     match self {
       Ok(value) => value,
       Err(_) => {
         fatalError("cannot unwrap Err.");
-        unreachable[V]()
+        unreachable[T]()
       }
     }
   }
@@ -631,14 +631,14 @@ impl[V, E] Result[V, E] {
     }
   }
 
-  @pub fun has(val: V): Bool {
+  @pub fun has(val: T): Bool {
     match self {
       Ok(actual) => actual === val,
       Err(_) => false,
     }
   }
 
-  @pub fun or(alt: Result[V, E]): Result[V, E] {
+  @pub fun or(alt: Result[T, E]): Result[T, E] {
     if self.isOk() {
       return self;
     } else {
@@ -647,8 +647,8 @@ impl[V, E] Result[V, E] {
   }
 }
 
-impl[V: Equals, E] Result[V, E] {
-  @pub fun contains(rhs: V): Bool {
+impl[T: Equals, E] Result[T, E] {
+  @pub fun contains(rhs: T): Bool {
     if self.isOk() {
       let lhs = self.getOrPanic();
       lhs.equals(rhs)
@@ -658,8 +658,8 @@ impl[V: Equals, E] Result[V, E] {
   }
 }
 
-impl[V: Equals, E: Equals] Result[V, E] {
-  @pub fun equals(rhs: Result[V, E]): Bool {
+impl[T: Equals, E: Equals] Result[T, E] {
+  @pub fun equals(rhs: Result[T, E]): Bool {
     if self.isOk() {
       if rhs.isOk() {
         let lhs = self.getOrPanic();
@@ -680,25 +680,25 @@ impl[V: Equals, E: Equals] Result[V, E] {
   }
 }
 
-impl[V: Default, E] Result[V, E] {
-  @pub fun getOrDefault(): V {
+impl[T: Default, E] Result[T, E] {
+  @pub fun getOrDefault(): T {
     match self {
       Ok(actual) => actual,
-      Err(_) => V::default(),
+      Err(_) => T::default(),
     }
   }
 }
 
-impl[V: Zero, E] Result[V, E] {
-  @pub fun getOrZero(): V {
+impl[T: Zero, E] Result[T, E] {
+  @pub fun getOrZero(): T {
     match self {
       Ok(actual) => actual,
-      Err(_) => V::zero(),
+      Err(_) => T::zero(),
     }
   }
 }
 
-impl[V, E: Default] Result[V, E] {
+impl[T, E: Default] Result[T, E] {
   @pub fun getErrOrDefault(): E {
     match self {
       Ok(_) => E::default(),
@@ -707,7 +707,7 @@ impl[V, E: Default] Result[V, E] {
   }
 }
 
-impl[V, E: Zero] Result[V, E] {
+impl[T, E: Zero] Result[T, E] {
   @pub fun getErrOrZero(): E {
     match self {
       Ok(_) => E::zero(),
