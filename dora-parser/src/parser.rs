@@ -1983,9 +1983,12 @@ impl<'a> Parser<'a> {
 
         let return_type = if self.token.is(TokenKind::Colon) {
             self.advance_token()?;
-            Some(self.parse_type()?)
+            self.parse_type()?
         } else {
-            None
+            return Err(ParseErrorAndPos::new(
+                self.token.position,
+                ParseError::ExpectedType(self.token.name()),
+            ));
         };
 
         let block = self.parse_block()?;
@@ -2013,7 +2016,7 @@ impl<'a> Parser<'a> {
             is_constructor: false,
             is_test: false,
             params,
-            return_type,
+            return_type: Some(return_type),
             block,
             type_params: None,
         });
@@ -3348,20 +3351,32 @@ mod tests {
     }
 
     #[test]
-    fn parse_lambda_no_params_no_return_value() {
-        let (expr, _) = parse_expr("|| {}");
-        let lambda = expr.to_lambda().unwrap();
-
-        assert!(lambda.return_type.is_none());
+    fn parse_lambda_no_params_missing_return_type() {
+        parse_err(
+            " fun x(): Unit { let y = || {}; }",
+            ParseError::ExpectedType("{".into()),
+            1,
+            29,
+        );
     }
 
     #[test]
-    fn parse_lambda_no_params_unit_as_return_value() {
-        let (expr, _) = parse_expr("|| : () {}");
+    fn parse_lambda_no_params_unit_as_return_value1() {
+        let (expr, _) = parse_expr("||: () {}");
         let lambda = expr.to_lambda().unwrap();
         let ret = lambda.return_type.as_ref().unwrap();
 
         assert!(ret.is_unit());
+    }
+
+    #[test]
+    fn parse_lambda_no_params_unit_as_return_value2() {
+        let (expr, interner) = parse_expr("||: Unit {}");
+        let lambda = expr.to_lambda().unwrap();
+        let ret = lambda.return_type.as_ref().unwrap();
+        let basic = ret.to_basic().unwrap();
+
+        assert_eq!("Unit", *interner.str(basic.name()));
     }
 
     #[test]

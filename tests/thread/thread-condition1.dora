@@ -26,7 +26,7 @@ impl[T] SharedQueue[T] {
     }
 
     fun enqueue(value: T): Unit {
-        self.mtx.lock[()](|| {
+        self.mtx.lock[()](||: Unit {
             while self.queue.size() == self.capacity {
                 self.conditionNonFull.wait(self.mtx);
             }
@@ -113,7 +113,7 @@ fun main(): Unit {
     }
 
     let consumer = Consumer::new(queue);
-    let consumerThread = std::thread::spawn(|| {
+    let consumerThread = std::thread::spawn(||: Unit {
         consumer.run();
     });
 
@@ -135,7 +135,7 @@ fun main(): Unit {
 
 fun spawn_producer(queue: SharedQueue[Int32]): (Producer, std::Thread) {
     let producer = Producer::new(queue);
-    let thread = std::thread::spawn(|| {
+    let thread = std::thread::spawn(||: Unit {
         producer.run();
     });
 

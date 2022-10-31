@@ -1,7 +1,7 @@
 //= stdout "one\ntwo\n"
 
 fun main(): Unit {
-    let thread = std::thread::spawn(|| {
+    let thread = std::thread::spawn(||: Unit {
         std::sleep(2i32);
         println("one");
     });

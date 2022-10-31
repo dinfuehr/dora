@@ -1,7 +1,7 @@
 //= error stack-overflow
 
 fun main(): Unit {
-    std::thread::spawn(|| {
+    std::thread::spawn(||: Unit {
         g();
     });
 }

@@ -4,8 +4,8 @@ fun main(): Unit {
     let mtx = std::Mutex::new();
     let cv = std::Condition::new();
 
-    mtx.lock[()](|| {
-        let thread = std::thread::spawn(|| {
+    mtx.lock[()](||: Unit {
+        let thread = std::thread::spawn(||: Unit {
             cv.wait(mtx);
         });
 

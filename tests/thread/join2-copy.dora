@@ -18,8 +18,8 @@ fun main(): Unit {
     protectedIds.insert(main.id());
 
     while i < 10'000i32 {
-        let thread = std::thread::spawn(|| {
-            mtx.lock[()](|| {
+        let thread = std::thread::spawn(||: Unit {
+            mtx.lock[()](||: Unit {
                 let current = Thread::current();
                 assert(protectedIds.contains(current.id()).not());
                 protectedIds.insert(current.id());

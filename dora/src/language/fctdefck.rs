@@ -267,8 +267,8 @@ mod tests {
 
     #[test]
     fn lambdas() {
-        ok("fun f(): Unit { || {}; }");
-        ok("fun f(): Unit { |a: Int32| {}; }");
+        ok("fun f(): Unit { ||: Unit {}; }");
+        ok("fun f(): Unit { |a: Int32|: Unit {}; }");
         ok("fun f(): Unit { ||: Int32 { return 2; }; }");
 
         err(
@@ -277,7 +277,7 @@ mod tests {
             ErrorMessage::UnknownIdentifier("Foo".into()),
         );
         err(
-            "fun f(): Unit { |a: Foo| { }; }",
+            "fun f(): Unit { |a: Foo|: Unit { }; }",
             pos(1, 21),
             ErrorMessage::UnknownIdentifier("Foo".into()),
         );

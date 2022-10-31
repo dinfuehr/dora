@@ -6,7 +6,7 @@ fun main(): Unit {
 
 fun f_depth1(): Int64 {
     let mut x = 10;
-    let f1 = || { x = 20; };
+    let f1 = ||: Unit { x = 20; };
     f1();
     x
 }
@@ -14,7 +14,7 @@ fun f_depth1(): Int64 {
 fun f_depth2(): Int64 {
     let mut x = 10;
     let f1 = ||: (): () {
-        let f2 = || { x = 20; };
+        let f2 = ||: Unit { x = 20; };
         f2
     };
     f1()();
@@ -25,7 +25,7 @@ fun f_depth3(): Int64 {
     let mut x = 10;
     let f1 = ||: (): (): () {
         let f2 = ||: (): () {
-            let f3 = || { x = 20; };
+            let f3 = ||: Unit { x = 20; };
             f3
         };
 

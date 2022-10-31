@@ -1053,13 +1053,12 @@ fn test_global_set() {
 
 #[test]
 fn lambda_assignment() {
-    ok("fun f(): Unit { let x = || {}; }");
     ok("fun f(): Unit { let x = ||: Int32 { return 2i32; }; }");
-    ok("fun f(): Unit { let x: (): () = || {}; }");
-    ok("fun f(): Unit { let x: (): () = ||: () {}; }");
+    ok("fun f(): Unit { let x: (): () = ||: Unit {}; }");
+    ok("fun f(): Unit { let x: (): Unit = ||: () {}; }");
     ok("fun f(): Unit { let x: (): Int32 = ||: Int32 { return 2i32; }; }");
     err(
-        "fun f(): Unit { let x: (): Int32 = || {}; }",
+        "fun f(): Unit { let x: (): Int32 = ||: Unit {}; }",
         pos(1, 17),
         ErrorMessage::AssignType("x".into(), "() -> Int32".into(), "() -> ()".into()),
     );
@@ -3794,8 +3793,8 @@ fn mutable_param() {
 #[test]
 fn self_unavailable_in_lambda() {
     err(
-        "fun f(): Unit { || { self; }; }",
-        pos(1, 22),
+        "fun f(): Unit { ||: Unit { self; }; }",
+        pos(1, 28),
         ErrorMessage::ThisUnavailable,
     );
 }

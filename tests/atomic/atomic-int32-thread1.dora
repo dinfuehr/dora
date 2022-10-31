@@ -22,7 +22,7 @@ fun main(): Unit {
     let mut i = 0i32;
 
     while i < THREADS {
-        let thread = std::thread::spawn(|| {
+        let thread = std::thread::spawn(||: Unit {
             MyThread(shared).run();
         });
         threads.push(thread);
