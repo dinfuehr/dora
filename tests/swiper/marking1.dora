@@ -1,7 +1,7 @@
 //= ignore
 
 fun main(): Unit {
-    let arr = Vec[Foo]();
+    let arr = List[Foo]();
 
     let mut i = 0i32;
     while i < 10i32 {

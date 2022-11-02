@@ -4,7 +4,7 @@ fun main(): Unit {
 }
 
 fun iterateManually(): Unit {
-    let it = Vec[String]::new("a", "b", "c").enumerate();
+    let it = List[String]::new("a", "b", "c").enumerate();
     let (idx, value) = it.next().getOrPanic();
     assert(idx == 0i64 && value == "a");
     let (idx, value) = it.next().getOrPanic();
@@ -15,7 +15,7 @@ fun iterateManually(): Unit {
 }
 
 fun iterateWithForIn(): Unit {
-    for idx_and_value in Vec[String]::new("a", "b", "c").enumerate() {
+    for idx_and_value in List[String]::new("a", "b", "c").enumerate() {
         let (idx, value) = idx_and_value;
 
         if idx == 0i64 { assert(value == "a"); }
@@ -29,7 +29,7 @@ fun iterateWithForIn(): Unit {
 }
 
 fun iterateWithForInPattern(): Unit {
-    for (idx, value) in Vec[String]::new("a", "b", "c").enumerate() {
+    for (idx, value) in List[String]::new("a", "b", "c").enumerate() {
         if idx == 0i64 { assert(value == "a"); }
         else if idx == 1i64 { assert(value == "b"); }
         else if idx == 2i64 { assert(value == "c"); }

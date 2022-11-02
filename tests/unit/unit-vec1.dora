@@ -1,7 +1,7 @@
 fun main(): Unit {
-    let data = Vec[()]::new();
+    let data = List[()]::new();
     assert(data.size() == 0i64);
 
-    let data = Vec[()]::new((), (), ());
+    let data = List[()]::new((), (), ());
     assert(data.size() == 3i64);
 }

@@ -1,4 +1,4 @@
-@pub use collections::{Array, BitSet, BitVec, HashMap, HashSet, Queue, Vec};
+@pub use collections::{Array, BitSet, BitVec, HashMap, HashSet, List, Queue};
 @pub use traits::{Comparable, Default, Equals, Hash, Iterator, Zero};
 @pub use primitives::{Unit, Bool, Char, Float32, Float64, Int32, Int64, Option, range, Result};
 @pub use rand::Random;
@@ -122,7 +122,7 @@ impl Stacktrace {
     let backtraceLength = self.backtrace.getOrPanic().size();
     let mut i = 0i64;
     let len = backtraceLength / 2i64;
-    let elements = Vec[StacktraceElement]::new();
+    let elements = List[StacktraceElement]::new();
     elements.reserve(len);
 
     while i < len {

@@ -1,7 +1,7 @@
 //= vm-args "--gc-parallel-minor --gc-worker=2 --gc-verify"
 
 fun main(): Unit {
-    let mut x = Vec[Array[Int32]]::new();
+    let mut x = List[Array[Int32]]::new();
     let mut i = 0i32;
 
     while i < 100i32 {

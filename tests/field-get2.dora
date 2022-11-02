@@ -1,0 +1,8 @@
+class Foo {
+    list: List[Int32],
+}
+
+fun main(): Unit {
+    let foo = Foo(List[Int32]::new(1i32, 2i32, 3i32));
+    assert(foo.list(0i64) == 1i32);
+}

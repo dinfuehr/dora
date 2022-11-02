@@ -2,7 +2,7 @@
 //= error oom
 
 fun main(): Unit {
-    let mut x = Vec[Array[Int32]]::new();
+    let mut x = List[Array[Int32]]::new();
     let mut i = 0i32;
 
     while i < 100'000i32 {

@@ -1,0 +1,40 @@
+fun main(): Unit {
+    let list = List[Int32]::new();
+    assert(list.size() == 0i64);
+    assert(list.capacity() == 0i64);
+
+    list.push(1i32);
+    list.push(2i32);
+    list.push(3i32);
+    assert(list.size() == 3i64);
+    assert(list.capacity() == 4i64);
+
+    list.push(4i32);
+    assert(list.size() == 4i64);
+    assert(list.capacity() == 4i64);
+
+    list.push(5i32);
+    assert(list.size() == 5i64);
+    assert(list.capacity() == 8i64);
+    assert(list(0i64) == 1i32);
+    assert(list(1i64) == 2i32);
+    assert(list(2i64) == 3i32);
+    assert(list(3i64) == 4i32);
+    assert(list(4i64) == 5i32);
+
+    list(0i64) = list(0i64) + 2i32;
+    list(1i64) = list(0i64) - 1i32;
+
+    assert(list(0i64) == 3i32);
+    assert(list(1i64) == 2i32);
+
+    list.trimToLen();
+    assert(list.size() == 5i64);
+    assert(list.capacity() == 5i64);
+
+    assert(list(0i64) == 3i32);
+    assert(list(1i64) == 2i32);
+    assert(list(2i64) == 3i32);
+    assert(list(3i64) == 4i32);
+    assert(list(4i64) == 5i32);
+}

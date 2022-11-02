@@ -1,0 +1,13 @@
+fun main(): Unit {
+    let list = List[Int32]::new();
+    list.push(1i32);
+    list.push(2i32);
+    list.push(3i32);
+    list.push(1i32);
+    assert(list.size() == 4i64);
+
+    list.remove(1i32);
+    assert(list.size() == 2i64);
+    assert(list(0i64) == 2i32);
+    assert(list(1i64) == 3i32);
+}

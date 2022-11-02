@@ -281,8 +281,8 @@ impl SplayTree {
         }
     }
 
-    fun exportKeys(): Vec[Int32] {
-        let keys = Vec[Int32]::new();
+    fun exportKeys(): List[Int32] {
+        let keys = List[Int32]::new();
         exportKeysTraverse(keys, self.root);
         return keys;
     }
@@ -358,7 +358,7 @@ impl SplayTree {
     }
 }
 
-fun exportKeysTraverse(list: Vec[Int32], node: Option[SplayNode]): Unit {
+fun exportKeysTraverse(list: List[Int32], node: Option[SplayNode]): Unit {
     let mut current = node;
 
     while current.isSome() {

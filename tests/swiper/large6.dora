@@ -5,7 +5,7 @@ const STEP: Int64 = 5i64;
 const REMOVED: Int64 = 20i64;
 
 fun main(): Unit {
-    let mut x = Vec[Array[Int32]]::new();
+    let mut x = List[Array[Int32]]::new();
     let mut i = 0i64;
 
     while i < SIZE {

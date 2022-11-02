@@ -1,0 +1,54 @@
+fun main(): Unit {
+  insertFirst();
+  insertFirstNoResize();
+  insertMiddle();
+  insertMiddleNoResize();
+  insertLast();
+  insertLastNoResize();
+  insertEmpty();
+}
+
+fun insertFirst(): Unit {
+  let xs = List[Int32]::new(1i32, 2i32, 3i32);
+  xs.insertAt(0i64, -23i32);
+  assert(xs == List[Int32]::new(-23i32, 1i32, 2i32, 3i32));
+}
+
+fun insertFirstNoResize(): Unit {
+  let xs = List[Int32]::new(1i32, 2i32, 3i32);
+  xs.removeAt(0i64);
+  xs.insertAt(0i64, -23i32);
+  assert(xs == List[Int32]::new(-23i32, 2i32, 3i32));
+}
+
+fun insertMiddle(): Unit {
+  let xs = List[Int32]::new(1i32, 2i32, 3i32);
+  xs.insertAt(1i64, -23i32);
+  assert(xs == List[Int32]::new(1i32, -23i32, 2i32, 3i32));
+}
+
+fun insertMiddleNoResize(): Unit {
+  let xs = List[Int32]::new(1i32, 2i32, 3i32);
+  xs.removeAt(1i64);
+  xs.insertAt(1i64, -23i32);
+  assert(xs == List[Int32]::new(1i32, -23i32, 3i32));
+}
+
+fun insertLast(): Unit {
+  let xs = List[Int32]::new(1i32, 2i32, 3i32);
+  xs.insertAt(xs.size(), -23i32);
+  assert(xs == List[Int32]::new(1i32, 2i32, 3i32, -23i32));
+}
+
+fun insertLastNoResize(): Unit {
+  let xs = List[Int32]::new(1i32, 2i32, 3i32);
+  xs.removeAt(xs.size() - 1i64);
+  xs.insertAt(xs.size(), -23i32);
+  assert(xs == List[Int32]::new(1i32, 2i32, -23i32));
+}
+
+fun insertEmpty(): Unit {
+  let xs = List[Int32]::new();
+  xs.insertAt(0i64, -23i32);
+  assert(xs == List[Int32]::new(-23i32));
+}

@@ -2698,8 +2698,8 @@ fn for_with_array() {
 }
 
 #[test]
-fn for_with_vec() {
-    ok("fun f(x: Vec[Int32]): Int32 {
+fn for_with_list() {
+    ok("fun f(x: List[Int32]): Int32 {
         let mut result = 0i32;
         for i in x.makeIterator() {
             result = result + i;
@@ -2707,7 +2707,7 @@ fn for_with_vec() {
         result
     }");
 
-    ok("fun f(x: Vec[Int32]): Int32 {
+    ok("fun f(x: List[Int32]): Int32 {
         let mut result = 0i32;
         for i in x {
             result = result + i;
@@ -2715,7 +2715,7 @@ fn for_with_vec() {
         result
     }");
 
-    ok("fun f(x: Vec[Float32]): Float32 {
+    ok("fun f(x: List[Float32]): Float32 {
         let mut result = 0.0f32;
         for i in x.makeReverseIterator() {
             result = result + i;
@@ -2723,7 +2723,7 @@ fn for_with_vec() {
         result
     }");
 
-    ok("fun f(x: Vec[Float32]): Float32 {
+    ok("fun f(x: List[Float32]): Float32 {
         let mut result = 0.0f32;
         for i in x {
             result = result + i;

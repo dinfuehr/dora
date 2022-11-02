@@ -10,8 +10,8 @@ fun main(): Unit {
     }
 }
 
-fun sieve(limit: Int64): Vec[Int64] {
-    let primes = Vec[Int64]::new();
+fun sieve(limit: Int64): List[Int64] {
+    let primes = List[Int64]::new();
 
     if limit >= 2i64 {
         let numbers = Array[Bool]::fill(limit+1i64, true);

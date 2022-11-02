@@ -1,0 +1,11 @@
+fun main(): Unit {
+  assert(List[Int32]::new() == List[Int32]::new());
+  assert(List[Int32]::new().equals(List[Int32]::new()));
+  assert(List[Int32]::new(1i32) == List[Int32]::new(1i32));
+  assert(List[Int32]::new(1i32).equals(List[Int32]::new(1i32)));
+  assert(List[Int32]::new(1i32, 2i32, 3i32) == List[Int32]::new(1i32, 2i32, 3i32));
+  assert(List[Int32]::new(1i32, 2i32, 3i32).equals(List[Int32]::new(1i32, 2i32, 3i32)));
+
+  assert(List[Int32]::new(1i32, 2i32, 3i32) != List[Int32]::new(2i32, 3i32, 4i32));
+  assert(List[Int32]::new(1i32, 2i32, 3i32) != List[Int32]::new(1i32, 2i32, 3i32, 4i32));
+}

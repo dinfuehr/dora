@@ -15,7 +15,7 @@ fun main(): Unit {
     let g = foo();
     let h = foo();
 
-    let data = Vec[Foo]::new();
+    let data = List[Foo]::new();
     data.push(f);
     data.push(g);
     data.push(h);

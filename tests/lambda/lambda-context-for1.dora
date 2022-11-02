@@ -1,6 +1,6 @@
 fun main(): Unit {
     let list = Array[Int64]::new(10, 20, 30, 40, 50);
-    let lambdas = Vec[(): Int64]::new();
+    let lambdas = List[(): Int64]::new();
 
     for el in list {
         lambdas.push(||: Int64 { el });

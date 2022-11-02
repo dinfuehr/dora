@@ -740,19 +740,19 @@ impl[K: Hash + Equals] HashSet[K] {
   }
 }
 
-@pub class Vec[T] {
+@pub class List[T] {
   array: Array[T],
   len: Int64,
 }
 
-impl[T] Vec[T] {
-  @pub @static fun new(values: T...): Vec[T] {
-    Vec[T](values, values.size())
+impl[T] List[T] {
+  @pub @static fun new(values: T...): List[T] {
+    List[T](values, values.size())
   }
 
   @pub fun get(idx: Int64): T {
     if idx < 0i64 || idx >= self.len {
-      fatalError("index out of bounds for vector");
+      fatalError("index out of bounds for list");
     }
 
     return self.array(idx);
@@ -760,7 +760,7 @@ impl[T] Vec[T] {
 
   @pub fun set(idx: Int64, val: T): Unit {
     if idx < 0i64 || idx >= self.len {
-      fatalError("index out of bounds for vector");
+      fatalError("index out of bounds for list");
     }
 
     self.array.set(idx, val);
@@ -864,7 +864,7 @@ impl[T] Vec[T] {
     }
   }
 
-  @pub fun removeItem(value: T): Unit {
+  @pub fun remove(value: T): Unit {
     let len = self.len;
     let mut destIdx = 0i64;
     let mut srcIdx = 0i64;
@@ -964,27 +964,27 @@ impl[T] Vec[T] {
     self.array = Array[T]::new();
   }
 
-  @pub fun makeIterator(): VecIter[T] {
-    VecIter[T]::new(self)
+  @pub fun makeIterator(): ListIterator[T] {
+    ListIterator[T]::new(self)
   }
 
-  @pub fun makeReverseIterator(): ReverseVecIter[T] {
-    ReverseVecIter[T]::new(self)
+  @pub fun makeReverseIterator(): ListIteratorReverse[T] {
+    ListIteratorReverse[T]::new(self)
   }
 
-  @pub fun enumerate(): VecEnumerator[T] {
-    VecEnumerator[T]::new(self)
+  @pub fun enumerate(): ListEnumerator[T] {
+    ListEnumerator[T]::new(self)
   }
 }
 
-@pub class VecEnumerator[T] {
-  data: Vec[T],
+@pub class ListEnumerator[T] {
+  data: List[T],
   idx: Int64,
 }
 
-impl[T] VecEnumerator[T] {
-  @static fun new(data: Vec[T]): VecEnumerator[T] {
-    VecEnumerator[T](data, 0)
+impl[T] ListEnumerator[T] {
+  @static fun new(data: List[T]): ListEnumerator[T] {
+    ListEnumerator[T](data, 0)
   }
 
   @pub fun next(): Option[(Int64, T)] {
@@ -998,15 +998,13 @@ impl[T] VecEnumerator[T] {
   }
 }
 
-@pub class VecIter[T] {
-  data: Vec[T],
+@pub class ListIterator[T] {
+  data: List[T],
   idx: Int64,
 }
 
-impl[T] VecIter[T] {
-  @static fun new(data: Vec[T]): VecIter[T] {
-    VecIter[T](data, 0)
-  }
+impl[T] ListIterator[T] {
+  @static fun new(data: List[T]): ListIterator[T] = ListIterator[T](data, 0);
 
   @pub fun next(): Option[T] {
     if self.idx < self.data.size() {
@@ -1019,14 +1017,14 @@ impl[T] VecIter[T] {
   }
 }
 
-@pub class ReverseVecIter[T] {
-  data: Vec[T],
+@pub class ListIteratorReverse[T] {
+  data: List[T],
   idx: Int64,
 }
 
-impl[T] ReverseVecIter[T] {
-  @static fun new(data: Vec[T]): ReverseVecIter[T] {
-    ReverseVecIter(data, data.size() - 1)
+impl[T] ListIteratorReverse[T] {
+  @static fun new(data: List[T]): ListIteratorReverse[T] {
+    ListIteratorReverse(data, data.size() - 1)
   }
 
   @pub fun next(): Option[T] {
@@ -1040,8 +1038,8 @@ impl[T] ReverseVecIter[T] {
   }
 }
 
-impl[T: Equals] Vec[T] {
-  @pub fun equals(other: Vec[T]): Bool {
+impl[T: Equals] List[T] {
+  @pub fun equals(other: List[T]): Bool {
     if self.size() != other.size() {
       return false;
     }
@@ -1082,7 +1080,7 @@ impl[T: Equals] Vec[T] {
   }
 }
 
-impl[T: Identity] Vec[T] {
+impl[T: Identity] List[T] {
   @pub fun has(value: T): Bool {
     let mut i = 0i64;
 
@@ -1097,10 +1095,10 @@ impl[T: Identity] Vec[T] {
   }
 }
 
-impl[T: Stringable] Vec[T] {
+impl[T: Stringable] List[T] {
   @pub fun toString(): String {
     let sb = StringBuffer::new();
-    sb.append("Vec(");
+    sb.append("List(");
     let size = self.len;
     if size != 0i64 {
       let mut i = 0i64;

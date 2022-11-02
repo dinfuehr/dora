@@ -1,8 +1,0 @@
-class Foo {
-    vec: Vec[Int32],
-}
-
-fun main(): Unit {
-    let foo = Foo(Vec[Int32]::new(1i32, 2i32, 3i32));
-    assert(foo.vec(0i64) == 1i32);
-}

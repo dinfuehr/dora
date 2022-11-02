@@ -1,6 +1,9 @@
 fun main(): Unit {
-    let x = Vec[Int32]::new(1i32, 2i32, 3i32);
-    assert(x.size() == 3i64);
+    let x = List[Int32]::new();
+    x.push(1i32);
+    x.push(2i32);
+    x.push(3i32);
+
     assert(x.pop().getOrPanic() == 3i32);
     assert(x.pop().getOrPanic() == 2i32);
     assert(x.pop().getOrPanic() == 1i32);

@@ -22,7 +22,7 @@ fun main(): Unit {
     let longLastingNode = createTree(maxDepth);
 
     let mut i = 0i32;
-    let threads = Vec[std::Thread]::new();
+    let threads = List[std::Thread]::new();
     let nextDepth = std::AtomicInt32::new(MIN_DEPTH);
     let results = Array[String]::fill((maxDepth - MIN_DEPTH).toInt64() / 2i64 + 1i64, "");
 

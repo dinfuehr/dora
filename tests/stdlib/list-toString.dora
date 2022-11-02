@@ -1,0 +1,5 @@
+fun main(): Unit {
+  assert(List[Int32]::new().toString() == "List()");
+  assert(List[Int32]::new(1i32).toString() == "List(1)");
+  assert(List[Int32]::new(1i32, 2i32, 3i32).toString() == "List(1, 2, 3)");
+}

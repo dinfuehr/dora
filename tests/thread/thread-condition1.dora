@@ -102,8 +102,8 @@ impl Consumer {
 fun main(): Unit {
     let mut i = 0i32;
     let queue = SharedQueue[Int32]::new(QUEUE_SIZE);
-    let producerThreads = Vec[std::Thread]::new();
-    let producers = Vec[Producer]::new();
+    let producerThreads = List[std::Thread]::new();
+    let producers = List[Producer]::new();
 
     while i < THREADS {
         let (producer, thread) = spawn_producer(queue);

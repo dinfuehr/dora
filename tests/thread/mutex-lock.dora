@@ -48,7 +48,7 @@ impl SharedInt {
 
 fun main(): Unit {
     let mut i = 0i32;
-    let mut threads = Vec[std::Thread]::new();
+    let mut threads = List[std::Thread]::new();
     let mut mtx = std::Mutex::new();
     let mut shared = SharedInt::new();
 

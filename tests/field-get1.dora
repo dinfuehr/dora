@@ -1,0 +1,15 @@
+class Foo {
+    list: List[Int32],
+}
+
+fun main(): Unit {
+    let foo = Foo(List[Int32]::new(1i32, 2i32, 3i32));
+    assert((foo.list)(0i64) == 1i32);
+    assert((foo.list)(1i64) == 2i32);
+    assert((foo.list)(2i64) == 3i32);
+    assert(foo.list.size() == 3i64);
+    foo.list(0i64) = 100i32;
+    assert((foo.list)(0i64) == 100i32);
+    assert((foo.list)(1i64) == 2i32);
+    assert((foo.list)(2i64) == 3i32);
+}

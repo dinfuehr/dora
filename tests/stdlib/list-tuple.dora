@@ -1,0 +1,23 @@
+//= vm-args "--gc-verify --gc=copy"
+
+fun main(): Unit {
+    let x = buildList();
+    std::forceCollect();
+    assert(x.size() == 3i64);
+    popList(x, "ghi");
+    std::forceCollect();
+    popList(x, "def");
+    std::forceCollect();
+    popList(x, "abc");
+    std::forceCollect();
+    assert(x.size() == 0i64);
+}
+
+fun buildList(): List[(Int32, String)] {
+    List[(Int32, String)]::new((1i32, "a" + "b" + "c"), (2i32, "d" + "e" + "f"), (3i32, "g" + "h" + "i"))
+}
+
+fun popList(list: List[(Int32, String)], expected: String): Unit {
+    let (_, str) = list.pop().getOrPanic();
+    assert(str == expected);
+}

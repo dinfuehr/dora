@@ -146,7 +146,7 @@ pub fn fill_prelude(sa: &mut SemAnalysis) {
         "primitives::Float64",
         "string::String",
         "collections::Array",
-        "collections::Vec",
+        "collections::List",
         "print",
         "println",
         "primitives::Option",

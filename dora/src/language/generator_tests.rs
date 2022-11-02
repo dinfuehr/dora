@@ -3758,9 +3758,9 @@ fn gen_const_int() {
 #[test]
 fn gen_vec_load() {
     gen_fct(
-        "fun f(x: Vec[Int32], idx: Int64): Int32 { x(idx) }",
+        "fun f(x: List[Int32], idx: Int64): Int32 { x(idx) }",
         |sa, code, fct| {
-            let fct_id = sa.cls_method_by_name("Vec", "get", false).unwrap();
+            let fct_id = sa.cls_method_by_name("List", "get", false).unwrap();
             let expected = vec![
                 PushRegister(r(0)),
                 PushRegister(r(1)),
@@ -3779,9 +3779,9 @@ fn gen_vec_load() {
 #[test]
 fn gen_vec_store() {
     gen_fct(
-        "fun f(x: Vec[Int32], idx: Int64, value: Int32): Unit { x(idx) = value; }",
+        "fun f(x: List[Int32], idx: Int64, value: Int32): Unit { x(idx) = value; }",
         |sa, code, fct| {
-            let fct_id = sa.cls_method_by_name("Vec", "set", false).unwrap();
+            let fct_id = sa.cls_method_by_name("List", "set", false).unwrap();
             let expected = vec![
                 PushRegister(r(0)),
                 PushRegister(r(1)),

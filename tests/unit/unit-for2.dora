@@ -1,6 +1,6 @@
 fun main(): Unit {
     let mut sum = 0i64;
-    for x in Vec[()]::new((), (), (), ()) {
+    for x in List[()]::new((), (), (), ()) {
         sum = sum + 1i64;
     }
     assert(sum == 4i64);
