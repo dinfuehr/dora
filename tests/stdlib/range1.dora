@@ -1,5 +1,5 @@
 fun main(): Unit {
-    let x = std::range(0i32, 5i32).makeIterator();
+    let x = std::range(0i32, 5i32).iterator();
 
     assert(x.next().getOrPanic() == 0i32);
     assert(x.next().getOrPanic() == 1i32);

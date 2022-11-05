@@ -10,7 +10,7 @@ fun main(): Unit {
 
 fun mysum1(x: List[Int32]): Int32 {
     let mut entries = 0i32;
-    for val in x.makeIterator() {
+    for val in x.iterator() {
         entries = entries + val;
     }
     entries
@@ -18,7 +18,7 @@ fun mysum1(x: List[Int32]): Int32 {
 
 fun mysum2(x: List[Float32]): Float32 {
     let mut entries = 0.0f32;
-    for val in x.makeReverseIterator() {
+    for val in x.iteratorReverse() {
         entries = entries + val;
     }
     entries

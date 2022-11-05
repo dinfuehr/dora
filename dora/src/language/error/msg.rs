@@ -557,7 +557,7 @@ impl ErrorMessage {
                 "global variables do no support initial assignment for now.".into()
             }
             ErrorMessage::TypeNotUsableInForIn(ref ty) => format!(
-                "type `{}` doesn't implement makeIterator() or the iterator protocol.",
+                "type `{}` doesn't implement iterator() or the iterator protocol.",
                 ty
             ),
             ErrorMessage::UnknownStructField(ref struc, ref field) => {

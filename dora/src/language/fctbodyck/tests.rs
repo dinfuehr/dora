@@ -1139,7 +1139,7 @@ fn test_for_supports_make_iterator() {
     err(
         "
             class Foo
-            impl Foo { fun makeIterator(): Bool { return true; } }
+            impl Foo { fun iterator(): Bool { return true; } }
             fun f(): Unit { for i in Foo() {} }",
         pos(4, 41),
         ErrorMessage::TypeNotUsableInForIn("Foo".into()),
@@ -1147,7 +1147,7 @@ fn test_for_supports_make_iterator() {
 
     ok("
             class Foo
-            impl Foo { fun makeIterator(): FooIter { return FooIter(); } }
+            impl Foo { fun iterator(): FooIter { return FooIter(); } }
             class FooIter
             impl std::Iterator for FooIter {
                 fun next(): Option[Int32] { Some[Int32](0i32) }
@@ -2254,7 +2254,7 @@ fn test_type_make_iterator_not_implementing_iterator() {
         "
         class Foo
         impl Foo {
-            fun makeIterator(): Int32 { 0i32 }
+            fun iterator(): Int32 { 0i32 }
         }
         fun bar(x: Foo): Unit {
             for i in x {
@@ -2701,7 +2701,7 @@ fn for_with_array() {
 fn for_with_list() {
     ok("fun f(x: List[Int32]): Int32 {
         let mut result = 0i32;
-        for i in x.makeIterator() {
+        for i in x.iterator() {
             result = result + i;
         }
         result
@@ -2717,7 +2717,7 @@ fn for_with_list() {
 
     ok("fun f(x: List[Float32]): Float32 {
         let mut result = 0.0f32;
-        for i in x.makeReverseIterator() {
+        for i in x.iteratorReverse() {
             result = result + i;
         }
         result

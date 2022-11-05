@@ -480,7 +480,7 @@ impl<'a> TypeCheck<'a> {
         &mut self,
         object_type: SourceType,
     ) -> Option<(FctDefinitionId, SourceType)> {
-        let make_iterator_name = self.sa.interner.intern("makeIterator");
+        let make_iterator_name = self.sa.interner.intern("iterator");
 
         let mut lookup = MethodLookup::new(self.sa, self.fct)
             .no_error_reporting()

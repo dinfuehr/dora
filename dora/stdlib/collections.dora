@@ -85,17 +85,11 @@ impl[T] Array[T] {
     return result.toArray();
   }
 
-  @pub fun makeIterator(): ArrayIterator[T] {
-    ArrayIterator[T]::new(self)
-  }
+  @pub fun iterator(): ArrayIterator[T] = ArrayIterator[T]::new(self);
 
-  @pub fun makeReverseIterator(): ArrayIteratorReverse[T] {
-    ArrayIteratorReverse[T]::new(self)
-  }
+  @pub fun iteratorReverse(): ArrayIteratorReverse[T] = ArrayIteratorReverse[T]::new(self);
 
-  @pub fun enumerate(): ArrayEnumerator[T] {
-    ArrayEnumerator[T]::new(self)
-  }
+  @pub fun enumerate(): ArrayEnumerator[T] = ArrayEnumerator[T]::new(self);
 
   @static @internal fun unsafeNew(size: Int64): Array[T];
 
@@ -762,9 +756,7 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
         return self.cap;
     }
 
-    @pub fun makeIterator(): HashMapIterator[K, V] {
-        HashMapIterator[K, V]::new(self)
-    }
+    @pub fun iterator(): HashMapIterator[K, V] = HashMapIterator[K, V]::new(self);
 }
 
 @pub class HashMapIterator[K: Hash + Equals, V] {
@@ -1119,17 +1111,11 @@ impl[T] List[T] {
     return result;
   }
 
-  @pub fun makeIterator(): ListIterator[T] {
-    ListIterator[T]::new(self)
-  }
+  @pub fun iterator(): ListIterator[T] = ListIterator[T]::new(self);
 
-  @pub fun makeReverseIterator(): ListIteratorReverse[T] {
-    ListIteratorReverse[T]::new(self)
-  }
+  @pub fun iteratorReverse(): ListIteratorReverse[T] = ListIteratorReverse[T]::new(self);
 
-  @pub fun enumerate(): ListEnumerator[T] {
-    ListEnumerator[T]::new(self)
-  }
+  @pub fun enumerate(): ListEnumerator[T] = ListEnumerator[T]::new(self);
 }
 
 @pub class ListEnumerator[T] {

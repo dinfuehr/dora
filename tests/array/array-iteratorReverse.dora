@@ -4,7 +4,7 @@ fun main(): Unit {
 }
 
 fun iterateManually(): Unit {
-  let it = Array[String]::new("a", "b", "c").makeReverseIterator();
+  let it = Array[String]::new("a", "b", "c").iteratorReverse();
   let value = it.next().getOrPanic();
   assert(value == "c");
   let value = it.next().getOrPanic();
@@ -16,7 +16,7 @@ fun iterateManually(): Unit {
 
 fun iterateWithForIn(): Unit {
   let mut idx = 0;
-  for value in Array[String]::new("a", "b", "c").makeReverseIterator() {
+  for value in Array[String]::new("a", "b", "c").iteratorReverse() {
 
     if idx == 0i64 { assert(value == "c"); }
     else if idx == 1i64 { assert(value == "b"); }

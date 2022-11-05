@@ -127,7 +127,7 @@ impl Int32 {
 @pub class Int32Range(lower: Int32, upper: Int32)
 
 impl Int32Range {
-  @pub fun makeIterator(): Int32RangeIterator = Int32RangeIterator(self, 0i32);
+  @pub fun iterator(): Int32RangeIterator = Int32RangeIterator(self, 0i32);
 }
 
 @pub fun range(lower: Int32, upper: Int32): Int32Range = Int32Range(lower, upper);
