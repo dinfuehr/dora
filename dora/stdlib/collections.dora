@@ -57,6 +57,34 @@ impl[T] Array[T] {
     return result;
   }
 
+  @pub fun retain(fct: (T): Bool): Array[T] {
+    let result = List[T]::new();
+    let len = self.size();
+    let mut idx = 0;
+    while idx < len {
+      let val = self(idx);
+      if fct(val) {
+        result.push(val);
+      }
+      idx = idx + 1;
+    }
+    return result.toArray();
+  }
+
+  @pub fun reject(fct: (T): Bool): Array[T] {
+    let result = List[T]::new();
+    let len = self.size();
+    let mut idx = 0;
+    while idx < len {
+      let val = self(idx);
+      if fct(val).not() {
+        result.push(val);
+      }
+      idx = idx + 1;
+    }
+    return result.toArray();
+  }
+
   @pub fun makeIterator(): ArrayIter[T] {
     ArrayIter[T]::new(self)
   }
@@ -1044,6 +1072,32 @@ impl[T] List[T] {
       idx = idx + 1;
     }
     return List[U](result, result.size());
+  }
+
+  @pub fun retain(fct: (T): Bool): List[T] {
+    let result = List[T]::new();
+    let mut idx = 0;
+    while idx < self.len {
+      let val = self.array(idx);
+      if fct(val) {
+        result.push(val);
+      }
+      idx = idx + 1;
+    }
+    return result;
+  }
+
+  @pub fun reject(fct: (T): Bool): List[T] {
+    let result = List[T]::new();
+    let mut idx = 0;
+    while idx < self.len {
+      let val = self.array(idx);
+      if fct(val).not() {
+        result.push(val);
+      }
+      idx = idx + 1;
+    }
+    return result;
   }
 
   @pub fun makeIterator(): ListIterator[T] {
