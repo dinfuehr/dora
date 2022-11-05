@@ -127,19 +127,17 @@ impl Int32 {
 @pub class Int32Range(lower: Int32, upper: Int32)
 
 impl Int32Range {
-  @pub fun makeIterator(): Int32RangeIter {
-    return Int32RangeIter(self, 0i32);
-  }
+  @pub fun makeIterator(): Int32RangeIterator = Int32RangeIterator(self, 0i32);
 }
 
 @pub fun range(lower: Int32, upper: Int32): Int32Range = Int32Range(lower, upper);
 
-class Int32RangeIter {
+class Int32RangeIterator {
   range: Int32Range,
   value: Int32,
 }
 
-impl Iterator for Int32RangeIter {
+impl Iterator for Int32RangeIterator {
   fun next(): Option[Int32] {
     if self.value < self.range.upper {
       let cur = self.value;
