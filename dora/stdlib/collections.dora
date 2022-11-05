@@ -89,6 +89,10 @@ impl[T] Array[T] {
     ArrayIterator[T]::new(self)
   }
 
+  @pub fun makeReverseIterator(): ArrayIteratorReverse[T] {
+    ArrayIteratorReverse[T]::new(self)
+  }
+
   @pub fun enumerate(): ArrayEnumerator[T] {
     ArrayEnumerator[T]::new(self)
   }
@@ -151,6 +155,25 @@ impl[T] ArrayIterator[T] {
       let current = self.array(self.idx);
       self.idx = self.idx + 1;
       Some[T](current)
+    } else {
+      None[T]
+    }
+  }
+}
+
+@pub class ArrayIteratorReverse[T] {
+  array: Array[T],
+  idx: Int64,
+}
+
+impl[T] ArrayIteratorReverse[T] {
+  @static fun new(data: Array[T]): ArrayIteratorReverse[T] = ArrayIteratorReverse[T](data, data.size() - 1);
+
+  @pub fun next(): Option[T] {
+    if self.idx != -1 {
+      let result = self.array(self.idx);
+      self.idx = self.idx - 1i64;
+      Some[T](result)
     } else {
       None[T]
     }
