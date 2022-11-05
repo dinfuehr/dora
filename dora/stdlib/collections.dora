@@ -85,8 +85,8 @@ impl[T] Array[T] {
     return result.toArray();
   }
 
-  @pub fun makeIterator(): ArrayIter[T] {
-    ArrayIter[T]::new(self)
+  @pub fun makeIterator(): ArrayIterator[T] {
+    ArrayIterator[T]::new(self)
   }
 
   @pub fun enumerate(): ArrayEnumerator[T] {
@@ -138,15 +138,13 @@ impl[T: Zero] Array[T] {
   }
 }
 
-@pub class ArrayIter[T] {
+@pub class ArrayIterator[T] {
   array: Array[T],
   idx: Int64,
 }
 
-impl[T] ArrayIter[T] {
-  @static fun new(data: Array[T]): ArrayIter[T] {
-    ArrayIter[T](data, 0)
-  }
+impl[T] ArrayIterator[T] {
+  @static fun new(data: Array[T]): ArrayIterator[T] = ArrayIterator[T](data, 0);
 
   @pub fun next(): Option[T] {
     if self.idx < self.array.size() {

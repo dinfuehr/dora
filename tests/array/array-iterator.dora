@@ -1,0 +1,29 @@
+fun main(): Unit {
+  iterateManually();
+  iterateWithForIn();
+}
+
+fun iterateManually(): Unit {
+  let it = Array[String]::new("a", "b", "c").makeIterator();
+  let value = it.next().getOrPanic();
+  assert(value == "a");
+  let value = it.next().getOrPanic();
+  assert(value == "b");
+  let value = it.next().getOrPanic();
+  assert(value == "c");
+  it.next().unwrapNone();
+}
+
+fun iterateWithForIn(): Unit {
+  let mut idx = 0;
+  for value in Array[String]::new("a", "b", "c").makeIterator() {
+
+    if idx == 0i64 { assert(value == "a"); }
+    else if idx == 1i64 { assert(value == "b"); }
+    else if idx == 2i64 { assert(value == "c"); }
+    else {
+      unreachable[()]();
+    }
+    idx = idx + 1;
+  }
+}
