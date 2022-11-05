@@ -1,0 +1,9 @@
+fun main(): Unit {
+  let list0 = List[Int64]::new();
+  let list1 = List[Int64]::new(1, 2, 3);
+  let list2 = List[Int64]::new(4, 5, 6);
+
+  assert(list0.any(|val: Int64|: Bool { val < 4 }).not());
+  assert(list1.any(|val: Int64|: Bool { val < 4 }));
+  assert(list2.any(|val: Int64|: Bool { val < 4 }).not());
+}

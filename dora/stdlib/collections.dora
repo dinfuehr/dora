@@ -13,6 +13,39 @@ impl[T] Array[T] {
 
   @pub fun isEmpty(): Bool = self.size() == 0i64;
 
+  @pub fun all(fct: (T): Bool): Bool {
+    let len = self.size();
+    let mut idx = 0;
+    while idx < len {
+      if fct(self(idx)).not() {
+        return false;
+      }
+      idx = idx + 1;
+    }
+    return true;
+  }
+
+  @pub fun any(fct: (T): Bool): Bool {
+    let len = self.size();
+    let mut idx = 0;
+    while idx < len {
+      if fct(self(idx)) {
+        return true;
+      }
+      idx = idx + 1;
+    }
+    return false;
+  }
+
+  @pub fun each(fct: (T): Unit): Unit {
+    let len = self.size();
+    let mut idx = 0;
+    while idx < len {
+      fct(self(idx));
+      idx = idx + 1;
+    }
+  }
+
   @pub fun makeIterator(): ArrayIter[T] {
     ArrayIter[T]::new(self)
   }
@@ -750,6 +783,18 @@ impl[T] List[T] {
     List[T](values, values.size())
   }
 
+  @pub fun size(): Int64 {
+    return self.len;
+  }
+
+  @pub fun isEmpty(): Bool {
+    self.len == 0
+  }
+
+  @pub fun capacity(): Int64 {
+    self.array.size()
+  }
+
   @pub fun get(idx: Int64): T {
     if idx < 0i64 || idx >= self.len {
       fatalError("index out of bounds for list");
@@ -764,6 +809,27 @@ impl[T] List[T] {
     }
 
     self.array.set(idx, val);
+  }
+
+  @pub fun first(): Option[T] {
+    if self.len == 0 {
+      Option[T]::None
+    } else {
+      Option[T]::Some(self.array(0))
+    }
+  }
+
+  @pub fun last(): Option[T] {
+    if self.len == 0 {
+      Option[T]::None
+    } else {
+      Option[T]::Some(self.array(self.len - 1i64))
+    }
+  }
+
+  @pub fun clear(): Unit {
+    self.len = 0;
+    self.array = Array[T]::new();
   }
 
   @pub fun reserve(newcap: Int64): Unit {
@@ -905,7 +971,6 @@ impl[T] List[T] {
     temp
   }
 
-
   @pub fun removeIf(fct: (T): Bool): Unit {
     let len = self.len;
     let mut destIdx = 0i64;
@@ -930,38 +995,34 @@ impl[T] List[T] {
     }
   }
 
-
-  @pub fun size(): Int64 {
-    return self.len;
-  }
-
-  @pub fun isEmpty(): Bool {
-    self.len == 0
-  }
-
-  @pub fun capacity(): Int64 {
-    self.array.size()
-  }
-
-  @pub fun first(): Option[T] {
-    if self.len == 0 {
-      Option[T]::None
-    } else {
-      Option[T]::Some(self.array(0))
+  @pub fun all(fct: (T): Bool): Bool {
+    let mut idx = 0;
+    while idx < self.len {
+      if fct(self.array(idx)).not() {
+        return false;
+      }
+      idx = idx + 1;
     }
+    return true;
   }
 
-  @pub fun last(): Option[T] {
-    if self.len == 0 {
-      Option[T]::None
-    } else {
-      Option[T]::Some(self.array(self.len - 1i64))
+  @pub fun any(fct: (T): Bool): Bool {
+    let mut idx = 0;
+    while idx < self.len {
+      if fct(self.array(idx)) {
+        return true;
+      }
+      idx = idx + 1;
     }
+    return false;
   }
 
-  @pub fun clear(): Unit {
-    self.len = 0;
-    self.array = Array[T]::new();
+  @pub fun each(fct: (T): Unit): Unit {
+    let mut idx = 0;
+    while idx < self.len {
+      fct(self.array(idx));
+      idx = idx + 1;
+    }
   }
 
   @pub fun makeIterator(): ListIterator[T] {

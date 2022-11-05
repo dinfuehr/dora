@@ -1,0 +1,12 @@
+fun main(): Unit {
+  let list0 = List[Int64]::new();
+  let list1 = List[Int64]::new(1, 2, 3);
+
+  let mut x = 0;
+
+  list0.each(|val: Int64|: Unit { x = x + val });
+  assert(x == 0);
+
+  list1.each(|val: Int64|: Unit { x = x + val });
+  assert(x == 6);
+}
