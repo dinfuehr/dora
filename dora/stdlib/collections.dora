@@ -762,20 +762,18 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
         return self.cap;
     }
 
-    @pub fun makeIterator(): HashMapIter[K, V] {
-        HashMapIter[K, V]::new(self)
+    @pub fun makeIterator(): HashMapIterator[K, V] {
+        HashMapIterator[K, V]::new(self)
     }
 }
 
-@pub class HashMapIter[K: Hash + Equals, V] {
+@pub class HashMapIterator[K: Hash + Equals, V] {
   map: HashMap[K, V],
   idx: Int64,
 }
 
-impl[K: Hash + Equals, V] HashMapIter[K, V] {
-    @pub @static fun new(map: HashMap[K, V]): HashMapIter[K, V] {
-      HashMapIter[K, V](map, 0)
-    }
+impl[K: Hash + Equals, V] HashMapIterator[K, V] {
+    @pub @static fun new(map: HashMap[K, V]): HashMapIterator[K, V] = HashMapIterator[K, V](map, 0);
 
     @pub fun next(): Option[(K, V)] {
         while self.idx < self.map.capacity() {
