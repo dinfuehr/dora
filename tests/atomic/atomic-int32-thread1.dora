@@ -7,7 +7,7 @@ class MyThread(counter: AtomicInt32)
 
 impl MyThread {
    fun run(): Unit {
-        let mut i = 0i32;
+        var i = 0i32;
         while i < ITERATIONS {
             self.counter.fetchAdd(1i32);
             i = i + 1i32;
@@ -19,7 +19,7 @@ fun main(): Unit {
     let shared = AtomicInt32::new(0i32);
     let threads = List[std::Thread]::new();
 
-    let mut i = 0i32;
+    var i = 0i32;
 
     while i < THREADS {
         let thread = std::thread::spawn(||: Unit {

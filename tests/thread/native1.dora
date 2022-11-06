@@ -7,7 +7,7 @@ fun main(): Unit {
 }
 
 fun nativeCalls(): Unit {
-    let mut i = 0i32;
+    var i = 0i32;
 
     while i < 100'000i32 {
         std::sleep(0i32);

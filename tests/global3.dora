@@ -1,4 +1,4 @@
-let mut a: A = A(42i32);
+var a: A = A(42i32);
 
 fun main(): Unit {
     std::forceCollect();

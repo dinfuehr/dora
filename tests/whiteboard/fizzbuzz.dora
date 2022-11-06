@@ -1,7 +1,7 @@
 //= stdout file
 
 fun main(): Unit {
-    let mut i = 1i32;
+    var i = 1i32;
 
     while i <= 100i32 {
         if i.remainder(15i32) == 0i32 {

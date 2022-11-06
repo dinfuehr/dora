@@ -62,7 +62,7 @@ impl Producer {
     }
 
     fun run(): Unit {
-        let mut i = 0i32;
+        var i = 0i32;
 
         while i < ITERATIONS {
             self.queue.enqueue(i);
@@ -86,7 +86,7 @@ impl Consumer {
     }
 
     fun run(): Unit {
-        let mut continue = true;
+        var continue = true;
         while continue {
             let value = self.queue.dequeue();
 
@@ -100,7 +100,7 @@ impl Consumer {
 }
 
 fun main(): Unit {
-    let mut i = 0i32;
+    var i = 0i32;
     let queue = SharedQueue[Int32]::new(QUEUE_SIZE);
     let producerThreads = List[std::Thread]::new();
     let producers = List[Producer]::new();
@@ -121,7 +121,7 @@ fun main(): Unit {
         producer.join();
     }
 
-    let mut producerSum = 0i32;
+    var producerSum = 0i32;
 
     for producer in producers {
         producerSum = producerSum + producer.sum;

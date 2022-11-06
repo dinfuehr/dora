@@ -1,5 +1,5 @@
 fun main(): Unit {
-    let mut i = 0i32;
+    var i = 0i32;
     while i < 10i32 {
         i = i + 1i32;
     }

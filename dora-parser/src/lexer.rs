@@ -552,7 +552,7 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     // "small" shapes
     keywords.insert("fun", TokenKind::Fun);
     keywords.insert("let", TokenKind::Let);
-    keywords.insert("mut", TokenKind::Mut);
+    keywords.insert("var", TokenKind::Var);
     keywords.insert("const", TokenKind::Const);
 
     // control flow
@@ -1022,14 +1022,17 @@ mod tests {
 
     #[test]
     fn test_keywords() {
-        let mut reader = Lexer::from_str("fun let while if else match return");
+        let mut reader = Lexer::from_str("fun let var");
         assert_tok(&mut reader, TokenKind::Fun, 1, 1);
         assert_tok(&mut reader, TokenKind::Let, 1, 5);
-        assert_tok(&mut reader, TokenKind::While, 1, 9);
-        assert_tok(&mut reader, TokenKind::If, 1, 15);
-        assert_tok(&mut reader, TokenKind::Else, 1, 18);
-        assert_tok(&mut reader, TokenKind::Match, 1, 23);
-        assert_tok(&mut reader, TokenKind::Return, 1, 29);
+        assert_tok(&mut reader, TokenKind::Var, 1, 9);
+
+        let mut reader = Lexer::from_str("while if else match return");
+        assert_tok(&mut reader, TokenKind::While, 1, 1);
+        assert_tok(&mut reader, TokenKind::If, 1, 7);
+        assert_tok(&mut reader, TokenKind::Else, 1, 10);
+        assert_tok(&mut reader, TokenKind::Match, 1, 15);
+        assert_tok(&mut reader, TokenKind::Return, 1, 21);
 
         let mut reader = Lexer::from_str("self class super mod");
         assert_tok(&mut reader, TokenKind::This, 1, 1);
@@ -1045,12 +1048,11 @@ mod tests {
         assert_tok(&mut reader, TokenKind::Trait, 1, 24);
         assert_tok(&mut reader, TokenKind::Const, 1, 30);
 
-        let mut reader = Lexer::from_str("for in impl Self mut");
+        let mut reader = Lexer::from_str("for in impl Self");
         assert_tok(&mut reader, TokenKind::For, 1, 1);
         assert_tok(&mut reader, TokenKind::In, 1, 5);
         assert_tok(&mut reader, TokenKind::Impl, 1, 8);
         assert_tok(&mut reader, TokenKind::CapitalThis, 1, 13);
-        assert_tok(&mut reader, TokenKind::Mut, 1, 18);
     }
 
     #[test]

@@ -1,6 +1,6 @@
 fun main(): Unit {
-  let mut list: Foo = nil;
-  let mut i = 0;
+  var list: Foo = nil;
+  var i = 0;
 
   while i < 10000000 {
     if i.remainder(5) != 0 {

@@ -1,5 +1,5 @@
 fun main(): Unit {
-  let mut n = 7i32;
+  var n = 7i32;
   if std::argc() > 0i32 { n = std::argv(0i32).toInt32().getOrPanic(); }
   println("Pfannkuchen ("+n.toString()+") = " + fannkuch(n).toString());
 }
@@ -8,17 +8,17 @@ fun fannkuch(n: Int32): Int32 {
   let perm = Array[Int32]::fill(n.toInt64(), 0i32);
   let perm1 = Array[Int32]::fill(n.toInt64(), 0i32);
   let count = Array[Int32]::fill(n.toInt64(), 0i32);
-  let mut maxFlipsCount = 0i32;
-  let mut permCount = 0i32;
-  let mut checksum = 0i32;
+  var maxFlipsCount = 0i32;
+  var permCount = 0i32;
+  var checksum = 0i32;
 
-  let mut i = 0i32;
+  var i = 0i32;
   while i < n {
     perm1(i.toInt64()) = i;
     i = i + 1i32;
   }
 
-  let mut r = n;
+  var r = n;
 
   while true {
     while r != 1i32 {
@@ -26,19 +26,19 @@ fun fannkuch(n: Int32): Int32 {
       r = r - 1i32;
     }
 
-    let mut i = 0i32;
+    var i = 0i32;
     while i < n {
       perm(i.toInt64()) = perm1(i.toInt64());
       i = i + 1i32;
     }
 
-    let mut flipsCount = 0i32;
-    let mut k = perm(0i64);
+    var flipsCount = 0i32;
+    var k = perm(0i64);
 
     while k != 0i32 {
       let k2 = (k+1i32) / 2i32;
 
-      let mut i = 0i32;
+      var i = 0i32;
       while i < k2 {
         let temp = perm(i.toInt64());
         perm(i.toInt64()) = perm((k-i).toInt64());
@@ -59,7 +59,7 @@ fun fannkuch(n: Int32): Int32 {
       checksum = checksum - flipsCount;
     }
 
-    let mut continue = true;
+    var continue = true;
     while continue {
       if r == n {
         println(checksum.toString());
@@ -67,7 +67,7 @@ fun fannkuch(n: Int32): Int32 {
       }
 
       let perm0 = perm1(0i64);
-      let mut i = 0i32;
+      var i = 0i32;
 
       while i < r {
         let j = i + 1i32;

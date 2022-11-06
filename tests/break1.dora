@@ -1,8 +1,8 @@
 fun main(): Unit {
-  let mut i = 0i32;
-  let mut sum = 0i32;
+  var i = 0i32;
+  var sum = 0i32;
 
-  let mut continue = true;
+  var continue = true;
   while i < 10i32 && continue {
     if i == 4i32 {
       continue = false;

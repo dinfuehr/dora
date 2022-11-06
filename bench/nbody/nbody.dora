@@ -3,7 +3,7 @@ fun main(): Unit {
     let n = std::argv(0i32).toInt32().getOrPanic();
     let bodies = NBodySystem::new();
 
-    let mut i = 0i32;
+    var i = 0i32;
     println(bodies.energy().toString());
 
     while i < n {
@@ -28,9 +28,9 @@ impl NBodySystem {
             Body::neptune(),
         );
 
-        let mut px = 0.0;
-        let mut py = 0.0;
-        let mut pz = 0.0;
+        var px = 0.0;
+        var py = 0.0;
+        var pz = 0.0;
 
         for body in bodies {
             px = px + body.vx * body.mass;
@@ -45,7 +45,7 @@ impl NBodySystem {
 
     fun advance(dt: Float64): Unit {
         for (i, iBody) in self.bodies.enumerate() {
-            let mut j = i + 1i64;
+            var j = i + 1i64;
 
             while j < self.bodies.size() {
                 let jBody = self.bodies(j);
@@ -78,11 +78,11 @@ impl NBodySystem {
    }
 
    fun energy(): Float64 {
-      let mut dx = 0.0;
-      let mut dy = 0.0;
-      let mut dz = 0.0;
-      let mut distance = 0.0;
-      let mut e = 0.0;
+      var dx = 0.0;
+      var dy = 0.0;
+      var dz = 0.0;
+      var distance = 0.0;
+      var e = 0.0;
 
       for (i, iBody) in self.bodies.enumerate() {
          e = e + 0.5 * iBody.mass *
@@ -90,7 +90,7 @@ impl NBodySystem {
                 + iBody.vy * iBody.vy
                 + iBody.vz * iBody.vz );
 
-        let mut j = i+1i64;
+        var j = i+1i64;
 
         while j < self.bodies.size() {
             let jBody = self.bodies(j);
@@ -111,7 +111,7 @@ impl NBodySystem {
 }
 
 const PI: Float64 = 3.141592653589793;
-let mut SOLAR_MASS: Float64 = 0.0;
+var SOLAR_MASS: Float64 = 0.0;
 const DAYS_PER_YEAR: Float64 = 365.24;
 
 class Body {

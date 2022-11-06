@@ -17,8 +17,8 @@ impl Node {
     @static fun leaf(): Node = Node::new(Option[Node]::None, Option[Node]::None);
 }
 
-let mut stretchTreeDepth: Int32 = 0i32;
-let mut longLivedTreeDepth: Int32 = 0i32;
+var stretchTreeDepth: Int32 = 0i32;
+var longLivedTreeDepth: Int32 = 0i32;
 const kArraySize: Int32 = 500000i32;
 const kMinTreeDepth: Int32 = 4i32;
 const kMaxTreeDepth: Int32 = 16i32;
@@ -32,7 +32,7 @@ fun numIters(i: Int32): Int32 {
 }
 
 fun populate(depth: Int32, thisNode: Node): Unit {
-    let mut depth = depth;
+    var depth = depth;
     if depth <= 0i32 {
         return;
     } else {
@@ -57,7 +57,7 @@ fun timeConstruction(depth: Int32): Unit {
     println("Creating " + iNumIters.toString() + " trees of depth " + depth.toString());
     let start = timestamp();
 
-    let mut i = 0i32;
+    var i = 0i32;
 
     while i < iNumIters {
         let tempTree = Node::leaf();
@@ -71,7 +71,7 @@ fun timeConstruction(depth: Int32): Unit {
 
     let start = finish;
 
-    let mut i = 0i32;
+    var i = 0i32;
 
     while i < iNumIters {
         let tempTree = makeTree(depth);
@@ -106,14 +106,14 @@ fun main(): Unit {
     println("Creating a long-lived array of " + kArraySize.toString() + " doubles");
     let array = Array[Float64]::fill(kArraySize.toInt64(), 0.0);
 
-    let mut i = 0i32;
+    var i = 0i32;
 
     while i < kArraySize / 2i32 {
         array(i.toInt64()) = 1.0/i.toFloat64();
         i = i + 1i32;
     }
 
-    let mut d = kMinTreeDepth;
+    var d = kMinTreeDepth;
 
     while d <= depth {
         timeConstruction(d);

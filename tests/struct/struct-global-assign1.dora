@@ -1,8 +1,8 @@
 struct Bar(first: String, second: Bool)
 
-let mut x: Bar = Bar("", false);
-let mut y: Bar = Bar("", false);
-let mut tmp: Bar = Bar("", false);
+var x: Bar = Bar("", false);
+var y: Bar = Bar("", false);
+var tmp: Bar = Bar("", false);
 
 fun main(): Unit {
     x = Bar("my string", true);

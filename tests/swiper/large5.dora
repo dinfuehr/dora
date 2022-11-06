@@ -2,8 +2,8 @@
 //= error oom
 
 fun main(): Unit {
-    let mut x = List[Array[Int32]]::new();
-    let mut i = 0i32;
+    var x = List[Array[Int32]]::new();
+    var i = 0i32;
 
     while i < 100'000i32 {
         x.push(Array[Int32]::zero(32i64 * 1024i64));

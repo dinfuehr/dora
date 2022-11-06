@@ -1,5 +1,5 @@
 fun main(): Unit {
-  let mut x : Option[Foo] = None[Foo];
+  var x : Option[Foo] = None[Foo];
 
   if false {
     x = Some[Foo](Foo());

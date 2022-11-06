@@ -1,4 +1,4 @@
-let mut x: Float64 = 0.0;
+var x: Float64 = 0.0;
 
 fun main(): Unit {
     assert(getx() == 0.0);

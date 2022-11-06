@@ -15,7 +15,7 @@ fun iterateManually(): Unit {
 }
 
 fun iterateWithForIn(): Unit {
-  let mut idx = 0;
+  var idx = 0;
   for value in Array[String]::new("a", "b", "c").iterator() {
 
     if idx == 0i64 { assert(value == "a"); }

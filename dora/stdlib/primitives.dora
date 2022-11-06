@@ -77,8 +77,8 @@ impl Int32 {
 
   @pub @internal fun countZeroBits(): Int32 = self.not().countOneBits();
   @pub @internal fun countOneBits(): Int32 {
-    let mut x = self;
-    let mut c = 0i32;
+    var x = self;
+    var c = 0i32;
     while (x != 0i32) {
       c = c + 1i32;
       x = x.bitwiseAnd(x - 1i32);
@@ -89,8 +89,8 @@ impl Int32 {
     if self == 0i32 {
       return Int32::bits();
     }
-    let mut t = 1i32.shiftLeft(Int32::bits() - 1i32);
-    let mut r = 0i32;
+    var t = 1i32.shiftLeft(Int32::bits() - 1i32);
+    var r = 0i32;
     while self.bitwiseAnd(t) == 0i32 {
       t = t.shiftRight(1i32);
       r = r + 1i32;
@@ -102,8 +102,8 @@ impl Int32 {
     if self == 0i32 {
       return Int32::bits();
     }
-    let mut t = 1i32;
-    let mut r = 0i32;
+    var t = 1i32;
+    var r = 0i32;
     while self.bitwiseAnd(t) == 0i32 {
       t = t.shiftLeft(1i32);
       r = r + 1i32;
@@ -253,8 +253,8 @@ impl Int64 {
 
   @pub @internal fun countZeroBits(): Int32 = self.not().countOneBits();
   @pub @internal fun countOneBits(): Int32 {
-    let mut x = self;
-    let mut c = 0i32;
+    var x = self;
+    var c = 0i32;
     while (x != 0i64) {
       c = c + 1i32;
       x = x.bitwiseAnd(x - 1i64);
@@ -265,8 +265,8 @@ impl Int64 {
     if self == 0i64 {
       return Int64::bits();
     }
-    let mut t = 1i64.shiftLeft(Int64::bits() - 1i32);
-    let mut r = 0i32;
+    var t = 1i64.shiftLeft(Int64::bits() - 1i32);
+    var r = 0i32;
     while (self.bitwiseAnd(t)) == 0i64 {
       t = t.shiftRight(1i32);
       r = r + 1i32;
@@ -278,8 +278,8 @@ impl Int64 {
     if self == 0i64 {
       return Int64::bits();
     }
-    let mut t = 1i64;
-    let mut r = 0i32;
+    var t = 1i64;
+    var r = 0i32;
     while (self.bitwiseAnd(t)) == 0i64 {
       t = t.shiftLeft(1i32);
       r = r + 1i32
@@ -313,8 +313,8 @@ impl Float32 {
   @pub @internal fun equals(rhs: Float32): Bool;
   @pub @internal fun compareTo(rhs: Float32): Int32;
   @pub @internal fun sortsAs(rhs: Float32): Int32 {
-    let mut ix = self.asInt32();
-    let mut iy = rhs.asInt32();
+    var ix = self.asInt32();
+    var iy = rhs.asInt32();
 
     let sx = ix.shiftRightSigned(31i32).shiftRight(1i32);
     let sy = iy.shiftRightSigned(31i32).shiftRight(1i32);
@@ -367,8 +367,8 @@ impl Float64 {
   @pub @internal fun equals(rhs: Float64): Bool;
   @pub @internal fun compareTo(rhs: Float64): Int32;
   @pub @internal fun sortsAs(rhs: Float64): Int32 {
-    let mut ix = self.asInt64();
-    let mut iy = rhs.asInt64();
+    var ix = self.asInt64();
+    var iy = rhs.asInt64();
 
     let sx = ix.shiftRightSigned(63i32).shiftRight(1i32);
     let sy = iy.shiftRightSigned(63i32).shiftRight(1i32);

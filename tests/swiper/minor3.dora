@@ -1,8 +1,8 @@
 //= vm-args "--gc-parallel-minor --gc-worker=2 --gc-verify"
 
 fun main(): Unit {
-    let mut x = List[Array[Int32]]::new();
-    let mut i = 0i32;
+    var x = List[Array[Int32]]::new();
+    var i = 0i32;
 
     while i < 100i32 {
         if i.remainder(2i32) == 0i32 {

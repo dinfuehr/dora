@@ -4,7 +4,7 @@ use std::thread::Mutex;
 use std::Thread;
 
 fun main(): Unit {
-    let mut i = 0i32;
+    var i = 0i32;
     let ids = BitVec::new();
     let mtx = Mutex::new();
     let protectedIds = BitVec::new();

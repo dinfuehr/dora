@@ -6,9 +6,9 @@ const BUFFER_SIZE: Int = 8192;
 
 class Mandelbrot(let size: Int) {
     let fac: Float64 = 2.0 / size.toFloat64();
-    let mut shift: Int = 0;
+    var shift: Int = 0;
     let buf: Array[Byte] = Array[Byte](BUFFER_SIZE);
-    let mut bufferLen: Int;
+    var bufferLen: Int;
 
     if size.remainder(8) == 0 {
         self.shift = 0;
@@ -17,7 +17,7 @@ class Mandelbrot(let size: Int) {
     }
     
     fun compute(): Unit {
-        let mut y = 0;
+        var y = 0;
 
         println("P4");
         let s = self.size.toString();
@@ -32,21 +32,21 @@ class Mandelbrot(let size: Int) {
     }
 
     fun computeRow(y: Int): Unit {
-        let mut bits = 0;
+        var bits = 0;
         let Ci = (y.toFloat64() * self.fac - 1.0);
         let bufferVar = self.buf;
 
-        let mut x = 0;
+        var x = 0;
 
         while x < self.size {
-            let mut Zr = 0.0;
-            let mut Zi = 0.0;
-            let mut Cr = (x.toFloat64() * self.fac - 1.5);
+            var Zr = 0.0;
+            var Zi = 0.0;
+            var Cr = (x.toFloat64() * self.fac - 1.5);
 
-            let mut i = 50;
+            var i = 50;
 
-            let mut ZrN = 0.0;
-            let mut ZiN = 0.0;
+            var ZrN = 0.0;
+            var ZiN = 0.0;
 
             Zi = 2.0 * Zr * Zi + Ci;
             Zr = ZrN - ZiN + Cr;

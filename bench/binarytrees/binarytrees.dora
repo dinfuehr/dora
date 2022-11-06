@@ -1,5 +1,5 @@
 fun main(): Unit {
-  let mut maxDepth = 6i32;
+  var maxDepth = 6i32;
 
   if std::argc() > 0i32 {
     maxDepth = std::argv(0i32).toInt32().getOrPanic();
@@ -18,7 +18,7 @@ fun main(): Unit {
 
 fun trees(maxDepth: Int32): Unit {
   let longLastingNode = createTree(maxDepth);
-  let mut depth = 4i32;
+  var depth = 4i32;
 
   while depth <= maxDepth {
     let iterations = 16i32.shiftLeft(maxDepth - depth);
@@ -32,8 +32,8 @@ fun trees(maxDepth: Int32): Unit {
 }
 
 fun loops(iterations: Int32, depth: Int32): Unit {
-  let mut check = 0i32;
-  let mut item = 0i32;
+  var check = 0i32;
+  var item = 0i32;
 
   while item < iterations {
     check = check + checkTree(createTree(depth));
@@ -45,7 +45,7 @@ fun loops(iterations: Int32, depth: Int32): Unit {
 }
 
 fun createTree(depth: Int32): TreeNode {
-  let mut depth = depth;
+  var depth = depth;
   let node = TreeNode(0i32, Option[TreeNode]::None, Option[TreeNode]::None);
 
   if depth > 0i32 {

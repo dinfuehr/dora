@@ -540,7 +540,7 @@ fn reassign_field() {
 
 #[test]
 fn reassign_var() {
-    ok("fun f(): Unit { let mut a=1; a=2; }");
+    ok("fun f(): Unit { var a=1; a=2; }");
 }
 
 #[test]
@@ -1038,12 +1038,12 @@ fn test_find_class_method_precedence() {
 
 #[test]
 fn test_global_get() {
-    ok("let mut x: Int32 = 0i32; fun foo(): Int32 { return x; }");
+    ok("var x: Int32 = 0i32; fun foo(): Int32 { return x; }");
 }
 
 #[test]
 fn test_global_set() {
-    ok("let mut x: Int32 = 0i32; fun foo(a: Int32): Unit { x = a; }");
+    ok("var x: Int32 = 0i32; fun foo(a: Int32): Unit { x = a; }");
     err(
         "let x: Int32 = 0i32; fun foo(a: Int32): Unit { x = a; }",
         pos(1, 50),
@@ -2681,7 +2681,7 @@ fn variadic_parameter() {
 #[test]
 fn for_with_array() {
     ok("fun f(x: Array[Int32]): Int32 {
-        let mut result = 0i32;
+        var result = 0i32;
         for i in x {
             result = result + i;
         }
@@ -2689,7 +2689,7 @@ fn for_with_array() {
     }");
 
     ok("fun f(x: Array[Float32]): Float32 {
-        let mut result = 0.0f32;
+        var result = 0.0f32;
         for i in x {
             result = result + i;
         }
@@ -2700,7 +2700,7 @@ fn for_with_array() {
 #[test]
 fn for_with_list() {
     ok("fun f(x: List[Int32]): Int32 {
-        let mut result = 0i32;
+        var result = 0i32;
         for i in x.iterator() {
             result = result + i;
         }
@@ -2708,7 +2708,7 @@ fn for_with_list() {
     }");
 
     ok("fun f(x: List[Int32]): Int32 {
-        let mut result = 0i32;
+        var result = 0i32;
         for i in x {
             result = result + i;
         }
@@ -2716,7 +2716,7 @@ fn for_with_list() {
     }");
 
     ok("fun f(x: List[Float32]): Float32 {
-        let mut result = 0.0f32;
+        var result = 0.0f32;
         for i in x.iteratorReverse() {
             result = result + i;
         }
@@ -2724,7 +2724,7 @@ fn for_with_list() {
     }");
 
     ok("fun f(x: List[Float32]): Float32 {
-        let mut result = 0.0f32;
+        var result = 0.0f32;
         for i in x {
             result = result + i;
         }
@@ -3666,8 +3666,8 @@ fn infer_enum_type() {
     ");
 
     ok("fun f(): Unit {
-        let mut x: Option[Int32] = None; x = Some(10i32);
-        let mut y: Option[Int32] = Some(10i32); y = None;
+        var x: Option[Int32] = None; x = Some(10i32);
+        var y: Option[Int32] = Some(10i32); y = None;
     }");
 
     ok("fun f(): Option[Int32] {
@@ -3782,7 +3782,6 @@ fn internal_struct_ctor() {
 
 #[test]
 fn mutable_param() {
-    ok("fun f(mut x: Int64): Unit { x = 10; }");
     err(
         "fun f(x: Int64): Unit { x = 10; }",
         pos(1, 27),

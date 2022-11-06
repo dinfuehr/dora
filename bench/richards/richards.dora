@@ -3,7 +3,7 @@
 // Used in Octane 2.0 (https://developers.google.com/octane/benchmark)
 
 fun main(): Unit {
-    let mut iterations = 8200i32;
+    var iterations = 8200i32;
 
     if std::argc() > 0i32 {
         iterations = std::argv(0i32).toInt32().getOrPanic();
@@ -11,7 +11,7 @@ fun main(): Unit {
 
     let bench = Benchmark();
 
-    let mut i = 0i32;
+    var i = 0i32;
     while i < iterations {
         bench.runRichards();
         i = i + 1i32;
@@ -29,7 +29,7 @@ impl Benchmark {
         let scheduler = Scheduler::new();
         scheduler.addIdleTask(ID_IDLE, 0i32, Option[Packet]::None, COUNT);
 
-        let mut queue = Packet::new(Option[Packet]::None, ID_WORKER, KIND_WORK);
+        var queue = Packet::new(Option[Packet]::None, ID_WORKER, KIND_WORK);
         queue = Packet::new(Option[Packet]::Some(queue), ID_WORKER, KIND_WORK);
         scheduler.addWorkerTask(ID_WORKER, 1000i32, Option[Packet]::Some(queue));
 
@@ -171,8 +171,8 @@ const STATE_RUNNABLE: Int32 = 1i32;
 const STATE_SUSPENDED: Int32 = 2i32;
 const STATE_HELD: Int32 = 4i32;
 
-let mut STATE_SUSPENDED_RUNNABLE: Int32 = STATE_SUSPENDED | STATE_RUNNABLE;
-let mut STATE_NOT_HELD: Int32 = STATE_HELD.not();
+var STATE_SUSPENDED_RUNNABLE: Int32 = STATE_SUSPENDED | STATE_RUNNABLE;
+var STATE_NOT_HELD: Int32 = STATE_HELD.not();
 
 class TaskControlBlock {
     link: Option[TaskControlBlock],
@@ -192,7 +192,7 @@ impl TaskControlBlock {
     fun markAsRunnable(): Unit { self.state = self.state | STATE_RUNNABLE; }
 
     fun run(): Option[TaskControlBlock] {
-        let mut packet: Option[Packet] = Option[Packet]::None;
+        var packet: Option[Packet] = Option[Packet]::None;
         if self.state == STATE_SUSPENDED_RUNNABLE {
             packet = self.queue;
             self.queue = packet.getOrPanic().link;
@@ -326,7 +326,7 @@ impl Task for WorkerTask {
             }
             p.id = self.v1;
             p.a1 = 0i32;
-            let mut i = 0i32;
+            var i = 0i32;
             while i < DATA_SIZE {
                 self.v2 = self.v2 + 1i32;
                 if self.v2 > 26i32 {
@@ -391,7 +391,7 @@ impl Task for HandlerTask {
     }
 }
 
-let mut DATA_SIZE: Int32 = 4i32;
+var DATA_SIZE: Int32 = 4i32;
 
 class Packet {
     link: Option[Packet],
@@ -408,8 +408,8 @@ impl Packet {
             return self;
         }
 
-        let mut next: Packet = queue.getOrPanic();
-        let mut peek: Option[Packet] = next.link;
+        var next: Packet = queue.getOrPanic();
+        var peek: Option[Packet] = next.link;
 
         while peek.isSome() {
             next = peek.getOrPanic();

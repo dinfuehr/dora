@@ -1,6 +1,6 @@
-let mut x: (String, Bool) = ("", false);
-let mut y: (String, Bool) = ("", false);
-let mut tmp: (String, Bool) = ("", false);
+var x: (String, Bool) = ("", false);
+var y: (String, Bool) = ("", false);
+var tmp: (String, Bool) = ("", false);
 
 fun main(): Unit {
     x = ("my string", true);

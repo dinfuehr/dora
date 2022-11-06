@@ -2,7 +2,7 @@
 
 fun main(): Unit {
     let a = Array[Foo]::fill(1'000'000i64, Foo());
-    let mut i = 0i64;
+    var i = 0i64;
     while i < a.size() {
         a(i) = Foo();
         i = i + 1i64;

@@ -5,8 +5,8 @@ fun main(): Unit {
 }
 
 fun sum_args(x: Foo...): Int32 {
-    let mut result = 0i32;
-    let mut idx = 0i64;
+    var result = 0i32;
+    var idx = 0i64;
     
     while idx < x.size() {
         let foo = x(idx);

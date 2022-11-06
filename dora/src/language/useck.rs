@@ -331,10 +331,10 @@ mod tests {
     #[test]
     fn check_initializer() {
         ok("let a: Int32 = 0i32;");
-        ok("let a: Int32 = 0i32; let mut b: Int32 = a + 1i32;");
+        ok("let a: Int32 = 0i32; var b: Int32 = a + 1i32;");
         err(
-            "let mut a: Int32 = foo;",
-            pos(1, 20),
+            "var a: Int32 = foo;",
+            pos(1, 16),
             ErrorMessage::UnknownIdentifier("foo".into()),
         );
     }
@@ -342,8 +342,8 @@ mod tests {
     #[test]
     fn check_type() {
         err(
-            "let mut x: Foo = 0;",
-            pos(1, 12),
+            "var x: Foo = 0;",
+            pos(1, 8),
             ErrorMessage::UnknownIdentifier("Foo".into()),
         );
     }
@@ -400,7 +400,7 @@ mod tests {
             "
             use foo::bar;
             mod foo {
-                let mut bar: Int32 = 12;
+                var bar: Int32 = 12;
             }
         ",
             pos(2, 22),

@@ -2,7 +2,7 @@
 
 fun main(): Unit {
   let default = Foo(42i32);
-  let mut x = Array[Foo]::fill(128i64, default);
+  var x = Array[Foo]::fill(128i64, default);
   std::forceMinorCollect();
   x(0i64) = Foo(1i32);
   x(127i64) = Foo(2i32);

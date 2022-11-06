@@ -21,7 +21,7 @@ impl SomeIterator {
 }
 
 fun main(): Unit {
-    let mut sum = 0;
+    var sum = 0;
     let iterator = SomeIterator::new(0, 10);
 
     for value in iterator {

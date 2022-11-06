@@ -13,7 +13,7 @@ class Foo
 
 impl Foo {
     fun create_lambda(): (): Foo {
-        let mut step = 0;
+        var step = 0;
         let lambda = ||: Foo {
             let result = if step.remainder(2) == 0 {
                 self

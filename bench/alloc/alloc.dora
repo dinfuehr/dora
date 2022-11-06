@@ -1,7 +1,7 @@
 fun main(): Unit {
     let threads = argv(0).toInt().getOrPanic();
 
-    let mut i = 0;
+    var i = 0;
 
     while i < threads {
         let thread = MyThread();
@@ -17,7 +17,7 @@ class MyThread() extends Thread {
 }
 
 fun allocator(): Unit {
-    let mut i = 0;
+    var i = 0;
 
     while i < 20'000'000 {
         Foo();

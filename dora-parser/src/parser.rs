@@ -135,7 +135,7 @@ impl<'a> Parser<'a> {
                 Ok(Elem::Alias(Arc::new(alias)))
             }
 
-            TokenKind::Let => {
+            TokenKind::Let | TokenKind::Var => {
                 self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
                 let global = self.parse_global(&modifiers)?;
                 Ok(Elem::Global(Arc::new(global)))
@@ -426,14 +426,8 @@ impl<'a> Parser<'a> {
     fn parse_global(&mut self, modifiers: &Modifiers) -> Result<Global, ParseErrorAndPos> {
         let start = self.token.span.start();
         let pos = self.token.position;
+        let mutable = self.token.is(TokenKind::Var);
         self.advance_token()?;
-
-        let mutable = if self.token.is(TokenKind::Mut) {
-            self.advance_token()?;
-            true
-        } else {
-            false
-        };
 
         let name = self.expect_identifier()?;
 
@@ -885,14 +879,6 @@ impl<'a> Parser<'a> {
     fn parse_function_param(&mut self) -> Result<Param, ParseErrorAndPos> {
         let start = self.token.span.start();
         let pos = self.token.position;
-
-        let mutable = if self.token.is(TokenKind::Mut) {
-            self.advance_token()?;
-            true
-        } else {
-            false
-        };
-
         let name = self.expect_identifier()?;
 
         self.expect_token(TokenKind::Colon)?;
@@ -915,7 +901,6 @@ impl<'a> Parser<'a> {
             name,
             pos,
             span,
-            mutable,
             data_type,
         })
     }
@@ -1100,6 +1085,13 @@ impl<'a> Parser<'a> {
 
     fn parse_let(&mut self) -> StmtResult {
         let start = self.token.span.start();
+        let mutable = if self.token.is(TokenKind::Let) {
+            false
+        } else if self.token.is(TokenKind::Var) {
+            true
+        } else {
+            panic!("let or var expected")
+        };
 
         let pos = self.advance_token()?.position;
         let pattern = self.parse_let_pattern()?;
@@ -1114,6 +1106,7 @@ impl<'a> Parser<'a> {
             pos,
             span,
             pattern,
+            mutable,
             data_type,
             expr,
         )))
@@ -1149,12 +1142,6 @@ impl<'a> Parser<'a> {
             })))
         } else {
             let start = self.token.span.start();
-            let mutable = if self.token.is(TokenKind::Mut) {
-                self.advance_token()?;
-                true
-            } else {
-                false
-            };
             let pos = self.token.position;
             let name = self.expect_identifier()?;
             let span = self.span_from(start);
@@ -1163,7 +1150,6 @@ impl<'a> Parser<'a> {
                 id: self.generate_id(),
                 pos,
                 span,
-                mutable,
                 name,
             })))
         }
@@ -1243,7 +1229,7 @@ impl<'a> Parser<'a> {
 
     fn parse_statement_or_expression(&mut self) -> StmtOrExprResult {
         match self.token.kind {
-            TokenKind::Let => Ok(StmtOrExpr::Stmt(self.parse_let()?)),
+            TokenKind::Let | TokenKind::Var => Ok(StmtOrExpr::Stmt(self.parse_let()?)),
             TokenKind::While => Ok(StmtOrExpr::Stmt(self.parse_while()?)),
             TokenKind::Return => Ok(StmtOrExpr::Stmt(self.parse_return()?)),
             TokenKind::Else => Err(ParseErrorAndPos::new(
@@ -1406,21 +1392,12 @@ impl<'a> Parser<'a> {
         let start = self.token.span.start();
         let pos = self.token.position;
 
-        let (mutable, name) = if self.token.is(TokenKind::Underscore) {
+        let name = if self.token.is(TokenKind::Underscore) {
             self.expect_token(TokenKind::Underscore)?;
-
-            (false, None)
+            None
         } else {
-            let mutable = if self.token.is(TokenKind::Mut) {
-                self.expect_token(TokenKind::Mut)?;
-                true
-            } else {
-                false
-            };
-
             let ident = self.expect_identifier()?;
-
-            (mutable, Some(ident))
+            Some(ident)
         };
 
         let span = self.span_from(start);
@@ -1429,7 +1406,6 @@ impl<'a> Parser<'a> {
             id: self.generate_id(),
             pos,
             span,
-            mutable,
             name,
         })
     }
@@ -2697,14 +2673,13 @@ mod tests {
 
     #[test]
     fn parse_let_tuple() {
-        let stmt = parse_stmt("let (mut a, b, (c, d)) = 1;");
+        let stmt = parse_stmt("let (a, b, (c, d)) = 1;");
         let let_decl = stmt.to_let().unwrap();
 
         assert!(let_decl.pattern.is_tuple());
         let tuple = let_decl.pattern.to_tuple().unwrap();
         let first = tuple.parts.first().unwrap();
         assert!(first.is_ident());
-        assert!(first.to_ident().unwrap().mutable);
         assert!(tuple.parts.last().unwrap().is_tuple());
     }
 
@@ -2714,15 +2689,6 @@ mod tests {
         let let_decl = stmt.to_let().unwrap();
 
         assert!(let_decl.pattern.is_ident());
-    }
-
-    #[test]
-    fn parse_let_ident_mut() {
-        let stmt = parse_stmt("let mut x = 1;");
-        let let_decl = stmt.to_let().unwrap();
-
-        assert!(let_decl.pattern.is_ident());
-        assert!(let_decl.pattern.to_ident().unwrap().mutable);
     }
 
     #[test]
@@ -2739,6 +2705,37 @@ mod tests {
         let stmt = parse_stmt("let x;");
         let var = stmt.to_let().unwrap();
 
+        assert_eq!(false, var.mutable);
+        assert!(var.data_type.is_none());
+        assert!(var.expr.is_none());
+    }
+
+    #[test]
+    fn parse_var_without_type() {
+        let stmt = parse_stmt("var a = 1;");
+        let var = stmt.to_let().unwrap();
+
+        assert_eq!(true, var.mutable);
+        assert!(var.data_type.is_none());
+        assert!(var.expr.as_ref().unwrap().is_lit_int());
+    }
+
+    #[test]
+    fn parse_var_with_type() {
+        let stmt = parse_stmt("var x : int = 1;");
+        let var = stmt.to_let().unwrap();
+
+        assert_eq!(true, var.mutable);
+        assert!(var.data_type.is_some());
+        assert!(var.expr.as_ref().unwrap().is_lit_int());
+    }
+
+    #[test]
+    fn parse_var_without_type_and_assignment() {
+        let stmt = parse_stmt("var x;");
+        let var = stmt.to_let().unwrap();
+
+        assert_eq!(true, var.mutable);
         assert!(var.data_type.is_none());
         assert!(var.expr.is_none());
     }
@@ -3265,12 +3262,20 @@ mod tests {
     }
 
     #[test]
+    fn parse_global_var() {
+        let (prog, interner) = parse("var a: int = 0;");
+        let global = prog.global0();
+
+        assert_eq!("a", *interner.str(global.name));
+        assert_eq!(true, global.mutable);
+    }
+
+    #[test]
     fn parse_global_let() {
         let (prog, interner) = parse("let b: int = 0;");
         let global = prog.global0();
 
         assert_eq!("b", *interner.str(global.name));
-        assert_eq!(false, global.mutable);
     }
 
     #[test]

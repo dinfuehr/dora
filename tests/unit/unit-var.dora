@@ -1,6 +1,6 @@
 fun main(): Unit {
-    let mut x = ();
-    let mut y: () = ();
+    var x = ();
+    var y: () = ();
     y = ();
     x = y;
 }

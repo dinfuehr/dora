@@ -1,7 +1,7 @@
 //= vm-args "--gc=swiper --gc-verify"
 
 fun main(): Unit {
-  let mut x = foo(1i32, foo(2i32, foo(3i32, None[Foo])));
+  var x = foo(1i32, foo(2i32, foo(3i32, None[Foo])));
   std::forceMinorCollect();
   x.getOrPanic().next.getOrPanic().next.getOrPanic().next = foo(4i32, None[Foo]);
   x = foo(100i32, x);

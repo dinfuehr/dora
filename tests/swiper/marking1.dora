@@ -3,7 +3,7 @@
 fun main(): Unit {
     let arr = List[Foo]();
 
-    let mut i = 0i32;
+    var i = 0i32;
     while i < 10i32 {
         arr.push(tree(9));
         i = i + 1i32;

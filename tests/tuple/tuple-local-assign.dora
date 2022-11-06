@@ -1,7 +1,7 @@
 fun main(): Unit {
-    let mut x = ("my string", true);
-    let mut y = ("another string", false);
-    let mut tmp = x;
+    var x = ("my string", true);
+    var y = ("another string", false);
+    var tmp = x;
     x = y;
     y = tmp;
     assert(y.0 == "my string");

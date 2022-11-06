@@ -1,12 +1,12 @@
-let mut glob_bool: Bool = false;
-let mut glob_char: Char = 'x';
-let mut glob_byte: UInt8 = 0u8;
-let mut glob_int: Int32 = 0i32;
-let mut glob_long: Int64 = 0i64;
-let mut glob_float: Float32 = 0.0f32;
-let mut glob_double: Float64 = 0.0;
-let mut glob_string: String = "";
-let mut glob_obj: Foo = Foo();
+var glob_bool: Bool = false;
+var glob_char: Char = 'x';
+var glob_byte: UInt8 = 0u8;
+var glob_int: Int32 = 0i32;
+var glob_long: Int64 = 0i64;
+var glob_float: Float32 = 0.0f32;
+var glob_double: Float64 = 0.0;
+var glob_string: String = "";
+var glob_obj: Foo = Foo();
 
 fun main(): Unit {
     init_globs();

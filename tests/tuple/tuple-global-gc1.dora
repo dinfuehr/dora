@@ -1,4 +1,4 @@
-let mut x: (String, Bool) = ("", false);
+var x: (String, Bool) = ("", false);
 
 fun main(): Unit {
     std::forceCollect();

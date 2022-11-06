@@ -8,7 +8,7 @@ fun main(): Unit {
     let objects = construct(8096i64);
     forceCollect();
 
-    let mut i = 0i64;
+    var i = 0i64;
 
     while i < threads {
         let thread = MyThread(i, threads, iterations, objects);
@@ -20,7 +20,7 @@ fun main(): Unit {
 fun construct(size: Int64): Array[Foo] {
     let objects: Array[Foo] = Array::fill[Foo](size, Foo(nil, nil));
 
-    let mut i = 0i64;
+    var i = 0i64;
 
     while i < objects.size() {
         objects(i) = Foo(nil, nil);
@@ -56,8 +56,8 @@ class MyThread(let thread_idx: Int64, let threads: Int64, let iters: Int32, let 
 	let start_idx = self.thread_idx  * objects_per_thread;
 	let end_idx = start_idx + objects_per_thread;
 
-	let mut i = 0;
-	let mut idx = start_idx;
+	var i = 0;
+	var idx = start_idx;
 	let iters = self.iters;
 	while i < iters {
 	    if idx == end_idx {
@@ -73,5 +73,5 @@ class MyThread(let thread_idx: Int64, let threads: Int64, let iters: Int32, let 
   }
 }
 
-class Foo(let mut left: Foo, let mut right: Foo)
+class Foo(var left: Foo, var right: Foo)
 

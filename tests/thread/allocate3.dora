@@ -1,7 +1,7 @@
 //= vm-args "--gc-young-size=64M --max-heap-size=128M --gc-verify"
 
 fun main(): Unit {
-    let mut i = 0i32;
+    var i = 0i32;
 
     while i < 4i32 {
         std::thread::spawn(||: Unit {
@@ -16,7 +16,7 @@ fun main(): Unit {
 }
 
 fun allocator(): Unit {
-    let mut i = 0i32;
+    var i = 0i32;
 
     while i < 10'000i32 {
         let foo = {
@@ -29,7 +29,7 @@ fun allocator(): Unit {
 
         if i.remainder(500i32) == 0i32 { std::forceMinorCollect(); }
 
-        let mut tmp = foo;
+        var tmp = foo;
         assert(tmp.value == i + 4i32);
         tmp = tmp.next.getOrPanic();
         assert(tmp.value == i + 3i32);

@@ -1,8 +1,8 @@
 //= stdout "x = 0\ny = 0\nz = 0\n"
 
-let mut x: Int32 = 0i32;
-let mut y: Int32 = 0i32;
-let mut z: Int32 = 0i32;
+var x: Int32 = 0i32;
+var y: Int32 = 0i32;
+var z: Int32 = 0i32;
 
 fun main(): Unit {
     println("x = " + x.toString());

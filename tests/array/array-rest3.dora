@@ -6,8 +6,8 @@ fun main(): Unit {
 }
 
 fun sum_args(x: Float32...): Float32 {
-    let mut result = 0.0f32;
-    let mut idx = 0i64;
+    var result = 0.0f32;
+    var idx = 0i64;
     
     while idx < x.size() {
         result = result + x(idx);

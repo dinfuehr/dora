@@ -5,8 +5,8 @@ const STEP: Int64 = 5i64;
 const REMOVED: Int64 = 20i64;
 
 fun main(): Unit {
-    let mut x = List[Array[Int32]]::new();
-    let mut i = 0i64;
+    var x = List[Array[Int32]]::new();
+    var i = 0i64;
 
     while i < SIZE {
         x.push(Array[Int32]::fill(32i64 * 1024i64, 0i32));
@@ -16,7 +16,7 @@ fun main(): Unit {
     std::forceCollect();
 
     i = 0i64;
-    let mut empty = Array[Int32]::new();
+    var empty = Array[Int32]::new();
 
     while i < SIZE {
         x(i) = empty;
@@ -26,7 +26,7 @@ fun main(): Unit {
     std::forceCollect();
 
     i = 0i64;
-    let mut empties = 0i64;
+    var empties = 0i64;
 
     while i < SIZE {
         if x(i) === empty {

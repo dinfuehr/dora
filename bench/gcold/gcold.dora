@@ -11,23 +11,23 @@ const BYTES_PER_NODE: Int32 = 40i32;
 const WORDS_DEAD: Int32 = 100i32;
 
 const treeHeight: Int32 = 14i32;
-let mut treeSize: Int64 = 0i64;
+var treeSize: Int64 = 0i64;
 
-let mut youngBytes: Int64 = 0i64;
-let mut nodes: Int64 = 0i64;
-let mut actuallyMut: Int64 = 0i64;
-let mut mutatorSum: Int64 = 0i64;
-let mut aexport: Array[Int64] = Array[Int64]::new();
+var youngBytes: Int64 = 0i64;
+var nodes: Int64 = 0i64;
+var actuallyMut: Int64 = 0i64;
+var mutatorSum: Int64 = 0i64;
+var aexport: Array[Int64] = Array[Int64]::new();
 
-let mut trees: Array[TreeNode] = Array[TreeNode]::new();
-let mut where: Int32 = 0i32;
-let mut rnd: std::Random = std::Random::new(0i64);
+var trees: Array[TreeNode] = Array[TreeNode]::new();
+var where: Int32 = 0i32;
+var rnd: std::Random = std::Random::new(0i64);
 
-let mut size: Int32 = 0i32;
-let mut workUnits: Int32 = 0i32;
-let mut promoteRate: Int32 = 0i32;
-let mut ptrMutRate: Int32 = 0i32;
-let mut steps: Int32 = 0i32;
+var size: Int32 = 0i32;
+var workUnits: Int32 = 0i32;
+var promoteRate: Int32 = 0i32;
+var ptrMutRate: Int32 = 0i32;
+var steps: Int32 = 0i32;
 
 fun height(t: Option[TreeNode]): Int32 {
     if t.isNone() {
@@ -46,12 +46,12 @@ fun shortestPath(t: Option[TreeNode]): Int32 {
 }
 
 fun heightToNodes(h: Int32): Int64 {
-    let mut h = h;
+    var h = h;
     if (h == 0i32) {
         return 0i64;
     }
 
-    let mut n: Int64 = 1i64;
+    var n: Int64 = 1i64;
 
     while h > 1i32 {
         n = n + n;
@@ -66,8 +66,8 @@ fun heightToBytes(h: Int32): Int64 {
 }
 
 fun nodesToHeight(nnodes: Int64): Int32 {
-    let mut h = 1i32;
-    let mut n = 1i64;
+    var h = 1i32;
+    var n = 1i64;
 
     while n + n - 1i64 <= nnodes {
         n = n + n;
@@ -100,7 +100,7 @@ fun initialize(): Unit {
     println("Allocating " + ntrees.toString() + " trees.");
     println("  (" + (ntrees * treeSize).toString() + " bytes)");
 
-    let mut i = 0i64;
+    var i = 0i64;
 
     while i < ntrees {
         trees(i) = makeTree(treeHeight);
@@ -113,7 +113,7 @@ fun initialize(): Unit {
 fun checkTrees(): Unit {
     let ntrees = trees.size();
 
-    let mut i = 0i64;
+    var i = 0i64;
 
     while i < ntrees {
         let t = trees(i);
@@ -160,9 +160,9 @@ fun replaceTree(full: TreeNode, partial: TreeNode): Unit {
 
 fun oldGenAlloc(n: Int64): Unit {
     let full = n / treeSize;
-    let mut partial = n.remainder(treeSize);
+    var partial = n.remainder(treeSize);
 
-    let mut i = 0i64;
+    var i = 0i64;
     while i < full {
         trees(where.toInt64()) = makeTree(treeHeight);
         where = where + 1i32;
@@ -192,12 +192,12 @@ fun oldGenSwapSubtrees(): Unit {
     let index1 = rnd.nextInt32WithBound(trees.size().toInt32());
     let index2 = rnd.nextInt32WithBound(trees.size().toInt32());
     let depth = rnd.nextInt32WithBound(treeHeight);
-    let mut path = rnd.nextInt32();
+    var path = rnd.nextInt32();
 
-    let mut tn1 = trees(index1.toInt64());
-    let mut tn2 = trees(index2.toInt64());
+    var tn1 = trees(index1.toInt64());
+    var tn2 = trees(index2.toInt64());
 
-    let mut i = 0i32;
+    var i = 0i32;
 
     while i < depth {
         if (path & 1i32) == 0i32 {
@@ -225,7 +225,7 @@ fun oldGenSwapSubtrees(): Unit {
 }
 
 fun oldGenMut(n: Int64): Unit {
-    let mut i = 0i64;
+    var i = 0i64;
 
     while i < n/2i64 {
         oldGenSwapSubtrees();
@@ -234,10 +234,10 @@ fun oldGenMut(n: Int64): Unit {
 }
 
 fun doMutWork(n: Int64): Unit {
-    let mut sum = 0i32;
+    var sum = 0i32;
     let limit = workUnits.toInt64() * n / 10i64;
 
-    let mut k = 0i64;
+    var k = 0i64;
 
     while k < limit {
         sum = sum + 1i32;
@@ -249,7 +249,7 @@ fun doMutWork(n: Int64): Unit {
 
 fun doYoungGenAlloc(n: Int64, nwords: Int32): Unit {
     let nbytes = nwords * BYTES_PER_WORD;
-    let mut allocated = 0i64;
+    var allocated = 0i64;
 
     while allocated < n {
         aexport = Array[Int64]::zero(nwords.toInt64());
@@ -305,7 +305,7 @@ fun main(): Unit {
 
     let start = std::timestamp();
 
-    let mut step = 0i32;
+    var step = 0i32;
 
     while step < steps {
         doStep(MEG.toInt64());

@@ -4,7 +4,7 @@ fun main(): Unit {
     let map = HashMap[Int32, String]::new();
     assert(map.isEmpty());
 
-    let mut i = 0i32;
+    var i = 0i32;
 
     while i < 1000i32 {
         map.insert(i, i.toString());

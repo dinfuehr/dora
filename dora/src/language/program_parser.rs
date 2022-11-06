@@ -644,7 +644,7 @@ mod tests {
             ErrorMessage::ShadowClass("Foo".into()),
         );
         err(
-            "class Foo let mut Foo: Int32 = 1;",
+            "class Foo var Foo: Int32 = 1;",
             pos(1, 11),
             ErrorMessage::ShadowClass("Foo".into()),
         );
@@ -689,7 +689,7 @@ mod tests {
             ErrorMessage::ShadowStruct("Foo".into()),
         );
         err(
-            "struct Foo {} let mut Foo: Int32 = 1;",
+            "struct Foo {} var Foo: Int32 = 1;",
             pos(1, 15),
             ErrorMessage::ShadowStruct("Foo".into()),
         );

@@ -77,7 +77,7 @@ impl Mutex {
     }
 
     fun lockSlow(): Unit {
-        let mut locked = false;
+        var locked = false;
 
         while locked.not() {
             if self.transitionToLockedContended() {

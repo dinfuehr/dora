@@ -1,4 +1,4 @@
-let mut x: () = ();
+var x: () = ();
 
 fun main(): Unit {
     x = ();

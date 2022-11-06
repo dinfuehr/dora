@@ -1,5 +1,5 @@
 fun main(): Unit {
-    let mut sum = 0i64;
+    var sum = 0i64;
     for x in Array[()]::fill(100i64, ()) {
         sum = sum + 1i64;
     }

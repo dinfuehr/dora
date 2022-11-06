@@ -1,7 +1,7 @@
 fun main(): Unit {
   let ok1  = Ok[String, Int64]("some");
   let err = Err[String, Int64](-1);
-  let mut x = 0;
+  var x = 0;
 
   ok1.each(|val: String|: Unit { x = x + 1 });
   assert(x == 1);

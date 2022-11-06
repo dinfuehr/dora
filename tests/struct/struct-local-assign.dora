@@ -1,7 +1,7 @@
 fun main(): Unit {
-    let mut x = Pair("my string", true);
-    let mut y = Pair("another string", false);
-    let mut tmp = x;
+    var x = Pair("my string", true);
+    var y = Pair("another string", false);
+    var tmp = x;
     x = y;
     y = tmp;
     assert(y.first == "my string");

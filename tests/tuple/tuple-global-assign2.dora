@@ -1,6 +1,6 @@
 //= vm-args "--gc=copy --disable-tlab --gc-stress"
 
-let mut x: (Foo, Foo) = (Foo(0i32), Foo(0i32));
+var x: (Foo, Foo) = (Foo(0i32), Foo(0i32));
 
 fun main(): Unit {
     std::forceCollect();

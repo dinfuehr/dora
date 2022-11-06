@@ -6,7 +6,7 @@ fun main(): Unit {
 }
 
 fun create_lambda(value: Int64, increment: Int64): (): Int64 {
-    let mut value = value;
+    var value = value;
     let lambda = ||: Int64 {
         let result = value;
         value = value + increment;

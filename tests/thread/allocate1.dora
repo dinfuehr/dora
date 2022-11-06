@@ -2,7 +2,7 @@
 //= config region
 
 fun main(): Unit {
-    let mut i = 0i32;
+    var i = 0i32;
 
     while i < 4i32 {
         std::thread::spawn(||: Unit {
@@ -17,7 +17,7 @@ fun main(): Unit {
 }
 
 fun allocator(): Unit {
-    let mut i = 0i32;
+    var i = 0i32;
 
     while i < 10'000i32 {
         Foo();

@@ -1,7 +1,7 @@
 //= error assert
 
 fun main(): Unit {
-  let mut x = Foo(12i32);
+  var x = Foo(12i32);
   x.test();
   x.test2(1i32);
 }
@@ -10,7 +10,7 @@ class Foo(i: Int32)
 
 impl Foo {
   fun test(): Unit {
-    let mut x = self.i;
+    var x = self.i;
   }
 
   fun test2(i: Int32): Unit {

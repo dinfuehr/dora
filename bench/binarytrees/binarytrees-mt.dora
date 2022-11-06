@@ -21,7 +21,7 @@ fun main(): Unit {
 
     let longLastingNode = createTree(maxDepth);
 
-    let mut i = 0i32;
+    var i = 0i32;
     let threads = List[std::Thread]::new();
     let nextDepth = std::AtomicInt32::new(MIN_DEPTH);
     let results = Array[String]::fill((maxDepth - MIN_DEPTH).toInt64() / 2i64 + 1i64, "");
@@ -69,8 +69,8 @@ impl TreeThread {
 
 fun loops(maxDepth: Int32, depth: Int32): String {
     let iterations = 16i32.shiftLeft(maxDepth - depth);
-    let mut check = 0i32;
-    let mut item = 0i32;
+    var check = 0i32;
+    var item = 0i32;
 
     while item < iterations {
         check = check + checkTree(createTree(depth));
@@ -82,7 +82,7 @@ fun loops(maxDepth: Int32, depth: Int32): String {
 }
 
 fun createTree(depth: Int32): TreeNode {
-    let mut depth = depth;
+    var depth = depth;
     let node = TreeNode(0i32, Option[TreeNode]::None, Option[TreeNode]::None);
 
     if depth > 0i32 {

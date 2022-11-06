@@ -1,8 +1,8 @@
 //= vm-args "--gc-parallel-minor --gc-worker=2 --gc-verify"
 
 fun main(): Unit {
-    let mut x = Foo(Option[Foo]::None);
-    let mut i = 0i32;
+    var x = Foo(Option[Foo]::None);
+    var i = 0i32;
 
     while i < 100i32 {
         x = Foo(Option[Foo]::Some(x));

@@ -65,29 +65,3 @@ impl<'a> GlobalDefCheck<'a> {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use crate::language::error::msg::ErrorMessage;
-    use crate::language::tests::*;
-
-    #[test]
-    fn check_initializer() {
-        ok("let a: Int32 = 0i32;");
-        ok("let a: Int32 = 0i32; let mut b: Int32 = a + 1i32;");
-        err(
-            "let mut a: Int32 = foo;",
-            pos(1, 20),
-            ErrorMessage::UnknownIdentifier("foo".into()),
-        );
-    }
-
-    #[test]
-    fn check_type() {
-        err(
-            "let mut x: Foo = 0;",
-            pos(1, 12),
-            ErrorMessage::UnknownIdentifier("Foo".into()),
-        );
-    }
-}

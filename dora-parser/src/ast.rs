@@ -751,7 +751,6 @@ pub struct Param {
     pub name: Name,
     pub pos: Position,
     pub span: Span,
-    pub mutable: bool,
     pub data_type: Type,
     pub variadic: bool,
 }
@@ -771,6 +770,7 @@ impl Stmt {
         pos: Position,
         span: Span,
         pattern: Box<LetPattern>,
+        mutable: bool,
         data_type: Option<Type>,
         expr: Option<Box<Expr>>,
     ) -> Stmt {
@@ -780,6 +780,7 @@ impl Stmt {
             span,
 
             pattern,
+            mutable,
             data_type,
             expr,
         })
@@ -949,6 +950,7 @@ pub struct StmtLetType {
     pub span: Span,
 
     pub pattern: Box<LetPattern>,
+    pub mutable: bool,
 
     pub data_type: Option<Type>,
     pub expr: Option<Box<Expr>>,
@@ -1017,7 +1019,6 @@ pub struct LetIdentType {
     pub id: NodeId,
     pub pos: Position,
     pub span: Span,
-    pub mutable: bool,
     pub name: Name,
 }
 
@@ -2063,7 +2064,6 @@ pub struct MatchPatternParam {
     pub pos: Position,
     pub span: Span,
     pub name: Option<Name>,
-    pub mutable: bool,
 }
 
 #[derive(Clone, Debug)]

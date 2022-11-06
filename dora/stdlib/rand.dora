@@ -20,7 +20,7 @@ impl Random {
       return (bound.toInt64().wrappingMul(num)).shiftRight(31i32).toInt32();
     }
 
-    let mut modulo = 0i32;
+    var modulo = 0i32;
 
     while true {
       let num = self.nextInt31();

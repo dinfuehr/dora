@@ -5,7 +5,7 @@ fun main(): Unit {
 }
 
 fun slowLength(x: Array[Int32]): Int64 {
-    let mut entries = 0i64;
+    var entries = 0i64;
     for val in x {
         entries = entries + 1i64;
     }

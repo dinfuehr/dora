@@ -2,7 +2,7 @@
 //= config region
 
 fun main(): Unit {
-    let mut i = 0i32;
+    var i = 0i32;
 
     while i < 4i32 {
         std::thread::spawn(||: Unit {
@@ -17,8 +17,8 @@ fun main(): Unit {
 }
 
 fun allocator(): Unit {
-    let mut i = 1i32;
-    let mut list = Foo(0i32, None[Foo]);
+    var i = 1i32;
+    var list = Foo(0i32, None[Foo]);
 
     while i < 10'000i32 {
         list = Foo(i, Some[Foo](list));
