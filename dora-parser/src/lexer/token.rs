@@ -81,7 +81,6 @@ pub enum TokenKind {
     Colon,
     ColonColon,
     At,
-    Arrow,
     DoubleArrow,
 
     // brackets
@@ -185,7 +184,6 @@ impl TokenKind {
             TokenKind::Colon => ":",
             TokenKind::ColonColon => "::",
             TokenKind::At => "@",
-            TokenKind::Arrow => "->",
             TokenKind::DoubleArrow => "=>",
 
             // brackets

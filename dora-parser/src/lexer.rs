@@ -232,14 +232,7 @@ impl Lexer {
 
         let kind = match ch {
             '+' => TokenKind::Add,
-            '-' => {
-                if nch == '>' {
-                    self.read_char();
-                    TokenKind::Arrow
-                } else {
-                    TokenKind::Sub
-                }
-            }
+            '-' => TokenKind::Sub,
             '*' => TokenKind::Mul,
             '/' => TokenKind::Div,
 
@@ -1081,9 +1074,8 @@ mod tests {
         let mut reader = Lexer::from_str("!=");
         assert_tok(&mut reader, TokenKind::NotEq, 1, 1);
 
-        let mut reader = Lexer::from_str("=>->");
+        let mut reader = Lexer::from_str("=>");
         assert_tok(&mut reader, TokenKind::DoubleArrow, 1, 1);
-        assert_tok(&mut reader, TokenKind::Arrow, 1, 3);
 
         let mut reader = Lexer::from_str("_::");
         assert_tok(&mut reader, TokenKind::Underscore, 1, 1);
