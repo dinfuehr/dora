@@ -81,6 +81,11 @@ impl Reader {
     pub fn idx(&self) -> u32 {
         self.idx as u32
     }
+
+    pub fn set(&mut self, idx: u32, pos: Position) {
+        self.idx = idx as usize;
+        self.pos = pos;
+    }
 }
 
 #[cfg(test)]

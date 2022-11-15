@@ -61,6 +61,16 @@ impl Lexer {
         }
     }
 
+    // The only intended use of this function is for semicolon inference.
+    // The language should at no point require additional lookahead.
+    pub fn peek_next_token(&mut self) -> Result<Token, ParseErrorAndPos> {
+        let idx = self.reader.idx();
+        let pos = self.reader.pos();
+        let token_next = self.read_token();
+        self.reader.set(idx, pos);
+        token_next
+    }
+
     fn skip_white(&mut self) {
         while is_whitespace(self.curr()) {
             self.read_char();
@@ -590,6 +600,13 @@ mod tests {
         assert_eq!(c, tok.position.column);
     }
 
+    fn assert_peek(reader: &mut Lexer, kind: TokenKind, l: u32, c: u32) {
+        let tok = reader.peek_next_token().unwrap();
+        assert_eq!(kind, tok.kind);
+        assert_eq!(l, tok.position.line);
+        assert_eq!(c, tok.position.column);
+    }
+
     fn assert_err(reader: &mut Lexer, msg: ParseError, l: u32, c: u32) {
         let err = reader.read_token().unwrap_err();
         assert_eq!(msg, err.error);
@@ -602,6 +619,16 @@ mod tests {
         let mut reader = Lexer::from_str("");
         assert_end(&mut reader, 1, 1);
         assert_end(&mut reader, 1, 1);
+    }
+
+    #[test]
+    fn test_peek() {
+        let mut reader = Lexer::from_str("a b c");
+        assert_peek(&mut reader, TokenKind::Identifier("a".into()), 1, 1);
+        assert_peek(&mut reader, TokenKind::Identifier("a".into()), 1, 1);
+        assert_tok(&mut reader, TokenKind::Identifier("a".into()), 1, 1);
+        assert_peek(&mut reader, TokenKind::Identifier("b".into()), 1, 3);
+        assert_tok(&mut reader, TokenKind::Identifier("b".into()), 1, 3);
     }
 
     #[test]
