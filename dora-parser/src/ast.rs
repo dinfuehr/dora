@@ -2,7 +2,6 @@ use std::fmt;
 use std::slice::Iter;
 use std::sync::Arc;
 
-#[cfg(test)]
 use crate::interner::Interner;
 use crate::interner::Name;
 use crate::lexer::position::{Position, Span};
@@ -384,7 +383,6 @@ pub struct TypeBasicType {
 }
 
 impl TypeBasicType {
-    #[cfg(test)]
     pub fn name(&self) -> Name {
         assert_eq!(self.path.names.len(), 1);
         self.path.names.last().cloned().unwrap()
@@ -466,7 +464,6 @@ impl Type {
         }
     }
 
-    #[cfg(test)]
     pub fn to_string(&self, interner: &Interner) -> String {
         match *self {
             Type::This(_) => "Self".into(),
