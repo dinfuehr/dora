@@ -1,4 +1,4 @@
-struct Data {
+value Data {
     x: Int32,
     y: Int32,
     z: String

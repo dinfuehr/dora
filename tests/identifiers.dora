@@ -1,10 +1,19 @@
 fun main(): Unit {
   let is = is();
   assert(is.is() == 1);
+
+  let value = value();
+  assert(value.value() == 1);
 }
 
 class is {}
 
 impl is {
   fun is(): Int64 = 1;
+}
+
+class value {}
+
+impl value {
+  fun value(): Int64 = 1;
 }

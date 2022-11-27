@@ -2,13 +2,13 @@ use parking_lot::RwLock;
 use std::sync::Arc;
 
 use crate::language::access::{
-    class_accessible_from, enum_accessible_from, struct_accessible_from, trait_accessible_from,
+    class_accessible_from, enum_accessible_from, trait_accessible_from, value_accessible_from,
 };
 use crate::language::error::msg::ErrorMessage;
 use crate::language::sem_analysis::{
     implements_trait, ClassDefinitionId, EnumDefinitionId, ExtensionDefinitionId, FctDefinition,
-    ImplDefinition, ModuleDefinitionId, SemAnalysis, SourceFileId, StructDefinitionId,
-    TraitDefinitionId, TypeParamDefinition,
+    ImplDefinition, ModuleDefinitionId, SemAnalysis, SourceFileId, TraitDefinitionId,
+    TypeParamDefinition, ValueDefinitionId,
 };
 use crate::language::specialize::specialize_type;
 use crate::language::sym::{ModuleSymTable, Sym, SymTable};
@@ -21,7 +21,7 @@ use dora_parser::lexer::position::Position;
 pub enum TypeParamContext<'a> {
     Class(ClassDefinitionId),
     Enum(EnumDefinitionId),
-    Struct(StructDefinitionId),
+    Value(ValueDefinitionId),
     Fct(&'a FctDefinition),
     Trait(TraitDefinitionId),
     Impl(&'a ImplDefinition),
@@ -77,8 +77,8 @@ fn read_type_basic_unchecked(
     match sym {
         Some(Sym::Class(class_id)) => SourceType::Class(class_id, type_params),
         Some(Sym::Trait(trait_id)) => SourceType::Trait(trait_id, type_params),
-        Some(Sym::Struct(struct_id)) => {
-            let struct_ = sa.structs.idx(struct_id);
+        Some(Sym::Value(struct_id)) => {
+            let struct_ = sa.values.idx(struct_id);
             let struct_ = struct_.read();
 
             if let Some(ref primitive_ty) = struct_.primitive_ty {
@@ -90,7 +90,7 @@ fn read_type_basic_unchecked(
                     SourceType::Error
                 }
             } else {
-                SourceType::Struct(struct_id, type_params)
+                SourceType::Value(struct_id, type_params)
             }
         }
         Some(Sym::Enum(enum_id)) => SourceType::Enum(enum_id, type_params),
@@ -336,8 +336,8 @@ fn verify_type_basic(
                 .primitive_struct_id(sa)
                 .expect("primitive struct expected");
 
-            if !struct_accessible_from(sa, struct_id, module_id) {
-                let struct_ = sa.structs.idx(struct_id);
+            if !value_accessible_from(sa, struct_id, module_id) {
+                let struct_ = sa.values.idx(struct_id);
                 let struct_ = struct_.read();
                 let msg = ErrorMessage::NotAccessible(struct_.name(sa));
                 sa.diag.lock().report(file_id, node.pos, msg);
@@ -345,11 +345,11 @@ fn verify_type_basic(
             }
         }
 
-        SourceType::Struct(struct_id, type_params) => {
-            let struct_ = sa.structs.idx(struct_id);
+        SourceType::Value(struct_id, type_params) => {
+            let struct_ = sa.values.idx(struct_id);
             let struct_ = struct_.read();
 
-            if !struct_accessible_from(sa, struct_id, module_id) {
+            if !value_accessible_from(sa, struct_id, module_id) {
                 let msg = ErrorMessage::NotAccessible(struct_.name(sa));
                 sa.diag.lock().report(file_id, node.pos, msg);
                 return false;
@@ -554,8 +554,8 @@ where
             callback(enum_.type_params())
         }
 
-        TypeParamContext::Struct(struct_id) => {
-            let struct_ = &sa.structs.idx(struct_id);
+        TypeParamContext::Value(struct_id) => {
+            let struct_ = &sa.values.idx(struct_id);
             let struct_ = struct_.read();
 
             callback(struct_.type_params())

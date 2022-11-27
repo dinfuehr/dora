@@ -10,8 +10,8 @@ use crate::language::sem_analysis::{
     AnnotationDefinition, ClassDefinition, ConstDefinition, EnumDefinition, ExtensionDefinition,
     ExtensionDefinitionId, FctDefinition, FctParent, GlobalDefinition, GlobalDefinitionId,
     ImplDefinition, ImplDefinitionId, ModuleDefinition, ModuleDefinitionId, PackageDefinitionId,
-    PackageName, SemAnalysis, SourceFileId, StructDefinition, TraitDefinition, TraitDefinitionId,
-    UseDefinition,
+    PackageName, SemAnalysis, SourceFileId, TraitDefinition, TraitDefinitionId, UseDefinition,
+    ValueDefinition,
 };
 use crate::language::sym::Sym;
 use dora_parser::ast::visit::Visitor;
@@ -470,11 +470,11 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         }
     }
 
-    fn visit_struct(&mut self, node: &Arc<ast::Struct>) {
-        let struct_ = StructDefinition::new(self.package_id, self.module_id, self.file_id, node);
-        let id = self.sa.structs.push(struct_);
+    fn visit_value(&mut self, node: &Arc<ast::Value>) {
+        let value = ValueDefinition::new(self.package_id, self.module_id, self.file_id, node);
+        let id = self.sa.values.push(value);
 
-        let sym = Sym::Struct(id);
+        let sym = Sym::Value(id);
         if let Some(sym) = self.insert(node.name, sym) {
             report_sym_shadow(self.sa, node.name, self.file_id, node.pos, sym);
         }
@@ -656,47 +656,47 @@ mod tests {
     }
 
     #[test]
-    fn test_struct() {
-        ok("struct Foo {}");
+    fn test_value() {
+        ok("value Foo {}");
         err(
-            "struct Foo {} struct Foo {}",
-            pos(1, 15),
-            ErrorMessage::ShadowStruct("Foo".into()),
+            "value Foo {} value Foo {}",
+            pos(1, 14),
+            ErrorMessage::ShadowValue("Foo".into()),
         );
         err(
-            "struct Foo {} struct Foo {}",
-            pos(1, 15),
-            ErrorMessage::ShadowStruct("Foo".into()),
+            "value Foo {} value Foo {}",
+            pos(1, 14),
+            ErrorMessage::ShadowValue("Foo".into()),
         );
         err(
-            "struct Foo {} class Foo",
-            pos(1, 15),
-            ErrorMessage::ShadowStruct("Foo".into()),
+            "value Foo {} class Foo",
+            pos(1, 14),
+            ErrorMessage::ShadowValue("Foo".into()),
         );
         err(
-            "fun Foo(): Unit {} struct Foo {}",
+            "fun Foo(): Unit {} value Foo {}",
             pos(1, 20),
             ErrorMessage::ShadowFunction("Foo".into()),
         );
         err(
-            "struct Foo {} fun Foo(): Unit {}",
-            pos(1, 15),
-            ErrorMessage::ShadowStruct("Foo".into()),
+            "value Foo {} fun Foo(): Unit {}",
+            pos(1, 14),
+            ErrorMessage::ShadowValue("Foo".into()),
         );
         err(
-            "struct Foo {} let Foo: Int32 = 1;",
-            pos(1, 15),
-            ErrorMessage::ShadowStruct("Foo".into()),
+            "value Foo {} let Foo: Int32 = 1;",
+            pos(1, 14),
+            ErrorMessage::ShadowValue("Foo".into()),
         );
         err(
-            "struct Foo {} var Foo: Int32 = 1;",
-            pos(1, 15),
-            ErrorMessage::ShadowStruct("Foo".into()),
+            "value Foo {} var Foo: Int32 = 1;",
+            pos(1, 14),
+            ErrorMessage::ShadowValue("Foo".into()),
         );
         err(
-            "struct Foo {} const Foo: Int32 = 1;",
-            pos(1, 15),
-            ErrorMessage::ShadowStruct("Foo".into()),
+            "value Foo {} const Foo: Int32 = 1;",
+            pos(1, 14),
+            ErrorMessage::ShadowValue("Foo".into()),
         );
     }
 
@@ -704,7 +704,7 @@ mod tests {
     fn test_trait() {
         ok("trait Foo {}");
         err(
-            "trait Foo {} struct Foo {}",
+            "trait Foo {} value Foo {}",
             pos(1, 14),
             ErrorMessage::ShadowTrait("Foo".into()),
         );
@@ -729,7 +729,7 @@ mod tests {
             ErrorMessage::ShadowConst("foo".into()),
         );
         err(
-            "const foo: Int32 = 0i32; struct foo {}",
+            "const foo: Int32 = 0i32; value foo {}",
             pos(1, 26),
             ErrorMessage::ShadowConst("foo".into()),
         );

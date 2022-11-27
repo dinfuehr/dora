@@ -1,0 +1,19 @@
+//= vm-args "--gc=copy --disable-tlab --gc-stress"
+
+class TupleClass {
+    value: Pair,
+}
+
+value Pair(first: Foo, second: Int64)
+class Foo(value: Int32)
+
+fun main(): Unit {
+    let tpl = TupleClass(Pair(Foo(0i32), 0i64));
+    std::forceCollect();
+    assert(tpl.value.first.value == 0i32);
+    assert(tpl.value.second == 0i64);
+    tpl.value = Pair(Foo(4711i32), 4712i64);
+    std::forceCollect();
+    assert(tpl.value.first.value == 4711i32);
+    assert(tpl.value.second == 4712i64);
+}

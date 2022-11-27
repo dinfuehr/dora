@@ -1,0 +1,21 @@
+//= vm-args "--gc=swiper --gc-verify"
+
+class TupleClass(value: Pair)
+
+impl TupleClass {
+    @static fun new(): TupleClass {
+        TupleClass(Pair(Foo(0i32), 0))
+    }
+}
+
+value Pair(first: Foo, second: Int64)
+class Foo(value: Int32)
+
+fun main(): Unit {
+    let tpl = TupleClass::new();
+    std::forceCollect();
+    tpl.value = Pair(Foo(4711i32), 4712i64);
+    std::forceMinorCollect();
+    assert(tpl.value.first.value == 4711i32);
+    assert(tpl.value.second == 4712i64);
+}

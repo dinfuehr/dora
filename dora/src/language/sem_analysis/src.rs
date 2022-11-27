@@ -6,8 +6,8 @@ use dora_parser::ast;
 
 use crate::language::sem_analysis::{
     ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId,
-    GlobalDefinitionId, Intrinsic, StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId,
-    TypeParamId,
+    GlobalDefinitionId, Intrinsic, TraitDefinitionId, TypeParamId, ValueDefinitionFieldId,
+    ValueDefinitionId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 
@@ -129,10 +129,10 @@ pub enum IdentType {
     Field(SourceType, FieldId),
 
     /// field expression: <expr>.<field_name>
-    StructField(SourceType, StructDefinitionFieldId),
+    ValueField(SourceType, ValueDefinitionFieldId),
 
     /// name of structure
-    Struct(StructDefinitionId),
+    Value(ValueDefinitionId),
 
     // name of constant
     Const(ConstDefinitionId),
@@ -155,9 +155,9 @@ impl IdentType {
         }
     }
 
-    pub fn struct_id(&self) -> StructDefinitionId {
+    pub fn struct_id(&self) -> ValueDefinitionId {
         match self {
-            &IdentType::Struct(sid) => sid,
+            &IdentType::Value(sid) => sid,
             _ => panic!(),
         }
     }
@@ -237,8 +237,8 @@ pub enum CallType {
     // Construct enum value
     Enum(SourceType, usize),
 
-    // Struct constructor call Struct(<args>)
-    Struct(StructDefinitionId, SourceTypeArray),
+    // Value constructor call Value(<args>)
+    Value(ValueDefinitionId, SourceTypeArray),
 
     // Used for *internal* functions (those are not exposed to Dora as Fct)
     Intrinsic(Intrinsic),
@@ -303,7 +303,7 @@ impl CallType {
             CallType::GenericStaticMethod(_, _, fctid) => Some(fctid),
             CallType::Intrinsic(_) => None,
             CallType::Enum(_, _) => None,
-            CallType::Struct(_, _) => None,
+            CallType::Value(_, _) => None,
             CallType::Lambda(_, _) => None,
             CallType::Class2Ctor(_, _) => None,
         }

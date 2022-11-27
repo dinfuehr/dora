@@ -12,8 +12,8 @@ use crate::size::InstanceSize;
 use crate::vm::{
     create_class_instance_with_vtable, get_concrete_tuple_ty, ClassDefinition, ClassInstanceId,
     EnumDefinition, EnumDefinitionId, EnumInstance, EnumInstanceId, EnumLayout, FieldInstance,
-    ShapeKind, StructDefinition, StructDefinitionId, StructInstance, StructInstanceField,
-    StructInstanceId, TraitDefinition, VM,
+    ShapeKind, TraitDefinition, ValueDefinition, ValueDefinitionId, ValueInstance,
+    ValueInstanceField, ValueInstanceId, VM,
 };
 
 pub fn specialize_type(vm: &VM, ty: SourceType, type_params: &SourceTypeArray) -> SourceType {
@@ -41,45 +41,45 @@ pub fn specialize_type_list(
     SourceTypeArray::with(specialized_types)
 }
 
-pub fn specialize_struct_id_params(
+pub fn specialize_value_id_params(
     vm: &VM,
-    struct_id: StructDefinitionId,
+    value_id: ValueDefinitionId,
     type_params: SourceTypeArray,
-) -> StructInstanceId {
-    let struc = vm.structs.idx(struct_id);
-    let struc = struc.read();
-    specialize_struct(vm, &*struc, type_params)
+) -> ValueInstanceId {
+    let value = vm.values.idx(value_id);
+    let value = value.read();
+    specialize_value(vm, &*value, type_params)
 }
 
-pub fn specialize_struct(
+pub fn specialize_value(
     vm: &VM,
-    struct_: &StructDefinition,
+    value: &ValueDefinition,
     type_params: SourceTypeArray,
-) -> StructInstanceId {
+) -> ValueInstanceId {
     if let Some(&id) = vm
-        .struct_specializations
+        .value_specializations
         .read()
-        .get(&(struct_.id(), type_params.clone()))
+        .get(&(value.id(), type_params.clone()))
     {
         return id;
     }
 
-    create_specialized_struct(vm, struct_, type_params)
+    create_specialized_value(vm, value, type_params)
 }
 
-fn create_specialized_struct(
+fn create_specialized_value(
     vm: &VM,
-    struct_: &StructDefinition,
+    value: &ValueDefinition,
     type_params: SourceTypeArray,
-) -> StructInstanceId {
-    assert!(struct_.primitive_ty.is_none());
+) -> ValueInstanceId {
+    assert!(value.primitive_ty.is_none());
 
     let mut size = 0;
     let mut align = 0;
-    let mut fields = Vec::with_capacity(struct_.fields.len());
+    let mut fields = Vec::with_capacity(value.fields.len());
     let mut ref_fields = Vec::new();
 
-    for f in &struct_.fields {
+    for f in &value.fields {
         let ty = specialize_type(vm, f.ty.clone(), &type_params);
         debug_assert!(ty.is_concrete_type(vm));
 
@@ -87,7 +87,7 @@ fn create_specialized_struct(
         let field_align = ty.align(vm);
 
         let offset = mem::align_i32(size, field_align);
-        fields.push(StructInstanceField {
+        fields.push(ValueInstanceField {
             offset,
             ty: ty.clone(),
         });
@@ -100,20 +100,20 @@ fn create_specialized_struct(
 
     size = mem::align_i32(size, align);
 
-    let mut specializations = vm.struct_specializations.write();
+    let mut specializations = vm.value_specializations.write();
 
-    if let Some(&id) = specializations.get(&(struct_.id(), type_params.clone())) {
+    if let Some(&id) = specializations.get(&(value.id(), type_params.clone())) {
         return id;
     }
 
-    let id = vm.struct_instances.push(StructInstance {
+    let id = vm.value_instances.push(ValueInstance {
         size,
         align,
         fields,
         ref_fields,
     });
 
-    let old = specializations.insert((struct_.id(), type_params.clone()), id);
+    let old = specializations.insert((value.id(), type_params.clone()), id);
     assert!(old.is_none());
 
     id
@@ -286,9 +286,9 @@ pub fn add_ref_fields(vm: &VM, ref_fields: &mut Vec<i32>, offset: i32, ty: Sourc
                 ref_fields.push(offset);
             }
         }
-    } else if let SourceType::Struct(struct_id, type_params) = ty.clone() {
-        let sdef_id = specialize_struct_id_params(vm, struct_id, type_params);
-        let sdef = vm.struct_instances.idx(sdef_id);
+    } else if let SourceType::Value(value_id, type_params) = ty.clone() {
+        let sdef_id = specialize_value_id_params(vm, value_id, type_params);
+        let sdef = vm.value_instances.idx(sdef_id);
 
         for &ref_offset in &sdef.ref_fields {
             ref_fields.push(offset + ref_offset);
@@ -414,14 +414,14 @@ fn create_specialized_class_array(
 
             SourceType::Tuple(_) => {
                 let tuple = get_concrete_tuple_ty(vm, &element_ty);
-                InstanceSize::StructArray(tuple.size())
+                InstanceSize::ValueArray(tuple.size())
             }
 
-            SourceType::Struct(struct_id, type_params) => {
-                let sdef_id = specialize_struct_id_params(vm, struct_id, type_params);
-                let sdef = vm.struct_instances.idx(sdef_id);
+            SourceType::Value(struct_id, type_params) => {
+                let sdef_id = specialize_value_id_params(vm, struct_id, type_params);
+                let sdef = vm.value_instances.idx(sdef_id);
 
-                InstanceSize::StructArray(sdef.size)
+                InstanceSize::ValueArray(sdef.size)
             }
 
             SourceType::Enum(enum_id, type_params) => {
@@ -629,7 +629,7 @@ pub fn replace_type_param(
             SourceType::Trait(trait_id, new_type_params)
         }
 
-        SourceType::Struct(struct_id, old_type_params) => {
+        SourceType::Value(struct_id, old_type_params) => {
             let new_type_params = SourceTypeArray::with(
                 old_type_params
                     .iter()
@@ -637,7 +637,7 @@ pub fn replace_type_param(
                     .collect::<Vec<_>>(),
             );
 
-            SourceType::Struct(struct_id, new_type_params)
+            SourceType::Value(struct_id, new_type_params)
         }
 
         SourceType::Enum(enum_id, old_type_params) => {

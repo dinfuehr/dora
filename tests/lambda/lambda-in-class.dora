@@ -26,7 +26,7 @@ fun mytuple(lambda: ((): Int64, (): Int64)): ((): Int64, (): Int64) {
     lambda
 }
 
-struct MyStruct {
+value MyStruct {
     l0: (): Int64,
     l1: (): Int64,
 }

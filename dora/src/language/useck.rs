@@ -472,11 +472,11 @@ mod tests {
     }
 
     #[test]
-    fn use_struct() {
+    fn use_value() {
         ok("
             use foo::Bar;
             mod foo {
-                @pub struct Bar { f: Int32 }
+                @pub value Bar { f: Int32 }
             }
         ");
 
@@ -484,7 +484,7 @@ mod tests {
             "
             use foo::Bar;
             mod foo {
-                struct Bar { f: Int32 }
+                value Bar { f: Int32 }
             }
         ",
             pos(2, 22),

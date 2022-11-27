@@ -8,7 +8,7 @@ use crate::bytecode::{
 };
 use crate::language::generator::generate_fct;
 use crate::language::sem_analysis::{
-    create_tuple, GlobalDefinitionId, SemAnalysis, StructDefinitionFieldId, TypeParamId,
+    create_tuple, GlobalDefinitionId, SemAnalysis, TypeParamId, ValueDefinitionFieldId,
 };
 use crate::language::test;
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -2286,47 +2286,47 @@ fn gen_method_call_ptr_with_3_args() {
 fn gen_new_struct() {
     gen_fct(
         "
-        struct Foo { f1: Int32, f2: Bool }
+        value Foo { f1: Int32, f2: Bool }
         fun f(): Foo { Foo(10i32, false) }
     ",
         |sa, code, fct| {
-            let struct_id = sa.struct_by_name("Foo");
+            let struct_id = sa.value_by_name("Foo");
             let expected = vec![
                 ConstInt32(r(0), 10),
                 ConstFalse(r(1)),
                 PushRegister(r(0)),
                 PushRegister(r(1)),
-                NewStruct(r(2), ConstPoolIdx(1)),
+                NewValue(r(2), ConstPoolIdx(1)),
                 Ret(r(2)),
             ];
             assert_eq!(expected, code);
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(1)),
-                &ConstPoolEntry::Struct(struct_id, SourceTypeArray::empty())
+                &ConstPoolEntry::Value(struct_id, SourceTypeArray::empty())
             );
         },
     );
 
     gen_fct(
         "
-        struct Foo[T] { f1: T, f2: Bool }
+        value Foo[T] { f1: T, f2: Bool }
         fun f[T](val: T): Foo[T] { Foo[T](val, false) }
     ",
         |sa, code, fct| {
-            let struct_id = sa.struct_by_name("Foo");
+            let struct_id = sa.value_by_name("Foo");
             let expected = vec![
                 ConstFalse(r(1)),
                 PushRegister(r(0)),
                 PushRegister(r(1)),
-                NewStruct(r(2), ConstPoolIdx(0)),
+                NewValue(r(2), ConstPoolIdx(0)),
                 Ret(r(2)),
             ];
             assert_eq!(expected, code);
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Struct(
+                &ConstPoolEntry::Value(
                     struct_id,
                     SourceTypeArray::single(SourceType::TypeParam(TypeParamId(0)))
                 )
@@ -2339,7 +2339,7 @@ fn gen_new_struct() {
 fn gen_move_struct() {
     let result = code(
         "
-        struct Foo { f1: Int32, f2: Bool }
+        value Foo { f1: Int32, f2: Bool }
         fun f(x: Foo): Foo { let y = x; y }
     ",
     );
@@ -2351,19 +2351,19 @@ fn gen_move_struct() {
 fn gen_struct_field() {
     gen_fct(
         "
-        struct Foo { f1: Int32, f2: Bool }
+        value Foo { f1: Int32, f2: Bool }
         fun f(x: Foo): Int32 { x.f1 }
     ",
         |sa, code, fct| {
-            let struct_id = sa.struct_by_name("Foo");
-            let expected = vec![LoadStructField(r(1), r(0), ConstPoolIdx(0)), Ret(r(1))];
+            let value_id = sa.value_by_name("Foo");
+            let expected = vec![LoadValueField(r(1), r(0), ConstPoolIdx(0)), Ret(r(1))];
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::StructField(
-                    struct_id,
+                &ConstPoolEntry::ValueField(
+                    value_id,
                     SourceTypeArray::empty(),
-                    StructDefinitionFieldId(0)
+                    ValueDefinitionFieldId(0)
                 )
             );
         },
@@ -2371,19 +2371,19 @@ fn gen_struct_field() {
 
     gen_fct(
         "
-        struct Foo[T] { f1: T, f2: Bool }
+        value Foo[T] { f1: T, f2: Bool }
         fun f(x: Foo[Int32]): Int32 { x.f1 }
     ",
         |sa, code, fct| {
-            let struct_id = sa.struct_by_name("Foo");
-            let expected = vec![LoadStructField(r(1), r(0), ConstPoolIdx(0)), Ret(r(1))];
+            let value_id = sa.value_by_name("Foo");
+            let expected = vec![LoadValueField(r(1), r(0), ConstPoolIdx(0)), Ret(r(1))];
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::StructField(
-                    struct_id,
+                &ConstPoolEntry::ValueField(
+                    value_id,
                     SourceTypeArray::single(SourceType::Int32),
-                    StructDefinitionFieldId(0)
+                    ValueDefinitionFieldId(0)
                 )
             );
         },
@@ -2394,7 +2394,7 @@ fn gen_struct_field() {
 fn gen_struct_array() {
     let result = code(
         "
-        struct Foo { f1: Int32, f2: Bool }
+        value Foo { f1: Int32, f2: Bool }
         fun f(x: Array[Foo], idx: Int64): Foo { x(idx) }
     ",
     );
@@ -2403,7 +2403,7 @@ fn gen_struct_array() {
 
     let result = code(
         "
-        struct Foo { f1: Int32, f2: Bool }
+        value Foo { f1: Int32, f2: Bool }
         fun f(x: Array[Foo], idx: Int64, value: Foo): Unit { x(idx) = value; }
     ",
     );
@@ -4082,7 +4082,7 @@ pub enum Bytecode {
     Mov(Register, Register),
 
     LoadTupleElement(Register, Register, ConstPoolIdx),
-    LoadStructField(Register, Register, ConstPoolIdx),
+    LoadValueField(Register, Register, ConstPoolIdx),
 
     LoadField(Register, Register, ConstPoolIdx),
     StoreField(Register, Register, ConstPoolIdx),
@@ -4128,7 +4128,7 @@ pub enum Bytecode {
     NewArray(Register, ConstPoolIdx, Register),
     NewTuple(Register, ConstPoolIdx),
     NewEnum(Register, ConstPoolIdx),
-    NewStruct(Register, ConstPoolIdx),
+    NewValue(Register, ConstPoolIdx),
     NewTraitObject(Register, ConstPoolIdx, Register),
     NewLambda(Register, ConstPoolIdx),
 
@@ -4262,8 +4262,8 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::LoadTupleElement(src, dest, idx));
     }
 
-    fn visit_load_struct_field(&mut self, dest: Register, obj: Register, idx: ConstPoolIdx) {
-        self.emit(Bytecode::LoadStructField(dest, obj, idx));
+    fn visit_load_value_field(&mut self, dest: Register, obj: Register, idx: ConstPoolIdx) {
+        self.emit(Bytecode::LoadValueField(dest, obj, idx));
     }
 
     fn visit_load_field(&mut self, dest: Register, obj: Register, idx: ConstPoolIdx) {
@@ -4430,8 +4430,8 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
     fn visit_new_enum(&mut self, dest: Register, idx: ConstPoolIdx) {
         self.emit(Bytecode::NewEnum(dest, idx));
     }
-    fn visit_new_struct(&mut self, dest: Register, idx: ConstPoolIdx) {
-        self.emit(Bytecode::NewStruct(dest, idx));
+    fn visit_new_value(&mut self, dest: Register, idx: ConstPoolIdx) {
+        self.emit(Bytecode::NewValue(dest, idx));
     }
     fn visit_new_trait_object(&mut self, dest: Register, idx: ConstPoolIdx, src: Register) {
         self.emit(Bytecode::NewTraitObject(dest, idx, src));

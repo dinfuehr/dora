@@ -1,8 +1,0 @@
-//= error array
-
-struct Foo(f1: Int32, f2: Int32)
-
-fun main(): Unit {
-    let arr = Array[Foo]::fill(7i64, Foo(10i32, 17i32));
-    let y: Foo = arr(10i64);
-}

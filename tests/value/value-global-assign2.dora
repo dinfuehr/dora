@@ -1,0 +1,17 @@
+//= vm-args "--gc=copy --disable-tlab --gc-stress"
+
+value Bar(first: Foo, second: Foo)
+
+var x: Bar = Bar(Foo(0i32), Foo(0i32));
+
+fun main(): Unit {
+    std::forceCollect();
+    x = Bar(Foo(17i32), Foo(42i32));
+    assert(x.first.value == 17i32);
+    assert(x.second.value == 42i32);
+    std::forceCollect();
+    assert(x.first.value == 17i32);
+    assert(x.second.value == 42i32);
+}
+
+class Foo(value: Int32)

@@ -15,18 +15,18 @@ use dora_parser::lexer::token::{FloatSuffix, IntBase, IntSuffix};
 use crate::language::access::{
     class_accessible_from, class_field_accessible_from, const_accessible_from,
     enum_accessible_from, fct_accessible_from, global_accessible_from, is_default_accessible,
-    method_accessible_from, module_accessible_from, struct_accessible_from,
-    struct_field_accessible_from,
+    method_accessible_from, module_accessible_from, value_accessible_from,
+    value_field_accessible_from,
 };
 use crate::language::error::msg::ErrorMessage;
 use crate::language::fctbodyck::lookup::MethodLookup;
 use crate::language::sem_analysis::{
     create_tuple, find_field_in_class, find_methods_in_class, find_methods_in_enum,
-    find_methods_in_struct, implements_trait, AnalysisData, CallType, ClassDefinition,
+    find_methods_in_value, implements_trait, AnalysisData, CallType, ClassDefinition,
     ClassDefinitionId, ContextIdx, EnumDefinitionId, EnumVariant, FctDefinition, FctDefinitionId,
     FctParent, Field, FieldId, ForTypeInfo, IdentType, Intrinsic, ModuleDefinitionId, NestedVarId,
-    PackageDefinitionId, SemAnalysis, SourceFileId, StructDefinition, StructDefinitionId,
-    TypeParamDefinition, TypeParamId, Var, VarAccess, VarId, VarLocation, Visibility,
+    PackageDefinitionId, SemAnalysis, SourceFileId, TypeParamDefinition, TypeParamId,
+    ValueDefinition, ValueDefinitionId, Var, VarAccess, VarId, VarLocation, Visibility,
 };
 use crate::language::specialize::replace_type_param;
 use crate::language::sym::{ModuleSymTable, Sym};
@@ -1486,8 +1486,8 @@ impl<'a> TypeCheck<'a> {
                 self.check_expr_call_class(e, expected_ty, cls_id, type_params, &arg_types)
             }
 
-            Some(Sym::Struct(struct_id)) => {
-                self.check_expr_call_struct(e, struct_id, type_params, &arg_types)
+            Some(Sym::Value(struct_id)) => {
+                self.check_expr_call_value(e, struct_id, type_params, &arg_types)
             }
 
             Some(Sym::EnumVariant(enum_id, variant_idx)) => self.check_enum_value_with_args(
@@ -1962,19 +1962,19 @@ impl<'a> TypeCheck<'a> {
             return self.check_expr_call_expr(e, field_type, arg_types);
         }
 
-        if let Some(struct_id) = object_type.struct_id() {
-            let struct_ = self.sa.structs.idx(struct_id);
-            let struct_ = struct_.read();
-            if let Some(&field_id) = struct_.field_names.get(&method_name) {
-                let ident_type = IdentType::StructField(object_type.clone(), field_id);
+        if let Some(struct_id) = object_type.value_id() {
+            let value = self.sa.values.idx(struct_id);
+            let value = value.read();
+            if let Some(&field_id) = value.field_names.get(&method_name) {
+                let ident_type = IdentType::ValueField(object_type.clone(), field_id);
                 self.analysis.map_idents.insert_or_replace(e.id, ident_type);
 
-                let field = &struct_.fields[field_id.to_usize()];
-                let struct_type_params = object_type.type_params();
+                let field = &value.fields[field_id.to_usize()];
+                let value_type_params = object_type.type_params();
                 let field_type =
-                    replace_type_param(self.sa, field.ty.clone(), &struct_type_params, None);
+                    replace_type_param(self.sa, field.ty.clone(), &value_type_params, None);
 
-                if !struct_field_accessible_from(self.sa, struct_id, field_id, self.module_id) {
+                if !value_field_accessible_from(self.sa, struct_id, field_id, self.module_id) {
                     let name = self.sa.interner.str(field.name).to_string();
                     let msg = ErrorMessage::NotAccessible(name);
                     self.sa.diag.lock().report(self.file_id, e.pos, msg);
@@ -2001,38 +2001,38 @@ impl<'a> TypeCheck<'a> {
         SourceType::Error
     }
 
-    fn check_expr_call_struct(
+    fn check_expr_call_value(
         &mut self,
         e: &ast::ExprCallType,
-        struct_id: StructDefinitionId,
+        value_id: ValueDefinitionId,
         type_params: SourceTypeArray,
         arg_types: &[SourceType],
     ) -> SourceType {
-        let is_struct_accessible = struct_accessible_from(self.sa, struct_id, self.module_id);
+        let is_value_accessible = value_accessible_from(self.sa, value_id, self.module_id);
 
-        if !is_struct_accessible {
-            let struct_ = self.sa.structs.idx(struct_id);
-            let struct_ = struct_.read();
-            let msg = ErrorMessage::NotAccessible(struct_.name(self.sa));
+        if !is_value_accessible {
+            let value = self.sa.values.idx(value_id);
+            let value = value.read();
+            let msg = ErrorMessage::NotAccessible(value.name(self.sa));
             self.sa.diag.lock().report(self.file_id, e.pos, msg);
         }
 
-        let struct_ = self.sa.structs.idx(struct_id);
-        let struct_ = struct_.read();
+        let value = self.sa.values.idx(value_id);
+        let value = value.read();
 
-        if !is_default_accessible(self.sa, struct_.module_id, self.module_id)
-            && !struct_.all_fields_are_public()
-            && is_struct_accessible
+        if !is_default_accessible(self.sa, value.module_id, self.module_id)
+            && !value.all_fields_are_public()
+            && is_value_accessible
         {
-            let msg = ErrorMessage::StructConstructorNotAccessible(struct_.name(self.sa));
+            let msg = ErrorMessage::ValueConstructorNotAccessible(value.name(self.sa));
             self.sa.diag.lock().report(self.file_id, e.pos, msg);
         }
 
-        let ty = SourceType::Struct(struct_id, type_params.clone());
-        let type_params_ok = typeparamck::check_struct(
+        let ty = SourceType::Value(value_id, type_params.clone());
+        let type_params_ok = typeparamck::check_value(
             self.sa,
             self.fct,
-            struct_id,
+            value_id,
             &type_params,
             ErrorReporting::Yes(self.file_id, e.pos),
         );
@@ -2042,19 +2042,19 @@ impl<'a> TypeCheck<'a> {
             return SourceType::Error;
         }
 
-        let field_names: Vec<Name> = struct_.fields.iter().map(|f| f.name).collect();
+        let field_names: Vec<Name> = value.fields.iter().map(|f| f.name).collect();
         let arg_names = &e.arg_names();
         if !arg_names_valid(&field_names, arg_names) {
-            let struct_1 = &*struct_;
-            let struct_name = struct_1.name(self.sa);
-            let param_names = struct_1
+            let value_1 = &*value;
+            let struct_name = value_1.name(self.sa);
+            let param_names = value_1
                 .fields
                 .iter()
                 .map(|f| self.sa.interner.str(f.name).to_string());
-            let param_type_names = struct_1
+            let param_type_names = value_1
                 .fields
                 .iter()
-                .map(|field| field.ty.name_struct(self.sa, struct_1));
+                .map(|field| field.ty.name_value(self.sa, value_1));
             let msg = self.argument_name_mismatch_message(
                 struct_name,
                 param_names,
@@ -2064,32 +2064,32 @@ impl<'a> TypeCheck<'a> {
             );
             self.sa.diag.lock().report(self.file_id, e.pos, msg);
         }
-        if !self.check_expr_call_struct_args(&*struct_, type_params.clone(), arg_types) {
-            let struct_name = self.sa.interner.str(struct_.name).to_string();
-            let field_types = struct_
+        if !self.check_expr_call_value_args(&*value, type_params.clone(), arg_types) {
+            let value_name = self.sa.interner.str(value.name).to_string();
+            let field_types = value
                 .fields
                 .iter()
-                .map(|field| field.ty.name_struct(self.sa, &*struct_))
+                .map(|field| field.ty.name_value(self.sa, &*value))
                 .collect::<Vec<_>>();
             let arg_types = arg_types
                 .iter()
                 .map(|a| a.name_fct(self.sa, self.fct))
                 .collect::<Vec<_>>();
-            let msg = ErrorMessage::StructArgsIncompatible(struct_name, field_types, arg_types);
+            let msg = ErrorMessage::ValueArgsIncompatible(value_name, field_types, arg_types);
             self.sa.diag.lock().report(self.file_id, e.pos, msg);
         }
 
         self.analysis
             .map_calls
-            .insert(e.id, Arc::new(CallType::Struct(struct_id, type_params)));
+            .insert(e.id, Arc::new(CallType::Value(value_id, type_params)));
 
         self.analysis.set_ty(e.id, ty.clone());
         ty
     }
 
-    fn check_expr_call_struct_args(
+    fn check_expr_call_value_args(
         &mut self,
-        struct_: &StructDefinition,
+        struct_: &ValueDefinition,
         type_params: SourceTypeArray,
         arg_types: &[SourceType],
     ) -> bool {
@@ -2387,11 +2387,11 @@ impl<'a> TypeCheck<'a> {
                 }
             }
 
-            Some(Sym::Struct(struct_id)) => {
-                let struct_ = self.sa.structs.idx(struct_id);
+            Some(Sym::Value(struct_id)) => {
+                let struct_ = self.sa.values.idx(struct_id);
                 let struct_ = struct_.read();
 
-                if typeparamck::check_struct(
+                if typeparamck::check_value(
                     self.sa,
                     self.fct,
                     struct_id,
@@ -2402,7 +2402,7 @@ impl<'a> TypeCheck<'a> {
                         assert!(container_type_params.is_empty());
                         primitive_ty.clone()
                     } else {
-                        SourceType::Struct(struct_id, container_type_params)
+                        SourceType::Value(struct_id, container_type_params)
                     };
 
                     self.check_expr_call_static_method(
@@ -2999,18 +2999,18 @@ impl<'a> TypeCheck<'a> {
             }
         };
 
-        if let Some(struct_id) = object_type.struct_id() {
-            let struct_ = self.sa.structs.idx(struct_id);
+        if let Some(struct_id) = object_type.value_id() {
+            let struct_ = self.sa.values.idx(struct_id);
             let struct_ = struct_.read();
             if let Some(&field_id) = struct_.field_names.get(&name) {
-                let ident_type = IdentType::StructField(object_type.clone(), field_id);
+                let ident_type = IdentType::ValueField(object_type.clone(), field_id);
                 self.analysis.map_idents.insert_or_replace(e.id, ident_type);
 
                 let field = &struct_.fields[field_id.to_usize()];
                 let struct_type_params = object_type.type_params();
                 let fty = replace_type_param(self.sa, field.ty.clone(), &struct_type_params, None);
 
-                if !struct_field_accessible_from(self.sa, struct_id, field_id, self.module_id) {
+                if !value_field_accessible_from(self.sa, struct_id, field_id, self.module_id) {
                     let name = self.sa.interner.str(field.name).to_string();
                     let msg = ErrorMessage::NotAccessible(name);
                     self.sa.diag.lock().report(self.file_id, e.pos, msg);
@@ -3477,7 +3477,7 @@ fn arg_allows(
         | SourceType::Bool
         | SourceType::UInt8
         | SourceType::Char
-        | SourceType::Struct(_, _)
+        | SourceType::Value(_, _)
         | SourceType::Int32
         | SourceType::Int64
         | SourceType::Float32
@@ -3684,7 +3684,7 @@ fn lookup_method(
     let candidates = if object_type.is_enum() {
         find_methods_in_enum(sa, object_type, type_param_defs, name, is_static)
     } else if object_type.is_struct() || object_type.is_primitive() {
-        find_methods_in_struct(sa, object_type, type_param_defs, name, is_static)
+        find_methods_in_value(sa, object_type, type_param_defs, name, is_static)
     } else if object_type.cls_id().is_some() {
         find_methods_in_class(sa, object_type, type_param_defs, name, is_static)
     } else {

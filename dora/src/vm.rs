@@ -13,8 +13,8 @@ use crate::language::sem_analysis::{
     AnnotationDefinition, AnnotationDefinitionId, ClassDefinition, ClassDefinitionId,
     ConstDefinition, EnumDefinition, EnumDefinitionId, ExtensionDefinition, FctDefinition,
     FctDefinitionId, GlobalDefinition, ImplDefinition, ModuleDefinition, ModuleDefinitionId,
-    PackageDefinition, PackageDefinitionId, SourceFile, StructDefinition, StructDefinitionId,
-    TraitDefinition, TraitDefinitionId, UseDefinition,
+    PackageDefinition, PackageDefinitionId, SourceFile, TraitDefinition, TraitDefinitionId,
+    UseDefinition, ValueDefinition, ValueDefinitionId,
 };
 use crate::language::ty::SourceTypeArray;
 use crate::stack::DoraToNativeInfo;
@@ -41,20 +41,20 @@ pub use self::compilation::CompilationDatabase;
 pub use self::enums::{EnumInstance, EnumInstanceId, EnumLayout};
 use self::globals::GlobalVariableMemory;
 pub use self::known::{
-    KnownAnnotations, KnownClasses, KnownElements, KnownEnums, KnownFunctions, KnownStructs,
-    KnownTraits,
+    KnownAnnotations, KnownClasses, KnownElements, KnownEnums, KnownFunctions, KnownTraits,
+    KnownValue,
 };
 pub use self::specialize::{
     add_ref_fields, replace_type_param, specialize_class_id, specialize_class_id_params,
-    specialize_enum_class, specialize_enum_id_params, specialize_lambda,
-    specialize_struct_id_params, specialize_trait_object, specialize_tuple_array,
-    specialize_tuple_bty, specialize_tuple_ty, specialize_type, specialize_type_list,
+    specialize_enum_class, specialize_enum_id_params, specialize_lambda, specialize_trait_object,
+    specialize_tuple_array, specialize_tuple_bty, specialize_tuple_ty, specialize_type,
+    specialize_type_list, specialize_value_id_params,
 };
-pub use self::structs::{StructInstance, StructInstanceField, StructInstanceId};
 pub use self::stubs::{setup_stubs, Stubs};
 pub use self::tuples::{
     get_concrete_tuple_array, get_concrete_tuple_bytecode_ty, get_concrete_tuple_ty, ConcreteTuple,
 };
+pub use self::values::{ValueInstance, ValueInstanceField, ValueInstanceId};
 pub use self::waitlists::{ManagedCondition, ManagedMutex, WaitLists};
 
 mod classes;
@@ -66,10 +66,10 @@ mod globals;
 mod initialize;
 mod known;
 mod specialize;
-mod structs;
 mod stubs;
 mod tuples;
 mod ty;
+mod values;
 mod waitlists;
 
 static mut VM_GLOBAL: *const u8 = ptr::null();
@@ -109,8 +109,8 @@ pub struct FullSemAnalysis {
     pub diag: Mutex<Diagnostic>,
     pub known: KnownElements,
     pub consts: MutableVec<ConstDefinition>, // stores all const definitions
-    pub structs: MutableVec<StructDefinition>, // stores all struct source definitions
-    pub classes: MutableVec<ClassDefinition>, // stores all class source definitions
+    pub values: MutableVec<ValueDefinition>, // stores all value type source definitions
+    pub classes: MutableVec<ClassDefinition>, // stores all class type source definitions
     pub extensions: MutableVec<ExtensionDefinition>, // stores all extension definitions
     pub annotations: MutableVec<AnnotationDefinition>, // stores all annotation source definitions
     pub modules: MutableVec<ModuleDefinition>, // stores all module definitions
@@ -137,7 +137,7 @@ impl FullSemAnalysis {
             test_file_as_string: None,
             source_files: Vec::new(),
             consts: MutableVec::new(),
-            structs: MutableVec::new(),
+            values: MutableVec::new(),
             classes: MutableVec::new(),
             extensions: MutableVec::new(),
             annotations: MutableVec::new(),
@@ -189,11 +189,11 @@ pub struct VM {
     pub diag: Mutex<Diagnostic>,
     pub known: KnownElements,
     pub consts: MutableVec<ConstDefinition>, // stores all const definitions
-    pub structs: MutableVec<StructDefinition>, // stores all struct source definitions
-    pub struct_specializations:
-        RwLock<HashMap<(StructDefinitionId, SourceTypeArray), StructInstanceId>>,
-    pub struct_instances: GrowableVecNonIter<StructInstance>, // stores all struct definitions
-    pub classes: MutableVec<ClassDefinition>,                 // stores all class source definitions
+    pub values: MutableVec<ValueDefinition>, // stores all value source definitions
+    pub value_specializations:
+        RwLock<HashMap<(ValueDefinitionId, SourceTypeArray), ValueInstanceId>>,
+    pub value_instances: GrowableVecNonIter<ValueInstance>, // stores all value definitions
+    pub classes: MutableVec<ClassDefinition>,               // stores all class source definitions
     pub class_specializations:
         RwLock<HashMap<(ClassDefinitionId, SourceTypeArray), ClassInstanceId>>,
     pub class_instances: GrowableVecNonIter<ClassInstance>, // stores all class definitions
@@ -236,9 +236,9 @@ impl VM {
             test_file_as_string: None,
             source_files: Vec::new(),
             consts: MutableVec::new(),
-            structs: MutableVec::new(),
-            struct_specializations: RwLock::new(HashMap::new()),
-            struct_instances: GrowableVecNonIter::new(),
+            values: MutableVec::new(),
+            value_specializations: RwLock::new(HashMap::new()),
+            value_instances: GrowableVecNonIter::new(),
             classes: MutableVec::new(),
             class_specializations: RwLock::new(HashMap::new()),
             class_instances: GrowableVecNonIter::new(),
@@ -290,9 +290,9 @@ impl VM {
             test_file_as_string: sa.test_file_as_string,
             source_files: sa.source_files,
             consts: sa.consts,
-            structs: sa.structs,
-            struct_specializations: RwLock::new(HashMap::new()),
-            struct_instances: GrowableVecNonIter::new(),
+            values: sa.values,
+            value_specializations: RwLock::new(HashMap::new()),
+            value_instances: GrowableVecNonIter::new(),
             classes: sa.classes,
             class_specializations: RwLock::new(HashMap::new()),
             class_instances: GrowableVecNonIter::new(),

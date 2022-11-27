@@ -10,7 +10,7 @@ use crate::bytecode::{
 use crate::language::sem_analysis::{
     find_impl, AnalysisData, CallType, ClassDefinitionId, ConstDefinitionId, ContextIdx,
     EnumDefinitionId, FctDefinition, FctDefinitionId, FieldId, GlobalDefinitionId, IdentType,
-    Intrinsic, SemAnalysis, StructDefinitionId, TypeParamId, VarId,
+    Intrinsic, SemAnalysis, TypeParamId, ValueDefinitionId, VarId,
 };
 use crate::language::specialize::specialize_type;
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -1008,7 +1008,7 @@ impl<'a> AstBytecodeGen<'a> {
             return self.visit_expr_dot_tuple(expr, object_ty, dest);
         }
 
-        if let Some(struct_id) = object_ty.struct_id() {
+        if let Some(struct_id) = object_ty.value_id() {
             let type_params = object_ty.type_params();
             return self.visit_expr_dot_struct(expr, struct_id, type_params, dest);
         }
@@ -1051,7 +1051,7 @@ impl<'a> AstBytecodeGen<'a> {
     fn visit_expr_dot_struct(
         &mut self,
         expr: &ast::ExprDotType,
-        struct_id: StructDefinitionId,
+        struct_id: ValueDefinitionId,
         type_params: SourceTypeArray,
         dest: DataDest,
     ) -> Register {
@@ -1060,11 +1060,11 @@ impl<'a> AstBytecodeGen<'a> {
         let ident_type = self.analysis.map_idents.get(expr.id).unwrap();
 
         let field_idx = match ident_type {
-            IdentType::StructField(_, field_idx) => *field_idx,
+            IdentType::ValueField(_, field_idx) => *field_idx,
             _ => unreachable!(),
         };
 
-        let struct_ = self.sa.structs.idx(struct_id);
+        let struct_ = self.sa.values.idx(struct_id);
         let struct_ = struct_.read();
         let field = &struct_.fields[field_idx.to_usize()];
         let ty = specialize_type(self.sa, field.ty.clone(), &type_params);
@@ -1079,9 +1079,9 @@ impl<'a> AstBytecodeGen<'a> {
         let dest = self.ensure_register(dest, ty);
         let const_idx = self
             .builder
-            .add_const_struct_field(struct_id, type_params, field_idx);
+            .add_const_value_field(struct_id, type_params, field_idx);
         self.builder
-            .emit_load_struct_field(dest, struct_obj, const_idx);
+            .emit_load_value_field(dest, struct_obj, const_idx);
 
         self.free_if_temp(struct_obj);
 
@@ -1147,8 +1147,8 @@ impl<'a> AstBytecodeGen<'a> {
                 return self.visit_expr_call_enum(expr, enum_ty.clone(), variant_idx, dest);
             }
 
-            CallType::Struct(struct_id, ref type_params) => {
-                return self.visit_expr_call_struct(expr, struct_id, type_params, dest);
+            CallType::Value(value_id, ref type_params) => {
+                return self.visit_expr_call_value(expr, value_id, type_params, dest);
             }
 
             CallType::Class2Ctor(cls_id, ref type_params) => {
@@ -1295,10 +1295,10 @@ impl<'a> AstBytecodeGen<'a> {
         dest_reg
     }
 
-    fn visit_expr_call_struct(
+    fn visit_expr_call_value(
         &mut self,
         expr: &ast::ExprCallType,
-        struct_id: StructDefinitionId,
+        value_id: ValueDefinitionId,
         type_params: &SourceTypeArray,
         dest: DataDest,
     ) -> Register {
@@ -1312,12 +1312,10 @@ impl<'a> AstBytecodeGen<'a> {
             self.builder.emit_push_register(arg_reg);
         }
 
-        let idx = self
-            .builder
-            .add_const_struct(struct_id, type_params.clone());
-        let bytecode_ty = BytecodeType::Struct(struct_id, type_params.clone());
+        let idx = self.builder.add_const_value(value_id, type_params.clone());
+        let bytecode_ty = BytecodeType::Value(value_id, type_params.clone());
         let dest_reg = self.ensure_register(dest, bytecode_ty);
-        self.builder.emit_new_struct(dest_reg, idx, expr.pos);
+        self.builder.emit_new_value(dest_reg, idx, expr.pos);
 
         for arg_reg in arguments {
             self.free_if_temp(arg_reg);
@@ -1575,7 +1573,7 @@ impl<'a> AstBytecodeGen<'a> {
             }
             CallType::Enum(_, _) => unreachable!(),
             CallType::Intrinsic(_) => unreachable!(),
-            CallType::Struct(_, _) => unreachable!(),
+            CallType::Value(_, _) => unreachable!(),
             CallType::Lambda(_, _) => unreachable!(),
             CallType::Class2Ctor(_, _) => unreachable!(),
         }
@@ -2769,8 +2767,8 @@ impl<'a> AstBytecodeGen<'a> {
             }
 
             &IdentType::Field(_, _) => unreachable!(),
-            &IdentType::Struct(_) => unreachable!(),
-            &IdentType::StructField(_, _) => unreachable!(),
+            &IdentType::Value(_) => unreachable!(),
+            &IdentType::ValueField(_, _) => unreachable!(),
 
             &IdentType::Fct(_, _) => unreachable!(),
             &IdentType::Class(_, _) => unreachable!(),
@@ -3026,7 +3024,7 @@ impl<'a> AstBytecodeGen<'a> {
 
             CallType::Enum(_, _) => unreachable!(),
             CallType::Intrinsic(_) => unreachable!(),
-            CallType::Struct(_, _) => unreachable!(),
+            CallType::Value(_, _) => unreachable!(),
             CallType::Lambda(_, _) => unreachable!(),
             CallType::Class2Ctor(_, _) => unreachable!(),
         }
@@ -3078,7 +3076,7 @@ impl<'a> AstBytecodeGen<'a> {
 
             CallType::Enum(_, _) => unreachable!(),
             CallType::Intrinsic(_) => unreachable!(),
-            CallType::Struct(_, _) => unreachable!(),
+            CallType::Value(_, _) => unreachable!(),
             CallType::Lambda(_, _) => unreachable!(),
             CallType::Class2Ctor(_, _) => unreachable!(),
         }
@@ -3253,7 +3251,7 @@ pub fn bty_from_ty(ty: SourceType) -> BytecodeType {
         SourceType::Class(class_id, type_params) => BytecodeType::Class(class_id, type_params),
         SourceType::Trait(trait_id, type_params) => BytecodeType::Trait(trait_id, type_params),
         SourceType::Enum(enum_id, type_params) => BytecodeType::Enum(enum_id, type_params),
-        SourceType::Struct(struct_id, type_params) => BytecodeType::Struct(struct_id, type_params),
+        SourceType::Value(struct_id, type_params) => BytecodeType::Value(struct_id, type_params),
         SourceType::Tuple(subtypes) => BytecodeType::Tuple(subtypes),
         SourceType::TypeParam(idx) => BytecodeType::TypeParam(idx.to_usize() as u32),
         SourceType::Lambda(params, return_type) => BytecodeType::Lambda(params, return_type),
@@ -3275,7 +3273,7 @@ pub fn register_bty_from_ty(ty: SourceType) -> BytecodeType {
         SourceType::Class(_, _) => BytecodeType::Ptr,
         SourceType::Trait(trait_id, type_params) => BytecodeType::Trait(trait_id, type_params),
         SourceType::Enum(enum_id, type_params) => BytecodeType::Enum(enum_id, type_params),
-        SourceType::Struct(struct_id, type_params) => BytecodeType::Struct(struct_id, type_params),
+        SourceType::Value(struct_id, type_params) => BytecodeType::Value(struct_id, type_params),
         SourceType::Tuple(subtypes) => BytecodeType::Tuple(subtypes),
         SourceType::TypeParam(idx) => BytecodeType::TypeParam(idx.to_usize() as u32),
         SourceType::Lambda(_, _) => BytecodeType::Ptr,

@@ -5,7 +5,7 @@ use crate::gc::Address;
 use crate::language::sem_analysis::{
     AnnotationDefinitionId, ClassDefinition, ClassDefinitionId, EnumDefinitionId,
     ExtensionDefinitionId, FctDefinitionId, Field, FieldId, Intrinsic, ModuleDefinition,
-    ModuleDefinitionId, SemAnalysis, StructDefinitionId, TraitDefinitionId, Visibility,
+    ModuleDefinitionId, SemAnalysis, TraitDefinitionId, ValueDefinitionId, Visibility,
 };
 use crate::language::sym::Sym;
 use crate::language::ty::SourceType;
@@ -297,12 +297,12 @@ fn internal_struct(
     module_id: ModuleDefinitionId,
     name: &str,
     ty: Option<SourceType>,
-) -> StructDefinitionId {
+) -> ValueDefinitionId {
     let struct_id = resolve_name(sa, name, module_id)
-        .to_struct()
+        .to_value()
         .expect("struct expected");
 
-    let struct_ = sa.structs.idx(struct_id);
+    let struct_ = sa.values.idx(struct_id);
     let mut struct_ = struct_.write();
 
     assert!(struct_.internal);
@@ -1825,8 +1825,8 @@ fn common_method(
             internal_class_method(sa, cls_id, method_name, is_static, implementation)
         }
 
-        Sym::Struct(struct_id) => {
-            let struct_ = sa.structs.idx(struct_id);
+        Sym::Value(struct_id) => {
+            let struct_ = sa.values.idx(struct_id);
             let struct_ = struct_.read();
             internal_extension_method(
                 sa,

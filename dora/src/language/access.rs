@@ -1,7 +1,7 @@
 use crate::language::sem_analysis::{
     ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId, FctParent, FieldId,
-    GlobalDefinitionId, ModuleDefinitionId, SemAnalysis, StructDefinitionFieldId,
-    StructDefinitionId, TraitDefinitionId, Visibility,
+    GlobalDefinitionId, ModuleDefinitionId, SemAnalysis, TraitDefinitionId, ValueDefinitionFieldId,
+    ValueDefinitionId, Visibility,
 };
 use crate::language::sym::Sym;
 
@@ -16,7 +16,7 @@ pub fn sym_accessible_from(sa: &SemAnalysis, sym: Sym, module_id: ModuleDefiniti
         Sym::Field(_) => unreachable!(),
         Sym::Global(global_id) => global_accessible_from(sa, global_id, module_id),
         Sym::Module(sym_module_id) => module_accessible_from(sa, sym_module_id, module_id),
-        Sym::Struct(struct_id) => struct_accessible_from(sa, struct_id, module_id),
+        Sym::Value(struct_id) => value_accessible_from(sa, struct_id, module_id),
         Sym::Trait(trait_id) => trait_accessible_from(sa, trait_id, module_id),
         Sym::TypeParam(_) => unreachable!(),
         Sym::Var(_) => unreachable!(),
@@ -110,24 +110,24 @@ pub fn enum_accessible_from(
     accessible_from(sa, enum_.module_id, enum_.visibility, module_id)
 }
 
-pub fn struct_accessible_from(
+pub fn value_accessible_from(
     sa: &SemAnalysis,
-    struct_id: StructDefinitionId,
+    struct_id: ValueDefinitionId,
     module_id: ModuleDefinitionId,
 ) -> bool {
-    let struct_ = sa.structs.idx(struct_id);
+    let struct_ = sa.values.idx(struct_id);
     let struct_ = struct_.read();
 
     accessible_from(sa, struct_.module_id, struct_.visibility, module_id)
 }
 
-pub fn struct_field_accessible_from(
+pub fn value_field_accessible_from(
     sa: &SemAnalysis,
-    struct_id: StructDefinitionId,
-    field_id: StructDefinitionFieldId,
+    struct_id: ValueDefinitionId,
+    field_id: ValueDefinitionFieldId,
     module_id: ModuleDefinitionId,
 ) -> bool {
-    let struct_ = sa.structs.idx(struct_id);
+    let struct_ = sa.values.idx(struct_id);
     let struct_ = struct_.read();
 
     let field = &struct_.fields[field_id.to_usize()];

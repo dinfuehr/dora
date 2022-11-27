@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::bytecode::BytecodeTypeKind;
 use crate::language::sem_analysis::{
-    ClassDefinitionId, EnumDefinitionId, StructDefinitionId, TraitDefinitionId,
+    ClassDefinitionId, EnumDefinitionId, TraitDefinitionId, ValueDefinitionId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 
@@ -20,7 +20,7 @@ pub enum BytecodeType {
     Tuple(SourceTypeArray),
     TypeParam(u32),
     Enum(EnumDefinitionId, SourceTypeArray),
-    Struct(StructDefinitionId, SourceTypeArray),
+    Value(ValueDefinitionId, SourceTypeArray),
     Class(ClassDefinitionId, SourceTypeArray),
     Trait(TraitDefinitionId, SourceTypeArray),
     Lambda(SourceTypeArray, Box<SourceType>),
@@ -41,7 +41,7 @@ impl BytecodeType {
             BytecodeType::Tuple(_) => BytecodeTypeKind::Tuple,
             BytecodeType::TypeParam(_) => BytecodeTypeKind::TypeParam,
             BytecodeType::Enum(_, _) => BytecodeTypeKind::Enum,
-            BytecodeType::Struct(_, _) => BytecodeTypeKind::Struct,
+            BytecodeType::Value(_, _) => BytecodeTypeKind::Value,
             BytecodeType::Class(_, _) => BytecodeTypeKind::Class,
             BytecodeType::Trait(_, _) => BytecodeTypeKind::Trait,
             BytecodeType::Lambda(_, _) => BytecodeTypeKind::Lambda,
@@ -85,7 +85,7 @@ impl BytecodeType {
 
     pub fn is_struct(&self) -> bool {
         match self {
-            BytecodeType::Struct(_, _) => true,
+            BytecodeType::Value(_, _) => true,
             _ => false,
         }
     }

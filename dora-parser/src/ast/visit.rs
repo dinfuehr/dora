@@ -21,8 +21,8 @@ pub trait Visitor: Sized {
         walk_class(self, c);
     }
 
-    fn visit_struct(&mut self, s: &Arc<Struct>) {
-        walk_struct(self, s);
+    fn visit_value(&mut self, s: &Arc<Value>) {
+        walk_value(self, s);
     }
 
     fn visit_annotation(&mut self, a: &Arc<Annotation>) {
@@ -49,8 +49,8 @@ pub trait Visitor: Sized {
         walk_use(self, i);
     }
 
-    fn visit_struct_field(&mut self, f: &StructField) {
-        walk_struct_field(self, f);
+    fn visit_value_field(&mut self, f: &ValueField) {
+        walk_value_field(self, f);
     }
 
     fn visit_ctor(&mut self, m: &Arc<Function>) {
@@ -96,7 +96,7 @@ pub fn walk_elem<V: Visitor>(v: &mut V, e: &Elem) {
     match e {
         Elem::Function(f) => v.visit_fct(f),
         Elem::Class(ref c) => v.visit_class(c),
-        Elem::Struct(ref s) => v.visit_struct(s),
+        Elem::Value(ref s) => v.visit_value(s),
         Elem::Trait(ref t) => v.visit_trait(t),
         Elem::Impl(ref i) => v.visit_impl(i),
         Elem::Annotation(ref a) => v.visit_annotation(a),
@@ -162,13 +162,13 @@ pub fn walk_use<V: Visitor>(_v: &mut V, _use: &Arc<Use>) {
     // nothing to do
 }
 
-pub fn walk_struct<V: Visitor>(v: &mut V, s: &Struct) {
+pub fn walk_value<V: Visitor>(v: &mut V, s: &Value) {
     for f in &s.fields {
-        v.visit_struct_field(f);
+        v.visit_value_field(f);
     }
 }
 
-pub fn walk_struct_field<V: Visitor>(v: &mut V, f: &StructField) {
+pub fn walk_value_field<V: Visitor>(v: &mut V, f: &ValueField) {
     v.visit_type(&f.data_type);
 }
 

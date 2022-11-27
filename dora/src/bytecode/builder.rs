@@ -8,7 +8,7 @@ use crate::bytecode::{
 };
 use crate::language::sem_analysis::{
     ClassDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId, GlobalDefinitionId, SemAnalysis,
-    StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TypeParamId,
+    TraitDefinitionId, TypeParamId, ValueDefinitionFieldId, ValueDefinitionId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::vm::ClassInstanceId;
@@ -106,23 +106,23 @@ impl BytecodeBuilder {
         ))
     }
 
-    pub fn add_const_struct(
+    pub fn add_const_value(
         &mut self,
-        id: StructDefinitionId,
+        id: ValueDefinitionId,
         type_params: SourceTypeArray,
     ) -> ConstPoolIdx {
         self.writer
-            .add_const(ConstPoolEntry::Struct(id, type_params))
+            .add_const(ConstPoolEntry::Value(id, type_params))
     }
 
-    pub fn add_const_struct_field(
+    pub fn add_const_value_field(
         &mut self,
-        id: StructDefinitionId,
+        id: ValueDefinitionId,
         type_params: SourceTypeArray,
-        field_idx: StructDefinitionFieldId,
+        field_idx: ValueDefinitionFieldId,
     ) -> ConstPoolIdx {
         self.writer
-            .add_const(ConstPoolEntry::StructField(id, type_params, field_idx))
+            .add_const(ConstPoolEntry::ValueField(id, type_params, field_idx))
     }
 
     pub fn add_const_fct_types(
@@ -226,14 +226,14 @@ impl BytecodeBuilder {
         self.writer.emit_div(dest, lhs, rhs);
     }
 
-    pub fn emit_load_struct_field(
+    pub fn emit_load_value_field(
         &mut self,
         dest: Register,
         obj: Register,
         field_idx: ConstPoolIdx,
     ) {
         assert!(self.def(dest) && self.used(obj));
-        self.writer.emit_load_struct_field(dest, obj, field_idx);
+        self.writer.emit_load_value_field(dest, obj, field_idx);
     }
 
     pub fn emit_load_field(
@@ -531,7 +531,7 @@ impl BytecodeBuilder {
         self.writer.set_position(pos);
         self.writer.emit_new_enum(dest, idx);
     }
-    pub fn emit_new_struct(&mut self, dest: Register, idx: ConstPoolIdx, pos: Position) {
+    pub fn emit_new_value(&mut self, dest: Register, idx: ConstPoolIdx, pos: Position) {
         assert!(self.def(dest));
         self.writer.set_position(pos);
         self.writer.emit_new_struct(dest, idx);

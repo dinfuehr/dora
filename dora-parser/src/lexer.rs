@@ -541,7 +541,7 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     // "big" shapes
     keywords.insert("class", TokenKind::Class);
     keywords.insert("enum", TokenKind::Enum);
-    keywords.insert("struct", TokenKind::Struct);
+    keywords.insert("value", TokenKind::Value);
     keywords.insert("trait", TokenKind::Trait);
     keywords.insert("impl", TokenKind::Impl);
     keywords.insert("annotation", TokenKind::Annotation);
@@ -1058,13 +1058,13 @@ mod tests {
         assert_tok(&mut reader, TokenKind::Super, 1, 12);
         assert_tok(&mut reader, TokenKind::Mod, 1, 18);
 
-        let mut reader = Lexer::from_str("type struct enum alias trait const");
+        let mut reader = Lexer::from_str("type value enum alias trait const");
         assert_tok(&mut reader, TokenKind::Type, 1, 1);
-        assert_tok(&mut reader, TokenKind::Struct, 1, 6);
-        assert_tok(&mut reader, TokenKind::Enum, 1, 13);
-        assert_tok(&mut reader, TokenKind::Alias, 1, 18);
-        assert_tok(&mut reader, TokenKind::Trait, 1, 24);
-        assert_tok(&mut reader, TokenKind::Const, 1, 30);
+        assert_tok(&mut reader, TokenKind::Value, 1, 6);
+        assert_tok(&mut reader, TokenKind::Enum, 1, 12);
+        assert_tok(&mut reader, TokenKind::Alias, 1, 17);
+        assert_tok(&mut reader, TokenKind::Trait, 1, 23);
+        assert_tok(&mut reader, TokenKind::Const, 1, 29);
 
         let mut reader = Lexer::from_str("for in impl Self");
         assert_tok(&mut reader, TokenKind::For, 1, 1);

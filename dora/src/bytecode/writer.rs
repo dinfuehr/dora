@@ -113,13 +113,13 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::Div, dest, lhs, rhs);
     }
 
-    pub fn emit_load_struct_field(
+    pub fn emit_load_value_field(
         &mut self,
         dest: Register,
         obj: Register,
         field_idx: ConstPoolIdx,
     ) {
-        self.emit_access_field(BytecodeOpcode::LoadStructField, dest, obj, field_idx);
+        self.emit_access_field(BytecodeOpcode::LoadValueField, dest, obj, field_idx);
     }
 
     pub fn emit_load_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
@@ -345,7 +345,7 @@ impl BytecodeWriter {
     }
     pub fn emit_new_struct(&mut self, dest: Register, idx: ConstPoolIdx) {
         let values = [dest.to_usize() as u32, idx.to_usize() as u32];
-        self.emit_values(BytecodeOpcode::NewStruct, &values);
+        self.emit_values(BytecodeOpcode::NewValue, &values);
     }
     pub fn emit_new_trait_object(&mut self, dest: Register, idx: ConstPoolIdx, src: Register) {
         let values = [

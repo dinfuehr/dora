@@ -1,0 +1,16 @@
+value Foo(f1: Int32, f2: Bool)
+
+fun f1(x: Foo, control: Int32): Int32 {
+    assert(control == 4711i32);
+    x.f1
+}
+
+fun f2(x: Foo, control: Int32): Bool {
+    assert(control == 90210i32);
+    x.f2
+}
+
+fun main(): Unit {
+    assert(f1(Foo(10i32, false), 4711i32) == 10i32);
+    assert(f2(Foo(10i32, false), 90210i32).not());
+}

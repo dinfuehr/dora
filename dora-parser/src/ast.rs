@@ -37,8 +37,8 @@ impl File {
     }
 
     #[cfg(test)]
-    pub fn struct0(&self) -> &Struct {
-        self.elements[0].to_struct().unwrap()
+    pub fn value0(&self) -> &Value {
+        self.elements[0].to_value().unwrap()
     }
 
     #[cfg(test)]
@@ -100,7 +100,7 @@ impl fmt::Display for NodeId {
 pub enum Elem {
     Function(Arc<Function>),
     Class(Arc<Class>),
-    Struct(Arc<Struct>),
+    Value(Arc<Value>),
     Trait(Arc<Trait>),
     Impl(Arc<Impl>),
     Annotation(Arc<Annotation>),
@@ -117,7 +117,7 @@ impl Elem {
         match self {
             &Elem::Function(ref f) => f.id,
             &Elem::Class(ref c) => c.id,
-            &Elem::Struct(ref s) => s.id,
+            &Elem::Value(ref s) => s.id,
             &Elem::Trait(ref t) => t.id,
             &Elem::Impl(ref i) => i.id,
             &Elem::Annotation(ref a) => a.id,
@@ -165,9 +165,9 @@ impl Elem {
         }
     }
 
-    pub fn to_struct(&self) -> Option<&Struct> {
+    pub fn to_value(&self) -> Option<&Value> {
         match self {
-            &Elem::Struct(ref struc) => Some(struc),
+            &Elem::Value(ref value) => Some(value),
             _ => None,
         }
     }
@@ -317,19 +317,19 @@ pub struct Alias {
 }
 
 #[derive(Clone, Debug)]
-pub struct Struct {
+pub struct Value {
     pub id: NodeId,
     pub pos: Position,
     pub span: Span,
     pub name: Name,
-    pub fields: Vec<StructField>,
+    pub fields: Vec<ValueField>,
     pub visibility: Visibility,
     pub internal: bool,
     pub type_params: Option<Vec<TypeParam>>,
 }
 
 #[derive(Clone, Debug)]
-pub struct StructField {
+pub struct ValueField {
     pub id: NodeId,
     pub name: Name,
     pub pos: Position,

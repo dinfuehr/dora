@@ -1,0 +1,10 @@
+value Pair(x: Int32, y: Int32)
+
+fun main(): Unit {
+    let (p1, p2) = f();
+    assert((p1.x + p1.y) * (p2.x + p2.y) == 18i32);
+}
+
+fun f(): (Pair, Pair) {
+    (Pair(1i32, 2i32), Pair(5i32, 1i32))
+}

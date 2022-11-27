@@ -28,7 +28,6 @@ mod returnck;
 pub mod sem_analysis;
 mod specialize;
 mod stdlib;
-mod structdefck;
 pub(crate) mod sym;
 #[cfg(test)]
 mod test;
@@ -37,6 +36,7 @@ pub(crate) mod ty;
 mod type_params;
 mod typeparamck;
 mod useck;
+mod valuedefck;
 
 macro_rules! return_on_error {
     ($vm: ident) => {{
@@ -75,7 +75,7 @@ pub fn check(sa: &mut SemAnalysis) -> bool {
 
     // checks class/struct/trait/enum definitions
     clsdefck::check(sa);
-    structdefck::check(sa);
+    valuedefck::check(sa);
     traitdefck::check(sa);
     enumck::check(sa);
     return_on_error!(sa);
@@ -197,15 +197,13 @@ fn internalck(sa: &SemAnalysis) {
         }
     }
 
-    for struct_ in sa.structs.iter() {
-        let struct_ = struct_.read();
+    for value in sa.values.iter() {
+        let value = value.read();
 
-        if struct_.internal && !struct_.internal_resolved {
-            sa.diag.lock().report(
-                struct_.file_id,
-                struct_.pos,
-                ErrorMessage::UnresolvedInternal,
-            );
+        if value.internal && !value.internal_resolved {
+            sa.diag
+                .lock()
+                .report(value.file_id, value.pos, ErrorMessage::UnresolvedInternal);
         }
     }
 
@@ -243,7 +241,7 @@ pub fn report_sym_shadow(
 
     let msg = match sym {
         Sym::Class(_) => ErrorMessage::ShadowClass(name),
-        Sym::Struct(_) => ErrorMessage::ShadowStruct(name),
+        Sym::Value(_) => ErrorMessage::ShadowValue(name),
         Sym::Trait(_) => ErrorMessage::ShadowTrait(name),
         Sym::Enum(_) => ErrorMessage::ShadowEnum(name),
         Sym::Fct(_) => ErrorMessage::ShadowFunction(name),

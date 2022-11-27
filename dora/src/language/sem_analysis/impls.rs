@@ -177,7 +177,7 @@ pub fn implements_trait(
             let struct_id = check_ty
                 .primitive_struct_id(sa)
                 .expect("primitive expected");
-            let struct_ = sa.structs.idx(struct_id);
+            let struct_ = sa.values.idx(struct_id);
             let struct_ = struct_.read();
 
             check_impls(
@@ -190,8 +190,8 @@ pub fn implements_trait(
             .is_some()
         }
 
-        SourceType::Struct(struct_id, _) => {
-            let struct_ = sa.structs.idx(struct_id);
+        SourceType::Value(struct_id, _) => {
+            let struct_ = sa.values.idx(struct_id);
             let struct_ = struct_.read();
 
             check_impls(
@@ -252,7 +252,7 @@ pub fn find_impl(
             let struct_id = check_ty
                 .primitive_struct_id(sa)
                 .expect("primitive expected");
-            let struct_ = sa.structs.idx(struct_id);
+            let struct_ = sa.values.idx(struct_id);
             let struct_ = struct_.read();
 
             check_impls(
@@ -264,8 +264,8 @@ pub fn find_impl(
             )
         }
 
-        SourceType::Struct(struct_id, _) => {
-            let struct_ = sa.structs.idx(struct_id);
+        SourceType::Value(struct_id, _) => {
+            let struct_ = sa.values.idx(struct_id);
             let struct_ = struct_.read();
 
             check_impls(

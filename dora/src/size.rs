@@ -7,7 +7,7 @@ pub enum InstanceSize {
     PrimitiveArray(i32),
     ObjArray,
     UnitArray,
-    StructArray(i32),
+    ValueArray(i32),
     FreeArray,
     CodeObject,
     Str,
@@ -21,7 +21,7 @@ impl InstanceSize {
             InstanceSize::Str => None,
             InstanceSize::Fixed(value) => Some(*value),
             InstanceSize::FreeArray => None,
-            InstanceSize::StructArray(_) => None,
+            InstanceSize::ValueArray(_) => None,
             InstanceSize::UnitArray => Some(Header::array_size()),
             InstanceSize::CodeObject => None,
         }
@@ -34,7 +34,7 @@ impl InstanceSize {
             InstanceSize::Str => Some(1),
             InstanceSize::Fixed(_) => None,
             InstanceSize::FreeArray => Some(mem::ptr_width()),
-            InstanceSize::StructArray(esize) => Some(*esize),
+            InstanceSize::ValueArray(esize) => Some(*esize),
             InstanceSize::UnitArray => None,
             InstanceSize::CodeObject => Some(mem::ptr_width()),
         }

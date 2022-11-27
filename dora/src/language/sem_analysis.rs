@@ -33,13 +33,13 @@ pub use self::src::{
     AnalysisData, CallType, ContextIdx, ForTypeInfo, IdentType, NestedVarId, NodeMap, Var,
     VarAccess, VarId, VarLocation,
 };
-pub use self::structs::{
-    find_methods_in_struct, StructDefinition, StructDefinitionField, StructDefinitionFieldId,
-    StructDefinitionId,
-};
 pub use self::traits::{TraitDefinition, TraitDefinitionId};
 pub use self::tuples::create_tuple;
 pub use self::uses::UseDefinition;
+pub use self::values::{
+    find_methods_in_value, ValueDefinition, ValueDefinitionField, ValueDefinitionFieldId,
+    ValueDefinitionId,
+};
 
 mod annotations;
 mod classes;
@@ -53,10 +53,10 @@ mod modules;
 mod packages;
 mod source_files;
 mod src;
-mod structs;
 mod traits;
 mod tuples;
 mod uses;
+mod values;
 
 pub type SemAnalysis = VM;
 
@@ -71,10 +71,10 @@ impl SemAnalysis {
     }
 
     #[cfg(test)]
-    pub fn struct_by_name(&self, name: &'static str) -> StructDefinitionId {
+    pub fn value_by_name(&self, name: &'static str) -> ValueDefinitionId {
         let name = self.interner.intern(name);
         ModuleSymTable::new(self, self.program_module_id())
-            .get_struct(name)
+            .get_value(name)
             .expect("class not found")
     }
 
@@ -130,12 +130,12 @@ impl SemAnalysis {
         let function_name = self.interner.intern(function_name);
 
         let struct_id = ModuleSymTable::new(self, self.program_module_id())
-            .get_struct(struct_name)
+            .get_value(struct_name)
             .expect("struct not found");
-        let struct_ = self.structs.idx(struct_id);
+        let struct_ = self.values.idx(struct_id);
         let struct_ = struct_.read();
 
-        let candidates = find_methods_in_struct(
+        let candidates = find_methods_in_value(
             self,
             struct_.ty(),
             struct_.type_params(),

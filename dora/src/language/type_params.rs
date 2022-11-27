@@ -124,7 +124,7 @@ fn check_enums(sa: &SemAnalysis) {
 }
 
 fn check_structs(sa: &SemAnalysis) {
-    for struct_ in sa.structs.iter() {
+    for struct_ in sa.values.iter() {
         let type_param_definition;
 
         {

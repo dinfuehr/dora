@@ -106,10 +106,10 @@ impl<'a> Parser<'a> {
                 Ok(Elem::Class(Arc::new(class)))
             }
 
-            TokenKind::Struct => {
+            TokenKind::Value => {
                 self.restrict_modifiers(&modifiers, &[Modifier::Pub, Modifier::Internal])?;
-                let struc = self.parse_struct(&modifiers)?;
-                Ok(Elem::Struct(Arc::new(struc)))
+                let value = self.parse_value(&modifiers)?;
+                Ok(Elem::Value(Arc::new(value)))
             }
 
             TokenKind::Trait => {
@@ -496,21 +496,21 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_struct(&mut self, modifiers: &Modifiers) -> Result<Struct, ParseErrorAndPos> {
+    fn parse_value(&mut self, modifiers: &Modifiers) -> Result<Value, ParseErrorAndPos> {
         let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::Struct)?.position;
+        let pos = self.expect_token(TokenKind::Value)?.position;
         let ident = self.expect_identifier()?;
         let type_params = self.parse_type_params()?;
 
         let fields = if self.token.is(TokenKind::LParen) {
             self.expect_token(TokenKind::LParen)?;
             self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
-                p.parse_struct_field()
+                p.parse_value_field()
             })?
         } else if self.token.is(TokenKind::LBrace) {
             self.expect_token(TokenKind::LBrace)?;
             self.parse_list(TokenKind::Comma, TokenKind::RBrace, |p| {
-                p.parse_struct_field()
+                p.parse_value_field()
             })?
         } else {
             Vec::new()
@@ -518,7 +518,7 @@ impl<'a> Parser<'a> {
 
         let span = self.span_from(start);
 
-        Ok(Struct {
+        Ok(Value {
             id: self.generate_id(),
             name: ident,
             pos,
@@ -530,7 +530,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_struct_field(&mut self) -> Result<StructField, ParseErrorAndPos> {
+    fn parse_value_field(&mut self) -> Result<ValueField, ParseErrorAndPos> {
         let start = self.token.span.start();
         let pos = self.token.position;
 
@@ -544,7 +544,7 @@ impl<'a> Parser<'a> {
         let ty = self.parse_type()?;
         let span = self.span_from(start);
 
-        Ok(StructField {
+        Ok(ValueField {
             id: self.generate_id(),
             name: ident,
             pos,
@@ -977,7 +977,7 @@ impl<'a> Parser<'a> {
                 Ok(Type::create_self(self.generate_id(), pos, span))
             }
 
-            TokenKind::Identifier(_) | TokenKind::Is => {
+            TokenKind::Identifier(_) | TokenKind::Is | TokenKind::Value => {
                 let pos = self.token.position;
                 let start = self.token.span.start();
                 let path = self.parse_path()?;
@@ -1718,7 +1718,7 @@ impl<'a> Parser<'a> {
             TokenKind::LitInt(_, _, _) => self.parse_lit_int(),
             TokenKind::LitFloat(_, _) => self.parse_lit_float(),
             TokenKind::StringTail(_) | TokenKind::StringExpr(_) => self.parse_string(),
-            TokenKind::Identifier(_) | TokenKind::Is => self.parse_identifier(),
+            TokenKind::Identifier(_) | TokenKind::Is | TokenKind::Value => self.parse_identifier(),
             TokenKind::True => self.parse_bool_literal(),
             TokenKind::False => self.parse_bool_literal(),
             TokenKind::This => self.parse_this(),
@@ -2037,7 +2037,7 @@ impl<'a> Parser<'a> {
 
         match tok.kind {
             TokenKind::Identifier(ref value) => Ok(self.interner.intern(value)),
-            TokenKind::Is => Ok(self.interner.intern(tok.kind.name())),
+            TokenKind::Is | TokenKind::Value => Ok(self.interner.intern(tok.kind.name())),
             _ => Err(ParseErrorAndPos::new(
                 tok.position,
                 ParseError::ExpectedIdentifier(tok.name()),
@@ -3093,21 +3093,21 @@ mod tests {
     }
 
     #[test]
-    fn parse_struct_empty() {
-        let (prog, interner) = parse("struct Foo {}");
-        let struc = prog.struct0();
+    fn parse_value_empty() {
+        let (prog, interner) = parse("value Foo {}");
+        let struc = prog.value0();
         assert_eq!(0, struc.fields.len());
         assert_eq!("Foo", *interner.str(struc.name));
     }
 
     #[test]
-    fn parse_struct_one_field() {
+    fn parse_value_one_field() {
         let (prog, interner) = parse(
-            "struct Bar {
+            "value Bar {
             f1: Foo1,
         }",
         );
-        let struc = prog.struct0();
+        let struc = prog.value0();
         assert_eq!(1, struc.fields.len());
         assert_eq!("Bar", *interner.str(struc.name));
 
@@ -3116,14 +3116,14 @@ mod tests {
     }
 
     #[test]
-    fn parse_struct_multiple_fields() {
+    fn parse_value_multiple_fields() {
         let (prog, interner) = parse(
-            "struct FooBar {
+            "value FooBar {
             fa: Foo1,
             fb: Foo2,
         }",
         );
-        let struc = prog.struct0();
+        let struc = prog.value0();
         assert_eq!(2, struc.fields.len());
         assert_eq!("FooBar", *interner.str(struc.name));
 
@@ -3135,21 +3135,21 @@ mod tests {
     }
 
     #[test]
-    fn parse_struct_with_type_params() {
+    fn parse_value_with_type_params() {
         let (prog, interner) = parse(
-            "struct Bar[T1, T2] {
+            "value Bar[T1, T2] {
             f1: T1, f2: T2,
         }",
         );
-        let struct_ = prog.struct0();
-        assert_eq!(2, struct_.fields.len());
-        assert_eq!("Bar", *interner.str(struct_.name));
+        let value = prog.value0();
+        assert_eq!(2, value.fields.len());
+        assert_eq!("Bar", *interner.str(value.name));
 
-        assert_eq!(2, struct_.type_params.as_ref().unwrap().len());
+        assert_eq!(2, value.type_params.as_ref().unwrap().len());
     }
 
     #[test]
-    fn parse_struct_lit_while() {
+    fn parse_value_lit_while() {
         let stmt = parse_stmt("while i < n { }");
         let while_stmt = stmt.to_while().unwrap();
         let bin = while_stmt.cond.to_bin().unwrap();
@@ -3159,7 +3159,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_struct_lit_if() {
+    fn parse_value_lit_if() {
         let (expr, _) = parse_expr("if i < n { }");
         let ifexpr = expr.to_if().unwrap();
         let bin = ifexpr.cond.expr.as_ref().unwrap().to_bin().unwrap();

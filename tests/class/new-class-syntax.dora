@@ -1,6 +1,6 @@
 //= vm-args "--gc=swiper --gc-verify"
 
-struct MyStruct(x: Int64, y: Foo)
+value MyStruct(x: Int64, y: Foo)
 
 class Foo(a: Int64, b: Bool)
 class Bar(c: (Int64, Foo), d: MyStruct)

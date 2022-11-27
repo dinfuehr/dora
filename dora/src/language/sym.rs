@@ -8,7 +8,7 @@ use self::Sym::*;
 use crate::language::sem_analysis::{
     AnnotationDefinitionId, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId,
     FctDefinitionId, FieldId, GlobalDefinitionId, ModuleDefinitionId, NestedVarId, SemAnalysis,
-    StructDefinitionId, TraitDefinitionId, TypeParamId,
+    TraitDefinitionId, TypeParamId, ValueDefinitionId,
 };
 use dora_parser::interner::Name;
 
@@ -79,8 +79,8 @@ impl ModuleSymTable {
         self.get(name).and_then(|n| n.to_fct())
     }
 
-    pub fn get_struct(&self, name: Name) -> Option<StructDefinitionId> {
-        self.get(name).and_then(|n| n.to_struct())
+    pub fn get_value(&self, name: Name) -> Option<ValueDefinitionId> {
+        self.get(name).and_then(|n| n.to_value())
     }
 
     pub fn get_trait(&self, name: Name) -> Option<TraitDefinitionId> {
@@ -141,8 +141,8 @@ impl SymTable {
         self.get(name).and_then(|n| n.to_class())
     }
 
-    pub fn get_struct(&self, name: Name) -> Option<StructDefinitionId> {
-        self.get(name).and_then(|n| n.to_struct())
+    pub fn get_struct(&self, name: Name) -> Option<ValueDefinitionId> {
+        self.get(name).and_then(|n| n.to_value())
     }
 
     pub fn get_trait(&self, name: Name) -> Option<TraitDefinitionId> {
@@ -167,7 +167,7 @@ impl SymTable {
 #[derive(Debug, Clone)]
 pub enum Sym {
     Class(ClassDefinitionId),
-    Struct(StructDefinitionId),
+    Value(ValueDefinitionId),
     Trait(TraitDefinitionId),
     TypeParam(TypeParamId),
     Enum(EnumDefinitionId),
@@ -198,14 +198,14 @@ impl Sym {
 
     pub fn is_struct(&self) -> bool {
         match *self {
-            Struct(_) => true,
+            Value(_) => true,
             _ => false,
         }
     }
 
-    pub fn to_struct(&self) -> Option<StructDefinitionId> {
+    pub fn to_value(&self) -> Option<ValueDefinitionId> {
         match *self {
-            Struct(id) => Some(id),
+            Value(id) => Some(id),
             _ => None,
         }
     }

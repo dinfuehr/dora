@@ -65,7 +65,7 @@ impl<'a> AstDumper<'a> {
         match *el {
             Elem::Function(ref node) => self.dump_fct(node),
             Elem::Class(ref node) => self.dump_class(node),
-            Elem::Struct(ref node) => self.dump_struct(node),
+            Elem::Value(ref node) => self.dump_value(node),
             Elem::Trait(ref node) => self.dump_trait(node),
             Elem::Impl(ref node) => self.dump_impl(node),
             Elem::Annotation(ref node) => self.dump_annotation(node),
@@ -194,23 +194,23 @@ impl<'a> AstDumper<'a> {
         });
     }
 
-    fn dump_struct(&mut self, struc: &Struct) {
+    fn dump_value(&mut self, value: &Value) {
         dump!(
             self,
-            "struct {} @ {} {}",
-            self.str(struc.name),
-            struc.pos,
-            struc.id
+            "value {} @ {} {}",
+            self.str(value.name),
+            value.pos,
+            value.id
         );
 
         self.indent(|d| {
-            for field in &struc.fields {
-                d.dump_struct_field(field);
+            for field in &value.fields {
+                d.dump_value_field(field);
             }
         });
     }
 
-    fn dump_struct_field(&mut self, field: &StructField) {
+    fn dump_value_field(&mut self, field: &ValueField) {
         dump!(
             self,
             "field {} @ {} {}",

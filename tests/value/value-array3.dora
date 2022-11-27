@@ -1,0 +1,8 @@
+//= error array
+
+value Foo(f1: Int32, f2: Int32)
+
+fun main(): Unit {
+    let arr = Array[Foo]::fill(7i64, Foo(10i32, 17i32));
+    arr(10i64) = Foo(100i32, 170i32);
+}

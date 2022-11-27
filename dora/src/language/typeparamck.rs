@@ -3,7 +3,7 @@ use dora_parser::lexer::position::Position;
 use crate::language::error::msg::ErrorMessage;
 use crate::language::sem_analysis::{
     implements_trait, ClassDefinitionId, EnumDefinitionId, FctDefinition, SemAnalysis,
-    SourceFileId, StructDefinitionId, TypeParamDefinition,
+    SourceFileId, TypeParamDefinition, ValueDefinitionId,
 };
 use crate::language::specialize::specialize_type;
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -33,20 +33,20 @@ pub fn check_enum(
     checker.check(type_params)
 }
 
-pub fn check_struct(
+pub fn check_value(
     sa: &SemAnalysis,
     fct: &FctDefinition,
-    struct_id: StructDefinitionId,
+    struct_id: ValueDefinitionId,
     type_params: &SourceTypeArray,
     error: ErrorReporting,
 ) -> bool {
-    let struct_ = sa.structs.idx(struct_id);
-    let struct_ = struct_.read();
+    let value = sa.values.idx(struct_id);
+    let value = value.read();
 
     let checker = TypeParamCheck {
         sa,
         caller_type_param_defs: &fct.type_params,
-        callee_type_param_defs: struct_.type_params(),
+        callee_type_param_defs: value.type_params(),
         error,
     };
 

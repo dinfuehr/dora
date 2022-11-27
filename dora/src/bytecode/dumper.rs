@@ -50,26 +50,26 @@ pub fn dump(vm: &SemAnalysis, fct: Option<&FctDefinition>, bc: &BytecodeFunction
                     cls.name_with_params(vm, type_params)
                 )
             }
-            ConstPoolEntry::Struct(struct_id, type_params) => {
-                let struct_ = vm.structs.idx(*struct_id);
-                let struct_ = struct_.read();
+            ConstPoolEntry::Value(struct_id, type_params) => {
+                let value = vm.values.idx(*struct_id);
+                let value = value.read();
                 println!(
-                    "{}{} => Struct {}",
+                    "{}{} => Value {}",
                     align,
                     idx,
-                    struct_.name_with_params(vm, type_params)
+                    value.name_with_params(vm, type_params)
                 )
             }
-            ConstPoolEntry::StructField(struct_id, type_params, field_idx) => {
-                let struct_ = vm.structs.idx(*struct_id);
-                let struct_ = struct_.read();
-                let field = &struct_.fields[field_idx.to_usize()];
+            ConstPoolEntry::ValueField(struct_id, type_params, field_idx) => {
+                let value = vm.values.idx(*struct_id);
+                let value = value.read();
+                let field = &value.fields[field_idx.to_usize()];
                 let fname = vm.interner.str(field.name);
                 println!(
-                    "{}{} => StructField {}.{}",
+                    "{}{} => ValueField {}.{}",
                     align,
                     idx,
-                    struct_.name_with_params(vm, type_params),
+                    value.name_with_params(vm, type_params),
                     fname
                 )
             }
@@ -353,8 +353,8 @@ impl<'a> BytecodeDumper<'a> {
 
                 (cname, fname)
             }
-            ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
-                let struct_ = self.sa.structs.idx(*struct_id);
+            ConstPoolEntry::ValueField(struct_id, type_params, field_id) => {
+                let struct_ = self.sa.values.idx(*struct_id);
                 let struct_ = struct_.read();
                 let struct_name = struct_.name_with_params(self.sa, type_params);
 
@@ -539,15 +539,15 @@ impl<'a> BytecodeDumper<'a> {
         .expect("write! failed");
     }
 
-    fn emit_new_struct(&mut self, name: &str, r1: Register, idx: ConstPoolIdx) {
+    fn emit_new_value(&mut self, name: &str, r1: Register, idx: ConstPoolIdx) {
         self.emit_start(name);
-        let (struct_id, type_params) = match self.bc.const_pool(idx) {
-            ConstPoolEntry::Struct(struct_id, type_params) => (*struct_id, type_params),
+        let (value_id, type_params) = match self.bc.const_pool(idx) {
+            ConstPoolEntry::Value(value_id, type_params) => (*value_id, type_params),
             _ => unreachable!(),
         };
-        let struct_ = self.sa.structs.idx(struct_id);
-        let struct_ = struct_.read();
-        let struct_name = struct_.name_with_params(self.sa, type_params);
+        let value = self.sa.values.idx(value_id);
+        let value = value.read();
+        let struct_name = value.name_with_params(self.sa, type_params);
         writeln!(
             self.w,
             " {}, ConstPoolIdx({}) # {}",
@@ -638,8 +638,8 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_field("LoadField", dest, obj, field_idx);
     }
 
-    fn visit_load_struct_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
-        self.emit_field("LoadStructField", dest, obj, field_idx);
+    fn visit_load_value_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
+        self.emit_field("LoadValueField", dest, obj, field_idx);
     }
 
     fn visit_store_field(&mut self, src: Register, obj: Register, field_idx: ConstPoolIdx) {
@@ -864,8 +864,8 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_new_enum(&mut self, dest: Register, idx: ConstPoolIdx) {
         self.emit_new_enum("NewEnum", dest, idx);
     }
-    fn visit_new_struct(&mut self, dest: Register, idx: ConstPoolIdx) {
-        self.emit_new_struct("NewStruct", dest, idx);
+    fn visit_new_value(&mut self, dest: Register, idx: ConstPoolIdx) {
+        self.emit_new_value("NewValue", dest, idx);
     }
 
     fn visit_array_length(&mut self, dest: Register, arr: Register) {

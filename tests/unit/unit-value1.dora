@@ -1,0 +1,17 @@
+value A(value: ())
+
+fun main(): Unit {
+    let a = A(());
+    let x: () = foo(a);
+
+    let b1 = B[()](());
+    let b2 = bar[()](());
+}
+
+fun foo(a: A): () { a.value }
+
+fun bar[T](value: T): B[T] {
+    B[T](value)
+}
+
+value B[T](value: T)

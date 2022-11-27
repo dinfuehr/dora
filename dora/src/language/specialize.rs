@@ -61,7 +61,7 @@ pub fn replace_type_param(
             SourceType::Trait(trait_id, new_type_params)
         }
 
-        SourceType::Struct(struct_id, old_type_params) => {
+        SourceType::Value(struct_id, old_type_params) => {
             let new_type_params = SourceTypeArray::with(
                 old_type_params
                     .iter()
@@ -69,7 +69,7 @@ pub fn replace_type_param(
                     .collect::<Vec<_>>(),
             );
 
-            SourceType::Struct(struct_id, new_type_params)
+            SourceType::Value(struct_id, new_type_params)
         }
 
         SourceType::Enum(enum_id, old_type_params) => {

@@ -156,11 +156,11 @@ impl<'a> BytecodeReader<'a> {
                 BytecodeInstruction::LoadEnumVariant { dest, src, idx }
             }
 
-            BytecodeOpcode::LoadStructField => {
+            BytecodeOpcode::LoadValueField => {
                 let dest = self.read_register();
                 let obj = self.read_register();
                 let field = self.read_const_pool_idx();
-                BytecodeInstruction::LoadStructField { dest, obj, field }
+                BytecodeInstruction::LoadValueField { dest, obj, field }
             }
 
             BytecodeOpcode::LoadField => {
@@ -377,10 +377,10 @@ impl<'a> BytecodeReader<'a> {
                 let idx = self.read_const_pool_idx();
                 BytecodeInstruction::NewEnum { dest, idx }
             }
-            BytecodeOpcode::NewStruct => {
+            BytecodeOpcode::NewValue => {
                 let dest = self.read_register();
                 let idx = self.read_const_pool_idx();
-                BytecodeInstruction::NewStruct { dest, idx }
+                BytecodeInstruction::NewValue { dest, idx }
             }
             BytecodeOpcode::NewTraitObject => {
                 let dest = self.read_register();
@@ -594,8 +594,8 @@ where
                 self.visitor.visit_load_enum_variant(dest, src, idx);
             }
 
-            BytecodeInstruction::LoadStructField { dest, obj, field } => {
-                self.visitor.visit_load_struct_field(dest, obj, field);
+            BytecodeInstruction::LoadValueField { dest, obj, field } => {
+                self.visitor.visit_load_value_field(dest, obj, field);
             }
 
             BytecodeInstruction::LoadField { dest, obj, field } => {
@@ -732,8 +732,8 @@ where
             BytecodeInstruction::NewEnum { dest, idx } => {
                 self.visitor.visit_new_enum(dest, idx);
             }
-            BytecodeInstruction::NewStruct { dest, idx } => {
-                self.visitor.visit_new_struct(dest, idx);
+            BytecodeInstruction::NewValue { dest, idx } => {
+                self.visitor.visit_new_value(dest, idx);
             }
             BytecodeInstruction::NewTraitObject { dest, idx, src } => {
                 self.visitor.visit_new_trait_object(dest, idx, src);
@@ -838,7 +838,7 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_load_struct_field(&mut self, _dest: Register, _obj: Register, _field: ConstPoolIdx) {
+    fn visit_load_value_field(&mut self, _dest: Register, _obj: Register, _field: ConstPoolIdx) {
         unimplemented!();
     }
 
@@ -1000,7 +1000,7 @@ pub trait BytecodeVisitor {
     fn visit_new_enum(&mut self, _dest: Register, _idx: ConstPoolIdx) {
         unimplemented!();
     }
-    fn visit_new_struct(&mut self, _dest: Register, _idx: ConstPoolIdx) {
+    fn visit_new_value(&mut self, _dest: Register, _idx: ConstPoolIdx) {
         unimplemented!();
     }
     fn visit_new_trait_object(&mut self, _dest: Register, _idx: ConstPoolIdx, _src: Register) {

@@ -1,0 +1,16 @@
+value Foo(f1: Int32, f2: Bool)
+
+fun f(): Int32 {
+    let x = Foo(10i32, false);
+    x.f1
+}
+
+fun g(): Bool {
+    let x = Foo(10i32, false);
+    x.f2
+}
+
+fun main(): Unit {
+    assert(f() == 10i32);
+    assert(g().not());
+}

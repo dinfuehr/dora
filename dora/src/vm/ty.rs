@@ -2,7 +2,7 @@ use crate::language::ty::SourceType;
 use crate::mem;
 use crate::mode::MachineMode;
 use crate::vm::{get_concrete_tuple_ty, VM};
-use crate::vm::{specialize_enum_id_params, specialize_struct_id_params, EnumLayout};
+use crate::vm::{specialize_enum_id_params, specialize_value_id_params, EnumLayout};
 
 impl SourceType {
     pub fn size(&self, vm: &VM) -> i32 {
@@ -30,9 +30,9 @@ impl SourceType {
             SourceType::Class(_, _) | SourceType::Lambda(_, _) | SourceType::Ptr => {
                 mem::ptr_width()
             }
-            SourceType::Struct(sid, params) => {
-                let sid = specialize_struct_id_params(vm, *sid, params.clone());
-                let struc = vm.struct_instances.idx(sid);
+            SourceType::Value(sid, params) => {
+                let sid = specialize_value_id_params(vm, *sid, params.clone());
+                let struc = vm.value_instances.idx(sid);
 
                 struc.size
             }
@@ -67,9 +67,9 @@ impl SourceType {
             SourceType::Class(_, _) | SourceType::Lambda(_, _) | SourceType::Ptr => {
                 mem::ptr_width()
             }
-            SourceType::Struct(sid, params) => {
-                let sid = specialize_struct_id_params(vm, *sid, params.clone());
-                let struc = vm.struct_instances.idx(sid);
+            SourceType::Value(sid, params) => {
+                let sid = specialize_value_id_params(vm, *sid, params.clone());
+                let struc = vm.value_instances.idx(sid);
 
                 struc.align
             }
@@ -82,7 +82,7 @@ impl SourceType {
     pub fn mode(&self) -> MachineMode {
         match self {
             SourceType::Error => panic!("no machine mode for error."),
-            SourceType::Unit => panic!("no machine mode for ()."),
+            SourceType::Unit => panic!("no machine mode for unit."),
             SourceType::Bool => MachineMode::Int8,
             SourceType::UInt8 => MachineMode::Int8,
             SourceType::Char => MachineMode::Int32,
@@ -96,7 +96,7 @@ impl SourceType {
             SourceType::Class(_, _) | SourceType::Lambda(_, _) | SourceType::Ptr => {
                 MachineMode::Ptr
             }
-            SourceType::Struct(_, _) => panic!("no machine mode for struct."),
+            SourceType::Value(_, _) => panic!("no machine mode for value type."),
             SourceType::Trait(_, _) => MachineMode::Ptr,
             SourceType::TypeParam(_) => panic!("no machine mode for type variable."),
             SourceType::Tuple(_) => unimplemented!(),

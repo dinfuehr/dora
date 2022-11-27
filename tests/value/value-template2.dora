@@ -1,0 +1,13 @@
+//= vm-args "--gc=copy --disable-tlab --gc-stress"
+
+fun main(): Unit {
+    let x = id[Bar](Bar("f" + "o" + "o", Foo(17i32)));
+    std::forceCollect();
+    assert(x.first == "foo");
+    assert(x.second.value == 17i32);
+}
+
+value Bar(first: String, second: Foo)
+class Foo(value: Int32)
+
+fun id[T](x: T): T { x }

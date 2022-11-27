@@ -4,7 +4,7 @@ use crate::language::sem_analysis::{ClassDefinitionId, FctDefinitionId, TraitDef
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::vm::{
     specialize_class_id, specialize_class_id_params, AnnotationDefinitionId, ClassInstanceId,
-    EnumDefinitionId, StructDefinitionId, VM,
+    EnumDefinitionId, ValueDefinitionId, VM,
 };
 
 #[derive(Debug)]
@@ -14,7 +14,7 @@ pub struct KnownElements {
     pub annotations: KnownAnnotations,
     pub functions: KnownFunctions,
     pub enums: KnownEnums,
-    pub structs: KnownStructs,
+    pub structs: KnownValue,
 
     pub byte_array_class_instance: Mutex<Option<ClassInstanceId>>,
     pub int_array_class_instance: Mutex<Option<ClassInstanceId>>,
@@ -36,7 +36,7 @@ impl KnownElements {
             traits: KnownTraits::new(),
             enums: KnownEnums::new(),
             annotations: KnownAnnotations::new(),
-            structs: KnownStructs::new(),
+            structs: KnownValue::new(),
 
             byte_array_class_instance: Mutex::new(None),
             int_array_class_instance: Mutex::new(None),
@@ -149,20 +149,20 @@ impl KnownClasses {
 }
 
 #[derive(Debug)]
-pub struct KnownStructs {
-    pub unit: Option<StructDefinitionId>,
-    pub bool: Option<StructDefinitionId>,
-    pub uint8: Option<StructDefinitionId>,
-    pub char: Option<StructDefinitionId>,
-    pub int32: Option<StructDefinitionId>,
-    pub int64: Option<StructDefinitionId>,
-    pub float32: Option<StructDefinitionId>,
-    pub float64: Option<StructDefinitionId>,
+pub struct KnownValue {
+    pub unit: Option<ValueDefinitionId>,
+    pub bool: Option<ValueDefinitionId>,
+    pub uint8: Option<ValueDefinitionId>,
+    pub char: Option<ValueDefinitionId>,
+    pub int32: Option<ValueDefinitionId>,
+    pub int64: Option<ValueDefinitionId>,
+    pub float32: Option<ValueDefinitionId>,
+    pub float64: Option<ValueDefinitionId>,
 }
 
-impl KnownStructs {
-    pub fn new() -> KnownStructs {
-        KnownStructs {
+impl KnownValue {
+    pub fn new() -> KnownValue {
+        KnownValue {
             unit: None,
             bool: None,
             uint8: None,
@@ -174,35 +174,35 @@ impl KnownStructs {
         }
     }
 
-    pub fn unit(&self) -> StructDefinitionId {
+    pub fn unit(&self) -> ValueDefinitionId {
         self.unit.expect("uninitialized")
     }
 
-    pub fn bool(&self) -> StructDefinitionId {
+    pub fn bool(&self) -> ValueDefinitionId {
         self.bool.expect("uninitialized")
     }
 
-    pub fn uint8(&self) -> StructDefinitionId {
+    pub fn uint8(&self) -> ValueDefinitionId {
         self.uint8.expect("uninitialized")
     }
 
-    pub fn char(&self) -> StructDefinitionId {
+    pub fn char(&self) -> ValueDefinitionId {
         self.char.expect("uninitialized")
     }
 
-    pub fn int32(&self) -> StructDefinitionId {
+    pub fn int32(&self) -> ValueDefinitionId {
         self.int32.expect("uninitialized")
     }
 
-    pub fn int64(&self) -> StructDefinitionId {
+    pub fn int64(&self) -> ValueDefinitionId {
         self.int64.expect("uninitialized")
     }
 
-    pub fn float32(&self) -> StructDefinitionId {
+    pub fn float32(&self) -> ValueDefinitionId {
         self.float32.expect("uninitialized")
     }
 
-    pub fn float64(&self) -> StructDefinitionId {
+    pub fn float64(&self) -> ValueDefinitionId {
         self.float64.expect("uninitialized")
     }
 }

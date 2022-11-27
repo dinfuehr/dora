@@ -6,7 +6,7 @@ impl Foo for Baz {
     fun test(): Int32 = self.value;
 }
 
-struct Bar(value: Int32)
+value Bar(value: Int32)
 
 impl Foo for Bar {
     fun test(): Int32 = self.value;

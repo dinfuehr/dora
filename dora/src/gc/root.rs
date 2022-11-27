@@ -5,7 +5,7 @@ use crate::language::ty::SourceType;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::DoraThread;
 use crate::vm::{
-    get_concrete_tuple_ty, specialize_enum_id_params, specialize_struct_id_params, CodeKind,
+    get_concrete_tuple_ty, specialize_enum_id_params, specialize_value_id_params, CodeKind,
     EnumLayout, VM,
 };
 
@@ -61,9 +61,9 @@ fn iterate_roots_from_globals<F: FnMut(Slot)>(vm: &VM, callback: &mut F) {
         let global_var = global_var.read();
 
         match global_var.ty {
-            SourceType::Struct(struct_id, ref type_params) => {
-                let sdef_id = specialize_struct_id_params(vm, struct_id, type_params.clone());
-                let sdef = vm.struct_instances.idx(sdef_id);
+            SourceType::Value(value_id, ref type_params) => {
+                let sdef_id = specialize_value_id_params(vm, value_id, type_params.clone());
+                let sdef = vm.value_instances.idx(sdef_id);
 
                 for &offset in &sdef.ref_fields {
                     let slot_address = global_var.address_value.offset(offset as usize);

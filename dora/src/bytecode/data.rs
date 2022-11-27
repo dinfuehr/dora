@@ -5,7 +5,7 @@ use dora_parser::lexer::position::Position;
 use crate::bytecode::{BytecodeReader, BytecodeType};
 use crate::language::sem_analysis::{
     ClassDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId, GlobalDefinitionId,
-    StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TypeParamId,
+    TraitDefinitionId, TypeParamId, ValueDefinitionFieldId, ValueDefinitionId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::enumeration;
@@ -37,7 +37,7 @@ pub enum BytecodeTypeKind {
     Ptr,
     Tuple,
     Enum,
-    Struct,
+    Value,
     TypeParam,
     Class,
     Trait,
@@ -66,7 +66,7 @@ enumeration!(BytecodeOpcode {
     LoadTupleElement,
     LoadEnumElement,
     LoadEnumVariant,
-    LoadStructField,
+    LoadValueField,
 
     LoadField,
     StoreField,
@@ -118,7 +118,7 @@ enumeration!(BytecodeOpcode {
     NewArray,
     NewTuple,
     NewEnum,
-    NewStruct,
+    NewValue,
     NewTraitObject,
     NewLambda,
 
@@ -162,9 +162,9 @@ impl BytecodeOpcode {
         }
     }
 
-    pub fn is_new_struct(self) -> bool {
+    pub fn is_new_value(self) -> bool {
         match self {
-            BytecodeOpcode::NewStruct => true,
+            BytecodeOpcode::NewValue => true,
             _ => false,
         }
     }
@@ -238,7 +238,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::NewObject
             | BytecodeOpcode::NewTuple
             | BytecodeOpcode::NewEnum
-            | BytecodeOpcode::NewStruct
+            | BytecodeOpcode::NewValue
             | BytecodeOpcode::InvokeGenericDirect
             | BytecodeOpcode::InvokeGenericStatic
             | BytecodeOpcode::InvokeStatic
@@ -261,7 +261,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::Shr
             | BytecodeOpcode::Sar
             | BytecodeOpcode::LoadEnumVariant
-            | BytecodeOpcode::LoadStructField
+            | BytecodeOpcode::LoadValueField
             | BytecodeOpcode::LoadField
             | BytecodeOpcode::StoreField
             | BytecodeOpcode::TestEq
@@ -302,7 +302,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::NewArray
             | BytecodeOpcode::NewEnum
             | BytecodeOpcode::NewTuple
-            | BytecodeOpcode::NewStruct
+            | BytecodeOpcode::NewValue
             | BytecodeOpcode::NewTraitObject
             | BytecodeOpcode::NewLambda
             | BytecodeOpcode::ArrayLength
@@ -414,7 +414,7 @@ pub enum BytecodeInstruction {
         src: Register,
         idx: ConstPoolIdx,
     },
-    LoadStructField {
+    LoadValueField {
         dest: Register,
         obj: Register,
         field: ConstPoolIdx,
@@ -597,7 +597,7 @@ pub enum BytecodeInstruction {
         dest: Register,
         idx: ConstPoolIdx,
     },
-    NewStruct {
+    NewValue {
         dest: Register,
         idx: ConstPoolIdx,
     },
@@ -782,8 +782,8 @@ enumeration!(ConstPoolOpcode {
     Enum,
     EnumVariant,
     EnumElement,
-    Struct,
-    StructField,
+    Value,
+    ValueField,
     Trait,
     Field,
     FieldFixed,
@@ -809,8 +809,8 @@ pub enum ConstPoolEntry {
     Enum(EnumDefinitionId, SourceTypeArray),
     EnumVariant(EnumDefinitionId, SourceTypeArray, usize),
     EnumElement(EnumDefinitionId, SourceTypeArray, usize, usize),
-    Struct(StructDefinitionId, SourceTypeArray),
-    StructField(StructDefinitionId, SourceTypeArray, StructDefinitionFieldId),
+    Value(ValueDefinitionId, SourceTypeArray),
+    ValueField(ValueDefinitionId, SourceTypeArray, ValueDefinitionFieldId),
     Trait(TraitDefinitionId, SourceTypeArray, SourceType),
     TupleElement(SourceType, usize),
     Tuple(SourceTypeArray),
@@ -911,8 +911,8 @@ enumeration!(SourceTypeOpcode {
     // some class
     Class,
 
-    // some struct
-    Struct,
+    // some value
+    Value,
 
     // some tuple
     Tuple,

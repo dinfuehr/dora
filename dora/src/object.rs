@@ -330,8 +330,8 @@ where
             visit_object_array_refs(object, range, f);
         }
 
-        InstanceSize::StructArray(element_size) => {
-            visit_struct_array_refs(object, cls, element_size as usize, range, f);
+        InstanceSize::ValueArray(element_size) => {
+            visit_value_array_refs(object, cls, element_size as usize, range, f);
         }
 
         InstanceSize::UnitArray
@@ -378,7 +378,7 @@ where
     }
 }
 
-fn visit_struct_array_refs<F>(
+fn visit_value_array_refs<F>(
     object: Address,
     cls: &ClassInstance,
     element_size: usize,

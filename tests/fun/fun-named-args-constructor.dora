@@ -9,4 +9,4 @@ fun main(): Unit {
 }
 
 class Foo(x: Int64, y: Bool)
-struct Bar(x: Int64, y: Bool)
+value Bar(x: Int64, y: Bool)

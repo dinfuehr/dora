@@ -1,0 +1,15 @@
+//= vm-args "--gc=copy --disable-tlab --gc-stress"
+
+value Bar(first: Foo, second: Foo)
+class Foo(value: Int32)
+
+fun main(): Unit {
+    let tpl: Bar = if false {
+        Bar(createFoo(), createFoo())
+    } else {
+        std::forceCollect();
+        Bar(createFoo(), createFoo())
+    };
+}
+
+fun createFoo(): Foo = Foo(1i32);

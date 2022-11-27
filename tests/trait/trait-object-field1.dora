@@ -16,7 +16,7 @@ impl Foo for FooBar {
     }
 }
 
-struct SomeData {
+value SomeData {
     foo: Foo,
 }
 

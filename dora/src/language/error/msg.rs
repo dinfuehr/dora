@@ -10,7 +10,7 @@ pub enum ErrorMessage {
     UnknownClass(String),
     UnknownType(String),
     UnknownIdentifier(String),
-    UnknownStruct(String),
+    UnknownValue(String),
     UnknownFunction(String),
     UnknownField(String, String),
     UnknownMethod(String, String, Vec<String>),
@@ -30,8 +30,8 @@ pub enum ErrorMessage {
     ShadowParam(String),
     ShadowClass(String),
     ShadowClassConstructor(String),
-    ShadowStruct(String),
-    ShadowStructConstructor(String),
+    ShadowValue(String),
+    ShadowValueConstructor(String),
     ShadowTrait(String),
     ShadowField(String),
     ShadowGlobal(String),
@@ -43,7 +43,7 @@ pub enum ErrorMessage {
     InvalidLhsAssignment,
     NoEnumVariant,
     EnumArgsIncompatible(String, String, Vec<String>, Vec<String>),
-    StructArgsIncompatible(String, Vec<String>, Vec<String>),
+    ValueArgsIncompatible(String, Vec<String>, Vec<String>),
     EnumArgsNoParens(String, String),
     IfPatternNoParens,
     IfPatternWrongNumberOfParams(usize, usize),
@@ -122,7 +122,7 @@ pub enum ErrorMessage {
     NoSuperDelegationWithPrimaryCtor(String),
     NoSuperClass(String),
     NotAccessible(String),
-    StructConstructorNotAccessible(String),
+    ValueConstructorNotAccessible(String),
     ClassConstructorNotAccessible(String),
     NotAccessibleInModule(String, String),
     RecursiveStructure,
@@ -136,7 +136,7 @@ pub enum ErrorMessage {
     WrongNumberTypeParams(usize, usize),
     UnconstrainedTypeParam(String),
     ClassExpected,
-    ClassEnumStructExpected,
+    ClassEnumValueExpected,
     ClassExpectedAsTypeParam,
     BoundExpected,
     NoTypeParamsExpected,
@@ -150,9 +150,9 @@ pub enum ErrorMessage {
     InvalidTestAnnotationUsage,
     GlobalInitializerNotSupported,
     TypeNotUsableInForIn(String),
-    UnknownStructField(String, String),
+    UnknownValueField(String, String),
     UnknownIdentifierInModule(String, String),
-    StructFieldNotInitialized(String, String),
+    ValueFieldNotInitialized(String, String),
     InvalidLeftSideOfSeparator,
     InvalidUseOfTypeParams,
     NameOfStaticMethodExpected,
@@ -176,7 +176,7 @@ impl ErrorMessage {
             ErrorMessage::UnknownClass(ref name) => format!("class `{}` does not exist.", name),
             ErrorMessage::UnknownType(ref name) => format!("type `{}` does not exist.", name),
             ErrorMessage::UnknownIdentifier(ref name) => format!("unknown identifier `{}`.", name),
-            ErrorMessage::UnknownStruct(ref name) => format!("unknown struct `{}`.", name),
+            ErrorMessage::UnknownValue(ref name) => format!("unknown struct `{}`.", name),
             ErrorMessage::UnknownFunction(ref name) => format!("unknown function `{}`", name),
             ErrorMessage::UnknownMethod(ref cls, ref name, ref args) => {
                 let args = args.join(", ");
@@ -244,8 +244,8 @@ impl ErrorMessage {
             ErrorMessage::ShadowClassConstructor(ref name) => {
                 format!("can not shadow constructor of class `{}`.", name)
             }
-            ErrorMessage::ShadowStruct(ref name) => format!("can not shadow struct `{}`.", name),
-            ErrorMessage::ShadowStructConstructor(ref name) => {
+            ErrorMessage::ShadowValue(ref name) => format!("can not shadow struct `{}`.", name),
+            ErrorMessage::ShadowValueConstructor(ref name) => {
                 format!("can not shadow constructor of struct `{}`.", name)
             }
             ErrorMessage::ShadowTrait(ref name) => format!("can not shadow trait `{}`.", name),
@@ -274,13 +274,13 @@ impl ErrorMessage {
                     enum_, name, def, name, expr
                 )
             }
-            ErrorMessage::StructArgsIncompatible(ref struct_, ref def, ref expr) => {
+            ErrorMessage::ValueArgsIncompatible(ref value, ref def, ref expr) => {
                 let def = def.join(", ");
                 let expr = expr.join(", ");
 
                 format!(
-                    "struct `{}({})` cannot be called as `{}({})`",
-                    struct_, def, struct_, expr
+                    "value `{}({})` cannot be called as `{}({})`",
+                    value, def, value, expr
                 )
             }
             ErrorMessage::EnumArgsNoParens(ref name, ref variant) => {
@@ -374,7 +374,7 @@ impl ErrorMessage {
             }
             ErrorMessage::NoSuperModule => "no super module.".into(),
             ErrorMessage::NotAccessible(ref name) => format!("`{}` is not accessible.", name),
-            ErrorMessage::StructConstructorNotAccessible(ref name) => {
+            ErrorMessage::ValueConstructorNotAccessible(ref name) => {
                 format!("constructor of struct `{}` is not accessible.", name)
             }
             ErrorMessage::ClassConstructorNotAccessible(ref name) => {
@@ -530,7 +530,7 @@ impl ErrorMessage {
                 format!("unconstrained type param `{}`.", name)
             }
             ErrorMessage::ClassExpected => "expected class.".into(),
-            ErrorMessage::ClassEnumStructExpected => "expected class, struct or enum.".into(),
+            ErrorMessage::ClassEnumValueExpected => "expected class, struct or enum.".into(),
             ErrorMessage::ClassExpectedAsTypeParam => "class as type parameter expected.".into(),
             ErrorMessage::BoundExpected => "class or trait bound expected".into(),
             ErrorMessage::NoTypeParamsExpected => "no type params allowed".into(),
@@ -560,14 +560,14 @@ impl ErrorMessage {
                 "type `{}` doesn't implement iterator() or the iterator protocol.",
                 ty
             ),
-            ErrorMessage::UnknownStructField(ref struc, ref field) => {
+            ErrorMessage::UnknownValueField(ref struc, ref field) => {
                 format!("struct `{}` does not have field named `{}`.", struc, field)
             }
             ErrorMessage::UnknownIdentifierInModule(ref module, ref element) => format!(
                 "module `{}` does not contain identifier `{}`.",
                 module, element
             ),
-            ErrorMessage::StructFieldNotInitialized(ref struc, ref field) => {
+            ErrorMessage::ValueFieldNotInitialized(ref struc, ref field) => {
                 format!("field `{}` in struct `{}` not initialized.", field, struc)
             }
             ErrorMessage::InvalidLeftSideOfSeparator => {

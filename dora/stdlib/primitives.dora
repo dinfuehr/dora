@@ -2,9 +2,9 @@ use std::traits::{Default, Equals, Hash, Iterator, Zero};
 use std::string::Stringable;
 use std::fatalError;
 
-@pub @internal struct Unit
+@pub @internal value Unit
 
-@pub @internal struct Bool
+@pub @internal value Bool
 
 impl Bool {
   @pub @internal fun toInt32(): Int32;
@@ -20,7 +20,7 @@ impl Bool {
   @pub @internal fun not(): Bool;
 }
 
-@pub @internal struct Int32
+@pub @internal value Int32
 
 impl Int32 {
   @pub @internal fun toUInt8(): UInt8;
@@ -149,7 +149,7 @@ impl Iterator for Int32RangeIterator {
   }
 }
 
-@pub @internal struct Char
+@pub @internal value Char
 
 impl Char {
   @pub @internal fun toInt32(): Int32;
@@ -196,7 +196,7 @@ impl Char {
   }
 }
 
-@pub @internal struct Int64
+@pub @internal value Int64
 
 impl Int64 {
   @pub @internal fun toUInt8(): UInt8;
@@ -300,7 +300,7 @@ impl Int64 {
   @pub @static fun max(lhs: Int64, rhs: Int64): Int64 = if lhs < rhs { rhs } else { lhs };
 }
 
-@pub @internal struct Float32
+@pub @internal value Float32
 
 impl Float32 {
   @pub @internal fun toInt32(): Int32;
@@ -354,7 +354,7 @@ impl Float32 {
   @pub @static fun notANumber(): Float32 = 0x7fC00000i32.asFloat32();
 }
 
-@pub @internal struct Float64
+@pub @internal value Float64
 
 impl Float64 {
   @pub @internal fun toInt32(): Int32;
@@ -408,7 +408,7 @@ impl Float64 {
   @pub @static fun notANumber(): Float64 = 0x7ff8000000000000i64.asFloat64();
 }
 
-@pub @internal struct UInt8
+@pub @internal value UInt8
 
 impl UInt8 {
   @pub @internal fun toChar(): Char;

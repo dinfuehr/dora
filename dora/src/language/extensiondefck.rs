@@ -1,7 +1,7 @@
 use crate::language::error::msg::ErrorMessage;
 use crate::language::sem_analysis::{
     EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId, SemAnalysis, SourceFileId,
-    StructDefinitionId, TypeParamDefinition, TypeParamId,
+    TypeParamDefinition, TypeParamId, ValueDefinitionId,
 };
 use crate::language::sym::{ModuleSymTable, Sym};
 use crate::language::ty::SourceType;
@@ -87,14 +87,14 @@ impl<'x> ExtensionCheck<'x> {
                     let struct_id = extension_ty
                         .primitive_struct_id(self.sa)
                         .expect("primitive expected");
-                    let struct_ = self.sa.structs.idx(struct_id);
+                    let struct_ = self.sa.values.idx(struct_id);
                     let mut struct_ = struct_.write();
 
                     struct_.extensions.push(self.extension_id);
                 }
 
-                SourceType::Struct(struct_id, _) => {
-                    let struct_ = self.sa.structs.idx(struct_id);
+                SourceType::Value(struct_id, _) => {
+                    let struct_ = self.sa.values.idx(struct_id);
                     let mut struct_ = struct_.write();
 
                     struct_.extensions.push(self.extension_id);
@@ -166,7 +166,7 @@ impl<'x> ExtensionCheck<'x> {
                     .expect("primitive expected");
                 self.check_in_struct(&fct.ast, struct_id)
             }
-            SourceType::Struct(struct_id, _) => self.check_in_struct(&fct.ast, struct_id),
+            SourceType::Value(struct_id, _) => self.check_in_struct(&fct.ast, struct_id),
             _ => self.check_in_class(&fct.ast),
         };
 
@@ -200,8 +200,8 @@ impl<'x> ExtensionCheck<'x> {
         true
     }
 
-    fn check_in_struct(&self, f: &ast::Function, struct_id: StructDefinitionId) -> bool {
-        let struct_ = self.sa.structs.idx(struct_id);
+    fn check_in_struct(&self, f: &ast::Function, struct_id: ValueDefinitionId) -> bool {
+        let struct_ = self.sa.values.idx(struct_id);
         let struct_ = struct_.read();
 
         for &extension_id in &struct_.extensions {
@@ -292,7 +292,7 @@ fn discover_type_params(sa: &SemAnalysis, ty: SourceType, used_type_params: &mut
         | SourceType::Trait(_, _) => {}
         SourceType::Class(_, params)
         | SourceType::Enum(_, params)
-        | SourceType::Struct(_, params) => {
+        | SourceType::Value(_, params) => {
             for param in params.iter() {
                 discover_type_params(sa, param, used_type_params);
             }
@@ -408,7 +408,7 @@ mod tests {
     fn extension_unconstrained_type_param() {
         err(
             "
-            struct MyFoo[T]
+            value MyFoo[T]
             impl[T] MyFoo[Int32] {}
         ",
             pos(3, 13),
@@ -417,7 +417,7 @@ mod tests {
 
         err(
             "
-            struct MyFoo[T]
+            value MyFoo[T]
             impl[A, B] MyFoo[(A, A)] {}
         ",
             pos(3, 13),
@@ -426,9 +426,9 @@ mod tests {
     }
 
     #[test]
-    fn extension_struct() {
+    fn extension_value() {
         ok("
-            struct Foo { f1: Int32, f2: Int32 }
+            value Foo { f1: Int32, f2: Int32 }
             impl Foo {
                 fun sum(): Int32 {
                     self.f1 + self.f2
@@ -439,9 +439,9 @@ mod tests {
     }
 
     #[test]
-    fn extension_struct_type_params() {
+    fn extension_value_type_params() {
         ok("
-            struct Foo[T](value: T)
+            value Foo[T](value: T)
             trait MyTrait { fun bar(): Int32; }
             impl[X: MyTrait] Foo[X] {
                 fun getmyhash(): Int32 {

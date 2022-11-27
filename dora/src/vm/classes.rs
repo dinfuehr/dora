@@ -93,7 +93,7 @@ pub fn create_class_instance_with_vtable(
     let ref_fields = build_ref_fields(vm, &kind, size, &fields);
 
     let size = match size {
-        InstanceSize::StructArray(element_size) if ref_fields.is_empty() => {
+        InstanceSize::ValueArray(element_size) if ref_fields.is_empty() => {
             InstanceSize::PrimitiveArray(element_size)
         }
         _ => size,

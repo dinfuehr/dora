@@ -10,7 +10,7 @@ fun main(): Unit {
     assert(z.l1 === l1);
 }
 
-struct MyStruct {
+value MyStruct {
     l0: (): Int64,
     l1: (): Int64,
 }
