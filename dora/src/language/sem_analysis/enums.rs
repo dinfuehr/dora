@@ -123,16 +123,11 @@ pub fn find_methods_in_enum(
     name: Name,
     is_static: bool,
 ) -> Vec<Candidate> {
-    let enum_id = object_type.enum_id().unwrap();
-    let enum_ = sa.enums.idx(enum_id);
-    let enum_ = enum_.read();
-
-    for &extension_id in &enum_.extensions {
+    for extension in sa.extensions.iter() {
+        let extension = extension.read();
         if let Some(bindings) =
-            extension_matches(sa, object_type.clone(), type_param_defs, extension_id)
+            extension_matches(sa, object_type.clone(), type_param_defs, extension.id())
         {
-            let extension = sa.extensions[extension_id].read();
-
             let table = if is_static {
                 &extension.static_names
             } else {
@@ -154,13 +149,7 @@ pub fn find_methods_in_enum(
     for impl_ in sa.impls.iter() {
         let impl_ = impl_.read();
 
-        if impl_.extended_ty != object_type {
-            continue;
-        }
-
         if let Some(bindings) = impl_matches(sa, object_type.clone(), type_param_defs, impl_.id()) {
-            let impl_ = sa.impls[impl_.id()].read();
-
             let table = if is_static {
                 &impl_.static_names
             } else {

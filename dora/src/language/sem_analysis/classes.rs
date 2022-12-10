@@ -287,40 +287,31 @@ pub fn find_methods_in_class(
     let mut candidates = Vec::new();
 
     // Find extension methods
-    {
-        let cls_id = object_type.cls_id().expect("no class");
-        let cls = sa.classes.idx(cls_id);
-        let cls = cls.read();
+    for extension in sa.extensions.iter() {
+        let extension = extension.read();
+        if let Some(bindings) =
+            extension_matches(sa, object_type.clone(), type_param_defs, extension.id())
+        {
+            let extension = sa.extensions[extension.id()].read();
 
-        for &extension_id in &cls.extensions {
-            if let Some(bindings) =
-                extension_matches(sa, object_type.clone(), type_param_defs, extension_id)
-            {
-                let extension = sa.extensions[extension_id].read();
+            let table = if is_static {
+                &extension.static_names
+            } else {
+                &extension.instance_names
+            };
 
-                let table = if is_static {
-                    &extension.static_names
-                } else {
-                    &extension.instance_names
-                };
-
-                if let Some(&fct_id) = table.get(&name) {
-                    return vec![Candidate {
-                        object_type,
-                        container_type_params: bindings,
-                        fct_id: fct_id,
-                    }];
-                }
+            if let Some(&fct_id) = table.get(&name) {
+                return vec![Candidate {
+                    object_type,
+                    container_type_params: bindings,
+                    fct_id: fct_id,
+                }];
             }
         }
     }
 
     for impl_ in sa.impls.iter() {
         let impl_ = impl_.read();
-
-        if impl_.extended_ty != object_type {
-            continue;
-        }
 
         if let Some(bindings) = impl_matches(sa, object_type.clone(), type_param_defs, impl_.id()) {
             let impl_ = sa.impls[impl_.id()].read();

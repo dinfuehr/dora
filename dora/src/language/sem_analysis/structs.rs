@@ -173,23 +173,12 @@ pub fn find_methods_in_struct(
     name: Name,
     is_static: bool,
 ) -> Vec<Candidate> {
-    let struct_id = if object_type.is_primitive() {
-        object_type
-            .primitive_struct_id(sa)
-            .expect("primitive expected")
-    } else {
-        object_type.struct_id().expect("struct expected")
-    };
+    for extension in sa.extensions.iter() {
+        let extension = extension.read();
 
-    let struct_ = sa.structs.idx(struct_id);
-    let struct_ = struct_.read();
-
-    for &extension_id in &struct_.extensions {
         if let Some(bindings) =
-            extension_matches(sa, object_type.clone(), type_param_defs, extension_id)
+            extension_matches(sa, object_type.clone(), type_param_defs, extension.id())
         {
-            let extension = sa.extensions[extension_id].read();
-
             let table = if is_static {
                 &extension.static_names
             } else {
@@ -211,13 +200,7 @@ pub fn find_methods_in_struct(
     for impl_ in sa.impls.iter() {
         let impl_ = impl_.read();
 
-        if impl_.extended_ty != object_type {
-            continue;
-        }
-
         if let Some(bindings) = impl_matches(sa, object_type.clone(), type_param_defs, impl_.id()) {
-            let impl_ = sa.impls[impl_.id()].read();
-
             let table = if is_static {
                 &impl_.static_names
             } else {
