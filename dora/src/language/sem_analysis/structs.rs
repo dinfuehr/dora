@@ -8,8 +8,8 @@ use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
     extension_matches, impl_matches, module_path, Candidate, ExtensionDefinitionId,
-    ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId, SemAnalysis, SourceFileId,
-    TypeParamDefinition, TypeParamId, Visibility,
+    ModuleDefinitionId, PackageDefinitionId, SemAnalysis, SourceFileId, TypeParamDefinition,
+    TypeParamId, Visibility,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;
@@ -55,7 +55,6 @@ pub struct StructDefinition {
     pub name: Name,
     pub fields: Vec<StructDefinitionField>,
     pub field_names: HashMap<Name, StructDefinitionFieldId>,
-    pub impls: Vec<ImplDefinitionId>,
     pub extensions: Vec<ExtensionDefinitionId>,
 }
 
@@ -81,7 +80,6 @@ impl StructDefinition {
             type_params: None,
             fields: Vec::new(),
             field_names: HashMap::new(),
-            impls: Vec::new(),
             extensions: Vec::new(),
         }
     }
@@ -210,9 +208,15 @@ pub fn find_methods_in_struct(
 
     let mut candidates = Vec::new();
 
-    for &impl_id in &struct_.impls {
-        if let Some(bindings) = impl_matches(sa, object_type.clone(), type_param_defs, impl_id) {
-            let impl_ = sa.impls[impl_id].read();
+    for impl_ in sa.impls.iter() {
+        let impl_ = impl_.read();
+
+        if impl_.extended_ty != object_type {
+            continue;
+        }
+
+        if let Some(bindings) = impl_matches(sa, object_type.clone(), type_param_defs, impl_.id()) {
+            let impl_ = sa.impls[impl_.id()].read();
 
             let table = if is_static {
                 &impl_.static_names

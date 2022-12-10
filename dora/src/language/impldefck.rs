@@ -119,46 +119,6 @@ impl<'x> ImplCheck<'x> {
             }
         }
 
-        if impl_.trait_ty.is_trait() && !impl_.extended_ty.is_error() {
-            match impl_.extended_ty {
-                SourceType::Enum(enum_id, _) => {
-                    let enum_ = &self.sa.enums[enum_id];
-                    let mut enum_ = enum_.write();
-                    enum_.impls.push(impl_.id());
-                }
-
-                SourceType::Bool
-                | SourceType::UInt8
-                | SourceType::Char
-                | SourceType::Int32
-                | SourceType::Int64
-                | SourceType::Float32
-                | SourceType::Float64 => {
-                    let struct_id = impl_
-                        .extended_ty
-                        .primitive_struct_id(self.sa)
-                        .expect("primitive expected");
-                    let struct_ = self.sa.structs.idx(struct_id);
-                    let mut struct_ = struct_.write();
-                    struct_.impls.push(impl_.id());
-                }
-
-                SourceType::Struct(struct_id, _) => {
-                    let struct_ = self.sa.structs.idx(struct_id);
-                    let mut struct_ = struct_.write();
-                    struct_.impls.push(impl_.id());
-                }
-
-                SourceType::Class(cls_id, _) => {
-                    let cls = self.sa.classes.idx(cls_id);
-                    let mut cls = cls.write();
-                    cls.impls.push(impl_.id());
-                }
-
-                _ => unreachable!(),
-            }
-        }
-
         self.sym.pop_level();
 
         let methods = impl_.methods.clone();

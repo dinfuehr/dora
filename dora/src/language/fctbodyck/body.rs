@@ -3491,8 +3491,8 @@ pub fn check_lit_int(
     if e.base == IntBase::Dec {
         let max = match ty {
             SourceType::UInt8 => 256,
-            SourceType::Int32 => (1u64 << 31),
-            SourceType::Int64 => (1u64 << 63),
+            SourceType::Int32 => 1u64 << 31,
+            SourceType::Int64 => 1u64 << 63,
             _ => unreachable!(),
         };
 

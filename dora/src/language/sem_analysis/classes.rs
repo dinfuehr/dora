@@ -7,7 +7,7 @@ use dora_parser::Position;
 
 use crate::language::sem_analysis::{
     extension_matches, impl_matches, module_path, ExtensionDefinitionId, FctDefinitionId,
-    ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId, SemAnalysis, SourceFileId,
+    ModuleDefinitionId, PackageDefinitionId, SemAnalysis, SourceFileId,
 };
 use crate::language::specialize::replace_type_param;
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -58,7 +58,6 @@ pub struct ClassDefinition {
 
     pub fields: Vec<Field>,
 
-    pub impls: Vec<ImplDefinitionId>,
     pub extensions: Vec<ExtensionDefinitionId>,
 
     pub type_params: Option<TypeParamDefinition>,
@@ -90,7 +89,6 @@ impl ClassDefinition {
 
             fields: Vec::new(),
 
-            impls: Vec::new(),
             extensions: Vec::new(),
 
             type_params: None,
@@ -124,7 +122,6 @@ impl ClassDefinition {
 
             fields,
 
-            impls: Vec::new(),
             extensions: Vec::new(),
 
             type_params: None,
@@ -318,13 +315,15 @@ pub fn find_methods_in_class(
         }
     }
 
-    let cls_id = object_type.cls_id().expect("no class");
-    let cls = sa.classes.idx(cls_id);
-    let cls = cls.read();
+    for impl_ in sa.impls.iter() {
+        let impl_ = impl_.read();
 
-    for &impl_id in &cls.impls {
-        if let Some(bindings) = impl_matches(sa, object_type.clone(), type_param_defs, impl_id) {
-            let impl_ = sa.impls[impl_id].read();
+        if impl_.extended_ty != object_type {
+            continue;
+        }
+
+        if let Some(bindings) = impl_matches(sa, object_type.clone(), type_param_defs, impl_.id()) {
+            let impl_ = sa.impls[impl_.id()].read();
 
             let table = if is_static {
                 &impl_.static_names

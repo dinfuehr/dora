@@ -315,7 +315,7 @@ impl<T: Default + Clone> ObjectHashMap<T> {
 
         for idx in 0..self.data.len() {
             if self.is_live(idx) {
-                let dummy: HashMapEntry<T> = unsafe { MaybeUninit::uninit().assume_init() };
+                let dummy: HashMapEntry<T> = unsafe { MaybeUninit::zeroed().assume_init() };
                 let entry = std::mem::replace(&mut self.data[idx], dummy);
                 new_map.insert(entry.key, entry.value);
             }

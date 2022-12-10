@@ -8,8 +8,8 @@ use dora_parser::lexer::position::Position;
 
 use crate::language::sem_analysis::{
     extension_matches, impl_matches, module_path, Candidate, ExtensionDefinitionId,
-    ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId, SemAnalysis, SourceFileId,
-    TypeParamDefinition, Visibility,
+    ModuleDefinitionId, PackageDefinitionId, SemAnalysis, SourceFileId, TypeParamDefinition,
+    Visibility,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;
@@ -52,7 +52,6 @@ pub struct EnumDefinition {
     pub type_params: Option<TypeParamDefinition>,
     pub variants: Vec<EnumVariant>,
     pub name_to_value: HashMap<Name, u32>,
-    pub impls: Vec<ImplDefinitionId>,
     pub extensions: Vec<ExtensionDefinitionId>,
     pub simple_enumeration: bool,
 }
@@ -76,7 +75,6 @@ impl EnumDefinition {
             visibility: Visibility::from_ast(node.visibility),
             variants: Vec::new(),
             name_to_value: HashMap::new(),
-            impls: Vec::new(),
             extensions: Vec::new(),
             simple_enumeration: false,
         }
@@ -153,9 +151,15 @@ pub fn find_methods_in_enum(
 
     let mut candidates = Vec::new();
 
-    for &impl_id in &enum_.impls {
-        if let Some(bindings) = impl_matches(sa, object_type.clone(), type_param_defs, impl_id) {
-            let impl_ = sa.impls[impl_id].read();
+    for impl_ in sa.impls.iter() {
+        let impl_ = impl_.read();
+
+        if impl_.extended_ty != object_type {
+            continue;
+        }
+
+        if let Some(bindings) = impl_matches(sa, object_type.clone(), type_param_defs, impl_.id()) {
+            let impl_ = sa.impls[impl_.id()].read();
 
             let table = if is_static {
                 &impl_.static_names

@@ -151,16 +151,18 @@ pub fn implements_trait(
     check_type_param_defs: &TypeParamDefinition,
     trait_ty: SourceType,
 ) -> bool {
+    if check_ty.is_primitive()
+        && sa.known.traits.zero() == trait_ty.trait_id().expect("trait expected")
+    {
+        assert!(trait_ty.type_params().is_empty());
+        return true;
+    }
+
     match check_ty {
         SourceType::Tuple(_)
         | SourceType::Unit
         | SourceType::Trait(_, _)
         | SourceType::Lambda(_, _) => false,
-
-        SourceType::Enum(enum_id, _) => {
-            let enum_ = sa.enums[enum_id].read();
-            check_impls(sa, check_ty, check_type_param_defs, trait_ty, &enum_.impls).is_some()
-        }
 
         SourceType::Bool
         | SourceType::UInt8
@@ -168,55 +170,11 @@ pub fn implements_trait(
         | SourceType::Int32
         | SourceType::Int64
         | SourceType::Float32
-        | SourceType::Float64 => {
-            if sa.known.traits.zero() == trait_ty.trait_id().expect("trait expected") {
-                assert!(trait_ty.type_params().is_empty());
-                return true;
-            }
-
-            let struct_id = check_ty
-                .primitive_struct_id(sa)
-                .expect("primitive expected");
-            let struct_ = sa.structs.idx(struct_id);
-            let struct_ = struct_.read();
-
-            check_impls(
-                sa,
-                check_ty,
-                check_type_param_defs,
-                trait_ty,
-                &struct_.impls,
-            )
-            .is_some()
-        }
-
-        SourceType::Struct(struct_id, _) => {
-            let struct_ = sa.structs.idx(struct_id);
-            let struct_ = struct_.read();
-
-            check_impls(
-                sa,
-                check_ty,
-                check_type_param_defs,
-                trait_ty,
-                &struct_.impls,
-            )
-            .is_some()
-        }
-
-        SourceType::Class(_, _) => {
-            let cls_id = check_ty.cls_id().expect("class expected");
-            let cls = sa.classes.idx(cls_id);
-            let cls = cls.read();
-
-            check_impls(
-                sa,
-                check_ty.clone(),
-                check_type_param_defs,
-                trait_ty,
-                &cls.impls,
-            )
-            .is_some()
+        | SourceType::Float64
+        | SourceType::Struct(_, _)
+        | SourceType::Enum(_, _)
+        | SourceType::Class(_, _) => {
+            find_impl(sa, check_ty, check_type_param_defs, trait_ty).is_some()
         }
 
         SourceType::TypeParam(tp_id) => check_type_param_defs.implements_trait(tp_id, trait_ty),
@@ -231,90 +189,21 @@ pub fn find_impl(
     check_type_param_defs: &TypeParamDefinition,
     trait_ty: SourceType,
 ) -> Option<ImplDefinitionId> {
-    match check_ty {
-        SourceType::Tuple(_)
-        | SourceType::Unit
-        | SourceType::Trait(_, _)
-        | SourceType::Lambda(_, _) => None,
-
-        SourceType::Enum(enum_id, _) => {
-            let enum_ = sa.enums[enum_id].read();
-            check_impls(sa, check_ty, check_type_param_defs, trait_ty, &enum_.impls)
-        }
-
-        SourceType::Bool
-        | SourceType::UInt8
-        | SourceType::Char
-        | SourceType::Int32
-        | SourceType::Int64
-        | SourceType::Float32
-        | SourceType::Float64 => {
-            let struct_id = check_ty
-                .primitive_struct_id(sa)
-                .expect("primitive expected");
-            let struct_ = sa.structs.idx(struct_id);
-            let struct_ = struct_.read();
-
-            check_impls(
-                sa,
-                check_ty,
-                check_type_param_defs,
-                trait_ty,
-                &struct_.impls,
-            )
-        }
-
-        SourceType::Struct(struct_id, _) => {
-            let struct_ = sa.structs.idx(struct_id);
-            let struct_ = struct_.read();
-
-            check_impls(
-                sa,
-                check_ty,
-                check_type_param_defs,
-                trait_ty,
-                &struct_.impls,
-            )
-        }
-
-        SourceType::Class(_, _) => {
-            let cls_id = check_ty.cls_id().expect("class expected");
-            let cls = sa.classes.idx(cls_id);
-            let cls = cls.read();
-
-            check_impls(
-                sa,
-                check_ty.clone(),
-                check_type_param_defs,
-                trait_ty,
-                &cls.impls,
-            )
-        }
-
-        SourceType::TypeParam(_) => unreachable!(),
-        SourceType::Error | SourceType::Ptr | SourceType::This | SourceType::Any => unreachable!(),
-    }
-}
-
-pub fn check_impls(
-    sa: &SemAnalysis,
-    check_ty: SourceType,
-    check_type_param_defs: &TypeParamDefinition,
-    trait_ty: SourceType,
-    impls: &[ImplDefinitionId],
-) -> Option<ImplDefinitionId> {
-    for &impl_id in impls {
-        let impl_ = &sa.impls[impl_id];
+    for impl_ in sa.impls.iter() {
         let impl_ = impl_.read();
 
         debug_assert!(impl_.trait_ty().is_concrete_type(sa));
+
+        if impl_.extended_ty != check_ty {
+            continue;
+        }
 
         if impl_.trait_ty() != trait_ty {
             continue;
         }
 
-        if impl_matches(sa, check_ty.clone(), check_type_param_defs, impl_id).is_some() {
-            return Some(impl_id);
+        if impl_matches(sa, check_ty.clone(), check_type_param_defs, impl_.id()).is_some() {
+            return Some(impl_.id());
         }
     }
 
