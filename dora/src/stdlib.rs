@@ -1,7 +1,7 @@
 use libc;
 
 use std::char;
-use std::io::{self, Write};
+use std::io::Write;
 use std::mem;
 use std::str;
 use std::thread;
@@ -16,6 +16,8 @@ use crate::threads::{
     ThreadState, STACK_SIZE,
 };
 use crate::vm::{get_vm, stack_pointer, ManagedCondition, ManagedMutex, ShapeKind, Trap};
+
+pub mod io;
 
 pub extern "C" fn uint8_to_string(val: u8) -> Ref<Str> {
     handle_scope(|| {
@@ -72,12 +74,12 @@ pub extern "C" fn float64_to_string(val: f64) -> Ref<Str> {
 }
 
 pub extern "C" fn print(val: Handle<Str>) {
-    io::stdout().write(val.content()).unwrap();
+    std::io::stdout().write(val.content()).unwrap();
 }
 
 pub extern "C" fn fatal_error(msg: Handle<Str>) {
     eprint!("fatal error: ");
-    io::stderr().write(msg.content()).unwrap();
+    std::io::stderr().write(msg.content()).unwrap();
     eprintln!("");
 
     let vm = get_vm();
@@ -118,7 +120,7 @@ pub extern "C" fn timestamp() -> u64 {
 }
 
 pub extern "C" fn println(val: Handle<Str>) {
-    let stdout = io::stdout();
+    let stdout = std::io::stdout();
     let mut handle = stdout.lock();
     handle.write(val.content()).unwrap();
     handle.write(b"\n").unwrap();

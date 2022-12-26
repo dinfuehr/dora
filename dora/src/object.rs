@@ -519,6 +519,10 @@ impl Str {
         unsafe { slice::from_raw_parts(self.data(), self.len()) }
     }
 
+    pub fn content_utf8(&self) -> &str {
+        str::from_utf8(self.content()).expect("invalid encoding")
+    }
+
     /// allocates string from buffer in permanent space
     pub fn from_buffer_in_perm(vm: &VM, buf: &[u8]) -> Ref<Str> {
         let mut handle = str_alloc_perm(vm, buf.len());

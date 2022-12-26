@@ -1,0 +1,4 @@
+fn main() {
+    let content = std::io::readFileAsString("tests/io/abc.txt");
+    assert(content == "abc");
+}

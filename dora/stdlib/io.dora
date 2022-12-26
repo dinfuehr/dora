@@ -1,0 +1,1 @@
+@pub @internal fn readFileAsString(path: String): String;
