@@ -1,17 +1,25 @@
-@pub @internal fn readFileAsString(path: String): Option[String];
-@pub @internal fn readFileAsBytes(path: String): Option[Array[UInt8]];
+@internal fn readFileAsString(path: String): Option[String];
+@internal fn readFileAsBytes(path: String): Option[Array[UInt8]];
 
-class File {
+@pub class File {
     path: String,
 }
 
 impl File {
-    @pub fn new(path: String): File {
+    @pub @static fn new(path: String): File {
         File(path)
+    }
+
+    @pub fn readAsString(): Option[String] {
+        readFileAsString(self.path)
+    }
+
+    @pub fn readAsBytes(): Option[Array[UInt8]] {
+        readFileAsBytes(self.path)
     }
 }
 
-class Directory {
+@pub class Directory {
     path: String,
 }
 
