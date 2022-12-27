@@ -1,2 +1,22 @@
 @pub @internal fn readFileAsString(path: String): Option[String];
 @pub @internal fn readFileAsBytes(path: String): Option[Array[UInt8]];
+
+class File {
+    path: String,
+}
+
+impl File {
+    @pub fn new(path: String): File {
+        File(path)
+    }
+}
+
+class Directory {
+    path: String,
+}
+
+impl Directory {
+    @pub fn new(path: String): Directory {
+        Directory(path)
+    }
+}
