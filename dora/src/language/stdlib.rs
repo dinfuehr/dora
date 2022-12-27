@@ -1525,6 +1525,13 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
         stdlib::io::read_file_as_string as *const u8,
     );
 
+    native_fct(
+        sa,
+        stdlib_id,
+        "io::readFileAsBytes",
+        stdlib::io::read_file_as_bytes as *const u8,
+    );
+
     let fct_id = intrinsic_method(sa, stdlib_id, "Option", "isNone", Intrinsic::OptionIsNone);
     sa.known.functions.option_is_none = Some(fct_id);
     let fct_id = intrinsic_method(sa, stdlib_id, "Option", "isSome", Intrinsic::OptionIsSome);

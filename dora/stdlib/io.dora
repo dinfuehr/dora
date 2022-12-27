@@ -1,1 +1,2 @@
 @pub @internal fn readFileAsString(path: String): Option[String];
+@pub @internal fn readFileAsBytes(path: String): Option[Array[UInt8]];
