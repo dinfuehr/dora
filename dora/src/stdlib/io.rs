@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::Read;
+use std::io::{Read, Write};
 use std::str::FromStr;
 use std::{fs, path::PathBuf};
 
@@ -55,4 +55,32 @@ pub extern "C" fn read_file_as_bytes(name: Handle<Str>) -> Ref<UInt8Array> {
         let vm = get_vm();
         byte_array_from_buffer(vm, &content)
     })
+}
+
+pub extern "C" fn write_file_as_string(name: Handle<Str>, content: Handle<Str>) -> bool {
+    write_file_common(name, Vec::from(content.content_utf8()))
+}
+
+pub extern "C" fn write_file_as_bytes(name: Handle<Str>, content: Handle<UInt8Array>) -> bool {
+    write_file_common(name, Vec::from(content.slice()))
+}
+
+fn write_file_common(name: Handle<Str>, content: Vec<u8>) -> bool {
+    let path = PathBuf::from_str(name.content_utf8());
+
+    if path.is_err() {
+        return false;
+    }
+
+    let result: std::io::Result<()> = parked_scope(|| {
+        let mut f = File::create(&path.unwrap())?;
+        f.write_all(&content)?;
+        Ok(())
+    });
+
+    if result.is_ok() {
+        true
+    } else {
+        false
+    }
 }

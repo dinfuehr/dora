@@ -745,6 +745,10 @@ where
         &self.data as *const u8 as *const T
     }
 
+    pub fn slice(&self) -> &[T] {
+        unsafe { std::slice::from_raw_parts(self.data(), self.len()) }
+    }
+
     pub fn data_address(&self) -> Address {
         Address::from_ptr(self.data())
     }

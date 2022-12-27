@@ -1,5 +1,7 @@
 @internal fn readFileAsString(path: String): Option[String];
 @internal fn readFileAsBytes(path: String): Option[Array[UInt8]];
+@internal fn writeFileAsString(path: String, content: String): Bool;
+@internal fn writeFileAsBytes(path: String, content: Array[UInt8]): Bool;
 
 @pub class File {
     path: String,
@@ -16,6 +18,22 @@ impl File {
 
     @pub fn readAsBytes(): Option[Array[UInt8]] {
         readFileAsBytes(self.path)
+    }
+
+    @pub fn writeAsString(content: String): Result[(), ()] {
+        if writeFileAsString(self.path, content) {
+            Ok[(), ()](())
+        } else {
+            Err[(), ()](())
+        }
+    }
+
+    @pub fn writeAsBytes(content: Array[UInt8]): Result[(), ()] {
+        if writeFileAsBytes(self.path, content) {
+            Ok[(), ()](())
+        } else {
+            Err[(), ()](())
+        }
     }
 }
 

@@ -1,0 +1,5 @@
+//= ignore
+
+fn main() {
+    std::io::File::new("test.txt").writeAsString("bla");
+}
