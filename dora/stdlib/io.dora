@@ -1,1 +1,1 @@
-@pub @internal fn readFileAsString(path: String): String;
+@pub @internal fn readFileAsString(path: String): Option[String];

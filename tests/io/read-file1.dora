@@ -1,4 +1,7 @@
 fn main() {
-    let content = std::io::readFileAsString("tests/io/abc.txt");
+    let content = std::io::readFileAsString("tests/io/abc.txt").getOrPanic();
     assert(content == "abc");
+
+    let content = std::io::readFileAsString("unknown.txt");
+    assert(content.isNone());
 }
