@@ -13,6 +13,22 @@ impl[T] Array[T] {
 
   @pub fun isEmpty(): Bool = self.size() == 0i64;
 
+  @pub fun first(): Option[T] {
+    if self.size() == 0 {
+      Option[T]::None
+    } else {
+      Option[T]::Some(self(0))
+    }
+  }
+
+  @pub fun last(): Option[T] {
+    if self.size() == 0 {
+      Option[T]::None
+    } else {
+      Option[T]::Some(self(self.size() - 1i64))
+    }
+  }
+
   @pub fun all(fct: (T): Bool): Bool {
     let len = self.size();
     let mut idx = 0;

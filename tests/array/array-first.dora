@@ -1,0 +1,7 @@
+fun main(): Unit {
+  let array0 = Array[Int64]::new();
+  let array1 = Array[Int64]::new(1, 2, 3);
+
+  assert(array0.first() == None[Int64]);
+  assert(array1.first() == Some[Int64](1));
+}
