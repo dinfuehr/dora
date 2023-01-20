@@ -1,0 +1,17 @@
+fun main(): Unit {
+  let list0 = List[Int64]::new();
+  let list1 = List[Int64]::new(1, 2, 3);
+  let list2 = List[Int64]::new(1, 2, 3, 4, 5, 6, 1, 2, 3);
+
+  assert(list0.rejectFirst(0) == List[Int64]::new());
+  assert(list0.rejectFirst(1) == List[Int64]::new());
+
+  assert(list1.rejectFirst(0) == List[Int64]::new(1, 2, 3));
+  assert(list1.rejectFirst(2) == List[Int64]::new(3));
+  assert(list1.rejectFirst(3) == List[Int64]::new());
+  assert(list1.rejectFirst(4) == List[Int64]::new());
+
+  assert(list2.rejectFirst(0) == List[Int64]::new(1, 2, 3, 4, 5, 6, 1, 2, 3));
+  assert(list2.rejectFirst(4) == List[Int64]::new(5, 6, 1, 2, 3));
+  assert(list2.rejectFirst(10) == List[Int64]::new());
+}

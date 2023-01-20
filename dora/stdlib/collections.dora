@@ -1153,6 +1153,30 @@ impl[T] List[T] {
     return result;
   }
 
+  @pub fun rejectFirst(val: Int64): List[T] {
+    let newSize = Int64::min(self.len, val);
+    let result = List[T]::ofCapacity(self.len - newSize);
+    var idx = newSize;
+    while idx < self.len {
+      let val = self.array(idx);
+      result.push(val);
+      idx = idx + 1;
+    }
+    return result;
+  }
+
+  @pub fun rejectLast(val: Int64): List[T] {
+    let newSize = self.len - Int64::min(self.len, val);
+    let result = List[T]::ofCapacity(newSize);
+    var idx = 0;
+    while idx < newSize {
+      let val = self.array(idx);
+      result.push(val);
+      idx = idx + 1;
+    }
+    return result;
+  }
+
   @pub fun reject(fct: (T): Bool): List[T] {
     let result = List[T]::new();
     var idx = 0;
