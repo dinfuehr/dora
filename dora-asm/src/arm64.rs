@@ -2656,7 +2656,6 @@ mod cls {
             | rd
     }
 
-    #[allow(dead_code)]
     pub(super) fn ldst_exclusive(
         size: u32,
         o2: u32,
@@ -3065,6 +3064,7 @@ fn fits_u13(imm: u32) -> bool {
 fn fits_u16(imm: u32) -> bool {
     imm < (1 << 16)
 }
+
 #[derive(Copy, Clone)]
 pub enum Cond {
     EQ, // equal
