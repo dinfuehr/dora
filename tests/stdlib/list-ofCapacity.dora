@@ -1,0 +1,18 @@
+fun main(): Unit {
+  let list0 = List[Int64]::ofCapacity(0);
+  let list1 = List[Int64]::ofCapacity(4);
+  let list2 = List[Int64]::ofCapacity(23);
+  let list3 = List[Int64]::ofCapacity(1337);
+
+  assert(list0.capacity() == 0);
+  assert(list0.size() == 0);
+
+  assert(list1.capacity() == 4);
+  assert(list1.size() == 0);
+
+  assert(list2.capacity() == 23);
+  assert(list2.size() == 0);
+
+  assert(list3.capacity() == 1337);
+  assert(list3.size() == 0);
+}

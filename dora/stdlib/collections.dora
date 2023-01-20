@@ -849,6 +849,9 @@ impl[T] List[T] {
     List[T](values, values.size())
   }
 
+  @pub @static fun ofCapacity(capacity: Int64): List[T] =
+    List[T](Array[T]::unsafeNew(capacity), 0);
+
   @pub fun size(): Int64 {
     return self.len;
   }
