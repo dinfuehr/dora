@@ -1,0 +1,27 @@
+fun main(): Unit {
+  let list0 = List[List[Int64]]::new();
+  let list1 = List[List[Int64]]::new(List[Int64]::new(), List[Int64]::new());
+  let list2 = List[List[Int64]]::new(List[Int64]::new(1), List[Int64]::new(2, 3), List[Int64]::new(4, 5, 6));
+  let list3 = List[List[Int64]]::new(List[Int64]::new(1), List[Int64]::new(), List[Int64]::new(2), List[Int64]::new(), List[Int64]::new(3));
+  let list4 = List[List[Option[Int64]]]::new(
+    List[Option[Int64]]::new(Some[Int64](1)),
+    List[Option[Int64]]::new(),
+    List[Option[Int64]]::new(None[Int64]),
+    List[Option[Int64]]::new(Some[Int64](2), Some[Int64](3), None[Int64]));
+
+
+  assert(list0.flatten() == List[Int64]::new());
+  assert(list1.flatten() == List[Int64]::new());
+  assert(list2.flatten() == List[Int64]::new(1, 2, 3, 4, 5, 6));
+  assert(list3.flatten() == List[Int64]::new(1, 2, 3));
+
+  // the last `None[Int64]` crashes the compiler: 'type list index out-of-bounds', dora/src/vm/specialize.rs:608:40
+  // assert(list4f == List[Option[Int64]]::new(Some[Int64](1), None[Int64], Some[Int64](2), Some[Int64](3), None[Int64]));
+  // therefore, test items individually:
+  let list4f = list4.flatten();
+  assert(list4f(0) == Some[Int64](1));
+  assert(list4f(1) == None[Int64]);
+  assert(list4f(2) == Some[Int64](2));
+  assert(list4f(3) == Some[Int64](3));
+  assert(list4f(4) == None[Int64]);
+}

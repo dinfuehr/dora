@@ -1,3 +1,4 @@
+// fails with: thread 'main' panicked at 'not implemented', dora/src/language/sem_analysis/extensions.rs:264:17
 fun main(): Unit {
     let list = Array[Int64]::new(10, 20, 30, 40, 50);
     let lambdas = List[(): Int64]::new();
