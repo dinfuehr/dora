@@ -1,0 +1,14 @@
+fun main(): Unit {
+  let list0 = List[Int64]::new();
+  let list1 = List[Int64]::new(1, 2, 3);
+
+  let res0a = list0.mapMany[Int64](|val: Int64|: List[Int64] { List[Int64]::new() });
+  let res0b = list0.mapMany[Int64](|val: Int64|: List[Int64] { List[Int64]::new(val, val) });
+  let res1a = list1.mapMany[Int64](|val: Int64|: List[Int64] { List[Int64]::new() });
+  let res1b = list1.mapMany[Int64](|val: Int64|: List[Int64] { List[Int64]::new(val, val) });
+
+  assert(res0a == List[Int64]::new());
+  assert(res0b == List[Int64]::new());
+  assert(res1a == List[Int64]::new());
+  assert(res1b == List[Int64]::new(1, 1, 2, 2, 3, 3));
+}

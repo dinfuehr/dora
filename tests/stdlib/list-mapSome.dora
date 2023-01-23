@@ -1,0 +1,14 @@
+fun main(): Unit {
+  let list0 = List[Int64]::new();
+  let list1 = List[Int64]::new(1, 2, 3, 4);
+
+  let res0 = list0.mapSome[Int64](|val: Int64|: Option[Int64] { Some[Int64](val) });
+  let res1 = list1.mapSome[Int64](|val: Int64|: Option[Int64] { None[Int64] });
+  let res2 = list1.mapSome[Int64](|val: Int64|: Option[Int64] { Some[Int64](val) });
+  let res3 = list1.mapSome[Int64](|val: Int64|: Option[Int64] { if val.remainder(2) == 0 { Some[Int64](val) } else { None[Int64] } });
+
+  assert(res0 == List[Int64]::new());
+  assert(res1 == List[Int64]::new());
+  assert(res2 == List[Int64]::new(1, 2, 3, 4));
+  assert(res3 == List[Int64]::new(2, 4));
+}

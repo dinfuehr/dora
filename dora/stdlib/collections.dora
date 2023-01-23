@@ -1104,6 +1104,35 @@ impl[T] List[T] {
     return List[U](result, result.size());
   }
 
+  @pub fun mapMany[U](fct: (T): List[U]): List[U] {
+    let result = List[U]::ofCapacity(self.size());
+    var idx = 0;
+    while idx < self.len {
+      let list = fct(self.array(idx));
+      let listSize = list.size();
+      var idy = 0;
+      while idy < listSize {
+        result.push(list(idy));
+        idy = idy + 1;
+      }
+      idx = idx + 1;
+    }
+    return result;
+  }
+
+  @pub fun mapSome[U](fct: (T): Option[U]): List[U] {
+    let result = List[U]::ofCapacity(self.size());
+    var idx = 0;
+    while idx < self.len {
+      let option = fct(self.array(idx));
+      if option.isSome() {
+        result.push(option.getOrPanic());
+      }
+      idx = idx + 1;
+    }
+    return result;
+  }
+
   @pub fun retainFirst(val: Int64): List[T] {
     let newSize = Int64::min(self.len, val);
     let result = List[T]::ofCapacity(newSize);
