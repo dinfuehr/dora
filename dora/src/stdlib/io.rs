@@ -1,5 +1,7 @@
 use std::fs::File;
 use std::io::{Read, Write};
+use std::net::TcpStream;
+use std::os::unix::prelude::{FromRawFd, IntoRawFd};
 use std::str::FromStr;
 use std::{fs, path::PathBuf};
 
@@ -83,4 +85,22 @@ fn write_file_common(name: Handle<Str>, content: Vec<u8>) -> bool {
     } else {
         false
     }
+}
+
+pub extern "C" fn socket_connect(addr: Handle<Str>) -> i32 {
+    let addr = String::from(addr.content_utf8());
+    parked_scope(|| {
+        if let Ok(stream) = TcpStream::connect(&addr) {
+            stream.into_raw_fd() as i32
+        } else {
+            -1
+        }
+    })
+}
+
+pub extern "C" fn socket_close(fd: i32) {
+    parked_scope(|| {
+        let stream = unsafe { TcpStream::from_raw_fd(fd) };
+        std::mem::drop(stream)
+    });
 }

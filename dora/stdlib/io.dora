@@ -46,3 +46,28 @@ impl Directory {
         Directory(path)
     }
 }
+
+@internal fn socketConnect(addr: String): Int32;
+@internal fn socketClose(fd: Int32);
+
+@pub class Socket {
+    fd: Int32,
+}
+
+impl Socket {
+    @pub @static fn connect(addr: String): Result[Socket, ()] {
+        let fd = socketConnect(addr);
+        if fd != -1i32 {
+            Ok[Socket, ()](Socket(fd))
+        } else {
+            Err[Socket, ()](())
+        }
+    }
+
+    @pub fn close() {
+        if self.fd != -1i32 {
+            socketClose(self.fd);
+            self.fd = -1;
+        }
+    }
+}
