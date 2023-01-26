@@ -49,6 +49,8 @@ impl Directory {
 
 @internal fn socketConnect(addr: String): Int32;
 @internal fn socketClose(fd: Int32);
+@internal fn socketRead(fd: Int32, array: Array[UInt8], offset: Int64, len: Int64): Int64;
+@internal fn socketWrite(fd: Int32, array: Array[UInt8], offset: Int64, len: Int64): Int64;
 
 @pub class Socket {
     fd: Int32,
@@ -69,5 +71,13 @@ impl Socket {
             socketClose(self.fd);
             self.fd = -1;
         }
+    }
+
+    @pub fn read(array: Array[UInt8]): Int64 {
+        socketRead(self.fd, array, 0, array.size())
+    }
+
+    @pub fn write(array: Array[UInt8]): Int64 {
+        socketRead(self.fd, array, 0, array.size())
     }
 }

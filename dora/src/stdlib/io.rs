@@ -98,6 +98,57 @@ pub extern "C" fn socket_connect(addr: Handle<Str>) -> i32 {
     })
 }
 
+pub extern "C" fn socket_write(fd: i32, array: Handle<UInt8Array>, offset: i64, len: i64) -> i64 {
+    let offset = offset as usize;
+    let len = len as usize;
+
+    if offset + len > array.slice().len() {
+        return -1;
+    }
+
+    let buffer = Vec::from(&array.slice()[offset..offset + len]);
+    parked_scope(|| {
+        let mut stream = unsafe { TcpStream::from_raw_fd(fd) };
+        match stream.write(&buffer) {
+            Ok(bytes) => bytes as i64,
+            Err(_) => -1,
+        }
+    })
+}
+
+pub extern "C" fn socket_read(
+    fd: i32,
+    mut array: Handle<UInt8Array>,
+    offset: i64,
+    len: i64,
+) -> i64 {
+    let offset = offset as usize;
+    let len = len as usize;
+
+    if offset + len > array.slice().len() {
+        return -1;
+    }
+
+    let mut buffer = vec![0; len];
+    let bytes = parked_scope(|| {
+        let mut stream = unsafe { TcpStream::from_raw_fd(fd) };
+        match stream.read(&mut buffer) {
+            Ok(bytes) => bytes as i64,
+            Err(_) => -1,
+        }
+    });
+
+    if bytes < 0 {
+        return bytes;
+    }
+
+    for i in 0..bytes as usize {
+        array.set_at(offset + i, buffer[i]);
+    }
+
+    bytes
+}
+
 pub extern "C" fn socket_close(fd: i32) {
     parked_scope(|| {
         let stream = unsafe { TcpStream::from_raw_fd(fd) };

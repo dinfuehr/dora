@@ -1557,7 +1557,21 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
         sa,
         stdlib_id,
         "io::socketClose",
-        stdlib::io::socket_connect as *const u8,
+        stdlib::io::socket_close as *const u8,
+    );
+
+    native_fct(
+        sa,
+        stdlib_id,
+        "io::socketWrite",
+        stdlib::io::socket_write as *const u8,
+    );
+
+    native_fct(
+        sa,
+        stdlib_id,
+        "io::socketRead",
+        stdlib::io::socket_read as *const u8,
     );
 
     let fct_id = intrinsic_method(sa, stdlib_id, "Option", "isNone", Intrinsic::OptionIsNone);
