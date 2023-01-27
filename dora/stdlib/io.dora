@@ -52,17 +52,17 @@ impl Directory {
 @internal fn socketRead(fd: Int32, array: Array[UInt8], offset: Int64, len: Int64): Int64;
 @internal fn socketWrite(fd: Int32, array: Array[UInt8], offset: Int64, len: Int64): Int64;
 
-@pub class Socket {
+@pub class TcpStream {
     fd: Int32,
 }
 
-impl Socket {
-    @pub @static fn connect(addr: String): Result[Socket, ()] {
+impl TcpStream {
+    @pub @static fn connect(addr: String): Result[TcpStream, ()] {
         let fd = socketConnect(addr);
         if fd != -1i32 {
-            Ok[Socket, ()](Socket(fd))
+            Ok[TcpStream, ()](TcpStream(fd))
         } else {
-            Err[Socket, ()](())
+            Err[TcpStream, ()](())
         }
     }
 
@@ -78,6 +78,6 @@ impl Socket {
     }
 
     @pub fn write(array: Array[UInt8]): Int64 {
-        socketRead(self.fd, array, 0, array.size())
+        socketWrite(self.fd, array, 0, array.size())
     }
 }

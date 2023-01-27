@@ -109,10 +109,12 @@ pub extern "C" fn socket_write(fd: i32, array: Handle<UInt8Array>, offset: i64, 
     let buffer = Vec::from(&array.slice()[offset..offset + len]);
     parked_scope(|| {
         let mut stream = unsafe { TcpStream::from_raw_fd(fd) };
-        match stream.write(&buffer) {
+        let bytes = match stream.write(&buffer) {
             Ok(bytes) => bytes as i64,
             Err(_) => -1,
-        }
+        };
+        std::mem::forget(stream);
+        bytes
     })
 }
 
@@ -130,12 +132,15 @@ pub extern "C" fn socket_read(
     }
 
     let mut buffer = vec![0; len];
+
     let bytes = parked_scope(|| {
         let mut stream = unsafe { TcpStream::from_raw_fd(fd) };
-        match stream.read(&mut buffer) {
+        let bytes = match stream.read(&mut buffer) {
             Ok(bytes) => bytes as i64,
             Err(_) => -1,
-        }
+        };
+        std::mem::forget(stream);
+        bytes
     });
 
     if bytes < 0 {

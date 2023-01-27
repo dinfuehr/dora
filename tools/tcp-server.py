@@ -8,5 +8,7 @@ socket.listen(5)
 while True:  
     conn, _ = socket.accept()
     conn.send("das ist ein test".encode('utf-8'))
+    data = conn.recv(1024).decode('utf-8')
+    print(f"received -->{data}<--")
     conn.close()
 

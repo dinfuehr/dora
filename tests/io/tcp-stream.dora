@@ -1,10 +1,14 @@
 //= ignore
 
 fn main() {
-    let socket = std::io::Socket::connect("127.0.0.1:12345").getOrPanic();
+    let socket = std::io::TcpStream::connect("127.0.0.1:12345").getOrPanic();
     let buffer = Array[UInt8]::newDefault(1024);
     let bytes = socket.read(buffer);
+    assert(bytes > 0);
     let text = String::fromBytesPart(buffer, 0, bytes).getOrDefault();
     println("received: -->${text}<--");
+    let buffer = Array[UInt8]::new(65u8, 66u8, 67u8, 68u8);
+    let written = socket.write(buffer);
+    assert(written == 4);
     socket.close();
 }
