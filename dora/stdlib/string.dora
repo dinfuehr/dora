@@ -181,6 +181,18 @@ impl String {
 
   @pub @static @internal fn fromStringPart(val: String, offset: Int64, len: Int64): Option[String];
 
+  @pub fn asBytes(): Array[UInt8] {
+    let data = Array[UInt8]::newDefault(self.size());
+    let mut idx = 0;
+
+    while idx < self.size() {
+      data(idx) = self.getByte(idx);
+      idx = idx + 1;
+    }
+
+    data
+  }
+
   @pub @static fn binary(data: Int64): String {
     let mut data = data;
     if data == 0i64 { return "0"; }

@@ -52,6 +52,34 @@ impl Directory {
 @internal fn socketRead(fd: Int32, array: Array[UInt8], offset: Int64, len: Int64): Int64;
 @internal fn socketWrite(fd: Int32, array: Array[UInt8], offset: Int64, len: Int64): Int64;
 
+@internal fn socketBind(addr: String): Int32;
+@internal fn socketAccept(fd: Int32): Int32;
+
+@pub class TcpListener {
+    fd: Int32,
+}
+
+impl TcpListener {
+    @pub @static fn bind(addr: String): Result[TcpListener, ()] {
+        let fd = socketBind(addr);
+        if fd != -1i32 {
+            Ok[TcpListener, ()](TcpListener(fd))
+        } else {
+            Err[TcpListener, ()](())
+        }
+    }
+
+    @pub fn accept(): Result[TcpStream, ()] {
+        let stream_fd = socketAccept(self.fd);
+
+        if stream_fd != -1i32 {
+            Ok[TcpStream, ()](TcpStream(stream_fd))
+        } else {
+            Err[TcpStream, ()](())
+        }
+    }
+}
+
 @pub class TcpStream {
     fd: Int32,
 }

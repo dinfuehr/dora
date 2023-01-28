@@ -1574,6 +1574,20 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
         stdlib::io::socket_read as *const u8,
     );
 
+    native_fct(
+        sa,
+        stdlib_id,
+        "io::socketBind",
+        stdlib::io::socket_bind as *const u8,
+    );
+
+    native_fct(
+        sa,
+        stdlib_id,
+        "io::socketAccept",
+        stdlib::io::socket_accept as *const u8,
+    );
+
     let fct_id = intrinsic_method(sa, stdlib_id, "Option", "isNone", Intrinsic::OptionIsNone);
     sa.known.functions.option_is_none = Some(fct_id);
     let fct_id = intrinsic_method(sa, stdlib_id, "Option", "isSome", Intrinsic::OptionIsSome);

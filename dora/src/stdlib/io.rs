@@ -1,6 +1,6 @@
 use std::fs::File;
 use std::io::{Read, Write};
-use std::net::TcpStream;
+use std::net::{TcpListener, TcpStream};
 use std::os::unix::prelude::{FromRawFd, IntoRawFd};
 use std::str::FromStr;
 use std::{fs, path::PathBuf};
@@ -159,4 +159,28 @@ pub extern "C" fn socket_close(fd: i32) {
         let stream = unsafe { TcpStream::from_raw_fd(fd) };
         std::mem::drop(stream)
     });
+}
+
+pub extern "C" fn socket_bind(addr: Handle<Str>) -> i32 {
+    let addr = String::from(addr.content_utf8());
+    parked_scope(|| {
+        if let Ok(stream) = TcpListener::bind(&addr) {
+            stream.into_raw_fd() as i32
+        } else {
+            -1
+        }
+    })
+}
+
+pub extern "C" fn socket_accept(fd: i32) -> i32 {
+    parked_scope(|| {
+        let listener = unsafe { TcpListener::from_raw_fd(fd) };
+        let result = if let Ok((stream, _)) = listener.accept() {
+            stream.into_raw_fd() as i32
+        } else {
+            -1
+        };
+        std::mem::forget(listener);
+        result
+    })
 }

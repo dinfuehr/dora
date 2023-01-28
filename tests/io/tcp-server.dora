@@ -1,0 +1,28 @@
+//= ignore
+
+fn main() {
+    let listener = std::io::TcpListener::bind("127.0.0.1:12345").getOrPanic();
+
+    while true {
+        let stream = listener.accept();
+        match stream {
+            Ok(stream) => {
+                println("CLIENT CONNECTED");
+                let bytes = stream.write("das ist ein test".asBytes());
+                println("${bytes} bytes written.");
+
+                let buffer = Array[UInt8]::newDefault(1024);
+                let bytes = stream.read(buffer);
+                assert(bytes > 0);
+                let text = String::fromBytesPart(buffer, 0, bytes).getOrDefault();
+                println("received -->${text}<--");
+
+                stream.close();
+            },
+
+            Err(_) => {
+                println("FAILURE");
+            }
+        }
+    }
+}
