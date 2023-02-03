@@ -7,8 +7,7 @@ fn main() {
     assert(bytes > 0);
     let text = String::fromBytesPart(buffer, 0, bytes).getOrDefault();
     println("received: -->${text}<--");
-    let buffer = Array[UInt8]::new(65u8, 66u8, 67u8, 68u8);
-    let written = socket.write(buffer);
+    let written = socket.write("exit".asBytes());
     assert(written == 4);
     socket.close();
 }

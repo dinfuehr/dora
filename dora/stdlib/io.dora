@@ -78,6 +78,13 @@ impl TcpListener {
             Err[TcpStream, ()](())
         }
     }
+
+    @pub fn close() {
+        if self.fd != -1i32 {
+            socketClose(self.fd);
+            self.fd = -1;
+        }
+    }
 }
 
 @pub class TcpStream {

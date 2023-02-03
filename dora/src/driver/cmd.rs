@@ -1,6 +1,7 @@
 use num_cpus;
 use std::cmp::{max, min};
 use std::default::Default;
+use std::fmt;
 use std::ops::Deref;
 use std::path::PathBuf;
 
@@ -68,6 +69,7 @@ pub struct Args {
     pub flag_emit_asm: Option<String>,
     pub flag_emit_asm_file: bool,
     pub flag_emit_bytecode: Option<String>,
+    pub flag_emit_compiler: bool,
     pub flag_emit_stubs: bool,
     pub flag_enable_perf: bool,
     pub flag_omit_bounds_check: bool,
@@ -171,6 +173,7 @@ impl Default for Args {
             flag_emit_asm: None,
             flag_emit_asm_file: false,
             flag_emit_bytecode: None,
+            flag_emit_compiler: false,
             flag_emit_stubs: false,
             flag_emit_debug: None,
             flag_emit_debug_compile: false,
@@ -225,6 +228,17 @@ pub enum CollectorName {
 pub enum CompilerName {
     Cannon,
     Boots,
+}
+
+impl fmt::Display for CompilerName {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let text = match self {
+            CompilerName::Cannon => "cannon",
+            CompilerName::Boots => "boots",
+        };
+
+        f.write_str(text)
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -311,6 +325,8 @@ pub fn parse_arguments() -> Result<Args, String> {
             args.flag_emit_stubs = true;
         } else if arg.starts_with("--emit-debug=") {
             args.flag_emit_debug = Some(argument_value(arg).into());
+        } else if arg == "--emit-compiler" {
+            args.flag_emit_compiler = true;
         } else if arg == "--emit-debug-native" {
             args.flag_emit_debug_native = true;
         } else if arg == "--emit-debug-compile" {

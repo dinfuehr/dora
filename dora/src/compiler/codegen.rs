@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use dora_parser::Position;
 
 use crate::boots;
@@ -30,7 +32,7 @@ pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray)
         return instruction_start;
     }
 
-    let bc = if fct.is_optimize_immediately {
+    let compiler = if fct.is_optimize_immediately {
         CompilerName::Boots
     } else {
         CompilerName::Cannon
@@ -40,8 +42,13 @@ pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray)
 
     let emit_debug = should_emit_debug(vm, fct);
     let emit_asm = should_emit_asm(vm, fct);
+    let mut start = None;
 
-    let code_descriptor = match bc {
+    if vm.args.flag_emit_compiler {
+        start = Some(Instant::now());
+    }
+
+    let code_descriptor = match compiler {
         CompilerName::Cannon => {
             let pos = fct.pos;
             let params = fct.params_with_self();
@@ -76,6 +83,16 @@ pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray)
     // Mark compilation as finished and resume threads waiting for compilation.
     vm.compilation_database
         .finish_compilation(fct.id(), type_params.clone(), code_id);
+
+    if vm.args.flag_emit_compiler {
+        let duration = start.expect("missing start time").elapsed();
+        println!(
+            "compile {} using {} in {}ms.",
+            fct.display_name(vm),
+            compiler,
+            (duration.as_micros() as f64) / 1000.0
+        );
+    }
 
     if vm.args.flag_enable_perf {
         os::perf::register_with_perf(&code, vm, fct.ast.name);
