@@ -1409,3 +1409,38 @@ impl[T] List[List[T]] {
     return result;
   }
 }
+
+impl List[Float64] {
+  @pub fun sum(): Float64 {
+    var result = 0.0;
+    let len = self.size();
+    var idx = 0;
+    while idx < len {
+      result = result + self(idx);
+      idx = idx + 1;
+    }
+    return result;
+  }
+
+  @pub fun average(): Float64 {
+    var result = 0.0;
+    let len = self.size();
+    var idx = 0;
+    while idx < len {
+      result = result + self(idx);
+      idx = idx + 1;
+    }
+    return result / len.toFloat64();
+  }
+
+  @pub fun product(): Float64 {
+    var result = 1.0;
+    let len = self.size();
+    var idx = 0;
+    while idx < len {
+      result = result * self(idx);
+      idx = idx + 1;
+    }
+    return result;
+  }
+}
