@@ -1,12 +1,11 @@
 use crate::driver::cmd;
 use crate::language;
-use crate::language::access::module_contains;
 use crate::language::error::msg::ErrorMessage;
 use crate::language::sem_analysis::{
     FctDefinition, FctDefinitionId, ModuleDefinitionId, SemAnalysis,
 };
 use crate::timer::Timer;
-use crate::vm::{clear_vm, execute_on_main, set_vm, VM};
+use crate::vm::{clear_vm, execute_on_main, module_contains, set_vm, VM};
 
 pub fn start() -> i32 {
     let args = cmd::parse_arguments();

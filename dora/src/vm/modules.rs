@@ -40,3 +40,16 @@ pub fn module_path(sa: &VM, module_id: ModuleDefinitionId, name: Name) -> String
     result.push_str(&sa.interner.str(name));
     result
 }
+
+pub fn module_contains(
+    vm: &VM,
+    parent_id: ModuleDefinitionId,
+    child_id: ModuleDefinitionId,
+) -> bool {
+    if parent_id == child_id {
+        return true;
+    }
+
+    let module = &vm.modules[child_id].read();
+    module.parents.contains(&parent_id)
+}

@@ -44,7 +44,7 @@ pub use self::known::{
     KnownAnnotations, KnownClasses, KnownElements, KnownEnums, KnownFunctions, KnownStructs,
     KnownTraits,
 };
-pub use self::modules::module_path;
+pub use self::modules::{module_contains, module_path};
 pub use self::specialize::{
     add_ref_fields, replace_type_param, specialize_class_id, specialize_class_id_params,
     specialize_enum_class, specialize_enum_id_params, specialize_lambda,

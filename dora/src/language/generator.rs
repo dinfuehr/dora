@@ -164,7 +164,7 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         self.pop_scope();
-        self.builder.generate(self.sa)
+        self.builder.generate()
     }
 
     fn create_context(&mut self) {

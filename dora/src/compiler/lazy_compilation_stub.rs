@@ -358,7 +358,6 @@ fn ensure_thunk(
         .type_params
         .add_bound(tp_id, trait_object_ty.clone());
     thunk_fct.bytecode = Some(generate_bytecode_for_thunk(
-        vm,
         cls_def_id,
         &*fct,
         trait_object_ty.clone(),
@@ -378,7 +377,6 @@ fn ensure_thunk(
 }
 
 fn generate_bytecode_for_thunk(
-    vm: &VM,
     cls_def_id: ClassInstanceId,
     trait_fct: &FctDefinition,
     trait_object_ty: SourceType,
@@ -421,5 +419,5 @@ fn generate_bytecode_for_thunk(
     gen.emit_ret(result_reg);
 
     gen.pop_scope();
-    gen.generate(vm)
+    gen.generate()
 }

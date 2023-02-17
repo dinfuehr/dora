@@ -3,11 +3,10 @@ use std::collections::{HashMap, HashSet};
 use dora_parser::lexer::position::Position;
 
 use crate::bytecode::{
-    dump, BytecodeFunction, BytecodeType, BytecodeWriter, ConstPoolEntry, ConstPoolIdx, Label,
-    Register,
+    BytecodeFunction, BytecodeType, BytecodeWriter, ConstPoolEntry, ConstPoolIdx, Label, Register,
 };
 use crate::language::sem_analysis::{
-    ClassDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId, GlobalDefinitionId, SemAnalysis,
+    ClassDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId, GlobalDefinitionId,
     StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -583,21 +582,14 @@ impl BytecodeBuilder {
         self.writer.emit_load_array(dest, array, index);
     }
 
-    pub fn generate(self, sa: &SemAnalysis) -> BytecodeFunction {
+    pub fn generate(self) -> BytecodeFunction {
         for reg in &self.registers.used {
             println!("used reg {}", reg);
         }
 
-        let used = self.registers.used();
+        assert!(!self.registers.used());
 
-        let bc = self.writer.generate_with_registers(self.registers.all());
-
-        if used {
-            dump(sa, None, &bc);
-            panic!("all registers should be freed.");
-        }
-
-        bc
+        self.writer.generate_with_registers(self.registers.all())
     }
 
     pub fn push_scope(&mut self) {
