@@ -30,7 +30,7 @@ impl CodeMap {
                     let fct = vm.fcts.idx(fct_id);
                     let fct = fct.read();
 
-                    println!("dora {}", fct.display_name(vm));
+                    println!("dora {}", fct.display_name_vm(vm));
                 }
                 CodeKind::CompileStub => println!("compile_stub"),
                 CodeKind::TrapStub => println!("trap_stub"),
@@ -40,7 +40,7 @@ impl CodeMap {
                     let fct = vm.fcts.idx(fct_id);
                     let fct = fct.read();
 
-                    println!("native stub {}", fct.display_name(vm));
+                    println!("native stub {}", fct.display_name_vm(vm));
                 }
                 CodeKind::DoraStub => println!("dora_stub"),
                 CodeKind::GuardCheckStub => println!("guard_check_stub"),

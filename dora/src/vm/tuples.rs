@@ -42,7 +42,7 @@ fn determine_tuple_size(vm: &VM, subtypes: SourceTypeArray) -> ConcreteTuple {
     let mut align = 0;
 
     for ty in subtypes.iter() {
-        assert!(ty.is_concrete_type(vm));
+        assert!(ty.is_concrete_type_vm(vm));
 
         let element_size;
         let element_align;

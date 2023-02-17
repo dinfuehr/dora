@@ -49,13 +49,13 @@ pub fn disassemble(
         .disasm_all(buf, start_addr)
         .expect("could not disassemble code");
 
-    let name = fct.display_name(vm);
+    let name = fct.display_name_vm(vm);
 
     let type_params = if !type_params.is_empty() {
         let mut ty_names = Vec::new();
 
         for ty in type_params.iter() {
-            ty_names.push(ty.name_fct(vm, fct));
+            ty_names.push(ty.name_fct_vm(vm, fct));
         }
 
         format!(" [{}]", ty_names.join(", "))

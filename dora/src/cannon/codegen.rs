@@ -300,7 +300,7 @@ impl<'a> CannonCodeGen<'a> {
 
         for (idx, param_ty) in params.iter().enumerate() {
             let param_ty = self.specialize_type(param_ty.clone());
-            assert!(param_ty.is_concrete_type(self.vm));
+            assert!(param_ty.is_concrete_type_vm(self.vm));
 
             let dest = Register(idx);
 
@@ -1183,7 +1183,7 @@ impl<'a> CannonCodeGen<'a> {
         };
 
         let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
-        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type_vm(self.vm)));
 
         let enum_ = &self.vm.enums[enum_id];
         let enum_ = enum_.read();
@@ -1250,7 +1250,7 @@ impl<'a> CannonCodeGen<'a> {
         };
 
         let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
-        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type_vm(self.vm)));
 
         let enum_ = &self.vm.enums[enum_id];
         let enum_ = enum_.read();
@@ -1546,7 +1546,7 @@ impl<'a> CannonCodeGen<'a> {
         );
 
         let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
-        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type_vm(self.vm)));
 
         let struct_instance_id =
             specialize_struct_id_params(self.vm, struct_id, type_params.clone());
@@ -1570,7 +1570,7 @@ impl<'a> CannonCodeGen<'a> {
         let (class_instance_id, field_id) = match self.bytecode.const_pool(field_idx) {
             ConstPoolEntry::Field(cls_id, type_params, field_id) => {
                 let type_params = specialize_type_list(self.vm, type_params, self.type_params);
-                debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
+                debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type_vm(self.vm)));
 
                 let class_instance_id = specialize_class_id_params(self.vm, *cls_id, &type_params);
 
@@ -1610,7 +1610,7 @@ impl<'a> CannonCodeGen<'a> {
         };
 
         let type_params = specialize_type_list(self.vm, type_params, self.type_params);
-        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type_vm(self.vm)));
 
         let class_instance_id = specialize_class_id_params(self.vm, cls_id, &type_params);
         let cls = self.vm.class_instances.idx(class_instance_id);
@@ -2069,7 +2069,7 @@ impl<'a> CannonCodeGen<'a> {
         };
 
         let type_params = specialize_type_list(self.vm, type_params, self.type_params);
-        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type_vm(self.vm)));
 
         let class_instance_id = specialize_class_id_params(self.vm, cls_id, &type_params);
         let class_instance = self.vm.class_instances.idx(class_instance_id);
@@ -2130,7 +2130,7 @@ impl<'a> CannonCodeGen<'a> {
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
         let type_params = specialize_type_list(self.vm, type_params, self.type_params);
-        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type_vm(self.vm)));
 
         let class_instance_id = specialize_class_id_params(self.vm, cls_id, &type_params);
         let class_instance = self.vm.class_instances.idx(class_instance_id);
@@ -2342,7 +2342,7 @@ impl<'a> CannonCodeGen<'a> {
         };
 
         let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
-        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type_vm(self.vm)));
 
         let enum_ = &self.vm.enums[enum_id];
         let enum_ = enum_.read();
@@ -2466,7 +2466,7 @@ impl<'a> CannonCodeGen<'a> {
         };
 
         let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
-        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type_vm(self.vm)));
 
         let struct_instance_id = specialize_struct_id_params(self.vm, struct_id, type_params);
         let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
@@ -2499,10 +2499,10 @@ impl<'a> CannonCodeGen<'a> {
         };
 
         let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
-        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type_vm(self.vm)));
 
         let object_ty = specialize_type(self.vm, object_ty, self.type_params);
-        debug_assert!(object_ty.is_concrete_type(self.vm));
+        debug_assert!(object_ty.is_concrete_type_vm(self.vm));
 
         let class_instance_id =
             specialize_trait_object(self.vm, trait_id, &type_params, object_ty.clone());
@@ -2580,7 +2580,7 @@ impl<'a> CannonCodeGen<'a> {
         };
 
         let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
-        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type_vm(self.vm)));
 
         let cls_def_id = specialize_lambda(self.vm, fct_id, type_params);
 
@@ -2918,7 +2918,7 @@ impl<'a> CannonCodeGen<'a> {
         };
 
         let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
-        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type_vm(self.vm)));
 
         let pos = self.bytecode.offset_position(self.current_offset.to_u32());
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
@@ -2954,11 +2954,11 @@ impl<'a> CannonCodeGen<'a> {
         assert!(bytecode_type_self.is_ptr() || bytecode_type_self.is_trait());
 
         let fct_return_type = self.specialize_type(return_type);
-        assert!(fct_return_type.is_concrete_type(self.vm));
+        assert!(fct_return_type.is_concrete_type_vm(self.vm));
 
         debug_assert!(params
             .iter()
-            .all(|ty| self.specialize_type(ty).is_concrete_type(self.vm)));
+            .all(|ty| self.specialize_type(ty).is_concrete_type_vm(self.vm)));
 
         let argsize = self.emit_invoke_arguments(dest, fct_return_type.clone(), arguments);
 
@@ -3013,7 +3013,7 @@ impl<'a> CannonCodeGen<'a> {
             fct.return_type.clone(),
             &type_params,
         ));
-        assert!(fct_return_type.is_concrete_type(self.vm));
+        assert!(fct_return_type.is_concrete_type_vm(self.vm));
 
         let argsize = self.emit_invoke_arguments(dest, fct_return_type.clone(), arguments);
 
@@ -3057,7 +3057,7 @@ impl<'a> CannonCodeGen<'a> {
         };
 
         let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
-        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type_vm(self.vm)));
 
         let pos = self.bytecode.offset_position(self.current_offset.to_u32());
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
@@ -3104,7 +3104,7 @@ impl<'a> CannonCodeGen<'a> {
             fct.return_type.clone(),
             &type_params,
         ));
-        assert!(fct_return_type.is_concrete_type(self.vm));
+        assert!(fct_return_type.is_concrete_type_vm(self.vm));
 
         let bytecode_type_self = self.bytecode.register_type(self_register);
 
@@ -3144,7 +3144,7 @@ impl<'a> CannonCodeGen<'a> {
         };
 
         let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
-        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(self.vm)));
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type_vm(self.vm)));
 
         let pos = self.bytecode.offset_position(self.current_offset.to_u32());
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
@@ -3189,7 +3189,7 @@ impl<'a> CannonCodeGen<'a> {
             fct.return_type.clone(),
             &type_params,
         ));
-        assert!(fct_return_type.is_concrete_type(self.vm));
+        assert!(fct_return_type.is_concrete_type_vm(self.vm));
 
         let argsize = self.emit_invoke_arguments(dest, fct_return_type.clone(), arguments);
 
@@ -4541,7 +4541,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 _ => unreachable!(),
             };
 
-            let tuple_name = tuple_ty.name(self.vm);
+            let tuple_name = tuple_ty.name_vm(self.vm);
             format!(
                 "LoadTupleElement {}, {}, ConstPoolIdx({}) # {}.{}",
                 dest,
@@ -4565,7 +4565,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 };
             let enum_ = &self.vm.enums[enum_id];
             let enum_ = enum_.read();
-            let enum_name = enum_.name_with_params(self.vm, type_params);
+            let enum_name = enum_.name_with_params_vm(self.vm, type_params);
             let variant = &enum_.variants[variant_idx];
             let variant_name = self.vm.interner.str(variant.name);
             format!(
@@ -4590,7 +4590,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             };
             let enum_ = &self.vm.enums[enum_id];
             let enum_ = enum_.read();
-            let enum_name = enum_.name_with_params(self.vm, type_params);
+            let enum_name = enum_.name_with_params_vm(self.vm, type_params);
             format!(
                 "LoadEnumVariant {}, {}, ConstPoolIdx({}) # {}",
                 dest,
@@ -4612,7 +4612,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             };
             let struct_ = self.vm.structs.idx(struct_id);
             let struct_ = struct_.read();
-            let struct_name = struct_.name_with_params(self.vm, type_params);
+            let struct_name = struct_.name_with_params_vm(self.vm, type_params);
 
             let field = &struct_.fields[field_id.to_usize()];
             let fname = self.vm.interner.str(field.name);
@@ -4635,7 +4635,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 ConstPoolEntry::Field(cls_id, type_params, field_id) => {
                     let cls = self.vm.classes.idx(*cls_id);
                     let cls = cls.read();
-                    let cname = cls.name_with_params(self.vm, type_params);
+                    let cname = cls.name_with_params_vm(self.vm, type_params);
 
                     let field = &cls.fields[field_id.to_usize()];
                     let fname = self.vm.interner.str(field.name);
@@ -4672,7 +4672,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             };
             let cls = self.vm.classes.idx(cls_id);
             let cls = cls.read();
-            let cname = cls.name_with_params(self.vm, type_params);
+            let cname = cls.name_with_params_vm(self.vm, type_params);
 
             let field = &cls.fields[field_id.to_usize()];
             let fname = self.vm.interner.str(field.name);
@@ -5041,7 +5041,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             };
             let cls = self.vm.classes.idx(cls_id);
             let cls = cls.read();
-            let cname = cls.name_with_params(self.vm, type_params);
+            let cname = cls.name_with_params_vm(self.vm, type_params);
             format!(
                 "NewObject {}, ConstPoolIdx({}) # {}",
                 dest,
@@ -5060,7 +5060,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             };
             let cls = self.vm.classes.idx(cls_id);
             let cls = cls.read();
-            let cname = cls.name_with_params(self.vm, type_params);
+            let cname = cls.name_with_params_vm(self.vm, type_params);
             format!(
                 "NewObjectInitialized {}, ConstPoolIdx({}) # {}",
                 dest,
@@ -5079,7 +5079,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             };
             let cls = self.vm.classes.idx(cls_id);
             let cls = cls.read();
-            let cname = cls.name_with_params(self.vm, type_params);
+            let cname = cls.name_with_params_vm(self.vm, type_params);
             format!(
                 "NewArray {}, ConstPoolIdx({}), {} # {}",
                 dest,
@@ -5097,7 +5097,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 ConstPoolEntry::Tuple(ref subtypes) => subtypes.clone(),
                 _ => unreachable!(),
             };
-            let tuple_name = subtypes.tuple_name(self.vm);
+            let tuple_name = subtypes.tuple_name_vm(self.vm);
             format!(
                 "NewTuple {}, ConstPoolIdx({}) # {}",
                 dest,
@@ -5118,7 +5118,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             };
             let enum_ = &self.vm.enums[enum_id];
             let enum_ = enum_.read();
-            let enum_name = enum_.name_with_params(self.vm, type_params);
+            let enum_name = enum_.name_with_params_vm(self.vm, type_params);
             let variant = &enum_.variants[variant_idx];
             let variant_name = self.vm.interner.str(variant.name);
             format!(
@@ -5140,7 +5140,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             };
             let struct_ = self.vm.structs.idx(struct_id);
             let struct_ = struct_.read();
-            let struct_name = struct_.name_with_params(self.vm, type_params);
+            let struct_name = struct_.name_with_params_vm(self.vm, type_params);
             format!(
                 "NewStruct {}, ConstPoolIdx({}) # {}",
                 dest,
@@ -5160,8 +5160,8 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 _ => unreachable!(),
             };
             let trait_ = self.vm.traits[trait_id].read();
-            let trait_name = trait_.name_with_params(self.vm, type_params);
-            let object_name = object_ty.name(self.vm);
+            let trait_name = trait_.name_with_params_vm(self.vm, type_params);
+            let object_name = object_ty.name_vm(self.vm);
             format!(
                 "NewTraitObject {}, ConstPoolIdx({}), {} # {} from object {}",
                 dest,
@@ -5182,7 +5182,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             };
             let fct = self.vm.fcts.idx(fct_id);
             let fct = fct.read();
-            let fct_name = fct.display_name(self.vm);
+            let fct_name = fct.display_name_vm(self.vm);
             format!(
                 "NewLambda {}, ConstPoolIdx({}) # {}",
                 dest,

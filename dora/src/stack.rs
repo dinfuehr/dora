@@ -28,7 +28,7 @@ impl NativeStacktrace {
             let fct_id = code.fct_id();
             let fct = vm.fcts.idx(fct_id);
             let fct = fct.read();
-            let fct_name = fct.display_name(vm);
+            let fct_name = fct.display_name_vm(vm);
             let file = &vm.source_file(fct.file_id).path;
             let lineno = if elem.lineno == 0 {
                 fct.pos.line
@@ -182,7 +182,7 @@ pub extern "C" fn stack_element(obj: Handle<Stacktrace>, ind: i32) -> Ref<Stackt
     let code = vm.code_objects.get(code_id);
     let fct = vm.fcts.idx(code.fct_id());
     let fct = fct.read();
-    let name = fct.display_name(vm);
+    let name = fct.display_name_vm(vm);
     ste.name = Str::from_buffer(vm, name.as_bytes());
 
     ste.direct()

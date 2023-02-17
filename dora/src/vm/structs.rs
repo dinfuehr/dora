@@ -1,5 +1,30 @@
-use crate::language::ty::SourceType;
+use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::Id;
+use crate::vm::{module_path, StructDefinition, VM};
+
+impl StructDefinition {
+    pub fn name_vm(&self, vm: &VM) -> String {
+        module_path(vm, self.module_id, self.name)
+    }
+
+    pub fn name_with_params_vm(&self, vm: &VM, type_params: &SourceTypeArray) -> String {
+        let mut name = self.name_vm(vm);
+
+        if type_params.len() > 0 {
+            let type_params = type_params
+                .iter()
+                .map(|p| p.name_vm(vm))
+                .collect::<Vec<_>>()
+                .join(", ");
+
+            name.push('[');
+            name.push_str(&type_params);
+            name.push(']');
+        }
+
+        name
+    }
+}
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct StructInstanceId(usize);

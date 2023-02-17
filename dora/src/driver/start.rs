@@ -55,8 +55,7 @@ pub fn start() -> i32 {
     }
 
     if sa.args.command.is_build() {
-        aot_build(&sa, main_fct_id.expect("main missing"));
-        return 0;
+        unimplemented!();
     }
 
     let vm = {
@@ -85,17 +84,6 @@ pub fn start() -> i32 {
     clear_vm();
 
     exit_code
-}
-
-#[cfg(feature = "aot")]
-fn aot_build(sa: &SemAnalysis, main_fct_id: FctDefinitionId) -> i32 {
-    crate::aot::build(&sa, main_fct_id);
-    0
-}
-
-#[cfg(not(feature = "aot"))]
-fn aot_build(_sa: &SemAnalysis, _main_fct_id: FctDefinitionId) -> i32 {
-    panic!("build with AOT support")
 }
 
 fn report_errors(sa: &SemAnalysis) -> bool {
@@ -170,7 +158,7 @@ fn test_filter_matches(vm: &VM, fct: &FctDefinition) -> bool {
     }
 
     let filter = vm.args.flag_test_filter.as_ref().unwrap();
-    let name = fct.display_name(vm);
+    let name = fct.display_name_vm(vm);
 
     name.contains(filter)
 }

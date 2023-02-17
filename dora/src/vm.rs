@@ -13,8 +13,8 @@ use crate::language::sem_analysis::{
     AnnotationDefinition, AnnotationDefinitionId, ClassDefinition, ClassDefinitionId,
     ConstDefinition, EnumDefinition, EnumDefinitionId, ExtensionDefinition, FctDefinition,
     FctDefinitionId, GlobalDefinition, ImplDefinition, ModuleDefinition, ModuleDefinitionId,
-    PackageDefinition, PackageDefinitionId, SourceFile, StructDefinition, StructDefinitionId,
-    TraitDefinition, TraitDefinitionId, UseDefinition,
+    PackageDefinition, PackageDefinitionId, SourceFile, SourceFileId, StructDefinition,
+    StructDefinitionId, TraitDefinition, TraitDefinitionId, UseDefinition,
 };
 use crate::language::ty::SourceTypeArray;
 use crate::stack::DoraToNativeInfo;
@@ -44,6 +44,7 @@ pub use self::known::{
     KnownAnnotations, KnownClasses, KnownElements, KnownEnums, KnownFunctions, KnownStructs,
     KnownTraits,
 };
+pub use self::modules::module_path;
 pub use self::specialize::{
     add_ref_fields, replace_type_param, specialize_class_id, specialize_class_id_params,
     specialize_enum_class, specialize_enum_id_params, specialize_lambda,
@@ -55,6 +56,7 @@ pub use self::stubs::{setup_stubs, Stubs};
 pub use self::tuples::{
     get_concrete_tuple_array, get_concrete_tuple_bytecode_ty, get_concrete_tuple_ty, ConcreteTuple,
 };
+pub use self::ty::path_for_type;
 pub use self::waitlists::{ManagedCondition, ManagedMutex, WaitLists};
 
 mod classes;
@@ -62,12 +64,15 @@ mod code;
 mod code_map;
 mod compilation;
 mod enums;
+mod functions;
 mod globals;
 mod initialize;
 mod known;
+mod modules;
 mod specialize;
 mod structs;
 mod stubs;
+mod traits;
 mod tuples;
 mod ty;
 mod waitlists;
@@ -186,6 +191,33 @@ impl FullSemAnalysis {
 
     pub fn program_module_id(&self) -> ModuleDefinitionId {
         self.program_module_id.expect("uninitialized module id")
+    }
+
+    pub fn stdlib_package_id(&self) -> PackageDefinitionId {
+        self.stdlib_package_id.expect("uninitialized package id")
+    }
+
+    pub fn boots_package_id(&self) -> PackageDefinitionId {
+        self.boots_package_id.expect("uninitialized package id")
+    }
+
+    pub fn program_package_id(&self) -> PackageDefinitionId {
+        self.program_package_id.expect("uninitialized package id")
+    }
+
+    pub fn source_file(&self, idx: SourceFileId) -> &SourceFile {
+        &self.source_files[idx.to_usize()]
+    }
+
+    pub fn add_fct(&self, mut fct: FctDefinition) -> FctDefinitionId {
+        let mut fcts = self.fcts.lock();
+        let fctid = FctDefinitionId(fcts.len());
+
+        fct.id = Some(fctid);
+
+        fcts.push(Arc::new(RwLock::new(fct)));
+
+        fctid
     }
 }
 
@@ -425,6 +457,21 @@ impl VM {
 
     pub fn program_package_id(&self) -> PackageDefinitionId {
         self.program_package_id.expect("uninitialized package id")
+    }
+
+    pub fn source_file(&self, idx: SourceFileId) -> &SourceFile {
+        &self.source_files[idx.to_usize()]
+    }
+
+    pub fn add_fct(&self, mut fct: FctDefinition) -> FctDefinitionId {
+        let mut fcts = self.fcts.lock();
+        let fctid = FctDefinitionId(fcts.len());
+
+        fct.id = Some(fctid);
+
+        fcts.push(Arc::new(RwLock::new(fct)));
+
+        fctid
     }
 }
 

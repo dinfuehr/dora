@@ -249,21 +249,6 @@ impl SemAnalysis {
         SourceType::Class(cls_id, SourceTypeArray::empty())
     }
 
-    pub fn source_file(&self, idx: SourceFileId) -> &SourceFile {
-        &self.source_files[idx.to_usize()]
-    }
-
-    pub fn add_fct(&self, mut fct: FctDefinition) -> FctDefinitionId {
-        let mut fcts = self.fcts.lock();
-        let fctid = FctDefinitionId(fcts.len());
-
-        fct.id = Some(fctid);
-
-        fcts.push(Arc::new(RwLock::new(fct)));
-
-        fctid
-    }
-
     pub fn set_prelude_module_id(&mut self, module_id: ModuleDefinitionId) {
         assert!(self.prelude_module_id.is_none());
         self.prelude_module_id = Some(module_id);

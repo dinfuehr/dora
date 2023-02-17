@@ -2,9 +2,7 @@ use parking_lot::RwLock;
 use std::cmp::max;
 
 use crate::bytecode::BytecodeType;
-use crate::language::sem_analysis::{
-    create_tuple, ClassDefinitionId, FctDefinitionId, TraitDefinitionId,
-};
+use crate::language::sem_analysis::{ClassDefinitionId, FctDefinitionId, TraitDefinitionId};
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::mem;
 use crate::object::Header;
@@ -81,7 +79,7 @@ fn create_specialized_struct(
 
     for f in &struct_.fields {
         let ty = specialize_type(vm, f.ty.clone(), &type_params);
-        debug_assert!(ty.is_concrete_type(vm));
+        debug_assert!(ty.is_concrete_type_vm(vm));
 
         let field_size = ty.size(vm);
         let field_align = ty.align(vm);
@@ -236,7 +234,7 @@ pub fn specialize_enum_class(
 
     for ty in &enum_variant.types {
         let ty = replace_type_param(vm, ty.clone(), &edef.type_params, None);
-        assert!(ty.is_concrete_type(vm));
+        assert!(ty.is_concrete_type_vm(vm));
 
         let field_size = ty.size(vm);
         let field_align = ty.align(vm);
@@ -268,7 +266,7 @@ pub fn specialize_enum_class(
 }
 
 pub fn add_ref_fields(vm: &VM, ref_fields: &mut Vec<i32>, offset: i32, ty: SourceType) {
-    assert!(ty.is_concrete_type(vm));
+    assert!(ty.is_concrete_type_vm(vm));
 
     if ty.is_tuple() {
         let tuple = get_concrete_tuple_ty(vm, &ty);
@@ -335,7 +333,7 @@ fn create_specialized_class(
     cls: &ClassDefinition,
     type_params: &SourceTypeArray,
 ) -> ClassInstanceId {
-    debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(vm)));
+    debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type_vm(vm)));
 
     if cls.is_array || cls.is_str {
         create_specialized_class_array(vm, cls, type_params)
@@ -355,7 +353,7 @@ fn create_specialized_class_regular(
 
     for f in &cls.fields {
         let ty = specialize_type(vm, f.ty.clone(), &type_params);
-        debug_assert!(ty.is_concrete_type(vm));
+        debug_assert!(ty.is_concrete_type_vm(vm));
 
         let field_size = ty.size(vm);
         let field_align = ty.align(vm);
@@ -526,7 +524,7 @@ fn create_specialized_class_for_trait_object(
     ref_fields = Vec::new();
     csize = Header::size();
 
-    debug_assert!(object_type.is_concrete_type(vm));
+    debug_assert!(object_type.is_concrete_type_vm(vm));
 
     let field_size = object_type.size(vm);
     let field_align = object_type.align(vm);
@@ -677,7 +675,7 @@ pub fn replace_type_param(
                 .map(|t| replace_type_param(vm, t.clone(), type_params, self_ty.clone()))
                 .collect::<Vec<_>>();
 
-            create_tuple(vm, new_subtypes)
+            SourceType::Tuple(SourceTypeArray::with(new_subtypes))
         }
 
         SourceType::Unit

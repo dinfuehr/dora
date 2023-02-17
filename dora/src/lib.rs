@@ -10,7 +10,6 @@ extern crate winapi;
 #[macro_use]
 extern crate memoffset;
 
-mod aot;
 mod boots;
 mod bytecode;
 mod cannon;

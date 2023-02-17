@@ -22,7 +22,7 @@ pub fn generate(vm: &VM, id: FctDefinitionId, type_params: &SourceTypeArray) -> 
 }
 
 pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray) -> Address {
-    debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type(vm)));
+    debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type_vm(vm)));
 
     // Block here if compilation is already in progress.
     if let Some(instruction_start) =
@@ -88,7 +88,7 @@ pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray)
         let duration = start.expect("missing start time").elapsed();
         println!(
             "compile {} using {} in {}ms.",
-            fct.display_name(vm),
+            fct.display_name_vm(vm),
             compiler,
             (duration.as_micros() as f64) / 1000.0
         );
@@ -136,7 +136,7 @@ pub fn fct_pattern_match(vm: &VM, fct: &FctDefinition, pattern: &str) -> bool {
         return true;
     }
 
-    let fct_name = fct.display_name(vm);
+    let fct_name = fct.display_name_vm(vm);
 
     for part in pattern.split(',') {
         if fct_name.contains(part) {

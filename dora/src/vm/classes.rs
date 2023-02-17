@@ -1,13 +1,35 @@
 use parking_lot::RwLock;
 
 use crate::language::sem_analysis::{
-    ClassDefinitionId, EnumDefinitionId, FctDefinitionId, TraitDefinitionId,
+    ClassDefinition, ClassDefinitionId, EnumDefinitionId, FctDefinitionId, TraitDefinitionId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::size::InstanceSize;
 use crate::utils::Id;
-use crate::vm::{add_ref_fields, VM};
+use crate::vm::{add_ref_fields, module_path, VM};
 use crate::vtable::VTableBox;
+
+impl ClassDefinition {
+    pub fn name_vm(&self, vm: &VM) -> String {
+        module_path(vm, self.module_id, self.name)
+    }
+
+    pub fn name_with_params_vm(&self, vm: &VM, type_list: &SourceTypeArray) -> String {
+        let name = vm.interner.str(self.name);
+
+        if type_list.len() > 0 {
+            let type_list = type_list
+                .iter()
+                .map(|p| p.name_vm(vm))
+                .collect::<Vec<_>>()
+                .join(", ");
+
+            format!("{}[{}]", name, type_list)
+        } else {
+            name.to_string()
+        }
+    }
+}
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct ClassInstanceId(usize);

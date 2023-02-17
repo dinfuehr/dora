@@ -1,10 +1,44 @@
-use crate::language::ty::SourceType;
+use crate::language::sem_analysis::TypeParamDefinition;
+use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::mem;
 use crate::mode::MachineMode;
-use crate::vm::{get_concrete_tuple_ty, VM};
-use crate::vm::{specialize_enum_id_params, specialize_struct_id_params, EnumLayout};
+use crate::vm::{
+    get_concrete_tuple_ty, specialize_enum_id_params, specialize_struct_id_params, EnumLayout,
+    FctDefinition, StructDefinitionId, VM,
+};
 
 impl SourceType {
+    pub fn name_vm(&self, vm: &VM) -> String {
+        let writer = SourceTypePrinter {
+            vm,
+            type_params: None,
+        };
+
+        writer.name(self.clone())
+    }
+
+    pub fn name_fct_vm(&self, vm: &VM, fct: &FctDefinition) -> String {
+        let writer = SourceTypePrinter {
+            vm,
+            type_params: Some(&fct.type_params),
+        };
+
+        writer.name(self.clone())
+    }
+
+    pub fn primitive_struct_id_vm(&self, sa: &VM) -> Option<StructDefinitionId> {
+        match self {
+            SourceType::Bool => Some(sa.known.structs.bool()),
+            SourceType::UInt8 => Some(sa.known.structs.uint8()),
+            SourceType::Char => Some(sa.known.structs.char()),
+            SourceType::Int32 => Some(sa.known.structs.int32()),
+            SourceType::Int64 => Some(sa.known.structs.int64()),
+            SourceType::Float32 => Some(sa.known.structs.float32()),
+            SourceType::Float64 => Some(sa.known.structs.float64()),
+            _ => None,
+        }
+    }
+
     pub fn size(&self, vm: &VM) -> i32 {
         match self {
             SourceType::Error => panic!("no size for error."),
@@ -100,6 +134,217 @@ impl SourceType {
             SourceType::Trait(_, _) => MachineMode::Ptr,
             SourceType::TypeParam(_) => panic!("no machine mode for type variable."),
             SourceType::Tuple(_) => unimplemented!(),
+        }
+    }
+
+    pub fn is_concrete_type_vm(&self, vm: &VM) -> bool {
+        match self {
+            SourceType::Error | SourceType::This | SourceType::Any => false,
+            SourceType::Unit
+            | SourceType::Bool
+            | SourceType::UInt8
+            | SourceType::Char
+            | SourceType::Int32
+            | SourceType::Int64
+            | SourceType::Float32
+            | SourceType::Float64
+            | SourceType::Ptr => true,
+            SourceType::Class(_, params)
+            | SourceType::Enum(_, params)
+            | SourceType::Struct(_, params)
+            | SourceType::Trait(_, params) => {
+                for param in params.iter() {
+                    if !param.is_concrete_type_vm(vm) {
+                        return false;
+                    }
+                }
+
+                true
+            }
+
+            SourceType::Tuple(subtypes) => {
+                for subtype in subtypes.iter() {
+                    if !subtype.is_concrete_type_vm(vm) {
+                        return false;
+                    }
+                }
+
+                true
+            }
+            SourceType::Lambda(params, return_type) => {
+                for param in params.iter() {
+                    if !param.is_concrete_type_vm(vm) {
+                        return false;
+                    }
+                }
+
+                return_type.is_concrete_type_vm(vm)
+            }
+            SourceType::TypeParam(_) => false,
+        }
+    }
+}
+
+impl SourceTypeArray {
+    pub fn tuple_name_vm(&self, vm: &VM) -> String {
+        let mut result = String::new();
+        let mut first = true;
+        result.push('(');
+
+        for ty in self.iter() {
+            if !first {
+                result.push_str(", ");
+            }
+            result.push_str(&ty.name_vm(vm));
+            first = false;
+        }
+
+        result.push(')');
+
+        result
+    }
+}
+
+pub fn path_for_type(vm: &VM, ty: SourceType) -> String {
+    if let Some(enum_id) = ty.enum_id() {
+        let enum_ = &vm.enums[enum_id];
+        let enum_ = enum_.read();
+        enum_.name_vm(vm)
+    } else if let Some(cls_id) = ty.cls_id() {
+        let cls = vm.classes.idx(cls_id);
+        let cls = cls.read();
+        cls.name_vm(vm)
+    } else if let Some(struct_id) = ty.struct_id() {
+        let struct_ = vm.structs.idx(struct_id);
+        let struct_ = struct_.read();
+        struct_.name_vm(vm)
+    } else if let Some(struct_id) = ty.primitive_struct_id_vm(vm) {
+        let struct_ = vm.structs.idx(struct_id);
+        let struct_ = struct_.read();
+        struct_.name_vm(vm)
+    } else if ty.is_tuple_or_unit() {
+        unimplemented!()
+    } else {
+        unreachable!()
+    }
+}
+
+struct SourceTypePrinter<'a> {
+    vm: &'a VM,
+    type_params: Option<&'a TypeParamDefinition>,
+}
+
+impl<'a> SourceTypePrinter<'a> {
+    pub fn name(&self, ty: SourceType) -> String {
+        match ty {
+            SourceType::Error => "<error>".into(),
+            SourceType::Any => "Any".into(),
+            SourceType::Unit => "()".into(),
+            SourceType::UInt8 => "UInt8".into(),
+            SourceType::Char => "Char".into(),
+            SourceType::Int32 => "Int32".into(),
+            SourceType::Int64 => "Int64".into(),
+            SourceType::Float32 => "Float32".into(),
+            SourceType::Float64 => "Float64".into(),
+            SourceType::Bool => "Bool".into(),
+            SourceType::Ptr => panic!("type Ptr only for internal use."),
+            SourceType::This => "Self".into(),
+            SourceType::Class(id, type_params) => {
+                let cls = self.vm.classes.idx(id);
+                let cls = cls.read();
+                let base = self.vm.interner.str(cls.name);
+
+                if type_params.len() == 0 {
+                    base.to_string()
+                } else {
+                    let params = type_params
+                        .iter()
+                        .map(|ty| self.name(ty))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+
+                    format!("{}[{}]", base, params)
+                }
+            }
+            SourceType::Struct(sid, type_params) => {
+                let struc = self.vm.structs.idx(sid);
+                let struc = struc.read();
+                let name = struc.name;
+                let name = self.vm.interner.str(name).to_string();
+
+                if type_params.len() == 0 {
+                    name
+                } else {
+                    let params = type_params
+                        .iter()
+                        .map(|ty| self.name(ty))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+
+                    format!("{}[{}]", name, params)
+                }
+            }
+            SourceType::Trait(tid, type_params) => {
+                let trait_ = self.vm.traits[tid].read();
+                let name = self.vm.interner.str(trait_.name).to_string();
+
+                if type_params.len() == 0 {
+                    name
+                } else {
+                    let params = type_params
+                        .iter()
+                        .map(|ty| self.name(ty))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+
+                    format!("{}[{}]", name, params)
+                }
+            }
+            SourceType::Enum(id, type_params) => {
+                let enum_ = self.vm.enums[id].read();
+                let name = self.vm.interner.str(enum_.name).to_string();
+
+                if type_params.len() == 0 {
+                    name
+                } else {
+                    let params = type_params
+                        .iter()
+                        .map(|ty| self.name(ty))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+
+                    format!("{}[{}]", name, params)
+                }
+            }
+
+            SourceType::TypeParam(idx) => {
+                if let Some(type_params) = self.type_params {
+                    self.vm.interner.str(type_params.name(idx)).to_string()
+                } else {
+                    format!("TypeParam({})", idx.to_usize())
+                }
+            }
+
+            SourceType::Lambda(params, return_type) => {
+                let params = params
+                    .iter()
+                    .map(|ty| self.name(ty.clone()))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                let ret = self.name(*return_type);
+
+                format!("({}) -> {}", params, ret)
+            }
+
+            SourceType::Tuple(subtypes) => {
+                let types = subtypes
+                    .iter()
+                    .map(|ty| self.name(ty.clone()))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+
+                format!("({})", types)
+            }
         }
     }
 }
