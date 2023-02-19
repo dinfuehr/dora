@@ -16,8 +16,7 @@ use crate::cpu::{
 use crate::gc::Address;
 use crate::language::generator::register_bty_from_ty;
 use crate::language::sem_analysis::{
-    find_trait_impl, EnumDefinitionId, FctDefinitionId, GlobalDefinitionId, Intrinsic,
-    StructDefinitionId,
+    EnumDefinitionId, FctDefinitionId, GlobalDefinitionId, Intrinsic, StructDefinitionId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::masm::{CodeDescriptor, CondCode, Label, Mem};
@@ -27,11 +26,11 @@ use crate::object::{offset_of_array_data, Header, Str};
 use crate::size::InstanceSize;
 use crate::stdlib;
 use crate::vm::{
-    get_concrete_tuple_array, get_concrete_tuple_bytecode_ty, get_concrete_tuple_ty,
-    specialize_class_id_params, specialize_enum_class, specialize_enum_id_params,
-    specialize_lambda, specialize_struct_id_params, specialize_trait_object,
-    specialize_tuple_array, specialize_tuple_bty, specialize_tuple_ty, specialize_type,
-    specialize_type_list, EnumLayout, GcPoint, LazyCompilationSite, Trap, VM,
+    find_trait_impl, get_concrete_tuple_array, get_concrete_tuple_bytecode_ty,
+    get_concrete_tuple_ty, specialize_class_id_params, specialize_enum_class,
+    specialize_enum_id_params, specialize_lambda, specialize_struct_id_params,
+    specialize_trait_object, specialize_tuple_array, specialize_tuple_bty, specialize_tuple_ty,
+    specialize_type, specialize_type_list, EnumLayout, GcPoint, LazyCompilationSite, Trap, VM,
 };
 use crate::vtable::VTable;
 

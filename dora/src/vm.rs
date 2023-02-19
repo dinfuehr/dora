@@ -39,7 +39,9 @@ pub use self::code::{
 pub use self::code_map::CodeMap;
 pub use self::compilation::CompilationDatabase;
 pub use self::enums::{EnumInstance, EnumInstanceId, EnumLayout};
+pub use self::extensions::extension_matches_ty;
 use self::globals::GlobalVariableMemory;
+pub use self::impls::{find_trait_impl, implements_trait};
 pub use self::known::{
     KnownAnnotations, KnownClasses, KnownElements, KnownEnums, KnownFunctions, KnownStructs,
     KnownTraits,
@@ -64,8 +66,10 @@ mod code;
 mod code_map;
 mod compilation;
 mod enums;
+mod extensions;
 mod functions;
 mod globals;
+mod impls;
 mod initialize;
 mod known;
 mod modules;

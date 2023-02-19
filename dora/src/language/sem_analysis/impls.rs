@@ -192,7 +192,7 @@ pub fn find_impl(
     for impl_ in sa.impls.iter() {
         let impl_ = impl_.read();
 
-        debug_assert!(impl_.trait_ty().is_concrete_type(sa));
+        assert!(impl_.trait_ty().is_concrete_type(sa));
 
         if impl_.extended_ty != check_ty {
             continue;

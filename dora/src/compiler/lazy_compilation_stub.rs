@@ -9,7 +9,7 @@ use crate::cpu::{
 use crate::gc::Address;
 use crate::language::generator::register_bty_from_ty;
 use crate::language::sem_analysis::{
-    find_trait_impl, AnalysisData, FctDefinition, FctDefinitionId, FctParent, TypeParamId,
+    AnalysisData, FctDefinition, FctDefinitionId, FctParent, TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::masm::{MacroAssembler, Mem};
@@ -20,7 +20,8 @@ use crate::os;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::ThreadLocalData;
 use crate::vm::{
-    get_vm, install_code_stub, ClassInstanceId, Code, CodeKind, LazyCompilationSite, ShapeKind, VM,
+    find_trait_impl, get_vm, install_code_stub, ClassInstanceId, Code, CodeKind,
+    LazyCompilationSite, ShapeKind, VM,
 };
 
 // This code generates the compiler stub, there should only be one instance
