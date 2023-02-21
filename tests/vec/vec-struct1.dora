@@ -1,0 +1,28 @@
+//= vm-args "--gc-verify --gc=copy"
+
+struct Foo {
+    a: Int32,
+    b: String,
+}
+
+fn main() {
+    let x = build_vec();
+    std::forceCollect();
+    assert(x.size() == 3i64);
+    pop_vec(x, "ghi");
+    std::forceCollect();
+    pop_vec(x, "def");
+    std::forceCollect();
+    pop_vec(x, "abc");
+    std::forceCollect();
+    assert(x.size() == 0i64);
+}
+
+fn build_vec(): Vec[Foo] {
+    Vec[Foo]::new(Foo(1i32, "a" + "b" + "c"), Foo(2i32, "d" + "e" + "f"), Foo(3i32, "g" + "h" + "i"))
+}
+
+fn pop_vec(vec: Vec[Foo], expected: String) {
+    let struc = vec.pop().getOrPanic();
+    assert(struc.b == expected);
+}

@@ -1,0 +1,23 @@
+//= vm-args "--gc-verify --gc=copy"
+
+fn main() {
+    let x = build_vec();
+    std::forceCollect();
+    assert(x.size() == 3i64);
+    pop_vec(x, 2i32);
+    std::forceCollect();
+    pop_vec(x, 1i32);
+    std::forceCollect();
+    pop_vec(x, 0i32);
+    std::forceCollect();
+    assert(x.size() == 0i64);
+}
+
+fn build_vec(): Vec[(): Int32] {
+    Vec[(): Int32]::new(||: Int32 { 0i32 }, ||: Int32 { 1i32 }, ||: Int32 { 2i32 })
+}
+
+fn pop_vec(vec: Vec[(): Int32], expected: Int32) {
+    let value = vec.pop().getOrPanic()();
+    assert(value == expected);
+}

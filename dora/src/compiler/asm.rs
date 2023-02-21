@@ -976,19 +976,15 @@ impl<'a> BaselineAssembler<'a> {
         ));
     }
 
-    fn zero_tuple(&mut self, tuple_ty: SourceType, dest: RegOrOffset) {
-        let subtypes = tuple_ty.tuple_subtypes();
-        let tuple = get_concrete_tuple_array(self.vm, subtypes.clone());
-
-        for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
-            self.zero_ty(subtype.clone(), dest.offset(subtype_offset));
-        }
-    }
-
     pub fn zero_ty(&mut self, ty: SourceType, dest: RegOrOffset) {
         match ty {
             SourceType::Tuple(_) => {
-                self.zero_tuple(ty, dest);
+                let subtypes = ty.tuple_subtypes();
+                let tuple = get_concrete_tuple_array(self.vm, subtypes.clone());
+
+                for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
+                    self.zero_ty(subtype.clone(), dest.offset(subtype_offset));
+                }
             }
 
             SourceType::Unit => {
@@ -1007,6 +1003,17 @@ impl<'a> BaselineAssembler<'a> {
                 self.store_zero(mode, dest.mem());
             }
 
+            SourceType::Struct(struct_id, type_params) => {
+                let struct_instance_id =
+                    specialize_struct_id_params(self.vm, struct_id, type_params);
+                let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
+
+                for field in &struct_instance.fields {
+                    let dest = dest.offset(field.offset);
+                    self.zero_ty(field.ty.clone(), dest);
+                }
+            }
+
             SourceType::Ptr
             | SourceType::UInt8
             | SourceType::Bool
@@ -1016,17 +1023,15 @@ impl<'a> BaselineAssembler<'a> {
             | SourceType::Float32
             | SourceType::Float64
             | SourceType::Class(_, _)
-            | SourceType::Trait(_, _) => {
+            | SourceType::Trait(_, _)
+            | SourceType::Lambda(_, _) => {
                 let mode = ty.mode();
                 self.store_zero(mode, dest.mem());
             }
 
-            SourceType::TypeParam(_)
-            | SourceType::Error
-            | SourceType::Any
-            | SourceType::This
-            | SourceType::Struct(_, _)
-            | SourceType::Lambda(_, _) => unreachable!(),
+            SourceType::TypeParam(_) | SourceType::Error | SourceType::Any | SourceType::This => {
+                unreachable!()
+            }
         }
     }
 
