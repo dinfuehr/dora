@@ -2,18 +2,23 @@ use std::mem;
 
 use dora_parser::lexer::position::Position;
 
+use crate::bytecode::BytecodeType;
+use crate::cannon::codegen::{mode, result_reg_mode, RegOrOffset};
 use crate::compiler::codegen::{ensure_native_stub, AllocationSize, AnyReg};
 use crate::compiler::dora_exit_stubs::{NativeFct, NativeFctKind};
 use crate::cpu::{FReg, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_THREAD, REG_TMP1, REG_TMP2};
 use crate::gc::tlab::TLAB_OBJECT_SIZE;
 use crate::gc::Address;
-use crate::language::sem_analysis::{FctDefinitionId, GlobalDefinition};
+use crate::language::sem_analysis::{FctDefinitionId, GlobalDefinition, StructDefinitionId};
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::masm::{CodeDescriptor, CondCode, Label, MacroAssembler, Mem, ScratchReg};
 use crate::mode::MachineMode;
 use crate::stdlib;
 use crate::threads::ThreadLocalData;
-use crate::vm::{GcPoint, LazyCompilationSite, Trap, VM};
+use crate::vm::{
+    get_concrete_tuple_array, specialize_enum_id_params, specialize_struct_id_params, EnumLayout,
+    GcPoint, LazyCompilationSite, Trap, VM,
+};
 
 pub struct BaselineAssembler<'a> {
     masm: MacroAssembler,
@@ -128,6 +133,139 @@ impl<'a> BaselineAssembler<'a> {
 
     pub fn pos(&self) -> usize {
         self.masm.pos()
+    }
+
+    pub fn copy_ty(&mut self, ty: SourceType, dest: RegOrOffset, src: RegOrOffset) {
+        match ty {
+            SourceType::Tuple(subtypes) => {
+                self.copy_tuple(subtypes, dest, src);
+            }
+
+            SourceType::Unit => {
+                // do nothing
+            }
+
+            SourceType::Struct(struct_id, type_params) => {
+                self.copy_struct(struct_id, type_params, dest, src);
+            }
+
+            SourceType::Enum(enum_id, type_params) => {
+                let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+                let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
+
+                let mode = match enum_instance.layout {
+                    EnumLayout::Int => MachineMode::Int32,
+                    EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
+                };
+
+                let tmp = result_reg_mode(mode);
+                self.load_mem(mode, tmp, src.mem());
+                self.store_mem(mode, dest.mem(), tmp);
+            }
+
+            SourceType::Ptr
+            | SourceType::UInt8
+            | SourceType::Bool
+            | SourceType::Char
+            | SourceType::Int32
+            | SourceType::Int64
+            | SourceType::Float32
+            | SourceType::Float64
+            | SourceType::Class(_, _)
+            | SourceType::Trait(_, _)
+            | SourceType::Lambda(_, _) => {
+                let mode = ty.mode();
+                let tmp = result_reg_mode(mode);
+
+                self.load_mem(mode, tmp, src.mem());
+                self.store_mem(mode, dest.mem(), tmp);
+            }
+
+            SourceType::TypeParam(_) | SourceType::Error | SourceType::Any | SourceType::This => {
+                unreachable!()
+            }
+        }
+    }
+
+    pub fn copy_bytecode_ty(&mut self, ty: BytecodeType, dest: RegOrOffset, src: RegOrOffset) {
+        match ty {
+            BytecodeType::Unit => {
+                // nothing to do
+            }
+
+            BytecodeType::Tuple(subtypes) => {
+                self.copy_tuple(subtypes, dest, src);
+            }
+
+            BytecodeType::Enum(enum_id, type_params) => {
+                let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+                let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
+
+                let mode = match enum_instance.layout {
+                    EnumLayout::Int => MachineMode::Int32,
+                    EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
+                };
+
+                self.load_mem(mode, REG_RESULT.into(), src.mem());
+                self.store_mem(mode, dest.mem(), REG_RESULT.into());
+            }
+
+            BytecodeType::Struct(struct_id, type_params) => {
+                self.copy_struct(struct_id, type_params, dest, src);
+            }
+
+            BytecodeType::TypeParam(_) => unreachable!(),
+
+            BytecodeType::Ptr | BytecodeType::Trait(_, _) => {
+                let mode = MachineMode::Ptr;
+                let reg = REG_RESULT;
+                self.load_mem(mode, reg.into(), src.mem());
+                self.test_if_nil_bailout(Position::new(1, 1), reg, Trap::ILLEGAL);
+                self.store_mem(mode, dest.mem(), reg.into());
+            }
+
+            BytecodeType::UInt8
+            | BytecodeType::Bool
+            | BytecodeType::Char
+            | BytecodeType::Int32
+            | BytecodeType::Int64
+            | BytecodeType::Float32
+            | BytecodeType::Float64 => {
+                let mode = mode(self.vm, ty);
+                let reg = result_reg_mode(mode);
+                self.load_mem(mode, reg, src.mem());
+                self.store_mem(mode, dest.mem(), reg);
+            }
+
+            BytecodeType::Class(_, _) | BytecodeType::Lambda(_, _) => unreachable!(),
+        }
+    }
+
+    pub fn copy_tuple(&mut self, subtypes: SourceTypeArray, dest: RegOrOffset, src: RegOrOffset) {
+        let tuple = get_concrete_tuple_array(self.vm, subtypes.clone());
+
+        for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
+            let src = src.offset(subtype_offset);
+            let dest = dest.offset(subtype_offset);
+            self.copy_ty(subtype.clone(), dest, src);
+        }
+    }
+
+    pub fn copy_struct(
+        &mut self,
+        struct_id: StructDefinitionId,
+        type_params: SourceTypeArray,
+        dest: RegOrOffset,
+        src: RegOrOffset,
+    ) {
+        let struct_instance_id = specialize_struct_id_params(self.vm, struct_id, type_params);
+        let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
+
+        for field in &struct_instance.fields {
+            let src = src.offset(field.offset);
+            let dest = dest.offset(field.offset);
+            self.copy_ty(field.ty.clone(), dest, src);
+        }
     }
 
     pub fn store_mem(&mut self, mode: MachineMode, mem: Mem, src: AnyReg) {
@@ -836,6 +974,60 @@ impl<'a> BaselineAssembler<'a> {
         self.slow_paths.push(SlowPathKind::InitializeGlobal(
             lbl_global, lbl_return, fid, ptr, position, gcpoint,
         ));
+    }
+
+    fn zero_tuple(&mut self, tuple_ty: SourceType, dest: RegOrOffset) {
+        let subtypes = tuple_ty.tuple_subtypes();
+        let tuple = get_concrete_tuple_array(self.vm, subtypes.clone());
+
+        for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
+            self.zero_ty(subtype.clone(), dest.offset(subtype_offset));
+        }
+    }
+
+    pub fn zero_ty(&mut self, ty: SourceType, dest: RegOrOffset) {
+        match ty {
+            SourceType::Tuple(_) => {
+                self.zero_tuple(ty, dest);
+            }
+
+            SourceType::Unit => {
+                // do nothing
+            }
+
+            SourceType::Enum(enum_id, type_params) => {
+                let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+                let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
+
+                let mode = match enum_instance.layout {
+                    EnumLayout::Int => MachineMode::Int32,
+                    EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
+                };
+
+                self.store_zero(mode, dest.mem());
+            }
+
+            SourceType::Ptr
+            | SourceType::UInt8
+            | SourceType::Bool
+            | SourceType::Char
+            | SourceType::Int32
+            | SourceType::Int64
+            | SourceType::Float32
+            | SourceType::Float64
+            | SourceType::Class(_, _)
+            | SourceType::Trait(_, _) => {
+                let mode = ty.mode();
+                self.store_zero(mode, dest.mem());
+            }
+
+            SourceType::TypeParam(_)
+            | SourceType::Error
+            | SourceType::Any
+            | SourceType::This
+            | SourceType::Struct(_, _)
+            | SourceType::Lambda(_, _) => unreachable!(),
+        }
     }
 
     fn slow_paths(&mut self) {

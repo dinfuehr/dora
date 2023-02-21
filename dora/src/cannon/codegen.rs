@@ -402,7 +402,7 @@ impl<'a> CannonCodeGen<'a> {
                 REG_TMP1.into(),
                 REG_PARAMS[*reg_idx].into(),
             );
-            self.copy_tuple(
+            self.asm.copy_tuple(
                 subtypes,
                 RegOrOffset::Offset(dest_offset),
                 RegOrOffset::Reg(REG_TMP1),
@@ -411,7 +411,7 @@ impl<'a> CannonCodeGen<'a> {
         } else {
             self.asm
                 .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(*sp_offset));
-            self.copy_tuple(
+            self.asm.copy_tuple(
                 subtypes,
                 RegOrOffset::Offset(dest_offset),
                 RegOrOffset::Reg(REG_TMP1),
@@ -437,7 +437,7 @@ impl<'a> CannonCodeGen<'a> {
                 REG_TMP1.into(),
                 REG_PARAMS[*reg_idx].into(),
             );
-            self.copy_struct(
+            self.asm.copy_struct(
                 struct_id,
                 type_params,
                 dest_offset,
@@ -447,7 +447,7 @@ impl<'a> CannonCodeGen<'a> {
         } else {
             self.asm
                 .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(*sp_offset));
-            self.copy_struct(
+            self.asm.copy_struct(
                 struct_id,
                 type_params,
                 dest_offset,
@@ -1150,7 +1150,7 @@ impl<'a> CannonCodeGen<'a> {
         let bytecode_type = self.specialize_register_type(src);
         let src = self.reg(src);
         let dest = self.reg(dest);
-        self.copy_bytecode_ty(bytecode_type, dest, src);
+        self.asm.copy_bytecode_ty(bytecode_type, dest, src);
     }
 
     fn emit_load_tuple_element(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
@@ -1166,7 +1166,7 @@ impl<'a> CannonCodeGen<'a> {
         let dest_type = self.specialize_register_type(dest);
         let src_offset = self.register_offset(src);
 
-        self.copy_bytecode_ty(
+        self.asm.copy_bytecode_ty(
             dest_type,
             self.reg(dest),
             RegOrOffset::Offset(src_offset + offset),
@@ -1237,7 +1237,7 @@ impl<'a> CannonCodeGen<'a> {
                 let dest = self.register_offset(dest);
                 let dest = RegOrOffset::Offset(dest);
                 let src = RegOrOffset::RegWithOffset(REG_TMP1, field.offset);
-                self.copy_bytecode_ty(bytecode_type, dest, src);
+                self.asm.copy_bytecode_ty(bytecode_type, dest, src);
             }
         }
     }
@@ -1292,245 +1292,6 @@ impl<'a> CannonCodeGen<'a> {
         }
     }
 
-    fn copy_tuple(&mut self, subtypes: SourceTypeArray, dest: RegOrOffset, src: RegOrOffset) {
-        let tuple = get_concrete_tuple_array(self.vm, subtypes.clone());
-
-        for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
-            let src = src.offset(subtype_offset);
-            let dest = dest.offset(subtype_offset);
-            self.copy_ty(subtype.clone(), dest, src);
-        }
-    }
-
-    fn copy_struct(
-        &mut self,
-        struct_id: StructDefinitionId,
-        type_params: SourceTypeArray,
-        dest: RegOrOffset,
-        src: RegOrOffset,
-    ) {
-        let struct_instance_id = specialize_struct_id_params(self.vm, struct_id, type_params);
-        let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
-
-        for field in &struct_instance.fields {
-            let src = src.offset(field.offset);
-            let dest = dest.offset(field.offset);
-            self.copy_ty(field.ty.clone(), dest, src);
-        }
-    }
-
-    fn copy_ty(&mut self, ty: SourceType, dest: RegOrOffset, src: RegOrOffset) {
-        match ty {
-            SourceType::Tuple(subtypes) => {
-                self.copy_tuple(subtypes, dest, src);
-            }
-
-            SourceType::Unit => {
-                // do nothing
-            }
-
-            SourceType::Struct(struct_id, type_params) => {
-                self.copy_struct(struct_id, type_params, dest, src);
-            }
-
-            SourceType::Enum(enum_id, type_params) => {
-                let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-                let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
-
-                let mode = match enum_instance.layout {
-                    EnumLayout::Int => MachineMode::Int32,
-                    EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
-                };
-
-                let tmp = result_reg_mode(mode);
-                self.asm.load_mem(mode, tmp, src.mem());
-                self.asm.store_mem(mode, dest.mem(), tmp);
-            }
-
-            SourceType::Ptr
-            | SourceType::UInt8
-            | SourceType::Bool
-            | SourceType::Char
-            | SourceType::Int32
-            | SourceType::Int64
-            | SourceType::Float32
-            | SourceType::Float64
-            | SourceType::Class(_, _)
-            | SourceType::Trait(_, _)
-            | SourceType::Lambda(_, _) => {
-                let mode = ty.mode();
-                let tmp = result_reg_mode(mode);
-
-                self.asm.load_mem(mode, tmp, src.mem());
-                self.asm.store_mem(mode, dest.mem(), tmp);
-            }
-
-            SourceType::TypeParam(_) | SourceType::Error | SourceType::Any | SourceType::This => {
-                unreachable!()
-            }
-        }
-    }
-
-    fn copy_bytecode_ty(&mut self, ty: BytecodeType, dest: RegOrOffset, src: RegOrOffset) {
-        match ty {
-            BytecodeType::Unit => {
-                // nothing to do
-            }
-
-            BytecodeType::Tuple(subtypes) => {
-                self.copy_tuple(subtypes, dest, src);
-            }
-
-            BytecodeType::Enum(enum_id, type_params) => {
-                let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-                let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
-
-                let mode = match enum_instance.layout {
-                    EnumLayout::Int => MachineMode::Int32,
-                    EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
-                };
-
-                self.asm.load_mem(mode, REG_RESULT.into(), src.mem());
-                self.asm.store_mem(mode, dest.mem(), REG_RESULT.into());
-            }
-
-            BytecodeType::Struct(struct_id, type_params) => {
-                self.copy_struct(struct_id, type_params, dest, src);
-            }
-
-            BytecodeType::TypeParam(_) => unreachable!(),
-
-            BytecodeType::Ptr | BytecodeType::Trait(_, _) => {
-                let mode = MachineMode::Ptr;
-                let reg = REG_RESULT;
-                self.asm.load_mem(mode, reg.into(), src.mem());
-                self.asm
-                    .test_if_nil_bailout(Position::new(1, 1), reg, Trap::ILLEGAL);
-                self.asm.store_mem(mode, dest.mem(), reg.into());
-            }
-
-            BytecodeType::UInt8
-            | BytecodeType::Bool
-            | BytecodeType::Char
-            | BytecodeType::Int32
-            | BytecodeType::Int64
-            | BytecodeType::Float32
-            | BytecodeType::Float64 => {
-                let mode = mode(self.vm, ty);
-                let reg = result_reg_mode(mode);
-                self.asm.load_mem(mode, reg, src.mem());
-                self.asm.store_mem(mode, dest.mem(), reg);
-            }
-
-            BytecodeType::Class(_, _) | BytecodeType::Lambda(_, _) => unreachable!(),
-        }
-    }
-
-    fn zero_tuple(&mut self, tuple_ty: SourceType, dest: RegOrOffset) {
-        let subtypes = tuple_ty.tuple_subtypes();
-        let tuple = get_concrete_tuple_array(self.vm, subtypes.clone());
-
-        for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
-            self.zero_ty(subtype.clone(), dest.offset(subtype_offset));
-        }
-    }
-
-    fn zero_ty(&mut self, ty: SourceType, dest: RegOrOffset) {
-        match ty {
-            SourceType::Tuple(_) => {
-                self.zero_tuple(ty, dest);
-            }
-
-            SourceType::Unit => {
-                // do nothing
-            }
-
-            SourceType::Enum(enum_id, type_params) => {
-                let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-                let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
-
-                let mode = match enum_instance.layout {
-                    EnumLayout::Int => MachineMode::Int32,
-                    EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
-                };
-
-                self.asm.store_zero(mode, dest.mem());
-            }
-
-            SourceType::Ptr
-            | SourceType::UInt8
-            | SourceType::Bool
-            | SourceType::Char
-            | SourceType::Int32
-            | SourceType::Int64
-            | SourceType::Float32
-            | SourceType::Float64
-            | SourceType::Class(_, _)
-            | SourceType::Trait(_, _) => {
-                let mode = ty.mode();
-                self.asm.store_zero(mode, dest.mem());
-            }
-
-            SourceType::TypeParam(_)
-            | SourceType::Error
-            | SourceType::Any
-            | SourceType::This
-            | SourceType::Struct(_, _)
-            | SourceType::Lambda(_, _) => unreachable!(),
-        }
-    }
-
-    fn zero_refs_tuple(&mut self, subtypes: SourceTypeArray, dest: RegOrOffset) {
-        let tuple = get_concrete_tuple_array(self.vm, subtypes.clone());
-
-        for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
-            self.zero_refs_ty(subtype.clone(), dest.offset(subtype_offset));
-        }
-    }
-
-    fn zero_refs_ty(&mut self, ty: SourceType, dest: RegOrOffset) {
-        match ty {
-            SourceType::Tuple(_) => {
-                self.zero_tuple(ty, dest);
-            }
-
-            SourceType::Unit => {
-                // do nothing
-            }
-
-            SourceType::Enum(enum_id, type_params) => {
-                let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-                let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
-
-                match enum_instance.layout {
-                    EnumLayout::Int => {}
-                    EnumLayout::Ptr | EnumLayout::Tagged => {
-                        self.asm.store_zero(MachineMode::Ptr, dest.mem());
-                    }
-                }
-            }
-
-            SourceType::Ptr | SourceType::Class(_, _) | SourceType::Trait(_, _) => {
-                self.asm.store_zero(MachineMode::Ptr, dest.mem());
-            }
-
-            SourceType::UInt8
-            | SourceType::Bool
-            | SourceType::Char
-            | SourceType::Int32
-            | SourceType::Int64
-            | SourceType::Float32
-            | SourceType::Float64 => {}
-
-            SourceType::TypeParam(_)
-            | SourceType::Error
-            | SourceType::Any
-            | SourceType::This
-            | SourceType::Struct(_, _)
-            | SourceType::Lambda(_, _) => unreachable!(),
-        }
-    }
-
     fn emit_load_struct_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
         let (struct_id, type_params, field_id) = match self.bytecode.const_pool(field_idx) {
             ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
@@ -1557,7 +1318,7 @@ impl<'a> CannonCodeGen<'a> {
         assert_eq!(bytecode_type, register_bty_from_ty(field.ty.clone()));
         let dest = self.reg(dest);
         let src = self.reg(obj).offset(field.offset);
-        self.copy_bytecode_ty(bytecode_type, dest, src);
+        self.asm.copy_bytecode_ty(bytecode_type, dest, src);
     }
 
     fn emit_load_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
@@ -1595,7 +1356,7 @@ impl<'a> CannonCodeGen<'a> {
         assert_eq!(bytecode_type, register_bty_from_ty(field.ty.clone()));
         let dest = self.reg(dest);
         let src = RegOrOffset::RegWithOffset(obj_reg, field.offset);
-        self.copy_bytecode_ty(bytecode_type, dest, src);
+        self.asm.copy_bytecode_ty(bytecode_type, dest, src);
     }
 
     fn emit_store_field(&mut self, src: Register, obj: Register, field_idx: ConstPoolIdx) {
@@ -1641,7 +1402,7 @@ impl<'a> CannonCodeGen<'a> {
 
             BytecodeType::Tuple(subtypes) => {
                 let src_offset = self.register_offset(value);
-                self.copy_tuple(
+                self.asm.copy_tuple(
                     subtypes.clone(),
                     RegOrOffset::RegWithOffset(obj_reg, offset),
                     RegOrOffset::Offset(src_offset),
@@ -1653,7 +1414,7 @@ impl<'a> CannonCodeGen<'a> {
 
             BytecodeType::Struct(struct_id, type_params) => {
                 let src_offset = self.register_offset(value);
-                self.copy_struct(
+                self.asm.copy_struct(
                     *struct_id,
                     type_params.clone(),
                     RegOrOffset::RegWithOffset(obj_reg, offset),
@@ -1746,7 +1507,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let dest = self.reg(dest);
         let src = RegOrOffset::Reg(REG_TMP1);
-        self.copy_bytecode_ty(bytecode_type, dest, src);
+        self.asm.copy_bytecode_ty(bytecode_type, dest, src);
     }
 
     fn emit_store_global(&mut self, src: Register, global_id: GlobalDefinitionId) {
@@ -1767,7 +1528,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let dest = RegOrOffset::Reg(REG_TMP1);
         let src = self.reg(src);
-        self.copy_bytecode_ty(bytecode_type, dest, src);
+        self.asm.copy_bytecode_ty(bytecode_type, dest, src);
 
         if global_var.needs_initialization() {
             let disp = self.asm.add_addr(global_var.address_init);
@@ -1995,7 +1756,7 @@ impl<'a> CannonCodeGen<'a> {
                     Mem::Local(result_address_offset()),
                 );
 
-                self.copy_tuple(
+                self.asm.copy_tuple(
                     subtypes,
                     RegOrOffset::Reg(REG_TMP1),
                     RegOrOffset::Offset(src_offset),
@@ -2011,7 +1772,7 @@ impl<'a> CannonCodeGen<'a> {
                     Mem::Local(result_address_offset()),
                 );
 
-                self.copy_struct(
+                self.asm.copy_struct(
                     struct_id,
                     type_params.clone(),
                     RegOrOffset::Reg(REG_TMP1),
@@ -2327,7 +2088,7 @@ impl<'a> CannonCodeGen<'a> {
             let src = arguments[arg_idx];
             let src = self.reg(src);
             let dest = RegOrOffset::Offset(dest_offset + subtype_offset);
-            self.copy_ty(subtype.clone(), dest, src);
+            self.asm.copy_ty(subtype.clone(), dest, src);
             arg_idx += 1;
         }
     }
@@ -2451,7 +2212,7 @@ impl<'a> CannonCodeGen<'a> {
                     let dest = RegOrOffset::RegWithOffset(REG_TMP1, field.offset);
                     let src = self.reg(arg);
 
-                    self.copy_bytecode_ty(ty, dest, src);
+                    self.asm.copy_bytecode_ty(ty, dest, src);
                     field_idx += 1;
                 }
             }
@@ -2485,7 +2246,7 @@ impl<'a> CannonCodeGen<'a> {
             let dest = RegOrOffset::RegWithOffset(REG_TMP1, field.offset);
             let src = self.reg(arg);
 
-            self.copy_bytecode_ty(ty, dest, src);
+            self.asm.copy_bytecode_ty(ty, dest, src);
         }
     }
 
@@ -2567,7 +2328,7 @@ impl<'a> CannonCodeGen<'a> {
         let dest = RegOrOffset::RegWithOffset(REG_TMP1, field.offset);
         let src = self.reg(src);
 
-        self.copy_ty(object_ty, dest, src);
+        self.asm.copy_ty(object_ty, dest, src);
     }
 
     fn emit_new_lambda(&mut self, dest: Register, idx: ConstPoolIdx) {
@@ -2700,7 +2461,7 @@ impl<'a> CannonCodeGen<'a> {
                     .array_address(REG_TMP1, REG_RESULT, REG_TMP1, element_size);
                 let src_offset = self.register_offset(src);
 
-                self.copy_tuple(
+                self.asm.copy_tuple(
                     subtypes.clone(),
                     RegOrOffset::Reg(REG_TMP1),
                     RegOrOffset::Offset(src_offset),
@@ -2723,7 +2484,7 @@ impl<'a> CannonCodeGen<'a> {
                     .array_address(REG_TMP1, REG_RESULT, REG_TMP1, struct_instance.size);
                 let src_offset = self.register_offset(src);
 
-                self.copy_struct(
+                self.asm.copy_struct(
                     struct_id,
                     type_params,
                     RegOrOffset::Reg(REG_TMP1),
@@ -2851,7 +2612,7 @@ impl<'a> CannonCodeGen<'a> {
                     .array_address(REG_TMP1, REG_RESULT, REG_TMP1, element_size);
                 let dest_offset = self.register_offset(dest);
 
-                self.copy_tuple(
+                self.asm.copy_tuple(
                     subtypes.clone(),
                     RegOrOffset::Offset(dest_offset),
                     RegOrOffset::Reg(REG_TMP1),
@@ -2868,7 +2629,7 @@ impl<'a> CannonCodeGen<'a> {
                     .array_address(REG_TMP1, REG_RESULT, REG_TMP1, element_size);
                 let dest_offset = self.register_offset(dest);
 
-                self.copy_struct(
+                self.asm.copy_struct(
                     struct_id,
                     type_params,
                     RegOrOffset::Offset(dest_offset),
@@ -4102,7 +3863,7 @@ impl<'a> CannonCodeGen<'a> {
                 let field = &cls.fields[1];
                 let dest_offset = self.register_offset(dest);
 
-                self.copy_ty(
+                self.asm.copy_ty(
                     field.ty.clone(),
                     RegOrOffset::Offset(dest_offset),
                     RegOrOffset::RegWithOffset(REG_TMP1, field.offset),
@@ -4143,50 +3904,15 @@ impl<'a> CannonCodeGen<'a> {
             return;
         }
 
-        let bytecode_type: BytecodeType = register_bty_from_ty(ty);
+        let bytecode_type: BytecodeType = register_bty_from_ty(ty.clone());
 
-        match &bytecode_type {
-            BytecodeType::Bool
-            | BytecodeType::Char
-            | BytecodeType::UInt8
-            | BytecodeType::Int32
-            | BytecodeType::Int64
-            | BytecodeType::Float32
-            | BytecodeType::Float64 => {}
+        self.emit_load_register(arguments[0], REG_RESULT.into());
+        self.emit_load_register(arguments[1], REG_TMP1.into());
 
-            BytecodeType::Ptr | BytecodeType::Trait(_, _) => {
-                self.emit_load_register(arguments[0], REG_RESULT.into());
-                self.emit_load_register(arguments[1], REG_TMP1.into());
+        self.asm
+            .array_address(REG_TMP1, REG_RESULT, REG_TMP1, size(self.vm, bytecode_type));
 
-                self.asm
-                    .array_address(REG_TMP1, REG_RESULT, REG_TMP1, mem::ptr_width());
-                self.asm
-                    .store_zero(MachineMode::Ptr, Mem::Base(REG_TMP1, 0));
-            }
-
-            BytecodeType::Tuple(_) => {
-                let tuple_ty = specialize_tuple_bty(self.vm, bytecode_type.clone(), &type_params);
-                self.emit_load_register(arguments[0], REG_RESULT.into());
-                self.emit_load_register(arguments[1], REG_TMP1.into());
-
-                let tuple_size = get_concrete_tuple_bytecode_ty(self.vm, &bytecode_type).size();
-                self.asm
-                    .array_address(REG_TMP1, REG_RESULT, REG_TMP1, tuple_size);
-                let subtypes = tuple_ty.tuple_subtypes();
-                self.zero_refs_tuple(subtypes, RegOrOffset::Reg(REG_TMP1));
-            }
-
-            BytecodeType::Struct(_struct_id, _type_params) => unimplemented!(),
-
-            BytecodeType::Enum(_, _) => unimplemented!(),
-
-            BytecodeType::TypeParam(_)
-            | BytecodeType::Class(_, _)
-            | BytecodeType::Unit
-            | BytecodeType::Lambda(_, _) => {
-                unreachable!()
-            }
-        }
+        self.asm.zero_ty(ty, RegOrOffset::Reg(REG_TMP1));
     }
 
     fn emit_intrinsic_option_is_none(
@@ -5225,7 +4951,7 @@ fn result_reg(vm: &VM, bytecode_type: BytecodeType) -> AnyReg {
     }
 }
 
-fn result_reg_mode(mode: MachineMode) -> AnyReg {
+pub fn result_reg_mode(mode: MachineMode) -> AnyReg {
     if mode.is_float() {
         FREG_RESULT.into()
     } else {
@@ -5234,14 +4960,14 @@ fn result_reg_mode(mode: MachineMode) -> AnyReg {
 }
 
 #[derive(Copy, Clone)]
-enum RegOrOffset {
+pub enum RegOrOffset {
     Reg(Reg),
     RegWithOffset(Reg, i32),
     Offset(i32),
 }
 
 impl RegOrOffset {
-    fn offset(self, offset: i32) -> RegOrOffset {
+    pub fn offset(self, offset: i32) -> RegOrOffset {
         match self {
             RegOrOffset::Reg(reg) => RegOrOffset::RegWithOffset(reg, offset),
             RegOrOffset::RegWithOffset(reg, cur_offset) => {
@@ -5251,7 +4977,7 @@ impl RegOrOffset {
         }
     }
 
-    fn mem(self) -> Mem {
+    pub fn mem(self) -> Mem {
         match self {
             RegOrOffset::Reg(reg) => Mem::Base(reg, 0),
             RegOrOffset::RegWithOffset(reg, offset) => Mem::Base(reg, offset),

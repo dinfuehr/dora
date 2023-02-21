@@ -5,7 +5,7 @@ use crate::compiler::codegen::CompilationData;
 use crate::masm::CodeDescriptor;
 use crate::vm::VM;
 
-mod codegen;
+pub mod codegen;
 mod liveness;
 
 pub struct CompilationFlags {
