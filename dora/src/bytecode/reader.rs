@@ -414,6 +414,12 @@ impl<'a> BytecodeReader<'a> {
                 BytecodeInstruction::StoreArray { src, arr, idx }
             }
 
+            BytecodeOpcode::LoadTraitObjectValue => {
+                let dest = self.read_register();
+                let object = self.read_register();
+                BytecodeInstruction::LoadTraitObjectValue { dest, object }
+            }
+
             BytecodeOpcode::Ret => {
                 let opnd = self.read_register();
                 BytecodeInstruction::Ret { opnd }
@@ -741,6 +747,10 @@ where
                 self.visitor.visit_store_array(src, arr, idx);
             }
 
+            BytecodeInstruction::LoadTraitObjectValue { dest, object } => {
+                self.visitor.visit_load_trait_object_value(dest, object);
+            }
+
             BytecodeInstruction::Ret { opnd } => {
                 self.visitor.visit_ret(opnd);
             }
@@ -998,6 +1008,10 @@ pub trait BytecodeVisitor {
     }
 
     fn visit_store_array(&mut self, _src: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+
+    fn visit_load_trait_object_value(&mut self, _dest: Register, _object: Register) {
         unimplemented!();
     }
 

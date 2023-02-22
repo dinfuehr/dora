@@ -258,6 +258,10 @@ impl BytecodeWriter {
         self.emit_reg2_idx(BytecodeOpcode::LoadEnumVariant, dest, src, idx);
     }
 
+    pub fn emit_load_trait_object_value(&mut self, dest: Register, object: Register) {
+        self.emit_reg2(BytecodeOpcode::LoadTraitObjectValue, dest, object);
+    }
+
     pub fn emit_ret(&mut self, src: Register) {
         self.emit_reg1(BytecodeOpcode::Ret, src);
     }

@@ -1,14 +1,17 @@
 use crate::bytecode::{BytecodeBuilder, BytecodeFunction, Register};
+use crate::compiler::asm::BaselineAssembler;
+use crate::cpu::STACK_FRAME_ALIGNMENT;
 use crate::language::generator::register_bty_from_ty;
 use crate::language::sem_analysis::{
     AnalysisData, FctDefinition, FctDefinitionId, FctParent, TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
-use crate::vm::{find_trait_impl, ClassInstanceId, VM};
+use crate::masm::CodeDescriptor;
+use crate::mem::align_i32;
+use crate::vm::{find_trait_impl, specialize_type, VM};
 
 pub fn ensure(
     vm: &VM,
-    cls_def_id: ClassInstanceId,
     fct_id: FctDefinitionId,
     type_params: SourceTypeArray,
     actual_ty: SourceType,
@@ -42,7 +45,6 @@ pub fn ensure(
         .type_params
         .add_bound(tp_id, trait_object_ty.clone());
     thunk_fct.bytecode = Some(generate_bytecode_for_thunk(
-        cls_def_id,
         &*fct,
         trait_object_ty.clone(),
         &mut thunk_fct,
@@ -60,8 +62,42 @@ pub fn ensure(
     thunk_fct_id
 }
 
+fn generate_asm_for_thunk(
+    vm: &VM,
+    trait_fct: &FctDefinition,
+    trait_object_ty: SourceType,
+) -> CodeDescriptor {
+    let mut asm = BaselineAssembler::new(vm);
+    let trait_object_type_params = trait_object_ty.type_params();
+    let mut stacksize = 0;
+    let mut offsets = Vec::new();
+
+    {
+        let size = trait_object_ty.size(vm);
+        let alignment = trait_object_ty.align(vm);
+        stacksize = align_i32(stacksize + size, alignment);
+        offsets.push(-stacksize);
+    }
+
+    for param_ty in trait_fct.params_without_self() {
+        let param_ty = specialize_type(vm, param_ty.clone(), &trait_object_type_params);
+        if !param_ty.is_unit() {
+            let size = param_ty.size(vm);
+            let alignment = param_ty.align(vm);
+            stacksize = align_i32(stacksize + size, alignment);
+        }
+        offsets.push(-stacksize);
+    }
+
+    stacksize = align_i32(stacksize, STACK_FRAME_ALIGNMENT as i32);
+
+    asm.prolog(stacksize);
+
+    asm.epilog();
+    asm.code()
+}
+
 fn generate_bytecode_for_thunk(
-    cls_def_id: ClassInstanceId,
     trait_fct: &FctDefinition,
     trait_object_ty: SourceType,
     thunk_fct: &FctDefinition,
@@ -84,8 +120,7 @@ fn generate_bytecode_for_thunk(
     if !actual_ty.is_unit() {
         let ty = register_bty_from_ty(actual_ty.clone());
         let new_self_reg = gen.alloc_var(ty);
-        let field_idx = gen.add_const_field_fixed(cls_def_id, 0.into());
-        gen.emit_load_field(new_self_reg, Register(0), field_idx, trait_fct.pos);
+        gen.emit_load_trait_object_value(new_self_reg, Register(0));
         gen.emit_push_register(new_self_reg);
     }
 

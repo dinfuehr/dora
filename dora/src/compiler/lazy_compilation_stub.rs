@@ -278,7 +278,6 @@ fn patch_virtual_call(
             let all_type_params = type_params.connect_single(object_ty.clone());
             let thunk_fct_id = compiler::trait_object_thunk::ensure(
                 vm,
-                class_instance.id(),
                 trait_fct_id,
                 type_params.clone(),
                 object_ty.clone(),

@@ -10,7 +10,6 @@ use crate::language::sem_analysis::{
     StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
-use crate::vm::ClassInstanceId;
 
 pub struct BytecodeBuilder {
     writer: BytecodeWriter,
@@ -150,15 +149,6 @@ impl BytecodeBuilder {
     ) -> ConstPoolIdx {
         self.writer
             .add_const(ConstPoolEntry::Field(cls_id, type_params, field_id))
-    }
-
-    pub fn add_const_field_fixed(
-        &mut self,
-        cls_def_id: ClassInstanceId,
-        field_id: FieldId,
-    ) -> ConstPoolIdx {
-        self.writer
-            .add_const(ConstPoolEntry::FieldFixed(cls_def_id, field_id))
     }
 
     pub fn add_const_cls(&mut self, id: ClassDefinitionId) -> ConstPoolIdx {
@@ -401,6 +391,11 @@ impl BytecodeBuilder {
         assert!(self.def(dest) && self.used(src));
         self.writer.set_position(pos);
         self.writer.emit_load_enum_variant(dest, src, idx);
+    }
+
+    pub fn emit_load_trait_object_value(&mut self, dest: Register, object: Register) {
+        assert!(self.def(dest) && self.used(object));
+        self.writer.emit_load_trait_object_value(dest, object);
     }
 
     pub fn emit_ret(&mut self, src: Register) {

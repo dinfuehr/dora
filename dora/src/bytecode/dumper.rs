@@ -123,9 +123,6 @@ pub fn dump(vm: &SemAnalysis, fct: Option<&FctDefinition>, bc: &BytecodeFunction
                     fname,
                 )
             }
-            ConstPoolEntry::FieldFixed(_, field_id) => {
-                println!("{}{} => FieldFixed {}", align, idx, field_id.to_usize())
-            }
             ConstPoolEntry::Fct(fct_id, type_params) => {
                 let fct = vm.fcts.idx(*fct_id);
                 let fct = fct.read();
@@ -362,17 +359,6 @@ impl<'a> BytecodeDumper<'a> {
                 let fname = self.sa.interner.str(field.name).to_string();
 
                 (struct_name, fname)
-            }
-            ConstPoolEntry::FieldFixed(class_instance_id, field_id) => {
-                let cls = self.sa.class_instances.idx(*class_instance_id);
-                let cname = cls
-                    .trait_object()
-                    .expect("trait object expected")
-                    .name(self.sa);
-
-                let fname = format!("{}", field_id.to_usize());
-
-                (cname, fname)
             }
             _ => unreachable!(),
         };
@@ -878,6 +864,10 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
 
     fn visit_array_length(&mut self, dest: Register, arr: Register) {
         self.emit_reg2("ArrayLength", dest, arr);
+    }
+
+    fn visit_load_trait_object_value(&mut self, dest: Register, object: Register) {
+        self.emit_reg2("LoadTraitObjectValue", dest, object);
     }
 
     fn visit_ret(&mut self, opnd: Register) {

@@ -15,9 +15,7 @@ use crate::cpu::{
 };
 use crate::gc::Address;
 use crate::language::generator::register_bty_from_ty;
-use crate::language::sem_analysis::{
-    EnumDefinitionId, FctDefinitionId, GlobalDefinitionId, Intrinsic, StructDefinitionId,
-};
+use crate::language::sem_analysis::{FctDefinitionId, GlobalDefinitionId, Intrinsic};
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::masm::{CodeDescriptor, CondCode, Label, Mem};
 use crate::mem::{self, align_i32};
@@ -316,41 +314,39 @@ impl<'a> CannonCodeGen<'a> {
                 param_ty
             };
 
-            match param_ty {
-                SourceType::Tuple(subtypes) => {
-                    self.store_params_on_stack_tuple(
+            match param_ty.clone() {
+                SourceType::Tuple(..) => {
+                    self.store_param_on_stack_tuple(
                         &mut reg_idx,
                         &mut freg_idx,
                         &mut sp_offset,
                         dest,
-                        subtypes,
+                        param_ty,
                     );
                 }
 
-                SourceType::Struct(struct_id, type_params) => {
-                    self.store_params_on_stack_struct(
+                SourceType::Struct(..) => {
+                    self.store_param_on_stack_struct(
                         &mut reg_idx,
                         &mut freg_idx,
                         &mut sp_offset,
                         dest,
-                        struct_id,
-                        type_params,
+                        param_ty,
                     );
                 }
 
-                SourceType::Enum(enum_id, type_params) => {
-                    self.store_params_on_stack_enum(
+                SourceType::Enum(..) => {
+                    self.store_param_on_stack_enum(
                         &mut reg_idx,
                         &mut freg_idx,
                         &mut sp_offset,
                         dest,
-                        enum_id,
-                        type_params,
+                        param_ty,
                     );
                 }
 
                 SourceType::Float32 | SourceType::Float64 => {
-                    self.store_params_on_stack_float(
+                    self.store_param_on_stack_float(
                         &mut reg_idx,
                         &mut freg_idx,
                         &mut sp_offset,
@@ -368,7 +364,7 @@ impl<'a> CannonCodeGen<'a> {
                 | SourceType::Class(_, _)
                 | SourceType::Trait(_, _)
                 | SourceType::Lambda(_, _) => {
-                    self.store_params_on_stack_core(
+                    self.store_param_on_stack_core(
                         &mut reg_idx,
                         &mut freg_idx,
                         &mut sp_offset,
@@ -386,13 +382,13 @@ impl<'a> CannonCodeGen<'a> {
         }
     }
 
-    fn store_params_on_stack_tuple(
+    fn store_param_on_stack_tuple(
         &mut self,
         reg_idx: &mut usize,
         _freg_idx: &mut usize,
         sp_offset: &mut i32,
         dest: Register,
-        subtypes: SourceTypeArray,
+        ty: SourceType,
     ) {
         let dest_offset = self.register_offset(dest);
 
@@ -402,8 +398,8 @@ impl<'a> CannonCodeGen<'a> {
                 REG_TMP1.into(),
                 REG_PARAMS[*reg_idx].into(),
             );
-            self.asm.copy_tuple(
-                subtypes,
+            self.asm.copy_ty(
+                ty,
                 RegOrOffset::Offset(dest_offset),
                 RegOrOffset::Reg(REG_TMP1),
             );
@@ -411,8 +407,8 @@ impl<'a> CannonCodeGen<'a> {
         } else {
             self.asm
                 .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(*sp_offset));
-            self.asm.copy_tuple(
-                subtypes,
+            self.asm.copy_ty(
+                ty,
                 RegOrOffset::Offset(dest_offset),
                 RegOrOffset::Reg(REG_TMP1),
             );
@@ -420,14 +416,13 @@ impl<'a> CannonCodeGen<'a> {
         }
     }
 
-    fn store_params_on_stack_struct(
+    fn store_param_on_stack_struct(
         &mut self,
         reg_idx: &mut usize,
         _freg_idx: &mut usize,
         sp_offset: &mut i32,
         dest: Register,
-        struct_id: StructDefinitionId,
-        type_params: SourceTypeArray,
+        ty: SourceType,
     ) {
         let dest_offset = self.reg(dest);
 
@@ -437,35 +432,28 @@ impl<'a> CannonCodeGen<'a> {
                 REG_TMP1.into(),
                 REG_PARAMS[*reg_idx].into(),
             );
-            self.asm.copy_struct(
-                struct_id,
-                type_params,
-                dest_offset,
-                RegOrOffset::Reg(REG_TMP1),
-            );
+            self.asm
+                .copy_ty(ty, dest_offset, RegOrOffset::Reg(REG_TMP1));
             *reg_idx += 1;
         } else {
             self.asm
                 .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(*sp_offset));
-            self.asm.copy_struct(
-                struct_id,
-                type_params,
-                dest_offset,
-                RegOrOffset::Reg(REG_TMP1),
-            );
+            self.asm
+                .copy_ty(ty, dest_offset, RegOrOffset::Reg(REG_TMP1));
             *sp_offset += 8;
         }
     }
 
-    fn store_params_on_stack_enum(
+    fn store_param_on_stack_enum(
         &mut self,
         reg_idx: &mut usize,
         _freg_idx: &mut usize,
         sp_offset: &mut i32,
         dest: Register,
-        enum_id: EnumDefinitionId,
-        type_params: SourceTypeArray,
+        ty: SourceType,
     ) {
+        let enum_id = ty.enum_id().expect("enum expected");
+        let type_params = ty.type_params();
         let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
         let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
@@ -486,7 +474,7 @@ impl<'a> CannonCodeGen<'a> {
         }
     }
 
-    fn store_params_on_stack_float(
+    fn store_param_on_stack_float(
         &mut self,
         _reg_idx: &mut usize,
         freg_idx: &mut usize,
@@ -508,7 +496,7 @@ impl<'a> CannonCodeGen<'a> {
         }
     }
 
-    fn store_params_on_stack_core(
+    fn store_param_on_stack_core(
         &mut self,
         reg_idx: &mut usize,
         _freg_idx: &mut usize,
@@ -1322,10 +1310,7 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn emit_load_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
-        assert!(
-            self.bytecode.register_type(obj).is_ptr()
-                || self.bytecode.register_type(obj).is_trait()
-        );
+        assert!(self.bytecode.register_type(obj).is_ptr());
 
         let (class_instance_id, field_id) = match self.bytecode.const_pool(field_idx) {
             ConstPoolEntry::Field(cls_id, type_params, field_id) => {
@@ -1335,9 +1320,6 @@ impl<'a> CannonCodeGen<'a> {
                 let class_instance_id = specialize_class_id_params(self.vm, *cls_id, &type_params);
 
                 (class_instance_id, *field_id)
-            }
-            ConstPoolEntry::FieldFixed(class_instance_id, field_id) => {
-                (*class_instance_id, *field_id)
             }
             _ => unreachable!(),
         };
@@ -1738,6 +1720,22 @@ impl<'a> CannonCodeGen<'a> {
 
             label
         }
+    }
+
+    fn emit_load_trait_object_value(&mut self, dest: Register, object: Register) {
+        assert!(self.bytecode.register_type(object).is_trait());
+
+        let value_ty = self.type_params[self.type_params.len() - 1].clone();
+
+        let bytecode_type = self.specialize_register_type(dest);
+        assert_eq!(bytecode_type, register_bty_from_ty(value_ty.clone()));
+
+        let obj_reg = REG_TMP1;
+        self.emit_load_register(object, obj_reg.into());
+
+        let dest = self.reg(dest);
+        let src = RegOrOffset::RegWithOffset(obj_reg, Header::size());
+        self.asm.copy_bytecode_ty(bytecode_type, dest, src);
     }
 
     fn emit_return_generic(&mut self, src: Register) {
@@ -4374,13 +4372,6 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                         fname
                     )
                 }
-                ConstPoolEntry::FieldFixed(_, field_id) => format!(
-                    "LoadField {}, {}, ConstPoolIdx({}) # Fixed {}",
-                    dest,
-                    obj,
-                    field_idx.to_usize(),
-                    field_id.to_usize(),
-                ),
                 _ => unreachable!(),
             }
         });
@@ -4931,6 +4922,11 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
     fn visit_store_array(&mut self, src: Register, arr: Register, idx: Register) {
         comment!(self, format!("StoreArray {}, {}, {}", src, arr, idx));
         self.emit_store_array(src, arr, idx);
+    }
+
+    fn visit_load_trait_object_value(&mut self, dest: Register, object: Register) {
+        comment!(self, format!("LoadTraitObjectValue {}, {}", dest, object));
+        self.emit_load_trait_object_value(dest, object);
     }
 
     fn visit_ret(&mut self, opnd: Register) {

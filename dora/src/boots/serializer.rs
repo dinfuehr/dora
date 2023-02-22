@@ -259,11 +259,6 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
             encode_source_type_array(vm, source_type_array, buffer);
             buffer.emit_id(field_id.to_usize());
         }
-        &ConstPoolEntry::FieldFixed(cls_def_id, field_id) => {
-            buffer.emit_u8(ConstPoolOpcode::FieldFixed.to_u8());
-            buffer.emit_id(cls_def_id.to_usize());
-            buffer.emit_id(field_id.to_usize());
-        }
         &ConstPoolEntry::Enum(enum_id, ref source_type_array) => {
             buffer.emit_u8(ConstPoolOpcode::Enum.to_u8());
             buffer.emit_id(enum_id.to_usize());

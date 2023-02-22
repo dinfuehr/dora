@@ -7,7 +7,6 @@ use crate::language::sem_analysis::{
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::enumeration;
-use crate::vm::ClassInstanceId;
 use dora_parser::lexer::position::Position;
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -126,6 +125,8 @@ enumeration!(BytecodeOpcode {
 
     LoadArray,
     StoreArray,
+
+    LoadTraitObjectValue,
 
     Ret
 });
@@ -622,6 +623,11 @@ pub enum BytecodeInstruction {
         idx: Register,
     },
 
+    LoadTraitObjectValue {
+        dest: Register,
+        object: Register,
+    },
+
     Ret {
         opnd: Register,
     },
@@ -788,7 +794,6 @@ pub enum ConstPoolEntry {
     Char(char),
     Class(ClassDefinitionId, SourceTypeArray),
     Field(ClassDefinitionId, SourceTypeArray, FieldId),
-    FieldFixed(ClassInstanceId, FieldId),
     Fct(FctDefinitionId, SourceTypeArray),
     Generic(TypeParamId, FctDefinitionId, SourceTypeArray),
     Enum(EnumDefinitionId, SourceTypeArray),
