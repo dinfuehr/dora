@@ -6,7 +6,6 @@ use parking_lot::{Mutex, RwLock};
 
 use dora_parser::interner::{Interner, Name};
 
-use crate::compiler::dora_exit_stubs::NativeStubs;
 use crate::driver::cmd::Args;
 use crate::language::error::diag::Diagnostic;
 #[cfg(test)]
@@ -82,7 +81,6 @@ pub struct SemAnalysis {
     pub impls: MutableVec<ImplDefinition>,   // stores all impl definitions
     pub globals: MutableVec<GlobalDefinition>, // stores all global variables
     pub uses: Vec<UseDefinition>,            // stores all uses
-    pub native_stubs: Mutex<NativeStubs>,
     pub packages: MutableVec<PackageDefinition>,
     pub package_names: HashMap<Name, PackageDefinitionId>,
     pub prelude_module_id: Option<ModuleDefinitionId>,
@@ -115,7 +113,6 @@ impl SemAnalysis {
             known: KnownElements::new(),
             diag: Mutex::new(Diagnostic::new()),
             fcts: GrowableVec::new(),
-            native_stubs: Mutex::new(NativeStubs::new()),
             packages: MutableVec::new(),
             package_names: HashMap::new(),
             prelude_module_id: None,

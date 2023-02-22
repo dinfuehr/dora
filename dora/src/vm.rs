@@ -193,7 +193,7 @@ impl VM {
             compilation_database: CompilationDatabase::new(),
             code_objects: CodeObjects::new(),
             code_map: CodeMap::new(),
-            native_stubs: sa.native_stubs,
+            native_stubs: Mutex::new(NativeStubs::new()),
             stubs: Stubs::new(),
             threads: Threads::new(),
             packages: sa.packages,
