@@ -7,8 +7,8 @@ use parking_lot::Mutex;
 use crate::driver::cmd::Args;
 use crate::gc::{Address, Collector, GcReason, Region};
 use crate::os::{self, Reservation};
-use crate::utils::enumeration;
 use crate::vm::VM;
+use dora_frontend::enumeration;
 
 pub const REGION_SIZE_BITS: usize = 20;
 pub const REGION_SIZE: usize = 1 << REGION_SIZE_BITS;
