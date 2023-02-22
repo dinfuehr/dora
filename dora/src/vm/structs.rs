@@ -1,6 +1,6 @@
 use crate::language::ty::{SourceType, SourceTypeArray};
-use crate::utils::Id;
 use crate::vm::{module_path, StructDefinition, VM};
+use dora_frontend::Id;
 
 impl StructDefinition {
     pub fn name_vm(&self, vm: &VM) -> String {

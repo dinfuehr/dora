@@ -8,7 +8,7 @@ use crate::language::sem_analysis::{
     module_path, ModuleDefinitionId, PackageDefinitionId, SemAnalysis, SourceFileId, Visibility,
 };
 use crate::language::ty::SourceType;
-use crate::utils::Id;
+use dora_frontend::Id;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ConstDefinitionId(usize);

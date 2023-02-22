@@ -11,7 +11,7 @@ use crate::language::sem_analysis::{
 };
 use crate::language::specialize::replace_type_param;
 use crate::language::ty::{SourceType, SourceTypeArray};
-use crate::utils::Id;
+use dora_frontend::Id;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct ClassDefinitionId(usize);

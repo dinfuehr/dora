@@ -2,8 +2,8 @@ use parking_lot::RwLock;
 
 use crate::language::sem_analysis::{EnumDefinition, EnumDefinitionId};
 use crate::language::ty::{SourceType, SourceTypeArray};
-use crate::utils::Id;
 use crate::vm::{module_path, ClassInstanceId, VM};
+use dora_frontend::Id;
 
 impl EnumDefinition {
     pub fn name_vm(&self, vm: &VM) -> String {

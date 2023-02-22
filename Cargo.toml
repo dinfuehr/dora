@@ -3,6 +3,7 @@ members = [
   "dora",
   "dora-asm",
   "dora-parser",
+  "dora-frontend",
 ]
 
 [profile.release]

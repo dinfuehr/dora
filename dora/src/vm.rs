@@ -24,7 +24,7 @@ use crate::threads::{
     STACK_SIZE,
 };
 use crate::utils::GrowableVecNonIter;
-use crate::utils::{GrowableVec, MutableVec};
+use dora_frontend::{GrowableVec, MutableVec};
 
 use dora_parser::interner::*;
 

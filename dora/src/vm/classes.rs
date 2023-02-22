@@ -5,9 +5,9 @@ use crate::language::sem_analysis::{
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::size::InstanceSize;
-use crate::utils::Id;
 use crate::vm::{add_ref_fields, module_path, VM};
 use crate::vtable::VTableBox;
+use dora_frontend::Id;
 
 impl ClassDefinition {
     pub fn name_vm(&self, vm: &VM) -> String {

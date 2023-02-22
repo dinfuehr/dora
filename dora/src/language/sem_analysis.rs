@@ -12,7 +12,7 @@ use crate::language::error::diag::Diagnostic;
 use crate::language::sym::ModuleSymTable;
 use crate::language::sym::SymTable;
 use crate::language::ty::{SourceType, SourceTypeArray};
-use crate::utils::{GrowableVec, MutableVec};
+use dora_frontend::{GrowableVec, MutableVec};
 
 pub use self::annotations::{AnnotationDefinition, AnnotationDefinitionId};
 pub use self::classes::{

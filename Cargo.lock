@@ -93,6 +93,7 @@ dependencies = [
  "capstone",
  "crossbeam-deque",
  "dora-asm",
+ "dora-frontend",
  "dora-parser",
  "fixedbitset",
  "lazy_static",
@@ -113,6 +114,14 @@ name = "dora-asm"
 version = "0.0.1"
 dependencies = [
  "byteorder",
+]
+
+[[package]]
+name = "dora-frontend"
+version = "0.0.2"
+dependencies = [
+ "dora-parser",
+ "parking_lot",
 ]
 
 [[package]]

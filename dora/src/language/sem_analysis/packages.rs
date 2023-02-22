@@ -7,7 +7,7 @@ use parking_lot::RwLock;
 
 use crate::language::sem_analysis::ModuleDefinitionId;
 use crate::language::sym::{Sym, SymTable};
-use crate::utils::Id;
+use dora_frontend::Id;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct PackageDefinitionId(pub usize);

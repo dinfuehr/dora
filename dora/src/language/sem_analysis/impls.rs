@@ -14,7 +14,7 @@ use crate::language::sem_analysis::{
     SourceFileId, TraitDefinitionId, TypeParamDefinition,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
-use crate::utils::Id;
+use dora_frontend::Id;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ImplDefinitionId(u32);

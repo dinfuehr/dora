@@ -2,6 +2,7 @@ use parking_lot::RwLock;
 
 use std::sync::Arc;
 
+use dora_frontend::Id;
 use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
@@ -14,7 +15,6 @@ use crate::language::sem_analysis::{
     Visibility,
 };
 use crate::language::ty::SourceType;
-use crate::utils::GrowableVec;
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub struct FctDefinitionId(pub usize);
@@ -25,15 +25,25 @@ impl FctDefinitionId {
     }
 }
 
-impl From<usize> for FctDefinitionId {
-    fn from(id: usize) -> FctDefinitionId {
-        FctDefinitionId(id)
+impl Id for FctDefinition {
+    type IdType = FctDefinitionId;
+
+    fn id_to_usize(id: FctDefinitionId) -> usize {
+        id.0 as usize
+    }
+
+    fn usize_to_id(value: usize) -> FctDefinitionId {
+        FctDefinitionId(value.try_into().unwrap())
+    }
+
+    fn store_id(value: &mut FctDefinition, id: FctDefinitionId) {
+        value.id = Some(id);
     }
 }
 
-impl GrowableVec<RwLock<FctDefinition>> {
-    pub fn idx(&self, index: FctDefinitionId) -> Arc<RwLock<FctDefinition>> {
-        self.idx_usize(index.0)
+impl From<usize> for FctDefinitionId {
+    fn from(id: usize) -> FctDefinitionId {
+        FctDefinitionId(id)
     }
 }
 

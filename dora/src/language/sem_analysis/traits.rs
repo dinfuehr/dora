@@ -13,7 +13,7 @@ use crate::language::sem_analysis::{
     SourceFileId, TypeParamDefinition, Visibility,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
-use crate::utils::Id;
+use dora_frontend::Id;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct TraitDefinitionId(u32);

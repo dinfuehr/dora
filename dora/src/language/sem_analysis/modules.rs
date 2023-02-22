@@ -4,7 +4,7 @@ use std::sync::Arc;
 use crate::language::sem_analysis::{PackageDefinitionId, SemAnalysis, Visibility};
 use crate::language::sym::SymTable;
 use crate::language::SourceFileId;
-use crate::utils::Id;
+use dora_frontend::Id;
 
 use dora_parser::ast;
 use dora_parser::interner::Name;
