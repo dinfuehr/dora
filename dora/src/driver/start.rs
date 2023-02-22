@@ -1,8 +1,8 @@
-use crate::driver::cmd;
+use crate::driver::cmd::{self, Args};
 use crate::language;
 use crate::language::error::msg::ErrorMessage;
 use crate::language::sem_analysis::{
-    FctDefinition, FctDefinitionId, ModuleDefinitionId, SemAnalysis,
+    FctDefinition, FctDefinitionId, ModuleDefinitionId, SemAnalysis, SemAnalysisArgs,
 };
 use crate::timer::Timer;
 use crate::vm::{clear_vm, execute_on_main, module_contains, set_vm, VM};
@@ -29,7 +29,14 @@ pub fn start() -> i32 {
         return 0;
     }
 
-    let mut sa = SemAnalysis::new(args);
+    let sem_args = SemAnalysisArgs {
+        arg_file: args.arg_file.clone(),
+        packages: args.packages.clone(),
+        flag_emit_ast: args.flag_emit_ast.clone(),
+        flag_emit_bytecode: args.flag_emit_bytecode.clone(),
+    };
+
+    let mut sa = SemAnalysis::new(sem_args);
 
     let success = language::check(&mut sa);
     assert_eq!(success, !sa.diag.lock().has_errors());
@@ -38,7 +45,7 @@ pub fn start() -> i32 {
         return 1;
     }
 
-    let main_fct_id = find_main(&sa);
+    let main_fct_id = find_main(&sa, &args);
 
     if report_errors(&sa) {
         return 1;
@@ -49,16 +56,16 @@ pub fn start() -> i32 {
     language::generate_bytecode(&sa);
 
     // if --check given, stop after type/semantic check
-    if sa.args.flag_check {
+    if args.flag_check {
         return 0;
     }
 
-    if sa.args.command.is_build() {
+    if args.command.is_build() {
         unimplemented!();
     }
 
     let vm = {
-        let mut mutable_vm = VM::new_from_sa(sa);
+        let mut mutable_vm = VM::new_from_sa(sa, args);
         mutable_vm.setup_execution();
         mutable_vm
     };
@@ -180,8 +187,8 @@ fn run_main(vm: &VM, main: FctDefinitionId) -> i32 {
 
 pub const STDLIB: &[(&str, &str)] = &include!(concat!(env!("OUT_DIR"), "/dora_stdlib_bundle.rs"));
 
-fn find_main(sa: &SemAnalysis) -> Option<FctDefinitionId> {
-    if sa.args.command.is_test() {
+fn find_main(sa: &SemAnalysis, args: &Args) -> Option<FctDefinitionId> {
+    if args.command.is_test() {
         return None;
     }
 

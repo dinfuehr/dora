@@ -6,7 +6,6 @@ use parking_lot::{Mutex, RwLock};
 
 use dora_parser::interner::{Interner, Name};
 
-use crate::driver::cmd::Args;
 use crate::language::error::diag::Diagnostic;
 #[cfg(test)]
 use crate::language::sym::ModuleSymTable;
@@ -63,8 +62,26 @@ mod traits;
 mod tuples;
 mod uses;
 
+pub struct SemAnalysisArgs {
+    pub flag_emit_ast: Option<String>,
+    pub flag_emit_bytecode: Option<String>,
+    pub packages: Vec<(String, PathBuf)>,
+    pub arg_file: Option<String>,
+}
+
+impl SemAnalysisArgs {
+    pub fn new() -> SemAnalysisArgs {
+        SemAnalysisArgs {
+            flag_emit_ast: None,
+            flag_emit_bytecode: None,
+            packages: Vec::new(),
+            arg_file: None,
+        }
+    }
+}
+
 pub struct SemAnalysis {
-    pub args: Args,
+    pub args: SemAnalysisArgs,
     pub test_file_as_string: Option<&'static str>,
     pub interner: Interner,
     pub source_files: Vec<SourceFile>,
@@ -94,7 +111,7 @@ pub struct SemAnalysis {
 }
 
 impl SemAnalysis {
-    pub fn new(args: Args) -> Box<SemAnalysis> {
+    pub fn new(args: SemAnalysisArgs) -> Box<SemAnalysis> {
         let sa = Box::new(SemAnalysis {
             args,
             test_file_as_string: None,

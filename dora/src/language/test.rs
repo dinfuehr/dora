@@ -1,6 +1,5 @@
-use crate::driver::cmd::Args;
 use crate::language;
-use crate::language::sem_analysis::SemAnalysis;
+use crate::language::sem_analysis::{SemAnalysis, SemAnalysisArgs};
 
 pub fn check_valid<F, T>(code: &'static str, f: F) -> T
 where
@@ -21,7 +20,7 @@ pub fn check<F, T>(code: &'static str, f: F) -> T
 where
     F: FnOnce(&SemAnalysis) -> T,
 {
-    let args: Args = Default::default();
+    let args: SemAnalysisArgs = SemAnalysisArgs::new();
     let mut sa = SemAnalysis::new(args);
     sa.test_file_as_string = Some(code);
 

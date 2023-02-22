@@ -157,11 +157,11 @@ pub struct VM {
 }
 
 impl VM {
-    pub fn new_from_sa(sa: Box<SemAnalysis>) -> Box<VM> {
-        let gc = Gc::new(&sa.args);
+    pub fn new_from_sa(sa: Box<SemAnalysis>, args: Args) -> Box<VM> {
+        let gc = Gc::new(&args);
 
         let vm = Box::new(VM {
-            args: sa.args,
+            args,
             test_file_as_string: sa.test_file_as_string,
             source_files: sa.source_files,
             consts: sa.consts,
