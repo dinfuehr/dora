@@ -9,7 +9,7 @@ use crate::compiler::dora_exit_stubs::{NativeFct, NativeFctKind};
 use crate::cpu::{FReg, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_THREAD, REG_TMP1, REG_TMP2};
 use crate::gc::tlab::TLAB_OBJECT_SIZE;
 use crate::gc::Address;
-use crate::language::sem_analysis::{FctDefinitionId, GlobalDefinition, StructDefinitionId};
+use crate::language::sem_analysis::{FctDefinitionId, GlobalDefinitionId, StructDefinitionId};
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::masm::{CodeDescriptor, CondCode, Label, MacroAssembler, Mem, ScratchReg};
 use crate::mode::MachineMode;
@@ -950,7 +950,7 @@ impl<'a> BaselineAssembler<'a> {
 
     pub fn ensure_global(
         &mut self,
-        global_var: &GlobalDefinition,
+        global_id: GlobalDefinitionId,
         fid: FctDefinitionId,
         ptr: Address,
         position: Position,
@@ -959,7 +959,14 @@ impl<'a> BaselineAssembler<'a> {
         let lbl_global = self.masm.create_label();
         let lbl_return = self.masm.create_label();
 
-        let disp = self.masm.add_addr(global_var.address_init);
+        let address_init = self
+            .vm
+            .global_variable_memory
+            .as_ref()
+            .unwrap()
+            .address_init(global_id);
+
+        let disp = self.masm.add_addr(address_init);
         let pos = self.masm.pos() as i32;
         self.masm.load_constpool(REG_RESULT, disp + pos);
         self.masm.load_mem(

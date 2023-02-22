@@ -59,6 +59,11 @@ fn iterate_roots_from_code_space<F: FnMut(Slot)>(vm: &VM, _callback: &mut F) {
 fn iterate_roots_from_globals<F: FnMut(Slot)>(vm: &VM, callback: &mut F) {
     for global_var in vm.globals.iter() {
         let global_var = global_var.read();
+        let address_value = vm
+            .global_variable_memory
+            .as_ref()
+            .unwrap()
+            .address_value(global_var.id());
 
         match global_var.ty {
             SourceType::Struct(struct_id, ref type_params) => {
@@ -66,7 +71,7 @@ fn iterate_roots_from_globals<F: FnMut(Slot)>(vm: &VM, callback: &mut F) {
                 let sdef = vm.struct_instances.idx(sdef_id);
 
                 for &offset in &sdef.ref_fields {
-                    let slot_address = global_var.address_value.offset(offset as usize);
+                    let slot_address = address_value.offset(offset as usize);
                     let slot = Slot::at(slot_address);
                     callback(slot);
                 }
@@ -79,7 +84,7 @@ fn iterate_roots_from_globals<F: FnMut(Slot)>(vm: &VM, callback: &mut F) {
                 match edef.layout {
                     EnumLayout::Int => {}
                     EnumLayout::Ptr | EnumLayout::Tagged => {
-                        let slot = Slot::at(global_var.address_value);
+                        let slot = Slot::at(address_value);
                         callback(slot);
                     }
                 }
@@ -89,7 +94,7 @@ fn iterate_roots_from_globals<F: FnMut(Slot)>(vm: &VM, callback: &mut F) {
                 let tuple = get_concrete_tuple_ty(vm, &global_var.ty);
 
                 for &offset in tuple.references() {
-                    let slot_address = global_var.address_value.offset(offset as usize);
+                    let slot_address = address_value.offset(offset as usize);
                     let slot = Slot::at(slot_address);
                     callback(slot);
                 }
@@ -105,7 +110,7 @@ fn iterate_roots_from_globals<F: FnMut(Slot)>(vm: &VM, callback: &mut F) {
             | SourceType::Float64 => {}
 
             SourceType::Class(_, _) | SourceType::Trait(_, _) => {
-                let slot = Slot::at(global_var.address_value);
+                let slot = Slot::at(address_value);
                 callback(slot);
             }
 

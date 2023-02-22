@@ -1473,15 +1473,29 @@ impl<'a> CannonCodeGen<'a> {
             register_bty_from_ty(global_var.ty.clone())
         );
 
-        if global_var.needs_initialization() {
+        if global_var.has_initializer()
+            && !self
+                .vm
+                .global_variable_memory
+                .as_ref()
+                .unwrap()
+                .is_initialized(global_id)
+        {
             let fid = global_var.initializer.unwrap();
             let ptr = self.get_call_target(fid, SourceTypeArray::empty());
             let gcpoint = self.create_gcpoint();
             self.asm
-                .ensure_global(&*global_var, fid, ptr, global_var.pos, gcpoint);
+                .ensure_global(global_id, fid, ptr, global_var.pos, gcpoint);
         }
 
-        let disp = self.asm.add_addr(global_var.address_value);
+        let address_value = self
+            .vm
+            .global_variable_memory
+            .as_ref()
+            .unwrap()
+            .address_value(global_id);
+
+        let disp = self.asm.add_addr(address_value);
         let pos = self.asm.pos() as i32;
         self.asm.load_constpool(REG_TMP1, disp + pos);
 
@@ -1501,7 +1515,14 @@ impl<'a> CannonCodeGen<'a> {
             register_bty_from_ty(global_var.ty.clone())
         );
 
-        let disp = self.asm.add_addr(global_var.address_value);
+        let address_value = self
+            .vm
+            .global_variable_memory
+            .as_ref()
+            .unwrap()
+            .address_value(global_id);
+
+        let disp = self.asm.add_addr(address_value);
         let pos = self.asm.pos() as i32;
 
         self.asm.load_constpool(REG_TMP1, disp + pos);
@@ -1512,8 +1533,22 @@ impl<'a> CannonCodeGen<'a> {
         let src = self.reg(src);
         self.asm.copy_bytecode_ty(bytecode_type, dest, src);
 
-        if global_var.needs_initialization() {
-            let disp = self.asm.add_addr(global_var.address_init);
+        if global_var.has_initializer()
+            && !self
+                .vm
+                .global_variable_memory
+                .as_ref()
+                .unwrap()
+                .is_initialized(global_id)
+        {
+            let address_init = self
+                .vm
+                .global_variable_memory
+                .as_ref()
+                .unwrap()
+                .address_init(global_id);
+
+            let disp = self.asm.add_addr(address_init);
             let pos = self.asm.pos() as i32;
             self.asm.load_constpool(REG_RESULT, disp + pos);
             self.asm.load_int_const(MachineMode::Int8, REG_TMP1, 1);

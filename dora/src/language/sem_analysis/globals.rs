@@ -1,7 +1,6 @@
 use std::convert::TryInto;
 use std::sync::Arc;
 
-use crate::gc::Address;
 use crate::language::sem_analysis::{
     module_path, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, SemAnalysis,
     SourceFileId, Visibility,
@@ -51,8 +50,6 @@ pub struct GlobalDefinition {
     pub mutable: bool,
     pub name: Name,
     pub initializer: Option<FctDefinitionId>,
-    pub address_init: Address,
-    pub address_value: Address,
 }
 
 impl GlobalDefinition {
@@ -74,8 +71,6 @@ impl GlobalDefinition {
             ty: SourceType::Unit,
             mutable: node.mutable,
             initializer: None,
-            address_init: Address::null(),
-            address_value: Address::null(),
         }
     }
 
@@ -83,15 +78,11 @@ impl GlobalDefinition {
         self.id.expect("id missing")
     }
 
-    pub fn needs_initialization(&self) -> bool {
-        self.initializer.is_some() && !self.is_initialized()
+    pub fn has_initializer(&self) -> bool {
+        self.initializer.is_some()
     }
 
     pub fn name(&self, sa: &SemAnalysis) -> String {
         module_path(sa, self.module_id, self.name)
-    }
-
-    fn is_initialized(&self) -> bool {
-        unsafe { *self.address_init.to_ptr::<bool>() }
     }
 }

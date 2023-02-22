@@ -1,4 +1,5 @@
-use crate::gc::Region;
+use crate::gc::{Address, Region};
+use crate::language::sem_analysis::GlobalDefinitionId;
 use crate::language::ty::SourceType;
 use crate::mem;
 use crate::os;
@@ -28,26 +29,49 @@ pub fn init_global_addresses(vm: &mut VM) {
 
     let size = mem::page_align(size);
     let start = os::commit(size, false);
+    let mut variables = Vec::with_capacity(vm.globals.len());
 
-    for (ind, global_var) in vm.globals.iter().enumerate() {
-        let mut global_var = global_var.write();
-        let (initialized_offset, value_offset) = offsets[ind];
+    for global in offsets {
+        let (initialized_offset, value_offset) = global;
 
-        global_var.address_init = start.offset(initialized_offset);
-        global_var.address_value = start.offset(value_offset);
+        variables.push(GlobalVariableLocation {
+            address_init: start.offset(initialized_offset),
+            address_value: start.offset(value_offset),
+        });
     }
 
     vm.global_variable_memory = Some(GlobalVariableMemory {
         region: start.region_start(size),
+        variables,
     });
 }
 
 pub struct GlobalVariableMemory {
     region: Region,
+    variables: Vec<GlobalVariableLocation>,
+}
+
+impl GlobalVariableMemory {
+    pub fn address_value(&self, idx: GlobalDefinitionId) -> Address {
+        self.variables[idx.to_usize()].address_value
+    }
+
+    pub fn address_init(&self, idx: GlobalDefinitionId) -> Address {
+        self.variables[idx.to_usize()].address_init
+    }
+
+    pub fn is_initialized(&self, idx: GlobalDefinitionId) -> bool {
+        unsafe { *self.address_init(idx).to_ptr::<bool>() }
+    }
 }
 
 impl Drop for GlobalVariableMemory {
     fn drop(&mut self) {
         os::free(self.region.start(), self.region.size());
     }
+}
+
+pub struct GlobalVariableLocation {
+    address_init: Address,
+    address_value: Address,
 }
