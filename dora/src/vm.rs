@@ -13,8 +13,8 @@ use crate::language::sem_analysis::{
     AnnotationDefinition, AnnotationDefinitionId, ClassDefinition, ClassDefinitionId,
     ConstDefinition, EnumDefinition, EnumDefinitionId, ExtensionDefinition, FctDefinition,
     FctDefinitionId, GlobalDefinition, ImplDefinition, ModuleDefinition, ModuleDefinitionId,
-    PackageDefinition, PackageDefinitionId, SourceFile, SourceFileId, StructDefinition,
-    StructDefinitionId, TraitDefinition, TraitDefinitionId, UseDefinition,
+    PackageDefinition, PackageDefinitionId, SemAnalysis, SourceFile, SourceFileId,
+    StructDefinition, StructDefinitionId, TraitDefinition, TraitDefinitionId, UseDefinition,
 };
 use crate::language::ty::SourceTypeArray;
 use crate::stack::DoraToNativeInfo;
@@ -71,7 +71,7 @@ mod functions;
 mod globals;
 mod impls;
 mod initialize;
-mod known;
+pub mod known;
 mod modules;
 mod specialize;
 mod structs;
@@ -108,121 +108,6 @@ pub fn clear_vm() {
 pub fn stack_pointer() -> Address {
     let local: i32 = 0;
     Address::from_ptr(&local as *const i32)
-}
-
-pub struct FullSemAnalysis {
-    pub args: Args,
-    pub test_file_as_string: Option<&'static str>,
-    pub interner: Interner,
-    pub source_files: Vec<SourceFile>,
-    pub diag: Mutex<Diagnostic>,
-    pub known: KnownElements,
-    pub consts: MutableVec<ConstDefinition>, // stores all const definitions
-    pub structs: MutableVec<StructDefinition>, // stores all struct source definitions
-    pub classes: MutableVec<ClassDefinition>, // stores all class source definitions
-    pub extensions: MutableVec<ExtensionDefinition>, // stores all extension definitions
-    pub annotations: MutableVec<AnnotationDefinition>, // stores all annotation source definitions
-    pub modules: MutableVec<ModuleDefinition>, // stores all module definitions
-    pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
-    pub enums: MutableVec<EnumDefinition>,   // stores all enum source definitions
-    pub traits: MutableVec<TraitDefinition>, // stores all trait definitions
-    pub impls: MutableVec<ImplDefinition>,   // stores all impl definitions
-    pub globals: MutableVec<GlobalDefinition>, // stores all global variables
-    pub uses: Vec<UseDefinition>,            // stores all uses
-    pub native_stubs: Mutex<NativeStubs>,
-    pub packages: MutableVec<PackageDefinition>,
-    pub package_names: HashMap<Name, PackageDefinitionId>,
-    pub prelude_module_id: Option<ModuleDefinitionId>,
-    pub stdlib_module_id: Option<ModuleDefinitionId>,
-    pub program_module_id: Option<ModuleDefinitionId>,
-    pub boots_module_id: Option<ModuleDefinitionId>,
-    pub stdlib_package_id: Option<PackageDefinitionId>,
-    pub program_package_id: Option<PackageDefinitionId>,
-    pub boots_package_id: Option<PackageDefinitionId>,
-}
-
-impl FullSemAnalysis {
-    pub fn new(args: Args) -> Box<FullSemAnalysis> {
-        let sa = Box::new(FullSemAnalysis {
-            args,
-            test_file_as_string: None,
-            source_files: Vec::new(),
-            consts: MutableVec::new(),
-            structs: MutableVec::new(),
-            classes: MutableVec::new(),
-            extensions: MutableVec::new(),
-            annotations: MutableVec::new(),
-            modules: MutableVec::new(),
-            enums: MutableVec::new(),
-            traits: MutableVec::new(),
-            impls: MutableVec::new(),
-            globals: MutableVec::new(),
-            uses: Vec::new(),
-            interner: Interner::new(),
-            known: KnownElements::new(),
-            diag: Mutex::new(Diagnostic::new()),
-            fcts: GrowableVec::new(),
-            native_stubs: Mutex::new(NativeStubs::new()),
-            packages: MutableVec::new(),
-            package_names: HashMap::new(),
-            prelude_module_id: None,
-            stdlib_module_id: None,
-            program_module_id: None,
-            boots_module_id: None,
-            stdlib_package_id: None,
-            program_package_id: None,
-            boots_package_id: None,
-        });
-
-        sa
-    }
-
-    pub fn new_from_sa(sa: Box<FullSemAnalysis>) -> Box<VM> {
-        VM::new_from_sa(sa)
-    }
-
-    pub fn prelude_module_id(&self) -> ModuleDefinitionId {
-        self.prelude_module_id.expect("uninitialized module id")
-    }
-
-    pub fn stdlib_module_id(&self) -> ModuleDefinitionId {
-        self.stdlib_module_id.expect("uninitialized module id")
-    }
-
-    pub fn boots_module_id(&self) -> ModuleDefinitionId {
-        self.boots_module_id.expect("uninitialized module id")
-    }
-
-    pub fn program_module_id(&self) -> ModuleDefinitionId {
-        self.program_module_id.expect("uninitialized module id")
-    }
-
-    pub fn stdlib_package_id(&self) -> PackageDefinitionId {
-        self.stdlib_package_id.expect("uninitialized package id")
-    }
-
-    pub fn boots_package_id(&self) -> PackageDefinitionId {
-        self.boots_package_id.expect("uninitialized package id")
-    }
-
-    pub fn program_package_id(&self) -> PackageDefinitionId {
-        self.program_package_id.expect("uninitialized package id")
-    }
-
-    pub fn source_file(&self, idx: SourceFileId) -> &SourceFile {
-        &self.source_files[idx.to_usize()]
-    }
-
-    pub fn add_fct(&self, mut fct: FctDefinition) -> FctDefinitionId {
-        let mut fcts = self.fcts.lock();
-        let fctid = FctDefinitionId(fcts.len());
-
-        fct.id = Some(fctid);
-
-        fcts.push(Arc::new(RwLock::new(fct)));
-
-        fctid
-    }
 }
 
 pub struct VM {
@@ -274,7 +159,7 @@ pub struct VM {
 }
 
 impl VM {
-    pub fn new_from_sa(sa: Box<FullSemAnalysis>) -> Box<VM> {
+    pub fn new_from_sa(sa: Box<SemAnalysis>) -> Box<VM> {
         let gc = Gc::new(&sa.args);
 
         let vm = Box::new(VM {
