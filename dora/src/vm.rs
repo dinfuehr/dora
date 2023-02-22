@@ -178,7 +178,7 @@ impl FullSemAnalysis {
     }
 
     pub fn new_from_sa(sa: Box<FullSemAnalysis>) -> Box<VM> {
-        VM::new_from_full_sa(sa)
+        VM::new_from_sa(sa)
     }
 
     pub fn prelude_module_id(&self) -> ModuleDefinitionId {
@@ -274,63 +274,7 @@ pub struct VM {
 }
 
 impl VM {
-    pub fn new(args: Args) -> Box<VM> {
-        let gc = Gc::new(&args);
-
-        let vm = Box::new(VM {
-            args,
-            test_file_as_string: None,
-            source_files: Vec::new(),
-            consts: MutableVec::new(),
-            structs: MutableVec::new(),
-            struct_specializations: RwLock::new(HashMap::new()),
-            struct_instances: GrowableVecNonIter::new(),
-            classes: MutableVec::new(),
-            class_specializations: RwLock::new(HashMap::new()),
-            class_instances: GrowableVecNonIter::new(),
-            extensions: MutableVec::new(),
-            annotations: MutableVec::new(),
-            modules: MutableVec::new(),
-            enums: MutableVec::new(),
-            enum_specializations: RwLock::new(HashMap::new()),
-            enum_instances: GrowableVecNonIter::new(),
-            traits: MutableVec::new(),
-            trait_vtables: RwLock::new(HashMap::new()),
-            impls: MutableVec::new(),
-            globals: MutableVec::new(),
-            global_variable_memory: None,
-            uses: Vec::new(),
-            interner: Interner::new(),
-            known: KnownElements::new(),
-            gc,
-            diag: Mutex::new(Diagnostic::new()),
-            fcts: GrowableVec::new(),
-            compilation_database: CompilationDatabase::new(),
-            code_objects: CodeObjects::new(),
-            code_map: CodeMap::new(),
-            native_stubs: Mutex::new(NativeStubs::new()),
-            stubs: Stubs::new(),
-            threads: Threads::new(),
-            packages: MutableVec::new(),
-            prelude_module_id: None,
-            stdlib_module_id: None,
-            program_module_id: None,
-            boots_module_id: None,
-            stdlib_package_id: None,
-            program_package_id: None,
-            boots_package_id: None,
-            package_names: HashMap::new(),
-            wait_lists: WaitLists::new(),
-        });
-
-        vm
-    }
-
-    pub fn new_from_sa(sa: Box<VM>) -> Box<VM> {
-        sa
-    }
-
-    pub fn new_from_full_sa(sa: Box<FullSemAnalysis>) -> Box<VM> {
+    pub fn new_from_sa(sa: Box<FullSemAnalysis>) -> Box<VM> {
         let gc = Gc::new(&sa.args);
 
         let vm = Box::new(VM {

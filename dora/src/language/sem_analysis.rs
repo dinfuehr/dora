@@ -9,7 +9,7 @@ use dora_parser::interner::Name;
 use crate::language::sym::ModuleSymTable;
 use crate::language::sym::SymTable;
 use crate::language::ty::{SourceType, SourceTypeArray};
-use crate::vm::VM;
+use crate::vm::FullSemAnalysis;
 
 pub use self::annotations::{AnnotationDefinition, AnnotationDefinitionId};
 pub use self::classes::{
@@ -58,7 +58,7 @@ mod traits;
 mod tuples;
 mod uses;
 
-pub type SemAnalysis = VM;
+pub type SemAnalysis = FullSemAnalysis;
 
 impl SemAnalysis {
     #[cfg(test)]
