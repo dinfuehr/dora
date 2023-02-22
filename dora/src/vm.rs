@@ -9,11 +9,11 @@ use crate::compiler::dora_exit_stubs::NativeStubs;
 use crate::driver::cmd::Args;
 use crate::gc::{Address, Gc};
 use crate::language::sem_analysis::{
-    AnnotationDefinition, ClassDefinition, ClassDefinitionId, ConstDefinition, EnumDefinition,
-    EnumDefinitionId, ExtensionDefinition, FctDefinition, FctDefinitionId, GlobalDefinition,
-    ImplDefinition, KnownElements, ModuleDefinition, ModuleDefinitionId, PackageDefinition,
-    PackageDefinitionId, SemAnalysis, SourceFile, SourceFileId, StructDefinition,
-    StructDefinitionId, TraitDefinition, TraitDefinitionId,
+    AnnotationDefinition, ClassDefinition, ClassDefinitionId, EnumDefinition, EnumDefinitionId,
+    ExtensionDefinition, FctDefinition, FctDefinitionId, GlobalDefinition, ImplDefinition,
+    KnownElements, ModuleDefinition, ModuleDefinitionId, PackageDefinition, PackageDefinitionId,
+    SemAnalysis, SourceFile, SourceFileId, StructDefinition, StructDefinitionId, TraitDefinition,
+    TraitDefinitionId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::stack::DoraToNativeInfo;
@@ -112,7 +112,6 @@ pub struct VM {
     pub source_files: Vec<SourceFile>,
     pub known: KnownElements,
     pub known_instances: KnownInstances,
-    pub consts: MutableVec<ConstDefinition>, // stores all const definitions
     pub structs: MutableVec<StructDefinition>, // stores all struct source definitions
     pub struct_specializations:
         RwLock<HashMap<(StructDefinitionId, SourceTypeArray), StructInstanceId>>,
@@ -159,7 +158,6 @@ impl VM {
         let vm = Box::new(VM {
             args,
             source_files: sa.source_files,
-            consts: sa.consts,
             structs: sa.structs,
             struct_specializations: RwLock::new(HashMap::new()),
             struct_instances: GrowableVecNonIter::new(),
