@@ -10,13 +10,13 @@ use crate::driver::cmd::Args;
 use crate::gc::{Address, Gc};
 use crate::language::error::diag::Diagnostic;
 use crate::language::sem_analysis::{
-    AnnotationDefinition, AnnotationDefinitionId, ClassDefinition, ClassDefinitionId,
-    ConstDefinition, EnumDefinition, EnumDefinitionId, ExtensionDefinition, FctDefinition,
-    FctDefinitionId, GlobalDefinition, ImplDefinition, ModuleDefinition, ModuleDefinitionId,
-    PackageDefinition, PackageDefinitionId, SemAnalysis, SourceFile, SourceFileId,
-    StructDefinition, StructDefinitionId, TraitDefinition, TraitDefinitionId, UseDefinition,
+    AnnotationDefinition, ClassDefinition, ClassDefinitionId, ConstDefinition, EnumDefinition,
+    EnumDefinitionId, ExtensionDefinition, FctDefinition, FctDefinitionId, GlobalDefinition,
+    ImplDefinition, KnownElements, ModuleDefinition, ModuleDefinitionId, PackageDefinition,
+    PackageDefinitionId, SemAnalysis, SourceFile, SourceFileId, StructDefinition,
+    StructDefinitionId, TraitDefinition, TraitDefinitionId, UseDefinition,
 };
-use crate::language::ty::SourceTypeArray;
+use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::stack::DoraToNativeInfo;
 use crate::threads::ManagedThread;
 use crate::threads::{
@@ -42,10 +42,7 @@ pub use self::enums::{EnumInstance, EnumInstanceId, EnumLayout};
 pub use self::extensions::extension_matches_ty;
 use self::globals::GlobalVariableMemory;
 pub use self::impls::{find_trait_impl, implements_trait};
-pub use self::known::{
-    KnownAnnotations, KnownClasses, KnownElements, KnownEnums, KnownFunctions, KnownStructs,
-    KnownTraits,
-};
+use self::known::KnownInstances;
 pub use self::modules::{module_contains, module_path};
 pub use self::specialize::{
     add_ref_fields, replace_type_param, specialize_class_id, specialize_class_id_params,
@@ -71,7 +68,7 @@ mod functions;
 mod globals;
 mod impls;
 mod initialize;
-pub mod known;
+mod known;
 mod modules;
 mod specialize;
 mod structs;
@@ -117,6 +114,7 @@ pub struct VM {
     pub source_files: Vec<SourceFile>,
     pub diag: Mutex<Diagnostic>,
     pub known: KnownElements,
+    pub known_instances: KnownInstances,
     pub consts: MutableVec<ConstDefinition>, // stores all const definitions
     pub structs: MutableVec<StructDefinition>, // stores all struct source definitions
     pub struct_specializations:
@@ -187,6 +185,7 @@ impl VM {
             uses: sa.uses,
             interner: sa.interner,
             known: sa.known,
+            known_instances: KnownInstances::new(),
             gc,
             diag: sa.diag,
             fcts: sa.fcts,
@@ -305,6 +304,60 @@ impl VM {
         fcts.push(Arc::new(RwLock::new(fct)));
 
         fctid
+    }
+
+    pub fn byte_array(&self) -> ClassInstanceId {
+        let mut byte_array_def = self.known_instances.byte_array_class_instance.lock();
+
+        if let Some(cls_id) = *byte_array_def {
+            cls_id
+        } else {
+            let type_args = SourceTypeArray::single(SourceType::UInt8);
+            let cls_id = specialize_class_id_params(self, self.known.classes.array(), &type_args);
+            *byte_array_def = Some(cls_id);
+            cls_id
+        }
+    }
+
+    pub fn int_array(&self) -> ClassInstanceId {
+        let mut int_array_def = self.known_instances.int_array_class_instance.lock();
+
+        if let Some(cls_id) = *int_array_def {
+            cls_id
+        } else {
+            let type_args = SourceTypeArray::single(SourceType::Int32);
+            let cls_id = specialize_class_id_params(self, self.known.classes.array(), &type_args);
+            *int_array_def = Some(cls_id);
+            cls_id
+        }
+    }
+
+    pub fn str(&self) -> ClassInstanceId {
+        let mut str_class_def = self.known_instances.str_class_instance.lock();
+
+        if let Some(cls_id) = *str_class_def {
+            cls_id
+        } else {
+            let cls_id = specialize_class_id(self, self.known.classes.string());
+            *str_class_def = Some(cls_id);
+            cls_id
+        }
+    }
+
+    pub fn stack_trace_element(&self) -> ClassInstanceId {
+        let mut ste_class_def = self.known_instances.ste_class_instance.lock();
+
+        if let Some(cls_id) = *ste_class_def {
+            cls_id
+        } else {
+            let cls_id = specialize_class_id(self, self.known.classes.stacktrace_element());
+            *ste_class_def = Some(cls_id);
+            cls_id
+        }
+    }
+
+    pub fn thread_class_instance(&self) -> ClassInstanceId {
+        specialize_class_id(self, self.known.classes.thread())
     }
 }
 

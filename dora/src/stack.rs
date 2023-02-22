@@ -172,7 +172,7 @@ pub extern "C" fn stack_element(obj: Handle<Stacktrace>, ind: i32) -> Ref<Stackt
 
     let lineno = array.get_at(ind);
     let fct_id = array.get_at(ind + 1);
-    let cls_def_id = vm.known.stack_trace_element(vm);
+    let cls_def_id = vm.stack_trace_element();
 
     let ste: Ref<StacktraceElement> = alloc(vm, cls_def_id).cast();
     let mut ste = handle(ste);
@@ -216,7 +216,7 @@ fn set_backtrace(vm: &VM, mut obj: Handle<Stacktrace>, via_retrieve: bool) {
 
     let len = stacktrace.len() - skip;
 
-    let cls_id = vm.known.int_array(vm);
+    let cls_id = vm.int_array();
     let array: Ref<Int32Array> = Array::alloc(vm, len * 2, 0, cls_id);
     let mut array = handle(array);
     let mut i = 0;

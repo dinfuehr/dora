@@ -612,7 +612,7 @@ pub struct ManagedThread {
 
 impl ManagedThread {
     pub fn alloc(vm: &VM) -> Ref<ManagedThread> {
-        let cls_id = vm.known.classes.thread_class_instance(vm);
+        let cls_id = vm.thread_class_instance();
         let mut managed_thread: Ref<ManagedThread> = alloc(vm, cls_id).cast();
         managed_thread.native_thread_ptr = 0;
         managed_thread.id = 0;

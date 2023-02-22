@@ -538,7 +538,7 @@ pub fn fill_region(vm: &VM, start: Address, end: Address) {
         }
     } else if end.offset_from(start) == Header::size() as usize {
         // fill with object
-        let cls_id = vm.known.free_object_class_instance();
+        let cls_id = vm.known_instances.free_object_class_instance();
         let cls = vm.class_instances.idx(cls_id);
         let vtable = cls.vtable.read();
         let vtable: &VTable = vtable.as_ref().unwrap();
@@ -548,7 +548,7 @@ pub fn fill_region(vm: &VM, start: Address, end: Address) {
         }
     } else {
         // fill with free array
-        let cls_id = vm.known.free_array_class_instance();
+        let cls_id = vm.known_instances.free_array_class_instance();
         let cls = vm.class_instances.idx(cls_id);
         let vtable = cls.vtable.read();
         let vtable: &VTable = vtable.as_ref().unwrap();
@@ -572,7 +572,7 @@ pub fn fill_region_with_free(vm: &VM, start: Address, end: Address, next: Addres
         panic!("region is too small for FreeObject.");
     } else if end.offset_from(start) == Header::size() as usize {
         // fill with FreeObject
-        let cls_id = vm.known.free_object_class_instance();
+        let cls_id = vm.known_instances.free_object_class_instance();
         let cls = vm.class_instances.idx(cls_id);
         let vtable = cls.vtable.read();
         let vtable: &VTable = vtable.as_ref().unwrap();
@@ -583,7 +583,7 @@ pub fn fill_region_with_free(vm: &VM, start: Address, end: Address, next: Addres
         }
     } else {
         // fill with FreeArray
-        let cls_id = vm.known.free_array_class_instance();
+        let cls_id = vm.known_instances.free_array_class_instance();
         let cls = vm.class_instances.idx(cls_id);
         let vtable = cls.vtable.read();
         let vtable: &VTable = vtable.as_ref().unwrap();

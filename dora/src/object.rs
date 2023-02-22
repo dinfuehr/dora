@@ -635,7 +635,7 @@ fn byte_array_alloc_heap(vm: &VM, len: usize) -> Ref<UInt8Array> {
     let size = mem::align_usize(size, mem::ptr_width() as usize);
     let ptr = vm.gc.alloc(vm, size, false);
 
-    let clsid = vm.known.byte_array(vm);
+    let clsid = vm.byte_array();
     let cls = vm.class_instances.idx(clsid);
     let vtable = cls.vtable.read();
     let vtable: &VTable = vtable.as_ref().unwrap();
@@ -668,7 +668,7 @@ where
     let size = mem::align_usize(size, mem::ptr_width() as usize);
     let ptr = alloc(vm, size);
 
-    let clsid = vm.known.str(vm);
+    let clsid = vm.str();
     let cls = vm.class_instances.idx(clsid);
     let vtable = cls.vtable.read();
     let vtable: &VTable = vtable.as_ref().unwrap();

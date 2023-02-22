@@ -13,7 +13,6 @@ use crate::language::sym::ModuleSymTable;
 use crate::language::sym::SymTable;
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::utils::{GrowableVec, MutableVec};
-use crate::vm::known::KnownElements;
 
 pub use self::annotations::{AnnotationDefinition, AnnotationDefinitionId};
 pub use self::classes::{
@@ -30,6 +29,7 @@ pub use self::globals::{GlobalDefinition, GlobalDefinitionId};
 pub use self::impls::{
     find_impl, find_trait_impl, impl_matches, implements_trait, ImplDefinition, ImplDefinitionId,
 };
+pub use self::known::KnownElements;
 pub use self::modules::{module_package, module_path, ModuleDefinition, ModuleDefinitionId};
 pub use self::packages::{PackageDefinition, PackageDefinitionId, PackageName};
 pub use self::source_files::{SourceFile, SourceFileId};
@@ -53,6 +53,7 @@ mod extensions;
 mod functions;
 mod globals;
 mod impls;
+mod known;
 mod modules;
 mod packages;
 mod source_files;
