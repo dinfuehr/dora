@@ -32,8 +32,7 @@ pub fn start() -> i32 {
     let sem_args = SemAnalysisArgs {
         arg_file: args.arg_file.clone(),
         packages: args.packages.clone(),
-        flag_emit_ast: args.flag_emit_ast.clone(),
-        flag_emit_bytecode: args.flag_emit_bytecode.clone(),
+        test_file_as_string: None,
     };
 
     let mut sa = SemAnalysis::new(sem_args);
@@ -51,9 +50,15 @@ pub fn start() -> i32 {
         return 1;
     }
 
-    language::emit_ast(&sa);
+    if let Some(ref filter) = args.flag_emit_ast {
+        language::emit_ast(&sa, filter);
+    }
 
     language::generate_bytecode(&sa);
+
+    if let Some(ref filter) = args.flag_emit_bytecode {
+        language::emit_bytecode(&sa, filter);
+    }
 
     // if --check given, stop after type/semantic check
     if args.flag_check {

@@ -109,25 +109,13 @@ pub fn check(sa: &mut SemAnalysis) -> bool {
     true
 }
 
-pub fn emit_ast(sa: &SemAnalysis) {
-    if sa.args.flag_emit_ast.is_none() {
-        return;
-    }
-
+pub fn emit_ast(sa: &SemAnalysis, filter: &str) {
     for fct in sa.fcts.iter() {
         let fct = fct.read();
 
-        if should_emit_ast(sa, &*fct) {
+        if fct_pattern_match(sa, &*fct, filter) {
             ast::dump::dump_fct(&fct.ast, &sa.interner);
         }
-    }
-}
-
-fn should_emit_ast(sa: &SemAnalysis, fct: &FctDefinition) -> bool {
-    if let Some(ref dbg_names) = sa.args.flag_emit_ast {
-        fct_pattern_match(sa, fct, dbg_names)
-    } else {
-        false
     }
 }
 
@@ -145,22 +133,16 @@ pub fn generate_bytecode(sa: &SemAnalysis) {
         };
 
         fct.write().bytecode = Some(bc);
-
-        {
-            let fct = fct.read();
-
-            if fct.module_id == sa.program_module_id() && should_emit_bytecode(sa, &*fct) {
-                bytecode::dump(sa, Some(&*fct), fct.bytecode.as_ref().unwrap());
-            }
-        }
     }
 }
 
-fn should_emit_bytecode(sa: &SemAnalysis, fct: &FctDefinition) -> bool {
-    if let Some(ref dbg_names) = sa.args.flag_emit_bytecode {
-        fct_pattern_match(sa, fct, dbg_names)
-    } else {
-        false
+pub fn emit_bytecode(sa: &SemAnalysis, filter: &str) {
+    for fct in sa.fcts.iter() {
+        let fct = fct.read();
+
+        if fct_pattern_match(sa, &*fct, filter) {
+            bytecode::dump(sa, Some(&*fct), fct.bytecode.as_ref().unwrap());
+        }
     }
 }
 

@@ -145,7 +145,7 @@ impl<'a> ProgramParser<'a> {
         self.sa.set_program_package_id(package_id);
 
         if self.sa.args.arg_file.is_none() {
-            if let Some(content) = self.sa.test_file_as_string {
+            if let Some(content) = self.sa.args.test_file_as_string {
                 self.add_file_from_string(
                     package_id,
                     module_id,

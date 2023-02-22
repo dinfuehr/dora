@@ -63,26 +63,23 @@ mod tuples;
 mod uses;
 
 pub struct SemAnalysisArgs {
-    pub flag_emit_ast: Option<String>,
-    pub flag_emit_bytecode: Option<String>,
     pub packages: Vec<(String, PathBuf)>,
     pub arg_file: Option<String>,
+    pub test_file_as_string: Option<&'static str>,
 }
 
 impl SemAnalysisArgs {
-    pub fn new() -> SemAnalysisArgs {
+    pub fn for_test(input: &'static str) -> SemAnalysisArgs {
         SemAnalysisArgs {
-            flag_emit_ast: None,
-            flag_emit_bytecode: None,
             packages: Vec::new(),
             arg_file: None,
+            test_file_as_string: Some(input),
         }
     }
 }
 
 pub struct SemAnalysis {
     pub args: SemAnalysisArgs,
-    pub test_file_as_string: Option<&'static str>,
     pub interner: Interner,
     pub source_files: Vec<SourceFile>,
     pub diag: Mutex<Diagnostic>,
@@ -114,7 +111,6 @@ impl SemAnalysis {
     pub fn new(args: SemAnalysisArgs) -> Box<SemAnalysis> {
         let sa = Box::new(SemAnalysis {
             args,
-            test_file_as_string: None,
             source_files: Vec::new(),
             consts: MutableVec::new(),
             structs: MutableVec::new(),

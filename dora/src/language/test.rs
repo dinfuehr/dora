@@ -20,9 +20,8 @@ pub fn check<F, T>(code: &'static str, f: F) -> T
 where
     F: FnOnce(&SemAnalysis) -> T,
 {
-    let args: SemAnalysisArgs = SemAnalysisArgs::new();
+    let args: SemAnalysisArgs = SemAnalysisArgs::for_test(code);
     let mut sa = SemAnalysis::new(args);
-    sa.test_file_as_string = Some(code);
 
     let result = language::check(&mut sa);
     assert_eq!(result, !sa.diag.lock().has_errors());

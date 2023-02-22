@@ -8,13 +8,12 @@ use crate::compiler;
 use crate::compiler::dora_exit_stubs::NativeStubs;
 use crate::driver::cmd::Args;
 use crate::gc::{Address, Gc};
-use crate::language::error::diag::Diagnostic;
 use crate::language::sem_analysis::{
     AnnotationDefinition, ClassDefinition, ClassDefinitionId, ConstDefinition, EnumDefinition,
     EnumDefinitionId, ExtensionDefinition, FctDefinition, FctDefinitionId, GlobalDefinition,
     ImplDefinition, KnownElements, ModuleDefinition, ModuleDefinitionId, PackageDefinition,
     PackageDefinitionId, SemAnalysis, SourceFile, SourceFileId, StructDefinition,
-    StructDefinitionId, TraitDefinition, TraitDefinitionId, UseDefinition,
+    StructDefinitionId, TraitDefinition, TraitDefinitionId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::stack::DoraToNativeInfo;
@@ -109,10 +108,8 @@ pub fn stack_pointer() -> Address {
 
 pub struct VM {
     pub args: Args,
-    pub test_file_as_string: Option<&'static str>,
     pub interner: Interner,
     pub source_files: Vec<SourceFile>,
-    pub diag: Mutex<Diagnostic>,
     pub known: KnownElements,
     pub known_instances: KnownInstances,
     pub consts: MutableVec<ConstDefinition>, // stores all const definitions
@@ -139,8 +136,7 @@ pub struct VM {
     pub code_map: CodeMap,                 // stores all compiled functions
     pub globals: MutableVec<GlobalDefinition>, // stores all global variables
     pub global_variable_memory: Option<GlobalVariableMemory>,
-    pub uses: Vec<UseDefinition>, // stores all uses
-    pub gc: Gc,                   // garbage collector
+    pub gc: Gc, // garbage collector
     pub native_stubs: Mutex<NativeStubs>,
     pub stubs: Stubs,
     pub threads: Threads,
@@ -162,7 +158,6 @@ impl VM {
 
         let vm = Box::new(VM {
             args,
-            test_file_as_string: sa.test_file_as_string,
             source_files: sa.source_files,
             consts: sa.consts,
             structs: sa.structs,
@@ -182,12 +177,10 @@ impl VM {
             impls: sa.impls,
             globals: sa.globals,
             global_variable_memory: None,
-            uses: sa.uses,
             interner: sa.interner,
             known: sa.known,
             known_instances: KnownInstances::new(),
             gc,
-            diag: sa.diag,
             fcts: sa.fcts,
             compilation_database: CompilationDatabase::new(),
             code_objects: CodeObjects::new(),
