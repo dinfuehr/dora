@@ -18,9 +18,9 @@ pub enum BytecodeType {
     Float32,
     Float64,
     Ptr,
-    Tuple(SourceTypeArray),
+    Tuple(BytecodeTypeArray),
     TypeParam(u32),
-    Enum(EnumDefinitionId, SourceTypeArray),
+    Enum(EnumDefinitionId, BytecodeTypeArray),
     Struct(StructDefinitionId, SourceTypeArray),
     Class(ClassDefinitionId, SourceTypeArray),
     Trait(TraitDefinitionId, SourceTypeArray),
@@ -112,7 +112,7 @@ impl BytecodeType {
         }
     }
 
-    pub fn tuple_subtypes(&self) -> SourceTypeArray {
+    pub fn tuple_subtypes(&self) -> BytecodeTypeArray {
         match self {
             BytecodeType::Tuple(subtypes) => subtypes.clone(),
             _ => unreachable!(),

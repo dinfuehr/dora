@@ -9,6 +9,7 @@ use crate::compiler::dora_exit_stubs::{NativeFct, NativeFctKind};
 use crate::cpu::{FReg, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_THREAD, REG_TMP1, REG_TMP2};
 use crate::gc::tlab::TLAB_OBJECT_SIZE;
 use crate::gc::Address;
+use crate::language::generator::ty_array_from_bty;
 use crate::language::sem_analysis::{FctDefinitionId, GlobalDefinitionId, StructDefinitionId};
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::masm::{CodeDescriptor, CondCode, Label, MacroAssembler, Mem, ScratchReg};
@@ -194,11 +195,12 @@ impl<'a> BaselineAssembler<'a> {
             }
 
             BytecodeType::Tuple(subtypes) => {
-                self.copy_tuple(subtypes, dest, src);
+                self.copy_tuple(ty_array_from_bty(&subtypes), dest, src);
             }
 
             BytecodeType::Enum(enum_id, type_params) => {
-                let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+                let enum_instance_id =
+                    specialize_enum_id_params(self.vm, enum_id, ty_array_from_bty(&type_params));
                 let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
                 let mode = match enum_instance.layout {

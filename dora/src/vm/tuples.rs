@@ -1,6 +1,7 @@
 use std::cmp::max;
 
 use crate::bytecode::BytecodeType;
+use crate::language::generator::ty_array_from_bty;
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::mem;
 use crate::vm::{specialize_enum_id_params, EnumLayout, VM};
@@ -118,5 +119,5 @@ pub fn get_concrete_tuple_ty(vm: &VM, ty: &SourceType) -> ConcreteTuple {
 
 pub fn get_concrete_tuple_bytecode_ty(vm: &VM, ty: &BytecodeType) -> ConcreteTuple {
     let subtypes = ty.tuple_subtypes();
-    get_concrete_tuple_array(vm, subtypes)
+    get_concrete_tuple_array(vm, ty_array_from_bty(&subtypes))
 }

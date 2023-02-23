@@ -784,7 +784,7 @@ impl<'a> AstBytecodeGen<'a> {
         pos: Position,
         dest: DataDest,
     ) -> Register {
-        let bty = BytecodeType::Enum(enum_id, type_params.clone());
+        let bty = BytecodeType::Enum(enum_id, bty_array_from_ty(&type_params));
         let dest = self.ensure_register(dest, bty);
         let idx = self
             .builder
@@ -3255,9 +3255,11 @@ pub fn bty_from_ty(ty: SourceType) -> BytecodeType {
         SourceType::Float64 => BytecodeType::Float64,
         SourceType::Class(class_id, type_params) => BytecodeType::Class(class_id, type_params),
         SourceType::Trait(trait_id, type_params) => BytecodeType::Trait(trait_id, type_params),
-        SourceType::Enum(enum_id, type_params) => BytecodeType::Enum(enum_id, type_params),
+        SourceType::Enum(enum_id, type_params) => {
+            BytecodeType::Enum(enum_id, bty_array_from_ty(&type_params))
+        }
         SourceType::Struct(struct_id, type_params) => BytecodeType::Struct(struct_id, type_params),
-        SourceType::Tuple(subtypes) => BytecodeType::Tuple(subtypes),
+        SourceType::Tuple(subtypes) => BytecodeType::Tuple(bty_array_from_ty(&subtypes)),
         SourceType::TypeParam(idx) => BytecodeType::TypeParam(idx.to_usize() as u32),
         SourceType::Lambda(params, return_type) => BytecodeType::Lambda(params, return_type),
         SourceType::Ptr => BytecodeType::Ptr,
@@ -3285,9 +3287,11 @@ pub fn ty_from_bty(ty: BytecodeType) -> SourceType {
         BytecodeType::Float64 => SourceType::Float64,
         BytecodeType::Class(class_id, type_params) => SourceType::Class(class_id, type_params),
         BytecodeType::Trait(trait_id, type_params) => SourceType::Trait(trait_id, type_params),
-        BytecodeType::Enum(enum_id, type_params) => SourceType::Enum(enum_id, type_params),
+        BytecodeType::Enum(enum_id, type_params) => {
+            SourceType::Enum(enum_id, ty_array_from_bty(&type_params))
+        }
         BytecodeType::Struct(struct_id, type_params) => SourceType::Struct(struct_id, type_params),
-        BytecodeType::Tuple(subtypes) => SourceType::Tuple(subtypes),
+        BytecodeType::Tuple(subtypes) => SourceType::Tuple(ty_array_from_bty(&subtypes)),
         BytecodeType::TypeParam(idx) => SourceType::TypeParam(TypeParamId(idx as usize)),
         BytecodeType::Lambda(params, return_type) => SourceType::Lambda(params, return_type),
         BytecodeType::Ptr => SourceType::Ptr,
@@ -3306,9 +3310,11 @@ pub fn register_bty_from_ty(ty: SourceType) -> BytecodeType {
         SourceType::Float64 => BytecodeType::Float64,
         SourceType::Class(_, _) => BytecodeType::Ptr,
         SourceType::Trait(trait_id, type_params) => BytecodeType::Trait(trait_id, type_params),
-        SourceType::Enum(enum_id, type_params) => BytecodeType::Enum(enum_id, type_params),
+        SourceType::Enum(enum_id, type_params) => {
+            BytecodeType::Enum(enum_id, bty_array_from_ty(&type_params))
+        }
         SourceType::Struct(struct_id, type_params) => BytecodeType::Struct(struct_id, type_params),
-        SourceType::Tuple(subtypes) => BytecodeType::Tuple(subtypes),
+        SourceType::Tuple(subtypes) => BytecodeType::Tuple(bty_array_from_ty(&subtypes)),
         SourceType::TypeParam(idx) => BytecodeType::TypeParam(idx.to_usize() as u32),
         SourceType::Lambda(_, _) => BytecodeType::Ptr,
         SourceType::Ptr => BytecodeType::Ptr,

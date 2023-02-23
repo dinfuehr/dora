@@ -2,6 +2,7 @@ use parking_lot::RwLock;
 use std::cmp::max;
 
 use crate::bytecode::BytecodeType;
+use crate::language::generator::{bty_array_from_ty, ty_array_from_bty};
 use crate::language::sem_analysis::{ClassDefinitionId, FctDefinitionId, TraitDefinitionId};
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::mem;
@@ -579,8 +580,8 @@ pub fn specialize_tuple_bty(
     type_params: &SourceTypeArray,
 ) -> BytecodeType {
     let subtypes = tuple_ty.tuple_subtypes();
-    let new_subtypes = specialize_tuple_array(vm, subtypes, type_params);
-    BytecodeType::Tuple(new_subtypes)
+    let new_subtypes = specialize_tuple_array(vm, ty_array_from_bty(&subtypes), type_params);
+    BytecodeType::Tuple(bty_array_from_ty(&new_subtypes))
 }
 
 pub fn specialize_tuple_array(

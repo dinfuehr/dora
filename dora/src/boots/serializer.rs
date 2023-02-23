@@ -104,7 +104,7 @@ fn encode_bytecode_type(vm: &VM, ty: &BytecodeType, buffer: &mut ByteBuffer) {
         }
         BytecodeType::Tuple(subtypes) => {
             buffer.emit_u8(BytecodeTypeKind::Tuple as u8);
-            encode_source_type_array(vm, subtypes, buffer);
+            encode_bytecode_type_array(vm, subtypes, buffer);
         }
         BytecodeType::TypeParam(type_param_id) => {
             buffer.emit_u8(BytecodeTypeKind::TypeParam as u8);
@@ -113,7 +113,7 @@ fn encode_bytecode_type(vm: &VM, ty: &BytecodeType, buffer: &mut ByteBuffer) {
         BytecodeType::Enum(enum_id, ref source_type_array) => {
             buffer.emit_u8(BytecodeTypeKind::Enum as u8);
             buffer.emit_id(enum_id.to_usize());
-            encode_source_type_array(vm, source_type_array, buffer);
+            encode_bytecode_type_array(vm, source_type_array, buffer);
         }
         BytecodeType::Struct(struct_id, ref source_type_array) => {
             buffer.emit_u8(BytecodeTypeKind::Struct as u8);
@@ -305,7 +305,7 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
         }
         &ConstPoolEntry::TupleElement(ref tuple_ty, element_idx) => {
             buffer.emit_u8(ConstPoolOpcode::TupleElement.to_u8());
-            encode_source_type_array(vm, &tuple_ty.tuple_subtypes(), buffer);
+            encode_bytecode_type_array(vm, &tuple_ty.tuple_subtypes(), buffer);
             buffer.emit_id(element_idx as usize);
         }
         &ConstPoolEntry::Tuple(ref source_type_array) => {
