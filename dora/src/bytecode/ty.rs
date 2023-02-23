@@ -1,3 +1,4 @@
+use std::ops::Index;
 use std::sync::Arc;
 
 use crate::bytecode::BytecodeTypeKind;
@@ -119,5 +120,58 @@ impl BytecodeType {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct BytecodeTypeArray(Arc<Vec<BytecodeType>>);
+
+impl BytecodeTypeArray {
+    pub fn new(types: Vec<BytecodeType>) -> BytecodeTypeArray {
+        BytecodeTypeArray(Arc::new(types))
+    }
+
+    pub fn one(ty: BytecodeType) -> BytecodeTypeArray {
+        BytecodeTypeArray(Arc::new(vec![ty]))
+    }
+
+    pub fn empty() -> BytecodeTypeArray {
+        BytecodeTypeArray(Arc::new(Vec::new()))
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn iter(&self) -> BytecodeTypeArrayIter {
+        BytecodeTypeArrayIter {
+            params: self,
+            idx: 0,
+        }
+    }
+}
+
+impl Index<usize> for BytecodeTypeArray {
+    type Output = BytecodeType;
+
+    fn index(&self, idx: usize) -> &BytecodeType {
+        &self.0[idx]
+    }
+}
+
+pub struct BytecodeTypeArrayIter<'a> {
+    params: &'a BytecodeTypeArray,
+    idx: usize,
+}
+
+impl<'a> Iterator for BytecodeTypeArrayIter<'a> {
+    type Item = BytecodeType;
+
+    fn next(&mut self) -> Option<BytecodeType> {
+        if self.idx < self.params.len() {
+            let ret = self.params[self.idx].clone();
+            self.idx += 1;
+
+            Some(ret)
+        } else {
+            None
+        }
+    }
+}

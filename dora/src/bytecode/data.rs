@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::bytecode::{BytecodeReader, BytecodeType};
+use crate::bytecode::{BytecodeReader, BytecodeType, BytecodeTypeArray};
 use crate::language::sem_analysis::{
     ClassDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId, GlobalDefinitionId,
     StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TypeParamId,
@@ -792,19 +792,23 @@ pub enum ConstPoolEntry {
     Int32(i32),
     Int64(i64),
     Char(char),
-    Class(ClassDefinitionId, SourceTypeArray),
+    Class(ClassDefinitionId, BytecodeTypeArray),
     Field(ClassDefinitionId, SourceTypeArray, FieldId),
     Fct(FctDefinitionId, SourceTypeArray),
-    Generic(TypeParamId, FctDefinitionId, SourceTypeArray),
-    Enum(EnumDefinitionId, SourceTypeArray),
-    EnumVariant(EnumDefinitionId, SourceTypeArray, usize),
-    EnumElement(EnumDefinitionId, SourceTypeArray, usize, usize),
-    Struct(StructDefinitionId, SourceTypeArray),
-    StructField(StructDefinitionId, SourceTypeArray, StructDefinitionFieldId),
-    Trait(TraitDefinitionId, SourceTypeArray, SourceType),
-    TupleElement(SourceType, usize),
-    Tuple(SourceTypeArray),
-    Lambda(SourceTypeArray, SourceType),
+    Generic(TypeParamId, FctDefinitionId, BytecodeTypeArray),
+    Enum(EnumDefinitionId, BytecodeTypeArray),
+    EnumVariant(EnumDefinitionId, BytecodeTypeArray, usize),
+    EnumElement(EnumDefinitionId, BytecodeTypeArray, usize, usize),
+    Struct(StructDefinitionId, BytecodeTypeArray),
+    StructField(
+        StructDefinitionId,
+        BytecodeTypeArray,
+        StructDefinitionFieldId,
+    ),
+    Trait(TraitDefinitionId, BytecodeTypeArray, BytecodeType),
+    TupleElement(BytecodeType, usize),
+    Tuple(BytecodeTypeArray),
+    Lambda(BytecodeTypeArray, SourceType),
 }
 
 impl ConstPoolEntry {

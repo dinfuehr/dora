@@ -3,6 +3,7 @@ use std::io;
 use crate::bytecode::{
     read, BytecodeFunction, BytecodeOffset, BytecodeVisitor, ConstPoolEntry, ConstPoolIdx, Register,
 };
+use crate::language::generator::{ty_array_from_bty, ty_from_bty};
 use crate::language::sem_analysis::{FctDefinition, GlobalDefinitionId, SemAnalysis};
 
 pub fn dump(vm: &SemAnalysis, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
@@ -43,44 +44,48 @@ pub fn dump(vm: &SemAnalysis, fct: Option<&FctDefinition>, bc: &BytecodeFunction
             ConstPoolEntry::Class(cls_id, type_params) => {
                 let cls = vm.classes.idx(*cls_id);
                 let cls = cls.read();
+                let type_params = ty_array_from_bty(type_params);
                 println!(
                     "{}{} => Class {}",
                     align,
                     idx,
-                    cls.name_with_params(vm, type_params)
+                    cls.name_with_params(vm, &type_params)
                 )
             }
             ConstPoolEntry::Struct(struct_id, type_params) => {
                 let struct_ = vm.structs.idx(*struct_id);
                 let struct_ = struct_.read();
+                let type_params = ty_array_from_bty(type_params);
                 println!(
                     "{}{} => Struct {}",
                     align,
                     idx,
-                    struct_.name_with_params(vm, type_params)
+                    struct_.name_with_params(vm, &type_params)
                 )
             }
             ConstPoolEntry::StructField(struct_id, type_params, field_idx) => {
                 let struct_ = vm.structs.idx(*struct_id);
                 let struct_ = struct_.read();
+                let type_params = ty_array_from_bty(type_params);
                 let field = &struct_.fields[field_idx.to_usize()];
                 let fname = vm.interner.str(field.name);
                 println!(
                     "{}{} => StructField {}.{}",
                     align,
                     idx,
-                    struct_.name_with_params(vm, type_params),
+                    struct_.name_with_params(vm, &type_params),
                     fname
                 )
             }
             ConstPoolEntry::Enum(enum_id, type_params) => {
                 let enum_ = &vm.enums[*enum_id];
                 let enum_ = enum_.read();
+                let type_params = ty_array_from_bty(type_params);
                 println!(
                     "{}{} => Enum {}",
                     align,
                     idx,
-                    enum_.name_with_params(vm, type_params)
+                    enum_.name_with_params(vm, &type_params)
                 )
             }
             ConstPoolEntry::EnumVariant(cls_id, type_params, variant_idx) => {
@@ -88,24 +93,26 @@ pub fn dump(vm: &SemAnalysis, fct: Option<&FctDefinition>, bc: &BytecodeFunction
                 let enum_ = enum_.read();
                 let variant = &enum_.variants[*variant_idx];
                 let variant_name = vm.interner.str(variant.name);
+                let type_params = ty_array_from_bty(type_params);
                 println!(
                     "{}{} => EnumVariant {}::{}",
                     align,
                     idx,
-                    enum_.name_with_params(vm, type_params),
+                    enum_.name_with_params(vm, &type_params),
                     variant_name,
                 )
             }
             ConstPoolEntry::EnumElement(cls_id, type_params, variant_idx, element_idx) => {
                 let enum_ = &vm.enums[*cls_id];
                 let enum_ = enum_.read();
+                let type_params = ty_array_from_bty(type_params);
                 let variant = &enum_.variants[*variant_idx];
                 let variant_name = vm.interner.str(variant.name);
                 println!(
                     "{}{} => EnumVariantElement {}::{}::{}",
                     align,
                     idx,
-                    enum_.name_with_params(vm, type_params),
+                    enum_.name_with_params(vm, &type_params),
                     variant_name,
                     element_idx,
                 )
@@ -147,6 +154,7 @@ pub fn dump(vm: &SemAnalysis, fct: Option<&FctDefinition>, bc: &BytecodeFunction
             ConstPoolEntry::Generic(id, fct_id, type_params) => {
                 let fct = vm.fcts.idx(*fct_id);
                 let fct = fct.read();
+                let type_params = ty_array_from_bty(type_params);
 
                 if type_params.len() > 0 {
                     let type_params = type_params
@@ -174,22 +182,26 @@ pub fn dump(vm: &SemAnalysis, fct: Option<&FctDefinition>, bc: &BytecodeFunction
             }
             ConstPoolEntry::Trait(trait_id, type_params, object_ty) => {
                 let trait_ = vm.traits[*trait_id].read();
+                let type_params = ty_array_from_bty(type_params);
+                let object_ty = ty_from_bty(object_ty.clone());
                 println!(
                     "{}{} => Trait {} from {}",
                     align,
                     idx,
-                    trait_.name_with_params(vm, type_params),
+                    trait_.name_with_params(vm, &type_params),
                     object_ty.name(vm),
                 )
             }
             ConstPoolEntry::TupleElement(_tuple_id, _idx) => {
                 println!("{}{} => TupleElement {}.{}", align, idx, "subtypes", idx)
             }
-            ConstPoolEntry::Tuple(ref source_type_array) => {
+            ConstPoolEntry::Tuple(ref subtypes) => {
+                let source_type_array = ty_array_from_bty(subtypes);
                 let tuple_name = source_type_array.tuple_name(vm);
                 println!("{}{} => Tuple {}", align, idx, tuple_name)
             }
             ConstPoolEntry::Lambda(ref params, ref return_type) => {
+                let params = ty_array_from_bty(params);
                 let params = params.tuple_name(vm);
                 let return_type = return_type.name(vm);
                 println!("{}{} => Lambda {}: {}", align, idx, params, return_type)
@@ -231,7 +243,9 @@ impl<'a> BytecodeDumper<'a> {
     fn emit_tuple_load(&mut self, name: &str, r1: Register, r2: Register, idx: ConstPoolIdx) {
         self.emit_start(name);
         let (tuple_ty, subtype_idx) = match self.bc.const_pool(idx) {
-            ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => (tuple_ty, *subtype_idx),
+            ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => {
+                (ty_from_bty(tuple_ty.clone()), *subtype_idx)
+            }
             _ => unreachable!(),
         };
         writeln!(
@@ -248,14 +262,17 @@ impl<'a> BytecodeDumper<'a> {
     fn emit_enum_load(&mut self, name: &str, r1: Register, r2: Register, idx: ConstPoolIdx) {
         self.emit_start(name);
         let (enum_id, type_params, variant_idx, element_idx) = match self.bc.const_pool(idx) {
-            ConstPoolEntry::EnumElement(enum_id, type_params, variant_idx, element_idx) => {
-                (*enum_id, type_params, *variant_idx, *element_idx)
-            }
+            ConstPoolEntry::EnumElement(enum_id, type_params, variant_idx, element_idx) => (
+                *enum_id,
+                ty_array_from_bty(type_params),
+                *variant_idx,
+                *element_idx,
+            ),
             _ => unreachable!(),
         };
         let enum_ = &self.sa.enums[enum_id];
         let enum_ = enum_.read();
-        let enum_name = enum_.name_with_params(self.sa, type_params);
+        let enum_name = enum_.name_with_params(self.sa, &type_params);
         let variant_name = self.sa.interner.str(enum_.variants[variant_idx].name);
         writeln!(
             self.w,
@@ -274,12 +291,14 @@ impl<'a> BytecodeDumper<'a> {
     fn emit_enum_variant(&mut self, name: &str, r1: Register, r2: Register, idx: ConstPoolIdx) {
         self.emit_start(name);
         let (enum_id, type_params) = match self.bc.const_pool(idx) {
-            ConstPoolEntry::Enum(enum_id, type_params) => (*enum_id, type_params),
+            ConstPoolEntry::Enum(enum_id, type_params) => {
+                (*enum_id, ty_array_from_bty(type_params))
+            }
             _ => unreachable!(),
         };
         let enum_ = &self.sa.enums[enum_id];
         let enum_ = enum_.read();
-        let enum_name = enum_.name_with_params(self.sa, type_params);
+        let enum_name = enum_.name_with_params(self.sa, &type_params);
         writeln!(
             self.w,
             " {}, {}, ConstPoolIdx({}) # {}",
@@ -353,7 +372,8 @@ impl<'a> BytecodeDumper<'a> {
             ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
                 let struct_ = self.sa.structs.idx(*struct_id);
                 let struct_ = struct_.read();
-                let struct_name = struct_.name_with_params(self.sa, type_params);
+                let type_params = ty_array_from_bty(type_params);
+                let struct_name = struct_.name_with_params(self.sa, &type_params);
 
                 let field = &struct_.fields[field_id.to_usize()];
                 let fname = self.sa.interner.str(field.name).to_string();
@@ -433,7 +453,7 @@ impl<'a> BytecodeDumper<'a> {
     fn emit_new_object(&mut self, name: &str, r1: Register, idx: ConstPoolIdx) {
         self.emit_start(name);
         let (cls_id, type_params) = match self.bc.const_pool(idx) {
-            ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params.clone()),
+            ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, ty_array_from_bty(type_params)),
             _ => unreachable!(),
         };
         let cls = self.sa.classes.idx(cls_id);
@@ -452,9 +472,11 @@ impl<'a> BytecodeDumper<'a> {
     fn emit_new_trait_object(&mut self, name: &str, r1: Register, idx: ConstPoolIdx, r2: Register) {
         self.emit_start(name);
         let (trait_id, type_params, actual_ty) = match self.bc.const_pool(idx) {
-            ConstPoolEntry::Trait(trait_id, type_params, ty) => {
-                (*trait_id, type_params.clone(), ty.clone())
-            }
+            ConstPoolEntry::Trait(trait_id, type_params, ty) => (
+                *trait_id,
+                ty_array_from_bty(type_params),
+                ty_from_bty(ty.clone()),
+            ),
             _ => unreachable!(),
         };
         let trait_ = self.sa.traits.idx(trait_id);
@@ -475,12 +497,12 @@ impl<'a> BytecodeDumper<'a> {
     fn emit_new_array(&mut self, name: &str, r1: Register, idx: ConstPoolIdx, length: Register) {
         self.emit_start(name);
         let (cls_id, type_params) = match self.bc.const_pool(idx) {
-            ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params),
+            ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, ty_array_from_bty(type_params)),
             _ => unreachable!(),
         };
         let cls = self.sa.classes.idx(cls_id);
         let cls = cls.read();
-        let cname = cls.name_with_params(self.sa, type_params);
+        let cname = cls.name_with_params(self.sa, &type_params);
         writeln!(
             self.w,
             " {}, ConstPoolIdx({}), {} # {}",
@@ -495,7 +517,7 @@ impl<'a> BytecodeDumper<'a> {
     fn emit_new_tuple(&mut self, name: &str, r1: Register, idx: ConstPoolIdx) {
         self.emit_start(name);
         let source_type_array = match self.bc.const_pool(idx) {
-            ConstPoolEntry::Tuple(ref source_type_array) => source_type_array.clone(),
+            ConstPoolEntry::Tuple(ref subtypes) => ty_array_from_bty(subtypes),
             _ => unreachable!(),
         };
         let tuple_name = source_type_array.tuple_name(self.sa);
@@ -506,13 +528,13 @@ impl<'a> BytecodeDumper<'a> {
         self.emit_start(name);
         let (enum_id, type_params, variant_idx) = match self.bc.const_pool(idx) {
             ConstPoolEntry::EnumVariant(enum_id, type_params, variant_idx) => {
-                (*enum_id, type_params, *variant_idx)
+                (*enum_id, ty_array_from_bty(type_params), *variant_idx)
             }
             _ => unreachable!(),
         };
         let enum_ = &self.sa.enums[enum_id];
         let enum_ = enum_.read();
-        let enum_name = enum_.name_with_params(self.sa, type_params);
+        let enum_name = enum_.name_with_params(self.sa, &type_params);
         let variant_name = self.sa.interner.str(enum_.variants[variant_idx].name);
         writeln!(
             self.w,
@@ -533,7 +555,8 @@ impl<'a> BytecodeDumper<'a> {
         };
         let struct_ = self.sa.structs.idx(struct_id);
         let struct_ = struct_.read();
-        let struct_name = struct_.name_with_params(self.sa, type_params);
+        let type_params = ty_array_from_bty(type_params);
+        let struct_name = struct_.name_with_params(self.sa, &type_params);
         writeln!(
             self.w,
             " {}, ConstPoolIdx({}) # {}",

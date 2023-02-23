@@ -3,11 +3,12 @@ use std::mem;
 
 use self::Bytecode::*;
 use crate::bytecode::{
-    self, BytecodeFunction, BytecodeOffset, BytecodeVisitor, ConstPoolEntry, ConstPoolIdx, Register,
+    self, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeTypeArray, BytecodeVisitor,
+    ConstPoolEntry, ConstPoolIdx, Register,
 };
-use crate::language::generator::generate_fct;
+use crate::language::generator::{bty_from_ty, generate_fct};
 use crate::language::sem_analysis::{
-    create_tuple, GlobalDefinitionId, SemAnalysis, StructDefinitionFieldId, TypeParamId,
+    create_tuple, GlobalDefinitionId, SemAnalysis, StructDefinitionFieldId,
 };
 use crate::language::test;
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -312,12 +313,12 @@ fn gen_stmt_let_tuple() {
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::TupleElement(tuple_ty.clone(), 0)
+                &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty.clone()), 0)
             );
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(1)),
-                &ConstPoolEntry::TupleElement(tuple_ty, 1)
+                &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty), 1)
             );
         },
     );
@@ -340,22 +341,22 @@ fn gen_stmt_let_tuple() {
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::TupleElement(tuple_ty.clone(), 0)
+                &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty.clone()), 0)
             );
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(1)),
-                &ConstPoolEntry::TupleElement(tuple_ty, 1)
+                &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty), 1)
             );
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(2)),
-                &ConstPoolEntry::TupleElement(nested_tuple_ty.clone(), 0)
+                &ConstPoolEntry::TupleElement(bty_from_ty(nested_tuple_ty.clone()), 0)
             );
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(3)),
-                &ConstPoolEntry::TupleElement(nested_tuple_ty, 1)
+                &ConstPoolEntry::TupleElement(bty_from_ty(nested_tuple_ty), 1)
             );
         },
     );
@@ -376,17 +377,17 @@ fn gen_stmt_let_tuple() {
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::TupleElement(tuple_ty.clone(), 0)
+                &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty.clone()), 0)
             );
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(1)),
-                &ConstPoolEntry::TupleElement(tuple_ty, 1)
+                &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty), 1)
             );
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(2)),
-                &ConstPoolEntry::TupleElement(nested_tuple_ty, 1)
+                &ConstPoolEntry::TupleElement(bty_from_ty(nested_tuple_ty), 1)
             );
         },
     );
@@ -418,17 +419,17 @@ fn gen_stmt_let_unit() {
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::TupleElement(tuple_ty.clone(), 0)
+                &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty.clone()), 0)
             );
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(1)),
-                &ConstPoolEntry::TupleElement(tuple_ty, 1)
+                &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty), 1)
             );
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(2)),
-                &ConstPoolEntry::TupleElement(inner_tuple_ty, 0)
+                &ConstPoolEntry::TupleElement(bty_from_ty(inner_tuple_ty), 0)
             );
         },
     );
@@ -449,17 +450,17 @@ fn gen_stmt_let_unit() {
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::TupleElement(tuple_ty.clone(), 0)
+                &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty.clone()), 0)
             );
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(1)),
-                &ConstPoolEntry::TupleElement(tuple_ty, 1)
+                &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty), 1)
             );
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(2)),
-                &ConstPoolEntry::TupleElement(nested_tuple_ty, 0)
+                &ConstPoolEntry::TupleElement(bty_from_ty(nested_tuple_ty), 0)
             );
         },
     );
@@ -2338,7 +2339,7 @@ fn gen_new_struct() {
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(1)),
-                &ConstPoolEntry::Struct(struct_id, SourceTypeArray::empty())
+                &ConstPoolEntry::Struct(struct_id, BytecodeTypeArray::empty())
             );
         },
     );
@@ -2363,7 +2364,7 @@ fn gen_new_struct() {
                 fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::Struct(
                     struct_id,
-                    SourceTypeArray::single(SourceType::TypeParam(TypeParamId(0)))
+                    BytecodeTypeArray::one(BytecodeType::TypeParam(0))
                 )
             );
         },
@@ -2397,7 +2398,7 @@ fn gen_struct_field() {
                 fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::StructField(
                     struct_id,
-                    SourceTypeArray::empty(),
+                    BytecodeTypeArray::empty(),
                     StructDefinitionFieldId(0)
                 )
             );
@@ -2417,7 +2418,7 @@ fn gen_struct_field() {
                 fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::StructField(
                     struct_id,
-                    SourceTypeArray::single(SourceType::Int32),
+                    BytecodeTypeArray::one(BytecodeType::Int32),
                     StructDefinitionFieldId(0)
                 )
             );
@@ -2465,7 +2466,7 @@ fn gen_new_enum() {
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(1)),
-                &ConstPoolEntry::EnumVariant(enum_id, SourceTypeArray::empty(), 0)
+                &ConstPoolEntry::EnumVariant(enum_id, BytecodeTypeArray::empty(), 0)
             );
         },
     );
@@ -2489,7 +2490,7 @@ fn gen_new_enum() {
                 fct.const_pool(ConstPoolIdx(1)),
                 &ConstPoolEntry::EnumVariant(
                     enum_id,
-                    SourceTypeArray::single(SourceType::Int32),
+                    BytecodeTypeArray::one(BytecodeType::Int32),
                     0
                 )
             );
@@ -2508,7 +2509,7 @@ fn gen_new_enum() {
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::EnumVariant(enum_id, SourceTypeArray::empty(), 1)
+                &ConstPoolEntry::EnumVariant(enum_id, BytecodeTypeArray::empty(), 1)
             );
         },
     );
@@ -2527,7 +2528,7 @@ fn gen_new_enum() {
                 fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::EnumVariant(
                     enum_id,
-                    SourceTypeArray::single(SourceType::Int32),
+                    BytecodeTypeArray::one(BytecodeType::Int32),
                     1
                 )
             );
@@ -2548,7 +2549,7 @@ fn gen_new_enum() {
                 fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::EnumVariant(
                     enum_id,
-                    SourceTypeArray::single(SourceType::Int32),
+                    BytecodeTypeArray::one(BytecodeType::Int32),
                     1
                 )
             );
@@ -2566,7 +2567,7 @@ fn gen_new_object() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Class(cls_id, SourceTypeArray::empty())
+                &ConstPoolEntry::Class(cls_id, BytecodeTypeArray::empty())
             );
         },
     );
@@ -2589,7 +2590,7 @@ fn gen_new_object_initialized() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Class(cls_id, SourceTypeArray::empty())
+                &ConstPoolEntry::Class(cls_id, BytecodeTypeArray::empty())
             );
         },
     );
@@ -2626,7 +2627,7 @@ fn gen_new_array() {
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Class(cls_id, SourceTypeArray::single(SourceType::Int32))
+                &ConstPoolEntry::Class(cls_id, BytecodeTypeArray::one(BytecodeType::Int32))
             );
         },
     );
@@ -2924,7 +2925,7 @@ fn gen_new_object_with_multiple_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(3)),
-                &ConstPoolEntry::Class(cls_id, SourceTypeArray::empty())
+                &ConstPoolEntry::Class(cls_id, BytecodeTypeArray::empty())
             );
         },
     );
@@ -3420,7 +3421,7 @@ fn gen_enum_value() {
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::EnumVariant(enum_id, SourceTypeArray::empty(), 0)
+                &ConstPoolEntry::EnumVariant(enum_id, BytecodeTypeArray::empty(), 0)
             )
         },
     );
@@ -3885,7 +3886,7 @@ fn gen_int64_max_value() {
 #[test]
 fn gen_tuple_var() {
     gen_fct("fn f() { let x = (1i32, 2i32); }", |_, code, fct| {
-        let subtypes = vec![SourceType::Int32, SourceType::Int32];
+        let subtypes = vec![BytecodeType::Int32, BytecodeType::Int32];
         let expected = vec![
             ConstInt32(r(1), 1),
             ConstInt32(r(2), 2),
@@ -3898,7 +3899,7 @@ fn gen_tuple_var() {
 
         assert_eq!(
             fct.const_pool(ConstPoolIdx(2)),
-            &ConstPoolEntry::Tuple(SourceTypeArray::with(subtypes))
+            &ConstPoolEntry::Tuple(BytecodeTypeArray::new(subtypes))
         );
     });
 }
@@ -3919,7 +3920,7 @@ fn gen_tuple_element() {
 
         assert_eq!(
             fct.const_pool(ConstPoolIdx(0)),
-            &ConstPoolEntry::TupleElement(tuple_ty, 0)
+            &ConstPoolEntry::TupleElement(bty_from_ty(tuple_ty), 0)
         );
     });
 }
@@ -3944,7 +3945,11 @@ fn gen_trait_object() {
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Trait(trait_id, SourceTypeArray::empty(), object_ty)
+                &ConstPoolEntry::Trait(
+                    trait_id,
+                    BytecodeTypeArray::empty(),
+                    bty_from_ty(object_ty)
+                )
             );
         },
     );

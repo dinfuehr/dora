@@ -5,7 +5,8 @@ use std::convert::TryInto;
 use dora_parser::ast;
 
 use crate::bytecode::{
-    BytecodeBuilder, BytecodeFunction, BytecodeType, ConstPoolIdx, Label, Register,
+    BytecodeBuilder, BytecodeFunction, BytecodeType, BytecodeTypeArray, ConstPoolIdx, Label,
+    Register,
 };
 use crate::language::sem_analysis::{
     find_impl, AnalysisData, CallType, ClassDefinitionId, ConstDefinitionId, ContextIdx,
@@ -3234,6 +3235,14 @@ impl DataDest {
     }
 }
 
+pub fn bty_array_from_ty(ty: &SourceTypeArray) -> BytecodeTypeArray {
+    let mut bytecode_subtypes = Vec::with_capacity(ty.len());
+    for subtype in ty.iter() {
+        bytecode_subtypes.push(bty_from_ty(subtype));
+    }
+    BytecodeTypeArray::new(bytecode_subtypes)
+}
+
 pub fn bty_from_ty(ty: SourceType) -> BytecodeType {
     match ty {
         SourceType::Unit => BytecodeType::Unit,
@@ -3253,6 +3262,35 @@ pub fn bty_from_ty(ty: SourceType) -> BytecodeType {
         SourceType::Lambda(params, return_type) => BytecodeType::Lambda(params, return_type),
         SourceType::Ptr => BytecodeType::Ptr,
         _ => panic!("SourceType {:?} cannot be converted to BytecodeType", ty),
+    }
+}
+
+pub fn ty_array_from_bty(ty: &BytecodeTypeArray) -> SourceTypeArray {
+    let mut source_subtypes = Vec::with_capacity(ty.len());
+    for subtype in ty.iter() {
+        source_subtypes.push(ty_from_bty(subtype));
+    }
+    SourceTypeArray::with(source_subtypes)
+}
+
+pub fn ty_from_bty(ty: BytecodeType) -> SourceType {
+    match ty {
+        BytecodeType::Unit => SourceType::Unit,
+        BytecodeType::Bool => SourceType::Bool,
+        BytecodeType::UInt8 => SourceType::UInt8,
+        BytecodeType::Char => SourceType::Char,
+        BytecodeType::Int32 => SourceType::Int32,
+        BytecodeType::Int64 => SourceType::Int64,
+        BytecodeType::Float32 => SourceType::Float32,
+        BytecodeType::Float64 => SourceType::Float64,
+        BytecodeType::Class(class_id, type_params) => SourceType::Class(class_id, type_params),
+        BytecodeType::Trait(trait_id, type_params) => SourceType::Trait(trait_id, type_params),
+        BytecodeType::Enum(enum_id, type_params) => SourceType::Enum(enum_id, type_params),
+        BytecodeType::Struct(struct_id, type_params) => SourceType::Struct(struct_id, type_params),
+        BytecodeType::Tuple(subtypes) => SourceType::Tuple(subtypes),
+        BytecodeType::TypeParam(idx) => SourceType::TypeParam(TypeParamId(idx as usize)),
+        BytecodeType::Lambda(params, return_type) => SourceType::Lambda(params, return_type),
+        BytecodeType::Ptr => SourceType::Ptr,
     }
 }
 

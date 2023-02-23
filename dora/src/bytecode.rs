@@ -12,5 +12,5 @@ pub use builder::*;
 pub use data::*;
 pub use dumper::dump;
 pub use reader::*;
-pub use ty::BytecodeType;
+pub use ty::{BytecodeType, BytecodeTypeArray};
 pub use writer::*;

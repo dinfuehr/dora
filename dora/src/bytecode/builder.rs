@@ -3,8 +3,10 @@ use std::collections::{HashMap, HashSet};
 use dora_parser::lexer::position::Position;
 
 use crate::bytecode::{
-    BytecodeFunction, BytecodeType, BytecodeWriter, ConstPoolEntry, ConstPoolIdx, Label, Register,
+    BytecodeFunction, BytecodeType, BytecodeTypeArray, BytecodeWriter, ConstPoolEntry,
+    ConstPoolIdx, Label, Register,
 };
+use crate::language::generator::{bty_array_from_ty, bty_from_ty};
 use crate::language::sem_analysis::{
     ClassDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId, GlobalDefinitionId,
     StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TypeParamId,
@@ -62,8 +64,10 @@ impl BytecodeBuilder {
         params: SourceTypeArray,
         return_type: SourceType,
     ) -> ConstPoolIdx {
-        self.writer
-            .add_const(ConstPoolEntry::Lambda(params, return_type))
+        self.writer.add_const(ConstPoolEntry::Lambda(
+            bty_array_from_ty(&params),
+            return_type,
+        ))
     }
 
     pub fn add_const_fct(&mut self, id: FctDefinitionId) -> ConstPoolIdx {
@@ -76,7 +80,8 @@ impl BytecodeBuilder {
         id: EnumDefinitionId,
         type_params: SourceTypeArray,
     ) -> ConstPoolIdx {
-        self.writer.add_const(ConstPoolEntry::Enum(id, type_params))
+        self.writer
+            .add_const(ConstPoolEntry::Enum(id, bty_array_from_ty(&type_params)))
     }
 
     pub fn add_const_enum_variant(
@@ -85,8 +90,11 @@ impl BytecodeBuilder {
         type_params: SourceTypeArray,
         variant_idx: usize,
     ) -> ConstPoolIdx {
-        self.writer
-            .add_const(ConstPoolEntry::EnumVariant(id, type_params, variant_idx))
+        self.writer.add_const(ConstPoolEntry::EnumVariant(
+            id,
+            bty_array_from_ty(&type_params),
+            variant_idx,
+        ))
     }
 
     pub fn add_const_enum_element(
@@ -98,7 +106,7 @@ impl BytecodeBuilder {
     ) -> ConstPoolIdx {
         self.writer.add_const(ConstPoolEntry::EnumElement(
             id,
-            type_params,
+            bty_array_from_ty(&type_params),
             variant_idx,
             element_idx,
         ))
@@ -110,7 +118,7 @@ impl BytecodeBuilder {
         type_params: SourceTypeArray,
     ) -> ConstPoolIdx {
         self.writer
-            .add_const(ConstPoolEntry::Struct(id, type_params))
+            .add_const(ConstPoolEntry::Struct(id, bty_array_from_ty(&type_params)))
     }
 
     pub fn add_const_struct_field(
@@ -119,8 +127,11 @@ impl BytecodeBuilder {
         type_params: SourceTypeArray,
         field_idx: StructDefinitionFieldId,
     ) -> ConstPoolIdx {
-        self.writer
-            .add_const(ConstPoolEntry::StructField(id, type_params, field_idx))
+        self.writer.add_const(ConstPoolEntry::StructField(
+            id,
+            bty_array_from_ty(&type_params),
+            field_idx,
+        ))
     }
 
     pub fn add_const_fct_types(
@@ -137,8 +148,11 @@ impl BytecodeBuilder {
         fct_id: FctDefinitionId,
         type_params: SourceTypeArray,
     ) -> ConstPoolIdx {
-        self.writer
-            .add_const(ConstPoolEntry::Generic(id, fct_id, type_params))
+        self.writer.add_const(ConstPoolEntry::Generic(
+            id,
+            fct_id,
+            bty_array_from_ty(&type_params),
+        ))
     }
 
     pub fn add_const_field_types(
@@ -153,7 +167,7 @@ impl BytecodeBuilder {
 
     pub fn add_const_cls(&mut self, id: ClassDefinitionId) -> ConstPoolIdx {
         self.writer
-            .add_const(ConstPoolEntry::Class(id, SourceTypeArray::empty()))
+            .add_const(ConstPoolEntry::Class(id, BytecodeTypeArray::empty()))
     }
 
     pub fn add_const_cls_types(
@@ -162,7 +176,7 @@ impl BytecodeBuilder {
         type_params: SourceTypeArray,
     ) -> ConstPoolIdx {
         self.writer
-            .add_const(ConstPoolEntry::Class(id, type_params))
+            .add_const(ConstPoolEntry::Class(id, bty_array_from_ty(&type_params)))
     }
 
     pub fn add_const_trait(
@@ -171,8 +185,11 @@ impl BytecodeBuilder {
         type_params: SourceTypeArray,
         object_ty: SourceType,
     ) -> ConstPoolIdx {
-        self.writer
-            .add_const(ConstPoolEntry::Trait(id, type_params, object_ty))
+        self.writer.add_const(ConstPoolEntry::Trait(
+            id,
+            bty_array_from_ty(&type_params),
+            bty_from_ty(object_ty),
+        ))
     }
 
     pub fn add_const_tuple_element(
@@ -180,12 +197,15 @@ impl BytecodeBuilder {
         tuple_ty: SourceType,
         subtype_idx: usize,
     ) -> ConstPoolIdx {
-        self.writer
-            .add_const(ConstPoolEntry::TupleElement(tuple_ty, subtype_idx))
+        self.writer.add_const(ConstPoolEntry::TupleElement(
+            bty_from_ty(tuple_ty),
+            subtype_idx,
+        ))
     }
 
     pub fn add_const_tuple(&mut self, subtypes: SourceTypeArray) -> ConstPoolIdx {
-        self.writer.add_const(ConstPoolEntry::Tuple(subtypes))
+        self.writer
+            .add_const(ConstPoolEntry::Tuple(bty_array_from_ty(&subtypes)))
     }
 
     pub fn emit_add(&mut self, dest: Register, lhs: Register, rhs: Register, pos: Position) {
