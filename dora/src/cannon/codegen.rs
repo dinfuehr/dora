@@ -1322,7 +1322,8 @@ impl<'a> CannonCodeGen<'a> {
 
         let (class_instance_id, field_id) = match self.bytecode.const_pool(field_idx) {
             ConstPoolEntry::Field(cls_id, type_params, field_id) => {
-                let type_params = specialize_type_list(self.vm, type_params, self.type_params);
+                let type_params = ty_array_from_bty(type_params);
+                let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
                 debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type_vm(self.vm)));
 
                 let class_instance_id = specialize_class_id_params(self.vm, *cls_id, &type_params);
@@ -1354,12 +1355,12 @@ impl<'a> CannonCodeGen<'a> {
 
         let (cls_id, type_params, field_id) = match self.bytecode.const_pool(field_idx) {
             ConstPoolEntry::Field(cls_id, type_params, field_id) => {
-                (*cls_id, type_params, *field_id)
+                (*cls_id, ty_array_from_bty(type_params), *field_id)
             }
             _ => unreachable!(),
         };
 
-        let type_params = specialize_type_list(self.vm, type_params, self.type_params);
+        let type_params = specialize_type_list(self.vm, &type_params, self.type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type_vm(self.vm)));
 
         let class_instance_id = specialize_class_id_params(self.vm, cls_id, &type_params);
@@ -2380,7 +2381,7 @@ impl<'a> CannonCodeGen<'a> {
         assert_eq!(self.bytecode.register_type(dest), BytecodeType::Ptr);
 
         let (fct_id, type_params) = match self.bytecode.const_pool(idx) {
-            ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params.clone()),
+            ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, ty_array_from_bty(type_params)),
             _ => unreachable!(),
         };
 
@@ -2718,7 +2719,7 @@ impl<'a> CannonCodeGen<'a> {
 
     fn emit_invoke_virtual_from_bytecode(&mut self, dest: Register, fct_idx: ConstPoolIdx) {
         let (fct_id, type_params) = match self.bytecode.const_pool(fct_idx) {
-            ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params.clone()),
+            ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, ty_array_from_bty(type_params)),
             _ => unreachable!(),
         };
 
@@ -2734,7 +2735,7 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_invoke_lambda_from_bytecode(&mut self, dest: Register, idx: ConstPoolIdx) {
         let (params, return_type) = match self.bytecode.const_pool(idx) {
             ConstPoolEntry::Lambda(params, return_type) => {
-                (ty_array_from_bty(params), return_type.clone())
+                (ty_array_from_bty(params), ty_from_bty(return_type.clone()))
             }
             _ => unreachable!(),
         };
@@ -2859,7 +2860,7 @@ impl<'a> CannonCodeGen<'a> {
 
     fn emit_invoke_direct_from_bytecode(&mut self, dest: Register, fct_idx: ConstPoolIdx) {
         let (fct_id, type_params) = match self.bytecode.const_pool(fct_idx) {
-            ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params.clone()),
+            ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, ty_array_from_bty(type_params)),
             _ => unreachable!(),
         };
 
@@ -2946,7 +2947,7 @@ impl<'a> CannonCodeGen<'a> {
 
     fn emit_invoke_static_from_bytecode(&mut self, dest: Register, fct_idx: ConstPoolIdx) {
         let (fct_id, type_params) = match self.bytecode.const_pool(fct_idx) {
-            ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params.clone()),
+            ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, ty_array_from_bty(type_params)),
             _ => unreachable!(),
         };
 
@@ -4416,7 +4417,8 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 ConstPoolEntry::Field(cls_id, type_params, field_id) => {
                     let cls = self.vm.classes.idx(*cls_id);
                     let cls = cls.read();
-                    let cname = class_definition_name_with_params(&*cls, self.vm, type_params);
+                    let type_params = ty_array_from_bty(type_params);
+                    let cname = class_definition_name_with_params(&*cls, self.vm, &type_params);
 
                     let field = &cls.fields[field_id.to_usize()];
                     let fname = self.vm.interner.str(field.name);
@@ -4440,13 +4442,13 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         comment!(self, {
             let (cls_id, type_params, field_id) = match self.bytecode.const_pool(field_idx) {
                 ConstPoolEntry::Field(cls_id, type_params, field_id) => {
-                    (*cls_id, type_params, *field_id)
+                    (*cls_id, ty_array_from_bty(type_params), *field_id)
                 }
                 _ => unreachable!(),
             };
             let cls = self.vm.classes.idx(cls_id);
             let cls = cls.read();
-            let cname = class_definition_name_with_params(&*cls, self.vm, type_params);
+            let cname = class_definition_name_with_params(&*cls, self.vm, &type_params);
 
             let field = &cls.fields[field_id.to_usize()];
             let fname = self.vm.interner.str(field.name);

@@ -120,19 +120,21 @@ pub fn dump(vm: &SemAnalysis, fct: Option<&FctDefinition>, bc: &BytecodeFunction
             ConstPoolEntry::Field(cls_id, type_params, field_id) => {
                 let cls = vm.classes.idx(*cls_id);
                 let cls = cls.read();
+                let type_params = ty_array_from_bty(type_params);
                 let field = &cls.fields[field_id.to_usize()];
                 let fname = vm.interner.str(field.name);
                 println!(
                     "{}{} => Field {}.{}",
                     align,
                     idx,
-                    cls.name_with_params(vm, type_params),
+                    cls.name_with_params(vm, &type_params),
                     fname,
                 )
             }
             ConstPoolEntry::Fct(fct_id, type_params) => {
                 let fct = vm.fcts.idx(*fct_id);
                 let fct = fct.read();
+                let type_params = ty_array_from_bty(type_params);
 
                 if type_params.len() > 0 {
                     let type_params = type_params
@@ -202,6 +204,7 @@ pub fn dump(vm: &SemAnalysis, fct: Option<&FctDefinition>, bc: &BytecodeFunction
             }
             ConstPoolEntry::Lambda(ref params, ref return_type) => {
                 let params = ty_array_from_bty(params);
+                let return_type = ty_from_bty(return_type.clone());
                 let params = params.tuple_name(vm);
                 let return_type = return_type.name(vm);
                 println!("{}{} => Lambda {}: {}", align, idx, params, return_type)
@@ -362,7 +365,8 @@ impl<'a> BytecodeDumper<'a> {
             ConstPoolEntry::Field(cls_id, type_params, field_id) => {
                 let cls = self.sa.classes.idx(*cls_id);
                 let cls = cls.read();
-                let cname = cls.name_with_params(self.sa, type_params);
+                let type_params = ty_array_from_bty(type_params);
+                let cname = cls.name_with_params(self.sa, &type_params);
 
                 let field = &cls.fields[field_id.to_usize()];
                 let fname = self.sa.interner.str(field.name).to_string();

@@ -5,7 +5,6 @@ use crate::language::sem_analysis::{
     ClassDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId, GlobalDefinitionId,
     StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TypeParamId,
 };
-use crate::language::ty::{SourceType, SourceTypeArray};
 use dora_frontend::enumeration;
 use dora_parser::lexer::position::Position;
 
@@ -793,8 +792,8 @@ pub enum ConstPoolEntry {
     Int64(i64),
     Char(char),
     Class(ClassDefinitionId, BytecodeTypeArray),
-    Field(ClassDefinitionId, SourceTypeArray, FieldId),
-    Fct(FctDefinitionId, SourceTypeArray),
+    Field(ClassDefinitionId, BytecodeTypeArray, FieldId),
+    Fct(FctDefinitionId, BytecodeTypeArray),
     Generic(TypeParamId, FctDefinitionId, BytecodeTypeArray),
     Enum(EnumDefinitionId, BytecodeTypeArray),
     EnumVariant(EnumDefinitionId, BytecodeTypeArray, usize),
@@ -808,7 +807,7 @@ pub enum ConstPoolEntry {
     Trait(TraitDefinitionId, BytecodeTypeArray, BytecodeType),
     TupleElement(BytecodeType, usize),
     Tuple(BytecodeTypeArray),
-    Lambda(BytecodeTypeArray, SourceType),
+    Lambda(BytecodeTypeArray, BytecodeType),
 }
 
 impl ConstPoolEntry {

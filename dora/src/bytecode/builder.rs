@@ -66,13 +66,13 @@ impl BytecodeBuilder {
     ) -> ConstPoolIdx {
         self.writer.add_const(ConstPoolEntry::Lambda(
             bty_array_from_ty(&params),
-            return_type,
+            bty_from_ty(return_type),
         ))
     }
 
     pub fn add_const_fct(&mut self, id: FctDefinitionId) -> ConstPoolIdx {
         self.writer
-            .add_const(ConstPoolEntry::Fct(id, SourceTypeArray::empty()))
+            .add_const(ConstPoolEntry::Fct(id, BytecodeTypeArray::empty()))
     }
 
     pub fn add_const_enum(
@@ -139,7 +139,8 @@ impl BytecodeBuilder {
         id: FctDefinitionId,
         type_params: SourceTypeArray,
     ) -> ConstPoolIdx {
-        self.writer.add_const(ConstPoolEntry::Fct(id, type_params))
+        self.writer
+            .add_const(ConstPoolEntry::Fct(id, bty_array_from_ty(&type_params)))
     }
 
     pub fn add_const_generic(
@@ -161,8 +162,11 @@ impl BytecodeBuilder {
         type_params: SourceTypeArray,
         field_id: FieldId,
     ) -> ConstPoolIdx {
-        self.writer
-            .add_const(ConstPoolEntry::Field(cls_id, type_params, field_id))
+        self.writer.add_const(ConstPoolEntry::Field(
+            cls_id,
+            bty_array_from_ty(&type_params),
+            field_id,
+        ))
     }
 
     pub fn add_const_cls(&mut self, id: ClassDefinitionId) -> ConstPoolIdx {

@@ -249,7 +249,7 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
         &ConstPoolEntry::Fct(fct_id, ref source_type_array) => {
             buffer.emit_u8(ConstPoolOpcode::Fct.to_u8());
             buffer.emit_id(fct_id.to_usize());
-            encode_source_type_array(vm, source_type_array, buffer);
+            encode_bytecode_type_array(vm, source_type_array, buffer);
         }
         &ConstPoolEntry::Generic(tp_id, fct_id, ref source_type_array) => {
             buffer.emit_u8(ConstPoolOpcode::Generic.to_u8());
@@ -265,7 +265,7 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
         &ConstPoolEntry::Field(cls_id, ref source_type_array, field_id) => {
             buffer.emit_u8(ConstPoolOpcode::Field.to_u8());
             buffer.emit_id(cls_id.to_usize());
-            encode_source_type_array(vm, source_type_array, buffer);
+            encode_bytecode_type_array(vm, source_type_array, buffer);
             buffer.emit_id(field_id.to_usize());
         }
         &ConstPoolEntry::Enum(enum_id, ref source_type_array) => {
@@ -315,7 +315,7 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
         &ConstPoolEntry::Lambda(ref params, ref return_type) => {
             buffer.emit_u8(ConstPoolOpcode::Lambda.to_u8());
             encode_bytecode_type_array(vm, params, buffer);
-            encode_source_type(vm, return_type.clone(), buffer);
+            encode_bytecode_type(vm, return_type, buffer);
         }
     }
 }
