@@ -8,7 +8,6 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 use crate::bytecode::{BytecodeFunction, BytecodeType};
-use crate::gc::Address;
 use crate::language::sem_analysis::{
     module_path, AnalysisData, ExtensionDefinitionId, ImplDefinitionId, ModuleDefinitionId,
     PackageDefinitionId, SemAnalysis, SourceFileId, TraitDefinitionId, TypeParamDefinition,
@@ -75,7 +74,6 @@ pub struct FctDefinition {
     pub container_type_params: usize,
     pub bytecode: Option<BytecodeFunction>,
     pub intrinsic: Option<Intrinsic>,
-    pub native_pointer: Option<Address>,
     pub thunk_id: RwLock<Option<FctDefinitionId>>,
 }
 
@@ -113,7 +111,6 @@ impl FctDefinition {
             container_type_params: 0,
             bytecode: None,
             intrinsic: None,
-            native_pointer: None,
             thunk_id: RwLock::new(None),
         }
     }

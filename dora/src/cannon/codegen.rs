@@ -4137,7 +4137,7 @@ impl<'a> CannonCodeGen<'a> {
         let fct = self.vm.fcts.idx(fid);
         let fct = fct.read();
 
-        if let Some(native_pointer) = fct.native_pointer {
+        if let Some(&native_pointer) = self.vm.native_implementations.get(&fid) {
             assert!(type_params.is_empty());
             let internal_fct = NativeFct {
                 fctptr: native_pointer,

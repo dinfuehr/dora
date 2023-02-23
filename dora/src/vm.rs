@@ -70,6 +70,7 @@ mod initialize;
 mod known;
 mod modules;
 mod specialize;
+mod stdlib;
 mod structs;
 mod stubs;
 mod traits;
@@ -137,6 +138,7 @@ pub struct VM {
     pub global_variable_memory: Option<GlobalVariableMemory>,
     pub gc: Gc, // garbage collector
     pub native_stubs: Mutex<NativeStubs>,
+    pub native_implementations: HashMap<FctDefinitionId, Address>,
     pub stubs: Stubs,
     pub threads: Threads,
     pub packages: MutableVec<PackageDefinition>,
@@ -184,6 +186,7 @@ impl VM {
             code_objects: CodeObjects::new(),
             code_map: CodeMap::new(),
             native_stubs: Mutex::new(NativeStubs::new()),
+            native_implementations: HashMap::new(),
             stubs: Stubs::new(),
             threads: Threads::new(),
             packages: sa.packages,

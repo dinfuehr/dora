@@ -166,12 +166,6 @@ fn internalck(sa: &SemAnalysis) {
     for fct in sa.fcts.iter() {
         let fct = fct.read();
 
-        if fct.internal && !fct.internal_resolved && !fct.has_body() {
-            sa.diag
-                .lock()
-                .report(fct.file_id, fct.pos, ErrorMessage::UnresolvedInternal);
-        }
-
         if !fct.has_body() && !fct.in_trait() && !fct.internal {
             sa.diag
                 .lock()

@@ -1,4 +1,3 @@
-use crate::gc::Address;
 use crate::language::sem_analysis::{
     AnnotationDefinitionId, ClassDefinition, ClassDefinitionId, EnumDefinitionId,
     ExtensionDefinitionId, FctDefinitionId, Field, FieldId, Intrinsic, ModuleDefinition,
@@ -6,9 +5,6 @@ use crate::language::sem_analysis::{
 };
 use crate::language::sym::Sym;
 use crate::language::ty::SourceType;
-
-use crate::stack;
-use crate::stdlib;
 
 use dora_parser::ast::Modifier;
 use dora_parser::interner::Name;
@@ -360,48 +356,12 @@ fn find_enum(sa: &mut SemAnalysis, module_id: ModuleDefinitionId, name: &str) ->
 pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
     let stdlib_id = sa.stdlib_module_id();
 
-    native_fct(
-        sa,
-        stdlib_id,
-        "fatalError",
-        stdlib::fatal_error as *const u8,
-    );
-    native_fct(sa, stdlib_id, "abort", stdlib::abort as *const u8);
-    native_fct(sa, stdlib_id, "exit", stdlib::exit as *const u8);
     intrinsic_fct(sa, stdlib_id, "unreachable", Intrinsic::Unreachable);
 
-    native_fct(sa, stdlib_id, "print", stdlib::print as *const u8);
-    native_fct(sa, stdlib_id, "println", stdlib::println as *const u8);
     let fid = intrinsic_fct(sa, stdlib_id, "assert", Intrinsic::Assert);
     sa.known.functions.assert = Some(fid);
     intrinsic_fct(sa, stdlib_id, "debug", Intrinsic::Debug);
-    native_fct(sa, stdlib_id, "argc", stdlib::argc as *const u8);
-    native_fct(sa, stdlib_id, "argv", stdlib::argv as *const u8);
-    native_fct(
-        sa,
-        stdlib_id,
-        "forceCollect",
-        stdlib::gc_collect as *const u8,
-    );
-    native_fct(sa, stdlib_id, "timestamp", stdlib::timestamp as *const u8);
-    native_fct(
-        sa,
-        stdlib_id,
-        "forceMinorCollect",
-        stdlib::gc_minor_collect as *const u8,
-    );
-    native_fct(sa, stdlib_id, "sleep", stdlib::sleep as *const u8);
-
     intrinsic_fct(sa, stdlib_id, "unsafeKillRefs", Intrinsic::UnsafeKillRefs);
-
-    native_method(
-        sa,
-        stdlib_id,
-        "primitives::UInt8",
-        "toString",
-        stdlib::uint8_to_string as *const u8,
-    );
-
     intrinsic_method(
         sa,
         stdlib_id,
@@ -437,14 +397,6 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
         "compareTo",
         Intrinsic::ByteCmp,
     );
-
-    native_method(
-        sa,
-        stdlib_id,
-        "primitives::Char",
-        "toString",
-        stdlib::char_to_string as *const u8,
-    );
     intrinsic_method(
         sa,
         stdlib_id,
@@ -473,15 +425,6 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
         "compareTo",
         Intrinsic::CharCmp,
     );
-
-    native_method(
-        sa,
-        stdlib_id,
-        "primitives::Int32",
-        "toString",
-        stdlib::int32_to_string as *const u8,
-    );
-
     intrinsic_method(
         sa,
         stdlib_id,
@@ -723,15 +666,6 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
         "countOneBitsTrailing",
         Intrinsic::Int32CountOneBitsTrailing,
     );
-
-    native_method(
-        sa,
-        stdlib_id,
-        "primitives::Int64",
-        "toString",
-        stdlib::int64_to_string as *const u8,
-    );
-
     intrinsic_method(
         sa,
         stdlib_id,
@@ -997,77 +931,6 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
     );
     intrinsic_method(sa, stdlib_id, "primitives::Bool", "not", Intrinsic::BoolNot);
 
-    native_method(
-        sa,
-        stdlib_id,
-        "string::String",
-        "compareTo",
-        stdlib::strcmp as *const u8,
-    );
-    native_method(
-        sa,
-        stdlib_id,
-        "string::String",
-        "toInt32Success",
-        stdlib::str_to_int32_success as *const u8,
-    );
-    native_method(
-        sa,
-        stdlib_id,
-        "string::String",
-        "toInt64Success",
-        stdlib::str_to_int64_success as *const u8,
-    );
-    native_method(
-        sa,
-        stdlib_id,
-        "string::String",
-        "toFloat32Success",
-        stdlib::str_to_float32_success as *const u8,
-    );
-    native_method(
-        sa,
-        stdlib_id,
-        "string::String",
-        "toFloat64Success",
-        stdlib::str_to_float64_success as *const u8,
-    );
-    native_method(
-        sa,
-        stdlib_id,
-        "string::String",
-        "toInt32OrZero",
-        stdlib::str_to_int32 as *const u8,
-    );
-    native_method(
-        sa,
-        stdlib_id,
-        "string::String",
-        "toInt64OrZero",
-        stdlib::str_to_int64 as *const u8,
-    );
-    native_method(
-        sa,
-        stdlib_id,
-        "string::String",
-        "toFloat32OrZero",
-        stdlib::str_to_float32 as *const u8,
-    );
-    native_method(
-        sa,
-        stdlib_id,
-        "string::String",
-        "toFloat64OrZero",
-        stdlib::str_to_float64 as *const u8,
-    );
-    native_method(
-        sa,
-        stdlib_id,
-        "string::String",
-        "plus",
-        stdlib::strcat as *const u8,
-    );
-
     intrinsic_method(sa, stdlib_id, "string::String", "size", Intrinsic::StrLen);
     intrinsic_method(
         sa,
@@ -1075,21 +938,6 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
         "string::String",
         "getByte",
         Intrinsic::StrGet,
-    );
-    native_method(
-        sa,
-        stdlib_id,
-        "string::String",
-        "clone",
-        stdlib::str_clone as *const u8,
-    );
-
-    native_method(
-        sa,
-        stdlib_id,
-        "primitives::Float32",
-        "toString",
-        stdlib::float32_to_string as *const u8,
     );
     intrinsic_method(
         sa,
@@ -1232,13 +1080,6 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
         Intrinsic::Float32Sqrt,
     );
 
-    native_method(
-        sa,
-        stdlib_id,
-        "primitives::Float64",
-        "toString",
-        stdlib::float64_to_string as *const u8,
-    );
     intrinsic_method(
         sa,
         stdlib_id,
@@ -1380,21 +1221,6 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
         Intrinsic::Float64Sqrt,
     );
 
-    native_static(
-        sa,
-        stdlib_id,
-        "string::String",
-        "fromBytesPart",
-        stdlib::str_from_bytes as *const u8,
-    );
-    native_static(
-        sa,
-        stdlib_id,
-        "string::String",
-        "fromStringPart",
-        stdlib::str_from_bytes as *const u8,
-    );
-
     intrinsic_method(
         sa,
         stdlib_id,
@@ -1432,160 +1258,12 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
         Intrinsic::ArrayWithValues,
     );
 
-    native_method(
-        sa,
-        stdlib_id,
-        "Stacktrace",
-        "retrieveStacktrace",
-        stack::retrieve_stack_trace as *const u8,
-    );
-    native_method(
-        sa,
-        stdlib_id,
-        "Stacktrace",
-        "getStacktraceElement",
-        stack::stack_element as *const u8,
-    );
-
-    native_fct(
-        sa,
-        stdlib_id,
-        "thread::spawn",
-        stdlib::spawn_thread as *const u8,
-    );
-
-    native_method(
-        sa,
-        stdlib_id,
-        "thread::Thread",
-        "join",
-        stdlib::join_thread as *const u8,
-    );
-
     intrinsic_static(
         sa,
         stdlib_id,
         "thread::Thread",
         "current",
         Intrinsic::ThreadCurrent,
-    );
-
-    native_method(
-        sa,
-        stdlib_id,
-        "thread::Mutex",
-        "wait",
-        stdlib::mutex_wait as *const u8,
-    );
-
-    native_method(
-        sa,
-        stdlib_id,
-        "thread::Mutex",
-        "notify",
-        stdlib::mutex_notify as *const u8,
-    );
-
-    native_method(
-        sa,
-        stdlib_id,
-        "thread::Condition",
-        "enqueue",
-        stdlib::condition_enqueue as *const u8,
-    );
-
-    native_method(
-        sa,
-        stdlib_id,
-        "thread::Condition",
-        "block",
-        stdlib::condition_block_after_enqueue as *const u8,
-    );
-
-    native_method(
-        sa,
-        stdlib_id,
-        "thread::Condition",
-        "wakeupOne",
-        stdlib::condition_wakeup_one as *const u8,
-    );
-
-    native_method(
-        sa,
-        stdlib_id,
-        "thread::Condition",
-        "wakeupAll",
-        stdlib::condition_wakeup_all as *const u8,
-    );
-
-    native_fct(
-        sa,
-        stdlib_id,
-        "io::readFileAsString",
-        stdlib::io::read_file_as_string as *const u8,
-    );
-
-    native_fct(
-        sa,
-        stdlib_id,
-        "io::readFileAsBytes",
-        stdlib::io::read_file_as_bytes as *const u8,
-    );
-
-    native_fct(
-        sa,
-        stdlib_id,
-        "io::writeFileAsString",
-        stdlib::io::write_file_as_string as *const u8,
-    );
-
-    native_fct(
-        sa,
-        stdlib_id,
-        "io::writeFileAsBytes",
-        stdlib::io::write_file_as_bytes as *const u8,
-    );
-
-    native_fct(
-        sa,
-        stdlib_id,
-        "io::socketConnect",
-        stdlib::io::socket_connect as *const u8,
-    );
-
-    native_fct(
-        sa,
-        stdlib_id,
-        "io::socketClose",
-        stdlib::io::socket_close as *const u8,
-    );
-
-    native_fct(
-        sa,
-        stdlib_id,
-        "io::socketWrite",
-        stdlib::io::socket_write as *const u8,
-    );
-
-    native_fct(
-        sa,
-        stdlib_id,
-        "io::socketRead",
-        stdlib::io::socket_read as *const u8,
-    );
-
-    native_fct(
-        sa,
-        stdlib_id,
-        "io::socketBind",
-        stdlib::io::socket_bind as *const u8,
-    );
-
-    native_fct(
-        sa,
-        stdlib_id,
-        "io::socketAccept",
-        stdlib::io::socket_accept as *const u8,
     );
 
     let fct_id = intrinsic_method(sa, stdlib_id, "Option", "isNone", Intrinsic::OptionIsNone);
@@ -1732,29 +1410,20 @@ fn find_class_method(
     panic!("cannot find class method `{}`", name)
 }
 
-fn native_fct(sa: &mut SemAnalysis, module_id: ModuleDefinitionId, name: &str, fctptr: *const u8) {
-    common_fct(
-        sa,
-        module_id,
-        name,
-        FctImplementation::Native(Address::from_ptr(fctptr)),
-    );
-}
-
 fn intrinsic_fct(
     sa: &mut SemAnalysis,
     module_id: ModuleDefinitionId,
     name: &str,
     intrinsic: Intrinsic,
 ) -> FctDefinitionId {
-    common_fct(sa, module_id, name, FctImplementation::Intrinsic(intrinsic))
+    common_fct(sa, module_id, name, intrinsic)
 }
 
 fn common_fct(
     sa: &mut SemAnalysis,
     module_id: ModuleDefinitionId,
     name: &str,
-    kind: FctImplementation,
+    intrinsic: Intrinsic,
 ) -> FctDefinitionId {
     let fct_id = resolve_name(sa, name, module_id)
         .to_fct()
@@ -1763,36 +1432,9 @@ fn common_fct(
     let fct = sa.fcts.idx(fct_id);
     let mut fct = fct.write();
 
-    match kind {
-        FctImplementation::Intrinsic(intrinsic) => fct.intrinsic = Some(intrinsic),
-        FctImplementation::Native(address) => {
-            fct.native_pointer = Some(address);
-        }
-    }
+    fct.intrinsic = Some(intrinsic);
     fct.internal_resolved = true;
     fct_id
-}
-
-enum FctImplementation {
-    Intrinsic(Intrinsic),
-    Native(Address),
-}
-
-fn native_method(
-    sa: &SemAnalysis,
-    module_id: ModuleDefinitionId,
-    container_name: &str,
-    method_name: &str,
-    fctptr: *const u8,
-) {
-    common_method(
-        sa,
-        module_id,
-        container_name,
-        method_name,
-        false,
-        FctImplementation::Native(Address::from_ptr(fctptr)),
-    );
 }
 
 fn intrinsic_method(
@@ -1802,31 +1444,7 @@ fn intrinsic_method(
     method_name: &str,
     intrinsic: Intrinsic,
 ) -> FctDefinitionId {
-    common_method(
-        sa,
-        module_id,
-        container_name,
-        method_name,
-        false,
-        FctImplementation::Intrinsic(intrinsic),
-    )
-}
-
-fn native_static(
-    sa: &SemAnalysis,
-    module_id: ModuleDefinitionId,
-    container_name: &str,
-    method_name: &str,
-    fctptr: *const u8,
-) {
-    common_method(
-        sa,
-        module_id,
-        container_name,
-        method_name,
-        true,
-        FctImplementation::Native(Address::from_ptr(fctptr)),
-    );
+    common_method(sa, module_id, container_name, method_name, false, intrinsic)
 }
 
 fn intrinsic_static(
@@ -1836,14 +1454,7 @@ fn intrinsic_static(
     method_name: &str,
     intrinsic: Intrinsic,
 ) {
-    common_method(
-        sa,
-        module_id,
-        container_name,
-        method_name,
-        true,
-        FctImplementation::Intrinsic(intrinsic),
-    );
+    common_method(sa, module_id, container_name, method_name, true, intrinsic);
 }
 
 fn common_method(
@@ -1852,35 +1463,21 @@ fn common_method(
     container_name: &str,
     method_name: &str,
     is_static: bool,
-    implementation: FctImplementation,
+    intrinsic: Intrinsic,
 ) -> FctDefinitionId {
     let sym = resolve_name(sa, container_name, module_id);
 
     match sym {
-        Sym::Class(cls_id) => {
-            internal_class_method(sa, cls_id, method_name, is_static, implementation)
-        }
+        Sym::Class(cls_id) => internal_class_method(sa, cls_id, method_name, is_static, intrinsic),
 
         Sym::Struct(struct_id) => {
             let struct_ = sa.structs.idx(struct_id);
             let struct_ = struct_.read();
-            internal_extension_method(
-                sa,
-                &struct_.extensions,
-                method_name,
-                is_static,
-                implementation,
-            )
+            internal_extension_method(sa, &struct_.extensions, method_name, is_static, intrinsic)
         }
         Sym::Enum(enum_id) => {
             let enum_ = &sa.enums[enum_id].read();
-            internal_extension_method(
-                sa,
-                &enum_.extensions,
-                method_name,
-                is_static,
-                implementation,
-            )
+            internal_extension_method(sa, &enum_.extensions, method_name, is_static, intrinsic)
         }
 
         _ => panic!("unexpected type"),
@@ -1892,12 +1489,12 @@ fn internal_class_method(
     cls_id: ClassDefinitionId,
     name: &str,
     is_static: bool,
-    kind: FctImplementation,
+    intrinsic: Intrinsic,
 ) -> FctDefinitionId {
     let cls = sa.classes.idx(cls_id);
     let cls = cls.read();
 
-    internal_extension_method(sa, &cls.extensions, name, is_static, kind)
+    internal_extension_method(sa, &cls.extensions, name, is_static, intrinsic)
 }
 
 fn internal_extension_method(
@@ -1905,7 +1502,7 @@ fn internal_extension_method(
     extensions: &[ExtensionDefinitionId],
     name_as_string: &str,
     is_static: bool,
-    kind: FctImplementation,
+    intrinsic: Intrinsic,
 ) -> FctDefinitionId {
     let name = sa.interner.intern(name_as_string);
 
@@ -1922,12 +1519,7 @@ fn internal_extension_method(
             let fct = sa.fcts.idx(method_id);
             let mut fct = fct.write();
 
-            match kind {
-                FctImplementation::Intrinsic(intrinsic) => fct.intrinsic = Some(intrinsic),
-                FctImplementation::Native(address) => {
-                    fct.native_pointer = Some(address);
-                }
-            }
+            fct.intrinsic = Some(intrinsic);
             fct.internal_resolved = true;
             return method_id;
         }

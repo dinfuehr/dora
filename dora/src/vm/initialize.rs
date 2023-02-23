@@ -1,10 +1,23 @@
 use crate::object::Header;
 use crate::size::InstanceSize;
-use crate::vm::{create_class_instance_with_vtable, setup_stubs, ShapeKind, VM};
+use crate::vm::{create_class_instance_with_vtable, setup_stubs, stdlib, ShapeKind, VM};
 
 pub(super) fn setup(vm: &mut VM) {
+    stdlib::resolve_internal_functions(vm);
+    check_unresolved_functions(vm);
     create_special_classes(vm);
     setup_stubs(vm);
+}
+
+fn check_unresolved_functions(vm: &VM) {
+    for fct in vm.fcts.iter() {
+        let fct = fct.read();
+
+        if fct.internal && !fct.internal_resolved && !fct.has_body() {
+            eprintln!("function {}", fct.display_name_vm(vm));
+            panic!("found function without implementation");
+        }
+    }
 }
 
 fn create_special_classes(vm: &mut VM) {
