@@ -190,8 +190,6 @@ fn run_main(vm: &VM, main: FctDefinitionId) -> i32 {
     }
 }
 
-pub const STDLIB: &[(&str, &str)] = &include!(concat!(env!("OUT_DIR"), "/dora_stdlib_bundle.rs"));
-
 fn find_main(sa: &SemAnalysis, args: &Args) -> Option<FctDefinitionId> {
     if args.command.is_test() {
         return None;

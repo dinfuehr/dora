@@ -5,16 +5,12 @@ authors = ["Dominik Inführ <dominik.infuehr@gmail.com>"]
 description = "The Dora programming language"
 homepage = "https://github.com/dinfuehr/dora"
 repository = "https://github.com/dinfuehr/dora"
-build = "build.rs"
 license = "MIT"
 edition = "2021"
 
 [features]
 default = ["capstone"]
 aot = []
-
-[build-dependencies]
-walkdir = "2"
 
 [dependencies]
 byteorder = "*"

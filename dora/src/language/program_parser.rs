@@ -14,6 +14,7 @@ use crate::language::sem_analysis::{
     UseDefinition,
 };
 use crate::language::sym::Sym;
+use dora_frontend::STDLIB;
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit};
 use dora_parser::interner::Name;
@@ -113,15 +114,13 @@ impl<'a> ProgramParser<'a> {
     }
 
     fn get_bundled_file(&self, path: &Path) -> &'static str {
-        let bundle = crate::driver::STDLIB;
-
-        for (name, content) in bundle {
+        for (name, content) in STDLIB {
             if *name == path.to_string_lossy() {
                 return *content;
             }
         }
 
-        for (bundled_file_path, _) in bundle {
+        for (bundled_file_path, _) in STDLIB {
             eprintln!("\t{}", bundled_file_path);
         }
         panic!("can't find file {} in bundle.", path.display())

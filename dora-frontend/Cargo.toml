@@ -1,7 +1,16 @@
 [package]
 name = "dora-frontend"
 version = "0.0.2"
+authors = ["Dominik Inführ <dominik.infuehr@gmail.com>"]
+description = "The Dora programming language"
+homepage = "https://github.com/dinfuehr/dora"
+repository = "https://github.com/dinfuehr/dora"
+build = "build.rs"
+license = "MIT"
 edition = "2021"
+
+[build-dependencies]
+walkdir = "2"
 
 [dependencies]
 dora-parser = { path = "../dora-parser", version = "0.0.2" }

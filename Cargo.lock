@@ -105,7 +105,6 @@ dependencies = [
  "scoped_threadpool",
  "threadpool",
  "time",
- "walkdir",
  "winapi",
 ]
 
@@ -122,6 +121,7 @@ version = "0.0.2"
 dependencies = [
  "dora-parser",
  "parking_lot",
+ "walkdir",
 ]
 
 [[package]]
