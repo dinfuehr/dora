@@ -5,25 +5,27 @@ use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::vm::{module_path, ClassInstanceId, VM};
 use dora_frontend::Id;
 
-impl EnumDefinition {
-    pub fn name_vm(&self, vm: &VM) -> String {
-        module_path(vm, self.module_id, self.name)
-    }
+pub fn enum_definition_name(enum_: &EnumDefinition, vm: &VM) -> String {
+    module_path(vm, enum_.module_id, enum_.name)
+}
 
-    pub fn name_with_params_vm(&self, vm: &VM, type_list: &SourceTypeArray) -> String {
-        let name = vm.interner.str(self.name);
+pub fn enum_definition_name_with_params(
+    enum_: &EnumDefinition,
+    vm: &VM,
+    type_list: &SourceTypeArray,
+) -> String {
+    let name = vm.interner.str(enum_.name);
 
-        if type_list.len() > 0 {
-            let type_list = type_list
-                .iter()
-                .map(|p| p.name_vm(vm))
-                .collect::<Vec<_>>()
-                .join(", ");
+    if type_list.len() > 0 {
+        let type_list = type_list
+            .iter()
+            .map(|p| p.name_vm(vm))
+            .collect::<Vec<_>>()
+            .join(", ");
 
-            format!("{}[{}]", name, type_list)
-        } else {
-            name.to_string()
-        }
+        format!("{}[{}]", name, type_list)
+    } else {
+        name.to_string()
     }
 }
 

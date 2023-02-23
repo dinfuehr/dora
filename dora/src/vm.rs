@@ -28,7 +28,8 @@ use dora_frontend::{GrowableVec, MutableVec};
 use dora_parser::interner::*;
 
 pub use self::classes::{
-    create_class_instance_with_vtable, ClassInstance, ClassInstanceId, FieldInstance, ShapeKind,
+    class_definition_name, class_definition_name_with_params, create_class_instance_with_vtable,
+    ClassInstance, ClassInstanceId, FieldInstance, ShapeKind,
 };
 pub use self::code::{
     install_code, install_code_stub, Code, CodeId, CodeKind, CodeObjects, CommentTable, GcPoint,
@@ -37,7 +38,10 @@ pub use self::code::{
 };
 pub use self::code_map::CodeMap;
 pub use self::compilation::CompilationDatabase;
-pub use self::enums::{EnumInstance, EnumInstanceId, EnumLayout};
+pub use self::enums::{
+    enum_definition_name, enum_definition_name_with_params, EnumInstance, EnumInstanceId,
+    EnumLayout,
+};
 pub use self::extensions::extension_matches_ty;
 use self::globals::GlobalVariableMemory;
 pub use self::impls::{find_trait_impl, implements_trait};

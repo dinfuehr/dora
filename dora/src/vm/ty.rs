@@ -3,8 +3,8 @@ use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::mem;
 use crate::mode::MachineMode;
 use crate::vm::{
-    get_concrete_tuple_ty, specialize_enum_id_params, specialize_struct_id_params, EnumLayout,
-    FctDefinition, StructDefinitionId, VM,
+    class_definition_name, enum_definition_name, get_concrete_tuple_ty, specialize_enum_id_params,
+    specialize_struct_id_params, EnumLayout, FctDefinition, StructDefinitionId, VM,
 };
 
 impl SourceType {
@@ -209,11 +209,11 @@ pub fn path_for_type(vm: &VM, ty: SourceType) -> String {
     if let Some(enum_id) = ty.enum_id() {
         let enum_ = &vm.enums[enum_id];
         let enum_ = enum_.read();
-        enum_.name_vm(vm)
+        enum_definition_name(&*enum_, vm)
     } else if let Some(cls_id) = ty.cls_id() {
         let cls = vm.classes.idx(cls_id);
         let cls = cls.read();
-        cls.name_vm(vm)
+        class_definition_name(&*cls, vm)
     } else if let Some(struct_id) = ty.struct_id() {
         let struct_ = vm.structs.idx(struct_id);
         let struct_ = struct_.read();

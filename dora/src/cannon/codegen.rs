@@ -24,11 +24,12 @@ use crate::object::{offset_of_array_data, Header, Str};
 use crate::size::InstanceSize;
 use crate::stdlib;
 use crate::vm::{
-    find_trait_impl, get_concrete_tuple_array, get_concrete_tuple_bytecode_ty,
-    get_concrete_tuple_ty, specialize_class_id_params, specialize_enum_class,
-    specialize_enum_id_params, specialize_lambda, specialize_struct_id_params,
-    specialize_trait_object, specialize_tuple_array, specialize_tuple_bty, specialize_tuple_ty,
-    specialize_type, specialize_type_list, EnumLayout, GcPoint, LazyCompilationSite, Trap, VM,
+    class_definition_name_with_params, enum_definition_name_with_params, find_trait_impl,
+    get_concrete_tuple_array, get_concrete_tuple_bytecode_ty, get_concrete_tuple_ty,
+    specialize_class_id_params, specialize_enum_class, specialize_enum_id_params,
+    specialize_lambda, specialize_struct_id_params, specialize_trait_object,
+    specialize_tuple_array, specialize_tuple_bty, specialize_tuple_ty, specialize_type,
+    specialize_type_list, EnumLayout, GcPoint, LazyCompilationSite, Trap, VM,
 };
 use crate::vtable::VTable;
 
@@ -4323,7 +4324,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 };
             let enum_ = &self.vm.enums[enum_id];
             let enum_ = enum_.read();
-            let enum_name = enum_.name_with_params_vm(self.vm, type_params);
+            let enum_name = enum_definition_name_with_params(&*enum_, self.vm, type_params);
             let variant = &enum_.variants[variant_idx];
             let variant_name = self.vm.interner.str(variant.name);
             format!(
@@ -4348,7 +4349,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             };
             let enum_ = &self.vm.enums[enum_id];
             let enum_ = enum_.read();
-            let enum_name = enum_.name_with_params_vm(self.vm, type_params);
+            let enum_name = enum_definition_name_with_params(&*enum_, self.vm, type_params);
             format!(
                 "LoadEnumVariant {}, {}, ConstPoolIdx({}) # {}",
                 dest,
@@ -4393,7 +4394,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 ConstPoolEntry::Field(cls_id, type_params, field_id) => {
                     let cls = self.vm.classes.idx(*cls_id);
                     let cls = cls.read();
-                    let cname = cls.name_with_params_vm(self.vm, type_params);
+                    let cname = class_definition_name_with_params(&*cls, self.vm, type_params);
 
                     let field = &cls.fields[field_id.to_usize()];
                     let fname = self.vm.interner.str(field.name);
@@ -4423,7 +4424,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             };
             let cls = self.vm.classes.idx(cls_id);
             let cls = cls.read();
-            let cname = cls.name_with_params_vm(self.vm, type_params);
+            let cname = class_definition_name_with_params(&*cls, self.vm, type_params);
 
             let field = &cls.fields[field_id.to_usize()];
             let fname = self.vm.interner.str(field.name);
@@ -4792,7 +4793,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             };
             let cls = self.vm.classes.idx(cls_id);
             let cls = cls.read();
-            let cname = cls.name_with_params_vm(self.vm, type_params);
+            let cname = class_definition_name_with_params(&*cls, self.vm, type_params);
             format!(
                 "NewObject {}, ConstPoolIdx({}) # {}",
                 dest,
@@ -4811,7 +4812,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             };
             let cls = self.vm.classes.idx(cls_id);
             let cls = cls.read();
-            let cname = cls.name_with_params_vm(self.vm, type_params);
+            let cname = class_definition_name_with_params(&*cls, self.vm, type_params);
             format!(
                 "NewObjectInitialized {}, ConstPoolIdx({}) # {}",
                 dest,
@@ -4830,7 +4831,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             };
             let cls = self.vm.classes.idx(cls_id);
             let cls = cls.read();
-            let cname = cls.name_with_params_vm(self.vm, type_params);
+            let cname = class_definition_name_with_params(&*cls, self.vm, type_params);
             format!(
                 "NewArray {}, ConstPoolIdx({}), {} # {}",
                 dest,
@@ -4869,7 +4870,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             };
             let enum_ = &self.vm.enums[enum_id];
             let enum_ = enum_.read();
-            let enum_name = enum_.name_with_params_vm(self.vm, type_params);
+            let enum_name = enum_definition_name_with_params(&*enum_, self.vm, type_params);
             let variant = &enum_.variants[variant_idx];
             let variant_name = self.vm.interner.str(variant.name);
             format!(
