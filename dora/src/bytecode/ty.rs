@@ -5,7 +5,6 @@ use crate::bytecode::BytecodeTypeKind;
 use crate::language::sem_analysis::{
     ClassDefinitionId, EnumDefinitionId, StructDefinitionId, TraitDefinitionId,
 };
-use crate::language::ty::{SourceType, SourceTypeArray};
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum BytecodeType {
@@ -21,10 +20,10 @@ pub enum BytecodeType {
     Tuple(BytecodeTypeArray),
     TypeParam(u32),
     Enum(EnumDefinitionId, BytecodeTypeArray),
-    Struct(StructDefinitionId, SourceTypeArray),
-    Class(ClassDefinitionId, SourceTypeArray),
-    Trait(TraitDefinitionId, SourceTypeArray),
-    Lambda(SourceTypeArray, Box<SourceType>),
+    Struct(StructDefinitionId, BytecodeTypeArray),
+    Class(ClassDefinitionId, BytecodeTypeArray),
+    Trait(TraitDefinitionId, BytecodeTypeArray),
+    Lambda(BytecodeTypeArray, Box<BytecodeType>),
 }
 
 impl BytecodeType {

@@ -6,12 +6,10 @@ use crate::bytecode::{
     BytecodeFunction, BytecodeType, BytecodeTypeArray, BytecodeWriter, ConstPoolEntry,
     ConstPoolIdx, Label, Register,
 };
-use crate::language::generator::{bty_array_from_ty, bty_from_ty};
 use crate::language::sem_analysis::{
     ClassDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId, GlobalDefinitionId,
     StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TypeParamId,
 };
-use crate::language::ty::{SourceType, SourceTypeArray};
 
 pub struct BytecodeBuilder {
     writer: BytecodeWriter,
@@ -61,13 +59,11 @@ impl BytecodeBuilder {
 
     pub fn add_const_lambda(
         &mut self,
-        params: SourceTypeArray,
-        return_type: SourceType,
+        params: BytecodeTypeArray,
+        return_type: BytecodeType,
     ) -> ConstPoolIdx {
-        self.writer.add_const(ConstPoolEntry::Lambda(
-            bty_array_from_ty(&params),
-            bty_from_ty(return_type),
-        ))
+        self.writer
+            .add_const(ConstPoolEntry::Lambda(params, return_type))
     }
 
     pub fn add_const_fct(&mut self, id: FctDefinitionId) -> ConstPoolIdx {
@@ -78,35 +74,31 @@ impl BytecodeBuilder {
     pub fn add_const_enum(
         &mut self,
         id: EnumDefinitionId,
-        type_params: SourceTypeArray,
+        type_params: BytecodeTypeArray,
     ) -> ConstPoolIdx {
-        self.writer
-            .add_const(ConstPoolEntry::Enum(id, bty_array_from_ty(&type_params)))
+        self.writer.add_const(ConstPoolEntry::Enum(id, type_params))
     }
 
     pub fn add_const_enum_variant(
         &mut self,
         id: EnumDefinitionId,
-        type_params: SourceTypeArray,
+        type_params: BytecodeTypeArray,
         variant_idx: usize,
     ) -> ConstPoolIdx {
-        self.writer.add_const(ConstPoolEntry::EnumVariant(
-            id,
-            bty_array_from_ty(&type_params),
-            variant_idx,
-        ))
+        self.writer
+            .add_const(ConstPoolEntry::EnumVariant(id, type_params, variant_idx))
     }
 
     pub fn add_const_enum_element(
         &mut self,
         id: EnumDefinitionId,
-        type_params: SourceTypeArray,
+        type_params: BytecodeTypeArray,
         variant_idx: usize,
         element_idx: usize,
     ) -> ConstPoolIdx {
         self.writer.add_const(ConstPoolEntry::EnumElement(
             id,
-            bty_array_from_ty(&type_params),
+            type_params,
             variant_idx,
             element_idx,
         ))
@@ -115,58 +107,48 @@ impl BytecodeBuilder {
     pub fn add_const_struct(
         &mut self,
         id: StructDefinitionId,
-        type_params: SourceTypeArray,
+        type_params: BytecodeTypeArray,
     ) -> ConstPoolIdx {
         self.writer
-            .add_const(ConstPoolEntry::Struct(id, bty_array_from_ty(&type_params)))
+            .add_const(ConstPoolEntry::Struct(id, type_params))
     }
 
     pub fn add_const_struct_field(
         &mut self,
         id: StructDefinitionId,
-        type_params: SourceTypeArray,
+        type_params: BytecodeTypeArray,
         field_idx: StructDefinitionFieldId,
     ) -> ConstPoolIdx {
-        self.writer.add_const(ConstPoolEntry::StructField(
-            id,
-            bty_array_from_ty(&type_params),
-            field_idx,
-        ))
+        self.writer
+            .add_const(ConstPoolEntry::StructField(id, type_params, field_idx))
     }
 
     pub fn add_const_fct_types(
         &mut self,
         id: FctDefinitionId,
-        type_params: SourceTypeArray,
+        type_params: BytecodeTypeArray,
     ) -> ConstPoolIdx {
-        self.writer
-            .add_const(ConstPoolEntry::Fct(id, bty_array_from_ty(&type_params)))
+        self.writer.add_const(ConstPoolEntry::Fct(id, type_params))
     }
 
     pub fn add_const_generic(
         &mut self,
         id: TypeParamId,
         fct_id: FctDefinitionId,
-        type_params: SourceTypeArray,
+        type_params: BytecodeTypeArray,
     ) -> ConstPoolIdx {
-        self.writer.add_const(ConstPoolEntry::Generic(
-            id,
-            fct_id,
-            bty_array_from_ty(&type_params),
-        ))
+        self.writer
+            .add_const(ConstPoolEntry::Generic(id, fct_id, type_params))
     }
 
     pub fn add_const_field_types(
         &mut self,
         cls_id: ClassDefinitionId,
-        type_params: SourceTypeArray,
+        type_params: BytecodeTypeArray,
         field_id: FieldId,
     ) -> ConstPoolIdx {
-        self.writer.add_const(ConstPoolEntry::Field(
-            cls_id,
-            bty_array_from_ty(&type_params),
-            field_id,
-        ))
+        self.writer
+            .add_const(ConstPoolEntry::Field(cls_id, type_params, field_id))
     }
 
     pub fn add_const_cls(&mut self, id: ClassDefinitionId) -> ConstPoolIdx {
@@ -177,39 +159,33 @@ impl BytecodeBuilder {
     pub fn add_const_cls_types(
         &mut self,
         id: ClassDefinitionId,
-        type_params: SourceTypeArray,
+        type_params: BytecodeTypeArray,
     ) -> ConstPoolIdx {
         self.writer
-            .add_const(ConstPoolEntry::Class(id, bty_array_from_ty(&type_params)))
+            .add_const(ConstPoolEntry::Class(id, type_params))
     }
 
     pub fn add_const_trait(
         &mut self,
         id: TraitDefinitionId,
-        type_params: SourceTypeArray,
-        object_ty: SourceType,
+        type_params: BytecodeTypeArray,
+        object_ty: BytecodeType,
     ) -> ConstPoolIdx {
-        self.writer.add_const(ConstPoolEntry::Trait(
-            id,
-            bty_array_from_ty(&type_params),
-            bty_from_ty(object_ty),
-        ))
+        self.writer
+            .add_const(ConstPoolEntry::Trait(id, type_params, object_ty))
     }
 
     pub fn add_const_tuple_element(
         &mut self,
-        tuple_ty: SourceType,
+        tuple_ty: BytecodeType,
         subtype_idx: usize,
     ) -> ConstPoolIdx {
-        self.writer.add_const(ConstPoolEntry::TupleElement(
-            bty_from_ty(tuple_ty),
-            subtype_idx,
-        ))
+        self.writer
+            .add_const(ConstPoolEntry::TupleElement(tuple_ty, subtype_idx))
     }
 
-    pub fn add_const_tuple(&mut self, subtypes: SourceTypeArray) -> ConstPoolIdx {
-        self.writer
-            .add_const(ConstPoolEntry::Tuple(bty_array_from_ty(&subtypes)))
+    pub fn add_const_tuple(&mut self, subtypes: BytecodeTypeArray) -> ConstPoolIdx {
+        self.writer.add_const(ConstPoolEntry::Tuple(subtypes))
     }
 
     pub fn emit_add(&mut self, dest: Register, lhs: Register, rhs: Register, pos: Position) {

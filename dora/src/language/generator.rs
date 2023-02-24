@@ -173,7 +173,7 @@ impl<'a> AstBytecodeGen<'a> {
             let context_register = self.builder.alloc_global(BytecodeType::Ptr);
             let idx = self
                 .builder
-                .add_const_cls_types(cls_id, self.identity_type_params());
+                .add_const_cls_types(cls_id, bty_array_from_ty(&self.identity_type_params()));
             self.builder
                 .emit_new_object(context_register, idx, self.fct.pos);
             self.context_register = Some(context_register);
@@ -186,7 +186,7 @@ impl<'a> AstBytecodeGen<'a> {
                 let lambda_cls_id = self.sa.known.classes.lambda();
                 let idx = self.builder.add_const_field_types(
                     lambda_cls_id,
-                    SourceTypeArray::empty(),
+                    BytecodeTypeArray::empty(),
                     FieldId(0),
                 );
                 self.builder
@@ -195,7 +195,7 @@ impl<'a> AstBytecodeGen<'a> {
                 // Store value in outer_context field of context object.
                 let idx = self.builder.add_const_field_types(
                     cls_id,
-                    self.identity_type_params(),
+                    bty_array_from_ty(&self.identity_type_params()),
                     FieldId(0),
                 );
                 self.builder.emit_store_field(
@@ -348,7 +348,9 @@ impl<'a> AstBytecodeGen<'a> {
                         let bytecode_ty: BytecodeType = register_bty_from_ty(ty);
                         let var_reg = self.alloc_var(bytecode_ty);
                         self.var_registers.insert(var_id, var_reg);
-                        let idx = self.builder.add_const_tuple_element(tuple_ty.clone(), idx);
+                        let idx = self
+                            .builder
+                            .add_const_tuple_element(bty_from_ty(tuple_ty.clone()), idx);
 
                         self.builder
                             .emit_load_tuple_element(var_reg, tuple_reg, idx);
@@ -365,7 +367,9 @@ impl<'a> AstBytecodeGen<'a> {
                     if !ty.is_unit() {
                         let register_ty = register_bty_from_ty(ty.clone());
                         let temp_reg = self.alloc_temp(register_ty);
-                        let idx = self.builder.add_const_tuple_element(tuple_ty.clone(), idx);
+                        let idx = self
+                            .builder
+                            .add_const_tuple_element(bty_from_ty(tuple_ty.clone()), idx);
                         self.builder
                             .emit_load_tuple_element(temp_reg, tuple_reg, idx);
                         self.destruct_tuple_pattern(tuple, temp_reg, ty);
@@ -385,7 +389,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         let iterator_reg = if let Some(make_iterator) = for_type_info.make_iterator {
             let object_type = self.ty(stmt.expr.id());
-            let object_type_params = object_type.type_params();
+            let object_type_params = bty_array_from_ty(&object_type.type_params());
 
             // Emit: <iterator> = <obj>.makeIterator();
             let iterator_reg = self.alloc_var(BytecodeType::Ptr);
@@ -405,7 +409,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.builder.emit_loop_start();
 
         let iterator_type = for_type_info.iterator_type.clone();
-        let iterator_type_params = iterator_type.type_params();
+        let iterator_type_params = bty_array_from_ty(&iterator_type.type_params());
 
         self.builder.emit_push_register(iterator_reg);
 
@@ -434,7 +438,7 @@ impl<'a> AstBytecodeGen<'a> {
         let cond_reg = self.alloc_temp(BytecodeType::Bool);
         let fct_idx = self.builder.add_const_fct_types(
             self.sa.known.functions.option_is_none(),
-            option_type_params.clone(),
+            bty_array_from_ty(&option_type_params),
         );
         self.builder.emit_push_register(next_result_reg);
         self.builder
@@ -448,9 +452,10 @@ impl<'a> AstBytecodeGen<'a> {
         } else {
             let value_ty = register_bty_from_ty(value_ty);
             let value_reg = self.alloc_var(value_ty);
-            let fct_idx = self
-                .builder
-                .add_const_fct_types(self.sa.known.functions.option_unwrap(), option_type_params);
+            let fct_idx = self.builder.add_const_fct_types(
+                self.sa.known.functions.option_unwrap(),
+                bty_array_from_ty(&option_type_params),
+            );
             self.builder.emit_push_register(next_result_reg);
             self.builder
                 .emit_invoke_direct(value_reg, fct_idx, stmt.expr.pos());
@@ -704,7 +709,7 @@ impl<'a> AstBytecodeGen<'a> {
                     let fct_idx = self.builder.add_const_generic(
                         type_list_id,
                         to_string_id,
-                        SourceTypeArray::empty(),
+                        BytecodeTypeArray::empty(),
                     );
 
                     self.builder
@@ -784,7 +789,8 @@ impl<'a> AstBytecodeGen<'a> {
         pos: Position,
         dest: DataDest,
     ) -> Register {
-        let bty = BytecodeType::Enum(enum_id, bty_array_from_ty(&type_params));
+        let type_params = bty_array_from_ty(&type_params);
+        let bty = BytecodeType::Enum(enum_id, type_params.clone());
         let dest = self.ensure_register(dest, bty);
         let idx = self
             .builder
@@ -803,10 +809,12 @@ impl<'a> AstBytecodeGen<'a> {
         };
 
         let object = self.visit_expr(&expr.object, DataDest::Alloc);
-        let idx = self
-            .builder
-            .add_const_trait(trait_id, check_type.type_params(), object_type);
-        let ty = BytecodeType::Trait(trait_id, type_params.clone());
+        let idx = self.builder.add_const_trait(
+            trait_id,
+            bty_array_from_ty(&check_type.type_params()),
+            bty_from_ty(object_type),
+        );
+        let ty = BytecodeType::Trait(trait_id, bty_array_from_ty(&type_params));
         let dest = self.ensure_register(dest, ty);
         self.builder
             .emit_new_trait_object(dest, idx, object, expr.pos);
@@ -832,7 +840,9 @@ impl<'a> AstBytecodeGen<'a> {
         let expr_reg = self.visit_expr(&node.expr, DataDest::Alloc);
 
         let variant_reg = self.alloc_temp(BytecodeType::Int32);
-        let idx = self.builder.add_const_enum(enum_id, enum_ty.type_params());
+        let idx = self
+            .builder
+            .add_const_enum(enum_id, bty_array_from_ty(&enum_ty.type_params()));
         self.builder
             .emit_load_enum_variant(variant_reg, expr_reg, idx, node.pos);
 
@@ -886,7 +896,7 @@ impl<'a> AstBytecodeGen<'a> {
                             if let Some(_) = param.name {
                                 let idx = self.builder.add_const_enum_element(
                                     enum_id,
-                                    enum_ty.type_params(),
+                                    bty_array_from_ty(&enum_ty.type_params()),
                                     variant_idx as usize,
                                     subtype_idx,
                                 );
@@ -946,9 +956,10 @@ impl<'a> AstBytecodeGen<'a> {
                 .emit_push_register(self.context_register.expect("missing context"));
         }
 
-        let idx = self
-            .builder
-            .add_const_fct_types(lambda_fct_id, self.identity_type_params());
+        let idx = self.builder.add_const_fct_types(
+            lambda_fct_id,
+            bty_array_from_ty(&self.identity_type_params()),
+        );
         self.builder.emit_new_lambda(dest, idx, node.pos);
 
         dest
@@ -1039,9 +1050,9 @@ impl<'a> AstBytecodeGen<'a> {
 
         let cls_id = cls_ty.cls_id().expect("class expected");
         let type_params = cls_ty.type_params();
-        let field_idx = self
-            .builder
-            .add_const_field_types(cls_id, type_params.clone(), field_id);
+        let field_idx =
+            self.builder
+                .add_const_field_types(cls_id, bty_array_from_ty(&type_params), field_id);
 
         let field_ty = {
             let cls = self.sa.classes.idx(cls_id);
@@ -1092,9 +1103,11 @@ impl<'a> AstBytecodeGen<'a> {
 
         let ty: BytecodeType = register_bty_from_ty(ty);
         let dest = self.ensure_register(dest, ty);
-        let const_idx = self
-            .builder
-            .add_const_struct_field(struct_id, type_params, field_idx);
+        let const_idx = self.builder.add_const_struct_field(
+            struct_id,
+            bty_array_from_ty(&type_params),
+            field_idx,
+        );
         self.builder
             .emit_load_struct_field(dest, struct_obj, const_idx);
 
@@ -1129,7 +1142,9 @@ impl<'a> AstBytecodeGen<'a> {
 
         let ty: BytecodeType = register_bty_from_ty(ty);
         let dest = self.ensure_register(dest, ty);
-        let idx = self.builder.add_const_tuple_element(tuple_ty, idx);
+        let idx = self
+            .builder
+            .add_const_tuple_element(bty_from_ty(tuple_ty), idx);
         self.builder.emit_load_tuple_element(dest, tuple, idx);
 
         self.free_if_temp(tuple);
@@ -1256,9 +1271,11 @@ impl<'a> AstBytecodeGen<'a> {
         let enum_id = enum_ty.enum_id().expect("enum expected");
         let type_params = enum_ty.type_params();
 
-        let idx = self
-            .builder
-            .add_const_enum_variant(enum_id, type_params, variant_idx);
+        let idx = self.builder.add_const_enum_variant(
+            enum_id,
+            bty_array_from_ty(&type_params),
+            variant_idx,
+        );
         let bytecode_ty = register_bty_from_ty(enum_ty);
         let dest_reg = self.ensure_register(dest, bytecode_ty);
         self.builder.emit_new_enum(dest_reg, idx, expr.pos);
@@ -1290,7 +1307,9 @@ impl<'a> AstBytecodeGen<'a> {
             self.builder.emit_push_register(arg_reg);
         }
 
-        let idx = self.builder.add_const_lambda(params, return_type.clone());
+        let idx = self
+            .builder
+            .add_const_lambda(bty_array_from_ty(&params), bty_from_ty(return_type.clone()));
 
         let dest_reg = if return_type.is_unit() {
             let dest = self.ensure_unit_register();
@@ -1329,8 +1348,8 @@ impl<'a> AstBytecodeGen<'a> {
 
         let idx = self
             .builder
-            .add_const_struct(struct_id, type_params.clone());
-        let bytecode_ty = BytecodeType::Struct(struct_id, type_params.clone());
+            .add_const_struct(struct_id, bty_array_from_ty(&type_params));
+        let bytecode_ty = BytecodeType::Struct(struct_id, bty_array_from_ty(type_params));
         let dest_reg = self.ensure_register(dest, bytecode_ty);
         self.builder.emit_new_struct(dest_reg, idx, expr.pos);
 
@@ -1360,7 +1379,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         let idx = self
             .builder
-            .add_const_cls_types(cls_id, type_params.clone());
+            .add_const_cls_types(cls_id, bty_array_from_ty(type_params));
         let dest_reg = self.ensure_register(dest, BytecodeType::Ptr);
         self.builder
             .emit_new_object_initialized(dest_reg, idx, expr.pos);
@@ -1497,7 +1516,9 @@ impl<'a> AstBytecodeGen<'a> {
         let ty = self.sa.known.array_ty(element_ty.clone());
         let cls_id = ty.cls_id().expect("class expected");
         let type_params = ty.type_params();
-        let cls_idx = self.builder.add_const_cls_types(cls_id, type_params);
+        let cls_idx = self
+            .builder
+            .add_const_cls_types(cls_id, bty_array_from_ty(&type_params));
 
         // Store length in a register
         let length_reg = self.alloc_temp(BytecodeType::Int64);
@@ -1548,7 +1569,9 @@ impl<'a> AstBytecodeGen<'a> {
                 let cls_id = ty.cls_id().expect("should be class");
                 let type_params = ty.type_params();
 
-                let idx = self.builder.add_const_cls_types(cls_id, type_params);
+                let idx = self
+                    .builder
+                    .add_const_cls_types(cls_id, bty_array_from_ty(&type_params));
                 self.builder
                     .emit_new_object(object_reg.expect("reg missing"), idx, pos);
             }
@@ -1879,7 +1902,7 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         let subtypes = ty.tuple_subtypes();
-        let idx = self.builder.add_const_tuple(subtypes);
+        let idx = self.builder.add_const_tuple(bty_array_from_ty(&subtypes));
         self.builder.emit_new_tuple(result, idx, e.pos);
 
         for arg_reg in values {
@@ -2079,7 +2102,9 @@ impl<'a> AstBytecodeGen<'a> {
         let element_ty = self.ty(expr.id);
         let cls_id = element_ty.cls_id().expect("class expected");
         let type_params = element_ty.type_params();
-        let cls_idx = self.builder.add_const_cls_types(cls_id, type_params);
+        let cls_idx = self
+            .builder
+            .add_const_cls_types(cls_id, bty_array_from_ty(&type_params));
 
         let array_reg = self.ensure_register(dest, BytecodeType::Ptr);
         let length_reg = self.visit_expr(&expr.args[0], DataDest::Alloc);
@@ -2335,7 +2360,9 @@ impl<'a> AstBytecodeGen<'a> {
                     let fct_id = info.fct_id.expect("fct_id missing");
                     let ty = self.ty(lhs.id());
                     let type_params = ty.type_params();
-                    let idx = self.builder.add_const_fct_types(fct_id, type_params);
+                    let idx = self
+                        .builder
+                        .add_const_fct_types(fct_id, bty_array_from_ty(&type_params));
                     self.builder.emit_push_register(lhs_reg);
                     self.builder.emit_push_register(rhs_reg);
                     self.builder.emit_invoke_direct(dest, idx, pos);
@@ -2368,7 +2395,9 @@ impl<'a> AstBytecodeGen<'a> {
                     let fct_id = info.fct_id.expect("fct_id missing");
                     let ty = self.ty(lhs.id());
                     let type_params = ty.type_params();
-                    let idx = self.builder.add_const_fct_types(fct_id, type_params);
+                    let idx = self
+                        .builder
+                        .add_const_fct_types(fct_id, bty_array_from_ty(&type_params));
                     self.builder.emit_push_register(lhs_reg);
                     self.builder.emit_push_register(rhs_reg);
                     self.builder.emit_invoke_direct(dest, idx, pos);
@@ -2405,7 +2434,9 @@ impl<'a> AstBytecodeGen<'a> {
                     let fct_id = info.fct_id.expect("fct_id missing");
                     let ty = self.ty(lhs.id());
                     let type_params = ty.type_params();
-                    let idx = self.builder.add_const_fct_types(fct_id, type_params);
+                    let idx = self
+                        .builder
+                        .add_const_fct_types(fct_id, bty_array_from_ty(&type_params));
                     self.builder.emit_push_register(lhs_reg);
                     self.builder.emit_push_register(rhs_reg);
                     self.builder.emit_invoke_direct(dest, idx, pos);
@@ -2439,7 +2470,9 @@ impl<'a> AstBytecodeGen<'a> {
                     let fct_id = info.fct_id.expect("fct_id missing");
                     let ty = self.ty(lhs.id());
                     let type_params = ty.type_params();
-                    let idx = self.builder.add_const_fct_types(fct_id, type_params);
+                    let idx = self
+                        .builder
+                        .add_const_fct_types(fct_id, bty_array_from_ty(&type_params));
                     self.builder.emit_push_register(lhs_reg);
                     self.builder.emit_push_register(rhs_reg);
                     self.builder.emit_invoke_direct(dest, idx, pos);
@@ -2472,7 +2505,9 @@ impl<'a> AstBytecodeGen<'a> {
                     let fct_id = info.fct_id.expect("fct_id missing");
                     let ty = self.ty(lhs.id());
                     let type_params = ty.type_params();
-                    let idx = self.builder.add_const_fct_types(fct_id, type_params);
+                    let idx = self
+                        .builder
+                        .add_const_fct_types(fct_id, bty_array_from_ty(&type_params));
                     self.builder.emit_push_register(lhs_reg);
                     self.builder.emit_push_register(rhs_reg);
                     self.builder.emit_invoke_direct(dest, idx, pos)
@@ -2506,7 +2541,9 @@ impl<'a> AstBytecodeGen<'a> {
                     let fct_id = info.fct_id.expect("fct_id missing");
                     let ty = self.ty(lhs.id());
                     let type_params = ty.type_params();
-                    let idx = self.builder.add_const_fct_types(fct_id, type_params);
+                    let idx = self
+                        .builder
+                        .add_const_fct_types(fct_id, bty_array_from_ty(&type_params));
                     self.builder.emit_push_register(lhs_reg);
                     self.builder.emit_push_register(rhs_reg);
                     self.builder.emit_invoke_direct(dest, idx, pos);
@@ -2609,7 +2646,9 @@ impl<'a> AstBytecodeGen<'a> {
 
             let type_params = obj_ty.type_params();
 
-            let callee_idx = self.builder.add_const_fct_types(fct_id, type_params);
+            let callee_idx = self
+                .builder
+                .add_const_fct_types(fct_id, bty_array_from_ty(&type_params));
             let dest = self.ensure_unit_register();
             self.builder.emit_invoke_direct(dest, callee_idx, expr.pos);
 
@@ -2630,9 +2669,9 @@ impl<'a> AstBytecodeGen<'a> {
 
         let cls_id = cls_ty.cls_id().expect("class expected");
         let type_params = cls_ty.type_params();
-        let field_idx = self
-            .builder
-            .add_const_field_types(cls_id, type_params.clone(), field_id);
+        let field_idx =
+            self.builder
+                .add_const_field_types(cls_id, bty_array_from_ty(&type_params), field_id);
 
         let obj = self.visit_expr(&dot.lhs, DataDest::Alloc);
         let src = self.visit_expr(&expr.rhs, DataDest::Alloc);
@@ -2656,9 +2695,11 @@ impl<'a> AstBytecodeGen<'a> {
         // Load context field of lambda object in self.
         let outer_context_reg = self.alloc_temp(BytecodeType::Ptr);
         let lambda_cls_id = self.sa.known.classes.lambda();
-        let idx =
-            self.builder
-                .add_const_field_types(lambda_cls_id, SourceTypeArray::empty(), FieldId(0));
+        let idx = self.builder.add_const_field_types(
+            lambda_cls_id,
+            BytecodeTypeArray::empty(),
+            FieldId(0),
+        );
         self.builder
             .emit_load_field(outer_context_reg, self_reg, idx, expr.pos);
 
@@ -2677,7 +2718,7 @@ impl<'a> AstBytecodeGen<'a> {
 
             let idx = self.builder.add_const_field_types(
                 outer_cls_id,
-                self.identity_type_params(),
+                bty_array_from_ty(&self.identity_type_params()),
                 FieldId(0),
             );
             self.builder
@@ -2697,9 +2738,11 @@ impl<'a> AstBytecodeGen<'a> {
 
         let field_id =
             field_id_from_context_idx(context_idx, analysis.context_has_outer_context_slot());
-        let idx =
-            self.builder
-                .add_const_field_types(outer_cls_id, self.identity_type_params(), field_id);
+        let idx = self.builder.add_const_field_types(
+            outer_cls_id,
+            bty_array_from_ty(&self.identity_type_params()),
+            field_id,
+        );
         self.builder
             .emit_store_field(value_reg, outer_context_reg, idx, expr.pos);
 
@@ -2784,9 +2827,11 @@ impl<'a> AstBytecodeGen<'a> {
         // Load context field of lambda object (in self register).
         let outer_context_reg = self.alloc_temp(BytecodeType::Ptr);
         let lambda_cls_id = self.sa.known.classes.lambda();
-        let idx =
-            self.builder
-                .add_const_field_types(lambda_cls_id, SourceTypeArray::empty(), FieldId(0));
+        let idx = self.builder.add_const_field_types(
+            lambda_cls_id,
+            BytecodeTypeArray::empty(),
+            FieldId(0),
+        );
         self.builder
             .emit_load_field(outer_context_reg, self_reg, idx, pos);
 
@@ -2805,7 +2850,7 @@ impl<'a> AstBytecodeGen<'a> {
 
             let idx = self.builder.add_const_field_types(
                 outer_cls_id,
-                self.identity_type_params(),
+                bty_array_from_ty(&self.identity_type_params()),
                 FieldId(0),
             );
             self.builder
@@ -2832,9 +2877,11 @@ impl<'a> AstBytecodeGen<'a> {
         let ty: BytecodeType = register_bty_from_ty(field.ty.clone());
         let value_reg = self.ensure_register(dest, ty);
 
-        let idx =
-            self.builder
-                .add_const_field_types(outer_cls_id, self.identity_type_params(), field_id);
+        let idx = self.builder.add_const_field_types(
+            outer_cls_id,
+            bty_array_from_ty(&self.identity_type_params()),
+            field_id,
+        );
         self.builder
             .emit_load_field(value_reg, outer_context_reg, idx, pos);
 
@@ -2959,9 +3006,11 @@ impl<'a> AstBytecodeGen<'a> {
         let cls_id = self.analysis.context_cls_id.expect("class missing");
         let field_id =
             field_id_from_context_idx(context_idx, self.analysis.context_has_outer_context_slot());
-        let field_idx =
-            self.builder
-                .add_const_field_types(cls_id, self.identity_type_params(), field_id);
+        let field_idx = self.builder.add_const_field_types(
+            cls_id,
+            bty_array_from_ty(&self.identity_type_params()),
+            field_id,
+        );
         self.builder
             .emit_store_field(src, context_register, field_idx, pos);
     }
@@ -2972,9 +3021,11 @@ impl<'a> AstBytecodeGen<'a> {
         let cls_id = self.analysis.context_cls_id.expect("class missing");
         let field_id =
             field_id_from_context_idx(context_idx, self.analysis.context_has_outer_context_slot());
-        let field_idx =
-            self.builder
-                .add_const_field_types(cls_id, self.identity_type_params(), field_id);
+        let field_idx = self.builder.add_const_field_types(
+            cls_id,
+            bty_array_from_ty(&self.identity_type_params()),
+            field_id,
+        );
         self.builder
             .emit_load_field(dest, context_register, field_idx, pos);
     }
@@ -3032,10 +3083,12 @@ impl<'a> AstBytecodeGen<'a> {
         assert_eq!(fct.type_params.len(), type_params.len());
 
         match *call_type {
-            CallType::GenericStaticMethod(id, _, _) | CallType::GenericMethod(id, _, _) => {
-                self.builder.add_const_generic(id, fct.id(), type_params)
-            }
-            _ => self.builder.add_const_fct_types(fct.id(), type_params),
+            CallType::GenericStaticMethod(id, _, _) | CallType::GenericMethod(id, _, _) => self
+                .builder
+                .add_const_generic(id, fct.id(), bty_array_from_ty(&type_params)),
+            _ => self
+                .builder
+                .add_const_fct_types(fct.id(), bty_array_from_ty(&type_params)),
         }
     }
 
@@ -3253,15 +3306,24 @@ pub fn bty_from_ty(ty: SourceType) -> BytecodeType {
         SourceType::Int64 => BytecodeType::Int64,
         SourceType::Float32 => BytecodeType::Float32,
         SourceType::Float64 => BytecodeType::Float64,
-        SourceType::Class(class_id, type_params) => BytecodeType::Class(class_id, type_params),
-        SourceType::Trait(trait_id, type_params) => BytecodeType::Trait(trait_id, type_params),
+        SourceType::Class(class_id, type_params) => {
+            BytecodeType::Class(class_id, bty_array_from_ty(&type_params))
+        }
+        SourceType::Trait(trait_id, type_params) => {
+            BytecodeType::Trait(trait_id, bty_array_from_ty(&type_params))
+        }
         SourceType::Enum(enum_id, type_params) => {
             BytecodeType::Enum(enum_id, bty_array_from_ty(&type_params))
         }
-        SourceType::Struct(struct_id, type_params) => BytecodeType::Struct(struct_id, type_params),
+        SourceType::Struct(struct_id, type_params) => {
+            BytecodeType::Struct(struct_id, bty_array_from_ty(&type_params))
+        }
         SourceType::Tuple(subtypes) => BytecodeType::Tuple(bty_array_from_ty(&subtypes)),
         SourceType::TypeParam(idx) => BytecodeType::TypeParam(idx.to_usize() as u32),
-        SourceType::Lambda(params, return_type) => BytecodeType::Lambda(params, return_type),
+        SourceType::Lambda(params, return_type) => BytecodeType::Lambda(
+            bty_array_from_ty(&params),
+            Box::new(bty_from_ty(*return_type)),
+        ),
         SourceType::Ptr => BytecodeType::Ptr,
         _ => panic!("SourceType {:?} cannot be converted to BytecodeType", ty),
     }
@@ -3285,15 +3347,24 @@ pub fn ty_from_bty(ty: BytecodeType) -> SourceType {
         BytecodeType::Int64 => SourceType::Int64,
         BytecodeType::Float32 => SourceType::Float32,
         BytecodeType::Float64 => SourceType::Float64,
-        BytecodeType::Class(class_id, type_params) => SourceType::Class(class_id, type_params),
-        BytecodeType::Trait(trait_id, type_params) => SourceType::Trait(trait_id, type_params),
+        BytecodeType::Class(class_id, type_params) => {
+            SourceType::Class(class_id, ty_array_from_bty(&type_params))
+        }
+        BytecodeType::Trait(trait_id, type_params) => {
+            SourceType::Trait(trait_id, ty_array_from_bty(&type_params))
+        }
         BytecodeType::Enum(enum_id, type_params) => {
             SourceType::Enum(enum_id, ty_array_from_bty(&type_params))
         }
-        BytecodeType::Struct(struct_id, type_params) => SourceType::Struct(struct_id, type_params),
+        BytecodeType::Struct(struct_id, type_params) => {
+            SourceType::Struct(struct_id, ty_array_from_bty(&type_params))
+        }
         BytecodeType::Tuple(subtypes) => SourceType::Tuple(ty_array_from_bty(&subtypes)),
         BytecodeType::TypeParam(idx) => SourceType::TypeParam(TypeParamId(idx as usize)),
-        BytecodeType::Lambda(params, return_type) => SourceType::Lambda(params, return_type),
+        BytecodeType::Lambda(params, return_type) => SourceType::Lambda(
+            ty_array_from_bty(&params),
+            Box::new(ty_from_bty(*return_type)),
+        ),
         BytecodeType::Ptr => SourceType::Ptr,
     }
 }
@@ -3309,11 +3380,15 @@ pub fn register_bty_from_ty(ty: SourceType) -> BytecodeType {
         SourceType::Float32 => BytecodeType::Float32,
         SourceType::Float64 => BytecodeType::Float64,
         SourceType::Class(_, _) => BytecodeType::Ptr,
-        SourceType::Trait(trait_id, type_params) => BytecodeType::Trait(trait_id, type_params),
+        SourceType::Trait(trait_id, type_params) => {
+            BytecodeType::Trait(trait_id, bty_array_from_ty(&type_params))
+        }
         SourceType::Enum(enum_id, type_params) => {
             BytecodeType::Enum(enum_id, bty_array_from_ty(&type_params))
         }
-        SourceType::Struct(struct_id, type_params) => BytecodeType::Struct(struct_id, type_params),
+        SourceType::Struct(struct_id, type_params) => {
+            BytecodeType::Struct(struct_id, bty_array_from_ty(&type_params))
+        }
         SourceType::Tuple(subtypes) => BytecodeType::Tuple(bty_array_from_ty(&subtypes)),
         SourceType::TypeParam(idx) => BytecodeType::TypeParam(idx.to_usize() as u32),
         SourceType::Lambda(_, _) => BytecodeType::Ptr,

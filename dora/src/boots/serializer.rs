@@ -118,22 +118,22 @@ fn encode_bytecode_type(vm: &VM, ty: &BytecodeType, buffer: &mut ByteBuffer) {
         BytecodeType::Struct(struct_id, ref source_type_array) => {
             buffer.emit_u8(BytecodeTypeKind::Struct as u8);
             buffer.emit_id(struct_id.to_usize());
-            encode_source_type_array(vm, source_type_array, buffer);
+            encode_bytecode_type_array(vm, source_type_array, buffer);
         }
         BytecodeType::Class(class_id, ref source_type_array) => {
             buffer.emit_u8(BytecodeTypeKind::Class as u8);
             buffer.emit_id(class_id.to_usize());
-            encode_source_type_array(vm, source_type_array, buffer);
+            encode_bytecode_type_array(vm, source_type_array, buffer);
         }
         BytecodeType::Trait(trait_id, ref source_type_array) => {
             buffer.emit_u8(BytecodeTypeKind::Trait as u8);
             buffer.emit_id(trait_id.to_usize());
-            encode_source_type_array(vm, source_type_array, buffer);
+            encode_bytecode_type_array(vm, source_type_array, buffer);
         }
         BytecodeType::Lambda(params, ret) => {
             buffer.emit_u8(BytecodeTypeKind::Lambda as u8);
-            encode_source_type_array(vm, params, buffer);
-            encode_source_type(vm, ret.as_ref().clone(), buffer);
+            encode_bytecode_type_array(vm, params, buffer);
+            encode_bytecode_type(vm, ret.as_ref(), buffer);
         }
     }
 }

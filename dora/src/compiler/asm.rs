@@ -213,7 +213,7 @@ impl<'a> BaselineAssembler<'a> {
             }
 
             BytecodeType::Struct(struct_id, type_params) => {
-                self.copy_struct(struct_id, type_params, dest, src);
+                self.copy_struct(struct_id, ty_array_from_bty(&type_params), dest, src);
             }
 
             BytecodeType::TypeParam(_) => unreachable!(),
