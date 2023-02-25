@@ -10,6 +10,7 @@ use crate::cpu::{FReg, Reg};
 use crate::disassembler;
 use crate::driver::cmd::{AsmSyntax, CompilerName};
 use crate::gc::Address;
+use crate::language::generator::bty_array_from_ty;
 use crate::language::sem_analysis::{FctDefinition, FctDefinitionId};
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::os;
@@ -27,7 +28,7 @@ pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray)
     // Block here if compilation is already in progress.
     if let Some(instruction_start) =
         vm.compilation_database
-            .compilation_request(vm, fct.id(), type_params.clone())
+            .compilation_request(vm, fct.id(), bty_array_from_ty(type_params))
     {
         return instruction_start;
     }
@@ -82,7 +83,7 @@ pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray)
 
     // Mark compilation as finished and resume threads waiting for compilation.
     vm.compilation_database
-        .finish_compilation(fct.id(), type_params.clone(), code_id);
+        .finish_compilation(fct.id(), bty_array_from_ty(type_params), code_id);
 
     if vm.args.flag_emit_compiler {
         let duration = start.expect("missing start time").elapsed();

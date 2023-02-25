@@ -4195,7 +4195,7 @@ impl<'a> CannonCodeGen<'a> {
             debug_assert!(fct.has_body());
             self.vm
                 .compilation_database
-                .is_compiled(self.vm, fid, ty_array_from_bty(&type_params))
+                .is_compiled(self.vm, fid, type_params)
                 .unwrap_or(self.vm.stubs.lazy_compilation())
         }
     }

@@ -2,9 +2,9 @@ use parking_lot::{Condvar, Mutex};
 
 use std::collections::HashMap;
 
+use crate::bytecode::BytecodeTypeArray;
 use crate::gc::Address;
 use crate::language::sem_analysis::FctDefinitionId;
-use crate::language::ty::SourceTypeArray;
 use crate::vm::{CodeId, VM};
 
 #[derive(PartialEq, Debug)]
@@ -14,7 +14,7 @@ enum CompilationStatus {
 }
 
 pub struct CompilationDatabase {
-    inner: Mutex<HashMap<(FctDefinitionId, SourceTypeArray), CompilationStatus>>,
+    inner: Mutex<HashMap<(FctDefinitionId, BytecodeTypeArray), CompilationStatus>>,
     cv_notify: Condvar,
 }
 
@@ -34,7 +34,7 @@ impl CompilationDatabase {
         &self,
         vm: &VM,
         id: FctDefinitionId,
-        type_params: SourceTypeArray,
+        type_params: BytecodeTypeArray,
     ) -> Option<Address> {
         let inner = self.inner.lock();
 
@@ -56,7 +56,7 @@ impl CompilationDatabase {
         &self,
         vm: &VM,
         id: FctDefinitionId,
-        type_params: SourceTypeArray,
+        type_params: BytecodeTypeArray,
     ) -> Option<Address> {
         let mut inner = self.inner.lock();
 
@@ -82,7 +82,7 @@ impl CompilationDatabase {
     pub fn finish_compilation(
         &self,
         id: FctDefinitionId,
-        type_params: SourceTypeArray,
+        type_params: BytecodeTypeArray,
         code_id: CodeId,
     ) {
         let mut inner = self.inner.lock();
