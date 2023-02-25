@@ -1,8 +1,7 @@
 use parking_lot::RwLock;
 use std::cmp::max;
 
-use crate::bytecode::BytecodeType;
-use crate::language::generator::{bty_array_from_ty, ty_array_from_bty};
+use crate::bytecode::{BytecodeType, BytecodeTypeArray};
 use crate::language::sem_analysis::{ClassDefinitionId, FctDefinitionId, TraitDefinitionId};
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::mem;
@@ -564,39 +563,6 @@ fn create_specialized_class_for_trait_object(
     class_instance_id
 }
 
-pub fn specialize_tuple_ty(
-    vm: &VM,
-    tuple_ty: SourceType,
-    type_params: &SourceTypeArray,
-) -> SourceType {
-    let subtypes = tuple_ty.tuple_subtypes();
-    let new_subtypes = specialize_tuple_array(vm, subtypes, type_params);
-    SourceType::Tuple(new_subtypes)
-}
-
-pub fn specialize_tuple_bty(
-    vm: &VM,
-    tuple_ty: BytecodeType,
-    type_params: &SourceTypeArray,
-) -> BytecodeType {
-    let subtypes = tuple_ty.tuple_subtypes();
-    let new_subtypes = specialize_tuple_array(vm, ty_array_from_bty(&subtypes), type_params);
-    BytecodeType::Tuple(bty_array_from_ty(&new_subtypes))
-}
-
-pub fn specialize_tuple_array(
-    vm: &VM,
-    tuple_subtypes: SourceTypeArray,
-    type_params: &SourceTypeArray,
-) -> SourceTypeArray {
-    let new_subtypes = tuple_subtypes
-        .iter()
-        .map(|t| specialize_type(vm, t.clone(), type_params))
-        .collect::<Vec<_>>();
-
-    SourceTypeArray::with(new_subtypes)
-}
-
 pub fn replace_type_param(
     vm: &VM,
     ty: SourceType,
@@ -694,5 +660,63 @@ pub fn replace_type_param(
             panic!("unexpected type = {:?}", ty);
             // unreachable!()
         }
+    }
+}
+
+pub fn specialize_bty_array(
+    types: &BytecodeTypeArray,
+    type_params: &BytecodeTypeArray,
+) -> BytecodeTypeArray {
+    let types = types
+        .iter()
+        .map(|p| specialize_bty(p, type_params))
+        .collect();
+    BytecodeTypeArray::new(types)
+}
+
+pub fn specialize_bty(ty: BytecodeType, type_params: &BytecodeTypeArray) -> BytecodeType {
+    match ty {
+        BytecodeType::TypeParam(tpid) => type_params[tpid as usize].clone(),
+
+        BytecodeType::Class(cls_id, params) => {
+            let params = specialize_bty_array(&params, type_params);
+            BytecodeType::Class(cls_id, params)
+        }
+
+        BytecodeType::Trait(trait_id, params) => {
+            let params = specialize_bty_array(&params, type_params);
+            BytecodeType::Trait(trait_id, params)
+        }
+
+        BytecodeType::Struct(struct_id, params) => {
+            let params = specialize_bty_array(&params, type_params);
+            BytecodeType::Struct(struct_id, params)
+        }
+
+        BytecodeType::Enum(enum_id, params) => {
+            let params = specialize_bty_array(&params, type_params);
+            BytecodeType::Enum(enum_id, params)
+        }
+
+        BytecodeType::Lambda(params, return_type) => {
+            let params = specialize_bty_array(&params, type_params);
+            let return_type = specialize_bty(return_type.as_ref().clone(), type_params);
+            BytecodeType::Lambda(params, Box::new(return_type))
+        }
+
+        BytecodeType::Tuple(subtypes) => {
+            let subtypes = specialize_bty_array(&subtypes, type_params);
+            BytecodeType::Tuple(subtypes)
+        }
+
+        BytecodeType::Unit
+        | BytecodeType::UInt8
+        | BytecodeType::Bool
+        | BytecodeType::Char
+        | BytecodeType::Int32
+        | BytecodeType::Int64
+        | BytecodeType::Float32
+        | BytecodeType::Float64
+        | BytecodeType::Ptr => ty,
     }
 }

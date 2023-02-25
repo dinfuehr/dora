@@ -117,6 +117,52 @@ impl BytecodeType {
             _ => unreachable!(),
         }
     }
+
+    pub fn is_concrete_type(&self) -> bool {
+        match self {
+            BytecodeType::Unit
+            | BytecodeType::Bool
+            | BytecodeType::UInt8
+            | BytecodeType::Char
+            | BytecodeType::Int32
+            | BytecodeType::Int64
+            | BytecodeType::Float32
+            | BytecodeType::Float64
+            | BytecodeType::Ptr => true,
+            BytecodeType::Class(_, params)
+            | BytecodeType::Enum(_, params)
+            | BytecodeType::Struct(_, params)
+            | BytecodeType::Trait(_, params) => {
+                for param in params.iter() {
+                    if !param.is_concrete_type() {
+                        return false;
+                    }
+                }
+
+                true
+            }
+
+            BytecodeType::Tuple(subtypes) => {
+                for subtype in subtypes.iter() {
+                    if !subtype.is_concrete_type() {
+                        return false;
+                    }
+                }
+
+                true
+            }
+            BytecodeType::Lambda(params, return_type) => {
+                for param in params.iter() {
+                    if !param.is_concrete_type() {
+                        return false;
+                    }
+                }
+
+                return_type.is_concrete_type()
+            }
+            BytecodeType::TypeParam(_) => false,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]

@@ -48,10 +48,10 @@ pub use self::impls::{find_trait_impl, implements_trait};
 use self::known::KnownInstances;
 pub use self::modules::{module_contains, module_path};
 pub use self::specialize::{
-    add_ref_fields, replace_type_param, specialize_class_id, specialize_class_id_params,
-    specialize_enum_class, specialize_enum_id_params, specialize_lambda,
-    specialize_struct_id_params, specialize_trait_object, specialize_tuple_array,
-    specialize_tuple_bty, specialize_tuple_ty, specialize_type, specialize_type_list,
+    add_ref_fields, replace_type_param, specialize_bty, specialize_bty_array, specialize_class_id,
+    specialize_class_id_params, specialize_enum_class, specialize_enum_id_params,
+    specialize_lambda, specialize_struct_id_params, specialize_trait_object, specialize_type,
+    specialize_type_list,
 };
 pub use self::structs::{StructInstance, StructInstanceField, StructInstanceId};
 pub use self::stubs::{setup_stubs, Stubs};
