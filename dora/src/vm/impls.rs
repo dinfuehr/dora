@@ -8,7 +8,7 @@ pub fn find_trait_impl(
     trait_ty: SourceType,
     object_type: SourceType,
 ) -> FctDefinitionId {
-    debug_assert!(object_type.is_concrete_type_vm(vm));
+    debug_assert!(object_type.is_concrete_type());
     let impl_id = find_impl(
         vm,
         object_type,
@@ -39,7 +39,7 @@ fn find_impl(
     for impl_ in vm.impls.iter() {
         let impl_ = impl_.read();
 
-        assert!(impl_.trait_ty().is_concrete_type_vm(vm));
+        assert!(impl_.trait_ty().is_concrete_type());
 
         if impl_.extended_ty != check_ty {
             continue;

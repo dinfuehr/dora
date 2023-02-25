@@ -136,53 +136,6 @@ impl SourceType {
             SourceType::Tuple(_) => unimplemented!(),
         }
     }
-
-    pub fn is_concrete_type_vm(&self, vm: &VM) -> bool {
-        match self {
-            SourceType::Error | SourceType::This | SourceType::Any => false,
-            SourceType::Unit
-            | SourceType::Bool
-            | SourceType::UInt8
-            | SourceType::Char
-            | SourceType::Int32
-            | SourceType::Int64
-            | SourceType::Float32
-            | SourceType::Float64
-            | SourceType::Ptr => true,
-            SourceType::Class(_, params)
-            | SourceType::Enum(_, params)
-            | SourceType::Struct(_, params)
-            | SourceType::Trait(_, params) => {
-                for param in params.iter() {
-                    if !param.is_concrete_type_vm(vm) {
-                        return false;
-                    }
-                }
-
-                true
-            }
-
-            SourceType::Tuple(subtypes) => {
-                for subtype in subtypes.iter() {
-                    if !subtype.is_concrete_type_vm(vm) {
-                        return false;
-                    }
-                }
-
-                true
-            }
-            SourceType::Lambda(params, return_type) => {
-                for param in params.iter() {
-                    if !param.is_concrete_type_vm(vm) {
-                        return false;
-                    }
-                }
-
-                return_type.is_concrete_type_vm(vm)
-            }
-            SourceType::TypeParam(_) => false,
-        }
-    }
 }
 
 impl SourceTypeArray {

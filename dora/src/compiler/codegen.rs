@@ -22,7 +22,7 @@ pub fn generate(vm: &VM, id: FctDefinitionId, type_params: &SourceTypeArray) -> 
 }
 
 pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray) -> Address {
-    debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type_vm(vm)));
+    debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
     // Block here if compilation is already in progress.
     if let Some(instruction_start) =

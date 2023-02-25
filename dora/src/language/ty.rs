@@ -451,7 +451,7 @@ impl SourceType {
         }
     }
 
-    pub fn is_concrete_type(&self, sa: &SemAnalysis) -> bool {
+    pub fn is_concrete_type(&self) -> bool {
         match self {
             SourceType::Error | SourceType::This | SourceType::Any => false,
             SourceType::Unit
@@ -468,7 +468,7 @@ impl SourceType {
             | SourceType::Struct(_, params)
             | SourceType::Trait(_, params) => {
                 for param in params.iter() {
-                    if !param.is_concrete_type(sa) {
+                    if !param.is_concrete_type() {
                         return false;
                     }
                 }
@@ -478,7 +478,7 @@ impl SourceType {
 
             SourceType::Tuple(subtypes) => {
                 for subtype in subtypes.iter() {
-                    if !subtype.is_concrete_type(sa) {
+                    if !subtype.is_concrete_type() {
                         return false;
                     }
                 }
@@ -487,12 +487,12 @@ impl SourceType {
             }
             SourceType::Lambda(params, return_type) => {
                 for param in params.iter() {
-                    if !param.is_concrete_type(sa) {
+                    if !param.is_concrete_type() {
                         return false;
                     }
                 }
 
-                return_type.is_concrete_type(sa)
+                return_type.is_concrete_type()
             }
             SourceType::TypeParam(_) => false,
         }

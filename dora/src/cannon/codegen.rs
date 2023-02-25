@@ -281,7 +281,7 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn has_result_address(&self) -> bool {
-        let return_type = self.specialize_type(ty_from_bty(self.return_type.clone()));
+        let return_type = self.specialize_bty(self.return_type.clone());
         result_passed_as_argument(return_type)
     }
 
@@ -303,7 +303,7 @@ impl<'a> CannonCodeGen<'a> {
 
         for (idx, param_ty) in params.iter().enumerate() {
             let param_ty = self.specialize_type(ty_from_bty(param_ty.clone()));
-            assert!(param_ty.is_concrete_type_vm(self.vm));
+            assert!(param_ty.is_concrete_type());
 
             let dest = Register(idx);
 
@@ -2792,7 +2792,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let (result_reg, result_mode) = self.call_result_reg_and_mode(bytecode_type);
 
-        let self_index = if result_passed_as_argument(ty_from_bty(fct_return_type.clone())) {
+        let self_index = if result_passed_as_argument(fct_return_type.clone()) {
             1
         } else {
             0
@@ -2838,7 +2838,7 @@ impl<'a> CannonCodeGen<'a> {
             fct.return_type.clone(),
             &ty_array_from_bty(&type_params),
         ));
-        assert!(fct_return_type.is_concrete_type_vm(self.vm));
+        assert!(fct_return_type.is_concrete_type());
 
         let argsize = self.emit_invoke_arguments(dest, fct_return_type.clone(), arguments);
 
@@ -2847,7 +2847,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let (result_reg, result_mode) = self.call_result_reg_and_mode(bytecode_type);
 
-        let self_index = if result_passed_as_argument(fct_return_type.clone()) {
+        let self_index = if result_passed_as_argument(bty_from_ty(fct_return_type.clone())) {
             1
         } else {
             0
@@ -2929,7 +2929,7 @@ impl<'a> CannonCodeGen<'a> {
             fct.return_type.clone(),
             &ty_array_from_bty(&type_params),
         ));
-        assert!(fct_return_type.is_concrete_type_vm(self.vm));
+        assert!(fct_return_type.is_concrete_type());
 
         let bytecode_type_self = self.bytecode.register_type(self_register);
 
@@ -3014,7 +3014,7 @@ impl<'a> CannonCodeGen<'a> {
             fct.return_type.clone(),
             &ty_array_from_bty(&type_params),
         ));
-        assert!(fct_return_type.is_concrete_type_vm(self.vm));
+        assert!(fct_return_type.is_concrete_type());
 
         let argsize = self.emit_invoke_arguments(dest, fct_return_type.clone(), arguments);
 
@@ -4074,7 +4074,7 @@ impl<'a> CannonCodeGen<'a> {
         let mut freg_idx = 0;
         let mut sp_offset = 0;
 
-        if result_passed_as_argument(fct_return_type) {
+        if result_passed_as_argument(bty_from_ty(fct_return_type)) {
             let offset = self.register_offset(dest);
             self.asm.lea(REG_PARAMS[0], Mem::Local(offset));
             reg_idx += 1;
@@ -5030,8 +5030,24 @@ pub fn register_bty(ty: BytecodeType) -> BytecodeType {
     }
 }
 
-fn result_passed_as_argument(ty: SourceType) -> bool {
-    ty.is_struct() || ty.is_tuple()
+fn result_passed_as_argument(ty: BytecodeType) -> bool {
+    match ty {
+        BytecodeType::Unit
+        | BytecodeType::Bool
+        | BytecodeType::UInt8
+        | BytecodeType::Char
+        | BytecodeType::Int32
+        | BytecodeType::Int64
+        | BytecodeType::Float32
+        | BytecodeType::Float64
+        | BytecodeType::Enum(..)
+        | BytecodeType::Class(..)
+        | BytecodeType::Lambda(..)
+        | BytecodeType::Ptr
+        | BytecodeType::Trait(..) => false,
+        BytecodeType::TypeParam(..) => panic!("unexpected type param"),
+        BytecodeType::Struct(..) | BytecodeType::Tuple(..) => true,
+    }
 }
 
 fn result_reg(vm: &VM, bytecode_type: BytecodeType) -> AnyReg {

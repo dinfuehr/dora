@@ -3116,7 +3116,7 @@ impl<'a> AstBytecodeGen<'a> {
                 specialize_type(self.sa, ty, &container_type_params)
             }
             CallType::GenericMethod(id, _, _) | CallType::GenericStaticMethod(id, _, _) => {
-                debug_assert!(ty.is_concrete_type(self.sa) || ty.is_self());
+                debug_assert!(ty.is_concrete_type() || ty.is_self());
                 if ty.is_self() {
                     SourceType::TypeParam(*id)
                 } else {
