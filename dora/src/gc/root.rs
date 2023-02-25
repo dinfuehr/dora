@@ -80,7 +80,8 @@ fn iterate_roots_from_globals<F: FnMut(Slot)>(vm: &VM, callback: &mut F) {
             }
 
             SourceType::Enum(enum_id, ref type_params) => {
-                let edef_id = specialize_enum_id_params(vm, enum_id, type_params.clone());
+                let edef_id =
+                    specialize_enum_id_params(vm, enum_id, bty_array_from_ty(type_params));
                 let edef = vm.enum_instances.idx(edef_id);
 
                 match edef.layout {

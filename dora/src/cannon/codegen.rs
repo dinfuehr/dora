@@ -15,7 +15,7 @@ use crate::cpu::{
 };
 use crate::gc::Address;
 use crate::language::generator::{
-    bty_array_from_ty, bty_from_ty, register_bty_from_ty, ty_array_from_bty, ty_from_bty,
+    bty_from_ty, register_bty_from_ty, ty_array_from_bty, ty_from_bty,
 };
 use crate::language::sem_analysis::{FctDefinitionId, GlobalDefinitionId, Intrinsic};
 use crate::language::ty::SourceType;
@@ -238,7 +238,6 @@ impl<'a> CannonCodeGen<'a> {
                 }
 
                 BytecodeType::Enum(enum_id, type_params) => {
-                    let type_params = ty_array_from_bty(&type_params);
                     let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
                     let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
@@ -455,8 +454,7 @@ impl<'a> CannonCodeGen<'a> {
             BytecodeType::Enum(enum_id, type_params) => (enum_id, type_params),
             _ => unreachable!(),
         };
-        let enum_instance_id =
-            specialize_enum_id_params(self.vm, enum_id, ty_array_from_bty(&type_params));
+        let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
         let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
         let mode = match enum_instance.layout {
@@ -1177,8 +1175,7 @@ impl<'a> CannonCodeGen<'a> {
         let enum_ = &self.vm.enums[enum_id];
         let enum_ = enum_.read();
 
-        let enum_instance_id =
-            specialize_enum_id_params(self.vm, enum_id, ty_array_from_bty(&type_params));
+        let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
         let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
         match enum_instance.layout {
@@ -1245,8 +1242,7 @@ impl<'a> CannonCodeGen<'a> {
         let enum_ = &self.vm.enums[enum_id];
         let enum_ = enum_.read();
 
-        let enum_instance_id =
-            specialize_enum_id_params(self.vm, enum_id, ty_array_from_bty(&type_params));
+        let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
         let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
         match enum_instance.layout {
@@ -1414,7 +1410,7 @@ impl<'a> CannonCodeGen<'a> {
 
             BytecodeType::Enum(enum_id, type_params) => {
                 let enum_instance_id =
-                    specialize_enum_id_params(self.vm, *enum_id, ty_array_from_bty(type_params));
+                    specialize_enum_id_params(self.vm, *enum_id, type_params.clone());
                 let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
                 let mode = match enum_instance.layout {
@@ -1818,7 +1814,7 @@ impl<'a> CannonCodeGen<'a> {
 
             BytecodeType::Enum(enum_id, type_params) => {
                 let enum_instance_id =
-                    specialize_enum_id_params(self.vm, enum_id, ty_array_from_bty(&type_params));
+                    specialize_enum_id_params(self.vm, enum_id, type_params.clone());
                 let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
                 let mode = match enum_instance.layout {
@@ -2144,8 +2140,7 @@ impl<'a> CannonCodeGen<'a> {
         let enum_ = &self.vm.enums[enum_id];
         let enum_ = enum_.read();
 
-        let enum_instance_id =
-            specialize_enum_id_params(self.vm, enum_id, ty_array_from_bty(&type_params));
+        let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params.clone());
         let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
@@ -2542,8 +2537,7 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             BytecodeType::Enum(enum_id, type_params) => {
-                let enum_instance_id =
-                    specialize_enum_id_params(self.vm, enum_id, ty_array_from_bty(&type_params));
+                let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
                 let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
                 let mode = match enum_instance.layout {
@@ -2681,8 +2675,7 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             BytecodeType::Enum(enum_id, type_params) => {
-                let enum_instance_id =
-                    specialize_enum_id_params(self.vm, enum_id, ty_array_from_bty(&type_params));
+                let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
                 let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
                 let mode = match enum_instance.layout {
@@ -3860,7 +3853,6 @@ impl<'a> CannonCodeGen<'a> {
             unreachable!()
         };
 
-        let type_params = ty_array_from_bty(&type_params);
         let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params.clone());
         let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
@@ -3869,14 +3861,7 @@ impl<'a> CannonCodeGen<'a> {
             EnumLayout::Ptr => {
                 self.emit_load_register_as(arguments[0], REG_RESULT.into(), MachineMode::Ptr);
                 let lbl_slow_path = self.asm.test_if_nil(REG_RESULT);
-                self.add_slow_path(
-                    lbl_slow_path,
-                    dest,
-                    fct_id,
-                    arguments,
-                    bty_array_from_ty(&type_params),
-                    pos,
-                );
+                self.add_slow_path(lbl_slow_path, dest, fct_id, arguments, type_params, pos);
                 self.emit_store_register_as(REG_RESULT.into(), dest, MachineMode::Ptr);
             }
 
@@ -3898,14 +3883,7 @@ impl<'a> CannonCodeGen<'a> {
                 let lbl_slow_path = self.asm.create_label();
                 self.asm.jump_if(CondCode::NotEqual, lbl_slow_path);
 
-                self.add_slow_path(
-                    lbl_slow_path,
-                    dest,
-                    fct_id,
-                    arguments,
-                    bty_array_from_ty(&type_params),
-                    pos,
-                );
+                self.add_slow_path(lbl_slow_path, dest, fct_id, arguments, type_params, pos);
 
                 let class_instance_id = specialize_enum_class(
                     self.vm,
@@ -3990,7 +3968,6 @@ impl<'a> CannonCodeGen<'a> {
             unreachable!()
         };
 
-        let type_params = ty_array_from_bty(&type_params);
         let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params.clone());
         let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
@@ -5084,7 +5061,7 @@ pub fn mode(vm: &VM, ty: BytecodeType) -> MachineMode {
         BytecodeType::Tuple(_) => unreachable!(),
         BytecodeType::TypeParam(_) => unreachable!(),
         BytecodeType::Enum(enum_id, type_params) => {
-            let edef_id = specialize_enum_id_params(vm, enum_id, ty_array_from_bty(&type_params));
+            let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
             let edef = vm.enum_instances.idx(edef_id);
 
             match edef.layout {
@@ -5112,7 +5089,7 @@ pub fn size(vm: &VM, ty: BytecodeType) -> i32 {
         BytecodeType::Tuple(_) => get_concrete_tuple_bytecode_ty(vm, &ty).size(),
         BytecodeType::TypeParam(_) => unreachable!(),
         BytecodeType::Enum(enum_id, type_params) => {
-            let edef_id = specialize_enum_id_params(vm, enum_id, ty_array_from_bty(&type_params));
+            let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
             let edef = vm.enum_instances.idx(edef_id);
 
             match edef.layout {

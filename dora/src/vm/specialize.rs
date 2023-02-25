@@ -19,27 +19,6 @@ pub fn specialize_type(vm: &VM, ty: SourceType, type_params: &SourceTypeArray) -
     replace_type_param(vm, ty, type_params, None)
 }
 
-pub fn specialize_type_list(
-    vm: &VM,
-    list: &SourceTypeArray,
-    type_params: &SourceTypeArray,
-) -> SourceTypeArray {
-    let types = list.types();
-
-    if types.is_empty() {
-        return SourceTypeArray::empty();
-    }
-
-    let mut specialized_types = Vec::with_capacity(types.len());
-
-    for ty in types {
-        let ty = replace_type_param(vm, ty.clone(), type_params, None);
-        specialized_types.push(ty);
-    }
-
-    SourceTypeArray::with(specialized_types)
-}
-
 pub fn specialize_struct_id_params(
     vm: &VM,
     struct_id: StructDefinitionId,
@@ -121,7 +100,7 @@ fn create_specialized_struct(
 pub fn specialize_enum_id_params(
     vm: &VM,
     enum_id: EnumDefinitionId,
-    type_params: SourceTypeArray,
+    type_params: BytecodeTypeArray,
 ) -> EnumInstanceId {
     let enum_ = &vm.enums[enum_id];
     let enum_ = enum_.read();
@@ -131,7 +110,7 @@ pub fn specialize_enum_id_params(
 pub fn specialize_enum(
     vm: &VM,
     enum_: &EnumDefinition,
-    type_params: SourceTypeArray,
+    type_params: BytecodeTypeArray,
 ) -> EnumInstanceId {
     if let Some(&id) = vm
         .enum_specializations
@@ -147,7 +126,7 @@ pub fn specialize_enum(
 fn create_specialized_enum(
     vm: &VM,
     enum_: &EnumDefinition,
-    type_params: SourceTypeArray,
+    type_params: BytecodeTypeArray,
 ) -> EnumInstanceId {
     let layout = if enum_is_simple_integer(enum_) {
         EnumLayout::Int
@@ -171,7 +150,7 @@ fn create_specialized_enum(
 
     let id = vm.enum_instances.push(EnumInstance {
         enum_id: enum_.id(),
-        type_params: type_params.clone(),
+        type_params: ty_array_from_bty(&type_params),
         layout,
         variants: RwLock::new(variants),
     });
@@ -192,7 +171,7 @@ fn enum_is_simple_integer(enum_: &EnumDefinition) -> bool {
     true
 }
 
-fn enum_is_ptr(vm: &VM, enum_: &EnumDefinition, type_params: &SourceTypeArray) -> bool {
+fn enum_is_ptr(vm: &VM, enum_: &EnumDefinition, type_params: &BytecodeTypeArray) -> bool {
     if enum_.variants.len() != 2 {
         return false;
     }
@@ -208,8 +187,12 @@ fn enum_is_ptr(vm: &VM, enum_: &EnumDefinition, type_params: &SourceTypeArray) -
 
     none_variant.types.len() == 0
         && some_variant.types.len() == 1
-        && specialize_type(vm, some_variant.types.first().unwrap().clone(), type_params)
-            .reference_type()
+        && specialize_type(
+            vm,
+            some_variant.types.first().unwrap().clone(),
+            &ty_array_from_bty(type_params),
+        )
+        .reference_type()
 }
 
 pub fn specialize_enum_class(
@@ -276,7 +259,7 @@ pub fn add_ref_fields(vm: &VM, ref_fields: &mut Vec<i32>, offset: i32, ty: Sourc
             ref_fields.push(offset + ref_offset);
         }
     } else if let SourceType::Enum(enum_id, type_params) = ty.clone() {
-        let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
+        let edef_id = specialize_enum_id_params(vm, enum_id, bty_array_from_ty(&type_params));
         let edef = vm.enum_instances.idx(edef_id);
 
         match edef.layout {
@@ -424,8 +407,7 @@ fn create_specialized_class_array(
             }
 
             BytecodeType::Enum(enum_id, type_params) => {
-                let edef_id =
-                    specialize_enum_id_params(vm, enum_id, ty_array_from_bty(&type_params));
+                let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
                 let edef = vm.enum_instances.idx(edef_id);
 
                 match edef.layout {
@@ -567,7 +549,7 @@ fn create_specialized_class_for_trait_object(
     class_instance_id
 }
 
-pub fn replace_type_param(
+fn replace_type_param(
     vm: &VM,
     ty: SourceType,
     type_params: &SourceTypeArray,

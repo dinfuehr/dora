@@ -147,8 +147,7 @@ impl<'a> BaselineAssembler<'a> {
             }
 
             BytecodeType::Enum(enum_id, type_params) => {
-                let enum_instance_id =
-                    specialize_enum_id_params(self.vm, enum_id, ty_array_from_bty(&type_params));
+                let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
                 let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
                 let mode = match enum_instance.layout {
@@ -951,8 +950,7 @@ impl<'a> BaselineAssembler<'a> {
             }
 
             BytecodeType::Enum(enum_id, type_params) => {
-                let enum_instance_id =
-                    specialize_enum_id_params(self.vm, enum_id, ty_array_from_bty(&type_params));
+                let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
                 let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
                 let mode = match enum_instance.layout {

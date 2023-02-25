@@ -52,7 +52,7 @@ impl SourceType {
             SourceType::Float32 => 4,
             SourceType::Float64 => 8,
             SourceType::Enum(eid, params) => {
-                let enum_def_id = specialize_enum_id_params(vm, *eid, params.clone());
+                let enum_def_id = specialize_enum_id_params(vm, *eid, bty_array_from_ty(&params));
                 let enum_ = vm.enum_instances.idx(enum_def_id);
 
                 match enum_.layout {
@@ -91,7 +91,7 @@ impl SourceType {
             SourceType::This => panic!("no alignment for Self."),
             SourceType::Any => panic!("no alignment for Any."),
             SourceType::Enum(eid, params) => {
-                let enum_def_id = specialize_enum_id_params(vm, *eid, params.clone());
+                let enum_def_id = specialize_enum_id_params(vm, *eid, bty_array_from_ty(params));
                 let enum_ = vm.enum_instances.idx(enum_def_id);
 
                 match enum_.layout {

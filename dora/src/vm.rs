@@ -50,10 +50,9 @@ pub use self::impls::{find_trait_impl, implements_trait};
 use self::known::KnownInstances;
 pub use self::modules::{module_contains, module_path};
 pub use self::specialize::{
-    add_ref_fields, replace_type_param, specialize_bty, specialize_bty_array, specialize_class_id,
+    add_ref_fields, specialize_bty, specialize_bty_array, specialize_class_id,
     specialize_class_id_params, specialize_enum_class, specialize_enum_id_params,
     specialize_lambda, specialize_struct_id_params, specialize_trait_object, specialize_type,
-    specialize_type_list,
 };
 pub use self::structs::{StructInstance, StructInstanceField, StructInstanceId};
 pub use self::stubs::{setup_stubs, Stubs};
@@ -134,7 +133,8 @@ pub struct VM {
     pub code_objects: CodeObjects,
     pub compilation_database: CompilationDatabase,
     pub enums: MutableVec<EnumDefinition>, // store all enum source definitions
-    pub enum_specializations: RwLock<HashMap<(EnumDefinitionId, SourceTypeArray), EnumInstanceId>>,
+    pub enum_specializations:
+        RwLock<HashMap<(EnumDefinitionId, BytecodeTypeArray), EnumInstanceId>>,
     pub enum_instances: GrowableVecNonIter<EnumInstance>, // stores all enum definitions
     pub traits: MutableVec<TraitDefinition>,              // stores all trait definitions
     pub trait_vtables: RwLock<HashMap<(TraitDefinitionId, SourceTypeArray), ClassInstanceId>>,

@@ -1,7 +1,7 @@
 use std::cmp::max;
 
 use crate::bytecode::BytecodeType;
-use crate::language::generator::ty_array_from_bty;
+use crate::language::generator::{bty_array_from_ty, ty_array_from_bty};
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::mem;
 use crate::vm::{specialize_enum_id_params, EnumLayout, VM};
@@ -67,7 +67,7 @@ fn determine_tuple_size(vm: &VM, subtypes: SourceTypeArray) -> ConcreteTuple {
 
             continue;
         } else if let SourceType::Enum(enum_id, type_params) = ty {
-            let edef_id = specialize_enum_id_params(vm, enum_id, type_params.clone());
+            let edef_id = specialize_enum_id_params(vm, enum_id, bty_array_from_ty(&type_params));
             let edef = vm.enum_instances.idx(edef_id);
 
             match edef.layout {
