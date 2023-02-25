@@ -3,16 +3,16 @@ use std::time::Instant;
 use dora_parser::Position;
 
 use crate::boots;
-use crate::bytecode::BytecodeFunction;
+use crate::bytecode::{BytecodeFunction, BytecodeType, BytecodeTypeArray};
 use crate::cannon::{self, CompilationFlags};
 use crate::compiler::{dora_exit_stubs, NativeFct};
 use crate::cpu::{FReg, Reg};
 use crate::disassembler;
 use crate::driver::cmd::{AsmSyntax, CompilerName};
 use crate::gc::Address;
-use crate::language::generator::bty_array_from_ty;
+use crate::language::generator::{bty_array_from_ty, bty_from_ty};
 use crate::language::sem_analysis::{FctDefinition, FctDefinitionId};
-use crate::language::ty::{SourceType, SourceTypeArray};
+use crate::language::ty::SourceTypeArray;
 use crate::os;
 use crate::vm::{install_code, CodeKind, VM};
 
@@ -59,10 +59,10 @@ pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray)
 
             let compilation_data = CompilationData {
                 bytecode_fct,
-                params,
+                params: bty_array_from_ty(&params),
                 has_variadic_parameter,
-                return_type,
-                type_params,
+                return_type: bty_from_ty(return_type),
+                type_params: bty_array_from_ty(type_params),
                 pos,
 
                 emit_debug,
@@ -244,10 +244,10 @@ pub fn ensure_native_stub(
 
 pub struct CompilationData<'a> {
     pub bytecode_fct: &'a BytecodeFunction,
-    pub params: SourceTypeArray,
+    pub params: BytecodeTypeArray,
     pub has_variadic_parameter: bool,
-    pub return_type: SourceType,
-    pub type_params: &'a SourceTypeArray,
+    pub return_type: BytecodeType,
+    pub type_params: BytecodeTypeArray,
     pub pos: Position,
 
     pub emit_debug: bool,

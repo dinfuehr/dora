@@ -100,15 +100,15 @@ impl<'a> CannonCodeGen<'a> {
     ) -> CannonCodeGen<'a> {
         CannonCodeGen {
             vm,
-            params: bty_array_from_ty(&compilation_data.params),
+            params: compilation_data.params,
             has_variadic_parameter: compilation_data.has_variadic_parameter,
-            return_type: bty_from_ty(compilation_data.return_type),
+            return_type: compilation_data.return_type,
             pos: compilation_data.pos,
             emit_debug: compilation_data.emit_debug,
             asm: BaselineAssembler::new(vm),
             bytecode: compilation_data.bytecode_fct,
             emit_code_comments: compilation_data.emit_code_comments,
-            type_params: bty_array_from_ty(&compilation_data.type_params),
+            type_params: compilation_data.type_params,
             offset_to_address: HashMap::new(),
             offset_to_label: HashMap::new(),
             current_offset: BytecodeOffset(0),
