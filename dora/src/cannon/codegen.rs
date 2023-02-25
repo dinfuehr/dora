@@ -18,7 +18,7 @@ use crate::language::generator::{
     bty_array_from_ty, bty_from_ty, register_bty_from_ty, ty_array_from_bty, ty_from_bty,
 };
 use crate::language::sem_analysis::{FctDefinitionId, GlobalDefinitionId, Intrinsic};
-use crate::language::ty::{SourceType, SourceTypeArray};
+use crate::language::ty::SourceType;
 use crate::masm::{CodeDescriptor, CondCode, Label, Mem};
 use crate::mem::{self, align_i32};
 use crate::mode::MachineMode;
@@ -30,8 +30,7 @@ use crate::vm::{
     get_concrete_tuple_array, get_concrete_tuple_bytecode_ty, get_concrete_tuple_ty,
     specialize_bty, specialize_bty_array, specialize_class_id_params, specialize_enum_class,
     specialize_enum_id_params, specialize_lambda, specialize_struct_id_params,
-    specialize_trait_object, specialize_type, specialize_type_list, EnumLayout, GcPoint,
-    LazyCompilationSite, Trap, VM,
+    specialize_trait_object, specialize_type, EnumLayout, GcPoint, LazyCompilationSite, Trap, VM,
 };
 use crate::vtable::VTable;
 
@@ -1170,22 +1169,20 @@ impl<'a> CannonCodeGen<'a> {
 
     fn emit_load_enum_element(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
         let (enum_id, type_params, variant_idx, element_idx) = match self.bytecode.const_pool(idx) {
-            ConstPoolEntry::EnumElement(enum_id, type_params, variant_idx, element_idx) => (
-                *enum_id,
-                ty_array_from_bty(type_params),
-                *variant_idx,
-                *element_idx,
-            ),
+            ConstPoolEntry::EnumElement(enum_id, type_params, variant_idx, element_idx) => {
+                (*enum_id, type_params.clone(), *variant_idx, *element_idx)
+            }
             _ => unreachable!(),
         };
 
-        let type_params = self.specialize_type_list(&type_params);
-        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type_vm(self.vm)));
+        let type_params = self.specialize_bty_array(&type_params);
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
         let enum_ = &self.vm.enums[enum_id];
         let enum_ = enum_.read();
 
-        let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+        let enum_instance_id =
+            specialize_enum_id_params(self.vm, enum_id, ty_array_from_bty(&type_params));
         let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
         match enum_instance.layout {
@@ -1242,19 +1239,18 @@ impl<'a> CannonCodeGen<'a> {
 
     fn emit_load_enum_variant(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
         let (enum_id, type_params) = match self.bytecode.const_pool(idx) {
-            ConstPoolEntry::Enum(enum_id, type_params) => {
-                (*enum_id, ty_array_from_bty(type_params))
-            }
+            ConstPoolEntry::Enum(enum_id, type_params) => (*enum_id, type_params.clone()),
             _ => unreachable!(),
         };
 
-        let type_params = self.specialize_type_list(&type_params);
-        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type_vm(self.vm)));
+        let type_params = self.specialize_bty_array(&type_params);
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
         let enum_ = &self.vm.enums[enum_id];
         let enum_ = enum_.read();
 
-        let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+        let enum_instance_id =
+            specialize_enum_id_params(self.vm, enum_id, ty_array_from_bty(&type_params));
         let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
         match enum_instance.layout {
@@ -1295,21 +1291,21 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_load_struct_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
         let (struct_id, type_params, field_id) = match self.bytecode.const_pool(field_idx) {
             ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
-                (*struct_id, ty_array_from_bty(type_params), *field_id)
+                (*struct_id, type_params.clone(), *field_id)
             }
             _ => unreachable!(),
         };
 
         debug_assert_eq!(
             self.bytecode.register_type(obj),
-            BytecodeType::Struct(struct_id, bty_array_from_ty(&type_params))
+            BytecodeType::Struct(struct_id, type_params.clone())
         );
 
-        let type_params = self.specialize_type_list(&type_params);
-        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type_vm(self.vm)));
+        let type_params = self.specialize_bty_array(&type_params);
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
         let struct_instance_id =
-            specialize_struct_id_params(self.vm, struct_id, type_params.clone());
+            specialize_struct_id_params(self.vm, struct_id, ty_array_from_bty(&type_params));
         let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
 
         let field = &struct_instance.fields[field_id.to_usize()];
@@ -1326,11 +1322,11 @@ impl<'a> CannonCodeGen<'a> {
 
         let (class_instance_id, field_id) = match self.bytecode.const_pool(field_idx) {
             ConstPoolEntry::Field(cls_id, type_params, field_id) => {
-                let type_params = ty_array_from_bty(type_params);
-                let type_params = self.specialize_type_list(&type_params);
-                debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type_vm(self.vm)));
+                let type_params = self.specialize_bty_array(&type_params);
+                debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-                let class_instance_id = specialize_class_id_params(self.vm, *cls_id, &type_params);
+                let class_instance_id =
+                    specialize_class_id_params(self.vm, *cls_id, &ty_array_from_bty(&type_params));
 
                 (class_instance_id, *field_id)
             }
@@ -1359,15 +1355,16 @@ impl<'a> CannonCodeGen<'a> {
 
         let (cls_id, type_params, field_id) = match self.bytecode.const_pool(field_idx) {
             ConstPoolEntry::Field(cls_id, type_params, field_id) => {
-                (*cls_id, ty_array_from_bty(type_params), *field_id)
+                (*cls_id, type_params.clone(), *field_id)
             }
             _ => unreachable!(),
         };
 
-        let type_params = self.specialize_type_list(&type_params);
-        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type_vm(self.vm)));
+        let type_params = self.specialize_bty_array(&type_params);
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let class_instance_id = specialize_class_id_params(self.vm, cls_id, &type_params);
+        let class_instance_id =
+            specialize_class_id_params(self.vm, cls_id, &ty_array_from_bty(&type_params));
         let cls = self.vm.class_instances.idx(class_instance_id);
 
         let field = &cls.fields[field_id.to_usize()];
@@ -1874,14 +1871,15 @@ impl<'a> CannonCodeGen<'a> {
         let const_pool_entry = self.bytecode.const_pool(idx);
 
         let (cls_id, type_params) = match const_pool_entry {
-            ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, ty_array_from_bty(type_params)),
+            ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params.clone()),
             _ => unreachable!(),
         };
 
-        let type_params = self.specialize_type_list(&type_params);
-        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type_vm(self.vm)));
+        let type_params = self.specialize_bty_array(&type_params);
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let class_instance_id = specialize_class_id_params(self.vm, cls_id, &type_params);
+        let class_instance_id =
+            specialize_class_id_params(self.vm, cls_id, &ty_array_from_bty(&type_params));
         let class_instance = self.vm.class_instances.idx(class_instance_id);
 
         let alloc_size = match class_instance.size {
@@ -1933,16 +1931,17 @@ impl<'a> CannonCodeGen<'a> {
         let const_pool_entry = self.bytecode.const_pool(idx);
 
         let (cls_id, type_params) = match const_pool_entry {
-            ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, ty_array_from_bty(type_params)),
+            ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params.clone()),
             _ => unreachable!(),
         };
 
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
-        let type_params = self.specialize_type_list(&type_params);
-        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type_vm(self.vm)));
+        let type_params = self.specialize_bty_array(&type_params);
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let class_instance_id = specialize_class_id_params(self.vm, cls_id, &type_params);
+        let class_instance_id =
+            specialize_class_id_params(self.vm, cls_id, &ty_array_from_bty(&type_params));
         let class_instance = self.vm.class_instances.idx(class_instance_id);
 
         let alloc_size = match class_instance.size {
@@ -2013,13 +2012,14 @@ impl<'a> CannonCodeGen<'a> {
         let const_pool_entry = self.bytecode.const_pool(idx);
 
         let (cls_id, type_params) = match const_pool_entry {
-            ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, ty_array_from_bty(type_params)),
+            ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params),
             _ => unreachable!(),
         };
 
-        let type_params = self.specialize_type_list(&type_params);
+        let type_params = self.specialize_bty_array(&type_params);
 
-        let class_instance_id = specialize_class_id_params(self.vm, cls_id, &type_params);
+        let class_instance_id =
+            specialize_class_id_params(self.vm, cls_id, &ty_array_from_bty(&type_params));
         let class_instance = self.vm.class_instances.idx(class_instance_id);
 
         self.emit_load_register(length, REG_TMP1.into());
@@ -2124,8 +2124,8 @@ impl<'a> CannonCodeGen<'a> {
             ConstPoolEntry::Tuple(ref source_type_array) => source_type_array,
             _ => unreachable!(),
         };
-        let subtypes = self.specialize_type_list(&ty_array_from_bty(source_type_array));
-        let tuple = get_concrete_tuple_array(self.vm, subtypes.clone());
+        let subtypes = self.specialize_bty_array(source_type_array);
+        let tuple = get_concrete_tuple_array(self.vm, ty_array_from_bty(&subtypes));
         let dest_offset = self.register_offset(dest);
         let mut arg_idx = 0;
         let arguments = std::mem::replace(&mut self.argument_stack, Vec::new());
@@ -2138,7 +2138,7 @@ impl<'a> CannonCodeGen<'a> {
             let src = arguments[arg_idx];
             let src = self.reg(src);
             let dest = RegOrOffset::Offset(dest_offset + subtype_offset);
-            self.asm.copy_ty(subtype.clone(), dest, src);
+            self.asm.copy_ty(ty_from_bty(subtype), dest, src);
             arg_idx += 1;
         }
     }
@@ -2146,18 +2146,19 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_new_enum(&mut self, dest: Register, idx: ConstPoolIdx) {
         let (enum_id, type_params, variant_idx) = match self.bytecode.const_pool(idx) {
             ConstPoolEntry::EnumVariant(enum_id, type_params, variant_idx) => {
-                (*enum_id, ty_array_from_bty(type_params), *variant_idx)
+                (*enum_id, type_params, *variant_idx)
             }
             _ => unreachable!(),
         };
 
-        let type_params = self.specialize_type_list(&type_params);
-        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type_vm(self.vm)));
+        let type_params = self.specialize_bty_array(&type_params);
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
         let enum_ = &self.vm.enums[enum_id];
         let enum_ = enum_.read();
 
-        let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+        let enum_instance_id =
+            specialize_enum_id_params(self.vm, enum_id, ty_array_from_bty(&type_params));
         let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
@@ -2271,16 +2272,15 @@ impl<'a> CannonCodeGen<'a> {
 
     fn emit_new_struct(&mut self, dest: Register, idx: ConstPoolIdx) {
         let (struct_id, type_params) = match self.bytecode.const_pool(idx) {
-            ConstPoolEntry::Struct(struct_id, type_params) => {
-                (*struct_id, ty_array_from_bty(type_params))
-            }
+            ConstPoolEntry::Struct(struct_id, type_params) => (*struct_id, type_params),
             _ => unreachable!(),
         };
 
-        let type_params = self.specialize_type_list(&type_params);
-        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type_vm(self.vm)));
+        let type_params = self.specialize_bty_array(&type_params);
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let struct_instance_id = specialize_struct_id_params(self.vm, struct_id, type_params);
+        let struct_instance_id =
+            specialize_struct_id_params(self.vm, struct_id, ty_array_from_bty(&type_params));
         let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
 
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
@@ -2304,22 +2304,24 @@ impl<'a> CannonCodeGen<'a> {
 
     fn emit_new_trait_object(&mut self, dest: Register, idx: ConstPoolIdx, src: Register) {
         let (trait_id, type_params, object_ty) = match self.bytecode.const_pool(idx) {
-            ConstPoolEntry::Trait(trait_id, type_params, object_ty) => (
-                *trait_id,
-                ty_array_from_bty(type_params),
-                ty_from_bty(object_ty.clone()),
-            ),
+            ConstPoolEntry::Trait(trait_id, type_params, object_ty) => {
+                (*trait_id, type_params, object_ty.clone())
+            }
             _ => unreachable!(),
         };
 
-        let type_params = self.specialize_type_list(&type_params);
-        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type_vm(self.vm)));
+        let type_params = self.specialize_bty_array(type_params);
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let object_ty = self.specialize_type(object_ty);
-        debug_assert!(object_ty.is_concrete_type_vm(self.vm));
+        let object_ty = self.specialize_bty(object_ty);
+        debug_assert!(object_ty.is_concrete_type());
 
-        let class_instance_id =
-            specialize_trait_object(self.vm, trait_id, &type_params, object_ty.clone());
+        let class_instance_id = specialize_trait_object(
+            self.vm,
+            trait_id,
+            &ty_array_from_bty(&type_params),
+            ty_from_bty(object_ty.clone()),
+        );
 
         let cls = self.vm.class_instances.idx(class_instance_id);
 
@@ -2382,21 +2384,21 @@ impl<'a> CannonCodeGen<'a> {
         let dest = RegOrOffset::RegWithOffset(REG_TMP1, field.offset);
         let src = self.reg(src);
 
-        self.asm.copy_ty(object_ty, dest, src);
+        self.asm.copy_ty(ty_from_bty(object_ty), dest, src);
     }
 
     fn emit_new_lambda(&mut self, dest: Register, idx: ConstPoolIdx) {
         assert_eq!(self.bytecode.register_type(dest), BytecodeType::Ptr);
 
         let (fct_id, type_params) = match self.bytecode.const_pool(idx) {
-            ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, ty_array_from_bty(type_params)),
+            ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params),
             _ => unreachable!(),
         };
 
-        let type_params = self.specialize_type_list(&type_params);
-        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type_vm(self.vm)));
+        let type_params = self.specialize_bty_array(&type_params);
+        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let cls_def_id = specialize_lambda(self.vm, fct_id, type_params);
+        let cls_def_id = specialize_lambda(self.vm, fct_id, ty_array_from_bty(&type_params));
 
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
@@ -4205,10 +4207,6 @@ impl<'a> CannonCodeGen<'a> {
 
     fn specialize_type(&self, ty: SourceType) -> SourceType {
         specialize_type(self.vm, ty, &ty_array_from_bty(&self.type_params))
-    }
-
-    fn specialize_type_list(&self, types: &SourceTypeArray) -> SourceTypeArray {
-        specialize_type_list(self.vm, types, &ty_array_from_bty(&self.type_params))
     }
 
     fn specialize_bty(&self, ty: BytecodeType) -> BytecodeType {
