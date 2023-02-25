@@ -1,3 +1,4 @@
+use crate::language::generator::bty_array_from_ty;
 use crate::language::sem_analysis::TypeParamDefinition;
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::mem;
@@ -65,7 +66,7 @@ impl SourceType {
                 mem::ptr_width()
             }
             SourceType::Struct(sid, params) => {
-                let sid = specialize_struct_id_params(vm, *sid, params.clone());
+                let sid = specialize_struct_id_params(vm, *sid, bty_array_from_ty(params));
                 let struc = vm.struct_instances.idx(sid);
 
                 struc.size
@@ -102,7 +103,7 @@ impl SourceType {
                 mem::ptr_width()
             }
             SourceType::Struct(sid, params) => {
-                let sid = specialize_struct_id_params(vm, *sid, params.clone());
+                let sid = specialize_struct_id_params(vm, *sid, bty_array_from_ty(params));
                 let struc = vm.struct_instances.idx(sid);
 
                 struc.align

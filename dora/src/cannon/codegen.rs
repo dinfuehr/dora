@@ -228,11 +228,8 @@ impl<'a> CannonCodeGen<'a> {
 
                 BytecodeType::Struct(struct_id, type_params) => {
                     let offset = self.register_offset(Register(idx));
-                    let struct_instance_id = specialize_struct_id_params(
-                        self.vm,
-                        struct_id,
-                        ty_array_from_bty(&type_params),
-                    );
+                    let struct_instance_id =
+                        specialize_struct_id_params(self.vm, struct_id, type_params);
                     let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
 
                     for &ref_offset in &struct_instance.ref_fields {
@@ -400,8 +397,8 @@ impl<'a> CannonCodeGen<'a> {
                 REG_TMP1.into(),
                 REG_PARAMS[*reg_idx].into(),
             );
-            self.asm.copy_ty(
-                ty_from_bty(ty),
+            self.asm.copy_bytecode_ty(
+                ty,
                 RegOrOffset::Offset(dest_offset),
                 RegOrOffset::Reg(REG_TMP1),
             );
@@ -409,8 +406,8 @@ impl<'a> CannonCodeGen<'a> {
         } else {
             self.asm
                 .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(*sp_offset));
-            self.asm.copy_ty(
-                ty_from_bty(ty),
+            self.asm.copy_bytecode_ty(
+                ty,
                 RegOrOffset::Offset(dest_offset),
                 RegOrOffset::Reg(REG_TMP1),
             );
@@ -435,13 +432,13 @@ impl<'a> CannonCodeGen<'a> {
                 REG_PARAMS[*reg_idx].into(),
             );
             self.asm
-                .copy_ty(ty_from_bty(ty), dest_offset, RegOrOffset::Reg(REG_TMP1));
+                .copy_bytecode_ty(ty, dest_offset, RegOrOffset::Reg(REG_TMP1));
             *reg_idx += 1;
         } else {
             self.asm
                 .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(*sp_offset));
             self.asm
-                .copy_ty(ty_from_bty(ty), dest_offset, RegOrOffset::Reg(REG_TMP1));
+                .copy_bytecode_ty(ty, dest_offset, RegOrOffset::Reg(REG_TMP1));
             *sp_offset += 8;
         }
     }
@@ -1303,8 +1300,7 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_bty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let struct_instance_id =
-            specialize_struct_id_params(self.vm, struct_id, ty_array_from_bty(&type_params));
+        let struct_instance_id = specialize_struct_id_params(self.vm, struct_id, type_params);
         let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
 
         let field = &struct_instance.fields[field_id.to_usize()];
@@ -1324,8 +1320,7 @@ impl<'a> CannonCodeGen<'a> {
                 let type_params = self.specialize_bty_array(&type_params);
                 debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-                let class_instance_id =
-                    specialize_class_id_params(self.vm, *cls_id, &ty_array_from_bty(&type_params));
+                let class_instance_id = specialize_class_id_params(self.vm, *cls_id, &type_params);
 
                 (class_instance_id, *field_id)
             }
@@ -1362,8 +1357,7 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_bty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let class_instance_id =
-            specialize_class_id_params(self.vm, cls_id, &ty_array_from_bty(&type_params));
+        let class_instance_id = specialize_class_id_params(self.vm, cls_id, &type_params);
         let cls = self.vm.class_instances.idx(class_instance_id);
 
         let field = &cls.fields[field_id.to_usize()];
@@ -1394,7 +1388,7 @@ impl<'a> CannonCodeGen<'a> {
             BytecodeType::Tuple(subtypes) => {
                 let src_offset = self.register_offset(value);
                 self.asm.copy_tuple(
-                    ty_array_from_bty(subtypes),
+                    subtypes.clone(),
                     RegOrOffset::RegWithOffset(obj_reg, offset),
                     RegOrOffset::Offset(src_offset),
                 );
@@ -1407,16 +1401,13 @@ impl<'a> CannonCodeGen<'a> {
                 let src_offset = self.register_offset(value);
                 self.asm.copy_struct(
                     *struct_id,
-                    ty_array_from_bty(type_params),
+                    type_params.clone(),
                     RegOrOffset::RegWithOffset(obj_reg, offset),
                     RegOrOffset::Offset(src_offset),
                 );
 
-                let struct_instance_id = specialize_struct_id_params(
-                    self.vm,
-                    *struct_id,
-                    ty_array_from_bty(type_params),
-                );
+                let struct_instance_id =
+                    specialize_struct_id_params(self.vm, *struct_id, type_params.clone());
                 let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
                 needs_write_barrier = struct_instance.contains_references();
             }
@@ -1802,7 +1793,7 @@ impl<'a> CannonCodeGen<'a> {
                 );
 
                 self.asm.copy_tuple(
-                    ty_array_from_bty(&subtypes),
+                    subtypes.clone(),
                     RegOrOffset::Reg(REG_TMP1),
                     RegOrOffset::Offset(src_offset),
                 );
@@ -1819,7 +1810,7 @@ impl<'a> CannonCodeGen<'a> {
 
                 self.asm.copy_struct(
                     struct_id,
-                    ty_array_from_bty(&type_params),
+                    type_params.clone(),
                     RegOrOffset::Reg(REG_TMP1),
                     RegOrOffset::Offset(src_offset),
                 );
@@ -1877,8 +1868,7 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_bty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let class_instance_id =
-            specialize_class_id_params(self.vm, cls_id, &ty_array_from_bty(&type_params));
+        let class_instance_id = specialize_class_id_params(self.vm, cls_id, &type_params);
         let class_instance = self.vm.class_instances.idx(class_instance_id);
 
         let alloc_size = match class_instance.size {
@@ -1939,8 +1929,7 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_bty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let class_instance_id =
-            specialize_class_id_params(self.vm, cls_id, &ty_array_from_bty(&type_params));
+        let class_instance_id = specialize_class_id_params(self.vm, cls_id, &type_params);
         let class_instance = self.vm.class_instances.idx(class_instance_id);
 
         let alloc_size = match class_instance.size {
@@ -2017,8 +2006,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let type_params = self.specialize_bty_array(&type_params);
 
-        let class_instance_id =
-            specialize_class_id_params(self.vm, cls_id, &ty_array_from_bty(&type_params));
+        let class_instance_id = specialize_class_id_params(self.vm, cls_id, &type_params);
         let class_instance = self.vm.class_instances.idx(class_instance_id);
 
         self.emit_load_register(length, REG_TMP1.into());
@@ -2137,7 +2125,7 @@ impl<'a> CannonCodeGen<'a> {
             let src = arguments[arg_idx];
             let src = self.reg(src);
             let dest = RegOrOffset::Offset(dest_offset + subtype_offset);
-            self.asm.copy_ty(ty_from_bty(subtype), dest, src);
+            self.asm.copy_bytecode_ty(subtype, dest, src);
             arg_idx += 1;
         }
     }
@@ -2278,8 +2266,7 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_bty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let struct_instance_id =
-            specialize_struct_id_params(self.vm, struct_id, ty_array_from_bty(&type_params));
+        let struct_instance_id = specialize_struct_id_params(self.vm, struct_id, type_params);
         let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
 
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
@@ -2383,7 +2370,7 @@ impl<'a> CannonCodeGen<'a> {
         let dest = RegOrOffset::RegWithOffset(REG_TMP1, field.offset);
         let src = self.reg(src);
 
-        self.asm.copy_ty(ty_from_bty(object_ty), dest, src);
+        self.asm.copy_bytecode_ty(object_ty, dest, src);
     }
 
     fn emit_new_lambda(&mut self, dest: Register, idx: ConstPoolIdx) {
@@ -2517,7 +2504,7 @@ impl<'a> CannonCodeGen<'a> {
                 let src_offset = self.register_offset(src);
 
                 self.asm.copy_tuple(
-                    ty_array_from_bty(subtypes),
+                    subtypes.clone(),
                     RegOrOffset::Reg(REG_TMP1),
                     RegOrOffset::Offset(src_offset),
                 );
@@ -2531,11 +2518,8 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             BytecodeType::Struct(struct_id, type_params) => {
-                let struct_instance_id = specialize_struct_id_params(
-                    self.vm,
-                    struct_id,
-                    ty_array_from_bty(&type_params),
-                );
+                let struct_instance_id =
+                    specialize_struct_id_params(self.vm, struct_id, type_params.clone());
                 let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
 
                 self.asm
@@ -2544,7 +2528,7 @@ impl<'a> CannonCodeGen<'a> {
 
                 self.asm.copy_struct(
                     struct_id,
-                    ty_array_from_bty(&type_params),
+                    type_params.clone(),
                     RegOrOffset::Reg(REG_TMP1),
                     RegOrOffset::Offset(src_offset),
                 );
@@ -2672,18 +2656,15 @@ impl<'a> CannonCodeGen<'a> {
                 let dest_offset = self.register_offset(dest);
 
                 self.asm.copy_tuple(
-                    ty_array_from_bty(subtypes),
+                    subtypes.clone(),
                     RegOrOffset::Offset(dest_offset),
                     RegOrOffset::Reg(REG_TMP1),
                 );
             }
 
             BytecodeType::Struct(struct_id, type_params) => {
-                let struct_instance_id = specialize_struct_id_params(
-                    self.vm,
-                    struct_id,
-                    ty_array_from_bty(&type_params),
-                );
+                let struct_instance_id =
+                    specialize_struct_id_params(self.vm, struct_id, type_params.clone());
                 let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
 
                 let element_size = struct_instance.size;
@@ -2693,7 +2674,7 @@ impl<'a> CannonCodeGen<'a> {
 
                 self.asm.copy_struct(
                     struct_id,
-                    ty_array_from_bty(&type_params),
+                    type_params.clone(),
                     RegOrOffset::Offset(dest_offset),
                     RegOrOffset::Reg(REG_TMP1),
                 );
@@ -3938,8 +3919,8 @@ impl<'a> CannonCodeGen<'a> {
                 let field = &cls.fields[1];
                 let dest_offset = self.register_offset(dest);
 
-                self.asm.copy_ty(
-                    field.ty.clone(),
+                self.asm.copy_bytecode_ty(
+                    bty_from_ty(field.ty.clone()),
                     RegOrOffset::Offset(dest_offset),
                     RegOrOffset::RegWithOffset(REG_TMP1, field.offset),
                 );
@@ -3987,8 +3968,7 @@ impl<'a> CannonCodeGen<'a> {
         self.asm
             .array_address(REG_TMP1, REG_RESULT, REG_TMP1, size(self.vm, bytecode_type));
 
-        self.asm
-            .zero_ty(ty_from_bty(ty), RegOrOffset::Reg(REG_TMP1));
+        self.asm.zero_ty(ty, RegOrOffset::Reg(REG_TMP1));
     }
 
     fn emit_intrinsic_option_is_none(
@@ -5097,7 +5077,10 @@ pub fn mode(vm: &VM, ty: BytecodeType) -> MachineMode {
         BytecodeType::Int64 => MachineMode::Int64,
         BytecodeType::Float32 => MachineMode::Float32,
         BytecodeType::Float64 => MachineMode::Float64,
-        BytecodeType::Ptr | BytecodeType::Trait(_, _) => MachineMode::Ptr,
+        BytecodeType::Ptr
+        | BytecodeType::Trait(_, _)
+        | BytecodeType::Class(_, _)
+        | BytecodeType::Lambda(_, _) => MachineMode::Ptr,
         BytecodeType::Tuple(_) => unreachable!(),
         BytecodeType::TypeParam(_) => unreachable!(),
         BytecodeType::Enum(enum_id, type_params) => {
@@ -5109,10 +5092,7 @@ pub fn mode(vm: &VM, ty: BytecodeType) -> MachineMode {
                 EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
             }
         }
-        BytecodeType::Struct(_, _)
-        | BytecodeType::Class(_, _)
-        | BytecodeType::Unit
-        | BytecodeType::Lambda(_, _) => {
+        BytecodeType::Struct(_, _) | BytecodeType::Unit => {
             panic!("unexpected type {:?}", ty)
         }
     }
@@ -5141,8 +5121,7 @@ pub fn size(vm: &VM, ty: BytecodeType) -> i32 {
             }
         }
         BytecodeType::Struct(struct_id, type_params) => {
-            let sdef_id =
-                specialize_struct_id_params(vm, struct_id, ty_array_from_bty(&type_params));
+            let sdef_id = specialize_struct_id_params(vm, struct_id, type_params);
             let sdef = vm.struct_instances.idx(sdef_id);
 
             sdef.size

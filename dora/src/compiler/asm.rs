@@ -9,9 +9,9 @@ use crate::compiler::dora_exit_stubs::{NativeFct, NativeFctKind};
 use crate::cpu::{FReg, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_THREAD, REG_TMP1, REG_TMP2};
 use crate::gc::tlab::TLAB_OBJECT_SIZE;
 use crate::gc::Address;
-use crate::language::generator::ty_array_from_bty;
+use crate::language::generator::{bty_from_ty, ty_array_from_bty};
 use crate::language::sem_analysis::{FctDefinitionId, GlobalDefinitionId, StructDefinitionId};
-use crate::language::ty::{SourceType, SourceTypeArray};
+use crate::language::ty::SourceType;
 use crate::masm::{CodeDescriptor, CondCode, Label, MacroAssembler, Mem, ScratchReg};
 use crate::mode::MachineMode;
 use crate::stdlib;
@@ -136,58 +136,6 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.pos()
     }
 
-    pub fn copy_ty(&mut self, ty: SourceType, dest: RegOrOffset, src: RegOrOffset) {
-        match ty {
-            SourceType::Tuple(subtypes) => {
-                self.copy_tuple(subtypes, dest, src);
-            }
-
-            SourceType::Unit => {
-                // do nothing
-            }
-
-            SourceType::Struct(struct_id, type_params) => {
-                self.copy_struct(struct_id, type_params, dest, src);
-            }
-
-            SourceType::Enum(enum_id, type_params) => {
-                let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
-                let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
-
-                let mode = match enum_instance.layout {
-                    EnumLayout::Int => MachineMode::Int32,
-                    EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
-                };
-
-                let tmp = result_reg_mode(mode);
-                self.load_mem(mode, tmp, src.mem());
-                self.store_mem(mode, dest.mem(), tmp);
-            }
-
-            SourceType::Ptr
-            | SourceType::UInt8
-            | SourceType::Bool
-            | SourceType::Char
-            | SourceType::Int32
-            | SourceType::Int64
-            | SourceType::Float32
-            | SourceType::Float64
-            | SourceType::Class(_, _)
-            | SourceType::Trait(_, _)
-            | SourceType::Lambda(_, _) => {
-                let mode = ty.mode();
-                let tmp = result_reg_mode(mode);
-
-                self.load_mem(mode, tmp, src.mem());
-                self.store_mem(mode, dest.mem(), tmp);
-            }
-
-            SourceType::TypeParam(_) | SourceType::Error | SourceType::Any | SourceType::This => {
-                unreachable!()
-            }
-        }
-    }
-
     pub fn copy_bytecode_ty(&mut self, ty: BytecodeType, dest: RegOrOffset, src: RegOrOffset) {
         match ty {
             BytecodeType::Unit => {
@@ -195,7 +143,7 @@ impl<'a> BaselineAssembler<'a> {
             }
 
             BytecodeType::Tuple(subtypes) => {
-                self.copy_tuple(ty_array_from_bty(&subtypes), dest, src);
+                self.copy_tuple(subtypes, dest, src);
             }
 
             BytecodeType::Enum(enum_id, type_params) => {
@@ -213,12 +161,15 @@ impl<'a> BaselineAssembler<'a> {
             }
 
             BytecodeType::Struct(struct_id, type_params) => {
-                self.copy_struct(struct_id, ty_array_from_bty(&type_params), dest, src);
+                self.copy_struct(struct_id, type_params, dest, src);
             }
 
             BytecodeType::TypeParam(_) => unreachable!(),
 
-            BytecodeType::Ptr | BytecodeType::Trait(_, _) => {
+            BytecodeType::Ptr
+            | BytecodeType::Trait(_, _)
+            | BytecodeType::Class(_, _)
+            | BytecodeType::Lambda(_, _) => {
                 let mode = MachineMode::Ptr;
                 let reg = REG_RESULT;
                 self.load_mem(mode, reg.into(), src.mem());
@@ -238,35 +189,34 @@ impl<'a> BaselineAssembler<'a> {
                 self.load_mem(mode, reg, src.mem());
                 self.store_mem(mode, dest.mem(), reg);
             }
-
-            BytecodeType::Class(_, _) | BytecodeType::Lambda(_, _) => unreachable!(),
         }
     }
 
-    pub fn copy_tuple(&mut self, subtypes: SourceTypeArray, dest: RegOrOffset, src: RegOrOffset) {
-        let tuple = get_concrete_tuple_array(self.vm, subtypes.clone());
+    pub fn copy_tuple(&mut self, subtypes: BytecodeTypeArray, dest: RegOrOffset, src: RegOrOffset) {
+        let tuple = get_concrete_tuple_array(self.vm, ty_array_from_bty(&subtypes));
 
         for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
             let src = src.offset(subtype_offset);
             let dest = dest.offset(subtype_offset);
-            self.copy_ty(subtype.clone(), dest, src);
+            self.copy_bytecode_ty(subtype, dest, src);
         }
     }
 
     pub fn copy_struct(
         &mut self,
         struct_id: StructDefinitionId,
-        type_params: SourceTypeArray,
+        type_params: BytecodeTypeArray,
         dest: RegOrOffset,
         src: RegOrOffset,
     ) {
-        let struct_instance_id = specialize_struct_id_params(self.vm, struct_id, type_params);
+        let struct_instance_id =
+            specialize_struct_id_params(self.vm, struct_id, type_params.clone());
         let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
 
         for field in &struct_instance.fields {
             let src = src.offset(field.offset);
             let dest = dest.offset(field.offset);
-            self.copy_ty(field.ty.clone(), dest, src);
+            self.copy_bytecode_ty(bty_from_ty(field.ty.clone()), dest, src);
         }
     }
 
@@ -985,23 +935,24 @@ impl<'a> BaselineAssembler<'a> {
         ));
     }
 
-    pub fn zero_ty(&mut self, ty: SourceType, dest: RegOrOffset) {
+    pub fn zero_ty(&mut self, ty: BytecodeType, dest: RegOrOffset) {
         match ty {
-            SourceType::Tuple(_) => {
+            BytecodeType::Tuple(_) => {
                 let subtypes = ty.tuple_subtypes();
-                let tuple = get_concrete_tuple_array(self.vm, subtypes.clone());
+                let tuple = get_concrete_tuple_array(self.vm, ty_array_from_bty(&subtypes));
 
                 for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
                     self.zero_ty(subtype.clone(), dest.offset(subtype_offset));
                 }
             }
 
-            SourceType::Unit => {
+            BytecodeType::Unit => {
                 // do nothing
             }
 
-            SourceType::Enum(enum_id, type_params) => {
-                let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+            BytecodeType::Enum(enum_id, type_params) => {
+                let enum_instance_id =
+                    specialize_enum_id_params(self.vm, enum_id, ty_array_from_bty(&type_params));
                 let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
                 let mode = match enum_instance.layout {
@@ -1012,33 +963,33 @@ impl<'a> BaselineAssembler<'a> {
                 self.store_zero(mode, dest.mem());
             }
 
-            SourceType::Struct(struct_id, type_params) => {
+            BytecodeType::Struct(struct_id, type_params) => {
                 let struct_instance_id =
-                    specialize_struct_id_params(self.vm, struct_id, type_params);
+                    specialize_struct_id_params(self.vm, struct_id, type_params.clone());
                 let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
 
                 for field in &struct_instance.fields {
                     let dest = dest.offset(field.offset);
-                    self.zero_ty(field.ty.clone(), dest);
+                    self.zero_ty(bty_from_ty(field.ty.clone()), dest);
                 }
             }
 
-            SourceType::Ptr
-            | SourceType::UInt8
-            | SourceType::Bool
-            | SourceType::Char
-            | SourceType::Int32
-            | SourceType::Int64
-            | SourceType::Float32
-            | SourceType::Float64
-            | SourceType::Class(_, _)
-            | SourceType::Trait(_, _)
-            | SourceType::Lambda(_, _) => {
-                let mode = ty.mode();
+            BytecodeType::Ptr
+            | BytecodeType::UInt8
+            | BytecodeType::Bool
+            | BytecodeType::Char
+            | BytecodeType::Int32
+            | BytecodeType::Int64
+            | BytecodeType::Float32
+            | BytecodeType::Float64
+            | BytecodeType::Class(_, _)
+            | BytecodeType::Trait(_, _)
+            | BytecodeType::Lambda(_, _) => {
+                let mode = mode(self.vm, ty);
                 self.store_zero(mode, dest.mem());
             }
 
-            SourceType::TypeParam(_) | SourceType::Error | SourceType::Any | SourceType::This => {
+            BytecodeType::TypeParam(_) => {
                 unreachable!()
             }
         }

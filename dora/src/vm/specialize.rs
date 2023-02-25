@@ -2,6 +2,7 @@ use parking_lot::RwLock;
 use std::cmp::max;
 
 use crate::bytecode::{BytecodeType, BytecodeTypeArray};
+use crate::language::generator::{bty_array_from_ty, ty_array_from_bty, ty_from_bty};
 use crate::language::sem_analysis::{ClassDefinitionId, FctDefinitionId, TraitDefinitionId};
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::mem;
@@ -42,7 +43,7 @@ pub fn specialize_type_list(
 pub fn specialize_struct_id_params(
     vm: &VM,
     struct_id: StructDefinitionId,
-    type_params: SourceTypeArray,
+    type_params: BytecodeTypeArray,
 ) -> StructInstanceId {
     let struc = vm.structs.idx(struct_id);
     let struc = struc.read();
@@ -52,7 +53,7 @@ pub fn specialize_struct_id_params(
 pub fn specialize_struct(
     vm: &VM,
     struct_: &StructDefinition,
-    type_params: SourceTypeArray,
+    type_params: BytecodeTypeArray,
 ) -> StructInstanceId {
     if let Some(&id) = vm
         .struct_specializations
@@ -68,7 +69,7 @@ pub fn specialize_struct(
 fn create_specialized_struct(
     vm: &VM,
     struct_: &StructDefinition,
-    type_params: SourceTypeArray,
+    type_params: BytecodeTypeArray,
 ) -> StructInstanceId {
     assert!(struct_.primitive_ty.is_none());
 
@@ -78,7 +79,7 @@ fn create_specialized_struct(
     let mut ref_fields = Vec::new();
 
     for f in &struct_.fields {
-        let ty = specialize_type(vm, f.ty.clone(), &type_params);
+        let ty = specialize_type(vm, f.ty.clone(), &ty_array_from_bty(&type_params));
         debug_assert!(ty.is_concrete_type());
 
         let field_size = ty.size(vm);
@@ -285,7 +286,7 @@ pub fn add_ref_fields(vm: &VM, ref_fields: &mut Vec<i32>, offset: i32, ty: Sourc
             }
         }
     } else if let SourceType::Struct(struct_id, type_params) = ty.clone() {
-        let sdef_id = specialize_struct_id_params(vm, struct_id, type_params);
+        let sdef_id = specialize_struct_id_params(vm, struct_id, bty_array_from_ty(&type_params));
         let sdef = vm.struct_instances.idx(sdef_id);
 
         for &ref_offset in &sdef.ref_fields {
@@ -299,13 +300,13 @@ pub fn add_ref_fields(vm: &VM, ref_fields: &mut Vec<i32>, offset: i32, ty: Sourc
 pub fn specialize_class_id(vm: &VM, cls_id: ClassDefinitionId) -> ClassInstanceId {
     let cls = vm.classes.idx(cls_id);
     let cls = cls.read();
-    specialize_class(vm, &*cls, &SourceTypeArray::empty())
+    specialize_class(vm, &*cls, &BytecodeTypeArray::empty())
 }
 
 pub fn specialize_class_id_params(
     vm: &VM,
     cls_id: ClassDefinitionId,
-    type_params: &SourceTypeArray,
+    type_params: &BytecodeTypeArray,
 ) -> ClassInstanceId {
     let cls = vm.classes.idx(cls_id);
     let cls = cls.read();
@@ -315,7 +316,7 @@ pub fn specialize_class_id_params(
 pub fn specialize_class(
     vm: &VM,
     cls: &ClassDefinition,
-    type_params: &SourceTypeArray,
+    type_params: &BytecodeTypeArray,
 ) -> ClassInstanceId {
     if let Some(&id) = vm
         .class_specializations
@@ -331,7 +332,7 @@ pub fn specialize_class(
 fn create_specialized_class(
     vm: &VM,
     cls: &ClassDefinition,
-    type_params: &SourceTypeArray,
+    type_params: &BytecodeTypeArray,
 ) -> ClassInstanceId {
     debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
@@ -345,14 +346,14 @@ fn create_specialized_class(
 fn create_specialized_class_regular(
     vm: &VM,
     cls: &ClassDefinition,
-    type_params: &SourceTypeArray,
+    type_params: &BytecodeTypeArray,
 ) -> ClassInstanceId {
     let mut csize = Header::size();
     let mut fields = Vec::new();
     let mut ref_fields = Vec::new();
 
     for f in &cls.fields {
-        let ty = specialize_type(vm, f.ty.clone(), &type_params);
+        let ty = specialize_type(vm, f.ty.clone(), &ty_array_from_bty(&type_params));
         debug_assert!(ty.is_concrete_type());
 
         let field_size = ty.size(vm);
@@ -379,7 +380,7 @@ fn create_specialized_class_regular(
 
     let class_instance_id = create_class_instance_with_vtable(
         vm,
-        ShapeKind::Class(cls.id(), type_params.clone()),
+        ShapeKind::Class(cls.id(), ty_array_from_bty(type_params)),
         size,
         fields,
         0,
@@ -394,7 +395,7 @@ fn create_specialized_class_regular(
 fn create_specialized_class_array(
     vm: &VM,
     cls: &ClassDefinition,
-    type_params: &SourceTypeArray,
+    type_params: &BytecodeTypeArray,
 ) -> ClassInstanceId {
     assert!(cls.is_array || cls.is_str);
 
@@ -404,26 +405,27 @@ fn create_specialized_class_array(
         let element_ty = type_params[0].clone();
 
         match element_ty {
-            SourceType::Unit => InstanceSize::UnitArray,
-            SourceType::Ptr
-            | SourceType::Class(_, _)
-            | SourceType::Trait(_, _)
-            | SourceType::Lambda(_, _) => InstanceSize::ObjArray,
+            BytecodeType::Unit => InstanceSize::UnitArray,
+            BytecodeType::Ptr
+            | BytecodeType::Class(_, _)
+            | BytecodeType::Trait(_, _)
+            | BytecodeType::Lambda(_, _) => InstanceSize::ObjArray,
 
-            SourceType::Tuple(_) => {
-                let tuple = get_concrete_tuple_ty(vm, &element_ty);
+            BytecodeType::Tuple(_) => {
+                let tuple = get_concrete_tuple_ty(vm, &ty_from_bty(element_ty));
                 InstanceSize::StructArray(tuple.size())
             }
 
-            SourceType::Struct(struct_id, type_params) => {
+            BytecodeType::Struct(struct_id, type_params) => {
                 let sdef_id = specialize_struct_id_params(vm, struct_id, type_params);
                 let sdef = vm.struct_instances.idx(sdef_id);
 
                 InstanceSize::StructArray(sdef.size)
             }
 
-            SourceType::Enum(enum_id, type_params) => {
-                let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
+            BytecodeType::Enum(enum_id, type_params) => {
+                let edef_id =
+                    specialize_enum_id_params(vm, enum_id, ty_array_from_bty(&type_params));
                 let edef = vm.enum_instances.idx(edef_id);
 
                 match edef.layout {
@@ -432,15 +434,17 @@ fn create_specialized_class_array(
                 }
             }
 
-            SourceType::Bool
-            | SourceType::UInt8
-            | SourceType::Char
-            | SourceType::Int32
-            | SourceType::Int64
-            | SourceType::Float32
-            | SourceType::Float64 => InstanceSize::PrimitiveArray(element_ty.size(vm)),
+            BytecodeType::Bool
+            | BytecodeType::UInt8
+            | BytecodeType::Char
+            | BytecodeType::Int32
+            | BytecodeType::Int64
+            | BytecodeType::Float32
+            | BytecodeType::Float64 => {
+                InstanceSize::PrimitiveArray(ty_from_bty(element_ty).size(vm))
+            }
 
-            SourceType::Any | SourceType::Error | SourceType::This | SourceType::TypeParam(_) => {
+            BytecodeType::TypeParam(_) => {
                 unreachable!()
             }
         }
@@ -456,7 +460,7 @@ fn create_specialized_class_array(
 
     let class_instance_id = create_class_instance_with_vtable(
         vm,
-        ShapeKind::Class(cls.id(), type_params.clone()),
+        ShapeKind::Class(cls.id(), ty_array_from_bty(type_params)),
         size,
         Vec::new(),
         0,

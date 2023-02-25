@@ -4,6 +4,7 @@ use std::mem;
 use std::ptr;
 use std::sync::Arc;
 
+use crate::bytecode::{BytecodeType, BytecodeTypeArray};
 use crate::compiler;
 use crate::compiler::dora_exit_stubs::NativeStubs;
 use crate::driver::cmd::Args;
@@ -16,7 +17,7 @@ use crate::language::sem_analysis::{
     SemAnalysis, SourceFile, SourceFileId, StructDefinition, StructDefinitionId, TraitDefinition,
     TraitDefinitionId,
 };
-use crate::language::ty::{SourceType, SourceTypeArray};
+use crate::language::ty::SourceTypeArray;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::ManagedThread;
 use crate::threads::{
@@ -120,11 +121,11 @@ pub struct VM {
     pub known_instances: KnownInstances,
     pub structs: MutableVec<StructDefinition>, // stores all struct source definitions
     pub struct_specializations:
-        RwLock<HashMap<(StructDefinitionId, SourceTypeArray), StructInstanceId>>,
+        RwLock<HashMap<(StructDefinitionId, BytecodeTypeArray), StructInstanceId>>,
     pub struct_instances: GrowableVecNonIter<StructInstance>, // stores all struct definitions
     pub classes: MutableVec<ClassDefinition>,                 // stores all class source definitions
     pub class_specializations:
-        RwLock<HashMap<(ClassDefinitionId, SourceTypeArray), ClassInstanceId>>,
+        RwLock<HashMap<(ClassDefinitionId, BytecodeTypeArray), ClassInstanceId>>,
     pub class_instances: GrowableVecNonIter<ClassInstance>, // stores all class definitions
     pub extensions: MutableVec<ExtensionDefinition>,        // stores all extension definitions
     pub annotations: MutableVec<AnnotationDefinition>, // stores all annotation source definitions
@@ -313,7 +314,7 @@ impl VM {
         if let Some(cls_id) = *byte_array_def {
             cls_id
         } else {
-            let type_args = SourceTypeArray::single(SourceType::UInt8);
+            let type_args = BytecodeTypeArray::one(BytecodeType::UInt8);
             let cls_id = specialize_class_id_params(self, self.known.classes.array(), &type_args);
             *byte_array_def = Some(cls_id);
             cls_id
@@ -326,7 +327,7 @@ impl VM {
         if let Some(cls_id) = *int_array_def {
             cls_id
         } else {
-            let type_args = SourceTypeArray::single(SourceType::Int32);
+            let type_args = BytecodeTypeArray::one(BytecodeType::Int32);
             let cls_id = specialize_class_id_params(self, self.known.classes.array(), &type_args);
             *int_array_def = Some(cls_id);
             cls_id

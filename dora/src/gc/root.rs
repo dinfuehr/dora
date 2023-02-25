@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::gc::Address;
+use crate::language::generator::bty_array_from_ty;
 use crate::language::ty::SourceType;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::DoraThread;
@@ -67,7 +68,8 @@ fn iterate_roots_from_globals<F: FnMut(Slot)>(vm: &VM, callback: &mut F) {
 
         match global_var.ty {
             SourceType::Struct(struct_id, ref type_params) => {
-                let sdef_id = specialize_struct_id_params(vm, struct_id, type_params.clone());
+                let sdef_id =
+                    specialize_struct_id_params(vm, struct_id, bty_array_from_ty(&type_params));
                 let sdef = vm.struct_instances.idx(sdef_id);
 
                 for &offset in &sdef.ref_fields {
