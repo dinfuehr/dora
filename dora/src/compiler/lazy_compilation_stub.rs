@@ -1,13 +1,14 @@
 use std::mem::size_of;
 use std::sync::Arc;
 
+use crate::bytecode::BytecodeTypeArray;
 use crate::compiler;
 use crate::cpu::{
     CCALL_REG_PARAMS, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1,
 };
 use crate::gc::Address;
+use crate::language::generator::{bty_array_from_ty, bty_from_ty};
 use crate::language::sem_analysis::FctDefinitionId;
-use crate::language::ty::SourceTypeArray;
 use crate::masm::{MacroAssembler, Mem};
 use crate::mem;
 use crate::mode::MachineMode;
@@ -246,7 +247,7 @@ fn patch_lambda_call(
         _ => unreachable!(),
     };
 
-    let fct_ptr = compiler::generate(vm, lambda_id, &type_params);
+    let fct_ptr = compiler::generate(vm, lambda_id, &bty_array_from_ty(&type_params));
 
     let methodtable = vtable.table_mut();
     methodtable[0] = fct_ptr.to_usize();
@@ -261,7 +262,7 @@ fn patch_virtual_call(
     receiver2: Address,
     trait_fct_id: FctDefinitionId,
     vtable_index: u32,
-    type_params: &SourceTypeArray,
+    type_params: &BytecodeTypeArray,
 ) -> Address {
     let receiver = if receiver_is_first {
         receiver1
@@ -275,12 +276,12 @@ fn patch_virtual_call(
 
     let fct_ptr = match &class_instance.kind {
         ShapeKind::TraitObject { object_ty, .. } => {
-            let all_type_params = type_params.connect_single(object_ty.clone());
+            let all_type_params = type_params.append(bty_from_ty(object_ty.clone()));
             let thunk_fct_id = compiler::trait_object_thunk::ensure(
                 vm,
                 trait_fct_id,
                 type_params.clone(),
-                object_ty.clone(),
+                bty_from_ty(object_ty.clone()),
             );
 
             compiler::generate(vm, thunk_fct_id, &all_type_params)
@@ -299,7 +300,7 @@ fn patch_direct_call(
     vm: &VM,
     ra: usize,
     fct_id: FctDefinitionId,
-    type_params: &SourceTypeArray,
+    type_params: &BytecodeTypeArray,
     disp: i32,
 ) -> Address {
     let fct_ptr = compiler::generate(vm, fct_id, type_params);

@@ -2854,7 +2854,7 @@ impl<'a> CannonCodeGen<'a> {
             self_index == 0,
             fct_id,
             vtable_index,
-            ty_array_from_bty(&type_params),
+            type_params.clone(),
         );
 
         self.asm.virtual_call(
@@ -2946,7 +2946,7 @@ impl<'a> CannonCodeGen<'a> {
         self.asm.direct_call(
             fct_id,
             ptr,
-            ty_array_from_bty(&type_params),
+            type_params,
             pos,
             gcpoint,
             result_mode,
@@ -3021,7 +3021,7 @@ impl<'a> CannonCodeGen<'a> {
         self.asm.direct_call(
             fct_id,
             ptr,
-            ty_array_from_bty(&type_params),
+            type_params,
             pos,
             gcpoint,
             result_mode,

@@ -4,17 +4,15 @@ use byteorder::{LittleEndian, WriteBytesExt};
 
 use crate::bytecode::{
     BytecodeFunction, BytecodeTypeArray, ConstPoolEntry, ConstPoolOpcode, InstructionSet,
-    SourceTypeOpcode,
 };
 use crate::bytecode::{BytecodeType, BytecodeTypeKind};
-use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::object::{byte_array_from_buffer, Obj, Ref};
 use crate::vm::VM;
 
 pub fn allocate_encoded_compilation_info(
     vm: &VM,
     bytecode_fct: &BytecodeFunction,
-    type_params: &SourceTypeArray,
+    type_params: &BytecodeTypeArray,
     architecture: InstructionSet,
 ) -> Ref<Obj> {
     let mut buffer = ByteBuffer::new();
@@ -25,7 +23,7 @@ pub fn allocate_encoded_compilation_info(
 fn encode_compilation_info(
     vm: &VM,
     bytecode_fct: &BytecodeFunction,
-    type_params: &SourceTypeArray,
+    type_params: &BytecodeTypeArray,
     architecture: InstructionSet,
     buffer: &mut ByteBuffer,
 ) {
@@ -61,8 +59,8 @@ fn encode_registers_array(vm: &VM, fct: &BytecodeFunction, buffer: &mut ByteBuff
     }
 }
 
-fn encode_type_params(vm: &VM, type_params: &SourceTypeArray, buffer: &mut ByteBuffer) {
-    encode_source_type_array(vm, type_params, buffer);
+fn encode_type_params(vm: &VM, type_params: &BytecodeTypeArray, buffer: &mut ByteBuffer) {
+    encode_bytecode_type_array(vm, type_params, buffer);
 }
 
 fn encode_bytecode_type_array(vm: &VM, sta: &BytecodeTypeArray, buffer: &mut ByteBuffer) {
@@ -135,76 +133,6 @@ fn encode_bytecode_type(vm: &VM, ty: &BytecodeType, buffer: &mut ByteBuffer) {
             encode_bytecode_type_array(vm, params, buffer);
             encode_bytecode_type(vm, ret.as_ref(), buffer);
         }
-    }
-}
-
-fn encode_source_type_array(vm: &VM, sta: &SourceTypeArray, buffer: &mut ByteBuffer) {
-    buffer.emit_u32(sta.len() as u32);
-
-    for ty in sta.iter() {
-        encode_source_type(vm, ty, buffer);
-    }
-}
-
-fn encode_source_type(vm: &VM, ty: SourceType, buffer: &mut ByteBuffer) {
-    match ty {
-        SourceType::Error | SourceType::Any | SourceType::Ptr | SourceType::This => unreachable!(),
-        SourceType::Unit => {
-            buffer.emit_u8(SourceTypeOpcode::Unit.to_u8());
-        }
-        SourceType::Bool => {
-            buffer.emit_u8(SourceTypeOpcode::Bool.to_u8());
-        }
-        SourceType::Char => {
-            buffer.emit_u8(SourceTypeOpcode::Char.to_u8());
-        }
-        SourceType::UInt8 => {
-            buffer.emit_u8(SourceTypeOpcode::UInt8.to_u8());
-        }
-        SourceType::Int32 => {
-            buffer.emit_u8(SourceTypeOpcode::Int32.to_u8());
-        }
-        SourceType::Int64 => {
-            buffer.emit_u8(SourceTypeOpcode::Int64.to_u8());
-        }
-        SourceType::Float32 => {
-            buffer.emit_u8(SourceTypeOpcode::Float32.to_u8());
-        }
-        SourceType::Float64 => {
-            buffer.emit_u8(SourceTypeOpcode::Float64.to_u8());
-        }
-        SourceType::Class(cls_id, source_type_array) => {
-            buffer.emit_u8(SourceTypeOpcode::Class.to_u8());
-            buffer.emit_id(cls_id.to_usize());
-            encode_source_type_array(vm, &source_type_array, buffer);
-        }
-        SourceType::Struct(struct_id, source_type_array) => {
-            buffer.emit_u8(SourceTypeOpcode::Struct.to_u8());
-            buffer.emit_id(struct_id.to_usize());
-            encode_source_type_array(vm, &source_type_array, buffer);
-        }
-        SourceType::Trait(trait_id, source_type_array) => {
-            buffer.emit_u8(SourceTypeOpcode::Trait.to_u8());
-            buffer.emit_id(trait_id.to_usize());
-            encode_source_type_array(vm, &source_type_array, buffer);
-        }
-        SourceType::Enum(enum_id, source_type_array) => {
-            buffer.emit_u8(SourceTypeOpcode::Enum.to_u8());
-            buffer.emit_id(enum_id.to_usize());
-            encode_source_type_array(vm, &source_type_array, buffer);
-        }
-        SourceType::Tuple(subtypes) => {
-            buffer.emit_u8(SourceTypeOpcode::Tuple.to_u8());
-            buffer.emit_u32(subtypes.len() as u32);
-            for subty in subtypes.iter() {
-                encode_source_type(vm, subty.clone(), buffer);
-            }
-        }
-        SourceType::TypeParam(type_param_id) => {
-            buffer.emit_u8(SourceTypeOpcode::TypeParam.to_u8());
-            buffer.emit_id(type_param_id.to_usize());
-        }
-        SourceType::Lambda(_, _) => unimplemented!(),
     }
 }
 

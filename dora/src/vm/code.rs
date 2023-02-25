@@ -5,10 +5,10 @@ use std::fmt;
 use std::ptr;
 use std::sync::Arc;
 
+use crate::bytecode::BytecodeTypeArray;
 use crate::cpu::flush_icache;
 use crate::gc::Address;
 use crate::language::sem_analysis::FctDefinitionId;
-use crate::language::ty::SourceTypeArray;
 use crate::masm::CodeDescriptor;
 use crate::mem;
 use crate::object::Header;
@@ -385,8 +385,8 @@ impl LazyCompilationData {
 
 #[derive(Clone, Debug)]
 pub enum LazyCompilationSite {
-    Direct(FctDefinitionId, i32, SourceTypeArray),
-    Virtual(bool, FctDefinitionId, u32, SourceTypeArray),
+    Direct(FctDefinitionId, i32, BytecodeTypeArray),
+    Virtual(bool, FctDefinitionId, u32, BytecodeTypeArray),
     Lambda(bool),
 }
 

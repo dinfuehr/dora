@@ -8,6 +8,7 @@ use crate::compiler;
 use crate::compiler::dora_exit_stubs::NativeStubs;
 use crate::driver::cmd::Args;
 use crate::gc::{Address, Gc};
+use crate::language::generator::bty_array_from_ty;
 use crate::language::sem_analysis::{
     AnnotationDefinition, ClassDefinition, ClassDefinitionId, EnumDefinition, EnumDefinitionId,
     ExtensionDefinition, FctDefinition, FctDefinitionId, GlobalDefinition, ImplDefinition,
@@ -243,7 +244,9 @@ impl VM {
         let mut dtn = DoraToNativeInfo::new();
         let type_params = SourceTypeArray::empty();
 
-        current_thread().use_dtn(&mut dtn, || compiler::generate(self, fct_id, &type_params))
+        current_thread().use_dtn(&mut dtn, || {
+            compiler::generate(self, fct_id, &bty_array_from_ty(&type_params))
+        })
     }
 
     pub fn dump_gc_summary(&self, runtime: f32) {

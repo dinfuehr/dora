@@ -16,19 +16,19 @@ use crate::language::ty::SourceTypeArray;
 use crate::os;
 use crate::vm::{install_code, CodeKind, VM};
 
-pub fn generate(vm: &VM, id: FctDefinitionId, type_params: &SourceTypeArray) -> Address {
+pub fn generate(vm: &VM, id: FctDefinitionId, type_params: &BytecodeTypeArray) -> Address {
     let fct = vm.fcts.idx(id);
     let fct = fct.read();
     generate_fct(vm, &fct, type_params)
 }
 
-pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray) -> Address {
+pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &BytecodeTypeArray) -> Address {
     debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
     // Block here if compilation is already in progress.
     if let Some(instruction_start) =
         vm.compilation_database
-            .compilation_request(vm, fct.id(), bty_array_from_ty(type_params))
+            .compilation_request(vm, fct.id(), type_params.clone())
     {
         return instruction_start;
     }
@@ -62,7 +62,7 @@ pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray)
                 params: bty_array_from_ty(&params),
                 has_variadic_parameter,
                 return_type: bty_from_ty(return_type),
-                type_params: bty_array_from_ty(type_params),
+                type_params: type_params.clone(),
                 pos,
 
                 emit_debug,
@@ -83,7 +83,7 @@ pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray)
 
     // Mark compilation as finished and resume threads waiting for compilation.
     vm.compilation_database
-        .finish_compilation(fct.id(), bty_array_from_ty(type_params), code_id);
+        .finish_compilation(fct.id(), type_params.clone(), code_id);
 
     if vm.args.flag_emit_compiler {
         let duration = start.expect("missing start time").elapsed();
@@ -230,7 +230,7 @@ pub fn ensure_native_stub(
                 disassembler::disassemble(
                     vm,
                     &*fct,
-                    &SourceTypeArray::empty(),
+                    &BytecodeTypeArray::empty(),
                     &code,
                     vm.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att),
                 );

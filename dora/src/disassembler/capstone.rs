@@ -6,9 +6,10 @@ use std::slice;
 
 use capstone::prelude::*;
 
+use crate::bytecode::BytecodeTypeArray;
 use crate::driver::cmd::AsmSyntax;
+use crate::language::generator::ty_from_bty;
 use crate::language::sem_analysis::FctDefinition;
-use crate::language::ty::SourceTypeArray;
 use crate::vm::{Code, VM};
 
 pub fn supported() -> bool {
@@ -18,7 +19,7 @@ pub fn supported() -> bool {
 pub fn disassemble(
     vm: &VM,
     fct: &FctDefinition,
-    type_params: &SourceTypeArray,
+    type_params: &BytecodeTypeArray,
     code: &Code,
     asm_syntax: AsmSyntax,
 ) {
@@ -55,7 +56,7 @@ pub fn disassemble(
         let mut ty_names = Vec::new();
 
         for ty in type_params.iter() {
-            ty_names.push(ty.name_fct_vm(vm, fct));
+            ty_names.push(ty_from_bty(ty).name_fct_vm(vm, fct));
         }
 
         format!(" [{}]", ty_names.join(", "))

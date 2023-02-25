@@ -195,6 +195,12 @@ impl BytecodeTypeArray {
             idx: 0,
         }
     }
+
+    pub fn append(&self, ty: BytecodeType) -> BytecodeTypeArray {
+        let mut types = (*self.0).to_owned();
+        types.push(ty);
+        BytecodeTypeArray::new(types)
+    }
 }
 
 impl Index<usize> for BytecodeTypeArray {

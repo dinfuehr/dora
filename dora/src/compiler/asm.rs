@@ -2,7 +2,7 @@ use std::mem;
 
 use dora_parser::lexer::position::Position;
 
-use crate::bytecode::BytecodeType;
+use crate::bytecode::{BytecodeType, BytecodeTypeArray};
 use crate::cannon::codegen::{mode, result_reg_mode, RegOrOffset};
 use crate::compiler::codegen::{ensure_native_stub, AllocationSize, AnyReg};
 use crate::compiler::dora_exit_stubs::{NativeFct, NativeFctKind};
@@ -735,7 +735,7 @@ impl<'a> BaselineAssembler<'a> {
         &mut self,
         fct_id: FctDefinitionId,
         ptr: Address,
-        type_params: SourceTypeArray,
+        type_params: BytecodeTypeArray,
         pos: Position,
         gcpoint: GcPoint,
         return_mode: Option<MachineMode>,
@@ -1151,7 +1151,7 @@ impl<'a> BaselineAssembler<'a> {
         self.direct_call(
             fct_id,
             ptr,
-            SourceTypeArray::empty(),
+            BytecodeTypeArray::empty(),
             pos,
             gcpoint,
             None,

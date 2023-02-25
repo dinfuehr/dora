@@ -2,11 +2,10 @@ use std::mem;
 use std::ptr;
 
 use crate::boots::serializer::allocate_encoded_compilation_info;
-use crate::bytecode::InstructionSet;
+use crate::bytecode::{BytecodeTypeArray, InstructionSet};
 use crate::gc::Address;
 use crate::handle::handle;
 use crate::language::sem_analysis::FctDefinition;
-use crate::language::ty::SourceTypeArray;
 use crate::masm::CodeDescriptor;
 use crate::object::{Ref, UInt8Array};
 use crate::threads::current_thread;
@@ -14,7 +13,7 @@ use crate::vm::VM;
 
 mod serializer;
 
-pub fn compile(vm: &VM, fct: &FctDefinition, type_params: &SourceTypeArray) -> CodeDescriptor {
+pub fn compile(vm: &VM, fct: &FctDefinition, type_params: &BytecodeTypeArray) -> CodeDescriptor {
     let bytecode_fct = fct.bytecode.as_ref().expect("bytecode missing");
 
     let compile_fct_id = vm.known.functions.compile();

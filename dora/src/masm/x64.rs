@@ -1,11 +1,11 @@
 use dora_parser::lexer::position::Position;
 
+use crate::bytecode::BytecodeTypeArray;
 use crate::compiler::codegen::AnyReg;
 use crate::cpu::*;
 use crate::gc::swiper::CARD_SIZE_BITS;
 use crate::gc::Address;
 use crate::language::sem_analysis::FctDefinitionId;
-use crate::language::ty::SourceTypeArray;
 use crate::masm::{CondCode, Label, MacroAssembler, Mem};
 use crate::mem::{fits_i32, ptr_width};
 use crate::mode::MachineMode;
@@ -87,7 +87,7 @@ impl MacroAssembler {
         &mut self,
         fct_id: FctDefinitionId,
         ptr: Address,
-        type_params: SourceTypeArray,
+        type_params: BytecodeTypeArray,
     ) {
         let disp = self.add_addr(ptr);
         let pos = self.pos() as i32;

@@ -9,6 +9,7 @@ use std::time::Duration;
 
 use crate::gc::{Address, GcReason};
 use crate::handle::{handle, handle_scope, Handle};
+use crate::language::generator::bty_array_from_ty;
 use crate::object::{Obj, Ref, Str, UInt8Array};
 use crate::stack::stacktrace_from_last_dtn;
 use crate::threads::{
@@ -356,7 +357,9 @@ fn thread_main(thread: &DoraThread, thread_location: Address, runner_location: A
     let fct_ptr = {
         let mut dtn = DoraToNativeInfo::new();
 
-        thread.use_dtn(&mut dtn, || compiler::generate(vm, lambda_id, &type_params))
+        thread.use_dtn(&mut dtn, || {
+            compiler::generate(vm, lambda_id, &bty_array_from_ty(&type_params))
+        })
     };
 
     // execute the runner/lambda
