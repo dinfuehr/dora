@@ -180,8 +180,9 @@ impl<'a> CannonCodeGen<'a> {
 
         for (index, ty) in self.bytecode.registers().iter().enumerate() {
             let ty = register_bty(self.specialize_bty(ty.clone()));
-            let sz = size(self.vm, ty);
-            stacksize = align_i32(stacksize + sz, sz);
+            let size = size(self.vm, ty.clone());
+            let align = align(self.vm, ty);
+            stacksize = align_i32(stacksize + size, align);
             offset[index] = Some(-stacksize);
         }
 
@@ -2297,12 +2298,8 @@ impl<'a> CannonCodeGen<'a> {
         let object_ty = self.specialize_bty(object_ty);
         debug_assert!(object_ty.is_concrete_type());
 
-        let class_instance_id = specialize_trait_object(
-            self.vm,
-            trait_id,
-            &ty_array_from_bty(&type_params),
-            ty_from_bty(object_ty.clone()),
-        );
+        let class_instance_id =
+            specialize_trait_object(self.vm, trait_id, &type_params, object_ty.clone());
 
         let cls = self.vm.class_instances.idx(class_instance_id);
 
@@ -5085,7 +5082,10 @@ pub fn size(vm: &VM, ty: BytecodeType) -> i32 {
         BytecodeType::Int64 => 8,
         BytecodeType::Float32 => 4,
         BytecodeType::Float64 => 8,
-        BytecodeType::Ptr | BytecodeType::Trait(_, _) => mem::ptr_width(),
+        BytecodeType::Ptr
+        | BytecodeType::Trait(_, _)
+        | BytecodeType::Class(_, _)
+        | BytecodeType::Lambda(_, _) => mem::ptr_width(),
         BytecodeType::Tuple(_) => get_concrete_tuple_bytecode_ty(vm, &ty).size(),
         BytecodeType::TypeParam(_) => unreachable!(),
         BytecodeType::Enum(enum_id, type_params) => {
@@ -5103,8 +5103,39 @@ pub fn size(vm: &VM, ty: BytecodeType) -> i32 {
 
             sdef.size
         }
-        BytecodeType::Class(_, _) | BytecodeType::Lambda(_, _) => {
-            unreachable!()
+    }
+}
+
+pub fn align(vm: &VM, ty: BytecodeType) -> i32 {
+    match ty {
+        BytecodeType::Unit => 0,
+        BytecodeType::Bool => 1,
+        BytecodeType::UInt8 => 1,
+        BytecodeType::Char => 4,
+        BytecodeType::Int32 => 4,
+        BytecodeType::Int64 => 8,
+        BytecodeType::Float32 => 4,
+        BytecodeType::Float64 => 8,
+        BytecodeType::Ptr
+        | BytecodeType::Trait(_, _)
+        | BytecodeType::Class(_, _)
+        | BytecodeType::Lambda(_, _) => mem::ptr_width(),
+        BytecodeType::Tuple(_) => get_concrete_tuple_bytecode_ty(vm, &ty).align(),
+        BytecodeType::TypeParam(_) => unreachable!(),
+        BytecodeType::Enum(enum_id, type_params) => {
+            let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
+            let edef = vm.enum_instances.idx(edef_id);
+
+            match edef.layout {
+                EnumLayout::Int => 4,
+                EnumLayout::Ptr | EnumLayout::Tagged => mem::ptr_width(),
+            }
+        }
+        BytecodeType::Struct(struct_id, type_params) => {
+            let sdef_id = specialize_struct_id_params(vm, struct_id, type_params);
+            let sdef = vm.struct_instances.idx(sdef_id);
+
+            sdef.align
         }
     }
 }

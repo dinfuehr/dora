@@ -9,7 +9,6 @@ use crate::compiler;
 use crate::compiler::dora_exit_stubs::NativeStubs;
 use crate::driver::cmd::Args;
 use crate::gc::{Address, Gc};
-use crate::language::generator::bty_array_from_ty;
 use crate::language::sem_analysis::{
     AnnotationDefinition, ClassDefinition, ClassDefinitionId, EnumDefinition, EnumDefinitionId,
     ExtensionDefinition, FctDefinition, FctDefinitionId, GlobalDefinition, ImplDefinition,
@@ -17,7 +16,6 @@ use crate::language::sem_analysis::{
     SemAnalysis, SourceFile, SourceFileId, StructDefinition, StructDefinitionId, TraitDefinition,
     TraitDefinitionId,
 };
-use crate::language::ty::SourceTypeArray;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::ManagedThread;
 use crate::threads::{
@@ -137,7 +135,7 @@ pub struct VM {
         RwLock<HashMap<(EnumDefinitionId, BytecodeTypeArray), EnumInstanceId>>,
     pub enum_instances: GrowableVecNonIter<EnumInstance>, // stores all enum definitions
     pub traits: MutableVec<TraitDefinition>,              // stores all trait definitions
-    pub trait_vtables: RwLock<HashMap<(TraitDefinitionId, SourceTypeArray), ClassInstanceId>>,
+    pub trait_vtables: RwLock<HashMap<(TraitDefinitionId, BytecodeTypeArray), ClassInstanceId>>,
     pub impls: MutableVec<ImplDefinition>, // stores all impl definitions
     pub code_map: CodeMap,                 // stores all compiled functions
     pub globals: MutableVec<GlobalDefinition>, // stores all global variables
@@ -243,11 +241,9 @@ impl VM {
 
     pub fn ensure_compiled(&self, fct_id: FctDefinitionId) -> Address {
         let mut dtn = DoraToNativeInfo::new();
-        let type_params = SourceTypeArray::empty();
+        let type_params = BytecodeTypeArray::empty();
 
-        current_thread().use_dtn(&mut dtn, || {
-            compiler::generate(self, fct_id, &bty_array_from_ty(&type_params))
-        })
+        current_thread().use_dtn(&mut dtn, || compiler::generate(self, fct_id, &type_params))
     }
 
     pub fn dump_gc_summary(&self, runtime: f32) {

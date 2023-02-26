@@ -7,7 +7,7 @@ use crate::cpu::{
     CCALL_REG_PARAMS, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1,
 };
 use crate::gc::Address;
-use crate::language::generator::{bty_array_from_ty, bty_from_ty};
+use crate::language::generator::bty_from_ty;
 use crate::language::sem_analysis::FctDefinitionId;
 use crate::masm::{MacroAssembler, Mem};
 use crate::mem;
@@ -247,7 +247,7 @@ fn patch_lambda_call(
         _ => unreachable!(),
     };
 
-    let fct_ptr = compiler::generate(vm, lambda_id, &bty_array_from_ty(&type_params));
+    let fct_ptr = compiler::generate(vm, lambda_id, &type_params);
 
     let methodtable = vtable.table_mut();
     methodtable[0] = fct_ptr.to_usize();

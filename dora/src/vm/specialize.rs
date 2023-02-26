@@ -2,6 +2,7 @@ use parking_lot::RwLock;
 use std::cmp::max;
 
 use crate::bytecode::{BytecodeType, BytecodeTypeArray};
+use crate::cannon::codegen::{align, size};
 use crate::language::generator::{bty_array_from_ty, ty_array_from_bty, ty_from_bty};
 use crate::language::sem_analysis::{ClassDefinitionId, FctDefinitionId, TraitDefinitionId};
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -238,7 +239,7 @@ pub fn specialize_enum_class(
 
     let class_instance_id = create_class_instance_with_vtable(
         vm,
-        ShapeKind::Enum(edef.enum_id, edef.type_params.clone()),
+        ShapeKind::Enum(edef.enum_id, bty_array_from_ty(&edef.type_params)),
         InstanceSize::Fixed(instance_size),
         fields,
         0,
@@ -363,7 +364,7 @@ fn create_specialized_class_regular(
 
     let class_instance_id = create_class_instance_with_vtable(
         vm,
-        ShapeKind::Class(cls.id(), ty_array_from_bty(type_params)),
+        ShapeKind::Class(cls.id(), type_params.clone()),
         size,
         fields,
         0,
@@ -442,7 +443,7 @@ fn create_specialized_class_array(
 
     let class_instance_id = create_class_instance_with_vtable(
         vm,
-        ShapeKind::Class(cls.id(), ty_array_from_bty(type_params)),
+        ShapeKind::Class(cls.id(), type_params.clone()),
         size,
         Vec::new(),
         0,
@@ -468,7 +469,7 @@ pub fn specialize_lambda(
 
     create_class_instance_with_vtable(
         vm,
-        ShapeKind::Lambda(fct_id, type_params.clone()),
+        ShapeKind::Lambda(fct_id, bty_array_from_ty(&type_params)),
         size,
         fields,
         1,
@@ -478,12 +479,12 @@ pub fn specialize_lambda(
 pub fn specialize_trait_object(
     vm: &VM,
     trait_id: TraitDefinitionId,
-    trait_type_params: &SourceTypeArray,
-    object_type: SourceType,
+    trait_type_params: &BytecodeTypeArray,
+    object_type: BytecodeType,
 ) -> ClassInstanceId {
     let trait_ = vm.traits[trait_id].read();
 
-    let combined_type_params = trait_type_params.connect_single(object_type.clone());
+    let combined_type_params = trait_type_params.append(object_type.clone());
 
     if let Some(&id) = vm
         .trait_vtables
@@ -499,8 +500,8 @@ pub fn specialize_trait_object(
 fn create_specialized_class_for_trait_object(
     vm: &VM,
     trait_: &TraitDefinition,
-    combined_type_params: SourceTypeArray,
-    object_type: SourceType,
+    combined_type_params: BytecodeTypeArray,
+    object_type: BytecodeType,
 ) -> ClassInstanceId {
     let mut csize;
     let mut fields;
@@ -512,15 +513,20 @@ fn create_specialized_class_for_trait_object(
 
     debug_assert!(object_type.is_concrete_type());
 
-    let field_size = object_type.size(vm);
-    let field_align = object_type.align(vm);
+    let field_size = size(vm, object_type.clone());
+    let field_align = align(vm, object_type.clone());
 
     let offset = mem::align_i32(csize, field_align);
     fields.push(FieldInstance {
         offset,
-        ty: object_type.clone(),
+        ty: ty_from_bty(object_type.clone()),
     });
-    add_ref_fields(vm, &mut ref_fields, offset, object_type.clone());
+    add_ref_fields(
+        vm,
+        &mut ref_fields,
+        offset,
+        ty_from_bty(object_type.clone()),
+    );
     csize = offset + field_size;
     csize = mem::align_i32(csize, mem::ptr_width());
     let size = InstanceSize::Fixed(csize);
@@ -534,7 +540,7 @@ fn create_specialized_class_for_trait_object(
     let class_instance_id = create_class_instance_with_vtable(
         vm,
         ShapeKind::TraitObject {
-            object_ty: object_type.clone(),
+            object_ty: ty_from_bty(object_type),
             trait_id: trait_.id(),
             combined_type_params: combined_type_params.clone(),
         },

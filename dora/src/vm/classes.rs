@@ -1,5 +1,7 @@
 use parking_lot::RwLock;
 
+use crate::bytecode::{BytecodeType, BytecodeTypeArray};
+use crate::language::generator::ty_from_bty;
 use crate::language::sem_analysis::{
     ClassDefinition, ClassDefinitionId, EnumDefinitionId, FctDefinitionId, TraitDefinitionId,
 };
@@ -60,14 +62,14 @@ impl Id for ClassInstance {
 
 #[derive(Debug)]
 pub enum ShapeKind {
-    Class(ClassDefinitionId, SourceTypeArray),
-    Lambda(FctDefinitionId, SourceTypeArray),
+    Class(ClassDefinitionId, BytecodeTypeArray),
+    Lambda(FctDefinitionId, BytecodeTypeArray),
     TraitObject {
         object_ty: SourceType,
         trait_id: TraitDefinitionId,
-        combined_type_params: SourceTypeArray,
+        combined_type_params: BytecodeTypeArray,
     },
-    Enum(EnumDefinitionId, SourceTypeArray),
+    Enum(EnumDefinitionId, BytecodeTypeArray),
     Builtin,
 }
 
@@ -193,8 +195,8 @@ fn create_ref_fields(vm: &VM, fields: &[FieldInstance], mut ref_fields: Vec<i32>
     ref_fields
 }
 
-fn create_array_ref_fields(vm: &VM, ty: SourceType) -> Vec<i32> {
+fn create_array_ref_fields(vm: &VM, ty: BytecodeType) -> Vec<i32> {
     let mut ref_fields = Vec::new();
-    add_ref_fields(vm, &mut ref_fields, 0, ty);
+    add_ref_fields(vm, &mut ref_fields, 0, ty_from_bty(ty));
     ref_fields
 }
