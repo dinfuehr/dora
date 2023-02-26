@@ -9,7 +9,7 @@ use crate::compiler::dora_exit_stubs::{NativeFct, NativeFctKind};
 use crate::cpu::{FReg, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_THREAD, REG_TMP1, REG_TMP2};
 use crate::gc::tlab::TLAB_OBJECT_SIZE;
 use crate::gc::Address;
-use crate::language::generator::{bty_from_ty, ty_array_from_bty};
+use crate::language::generator::ty_array_from_bty;
 use crate::language::sem_analysis::{FctDefinitionId, GlobalDefinitionId, StructDefinitionId};
 use crate::language::ty::SourceType;
 use crate::masm::{CodeDescriptor, CondCode, Label, MacroAssembler, Mem, ScratchReg};
@@ -215,7 +215,7 @@ impl<'a> BaselineAssembler<'a> {
         for field in &struct_instance.fields {
             let src = src.offset(field.offset);
             let dest = dest.offset(field.offset);
-            self.copy_bytecode_ty(bty_from_ty(field.ty.clone()), dest, src);
+            self.copy_bytecode_ty(field.ty.clone(), dest, src);
         }
     }
 
@@ -968,7 +968,7 @@ impl<'a> BaselineAssembler<'a> {
 
                 for field in &struct_instance.fields {
                     let dest = dest.offset(field.offset);
-                    self.zero_ty(bty_from_ty(field.ty.clone()), dest);
+                    self.zero_ty(field.ty.clone(), dest);
                 }
             }
 

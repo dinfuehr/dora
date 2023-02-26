@@ -7,7 +7,6 @@ use crate::cpu::{
     CCALL_REG_PARAMS, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1,
 };
 use crate::gc::Address;
-use crate::language::generator::bty_from_ty;
 use crate::language::sem_analysis::FctDefinitionId;
 use crate::masm::{MacroAssembler, Mem};
 use crate::mem;
@@ -276,12 +275,12 @@ fn patch_virtual_call(
 
     let fct_ptr = match &class_instance.kind {
         ShapeKind::TraitObject { object_ty, .. } => {
-            let all_type_params = type_params.append(bty_from_ty(object_ty.clone()));
+            let all_type_params = type_params.append(object_ty.clone());
             let thunk_fct_id = compiler::trait_object_thunk::ensure(
                 vm,
                 trait_fct_id,
                 type_params.clone(),
-                bty_from_ty(object_ty.clone()),
+                object_ty.clone(),
             );
 
             compiler::generate(vm, thunk_fct_id, &all_type_params)

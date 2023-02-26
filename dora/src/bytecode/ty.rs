@@ -163,6 +163,16 @@ impl BytecodeType {
             BytecodeType::TypeParam(_) => false,
         }
     }
+
+    pub fn is_reference_type(&self) -> bool {
+        match self {
+            BytecodeType::Ptr => true,
+            BytecodeType::Class(..) => true,
+            BytecodeType::Trait(..) => true,
+            BytecodeType::Lambda(..) => true,
+            _ => false,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]

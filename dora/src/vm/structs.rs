@@ -1,4 +1,5 @@
-use crate::language::ty::{SourceType, SourceTypeArray};
+use crate::bytecode::BytecodeType;
+use crate::language::ty::SourceTypeArray;
 use crate::vm::{module_path, StructDefinition, VM};
 use dora_frontend::Id;
 
@@ -59,5 +60,5 @@ impl StructInstance {
 #[derive(Debug, Clone)]
 pub struct StructInstanceField {
     pub offset: i32,
-    pub ty: SourceType,
+    pub ty: BytecodeType,
 }

@@ -3,22 +3,17 @@ use std::cmp::max;
 
 use crate::bytecode::{BytecodeType, BytecodeTypeArray};
 use crate::cannon::codegen::{align, size};
-use crate::language::generator::{bty_array_from_ty, ty_array_from_bty, ty_from_bty};
+use crate::language::generator::{bty_array_from_ty, bty_from_ty, ty_array_from_bty};
 use crate::language::sem_analysis::{ClassDefinitionId, FctDefinitionId, TraitDefinitionId};
-use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::mem;
 use crate::object::Header;
 use crate::size::InstanceSize;
 use crate::vm::{
-    create_class_instance_with_vtable, get_concrete_tuple_ty, ClassDefinition, ClassInstanceId,
-    EnumDefinition, EnumDefinitionId, EnumInstance, EnumInstanceId, EnumLayout, FieldInstance,
-    ShapeKind, StructDefinition, StructDefinitionId, StructInstance, StructInstanceField,
-    StructInstanceId, TraitDefinition, VM,
+    create_class_instance_with_vtable, get_concrete_tuple_bytecode_ty, ClassDefinition,
+    ClassInstanceId, EnumDefinition, EnumDefinitionId, EnumInstance, EnumInstanceId, EnumLayout,
+    FieldInstance, ShapeKind, StructDefinition, StructDefinitionId, StructInstance,
+    StructInstanceField, StructInstanceId, TraitDefinition, VM,
 };
-
-pub fn specialize_type(vm: &VM, ty: SourceType, type_params: &SourceTypeArray) -> SourceType {
-    replace_type_param(vm, ty, type_params, None)
-}
 
 pub fn specialize_struct_id_params(
     vm: &VM,
@@ -53,31 +48,32 @@ fn create_specialized_struct(
 ) -> StructInstanceId {
     assert!(struct_.primitive_ty.is_none());
 
-    let mut size = 0;
-    let mut align = 0;
+    let mut struct_size = 0;
+    let mut struct_align = 0;
     let mut fields = Vec::with_capacity(struct_.fields.len());
     let mut ref_fields = Vec::new();
 
     for f in &struct_.fields {
-        let ty = specialize_type(vm, f.ty.clone(), &ty_array_from_bty(&type_params));
+        let ty = bty_from_ty(f.ty.clone());
+        let ty = specialize_bty(ty, &type_params);
         debug_assert!(ty.is_concrete_type());
 
-        let field_size = ty.size(vm);
-        let field_align = ty.align(vm);
+        let field_size = size(vm, ty.clone());
+        let field_align = align(vm, ty.clone());
 
-        let offset = mem::align_i32(size, field_align);
+        let offset = mem::align_i32(struct_size, field_align);
         fields.push(StructInstanceField {
             offset,
             ty: ty.clone(),
         });
 
-        size = offset + field_size;
-        align = max(align, field_align);
+        struct_size = offset + field_size;
+        struct_align = max(struct_align, field_align);
 
         add_ref_fields(vm, &mut ref_fields, offset, ty);
     }
 
-    size = mem::align_i32(size, align);
+    struct_size = mem::align_i32(struct_size, struct_align);
 
     let mut specializations = vm.struct_specializations.write();
 
@@ -86,8 +82,8 @@ fn create_specialized_struct(
     }
 
     let id = vm.struct_instances.push(StructInstance {
-        size,
-        align,
+        size: struct_size,
+        align: struct_align,
         fields,
         ref_fields,
     });
@@ -172,7 +168,7 @@ fn enum_is_simple_integer(enum_: &EnumDefinition) -> bool {
     true
 }
 
-fn enum_is_ptr(vm: &VM, enum_: &EnumDefinition, type_params: &BytecodeTypeArray) -> bool {
+fn enum_is_ptr(_vm: &VM, enum_: &EnumDefinition, type_params: &BytecodeTypeArray) -> bool {
     if enum_.variants.len() != 2 {
         return false;
     }
@@ -188,12 +184,11 @@ fn enum_is_ptr(vm: &VM, enum_: &EnumDefinition, type_params: &BytecodeTypeArray)
 
     none_variant.types.len() == 0
         && some_variant.types.len() == 1
-        && specialize_type(
-            vm,
-            some_variant.types.first().unwrap().clone(),
-            &ty_array_from_bty(type_params),
+        && specialize_bty(
+            bty_from_ty(some_variant.types.first().unwrap().clone()),
+            type_params,
         )
-        .reference_type()
+        .is_reference_type()
 }
 
 pub fn specialize_enum_class(
@@ -213,16 +208,17 @@ pub fn specialize_enum_class(
     let mut csize = Header::size() + 4;
     let mut fields = vec![FieldInstance {
         offset: Header::size(),
-        ty: SourceType::Int32,
+        ty: BytecodeType::Int32,
     }];
     let mut ref_fields = Vec::new();
 
     for ty in &enum_variant.types {
-        let ty = replace_type_param(vm, ty.clone(), &edef.type_params, None);
+        let ty = bty_from_ty(ty.clone());
+        let ty = specialize_bty(ty, &bty_array_from_ty(&edef.type_params));
         assert!(ty.is_concrete_type());
 
-        let field_size = ty.size(vm);
-        let field_align = ty.align(vm);
+        let field_size = size(vm, ty.clone());
+        let field_align = align(vm, ty.clone());
 
         let offset = mem::align_i32(csize, field_align);
         fields.push(FieldInstance {
@@ -250,34 +246,56 @@ pub fn specialize_enum_class(
     class_instance_id
 }
 
-pub fn add_ref_fields(vm: &VM, ref_fields: &mut Vec<i32>, offset: i32, ty: SourceType) {
+pub fn add_ref_fields(vm: &VM, ref_fields: &mut Vec<i32>, offset: i32, ty: BytecodeType) {
     assert!(ty.is_concrete_type());
 
-    if ty.is_tuple() {
-        let tuple = get_concrete_tuple_ty(vm, &ty);
+    match ty {
+        BytecodeType::Tuple(..) => {
+            let tuple = get_concrete_tuple_bytecode_ty(vm, &ty);
 
-        for &ref_offset in tuple.references() {
-            ref_fields.push(offset + ref_offset);
-        }
-    } else if let SourceType::Enum(enum_id, type_params) = ty.clone() {
-        let edef_id = specialize_enum_id_params(vm, enum_id, bty_array_from_ty(&type_params));
-        let edef = vm.enum_instances.idx(edef_id);
-
-        match edef.layout {
-            EnumLayout::Int => {}
-            EnumLayout::Ptr | EnumLayout::Tagged => {
-                ref_fields.push(offset);
+            for &ref_offset in tuple.references() {
+                ref_fields.push(offset + ref_offset);
             }
         }
-    } else if let SourceType::Struct(struct_id, type_params) = ty.clone() {
-        let sdef_id = specialize_struct_id_params(vm, struct_id, bty_array_from_ty(&type_params));
-        let sdef = vm.struct_instances.idx(sdef_id);
 
-        for &ref_offset in &sdef.ref_fields {
-            ref_fields.push(offset + ref_offset);
+        BytecodeType::Enum(enum_id, type_params) => {
+            let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
+            let edef = vm.enum_instances.idx(edef_id);
+
+            match edef.layout {
+                EnumLayout::Int => {}
+                EnumLayout::Ptr | EnumLayout::Tagged => {
+                    ref_fields.push(offset);
+                }
+            }
         }
-    } else if ty.reference_type() {
-        ref_fields.push(offset);
+
+        BytecodeType::Struct(struct_id, type_params) => {
+            let sdef_id = specialize_struct_id_params(vm, struct_id, type_params);
+            let sdef = vm.struct_instances.idx(sdef_id);
+
+            for &ref_offset in &sdef.ref_fields {
+                ref_fields.push(offset + ref_offset);
+            }
+        }
+
+        BytecodeType::Bool
+        | BytecodeType::Char
+        | BytecodeType::UInt8
+        | BytecodeType::Int32
+        | BytecodeType::Int64
+        | BytecodeType::Float32
+        | BytecodeType::Float64
+        | BytecodeType::Unit => {}
+
+        BytecodeType::TypeParam(..) => unreachable!(),
+
+        BytecodeType::Ptr
+        | BytecodeType::Class(..)
+        | BytecodeType::Lambda(..)
+        | BytecodeType::Trait(..) => {
+            ref_fields.push(offset);
+        }
     }
 }
 
@@ -337,11 +355,12 @@ fn create_specialized_class_regular(
     let mut ref_fields = Vec::new();
 
     for f in &cls.fields {
-        let ty = specialize_type(vm, f.ty.clone(), &ty_array_from_bty(&type_params));
+        let ty = bty_from_ty(f.ty.clone());
+        let ty = specialize_bty(ty, &type_params);
         debug_assert!(ty.is_concrete_type());
 
-        let field_size = ty.size(vm);
-        let field_align = ty.align(vm);
+        let field_size = size(vm, ty.clone());
+        let field_align = align(vm, ty.clone());
 
         let offset = mem::align_i32(csize, field_align);
         fields.push(FieldInstance {
@@ -396,7 +415,7 @@ fn create_specialized_class_array(
             | BytecodeType::Lambda(_, _) => InstanceSize::ObjArray,
 
             BytecodeType::Tuple(_) => {
-                let tuple = get_concrete_tuple_ty(vm, &ty_from_bty(element_ty));
+                let tuple = get_concrete_tuple_bytecode_ty(vm, &element_ty);
                 InstanceSize::StructArray(tuple.size())
             }
 
@@ -423,9 +442,7 @@ fn create_specialized_class_array(
             | BytecodeType::Int32
             | BytecodeType::Int64
             | BytecodeType::Float32
-            | BytecodeType::Float64 => {
-                InstanceSize::PrimitiveArray(ty_from_bty(element_ty).size(vm))
-            }
+            | BytecodeType::Float64 => InstanceSize::PrimitiveArray(size(vm, element_ty)),
 
             BytecodeType::TypeParam(_) => {
                 unreachable!()
@@ -458,22 +475,16 @@ fn create_specialized_class_array(
 pub fn specialize_lambda(
     vm: &VM,
     fct_id: FctDefinitionId,
-    type_params: SourceTypeArray,
+    type_params: BytecodeTypeArray,
 ) -> ClassInstanceId {
     // Lambda object only has context field at the moment.
     let size = InstanceSize::Fixed(Header::size() + mem::ptr_width());
     let fields = vec![FieldInstance {
         offset: Header::size(),
-        ty: SourceType::Ptr,
+        ty: BytecodeType::Ptr,
     }];
 
-    create_class_instance_with_vtable(
-        vm,
-        ShapeKind::Lambda(fct_id, bty_array_from_ty(&type_params)),
-        size,
-        fields,
-        1,
-    )
+    create_class_instance_with_vtable(vm, ShapeKind::Lambda(fct_id, type_params), size, fields, 1)
 }
 
 pub fn specialize_trait_object(
@@ -519,14 +530,9 @@ fn create_specialized_class_for_trait_object(
     let offset = mem::align_i32(csize, field_align);
     fields.push(FieldInstance {
         offset,
-        ty: ty_from_bty(object_type.clone()),
+        ty: object_type.clone(),
     });
-    add_ref_fields(
-        vm,
-        &mut ref_fields,
-        offset,
-        ty_from_bty(object_type.clone()),
-    );
+    add_ref_fields(vm, &mut ref_fields, offset, object_type.clone());
     csize = offset + field_size;
     csize = mem::align_i32(csize, mem::ptr_width());
     let size = InstanceSize::Fixed(csize);
@@ -540,7 +546,7 @@ fn create_specialized_class_for_trait_object(
     let class_instance_id = create_class_instance_with_vtable(
         vm,
         ShapeKind::TraitObject {
-            object_ty: ty_from_bty(object_type),
+            object_ty: object_type,
             trait_id: trait_.id(),
             combined_type_params: combined_type_params.clone(),
         },
@@ -553,106 +559,6 @@ fn create_specialized_class_for_trait_object(
     assert!(old.is_none());
 
     class_instance_id
-}
-
-fn replace_type_param(
-    vm: &VM,
-    ty: SourceType,
-    type_params: &SourceTypeArray,
-    self_ty: Option<SourceType>,
-) -> SourceType {
-    match ty {
-        SourceType::TypeParam(tpid) => type_params[tpid.to_usize()].clone(),
-
-        SourceType::Class(cls_id, params) => {
-            let params = SourceTypeArray::with(
-                params
-                    .iter()
-                    .map(|p| replace_type_param(vm, p, type_params, self_ty.clone()))
-                    .collect::<Vec<_>>(),
-            );
-
-            SourceType::Class(cls_id, params)
-        }
-
-        SourceType::Trait(trait_id, old_type_params) => {
-            let new_type_params = SourceTypeArray::with(
-                old_type_params
-                    .iter()
-                    .map(|p| replace_type_param(vm, p, type_params, self_ty.clone()))
-                    .collect::<Vec<_>>(),
-            );
-
-            SourceType::Trait(trait_id, new_type_params)
-        }
-
-        SourceType::Struct(struct_id, old_type_params) => {
-            let new_type_params = SourceTypeArray::with(
-                old_type_params
-                    .iter()
-                    .map(|p| replace_type_param(vm, p, type_params, self_ty.clone()))
-                    .collect::<Vec<_>>(),
-            );
-
-            SourceType::Struct(struct_id, new_type_params)
-        }
-
-        SourceType::Enum(enum_id, old_type_params) => {
-            let new_type_params = SourceTypeArray::with(
-                old_type_params
-                    .iter()
-                    .map(|p| replace_type_param(vm, p, type_params, self_ty.clone()))
-                    .collect::<Vec<_>>(),
-            );
-
-            SourceType::Enum(enum_id, new_type_params)
-        }
-
-        SourceType::This => self_ty.expect("no type for Self given"),
-
-        SourceType::Lambda(params, return_type) => {
-            let new_params = SourceTypeArray::with(
-                params
-                    .iter()
-                    .map(|p| replace_type_param(vm, p, type_params, self_ty.clone()))
-                    .collect::<Vec<_>>(),
-            );
-
-            let return_type = replace_type_param(
-                vm,
-                return_type.as_ref().clone(),
-                type_params,
-                self_ty.clone(),
-            );
-
-            SourceType::Lambda(new_params, Box::new(return_type))
-        }
-
-        SourceType::Tuple(subtypes) => {
-            let new_subtypes = subtypes
-                .iter()
-                .map(|t| replace_type_param(vm, t.clone(), type_params, self_ty.clone()))
-                .collect::<Vec<_>>();
-
-            SourceType::Tuple(SourceTypeArray::with(new_subtypes))
-        }
-
-        SourceType::Unit
-        | SourceType::UInt8
-        | SourceType::Bool
-        | SourceType::Char
-        | SourceType::Int32
-        | SourceType::Int64
-        | SourceType::Float32
-        | SourceType::Float64
-        | SourceType::Error
-        | SourceType::Ptr => ty,
-
-        SourceType::Any => {
-            panic!("unexpected type = {:?}", ty);
-            // unreachable!()
-        }
-    }
 }
 
 pub fn specialize_bty_array(

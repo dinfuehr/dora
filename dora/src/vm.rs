@@ -50,7 +50,7 @@ pub use self::modules::{module_contains, module_path};
 pub use self::specialize::{
     add_ref_fields, specialize_bty, specialize_bty_array, specialize_class_id,
     specialize_class_id_params, specialize_enum_class, specialize_enum_id_params,
-    specialize_lambda, specialize_struct_id_params, specialize_trait_object, specialize_type,
+    specialize_lambda, specialize_struct_id_params, specialize_trait_object,
 };
 pub use self::structs::{StructInstance, StructInstanceField, StructInstanceId};
 pub use self::stubs::{setup_stubs, Stubs};

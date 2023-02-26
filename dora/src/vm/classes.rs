@@ -1,11 +1,10 @@
 use parking_lot::RwLock;
 
 use crate::bytecode::{BytecodeType, BytecodeTypeArray};
-use crate::language::generator::ty_from_bty;
 use crate::language::sem_analysis::{
     ClassDefinition, ClassDefinitionId, EnumDefinitionId, FctDefinitionId, TraitDefinitionId,
 };
-use crate::language::ty::{SourceType, SourceTypeArray};
+use crate::language::ty::SourceTypeArray;
 use crate::size::InstanceSize;
 use crate::vm::{add_ref_fields, module_path, VM};
 use crate::vtable::VTableBox;
@@ -65,7 +64,7 @@ pub enum ShapeKind {
     Class(ClassDefinitionId, BytecodeTypeArray),
     Lambda(FctDefinitionId, BytecodeTypeArray),
     TraitObject {
-        object_ty: SourceType,
+        object_ty: BytecodeType,
         trait_id: TraitDefinitionId,
         combined_type_params: BytecodeTypeArray,
     },
@@ -88,7 +87,7 @@ impl ClassInstance {
         self.id.expect("missing id")
     }
 
-    pub fn trait_object(&self) -> Option<SourceType> {
+    pub fn trait_object(&self) -> Option<BytecodeType> {
         match &self.kind {
             ShapeKind::TraitObject { object_ty, .. } => Some(object_ty.clone()),
             _ => None,
@@ -106,7 +105,7 @@ impl ClassInstance {
 #[derive(Debug, Clone)]
 pub struct FieldInstance {
     pub offset: i32,
-    pub ty: SourceType,
+    pub ty: BytecodeType,
 }
 
 pub fn create_class_instance_with_vtable(
@@ -197,6 +196,6 @@ fn create_ref_fields(vm: &VM, fields: &[FieldInstance], mut ref_fields: Vec<i32>
 
 fn create_array_ref_fields(vm: &VM, ty: BytecodeType) -> Vec<i32> {
     let mut ref_fields = Vec::new();
-    add_ref_fields(vm, &mut ref_fields, 0, ty_from_bty(ty));
+    add_ref_fields(vm, &mut ref_fields, 0, ty);
     ref_fields
 }

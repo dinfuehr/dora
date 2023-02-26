@@ -15,7 +15,7 @@ use crate::cpu::{
 };
 use crate::gc::Address;
 use crate::language::generator::{
-    bty_from_ty, register_bty_from_ty, ty_array_from_bty, ty_from_bty,
+    bty_from_ty, register_bty_from_bty, register_bty_from_ty, ty_array_from_bty, ty_from_bty,
 };
 use crate::language::sem_analysis::{FctDefinitionId, GlobalDefinitionId, Intrinsic};
 use crate::language::ty::SourceType;
@@ -1218,11 +1218,11 @@ impl<'a> CannonCodeGen<'a> {
                 let field_id = enum_instance.field_id(&*enum_, variant_idx, element_idx);
                 let field = &cls.fields[field_id];
 
-                let bty = register_bty_from_ty(field.ty.clone());
+                let bty = register_bty_from_bty(field.ty.clone());
                 assert_eq!(bty, self.specialize_register_type(dest));
 
                 let bytecode_type = self.specialize_register_type(dest);
-                assert_eq!(bytecode_type, register_bty_from_ty(field.ty.clone()));
+                assert_eq!(bytecode_type, register_bty_from_bty(field.ty.clone()));
                 let dest = self.register_offset(dest);
                 let dest = RegOrOffset::Offset(dest);
                 let src = RegOrOffset::RegWithOffset(REG_TMP1, field.offset);
@@ -1303,7 +1303,7 @@ impl<'a> CannonCodeGen<'a> {
         let field = &struct_instance.fields[field_id.to_usize()];
 
         let bytecode_type = self.specialize_register_type(dest);
-        assert_eq!(bytecode_type, register_bty_from_ty(field.ty.clone()));
+        assert_eq!(bytecode_type, register_bty_from_bty(field.ty.clone()));
         let dest = self.reg(dest);
         let src = self.reg(obj).offset(field.offset);
         self.asm.copy_bytecode_ty(bytecode_type, dest, src);
@@ -1335,7 +1335,7 @@ impl<'a> CannonCodeGen<'a> {
         self.asm.test_if_nil_bailout(pos, obj_reg, Trap::NIL);
 
         let bytecode_type = self.specialize_register_type(dest);
-        assert_eq!(bytecode_type, register_bty_from_ty(field.ty.clone()));
+        assert_eq!(bytecode_type, register_bty_from_bty(field.ty.clone()));
         let dest = self.reg(dest);
         let src = RegOrOffset::RegWithOffset(obj_reg, field.offset);
         self.asm.copy_bytecode_ty(bytecode_type, dest, src);
@@ -1367,7 +1367,7 @@ impl<'a> CannonCodeGen<'a> {
         self.asm.test_if_nil_bailout(pos, obj_reg, Trap::NIL);
 
         let bytecode_type = self.specialize_register_type(src);
-        assert_eq!(bytecode_type, register_bty_from_ty(field.ty.clone()));
+        assert_eq!(bytecode_type, register_bty_from_bty(field.ty.clone()));
 
         self.emit_store_field_raw(obj_reg, field.offset, src);
     }
@@ -2376,7 +2376,7 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_bty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let cls_def_id = specialize_lambda(self.vm, fct_id, ty_array_from_bty(&type_params));
+        let cls_def_id = specialize_lambda(self.vm, fct_id, type_params);
 
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
@@ -3895,7 +3895,7 @@ impl<'a> CannonCodeGen<'a> {
                 let dest_offset = self.register_offset(dest);
 
                 self.asm.copy_bytecode_ty(
-                    bty_from_ty(field.ty.clone()),
+                    field.ty.clone(),
                     RegOrOffset::Offset(dest_offset),
                     RegOrOffset::RegWithOffset(REG_TMP1, field.offset),
                 );
