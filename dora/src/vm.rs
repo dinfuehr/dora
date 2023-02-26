@@ -54,9 +54,7 @@ pub use self::specialize::{
 };
 pub use self::structs::{StructInstance, StructInstanceField, StructInstanceId};
 pub use self::stubs::{setup_stubs, Stubs};
-pub use self::tuples::{
-    get_concrete_tuple_array, get_concrete_tuple_bytecode_ty, get_concrete_tuple_ty, ConcreteTuple,
-};
+pub use self::tuples::{get_concrete_tuple_bty, get_concrete_tuple_bty_array, ConcreteTuple};
 pub use self::ty::path_for_type;
 pub use self::waitlists::{ManagedCondition, ManagedMutex, WaitLists};
 

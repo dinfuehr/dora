@@ -1,11 +1,10 @@
-use crate::language::generator::bty_array_from_ty;
+use crate::cannon::codegen::{align, size};
+use crate::language::generator::bty_from_ty;
 use crate::language::sem_analysis::TypeParamDefinition;
 use crate::language::ty::{SourceType, SourceTypeArray};
-use crate::mem;
 use crate::mode::MachineMode;
 use crate::vm::{
-    class_definition_name, create_enum_instance, create_struct_instance, enum_definition_name,
-    get_concrete_tuple_ty, EnumLayout, FctDefinition, StructDefinitionId, VM,
+    class_definition_name, enum_definition_name, FctDefinition, StructDefinitionId, VM,
 };
 
 impl SourceType {
@@ -41,77 +40,13 @@ impl SourceType {
     }
 
     pub fn size(&self, vm: &VM) -> i32 {
-        match self {
-            SourceType::Error => panic!("no size for error."),
-            SourceType::Unit => 0,
-            SourceType::Bool => 1,
-            SourceType::UInt8 => 1,
-            SourceType::Char => 4,
-            SourceType::Int32 => 4,
-            SourceType::Int64 => 8,
-            SourceType::Float32 => 4,
-            SourceType::Float64 => 8,
-            SourceType::Enum(eid, params) => {
-                let enum_def_id = create_enum_instance(vm, *eid, bty_array_from_ty(&params));
-                let enum_ = vm.enum_instances.idx(enum_def_id);
-
-                match enum_.layout {
-                    EnumLayout::Int => SourceType::Int32.size(vm),
-                    EnumLayout::Ptr | EnumLayout::Tagged => SourceType::Ptr.size(vm),
-                }
-            }
-            SourceType::This => panic!("no size for Self."),
-            SourceType::Any => panic!("no size for Any."),
-            SourceType::Class(_, _) | SourceType::Lambda(_, _) | SourceType::Ptr => {
-                mem::ptr_width()
-            }
-            SourceType::Struct(sid, params) => {
-                let sid = create_struct_instance(vm, *sid, bty_array_from_ty(params));
-                let struc = vm.struct_instances.idx(sid);
-
-                struc.size
-            }
-            SourceType::Trait(_, _) => mem::ptr_width(),
-            SourceType::TypeParam(_) => panic!("no size for type variable."),
-            SourceType::Tuple(_) => get_concrete_tuple_ty(vm, self).size(),
-        }
+        let bty = bty_from_ty(self.clone());
+        size(vm, bty)
     }
 
     pub fn align(&self, vm: &VM) -> i32 {
-        match self {
-            SourceType::Error => panic!("no alignment for error."),
-            SourceType::Unit => 0,
-            SourceType::Bool => 1,
-            SourceType::UInt8 => 1,
-            SourceType::Char => 4,
-            SourceType::Int32 => 4,
-            SourceType::Int64 => 8,
-            SourceType::Float32 => 4,
-            SourceType::Float64 => 8,
-            SourceType::This => panic!("no alignment for Self."),
-            SourceType::Any => panic!("no alignment for Any."),
-            SourceType::Enum(eid, params) => {
-                let enum_def_id = create_enum_instance(vm, *eid, bty_array_from_ty(params));
-                let enum_ = vm.enum_instances.idx(enum_def_id);
-
-                match enum_.layout {
-                    EnumLayout::Int => SourceType::Int32.align(vm),
-                    EnumLayout::Ptr | EnumLayout::Tagged => SourceType::Ptr.align(vm),
-                }
-            }
-            SourceType::Class(_, _) | SourceType::Lambda(_, _) | SourceType::Ptr => {
-                mem::ptr_width()
-            }
-            SourceType::Struct(sid, params) => {
-                let sid = create_struct_instance(vm, *sid, bty_array_from_ty(params));
-                let struc = vm.struct_instances.idx(sid);
-
-                struc.align
-            }
-            SourceType::Trait(_, _) => mem::ptr_width(),
-            SourceType::TypeParam(_) => panic!("no alignment for type variable."),
-            SourceType::Tuple(_) => get_concrete_tuple_ty(vm, self).align(),
-        }
+        let bty = bty_from_ty(self.clone());
+        align(vm, bty)
     }
 
     pub fn mode(&self) -> MachineMode {

@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
 use crate::gc::Address;
-use crate::language::generator::bty_array_from_ty;
+use crate::language::generator::{bty_array_from_ty, bty_from_ty};
 use crate::language::ty::SourceType;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::DoraThread;
 use crate::vm::{
-    create_enum_instance, create_struct_instance, get_concrete_tuple_ty, CodeKind, EnumLayout, VM,
+    create_enum_instance, create_struct_instance, get_concrete_tuple_bty, CodeKind, EnumLayout, VM,
 };
 
 pub fn determine_strong_roots(vm: &VM, threads: &[Arc<DoraThread>]) -> Vec<Slot> {
@@ -92,7 +92,7 @@ fn iterate_roots_from_globals<F: FnMut(Slot)>(vm: &VM, callback: &mut F) {
             }
 
             SourceType::Tuple(_) => {
-                let tuple = get_concrete_tuple_ty(vm, &global_var.ty);
+                let tuple = get_concrete_tuple_bty(vm, &bty_from_ty(global_var.ty.clone()));
 
                 for &offset in tuple.references() {
                     let slot_address = address_value.offset(offset as usize);

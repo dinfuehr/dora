@@ -29,9 +29,9 @@ use crate::vm::{
     class_definition_name_with_params, create_class_instance, create_enum_instance,
     create_struct_instance, ensure_class_instance_for_enum_variant,
     ensure_class_instance_for_lambda, ensure_class_instance_for_trait_object,
-    enum_definition_name_with_params, find_trait_impl, get_concrete_tuple_array,
-    get_concrete_tuple_bytecode_ty, get_concrete_tuple_ty, specialize_bty, specialize_bty_array,
-    EnumLayout, GcPoint, LazyCompilationSite, Trap, VM,
+    enum_definition_name_with_params, find_trait_impl, get_concrete_tuple_bty,
+    get_concrete_tuple_bty_array, specialize_bty, specialize_bty_array, EnumLayout, GcPoint,
+    LazyCompilationSite, Trap, VM,
 };
 use crate::vtable::VTable;
 
@@ -222,7 +222,7 @@ impl<'a> CannonCodeGen<'a> {
 
                 BytecodeType::Tuple(_) => {
                     let offset = self.register_offset(Register(idx));
-                    let tuple = get_concrete_tuple_bytecode_ty(self.vm, &ty);
+                    let tuple = get_concrete_tuple_bty(self.vm, &ty);
                     for &ref_offset in tuple.references() {
                         self.references.push(offset + ref_offset);
                     }
@@ -1150,7 +1150,7 @@ impl<'a> CannonCodeGen<'a> {
         };
 
         let tuple_ty = self.specialize_bty(tuple_ty);
-        let tuple = get_concrete_tuple_ty(self.vm, &ty_from_bty(tuple_ty));
+        let tuple = get_concrete_tuple_bty(self.vm, &tuple_ty);
         let offset = tuple.offsets()[subtype_idx as usize];
 
         let dest_type = self.specialize_register_type(dest);
@@ -1395,8 +1395,7 @@ impl<'a> CannonCodeGen<'a> {
                     RegOrOffset::Offset(src_offset),
                 );
 
-                needs_write_barrier =
-                    get_concrete_tuple_bytecode_ty(self.vm, &ty).contains_references()
+                needs_write_barrier = get_concrete_tuple_bty(self.vm, &ty).contains_references()
             }
 
             BytecodeType::Struct(struct_id, type_params) => {
@@ -2112,7 +2111,7 @@ impl<'a> CannonCodeGen<'a> {
             _ => unreachable!(),
         };
         let subtypes = self.specialize_bty_array(source_type_array);
-        let tuple = get_concrete_tuple_array(self.vm, ty_array_from_bty(&subtypes));
+        let tuple = get_concrete_tuple_bty_array(self.vm, subtypes.clone());
         let dest_offset = self.register_offset(dest);
         let mut arg_idx = 0;
         let arguments = std::mem::replace(&mut self.argument_stack, Vec::new());
@@ -2500,7 +2499,7 @@ impl<'a> CannonCodeGen<'a> {
             BytecodeType::Unit => {}
 
             BytecodeType::Tuple(ref subtypes) => {
-                let tuple = get_concrete_tuple_bytecode_ty(self.vm, &src_type);
+                let tuple = get_concrete_tuple_bty(self.vm, &src_type);
                 let element_size = tuple.size();
                 self.asm
                     .array_address(REG_TMP1, REG_RESULT, REG_TMP1, element_size);
@@ -2652,7 +2651,7 @@ impl<'a> CannonCodeGen<'a> {
             BytecodeType::Unit => {}
 
             BytecodeType::Tuple(ref subtypes) => {
-                let element_size = get_concrete_tuple_bytecode_ty(self.vm, &dest_type).size();
+                let element_size = get_concrete_tuple_bty(self.vm, &dest_type).size();
                 self.asm
                     .array_address(REG_TMP1, REG_RESULT, REG_TMP1, element_size);
                 let dest_offset = self.register_offset(dest);
@@ -5097,7 +5096,7 @@ pub fn size(vm: &VM, ty: BytecodeType) -> i32 {
         | BytecodeType::Trait(_, _)
         | BytecodeType::Class(_, _)
         | BytecodeType::Lambda(_, _) => mem::ptr_width(),
-        BytecodeType::Tuple(_) => get_concrete_tuple_bytecode_ty(vm, &ty).size(),
+        BytecodeType::Tuple(_) => get_concrete_tuple_bty(vm, &ty).size(),
         BytecodeType::TypeParam(_) => unreachable!(),
         BytecodeType::Enum(enum_id, type_params) => {
             let edef_id = create_enum_instance(vm, enum_id, type_params);
@@ -5131,7 +5130,7 @@ pub fn align(vm: &VM, ty: BytecodeType) -> i32 {
         | BytecodeType::Trait(_, _)
         | BytecodeType::Class(_, _)
         | BytecodeType::Lambda(_, _) => mem::ptr_width(),
-        BytecodeType::Tuple(_) => get_concrete_tuple_bytecode_ty(vm, &ty).align(),
+        BytecodeType::Tuple(_) => get_concrete_tuple_bty(vm, &ty).align(),
         BytecodeType::TypeParam(_) => unreachable!(),
         BytecodeType::Enum(enum_id, type_params) => {
             let edef_id = create_enum_instance(vm, enum_id, type_params);

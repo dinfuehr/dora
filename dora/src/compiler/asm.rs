@@ -9,7 +9,6 @@ use crate::compiler::dora_exit_stubs::{NativeFct, NativeFctKind};
 use crate::cpu::{FReg, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_THREAD, REG_TMP1, REG_TMP2};
 use crate::gc::tlab::TLAB_OBJECT_SIZE;
 use crate::gc::Address;
-use crate::language::generator::ty_array_from_bty;
 use crate::language::sem_analysis::{FctDefinitionId, GlobalDefinitionId, StructDefinitionId};
 use crate::language::ty::SourceType;
 use crate::masm::{CodeDescriptor, CondCode, Label, MacroAssembler, Mem, ScratchReg};
@@ -17,8 +16,8 @@ use crate::mode::MachineMode;
 use crate::stdlib;
 use crate::threads::ThreadLocalData;
 use crate::vm::{
-    create_enum_instance, create_struct_instance, get_concrete_tuple_array, EnumLayout, GcPoint,
-    LazyCompilationSite, Trap, VM,
+    create_enum_instance, create_struct_instance, get_concrete_tuple_bty_array, EnumLayout,
+    GcPoint, LazyCompilationSite, Trap, VM,
 };
 
 pub struct BaselineAssembler<'a> {
@@ -192,7 +191,7 @@ impl<'a> BaselineAssembler<'a> {
     }
 
     pub fn copy_tuple(&mut self, subtypes: BytecodeTypeArray, dest: RegOrOffset, src: RegOrOffset) {
-        let tuple = get_concrete_tuple_array(self.vm, ty_array_from_bty(&subtypes));
+        let tuple = get_concrete_tuple_bty_array(self.vm, subtypes.clone());
 
         for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
             let src = src.offset(subtype_offset);
@@ -937,7 +936,7 @@ impl<'a> BaselineAssembler<'a> {
         match ty {
             BytecodeType::Tuple(_) => {
                 let subtypes = ty.tuple_subtypes();
-                let tuple = get_concrete_tuple_array(self.vm, ty_array_from_bty(&subtypes));
+                let tuple = get_concrete_tuple_bty_array(self.vm, subtypes.clone());
 
                 for (subtype, &subtype_offset) in subtypes.iter().zip(tuple.offsets()) {
                     self.zero_ty(subtype.clone(), dest.offset(subtype_offset));

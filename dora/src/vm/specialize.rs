@@ -9,10 +9,10 @@ use crate::mem;
 use crate::object::Header;
 use crate::size::InstanceSize;
 use crate::vm::{
-    create_class_instance_with_vtable, get_concrete_tuple_bytecode_ty, ClassDefinition,
-    ClassInstanceId, EnumDefinition, EnumDefinitionId, EnumInstance, EnumInstanceId, EnumLayout,
-    FieldInstance, ShapeKind, StructDefinition, StructDefinitionId, StructInstance,
-    StructInstanceField, StructInstanceId, TraitDefinition, VM,
+    create_class_instance_with_vtable, get_concrete_tuple_bty, ClassDefinition, ClassInstanceId,
+    EnumDefinition, EnumDefinitionId, EnumInstance, EnumInstanceId, EnumLayout, FieldInstance,
+    ShapeKind, StructDefinition, StructDefinitionId, StructInstance, StructInstanceField,
+    StructInstanceId, TraitDefinition, VM,
 };
 
 pub fn create_struct_instance(
@@ -251,7 +251,7 @@ pub fn add_ref_fields(vm: &VM, ref_fields: &mut Vec<i32>, offset: i32, ty: Bytec
 
     match ty {
         BytecodeType::Tuple(..) => {
-            let tuple = get_concrete_tuple_bytecode_ty(vm, &ty);
+            let tuple = get_concrete_tuple_bty(vm, &ty);
 
             for &ref_offset in tuple.references() {
                 ref_fields.push(offset + ref_offset);
@@ -409,7 +409,7 @@ fn create_specialized_class_array(
             | BytecodeType::Lambda(_, _) => InstanceSize::ObjArray,
 
             BytecodeType::Tuple(_) => {
-                let tuple = get_concrete_tuple_bytecode_ty(vm, &element_ty);
+                let tuple = get_concrete_tuple_bty(vm, &element_ty);
                 InstanceSize::StructArray(tuple.size())
             }
 
