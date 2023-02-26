@@ -26,11 +26,12 @@ use crate::object::{offset_of_array_data, Header, Str};
 use crate::size::InstanceSize;
 use crate::stdlib;
 use crate::vm::{
-    class_definition_name_with_params, enum_definition_name_with_params, find_trait_impl,
-    get_concrete_tuple_array, get_concrete_tuple_bytecode_ty, get_concrete_tuple_ty,
-    specialize_bty, specialize_bty_array, specialize_class_id_params, specialize_enum_class,
-    specialize_enum_id_params, specialize_lambda, specialize_struct_id_params,
-    specialize_trait_object, EnumLayout, GcPoint, LazyCompilationSite, Trap, VM,
+    class_definition_name_with_params, create_class_instance, create_enum_instance,
+    create_struct_instance, ensure_class_instance_for_enum_variant,
+    ensure_class_instance_for_lambda, ensure_class_instance_for_trait_object,
+    enum_definition_name_with_params, find_trait_impl, get_concrete_tuple_array,
+    get_concrete_tuple_bytecode_ty, get_concrete_tuple_ty, specialize_bty, specialize_bty_array,
+    EnumLayout, GcPoint, LazyCompilationSite, Trap, VM,
 };
 use crate::vtable::VTable;
 
@@ -230,7 +231,7 @@ impl<'a> CannonCodeGen<'a> {
                 BytecodeType::Struct(struct_id, type_params) => {
                     let offset = self.register_offset(Register(idx));
                     let struct_instance_id =
-                        specialize_struct_id_params(self.vm, struct_id, type_params);
+                        create_struct_instance(self.vm, struct_id, type_params);
                     let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
 
                     for &ref_offset in &struct_instance.ref_fields {
@@ -239,7 +240,7 @@ impl<'a> CannonCodeGen<'a> {
                 }
 
                 BytecodeType::Enum(enum_id, type_params) => {
-                    let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+                    let enum_instance_id = create_enum_instance(self.vm, enum_id, type_params);
                     let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
                     match enum_instance.layout {
@@ -455,7 +456,7 @@ impl<'a> CannonCodeGen<'a> {
             BytecodeType::Enum(enum_id, type_params) => (enum_id, type_params),
             _ => unreachable!(),
         };
-        let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+        let enum_instance_id = create_enum_instance(self.vm, enum_id, type_params);
         let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
         let mode = match enum_instance.layout {
@@ -1176,7 +1177,7 @@ impl<'a> CannonCodeGen<'a> {
         let enum_ = &self.vm.enums[enum_id];
         let enum_ = enum_.read();
 
-        let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+        let enum_instance_id = create_enum_instance(self.vm, enum_id, type_params);
         let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
         match enum_instance.layout {
@@ -1197,8 +1198,12 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             EnumLayout::Tagged => {
-                let cls_def_id =
-                    specialize_enum_class(self.vm, &*enum_instance, &*enum_, variant_idx);
+                let cls_def_id = ensure_class_instance_for_enum_variant(
+                    self.vm,
+                    &*enum_instance,
+                    &*enum_,
+                    variant_idx,
+                );
 
                 let cls = self.vm.class_instances.idx(cls_def_id);
 
@@ -1243,7 +1248,7 @@ impl<'a> CannonCodeGen<'a> {
         let enum_ = &self.vm.enums[enum_id];
         let enum_ = enum_.read();
 
-        let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+        let enum_instance_id = create_enum_instance(self.vm, enum_id, type_params);
         let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
         match enum_instance.layout {
@@ -1297,7 +1302,7 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_bty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let struct_instance_id = specialize_struct_id_params(self.vm, struct_id, type_params);
+        let struct_instance_id = create_struct_instance(self.vm, struct_id, type_params);
         let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
 
         let field = &struct_instance.fields[field_id.to_usize()];
@@ -1317,7 +1322,7 @@ impl<'a> CannonCodeGen<'a> {
                 let type_params = self.specialize_bty_array(&type_params);
                 debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-                let class_instance_id = specialize_class_id_params(self.vm, *cls_id, &type_params);
+                let class_instance_id = create_class_instance(self.vm, *cls_id, &type_params);
 
                 (class_instance_id, *field_id)
             }
@@ -1354,7 +1359,7 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_bty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let class_instance_id = specialize_class_id_params(self.vm, cls_id, &type_params);
+        let class_instance_id = create_class_instance(self.vm, cls_id, &type_params);
         let cls = self.vm.class_instances.idx(class_instance_id);
 
         let field = &cls.fields[field_id.to_usize()];
@@ -1404,14 +1409,13 @@ impl<'a> CannonCodeGen<'a> {
                 );
 
                 let struct_instance_id =
-                    specialize_struct_id_params(self.vm, *struct_id, type_params.clone());
+                    create_struct_instance(self.vm, *struct_id, type_params.clone());
                 let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
                 needs_write_barrier = struct_instance.contains_references();
             }
 
             BytecodeType::Enum(enum_id, type_params) => {
-                let enum_instance_id =
-                    specialize_enum_id_params(self.vm, *enum_id, type_params.clone());
+                let enum_instance_id = create_enum_instance(self.vm, *enum_id, type_params.clone());
                 let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
                 let mode = match enum_instance.layout {
@@ -1814,8 +1818,7 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             BytecodeType::Enum(enum_id, type_params) => {
-                let enum_instance_id =
-                    specialize_enum_id_params(self.vm, enum_id, type_params.clone());
+                let enum_instance_id = create_enum_instance(self.vm, enum_id, type_params.clone());
                 let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
                 let mode = match enum_instance.layout {
@@ -1865,7 +1868,7 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_bty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let class_instance_id = specialize_class_id_params(self.vm, cls_id, &type_params);
+        let class_instance_id = create_class_instance(self.vm, cls_id, &type_params);
         let class_instance = self.vm.class_instances.idx(class_instance_id);
 
         let alloc_size = match class_instance.size {
@@ -1926,7 +1929,7 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_bty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let class_instance_id = specialize_class_id_params(self.vm, cls_id, &type_params);
+        let class_instance_id = create_class_instance(self.vm, cls_id, &type_params);
         let class_instance = self.vm.class_instances.idx(class_instance_id);
 
         let alloc_size = match class_instance.size {
@@ -2003,7 +2006,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let type_params = self.specialize_bty_array(&type_params);
 
-        let class_instance_id = specialize_class_id_params(self.vm, cls_id, &type_params);
+        let class_instance_id = create_class_instance(self.vm, cls_id, &type_params);
         let class_instance = self.vm.class_instances.idx(class_instance_id);
 
         self.emit_load_register(length, REG_TMP1.into());
@@ -2141,7 +2144,7 @@ impl<'a> CannonCodeGen<'a> {
         let enum_ = &self.vm.enums[enum_id];
         let enum_ = enum_.read();
 
-        let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params.clone());
+        let enum_instance_id = create_enum_instance(self.vm, enum_id, type_params.clone());
         let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
@@ -2170,8 +2173,12 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             EnumLayout::Tagged => {
-                let cls_def_id =
-                    specialize_enum_class(self.vm, &*enum_instance, &*enum_, variant_idx);
+                let cls_def_id = ensure_class_instance_for_enum_variant(
+                    self.vm,
+                    &*enum_instance,
+                    &*enum_,
+                    variant_idx,
+                );
 
                 let cls = self.vm.class_instances.idx(cls_def_id);
 
@@ -2262,7 +2269,7 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_bty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let struct_instance_id = specialize_struct_id_params(self.vm, struct_id, type_params);
+        let struct_instance_id = create_struct_instance(self.vm, struct_id, type_params);
         let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
 
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
@@ -2298,8 +2305,12 @@ impl<'a> CannonCodeGen<'a> {
         let object_ty = self.specialize_bty(object_ty);
         debug_assert!(object_ty.is_concrete_type());
 
-        let class_instance_id =
-            specialize_trait_object(self.vm, trait_id, &type_params, object_ty.clone());
+        let class_instance_id = ensure_class_instance_for_trait_object(
+            self.vm,
+            trait_id,
+            &type_params,
+            object_ty.clone(),
+        );
 
         let cls = self.vm.class_instances.idx(class_instance_id);
 
@@ -2376,7 +2387,7 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_bty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let cls_def_id = specialize_lambda(self.vm, fct_id, type_params);
+        let cls_def_id = ensure_class_instance_for_lambda(self.vm, fct_id, type_params);
 
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
@@ -2511,7 +2522,7 @@ impl<'a> CannonCodeGen<'a> {
 
             BytecodeType::Struct(struct_id, type_params) => {
                 let struct_instance_id =
-                    specialize_struct_id_params(self.vm, struct_id, type_params.clone());
+                    create_struct_instance(self.vm, struct_id, type_params.clone());
                 let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
 
                 self.asm
@@ -2534,7 +2545,7 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             BytecodeType::Enum(enum_id, type_params) => {
-                let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+                let enum_instance_id = create_enum_instance(self.vm, enum_id, type_params);
                 let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
                 let mode = match enum_instance.layout {
@@ -2655,7 +2666,7 @@ impl<'a> CannonCodeGen<'a> {
 
             BytecodeType::Struct(struct_id, type_params) => {
                 let struct_instance_id =
-                    specialize_struct_id_params(self.vm, struct_id, type_params.clone());
+                    create_struct_instance(self.vm, struct_id, type_params.clone());
                 let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
 
                 let element_size = struct_instance.size;
@@ -2672,7 +2683,7 @@ impl<'a> CannonCodeGen<'a> {
             }
 
             BytecodeType::Enum(enum_id, type_params) => {
-                let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+                let enum_instance_id = create_enum_instance(self.vm, enum_id, type_params);
                 let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
                 let mode = match enum_instance.layout {
@@ -3850,7 +3861,7 @@ impl<'a> CannonCodeGen<'a> {
             unreachable!()
         };
 
-        let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params.clone());
+        let enum_instance_id = create_enum_instance(self.vm, enum_id, type_params.clone());
         let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
         match enum_instance.layout {
@@ -3882,7 +3893,7 @@ impl<'a> CannonCodeGen<'a> {
 
                 self.add_slow_path(lbl_slow_path, dest, fct_id, arguments, type_params, pos);
 
-                let class_instance_id = specialize_enum_class(
+                let class_instance_id = ensure_class_instance_for_enum_variant(
                     self.vm,
                     &*enum_instance,
                     &*enum_,
@@ -3965,7 +3976,7 @@ impl<'a> CannonCodeGen<'a> {
             unreachable!()
         };
 
-        let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params.clone());
+        let enum_instance_id = create_enum_instance(self.vm, enum_id, type_params.clone());
         let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
         match enum_instance.layout {
@@ -5058,7 +5069,7 @@ pub fn mode(vm: &VM, ty: BytecodeType) -> MachineMode {
         BytecodeType::Tuple(_) => unreachable!(),
         BytecodeType::TypeParam(_) => unreachable!(),
         BytecodeType::Enum(enum_id, type_params) => {
-            let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
+            let edef_id = create_enum_instance(vm, enum_id, type_params);
             let edef = vm.enum_instances.idx(edef_id);
 
             match edef.layout {
@@ -5089,7 +5100,7 @@ pub fn size(vm: &VM, ty: BytecodeType) -> i32 {
         BytecodeType::Tuple(_) => get_concrete_tuple_bytecode_ty(vm, &ty).size(),
         BytecodeType::TypeParam(_) => unreachable!(),
         BytecodeType::Enum(enum_id, type_params) => {
-            let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
+            let edef_id = create_enum_instance(vm, enum_id, type_params);
             let edef = vm.enum_instances.idx(edef_id);
 
             match edef.layout {
@@ -5098,7 +5109,7 @@ pub fn size(vm: &VM, ty: BytecodeType) -> i32 {
             }
         }
         BytecodeType::Struct(struct_id, type_params) => {
-            let sdef_id = specialize_struct_id_params(vm, struct_id, type_params);
+            let sdef_id = create_struct_instance(vm, struct_id, type_params);
             let sdef = vm.struct_instances.idx(sdef_id);
 
             sdef.size
@@ -5123,7 +5134,7 @@ pub fn align(vm: &VM, ty: BytecodeType) -> i32 {
         BytecodeType::Tuple(_) => get_concrete_tuple_bytecode_ty(vm, &ty).align(),
         BytecodeType::TypeParam(_) => unreachable!(),
         BytecodeType::Enum(enum_id, type_params) => {
-            let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
+            let edef_id = create_enum_instance(vm, enum_id, type_params);
             let edef = vm.enum_instances.idx(edef_id);
 
             match edef.layout {
@@ -5132,7 +5143,7 @@ pub fn align(vm: &VM, ty: BytecodeType) -> i32 {
             }
         }
         BytecodeType::Struct(struct_id, type_params) => {
-            let sdef_id = specialize_struct_id_params(vm, struct_id, type_params);
+            let sdef_id = create_struct_instance(vm, struct_id, type_params);
             let sdef = vm.struct_instances.idx(sdef_id);
 
             sdef.align

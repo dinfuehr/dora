@@ -48,9 +48,9 @@ pub use self::impls::{find_trait_impl, implements_trait};
 use self::known::KnownInstances;
 pub use self::modules::{module_contains, module_path};
 pub use self::specialize::{
-    add_ref_fields, specialize_bty, specialize_bty_array, specialize_class_id,
-    specialize_class_id_params, specialize_enum_class, specialize_enum_id_params,
-    specialize_lambda, specialize_struct_id_params, specialize_trait_object,
+    add_ref_fields, create_class_instance, create_enum_instance, create_struct_instance,
+    ensure_class_instance_for_enum_variant, ensure_class_instance_for_lambda,
+    ensure_class_instance_for_trait_object, specialize_bty, specialize_bty_array,
 };
 pub use self::structs::{StructInstance, StructInstanceField, StructInstanceId};
 pub use self::stubs::{setup_stubs, Stubs};
@@ -311,7 +311,7 @@ impl VM {
             cls_id
         } else {
             let type_args = BytecodeTypeArray::one(BytecodeType::UInt8);
-            let cls_id = specialize_class_id_params(self, self.known.classes.array(), &type_args);
+            let cls_id = create_class_instance(self, self.known.classes.array(), &type_args);
             *byte_array_def = Some(cls_id);
             cls_id
         }
@@ -324,7 +324,7 @@ impl VM {
             cls_id
         } else {
             let type_args = BytecodeTypeArray::one(BytecodeType::Int32);
-            let cls_id = specialize_class_id_params(self, self.known.classes.array(), &type_args);
+            let cls_id = create_class_instance(self, self.known.classes.array(), &type_args);
             *int_array_def = Some(cls_id);
             cls_id
         }
@@ -336,7 +336,11 @@ impl VM {
         if let Some(cls_id) = *str_class_def {
             cls_id
         } else {
-            let cls_id = specialize_class_id(self, self.known.classes.string());
+            let cls_id = create_class_instance(
+                self,
+                self.known.classes.string(),
+                &BytecodeTypeArray::empty(),
+            );
             *str_class_def = Some(cls_id);
             cls_id
         }
@@ -348,14 +352,22 @@ impl VM {
         if let Some(cls_id) = *ste_class_def {
             cls_id
         } else {
-            let cls_id = specialize_class_id(self, self.known.classes.stacktrace_element());
+            let cls_id = create_class_instance(
+                self,
+                self.known.classes.stacktrace_element(),
+                &BytecodeTypeArray::empty(),
+            );
             *ste_class_def = Some(cls_id);
             cls_id
         }
     }
 
     pub fn thread_class_instance(&self) -> ClassInstanceId {
-        specialize_class_id(self, self.known.classes.thread())
+        create_class_instance(
+            self,
+            self.known.classes.thread(),
+            &BytecodeTypeArray::empty(),
+        )
     }
 }
 

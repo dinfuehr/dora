@@ -15,7 +15,7 @@ use crate::vm::{
     StructInstanceField, StructInstanceId, TraitDefinition, VM,
 };
 
-pub fn specialize_struct_id_params(
+pub fn create_struct_instance(
     vm: &VM,
     struct_id: StructDefinitionId,
     type_params: BytecodeTypeArray,
@@ -25,7 +25,7 @@ pub fn specialize_struct_id_params(
     specialize_struct(vm, &*struc, type_params)
 }
 
-pub fn specialize_struct(
+fn specialize_struct(
     vm: &VM,
     struct_: &StructDefinition,
     type_params: BytecodeTypeArray,
@@ -94,7 +94,7 @@ fn create_specialized_struct(
     id
 }
 
-pub fn specialize_enum_id_params(
+pub fn create_enum_instance(
     vm: &VM,
     enum_id: EnumDefinitionId,
     type_params: BytecodeTypeArray,
@@ -104,7 +104,7 @@ pub fn specialize_enum_id_params(
     specialize_enum(vm, &*enum_, type_params)
 }
 
-pub fn specialize_enum(
+fn specialize_enum(
     vm: &VM,
     enum_: &EnumDefinition,
     type_params: BytecodeTypeArray,
@@ -191,7 +191,7 @@ fn enum_is_ptr(_vm: &VM, enum_: &EnumDefinition, type_params: &BytecodeTypeArray
         .is_reference_type()
 }
 
-pub fn specialize_enum_class(
+pub fn ensure_class_instance_for_enum_variant(
     vm: &VM,
     edef: &EnumInstance,
     enum_: &EnumDefinition,
@@ -259,7 +259,7 @@ pub fn add_ref_fields(vm: &VM, ref_fields: &mut Vec<i32>, offset: i32, ty: Bytec
         }
 
         BytecodeType::Enum(enum_id, type_params) => {
-            let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
+            let edef_id = create_enum_instance(vm, enum_id, type_params);
             let edef = vm.enum_instances.idx(edef_id);
 
             match edef.layout {
@@ -271,7 +271,7 @@ pub fn add_ref_fields(vm: &VM, ref_fields: &mut Vec<i32>, offset: i32, ty: Bytec
         }
 
         BytecodeType::Struct(struct_id, type_params) => {
-            let sdef_id = specialize_struct_id_params(vm, struct_id, type_params);
+            let sdef_id = create_struct_instance(vm, struct_id, type_params);
             let sdef = vm.struct_instances.idx(sdef_id);
 
             for &ref_offset in &sdef.ref_fields {
@@ -299,13 +299,7 @@ pub fn add_ref_fields(vm: &VM, ref_fields: &mut Vec<i32>, offset: i32, ty: Bytec
     }
 }
 
-pub fn specialize_class_id(vm: &VM, cls_id: ClassDefinitionId) -> ClassInstanceId {
-    let cls = vm.classes.idx(cls_id);
-    let cls = cls.read();
-    specialize_class(vm, &*cls, &BytecodeTypeArray::empty())
-}
-
-pub fn specialize_class_id_params(
+pub fn create_class_instance(
     vm: &VM,
     cls_id: ClassDefinitionId,
     type_params: &BytecodeTypeArray,
@@ -315,7 +309,7 @@ pub fn specialize_class_id_params(
     specialize_class(vm, &*cls, &type_params)
 }
 
-pub fn specialize_class(
+fn specialize_class(
     vm: &VM,
     cls: &ClassDefinition,
     type_params: &BytecodeTypeArray,
@@ -420,14 +414,14 @@ fn create_specialized_class_array(
             }
 
             BytecodeType::Struct(struct_id, type_params) => {
-                let sdef_id = specialize_struct_id_params(vm, struct_id, type_params);
+                let sdef_id = create_struct_instance(vm, struct_id, type_params);
                 let sdef = vm.struct_instances.idx(sdef_id);
 
                 InstanceSize::StructArray(sdef.size)
             }
 
             BytecodeType::Enum(enum_id, type_params) => {
-                let edef_id = specialize_enum_id_params(vm, enum_id, type_params);
+                let edef_id = create_enum_instance(vm, enum_id, type_params);
                 let edef = vm.enum_instances.idx(edef_id);
 
                 match edef.layout {
@@ -472,7 +466,7 @@ fn create_specialized_class_array(
     class_instance_id
 }
 
-pub fn specialize_lambda(
+pub fn ensure_class_instance_for_lambda(
     vm: &VM,
     fct_id: FctDefinitionId,
     type_params: BytecodeTypeArray,
@@ -487,7 +481,7 @@ pub fn specialize_lambda(
     create_class_instance_with_vtable(vm, ShapeKind::Lambda(fct_id, type_params), size, fields, 1)
 }
 
-pub fn specialize_trait_object(
+pub fn ensure_class_instance_for_trait_object(
     vm: &VM,
     trait_id: TraitDefinitionId,
     trait_type_params: &BytecodeTypeArray,

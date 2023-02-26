@@ -6,8 +6,7 @@ use crate::language::ty::SourceType;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::DoraThread;
 use crate::vm::{
-    get_concrete_tuple_ty, specialize_enum_id_params, specialize_struct_id_params, CodeKind,
-    EnumLayout, VM,
+    create_enum_instance, create_struct_instance, get_concrete_tuple_ty, CodeKind, EnumLayout, VM,
 };
 
 pub fn determine_strong_roots(vm: &VM, threads: &[Arc<DoraThread>]) -> Vec<Slot> {
@@ -69,7 +68,7 @@ fn iterate_roots_from_globals<F: FnMut(Slot)>(vm: &VM, callback: &mut F) {
         match global_var.ty {
             SourceType::Struct(struct_id, ref type_params) => {
                 let sdef_id =
-                    specialize_struct_id_params(vm, struct_id, bty_array_from_ty(&type_params));
+                    create_struct_instance(vm, struct_id, bty_array_from_ty(&type_params));
                 let sdef = vm.struct_instances.idx(sdef_id);
 
                 for &offset in &sdef.ref_fields {
@@ -80,8 +79,7 @@ fn iterate_roots_from_globals<F: FnMut(Slot)>(vm: &VM, callback: &mut F) {
             }
 
             SourceType::Enum(enum_id, ref type_params) => {
-                let edef_id =
-                    specialize_enum_id_params(vm, enum_id, bty_array_from_ty(type_params));
+                let edef_id = create_enum_instance(vm, enum_id, bty_array_from_ty(type_params));
                 let edef = vm.enum_instances.idx(edef_id);
 
                 match edef.layout {

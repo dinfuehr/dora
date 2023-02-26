@@ -4,8 +4,8 @@ use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::mem;
 use crate::mode::MachineMode;
 use crate::vm::{
-    class_definition_name, enum_definition_name, get_concrete_tuple_ty, specialize_enum_id_params,
-    specialize_struct_id_params, EnumLayout, FctDefinition, StructDefinitionId, VM,
+    class_definition_name, create_enum_instance, create_struct_instance, enum_definition_name,
+    get_concrete_tuple_ty, EnumLayout, FctDefinition, StructDefinitionId, VM,
 };
 
 impl SourceType {
@@ -52,7 +52,7 @@ impl SourceType {
             SourceType::Float32 => 4,
             SourceType::Float64 => 8,
             SourceType::Enum(eid, params) => {
-                let enum_def_id = specialize_enum_id_params(vm, *eid, bty_array_from_ty(&params));
+                let enum_def_id = create_enum_instance(vm, *eid, bty_array_from_ty(&params));
                 let enum_ = vm.enum_instances.idx(enum_def_id);
 
                 match enum_.layout {
@@ -66,7 +66,7 @@ impl SourceType {
                 mem::ptr_width()
             }
             SourceType::Struct(sid, params) => {
-                let sid = specialize_struct_id_params(vm, *sid, bty_array_from_ty(params));
+                let sid = create_struct_instance(vm, *sid, bty_array_from_ty(params));
                 let struc = vm.struct_instances.idx(sid);
 
                 struc.size
@@ -91,7 +91,7 @@ impl SourceType {
             SourceType::This => panic!("no alignment for Self."),
             SourceType::Any => panic!("no alignment for Any."),
             SourceType::Enum(eid, params) => {
-                let enum_def_id = specialize_enum_id_params(vm, *eid, bty_array_from_ty(params));
+                let enum_def_id = create_enum_instance(vm, *eid, bty_array_from_ty(params));
                 let enum_ = vm.enum_instances.idx(enum_def_id);
 
                 match enum_.layout {
@@ -103,7 +103,7 @@ impl SourceType {
                 mem::ptr_width()
             }
             SourceType::Struct(sid, params) => {
-                let sid = specialize_struct_id_params(vm, *sid, bty_array_from_ty(params));
+                let sid = create_struct_instance(vm, *sid, bty_array_from_ty(params));
                 let struc = vm.struct_instances.idx(sid);
 
                 struc.align

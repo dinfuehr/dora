@@ -17,8 +17,8 @@ use crate::mode::MachineMode;
 use crate::stdlib;
 use crate::threads::ThreadLocalData;
 use crate::vm::{
-    get_concrete_tuple_array, specialize_enum_id_params, specialize_struct_id_params, EnumLayout,
-    GcPoint, LazyCompilationSite, Trap, VM,
+    create_enum_instance, create_struct_instance, get_concrete_tuple_array, EnumLayout, GcPoint,
+    LazyCompilationSite, Trap, VM,
 };
 
 pub struct BaselineAssembler<'a> {
@@ -147,7 +147,7 @@ impl<'a> BaselineAssembler<'a> {
             }
 
             BytecodeType::Enum(enum_id, type_params) => {
-                let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+                let enum_instance_id = create_enum_instance(self.vm, enum_id, type_params);
                 let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
                 let mode = match enum_instance.layout {
@@ -208,8 +208,7 @@ impl<'a> BaselineAssembler<'a> {
         dest: RegOrOffset,
         src: RegOrOffset,
     ) {
-        let struct_instance_id =
-            specialize_struct_id_params(self.vm, struct_id, type_params.clone());
+        let struct_instance_id = create_struct_instance(self.vm, struct_id, type_params.clone());
         let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
 
         for field in &struct_instance.fields {
@@ -950,7 +949,7 @@ impl<'a> BaselineAssembler<'a> {
             }
 
             BytecodeType::Enum(enum_id, type_params) => {
-                let enum_instance_id = specialize_enum_id_params(self.vm, enum_id, type_params);
+                let enum_instance_id = create_enum_instance(self.vm, enum_id, type_params);
                 let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
 
                 let mode = match enum_instance.layout {
@@ -963,7 +962,7 @@ impl<'a> BaselineAssembler<'a> {
 
             BytecodeType::Struct(struct_id, type_params) => {
                 let struct_instance_id =
-                    specialize_struct_id_params(self.vm, struct_id, type_params.clone());
+                    create_struct_instance(self.vm, struct_id, type_params.clone());
                 let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
 
                 for field in &struct_instance.fields {
