@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
+use crate::bytecode::BytecodeType;
 use crate::gc::Address;
-use crate::language::generator::{bty_array_from_ty, bty_from_ty};
-use crate::language::ty::SourceType;
+use crate::language::generator::bty_from_ty;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::DoraThread;
 use crate::vm::{
@@ -65,10 +65,11 @@ fn iterate_roots_from_globals<F: FnMut(Slot)>(vm: &VM, callback: &mut F) {
             .unwrap()
             .address_value(global_var.id());
 
-        match global_var.ty {
-            SourceType::Struct(struct_id, ref type_params) => {
-                let sdef_id =
-                    create_struct_instance(vm, struct_id, bty_array_from_ty(&type_params));
+        let ty = bty_from_ty(global_var.ty.clone());
+
+        match ty {
+            BytecodeType::Struct(struct_id, type_params) => {
+                let sdef_id = create_struct_instance(vm, struct_id, type_params);
                 let sdef = vm.struct_instances.idx(sdef_id);
 
                 for &offset in &sdef.ref_fields {
@@ -78,8 +79,8 @@ fn iterate_roots_from_globals<F: FnMut(Slot)>(vm: &VM, callback: &mut F) {
                 }
             }
 
-            SourceType::Enum(enum_id, ref type_params) => {
-                let edef_id = create_enum_instance(vm, enum_id, bty_array_from_ty(type_params));
+            BytecodeType::Enum(enum_id, type_params) => {
+                let edef_id = create_enum_instance(vm, enum_id, type_params);
                 let edef = vm.enum_instances.idx(edef_id);
 
                 match edef.layout {
@@ -91,7 +92,7 @@ fn iterate_roots_from_globals<F: FnMut(Slot)>(vm: &VM, callback: &mut F) {
                 }
             }
 
-            SourceType::Tuple(_) => {
+            BytecodeType::Tuple(_) => {
                 let tuple = get_concrete_tuple_bty(vm, &bty_from_ty(global_var.ty.clone()));
 
                 for &offset in tuple.references() {
@@ -101,26 +102,21 @@ fn iterate_roots_from_globals<F: FnMut(Slot)>(vm: &VM, callback: &mut F) {
                 }
             }
 
-            SourceType::Unit
-            | SourceType::UInt8
-            | SourceType::Bool
-            | SourceType::Char
-            | SourceType::Int32
-            | SourceType::Int64
-            | SourceType::Float32
-            | SourceType::Float64 => {}
+            BytecodeType::Unit
+            | BytecodeType::UInt8
+            | BytecodeType::Bool
+            | BytecodeType::Char
+            | BytecodeType::Int32
+            | BytecodeType::Int64
+            | BytecodeType::Float32
+            | BytecodeType::Float64 => {}
 
-            SourceType::Class(_, _) | SourceType::Trait(_, _) => {
+            BytecodeType::Class(_, _) | BytecodeType::Trait(_, _) | BytecodeType::Lambda(_, _) => {
                 let slot = Slot::at(address_value);
                 callback(slot);
             }
 
-            SourceType::TypeParam(_)
-            | SourceType::Error
-            | SourceType::Any
-            | SourceType::This
-            | SourceType::Lambda(_, _)
-            | SourceType::Ptr => unreachable!(),
+            BytecodeType::TypeParam(_) | BytecodeType::Ptr => unreachable!(),
         }
     }
 }
