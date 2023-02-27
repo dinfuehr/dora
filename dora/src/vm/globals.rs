@@ -1,33 +1,34 @@
 use crate::gc::{Address, Region};
 use crate::language::sem_analysis::GlobalDefinitionId;
-use crate::language::ty::SourceType;
 use crate::mem;
 use crate::os;
 use crate::vm::VM;
 
 pub fn init_global_addresses(vm: &mut VM) {
-    let mut size = 0;
+    let mut backing_memory_size = 0;
     let mut offsets = Vec::with_capacity(vm.globals.len());
+
+    let initialized_field_size = 1;
 
     for global_var in vm.globals.iter() {
         let global_var = global_var.read();
 
-        let initialized_offset = size;
-        size += SourceType::Bool.size(vm) as usize;
+        let initialized_offset = backing_memory_size;
+        backing_memory_size += initialized_field_size;
 
         let ty_size = global_var.ty.size(vm) as usize;
         let ty_align = global_var.ty.align(vm) as usize;
 
-        let value_offset = mem::align_usize(size, ty_align);
+        let value_offset = mem::align_usize(backing_memory_size, ty_align);
         offsets.push((initialized_offset, value_offset));
-        size = value_offset + ty_size as usize;
+        backing_memory_size = value_offset + ty_size as usize;
     }
 
-    if size == 0 {
+    if backing_memory_size == 0 {
         return;
     }
 
-    let size = mem::page_align(size);
+    let size = mem::page_align(backing_memory_size);
     let start = os::commit(size, false);
     let mut variables = Vec::with_capacity(vm.globals.len());
 

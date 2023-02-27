@@ -674,7 +674,12 @@ impl<'a> BaselineAssembler<'a> {
 
         self.masm.raw_call(ptr);
 
-        let mode = if ty.is_unit() { None } else { Some(ty.mode()) };
+        let mode = if ty.is_unit() {
+            None
+        } else {
+            let mode = mode(self.vm, ty);
+            Some(mode)
+        };
         self.call_epilog(pos, mode, dest, gcpoint);
     }
 
@@ -774,8 +779,8 @@ impl<'a> BaselineAssembler<'a> {
 
         let internal_fct = NativeFct {
             fctptr: Address::from_ptr(stdlib::gc_alloc as *const u8),
-            args: &[SourceType::Int64, SourceType::Bool],
-            return_type: SourceType::Ptr,
+            args: BytecodeTypeArray::new(vec![BytecodeType::Int64, BytecodeType::Bool]),
+            return_type: BytecodeType::Ptr,
             desc: NativeFctKind::AllocStub,
         };
 

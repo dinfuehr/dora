@@ -1,8 +1,8 @@
+use crate::bytecode::{BytecodeType, BytecodeTypeArray};
 use crate::compiler::dora_entry_stub;
 use crate::compiler::dora_exit_stubs::{self, NativeFct, NativeFctKind};
 use crate::compiler::lazy_compilation_stub;
 use crate::gc::Address;
-use crate::language::ty::SourceType;
 use crate::safepoint;
 use crate::stdlib;
 use crate::vm::VM;
@@ -52,8 +52,8 @@ pub fn setup_stubs(vm: &mut VM) {
 
     let ifct = NativeFct {
         fctptr: Address::from_ptr(stdlib::trap as *const u8),
-        args: &[SourceType::Int32],
-        return_type: SourceType::Unit,
+        args: BytecodeTypeArray::one(BytecodeType::Int32),
+        return_type: BytecodeType::Unit,
         desc: NativeFctKind::TrapStub,
     };
     let code = dora_exit_stubs::generate(vm, ifct, false);
@@ -63,8 +63,8 @@ pub fn setup_stubs(vm: &mut VM) {
 
     let ifct = NativeFct {
         fctptr: Address::from_ptr(safepoint::stack_overflow as *const u8),
-        args: &[],
-        return_type: SourceType::Unit,
+        args: BytecodeTypeArray::empty(),
+        return_type: BytecodeType::Unit,
         desc: NativeFctKind::GuardCheckStub,
     };
     let code = dora_exit_stubs::generate(vm, ifct, false);
@@ -72,8 +72,8 @@ pub fn setup_stubs(vm: &mut VM) {
 
     let ifct = NativeFct {
         fctptr: Address::from_ptr(safepoint::safepoint_slow as *const u8),
-        args: &[],
-        return_type: SourceType::Unit,
+        args: BytecodeTypeArray::empty(),
+        return_type: BytecodeType::Unit,
         desc: NativeFctKind::SafepointStub,
     };
     let code = dora_exit_stubs::generate(vm, ifct, false);

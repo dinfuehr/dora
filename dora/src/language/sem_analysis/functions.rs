@@ -7,7 +7,8 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-use crate::bytecode::{BytecodeFunction, BytecodeType};
+use crate::bytecode::{BytecodeFunction, BytecodeType, BytecodeTypeArray};
+use crate::language::generator::bty_from_ty;
 use crate::language::sem_analysis::{
     module_path, AnalysisData, ExtensionDefinitionId, ImplDefinitionId, ModuleDefinitionId,
     PackageDefinitionId, SemAnalysis, SourceFileId, TraitDefinitionId, TypeParamDefinition,
@@ -212,6 +213,19 @@ impl FctDefinition {
         } else {
             &self.param_types
         }
+    }
+
+    pub fn params_with_self_bty(&self) -> BytecodeTypeArray {
+        let params = self
+            .params_with_self()
+            .iter()
+            .map(|ty| bty_from_ty(ty.clone()))
+            .collect();
+        BytecodeTypeArray::new(params)
+    }
+
+    pub fn return_type_bty(&self) -> BytecodeType {
+        bty_from_ty(self.return_type.clone())
     }
 }
 

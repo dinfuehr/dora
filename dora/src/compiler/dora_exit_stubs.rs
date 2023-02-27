@@ -2,6 +2,8 @@ use std::collections::hash_map::HashMap;
 use std::mem::size_of;
 use std::sync::Arc;
 
+use crate::bytecode::{BytecodeType, BytecodeTypeArray};
+use crate::cannon::codegen::mode;
 use crate::compiler::codegen::AnyReg;
 use crate::cpu::{
     FReg, Reg, CCALL_FREG_PARAMS, CCALL_REG_PARAMS, FREG_PARAMS, FREG_TMP1, PARAM_OFFSET, REG_FP,
@@ -9,7 +11,6 @@ use crate::cpu::{
 };
 use crate::gc::Address;
 use crate::language::sem_analysis::FctDefinitionId;
-use crate::language::ty::SourceType;
 use crate::masm::{MacroAssembler, Mem};
 use crate::mem;
 use crate::mode::MachineMode;
@@ -48,10 +49,10 @@ pub enum NativeFctKind {
     SafepointStub,
 }
 
-pub struct NativeFct<'a> {
+pub struct NativeFct {
     pub fctptr: Address,
-    pub args: &'a [SourceType],
-    pub return_type: SourceType,
+    pub args: BytecodeTypeArray,
+    pub return_type: BytecodeType,
     pub desc: NativeFctKind,
 }
 
@@ -70,16 +71,17 @@ struct NativeGen<'a> {
     vm: &'a VM,
     masm: MacroAssembler,
 
-    fct: NativeFct<'a>,
+    fct: NativeFct,
     dbg: bool,
 }
 
 impl<'a> NativeGen<'a> {
     pub fn generate(mut self) -> Arc<Code> {
-        let save_return = self.fct.return_type != SourceType::Unit;
+        let save_return = self.fct.return_type.is_unit();
         let dtn_size = size_of::<DoraToNativeInfo>() as i32;
 
-        let (stack_args, temporaries, temporaries_desc, args_desc) = analyze(self.fct.args);
+        let (stack_args, temporaries, temporaries_desc, args_desc) =
+            analyze(self.vm, &self.fct.args);
 
         let offset_args = 0;
         let offset_temporaries = offset_args + stack_args as i32 * mem::ptr_width();
@@ -214,8 +216,8 @@ impl<'a> NativeGen<'a> {
         self.masm.emit_only_gcpoint(GcPoint::from_offsets(offsets));
 
         if !self.fct.return_type.is_unit() {
-            self.masm
-                .fix_result(REG_RESULT, self.fct.return_type.mode());
+            let mode = mode(self.vm, self.fct.return_type);
+            self.masm.fix_result(REG_RESULT, mode);
         }
 
         self.masm.load_mem(
@@ -248,7 +250,8 @@ impl<'a> NativeGen<'a> {
 }
 
 fn analyze(
-    args: &[SourceType],
+    vm: &VM,
+    args: &BytecodeTypeArray,
 ) -> (
     u32,
     u32,
@@ -265,11 +268,13 @@ fn analyze(
     let mut freg_idx = 0;
     let mut stack_idx = 0;
 
-    for ty in args {
-        if ty.is_float() {
+    for ty in args.iter() {
+        let mode = mode(vm, ty.clone());
+
+        if ty.is_any_float() {
             let source = if freg_idx < FREG_PARAMS.len() {
                 save_temporaries.push(TemporaryStore::FloatRegister(
-                    ty.mode(),
+                    mode,
                     FREG_PARAMS[freg_idx],
                     temporaries,
                 ));
@@ -282,10 +287,10 @@ fn analyze(
 
             let destination = if freg_idx < CCALL_FREG_PARAMS.len() {
                 // argument still fits into register
-                ArgumentDestination::FloatRegister(ty.mode(), CCALL_FREG_PARAMS[freg_idx])
+                ArgumentDestination::FloatRegister(mode, CCALL_FREG_PARAMS[freg_idx])
             } else {
                 stack_args += 1;
-                ArgumentDestination::Offset(ty.mode(), stack_args - 1)
+                ArgumentDestination::Offset(mode, stack_args - 1)
             };
 
             load_params.push((source, destination));
@@ -293,7 +298,7 @@ fn analyze(
         } else {
             let source = if reg_idx < REG_PARAMS.len() {
                 save_temporaries.push(TemporaryStore::Register(
-                    ty.mode(),
+                    mode,
                     REG_PARAMS[reg_idx],
                     temporaries,
                 ));
@@ -310,18 +315,18 @@ fn analyze(
                     stack_args += 1;
                 }
 
-                if ty.reference_type() {
+                if ty.is_reference_type() {
                     ArgumentDestination::HandleRegister(CCALL_REG_PARAMS[reg_idx])
                 } else {
-                    ArgumentDestination::Register(ty.mode(), CCALL_REG_PARAMS[reg_idx])
+                    ArgumentDestination::Register(mode, CCALL_REG_PARAMS[reg_idx])
                 }
             } else {
                 stack_args += 1;
 
-                if ty.reference_type() {
+                if ty.is_reference_type() {
                     ArgumentDestination::HandleOffset(stack_args - 1)
                 } else {
-                    ArgumentDestination::Offset(ty.mode(), stack_args - 1)
+                    ArgumentDestination::Offset(mode, stack_args - 1)
                 }
             };
 

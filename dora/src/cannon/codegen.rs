@@ -3164,8 +3164,8 @@ impl<'a> CannonCodeGen<'a> {
             Intrinsic::Unreachable => {
                 let native_fct = NativeFct {
                     fctptr: Address::from_ptr(stdlib::unreachable as *const u8),
-                    args: &[],
-                    return_type: SourceType::Unit,
+                    args: BytecodeTypeArray::empty(),
+                    return_type: BytecodeType::Unit,
                     desc: NativeFctKind::NativeStub(fct_id),
                 };
                 let gcpoint = self.create_gcpoint();
@@ -4149,8 +4149,8 @@ impl<'a> CannonCodeGen<'a> {
             assert!(type_params.is_empty());
             let internal_fct = NativeFct {
                 fctptr: native_pointer,
-                args: fct.params_with_self(),
-                return_type: fct.return_type.clone(),
+                args: fct.params_with_self_bty(),
+                return_type: bty_from_ty(fct.return_type.clone()),
                 desc: NativeFctKind::NativeStub(fid),
             };
 
