@@ -2,31 +2,11 @@ use parking_lot::RwLock;
 
 use crate::bytecode::ty::BytecodeTypeArray;
 use crate::language::sem_analysis::{EnumDefinition, EnumDefinitionId};
-use crate::vm::{display_ty_raw, module_path, ClassInstanceId, VM};
+use crate::vm::{module_path, ClassInstanceId, VM};
 use dora_frontend::Id;
 
 pub fn enum_definition_name(enum_: &EnumDefinition, vm: &VM) -> String {
     module_path(vm, enum_.module_id, enum_.name)
-}
-
-pub fn enum_definition_name_with_params(
-    enum_: &EnumDefinition,
-    vm: &VM,
-    type_list: &BytecodeTypeArray,
-) -> String {
-    let name = vm.interner.str(enum_.name);
-
-    if type_list.len() > 0 {
-        let type_list = type_list
-            .iter()
-            .map(|p| display_ty_raw(vm, &p))
-            .collect::<Vec<_>>()
-            .join(", ");
-
-        format!("{}[{}]", name, type_list)
-    } else {
-        name.to_string()
-    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]

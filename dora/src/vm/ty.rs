@@ -39,9 +39,7 @@ pub fn path_for_type(vm: &VM, ty: BytecodeType) -> String {
     }
 }
 
-pub fn display_concrete_ty(vm: &VM, ty: &BytecodeType) -> String {
-    assert!(ty.is_concrete_type());
-
+pub fn display_ty(vm: &VM, ty: &BytecodeType) -> String {
     let printer = BytecodeTypePrinter {
         vm,
         type_params: None,
@@ -50,21 +48,7 @@ pub fn display_concrete_ty(vm: &VM, ty: &BytecodeType) -> String {
     printer.name(ty.clone())
 }
 
-pub fn display_ty_raw(vm: &VM, ty: &BytecodeType) -> String {
-    let printer = BytecodeTypePrinter {
-        vm,
-        type_params: None,
-    };
-
-    printer.name(ty.clone())
-}
-
-pub fn display_concrete_tuple(vm: &VM, types: &BytecodeTypeArray) -> String {
-    assert!(types.is_concrete_type());
-    display_tuple_raw(vm, types)
-}
-
-pub fn display_tuple_raw(vm: &VM, types: &BytecodeTypeArray) -> String {
+pub fn display_tuple(vm: &VM, types: &BytecodeTypeArray) -> String {
     let mut result = String::new();
     let mut first = true;
     result.push('(');
@@ -73,7 +57,7 @@ pub fn display_tuple_raw(vm: &VM, types: &BytecodeTypeArray) -> String {
         if !first {
             result.push_str(", ");
         }
-        result.push_str(&display_concrete_ty(vm, &ty));
+        result.push_str(&display_ty(vm, &ty));
         first = false;
     }
 
@@ -88,7 +72,7 @@ struct BytecodeTypePrinter<'a> {
 }
 
 impl<'a> BytecodeTypePrinter<'a> {
-    pub fn name(&self, ty: BytecodeType) -> String {
+    fn name(&self, ty: BytecodeType) -> String {
         match ty {
             BytecodeType::Unit => "()".into(),
             BytecodeType::UInt8 => "UInt8".into(),
@@ -102,69 +86,25 @@ impl<'a> BytecodeTypePrinter<'a> {
             BytecodeType::Class(id, type_params) => {
                 let cls = self.vm.classes.idx(id);
                 let cls = cls.read();
-                let base = self.vm.interner.str(cls.name);
-
-                if type_params.len() == 0 {
-                    base.to_string()
-                } else {
-                    let params = type_params
-                        .iter()
-                        .map(|ty| self.name(ty))
-                        .collect::<Vec<_>>()
-                        .join(", ");
-
-                    format!("{}[{}]", base, params)
-                }
+                let name = self.vm.interner.str(cls.name).to_string();
+                self.with_type_params(name, &type_params)
             }
             BytecodeType::Struct(sid, type_params) => {
                 let struc = self.vm.structs.idx(sid);
                 let struc = struc.read();
                 let name = struc.name;
                 let name = self.vm.interner.str(name).to_string();
-
-                if type_params.len() == 0 {
-                    name
-                } else {
-                    let params = type_params
-                        .iter()
-                        .map(|ty| self.name(ty))
-                        .collect::<Vec<_>>()
-                        .join(", ");
-
-                    format!("{}[{}]", name, params)
-                }
+                self.with_type_params(name, &type_params)
             }
             BytecodeType::Trait(tid, type_params) => {
                 let trait_ = self.vm.traits[tid].read();
                 let name = self.vm.interner.str(trait_.name).to_string();
-
-                if type_params.len() == 0 {
-                    name
-                } else {
-                    let params = type_params
-                        .iter()
-                        .map(|ty| self.name(ty))
-                        .collect::<Vec<_>>()
-                        .join(", ");
-
-                    format!("{}[{}]", name, params)
-                }
+                self.with_type_params(name, &type_params)
             }
             BytecodeType::Enum(id, type_params) => {
                 let enum_ = self.vm.enums[id].read();
                 let name = self.vm.interner.str(enum_.name).to_string();
-
-                if type_params.len() == 0 {
-                    name
-                } else {
-                    let params = type_params
-                        .iter()
-                        .map(|ty| self.name(ty))
-                        .collect::<Vec<_>>()
-                        .join(", ");
-
-                    format!("{}[{}]", name, params)
-                }
+                self.with_type_params(name, &type_params)
             }
 
             BytecodeType::TypeParam(idx) => {
@@ -179,25 +119,37 @@ impl<'a> BytecodeTypePrinter<'a> {
             }
 
             BytecodeType::Lambda(params, return_type) => {
-                let params = params
-                    .iter()
-                    .map(|ty| self.name(ty.clone()))
-                    .collect::<Vec<_>>()
-                    .join(", ");
+                let params = self.type_list(&params);
                 let ret = self.name(*return_type);
-
                 format!("({}) -> {}", params, ret)
             }
 
             BytecodeType::Tuple(subtypes) => {
-                let types = subtypes
-                    .iter()
-                    .map(|ty| self.name(ty.clone()))
-                    .collect::<Vec<_>>()
-                    .join(", ");
-
+                let types = self.type_list(&subtypes);
                 format!("({})", types)
             }
         }
+    }
+
+    fn with_type_params(&self, name: String, types: &BytecodeTypeArray) -> String {
+        if types.is_empty() {
+            return name;
+        }
+
+        let params = types
+            .iter()
+            .map(|ty| self.name(ty))
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        format!("{}[{}]", &name, params)
+    }
+
+    fn type_list(&self, types: &BytecodeTypeArray) -> String {
+        types
+            .iter()
+            .map(|ty| self.name(ty))
+            .collect::<Vec<_>>()
+            .join(", ")
     }
 }

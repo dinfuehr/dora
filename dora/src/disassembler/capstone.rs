@@ -9,7 +9,7 @@ use capstone::prelude::*;
 use crate::bytecode::BytecodeTypeArray;
 use crate::driver::cmd::AsmSyntax;
 use crate::language::sem_analysis::FctDefinition;
-use crate::vm::{display_concrete_ty, Code, VM};
+use crate::vm::{display_ty, Code, VM};
 
 pub fn supported() -> bool {
     true
@@ -55,7 +55,7 @@ pub fn disassemble(
         let mut ty_names = Vec::new();
 
         for ty in type_params.iter() {
-            ty_names.push(display_concrete_ty(vm, &ty));
+            ty_names.push(display_ty(vm, &ty));
         }
 
         format!(" [{}]", ty_names.join(", "))

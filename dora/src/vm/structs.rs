@@ -1,28 +1,10 @@
-use crate::bytecode::{BytecodeType, BytecodeTypeArray};
-use crate::vm::{display_ty_raw, module_path, StructDefinition, VM};
+use crate::bytecode::BytecodeType;
+use crate::vm::{module_path, StructDefinition, VM};
 use dora_frontend::Id;
 
 impl StructDefinition {
     pub fn name_vm(&self, vm: &VM) -> String {
         module_path(vm, self.module_id, self.name)
-    }
-
-    pub fn name_with_params_vm(&self, vm: &VM, type_params: &BytecodeTypeArray) -> String {
-        let mut name = self.name_vm(vm);
-
-        if type_params.len() > 0 {
-            let type_params = type_params
-                .iter()
-                .map(|p| display_ty_raw(vm, &p))
-                .collect::<Vec<_>>()
-                .join(", ");
-
-            name.push('[');
-            name.push_str(&type_params);
-            name.push(']');
-        }
-
-        name
     }
 }
 

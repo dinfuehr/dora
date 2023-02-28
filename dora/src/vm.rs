@@ -28,8 +28,8 @@ use dora_frontend::{GrowableVec, MutableVec};
 use dora_parser::interner::*;
 
 pub use self::classes::{
-    class_definition_name, class_definition_name_with_params, create_class_instance_with_vtable,
-    ClassInstance, ClassInstanceId, FieldInstance, ShapeKind,
+    class_definition_name, create_class_instance_with_vtable, ClassInstance, ClassInstanceId,
+    FieldInstance, ShapeKind,
 };
 pub use self::code::{
     install_code, install_code_stub, Code, CodeId, CodeKind, CodeObjects, CommentTable, GcPoint,
@@ -38,10 +38,7 @@ pub use self::code::{
 };
 pub use self::code_map::CodeMap;
 pub use self::compilation::CompilationDatabase;
-pub use self::enums::{
-    enum_definition_name, enum_definition_name_with_params, EnumInstance, EnumInstanceId,
-    EnumLayout,
-};
+pub use self::enums::{enum_definition_name, EnumInstance, EnumInstanceId, EnumLayout};
 pub use self::extensions::extension_matches_ty;
 use self::globals::GlobalVariableMemory;
 pub use self::impls::{find_trait_impl, implements_trait};
@@ -55,9 +52,7 @@ pub use self::specialize::{
 pub use self::structs::{StructInstance, StructInstanceField, StructInstanceId};
 pub use self::stubs::{setup_stubs, Stubs};
 pub use self::tuples::{get_concrete_tuple_bty, get_concrete_tuple_bty_array, ConcreteTuple};
-pub use self::ty::{
-    display_concrete_tuple, display_concrete_ty, display_tuple_raw, display_ty_raw, path_for_type,
-};
+pub use self::ty::{display_tuple, display_ty, path_for_type};
 pub use self::waitlists::{ManagedCondition, ManagedMutex, WaitLists};
 
 mod classes;
