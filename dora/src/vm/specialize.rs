@@ -3,7 +3,7 @@ use std::cmp::max;
 
 use crate::bytecode::{BytecodeType, BytecodeTypeArray};
 use crate::cannon::codegen::{align, size};
-use crate::language::generator::{bty_array_from_ty, bty_from_ty, ty_array_from_bty};
+use crate::language::generator::bty_from_ty;
 use crate::language::sem_analysis::{ClassDefinitionId, FctDefinitionId, TraitDefinitionId};
 use crate::mem;
 use crate::object::Header;
@@ -147,7 +147,7 @@ fn create_specialized_enum(
 
     let id = vm.enum_instances.push(EnumInstance {
         enum_id: enum_.id(),
-        type_params: ty_array_from_bty(&type_params),
+        type_params: type_params.clone(),
         layout,
         variants: RwLock::new(variants),
     });
@@ -214,7 +214,7 @@ pub fn ensure_class_instance_for_enum_variant(
 
     for ty in &enum_variant.types {
         let ty = bty_from_ty(ty.clone());
-        let ty = specialize_bty(ty, &bty_array_from_ty(&edef.type_params));
+        let ty = specialize_bty(ty, &edef.type_params);
         assert!(ty.is_concrete_type());
 
         let field_size = size(vm, ty.clone());
@@ -235,7 +235,7 @@ pub fn ensure_class_instance_for_enum_variant(
 
     let class_instance_id = create_class_instance_with_vtable(
         vm,
-        ShapeKind::Enum(edef.enum_id, bty_array_from_ty(&edef.type_params)),
+        ShapeKind::Enum(edef.enum_id, edef.type_params.clone()),
         InstanceSize::Fixed(instance_size),
         fields,
         0,

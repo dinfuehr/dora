@@ -1,3 +1,4 @@
+use crate::language::generator::bty_from_ty;
 use crate::language::sem_analysis::{FctDefinition, FctParent};
 use crate::vm::{module_path, path_for_type, VM};
 
@@ -12,13 +13,13 @@ impl FctDefinition {
             FctParent::Extension(extension_id) => {
                 let extension = &sa.extensions[extension_id];
                 let extension = extension.read();
-                path_for_type(sa, extension.ty.clone())
+                path_for_type(sa, bty_from_ty(extension.ty.clone()))
             }
 
             FctParent::Impl(impl_id) => {
                 let impl_ = &sa.impls[impl_id];
                 let impl_ = impl_.read();
-                path_for_type(sa, impl_.extended_ty.clone())
+                path_for_type(sa, bty_from_ty(impl_.extended_ty.clone()))
             }
 
             FctParent::None => {

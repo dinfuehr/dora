@@ -8,9 +8,8 @@ use capstone::prelude::*;
 
 use crate::bytecode::BytecodeTypeArray;
 use crate::driver::cmd::AsmSyntax;
-use crate::language::generator::ty_from_bty;
 use crate::language::sem_analysis::FctDefinition;
-use crate::vm::{Code, VM};
+use crate::vm::{display_concrete_ty, Code, VM};
 
 pub fn supported() -> bool {
     true
@@ -56,7 +55,7 @@ pub fn disassemble(
         let mut ty_names = Vec::new();
 
         for ty in type_params.iter() {
-            ty_names.push(ty_from_bty(ty).name_fct_vm(vm, fct));
+            ty_names.push(display_concrete_ty(vm, &ty));
         }
 
         format!(" [{}]", ty_names.join(", "))

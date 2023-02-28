@@ -211,6 +211,10 @@ impl BytecodeTypeArray {
         types.push(ty);
         BytecodeTypeArray::new(types)
     }
+
+    pub fn is_concrete_type(&self) -> bool {
+        self.0.iter().all(|ty| ty.is_concrete_type())
+    }
 }
 
 impl Index<usize> for BytecodeTypeArray {

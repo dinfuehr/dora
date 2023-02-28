@@ -1,144 +1,105 @@
-use crate::cannon::codegen::{align, size};
-use crate::language::generator::bty_from_ty;
-use crate::language::sem_analysis::TypeParamDefinition;
-use crate::language::ty::{SourceType, SourceTypeArray};
-use crate::mode::MachineMode;
-use crate::vm::{
-    class_definition_name, enum_definition_name, FctDefinition, StructDefinitionId, VM,
-};
+use crate::bytecode::{BytecodeType, BytecodeTypeArray};
+use crate::language::sem_analysis::{TypeParamDefinition, TypeParamId};
+use crate::vm::{class_definition_name, enum_definition_name, StructDefinitionId, VM};
 
-impl SourceType {
-    pub fn name_vm(&self, vm: &VM) -> String {
-        let writer = SourceTypePrinter {
-            vm,
-            type_params: None,
-        };
-
-        writer.name(self.clone())
-    }
-
-    pub fn name_fct_vm(&self, vm: &VM, fct: &FctDefinition) -> String {
-        let writer = SourceTypePrinter {
-            vm,
-            type_params: Some(&fct.type_params),
-        };
-
-        writer.name(self.clone())
-    }
-
-    pub fn primitive_struct_id_vm(&self, sa: &VM) -> Option<StructDefinitionId> {
-        match self {
-            SourceType::Bool => Some(sa.known.structs.bool()),
-            SourceType::UInt8 => Some(sa.known.structs.uint8()),
-            SourceType::Char => Some(sa.known.structs.char()),
-            SourceType::Int32 => Some(sa.known.structs.int32()),
-            SourceType::Int64 => Some(sa.known.structs.int64()),
-            SourceType::Float32 => Some(sa.known.structs.float32()),
-            SourceType::Float64 => Some(sa.known.structs.float64()),
-            _ => None,
-        }
-    }
-
-    pub fn size(&self, vm: &VM) -> i32 {
-        let bty = bty_from_ty(self.clone());
-        size(vm, bty)
-    }
-
-    pub fn align(&self, vm: &VM) -> i32 {
-        let bty = bty_from_ty(self.clone());
-        align(vm, bty)
-    }
-
-    pub fn mode(&self) -> MachineMode {
-        match self {
-            SourceType::Error => panic!("no machine mode for error."),
-            SourceType::Unit => panic!("no machine mode for ()."),
-            SourceType::Bool => MachineMode::Int8,
-            SourceType::UInt8 => MachineMode::Int8,
-            SourceType::Char => MachineMode::Int32,
-            SourceType::Int32 => MachineMode::Int32,
-            SourceType::Int64 => MachineMode::Int64,
-            SourceType::Float32 => MachineMode::Float32,
-            SourceType::Float64 => MachineMode::Float64,
-            SourceType::Enum(_, _) => MachineMode::Int32,
-            SourceType::This => panic!("no machine mode for Self."),
-            SourceType::Any => panic!("no machine mode for Any."),
-            SourceType::Class(_, _) | SourceType::Lambda(_, _) | SourceType::Ptr => {
-                MachineMode::Ptr
-            }
-            SourceType::Struct(_, _) => panic!("no machine mode for struct."),
-            SourceType::Trait(_, _) => MachineMode::Ptr,
-            SourceType::TypeParam(_) => panic!("no machine mode for type variable."),
-            SourceType::Tuple(_) => unimplemented!(),
-        }
+fn primitive_struct_id(sa: &VM, ty: &BytecodeType) -> Option<StructDefinitionId> {
+    match ty {
+        BytecodeType::Bool => Some(sa.known.structs.bool()),
+        BytecodeType::UInt8 => Some(sa.known.structs.uint8()),
+        BytecodeType::Char => Some(sa.known.structs.char()),
+        BytecodeType::Int32 => Some(sa.known.structs.int32()),
+        BytecodeType::Int64 => Some(sa.known.structs.int64()),
+        BytecodeType::Float32 => Some(sa.known.structs.float32()),
+        BytecodeType::Float64 => Some(sa.known.structs.float64()),
+        _ => None,
     }
 }
 
-impl SourceTypeArray {
-    pub fn tuple_name_vm(&self, vm: &VM) -> String {
-        let mut result = String::new();
-        let mut first = true;
-        result.push('(');
-
-        for ty in self.iter() {
-            if !first {
-                result.push_str(", ");
-            }
-            result.push_str(&ty.name_vm(vm));
-            first = false;
-        }
-
-        result.push(')');
-
-        result
-    }
-}
-
-pub fn path_for_type(vm: &VM, ty: SourceType) -> String {
-    if let Some(enum_id) = ty.enum_id() {
+pub fn path_for_type(vm: &VM, ty: BytecodeType) -> String {
+    if let BytecodeType::Enum(enum_id, _) = ty {
         let enum_ = &vm.enums[enum_id];
         let enum_ = enum_.read();
         enum_definition_name(&*enum_, vm)
-    } else if let Some(cls_id) = ty.cls_id() {
+    } else if let BytecodeType::Class(cls_id, _) = ty {
         let cls = vm.classes.idx(cls_id);
         let cls = cls.read();
         class_definition_name(&*cls, vm)
-    } else if let Some(struct_id) = ty.struct_id() {
+    } else if let BytecodeType::Struct(struct_id, _) = ty {
         let struct_ = vm.structs.idx(struct_id);
         let struct_ = struct_.read();
         struct_.name_vm(vm)
-    } else if let Some(struct_id) = ty.primitive_struct_id_vm(vm) {
+    } else if let Some(struct_id) = primitive_struct_id(vm, &ty) {
         let struct_ = vm.structs.idx(struct_id);
         let struct_ = struct_.read();
         struct_.name_vm(vm)
-    } else if ty.is_tuple_or_unit() {
+    } else if ty.is_tuple() || ty.is_unit() {
         unimplemented!()
     } else {
         unreachable!()
     }
 }
 
-struct SourceTypePrinter<'a> {
+pub fn display_concrete_ty(vm: &VM, ty: &BytecodeType) -> String {
+    assert!(ty.is_concrete_type());
+
+    let printer = BytecodeTypePrinter {
+        vm,
+        type_params: None,
+    };
+
+    printer.name(ty.clone())
+}
+
+pub fn display_ty_raw(vm: &VM, ty: &BytecodeType) -> String {
+    let printer = BytecodeTypePrinter {
+        vm,
+        type_params: None,
+    };
+
+    printer.name(ty.clone())
+}
+
+pub fn display_concrete_tuple(vm: &VM, types: &BytecodeTypeArray) -> String {
+    assert!(types.is_concrete_type());
+    display_tuple_raw(vm, types)
+}
+
+pub fn display_tuple_raw(vm: &VM, types: &BytecodeTypeArray) -> String {
+    let mut result = String::new();
+    let mut first = true;
+    result.push('(');
+
+    for ty in types.iter() {
+        if !first {
+            result.push_str(", ");
+        }
+        result.push_str(&display_concrete_ty(vm, &ty));
+        first = false;
+    }
+
+    result.push(')');
+
+    result
+}
+
+struct BytecodeTypePrinter<'a> {
     vm: &'a VM,
     type_params: Option<&'a TypeParamDefinition>,
 }
 
-impl<'a> SourceTypePrinter<'a> {
-    pub fn name(&self, ty: SourceType) -> String {
+impl<'a> BytecodeTypePrinter<'a> {
+    pub fn name(&self, ty: BytecodeType) -> String {
         match ty {
-            SourceType::Error => "<error>".into(),
-            SourceType::Any => "Any".into(),
-            SourceType::Unit => "()".into(),
-            SourceType::UInt8 => "UInt8".into(),
-            SourceType::Char => "Char".into(),
-            SourceType::Int32 => "Int32".into(),
-            SourceType::Int64 => "Int64".into(),
-            SourceType::Float32 => "Float32".into(),
-            SourceType::Float64 => "Float64".into(),
-            SourceType::Bool => "Bool".into(),
-            SourceType::Ptr => panic!("type Ptr only for internal use."),
-            SourceType::This => "Self".into(),
-            SourceType::Class(id, type_params) => {
+            BytecodeType::Unit => "()".into(),
+            BytecodeType::UInt8 => "UInt8".into(),
+            BytecodeType::Char => "Char".into(),
+            BytecodeType::Int32 => "Int32".into(),
+            BytecodeType::Int64 => "Int64".into(),
+            BytecodeType::Float32 => "Float32".into(),
+            BytecodeType::Float64 => "Float64".into(),
+            BytecodeType::Bool => "Bool".into(),
+            BytecodeType::Ptr => panic!("type Ptr only for internal use."),
+            BytecodeType::Class(id, type_params) => {
                 let cls = self.vm.classes.idx(id);
                 let cls = cls.read();
                 let base = self.vm.interner.str(cls.name);
@@ -155,7 +116,7 @@ impl<'a> SourceTypePrinter<'a> {
                     format!("{}[{}]", base, params)
                 }
             }
-            SourceType::Struct(sid, type_params) => {
+            BytecodeType::Struct(sid, type_params) => {
                 let struc = self.vm.structs.idx(sid);
                 let struc = struc.read();
                 let name = struc.name;
@@ -173,7 +134,7 @@ impl<'a> SourceTypePrinter<'a> {
                     format!("{}[{}]", name, params)
                 }
             }
-            SourceType::Trait(tid, type_params) => {
+            BytecodeType::Trait(tid, type_params) => {
                 let trait_ = self.vm.traits[tid].read();
                 let name = self.vm.interner.str(trait_.name).to_string();
 
@@ -189,7 +150,7 @@ impl<'a> SourceTypePrinter<'a> {
                     format!("{}[{}]", name, params)
                 }
             }
-            SourceType::Enum(id, type_params) => {
+            BytecodeType::Enum(id, type_params) => {
                 let enum_ = self.vm.enums[id].read();
                 let name = self.vm.interner.str(enum_.name).to_string();
 
@@ -206,15 +167,18 @@ impl<'a> SourceTypePrinter<'a> {
                 }
             }
 
-            SourceType::TypeParam(idx) => {
+            BytecodeType::TypeParam(idx) => {
                 if let Some(type_params) = self.type_params {
-                    self.vm.interner.str(type_params.name(idx)).to_string()
+                    self.vm
+                        .interner
+                        .str(type_params.name(TypeParamId(idx as usize)))
+                        .to_string()
                 } else {
-                    format!("TypeParam({})", idx.to_usize())
+                    format!("TypeParam({})", idx)
                 }
             }
 
-            SourceType::Lambda(params, return_type) => {
+            BytecodeType::Lambda(params, return_type) => {
                 let params = params
                     .iter()
                     .map(|ty| self.name(ty.clone()))
@@ -225,7 +189,7 @@ impl<'a> SourceTypePrinter<'a> {
                 format!("({}) -> {}", params, ret)
             }
 
-            SourceType::Tuple(subtypes) => {
+            BytecodeType::Tuple(subtypes) => {
                 let types = subtypes
                     .iter()
                     .map(|ty| self.name(ty.clone()))
@@ -235,32 +199,5 @@ impl<'a> SourceTypePrinter<'a> {
                 format!("({})", types)
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::language::ty::SourceType;
-    use crate::mem;
-    use crate::mode::MachineMode;
-
-    #[test]
-    fn mode_size() {
-        assert_eq!(1, MachineMode::Int8.size());
-        assert_eq!(4, MachineMode::Int32.size());
-        assert_eq!(mem::ptr_width(), MachineMode::Ptr.size());
-    }
-
-    #[test]
-    fn mode_for_types() {
-        assert_eq!(MachineMode::Int8, SourceType::Bool.mode());
-        assert_eq!(MachineMode::Int32, SourceType::Int32.mode());
-        assert_eq!(MachineMode::Ptr, SourceType::Ptr.mode());
-    }
-
-    #[test]
-    #[should_panic]
-    fn mode_for_unit() {
-        assert_eq!(MachineMode::Ptr, SourceType::Unit.mode());
     }
 }

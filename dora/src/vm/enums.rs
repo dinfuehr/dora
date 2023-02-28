@@ -1,8 +1,8 @@
 use parking_lot::RwLock;
 
+use crate::bytecode::ty::BytecodeTypeArray;
 use crate::language::sem_analysis::{EnumDefinition, EnumDefinitionId};
-use crate::language::ty::{SourceType, SourceTypeArray};
-use crate::vm::{module_path, ClassInstanceId, VM};
+use crate::vm::{display_ty_raw, module_path, ClassInstanceId, VM};
 use dora_frontend::Id;
 
 pub fn enum_definition_name(enum_: &EnumDefinition, vm: &VM) -> String {
@@ -12,14 +12,14 @@ pub fn enum_definition_name(enum_: &EnumDefinition, vm: &VM) -> String {
 pub fn enum_definition_name_with_params(
     enum_: &EnumDefinition,
     vm: &VM,
-    type_list: &SourceTypeArray,
+    type_list: &BytecodeTypeArray,
 ) -> String {
     let name = vm.interner.str(enum_.name);
 
     if type_list.len() > 0 {
         let type_list = type_list
             .iter()
-            .map(|p| p.name_vm(vm))
+            .map(|p| display_ty_raw(vm, &p))
             .collect::<Vec<_>>()
             .join(", ");
 
@@ -49,7 +49,7 @@ impl Id for EnumInstance {
 #[derive(Debug)]
 pub struct EnumInstance {
     pub enum_id: EnumDefinitionId,
-    pub type_params: SourceTypeArray,
+    pub type_params: BytecodeTypeArray,
     pub layout: EnumLayout,
     pub variants: RwLock<Vec<Option<ClassInstanceId>>>,
 }
@@ -79,9 +79,4 @@ pub enum EnumLayout {
     Int,
     Ptr,
     Tagged,
-}
-
-#[derive(Debug)]
-pub struct EnumInstanceVariant {
-    pub types: Vec<SourceType>,
 }

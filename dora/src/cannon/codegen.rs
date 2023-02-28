@@ -15,7 +15,7 @@ use crate::cpu::{
 };
 use crate::gc::Address;
 use crate::language::generator::{
-    bty_from_ty, register_bty_from_bty, register_bty_from_ty, ty_array_from_bty, ty_from_bty,
+    bty_from_ty, register_bty_from_bty, register_bty_from_ty, ty_from_bty,
 };
 use crate::language::sem_analysis::{FctDefinitionId, GlobalDefinitionId, Intrinsic};
 use crate::language::ty::SourceType;
@@ -27,11 +27,11 @@ use crate::size::InstanceSize;
 use crate::stdlib;
 use crate::vm::{
     class_definition_name_with_params, create_class_instance, create_enum_instance,
-    create_struct_instance, ensure_class_instance_for_enum_variant,
-    ensure_class_instance_for_lambda, ensure_class_instance_for_trait_object,
-    enum_definition_name_with_params, find_trait_impl, get_concrete_tuple_bty,
-    get_concrete_tuple_bty_array, specialize_bty, specialize_bty_array, EnumLayout, GcPoint,
-    LazyCompilationSite, Trap, VM,
+    create_struct_instance, display_tuple_raw, display_ty_raw,
+    ensure_class_instance_for_enum_variant, ensure_class_instance_for_lambda,
+    ensure_class_instance_for_trait_object, enum_definition_name_with_params, find_trait_impl,
+    get_concrete_tuple_bty, get_concrete_tuple_bty_array, specialize_bty, specialize_bty_array,
+    EnumLayout, GcPoint, LazyCompilationSite, Trap, VM,
 };
 use crate::vtable::VTable;
 
@@ -484,7 +484,7 @@ impl<'a> CannonCodeGen<'a> {
         dest: Register,
         ty: BytecodeType,
     ) {
-        let mode = ty_from_bty(ty).mode();
+        let mode = mode(self.vm, ty);
 
         if *freg_idx < FREG_PARAMS.len() {
             let freg = FREG_PARAMS[*freg_idx].into();
@@ -506,7 +506,7 @@ impl<'a> CannonCodeGen<'a> {
         dest: Register,
         ty: BytecodeType,
     ) {
-        let mode = ty_from_bty(ty).mode();
+        let mode = mode(self.vm, ty);
 
         if *reg_idx < REG_PARAMS.len() {
             let reg = REG_PARAMS[*reg_idx].into();
@@ -4283,13 +4283,11 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
     fn visit_load_tuple_element(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
         comment!(self, {
             let (tuple_ty, subtype_idx) = match self.bytecode.const_pool(idx) {
-                ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => {
-                    (ty_from_bty(tuple_ty.clone()), *subtype_idx)
-                }
+                ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => (tuple_ty, *subtype_idx),
                 _ => unreachable!(),
             };
 
-            let tuple_name = tuple_ty.name_vm(self.vm);
+            let tuple_name = display_ty_raw(self.vm, tuple_ty);
             format!(
                 "LoadTupleElement {}, {}, ConstPoolIdx({}) # {}.{}",
                 dest,
@@ -4304,21 +4302,16 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
 
     fn visit_load_enum_element(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
         comment!(self, {
-            let (enum_id, type_params, variant_idx, element_idx) = match self
-                .bytecode
-                .const_pool(idx)
-            {
-                ConstPoolEntry::EnumElement(enum_id, type_params, variant_idx, element_idx) => (
-                    *enum_id,
-                    ty_array_from_bty(type_params),
-                    *variant_idx,
-                    *element_idx,
-                ),
-                _ => unreachable!(),
-            };
+            let (enum_id, type_params, variant_idx, element_idx) =
+                match self.bytecode.const_pool(idx) {
+                    ConstPoolEntry::EnumElement(enum_id, type_params, variant_idx, element_idx) => {
+                        (*enum_id, type_params, *variant_idx, *element_idx)
+                    }
+                    _ => unreachable!(),
+                };
             let enum_ = &self.vm.enums[enum_id];
             let enum_ = enum_.read();
-            let enum_name = enum_definition_name_with_params(&*enum_, self.vm, &type_params);
+            let enum_name = enum_definition_name_with_params(&*enum_, self.vm, type_params);
             let variant = &enum_.variants[variant_idx];
             let variant_name = self.vm.interner.str(variant.name);
             format!(
@@ -4338,14 +4331,12 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
     fn visit_load_enum_variant(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
         comment!(self, {
             let (enum_id, type_params) = match self.bytecode.const_pool(idx) {
-                ConstPoolEntry::Enum(enum_id, type_params) => {
-                    (*enum_id, ty_array_from_bty(type_params))
-                }
+                ConstPoolEntry::Enum(enum_id, type_params) => (*enum_id, type_params),
                 _ => unreachable!(),
             };
             let enum_ = &self.vm.enums[enum_id];
             let enum_ = enum_.read();
-            let enum_name = enum_definition_name_with_params(&*enum_, self.vm, &type_params);
+            let enum_name = enum_definition_name_with_params(&*enum_, self.vm, type_params);
             format!(
                 "LoadEnumVariant {}, {}, ConstPoolIdx({}) # {}",
                 dest,
@@ -4361,13 +4352,13 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         comment!(self, {
             let (struct_id, type_params, field_id) = match self.bytecode.const_pool(field_idx) {
                 ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
-                    (*struct_id, ty_array_from_bty(type_params), *field_id)
+                    (*struct_id, type_params, *field_id)
                 }
                 _ => unreachable!(),
             };
             let struct_ = self.vm.structs.idx(struct_id);
             let struct_ = struct_.read();
-            let struct_name = struct_.name_with_params_vm(self.vm, &type_params);
+            let struct_name = struct_.name_with_params_vm(self.vm, type_params);
 
             let field = &struct_.fields[field_id.to_usize()];
             let fname = self.vm.interner.str(field.name);
@@ -4390,7 +4381,6 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 ConstPoolEntry::Field(cls_id, type_params, field_id) => {
                     let cls = self.vm.classes.idx(*cls_id);
                     let cls = cls.read();
-                    let type_params = ty_array_from_bty(type_params);
                     let cname = class_definition_name_with_params(&*cls, self.vm, &type_params);
 
                     let field = &cls.fields[field_id.to_usize()];
@@ -4415,13 +4405,13 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         comment!(self, {
             let (cls_id, type_params, field_id) = match self.bytecode.const_pool(field_idx) {
                 ConstPoolEntry::Field(cls_id, type_params, field_id) => {
-                    (*cls_id, ty_array_from_bty(type_params), *field_id)
+                    (*cls_id, type_params, *field_id)
                 }
                 _ => unreachable!(),
             };
             let cls = self.vm.classes.idx(cls_id);
             let cls = cls.read();
-            let cname = class_definition_name_with_params(&*cls, self.vm, &type_params);
+            let cname = class_definition_name_with_params(&*cls, self.vm, type_params);
 
             let field = &cls.fields[field_id.to_usize()];
             let fname = self.vm.interner.str(field.name);
@@ -4785,14 +4775,12 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
     fn visit_new_object(&mut self, dest: Register, idx: ConstPoolIdx) {
         comment!(self, {
             let (cls_id, type_params) = match self.bytecode.const_pool(idx) {
-                ConstPoolEntry::Class(cls_id, type_params) => {
-                    (*cls_id, ty_array_from_bty(type_params))
-                }
+                ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params),
                 _ => unreachable!(),
             };
             let cls = self.vm.classes.idx(cls_id);
             let cls = cls.read();
-            let cname = class_definition_name_with_params(&*cls, self.vm, &type_params);
+            let cname = class_definition_name_with_params(&*cls, self.vm, type_params);
             format!(
                 "NewObject {}, ConstPoolIdx({}) # {}",
                 dest,
@@ -4806,14 +4794,12 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
     fn visit_new_object_initialized(&mut self, dest: Register, idx: ConstPoolIdx) {
         comment!(self, {
             let (cls_id, type_params) = match self.bytecode.const_pool(idx) {
-                ConstPoolEntry::Class(cls_id, type_params) => {
-                    (*cls_id, ty_array_from_bty(type_params))
-                }
+                ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params),
                 _ => unreachable!(),
             };
             let cls = self.vm.classes.idx(cls_id);
             let cls = cls.read();
-            let cname = class_definition_name_with_params(&*cls, self.vm, &type_params);
+            let cname = class_definition_name_with_params(&*cls, self.vm, type_params);
             format!(
                 "NewObjectInitialized {}, ConstPoolIdx({}) # {}",
                 dest,
@@ -4827,14 +4813,12 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
     fn visit_new_array(&mut self, dest: Register, idx: ConstPoolIdx, length: Register) {
         comment!(self, {
             let (cls_id, type_params) = match self.bytecode.const_pool(idx) {
-                ConstPoolEntry::Class(cls_id, type_params) => {
-                    (*cls_id, ty_array_from_bty(type_params))
-                }
+                ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params),
                 _ => unreachable!(),
             };
             let cls = self.vm.classes.idx(cls_id);
             let cls = cls.read();
-            let cname = class_definition_name_with_params(&*cls, self.vm, &type_params);
+            let cname = class_definition_name_with_params(&*cls, self.vm, type_params);
             format!(
                 "NewArray {}, ConstPoolIdx({}), {} # {}",
                 dest,
@@ -4849,10 +4833,10 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
     fn visit_new_tuple(&mut self, dest: Register, idx: ConstPoolIdx) {
         comment!(self, {
             let subtypes = match self.bytecode.const_pool(idx) {
-                ConstPoolEntry::Tuple(ref subtypes) => ty_array_from_bty(subtypes),
+                ConstPoolEntry::Tuple(ref subtypes) => subtypes,
                 _ => unreachable!(),
             };
-            let tuple_name = subtypes.tuple_name_vm(self.vm);
+            let tuple_name = display_tuple_raw(self.vm, subtypes);
             format!(
                 "NewTuple {}, ConstPoolIdx({}) # {}",
                 dest,
@@ -4867,7 +4851,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         comment!(self, {
             let (enum_id, type_params, variant_idx) = match self.bytecode.const_pool(idx) {
                 ConstPoolEntry::EnumVariant(enum_id, type_params, variant_idx) => {
-                    (*enum_id, ty_array_from_bty(type_params), *variant_idx)
+                    (*enum_id, type_params, *variant_idx)
                 }
                 _ => unreachable!(),
             };
@@ -4890,9 +4874,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
     fn visit_new_struct(&mut self, dest: Register, idx: ConstPoolIdx) {
         comment!(self, {
             let (struct_id, type_params) = match self.bytecode.const_pool(idx) {
-                ConstPoolEntry::Struct(enum_id, type_params) => {
-                    (*enum_id, ty_array_from_bty(type_params))
-                }
+                ConstPoolEntry::Struct(enum_id, type_params) => (*enum_id, type_params),
                 _ => unreachable!(),
             };
             let struct_ = self.vm.structs.idx(struct_id);
@@ -4911,16 +4893,14 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
     fn visit_new_trait_object(&mut self, dest: Register, idx: ConstPoolIdx, src: Register) {
         comment!(self, {
             let (trait_id, type_params, object_ty) = match self.bytecode.const_pool(idx) {
-                ConstPoolEntry::Trait(trait_id, type_params, object_ty) => (
-                    *trait_id,
-                    ty_array_from_bty(type_params),
-                    ty_from_bty(object_ty.clone()),
-                ),
+                ConstPoolEntry::Trait(trait_id, type_params, object_ty) => {
+                    (*trait_id, type_params, object_ty)
+                }
                 _ => unreachable!(),
             };
             let trait_ = self.vm.traits[trait_id].read();
-            let trait_name = trait_.name_with_params_vm(self.vm, &type_params);
-            let object_name = object_ty.name_vm(self.vm);
+            let trait_name = trait_.name_with_params_vm(self.vm, type_params);
+            let object_name = display_ty_raw(self.vm, object_ty);
             format!(
                 "NewTraitObject {}, ConstPoolIdx({}), {} # {} from object {}",
                 dest,

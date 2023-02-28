@@ -10,7 +10,6 @@ use crate::cpu::{FReg, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_THREAD, REG
 use crate::gc::tlab::TLAB_OBJECT_SIZE;
 use crate::gc::Address;
 use crate::language::sem_analysis::{FctDefinitionId, GlobalDefinitionId, StructDefinitionId};
-use crate::language::ty::SourceType;
 use crate::masm::{CodeDescriptor, CondCode, Label, MacroAssembler, Mem, ScratchReg};
 use crate::mode::MachineMode;
 use crate::stdlib;
@@ -646,14 +645,6 @@ impl<'a> BaselineAssembler<'a> {
 
     pub fn emit_positon(&mut self, position: Position) {
         self.masm.emit_position(position);
-    }
-
-    pub fn var_store(&mut self, offset: i32, ty: SourceType, src: AnyReg) {
-        self.masm.store_mem(ty.mode(), Mem::Local(offset), src);
-    }
-
-    pub fn var_load(&mut self, offset: i32, ty: SourceType, dest: AnyReg) {
-        self.masm.load_mem(ty.mode(), dest, Mem::Local(offset));
     }
 
     pub fn code(mut self) -> CodeDescriptor {

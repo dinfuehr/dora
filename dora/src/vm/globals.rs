@@ -1,4 +1,6 @@
+use crate::cannon::codegen::{align, size};
 use crate::gc::{Address, Region};
+use crate::language::generator::bty_from_ty;
 use crate::language::sem_analysis::GlobalDefinitionId;
 use crate::mem;
 use crate::os;
@@ -16,8 +18,10 @@ pub fn init_global_addresses(vm: &mut VM) {
         let initialized_offset = backing_memory_size;
         backing_memory_size += initialized_field_size;
 
-        let ty_size = global_var.ty.size(vm) as usize;
-        let ty_align = global_var.ty.align(vm) as usize;
+        let ty = bty_from_ty(global_var.ty.clone());
+
+        let ty_size = size(vm, ty.clone()) as usize;
+        let ty_align = align(vm, ty) as usize;
 
         let value_offset = mem::align_usize(backing_memory_size, ty_align);
         offsets.push((initialized_offset, value_offset));
