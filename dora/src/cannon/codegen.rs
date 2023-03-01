@@ -26,7 +26,7 @@ use crate::object::{offset_of_array_data, Header, Str};
 use crate::size::InstanceSize;
 use crate::stdlib;
 use crate::vm::{
-    create_class_instance, create_enum_instance, create_struct_instance, display_ty,
+    create_class_instance, create_enum_instance, create_struct_instance, display_fct, display_ty,
     ensure_class_instance_for_enum_variant, ensure_class_instance_for_lambda,
     ensure_class_instance_for_trait_object, find_trait_impl, get_concrete_tuple_bty,
     get_concrete_tuple_bty_array, specialize_bty, specialize_bty_array, EnumLayout, GcPoint,
@@ -4915,9 +4915,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params),
                 _ => unreachable!(),
             };
-            let fct = self.vm.fcts.idx(fct_id);
-            let fct = fct.read();
-            let fct_name = fct.display_name_vm(self.vm);
+            let fct_name = display_fct(self.vm, fct_id);
             format!(
                 "NewLambda {}, ConstPoolIdx({}) # {}",
                 dest,

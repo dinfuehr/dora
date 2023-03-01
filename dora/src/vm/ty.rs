@@ -1,30 +1,6 @@
 use crate::bytecode::{BytecodeType, BytecodeTypeArray};
 use crate::language::sem_analysis::{TypeParamDefinition, TypeParamId};
-use crate::vm::{class_definition_name, enum_definition_name, StructDefinitionId, VM};
-
-pub fn path_for_type(vm: &VM, ty: BytecodeType) -> String {
-    if let BytecodeType::Enum(enum_id, _) = ty {
-        let enum_ = &vm.enums[enum_id];
-        let enum_ = enum_.read();
-        enum_definition_name(&*enum_, vm)
-    } else if let BytecodeType::Class(cls_id, _) = ty {
-        let cls = vm.classes.idx(cls_id);
-        let cls = cls.read();
-        class_definition_name(&*cls, vm)
-    } else if let BytecodeType::Struct(struct_id, _) = ty {
-        let struct_ = vm.structs.idx(struct_id);
-        let struct_ = struct_.read();
-        struct_.name_vm(vm)
-    } else if let Some(struct_id) = primitive_struct_id(vm, &ty) {
-        let struct_ = vm.structs.idx(struct_id);
-        let struct_ = struct_.read();
-        struct_.name_vm(vm)
-    } else if ty.is_tuple() || ty.is_unit() {
-        unimplemented!()
-    } else {
-        unreachable!()
-    }
-}
+use crate::vm::{StructDefinitionId, VM};
 
 pub fn display_ty(vm: &VM, ty: &BytecodeType) -> String {
     let printer = BytecodeTypePrinter {

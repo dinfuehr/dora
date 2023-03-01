@@ -14,7 +14,7 @@ use crate::language::generator::{bty_array_from_ty, bty_from_ty};
 use crate::language::sem_analysis::{FctDefinition, FctDefinitionId};
 use crate::language::ty::SourceTypeArray;
 use crate::os;
-use crate::vm::{install_code, CodeKind, VM};
+use crate::vm::{display_fct, install_code, CodeKind, VM};
 
 pub fn generate(vm: &VM, id: FctDefinitionId, type_params: &BytecodeTypeArray) -> Address {
     let fct = vm.fcts.idx(id);
@@ -89,7 +89,7 @@ pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &BytecodeTypeArra
         let duration = start.expect("missing start time").elapsed();
         println!(
             "compile {} using {} in {}ms.",
-            fct.display_name_vm(vm),
+            display_fct(vm, fct.id()),
             compiler,
             (duration.as_micros() as f64) / 1000.0
         );
@@ -137,7 +137,7 @@ pub fn fct_pattern_match(vm: &VM, fct: &FctDefinition, pattern: &str) -> bool {
         return true;
     }
 
-    let fct_name = fct.display_name_vm(vm);
+    let fct_name = display_fct(vm, fct.id());
 
     for part in pattern.split(',') {
         if fct_name.contains(part) {

@@ -5,7 +5,7 @@ use crate::language::sem_analysis::{
     FctDefinition, FctDefinitionId, ModuleDefinitionId, SemAnalysis, SemAnalysisArgs,
 };
 use crate::timer::Timer;
-use crate::vm::{clear_vm, execute_on_main, module_contains, set_vm, VM};
+use crate::vm::{clear_vm, display_fct, execute_on_main, module_contains, set_vm, VM};
 
 pub fn start() -> i32 {
     let args = cmd::parse_arguments();
@@ -169,7 +169,7 @@ fn test_filter_matches(vm: &VM, fct: &FctDefinition) -> bool {
     }
 
     let filter = vm.args.flag_test_filter.as_ref().unwrap();
-    let name = fct.display_name_vm(vm);
+    let name = display_fct(vm, fct.id());
 
     name.contains(filter)
 }

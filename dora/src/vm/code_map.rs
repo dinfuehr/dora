@@ -4,6 +4,7 @@ use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
 use crate::gc::Address;
+use crate::vm::functions::display_fct;
 use crate::vm::{CodeId, CodeKind, VM};
 
 pub struct CodeMap {
@@ -27,20 +28,14 @@ impl CodeMap {
 
             match code.descriptor() {
                 CodeKind::DoraFct(fct_id) => {
-                    let fct = vm.fcts.idx(fct_id);
-                    let fct = fct.read();
-
-                    println!("dora {}", fct.display_name_vm(vm));
+                    println!("dora {}", display_fct(vm, fct_id));
                 }
                 CodeKind::CompileStub => println!("compile_stub"),
                 CodeKind::TrapStub => println!("trap_stub"),
                 CodeKind::AllocStub => println!("alloc_stub"),
                 CodeKind::VerifyStub => println!("verify_stub"),
                 CodeKind::NativeStub(fct_id) => {
-                    let fct = vm.fcts.idx(fct_id);
-                    let fct = fct.read();
-
-                    println!("native stub {}", fct.display_name_vm(vm));
+                    println!("native stub {}", display_fct(vm, fct_id));
                 }
                 CodeKind::DoraStub => println!("dora_stub"),
                 CodeKind::GuardCheckStub => println!("guard_check_stub"),

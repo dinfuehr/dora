@@ -3,7 +3,7 @@ use std::ptr;
 use crate::handle::{handle, Handle};
 use crate::object::{alloc, Array, Int32Array, Ref, Stacktrace, StacktraceElement, Str};
 use crate::threads::current_thread;
-use crate::vm::{get_vm, CodeId, CodeKind, VM};
+use crate::vm::{display_fct, get_vm, CodeId, CodeKind, VM};
 
 pub struct NativeStacktrace {
     elems: Vec<StackElem>,
@@ -28,7 +28,7 @@ impl NativeStacktrace {
             let fct_id = code.fct_id();
             let fct = vm.fcts.idx(fct_id);
             let fct = fct.read();
-            let fct_name = fct.display_name_vm(vm);
+            let fct_name = display_fct(vm, fct_id);
             let file = &vm.source_file(fct.file_id).path;
             let lineno = if elem.lineno == 0 {
                 fct.pos.line
@@ -180,9 +180,7 @@ pub extern "C" fn stack_element(obj: Handle<Stacktrace>, ind: i32) -> Ref<Stackt
 
     let code_id: CodeId = (fct_id as usize).into();
     let code = vm.code_objects.get(code_id);
-    let fct = vm.fcts.idx(code.fct_id());
-    let fct = fct.read();
-    let name = fct.display_name_vm(vm);
+    let name = display_fct(vm, code.fct_id());
     ste.name = Str::from_buffer(vm, name.as_bytes());
 
     ste.direct()

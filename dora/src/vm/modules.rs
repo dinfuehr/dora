@@ -1,44 +1,42 @@
-use crate::vm::{ModuleDefinition, ModuleDefinitionId, VM};
+use crate::vm::{ModuleDefinitionId, VM};
 use dora_parser::interner::Name;
 
-impl ModuleDefinition {
-    pub fn name_vm(&self, vm: &VM) -> String {
-        let mut path = String::new();
+pub fn module_path_with_name(vm: &VM, module_id: ModuleDefinitionId, name: Name) -> String {
+    let mut result = module_path(vm, module_id);
 
-        for &module_id in &self.parents {
-            let module = &vm.modules[module_id].read();
+    if !result.is_empty() {
+        result.push_str("::");
+    }
 
-            if let Some(name) = module.name {
-                if !path.is_empty() {
-                    path.push_str("::");
-                }
+    result.push_str(&vm.interner.str(name));
+    result
+}
 
-                path.push_str(&vm.interner.str(name));
-            }
-        }
+pub fn module_path(vm: &VM, module_id: ModuleDefinitionId) -> String {
+    let start_module = &vm.modules[module_id].read();
+    let mut path = String::new();
 
-        if let Some(name) = self.name {
+    for &module_id in &start_module.parents {
+        let module = &vm.modules[module_id].read();
+
+        if let Some(name) = module.name {
             if !path.is_empty() {
                 path.push_str("::");
             }
 
             path.push_str(&vm.interner.str(name));
         }
-
-        path
-    }
-}
-
-pub fn module_path(sa: &VM, module_id: ModuleDefinitionId, name: Name) -> String {
-    let module = &sa.modules[module_id].read();
-    let mut result = module.name_vm(sa);
-
-    if !result.is_empty() {
-        result.push_str("::");
     }
 
-    result.push_str(&sa.interner.str(name));
-    result
+    if let Some(name) = start_module.name {
+        if !path.is_empty() {
+            path.push_str("::");
+        }
+
+        path.push_str(&vm.interner.str(name));
+    }
+
+    path
 }
 
 pub fn module_contains(

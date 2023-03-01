@@ -5,7 +5,7 @@ use crate::language::sem_analysis::{
 use crate::language::sym::Sym;
 use crate::stack;
 use crate::stdlib;
-use crate::vm::VM;
+use crate::vm::{module_path, VM};
 
 pub fn resolve_internal_functions(vm: &mut VM) {
     let stdlib_id = vm.stdlib_module_id();
@@ -428,9 +428,11 @@ fn resolve_name(vm: &VM, name: &str, module_id: ModuleDefinitionId) -> Sym {
         if let Some(current_sym) = table.get(interned_name) {
             sym = current_sym;
         } else {
-            let module = vm.modules.idx(module_id);
-            let module = module.read();
-            panic!("{} not found in module {}.", name, module.name_vm(vm));
+            panic!(
+                "{} not found in module {}.",
+                name,
+                module_path(vm, module_id)
+            );
         }
     }
 

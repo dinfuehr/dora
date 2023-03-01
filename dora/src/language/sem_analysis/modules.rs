@@ -91,6 +91,10 @@ impl ModuleDefinition {
         }
     }
 
+    pub fn id(&self) -> ModuleDefinitionId {
+        self.id.expect("missing id")
+    }
+
     pub fn package_id(&self) -> PackageDefinitionId {
         self.package_id.expect("uninitialized package_id")
     }

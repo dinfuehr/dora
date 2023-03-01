@@ -40,10 +40,11 @@ pub use self::code_map::CodeMap;
 pub use self::compilation::CompilationDatabase;
 pub use self::enums::{enum_definition_name, EnumInstance, EnumInstanceId, EnumLayout};
 pub use self::extensions::extension_matches_ty;
+pub use self::functions::display_fct;
 use self::globals::GlobalVariableMemory;
 pub use self::impls::{find_trait_impl, implements_trait};
 use self::known::KnownInstances;
-pub use self::modules::{module_contains, module_path};
+pub use self::modules::{module_contains, module_path, module_path_with_name};
 pub use self::specialize::{
     add_ref_fields, create_class_instance, create_enum_instance, create_struct_instance,
     ensure_class_instance_for_enum_variant, ensure_class_instance_for_lambda,
@@ -52,7 +53,7 @@ pub use self::specialize::{
 pub use self::structs::{StructInstance, StructInstanceField, StructInstanceId};
 pub use self::stubs::{setup_stubs, Stubs};
 pub use self::tuples::{get_concrete_tuple_bty, get_concrete_tuple_bty_array, ConcreteTuple};
-pub use self::ty::{display_ty, path_for_type};
+pub use self::ty::display_ty;
 pub use self::waitlists::{ManagedCondition, ManagedMutex, WaitLists};
 
 mod classes;
@@ -71,7 +72,6 @@ mod specialize;
 mod stdlib;
 mod structs;
 mod stubs;
-mod traits;
 mod tuples;
 mod ty;
 mod waitlists;

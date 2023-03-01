@@ -5,12 +5,12 @@ use crate::language::sem_analysis::{
     ClassDefinition, ClassDefinitionId, EnumDefinitionId, FctDefinitionId, TraitDefinitionId,
 };
 use crate::size::InstanceSize;
-use crate::vm::{add_ref_fields, module_path, VM};
+use crate::vm::{add_ref_fields, module_path_with_name, VM};
 use crate::vtable::VTableBox;
 use dora_frontend::Id;
 
 pub fn class_definition_name(cls: &ClassDefinition, vm: &VM) -> String {
-    module_path(vm, cls.module_id, cls.name)
+    module_path_with_name(vm, cls.module_id, cls.name)
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

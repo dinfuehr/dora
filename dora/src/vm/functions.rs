@@ -1,41 +1,46 @@
-use crate::language::generator::bty_from_ty;
-use crate::language::sem_analysis::{FctDefinition, FctParent};
-use crate::vm::{module_path, path_for_type, VM};
+use crate::language::sem_analysis::{FctDefinitionId, FctParent};
+use crate::vm::{module_path, module_path_with_name, VM};
 
-impl FctDefinition {
-    pub fn display_name_vm(&self, sa: &VM) -> String {
-        let mut repr = match self.parent {
-            FctParent::Trait(trait_id) => {
-                let trait_ = sa.traits[trait_id].read();
-                trait_.name_vm(sa)
-            }
-
-            FctParent::Extension(extension_id) => {
-                let extension = &sa.extensions[extension_id];
-                let extension = extension.read();
-                path_for_type(sa, bty_from_ty(extension.ty.clone()))
-            }
-
-            FctParent::Impl(impl_id) => {
-                let impl_ = &sa.impls[impl_id];
-                let impl_ = impl_.read();
-                path_for_type(sa, bty_from_ty(impl_.extended_ty.clone()))
-            }
-
-            FctParent::None => {
-                return module_path(sa, self.module_id, self.name);
-            }
-
-            FctParent::Function(_) => "lamba".into(),
-        };
-
-        if !self.has_parent() || self.is_static {
-            repr.push_str("::");
-        } else {
-            repr.push_str("#");
+pub fn display_fct(vm: &VM, fct_id: FctDefinitionId) -> String {
+    let fct = vm.fcts.idx(fct_id);
+    let fct = fct.read();
+    let mut repr = match fct.parent {
+        FctParent::Trait(trait_id) => {
+            let trait_ = vm.traits[trait_id].read();
+            module_path_with_name(vm, trait_.module_id, trait_.name)
         }
 
-        repr.push_str(&sa.interner.str(self.name));
-        repr
+        FctParent::Extension(..) => {
+            let mut result = module_path(vm, fct.module_id);
+            if result.is_empty() {
+                result.push_str("::");
+            }
+            result.push_str("<impl block>");
+            result
+        }
+
+        FctParent::Impl(..) => {
+            let mut result = module_path(vm, fct.module_id);
+            if result.is_empty() {
+                result.push_str("::");
+            }
+            result.push_str("<impl block>");
+            result
+        }
+
+        FctParent::None => {
+            return module_path_with_name(vm, fct.module_id, fct.name);
+        }
+
+        FctParent::Function(_) => "lamba".into(),
+    };
+
+    if !fct.has_parent() || fct.is_static {
+        repr.push_str("::");
+    } else {
+        repr.push_str("#");
     }
+
+    repr.push_str(&vm.interner.str(fct.name));
+    repr
 }

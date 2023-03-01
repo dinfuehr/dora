@@ -2,11 +2,11 @@ use parking_lot::RwLock;
 
 use crate::bytecode::ty::BytecodeTypeArray;
 use crate::language::sem_analysis::{EnumDefinition, EnumDefinitionId};
-use crate::vm::{module_path, ClassInstanceId, VM};
+use crate::vm::{module_path_with_name, ClassInstanceId, VM};
 use dora_frontend::Id;
 
 pub fn enum_definition_name(enum_: &EnumDefinition, vm: &VM) -> String {
-    module_path(vm, enum_.module_id, enum_.name)
+    module_path_with_name(vm, enum_.module_id, enum_.name)
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]

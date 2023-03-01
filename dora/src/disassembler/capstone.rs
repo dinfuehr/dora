@@ -9,7 +9,7 @@ use capstone::prelude::*;
 use crate::bytecode::BytecodeTypeArray;
 use crate::driver::cmd::AsmSyntax;
 use crate::language::sem_analysis::FctDefinition;
-use crate::vm::{display_ty, Code, VM};
+use crate::vm::{display_fct, display_ty, Code, VM};
 
 pub fn supported() -> bool {
     true
@@ -49,7 +49,7 @@ pub fn disassemble(
         .disasm_all(buf, start_addr)
         .expect("could not disassemble code");
 
-    let name = fct.display_name_vm(vm);
+    let name = display_fct(vm, fct.id());
 
     let type_params = if !type_params.is_empty() {
         let mut ty_names = Vec::new();

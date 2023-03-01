@@ -1,12 +1,5 @@
 use crate::bytecode::BytecodeType;
-use crate::vm::{module_path, StructDefinition, VM};
 use dora_frontend::Id;
-
-impl StructDefinition {
-    pub fn name_vm(&self, vm: &VM) -> String {
-        module_path(vm, self.module_id, self.name)
-    }
-}
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct StructInstanceId(usize);

@@ -1,5 +1,6 @@
 use crate::object::Header;
 use crate::size::InstanceSize;
+use crate::vm::functions::display_fct;
 use crate::vm::{create_class_instance_with_vtable, setup_stubs, stdlib, ShapeKind, VM};
 
 pub(super) fn setup(vm: &mut VM) {
@@ -14,7 +15,7 @@ fn check_unresolved_functions(vm: &VM) {
         let fct = fct.read();
 
         if fct.internal && !fct.internal_resolved && !fct.has_body() {
-            eprintln!("function {}", fct.display_name_vm(vm));
+            eprintln!("function {}", display_fct(vm, fct.id()));
             panic!("found function without implementation");
         }
     }
