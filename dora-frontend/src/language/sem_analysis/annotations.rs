@@ -8,7 +8,7 @@ use crate::language::sem_analysis::{
     ModuleDefinitionId, PackageDefinitionId, SemAnalysis, SourceFileId,
 };
 use crate::language::ty::SourceType;
-use dora_frontend::Id;
+use crate::Id;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct AnnotationDefinitionId(usize);

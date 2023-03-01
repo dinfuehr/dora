@@ -2,8 +2,8 @@ use std::collections::HashSet;
 
 use crate::language::error::msg::ErrorMessage;
 use crate::language::sem_analysis::{
-    ModuleDefinitionId, SemAnalysis, SourceFileId, StructDefinitionField, StructDefinitionFieldId,
-    StructDefinitionId, Visibility,
+    SemAnalysis, SourceFileId, StructDefinitionField, StructDefinitionFieldId, StructDefinitionId,
+    Visibility,
 };
 use crate::language::sym::{ModuleSymTable, Sym};
 use crate::language::ty::SourceType;
@@ -29,7 +29,6 @@ pub fn check(sa: &SemAnalysis) {
             struct_id,
             file_id,
             ast: &ast,
-            module_id,
             symtable: ModuleSymTable::new(sa, module_id),
             fields: HashSet::new(),
         };
@@ -43,7 +42,6 @@ struct StructCheck<'x> {
     struct_id: StructDefinitionId,
     file_id: SourceFileId,
     ast: &'x ast::Struct,
-    module_id: ModuleDefinitionId,
     symtable: ModuleSymTable,
     fields: HashSet<Name>,
 }

@@ -258,42 +258,6 @@ impl<'a> AstBytecodeGen<'a> {
         }
     }
 
-    fn visit_stmt_for_pattern_assign_array(
-        &mut self,
-        pattern: &ast::LetPattern,
-        array_reg: Register,
-        index_reg: Register,
-        ty: SourceType,
-    ) {
-        match pattern {
-            ast::LetPattern::Ident(ref ident) => {
-                let var_id = *self.analysis.map_vars.get(ident.id).unwrap();
-                let var_ty = self.var_ty(var_id);
-
-                if !var_ty.is_unit() {
-                    let var_reg = self.var_reg(var_id);
-                    self.builder
-                        .emit_load_array(var_reg, array_reg, index_reg, ident.pos);
-                }
-            }
-
-            ast::LetPattern::Underscore(_) => {
-                // nothing to do
-            }
-
-            ast::LetPattern::Tuple(ref tuple) => {
-                if tuple.parts.len() > 0 {
-                    let bytecode_ty: BytecodeType = register_bty_from_ty(ty.clone());
-                    let tuple_reg = self.alloc_temp(bytecode_ty.clone());
-                    self.builder
-                        .emit_load_array(tuple_reg, array_reg, index_reg, tuple.pos);
-                    self.destruct_tuple_pattern(tuple, tuple_reg, ty);
-                    self.free_temp(tuple_reg);
-                }
-            }
-        }
-    }
-
     fn visit_stmt_for_pattern_assign_iterator(
         &mut self,
         pattern: &ast::LetPattern,

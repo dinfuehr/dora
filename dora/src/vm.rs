@@ -4,18 +4,10 @@ use std::mem;
 use std::ptr;
 use std::sync::Arc;
 
-use crate::bytecode::{BytecodeType, BytecodeTypeArray};
 use crate::compiler;
 use crate::compiler::dora_exit_stubs::NativeStubs;
 use crate::driver::cmd::Args;
 use crate::gc::{Address, Gc};
-use crate::language::sem_analysis::{
-    AnnotationDefinition, ClassDefinition, ClassDefinitionId, EnumDefinition, EnumDefinitionId,
-    ExtensionDefinition, FctDefinition, FctDefinitionId, GlobalDefinition, ImplDefinition,
-    KnownElements, ModuleDefinition, ModuleDefinitionId, PackageDefinition, PackageDefinitionId,
-    SemAnalysis, SourceFile, SourceFileId, StructDefinition, StructDefinitionId, TraitDefinition,
-    TraitDefinitionId,
-};
 use crate::stack::DoraToNativeInfo;
 use crate::threads::ManagedThread;
 use crate::threads::{
@@ -23,6 +15,14 @@ use crate::threads::{
     STACK_SIZE,
 };
 use crate::utils::GrowableVecNonIter;
+use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray};
+use dora_frontend::language::sem_analysis::{
+    AnnotationDefinition, ClassDefinition, ClassDefinitionId, EnumDefinition, EnumDefinitionId,
+    ExtensionDefinition, FctDefinition, FctDefinitionId, GlobalDefinition, ImplDefinition,
+    KnownElements, ModuleDefinition, ModuleDefinitionId, PackageDefinition, PackageDefinitionId,
+    SemAnalysis, SourceFile, SourceFileId, StructDefinition, StructDefinitionId, TraitDefinition,
+    TraitDefinitionId,
+};
 use dora_frontend::{GrowableVec, MutableVec};
 
 use dora_parser::interner::*;

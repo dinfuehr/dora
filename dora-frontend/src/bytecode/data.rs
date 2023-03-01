@@ -1,11 +1,11 @@
 use std::fmt;
 
 use crate::bytecode::{BytecodeReader, BytecodeType, BytecodeTypeArray};
+use crate::enumeration;
 use crate::language::sem_analysis::{
     ClassDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId, GlobalDefinitionId,
     StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TypeParamId,
 };
-use dora_frontend::enumeration;
 use dora_parser::lexer::position::Position;
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -691,8 +691,6 @@ pub struct BytecodeFunction {
     const_pool: Vec<ConstPoolEntry>,
     arguments: u32,
     positions: Vec<(u32, Position)>,
-    params: Vec<BytecodeType>,
-    return_type: Option<BytecodeType>,
 }
 
 impl BytecodeFunction {
@@ -702,8 +700,6 @@ impl BytecodeFunction {
         registers: Vec<BytecodeType>,
         arguments: u32,
         positions: Vec<(u32, Position)>,
-        params: Vec<BytecodeType>,
-        return_type: Option<BytecodeType>,
     ) -> BytecodeFunction {
         BytecodeFunction {
             code,
@@ -711,8 +707,6 @@ impl BytecodeFunction {
             registers,
             arguments,
             positions,
-            params,
-            return_type,
         }
     }
     pub fn code(&self) -> &[u8] {

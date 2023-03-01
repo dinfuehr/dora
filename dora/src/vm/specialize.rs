@@ -1,10 +1,7 @@
 use parking_lot::RwLock;
 use std::cmp::max;
 
-use crate::bytecode::{BytecodeType, BytecodeTypeArray};
 use crate::cannon::codegen::{align, size};
-use crate::language::generator::bty_from_ty;
-use crate::language::sem_analysis::{ClassDefinitionId, FctDefinitionId, TraitDefinitionId};
 use crate::mem;
 use crate::object::Header;
 use crate::size::InstanceSize;
@@ -13,6 +10,11 @@ use crate::vm::{
     EnumDefinition, EnumDefinitionId, EnumInstance, EnumInstanceId, EnumLayout, FieldInstance,
     ShapeKind, StructDefinition, StructDefinitionId, StructInstance, StructInstanceField,
     StructInstanceId, TraitDefinition, VM,
+};
+use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray};
+use dora_frontend::language::generator::bty_from_ty;
+use dora_frontend::language::sem_analysis::{
+    ClassDefinitionId, FctDefinitionId, TraitDefinitionId,
 };
 
 pub fn create_struct_instance(

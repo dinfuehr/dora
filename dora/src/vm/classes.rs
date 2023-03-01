@@ -1,12 +1,12 @@
 use parking_lot::RwLock;
 
-use crate::bytecode::{BytecodeType, BytecodeTypeArray};
-use crate::language::sem_analysis::{
-    ClassDefinition, ClassDefinitionId, EnumDefinitionId, FctDefinitionId, TraitDefinitionId,
-};
 use crate::size::InstanceSize;
 use crate::vm::{add_ref_fields, module_path_with_name, VM};
 use crate::vtable::VTableBox;
+use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray};
+use dora_frontend::language::sem_analysis::{
+    ClassDefinition, ClassDefinitionId, EnumDefinitionId, FctDefinitionId, TraitDefinitionId,
+};
 use dora_frontend::Id;
 
 pub fn class_definition_name(cls: &ClassDefinition, vm: &VM) -> String {

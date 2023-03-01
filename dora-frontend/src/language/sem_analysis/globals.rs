@@ -6,7 +6,7 @@ use crate::language::sem_analysis::{
     SourceFileId, Visibility,
 };
 use crate::language::ty::SourceType;
-use dora_frontend::Id;
+use crate::Id;
 
 use dora_parser::ast;
 use dora_parser::interner::Name;

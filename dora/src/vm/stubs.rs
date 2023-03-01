@@ -1,4 +1,3 @@
-use crate::bytecode::{BytecodeType, BytecodeTypeArray};
 use crate::compiler::dora_entry_stub;
 use crate::compiler::dora_exit_stubs::{self, NativeFct, NativeFctKind};
 use crate::compiler::lazy_compilation_stub;
@@ -6,6 +5,7 @@ use crate::gc::Address;
 use crate::safepoint;
 use crate::stdlib;
 use crate::vm::VM;
+use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray};
 
 pub struct Stubs {
     compile: Option<Address>,

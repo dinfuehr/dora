@@ -9,27 +9,6 @@ pub fn specialize_type(
     replace_type_param(sa, ty, type_params, None)
 }
 
-pub fn specialize_type_list(
-    sa: &SemAnalysis,
-    list: &SourceTypeArray,
-    type_params: &SourceTypeArray,
-) -> SourceTypeArray {
-    let types = list.types();
-
-    if types.is_empty() {
-        return SourceTypeArray::empty();
-    }
-
-    let mut specialized_types = Vec::with_capacity(types.len());
-
-    for ty in types {
-        let ty = replace_type_param(sa, ty.clone(), type_params, None);
-        specialized_types.push(ty);
-    }
-
-    SourceTypeArray::with(specialized_types)
-}
-
 pub fn replace_type_param(
     sa: &SemAnalysis,
     ty: SourceType,

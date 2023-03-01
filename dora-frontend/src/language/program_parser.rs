@@ -14,7 +14,7 @@ use crate::language::sem_analysis::{
     UseDefinition,
 };
 use crate::language::sym::Sym;
-use dora_frontend::STDLIB;
+use crate::STDLIB;
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit};
 use dora_parser::interner::Name;

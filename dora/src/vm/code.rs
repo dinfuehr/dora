@@ -5,16 +5,16 @@ use std::fmt;
 use std::ptr;
 use std::sync::Arc;
 
-use crate::bytecode::BytecodeTypeArray;
 use crate::cpu::flush_icache;
 use crate::gc::Address;
-use crate::language::sem_analysis::FctDefinitionId;
 use crate::masm::CodeDescriptor;
 use crate::mem;
 use crate::object::Header;
 use crate::os;
 use crate::vm::VM;
 use crate::vtable::VTable;
+use dora_frontend::bytecode::BytecodeTypeArray;
+use dora_frontend::language::sem_analysis::FctDefinitionId;
 
 use dora_parser::Position;
 

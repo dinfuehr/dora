@@ -120,6 +120,7 @@ name = "dora-frontend"
 version = "0.0.2"
 dependencies = [
  "dora-parser",
+ "fixedbitset",
  "parking_lot",
  "walkdir",
 ]

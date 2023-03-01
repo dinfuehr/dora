@@ -4,7 +4,7 @@ use crate::bytecode::{
     BytecodeInstruction, BytecodeOffset, BytecodeOpcode, ConstPoolIdx, OperandWidth, Register,
 };
 use crate::language::sem_analysis::{GlobalDefinition, GlobalDefinitionId};
-use dora_frontend::Id;
+use crate::Id;
 
 pub fn read<T: BytecodeVisitor>(data: &[u8], visitor: &mut T) {
     BytecodeFullIteration::new(data, visitor).read();

@@ -1,7 +1,5 @@
 use crate::language::error::msg::ErrorMessage;
-use crate::language::sem_analysis::{
-    GlobalDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId,
-};
+use crate::language::sem_analysis::{GlobalDefinitionId, SemAnalysis, SourceFileId};
 use crate::language::sym::ModuleSymTable;
 use crate::language::ty::SourceType;
 use crate::language::{self, AllowSelf, TypeParamContext};
@@ -25,7 +23,6 @@ pub fn check<'a>(sa: &SemAnalysis) {
             sa,
             file_id,
             ast: &ast,
-            module_id,
             global_id,
             symtable,
         };
@@ -37,7 +34,6 @@ pub fn check<'a>(sa: &SemAnalysis) {
 struct GlobalDefCheck<'a> {
     sa: &'a SemAnalysis,
     file_id: SourceFileId,
-    module_id: ModuleDefinitionId,
     global_id: GlobalDefinitionId,
     ast: &'a ast::Global,
     symtable: ModuleSymTable,

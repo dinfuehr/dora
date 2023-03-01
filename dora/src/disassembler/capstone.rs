@@ -6,10 +6,10 @@ use std::slice;
 
 use capstone::prelude::*;
 
-use crate::bytecode::BytecodeTypeArray;
 use crate::driver::cmd::AsmSyntax;
-use crate::language::sem_analysis::FctDefinition;
 use crate::vm::{display_fct, display_ty, Code, VM};
+use dora_frontend::bytecode::BytecodeTypeArray;
+use dora_frontend::language::sem_analysis::FctDefinition;
 
 pub fn supported() -> bool {
     true

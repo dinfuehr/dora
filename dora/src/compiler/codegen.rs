@@ -3,18 +3,18 @@ use std::time::Instant;
 use dora_parser::Position;
 
 use crate::boots;
-use crate::bytecode::{BytecodeFunction, BytecodeType, BytecodeTypeArray};
 use crate::cannon::{self, CompilationFlags};
 use crate::compiler::{dora_exit_stubs, NativeFct};
 use crate::cpu::{FReg, Reg};
 use crate::disassembler;
 use crate::driver::cmd::{AsmSyntax, CompilerName};
 use crate::gc::Address;
-use crate::language::generator::{bty_array_from_ty, bty_from_ty};
-use crate::language::sem_analysis::{FctDefinition, FctDefinitionId};
-use crate::language::ty::SourceTypeArray;
 use crate::os;
 use crate::vm::{display_fct, install_code, CodeKind, VM};
+use dora_frontend::bytecode::{BytecodeFunction, BytecodeType, BytecodeTypeArray};
+use dora_frontend::language::generator::{bty_array_from_ty, bty_from_ty};
+use dora_frontend::language::sem_analysis::{FctDefinition, FctDefinitionId};
+use dora_frontend::language::ty::SourceTypeArray;
 
 pub fn generate(vm: &VM, id: FctDefinitionId, type_params: &BytecodeTypeArray) -> Address {
     let fct = vm.fcts.idx(id);

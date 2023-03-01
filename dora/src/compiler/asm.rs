@@ -2,14 +2,12 @@ use std::mem;
 
 use dora_parser::lexer::position::Position;
 
-use crate::bytecode::{BytecodeType, BytecodeTypeArray};
 use crate::cannon::codegen::{mode, result_reg_mode, RegOrOffset};
 use crate::compiler::codegen::{ensure_native_stub, AllocationSize, AnyReg};
 use crate::compiler::dora_exit_stubs::{NativeFct, NativeFctKind};
 use crate::cpu::{FReg, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_THREAD, REG_TMP1, REG_TMP2};
 use crate::gc::tlab::TLAB_OBJECT_SIZE;
 use crate::gc::Address;
-use crate::language::sem_analysis::{FctDefinitionId, GlobalDefinitionId, StructDefinitionId};
 use crate::masm::{CodeDescriptor, CondCode, Label, MacroAssembler, Mem, ScratchReg};
 use crate::mode::MachineMode;
 use crate::stdlib;
@@ -17,6 +15,10 @@ use crate::threads::ThreadLocalData;
 use crate::vm::{
     create_enum_instance, create_struct_instance, get_concrete_tuple_bty_array, EnumLayout,
     GcPoint, LazyCompilationSite, Trap, VM,
+};
+use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray};
+use dora_frontend::language::sem_analysis::{
+    FctDefinitionId, GlobalDefinitionId, StructDefinitionId,
 };
 
 pub struct BaselineAssembler<'a> {

@@ -3675,10 +3675,6 @@ impl VarManager {
         self.functions.last().expect("no function entered")
     }
 
-    fn current_function_mut(&mut self) -> &mut VarAccessPerFunction {
-        self.functions.last_mut().expect("no function entered")
-    }
-
     fn function_for_var(&mut self, var_id: NestedVarId) -> &mut VarAccessPerFunction {
         for function in self.functions.iter_mut().rev() {
             if var_id.0 >= function.start_idx {

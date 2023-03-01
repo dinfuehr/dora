@@ -1,6 +1,6 @@
-use crate::bytecode::{BytecodeType, BytecodeTypeArray};
-use crate::language::sem_analysis::{TypeParamDefinition, TypeParamId};
 use crate::vm::{StructDefinitionId, VM};
+use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray};
+use dora_frontend::language::sem_analysis::{TypeParamDefinition, TypeParamId};
 
 pub fn display_ty(vm: &VM, ty: &BytecodeType) -> String {
     let printer = BytecodeTypePrinter {

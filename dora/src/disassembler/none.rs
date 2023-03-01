@@ -1,7 +1,7 @@
-use crate::bytecode::BytecodeTypeArray;
 use crate::driver::cmd::AsmSyntax;
-use crate::language::sem_analysis::FctDefinition;
 use crate::vm::{Code, VM};
+use dora_frontend::bytecode::BytecodeTypeArray;
+use dora_frontend::language::sem_analysis::FctDefinition;
 
 pub fn supported() -> bool {
     false

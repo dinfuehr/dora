@@ -29,11 +29,11 @@ pub mod sem_analysis;
 mod specialize;
 mod stdlib;
 mod structdefck;
-pub(crate) mod sym;
+pub mod sym;
 #[cfg(test)]
 mod test;
 mod traitdefck;
-pub(crate) mod ty;
+pub mod ty;
 mod type_params;
 mod typeparamck;
 mod useck;

@@ -1,13 +1,11 @@
 use std::mem::size_of;
 use std::sync::Arc;
 
-use crate::bytecode::BytecodeTypeArray;
 use crate::compiler;
 use crate::cpu::{
     CCALL_REG_PARAMS, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1,
 };
 use crate::gc::Address;
-use crate::language::sem_analysis::FctDefinitionId;
 use crate::masm::{MacroAssembler, Mem};
 use crate::mem;
 use crate::mode::MachineMode;
@@ -16,6 +14,8 @@ use crate::os;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::ThreadLocalData;
 use crate::vm::{get_vm, install_code_stub, Code, CodeKind, LazyCompilationSite, ShapeKind, VM};
+use dora_frontend::bytecode::BytecodeTypeArray;
+use dora_frontend::language::sem_analysis::FctDefinitionId;
 
 // This code generates the compiler stub, there should only be one instance
 // of this function be used in Dora. It is necessary for lazy compilation, where

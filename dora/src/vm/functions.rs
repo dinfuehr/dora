@@ -1,5 +1,5 @@
-use crate::language::sem_analysis::{FctDefinitionId, FctParent};
 use crate::vm::{module_path, module_path_with_name, VM};
+use dora_frontend::language::sem_analysis::{FctDefinitionId, FctParent};
 
 pub fn display_fct(vm: &VM, fct_id: FctDefinitionId) -> String {
     let fct = vm.fcts.idx(fct_id);

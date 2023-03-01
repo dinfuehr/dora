@@ -1,9 +1,8 @@
 use crate::language::error::msg::ErrorMessage;
 use crate::language::fctbodyck::body::args_compatible_fct;
 use crate::language::sem_analysis::{
-    extension_matches, find_methods_in_class, find_methods_in_enum, find_methods_in_struct,
-    impl_matches, Candidate, FctDefinition, FctDefinitionId, SemAnalysis, SourceFileId,
-    TraitDefinitionId, TypeParamDefinition,
+    find_methods_in_class, find_methods_in_enum, find_methods_in_struct, FctDefinition,
+    FctDefinitionId, SemAnalysis, SourceFileId, TraitDefinitionId, TypeParamDefinition,
 };
 use crate::language::specialize::replace_type_param;
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -112,11 +111,6 @@ impl<'a> MethodLookup<'a> {
 
     pub fn name(mut self, name: Name) -> MethodLookup<'a> {
         self.name = Some(name);
-        self
-    }
-
-    pub fn return_type(mut self, ret: SourceType) -> MethodLookup<'a> {
-        self.ret = Some(ret);
         self
     }
 
@@ -335,57 +329,4 @@ impl<'a> MethodLookup<'a> {
     pub fn found_ret(&self) -> Option<SourceType> {
         self.found_ret.clone()
     }
-}
-
-pub fn find_methods(
-    sa: &SemAnalysis,
-    object_type: SourceType,
-    type_param_defs: &TypeParamDefinition,
-    name: Name,
-    is_static: bool,
-) -> Vec<Candidate> {
-    for extension in sa.extensions.iter() {
-        let extension = extension.read();
-        if let Some(bindings) =
-            extension_matches(sa, object_type.clone(), type_param_defs, extension.id())
-        {
-            let table = if is_static {
-                &extension.static_names
-            } else {
-                &extension.instance_names
-            };
-
-            if let Some(&fct_id) = table.get(&name) {
-                return vec![Candidate {
-                    object_type: object_type.clone(),
-                    container_type_params: bindings,
-                    fct_id,
-                }];
-            }
-        }
-    }
-
-    let mut candidates = Vec::new();
-
-    for impl_ in sa.impls.iter() {
-        let impl_ = impl_.read();
-
-        if let Some(bindings) = impl_matches(sa, object_type.clone(), type_param_defs, impl_.id()) {
-            let table = if is_static {
-                &impl_.static_names
-            } else {
-                &impl_.instance_names
-            };
-
-            if let Some(&method_id) = table.get(&name) {
-                candidates.push(Candidate {
-                    object_type: object_type.clone(),
-                    container_type_params: bindings.clone(),
-                    fct_id: method_id,
-                });
-            }
-        }
-    }
-
-    candidates
 }

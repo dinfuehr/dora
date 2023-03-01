@@ -2,10 +2,10 @@ use parking_lot::{Condvar, Mutex};
 
 use std::collections::HashMap;
 
-use crate::bytecode::BytecodeTypeArray;
 use crate::gc::Address;
-use crate::language::sem_analysis::FctDefinitionId;
 use crate::vm::{CodeId, VM};
+use dora_frontend::bytecode::BytecodeTypeArray;
+use dora_frontend::language::sem_analysis::FctDefinitionId;
 
 #[derive(PartialEq, Debug)]
 enum CompilationStatus {

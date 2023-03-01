@@ -1,4 +1,4 @@
-use crate::bytecode::BytecodeFunction;
+use dora_frontend::bytecode::BytecodeFunction;
 
 pub(super) struct BytecodeLiveness;
 

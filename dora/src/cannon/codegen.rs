@@ -1,10 +1,6 @@
 use dora_parser::lexer::position::Position;
 use std::collections::HashMap;
 
-use crate::bytecode::{
-    self, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeTypeArray, BytecodeVisitor,
-    ConstPoolEntry, ConstPoolIdx, Register,
-};
 use crate::cannon::liveness::BytecodeLiveness;
 use crate::compiler::asm::BaselineAssembler;
 use crate::compiler::codegen::{ensure_native_stub, AllocationSize, AnyReg, CompilationData};
@@ -14,11 +10,6 @@ use crate::cpu::{
     REG_RESULT, REG_SP, REG_TMP1, REG_TMP2, STACK_FRAME_ALIGNMENT,
 };
 use crate::gc::Address;
-use crate::language::generator::{
-    bty_from_ty, register_bty_from_bty, register_bty_from_ty, ty_from_bty,
-};
-use crate::language::sem_analysis::{FctDefinitionId, GlobalDefinitionId, Intrinsic};
-use crate::language::ty::SourceType;
 use crate::masm::{CodeDescriptor, CondCode, Label, Mem};
 use crate::mem::{self, align_i32};
 use crate::mode::MachineMode;
@@ -33,6 +24,15 @@ use crate::vm::{
     LazyCompilationSite, Trap, VM,
 };
 use crate::vtable::VTable;
+use dora_frontend::bytecode::{
+    self, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeTypeArray, BytecodeVisitor,
+    ConstPoolEntry, ConstPoolIdx, Register,
+};
+use dora_frontend::language::generator::{
+    bty_from_ty, register_bty_from_bty, register_bty_from_ty, ty_from_bty,
+};
+use dora_frontend::language::sem_analysis::{FctDefinitionId, GlobalDefinitionId, Intrinsic};
+use dora_frontend::language::ty::SourceType;
 
 use super::CompilationFlags;
 

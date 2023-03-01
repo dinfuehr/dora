@@ -1,12 +1,14 @@
-use crate::bytecode::{
+use crate::vm::{find_trait_impl, VM};
+use dora_frontend::bytecode::{
     BytecodeBuilder, BytecodeFunction, BytecodeType, BytecodeTypeArray, Register,
 };
-use crate::language::generator::{register_bty_from_bty, register_bty_from_ty, ty_from_bty};
-use crate::language::sem_analysis::{
+use dora_frontend::language::generator::{
+    register_bty_from_bty, register_bty_from_ty, ty_from_bty,
+};
+use dora_frontend::language::sem_analysis::{
     AnalysisData, FctDefinition, FctDefinitionId, FctParent, TypeParamId,
 };
-use crate::language::ty::SourceType;
-use crate::vm::{find_trait_impl, VM};
+use dora_frontend::language::ty::SourceType;
 
 pub fn ensure(
     vm: &VM,

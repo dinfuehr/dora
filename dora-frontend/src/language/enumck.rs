@@ -88,7 +88,6 @@ pub fn check_variants(sa: &SemAnalysis) {
 
         let mut enumck = EnumCheckVariants {
             sa,
-            file_id: enum_.file_id,
             ast: &ast,
             enum_: &mut *enum_,
         };
@@ -99,7 +98,6 @@ pub fn check_variants(sa: &SemAnalysis) {
 
 struct EnumCheckVariants<'x> {
     sa: &'x SemAnalysis,
-    file_id: SourceFileId,
     ast: &'x Arc<ast::Enum>,
     enum_: &'x mut EnumDefinition,
 }

@@ -2,7 +2,6 @@ use std::collections::hash_map::HashMap;
 use std::mem::size_of;
 use std::sync::Arc;
 
-use crate::bytecode::{BytecodeType, BytecodeTypeArray};
 use crate::cannon::codegen::mode;
 use crate::compiler::codegen::AnyReg;
 use crate::cpu::{
@@ -10,7 +9,6 @@ use crate::cpu::{
     REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1,
 };
 use crate::gc::Address;
-use crate::language::sem_analysis::FctDefinitionId;
 use crate::masm::{MacroAssembler, Mem};
 use crate::mem;
 use crate::mode::MachineMode;
@@ -18,6 +16,8 @@ use crate::stack::DoraToNativeInfo;
 use crate::threads::ThreadLocalData;
 use crate::vm::install_code_stub;
 use crate::vm::{Code, CodeKind, GcPoint, VM};
+use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray};
+use dora_frontend::language::sem_analysis::FctDefinitionId;
 
 pub struct NativeStubs {
     map: HashMap<Address, Address>,

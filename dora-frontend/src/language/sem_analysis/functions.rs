@@ -2,7 +2,7 @@ use parking_lot::RwLock;
 
 use std::sync::Arc;
 
-use dora_frontend::Id;
+use crate::Id;
 use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;

@@ -1,10 +1,10 @@
 use parking_lot::RwLock;
 use std::sync::Arc;
 
-use dora_frontend::language::sem_analysis::{PackageDefinitionId, SemAnalysis, Visibility};
-use dora_frontend::language::sym::SymTable;
-use dora_frontend::language::SourceFileId;
-use dora_frontend::Id;
+use crate::language::sem_analysis::{PackageDefinitionId, SemAnalysis, Visibility};
+use crate::language::sym::SymTable;
+use crate::language::SourceFileId;
+use crate::Id;
 
 use dora_parser::ast;
 use dora_parser::interner::Name;

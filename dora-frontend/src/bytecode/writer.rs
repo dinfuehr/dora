@@ -385,8 +385,6 @@ impl BytecodeWriter {
             self.registers,
             self.arguments,
             self.positions,
-            Vec::new(),
-            None,
         )
     }
 
@@ -401,8 +399,6 @@ impl BytecodeWriter {
             registers,
             self.arguments,
             self.positions,
-            Vec::new(),
-            None,
         )
     }
 

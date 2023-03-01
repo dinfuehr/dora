@@ -11,7 +11,6 @@ extern crate winapi;
 extern crate memoffset;
 
 mod boots;
-mod bytecode;
 mod cannon;
 mod compiler;
 mod constpool;
@@ -20,7 +19,6 @@ mod disassembler;
 mod driver;
 mod gc;
 mod handle;
-mod language;
 mod masm;
 mod mem;
 mod mode;

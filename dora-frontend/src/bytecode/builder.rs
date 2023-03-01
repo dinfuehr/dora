@@ -14,8 +14,6 @@ use crate::language::sem_analysis::{
 pub struct BytecodeBuilder {
     writer: BytecodeWriter,
     registers: Registers,
-    params: Option<Vec<BytecodeType>>,
-    return_type: Option<Option<BytecodeType>>,
 }
 
 impl BytecodeBuilder {
@@ -23,8 +21,6 @@ impl BytecodeBuilder {
         BytecodeBuilder {
             writer: BytecodeWriter::new(),
             registers: Registers::new(),
-            params: None,
-            return_type: None,
         }
     }
 

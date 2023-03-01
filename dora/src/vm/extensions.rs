@@ -1,6 +1,6 @@
-use crate::language::sem_analysis::TypeParamDefinition;
-use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::vm::{implements_trait, VM};
+use dora_frontend::language::sem_analysis::TypeParamDefinition;
+use dora_frontend::language::ty::{SourceType, SourceTypeArray};
 
 pub fn extension_matches_ty(
     vm: &VM,

@@ -9,7 +9,7 @@ use crate::language::sem_analysis::{
     FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, SourceFileId, TypeParamDefinition,
 };
 use crate::language::ty::SourceType;
-use dora_frontend::Id;
+use crate::Id;
 
 pub use self::matching::{extension_matches, extension_matches_ty};
 use dora_parser::ast;

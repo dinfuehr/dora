@@ -1,34 +1,12 @@
-use dora_parser::ast;
-
-use crate::language::sem_analysis::{
-    FctDefinitionId, ModuleDefinitionId, SemAnalysis, SourceFileId, TraitDefinition,
-    TraitDefinitionId,
-};
-use crate::language::sym::ModuleSymTable;
+use crate::language::sem_analysis::{FctDefinitionId, SemAnalysis, TraitDefinition};
 
 pub fn check(sa: &SemAnalysis) {
     for trait_ in sa.traits.iter() {
-        let (trait_id, file_id, ast, module_id) = {
-            let trait_ = trait_.read();
-            (
-                trait_.id(),
-                trait_.file_id,
-                trait_.ast.clone(),
-                trait_.module_id,
-            )
-        };
-
-        let trait_ = &sa.traits[trait_id];
         let mut trait_ = trait_.write();
 
         let mut traitck = TraitCheck {
             sa,
-            trait_id,
-            file_id,
-            ast: &ast,
-            module_id,
             trait_: &mut *trait_,
-            sym: ModuleSymTable::new(sa, module_id),
             vtable_index: 0,
         };
 
@@ -38,12 +16,7 @@ pub fn check(sa: &SemAnalysis) {
 
 struct TraitCheck<'x> {
     sa: &'x SemAnalysis,
-    file_id: SourceFileId,
-    trait_id: TraitDefinitionId,
-    ast: &'x ast::Trait,
-    module_id: ModuleDefinitionId,
     trait_: &'x mut TraitDefinition,
-    sym: ModuleSymTable,
     vtable_index: u32,
 }
 

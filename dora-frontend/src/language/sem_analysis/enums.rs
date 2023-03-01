@@ -12,7 +12,7 @@ use crate::language::sem_analysis::{
     Visibility,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
-use dora_frontend::Id;
+use crate::Id;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct EnumDefinitionId(u32);

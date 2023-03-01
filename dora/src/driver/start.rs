@@ -1,11 +1,11 @@
 use crate::driver::cmd::{self, Args};
-use crate::language;
-use crate::language::error::msg::ErrorMessage;
-use crate::language::sem_analysis::{
-    FctDefinition, FctDefinitionId, ModuleDefinitionId, SemAnalysis, SemAnalysisArgs,
-};
 use crate::timer::Timer;
 use crate::vm::{clear_vm, display_fct, execute_on_main, module_contains, set_vm, VM};
+use dora_frontend::language;
+use dora_frontend::language::error::msg::ErrorMessage;
+use dora_frontend::language::sem_analysis::{
+    FctDefinition, FctDefinitionId, ModuleDefinitionId, SemAnalysis, SemAnalysisArgs,
+};
 
 pub fn start() -> i32 {
     let args = cmd::parse_arguments();

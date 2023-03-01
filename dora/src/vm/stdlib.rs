@@ -1,11 +1,11 @@
 use crate::gc::Address;
-use crate::language::sem_analysis::{
-    ClassDefinitionId, ExtensionDefinitionId, FctDefinitionId, Intrinsic, ModuleDefinitionId,
-};
-use crate::language::sym::Sym;
 use crate::stack;
 use crate::stdlib;
 use crate::vm::{module_path, VM};
+use dora_frontend::language::sem_analysis::{
+    ClassDefinitionId, ExtensionDefinitionId, FctDefinitionId, Intrinsic, ModuleDefinitionId,
+};
+use dora_frontend::language::sym::Sym;
 
 pub fn resolve_internal_functions(vm: &mut VM) {
     let stdlib_id = vm.stdlib_module_id();

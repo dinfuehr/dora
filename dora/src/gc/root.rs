@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
-use crate::bytecode::BytecodeType;
 use crate::gc::Address;
-use crate::language::generator::bty_from_ty;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::DoraThread;
 use crate::vm::{
     create_enum_instance, create_struct_instance, get_concrete_tuple_bty, CodeKind, EnumLayout, VM,
 };
+use dora_frontend::bytecode::BytecodeType;
+use dora_frontend::language::generator::bty_from_ty;
 
 pub fn determine_strong_roots(vm: &VM, threads: &[Arc<DoraThread>]) -> Vec<Slot> {
     let mut rootset = Vec::new();

@@ -1,10 +1,10 @@
 use crate::cannon::codegen::{align, size};
 use crate::gc::{Address, Region};
-use crate::language::generator::bty_from_ty;
-use crate::language::sem_analysis::GlobalDefinitionId;
 use crate::mem;
 use crate::os;
 use crate::vm::VM;
+use dora_frontend::language::generator::bty_from_ty;
+use dora_frontend::language::sem_analysis::GlobalDefinitionId;
 
 pub fn init_global_addresses(vm: &mut VM) {
     let mut backing_memory_size = 0;

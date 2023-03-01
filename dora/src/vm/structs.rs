@@ -1,4 +1,4 @@
-use crate::bytecode::BytecodeType;
+use dora_frontend::bytecode::BytecodeType;
 use dora_frontend::Id;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]

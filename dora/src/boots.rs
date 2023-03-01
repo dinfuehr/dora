@@ -2,14 +2,14 @@ use std::mem;
 use std::ptr;
 
 use crate::boots::serializer::allocate_encoded_compilation_info;
-use crate::bytecode::{BytecodeTypeArray, InstructionSet};
 use crate::gc::Address;
 use crate::handle::handle;
-use crate::language::sem_analysis::FctDefinition;
 use crate::masm::CodeDescriptor;
 use crate::object::{Ref, UInt8Array};
 use crate::threads::current_thread;
 use crate::vm::VM;
+use dora_frontend::bytecode::{BytecodeTypeArray, InstructionSet};
+use dora_frontend::language::sem_analysis::FctDefinition;
 
 mod serializer;
 

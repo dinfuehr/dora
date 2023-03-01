@@ -1,6 +1,6 @@
-use crate::language::sem_analysis::{ImplDefinitionId, TypeParamDefinition};
-use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::vm::{extension_matches_ty, FctDefinitionId, VM};
+use dora_frontend::language::sem_analysis::{ImplDefinitionId, TypeParamDefinition};
+use dora_frontend::language::ty::{SourceType, SourceTypeArray};
 
 pub fn find_trait_impl(
     vm: &VM,

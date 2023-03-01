@@ -1,8 +1,8 @@
 use lazy_static::lazy_static;
 use std::sync::atomic::{compiler_fence, Ordering};
 
-use crate::language::ty::SourceType;
 use dora_asm::x64::Register;
+use dora_frontend::language::ty::SourceType;
 
 pub fn flush_icache(_: *const u8, _: usize) {
     // no flushing needed on x86_64, but emit compiler barrier
