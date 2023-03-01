@@ -2,19 +2,6 @@ use crate::bytecode::{BytecodeType, BytecodeTypeArray};
 use crate::language::sem_analysis::{TypeParamDefinition, TypeParamId};
 use crate::vm::{class_definition_name, enum_definition_name, StructDefinitionId, VM};
 
-fn primitive_struct_id(sa: &VM, ty: &BytecodeType) -> Option<StructDefinitionId> {
-    match ty {
-        BytecodeType::Bool => Some(sa.known.structs.bool()),
-        BytecodeType::UInt8 => Some(sa.known.structs.uint8()),
-        BytecodeType::Char => Some(sa.known.structs.char()),
-        BytecodeType::Int32 => Some(sa.known.structs.int32()),
-        BytecodeType::Int64 => Some(sa.known.structs.int64()),
-        BytecodeType::Float32 => Some(sa.known.structs.float32()),
-        BytecodeType::Float64 => Some(sa.known.structs.float64()),
-        _ => None,
-    }
-}
-
 pub fn path_for_type(vm: &VM, ty: BytecodeType) -> String {
     if let BytecodeType::Enum(enum_id, _) = ty {
         let enum_ = &vm.enums[enum_id];
@@ -43,35 +30,23 @@ pub fn display_ty(vm: &VM, ty: &BytecodeType) -> String {
     let printer = BytecodeTypePrinter {
         vm,
         type_params: None,
+        ty: ty.clone(),
     };
 
-    printer.name(ty.clone())
-}
-
-pub fn display_tuple(vm: &VM, types: &BytecodeTypeArray) -> String {
-    let mut result = String::new();
-    let mut first = true;
-    result.push('(');
-
-    for ty in types.iter() {
-        if !first {
-            result.push_str(", ");
-        }
-        result.push_str(&display_ty(vm, &ty));
-        first = false;
-    }
-
-    result.push(')');
-
-    result
+    printer.string()
 }
 
 struct BytecodeTypePrinter<'a> {
     vm: &'a VM,
     type_params: Option<&'a TypeParamDefinition>,
+    ty: BytecodeType,
 }
 
 impl<'a> BytecodeTypePrinter<'a> {
+    fn string(&self) -> String {
+        self.name(self.ty.clone())
+    }
+
     fn name(&self, ty: BytecodeType) -> String {
         match ty {
             BytecodeType::Unit => "()".into(),
@@ -151,5 +126,24 @@ impl<'a> BytecodeTypePrinter<'a> {
             .map(|ty| self.name(ty))
             .collect::<Vec<_>>()
             .join(", ")
+    }
+}
+
+impl<'a> std::fmt::Display for BytecodeTypePrinter<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.string())
+    }
+}
+
+fn primitive_struct_id(sa: &VM, ty: &BytecodeType) -> Option<StructDefinitionId> {
+    match ty {
+        BytecodeType::Bool => Some(sa.known.structs.bool()),
+        BytecodeType::UInt8 => Some(sa.known.structs.uint8()),
+        BytecodeType::Char => Some(sa.known.structs.char()),
+        BytecodeType::Int32 => Some(sa.known.structs.int32()),
+        BytecodeType::Int64 => Some(sa.known.structs.int64()),
+        BytecodeType::Float32 => Some(sa.known.structs.float32()),
+        BytecodeType::Float64 => Some(sa.known.structs.float64()),
+        _ => None,
     }
 }
