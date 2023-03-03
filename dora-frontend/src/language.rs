@@ -6,6 +6,7 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
+pub use program::emit_program;
 pub use readty::{read_type, read_type_unchecked, AllowSelf, TypeParamContext};
 
 pub(crate) mod access;
@@ -22,6 +23,7 @@ mod generator_tests;
 mod globaldefck;
 mod implck;
 mod impldefck;
+pub mod program;
 mod program_parser;
 mod readty;
 mod returnck;

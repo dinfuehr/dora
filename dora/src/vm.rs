@@ -15,12 +15,13 @@ use crate::threads::{
     STACK_SIZE,
 };
 use crate::utils::GrowableVecNonIter;
+use dora_frontend::bytecode::Program;
 use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray};
 use dora_frontend::language::sem_analysis::{
     AnnotationDefinition, ClassDefinition, ClassDefinitionId, EnumDefinition, EnumDefinitionId,
     ExtensionDefinition, FctDefinition, FctDefinitionId, GlobalDefinition, ImplDefinition,
-    KnownElements, ModuleDefinition, ModuleDefinitionId, PackageDefinition, PackageDefinitionId,
-    SemAnalysis, SourceFile, SourceFileId, StructDefinition, StructDefinitionId, TraitDefinition,
+    KnownElements, ModuleDefinition, ModuleDefinitionId, PackageDefinitionId, SemAnalysis,
+    SourceFile, SourceFileId, StructDefinition, StructDefinitionId, TraitDefinition,
     TraitDefinitionId,
 };
 use dora_frontend::{GrowableVec, MutableVec};
@@ -107,6 +108,7 @@ pub fn stack_pointer() -> Address {
 
 pub struct VM {
     pub args: Args,
+    pub program: Program,
     pub interner: Interner,
     pub source_files: Vec<SourceFile>,
     pub known: KnownElements,
@@ -140,12 +142,7 @@ pub struct VM {
     pub native_implementations: HashMap<FctDefinitionId, Address>,
     pub stubs: Stubs,
     pub threads: Threads,
-    pub packages: MutableVec<PackageDefinition>,
     pub package_names: HashMap<Name, PackageDefinitionId>,
-    pub prelude_module_id: Option<ModuleDefinitionId>,
-    pub stdlib_module_id: Option<ModuleDefinitionId>,
-    pub program_module_id: Option<ModuleDefinitionId>,
-    pub boots_module_id: Option<ModuleDefinitionId>,
     pub stdlib_package_id: Option<PackageDefinitionId>,
     pub program_package_id: Option<PackageDefinitionId>,
     pub boots_package_id: Option<PackageDefinitionId>,
@@ -153,11 +150,12 @@ pub struct VM {
 }
 
 impl VM {
-    pub fn new_from_sa(sa: Box<SemAnalysis>, args: Args) -> Box<VM> {
+    pub fn new_from_sa(sa: Box<SemAnalysis>, program: Program, args: Args) -> Box<VM> {
         let gc = Gc::new(&args);
 
         let vm = Box::new(VM {
             args,
+            program,
             source_files: sa.source_files,
             structs: sa.structs,
             struct_specializations: RwLock::new(HashMap::new()),
@@ -188,11 +186,6 @@ impl VM {
             native_implementations: HashMap::new(),
             stubs: Stubs::new(),
             threads: Threads::new(),
-            packages: sa.packages,
-            prelude_module_id: sa.prelude_module_id,
-            stdlib_module_id: sa.stdlib_module_id,
-            program_module_id: sa.program_module_id,
-            boots_module_id: sa.boots_module_id,
             stdlib_package_id: sa.stdlib_package_id,
             program_package_id: sa.program_package_id,
             boots_package_id: sa.boots_package_id,
@@ -256,32 +249,16 @@ impl VM {
         code_id
     }
 
-    pub fn prelude_module_id(&self) -> ModuleDefinitionId {
-        self.prelude_module_id.expect("uninitialized module id")
-    }
-
     pub fn stdlib_module_id(&self) -> ModuleDefinitionId {
-        self.stdlib_module_id.expect("uninitialized module id")
-    }
-
-    pub fn boots_module_id(&self) -> ModuleDefinitionId {
-        self.boots_module_id.expect("uninitialized module id")
+        let pkg_id = self.program.stdlib_package_id.0 as usize;
+        let pkg = &self.program.packages[pkg_id];
+        ModuleDefinitionId(pkg.root_module_id.0 as usize)
     }
 
     pub fn program_module_id(&self) -> ModuleDefinitionId {
-        self.program_module_id.expect("uninitialized module id")
-    }
-
-    pub fn stdlib_package_id(&self) -> PackageDefinitionId {
-        self.stdlib_package_id.expect("uninitialized package id")
-    }
-
-    pub fn boots_package_id(&self) -> PackageDefinitionId {
-        self.boots_package_id.expect("uninitialized package id")
-    }
-
-    pub fn program_package_id(&self) -> PackageDefinitionId {
-        self.program_package_id.expect("uninitialized package id")
+        let pkg_id = self.program.program_package_id.0 as usize;
+        let pkg = &self.program.packages[pkg_id];
+        ModuleDefinitionId(pkg.root_module_id.0 as usize)
     }
 
     pub fn source_file(&self, idx: SourceFileId) -> &SourceFile {
