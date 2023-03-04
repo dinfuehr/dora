@@ -12,7 +12,10 @@ mod tests;
 pub use builder::*;
 pub use data::*;
 pub use dumper::dump;
-pub use program::{ModuleData, ModuleId, PackageData, PackageId, Program};
+pub use program::{
+    FunctionData, FunctionId, GlobalData, GlobalId, ModuleData, ModuleId, PackageData, PackageId,
+    Program,
+};
 pub use reader::*;
 pub use ty::{BytecodeType, BytecodeTypeArray};
 pub use writer::*;
