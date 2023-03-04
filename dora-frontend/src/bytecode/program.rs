@@ -64,6 +64,15 @@ pub struct EnumData {
     pub name: String,
 }
 
+#[derive(Copy, Clone, Debug)]
+pub struct TraitId(pub u32);
+
+#[derive(Debug)]
+pub struct TraitData {
+    pub module_id: ModuleId,
+    pub name: String,
+}
+
 #[derive(Debug)]
 pub struct Program {
     pub packages: Vec<PackageData>,
@@ -73,6 +82,7 @@ pub struct Program {
     pub classes: Vec<ClassData>,
     pub structs: Vec<StructData>,
     pub enums: Vec<EnumData>,
+    pub traits: Vec<TraitData>,
     pub stdlib_package_id: PackageId,
     pub program_package_id: PackageId,
     pub boots_package_id: Option<PackageId>,

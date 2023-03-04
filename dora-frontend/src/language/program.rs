@@ -1,7 +1,6 @@
-use crate::bytecode::program::{ClassData, FunctionData};
 use crate::bytecode::{
-    EnumData, FunctionId, GlobalData, ModuleData, ModuleId, PackageData, PackageId, Program,
-    StructData,
+    ClassData, EnumData, FunctionData, FunctionId, GlobalData, ModuleData, ModuleId, PackageData,
+    PackageId, Program, StructData, TraitData,
 };
 use crate::language::SemAnalysis;
 
@@ -19,6 +18,7 @@ pub fn emit_program(sa: &SemAnalysis) -> Program {
         classes: create_classes(sa),
         structs: create_structs(sa),
         enums: create_enums(sa),
+        traits: create_traits(sa),
         stdlib_package_id: convert_package_id(sa.stdlib_package_id()),
         program_package_id: convert_package_id(sa.program_package_id()),
         boots_package_id: sa.boots_package_id.map(|p| convert_package_id(p)),
@@ -137,6 +137,22 @@ fn create_enums(sa: &SemAnalysis) -> Vec<EnumData> {
 
         result.push(EnumData {
             module_id: convert_module_id(enum_.module_id),
+            name,
+        })
+    }
+
+    result
+}
+
+fn create_traits(sa: &SemAnalysis) -> Vec<TraitData> {
+    let mut result = Vec::new();
+
+    for trait_ in sa.enums.iter() {
+        let trait_ = trait_.read();
+        let name = sa.interner.str(trait_.name).to_string();
+
+        result.push(TraitData {
+            module_id: convert_module_id(trait_.module_id),
             name,
         })
     }
