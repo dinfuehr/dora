@@ -2764,7 +2764,7 @@ impl<'a> AstBytecodeGen<'a> {
             &IdentType::Context(distance, field_id) => {
                 self.visit_expr_ident_context(distance, field_id, dest, ident.pos)
             }
-            &IdentType::Global(gid) => self.visit_expr_ident_global(gid, dest),
+            &IdentType::Global(gid) => self.visit_expr_ident_global(gid, dest, ident.pos),
             &IdentType::Const(cid) => self.visit_expr_ident_const(cid, dest),
             &IdentType::EnumValue(enum_id, ref type_params, variant_idx) => {
                 self.emit_new_enum(enum_id, type_params.clone(), variant_idx, ident.pos, dest)
@@ -2909,7 +2909,12 @@ impl<'a> AstBytecodeGen<'a> {
         dest
     }
 
-    fn visit_expr_ident_global(&mut self, gid: GlobalDefinitionId, dest: DataDest) -> Register {
+    fn visit_expr_ident_global(
+        &mut self,
+        gid: GlobalDefinitionId,
+        dest: DataDest,
+        pos: Position,
+    ) -> Register {
         if dest.is_effect() {
             return Register::invalid();
         }
@@ -2925,7 +2930,7 @@ impl<'a> AstBytecodeGen<'a> {
         let ty: BytecodeType = register_bty_from_ty(global_var.ty.clone());
         let dest = self.ensure_register(dest, ty);
 
-        self.builder.emit_load_global(dest, gid);
+        self.builder.emit_load_global(dest, gid, pos);
 
         dest
     }

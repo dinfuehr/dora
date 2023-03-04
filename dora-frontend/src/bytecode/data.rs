@@ -307,6 +307,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::StoreArray
             | BytecodeOpcode::LoadEnumElement
             | BytecodeOpcode::LoadEnumVariant
+            | BytecodeOpcode::LoadGlobal
             | BytecodeOpcode::Add
             | BytecodeOpcode::Sub
             | BytecodeOpcode::Mul => true,

@@ -3,11 +3,7 @@ use std::sync::Arc;
 use crate::gc::Address;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::DoraThread;
-use crate::vm::{
-    create_enum_instance, create_struct_instance, get_concrete_tuple_bty, CodeKind, EnumLayout, VM,
-};
-use dora_frontend::bytecode::BytecodeType;
-use dora_frontend::language::generator::bty_from_ty;
+use crate::vm::{CodeKind, VM};
 
 pub fn determine_strong_roots(vm: &VM, threads: &[Arc<DoraThread>]) -> Vec<Slot> {
     let mut rootset = Vec::new();
@@ -57,67 +53,15 @@ fn iterate_roots_from_code_space<F: FnMut(Slot)>(vm: &VM, _callback: &mut F) {
 }
 
 fn iterate_roots_from_globals<F: FnMut(Slot)>(vm: &VM, callback: &mut F) {
-    for global_var in vm.globals.iter() {
-        let global_var = global_var.read();
-        let address_value = vm
-            .global_variable_memory
-            .as_ref()
-            .unwrap()
-            .address_value(global_var.id());
+    let global_variable_memory = vm
+        .global_variable_memory
+        .as_ref()
+        .expect("uninitialized global memory");
+    let address_start = global_variable_memory.start();
 
-        let ty = bty_from_ty(global_var.ty.clone());
-
-        match ty {
-            BytecodeType::Struct(struct_id, type_params) => {
-                let sdef_id = create_struct_instance(vm, struct_id, type_params);
-                let sdef = vm.struct_instances.idx(sdef_id);
-
-                for &offset in &sdef.ref_fields {
-                    let slot_address = address_value.offset(offset as usize);
-                    let slot = Slot::at(slot_address);
-                    callback(slot);
-                }
-            }
-
-            BytecodeType::Enum(enum_id, type_params) => {
-                let edef_id = create_enum_instance(vm, enum_id, type_params);
-                let edef = vm.enum_instances.idx(edef_id);
-
-                match edef.layout {
-                    EnumLayout::Int => {}
-                    EnumLayout::Ptr | EnumLayout::Tagged => {
-                        let slot = Slot::at(address_value);
-                        callback(slot);
-                    }
-                }
-            }
-
-            BytecodeType::Tuple(_) => {
-                let tuple = get_concrete_tuple_bty(vm, &bty_from_ty(global_var.ty.clone()));
-
-                for &offset in tuple.references() {
-                    let slot_address = address_value.offset(offset as usize);
-                    let slot = Slot::at(slot_address);
-                    callback(slot);
-                }
-            }
-
-            BytecodeType::Unit
-            | BytecodeType::UInt8
-            | BytecodeType::Bool
-            | BytecodeType::Char
-            | BytecodeType::Int32
-            | BytecodeType::Int64
-            | BytecodeType::Float32
-            | BytecodeType::Float64 => {}
-
-            BytecodeType::Class(_, _) | BytecodeType::Trait(_, _) | BytecodeType::Lambda(_, _) => {
-                let slot = Slot::at(address_value);
-                callback(slot);
-            }
-
-            BytecodeType::TypeParam(_) | BytecodeType::Ptr => unreachable!(),
-        }
+    for &slot_offset in global_variable_memory.references() {
+        let slot_address = address_start.offset(slot_offset as usize);
+        callback(Slot::at(slot_address));
     }
 }
 

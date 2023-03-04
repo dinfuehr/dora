@@ -2,39 +2,40 @@ use crate::cannon::codegen::{align, size};
 use crate::gc::{Address, Region};
 use crate::mem;
 use crate::os;
-use crate::vm::VM;
-use dora_frontend::language::generator::bty_from_ty;
+use crate::vm::{add_ref_fields, VM};
 use dora_frontend::language::sem_analysis::GlobalDefinitionId;
 
 pub fn init_global_addresses(vm: &mut VM) {
+    let number_globals = vm.program.globals.len();
     let mut backing_memory_size = 0;
-    let mut offsets = Vec::with_capacity(vm.globals.len());
+    let mut offsets = Vec::with_capacity(number_globals);
+    let mut references = Vec::new();
 
     let initialized_field_size = 1;
 
-    for global_var in vm.globals.iter() {
-        let global_var = global_var.read();
-
+    for global_var in &vm.program.globals {
         let initialized_offset = backing_memory_size;
         backing_memory_size += initialized_field_size;
 
-        let ty = bty_from_ty(global_var.ty.clone());
+        let ty = global_var.ty.clone();
+        assert!(ty.is_concrete_type());
 
         let ty_size = size(vm, ty.clone()) as usize;
-        let ty_align = align(vm, ty) as usize;
+        let ty_align = align(vm, ty.clone()) as usize;
 
         let value_offset = mem::align_usize(backing_memory_size, ty_align);
+        add_ref_fields(vm, &mut references, value_offset as i32, ty);
         offsets.push((initialized_offset, value_offset));
         backing_memory_size = value_offset + ty_size as usize;
     }
 
-    if backing_memory_size == 0 {
-        return;
-    }
-
     let size = mem::page_align(backing_memory_size);
-    let start = os::commit(size, false);
-    let mut variables = Vec::with_capacity(vm.globals.len());
+    let start = if backing_memory_size > 0 {
+        os::commit(size, false)
+    } else {
+        Address::null()
+    };
+    let mut variables = Vec::with_capacity(number_globals);
 
     for global in offsets {
         let (initialized_offset, value_offset) = global;
@@ -48,12 +49,14 @@ pub fn init_global_addresses(vm: &mut VM) {
     vm.global_variable_memory = Some(GlobalVariableMemory {
         region: start.region_start(size),
         variables,
+        references,
     });
 }
 
 pub struct GlobalVariableMemory {
     region: Region,
     variables: Vec<GlobalVariableLocation>,
+    references: Vec<i32>,
 }
 
 impl GlobalVariableMemory {
@@ -68,11 +71,21 @@ impl GlobalVariableMemory {
     pub fn is_initialized(&self, idx: GlobalDefinitionId) -> bool {
         unsafe { *self.address_init(idx).to_ptr::<bool>() }
     }
+
+    pub fn start(&self) -> Address {
+        self.region.start()
+    }
+
+    pub fn references(&self) -> &[i32] {
+        &self.references
+    }
 }
 
 impl Drop for GlobalVariableMemory {
     fn drop(&mut self) {
-        os::free(self.region.start(), self.region.size());
+        if self.region.start().is_non_null() {
+            os::free(self.region.start(), self.region.size());
+        }
     }
 }
 

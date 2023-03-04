@@ -18,11 +18,10 @@ use crate::utils::GrowableVecNonIter;
 use dora_frontend::bytecode::Program;
 use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray};
 use dora_frontend::language::sem_analysis::{
-    AnnotationDefinition, ClassDefinition, ClassDefinitionId, EnumDefinition, EnumDefinitionId,
-    ExtensionDefinition, FctDefinition, FctDefinitionId, GlobalDefinition, ImplDefinition,
-    KnownElements, ModuleDefinition, ModuleDefinitionId, PackageDefinitionId, SemAnalysis,
-    SourceFile, SourceFileId, StructDefinition, StructDefinitionId, TraitDefinition,
-    TraitDefinitionId,
+    ClassDefinition, ClassDefinitionId, EnumDefinition, EnumDefinitionId, ExtensionDefinition,
+    FctDefinition, FctDefinitionId, ImplDefinition, KnownElements, ModuleDefinition,
+    ModuleDefinitionId, PackageDefinitionId, SemAnalysis, SourceFile, SourceFileId,
+    StructDefinition, StructDefinitionId, TraitDefinition, TraitDefinitionId,
 };
 use dora_frontend::{GrowableVec, MutableVec};
 
@@ -122,9 +121,8 @@ pub struct VM {
         RwLock<HashMap<(ClassDefinitionId, BytecodeTypeArray), ClassInstanceId>>,
     pub class_instances: GrowableVecNonIter<ClassInstance>, // stores all class definitions
     pub extensions: MutableVec<ExtensionDefinition>,        // stores all extension definitions
-    pub annotations: MutableVec<AnnotationDefinition>, // stores all annotation source definitions
-    pub modules: MutableVec<ModuleDefinition>,         // stores all module definitions
-    pub fcts: GrowableVec<RwLock<FctDefinition>>,      // stores all function source definitions
+    pub modules: MutableVec<ModuleDefinition>,              // stores all module definitions
+    pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
     pub code_objects: CodeObjects,
     pub compilation_database: CompilationDatabase,
     pub enums: MutableVec<EnumDefinition>, // store all enum source definitions
@@ -135,7 +133,6 @@ pub struct VM {
     pub trait_vtables: RwLock<HashMap<(TraitDefinitionId, BytecodeTypeArray), ClassInstanceId>>,
     pub impls: MutableVec<ImplDefinition>, // stores all impl definitions
     pub code_map: CodeMap,                 // stores all compiled functions
-    pub globals: MutableVec<GlobalDefinition>, // stores all global variables
     pub global_variable_memory: Option<GlobalVariableMemory>,
     pub gc: Gc, // garbage collector
     pub native_stubs: Mutex<NativeStubs>,
@@ -164,7 +161,6 @@ impl VM {
             class_specializations: RwLock::new(HashMap::new()),
             class_instances: GrowableVecNonIter::new(),
             extensions: sa.extensions,
-            annotations: sa.annotations,
             modules: sa.modules,
             enums: sa.enums,
             enum_specializations: RwLock::new(HashMap::new()),
@@ -172,7 +168,6 @@ impl VM {
             traits: sa.traits,
             trait_vtables: RwLock::new(HashMap::new()),
             impls: sa.impls,
-            globals: sa.globals,
             global_variable_memory: None,
             interner: sa.interner,
             known: sa.known,

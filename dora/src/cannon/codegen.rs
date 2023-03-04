@@ -28,9 +28,7 @@ use dora_frontend::bytecode::{
     self, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeTypeArray, BytecodeVisitor,
     ConstPoolEntry, ConstPoolIdx, Register,
 };
-use dora_frontend::language::generator::{
-    bty_from_ty, register_bty_from_bty, register_bty_from_ty, ty_from_bty,
-};
+use dora_frontend::language::generator::{bty_from_ty, register_bty_from_bty, ty_from_bty};
 use dora_frontend::language::sem_analysis::{FctDefinitionId, GlobalDefinitionId, Intrinsic};
 use dora_frontend::language::ty::SourceType;
 
@@ -1467,15 +1465,14 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn emit_load_global(&mut self, dest: Register, global_id: GlobalDefinitionId) {
-        let global_var = self.vm.globals.idx(global_id);
-        let global_var = global_var.read();
+        let global_var = &self.vm.program.globals[global_id.to_usize()];
 
         assert_eq!(
             self.bytecode.register_type(dest),
-            register_bty_from_ty(global_var.ty.clone())
+            register_bty(global_var.ty.clone())
         );
 
-        if global_var.has_initializer()
+        if global_var.initializer.is_some()
             && !self
                 .vm
                 .global_variable_memory
@@ -1484,10 +1481,12 @@ impl<'a> CannonCodeGen<'a> {
                 .is_initialized(global_id)
         {
             let fid = global_var.initializer.unwrap();
+            let fid = FctDefinitionId(fid.0 as usize);
             let ptr = self.get_call_target(fid, BytecodeTypeArray::empty());
+            let position = self.bytecode.offset_position(self.current_offset.to_u32());
             let gcpoint = self.create_gcpoint();
             self.asm
-                .ensure_global(global_id, fid, ptr, global_var.pos, gcpoint);
+                .ensure_global(global_id, fid, ptr, position, gcpoint);
         }
 
         let address_value = self
@@ -1509,12 +1508,11 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn emit_store_global(&mut self, src: Register, global_id: GlobalDefinitionId) {
-        let global_var = self.vm.globals.idx(global_id);
-        let global_var = global_var.read();
+        let global_var = &self.vm.program.globals[global_id.to_usize()];
 
         assert_eq!(
             self.bytecode.register_type(src),
-            register_bty_from_ty(global_var.ty.clone())
+            register_bty(global_var.ty.clone())
         );
 
         let address_value = self
@@ -1535,7 +1533,7 @@ impl<'a> CannonCodeGen<'a> {
         let src = self.reg(src);
         self.asm.copy_bytecode_ty(bytecode_type, dest, src);
 
-        if global_var.has_initializer()
+        if global_var.initializer.is_some()
             && !self
                 .vm
                 .global_variable_memory
@@ -4431,14 +4429,12 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
 
     fn visit_load_global(&mut self, dest: Register, glob_id: GlobalDefinitionId) {
         comment!(self, {
-            let global_var = self.vm.globals.idx(glob_id);
-            let global_var = global_var.read();
-            let name = self.vm.interner.str(global_var.name);
+            let global_var = &self.vm.program.globals[glob_id.to_usize()];
             format!(
                 "LoadGlobal {}, GlobalId({}) # {}",
                 dest,
                 glob_id.to_usize(),
-                name
+                global_var.name
             )
         });
         self.emit_load_global(dest, glob_id);
@@ -4446,14 +4442,12 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
 
     fn visit_store_global(&mut self, src: Register, global_id: GlobalDefinitionId) {
         comment!(self, {
-            let global_var = self.vm.globals.idx(global_id);
-            let global_var = global_var.read();
-            let name = self.vm.interner.str(global_var.name);
+            let global_var = &self.vm.program.globals[global_id.to_usize()];
             format!(
                 "StoreGlobal {}, GlobalId({}) # {}",
                 src,
                 global_id.to_usize(),
-                name
+                global_var.name
             )
         });
         self.emit_store_global(src, global_id);

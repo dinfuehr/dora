@@ -37,11 +37,42 @@ pub struct GlobalData {
     pub initializer: Option<FunctionId>,
 }
 
+#[derive(Copy, Clone, Debug)]
+pub struct ClassId(pub u32);
+
+#[derive(Debug)]
+pub struct ClassData {
+    pub module_id: ModuleId,
+    pub name: String,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct StructId(pub u32);
+
+#[derive(Debug)]
+pub struct StructData {
+    pub module_id: ModuleId,
+    pub name: String,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct EnumId(pub u32);
+
+#[derive(Debug)]
+pub struct EnumData {
+    pub module_id: ModuleId,
+    pub name: String,
+}
+
+#[derive(Debug)]
 pub struct Program {
     pub packages: Vec<PackageData>,
     pub modules: Vec<ModuleData>,
     pub functions: Vec<FunctionData>,
     pub globals: Vec<GlobalData>,
+    pub classes: Vec<ClassData>,
+    pub structs: Vec<StructData>,
+    pub enums: Vec<EnumData>,
     pub stdlib_package_id: PackageId,
     pub program_package_id: PackageId,
     pub boots_package_id: Option<PackageId>,

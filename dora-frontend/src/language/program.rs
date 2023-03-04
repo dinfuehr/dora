@@ -1,6 +1,7 @@
-use crate::bytecode::program::FunctionData;
+use crate::bytecode::program::{ClassData, FunctionData};
 use crate::bytecode::{
-    FunctionId, GlobalData, ModuleData, ModuleId, PackageData, PackageId, Program,
+    EnumData, FunctionId, GlobalData, ModuleData, ModuleId, PackageData, PackageId, Program,
+    StructData,
 };
 use crate::language::SemAnalysis;
 
@@ -10,20 +11,17 @@ use crate::language::sem_analysis::PackageName;
 use super::sem_analysis::{FctDefinitionId, ModuleDefinitionId, PackageDefinitionId};
 
 pub fn emit_program(sa: &SemAnalysis) -> Program {
-    let boots_package_id = if let Some(package_id) = sa.boots_package_id {
-        Some(convert_package_id(package_id))
-    } else {
-        None
-    };
-
     Program {
         packages: create_packages(sa),
         modules: create_modules(sa),
         functions: create_functions(sa),
         globals: create_globals(sa),
+        classes: create_classes(sa),
+        structs: create_structs(sa),
+        enums: create_enums(sa),
         stdlib_package_id: convert_package_id(sa.stdlib_package_id()),
         program_package_id: convert_package_id(sa.program_package_id()),
-        boots_package_id,
+        boots_package_id: sa.boots_package_id.map(|p| convert_package_id(p)),
     }
 }
 
@@ -92,6 +90,54 @@ fn create_globals(sa: &SemAnalysis) -> Vec<GlobalData> {
             mutable: global.mutable,
             name,
             initializer: global.initializer.map(|t| convert_function_id(t)),
+        })
+    }
+
+    result
+}
+
+fn create_classes(sa: &SemAnalysis) -> Vec<ClassData> {
+    let mut result = Vec::new();
+
+    for class in sa.classes.iter() {
+        let class = class.read();
+        let name = sa.interner.str(class.name).to_string();
+
+        result.push(ClassData {
+            module_id: convert_module_id(class.module_id),
+            name,
+        })
+    }
+
+    result
+}
+
+fn create_structs(sa: &SemAnalysis) -> Vec<StructData> {
+    let mut result = Vec::new();
+
+    for struct_ in sa.structs.iter() {
+        let struct_ = struct_.read();
+        let name = sa.interner.str(struct_.name).to_string();
+
+        result.push(StructData {
+            module_id: convert_module_id(struct_.module_id),
+            name,
+        })
+    }
+
+    result
+}
+
+fn create_enums(sa: &SemAnalysis) -> Vec<EnumData> {
+    let mut result = Vec::new();
+
+    for enum_ in sa.enums.iter() {
+        let enum_ = enum_.read();
+        let name = sa.interner.str(enum_.name).to_string();
+
+        result.push(EnumData {
+            module_id: convert_module_id(enum_.module_id),
+            name,
         })
     }
 

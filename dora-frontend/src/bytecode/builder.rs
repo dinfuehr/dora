@@ -434,8 +434,9 @@ impl BytecodeBuilder {
         self.writer.emit_test_le(dest, lhs, rhs);
     }
 
-    pub fn emit_load_global(&mut self, dest: Register, gid: GlobalDefinitionId) {
+    pub fn emit_load_global(&mut self, dest: Register, gid: GlobalDefinitionId, pos: Position) {
         assert!(self.def(dest));
+        self.writer.set_position(pos);
         self.writer.emit_load_global(dest, gid);
     }
 
