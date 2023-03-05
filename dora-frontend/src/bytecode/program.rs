@@ -23,6 +23,7 @@ pub struct FunctionId(pub u32);
 #[derive(Debug)]
 pub struct FunctionData {
     pub name: String,
+    pub type_params: TypeParamData,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -43,6 +44,14 @@ pub struct ClassId(pub u32);
 #[derive(Debug)]
 pub struct ClassData {
     pub module_id: ModuleId,
+    pub name: String,
+    pub type_params: TypeParamData,
+    pub fields: Vec<ClassField>,
+}
+
+#[derive(Debug)]
+pub struct ClassField {
+    pub ty: BytecodeType,
     pub name: String,
 }
 

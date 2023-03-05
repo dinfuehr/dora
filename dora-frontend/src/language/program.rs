@@ -1,6 +1,7 @@
 use crate::bytecode::{
-    ClassData, EnumData, FunctionData, FunctionId, GlobalData, ModuleData, ModuleId, PackageData,
-    PackageId, Program, StructData, StructField, TraitData, TypeParamBound, TypeParamData,
+    ClassData, ClassField, EnumData, FunctionData, FunctionId, GlobalData, ModuleData, ModuleId,
+    PackageData, PackageId, Program, StructData, StructField, TraitData, TypeParamBound,
+    TypeParamData,
 };
 use crate::language::SemAnalysis;
 
@@ -8,7 +9,8 @@ use crate::language::generator::bty_from_ty;
 use crate::language::sem_analysis::PackageName;
 
 use super::sem_analysis::{
-    FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, StructDefinition, TypeParamDefinition,
+    ClassDefinition, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, StructDefinition,
+    TypeParamDefinition,
 };
 
 pub fn emit_program(sa: &SemAnalysis) -> Program {
@@ -73,7 +75,10 @@ fn create_functions(sa: &SemAnalysis) -> Vec<FunctionData> {
     for fct in sa.fcts.iter() {
         let fct = fct.read();
         let name = sa.interner.str(fct.name).to_string();
-        result.push(FunctionData { name })
+        result.push(FunctionData {
+            name,
+            type_params: create_type_params(sa, &fct.type_params),
+        })
     }
 
     result
@@ -108,10 +113,23 @@ fn create_classes(sa: &SemAnalysis) -> Vec<ClassData> {
         result.push(ClassData {
             module_id: convert_module_id(class.module_id),
             name,
+            type_params: create_type_params(sa, class.type_params()),
+            fields: create_class_fields(sa, &*class),
         })
     }
 
     result
+}
+
+fn create_class_fields(sa: &SemAnalysis, class: &ClassDefinition) -> Vec<ClassField> {
+    class
+        .fields
+        .iter()
+        .map(|f| ClassField {
+            ty: bty_from_ty(f.ty.clone()),
+            name: sa.interner.str(f.name).to_string(),
+        })
+        .collect()
 }
 
 fn create_structs(sa: &SemAnalysis) -> Vec<StructData> {

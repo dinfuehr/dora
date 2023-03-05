@@ -13,9 +13,9 @@ pub use builder::*;
 pub use data::*;
 pub use dumper::dump;
 pub use program::{
-    ClassData, ClassId, EnumData, EnumId, FunctionData, FunctionId, GlobalData, GlobalId,
-    ModuleData, ModuleId, PackageData, PackageId, Program, StructData, StructField, StructId,
-    TraitData, TraitId, TypeParamBound, TypeParamData,
+    ClassData, ClassField, ClassId, EnumData, EnumId, FunctionData, FunctionId, GlobalData,
+    GlobalId, ModuleData, ModuleId, PackageData, PackageId, Program, StructData, StructField,
+    StructId, TraitData, TraitId, TypeParamBound, TypeParamData,
 };
 pub use reader::*;
 pub use ty::{BytecodeType, BytecodeTypeArray};

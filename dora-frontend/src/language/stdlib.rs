@@ -9,6 +9,8 @@ use crate::language::ty::SourceType;
 use dora_parser::ast::Modifier;
 use dora_parser::interner::Name;
 
+use super::sem_analysis::TypeParamDefinition;
+
 pub fn resolve_internal_annotations(sa: &mut SemAnalysis) {
     let stdlib_id = sa.stdlib_module_id();
 
@@ -243,7 +245,7 @@ pub fn create_lambda_class(sa: &mut SemAnalysis) {
         visibility: Visibility::Public,
     }];
 
-    let class = ClassDefinition::new_without_source(
+    let mut class = ClassDefinition::new_without_source(
         sa.stdlib_package_id(),
         sa.stdlib_module_id(),
         None,
@@ -252,6 +254,7 @@ pub fn create_lambda_class(sa: &mut SemAnalysis) {
         Visibility::Public,
         fields,
     );
+    class.type_params = Some(TypeParamDefinition::new());
     let class_id = sa.classes.push(class);
     sa.known.classes.lambda = Some(class_id);
 }
