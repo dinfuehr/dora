@@ -3,7 +3,7 @@ use crate::stack;
 use crate::stdlib;
 use crate::vm::{module_path, VM};
 use dora_frontend::language::sem_analysis::{
-    ClassDefinitionId, ExtensionDefinitionId, FctDefinitionId, Intrinsic, ModuleDefinitionId,
+    ExtensionDefinitionId, FctDefinitionId, Intrinsic, ModuleDefinitionId,
 };
 use dora_frontend::language::sym::Sym;
 
@@ -451,7 +451,10 @@ fn common_method(
 
     match sym {
         Sym::Class(cls_id) => {
-            internal_class_method(vm, cls_id, method_name, is_static, implementation)
+            let cls = vm.classes.idx(cls_id);
+            let cls = cls.read();
+
+            internal_extension_method(vm, &cls.extensions, method_name, is_static, implementation)
         }
 
         Sym::Struct(struct_id) => {
@@ -479,19 +482,6 @@ fn common_method(
 
         _ => panic!("unexpected type"),
     }
-}
-
-fn internal_class_method(
-    vm: &mut VM,
-    cls_id: ClassDefinitionId,
-    name: &str,
-    is_static: bool,
-    kind: FctImplementation,
-) -> FctDefinitionId {
-    let cls = vm.classes.idx(cls_id);
-    let cls = cls.read();
-
-    internal_extension_method(vm, &cls.extensions, name, is_static, kind)
 }
 
 fn internal_extension_method(
