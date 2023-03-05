@@ -20,8 +20,8 @@ use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray};
 use dora_frontend::language::sem_analysis::{
     ClassDefinition, ClassDefinitionId, EnumDefinition, EnumDefinitionId, ExtensionDefinition,
     FctDefinition, FctDefinitionId, ImplDefinition, KnownElements, ModuleDefinition,
-    ModuleDefinitionId, PackageDefinitionId, SemAnalysis, SourceFile, SourceFileId,
-    StructDefinition, StructDefinitionId, TraitDefinition, TraitDefinitionId,
+    ModuleDefinitionId, PackageDefinitionId, SemAnalysis, StructDefinition, StructDefinitionId,
+    TraitDefinition, TraitDefinitionId,
 };
 use dora_frontend::{GrowableVec, MutableVec};
 
@@ -109,7 +109,6 @@ pub struct VM {
     pub args: Args,
     pub program: Program,
     pub interner: Interner,
-    pub source_files: Vec<SourceFile>,
     pub known: KnownElements,
     pub known_instances: KnownInstances,
     pub structs: MutableVec<StructDefinition>, // stores all struct source definitions
@@ -153,7 +152,6 @@ impl VM {
         let vm = Box::new(VM {
             args,
             program,
-            source_files: sa.source_files,
             structs: sa.structs,
             struct_specializations: RwLock::new(HashMap::new()),
             struct_instances: GrowableVecNonIter::new(),
@@ -254,10 +252,6 @@ impl VM {
         let pkg_id = self.program.program_package_id.0 as usize;
         let pkg = &self.program.packages[pkg_id];
         ModuleDefinitionId(pkg.root_module_id.0 as usize)
-    }
-
-    pub fn source_file(&self, idx: SourceFileId) -> &SourceFile {
-        &self.source_files[idx.to_usize()]
     }
 
     pub fn add_fct(&self, mut fct: FctDefinition) -> FctDefinitionId {

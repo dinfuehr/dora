@@ -46,7 +46,38 @@ pub struct ClassData {
     pub module_id: ModuleId,
     pub name: String,
     pub type_params: TypeParamData,
+    pub layout: ClassLayout,
     pub fields: Vec<ClassField>,
+}
+
+#[derive(Debug)]
+pub enum ClassLayout {
+    Regular,
+    Array,
+    String,
+}
+
+impl ClassLayout {
+    pub fn is_regular(&self) -> bool {
+        match self {
+            ClassLayout::Regular => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_array(&self) -> bool {
+        match self {
+            ClassLayout::Array => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_string(&self) -> bool {
+        match self {
+            ClassLayout::String => true,
+            _ => false,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -102,6 +133,14 @@ pub struct TraitData {
     pub name: String,
 }
 
+#[derive(Copy, Clone, Debug)]
+pub struct SourceFileId(pub u32);
+
+#[derive(Debug)]
+pub struct SourceFileData {
+    pub path: String,
+}
+
 #[derive(Debug)]
 pub struct Program {
     pub packages: Vec<PackageData>,
@@ -112,6 +151,7 @@ pub struct Program {
     pub structs: Vec<StructData>,
     pub enums: Vec<EnumData>,
     pub traits: Vec<TraitData>,
+    pub source_files: Vec<SourceFileData>,
     pub stdlib_package_id: PackageId,
     pub program_package_id: PackageId,
     pub boots_package_id: Option<PackageId>,

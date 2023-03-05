@@ -6,12 +6,11 @@ use crate::mem;
 use crate::object::Header;
 use crate::size::InstanceSize;
 use crate::vm::{
-    create_class_instance_with_vtable, get_concrete_tuple_bty, ClassDefinition, ClassInstanceId,
-    EnumDefinition, EnumDefinitionId, EnumInstance, EnumInstanceId, EnumLayout, FieldInstance,
-    ShapeKind, StructDefinitionId, StructInstance, StructInstanceField, StructInstanceId,
-    TraitDefinition, VM,
+    create_class_instance_with_vtable, get_concrete_tuple_bty, ClassInstanceId, EnumDefinition,
+    EnumDefinitionId, EnumInstance, EnumInstanceId, EnumLayout, FieldInstance, ShapeKind,
+    StructDefinitionId, StructInstance, StructInstanceField, StructInstanceId, TraitDefinition, VM,
 };
-use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray, StructData};
+use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray, ClassData, StructData};
 use dora_frontend::language::generator::bty_from_ty;
 use dora_frontend::language::sem_analysis::{
     ClassDefinitionId, FctDefinitionId, TraitDefinitionId,
@@ -287,44 +286,47 @@ pub fn create_class_instance(
     cls_id: ClassDefinitionId,
     type_params: &BytecodeTypeArray,
 ) -> ClassInstanceId {
-    let cls = vm.classes.idx(cls_id);
-    let cls = cls.read();
-    specialize_class(vm, &*cls, &type_params)
+    let cls = &vm.program.classes[cls_id.to_usize()];
+    specialize_class(vm, cls_id, cls, type_params)
 }
 
 fn specialize_class(
     vm: &VM,
-    cls: &ClassDefinition,
+    cls_id: ClassDefinitionId,
+    cls: &ClassData,
     type_params: &BytecodeTypeArray,
 ) -> ClassInstanceId {
     if let Some(&id) = vm
         .class_specializations
         .read()
-        .get(&(cls.id(), type_params.clone()))
+        .get(&(cls_id, type_params.clone()))
     {
         return id;
     }
 
-    create_specialized_class(vm, cls, type_params)
+    create_specialized_class(vm, cls_id, cls, type_params)
 }
 
 fn create_specialized_class(
     vm: &VM,
-    cls: &ClassDefinition,
+    cls_id: ClassDefinitionId,
+    cls: &ClassData,
     type_params: &BytecodeTypeArray,
 ) -> ClassInstanceId {
     debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-    if cls.is_array || cls.is_str {
-        create_specialized_class_array(vm, cls, type_params)
+    if cls.layout.is_array() || cls.layout.is_string() {
+        create_specialized_class_array(vm, cls_id, cls, type_params)
     } else {
-        create_specialized_class_regular(vm, cls, type_params)
+        assert!(cls.layout.is_regular());
+        create_specialized_class_regular(vm, cls_id, cls, type_params)
     }
 }
 
 fn create_specialized_class_regular(
     vm: &VM,
-    cls: &ClassDefinition,
+    cls_id: ClassDefinitionId,
+    cls: &ClassData,
     type_params: &BytecodeTypeArray,
 ) -> ClassInstanceId {
     let mut csize = Header::size();
@@ -332,8 +334,7 @@ fn create_specialized_class_regular(
     let mut ref_fields = Vec::new();
 
     for f in &cls.fields {
-        let ty = bty_from_ty(f.ty.clone());
-        let ty = specialize_bty(ty, &type_params);
+        let ty = specialize_bty(f.ty.clone(), &type_params);
         debug_assert!(ty.is_concrete_type());
 
         let field_size = size(vm, ty.clone());
@@ -354,19 +355,19 @@ fn create_specialized_class_regular(
 
     let mut specializations = vm.class_specializations.write();
 
-    if let Some(&id) = specializations.get(&(cls.id(), type_params.clone())) {
+    if let Some(&id) = specializations.get(&(cls_id, type_params.clone())) {
         return id;
     }
 
     let class_instance_id = create_class_instance_with_vtable(
         vm,
-        ShapeKind::Class(cls.id(), type_params.clone()),
+        ShapeKind::Class(cls_id, type_params.clone()),
         size,
         fields,
         0,
     );
 
-    let old = specializations.insert((cls.id(), type_params.clone()), class_instance_id);
+    let old = specializations.insert((cls_id, type_params.clone()), class_instance_id);
     assert!(old.is_none());
 
     class_instance_id
@@ -374,14 +375,15 @@ fn create_specialized_class_regular(
 
 fn create_specialized_class_array(
     vm: &VM,
-    cls: &ClassDefinition,
+    cls_id: ClassDefinitionId,
+    cls: &ClassData,
     type_params: &BytecodeTypeArray,
 ) -> ClassInstanceId {
-    assert!(cls.is_array || cls.is_str);
+    assert!(cls.layout.is_array() || cls.layout.is_string());
 
     assert!(cls.fields.is_empty());
 
-    let size = if cls.is_array {
+    let size = if cls.layout.is_array() {
         let element_ty = type_params[0].clone();
 
         match element_ty {
@@ -426,24 +428,25 @@ fn create_specialized_class_array(
             }
         }
     } else {
+        assert!(cls.layout.is_string());
         InstanceSize::Str
     };
 
     let mut specializations = vm.class_specializations.write();
 
-    if let Some(&id) = specializations.get(&(cls.id(), type_params.clone())) {
+    if let Some(&id) = specializations.get(&(cls_id, type_params.clone())) {
         return id;
     }
 
     let class_instance_id = create_class_instance_with_vtable(
         vm,
-        ShapeKind::Class(cls.id(), type_params.clone()),
+        ShapeKind::Class(cls_id, type_params.clone()),
         size,
         Vec::new(),
         0,
     );
 
-    let old = specializations.insert((cls.id(), type_params.clone()), class_instance_id);
+    let old = specializations.insert((cls_id, type_params.clone()), class_instance_id);
     assert!(old.is_none());
 
     class_instance_id

@@ -29,13 +29,13 @@ impl NativeStacktrace {
             let fct = vm.fcts.idx(fct_id);
             let fct = fct.read();
             let fct_name = display_fct(vm, fct_id);
-            let file = &vm.source_file(fct.file_id).path;
+            let file = &vm.program.source_files[fct.file_id.to_usize()].path;
             let lineno = if elem.lineno == 0 {
                 fct.pos.line
             } else {
                 elem.lineno
             };
-            writeln!(w, "    {} ({}:{})", fct_name, file.display(), lineno)?;
+            writeln!(w, "    {} ({}:{})", fct_name, file, lineno)?;
         }
 
         Ok(())

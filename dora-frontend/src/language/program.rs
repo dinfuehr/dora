@@ -1,7 +1,8 @@
+use crate::bytecode::program::ClassLayout;
 use crate::bytecode::{
     ClassData, ClassField, EnumData, FunctionData, FunctionId, GlobalData, ModuleData, ModuleId,
-    PackageData, PackageId, Program, StructData, StructField, TraitData, TypeParamBound,
-    TypeParamData,
+    PackageData, PackageId, Program, SourceFileData, StructData, StructField, TraitData,
+    TypeParamBound, TypeParamData,
 };
 use crate::language::SemAnalysis;
 
@@ -23,6 +24,7 @@ pub fn emit_program(sa: &SemAnalysis) -> Program {
         structs: create_structs(sa),
         enums: create_enums(sa),
         traits: create_traits(sa),
+        source_files: create_source_files(sa),
         stdlib_package_id: convert_package_id(sa.stdlib_package_id()),
         program_package_id: convert_package_id(sa.program_package_id()),
         boots_package_id: sa.boots_package_id.map(|p| convert_package_id(p)),
@@ -114,11 +116,22 @@ fn create_classes(sa: &SemAnalysis) -> Vec<ClassData> {
             module_id: convert_module_id(class.module_id),
             name,
             type_params: create_type_params(sa, class.type_params()),
+            layout: create_class_layout(&*class),
             fields: create_class_fields(sa, &*class),
         })
     }
 
     result
+}
+
+fn create_class_layout(class: &ClassDefinition) -> ClassLayout {
+    if class.is_array {
+        ClassLayout::Array
+    } else if class.is_str {
+        ClassLayout::String
+    } else {
+        ClassLayout::Regular
+    }
 }
 
 fn create_class_fields(sa: &SemAnalysis, class: &ClassDefinition) -> Vec<ClassField> {
@@ -205,6 +218,18 @@ fn create_traits(sa: &SemAnalysis) -> Vec<TraitData> {
         result.push(TraitData {
             module_id: convert_module_id(trait_.module_id),
             name,
+        })
+    }
+
+    result
+}
+
+fn create_source_files(sa: &SemAnalysis) -> Vec<SourceFileData> {
+    let mut result = Vec::new();
+
+    for file in sa.source_files.iter() {
+        result.push(SourceFileData {
+            path: file.path.to_string_lossy().to_string(),
         })
     }
 

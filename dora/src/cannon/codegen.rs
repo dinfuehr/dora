@@ -4375,13 +4375,11 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         comment!(self, {
             match self.bytecode.const_pool(field_idx) {
                 ConstPoolEntry::Field(cls_id, type_params, field_id) => {
-                    let cls = self.vm.classes.idx(*cls_id);
-                    let cls = cls.read();
                     let cname =
                         display_ty(self.vm, &BytecodeType::Class(*cls_id, type_params.clone()));
 
+                    let cls = &self.vm.program.classes[cls_id.to_usize()];
                     let field = &cls.fields[field_id.to_usize()];
-                    let fname = self.vm.interner.str(field.name);
 
                     format!(
                         "LoadField {}, {}, ConstPoolIdx({}) # {}.{}",
@@ -4389,7 +4387,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                         obj,
                         field_idx.to_usize(),
                         cname,
-                        fname
+                        field.name
                     )
                 }
                 _ => unreachable!(),
@@ -4406,12 +4404,10 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 }
                 _ => unreachable!(),
             };
-            let cls = self.vm.classes.idx(cls_id);
-            let cls = cls.read();
             let cname = display_ty(self.vm, &BytecodeType::Class(cls_id, type_params.clone()));
 
+            let cls = &self.vm.program.classes[cls_id.to_usize()];
             let field = &cls.fields[field_id.to_usize()];
-            let fname = self.vm.interner.str(field.name);
 
             format!(
                 "StoreField {}, {}, ConstPoolIdx({}) # {}.{}",
@@ -4419,7 +4415,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 obj,
                 field_idx.to_usize(),
                 cname,
-                fname
+                field.name
             )
         });
         self.emit_store_field(src, obj, field_idx);

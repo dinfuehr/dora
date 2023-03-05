@@ -35,10 +35,8 @@ impl<'a> BytecodeTypePrinter<'a> {
             BytecodeType::Bool => write!(fmt, "Bool"),
             BytecodeType::Ptr => write!(fmt, "Ptr"),
             BytecodeType::Class(id, type_params) => {
-                let cls = self.vm.classes.idx(*id);
-                let cls = cls.read();
-                let name = self.vm.interner.str(cls.name).to_string();
-                write!(fmt, "{}", name)?;
+                let cls = &self.vm.program.classes[id.to_usize()];
+                write!(fmt, "{}", cls.name)?;
                 self.type_params(type_params, fmt)
             }
             BytecodeType::Struct(sid, type_params) => {
