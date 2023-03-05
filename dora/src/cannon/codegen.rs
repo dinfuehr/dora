@@ -4351,15 +4351,13 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 }
                 _ => unreachable!(),
             };
-            let struct_ = self.vm.structs.idx(struct_id);
-            let struct_ = struct_.read();
+            let struct_ = &self.vm.program.structs[struct_id.to_usize()];
             let struct_name = display_ty(
                 self.vm,
                 &BytecodeType::Struct(struct_id, type_params.clone()),
             );
 
             let field = &struct_.fields[field_id.to_usize()];
-            let fname = self.vm.interner.str(field.name);
 
             format!(
                 "LoadStructField {}, {}, ConstPoolIdx({}) # {}.{}",
@@ -4367,7 +4365,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 obj,
                 field_idx.to_usize(),
                 struct_name,
-                fname
+                field.name
             )
         });
         self.emit_load_struct_field(dest, obj, field_idx);

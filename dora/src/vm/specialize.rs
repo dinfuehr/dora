@@ -8,10 +8,10 @@ use crate::size::InstanceSize;
 use crate::vm::{
     create_class_instance_with_vtable, get_concrete_tuple_bty, ClassDefinition, ClassInstanceId,
     EnumDefinition, EnumDefinitionId, EnumInstance, EnumInstanceId, EnumLayout, FieldInstance,
-    ShapeKind, StructDefinition, StructDefinitionId, StructInstance, StructInstanceField,
-    StructInstanceId, TraitDefinition, VM,
+    ShapeKind, StructDefinitionId, StructInstance, StructInstanceField, StructInstanceId,
+    TraitDefinition, VM,
 };
-use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray};
+use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray, StructData};
 use dora_frontend::language::generator::bty_from_ty;
 use dora_frontend::language::sem_analysis::{
     ClassDefinitionId, FctDefinitionId, TraitDefinitionId,
@@ -22,42 +22,23 @@ pub fn create_struct_instance(
     struct_id: StructDefinitionId,
     type_params: BytecodeTypeArray,
 ) -> StructInstanceId {
-    let struc = vm.structs.idx(struct_id);
-    let struc = struc.read();
-    specialize_struct(vm, &*struc, type_params)
-}
-
-fn specialize_struct(
-    vm: &VM,
-    struct_: &StructDefinition,
-    type_params: BytecodeTypeArray,
-) -> StructInstanceId {
-    if let Some(&id) = vm
-        .struct_specializations
-        .read()
-        .get(&(struct_.id(), type_params.clone()))
-    {
-        return id;
-    }
-
-    create_specialized_struct(vm, struct_, type_params)
+    let struct_ = &vm.program.structs[struct_id.to_usize()];
+    create_specialized_struct(vm, struct_id, struct_, type_params)
 }
 
 fn create_specialized_struct(
     vm: &VM,
-    struct_: &StructDefinition,
+    struct_id: StructDefinitionId,
+    struct_: &StructData,
     type_params: BytecodeTypeArray,
 ) -> StructInstanceId {
-    assert!(struct_.primitive_ty.is_none());
-
     let mut struct_size = 0;
     let mut struct_align = 0;
     let mut fields = Vec::with_capacity(struct_.fields.len());
     let mut ref_fields = Vec::new();
 
     for f in &struct_.fields {
-        let ty = bty_from_ty(f.ty.clone());
-        let ty = specialize_bty(ty, &type_params);
+        let ty = specialize_bty(f.ty.clone(), &type_params);
         debug_assert!(ty.is_concrete_type());
 
         let field_size = size(vm, ty.clone());
@@ -79,7 +60,7 @@ fn create_specialized_struct(
 
     let mut specializations = vm.struct_specializations.write();
 
-    if let Some(&id) = specializations.get(&(struct_.id(), type_params.clone())) {
+    if let Some(&id) = specializations.get(&(struct_id, type_params.clone())) {
         return id;
     }
 
@@ -90,7 +71,7 @@ fn create_specialized_struct(
         ref_fields,
     });
 
-    let old = specializations.insert((struct_.id(), type_params.clone()), id);
+    let old = specializations.insert((struct_id, type_params.clone()), id);
     assert!(old.is_none());
 
     id

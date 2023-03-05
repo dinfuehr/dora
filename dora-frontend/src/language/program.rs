@@ -1,13 +1,15 @@
 use crate::bytecode::{
     ClassData, EnumData, FunctionData, FunctionId, GlobalData, ModuleData, ModuleId, PackageData,
-    PackageId, Program, StructData, TraitData,
+    PackageId, Program, StructData, StructField, TraitData, TypeParamBound, TypeParamData,
 };
 use crate::language::SemAnalysis;
 
 use crate::language::generator::bty_from_ty;
 use crate::language::sem_analysis::PackageName;
 
-use super::sem_analysis::{FctDefinitionId, ModuleDefinitionId, PackageDefinitionId};
+use super::sem_analysis::{
+    FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, StructDefinition, TypeParamDefinition,
+};
 
 pub fn emit_program(sa: &SemAnalysis) -> Program {
     Program {
@@ -122,10 +124,41 @@ fn create_structs(sa: &SemAnalysis) -> Vec<StructData> {
         result.push(StructData {
             module_id: convert_module_id(struct_.module_id),
             name,
+            type_params: create_type_params(sa, struct_.type_params()),
+            fields: create_struct_fields(sa, &*struct_),
         })
     }
 
     result
+}
+
+fn create_type_params(sa: &SemAnalysis, type_params: &TypeParamDefinition) -> TypeParamData {
+    let names = type_params
+        .names()
+        .map(|(_, name)| sa.interner.str(name).to_string())
+        .collect();
+
+    let bounds = type_params
+        .bounds()
+        .iter()
+        .map(|b| TypeParamBound {
+            ty: bty_from_ty(b.ty()),
+            trait_ty: bty_from_ty(b.trait_ty()),
+        })
+        .collect();
+
+    TypeParamData { names, bounds }
+}
+
+fn create_struct_fields(sa: &SemAnalysis, struct_: &StructDefinition) -> Vec<StructField> {
+    struct_
+        .fields
+        .iter()
+        .map(|f| StructField {
+            ty: bty_from_ty(f.ty.clone()),
+            name: sa.interner.str(f.name).to_string(),
+        })
+        .collect()
 }
 
 fn create_enums(sa: &SemAnalysis) -> Vec<EnumData> {

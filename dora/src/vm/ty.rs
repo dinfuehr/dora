@@ -42,11 +42,8 @@ impl<'a> BytecodeTypePrinter<'a> {
                 self.type_params(type_params, fmt)
             }
             BytecodeType::Struct(sid, type_params) => {
-                let struc = self.vm.structs.idx(*sid);
-                let struc = struc.read();
-                let name = struc.name;
-                let name = self.vm.interner.str(name).to_string();
-                write!(fmt, "{}", name)?;
+                let struct_ = &self.vm.program.structs[sid.to_usize()];
+                write!(fmt, "{}", struct_.name)?;
                 self.type_params(type_params, fmt)
             }
             BytecodeType::Trait(tid, type_params) => {

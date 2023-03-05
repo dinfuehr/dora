@@ -53,6 +53,26 @@ pub struct StructId(pub u32);
 pub struct StructData {
     pub module_id: ModuleId,
     pub name: String,
+    pub type_params: TypeParamData,
+    pub fields: Vec<StructField>,
+}
+
+#[derive(Debug)]
+pub struct StructField {
+    pub ty: BytecodeType,
+    pub name: String,
+}
+
+#[derive(Debug)]
+pub struct TypeParamData {
+    pub names: Vec<String>,
+    pub bounds: Vec<TypeParamBound>,
+}
+
+#[derive(Debug)]
+pub struct TypeParamBound {
+    pub ty: BytecodeType,
+    pub trait_ty: BytecodeType,
 }
 
 #[derive(Copy, Clone, Debug)]
