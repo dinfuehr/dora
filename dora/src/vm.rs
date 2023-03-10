@@ -16,7 +16,7 @@ use crate::threads::{
 };
 use crate::utils::GrowableVecNonIter;
 use dora_frontend::bytecode::Program;
-use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray};
+use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray, Location};
 use dora_frontend::language::sem_analysis::{
     ClassDefinition, ClassDefinitionId, EnumDefinition, EnumDefinitionId, ExtensionDefinition,
     FctDefinition, FctDefinitionId, ImplDefinition, KnownElements, ModuleDefinition,
@@ -26,6 +26,7 @@ use dora_frontend::language::sem_analysis::{
 use dora_frontend::{GrowableVec, MutableVec};
 
 use dora_parser::interner::*;
+use dora_parser::lexer::position::Position;
 
 pub use self::classes::{
     class_definition_name, create_class_instance_with_vtable, ClassInstance, ClassInstanceId,
@@ -33,7 +34,7 @@ pub use self::classes::{
 };
 pub use self::code::{
     install_code, install_code_stub, Code, CodeId, CodeKind, CodeObjects, CommentTable, GcPoint,
-    GcPointTable, LazyCompilationData, LazyCompilationSite, ManagedCodeHeader, PositionTable,
+    GcPointTable, LazyCompilationData, LazyCompilationSite, LocationTable, ManagedCodeHeader,
     RelocationTable, CODE_ALIGNMENT,
 };
 pub use self::code_map::CodeMap;
@@ -416,4 +417,8 @@ where
     deinit_current_thread();
 
     result
+}
+
+pub fn loc(pos: Position) -> Location {
+    Location::new(pos.line, pos.column)
 }

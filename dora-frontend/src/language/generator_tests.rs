@@ -12,7 +12,6 @@ use crate::language::sem_analysis::{
 };
 use crate::language::test;
 use crate::language::ty::{SourceType, SourceTypeArray};
-use dora_parser::lexer::position::Position;
 
 fn code(code: &'static str) -> Vec<Bytecode> {
     test::check_valid(code, |sa| {
@@ -22,11 +21,14 @@ fn code(code: &'static str) -> Vec<Bytecode> {
     })
 }
 
-fn position(code: &'static str) -> Vec<(u32, Position)> {
+fn position(code: &'static str) -> Vec<(u32, u32)> {
     test::check_valid(code, |sa| {
         let fct_id = sa.fct_by_name("f").expect("no function `f`.");
         let fct = generate_fct(sa, fct_id);
-        fct.positions().to_vec()
+        fct.locations()
+            .iter()
+            .map(|(bci, location)| (bci.0, location.line()))
+            .collect()
     })
 }
 
@@ -134,7 +136,7 @@ fn gen_load_field_uint8() {
 #[test]
 fn gen_position_load_field_uint8() {
     let result = position("class Foo(bar: UInt8) fn f(a: Foo): UInt8 { return a.bar; }");
-    let expected = vec![(0, p(1, 53))];
+    let expected = vec![(0, 1)];
     assert_eq!(expected, result);
 }
 
@@ -157,7 +159,7 @@ fn gen_store_field_uint8() {
 #[test]
 fn gen_position_store_field_uint8() {
     let result = position("class Foo(bar: UInt8) fn f(a: Foo, b: UInt8) { a.bar = b; }");
-    let expected = vec![(0, p(1, 54))];
+    let expected = vec![(0, 1)];
     assert_eq!(expected, result);
 }
 
@@ -251,7 +253,7 @@ fn gen_div_int() {
 #[test]
 fn gen_position_div_int() {
     let result = position("fn f(a: Int32, b: Int32): Int32 { return a / b; }");
-    let expected = vec![(0, p(1, 44))];
+    let expected = vec![(0, 1)];
     assert_eq!(expected, result);
 }
 
@@ -714,7 +716,7 @@ fn gen_expr_mod() {
 #[test]
 fn gen_position_mod_int32() {
     let result = position("fn f(a: Int32, b: Int32): Int32 { return a % b; }");
-    let expected = vec![(0, p(1, 44))];
+    let expected = vec![(0, 1)];
     assert_eq!(expected, result);
 }
 
@@ -2599,7 +2601,7 @@ fn gen_new_object_initialized() {
 #[test]
 fn gen_position_new_object() {
     let result = position("class Object fn f(): Object { return Object(); }");
-    let expected = vec![(0, p(1, 44))];
+    let expected = vec![(0, 1)];
     assert_eq!(expected, result);
 }
 
@@ -2643,7 +2645,7 @@ fn gen_array_length() {
 #[test]
 fn gen_position_array_length() {
     let result = position("fn f(a: Array[Int32]): Int64 { return a.size(); }");
-    let expected = vec![(0, p(1, 45))];
+    let expected = vec![(0, 1)];
     assert_eq!(expected, result);
 }
 
@@ -2657,7 +2659,7 @@ fn gen_array_length_effect() {
 #[test]
 fn gen_position_array_length_effect() {
     let result = position("fn f(a: Array[Int32]) { a.size(); }");
-    let expected = vec![(0, p(1, 31))];
+    let expected = vec![(0, 1)];
     assert_eq!(expected, result);
 }
 
@@ -2720,49 +2722,49 @@ fn gen_load_array_ptr() {
 #[test]
 fn gen_position_load_array_bool() {
     let result = position("fn f(a: Array[Bool]): Bool { return a(0); }");
-    let expected = vec![(3, p(1, 38))];
+    let expected = vec![(3, 1)];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_load_array_char() {
     let result = position("fn f(a: Array[Char]): Char { return a(0); }");
-    let expected = vec![(3, p(1, 38))];
+    let expected = vec![(3, 1)];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_load_array_int32() {
     let result = position("fn f(a: Array[Int32]): Int32 { return a(0); }");
-    let expected = vec![(3, p(1, 40))];
+    let expected = vec![(3, 1)];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_load_array_int64() {
     let result = position("fn f(a: Array[Int64]): Int64 { return a(0); }");
-    let expected = vec![(3, p(1, 40))];
+    let expected = vec![(3, 1)];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_load_array_float32() {
     let result = position("fn f(a: Array[Float32]): Float32 { return a(0); }");
-    let expected = vec![(3, p(1, 44))];
+    let expected = vec![(3, 1)];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_load_array_float64() {
     let result = position("fn f(a: Array[Float64]): Float64 { return a(0); }");
-    let expected = vec![(3, p(1, 44))];
+    let expected = vec![(3, 1)];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_load_array_ptr() {
     let result = position("class Object fn f(a: Array[Object]): Object { return a(0); }");
-    let expected = vec![(3, p(1, 55))];
+    let expected = vec![(3, 1)];
     assert_eq!(expected, result);
 }
 
@@ -2857,49 +2859,49 @@ fn gen_store_array_ptr() {
 #[test]
 fn gen_position_store_array_bool() {
     let result = position("fn f(a: Array[Bool], b: Bool) { a(0) = b; }");
-    let expected = vec![(3, p(1, 38))];
+    let expected = vec![(3, 1)];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_store_array_char() {
     let result = position("fn f(a: Array[Char], b: Char) { a(0) = b; }");
-    let expected = vec![(3, p(1, 38))];
+    let expected = vec![(3, 1)];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_store_array_int32() {
     let result = position("fn f(a: Array[Int32], b: Int32) { a(0) = b; }");
-    let expected = vec![(3, p(1, 40))];
+    let expected = vec![(3, 1)];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_store_array_int64() {
     let result = position("fn f(a: Array[Int64], b: Int64) { a(0) = b; }");
-    let expected = vec![(3, p(1, 40))];
+    let expected = vec![(3, 1)];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_store_array_float32() {
     let result = position("fn f(a: Array[Float32], b: Float32) { a(0) = b; }");
-    let expected = vec![(3, p(1, 44))];
+    let expected = vec![(3, 1)];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_store_array_float64() {
     let result = position("fn f(a: Array[Float64], b: Float64) { a(0) = b; }");
-    let expected = vec![(3, p(1, 44))];
+    let expected = vec![(3, 1)];
     assert_eq!(expected, result);
 }
 
 #[test]
 fn gen_position_store_array_ptr() {
     let result = position("class Object fn f(a: Array[Object], b: Object) { a(0) = b; }");
-    let expected = vec![(3, p(1, 55))];
+    let expected = vec![(3, 1)];
     assert_eq!(expected, result);
 }
 
@@ -2938,7 +2940,7 @@ fn gen_position_new_object_with_multiple_args() {
             class Foo(a: Int32, b: Int32, c: Int32)
             fn f(): Foo { return Foo(1i32, 2i32, 3i32); }",
     );
-    let expected = vec![(15, p(3, 37))];
+    let expected = vec![(15, 3)];
     assert_eq!(expected, result);
 }
 
@@ -4095,10 +4097,6 @@ fn gen_invoke_lambda() {
             assert_eq!(expected, code);
         },
     );
-}
-
-fn p(line: u32, column: u32) -> Position {
-    Position { line, column }
 }
 
 fn r(val: usize) -> Register {

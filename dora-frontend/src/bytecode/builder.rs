@@ -1,10 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
-use dora_parser::lexer::position::Position;
-
 use crate::bytecode::{
     BytecodeFunction, BytecodeType, BytecodeTypeArray, BytecodeWriter, ConstPoolEntry,
-    ConstPoolIdx, Label, Register,
+    ConstPoolIdx, Label, Location, Register,
 };
 use crate::language::sem_analysis::{
     ClassDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId, GlobalDefinitionId,
@@ -184,9 +182,9 @@ impl BytecodeBuilder {
         self.writer.add_const(ConstPoolEntry::Tuple(subtypes))
     }
 
-    pub fn emit_add(&mut self, dest: Register, lhs: Register, rhs: Register, pos: Position) {
+    pub fn emit_add(&mut self, dest: Register, lhs: Register, rhs: Register, location: Location) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.set_position(pos);
+        self.writer.set_location(location);
         self.writer.emit_add(dest, lhs, rhs);
     }
 
@@ -205,9 +203,9 @@ impl BytecodeBuilder {
         self.writer.emit_xor(dest, lhs, rhs);
     }
 
-    pub fn emit_div(&mut self, dest: Register, lhs: Register, rhs: Register, pos: Position) {
+    pub fn emit_div(&mut self, dest: Register, lhs: Register, rhs: Register, location: Location) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.set_position(pos);
+        self.writer.set_location(location);
         self.writer.emit_div(dest, lhs, rhs);
     }
 
@@ -226,10 +224,10 @@ impl BytecodeBuilder {
         dest: Register,
         obj: Register,
         field_idx: ConstPoolIdx,
-        pos: Position,
+        location: Location,
     ) {
         assert!(self.def(dest) && self.used(obj));
-        self.writer.set_position(pos);
+        self.writer.set_location(location);
         self.writer.emit_load_field(dest, obj, field_idx);
     }
 
@@ -238,10 +236,10 @@ impl BytecodeBuilder {
         src: Register,
         obj: Register,
         field_idx: ConstPoolIdx,
-        pos: Position,
+        location: Location,
     ) {
         assert!(self.used(src) && self.used(obj));
-        self.writer.set_position(pos);
+        self.writer.set_location(location);
         self.writer.emit_store_field(src, obj, field_idx);
     }
 
@@ -317,15 +315,15 @@ impl BytecodeBuilder {
         self.writer.emit_jump(lbl);
     }
 
-    pub fn emit_mod(&mut self, dest: Register, lhs: Register, rhs: Register, pos: Position) {
+    pub fn emit_mod(&mut self, dest: Register, lhs: Register, rhs: Register, location: Location) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.set_position(pos);
+        self.writer.set_location(location);
         self.writer.emit_mod(dest, lhs, rhs);
     }
 
-    pub fn emit_mul(&mut self, dest: Register, lhs: Register, rhs: Register, pos: Position) {
+    pub fn emit_mul(&mut self, dest: Register, lhs: Register, rhs: Register, location: Location) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.set_position(pos);
+        self.writer.set_location(location);
         self.writer.emit_mul(dest, lhs, rhs);
     }
 
@@ -349,9 +347,9 @@ impl BytecodeBuilder {
         self.writer.emit_sar(dest, lhs, rhs);
     }
 
-    pub fn emit_sub(&mut self, dest: Register, lhs: Register, rhs: Register, pos: Position) {
+    pub fn emit_sub(&mut self, dest: Register, lhs: Register, rhs: Register, location: Location) {
         assert!(self.def(dest) && self.used(lhs) && self.used(rhs));
-        self.writer.set_position(pos);
+        self.writer.set_location(location);
         self.writer.emit_sub(dest, lhs, rhs);
     }
 
@@ -370,10 +368,10 @@ impl BytecodeBuilder {
         dest: Register,
         src: Register,
         idx: ConstPoolIdx,
-        pos: Position,
+        location: Location,
     ) {
         assert!(self.def(dest) && self.used(src));
-        self.writer.set_position(pos);
+        self.writer.set_location(location);
         self.writer.emit_load_enum_element(dest, src, idx);
     }
 
@@ -382,10 +380,10 @@ impl BytecodeBuilder {
         dest: Register,
         src: Register,
         idx: ConstPoolIdx,
-        pos: Position,
+        location: Location,
     ) {
         assert!(self.def(dest) && self.used(src));
-        self.writer.set_position(pos);
+        self.writer.set_location(location);
         self.writer.emit_load_enum_variant(dest, src, idx);
     }
 
@@ -434,9 +432,14 @@ impl BytecodeBuilder {
         self.writer.emit_test_le(dest, lhs, rhs);
     }
 
-    pub fn emit_load_global(&mut self, dest: Register, gid: GlobalDefinitionId, pos: Position) {
+    pub fn emit_load_global(
+        &mut self,
+        dest: Register,
+        gid: GlobalDefinitionId,
+        location: Location,
+    ) {
         assert!(self.def(dest));
-        self.writer.set_position(pos);
+        self.writer.set_location(location);
         self.writer.emit_load_global(dest, gid);
     }
 
@@ -450,55 +453,65 @@ impl BytecodeBuilder {
         self.writer.emit_push_register(src);
     }
 
-    pub fn emit_invoke_direct(&mut self, dest: Register, fid: ConstPoolIdx, pos: Position) {
+    pub fn emit_invoke_direct(&mut self, dest: Register, fid: ConstPoolIdx, location: Location) {
         assert!(self.def(dest));
-        self.writer.set_position(pos);
+        self.writer.set_location(location);
         self.writer.emit_invoke_direct(dest, fid);
     }
 
-    pub fn emit_invoke_virtual(&mut self, dest: Register, idx: ConstPoolIdx, pos: Position) {
+    pub fn emit_invoke_virtual(&mut self, dest: Register, idx: ConstPoolIdx, location: Location) {
         assert!(self.def(dest));
-        self.writer.set_position(pos);
+        self.writer.set_location(location);
         self.writer.emit_invoke_virtual(dest, idx);
     }
 
-    pub fn emit_invoke_static(&mut self, dest: Register, idx: ConstPoolIdx, pos: Position) {
+    pub fn emit_invoke_static(&mut self, dest: Register, idx: ConstPoolIdx, location: Location) {
         assert!(self.def(dest));
-        self.writer.set_position(pos);
+        self.writer.set_location(location);
         self.writer.emit_invoke_static(dest, idx);
     }
 
-    pub fn emit_invoke_lambda(&mut self, dest: Register, idx: ConstPoolIdx, pos: Position) {
+    pub fn emit_invoke_lambda(&mut self, dest: Register, idx: ConstPoolIdx, location: Location) {
         assert!(self.def(dest));
-        self.writer.set_position(pos);
+        self.writer.set_location(location);
         self.writer.emit_invoke_lambda(dest, idx);
     }
 
-    pub fn emit_invoke_generic_static(&mut self, dest: Register, idx: ConstPoolIdx, pos: Position) {
+    pub fn emit_invoke_generic_static(
+        &mut self,
+        dest: Register,
+        idx: ConstPoolIdx,
+        location: Location,
+    ) {
         assert!(self.def(dest));
-        self.writer.set_position(pos);
+        self.writer.set_location(location);
         self.writer.emit_invoke_generic_static(dest, idx);
     }
 
-    pub fn emit_invoke_generic_direct(&mut self, dest: Register, idx: ConstPoolIdx, pos: Position) {
+    pub fn emit_invoke_generic_direct(
+        &mut self,
+        dest: Register,
+        idx: ConstPoolIdx,
+        location: Location,
+    ) {
         assert!(self.def(dest));
-        self.writer.set_position(pos);
+        self.writer.set_location(location);
         self.writer.emit_invoke_generic_direct(dest, idx);
     }
 
-    pub fn emit_new_object(&mut self, dest: Register, idx: ConstPoolIdx, pos: Position) {
+    pub fn emit_new_object(&mut self, dest: Register, idx: ConstPoolIdx, location: Location) {
         assert!(self.def(dest));
-        self.writer.set_position(pos);
+        self.writer.set_location(location);
         self.writer.emit_new_object(dest, idx);
     }
     pub fn emit_new_object_initialized(
         &mut self,
         dest: Register,
         idx: ConstPoolIdx,
-        pos: Position,
+        location: Location,
     ) {
         assert!(self.def(dest));
-        self.writer.set_position(pos);
+        self.writer.set_location(location);
         self.writer.emit_new_object_initialized(dest, idx);
     }
     pub fn emit_new_array(
@@ -506,25 +519,25 @@ impl BytecodeBuilder {
         dest: Register,
         cls_idx: ConstPoolIdx,
         length: Register,
-        pos: Position,
+        location: Location,
     ) {
         assert!(self.def(dest));
-        self.writer.set_position(pos);
+        self.writer.set_location(location);
         self.writer.emit_new_array(dest, cls_idx, length);
     }
-    pub fn emit_new_tuple(&mut self, dest: Register, idx: ConstPoolIdx, pos: Position) {
+    pub fn emit_new_tuple(&mut self, dest: Register, idx: ConstPoolIdx, location: Location) {
         assert!(self.def(dest));
-        self.writer.set_position(pos);
+        self.writer.set_location(location);
         self.writer.emit_new_tuple(dest, idx);
     }
-    pub fn emit_new_enum(&mut self, dest: Register, idx: ConstPoolIdx, pos: Position) {
+    pub fn emit_new_enum(&mut self, dest: Register, idx: ConstPoolIdx, location: Location) {
         assert!(self.def(dest));
-        self.writer.set_position(pos);
+        self.writer.set_location(location);
         self.writer.emit_new_enum(dest, idx);
     }
-    pub fn emit_new_struct(&mut self, dest: Register, idx: ConstPoolIdx, pos: Position) {
+    pub fn emit_new_struct(&mut self, dest: Register, idx: ConstPoolIdx, location: Location) {
         assert!(self.def(dest));
-        self.writer.set_position(pos);
+        self.writer.set_location(location);
         self.writer.emit_new_struct(dest, idx);
     }
     pub fn emit_new_trait_object(
@@ -532,21 +545,21 @@ impl BytecodeBuilder {
         dest: Register,
         idx: ConstPoolIdx,
         src: Register,
-        pos: Position,
+        location: Location,
     ) {
         assert!(self.def(dest) && self.used(src));
-        self.writer.set_position(pos);
+        self.writer.set_location(location);
         self.writer.emit_new_trait_object(dest, idx, src);
     }
-    pub fn emit_new_lambda(&mut self, dest: Register, idx: ConstPoolIdx, pos: Position) {
+    pub fn emit_new_lambda(&mut self, dest: Register, idx: ConstPoolIdx, location: Location) {
         assert!(self.def(dest));
-        self.writer.set_position(pos);
+        self.writer.set_location(location);
         self.writer.emit_new_lambda(dest, idx);
     }
 
-    pub fn emit_array_length(&mut self, dest: Register, array: Register, pos: Position) {
+    pub fn emit_array_length(&mut self, dest: Register, array: Register, location: Location) {
         assert!(self.def(dest) && self.used(array));
-        self.writer.set_position(pos);
+        self.writer.set_location(location);
         self.writer.emit_array_length(dest, array);
     }
 
@@ -555,10 +568,10 @@ impl BytecodeBuilder {
         src: Register,
         array: Register,
         index: Register,
-        pos: Position,
+        location: Location,
     ) {
         assert!(self.used(src) && self.used(array) && self.used(index));
-        self.writer.set_position(pos);
+        self.writer.set_location(location);
         self.writer.emit_store_array(src, array, index);
     }
 
@@ -567,10 +580,10 @@ impl BytecodeBuilder {
         dest: Register,
         array: Register,
         index: Register,
-        pos: Position,
+        location: Location,
     ) {
         assert!(self.def(dest) && self.used(array) && self.used(index));
-        self.writer.set_position(pos);
+        self.writer.set_location(location);
         self.writer.emit_load_array(dest, array, index);
     }
 

@@ -1,4 +1,4 @@
-use crate::vm::{find_trait_impl, VM};
+use crate::vm::{find_trait_impl, loc, VM};
 use dora_frontend::bytecode::{
     BytecodeBuilder, BytecodeFunction, BytecodeType, BytecodeTypeArray, Register,
 };
@@ -104,7 +104,7 @@ fn generate_bytecode_for_thunk(
 
     let ty = register_bty_from_ty(trait_fct.return_type.clone());
     let result_reg = gen.alloc_var(ty);
-    gen.emit_invoke_generic_direct(result_reg, target_fct_idx, trait_fct.pos);
+    gen.emit_invoke_generic_direct(result_reg, target_fct_idx, loc(trait_fct.pos));
     gen.emit_ret(result_reg);
 
     gen.pop_scope();

@@ -2,11 +2,9 @@ use std::mem;
 
 use crate::bytecode::{
     BytecodeFunction, BytecodeOffset, BytecodeOpcode, BytecodeType, ConstPoolEntry, ConstPoolIdx,
-    Register,
+    Location, Register,
 };
 use crate::language::sem_analysis::GlobalDefinitionId;
-
-use dora_parser::lexer::position::Position;
 
 #[derive(Copy, Clone, PartialEq, Debug, Eq, Hash)]
 pub struct Label(pub usize);
@@ -22,8 +20,8 @@ pub struct BytecodeWriter {
     registers: Vec<BytecodeType>,
     const_pool: Vec<ConstPoolEntry>,
 
-    positions: Vec<(u32, Position)>,
-    position: Option<Position>,
+    line_number_table: Vec<(BytecodeOffset, Location)>,
+    current_location: Option<Location>,
 
     params: Vec<BytecodeType>,
     return_type: Option<BytecodeType>,
@@ -42,8 +40,8 @@ impl BytecodeWriter {
             registers: Vec::new(),
             const_pool: Vec::new(),
 
-            positions: Vec::new(),
-            position: None,
+            line_number_table: Vec::new(),
+            current_location: None,
 
             params: Vec::new(),
             return_type: None,
@@ -384,7 +382,7 @@ impl BytecodeWriter {
             self.const_pool,
             self.registers,
             self.arguments,
-            self.positions,
+            self.line_number_table,
         )
     }
 
@@ -398,7 +396,7 @@ impl BytecodeWriter {
             self.const_pool,
             registers,
             self.arguments,
-            self.positions,
+            self.line_number_table,
         )
     }
 
@@ -583,8 +581,8 @@ impl BytecodeWriter {
         self.emit_values(inst, &values);
     }
 
-    pub fn set_position(&mut self, pos: Position) {
-        self.position = Some(pos);
+    pub fn set_location(&mut self, location: Location) {
+        self.current_location = Some(location);
     }
 
     fn emit_op(&mut self, inst: BytecodeOpcode) {
@@ -592,29 +590,30 @@ impl BytecodeWriter {
         self.emit_values(inst, &values);
     }
 
-    fn emit_position(&mut self) {
+    fn emit_location(&mut self) {
         let offset = self.code.len() as u32;
-        assert!(self.position.is_some());
+        assert!(self.current_location.is_some());
 
-        let position = self.position.unwrap();
-        let last_position = self.positions.last().map(|(_, p)| p);
+        let location = self.current_location.unwrap();
+        let last_location = self.line_number_table.last().map(|(_, location)| *location);
 
-        if let Some(last_position) = last_position {
-            if *last_position == position {
-                self.position = None;
+        if let Some(last_location) = last_location {
+            if last_location == location {
+                self.current_location = None;
                 return;
             }
         }
 
-        self.positions.push((offset, position));
-        self.position = None;
+        self.line_number_table
+            .push((BytecodeOffset(offset), location));
+        self.current_location = None;
     }
 
     fn emit_values(&mut self, op: BytecodeOpcode, values: &[u32]) {
-        if op.needs_position() {
-            self.emit_position();
+        if op.needs_location() {
+            self.emit_location();
         } else {
-            assert!(self.position.is_none());
+            assert!(self.current_location.is_none());
         }
 
         let is_wide = values.iter().any(|&val| val > u8::max_value() as u32);

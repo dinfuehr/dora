@@ -213,9 +213,9 @@ pub fn dump(vm: &SemAnalysis, fct: Option<&FctDefinition>, bc: &BytecodeFunction
     }
 
     println!();
-    println!("  Positions:");
-    for (bc_offset, pos) in bc.positions().iter() {
-        println!("{}{} => {}", align, bc_offset, pos);
+    println!("  Locations:");
+    for (bc_offset, line) in bc.locations().iter() {
+        println!("{}{} => {}", align, bc_offset.0, line);
     }
     println!();
 }

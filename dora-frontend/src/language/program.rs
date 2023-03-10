@@ -1,17 +1,17 @@
 use crate::bytecode::program::ClassLayout;
 use crate::bytecode::{
     ClassData, ClassField, EnumData, FunctionData, FunctionId, GlobalData, ModuleData, ModuleId,
-    PackageData, PackageId, Program, SourceFileData, StructData, StructField, TraitData,
-    TypeParamBound, TypeParamData,
+    PackageData, PackageId, Program, SourceFileData, SourceFileId, StructData, StructField,
+    TraitData, TypeParamBound, TypeParamData,
 };
 use crate::language::SemAnalysis;
 
 use crate::language::generator::bty_from_ty;
-use crate::language::sem_analysis::PackageName;
 
-use super::sem_analysis::{
-    ClassDefinition, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, StructDefinition,
-    TypeParamDefinition,
+use crate::language::sem_analysis as sa;
+use crate::language::sem_analysis::{
+    ClassDefinition, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, PackageName,
+    StructDefinition, TypeParamDefinition,
 };
 
 pub fn emit_program(sa: &SemAnalysis) -> Program {
@@ -80,6 +80,7 @@ fn create_functions(sa: &SemAnalysis) -> Vec<FunctionData> {
         result.push(FunctionData {
             name,
             type_params: create_type_params(sa, &fct.type_params),
+            source_file_id: Some(convert_source_file_id(fct.file_id)),
         })
     }
 
@@ -246,4 +247,8 @@ fn convert_module_id(id: ModuleDefinitionId) -> ModuleId {
 
 fn convert_function_id(id: FctDefinitionId) -> FunctionId {
     FunctionId(id.to_usize().try_into().expect("failure"))
+}
+
+fn convert_source_file_id(id: sa::SourceFileId) -> SourceFileId {
+    SourceFileId(id.to_usize().try_into().expect("failure"))
 }

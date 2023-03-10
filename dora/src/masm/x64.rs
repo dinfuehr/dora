@@ -1,5 +1,3 @@
-use dora_parser::lexer::position::Position;
-
 use crate::compiler::codegen::AnyReg;
 use crate::cpu::*;
 use crate::gc::swiper::CARD_SIZE_BITS;
@@ -113,13 +111,13 @@ impl MacroAssembler {
 
     pub fn virtual_call(
         &mut self,
-        pos: Position,
+        line: u32,
         vtable_index: u32,
         self_index: u32,
         lazy_compilation_site: LazyCompilationSite,
     ) {
         let obj = REG_PARAMS[self_index as usize];
-        self.test_if_nil_bailout(pos, obj, Trap::NIL);
+        self.test_if_nil_bailout(line, obj, Trap::NIL);
 
         // REG_RESULT = [obj] (load vtable)
         self.load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Base(obj, 0));
@@ -333,12 +331,12 @@ impl MacroAssembler {
         self.asm.jmp_r(reg.into());
     }
 
-    pub fn int_div(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, pos: Position) {
-        self.div_common(mode, dest, lhs, rhs, RAX, pos);
+    pub fn int_div(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, line: u32) {
+        self.div_common(mode, dest, lhs, rhs, RAX, line);
     }
 
-    pub fn int_mod(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, pos: Position) {
-        self.div_common(mode, dest, lhs, rhs, RDX, pos);
+    pub fn int_mod(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, line: u32) {
+        self.div_common(mode, dest, lhs, rhs, RDX, line);
     }
 
     fn div_common(
@@ -348,7 +346,7 @@ impl MacroAssembler {
         lhs: Reg,
         rhs: Reg,
         result: Reg,
-        pos: Position,
+        line: u32,
     ) {
         if mode.is64() {
             self.asm.testq_rr(rhs.into(), rhs.into());
@@ -360,7 +358,7 @@ impl MacroAssembler {
         let lbl_div = self.create_label();
 
         self.jump_if(CondCode::Zero, lbl_zero);
-        self.emit_bailout(lbl_zero, Trap::DIV0, pos);
+        self.emit_bailout(lbl_zero, Trap::DIV0, line);
 
         let lbl_overflow = self.create_label();
         let scratch = self.get_scratch();
@@ -380,7 +378,7 @@ impl MacroAssembler {
         }
 
         self.asm.jcc(Condition::Equal, lbl_overflow);
-        self.emit_bailout(lbl_overflow, Trap::OVERFLOW, pos);
+        self.emit_bailout(lbl_overflow, Trap::OVERFLOW, line);
 
         self.bind_label(lbl_div);
 
@@ -420,14 +418,7 @@ impl MacroAssembler {
         }
     }
 
-    pub fn int_mul_checked(
-        &mut self,
-        mode: MachineMode,
-        dest: Reg,
-        lhs: Reg,
-        rhs: Reg,
-        pos: Position,
-    ) {
+    pub fn int_mul_checked(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, line: u32) {
         if mode.is64() {
             self.asm.imulq_rr(lhs.into(), rhs.into());
         } else {
@@ -436,7 +427,7 @@ impl MacroAssembler {
 
         let lbl_overflow = self.asm.create_label();
         self.asm.jcc(Condition::Overflow, lbl_overflow);
-        self.emit_bailout(lbl_overflow, Trap::OVERFLOW, pos);
+        self.emit_bailout(lbl_overflow, Trap::OVERFLOW, line);
 
         if dest != lhs {
             self.mov_rr(mode.is64(), dest.into(), lhs.into());
@@ -455,14 +446,7 @@ impl MacroAssembler {
         }
     }
 
-    pub fn int_add_checked(
-        &mut self,
-        mode: MachineMode,
-        dest: Reg,
-        lhs: Reg,
-        rhs: Reg,
-        pos: Position,
-    ) {
+    pub fn int_add_checked(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, line: u32) {
         if mode.is64() {
             self.asm.addq_rr(lhs.into(), rhs.into());
         } else {
@@ -471,7 +455,7 @@ impl MacroAssembler {
 
         let lbl_overflow = self.asm.create_label();
         self.asm.jcc(Condition::Overflow, lbl_overflow);
-        self.emit_bailout(lbl_overflow, Trap::OVERFLOW, pos);
+        self.emit_bailout(lbl_overflow, Trap::OVERFLOW, line);
 
         if dest != lhs {
             self.mov_rr(mode.is64(), dest.into(), lhs.into());
@@ -510,14 +494,7 @@ impl MacroAssembler {
         }
     }
 
-    pub fn int_sub_checked(
-        &mut self,
-        mode: MachineMode,
-        dest: Reg,
-        lhs: Reg,
-        rhs: Reg,
-        pos: Position,
-    ) {
+    pub fn int_sub_checked(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, line: u32) {
         if mode.is64() {
             self.asm.subq_rr(lhs.into(), rhs.into());
         } else {
@@ -526,7 +503,7 @@ impl MacroAssembler {
 
         let lbl_overflow = self.asm.create_label();
         self.asm.jcc(Condition::Overflow, lbl_overflow);
-        self.emit_bailout(lbl_overflow, Trap::OVERFLOW, pos);
+        self.emit_bailout(lbl_overflow, Trap::OVERFLOW, line);
 
         if dest != lhs {
             self.mov_rr(mode.is64(), dest.into(), lhs.into());
@@ -873,7 +850,7 @@ impl MacroAssembler {
         self.asm.movq_rr(dest.into(), (*scratch).into());
     }
 
-    pub fn check_index_out_of_bounds(&mut self, pos: Position, array: Reg, index: Reg) {
+    pub fn check_index_out_of_bounds(&mut self, line: u32, array: Reg, index: Reg) {
         let scratch = self.get_scratch();
         self.load_mem(
             MachineMode::Int64,
@@ -884,7 +861,7 @@ impl MacroAssembler {
 
         let lbl = self.create_label();
         self.jump_if(CondCode::UnsignedGreaterEq, lbl);
-        self.emit_bailout(lbl, Trap::INDEX_OUT_OF_BOUNDS, pos);
+        self.emit_bailout(lbl, Trap::INDEX_OUT_OF_BOUNDS, line);
     }
 
     pub fn load_nil(&mut self, dest: Reg) {
@@ -1329,11 +1306,11 @@ impl MacroAssembler {
         }
     }
 
-    pub fn trap(&mut self, trap: Trap, pos: Position) {
+    pub fn trap(&mut self, trap: Trap, line: u32) {
         let vm = get_vm();
         self.load_int_const(MachineMode::Int32, REG_PARAMS[0], trap.int() as i64);
         self.raw_call(vm.stubs.trap());
-        self.emit_position(pos);
+        self.emit_position(line);
     }
 
     pub fn nop(&mut self) {

@@ -3,7 +3,8 @@ use std::ptr;
 use crate::handle::{handle, Handle};
 use crate::object::{alloc, Array, Int32Array, Ref, Stacktrace, StacktraceElement, Str};
 use crate::threads::current_thread;
-use crate::vm::{display_fct, get_vm, CodeId, CodeKind, VM};
+use crate::vm::{display_fct, get_vm, loc, CodeId, CodeKind, VM};
+use dora_frontend::bytecode::Location;
 
 pub struct NativeStacktrace {
     elems: Vec<StackElem>,
@@ -18,8 +19,8 @@ impl NativeStacktrace {
         self.elems.len()
     }
 
-    pub fn push_entry(&mut self, fct_id: CodeId, lineno: u32) {
-        self.elems.push(StackElem { fct_id, lineno });
+    pub fn push_entry(&mut self, fct_id: CodeId, location: Location) {
+        self.elems.push(StackElem { fct_id, location });
     }
 
     pub fn dump(&self, vm: &VM, w: &mut (impl std::io::Write + ?Sized)) -> std::io::Result<()> {
@@ -30,10 +31,10 @@ impl NativeStacktrace {
             let fct = fct.read();
             let fct_name = display_fct(vm, fct_id);
             let file = &vm.program.source_files[fct.file_id.to_usize()].path;
-            let lineno = if elem.lineno == 0 {
+            let lineno = if elem.location.line() == 0 {
                 fct.pos.line
             } else {
-                elem.lineno
+                elem.location.line()
             };
             writeln!(w, "    {} ({}:{})", fct_name, file, lineno)?;
         }
@@ -44,7 +45,7 @@ impl NativeStacktrace {
 
 struct StackElem {
     fct_id: CodeId,
-    lineno: u32,
+    location: Location,
 }
 
 #[repr(C)]
@@ -126,11 +127,11 @@ fn determine_stack_entry(stacktrace: &mut NativeStacktrace, vm: &VM, pc: usize) 
         match code.descriptor() {
             CodeKind::DoraFct(_) => {
                 let offset = pc - code.instruction_start().to_usize();
-                let position = code
-                    .position_for_offset(offset as u32)
+                let location = code
+                    .location_for_offset(offset as u32)
                     .expect("position not found for program point");
 
-                stacktrace.push_entry(code_id, position.line);
+                stacktrace.push_entry(code_id, location);
 
                 true
             }
@@ -139,7 +140,7 @@ fn determine_stack_entry(stacktrace: &mut NativeStacktrace, vm: &VM, pc: usize) 
                 let fct = vm.fcts.idx(fct_id);
                 let fct = fct.read();
 
-                stacktrace.push_entry(code_id, fct.ast.pos.line);
+                stacktrace.push_entry(code_id, loc(fct.ast.pos));
 
                 true
             }
@@ -220,7 +221,7 @@ fn set_backtrace(vm: &VM, mut obj: Handle<Stacktrace>, via_retrieve: bool) {
     let mut i = 0;
 
     for elem in stacktrace.elems.iter().skip(skip) {
-        array.set_at(i, elem.lineno as i32);
+        array.set_at(i, elem.location.line() as i32);
         array.set_at(i + 1, elem.fct_id.idx() as i32);
         i += 2;
     }

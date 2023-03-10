@@ -10,11 +10,11 @@ use crate::mem;
 use crate::mode::MachineMode;
 use crate::object::Header;
 use crate::vm::{
-    CommentTable, GcPoint, GcPointTable, LazyCompilationData, LazyCompilationSite, PositionTable,
+    CommentTable, GcPoint, GcPointTable, LazyCompilationData, LazyCompilationSite, LocationTable,
     RelocationTable, Trap, CODE_ALIGNMENT,
 };
 pub use dora_asm::Label;
-use dora_parser::lexer::position::Position;
+use dora_frontend::bytecode::Location;
 
 #[cfg(target_arch = "x86_64")]
 pub use self::x64::*;
@@ -34,7 +34,7 @@ pub struct CodeDescriptor {
     pub lazy_compilation: LazyCompilationData,
     pub gcpoints: GcPointTable,
     pub comments: CommentTable,
-    pub positions: PositionTable,
+    pub positions: LocationTable,
     pub relocations: RelocationTable,
 }
 
@@ -46,7 +46,7 @@ impl CodeDescriptor {
             lazy_compilation: LazyCompilationData::new(),
             gcpoints: GcPointTable::new(),
             comments: CommentTable::new(),
-            positions: PositionTable::new(),
+            positions: LocationTable::new(),
             relocations: RelocationTable::new(),
         }
     }
@@ -68,12 +68,12 @@ pub enum Mem {
 
 pub struct MacroAssembler {
     asm: Assembler,
-    bailouts: Vec<(Label, Trap, Position)>,
+    bailouts: Vec<(Label, Trap, Location)>,
     lazy_compilation: LazyCompilationData,
     constpool: ConstPool,
     gcpoints: GcPointTable,
     comments: CommentTable,
-    positions: PositionTable,
+    positions: LocationTable,
     relocations: RelocationTable,
     scratch_registers: ScratchRegisters,
 }
@@ -87,7 +87,7 @@ impl MacroAssembler {
             constpool: ConstPool::new(),
             gcpoints: GcPointTable::new(),
             comments: CommentTable::new(),
-            positions: PositionTable::new(),
+            positions: LocationTable::new(),
             relocations: RelocationTable::new(),
             scratch_registers: ScratchRegisters::new(),
         }
@@ -123,10 +123,10 @@ impl MacroAssembler {
         let bailouts = self.bailouts.drain(0..).collect::<Vec<_>>();
 
         for bailout in &bailouts {
-            let (lbl, trap, pos) = *bailout;
+            let (lbl, trap, location) = *bailout;
 
             self.bind_label(lbl);
-            self.trap(trap, pos);
+            self.trap(trap, location);
         }
 
         // add nop after bailout traps, so that we can't find return address
@@ -144,9 +144,9 @@ impl MacroAssembler {
         self.asm.position()
     }
 
-    pub fn test_if_nil_bailout(&mut self, pos: Position, reg: Reg, trap: Trap) {
+    pub fn test_if_nil_bailout(&mut self, location: Location, reg: Reg, trap: Trap) {
         let lbl = self.test_if_nil(reg);
-        self.emit_bailout(lbl, trap, pos);
+        self.emit_bailout(lbl, trap, location);
     }
 
     pub fn test_if_nil(&mut self, reg: Reg) -> Label {
@@ -167,9 +167,9 @@ impl MacroAssembler {
         lbl
     }
 
-    pub fn emit_position(&mut self, position: Position) {
+    pub fn emit_position(&mut self, location: Location) {
         let offset = self.pos() as u32;
-        self.positions.insert(offset, position);
+        self.positions.insert(offset, location);
     }
 
     pub fn emit_gcpoint(&mut self, gcpoint: GcPoint) {
@@ -203,14 +203,14 @@ impl MacroAssembler {
         self.asm.bind_label(lbl);
     }
 
-    pub fn emit_bailout(&mut self, lbl: Label, trap: Trap, pos: Position) {
-        self.bailouts.push((lbl, trap, pos));
+    pub fn emit_bailout(&mut self, lbl: Label, trap: Trap, location: Location) {
+        self.bailouts.push((lbl, trap, location));
     }
 
-    pub fn bailout_if(&mut self, cond: CondCode, trap: Trap, pos: Position) {
+    pub fn bailout_if(&mut self, cond: CondCode, trap: Trap, location: Location) {
         let lbl = self.create_label();
         self.jump_if(cond, lbl);
-        self.emit_bailout(lbl, trap, pos);
+        self.emit_bailout(lbl, trap, location);
     }
 
     pub fn get_scratch(&self) -> ScratchReg {

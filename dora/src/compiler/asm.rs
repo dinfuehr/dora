@@ -1,7 +1,5 @@
 use std::mem;
 
-use dora_parser::lexer::position::Position;
-
 use crate::cannon::codegen::{mode, result_reg_mode, RegOrOffset};
 use crate::compiler::codegen::{ensure_native_stub, AllocationSize, AnyReg};
 use crate::compiler::dora_exit_stubs::{NativeFct, NativeFctKind};
@@ -16,7 +14,7 @@ use crate::vm::{
     create_enum_instance, create_struct_instance, get_concrete_tuple_bty_array, EnumLayout,
     GcPoint, LazyCompilationSite, Trap, VM,
 };
-use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray};
+use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray, Location};
 use dora_frontend::language::sem_analysis::{
     FctDefinitionId, GlobalDefinitionId, StructDefinitionId,
 };
@@ -44,7 +42,7 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.prolog(stacksize);
     }
 
-    pub fn stack_guard(&mut self, pos: Position, gcpoint: GcPoint) {
+    pub fn stack_guard(&mut self, location: Location, gcpoint: GcPoint) {
         let lbl_stack_overflow = self.masm.create_label();
         self.masm.check_stack_pointer(lbl_stack_overflow);
         let lbl_return = self.masm.create_label();
@@ -53,12 +51,12 @@ impl<'a> BaselineAssembler<'a> {
         self.slow_paths.push(SlowPathKind::StackOverflow(
             lbl_stack_overflow,
             lbl_return,
-            pos,
+            location,
             gcpoint,
         ));
     }
 
-    pub fn safepoint(&mut self, pos: Position, gcpoint: GcPoint) {
+    pub fn safepoint(&mut self, location: Location, gcpoint: GcPoint) {
         let lbl_safepoint = self.masm.create_label();
         self.masm.safepoint(lbl_safepoint);
         let lbl_return = self.masm.create_label();
@@ -67,17 +65,18 @@ impl<'a> BaselineAssembler<'a> {
         self.slow_paths.push(SlowPathKind::Safepoint(
             lbl_safepoint,
             lbl_return,
-            pos,
+            location,
             gcpoint,
         ));
     }
 
-    pub fn assert(&mut self, value: Reg, pos: Position) {
+    pub fn assert(&mut self, value: Reg, location: Location) {
         let lbl_assert = self.masm.create_label();
         self.masm
             .test_and_jump_if(CondCode::Zero, value, lbl_assert);
 
-        self.slow_paths.push(SlowPathKind::Assert(lbl_assert, pos));
+        self.slow_paths
+            .push(SlowPathKind::Assert(lbl_assert, location));
     }
 
     pub fn epilog(&mut self) {
@@ -128,8 +127,8 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.jump_if(cond, label);
     }
 
-    pub fn bailout_if(&mut self, cond: CondCode, trap: Trap, pos: Position) {
-        self.masm.bailout_if(cond, trap, pos);
+    pub fn bailout_if(&mut self, cond: CondCode, trap: Trap, location: Location) {
+        self.masm.bailout_if(cond, trap, location);
     }
 
     pub fn pos(&self) -> usize {
@@ -172,7 +171,7 @@ impl<'a> BaselineAssembler<'a> {
                 let mode = MachineMode::Ptr;
                 let reg = REG_RESULT;
                 self.load_mem(mode, reg.into(), src.mem());
-                self.test_if_nil_bailout(Position::new(1, 1), reg, Trap::ILLEGAL);
+                self.test_if_nil_bailout(Location::new(1, 1), reg, Trap::ILLEGAL);
                 self.store_mem(mode, dest.mem(), reg.into());
             }
 
@@ -292,8 +291,8 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.test_and_jump_if(cond, reg, lbl);
     }
 
-    pub fn test_if_nil_bailout(&mut self, pos: Position, reg: Reg, trap: Trap) {
-        self.masm.test_if_nil_bailout(pos, reg, trap);
+    pub fn test_if_nil_bailout(&mut self, location: Location, reg: Reg, trap: Trap) {
+        self.masm.test_if_nil_bailout(location, reg, trap);
     }
 
     pub fn test_if_nil(&mut self, reg: Reg) -> Label {
@@ -328,8 +327,8 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.emit_barrier(src, card_table_offset);
     }
 
-    pub fn emit_bailout(&mut self, lbl: Label, trap: Trap, pos: Position) {
-        self.masm.emit_bailout(lbl, trap, pos);
+    pub fn emit_bailout(&mut self, lbl: Label, trap: Trap, location: Location) {
+        self.masm.emit_bailout(lbl, trap, location);
     }
 
     pub fn get_scratch(&self) -> ScratchReg {
@@ -374,9 +373,9 @@ impl<'a> BaselineAssembler<'a> {
         dest: Reg,
         lhs: Reg,
         rhs: Reg,
-        pos: Position,
+        location: Location,
     ) {
-        self.masm.int_add_checked(mode, dest, lhs, rhs, pos);
+        self.masm.int_add_checked(mode, dest, lhs, rhs, location);
     }
 
     pub fn int_add_imm(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, value: i64) {
@@ -393,9 +392,9 @@ impl<'a> BaselineAssembler<'a> {
         dest: Reg,
         lhs: Reg,
         rhs: Reg,
-        pos: Position,
+        location: Location,
     ) {
-        self.masm.int_sub_checked(mode, dest, lhs, rhs, pos);
+        self.masm.int_sub_checked(mode, dest, lhs, rhs, location);
     }
 
     pub fn int_mul(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
@@ -408,17 +407,31 @@ impl<'a> BaselineAssembler<'a> {
         dest: Reg,
         lhs: Reg,
         rhs: Reg,
-        pos: Position,
+        location: Location,
     ) {
-        self.masm.int_mul_checked(mode, dest, lhs, rhs, pos);
+        self.masm.int_mul_checked(mode, dest, lhs, rhs, location);
     }
 
-    pub fn int_div(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, pos: Position) {
-        self.masm.int_div(mode, dest, lhs, rhs, pos);
+    pub fn int_div(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        lhs: Reg,
+        rhs: Reg,
+        location: Location,
+    ) {
+        self.masm.int_div(mode, dest, lhs, rhs, location);
     }
 
-    pub fn int_mod(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, pos: Position) {
-        self.masm.int_mod(mode, dest, lhs, rhs, pos);
+    pub fn int_mod(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        lhs: Reg,
+        rhs: Reg,
+        location: Location,
+    ) {
+        self.masm.int_mod(mode, dest, lhs, rhs, location);
     }
 
     pub fn int_neg(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
@@ -585,8 +598,8 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.copy(mode, dest, src);
     }
 
-    pub fn check_index_out_of_bounds(&mut self, pos: Position, array: Reg, index: Reg) {
-        self.masm.check_index_out_of_bounds(pos, array, index);
+    pub fn check_index_out_of_bounds(&mut self, location: Location, array: Reg, index: Reg) {
+        self.masm.check_index_out_of_bounds(location, array, index);
     }
 
     pub fn extend_byte(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
@@ -645,8 +658,8 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.int_as_float(dest_mode, dest, src_mode, src);
     }
 
-    pub fn emit_positon(&mut self, position: Position) {
-        self.masm.emit_position(position);
+    pub fn emit_positon(&mut self, location: Location) {
+        self.masm.emit_position(location);
     }
 
     pub fn code(mut self) -> CodeDescriptor {
@@ -658,7 +671,7 @@ impl<'a> BaselineAssembler<'a> {
     pub fn native_call(
         &mut self,
         internal_fct: NativeFct,
-        pos: Position,
+        location: Location,
         gcpoint: GcPoint,
         dest: AnyReg,
     ) {
@@ -673,7 +686,7 @@ impl<'a> BaselineAssembler<'a> {
             let mode = mode(self.vm, ty);
             Some(mode)
         };
-        self.call_epilog(pos, mode, dest, gcpoint);
+        self.call_epilog(location, mode, dest, gcpoint);
     }
 
     pub fn direct_call(
@@ -681,38 +694,38 @@ impl<'a> BaselineAssembler<'a> {
         fct_id: FctDefinitionId,
         ptr: Address,
         type_params: BytecodeTypeArray,
-        pos: Position,
+        location: Location,
         gcpoint: GcPoint,
         return_mode: Option<MachineMode>,
         dest: AnyReg,
     ) {
         self.masm.direct_call(fct_id, ptr, type_params);
-        self.call_epilog(pos, return_mode, dest, gcpoint);
+        self.call_epilog(location, return_mode, dest, gcpoint);
     }
 
     pub fn virtual_call(
         &mut self,
         vtable_index: u32,
         self_index: u32,
-        pos: Position,
+        location: Location,
         gcpoint: GcPoint,
         return_mode: Option<MachineMode>,
         dest: AnyReg,
         lazy_compilation_site: LazyCompilationSite,
     ) {
         self.masm
-            .virtual_call(pos, vtable_index, self_index, lazy_compilation_site);
-        self.call_epilog(pos, return_mode, dest, gcpoint);
+            .virtual_call(location, vtable_index, self_index, lazy_compilation_site);
+        self.call_epilog(location, return_mode, dest, gcpoint);
     }
 
     fn call_epilog(
         &mut self,
-        pos: Position,
+        location: Location,
         mode: Option<MachineMode>,
         dest: AnyReg,
         gcpoint: GcPoint,
     ) {
-        self.masm.emit_position(pos);
+        self.masm.emit_position(location);
         self.masm.emit_gcpoint(gcpoint);
         self.copy_result(mode, dest);
     }
@@ -749,7 +762,7 @@ impl<'a> BaselineAssembler<'a> {
         &mut self,
         dest: Reg,
         size: AllocationSize,
-        pos: Position,
+        location: Location,
         array_ref: bool,
         gcpoint: GcPoint,
     ) {
@@ -777,15 +790,15 @@ impl<'a> BaselineAssembler<'a> {
             desc: NativeFctKind::AllocStub,
         };
 
-        self.native_call(internal_fct, pos, gcpoint, dest.into());
-        self.masm.test_if_nil_bailout(pos, dest, Trap::OOM);
+        self.native_call(internal_fct, location, gcpoint, dest.into());
+        self.masm.test_if_nil_bailout(location, dest, Trap::OOM);
     }
 
     pub fn tlab_allocate(
         &mut self,
         dest: Reg,
         size: AllocationSize,
-        pos: Position,
+        location: Location,
         array_ref: bool,
         gcpoint: GcPoint,
     ) {
@@ -861,7 +874,7 @@ impl<'a> BaselineAssembler<'a> {
             lbl_return,
             dest,
             size,
-            pos,
+            location,
             array_ref,
             gcpoint,
         ));
@@ -871,26 +884,26 @@ impl<'a> BaselineAssembler<'a> {
         &mut self,
         dest: Reg,
         size: AllocationSize,
-        pos: Position,
+        location: Location,
         array_ref: bool,
         gcpoint: GcPoint,
     ) {
         if self.vm.args.flag_disable_tlab {
-            self.gc_allocate(dest, size, pos, array_ref, gcpoint);
+            self.gc_allocate(dest, size, location, array_ref, gcpoint);
             return;
         }
 
         match size {
             AllocationSize::Fixed(fixed_size) => {
                 if fixed_size < TLAB_OBJECT_SIZE {
-                    self.tlab_allocate(dest, size, pos, array_ref, gcpoint);
+                    self.tlab_allocate(dest, size, location, array_ref, gcpoint);
                 } else {
-                    self.gc_allocate(dest, size, pos, array_ref, gcpoint);
+                    self.gc_allocate(dest, size, location, array_ref, gcpoint);
                 }
             }
 
             AllocationSize::Dynamic(_) => {
-                self.tlab_allocate(dest, size, pos, array_ref, gcpoint);
+                self.tlab_allocate(dest, size, location, array_ref, gcpoint);
             }
         }
     }
@@ -900,7 +913,7 @@ impl<'a> BaselineAssembler<'a> {
         global_id: GlobalDefinitionId,
         fid: FctDefinitionId,
         ptr: Address,
-        position: Position,
+        location: Location,
         gcpoint: GcPoint,
     ) {
         let lbl_global = self.masm.create_label();
@@ -926,7 +939,7 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.bind_label(lbl_return);
 
         self.slow_paths.push(SlowPathKind::InitializeGlobal(
-            lbl_global, lbl_return, fid, ptr, position, gcpoint,
+            lbl_global, lbl_return, fid, ptr, location, gcpoint,
         ));
     }
 
@@ -1043,13 +1056,13 @@ impl<'a> BaselineAssembler<'a> {
         lbl_return: Label,
         dest: Reg,
         size: AllocationSize,
-        pos: Position,
+        location: Location,
         array_ref: bool,
         gcpoint: GcPoint,
     ) {
         self.masm.bind_label(lbl_start);
         self.masm.emit_comment("slow path tlab allocation".into());
-        self.gc_allocate(dest, size, pos, array_ref, gcpoint);
+        self.gc_allocate(dest, size, location, array_ref, gcpoint);
         self.masm.jump(lbl_return);
     }
 
@@ -1057,14 +1070,14 @@ impl<'a> BaselineAssembler<'a> {
         &mut self,
         lbl_stack_overflow: Label,
         lbl_return: Label,
-        pos: Position,
+        location: Location,
         gcpoint: GcPoint,
     ) {
         self.masm.bind_label(lbl_stack_overflow);
         self.masm.emit_comment("slow path stack overflow".into());
         self.masm.raw_call(self.vm.stubs.stack_overflow());
         self.masm.emit_gcpoint(gcpoint);
-        self.masm.emit_position(pos);
+        self.masm.emit_position(location);
         self.masm.jump(lbl_return);
     }
 
@@ -1072,14 +1085,14 @@ impl<'a> BaselineAssembler<'a> {
         &mut self,
         lbl_start: Label,
         lbl_return: Label,
-        pos: Position,
+        location: Location,
         gcpoint: GcPoint,
     ) {
         self.masm.bind_label(lbl_start);
         self.masm.emit_comment("slow path safepoint".into());
         self.masm.raw_call(self.vm.stubs.safepoint());
         self.masm.emit_gcpoint(gcpoint);
-        self.masm.emit_position(pos);
+        self.masm.emit_position(location);
         self.masm.jump(lbl_return);
     }
 
@@ -1089,7 +1102,7 @@ impl<'a> BaselineAssembler<'a> {
         lbl_return: Label,
         fct_id: FctDefinitionId,
         ptr: Address,
-        pos: Position,
+        location: Location,
         gcpoint: GcPoint,
     ) {
         self.masm.bind_label(lbl_start);
@@ -1097,7 +1110,7 @@ impl<'a> BaselineAssembler<'a> {
             fct_id,
             ptr,
             BytecodeTypeArray::empty(),
-            pos,
+            location,
             gcpoint,
             None,
             REG_RESULT.into(),
@@ -1105,21 +1118,21 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.jump(lbl_return);
     }
 
-    fn slow_path_assert(&mut self, lbl_assert: Label, pos: Position) {
+    fn slow_path_assert(&mut self, lbl_assert: Label, location: Location) {
         self.masm.bind_label(lbl_assert);
         self.masm.emit_comment("slow path assert".into());
         self.masm
             .load_int_const(MachineMode::Int32, REG_PARAMS[0], Trap::ASSERT.int() as i64);
         self.masm.raw_call(self.vm.stubs.trap());
         self.masm.emit_gcpoint(GcPoint::new());
-        self.masm.emit_position(pos);
+        self.masm.emit_position(location);
     }
 }
 
 enum SlowPathKind {
-    TlabAllocationFailure(Label, Label, Reg, AllocationSize, Position, bool, GcPoint),
-    StackOverflow(Label, Label, Position, GcPoint),
-    Safepoint(Label, Label, Position, GcPoint),
-    Assert(Label, Position),
-    InitializeGlobal(Label, Label, FctDefinitionId, Address, Position, GcPoint),
+    TlabAllocationFailure(Label, Label, Reg, AllocationSize, Location, bool, GcPoint),
+    StackOverflow(Label, Label, Location, GcPoint),
+    Safepoint(Label, Label, Location, GcPoint),
+    Assert(Label, Location),
+    InitializeGlobal(Label, Label, FctDefinitionId, Address, Location, GcPoint),
 }

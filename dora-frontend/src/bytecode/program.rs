@@ -24,6 +24,7 @@ pub struct FunctionId(pub u32);
 pub struct FunctionData {
     pub name: String,
     pub type_params: TypeParamData,
+    pub source_file_id: Option<SourceFileId>,
 }
 
 #[derive(Copy, Clone, Debug)]

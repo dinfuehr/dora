@@ -13,10 +13,8 @@ use crate::object::Header;
 use crate::os;
 use crate::vm::VM;
 use crate::vtable::VTable;
-use dora_frontend::bytecode::BytecodeTypeArray;
+use dora_frontend::bytecode::{BytecodeTypeArray, Location};
 use dora_frontend::language::sem_analysis::FctDefinitionId;
-
-use dora_parser::Position;
 
 pub const CODE_ALIGNMENT: usize = 16;
 
@@ -131,7 +129,7 @@ pub fn install_code(vm: &VM, code_descriptor: CodeDescriptor, kind: CodeKind) ->
         lazy_compilation: code_descriptor.lazy_compilation,
         gcpoints: code_descriptor.gcpoints,
         comments: code_descriptor.comments,
-        positions: code_descriptor.positions,
+        locations: code_descriptor.positions,
     });
 
     let code_header = object_start.to_mut_ptr::<ManagedCodeHeader>();
@@ -157,12 +155,12 @@ pub struct Code {
     lazy_compilation: LazyCompilationData,
     gcpoints: GcPointTable,
     comments: CommentTable,
-    positions: PositionTable,
+    locations: LocationTable,
 }
 
 impl Code {
-    pub fn position_for_offset(&self, offset: u32) -> Option<Position> {
-        self.positions.get(offset)
+    pub fn location_for_offset(&self, offset: u32) -> Option<Location> {
+        self.locations.get(offset)
     }
 
     pub fn gcpoint_for_offset(&self, offset: u32) -> Option<&GcPoint> {
@@ -320,26 +318,26 @@ impl CommentTable {
 }
 
 #[derive(Debug)]
-pub struct PositionTable {
-    entries: Vec<(u32, Position)>,
+pub struct LocationTable {
+    entries: Vec<(u32, Location)>,
 }
 
-impl PositionTable {
-    pub fn new() -> PositionTable {
-        PositionTable {
+impl LocationTable {
+    pub fn new() -> LocationTable {
+        LocationTable {
             entries: Vec::new(),
         }
     }
 
-    pub fn insert(&mut self, offset: u32, position: Position) {
+    pub fn insert(&mut self, offset: u32, location: Location) {
         if let Some(last) = self.entries.last() {
             debug_assert!(offset > last.0);
         }
 
-        self.entries.push((offset, position));
+        self.entries.push((offset, location));
     }
 
-    pub fn get(&self, offset: u32) -> Option<Position> {
+    pub fn get(&self, offset: u32) -> Option<Location> {
         let result = self
             .entries
             .binary_search_by_key(&offset, |&(offset, _)| offset);

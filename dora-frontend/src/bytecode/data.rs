@@ -6,9 +6,8 @@ use crate::language::sem_analysis::{
     ClassDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId, GlobalDefinitionId,
     StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TypeParamId,
 };
-use dora_parser::lexer::position::Position;
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct BytecodeOffset(pub u32);
 
 impl BytecodeOffset {
@@ -282,7 +281,7 @@ impl BytecodeOpcode {
         }
     }
 
-    pub fn needs_position(&self) -> bool {
+    pub fn needs_location(&self) -> bool {
         match *self {
             BytecodeOpcode::Div
             | BytecodeOpcode::Mod
@@ -686,12 +685,39 @@ impl fmt::Display for Register {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct Location {
+    line: u32,
+    column: u32,
+}
+
+impl Location {
+    pub fn new(line: u32, column: u32) -> Location {
+        Location { line, column }
+    }
+
+    pub fn line(&self) -> u32 {
+        self.line
+    }
+
+    pub fn column(&self) -> u32 {
+        self.column
+    }
+}
+
+impl std::fmt::Display for Location {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}:{}", self.line, self.column)
+    }
+}
+
+#[derive(Debug)]
 pub struct BytecodeFunction {
     code: Vec<u8>,
     registers: Vec<BytecodeType>,
     const_pool: Vec<ConstPoolEntry>,
     arguments: u32,
-    positions: Vec<(u32, Position)>,
+    locations: Vec<(BytecodeOffset, Location)>,
 }
 
 impl BytecodeFunction {
@@ -700,14 +726,14 @@ impl BytecodeFunction {
         const_pool: Vec<ConstPoolEntry>,
         registers: Vec<BytecodeType>,
         arguments: u32,
-        positions: Vec<(u32, Position)>,
+        locations: Vec<(BytecodeOffset, Location)>,
     ) -> BytecodeFunction {
         BytecodeFunction {
             code,
             const_pool,
             registers,
             arguments,
-            positions,
+            locations,
         }
     }
     pub fn code(&self) -> &[u8] {
@@ -718,8 +744,8 @@ impl BytecodeFunction {
         &self.registers
     }
 
-    pub fn positions(&self) -> &[(u32, Position)] {
-        &self.positions
+    pub fn locations(&self) -> &[(BytecodeOffset, Location)] {
+        &self.locations
     }
 
     pub fn register_type(&self, register: Register) -> BytecodeType {
@@ -741,13 +767,15 @@ impl BytecodeFunction {
         &self.const_pool[idx.to_usize()]
     }
 
-    pub fn offset_position(&self, offset: u32) -> Position {
-        let index = self.positions.binary_search_by_key(&offset, |&(o, _)| o);
+    pub fn offset_location(&self, offset: u32) -> Location {
+        let index = self
+            .locations
+            .binary_search_by_key(&BytecodeOffset(offset), |&(o, _)| o);
         let index = match index {
             Err(index) => index - 1,
             Ok(index) => index,
         };
-        self.positions[index].1
+        self.locations[index].1
     }
 
     pub fn read_opcode(&self, offset: BytecodeOffset) -> BytecodeOpcode {

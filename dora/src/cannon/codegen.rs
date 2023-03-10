@@ -1,4 +1,3 @@
-use dora_parser::lexer::position::Position;
 use std::collections::HashMap;
 
 use crate::cannon::liveness::BytecodeLiveness;
@@ -20,13 +19,13 @@ use crate::vm::{
     create_class_instance, create_enum_instance, create_struct_instance, display_fct, display_ty,
     ensure_class_instance_for_enum_variant, ensure_class_instance_for_lambda,
     ensure_class_instance_for_trait_object, find_trait_impl, get_concrete_tuple_bty,
-    get_concrete_tuple_bty_array, specialize_bty, specialize_bty_array, EnumLayout, GcPoint,
+    get_concrete_tuple_bty_array, loc, specialize_bty, specialize_bty_array, EnumLayout, GcPoint,
     LazyCompilationSite, Trap, VM,
 };
 use crate::vtable::VTable;
 use dora_frontend::bytecode::{
     self, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeTypeArray, BytecodeVisitor,
-    ConstPoolEntry, ConstPoolIdx, Register,
+    ConstPoolEntry, ConstPoolIdx, Location, Register,
 };
 use dora_frontend::language::generator::{bty_from_ty, register_bty_from_bty, ty_from_bty};
 use dora_frontend::language::sem_analysis::{FctDefinitionId, GlobalDefinitionId, Intrinsic};
@@ -55,7 +54,7 @@ pub struct CannonCodeGen<'a> {
     asm: BaselineAssembler<'a>,
     bytecode: &'a BytecodeFunction,
 
-    pos: Position,
+    location: Location,
     params: BytecodeTypeArray,
     has_variadic_parameter: bool,
     return_type: BytecodeType,
@@ -85,7 +84,7 @@ pub struct CannonCodeGen<'a> {
         FctDefinitionId,
         Vec<Register>,
         BytecodeTypeArray,
-        Position,
+        Location,
     )>,
 }
 
@@ -101,7 +100,7 @@ impl<'a> CannonCodeGen<'a> {
             params: compilation_data.params,
             has_variadic_parameter: compilation_data.has_variadic_parameter,
             return_type: compilation_data.return_type,
-            pos: compilation_data.pos,
+            location: loc(compilation_data.pos),
             emit_debug: compilation_data.emit_debug,
             asm: BaselineAssembler::new(vm),
             bytecode: compilation_data.bytecode_fct,
@@ -147,7 +146,7 @@ impl<'a> CannonCodeGen<'a> {
 
     fn emit_safepoint(&mut self) {
         let gcpoint = self.create_gcpoint();
-        self.asm.safepoint(self.pos, gcpoint);
+        self.asm.safepoint(self.location, gcpoint);
     }
 
     fn emit_slow_paths(&mut self) {
@@ -523,7 +522,7 @@ impl<'a> CannonCodeGen<'a> {
 
     fn emit_stack_guard(&mut self) {
         let gcpoint = self.create_gcpoint();
-        self.asm.stack_guard(self.pos, gcpoint);
+        self.asm.stack_guard(self.location, gcpoint);
     }
 
     fn emit_epilog(&mut self) {
@@ -583,7 +582,7 @@ impl<'a> CannonCodeGen<'a> {
             self.emit_load_register(lhs, REG_RESULT.into());
             self.emit_load_register(rhs, REG_TMP1.into());
 
-            let position = self.bytecode.offset_position(self.current_offset.to_u32());
+            let position = self.bytecode.offset_location(self.current_offset.to_u32());
 
             self.asm.int_add_checked(
                 mode(self.vm, bytecode_type),
@@ -627,7 +626,7 @@ impl<'a> CannonCodeGen<'a> {
             self.emit_load_register(lhs, REG_RESULT.into());
             self.emit_load_register(rhs, REG_TMP1.into());
 
-            let position = self.bytecode.offset_position(self.current_offset.to_u32());
+            let position = self.bytecode.offset_location(self.current_offset.to_u32());
             self.asm.int_sub_checked(
                 mode(self.vm, bytecode_type),
                 REG_RESULT,
@@ -711,7 +710,7 @@ impl<'a> CannonCodeGen<'a> {
             self.emit_load_register(lhs, REG_RESULT.into());
             self.emit_load_register(rhs, REG_TMP1.into());
 
-            let position = self.bytecode.offset_position(self.current_offset.to_u32());
+            let position = self.bytecode.offset_location(self.current_offset.to_u32());
 
             self.asm.int_mul_checked(
                 mode(self.vm, bytecode_type),
@@ -755,7 +754,7 @@ impl<'a> CannonCodeGen<'a> {
             self.emit_load_register(lhs, REG_RESULT.into());
             self.emit_load_register(rhs, REG_TMP1.into());
 
-            let position = self.bytecode.offset_position(self.current_offset.to_u32());
+            let position = self.bytecode.offset_location(self.current_offset.to_u32());
 
             self.asm.int_div(
                 mode(self.vm, bytecode_type),
@@ -785,7 +784,7 @@ impl<'a> CannonCodeGen<'a> {
         self.emit_load_register(lhs, REG_RESULT.into());
         self.emit_load_register(rhs, REG_TMP1.into());
 
-        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+        let position = self.bytecode.offset_location(self.current_offset.to_u32());
 
         self.asm.int_mod(
             mode(self.vm, bytecode_type),
@@ -1189,7 +1188,7 @@ impl<'a> CannonCodeGen<'a> {
                 assert_eq!(BytecodeType::Ptr, self.specialize_register_type(dest));
 
                 self.emit_load_register_as(src, REG_RESULT.into(), MachineMode::Ptr);
-                let pos = self.bytecode.offset_position(self.current_offset.to_u32());
+                let pos = self.bytecode.offset_location(self.current_offset.to_u32());
                 self.asm.test_if_nil_bailout(pos, REG_RESULT, Trap::ILLEGAL);
                 self.emit_store_register_as(REG_RESULT.into(), dest, MachineMode::Ptr);
             }
@@ -1214,7 +1213,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.asm
                     .cmp_reg_imm(MachineMode::Int32, REG_RESULT, variant_idx as i32);
                 self.asm.jump_if(CondCode::NotEqual, lbl_bailout);
-                let pos = self.bytecode.offset_position(self.current_offset.to_u32());
+                let pos = self.bytecode.offset_location(self.current_offset.to_u32());
                 self.asm.emit_bailout(lbl_bailout, Trap::ILLEGAL, pos);
 
                 let field_id = enum_instance.field_id(&*enum_, variant_idx, element_idx);
@@ -1333,7 +1332,7 @@ impl<'a> CannonCodeGen<'a> {
         let obj_reg = REG_TMP1;
         self.emit_load_register(obj, obj_reg.into());
 
-        let pos = self.bytecode.offset_position(self.current_offset.to_u32());
+        let pos = self.bytecode.offset_location(self.current_offset.to_u32());
         self.asm.test_if_nil_bailout(pos, obj_reg, Trap::NIL);
 
         let bytecode_type = self.specialize_register_type(dest);
@@ -1365,7 +1364,7 @@ impl<'a> CannonCodeGen<'a> {
         let obj_reg = REG_TMP1;
         self.emit_load_register(obj, obj_reg.into());
 
-        let pos = self.bytecode.offset_position(self.current_offset.to_u32());
+        let pos = self.bytecode.offset_location(self.current_offset.to_u32());
         self.asm.test_if_nil_bailout(pos, obj_reg, Trap::NIL);
 
         let bytecode_type = self.specialize_register_type(src);
@@ -1483,7 +1482,7 @@ impl<'a> CannonCodeGen<'a> {
             let fid = global_var.initializer.unwrap();
             let fid = FctDefinitionId(fid.0 as usize);
             let ptr = self.get_call_target(fid, BytecodeTypeArray::empty());
-            let position = self.bytecode.offset_position(self.current_offset.to_u32());
+            let position = self.bytecode.offset_location(self.current_offset.to_u32());
             let gcpoint = self.create_gcpoint();
             self.asm
                 .ensure_global(global_id, fid, ptr, position, gcpoint);
@@ -1844,7 +1843,7 @@ impl<'a> CannonCodeGen<'a> {
                 let reg = REG_RESULT;
                 self.emit_load_register(src, reg.into());
                 self.asm
-                    .test_if_nil_bailout(Position::new(1, 1), REG_RESULT, Trap::ILLEGAL);
+                    .test_if_nil_bailout(Location::new(1, 1), REG_RESULT, Trap::ILLEGAL);
             }
         }
 
@@ -1876,7 +1875,7 @@ impl<'a> CannonCodeGen<'a> {
         };
 
         let gcpoint = self.create_gcpoint();
-        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+        let position = self.bytecode.offset_location(self.current_offset.to_u32());
         self.asm
             .allocate(REG_RESULT.into(), alloc_size, position, false, gcpoint);
 
@@ -1937,7 +1936,7 @@ impl<'a> CannonCodeGen<'a> {
         };
 
         let gcpoint = self.create_gcpoint();
-        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+        let position = self.bytecode.offset_location(self.current_offset.to_u32());
         self.asm
             .allocate(REG_RESULT.into(), alloc_size, position, false, gcpoint);
 
@@ -2034,7 +2033,7 @@ impl<'a> CannonCodeGen<'a> {
         };
 
         let gcpoint = self.create_gcpoint();
-        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+        let position = self.bytecode.offset_location(self.current_offset.to_u32());
         self.asm
             .allocate(REG_RESULT.into(), alloc_size, position, array_ref, gcpoint);
 
@@ -2187,7 +2186,7 @@ impl<'a> CannonCodeGen<'a> {
                 };
 
                 let gcpoint = self.create_gcpoint();
-                let position = self.bytecode.offset_position(self.current_offset.to_u32());
+                let position = self.bytecode.offset_location(self.current_offset.to_u32());
                 self.asm.allocate(
                     REG_TMP1.into(),
                     AllocationSize::Fixed(alloc_size),
@@ -2319,7 +2318,7 @@ impl<'a> CannonCodeGen<'a> {
         };
 
         let gcpoint = self.create_gcpoint();
-        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+        let position = self.bytecode.offset_location(self.current_offset.to_u32());
         self.asm.allocate(
             REG_TMP1.into(),
             AllocationSize::Fixed(alloc_size),
@@ -2398,7 +2397,7 @@ impl<'a> CannonCodeGen<'a> {
         };
 
         let gcpoint = self.create_gcpoint();
-        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+        let position = self.bytecode.offset_location(self.current_offset.to_u32());
         let object_reg = REG_TMP1;
 
         self.asm.allocate(
@@ -2458,7 +2457,7 @@ impl<'a> CannonCodeGen<'a> {
         assert_eq!(self.bytecode.register_type(dest), BytecodeType::Int64);
         assert_eq!(self.bytecode.register_type(arr), BytecodeType::Ptr);
 
-        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+        let position = self.bytecode.offset_location(self.current_offset.to_u32());
 
         self.emit_load_register(arr, REG_RESULT.into());
         self.asm
@@ -2477,7 +2476,7 @@ impl<'a> CannonCodeGen<'a> {
         assert_eq!(self.bytecode.register_type(idx), BytecodeType::Int64);
         assert_eq!(self.bytecode.register_type(arr), BytecodeType::Ptr);
 
-        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+        let position = self.bytecode.offset_location(self.current_offset.to_u32());
 
         self.emit_load_register(arr, REG_RESULT.into());
         self.asm
@@ -2629,7 +2628,7 @@ impl<'a> CannonCodeGen<'a> {
         assert_eq!(self.bytecode.register_type(idx), BytecodeType::Int64);
         assert_eq!(self.bytecode.register_type(arr), BytecodeType::Ptr);
 
-        let position = self.bytecode.offset_position(self.current_offset.to_u32());
+        let position = self.bytecode.offset_location(self.current_offset.to_u32());
 
         self.emit_load_register(arr, REG_RESULT.into());
         self.asm
@@ -2721,10 +2720,10 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_bty_array(type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let pos = self.bytecode.offset_position(self.current_offset.to_u32());
+        let location = self.bytecode.offset_location(self.current_offset.to_u32());
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
-        self.emit_invoke_virtual(dest, fct_id, type_params, arguments, pos);
+        self.emit_invoke_virtual(dest, fct_id, type_params, arguments, location);
     }
 
     fn emit_invoke_lambda_from_bytecode(&mut self, dest: Register, idx: ConstPoolIdx) {
@@ -2733,10 +2732,10 @@ impl<'a> CannonCodeGen<'a> {
             _ => unreachable!(),
         };
 
-        let pos = self.bytecode.offset_position(self.current_offset.to_u32());
+        let location = self.bytecode.offset_location(self.current_offset.to_u32());
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
-        self.emit_invoke_lambda(dest, params, return_type, arguments, pos);
+        self.emit_invoke_lambda(dest, params, return_type, arguments, location);
     }
 
     fn emit_invoke_lambda(
@@ -2745,7 +2744,7 @@ impl<'a> CannonCodeGen<'a> {
         params: BytecodeTypeArray,
         return_type: BytecodeType,
         arguments: Vec<Register>,
-        pos: Position,
+        location: Location,
     ) {
         let bytecode_type = self.specialize_register_type(dest);
 
@@ -2779,7 +2778,7 @@ impl<'a> CannonCodeGen<'a> {
         self.asm.virtual_call(
             vtable_index,
             self_index,
-            pos,
+            location,
             gcpoint,
             result_mode,
             result_reg,
@@ -2797,7 +2796,7 @@ impl<'a> CannonCodeGen<'a> {
         fct_id: FctDefinitionId,
         type_params: BytecodeTypeArray,
         arguments: Vec<Register>,
-        pos: Position,
+        location: Location,
     ) {
         let bytecode_type = self.specialize_register_type(dest);
 
@@ -2838,7 +2837,7 @@ impl<'a> CannonCodeGen<'a> {
         self.asm.virtual_call(
             vtable_index,
             self_index,
-            pos,
+            location,
             gcpoint,
             result_mode,
             result_reg,
@@ -2859,10 +2858,10 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_bty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let pos = self.bytecode.offset_position(self.current_offset.to_u32());
+        let location = self.bytecode.offset_location(self.current_offset.to_u32());
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
-        self.emit_invoke_direct_or_intrinsic(dest, fct_id, type_params, arguments, pos);
+        self.emit_invoke_direct_or_intrinsic(dest, fct_id, type_params, arguments, location);
     }
 
     fn emit_invoke_direct_or_intrinsic(
@@ -2871,16 +2870,16 @@ impl<'a> CannonCodeGen<'a> {
         fct_id: FctDefinitionId,
         type_params: BytecodeTypeArray,
         arguments: Vec<Register>,
-        pos: Position,
+        location: Location,
     ) {
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
         assert!(fct.has_self());
 
         if let Some(intrinsic) = fct.intrinsic {
-            self.emit_invoke_intrinsic(dest, fct_id, intrinsic, type_params, arguments, pos);
+            self.emit_invoke_intrinsic(dest, fct_id, intrinsic, type_params, arguments, location);
         } else {
-            self.emit_invoke_direct(dest, fct_id, type_params, arguments, pos);
+            self.emit_invoke_direct(dest, fct_id, type_params, arguments, location);
         };
     }
 
@@ -2890,7 +2889,7 @@ impl<'a> CannonCodeGen<'a> {
         fct_id: FctDefinitionId,
         type_params: BytecodeTypeArray,
         arguments: Vec<Register>,
-        pos: Position,
+        location: Location,
     ) {
         let self_register = arguments[0];
 
@@ -2911,7 +2910,7 @@ impl<'a> CannonCodeGen<'a> {
             self.emit_load_register(self_register, REG_RESULT.into());
 
             self.asm
-                .test_if_nil_bailout(pos, REG_RESULT.into(), Trap::NIL);
+                .test_if_nil_bailout(location, REG_RESULT.into(), Trap::NIL);
         }
 
         let argsize = self.emit_invoke_arguments(dest, fct_return_type.clone(), arguments);
@@ -2925,7 +2924,7 @@ impl<'a> CannonCodeGen<'a> {
             fct_id,
             ptr,
             type_params,
-            pos,
+            location,
             gcpoint,
             result_mode,
             result_reg,
@@ -2945,10 +2944,10 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_bty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let pos = self.bytecode.offset_position(self.current_offset.to_u32());
+        let location = self.bytecode.offset_location(self.current_offset.to_u32());
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
-        self.emit_invoke_static_or_intrinsic(dest, fct_id, type_params, arguments, pos);
+        self.emit_invoke_static_or_intrinsic(dest, fct_id, type_params, arguments, location);
     }
 
     fn emit_invoke_static_or_intrinsic(
@@ -2957,16 +2956,16 @@ impl<'a> CannonCodeGen<'a> {
         fct_id: FctDefinitionId,
         type_params: BytecodeTypeArray,
         arguments: Vec<Register>,
-        pos: Position,
+        location: Location,
     ) {
         let fct = self.vm.fcts.idx(fct_id);
         let fct = fct.read();
         assert!(!fct.has_self());
 
         if let Some(intrinsic) = fct.intrinsic {
-            self.emit_invoke_intrinsic(dest, fct_id, intrinsic, type_params, arguments, pos);
+            self.emit_invoke_intrinsic(dest, fct_id, intrinsic, type_params, arguments, location);
         } else {
-            self.emit_invoke_static(dest, fct_id, type_params, arguments, pos);
+            self.emit_invoke_static(dest, fct_id, type_params, arguments, location);
         }
     }
 
@@ -2976,7 +2975,7 @@ impl<'a> CannonCodeGen<'a> {
         fct_id: FctDefinitionId,
         type_params: BytecodeTypeArray,
         arguments: Vec<Register>,
-        pos: Position,
+        location: Location,
     ) {
         let bytecode_type = self.specialize_register_type(dest);
 
@@ -3000,7 +2999,7 @@ impl<'a> CannonCodeGen<'a> {
             fct_id,
             ptr,
             type_params,
-            pos,
+            location,
             gcpoint,
             result_mode,
             result_reg,
@@ -3048,7 +3047,7 @@ impl<'a> CannonCodeGen<'a> {
         let ty = self.type_params[id.to_usize()].clone();
         let callee_id = find_trait_impl(self.vm, trait_fct_id, trait_ty, ty_from_bty(ty));
 
-        let pos = self.bytecode.offset_position(self.current_offset.to_u32());
+        let pos = self.bytecode.offset_location(self.current_offset.to_u32());
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
         if is_static {
@@ -3065,7 +3064,7 @@ impl<'a> CannonCodeGen<'a> {
         intrinsic: Intrinsic,
         type_params: BytecodeTypeArray,
         arguments: Vec<Register>,
-        pos: Position,
+        location: Location,
     ) {
         match intrinsic {
             Intrinsic::Float32Abs | Intrinsic::Float64Abs => {
@@ -3081,7 +3080,7 @@ impl<'a> CannonCodeGen<'a> {
                     intrinsic,
                     arguments,
                     type_params,
-                    pos,
+                    location,
                 );
             }
             Intrinsic::Float32RoundUp | Intrinsic::Float64RoundUp => {
@@ -3091,7 +3090,7 @@ impl<'a> CannonCodeGen<'a> {
                     intrinsic,
                     arguments,
                     type_params,
-                    pos,
+                    location,
                 );
             }
             Intrinsic::Float32RoundDown | Intrinsic::Float64RoundDown => {
@@ -3101,7 +3100,7 @@ impl<'a> CannonCodeGen<'a> {
                     intrinsic,
                     arguments,
                     type_params,
-                    pos,
+                    location,
                 );
             }
             Intrinsic::Float32RoundHalfEven | Intrinsic::Float64RoundHalfEven => {
@@ -3111,7 +3110,7 @@ impl<'a> CannonCodeGen<'a> {
                     intrinsic,
                     arguments,
                     type_params,
-                    pos,
+                    location,
                 );
             }
 
@@ -3122,7 +3121,7 @@ impl<'a> CannonCodeGen<'a> {
                     intrinsic,
                     arguments,
                     type_params,
-                    pos,
+                    location,
                 );
             }
 
@@ -3144,7 +3143,7 @@ impl<'a> CannonCodeGen<'a> {
                     intrinsic,
                     arguments,
                     type_params,
-                    pos,
+                    location,
                 );
             }
 
@@ -3167,7 +3166,7 @@ impl<'a> CannonCodeGen<'a> {
                 };
                 let gcpoint = self.create_gcpoint();
                 let result = REG_RESULT.into();
-                self.asm.native_call(native_fct, pos, gcpoint, result);
+                self.asm.native_call(native_fct, location, gcpoint, result);
 
                 // Method should never return
                 self.asm.debug();
@@ -3280,7 +3279,7 @@ impl<'a> CannonCodeGen<'a> {
                     intrinsic,
                     arguments,
                     type_params,
-                    pos,
+                    location,
                 );
             }
 
@@ -3291,7 +3290,7 @@ impl<'a> CannonCodeGen<'a> {
                     intrinsic,
                     arguments,
                     type_params,
-                    pos,
+                    location,
                 );
             }
 
@@ -3302,7 +3301,7 @@ impl<'a> CannonCodeGen<'a> {
                     intrinsic,
                     arguments,
                     type_params,
-                    pos,
+                    location,
                 );
             }
 
@@ -3569,7 +3568,7 @@ impl<'a> CannonCodeGen<'a> {
             Intrinsic::Assert => {
                 assert_eq!(arguments.len(), 1);
                 self.emit_load_register(arguments[0], REG_RESULT.into());
-                self.asm.assert(REG_RESULT, pos);
+                self.asm.assert(REG_RESULT, location);
             }
 
             Intrinsic::Int64ToInt32 => {
@@ -3639,7 +3638,7 @@ impl<'a> CannonCodeGen<'a> {
         intrinsic: Intrinsic,
         arguments: Vec<Register>,
         type_params: BytecodeTypeArray,
-        pos: Position,
+        location: Location,
     ) {
         debug_assert_eq!(arguments.len(), 1);
         debug_assert!(type_params.is_empty());
@@ -3668,7 +3667,7 @@ impl<'a> CannonCodeGen<'a> {
                     self.asm.count_bits(mode, reg, reg, false);
                     self.emit_store_register(reg.into(), dest);
                 } else {
-                    self.emit_invoke_direct(dest, fct_id, type_params, arguments, pos);
+                    self.emit_invoke_direct(dest, fct_id, type_params, arguments, location);
                 }
             }
             Intrinsic::Int32CountOneBits | Intrinsic::Int64CountOneBits => {
@@ -3677,7 +3676,7 @@ impl<'a> CannonCodeGen<'a> {
                     self.asm.count_bits(mode, reg, reg, true);
                     self.emit_store_register(reg.into(), dest);
                 } else {
-                    self.emit_invoke_direct(dest, fct_id, type_params, arguments, pos);
+                    self.emit_invoke_direct(dest, fct_id, type_params, arguments, location);
                 }
             }
             Intrinsic::Int32CountZeroBitsLeading | Intrinsic::Int64CountZeroBitsLeading => {
@@ -3686,7 +3685,7 @@ impl<'a> CannonCodeGen<'a> {
                     self.asm.count_bits_leading(mode, reg, reg, false);
                     self.emit_store_register(reg.into(), dest);
                 } else {
-                    self.emit_invoke_direct(dest, fct_id, type_params, arguments, pos);
+                    self.emit_invoke_direct(dest, fct_id, type_params, arguments, location);
                 }
             }
             Intrinsic::Int32CountOneBitsLeading | Intrinsic::Int64CountOneBitsLeading => {
@@ -3695,7 +3694,7 @@ impl<'a> CannonCodeGen<'a> {
                     self.asm.count_bits_leading(mode, reg, reg, true);
                     self.emit_store_register(reg.into(), dest);
                 } else {
-                    self.emit_invoke_direct(dest, fct_id, type_params, arguments, pos);
+                    self.emit_invoke_direct(dest, fct_id, type_params, arguments, location);
                 }
             }
 
@@ -3705,7 +3704,7 @@ impl<'a> CannonCodeGen<'a> {
                     self.asm.count_bits_trailing(mode, reg, reg, false);
                     self.emit_store_register(reg.into(), dest);
                 } else {
-                    self.emit_invoke_direct(dest, fct_id, type_params, arguments, pos);
+                    self.emit_invoke_direct(dest, fct_id, type_params, arguments, location);
                 }
             }
             Intrinsic::Int32CountOneBitsTrailing | Intrinsic::Int64CountOneBitsTrailing => {
@@ -3714,7 +3713,7 @@ impl<'a> CannonCodeGen<'a> {
                     self.asm.count_bits_trailing(mode, reg, reg, true);
                     self.emit_store_register(reg.into(), dest);
                 } else {
-                    self.emit_invoke_direct(dest, fct_id, type_params, arguments, pos);
+                    self.emit_invoke_direct(dest, fct_id, type_params, arguments, location);
                 }
             }
             _ => unreachable!(),
@@ -3728,7 +3727,7 @@ impl<'a> CannonCodeGen<'a> {
         intrinsic: Intrinsic,
         arguments: Vec<Register>,
         type_params: BytecodeTypeArray,
-        _pos: Position,
+        _location: Location,
     ) {
         debug_assert_eq!(arguments.len(), 1);
         debug_assert!(type_params.is_empty());
@@ -3751,7 +3750,7 @@ impl<'a> CannonCodeGen<'a> {
         intrinsic: Intrinsic,
         arguments: Vec<Register>,
         type_params: BytecodeTypeArray,
-        _pos: Position,
+        _location: Location,
     ) {
         debug_assert_eq!(arguments.len(), 1);
         debug_assert!(type_params.is_empty());
@@ -3774,7 +3773,7 @@ impl<'a> CannonCodeGen<'a> {
         intrinsic: Intrinsic,
         arguments: Vec<Register>,
         type_params: BytecodeTypeArray,
-        _pos: Position,
+        _location: Location,
     ) {
         debug_assert_eq!(arguments.len(), 1);
         debug_assert!(type_params.is_empty());
@@ -3797,7 +3796,7 @@ impl<'a> CannonCodeGen<'a> {
         intrinsic: Intrinsic,
         arguments: Vec<Register>,
         type_params: BytecodeTypeArray,
-        _pos: Position,
+        _location: Location,
     ) {
         debug_assert_eq!(arguments.len(), 1);
         debug_assert!(type_params.is_empty());
@@ -3821,7 +3820,7 @@ impl<'a> CannonCodeGen<'a> {
         intrinsic: Intrinsic,
         arguments: Vec<Register>,
         type_params: BytecodeTypeArray,
-        _pos: Position,
+        _location: Location,
     ) {
         debug_assert_eq!(arguments.len(), 1);
         debug_assert!(type_params.is_empty());
@@ -3844,7 +3843,7 @@ impl<'a> CannonCodeGen<'a> {
         _intrinsic: Intrinsic,
         arguments: Vec<Register>,
         type_params: BytecodeTypeArray,
-        pos: Position,
+        location: Location,
     ) {
         assert_eq!(1, arguments.len());
         assert_eq!(1, type_params.len());
@@ -3865,13 +3864,21 @@ impl<'a> CannonCodeGen<'a> {
             EnumLayout::Ptr => {
                 self.emit_load_register_as(arguments[0], REG_RESULT.into(), MachineMode::Ptr);
                 let lbl_slow_path = self.asm.test_if_nil(REG_RESULT);
-                self.add_slow_path(lbl_slow_path, dest, fct_id, arguments, type_params, pos);
+                self.add_slow_path(
+                    lbl_slow_path,
+                    dest,
+                    fct_id,
+                    arguments,
+                    type_params,
+                    location,
+                );
                 self.emit_store_register_as(REG_RESULT.into(), dest, MachineMode::Ptr);
             }
 
             EnumLayout::Tagged => {
                 self.emit_load_register_as(arguments[0], REG_TMP1.into(), MachineMode::Ptr);
-                self.asm.test_if_nil_bailout(pos, REG_TMP1, Trap::ILLEGAL);
+                self.asm
+                    .test_if_nil_bailout(location, REG_TMP1, Trap::ILLEGAL);
 
                 let enum_ = &self.vm.enums[enum_id];
                 let enum_ = enum_.read();
@@ -3887,7 +3894,14 @@ impl<'a> CannonCodeGen<'a> {
                 let lbl_slow_path = self.asm.create_label();
                 self.asm.jump_if(CondCode::NotEqual, lbl_slow_path);
 
-                self.add_slow_path(lbl_slow_path, dest, fct_id, arguments, type_params, pos);
+                self.add_slow_path(
+                    lbl_slow_path,
+                    dest,
+                    fct_id,
+                    arguments,
+                    type_params,
+                    location,
+                );
 
                 let class_instance_id = ensure_class_instance_for_enum_variant(
                     self.vm,
@@ -3917,10 +3931,10 @@ impl<'a> CannonCodeGen<'a> {
         fct_id: FctDefinitionId,
         arguments: Vec<Register>,
         type_params: BytecodeTypeArray,
-        pos: Position,
+        location: Location,
     ) {
         self.slow_paths
-            .push((lbl, dest, fct_id, arguments, type_params, pos));
+            .push((lbl, dest, fct_id, arguments, type_params, location));
     }
 
     fn emit_intrinsic_unsafe_kill_refs(
@@ -3930,7 +3944,7 @@ impl<'a> CannonCodeGen<'a> {
         _intrinsic: Intrinsic,
         arguments: Vec<Register>,
         type_params: BytecodeTypeArray,
-        _pos: Position,
+        _location: Location,
     ) {
         assert_eq!(1, type_params.len());
         assert_eq!(2, arguments.len());
@@ -3960,7 +3974,7 @@ impl<'a> CannonCodeGen<'a> {
         intrinsic: Intrinsic,
         arguments: Vec<Register>,
         type_params: BytecodeTypeArray,
-        pos: Position,
+        location: Location,
     ) {
         assert_eq!(1, type_params.len());
         assert_eq!(1, arguments.len());
@@ -3991,7 +4005,8 @@ impl<'a> CannonCodeGen<'a> {
 
             EnumLayout::Tagged => {
                 self.emit_load_register_as(arguments[0], REG_TMP1.into(), MachineMode::Ptr);
-                self.asm.test_if_nil_bailout(pos, REG_TMP1, Trap::ILLEGAL);
+                self.asm
+                    .test_if_nil_bailout(location, REG_TMP1, Trap::ILLEGAL);
 
                 let enum_ = &self.vm.enums[enum_id];
                 let enum_ = enum_.read();
