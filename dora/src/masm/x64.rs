@@ -12,7 +12,7 @@ use crate::vtable::VTable;
 pub use dora_asm::x64::AssemblerX64 as Assembler;
 use dora_asm::x64::Register as AsmRegister;
 use dora_asm::x64::{Address as AsmAddress, Condition, Immediate, ScaleFactor, XmmRegister};
-use dora_frontend::bytecode::BytecodeTypeArray;
+use dora_frontend::bytecode::{BytecodeTypeArray, Location};
 use dora_frontend::language::sem_analysis::FctDefinitionId;
 
 impl MacroAssembler {
@@ -111,13 +111,13 @@ impl MacroAssembler {
 
     pub fn virtual_call(
         &mut self,
-        line: u32,
+        location: Location,
         vtable_index: u32,
         self_index: u32,
         lazy_compilation_site: LazyCompilationSite,
     ) {
         let obj = REG_PARAMS[self_index as usize];
-        self.test_if_nil_bailout(line, obj, Trap::NIL);
+        self.test_if_nil_bailout(location, obj, Trap::NIL);
 
         // REG_RESULT = [obj] (load vtable)
         self.load_mem(MachineMode::Ptr, REG_RESULT.into(), Mem::Base(obj, 0));
@@ -331,12 +331,26 @@ impl MacroAssembler {
         self.asm.jmp_r(reg.into());
     }
 
-    pub fn int_div(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, line: u32) {
-        self.div_common(mode, dest, lhs, rhs, RAX, line);
+    pub fn int_div(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        lhs: Reg,
+        rhs: Reg,
+        location: Location,
+    ) {
+        self.div_common(mode, dest, lhs, rhs, RAX, location);
     }
 
-    pub fn int_mod(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, line: u32) {
-        self.div_common(mode, dest, lhs, rhs, RDX, line);
+    pub fn int_mod(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        lhs: Reg,
+        rhs: Reg,
+        location: Location,
+    ) {
+        self.div_common(mode, dest, lhs, rhs, RDX, location);
     }
 
     fn div_common(
@@ -346,7 +360,7 @@ impl MacroAssembler {
         lhs: Reg,
         rhs: Reg,
         result: Reg,
-        line: u32,
+        location: Location,
     ) {
         if mode.is64() {
             self.asm.testq_rr(rhs.into(), rhs.into());
@@ -358,7 +372,7 @@ impl MacroAssembler {
         let lbl_div = self.create_label();
 
         self.jump_if(CondCode::Zero, lbl_zero);
-        self.emit_bailout(lbl_zero, Trap::DIV0, line);
+        self.emit_bailout(lbl_zero, Trap::DIV0, location);
 
         let lbl_overflow = self.create_label();
         let scratch = self.get_scratch();
@@ -378,7 +392,7 @@ impl MacroAssembler {
         }
 
         self.asm.jcc(Condition::Equal, lbl_overflow);
-        self.emit_bailout(lbl_overflow, Trap::OVERFLOW, line);
+        self.emit_bailout(lbl_overflow, Trap::OVERFLOW, location);
 
         self.bind_label(lbl_div);
 
@@ -418,7 +432,14 @@ impl MacroAssembler {
         }
     }
 
-    pub fn int_mul_checked(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, line: u32) {
+    pub fn int_mul_checked(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        lhs: Reg,
+        rhs: Reg,
+        location: Location,
+    ) {
         if mode.is64() {
             self.asm.imulq_rr(lhs.into(), rhs.into());
         } else {
@@ -427,7 +448,7 @@ impl MacroAssembler {
 
         let lbl_overflow = self.asm.create_label();
         self.asm.jcc(Condition::Overflow, lbl_overflow);
-        self.emit_bailout(lbl_overflow, Trap::OVERFLOW, line);
+        self.emit_bailout(lbl_overflow, Trap::OVERFLOW, location);
 
         if dest != lhs {
             self.mov_rr(mode.is64(), dest.into(), lhs.into());
@@ -446,7 +467,14 @@ impl MacroAssembler {
         }
     }
 
-    pub fn int_add_checked(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, line: u32) {
+    pub fn int_add_checked(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        lhs: Reg,
+        rhs: Reg,
+        location: Location,
+    ) {
         if mode.is64() {
             self.asm.addq_rr(lhs.into(), rhs.into());
         } else {
@@ -455,7 +483,7 @@ impl MacroAssembler {
 
         let lbl_overflow = self.asm.create_label();
         self.asm.jcc(Condition::Overflow, lbl_overflow);
-        self.emit_bailout(lbl_overflow, Trap::OVERFLOW, line);
+        self.emit_bailout(lbl_overflow, Trap::OVERFLOW, location);
 
         if dest != lhs {
             self.mov_rr(mode.is64(), dest.into(), lhs.into());
@@ -494,7 +522,14 @@ impl MacroAssembler {
         }
     }
 
-    pub fn int_sub_checked(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg, line: u32) {
+    pub fn int_sub_checked(
+        &mut self,
+        mode: MachineMode,
+        dest: Reg,
+        lhs: Reg,
+        rhs: Reg,
+        location: Location,
+    ) {
         if mode.is64() {
             self.asm.subq_rr(lhs.into(), rhs.into());
         } else {
@@ -503,7 +538,7 @@ impl MacroAssembler {
 
         let lbl_overflow = self.asm.create_label();
         self.asm.jcc(Condition::Overflow, lbl_overflow);
-        self.emit_bailout(lbl_overflow, Trap::OVERFLOW, line);
+        self.emit_bailout(lbl_overflow, Trap::OVERFLOW, location);
 
         if dest != lhs {
             self.mov_rr(mode.is64(), dest.into(), lhs.into());
@@ -850,7 +885,7 @@ impl MacroAssembler {
         self.asm.movq_rr(dest.into(), (*scratch).into());
     }
 
-    pub fn check_index_out_of_bounds(&mut self, line: u32, array: Reg, index: Reg) {
+    pub fn check_index_out_of_bounds(&mut self, location: Location, array: Reg, index: Reg) {
         let scratch = self.get_scratch();
         self.load_mem(
             MachineMode::Int64,
@@ -861,7 +896,7 @@ impl MacroAssembler {
 
         let lbl = self.create_label();
         self.jump_if(CondCode::UnsignedGreaterEq, lbl);
-        self.emit_bailout(lbl, Trap::INDEX_OUT_OF_BOUNDS, line);
+        self.emit_bailout(lbl, Trap::INDEX_OUT_OF_BOUNDS, location);
     }
 
     pub fn load_nil(&mut self, dest: Reg) {
@@ -1306,11 +1341,11 @@ impl MacroAssembler {
         }
     }
 
-    pub fn trap(&mut self, trap: Trap, line: u32) {
+    pub fn trap(&mut self, trap: Trap, location: Location) {
         let vm = get_vm();
         self.load_int_const(MachineMode::Int32, REG_PARAMS[0], trap.int() as i64);
         self.raw_call(vm.stubs.trap());
-        self.emit_position(line);
+        self.emit_position(location);
     }
 
     pub fn nop(&mut self) {
