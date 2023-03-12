@@ -116,6 +116,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "dora-bytecode"
+version = "0.1.0"
+
+[[package]]
 name = "dora-frontend"
 version = "0.0.2"
 dependencies = [
