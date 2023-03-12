@@ -1,4 +1,4 @@
-use crate::vm::{StructDefinitionId, VM};
+use crate::vm::VM;
 use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray};
 use dora_frontend::language::sem_analysis::{TypeParamDefinition, TypeParamId};
 
@@ -120,18 +120,5 @@ impl<'a> BytecodeTypePrinter<'a> {
 impl<'a> std::fmt::Display for BytecodeTypePrinter<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         self.name(&self.ty, f)
-    }
-}
-
-fn primitive_struct_id(sa: &VM, ty: &BytecodeType) -> Option<StructDefinitionId> {
-    match ty {
-        BytecodeType::Bool => Some(sa.known.structs.bool()),
-        BytecodeType::UInt8 => Some(sa.known.structs.uint8()),
-        BytecodeType::Char => Some(sa.known.structs.char()),
-        BytecodeType::Int32 => Some(sa.known.structs.int32()),
-        BytecodeType::Int64 => Some(sa.known.structs.int64()),
-        BytecodeType::Float32 => Some(sa.known.structs.float32()),
-        BytecodeType::Float64 => Some(sa.known.structs.float64()),
-        _ => None,
     }
 }
