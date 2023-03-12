@@ -1137,7 +1137,7 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_expr_call(&mut self, expr: &ast::ExprCallType, dest: DataDest) -> Register {
         if let Some(info) = self.get_intrinsic(expr.id) {
-            if !info.intrinsic.emit_as_function_in_bytecode() {
+            if info.intrinsic.emit_as_bytecode_operation() {
                 return self.visit_expr_call_intrinsic(expr, info, dest);
             }
         }
