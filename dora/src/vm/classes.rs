@@ -3,10 +3,8 @@ use parking_lot::RwLock;
 use crate::size::InstanceSize;
 use crate::vm::{add_ref_fields, module_path_with_name, VM};
 use crate::vtable::VTableBox;
-use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray, TraitId};
-use dora_frontend::language::sem_analysis::{
-    ClassDefinition, ClassDefinitionId, EnumDefinitionId, FctDefinitionId,
-};
+use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray, ClassId, EnumId, TraitId};
+use dora_frontend::language::sem_analysis::{ClassDefinition, FctDefinitionId};
 use dora_frontend::Id;
 
 pub fn class_definition_name(cls: &ClassDefinition, vm: &VM) -> String {
@@ -40,14 +38,14 @@ impl Id for ClassInstance {
 
 #[derive(Debug)]
 pub enum ShapeKind {
-    Class(ClassDefinitionId, BytecodeTypeArray),
+    Class(ClassId, BytecodeTypeArray),
     Lambda(FctDefinitionId, BytecodeTypeArray),
     TraitObject {
         object_ty: BytecodeType,
         trait_id: TraitId,
         combined_type_params: BytecodeTypeArray,
     },
-    Enum(EnumDefinitionId, BytecodeTypeArray),
+    Enum(EnumId, BytecodeTypeArray),
     Builtin,
 }
 
@@ -73,7 +71,7 @@ impl ClassInstance {
         }
     }
 
-    pub fn cls_id(&self) -> Option<ClassDefinitionId> {
+    pub fn cls_id(&self) -> Option<ClassId> {
         match &self.kind {
             ShapeKind::Class(cls_id, _) => Some(*cls_id),
             _ => None,
@@ -144,7 +142,7 @@ fn build_ref_fields(
 ) -> Vec<i32> {
     match &kind {
         ShapeKind::Class(cls_id, type_params) => {
-            let cls = &vm.program.classes[cls_id.to_usize()];
+            let cls = &vm.program.classes[cls_id.0 as usize];
 
             if cls.layout.is_array() {
                 if size == InstanceSize::ObjArray {

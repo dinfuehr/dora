@@ -2,9 +2,8 @@ use std::mem;
 
 use crate::bytecode::{
     BytecodeFunction, BytecodeOffset, BytecodeOpcode, BytecodeType, ConstPoolEntry, ConstPoolIdx,
-    Location, Register,
+    GlobalId, Location, Register,
 };
-use crate::language::sem_analysis::GlobalDefinitionId;
 
 #[derive(Copy, Clone, PartialEq, Debug, Eq, Hash)]
 pub struct Label(pub usize);
@@ -292,11 +291,11 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::TestLe, dest, lhs, rhs);
     }
 
-    pub fn emit_load_global(&mut self, dest: Register, gid: GlobalDefinitionId) {
+    pub fn emit_load_global(&mut self, dest: Register, gid: GlobalId) {
         self.emit_load_global_inst(BytecodeOpcode::LoadGlobal, dest, gid);
     }
 
-    pub fn emit_store_global(&mut self, src: Register, gid: GlobalDefinitionId) {
+    pub fn emit_store_global(&mut self, src: Register, gid: GlobalId) {
         self.emit_store_global_inst(BytecodeOpcode::StoreGlobal, src, gid);
     }
 
@@ -561,23 +560,13 @@ impl BytecodeWriter {
         self.emit_values(inst, &values);
     }
 
-    fn emit_load_global_inst(
-        &mut self,
-        inst: BytecodeOpcode,
-        r1: Register,
-        gid: GlobalDefinitionId,
-    ) {
-        let values = [r1.to_usize() as u32, gid.to_usize() as u32];
+    fn emit_load_global_inst(&mut self, inst: BytecodeOpcode, r1: Register, gid: GlobalId) {
+        let values = [r1.to_usize() as u32, gid.0];
         self.emit_values(inst, &values);
     }
 
-    fn emit_store_global_inst(
-        &mut self,
-        inst: BytecodeOpcode,
-        r1: Register,
-        gid: GlobalDefinitionId,
-    ) {
-        let values = [r1.to_usize() as u32, gid.to_usize() as u32];
+    fn emit_store_global_inst(&mut self, inst: BytecodeOpcode, r1: Register, gid: GlobalId) {
+        let values = [r1.to_usize() as u32, gid.0];
         self.emit_values(inst, &values);
     }
 

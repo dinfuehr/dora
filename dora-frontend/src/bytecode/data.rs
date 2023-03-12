@@ -1,10 +1,11 @@
 use std::fmt;
 
-use crate::bytecode::{BytecodeReader, BytecodeType, BytecodeTypeArray, TraitId};
+use crate::bytecode::{
+    BytecodeReader, BytecodeType, BytecodeTypeArray, ClassId, EnumId, GlobalId, StructId, TraitId,
+};
 use crate::enumeration;
 use crate::language::sem_analysis::{
-    ClassDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId, GlobalDefinitionId,
-    StructDefinitionFieldId, StructDefinitionId, TypeParamId,
+    FctDefinitionId, FieldId, StructDefinitionFieldId, TypeParamId,
 };
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -428,11 +429,11 @@ pub enum BytecodeInstruction {
 
     LoadGlobal {
         dest: Register,
-        global_id: GlobalDefinitionId,
+        global_id: GlobalId,
     },
     StoreGlobal {
         src: Register,
-        global_id: GlobalDefinitionId,
+        global_id: GlobalId,
     },
 
     PushRegister {
@@ -814,19 +815,15 @@ pub enum ConstPoolEntry {
     Int32(i32),
     Int64(i64),
     Char(char),
-    Class(ClassDefinitionId, BytecodeTypeArray),
-    Field(ClassDefinitionId, BytecodeTypeArray, FieldId),
+    Class(ClassId, BytecodeTypeArray),
+    Field(ClassId, BytecodeTypeArray, FieldId),
     Fct(FctDefinitionId, BytecodeTypeArray),
     Generic(TypeParamId, FctDefinitionId, BytecodeTypeArray),
-    Enum(EnumDefinitionId, BytecodeTypeArray),
-    EnumVariant(EnumDefinitionId, BytecodeTypeArray, usize),
-    EnumElement(EnumDefinitionId, BytecodeTypeArray, usize, usize),
-    Struct(StructDefinitionId, BytecodeTypeArray),
-    StructField(
-        StructDefinitionId,
-        BytecodeTypeArray,
-        StructDefinitionFieldId,
-    ),
+    Enum(EnumId, BytecodeTypeArray),
+    EnumVariant(EnumId, BytecodeTypeArray, usize),
+    EnumElement(EnumId, BytecodeTypeArray, usize, usize),
+    Struct(StructId, BytecodeTypeArray),
+    StructField(StructId, BytecodeTypeArray, StructDefinitionFieldId),
     Trait(TraitId, BytecodeTypeArray, BytecodeType),
     TupleElement(BytecodeType, usize),
     Tuple(BytecodeTypeArray),

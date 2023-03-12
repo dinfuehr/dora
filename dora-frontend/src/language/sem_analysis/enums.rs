@@ -15,7 +15,7 @@ use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::Id;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct EnumDefinitionId(u32);
+pub struct EnumDefinitionId(pub u32);
 
 impl EnumDefinitionId {
     pub fn to_usize(self) -> usize {

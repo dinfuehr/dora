@@ -1,11 +1,9 @@
 use std::iter::Iterator;
 
 use crate::bytecode::{
-    BytecodeInstruction, BytecodeOffset, BytecodeOpcode, ConstPoolIdx, OperandWidth, Register,
+    BytecodeInstruction, BytecodeOffset, BytecodeOpcode, ConstPoolIdx, GlobalId, OperandWidth,
+    Register,
 };
-use crate::language::sem_analysis::{GlobalDefinition, GlobalDefinitionId};
-use crate::Id;
-
 pub fn read<T: BytecodeVisitor>(data: &[u8], visitor: &mut T) {
     BytecodeFullIteration::new(data, visitor).read();
 }
@@ -435,8 +433,8 @@ impl<'a> BytecodeReader<'a> {
         Register(self.read_index() as usize)
     }
 
-    fn read_global(&mut self) -> GlobalDefinitionId {
-        GlobalDefinition::usize_to_id(self.read_index() as usize)
+    fn read_global(&mut self) -> GlobalId {
+        GlobalId(self.read_index())
     }
 
     fn read_const_pool_idx(&mut self) -> ConstPoolIdx {
@@ -839,11 +837,11 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_load_global(&mut self, _dest: Register, _global_id: GlobalDefinitionId) {
+    fn visit_load_global(&mut self, _dest: Register, _global_id: GlobalId) {
         unimplemented!();
     }
 
-    fn visit_store_global(&mut self, _src: Register, _global_id: GlobalDefinitionId) {
+    fn visit_store_global(&mut self, _src: Register, _global_id: GlobalId) {
         unimplemented!();
     }
 

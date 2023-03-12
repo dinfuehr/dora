@@ -28,7 +28,7 @@ pub struct FunctionData {
     pub source_file_id: Option<SourceFileId>,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct GlobalId(pub u32);
 
 #[derive(Debug)]
@@ -40,7 +40,7 @@ pub struct GlobalData {
     pub initializer: Option<FunctionId>,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ClassId(pub u32);
 
 #[derive(Debug)]
@@ -88,7 +88,7 @@ pub struct ClassField {
     pub name: String,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct StructId(pub u32);
 
 #[derive(Debug)]
@@ -117,7 +117,7 @@ pub struct TypeParamBound {
     pub trait_ty: BytecodeType,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct EnumId(pub u32);
 
 #[derive(Debug)]

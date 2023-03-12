@@ -14,7 +14,7 @@ use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::Id;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub struct ClassDefinitionId(usize);
+pub struct ClassDefinitionId(pub usize);
 
 impl ClassDefinitionId {
     pub fn max() -> ClassDefinitionId {

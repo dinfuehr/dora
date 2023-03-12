@@ -3,7 +3,7 @@ use crate::gc::{Address, Region};
 use crate::mem;
 use crate::os;
 use crate::vm::{add_ref_fields, VM};
-use dora_frontend::language::sem_analysis::GlobalDefinitionId;
+use dora_frontend::bytecode::GlobalId;
 
 pub fn init_global_addresses(vm: &mut VM) {
     let number_globals = vm.program.globals.len();
@@ -60,15 +60,15 @@ pub struct GlobalVariableMemory {
 }
 
 impl GlobalVariableMemory {
-    pub fn address_value(&self, idx: GlobalDefinitionId) -> Address {
-        self.variables[idx.to_usize()].address_value
+    pub fn address_value(&self, idx: GlobalId) -> Address {
+        self.variables[idx.0 as usize].address_value
     }
 
-    pub fn address_init(&self, idx: GlobalDefinitionId) -> Address {
-        self.variables[idx.to_usize()].address_init
+    pub fn address_init(&self, idx: GlobalId) -> Address {
+        self.variables[idx.0 as usize].address_init
     }
 
-    pub fn is_initialized(&self, idx: GlobalDefinitionId) -> bool {
+    pub fn is_initialized(&self, idx: GlobalId) -> bool {
         unsafe { *self.address_init(idx).to_ptr::<bool>() }
     }
 

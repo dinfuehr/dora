@@ -4,12 +4,10 @@ use std::mem;
 use self::Bytecode::*;
 use crate::bytecode::{
     self, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeTypeArray, BytecodeVisitor,
-    ConstPoolEntry, ConstPoolIdx, Register, TraitId,
+    ClassId, ConstPoolEntry, ConstPoolIdx, EnumId, GlobalId, Register, StructId, TraitId,
 };
 use crate::language::generator::{bty_from_ty, generate_fct};
-use crate::language::sem_analysis::{
-    create_tuple, GlobalDefinitionId, SemAnalysis, StructDefinitionFieldId,
-};
+use crate::language::sem_analysis::{create_tuple, SemAnalysis, StructDefinitionFieldId};
 use crate::language::test;
 use crate::language::ty::{SourceType, SourceTypeArray};
 
@@ -127,7 +125,7 @@ fn gen_load_field_uint8() {
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Field(cls, BytecodeTypeArray::empty(), field)
+                &ConstPoolEntry::Field(ClassId(cls.0 as u32), BytecodeTypeArray::empty(), field)
             );
         },
     );
@@ -150,7 +148,7 @@ fn gen_store_field_uint8() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Field(cls, BytecodeTypeArray::empty(), field)
+                &ConstPoolEntry::Field(ClassId(cls.0 as u32), BytecodeTypeArray::empty(), field)
             );
         },
     );
@@ -1054,7 +1052,7 @@ fn gen_load_global() {
         "let a: Int32 = 0i32; fn f(): Int32 { return a; }",
         |sa, code| {
             let gid = sa.global_by_name("a");
-            let expected = vec![LoadGlobal(r(0), gid), Ret(r(0))];
+            let expected = vec![LoadGlobal(r(0), GlobalId(gid.0)), Ret(r(0))];
             assert_eq!(expected, code);
         },
     );
@@ -1066,7 +1064,7 @@ fn gen_store_global() {
         "let mut a: Bool = false; fn f(x: Bool) { a = x; }",
         |sa, code| {
             let gid = sa.global_by_name("a");
-            let expected = vec![StoreGlobal(r(0), gid), Ret(r(1))];
+            let expected = vec![StoreGlobal(r(0), GlobalId(gid.0)), Ret(r(1))];
             assert_eq!(expected, code);
         },
     );
@@ -2341,7 +2339,7 @@ fn gen_new_struct() {
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(1)),
-                &ConstPoolEntry::Struct(struct_id, BytecodeTypeArray::empty())
+                &ConstPoolEntry::Struct(StructId(struct_id.0), BytecodeTypeArray::empty())
             );
         },
     );
@@ -2365,7 +2363,7 @@ fn gen_new_struct() {
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::Struct(
-                    struct_id,
+                    StructId(struct_id.0),
                     BytecodeTypeArray::one(BytecodeType::TypeParam(0))
                 )
             );
@@ -2399,7 +2397,7 @@ fn gen_struct_field() {
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::StructField(
-                    struct_id,
+                    StructId(struct_id.0),
                     BytecodeTypeArray::empty(),
                     StructDefinitionFieldId(0)
                 )
@@ -2419,7 +2417,7 @@ fn gen_struct_field() {
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::StructField(
-                    struct_id,
+                    StructId(struct_id.0),
                     BytecodeTypeArray::one(BytecodeType::Int32),
                     StructDefinitionFieldId(0)
                 )
@@ -2468,7 +2466,7 @@ fn gen_new_enum() {
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(1)),
-                &ConstPoolEntry::EnumVariant(enum_id, BytecodeTypeArray::empty(), 0)
+                &ConstPoolEntry::EnumVariant(EnumId(enum_id.0), BytecodeTypeArray::empty(), 0)
             );
         },
     );
@@ -2491,7 +2489,7 @@ fn gen_new_enum() {
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(1)),
                 &ConstPoolEntry::EnumVariant(
-                    enum_id,
+                    EnumId(enum_id.0),
                     BytecodeTypeArray::one(BytecodeType::Int32),
                     0
                 )
@@ -2511,7 +2509,7 @@ fn gen_new_enum() {
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::EnumVariant(enum_id, BytecodeTypeArray::empty(), 1)
+                &ConstPoolEntry::EnumVariant(EnumId(enum_id.0), BytecodeTypeArray::empty(), 1)
             );
         },
     );
@@ -2529,7 +2527,7 @@ fn gen_new_enum() {
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::EnumVariant(
-                    enum_id,
+                    EnumId(enum_id.0),
                     BytecodeTypeArray::one(BytecodeType::Int32),
                     1
                 )
@@ -2550,7 +2548,7 @@ fn gen_new_enum() {
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::EnumVariant(
-                    enum_id,
+                    EnumId(enum_id.0),
                     BytecodeTypeArray::one(BytecodeType::Int32),
                     1
                 )
@@ -2569,7 +2567,7 @@ fn gen_new_object() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Class(cls_id, BytecodeTypeArray::empty())
+                &ConstPoolEntry::Class(ClassId(cls_id.0 as u32), BytecodeTypeArray::empty())
             );
         },
     );
@@ -2592,7 +2590,7 @@ fn gen_new_object_initialized() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Class(cls_id, BytecodeTypeArray::empty())
+                &ConstPoolEntry::Class(ClassId(cls_id.0 as u32), BytecodeTypeArray::empty())
             );
         },
     );
@@ -2629,7 +2627,10 @@ fn gen_new_array() {
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Class(cls_id, BytecodeTypeArray::one(BytecodeType::Int32))
+                &ConstPoolEntry::Class(
+                    ClassId(cls_id.0 as u32),
+                    BytecodeTypeArray::one(BytecodeType::Int32)
+                )
             );
         },
     );
@@ -2927,7 +2928,7 @@ fn gen_new_object_with_multiple_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(3)),
-                &ConstPoolEntry::Class(cls_id, BytecodeTypeArray::empty())
+                &ConstPoolEntry::Class(ClassId(cls_id.0 as u32), BytecodeTypeArray::empty())
             );
         },
     );
@@ -3423,7 +3424,7 @@ fn gen_enum_value() {
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::EnumVariant(enum_id, BytecodeTypeArray::empty(), 0)
+                &ConstPoolEntry::EnumVariant(EnumId(enum_id.0), BytecodeTypeArray::empty(), 0)
             )
         },
     );
@@ -4127,8 +4128,8 @@ pub enum Bytecode {
     LoadField(Register, Register, ConstPoolIdx),
     StoreField(Register, Register, ConstPoolIdx),
 
-    LoadGlobal(Register, GlobalDefinitionId),
-    StoreGlobal(Register, GlobalDefinitionId),
+    LoadGlobal(Register, GlobalId),
+    StoreGlobal(Register, GlobalId),
 
     PushRegister(Register),
 
@@ -4311,11 +4312,11 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.emit(Bytecode::StoreField(src, obj, field));
     }
 
-    fn visit_load_global(&mut self, dest: Register, global_id: GlobalDefinitionId) {
+    fn visit_load_global(&mut self, dest: Register, global_id: GlobalId) {
         self.emit(Bytecode::LoadGlobal(dest, global_id));
     }
 
-    fn visit_store_global(&mut self, src: Register, global_id: GlobalDefinitionId) {
+    fn visit_store_global(&mut self, src: Register, global_id: GlobalId) {
         self.emit(Bytecode::StoreGlobal(src, global_id));
     }
 

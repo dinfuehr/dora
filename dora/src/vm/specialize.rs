@@ -6,27 +6,28 @@ use crate::mem;
 use crate::object::Header;
 use crate::size::InstanceSize;
 use crate::vm::{
-    create_class_instance_with_vtable, get_concrete_tuple_bty, ClassInstanceId, EnumDefinitionId,
-    EnumInstance, EnumInstanceId, EnumLayout, FieldInstance, ShapeKind, StructDefinitionId,
-    StructInstance, StructInstanceField, StructInstanceId, VM,
+    create_class_instance_with_vtable, get_concrete_tuple_bty, ClassInstanceId, EnumInstance,
+    EnumInstanceId, EnumLayout, FieldInstance, ShapeKind, StructInstance, StructInstanceField,
+    StructInstanceId, VM,
 };
 use dora_frontend::bytecode::{
-    BytecodeType, BytecodeTypeArray, ClassData, EnumData, StructData, TraitData, TraitId,
+    BytecodeType, BytecodeTypeArray, ClassData, ClassId, EnumData, EnumId, StructData, StructId,
+    TraitData, TraitId,
 };
-use dora_frontend::language::sem_analysis::{ClassDefinitionId, FctDefinitionId};
+use dora_frontend::language::sem_analysis::FctDefinitionId;
 
 pub fn create_struct_instance(
     vm: &VM,
-    struct_id: StructDefinitionId,
+    struct_id: StructId,
     type_params: BytecodeTypeArray,
 ) -> StructInstanceId {
-    let struct_ = &vm.program.structs[struct_id.to_usize()];
+    let struct_ = &vm.program.structs[struct_id.0 as usize];
     create_specialized_struct(vm, struct_id, struct_, type_params)
 }
 
 fn create_specialized_struct(
     vm: &VM,
-    struct_id: StructDefinitionId,
+    struct_id: StructId,
     struct_: &StructData,
     type_params: BytecodeTypeArray,
 ) -> StructInstanceId {
@@ -77,16 +78,16 @@ fn create_specialized_struct(
 
 pub fn create_enum_instance(
     vm: &VM,
-    enum_id: EnumDefinitionId,
+    enum_id: EnumId,
     type_params: BytecodeTypeArray,
 ) -> EnumInstanceId {
-    let enum_ = &vm.program.enums[enum_id.to_usize()];
+    let enum_ = &vm.program.enums[enum_id.0 as usize];
     specialize_enum(vm, enum_id, enum_, type_params)
 }
 
 fn specialize_enum(
     vm: &VM,
-    enum_id: EnumDefinitionId,
+    enum_id: EnumId,
     enum_: &EnumData,
     type_params: BytecodeTypeArray,
 ) -> EnumInstanceId {
@@ -103,7 +104,7 @@ fn specialize_enum(
 
 fn create_specialized_enum(
     vm: &VM,
-    enum_id: EnumDefinitionId,
+    enum_id: EnumId,
     enum_: &EnumData,
     type_params: BytecodeTypeArray,
 ) -> EnumInstanceId {
@@ -279,16 +280,16 @@ pub fn add_ref_fields(vm: &VM, ref_fields: &mut Vec<i32>, offset: i32, ty: Bytec
 
 pub fn create_class_instance(
     vm: &VM,
-    cls_id: ClassDefinitionId,
+    cls_id: ClassId,
     type_params: &BytecodeTypeArray,
 ) -> ClassInstanceId {
-    let cls = &vm.program.classes[cls_id.to_usize()];
+    let cls = &vm.program.classes[cls_id.0 as usize];
     specialize_class(vm, cls_id, cls, type_params)
 }
 
 fn specialize_class(
     vm: &VM,
-    cls_id: ClassDefinitionId,
+    cls_id: ClassId,
     cls: &ClassData,
     type_params: &BytecodeTypeArray,
 ) -> ClassInstanceId {
@@ -305,7 +306,7 @@ fn specialize_class(
 
 fn create_specialized_class(
     vm: &VM,
-    cls_id: ClassDefinitionId,
+    cls_id: ClassId,
     cls: &ClassData,
     type_params: &BytecodeTypeArray,
 ) -> ClassInstanceId {
@@ -321,7 +322,7 @@ fn create_specialized_class(
 
 fn create_specialized_class_regular(
     vm: &VM,
-    cls_id: ClassDefinitionId,
+    cls_id: ClassId,
     cls: &ClassData,
     type_params: &BytecodeTypeArray,
 ) -> ClassInstanceId {
@@ -371,7 +372,7 @@ fn create_specialized_class_regular(
 
 fn create_specialized_class_array(
     vm: &VM,
-    cls_id: ClassDefinitionId,
+    cls_id: ClassId,
     cls: &ClassData,
     type_params: &BytecodeTypeArray,
 ) -> ClassInstanceId {

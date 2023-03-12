@@ -35,12 +35,12 @@ impl<'a> BytecodeTypePrinter<'a> {
             BytecodeType::Bool => write!(fmt, "Bool"),
             BytecodeType::Ptr => write!(fmt, "Ptr"),
             BytecodeType::Class(id, type_params) => {
-                let cls = &self.vm.program.classes[id.to_usize()];
+                let cls = &self.vm.program.classes[id.0 as usize];
                 write!(fmt, "{}", cls.name)?;
                 self.type_params(type_params, fmt)
             }
             BytecodeType::Struct(sid, type_params) => {
-                let struct_ = &self.vm.program.structs[sid.to_usize()];
+                let struct_ = &self.vm.program.structs[sid.0 as usize];
                 write!(fmt, "{}", struct_.name)?;
                 self.type_params(type_params, fmt)
             }
@@ -50,7 +50,7 @@ impl<'a> BytecodeTypePrinter<'a> {
                 self.type_params(type_params, fmt)
             }
             BytecodeType::Enum(id, type_params) => {
-                let enum_ = &self.vm.program.enums[id.to_usize()];
+                let enum_ = &self.vm.program.enums[id.0 as usize];
                 write!(fmt, "{}", enum_.name)?;
                 self.type_params(type_params, fmt)
             }

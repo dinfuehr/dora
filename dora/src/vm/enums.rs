@@ -2,8 +2,8 @@ use parking_lot::RwLock;
 
 use crate::vm::{module_path_with_name_str, ClassInstanceId, VM};
 use dora_frontend::bytecode::ty::BytecodeTypeArray;
-use dora_frontend::bytecode::EnumData;
-use dora_frontend::language::sem_analysis::{EnumDefinitionId, ModuleDefinitionId};
+use dora_frontend::bytecode::{EnumData, EnumId};
+use dora_frontend::language::sem_analysis::ModuleDefinitionId;
 use dora_frontend::Id;
 
 pub fn enum_definition_name(enum_: &EnumData, vm: &VM) -> String {
@@ -33,7 +33,7 @@ impl Id for EnumInstance {
 
 #[derive(Debug)]
 pub struct EnumInstance {
-    pub enum_id: EnumDefinitionId,
+    pub enum_id: EnumId,
     pub type_params: BytecodeTypeArray,
     pub layout: EnumLayout,
     pub variants: RwLock<Vec<Option<ClassInstanceId>>>,

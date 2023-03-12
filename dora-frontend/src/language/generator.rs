@@ -4,8 +4,8 @@ use std::convert::TryInto;
 use dora_parser::{ast, Position};
 
 use crate::bytecode::{
-    BytecodeBuilder, BytecodeFunction, BytecodeType, BytecodeTypeArray, ConstPoolIdx, Label,
-    Location, Register, TraitId,
+    BytecodeBuilder, BytecodeFunction, BytecodeType, BytecodeTypeArray, ClassId, ConstPoolIdx,
+    EnumId, GlobalId, Label, Location, Register, StructId, TraitId,
 };
 use crate::language::sem_analysis::{
     find_impl, AnalysisData, CallType, ClassDefinitionId, ConstDefinitionId, ContextIdx,
@@ -170,9 +170,10 @@ impl<'a> AstBytecodeGen<'a> {
     fn create_context(&mut self) {
         if let Some(cls_id) = self.analysis.context_cls_id {
             let context_register = self.builder.alloc_global(BytecodeType::Ptr);
-            let idx = self
-                .builder
-                .add_const_cls_types(cls_id, bty_array_from_ty(&self.identity_type_params()));
+            let idx = self.builder.add_const_cls_types(
+                ClassId(cls_id.0 as u32),
+                bty_array_from_ty(&self.identity_type_params()),
+            );
             self.builder
                 .emit_new_object(context_register, idx, loc(self.fct.pos));
             self.context_register = Some(context_register);
@@ -184,7 +185,7 @@ impl<'a> AstBytecodeGen<'a> {
                 let outer_context_reg = self.alloc_temp(BytecodeType::Ptr);
                 let lambda_cls_id = self.sa.known.classes.lambda();
                 let idx = self.builder.add_const_field_types(
-                    lambda_cls_id,
+                    ClassId(lambda_cls_id.0 as u32),
                     BytecodeTypeArray::empty(),
                     FieldId(0),
                 );
@@ -193,7 +194,7 @@ impl<'a> AstBytecodeGen<'a> {
 
                 // Store value in outer_context field of context object.
                 let idx = self.builder.add_const_field_types(
-                    cls_id,
+                    ClassId(cls_id.0 as u32),
                     bty_array_from_ty(&self.identity_type_params()),
                     FieldId(0),
                 );
@@ -757,6 +758,7 @@ impl<'a> AstBytecodeGen<'a> {
         dest: DataDest,
     ) -> Register {
         let type_params = bty_array_from_ty(&type_params);
+        let enum_id = EnumId(enum_id.0);
         let bty = BytecodeType::Enum(enum_id, type_params.clone());
         let dest = self.ensure_register(dest, bty);
         let idx = self
@@ -811,7 +813,7 @@ impl<'a> AstBytecodeGen<'a> {
         let variant_reg = self.alloc_temp(BytecodeType::Int32);
         let idx = self
             .builder
-            .add_const_enum(enum_id, bty_array_from_ty(&enum_ty.type_params()));
+            .add_const_enum(EnumId(enum_id.0), bty_array_from_ty(&enum_ty.type_params()));
         self.builder
             .emit_load_enum_variant(variant_reg, expr_reg, idx, loc(node.pos));
 
@@ -864,7 +866,7 @@ impl<'a> AstBytecodeGen<'a> {
                         for (subtype_idx, param) in params.iter().enumerate() {
                             if let Some(_) = param.name {
                                 let idx = self.builder.add_const_enum_element(
-                                    enum_id,
+                                    EnumId(enum_id.0),
                                     bty_array_from_ty(&enum_ty.type_params()),
                                     variant_idx as usize,
                                     subtype_idx,
@@ -1023,9 +1025,11 @@ impl<'a> AstBytecodeGen<'a> {
 
         let cls_id = cls_ty.cls_id().expect("class expected");
         let type_params = cls_ty.type_params();
-        let field_idx =
-            self.builder
-                .add_const_field_types(cls_id, bty_array_from_ty(&type_params), field_id);
+        let field_idx = self.builder.add_const_field_types(
+            ClassId(cls_id.0 as u32),
+            bty_array_from_ty(&type_params),
+            field_id,
+        );
 
         let field_ty = {
             let cls = self.sa.classes.idx(cls_id);
@@ -1078,7 +1082,7 @@ impl<'a> AstBytecodeGen<'a> {
         let ty: BytecodeType = register_bty_from_ty(ty);
         let dest = self.ensure_register(dest, ty);
         let const_idx = self.builder.add_const_struct_field(
-            struct_id,
+            StructId(struct_id.0),
             bty_array_from_ty(&type_params),
             field_idx,
         );
@@ -1252,7 +1256,7 @@ impl<'a> AstBytecodeGen<'a> {
         let type_params = enum_ty.type_params();
 
         let idx = self.builder.add_const_enum_variant(
-            enum_id,
+            EnumId(enum_id.0),
             bty_array_from_ty(&type_params),
             variant_idx,
         );
@@ -1327,6 +1331,8 @@ impl<'a> AstBytecodeGen<'a> {
             self.builder.emit_push_register(arg_reg);
         }
 
+        let struct_id = StructId(struct_id.0);
+
         let idx = self
             .builder
             .add_const_struct(struct_id, bty_array_from_ty(&type_params));
@@ -1358,6 +1364,7 @@ impl<'a> AstBytecodeGen<'a> {
             self.builder.emit_push_register(arg_reg);
         }
 
+        let cls_id = ClassId(cls_id.0 as u32);
         let idx = self
             .builder
             .add_const_cls_types(cls_id, bty_array_from_ty(type_params));
@@ -1499,7 +1506,7 @@ impl<'a> AstBytecodeGen<'a> {
         let type_params = ty.type_params();
         let cls_idx = self
             .builder
-            .add_const_cls_types(cls_id, bty_array_from_ty(&type_params));
+            .add_const_cls_types(ClassId(cls_id.0 as u32), bty_array_from_ty(&type_params));
 
         // Store length in a register
         let length_reg = self.alloc_temp(BytecodeType::Int64);
@@ -1552,7 +1559,7 @@ impl<'a> AstBytecodeGen<'a> {
 
                 let idx = self
                     .builder
-                    .add_const_cls_types(cls_id, bty_array_from_ty(&type_params));
+                    .add_const_cls_types(ClassId(cls_id.0 as u32), bty_array_from_ty(&type_params));
                 self.builder
                     .emit_new_object(object_reg.expect("reg missing"), idx, location);
             }
@@ -2103,7 +2110,7 @@ impl<'a> AstBytecodeGen<'a> {
         let type_params = element_ty.type_params();
         let cls_idx = self
             .builder
-            .add_const_cls_types(cls_id, bty_array_from_ty(&type_params));
+            .add_const_cls_types(ClassId(cls_id.0 as u32), bty_array_from_ty(&type_params));
 
         let array_reg = self.ensure_register(dest, BytecodeType::Ptr);
         let length_reg = self.visit_expr(&expr.args[0], DataDest::Alloc);
@@ -2688,9 +2695,11 @@ impl<'a> AstBytecodeGen<'a> {
 
         let cls_id = cls_ty.cls_id().expect("class expected");
         let type_params = cls_ty.type_params();
-        let field_idx =
-            self.builder
-                .add_const_field_types(cls_id, bty_array_from_ty(&type_params), field_id);
+        let field_idx = self.builder.add_const_field_types(
+            ClassId(cls_id.0 as u32),
+            bty_array_from_ty(&type_params),
+            field_id,
+        );
 
         let obj = self.visit_expr(&dot.lhs, DataDest::Alloc);
         let src = self.visit_expr(&expr.rhs, DataDest::Alloc);
@@ -2716,7 +2725,7 @@ impl<'a> AstBytecodeGen<'a> {
         let outer_context_reg = self.alloc_temp(BytecodeType::Ptr);
         let lambda_cls_id = self.sa.known.classes.lambda();
         let idx = self.builder.add_const_field_types(
-            lambda_cls_id,
+            ClassId(lambda_cls_id.0 as u32),
             BytecodeTypeArray::empty(),
             FieldId(0),
         );
@@ -2737,7 +2746,7 @@ impl<'a> AstBytecodeGen<'a> {
                 .expect("context class missing");
 
             let idx = self.builder.add_const_field_types(
-                outer_cls_id,
+                ClassId(outer_cls_id.0 as u32),
                 bty_array_from_ty(&self.identity_type_params()),
                 FieldId(0),
             );
@@ -2759,7 +2768,7 @@ impl<'a> AstBytecodeGen<'a> {
         let field_id =
             field_id_from_context_idx(context_idx, analysis.context_has_outer_context_slot());
         let idx = self.builder.add_const_field_types(
-            outer_cls_id,
+            ClassId(outer_cls_id.0 as u32),
             bty_array_from_ty(&self.identity_type_params()),
             field_id,
         );
@@ -2806,7 +2815,7 @@ impl<'a> AstBytecodeGen<'a> {
         let src = self.visit_expr(&expr.rhs, dest);
 
         if !global_var.ty.is_unit() {
-            self.builder.emit_store_global(src, gid);
+            self.builder.emit_store_global(src, GlobalId(gid.0));
         }
 
         self.free_if_temp(src);
@@ -2852,7 +2861,7 @@ impl<'a> AstBytecodeGen<'a> {
         let outer_context_reg = self.alloc_temp(BytecodeType::Ptr);
         let lambda_cls_id = self.sa.known.classes.lambda();
         let idx = self.builder.add_const_field_types(
-            lambda_cls_id,
+            ClassId(lambda_cls_id.0 as u32),
             BytecodeTypeArray::empty(),
             FieldId(0),
         );
@@ -2873,7 +2882,7 @@ impl<'a> AstBytecodeGen<'a> {
                 .expect("context class missing");
 
             let idx = self.builder.add_const_field_types(
-                outer_cls_id,
+                ClassId(outer_cls_id.0 as u32),
                 bty_array_from_ty(&self.identity_type_params()),
                 FieldId(0),
             );
@@ -2902,7 +2911,7 @@ impl<'a> AstBytecodeGen<'a> {
         let value_reg = self.ensure_register(dest, ty);
 
         let idx = self.builder.add_const_field_types(
-            outer_cls_id,
+            ClassId(outer_cls_id.0 as u32),
             bty_array_from_ty(&self.identity_type_params()),
             field_id,
         );
@@ -2990,7 +2999,8 @@ impl<'a> AstBytecodeGen<'a> {
         let ty: BytecodeType = register_bty_from_ty(global_var.ty.clone());
         let dest = self.ensure_register(dest, ty);
 
-        self.builder.emit_load_global(dest, gid, location);
+        self.builder
+            .emit_load_global(dest, GlobalId(gid.0), location);
 
         dest
     }
@@ -3041,7 +3051,7 @@ impl<'a> AstBytecodeGen<'a> {
         let field_id =
             field_id_from_context_idx(context_idx, self.analysis.context_has_outer_context_slot());
         let field_idx = self.builder.add_const_field_types(
-            cls_id,
+            ClassId(cls_id.0 as u32),
             bty_array_from_ty(&self.identity_type_params()),
             field_id,
         );
@@ -3056,7 +3066,7 @@ impl<'a> AstBytecodeGen<'a> {
         let field_id =
             field_id_from_context_idx(context_idx, self.analysis.context_has_outer_context_slot());
         let field_idx = self.builder.add_const_field_types(
-            cls_id,
+            ClassId(cls_id.0 as u32),
             bty_array_from_ty(&self.identity_type_params()),
             field_id,
         );
@@ -3340,17 +3350,18 @@ pub fn bty_from_ty(ty: SourceType) -> BytecodeType {
         SourceType::Int64 => BytecodeType::Int64,
         SourceType::Float32 => BytecodeType::Float32,
         SourceType::Float64 => BytecodeType::Float64,
-        SourceType::Class(class_id, type_params) => {
-            BytecodeType::Class(class_id, bty_array_from_ty(&type_params))
-        }
+        SourceType::Class(class_id, type_params) => BytecodeType::Class(
+            ClassId(class_id.0.try_into().expect("overflow")),
+            bty_array_from_ty(&type_params),
+        ),
         SourceType::Trait(trait_id, type_params) => {
             BytecodeType::Trait(TraitId(trait_id.0), bty_array_from_ty(&type_params))
         }
         SourceType::Enum(enum_id, type_params) => {
-            BytecodeType::Enum(enum_id, bty_array_from_ty(&type_params))
+            BytecodeType::Enum(EnumId(enum_id.0), bty_array_from_ty(&type_params))
         }
         SourceType::Struct(struct_id, type_params) => {
-            BytecodeType::Struct(struct_id, bty_array_from_ty(&type_params))
+            BytecodeType::Struct(StructId(struct_id.0), bty_array_from_ty(&type_params))
         }
         SourceType::Tuple(subtypes) => BytecodeType::Tuple(bty_array_from_ty(&subtypes)),
         SourceType::TypeParam(idx) => BytecodeType::TypeParam(idx.to_usize() as u32),
@@ -3381,19 +3392,21 @@ pub fn ty_from_bty(ty: BytecodeType) -> SourceType {
         BytecodeType::Int64 => SourceType::Int64,
         BytecodeType::Float32 => SourceType::Float32,
         BytecodeType::Float64 => SourceType::Float64,
-        BytecodeType::Class(class_id, type_params) => {
-            SourceType::Class(class_id, ty_array_from_bty(&type_params))
-        }
+        BytecodeType::Class(class_id, type_params) => SourceType::Class(
+            ClassDefinitionId(class_id.0 as usize),
+            ty_array_from_bty(&type_params),
+        ),
         BytecodeType::Trait(trait_id, type_params) => SourceType::Trait(
             TraitDefinitionId(trait_id.0),
             ty_array_from_bty(&type_params),
         ),
         BytecodeType::Enum(enum_id, type_params) => {
-            SourceType::Enum(enum_id, ty_array_from_bty(&type_params))
+            SourceType::Enum(EnumDefinitionId(enum_id.0), ty_array_from_bty(&type_params))
         }
-        BytecodeType::Struct(struct_id, type_params) => {
-            SourceType::Struct(struct_id, ty_array_from_bty(&type_params))
-        }
+        BytecodeType::Struct(struct_id, type_params) => SourceType::Struct(
+            StructDefinitionId(struct_id.0),
+            ty_array_from_bty(&type_params),
+        ),
         BytecodeType::Tuple(subtypes) => SourceType::Tuple(ty_array_from_bty(&subtypes)),
         BytecodeType::TypeParam(idx) => SourceType::TypeParam(TypeParamId(idx as usize)),
         BytecodeType::Lambda(params, return_type) => SourceType::Lambda(
@@ -3419,10 +3432,10 @@ pub fn register_bty_from_ty(ty: SourceType) -> BytecodeType {
             BytecodeType::Trait(TraitId(trait_id.0), bty_array_from_ty(&type_params))
         }
         SourceType::Enum(enum_id, type_params) => {
-            BytecodeType::Enum(enum_id, bty_array_from_ty(&type_params))
+            BytecodeType::Enum(EnumId(enum_id.0), bty_array_from_ty(&type_params))
         }
         SourceType::Struct(struct_id, type_params) => {
-            BytecodeType::Struct(struct_id, bty_array_from_ty(&type_params))
+            BytecodeType::Struct(StructId(struct_id.0), bty_array_from_ty(&type_params))
         }
         SourceType::Tuple(subtypes) => BytecodeType::Tuple(bty_array_from_ty(&subtypes)),
         SourceType::TypeParam(idx) => BytecodeType::TypeParam(idx.to_usize() as u32),

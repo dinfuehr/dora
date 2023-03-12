@@ -1,12 +1,11 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::bytecode::{
-    BytecodeFunction, BytecodeType, BytecodeTypeArray, BytecodeWriter, ConstPoolEntry,
-    ConstPoolIdx, Label, Location, Register, TraitId,
+    BytecodeFunction, BytecodeType, BytecodeTypeArray, BytecodeWriter, ClassId, ConstPoolEntry,
+    ConstPoolIdx, EnumId, GlobalId, Label, Location, Register, StructId, TraitId,
 };
 use crate::language::sem_analysis::{
-    ClassDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId, GlobalDefinitionId,
-    StructDefinitionFieldId, StructDefinitionId, TypeParamId,
+    FctDefinitionId, FieldId, StructDefinitionFieldId, TypeParamId,
 };
 
 pub struct BytecodeBuilder {
@@ -65,17 +64,13 @@ impl BytecodeBuilder {
             .add_const(ConstPoolEntry::Fct(id, BytecodeTypeArray::empty()))
     }
 
-    pub fn add_const_enum(
-        &mut self,
-        id: EnumDefinitionId,
-        type_params: BytecodeTypeArray,
-    ) -> ConstPoolIdx {
+    pub fn add_const_enum(&mut self, id: EnumId, type_params: BytecodeTypeArray) -> ConstPoolIdx {
         self.writer.add_const(ConstPoolEntry::Enum(id, type_params))
     }
 
     pub fn add_const_enum_variant(
         &mut self,
-        id: EnumDefinitionId,
+        id: EnumId,
         type_params: BytecodeTypeArray,
         variant_idx: usize,
     ) -> ConstPoolIdx {
@@ -85,7 +80,7 @@ impl BytecodeBuilder {
 
     pub fn add_const_enum_element(
         &mut self,
-        id: EnumDefinitionId,
+        id: EnumId,
         type_params: BytecodeTypeArray,
         variant_idx: usize,
         element_idx: usize,
@@ -100,7 +95,7 @@ impl BytecodeBuilder {
 
     pub fn add_const_struct(
         &mut self,
-        id: StructDefinitionId,
+        id: StructId,
         type_params: BytecodeTypeArray,
     ) -> ConstPoolIdx {
         self.writer
@@ -109,7 +104,7 @@ impl BytecodeBuilder {
 
     pub fn add_const_struct_field(
         &mut self,
-        id: StructDefinitionId,
+        id: StructId,
         type_params: BytecodeTypeArray,
         field_idx: StructDefinitionFieldId,
     ) -> ConstPoolIdx {
@@ -137,7 +132,7 @@ impl BytecodeBuilder {
 
     pub fn add_const_field_types(
         &mut self,
-        cls_id: ClassDefinitionId,
+        cls_id: ClassId,
         type_params: BytecodeTypeArray,
         field_id: FieldId,
     ) -> ConstPoolIdx {
@@ -145,14 +140,14 @@ impl BytecodeBuilder {
             .add_const(ConstPoolEntry::Field(cls_id, type_params, field_id))
     }
 
-    pub fn add_const_cls(&mut self, id: ClassDefinitionId) -> ConstPoolIdx {
+    pub fn add_const_cls(&mut self, id: ClassId) -> ConstPoolIdx {
         self.writer
             .add_const(ConstPoolEntry::Class(id, BytecodeTypeArray::empty()))
     }
 
     pub fn add_const_cls_types(
         &mut self,
-        id: ClassDefinitionId,
+        id: ClassId,
         type_params: BytecodeTypeArray,
     ) -> ConstPoolIdx {
         self.writer
@@ -432,18 +427,13 @@ impl BytecodeBuilder {
         self.writer.emit_test_le(dest, lhs, rhs);
     }
 
-    pub fn emit_load_global(
-        &mut self,
-        dest: Register,
-        gid: GlobalDefinitionId,
-        location: Location,
-    ) {
+    pub fn emit_load_global(&mut self, dest: Register, gid: GlobalId, location: Location) {
         assert!(self.def(dest));
         self.writer.set_location(location);
         self.writer.emit_load_global(dest, gid);
     }
 
-    pub fn emit_store_global(&mut self, src: Register, gid: GlobalDefinitionId) {
+    pub fn emit_store_global(&mut self, src: Register, gid: GlobalId) {
         assert!(self.used(src));
         self.writer.emit_store_global(src, gid);
     }

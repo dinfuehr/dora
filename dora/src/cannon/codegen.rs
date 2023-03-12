@@ -25,10 +25,10 @@ use crate::vm::{
 use crate::vtable::VTable;
 use dora_frontend::bytecode::{
     self, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeTypeArray, BytecodeVisitor,
-    ConstPoolEntry, ConstPoolIdx, Location, Register, TraitId,
+    ConstPoolEntry, ConstPoolIdx, GlobalId, Location, Register, TraitId,
 };
 use dora_frontend::language::generator::{bty_from_ty, register_bty_from_bty, ty_from_bty};
-use dora_frontend::language::sem_analysis::{FctDefinitionId, GlobalDefinitionId, Intrinsic};
+use dora_frontend::language::sem_analysis::{FctDefinitionId, Intrinsic};
 use dora_frontend::language::ty::SourceType;
 
 use super::CompilationFlags;
@@ -1170,7 +1170,7 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_bty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let enum_ = &self.vm.program.enums[enum_id.to_usize()];
+        let enum_ = &self.vm.program.enums[enum_id.0 as usize];
 
         let enum_instance_id = create_enum_instance(self.vm, enum_id, type_params);
         let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
@@ -1244,7 +1244,7 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_bty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let enum_ = &self.vm.program.enums[enum_id.to_usize()];
+        let enum_ = &self.vm.program.enums[enum_id.0 as usize];
 
         let enum_instance_id = create_enum_instance(self.vm, enum_id, type_params);
         let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
@@ -1469,8 +1469,8 @@ impl<'a> CannonCodeGen<'a> {
         }
     }
 
-    fn emit_load_global(&mut self, dest: Register, global_id: GlobalDefinitionId) {
-        let global_var = &self.vm.program.globals[global_id.to_usize()];
+    fn emit_load_global(&mut self, dest: Register, global_id: GlobalId) {
+        let global_var = &self.vm.program.globals[global_id.0 as usize];
 
         assert_eq!(
             self.bytecode.register_type(dest),
@@ -1512,8 +1512,8 @@ impl<'a> CannonCodeGen<'a> {
         self.asm.copy_bytecode_ty(bytecode_type, dest, src);
     }
 
-    fn emit_store_global(&mut self, src: Register, global_id: GlobalDefinitionId) {
-        let global_var = &self.vm.program.globals[global_id.to_usize()];
+    fn emit_store_global(&mut self, src: Register, global_id: GlobalId) {
+        let global_var = &self.vm.program.globals[global_id.0 as usize];
 
         assert_eq!(
             self.bytecode.register_type(src),
@@ -2142,7 +2142,7 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_bty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let enum_ = &self.vm.program.enums[enum_id.to_usize()];
+        let enum_ = &self.vm.program.enums[enum_id.0 as usize];
 
         let enum_instance_id = create_enum_instance(self.vm, enum_id, type_params.clone());
         let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
@@ -3887,7 +3887,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.asm
                     .test_if_nil_bailout(location, REG_TMP1, Trap::ILLEGAL);
 
-                let enum_ = &self.vm.program.enums[enum_id.to_usize()];
+                let enum_ = &self.vm.program.enums[enum_id.0 as usize];
                 let first_variant = enum_.variants.first().unwrap();
 
                 let some_variant_id = if first_variant.arguments.is_empty() {
@@ -4018,7 +4018,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.asm
                     .test_if_nil_bailout(location, REG_TMP1, Trap::ILLEGAL);
 
-                let enum_ = &self.vm.program.enums[enum_id.to_usize()];
+                let enum_ = &self.vm.program.enums[enum_id.0 as usize];
                 let first_variant = enum_.variants.first().unwrap();
 
                 let none_variant_id = if first_variant.arguments.is_empty() {
@@ -4334,7 +4334,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                     }
                     _ => unreachable!(),
                 };
-            let enum_ = &self.vm.program.enums[enum_id.to_usize()];
+            let enum_ = &self.vm.program.enums[enum_id.0 as usize];
             let enum_name = display_ty(self.vm, &BytecodeType::Enum(enum_id, type_params.clone()));
             let variant = &enum_.variants[variant_idx];
             format!(
@@ -4377,7 +4377,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 }
                 _ => unreachable!(),
             };
-            let struct_ = &self.vm.program.structs[struct_id.to_usize()];
+            let struct_ = &self.vm.program.structs[struct_id.0 as usize];
             let struct_name = display_ty(
                 self.vm,
                 &BytecodeType::Struct(struct_id, type_params.clone()),
@@ -4404,7 +4404,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                     let cname =
                         display_ty(self.vm, &BytecodeType::Class(*cls_id, type_params.clone()));
 
-                    let cls = &self.vm.program.classes[cls_id.to_usize()];
+                    let cls = &self.vm.program.classes[cls_id.0 as usize];
                     let field = &cls.fields[field_id.to_usize()];
 
                     format!(
@@ -4432,7 +4432,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             };
             let cname = display_ty(self.vm, &BytecodeType::Class(cls_id, type_params.clone()));
 
-            let cls = &self.vm.program.classes[cls_id.to_usize()];
+            let cls = &self.vm.program.classes[cls_id.0 as usize];
             let field = &cls.fields[field_id.to_usize()];
 
             format!(
@@ -4447,27 +4447,23 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         self.emit_store_field(src, obj, field_idx);
     }
 
-    fn visit_load_global(&mut self, dest: Register, glob_id: GlobalDefinitionId) {
+    fn visit_load_global(&mut self, dest: Register, glob_id: GlobalId) {
         comment!(self, {
-            let global_var = &self.vm.program.globals[glob_id.to_usize()];
+            let global_var = &self.vm.program.globals[glob_id.0 as usize];
             format!(
                 "LoadGlobal {}, GlobalId({}) # {}",
-                dest,
-                glob_id.to_usize(),
-                global_var.name
+                dest, glob_id.0, global_var.name
             )
         });
         self.emit_load_global(dest, glob_id);
     }
 
-    fn visit_store_global(&mut self, src: Register, global_id: GlobalDefinitionId) {
+    fn visit_store_global(&mut self, src: Register, global_id: GlobalId) {
         comment!(self, {
-            let global_var = &self.vm.program.globals[global_id.to_usize()];
+            let global_var = &self.vm.program.globals[global_id.0 as usize];
             format!(
                 "StoreGlobal {}, GlobalId({}) # {}",
-                src,
-                global_id.to_usize(),
-                global_var.name
+                src, global_id.0, global_var.name
             )
         });
         self.emit_store_global(src, global_id);
@@ -4864,7 +4860,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 }
                 _ => unreachable!(),
             };
-            let enum_ = &self.vm.program.enums[enum_id.to_usize()];
+            let enum_ = &self.vm.program.enums[enum_id.0 as usize];
             let enum_name = display_ty(self.vm, &BytecodeType::Enum(enum_id, type_params.clone()));
             let variant = &enum_.variants[variant_idx];
             format!(

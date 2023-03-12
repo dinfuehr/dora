@@ -13,7 +13,7 @@ use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct GlobalDefinitionId(u32);
+pub struct GlobalDefinitionId(pub u32);
 
 impl Id for GlobalDefinition {
     type IdType = GlobalDefinitionId;

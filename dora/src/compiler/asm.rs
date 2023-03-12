@@ -14,10 +14,8 @@ use crate::vm::{
     create_enum_instance, create_struct_instance, get_concrete_tuple_bty_array, EnumLayout,
     GcPoint, LazyCompilationSite, Trap, VM,
 };
-use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray, Location};
-use dora_frontend::language::sem_analysis::{
-    FctDefinitionId, GlobalDefinitionId, StructDefinitionId,
-};
+use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray, GlobalId, Location, StructId};
+use dora_frontend::language::sem_analysis::FctDefinitionId;
 
 pub struct BaselineAssembler<'a> {
     masm: MacroAssembler,
@@ -202,7 +200,7 @@ impl<'a> BaselineAssembler<'a> {
 
     pub fn copy_struct(
         &mut self,
-        struct_id: StructDefinitionId,
+        struct_id: StructId,
         type_params: BytecodeTypeArray,
         dest: RegOrOffset,
         src: RegOrOffset,
@@ -910,7 +908,7 @@ impl<'a> BaselineAssembler<'a> {
 
     pub fn ensure_global(
         &mut self,
-        global_id: GlobalDefinitionId,
+        global_id: GlobalId,
         fid: FctDefinitionId,
         ptr: Address,
         location: Location,

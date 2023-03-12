@@ -15,12 +15,13 @@ use crate::threads::{
     STACK_SIZE,
 };
 use crate::utils::GrowableVecNonIter;
-use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray, Location, Program, TraitId};
+use dora_frontend::bytecode::{
+    BytecodeType, BytecodeTypeArray, ClassId, EnumId, Location, Program, StructId, TraitId,
+};
 use dora_frontend::language::sem_analysis::{
-    ClassDefinition, ClassDefinitionId, EnumDefinition, EnumDefinitionId, ExtensionDefinition,
-    FctDefinition, FctDefinitionId, ImplDefinition, KnownElements, ModuleDefinition,
-    ModuleDefinitionId, PackageDefinitionId, SemAnalysis, StructDefinition, StructDefinitionId,
-    TraitDefinition,
+    ClassDefinition, EnumDefinition, ExtensionDefinition, FctDefinition, FctDefinitionId,
+    ImplDefinition, KnownElements, ModuleDefinition, ModuleDefinitionId, PackageDefinitionId,
+    SemAnalysis, StructDefinition, TraitDefinition,
 };
 use dora_frontend::{GrowableVec, MutableVec};
 
@@ -114,12 +115,10 @@ pub struct VM {
     pub known: KnownElements,
     pub known_instances: KnownInstances,
     pub structs: MutableVec<StructDefinition>, // stores all struct source definitions
-    pub struct_specializations:
-        RwLock<HashMap<(StructDefinitionId, BytecodeTypeArray), StructInstanceId>>,
+    pub struct_specializations: RwLock<HashMap<(StructId, BytecodeTypeArray), StructInstanceId>>,
     pub struct_instances: GrowableVecNonIter<StructInstance>, // stores all struct definitions
     pub classes: MutableVec<ClassDefinition>,                 // stores all class source definitions
-    pub class_specializations:
-        RwLock<HashMap<(ClassDefinitionId, BytecodeTypeArray), ClassInstanceId>>,
+    pub class_specializations: RwLock<HashMap<(ClassId, BytecodeTypeArray), ClassInstanceId>>,
     pub class_instances: GrowableVecNonIter<ClassInstance>, // stores all class definitions
     pub extensions: MutableVec<ExtensionDefinition>,        // stores all extension definitions
     pub modules: MutableVec<ModuleDefinition>,              // stores all module definitions
@@ -127,8 +126,7 @@ pub struct VM {
     pub code_objects: CodeObjects,
     pub compilation_database: CompilationDatabase,
     pub enums: MutableVec<EnumDefinition>, // store all enum source definitions
-    pub enum_specializations:
-        RwLock<HashMap<(EnumDefinitionId, BytecodeTypeArray), EnumInstanceId>>,
+    pub enum_specializations: RwLock<HashMap<(EnumId, BytecodeTypeArray), EnumInstanceId>>,
     pub enum_instances: GrowableVecNonIter<EnumInstance>, // stores all enum definitions
     pub traits: MutableVec<TraitDefinition>,              // stores all trait definitions
     pub trait_vtables: RwLock<HashMap<(TraitId, BytecodeTypeArray), ClassInstanceId>>,
@@ -274,7 +272,8 @@ impl VM {
             cls_id
         } else {
             let type_args = BytecodeTypeArray::one(BytecodeType::UInt8);
-            let cls_id = create_class_instance(self, self.known.classes.array(), &type_args);
+            let cls_id = ClassId(self.known.classes.array().0 as u32);
+            let cls_id = create_class_instance(self, cls_id, &type_args);
             *byte_array_def = Some(cls_id);
             cls_id
         }
@@ -287,7 +286,8 @@ impl VM {
             cls_id
         } else {
             let type_args = BytecodeTypeArray::one(BytecodeType::Int32);
-            let cls_id = create_class_instance(self, self.known.classes.array(), &type_args);
+            let cls_id = ClassId(self.known.classes.array().0 as u32);
+            let cls_id = create_class_instance(self, cls_id, &type_args);
             *int_array_def = Some(cls_id);
             cls_id
         }
@@ -301,7 +301,7 @@ impl VM {
         } else {
             let cls_id = create_class_instance(
                 self,
-                self.known.classes.string(),
+                ClassId(self.known.classes.string().0 as u32),
                 &BytecodeTypeArray::empty(),
             );
             *str_class_def = Some(cls_id);
@@ -317,7 +317,7 @@ impl VM {
         } else {
             let cls_id = create_class_instance(
                 self,
-                self.known.classes.stacktrace_element(),
+                ClassId(self.known.classes.stacktrace_element().0 as u32),
                 &BytecodeTypeArray::empty(),
             );
             *ste_class_def = Some(cls_id);
@@ -328,7 +328,7 @@ impl VM {
     pub fn thread_class_instance(&self) -> ClassInstanceId {
         create_class_instance(
             self,
-            self.known.classes.thread(),
+            ClassId(self.known.classes.thread().0 as u32),
             &BytecodeTypeArray::empty(),
         )
     }
