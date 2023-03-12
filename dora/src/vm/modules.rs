@@ -2,13 +2,17 @@ use crate::vm::{ModuleDefinitionId, VM};
 use dora_parser::interner::Name;
 
 pub fn module_path_with_name(vm: &VM, module_id: ModuleDefinitionId, name: Name) -> String {
+    module_path_with_name_str(vm, module_id, &vm.interner.str(name))
+}
+
+pub fn module_path_with_name_str(vm: &VM, module_id: ModuleDefinitionId, name: &str) -> String {
     let mut result = module_path(vm, module_id);
 
     if !result.is_empty() {
         result.push_str("::");
     }
 
-    result.push_str(&vm.interner.str(name));
+    result.push_str(name);
     result
 }
 

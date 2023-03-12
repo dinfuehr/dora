@@ -52,10 +52,8 @@ impl<'a> BytecodeTypePrinter<'a> {
                 self.type_params(type_params, fmt)
             }
             BytecodeType::Enum(id, type_params) => {
-                let enum_ = self.vm.enums.idx(*id);
-                let enum_ = enum_.read();
-                let name = self.vm.interner.str(enum_.name).to_string();
-                write!(fmt, "{}", name)?;
+                let enum_ = &self.vm.program.enums[id.to_usize()];
+                write!(fmt, "{}", enum_.name)?;
                 self.type_params(type_params, fmt)
             }
 

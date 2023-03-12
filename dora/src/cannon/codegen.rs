@@ -1170,8 +1170,7 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_bty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let enum_ = &self.vm.enums[enum_id];
-        let enum_ = enum_.read();
+        let enum_ = &self.vm.program.enums[enum_id.to_usize()];
 
         let enum_instance_id = create_enum_instance(self.vm, enum_id, type_params);
         let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
@@ -1183,7 +1182,11 @@ impl<'a> CannonCodeGen<'a> {
             EnumLayout::Ptr => {
                 assert_eq!(0, element_idx);
                 let first_variant = enum_.variants.first().unwrap();
-                let some_idx = if first_variant.types.is_empty() { 1 } else { 0 };
+                let some_idx = if first_variant.arguments.is_empty() {
+                    1
+                } else {
+                    0
+                };
                 assert_eq!(variant_idx, some_idx);
                 assert_eq!(BytecodeType::Ptr, self.specialize_register_type(dest));
 
@@ -1241,8 +1244,7 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_bty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let enum_ = &self.vm.enums[enum_id];
-        let enum_ = enum_.read();
+        let enum_ = &self.vm.program.enums[enum_id.to_usize()];
 
         let enum_instance_id = create_enum_instance(self.vm, enum_id, type_params);
         let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
@@ -1254,7 +1256,11 @@ impl<'a> CannonCodeGen<'a> {
             }
             EnumLayout::Ptr => {
                 let first_variant = enum_.variants.first().unwrap();
-                let none_idx = if first_variant.types.is_empty() { 0 } else { 1 };
+                let none_idx = if first_variant.arguments.is_empty() {
+                    0
+                } else {
+                    1
+                };
                 let some_idx = if none_idx == 0 { 1 } else { 0 };
 
                 self.emit_load_register_as(src, REG_TMP1.into(), MachineMode::Ptr);
@@ -2136,8 +2142,7 @@ impl<'a> CannonCodeGen<'a> {
         let type_params = self.specialize_bty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let enum_ = &self.vm.enums[enum_id];
-        let enum_ = enum_.read();
+        let enum_ = &self.vm.program.enums[enum_id.to_usize()];
 
         let enum_instance_id = create_enum_instance(self.vm, enum_id, type_params.clone());
         let enum_instance = self.vm.enum_instances.idx(enum_instance_id);
@@ -2154,7 +2159,7 @@ impl<'a> CannonCodeGen<'a> {
             EnumLayout::Ptr => {
                 let variant = &enum_.variants[variant_idx];
 
-                if variant.types.is_empty() {
+                if variant.arguments.is_empty() {
                     assert_eq!(0, arguments.len());
                     self.asm.load_nil(REG_RESULT);
                     self.emit_store_register_as(REG_RESULT.into(), dest, MachineMode::Ptr);
@@ -3880,11 +3885,14 @@ impl<'a> CannonCodeGen<'a> {
                 self.asm
                     .test_if_nil_bailout(location, REG_TMP1, Trap::ILLEGAL);
 
-                let enum_ = &self.vm.enums[enum_id];
-                let enum_ = enum_.read();
+                let enum_ = &self.vm.program.enums[enum_id.to_usize()];
                 let first_variant = enum_.variants.first().unwrap();
 
-                let some_variant_id = if first_variant.types.is_empty() { 1 } else { 0 };
+                let some_variant_id = if first_variant.arguments.is_empty() {
+                    1
+                } else {
+                    0
+                };
 
                 self.asm.cmp_mem_imm(
                     MachineMode::Int32,
@@ -4008,11 +4016,14 @@ impl<'a> CannonCodeGen<'a> {
                 self.asm
                     .test_if_nil_bailout(location, REG_TMP1, Trap::ILLEGAL);
 
-                let enum_ = &self.vm.enums[enum_id];
-                let enum_ = enum_.read();
+                let enum_ = &self.vm.program.enums[enum_id.to_usize()];
                 let first_variant = enum_.variants.first().unwrap();
 
-                let none_variant_id = if first_variant.types.is_empty() { 0 } else { 1 };
+                let none_variant_id = if first_variant.arguments.is_empty() {
+                    0
+                } else {
+                    1
+                };
 
                 self.asm.cmp_mem_imm(
                     MachineMode::Int32,
@@ -4321,11 +4332,9 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                     }
                     _ => unreachable!(),
                 };
-            let enum_ = &self.vm.enums[enum_id];
-            let enum_ = enum_.read();
+            let enum_ = &self.vm.program.enums[enum_id.to_usize()];
             let enum_name = display_ty(self.vm, &BytecodeType::Enum(enum_id, type_params.clone()));
             let variant = &enum_.variants[variant_idx];
-            let variant_name = self.vm.interner.str(variant.name);
             format!(
                 "LoadEnumElement {}, {}, ConstPoolIdx({}), {} # {}::{}.{}",
                 dest,
@@ -4333,7 +4342,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 idx.to_usize(),
                 element_idx,
                 enum_name,
-                variant_name,
+                variant.name,
                 element_idx,
             )
         });
@@ -4853,17 +4862,15 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 }
                 _ => unreachable!(),
             };
-            let enum_ = &self.vm.enums[enum_id];
-            let enum_ = enum_.read();
+            let enum_ = &self.vm.program.enums[enum_id.to_usize()];
             let enum_name = display_ty(self.vm, &BytecodeType::Enum(enum_id, type_params.clone()));
             let variant = &enum_.variants[variant_idx];
-            let variant_name = self.vm.interner.str(variant.name);
             format!(
                 "NewEnum {}, ConstPoolIdx({}) # {}::{}",
                 dest,
                 idx.to_usize(),
                 enum_name,
-                variant_name,
+                variant.name,
             )
         });
         self.emit_new_enum(dest, idx);

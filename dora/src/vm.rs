@@ -15,8 +15,7 @@ use crate::threads::{
     STACK_SIZE,
 };
 use crate::utils::GrowableVecNonIter;
-use dora_frontend::bytecode::Program;
-use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray, Location};
+use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray, Location, Program};
 use dora_frontend::language::sem_analysis::{
     ClassDefinition, ClassDefinitionId, EnumDefinition, EnumDefinitionId, ExtensionDefinition,
     FctDefinition, FctDefinitionId, ImplDefinition, KnownElements, ModuleDefinition,
@@ -45,7 +44,9 @@ pub use self::functions::display_fct;
 use self::globals::GlobalVariableMemory;
 pub use self::impls::{find_trait_impl, implements_trait};
 use self::known::KnownInstances;
-pub use self::modules::{module_contains, module_path, module_path_with_name};
+pub use self::modules::{
+    module_contains, module_path, module_path_with_name, module_path_with_name_str,
+};
 pub use self::specialize::{
     add_ref_fields, create_class_instance, create_enum_instance, create_struct_instance,
     ensure_class_instance_for_enum_variant, ensure_class_instance_for_lambda,

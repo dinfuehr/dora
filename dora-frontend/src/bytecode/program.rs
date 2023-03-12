@@ -15,6 +15,7 @@ pub struct ModuleId(pub u32);
 #[derive(Debug)]
 pub struct ModuleData {
     pub name: String,
+    pub parent_id: Option<ModuleId>,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -123,6 +124,13 @@ pub struct EnumId(pub u32);
 pub struct EnumData {
     pub module_id: ModuleId,
     pub name: String,
+    pub variants: Vec<EnumVariant>,
+}
+
+#[derive(Debug)]
+pub struct EnumVariant {
+    pub name: String,
+    pub arguments: Vec<BytecodeType>,
 }
 
 #[derive(Copy, Clone, Debug)]

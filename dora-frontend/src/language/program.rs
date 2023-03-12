@@ -1,8 +1,8 @@
 use crate::bytecode::program::ClassLayout;
 use crate::bytecode::{
-    ClassData, ClassField, EnumData, FunctionData, FunctionId, GlobalData, ModuleData, ModuleId,
-    PackageData, PackageId, Program, SourceFileData, SourceFileId, StructData, StructField,
-    TraitData, TypeParamBound, TypeParamData,
+    ClassData, ClassField, EnumData, EnumVariant, FunctionData, FunctionId, GlobalData, ModuleData,
+    ModuleId, PackageData, PackageId, Program, SourceFileData, SourceFileId, StructData,
+    StructField, TraitData, TypeParamBound, TypeParamData,
 };
 use crate::language::SemAnalysis;
 
@@ -65,7 +65,10 @@ fn create_modules(sa: &SemAnalysis) -> Vec<ModuleData> {
             "<root>".into()
         };
 
-        result.push(ModuleData { name })
+        result.push(ModuleData {
+            name,
+            parent_id: module.parent_module_id.map(|id| convert_module_id(id)),
+        })
     }
 
     result
@@ -203,6 +206,25 @@ fn create_enums(sa: &SemAnalysis) -> Vec<EnumData> {
         result.push(EnumData {
             module_id: convert_module_id(enum_.module_id),
             name,
+            variants: create_enum_variants(sa, &*enum_),
+        })
+    }
+
+    result
+}
+
+fn create_enum_variants(sa: &SemAnalysis, enum_: &sa::EnumDefinition) -> Vec<EnumVariant> {
+    let mut result = Vec::new();
+
+    for variant in &enum_.variants {
+        let arguments = variant
+            .types
+            .iter()
+            .map(|ty| bty_from_ty(ty.clone()))
+            .collect();
+        result.push(EnumVariant {
+            name: sa.interner.str(variant.name).to_string(),
+            arguments,
         })
     }
 

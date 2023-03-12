@@ -1,12 +1,17 @@
 use parking_lot::RwLock;
 
-use crate::vm::{module_path_with_name, ClassInstanceId, VM};
+use crate::vm::{module_path_with_name_str, ClassInstanceId, VM};
 use dora_frontend::bytecode::ty::BytecodeTypeArray;
-use dora_frontend::language::sem_analysis::{EnumDefinition, EnumDefinitionId};
+use dora_frontend::bytecode::EnumData;
+use dora_frontend::language::sem_analysis::{EnumDefinitionId, ModuleDefinitionId};
 use dora_frontend::Id;
 
-pub fn enum_definition_name(enum_: &EnumDefinition, vm: &VM) -> String {
-    module_path_with_name(vm, enum_.module_id, enum_.name)
+pub fn enum_definition_name(enum_: &EnumData, vm: &VM) -> String {
+    module_path_with_name_str(
+        vm,
+        ModuleDefinitionId(enum_.module_id.0 as usize),
+        &enum_.name,
+    )
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -35,16 +40,11 @@ pub struct EnumInstance {
 }
 
 impl EnumInstance {
-    pub fn field_id(
-        &self,
-        enum_: &EnumDefinition,
-        variant_idx: usize,
-        element_idx: usize,
-    ) -> usize {
+    pub fn field_id(&self, enum_: &EnumData, variant_idx: usize, element_idx: usize) -> usize {
         let variant = &enum_.variants[variant_idx];
         let mut units = 0;
 
-        for ty in &variant.types[0..element_idx as usize] {
+        for ty in &variant.arguments[0..element_idx as usize] {
             if ty.is_unit() {
                 units += 1;
             }

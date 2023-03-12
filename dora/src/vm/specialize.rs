@@ -6,12 +6,11 @@ use crate::mem;
 use crate::object::Header;
 use crate::size::InstanceSize;
 use crate::vm::{
-    create_class_instance_with_vtable, get_concrete_tuple_bty, ClassInstanceId, EnumDefinition,
-    EnumDefinitionId, EnumInstance, EnumInstanceId, EnumLayout, FieldInstance, ShapeKind,
-    StructDefinitionId, StructInstance, StructInstanceField, StructInstanceId, TraitDefinition, VM,
+    create_class_instance_with_vtable, get_concrete_tuple_bty, ClassInstanceId, EnumDefinitionId,
+    EnumInstance, EnumInstanceId, EnumLayout, FieldInstance, ShapeKind, StructDefinitionId,
+    StructInstance, StructInstanceField, StructInstanceId, TraitDefinition, VM,
 };
-use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray, ClassData, StructData};
-use dora_frontend::language::generator::bty_from_ty;
+use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray, ClassData, EnumData, StructData};
 use dora_frontend::language::sem_analysis::{
     ClassDefinitionId, FctDefinitionId, TraitDefinitionId,
 };
@@ -81,30 +80,31 @@ pub fn create_enum_instance(
     enum_id: EnumDefinitionId,
     type_params: BytecodeTypeArray,
 ) -> EnumInstanceId {
-    let enum_ = &vm.enums[enum_id];
-    let enum_ = enum_.read();
-    specialize_enum(vm, &*enum_, type_params)
+    let enum_ = &vm.program.enums[enum_id.to_usize()];
+    specialize_enum(vm, enum_id, enum_, type_params)
 }
 
 fn specialize_enum(
     vm: &VM,
-    enum_: &EnumDefinition,
+    enum_id: EnumDefinitionId,
+    enum_: &EnumData,
     type_params: BytecodeTypeArray,
 ) -> EnumInstanceId {
     if let Some(&id) = vm
         .enum_specializations
         .read()
-        .get(&(enum_.id(), type_params.clone()))
+        .get(&(enum_id, type_params.clone()))
     {
         return id;
     }
 
-    create_specialized_enum(vm, enum_, type_params)
+    create_specialized_enum(vm, enum_id, enum_, type_params)
 }
 
 fn create_specialized_enum(
     vm: &VM,
-    enum_: &EnumDefinition,
+    enum_id: EnumDefinitionId,
+    enum_: &EnumData,
     type_params: BytecodeTypeArray,
 ) -> EnumInstanceId {
     let layout = if enum_is_simple_integer(enum_) {
@@ -117,7 +117,7 @@ fn create_specialized_enum(
 
     let mut specializations = vm.enum_specializations.write();
 
-    if let Some(&id) = specializations.get(&(enum_.id(), type_params.clone())) {
+    if let Some(&id) = specializations.get(&(enum_id, type_params.clone())) {
         return id;
     }
 
@@ -128,21 +128,21 @@ fn create_specialized_enum(
     };
 
     let id = vm.enum_instances.push(EnumInstance {
-        enum_id: enum_.id(),
+        enum_id,
         type_params: type_params.clone(),
         layout,
         variants: RwLock::new(variants),
     });
 
-    let old = specializations.insert((enum_.id(), type_params.clone()), id);
+    let old = specializations.insert((enum_id, type_params.clone()), id);
     assert!(old.is_none());
 
     id
 }
 
-fn enum_is_simple_integer(enum_: &EnumDefinition) -> bool {
+fn enum_is_simple_integer(enum_: &EnumData) -> bool {
     for variant in &enum_.variants {
-        if !variant.types.is_empty() {
+        if !variant.arguments.is_empty() {
             return false;
         }
     }
@@ -150,7 +150,7 @@ fn enum_is_simple_integer(enum_: &EnumDefinition) -> bool {
     true
 }
 
-fn enum_is_ptr(_vm: &VM, enum_: &EnumDefinition, type_params: &BytecodeTypeArray) -> bool {
+fn enum_is_ptr(_vm: &VM, enum_: &EnumData, type_params: &BytecodeTypeArray) -> bool {
     if enum_.variants.len() != 2 {
         return false;
     }
@@ -158,25 +158,22 @@ fn enum_is_ptr(_vm: &VM, enum_: &EnumDefinition, type_params: &BytecodeTypeArray
     let variant1 = enum_.variants.first().unwrap();
     let variant2 = enum_.variants.last().unwrap();
 
-    let (none_variant, some_variant) = if variant1.types.is_empty() {
+    let (none_variant, some_variant) = if variant1.arguments.is_empty() {
         (variant1, variant2)
     } else {
         (variant2, variant1)
     };
 
-    none_variant.types.len() == 0
-        && some_variant.types.len() == 1
-        && specialize_bty(
-            bty_from_ty(some_variant.types.first().unwrap().clone()),
-            type_params,
-        )
-        .is_reference_type()
+    none_variant.arguments.len() == 0
+        && some_variant.arguments.len() == 1
+        && specialize_bty(some_variant.arguments.first().unwrap().clone(), type_params)
+            .is_reference_type()
 }
 
 pub fn ensure_class_instance_for_enum_variant(
     vm: &VM,
     edef: &EnumInstance,
-    enum_: &EnumDefinition,
+    enum_: &EnumData,
     variant_idx: usize,
 ) -> ClassInstanceId {
     let mut variants = edef.variants.write();
@@ -194,9 +191,8 @@ pub fn ensure_class_instance_for_enum_variant(
     }];
     let mut ref_fields = Vec::new();
 
-    for ty in &enum_variant.types {
-        let ty = bty_from_ty(ty.clone());
-        let ty = specialize_bty(ty, &edef.type_params);
+    for ty in &enum_variant.arguments {
+        let ty = specialize_bty(ty.clone(), &edef.type_params);
         assert!(ty.is_concrete_type());
 
         let field_size = size(vm, ty.clone());
