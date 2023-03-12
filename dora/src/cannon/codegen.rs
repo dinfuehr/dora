@@ -25,7 +25,7 @@ use crate::vm::{
 use crate::vtable::VTable;
 use dora_frontend::bytecode::{
     self, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeTypeArray, BytecodeVisitor,
-    ConstPoolEntry, ConstPoolIdx, Location, Register,
+    ConstPoolEntry, ConstPoolIdx, Location, Register, TraitId,
 };
 use dora_frontend::language::generator::{bty_from_ty, register_bty_from_bty, ty_from_bty};
 use dora_frontend::language::sem_analysis::{FctDefinitionId, GlobalDefinitionId, Intrinsic};
@@ -2298,6 +2298,8 @@ impl<'a> CannonCodeGen<'a> {
             }
             _ => unreachable!(),
         };
+
+        let trait_id = TraitId(trait_id.0);
 
         let type_params = self.specialize_bty_array(type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));

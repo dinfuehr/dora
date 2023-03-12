@@ -125,7 +125,7 @@ fn encode_bytecode_type(vm: &VM, ty: &BytecodeType, buffer: &mut ByteBuffer) {
         }
         BytecodeType::Trait(trait_id, ref source_type_array) => {
             buffer.emit_u8(BytecodeTypeKind::Trait as u8);
-            buffer.emit_id(trait_id.to_usize());
+            buffer.emit_id(trait_id.0 as usize);
             encode_bytecode_type_array(vm, source_type_array, buffer);
         }
         BytecodeType::Lambda(params, ret) => {
@@ -227,7 +227,7 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
         }
         &ConstPoolEntry::Trait(trait_id, ref source_type_array, ref source_type) => {
             buffer.emit_u8(ConstPoolOpcode::Trait.to_u8());
-            buffer.emit_id(trait_id.to_usize());
+            buffer.emit_id(trait_id.0 as usize);
             encode_bytecode_type_array(vm, source_type_array, buffer);
             encode_bytecode_type(vm, source_type, buffer);
         }

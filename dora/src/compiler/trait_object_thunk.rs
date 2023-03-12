@@ -1,6 +1,6 @@
 use crate::vm::{find_trait_impl, loc, VM};
 use dora_frontend::bytecode::{
-    BytecodeBuilder, BytecodeFunction, BytecodeType, BytecodeTypeArray, Register,
+    BytecodeBuilder, BytecodeFunction, BytecodeType, BytecodeTypeArray, Register, TraitId,
 };
 use dora_frontend::language::generator::{
     register_bty_from_bty, register_bty_from_ty, ty_from_bty,
@@ -20,7 +20,7 @@ pub fn ensure(
     let fct = fct.read();
 
     let trait_id = fct.parent.trait_id().expect("expected trait");
-    let trait_object_ty = BytecodeType::Trait(trait_id, type_params);
+    let trait_object_ty = BytecodeType::Trait(TraitId(trait_id.0), type_params);
 
     let thunk_id = fct.thunk_id.write();
 

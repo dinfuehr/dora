@@ -4,7 +4,9 @@ use crate::bytecode::{
     read, BytecodeFunction, BytecodeOffset, BytecodeVisitor, ConstPoolEntry, ConstPoolIdx, Register,
 };
 use crate::language::generator::{ty_array_from_bty, ty_from_bty};
-use crate::language::sem_analysis::{FctDefinition, GlobalDefinitionId, SemAnalysis};
+use crate::language::sem_analysis::{
+    FctDefinition, GlobalDefinitionId, SemAnalysis, TraitDefinitionId,
+};
 
 pub fn dump(vm: &SemAnalysis, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
     let mut stdout = io::stdout();
@@ -183,7 +185,9 @@ pub fn dump(vm: &SemAnalysis, fct: Option<&FctDefinition>, bc: &BytecodeFunction
                 }
             }
             ConstPoolEntry::Trait(trait_id, type_params, object_ty) => {
-                let trait_ = vm.traits[*trait_id].read();
+                let trait_id = TraitDefinitionId(trait_id.0);
+                let trait_ = vm.traits.idx(trait_id);
+                let trait_ = trait_.read();
                 let type_params = ty_array_from_bty(type_params);
                 let object_ty = ty_from_bty(object_ty.clone());
                 println!(
@@ -483,7 +487,7 @@ impl<'a> BytecodeDumper<'a> {
             ),
             _ => unreachable!(),
         };
-        let trait_ = self.sa.traits.idx(trait_id);
+        let trait_ = self.sa.traits.idx(TraitDefinitionId(trait_id.0));
         let trait_ = trait_.read();
         let trait_name = trait_.name_with_params(self.sa, &type_params);
         writeln!(

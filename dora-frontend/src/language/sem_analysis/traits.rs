@@ -16,7 +16,7 @@ use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::Id;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct TraitDefinitionId(u32);
+pub struct TraitDefinitionId(pub u32);
 
 impl TraitDefinitionId {
     pub fn to_usize(self) -> usize {

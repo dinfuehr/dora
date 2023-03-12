@@ -124,6 +124,7 @@ pub struct EnumId(pub u32);
 pub struct EnumData {
     pub module_id: ModuleId,
     pub name: String,
+    pub type_params: TypeParamData,
     pub variants: Vec<EnumVariant>,
 }
 
@@ -133,13 +134,15 @@ pub struct EnumVariant {
     pub arguments: Vec<BytecodeType>,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct TraitId(pub u32);
 
 #[derive(Debug)]
 pub struct TraitData {
     pub module_id: ModuleId,
     pub name: String,
+    pub type_params: TypeParamData,
+    pub methods: Vec<FunctionId>,
 }
 
 #[derive(Copy, Clone, Debug)]

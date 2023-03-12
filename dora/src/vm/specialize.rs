@@ -8,12 +8,12 @@ use crate::size::InstanceSize;
 use crate::vm::{
     create_class_instance_with_vtable, get_concrete_tuple_bty, ClassInstanceId, EnumDefinitionId,
     EnumInstance, EnumInstanceId, EnumLayout, FieldInstance, ShapeKind, StructDefinitionId,
-    StructInstance, StructInstanceField, StructInstanceId, TraitDefinition, VM,
+    StructInstance, StructInstanceField, StructInstanceId, VM,
 };
-use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray, ClassData, EnumData, StructData};
-use dora_frontend::language::sem_analysis::{
-    ClassDefinitionId, FctDefinitionId, TraitDefinitionId,
+use dora_frontend::bytecode::{
+    BytecodeType, BytecodeTypeArray, ClassData, EnumData, StructData, TraitData, TraitId,
 };
+use dora_frontend::language::sem_analysis::{ClassDefinitionId, FctDefinitionId};
 
 pub fn create_struct_instance(
     vm: &VM,
@@ -465,11 +465,11 @@ pub fn ensure_class_instance_for_lambda(
 
 pub fn ensure_class_instance_for_trait_object(
     vm: &VM,
-    trait_id: TraitDefinitionId,
+    trait_id: TraitId,
     trait_type_params: &BytecodeTypeArray,
     object_type: BytecodeType,
 ) -> ClassInstanceId {
-    let trait_ = vm.traits[trait_id].read();
+    let trait_ = &vm.program.traits[trait_id.0 as usize];
 
     let combined_type_params = trait_type_params.append(object_type.clone());
 
@@ -481,12 +481,19 @@ pub fn ensure_class_instance_for_trait_object(
         return id;
     }
 
-    create_specialized_class_for_trait_object(vm, &*trait_, combined_type_params, object_type)
+    create_specialized_class_for_trait_object(
+        vm,
+        trait_id,
+        trait_,
+        combined_type_params,
+        object_type,
+    )
 }
 
 fn create_specialized_class_for_trait_object(
     vm: &VM,
-    trait_: &TraitDefinition,
+    trait_id: TraitId,
+    trait_: &TraitData,
     combined_type_params: BytecodeTypeArray,
     object_type: BytecodeType,
 ) -> ClassInstanceId {
@@ -515,7 +522,7 @@ fn create_specialized_class_for_trait_object(
 
     let mut vtables = vm.trait_vtables.write();
 
-    if let Some(&id) = vtables.get(&(trait_.id(), combined_type_params.clone())) {
+    if let Some(&id) = vtables.get(&(trait_id, combined_type_params.clone())) {
         return id;
     }
 
@@ -523,7 +530,7 @@ fn create_specialized_class_for_trait_object(
         vm,
         ShapeKind::TraitObject {
             object_ty: object_type,
-            trait_id: trait_.id(),
+            trait_id,
             combined_type_params: combined_type_params.clone(),
         },
         size,
@@ -531,7 +538,7 @@ fn create_specialized_class_for_trait_object(
         trait_.methods.len(),
     );
 
-    let old = vtables.insert((trait_.id(), combined_type_params), class_instance_id);
+    let old = vtables.insert((trait_id, combined_type_params), class_instance_id);
     assert!(old.is_none());
 
     class_instance_id

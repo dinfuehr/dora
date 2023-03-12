@@ -4,7 +4,7 @@ use std::mem;
 use self::Bytecode::*;
 use crate::bytecode::{
     self, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeTypeArray, BytecodeVisitor,
-    ConstPoolEntry, ConstPoolIdx, Register,
+    ConstPoolEntry, ConstPoolIdx, Register, TraitId,
 };
 use crate::language::generator::{bty_from_ty, generate_fct};
 use crate::language::sem_analysis::{
@@ -3948,7 +3948,7 @@ fn gen_trait_object() {
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::Trait(
-                    trait_id,
+                    TraitId(trait_id.0),
                     BytecodeTypeArray::empty(),
                     bty_from_ty(object_ty)
                 )

@@ -2,11 +2,11 @@ use std::collections::{HashMap, HashSet};
 
 use crate::bytecode::{
     BytecodeFunction, BytecodeType, BytecodeTypeArray, BytecodeWriter, ConstPoolEntry,
-    ConstPoolIdx, Label, Location, Register,
+    ConstPoolIdx, Label, Location, Register, TraitId,
 };
 use crate::language::sem_analysis::{
     ClassDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId, GlobalDefinitionId,
-    StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TypeParamId,
+    StructDefinitionFieldId, StructDefinitionId, TypeParamId,
 };
 
 pub struct BytecodeBuilder {
@@ -161,7 +161,7 @@ impl BytecodeBuilder {
 
     pub fn add_const_trait(
         &mut self,
-        id: TraitDefinitionId,
+        id: TraitId,
         type_params: BytecodeTypeArray,
         object_ty: BytecodeType,
     ) -> ConstPoolIdx {

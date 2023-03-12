@@ -1,10 +1,8 @@
 use std::ops::Index;
 use std::sync::Arc;
 
-use crate::bytecode::BytecodeTypeKind;
-use crate::language::sem_analysis::{
-    ClassDefinitionId, EnumDefinitionId, StructDefinitionId, TraitDefinitionId,
-};
+use crate::bytecode::{BytecodeTypeKind, TraitId};
+use crate::language::sem_analysis::{ClassDefinitionId, EnumDefinitionId, StructDefinitionId};
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum BytecodeType {
@@ -22,7 +20,7 @@ pub enum BytecodeType {
     Enum(EnumDefinitionId, BytecodeTypeArray),
     Struct(StructDefinitionId, BytecodeTypeArray),
     Class(ClassDefinitionId, BytecodeTypeArray),
-    Trait(TraitDefinitionId, BytecodeTypeArray),
+    Trait(TraitId, BytecodeTypeArray),
     Lambda(BytecodeTypeArray, Box<BytecodeType>),
 }
 

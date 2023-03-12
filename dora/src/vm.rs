@@ -15,12 +15,12 @@ use crate::threads::{
     STACK_SIZE,
 };
 use crate::utils::GrowableVecNonIter;
-use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray, Location, Program};
+use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray, Location, Program, TraitId};
 use dora_frontend::language::sem_analysis::{
     ClassDefinition, ClassDefinitionId, EnumDefinition, EnumDefinitionId, ExtensionDefinition,
     FctDefinition, FctDefinitionId, ImplDefinition, KnownElements, ModuleDefinition,
     ModuleDefinitionId, PackageDefinitionId, SemAnalysis, StructDefinition, StructDefinitionId,
-    TraitDefinition, TraitDefinitionId,
+    TraitDefinition,
 };
 use dora_frontend::{GrowableVec, MutableVec};
 
@@ -131,7 +131,7 @@ pub struct VM {
         RwLock<HashMap<(EnumDefinitionId, BytecodeTypeArray), EnumInstanceId>>,
     pub enum_instances: GrowableVecNonIter<EnumInstance>, // stores all enum definitions
     pub traits: MutableVec<TraitDefinition>,              // stores all trait definitions
-    pub trait_vtables: RwLock<HashMap<(TraitDefinitionId, BytecodeTypeArray), ClassInstanceId>>,
+    pub trait_vtables: RwLock<HashMap<(TraitId, BytecodeTypeArray), ClassInstanceId>>,
     pub impls: MutableVec<ImplDefinition>, // stores all impl definitions
     pub code_map: CodeMap,                 // stores all compiled functions
     pub global_variable_memory: Option<GlobalVariableMemory>,

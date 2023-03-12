@@ -1,10 +1,10 @@
 use std::fmt;
 
-use crate::bytecode::{BytecodeReader, BytecodeType, BytecodeTypeArray};
+use crate::bytecode::{BytecodeReader, BytecodeType, BytecodeTypeArray, TraitId};
 use crate::enumeration;
 use crate::language::sem_analysis::{
     ClassDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId, GlobalDefinitionId,
-    StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId, TypeParamId,
+    StructDefinitionFieldId, StructDefinitionId, TypeParamId,
 };
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -827,7 +827,7 @@ pub enum ConstPoolEntry {
         BytecodeTypeArray,
         StructDefinitionFieldId,
     ),
-    Trait(TraitDefinitionId, BytecodeTypeArray, BytecodeType),
+    Trait(TraitId, BytecodeTypeArray, BytecodeType),
     TupleElement(BytecodeType, usize),
     Tuple(BytecodeTypeArray),
     Lambda(BytecodeTypeArray, BytecodeType),

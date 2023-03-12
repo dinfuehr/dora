@@ -45,10 +45,8 @@ impl<'a> BytecodeTypePrinter<'a> {
                 self.type_params(type_params, fmt)
             }
             BytecodeType::Trait(tid, type_params) => {
-                let trait_ = self.vm.traits.idx(*tid);
-                let trait_ = trait_.read();
-                let name = self.vm.interner.str(trait_.name).to_string();
-                write!(fmt, "{}", name)?;
+                let trait_ = &self.vm.program.traits[tid.0 as usize];
+                write!(fmt, "{}", trait_.name)?;
                 self.type_params(type_params, fmt)
             }
             BytecodeType::Enum(id, type_params) => {

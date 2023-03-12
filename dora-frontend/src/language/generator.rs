@@ -5,12 +5,12 @@ use dora_parser::{ast, Position};
 
 use crate::bytecode::{
     BytecodeBuilder, BytecodeFunction, BytecodeType, BytecodeTypeArray, ConstPoolIdx, Label,
-    Location, Register,
+    Location, Register, TraitId,
 };
 use crate::language::sem_analysis::{
     find_impl, AnalysisData, CallType, ClassDefinitionId, ConstDefinitionId, ContextIdx,
     EnumDefinitionId, FctDefinition, FctDefinitionId, FieldId, GlobalDefinitionId, IdentType,
-    Intrinsic, SemAnalysis, StructDefinitionId, TypeParamId, VarId,
+    Intrinsic, SemAnalysis, StructDefinitionId, TraitDefinitionId, TypeParamId, VarId,
 };
 use crate::language::specialize::specialize_type;
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -775,9 +775,11 @@ impl<'a> AstBytecodeGen<'a> {
             _ => unreachable!(),
         };
 
+        let trait_id = TraitId(trait_id.0);
+
         let object = self.visit_expr(&expr.object, DataDest::Alloc);
         let idx = self.builder.add_const_trait(
-            trait_id,
+            TraitId(trait_id.0),
             bty_array_from_ty(&check_type.type_params()),
             bty_from_ty(object_type),
         );
@@ -3342,7 +3344,7 @@ pub fn bty_from_ty(ty: SourceType) -> BytecodeType {
             BytecodeType::Class(class_id, bty_array_from_ty(&type_params))
         }
         SourceType::Trait(trait_id, type_params) => {
-            BytecodeType::Trait(trait_id, bty_array_from_ty(&type_params))
+            BytecodeType::Trait(TraitId(trait_id.0), bty_array_from_ty(&type_params))
         }
         SourceType::Enum(enum_id, type_params) => {
             BytecodeType::Enum(enum_id, bty_array_from_ty(&type_params))
@@ -3382,9 +3384,10 @@ pub fn ty_from_bty(ty: BytecodeType) -> SourceType {
         BytecodeType::Class(class_id, type_params) => {
             SourceType::Class(class_id, ty_array_from_bty(&type_params))
         }
-        BytecodeType::Trait(trait_id, type_params) => {
-            SourceType::Trait(trait_id, ty_array_from_bty(&type_params))
-        }
+        BytecodeType::Trait(trait_id, type_params) => SourceType::Trait(
+            TraitDefinitionId(trait_id.0),
+            ty_array_from_bty(&type_params),
+        ),
         BytecodeType::Enum(enum_id, type_params) => {
             SourceType::Enum(enum_id, ty_array_from_bty(&type_params))
         }
@@ -3413,7 +3416,7 @@ pub fn register_bty_from_ty(ty: SourceType) -> BytecodeType {
         SourceType::Float64 => BytecodeType::Float64,
         SourceType::Class(_, _) => BytecodeType::Ptr,
         SourceType::Trait(trait_id, type_params) => {
-            BytecodeType::Trait(trait_id, bty_array_from_ty(&type_params))
+            BytecodeType::Trait(TraitId(trait_id.0), bty_array_from_ty(&type_params))
         }
         SourceType::Enum(enum_id, type_params) => {
             BytecodeType::Enum(enum_id, bty_array_from_ty(&type_params))

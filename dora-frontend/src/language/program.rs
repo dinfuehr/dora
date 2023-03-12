@@ -206,6 +206,7 @@ fn create_enums(sa: &SemAnalysis) -> Vec<EnumData> {
         result.push(EnumData {
             module_id: convert_module_id(enum_.module_id),
             name,
+            type_params: create_type_params(sa, enum_.type_params()),
             variants: create_enum_variants(sa, &*enum_),
         })
     }
@@ -234,13 +235,19 @@ fn create_enum_variants(sa: &SemAnalysis, enum_: &sa::EnumDefinition) -> Vec<Enu
 fn create_traits(sa: &SemAnalysis) -> Vec<TraitData> {
     let mut result = Vec::new();
 
-    for trait_ in sa.enums.iter() {
+    for trait_ in sa.traits.iter() {
         let trait_ = trait_.read();
         let name = sa.interner.str(trait_.name).to_string();
 
         result.push(TraitData {
             module_id: convert_module_id(trait_.module_id),
             name,
+            type_params: create_type_params(sa, &trait_.type_params()),
+            methods: trait_
+                .methods
+                .iter()
+                .map(|f| convert_function_id(*f))
+                .collect(),
         })
     }
 

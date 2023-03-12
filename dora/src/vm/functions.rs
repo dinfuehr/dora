@@ -1,13 +1,17 @@
-use crate::vm::{module_path, module_path_with_name, VM};
-use dora_frontend::language::sem_analysis::{FctDefinitionId, FctParent};
+use crate::vm::{module_path, module_path_with_name, module_path_with_name_str, VM};
+use dora_frontend::language::sem_analysis::{FctDefinitionId, FctParent, ModuleDefinitionId};
 
 pub fn display_fct(vm: &VM, fct_id: FctDefinitionId) -> String {
     let fct = vm.fcts.idx(fct_id);
     let fct = fct.read();
     let mut repr = match fct.parent {
         FctParent::Trait(trait_id) => {
-            let trait_ = vm.traits[trait_id].read();
-            module_path_with_name(vm, trait_.module_id, trait_.name)
+            let trait_ = &vm.program.traits[trait_id.to_usize()];
+            module_path_with_name_str(
+                vm,
+                ModuleDefinitionId(trait_.module_id.0 as usize),
+                &trait_.name,
+            )
         }
 
         FctParent::Extension(..) => {

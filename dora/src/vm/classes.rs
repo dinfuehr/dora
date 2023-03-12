@@ -3,9 +3,9 @@ use parking_lot::RwLock;
 use crate::size::InstanceSize;
 use crate::vm::{add_ref_fields, module_path_with_name, VM};
 use crate::vtable::VTableBox;
-use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray};
+use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray, TraitId};
 use dora_frontend::language::sem_analysis::{
-    ClassDefinition, ClassDefinitionId, EnumDefinitionId, FctDefinitionId, TraitDefinitionId,
+    ClassDefinition, ClassDefinitionId, EnumDefinitionId, FctDefinitionId,
 };
 use dora_frontend::Id;
 
@@ -44,7 +44,7 @@ pub enum ShapeKind {
     Lambda(FctDefinitionId, BytecodeTypeArray),
     TraitObject {
         object_ty: BytecodeType,
-        trait_id: TraitDefinitionId,
+        trait_id: TraitId,
         combined_type_params: BytecodeTypeArray,
     },
     Enum(EnumDefinitionId, BytecodeTypeArray),
