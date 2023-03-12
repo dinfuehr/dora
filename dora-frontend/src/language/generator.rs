@@ -2228,7 +2228,9 @@ impl<'a> AstBytecodeGen<'a> {
             _ => {}
         }
 
-        let ty = intrinsic.result_type();
+        let fct = self.sa.fcts.idx(info.fct_id.expect("missing method"));
+        let fct = fct.read();
+        let ty = fct.return_type_bty();
         let dest = self.ensure_register(dest, ty);
 
         let src = self.visit_expr(opnd, DataDest::Alloc);
@@ -2302,18 +2304,29 @@ impl<'a> AstBytecodeGen<'a> {
             return Register::invalid();
         }
 
-        let result_type = if op.is_some() {
-            match intrinsic {
-                Intrinsic::ByteCmp
-                | Intrinsic::CharCmp
-                | Intrinsic::Int32Cmp
-                | Intrinsic::Int64Cmp
-                | Intrinsic::Float32Cmp
-                | Intrinsic::Float64Cmp => BytecodeType::Bool,
-                _ => intrinsic.result_type(),
+        let result_type = match intrinsic {
+            Intrinsic::ByteCmp
+            | Intrinsic::CharCmp
+            | Intrinsic::Int32Cmp
+            | Intrinsic::Int64Cmp
+            | Intrinsic::Float32Cmp
+            | Intrinsic::Float64Cmp
+                if op.is_some() =>
+            {
+                BytecodeType::Bool
             }
-        } else {
-            intrinsic.result_type()
+            Intrinsic::EnumEq | Intrinsic::EnumNe => {
+                assert!(op.is_some());
+                assert!(info.fct_id.is_none());
+                BytecodeType::Bool
+            }
+            _ => {
+                let fct_id = info.fct_id.expect("missing function");
+                let fct = self.sa.fcts.idx(fct_id);
+                let fct = fct.read();
+
+                fct.return_type_bty()
+            }
         };
 
         let dest = self.ensure_register(dest, result_type);
