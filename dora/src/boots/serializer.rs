@@ -182,7 +182,7 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
         }
         &ConstPoolEntry::Generic(tp_id, fct_id, ref source_type_array) => {
             buffer.emit_u8(ConstPoolOpcode::Generic.to_u8());
-            buffer.emit_id(tp_id.to_usize());
+            buffer.emit_id(tp_id as usize);
             buffer.emit_id(fct_id.0 as usize);
             encode_bytecode_type_array(vm, source_type_array, buffer);
         }
@@ -195,7 +195,7 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
             buffer.emit_u8(ConstPoolOpcode::Field.to_u8());
             buffer.emit_id(cls_id.0 as usize);
             encode_bytecode_type_array(vm, source_type_array, buffer);
-            buffer.emit_id(field_id.to_usize());
+            buffer.emit_id(field_id as usize);
         }
         &ConstPoolEntry::Enum(enum_id, ref source_type_array) => {
             buffer.emit_u8(ConstPoolOpcode::Enum.to_u8());
@@ -213,7 +213,7 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
             buffer.emit_id(enum_id.0 as usize);
             encode_bytecode_type_array(vm, source_type_array, buffer);
             buffer.emit_id(variant_idx.try_into().unwrap());
-            buffer.emit_id(element_idx);
+            buffer.emit_id(element_idx as usize);
         }
         &ConstPoolEntry::Struct(struct_id, ref source_type_array) => {
             buffer.emit_u8(ConstPoolOpcode::Struct.to_u8());
@@ -224,7 +224,7 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
             buffer.emit_u8(ConstPoolOpcode::StructField.to_u8());
             buffer.emit_id(struct_id.0 as usize);
             encode_bytecode_type_array(vm, source_type_array, buffer);
-            buffer.emit_id(field_id.to_usize());
+            buffer.emit_id(field_id as usize);
         }
         &ConstPoolEntry::Trait(trait_id, ref source_type_array, ref source_type) => {
             buffer.emit_u8(ConstPoolOpcode::Trait.to_u8());

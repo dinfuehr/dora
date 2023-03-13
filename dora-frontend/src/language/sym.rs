@@ -191,7 +191,7 @@ pub enum Sym {
     Global(GlobalDefinitionId),
     Const(ConstDefinitionId),
     Module(ModuleDefinitionId),
-    EnumVariant(EnumDefinitionId, usize),
+    EnumVariant(EnumDefinitionId, u32),
 }
 
 impl Sym {

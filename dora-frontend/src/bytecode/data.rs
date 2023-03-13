@@ -5,7 +5,6 @@ use crate::bytecode::{
     StructId, TraitId,
 };
 use crate::enumeration;
-use crate::language::sem_analysis::{FieldId, StructDefinitionFieldId, TypeParamId};
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct BytecodeOffset(pub u32);
@@ -815,16 +814,16 @@ pub enum ConstPoolEntry {
     Int64(i64),
     Char(char),
     Class(ClassId, BytecodeTypeArray),
-    Field(ClassId, BytecodeTypeArray, FieldId),
+    Field(ClassId, BytecodeTypeArray, u32),
     Fct(FunctionId, BytecodeTypeArray),
-    Generic(TypeParamId, FunctionId, BytecodeTypeArray),
+    Generic(u32, FunctionId, BytecodeTypeArray),
     Enum(EnumId, BytecodeTypeArray),
-    EnumVariant(EnumId, BytecodeTypeArray, usize),
-    EnumElement(EnumId, BytecodeTypeArray, usize, usize),
+    EnumVariant(EnumId, BytecodeTypeArray, u32),
+    EnumElement(EnumId, BytecodeTypeArray, u32, u32),
     Struct(StructId, BytecodeTypeArray),
-    StructField(StructId, BytecodeTypeArray, StructDefinitionFieldId),
+    StructField(StructId, BytecodeTypeArray, u32),
     Trait(TraitId, BytecodeTypeArray, BytecodeType),
-    TupleElement(BytecodeType, usize),
+    TupleElement(BytecodeType, u32),
     Tuple(BytecodeTypeArray),
     Lambda(BytecodeTypeArray, BytecodeType),
 }

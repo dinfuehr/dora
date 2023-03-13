@@ -71,7 +71,7 @@ pub fn dump(vm: &SemAnalysis, fct: Option<&FctDefinition>, bc: &BytecodeFunction
                 let struct_ = vm.structs.idx(StructDefinitionId(struct_id.0));
                 let struct_ = struct_.read();
                 let type_params = ty_array_from_bty(type_params);
-                let field = &struct_.fields[field_idx.to_usize()];
+                let field = &struct_.fields[*field_idx as usize];
                 let fname = vm.interner.str(field.name);
                 println!(
                     "{}{} => StructField {}.{}",
@@ -95,7 +95,7 @@ pub fn dump(vm: &SemAnalysis, fct: Option<&FctDefinition>, bc: &BytecodeFunction
             ConstPoolEntry::EnumVariant(cls_id, type_params, variant_idx) => {
                 let enum_ = &vm.enums[EnumDefinitionId(cls_id.0)];
                 let enum_ = enum_.read();
-                let variant = &enum_.variants[*variant_idx];
+                let variant = &enum_.variants[*variant_idx as usize];
                 let variant_name = vm.interner.str(variant.name);
                 let type_params = ty_array_from_bty(type_params);
                 println!(
@@ -110,7 +110,7 @@ pub fn dump(vm: &SemAnalysis, fct: Option<&FctDefinition>, bc: &BytecodeFunction
                 let enum_ = &vm.enums[EnumDefinitionId(enum_id.0)];
                 let enum_ = enum_.read();
                 let type_params = ty_array_from_bty(type_params);
-                let variant = &enum_.variants[*variant_idx];
+                let variant = &enum_.variants[*variant_idx as usize];
                 let variant_name = vm.interner.str(variant.name);
                 println!(
                     "{}{} => EnumVariantElement {}::{}::{}",
@@ -125,7 +125,7 @@ pub fn dump(vm: &SemAnalysis, fct: Option<&FctDefinition>, bc: &BytecodeFunction
                 let cls = vm.classes.idx(ClassDefinitionId(cls_id.0 as usize));
                 let cls = cls.read();
                 let type_params = ty_array_from_bty(type_params);
-                let field = &cls.fields[field_id.to_usize()];
+                let field = &cls.fields[*field_id as usize];
                 let fname = vm.interner.str(field.name);
                 println!(
                     "{}{} => Field {}.{}",
@@ -172,7 +172,7 @@ pub fn dump(vm: &SemAnalysis, fct: Option<&FctDefinition>, bc: &BytecodeFunction
                         "{}{} => TypeParam({}) Method {} with [{}]",
                         align,
                         idx,
-                        id.to_usize(),
+                        id,
                         fct.display_name(vm),
                         type_params
                     );
@@ -181,7 +181,7 @@ pub fn dump(vm: &SemAnalysis, fct: Option<&FctDefinition>, bc: &BytecodeFunction
                         "{}{} => TypeParam({}) Method {}",
                         align,
                         idx,
-                        id.to_usize(),
+                        id,
                         fct.display_name(vm)
                     );
                 }
@@ -282,7 +282,10 @@ impl<'a> BytecodeDumper<'a> {
         let enum_ = &self.sa.enums[EnumDefinitionId(enum_id.0)];
         let enum_ = enum_.read();
         let enum_name = enum_.name_with_params(self.sa, &type_params);
-        let variant_name = self.sa.interner.str(enum_.variants[variant_idx].name);
+        let variant_name = self
+            .sa
+            .interner
+            .str(enum_.variants[variant_idx as usize].name);
         writeln!(
             self.w,
             " {}, {}, ConstPoolIdx({}), {} # {}::{}.{}",
@@ -374,7 +377,7 @@ impl<'a> BytecodeDumper<'a> {
                 let type_params = ty_array_from_bty(type_params);
                 let cname = cls.name_with_params(self.sa, &type_params);
 
-                let field = &cls.fields[field_id.to_usize()];
+                let field = &cls.fields[*field_id as usize];
                 let fname = self.sa.interner.str(field.name).to_string();
 
                 (cname, fname)
@@ -385,7 +388,7 @@ impl<'a> BytecodeDumper<'a> {
                 let type_params = ty_array_from_bty(type_params);
                 let struct_name = struct_.name_with_params(self.sa, &type_params);
 
-                let field = &struct_.fields[field_id.to_usize()];
+                let field = &struct_.fields[*field_id as usize];
                 let fname = self.sa.interner.str(field.name).to_string();
 
                 (struct_name, fname)
@@ -544,7 +547,10 @@ impl<'a> BytecodeDumper<'a> {
         let enum_ = &self.sa.enums[EnumDefinitionId(enum_id.0)];
         let enum_ = enum_.read();
         let enum_name = enum_.name_with_params(self.sa, &type_params);
-        let variant_name = self.sa.interner.str(enum_.variants[variant_idx].name);
+        let variant_name = self
+            .sa
+            .interner
+            .str(enum_.variants[variant_idx as usize].name);
         writeln!(
             self.w,
             " {}, ConstPoolIdx({}) # {}::{}",

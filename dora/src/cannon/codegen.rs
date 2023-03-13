@@ -1220,7 +1220,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.asm.emit_bailout(lbl_bailout, Trap::ILLEGAL, pos);
 
                 let field_id = enum_instance.field_id(&*enum_, variant_idx, element_idx);
-                let field = &cls.fields[field_id];
+                let field = &cls.fields[field_id as usize];
 
                 let bty = register_bty_from_bty(field.ty.clone());
                 assert_eq!(bty, self.specialize_register_type(dest));
@@ -1307,7 +1307,7 @@ impl<'a> CannonCodeGen<'a> {
         let struct_instance_id = create_struct_instance(self.vm, struct_id, type_params);
         let struct_instance = self.vm.struct_instances.idx(struct_instance_id);
 
-        let field = &struct_instance.fields[field_id.to_usize()];
+        let field = &struct_instance.fields[field_id as usize];
 
         let bytecode_type = self.specialize_register_type(dest);
         assert_eq!(bytecode_type, register_bty_from_bty(field.ty.clone()));
@@ -1333,7 +1333,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let cls = self.vm.class_instances.idx(class_instance_id);
 
-        let field = &cls.fields[field_id.to_usize()];
+        let field = &cls.fields[field_id as usize];
 
         let obj_reg = REG_TMP1;
         self.emit_load_register(obj, obj_reg.into());
@@ -1364,7 +1364,7 @@ impl<'a> CannonCodeGen<'a> {
         let class_instance_id = create_class_instance(self.vm, cls_id, &type_params);
         let cls = self.vm.class_instances.idx(class_instance_id);
 
-        let field = &cls.fields[field_id.to_usize()];
+        let field = &cls.fields[field_id as usize];
 
         assert!(self.bytecode.register_type(obj).is_ptr());
         let obj_reg = REG_TMP1;
@@ -2156,7 +2156,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_store_register_as(REG_RESULT.into(), dest, MachineMode::Int32);
             }
             EnumLayout::Ptr => {
-                let variant = &enum_.variants[variant_idx];
+                let variant = &enum_.variants[variant_idx as usize];
 
                 if variant.arguments.is_empty() {
                     assert_eq!(0, arguments.len());
@@ -3050,7 +3050,7 @@ impl<'a> CannonCodeGen<'a> {
         let trait_id = fct.trait_id();
         let trait_ty = SourceType::new_trait(trait_id);
 
-        let ty = self.type_params[id.to_usize()].clone();
+        let ty = self.type_params[id as usize].clone();
         let callee_id = find_trait_impl(self.vm, trait_fct_id, trait_ty, ty_from_bty(ty));
 
         let pos = self.bytecode.offset_location(self.current_offset.to_u32());
@@ -3889,7 +3889,7 @@ impl<'a> CannonCodeGen<'a> {
                 let enum_ = &self.vm.program.enums[enum_id.0 as usize];
                 let first_variant = enum_.variants.first().unwrap();
 
-                let some_variant_id = if first_variant.arguments.is_empty() {
+                let some_variant_id: u32 = if first_variant.arguments.is_empty() {
                     1
                 } else {
                     0
@@ -3898,7 +3898,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.asm.cmp_mem_imm(
                     MachineMode::Int32,
                     Mem::Base(REG_TMP1, Header::size()),
-                    some_variant_id,
+                    some_variant_id as i32,
                 );
                 let lbl_slow_path = self.asm.create_label();
                 self.asm.jump_if(CondCode::NotEqual, lbl_slow_path);
@@ -3916,7 +3916,7 @@ impl<'a> CannonCodeGen<'a> {
                     self.vm,
                     &*enum_instance,
                     &*enum_,
-                    some_variant_id as usize,
+                    some_variant_id,
                 );
 
                 let cls = self.vm.class_instances.idx(class_instance_id);
@@ -4335,7 +4335,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 };
             let enum_ = &self.vm.program.enums[enum_id.0 as usize];
             let enum_name = display_ty(self.vm, &BytecodeType::Enum(enum_id, type_params.clone()));
-            let variant = &enum_.variants[variant_idx];
+            let variant = &enum_.variants[variant_idx as usize];
             format!(
                 "LoadEnumElement {}, {}, ConstPoolIdx({}), {} # {}::{}.{}",
                 dest,
@@ -4382,7 +4382,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 &BytecodeType::Struct(struct_id, type_params.clone()),
             );
 
-            let field = &struct_.fields[field_id.to_usize()];
+            let field = &struct_.fields[field_id as usize];
 
             format!(
                 "LoadStructField {}, {}, ConstPoolIdx({}) # {}.{}",
@@ -4404,7 +4404,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                         display_ty(self.vm, &BytecodeType::Class(*cls_id, type_params.clone()));
 
                     let cls = &self.vm.program.classes[cls_id.0 as usize];
-                    let field = &cls.fields[field_id.to_usize()];
+                    let field = &cls.fields[*field_id as usize];
 
                     format!(
                         "LoadField {}, {}, ConstPoolIdx({}) # {}.{}",
@@ -4432,7 +4432,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             let cname = display_ty(self.vm, &BytecodeType::Class(cls_id, type_params.clone()));
 
             let cls = &self.vm.program.classes[cls_id.0 as usize];
-            let field = &cls.fields[field_id.to_usize()];
+            let field = &cls.fields[field_id as usize];
 
             format!(
                 "StoreField {}, {}, ConstPoolIdx({}) # {}.{}",
@@ -4861,7 +4861,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             };
             let enum_ = &self.vm.program.enums[enum_id.0 as usize];
             let enum_name = display_ty(self.vm, &BytecodeType::Enum(enum_id, type_params.clone()));
-            let variant = &enum_.variants[variant_idx];
+            let variant = &enum_.variants[variant_idx as usize];
             format!(
                 "NewEnum {}, ConstPoolIdx({}) # {}::{}",
                 dest,

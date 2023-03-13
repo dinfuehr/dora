@@ -144,7 +144,7 @@ pub enum IdentType {
     Class(ClassDefinitionId, SourceTypeArray),
 
     // specific value in enum
-    EnumValue(EnumDefinitionId, SourceTypeArray, usize),
+    EnumValue(EnumDefinitionId, SourceTypeArray, u32),
 }
 
 impl IdentType {
@@ -235,7 +235,7 @@ pub enum CallType {
     GenericStaticMethod(TypeParamId, TraitDefinitionId, FctDefinitionId),
 
     // Construct enum value
-    Enum(SourceType, usize),
+    Enum(SourceType, u32),
 
     // Struct constructor call Struct(<args>)
     Struct(StructDefinitionId, SourceTypeArray),

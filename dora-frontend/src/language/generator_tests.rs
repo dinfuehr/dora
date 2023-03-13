@@ -8,9 +8,7 @@ use crate::bytecode::{
     TraitId,
 };
 use crate::language::generator::{bty_from_ty, generate_fct};
-use crate::language::sem_analysis::{
-    create_tuple, FctDefinitionId, SemAnalysis, StructDefinitionFieldId,
-};
+use crate::language::sem_analysis::{create_tuple, FctDefinitionId, SemAnalysis};
 use crate::language::test;
 use crate::language::ty::{SourceType, SourceTypeArray};
 
@@ -128,7 +126,11 @@ fn gen_load_field_uint8() {
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Field(ClassId(cls.0 as u32), BytecodeTypeArray::empty(), field)
+                &ConstPoolEntry::Field(
+                    ClassId(cls.0 as u32),
+                    BytecodeTypeArray::empty(),
+                    field.0 as u32
+                )
             );
         },
     );
@@ -151,7 +153,11 @@ fn gen_store_field_uint8() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Field(ClassId(cls.0 as u32), BytecodeTypeArray::empty(), field)
+                &ConstPoolEntry::Field(
+                    ClassId(cls.0 as u32),
+                    BytecodeTypeArray::empty(),
+                    field.0 as u32
+                )
             );
         },
     );
@@ -2399,11 +2405,7 @@ fn gen_struct_field() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::StructField(
-                    StructId(struct_id.0),
-                    BytecodeTypeArray::empty(),
-                    StructDefinitionFieldId(0)
-                )
+                &ConstPoolEntry::StructField(StructId(struct_id.0), BytecodeTypeArray::empty(), 0)
             );
         },
     );
@@ -2422,7 +2424,7 @@ fn gen_struct_field() {
                 &ConstPoolEntry::StructField(
                     StructId(struct_id.0),
                     BytecodeTypeArray::one(BytecodeType::Int32),
-                    StructDefinitionFieldId(0)
+                    0
                 )
             );
         },

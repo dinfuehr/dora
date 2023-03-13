@@ -111,7 +111,7 @@ impl EnumDefinition {
 
 #[derive(Debug)]
 pub struct EnumVariant {
-    pub id: usize,
+    pub id: u32,
     pub name: Name,
     pub types: Vec<SourceType>,
 }

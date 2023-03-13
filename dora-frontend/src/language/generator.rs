@@ -187,7 +187,7 @@ impl<'a> AstBytecodeGen<'a> {
                 let idx = self.builder.add_const_field_types(
                     ClassId(lambda_cls_id.0 as u32),
                     BytecodeTypeArray::empty(),
-                    FieldId(0),
+                    0,
                 );
                 self.builder
                     .emit_load_field(outer_context_reg, self_reg, idx, loc(self.fct.pos));
@@ -196,7 +196,7 @@ impl<'a> AstBytecodeGen<'a> {
                 let idx = self.builder.add_const_field_types(
                     ClassId(cls_id.0 as u32),
                     bty_array_from_ty(&self.identity_type_params()),
-                    FieldId(0),
+                    0,
                 );
                 self.builder.emit_store_field(
                     outer_context_reg,
@@ -314,7 +314,7 @@ impl<'a> AstBytecodeGen<'a> {
                         self.var_registers.insert(var_id, var_reg);
                         let idx = self
                             .builder
-                            .add_const_tuple_element(bty_from_ty(tuple_ty.clone()), idx);
+                            .add_const_tuple_element(bty_from_ty(tuple_ty.clone()), idx as u32);
 
                         self.builder
                             .emit_load_tuple_element(var_reg, tuple_reg, idx);
@@ -333,7 +333,7 @@ impl<'a> AstBytecodeGen<'a> {
                         let temp_reg = self.alloc_temp(register_ty);
                         let idx = self
                             .builder
-                            .add_const_tuple_element(bty_from_ty(tuple_ty.clone()), idx);
+                            .add_const_tuple_element(bty_from_ty(tuple_ty.clone()), idx as u32);
                         self.builder
                             .emit_load_tuple_element(temp_reg, tuple_reg, idx);
                         self.destruct_tuple_pattern(tuple, temp_reg, ty);
@@ -672,7 +672,7 @@ impl<'a> AstBytecodeGen<'a> {
                         .expect("Stringable::toString() not found");
 
                     let fct_idx = self.builder.add_const_generic(
-                        type_list_id,
+                        type_list_id.0 as u32,
                         FunctionId(to_string_id.0 as u32),
                         BytecodeTypeArray::empty(),
                     );
@@ -756,7 +756,7 @@ impl<'a> AstBytecodeGen<'a> {
         &mut self,
         enum_id: EnumDefinitionId,
         type_params: SourceTypeArray,
-        variant_idx: usize,
+        variant_idx: u32,
         location: Location,
         dest: DataDest,
     ) -> Register {
@@ -839,7 +839,7 @@ impl<'a> AstBytecodeGen<'a> {
                 }
 
                 ast::MatchPatternData::Ident(ref ident) => {
-                    let variant_idx: i32 = {
+                    let variant_idx: u32 = {
                         let ident_type = self.analysis.map_idents.get(pattern.id).unwrap();
 
                         match ident_type {
@@ -856,7 +856,7 @@ impl<'a> AstBytecodeGen<'a> {
                     if idx != node.cases.len() - 1 {
                         let tmp_reg = self.alloc_temp(BytecodeType::Int32);
                         let cmp_reg = self.alloc_temp(BytecodeType::Bool);
-                        self.builder.emit_const_int32(tmp_reg, variant_idx);
+                        self.builder.emit_const_int32(tmp_reg, variant_idx as i32);
                         self.builder.emit_test_eq(cmp_reg, variant_reg, tmp_reg);
                         self.builder.emit_jump_if_false(cmp_reg, next_lbl);
                         self.free_temp(tmp_reg);
@@ -871,8 +871,8 @@ impl<'a> AstBytecodeGen<'a> {
                                 let idx = self.builder.add_const_enum_element(
                                     EnumId(enum_id.0),
                                     bty_array_from_ty(&enum_ty.type_params()),
-                                    variant_idx as usize,
-                                    subtype_idx,
+                                    variant_idx,
+                                    subtype_idx as u32,
                                 );
 
                                 let var_id = *self.analysis.map_vars.get(param.id).unwrap();
@@ -1031,7 +1031,7 @@ impl<'a> AstBytecodeGen<'a> {
         let field_idx = self.builder.add_const_field_types(
             ClassId(cls_id.0 as u32),
             bty_array_from_ty(&type_params),
-            field_id,
+            field_id.0 as u32,
         );
 
         let field_ty = {
@@ -1087,7 +1087,7 @@ impl<'a> AstBytecodeGen<'a> {
         let const_idx = self.builder.add_const_struct_field(
             StructId(struct_id.0),
             bty_array_from_ty(&type_params),
-            field_idx,
+            field_idx.0 as u32,
         );
         self.builder
             .emit_load_struct_field(dest, struct_obj, const_idx);
@@ -1104,7 +1104,7 @@ impl<'a> AstBytecodeGen<'a> {
         dest: DataDest,
     ) -> Register {
         let tuple = self.visit_expr(&expr.lhs, DataDest::Alloc);
-        let idx: usize = expr
+        let idx: u32 = expr
             .rhs
             .to_lit_int()
             .unwrap()
@@ -1113,7 +1113,7 @@ impl<'a> AstBytecodeGen<'a> {
             .expect("too large");
 
         let subtypes = tuple_ty.tuple_subtypes();
-        let ty = subtypes[idx].clone();
+        let ty = subtypes[idx as usize].clone();
 
         if ty.is_unit() {
             assert!(dest.is_unit());
@@ -1242,7 +1242,7 @@ impl<'a> AstBytecodeGen<'a> {
         &mut self,
         expr: &ast::ExprCallType,
         enum_ty: SourceType,
-        variant_idx: usize,
+        variant_idx: u32,
         dest: DataDest,
     ) -> Register {
         let mut arguments = Vec::new();
@@ -2707,7 +2707,7 @@ impl<'a> AstBytecodeGen<'a> {
         let field_idx = self.builder.add_const_field_types(
             ClassId(cls_id.0 as u32),
             bty_array_from_ty(&type_params),
-            field_id,
+            field_id.0 as u32,
         );
 
         let obj = self.visit_expr(&dot.lhs, DataDest::Alloc);
@@ -2736,7 +2736,7 @@ impl<'a> AstBytecodeGen<'a> {
         let idx = self.builder.add_const_field_types(
             ClassId(lambda_cls_id.0 as u32),
             BytecodeTypeArray::empty(),
-            FieldId(0),
+            0,
         );
         self.builder
             .emit_load_field(outer_context_reg, self_reg, idx, loc(expr.pos));
@@ -2757,7 +2757,7 @@ impl<'a> AstBytecodeGen<'a> {
             let idx = self.builder.add_const_field_types(
                 ClassId(outer_cls_id.0 as u32),
                 bty_array_from_ty(&self.identity_type_params()),
-                FieldId(0),
+                0,
             );
             self.builder
                 .emit_load_field(outer_context_reg, outer_context_reg, idx, loc(expr.pos));
@@ -2779,7 +2779,7 @@ impl<'a> AstBytecodeGen<'a> {
         let idx = self.builder.add_const_field_types(
             ClassId(outer_cls_id.0 as u32),
             bty_array_from_ty(&self.identity_type_params()),
-            field_id,
+            field_id.0 as u32,
         );
         self.builder
             .emit_store_field(value_reg, outer_context_reg, idx, loc(expr.pos));
@@ -2872,7 +2872,7 @@ impl<'a> AstBytecodeGen<'a> {
         let idx = self.builder.add_const_field_types(
             ClassId(lambda_cls_id.0 as u32),
             BytecodeTypeArray::empty(),
-            FieldId(0),
+            0,
         );
         self.builder
             .emit_load_field(outer_context_reg, self_reg, idx, location);
@@ -2893,7 +2893,7 @@ impl<'a> AstBytecodeGen<'a> {
             let idx = self.builder.add_const_field_types(
                 ClassId(outer_cls_id.0 as u32),
                 bty_array_from_ty(&self.identity_type_params()),
-                FieldId(0),
+                0,
             );
             self.builder
                 .emit_load_field(outer_context_reg, outer_context_reg, idx, location);
@@ -2922,7 +2922,7 @@ impl<'a> AstBytecodeGen<'a> {
         let idx = self.builder.add_const_field_types(
             ClassId(outer_cls_id.0 as u32),
             bty_array_from_ty(&self.identity_type_params()),
-            field_id,
+            field_id.0 as u32,
         );
         self.builder
             .emit_load_field(value_reg, outer_context_reg, idx, location);
@@ -3062,7 +3062,7 @@ impl<'a> AstBytecodeGen<'a> {
         let field_idx = self.builder.add_const_field_types(
             ClassId(cls_id.0 as u32),
             bty_array_from_ty(&self.identity_type_params()),
-            field_id,
+            field_id.0 as u32,
         );
         self.builder
             .emit_store_field(src, context_register, field_idx, location);
@@ -3077,7 +3077,7 @@ impl<'a> AstBytecodeGen<'a> {
         let field_idx = self.builder.add_const_field_types(
             ClassId(cls_id.0 as u32),
             bty_array_from_ty(&self.identity_type_params()),
-            field_id,
+            field_id.0 as u32,
         );
         self.builder
             .emit_load_field(dest, context_register, field_idx, location);
@@ -3138,7 +3138,7 @@ impl<'a> AstBytecodeGen<'a> {
         match *call_type {
             CallType::GenericStaticMethod(id, _, _) | CallType::GenericMethod(id, _, _) => {
                 self.builder.add_const_generic(
-                    id,
+                    id.0 as u32,
                     FunctionId(fct.id().0 as u32),
                     bty_array_from_ty(&type_params),
                 )

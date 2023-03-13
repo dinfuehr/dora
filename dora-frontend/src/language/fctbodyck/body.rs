@@ -687,12 +687,12 @@ impl<'a> TypeCheck<'a> {
                     match sym {
                         Ok(Sym::EnumVariant(enum_id, variant_idx)) => {
                             if Some(enum_id) == expr_enum_id {
-                                if used_variants.contains(variant_idx) {
+                                if used_variants.contains(variant_idx as usize) {
                                     let msg = ErrorMessage::MatchUnreachablePattern;
                                     self.sa.diag.lock().report(self.file_id, case.pos, msg);
                                 }
 
-                                used_variants.insert(variant_idx);
+                                used_variants.insert(variant_idx as usize);
                                 self.analysis.map_idents.insert(
                                     pattern.id,
                                     IdentType::EnumValue(
@@ -704,7 +704,7 @@ impl<'a> TypeCheck<'a> {
 
                                 let enum_ = self.sa.enums.idx(enum_id);
                                 let enum_ = enum_.read();
-                                let variant = &enum_.variants[variant_idx];
+                                let variant = &enum_.variants[variant_idx as usize];
 
                                 let given_params = if let Some(ref params) = ident.params {
                                     params.len()
@@ -1514,7 +1514,7 @@ impl<'a> TypeCheck<'a> {
         expected_ty: SourceType,
         enum_id: EnumDefinitionId,
         type_params: SourceTypeArray,
-        variant_idx: usize,
+        variant_idx: u32,
         arg_types: &[SourceType],
     ) -> SourceType {
         let enum_ = self.sa.enums.idx(enum_id);
@@ -2356,7 +2356,7 @@ impl<'a> TypeCheck<'a> {
                         expected_ty,
                         enum_id,
                         used_type_params,
-                        variant_idx as usize,
+                        variant_idx,
                         &arg_types,
                     )
                 } else {
@@ -2547,7 +2547,7 @@ impl<'a> TypeCheck<'a> {
                     }
 
                     if let Some(&variant_idx) = enum_.name_to_value.get(&name) {
-                        sym = Some(Sym::EnumVariant(enum_id, variant_idx as usize));
+                        sym = Some(Sym::EnumVariant(enum_id, variant_idx));
                     } else {
                         let name = self.sa.interner.str(name).to_string();
                         self.sa.diag.lock().report(
@@ -2715,7 +2715,7 @@ impl<'a> TypeCheck<'a> {
 
             self.analysis.map_idents.insert(
                 expr_id,
-                IdentType::EnumValue(enum_id, type_params.clone(), value as usize),
+                IdentType::EnumValue(enum_id, type_params.clone(), value),
             );
         } else {
             let name = self.sa.interner.str(name).to_string();
@@ -2836,7 +2836,7 @@ impl<'a> TypeCheck<'a> {
         expected_ty: SourceType,
         enum_id: EnumDefinitionId,
         type_params: SourceTypeArray,
-        variant_idx: usize,
+        variant_idx: u32,
     ) -> SourceType {
         let enum_ = self.sa.enums[enum_id].read();
 
@@ -2859,7 +2859,7 @@ impl<'a> TypeCheck<'a> {
             ErrorReporting::Yes(self.file_id, expr_pos),
         );
 
-        let variant = &enum_.variants[variant_idx];
+        let variant = &enum_.variants[variant_idx as usize];
 
         if !variant.types.is_empty() {
             let enum_name = self.sa.interner.str(enum_.name).to_string();

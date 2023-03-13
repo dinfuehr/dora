@@ -108,7 +108,7 @@ impl<'x> EnumCheckVariants<'x> {
 
         for value in &self.ast.variants {
             let variant = EnumVariant {
-                id: next_variant_id as usize,
+                id: next_variant_id,
                 name: value.name,
                 types: Vec::new(),
             };

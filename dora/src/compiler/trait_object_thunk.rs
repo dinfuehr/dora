@@ -101,7 +101,8 @@ fn generate_bytecode_for_thunk(
 
     let type_param_id = TypeParamId(thunk_fct.type_params.len() - 1);
     let fct_id = FunctionId(trait_fct.id().0 as u32);
-    let target_fct_idx = gen.add_const_generic(type_param_id, fct_id, BytecodeTypeArray::empty());
+    let target_fct_idx =
+        gen.add_const_generic(type_param_id.0 as u32, fct_id, BytecodeTypeArray::empty());
 
     let ty = register_bty_from_ty(trait_fct.return_type.clone());
     let result_reg = gen.alloc_var(ty);

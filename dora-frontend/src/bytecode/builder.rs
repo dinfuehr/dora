@@ -4,7 +4,6 @@ use crate::bytecode::{
     BytecodeFunction, BytecodeType, BytecodeTypeArray, BytecodeWriter, ClassId, ConstPoolEntry,
     ConstPoolIdx, EnumId, FunctionId, GlobalId, Label, Location, Register, StructId, TraitId,
 };
-use crate::language::sem_analysis::{FieldId, StructDefinitionFieldId, TypeParamId};
 
 pub struct BytecodeBuilder {
     writer: BytecodeWriter,
@@ -70,7 +69,7 @@ impl BytecodeBuilder {
         &mut self,
         id: EnumId,
         type_params: BytecodeTypeArray,
-        variant_idx: usize,
+        variant_idx: u32,
     ) -> ConstPoolIdx {
         self.writer
             .add_const(ConstPoolEntry::EnumVariant(id, type_params, variant_idx))
@@ -80,8 +79,8 @@ impl BytecodeBuilder {
         &mut self,
         id: EnumId,
         type_params: BytecodeTypeArray,
-        variant_idx: usize,
-        element_idx: usize,
+        variant_idx: u32,
+        element_idx: u32,
     ) -> ConstPoolIdx {
         self.writer.add_const(ConstPoolEntry::EnumElement(
             id,
@@ -104,7 +103,7 @@ impl BytecodeBuilder {
         &mut self,
         id: StructId,
         type_params: BytecodeTypeArray,
-        field_idx: StructDefinitionFieldId,
+        field_idx: u32,
     ) -> ConstPoolIdx {
         self.writer
             .add_const(ConstPoolEntry::StructField(id, type_params, field_idx))
@@ -120,7 +119,7 @@ impl BytecodeBuilder {
 
     pub fn add_const_generic(
         &mut self,
-        id: TypeParamId,
+        id: u32,
         fct_id: FunctionId,
         type_params: BytecodeTypeArray,
     ) -> ConstPoolIdx {
@@ -132,7 +131,7 @@ impl BytecodeBuilder {
         &mut self,
         cls_id: ClassId,
         type_params: BytecodeTypeArray,
-        field_id: FieldId,
+        field_id: u32,
     ) -> ConstPoolIdx {
         self.writer
             .add_const(ConstPoolEntry::Field(cls_id, type_params, field_id))
@@ -165,7 +164,7 @@ impl BytecodeBuilder {
     pub fn add_const_tuple_element(
         &mut self,
         tuple_ty: BytecodeType,
-        subtype_idx: usize,
+        subtype_idx: u32,
     ) -> ConstPoolIdx {
         self.writer
             .add_const(ConstPoolEntry::TupleElement(tuple_ty, subtype_idx))

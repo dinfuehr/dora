@@ -285,7 +285,7 @@ fn process_component(
             let enum_ = sa.enums[enum_id].read();
 
             if let Some(&variant_idx) = enum_.name_to_value.get(&component_name) {
-                Ok(Sym::EnumVariant(enum_id, variant_idx as usize))
+                Ok(Sym::EnumVariant(enum_id, variant_idx))
             } else {
                 let name = sa.interner.str(component_name).to_string();
                 sa.diag.lock().report(

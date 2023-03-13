@@ -1,4 +1,3 @@
-use crate::bytecode;
 use crate::language::error::msg::ErrorMessage;
 use crate::language::sem_analysis::{FctDefinition, SemAnalysis, SourceFileId};
 use crate::language::sym::Sym;
@@ -12,6 +11,7 @@ pub use readty::{read_type, read_type_unchecked, AllowSelf, TypeParamContext};
 pub(crate) mod access;
 mod clsdefck;
 mod constdefck;
+mod dumper;
 mod enumck;
 pub mod error;
 mod extensiondefck;
@@ -143,7 +143,7 @@ pub fn emit_bytecode(sa: &SemAnalysis, filter: &str) {
         let fct = fct.read();
 
         if fct_pattern_match(sa, &*fct, filter) {
-            bytecode::dump(sa, Some(&*fct), fct.bytecode.as_ref().unwrap());
+            dumper::dump(sa, Some(&*fct), fct.bytecode.as_ref().unwrap());
         }
     }
 }

@@ -174,16 +174,16 @@ pub fn ensure_class_instance_for_enum_variant(
     vm: &VM,
     edef: &EnumInstance,
     enum_: &EnumData,
-    variant_idx: usize,
+    variant_idx: u32,
 ) -> ClassInstanceId {
     let mut variants = edef.variants.write();
-    let variant = variants[variant_idx];
+    let variant = variants[variant_idx as usize];
 
     if let Some(cls_def_id) = variant {
         return cls_def_id;
     }
 
-    let enum_variant = &enum_.variants[variant_idx];
+    let enum_variant = &enum_.variants[variant_idx as usize];
     let mut csize = Header::size() + 4;
     let mut fields = vec![FieldInstance {
         offset: Header::size(),
@@ -219,7 +219,7 @@ pub fn ensure_class_instance_for_enum_variant(
         0,
     );
 
-    variants[variant_idx] = Some(class_instance_id);
+    variants[variant_idx as usize] = Some(class_instance_id);
 
     class_instance_id
 }
