@@ -3,7 +3,7 @@ use crate::gc::{Address, Region};
 use crate::mem;
 use crate::os;
 use crate::vm::{add_ref_fields, VM};
-use dora_frontend::bytecode::GlobalId;
+use dora_bytecode::GlobalId;
 
 pub fn init_global_addresses(vm: &mut VM) {
     let number_globals = vm.program.globals.len();

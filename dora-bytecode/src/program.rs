@@ -1,4 +1,4 @@
-use crate::bytecode::BytecodeType;
+use crate::BytecodeType;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PackageId(pub u32);

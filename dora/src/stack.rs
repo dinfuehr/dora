@@ -4,7 +4,7 @@ use crate::handle::{handle, Handle};
 use crate::object::{alloc, Array, Int32Array, Ref, Stacktrace, StacktraceElement, Str};
 use crate::threads::current_thread;
 use crate::vm::{display_fct, get_vm, loc, CodeId, CodeKind, VM};
-use dora_frontend::bytecode::{FunctionId, Location};
+use dora_bytecode::{FunctionId, Location};
 use dora_frontend::language::sem_analysis::FctDefinitionId;
 
 pub struct NativeStacktrace {

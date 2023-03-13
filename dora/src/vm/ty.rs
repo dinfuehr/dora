@@ -1,5 +1,5 @@
 use crate::vm::VM;
-use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray};
+use dora_bytecode::{BytecodeType, BytecodeTypeArray};
 use dora_frontend::language::sem_analysis::{TypeParamDefinition, TypeParamId};
 
 pub fn display_ty(vm: &VM, ty: &BytecodeType) -> String {

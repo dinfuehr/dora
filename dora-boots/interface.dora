@@ -1,5 +1,5 @@
 use package::bytecode::data::BytecodeFunction;
-use package::bytecode::data::SourceType;
+use package::bytecode::data::BytecodeType;
 use package::deserializer::decodeBytecodeFunction;
 use package::deserializer::decodeCompilationInfo;
 use package::deserializer::ByteReader;
@@ -20,7 +20,7 @@ use package::codegen::arm64::CodeGenArm64;
 
 @pub class CompilationInfo(
     @pub bc: BytecodeFunction,
-    @pub typeParams: Array[SourceType],
+    @pub typeParams: Array[BytecodeType],
     @pub arch: Architecture
 )
 

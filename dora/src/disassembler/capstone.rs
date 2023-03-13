@@ -8,7 +8,7 @@ use capstone::prelude::*;
 
 use crate::driver::cmd::AsmSyntax;
 use crate::vm::{display_fct, display_ty, Code, VM};
-use dora_frontend::bytecode::{BytecodeTypeArray, FunctionId};
+use dora_bytecode::{BytecodeTypeArray, FunctionId};
 
 pub fn supported() -> bool {
     true

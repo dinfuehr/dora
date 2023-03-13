@@ -3,7 +3,7 @@ use std::cmp::max;
 use crate::cannon::codegen::{align, size};
 use crate::mem;
 use crate::vm::{add_ref_fields, VM};
-use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray};
+use dora_bytecode::{BytecodeType, BytecodeTypeArray};
 
 #[derive(Clone)]
 pub struct ConcreteTuple {

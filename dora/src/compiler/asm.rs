@@ -14,9 +14,7 @@ use crate::vm::{
     create_enum_instance, create_struct_instance, get_concrete_tuple_bty_array, EnumLayout,
     GcPoint, LazyCompilationSite, Trap, VM,
 };
-use dora_frontend::bytecode::{
-    BytecodeType, BytecodeTypeArray, FunctionId, GlobalId, Location, StructId,
-};
+use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId, GlobalId, Location, StructId};
 
 pub struct BaselineAssembler<'a> {
     masm: MacroAssembler,

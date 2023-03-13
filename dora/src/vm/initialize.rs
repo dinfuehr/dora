@@ -1,4 +1,4 @@
-use dora_frontend::bytecode::FunctionId;
+use dora_bytecode::FunctionId;
 
 use crate::object::Header;
 use crate::size::InstanceSize;

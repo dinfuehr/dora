@@ -9,7 +9,7 @@ use crate::masm::CodeDescriptor;
 use crate::object::{Ref, UInt8Array};
 use crate::threads::current_thread;
 use crate::vm::VM;
-use dora_frontend::bytecode::{BytecodeTypeArray, FunctionId};
+use dora_bytecode::{BytecodeTypeArray, FunctionId};
 use dora_frontend::language::sem_analysis::FctDefinition;
 
 mod data;

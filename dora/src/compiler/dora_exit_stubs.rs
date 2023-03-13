@@ -16,7 +16,7 @@ use crate::stack::DoraToNativeInfo;
 use crate::threads::ThreadLocalData;
 use crate::vm::install_code_stub;
 use crate::vm::{Code, CodeKind, GcPoint, VM};
-use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray, FunctionId};
+use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId};
 
 pub struct NativeStubs {
     map: HashMap<Address, Address>,

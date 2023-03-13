@@ -7,7 +7,6 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 
-use crate::bytecode::{BytecodeFunction, BytecodeType, BytecodeTypeArray};
 use crate::language::generator::bty_from_ty;
 use crate::language::sem_analysis::{
     module_path, AnalysisData, ExtensionDefinitionId, ImplDefinitionId, ModuleDefinitionId,
@@ -15,6 +14,7 @@ use crate::language::sem_analysis::{
     Visibility,
 };
 use crate::language::ty::SourceType;
+use dora_bytecode::{BytecodeFunction, BytecodeType, BytecodeTypeArray};
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub struct FctDefinitionId(pub usize);

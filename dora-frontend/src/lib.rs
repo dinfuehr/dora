@@ -1,4 +1,3 @@
-pub mod bytecode;
 pub mod language;
 pub mod utils;
 

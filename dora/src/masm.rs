@@ -14,7 +14,7 @@ use crate::vm::{
     RelocationTable, Trap, CODE_ALIGNMENT,
 };
 pub use dora_asm::Label;
-use dora_frontend::bytecode::Location;
+use dora_bytecode::Location;
 
 #[cfg(target_arch = "x86_64")]
 pub use self::x64::*;

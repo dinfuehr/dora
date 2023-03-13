@@ -1,7 +1,7 @@
 use crate::driver::cmd::{self, Args};
 use crate::timer::Timer;
 use crate::vm::{clear_vm, display_fct, execute_on_main, module_contains, set_vm, VM};
-use dora_frontend::bytecode::FunctionId;
+use dora_bytecode::FunctionId;
 use dora_frontend::language;
 use dora_frontend::language::error::msg::ErrorMessage;
 use dora_frontend::language::sem_analysis::{

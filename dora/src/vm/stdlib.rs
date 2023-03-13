@@ -2,7 +2,7 @@ use crate::gc::Address;
 use crate::stack;
 use crate::stdlib;
 use crate::vm::{module_path, VM};
-use dora_frontend::bytecode::FunctionId;
+use dora_bytecode::FunctionId;
 use dora_frontend::language::sem_analysis::{
     ExtensionDefinitionId, FctDefinitionId, Intrinsic, ModuleDefinitionId,
 };

@@ -93,6 +93,7 @@ dependencies = [
  "capstone",
  "crossbeam-deque",
  "dora-asm",
+ "dora-bytecode",
  "dora-frontend",
  "dora-parser",
  "fixedbitset",
@@ -118,12 +119,16 @@ dependencies = [
 
 [[package]]
 name = "dora-bytecode"
-version = "0.1.0"
+version = "0.0.2"
+dependencies = [
+ "num_enum",
+]
 
 [[package]]
 name = "dora-frontend"
 version = "0.0.2"
 dependencies = [
+ "dora-bytecode",
  "dora-parser",
  "fixedbitset",
  "num_enum",

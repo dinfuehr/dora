@@ -15,7 +15,7 @@ use crate::threads::{
     STACK_SIZE,
 };
 use crate::utils::GrowableVecNonIter;
-use dora_frontend::bytecode::{
+use dora_bytecode::{
     BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, Location, Program, StructId,
     TraitId,
 };

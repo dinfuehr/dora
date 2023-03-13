@@ -3,9 +3,7 @@ use parking_lot::RwLock;
 use crate::size::InstanceSize;
 use crate::vm::{add_ref_fields, module_path_with_name, VM};
 use crate::vtable::VTableBox;
-use dora_frontend::bytecode::{
-    BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, TraitId,
-};
+use dora_bytecode::{BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, TraitId};
 use dora_frontend::language::sem_analysis::ClassDefinition;
 use dora_frontend::Id;
 

@@ -2,15 +2,15 @@ use std::collections::HashMap;
 use std::mem;
 
 use self::Bytecode::*;
-use crate::bytecode::{
-    self, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeTypeArray, BytecodeVisitor,
-    ClassId, ConstPoolEntry, ConstPoolIdx, EnumId, FunctionId, GlobalId, Register, StructId,
-    TraitId,
-};
 use crate::language::generator::{bty_from_ty, generate_fct};
 use crate::language::sem_analysis::{create_tuple, FctDefinitionId, SemAnalysis};
 use crate::language::test;
 use crate::language::ty::{SourceType, SourceTypeArray};
+use dora_bytecode::{
+    self as bytecode, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeTypeArray,
+    BytecodeVisitor, ClassId, ConstPoolEntry, ConstPoolIdx, EnumId, FunctionId, GlobalId, Register,
+    StructId, TraitId,
+};
 
 fn code(code: &'static str) -> Vec<Bytecode> {
     test::check_valid(code, |sa| {

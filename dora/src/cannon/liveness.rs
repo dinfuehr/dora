@@ -1,4 +1,4 @@
-use dora_frontend::bytecode::BytecodeFunction;
+use dora_bytecode::BytecodeFunction;
 
 pub(super) struct BytecodeLiveness;
 

@@ -1,6 +1,4 @@
-use crate::bytecode::{
-    read, BytecodeOpcode, BytecodeVisitor, BytecodeWriter, ConstPoolIdx, Register,
-};
+use crate::{read, BytecodeOpcode, BytecodeVisitor, BytecodeWriter, ConstPoolIdx, Register};
 
 #[test]
 fn test_ret() {

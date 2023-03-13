@@ -1,14 +1,21 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
+pub mod builder;
+pub mod data;
+pub mod program;
+pub mod reader;
+pub mod ty;
+pub mod writer;
 
 #[cfg(test)]
-mod tests {
-    use super::*;
+mod tests;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+pub use builder::*;
+pub use data::*;
+pub use program::{
+    ClassData, ClassField, ClassId, EnumData, EnumId, EnumVariant, FunctionData, FunctionId,
+    GlobalData, GlobalId, ModuleData, ModuleId, PackageData, PackageId, Program, SourceFileData,
+    SourceFileId, StructData, StructField, StructId, TraitData, TraitId, TypeParamBound,
+    TypeParamData,
+};
+pub use reader::*;
+pub use ty::{BytecodeType, BytecodeTypeArray};
+pub use writer::*;

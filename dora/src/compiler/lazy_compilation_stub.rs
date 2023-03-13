@@ -14,7 +14,7 @@ use crate::os;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::ThreadLocalData;
 use crate::vm::{get_vm, install_code_stub, Code, CodeKind, LazyCompilationSite, ShapeKind, VM};
-use dora_frontend::bytecode::{BytecodeTypeArray, FunctionId};
+use dora_bytecode::{BytecodeTypeArray, FunctionId};
 
 // This code generates the compiler stub, there should only be one instance
 // of this function be used in Dora. It is necessary for lazy compilation, where

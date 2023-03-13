@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::bytecode::{
+use crate::{
     BytecodeReader, BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, GlobalId,
     StructId, TraitId,
 };

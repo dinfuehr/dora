@@ -1,5 +1,5 @@
 use crate::vm::{find_trait_impl, loc, VM};
-use dora_frontend::bytecode::{
+use dora_bytecode::{
     BytecodeBuilder, BytecodeFunction, BytecodeType, BytecodeTypeArray, FunctionId, Register,
     TraitId,
 };

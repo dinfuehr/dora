@@ -148,8 +148,8 @@ impl ConstPoolId {
     Int64,
     Float32,
     Float64,
-    Struct(Int32, Array[SourceType]),
-    Tuple(Array[SourceType]),
+    Struct(Int32, Array[BytecodeType]),
+    Tuple(Array[BytecodeType]),
     TypeParam(Int32),
 }
 

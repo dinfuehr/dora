@@ -1,10 +1,10 @@
-use crate::bytecode::program::ClassLayout;
-use crate::bytecode::{
+use crate::language::SemAnalysis;
+use dora_bytecode::program::ClassLayout;
+use dora_bytecode::{
     ClassData, ClassField, EnumData, EnumVariant, FunctionData, FunctionId, GlobalData, ModuleData,
     ModuleId, PackageData, PackageId, Program, SourceFileData, SourceFileId, StructData,
     StructField, TraitData, TypeParamBound, TypeParamData,
 };
-use crate::language::SemAnalysis;
 
 use crate::language::generator::bty_from_ty;
 

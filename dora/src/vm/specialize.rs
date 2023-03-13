@@ -10,7 +10,7 @@ use crate::vm::{
     EnumInstanceId, EnumLayout, FieldInstance, ShapeKind, StructInstance, StructInstanceField,
     StructInstanceId, VM,
 };
-use dora_frontend::bytecode::{
+use dora_bytecode::{
     BytecodeType, BytecodeTypeArray, ClassData, ClassId, EnumData, EnumId, FunctionId, StructData,
     StructId, TraitData, TraitId,
 };

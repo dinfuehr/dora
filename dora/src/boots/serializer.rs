@@ -5,10 +5,8 @@ use byteorder::{LittleEndian, WriteBytesExt};
 use crate::boots::data::InstructionSet;
 use crate::object::{byte_array_from_buffer, Obj, Ref};
 use crate::vm::VM;
-use dora_frontend::bytecode::{
-    BytecodeFunction, BytecodeTypeArray, ConstPoolEntry, ConstPoolOpcode,
-};
-use dora_frontend::bytecode::{BytecodeType, BytecodeTypeKind};
+use dora_bytecode::{BytecodeFunction, BytecodeTypeArray, ConstPoolEntry, ConstPoolOpcode};
+use dora_bytecode::{BytecodeType, BytecodeTypeKind};
 
 pub fn allocate_encoded_compilation_info(
     vm: &VM,

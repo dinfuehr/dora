@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::bytecode::{
+use crate::{
     BytecodeFunction, BytecodeType, BytecodeTypeArray, BytecodeWriter, ClassId, ConstPoolEntry,
     ConstPoolIdx, EnumId, FunctionId, GlobalId, Label, Location, Register, StructId, TraitId,
 };

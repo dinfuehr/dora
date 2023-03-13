@@ -1,7 +1,7 @@
 use std::ops::Index;
 use std::sync::Arc;
 
-use crate::bytecode::{BytecodeTypeKind, ClassId, EnumId, StructId, TraitId};
+use crate::{BytecodeTypeKind, ClassId, EnumId, StructId, TraitId};
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum BytecodeType {

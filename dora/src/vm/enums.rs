@@ -1,8 +1,8 @@
 use parking_lot::RwLock;
 
 use crate::vm::{module_path_with_name_str, ClassInstanceId, VM};
-use dora_frontend::bytecode::ty::BytecodeTypeArray;
-use dora_frontend::bytecode::{EnumData, EnumId};
+use dora_bytecode::ty::BytecodeTypeArray;
+use dora_bytecode::{EnumData, EnumId};
 use dora_frontend::language::sem_analysis::ModuleDefinitionId;
 use dora_frontend::Id;
 

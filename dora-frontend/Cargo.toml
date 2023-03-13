@@ -14,6 +14,7 @@ walkdir = "2"
 
 [dependencies]
 dora-parser = { path = "../dora-parser", version = "0.0.2" }
+dora-bytecode = { path = "../dora-bytecode", version = "0.0.2" }
 parking_lot = "*"
 fixedbitset = "*"
 num_enum = "*"

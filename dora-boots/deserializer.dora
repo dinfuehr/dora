@@ -1,5 +1,4 @@
 use package::interface::CompilationInfo;
-use package::bytecode::data::SourceType;
 use package::bytecode::data::ConstPoolEntry;
 use package::bytecode::data::BytecodeType;
 use package::bytecode::data::BytecodeFunction;
@@ -25,8 +24,8 @@ fn decodeBytecodeArray(reader: ByteReader): Array[UInt8] {
     reader.readByteArray()
 }
 
-fn decodeTypeParams(reader: ByteReader): Array[SourceType] {
-    decodeSourceTypeArray(reader)
+fn decodeTypeParams(reader: ByteReader): Array[BytecodeType] {
+    decodeBytecodeTypeArray(reader)
 }
 
 fn decodeRegisters(reader: ByteReader): Array[BytecodeType] {
@@ -66,16 +65,16 @@ fn decodeBytecodeType(reader: ByteReader): BytecodeType {
         BytecodeType::Ptr
     } else if opcode == opc::BC_TYPE_STRUCT {
         let structId = reader.readId();
-        let typeParams = decodeSourceTypeArray(reader);
+        let typeParams = decodeBytecodeTypeArray(reader);
         BytecodeType::Struct(structId, typeParams)
     } else if opcode == opc::BC_TYPE_TUPLE {
-        let typeParams = decodeSourceTypeArray(reader);
+        let typeParams = decodeBytecodeTypeArray(reader);
         BytecodeType::Tuple(typeParams)
     } else if opcode == opc::BC_TYPE_TYPE_PARAM {
         let idx = reader.readId();
         BytecodeType::TypeParam(idx)
     } else {
-        println("unknown SourceType opcode = ${opcode}");
+        println("unknown bytecode type opcode = ${opcode}");
         unreachable[BytecodeType]()
     }
 }
@@ -135,61 +134,18 @@ fn decodeArchitecture(reader: ByteReader): Architecture {
     }
 }
 
-fn decodeSourceTypeArray(reader: ByteReader): Array[SourceType] {
+fn decodeBytecodeTypeArray(reader: ByteReader): Array[BytecodeType] {
     let size = reader.readInt32().toInt64();
-    let data = Array[SourceType]::fill(size, SourceType::Unit);
+    let data = Array[BytecodeType]::fill(size, BytecodeType::Unit);
 
     let mut i = 0i64;
 
     while i < size {
-        data(i) = decodeSourceType(reader);
+        data(i) = decodeBytecodeType(reader);
         i = i + 1i64;
     }
 
     data
-}
-
-fn decodeSourceType(reader: ByteReader): SourceType {
-    let opcode = reader.readUInt8().toInt32();
-
-    if opcode == opc::SOURCE_TYPE_OPCODE_UNIT {
-        SourceType::Unit
-    } else if opcode == opc::SOURCE_TYPE_OPCODE_BOOL {
-        SourceType::Bool
-    } else if opcode == opc::SOURCE_TYPE_OPCODE_CHAR {
-        SourceType::Char
-    } else if opcode == opc::SOURCE_TYPE_OPCODE_U_INT8 {
-        SourceType::UInt8
-    } else if opcode == opc::SOURCE_TYPE_OPCODE_INT32 {
-        SourceType::Int32
-    } else if opcode == opc::SOURCE_TYPE_OPCODE_INT64 {
-        SourceType::Int64
-    } else if opcode == opc::SOURCE_TYPE_OPCODE_FLOAT32 {
-        SourceType::Float32
-    } else if opcode == opc::SOURCE_TYPE_OPCODE_FLOAT64 {
-        SourceType::Float64
-    } else if opcode == opc::SOURCE_TYPE_OPCODE_CLASS {
-        let clsId = reader.readId();
-        let typeParams = decodeSourceTypeArray(reader);
-        SourceType::Class(clsId, typeParams)
-    } else if opcode == opc::SOURCE_TYPE_OPCODE_STRUCT {
-        let structId = reader.readId();
-        let typeParams = decodeSourceTypeArray(reader);
-        SourceType::Struct(structId, typeParams)
-    } else if opcode == opc::SOURCE_TYPE_OPCODE_TRAIT {
-        let traitId = reader.readId();
-        let typeParams = decodeSourceTypeArray(reader);
-        SourceType::Trait(traitId, typeParams)
-    } else if opcode == opc::SOURCE_TYPE_OPCODE_TUPLE {
-        let typeParams = decodeSourceTypeArray(reader);
-        SourceType::Tuple(typeParams)
-    } else if opcode == opc::SOURCE_TYPE_OPCODE_TYPE_PARAM {
-        let idx = reader.readId();
-        SourceType::TypeParam(idx)
-    } else {
-        println("unknown SourceType ${opcode}");
-        unreachable[SourceType]()
-    }
 }
 
 @pub class ByteReader {

@@ -23,8 +23,8 @@ use crate::vm::{
     LazyCompilationSite, Trap, VM,
 };
 use crate::vtable::VTable;
-use dora_frontend::bytecode::{
-    self, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeTypeArray, BytecodeVisitor,
+use dora_bytecode::{
+    read, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeTypeArray, BytecodeVisitor,
     ConstPoolEntry, ConstPoolIdx, FunctionId, GlobalId, Location, Register, TraitId,
 };
 use dora_frontend::language::generator::{bty_from_ty, register_bty_from_bty, ty_from_bty};
@@ -134,7 +134,7 @@ impl<'a> CannonCodeGen<'a> {
         self.store_params_on_stack();
         self.emit_safepoint();
 
-        bytecode::read(self.bytecode.code(), &mut self);
+        read(self.bytecode.code(), &mut self);
 
         // Bytecode execution should never fall off the end and reach this instruction.
         self.asm.debug();

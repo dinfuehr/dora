@@ -11,7 +11,7 @@ use crate::driver::cmd::{AsmSyntax, CompilerName};
 use crate::gc::Address;
 use crate::os;
 use crate::vm::{display_fct, install_code, CodeKind, VM};
-use dora_frontend::bytecode::{BytecodeFunction, BytecodeType, BytecodeTypeArray, FunctionId};
+use dora_bytecode::{BytecodeFunction, BytecodeType, BytecodeTypeArray, FunctionId};
 use dora_frontend::language::generator::{bty_array_from_ty, bty_from_ty};
 use dora_frontend::language::sem_analysis::{FctDefinition, FctDefinitionId};
 use dora_frontend::language::ty::SourceTypeArray;

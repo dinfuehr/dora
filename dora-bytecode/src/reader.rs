@@ -1,6 +1,6 @@
 use std::iter::Iterator;
 
-use crate::bytecode::{
+use crate::{
     BytecodeInstruction, BytecodeOffset, BytecodeOpcode, ConstPoolIdx, GlobalId, OperandWidth,
     Register,
 };

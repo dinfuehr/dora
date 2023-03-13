@@ -11,7 +11,7 @@ use crate::vm::{get_vm, LazyCompilationSite, Trap};
 use crate::vtable::VTable;
 pub use dora_asm::arm64::AssemblerArm64 as Assembler;
 use dora_asm::arm64::{self as asm, Cond, Extend, NeonRegister, Shift};
-use dora_frontend::bytecode::{BytecodeTypeArray, FunctionId, Location};
+use dora_bytecode::{BytecodeTypeArray, FunctionId, Location};
 
 impl MacroAssembler {
     pub fn prolog(&mut self, stacksize: i32) {

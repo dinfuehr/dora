@@ -1,6 +1,6 @@
 use std::mem;
 
-use crate::bytecode::{
+use crate::{
     BytecodeFunction, BytecodeOffset, BytecodeOpcode, BytecodeType, ConstPoolEntry, ConstPoolIdx,
     GlobalId, Location, Register,
 };

@@ -3,10 +3,6 @@ use std::convert::TryInto;
 
 use dora_parser::{ast, Position};
 
-use crate::bytecode::{
-    BytecodeBuilder, BytecodeFunction, BytecodeType, BytecodeTypeArray, ClassId, ConstPoolIdx,
-    EnumId, FunctionId, GlobalId, Label, Location, Register, StructId, TraitId,
-};
 use crate::language::sem_analysis::{
     find_impl, AnalysisData, CallType, ClassDefinitionId, ConstDefinitionId, ContextIdx,
     EnumDefinitionId, FctDefinition, FctDefinitionId, FieldId, GlobalDefinitionId, IdentType,
@@ -15,6 +11,10 @@ use crate::language::sem_analysis::{
 use crate::language::specialize::specialize_type;
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::language::{expr_always_returns, expr_block_always_returns};
+use dora_bytecode::{
+    BytecodeBuilder, BytecodeFunction, BytecodeType, BytecodeTypeArray, ClassId, ConstPoolIdx,
+    EnumId, FunctionId, GlobalId, Label, Location, Register, StructId, TraitId,
+};
 
 use super::sem_analysis::VarLocation;
 

@@ -1,5 +1,5 @@
 use crate::vm::{module_path, module_path_with_name, module_path_with_name_str, VM};
-use dora_frontend::bytecode::FunctionId;
+use dora_bytecode::FunctionId;
 use dora_frontend::language::sem_analysis::{FctDefinitionId, FctParent, ModuleDefinitionId};
 
 pub fn display_fct(vm: &VM, fct_id: FunctionId) -> String {

@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use crate::gc::Address;
 use crate::vm::{CodeId, VM};
-use dora_frontend::bytecode::{BytecodeTypeArray, FunctionId};
+use dora_bytecode::{BytecodeTypeArray, FunctionId};
 
 #[derive(PartialEq, Debug)]
 enum CompilationStatus {

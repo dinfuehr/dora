@@ -5,7 +5,7 @@ use crate::gc::Address;
 use crate::safepoint;
 use crate::stdlib;
 use crate::vm::VM;
-use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray};
+use dora_bytecode::{BytecodeType, BytecodeTypeArray};
 
 pub struct Stubs {
     compile: Option<Address>,

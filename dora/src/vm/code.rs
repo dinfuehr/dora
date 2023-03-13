@@ -13,7 +13,7 @@ use crate::object::Header;
 use crate::os;
 use crate::vm::VM;
 use crate::vtable::VTable;
-use dora_frontend::bytecode::{BytecodeTypeArray, FunctionId, Location};
+use dora_bytecode::{BytecodeTypeArray, FunctionId, Location};
 
 pub const CODE_ALIGNMENT: usize = 16;
 
