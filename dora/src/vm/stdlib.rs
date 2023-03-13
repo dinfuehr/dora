@@ -2,6 +2,7 @@ use crate::gc::Address;
 use crate::stack;
 use crate::stdlib;
 use crate::vm::{module_path, VM};
+use dora_frontend::bytecode::FunctionId;
 use dora_frontend::language::sem_analysis::{
     ExtensionDefinitionId, FctDefinitionId, Intrinsic, ModuleDefinitionId,
 };
@@ -407,6 +408,7 @@ fn common_fct(
     match kind {
         FctImplementation::Intrinsic(intrinsic) => fct.intrinsic = Some(intrinsic),
         FctImplementation::Native(address) => {
+            let fct_id = FunctionId(fct_id.0 as u32);
             vm.native_implementations.insert(fct_id, address);
         }
     }
@@ -509,6 +511,7 @@ fn internal_extension_method(
             match kind {
                 FctImplementation::Intrinsic(intrinsic) => fct.intrinsic = Some(intrinsic),
                 FctImplementation::Native(address) => {
+                    let method_id = FunctionId(fct.id().0 as u32);
                     vm.native_implementations.insert(method_id, address);
                 }
             }

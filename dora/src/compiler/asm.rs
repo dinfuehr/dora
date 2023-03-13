@@ -14,8 +14,9 @@ use crate::vm::{
     create_enum_instance, create_struct_instance, get_concrete_tuple_bty_array, EnumLayout,
     GcPoint, LazyCompilationSite, Trap, VM,
 };
-use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray, GlobalId, Location, StructId};
-use dora_frontend::language::sem_analysis::FctDefinitionId;
+use dora_frontend::bytecode::{
+    BytecodeType, BytecodeTypeArray, FunctionId, GlobalId, Location, StructId,
+};
 
 pub struct BaselineAssembler<'a> {
     masm: MacroAssembler,
@@ -689,7 +690,7 @@ impl<'a> BaselineAssembler<'a> {
 
     pub fn direct_call(
         &mut self,
-        fct_id: FctDefinitionId,
+        fct_id: FunctionId,
         ptr: Address,
         type_params: BytecodeTypeArray,
         location: Location,
@@ -909,7 +910,7 @@ impl<'a> BaselineAssembler<'a> {
     pub fn ensure_global(
         &mut self,
         global_id: GlobalId,
-        fid: FctDefinitionId,
+        fid: FunctionId,
         ptr: Address,
         location: Location,
         gcpoint: GcPoint,
@@ -1098,7 +1099,7 @@ impl<'a> BaselineAssembler<'a> {
         &mut self,
         lbl_start: Label,
         lbl_return: Label,
-        fct_id: FctDefinitionId,
+        fct_id: FunctionId,
         ptr: Address,
         location: Location,
         gcpoint: GcPoint,
@@ -1132,5 +1133,5 @@ enum SlowPathKind {
     StackOverflow(Label, Label, Location, GcPoint),
     Safepoint(Label, Label, Location, GcPoint),
     Assert(Label, Location),
-    InitializeGlobal(Label, Label, FctDefinitionId, Address, Location, GcPoint),
+    InitializeGlobal(Label, Label, FunctionId, Address, Location, GcPoint),
 }

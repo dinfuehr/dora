@@ -1,3 +1,5 @@
+use dora_frontend::bytecode::FunctionId;
+
 use crate::object::Header;
 use crate::size::InstanceSize;
 use crate::vm::functions::display_fct;
@@ -15,7 +17,8 @@ fn check_unresolved_functions(vm: &VM) {
         let fct = fct.read();
 
         if fct.internal && !fct.internal_resolved && !fct.has_body() {
-            eprintln!("function {}", display_fct(vm, fct.id()));
+            let fct_id = FunctionId(fct.id().0 as u32);
+            eprintln!("function {}", display_fct(vm, fct_id));
             panic!("found function without implementation");
         }
     }

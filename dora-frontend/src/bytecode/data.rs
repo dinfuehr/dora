@@ -1,12 +1,11 @@
 use std::fmt;
 
 use crate::bytecode::{
-    BytecodeReader, BytecodeType, BytecodeTypeArray, ClassId, EnumId, GlobalId, StructId, TraitId,
+    BytecodeReader, BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, GlobalId,
+    StructId, TraitId,
 };
 use crate::enumeration;
-use crate::language::sem_analysis::{
-    FctDefinitionId, FieldId, StructDefinitionFieldId, TypeParamId,
-};
+use crate::language::sem_analysis::{FieldId, StructDefinitionFieldId, TypeParamId};
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct BytecodeOffset(pub u32);
@@ -817,8 +816,8 @@ pub enum ConstPoolEntry {
     Char(char),
     Class(ClassId, BytecodeTypeArray),
     Field(ClassId, BytecodeTypeArray, FieldId),
-    Fct(FctDefinitionId, BytecodeTypeArray),
-    Generic(TypeParamId, FctDefinitionId, BytecodeTypeArray),
+    Fct(FunctionId, BytecodeTypeArray),
+    Generic(TypeParamId, FunctionId, BytecodeTypeArray),
     Enum(EnumId, BytecodeTypeArray),
     EnumVariant(EnumId, BytecodeTypeArray, usize),
     EnumElement(EnumId, BytecodeTypeArray, usize, usize),
@@ -944,10 +943,4 @@ enumeration!(SourceTypeOpcode {
 
     // some enum
     Enum
-});
-
-#[rustfmt::skip]
-enumeration!(InstructionSet {
-    X64,
-    Arm64
 });

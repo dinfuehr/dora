@@ -14,8 +14,7 @@ use crate::os;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::ThreadLocalData;
 use crate::vm::{get_vm, install_code_stub, Code, CodeKind, LazyCompilationSite, ShapeKind, VM};
-use dora_frontend::bytecode::BytecodeTypeArray;
-use dora_frontend::language::sem_analysis::FctDefinitionId;
+use dora_frontend::bytecode::{BytecodeTypeArray, FunctionId};
 
 // This code generates the compiler stub, there should only be one instance
 // of this function be used in Dora. It is necessary for lazy compilation, where
@@ -259,7 +258,7 @@ fn patch_virtual_call(
     receiver_is_first: bool,
     receiver1: Address,
     receiver2: Address,
-    trait_fct_id: FctDefinitionId,
+    trait_fct_id: FunctionId,
     vtable_index: u32,
     type_params: &BytecodeTypeArray,
 ) -> Address {
@@ -298,7 +297,7 @@ fn patch_virtual_call(
 fn patch_direct_call(
     vm: &VM,
     ra: usize,
-    fct_id: FctDefinitionId,
+    fct_id: FunctionId,
     type_params: &BytecodeTypeArray,
     disp: i32,
 ) -> Address {

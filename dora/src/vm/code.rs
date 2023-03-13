@@ -13,19 +13,18 @@ use crate::object::Header;
 use crate::os;
 use crate::vm::VM;
 use crate::vtable::VTable;
-use dora_frontend::bytecode::{BytecodeTypeArray, Location};
-use dora_frontend::language::sem_analysis::FctDefinitionId;
+use dora_frontend::bytecode::{BytecodeTypeArray, FunctionId, Location};
 
 pub const CODE_ALIGNMENT: usize = 16;
 
 #[derive(Debug, Clone)]
 pub enum CodeKind {
-    DoraFct(FctDefinitionId),
+    DoraFct(FunctionId),
     CompileStub,
     TrapStub,
     AllocStub,
     VerifyStub,
-    NativeStub(FctDefinitionId),
+    NativeStub(FunctionId),
     DoraStub,
     GuardCheckStub,
     SafepointStub,
@@ -175,7 +174,7 @@ impl Code {
         self.object_end
     }
 
-    pub fn fct_id(&self) -> FctDefinitionId {
+    pub fn fct_id(&self) -> FunctionId {
         match self.kind {
             CodeKind::NativeStub(fct_id) => fct_id,
             CodeKind::DoraFct(fct_id) => fct_id,
@@ -383,8 +382,8 @@ impl LazyCompilationData {
 
 #[derive(Clone, Debug)]
 pub enum LazyCompilationSite {
-    Direct(FctDefinitionId, i32, BytecodeTypeArray),
-    Virtual(bool, FctDefinitionId, u32, BytecodeTypeArray),
+    Direct(FunctionId, i32, BytecodeTypeArray),
+    Virtual(bool, FunctionId, u32, BytecodeTypeArray),
     Lambda(bool),
 }
 

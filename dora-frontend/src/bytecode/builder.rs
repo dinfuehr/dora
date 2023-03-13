@@ -2,11 +2,9 @@ use std::collections::{HashMap, HashSet};
 
 use crate::bytecode::{
     BytecodeFunction, BytecodeType, BytecodeTypeArray, BytecodeWriter, ClassId, ConstPoolEntry,
-    ConstPoolIdx, EnumId, GlobalId, Label, Location, Register, StructId, TraitId,
+    ConstPoolIdx, EnumId, FunctionId, GlobalId, Label, Location, Register, StructId, TraitId,
 };
-use crate::language::sem_analysis::{
-    FctDefinitionId, FieldId, StructDefinitionFieldId, TypeParamId,
-};
+use crate::language::sem_analysis::{FieldId, StructDefinitionFieldId, TypeParamId};
 
 pub struct BytecodeBuilder {
     writer: BytecodeWriter,
@@ -59,7 +57,7 @@ impl BytecodeBuilder {
             .add_const(ConstPoolEntry::Lambda(params, return_type))
     }
 
-    pub fn add_const_fct(&mut self, id: FctDefinitionId) -> ConstPoolIdx {
+    pub fn add_const_fct(&mut self, id: FunctionId) -> ConstPoolIdx {
         self.writer
             .add_const(ConstPoolEntry::Fct(id, BytecodeTypeArray::empty()))
     }
@@ -114,7 +112,7 @@ impl BytecodeBuilder {
 
     pub fn add_const_fct_types(
         &mut self,
-        id: FctDefinitionId,
+        id: FunctionId,
         type_params: BytecodeTypeArray,
     ) -> ConstPoolIdx {
         self.writer.add_const(ConstPoolEntry::Fct(id, type_params))
@@ -123,7 +121,7 @@ impl BytecodeBuilder {
     pub fn add_const_generic(
         &mut self,
         id: TypeParamId,
-        fct_id: FctDefinitionId,
+        fct_id: FunctionId,
         type_params: BytecodeTypeArray,
     ) -> ConstPoolIdx {
         self.writer

@@ -13,7 +13,6 @@ pub use dora_asm::x64::AssemblerX64 as Assembler;
 use dora_asm::x64::Register as AsmRegister;
 use dora_asm::x64::{Address as AsmAddress, Condition, Immediate, ScaleFactor, XmmRegister};
 use dora_frontend::bytecode::{BytecodeTypeArray, Location};
-use dora_frontend::language::sem_analysis::FctDefinitionId;
 
 impl MacroAssembler {
     pub fn prolog(&mut self, stacksize: i32) {
@@ -83,7 +82,7 @@ impl MacroAssembler {
 
     pub fn direct_call(
         &mut self,
-        fct_id: FctDefinitionId,
+        fct_id: FunctionId,
         ptr: Address,
         type_params: BytecodeTypeArray,
     ) {

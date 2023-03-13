@@ -6,8 +6,8 @@ use crate::bytecode::{
 };
 use crate::language::generator::{ty_array_from_bty, ty_from_bty};
 use crate::language::sem_analysis::{
-    ClassDefinitionId, EnumDefinitionId, FctDefinition, GlobalDefinitionId, SemAnalysis,
-    StructDefinitionId, TraitDefinitionId,
+    ClassDefinitionId, EnumDefinitionId, FctDefinition, FctDefinitionId, GlobalDefinitionId,
+    SemAnalysis, StructDefinitionId, TraitDefinitionId,
 };
 
 pub fn dump(vm: &SemAnalysis, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
@@ -136,7 +136,7 @@ pub fn dump(vm: &SemAnalysis, fct: Option<&FctDefinition>, bc: &BytecodeFunction
                 )
             }
             ConstPoolEntry::Fct(fct_id, type_params) => {
-                let fct = vm.fcts.idx(*fct_id);
+                let fct = vm.fcts.idx(FctDefinitionId(fct_id.0 as usize));
                 let fct = fct.read();
                 let type_params = ty_array_from_bty(type_params);
 
@@ -158,7 +158,7 @@ pub fn dump(vm: &SemAnalysis, fct: Option<&FctDefinition>, bc: &BytecodeFunction
                 }
             }
             ConstPoolEntry::Generic(id, fct_id, type_params) => {
-                let fct = vm.fcts.idx(*fct_id);
+                let fct = vm.fcts.idx(FctDefinitionId(fct_id.0 as usize));
                 let fct = fct.read();
                 let type_params = ty_array_from_bty(type_params);
 
@@ -434,7 +434,7 @@ impl<'a> BytecodeDumper<'a> {
             _ => unreachable!(),
         };
 
-        let fct = self.sa.fcts.idx(*fct_id);
+        let fct = self.sa.fcts.idx(FctDefinitionId(fct_id.0 as usize));
         let fct = fct.read();
 
         fct.display_name(self.sa)
@@ -446,7 +446,7 @@ impl<'a> BytecodeDumper<'a> {
             ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params.clone()),
             _ => unreachable!(),
         };
-        let fct = self.sa.fcts.idx(fct_id);
+        let fct = self.sa.fcts.idx(FctDefinitionId(fct_id.0 as usize));
         let fct = fct.read();
         let fname = fct.display_name(self.sa);
         writeln!(

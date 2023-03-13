@@ -1,13 +1,16 @@
-use crate::vm::{extension_matches_ty, FctDefinitionId, VM};
-use dora_frontend::language::sem_analysis::{ImplDefinitionId, TypeParamDefinition};
+use crate::vm::{extension_matches_ty, VM};
+use dora_frontend::bytecode::FunctionId;
+use dora_frontend::language::sem_analysis::{
+    FctDefinitionId, ImplDefinitionId, TypeParamDefinition,
+};
 use dora_frontend::language::ty::{SourceType, SourceTypeArray};
 
 pub fn find_trait_impl(
     vm: &VM,
-    fct_id: FctDefinitionId,
+    fct_id: FunctionId,
     trait_ty: SourceType,
     object_type: SourceType,
-) -> FctDefinitionId {
+) -> FunctionId {
     debug_assert!(object_type.is_concrete_type());
     let impl_id = find_impl(
         vm,
@@ -23,11 +26,15 @@ pub fn find_trait_impl(
         trait_ty.trait_id().expect("trait expected")
     );
 
-    impl_
+    let fct_id = FctDefinitionId(fct_id.0 as usize);
+
+    let impl_fct_id = impl_
         .impl_for
         .get(&fct_id)
         .cloned()
-        .expect("no impl method found for generic trait call")
+        .expect("no impl method found for generic trait call");
+
+    FunctionId(impl_fct_id.0 as u32)
 }
 
 fn find_impl(

@@ -8,8 +8,7 @@ use capstone::prelude::*;
 
 use crate::driver::cmd::AsmSyntax;
 use crate::vm::{display_fct, display_ty, Code, VM};
-use dora_frontend::bytecode::BytecodeTypeArray;
-use dora_frontend::language::sem_analysis::FctDefinition;
+use dora_frontend::bytecode::{BytecodeTypeArray, FunctionId};
 
 pub fn supported() -> bool {
     true
@@ -17,7 +16,7 @@ pub fn supported() -> bool {
 
 pub fn disassemble(
     vm: &VM,
-    fct: &FctDefinition,
+    fct_id: FunctionId,
     type_params: &BytecodeTypeArray,
     code: &Code,
     asm_syntax: AsmSyntax,
@@ -49,7 +48,7 @@ pub fn disassemble(
         .disasm_all(buf, start_addr)
         .expect("could not disassemble code");
 
-    let name = display_fct(vm, fct.id());
+    let name = display_fct(vm, fct_id);
 
     let type_params = if !type_params.is_empty() {
         let mut ty_names = Vec::new();

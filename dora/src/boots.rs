@@ -1,6 +1,7 @@
 use std::mem;
 use std::ptr;
 
+use crate::boots::data::InstructionSet;
 use crate::boots::serializer::allocate_encoded_compilation_info;
 use crate::gc::Address;
 use crate::handle::handle;
@@ -8,15 +9,16 @@ use crate::masm::CodeDescriptor;
 use crate::object::{Ref, UInt8Array};
 use crate::threads::current_thread;
 use crate::vm::VM;
-use dora_frontend::bytecode::{BytecodeTypeArray, InstructionSet};
+use dora_frontend::bytecode::{BytecodeTypeArray, FunctionId};
 use dora_frontend::language::sem_analysis::FctDefinition;
 
+mod data;
 mod serializer;
 
 pub fn compile(vm: &VM, fct: &FctDefinition, type_params: &BytecodeTypeArray) -> CodeDescriptor {
     let bytecode_fct = fct.bytecode.as_ref().expect("bytecode missing");
 
-    let compile_fct_id = vm.known.functions.compile();
+    let compile_fct_id = FunctionId(vm.known.functions.compile().0 as u32);
     let compile_address = vm.ensure_compiled(compile_fct_id);
 
     let encoded_compilation_info = handle(allocate_encoded_compilation_info(

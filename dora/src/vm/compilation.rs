@@ -4,8 +4,7 @@ use std::collections::HashMap;
 
 use crate::gc::Address;
 use crate::vm::{CodeId, VM};
-use dora_frontend::bytecode::BytecodeTypeArray;
-use dora_frontend::language::sem_analysis::FctDefinitionId;
+use dora_frontend::bytecode::{BytecodeTypeArray, FunctionId};
 
 #[derive(PartialEq, Debug)]
 enum CompilationStatus {
@@ -14,7 +13,7 @@ enum CompilationStatus {
 }
 
 pub struct CompilationDatabase {
-    inner: Mutex<HashMap<(FctDefinitionId, BytecodeTypeArray), CompilationStatus>>,
+    inner: Mutex<HashMap<(FunctionId, BytecodeTypeArray), CompilationStatus>>,
     cv_notify: Condvar,
 }
 
@@ -33,7 +32,7 @@ impl CompilationDatabase {
     pub fn is_compiled(
         &self,
         vm: &VM,
-        id: FctDefinitionId,
+        id: FunctionId,
         type_params: BytecodeTypeArray,
     ) -> Option<Address> {
         let inner = self.inner.lock();
@@ -55,7 +54,7 @@ impl CompilationDatabase {
     pub fn compilation_request(
         &self,
         vm: &VM,
-        id: FctDefinitionId,
+        id: FunctionId,
         type_params: BytecodeTypeArray,
     ) -> Option<Address> {
         let mut inner = self.inner.lock();
@@ -81,7 +80,7 @@ impl CompilationDatabase {
 
     pub fn finish_compilation(
         &self,
-        id: FctDefinitionId,
+        id: FunctionId,
         type_params: BytecodeTypeArray,
         code_id: CodeId,
     ) {

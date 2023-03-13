@@ -16,8 +16,7 @@ use crate::stack::DoraToNativeInfo;
 use crate::threads::ThreadLocalData;
 use crate::vm::install_code_stub;
 use crate::vm::{Code, CodeKind, GcPoint, VM};
-use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray};
-use dora_frontend::language::sem_analysis::FctDefinitionId;
+use dora_frontend::bytecode::{BytecodeType, BytecodeTypeArray, FunctionId};
 
 pub struct NativeStubs {
     map: HashMap<Address, Address>,
@@ -41,7 +40,7 @@ impl NativeStubs {
 
 #[derive(Clone)]
 pub enum NativeFctKind {
-    NativeStub(FctDefinitionId),
+    NativeStub(FunctionId),
     AllocStub,
     VerifyStub,
     TrapStub,

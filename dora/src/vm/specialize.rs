@@ -11,10 +11,9 @@ use crate::vm::{
     StructInstanceId, VM,
 };
 use dora_frontend::bytecode::{
-    BytecodeType, BytecodeTypeArray, ClassData, ClassId, EnumData, EnumId, StructData, StructId,
-    TraitData, TraitId,
+    BytecodeType, BytecodeTypeArray, ClassData, ClassId, EnumData, EnumId, FunctionId, StructData,
+    StructId, TraitData, TraitId,
 };
-use dora_frontend::language::sem_analysis::FctDefinitionId;
 
 pub fn create_struct_instance(
     vm: &VM,
@@ -451,7 +450,7 @@ fn create_specialized_class_array(
 
 pub fn ensure_class_instance_for_lambda(
     vm: &VM,
-    fct_id: FctDefinitionId,
+    fct_id: FunctionId,
     type_params: BytecodeTypeArray,
 ) -> ClassInstanceId {
     // Lambda object only has context field at the moment.

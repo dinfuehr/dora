@@ -2,10 +2,11 @@ use std::convert::TryInto;
 
 use byteorder::{LittleEndian, WriteBytesExt};
 
+use crate::boots::data::InstructionSet;
 use crate::object::{byte_array_from_buffer, Obj, Ref};
 use crate::vm::VM;
 use dora_frontend::bytecode::{
-    BytecodeFunction, BytecodeTypeArray, ConstPoolEntry, ConstPoolOpcode, InstructionSet,
+    BytecodeFunction, BytecodeTypeArray, ConstPoolEntry, ConstPoolOpcode,
 };
 use dora_frontend::bytecode::{BytecodeType, BytecodeTypeKind};
 
@@ -176,13 +177,13 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
         }
         &ConstPoolEntry::Fct(fct_id, ref source_type_array) => {
             buffer.emit_u8(ConstPoolOpcode::Fct.to_u8());
-            buffer.emit_id(fct_id.to_usize());
+            buffer.emit_id(fct_id.0 as usize);
             encode_bytecode_type_array(vm, source_type_array, buffer);
         }
         &ConstPoolEntry::Generic(tp_id, fct_id, ref source_type_array) => {
             buffer.emit_u8(ConstPoolOpcode::Generic.to_u8());
             buffer.emit_id(tp_id.to_usize());
-            buffer.emit_id(fct_id.to_usize());
+            buffer.emit_id(fct_id.0 as usize);
             encode_bytecode_type_array(vm, source_type_array, buffer);
         }
         &ConstPoolEntry::Class(cls_id, ref source_type_array) => {

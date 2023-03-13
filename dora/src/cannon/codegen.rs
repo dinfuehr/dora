@@ -25,7 +25,7 @@ use crate::vm::{
 use crate::vtable::VTable;
 use dora_frontend::bytecode::{
     self, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeTypeArray, BytecodeVisitor,
-    ConstPoolEntry, ConstPoolIdx, GlobalId, Location, Register, TraitId,
+    ConstPoolEntry, ConstPoolIdx, FunctionId, GlobalId, Location, Register, TraitId,
 };
 use dora_frontend::language::generator::{bty_from_ty, register_bty_from_bty, ty_from_bty};
 use dora_frontend::language::sem_analysis::{FctDefinitionId, Intrinsic};
@@ -81,7 +81,7 @@ pub struct CannonCodeGen<'a> {
     slow_paths: Vec<(
         Label,
         Register,
-        FctDefinitionId,
+        FunctionId,
         Vec<Register>,
         BytecodeTypeArray,
         Location,
@@ -1486,7 +1486,6 @@ impl<'a> CannonCodeGen<'a> {
                 .is_initialized(global_id)
         {
             let fid = global_var.initializer.unwrap();
-            let fid = FctDefinitionId(fid.0 as usize);
             let ptr = self.get_call_target(fid, BytecodeTypeArray::empty());
             let position = self.bytecode.offset_location(self.current_offset.to_u32());
             let gcpoint = self.create_gcpoint();
@@ -2800,7 +2799,7 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_invoke_virtual(
         &mut self,
         dest: Register,
-        fct_id: FctDefinitionId,
+        fct_id: FunctionId,
         type_params: BytecodeTypeArray,
         arguments: Vec<Register>,
         location: Location,
@@ -2812,7 +2811,7 @@ impl<'a> CannonCodeGen<'a> {
         let bytecode_type_self = self.bytecode.register_type(self_register);
         assert!(bytecode_type_self.is_ptr() || bytecode_type_self.is_trait());
 
-        let fct = self.vm.fcts.idx(fct_id);
+        let fct = self.vm.fcts.idx(FctDefinitionId(fct_id.0 as usize));
         let fct = fct.read();
 
         let fct_return_type = self.specialize_bty(specialize_bty(
@@ -2874,12 +2873,12 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_invoke_direct_or_intrinsic(
         &mut self,
         dest: Register,
-        fct_id: FctDefinitionId,
+        fct_id: FunctionId,
         type_params: BytecodeTypeArray,
         arguments: Vec<Register>,
         location: Location,
     ) {
-        let fct = self.vm.fcts.idx(fct_id);
+        let fct = self.vm.fcts.idx(FctDefinitionId(fct_id.0 as usize));
         let fct = fct.read();
         assert!(fct.has_self());
 
@@ -2893,7 +2892,7 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_invoke_direct(
         &mut self,
         dest: Register,
-        fct_id: FctDefinitionId,
+        fct_id: FunctionId,
         type_params: BytecodeTypeArray,
         arguments: Vec<Register>,
         location: Location,
@@ -2902,7 +2901,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let dest_ty = self.specialize_register_type(dest);
 
-        let fct = self.vm.fcts.idx(fct_id);
+        let fct = self.vm.fcts.idx(FctDefinitionId(fct_id.0 as usize));
         let fct = fct.read();
 
         let fct_return_type = self.specialize_bty(specialize_bty(
@@ -2960,12 +2959,12 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_invoke_static_or_intrinsic(
         &mut self,
         dest: Register,
-        fct_id: FctDefinitionId,
+        fct_id: FunctionId,
         type_params: BytecodeTypeArray,
         arguments: Vec<Register>,
         location: Location,
     ) {
-        let fct = self.vm.fcts.idx(fct_id);
+        let fct = self.vm.fcts.idx(FctDefinitionId(fct_id.0 as usize));
         let fct = fct.read();
         assert!(!fct.has_self());
 
@@ -2979,14 +2978,14 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_invoke_static(
         &mut self,
         dest: Register,
-        fct_id: FctDefinitionId,
+        fct_id: FunctionId,
         type_params: BytecodeTypeArray,
         arguments: Vec<Register>,
         location: Location,
     ) {
         let bytecode_type = self.specialize_register_type(dest);
 
-        let fct = self.vm.fcts.idx(fct_id);
+        let fct = self.vm.fcts.idx(FctDefinitionId(fct_id.0 as usize));
         let fct = fct.read();
 
         let fct_return_type = self.specialize_bty(specialize_bty(
@@ -3045,7 +3044,7 @@ impl<'a> CannonCodeGen<'a> {
             _ => unreachable!(),
         };
 
-        let fct = self.vm.fcts.idx(trait_fct_id);
+        let fct = self.vm.fcts.idx(FctDefinitionId(trait_fct_id.0 as usize));
         let fct = fct.read();
 
         let trait_id = fct.trait_id();
@@ -3067,7 +3066,7 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_invoke_intrinsic(
         &mut self,
         dest: Register,
-        fct_id: FctDefinitionId,
+        fct_id: FunctionId,
         intrinsic: Intrinsic,
         type_params: BytecodeTypeArray,
         arguments: Vec<Register>,
@@ -3641,7 +3640,7 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_intrinsic_count_bits(
         &mut self,
         dest: Register,
-        fct_id: FctDefinitionId,
+        fct_id: FunctionId,
         intrinsic: Intrinsic,
         arguments: Vec<Register>,
         type_params: BytecodeTypeArray,
@@ -3730,7 +3729,7 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_intrinsic_float_round_tozero(
         &mut self,
         dest: Register,
-        _fct_id: FctDefinitionId,
+        _fct_id: FunctionId,
         intrinsic: Intrinsic,
         arguments: Vec<Register>,
         type_params: BytecodeTypeArray,
@@ -3753,7 +3752,7 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_intrinsic_float_round_up(
         &mut self,
         dest: Register,
-        _fct_id: FctDefinitionId,
+        _fct_id: FunctionId,
         intrinsic: Intrinsic,
         arguments: Vec<Register>,
         type_params: BytecodeTypeArray,
@@ -3776,7 +3775,7 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_intrinsic_float_round_down(
         &mut self,
         dest: Register,
-        _fct_id: FctDefinitionId,
+        _fct_id: FunctionId,
         intrinsic: Intrinsic,
         arguments: Vec<Register>,
         type_params: BytecodeTypeArray,
@@ -3799,7 +3798,7 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_intrinsic_float_round_halfeven(
         &mut self,
         dest: Register,
-        _fct_id: FctDefinitionId,
+        _fct_id: FunctionId,
         intrinsic: Intrinsic,
         arguments: Vec<Register>,
         type_params: BytecodeTypeArray,
@@ -3823,7 +3822,7 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_intrinsic_float_sqrt(
         &mut self,
         dest: Register,
-        _fct_id: FctDefinitionId,
+        _fct_id: FunctionId,
         intrinsic: Intrinsic,
         arguments: Vec<Register>,
         type_params: BytecodeTypeArray,
@@ -3846,7 +3845,7 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_intrinsic_option_get_or_panic(
         &mut self,
         dest: Register,
-        fct_id: FctDefinitionId,
+        fct_id: FunctionId,
         _intrinsic: Intrinsic,
         arguments: Vec<Register>,
         type_params: BytecodeTypeArray,
@@ -3938,7 +3937,7 @@ impl<'a> CannonCodeGen<'a> {
         &mut self,
         lbl: Label,
         dest: Register,
-        fct_id: FctDefinitionId,
+        fct_id: FunctionId,
         arguments: Vec<Register>,
         type_params: BytecodeTypeArray,
         location: Location,
@@ -3950,7 +3949,7 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_intrinsic_unsafe_kill_refs(
         &mut self,
         dest: Register,
-        _fct_id: FctDefinitionId,
+        _fct_id: FunctionId,
         _intrinsic: Intrinsic,
         arguments: Vec<Register>,
         type_params: BytecodeTypeArray,
@@ -3980,7 +3979,7 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_intrinsic_option_is_none(
         &mut self,
         dest: Register,
-        _fct_id: FctDefinitionId,
+        _fct_id: FunctionId,
         intrinsic: Intrinsic,
         arguments: Vec<Register>,
         type_params: BytecodeTypeArray,
@@ -4166,8 +4165,8 @@ impl<'a> CannonCodeGen<'a> {
         mem::align_i32(argsize, STACK_FRAME_ALIGNMENT as i32)
     }
 
-    fn get_call_target(&mut self, fid: FctDefinitionId, type_params: BytecodeTypeArray) -> Address {
-        let fct = self.vm.fcts.idx(fid);
+    fn get_call_target(&mut self, fid: FunctionId, type_params: BytecodeTypeArray) -> Address {
+        let fct = self.vm.fcts.idx(FctDefinitionId(fid.0 as usize));
         let fct = fct.read();
 
         if let Some(&native_pointer) = self.vm.native_implementations.get(&fid) {

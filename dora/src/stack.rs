@@ -4,7 +4,8 @@ use crate::handle::{handle, Handle};
 use crate::object::{alloc, Array, Int32Array, Ref, Stacktrace, StacktraceElement, Str};
 use crate::threads::current_thread;
 use crate::vm::{display_fct, get_vm, loc, CodeId, CodeKind, VM};
-use dora_frontend::bytecode::Location;
+use dora_frontend::bytecode::{FunctionId, Location};
+use dora_frontend::language::sem_analysis::FctDefinitionId;
 
 pub struct NativeStacktrace {
     elems: Vec<StackElem>,
@@ -26,10 +27,10 @@ impl NativeStacktrace {
     pub fn dump(&self, vm: &VM, w: &mut (impl std::io::Write + ?Sized)) -> std::io::Result<()> {
         for elem in &self.elems {
             let code = vm.code_objects.get(elem.fct_id);
-            let fct_id = code.fct_id();
+            let fct_id = FctDefinitionId(code.fct_id().0 as usize);
             let fct = vm.fcts.idx(fct_id);
             let fct = fct.read();
-            let fct_name = display_fct(vm, fct_id);
+            let fct_name = display_fct(vm, FunctionId(fct_id.0 as u32));
             let file = &vm.program.source_files[fct.file_id.to_usize()].path;
             let lineno = if elem.location.line() == 0 {
                 fct.pos.line
@@ -137,6 +138,7 @@ fn determine_stack_entry(stacktrace: &mut NativeStacktrace, vm: &VM, pc: usize) 
             }
 
             CodeKind::NativeStub(fct_id) => {
+                let fct_id = FctDefinitionId(fct_id.0 as usize);
                 let fct = vm.fcts.idx(fct_id);
                 let fct = fct.read();
 
@@ -201,7 +203,8 @@ fn set_backtrace(vm: &VM, mut obj: Handle<Stacktrace>, via_retrieve: bool) {
             let fct_id = code.fct_id();
 
             if !skip_retrieve_stack {
-                let retrieve_stacktrace_fct_id = vm.known.functions.stacktrace_retrieve();
+                let retrieve_stacktrace_fct_id =
+                    FunctionId(vm.known.functions.stacktrace_retrieve().0 as u32);
 
                 if retrieve_stacktrace_fct_id == fct_id {
                     skip += 2;

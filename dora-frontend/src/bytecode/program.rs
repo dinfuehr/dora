@@ -1,6 +1,6 @@
 use crate::bytecode::BytecodeType;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PackageId(pub u32);
 
 #[derive(Debug)]
@@ -9,7 +9,7 @@ pub struct PackageData {
     pub root_module_id: ModuleId,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ModuleId(pub u32);
 
 #[derive(Debug)]
@@ -18,7 +18,7 @@ pub struct ModuleData {
     pub parent_id: Option<ModuleId>,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct FunctionId(pub u32);
 
 #[derive(Debug)]

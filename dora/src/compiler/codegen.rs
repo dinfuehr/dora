@@ -11,24 +11,29 @@ use crate::driver::cmd::{AsmSyntax, CompilerName};
 use crate::gc::Address;
 use crate::os;
 use crate::vm::{display_fct, install_code, CodeKind, VM};
-use dora_frontend::bytecode::{BytecodeFunction, BytecodeType, BytecodeTypeArray};
+use dora_frontend::bytecode::{BytecodeFunction, BytecodeType, BytecodeTypeArray, FunctionId};
 use dora_frontend::language::generator::{bty_array_from_ty, bty_from_ty};
 use dora_frontend::language::sem_analysis::{FctDefinition, FctDefinitionId};
 use dora_frontend::language::ty::SourceTypeArray;
 
-pub fn generate(vm: &VM, id: FctDefinitionId, type_params: &BytecodeTypeArray) -> Address {
-    let fct = vm.fcts.idx(id);
+pub fn generate(vm: &VM, id: FunctionId, type_params: &BytecodeTypeArray) -> Address {
+    let fct = vm.fcts.idx(FctDefinitionId(id.0 as usize));
     let fct = fct.read();
-    generate_fct(vm, &fct, type_params)
+    generate_fct(vm, id, &fct, type_params)
 }
 
-pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &BytecodeTypeArray) -> Address {
+pub fn generate_fct(
+    vm: &VM,
+    fct_id: FunctionId,
+    fct: &FctDefinition,
+    type_params: &BytecodeTypeArray,
+) -> Address {
     debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
     // Block here if compilation is already in progress.
     if let Some(instruction_start) =
         vm.compilation_database
-            .compilation_request(vm, fct.id(), type_params.clone())
+            .compilation_request(vm, fct_id, type_params.clone())
     {
         return instruction_start;
     }
@@ -74,7 +79,11 @@ pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &BytecodeTypeArra
         CompilerName::Boots => boots::compile(vm, &fct, &type_params),
     };
 
-    let code = install_code(vm, code_descriptor, CodeKind::DoraFct(fct.id()));
+    let code = install_code(
+        vm,
+        code_descriptor,
+        CodeKind::DoraFct(FunctionId(fct.id().0 as u32)),
+    );
 
     // We need to insert into CodeMap before releasing the compilation-lock. Otherwise
     // another thread could run that function while the function can't be found in the
@@ -83,13 +92,13 @@ pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &BytecodeTypeArra
 
     // Mark compilation as finished and resume threads waiting for compilation.
     vm.compilation_database
-        .finish_compilation(fct.id(), type_params.clone(), code_id);
+        .finish_compilation(fct_id, type_params.clone(), code_id);
 
     if vm.args.flag_emit_compiler {
         let duration = start.expect("missing start time").elapsed();
         println!(
             "compile {} using {} in {}ms.",
-            display_fct(vm, fct.id()),
+            display_fct(vm, FunctionId(fct.id().0 as u32)),
             compiler,
             (duration.as_micros() as f64) / 1000.0
         );
@@ -102,7 +111,7 @@ pub fn generate_fct(vm: &VM, fct: &FctDefinition, type_params: &BytecodeTypeArra
     if emit_asm {
         disassembler::disassemble(
             vm,
-            &*fct,
+            fct_id,
             &type_params,
             &code,
             vm.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att),
@@ -137,7 +146,7 @@ pub fn fct_pattern_match(vm: &VM, fct: &FctDefinition, pattern: &str) -> bool {
         return true;
     }
 
-    let fct_name = display_fct(vm, fct.id());
+    let fct_name = display_fct(vm, FunctionId(fct.id().0 as u32));
 
     for part in pattern.split(',') {
         if fct_name.contains(part) {
@@ -202,11 +211,7 @@ pub enum AllocationSize {
     Dynamic(Reg),
 }
 
-pub fn ensure_native_stub(
-    vm: &VM,
-    fct_id: Option<FctDefinitionId>,
-    native_fct: NativeFct,
-) -> Address {
+pub fn ensure_native_stub(vm: &VM, fct_id: Option<FunctionId>, native_fct: NativeFct) -> Address {
     let mut native_stubs = vm.native_stubs.lock();
     let ptr = native_fct.fctptr;
 
@@ -214,7 +219,7 @@ pub fn ensure_native_stub(
         instruction_start
     } else {
         let dbg = if let Some(fct_id) = fct_id {
-            let fct = vm.fcts.idx(fct_id);
+            let fct = vm.fcts.idx(FctDefinitionId(fct_id.0 as usize));
             let fct = fct.read();
             should_emit_debug(vm, &*fct)
         } else {
@@ -224,12 +229,12 @@ pub fn ensure_native_stub(
         let code = dora_exit_stubs::generate(vm, native_fct, dbg);
 
         if let Some(fct_id) = fct_id {
-            let fct = vm.fcts.idx(fct_id);
+            let fct = vm.fcts.idx(FctDefinitionId(fct_id.0 as usize));
             let fct = fct.read();
             if should_emit_asm(vm, &*fct) {
                 disassembler::disassemble(
                     vm,
-                    &*fct,
+                    fct_id,
                     &BytecodeTypeArray::empty(),
                     &code,
                     vm.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att),

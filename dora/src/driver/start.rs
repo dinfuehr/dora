@@ -1,6 +1,7 @@
 use crate::driver::cmd::{self, Args};
 use crate::timer::Timer;
 use crate::vm::{clear_vm, display_fct, execute_on_main, module_contains, set_vm, VM};
+use dora_frontend::bytecode::FunctionId;
 use dora_frontend::language;
 use dora_frontend::language::error::msg::ErrorMessage;
 use dora_frontend::language::sem_analysis::{
@@ -126,7 +127,7 @@ fn run_tests(vm: &VM, module_id: ModuleDefinitionId) -> i32 {
 
             if !module_contains(vm, module_id, fct.module_id)
                 || !is_test_fct(&*fct)
-                || !test_filter_matches(vm, &*fct)
+                || !test_filter_matches(vm, FunctionId(fct.id().0 as u32))
             {
                 continue;
             }
@@ -135,7 +136,8 @@ fn run_tests(vm: &VM, module_id: ModuleDefinitionId) -> i32 {
 
             print!("test {} ... ", vm.interner.str(fct.name));
 
-            run_test(vm, fct.id());
+            let fct_id = FunctionId(fct.id().0 as u32);
+            run_test(vm, fct_id);
             passed += 1;
             println!("ok");
         }
@@ -156,7 +158,7 @@ fn run_tests(vm: &VM, module_id: ModuleDefinitionId) -> i32 {
     }
 }
 
-fn run_test(vm: &VM, fct: FctDefinitionId) {
+fn run_test(vm: &VM, fct: FunctionId) {
     vm.run_test(fct);
 }
 
@@ -165,20 +167,21 @@ fn is_test_fct(fct: &FctDefinition) -> bool {
     fct.is_test
 }
 
-fn test_filter_matches(vm: &VM, fct: &FctDefinition) -> bool {
+fn test_filter_matches(vm: &VM, fct_id: FunctionId) -> bool {
     if vm.args.flag_test_filter.is_none() {
         return true;
     }
 
     let filter = vm.args.flag_test_filter.as_ref().unwrap();
-    let name = display_fct(vm, fct.id());
+    let name = display_fct(vm, fct_id);
 
     name.contains(filter)
 }
 
-fn run_main(vm: &VM, main: FctDefinitionId) -> i32 {
+fn run_main(vm: &VM, main: FunctionId) -> i32 {
     let res = execute_on_main(|| vm.run(main));
-    let fct = vm.fcts.idx(main);
+    let main_fct_id = FctDefinitionId(main.0 as usize);
+    let fct = vm.fcts.idx(main_fct_id);
     let fct = fct.read();
     let is_unit = fct.return_type.is_unit();
 
@@ -192,7 +195,7 @@ fn run_main(vm: &VM, main: FctDefinitionId) -> i32 {
     }
 }
 
-fn find_main(sa: &SemAnalysis, args: &Args) -> Option<FctDefinitionId> {
+fn find_main(sa: &SemAnalysis, args: &Args) -> Option<FunctionId> {
     if args.command.is_test() {
         return None;
     }
@@ -219,5 +222,5 @@ fn find_main(sa: &SemAnalysis, args: &Args) -> Option<FctDefinitionId> {
         return None;
     }
 
-    Some(fctid)
+    Some(FunctionId(fctid.0 as u32))
 }

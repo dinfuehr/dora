@@ -1,6 +1,7 @@
 use crate::vm::{find_trait_impl, loc, VM};
 use dora_frontend::bytecode::{
-    BytecodeBuilder, BytecodeFunction, BytecodeType, BytecodeTypeArray, Register, TraitId,
+    BytecodeBuilder, BytecodeFunction, BytecodeType, BytecodeTypeArray, FunctionId, Register,
+    TraitId,
 };
 use dora_frontend::language::generator::{
     register_bty_from_bty, register_bty_from_ty, ty_from_bty,
@@ -12,11 +13,11 @@ use dora_frontend::language::ty::SourceType;
 
 pub fn ensure(
     vm: &VM,
-    fct_id: FctDefinitionId,
+    fct_id: FunctionId,
     type_params: BytecodeTypeArray,
     actual_ty: BytecodeType,
-) -> FctDefinitionId {
-    let fct = vm.fcts.idx(fct_id);
+) -> FunctionId {
+    let fct = vm.fcts.idx(FctDefinitionId(fct_id.0 as usize));
     let fct = fct.read();
 
     let trait_id = fct.parent.trait_id().expect("expected trait");
@@ -25,7 +26,7 @@ pub fn ensure(
     let thunk_id = fct.thunk_id.write();
 
     if let Some(thunk_id) = thunk_id.clone() {
-        return thunk_id;
+        return FunctionId(thunk_id.0 as u32);
     }
 
     let callee_id = find_trait_impl(
@@ -64,14 +65,14 @@ pub fn ensure(
     thunk_fct.return_type = fct.return_type.clone();
     let thunk_fct_id = vm.add_fct(thunk_fct);
 
-    thunk_fct_id
+    FunctionId(thunk_fct_id.0 as u32)
 }
 
 fn generate_bytecode_for_thunk(
     trait_fct: &FctDefinition,
     trait_object_ty: BytecodeType,
     thunk_fct: &FctDefinition,
-    _callee_id: FctDefinitionId,
+    _callee_id: FunctionId,
     actual_ty: BytecodeType,
 ) -> BytecodeFunction {
     let mut gen = BytecodeBuilder::new();
@@ -99,8 +100,8 @@ fn generate_bytecode_for_thunk(
     }
 
     let type_param_id = TypeParamId(thunk_fct.type_params.len() - 1);
-    let target_fct_idx =
-        gen.add_const_generic(type_param_id, trait_fct.id(), BytecodeTypeArray::empty());
+    let fct_id = FunctionId(trait_fct.id().0 as u32);
+    let target_fct_idx = gen.add_const_generic(type_param_id, fct_id, BytecodeTypeArray::empty());
 
     let ty = register_bty_from_ty(trait_fct.return_type.clone());
     let result_reg = gen.alloc_var(ty);

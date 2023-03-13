@@ -24,24 +24,28 @@ def read_enum(name)
     values = []
     parse_line = false
 
-    File.open('dora/src/bytecode/data.rs').each_line do |line|
-        unless parse_line
-            parse_line = true if line == "enumeration!(#{name} {\n" || line == "pub enum #{name} {\n"
-            next
+    input_files = ['dora-frontend/src/bytecode/data.rs', 'dora/src/boots/data.rs']
+
+    for input_file in input_files
+        File.open(input_file).each_line do |line|
+            unless parse_line
+                parse_line = true if line == "enumeration!(#{name} {\n" || line == "pub enum #{name} {\n"
+                next
+            end
+
+            next if line.strip.empty?
+            next if line.match(/^\s*\/\//)
+
+            return values if line == "});\n" || line == "}\n"
+
+            m = line.match(/^\s*([a-zA-Z0-9]+),?$/)
+
+            unless m
+                raise "illegal line: #{line.inspect}"
+            end
+
+            values.push(m[1])
         end
-
-        next if line.strip.empty?
-        next if line.match(/^\s*\/\//)
-
-        return values if line == "});\n" || line == "}\n"
-
-        m = line.match(/^\s*([a-zA-Z0-9]+),?$/)
-
-        unless m
-            raise "illegal line: #{line.inspect}"
-        end
-
-        values.push(m[1])
     end
 
     raise "enum #{name} not found" unless parse_line

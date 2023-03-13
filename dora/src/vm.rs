@@ -16,7 +16,8 @@ use crate::threads::{
 };
 use crate::utils::GrowableVecNonIter;
 use dora_frontend::bytecode::{
-    BytecodeType, BytecodeTypeArray, ClassId, EnumId, Location, Program, StructId, TraitId,
+    BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, Location, Program, StructId,
+    TraitId,
 };
 use dora_frontend::language::sem_analysis::{
     ClassDefinition, EnumDefinition, ExtensionDefinition, FctDefinition, FctDefinitionId,
@@ -135,7 +136,7 @@ pub struct VM {
     pub global_variable_memory: Option<GlobalVariableMemory>,
     pub gc: Gc, // garbage collector
     pub native_stubs: Mutex<NativeStubs>,
-    pub native_implementations: HashMap<FctDefinitionId, Address>,
+    pub native_implementations: HashMap<FunctionId, Address>,
     pub stubs: Stubs,
     pub threads: Threads,
     pub package_names: HashMap<Name, PackageDefinitionId>,
@@ -202,7 +203,7 @@ impl VM {
         self.gc.epoch()
     }
 
-    pub fn run(&self, fct_id: FctDefinitionId) -> i32 {
+    pub fn run(&self, fct_id: FunctionId) -> i32 {
         let tld = current_thread().tld_address();
         let ptr = self.ensure_compiled(fct_id);
         let dora_stub_address = self.stubs.dora_entry();
@@ -211,7 +212,7 @@ impl VM {
         fct(tld, ptr)
     }
 
-    pub fn run_test(&self, fct_id: FctDefinitionId) {
+    pub fn run_test(&self, fct_id: FunctionId) {
         let tld = current_thread().tld_address();
         let ptr = self.ensure_compiled(fct_id);
         let dora_stub_address = self.stubs.dora_entry();
@@ -220,7 +221,7 @@ impl VM {
         fct(tld, ptr);
     }
 
-    pub fn ensure_compiled(&self, fct_id: FctDefinitionId) -> Address {
+    pub fn ensure_compiled(&self, fct_id: FunctionId) -> Address {
         let mut dtn = DoraToNativeInfo::new();
         let type_params = BytecodeTypeArray::empty();
 

@@ -5,7 +5,7 @@ use dora_parser::{ast, Position};
 
 use crate::bytecode::{
     BytecodeBuilder, BytecodeFunction, BytecodeType, BytecodeTypeArray, ClassId, ConstPoolIdx,
-    EnumId, GlobalId, Label, Location, Register, StructId, TraitId,
+    EnumId, FunctionId, GlobalId, Label, Location, Register, StructId, TraitId,
 };
 use crate::language::sem_analysis::{
     find_impl, AnalysisData, CallType, ClassDefinitionId, ConstDefinitionId, ContextIdx,
@@ -360,7 +360,7 @@ impl<'a> AstBytecodeGen<'a> {
             self.builder.emit_push_register(object_reg);
             let fct_idx = self
                 .builder
-                .add_const_fct_types(make_iterator, object_type_params);
+                .add_const_fct_types(FunctionId(make_iterator.0 as u32), object_type_params);
             self.builder
                 .emit_invoke_direct(iterator_reg, fct_idx, loc(stmt.expr.pos()));
             iterator_reg
@@ -386,9 +386,10 @@ impl<'a> AstBytecodeGen<'a> {
         let next_result_ty = register_bty_from_ty(for_type_info.next_type.clone());
         let next_result_reg = self.alloc_temp(next_result_ty);
 
-        let fct_idx = self
-            .builder
-            .add_const_fct_types(for_type_info.next, iterator_type_params);
+        let fct_idx = self.builder.add_const_fct_types(
+            FunctionId(for_type_info.next.0 as u32),
+            iterator_type_params,
+        );
 
         self.builder.emit_push_register(iterator_reg);
         self.emit_invoke_direct(
@@ -401,7 +402,7 @@ impl<'a> AstBytecodeGen<'a> {
         // Emit: if <next-result>.isNone() then goto lbl_end
         let cond_reg = self.alloc_temp(BytecodeType::Bool);
         let fct_idx = self.builder.add_const_fct_types(
-            self.sa.known.functions.option_is_none(),
+            FunctionId(self.sa.known.functions.option_is_none().0 as u32),
             bty_array_from_ty(&option_type_params),
         );
         self.builder.emit_push_register(next_result_reg);
@@ -417,7 +418,7 @@ impl<'a> AstBytecodeGen<'a> {
             let value_ty = register_bty_from_ty(value_ty);
             let value_reg = self.alloc_var(value_ty);
             let fct_idx = self.builder.add_const_fct_types(
-                self.sa.known.functions.option_unwrap(),
+                FunctionId(self.sa.known.functions.option_unwrap().0 as u32),
                 bty_array_from_ty(&option_type_params),
             );
             self.builder.emit_push_register(next_result_reg);
@@ -638,7 +639,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         // build StringBuffer::empty() call
         let fct_id = self.sa.known.functions.string_buffer_empty();
-        let fct_idx = self.builder.add_const_fct(fct_id);
+        let fct_idx = self.builder.add_const_fct(FunctionId(fct_id.0 as u32));
         self.builder
             .emit_invoke_static(buffer_register, fct_idx, loc(expr.pos));
 
@@ -672,7 +673,7 @@ impl<'a> AstBytecodeGen<'a> {
 
                     let fct_idx = self.builder.add_const_generic(
                         type_list_id,
-                        to_string_id,
+                        FunctionId(to_string_id.0 as u32),
                         BytecodeTypeArray::empty(),
                     );
 
@@ -703,7 +704,9 @@ impl<'a> AstBytecodeGen<'a> {
                         .cloned()
                         .expect("method toString() not found");
 
-                    let fct_idx = self.builder.add_const_fct(to_string_id);
+                    let fct_idx = self
+                        .builder
+                        .add_const_fct(FunctionId(to_string_id.0 as u32));
                     self.builder
                         .emit_invoke_direct(part_register, fct_idx, loc(part.pos()));
 
@@ -713,7 +716,7 @@ impl<'a> AstBytecodeGen<'a> {
 
             // build StringBuffer::append() call
             let fct_id = self.sa.known.functions.string_buffer_append();
-            let fct_idx = self.builder.add_const_fct(fct_id);
+            let fct_idx = self.builder.add_const_fct(FunctionId(fct_id.0 as u32));
             self.builder.emit_push_register(buffer_register);
             self.builder.emit_push_register(part_register);
             let dest_reg = self.ensure_unit_register();
@@ -725,7 +728,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         // build StringBuffer::toString() call
         let fct_id = self.sa.known.functions.string_buffer_to_string();
-        let fct_idx = self.builder.add_const_fct(fct_id);
+        let fct_idx = self.builder.add_const_fct(FunctionId(fct_id.0 as u32));
         self.builder.emit_push_register(buffer_register);
         self.builder
             .emit_invoke_direct(buffer_register, fct_idx, loc(expr.pos));
@@ -932,7 +935,7 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         let idx = self.builder.add_const_fct_types(
-            lambda_fct_id,
+            FunctionId(lambda_fct_id.0 as u32),
             bty_array_from_ty(&self.identity_type_params()),
         );
         self.builder.emit_new_lambda(dest, idx, loc(node.pos));
@@ -1135,7 +1138,7 @@ impl<'a> AstBytecodeGen<'a> {
         let assert_reg = self.visit_expr(&*expr.args[0], DataDest::Alloc);
         self.builder.emit_push_register(assert_reg);
         let fid = self.sa.known.functions.assert();
-        let idx = self.builder.add_const_fct(fid);
+        let idx = self.builder.add_const_fct(FunctionId(fid.0 as u32));
         let dest = self.ensure_unit_register();
         self.builder.emit_invoke_static(dest, idx, loc(expr.pos));
         self.free_if_temp(assert_reg);
@@ -2379,9 +2382,10 @@ impl<'a> AstBytecodeGen<'a> {
                     let fct_id = info.fct_id.expect("fct_id missing");
                     let ty = self.ty(lhs.id());
                     let type_params = ty.type_params();
-                    let idx = self
-                        .builder
-                        .add_const_fct_types(fct_id, bty_array_from_ty(&type_params));
+                    let idx = self.builder.add_const_fct_types(
+                        FunctionId(fct_id.0 as u32),
+                        bty_array_from_ty(&type_params),
+                    );
                     self.builder.emit_push_register(lhs_reg);
                     self.builder.emit_push_register(rhs_reg);
                     self.builder.emit_invoke_direct(dest, idx, location);
@@ -2414,9 +2418,10 @@ impl<'a> AstBytecodeGen<'a> {
                     let fct_id = info.fct_id.expect("fct_id missing");
                     let ty = self.ty(lhs.id());
                     let type_params = ty.type_params();
-                    let idx = self
-                        .builder
-                        .add_const_fct_types(fct_id, bty_array_from_ty(&type_params));
+                    let idx = self.builder.add_const_fct_types(
+                        FunctionId(fct_id.0 as u32),
+                        bty_array_from_ty(&type_params),
+                    );
                     self.builder.emit_push_register(lhs_reg);
                     self.builder.emit_push_register(rhs_reg);
                     self.builder.emit_invoke_direct(dest, idx, location);
@@ -2453,9 +2458,10 @@ impl<'a> AstBytecodeGen<'a> {
                     let fct_id = info.fct_id.expect("fct_id missing");
                     let ty = self.ty(lhs.id());
                     let type_params = ty.type_params();
-                    let idx = self
-                        .builder
-                        .add_const_fct_types(fct_id, bty_array_from_ty(&type_params));
+                    let idx = self.builder.add_const_fct_types(
+                        FunctionId(fct_id.0 as u32),
+                        bty_array_from_ty(&type_params),
+                    );
                     self.builder.emit_push_register(lhs_reg);
                     self.builder.emit_push_register(rhs_reg);
                     self.builder.emit_invoke_direct(dest, idx, location);
@@ -2489,9 +2495,10 @@ impl<'a> AstBytecodeGen<'a> {
                     let fct_id = info.fct_id.expect("fct_id missing");
                     let ty = self.ty(lhs.id());
                     let type_params = ty.type_params();
-                    let idx = self
-                        .builder
-                        .add_const_fct_types(fct_id, bty_array_from_ty(&type_params));
+                    let idx = self.builder.add_const_fct_types(
+                        FunctionId(fct_id.0 as u32),
+                        bty_array_from_ty(&type_params),
+                    );
                     self.builder.emit_push_register(lhs_reg);
                     self.builder.emit_push_register(rhs_reg);
                     self.builder.emit_invoke_direct(dest, idx, location);
@@ -2524,9 +2531,10 @@ impl<'a> AstBytecodeGen<'a> {
                     let fct_id = info.fct_id.expect("fct_id missing");
                     let ty = self.ty(lhs.id());
                     let type_params = ty.type_params();
-                    let idx = self
-                        .builder
-                        .add_const_fct_types(fct_id, bty_array_from_ty(&type_params));
+                    let idx = self.builder.add_const_fct_types(
+                        FunctionId(fct_id.0 as u32),
+                        bty_array_from_ty(&type_params),
+                    );
                     self.builder.emit_push_register(lhs_reg);
                     self.builder.emit_push_register(rhs_reg);
                     self.builder.emit_invoke_direct(dest, idx, location)
@@ -2560,9 +2568,10 @@ impl<'a> AstBytecodeGen<'a> {
                     let fct_id = info.fct_id.expect("fct_id missing");
                     let ty = self.ty(lhs.id());
                     let type_params = ty.type_params();
-                    let idx = self
-                        .builder
-                        .add_const_fct_types(fct_id, bty_array_from_ty(&type_params));
+                    let idx = self.builder.add_const_fct_types(
+                        FunctionId(fct_id.0 as u32),
+                        bty_array_from_ty(&type_params),
+                    );
                     self.builder.emit_push_register(lhs_reg);
                     self.builder.emit_push_register(rhs_reg);
                     self.builder.emit_invoke_direct(dest, idx, location);
@@ -2673,7 +2682,7 @@ impl<'a> AstBytecodeGen<'a> {
 
             let callee_idx = self
                 .builder
-                .add_const_fct_types(fct_id, bty_array_from_ty(&type_params));
+                .add_const_fct_types(FunctionId(fct_id.0 as u32), bty_array_from_ty(&type_params));
             let dest = self.ensure_unit_register();
             self.builder
                 .emit_invoke_direct(dest, callee_idx, loc(expr.pos));
@@ -3127,12 +3136,17 @@ impl<'a> AstBytecodeGen<'a> {
         assert_eq!(fct.type_params.len(), type_params.len());
 
         match *call_type {
-            CallType::GenericStaticMethod(id, _, _) | CallType::GenericMethod(id, _, _) => self
-                .builder
-                .add_const_generic(id, fct.id(), bty_array_from_ty(&type_params)),
-            _ => self
-                .builder
-                .add_const_fct_types(fct.id(), bty_array_from_ty(&type_params)),
+            CallType::GenericStaticMethod(id, _, _) | CallType::GenericMethod(id, _, _) => {
+                self.builder.add_const_generic(
+                    id,
+                    FunctionId(fct.id().0 as u32),
+                    bty_array_from_ty(&type_params),
+                )
+            }
+            _ => self.builder.add_const_fct_types(
+                FunctionId(fct.id().0 as u32),
+                bty_array_from_ty(&type_params),
+            ),
         }
     }
 
