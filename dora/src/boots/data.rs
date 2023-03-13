@@ -1,7 +1,8 @@
-use dora_frontend::utils::enumeration;
+use num_enum::IntoPrimitive;
 
-#[rustfmt::skip]
-enumeration!(InstructionSet {
+#[derive(IntoPrimitive)]
+#[repr(u8)]
+pub enum InstructionSet {
     X64,
-    Arm64
-});
+    Arm64,
+}

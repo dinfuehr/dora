@@ -4,7 +4,7 @@ use crate::bytecode::{
     BytecodeReader, BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, GlobalId,
     StructId, TraitId,
 };
-use crate::enumeration;
+use num_enum::{IntoPrimitive, TryFromPrimitive};
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct BytecodeOffset(pub u32);
@@ -39,8 +39,9 @@ pub enum BytecodeTypeKind {
     Lambda,
 }
 
-// Keep in sync with dora-boots/bytecode.dora
-enumeration!(BytecodeOpcode {
+#[derive(IntoPrimitive, TryFromPrimitive, Copy, Clone, PartialEq, Eq)]
+#[repr(u8)]
+pub enum BytecodeOpcode {
     Wide,
 
     Add,
@@ -125,8 +126,8 @@ enumeration!(BytecodeOpcode {
 
     LoadTraitObjectValue,
 
-    Ret
-});
+    Ret,
+}
 
 fn opcode_size(width: OperandWidth) -> u32 {
     match width {
@@ -782,7 +783,9 @@ impl BytecodeFunction {
     }
 }
 
-enumeration!(ConstPoolOpcode {
+#[derive(Copy, Clone, PartialEq, Eq, IntoPrimitive)]
+#[repr(u8)]
+pub enum ConstPoolOpcode {
     String,
     Float32,
     Float64,
@@ -802,8 +805,8 @@ enumeration!(ConstPoolOpcode {
     Generic,
     TupleElement,
     Tuple,
-    Lambda
-});
+    Lambda,
+}
 
 #[derive(Debug, PartialEq)]
 pub enum ConstPoolEntry {
@@ -893,53 +896,3 @@ impl From<usize> for ConstPoolIdx {
         ConstPoolIdx(value)
     }
 }
-
-enumeration!(SourceTypeOpcode {
-    // couldn't determine type because of error
-    Error,
-
-    // Allow any type here, used for type inference
-    Any,
-
-    // type with only one value: ()
-    Unit,
-
-    // primitives
-    Bool,
-    Char,
-    UInt8,
-    Int32,
-    Int64,
-    Float32,
-    Float64,
-
-    // pointer to object, only used internally
-    Ptr,
-
-    // self type
-    This,
-
-    // some class
-    Class,
-
-    // some struct
-    Struct,
-
-    // some tuple
-    Tuple,
-
-    // some trait object
-    Trait,
-
-    // some module
-    Module,
-
-    // some type variable
-    TypeParam,
-
-    // some lambda
-    Lambda,
-
-    // some enum
-    Enum
-});

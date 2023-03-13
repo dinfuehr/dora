@@ -422,8 +422,6 @@ impl<'a> BytecodeReader<'a> {
                 let opnd = self.read_register();
                 BytecodeInstruction::Ret { opnd }
             }
-
-            _ => unreachable!(),
         };
 
         (start, self.width, opcode, inst)
@@ -455,14 +453,14 @@ impl<'a> BytecodeReader<'a> {
     fn read_opcode(&mut self) -> BytecodeOpcode {
         let mut opcode = self.read_byte();
 
-        if opcode == BytecodeOpcode::Wide.to_u8() {
+        if opcode == BytecodeOpcode::Wide.into() {
             self.width = OperandWidth::Wide;
             opcode = self.read_byte();
         } else {
             self.width = OperandWidth::Normal;
         }
 
-        BytecodeOpcode::from_u8(opcode).expect("illegal opcode")
+        BytecodeOpcode::try_from(opcode).expect("illegal opcode")
     }
 
     fn read_wide(&mut self) -> u32 {

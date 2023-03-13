@@ -29,6 +29,7 @@ parking_lot = "*"
 fixedbitset = "*"
 num_cpus = "*"
 memoffset = "*"
+num_enum = "*"
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "*", features = ["memoryapi"] }

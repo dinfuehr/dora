@@ -431,7 +431,7 @@ impl BytecodeWriter {
                     2
                 };
 
-                self.code[start.to_usize()] = inst_imm.to_u8();
+                self.code[start.to_usize()] = inst_imm.into();
                 self.code[start.to_usize() + jump_target] = distance as u8;
             } else {
                 self.patch_const(const_idx, ConstPoolEntry::Int32(distance as i32));
@@ -609,30 +609,24 @@ impl BytecodeWriter {
 
         if is_wide {
             self.emit_wide();
-            self.emit_opcode(op.to_u8() as u32);
+            self.emit_opcode(op.into());
             for &value in values {
                 self.emit_u32(value);
             }
         } else {
-            self.emit_opcode(op.to_u8() as u32);
+            self.emit_opcode(op.into());
             for &value in values {
                 self.emit_u8(value as u8);
             }
         }
     }
 
-    fn emit_opcode(&mut self, code: u32) {
-        if code >= 255 {
-            self.emit_u8(255);
-            assert!(code < 512);
-            self.emit_u8((code - 255) as u8);
-        } else {
-            self.emit_u8(code as u8);
-        }
+    fn emit_opcode(&mut self, code: u8) {
+        self.emit_u8(code as u8);
     }
 
     fn emit_wide(&mut self) {
-        self.code.push(BytecodeOpcode::Wide.to_u8());
+        self.code.push(BytecodeOpcode::Wide.into());
     }
 
     fn emit_u8(&mut self, value: u8) {
@@ -646,15 +640,13 @@ impl BytecodeWriter {
         cond: Option<Register>,
         lbl: Label,
     ) {
-        debug_assert!(fits_u8(inst.to_u8() as u32));
-        debug_assert!(fits_u8(inst_const.to_u8() as u32));
         let start = self.offset();
 
         if (cond.is_some() && !fits_u8(cond.unwrap().to_usize() as u32))
             || !fits_u8(self.const_pool.len() as u32)
         {
             self.emit_wide();
-            self.emit_opcode(inst.to_u8() as u32);
+            self.emit_opcode(inst.into());
             if let Some(cond) = cond {
                 self.emit_u32(cond.to_usize() as u32);
             }
@@ -662,7 +654,7 @@ impl BytecodeWriter {
             self.emit_u32(0);
             self.unresolved_jump_offsets.push((start, address, lbl));
         } else {
-            self.emit_opcode(inst_const.to_u8() as u32);
+            self.emit_opcode(inst_const.into());
             if let Some(cond) = cond {
                 self.emit_u8(cond.to_usize() as u8);
             }
@@ -677,7 +669,7 @@ impl BytecodeWriter {
     }
 
     fn bytecode_at(&self, offset: BytecodeOffset) -> BytecodeOpcode {
-        BytecodeOpcode::from_u8(self.code[offset.to_usize()]).expect("unknown bytecode")
+        BytecodeOpcode::try_from(self.code[offset.to_usize()]).expect("unknown bytecode")
     }
 
     fn emit_u32(&mut self, value: u32) {

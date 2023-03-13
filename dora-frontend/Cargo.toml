@@ -16,3 +16,4 @@ walkdir = "2"
 dora-parser = { path = "../dora-parser", version = "0.0.2" }
 parking_lot = "*"
 fixedbitset = "*"
+num_enum = "*"

@@ -1,5 +1,5 @@
 use std::fmt;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicU8, AtomicUsize, Ordering};
 
 use fixedbitset::FixedBitSet;
 use parking_lot::Mutex;
@@ -8,7 +8,7 @@ use crate::driver::cmd::Args;
 use crate::gc::{Address, Collector, GcReason, Region};
 use crate::os::{self, Reservation};
 use crate::vm::VM;
-use dora_frontend::enumeration;
+use num_enum::{IntoPrimitive, TryFromPrimitive};
 
 pub const REGION_SIZE_BITS: usize = 20;
 pub const REGION_SIZE: usize = 1 << REGION_SIZE_BITS;
@@ -208,25 +208,30 @@ impl HeapRegion {
     }
 }
 
-enumeration!(RegionState { Free, Used });
+#[derive(IntoPrimitive, TryFromPrimitive, PartialEq, Eq, Copy, Clone)]
+#[repr(u8)]
+pub enum RegionState {
+    Free,
+    Used,
+}
 
 struct AtomicRegionState {
-    value: AtomicUsize,
+    value: AtomicU8,
 }
 
 impl AtomicRegionState {
     fn new(state: RegionState) -> AtomicRegionState {
         AtomicRegionState {
-            value: AtomicUsize::new(state.to_u8() as usize),
+            value: AtomicU8::new(state.into()),
         }
     }
 
     fn load(&self) -> RegionState {
-        RegionState::from_u8(self.value.load(Ordering::SeqCst) as u8).unwrap()
+        RegionState::try_from(self.value.load(Ordering::SeqCst) as u8).unwrap()
     }
 
     fn store(&self, state: RegionState) {
-        self.value.store(state.to_u8() as usize, Ordering::SeqCst);
+        self.value.store(state.into(), Ordering::SeqCst);
     }
 }
 

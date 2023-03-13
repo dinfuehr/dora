@@ -15,7 +15,7 @@ fn test_ret() {
     let mut writer = BytecodeWriter::new();
     writer.emit_ret(Register(0));
     let fct = writer.generate();
-    assert_eq!(fct.code(), &[BytecodeOpcode::Ret.to_u8(), 0]);
+    assert_eq!(fct.code(), &[BytecodeOpcode::Ret.into(), 0]);
     let mut visitor = TestVisitor { found: false };
     read(fct.code(), &mut visitor);
     assert!(visitor.found);
@@ -38,8 +38,8 @@ fn test_ret_wide() {
     assert_eq!(
         fct.code(),
         &[
-            BytecodeOpcode::Wide.to_u8(),
-            BytecodeOpcode::Ret.to_u8(),
+            BytecodeOpcode::Wide.into(),
+            BytecodeOpcode::Ret.into(),
             0,
             1,
             0,
@@ -66,7 +66,7 @@ fn test_move() {
     let mut writer = BytecodeWriter::new();
     writer.emit_mov(Register(0), Register(1));
     let fct = writer.generate();
-    assert_eq!(fct.code(), &[BytecodeOpcode::Mov.to_u8(), 0, 1]);
+    assert_eq!(fct.code(), &[BytecodeOpcode::Mov.into(), 0, 1]);
     let mut visitor = TestVisitor { found: false };
     read(fct.code(), &mut visitor);
     assert!(visitor.found);
@@ -90,8 +90,8 @@ fn test_move_wide() {
     assert_eq!(
         fct.code(),
         &[
-            BytecodeOpcode::Wide.to_u8(),
-            BytecodeOpcode::Mov.to_u8(),
+            BytecodeOpcode::Wide.into(),
+            BytecodeOpcode::Mov.into(),
             0,
             1,
             0,
@@ -122,7 +122,7 @@ fn test_const_byte() {
     let mut writer = BytecodeWriter::new();
     writer.emit_const_uint8(Register(255), 255);
     let fct = writer.generate();
-    assert_eq!(fct.code(), &[BytecodeOpcode::ConstUInt8.to_u8(), 255, 255]);
+    assert_eq!(fct.code(), &[BytecodeOpcode::ConstUInt8.into(), 255, 255]);
     let mut visitor = TestVisitor { found: false };
     read(fct.code(), &mut visitor);
     assert!(visitor.found);
@@ -146,8 +146,8 @@ fn test_const_byte_wide() {
     assert_eq!(
         fct.code(),
         &[
-            BytecodeOpcode::Wide.to_u8(),
-            BytecodeOpcode::ConstUInt8.to_u8(),
+            BytecodeOpcode::Wide.into(),
+            BytecodeOpcode::ConstUInt8.into(),
             0,
             1,
             0,
@@ -175,7 +175,7 @@ fn test_const_string() {
     let mut writer = BytecodeWriter::new();
     writer.emit_const_string(Register(7), "foo".into());
     let fct = writer.generate();
-    assert_eq!(fct.code(), &[BytecodeOpcode::ConstString.to_u8(), 7, 0]);
+    assert_eq!(fct.code(), &[BytecodeOpcode::ConstString.into(), 7, 0]);
     assert_eq!(fct.const_pool(ConstPoolIdx(0)).to_string(), Some("foo"));
     let mut visitor = TestVisitor { found: false };
     read(fct.code(), &mut visitor);
@@ -197,7 +197,7 @@ fn test_jump_back() {
     let label = writer.define_label();
     writer.emit_jump_loop(label);
     let fct = writer.generate();
-    assert_eq!(fct.code(), &[BytecodeOpcode::JumpLoop.to_u8(), 0]);
+    assert_eq!(fct.code(), &[BytecodeOpcode::JumpLoop.into(), 0]);
     let mut visitor = TestVisitor { found: false };
     read(fct.code(), &mut visitor);
     assert!(visitor.found);
@@ -219,7 +219,7 @@ fn test_jump() {
     writer.emit_jump(label);
     writer.bind_label(label);
     let fct = writer.generate();
-    assert_eq!(fct.code(), &[BytecodeOpcode::Jump.to_u8(), 2]);
+    assert_eq!(fct.code(), &[BytecodeOpcode::Jump.into(), 2]);
     let mut visitor = TestVisitor { found: false };
     read(fct.code(), &mut visitor);
     assert!(visitor.found);
@@ -242,7 +242,7 @@ fn test_cond_jump() {
     writer.emit_jump_if_true(Register(7), label);
     writer.bind_label(label);
     let fct = writer.generate();
-    assert_eq!(fct.code(), &[BytecodeOpcode::JumpIfTrue.to_u8(), 7, 3]);
+    assert_eq!(fct.code(), &[BytecodeOpcode::JumpIfTrue.into(), 7, 3]);
     let mut visitor = TestVisitor { found: false };
     read(fct.code(), &mut visitor);
     assert!(visitor.found);
@@ -268,8 +268,8 @@ fn test_cond_jump_wide() {
     assert_eq!(
         fct.code(),
         &[
-            BytecodeOpcode::Wide.to_u8(),
-            BytecodeOpcode::JumpIfFalse.to_u8(),
+            BytecodeOpcode::Wide.into(),
+            BytecodeOpcode::JumpIfFalse.into(),
             0,
             1,
             0,
