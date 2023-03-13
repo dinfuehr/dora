@@ -12,7 +12,7 @@ use crate::vtable::VTable;
 pub use dora_asm::x64::AssemblerX64 as Assembler;
 use dora_asm::x64::Register as AsmRegister;
 use dora_asm::x64::{Address as AsmAddress, Condition, Immediate, ScaleFactor, XmmRegister};
-use dora_bytecode::{BytecodeTypeArray, Location};
+use dora_bytecode::{BytecodeTypeArray, FunctionId, Location};
 
 impl MacroAssembler {
     pub fn prolog(&mut self, stacksize: i32) {
