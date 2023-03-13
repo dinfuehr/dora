@@ -26,6 +26,8 @@ pub struct FunctionData {
     pub name: String,
     pub type_params: TypeParamData,
     pub source_file_id: Option<SourceFileId>,
+    pub params: Vec<BytecodeType>,
+    pub return_type: BytecodeType,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]

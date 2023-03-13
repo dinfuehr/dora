@@ -3384,6 +3384,7 @@ pub fn bty_from_ty(ty: SourceType) -> BytecodeType {
             Box::new(bty_from_ty(*return_type)),
         ),
         SourceType::Ptr => BytecodeType::Ptr,
+        SourceType::This => BytecodeType::This,
         _ => panic!("SourceType {:?} cannot be converted to BytecodeType", ty),
     }
 }
@@ -3428,6 +3429,7 @@ pub fn ty_from_bty(ty: BytecodeType) -> SourceType {
             Box::new(ty_from_bty(*return_type)),
         ),
         BytecodeType::Ptr => SourceType::Ptr,
+        BytecodeType::This => SourceType::This,
     }
 }
 

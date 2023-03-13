@@ -141,7 +141,6 @@ impl From<CondCode> for Cond {
 use crate::cpu::{FReg, Reg};
 use dora_asm::arm64 as arm64_asm;
 use dora_asm::arm64::Register;
-use dora_frontend::language::ty::SourceType;
 
 pub static REG_PARAMS: [Reg; 8] = [R0, R1, R2, R3, R4, R5, R6, R7];
 pub static FREG_PARAMS: [FReg; 8] = [F0, F1, F2, F3, F4, F5, F6, F7];
@@ -290,6 +289,6 @@ impl FReg {
 
 pub static PARAM_OFFSET: i32 = 16;
 
-pub fn next_param_offset(param_offset: i32, _: SourceType) -> i32 {
+pub fn next_param_offset(param_offset: i32) -> i32 {
     param_offset + 8
 }

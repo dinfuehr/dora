@@ -68,6 +68,8 @@ impl<'a> BytecodeTypePrinter<'a> {
                 }
             }
 
+            BytecodeType::This => write!(fmt, "Self"),
+
             BytecodeType::Lambda(params, return_type) => {
                 write!(fmt, "(")?;
                 self.type_list(params, fmt)?;

@@ -2,7 +2,6 @@ use lazy_static::lazy_static;
 use std::sync::atomic::{compiler_fence, Ordering};
 
 use dora_asm::x64::Register;
-use dora_frontend::language::ty::SourceType;
 
 pub fn flush_icache(_: *const u8, _: usize) {
     // no flushing needed on x86_64, but emit compiler barrier
@@ -33,7 +32,7 @@ lazy_static! {
 pub static PARAM_OFFSET: i32 = 16;
 
 // on x64 each parameter needs exactly 8 bytes
-pub fn next_param_offset(param_offset: i32, _: SourceType) -> i32 {
+pub fn next_param_offset(param_offset: i32) -> i32 {
     param_offset + 8
 }
 

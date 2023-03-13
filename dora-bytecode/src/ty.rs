@@ -14,6 +14,7 @@ pub enum BytecodeType {
     Float32,
     Float64,
     Ptr,
+    This,
     Tuple(BytecodeTypeArray),
     TypeParam(u32),
     Enum(EnumId, BytecodeTypeArray),
@@ -42,6 +43,7 @@ impl BytecodeType {
             BytecodeType::Class(_, _) => BytecodeTypeKind::Class,
             BytecodeType::Trait(_, _) => BytecodeTypeKind::Trait,
             BytecodeType::Lambda(_, _) => BytecodeTypeKind::Lambda,
+            BytecodeType::This => unreachable!(),
         }
     }
 
@@ -158,6 +160,7 @@ impl BytecodeType {
                 return_type.is_concrete_type()
             }
             BytecodeType::TypeParam(_) => false,
+            BytecodeType::This => unreachable!(),
         }
     }
 

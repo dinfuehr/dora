@@ -99,6 +99,7 @@ fn encode_bytecode_type(vm: &VM, ty: &BytecodeType, buffer: &mut ByteBuffer) {
         BytecodeType::Ptr => {
             buffer.emit_u8(BytecodeTypeKind::Ptr as u8);
         }
+        BytecodeType::This => unreachable!(),
         BytecodeType::Tuple(subtypes) => {
             buffer.emit_u8(BytecodeTypeKind::Tuple as u8);
             encode_bytecode_type_array(vm, subtypes, buffer);

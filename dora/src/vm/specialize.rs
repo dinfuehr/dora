@@ -266,7 +266,7 @@ pub fn add_ref_fields(vm: &VM, ref_fields: &mut Vec<i32>, offset: i32, ty: Bytec
         | BytecodeType::Float64
         | BytecodeType::Unit => {}
 
-        BytecodeType::TypeParam(..) => unreachable!(),
+        BytecodeType::TypeParam(..) | BytecodeType::This => unreachable!(),
 
         BytecodeType::Ptr
         | BytecodeType::Class(..)
@@ -419,7 +419,7 @@ fn create_specialized_class_array(
             | BytecodeType::Float32
             | BytecodeType::Float64 => InstanceSize::PrimitiveArray(size(vm, element_ty)),
 
-            BytecodeType::TypeParam(_) => {
+            BytecodeType::TypeParam(_) | BytecodeType::This => {
                 unreachable!()
             }
         }
@@ -589,6 +589,8 @@ pub fn specialize_bty(ty: BytecodeType, type_params: &BytecodeTypeArray) -> Byte
             let subtypes = specialize_bty_array(&subtypes, type_params);
             BytecodeType::Tuple(subtypes)
         }
+
+        BytecodeType::This => unreachable!(),
 
         BytecodeType::Unit
         | BytecodeType::UInt8

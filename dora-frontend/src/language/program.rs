@@ -84,6 +84,12 @@ fn create_functions(sa: &SemAnalysis) -> Vec<FunctionData> {
             name,
             type_params: create_type_params(sa, &fct.type_params),
             source_file_id: Some(convert_source_file_id(fct.file_id)),
+            params: fct
+                .params_with_self()
+                .iter()
+                .map(|ty| bty_from_ty(ty.clone()))
+                .collect(),
+            return_type: fct.return_type_bty(),
         })
     }
 
