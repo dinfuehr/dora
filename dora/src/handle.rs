@@ -18,10 +18,12 @@ impl HandleMemory {
         }
     }
 
+    fn get_inner_mut(&self) -> &mut HandleMemoryInner {
+        unsafe { &mut *self.inner.get() }
+    }
+
     pub fn create_handle<T>(&self, obj: Ref<T>) -> Handle<T> {
-        debug_assert!(current_thread().is_running());
-        let inner = unsafe { &mut *self.inner.get() };
-        let address = inner.create_handle(obj.address());
+        let address = self.get_inner_mut().create_handle(obj.address());
         Handle(address.to_mut_ptr())
     }
 
@@ -31,17 +33,15 @@ impl HandleMemory {
         inner.create_handle(object_address);
     }
 
-    pub fn push_border(&self) {
-        let inner = unsafe { &mut *self.inner.get() };
-        inner.push_border();
+    fn push_border(&self) {
+        self.get_inner_mut().push_border();
     }
 
-    pub fn pop_border(&self) {
-        let inner = unsafe { &mut *self.inner.get() };
-        inner.pop_border();
+    fn pop_border(&self) {
+        self.get_inner_mut().pop_border();
     }
 
-    pub fn iter(&self) -> HandleMemoryIter {
+    pub fn iterate_for_gc(&self) -> HandleMemoryIter {
         let inner = unsafe { &*self.inner.get() };
         let len = inner.blocks.len();
         let free = inner.free;
@@ -69,7 +69,7 @@ pub struct HandleMemoryInner {
 }
 
 impl HandleMemoryInner {
-    pub fn new() -> HandleMemoryInner {
+    fn new() -> HandleMemoryInner {
         let initial_block = Box::new(HandleBlock::new());
 
         HandleMemoryInner {
@@ -79,7 +79,7 @@ impl HandleMemoryInner {
         }
     }
 
-    pub fn create_handle(&mut self, object_address: Address) -> Address {
+    fn create_handle(&mut self, object_address: Address) -> Address {
         if self.free >= HANDLE_BLOCK_SIZE {
             self.push_block();
             self.free = 0;
@@ -100,14 +100,14 @@ impl HandleMemoryInner {
         self.blocks.push(Box::new(HandleBlock::new()));
     }
 
-    pub fn push_border(&mut self) {
+    fn push_border(&mut self) {
         let blocks = self.blocks.len();
         let element = self.free;
 
         self.borders.push(BorderData { blocks, element });
     }
 
-    pub fn pop_border(&mut self) {
+    fn pop_border(&mut self) {
         let border = self.borders.pop().expect("no border left");
 
         self.blocks.truncate(border.blocks);
@@ -117,7 +117,7 @@ impl HandleMemoryInner {
 
 pub fn create_handle<T>(obj: Ref<T>) -> Handle<T> {
     let thread = current_thread();
-    debug_assert!(thread.state_relaxed().is_running());
+    debug_assert!(thread.is_running());
     thread.handles.create_handle(obj)
 }
 
@@ -257,8 +257,8 @@ fn test_handle_iteration() {
 
         hm.pop_border();
 
-        assert_eq!(hm.iter().count(), size);
-        assert!(hm.iter().all(|x| x.raw_load() == 1.into()));
+        assert_eq!(hm.iterate_for_gc().count(), size);
+        assert!(hm.iterate_for_gc().all(|x| x.raw_load() == 1.into()));
     }
 }
 

@@ -34,7 +34,7 @@ fn iterate_roots_from_wait_list<F: FnMut(Slot)>(vm: &VM, callback: &mut F) {
 }
 
 fn iterate_roots_from_handles<F: FnMut(Slot)>(thread: &DoraThread, callback: &mut F) {
-    for rooted in thread.handles.iter() {
+    for rooted in thread.handles.iterate_for_gc() {
         let slot = Slot::at(rooted.location());
         callback(slot);
     }
