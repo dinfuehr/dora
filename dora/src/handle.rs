@@ -1,11 +1,10 @@
 use std::cell::UnsafeCell;
 use std::ops::{Deref, DerefMut};
 
-use crate::gc::Address;
+use crate::gc::{Address, K};
 use crate::object::{Obj, Ref};
+use crate::os;
 use crate::threads::current_thread;
-
-pub const HANDLE_BLOCK_SIZE: usize = 256;
 
 pub struct HandleMemory {
     inner: UnsafeCell<HandleMemoryInner>,
@@ -33,25 +32,24 @@ impl HandleMemory {
         inner.create_handle(object_address);
     }
 
-    fn push_border(&self) {
-        self.get_inner_mut().push_border();
+    fn create_scope(&self) -> HandleScope {
+        self.get_inner_mut().create_scope()
     }
 
-    fn pop_border(&self) {
-        self.get_inner_mut().pop_border();
+    fn drop_scope(&self, scope: HandleScope) {
+        self.get_inner_mut().drop_scope(scope)
     }
 
     pub fn iterate_for_gc(&self) -> HandleMemoryIter {
-        let inner = unsafe { &*self.inner.get() };
-        let len = inner.blocks.len();
-        let free = inner.free;
+        let inner = self.get_inner_mut();
+        let top = inner.top;
 
         HandleMemoryIter {
             mem: inner,
-            block_idx: 0,
-            element_idx: 0,
-            filled_blocks: if len == 0 { 0 } else { len - 1 },
-            handles_in_last_block: free,
+            next_block_idx: 0,
+            next: Address::null(),
+            limit: Address::null(),
+            top_in_last_block: top,
         }
     }
 }
@@ -59,60 +57,106 @@ impl HandleMemory {
 pub struct HandleMemoryInner {
     /// All blocks, Box is important since HandleBlock
     /// is a big struct that needs to get moved/copied on resizes.
-    blocks: Vec<Box<HandleBlock>>,
+    blocks: Vec<Address>,
 
-    // Store addresses of inserted borders.
-    borders: Vec<BorderData>,
-
-    // Index of next free position in block.
-    free: usize,
+    // Adress of next handle
+    top: Address,
+    limit: Address,
 }
 
 impl HandleMemoryInner {
     fn new() -> HandleMemoryInner {
-        let initial_block = Box::new(HandleBlock::new());
-
         HandleMemoryInner {
-            blocks: vec![initial_block],
-            borders: Vec::new(),
-            free: 0,
+            blocks: Vec::new(),
+            top: Address::null(),
+            limit: Address::null(),
         }
     }
 
+    #[inline(always)]
     fn create_handle(&mut self, object_address: Address) -> Address {
-        if self.free >= HANDLE_BLOCK_SIZE {
-            self.push_block();
-            self.free = 0;
+        if self.top < self.limit {
+            let result = self.top;
+            unsafe {
+                *result.to_mut_ptr() = object_address;
+            }
+            self.top = self.top.add_ptr(1);
+            return result;
         }
 
-        let block = self.blocks.last_mut().unwrap();
-
-        let idx = self.free;
-        let elem = &mut block.elements[idx];
-        self.free = idx + 1;
-
-        *elem = object_address;
-
-        Address::from_ptr(elem)
+        self.create_handle_slow(object_address)
     }
 
-    fn push_block(&mut self) {
-        self.blocks.push(Box::new(HandleBlock::new()));
+    fn create_handle_slow(&mut self, object_address: Address) -> Address {
+        assert_eq!(self.top, self.limit);
+        let block_start = os::commit(HANDLE_BLOCK_SIZE, false);
+        unsafe {
+            *block_start.to_mut_ptr() = object_address;
+        }
+        self.top = block_start.add_ptr(1);
+        self.limit = block_start.offset(HANDLE_BLOCK_SIZE);
+        self.blocks.push(block_start);
+        block_start
     }
 
-    fn push_border(&mut self) {
-        let blocks = self.blocks.len();
-        let element = self.free;
-
-        self.borders.push(BorderData { blocks, element });
+    #[inline(always)]
+    fn create_scope(&mut self) -> HandleScope {
+        HandleScope {
+            last_top: self.top,
+            last_limit: self.limit,
+        }
     }
 
-    fn pop_border(&mut self) {
-        let border = self.borders.pop().expect("no border left");
-
-        self.blocks.truncate(border.blocks);
-        self.free = border.element;
+    #[inline(always)]
+    fn drop_scope(&mut self, scope: HandleScope) {
+        if scope.last_limit == self.limit {
+            assert!(scope.last_top <= self.top);
+            self.top = scope.last_top;
+        } else {
+            self.drop_scope_slow(scope);
+        }
     }
+
+    fn drop_scope_slow(&mut self, scope: HandleScope) {
+        self.top = scope.last_top;
+        self.limit = scope.last_limit;
+
+        assert_ne!(
+            self.limit,
+            self.blocks
+                .last()
+                .expect("no element")
+                .offset(HANDLE_BLOCK_SIZE)
+        );
+
+        while let Some(&block_start) = self.blocks.last() {
+            let block_limit = block_start.offset(HANDLE_BLOCK_SIZE);
+
+            if self.limit == block_limit {
+                return;
+            }
+
+            os::free(block_start, HANDLE_BLOCK_SIZE);
+            assert_eq!(block_start, self.blocks.pop().expect("no element"));
+        }
+
+        assert!(self.blocks.is_empty());
+        assert_eq!(self.top, Address::null());
+        assert_eq!(self.limit, Address::null());
+    }
+}
+
+impl Drop for HandleMemoryInner {
+    fn drop(&mut self) {
+        for &block in &self.blocks {
+            os::free(block, HANDLE_BLOCK_SIZE);
+        }
+    }
+}
+
+struct HandleScope {
+    last_top: Address,
+    last_limit: Address,
 }
 
 pub fn create_handle<T>(obj: Ref<T>) -> Handle<T> {
@@ -121,17 +165,7 @@ pub fn create_handle<T>(obj: Ref<T>) -> Handle<T> {
     thread.handles.create_handle(obj)
 }
 
-struct HandleBlock {
-    elements: [Address; HANDLE_BLOCK_SIZE],
-}
-
-impl HandleBlock {
-    fn new() -> HandleBlock {
-        HandleBlock {
-            elements: [Address::null(); HANDLE_BLOCK_SIZE],
-        }
-    }
-}
+const HANDLE_BLOCK_SIZE: usize = 64 * K;
 
 struct BorderData {
     blocks: usize,
@@ -197,47 +231,55 @@ impl<T> Clone for Handle<T> {
 
 pub struct HandleMemoryIter<'a> {
     mem: &'a HandleMemoryInner,
-    block_idx: usize,
-    element_idx: usize,
-    filled_blocks: usize,
-    handles_in_last_block: usize,
+    next_block_idx: usize,
+    next: Address,
+    limit: Address,
+    top_in_last_block: Address,
 }
 
 impl<'a> Iterator for HandleMemoryIter<'a> {
     type Item = Handle<Obj>;
 
     fn next(&mut self) -> Option<Handle<Obj>> {
-        if self.element_idx == HANDLE_BLOCK_SIZE {
-            self.block_idx += 1;
-            self.element_idx = 0;
+        if self.next < self.limit {
+            let current = Handle::from_address(self.next);
+            self.next = self.next.add_ptr(1);
+            return Some(current);
         }
 
-        if (self.block_idx < self.filled_blocks)
-            || (self.block_idx == self.filled_blocks
-                && self.element_idx < self.handles_in_last_block)
-        {
-            let idx = self.element_idx;
-            self.element_idx += 1;
+        if self.next_block_idx < self.mem.blocks.len() {
+            let block_start = self.mem.blocks[self.next_block_idx];
+            let block_limit = block_start.offset(HANDLE_BLOCK_SIZE);
 
-            let block = &self.mem.blocks[self.block_idx];
-            return Some(Handle::from_address(Address::from_ptr(
-                &block.elements[idx],
-            )));
-        } else {
-            None
+            self.next = block_start.add_ptr(1);
+            self.limit = if self.next_block_idx + 1 == self.mem.blocks.len() {
+                // There should always be at least one handle in a block.
+                assert!(block_start < self.top_in_last_block);
+                assert!(self.top_in_last_block <= block_limit);
+                self.top_in_last_block
+            } else {
+                block_limit
+            };
+
+            self.next_block_idx += 1;
+            return Some(Handle::from_address(block_start));
         }
+
+        None
     }
 }
 
 #[test]
 fn test_handle_iteration() {
+    let handles_per_block: usize = HANDLE_BLOCK_SIZE / crate::mem::ptr_width_usize();
+
     let sizes = [
         0,
         4,
-        HANDLE_BLOCK_SIZE / 4,
-        3 * HANDLE_BLOCK_SIZE,
-        3 * HANDLE_BLOCK_SIZE + HANDLE_BLOCK_SIZE / 2,
-        3 * HANDLE_BLOCK_SIZE + HANDLE_BLOCK_SIZE / 4,
+        handles_per_block / 4,
+        3 * handles_per_block,
+        3 * handles_per_block + handles_per_block / 2,
+        3 * handles_per_block + handles_per_block / 4,
     ];
 
     for size in sizes {
@@ -247,7 +289,7 @@ fn test_handle_iteration() {
             hm.handle_address(1.into());
         }
 
-        hm.push_border();
+        let scope = hm.create_scope();
 
         for _ in 0..size {
             hm.handle_address(2.into());
@@ -255,7 +297,7 @@ fn test_handle_iteration() {
 
         hm.handle_address(2.into());
 
-        hm.pop_border();
+        hm.drop_scope(scope);
 
         assert_eq!(hm.iterate_for_gc().count(), size);
         assert!(hm.iterate_for_gc().all(|x| x.raw_load() == 1.into()));
@@ -265,8 +307,8 @@ fn test_handle_iteration() {
 pub fn handle_scope<F: FnOnce() -> R, R>(f: F) -> R {
     let thread = current_thread();
     assert!(thread.is_running());
-    thread.handles.push_border();
+    let scope = thread.handles.create_scope();
     let result = f();
-    thread.handles.pop_border();
+    thread.handles.drop_scope(scope);
     result
 }
