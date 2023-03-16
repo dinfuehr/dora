@@ -345,6 +345,11 @@ impl Address {
     pub fn is_page_aligned(self) -> bool {
         mem::is_page_aligned(self.to_usize())
     }
+
+    #[inline(always)]
+    pub fn is_power_of_2_aligned(self, aligned_bits: usize) -> bool {
+        mem::is_power_of_2_aligned(self.to_usize(), aligned_bits)
+    }
 }
 
 impl fmt::Display for Address {

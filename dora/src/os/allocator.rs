@@ -1,6 +1,6 @@
 use std::ptr;
 
-use crate::gc::{Address, Region};
+use crate::gc::Address;
 use crate::mem;
 use crate::os::page_size;
 
@@ -79,28 +79,26 @@ pub fn free(ptr: Address, size: usize) {
 }
 
 pub struct Reservation {
-    pub start: Address,
-    pub size: usize,
+    start: Address,
+    size: usize,
 
-    pub unaligned_start: Address,
-    pub unaligned_size: usize,
+    unaligned_start: Address,
+    unaligned_size: usize,
 }
 
 impl Reservation {
-    pub fn full_region(&self) -> Region {
-        self.unaligned_start.region_start(self.unaligned_size)
-    }
-
-    pub fn region(&self) -> Region {
-        self.start.region_start(self.size)
-    }
-
-    pub fn region_start(&self) -> Address {
+    pub fn start(&self) -> Address {
         self.start
     }
 
-    pub fn unaligned_region(&self) -> Region {
-        self.unaligned_start.region_start(self.unaligned_size)
+    pub fn size(&self) -> usize {
+        self.size
+    }
+}
+
+impl Drop for Reservation {
+    fn drop(&mut self) {
+        free(self.unaligned_start, self.unaligned_size);
     }
 }
 
@@ -112,6 +110,46 @@ pub fn reserve_align(size: usize, align: usize, jitting: bool) -> Reservation {
     let unaligned_size = size + align - page_size();
 
     let unaligned_start = reserve(unaligned_size, jitting);
+    let aligned_start: Address = mem::align_usize(unaligned_start.to_usize(), align).into();
+
+    let gap_start = aligned_start.offset_from(unaligned_start);
+    let gap_end = unaligned_size - size - gap_start;
+
+    if gap_start > 0 {
+        uncommit(unaligned_start, gap_start);
+    }
+
+    if gap_end > 0 {
+        uncommit(aligned_start.offset(size), gap_end);
+    }
+
+    if cfg!(target_family = "unix") {
+        Reservation {
+            start: aligned_start,
+            size,
+            unaligned_start: aligned_start,
+            unaligned_size: size,
+        }
+    } else if cfg!(target_family = "windows") {
+        Reservation {
+            start: aligned_start,
+            size,
+            unaligned_start,
+            unaligned_size,
+        }
+    } else {
+        unreachable!();
+    }
+}
+
+pub fn commit_align(size: usize, align: usize, jitting: bool) -> Reservation {
+    debug_assert!(mem::is_page_aligned(size));
+    debug_assert!(mem::is_page_aligned(align));
+
+    let align = if align == 0 { page_size() } else { align };
+    let unaligned_size = size + align - page_size();
+
+    let unaligned_start = commit(unaligned_size, jitting);
     let aligned_start: Address = mem::align_usize(unaligned_start.to_usize(), align).into();
 
     let gap_start = aligned_start.offset_from(unaligned_start);

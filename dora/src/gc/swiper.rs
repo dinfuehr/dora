@@ -23,7 +23,7 @@ use crate::gc::{align_gen, fill_region, formatted_size, Address, Region, K};
 use crate::gc::{GcReason, GEN_SIZE};
 use crate::mem;
 use crate::object::Obj;
-use crate::os::{self, MemoryPermission};
+use crate::os::{self, MemoryPermission, Reservation};
 use crate::safepoint;
 use crate::threads::DoraThread;
 use crate::vm::VM;
@@ -60,9 +60,6 @@ pub struct Swiper {
     // contains heap and also card table and crossing map
     reserved_area: Region,
 
-    // Everything reserved by the OS - including pages needed for alignment
-    unaligned_reserved: Region,
-
     young: YoungGen,
     old: OldGen,
     large: LargeSpace,
@@ -79,6 +76,8 @@ pub struct Swiper {
 
     threadpool: Option<Mutex<Pool>>,
     config: SharedHeapConfig,
+
+    reservation: Reservation,
 }
 
 impl Swiper {
@@ -101,7 +100,7 @@ impl Swiper {
 
         // reserve full memory
         let reservation = os::reserve_align(reserve_size, GEN_SIZE, false);
-        let heap_start = reservation.start;
+        let heap_start = reservation.start();
         assert!(heap_start.is_gen_aligned());
 
         // heap is young/old generation & large space
@@ -177,9 +176,6 @@ impl Swiper {
         let nworkers = args.gc_workers();
 
         let emit_write_barrier = !args.flag_disable_barrier;
-        let unaligned_reserved = reservation
-            .unaligned_start
-            .region_start(reservation.unaligned_size);
 
         let threadpool = if args.parallel_minor() || args.parallel_full() {
             Some(Mutex::new(Pool::new(nworkers as u32)))
@@ -190,7 +186,7 @@ impl Swiper {
         Swiper {
             heap: Region::new(heap_start, heap_end),
             reserved_area,
-            unaligned_reserved,
+            reservation,
 
             young,
             old,
@@ -626,15 +622,6 @@ impl Collector for Swiper {
             || (self.old.total().contains(reference) && self.old.contains_slow(reference));
 
         assert!(found, "write barrier found invalid reference");
-    }
-}
-
-impl Drop for Swiper {
-    fn drop(&mut self) {
-        os::free(
-            self.unaligned_reserved.start,
-            self.unaligned_reserved.size(),
-        );
     }
 }
 

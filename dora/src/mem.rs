@@ -11,17 +11,18 @@ pub fn ptr_width() -> i32 {
 }
 
 #[inline(always)]
-pub fn ptr_width_usize() -> usize {
+pub const fn ptr_width_usize() -> usize {
     size_of::<*const u8>() as usize
 }
 
 /// returns true if given value is a multiple of a page size.
 pub fn is_page_aligned(val: usize) -> bool {
-    let align = os::page_size_bits();
+    let alignment = os::page_size_bits();
+    is_power_of_2_aligned(val, alignment)
+}
 
-    // we can use shifts here since we know that
-    // page size is power of 2
-    val == ((val >> align) << align)
+pub fn is_power_of_2_aligned(val: usize, aligned_bits: usize) -> bool {
+    val == ((val >> aligned_bits) << aligned_bits)
 }
 
 #[test]

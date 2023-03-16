@@ -2,7 +2,7 @@ use parking_lot::Mutex;
 
 use crate::gc::{Address, Region, K};
 use crate::mem;
-use crate::os::{self, MemoryPermission};
+use crate::os::{self, MemoryPermission, Reservation};
 use crate::vm::{ManagedCodeHeader, CODE_ALIGNMENT};
 
 const CHUNK_SIZE: usize = 128 * K;
@@ -13,6 +13,7 @@ pub struct CodeSpace {
     total: Region,
     mutex: Mutex<AllocData>,
     chunk_size: usize,
+    reservation: Reservation,
 }
 
 struct AllocData {
@@ -23,7 +24,7 @@ struct AllocData {
 impl CodeSpace {
     pub fn new(limit: usize) -> CodeSpace {
         let reservation = os::reserve_align(limit, 0, true);
-        let space_start = reservation.start;
+        let space_start = reservation.start();
         let space_end = space_start.offset(limit);
 
         let alloc_data = AllocData {
@@ -35,6 +36,7 @@ impl CodeSpace {
             total: Region::new(space_start, space_end),
             mutex: Mutex::new(alloc_data),
             chunk_size: mem::page_align(CHUNK_SIZE),
+            reservation,
         }
     }
 
@@ -88,11 +90,5 @@ impl CodeSpace {
 
         assert_eq!(current, allocated_region.end);
         os::jit_executable();
-    }
-}
-
-impl Drop for CodeSpace {
-    fn drop(&mut self) {
-        os::free(self.total.start, self.total.size());
     }
 }

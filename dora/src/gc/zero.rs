@@ -1,13 +1,14 @@
 use crate::driver::cmd::Args;
 use crate::gc::bump::BumpAllocator;
 use crate::gc::{Address, Collector, GcReason, Region};
-use crate::os::{self, MemoryPermission};
+use crate::os::{self, MemoryPermission, Reservation};
 use crate::vm::VM;
 
 pub struct ZeroCollector {
     start: Address,
     end: Address,
     alloc: BumpAllocator,
+    reservation: Reservation,
 }
 
 impl ZeroCollector {
@@ -15,7 +16,7 @@ impl ZeroCollector {
         let heap_size: usize = args.max_heap_size();
 
         let reservation = os::reserve_align(heap_size, 0, false);
-        let start = reservation.start;
+        let start = reservation.start();
         let end = start.offset(heap_size);
 
         os::commit_at(start, heap_size, MemoryPermission::ReadWrite);
@@ -24,6 +25,7 @@ impl ZeroCollector {
             start,
             end,
             alloc: BumpAllocator::new(start, end),
+            reservation,
         }
     }
 }
@@ -67,12 +69,5 @@ impl Collector for ZeroCollector {
             "GC summary: 0ms collection (0), {:.1}ms mutator, {:.1}ms total (100% mutator, 0% GC)",
             mutator, runtime,
         );
-    }
-}
-
-impl Drop for ZeroCollector {
-    fn drop(&mut self) {
-        let size = self.end.offset_from(self.start);
-        os::free(self.start, size);
     }
 }

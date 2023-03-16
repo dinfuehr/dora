@@ -28,7 +28,7 @@ impl RegionCollector {
         let number_regions = max_heap_size / REGION_SIZE;
         let mut regions = Vec::with_capacity(number_regions);
 
-        let mut next_region_start = reservation.start;
+        let mut next_region_start = reservation.start();
 
         for _ in 0..number_regions {
             let heap_region = HeapRegion {

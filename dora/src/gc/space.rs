@@ -3,7 +3,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::gc::{Address, Region};
 use crate::mem;
-use crate::os::{self, MemoryPermission};
+use crate::os::{self, MemoryPermission, Reservation};
 
 /// Configuration for a space.
 /// This makes it possible to use `Space` both for the
@@ -35,6 +35,7 @@ pub struct Space {
     end: AtomicUsize,
 
     allocate: Mutex<()>,
+    reservation: Reservation,
 }
 
 impl Space {
@@ -43,7 +44,7 @@ impl Space {
         let config = adapt_to_page_size(config);
 
         let reservation = os::reserve_align(config.limit, 0, false);
-        let space_start = reservation.start;
+        let space_start = reservation.start();
         let space_end = space_start.offset(config.limit);
 
         let permissions = if config.executable {
@@ -64,6 +65,7 @@ impl Space {
             end: AtomicUsize::new(end.to_usize()),
 
             allocate: Mutex::new(()),
+            reservation,
         }
     }
 
@@ -154,11 +156,5 @@ impl Space {
         let end = self.top.load(Ordering::Relaxed).into();
 
         Region::new(start, end)
-    }
-}
-
-impl Drop for Space {
-    fn drop(&mut self) {
-        os::free(self.total.start, self.total.size());
     }
 }
