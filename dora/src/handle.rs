@@ -139,12 +139,6 @@ fn align_down_to_block_size(address: Address) -> Address {
     aligned.into()
 }
 
-fn more_space_in_block(address: Address) -> bool {
-    !address
-        .add_ptr(1)
-        .is_power_of_2_aligned(HANDLE_BLOCK_SIZE_BITS)
-}
-
 fn is_handle_block_aligned(block_start: Address) -> bool {
     block_start.is_power_of_2_aligned(HANDLE_BLOCK_SIZE_BITS)
 }
