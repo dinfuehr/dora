@@ -4,7 +4,7 @@ use std::ptr;
 use crate::boots::data::InstructionSet;
 use crate::boots::serializer::allocate_encoded_compilation_info;
 use crate::gc::Address;
-use crate::handle::handle;
+use crate::handle::create_handle;
 use crate::masm::CodeDescriptor;
 use crate::object::{Ref, UInt8Array};
 use crate::threads::current_thread;
@@ -21,7 +21,7 @@ pub fn compile(vm: &VM, fct: &FctDefinition, type_params: &BytecodeTypeArray) ->
     let compile_fct_id = FunctionId(vm.known.functions.compile().0 as u32);
     let compile_address = vm.ensure_compiled(compile_fct_id);
 
-    let encoded_compilation_info = handle(allocate_encoded_compilation_info(
+    let encoded_compilation_info = create_handle(allocate_encoded_compilation_info(
         vm,
         bytecode_fct,
         type_params,
@@ -34,7 +34,7 @@ pub fn compile(vm: &VM, fct: &FctDefinition, type_params: &BytecodeTypeArray) ->
     let compile_fct_ptr: extern "C" fn(Address, Address, Address) -> Ref<UInt8Array> =
         unsafe { mem::transmute(dora_stub_address) };
 
-    let machine_code = handle(compile_fct_ptr(
+    let machine_code = create_handle(compile_fct_ptr(
         tld_address,
         compile_address,
         encoded_compilation_info.direct_ptr(),

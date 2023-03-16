@@ -401,7 +401,7 @@ where
     let mut managed_thread = ManagedThread::alloc(vm);
     managed_thread.install_native_thread(&native_thread);
 
-    let managed_thread_handle = native_thread.handles.handle(managed_thread);
+    let managed_thread_handle = native_thread.handles.create_handle(managed_thread);
 
     native_thread
         .tld

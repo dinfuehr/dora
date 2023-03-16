@@ -1,6 +1,6 @@
 use std::ptr;
 
-use crate::handle::{handle, Handle};
+use crate::handle::{create_handle, Handle};
 use crate::object::{alloc, Array, Int32Array, Ref, Stacktrace, StacktraceElement, Str};
 use crate::threads::current_thread;
 use crate::vm::{display_fct, get_vm, loc, CodeId, CodeKind, VM};
@@ -178,7 +178,7 @@ pub extern "C" fn stack_element(obj: Handle<Stacktrace>, ind: i32) -> Ref<Stackt
     let cls_def_id = vm.stack_trace_element();
 
     let ste: Ref<StacktraceElement> = alloc(vm, cls_def_id).cast();
-    let mut ste = handle(ste);
+    let mut ste = create_handle(ste);
     ste.line = lineno;
 
     let code_id: CodeId = (fct_id as usize).into();
@@ -220,7 +220,7 @@ fn set_backtrace(vm: &VM, mut obj: Handle<Stacktrace>, via_retrieve: bool) {
 
     let cls_id = vm.int_array();
     let array: Ref<Int32Array> = Array::alloc(vm, len * 2, 0, cls_id);
-    let mut array = handle(array);
+    let mut array = create_handle(array);
     let mut i = 0;
 
     for elem in stacktrace.elems.iter().skip(skip) {

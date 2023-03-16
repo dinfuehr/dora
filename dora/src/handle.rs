@@ -1,4 +1,4 @@
-use parking_lot::{Mutex, MutexGuard};
+use std::cell::UnsafeCell;
 use std::ops::{Deref, DerefMut};
 
 use crate::gc::Address;
@@ -8,37 +8,41 @@ use crate::threads::current_thread;
 pub const HANDLE_BLOCK_SIZE: usize = 256;
 
 pub struct HandleMemory {
-    inner: Mutex<HandleMemoryInner>,
+    inner: UnsafeCell<HandleMemoryInner>,
 }
 
 impl HandleMemory {
     pub fn new() -> HandleMemory {
         HandleMemory {
-            inner: Mutex::new(HandleMemoryInner::new()),
+            inner: UnsafeCell::new(HandleMemoryInner::new()),
         }
     }
 
-    pub fn handle<T>(&self, obj: Ref<T>) -> Handle<T> {
+    pub fn create_handle<T>(&self, obj: Ref<T>) -> Handle<T> {
         debug_assert!(current_thread().is_running());
-        let address = self.inner.lock().handle(obj.address());
+        let inner = unsafe { &mut *self.inner.get() };
+        let address = inner.create_handle(obj.address());
         Handle(address.to_mut_ptr())
     }
 
     #[cfg(test)]
     fn handle_address(&self, object_address: Address) {
-        self.inner.lock().handle(object_address);
+        let inner = unsafe { &mut *self.inner.get() };
+        inner.create_handle(object_address);
     }
 
     pub fn push_border(&self) {
-        self.inner.lock().push_border();
+        let inner = unsafe { &mut *self.inner.get() };
+        inner.push_border();
     }
 
     pub fn pop_border(&self) {
-        self.inner.lock().pop_border();
+        let inner = unsafe { &mut *self.inner.get() };
+        inner.pop_border();
     }
 
     pub fn iter(&self) -> HandleMemoryIter {
-        let inner = self.inner.lock();
+        let inner = unsafe { &*self.inner.get() };
         let len = inner.blocks.len();
         let free = inner.free;
 
@@ -75,7 +79,7 @@ impl HandleMemoryInner {
         }
     }
 
-    pub fn handle(&mut self, object_address: Address) -> Address {
+    pub fn create_handle(&mut self, object_address: Address) -> Address {
         if self.free >= HANDLE_BLOCK_SIZE {
             self.push_block();
             self.free = 0;
@@ -111,10 +115,10 @@ impl HandleMemoryInner {
     }
 }
 
-pub fn handle<T>(obj: Ref<T>) -> Handle<T> {
+pub fn create_handle<T>(obj: Ref<T>) -> Handle<T> {
     let thread = current_thread();
     debug_assert!(thread.state_relaxed().is_running());
-    thread.handles.handle(obj)
+    thread.handles.create_handle(obj)
 }
 
 struct HandleBlock {
@@ -192,7 +196,7 @@ impl<T> Clone for Handle<T> {
 }
 
 pub struct HandleMemoryIter<'a> {
-    mem: MutexGuard<'a, HandleMemoryInner>,
+    mem: &'a HandleMemoryInner,
     block_idx: usize,
     element_idx: usize,
     filled_blocks: usize,
@@ -260,6 +264,7 @@ fn test_handle_iteration() {
 
 pub fn handle_scope<F: FnOnce() -> R, R>(f: F) -> R {
     let thread = current_thread();
+    assert!(thread.is_running());
     thread.handles.push_border();
     let result = f();
     thread.handles.pop_border();

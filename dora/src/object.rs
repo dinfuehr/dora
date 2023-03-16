@@ -9,7 +9,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::gc::root::Slot;
 use crate::gc::{Address, Region};
-use crate::handle::{handle, Handle};
+use crate::handle::{create_handle, Handle};
 use crate::mem;
 use crate::size::InstanceSize;
 use crate::vm::{ClassInstance, ClassInstanceId, VM};
@@ -585,7 +585,7 @@ impl Str {
 
     pub fn concat(vm: &VM, lhs: Handle<Str>, rhs: Handle<Str>) -> Handle<Str> {
         let len = lhs.len() + rhs.len();
-        let mut handle = handle(str_alloc_heap(vm, len));
+        let mut handle = create_handle(str_alloc_heap(vm, len));
 
         handle.length = len;
         unsafe {

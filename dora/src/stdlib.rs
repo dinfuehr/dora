@@ -8,7 +8,7 @@ use std::thread;
 use std::time::Duration;
 
 use crate::gc::{Address, GcReason};
-use crate::handle::{handle, handle_scope, Handle};
+use crate::handle::{create_handle, handle_scope, Handle};
 use crate::object::{Obj, Ref, Str, UInt8Array};
 use crate::stack::stacktrace_from_last_dtn;
 use crate::threads::{
@@ -290,7 +290,7 @@ pub extern "C" fn spawn_thread(runner: Handle<Obj>) -> Address {
 
     handle_scope(|| {
         let managed_thread = ManagedThread::alloc(vm);
-        let mut managed_thread: Handle<ManagedThread> = handle(managed_thread);
+        let mut managed_thread: Handle<ManagedThread> = create_handle(managed_thread);
 
         // Create new thread in Parked state.
         let thread = DoraThread::new(vm, ThreadState::Parked);
@@ -311,8 +311,11 @@ pub extern "C" fn spawn_thread(runner: Handle<Obj>) -> Address {
         // Here it should be safe though, because the current thread is still Running
         // and therefore the GC can't run at this point.
         debug_assert!(current_thread().is_running());
-        let thread_location = thread.handles.handle(managed_thread.direct()).location();
-        let runner_location = thread.handles.handle(runner.direct()).location();
+        let thread_location = thread
+            .handles
+            .create_handle(managed_thread.direct())
+            .location();
+        let runner_location = thread.handles.create_handle(runner.direct()).location();
 
         thread::spawn(move || {
             // Initialize thread-local variable with thread
