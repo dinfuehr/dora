@@ -57,6 +57,9 @@ pub struct HandleMemoryInner {
     /// is a big struct that needs to get moved/copied on resizes.
     blocks: Vec<Reservation>,
 
+    // Empty block that can be used for next HandleBlock allocation.
+    empty_block: Option<Reservation>,
+
     // Adress of next handle
     top: Address,
 }
@@ -68,6 +71,7 @@ impl HandleMemoryInner {
 
         HandleMemoryInner {
             blocks: vec![reservation],
+            empty_block: None,
             top,
         }
     }
@@ -89,7 +93,8 @@ impl HandleMemoryInner {
     }
 
     fn create_handle_slow(&mut self) {
-        let reservation = allocate_block();
+        let reservation = std::mem::replace(&mut self.empty_block, None);
+        let reservation = reservation.unwrap_or_else(|| allocate_block());
         self.top = get_block_first(reservation.start());
         self.blocks.push(reservation);
     }
@@ -120,7 +125,11 @@ impl HandleMemoryInner {
             }
 
             // Drop memory reservation.
-            self.blocks.pop().expect("no element");
+            let reservation = self.blocks.pop().expect("no element");
+
+            if self.empty_block.is_none() {
+                self.empty_block = Some(reservation);
+            }
         }
 
         assert!(self.blocks.is_empty());
