@@ -1,15 +1,15 @@
 use crate::language::sem_analysis::{
     AnnotationDefinitionId, ClassDefinition, ClassDefinitionId, EnumDefinitionId,
     ExtensionDefinitionId, FctDefinitionId, Field, FieldId, Intrinsic, ModuleDefinition,
-    ModuleDefinitionId, SemAnalysis, StructDefinitionId, TraitDefinitionId, Visibility,
+    ModuleDefinitionId, SemAnalysis, StructDefinitionId, TraitDefinitionId, TypeParamDefinition,
+    Visibility,
 };
 use crate::language::sym::Sym;
 use crate::language::ty::SourceType;
 
+use dora_bytecode::NativeFunction;
 use dora_parser::ast::Modifier;
 use dora_parser::interner::Name;
-
-use super::sem_analysis::TypeParamDefinition;
 
 pub fn resolve_internal_annotations(sa: &mut SemAnalysis) {
     let stdlib_id = sa.stdlib_module_id();
@@ -358,6 +358,305 @@ fn find_enum(sa: &mut SemAnalysis, module_id: ModuleDefinitionId, name: &str) ->
 
 pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
     let stdlib_id = sa.stdlib_module_id();
+
+    native_fct(sa, stdlib_id, "fatalError", NativeFunction::FatalError);
+    native_fct(sa, stdlib_id, "abort", NativeFunction::Abort);
+    native_fct(sa, stdlib_id, "exit", NativeFunction::Exit);
+    intrinsic_fct(sa, stdlib_id, "unreachable", Intrinsic::Unreachable);
+
+    native_fct(sa, stdlib_id, "print", NativeFunction::Print);
+    native_fct(sa, stdlib_id, "println", NativeFunction::PrintLn);
+    let fid = intrinsic_fct(sa, stdlib_id, "assert", Intrinsic::Assert);
+    sa.known.functions.assert = Some(fid);
+    intrinsic_fct(sa, stdlib_id, "debug", Intrinsic::Debug);
+    native_fct(sa, stdlib_id, "argc", NativeFunction::Argc);
+    native_fct(sa, stdlib_id, "argv", NativeFunction::Argv);
+    native_fct(sa, stdlib_id, "forceCollect", NativeFunction::ForceCollect);
+    native_fct(sa, stdlib_id, "timestamp", NativeFunction::Timestamp);
+    native_fct(
+        sa,
+        stdlib_id,
+        "forceMinorCollect",
+        NativeFunction::ForceMinorCollect,
+    );
+    native_fct(sa, stdlib_id, "sleep", NativeFunction::Sleep);
+
+    intrinsic_fct(sa, stdlib_id, "unsafeKillRefs", Intrinsic::UnsafeKillRefs);
+
+    native_method(
+        sa,
+        stdlib_id,
+        "primitives::UInt8",
+        "toString",
+        NativeFunction::UInt8ToString,
+    );
+
+    native_method(
+        sa,
+        stdlib_id,
+        "primitives::Char",
+        "toString",
+        NativeFunction::CharToString,
+    );
+
+    native_method(
+        sa,
+        stdlib_id,
+        "primitives::Int32",
+        "toString",
+        NativeFunction::Int32ToString,
+    );
+
+    native_method(
+        sa,
+        stdlib_id,
+        "primitives::Int64",
+        "toString",
+        NativeFunction::Int64ToString,
+    );
+
+    native_method(
+        sa,
+        stdlib_id,
+        "string::String",
+        "compareTo",
+        NativeFunction::StringCompareTo,
+    );
+    native_method(
+        sa,
+        stdlib_id,
+        "string::String",
+        "toInt32Success",
+        NativeFunction::StringToInt32Success,
+    );
+    native_method(
+        sa,
+        stdlib_id,
+        "string::String",
+        "toInt64Success",
+        NativeFunction::StringToInt64Success,
+    );
+    native_method(
+        sa,
+        stdlib_id,
+        "string::String",
+        "toFloat32Success",
+        NativeFunction::StringToFloat32Success,
+    );
+    native_method(
+        sa,
+        stdlib_id,
+        "string::String",
+        "toFloat64Success",
+        NativeFunction::StringToFloat64Success,
+    );
+    native_method(
+        sa,
+        stdlib_id,
+        "string::String",
+        "toInt32OrZero",
+        NativeFunction::StringToInt32OrZero,
+    );
+    native_method(
+        sa,
+        stdlib_id,
+        "string::String",
+        "toInt64OrZero",
+        NativeFunction::StringToInt64OrZero,
+    );
+    native_method(
+        sa,
+        stdlib_id,
+        "string::String",
+        "toFloat32OrZero",
+        NativeFunction::StringToFloat32OrZero,
+    );
+    native_method(
+        sa,
+        stdlib_id,
+        "string::String",
+        "toFloat64OrZero",
+        NativeFunction::StringToFloat64OrZero,
+    );
+    native_method(
+        sa,
+        stdlib_id,
+        "string::String",
+        "plus",
+        NativeFunction::StringPlus,
+    );
+
+    native_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
+        "toString",
+        NativeFunction::Float32ToString,
+    );
+
+    native_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
+        "toString",
+        NativeFunction::Float64ToString,
+    );
+
+    native_static(
+        sa,
+        stdlib_id,
+        "string::String",
+        "fromBytesPart",
+        NativeFunction::StringFromBytesPart,
+    );
+    native_static(
+        sa,
+        stdlib_id,
+        "string::String",
+        "fromStringPart",
+        NativeFunction::StringFromStringPart,
+    );
+
+    native_method(
+        sa,
+        stdlib_id,
+        "Stacktrace",
+        "retrieveStacktrace",
+        NativeFunction::RetrieveStacktrace,
+    );
+    native_method(
+        sa,
+        stdlib_id,
+        "Stacktrace",
+        "getStacktraceElement",
+        NativeFunction::GetStackTraceElement,
+    );
+
+    native_fct(sa, stdlib_id, "thread::spawn", NativeFunction::SpawnThread);
+
+    native_method(
+        sa,
+        stdlib_id,
+        "thread::Thread",
+        "join",
+        NativeFunction::ThreadJoin,
+    );
+
+    native_method(
+        sa,
+        stdlib_id,
+        "thread::Mutex",
+        "wait",
+        NativeFunction::MutexWait,
+    );
+
+    native_method(
+        sa,
+        stdlib_id,
+        "thread::Mutex",
+        "notify",
+        NativeFunction::MutexNotify,
+    );
+
+    native_method(
+        sa,
+        stdlib_id,
+        "thread::Condition",
+        "enqueue",
+        NativeFunction::ConditionEnqueue,
+    );
+
+    native_method(
+        sa,
+        stdlib_id,
+        "thread::Condition",
+        "block",
+        NativeFunction::ConditionBlock,
+    );
+
+    native_method(
+        sa,
+        stdlib_id,
+        "thread::Condition",
+        "wakeupOne",
+        NativeFunction::ConditionWakupOne,
+    );
+
+    native_method(
+        sa,
+        stdlib_id,
+        "thread::Condition",
+        "wakeupAll",
+        NativeFunction::ConditionWakupAll,
+    );
+
+    native_fct(
+        sa,
+        stdlib_id,
+        "io::readFileAsString",
+        NativeFunction::ReadFileAsString,
+    );
+
+    native_fct(
+        sa,
+        stdlib_id,
+        "io::readFileAsBytes",
+        NativeFunction::ReadFileAsBytes,
+    );
+
+    native_fct(
+        sa,
+        stdlib_id,
+        "io::writeFileAsString",
+        NativeFunction::WriteFileAsString,
+    );
+
+    native_fct(
+        sa,
+        stdlib_id,
+        "io::writeFileAsBytes",
+        NativeFunction::WriteFileAsBytes,
+    );
+
+    native_fct(
+        sa,
+        stdlib_id,
+        "io::socketConnect",
+        NativeFunction::SocketConnect,
+    );
+
+    native_fct(
+        sa,
+        stdlib_id,
+        "io::socketClose",
+        NativeFunction::SocketClose,
+    );
+
+    native_fct(
+        sa,
+        stdlib_id,
+        "io::socketWrite",
+        NativeFunction::SocketWrite,
+    );
+
+    native_fct(sa, stdlib_id, "io::socketRead", NativeFunction::SocketRead);
+
+    native_fct(sa, stdlib_id, "io::socketBind", NativeFunction::SocketBind);
+
+    native_fct(
+        sa,
+        stdlib_id,
+        "io::socketAccept",
+        NativeFunction::SocketAccept,
+    );
+
+    native_method(
+        sa,
+        stdlib_id,
+        "string::String",
+        "clone",
+        NativeFunction::StringClone,
+    );
 
     intrinsic_fct(sa, stdlib_id, "unreachable", Intrinsic::Unreachable);
 
@@ -1419,14 +1718,23 @@ fn intrinsic_fct(
     name: &str,
     intrinsic: Intrinsic,
 ) -> FctDefinitionId {
-    common_fct(sa, module_id, name, intrinsic)
+    common_fct(sa, module_id, name, FctImplementation::Intrinsic(intrinsic))
+}
+
+fn native_fct(
+    sa: &mut SemAnalysis,
+    module_id: ModuleDefinitionId,
+    name: &str,
+    native: NativeFunction,
+) -> FctDefinitionId {
+    common_fct(sa, module_id, name, FctImplementation::Native(native))
 }
 
 fn common_fct(
     sa: &mut SemAnalysis,
     module_id: ModuleDefinitionId,
     name: &str,
-    intrinsic: Intrinsic,
+    marker: FctImplementation,
 ) -> FctDefinitionId {
     let fct_id = resolve_name(sa, name, module_id)
         .to_fct()
@@ -1435,7 +1743,11 @@ fn common_fct(
     let fct = sa.fcts.idx(fct_id);
     let mut fct = fct.write();
 
-    fct.intrinsic = Some(intrinsic);
+    match marker {
+        FctImplementation::Intrinsic(intrinsic) => fct.intrinsic = Some(intrinsic),
+        FctImplementation::Native(native_function) => fct.native_function = Some(native_function),
+    }
+
     fct.internal_resolved = true;
     fct_id
 }
@@ -1447,7 +1759,31 @@ fn intrinsic_method(
     method_name: &str,
     intrinsic: Intrinsic,
 ) -> FctDefinitionId {
-    common_method(sa, module_id, container_name, method_name, false, intrinsic)
+    common_method(
+        sa,
+        module_id,
+        container_name,
+        method_name,
+        false,
+        FctImplementation::Intrinsic(intrinsic),
+    )
+}
+
+fn native_method(
+    sa: &SemAnalysis,
+    module_id: ModuleDefinitionId,
+    container_name: &str,
+    method_name: &str,
+    native: NativeFunction,
+) -> FctDefinitionId {
+    common_method(
+        sa,
+        module_id,
+        container_name,
+        method_name,
+        false,
+        FctImplementation::Native(native),
+    )
 }
 
 fn intrinsic_static(
@@ -1457,7 +1793,36 @@ fn intrinsic_static(
     method_name: &str,
     intrinsic: Intrinsic,
 ) {
-    common_method(sa, module_id, container_name, method_name, true, intrinsic);
+    common_method(
+        sa,
+        module_id,
+        container_name,
+        method_name,
+        true,
+        FctImplementation::Intrinsic(intrinsic),
+    );
+}
+
+fn native_static(
+    sa: &SemAnalysis,
+    module_id: ModuleDefinitionId,
+    container_name: &str,
+    method_name: &str,
+    native: NativeFunction,
+) {
+    common_method(
+        sa,
+        module_id,
+        container_name,
+        method_name,
+        true,
+        FctImplementation::Native(native),
+    );
+}
+
+enum FctImplementation {
+    Intrinsic(Intrinsic),
+    Native(NativeFunction),
 }
 
 fn common_method(
@@ -1466,38 +1831,30 @@ fn common_method(
     container_name: &str,
     method_name: &str,
     is_static: bool,
-    intrinsic: Intrinsic,
+    marker: FctImplementation,
 ) -> FctDefinitionId {
     let sym = resolve_name(sa, container_name, module_id);
 
     match sym {
-        Sym::Class(cls_id) => internal_class_method(sa, cls_id, method_name, is_static, intrinsic),
+        Sym::Class(cls_id) => {
+            let cls = sa.classes.idx(cls_id);
+            let cls = cls.read();
+
+            internal_extension_method(sa, &cls.extensions, method_name, is_static, marker)
+        }
 
         Sym::Struct(struct_id) => {
             let struct_ = sa.structs.idx(struct_id);
             let struct_ = struct_.read();
-            internal_extension_method(sa, &struct_.extensions, method_name, is_static, intrinsic)
+            internal_extension_method(sa, &struct_.extensions, method_name, is_static, marker)
         }
         Sym::Enum(enum_id) => {
             let enum_ = &sa.enums[enum_id].read();
-            internal_extension_method(sa, &enum_.extensions, method_name, is_static, intrinsic)
+            internal_extension_method(sa, &enum_.extensions, method_name, is_static, marker)
         }
 
         _ => panic!("unexpected type"),
     }
-}
-
-fn internal_class_method(
-    sa: &SemAnalysis,
-    cls_id: ClassDefinitionId,
-    name: &str,
-    is_static: bool,
-    intrinsic: Intrinsic,
-) -> FctDefinitionId {
-    let cls = sa.classes.idx(cls_id);
-    let cls = cls.read();
-
-    internal_extension_method(sa, &cls.extensions, name, is_static, intrinsic)
 }
 
 fn internal_extension_method(
@@ -1505,7 +1862,7 @@ fn internal_extension_method(
     extensions: &[ExtensionDefinitionId],
     name_as_string: &str,
     is_static: bool,
-    intrinsic: Intrinsic,
+    marker: FctImplementation,
 ) -> FctDefinitionId {
     let name = sa.interner.intern(name_as_string);
 
@@ -1522,7 +1879,13 @@ fn internal_extension_method(
             let fct = sa.fcts.idx(method_id);
             let mut fct = fct.write();
 
-            fct.intrinsic = Some(intrinsic);
+            match marker {
+                FctImplementation::Intrinsic(intrinsic) => fct.intrinsic = Some(intrinsic),
+                FctImplementation::Native(native_function) => {
+                    fct.native_function = Some(native_function)
+                }
+            }
+
             fct.internal_resolved = true;
             return method_id;
         }

@@ -14,7 +14,7 @@ use crate::language::sem_analysis::{
     Visibility,
 };
 use crate::language::ty::SourceType;
-use dora_bytecode::{BytecodeFunction, BytecodeType, BytecodeTypeArray};
+use dora_bytecode::{BytecodeFunction, BytecodeType, BytecodeTypeArray, NativeFunction};
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub struct FctDefinitionId(pub usize);
@@ -75,6 +75,7 @@ pub struct FctDefinition {
     pub container_type_params: usize,
     pub bytecode: Option<BytecodeFunction>,
     pub intrinsic: Option<Intrinsic>,
+    pub native_function: Option<NativeFunction>,
     pub thunk_id: RwLock<Option<FctDefinitionId>>,
 }
 
@@ -112,6 +113,7 @@ impl FctDefinition {
             container_type_params: 0,
             bytecode: None,
             intrinsic: None,
+            native_function: None,
             thunk_id: RwLock::new(None),
         }
     }
