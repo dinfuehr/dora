@@ -20,9 +20,8 @@ use dora_bytecode::{
     TraitId,
 };
 use dora_frontend::language::sem_analysis::{
-    ClassDefinition, EnumDefinition, ExtensionDefinition, FctDefinition, FctDefinitionId,
-    ImplDefinition, KnownElements, ModuleDefinition, ModuleDefinitionId, PackageDefinitionId,
-    SemAnalysis, StructDefinition, TraitDefinition,
+    FctDefinition, FctDefinitionId, ImplDefinition, KnownElements, ModuleDefinition,
+    ModuleDefinitionId, SemAnalysis,
 };
 use dora_frontend::{GrowableVec, MutableVec};
 
@@ -115,21 +114,16 @@ pub struct VM {
     pub interner: Interner,
     pub known: KnownElements,
     pub known_instances: KnownInstances,
-    pub structs: MutableVec<StructDefinition>, // stores all struct source definitions
     pub struct_specializations: RwLock<HashMap<(StructId, BytecodeTypeArray), StructInstanceId>>,
     pub struct_instances: GrowableVecNonIter<StructInstance>, // stores all struct definitions
-    pub classes: MutableVec<ClassDefinition>,                 // stores all class source definitions
     pub class_specializations: RwLock<HashMap<(ClassId, BytecodeTypeArray), ClassInstanceId>>,
     pub class_instances: GrowableVecNonIter<ClassInstance>, // stores all class definitions
-    pub extensions: MutableVec<ExtensionDefinition>,        // stores all extension definitions
     pub modules: MutableVec<ModuleDefinition>,              // stores all module definitions
     pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
     pub code_objects: CodeObjects,
     pub compilation_database: CompilationDatabase,
-    pub enums: MutableVec<EnumDefinition>, // store all enum source definitions
     pub enum_specializations: RwLock<HashMap<(EnumId, BytecodeTypeArray), EnumInstanceId>>,
     pub enum_instances: GrowableVecNonIter<EnumInstance>, // stores all enum definitions
-    pub traits: MutableVec<TraitDefinition>,              // stores all trait definitions
     pub trait_vtables: RwLock<HashMap<(TraitId, BytecodeTypeArray), ClassInstanceId>>,
     pub impls: MutableVec<ImplDefinition>, // stores all impl definitions
     pub code_map: CodeMap,                 // stores all compiled functions
@@ -139,10 +133,6 @@ pub struct VM {
     pub native_implementations: HashMap<FunctionId, Address>,
     pub stubs: Stubs,
     pub threads: Threads,
-    pub package_names: HashMap<Name, PackageDefinitionId>,
-    pub stdlib_package_id: Option<PackageDefinitionId>,
-    pub program_package_id: Option<PackageDefinitionId>,
-    pub boots_package_id: Option<PackageDefinitionId>,
     pub wait_lists: WaitLists,
 }
 
@@ -153,18 +143,13 @@ impl VM {
         let vm = Box::new(VM {
             args,
             program,
-            structs: sa.structs,
             struct_specializations: RwLock::new(HashMap::new()),
             struct_instances: GrowableVecNonIter::new(),
-            classes: sa.classes,
             class_specializations: RwLock::new(HashMap::new()),
             class_instances: GrowableVecNonIter::new(),
-            extensions: sa.extensions,
             modules: sa.modules,
-            enums: sa.enums,
             enum_specializations: RwLock::new(HashMap::new()),
             enum_instances: GrowableVecNonIter::new(),
-            traits: sa.traits,
             trait_vtables: RwLock::new(HashMap::new()),
             impls: sa.impls,
             global_variable_memory: None,
@@ -180,10 +165,6 @@ impl VM {
             native_implementations: HashMap::new(),
             stubs: Stubs::new(),
             threads: Threads::new(),
-            stdlib_package_id: sa.stdlib_package_id,
-            program_package_id: sa.program_package_id,
-            boots_package_id: sa.boots_package_id,
-            package_names: sa.package_names,
             wait_lists: WaitLists::new(),
         });
 
