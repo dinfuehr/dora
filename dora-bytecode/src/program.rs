@@ -28,6 +28,7 @@ pub struct FunctionData {
     pub source_file_id: Option<SourceFileId>,
     pub params: Vec<BytecodeType>,
     pub return_type: BytecodeType,
+    pub native_function: Option<NativeFunction>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -171,7 +172,7 @@ pub struct Program {
     pub boots_package_id: Option<PackageId>,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 #[allow(dead_code)]
 pub enum NativeFunction {
     FatalError,

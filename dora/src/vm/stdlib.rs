@@ -1,12 +1,186 @@
+use std::collections::HashMap;
+
 use crate::gc::Address;
 use crate::stack;
 use crate::stdlib;
 use crate::vm::{module_path, VM};
-use dora_bytecode::FunctionId;
+use dora_bytecode::{FunctionId, NativeFunction};
 use dora_frontend::language::sem_analysis::{
     ExtensionDefinitionId, FctDefinitionId, Intrinsic, ModuleDefinitionId,
 };
 use dora_frontend::language::sym::Sym;
+
+pub fn resolve_native_functions(vm: &mut VM) {
+    let mappings: HashMap<NativeFunction, *const u8> = HashMap::from([
+        (NativeFunction::Abort, stdlib::abort as *const u8),
+        (NativeFunction::Exit, stdlib::exit as *const u8),
+        (NativeFunction::Print, stdlib::print as *const u8),
+        (NativeFunction::PrintLn, stdlib::println as *const u8),
+        (NativeFunction::Argc, stdlib::argc as *const u8),
+        (NativeFunction::Argv, stdlib::argv as *const u8),
+        (
+            NativeFunction::ForceCollect,
+            stdlib::gc_collect as *const u8,
+        ),
+        (
+            NativeFunction::ForceMinorCollect,
+            stdlib::gc_minor_collect as *const u8,
+        ),
+        (NativeFunction::Sleep, stdlib::sleep as *const u8),
+        (
+            NativeFunction::UInt8ToString,
+            stdlib::uint8_to_string as *const u8,
+        ),
+        (
+            NativeFunction::CharToString,
+            stdlib::char_to_string as *const u8,
+        ),
+        (
+            NativeFunction::Int32ToString,
+            stdlib::int32_to_string as *const u8,
+        ),
+        (
+            NativeFunction::Int64ToString,
+            stdlib::int64_to_string as *const u8,
+        ),
+        (NativeFunction::StringCompareTo, stdlib::strcmp as *const u8),
+        (
+            NativeFunction::StringToInt32Success,
+            stdlib::str_to_int32_success as *const u8,
+        ),
+        (
+            NativeFunction::StringToInt64Success,
+            stdlib::str_to_int64_success as *const u8,
+        ),
+        (
+            NativeFunction::StringToFloat32Success,
+            stdlib::str_to_float32_success as *const u8,
+        ),
+        (
+            NativeFunction::StringToFloat64Success,
+            stdlib::str_to_float64_success as *const u8,
+        ),
+        (
+            NativeFunction::StringToInt32OrZero,
+            stdlib::str_to_int32 as *const u8,
+        ),
+        (
+            NativeFunction::StringToInt64OrZero,
+            stdlib::str_to_int64 as *const u8,
+        ),
+        (
+            NativeFunction::StringToFloat32OrZero,
+            stdlib::str_to_float32 as *const u8,
+        ),
+        (
+            NativeFunction::StringToFloat64OrZero,
+            stdlib::str_to_float64 as *const u8,
+        ),
+        (NativeFunction::StringPlus, stdlib::strcat as *const u8),
+        (
+            NativeFunction::Float32ToString,
+            stdlib::float32_to_string as *const u8,
+        ),
+        (
+            NativeFunction::Float64ToString,
+            stdlib::float64_to_string as *const u8,
+        ),
+        (
+            NativeFunction::StringFromBytesPart,
+            stdlib::str_from_bytes as *const u8,
+        ),
+        (
+            NativeFunction::StringFromStringPart,
+            stdlib::str_from_bytes as *const u8,
+        ),
+        (
+            NativeFunction::RetrieveStacktrace,
+            stack::retrieve_stack_trace as *const u8,
+        ),
+        (
+            NativeFunction::GetStackTraceElement,
+            stack::stack_element as *const u8,
+        ),
+        (
+            NativeFunction::SpawnThread,
+            stdlib::spawn_thread as *const u8,
+        ),
+        (NativeFunction::ThreadJoin, stdlib::join_thread as *const u8),
+        (NativeFunction::MutexWait, stdlib::mutex_wait as *const u8),
+        (
+            NativeFunction::MutexNotify,
+            stdlib::mutex_notify as *const u8,
+        ),
+        (
+            NativeFunction::ConditionEnqueue,
+            stdlib::condition_enqueue as *const u8,
+        ),
+        (
+            NativeFunction::ConditionBlock,
+            stdlib::condition_block_after_enqueue as *const u8,
+        ),
+        (
+            NativeFunction::ConditionWakupOne,
+            stdlib::condition_wakeup_one as *const u8,
+        ),
+        (
+            NativeFunction::ConditionWakupAll,
+            stdlib::condition_wakeup_all as *const u8,
+        ),
+        (
+            NativeFunction::ReadFileAsString,
+            stdlib::io::read_file_as_string as *const u8,
+        ),
+        (
+            NativeFunction::ReadFileAsBytes,
+            stdlib::io::read_file_as_bytes as *const u8,
+        ),
+        (
+            NativeFunction::WriteFileAsString,
+            stdlib::io::write_file_as_string as *const u8,
+        ),
+        (
+            NativeFunction::WriteFileAsBytes,
+            stdlib::io::write_file_as_bytes as *const u8,
+        ),
+        (
+            NativeFunction::SocketConnect,
+            stdlib::io::socket_connect as *const u8,
+        ),
+        (
+            NativeFunction::SocketClose,
+            stdlib::io::socket_close as *const u8,
+        ),
+        (
+            NativeFunction::SocketWrite,
+            stdlib::io::socket_write as *const u8,
+        ),
+        (
+            NativeFunction::SocketRead,
+            stdlib::io::socket_read as *const u8,
+        ),
+        (
+            NativeFunction::SocketBind,
+            stdlib::io::socket_bind as *const u8,
+        ),
+        (
+            NativeFunction::SocketAccept,
+            stdlib::io::socket_accept as *const u8,
+        ),
+        (NativeFunction::StringClone, stdlib::str_clone as *const u8),
+    ]);
+
+    for (fct_id, fct) in vm.program.functions.iter().enumerate() {
+        let fct_id = FunctionId(fct_id as u32);
+
+        if let Some(native_function) = fct.native_function {
+            if let Some(&ptr) = mappings.get(&native_function) {
+                vm.native_implementations
+                    .insert(fct_id, Address::from_ptr(ptr));
+            }
+        }
+    }
+}
 
 pub fn resolve_internal_functions(vm: &mut VM) {
     let stdlib_id = vm.stdlib_module_id();
@@ -18,13 +192,9 @@ pub fn resolve_internal_functions(vm: &mut VM) {
     );
     native_fct(vm, stdlib_id, "abort", stdlib::abort as *const u8);
     native_fct(vm, stdlib_id, "exit", stdlib::exit as *const u8);
-    intrinsic_fct(vm, stdlib_id, "unreachable", Intrinsic::Unreachable);
 
     native_fct(vm, stdlib_id, "print", stdlib::print as *const u8);
     native_fct(vm, stdlib_id, "println", stdlib::println as *const u8);
-    let fid = intrinsic_fct(vm, stdlib_id, "assert", Intrinsic::Assert);
-    vm.known.functions.assert = Some(fid);
-    intrinsic_fct(vm, stdlib_id, "debug", Intrinsic::Debug);
     native_fct(vm, stdlib_id, "argc", stdlib::argc as *const u8);
     native_fct(vm, stdlib_id, "argv", stdlib::argv as *const u8);
     native_fct(
@@ -41,8 +211,6 @@ pub fn resolve_internal_functions(vm: &mut VM) {
         stdlib::gc_minor_collect as *const u8,
     );
     native_fct(vm, stdlib_id, "sleep", stdlib::sleep as *const u8);
-
-    intrinsic_fct(vm, stdlib_id, "unsafeKillRefs", Intrinsic::UnsafeKillRefs);
 
     native_method(
         vm,
@@ -349,15 +517,6 @@ fn native_fct(vm: &mut VM, module_id: ModuleDefinitionId, name: &str, fctptr: *c
     );
 }
 
-fn intrinsic_fct(
-    vm: &mut VM,
-    module_id: ModuleDefinitionId,
-    name: &str,
-    intrinsic: Intrinsic,
-) -> FctDefinitionId {
-    common_fct(vm, module_id, name, FctImplementation::Intrinsic(intrinsic))
-}
-
 fn native_method(
     vm: &mut VM,
     module_id: ModuleDefinitionId,
@@ -409,7 +568,10 @@ fn common_fct(
         FctImplementation::Intrinsic(intrinsic) => fct.intrinsic = Some(intrinsic),
         FctImplementation::Native(address) => {
             let fct_id = FunctionId(fct_id.0 as u32);
-            vm.native_implementations.insert(fct_id, address);
+            let old_value = vm.native_implementations.insert(fct_id, address);
+            if let Some(old_value) = old_value {
+                assert_eq!(old_value, address);
+            }
         }
     }
     fct.internal_resolved = true;
@@ -512,7 +674,10 @@ fn internal_extension_method(
                 FctImplementation::Intrinsic(intrinsic) => fct.intrinsic = Some(intrinsic),
                 FctImplementation::Native(address) => {
                     let method_id = FunctionId(fct.id().0 as u32);
-                    vm.native_implementations.insert(method_id, address);
+                    let old_value = vm.native_implementations.insert(method_id, address);
+                    if let Some(old_value) = old_value {
+                        assert_eq!(old_value, address);
+                    }
                 }
             }
             fct.internal_resolved = true;

@@ -90,6 +90,7 @@ fn create_functions(sa: &SemAnalysis) -> Vec<FunctionData> {
                 .map(|ty| bty_from_ty(ty.clone()))
                 .collect(),
             return_type: fct.return_type_bty(),
+            native_function: fct.native_function.clone(),
         })
     }
 

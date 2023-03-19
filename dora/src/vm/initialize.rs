@@ -6,6 +6,7 @@ use crate::vm::functions::display_fct;
 use crate::vm::{create_class_instance_with_vtable, setup_stubs, stdlib, ShapeKind, VM};
 
 pub(super) fn setup(vm: &mut VM) {
+    stdlib::resolve_native_functions(vm);
     stdlib::resolve_internal_functions(vm);
     check_unresolved_functions(vm);
     create_special_classes(vm);
