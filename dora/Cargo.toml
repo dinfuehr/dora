@@ -16,7 +16,7 @@ aot = []
 byteorder = "*"
 lazy_static = "*"
 libc = "*"
-time = "0.1.*"
+time = "*"
 capstone = { version = "*", optional = true }
 dora-asm = { path = "../dora-asm", version = "0.0.1" }
 dora-parser = { path = "../dora-parser", version = "0.0.2" }
