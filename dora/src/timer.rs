@@ -28,7 +28,3 @@ impl Timer {
         }
     }
 }
-
-pub fn timestamp() -> u64 {
-    time::precise_time_ns()
-}

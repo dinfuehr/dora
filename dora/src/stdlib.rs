@@ -114,9 +114,9 @@ pub extern "C" fn unreachable() {
 }
 
 pub extern "C" fn timestamp() -> u64 {
-    use crate::timer;
-
-    timer::timestamp()
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let timestamp = SystemTime::now();
+    timestamp.duration_since(UNIX_EPOCH).unwrap().as_millis() as u64
 }
 
 pub extern "C" fn println(val: Handle<Str>) {
