@@ -3,6 +3,7 @@ use std::cmp::{max, min};
 use std::f32;
 use std::fmt;
 use std::sync::Arc;
+use std::time::Instant;
 
 use crate::driver::cmd::Args;
 use crate::gc::swiper::large::LargeSpace;
@@ -11,7 +12,6 @@ use crate::gc::swiper::{CollectionKind, CommonOldGen};
 use crate::gc::{align_gen, align_gen_down, formatted_size, AllNumbers, GcReason, GEN_SIZE, M};
 use crate::mem;
 use crate::stdlib;
-use crate::timer;
 use crate::vm::Trap;
 
 const INIT_HEAP_SIZE_RATIO: usize = 2;
@@ -88,7 +88,7 @@ pub fn start(
 ) {
     let mut config = config.lock();
 
-    config.gc_start = timer::timestamp();
+    config.gc_start = Some(Instant::now());
     config.start_object_size = object_size(young, old, large);
     config.start_memory_size = memory_size(young, old, large);
 }
@@ -104,8 +104,8 @@ pub fn stop(
 ) {
     let mut config = config.lock();
 
-    let gc_end = timer::timestamp();
-    config.gc_duration = timer::in_ms(gc_end - config.gc_start);
+    let duration = config.gc_start.expect("not started").elapsed();
+    config.gc_duration = duration.as_secs_f32() / 1000f32;
 
     assert!(young.eden_active().empty());
     assert!(young.from_active().empty());
@@ -221,7 +221,7 @@ pub struct HeapConfig {
     pub old_size: usize,
     pub old_limit: usize,
 
-    gc_start: u64,
+    gc_start: Option<Instant>,
     gc_duration: f32,
 
     start_object_size: usize,
@@ -255,7 +255,7 @@ impl HeapConfig {
             old_size: 0,
             old_limit: 0,
 
-            gc_start: 0,
+            gc_start: None,
             gc_duration: 0f32,
 
             start_object_size: 0,
