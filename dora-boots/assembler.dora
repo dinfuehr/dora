@@ -149,7 +149,7 @@ fn assertAsm(code: MachineCode, bytes: UInt8...) {
             println("expected ${exp.toStringHex()} at index ${code.start + idx} but got ${got.toStringHex()}");
 
             let mut i = 0i64;
-            print("buffer:   ");
+            print("expected: ");
 
             while i < bytes.size() {
                 if i > 0i64 { print(", "); }
@@ -160,7 +160,7 @@ fn assertAsm(code: MachineCode, bytes: UInt8...) {
 
             i = 0i64;
             println("");
-            print("expected: ");
+            print("buffer: ");
 
             while i < bytes.size() {
                 if i > 0i64 { print(", "); }

@@ -1701,7 +1701,7 @@ impl Address {
     pub fn array(base: Register, index: Register, factor: ScaleFactor, disp: i32) -> Address {
         let mut address = Address::new();
 
-        let mode = if disp == 0 && base != RBP {
+        let mode = if disp == 0 && base != RBP && base != R13 {
             0b00
         } else if -128 <= disp && disp < 128 {
             0b01
@@ -2104,8 +2104,10 @@ mod tests {
         assert_emit!(0x48, 0x8b, 0x84, 0xf8, 0x7f, 0xff, 0xff, 0xff; movq_ra(RAX, Address::array(RAX, RDI, ScaleFactor::Eight, -129)));
 
         assert_emit!(0x48, 0x8b, 0x44, 0xed, 0; movq_ra(RAX, Address::array(RBP, RBP, ScaleFactor::Eight, 0)));
+        assert_emit!(0x49, 0x8b, 0x44, 0xed, 0; movq_ra(RAX, Address::array(R13, RBP, ScaleFactor::Eight, 0)));
         assert_emit!(0x48, 0x8b, 0x04, 0xe8; movq_ra(RAX, Address::array(RAX, RBP, ScaleFactor::Eight, 0)));
         assert_emit!(0x48, 0x8b, 0x44, 0xc5, 0; movq_ra(RAX, Address::array(RBP, RAX, ScaleFactor::Eight, 0)));
+        assert_emit!(0x49, 0x8b, 0x44, 0xc5, 0; movq_ra(RAX, Address::array(R13, RAX, ScaleFactor::Eight, 0)));
 
         assert_emit!(0x48, 0x8b, 0x04, 0xed, 0, 0, 0, 0; movq_ra(RAX, Address::index(RBP, ScaleFactor::Eight, 0)));
         assert_emit!(0x48, 0x8b, 0x04, 0xed, 1, 0, 0, 0; movq_ra(RAX, Address::index(RBP, ScaleFactor::Eight, 1)));

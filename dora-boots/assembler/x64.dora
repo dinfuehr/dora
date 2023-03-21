@@ -1472,7 +1472,7 @@ impl Address {
             self.rex = (self.rex.toInt32() | 0x41i32).toUInt8();
         }
 
-        if base.needsRexBit() {
+        if index.needsRexBit() {
             self.rex = (self.rex.toInt32() | 0x42i32).toUInt8();
         }
 
@@ -1540,7 +1540,7 @@ impl Address {
     @static fn array(base: Register, index: Register, factor: ScaleFactor, disp: Int32): Address {
         let address = Address::new();
 
-        let mode = if disp == 0i32 && base != RBP {
+        let mode = if disp == 0i32 && base != RBP && base != R13 {
             0b00i32
         } else if -128i32 <= disp && disp < 128i32 {
             0b01i32
@@ -2118,12 +2118,16 @@ fn testAsmMovqar() {
     asm.movqar(Address::offset(RBP, 0i32), RAX);
     asm.movqar(Address::offset(R13, 0i32), RAX);
     asm.movqar(Address::array(RAX, RBP, ScaleFactor::Four, 1i32), RAX);
+    asm.movqar(Address::array(RBP, RAX, ScaleFactor::Eight, 0i32), RAX);
+    asm.movqar(Address::array(R13, RAX, ScaleFactor::Eight, 0i32), RAX);
 
     let buffer = asm.finalizeTesting();
 
     assertAsm(buffer, 0x48u8, 0x89u8, 0x45u8, 0u8);
     assertAsm(buffer, 0x49u8, 0x89u8, 0x45u8, 0u8);
     assertAsm(buffer, 0x48u8, 0x89u8, 0x44u8, 0xA8u8, 1u8);
+    assertAsm(buffer, 0x48u8, 0x89u8, 0x44u8, 0xc5u8, 0u8);
+    assertAsm(buffer, 0x49u8, 0x89u8, 0x44u8, 0xc5u8, 0u8);
     assertAsmEnd(buffer);
 }
 
