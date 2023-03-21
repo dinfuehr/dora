@@ -17,27 +17,33 @@ pub fn module_path_with_name_str(vm: &VM, module_id: ModuleDefinitionId, name: &
 }
 
 pub fn module_path(vm: &VM, module_id: ModuleDefinitionId) -> String {
-    let start_module = &vm.modules[module_id].read();
     let mut path = String::new();
 
-    for &module_id in &start_module.parents {
-        let module = &vm.modules[module_id].read();
+    let current_id = module_id.to_usize();
 
-        if let Some(name) = module.name {
-            if !path.is_empty() {
-                path.push_str("::");
-            }
-
-            path.push_str(&vm.interner.str(name));
-        }
+    // Do not print name for the top program module.
+    if current_id == vm.program_module_id().to_usize() {
+        return "".into();
     }
 
-    if let Some(name) = start_module.name {
-        if !path.is_empty() {
-            path.push_str("::");
+    let module = &vm.program.modules[current_id];
+    path.push_str(&module.name);
+
+    let mut module_id = module.parent_id;
+
+    while let Some(current_id) = module_id {
+        let current_id = current_id.0 as usize;
+
+        // Do not print name for the top program module.
+        if current_id == vm.program_module_id().to_usize() {
+            break;
         }
 
-        path.push_str(&vm.interner.str(name));
+        let module = &vm.program.modules[current_id];
+        assert_ne!("<root>", module.name);
+        path.insert_str(0, "::");
+        path.insert_str(0, &module.name);
+        module_id = module.parent_id;
     }
 
     path
