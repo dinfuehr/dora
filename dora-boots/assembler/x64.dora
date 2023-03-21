@@ -1498,7 +1498,7 @@ impl Address {
     @static fn offset(base: Register, offset: Int32): Address {
         let address = Address::new();
 
-        let mode = if offset == 0i32 && base != RBP {
+        let mode = if offset == 0i32 && base != RBP && base != R13 {
             0b00i32
         } else if -128i32 <= offset && offset < 128i32 {
             0b01i32
@@ -2116,11 +2116,13 @@ fn testAsmMovqra() {
 fn testAsmMovqar() {
     let asm = AssemblerX64::new();
     asm.movqar(Address::offset(RBP, 0i32), RAX);
+    asm.movqar(Address::offset(R13, 0i32), RAX);
     asm.movqar(Address::array(RAX, RBP, ScaleFactor::Four, 1i32), RAX);
 
     let buffer = asm.finalizeTesting();
 
     assertAsm(buffer, 0x48u8, 0x89u8, 0x45u8, 0u8);
+    assertAsm(buffer, 0x49u8, 0x89u8, 0x45u8, 0u8);
     assertAsm(buffer, 0x48u8, 0x89u8, 0x44u8, 0xA8u8, 1u8);
     assertAsmEnd(buffer);
 }
