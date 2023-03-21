@@ -1662,7 +1662,7 @@ impl Address {
     pub fn offset(base: Register, offset: i32) -> Address {
         let mut address = Address::new();
 
-        let mode = if offset == 0 && base != RBP {
+        let mode = if offset == 0 && base != RBP && base != R13 {
             0b00
         } else if -128 <= offset && offset < 128 {
             0b01
@@ -2115,6 +2115,7 @@ mod tests {
     fn test_movq_ar() {
         assert_emit!(0x48, 0x89, 0x45, 0; movq_ar(Address::offset(RBP, 0), RAX));
         assert_emit!(0x48, 0x89, 0x44, 0xa8, 1; movq_ar(Address::array(RAX, RBP, ScaleFactor::Four, 1), RAX));
+        assert_emit!(0x49, 0x89, 0x45, 0; movq_ar(Address::offset(R13, 0), RAX));
     }
 
     #[test]
