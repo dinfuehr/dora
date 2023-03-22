@@ -5,6 +5,7 @@ use crate::gc::Address;
 use crate::object::{Obj, Ref};
 use crate::os::{self, Reservation};
 use crate::threads::current_thread;
+use crate::vm::get_vm;
 
 pub struct HandleMemory {
     inner: UnsafeCell<HandleMemoryInner>,
@@ -41,6 +42,11 @@ impl HandleMemory {
     }
 
     pub fn iterate_for_gc(&self) -> HandleMemoryIter {
+        assert!(get_vm().state().in_safepoint());
+        self.raw_iterate()
+    }
+
+    fn raw_iterate(&self) -> HandleMemoryIter {
         let inner = self.get_inner_mut();
 
         HandleMemoryIter {
@@ -313,8 +319,8 @@ fn test_handle_iteration() {
 
         hm.drop_scope(scope);
 
-        assert_eq!(hm.iterate_for_gc().count(), size);
-        assert!(hm.iterate_for_gc().all(|x| x.raw_load() == 1.into()));
+        assert_eq!(hm.raw_iterate().count(), size);
+        assert!(hm.raw_iterate().all(|x| x.raw_load() == 1.into()));
     }
 }
 

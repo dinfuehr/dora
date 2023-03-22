@@ -1,7 +1,9 @@
+use num_enum::{IntoPrimitive, TryFromPrimitive};
 use parking_lot::{Mutex, RwLock};
 use std::collections::HashMap;
 use std::mem;
 use std::ptr;
+use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::Arc;
 
 use crate::compiler;
@@ -108,6 +110,29 @@ pub fn stack_pointer() -> Address {
     Address::from_ptr(&local as *const i32)
 }
 
+#[derive(TryFromPrimitive, IntoPrimitive, PartialEq, Eq, Copy, Clone, Debug)]
+#[repr(u8)]
+pub enum VmState {
+    Running,
+    Safepoint,
+}
+
+impl VmState {
+    pub fn in_running(&self) -> bool {
+        match self {
+            VmState::Running => true,
+            _ => false,
+        }
+    }
+
+    pub fn in_safepoint(&self) -> bool {
+        match self {
+            VmState::Safepoint => true,
+            _ => false,
+        }
+    }
+}
+
 pub struct VM {
     pub args: Args,
     pub program: Program,
@@ -134,6 +159,7 @@ pub struct VM {
     pub stubs: Stubs,
     pub threads: Threads,
     pub wait_lists: WaitLists,
+    pub state: AtomicU8,
 }
 
 impl VM {
@@ -166,9 +192,20 @@ impl VM {
             stubs: Stubs::new(),
             threads: Threads::new(),
             wait_lists: WaitLists::new(),
+            state: AtomicU8::new(VmState::Running.into()),
         });
 
         vm
+    }
+
+    pub fn state(&self) -> VmState {
+        let state = self.state.load(Ordering::Relaxed);
+        VmState::try_from(state).expect("invalid state")
+    }
+
+    pub fn set_state(&self, new_state: VmState) -> VmState {
+        let old_state = self.state.swap(new_state.into(), Ordering::Relaxed);
+        VmState::try_from(old_state).expect("invalid state")
     }
 
     pub fn setup_execution(&mut self) {

@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use crate::stdlib;
 use crate::threads::{current_thread, parked_scope, DoraThread, ThreadState};
-use crate::vm::{get_vm, Trap, VM};
+use crate::vm::{get_vm, Trap, VmState, VM};
 
 pub fn stop_the_world<F, R>(vm: &VM, operation: F) -> R
 where
@@ -11,17 +11,41 @@ where
 {
     parked_scope(|| {
         let threads = vm.threads.threads.lock();
+
         if threads.len() == 1 {
-            let ret = operation(&*threads);
+            assert_eq!(
+                current_thread() as *const _,
+                threads.first().expect("missing thread").as_ref() as *const _
+            );
+            let ret = invoke_safepoint_operation(vm, &*threads, operation);
             return ret;
         }
 
+        debug_assert!(threads
+            .iter()
+            .any(|t| t.as_ref() as *const _ == current_thread() as *const _));
+
         stop_threads(vm, &*threads);
-        let ret = operation(&*threads);
+        let ret = invoke_safepoint_operation(vm, &*threads, operation);
         resume_threads(vm, &*threads);
 
         ret
     })
+}
+
+fn invoke_safepoint_operation<F, R>(vm: &VM, threads: &[Arc<DoraThread>], operation: F) -> R
+where
+    F: FnOnce(&[Arc<DoraThread>]) -> R,
+{
+    let old_state = vm.set_state(VmState::Safepoint);
+    assert!(old_state.in_running());
+
+    let result = operation(threads);
+
+    let old_state = vm.set_state(VmState::Running);
+    assert!(old_state.in_safepoint());
+
+    result
 }
 
 fn stop_threads(vm: &VM, threads: &[Arc<DoraThread>]) {
