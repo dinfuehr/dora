@@ -22,8 +22,7 @@ use dora_bytecode::{
     TraitId,
 };
 use dora_frontend::language::sem_analysis::{
-    FctDefinition, FctDefinitionId, ImplDefinition, KnownElements, ModuleDefinition,
-    ModuleDefinitionId, SemAnalysis,
+    FctDefinition, FctDefinitionId, ImplDefinition, KnownElements, ModuleDefinitionId, SemAnalysis,
 };
 use dora_frontend::{GrowableVec, MutableVec};
 
@@ -31,8 +30,7 @@ use dora_parser::interner::*;
 use dora_parser::lexer::position::Position;
 
 pub use self::classes::{
-    class_definition_name, create_class_instance_with_vtable, ClassInstance, ClassInstanceId,
-    FieldInstance, ShapeKind,
+    create_class_instance_with_vtable, ClassInstance, ClassInstanceId, FieldInstance, ShapeKind,
 };
 pub use self::code::{
     install_code, install_code_stub, Code, CodeId, CodeKind, CodeObjects, CommentTable, GcPoint,
@@ -47,9 +45,7 @@ pub use self::functions::display_fct;
 use self::globals::GlobalVariableMemory;
 pub use self::impls::{find_trait_impl, implements_trait};
 use self::known::KnownInstances;
-pub use self::modules::{
-    module_contains, module_path, module_path_with_name, module_path_with_name_str,
-};
+pub use self::modules::{module_path, module_path_name};
 pub use self::specialize::{
     add_ref_fields, create_class_instance, create_enum_instance, create_struct_instance,
     ensure_class_instance_for_enum_variant, ensure_class_instance_for_lambda,
@@ -143,7 +139,6 @@ pub struct VM {
     pub struct_instances: GrowableVecNonIter<StructInstance>, // stores all struct definitions
     pub class_specializations: RwLock<HashMap<(ClassId, BytecodeTypeArray), ClassInstanceId>>,
     pub class_instances: GrowableVecNonIter<ClassInstance>, // stores all class definitions
-    pub modules: MutableVec<ModuleDefinition>,              // stores all module definitions
     pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
     pub code_objects: CodeObjects,
     pub compilation_database: CompilationDatabase,
@@ -173,7 +168,6 @@ impl VM {
             struct_instances: GrowableVecNonIter::new(),
             class_specializations: RwLock::new(HashMap::new()),
             class_instances: GrowableVecNonIter::new(),
-            modules: sa.modules,
             enum_specializations: RwLock::new(HashMap::new()),
             enum_instances: GrowableVecNonIter::new(),
             trait_vtables: RwLock::new(HashMap::new()),

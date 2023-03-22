@@ -1,15 +1,10 @@
 use parking_lot::RwLock;
 
 use crate::size::InstanceSize;
-use crate::vm::{add_ref_fields, module_path_with_name, VM};
+use crate::vm::{add_ref_fields, VM};
 use crate::vtable::VTableBox;
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, TraitId};
-use dora_frontend::language::sem_analysis::ClassDefinition;
 use dora_frontend::Id;
-
-pub fn class_definition_name(cls: &ClassDefinition, vm: &VM) -> String {
-    module_path_with_name(vm, cls.module_id, cls.name)
-}
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct ClassInstanceId(usize);

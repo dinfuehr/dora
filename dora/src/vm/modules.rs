@@ -1,11 +1,6 @@
 use crate::vm::{ModuleDefinitionId, VM};
-use dora_parser::interner::Name;
 
-pub fn module_path_with_name(vm: &VM, module_id: ModuleDefinitionId, name: Name) -> String {
-    module_path_with_name_str(vm, module_id, &vm.interner.str(name))
-}
-
-pub fn module_path_with_name_str(vm: &VM, module_id: ModuleDefinitionId, name: &str) -> String {
+pub fn module_path_name(vm: &VM, module_id: ModuleDefinitionId, name: &str) -> String {
     let mut result = module_path(vm, module_id);
 
     if !result.is_empty() {
@@ -47,17 +42,4 @@ pub fn module_path(vm: &VM, module_id: ModuleDefinitionId) -> String {
     }
 
     path
-}
-
-pub fn module_contains(
-    vm: &VM,
-    parent_id: ModuleDefinitionId,
-    child_id: ModuleDefinitionId,
-) -> bool {
-    if parent_id == child_id {
-        return true;
-    }
-
-    let module = &vm.modules[child_id].read();
-    module.parents.contains(&parent_id)
 }

@@ -1,4 +1,4 @@
-use crate::vm::{module_path, module_path_with_name, module_path_with_name_str, VM};
+use crate::vm::{module_path, module_path_name, VM};
 use dora_bytecode::FunctionId;
 use dora_frontend::language::sem_analysis::{FctDefinitionId, FctParent, ModuleDefinitionId};
 
@@ -8,7 +8,7 @@ pub fn display_fct(vm: &VM, fct_id: FunctionId) -> String {
     let mut repr = match fct.parent {
         FctParent::Trait(trait_id) => {
             let trait_ = &vm.program.traits[trait_id.to_usize()];
-            module_path_with_name_str(
+            module_path_name(
                 vm,
                 ModuleDefinitionId(trait_.module_id.0 as usize),
                 &trait_.name,
@@ -20,7 +20,7 @@ pub fn display_fct(vm: &VM, fct_id: FunctionId) -> String {
             if result.is_empty() {
                 result.push_str("::");
             }
-            result.push_str("<impl block>");
+            result.push_str("<extension block>");
             result
         }
 
@@ -34,7 +34,8 @@ pub fn display_fct(vm: &VM, fct_id: FunctionId) -> String {
         }
 
         FctParent::None => {
-            return module_path_with_name(vm, fct.module_id, fct.name);
+            let name = vm.interner.str(fct.name);
+            return module_path_name(vm, fct.module_id, &name);
         }
 
         FctParent::Function(_) => "lamba".into(),

@@ -24,6 +24,7 @@ pub struct FunctionId(pub u32);
 #[derive(Debug)]
 pub struct FunctionData {
     pub name: String,
+    pub package_id: PackageId,
     pub type_params: TypeParamData,
     pub source_file_id: Option<SourceFileId>,
     pub params: Vec<BytecodeType>,

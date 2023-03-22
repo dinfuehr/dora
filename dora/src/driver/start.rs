@@ -1,11 +1,11 @@
 use crate::driver::cmd::{self, Args};
 use crate::timer::Timer;
-use crate::vm::{clear_vm, display_fct, execute_on_main, module_contains, set_vm, VM};
-use dora_bytecode::FunctionId;
+use crate::vm::{clear_vm, display_fct, execute_on_main, set_vm, VM};
+use dora_bytecode::{FunctionId, PackageId};
 use dora_frontend::language;
 use dora_frontend::language::error::msg::ErrorMessage;
 use dora_frontend::language::sem_analysis::{
-    FctDefinition, FctDefinitionId, ModuleDefinitionId, SemAnalysis, SemAnalysisArgs,
+    FctDefinition, FctDefinitionId, SemAnalysis, SemAnalysisArgs,
 };
 
 pub fn start() -> i32 {
@@ -83,7 +83,7 @@ pub fn start() -> i32 {
     let mut timer = Timer::new(vm.args.flag_gc_stats);
 
     let exit_code = if vm.args.command.is_test() {
-        run_tests(&vm, vm.program_module_id())
+        run_tests(&vm, vm.program.program_package_id)
     } else {
         run_main(&vm, main_fct_id.expect("main missing"))
     };
@@ -117,7 +117,7 @@ fn report_errors(sa: &SemAnalysis) -> bool {
     }
 }
 
-fn run_tests(vm: &VM, module_id: ModuleDefinitionId) -> i32 {
+fn run_tests(vm: &VM, package_id: PackageId) -> i32 {
     let mut tests = 0;
     let mut passed = 0;
 
@@ -125,7 +125,7 @@ fn run_tests(vm: &VM, module_id: ModuleDefinitionId) -> i32 {
         for fct in vm.fcts.iter() {
             let fct = fct.read();
 
-            if !module_contains(vm, module_id, fct.module_id)
+            if fct.package_id.to_usize() != package_id.0 as usize
                 || !is_test_fct(&*fct)
                 || !test_filter_matches(vm, FunctionId(fct.id().0 as u32))
             {

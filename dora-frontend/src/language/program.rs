@@ -82,6 +82,7 @@ fn create_functions(sa: &SemAnalysis) -> Vec<FunctionData> {
         let name = sa.interner.str(fct.name).to_string();
         result.push(FunctionData {
             name,
+            package_id: convert_package_id(fct.package_id),
             type_params: create_type_params(sa, &fct.type_params),
             source_file_id: Some(convert_source_file_id(fct.file_id)),
             params: fct

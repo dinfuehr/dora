@@ -1,13 +1,13 @@
 use parking_lot::RwLock;
 
-use crate::vm::{module_path_with_name_str, ClassInstanceId, VM};
+use crate::vm::{module_path_name, ClassInstanceId, VM};
 use dora_bytecode::ty::BytecodeTypeArray;
 use dora_bytecode::{EnumData, EnumId};
 use dora_frontend::language::sem_analysis::ModuleDefinitionId;
 use dora_frontend::Id;
 
 pub fn enum_definition_name(enum_: &EnumData, vm: &VM) -> String {
-    module_path_with_name_str(
+    module_path_name(
         vm,
         ModuleDefinitionId(enum_.module_id.0 as usize),
         &enum_.name,
