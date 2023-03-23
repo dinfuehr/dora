@@ -29,8 +29,8 @@ pub struct FunctionData {
     pub source_file_id: Option<SourceFileId>,
     pub params: Vec<BytecodeType>,
     pub return_type: BytecodeType,
-    pub native_function: Option<NativeFunction>,
-    pub internal_function: Option<InternalFunction>,
+    pub native: Option<NativeFunction>,
+    pub internal: Option<InternalFunction>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -55,7 +55,7 @@ pub struct ClassData {
     pub type_params: TypeParamData,
     pub layout: ClassLayout,
     pub fields: Vec<ClassField>,
-    pub internal_class: Option<InternalClass>,
+    pub internal: Option<InternalClass>,
 }
 
 #[derive(Debug)]

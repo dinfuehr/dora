@@ -118,8 +118,8 @@ fn create_functions(sa: &SemAnalysis) -> Vec<FunctionData> {
                 .map(|ty| bty_from_ty(ty.clone()))
                 .collect(),
             return_type: fct.return_type_bty(),
-            native_function: fct.native_function.clone(),
-            internal_function,
+            native: fct.native_function.clone(),
+            internal: internal_function,
         })
     }
 
@@ -170,7 +170,7 @@ fn create_classes(sa: &SemAnalysis) -> Vec<ClassData> {
             type_params: create_type_params(sa, class.type_params()),
             layout: create_class_layout(&*class),
             fields: create_class_fields(sa, &*class),
-            internal_class,
+            internal: internal_class,
         })
     }
 

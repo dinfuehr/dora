@@ -173,7 +173,7 @@ pub fn resolve_native_functions(vm: &mut VM) {
     for (fct_id, fct) in vm.program.functions.iter().enumerate() {
         let fct_id = FunctionId(fct_id as u32);
 
-        if let Some(native_function) = fct.native_function {
+        if let Some(native_function) = fct.native {
             if let Some(ptr) = mappings.remove(&native_function) {
                 vm.native_implementations
                     .insert(fct_id, Address::from_ptr(ptr));
@@ -188,7 +188,7 @@ pub fn resolve_internal_classes(vm: &mut VM) {
     for (cls_id, cls) in vm.program.classes.iter().enumerate() {
         let cls_id = ClassId(cls_id as u32);
 
-        if let Some(internal_class) = cls.internal_class {
+        if let Some(internal_class) = cls.internal {
             match internal_class {
                 InternalClass::Array => vm.known_instances.array_class_id = Some(cls_id),
                 InternalClass::String => vm.known_instances.string_class_id = Some(cls_id),
@@ -205,7 +205,7 @@ pub fn resolve_internal_functions(vm: &mut VM) {
     for (fct_id, fct) in vm.program.functions.iter().enumerate() {
         let fct_id = FunctionId(fct_id as u32);
 
-        if let Some(internal_function) = fct.internal_function {
+        if let Some(internal_function) = fct.internal {
             match internal_function {
                 InternalFunction::BootsCompile => {
                     vm.known_instances.boots_compile_fct_id = Some(fct_id);
