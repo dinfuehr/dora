@@ -7,7 +7,7 @@ use crate::vm::VM;
 use dora_bytecode::{FunctionId, NativeFunction};
 
 pub fn resolve_native_functions(vm: &mut VM) {
-    let mappings: HashMap<NativeFunction, *const u8> = HashMap::from([
+    let mut mappings: HashMap<NativeFunction, *const u8> = HashMap::from([
         (NativeFunction::Abort, stdlib::abort as *const u8),
         (NativeFunction::Exit, stdlib::exit as *const u8),
         (NativeFunction::FatalError, stdlib::fatal_error as *const u8),
@@ -172,10 +172,12 @@ pub fn resolve_native_functions(vm: &mut VM) {
         let fct_id = FunctionId(fct_id as u32);
 
         if let Some(native_function) = fct.native_function {
-            if let Some(&ptr) = mappings.get(&native_function) {
+            if let Some(ptr) = mappings.remove(&native_function) {
                 vm.native_implementations
                     .insert(fct_id, Address::from_ptr(ptr));
             }
         }
     }
+
+    assert!(mappings.is_empty());
 }
