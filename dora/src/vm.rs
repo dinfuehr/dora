@@ -22,7 +22,7 @@ use dora_bytecode::{
     TraitId,
 };
 use dora_frontend::language::sem_analysis::{
-    FctDefinition, FctDefinitionId, ImplDefinition, KnownElements, ModuleDefinitionId, SemAnalysis,
+    FctDefinition, FctDefinitionId, ImplDefinition, ModuleDefinitionId, SemAnalysis,
 };
 use dora_frontend::{GrowableVec, MutableVec};
 
@@ -133,7 +133,6 @@ pub struct VM {
     pub args: Args,
     pub program: Program,
     pub interner: Interner,
-    pub known: KnownElements,
     pub known_instances: KnownInstances,
     pub struct_specializations: RwLock<HashMap<(StructId, BytecodeTypeArray), StructInstanceId>>,
     pub struct_instances: GrowableVecNonIter<StructInstance>, // stores all struct definitions
@@ -174,7 +173,6 @@ impl VM {
             impls: sa.impls,
             global_variable_memory: None,
             interner: sa.interner,
-            known: sa.known,
             known_instances: KnownInstances::new(),
             gc,
             fcts: sa.fcts,
@@ -285,8 +283,8 @@ impl VM {
             cls_id
         } else {
             let type_args = BytecodeTypeArray::one(BytecodeType::UInt8);
-            let cls_id = ClassId(self.known.classes.array().0 as u32);
-            let cls_id = create_class_instance(self, cls_id, &type_args);
+            let cls_id =
+                create_class_instance(self, self.known_instances.array_class_id(), &type_args);
             *byte_array_def = Some(cls_id);
             cls_id
         }
@@ -299,8 +297,8 @@ impl VM {
             cls_id
         } else {
             let type_args = BytecodeTypeArray::one(BytecodeType::Int32);
-            let cls_id = ClassId(self.known.classes.array().0 as u32);
-            let cls_id = create_class_instance(self, cls_id, &type_args);
+            let cls_id =
+                create_class_instance(self, self.known_instances.array_class_id(), &type_args);
             *int_array_def = Some(cls_id);
             cls_id
         }
@@ -314,7 +312,7 @@ impl VM {
         } else {
             let cls_id = create_class_instance(
                 self,
-                ClassId(self.known.classes.string().0 as u32),
+                self.known_instances.string_class_id(),
                 &BytecodeTypeArray::empty(),
             );
             *str_class_def = Some(cls_id);
@@ -330,7 +328,7 @@ impl VM {
         } else {
             let cls_id = create_class_instance(
                 self,
-                ClassId(self.known.classes.stacktrace_element().0 as u32),
+                self.known_instances.stacktrace_element_class_id(),
                 &BytecodeTypeArray::empty(),
             );
             *ste_class_def = Some(cls_id);
@@ -341,7 +339,7 @@ impl VM {
     pub fn thread_class_instance(&self) -> ClassInstanceId {
         create_class_instance(
             self,
-            ClassId(self.known.classes.thread().0 as u32),
+            self.known_instances.thread_class_id(),
             &BytecodeTypeArray::empty(),
         )
     }

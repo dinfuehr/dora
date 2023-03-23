@@ -4,7 +4,9 @@ use crate::gc::Address;
 use crate::stack;
 use crate::stdlib;
 use crate::vm::VM;
-use dora_bytecode::{FunctionId, NativeFunction};
+use dora_bytecode::program::InternalClass;
+use dora_bytecode::program::InternalFunction;
+use dora_bytecode::{ClassId, FunctionId, NativeFunction};
 
 pub fn resolve_native_functions(vm: &mut VM) {
     let mut mappings: HashMap<NativeFunction, *const u8> = HashMap::from([
@@ -180,4 +182,38 @@ pub fn resolve_native_functions(vm: &mut VM) {
     }
 
     assert!(mappings.is_empty());
+}
+
+pub fn resolve_internal_classes(vm: &mut VM) {
+    for (cls_id, cls) in vm.program.classes.iter().enumerate() {
+        let cls_id = ClassId(cls_id as u32);
+
+        if let Some(internal_class) = cls.internal_class {
+            match internal_class {
+                InternalClass::Array => vm.known_instances.array_class_id = Some(cls_id),
+                InternalClass::String => vm.known_instances.string_class_id = Some(cls_id),
+                InternalClass::Thread => vm.known_instances.thread_class_id = Some(cls_id),
+                InternalClass::StacktraceElement => {
+                    vm.known_instances.stacktrace_element_class_id = Some(cls_id)
+                }
+            }
+        }
+    }
+}
+
+pub fn resolve_internal_functions(vm: &mut VM) {
+    for (fct_id, fct) in vm.program.functions.iter().enumerate() {
+        let fct_id = FunctionId(fct_id as u32);
+
+        if let Some(internal_function) = fct.internal_function {
+            match internal_function {
+                InternalFunction::BootsCompile => {
+                    vm.known_instances.boots_compile_fct_id = Some(fct_id);
+                }
+                InternalFunction::StacktraceRetrieve => {
+                    vm.known_instances.stacktrace_retrieve_fct_id = Some(fct_id);
+                }
+            }
+        }
+    }
 }

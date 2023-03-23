@@ -1,5 +1,5 @@
 use crate::language::SemAnalysis;
-use dora_bytecode::program::{ClassLayout, ImplData};
+use dora_bytecode::program::{ClassLayout, ImplData, InternalClass, InternalFunction};
 use dora_bytecode::{
     ClassData, ClassField, EnumData, EnumVariant, FunctionData, FunctionId, GlobalData, ModuleData,
     ModuleId, PackageData, PackageId, Program, SourceFileData, SourceFileId, StructData,
@@ -98,6 +98,15 @@ fn create_functions(sa: &SemAnalysis) -> Vec<FunctionData> {
     for fct in sa.fcts.iter() {
         let fct = fct.read();
         let name = sa.interner.str(fct.name).to_string();
+
+        let internal_function = if Some(fct.id()) == sa.known.functions.compile {
+            Some(InternalFunction::BootsCompile)
+        } else if fct.id() == sa.known.functions.stacktrace_retrieve() {
+            Some(InternalFunction::StacktraceRetrieve)
+        } else {
+            None
+        };
+
         result.push(FunctionData {
             name,
             package_id: convert_package_id(fct.package_id),
@@ -110,6 +119,7 @@ fn create_functions(sa: &SemAnalysis) -> Vec<FunctionData> {
                 .collect(),
             return_type: fct.return_type_bty(),
             native_function: fct.native_function.clone(),
+            internal_function,
         })
     }
 
@@ -142,12 +152,25 @@ fn create_classes(sa: &SemAnalysis) -> Vec<ClassData> {
         let class = class.read();
         let name = sa.interner.str(class.name).to_string();
 
+        let internal_class = if class.is_array {
+            Some(InternalClass::Array)
+        } else if class.is_str {
+            Some(InternalClass::String)
+        } else if class.id() == sa.known.classes.thread() {
+            Some(InternalClass::Thread)
+        } else if class.id() == sa.known.classes.stacktrace_element() {
+            Some(InternalClass::StacktraceElement)
+        } else {
+            None
+        };
+
         result.push(ClassData {
             module_id: convert_module_id(class.module_id),
             name,
             type_params: create_type_params(sa, class.type_params()),
             layout: create_class_layout(&*class),
             fields: create_class_fields(sa, &*class),
+            internal_class,
         })
     }
 

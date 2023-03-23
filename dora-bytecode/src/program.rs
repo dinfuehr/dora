@@ -30,6 +30,7 @@ pub struct FunctionData {
     pub params: Vec<BytecodeType>,
     pub return_type: BytecodeType,
     pub native_function: Option<NativeFunction>,
+    pub internal_function: Option<InternalFunction>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -54,6 +55,7 @@ pub struct ClassData {
     pub type_params: TypeParamData,
     pub layout: ClassLayout,
     pub fields: Vec<ClassField>,
+    pub internal_class: Option<InternalClass>,
 }
 
 #[derive(Debug)]
@@ -183,6 +185,20 @@ pub struct Program {
     pub stdlib_package_id: PackageId,
     pub program_package_id: PackageId,
     pub boots_package_id: Option<PackageId>,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum InternalClass {
+    Array,
+    String,
+    Thread,
+    StacktraceElement,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum InternalFunction {
+    StacktraceRetrieve,
+    BootsCompile,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]

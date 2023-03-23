@@ -87,7 +87,7 @@ pub fn implements_trait(
     trait_ty: SourceType,
 ) -> bool {
     if check_ty.is_primitive()
-        && vm.known.traits.zero() == trait_ty.trait_id().expect("trait expected")
+        && vm.known_instances.zero_trait_id().0 == trait_ty.trait_id().expect("trait expected").0
     {
         assert!(trait_ty.type_params().is_empty());
         return true;
