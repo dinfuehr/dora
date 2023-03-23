@@ -1,5 +1,5 @@
 use crate::language::SemAnalysis;
-use dora_bytecode::program::ClassLayout;
+use dora_bytecode::program::{ClassLayout, ImplData};
 use dora_bytecode::{
     ClassData, ClassField, EnumData, EnumVariant, FunctionData, FunctionId, GlobalData, ModuleData,
     ModuleId, PackageData, PackageId, Program, SourceFileData, SourceFileId, StructData,
@@ -24,6 +24,7 @@ pub fn emit_program(sa: &SemAnalysis) -> Program {
         structs: create_structs(sa),
         enums: create_enums(sa),
         traits: create_traits(sa),
+        impls: create_impls(sa),
         source_files: create_source_files(sa),
         stdlib_package_id: convert_package_id(sa.stdlib_package_id()),
         program_package_id: convert_package_id(sa.program_package_id()),
@@ -69,6 +70,23 @@ fn create_modules(sa: &SemAnalysis) -> Vec<ModuleData> {
             name,
             parent_id: module.parent_module_id.map(|id| convert_module_id(id)),
         })
+    }
+
+    result
+}
+
+fn create_impls(sa: &SemAnalysis) -> Vec<ImplData> {
+    let mut result = Vec::new();
+
+    for impl_ in sa.impls.iter() {
+        let impl_ = impl_.read();
+
+        result.push(ImplData {
+            module_id: convert_module_id(impl_.module_id),
+            type_params: create_type_params(sa, impl_.type_params()),
+            trait_ty: bty_from_ty(impl_.trait_ty.clone()),
+            extended_ty: bty_from_ty(impl_.extended_ty.clone()),
+        });
     }
 
     result

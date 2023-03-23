@@ -157,6 +157,17 @@ pub struct SourceFileData {
     pub path: String,
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct ImplId(pub u32);
+
+#[derive(Debug)]
+pub struct ImplData {
+    pub module_id: ModuleId,
+    pub type_params: TypeParamData,
+    pub trait_ty: BytecodeType,
+    pub extended_ty: BytecodeType,
+}
+
 #[derive(Debug)]
 pub struct Program {
     pub packages: Vec<PackageData>,
@@ -167,6 +178,7 @@ pub struct Program {
     pub structs: Vec<StructData>,
     pub enums: Vec<EnumData>,
     pub traits: Vec<TraitData>,
+    pub impls: Vec<ImplData>,
     pub source_files: Vec<SourceFileData>,
     pub stdlib_package_id: PackageId,
     pub program_package_id: PackageId,
