@@ -34,7 +34,7 @@ fn create_special_classes(vm: &mut VM) {
         Vec::new(),
         0,
     );
-    vm.known_instances.free_object_class_instance = Some(free_object_class_id);
+    vm.known.free_object_class_instance = Some(free_object_class_id);
 
     let free_array_class_id = create_class_instance_with_vtable(
         vm,
@@ -43,7 +43,7 @@ fn create_special_classes(vm: &mut VM) {
         Vec::new(),
         0,
     );
-    vm.known_instances.free_array_class_instance = Some(free_array_class_id);
+    vm.known.free_array_class_instance = Some(free_array_class_id);
 
     let code_class_id = create_class_instance_with_vtable(
         vm,
@@ -52,5 +52,5 @@ fn create_special_classes(vm: &mut VM) {
         Vec::new(),
         0,
     );
-    vm.known_instances.code_class_instance = Some(code_class_id);
+    vm.known.code_class_instance = Some(code_class_id);
 }

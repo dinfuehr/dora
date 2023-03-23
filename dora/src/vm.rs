@@ -44,7 +44,7 @@ pub use self::extensions::extension_matches_ty;
 pub use self::functions::display_fct;
 use self::globals::GlobalVariableMemory;
 pub use self::impls::{find_trait_impl, implements_trait};
-use self::known::KnownInstances;
+use self::known::KnownElements;
 pub use self::modules::{module_path, module_path_name};
 pub use self::specialize::{
     add_ref_fields, create_class_instance, create_enum_instance, create_struct_instance,
@@ -133,7 +133,7 @@ pub struct VM {
     pub args: Args,
     pub program: Program,
     pub interner: Interner,
-    pub known_instances: KnownInstances,
+    pub known: KnownElements,
     pub struct_specializations: RwLock<HashMap<(StructId, BytecodeTypeArray), StructInstanceId>>,
     pub struct_instances: GrowableVecNonIter<StructInstance>, // stores all struct definitions
     pub class_specializations: RwLock<HashMap<(ClassId, BytecodeTypeArray), ClassInstanceId>>,
@@ -173,7 +173,7 @@ impl VM {
             impls: sa.impls,
             global_variable_memory: None,
             interner: sa.interner,
-            known_instances: KnownInstances::new(),
+            known: KnownElements::new(),
             gc,
             fcts: sa.fcts,
             compilation_database: CompilationDatabase::new(),
@@ -277,42 +277,40 @@ impl VM {
     }
 
     pub fn byte_array(&self) -> ClassInstanceId {
-        let mut byte_array_def = self.known_instances.byte_array_class_instance.lock();
+        let mut byte_array_def = self.known.byte_array_class_instance.lock();
 
         if let Some(cls_id) = *byte_array_def {
             cls_id
         } else {
             let type_args = BytecodeTypeArray::one(BytecodeType::UInt8);
-            let cls_id =
-                create_class_instance(self, self.known_instances.array_class_id(), &type_args);
+            let cls_id = create_class_instance(self, self.known.array_class_id(), &type_args);
             *byte_array_def = Some(cls_id);
             cls_id
         }
     }
 
     pub fn int_array(&self) -> ClassInstanceId {
-        let mut int_array_def = self.known_instances.int_array_class_instance.lock();
+        let mut int_array_def = self.known.int_array_class_instance.lock();
 
         if let Some(cls_id) = *int_array_def {
             cls_id
         } else {
             let type_args = BytecodeTypeArray::one(BytecodeType::Int32);
-            let cls_id =
-                create_class_instance(self, self.known_instances.array_class_id(), &type_args);
+            let cls_id = create_class_instance(self, self.known.array_class_id(), &type_args);
             *int_array_def = Some(cls_id);
             cls_id
         }
     }
 
     pub fn str(&self) -> ClassInstanceId {
-        let mut str_class_def = self.known_instances.str_class_instance.lock();
+        let mut str_class_def = self.known.str_class_instance.lock();
 
         if let Some(cls_id) = *str_class_def {
             cls_id
         } else {
             let cls_id = create_class_instance(
                 self,
-                self.known_instances.string_class_id(),
+                self.known.string_class_id(),
                 &BytecodeTypeArray::empty(),
             );
             *str_class_def = Some(cls_id);
@@ -321,14 +319,14 @@ impl VM {
     }
 
     pub fn stack_trace_element(&self) -> ClassInstanceId {
-        let mut ste_class_def = self.known_instances.ste_class_instance.lock();
+        let mut ste_class_def = self.known.ste_class_instance.lock();
 
         if let Some(cls_id) = *ste_class_def {
             cls_id
         } else {
             let cls_id = create_class_instance(
                 self,
-                self.known_instances.stacktrace_element_class_id(),
+                self.known.stacktrace_element_class_id(),
                 &BytecodeTypeArray::empty(),
             );
             *ste_class_def = Some(cls_id);
@@ -339,7 +337,7 @@ impl VM {
     pub fn thread_class_instance(&self) -> ClassInstanceId {
         create_class_instance(
             self,
-            self.known_instances.thread_class_id(),
+            self.known.thread_class_id(),
             &BytecodeTypeArray::empty(),
         )
     }

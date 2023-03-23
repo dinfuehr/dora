@@ -203,7 +203,7 @@ fn set_backtrace(vm: &VM, mut obj: Handle<Stacktrace>, via_retrieve: bool) {
             let fct_id = code.fct_id();
 
             if !skip_retrieve_stack {
-                let retrieve_stacktrace_fct_id = vm.known_instances.stacktrace_retrieve_fct_id();
+                let retrieve_stacktrace_fct_id = vm.known.stacktrace_retrieve_fct_id();
 
                 if retrieve_stacktrace_fct_id == fct_id {
                     skip += 2;

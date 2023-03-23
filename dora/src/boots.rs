@@ -18,7 +18,7 @@ mod serializer;
 pub fn compile(vm: &VM, fct: &FctDefinition, type_params: &BytecodeTypeArray) -> CodeDescriptor {
     let bytecode_fct = fct.bytecode.as_ref().expect("bytecode missing");
 
-    let compile_fct_id = vm.known_instances.boots_compile_fct_id();
+    let compile_fct_id = vm.known.boots_compile_fct_id();
     let compile_address = vm.ensure_compiled(compile_fct_id);
 
     let encoded_compilation_info = create_handle(allocate_encoded_compilation_info(

@@ -4,7 +4,7 @@ use crate::vm::ClassInstanceId;
 use dora_bytecode::{ClassId, FunctionId, TraitId};
 
 #[derive(Debug)]
-pub struct KnownInstances {
+pub struct KnownElements {
     pub byte_array_class_instance: Mutex<Option<ClassInstanceId>>,
     pub int_array_class_instance: Mutex<Option<ClassInstanceId>>,
     pub str_class_instance: Mutex<Option<ClassInstanceId>>,
@@ -25,9 +25,9 @@ pub struct KnownInstances {
     pub boots_compile_fct_id: Option<FunctionId>,
 }
 
-impl KnownInstances {
-    pub fn new() -> KnownInstances {
-        KnownInstances {
+impl KnownElements {
+    pub fn new() -> KnownElements {
+        KnownElements {
             byte_array_class_instance: Mutex::new(None),
             int_array_class_instance: Mutex::new(None),
             str_class_instance: Mutex::new(None),

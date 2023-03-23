@@ -190,11 +190,11 @@ pub fn resolve_internal_classes(vm: &mut VM) {
 
         if let Some(internal_class) = cls.internal {
             match internal_class {
-                InternalClass::Array => vm.known_instances.array_class_id = Some(cls_id),
-                InternalClass::String => vm.known_instances.string_class_id = Some(cls_id),
-                InternalClass::Thread => vm.known_instances.thread_class_id = Some(cls_id),
+                InternalClass::Array => vm.known.array_class_id = Some(cls_id),
+                InternalClass::String => vm.known.string_class_id = Some(cls_id),
+                InternalClass::Thread => vm.known.thread_class_id = Some(cls_id),
                 InternalClass::StacktraceElement => {
-                    vm.known_instances.stacktrace_element_class_id = Some(cls_id)
+                    vm.known.stacktrace_element_class_id = Some(cls_id)
                 }
             }
         }
@@ -208,10 +208,10 @@ pub fn resolve_internal_functions(vm: &mut VM) {
         if let Some(internal_function) = fct.internal {
             match internal_function {
                 InternalFunction::BootsCompile => {
-                    vm.known_instances.boots_compile_fct_id = Some(fct_id);
+                    vm.known.boots_compile_fct_id = Some(fct_id);
                 }
                 InternalFunction::StacktraceRetrieve => {
-                    vm.known_instances.stacktrace_retrieve_fct_id = Some(fct_id);
+                    vm.known.stacktrace_retrieve_fct_id = Some(fct_id);
                 }
             }
         }
