@@ -18,8 +18,8 @@ use crate::threads::{
 };
 use crate::utils::GrowableVecNonIter;
 use dora_bytecode::{
-    BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, Location, Program, StructId,
-    TraitId,
+    BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, Location, ModuleId, Program,
+    StructId, TraitId,
 };
 use dora_frontend::language::sem_analysis::{
     FctDefinition, FctDefinitionId, ImplDefinition, ModuleDefinitionId, SemAnalysis,
@@ -259,10 +259,10 @@ impl VM {
         ModuleDefinitionId(pkg.root_module_id.0 as usize)
     }
 
-    pub fn program_module_id(&self) -> ModuleDefinitionId {
+    pub fn program_module_id(&self) -> ModuleId {
         let pkg_id = self.program.program_package_id.0 as usize;
         let pkg = &self.program.packages[pkg_id];
-        ModuleDefinitionId(pkg.root_module_id.0 as usize)
+        pkg.root_module_id
     }
 
     pub fn add_fct(&self, mut fct: FctDefinition) -> FctDefinitionId {

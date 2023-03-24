@@ -4,7 +4,7 @@ use crate::handle::{create_handle, Handle};
 use crate::object::{alloc, Array, Int32Array, Ref, Stacktrace, StacktraceElement, Str};
 use crate::threads::current_thread;
 use crate::vm::{display_fct, get_vm, loc, CodeId, CodeKind, VM};
-use dora_bytecode::{FunctionId, Location};
+use dora_bytecode::Location;
 use dora_frontend::language::sem_analysis::FctDefinitionId;
 
 pub struct NativeStacktrace {
@@ -27,13 +27,12 @@ impl NativeStacktrace {
     pub fn dump(&self, vm: &VM, w: &mut (impl std::io::Write + ?Sized)) -> std::io::Result<()> {
         for elem in &self.elems {
             let code = vm.code_objects.get(elem.fct_id);
-            let fct_id = FctDefinitionId(code.fct_id().0 as usize);
-            let fct = vm.fcts.idx(fct_id);
-            let fct = fct.read();
-            let fct_name = display_fct(vm, FunctionId(fct_id.0 as u32));
-            let file = &vm.program.source_files[fct.file_id.to_usize()].path;
+            let fct_id = code.fct_id();
+            let fct = &vm.program.functions[fct_id.0 as usize];
+            let fct_name = display_fct(vm, fct_id);
+            let file = &vm.program.source_files[fct.file_id.0 as usize].path;
             let lineno = if elem.location.line() == 0 {
-                fct.pos.line
+                fct.loc.line()
             } else {
                 elem.location.line()
             };

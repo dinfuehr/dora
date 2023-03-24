@@ -1,12 +1,10 @@
 use crate::driver::cmd::{self, Args};
 use crate::timer::Timer;
 use crate::vm::{clear_vm, display_fct, execute_on_main, set_vm, VM};
-use dora_bytecode::{FunctionId, PackageId};
+use dora_bytecode::{FunctionData, FunctionId, PackageId};
 use dora_frontend::language;
 use dora_frontend::language::error::msg::ErrorMessage;
-use dora_frontend::language::sem_analysis::{
-    FctDefinition, FctDefinitionId, SemAnalysis, SemAnalysisArgs,
-};
+use dora_frontend::language::sem_analysis::{SemAnalysis, SemAnalysisArgs};
 
 pub fn start() -> i32 {
     let args = cmd::parse_arguments();
@@ -122,21 +120,20 @@ fn run_tests(vm: &VM, package_id: PackageId) -> i32 {
     let mut passed = 0;
 
     execute_on_main(|| {
-        for fct in vm.fcts.iter() {
-            let fct = fct.read();
+        for (fct_id, fct) in vm.program.functions.iter().enumerate() {
+            let fct_id = FunctionId(fct_id as u32);
 
-            if fct.package_id.to_usize() != package_id.0 as usize
+            if fct.package_id != package_id
                 || !is_test_fct(&*fct)
-                || !test_filter_matches(vm, FunctionId(fct.id().0 as u32))
+                || !test_filter_matches(vm, fct_id)
             {
                 continue;
             }
 
             tests += 1;
 
-            print!("test {} ... ", vm.interner.str(fct.name));
+            print!("test {} ... ", fct.name);
 
-            let fct_id = FunctionId(fct.id().0 as u32);
             run_test(vm, fct_id);
             passed += 1;
             println!("ok");
@@ -162,7 +159,7 @@ fn run_test(vm: &VM, fct: FunctionId) {
     vm.run_test(fct);
 }
 
-fn is_test_fct(fct: &FctDefinition) -> bool {
+fn is_test_fct(fct: &FunctionData) -> bool {
     // the function needs to be marked with the @Test annotation
     fct.is_test
 }
@@ -180,9 +177,7 @@ fn test_filter_matches(vm: &VM, fct_id: FunctionId) -> bool {
 
 fn run_main(vm: &VM, main: FunctionId) -> i32 {
     let res = execute_on_main(|| vm.run(main));
-    let main_fct_id = FctDefinitionId(main.0 as usize);
-    let fct = vm.fcts.idx(main_fct_id);
-    let fct = fct.read();
+    let fct = &vm.program.functions[main.0 as usize];
     let is_unit = fct.return_type.is_unit();
 
     // main-fct without return value exits with status 0

@@ -19,6 +19,12 @@ use crate::Id;
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ImplDefinitionId(u32);
 
+impl ImplDefinitionId {
+    pub fn to_usize(self) -> usize {
+        self.0 as usize
+    }
+}
+
 impl Id for ImplDefinition {
     type IdType = ImplDefinitionId;
 

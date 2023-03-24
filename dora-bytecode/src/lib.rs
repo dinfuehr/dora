@@ -12,9 +12,9 @@ pub use builder::*;
 pub use data::*;
 pub use program::{
     ClassData, ClassField, ClassId, EnumData, EnumId, EnumVariant, FunctionData, FunctionId,
-    GlobalData, GlobalId, ImplData, ImplId, ModuleData, ModuleId, NativeFunction, PackageData,
-    PackageId, Program, SourceFileData, SourceFileId, StructData, StructField, StructId, TraitData,
-    TraitId, TypeParamBound, TypeParamData,
+    FunctionKind, GlobalData, GlobalId, ImplData, ImplId, ModuleData, ModuleId, NativeFunction,
+    PackageData, PackageId, Program, SourceFileData, SourceFileId, StructData, StructField,
+    StructId, TraitData, TraitId, TypeParamBound, TypeParamData,
 };
 pub use reader::*;
 pub use ty::{BytecodeType, BytecodeTypeArray};

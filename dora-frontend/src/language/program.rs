@@ -1,18 +1,22 @@
 use crate::language::SemAnalysis;
 use dora_bytecode::program::{ClassLayout, ImplData, InternalClass, InternalFunction};
 use dora_bytecode::{
-    ClassData, ClassField, EnumData, EnumVariant, FunctionData, FunctionId, GlobalData, ModuleData,
-    ModuleId, PackageData, PackageId, Program, SourceFileData, SourceFileId, StructData,
-    StructField, TraitData, TypeParamBound, TypeParamData,
+    ClassData, ClassField, EnumData, EnumVariant, FunctionData, FunctionId, FunctionKind,
+    GlobalData, ImplId, Location, ModuleData, ModuleId, PackageData, PackageId, Program,
+    SourceFileData, SourceFileId, StructData, StructField, TraitData, TraitId, TypeParamBound,
+    TypeParamData,
 };
+use dora_parser::Position;
 
 use crate::language::generator::bty_from_ty;
 
 use crate::language::sem_analysis as sa;
 use crate::language::sem_analysis::{
-    ClassDefinition, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, PackageName,
-    StructDefinition, TypeParamDefinition,
+    ClassDefinition, FctDefinitionId, FctParent, ModuleDefinitionId, PackageDefinitionId,
+    PackageName, StructDefinition, TypeParamDefinition,
 };
+
+use super::sem_analysis::{ImplDefinitionId, TraitDefinitionId};
 
 pub fn emit_program(sa: &SemAnalysis) -> Program {
     Program {
@@ -107,9 +111,23 @@ fn create_functions(sa: &SemAnalysis) -> Vec<FunctionData> {
             None
         };
 
+        let kind = match fct.parent {
+            FctParent::Extension(..) => FunctionKind::Method,
+            FctParent::Function(function_id) => {
+                FunctionKind::Lambda(convert_function_id(function_id))
+            }
+            FctParent::Impl(impl_id) => FunctionKind::Impl(convert_impl_id(impl_id)),
+            FctParent::Trait(trait_id) => FunctionKind::Trait(convert_trait_id(trait_id)),
+            FctParent::None => FunctionKind::Function,
+        };
+
         result.push(FunctionData {
             name,
+            loc: convert_location(fct.pos()),
+            kind,
+            file_id: convert_source_file_id(fct.file_id),
             package_id: convert_package_id(fct.package_id),
+            module_id: convert_module_id(fct.module_id),
             type_params: create_type_params(sa, &fct.type_params),
             source_file_id: Some(convert_source_file_id(fct.file_id)),
             params: fct
@@ -120,6 +138,7 @@ fn create_functions(sa: &SemAnalysis) -> Vec<FunctionData> {
             return_type: fct.return_type_bty(),
             native: fct.native_function.clone(),
             internal: internal_function,
+            is_test: fct.is_test,
         })
     }
 
@@ -329,4 +348,16 @@ fn convert_function_id(id: FctDefinitionId) -> FunctionId {
 
 fn convert_source_file_id(id: sa::SourceFileId) -> SourceFileId {
     SourceFileId(id.to_usize().try_into().expect("failure"))
+}
+
+fn convert_impl_id(id: ImplDefinitionId) -> ImplId {
+    ImplId(id.to_usize().try_into().expect("failure"))
+}
+
+fn convert_trait_id(id: TraitDefinitionId) -> TraitId {
+    TraitId(id.to_usize().try_into().expect("failure"))
+}
+
+fn convert_location(pos: Position) -> Location {
+    Location::new(pos.line, pos.column)
 }

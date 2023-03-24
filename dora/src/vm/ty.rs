@@ -1,6 +1,5 @@
 use crate::vm::VM;
-use dora_bytecode::{BytecodeType, BytecodeTypeArray};
-use dora_frontend::language::sem_analysis::{TypeParamDefinition, TypeParamId};
+use dora_bytecode::{BytecodeType, BytecodeTypeArray, TypeParamData};
 
 pub fn display_ty(vm: &VM, ty: &BytecodeType) -> String {
     let printer = BytecodeTypePrinter {
@@ -14,7 +13,7 @@ pub fn display_ty(vm: &VM, ty: &BytecodeType) -> String {
 
 struct BytecodeTypePrinter<'a> {
     vm: &'a VM,
-    type_params: Option<&'a TypeParamDefinition>,
+    type_params: Option<&'a TypeParamData>,
     ty: BytecodeType,
 }
 
@@ -57,12 +56,7 @@ impl<'a> BytecodeTypePrinter<'a> {
 
             BytecodeType::TypeParam(idx) => {
                 if let Some(type_params) = self.type_params {
-                    let name = self
-                        .vm
-                        .interner
-                        .str(type_params.name(TypeParamId(*idx as usize)))
-                        .to_string();
-                    write!(fmt, "{}", name)
+                    write!(fmt, "{}", type_params.names[*idx as usize])
                 } else {
                     write!(fmt, "TypeParam({})", idx)
                 }

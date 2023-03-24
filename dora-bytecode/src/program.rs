@@ -1,4 +1,4 @@
-use crate::BytecodeType;
+use crate::{BytecodeType, Location};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PackageId(pub u32);
@@ -24,13 +24,27 @@ pub struct FunctionId(pub u32);
 #[derive(Debug)]
 pub struct FunctionData {
     pub name: String,
+    pub file_id: SourceFileId,
+    pub loc: Location,
+    pub kind: FunctionKind,
     pub package_id: PackageId,
+    pub module_id: ModuleId,
     pub type_params: TypeParamData,
     pub source_file_id: Option<SourceFileId>,
     pub params: Vec<BytecodeType>,
     pub return_type: BytecodeType,
     pub native: Option<NativeFunction>,
     pub internal: Option<InternalFunction>,
+    pub is_test: bool,
+}
+
+#[derive(Debug)]
+pub enum FunctionKind {
+    Impl(ImplId),
+    Lambda(FunctionId),
+    Trait(TraitId),
+    Method,
+    Function,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
