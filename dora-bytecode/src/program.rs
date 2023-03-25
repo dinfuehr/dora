@@ -1,4 +1,4 @@
-use crate::{BytecodeType, Location};
+use crate::{BytecodeFunction, BytecodeType, Location};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PackageId(pub u32);
@@ -40,6 +40,7 @@ pub struct FunctionData {
     pub is_test: bool,
     pub is_optimize_immediately: bool,
     pub is_variadic: bool,
+    pub bytecode: Option<BytecodeFunction>,
 }
 
 #[derive(Debug)]

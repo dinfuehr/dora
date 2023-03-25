@@ -1,8 +1,7 @@
 use crate::vm::{Code, VM};
-use dora_parser::interner::Name;
 
 #[cfg(target_os = "linux")]
-pub fn register_with_perf(code: &Code, vm: &VM, name: Name) {
+pub fn register_with_perf(code: &Code, vm: &VM, name: &str) {
     use std::fs::OpenOptions;
     use std::io::prelude::*;
 
@@ -14,7 +13,6 @@ pub fn register_with_perf(code: &Code, vm: &VM, name: Name) {
 
     let code_start = code.instruction_start().to_usize();
     let code_end = code.instruction_end().to_usize();
-    let name = vm.interner.str(name);
 
     let line = format!(
         "{:x} {:x} dora::{}\n",
@@ -26,6 +24,6 @@ pub fn register_with_perf(code: &Code, vm: &VM, name: Name) {
 }
 
 #[cfg(not(target_os = "linux"))]
-pub fn register_with_perf(_: &Code, _: &VM, _: Name) {
+pub fn register_with_perf(_: &Code, _: &VM, _: &str) {
     // nothing to do
 }

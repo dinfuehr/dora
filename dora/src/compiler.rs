@@ -1,4 +1,4 @@
-pub use crate::compiler::codegen::{generate, generate_fct};
+pub use crate::compiler::codegen::generate_fct;
 pub use crate::compiler::dora_exit_stubs::*;
 
 pub mod asm;

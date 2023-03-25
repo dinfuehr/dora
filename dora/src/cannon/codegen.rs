@@ -19,7 +19,7 @@ use crate::vm::{
     create_class_instance, create_enum_instance, create_struct_instance, display_fct, display_ty,
     ensure_class_instance_for_enum_variant, ensure_class_instance_for_lambda,
     ensure_class_instance_for_trait_object, find_trait_impl, get_concrete_tuple_bty,
-    get_concrete_tuple_bty_array, loc, specialize_bty, specialize_bty_array, EnumLayout, GcPoint,
+    get_concrete_tuple_bty_array, specialize_bty, specialize_bty_array, EnumLayout, GcPoint,
     LazyCompilationSite, Trap, VM,
 };
 use crate::vtable::VTable;
@@ -99,7 +99,7 @@ impl<'a> CannonCodeGen<'a> {
             params: compilation_data.params,
             has_variadic_parameter: compilation_data.has_variadic_parameter,
             return_type: compilation_data.return_type,
-            location: loc(compilation_data.pos),
+            location: compilation_data.loc,
             emit_debug: compilation_data.emit_debug,
             asm: BaselineAssembler::new(vm),
             bytecode: compilation_data.bytecode_fct,

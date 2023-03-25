@@ -245,7 +245,7 @@ fn patch_lambda_call(
         _ => unreachable!(),
     };
 
-    let fct_ptr = compiler::generate(vm, lambda_id, &type_params);
+    let fct_ptr = compiler::generate_fct(vm, lambda_id, &type_params);
 
     let methodtable = vtable.table_mut();
     methodtable[0] = fct_ptr.to_usize();
@@ -273,17 +273,12 @@ fn patch_virtual_call(
     let class_instance = vtable.class_instance();
 
     let fct_ptr = match &class_instance.kind {
-        ShapeKind::TraitObject { object_ty, .. } => {
-            let all_type_params = type_params.append(object_ty.clone());
-            let thunk_fct_id = compiler::trait_object_thunk::ensure(
-                vm,
-                trait_fct_id,
-                type_params.clone(),
-                object_ty.clone(),
-            );
-
-            compiler::generate(vm, thunk_fct_id, &all_type_params)
-        }
+        ShapeKind::TraitObject { object_ty, .. } => compiler::trait_object_thunk::ensure_compiled(
+            vm,
+            trait_fct_id,
+            type_params.clone(),
+            object_ty.clone(),
+        ),
 
         _ => unreachable!(),
     };
@@ -301,7 +296,7 @@ fn patch_direct_call(
     type_params: &BytecodeTypeArray,
     disp: i32,
 ) -> Address {
-    let fct_ptr = compiler::generate(vm, fct_id, type_params);
+    let fct_ptr = compiler::generate_fct(vm, fct_id, type_params);
     let fct_addr: *mut usize = (ra as isize - disp as isize) as *mut _;
 
     // update function pointer in data segment

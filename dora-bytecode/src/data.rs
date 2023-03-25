@@ -711,7 +711,7 @@ impl std::fmt::Display for Location {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct BytecodeFunction {
     code: Vec<u8>,
     registers: Vec<BytecodeType>,
@@ -808,7 +808,7 @@ pub enum ConstPoolOpcode {
     Lambda,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ConstPoolEntry {
     String(String),
     Float32(f32),

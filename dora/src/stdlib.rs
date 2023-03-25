@@ -359,7 +359,9 @@ fn thread_main(thread: &DoraThread, thread_location: Address, runner_location: A
     let fct_ptr = {
         let mut dtn = DoraToNativeInfo::new();
 
-        thread.use_dtn(&mut dtn, || compiler::generate(vm, lambda_id, &type_params))
+        thread.use_dtn(&mut dtn, || {
+            compiler::generate_fct(vm, lambda_id, &type_params)
+        })
     };
 
     // execute the runner/lambda

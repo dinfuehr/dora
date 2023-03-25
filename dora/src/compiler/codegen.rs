@@ -1,7 +1,5 @@
 use std::time::Instant;
 
-use dora_parser::Position;
-
 use crate::boots;
 use crate::cannon::{self, CompilationFlags};
 use crate::compiler::{dora_exit_stubs, NativeFct};
@@ -9,26 +7,14 @@ use crate::cpu::{FReg, Reg};
 use crate::disassembler;
 use crate::driver::cmd::{AsmSyntax, CompilerName};
 use crate::gc::Address;
+use crate::masm::CodeDescriptor;
 use crate::os;
 use crate::vm::{display_fct, install_code, CodeKind, VM};
-use dora_bytecode::{BytecodeFunction, BytecodeType, BytecodeTypeArray, FunctionId};
-use dora_frontend::language::generator::{bty_array_from_ty, bty_from_ty};
-use dora_frontend::language::sem_analysis::{FctDefinition, FctDefinitionId};
-use dora_frontend::language::ty::SourceTypeArray;
+use dora_bytecode::{BytecodeFunction, BytecodeType, BytecodeTypeArray, FunctionId, Location};
 
-pub fn generate(vm: &VM, id: FunctionId, type_params: &BytecodeTypeArray) -> Address {
-    let fct = vm.fcts.idx(FctDefinitionId(id.0 as usize));
-    let fct = fct.read();
-    generate_fct(vm, id, &fct, type_params)
-}
-
-pub fn generate_fct(
-    vm: &VM,
-    fct_id: FunctionId,
-    fct: &FctDefinition,
-    type_params: &BytecodeTypeArray,
-) -> Address {
+pub fn generate_fct(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray) -> Address {
     debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
+    let program_fct = &vm.program.functions[fct_id.0 as usize];
 
     // Block here if compilation is already in progress.
     if let Some(instruction_start) =
@@ -38,13 +24,13 @@ pub fn generate_fct(
         return instruction_start;
     }
 
-    let compiler = if fct.is_optimize_immediately {
+    let compiler = if program_fct.is_optimize_immediately {
         CompilerName::Boots
     } else {
         CompilerName::Cannon
     };
 
-    let bytecode_fct = fct.bytecode.as_ref().expect("bytecode missing");
+    let bytecode_fct = program_fct.bytecode.as_ref().expect("bytecode missing");
 
     let emit_debug = should_emit_debug(vm, fct_id);
     let emit_asm = should_emit_asm(vm, fct_id);
@@ -54,29 +40,23 @@ pub fn generate_fct(
         start = Some(Instant::now());
     }
 
+    let compilation_data = CompilationData {
+        bytecode_fct,
+        params: BytecodeTypeArray::new(program_fct.params.clone()),
+        has_variadic_parameter: program_fct.is_variadic,
+        return_type: program_fct.return_type.clone(),
+        type_params: type_params.clone(),
+        loc: program_fct.loc,
+
+        emit_debug,
+        emit_code_comments: emit_asm,
+    };
+
+    let compilation_flags = CompilationFlags::jit();
+
     let code_descriptor = match compiler {
-        CompilerName::Cannon => {
-            let pos = fct.pos;
-            let params = fct.params_with_self();
-            let params = SourceTypeArray::with(params.to_vec());
-            let return_type = fct.return_type.clone();
-            let has_variadic_parameter = fct.is_variadic;
-
-            let compilation_data = CompilationData {
-                bytecode_fct,
-                params: bty_array_from_ty(&params),
-                has_variadic_parameter,
-                return_type: bty_from_ty(return_type),
-                type_params: type_params.clone(),
-                pos,
-
-                emit_debug,
-                emit_code_comments: emit_asm,
-            };
-
-            cannon::compile(vm, compilation_data, CompilationFlags::jit())
-        }
-        CompilerName::Boots => boots::compile(vm, &fct, &type_params),
+        CompilerName::Cannon => cannon::compile(vm, compilation_data, compilation_flags),
+        CompilerName::Boots => boots::compile(vm, compilation_data, compilation_flags),
     };
 
     let code = install_code(vm, code_descriptor, CodeKind::DoraFct(fct_id));
@@ -101,7 +81,8 @@ pub fn generate_fct(
     }
 
     if vm.args.flag_enable_perf {
-        os::perf::register_with_perf(&code, vm, fct.ast.name);
+        let name = display_fct(vm, fct_id);
+        os::perf::register_with_perf(&code, vm, &name);
     }
 
     if emit_asm {
@@ -115,6 +96,106 @@ pub fn generate_fct(
     }
 
     code.instruction_start()
+}
+
+pub fn generate_thunk(
+    vm: &VM,
+    trait_fct_id: FunctionId,
+    trait_object_ty: BytecodeType,
+    type_params: &BytecodeTypeArray,
+    bytecode_fct: BytecodeFunction,
+) -> Address {
+    debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
+    let trait_fct = &vm.program.functions[trait_fct_id.0 as usize];
+
+    // Block here if compilation is already in progress.
+    if let Some(instruction_start) =
+        vm.compilation_database
+            .compilation_request(vm, trait_fct_id, type_params.clone())
+    {
+        return instruction_start;
+    }
+
+    let compiler = if trait_fct.is_optimize_immediately {
+        CompilerName::Boots
+    } else {
+        CompilerName::Cannon
+    };
+
+    let emit_debug = should_emit_debug(vm, trait_fct_id);
+    let emit_asm = should_emit_asm(vm, trait_fct_id);
+    let mut start = None;
+
+    if vm.args.flag_emit_compiler {
+        start = Some(Instant::now());
+    }
+
+    let mut params = trait_fct.params.clone();
+    assert_eq!(params[0], BytecodeType::This);
+    params[0] = trait_object_ty;
+
+    let params = BytecodeTypeArray::new(params);
+    let return_type = trait_fct.return_type.clone();
+    let has_variadic_parameter = trait_fct.is_variadic;
+
+    let compilation_data = CompilationData {
+        bytecode_fct: &bytecode_fct,
+        params,
+        has_variadic_parameter,
+        return_type,
+        type_params: type_params.clone(),
+        loc: trait_fct.loc,
+
+        emit_debug,
+        emit_code_comments: emit_asm,
+    };
+
+    let code_descriptor = match compiler {
+        CompilerName::Cannon => cannon::compile(vm, compilation_data, CompilationFlags::jit()),
+        CompilerName::Boots => unimplemented!(),
+    };
+
+    let code = install_code(vm, code_descriptor, CodeKind::DoraFct(trait_fct_id));
+
+    // We need to insert into CodeMap before releasing the compilation-lock. Otherwise
+    // another thread could run that function while the function can't be found in the
+    // CodeMap yet. This would lead to a crash e.g. for lazy compilation.
+    let code_id = vm.add_code(code.clone());
+
+    // Mark compilation as finished and resume threads waiting for compilation.
+    vm.compilation_database
+        .finish_compilation(trait_fct_id, type_params.clone(), code_id);
+
+    if vm.args.flag_emit_compiler {
+        let duration = start.expect("missing start time").elapsed();
+        println!(
+            "compile {} using {} in {}ms.",
+            display_fct(vm, trait_fct_id),
+            compiler,
+            (duration.as_micros() as f64) / 1000.0
+        );
+    }
+
+    if vm.args.flag_enable_perf {
+        let name = display_fct(vm, trait_fct_id);
+        os::perf::register_with_perf(&code, vm, &name);
+    }
+
+    if emit_asm {
+        disassembler::disassemble(
+            vm,
+            trait_fct_id,
+            &type_params,
+            &code,
+            vm.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att),
+        );
+    }
+
+    code.instruction_start()
+}
+
+pub fn generate_bytecode(vm: &VM, compilation_data: CompilationData) -> CodeDescriptor {
+    cannon::compile(vm, compilation_data, CompilationFlags::jit())
 }
 
 pub fn should_emit_debug(vm: &VM, fct_id: FunctionId) -> bool {
@@ -245,7 +326,7 @@ pub struct CompilationData<'a> {
     pub has_variadic_parameter: bool,
     pub return_type: BytecodeType,
     pub type_params: BytecodeTypeArray,
-    pub pos: Position,
+    pub loc: Location,
 
     pub emit_debug: bool,
     pub emit_code_comments: bool,

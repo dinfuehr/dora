@@ -21,12 +21,9 @@ use dora_bytecode::{
     BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, Location, ModuleId, Program,
     StructId, TraitId,
 };
-use dora_frontend::language::sem_analysis::{
-    FctDefinition, FctDefinitionId, ImplDefinition, ModuleDefinitionId, SemAnalysis,
-};
-use dora_frontend::{GrowableVec, MutableVec};
+use dora_frontend::language::sem_analysis::{ImplDefinition, SemAnalysis};
+use dora_frontend::MutableVec;
 
-use dora_parser::interner::*;
 use dora_parser::lexer::position::Position;
 
 pub use self::classes::{
@@ -132,13 +129,11 @@ impl VmState {
 pub struct VM {
     pub args: Args,
     pub program: Program,
-    pub interner: Interner,
     pub known: KnownElements,
     pub struct_specializations: RwLock<HashMap<(StructId, BytecodeTypeArray), StructInstanceId>>,
     pub struct_instances: GrowableVecNonIter<StructInstance>, // stores all struct definitions
     pub class_specializations: RwLock<HashMap<(ClassId, BytecodeTypeArray), ClassInstanceId>>,
     pub class_instances: GrowableVecNonIter<ClassInstance>, // stores all class definitions
-    pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
     pub code_objects: CodeObjects,
     pub compilation_database: CompilationDatabase,
     pub enum_specializations: RwLock<HashMap<(EnumId, BytecodeTypeArray), EnumInstanceId>>,
@@ -172,10 +167,8 @@ impl VM {
             trait_vtables: RwLock::new(HashMap::new()),
             impls: sa.impls,
             global_variable_memory: None,
-            interner: sa.interner,
             known: KnownElements::new(),
             gc,
-            fcts: sa.fcts,
             compilation_database: CompilationDatabase::new(),
             code_objects: CodeObjects::new(),
             code_map: CodeMap::new(),
@@ -235,7 +228,9 @@ impl VM {
         let mut dtn = DoraToNativeInfo::new();
         let type_params = BytecodeTypeArray::empty();
 
-        current_thread().use_dtn(&mut dtn, || compiler::generate(self, fct_id, &type_params))
+        current_thread().use_dtn(&mut dtn, || {
+            compiler::generate_fct(self, fct_id, &type_params)
+        })
     }
 
     pub fn dump_gc_summary(&self, runtime: f32) {
@@ -253,27 +248,10 @@ impl VM {
         code_id
     }
 
-    pub fn stdlib_module_id(&self) -> ModuleDefinitionId {
-        let pkg_id = self.program.stdlib_package_id.0 as usize;
-        let pkg = &self.program.packages[pkg_id];
-        ModuleDefinitionId(pkg.root_module_id.0 as usize)
-    }
-
     pub fn program_module_id(&self) -> ModuleId {
         let pkg_id = self.program.program_package_id.0 as usize;
         let pkg = &self.program.packages[pkg_id];
         pkg.root_module_id
-    }
-
-    pub fn add_fct(&self, mut fct: FctDefinition) -> FctDefinitionId {
-        let mut fcts = self.fcts.lock();
-        let fctid = FctDefinitionId(fcts.len());
-
-        fct.id = Some(fctid);
-
-        fcts.push(Arc::new(RwLock::new(fct)));
-
-        fctid
     }
 
     pub fn byte_array(&self) -> ClassInstanceId {

@@ -3,28 +3,30 @@ use std::ptr;
 
 use crate::boots::data::InstructionSet;
 use crate::boots::serializer::allocate_encoded_compilation_info;
+use crate::cannon::CompilationFlags;
+use crate::compiler::codegen::CompilationData;
 use crate::gc::Address;
 use crate::handle::create_handle;
 use crate::masm::CodeDescriptor;
 use crate::object::{Ref, UInt8Array};
 use crate::threads::current_thread;
 use crate::vm::VM;
-use dora_bytecode::BytecodeTypeArray;
-use dora_frontend::language::sem_analysis::FctDefinition;
 
 mod data;
 mod serializer;
 
-pub fn compile(vm: &VM, fct: &FctDefinition, type_params: &BytecodeTypeArray) -> CodeDescriptor {
-    let bytecode_fct = fct.bytecode.as_ref().expect("bytecode missing");
-
+pub fn compile(
+    vm: &VM,
+    compilation_data: CompilationData,
+    _flags: CompilationFlags,
+) -> CodeDescriptor {
     let compile_fct_id = vm.known.boots_compile_fct_id();
     let compile_address = vm.ensure_compiled(compile_fct_id);
 
     let encoded_compilation_info = create_handle(allocate_encoded_compilation_info(
         vm,
-        bytecode_fct,
-        type_params,
+        compilation_data.bytecode_fct,
+        &compilation_data.type_params,
         get_architecture(),
     ));
 

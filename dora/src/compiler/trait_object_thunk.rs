@@ -1,65 +1,44 @@
-use crate::vm::{find_trait_impl, VM};
+use crate::compiler;
+use crate::gc::Address;
+use crate::vm::VM;
 use dora_bytecode::{
-    BytecodeBuilder, BytecodeFunction, BytecodeType, BytecodeTypeArray, FunctionId, Register,
-    TraitId,
+    BytecodeBuilder, BytecodeFunction, BytecodeType, BytecodeTypeArray, FunctionId, FunctionKind,
+    Register,
 };
-use dora_frontend::language::generator::{register_bty_from_bty, ty_from_bty};
-use dora_frontend::language::sem_analysis::{
-    AnalysisData, FctDefinition, FctDefinitionId, FctParent, TypeParamId,
-};
-use dora_frontend::language::ty::SourceType;
+use dora_frontend::language::generator::register_bty_from_bty;
+use dora_frontend::language::sem_analysis::TypeParamId;
 
-pub fn ensure(
+pub fn ensure_compiled(
     vm: &VM,
-    fct_id: FunctionId,
+    trait_fct_id: FunctionId,
     type_params: BytecodeTypeArray,
     actual_ty: BytecodeType,
-) -> FunctionId {
-    let fct = vm.fcts.idx(FctDefinitionId(fct_id.0 as usize));
-    let fct = fct.read();
+) -> Address {
+    let all_type_params = type_params.append(actual_ty.clone());
+    let trait_fct = &vm.program.functions[trait_fct_id.0 as usize];
+    let trait_object_type_param_id = TypeParamId(all_type_params.len() - 1);
 
-    let trait_id = fct.parent.trait_id().expect("expected trait");
-    let trait_object_ty = BytecodeType::Trait(TraitId(trait_id.0), type_params);
+    let trait_id = match trait_fct.kind {
+        FunctionKind::Trait(trait_id) => trait_id,
+        _ => unreachable!(),
+    };
+    let trait_object_ty = BytecodeType::Trait(trait_id, type_params.clone());
 
-    let callee_id = find_trait_impl(
+    let bytecode = generate_bytecode_for_thunk(
         vm,
-        fct_id,
-        ty_from_bty(trait_object_ty.clone()),
-        ty_from_bty(actual_ty.clone()),
-    );
-
-    let mut thunk_fct = FctDefinition::new(
-        fct.package_id,
-        fct.module_id,
-        fct.file_id,
-        &fct.ast,
-        FctParent::None,
-    );
-    thunk_fct.type_params = fct.type_params.clone();
-
-    let tp_name = vm.interner.intern("new_self");
-    let tp_id = thunk_fct.type_params.add_type_param(tp_name);
-    thunk_fct
-        .type_params
-        .add_bound(tp_id, ty_from_bty(trait_object_ty.clone()));
-    let trait_object_type_param_id = TypeParamId(thunk_fct.type_params.len() - 1);
-    thunk_fct.bytecode = Some(generate_bytecode_for_thunk(
-        vm,
-        fct_id,
+        trait_fct_id,
         trait_object_ty.clone(),
         trait_object_type_param_id,
-        callee_id,
-        actual_ty,
-    ));
-    thunk_fct.analysis = Some(AnalysisData::new());
+        actual_ty.clone(),
+    );
 
-    let mut param_types: Vec<SourceType> = vec![ty_from_bty(trait_object_ty)];
-    param_types.extend_from_slice(fct.params_without_self());
-    thunk_fct.param_types = param_types;
-    thunk_fct.return_type = fct.return_type.clone();
-    let thunk_fct_id = vm.add_fct(thunk_fct);
-
-    FunctionId(thunk_fct_id.0 as u32)
+    compiler::codegen::generate_thunk(
+        vm,
+        trait_fct_id,
+        trait_object_ty,
+        &all_type_params,
+        bytecode,
+    )
 }
 
 fn generate_bytecode_for_thunk(
@@ -67,7 +46,6 @@ fn generate_bytecode_for_thunk(
     fct_id: FunctionId,
     trait_object_ty: BytecodeType,
     trait_object_type_param_id: TypeParamId,
-    _callee_id: FunctionId,
     actual_ty: BytecodeType,
 ) -> BytecodeFunction {
     let program_trait_fct = &vm.program.functions[fct_id.0 as usize];
