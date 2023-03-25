@@ -28,7 +28,7 @@ use dora_bytecode::{
     ConstPoolEntry, ConstPoolIdx, FunctionId, FunctionKind, GlobalId, Intrinsic, Location,
     Register, TraitId,
 };
-use dora_frontend::language::generator::{register_bty_from_bty, ty_from_bty};
+use dora_frontend::language::generator::register_bty_from_bty;
 
 use super::CompilationFlags;
 
@@ -3055,12 +3055,7 @@ impl<'a> CannonCodeGen<'a> {
         let trait_ty = BytecodeType::Trait(trait_id, BytecodeTypeArray::empty());
 
         let ty = self.type_params[id as usize].clone();
-        let callee_id = find_trait_impl(
-            self.vm,
-            trait_fct_id,
-            ty_from_bty(trait_ty),
-            ty_from_bty(ty),
-        );
+        let callee_id = find_trait_impl(self.vm, trait_fct_id, trait_ty, ty);
 
         let pos = self.bytecode.offset_location(self.current_offset.to_u32());
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
