@@ -1,5 +1,3 @@
-use parking_lot::RwLock;
-
 use std::sync::Arc;
 
 use crate::Id;
@@ -76,7 +74,6 @@ pub struct FctDefinition {
     pub bytecode: Option<BytecodeFunction>,
     pub intrinsic: Option<Intrinsic>,
     pub native_function: Option<NativeFunction>,
-    pub thunk_id: RwLock<Option<FctDefinitionId>>,
 }
 
 impl FctDefinition {
@@ -114,7 +111,6 @@ impl FctDefinition {
             bytecode: None,
             intrinsic: None,
             native_function: None,
-            thunk_id: RwLock::new(None),
         }
     }
 
