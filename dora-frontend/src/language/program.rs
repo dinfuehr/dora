@@ -141,6 +141,8 @@ fn create_functions(sa: &SemAnalysis) -> Vec<FunctionData> {
             internal: internal_function,
             is_test: fct.is_test,
             vtable_index: fct.vtable_index,
+            is_optimize_immediately: fct.is_optimize_immediately,
+            is_variadic: fct.is_variadic,
         })
     }
 

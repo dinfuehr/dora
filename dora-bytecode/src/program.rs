@@ -38,6 +38,8 @@ pub struct FunctionData {
     pub intrinsic: Option<Intrinsic>,
     pub vtable_index: Option<u32>,
     pub is_test: bool,
+    pub is_optimize_immediately: bool,
+    pub is_variadic: bool,
 }
 
 #[derive(Debug)]

@@ -46,8 +46,8 @@ pub fn generate_fct(
 
     let bytecode_fct = fct.bytecode.as_ref().expect("bytecode missing");
 
-    let emit_debug = should_emit_debug(vm, fct);
-    let emit_asm = should_emit_asm(vm, fct);
+    let emit_debug = should_emit_debug(vm, fct_id);
+    let emit_asm = should_emit_asm(vm, fct_id);
     let mut start = None;
 
     if vm.args.flag_emit_compiler {
@@ -79,11 +79,7 @@ pub fn generate_fct(
         CompilerName::Boots => boots::compile(vm, &fct, &type_params),
     };
 
-    let code = install_code(
-        vm,
-        code_descriptor,
-        CodeKind::DoraFct(FunctionId(fct.id().0 as u32)),
-    );
+    let code = install_code(vm, code_descriptor, CodeKind::DoraFct(fct_id));
 
     // We need to insert into CodeMap before releasing the compilation-lock. Otherwise
     // another thread could run that function while the function can't be found in the
@@ -98,7 +94,7 @@ pub fn generate_fct(
         let duration = start.expect("missing start time").elapsed();
         println!(
             "compile {} using {} in {}ms.",
-            display_fct(vm, FunctionId(fct.id().0 as u32)),
+            display_fct(vm, fct_id),
             compiler,
             (duration.as_micros() as f64) / 1000.0
         );
@@ -121,32 +117,32 @@ pub fn generate_fct(
     code.instruction_start()
 }
 
-pub fn should_emit_debug(vm: &VM, fct: &FctDefinition) -> bool {
+pub fn should_emit_debug(vm: &VM, fct_id: FunctionId) -> bool {
     if let Some(ref dbg_names) = vm.args.flag_emit_debug {
-        fct_pattern_match(vm, fct, dbg_names)
+        fct_pattern_match(vm, fct_id, dbg_names)
     } else {
         false
     }
 }
 
-pub fn should_emit_asm(vm: &VM, fct: &FctDefinition) -> bool {
+pub fn should_emit_asm(vm: &VM, fct_id: FunctionId) -> bool {
     if !disassembler::supported() {
         return false;
     }
 
     if let Some(ref dbg_names) = vm.args.flag_emit_asm {
-        fct_pattern_match(vm, fct, dbg_names)
+        fct_pattern_match(vm, fct_id, dbg_names)
     } else {
         false
     }
 }
 
-pub fn fct_pattern_match(vm: &VM, fct: &FctDefinition, pattern: &str) -> bool {
+pub fn fct_pattern_match(vm: &VM, fct_id: FunctionId, pattern: &str) -> bool {
     if pattern == "all" {
         return true;
     }
 
-    let fct_name = display_fct(vm, FunctionId(fct.id().0 as u32));
+    let fct_name = display_fct(vm, fct_id);
 
     for part in pattern.split(',') {
         if fct_name.contains(part) {
@@ -219,9 +215,7 @@ pub fn ensure_native_stub(vm: &VM, fct_id: Option<FunctionId>, native_fct: Nativ
         instruction_start
     } else {
         let dbg = if let Some(fct_id) = fct_id {
-            let fct = vm.fcts.idx(FctDefinitionId(fct_id.0 as usize));
-            let fct = fct.read();
-            should_emit_debug(vm, &*fct)
+            should_emit_debug(vm, fct_id)
         } else {
             false
         };
@@ -229,9 +223,7 @@ pub fn ensure_native_stub(vm: &VM, fct_id: Option<FunctionId>, native_fct: Nativ
         let code = dora_exit_stubs::generate(vm, native_fct, dbg);
 
         if let Some(fct_id) = fct_id {
-            let fct = vm.fcts.idx(FctDefinitionId(fct_id.0 as usize));
-            let fct = fct.read();
-            if should_emit_asm(vm, &*fct) {
+            if should_emit_asm(vm, fct_id) {
                 disassembler::disassemble(
                     vm,
                     fct_id,
