@@ -137,8 +137,10 @@ fn create_functions(sa: &SemAnalysis) -> Vec<FunctionData> {
                 .collect(),
             return_type: fct.return_type_bty(),
             native: fct.native_function.clone(),
+            intrinsic: fct.intrinsic,
             internal: internal_function,
             is_test: fct.is_test,
+            vtable_index: fct.vtable_index,
         })
     }
 

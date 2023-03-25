@@ -25,11 +25,10 @@ use crate::vm::{
 use crate::vtable::VTable;
 use dora_bytecode::{
     read, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeTypeArray, BytecodeVisitor,
-    ConstPoolEntry, ConstPoolIdx, FunctionId, GlobalId, Location, Register, TraitId,
+    ConstPoolEntry, ConstPoolIdx, FunctionId, FunctionKind, GlobalId, Intrinsic, Location,
+    Register, TraitId,
 };
-use dora_frontend::language::generator::{bty_from_ty, register_bty_from_bty, ty_from_bty};
-use dora_frontend::language::sem_analysis::{FctDefinitionId, Intrinsic};
-use dora_frontend::language::ty::SourceType;
+use dora_frontend::language::generator::{register_bty_from_bty, ty_from_bty};
 
 use super::CompilationFlags;
 
@@ -2827,13 +2826,10 @@ impl<'a> CannonCodeGen<'a> {
         let bytecode_type_self = self.bytecode.register_type(self_register);
         assert!(bytecode_type_self.is_ptr() || bytecode_type_self.is_trait());
 
-        let fct = self.vm.fcts.idx(FctDefinitionId(fct_id.0 as usize));
-        let fct = fct.read();
+        let fct = &self.vm.program.functions[fct_id.0 as usize];
 
-        let fct_return_type = self.specialize_bty(specialize_bty(
-            bty_from_ty(fct.return_type.clone()),
-            &type_params,
-        ));
+        let fct_return_type =
+            self.specialize_bty(specialize_bty(fct.return_type.clone(), &type_params));
         assert!(fct_return_type.is_concrete_type());
 
         let argsize = self.emit_invoke_arguments(dest, fct_return_type.clone(), arguments);
@@ -2894,9 +2890,7 @@ impl<'a> CannonCodeGen<'a> {
         arguments: Vec<Register>,
         location: Location,
     ) {
-        let fct = self.vm.fcts.idx(FctDefinitionId(fct_id.0 as usize));
-        let fct = fct.read();
-        assert!(fct.has_self());
+        let fct = &self.vm.program.functions[fct_id.0 as usize];
 
         if let Some(intrinsic) = fct.intrinsic {
             self.emit_invoke_intrinsic(dest, fct_id, intrinsic, type_params, arguments, location);
@@ -2917,13 +2911,10 @@ impl<'a> CannonCodeGen<'a> {
 
         let dest_ty = self.specialize_register_type(dest);
 
-        let fct = self.vm.fcts.idx(FctDefinitionId(fct_id.0 as usize));
-        let fct = fct.read();
+        let fct = &self.vm.program.functions[fct_id.0 as usize];
 
-        let fct_return_type = self.specialize_bty(specialize_bty(
-            bty_from_ty(fct.return_type.clone()),
-            &type_params,
-        ));
+        let fct_return_type =
+            self.specialize_bty(specialize_bty(fct.return_type.clone(), &type_params));
         assert!(fct_return_type.is_concrete_type());
 
         let bytecode_type_self = self.bytecode.register_type(self_register);
@@ -2980,9 +2971,7 @@ impl<'a> CannonCodeGen<'a> {
         arguments: Vec<Register>,
         location: Location,
     ) {
-        let fct = self.vm.fcts.idx(FctDefinitionId(fct_id.0 as usize));
-        let fct = fct.read();
-        assert!(!fct.has_self());
+        let fct = &self.vm.program.functions[fct_id.0 as usize];
 
         if let Some(intrinsic) = fct.intrinsic {
             self.emit_invoke_intrinsic(dest, fct_id, intrinsic, type_params, arguments, location);
@@ -3001,13 +2990,10 @@ impl<'a> CannonCodeGen<'a> {
     ) {
         let bytecode_type = self.specialize_register_type(dest);
 
-        let fct = self.vm.fcts.idx(FctDefinitionId(fct_id.0 as usize));
-        let fct = fct.read();
+        let fct = &self.vm.program.functions[fct_id.0 as usize];
 
-        let fct_return_type = self.specialize_bty(specialize_bty(
-            bty_from_ty(fct.return_type.clone()),
-            &type_params,
-        ));
+        let fct_return_type =
+            self.specialize_bty(specialize_bty(fct.return_type.clone(), &type_params));
         assert!(fct_return_type.is_concrete_type());
 
         let argsize = self.emit_invoke_arguments(dest, fct_return_type.clone(), arguments);
@@ -3060,14 +3046,21 @@ impl<'a> CannonCodeGen<'a> {
             _ => unreachable!(),
         };
 
-        let fct = self.vm.fcts.idx(FctDefinitionId(trait_fct_id.0 as usize));
-        let fct = fct.read();
+        let fct = &self.vm.program.functions[trait_fct_id.0 as usize];
 
-        let trait_id = fct.trait_id();
-        let trait_ty = SourceType::new_trait(trait_id);
+        let trait_id = match fct.kind {
+            FunctionKind::Trait(trait_id) => trait_id,
+            _ => unreachable!(),
+        };
+        let trait_ty = BytecodeType::Trait(trait_id, BytecodeTypeArray::empty());
 
         let ty = self.type_params[id as usize].clone();
-        let callee_id = find_trait_impl(self.vm, trait_fct_id, trait_ty, ty_from_bty(ty));
+        let callee_id = find_trait_impl(
+            self.vm,
+            trait_fct_id,
+            ty_from_bty(trait_ty),
+            ty_from_bty(ty),
+        );
 
         let pos = self.bytecode.offset_location(self.current_offset.to_u32());
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
@@ -4183,21 +4176,19 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn get_call_target(&mut self, fid: FunctionId, type_params: BytecodeTypeArray) -> Address {
-        let fct = self.vm.fcts.idx(FctDefinitionId(fid.0 as usize));
-        let fct = fct.read();
+        let fct = &self.vm.program.functions[fid.0 as usize];
 
         if let Some(&native_pointer) = self.vm.native_implementations.get(&fid) {
             assert!(type_params.is_empty());
             let internal_fct = NativeFct {
                 fctptr: native_pointer,
-                args: fct.params_with_self_bty(),
-                return_type: bty_from_ty(fct.return_type.clone()),
+                args: BytecodeTypeArray::new(fct.params.clone()),
+                return_type: fct.return_type.clone(),
                 desc: NativeFctKind::NativeStub(fid),
             };
 
             ensure_native_stub(self.vm, Some(fid), internal_fct)
         } else {
-            debug_assert!(fct.has_body());
             self.vm
                 .compilation_database
                 .is_compiled(self.vm, fid, type_params)

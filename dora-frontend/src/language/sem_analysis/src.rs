@@ -2,11 +2,12 @@ use std::collections::hash_map::{HashMap, Iter};
 use std::ops::{Index, IndexMut};
 use std::sync::Arc;
 
+use dora_bytecode::Intrinsic;
 use dora_parser::ast;
 
 use crate::language::sem_analysis::{
     ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId,
-    GlobalDefinitionId, Intrinsic, StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId,
+    GlobalDefinitionId, StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId,
     TypeParamId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};

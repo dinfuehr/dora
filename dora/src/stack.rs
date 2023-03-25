@@ -3,9 +3,8 @@ use std::ptr;
 use crate::handle::{create_handle, Handle};
 use crate::object::{alloc, Array, Int32Array, Ref, Stacktrace, StacktraceElement, Str};
 use crate::threads::current_thread;
-use crate::vm::{display_fct, get_vm, loc, CodeId, CodeKind, VM};
+use crate::vm::{display_fct, get_vm, CodeId, CodeKind, VM};
 use dora_bytecode::Location;
-use dora_frontend::language::sem_analysis::FctDefinitionId;
 
 pub struct NativeStacktrace {
     elems: Vec<StackElem>,
@@ -137,11 +136,8 @@ fn determine_stack_entry(stacktrace: &mut NativeStacktrace, vm: &VM, pc: usize) 
             }
 
             CodeKind::NativeStub(fct_id) => {
-                let fct_id = FctDefinitionId(fct_id.0 as usize);
-                let fct = vm.fcts.idx(fct_id);
-                let fct = fct.read();
-
-                stacktrace.push_entry(code_id, loc(fct.ast.pos));
+                let fct = &vm.program.functions[fct_id.0 as usize];
+                stacktrace.push_entry(code_id, fct.loc);
 
                 true
             }

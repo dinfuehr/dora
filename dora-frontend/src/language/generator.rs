@@ -4,16 +4,17 @@ use std::convert::TryInto;
 use dora_parser::{ast, Position};
 
 use crate::language::sem_analysis::{
-    find_impl, AnalysisData, CallType, ClassDefinitionId, ConstDefinitionId, ContextIdx,
-    EnumDefinitionId, FctDefinition, FctDefinitionId, FieldId, GlobalDefinitionId, IdentType,
-    Intrinsic, SemAnalysis, StructDefinitionId, TraitDefinitionId, TypeParamId, VarId,
+    emit_as_bytecode_operation, find_impl, AnalysisData, CallType, ClassDefinitionId,
+    ConstDefinitionId, ContextIdx, EnumDefinitionId, FctDefinition, FctDefinitionId, FieldId,
+    GlobalDefinitionId, IdentType, SemAnalysis, StructDefinitionId, TraitDefinitionId, TypeParamId,
+    VarId,
 };
 use crate::language::specialize::specialize_type;
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::language::{expr_always_returns, expr_block_always_returns};
 use dora_bytecode::{
     BytecodeBuilder, BytecodeFunction, BytecodeType, BytecodeTypeArray, ClassId, ConstPoolIdx,
-    EnumId, FunctionId, GlobalId, Label, Location, Register, StructId, TraitId,
+    EnumId, FunctionId, GlobalId, Intrinsic, Label, Location, Register, StructId, TraitId,
 };
 
 use super::sem_analysis::VarLocation;
@@ -1146,7 +1147,7 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_expr_call(&mut self, expr: &ast::ExprCallType, dest: DataDest) -> Register {
         if let Some(info) = self.get_intrinsic(expr.id) {
-            if info.intrinsic.emit_as_bytecode_operation() {
+            if emit_as_bytecode_operation(info.intrinsic) {
                 return self.visit_expr_call_intrinsic(expr, info, dest);
             }
         }

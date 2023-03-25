@@ -1,13 +1,12 @@
 use crate::language::sem_analysis::{
     AnnotationDefinitionId, ClassDefinition, ClassDefinitionId, EnumDefinitionId,
-    ExtensionDefinitionId, FctDefinitionId, Field, FieldId, Intrinsic, ModuleDefinition,
-    ModuleDefinitionId, SemAnalysis, StructDefinitionId, TraitDefinitionId, TypeParamDefinition,
-    Visibility,
+    ExtensionDefinitionId, FctDefinitionId, Field, FieldId, ModuleDefinition, ModuleDefinitionId,
+    SemAnalysis, StructDefinitionId, TraitDefinitionId, TypeParamDefinition, Visibility,
 };
 use crate::language::sym::Sym;
 use crate::language::ty::SourceType;
 
-use dora_bytecode::NativeFunction;
+use dora_bytecode::{Intrinsic, NativeFunction};
 use dora_parser::ast::Modifier;
 use dora_parser::interner::Name;
 

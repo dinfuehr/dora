@@ -15,7 +15,7 @@ use crate::language::sem_analysis::{
     create_tuple, find_field_in_class, find_methods_in_class, find_methods_in_enum,
     find_methods_in_struct, implements_trait, AnalysisData, CallType, ClassDefinition,
     ClassDefinitionId, ContextIdx, EnumDefinitionId, EnumVariant, FctDefinition, FctDefinitionId,
-    FctParent, Field, FieldId, ForTypeInfo, IdentType, Intrinsic, ModuleDefinitionId, NestedVarId,
+    FctParent, Field, FieldId, ForTypeInfo, IdentType, ModuleDefinitionId, NestedVarId,
     PackageDefinitionId, SemAnalysis, SourceFileId, StructDefinition, StructDefinitionId,
     TypeParamDefinition, TypeParamId, Var, VarAccess, VarId, VarLocation, Visibility,
 };
@@ -26,6 +26,7 @@ use crate::language::typeparamck::{self, ErrorReporting};
 use crate::language::{always_returns, expr_always_returns, read_type, AllowSelf};
 use crate::language::{report_sym_shadow, TypeParamContext};
 
+use dora_bytecode::Intrinsic;
 use dora_parser::ast;
 use dora_parser::ast::visit::Visitor;
 use dora_parser::interner::Name;
