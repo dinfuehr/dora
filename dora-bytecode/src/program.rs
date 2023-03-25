@@ -1,4 +1,5 @@
 use crate::{BytecodeFunction, BytecodeType, Location};
+use std::collections::HashMap;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PackageId(pub u32);
@@ -187,6 +188,7 @@ pub struct ImplData {
     pub type_params: TypeParamData,
     pub trait_ty: BytecodeType,
     pub extended_ty: BytecodeType,
+    pub mapping: HashMap<FunctionId, FunctionId>,
 }
 
 #[derive(Debug)]

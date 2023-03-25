@@ -1,9 +1,7 @@
 use crate::vm::{extension_matches_ty, VM};
-use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId};
+use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId, ImplId};
 use dora_frontend::language::generator::{bty_from_ty, ty_from_bty};
-use dora_frontend::language::sem_analysis::{
-    FctDefinitionId, ImplDefinitionId, TypeParamDefinition, TypeParamId,
-};
+use dora_frontend::language::sem_analysis::{ImplDefinitionId, TypeParamDefinition, TypeParamId};
 
 pub fn find_trait_impl(
     vm: &VM,
@@ -20,24 +18,25 @@ pub fn find_trait_impl(
     )
     .expect("no impl found for generic trait method call");
 
-    let impl_ = vm.impls[impl_id].read();
+    let impl_ = &vm.program.impls[impl_id.0 as usize];
 
     let trait_id = match trait_ty {
         BytecodeType::Trait(trait_id, _) => trait_id,
         _ => unreachable!(),
     };
 
-    assert_eq!(impl_.trait_id().to_usize(), trait_id.0 as usize);
+    let impl_trait_id = match impl_.trait_ty {
+        BytecodeType::Trait(trait_id, _) => trait_id,
+        _ => unreachable!(),
+    };
 
-    let fct_id = FctDefinitionId(fct_id.0 as usize);
+    assert_eq!(impl_trait_id, trait_id);
 
-    let impl_fct_id = impl_
-        .impl_for
+    impl_
+        .mapping
         .get(&fct_id)
         .cloned()
-        .expect("no impl method found for generic trait call");
-
-    FunctionId(impl_fct_id.0 as u32)
+        .expect("no impl method found for generic trait call")
 }
 
 fn find_impl(
@@ -45,22 +44,22 @@ fn find_impl(
     check_ty: BytecodeType,
     check_type_param_defs: &TypeParamDefinition,
     trait_ty: BytecodeType,
-) -> Option<ImplDefinitionId> {
-    for impl_ in vm.impls.iter() {
-        let impl_ = impl_.read();
+) -> Option<ImplId> {
+    for (impl_id, impl_) in vm.program.impls.iter().enumerate() {
+        let impl_id = ImplId(impl_id.try_into().expect("doesn't fit"));
 
-        assert!(impl_.trait_ty().is_concrete_type());
+        assert!(impl_.trait_ty.is_concrete_type());
 
-        if impl_.extended_ty != ty_from_bty(check_ty.clone()) {
+        if impl_.extended_ty != check_ty {
             continue;
         }
 
-        if impl_.trait_ty() != ty_from_bty(trait_ty.clone()) {
+        if impl_.trait_ty != trait_ty {
             continue;
         }
 
-        if impl_matches(vm, check_ty.clone(), check_type_param_defs, impl_.id()).is_some() {
-            return Some(impl_.id());
+        if impl_matches(vm, check_ty.clone(), check_type_param_defs, impl_id).is_some() {
+            return Some(impl_id);
         }
     }
 
@@ -71,8 +70,9 @@ fn impl_matches(
     vm: &VM,
     check_ty: BytecodeType,
     check_type_param_defs: &TypeParamDefinition,
-    impl_id: ImplDefinitionId,
+    impl_id: ImplId,
 ) -> Option<BytecodeTypeArray> {
+    let impl_id = ImplDefinitionId(impl_id.0);
     let impl_ = vm.impls[impl_id].read();
     extension_matches_ty(
         vm,

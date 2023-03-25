@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::language::SemAnalysis;
 use dora_bytecode::program::{ClassLayout, ImplData, InternalClass, InternalFunction};
 use dora_bytecode::{
@@ -85,11 +87,21 @@ fn create_impls(sa: &SemAnalysis) -> Vec<ImplData> {
     for impl_ in sa.impls.iter() {
         let impl_ = impl_.read();
 
+        let mut mapping = HashMap::new();
+
+        for (&key, &value) in impl_.impl_for.iter() {
+            let key = convert_function_id(key);
+            let value = convert_function_id(value);
+            let old_value = mapping.insert(key, value);
+            assert!(old_value.is_none());
+        }
+
         result.push(ImplData {
             module_id: convert_module_id(impl_.module_id),
             type_params: create_type_params(sa, impl_.type_params()),
             trait_ty: bty_from_ty(impl_.trait_ty.clone()),
             extended_ty: bty_from_ty(impl_.extended_ty.clone()),
+            mapping,
         });
     }
 
