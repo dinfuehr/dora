@@ -82,7 +82,7 @@ pub fn generate_fct(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray
 
     if vm.args.flag_enable_perf {
         let name = display_fct(vm, fct_id);
-        os::perf::register_with_perf(&code, vm, &name);
+        os::perf::register_with_perf(&code, &name);
     }
 
     if emit_asm {
@@ -178,7 +178,7 @@ pub fn generate_thunk(
 
     if vm.args.flag_enable_perf {
         let name = display_fct(vm, trait_fct_id);
-        os::perf::register_with_perf(&code, vm, &name);
+        os::perf::register_with_perf(&code, &name);
     }
 
     if emit_asm {

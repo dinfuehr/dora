@@ -1,7 +1,7 @@
-use crate::vm::{Code, VM};
+use crate::vm::Code;
 
 #[cfg(target_os = "linux")]
-pub fn register_with_perf(code: &Code, vm: &VM, name: &str) {
+pub fn register_with_perf(code: &Code, name: &str) {
     use std::fs::OpenOptions;
     use std::io::prelude::*;
 
@@ -24,6 +24,6 @@ pub fn register_with_perf(code: &Code, vm: &VM, name: &str) {
 }
 
 #[cfg(not(target_os = "linux"))]
-pub fn register_with_perf(_: &Code, _: &VM, _: &str) {
+pub fn register_with_perf(_: &Code, _: &str) {
     // nothing to do
 }
