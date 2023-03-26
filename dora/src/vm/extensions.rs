@@ -1,23 +1,23 @@
-use crate::vm::{implements_trait, VM};
+use crate::vm::{bounds_for_tp, tp_implements_trait, ty_implements_trait, VM};
 use dora_bytecode::{BytecodeType, BytecodeTypeArray};
 use dora_frontend::language::generator::{bty_from_ty, ty_from_bty};
 use dora_frontend::language::sem_analysis::TypeParamDefinition;
 
-pub fn extension_matches_ty(
+pub fn block_matches_ty(
     vm: &VM,
     check_ty: BytecodeType,
     check_type_param_defs: &TypeParamDefinition,
-    ext_ty: BytecodeType,
-    ext_type_param_defs: &TypeParamDefinition,
+    block_ty: BytecodeType,
+    block_type_param_defs: &TypeParamDefinition,
 ) -> Option<BytecodeTypeArray> {
-    let mut bindings = vec![None; ext_type_param_defs.len()];
+    let mut bindings = vec![None; block_type_param_defs.len()];
 
     let result = matches(
         vm,
         check_ty,
         check_type_param_defs,
-        ext_ty.clone(),
-        ext_type_param_defs,
+        block_ty.clone(),
+        block_type_param_defs,
         &mut bindings,
     );
 
@@ -34,11 +34,11 @@ fn matches(
     vm: &VM,
     check_ty: BytecodeType,
     check_type_param_defs: &TypeParamDefinition,
-    ext_ty: BytecodeType,
-    ext_type_param_defs: &TypeParamDefinition,
+    block_ty: BytecodeType,
+    block_type_param_defs: &TypeParamDefinition,
     bindings: &mut [Option<BytecodeType>],
 ) -> bool {
-    if let BytecodeType::TypeParam(tp_id) = ext_ty {
+    if let BytecodeType::TypeParam(tp_id) = block_ty {
         let binding = bindings[tp_id as usize].clone();
 
         if let Some(binding) = binding {
@@ -47,7 +47,7 @@ fn matches(
                 check_ty,
                 check_type_param_defs,
                 binding,
-                ext_type_param_defs,
+                block_type_param_defs,
                 bindings,
             )
         } else {
@@ -56,16 +56,16 @@ fn matches(
                     vm,
                     check_ty.clone(),
                     check_type_param_defs,
-                    ext_ty,
-                    ext_type_param_defs,
+                    block_ty,
+                    block_type_param_defs,
                 )
             } else {
                 concrete_type_fulfills_bounds(
                     vm,
                     check_ty.clone(),
                     check_type_param_defs,
-                    ext_ty,
-                    ext_type_param_defs,
+                    block_ty,
+                    block_type_param_defs,
                 )
             };
 
@@ -81,8 +81,8 @@ fn matches(
                 vm,
                 check_ty,
                 check_type_param_defs,
-                ext_ty,
-                ext_type_param_defs,
+                block_ty,
+                block_type_param_defs,
                 bindings,
             )
         }
@@ -93,10 +93,10 @@ fn compare_type_param_bounds(
     _vm: &VM,
     check_ty: BytecodeType,
     check_type_param_defs: &TypeParamDefinition,
-    ext_ty: BytecodeType,
-    ext_type_param_defs: &TypeParamDefinition,
+    block_ty: BytecodeType,
+    block_type_param_defs: &TypeParamDefinition,
 ) -> bool {
-    let ext_tp_id = ty_from_bty(ext_ty)
+    let ext_tp_id = ty_from_bty(block_ty)
         .type_param_id()
         .expect("expected type param");
 
@@ -104,8 +104,8 @@ fn compare_type_param_bounds(
         .type_param_id()
         .expect("expected type param");
 
-    for trait_ty in ext_type_param_defs.bounds_for_type_param(ext_tp_id) {
-        if !check_type_param_defs.implements_trait(check_tp_id, trait_ty) {
+    for trait_ty in bounds_for_tp(block_type_param_defs, ext_tp_id) {
+        if !tp_implements_trait(&check_type_param_defs, check_tp_id, trait_ty) {
             return false;
         }
     }
@@ -117,20 +117,15 @@ fn concrete_type_fulfills_bounds(
     vm: &VM,
     check_ty: BytecodeType,
     check_type_param_defs: &TypeParamDefinition,
-    ext_ty: BytecodeType,
-    ext_type_param_defs: &TypeParamDefinition,
+    block_ty: BytecodeType,
+    block_type_param_defs: &TypeParamDefinition,
 ) -> bool {
-    let ext_tp_id = ty_from_bty(ext_ty)
+    let ext_tp_id = ty_from_bty(block_ty)
         .type_param_id()
         .expect("expected type param");
 
-    for trait_ty in ext_type_param_defs.bounds_for_type_param(ext_tp_id) {
-        if !implements_trait(
-            vm,
-            check_ty.clone(),
-            check_type_param_defs,
-            bty_from_ty(trait_ty),
-        ) {
+    for trait_ty in bounds_for_tp(block_type_param_defs, ext_tp_id) {
+        if !ty_implements_trait(vm, check_ty.clone(), check_type_param_defs, trait_ty) {
             return false;
         }
     }
@@ -142,8 +137,8 @@ fn compare_concrete_types(
     vm: &VM,
     check_ty: BytecodeType,
     check_type_param_defs: &TypeParamDefinition,
-    ext_ty: BytecodeType,
-    ext_type_param_defs: &TypeParamDefinition,
+    block_ty: BytecodeType,
+    block_type_param_defs: &TypeParamDefinition,
     bindings: &mut [Option<BytecodeType>],
 ) -> bool {
     match check_ty.clone() {
@@ -155,18 +150,18 @@ fn compare_concrete_types(
         | BytecodeType::Int64
         | BytecodeType::Float32
         | BytecodeType::Float64
-        | BytecodeType::TypeParam(_) => check_ty == ext_ty,
+        | BytecodeType::TypeParam(_) => check_ty == block_ty,
 
         BytecodeType::Lambda(_, _) | BytecodeType::Trait(_, _) => {
             unimplemented!()
         }
 
         BytecodeType::Tuple(check_subtypes) => {
-            if !ext_ty.is_tuple() {
+            if !block_ty.is_tuple() {
                 return false;
             }
 
-            let ext_subtypes = ext_ty.tuple_subtypes();
+            let ext_subtypes = block_ty.tuple_subtypes();
 
             if check_subtypes.len() != ext_subtypes.len() {
                 return false;
@@ -178,7 +173,7 @@ fn compare_concrete_types(
                     check_subty.clone(),
                     check_type_param_defs,
                     ext_subty.clone(),
-                    ext_type_param_defs,
+                    block_type_param_defs,
                     bindings,
                 ) {
                     return false;
@@ -189,7 +184,7 @@ fn compare_concrete_types(
         }
 
         BytecodeType::Struct(check_struct_id, _) => {
-            let ext_struct_id = if let BytecodeType::Struct(struct_id, _) = ext_ty {
+            let ext_struct_id = if let BytecodeType::Struct(struct_id, _) = block_ty {
                 struct_id
             } else {
                 return false;
@@ -203,14 +198,14 @@ fn compare_concrete_types(
                 vm,
                 check_ty,
                 check_type_param_defs,
-                ext_ty,
-                ext_type_param_defs,
+                block_ty,
+                block_type_param_defs,
                 bindings,
             )
         }
 
         BytecodeType::Enum(check_enum_id, _) => {
-            let ext_enum_id = if let BytecodeType::Enum(enum_id, _) = ext_ty {
+            let ext_enum_id = if let BytecodeType::Enum(enum_id, _) = block_ty {
                 enum_id
             } else {
                 return false;
@@ -224,14 +219,14 @@ fn compare_concrete_types(
                 vm,
                 check_ty,
                 check_type_param_defs,
-                ext_ty,
-                ext_type_param_defs,
+                block_ty,
+                block_type_param_defs,
                 bindings,
             )
         }
 
         BytecodeType::Class(check_cls_id, _) => {
-            let ext_cls_id = if let BytecodeType::Class(cls_id, _) = ext_ty {
+            let ext_cls_id = if let BytecodeType::Class(cls_id, _) = block_ty {
                 cls_id
             } else {
                 return false;
@@ -245,8 +240,8 @@ fn compare_concrete_types(
                 vm,
                 check_ty,
                 check_type_param_defs,
-                ext_ty,
-                ext_type_param_defs,
+                block_ty,
+                block_type_param_defs,
                 bindings,
             )
         }
@@ -261,12 +256,12 @@ fn compare_type_params(
     vm: &VM,
     check_ty: BytecodeType,
     check_type_param_defs: &TypeParamDefinition,
-    ext_ty: BytecodeType,
-    ext_type_param_defs: &TypeParamDefinition,
+    block_ty: BytecodeType,
+    block_type_param_defs: &TypeParamDefinition,
     bindings: &mut [Option<BytecodeType>],
 ) -> bool {
     let check_tps = ty_from_bty(check_ty).type_params();
-    let ext_tps = ty_from_bty(ext_ty).type_params();
+    let ext_tps = ty_from_bty(block_ty).type_params();
 
     assert_eq!(check_tps.len(), ext_tps.len());
 
@@ -276,7 +271,7 @@ fn compare_type_params(
             bty_from_ty(check_tp),
             check_type_param_defs,
             bty_from_ty(ext_tp),
-            ext_type_param_defs,
+            block_type_param_defs,
             bindings,
         ) {
             return false;

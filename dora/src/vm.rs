@@ -37,10 +37,10 @@ pub use self::code::{
 pub use self::code_map::CodeMap;
 pub use self::compilation::CompilationDatabase;
 pub use self::enums::{enum_definition_name, EnumInstance, EnumInstanceId, EnumLayout};
-pub use self::extensions::extension_matches_ty;
+pub use self::extensions::block_matches_ty;
 pub use self::functions::display_fct;
 use self::globals::GlobalVariableMemory;
-pub use self::impls::{find_trait_impl, implements_trait};
+pub use self::impls::{bounds_for_tp, find_trait_impl, tp_implements_trait, ty_implements_trait};
 use self::known::KnownElements;
 pub use self::modules::{module_path, module_path_name};
 pub use self::specialize::{

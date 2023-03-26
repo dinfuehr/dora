@@ -15,8 +15,8 @@ use crate::{GrowableVec, MutableVec};
 
 pub use self::annotations::{AnnotationDefinition, AnnotationDefinitionId};
 pub use self::classes::{
-    find_field_in_class, find_methods_in_class, Candidate, ClassDefinition, ClassDefinitionId,
-    Field, FieldId, TypeParamDefinition, TypeParamId, Visibility,
+    find_field_in_class, find_methods_in_class, Bound, Candidate, ClassDefinition,
+    ClassDefinitionId, Field, FieldId, TypeParamDefinition, TypeParamId, Visibility,
 };
 pub use self::consts::{ConstDefinition, ConstDefinitionId, ConstValue};
 pub use self::enums::{find_methods_in_enum, EnumDefinition, EnumDefinitionId, EnumVariant};
