@@ -1,4 +1,4 @@
-use crate::vm::{block_matches_ty, VM};
+use crate::vm::{block_matches_ty, ty_is_zeroable_primitive, ty_type_params, VM};
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId, ImplId};
 use dora_frontend::language::generator::{bty_from_ty, ty_from_bty};
 use dora_frontend::language::sem_analysis::{
@@ -97,8 +97,8 @@ pub fn ty_implements_trait(
         _ => unreachable!(),
     };
 
-    if ty_from_bty(check_ty.clone()).is_primitive() && vm.known.zero_trait_id() == trait_id {
-        assert!(ty_from_bty(trait_ty).type_params().is_empty());
+    if ty_is_zeroable_primitive(&check_ty) && vm.known.zero_trait_id() == trait_id {
+        assert!(ty_type_params(&trait_ty).is_empty());
         return true;
     }
 
@@ -136,7 +136,10 @@ pub fn tp_implements_trait(
     tp_id: TypeParamId,
     trait_ty: BytecodeType,
 ) -> bool {
-    type_param_defs.implements_trait(tp_id, ty_from_bty(trait_ty))
+    type_param_defs.bounds().contains(&Bound {
+        ty: SourceType::TypeParam(tp_id),
+        trait_ty: ty_from_bty(trait_ty),
+    })
 }
 
 pub fn bounds_for_tp(

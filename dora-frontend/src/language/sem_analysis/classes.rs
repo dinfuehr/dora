@@ -441,8 +441,8 @@ impl TypeParamDefinition {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Bound {
-    ty: SourceType,
-    trait_ty: SourceType,
+    pub ty: SourceType,
+    pub trait_ty: SourceType,
 }
 
 impl Bound {

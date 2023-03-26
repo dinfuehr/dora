@@ -1,5 +1,6 @@
 use crate::vm::VM;
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, TypeParamData};
+use dora_frontend::language::sem_analysis::TypeParamId;
 
 pub fn display_ty(vm: &VM, ty: &BytecodeType) -> String {
     let printer = BytecodeTypePrinter {
@@ -9,6 +10,57 @@ pub fn display_ty(vm: &VM, ty: &BytecodeType) -> String {
     };
 
     printer.string()
+}
+
+pub fn ty_type_param_id(ty: &BytecodeType) -> Option<TypeParamId> {
+    match ty {
+        BytecodeType::TypeParam(tp_id) => Some(TypeParamId(*tp_id as usize)),
+        _ => None,
+    }
+}
+
+pub fn ty_is_zeroable_primitive(ty: &BytecodeType) -> bool {
+    match ty {
+        &BytecodeType::Bool
+        | &BytecodeType::UInt8
+        | &BytecodeType::Char
+        | &BytecodeType::Int32
+        | &BytecodeType::Int64
+        | &BytecodeType::Float32
+        | &BytecodeType::Float64 => true,
+        &BytecodeType::Unit
+        | &BytecodeType::Tuple(..)
+        | &BytecodeType::Enum(..)
+        | &BytecodeType::Struct(..)
+        | &BytecodeType::Class(..)
+        | &BytecodeType::Trait(..)
+        | &BytecodeType::Lambda(..)
+        | &BytecodeType::TypeParam(..)
+        | &BytecodeType::Ptr
+        | &BytecodeType::This => false,
+    }
+}
+
+pub fn ty_type_params(ty: &BytecodeType) -> BytecodeTypeArray {
+    match ty {
+        BytecodeType::Class(_, params)
+        | BytecodeType::Enum(_, params)
+        | BytecodeType::Struct(_, params)
+        | BytecodeType::Trait(_, params) => params.clone(),
+        &BytecodeType::Bool
+        | &BytecodeType::UInt8
+        | &BytecodeType::Char
+        | &BytecodeType::Int32
+        | &BytecodeType::Int64
+        | &BytecodeType::Float32
+        | &BytecodeType::Float64
+        | &BytecodeType::Unit
+        | &BytecodeType::Tuple(..)
+        | &BytecodeType::Lambda(..)
+        | &BytecodeType::TypeParam(..)
+        | &BytecodeType::Ptr
+        | &BytecodeType::This => BytecodeTypeArray::empty(),
+    }
 }
 
 struct BytecodeTypePrinter<'a> {

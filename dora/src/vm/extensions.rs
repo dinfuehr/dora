@@ -1,6 +1,7 @@
-use crate::vm::{bounds_for_tp, tp_implements_trait, ty_implements_trait, VM};
+use crate::vm::{
+    bounds_for_tp, tp_implements_trait, ty_implements_trait, ty_type_param_id, ty_type_params, VM,
+};
 use dora_bytecode::{BytecodeType, BytecodeTypeArray};
-use dora_frontend::language::generator::{bty_from_ty, ty_from_bty};
 use dora_frontend::language::sem_analysis::TypeParamDefinition;
 
 pub fn block_matches_ty(
@@ -96,13 +97,9 @@ fn compare_type_param_bounds(
     block_ty: BytecodeType,
     block_type_param_defs: &TypeParamDefinition,
 ) -> bool {
-    let ext_tp_id = ty_from_bty(block_ty)
-        .type_param_id()
-        .expect("expected type param");
+    let ext_tp_id = ty_type_param_id(&block_ty).expect("expected type param");
 
-    let check_tp_id = ty_from_bty(check_ty)
-        .type_param_id()
-        .expect("expected type param");
+    let check_tp_id = ty_type_param_id(&check_ty).expect("expected type param");
 
     for trait_ty in bounds_for_tp(block_type_param_defs, ext_tp_id) {
         if !tp_implements_trait(&check_type_param_defs, check_tp_id, trait_ty) {
@@ -120,9 +117,7 @@ fn concrete_type_fulfills_bounds(
     block_ty: BytecodeType,
     block_type_param_defs: &TypeParamDefinition,
 ) -> bool {
-    let ext_tp_id = ty_from_bty(block_ty)
-        .type_param_id()
-        .expect("expected type param");
+    let ext_tp_id = ty_type_param_id(&block_ty).expect("expected type param");
 
     for trait_ty in bounds_for_tp(block_type_param_defs, ext_tp_id) {
         if !ty_implements_trait(vm, check_ty.clone(), check_type_param_defs, trait_ty) {
@@ -260,17 +255,17 @@ fn compare_type_params(
     block_type_param_defs: &TypeParamDefinition,
     bindings: &mut [Option<BytecodeType>],
 ) -> bool {
-    let check_tps = ty_from_bty(check_ty).type_params();
-    let ext_tps = ty_from_bty(block_ty).type_params();
+    let check_tps = ty_type_params(&check_ty);
+    let ext_tps = ty_type_params(&block_ty);
 
     assert_eq!(check_tps.len(), ext_tps.len());
 
     for (check_tp, ext_tp) in check_tps.iter().zip(ext_tps.iter()) {
         if !matches(
             vm,
-            bty_from_ty(check_tp),
+            check_tp,
             check_type_param_defs,
-            bty_from_ty(ext_tp),
+            ext_tp,
             block_type_param_defs,
             bindings,
         ) {
