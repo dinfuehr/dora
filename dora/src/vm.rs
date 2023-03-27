@@ -18,10 +18,9 @@ use crate::threads::{
 };
 use crate::utils::GrowableVecNonIter;
 use dora_bytecode::{
-    BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, Location, ModuleId, Program,
-    StructId, TraitId,
+    BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, ModuleId, Program, StructId,
+    TraitId,
 };
-use dora_parser::lexer::position::Position;
 
 pub use self::classes::{
     create_class_instance_with_vtable, ClassInstance, ClassInstanceId, FieldInstance, ShapeKind,
@@ -404,8 +403,4 @@ where
     deinit_current_thread();
 
     result
-}
-
-pub fn loc(pos: Position) -> Location {
-    Location::new(pos.line, pos.column)
 }
