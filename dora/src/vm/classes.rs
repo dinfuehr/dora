@@ -1,10 +1,10 @@
 use parking_lot::RwLock;
 
 use crate::size::InstanceSize;
+use crate::utils::Id;
 use crate::vm::{add_ref_fields, VM};
 use crate::vtable::VTableBox;
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, TraitId};
-use dora_frontend::Id;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct ClassInstanceId(usize);

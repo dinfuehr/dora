@@ -1,6 +1,13 @@
-use dora_frontend::Id;
 use parking_lot::RwLock;
 use std::sync::Arc;
+
+pub trait Id {
+    type IdType: Copy + Clone;
+
+    fn usize_to_id(value: usize) -> Self::IdType;
+    fn id_to_usize(value: Self::IdType) -> usize;
+    fn store_id(value: &mut Self, id: Self::IdType);
+}
 
 pub struct GrowableVecNonIter<T: Id> {
     elements: RwLock<Vec<Arc<T>>>,

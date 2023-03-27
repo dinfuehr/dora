@@ -1,5 +1,5 @@
+use crate::utils::Id;
 use dora_bytecode::BytecodeType;
-use dora_frontend::Id;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct StructInstanceId(usize);

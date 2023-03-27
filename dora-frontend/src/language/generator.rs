@@ -3462,13 +3462,6 @@ pub fn register_bty_from_ty(ty: SourceType) -> BytecodeType {
     }
 }
 
-pub fn register_bty_from_bty(ty: BytecodeType) -> BytecodeType {
-    match ty {
-        BytecodeType::Class(_, _) | BytecodeType::Lambda(_, _) => BytecodeType::Ptr,
-        _ => ty,
-    }
-}
-
 fn field_id_from_context_idx(context_idx: ContextIdx, has_outer_context_slot: bool) -> FieldId {
     let start_idx = if has_outer_context_slot { 1 } else { 0 };
     let ContextIdx(context_idx) = context_idx;

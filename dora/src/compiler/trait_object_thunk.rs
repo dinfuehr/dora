@@ -1,3 +1,4 @@
+use crate::cannon::codegen::register_ty;
 use crate::compiler;
 use crate::gc::Address;
 use crate::vm::VM;
@@ -5,7 +6,6 @@ use dora_bytecode::{
     BytecodeBuilder, BytecodeFunction, BytecodeType, BytecodeTypeArray, FunctionId, FunctionKind,
     Register,
 };
-use dora_frontend::language::generator::register_bty_from_bty;
 
 pub fn ensure_compiled(
     vm: &VM,
@@ -51,11 +51,11 @@ fn generate_bytecode_for_thunk(
 
     let mut gen = BytecodeBuilder::new();
     gen.push_scope();
-    gen.alloc_var(register_bty_from_bty(trait_object_ty));
+    gen.alloc_var(register_ty(trait_object_ty));
 
     for param_ty in program_trait_fct.params.iter().skip(1) {
         if !param_ty.is_unit() {
-            let ty = register_bty_from_bty(param_ty.clone());
+            let ty = register_ty(param_ty.clone());
             gen.alloc_var(ty);
         }
     }
@@ -63,7 +63,7 @@ fn generate_bytecode_for_thunk(
     gen.set_arguments(program_trait_fct.params.len() as u32);
 
     if !actual_ty.is_unit() {
-        let ty = register_bty_from_bty(actual_ty.clone());
+        let ty = register_ty(actual_ty.clone());
         let new_self_reg = gen.alloc_var(ty);
         gen.emit_load_trait_object_value(new_self_reg, Register(0));
         gen.emit_push_register(new_self_reg);
@@ -79,7 +79,7 @@ fn generate_bytecode_for_thunk(
         BytecodeTypeArray::empty(),
     );
 
-    let ty = register_bty_from_bty(program_trait_fct.return_type.clone());
+    let ty = register_ty(program_trait_fct.return_type.clone());
     let result_reg = gen.alloc_var(ty);
     gen.emit_invoke_generic_direct(result_reg, target_fct_idx, program_trait_fct.loc);
     gen.emit_ret(result_reg);
