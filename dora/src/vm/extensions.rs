@@ -1,17 +1,16 @@
 use crate::vm::{
     bounds_for_tp, tp_implements_trait, ty_implements_trait, ty_type_param_id, ty_type_params, VM,
 };
-use dora_bytecode::{BytecodeType, BytecodeTypeArray};
-use dora_frontend::language::sem_analysis::TypeParamDefinition;
+use dora_bytecode::{BytecodeType, BytecodeTypeArray, TypeParamData};
 
 pub fn block_matches_ty(
     vm: &VM,
     check_ty: BytecodeType,
-    check_type_param_defs: &TypeParamDefinition,
+    check_type_param_defs: &TypeParamData,
     block_ty: BytecodeType,
-    block_type_param_defs: &TypeParamDefinition,
+    block_type_param_defs: &TypeParamData,
 ) -> Option<BytecodeTypeArray> {
-    let mut bindings = vec![None; block_type_param_defs.len()];
+    let mut bindings = vec![None; block_type_param_defs.names.len()];
 
     let result = matches(
         vm,
@@ -34,9 +33,9 @@ pub fn block_matches_ty(
 fn matches(
     vm: &VM,
     check_ty: BytecodeType,
-    check_type_param_defs: &TypeParamDefinition,
+    check_type_param_defs: &TypeParamData,
     block_ty: BytecodeType,
-    block_type_param_defs: &TypeParamDefinition,
+    block_type_param_defs: &TypeParamData,
     bindings: &mut [Option<BytecodeType>],
 ) -> bool {
     if let BytecodeType::TypeParam(tp_id) = block_ty {
@@ -93,9 +92,9 @@ fn matches(
 fn compare_type_param_bounds(
     _vm: &VM,
     check_ty: BytecodeType,
-    check_type_param_defs: &TypeParamDefinition,
+    check_type_param_defs: &TypeParamData,
     block_ty: BytecodeType,
-    block_type_param_defs: &TypeParamDefinition,
+    block_type_param_defs: &TypeParamData,
 ) -> bool {
     let ext_tp_id = ty_type_param_id(&block_ty).expect("expected type param");
 
@@ -113,9 +112,9 @@ fn compare_type_param_bounds(
 fn concrete_type_fulfills_bounds(
     vm: &VM,
     check_ty: BytecodeType,
-    check_type_param_defs: &TypeParamDefinition,
+    check_type_param_defs: &TypeParamData,
     block_ty: BytecodeType,
-    block_type_param_defs: &TypeParamDefinition,
+    block_type_param_defs: &TypeParamData,
 ) -> bool {
     let ext_tp_id = ty_type_param_id(&block_ty).expect("expected type param");
 
@@ -131,9 +130,9 @@ fn concrete_type_fulfills_bounds(
 fn compare_concrete_types(
     vm: &VM,
     check_ty: BytecodeType,
-    check_type_param_defs: &TypeParamDefinition,
+    check_type_param_defs: &TypeParamData,
     block_ty: BytecodeType,
-    block_type_param_defs: &TypeParamDefinition,
+    block_type_param_defs: &TypeParamData,
     bindings: &mut [Option<BytecodeType>],
 ) -> bool {
     match check_ty.clone() {
@@ -250,9 +249,9 @@ fn compare_concrete_types(
 fn compare_type_params(
     vm: &VM,
     check_ty: BytecodeType,
-    check_type_param_defs: &TypeParamDefinition,
+    check_type_param_defs: &TypeParamData,
     block_ty: BytecodeType,
-    block_type_param_defs: &TypeParamDefinition,
+    block_type_param_defs: &TypeParamData,
     bindings: &mut [Option<BytecodeType>],
 ) -> bool {
     let check_tps = ty_type_params(&check_ty);

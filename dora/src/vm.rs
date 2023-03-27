@@ -21,9 +21,6 @@ use dora_bytecode::{
     BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, Location, ModuleId, Program,
     StructId, TraitId,
 };
-use dora_frontend::language::sem_analysis::{ImplDefinition, SemAnalysis};
-use dora_frontend::MutableVec;
-
 use dora_parser::lexer::position::Position;
 
 pub use self::classes::{
@@ -51,7 +48,9 @@ pub use self::specialize::{
 pub use self::structs::{StructInstance, StructInstanceField, StructInstanceId};
 pub use self::stubs::{setup_stubs, Stubs};
 pub use self::tuples::{get_concrete_tuple_bty, get_concrete_tuple_bty_array, ConcreteTuple};
-pub use self::ty::{display_ty, ty_is_zeroable_primitive, ty_type_param_id, ty_type_params};
+pub use self::ty::{
+    display_ty, ty_is_zeroable_primitive, ty_trait_id, ty_type_param_id, ty_type_params,
+};
 pub use self::waitlists::{ManagedCondition, ManagedMutex, WaitLists};
 
 mod classes;
@@ -139,8 +138,7 @@ pub struct VM {
     pub enum_specializations: RwLock<HashMap<(EnumId, BytecodeTypeArray), EnumInstanceId>>,
     pub enum_instances: GrowableVecNonIter<EnumInstance>, // stores all enum definitions
     pub trait_vtables: RwLock<HashMap<(TraitId, BytecodeTypeArray), ClassInstanceId>>,
-    pub impls: MutableVec<ImplDefinition>, // stores all impl definitions
-    pub code_map: CodeMap,                 // stores all compiled functions
+    pub code_map: CodeMap, // stores all compiled functions
     pub global_variable_memory: Option<GlobalVariableMemory>,
     pub gc: Gc, // garbage collector
     pub native_stubs: Mutex<NativeStubs>,
@@ -152,10 +150,10 @@ pub struct VM {
 }
 
 impl VM {
-    pub fn new_from_sa(sa: Box<SemAnalysis>, program: Program, args: Args) -> Box<VM> {
+    pub fn new(program: Program, args: Args) -> Box<VM> {
         let gc = Gc::new(&args);
 
-        let vm = Box::new(VM {
+        let mut vm = Box::new(VM {
             args,
             program,
             struct_specializations: RwLock::new(HashMap::new()),
@@ -165,7 +163,6 @@ impl VM {
             enum_specializations: RwLock::new(HashMap::new()),
             enum_instances: GrowableVecNonIter::new(),
             trait_vtables: RwLock::new(HashMap::new()),
-            impls: sa.impls,
             global_variable_memory: None,
             known: KnownElements::new(),
             gc,
@@ -180,6 +177,8 @@ impl VM {
             state: AtomicU8::new(VmState::Running.into()),
         });
 
+        vm.setup();
+
         vm
     }
 
@@ -193,7 +192,7 @@ impl VM {
         VmState::try_from(old_state).expect("invalid state")
     }
 
-    pub fn setup_execution(&mut self) {
+    fn setup(&mut self) {
         // ensure this data is only created during execution
         assert!(self.compilation_database.is_empty());
 

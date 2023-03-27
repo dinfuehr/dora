@@ -68,13 +68,12 @@ pub fn start() -> i32 {
         unimplemented!();
     }
 
-    let prog = language::emit_program(&sa);
+    // Create a serializable data structure from bytecode and metadata.
+    // Here we drop the generated AST.
+    let prog = language::emit_program(sa);
 
-    let vm = {
-        let mut mutable_vm = VM::new_from_sa(sa, prog, args);
-        mutable_vm.setup_execution();
-        mutable_vm
-    };
+    // Now create a VM instance from the serialized data alone.
+    let vm = VM::new(prog, args);
 
     set_vm(&vm);
 

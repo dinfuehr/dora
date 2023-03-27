@@ -108,8 +108,8 @@ pub struct SemAnalysis {
 }
 
 impl SemAnalysis {
-    pub fn new(args: SemAnalysisArgs) -> Box<SemAnalysis> {
-        let sa = Box::new(SemAnalysis {
+    pub fn new(args: SemAnalysisArgs) -> SemAnalysis {
+        SemAnalysis {
             args,
             source_files: Vec::new(),
             consts: MutableVec::new(),
@@ -136,9 +136,7 @@ impl SemAnalysis {
             stdlib_package_id: None,
             program_package_id: None,
             boots_package_id: None,
-        });
-
-        sa
+        }
     }
 
     pub fn prelude_module_id(&self) -> ModuleDefinitionId {

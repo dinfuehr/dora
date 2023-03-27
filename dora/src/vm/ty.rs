@@ -1,6 +1,5 @@
 use crate::vm::VM;
-use dora_bytecode::{BytecodeType, BytecodeTypeArray, TypeParamData};
-use dora_frontend::language::sem_analysis::TypeParamId;
+use dora_bytecode::{BytecodeType, BytecodeTypeArray, TraitId, TypeParamData};
 
 pub fn display_ty(vm: &VM, ty: &BytecodeType) -> String {
     let printer = BytecodeTypePrinter {
@@ -12,9 +11,16 @@ pub fn display_ty(vm: &VM, ty: &BytecodeType) -> String {
     printer.string()
 }
 
-pub fn ty_type_param_id(ty: &BytecodeType) -> Option<TypeParamId> {
+pub fn ty_type_param_id(ty: &BytecodeType) -> Option<u32> {
     match ty {
-        BytecodeType::TypeParam(tp_id) => Some(TypeParamId(*tp_id as usize)),
+        BytecodeType::TypeParam(tp_id) => Some(*tp_id),
+        _ => None,
+    }
+}
+
+pub fn ty_trait_id(ty: &BytecodeType) -> Option<TraitId> {
+    match ty {
+        BytecodeType::Trait(trait_id, _) => Some(*trait_id),
         _ => None,
     }
 }

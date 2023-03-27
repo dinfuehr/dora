@@ -20,18 +20,18 @@ use crate::language::sem_analysis::{
 
 use super::sem_analysis::{ImplDefinitionId, TraitDefinitionId};
 
-pub fn emit_program(sa: &SemAnalysis) -> Program {
+pub fn emit_program(sa: SemAnalysis) -> Program {
     Program {
-        packages: create_packages(sa),
-        modules: create_modules(sa),
-        functions: create_functions(sa),
-        globals: create_globals(sa),
-        classes: create_classes(sa),
-        structs: create_structs(sa),
-        enums: create_enums(sa),
-        traits: create_traits(sa),
-        impls: create_impls(sa),
-        source_files: create_source_files(sa),
+        packages: create_packages(&sa),
+        modules: create_modules(&sa),
+        functions: create_functions(&sa),
+        globals: create_globals(&sa),
+        classes: create_classes(&sa),
+        structs: create_structs(&sa),
+        enums: create_enums(&sa),
+        traits: create_traits(&sa),
+        impls: create_impls(&sa),
+        source_files: create_source_files(&sa),
         stdlib_package_id: convert_package_id(sa.stdlib_package_id()),
         program_package_id: convert_package_id(sa.program_package_id()),
         boots_package_id: sa.boots_package_id.map(|p| convert_package_id(p)),

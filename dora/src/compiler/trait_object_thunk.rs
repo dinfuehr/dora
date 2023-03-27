@@ -6,7 +6,6 @@ use dora_bytecode::{
     Register,
 };
 use dora_frontend::language::generator::register_bty_from_bty;
-use dora_frontend::language::sem_analysis::TypeParamId;
 
 pub fn ensure_compiled(
     vm: &VM,
@@ -16,7 +15,7 @@ pub fn ensure_compiled(
 ) -> Address {
     let all_type_params = type_params.append(actual_ty.clone());
     let trait_fct = &vm.program.functions[trait_fct_id.0 as usize];
-    let trait_object_type_param_id = TypeParamId(all_type_params.len() - 1);
+    let trait_object_type_param_id = all_type_params.len() - 1;
 
     let trait_id = match trait_fct.kind {
         FunctionKind::Trait(trait_id) => trait_id,
@@ -45,7 +44,7 @@ fn generate_bytecode_for_thunk(
     vm: &VM,
     fct_id: FunctionId,
     trait_object_ty: BytecodeType,
-    trait_object_type_param_id: TypeParamId,
+    trait_object_type_param_id: usize,
     actual_ty: BytecodeType,
 ) -> BytecodeFunction {
     let program_trait_fct = &vm.program.functions[fct_id.0 as usize];
@@ -75,7 +74,7 @@ fn generate_bytecode_for_thunk(
     }
 
     let target_fct_idx = gen.add_const_generic(
-        trait_object_type_param_id.0 as u32,
+        trait_object_type_param_id.try_into().expect("does not fit"),
         fct_id,
         BytecodeTypeArray::empty(),
     );
