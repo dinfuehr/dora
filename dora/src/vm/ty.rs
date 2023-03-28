@@ -11,17 +11,24 @@ pub fn display_ty(vm: &VM, ty: &BytecodeType) -> String {
     printer.string()
 }
 
-pub fn ty_type_param_id(ty: &BytecodeType) -> Option<u32> {
-    match ty {
-        BytecodeType::TypeParam(tp_id) => Some(*tp_id),
-        _ => None,
-    }
+pub trait BytecodeTypeExt {
+    fn type_param_id(&self) -> Option<u32>;
+    fn trait_id(&self) -> Option<TraitId>;
 }
 
-pub fn ty_trait_id(ty: &BytecodeType) -> Option<TraitId> {
-    match ty {
-        BytecodeType::Trait(trait_id, _) => Some(*trait_id),
-        _ => None,
+impl BytecodeTypeExt for BytecodeType {
+    fn type_param_id(&self) -> Option<u32> {
+        match self {
+            BytecodeType::TypeParam(tp_id) => Some(*tp_id),
+            _ => None,
+        }
+    }
+
+    fn trait_id(&self) -> Option<TraitId> {
+        match self {
+            BytecodeType::Trait(trait_id, _) => Some(*trait_id),
+            _ => None,
+        }
     }
 }
 

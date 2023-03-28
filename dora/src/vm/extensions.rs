@@ -1,5 +1,5 @@
 use crate::vm::{
-    bounds_for_tp, tp_implements_trait, ty_implements_trait, ty_type_param_id, ty_type_params, VM,
+    bounds_for_tp, tp_implements_trait, ty_implements_trait, ty_type_params, BytecodeTypeExt, VM,
 };
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, TypeParamData};
 
@@ -96,9 +96,9 @@ fn compare_type_param_bounds(
     block_ty: BytecodeType,
     block_type_param_defs: &TypeParamData,
 ) -> bool {
-    let ext_tp_id = ty_type_param_id(&block_ty).expect("expected type param");
+    let ext_tp_id = block_ty.type_param_id().expect("expected type param");
 
-    let check_tp_id = ty_type_param_id(&check_ty).expect("expected type param");
+    let check_tp_id = check_ty.type_param_id().expect("expected type param");
 
     for trait_ty in bounds_for_tp(block_type_param_defs, ext_tp_id) {
         if !tp_implements_trait(&check_type_param_defs, check_tp_id, trait_ty) {
@@ -116,7 +116,7 @@ fn concrete_type_fulfills_bounds(
     block_ty: BytecodeType,
     block_type_param_defs: &TypeParamData,
 ) -> bool {
-    let ext_tp_id = ty_type_param_id(&block_ty).expect("expected type param");
+    let ext_tp_id = block_ty.type_param_id().expect("expected type param");
 
     for trait_ty in bounds_for_tp(block_type_param_defs, ext_tp_id) {
         if !ty_implements_trait(vm, check_ty.clone(), check_type_param_defs, trait_ty) {

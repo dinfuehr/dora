@@ -1,4 +1,4 @@
-use crate::vm::{block_matches_ty, ty_is_zeroable_primitive, ty_trait_id, ty_type_params, VM};
+use crate::vm::{block_matches_ty, ty_is_zeroable_primitive, ty_type_params, BytecodeTypeExt, VM};
 use dora_bytecode::{
     BytecodeType, BytecodeTypeArray, FunctionId, ImplId, TypeParamBound, TypeParamData,
 };
@@ -11,18 +11,18 @@ pub fn find_trait_impl(
 ) -> FunctionId {
     debug_assert!(object_type.is_concrete_type());
 
-    let type_params_def = TypeParamData {
+    let type_param_data = TypeParamData {
         names: Vec::new(),
         bounds: Vec::new(),
     };
 
-    let impl_id = find_impl(vm, object_type, &type_params_def, trait_ty.clone())
+    let impl_id = find_impl(vm, object_type, &type_param_data, trait_ty.clone())
         .expect("no impl found for generic trait method call");
 
     let impl_ = &vm.program.impls[impl_id.0 as usize];
 
-    let trait_id = ty_trait_id(&trait_ty).expect("expected trait type");
-    let impl_trait_id = ty_trait_id(&impl_.trait_ty).expect("expected trait type");
+    let trait_id = trait_ty.trait_id().expect("expected trait type");
+    let impl_trait_id = impl_.trait_ty.trait_id().expect("expected trait type");
 
     assert_eq!(impl_trait_id, trait_id);
 
