@@ -1,8 +1,7 @@
-use crate::driver::cmd::Args;
 use crate::gc::bump::BumpAllocator;
 use crate::gc::{Address, Collector, GcReason, Region};
 use crate::os::{self, MemoryPermission, Reservation};
-use crate::vm::VM;
+use crate::vm::{Args, VM};
 
 pub struct ZeroCollector {
     start: Address,

@@ -1,10 +1,7 @@
-use num_cpus;
-use std::cmp::{max, min};
 use std::default::Default;
 use std::path::PathBuf;
 
-use crate::gc::M;
-use crate::gc::{DEFAULT_CODE_SPACE_LIMIT, DEFAULT_READONLY_SPACE_LIMIT};
+use crate::vm::Args as VmArgs;
 use crate::vm::{CollectorName, CompilerName, MemSize};
 
 // Write the Docopt usage string.
@@ -103,61 +100,6 @@ pub struct Args {
     pub packages: Vec<(String, PathBuf)>,
 
     pub command: Command,
-}
-
-impl Args {
-    pub fn min_heap_size(&self) -> usize {
-        let min_heap_size = self.flag_min_heap_size.map(|s| *s).unwrap_or(32 * M);
-        let max_heap_size = self.max_heap_size();
-
-        min(min_heap_size, max_heap_size)
-    }
-
-    pub fn max_heap_size(&self) -> usize {
-        let max_heap_size = self.flag_max_heap_size.map(|s| *s).unwrap_or(128 * M);
-
-        max(max_heap_size, 1 * M)
-    }
-
-    pub fn code_size(&self) -> usize {
-        self.flag_code_size
-            .map(|s| *s)
-            .unwrap_or(DEFAULT_CODE_SPACE_LIMIT)
-    }
-
-    pub fn readonly_size(&self) -> usize {
-        self.flag_readonly_size
-            .map(|s| *s)
-            .unwrap_or(DEFAULT_READONLY_SPACE_LIMIT)
-    }
-
-    pub fn gc_workers(&self) -> usize {
-        if self.flag_gc_worker > 0 {
-            self.flag_gc_worker
-        } else {
-            min(num_cpus::get(), 8)
-        }
-    }
-
-    pub fn young_size(&self) -> Option<usize> {
-        self.flag_gc_young_size.map(|young_size| *young_size)
-    }
-
-    pub fn young_appel(&self) -> bool {
-        self.flag_gc_young_size.is_none()
-    }
-
-    pub fn parallel_minor(&self) -> bool {
-        self.flag_gc_parallel_minor || self.flag_gc_parallel
-    }
-
-    pub fn parallel_full(&self) -> bool {
-        self.flag_gc_parallel_full || self.flag_gc_parallel
-    }
-
-    pub fn compiler(&self) -> CompilerName {
-        self.flag_compiler.unwrap_or(CompilerName::Cannon)
-    }
 }
 
 impl Default for Args {
@@ -433,4 +375,40 @@ fn parse_mem_size(value: &str) -> Result<MemSize, String> {
 
 pub fn print_help() {
     println!("{}", USAGE);
+}
+
+pub fn create_vm_args(args: &Args) -> VmArgs {
+    VmArgs {
+        flag_emit_asm: args.flag_emit_asm.clone(),
+        flag_emit_asm_file: args.flag_emit_asm_file,
+        flag_emit_compiler: args.flag_emit_compiler,
+        flag_emit_stubs: args.flag_emit_stubs,
+        flag_enable_perf: args.flag_enable_perf,
+        flag_omit_bounds_check: args.flag_omit_bounds_check,
+        flag_emit_debug: args.flag_emit_debug.clone(),
+        flag_emit_debug_native: args.flag_emit_debug_native,
+        flag_emit_debug_compile: args.flag_emit_debug_compile,
+        flag_emit_debug_entry: args.flag_emit_debug_entry,
+        flag_gc_events: args.flag_gc_events,
+        flag_gc_stress: args.flag_gc_stress,
+        flag_gc_stress_minor: args.flag_gc_stress_minor,
+        flag_gc_parallel_full: args.flag_gc_parallel_full,
+        flag_gc_parallel_minor: args.flag_gc_parallel_minor,
+        flag_gc_parallel: args.flag_gc_parallel,
+        flag_gc_stats: args.flag_gc_stats,
+        flag_gc_verbose: args.flag_gc_verbose,
+        flag_gc_dev_verbose: args.flag_gc_dev_verbose,
+        flag_gc_verify: args.flag_gc_verify,
+        flag_gc_worker: args.flag_gc_worker,
+        flag_gc_young_size: args.flag_gc_young_size,
+        flag_gc_semi_ratio: args.flag_gc_semi_ratio,
+        flag_gc: args.flag_gc,
+        flag_compiler: args.flag_compiler,
+        flag_min_heap_size: args.flag_min_heap_size,
+        flag_max_heap_size: args.flag_max_heap_size,
+        flag_code_size: args.flag_code_size,
+        flag_readonly_size: args.flag_readonly_size,
+        flag_disable_tlab: args.flag_disable_tlab,
+        flag_disable_barrier: args.flag_disable_barrier,
+    }
 }

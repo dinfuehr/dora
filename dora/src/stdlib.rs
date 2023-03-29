@@ -182,22 +182,16 @@ pub extern "C" fn gc_minor_collect() {
 pub extern "C" fn argc() -> i32 {
     let vm = get_vm();
 
-    if let Some(ref args) = vm.args.arg_argument {
-        args.len() as i32
-    } else {
-        0
-    }
+    vm.program_args.len() as i32
 }
 
 pub extern "C" fn argv(ind: i32) -> Ref<Str> {
     let vm = get_vm();
 
-    if let Some(ref args) = vm.args.arg_argument {
-        if ind >= 0 && ind < args.len() as i32 {
-            let value = &args[ind as usize];
+    if ind >= 0 && (ind as usize) < vm.program_args.len() {
+        let value = &vm.program_args[ind as usize];
 
-            return Str::from_buffer(vm, value.as_bytes());
-        }
+        return Str::from_buffer(vm, value.as_bytes());
     }
 
     panic!("argument does not exist");

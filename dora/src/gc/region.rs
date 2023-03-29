@@ -4,10 +4,9 @@ use std::sync::atomic::{AtomicU8, AtomicUsize, Ordering};
 use fixedbitset::FixedBitSet;
 use parking_lot::Mutex;
 
-use crate::driver::cmd::Args;
 use crate::gc::{Address, Collector, GcReason, Region};
 use crate::os::{self, Reservation};
-use crate::vm::VM;
+use crate::vm::{Args, VM};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 
 pub const REGION_SIZE_BITS: usize = 20;

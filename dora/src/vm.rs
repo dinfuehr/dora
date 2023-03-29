@@ -8,7 +8,6 @@ use std::sync::Arc;
 
 use crate::compiler;
 use crate::compiler::dora_exit_stubs::NativeStubs;
-use crate::driver::cmd::Args as DriverArgs;
 use crate::gc::{Address, Gc};
 use crate::stack::DoraToNativeInfo;
 use crate::threads::ManagedThread;
@@ -125,7 +124,8 @@ impl VmState {
 }
 
 pub struct VM {
-    pub args: DriverArgs,
+    pub args: Args,
+    pub program_args: Vec<String>,
     pub program: Program,
     pub known: KnownElements,
     pub struct_specializations: RwLock<HashMap<(StructId, BytecodeTypeArray), StructInstanceId>>,
@@ -149,11 +149,12 @@ pub struct VM {
 }
 
 impl VM {
-    pub fn new(program: Program, args: DriverArgs) -> Box<VM> {
+    pub fn new(program: Program, args: Args, program_args: Vec<String>) -> Box<VM> {
         let gc = Gc::new(&args);
 
         let mut vm = Box::new(VM {
             args,
+            program_args,
             program,
             struct_specializations: RwLock::new(HashMap::new()),
             struct_instances: GrowableVecNonIter::new(),

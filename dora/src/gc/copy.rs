@@ -2,7 +2,6 @@ use parking_lot::Mutex;
 
 use std::sync::Arc;
 
-use crate::driver::cmd::Args;
 use crate::gc::bump::BumpAllocator;
 use crate::gc::tlab;
 use crate::gc::{
@@ -15,7 +14,7 @@ use crate::os::{self, MemoryPermission};
 use crate::safepoint;
 use crate::threads::DoraThread;
 use crate::timer::Timer;
-use crate::vm::VM;
+use crate::vm::{Args, VM};
 
 pub struct CopyCollector {
     total: Region,

@@ -16,7 +16,7 @@ pub fn start() -> i32 {
         return 1;
     }
 
-    let args = args.unwrap();
+    let mut args = args.unwrap();
 
     if args.flag_version {
         println!("dora v0.01b");
@@ -72,15 +72,20 @@ pub fn start() -> i32 {
     // Here we drop the generated AST.
     let prog = language::emit_program(sa);
 
+    let command = args.command;
+
+    let vm_args = cmd::create_vm_args(&args);
+
     // Now create a VM instance from the serialized data alone.
-    let vm = VM::new(prog, args);
+    let program_args = std::mem::replace(&mut args.arg_argument, None).unwrap_or(Vec::new());
+    let vm = VM::new(prog, vm_args, program_args);
 
     set_vm(&vm);
 
     let mut timer = Timer::new(vm.args.flag_gc_stats);
 
-    let exit_code = if vm.args.command.is_test() {
-        run_tests(&vm, vm.program.program_package_id)
+    let exit_code = if command.is_test() {
+        run_tests(&vm, &args, vm.program.program_package_id)
     } else {
         run_main(&vm, main_fct_id.expect("main missing"))
     };
@@ -114,7 +119,7 @@ fn report_errors(sa: &SemAnalysis) -> bool {
     }
 }
 
-fn run_tests(vm: &VM, package_id: PackageId) -> i32 {
+fn run_tests(vm: &VM, args: &Args, package_id: PackageId) -> i32 {
     let mut tests = 0;
     let mut passed = 0;
 
@@ -124,7 +129,7 @@ fn run_tests(vm: &VM, package_id: PackageId) -> i32 {
 
             if fct.package_id != package_id
                 || !is_test_fct(&*fct)
-                || !test_filter_matches(vm, fct_id)
+                || !test_filter_matches(vm, args, fct_id)
             {
                 continue;
             }
@@ -163,12 +168,12 @@ fn is_test_fct(fct: &FunctionData) -> bool {
     fct.is_test
 }
 
-fn test_filter_matches(vm: &VM, fct_id: FunctionId) -> bool {
-    if vm.args.flag_test_filter.is_none() {
+fn test_filter_matches(vm: &VM, args: &Args, fct_id: FunctionId) -> bool {
+    if args.flag_test_filter.is_none() {
         return true;
     }
 
-    let filter = vm.args.flag_test_filter.as_ref().unwrap();
+    let filter = args.flag_test_filter.as_ref().unwrap();
     let name = display_fct(vm, fct_id);
 
     name.contains(filter)

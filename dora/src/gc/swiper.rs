@@ -4,7 +4,6 @@ use std::fmt;
 use std::mem::size_of;
 use std::sync::Arc;
 
-use crate::driver::cmd::Args;
 use crate::gc::root::{determine_strong_roots, Slot};
 use crate::gc::swiper::card::CardTable;
 use crate::gc::swiper::compact::FullCollector;
@@ -26,7 +25,7 @@ use crate::object::Obj;
 use crate::os::{self, MemoryPermission, Reservation};
 use crate::safepoint;
 use crate::threads::DoraThread;
-use crate::vm::VM;
+use crate::vm::{Args, VM};
 
 pub mod card;
 mod compact;

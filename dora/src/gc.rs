@@ -5,7 +5,6 @@ use std::fmt;
 use std::sync::atomic::{AtomicUsize, Ordering as AtomicOrdering};
 use std::sync::Arc;
 
-use crate::driver::cmd::Args;
 use crate::gc::code::CodeSpace;
 use crate::gc::compact::MarkCompactCollector;
 use crate::gc::copy::CopyCollector;
@@ -19,7 +18,7 @@ use crate::mem;
 use crate::object::{Header, Obj};
 use crate::os;
 use crate::threads::DoraThread;
-use crate::vm::CollectorName;
+use crate::vm::{Args, CollectorName};
 use crate::vm::VM;
 use crate::vtable::VTable;
 

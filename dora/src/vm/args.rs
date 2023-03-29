@@ -1,3 +1,7 @@
+use crate::gc::M;
+use crate::gc::{DEFAULT_CODE_SPACE_LIMIT, DEFAULT_READONLY_SPACE_LIMIT};
+use num_cpus;
+use std::cmp::{max, min};
 use std::fmt;
 use std::ops::Deref;
 
@@ -5,7 +9,6 @@ use std::ops::Deref;
 pub struct Args {
     pub flag_emit_asm: Option<String>,
     pub flag_emit_asm_file: bool,
-    pub flag_emit_bytecode: Option<String>,
     pub flag_emit_compiler: bool,
     pub flag_emit_stubs: bool,
     pub flag_enable_perf: bool,
@@ -35,6 +38,61 @@ pub struct Args {
     pub flag_readonly_size: Option<MemSize>,
     pub flag_disable_tlab: bool,
     pub flag_disable_barrier: bool,
+}
+
+impl Args {
+    pub fn min_heap_size(&self) -> usize {
+        let min_heap_size = self.flag_min_heap_size.map(|s| *s).unwrap_or(32 * M);
+        let max_heap_size = self.max_heap_size();
+
+        min(min_heap_size, max_heap_size)
+    }
+
+    pub fn max_heap_size(&self) -> usize {
+        let max_heap_size = self.flag_max_heap_size.map(|s| *s).unwrap_or(128 * M);
+
+        max(max_heap_size, 1 * M)
+    }
+
+    pub fn code_size(&self) -> usize {
+        self.flag_code_size
+            .map(|s| *s)
+            .unwrap_or(DEFAULT_CODE_SPACE_LIMIT)
+    }
+
+    pub fn readonly_size(&self) -> usize {
+        self.flag_readonly_size
+            .map(|s| *s)
+            .unwrap_or(DEFAULT_READONLY_SPACE_LIMIT)
+    }
+
+    pub fn gc_workers(&self) -> usize {
+        if self.flag_gc_worker > 0 {
+            self.flag_gc_worker
+        } else {
+            min(num_cpus::get(), 8)
+        }
+    }
+
+    pub fn young_size(&self) -> Option<usize> {
+        self.flag_gc_young_size.map(|young_size| *young_size)
+    }
+
+    pub fn young_appel(&self) -> bool {
+        self.flag_gc_young_size.is_none()
+    }
+
+    pub fn parallel_minor(&self) -> bool {
+        self.flag_gc_parallel_minor || self.flag_gc_parallel
+    }
+
+    pub fn parallel_full(&self) -> bool {
+        self.flag_gc_parallel_full || self.flag_gc_parallel
+    }
+
+    pub fn compiler(&self) -> CompilerName {
+        self.flag_compiler.unwrap_or(CompilerName::Cannon)
+    }
 }
 
 #[derive(Copy, Clone, Debug)]

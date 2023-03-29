@@ -5,14 +5,13 @@ use std::fmt;
 use std::sync::Arc;
 use std::time::Instant;
 
-use crate::driver::cmd::Args;
 use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{CollectionKind, CommonOldGen};
 use crate::gc::{align_gen, align_gen_down, formatted_size, AllNumbers, GcReason, GEN_SIZE, M};
 use crate::mem;
 use crate::stdlib;
-use crate::vm::Trap;
+use crate::vm::{Args, Trap};
 
 const INIT_HEAP_SIZE_RATIO: usize = 2;
 const INIT_SEMI_RATIO: usize = 3;

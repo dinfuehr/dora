@@ -1,6 +1,5 @@
 use parking_lot::Mutex;
 
-use crate::driver::cmd::Args;
 use crate::gc::bump::BumpAllocator;
 use crate::gc::marking;
 use crate::gc::root::{determine_strong_roots, Slot};
@@ -13,7 +12,7 @@ use crate::object::Obj;
 use crate::os;
 use crate::safepoint;
 use crate::timer::Timer;
-use crate::vm::VM;
+use crate::vm::{Args, VM};
 
 pub struct MarkCompactCollector {
     heap: Region,
