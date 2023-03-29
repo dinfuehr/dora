@@ -18,8 +18,8 @@ use crate::mem;
 use crate::object::{Header, Obj};
 use crate::os;
 use crate::threads::DoraThread;
-use crate::vm::{Args, CollectorName};
 use crate::vm::VM;
+use crate::vm::{Args, CollectorName};
 use crate::vtable::VTable;
 
 pub use crate::gc::root::{iterate_strong_roots, iterate_weak_roots, Slot};
