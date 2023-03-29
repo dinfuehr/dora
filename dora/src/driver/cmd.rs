@@ -1,8 +1,8 @@
 use std::default::Default;
 use std::path::PathBuf;
 
-use crate::vm::Args as VmArgs;
-use crate::vm::{CollectorName, CompilerName, MemSize};
+use dora_runtime::Args as VmArgs;
+use dora_runtime::{CollectorName, CompilerName, MemSize};
 
 // Write the Docopt usage string.
 static USAGE: &'static str = "
@@ -160,6 +160,7 @@ pub enum Command {
 }
 
 impl Command {
+    #[allow(dead_code)]
     pub fn is_run(&self) -> bool {
         match self {
             Command::Run => true,
@@ -177,13 +178,6 @@ impl Command {
     pub fn is_build(&self) -> bool {
         match self {
             Command::Build => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_build_or_run(&self) -> bool {
-        match self {
-            Command::Build | Command::Run => true,
             _ => false,
         }
     }

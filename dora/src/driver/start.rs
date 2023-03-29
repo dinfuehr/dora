@@ -1,10 +1,11 @@
+use std::time::Instant;
+
 use crate::driver::cmd::{self, Args};
-use crate::timer::Timer;
-use crate::vm::{clear_vm, display_fct, execute_on_main, set_vm, VM};
 use dora_bytecode::{FunctionData, FunctionId, PackageId};
 use dora_frontend::language;
 use dora_frontend::language::error::msg::ErrorMessage;
 use dora_frontend::language::sem_analysis::{SemAnalysis, SemAnalysisArgs};
+use dora_runtime::{clear_vm, display_fct, execute_on_main, set_vm, VM};
 
 pub fn start() -> i32 {
     let args = cmd::parse_arguments();
@@ -82,7 +83,11 @@ pub fn start() -> i32 {
 
     set_vm(&vm);
 
-    let mut timer = Timer::new(vm.args.flag_gc_stats);
+    let timer = if vm.args.flag_gc_stats {
+        Some(Instant::now())
+    } else {
+        None
+    };
 
     let exit_code = if command.is_test() {
         run_tests(&vm, &args, vm.program.program_package_id)
@@ -93,8 +98,8 @@ pub fn start() -> i32 {
     vm.threads.join_all();
 
     if vm.args.flag_gc_stats {
-        let duration = timer.stop();
-        vm.dump_gc_summary(duration);
+        let duration = timer.expect("missing timer").elapsed();
+        vm.dump_gc_summary(duration.as_secs_f32() / 1000f32);
     }
 
     clear_vm();

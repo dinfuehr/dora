@@ -8,37 +8,8 @@ repository = "https://github.com/dinfuehr/dora"
 license = "MIT"
 edition = "2021"
 
-[features]
-default = ["capstone"]
-aot = []
-
 [dependencies]
-byteorder = "*"
-lazy_static = "*"
-libc = "*"
-capstone = { version = "*", optional = true }
-dora-asm = { path = "../dora-asm", version = "0.0.1" }
-dora-parser = { path = "../dora-parser", version = "0.0.2" }
 dora-frontend = { path = "../dora-frontend", version = "0.0.2" }
 dora-bytecode = { path = "../dora-bytecode", version = "0.0.2" }
-threadpool = "*"
-crossbeam-deque = "*"
-rand = "*"
-scoped_threadpool = "*"
-parking_lot = "*"
-fixedbitset = "*"
-num_cpus = "*"
-memoffset = "*"
-num_enum = "*"
-
-[target.'cfg(windows)'.dependencies]
-winapi = { version = "*", features = ["memoryapi"] }
-
-[lib]
-name = "dora"
-crate-type = ["lib", "staticlib"]
-path = "src/lib.rs"
-
-[[bin]]
-name = "dora"
-path = "src/main.rs"
+dora-runtime = { path = "../dora-runtime", version = "0.0.2" }
+timer = "*"

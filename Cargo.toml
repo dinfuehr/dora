@@ -5,6 +5,7 @@ members = [
   "dora-parser",
   "dora-frontend",
   "dora-bytecode",
+  "dora-runtime",
 ]
 
 [profile.release]

@@ -16,7 +16,6 @@ mod compiler;
 mod constpool;
 mod cpu;
 mod disassembler;
-mod driver;
 mod gc;
 mod handle;
 mod masm;
@@ -31,17 +30,10 @@ mod stdlib;
 mod threads;
 mod timer;
 mod utils;
-mod vm;
+pub mod vm;
 mod vtable;
 
-#[cfg(not(test))]
-pub fn run() -> i32 {
-    driver::start()
-}
-
-#[cfg(feature = "aot")]
-#[cfg(not(test))]
-#[no_mangle]
-pub fn run_aot_program() -> i32 {
-    driver::aot::start()
-}
+pub use vm::VM;
+pub use vm::{
+    clear_vm, display_fct, execute_on_main, set_vm, Args, CollectorName, CompilerName, MemSize,
+};

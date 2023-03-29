@@ -1,7 +1,5 @@
-#[cfg(not(test))]
-use std::process::exit;
+mod driver;
 
-#[cfg(not(test))]
 fn main() {
-    exit(dora::run());
+    std::process::exit(driver::start());
 }

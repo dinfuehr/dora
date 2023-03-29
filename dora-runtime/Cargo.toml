@@ -1,0 +1,34 @@
+[package]
+name = "dora-runtime"
+version = "0.0.2"
+authors = ["Dominik Inführ <dominik.infuehr@gmail.com>"]
+description = "The Dora programming language"
+homepage = "https://github.com/dinfuehr/dora"
+repository = "https://github.com/dinfuehr/dora"
+license = "MIT"
+edition = "2021"
+
+[features]
+default = ["capstone"]
+aot = []
+
+[dependencies]
+byteorder = "*"
+lazy_static = "*"
+libc = "*"
+capstone = { version = "*", optional = true }
+dora-asm = { path = "../dora-asm", version = "0.0.1" }
+dora-parser = { path = "../dora-parser", version = "0.0.2" }
+dora-bytecode = { path = "../dora-bytecode", version = "0.0.2" }
+threadpool = "*"
+crossbeam-deque = "*"
+rand = "*"
+scoped_threadpool = "*"
+parking_lot = "*"
+fixedbitset = "*"
+num_cpus = "*"
+memoffset = "*"
+num_enum = "*"
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "*", features = ["memoryapi"] }
