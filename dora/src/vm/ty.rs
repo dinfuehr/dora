@@ -14,6 +14,8 @@ pub fn display_ty(vm: &VM, ty: &BytecodeType) -> String {
 pub trait BytecodeTypeExt {
     fn type_param_id(&self) -> Option<u32>;
     fn trait_id(&self) -> Option<TraitId>;
+    fn is_zeroable_primitive(&self) -> bool;
+    fn type_params(&self) -> BytecodeTypeArray;
 }
 
 impl BytecodeTypeExt for BytecodeType {
@@ -30,49 +32,49 @@ impl BytecodeTypeExt for BytecodeType {
             _ => None,
         }
     }
-}
 
-pub fn ty_is_zeroable_primitive(ty: &BytecodeType) -> bool {
-    match ty {
-        &BytecodeType::Bool
-        | &BytecodeType::UInt8
-        | &BytecodeType::Char
-        | &BytecodeType::Int32
-        | &BytecodeType::Int64
-        | &BytecodeType::Float32
-        | &BytecodeType::Float64 => true,
-        &BytecodeType::Unit
-        | &BytecodeType::Tuple(..)
-        | &BytecodeType::Enum(..)
-        | &BytecodeType::Struct(..)
-        | &BytecodeType::Class(..)
-        | &BytecodeType::Trait(..)
-        | &BytecodeType::Lambda(..)
-        | &BytecodeType::TypeParam(..)
-        | &BytecodeType::Ptr
-        | &BytecodeType::This => false,
+    fn is_zeroable_primitive(&self) -> bool {
+        match self {
+            &BytecodeType::Bool
+            | &BytecodeType::UInt8
+            | &BytecodeType::Char
+            | &BytecodeType::Int32
+            | &BytecodeType::Int64
+            | &BytecodeType::Float32
+            | &BytecodeType::Float64 => true,
+            &BytecodeType::Unit
+            | &BytecodeType::Tuple(..)
+            | &BytecodeType::Enum(..)
+            | &BytecodeType::Struct(..)
+            | &BytecodeType::Class(..)
+            | &BytecodeType::Trait(..)
+            | &BytecodeType::Lambda(..)
+            | &BytecodeType::TypeParam(..)
+            | &BytecodeType::Ptr
+            | &BytecodeType::This => false,
+        }
     }
-}
 
-pub fn ty_type_params(ty: &BytecodeType) -> BytecodeTypeArray {
-    match ty {
-        BytecodeType::Class(_, params)
-        | BytecodeType::Enum(_, params)
-        | BytecodeType::Struct(_, params)
-        | BytecodeType::Trait(_, params) => params.clone(),
-        &BytecodeType::Bool
-        | &BytecodeType::UInt8
-        | &BytecodeType::Char
-        | &BytecodeType::Int32
-        | &BytecodeType::Int64
-        | &BytecodeType::Float32
-        | &BytecodeType::Float64
-        | &BytecodeType::Unit
-        | &BytecodeType::Tuple(..)
-        | &BytecodeType::Lambda(..)
-        | &BytecodeType::TypeParam(..)
-        | &BytecodeType::Ptr
-        | &BytecodeType::This => BytecodeTypeArray::empty(),
+    fn type_params(&self) -> BytecodeTypeArray {
+        match self {
+            BytecodeType::Class(_, params)
+            | BytecodeType::Enum(_, params)
+            | BytecodeType::Struct(_, params)
+            | BytecodeType::Trait(_, params) => params.clone(),
+            &BytecodeType::Bool
+            | &BytecodeType::UInt8
+            | &BytecodeType::Char
+            | &BytecodeType::Int32
+            | &BytecodeType::Int64
+            | &BytecodeType::Float32
+            | &BytecodeType::Float64
+            | &BytecodeType::Unit
+            | &BytecodeType::Tuple(..)
+            | &BytecodeType::Lambda(..)
+            | &BytecodeType::TypeParam(..)
+            | &BytecodeType::Ptr
+            | &BytecodeType::This => BytecodeTypeArray::empty(),
+        }
     }
 }
 

@@ -1,4 +1,4 @@
-use crate::vm::{block_matches_ty, ty_is_zeroable_primitive, ty_type_params, BytecodeTypeExt, VM};
+use crate::vm::{block_matches_ty, BytecodeTypeExt, VM};
 use dora_bytecode::{
     BytecodeType, BytecodeTypeArray, FunctionId, ImplId, TypeParamBound, TypeParamData,
 };
@@ -87,8 +87,8 @@ pub fn ty_implements_trait(
         _ => unreachable!(),
     };
 
-    if ty_is_zeroable_primitive(&check_ty) && vm.known.zero_trait_id() == trait_id {
-        assert!(ty_type_params(&trait_ty).is_empty());
+    if check_ty.is_zeroable_primitive() && vm.known.zero_trait_id() == trait_id {
+        assert!(trait_ty.type_params().is_empty());
         return true;
     }
 

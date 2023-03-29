@@ -1,6 +1,4 @@
-use crate::vm::{
-    bounds_for_tp, tp_implements_trait, ty_implements_trait, ty_type_params, BytecodeTypeExt, VM,
-};
+use crate::vm::{bounds_for_tp, tp_implements_trait, ty_implements_trait, BytecodeTypeExt, VM};
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, TypeParamData};
 
 pub fn block_matches_ty(
@@ -254,8 +252,8 @@ fn compare_type_params(
     block_type_param_defs: &TypeParamData,
     bindings: &mut [Option<BytecodeType>],
 ) -> bool {
-    let check_tps = ty_type_params(&check_ty);
-    let ext_tps = ty_type_params(&block_ty);
+    let check_tps = check_ty.type_params();
+    let ext_tps = block_ty.type_params();
 
     assert_eq!(check_tps.len(), ext_tps.len());
 

@@ -47,7 +47,7 @@ pub use self::specialize::{
 pub use self::structs::{StructInstance, StructInstanceField, StructInstanceId};
 pub use self::stubs::{setup_stubs, Stubs};
 pub use self::tuples::{get_concrete_tuple_bty, get_concrete_tuple_bty_array, ConcreteTuple};
-pub use self::ty::{display_ty, ty_is_zeroable_primitive, ty_type_params, BytecodeTypeExt};
+pub use self::ty::{display_ty, BytecodeTypeExt};
 pub use self::waitlists::{ManagedCondition, ManagedMutex, WaitLists};
 
 mod classes;

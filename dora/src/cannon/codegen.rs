@@ -5048,7 +5048,6 @@ pub fn mode(vm: &VM, ty: BytecodeType) -> MachineMode {
         | BytecodeType::Trait(_, _)
         | BytecodeType::Class(_, _)
         | BytecodeType::Lambda(_, _) => MachineMode::Ptr,
-        BytecodeType::Tuple(_) | BytecodeType::TypeParam(_) | BytecodeType::This => unreachable!(),
         BytecodeType::Enum(enum_id, type_params) => {
             let edef_id = create_enum_instance(vm, enum_id, type_params);
             let edef = vm.enum_instances.idx(edef_id);
@@ -5058,7 +5057,11 @@ pub fn mode(vm: &VM, ty: BytecodeType) -> MachineMode {
                 EnumLayout::Ptr | EnumLayout::Tagged => MachineMode::Ptr,
             }
         }
-        BytecodeType::Struct(_, _) | BytecodeType::Unit => {
+        BytecodeType::Tuple(_)
+        | BytecodeType::TypeParam(_)
+        | BytecodeType::This
+        | BytecodeType::Struct(_, _)
+        | BytecodeType::Unit => {
             panic!("unexpected type {:?}", ty)
         }
     }
