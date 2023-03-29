@@ -8,8 +8,11 @@ repository = "https://github.com/dinfuehr/dora"
 license = "MIT"
 edition = "2021"
 
+[features]
+default = ["capstone"]
+capstone = ["dora-runtime/capstone"]
+
 [dependencies]
 dora-frontend = { path = "../dora-frontend", version = "0.0.2" }
 dora-bytecode = { path = "../dora-bytecode", version = "0.0.2" }
-dora-runtime = { path = "../dora-runtime", version = "0.0.2" }
-timer = "*"
+dora-runtime = { path = "../dora-runtime", version = "0.0.2", default-features = false }

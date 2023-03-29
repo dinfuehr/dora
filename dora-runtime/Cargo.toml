@@ -10,7 +10,6 @@ edition = "2021"
 
 [features]
 default = ["capstone"]
-aot = []
 
 [dependencies]
 byteorder = "*"
