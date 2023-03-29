@@ -5,10 +5,10 @@ use crate::cannon::{self, CompilationFlags};
 use crate::compiler::{dora_exit_stubs, NativeFct};
 use crate::cpu::{FReg, Reg};
 use crate::disassembler;
-use crate::driver::cmd::{AsmSyntax, CompilerName};
 use crate::gc::Address;
 use crate::masm::CodeDescriptor;
 use crate::os;
+use crate::vm::CompilerName;
 use crate::vm::{display_fct, install_code, CodeKind, VM};
 use dora_bytecode::{BytecodeFunction, BytecodeType, BytecodeTypeArray, FunctionId, Location};
 
@@ -86,13 +86,7 @@ pub fn generate_fct(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray
     }
 
     if emit_asm {
-        disassembler::disassemble(
-            vm,
-            fct_id,
-            &type_params,
-            &code,
-            vm.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att),
-        );
+        disassembler::disassemble(vm, fct_id, &type_params, &code);
     }
 
     code.instruction_start()
@@ -182,13 +176,7 @@ pub fn generate_thunk(
     }
 
     if emit_asm {
-        disassembler::disassemble(
-            vm,
-            trait_fct_id,
-            &type_params,
-            &code,
-            vm.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att),
-        );
+        disassembler::disassemble(vm, trait_fct_id, &type_params, &code);
     }
 
     code.instruction_start()
@@ -305,13 +293,7 @@ pub fn ensure_native_stub(vm: &VM, fct_id: Option<FunctionId>, native_fct: Nativ
 
         if let Some(fct_id) = fct_id {
             if should_emit_asm(vm, fct_id) {
-                disassembler::disassemble(
-                    vm,
-                    fct_id,
-                    &BytecodeTypeArray::empty(),
-                    &code,
-                    vm.args.flag_asm_syntax.unwrap_or(AsmSyntax::Att),
-                );
+                disassembler::disassemble(vm, fct_id, &BytecodeTypeArray::empty(), &code);
             }
         }
 

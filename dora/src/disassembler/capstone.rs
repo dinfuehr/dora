@@ -6,7 +6,6 @@ use std::slice;
 
 use capstone::prelude::*;
 
-use crate::driver::cmd::AsmSyntax;
 use crate::vm::{display_fct, display_ty, Code, VM};
 use dora_bytecode::{BytecodeTypeArray, FunctionId};
 
@@ -14,18 +13,12 @@ pub fn supported() -> bool {
     true
 }
 
-pub fn disassemble(
-    vm: &VM,
-    fct_id: FunctionId,
-    type_params: &BytecodeTypeArray,
-    code: &Code,
-    asm_syntax: AsmSyntax,
-) {
+pub fn disassemble(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray, code: &Code) {
     let instruction_length = code.instruction_end().offset_from(code.instruction_start());
     let buf: &[u8] =
         unsafe { slice::from_raw_parts(code.instruction_start().to_ptr(), instruction_length) };
 
-    let engine = get_engine(asm_syntax).expect("cannot create capstone engine");
+    let engine = get_engine().expect("cannot create capstone engine");
 
     let mut w: Box<dyn Write> = if vm.args.flag_emit_asm_file {
         let pid = unsafe { libc::getpid() };
@@ -110,21 +103,16 @@ pub fn disassemble(
 }
 
 #[cfg(target_arch = "x86_64")]
-fn get_engine(asm_syntax: AsmSyntax) -> CsResult<Capstone> {
-    let arch_syntax = match asm_syntax {
-        AsmSyntax::Intel => arch::x86::ArchSyntax::Intel,
-        AsmSyntax::Att => arch::x86::ArchSyntax::Att,
-    };
-
+fn get_engine() -> CsResult<Capstone> {
     Capstone::new()
         .x86()
         .mode(arch::x86::ArchMode::Mode64)
-        .syntax(arch_syntax)
+        .syntax(arch::x86::ArchSyntax::Intel)
         .build()
 }
 
 #[cfg(target_arch = "aarch64")]
-fn get_engine(_asm_syntax: AsmSyntax) -> CsResult<Capstone> {
+fn get_engine() -> CsResult<Capstone> {
     Capstone::new()
         .arm64()
         .mode(arch::arm64::ArchMode::Arm)

@@ -1,13 +1,11 @@
 use num_cpus;
 use std::cmp::{max, min};
 use std::default::Default;
-use std::fmt;
-use std::ops::Deref;
 use std::path::PathBuf;
 
 use crate::gc::M;
-
 use crate::gc::{DEFAULT_CODE_SPACE_LIMIT, DEFAULT_READONLY_SPACE_LIMIT};
+use crate::vm::{CollectorName, CompilerName, MemSize};
 
 // Write the Docopt usage string.
 static USAGE: &'static str = "
@@ -79,7 +77,6 @@ pub struct Args {
     pub flag_emit_debug_native: bool,
     pub flag_emit_debug_compile: bool,
     pub flag_emit_debug_entry: bool,
-    pub flag_asm_syntax: Option<AsmSyntax>,
     pub flag_gc_events: bool,
     pub flag_gc_stress: bool,
     pub flag_gc_stress_minor: bool,
@@ -183,7 +180,6 @@ impl Default for Args {
             flag_omit_bounds_check: false,
             flag_version: false,
             flag_help: false,
-            flag_asm_syntax: None,
             flag_gc_events: false,
             flag_gc_stress: false,
             flag_gc_stress_minor: false,
@@ -212,39 +208,6 @@ impl Default for Args {
             command: Command::Run,
         }
     }
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum CollectorName {
-    Zero,
-    Compact,
-    Copy,
-    Sweep,
-    Swiper,
-    Region,
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum CompilerName {
-    Cannon,
-    Boots,
-}
-
-impl fmt::Display for CompilerName {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let text = match self {
-            CompilerName::Cannon => "cannon",
-            CompilerName::Boots => "boots",
-        };
-
-        f.write_str(text)
-    }
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum AsmSyntax {
-    Intel,
-    Att,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -281,17 +244,6 @@ impl Command {
             Command::Build | Command::Run => true,
             _ => false,
         }
-    }
-}
-
-#[derive(Copy, Clone, Debug)]
-pub struct MemSize(usize);
-
-impl Deref for MemSize {
-    type Target = usize;
-
-    fn deref(&self) -> &usize {
-        &self.0
     }
 }
 

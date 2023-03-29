@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use crate::compiler;
 use crate::compiler::dora_exit_stubs::NativeStubs;
-use crate::driver::cmd::Args;
+use crate::driver::cmd::Args as DriverArgs;
 use crate::gc::{Address, Gc};
 use crate::stack::DoraToNativeInfo;
 use crate::threads::ManagedThread;
@@ -22,6 +22,7 @@ use dora_bytecode::{
     TraitId,
 };
 
+pub use self::args::{Args, CollectorName, CompilerName, MemSize};
 pub use self::classes::{
     create_class_instance_with_vtable, ClassInstance, ClassInstanceId, FieldInstance, ShapeKind,
 };
@@ -50,6 +51,7 @@ pub use self::tuples::{get_concrete_tuple_bty, get_concrete_tuple_bty_array, Con
 pub use self::ty::{display_ty, BytecodeTypeExt};
 pub use self::waitlists::{ManagedCondition, ManagedMutex, WaitLists};
 
+mod args;
 mod classes;
 mod code;
 mod code_map;
@@ -123,7 +125,7 @@ impl VmState {
 }
 
 pub struct VM {
-    pub args: Args,
+    pub args: DriverArgs,
     pub program: Program,
     pub known: KnownElements,
     pub struct_specializations: RwLock<HashMap<(StructId, BytecodeTypeArray), StructInstanceId>>,
@@ -147,7 +149,7 @@ pub struct VM {
 }
 
 impl VM {
-    pub fn new(program: Program, args: Args) -> Box<VM> {
+    pub fn new(program: Program, args: DriverArgs) -> Box<VM> {
         let gc = Gc::new(&args);
 
         let mut vm = Box::new(VM {
