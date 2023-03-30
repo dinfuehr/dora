@@ -289,13 +289,7 @@ impl<'a> BytecodeDumper<'a> {
         writeln!(
             self.w,
             " {}, {}, ConstPoolIdx({}), {} # {}::{}.{}",
-            r1,
-            r2,
-            idx.to_usize(),
-            element_idx,
-            enum_name,
-            variant_name,
-            element_idx
+            r1, r2, idx.0, element_idx, enum_name, variant_name, element_idx
         )
         .expect("write! failed");
     }
@@ -314,10 +308,7 @@ impl<'a> BytecodeDumper<'a> {
         writeln!(
             self.w,
             " {}, {}, ConstPoolIdx({}) # {}",
-            r1,
-            r2,
-            idx.to_usize(),
-            enum_name,
+            r1, r2, idx.0, enum_name,
         )
         .expect("write! failed");
     }
@@ -340,10 +331,7 @@ impl<'a> BytecodeDumper<'a> {
         writeln!(
             self.w,
             " {}, ConstPooldId({}) # offset {}, target {}",
-            opnd,
-            idx.to_usize(),
-            offset,
-            bc_target
+            opnd, idx.0, offset, bc_target
         )
         .expect("write! failed");
     }
@@ -361,9 +349,7 @@ impl<'a> BytecodeDumper<'a> {
         writeln!(
             self.w,
             " ConstPoolId({}) # offset {}, target {}",
-            idx.to_usize(),
-            offset,
-            bc_target
+            idx.0, offset, bc_target
         )
         .expect("write! failed");
     }
@@ -399,11 +385,7 @@ impl<'a> BytecodeDumper<'a> {
         writeln!(
             self.w,
             " {}, {}, ConstPoolIdx({}) # {}.{}",
-            r1,
-            r2,
-            field_idx.to_usize(),
-            cname,
-            fname,
+            r1, r2, field_idx.0, cname, fname,
         )
         .expect("write! failed");
     }
@@ -419,14 +401,7 @@ impl<'a> BytecodeDumper<'a> {
     fn emit_fct(&mut self, name: &str, r1: Register, fid: ConstPoolIdx) {
         self.emit_start(name);
         let fname = self.get_fct_name(fid);
-        writeln!(
-            self.w,
-            " {}, ConstPoolIdx({}) # {}",
-            r1,
-            fid.to_usize(),
-            fname
-        )
-        .expect("write! failed");
+        writeln!(self.w, " {}, ConstPoolIdx({}) # {}", r1, fid.0, fname).expect("write! failed");
     }
 
     fn get_fct_name(&mut self, idx: ConstPoolIdx) -> String {
@@ -452,14 +427,7 @@ impl<'a> BytecodeDumper<'a> {
         let fct = self.sa.fcts.idx(FctDefinitionId(fct_id.0 as usize));
         let fct = fct.read();
         let fname = fct.display_name(self.sa);
-        writeln!(
-            self.w,
-            " {}, ConstPoolIdx({}) # {}",
-            r1,
-            idx.to_usize(),
-            fname
-        )
-        .expect("write! failed");
+        writeln!(self.w, " {}, ConstPoolIdx({}) # {}", r1, idx.0, fname).expect("write! failed");
     }
 
     fn emit_new_object(&mut self, name: &str, r1: Register, idx: ConstPoolIdx) {
@@ -471,14 +439,7 @@ impl<'a> BytecodeDumper<'a> {
         let cls = self.sa.classes.idx(ClassDefinitionId(cls_id.0 as usize));
         let cls = cls.read();
         let cname = cls.name_with_params(self.sa, &type_params);
-        writeln!(
-            self.w,
-            " {}, ConstPoolIdx({}) # {}",
-            r1,
-            idx.to_usize(),
-            cname
-        )
-        .expect("write! failed");
+        writeln!(self.w, " {}, ConstPoolIdx({}) # {}", r1, idx.0, cname).expect("write! failed");
     }
 
     fn emit_new_trait_object(&mut self, name: &str, r1: Register, idx: ConstPoolIdx, r2: Register) {
@@ -498,7 +459,7 @@ impl<'a> BytecodeDumper<'a> {
             self.w,
             " {}, ConstPoolIdx({}), {} # {} wrapping {}",
             r1,
-            idx.to_usize(),
+            idx.0,
             r2,
             trait_name,
             actual_ty.name(self.sa),
@@ -518,10 +479,7 @@ impl<'a> BytecodeDumper<'a> {
         writeln!(
             self.w,
             " {}, ConstPoolIdx({}), {} # {}",
-            r1,
-            idx.to_usize(),
-            length,
-            cname,
+            r1, idx.0, length, cname,
         )
         .expect("write! failed");
     }
@@ -554,10 +512,7 @@ impl<'a> BytecodeDumper<'a> {
         writeln!(
             self.w,
             " {}, ConstPoolIdx({}) # {}::{}",
-            r1,
-            idx.to_usize(),
-            enum_name,
-            variant_name,
+            r1, idx.0, enum_name, variant_name,
         )
         .expect("write! failed");
     }
@@ -572,14 +527,8 @@ impl<'a> BytecodeDumper<'a> {
         let struct_ = struct_.read();
         let type_params = ty_array_from_bty(type_params);
         let struct_name = struct_.name_with_params(self.sa, &type_params);
-        writeln!(
-            self.w,
-            " {}, ConstPoolIdx({}) # {}",
-            r1,
-            idx.to_usize(),
-            struct_name,
-        )
-        .expect("write! failed");
+        writeln!(self.w, " {}, ConstPoolIdx({}) # {}", r1, idx.0, struct_name,)
+            .expect("write! failed");
     }
 
     fn emit_start(&mut self, name: &str) {
@@ -712,10 +661,7 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         writeln!(
             self.w,
             " {}, ConstPoolIdx({}) # '{}' 0x{:x}",
-            dest,
-            idx.to_usize(),
-            value,
-            value as u32
+            dest, idx.0, value, value as u32
         )
         .expect("write! failed");
     }
@@ -726,26 +672,12 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_const_int32(&mut self, dest: Register, idx: ConstPoolIdx) {
         self.emit_start("ConstInt32");
         let value = self.bc.const_pool(idx).to_int32().expect("int32 expected");
-        writeln!(
-            self.w,
-            " {}, ConstPoolIdx({}) # {}",
-            dest,
-            idx.to_usize(),
-            value
-        )
-        .expect("write! failed");
+        writeln!(self.w, " {}, ConstPoolIdx({}) # {}", dest, idx.0, value).expect("write! failed");
     }
     fn visit_const_int64(&mut self, dest: Register, idx: ConstPoolIdx) {
         self.emit_start("ConstInt64");
         let value = self.bc.const_pool(idx).to_int64().expect("int64 expected");
-        writeln!(
-            self.w,
-            " {}, ConstPoolIdx({}) # {}",
-            dest,
-            idx.to_usize(),
-            value
-        )
-        .expect("write! failed");
+        writeln!(self.w, " {}, ConstPoolIdx({}) # {}", dest, idx.0, value).expect("write! failed");
     }
     fn visit_const_float32(&mut self, dest: Register, idx: ConstPoolIdx) {
         self.emit_start("ConstFloat32");
@@ -754,14 +686,7 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
             .const_pool(idx)
             .to_float32()
             .expect("float32 expected");
-        writeln!(
-            self.w,
-            " {}, ConstPoolIdx({}) # {}",
-            dest,
-            idx.to_usize(),
-            value
-        )
-        .expect("write! failed");
+        writeln!(self.w, " {}, ConstPoolIdx({}) # {}", dest, idx.0, value).expect("write! failed");
     }
     fn visit_const_float64(&mut self, dest: Register, idx: ConstPoolIdx) {
         self.emit_start("ConstFloat64");
@@ -770,14 +695,7 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
             .const_pool(idx)
             .to_float64()
             .expect("float64 expected");
-        writeln!(
-            self.w,
-            " {}, ConstPoolIdx({}) # {}",
-            dest,
-            idx.to_usize(),
-            value
-        )
-        .expect("write! failed");
+        writeln!(self.w, " {}, ConstPoolIdx({}) # {}", dest, idx.0, value).expect("write! failed");
     }
     fn visit_const_string(&mut self, dest: Register, idx: ConstPoolIdx) {
         self.emit_start("ConstString");
@@ -786,14 +704,8 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
             .const_pool(idx)
             .to_string()
             .expect("string expected");
-        writeln!(
-            self.w,
-            " {}, ConstPoolIdx({}) # \"{}\"",
-            dest,
-            idx.to_usize(),
-            value
-        )
-        .expect("write! failed");
+        writeln!(self.w, " {}, ConstPoolIdx({}) # \"{}\"", dest, idx.0, value)
+            .expect("write! failed");
     }
 
     fn visit_test_eq(&mut self, dest: Register, lhs: Register, rhs: Register) {

@@ -1,3 +1,4 @@
+use bincode::{Decode, Encode};
 use std::fmt;
 
 use crate::{
@@ -6,7 +7,7 @@ use crate::{
 };
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Decode, Encode)]
 pub struct BytecodeOffset(pub u32);
 
 impl BytecodeOffset {
@@ -685,7 +686,7 @@ impl fmt::Display for Register {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Decode, Encode)]
 pub struct Location {
     line: u32,
     column: u32,
@@ -711,7 +712,7 @@ impl std::fmt::Display for Location {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Decode, Encode)]
 pub struct BytecodeFunction {
     code: Vec<u8>,
     registers: Vec<BytecodeType>,
@@ -764,7 +765,7 @@ impl BytecodeFunction {
     }
 
     pub fn const_pool(&self, idx: ConstPoolIdx) -> &ConstPoolEntry {
-        &self.const_pool[idx.to_usize()]
+        &self.const_pool[idx.0 as usize]
     }
 
     pub fn offset_location(&self, offset: u32) -> Location {
@@ -808,7 +809,7 @@ pub enum ConstPoolOpcode {
     Lambda,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Decode, Encode)]
 pub enum ConstPoolEntry {
     String(String),
     Float32(f32),
@@ -883,16 +884,4 @@ impl ConstPoolEntry {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct ConstPoolIdx(pub usize);
-
-impl ConstPoolIdx {
-    pub fn to_usize(self) -> usize {
-        self.0
-    }
-}
-
-impl From<usize> for ConstPoolIdx {
-    fn from(value: usize) -> Self {
-        ConstPoolIdx(value)
-    }
-}
+pub struct ConstPoolIdx(pub u32);

@@ -4316,11 +4316,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             let tuple_name = display_ty(self.vm, tuple_ty);
             format!(
                 "LoadTupleElement {}, {}, ConstPoolIdx({}) # {}.{}",
-                dest,
-                src,
-                idx.to_usize(),
-                tuple_name,
-                subtype_idx,
+                dest, src, idx.0, tuple_name, subtype_idx,
             )
         });
         self.emit_load_tuple_element(dest, src, idx);
@@ -4340,13 +4336,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             let variant = &enum_.variants[variant_idx as usize];
             format!(
                 "LoadEnumElement {}, {}, ConstPoolIdx({}), {} # {}::{}.{}",
-                dest,
-                src,
-                idx.to_usize(),
-                element_idx,
-                enum_name,
-                variant.name,
-                element_idx,
+                dest, src, idx.0, element_idx, enum_name, variant.name, element_idx,
             )
         });
         self.emit_load_enum_element(dest, src, idx);
@@ -4361,10 +4351,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             let enum_name = display_ty(self.vm, &BytecodeType::Enum(enum_id, type_params.clone()));
             format!(
                 "LoadEnumVariant {}, {}, ConstPoolIdx({}) # {}",
-                dest,
-                src,
-                idx.to_usize(),
-                enum_name,
+                dest, src, idx.0, enum_name,
             )
         });
         self.emit_load_enum_variant(dest, src, idx);
@@ -4388,11 +4375,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
 
             format!(
                 "LoadStructField {}, {}, ConstPoolIdx({}) # {}.{}",
-                dest,
-                obj,
-                field_idx.to_usize(),
-                struct_name,
-                field.name
+                dest, obj, field_idx.0, struct_name, field.name
             )
         });
         self.emit_load_struct_field(dest, obj, field_idx);
@@ -4410,11 +4393,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
 
                     format!(
                         "LoadField {}, {}, ConstPoolIdx({}) # {}.{}",
-                        dest,
-                        obj,
-                        field_idx.to_usize(),
-                        cname,
-                        field.name
+                        dest, obj, field_idx.0, cname, field.name
                     )
                 }
                 _ => unreachable!(),
@@ -4438,11 +4417,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
 
             format!(
                 "StoreField {}, {}, ConstPoolIdx({}) # {}.{}",
-                src,
-                obj,
-                field_idx.to_usize(),
-                cname,
-                field.name
+                src, obj, field_idx.0, cname, field.name
             )
         });
         self.emit_store_field(src, obj, field_idx);
@@ -4513,10 +4488,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             .const_pool(idx)
             .to_char()
             .expect("unexpected const pool entry");
-        comment!(
-            self,
-            format!("ConstChar {}, {} # {}", dest, idx.to_usize(), value)
-        );
+        comment!(self, format!("ConstChar {}, {} # {}", dest, idx.0, value));
         self.emit_const_int(dest, value as i64);
     }
 
@@ -4532,12 +4504,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             .expect("unexpected const pool entry");
         comment!(
             self,
-            format!(
-                "ConstInt32 {}, ConstPoolId({}) # {}",
-                dest,
-                idx.to_usize(),
-                value
-            )
+            format!("ConstInt32 {}, ConstPoolId({}) # {}", dest, idx.0, value)
         );
         self.emit_const_int(dest, value as i64);
     }
@@ -4549,12 +4516,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             .expect("unexpected const pool entry");
         comment!(
             self,
-            format!(
-                "ConstInt64 {}, ConstPoolId({}) # {}",
-                dest,
-                idx.to_usize(),
-                value
-            )
+            format!("ConstInt64 {}, ConstPoolId({}) # {}", dest, idx.0, value)
         );
         self.emit_const_int(dest, value);
     }
@@ -4566,12 +4528,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             .expect("unexpected const pool entry");
         comment!(
             self,
-            format!(
-                "ConstFloat32 {}, ConstPoolId({}) # {}",
-                dest,
-                idx.to_usize(),
-                value
-            )
+            format!("ConstFloat32 {}, ConstPoolId({}) # {}", dest, idx.0, value)
         );
         self.emit_const_float(dest, value as f64);
     }
@@ -4583,12 +4540,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             .expect("unexpected const pool entry");
         comment!(
             self,
-            format!(
-                "ConstFloat64 {}, ConstPoolId({}) # {}",
-                dest,
-                idx.to_usize(),
-                value
-            )
+            format!("ConstFloat64 {}, ConstPoolId({}) # {}", dest, idx.0, value)
         );
         self.emit_const_float(dest, value);
     }
@@ -4600,12 +4552,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             .expect("unexpected const pool entry");
         comment!(
             self,
-            format!(
-                "ConstString {}, ConstPoolId({}) # {}",
-                dest,
-                idx.to_usize(),
-                value
-            )
+            format!("ConstString {}, ConstPoolId({}) # {}", dest, idx.0, value)
         );
         self.emit_const_string(dest, value);
     }
@@ -4727,7 +4674,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             let target = BytecodeOffset((self.current_offset.to_u32() as i32 + offset) as u32);
             format!(
                 "JumpConst ConstPoolId({}) # target {}",
-                idx.to_usize(),
+                idx.0,
                 target.to_usize()
             )
         });
@@ -4739,20 +4686,14 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         self.offset_to_label.insert(self.current_offset, label);
     }
 
-    fn visit_invoke_direct(&mut self, dest: Register, fctdef: ConstPoolIdx) {
-        comment!(
-            self,
-            format!("InvokeDirect {}, {}", dest, fctdef.to_usize())
-        );
-        self.emit_invoke_direct_from_bytecode(dest, fctdef);
+    fn visit_invoke_direct(&mut self, dest: Register, idx: ConstPoolIdx) {
+        comment!(self, format!("InvokeDirect {}, {}", dest, idx.0));
+        self.emit_invoke_direct_from_bytecode(dest, idx);
     }
 
-    fn visit_invoke_virtual(&mut self, dest: Register, fctdef: ConstPoolIdx) {
-        comment!(
-            self,
-            format!("InvokeVirtual {}, {}", dest, fctdef.to_usize())
-        );
-        self.emit_invoke_virtual_from_bytecode(dest, fctdef);
+    fn visit_invoke_virtual(&mut self, dest: Register, idx: ConstPoolIdx) {
+        comment!(self, format!("InvokeVirtual {}, {}", dest, idx.0));
+        self.emit_invoke_virtual_from_bytecode(dest, idx);
     }
 
     fn visit_invoke_lambda(&mut self, dest: Register, idx: ConstPoolIdx) {
@@ -4760,28 +4701,19 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         self.emit_invoke_lambda_from_bytecode(dest, idx);
     }
 
-    fn visit_invoke_static(&mut self, dest: Register, fctdef: ConstPoolIdx) {
-        comment!(
-            self,
-            format!("InvokeStatic {}, {}", dest, fctdef.to_usize())
-        );
-        self.emit_invoke_static_from_bytecode(dest, fctdef);
+    fn visit_invoke_static(&mut self, dest: Register, idx: ConstPoolIdx) {
+        comment!(self, format!("InvokeStatic {}, {}", dest, idx.0));
+        self.emit_invoke_static_from_bytecode(dest, idx);
     }
 
-    fn visit_invoke_generic_direct(&mut self, dest: Register, fctdef: ConstPoolIdx) {
-        comment!(
-            self,
-            format!("InvokeGenericDirect {}, {}", dest, fctdef.to_usize())
-        );
-        self.emit_invoke_generic(dest, fctdef, false);
+    fn visit_invoke_generic_direct(&mut self, dest: Register, idx: ConstPoolIdx) {
+        comment!(self, format!("InvokeGenericDirect {}, {}", dest, idx.0));
+        self.emit_invoke_generic(dest, idx, false);
     }
 
-    fn visit_invoke_generic_static(&mut self, dest: Register, fctdef: ConstPoolIdx) {
-        comment!(
-            self,
-            format!("InvokeGenericStatic {}, {}", dest, fctdef.to_usize())
-        );
-        self.emit_invoke_generic(dest, fctdef, true);
+    fn visit_invoke_generic_static(&mut self, dest: Register, idx: ConstPoolIdx) {
+        comment!(self, format!("InvokeGenericStatic {}, {}", dest, idx.0));
+        self.emit_invoke_generic(dest, idx, true);
     }
 
     fn visit_new_object(&mut self, dest: Register, idx: ConstPoolIdx) {
@@ -4791,12 +4723,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 _ => unreachable!(),
             };
             let cname = display_ty(self.vm, &BytecodeType::Class(cls_id, type_params.clone()));
-            format!(
-                "NewObject {}, ConstPoolIdx({}) # {}",
-                dest,
-                idx.to_usize(),
-                cname
-            )
+            format!("NewObject {}, ConstPoolIdx({}) # {}", dest, idx.0, cname)
         });
         self.emit_new_object(dest, idx)
     }
@@ -4810,9 +4737,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             let cname = display_ty(self.vm, &BytecodeType::Class(cls_id, type_params.clone()));
             format!(
                 "NewObjectInitialized {}, ConstPoolIdx({}) # {}",
-                dest,
-                idx.to_usize(),
-                cname
+                dest, idx.0, cname
             )
         });
         self.emit_new_object_initialized(dest, idx)
@@ -4827,10 +4752,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             let cname = display_ty(self.vm, &BytecodeType::Class(cls_id, type_params.clone()));
             format!(
                 "NewArray {}, ConstPoolIdx({}), {} # {}",
-                dest,
-                idx.to_usize(),
-                length,
-                cname
+                dest, idx.0, length, cname
             )
         });
         self.emit_new_array(dest, idx, length);
@@ -4845,9 +4767,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             let tuple_name = display_ty(self.vm, &BytecodeType::Tuple(subtypes.clone()));
             format!(
                 "NewTuple {}, ConstPoolIdx({}) # {}",
-                dest,
-                idx.to_usize(),
-                tuple_name,
+                dest, idx.0, tuple_name,
             )
         });
         self.emit_new_tuple(dest, idx);
@@ -4866,10 +4786,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             let variant = &enum_.variants[variant_idx as usize];
             format!(
                 "NewEnum {}, ConstPoolIdx({}) # {}::{}",
-                dest,
-                idx.to_usize(),
-                enum_name,
-                variant.name,
+                dest, idx.0, enum_name, variant.name,
             )
         });
         self.emit_new_enum(dest, idx);
@@ -4887,9 +4804,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             );
             format!(
                 "NewStruct {}, ConstPoolIdx({}) # {}",
-                dest,
-                idx.to_usize(),
-                struct_name,
+                dest, idx.0, struct_name,
             )
         });
         self.emit_new_struct(dest, idx);
@@ -4908,11 +4823,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             let object_name = display_ty(self.vm, object_ty);
             format!(
                 "NewTraitObject {}, ConstPoolIdx({}), {} # {} from object {}",
-                dest,
-                idx.to_usize(),
-                src,
-                trait_name,
-                object_name,
+                dest, idx.0, src, trait_name, object_name,
             )
         });
         self.emit_new_trait_object(dest, idx, src);
@@ -4925,12 +4836,7 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
                 _ => unreachable!(),
             };
             let fct_name = display_fct(self.vm, fct_id);
-            format!(
-                "NewLambda {}, ConstPoolIdx({}) # {}",
-                dest,
-                idx.to_usize(),
-                fct_name,
-            )
+            format!("NewLambda {}, ConstPoolIdx({}) # {}", dest, idx.0, fct_name,)
         });
         self.emit_new_lambda(dest, idx);
     }

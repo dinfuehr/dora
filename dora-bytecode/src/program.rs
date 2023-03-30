@@ -1,27 +1,28 @@
 use crate::{BytecodeFunction, BytecodeType, Location};
+use bincode::{Decode, Encode};
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
 pub struct PackageId(pub u32);
 
-#[derive(Debug)]
+#[derive(Debug, Decode, Encode)]
 pub struct PackageData {
     pub name: String,
     pub root_module_id: ModuleId,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Decode, Encode)]
 pub struct ModuleId(pub u32);
 
-#[derive(Debug)]
+#[derive(Debug, Decode, Encode)]
 pub struct ModuleData {
     pub name: String,
     pub parent_id: Option<ModuleId>,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
 pub struct FunctionId(pub u32);
 
-#[derive(Debug)]
+#[derive(Debug, Decode, Encode)]
 pub struct FunctionData {
     pub name: String,
     pub file_id: SourceFileId,
@@ -43,7 +44,7 @@ pub struct FunctionData {
     pub bytecode: Option<BytecodeFunction>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Decode, Encode)]
 pub enum FunctionKind {
     Impl(ImplId),
     Lambda(FunctionId),
@@ -52,10 +53,10 @@ pub enum FunctionKind {
     Function,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
 pub struct GlobalId(pub u32);
 
-#[derive(Debug)]
+#[derive(Debug, Decode, Encode)]
 pub struct GlobalData {
     pub module_id: ModuleId,
     pub ty: BytecodeType,
@@ -64,10 +65,10 @@ pub struct GlobalData {
     pub initializer: Option<FunctionId>,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
 pub struct ClassId(pub u32);
 
-#[derive(Debug)]
+#[derive(Debug, Decode, Encode)]
 pub struct ClassData {
     pub module_id: ModuleId,
     pub name: String,
@@ -77,7 +78,7 @@ pub struct ClassData {
     pub internal: Option<InternalClass>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Decode, Encode)]
 pub enum ClassLayout {
     Regular,
     Array,
@@ -107,16 +108,16 @@ impl ClassLayout {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Decode, Encode)]
 pub struct ClassField {
     pub ty: BytecodeType,
     pub name: String,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
 pub struct StructId(pub u32);
 
-#[derive(Debug)]
+#[derive(Debug, Decode, Encode)]
 pub struct StructData {
     pub module_id: ModuleId,
     pub name: String,
@@ -124,28 +125,28 @@ pub struct StructData {
     pub fields: Vec<StructField>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Decode, Encode)]
 pub struct StructField {
     pub ty: BytecodeType,
     pub name: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Decode, Encode)]
 pub struct TypeParamData {
     pub names: Vec<String>,
     pub bounds: Vec<TypeParamBound>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Decode, Encode)]
 pub struct TypeParamBound {
     pub ty: BytecodeType,
     pub trait_ty: BytecodeType,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
 pub struct EnumId(pub u32);
 
-#[derive(Debug)]
+#[derive(Debug, Decode, Encode)]
 pub struct EnumData {
     pub module_id: ModuleId,
     pub name: String,
@@ -153,16 +154,16 @@ pub struct EnumData {
     pub variants: Vec<EnumVariant>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Decode, Encode)]
 pub struct EnumVariant {
     pub name: String,
     pub arguments: Vec<BytecodeType>,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
 pub struct TraitId(pub u32);
 
-#[derive(Debug)]
+#[derive(Debug, Decode, Encode)]
 pub struct TraitData {
     pub module_id: ModuleId,
     pub name: String,
@@ -170,18 +171,18 @@ pub struct TraitData {
     pub methods: Vec<FunctionId>,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Decode, Encode)]
 pub struct SourceFileId(pub u32);
 
-#[derive(Debug)]
+#[derive(Debug, Decode, Encode)]
 pub struct SourceFileData {
     pub path: String,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
 pub struct ImplId(pub u32);
 
-#[derive(Debug)]
+#[derive(Debug, Decode, Encode)]
 pub struct ImplData {
     pub module_id: ModuleId,
     pub type_params: TypeParamData,
@@ -190,7 +191,7 @@ pub struct ImplData {
     pub methods: Vec<FunctionId>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Decode, Encode)]
 pub struct Program {
     pub packages: Vec<PackageData>,
     pub modules: Vec<ModuleData>,
@@ -207,7 +208,7 @@ pub struct Program {
     pub boots_package_id: Option<PackageId>,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
 pub enum InternalClass {
     Array,
     String,
@@ -215,13 +216,13 @@ pub enum InternalClass {
     StacktraceElement,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
 pub enum InternalFunction {
     StacktraceRetrieve,
     BootsCompile,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
 #[allow(dead_code)]
 pub enum NativeFunction {
     FatalError,
@@ -276,7 +277,7 @@ pub enum NativeFunction {
     StringClone,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Decode, Encode)]
 pub enum Intrinsic {
     ArrayNewOfSize,
     ArrayWithValues,

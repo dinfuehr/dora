@@ -1,9 +1,10 @@
+use bincode::{Decode, Encode};
 use std::ops::Index;
 use std::sync::Arc;
 
 use crate::{BytecodeTypeKind, ClassId, EnumId, StructId, TraitId};
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
 pub enum BytecodeType {
     Unit,
     Bool,
@@ -175,7 +176,7 @@ impl BytecodeType {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
 pub struct BytecodeTypeArray(Arc<Vec<BytecodeType>>);
 
 impl BytecodeTypeArray {

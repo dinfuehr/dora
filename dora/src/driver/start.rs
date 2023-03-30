@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use crate::driver::cmd::{self, Args};
-use dora_bytecode::{FunctionData, FunctionId, PackageId};
+use dora_bytecode::{FunctionData, FunctionId, PackageId, Program};
 use dora_frontend::language;
 use dora_frontend::language::error::msg::ErrorMessage;
 use dora_frontend::language::sem_analysis::{SemAnalysis, SemAnalysisArgs};
@@ -73,6 +73,9 @@ pub fn start() -> i32 {
     // Here we drop the generated AST.
     let prog = language::emit_program(sa);
 
+    // Now for fun encode the program into a buffer and create a new Program from the buffer.
+    let prog = encode_and_decode_for_testing(prog);
+
     let command = args.command;
 
     let vm_args = cmd::create_vm_args(&args);
@@ -105,6 +108,16 @@ pub fn start() -> i32 {
     clear_vm();
 
     exit_code
+}
+
+fn encode_and_decode_for_testing(prog: Program) -> Program {
+    let config = bincode::config::standard();
+    let encoded_program = bincode::encode_to_vec(prog, config).expect("serialization failed");
+    let (decoded_prog, decoded_len): (Program, usize) =
+        bincode::decode_from_slice(&encoded_program, config).expect("serialization failure");
+    assert_eq!(decoded_len, encoded_program.len());
+
+    decoded_prog
 }
 
 fn report_errors(sa: &SemAnalysis) -> bool {

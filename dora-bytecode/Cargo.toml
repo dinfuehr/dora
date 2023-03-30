@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 num_enum = "*"
+bincode = "2.0.0-rc.3"

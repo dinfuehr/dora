@@ -436,7 +436,7 @@ impl<'a> BytecodeReader<'a> {
     }
 
     fn read_const_pool_idx(&mut self) -> ConstPoolIdx {
-        (self.read_index() as usize).into()
+        ConstPoolIdx(self.read_index())
     }
 
     fn read_offset(&mut self) -> u32 {

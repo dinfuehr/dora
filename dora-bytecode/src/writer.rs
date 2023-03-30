@@ -337,27 +337,23 @@ impl BytecodeWriter {
         self.emit_new_arr(BytecodeOpcode::NewArray, dest, cls_id, length);
     }
     pub fn emit_new_tuple(&mut self, dest: Register, idx: ConstPoolIdx) {
-        let values = [dest.to_usize() as u32, idx.to_usize() as u32];
+        let values = [dest.to_usize() as u32, idx.0];
         self.emit_values(BytecodeOpcode::NewTuple, &values);
     }
     pub fn emit_new_enum(&mut self, dest: Register, idx: ConstPoolIdx) {
-        let values = [dest.to_usize() as u32, idx.to_usize() as u32];
+        let values = [dest.to_usize() as u32, idx.0];
         self.emit_values(BytecodeOpcode::NewEnum, &values);
     }
     pub fn emit_new_struct(&mut self, dest: Register, idx: ConstPoolIdx) {
-        let values = [dest.to_usize() as u32, idx.to_usize() as u32];
+        let values = [dest.to_usize() as u32, idx.0];
         self.emit_values(BytecodeOpcode::NewStruct, &values);
     }
     pub fn emit_new_trait_object(&mut self, dest: Register, idx: ConstPoolIdx, src: Register) {
-        let values = [
-            dest.to_usize() as u32,
-            idx.to_usize() as u32,
-            src.to_usize() as u32,
-        ];
+        let values = [dest.to_usize() as u32, idx.0, src.to_usize() as u32];
         self.emit_values(BytecodeOpcode::NewTraitObject, &values);
     }
     pub fn emit_new_lambda(&mut self, dest: Register, idx: ConstPoolIdx) {
-        let values = [dest.to_usize() as u32, idx.to_usize() as u32];
+        let values = [dest.to_usize() as u32, idx.0];
         self.emit_values(BytecodeOpcode::NewLambda, &values);
     }
 
@@ -460,11 +456,7 @@ impl BytecodeWriter {
         r2: Register,
         idx: ConstPoolIdx,
     ) {
-        let values = [
-            r1.to_usize() as u32,
-            r2.to_usize() as u32,
-            idx.to_usize() as u32,
-        ];
+        let values = [r1.to_usize() as u32, r2.to_usize() as u32, idx.0];
         self.emit_values(inst, &values);
     }
 
@@ -474,7 +466,7 @@ impl BytecodeWriter {
     }
 
     fn emit_reg1_idx(&mut self, inst: BytecodeOpcode, r1: Register, idx: ConstPoolIdx) {
-        let values = [r1.to_usize() as u32, idx.to_usize() as u32];
+        let values = [r1.to_usize() as u32, idx.0];
         self.emit_values(inst, &values);
     }
 
@@ -487,11 +479,11 @@ impl BytecodeWriter {
     pub fn add_const(&mut self, value: ConstPoolEntry) -> ConstPoolIdx {
         let idx = self.const_pool.len();
         self.const_pool.push(value);
-        idx.into()
+        ConstPoolIdx(idx.try_into().expect("overflow"))
     }
 
     fn emit_new(&mut self, inst: BytecodeOpcode, r1: Register, idx: ConstPoolIdx) {
-        let values = [r1.to_usize() as u32, idx.to_usize() as u32];
+        let values = [r1.to_usize() as u32, idx.0];
         self.emit_values(inst, &values);
     }
 
@@ -502,16 +494,12 @@ impl BytecodeWriter {
         idx: ConstPoolIdx,
         lth: Register,
     ) {
-        let values = [
-            r1.to_usize() as u32,
-            idx.to_usize() as u32,
-            lth.to_usize() as u32,
-        ];
+        let values = [r1.to_usize() as u32, idx.0, lth.to_usize() as u32];
         self.emit_values(inst, &values);
     }
 
     fn emit_fct(&mut self, inst: BytecodeOpcode, r1: Register, idx: ConstPoolIdx) {
-        let values = [r1.to_usize() as u32, idx.to_usize() as u32];
+        let values = [r1.to_usize() as u32, idx.0];
         self.emit_values(inst, &values);
     }
 
@@ -522,11 +510,7 @@ impl BytecodeWriter {
         r2: Register,
         field_idx: ConstPoolIdx,
     ) {
-        let values = [
-            r1.to_usize() as u32,
-            r2.to_usize() as u32,
-            field_idx.to_usize() as u32,
-        ];
+        let values = [r1.to_usize() as u32, r2.to_usize() as u32, field_idx.0];
         self.emit_values(inst, &values);
     }
 
@@ -537,11 +521,7 @@ impl BytecodeWriter {
         r2: Register,
         idx: ConstPoolIdx,
     ) {
-        let values = [
-            r1.to_usize() as u32,
-            r2.to_usize() as u32,
-            idx.to_usize() as u32,
-        ];
+        let values = [r1.to_usize() as u32, r2.to_usize() as u32, idx.0];
         self.emit_values(inst, &values);
     }
 
@@ -552,11 +532,7 @@ impl BytecodeWriter {
         r2: Register,
         idx: ConstPoolIdx,
     ) {
-        let values = [
-            r1.to_usize() as u32,
-            r2.to_usize() as u32,
-            idx.to_usize() as u32,
-        ];
+        let values = [r1.to_usize() as u32, r2.to_usize() as u32, idx.0];
         self.emit_values(inst, &values);
     }
 
@@ -659,7 +635,7 @@ impl BytecodeWriter {
                 self.emit_u8(cond.to_usize() as u8);
             }
             let idx = self.add_const(ConstPoolEntry::Int32(0));
-            self.emit_u8(idx.to_usize() as u8);
+            self.emit_u8(idx.0.try_into().expect("overflow"));
             self.unresolved_jump_consts.push((start, idx, lbl));
         }
     }
@@ -688,7 +664,7 @@ impl BytecodeWriter {
     }
 
     fn patch_const(&mut self, idx: ConstPoolIdx, entry: ConstPoolEntry) {
-        self.const_pool[idx.to_usize()] = entry;
+        self.const_pool[idx.0 as usize] = entry;
     }
 }
 
