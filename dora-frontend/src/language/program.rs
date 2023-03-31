@@ -33,6 +33,7 @@ pub fn emit_program(sa: SemAnalysis) -> Program {
         stdlib_package_id: convert_package_id(sa.stdlib_package_id()),
         program_package_id: convert_package_id(sa.program_package_id()),
         boots_package_id: sa.boots_package_id.map(|p| convert_package_id(p)),
+        main_fct_id: find_main_fct_id(&sa),
     }
 }
 
@@ -354,6 +355,28 @@ fn create_source_files(sa: &SemAnalysis) -> Vec<SourceFileData> {
     }
 
     result
+}
+
+fn find_main_fct_id(sa: &SemAnalysis) -> Option<FunctionId> {
+    let name = sa.interner.intern("main");
+    let fctid = if let Some(id) = sa.module_table(sa.program_module_id()).read().get_fct(name) {
+        id
+    } else {
+        return None;
+    };
+
+    let fct = sa.fcts.idx(fctid);
+    let fct = fct.read();
+    let ret = fct.return_type.clone();
+
+    if (!ret.is_unit() && !ret.is_int32())
+        || !fct.params_without_self().is_empty()
+        || !fct.type_params.is_empty()
+    {
+        None
+    } else {
+        Some(convert_function_id(fct.id()))
+    }
 }
 
 fn convert_package_id(id: PackageDefinitionId) -> PackageId {

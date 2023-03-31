@@ -1,9 +1,11 @@
+use std::fs::File;
+use std::io::{self, Read, Write};
+use std::path::PathBuf;
 use std::time::Instant;
 
 use crate::driver::cmd::{self, Args};
 use dora_bytecode::{FunctionData, FunctionId, PackageId, Program};
 use dora_frontend::language;
-use dora_frontend::language::error::msg::ErrorMessage;
 use dora_frontend::language::sem_analysis::{SemAnalysis, SemAnalysisArgs};
 use dora_runtime::{clear_vm, display_fct, execute_on_main, set_vm, VM};
 
@@ -29,36 +31,28 @@ pub fn start() -> i32 {
         return 0;
     }
 
-    let sem_args = SemAnalysisArgs {
-        arg_file: args.arg_file.clone(),
-        packages: args.packages.clone(),
-        test_file_as_string: None,
+    if args.arg_file.is_none() {
+        eprintln!("missing input argument.");
+        return 1;
+    }
+
+    let file = args.arg_file.to_owned().unwrap();
+
+    let prog = if file.ends_with(".dora-package") {
+        match decode_input_program(&file) {
+            Ok(prog) => prog,
+            Err(_) => {
+                return 1;
+            }
+        }
+    } else {
+        match compile_into_program(&args, file) {
+            Ok(result) => result,
+            Err(_) => {
+                return 1;
+            }
+        }
     };
-
-    let mut sa = SemAnalysis::new(sem_args);
-
-    let success = language::check(&mut sa);
-    assert_eq!(success, !sa.diag.lock().has_errors());
-
-    if report_errors(&sa) {
-        return 1;
-    }
-
-    let main_fct_id = find_main(&sa, &args);
-
-    if report_errors(&sa) {
-        return 1;
-    }
-
-    if let Some(ref filter) = args.flag_emit_ast {
-        language::emit_ast(&sa, filter);
-    }
-
-    language::generate_bytecode(&sa);
-
-    if let Some(ref filter) = args.flag_emit_bytecode {
-        language::emit_bytecode(&sa, filter);
-    }
 
     // if --check given, stop after type/semantic check
     if args.flag_check {
@@ -66,12 +60,8 @@ pub fn start() -> i32 {
     }
 
     if args.command.is_build() {
-        unimplemented!();
+        return command_build(&args, prog);
     }
-
-    // Create a serializable data structure from bytecode and metadata.
-    // Here we drop the generated AST.
-    let prog = language::emit_program(sa);
 
     // Now for fun encode the program into a buffer and create a new Program from the buffer.
     let prog = encode_and_decode_for_testing(prog);
@@ -95,7 +85,13 @@ pub fn start() -> i32 {
     let exit_code = if command.is_test() {
         run_tests(&vm, &args, vm.program.program_package_id)
     } else {
-        run_main(&vm, main_fct_id.expect("main missing"))
+        if vm.program.main_fct_id.is_none() {
+            eprintln!("no main method in program.");
+            return 1;
+        }
+
+        let main_fct_id = vm.program.main_fct_id.expect("main missing");
+        run_main(&vm, main_fct_id)
     };
 
     vm.threads.join_all();
@@ -108,6 +104,98 @@ pub fn start() -> i32 {
     clear_vm();
 
     exit_code
+}
+
+fn compile_into_program(args: &Args, file: String) -> Result<Program, ()> {
+    let sem_args = SemAnalysisArgs {
+        arg_file: Some(file),
+        packages: args.packages.clone(),
+        test_file_as_string: None,
+    };
+
+    let mut sa = SemAnalysis::new(sem_args);
+
+    let success = language::check(&mut sa);
+    assert_eq!(success, !sa.diag.lock().has_errors());
+
+    if report_errors(&sa) {
+        return Err(());
+    }
+
+    if report_errors(&sa) {
+        return Err(());
+    }
+
+    if let Some(ref filter) = args.flag_emit_ast {
+        language::emit_ast(&sa, filter);
+    }
+
+    language::generate_bytecode(&sa);
+
+    if let Some(ref filter) = args.flag_emit_bytecode {
+        language::emit_bytecode(&sa, filter);
+    }
+
+    // Create a serializable data structure from bytecode and metadata.
+    // Here we drop the generated AST.
+    let prog = language::emit_program(sa);
+
+    Ok(prog)
+}
+
+fn command_build(args: &Args, prog: Program) -> i32 {
+    if args.flag_output.is_none() {
+        eprintln!("missing output file");
+        return 1;
+    }
+
+    let config = bincode::config::standard();
+    let encoded_program = bincode::encode_to_vec(prog, config).expect("serialization failed");
+
+    let file = args.flag_output.as_ref().expect("missing output");
+
+    match write_program_into_file(&encoded_program, file) {
+        Ok(()) => 0,
+        Err(_) => {
+            eprintln!("Failed to write into output file.");
+            1
+        }
+    }
+}
+
+fn decode_input_program(file: &str) -> Result<Program, ()> {
+    let encoded_program = match read_input_file(file) {
+        Ok(result) => result,
+        Err(_) => {
+            eprintln!("couldn't read input file.");
+            return Err(());
+        }
+    };
+
+    let config = bincode::config::standard();
+    let (decoded_prog, decoded_len): (Program, usize) =
+        bincode::decode_from_slice(&encoded_program, config).expect("serialization failure");
+    assert_eq!(decoded_len, encoded_program.len());
+
+    Ok(decoded_prog)
+}
+
+fn read_input_file(file: &str) -> Result<Vec<u8>, io::Error> {
+    let path = PathBuf::from(file);
+    let mut file = File::open(path)?;
+    let mut buffer = Vec::new();
+    match file.read_to_end(&mut buffer) {
+        Ok(_) => Ok(buffer),
+        Err(error) => Err(error),
+    }
+}
+
+fn write_program_into_file(prog: &[u8], file: &str) -> Result<(), io::Error> {
+    let path = PathBuf::from(file);
+
+    let mut f = File::create(&path)?;
+    f.write_all(prog)?;
+    Ok(())
 }
 
 fn encode_and_decode_for_testing(prog: Program) -> Program {
@@ -210,34 +298,4 @@ fn run_main(vm: &VM, main: FunctionId) -> i32 {
     } else {
         res
     }
-}
-
-fn find_main(sa: &SemAnalysis, args: &Args) -> Option<FunctionId> {
-    if args.command.is_test() {
-        return None;
-    }
-
-    let name = sa.interner.intern("main");
-    let fctid = if let Some(id) = sa.module_table(sa.program_module_id()).read().get_fct(name) {
-        id
-    } else {
-        return None;
-    };
-
-    let fct = sa.fcts.idx(fctid);
-    let fct = fct.read();
-    let ret = fct.return_type.clone();
-
-    if (!ret.is_unit() && !ret.is_int32())
-        || !fct.params_without_self().is_empty()
-        || !fct.type_params.is_empty()
-    {
-        let pos = fct.ast.pos;
-        sa.diag
-            .lock()
-            .report(fct.file_id, pos, ErrorMessage::WrongMainDefinition);
-        return None;
-    }
-
-    Some(FunctionId(fctid.0 as u32))
 }

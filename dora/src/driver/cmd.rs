@@ -61,6 +61,7 @@ pub struct Args {
     pub arg_file: Option<String>,
 
     pub flag_emit_ast: Option<String>,
+    pub flag_output: Option<String>,
     pub flag_emit_asm: Option<String>,
     pub flag_emit_asm_file: bool,
     pub flag_emit_bytecode: Option<String>,
@@ -108,6 +109,7 @@ impl Default for Args {
             arg_argument: None,
             arg_file: None,
 
+            flag_output: None,
             flag_emit_ast: None,
             flag_emit_asm: None,
             flag_emit_asm_file: false,
@@ -275,6 +277,12 @@ pub fn parse_arguments() -> Result<Args, String> {
             args.flag_test_filter = Some(argument_value(arg).into());
         } else if arg == "--disable-tlab" {
             args.flag_disable_tlab = true;
+        } else if arg == "-o" {
+            if idx + 1 >= cli_arguments.len() {
+                return Err("-o needs argument".into());
+            }
+            args.flag_output = Some(cli_arguments[idx + 1].clone());
+            idx += 1;
         } else if arg == "--disable-barrier" {
             args.flag_disable_barrier = true;
         } else if arg.starts_with("--min-heap-size=") {

@@ -206,6 +206,7 @@ pub struct Program {
     pub stdlib_package_id: PackageId,
     pub program_package_id: PackageId,
     pub boots_package_id: Option<PackageId>,
+    pub main_fct_id: Option<FunctionId>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
