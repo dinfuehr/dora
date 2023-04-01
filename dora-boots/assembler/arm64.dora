@@ -127,12 +127,12 @@ impl AssemblerArm64 {
     }
 
     @pub fn ret() {
-        let inst = clsx::uncondBranchReg(0b0010i32, 0b11111i32, 0i32, REG_LR, 0i32);
+        let inst = encoding::uncondBranchReg(0b0010i32, 0b11111i32, 0i32, REG_LR, 0i32);
         self.buffer.emitInt32(inst);
     }
 
     @pub fn retReg(rn: Register) {
-        let inst = clsx::uncondBranchReg(0b0010i32, 0b11111i32, 0i32, rn, 0i32);
+        let inst = encoding::uncondBranchReg(0b0010i32, 0b11111i32, 0i32, rn, 0i32);
         self.buffer.emitInt32(inst);
     }
 
@@ -145,12 +145,12 @@ impl AssemblerArm64 {
     }
 
     @pub fn blr(rn: Register) {
-        let inst = clsx::uncondBranchReg(0b0001i32, 0b11111i32, 0i32, rn, 0i32);
+        let inst = encoding::uncondBranchReg(0b0001i32, 0b11111i32, 0i32, rn, 0i32);
         self.buffer.emitInt32(inst);
     }
 
     @pub fn br(rn: Register) {
-        let inst = clsx::uncondBranchReg(0b0000i32, 0b11111i32, 0i32, rn, 0i32);
+        let inst = encoding::uncondBranchReg(0b0000i32, 0b11111i32, 0i32, rn, 0i32);
         self.buffer.emitInt32(inst);
     }
 
@@ -203,10 +203,84 @@ impl Register {
             31i32
         }
     }
+
+    fn encodingZeroOrSp(): Int32 {
+        if self.isGpr() {
+            self.value
+        } else if self == REG_ZERO || self == REG_SP {
+            31i32
+        } else {
+            unreachable[Int32]()
+        }
+    }
 }
 
-mod clsx {
+@pub enum Extend {
+    UXTB,
+    UXTH,
+    LSL,
+    UXTW,
+    UXTX,
+    SXTB,
+    SXTH,
+    SXTW,
+    SXTX,
+}
+
+impl Extend {
+    fn encoding(): Int32 {
+        match self {
+            Extend::UXTB => 0b000,
+            Extend::UXTH => 0b001,
+            Extend::LSL => 0b010,
+            Extend::UXTW => 0b010,
+            Extend::UXTX => 0b011,
+            Extend::SXTB => 0b100,
+            Extend::SXTH => 0b101,
+            Extend::SXTW => 0b110,
+            Extend::SXTX => 0b111,
+        }
+    }
+
+    fn ldst_encoding(): Int32 {
+        match self {
+            Extend::UXTW => 0b010,
+            Extend::LSL => 0b011,
+            Extend::SXTW => 0b110,
+            Extend::SXTX => 0b111,
+            _ => unreachable[Int32](),
+        }
+    }
+}
+
+@pub enum Shift {
+    LSL,
+    LSR,
+    ASR,
+    ROR,
+}
+
+impl Shift {
+    fn isRor(): Bool {
+        match self {
+            Shift::ROR => true,
+            _ => false,
+        }
+    }
+
+    fn encoding(): Int32 {
+        match self {
+            Shift::LSL => 0i32,
+            Shift::LSR => 1i32,
+            Shift::ASR => 2i32,
+            Shift::ROR => 3i32,
+        }
+    }
+}
+
+mod encoding {
     use package::assembler::Register;
+    use super::{Extend, Shift};
 
     @pub fn uncondBranchImm(op: Int32, imm26: Int32): Int32 {
         assert(fitsUnsigned(op, 1i32));
@@ -225,6 +299,75 @@ mod clsx {
         0b1101011i32 << 25i32 | opc << 21i32 | op2 << 16i32 | op3 << 10i32 | rn.encoding() << 5i32 | op4
     }
 
+    @pub fn addsub_extreg(
+        sf: Int32,
+        op: Int32,
+        s: Int32,
+        opt: Int32,
+        rm: Register,
+        option: Extend,
+        imm3: Int32,
+        rn: Register,
+        rd: Register,
+    ): Int32 {
+        assert(fitsBit(sf));
+        assert(fitsBit(op));
+        assert(fitsBit(s));
+        assert(opt == 0i32);
+        assert(rm.isGprOrZero());
+        assert(fitsU2(imm3));
+        assert(rn.isGprOrSp());
+
+        // Register 31 is xzr when setting flags or xsp when not.
+        if s != 0i32 {
+            assert(rd.isGprOrZero());
+        } else {
+            assert(rd.isGprOrSp());
+        }
+
+        sf << 31i32
+            | op << 30i32
+            | s << 29i32
+            | 0b01011i32 << 24i32
+            | opt << 22i32
+            | 1i32 << 21i32
+            | rm.encodingZero() << 16i32
+            | option.encoding() << 13i32
+            | imm3 << 10i32
+            | rn.encodingSp() << 5i32
+            | rd.encodingZeroOrSp()
+    }
+
+    @pub fn addsub_shreg(
+        sf: Int32,
+        op: Int32,
+        s: Int32,
+        shift: Shift,
+        rm: Register,
+        imm6: Int32,
+        rn: Register,
+        rd: Register,
+    ): Int32 {
+        assert(fitsBit(sf));
+        assert(fitsBit(op));
+        assert(fitsBit(s));
+        assert(!shift.isRor());
+        assert(rm.isGpr());
+        assert(fitsU6(imm6));
+        assert(rn.isGprOrZero());
+        assert(rd.isGprOrZero());
+
+        0b01011i32 << 24i32
+            | sf << 31i32
+            | op << 30i32
+            | s << 29i32
+            | shift.encoding() << 22i32
+            | rm.encoding() << 16i32
+            | imm6 << 10i32
+            | rn.encodingZero() << 5i32
+            | rd.encodingZero()
+    }
+
     fn fitsBit(value: Int32): Bool {
         value >= 0i32 && value < 2i32
     }
@@ -234,22 +377,34 @@ mod clsx {
         -(1i32 << (bits - 1i32)) <= value && value < (1i32 << (bits - 1i32))
     }
 
+    fn fitsU2(value: Int32): Bool {
+        fitsUnsigned(value, 2i32)
+    }
+
+    fn fitsU6(value: Int32): Bool {
+        fitsUnsigned(value, 6i32)
+    }
+
     fn fitsUnsigned(value: Int32, bits: Int32): Bool {
         assert(bits > 0i32 && bits < 32i32);
         value >= 0i32 && value < (1i32 << bits)
     }
 }
 
-@Test
-fn testAsmRet() {
-    let asm = AssemblerArm64::new();
-    asm.ret();
-    asm.retReg(R0);
-    asm.retReg(R10);
-    let buffer = asm.finalizeTesting();
+mod tests {
+    use super::{assertAsm32, assertAsmEnd, R0, R10, AssemblerArm64};
 
-    assertAsm32(buffer, 0xd65f03c0i32);
-    assertAsm32(buffer, 0xd65f0000i32);
-    assertAsm32(buffer, 0xd65f0140i32);
-    assertAsmEnd(buffer);
+    @Test
+    fn testAsmRet() {
+        let asm = AssemblerArm64::new();
+        asm.ret();
+        asm.retReg(R0);
+        asm.retReg(R10);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(buffer, 0xd65f03c0i32);
+        assertAsm32(buffer, 0xd65f0000i32);
+        assertAsm32(buffer, 0xd65f0140i32);
+        assertAsmEnd(buffer);
+    }
 }
