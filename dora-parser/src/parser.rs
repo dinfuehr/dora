@@ -856,10 +856,10 @@ impl<'a> Parser<'a> {
     fn restrict_modifiers(&mut self, modifiers: &Modifiers, restrict: &[Modifier]) {
         for modifier in modifiers.iter() {
             if !restrict.contains(&modifier.value) {
-                self.errors.push(ParseErrorAndPos::new(
-                    modifier.pos,
+                self.report_error_at(
                     ParseError::MisplacedAnnotation(modifier.value.name().into()),
-                ));
+                    modifier.pos,
+                );
             }
         }
     }
@@ -921,9 +921,9 @@ impl<'a> Parser<'a> {
 
         while !self.token.is(stop.clone()) && !self.token.is_eof() {
             if !comma {
-                return Err(ParseErrorAndPos::new(
-                    self.token.position,
-                    ParseError::ExpectedToken(sep.name().into(), self.token.name()),
+                self.report_error(ParseError::ExpectedToken(
+                    sep.name().into(),
+                    self.token.name(),
                 ));
             }
 
@@ -2083,6 +2083,14 @@ impl<'a> Parser<'a> {
                 ParseError::ExpectedToken(kind.name().into(), self.token.name()),
             ))
         }
+    }
+
+    fn report_error(&mut self, msg: ParseError) {
+        self.report_error_at(msg, self.token.position);
+    }
+
+    fn report_error_at(&mut self, msg: ParseError, pos: Position) {
+        self.errors.push(ParseErrorAndPos::new(pos, msg));
     }
 
     fn error_and_advance(&mut self, msg: ParseError) -> Result<(), ParseErrorAndPos> {
