@@ -5,41 +5,41 @@ use package::assembler::Register;
 use package::assembler::assertAsm;
 use package::assembler::assertAsmEnd;
 
-@pub let RAX: Register = Register(0i32);
-@pub let RCX: Register = Register(1i32);
-@pub let RDX: Register = Register(2i32);
-@pub let RBX: Register = Register(3i32);
-@pub let RSP: Register = Register(4i32);
-@pub let RBP: Register = Register(5i32);
-@pub let RSI: Register = Register(6i32);
-@pub let RDI: Register = Register(7i32);
+pub let RAX: Register = Register(0i32);
+pub let RCX: Register = Register(1i32);
+pub let RDX: Register = Register(2i32);
+pub let RBX: Register = Register(3i32);
+pub let RSP: Register = Register(4i32);
+pub let RBP: Register = Register(5i32);
+pub let RSI: Register = Register(6i32);
+pub let RDI: Register = Register(7i32);
 
-@pub let R8: Register = Register(8i32);
-@pub let R9: Register = Register(9i32);
-@pub let R10: Register = Register(10i32);
-@pub let R11: Register = Register(11i32);
-@pub let R12: Register = Register(12i32);
-@pub let R13: Register = Register(13i32);
-@pub let R14: Register = Register(14i32);
-@pub let R15: Register = Register(15i32);
+pub let R8: Register = Register(8i32);
+pub let R9: Register = Register(9i32);
+pub let R10: Register = Register(10i32);
+pub let R11: Register = Register(11i32);
+pub let R12: Register = Register(12i32);
+pub let R13: Register = Register(13i32);
+pub let R14: Register = Register(14i32);
+pub let R15: Register = Register(15i32);
 
-@pub let XMM0: XmmRegister = XmmRegister(0i32);
-@pub let XMM1: XmmRegister = XmmRegister(1i32);
-@pub let XMM2: XmmRegister = XmmRegister(2i32);
-@pub let XMM3: XmmRegister = XmmRegister(3i32);
-@pub let XMM4: XmmRegister = XmmRegister(4i32);
-@pub let XMM5: XmmRegister = XmmRegister(5i32);
-@pub let XMM6: XmmRegister = XmmRegister(6i32);
-@pub let XMM7: XmmRegister = XmmRegister(7i32);
+pub let XMM0: XmmRegister = XmmRegister(0i32);
+pub let XMM1: XmmRegister = XmmRegister(1i32);
+pub let XMM2: XmmRegister = XmmRegister(2i32);
+pub let XMM3: XmmRegister = XmmRegister(3i32);
+pub let XMM4: XmmRegister = XmmRegister(4i32);
+pub let XMM5: XmmRegister = XmmRegister(5i32);
+pub let XMM6: XmmRegister = XmmRegister(6i32);
+pub let XMM7: XmmRegister = XmmRegister(7i32);
 
-@pub let XMM8: XmmRegister = XmmRegister(8i32);
-@pub let XMM9: XmmRegister = XmmRegister(9i32);
-@pub let XMM10: XmmRegister = XmmRegister(10i32);
-@pub let XMM11: XmmRegister = XmmRegister(11i32);
-@pub let XMM12: XmmRegister = XmmRegister(12i32);
-@pub let XMM13: XmmRegister = XmmRegister(13i32);
-@pub let XMM14: XmmRegister = XmmRegister(14i32);
-@pub let XMM15: XmmRegister = XmmRegister(15i32);
+pub let XMM8: XmmRegister = XmmRegister(8i32);
+pub let XMM9: XmmRegister = XmmRegister(9i32);
+pub let XMM10: XmmRegister = XmmRegister(10i32);
+pub let XMM11: XmmRegister = XmmRegister(11i32);
+pub let XMM12: XmmRegister = XmmRegister(12i32);
+pub let XMM13: XmmRegister = XmmRegister(13i32);
+pub let XMM14: XmmRegister = XmmRegister(14i32);
+pub let XMM15: XmmRegister = XmmRegister(15i32);
 
 struct XmmRegister(value: Int32)
 
@@ -53,13 +53,13 @@ enum JumpDistance {
     Far,
 }
 
-@pub class AssemblerX64 {
+pub class AssemblerX64 {
     buffer: AssemblerBuffer,
     jumps: Vec[(Int64, Label, JumpDistance)],
 }
 
 impl AssemblerX64 {
-    @static @pub fn new(): AssemblerX64 {
+    static pub fn new(): AssemblerX64 {
         AssemblerX64(
             AssemblerBuffer::new(),
             Vec[(Int64, Label, JumpDistance)]::new()
@@ -563,7 +563,7 @@ impl AssemblerX64 {
         }
     }
 
-    @pub fn movqrr(dest: Register, src: Register) {
+    pub fn movqrr(dest: Register, src: Register) {
         self.emitRex64ModRm(src, dest);
         self.emitByte(0x89u8);
         self.emitModRmReg(src, dest);
@@ -737,7 +737,7 @@ impl AssemblerX64 {
         self.emitModRmReg(src, dest);
     }
 
-    @pub fn pushqr(reg: Register) {
+    pub fn pushqr(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte((0x50i32 + reg.lowBits()).toUInt8());
     }
@@ -758,7 +758,7 @@ impl AssemblerX64 {
         self.emitModRmReg(dest, src);
     }
 
-    @pub fn popqr(reg: Register) {
+    pub fn popqr(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte((0x58i32 + reg.lowBits()).toUInt8());
     }
@@ -771,7 +771,7 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    @pub fn retq() {
+    pub fn retq() {
         self.emitByte(0xC3u8);
     }
 
@@ -1256,7 +1256,7 @@ impl AssemblerX64 {
         self.buffer.size()
     }
 
-    @pub fn finalize(): Array[UInt8] {
+    pub fn finalize(): Array[UInt8] {
         self.resolveJumps();
         while self.buffer.size() % 16 != 0 {
             self.int3();
@@ -1264,7 +1264,7 @@ impl AssemblerX64 {
         self.buffer.toArray()
     }
 
-    @pub fn finalizeTesting(): MachineCode {
+    pub fn finalizeTesting(): MachineCode {
         self.resolveJumps();
         MachineCode::new(self.buffer.toArray())
     }
@@ -1449,7 +1449,7 @@ class Address {
 }
 
 impl Address {
-    @static fn new(): Address {
+    static fn new(): Address {
         Address(0u8, 0, Array[UInt8]::zero(6i64))
     }
 
@@ -1495,7 +1495,7 @@ impl Address {
         self.length = self.length + 4i64;
     }
 
-    @static fn offset(base: Register, offset: Int32): Address {
+    static fn offset(base: Register, offset: Int32): Address {
         let address = Address::new();
 
         let mode = if offset == 0i32 && base != RBP && base != R13 {
@@ -1525,7 +1525,7 @@ impl Address {
         address
     }
 
-    @static fn index(index: Register, factor: ScaleFactor, disp: Int32): Address {
+    static fn index(index: Register, factor: ScaleFactor, disp: Int32): Address {
         let address = Address::new();
 
         address.set_modrm(0b00i32, RSP);
@@ -1537,7 +1537,7 @@ impl Address {
         address
     }
 
-    @static fn array(base: Register, index: Register, factor: ScaleFactor, disp: Int32): Address {
+    static fn array(base: Register, index: Register, factor: ScaleFactor, disp: Int32): Address {
         let address = Address::new();
 
         let mode = if disp == 0i32 && base != RBP && base != R13 {
@@ -1566,7 +1566,7 @@ impl Address {
         address
     }
 
-    @static fn rip(disp: Int32): Address {
+    static fn rip(disp: Int32): Address {
         let address = Address::new();
 
         address.set_modrm(0b00i32, RBP);

@@ -7,7 +7,7 @@ use package::bytecode::reader::BytecodeIterator;
 use package::graph::Graph;
 use package::graph::Block;
 
-@pub fn createBlocksWithEdgesFromBytecode(graph: Graph, bc: BytecodeFunction): BlockMap {
+pub fn createBlocksWithEdgesFromBytecode(graph: Graph, bc: BytecodeFunction): BlockMap {
     let blockMap = BlockMap::new(bc);
 
     // The first pass creates blocks
@@ -19,25 +19,25 @@ use package::graph::Block;
     blockMap
 }
 
-@pub class BlockMap {
+pub class BlockMap {
     bc: BytecodeFunction,
     blocks: HashMap[Int64, Block],
 }
 
 impl BlockMap {
-    @static fn new(bc: BytecodeFunction): BlockMap {
+    static fn new(bc: BytecodeFunction): BlockMap {
         BlockMap(bc, HashMap[Int64, Block]::new())
     }
 
-    @pub fn insert(offset: Int64, block: Block) {
+    pub fn insert(offset: Int64, block: Block) {
         self.blocks.insert(offset, block);
     }
 
-    @pub fn blockAt(offset: Int64): Option[Block] {
+    pub fn blockAt(offset: Int64): Option[Block] {
         self.blocks(offset)
     }
 
-    @pub fn nextBlockAt(offset: Int64): Option[Block] {
+    pub fn nextBlockAt(offset: Int64): Option[Block] {
         let mut offset = offset;
 
         while offset < self.bc.code.size() {
@@ -60,7 +60,7 @@ class EdgeCreator {
 }
 
 impl EdgeCreator {
-    @static fn new(graph: Graph, bc: BytecodeFunction, blockMap: BlockMap): EdgeCreator {
+    static fn new(graph: Graph, bc: BytecodeFunction, blockMap: BlockMap): EdgeCreator {
         EdgeCreator(graph, bc, blockMap, 0, None[Block], false)
     }
 
@@ -149,7 +149,7 @@ class BlockCreator {
 }
 
 impl BlockCreator {
-    @static fn new(graph: Graph, bc: BytecodeFunction, blockMap: BlockMap): BlockCreator {
+    static fn new(graph: Graph, bc: BytecodeFunction, blockMap: BlockMap): BlockCreator {
         BlockCreator(
             graph,
             bc,

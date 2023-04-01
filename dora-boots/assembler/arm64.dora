@@ -118,7 +118,7 @@ enum Cond {
 }
 
 impl Cond {
-    @pub fn invert(): Cond {
+    pub fn invert(): Cond {
         match self {
             Cond::EQ => Cond::NE,
             Cond::NE => Cond::EQ,
@@ -139,7 +139,7 @@ impl Cond {
         }
     }
 
-    @pub fn encoding(): Int32 {
+    pub fn encoding(): Int32 {
         match self {
             Cond::EQ => 0b0000i32,
             Cond::NE => 0b0001i32,
@@ -161,44 +161,44 @@ impl Cond {
     }
 }
 
-@pub class AssemblerArm64 {
+pub class AssemblerArm64 {
     buffer: AssemblerBuffer,
 }
 
 impl AssemblerArm64 {
-    @pub @static fn new(): AssemblerArm64 {
+    pub static fn new(): AssemblerArm64 {
         AssemblerArm64(AssemblerBuffer::new())
     }
 
-    @pub fn ret() {
+    pub fn ret() {
         let inst = encoding::uncondBranchReg(0b0010i32, 0b11111i32, 0i32, REG_LR, 0i32);
         self.buffer.emitInt32(inst);
     }
 
-    @pub fn retReg(rn: Register) {
+    pub fn retReg(rn: Register) {
         let inst = encoding::uncondBranchReg(0b0010i32, 0b11111i32, 0i32, rn, 0i32);
         self.buffer.emitInt32(inst);
     }
 
-    @pub fn b(label: Label) {
+    pub fn b(label: Label) {
         unreachable[()]();
     }
 
-    @pub fn bl(label: Label) {
+    pub fn bl(label: Label) {
         unreachable[()]();
     }
 
-    @pub fn blr(rn: Register) {
+    pub fn blr(rn: Register) {
         let inst = encoding::uncondBranchReg(0b0001i32, 0b11111i32, 0i32, rn, 0i32);
         self.buffer.emitInt32(inst);
     }
 
-    @pub fn br(rn: Register) {
+    pub fn br(rn: Register) {
         let inst = encoding::uncondBranchReg(0b0000i32, 0b11111i32, 0i32, rn, 0i32);
         self.buffer.emitInt32(inst);
     }
 
-    @pub fn finalize(): Array[UInt8] {
+    pub fn finalize(): Array[UInt8] {
         while self.buffer.size() % 16 != 0 {
             self.ret();
         }
@@ -259,7 +259,7 @@ impl Register {
     }
 }
 
-@pub enum Extend {
+pub enum Extend {
     UXTB,
     UXTH,
     LSL,
@@ -297,7 +297,7 @@ impl Extend {
     }
 }
 
-@pub enum Shift {
+pub enum Shift {
     LSL,
     LSR,
     ASR,
@@ -326,14 +326,14 @@ mod encoding {
     use package::assembler::Register;
     use super::{Extend, Shift, Cond};
 
-    @pub fn uncondBranchImm(op: Int32, imm26: Int32): Int32 {
+    pub fn uncondBranchImm(op: Int32, imm26: Int32): Int32 {
         assert(fitsUnsigned(op, 1i32));
         assert(fitsSigned(imm26, 26i32));
 
         0b101i32 << 26i32 | op << 31i32 | (imm26 & 0x3FFFFFFi32)
     }
 
-    @pub fn uncondBranchReg(opc: Int32, op2: Int32, op3: Int32, rn: Register, op4: Int32): Int32 {
+    pub fn uncondBranchReg(opc: Int32, op2: Int32, op3: Int32, rn: Register, op4: Int32): Int32 {
         assert(fitsUnsigned(opc, 4i32));
         assert(fitsUnsigned(op2, 5i32));
         assert(fitsUnsigned(op3, 6i32));
@@ -343,7 +343,7 @@ mod encoding {
         0b1101011i32 << 25i32 | opc << 21i32 | op2 << 16i32 | op3 << 10i32 | rn.encoding() << 5i32 | op4
     }
 
-    @pub fn addsub_extreg(
+    pub fn addsub_extreg(
         sf: Int32,
         op: Int32,
         s: Int32,
@@ -382,7 +382,7 @@ mod encoding {
             | rd.encodingZeroOrSp()
     }
 
-    @pub fn addsub_shreg(
+    pub fn addsub_shreg(
         sf: Int32,
         op: Int32,
         s: Int32,
@@ -412,7 +412,7 @@ mod encoding {
             | rd.encodingZero()
     }
 
-    @pub fn atomic_op(
+    pub fn atomic_op(
         size: Int32,
         v: Int32,
         a: Int32,
@@ -446,7 +446,7 @@ mod encoding {
             | rt.encoding()
     }
 
-    @pub fn bitfield(
+    pub fn bitfield(
         sf: Int32,
         opc: Int32,
         n: Int32,
@@ -473,7 +473,7 @@ mod encoding {
             | rd.encoding()
     }
 
-    @pub fn cmp_branch_imm(sf: Int32, op: Int32, rt: Register, imm19: Int32): Int32 {
+    pub fn cmp_branch_imm(sf: Int32, op: Int32, rt: Register, imm19: Int32): Int32 {
         assert(fitsBit(sf));
         assert(fitsBit(op));
         assert(fitsI19(imm19));
@@ -483,7 +483,7 @@ mod encoding {
         sf << 31i32 | 0b011010i32 << 25i32 | op << 24i32 | imm << 5i32 | rt.encoding()
     }
 
-    @pub fn cond_branch_imm(cond: Cond, imm19: Int32): Int32 {
+    pub fn cond_branch_imm(cond: Cond, imm19: Int32): Int32 {
         assert(fitsI19(imm19));
 
         let imm = imm19 & 0x7FFFFi32;

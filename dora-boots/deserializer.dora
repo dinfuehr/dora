@@ -5,14 +5,14 @@ use package::bytecode::data::BytecodeFunction;
 use package::bytecode::opcode as opc;
 use package::interface::Architecture;
 
-@pub fn decodeCompilationInfo(reader: ByteReader): CompilationInfo {
+pub fn decodeCompilationInfo(reader: ByteReader): CompilationInfo {
     let bc = decodeBytecodeFunction(reader);
     let typeParams = decodeTypeParams(reader);
     let arch = decodeArchitecture(reader);
     CompilationInfo(bc, typeParams, arch)
 }
 
-@pub fn decodeBytecodeFunction(reader: ByteReader): BytecodeFunction {
+pub fn decodeBytecodeFunction(reader: ByteReader): BytecodeFunction {
     let code = decodeBytecodeArray(reader);
     let constpool = decodeConstPool(reader);
     let registers = decodeRegisters(reader);
@@ -148,27 +148,27 @@ fn decodeBytecodeTypeArray(reader: ByteReader): Array[BytecodeType] {
     data
 }
 
-@pub class ByteReader {
+pub class ByteReader {
     array: Array[UInt8],
     idx: Int64,
 }
 
 impl ByteReader {
-    @static @pub fn new(array: Array[UInt8]): ByteReader {
+    static pub fn new(array: Array[UInt8]): ByteReader {
         ByteReader(array, 0)
     }
 
-    @pub fn moreBytes(): Bool {
+    pub fn moreBytes(): Bool {
         self.idx < self.array.size()
     }
 
-    @pub fn readUInt8(): UInt8 {
+    pub fn readUInt8(): UInt8 {
         let value = self.array(self.idx);
         self.idx = self.idx + 1i64;
         value
     }
 
-    @pub fn readInt32(): Int32 {
+    pub fn readInt32(): Int32 {
         let by1 = self.readUInt8().toInt32();
         let by2 = self.readUInt8().toInt32();
         let by3 = self.readUInt8().toInt32();
@@ -177,11 +177,11 @@ impl ByteReader {
         (by4 << 24i32) | (by3 << 16i32) | (by2 << 8i32) | by1
     }
 
-    @pub fn readId(): Int32 {
+    pub fn readId(): Int32 {
         self.readInt32()
     }
 
-    @pub fn readInt64(): Int64 {
+    pub fn readInt64(): Int64 {
         let by1 = self.readUInt8().toInt64();
         let by2 = self.readUInt8().toInt64();
         let by3 = self.readUInt8().toInt64();
@@ -194,7 +194,7 @@ impl ByteReader {
         (by8 << 56i32) | (by7 << 48i32) | (by6 << 40i32) | (by5 << 32i32) | (by4 << 24i32) | (by3 << 16i32) | (by2 << 8i32) | by1
     }
 
-    @pub fn readByteArray(): Array[UInt8] {
+    pub fn readByteArray(): Array[UInt8] {
         let len = self.readInt32().toInt64();
         let data = Array[UInt8]::zero(len);
 
@@ -208,13 +208,13 @@ impl ByteReader {
         data
     }
 
-    @pub fn readStringContent(length: Int64): String {
+    pub fn readStringContent(length: Int64): String {
         let value = String::fromBytesPart(self.array, self.idx, length).getOrPanic();
         self.idx = self.idx + length;
         value
     }
 
-    @pub fn position(): Int64 {
+    pub fn position(): Int64 {
         self.idx
     }
 

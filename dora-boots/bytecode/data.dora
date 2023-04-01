@@ -5,15 +5,15 @@ use std::Hash;
 use package::graph::Block;
 use package::ssagen_block::BlockMap;
 
-@pub class BytecodeFunction {
-    @pub code: Array[UInt8],
-    @pub const_pool: Array[ConstPoolEntry],
-    @pub registers: Array[BytecodeType],
-    @pub arguments: Int32,
+pub class BytecodeFunction {
+    pub code: Array[UInt8],
+    pub const_pool: Array[ConstPoolEntry],
+    pub registers: Array[BytecodeType],
+    pub arguments: Int32,
 }
 
 impl BytecodeFunction {
-    @static fn new(
+    static fn new(
             code: Array[UInt8],
             const_pool: Array[ConstPoolEntry],
             registers: Array[BytecodeType],
@@ -21,15 +21,15 @@ impl BytecodeFunction {
         BytecodeFunction(code, const_pool, registers, arguments)
     }
 
-    @pub fn constPool(idx: ConstPoolId): ConstPoolEntry {
+    pub fn constPool(idx: ConstPoolId): ConstPoolEntry {
         self.const_pool(idx.value.toInt64())
     }
 
-    @pub fn codeAt(idx: Int32): Int32 {
+    pub fn codeAt(idx: Int32): Int32 {
         self.code(idx.toInt64()).toInt32()
     }
 
-    @pub fn codeInt32At(idx: Int32): Int32 {
+    pub fn codeInt32At(idx: Int32): Int32 {
         let byte1 = self.codeAt(idx);
         let byte2 = self.codeAt(idx+1i32);
         let byte3 = self.codeAt(idx+2i32);
@@ -39,7 +39,7 @@ impl BytecodeFunction {
     }
 }
 
-@pub enum ConstPoolEntry {
+pub enum ConstPoolEntry {
     Int32(Int32),
     Int64(Int64),
     Float32(Float32),
@@ -49,28 +49,28 @@ impl BytecodeFunction {
 }
 
 impl ConstPoolEntry {
-    @pub fn toInt32(): Option[Int32] {
+    pub fn toInt32(): Option[Int32] {
         match self {
             ConstPoolEntry::Int32(value) => Some(value),
             _ => None,
         }
     }
 
-    @pub fn toInt64(): Option[Int64] {
+    pub fn toInt64(): Option[Int64] {
         match self {
             ConstPoolEntry::Int64(value) => Some(value),
             _ => None,
         }
     }
 
-    @pub fn toFloat32(): Option[Float32] {
+    pub fn toFloat32(): Option[Float32] {
         match self {
             ConstPoolEntry::Float32(value) => Some(value),
             _ => None,
         }
     }
 
-    @pub fn toFloat64(): Option[Float64] {
+    pub fn toFloat64(): Option[Float64] {
         match self {
             ConstPoolEntry::Float64(value) => Some(value),
             _ => None,
@@ -91,7 +91,7 @@ impl Stringable for ConstPoolEntry {
     }
 }
 
-@pub enum SourceType {
+pub enum SourceType {
     Unit,
     UInt8,
     Bool,
@@ -107,7 +107,7 @@ impl Stringable for ConstPoolEntry {
     TypeParam(Int32),
 }
 
-@pub struct BytecodeRegister(@pub value: Int32)
+pub struct BytecodeRegister(pub value: Int32)
 
 impl Equals for BytecodeRegister {
     fn equals(other: BytecodeRegister): Bool {
@@ -125,10 +125,10 @@ impl Stringable for BytecodeRegister {
     fn toString(): String { "r${self.value}" }
 }
 
-@pub struct ClassDefId(@pub value: Int32)
-@pub struct FieldId(@pub value: Int32)
-@pub struct GlobalId(@pub value: Int32)
-@pub struct ConstPoolId(@pub value: Int32)
+pub struct ClassDefId(pub value: Int32)
+pub struct FieldId(pub value: Int32)
+pub struct GlobalId(pub value: Int32)
+pub struct ConstPoolId(pub value: Int32)
 
 impl ConstPoolId {
     fn equals(rhs: ConstPoolId): Bool {
@@ -136,9 +136,9 @@ impl ConstPoolId {
     }
 }
 
-@pub struct FctId(@pub value: Int32)
+pub struct FctId(pub value: Int32)
 
-@pub enum BytecodeType {
+pub enum BytecodeType {
     Unit,
     Ptr,
     UInt8,

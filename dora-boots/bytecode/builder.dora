@@ -9,16 +9,16 @@ use package::bytecode::data::GlobalId;
 use package::bytecode::data::ClassDefId;
 use package::bytecode::opcode as opc;
 
-@pub class BytecodeBuilder {
-    @pub code: Vec[UInt8],
-    @pub constPool: Vec[ConstPoolEntry],
-    @pub registers: Vec[BytecodeType],
-    @pub unresolvedJumps: Vec[UnresolvedJump],
-    @pub arguments: Int32,
+pub class BytecodeBuilder {
+    pub code: Vec[UInt8],
+    pub constPool: Vec[ConstPoolEntry],
+    pub registers: Vec[BytecodeType],
+    pub unresolvedJumps: Vec[UnresolvedJump],
+    pub arguments: Int32,
 }
 
 impl BytecodeBuilder {
-    @pub @static fn new(): BytecodeBuilder {
+    pub static fn new(): BytecodeBuilder {
         BytecodeBuilder(
             Vec[UInt8]::new(),
             Vec[ConstPoolEntry]::new(),
@@ -28,12 +28,12 @@ impl BytecodeBuilder {
         )
     }
 
-    @pub fn addRegister(ty: BytecodeType): BytecodeRegister {
+    pub fn addRegister(ty: BytecodeType): BytecodeRegister {
         self.registers.push(ty);
         BytecodeRegister(self.registers.size().toInt32() - 1i32)
     }
 
-    @pub fn addNRegisters(ty: BytecodeType, count: Int64) {
+    pub fn addNRegisters(ty: BytecodeType, count: Int64) {
         let mut idx = 0;
 
         while idx < count {
@@ -44,222 +44,222 @@ impl BytecodeBuilder {
         self.registers.push(ty);
     }
 
-    @pub fn addRegisters(types: BytecodeType...) {
+    pub fn addRegisters(types: BytecodeType...) {
         for ty in types {
             self.registers.push(ty);
         }
     }
 
-    @pub fn createLabel(): BytecodeLabel {
+    pub fn createLabel(): BytecodeLabel {
         BytecodeLabel::new()
     }
 
-    @pub fn defineLabel(): BytecodeLabel {
+    pub fn defineLabel(): BytecodeLabel {
         BytecodeLabel::new().bindTo(self.code.size().toInt32())
     }
 
-    @pub fn bindLabel(lbl: BytecodeLabel) {
+    pub fn bindLabel(lbl: BytecodeLabel) {
         lbl.bindTo(self.code.size().toInt32());
     }
 
-    @pub fn setArguments(arguments: Int32) {
+    pub fn setArguments(arguments: Int32) {
         self.arguments = arguments;
     }
 
-    @pub fn emitAdd(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emitAdd(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(opc::BC_ADD, dest, lhs, rhs);
     }
 
-    @pub fn emitSub(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emitSub(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(opc::BC_SUB, dest, lhs, rhs);
     }
 
-    @pub fn emitNeg(dest: BytecodeRegister, src: BytecodeRegister) {
+    pub fn emitNeg(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(opc::BC_NEG, dest, src);
     }
 
-    @pub fn emitMul(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emitMul(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(opc::BC_MUL, dest, lhs, rhs);
     }
 
-    @pub fn emitDiv(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emitDiv(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(opc::BC_DIV, dest, lhs, rhs);
     }
 
-    @pub fn emitMod(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emitMod(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(opc::BC_MOD, dest, lhs, rhs);
     }
 
-    @pub fn emitAnd(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emitAnd(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(opc::BC_AND, dest, lhs, rhs);
     }
 
-    @pub fn emitOr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emitOr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(opc::BC_OR, dest, lhs, rhs);
     }
 
-    @pub fn emitXor(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emitXor(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(opc::BC_XOR, dest, lhs, rhs);
     }
 
-    @pub fn emitNot(dest: BytecodeRegister, src: BytecodeRegister) {
+    pub fn emitNot(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(opc::BC_NOT, dest, src);
     }
 
-    @pub fn emitShl(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emitShl(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(opc::BC_SHL, dest, lhs, rhs);
     }
 
-    @pub fn emitShr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emitShr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(opc::BC_SHR, dest, lhs, rhs);
     }
 
-    @pub fn emitSar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emitSar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(opc::BC_SAR, dest, lhs, rhs);
     }
 
-    @pub fn emitMov(dest: BytecodeRegister, src: BytecodeRegister) {
+    pub fn emitMov(dest: BytecodeRegister, src: BytecodeRegister) {
         self.emitReg2(opc::BC_MOV, dest, src);
     }
 
-    @pub fn emitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
+    pub fn emitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
         self.emitField(opc::BC_LOAD_FIELD, dest, obj, cls, field);
     }
 
-    @pub fn emitStoreField(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
+    pub fn emitStoreField(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
         self.emitField(opc::BC_STORE_FIELD, src, obj, cls, field);
     }
 
-    @pub fn emitLoadGlobal(dest: BytecodeRegister, glob: GlobalId) {
+    pub fn emitLoadGlobal(dest: BytecodeRegister, glob: GlobalId) {
         self.emitGlobal(opc::BC_LOAD_GLOBAL, dest, glob);
     }
 
-    @pub fn emitStoreGlobal(src: BytecodeRegister, glob: GlobalId) {
+    pub fn emitStoreGlobal(src: BytecodeRegister, glob: GlobalId) {
         self.emitGlobal(opc::BC_STORE_GLOBAL, src, glob);
     }
 
-    @pub fn emitPushRegister(src: BytecodeRegister) {
+    pub fn emitPushRegister(src: BytecodeRegister) {
         self.emitReg1(opc::BC_PUSH_REGISTER, src);
     }
 
-    @pub fn emitConstTrue(dest: BytecodeRegister) {
+    pub fn emitConstTrue(dest: BytecodeRegister) {
         self.emitReg1(opc::BC_CONST_TRUE, dest);
     }
 
-    @pub fn emitConstFalse(dest: BytecodeRegister) {
+    pub fn emitConstFalse(dest: BytecodeRegister) {
         self.emitReg1(opc::BC_CONST_FALSE, dest);
     }
 
-    @pub fn emitConstByte(dest: BytecodeRegister, value: UInt8) {
+    pub fn emitConstByte(dest: BytecodeRegister, value: UInt8) {
         self.emitReg1AndByte(opc::BC_CONST_UINT8, dest, value);
     }
 
-    @pub fn emitConstChar(dest: BytecodeRegister, idx: ConstPoolId) {
+    pub fn emitConstChar(dest: BytecodeRegister, idx: ConstPoolId) {
         self.emitReg1AndIdx(opc::BC_CONST_CHAR, dest, idx);
     }
 
-    @pub fn emitConstInt32(dest: BytecodeRegister, idx: ConstPoolId) {
+    pub fn emitConstInt32(dest: BytecodeRegister, idx: ConstPoolId) {
         self.emitReg1AndIdx(opc::BC_CONST_INT32, dest, idx);
     }
 
-    @pub fn emitConstInt64(dest: BytecodeRegister, idx: ConstPoolId) {
+    pub fn emitConstInt64(dest: BytecodeRegister, idx: ConstPoolId) {
         self.emitReg1AndIdx(opc::BC_CONST_INT64, dest, idx);
     }
 
-    @pub fn emitConstFloat32(dest: BytecodeRegister, idx: ConstPoolId) {
+    pub fn emitConstFloat32(dest: BytecodeRegister, idx: ConstPoolId) {
         self.emitReg1AndIdx(opc::BC_CONST_FLOAT32, dest, idx);
     }
 
-    @pub fn emitConstFloat64(dest: BytecodeRegister, idx: ConstPoolId) {
+    pub fn emitConstFloat64(dest: BytecodeRegister, idx: ConstPoolId) {
         self.emitReg1AndIdx(opc::BC_CONST_FLOAT64, dest, idx);
     }
 
-    @pub fn emitConstString(dest: BytecodeRegister, idx: ConstPoolId) {
+    pub fn emitConstString(dest: BytecodeRegister, idx: ConstPoolId) {
         self.emitReg1AndIdx(opc::BC_CONST_STRING, dest, idx);
     }
 
-    @pub fn emitTestEq(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emitTestEq(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(opc::BC_TEST_EQ, dest, lhs, rhs);
     }
 
-    @pub fn emitTestNe(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emitTestNe(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(opc::BC_TEST_NE, dest, lhs, rhs);
     }
 
-    @pub fn emitTestGt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emitTestGt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(opc::BC_TEST_GT, dest, lhs, rhs);
     }
 
-    @pub fn emitTestGe(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emitTestGe(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(opc::BC_TEST_GE, dest, lhs, rhs);
     }
 
-    @pub fn emitTestLt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emitTestLt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(opc::BC_TEST_LT, dest, lhs, rhs);
     }
 
-    @pub fn emitTestLe(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emitTestLe(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
         self.emitReg3(opc::BC_TEST_LE, dest, lhs, rhs);
     }
 
-    @pub fn emitLoopStart() {
+    pub fn emitLoopStart() {
         self.emitInst(opc::BC_LOOP_START);
     }
 
-    @pub fn emitJumpLoop(lbl: BytecodeLabel) {
+    pub fn emitJumpLoop(lbl: BytecodeLabel) {
         assert(lbl.isBound());
         let offset = self.code.size().toInt32() - lbl.offset();
         self.emitJmp(opc::BC_JUMP_LOOP, offset);
     }
 
-    @pub fn emitJumpIfFalse(opnd: BytecodeRegister, lbl: BytecodeLabel) {
+    pub fn emitJumpIfFalse(opnd: BytecodeRegister, lbl: BytecodeLabel) {
         assert(!lbl.isBound());
         self.emitJmpForward(opc::BC_JUMP_IF_FALSE, opc::BC_JUMP_IF_FALSE_CONST, Some[BytecodeRegister](opnd), lbl);
     }
 
-    @pub fn emitJumpIfTrue(opnd: BytecodeRegister, lbl: BytecodeLabel) {
+    pub fn emitJumpIfTrue(opnd: BytecodeRegister, lbl: BytecodeLabel) {
         assert(!lbl.isBound());
         self.emitJmpForward(opc::BC_JUMP_IF_TRUE, opc::BC_JUMP_IF_TRUE_CONST, Some[BytecodeRegister](opnd), lbl);
     }
 
-    @pub fn emitJump(lbl: BytecodeLabel) {
+    pub fn emitJump(lbl: BytecodeLabel) {
         assert(!lbl.isBound());
         self.emitJmpForward(opc::BC_JUMP, opc::BC_JUMP_CONST, None[BytecodeRegister], lbl);
     }
 
-    @pub fn emitInvokeDirect(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
+    pub fn emitInvokeDirect(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFct(opc::BC_INVOKE_DIRECT, dest, fct, start, count);
     }
 
-    @pub fn emitInvokeVirtual(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
+    pub fn emitInvokeVirtual(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFct(opc::BC_INVOKE_VIRTUAL, dest, fct, start, count);
     }
 
-    @pub fn emitInvokeStatic(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
+    pub fn emitInvokeStatic(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
         self.emitFct(opc::BC_INVOKE_STATIC, dest, fct, start, count);
     }
 
-    @pub fn emitNewObject(dest: BytecodeRegister, cls: ClassDefId) {
+    pub fn emitNewObject(dest: BytecodeRegister, cls: ClassDefId) {
         self.emitVal3(opc::BC_NEW_OBJECT, dest.value, cls.value);
     }
 
-    @pub fn emitArrayLength(dest: BytecodeRegister) {
+    pub fn emitArrayLength(dest: BytecodeRegister) {
         self.emitReg1(opc::BC_ARRAY_LENGTH, dest);
     }
 
-    @pub fn emitLoadArray(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {
+    pub fn emitLoadArray(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {
         self.emitReg3(opc::BC_LOAD_ARRAY, dest, arr, idx);
     }
 
-    @pub fn emitStoreArray(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {
+    pub fn emitStoreArray(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {
         self.emitReg3(opc::BC_STORE_ARRAY, src, arr, idx);
     }
 
-    @pub fn emitRet(opnd: BytecodeRegister) {
+    pub fn emitRet(opnd: BytecodeRegister) {
         self.emitReg1(opc::BC_RET, opnd);
     }
 
-    @pub fn generate(): BytecodeFunction {
+    pub fn generate(): BytecodeFunction {
         self.resolveJumps();
         let code = self.code.toArray();
         let constPool = self.constPool.toArray();
@@ -349,7 +349,7 @@ impl BytecodeBuilder {
         self.emitVal1(inst);
     }
 
-    @pub fn addConst(entry: ConstPoolEntry): ConstPoolId {
+    pub fn addConst(entry: ConstPoolEntry): ConstPoolId {
         self.constPool.push(entry);
         ConstPoolId(self.constPool.size().toInt32() - 1i32)
     }
@@ -501,7 +501,7 @@ fn isWide(val: Int32): Bool {
 class BytecodeLabel(off: Int32)
 
 impl BytecodeLabel {
-    @static fn new(): BytecodeLabel {
+    static fn new(): BytecodeLabel {
         BytecodeLabel(-1i32)
     }
 

@@ -1,2 +1,2 @@
-@pub mod arm64;
-@pub mod x64;
+pub mod arm64;
+pub mod x64;

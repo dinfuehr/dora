@@ -1,5 +1,5 @@
-@pub mod arm64;
-@pub mod x64;
+pub mod arm64;
+pub mod x64;
 
 class AssemblerBuffer {
     buffer: Vec[UInt8],
@@ -7,7 +7,7 @@ class AssemblerBuffer {
 }
 
 impl AssemblerBuffer {
-    @static fn new(): AssemblerBuffer {
+    static fn new(): AssemblerBuffer {
         AssemblerBuffer(Vec[UInt8]::new(), 0)
     }
 
@@ -74,12 +74,12 @@ impl AssemblerBuffer {
     }
 }
 
-@pub class Label {
+pub class Label {
     offset: Int64
 }
 
 impl Label {
-    @static fn new(): Label {
+    static fn new(): Label {
         Label(-1)
     }
 
@@ -113,7 +113,7 @@ fn testAssemblerBufferEmitInt() {
     assert(buffer.size() == 4i64);
 }
 
-@pub struct Register(value: Int32)
+pub struct Register(value: Int32)
 
 impl Register {
     fn equals(rhs: Register): Bool {
@@ -127,7 +127,7 @@ class MachineCode {
 }
 
 impl MachineCode {
-    @static fn new(bytes: Array[UInt8]): MachineCode {
+    static fn new(bytes: Array[UInt8]): MachineCode {
         MachineCode(bytes, 0)
     }
 

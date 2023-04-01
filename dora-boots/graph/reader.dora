@@ -11,7 +11,7 @@ class GraphReader {
 }
 
 impl GraphReader {
-    @static fn new(content: String): GraphReader {
+    static fn new(content: String): GraphReader {
         GraphReader(content, Lexer::new(content))
     }
 
@@ -26,7 +26,7 @@ class Lexer {
 }
 
 impl Lexer {
-    @static fn new(content: String): Lexer {
+    static fn new(content: String): Lexer {
         Lexer(content, 0)
     }
 

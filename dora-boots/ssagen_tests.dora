@@ -255,7 +255,7 @@ fn testSsaGenIfReturnInBothBranches() {
 ");
 }
 
-@pub fn bcSsaGenIfReturnInBothBranches(): BytecodeFunction {
+pub fn bcSsaGenIfReturnInBothBranches(): BytecodeFunction {
     // fn bcSsaGenIfReturnInBothBranches(a: Bool): Int32 {
     //    if a { return 1; } else { return 2; }
     // }
@@ -346,7 +346,7 @@ fn testSsaGenWhileCountDown() {
 ");
 }
 
-@pub fn bcSsaGenWhileCountDown(): BytecodeFunction {
+pub fn bcSsaGenWhileCountDown(): BytecodeFunction {
     let b = BytecodeBuilder::new();
     b.setArguments(1i32);
     b.addRegisters(BytecodeType::Int32, BytecodeType::Int32, BytecodeType::Bool, BytecodeType::Int32);

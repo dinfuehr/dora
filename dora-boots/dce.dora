@@ -5,7 +5,7 @@ use package::graph::verifier::verifyGraph;
 use package::graph::ty::Type;
 use package::dominator::buildDominatorTree;
 
-@pub fn deadCodeElimination(graph: Graph) {
+pub fn deadCodeElimination(graph: Graph) {
     removeDeadInstructions(graph)
 }
 

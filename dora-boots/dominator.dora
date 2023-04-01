@@ -4,7 +4,7 @@ use package::graph::Graph;
 use package::graph::Block;
 use package::graph::LoopData;
 
-@pub fn buildDominatorTree(graph: Graph) {
+pub fn buildDominatorTree(graph: Graph) {
     let visited = findBackEdges(graph);
     removeUnreachableBlocks(graph, visited);
     computePostOrder(graph);

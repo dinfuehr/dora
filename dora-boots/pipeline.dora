@@ -8,7 +8,7 @@ class CompilationJob {
 }
 
 impl CompilationJob {
-    @static @pub fn new(info: CompilationInfo): CompilationJob {
+    static pub fn new(info: CompilationInfo): CompilationJob {
         CompilationJob(info, None[Graph])
     }
 

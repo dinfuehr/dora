@@ -2,7 +2,7 @@ use package::graph::Graph;
 use package::graph::Block;
 use package::graph::Inst;
 
-@pub fn verifyGraph(graph: Graph) {
+pub fn verifyGraph(graph: Graph) {
     GraphVerifier::new(graph).run()
 }
 
@@ -12,7 +12,7 @@ class GraphVerifier {
 }
 
 impl GraphVerifier {
-    @static fn new(graph: Graph): GraphVerifier {
+    static fn new(graph: Graph): GraphVerifier {
         GraphVerifier(
             graph,
             graph.getEntryBlock(),

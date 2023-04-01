@@ -36,7 +36,7 @@ use package::bytecode::data::GlobalId;
 use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::reader::BytecodeIterator;
 
-@pub fn createGraph(bc: BytecodeFunction): Graph {
+pub fn createGraph(bc: BytecodeFunction): Graph {
     let graph = Graph::new();
 
     // Create basic blocks and edges between them
@@ -69,7 +69,7 @@ class SsaGen {
 }
 
 impl SsaGen {
-    @static fn new(graph: Graph, bc: BytecodeFunction, blockMap: BlockMap): SsaGen {
+    static fn new(graph: Graph, bc: BytecodeFunction, blockMap: BlockMap): SsaGen {
         SsaGen(
             graph,
             bc,

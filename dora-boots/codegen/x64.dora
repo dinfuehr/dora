@@ -4,28 +4,28 @@ use package::assembler::x64::RSP;
 use package::interface::CompilationInfo;
 use package::interface::Architecture;
 
-@pub class CodeGenX64 {
+pub class CodeGenX64 {
     info: CompilationInfo,
     asm: AssemblerX64,
 }
 
 impl CodeGenX64 {
-    @pub @static fn new(info: CompilationInfo): CodeGenX64 {
+    pub static fn new(info: CompilationInfo): CodeGenX64 {
         CodeGenX64(info, AssemblerX64::new())
     }
 
-    @pub fn prolog() {
+    pub fn prolog() {
         self.asm.pushqr(RBP);
         self.asm.movqrr(RBP, RSP);
     }
 
-    @pub fn epilog() {
+    pub fn epilog() {
         self.asm.movqrr(RSP, RBP);
         self.asm.popqr(RBP);
         self.asm.retq();
     }
 
-    @pub fn generate(): Array[UInt8] {
+    pub fn generate(): Array[UInt8] {
         assert(self.info.arch == Architecture::X64);
         self.prolog();
         self.epilog();

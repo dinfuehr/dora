@@ -4,7 +4,7 @@ use package::bytecode::data::GlobalId;
 use package::bytecode::data::ConstPoolId;
 use package::bytecode::opcode as opc;
 
-@pub fn decodeBytecode(code: Array[UInt8]): Array[BytecodeInstructionInfo] {
+pub fn decodeBytecode(code: Array[UInt8]): Array[BytecodeInstructionInfo] {
     let result = Vec[BytecodeInstructionInfo]::new();
 
     for instInfo in BytecodeIterator::new(code) {
@@ -14,18 +14,18 @@ use package::bytecode::opcode as opc;
     result.toArray()
 }
 
-@pub class BytecodeIterator {
+pub class BytecodeIterator {
     data: Array[UInt8],
     pos: Int64,
     length: Int64,
 }
 
 impl BytecodeIterator {
-    @pub @static fn new(data: Array[UInt8]): BytecodeIterator {
+    pub static fn new(data: Array[UInt8]): BytecodeIterator {
         BytecodeIterator(data, 0, data.size())
     }
 
-    @pub fn next(): Option[BytecodeInstructionInfo] {
+    pub fn next(): Option[BytecodeInstructionInfo] {
         if self.pos < self.length {
             Some[BytecodeInstructionInfo](self.readInstruction())
         } else {
@@ -353,9 +353,9 @@ impl BytecodeIterator {
     }
 }
 
-@pub struct BytecodeInstructionInfo {
-    @pub start: Int64,
-    @pub opcode: Int32,
-    @pub size: Int64,
-    @pub inst: BytecodeInstruction,
+pub struct BytecodeInstructionInfo {
+    pub start: Int64,
+    pub opcode: Int32,
+    pub size: Int64,
+    pub inst: BytecodeInstruction,
 }

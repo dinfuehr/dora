@@ -6,7 +6,7 @@ use package::graph::Block;
 use package::graph::Inst;
 use package::graph::Op;
 
-@pub fn dumpGraph(graph: Graph): String {
+pub fn dumpGraph(graph: Graph): String {
     GraphDumper::new(graph).dump()
 }
 
@@ -16,7 +16,7 @@ class GraphDumper {
 }
 
 impl GraphDumper {
-    @static fn new(graph: Graph): GraphDumper {
+    static fn new(graph: Graph): GraphDumper {
         GraphDumper(graph, StringBuffer::new())
     }
 
@@ -170,7 +170,7 @@ fn dumpInstName(inst: Inst): String {
     }
 }
 
-@pub fn assertGraph(graph: Graph, output: String) {
+pub fn assertGraph(graph: Graph, output: String) {
     let graphOutput = dumpGraph(graph);
 
     if !compareStrings(graphOutput, output) {
@@ -241,7 +241,7 @@ class Output {
 }
 
 impl Output {
-    @static fn new(text: String): Output {
+    static fn new(text: String): Output {
         let output = Output(
             CodepointIterator::new(text),
             '\0',
