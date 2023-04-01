@@ -2366,13 +2366,13 @@ mod cls {
         rn: Register,
         rt: Register,
     ) -> u32 {
-        fits_u2(size);
-        fits_bit(v);
-        fits_bit(a);
-        fits_bit(r);
+        assert!(fits_u2(size));
+        assert!(fits_bit(v));
+        assert!(fits_bit(a));
+        assert!(fits_bit(r));
         assert!(rs.is_gpr());
-        fits_bit(o3);
-        fits_u2(opc);
+        assert!(fits_bit(o3));
+        assert!(fits_u2(opc));
         assert!(rn.is_gpr());
         assert!(rt.is_gpr());
 

@@ -94,11 +94,11 @@ class ForwardJump {
 
 enum JumpKind {
     Unconditional,
-    Conditional(CondCode),
+    Conditional(Cond),
     NonZero(Bool, Register),
 }
 
-enum CondCode {
+enum Cond {
     EQ, // equal
     NE, // not equal
     CS,
@@ -115,6 +115,50 @@ enum CondCode {
     LT, // signed less than
     GT, // signed greater than
     LE, // signed less than or equal
+}
+
+impl Cond {
+    @pub fn invert(): Cond {
+        match self {
+            Cond::EQ => Cond::NE,
+            Cond::NE => Cond::EQ,
+            Cond::CS => Cond::CC,
+            Cond::HS => Cond::CC,
+            Cond::CC => Cond::CS,
+            Cond::LO => Cond::CS,
+            Cond::MI => Cond::PL,
+            Cond::PL => Cond::MI,
+            Cond::VS => Cond::VC,
+            Cond::VC => Cond::VS,
+            Cond::HI => Cond::LS,
+            Cond::LS => Cond::HI,
+            Cond::GE => Cond::LT,
+            Cond::LT => Cond::GE,
+            Cond::GT => Cond::LE,
+            Cond::LE => Cond::GT,
+        }
+    }
+
+    @pub fn encoding(): Int32 {
+        match self {
+            Cond::EQ => 0b0000i32,
+            Cond::NE => 0b0001i32,
+            Cond::CS => 0b0010i32,
+            Cond::HS => 0b0010i32,
+            Cond::CC => 0b0011i32,
+            Cond::LO => 0b0011i32,
+            Cond::MI => 0b0100i32,
+            Cond::PL => 0b0101i32,
+            Cond::VS => 0b0110i32,
+            Cond::VC => 0b0111i32,
+            Cond::HI => 0b1000i32,
+            Cond::LS => 0b1001i32,
+            Cond::GE => 0b1010i32,
+            Cond::LT => 0b1011i32,
+            Cond::GT => 0b1100i32,
+            Cond::LE => 0b1101i32,
+        }
+    }
 }
 
 @pub class AssemblerArm64 {
@@ -280,7 +324,7 @@ impl Shift {
 
 mod encoding {
     use package::assembler::Register;
-    use super::{Extend, Shift};
+    use super::{Extend, Shift, Cond};
 
     @pub fn uncondBranchImm(op: Int32, imm26: Int32): Int32 {
         assert(fitsUnsigned(op, 1i32));
@@ -368,8 +412,91 @@ mod encoding {
             | rd.encodingZero()
     }
 
+    @pub fn atomic_op(
+        size: Int32,
+        v: Int32,
+        a: Int32,
+        r: Int32,
+        rs: Register,
+        o3: Int32,
+        opc: Int32,
+        rn: Register,
+        rt: Register,
+    ): Int32 {
+        assert(fitsU2(size));
+        assert(fitsBit(v));
+        assert(fitsBit(a));
+        assert(fitsBit(r));
+        assert(rs.isGpr());
+        assert(fitsBit(o3));
+        assert(fitsU2(opc));
+        assert(rn.isGpr());
+        assert(rt.isGpr());
+
+        size << 30i32
+            | 0b111i32 << 27i32
+            | v << 26i32
+            | a << 23i32
+            | r << 22i32
+            | 1i32 << 21i32
+            | rs.encoding() << 16i32
+            | o3 << 15i32
+            | opc << 12i32
+            | rn.encoding() << 5i32
+            | rt.encoding()
+    }
+
+    @pub fn bitfield(
+        sf: Int32,
+        opc: Int32,
+        n: Int32,
+        immr: Int32,
+        imms: Int32,
+        rn: Register,
+        rd: Register,
+    ): Int32 {
+        assert(fitsBit(sf));
+        assert(fitsU2(opc));
+        assert(fitsBit(n));
+        assert(fitsU6(immr));
+        assert(fitsU6(imms));
+        assert(rn.isGpr());
+        assert(rd.isGpr());
+
+        sf << 31i32
+            | opc << 29i32
+            | 0b100110i32 << 23i32
+            | n << 22i32
+            | (immr & 0x3Fi32) << 16i32
+            | (imms & 0x3Fi32) << 10i32
+            | rn.encoding() << 5i32
+            | rd.encoding()
+    }
+
+    @pub fn cmp_branch_imm(sf: Int32, op: Int32, rt: Register, imm19: Int32): Int32 {
+        assert(fitsBit(sf));
+        assert(fitsBit(op));
+        assert(fitsI19(imm19));
+        assert(rt.isGpr());
+        let imm = imm19 & 0x7FFFFi32;
+
+        sf << 31i32 | 0b011010i32 << 25i32 | op << 24i32 | imm << 5i32 | rt.encoding()
+    }
+
+    @pub fn cond_branch_imm(cond: Cond, imm19: Int32): Int32 {
+        assert(fitsI19(imm19));
+
+        let imm = imm19 & 0x7FFFFi32;
+
+        0b01010100i32 << 24i32 | imm << 5i32 | cond.encoding()
+    }
+
     fn fitsBit(value: Int32): Bool {
         value >= 0i32 && value < 2i32
+    }
+
+    fn fitsI19(value: Int32): Bool {
+        fitsSigned(value, 19i32)
     }
 
     fn fitsSigned(value: Int32, bits: Int32): Bool {
