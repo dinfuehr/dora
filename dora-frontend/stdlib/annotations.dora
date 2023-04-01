@@ -3,6 +3,4 @@ annotation internal
 annotation open
 annotation optimizeImmediately
 annotation override
-annotation pub
-annotation static
 annotation Test

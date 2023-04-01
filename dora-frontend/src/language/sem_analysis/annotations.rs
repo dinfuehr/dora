@@ -84,32 +84,11 @@ impl AnnotationDefinition {
         annotation_usages.contains(name)
     }
 
-    pub fn is_pub(annotation_usages: &AnnotationUsages, sa: &SemAnalysis) -> bool {
-        let name = sa.annotations.idx(sa.known.annotations.pub_()).read().name;
-        annotation_usages.contains(name)
-    }
-    pub fn is_static(annotation_usages: &AnnotationUsages, sa: &SemAnalysis) -> bool {
-        let name = sa
-            .annotations
-            .idx(sa.known.annotations.static_())
-            .read()
-            .name;
-        annotation_usages.contains(name)
-    }
-
     pub fn is_test(annotation_usages: &AnnotationUsages, sa: &SemAnalysis) -> bool {
         let name = sa.annotations.idx(sa.known.annotations.test()).read().name;
         annotation_usages.contains(name)
     }
 
-    pub fn is_cannon(annotation_usages: &AnnotationUsages, sa: &SemAnalysis) -> bool {
-        let name = sa
-            .annotations
-            .idx(sa.known.annotations.cannon())
-            .read()
-            .name;
-        annotation_usages.contains(name)
-    }
     pub fn is_optimize_immediately(annotation_usages: &AnnotationUsages, sa: &SemAnalysis) -> bool {
         let name = sa
             .annotations

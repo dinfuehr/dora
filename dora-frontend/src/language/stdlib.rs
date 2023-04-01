@@ -19,18 +19,6 @@ pub fn resolve_internal_annotations(sa: &mut SemAnalysis) {
         "annotations::internal",
         Modifier::Internal,
     ));
-    sa.known.annotations.pub_ = Some(internal_annotation(
-        sa,
-        stdlib_id,
-        "annotations::pub",
-        Modifier::Pub,
-    ));
-    sa.known.annotations.static_ = Some(internal_annotation(
-        sa,
-        stdlib_id,
-        "annotations::static",
-        Modifier::Static,
-    ));
 
     sa.known.annotations.test = Some(internal_annotation(
         sa,

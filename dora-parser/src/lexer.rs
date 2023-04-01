@@ -586,6 +586,8 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     // qualifiers
     keywords.insert("self", TokenKind::This);
     keywords.insert("super", TokenKind::Super);
+    keywords.insert("pub", TokenKind::Pub);
+    keywords.insert("static", TokenKind::Static);
 
     // casting
     keywords.insert("as", TokenKind::As);

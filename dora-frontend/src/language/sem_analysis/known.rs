@@ -204,8 +204,6 @@ impl KnownTraits {
 #[derive(Debug)]
 pub struct KnownAnnotations {
     pub internal: Option<AnnotationDefinitionId>,
-    pub pub_: Option<AnnotationDefinitionId>,
-    pub static_: Option<AnnotationDefinitionId>,
     pub test: Option<AnnotationDefinitionId>,
     pub cannon: Option<AnnotationDefinitionId>,
     pub optimize_immediately: Option<AnnotationDefinitionId>,
@@ -215,8 +213,6 @@ impl KnownAnnotations {
     pub fn new() -> KnownAnnotations {
         KnownAnnotations {
             internal: None,
-            pub_: None,
-            static_: None,
             test: None,
             cannon: None,
             optimize_immediately: None,
@@ -225,14 +221,6 @@ impl KnownAnnotations {
 
     pub fn internal(&self) -> AnnotationDefinitionId {
         self.internal.expect("uninitialized")
-    }
-
-    pub fn pub_(&self) -> AnnotationDefinitionId {
-        self.pub_.expect("uninitialized")
-    }
-
-    pub fn static_(&self) -> AnnotationDefinitionId {
-        self.static_.expect("uninitialized")
     }
 
     pub fn test(&self) -> AnnotationDefinitionId {

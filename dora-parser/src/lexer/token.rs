@@ -48,6 +48,8 @@ pub enum TokenKind {
     // qualifiers
     This,
     Super,
+    Pub,
+    Static,
 
     // casting
     As,
@@ -162,6 +164,8 @@ impl TokenKind {
             // qualifiers
             TokenKind::This => "self",
             TokenKind::Super => "super",
+            TokenKind::Pub => "pub",
+            TokenKind::Static => "static",
 
             // casting
             TokenKind::As => "as",

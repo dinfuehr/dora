@@ -785,24 +785,13 @@ impl<'a> Parser<'a> {
     fn parse_annotation_usages(&mut self) -> Result<Modifiers, ParseErrorAndPos> {
         let mut modifiers = Modifiers::new();
         loop {
-            if !self.token.is(TokenKind::At) {
+            let modifier = self.parse_annotation_usage()?;
+
+            if modifier.is_none() {
                 break;
             }
-            self.advance_token()?;
-            let ident = self.expect_identifier()?;
-            let modifier = match self.interner.str(ident).as_str() {
-                "internal" => Modifier::Internal,
-                "pub" => Modifier::Pub,
-                "static" => Modifier::Static,
-                "Test" => Modifier::Test,
-                "optimizeImmediately" => Modifier::OptimizeImmediately,
-                annotation => {
-                    return Err(ParseErrorAndPos::new(
-                        self.token.position,
-                        ParseError::UnknownAnnotation(annotation.into()),
-                    ));
-                }
-            };
+
+            let modifier = modifier.unwrap();
 
             if modifiers.contains(modifier) {
                 return Err(ParseErrorAndPos::new(
@@ -815,6 +804,42 @@ impl<'a> Parser<'a> {
         }
 
         Ok(modifiers)
+    }
+
+    fn parse_annotation_usage(&mut self) -> Result<Option<Modifier>, ParseErrorAndPos> {
+        if self.token.is(TokenKind::Pub) {
+            self.advance_token()?;
+            Ok(Some(Modifier::Pub))
+        } else if self.token.is(TokenKind::Static) {
+            self.advance_token()?;
+            Ok(Some(Modifier::Static))
+        } else {
+            if !self.token.is(TokenKind::At) {
+                return Ok(None);
+            }
+            self.advance_token()?;
+
+            if self.token.is(TokenKind::Pub) {
+                self.advance_token()?;
+                return Ok(Some(Modifier::Pub));
+            } else if self.token.is(TokenKind::Static) {
+                self.advance_token()?;
+                return Ok(Some(Modifier::Static));
+            }
+
+            let ident = self.expect_identifier()?;
+            match self.interner.str(ident).as_str() {
+                "internal" => Ok(Some(Modifier::Internal)),
+                "pub" => Ok(Some(Modifier::Pub)),
+                "static" => Ok(Some(Modifier::Static)),
+                "Test" => Ok(Some(Modifier::Test)),
+                "optimizeImmediately" => Ok(Some(Modifier::OptimizeImmediately)),
+                annotation => Err(ParseErrorAndPos::new(
+                    self.token.position,
+                    ParseError::UnknownAnnotation(annotation.into()),
+                )),
+            }
+        }
     }
 
     fn ban_modifiers(&mut self, modifiers: &Modifiers) -> Result<(), ParseErrorAndPos> {
