@@ -72,7 +72,7 @@ impl<'a> Parser<'a> {
         let mut elements = vec![];
 
         while !self.token.is_eof() {
-            elements.push(self.parse_top_level_element()?);
+            self.parse_top_level_element(&mut elements)?;
         }
 
         let ast_file = ast::File { elements };
@@ -86,7 +86,10 @@ impl<'a> Parser<'a> {
         Ok(())
     }
 
-    fn parse_top_level_element(&mut self) -> Result<Elem, ParseErrorAndPos> {
+    fn parse_top_level_element(
+        &mut self,
+        elements: &mut Vec<Elem>,
+    ) -> Result<(), ParseErrorAndPos> {
         let modifiers = self.parse_annotation_usages()?;
 
         match self.token.kind {
@@ -99,87 +102,89 @@ impl<'a> Parser<'a> {
                         Modifier::Test,
                         Modifier::Pub,
                     ],
-                )?;
+                );
                 let fct = self.parse_function(&modifiers)?;
-                Ok(Elem::Function(Arc::new(fct)))
+                elements.push(Elem::Function(Arc::new(fct)));
             }
 
             TokenKind::Class => {
-                self.restrict_modifiers(&modifiers, &[Modifier::Internal, Modifier::Pub])?;
+                self.restrict_modifiers(&modifiers, &[Modifier::Internal, Modifier::Pub]);
                 let class = self.parse_class(&modifiers)?;
-                Ok(Elem::Class(Arc::new(class)))
+                elements.push(Elem::Class(Arc::new(class)));
             }
 
             TokenKind::Struct => {
-                self.restrict_modifiers(&modifiers, &[Modifier::Pub, Modifier::Internal])?;
+                self.restrict_modifiers(&modifiers, &[Modifier::Pub, Modifier::Internal]);
                 let struc = self.parse_struct(&modifiers)?;
-                Ok(Elem::Struct(Arc::new(struc)))
+                elements.push(Elem::Struct(Arc::new(struc)));
             }
 
             TokenKind::Trait => {
-                self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
+                self.restrict_modifiers(&modifiers, &[Modifier::Pub]);
                 let trait_ = self.parse_trait(&modifiers)?;
-                Ok(Elem::Trait(Arc::new(trait_)))
+                elements.push(Elem::Trait(Arc::new(trait_)));
             }
 
             TokenKind::Impl => {
-                self.ban_modifiers(&modifiers)?;
+                self.ban_modifiers(&modifiers);
                 let impl_ = self.parse_impl()?;
-                Ok(Elem::Impl(Arc::new(impl_)))
+                elements.push(Elem::Impl(Arc::new(impl_)));
             }
 
             TokenKind::Annotation => {
                 let annotation = self.parse_annotation(&modifiers)?;
-                Ok(Elem::Annotation(Arc::new(annotation)))
+                elements.push(Elem::Annotation(Arc::new(annotation)));
             }
 
             TokenKind::Alias => {
-                self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
+                self.restrict_modifiers(&modifiers, &[Modifier::Pub]);
                 let alias = self.parse_alias(&modifiers)?;
-                Ok(Elem::Alias(Arc::new(alias)))
+                elements.push(Elem::Alias(Arc::new(alias)));
             }
 
             TokenKind::Let => {
-                self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
+                self.restrict_modifiers(&modifiers, &[Modifier::Pub]);
                 let global = self.parse_global(&modifiers)?;
-                Ok(Elem::Global(Arc::new(global)))
+                elements.push(Elem::Global(Arc::new(global)));
             }
 
             TokenKind::Const => {
-                self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
+                self.restrict_modifiers(&modifiers, &[Modifier::Pub]);
                 let const_ = self.parse_const(&modifiers)?;
-                Ok(Elem::Const(Arc::new(const_)))
+                elements.push(Elem::Const(Arc::new(const_)));
             }
 
             TokenKind::Enum => {
-                self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
+                self.restrict_modifiers(&modifiers, &[Modifier::Pub]);
                 let enum_ = self.parse_enum(&modifiers)?;
-                Ok(Elem::Enum(Arc::new(enum_)))
+                elements.push(Elem::Enum(Arc::new(enum_)));
             }
 
             TokenKind::Mod => {
-                self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
+                self.restrict_modifiers(&modifiers, &[Modifier::Pub]);
                 let module = self.parse_module(&modifiers)?;
-                Ok(Elem::Module(Arc::new(module)))
+                elements.push(Elem::Module(Arc::new(module)));
             }
 
             TokenKind::Use => {
-                self.restrict_modifiers(&modifiers, &[Modifier::Pub])?;
+                self.restrict_modifiers(&modifiers, &[Modifier::Pub]);
                 let use_stmt = self.parse_use()?;
-                Ok(Elem::Use(Arc::new(use_stmt)))
+                elements.push(Elem::Use(Arc::new(use_stmt)));
             }
 
             TokenKind::Extern => {
-                self.ban_modifiers(&modifiers)?;
+                self.ban_modifiers(&modifiers);
                 let extern_stmt = self.parse_extern()?;
-                Ok(Elem::Extern(Arc::new(extern_stmt)))
+                elements.push(Elem::Extern(Arc::new(extern_stmt)));
             }
 
             _ => {
                 let msg = ParseError::ExpectedTopLevelElement(self.token.name());
-                return Err(ParseErrorAndPos::new(self.token.position, msg));
+                self.error_and_advance(msg)?;
             }
         }
+
+        Ok(())
     }
 
     fn parse_extern(&mut self) -> Result<ExternPackage, ParseErrorAndPos> {
@@ -348,7 +353,7 @@ impl<'a> Parser<'a> {
             let mut elements = Vec::new();
 
             while !self.token.is(TokenKind::RBrace) && !self.token.is_eof() {
-                elements.push(self.parse_top_level_element()?);
+                self.parse_top_level_element(&mut elements)?;
             }
 
             self.expect_token(TokenKind::RBrace)?;
@@ -438,7 +443,7 @@ impl<'a> Parser<'a> {
         while !self.token.is(TokenKind::RBrace) {
             let modifiers = self.parse_annotation_usages()?;
             let mods = &[Modifier::Static, Modifier::Internal, Modifier::Pub];
-            self.restrict_modifiers(&modifiers, mods)?;
+            self.restrict_modifiers(&modifiers, mods);
 
             let method = self.parse_function(&modifiers)?;
             methods.push(Arc::new(method));
@@ -517,7 +522,7 @@ impl<'a> Parser<'a> {
         while !self.token.is(TokenKind::RBrace) {
             let modifiers = self.parse_annotation_usages()?;
             let mods = &[Modifier::Static];
-            self.restrict_modifiers(&modifiers, mods)?;
+            self.restrict_modifiers(&modifiers, mods);
 
             let method = self.parse_function(&modifiers)?;
             methods.push(Arc::new(method));
@@ -577,7 +582,7 @@ impl<'a> Parser<'a> {
 
         let modifiers = self.parse_annotation_usages()?;
         let mods = &[Modifier::Pub];
-        self.restrict_modifiers(&modifiers, mods)?;
+        self.restrict_modifiers(&modifiers, mods);
 
         let ident = self.expect_identifier()?;
 
@@ -636,7 +641,7 @@ impl<'a> Parser<'a> {
 
         let modifiers = self.parse_annotation_usages()?;
         let mods = &[Modifier::Pub];
-        self.restrict_modifiers(&modifiers, mods)?;
+        self.restrict_modifiers(&modifiers, mods);
 
         let name = self.expect_identifier()?;
 
@@ -844,25 +849,19 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn ban_modifiers(&mut self, modifiers: &Modifiers) -> Result<(), ParseErrorAndPos> {
-        self.restrict_modifiers(modifiers, &[])
+    fn ban_modifiers(&mut self, modifiers: &Modifiers) {
+        self.restrict_modifiers(modifiers, &[]);
     }
 
-    fn restrict_modifiers(
-        &mut self,
-        modifiers: &Modifiers,
-        restrict: &[Modifier],
-    ) -> Result<(), ParseErrorAndPos> {
+    fn restrict_modifiers(&mut self, modifiers: &Modifiers, restrict: &[Modifier]) {
         for modifier in modifiers.iter() {
             if !restrict.contains(&modifier.value) {
-                return Err(ParseErrorAndPos::new(
+                self.errors.push(ParseErrorAndPos::new(
                     modifier.pos,
                     ParseError::MisplacedAnnotation(modifier.value.name().into()),
                 ));
             }
         }
-
-        Ok(())
     }
 
     fn parse_function(&mut self, modifiers: &Modifiers) -> Result<Function, ParseErrorAndPos> {
@@ -2084,6 +2083,13 @@ impl<'a> Parser<'a> {
                 ParseError::ExpectedToken(kind.name().into(), self.token.name()),
             ))
         }
+    }
+
+    fn error_and_advance(&mut self, msg: ParseError) -> Result<(), ParseErrorAndPos> {
+        self.errors
+            .push(ParseErrorAndPos::new(self.token.position, msg));
+        self.advance_token()?;
+        Ok(())
     }
 
     fn advance_token(&mut self) -> Result<Token, ParseErrorAndPos> {
