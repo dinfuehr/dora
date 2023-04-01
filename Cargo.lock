@@ -172,6 +172,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "dora-server"
+version = "0.0.2"
+dependencies = [
+ "dora-frontend",
+]
+
+[[package]]
 name = "fixedbitset"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"

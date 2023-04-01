@@ -1,0 +1,12 @@
+[package]
+name = "dora-server"
+version = "0.0.2"
+authors = ["Dominik Inführ <dominik.infuehr@gmail.com>"]
+description = "The Dora programming language"
+homepage = "https://github.com/dinfuehr/dora"
+repository = "https://github.com/dinfuehr/dora"
+license = "MIT"
+edition = "2021"
+
+[dependencies]
+dora-frontend = { path = "../dora-frontend", version = "0.0.2" }
