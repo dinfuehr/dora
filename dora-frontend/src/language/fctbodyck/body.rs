@@ -27,8 +27,8 @@ use crate::language::{always_returns, expr_always_returns, read_type, AllowSelf}
 use crate::language::{report_sym_shadow, TypeParamContext};
 
 use dora_bytecode::Intrinsic;
-use dora_parser::ast;
 use dora_parser::ast::visit::Visitor;
+use dora_parser::ast::{self, MatchCaseType, MatchPattern};
 use dora_parser::interner::Name;
 use dora_parser::lexer::position::Position;
 use dora_parser::lexer::token::{FloatSuffix, IntBase, IntSuffix};
@@ -666,116 +666,13 @@ impl<'a> TypeCheck<'a> {
 
             debug_assert_eq!(case.patterns.len(), 1);
             let pattern = case.patterns.first().expect("no pattern");
-
-            match pattern.data {
-                ast::MatchPatternData::Underscore => {
-                    let mut negated_used_variants = used_variants.clone();
-                    negated_used_variants.toggle_range(..);
-
-                    if negated_used_variants.count_ones(..) == 0 {
-                        let msg = ErrorMessage::MatchUnreachablePattern;
-                        self.sa.diag.lock().report(self.file_id, case.pos, msg);
-                    }
-
-                    used_variants.insert_range(..);
-                }
-
-                ast::MatchPatternData::Ident(ref ident) => {
-                    let sym = self.read_path(&ident.path);
-
-                    let mut used_idents: HashSet<Name> = HashSet::new();
-
-                    match sym {
-                        Ok(Sym::EnumVariant(enum_id, variant_idx)) => {
-                            if Some(enum_id) == expr_enum_id {
-                                if used_variants.contains(variant_idx as usize) {
-                                    let msg = ErrorMessage::MatchUnreachablePattern;
-                                    self.sa.diag.lock().report(self.file_id, case.pos, msg);
-                                }
-
-                                used_variants.insert(variant_idx as usize);
-                                self.analysis.map_idents.insert(
-                                    pattern.id,
-                                    IdentType::EnumValue(
-                                        enum_id,
-                                        expr_type_params.clone(),
-                                        variant_idx,
-                                    ),
-                                );
-
-                                let enum_ = self.sa.enums.idx(enum_id);
-                                let enum_ = enum_.read();
-                                let variant = &enum_.variants[variant_idx as usize];
-
-                                let given_params = if let Some(ref params) = ident.params {
-                                    params.len()
-                                } else {
-                                    0
-                                };
-
-                                if given_params == 0 && ident.params.is_some() {
-                                    let msg = ErrorMessage::MatchPatternNoParens;
-                                    self.sa.diag.lock().report(self.file_id, case.pos, msg);
-                                }
-
-                                let expected_params = variant.types.len();
-
-                                if given_params != expected_params {
-                                    let msg = ErrorMessage::MatchPatternWrongNumberOfParams(
-                                        given_params,
-                                        expected_params,
-                                    );
-                                    self.sa.diag.lock().report(self.file_id, case.pos, msg);
-                                }
-
-                                if let Some(ref params) = ident.params {
-                                    for (idx, param) in params.iter().enumerate() {
-                                        if let Some(name) = param.name {
-                                            let ty = if idx < variant.types.len() {
-                                                variant.types[idx].clone()
-                                            } else {
-                                                SourceType::Error
-                                            };
-
-                                            let ty = replace_type_param(
-                                                self.sa,
-                                                ty,
-                                                &expr_type_params,
-                                                None,
-                                            );
-
-                                            if used_idents.insert(name) == false {
-                                                let msg = ErrorMessage::VarAlreadyInPattern;
-                                                self.sa.diag.lock().report(
-                                                    self.file_id,
-                                                    param.pos,
-                                                    msg,
-                                                );
-                                            }
-
-                                            let var_id = self.vars.add_var(name, ty, param.mutable);
-                                            self.add_local(var_id, param.pos);
-                                            self.analysis
-                                                .map_vars
-                                                .insert(param.id, self.vars.local_var_id(var_id));
-                                        }
-                                    }
-                                }
-                            } else {
-                                let msg = ErrorMessage::EnumVariantExpected;
-                                self.sa.diag.lock().report(self.file_id, node.pos, msg);
-                            }
-                        }
-
-                        Ok(_) => {
-                            let msg = ErrorMessage::EnumVariantExpected;
-                            self.sa.diag.lock().report(self.file_id, node.pos, msg);
-                        }
-
-                        Err(()) => {}
-                    }
-                }
-            }
+            self.check_expr_match_pattern(
+                expr_enum_id,
+                expr_type_params.clone(),
+                case,
+                pattern,
+                &mut used_variants,
+            );
 
             let case_ty = self.check_expr(&case.value, expected_ty.clone());
 
@@ -807,6 +704,131 @@ impl<'a> TypeCheck<'a> {
         self.analysis.set_ty(node.id, result_type.clone());
 
         result_type
+    }
+
+    fn check_expr_match_pattern(
+        &mut self,
+        expr_enum_id: Option<EnumDefinitionId>,
+        expr_type_params: SourceTypeArray,
+        case: &MatchCaseType,
+        pattern: &MatchPattern,
+        used_variants: &mut FixedBitSet,
+    ) {
+        match pattern.data {
+            ast::MatchPatternData::Underscore => {
+                let mut negated_used_variants = used_variants.clone();
+                negated_used_variants.toggle_range(..);
+
+                if negated_used_variants.count_ones(..) == 0 {
+                    let msg = ErrorMessage::MatchUnreachablePattern;
+                    self.sa.diag.lock().report(self.file_id, case.pos, msg);
+                }
+
+                used_variants.insert_range(..);
+            }
+
+            ast::MatchPatternData::Ident(ref ident) => {
+                let sym = self.read_path(&ident.path);
+
+                let mut used_idents: HashSet<Name> = HashSet::new();
+
+                match sym {
+                    Ok(Sym::EnumVariant(enum_id, variant_idx)) => {
+                        if Some(enum_id) == expr_enum_id {
+                            if used_variants.contains(variant_idx as usize) {
+                                let msg = ErrorMessage::MatchUnreachablePattern;
+                                self.sa.diag.lock().report(self.file_id, case.pos, msg);
+                            }
+
+                            used_variants.insert(variant_idx as usize);
+                            self.analysis.map_idents.insert(
+                                pattern.id,
+                                IdentType::EnumValue(
+                                    enum_id,
+                                    expr_type_params.clone(),
+                                    variant_idx,
+                                ),
+                            );
+
+                            let enum_ = self.sa.enums.idx(enum_id);
+                            let enum_ = enum_.read();
+                            let variant = &enum_.variants[variant_idx as usize];
+
+                            let given_params = if let Some(ref params) = ident.params {
+                                params.len()
+                            } else {
+                                0
+                            };
+
+                            if given_params == 0 && ident.params.is_some() {
+                                let msg = ErrorMessage::MatchPatternNoParens;
+                                self.sa.diag.lock().report(self.file_id, case.pos, msg);
+                            }
+
+                            let expected_params = variant.types.len();
+
+                            if given_params != expected_params {
+                                let msg = ErrorMessage::MatchPatternWrongNumberOfParams(
+                                    given_params,
+                                    expected_params,
+                                );
+                                self.sa.diag.lock().report(self.file_id, case.pos, msg);
+                            }
+
+                            if let Some(ref params) = ident.params {
+                                for (idx, param) in params.iter().enumerate() {
+                                    if let Some(name) = param.name {
+                                        let ty = if idx < variant.types.len() {
+                                            variant.types[idx].clone()
+                                        } else {
+                                            SourceType::Error
+                                        };
+
+                                        let ty = replace_type_param(
+                                            self.sa,
+                                            ty,
+                                            &expr_type_params,
+                                            None,
+                                        );
+
+                                        if used_idents.insert(name) == false {
+                                            let msg = ErrorMessage::VarAlreadyInPattern;
+                                            self.sa.diag.lock().report(
+                                                self.file_id,
+                                                param.pos,
+                                                msg,
+                                            );
+                                        }
+
+                                        let var_id = self.vars.add_var(name, ty, param.mutable);
+                                        self.add_local(var_id, param.pos);
+                                        self.analysis
+                                            .map_vars
+                                            .insert(param.id, self.vars.local_var_id(var_id));
+                                    }
+                                }
+                            }
+                        } else {
+                            let msg = ErrorMessage::EnumVariantExpected;
+                            self.sa
+                                .diag
+                                .lock()
+                                .report(self.file_id, ident.path.pos, msg);
+                        }
+                    }
+
+                    Ok(_) => {
+                        let msg = ErrorMessage::EnumVariantExpected;
+                        self.sa
+                            .diag
+                            .lock()
+                            .report(self.file_id, ident.path.pos, msg);
+                    }
+
+                    Err(()) => {}
+                }
+            }
+        }
     }
 
     fn check_expr_if(&mut self, expr: &ast::ExprIfType, expected_ty: SourceType) -> SourceType {
