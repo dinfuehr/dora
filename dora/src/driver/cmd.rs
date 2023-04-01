@@ -306,16 +306,22 @@ pub fn parse_arguments() -> Result<Args, String> {
             idx += 2;
         } else if arg.starts_with("-") {
             return Err(format!("unknown flag {}", arg));
-        } else {
+        } else if args.arg_file.is_none() {
             args.arg_file = Some(arg.clone());
 
-            let count = cli_arguments.len() - idx - 1;
-            let mut arguments: Vec<String> = Vec::with_capacity(count);
-            for arg in &cli_arguments[idx + 1..] {
-                arguments.push(arg.clone());
+            // In `run` mode all arguments after the input file are arguments
+            // for the program.
+            if args.command.is_run() {
+                let count = cli_arguments.len() - idx - 1;
+                let mut arguments: Vec<String> = Vec::with_capacity(count);
+                for arg in &cli_arguments[idx + 1..] {
+                    arguments.push(arg.clone());
+                }
+                args.arg_argument = Some(arguments);
+                break;
             }
-            args.arg_argument = Some(arguments);
-            break;
+        } else {
+            return Err(format!("only one input file expected"));
         }
 
         idx = idx + 1;
