@@ -22,6 +22,7 @@ pub struct Parser<'a> {
     param_idx: u32,
     in_class_or_module: bool,
     last_end: Option<u32>,
+    errors: Vec<ParseErrorAndPos>,
 }
 
 type ExprResult = Result<Box<Expr>, ParseErrorAndPos>;
@@ -56,6 +57,7 @@ impl<'a> Parser<'a> {
             param_idx: 0,
             in_class_or_module: false,
             last_end: Some(0),
+            errors: Vec::new(),
         };
 
         parser
@@ -65,7 +67,7 @@ impl<'a> Parser<'a> {
         self.id_generator.next()
     }
 
-    pub fn parse(mut self) -> Result<ast::File, ParseErrorAndPos> {
+    pub fn parse(mut self) -> Result<(ast::File, Vec<ParseErrorAndPos>), ParseErrorAndPos> {
         self.init()?;
         let mut elements = vec![];
 
@@ -75,7 +77,7 @@ impl<'a> Parser<'a> {
 
         let ast_file = ast::File { elements };
 
-        Ok(ast_file)
+        Ok((ast_file, self.errors))
     }
 
     fn init(&mut self) -> Result<(), ParseErrorAndPos> {
@@ -2217,7 +2219,8 @@ mod tests {
     fn parse(code: &'static str) -> (File, Interner) {
         let mut interner = Interner::new();
 
-        let file = Parser::from_string(code, &mut interner).parse().unwrap();
+        let (file, errors) = Parser::from_string(code, &mut interner).parse().unwrap();
+        assert!(errors.is_empty());
 
         (file, interner)
     }

@@ -354,7 +354,15 @@ impl<'a> ProgramParser<'a> {
         let parser = Parser::from_shared_string(content, &mut self.sa.interner);
 
         match parser.parse() {
-            Ok(ast) => {
+            Ok((ast, errors)) => {
+                for error in errors {
+                    self.sa.diag.lock().report(
+                        file_id,
+                        error.pos,
+                        ErrorMessage::Custom(error.error.message()),
+                    );
+                }
+
                 self.scan_file(
                     package_id,
                     module_id,

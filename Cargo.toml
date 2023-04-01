@@ -8,6 +8,7 @@ members = [
   "dora-runtime",
   "dora-server",
 ]
+default-members = ["dora"]
 
 [profile.release]
 panic = "abort"
