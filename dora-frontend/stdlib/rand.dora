@@ -2,16 +2,16 @@ const RANDOM_MULTIPLIER: Int64 = 25214903917i64;
 const RANDOM_INCREMENT: Int64 = 11i64;
 const RANDOM_MASK: Int64 = 0xFF_FF_FF_FF_FF_FFi64;
 
-@pub class Random {
+pub class Random {
   seed: Int64
 }
 
 impl Random {
-  @pub @static fn new(seed: Int64): Random {
+  pub static fn new(seed: Int64): Random {
     Random((seed ^ RANDOM_MULTIPLIER) & RANDOM_MASK)
   }
 
-  @pub fn nextInt32WithBound(bound: Int32): Int32 {
+  pub fn nextInt32WithBound(bound: Int32): Int32 {
     assert(bound > 0i32);
     let bound_minus_1 = bound - 1i32;
 
@@ -34,16 +34,16 @@ impl Random {
     return modulo;
   }
 
-  @pub fn nextInt32(): Int32 {
+  pub fn nextInt32(): Int32 {
     self.seed = self.seed.wrappingMul(RANDOM_MULTIPLIER).wrappingAdd(RANDOM_INCREMENT) & RANDOM_MASK;
     return (self.seed >>> 16i32).toInt32();
   }
 
-  @pub fn nextInt31(): Int32 {
+  pub fn nextInt31(): Int32 {
     return self.nextInt32() & 0x7F_FF_FF_FFi32;
   }
 
-  @pub fn nextInt64(): Int64 {
+  pub fn nextInt64(): Int64 {
     let w1 = self.nextInt32();
     let w2 = self.nextInt32();
 

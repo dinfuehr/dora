@@ -3,24 +3,24 @@
 @internal fn writeFileAsString(path: String, content: String): Bool;
 @internal fn writeFileAsBytes(path: String, content: Array[UInt8]): Bool;
 
-@pub class File {
+pub class File {
     path: String,
 }
 
 impl File {
-    @pub @static fn new(path: String): File {
+    pub static fn new(path: String): File {
         File(path)
     }
 
-    @pub fn readAsString(): Option[String] {
+    pub fn readAsString(): Option[String] {
         readFileAsString(self.path)
     }
 
-    @pub fn readAsBytes(): Option[Array[UInt8]] {
+    pub fn readAsBytes(): Option[Array[UInt8]] {
         readFileAsBytes(self.path)
     }
 
-    @pub fn writeAsString(content: String): Result[(), ()] {
+    pub fn writeAsString(content: String): Result[(), ()] {
         if writeFileAsString(self.path, content) {
             Ok[(), ()](())
         } else {
@@ -28,7 +28,7 @@ impl File {
         }
     }
 
-    @pub fn writeAsBytes(content: Array[UInt8]): Result[(), ()] {
+    pub fn writeAsBytes(content: Array[UInt8]): Result[(), ()] {
         if writeFileAsBytes(self.path, content) {
             Ok[(), ()](())
         } else {
@@ -37,12 +37,12 @@ impl File {
     }
 }
 
-@pub class Directory {
+pub class Directory {
     path: String,
 }
 
 impl Directory {
-    @pub fn new(path: String): Directory {
+    pub fn new(path: String): Directory {
         Directory(path)
     }
 }
@@ -55,12 +55,12 @@ impl Directory {
 @internal fn socketBind(addr: String): Int32;
 @internal fn socketAccept(fd: Int32): Int32;
 
-@pub class TcpListener {
+pub class TcpListener {
     fd: Int32,
 }
 
 impl TcpListener {
-    @pub @static fn bind(addr: String): Result[TcpListener, ()] {
+    pub static fn bind(addr: String): Result[TcpListener, ()] {
         let fd = socketBind(addr);
         if fd != -1i32 {
             Ok[TcpListener, ()](TcpListener(fd))
@@ -69,7 +69,7 @@ impl TcpListener {
         }
     }
 
-    @pub fn accept(): Result[TcpStream, ()] {
+    pub fn accept(): Result[TcpStream, ()] {
         let stream_fd = socketAccept(self.fd);
 
         if stream_fd != -1i32 {
@@ -79,7 +79,7 @@ impl TcpListener {
         }
     }
 
-    @pub fn close() {
+    pub fn close() {
         if self.fd != -1i32 {
             socketClose(self.fd);
             self.fd = -1;
@@ -87,12 +87,12 @@ impl TcpListener {
     }
 }
 
-@pub class TcpStream {
+pub class TcpStream {
     fd: Int32,
 }
 
 impl TcpStream {
-    @pub @static fn connect(addr: String): Result[TcpStream, ()] {
+    pub static fn connect(addr: String): Result[TcpStream, ()] {
         let fd = socketConnect(addr);
         if fd != -1i32 {
             Ok[TcpStream, ()](TcpStream(fd))
@@ -101,18 +101,18 @@ impl TcpStream {
         }
     }
 
-    @pub fn close() {
+    pub fn close() {
         if self.fd != -1i32 {
             socketClose(self.fd);
             self.fd = -1;
         }
     }
 
-    @pub fn read(array: Array[UInt8]): Int64 {
+    pub fn read(array: Array[UInt8]): Int64 {
         socketRead(self.fd, array, 0, array.size())
     }
 
-    @pub fn write(array: Array[UInt8]): Int64 {
+    pub fn write(array: Array[UInt8]): Int64 {
         socketWrite(self.fd, array, 0, array.size())
     }
 }

@@ -1,63 +1,63 @@
-@pub class Thread {
+pub class Thread {
     native_ptr: Int64,
     id: Int64,
 }
 
 impl Thread {
-    @pub fn id(): Int64 {
+    pub fn id(): Int64 {
         self.id
     }
 
-    @pub @static @internal fn current(): Thread;
+    pub static @internal fn current(): Thread;
 
-    @pub @internal fn join();
+    pub @internal fn join();
 }
 
-@internal @pub fn spawn(action: (): ()): Thread;
+@internal pub fn spawn(action: (): ()): Thread;
 
-@pub class AtomicInt32(value: Int32)
+pub class AtomicInt32(value: Int32)
 
 impl AtomicInt32 {
-    @pub @static fn new(value: Int32): AtomicInt32 {
+    pub static fn new(value: Int32): AtomicInt32 {
         AtomicInt32(value)
     }
 
-    @pub @internal fn get(): Int32;
-    @pub @internal fn set(value: Int32);
-    @pub @internal fn exchange(value: Int32): Int32;
-    @pub @internal fn compareExchange(expected: Int32, value: Int32): Int32;
-    @pub @internal fn fetchAdd(value: Int32): Int32;
+    pub @internal fn get(): Int32;
+    pub @internal fn set(value: Int32);
+    pub @internal fn exchange(value: Int32): Int32;
+    pub @internal fn compareExchange(expected: Int32, value: Int32): Int32;
+    pub @internal fn fetchAdd(value: Int32): Int32;
 }
 
-@pub class AtomicInt64(value: Int64)
+pub class AtomicInt64(value: Int64)
 
 impl AtomicInt64 {
-    @pub @static fn new(value: Int64): AtomicInt64 {
+    pub static fn new(value: Int64): AtomicInt64 {
         AtomicInt64(value)
     }
 
-    @pub @internal fn get(): Int64;
-    @pub @internal fn set(value: Int64);
-    @pub @internal fn exchange(value: Int64): Int64;
-    @pub @internal fn compareExchange(expected: Int64, value: Int64): Int64;
-    @pub @internal fn fetchAdd(value: Int64): Int64;
+    pub @internal fn get(): Int64;
+    pub @internal fn set(value: Int64);
+    pub @internal fn exchange(value: Int64): Int64;
+    pub @internal fn compareExchange(expected: Int64, value: Int64): Int64;
+    pub @internal fn fetchAdd(value: Int64): Int64;
 }
 
 const UNLOCKED: Int32 = 0i32;
 const LOCKED: Int32 = 1i32;
 const LOCKED_CONTENDED: Int32 = 2i32;
 
-@pub class Mutex {
+pub class Mutex {
     data: AtomicInt32,
     owner_thread_id: Int64,
 }
 
 impl Mutex {
-    @pub @static fn new(): Mutex {
+    pub static fn new(): Mutex {
         Mutex(AtomicInt32::new(UNLOCKED), 0)
     }
 
-    @pub fn lock[T](fct: (): T): T {
+    pub fn lock[T](fct: (): T): T {
         self.lockOp();
         let result = fct();
         self.unlockOp();
@@ -115,23 +115,23 @@ impl Mutex {
     @internal fn notify();
 }
 
-@pub class Condition {
+pub class Condition {
     waiters: AtomicInt32,
 }
 
 impl Condition {
-    @pub @static fn new(): Condition {
+    pub static fn new(): Condition {
         Condition(AtomicInt32::new(0i32))
     }
 
-    @pub fn wait(mtx: Mutex) {
+    pub fn wait(mtx: Mutex) {
         self.enqueue();
         mtx.unlockOp();
         self.block();
         mtx.lockOp();
     }
 
-    @pub fn notifyOne() {
+    pub fn notifyOne() {
         if self.waiters.get() == 0i32 {
             return;
         }
@@ -139,7 +139,7 @@ impl Condition {
         self.wakeupOne();
     }
 
-    @pub fn notifyAll() {
+    pub fn notifyAll() {
         if self.waiters.get() == 0i32 {
             return;
         }

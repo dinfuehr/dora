@@ -1,5 +1,5 @@
 /* total order */
-@pub trait Sortable {
+pub trait Sortable {
   fn sortsAs(other: Self): Int32;
   // ideally we would be able to provide a default implementation for the next 3 methods based on `sortsAs`
   fn sortsBefore(other: Self): Bool;
@@ -56,43 +56,43 @@ impl Sortable for String {
   fn sortsSame(other: String): Bool { self == other }
 }
 
-@pub trait Default {
-  @static fn default(): Self;
+pub trait Default {
+  static fn default(): Self;
 }
 
 impl Default for Bool {
-  @static fn default(): Bool { false }
+  static fn default(): Bool { false }
 }
 
 impl Default for UInt8 {
-  @static fn default(): UInt8 { 0u8 }
+  static fn default(): UInt8 { 0u8 }
 }
 
 impl Default for Char {
-  @static fn default(): Char { '\0' }
+  static fn default(): Char { '\0' }
 }
 
 impl Default for Int32 {
-  @static fn default(): Int32 { 0 }
+  static fn default(): Int32 { 0 }
 }
 
 impl Default for Int64 {
-  @static fn default(): Int64 { 0i64 }
+  static fn default(): Int64 { 0i64 }
 }
 
 impl Default for Float32 {
-  @static fn default(): Float32 { 0.0f32 }
+  static fn default(): Float32 { 0.0f32 }
 }
 
 impl Default for Float64 {
-  @static fn default(): Float64 { 0.0 }
+  static fn default(): Float64 { 0.0 }
 }
 
 impl Default for String {
-  @static fn default(): String { "" }
+  static fn default(): String { "" }
 }
 
-@pub trait Hash {
+pub trait Hash {
   fn hash(): Int32;
   // fn hashTo(hasher: Hasher);
 }
@@ -121,7 +121,7 @@ impl Hash for Float64 {
   fn hash(): Int32 { self.hash() }
 }
 
-@pub trait Identity {
+pub trait Identity {
   fn identicalTo(other: Self): Bool;
 }
 
@@ -174,12 +174,12 @@ impl Identity for String {
 
 
 // @restricted / @internal
-@pub trait Zero {
-  @static fn zero(): Self; // should be `let` instead of `fn`
+pub trait Zero {
+  static fn zero(): Self; // should be `let` instead of `fn`
 }
 
 /* partial order */
-@pub trait Comparable {
+pub trait Comparable {
   fn compareTo(other: Self): Int32;
   // fn <  (other: Self): Int32;
   // fn <= (other: Self): Int32;
@@ -215,7 +215,7 @@ impl Comparable for String {
   fn compareTo(other: String): Int32 { self.compareTo(other) }
 }
 
-@pub trait Equals {
+pub trait Equals {
   fn equals(other: Self): Bool;
 }
 
@@ -247,6 +247,6 @@ impl Equals for String {
   fn equals(other: String): Bool { self == other }
 }
 
-@pub trait Iterator {
+pub trait Iterator {
   fn next(): Option[Int32]; // this should be made generic
 }

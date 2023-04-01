@@ -1,38 +1,38 @@
-@pub use collections::{Array, BitSet, BitVec, HashMap, HashSet, Queue, Vec};
-@pub use traits::{Comparable, Default, Equals, Hash, Iterator, Zero};
-@pub use primitives::{Bool, Char, Float32, Float64, Int32, Int64, Option, range, Result};
-@pub use rand::Random;
-@pub use string::{CodepointIterator, String, StringBuffer, Stringable};
-@pub use thread::{AtomicInt32, AtomicInt64, Condition, Mutex, Thread};
+pub use collections::{Array, BitSet, BitVec, HashMap, HashSet, Queue, Vec};
+pub use traits::{Comparable, Default, Equals, Hash, Iterator, Zero};
+pub use primitives::{Bool, Char, Float32, Float64, Int32, Int64, Option, range, Result};
+pub use rand::Random;
+pub use string::{CodepointIterator, String, StringBuffer, Stringable};
+pub use thread::{AtomicInt32, AtomicInt64, Condition, Mutex, Thread};
 
-@pub mod annotations;
-@pub mod collections;
-@pub mod io;
-@pub mod primitives;
-@pub mod rand;
-@pub mod string;
-@pub mod thread;
-@pub mod traits;
+pub mod annotations;
+pub mod collections;
+pub mod io;
+pub mod primitives;
+pub mod rand;
+pub mod string;
+pub mod thread;
+pub mod traits;
 
-@pub @internal fn fatalError(msg: String);
-@pub @internal fn abort();
-@pub @internal fn exit(status: Int32);
-@pub @internal fn unreachable[T](): T;
+pub @internal fn fatalError(msg: String);
+pub @internal fn abort();
+pub @internal fn exit(status: Int32);
+pub @internal fn unreachable[T](): T;
 
-@pub fn unimplemented() {
+pub fn unimplemented() {
   fatalError("not yet implemented");
 }
 
-@pub @internal fn print(text: String);
-@pub @internal fn println(text: String);
-@pub @internal fn assert(val: Bool);
-@pub @internal fn debug();
-@pub @internal fn argc(): Int32;
-@pub @internal fn argv(idx: Int32): String;
-@pub @internal fn forceCollect();
-@pub @internal fn forceMinorCollect();
+pub @internal fn print(text: String);
+pub @internal fn println(text: String);
+pub @internal fn assert(val: Bool);
+pub @internal fn debug();
+pub @internal fn argc(): Int32;
+pub @internal fn argv(idx: Int32): String;
+pub @internal fn forceCollect();
+pub @internal fn forceMinorCollect();
 
-@pub @internal fn timestamp(): Int64;
+pub @internal fn timestamp(): Int64;
 
 fn isValidUtf8(data: Array[UInt8]): Bool {
   let mut i = 0i64;
@@ -100,21 +100,21 @@ fn isValidUtf8(data: Array[UInt8]): Bool {
 
 @internal fn unsafeKillRefs[T](arr: Array[T], idx: Int64);
 
-@pub @internal fn sleep(seconds: Int32);
+pub @internal fn sleep(seconds: Int32);
 
-@pub class Stacktrace {
+pub class Stacktrace {
   backtrace: Option[Array[Int32]],
   elements: Option[Array[StacktraceElement]],
 }
 
 impl Stacktrace {
-  @pub @static fn new(): Stacktrace {
+  pub static fn new(): Stacktrace {
     let trace = Stacktrace(None[Array[Int32]], None[Array[StacktraceElement]]);
     trace.retrieveStacktrace();
     trace
   }
 
-  @pub fn getStacktrace(): Array[StacktraceElement] {
+  pub fn getStacktrace(): Array[StacktraceElement] {
     if self.elements.isSome() {
       return self.elements.getOrPanic();
     }
@@ -141,7 +141,7 @@ impl Stacktrace {
     return elements;
   }
 
-  @pub fn printStacktrace() {
+  pub fn printStacktrace() {
     let x = self.getStacktrace();
     let mut i = 0i64;
 
