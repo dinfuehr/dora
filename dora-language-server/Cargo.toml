@@ -1,5 +1,5 @@
 [package]
-name = "dora-server"
+name = "dora-language-server"
 version = "0.0.2"
 authors = ["Dominik Inführ <dominik.infuehr@gmail.com>"]
 description = "The Dora programming language"
@@ -10,3 +10,6 @@ edition = "2021"
 
 [dependencies]
 dora-frontend = { path = "../dora-frontend", version = "0.0.2" }
+lsp-server = "*"
+lsp-types = "*"
+serde_json = "*"

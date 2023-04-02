@@ -6,7 +6,7 @@ members = [
   "dora-frontend",
   "dora-bytecode",
   "dora-runtime",
-  "dora-server",
+  "dora-language-server",
 ]
 default-members = ["dora"]
 
