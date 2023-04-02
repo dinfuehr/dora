@@ -1,0 +1,122 @@
+{
+    "scopeName": "source.dora",
+    "patterns": [
+        {
+            "name": "comment.line.double-slash.dora",
+            "begin": "//",
+            "end": "$"
+        },
+        {
+            "name": "comment.block.dora",
+            "begin": "/\\*",
+            "end": "\\*/"
+        },
+        {
+            "name": "support.function.dora",
+            "match": "\\b(assert|unreachable)\\b"
+        },
+        {
+            "name": "constant.other.dora",
+            "match": "\\b(true|false)\\b"
+        },
+        {
+            "name": "string.quoted.double.dora",
+            "begin": "\"",
+            "end": "\"",
+            "patterns": [
+                {
+                    "name": "constant.character.escape.dora",
+                    "match": "\\\\."
+                }
+            ]
+        },
+        {
+            "name": "string.quoted.single.dora",
+            "begin": "'",
+            "end": "'",
+            "patterns": [
+                {
+                    "name": "constant.character.escape.dora",
+                    "match": "\\\\."
+                }
+            ]
+        },
+        {
+            "name": "keyword.control.dora",
+            "match": "\\b(if|else|while|for|in|return|continue|break|match)\\b"
+        },
+        {
+            "name": "keyword.other.dora",
+            "match": "\\b(class|struct|annotation|trait|package|annotation|enum|impl|mod)\\b"
+        },
+        {
+            "name": "keyword.other.dora",
+            "match": "\\b(let|var|const|self|use|mut|is|as)\\b"
+        },
+        {
+            "name": "keyword.other.dora",
+            "match": "\\b(pub|static)\\b"
+        },
+        {
+            "name": "keyword.other.dora",
+            "match": "\\b@(abstract|open|override|final|internal|pub|static|optimize|test|cannon|optimize_immediately)\\b"
+        },
+        {
+            "name": "storage.type.primitive.dora",
+            "match": "\\b(Bool|UInt8|Char|Int32|Int64|Float32|Float64|String|Array|Vec)\\b"
+        },
+        {
+            "name": "constant.numeric.integer.decimal.dora",
+            "match": "\\b[0-9][0-9_]*(L|Y)?\\b"
+        },
+        {
+            "name": "constant.numeric.integer.binary.dora",
+            "match": "\\b0b[01_]+(L|Y)?\\b"
+        },
+        {
+            "name": "constant.numeric.integer.hexadecimal.dora",
+            "match": "\\b0x[a-fA-F0-9_]+(L|Y)?\\b"
+        },
+        {
+            "name": "constant.numeric.float.dora",
+            "match": "\\b[0-9][0-9_]*\\.[0-9][0-9_]*([eE][+-]?[0-9_]+)?(f32|f64)?\\b"
+        },
+        {
+            "name": "constant.numeric.float.dora",
+            "match": "\\b[0-9][0-9_]*(D|F)\\b"
+        },
+        {
+            "name": "constant.numeric.float.dora",
+            "match": "\\b[0-9][0-9_]*(\\.[0-9][0-9_]*)?[eE][+-]?[0-9_]+(D|F)?\\b"
+        },
+        {
+            "name": "constant.numeric.float.dora",
+            "match": "\\b[0-9][0-9_]*(\\.[0-9][0-9_]*)?([eE][+-]?[0-9_]+)?(D|F)\\b"
+        },
+        {
+            "begin": "\\b(fn)\\s+([A-Za-z][A-Za-z0-9_]*|_[A-Za-z0-9_]+)",
+            "end": "\\(",
+            "beginCaptures": {
+                "1": {
+                    "name": "keyword.other.fn.dora"
+                },
+                "2": {
+                    "name": "entity.name.function.dora"
+                }
+            }
+        },
+        {
+            "match": "\\b([A-Za-z][A-Za-z0-9_]*|_[A-Za-z0-9_]+)\\s*\\(",
+            "captures": {
+                "1": {
+                    "name": "entity.name.function.dora"
+                }
+            }
+        }
+    ],
+    "repository": {
+        "common": {
+            "patterns": []
+        }
+    }
+}
