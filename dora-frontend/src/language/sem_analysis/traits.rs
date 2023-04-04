@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use dora_parser::ast;
 use dora_parser::interner::Name;
-use dora_parser::lexer::position::Position;
+use dora_parser::Span;
 
 use crate::language::sem_analysis::{
     module_path, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, SemAnalysis,
@@ -48,7 +48,7 @@ pub struct TraitDefinition {
     pub file_id: SourceFileId,
     pub visibility: Visibility,
     pub ast: Arc<ast::Trait>,
-    pub pos: Position,
+    pub span: Span,
     pub name: Name,
     pub is_trait_object: bool,
     pub type_params: Option<TypeParamDefinition>,
@@ -71,7 +71,7 @@ impl TraitDefinition {
             file_id,
             ast: node.clone(),
             visibility: Visibility::from_ast(node.visibility),
-            pos: node.pos,
+            span: node.span,
             name: node.name,
             is_trait_object: false,
             type_params: None,

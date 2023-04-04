@@ -116,7 +116,7 @@ impl<'a> AstDumper<'a> {
             self,
             "const {} @ {} {}",
             self.str(const_.name),
-            const_.pos,
+            const_.span,
             const_.id
         );
 
@@ -127,7 +127,7 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_use(&mut self, node: &Use) {
-        dump!(self, "use @ {} {}", node.pos, node.id);
+        dump!(self, "use @ {} {}", node.span, node.id);
     }
 
     fn dump_alias(&mut self, alias: &Alias) {
@@ -149,7 +149,7 @@ impl<'a> AstDumper<'a> {
             self,
             "module {} @ {} {}",
             self.str(module.name),
-            module.pos,
+            module.span,
             module.id
         );
 
@@ -167,7 +167,7 @@ impl<'a> AstDumper<'a> {
             self,
             "enum {} @ {} {}",
             self.str(enum_.name),
-            enum_.pos,
+            enum_.span,
             enum_.id
         );
 
@@ -235,7 +235,7 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_trait(&mut self, t: &Trait) {
-        dump!(self, "trait {} @ {} {}", self.str(t.name), t.pos, t.id);
+        dump!(self, "trait {} @ {} {}", self.str(t.name), t.span, t.id);
         self.indent(|d| {
             for m in &t.methods {
                 d.dump_fct(m);

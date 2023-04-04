@@ -5,7 +5,9 @@ use dora_parser::Position;
 
 use crate::language::error::msg::ErrorMessage;
 use crate::language::readty::read_type_unchecked;
-use crate::language::sem_analysis::{SemAnalysis, SourceFileId, TypeParamDefinition, TypeParamId};
+use crate::language::sem_analysis::{
+    pos_from_span, SemAnalysis, SourceFileId, TypeParamDefinition, TypeParamId,
+};
 use crate::language::sym::{ModuleSymTable, Sym};
 use crate::language::ty::{SourceType, SourceTypeArray};
 
@@ -32,7 +34,7 @@ fn check_traits(sa: &SemAnalysis) {
                 trait_.ast.type_params.as_ref(),
                 &mut symtable,
                 trait_.file_id,
-                trait_.pos,
+                pos_from_span(sa, trait_.file_id, trait_.span),
             );
 
             symtable.pop_level();
@@ -108,12 +110,14 @@ fn check_enums(sa: &SemAnalysis) {
             let mut symtable = ModuleSymTable::new(sa, enum_.module_id);
             symtable.push_level();
 
+            let pos = pos_from_span(sa, enum_.file_id, enum_.span);
+
             type_param_definition = read_type_param_definition(
                 sa,
                 enum_.ast.type_params.as_ref(),
                 &mut symtable,
                 enum_.file_id,
-                enum_.pos,
+                pos,
             );
 
             symtable.pop_level();

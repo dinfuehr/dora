@@ -5,7 +5,9 @@ use parking_lot::RwLock;
 use dora_parser::ast;
 
 use crate::language::error::msg::ErrorMessage;
-use crate::language::sem_analysis::{EnumDefinition, EnumVariant, SemAnalysis, SourceFileId};
+use crate::language::sem_analysis::{
+    pos_from_span, EnumDefinition, EnumVariant, SemAnalysis, SourceFileId,
+};
 use crate::language::sym::{ModuleSymTable, Sym};
 use crate::language::ty::SourceType;
 use crate::language::{read_type, AllowSelf, TypeParamContext};
@@ -129,11 +131,11 @@ impl<'x> EnumCheckVariants<'x> {
         }
 
         if self.ast.variants.is_empty() {
-            self.sa.diag.lock().report(
-                self.enum_.file_id,
-                self.ast.pos,
-                ErrorMessage::NoEnumVariant,
-            );
+            let pos = pos_from_span(self.sa, self.enum_.file_id, self.ast.span);
+            self.sa
+                .diag
+                .lock()
+                .report(self.enum_.file_id, pos, ErrorMessage::NoEnumVariant);
         }
     }
 }

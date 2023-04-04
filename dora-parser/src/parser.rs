@@ -222,7 +222,6 @@ impl<'a> Parser<'a> {
 
     fn parse_use_inner(&mut self) -> Result<Use, ParseErrorAndPos> {
         let start = self.token.span.start();
-        let pos = self.token.position;
         let mut path = Vec::new();
         let mut allow_brace = false;
 
@@ -254,7 +253,6 @@ impl<'a> Parser<'a> {
 
         Ok(Use {
             id: self.generate_id(),
-            pos,
             span,
             common_path: path,
             target,
@@ -321,7 +319,7 @@ impl<'a> Parser<'a> {
 
     fn parse_enum(&mut self, modifiers: &Modifiers) -> Result<Enum, ParseErrorAndPos> {
         let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::Enum)?.position;
+        self.expect_token(TokenKind::Enum)?;
         let name = self.expect_identifier()?;
         let type_params = self.parse_type_params()?;
 
@@ -333,7 +331,6 @@ impl<'a> Parser<'a> {
 
         Ok(Enum {
             id: self.generate_id(),
-            pos,
             span,
             name,
             type_params,
@@ -344,7 +341,7 @@ impl<'a> Parser<'a> {
 
     fn parse_module(&mut self, modifiers: &Modifiers) -> Result<Module, ParseErrorAndPos> {
         let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::Mod)?.position;
+        self.expect_token(TokenKind::Mod)?;
         let name = self.expect_identifier()?;
 
         let elements = if self.token.is(TokenKind::LBrace) {
@@ -367,7 +364,6 @@ impl<'a> Parser<'a> {
 
         Ok(Module {
             id: self.generate_id(),
-            pos,
             span,
             name,
             elements,
@@ -400,7 +396,7 @@ impl<'a> Parser<'a> {
 
     fn parse_const(&mut self, modifiers: &Modifiers) -> Result<Const, ParseErrorAndPos> {
         let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::Const)?.position;
+        self.expect_token(TokenKind::Const)?;
         let name = self.expect_identifier()?;
         self.expect_token(TokenKind::Colon)?;
         let ty = self.parse_type()?;
@@ -411,7 +407,6 @@ impl<'a> Parser<'a> {
 
         Ok(Const {
             id: self.generate_id(),
-            pos,
             span,
             name,
             data_type: ty,
@@ -509,7 +504,7 @@ impl<'a> Parser<'a> {
 
     fn parse_trait(&mut self, modifiers: &Modifiers) -> Result<Trait, ParseErrorAndPos> {
         let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::Trait)?.position;
+        self.expect_token(TokenKind::Trait)?;
         let ident = self.expect_identifier()?;
         let type_params = self.parse_type_params()?;
 
@@ -533,7 +528,6 @@ impl<'a> Parser<'a> {
             id: self.generate_id(),
             name: ident,
             type_params,
-            pos,
             span,
             methods,
             visibility: Visibility::from_modifiers(modifiers),

@@ -226,7 +226,6 @@ pub struct Global {
 #[derive(Clone, Debug)]
 pub struct Module {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
     pub name: Name,
     pub elements: Option<Vec<Elem>>,
@@ -236,7 +235,6 @@ pub struct Module {
 #[derive(Clone, Debug)]
 pub struct Use {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
     pub common_path: Vec<UsePathComponent>,
     pub target: UseTargetDescriptor,
@@ -281,7 +279,6 @@ pub enum UsePathComponentValue {
 #[derive(Clone, Debug)]
 pub struct Const {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
     pub name: Name,
     pub data_type: Type,
@@ -292,7 +289,6 @@ pub struct Const {
 #[derive(Clone, Debug)]
 pub struct Enum {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
     pub name: Name,
     pub type_params: Option<Vec<TypeParam>>,
@@ -526,7 +522,6 @@ pub struct Trait {
     pub id: NodeId,
     pub name: Name,
     pub type_params: Option<Vec<TypeParam>>,
-    pub pos: Position,
     pub span: Span,
     pub methods: Vec<Arc<Function>>,
     pub visibility: Visibility,

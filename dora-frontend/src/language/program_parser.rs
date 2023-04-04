@@ -238,12 +238,14 @@ impl<'a> ProgramParser<'a> {
                 let mut module_path = module_path;
                 module_path.push(&name);
 
+                let pos = pos_from_span(self.sa, file_id, node.span);
+
                 self.add_file(
                     package_id,
                     module_id,
                     file_path,
                     Some(module_path),
-                    Some((file_id, node.pos)),
+                    Some((file_id, pos)),
                     FileLookup::FileSystem,
                 );
             }
@@ -443,7 +445,8 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         let sym = Sym::Module(id);
 
         if let Some(sym) = self.insert(node.name, sym) {
-            report_sym_shadow(self.sa, node.name, self.file_id, node.pos, sym);
+            let pos = pos_from_span(self.sa, self.file_id, node.span);
+            report_sym_shadow(self.sa, node.name, self.file_id, pos, sym);
         }
 
         if node.elements.is_none() {
@@ -464,7 +467,8 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
         let sym = Sym::Trait(trait_id);
         if let Some(sym) = self.insert(node.name, sym) {
-            report_sym_shadow(self.sa, node.name, self.file_id, node.pos, sym);
+            let pos = pos_from_span(self.sa, self.file_id, node.span);
+            report_sym_shadow(self.sa, node.name, self.file_id, pos, sym);
         }
     }
 
@@ -507,7 +511,8 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
         let sym = Sym::Const(id);
         if let Some(sym) = self.insert(node.name, sym) {
-            report_sym_shadow(self.sa, node.name, self.file_id, node.pos, sym);
+            let pos = pos_from_span(self.sa, self.file_id, node.span);
+            report_sym_shadow(self.sa, node.name, self.file_id, pos, sym);
         }
     }
 
@@ -571,7 +576,8 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
         let sym = Sym::Enum(id);
         if let Some(sym) = self.insert(node.name, sym) {
-            report_sym_shadow(self.sa, node.name, self.file_id, node.pos, sym);
+            let pos = pos_from_span(self.sa, self.file_id, node.span);
+            report_sym_shadow(self.sa, node.name, self.file_id, pos, sym);
         }
     }
 }

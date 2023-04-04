@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use dora_parser::ast;
 use dora_parser::interner::Name;
-use dora_parser::lexer::position::Position;
+use dora_parser::Span;
 
 use crate::language::sem_analysis::{
     extension_matches, impl_matches, module_path, Candidate, ExtensionDefinitionId,
@@ -46,7 +46,7 @@ pub struct EnumDefinition {
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
     pub ast: Arc<ast::Enum>,
-    pub pos: Position,
+    pub span: Span,
     pub name: Name,
     pub visibility: Visibility,
     pub type_params: Option<TypeParamDefinition>,
@@ -69,7 +69,7 @@ impl EnumDefinition {
             module_id,
             file_id,
             ast: node.clone(),
-            pos: node.pos,
+            span: node.span,
             name: node.name,
             type_params: None,
             visibility: Visibility::from_ast(node.visibility),

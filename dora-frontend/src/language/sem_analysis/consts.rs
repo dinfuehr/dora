@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use dora_parser::ast;
 use dora_parser::interner::Name;
-use dora_parser::lexer::position::Position;
+use dora_parser::Span;
 
 use crate::language::sem_analysis::{
     module_path, ModuleDefinitionId, PackageDefinitionId, SemAnalysis, SourceFileId, Visibility,
@@ -37,7 +37,7 @@ pub struct ConstDefinition {
     pub file_id: SourceFileId,
     pub ast: Arc<ast::Const>,
     pub visibility: Visibility,
-    pub pos: Position,
+    pub span: Span,
     pub name: Name,
     pub ty: SourceType,
     pub expr: Box<ast::Expr>,
@@ -57,7 +57,7 @@ impl ConstDefinition {
             module_id,
             file_id,
             ast: node.clone(),
-            pos: node.pos,
+            span: node.span,
             name: node.name,
             visibility: Visibility::from_ast(node.visibility),
             ty: SourceType::Error,
