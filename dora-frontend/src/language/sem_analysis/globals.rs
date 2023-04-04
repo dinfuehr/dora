@@ -10,7 +10,7 @@ use crate::Id;
 
 use dora_parser::ast;
 use dora_parser::interner::Name;
-use dora_parser::lexer::position::Position;
+use dora_parser::Span;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct GlobalDefinitionId(pub u32);
@@ -44,7 +44,7 @@ pub struct GlobalDefinition {
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
     pub ast: Arc<ast::Global>,
-    pub pos: Position,
+    pub span: Span,
     pub visibility: Visibility,
     pub ty: SourceType,
     pub mutable: bool,
@@ -65,7 +65,7 @@ impl GlobalDefinition {
             module_id,
             file_id,
             ast: node.clone(),
-            pos: node.pos,
+            span: node.span,
             name: node.name,
             visibility: Visibility::from_ast(node.visibility),
             ty: SourceType::Unit,

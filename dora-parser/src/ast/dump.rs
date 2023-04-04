@@ -85,7 +85,7 @@ impl<'a> AstDumper<'a> {
             self,
             "global {} @ {} {}",
             self.str(global.name),
-            global.pos,
+            global.span,
             global.id
         );
 

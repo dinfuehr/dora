@@ -31,7 +31,7 @@ pub use self::impls::{
 pub use self::known::KnownElements;
 pub use self::modules::{module_package, module_path, ModuleDefinition, ModuleDefinitionId};
 pub use self::packages::{PackageDefinition, PackageDefinitionId, PackageName};
-pub use self::source_files::{SourceFile, SourceFileId};
+pub use self::source_files::{compute_line_starts, pos_from_span, SourceFile, SourceFileId};
 pub use self::src::{
     AnalysisData, CallType, ContextIdx, ForTypeInfo, IdentType, NestedVarId, NodeMap, Var,
     VarAccess, VarId, VarLocation,
@@ -346,12 +346,14 @@ impl SemAnalysis {
         content: Arc<String>,
     ) -> SourceFileId {
         let file_id = SourceFileId(self.source_files.len());
+        let line_starts = compute_line_starts(&content);
         self.source_files.push(SourceFile {
             id: file_id,
             package_id,
             path,
             content,
             module_id,
+            line_starts,
         });
         file_id
     }

@@ -465,7 +465,6 @@ impl<'a> Parser<'a> {
 
     fn parse_global(&mut self, modifiers: &Modifiers) -> Result<Global, ParseErrorAndPos> {
         let start = self.token.span.start();
-        let pos = self.token.position;
         self.advance_token()?;
 
         let mutable = if self.token.is(TokenKind::Mut) {
@@ -493,7 +492,6 @@ impl<'a> Parser<'a> {
         let mut global = Global {
             id: self.generate_id(),
             name,
-            pos,
             span,
             data_type,
             mutable,

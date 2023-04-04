@@ -215,7 +215,6 @@ impl Elem {
 #[derive(Clone, Debug)]
 pub struct Global {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
     pub name: Name,
     pub mutable: bool,

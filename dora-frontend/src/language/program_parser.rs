@@ -21,6 +21,8 @@ use dora_parser::interner::Name;
 use dora_parser::parser::Parser;
 use dora_parser::Position;
 
+use super::sem_analysis::pos_from_span;
+
 pub fn parse(sa: &mut SemAnalysis) {
     let mut discoverer = ProgramParser::new(sa);
     discoverer.parse_all();
@@ -479,7 +481,8 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
         let sym = Sym::Global(global_id);
         if let Some(sym) = self.insert(node.name, sym) {
-            report_sym_shadow(self.sa, node.name, self.file_id, node.pos, sym);
+            let pos = pos_from_span(self.sa, self.file_id, node.span);
+            report_sym_shadow(self.sa, node.name, self.file_id, pos, sym);
         }
     }
 

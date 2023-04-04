@@ -5,6 +5,8 @@ use crate::language::ty::SourceType;
 use crate::language::{self, AllowSelf, TypeParamContext};
 use dora_parser::ast;
 
+use super::sem_analysis::pos_from_span;
+
 pub fn check<'a>(sa: &SemAnalysis) {
     for global in sa.globals.iter() {
         let (global_id, file_id, ast, module_id) = {
@@ -57,7 +59,8 @@ impl<'a> GlobalDefCheck<'a> {
 
         if global_var.initializer.is_none() {
             let msg = ErrorMessage::LetMissingInitialization;
-            self.sa.diag.lock().report(self.file_id, self.ast.pos, msg);
+            let pos = pos_from_span(self.sa, self.file_id, self.ast.span);
+            self.sa.diag.lock().report(self.file_id, pos, msg);
         }
     }
 }

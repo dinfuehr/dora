@@ -67,6 +67,12 @@ impl Span {
     }
 }
 
+impl Display for Span {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        write!(f, "{}-{}", self.start.0, self.start.0 + self.count)
+    }
+}
+
 #[derive(Copy, Clone, Debug)]
 pub struct Loc(u32);
 

@@ -123,13 +123,13 @@ impl<'a> CannonCodeGen<'a> {
             self.asm.debug();
         }
 
-        self.calculate_offsets();
-        self.initialize_references();
+        self.compute_register_offsets();
+        self.compute_reference_objects();
 
         self.emit_prolog();
         self.emit_stack_guard();
-        self.clear_registers();
-        self.store_params_on_stack();
+        self.emit_clear_registers();
+        self.store_params_in_registers();
         self.emit_safepoint();
 
         read(self.bytecode.code(), &mut self);
@@ -156,7 +156,7 @@ impl<'a> CannonCodeGen<'a> {
         }
     }
 
-    fn calculate_offsets(&mut self) {
+    fn compute_register_offsets(&mut self) {
         self.register_start_offset = if self.has_result_address() {
             mem::ptr_width()
         } else {
@@ -186,7 +186,7 @@ impl<'a> CannonCodeGen<'a> {
         (offset, stacksize)
     }
 
-    fn clear_registers(&mut self) {
+    fn emit_clear_registers(&mut self) {
         let start = self.register_start_offset + mem::ptr_width();
         let end = self.framesize + mem::ptr_width();
         assert!(start <= end);
@@ -204,7 +204,7 @@ impl<'a> CannonCodeGen<'a> {
         }
     }
 
-    fn initialize_references(&mut self) {
+    fn compute_reference_objects(&mut self) {
         assert!(self.references.is_empty());
         for (idx, ty) in self.bytecode.registers().iter().enumerate() {
             let ty = register_bty(self.specialize_bty(ty.clone()));
@@ -278,7 +278,7 @@ impl<'a> CannonCodeGen<'a> {
         result_passed_as_argument(return_type)
     }
 
-    fn store_params_on_stack(&mut self) {
+    fn store_params_in_registers(&mut self) {
         let mut reg_idx = 0;
         let mut freg_idx = 0;
         let mut sp_offset = 16;
