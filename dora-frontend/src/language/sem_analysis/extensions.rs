@@ -14,7 +14,7 @@ use crate::Id;
 pub use self::matching::{extension_matches, extension_matches_ty};
 use dora_parser::ast;
 use dora_parser::interner::Name;
-use dora_parser::lexer::position::Position;
+use dora_parser::Span;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ExtensionDefinitionId(u32);
@@ -48,7 +48,7 @@ pub struct ExtensionDefinition {
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
     pub ast: Arc<ast::Impl>,
-    pub pos: Position,
+    pub span: Span,
     pub type_params: Option<TypeParamDefinition>,
     pub ty: SourceType,
     pub methods: Vec<FctDefinitionId>,
@@ -69,7 +69,7 @@ impl ExtensionDefinition {
             module_id,
             file_id,
             ast: node.clone(),
-            pos: node.pos,
+            span: node.span,
             type_params: None,
             ty: SourceType::Error,
             methods: Vec::new(),

@@ -1,7 +1,7 @@
 use crate::language::error::msg::ErrorMessage;
 use crate::language::sem_analysis::{
-    EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId, SemAnalysis, SourceFileId,
-    StructDefinitionId, TypeParamDefinition, TypeParamId,
+    pos_from_span, EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId, SemAnalysis,
+    SourceFileId, StructDefinitionId, TypeParamDefinition, TypeParamId,
 };
 use crate::language::sym::{ModuleSymTable, Sym};
 use crate::language::ty::SourceType;
@@ -109,13 +109,14 @@ impl<'x> ExtensionCheck<'x> {
             }
 
             let mut extension = self.sa.extensions[self.extension_id].write();
+            let pos = pos_from_span(self.sa, self.file_id, self.ast.span);
 
             check_for_unconstrained_type_params(
                 self.sa,
                 extension_ty.clone(),
                 extension.type_params(),
                 self.file_id,
-                self.ast.pos,
+                pos,
             );
 
             extension.ty = extension_ty;

@@ -5,6 +5,8 @@ use crate::language::sem_analysis::{SemAnalysis, SourceFileId};
 
 use dora_parser::lexer::position::Position;
 
+use super::sem_analysis::pos_from_span;
+
 pub fn check(sa: &mut SemAnalysis) {
     for impl_ in sa.impls.iter() {
         let impl_for = {
@@ -91,7 +93,9 @@ pub fn check(sa: &mut SemAnalysis) {
                     ErrorMessage::MethodMissingFromTrait(trait_name, mtd_name, args)
                 };
 
-                report(sa, impl_.file_id, impl_.pos, msg);
+                let pos = pos_from_span(sa, impl_.file_id, impl_.span);
+
+                report(sa, impl_.file_id, pos, msg);
             }
 
             impl_for

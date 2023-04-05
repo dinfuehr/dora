@@ -120,9 +120,10 @@ impl<'x> EnumCheckVariants<'x> {
 
             if result.is_some() {
                 let name = self.sa.interner.str(value.name).to_string();
+                let pos = pos_from_span(self.sa, self.enum_.file_id, value.span);
                 self.sa.diag.lock().report(
                     self.enum_.file_id,
-                    value.pos,
+                    pos,
                     ErrorMessage::ShadowEnumVariant(name),
                 );
             }

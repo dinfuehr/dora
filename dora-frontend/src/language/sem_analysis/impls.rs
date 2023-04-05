@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use dora_parser::ast;
 use dora_parser::interner::Name;
-use dora_parser::lexer::position::Position;
+use dora_parser::Span;
 
 use crate::language::sem_analysis::{
     extension_matches_ty, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, SemAnalysis,
@@ -48,7 +48,7 @@ pub struct ImplDefinition {
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
     pub ast: Arc<ast::Impl>,
-    pub pos: Position,
+    pub span: Span,
     pub type_params: Option<TypeParamDefinition>,
     pub trait_ty: SourceType,
     pub extended_ty: SourceType,
@@ -72,7 +72,7 @@ impl ImplDefinition {
             file_id,
             ast: node.clone(),
             type_params: None,
-            pos: node.pos,
+            span: node.span,
             trait_ty: SourceType::Error,
             extended_ty: SourceType::Error,
             methods: Vec::new(),

@@ -179,7 +179,7 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_enum_value(&mut self, value: &EnumVariant) {
-        dump!(self, "{} {} {}", value.pos, value.id, self.str(value.name));
+        dump!(self, "{} {} {}", value.span, value.id, self.str(value.name));
 
         if let Some(ref types) = value.types {
             self.indent(|d| {
@@ -191,7 +191,7 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_impl(&mut self, impl_: &Impl) {
-        dump!(self, "impl @ {} {}", impl_.pos, impl_.id);
+        dump!(self, "impl @ {} {}", impl_.span, impl_.id);
 
         self.indent(|d| {
             if let Some(trait_type) = impl_.trait_type.as_ref() {

@@ -299,7 +299,6 @@ pub struct Enum {
 #[derive(Clone, Debug)]
 pub struct EnumVariant {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
     pub name: Name,
     pub types: Option<Vec<Type>>,
@@ -508,7 +507,6 @@ impl Type {
 #[derive(Clone, Debug)]
 pub struct Impl {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
 
     pub type_params: Option<Vec<TypeParam>>,

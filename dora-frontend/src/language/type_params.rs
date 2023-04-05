@@ -53,12 +53,14 @@ fn check_impls(sa: &SemAnalysis) {
             let mut symtable = ModuleSymTable::new(sa, impl_.module_id);
             symtable.push_level();
 
+            let pos = pos_from_span(sa, impl_.file_id, impl_.span);
+
             type_param_definition = read_type_param_definition(
                 sa,
                 impl_.ast.type_params.as_ref(),
                 &mut symtable,
                 impl_.file_id,
-                impl_.pos,
+                pos,
             );
 
             read_type_unchecked(sa, &symtable, impl_.file_id, &impl_.ast.extended_type);
@@ -160,12 +162,14 @@ fn check_extensions(sa: &SemAnalysis) {
             let mut symtable = ModuleSymTable::new(sa, extension.module_id);
             symtable.push_level();
 
+            let pos = pos_from_span(sa, extension.file_id, extension.span);
+
             type_param_definition = read_type_param_definition(
                 sa,
                 extension.ast.type_params.as_ref(),
                 &mut symtable,
                 extension.file_id,
-                extension.pos,
+                pos,
             );
 
             symtable.pop_level();

@@ -373,7 +373,6 @@ impl<'a> Parser<'a> {
 
     fn parse_enum_variant(&mut self) -> Result<EnumVariant, ParseErrorAndPos> {
         let start = self.token.span.start();
-        let pos = self.token.position;
         let name = self.expect_identifier()?;
 
         let types = if self.token.is(TokenKind::LParen) {
@@ -387,7 +386,6 @@ impl<'a> Parser<'a> {
 
         Ok(EnumVariant {
             id: self.generate_id(),
-            pos,
             span,
             name,
             types,
@@ -417,7 +415,7 @@ impl<'a> Parser<'a> {
 
     fn parse_impl(&mut self) -> Result<Impl, ParseErrorAndPos> {
         let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::Impl)?.position;
+        self.expect_token(TokenKind::Impl)?;
         let type_params = self.parse_type_params()?;
 
         let type_name = self.parse_type()?;
@@ -449,7 +447,6 @@ impl<'a> Parser<'a> {
 
         Ok(Impl {
             id: self.generate_id(),
-            pos,
             span,
             type_params,
             trait_type,
