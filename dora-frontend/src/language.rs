@@ -264,10 +264,11 @@ pub fn report_sym_shadow_span(
 
 #[cfg(test)]
 pub mod tests {
-    use crate::language::error::msg::ErrorMessage;
+    use crate::language::error::msg::{ErrorDescriptor, ErrorMessage};
     use crate::language::sem_analysis::SemAnalysis;
     use crate::language::test;
     use dora_parser::lexer::position::Position;
+    use dora_parser::{compute_line_column, compute_line_starts};
 
     pub fn ok(code: &'static str) {
         test::check(code, |vm| {
@@ -309,7 +310,13 @@ pub mod tests {
             let diag = vm.diag.lock();
             let errors = diag.errors();
 
-            if errors.len() != 1 || errors[0].pos != Some(pos) || errors[0].msg != msg {
+            let error_pos = if errors.len() == 1 {
+                compute_pos(code, &errors[0])
+            } else {
+                None
+            };
+
+            if errors.len() != 1 || error_pos != Some(pos) || errors[0].msg != msg {
                 println!("expected:");
                 println!("\t{:?} at {}", msg, pos);
                 println!();
@@ -326,7 +333,7 @@ pub mod tests {
             }
 
             assert_eq!(1, errors.len(), "found {} errors instead", errors.len());
-            assert_eq!(Some(pos), errors[0].pos);
+            assert_eq!(Some(pos), error_pos);
             assert_eq!(msg, errors[0].msg);
         });
     }
@@ -340,10 +347,22 @@ pub mod tests {
             assert_eq!(vec.len(), errors.len());
 
             for (ind, error) in errors.iter().enumerate() {
-                assert_eq!(Some(vec[ind].0), error.pos);
+                assert_eq!(Some(vec[ind].0), compute_pos(code, error));
                 assert_eq!(vec[ind].1, error.msg);
             }
         });
+    }
+
+    fn compute_pos(code: &str, error: &ErrorDescriptor) -> Option<Position> {
+        if let Some(pos) = error.pos {
+            Some(pos)
+        } else if let Some(span) = error.span {
+            let line_starts = compute_line_starts(code);
+            let (line, column) = compute_line_column(&line_starts, span.start());
+            Some(Position::new(line, column))
+        } else {
+            None
+        }
     }
 
     pub fn pos(line: u32, col: u32) -> Position {
