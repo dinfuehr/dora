@@ -67,19 +67,35 @@ impl<'a> Parser<'a> {
         self.id_generator.next()
     }
 
-    pub fn parse(
-        mut self,
-    ) -> Result<(ast::File, Vec<ParseErrorWithLocation>), ParseErrorWithLocation> {
-        self.init()?;
+    pub fn parse(mut self) -> (ast::File, Vec<ParseErrorWithLocation>) {
+        if let Err(msg) = self.init() {
+            return (
+                ast::File {
+                    elements: Vec::new(),
+                },
+                vec![msg],
+            );
+        }
+
+        match self.parse_top_level() {
+            Ok(ast_file) => (ast_file, Vec::new()),
+            Err(msg) => (
+                ast::File {
+                    elements: Vec::new(),
+                },
+                vec![msg],
+            ),
+        }
+    }
+
+    fn parse_top_level(&mut self) -> Result<ast::File, ParseErrorWithLocation> {
         let mut elements = vec![];
 
         while !self.token.is_eof() {
             self.parse_top_level_element(&mut elements)?;
         }
 
-        let ast_file = ast::File { elements };
-
-        Ok((ast_file, self.errors))
+        Ok(ast::File { elements })
     }
 
     fn init(&mut self) -> Result<(), ParseErrorWithLocation> {
@@ -776,8 +792,8 @@ impl<'a> Parser<'a> {
             let modifier = modifier.unwrap();
 
             if modifiers.contains(modifier) {
-                return Err(ParseErrorWithLocation::new(
-                    self.token.position,
+                return Err(ParseErrorWithLocation::new_span(
+                    self.token.span,
                     ParseError::RedundantAnnotation(modifier.name().into()),
                 ));
             }
@@ -816,8 +832,8 @@ impl<'a> Parser<'a> {
                 "static" => Ok(Some(Modifier::Static)),
                 "Test" => Ok(Some(Modifier::Test)),
                 "optimizeImmediately" => Ok(Some(Modifier::OptimizeImmediately)),
-                annotation => Err(ParseErrorWithLocation::new(
-                    self.token.position,
+                annotation => Err(ParseErrorWithLocation::new_span(
+                    self.token.span,
                     ParseError::UnknownAnnotation(annotation.into()),
                 )),
             }
@@ -1051,8 +1067,8 @@ impl<'a> Parser<'a> {
                 }
             }
 
-            _ => Err(ParseErrorWithLocation::new(
-                self.token.position,
+            _ => Err(ParseErrorWithLocation::new_span(
+                self.token.span,
                 ParseError::ExpectedType(self.token.name()),
             )),
         }
@@ -1251,8 +1267,8 @@ impl<'a> Parser<'a> {
             TokenKind::Break => Ok(StmtOrExpr::Stmt(self.parse_break()?)),
             TokenKind::Continue => Ok(StmtOrExpr::Stmt(self.parse_continue()?)),
             TokenKind::Return => Ok(StmtOrExpr::Stmt(self.parse_return()?)),
-            TokenKind::Else => Err(ParseErrorWithLocation::new(
-                self.token.position,
+            TokenKind::Else => Err(ParseErrorWithLocation::new_span(
+                self.token.span,
                 ParseError::MisplacedElse,
             )),
             TokenKind::For => Ok(StmtOrExpr::Stmt(self.parse_for()?)),
@@ -1320,8 +1336,8 @@ impl<'a> Parser<'a> {
 
         while !self.token.is(TokenKind::RBrace) && !self.token.is_eof() {
             if !comma {
-                return Err(ParseErrorWithLocation::new(
-                    self.token.position,
+                return Err(ParseErrorWithLocation::new_span(
+                    self.token.span,
                     ParseError::ExpectedToken(TokenKind::Comma.name().into(), self.token.name()),
                 ));
             }
@@ -1741,8 +1757,8 @@ impl<'a> Parser<'a> {
             TokenKind::False => self.parse_bool_literal(),
             TokenKind::This => self.parse_this(),
             TokenKind::Or | TokenKind::OrOr => self.parse_lambda(),
-            _ => Err(ParseErrorWithLocation::new(
-                self.token.position,
+            _ => Err(ParseErrorWithLocation::new_span(
+                self.token.span,
                 ParseError::ExpectedFactor(self.token.name().clone()),
             )),
         }
@@ -1857,7 +1873,10 @@ impl<'a> Parser<'a> {
                 let expr = Expr::create_lit_int(self.generate_id(), pos, span, value, base, suffix);
                 Ok(Box::new(expr))
             }
-            _ => Err(ParseErrorWithLocation::new(pos, ParseError::NumberOverflow)),
+            _ => Err(ParseErrorWithLocation::new_span(
+                span,
+                ParseError::NumberOverflow,
+            )),
         }
     }
 
@@ -1907,8 +1926,8 @@ impl<'a> Parser<'a> {
                     parts.push(expr);
 
                     if !self.token.is(TokenKind::RBrace) {
-                        return Err(ParseErrorWithLocation::new(
-                            self.token.position,
+                        return Err(ParseErrorWithLocation::new_span(
+                            self.token.span,
                             ParseError::UnclosedStringTemplate,
                         ));
                     }
@@ -2041,8 +2060,8 @@ impl<'a> Parser<'a> {
 
             Ok(interned)
         } else {
-            Err(ParseErrorWithLocation::new(
-                tok.position,
+            Err(ParseErrorWithLocation::new_span(
+                tok.span,
                 ParseError::ExpectedIdentifier(tok.name()),
             ))
         }
@@ -2058,8 +2077,8 @@ impl<'a> Parser<'a> {
 
             Ok(token)
         } else {
-            Err(ParseErrorWithLocation::new(
-                self.token.position,
+            Err(ParseErrorWithLocation::new_span(
+                self.token.span,
                 ParseError::ExpectedToken(kind.name().into(), self.token.name()),
             ))
         }
@@ -2075,7 +2094,7 @@ impl<'a> Parser<'a> {
 
     fn error_and_advance(&mut self, msg: ParseError) -> Result<(), ParseErrorWithLocation> {
         self.errors
-            .push(ParseErrorWithLocation::new(self.token.position, msg));
+            .push(ParseErrorWithLocation::new_span(self.token.span, msg));
         self.advance_token()?;
         Ok(())
     }
@@ -2142,6 +2161,7 @@ mod tests {
     use crate::error::ParseError;
     use crate::lexer::position::Position;
     use crate::parser::Parser;
+    use crate::{compute_line_column, compute_line_starts};
 
     fn parse_expr(code: &'static str) -> (Box<Expr>, Interner) {
         let mut interner = Interner::new();
@@ -2172,8 +2192,16 @@ mod tests {
         };
 
         assert_eq!(msg, err.error);
-        assert_eq!(line, err.pos.line);
-        assert_eq!(col, err.pos.column);
+        if let Some(pos) = err.pos {
+            assert_eq!(line, pos.line);
+            assert_eq!(col, pos.column);
+        } else {
+            let line_starts = compute_line_starts(code);
+            let (computed_line, computed_column) =
+                compute_line_column(&line_starts, err.span.expect("missing location").start());
+            assert_eq!(line, computed_line);
+            assert_eq!(col, computed_column);
+        }
     }
 
     fn parse_stmt(code: &'static str) -> Box<Stmt> {
@@ -2194,8 +2222,16 @@ mod tests {
         };
 
         assert_eq!(msg, err.error);
-        assert_eq!(line, err.pos.line);
-        assert_eq!(col, err.pos.column);
+        if let Some(pos) = err.pos {
+            assert_eq!(line, pos.line);
+            assert_eq!(col, pos.column);
+        } else {
+            let line_starts = compute_line_starts(code);
+            let (computed_line, computed_column) =
+                compute_line_column(&line_starts, err.span.expect("missing location").start());
+            assert_eq!(line, computed_line);
+            assert_eq!(col, computed_column);
+        }
     }
 
     fn parse_type(code: &'static str) -> (Type, Interner) {
@@ -2213,7 +2249,7 @@ mod tests {
     fn parse(code: &'static str) -> (File, Interner) {
         let mut interner = Interner::new();
 
-        let (file, errors) = Parser::from_string(code, &mut interner).parse().unwrap();
+        let (file, errors) = Parser::from_string(code, &mut interner).parse();
         assert!(errors.is_empty());
 
         (file, interner)
@@ -2222,13 +2258,22 @@ mod tests {
     fn parse_err(code: &'static str, msg: ParseError, line: u32, col: u32) {
         let mut interner = Interner::new();
 
-        let err = Parser::from_string(code, &mut interner)
-            .parse()
-            .unwrap_err();
+        let (_ast, errors) = Parser::from_string(code, &mut interner).parse();
+
+        assert_eq!(errors.len(), 1);
+        let err = &errors[0];
 
         assert_eq!(msg, err.error);
-        assert_eq!(line, err.pos.line);
-        assert_eq!(col, err.pos.column);
+        if let Some(pos) = err.pos {
+            assert_eq!(line, pos.line);
+            assert_eq!(col, pos.column);
+        } else {
+            let line_starts = compute_line_starts(code);
+            let (computed_line, computed_column) =
+                compute_line_column(&line_starts, err.span.expect("missing location").start());
+            assert_eq!(line, computed_line);
+            assert_eq!(col, computed_column);
+        }
     }
 
     #[test]

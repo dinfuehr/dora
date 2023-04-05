@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+#[cfg(test)]
+use std::sync::Arc;
 
 use crate::error::{ParseError, ParseErrorWithLocation};
 use crate::lexer::position::{Position, Span};
@@ -19,6 +21,11 @@ impl Lexer {
     pub fn from_str(code: &str) -> Lexer {
         let reader = Reader::from_string(code);
         Lexer::new(reader)
+    }
+
+    #[cfg(test)]
+    pub fn source(&self) -> Arc<String> {
+        self.reader.content()
     }
 
     pub fn new(reader: Reader) -> Lexer {
@@ -614,6 +621,7 @@ mod tests {
     use super::*;
     use crate::lexer::reader::Reader;
     use crate::lexer::token::TokenKind;
+    use crate::{compute_line_column, compute_line_starts};
 
     fn assert_end(reader: &mut Lexer, l: u32, c: u32) {
         assert_tok(reader, TokenKind::End, l, c);
@@ -628,9 +636,19 @@ mod tests {
 
     fn assert_err(reader: &mut Lexer, msg: ParseError, l: u32, c: u32) {
         let err = reader.read_token().unwrap_err();
+        let source = reader.source();
         assert_eq!(msg, err.error);
-        assert_eq!(l, err.pos.line);
-        assert_eq!(c, err.pos.column);
+
+        if let Some(pos) = err.pos {
+            assert_eq!(l, pos.line);
+            assert_eq!(c, pos.column);
+        } else {
+            let line_starts = compute_line_starts(&source);
+            let (line, column) =
+                compute_line_column(&line_starts, err.span.expect("missing location").start());
+            assert_eq!(l, line);
+            assert_eq!(c, column);
+        }
     }
 
     #[test]

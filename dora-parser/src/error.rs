@@ -1,4 +1,4 @@
-use crate::lexer::position::Position;
+use crate::{Position, Span};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ParseError {
@@ -64,12 +64,25 @@ impl ParseError {
 
 #[derive(Debug)]
 pub struct ParseErrorWithLocation {
-    pub pos: Position,
+    pub pos: Option<Position>,
+    pub span: Option<Span>,
     pub error: ParseError,
 }
 
 impl ParseErrorWithLocation {
     pub fn new(pos: Position, error: ParseError) -> ParseErrorWithLocation {
-        ParseErrorWithLocation { pos, error }
+        ParseErrorWithLocation {
+            pos: Some(pos),
+            span: None,
+            error,
+        }
+    }
+
+    pub fn new_span(span: Span, error: ParseError) -> ParseErrorWithLocation {
+        ParseErrorWithLocation {
+            pos: None,
+            span: Some(span),
+            error,
+        }
     }
 }

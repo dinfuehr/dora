@@ -354,34 +354,32 @@ impl<'a> ProgramParser<'a> {
 
         let parser = Parser::from_shared_string(content, &mut self.sa.interner);
 
-        match parser.parse() {
-            Ok((ast, errors)) => {
-                for error in errors {
-                    self.sa.diag.lock().report(
-                        file_id,
-                        error.pos,
-                        ErrorMessage::Custom(error.error.message()),
-                    );
-                }
+        let (ast, errors) = parser.parse();
 
-                self.scan_file(
-                    package_id,
-                    module_id,
-                    file_id,
-                    module_path,
-                    file_lookup,
-                    &ast,
-                );
-            }
-
-            Err(error) => {
+        for error in errors {
+            if let Some(pos) = error.pos {
                 self.sa.diag.lock().report(
                     file_id,
-                    error.pos,
+                    pos,
+                    ErrorMessage::Custom(error.error.message()),
+                );
+            } else {
+                self.sa.diag.lock().report_span(
+                    file_id,
+                    error.span.expect("missing location"),
                     ErrorMessage::Custom(error.error.message()),
                 );
             }
         }
+
+        self.scan_file(
+            package_id,
+            module_id,
+            file_id,
+            module_path,
+            file_lookup,
+            &ast,
+        );
     }
 }
 
