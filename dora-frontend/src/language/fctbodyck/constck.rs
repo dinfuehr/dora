@@ -69,7 +69,7 @@ impl<'a> ConstCheck<'a> {
                 self.sa
                     .diag
                     .lock()
-                    .report(self.const_.file_id, expr.pos(), msg);
+                    .report_span(self.const_.file_id, expr.span(), msg);
                 return (SourceType::Error, ConstValue::None);
             }
         };
@@ -82,7 +82,7 @@ impl<'a> ConstCheck<'a> {
             self.sa
                 .diag
                 .lock()
-                .report(self.const_.file_id, expr.pos(), msg);
+                .report_span(self.const_.file_id, expr.span(), msg);
         }
 
         (ty, lit)

@@ -1163,7 +1163,7 @@ fn test_for_supports_make_iterator() {
             class Foo
             impl Foo { fn makeIterator(): Bool { return true; } }
             fn f() { for i in Foo() {} }",
-        pos(4, 34),
+        pos(4, 31),
         ErrorMessage::TypeNotUsableInForIn("Foo".into()),
     );
 
@@ -2061,7 +2061,7 @@ fn test_enum_value_with_type_param() {
     ok("enum A[T] { V1, V2 } fn f(): A[Int32] { A[Int32]::V2 }");
     err(
         "enum A[T] { V1, V2 } fn f(): A[Int32] { A[Int32]::V2[Int32] }",
-        pos(1, 42),
+        pos(1, 41),
         ErrorMessage::ExpectedSomeIdentifier,
     );
 }
@@ -3494,14 +3494,14 @@ fn different_fct_call_kinds() {
     ok("fn f(g: Array[Int32]) { g(0); }");
     err(
         "fn f(g: Array[Int32]) { g[Float32](0); }",
-        pos(1, 26),
+        pos(1, 25),
         ErrorMessage::NoTypeParamsExpected,
     );
     ok("class Foo fn f() { Foo(); }");
     errors(
         "fn f() { 1i32[Int32](); }",
         &[
-            (pos(1, 14), ErrorMessage::NoTypeParamsExpected),
+            (pos(1, 10), ErrorMessage::NoTypeParamsExpected),
             (
                 pos(1, 21),
                 ErrorMessage::UnknownMethod("Int32".into(), "get".into(), Vec::new()),
@@ -3513,7 +3513,7 @@ fn different_fct_call_kinds() {
     ok("enum Foo[T] { A(Int32), B } fn f() { Foo::A[Int32](1i32); }");
     err(
         "enum Foo[T] { A(Int32), B } fn f() { Foo[Int32]::A[Int32](1i32); }",
-        pos(1, 41),
+        pos(1, 38),
         ErrorMessage::NoTypeParamsExpected,
     );
     ok("trait MyTrait { @static fn foo(); } fn f[T: MyTrait]() { T::foo(); }");

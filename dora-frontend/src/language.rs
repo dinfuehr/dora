@@ -326,7 +326,7 @@ pub mod tests {
                 } else {
                     println!("but got:");
                     for error in errors {
-                        println!("\t{:?} at {:?}", error.msg, error.pos);
+                        println!("\t{:?} at {:?}", error.msg, compute_pos(code, error));
                         println!();
                     }
                 }

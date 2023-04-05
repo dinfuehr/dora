@@ -459,7 +459,7 @@ impl<'a> TypeCheck<'a> {
         self.sa
             .diag
             .lock()
-            .report(self.file_id, stmt.expr.pos(), msg);
+            .report_span(self.file_id, stmt.expr.span(), msg);
 
         // set invalid error type
         self.symtable.push_level();
@@ -688,7 +688,7 @@ impl<'a> TypeCheck<'a> {
                 self.sa
                     .diag
                     .lock()
-                    .report(self.file_id, case.value.pos(), msg);
+                    .report_span(self.file_id, case.value.span(), msg);
             }
 
             self.symtable.pop_level();
@@ -1479,7 +1479,7 @@ impl<'a> TypeCheck<'a> {
                 self.sa
                     .diag
                     .lock()
-                    .report(self.file_id, e.callee.pos(), msg);
+                    .report_span(self.file_id, e.callee.span(), msg);
             }
 
             let expr_type = self.check_expr(callee, SourceType::Any);
@@ -1522,7 +1522,7 @@ impl<'a> TypeCheck<'a> {
                     self.sa
                         .diag
                         .lock()
-                        .report(self.file_id, e.callee.pos(), msg);
+                        .report_span(self.file_id, e.callee.span(), msg);
                 }
 
                 let expr_type = self.check_expr(callee, SourceType::Any);
@@ -2298,7 +2298,7 @@ impl<'a> TypeCheck<'a> {
             self.sa
                 .diag
                 .lock()
-                .report(self.file_id, method_expr.pos(), msg);
+                .report_span(self.file_id, method_expr.span(), msg);
 
             self.analysis.set_ty(e.id, SourceType::Error);
             return SourceType::Error;
@@ -2362,10 +2362,11 @@ impl<'a> TypeCheck<'a> {
                 if let Some(&variant_idx) = enum_.name_to_value.get(&method_name) {
                     if !container_type_params.is_empty() && !type_params.is_empty() {
                         let msg = ErrorMessage::NoTypeParamsExpected;
-                        self.sa
-                            .diag
-                            .lock()
-                            .report(self.file_id, callee_as_path.lhs.pos(), msg);
+                        self.sa.diag.lock().report_span(
+                            self.file_id,
+                            callee_as_path.lhs.span(),
+                            msg,
+                        );
                     }
 
                     let used_type_params = if type_params.is_empty() {
@@ -2411,7 +2412,7 @@ impl<'a> TypeCheck<'a> {
                     self.sa
                         .diag
                         .lock()
-                        .report(self.file_id, callee_as_path.lhs.pos(), msg);
+                        .report_span(self.file_id, callee_as_path.lhs.span(), msg);
                 }
 
                 self.check_expr_call_generic_static_method(e, id, method_name, &arg_types)
@@ -2423,7 +2424,7 @@ impl<'a> TypeCheck<'a> {
                     self.sa
                         .diag
                         .lock()
-                        .report(self.file_id, callee_as_path.lhs.pos(), msg);
+                        .report_span(self.file_id, callee_as_path.lhs.span(), msg);
                 }
 
                 let sym = {
@@ -2473,7 +2474,10 @@ impl<'a> TypeCheck<'a> {
             ident.name
         } else {
             let msg = ErrorMessage::ExpectedSomeIdentifier;
-            self.sa.diag.lock().report(self.file_id, e.rhs.pos(), msg);
+            self.sa
+                .diag
+                .lock()
+                .report_span(self.file_id, e.rhs.span(), msg);
             return SourceType::Error;
         };
 
@@ -2493,7 +2497,10 @@ impl<'a> TypeCheck<'a> {
 
             _ => {
                 let msg = ErrorMessage::InvalidLeftSideOfSeparator;
-                self.sa.diag.lock().report(self.file_id, e.lhs.pos(), msg);
+                self.sa
+                    .diag
+                    .lock()
+                    .report_span(self.file_id, e.lhs.span(), msg);
 
                 self.analysis.set_ty(e.id, SourceType::Error);
                 SourceType::Error
@@ -2512,7 +2519,7 @@ impl<'a> TypeCheck<'a> {
                 self.sa
                     .diag
                     .lock()
-                    .report(self.file_id, expr_path.rhs.pos(), msg);
+                    .report_span(self.file_id, expr_path.rhs.span(), msg);
                 return Err(());
             };
 
@@ -2527,7 +2534,10 @@ impl<'a> TypeCheck<'a> {
 
                 _ => {
                     let msg = ErrorMessage::ExpectedModule;
-                    self.sa.diag.lock().report(self.file_id, expr.pos(), msg);
+                    self.sa
+                        .diag
+                        .lock()
+                        .report_span(self.file_id, expr.span(), msg);
                     Err(())
                 }
             }
@@ -2538,7 +2548,10 @@ impl<'a> TypeCheck<'a> {
             Ok(sym)
         } else {
             let msg = ErrorMessage::ExpectedSomeIdentifier;
-            self.sa.diag.lock().report(self.file_id, expr.pos(), msg);
+            self.sa
+                .diag
+                .lock()
+                .report_span(self.file_id, expr.span(), msg);
             Err(())
         }
     }
@@ -2803,7 +2816,7 @@ impl<'a> TypeCheck<'a> {
                 self.sa
                     .diag
                     .lock()
-                    .report(self.file_id, path.lhs.pos(), msg);
+                    .report_span(self.file_id, path.lhs.span(), msg);
 
                 self.analysis.set_ty(e.id, SourceType::Error);
                 return SourceType::Error;
@@ -2816,7 +2829,7 @@ impl<'a> TypeCheck<'a> {
                 self.sa
                     .diag
                     .lock()
-                    .report(self.file_id, path.rhs.pos(), msg);
+                    .report_span(self.file_id, path.rhs.span(), msg);
 
                 self.analysis.set_ty(e.id, SourceType::Error);
                 return SourceType::Error;
@@ -3263,9 +3276,9 @@ impl<'a> TypeCheck<'a> {
                 }
 
                 let ty = part_expr.name_fct(self.sa, self.fct);
-                self.sa.diag.lock().report(
+                self.sa.diag.lock().report_span(
                     self.file_id,
-                    part.pos(),
+                    part.span(),
                     ErrorMessage::ExpectedStringable(ty),
                 );
             } else {

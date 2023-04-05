@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::convert::TryInto;
 
-use dora_parser::{ast, Position};
+use dora_parser::{ast, compute_line_column, Position, Span};
 
 use crate::language::sem_analysis::{
     emit_as_bytecode_operation, find_impl, AnalysisData, CallType, ClassDefinitionId,
@@ -68,6 +68,13 @@ struct AstBytecodeGen<'a> {
 }
 
 impl<'a> AstBytecodeGen<'a> {
+    fn loc(&self, span: Span) -> Location {
+        let file_id = self.fct.file_id;
+        let file = self.sa.source_file(file_id);
+        let (line, column) = compute_line_column(&file.line_starts, span.start());
+        Location::new(line, column)
+    }
+
     fn generate(mut self, ast: &ast::Function) -> BytecodeFunction {
         self.push_scope();
 
@@ -363,7 +370,7 @@ impl<'a> AstBytecodeGen<'a> {
                 .builder
                 .add_const_fct_types(FunctionId(make_iterator.0 as u32), object_type_params);
             self.builder
-                .emit_invoke_direct(iterator_reg, fct_idx, loc(stmt.expr.pos()));
+                .emit_invoke_direct(iterator_reg, fct_idx, self.loc(stmt.expr.span()));
             iterator_reg
         } else {
             // Object is already the iterator - just use it
@@ -397,7 +404,7 @@ impl<'a> AstBytecodeGen<'a> {
             for_type_info.next_type.clone(),
             next_result_reg,
             fct_idx,
-            loc(stmt.expr.pos()),
+            self.loc(stmt.expr.span()),
         );
 
         // Emit: if <next-result>.isNone() then goto lbl_end
@@ -408,7 +415,7 @@ impl<'a> AstBytecodeGen<'a> {
         );
         self.builder.emit_push_register(next_result_reg);
         self.builder
-            .emit_invoke_direct(cond_reg, fct_idx, loc(stmt.expr.pos()));
+            .emit_invoke_direct(cond_reg, fct_idx, self.loc(stmt.expr.span()));
         self.builder.emit_jump_if_true(cond_reg, lbl_end);
         self.free_temp(cond_reg);
 
@@ -424,7 +431,7 @@ impl<'a> AstBytecodeGen<'a> {
             );
             self.builder.emit_push_register(next_result_reg);
             self.builder
-                .emit_invoke_direct(value_reg, fct_idx, loc(stmt.expr.pos()));
+                .emit_invoke_direct(value_reg, fct_idx, self.loc(stmt.expr.span()));
             self.free_temp(next_result_reg);
 
             self.visit_stmt_for_pattern_setup(&stmt.pattern);
@@ -681,7 +688,7 @@ impl<'a> AstBytecodeGen<'a> {
                     self.builder.emit_invoke_generic_direct(
                         part_register,
                         fct_idx,
-                        loc(part.pos()),
+                        self.loc(part.span()),
                     );
 
                     self.free_if_temp(expr_register);
@@ -709,7 +716,7 @@ impl<'a> AstBytecodeGen<'a> {
                         .builder
                         .add_const_fct(FunctionId(to_string_id.0 as u32));
                     self.builder
-                        .emit_invoke_direct(part_register, fct_idx, loc(part.pos()));
+                        .emit_invoke_direct(part_register, fct_idx, self.loc(part.span()));
 
                     self.free_if_temp(expr_register);
                 }
