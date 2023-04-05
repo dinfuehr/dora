@@ -570,7 +570,6 @@ pub struct AnnotationParam {
 pub struct Field {
     pub id: NodeId,
     pub name: Name,
-    pub pos: Position,
     pub span: Span,
     pub data_type: Type,
     pub primary_ctor: bool,

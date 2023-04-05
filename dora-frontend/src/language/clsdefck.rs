@@ -10,7 +10,7 @@ use crate::language::{read_type, AllowSelf, TypeParamContext};
 
 use dora_parser::ast;
 use dora_parser::interner::Name;
-use dora_parser::lexer::position::Position;
+use dora_parser::Span;
 
 pub fn check(sa: &SemAnalysis) {
     for cls in sa.classes.iter() {
@@ -76,12 +76,12 @@ impl<'x> ClsDefCheck<'x> {
             AllowSelf::No,
         )
         .unwrap_or(SourceType::Error);
-        self.add_field(f.pos, f.name, ty, f.mutable, f.visibility);
+        self.add_field(f.span, f.name, ty, f.mutable, f.visibility);
     }
 
     fn add_field(
         &mut self,
-        pos: Position,
+        span: Span,
         name: Name,
         ty: SourceType,
         mutable: bool,
@@ -100,12 +100,12 @@ impl<'x> ClsDefCheck<'x> {
             visibility: Visibility::from_ast(visibility),
         };
 
-        self.check_if_symbol_exists(name, pos);
+        self.check_if_symbol_exists(name, span);
 
         cls.fields.push(field);
     }
 
-    fn check_if_symbol_exists(&mut self, name: Name, pos: Position) {
+    fn check_if_symbol_exists(&mut self, name: Name, span: Span) {
         if !self.table.insert(name) {
             let file: SourceFileId = self.file_id.into();
 
@@ -113,7 +113,7 @@ impl<'x> ClsDefCheck<'x> {
             self.sa
                 .diag
                 .lock()
-                .report(file, pos, ErrorMessage::ShadowField(name));
+                .report_span(file, span, ErrorMessage::ShadowField(name));
         }
     }
 }

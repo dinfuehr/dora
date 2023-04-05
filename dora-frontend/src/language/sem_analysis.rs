@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use parking_lot::{Mutex, RwLock};
 
+use dora_parser::compute_line_starts;
 use dora_parser::interner::{Interner, Name};
 
 use crate::language::error::diag::Diagnostic;
@@ -31,7 +32,7 @@ pub use self::impls::{
 pub use self::known::KnownElements;
 pub use self::modules::{module_package, module_path, ModuleDefinition, ModuleDefinitionId};
 pub use self::packages::{PackageDefinition, PackageDefinitionId, PackageName};
-pub use self::source_files::{compute_line_starts, pos_from_span, SourceFile, SourceFileId};
+pub use self::source_files::{SourceFile, SourceFileId};
 pub use self::src::{
     AnalysisData, CallType, ContextIdx, ForTypeInfo, IdentType, NestedVarId, NodeMap, Var,
     VarAccess, VarId, VarLocation,

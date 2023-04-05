@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::error::{ParseError, ParseErrorAndPos};
+use crate::error::{ParseError, ParseErrorWithLocation};
 use crate::lexer::position::{Position, Span};
 use crate::lexer::reader::Reader;
 use crate::lexer::token::{FloatSuffix, IntBase, IntSuffix, Token, TokenKind};
@@ -27,7 +27,7 @@ impl Lexer {
         Lexer { reader, keywords }
     }
 
-    pub fn read_token(&mut self) -> Result<Token, ParseErrorAndPos> {
+    pub fn read_token(&mut self) -> Result<Token, ParseErrorWithLocation> {
         loop {
             self.skip_white();
 
@@ -56,7 +56,10 @@ impl Lexer {
             } else {
                 let ch = ch.unwrap();
 
-                return Err(ParseErrorAndPos::new(pos, ParseError::UnknownChar(ch)));
+                return Err(ParseErrorWithLocation::new(
+                    pos,
+                    ParseError::UnknownChar(ch),
+                ));
             }
         }
     }
@@ -67,7 +70,7 @@ impl Lexer {
         }
     }
 
-    fn read_comment(&mut self) -> Result<(), ParseErrorAndPos> {
+    fn read_comment(&mut self) -> Result<(), ParseErrorWithLocation> {
         while !self.curr().is_none() && !is_newline(self.curr()) {
             self.read_char();
         }
@@ -75,7 +78,7 @@ impl Lexer {
         Ok(())
     }
 
-    fn read_multi_comment(&mut self) -> Result<(), ParseErrorAndPos> {
+    fn read_multi_comment(&mut self) -> Result<(), ParseErrorWithLocation> {
         let pos = self.reader.pos();
 
         self.read_char();
@@ -86,7 +89,10 @@ impl Lexer {
         }
 
         if self.curr().is_none() {
-            return Err(ParseErrorAndPos::new(pos, ParseError::UnclosedComment));
+            return Err(ParseErrorWithLocation::new(
+                pos,
+                ParseError::UnclosedComment,
+            ));
         }
 
         self.read_char();
@@ -95,7 +101,7 @@ impl Lexer {
         Ok(())
     }
 
-    fn read_identifier(&mut self) -> Result<Token, ParseErrorAndPos> {
+    fn read_identifier(&mut self) -> Result<Token, ParseErrorWithLocation> {
         let pos = self.reader.pos();
         let idx = self.reader.idx();
         let value = self.read_identifier_as_string();
@@ -125,7 +131,7 @@ impl Lexer {
         value
     }
 
-    fn read_char_literal(&mut self) -> Result<Token, ParseErrorAndPos> {
+    fn read_char_literal(&mut self) -> Result<Token, ParseErrorWithLocation> {
         let pos = self.reader.pos();
         let idx = self.reader.idx();
 
@@ -139,7 +145,7 @@ impl Lexer {
             let span = self.span_from(idx);
             Ok(Token::new(ttype, pos, span))
         } else {
-            Err(ParseErrorAndPos::new(pos, ParseError::UnclosedChar))
+            Err(ParseErrorWithLocation::new(pos, ParseError::UnclosedChar))
         }
     }
 
@@ -147,7 +153,7 @@ impl Lexer {
         &mut self,
         pos: Position,
         unclosed: ParseError,
-    ) -> Result<char, ParseErrorAndPos> {
+    ) -> Result<char, ParseErrorWithLocation> {
         if let Some(ch) = self.curr() {
             self.read_char();
 
@@ -155,7 +161,7 @@ impl Lexer {
                 let ch = if let Some(ch) = self.curr() {
                     ch
                 } else {
-                    return Err(ParseErrorAndPos::new(pos, unclosed));
+                    return Err(ParseErrorWithLocation::new(pos, unclosed));
                 };
 
                 self.read_char();
@@ -171,18 +177,18 @@ impl Lexer {
                     '$' => Ok('$'),
                     _ => {
                         let msg = ParseError::InvalidEscapeSequence(ch);
-                        Err(ParseErrorAndPos::new(pos, msg))
+                        Err(ParseErrorWithLocation::new(pos, msg))
                     }
                 }
             } else {
                 Ok(ch)
             }
         } else {
-            Err(ParseErrorAndPos::new(pos, unclosed))
+            Err(ParseErrorWithLocation::new(pos, unclosed))
         }
     }
 
-    fn read_string(&mut self, skip_quote: bool) -> Result<Token, ParseErrorAndPos> {
+    fn read_string(&mut self, skip_quote: bool) -> Result<Token, ParseErrorWithLocation> {
         let pos = self.reader.pos();
         let idx = self.reader.idx();
         let mut value = String::new();
@@ -213,15 +219,15 @@ impl Lexer {
             let span = self.span_from(idx);
             Ok(Token::new(ttype, pos, span))
         } else {
-            Err(ParseErrorAndPos::new(pos, ParseError::UnclosedString))
+            Err(ParseErrorWithLocation::new(pos, ParseError::UnclosedString))
         }
     }
 
-    pub fn read_string_continuation(&mut self) -> Result<Token, ParseErrorAndPos> {
+    pub fn read_string_continuation(&mut self) -> Result<Token, ParseErrorWithLocation> {
         self.read_string(false)
     }
 
-    fn read_operator(&mut self) -> Result<Token, ParseErrorAndPos> {
+    fn read_operator(&mut self) -> Result<Token, ParseErrorWithLocation> {
         let pos = self.reader.pos();
         let idx = self.reader.idx();
         let ch = self.curr().unwrap();
@@ -358,7 +364,10 @@ impl Lexer {
             '@' => TokenKind::At,
 
             _ => {
-                return Err(ParseErrorAndPos::new(pos, ParseError::UnknownChar(ch)));
+                return Err(ParseErrorWithLocation::new(
+                    pos,
+                    ParseError::UnknownChar(ch),
+                ));
             }
         };
 
@@ -366,7 +375,7 @@ impl Lexer {
         Ok(Token::new(kind, pos, span))
     }
 
-    fn read_number(&mut self) -> Result<Token, ParseErrorAndPos> {
+    fn read_number(&mut self) -> Result<Token, ParseErrorWithLocation> {
         let pos = self.reader.pos();
         let idx = self.reader.idx();
         let mut value = String::new();
@@ -411,7 +420,7 @@ impl Lexer {
                 "f32" if base == IntBase::Dec => TokenKind::LitFloat(value, FloatSuffix::Float32),
                 "f64" if base == IntBase::Dec => TokenKind::LitFloat(value, FloatSuffix::Float64),
                 _ => {
-                    return Err(ParseErrorAndPos::new(
+                    return Err(ParseErrorWithLocation::new(
                         pos,
                         ParseError::InvalidSuffix(suffix),
                     ));
@@ -430,7 +439,7 @@ impl Lexer {
         pos: Position,
         idx: u32,
         mut value: String,
-    ) -> Result<Token, ParseErrorAndPos> {
+    ) -> Result<Token, ParseErrorWithLocation> {
         self.read_char();
         value.push('.');
 
@@ -455,7 +464,7 @@ impl Lexer {
                 "f32" => FloatSuffix::Float32,
                 "f64" => FloatSuffix::Float64,
                 _ => {
-                    return Err(ParseErrorAndPos::new(
+                    return Err(ParseErrorWithLocation::new(
                         pos,
                         ParseError::InvalidSuffix(suffix),
                     ));

@@ -63,13 +63,13 @@ impl ParseError {
 }
 
 #[derive(Debug)]
-pub struct ParseErrorAndPos {
+pub struct ParseErrorWithLocation {
     pub pos: Position,
     pub error: ParseError,
 }
 
-impl ParseErrorAndPos {
-    pub fn new(pos: Position, error: ParseError) -> ParseErrorAndPos {
-        ParseErrorAndPos { pos, error }
+impl ParseErrorWithLocation {
+    pub fn new(pos: Position, error: ParseError) -> ParseErrorWithLocation {
+        ParseErrorWithLocation { pos, error }
     }
 }

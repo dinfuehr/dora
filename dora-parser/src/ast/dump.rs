@@ -305,7 +305,7 @@ impl<'a> AstDumper<'a> {
             self,
             "field {} @ {} {}",
             self.str(field.name),
-            field.pos,
+            field.span,
             field.id
         );
         self.indent(|d| d.dump_type(&field.data_type));

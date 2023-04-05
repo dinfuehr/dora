@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
-use crate::language::sem_analysis::{pos_from_span, SemAnalysis, SourceFileId};
-use dora_parser::{Position, Span};
+use crate::language::sem_analysis::{SemAnalysis, SourceFileId};
+use dora_parser::{compute_line_column, Position, Span};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum ErrorMessage {
@@ -642,16 +642,21 @@ impl ErrorDescriptor {
 
     pub fn message(&self, sa: &SemAnalysis) -> String {
         if let Some(file) = self.file {
-            let pos = self.pos.unwrap_or_else(|| {
-                let span = self.span.expect("missing location");
-                pos_from_span(sa, file, span)
-            });
-
             let file = sa.source_file(file);
+
+            let (line, column) = match self.pos {
+                Some(pos) => (pos.line, pos.column),
+                None => {
+                    let span = self.span.expect("missing location");
+                    compute_line_column(&file.line_starts, span.start())
+                }
+            };
+
             format!(
-                "error in {:?} at {}: {}",
+                "error in {:?} at {}:{}: {}",
                 file.path,
-                pos,
+                line,
+                column,
                 self.msg.message()
             )
         } else {
