@@ -177,7 +177,7 @@ impl<'a> TypeCheck<'a> {
             self.package_id,
             self.module_id,
             Some(self.file_id),
-            Some(self.ast.pos),
+            Some(self.ast.span),
             name,
             Visibility::from_ast(self.ast.visibility),
             fields,

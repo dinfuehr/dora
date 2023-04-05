@@ -249,21 +249,18 @@ pub enum UseTargetDescriptor {
 
 #[derive(Clone, Debug)]
 pub struct UseTargetGroup {
-    pub pos: Position,
     pub span: Span,
     pub targets: Vec<Arc<Use>>,
 }
 
 #[derive(Clone, Debug)]
 pub struct UseTargetName {
-    pub pos: Position,
     pub span: Span,
     pub name: Option<Name>,
 }
 
 #[derive(Clone, Debug)]
 pub struct UsePathComponent {
-    pub pos: Position,
     pub span: Span,
     pub value: UsePathComponentValue,
 }
@@ -317,7 +314,6 @@ pub struct Alias {
 #[derive(Clone, Debug)]
 pub struct Struct {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
     pub name: Name,
     pub fields: Vec<StructField>,
@@ -330,7 +326,6 @@ pub struct Struct {
 pub struct StructField {
     pub id: NodeId,
     pub name: Name,
-    pub pos: Position,
     pub span: Span,
     pub data_type: Type,
     pub visibility: Visibility,
@@ -529,7 +524,6 @@ pub struct Trait {
 pub struct Class {
     pub id: NodeId,
     pub name: Name,
-    pub pos: Position,
     pub span: Span,
     pub internal: bool,
     pub visibility: Visibility,
@@ -541,7 +535,6 @@ pub struct Class {
 #[derive(Clone, Debug)]
 pub struct ExternPackage {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
     pub name: Name,
     pub identifier: Name,
@@ -550,8 +543,8 @@ pub struct ExternPackage {
 #[derive(Clone, Debug)]
 pub struct Annotation {
     pub id: NodeId,
+    pub span: Span,
     pub name: Name,
-    pub pos: Position,
     pub annotation_usages: AnnotationUsages,
     pub internal: Option<Modifier>,
 
@@ -562,26 +555,13 @@ pub struct Annotation {
 #[derive(Clone, Debug)]
 pub struct TypeParam {
     pub name: Name,
-    pub pos: Position,
     pub span: Span,
     pub bounds: Vec<Type>,
 }
 
 #[derive(Clone, Debug)]
-pub struct ConstructorParam {
-    pub name: Name,
-    pub pos: Position,
-    pub span: Span,
-    pub data_type: Type,
-    pub field: bool,
-    pub mutable: bool,
-    pub variadic: bool,
-}
-
-#[derive(Clone, Debug)]
 pub struct AnnotationParam {
     pub name: Name,
-    pub pos: Position,
     pub span: Span,
     pub data_type: Type,
 }

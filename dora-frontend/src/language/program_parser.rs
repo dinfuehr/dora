@@ -5,7 +5,6 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use crate::language::error::msg::ErrorMessage;
-use crate::language::report_sym_shadow;
 use crate::language::sem_analysis::{
     AnnotationDefinition, ClassDefinition, ConstDefinition, EnumDefinition, ExtensionDefinition,
     ExtensionDefinitionId, FctDefinition, FctParent, GlobalDefinition, GlobalDefinitionId,
@@ -14,14 +13,13 @@ use crate::language::sem_analysis::{
     UseDefinition,
 };
 use crate::language::sym::Sym;
+use crate::language::{report_sym_shadow, report_sym_shadow_span};
 use crate::STDLIB;
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit};
 use dora_parser::interner::Name;
 use dora_parser::parser::Parser;
-use dora_parser::Position;
-
-use super::sem_analysis::pos_from_span;
+use dora_parser::Span;
 
 pub fn parse(sa: &mut SemAnalysis) {
     let mut discoverer = ProgramParser::new(sa);
@@ -238,14 +236,12 @@ impl<'a> ProgramParser<'a> {
                 let mut module_path = module_path;
                 module_path.push(&name);
 
-                let pos = pos_from_span(self.sa, file_id, node.span);
-
                 self.add_file(
                     package_id,
                     module_id,
                     file_path,
                     Some(module_path),
-                    Some((file_id, pos)),
+                    Some((file_id, node.span)),
                     FileLookup::FileSystem,
                 );
             }
@@ -270,7 +266,7 @@ impl<'a> ProgramParser<'a> {
         module_id: ModuleDefinitionId,
         path: PathBuf,
         module_path: Option<PathBuf>,
-        error_location: Option<(SourceFileId, Position)>,
+        error_location: Option<(SourceFileId, Span)>,
         file_lookup: FileLookup,
     ) {
         let result = file_as_string(&path);
@@ -288,11 +284,12 @@ impl<'a> ProgramParser<'a> {
             }
 
             Err(_) => {
-                if let Some((file_id, pos)) = error_location {
-                    self.sa
-                        .diag
-                        .lock()
-                        .report(file_id, pos, ErrorMessage::FileNoAccess(path));
+                if let Some((file_id, span)) = error_location {
+                    self.sa.diag.lock().report_span(
+                        file_id,
+                        span,
+                        ErrorMessage::FileNoAccess(path),
+                    );
                 } else {
                     self.sa
                         .diag
@@ -418,18 +415,19 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
             if !package.add_dependency(stmt.name, package_id, top_level_module_id) {
                 let name = self.sa.interner.str(stmt.name).to_string();
-                self.sa.diag.lock().report(
+                self.sa.diag.lock().report_span(
                     self.file_id,
-                    stmt.pos,
+                    stmt.span,
                     ErrorMessage::PackageAlreadyExists(name),
                 );
             }
         } else {
             let name = self.sa.interner.str(stmt.name).to_string();
-            self.sa
-                .diag
-                .lock()
-                .report(self.file_id, stmt.pos, ErrorMessage::UnknownPackage(name));
+            self.sa.diag.lock().report_span(
+                self.file_id,
+                stmt.span,
+                ErrorMessage::UnknownPackage(name),
+            );
         }
     }
 
@@ -445,8 +443,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         let sym = Sym::Module(id);
 
         if let Some(sym) = self.insert(node.name, sym) {
-            let pos = pos_from_span(self.sa, self.file_id, node.span);
-            report_sym_shadow(self.sa, node.name, self.file_id, pos, sym);
+            report_sym_shadow_span(self.sa, node.name, self.file_id, node.span, sym);
         }
 
         if node.elements.is_none() {
@@ -467,8 +464,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
         let sym = Sym::Trait(trait_id);
         if let Some(sym) = self.insert(node.name, sym) {
-            let pos = pos_from_span(self.sa, self.file_id, node.span);
-            report_sym_shadow(self.sa, node.name, self.file_id, pos, sym);
+            report_sym_shadow_span(self.sa, node.name, self.file_id, node.span, sym);
         }
     }
 
@@ -485,8 +481,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
         let sym = Sym::Global(global_id);
         if let Some(sym) = self.insert(node.name, sym) {
-            let pos = pos_from_span(self.sa, self.file_id, node.span);
-            report_sym_shadow(self.sa, node.name, self.file_id, pos, sym);
+            report_sym_shadow_span(self.sa, node.name, self.file_id, node.span, sym);
         }
     }
 
@@ -511,8 +506,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
         let sym = Sym::Const(id);
         if let Some(sym) = self.insert(node.name, sym) {
-            let pos = pos_from_span(self.sa, self.file_id, node.span);
-            report_sym_shadow(self.sa, node.name, self.file_id, pos, sym);
+            report_sym_shadow_span(self.sa, node.name, self.file_id, node.span, sym);
         }
     }
 
@@ -523,7 +517,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         let sym = Sym::Class(class_id);
 
         if let Some(sym) = self.insert(node.name, sym) {
-            report_sym_shadow(self.sa, node.name, self.file_id, node.pos, sym);
+            report_sym_shadow_span(self.sa, node.name, self.file_id, node.span, sym);
         }
     }
 
@@ -533,7 +527,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
         let sym = Sym::Struct(id);
         if let Some(sym) = self.insert(node.name, sym) {
-            report_sym_shadow(self.sa, node.name, self.file_id, node.pos, sym);
+            report_sym_shadow_span(self.sa, node.name, self.file_id, node.span, sym);
         }
     }
 
@@ -542,7 +536,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             self.package_id,
             self.module_id,
             self.file_id,
-            node.pos,
+            node.span,
             node.name,
         );
         let id = self.sa.annotations.push(annotation);
@@ -550,7 +544,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         let sym = Sym::Annotation(id);
 
         if let Some(sym) = self.insert(node.name, sym) {
-            report_sym_shadow(self.sa, node.name, self.file_id, node.pos, sym);
+            report_sym_shadow_span(self.sa, node.name, self.file_id, node.span, sym);
         }
     }
 
@@ -576,8 +570,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
         let sym = Sym::Enum(id);
         if let Some(sym) = self.insert(node.name, sym) {
-            let pos = pos_from_span(self.sa, self.file_id, node.span);
-            report_sym_shadow(self.sa, node.name, self.file_id, pos, sym);
+            report_sym_shadow_span(self.sa, node.name, self.file_id, node.span, sym);
         }
     }
 }

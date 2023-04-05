@@ -3,7 +3,7 @@ use crate::language::sem_analysis::{FctDefinition, SemAnalysis, SourceFileId};
 use crate::language::sym::Sym;
 use dora_parser::ast;
 use dora_parser::interner::Name;
-use dora_parser::lexer::position::Position;
+use dora_parser::{Position, Span};
 
 pub use program::emit_program;
 pub use readty::{read_type, read_type_unchecked, AllowSelf, TypeParamContext};
@@ -179,9 +179,9 @@ fn internalck(sa: &SemAnalysis) {
         let struct_ = struct_.read();
 
         if struct_.internal && !struct_.internal_resolved {
-            sa.diag.lock().report(
+            sa.diag.lock().report_span(
                 struct_.file_id,
-                struct_.pos,
+                struct_.span,
                 ErrorMessage::UnresolvedInternal,
             );
         }
@@ -193,7 +193,7 @@ fn internalck(sa: &SemAnalysis) {
         if cls.internal && !cls.internal_resolved {
             sa.diag
                 .lock()
-                .report(cls.file_id(), cls.pos(), ErrorMessage::UnresolvedInternal);
+                .report_span(cls.file_id(), cls.span(), ErrorMessage::UnresolvedInternal);
         }
     }
 }
@@ -234,6 +234,32 @@ pub fn report_sym_shadow(
     };
 
     sa.diag.lock().report(file, pos, msg);
+}
+
+pub fn report_sym_shadow_span(
+    sa: &SemAnalysis,
+    name: Name,
+    file: SourceFileId,
+    span: Span,
+    sym: Sym,
+) {
+    let name = sa.interner.str(name).to_string();
+
+    let msg = match sym {
+        Sym::Class(_) => ErrorMessage::ShadowClass(name),
+        Sym::Struct(_) => ErrorMessage::ShadowStruct(name),
+        Sym::Trait(_) => ErrorMessage::ShadowTrait(name),
+        Sym::Enum(_) => ErrorMessage::ShadowEnum(name),
+        Sym::Fct(_) => ErrorMessage::ShadowFunction(name),
+        Sym::Global(_) => ErrorMessage::ShadowGlobal(name),
+        Sym::Const(_) => ErrorMessage::ShadowConst(name),
+        Sym::Var(_) => ErrorMessage::ShadowParam(name),
+        Sym::Module(_) => ErrorMessage::ShadowModule(name),
+        Sym::TypeParam(_) => ErrorMessage::ShadowTypeParam(name),
+        _ => unreachable!(),
+    };
+
+    sa.diag.lock().report_span(file, span, msg);
 }
 
 #[cfg(test)]

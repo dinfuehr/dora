@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::language::access::sym_accessible_from;
 use crate::language::error::msg::ErrorMessage;
-use crate::language::report_sym_shadow;
+use crate::language::report_sym_shadow_span;
 use crate::language::sem_analysis::{module_package, ModuleDefinitionId, SemAnalysis};
 use crate::language::sym::{ModuleSymTable, Sym};
 
@@ -10,7 +10,7 @@ use dora_parser::ast::{
     self, NodeId, UsePathComponent, UsePathComponentValue, UseTargetDescriptor,
 };
 use dora_parser::interner::Name;
-use dora_parser::lexer::position::Position;
+use dora_parser::Span;
 
 use super::sem_analysis::SourceFileId;
 
@@ -96,8 +96,9 @@ fn check_use(
     {
         if !previous_sym.is_enum() && !previous_sym.is_module() {
             let msg = ErrorMessage::ExpectedPath;
-            let pos = use_declaration.common_path[idx - 1].pos;
-            sa.diag.lock().report(use_file_id, pos, msg);
+            sa.diag
+                .lock()
+                .report_span(use_file_id, use_declaration.common_path[idx - 1].span, msg);
             return Err(UseError::Fatal);
         }
 
@@ -120,9 +121,9 @@ fn check_use(
                 UsePathComponentValue::Package
                 | UsePathComponentValue::Super
                 | UsePathComponentValue::This => {
-                    sa.diag.lock().report(
+                    sa.diag.lock().report_span(
                         use_file_id,
-                        last_component.pos,
+                        last_component.span,
                         ErrorMessage::ExpectedPath,
                     );
                     return Err(UseError::Fatal);
@@ -135,7 +136,7 @@ fn check_use(
             define_use_target(
                 sa,
                 use_file_id,
-                last_component.pos,
+                last_component.span,
                 use_module_id,
                 name,
                 previous_sym,
@@ -152,7 +153,7 @@ fn check_use(
             define_use_target(
                 sa,
                 use_file_id,
-                last_component.pos,
+                last_component.span,
                 use_module_id,
                 name,
                 previous_sym,
@@ -162,7 +163,7 @@ fn check_use(
             if group.targets.is_empty() {
                 sa.diag
                     .lock()
-                    .report(use_file_id, group.pos, ErrorMessage::ExpectedPath);
+                    .report_span(use_file_id, group.span, ErrorMessage::ExpectedPath);
                 return Err(UseError::Fatal);
             }
 
@@ -206,9 +207,9 @@ fn initial_module(
                 if let Some(module_id) = module.parent_module_id {
                     Ok((1, Sym::Module(module_id)))
                 } else {
-                    sa.diag.lock().report(
+                    sa.diag.lock().report_span(
                         use_file_id.into(),
-                        first_component.pos,
+                        first_component.span,
                         ErrorMessage::NoSuperModule,
                     );
                     Err(UseError::Fatal)
@@ -245,7 +246,7 @@ fn process_component(
         | UsePathComponentValue::This => {
             sa.diag
                 .lock()
-                .report(use_file_id, component.pos, ErrorMessage::ExpectedPath);
+                .report_span(use_file_id, component.span, ErrorMessage::ExpectedPath);
             return Err(UseError::Fatal);
         }
     };
@@ -262,7 +263,7 @@ fn process_component(
                     let module = &sa.modules[module_id].read();
                     let name = sa.interner.str(component_name).to_string();
                     let msg = ErrorMessage::NotAccessibleInModule(module.name(sa), name);
-                    sa.diag.lock().report(use_file_id, component.pos, msg);
+                    sa.diag.lock().report_span(use_file_id, component.span, msg);
                     Err(UseError::Fatal)
                 }
             } else if ignore_errors {
@@ -272,9 +273,9 @@ fn process_component(
                 let module = module.read();
                 let name = sa.interner.str(component_name).to_string();
                 let module_name = module.name(sa);
-                sa.diag.lock().report(
+                sa.diag.lock().report_span(
                     use_file_id,
-                    component.pos,
+                    component.span,
                     ErrorMessage::UnknownIdentifierInModule(module_name, name),
                 );
                 Err(UseError::Unresolved)
@@ -288,9 +289,9 @@ fn process_component(
                 Ok(Sym::EnumVariant(enum_id, variant_idx))
             } else {
                 let name = sa.interner.str(component_name).to_string();
-                sa.diag.lock().report(
+                sa.diag.lock().report_span(
                     use_file_id,
-                    component.pos,
+                    component.span,
                     ErrorMessage::UnknownEnumVariant(name),
                 );
                 Err(UseError::Fatal)
@@ -304,7 +305,7 @@ fn process_component(
 fn define_use_target(
     sa: &SemAnalysis,
     use_file_id: SourceFileId,
-    use_pos: Position,
+    use_span: Span,
     module_id: ModuleDefinitionId,
     name: Name,
     sym: Sym,
@@ -316,7 +317,7 @@ fn define_use_target(
     let mut table = table.write();
 
     if let Some(old_sym) = table.insert(name, sym) {
-        report_sym_shadow(sa, name, use_file_id, use_pos, old_sym);
+        report_sym_shadow_span(sa, name, use_file_id, use_span, old_sym);
         Err(UseError::Fatal)
     } else {
         Ok(())

@@ -189,7 +189,6 @@ impl<'a> Parser<'a> {
 
     fn parse_extern(&mut self) -> Result<ExternPackage, ParseErrorAndPos> {
         let start = self.token.span.start();
-        let pos = self.token.position;
 
         self.expect_token(TokenKind::Extern)?;
         self.expect_token(TokenKind::Package)?;
@@ -205,7 +204,6 @@ impl<'a> Parser<'a> {
 
         Ok(ExternPackage {
             id: self.generate_id(),
-            pos,
             span,
             name,
             identifier,
@@ -262,7 +260,6 @@ impl<'a> Parser<'a> {
     fn parse_use_as(&mut self) -> Result<UseTargetName, ParseErrorAndPos> {
         self.expect_token(TokenKind::As)?;
 
-        let pos = self.token.position;
         let start = self.token.span.start();
 
         let name = if self.token.is(TokenKind::Underscore) {
@@ -273,11 +270,10 @@ impl<'a> Parser<'a> {
         };
 
         let span = self.span_from(start);
-        Ok(UseTargetName { pos, span, name })
+        Ok(UseTargetName { span, name })
     }
 
     fn parse_use_path_component(&mut self) -> Result<UsePathComponent, ParseErrorAndPos> {
-        let pos = self.token.position;
         let start = self.token.span.start();
 
         let value = if self.token.is(TokenKind::This) {
@@ -296,12 +292,12 @@ impl<'a> Parser<'a> {
 
         let span = self.span_from(start);
 
-        Ok(UsePathComponent { pos, span, value })
+        Ok(UsePathComponent { span, value })
     }
 
     fn parse_use_brace(&mut self) -> Result<UseTargetDescriptor, ParseErrorAndPos> {
         let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::LBrace)?.position;
+        self.expect_token(TokenKind::LBrace)?;
 
         let targets = self.parse_list(TokenKind::Comma, TokenKind::RBrace, |p| {
             let use_decl = p.parse_use_inner()?;
@@ -310,11 +306,7 @@ impl<'a> Parser<'a> {
 
         let span = self.span_from(start);
 
-        Ok(UseTargetDescriptor::Group(UseTargetGroup {
-            pos,
-            span,
-            targets,
-        }))
+        Ok(UseTargetDescriptor::Group(UseTargetGroup { span, targets }))
     }
 
     fn parse_enum(&mut self, modifiers: &Modifiers) -> Result<Enum, ParseErrorAndPos> {
@@ -533,7 +525,7 @@ impl<'a> Parser<'a> {
 
     fn parse_struct(&mut self, modifiers: &Modifiers) -> Result<Struct, ParseErrorAndPos> {
         let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::Struct)?.position;
+        self.expect_token(TokenKind::Struct)?;
         let ident = self.expect_identifier()?;
         let type_params = self.parse_type_params()?;
 
@@ -556,7 +548,6 @@ impl<'a> Parser<'a> {
         Ok(Struct {
             id: self.generate_id(),
             name: ident,
-            pos,
             span,
             fields,
             visibility: Visibility::from_modifiers(modifiers),
@@ -567,7 +558,6 @@ impl<'a> Parser<'a> {
 
     fn parse_struct_field(&mut self) -> Result<StructField, ParseErrorAndPos> {
         let start = self.token.span.start();
-        let pos = self.token.position;
 
         let modifiers = self.parse_annotation_usages()?;
         let mods = &[Modifier::Pub];
@@ -582,7 +572,6 @@ impl<'a> Parser<'a> {
         Ok(StructField {
             id: self.generate_id(),
             name: ident,
-            pos,
             span,
             data_type: ty,
             visibility: Visibility::from_modifiers(&modifiers),
@@ -591,7 +580,7 @@ impl<'a> Parser<'a> {
 
     fn parse_class(&mut self, modifiers: &Modifiers) -> Result<Class, ParseErrorAndPos> {
         let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::Class)?.position;
+        self.expect_token(TokenKind::Class)?;
 
         let ident = self.expect_identifier()?;
         let type_params = self.parse_type_params()?;
@@ -615,7 +604,6 @@ impl<'a> Parser<'a> {
         Ok(Class {
             id: self.generate_id(),
             name: ident,
-            pos,
             span,
             internal: modifiers.contains(Modifier::Internal),
             visibility: Visibility::from_modifiers(modifiers),
@@ -652,9 +640,10 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_annotation(&mut self, modifiers: &Modifiers) -> Result<Annotation, ParseErrorAndPos> {
+        let start = self.token.span.start();
         let internal = modifiers.contains(Modifier::Internal);
 
-        let pos = self.expect_token(TokenKind::Annotation)?.position;
+        self.expect_token(TokenKind::Annotation)?;
         let ident = self.expect_identifier()?;
         let internal = if internal {
             Modifier::find(&self.interner.str(ident))
@@ -663,10 +652,12 @@ impl<'a> Parser<'a> {
         };
         let type_params = self.parse_type_params()?;
         let term_params = self.parse_annotation_params()?;
+        let span = self.span_from(start);
+
         let annotation = Annotation {
             id: self.generate_id(),
             name: ident,
-            pos: pos,
+            span,
             // use method argument after signature has been adapted
             annotation_usages: AnnotationUsages::new(),
             internal: internal,
@@ -695,7 +686,6 @@ impl<'a> Parser<'a> {
 
     fn parse_annotation_param(&mut self) -> Result<AnnotationParam, ParseErrorAndPos> {
         let start = self.token.span.start();
-        let pos = self.token.position;
         let name = self.expect_identifier()?;
 
         self.expect_token(TokenKind::Colon)?;
@@ -705,7 +695,6 @@ impl<'a> Parser<'a> {
 
         Ok(AnnotationParam {
             name,
-            pos,
             span,
             data_type,
         })
@@ -745,7 +734,6 @@ impl<'a> Parser<'a> {
 
     fn parse_type_param(&mut self) -> Result<TypeParam, ParseErrorAndPos> {
         let start = self.token.span.start();
-        let pos = self.token.position;
         let name = self.expect_identifier()?;
 
         let bounds = if self.token.is(TokenKind::Colon) {
@@ -770,12 +758,7 @@ impl<'a> Parser<'a> {
 
         let span = self.span_from(start);
 
-        Ok(TypeParam {
-            name,
-            span,
-            pos,
-            bounds,
-        })
+        Ok(TypeParam { name, span, bounds })
     }
 
     fn parse_annotation_usages(&mut self) -> Result<Modifiers, ParseErrorAndPos> {

@@ -1,13 +1,11 @@
 use std::collections::HashSet;
 
 use dora_parser::ast;
-use dora_parser::Position;
+use dora_parser::Span;
 
 use crate::language::error::msg::ErrorMessage;
 use crate::language::readty::read_type_unchecked;
-use crate::language::sem_analysis::{
-    pos_from_span, SemAnalysis, SourceFileId, TypeParamDefinition, TypeParamId,
-};
+use crate::language::sem_analysis::{SemAnalysis, SourceFileId, TypeParamDefinition, TypeParamId};
 use crate::language::sym::{ModuleSymTable, Sym};
 use crate::language::ty::{SourceType, SourceTypeArray};
 
@@ -34,7 +32,7 @@ fn check_traits(sa: &SemAnalysis) {
                 trait_.ast.type_params.as_ref(),
                 &mut symtable,
                 trait_.file_id,
-                pos_from_span(sa, trait_.file_id, trait_.span),
+                trait_.span,
             );
 
             symtable.pop_level();
@@ -53,14 +51,12 @@ fn check_impls(sa: &SemAnalysis) {
             let mut symtable = ModuleSymTable::new(sa, impl_.module_id);
             symtable.push_level();
 
-            let pos = pos_from_span(sa, impl_.file_id, impl_.span);
-
             type_param_definition = read_type_param_definition(
                 sa,
                 impl_.ast.type_params.as_ref(),
                 &mut symtable,
                 impl_.file_id,
-                pos,
+                impl_.span,
             );
 
             read_type_unchecked(sa, &symtable, impl_.file_id, &impl_.ast.extended_type);
@@ -86,7 +82,7 @@ fn check_classes(sa: &SemAnalysis) {
                 cls.ast().type_params.as_ref(),
                 &mut symtable,
                 cls.file_id(),
-                cls.pos(),
+                cls.span(),
             );
 
             symtable.pop_level();
@@ -112,14 +108,12 @@ fn check_enums(sa: &SemAnalysis) {
             let mut symtable = ModuleSymTable::new(sa, enum_.module_id);
             symtable.push_level();
 
-            let pos = pos_from_span(sa, enum_.file_id, enum_.span);
-
             type_param_definition = read_type_param_definition(
                 sa,
                 enum_.ast.type_params.as_ref(),
                 &mut symtable,
                 enum_.file_id,
-                pos,
+                enum_.span,
             );
 
             symtable.pop_level();
@@ -143,7 +137,7 @@ fn check_structs(sa: &SemAnalysis) {
                 struct_.ast.type_params.as_ref(),
                 &mut symtable,
                 struct_.file_id,
-                struct_.pos,
+                struct_.span,
             );
 
             symtable.pop_level();
@@ -162,14 +156,12 @@ fn check_extensions(sa: &SemAnalysis) {
             let mut symtable = ModuleSymTable::new(sa, extension.module_id);
             symtable.push_level();
 
-            let pos = pos_from_span(sa, extension.file_id, extension.span);
-
             type_param_definition = read_type_param_definition(
                 sa,
                 extension.ast.type_params.as_ref(),
                 &mut symtable,
                 extension.file_id,
-                pos,
+                extension.span,
             );
 
             symtable.pop_level();
@@ -192,7 +184,7 @@ fn read_type_param_definition(
     ast_type_params: Option<&Vec<ast::TypeParam>>,
     symtable: &mut ModuleSymTable,
     file_id: SourceFileId,
-    pos: Position,
+    span: Span,
 ) -> TypeParamDefinition {
     if ast_type_params.is_none() {
         return TypeParamDefinition::new();
@@ -202,7 +194,7 @@ fn read_type_param_definition(
 
     if ast_type_params.len() == 0 {
         let msg = ErrorMessage::TypeParamsExpected;
-        sa.diag.lock().report(file_id, pos, msg);
+        sa.diag.lock().report_span(file_id, span, msg);
 
         return TypeParamDefinition::new();
     }
@@ -218,7 +210,7 @@ fn read_type_param_definition(
         if !names.insert(type_param.name) {
             let name = sa.interner.str(type_param.name).to_string();
             let msg = ErrorMessage::TypeParamNameNotUnique(name);
-            sa.diag.lock().report(file_id, type_param.pos, msg);
+            sa.diag.lock().report_span(file_id, type_param.span, msg);
         }
 
         let sym = Sym::TypeParam(id);
@@ -238,7 +230,7 @@ fn read_type_param_definition(
             if ty.is_trait() {
                 if !result_type_params.add_bound(id, ty) {
                     let msg = ErrorMessage::DuplicateTraitBound;
-                    sa.diag.lock().report(file_id, type_param.pos, msg);
+                    sa.diag.lock().report_span(file_id, type_param.span, msg);
                 }
             } else if !ty.is_error() {
                 let msg = ErrorMessage::BoundExpected;

@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use dora_parser::ast;
 use dora_parser::interner::Name;
-use dora_parser::Position;
+use dora_parser::Span;
 
 use crate::language::sem_analysis::{
     extension_matches, impl_matches, module_path, ExtensionDefinitionId, FctDefinitionId,
@@ -49,7 +49,7 @@ pub struct ClassDefinition {
     pub module_id: ModuleDefinitionId,
     pub file_id: Option<SourceFileId>,
     pub ast: Option<Arc<ast::Class>>,
-    pub pos: Option<Position>,
+    pub span: Option<Span>,
     pub name: Name,
     pub ty: Option<SourceType>,
     pub internal: bool,
@@ -80,7 +80,7 @@ impl ClassDefinition {
             module_id,
             file_id: Some(file_id),
             ast: Some(ast.clone()),
-            pos: Some(ast.pos),
+            span: Some(ast.span),
             name: ast.name,
             ty: None,
             internal: ast.internal,
@@ -102,7 +102,7 @@ impl ClassDefinition {
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: Option<SourceFileId>,
-        pos: Option<Position>,
+        span: Option<Span>,
         name: Name,
         visibility: Visibility,
         fields: Vec<Field>,
@@ -113,7 +113,7 @@ impl ClassDefinition {
             module_id,
             file_id,
             ast: None,
-            pos,
+            span,
             name,
             ty: None,
             internal: false,
@@ -143,8 +143,8 @@ impl ClassDefinition {
         self.file_id.expect("missing source file")
     }
 
-    pub fn pos(&self) -> Position {
-        self.pos.expect("missing position")
+    pub fn span(&self) -> Span {
+        self.span.expect("missing position")
     }
 
     pub fn type_params(&self) -> &TypeParamDefinition {

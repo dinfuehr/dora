@@ -1,8 +1,6 @@
 use crate::language::error::msg::ErrorMessage;
 use crate::language::extensiondefck::check_for_unconstrained_type_params;
-use crate::language::sem_analysis::{
-    pos_from_span, FctDefinitionId, ImplDefinitionId, SemAnalysis, SourceFileId,
-};
+use crate::language::sem_analysis::{FctDefinitionId, ImplDefinitionId, SemAnalysis, SourceFileId};
 use crate::language::sym::{ModuleSymTable, Sym};
 use crate::language::ty::SourceType;
 use crate::language::{self, AllowSelf, TypeParamContext};
@@ -77,11 +75,11 @@ impl<'x> ImplCheck<'x> {
                 }
 
                 _ => {
-                    let pos = pos_from_span(self.sa, self.file_id, self.ast.span);
-                    self.sa
-                        .diag
-                        .lock()
-                        .report(self.file_id, pos, ErrorMessage::ExpectedTrait);
+                    self.sa.diag.lock().report_span(
+                        self.file_id,
+                        self.ast.span,
+                        ErrorMessage::ExpectedTrait,
+                    );
                 }
             }
         }
@@ -100,14 +98,13 @@ impl<'x> ImplCheck<'x> {
                 || class_ty.is_primitive()
             {
                 impl_.extended_ty = class_ty.clone();
-                let pos = pos_from_span(self.sa, self.file_id, self.ast.span);
 
                 check_for_unconstrained_type_params(
                     self.sa,
                     class_ty.clone(),
                     impl_.type_params(),
                     self.file_id,
-                    pos,
+                    self.ast.span,
                 );
             } else {
                 self.sa.diag.lock().report(

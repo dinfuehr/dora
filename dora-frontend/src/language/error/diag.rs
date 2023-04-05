@@ -1,7 +1,7 @@
 use crate::language::error::msg::{ErrorDescriptor, ErrorMessage};
 use crate::language::sem_analysis::{SemAnalysis, SourceFileId};
 
-use dora_parser::lexer::position::Position;
+use dora_parser::{Position, Span};
 
 pub struct Diagnostic {
     errors: Vec<ErrorDescriptor>,
@@ -18,6 +18,10 @@ impl Diagnostic {
 
     pub fn report(&mut self, file: SourceFileId, pos: Position, msg: ErrorMessage) {
         self.errors.push(ErrorDescriptor::new(file, pos, msg));
+    }
+
+    pub fn report_span(&mut self, file: SourceFileId, span: Span, msg: ErrorMessage) {
+        self.errors.push(ErrorDescriptor::new_span(file, span, msg));
     }
 
     pub fn report_without_location(&mut self, msg: ErrorMessage) {

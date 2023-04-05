@@ -64,7 +64,9 @@ pub fn check(sa: &SemAnalysis) {
                     if !names.insert(type_param.name) {
                         let name = sa.interner.str(type_param.name).to_string();
                         let msg = ErrorMessage::TypeParamNameNotUnique(name);
-                        sa.diag.lock().report(fct.file_id, type_param.pos, msg);
+                        sa.diag
+                            .lock()
+                            .report_span(fct.file_id, type_param.span, msg);
                     }
 
                     fct.type_params.add_type_param(type_param.name);
@@ -86,7 +88,9 @@ pub fn check(sa: &SemAnalysis) {
                                     ty,
                                 ) {
                                     let msg = ErrorMessage::DuplicateTraitBound;
-                                    sa.diag.lock().report(fct.file_id, type_param.pos, msg);
+                                    sa.diag
+                                        .lock()
+                                        .report_span(fct.file_id, type_param.span, msg);
                                 }
                             } else {
                                 let msg = ErrorMessage::BoundExpected;

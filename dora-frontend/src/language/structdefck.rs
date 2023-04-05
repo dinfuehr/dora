@@ -85,13 +85,13 @@ impl<'x> StructCheck<'x> {
             self.sa
                 .diag
                 .lock()
-                .report(self.file_id, f.pos, ErrorMessage::ShadowField(name));
+                .report_span(self.file_id, f.span, ErrorMessage::ShadowField(name));
             return;
         }
 
         let field = StructDefinitionField {
             id,
-            pos: f.pos,
+            span: f.span,
             name: f.name,
             ty,
             visibility: Visibility::from_ast(f.visibility),

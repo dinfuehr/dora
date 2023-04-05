@@ -1,14 +1,14 @@
 use crate::language::error::msg::ErrorMessage;
 use crate::language::sem_analysis::{
-    pos_from_span, EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId, SemAnalysis,
-    SourceFileId, StructDefinitionId, TypeParamDefinition, TypeParamId,
+    EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId, SemAnalysis, SourceFileId,
+    StructDefinitionId, TypeParamDefinition, TypeParamId,
 };
 use crate::language::sym::{ModuleSymTable, Sym};
 use crate::language::ty::SourceType;
 use crate::language::{read_type, AllowSelf, TypeParamContext};
 
 use dora_parser::ast;
-use dora_parser::lexer::position::Position;
+use dora_parser::Span;
 use fixedbitset::FixedBitSet;
 
 pub fn check(sa: &SemAnalysis) {
@@ -109,14 +109,13 @@ impl<'x> ExtensionCheck<'x> {
             }
 
             let mut extension = self.sa.extensions[self.extension_id].write();
-            let pos = pos_from_span(self.sa, self.file_id, self.ast.span);
 
             check_for_unconstrained_type_params(
                 self.sa,
                 extension_ty.clone(),
                 extension.type_params(),
                 self.file_id,
-                pos,
+                self.ast.span,
             );
 
             extension.ty = extension_ty;
@@ -259,7 +258,7 @@ pub fn check_for_unconstrained_type_params(
     ty: SourceType,
     type_params_defs: &TypeParamDefinition,
     file_id: SourceFileId,
-    pos: Position,
+    span: Span,
 ) {
     let mut bitset = FixedBitSet::with_capacity(type_params_defs.len());
 
@@ -272,7 +271,7 @@ pub fn check_for_unconstrained_type_params(
         let tp_name = sa.interner.str(type_param_def).to_string();
         sa.diag
             .lock()
-            .report(file_id, pos, ErrorMessage::UnconstrainedTypeParam(tp_name));
+            .report_span(file_id, span, ErrorMessage::UnconstrainedTypeParam(tp_name));
     }
 }
 

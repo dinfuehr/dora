@@ -1,11 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::language::error::msg::ErrorMessage;
-use crate::language::sem_analysis::{SemAnalysis, SourceFileId};
-
-use dora_parser::lexer::position::Position;
-
-use super::sem_analysis::pos_from_span;
+use crate::language::sem_analysis::SemAnalysis;
 
 pub fn check(sa: &mut SemAnalysis) {
     for impl_ in sa.impls.iter() {
@@ -65,7 +61,7 @@ pub fn check(sa: &mut SemAnalysis) {
                         ErrorMessage::MethodNotInTrait(trait_name, mtd_name, args)
                     };
 
-                    report(sa, impl_.file_id, method.pos, msg);
+                    sa.diag.lock().report(impl_.file_id, method.pos, msg)
                 }
             }
 
@@ -93,9 +89,7 @@ pub fn check(sa: &mut SemAnalysis) {
                     ErrorMessage::MethodMissingFromTrait(trait_name, mtd_name, args)
                 };
 
-                let pos = pos_from_span(sa, impl_.file_id, impl_.span);
-
-                report(sa, impl_.file_id, pos, msg);
+                sa.diag.lock().report_span(impl_.file_id, impl_.span, msg)
             }
 
             impl_for
@@ -103,10 +97,6 @@ pub fn check(sa: &mut SemAnalysis) {
 
         impl_.write().impl_for = impl_for;
     }
-}
-
-fn report(sa: &SemAnalysis, file: SourceFileId, pos: Position, msg: ErrorMessage) {
-    sa.diag.lock().report(file, pos, msg);
 }
 
 #[cfg(test)]

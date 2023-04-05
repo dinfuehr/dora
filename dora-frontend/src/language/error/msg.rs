@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
-use crate::language::sem_analysis::{SemAnalysis, SourceFileId};
-use dora_parser::lexer::position::Position;
+use crate::language::sem_analysis::{pos_from_span, SemAnalysis, SourceFileId};
+use dora_parser::{Position, Span};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum ErrorMessage {
@@ -608,6 +608,7 @@ impl ErrorMessage {
 pub struct ErrorDescriptor {
     pub file: Option<SourceFileId>,
     pub pos: Option<Position>,
+    pub span: Option<Span>,
     pub msg: ErrorMessage,
 }
 
@@ -616,6 +617,16 @@ impl ErrorDescriptor {
         ErrorDescriptor {
             file: Some(file),
             pos: Some(pos),
+            span: None,
+            msg,
+        }
+    }
+
+    pub fn new_span(file: SourceFileId, span: Span, msg: ErrorMessage) -> ErrorDescriptor {
+        ErrorDescriptor {
+            file: Some(file),
+            pos: None,
+            span: Some(span),
             msg,
         }
     }
@@ -624,13 +635,17 @@ impl ErrorDescriptor {
         ErrorDescriptor {
             file: None,
             pos: None,
+            span: None,
             msg,
         }
     }
 
     pub fn message(&self, sa: &SemAnalysis) -> String {
         if let Some(file) = self.file {
-            let pos = self.pos.expect("uninitialized pos");
+            let pos = self.pos.unwrap_or_else(|| {
+                let span = self.span.expect("missing location");
+                pos_from_span(sa, file, span)
+            });
 
             let file = sa.source_file(file);
             format!(

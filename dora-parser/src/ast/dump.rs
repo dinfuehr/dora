@@ -106,7 +106,7 @@ impl<'a> AstDumper<'a> {
             "extern package {} as {} @ {} {}",
             self.str(stmt.name),
             self.str(stmt.identifier),
-            stmt.pos,
+            stmt.span,
             stmt.id
         );
     }
@@ -212,7 +212,7 @@ impl<'a> AstDumper<'a> {
             self,
             "struct {} @ {} {}",
             self.str(struc.name),
-            struc.pos,
+            struc.span,
             struc.id
         );
 
@@ -228,7 +228,7 @@ impl<'a> AstDumper<'a> {
             self,
             "field {} @ {} {}",
             self.str(field.name),
-            field.pos,
+            field.span,
             field.id
         );
         self.indent(|d| d.dump_type(&field.data_type));
@@ -248,7 +248,7 @@ impl<'a> AstDumper<'a> {
             self,
             "class {} @ {} {}",
             self.str(cls.name),
-            cls.pos,
+            cls.span,
             cls.id
         );
 
@@ -268,7 +268,7 @@ impl<'a> AstDumper<'a> {
             self,
             "annotation {} @ {} {}",
             self.str(annotation.name),
-            annotation.pos,
+            annotation.span,
             annotation.id
         );
 
@@ -283,7 +283,7 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_annotation_param(&mut self, param: &AnnotationParam) {
-        dump!(self, "param {} @ {}", self.str(param.name), param.pos);
+        dump!(self, "param {} @ {}", self.str(param.name), param.span);
 
         self.indent(|d| d.dump_type(&param.data_type));
     }

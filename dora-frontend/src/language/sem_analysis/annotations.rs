@@ -2,7 +2,7 @@ use std::convert::TryInto;
 
 use dora_parser::ast::{AnnotationUsages, Modifier};
 use dora_parser::interner::Name;
-use dora_parser::Position;
+use dora_parser::Span;
 
 use crate::language::sem_analysis::{
     ModuleDefinitionId, PackageDefinitionId, SemAnalysis, SourceFileId,
@@ -41,7 +41,7 @@ pub struct AnnotationDefinition {
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
-    pub pos: Position,
+    pub span: Span,
     pub name: Name,
     pub ty: SourceType,
     pub internal_annotation: Option<Modifier>,
@@ -52,7 +52,7 @@ impl AnnotationDefinition {
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
-        pos: Position,
+        span: Span,
         name: Name,
     ) -> AnnotationDefinition {
         AnnotationDefinition {
@@ -60,7 +60,7 @@ impl AnnotationDefinition {
             package_id,
             module_id,
             file_id,
-            pos,
+            span,
             name,
             ty: SourceType::Error,
             internal_annotation: None,
