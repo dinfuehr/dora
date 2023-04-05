@@ -1,49 +1,49 @@
 use dora_parser::ast::*;
-use dora_parser::lexer::position::Position;
+use dora_parser::Span;
 
-pub fn returns_value(s: &Stmt) -> Result<(), Position> {
+pub fn returns_value(s: &Stmt) -> Result<(), Span> {
     match *s {
         Stmt::Return(_) => Ok(()),
-        Stmt::For(ref stmt) => Err(stmt.pos),
-        Stmt::While(ref stmt) => Err(stmt.pos),
-        Stmt::Break(ref stmt) => Err(stmt.pos),
-        Stmt::Continue(ref stmt) => Err(stmt.pos),
-        Stmt::Let(ref stmt) => Err(stmt.pos),
+        Stmt::For(ref stmt) => Err(stmt.span),
+        Stmt::While(ref stmt) => Err(stmt.span),
+        Stmt::Break(ref stmt) => Err(stmt.span),
+        Stmt::Continue(ref stmt) => Err(stmt.span),
+        Stmt::Let(ref stmt) => Err(stmt.span),
         Stmt::Expr(ref stmt) => expr_returns_value(&stmt.expr),
     }
 }
 
-pub fn expr_returns_value(e: &Expr) -> Result<(), Position> {
+pub fn expr_returns_value(e: &Expr) -> Result<(), Span> {
     match *e {
         Expr::Block(ref block) => expr_block_returns_value(block),
         Expr::If(ref expr) => expr_if_returns_value(expr),
-        _ => Err(e.pos()),
+        _ => Err(e.span()),
     }
 }
 
-pub fn expr_block_returns_value(e: &ExprBlockType) -> Result<(), Position> {
-    let mut pos = e.pos;
+pub fn expr_block_returns_value(e: &ExprBlockType) -> Result<(), Span> {
+    let mut span = e.span;
 
     for stmt in &e.stmts {
         match returns_value(stmt) {
             Ok(_) => return Ok(()),
-            Err(err_pos) => pos = err_pos,
+            Err(err_pos) => span = err_pos,
         }
     }
 
     if let Some(ref expr) = e.expr {
         expr_returns_value(expr)
     } else {
-        Err(pos)
+        Err(span)
     }
 }
 
-fn expr_if_returns_value(e: &ExprIfType) -> Result<(), Position> {
+fn expr_if_returns_value(e: &ExprIfType) -> Result<(), Span> {
     expr_returns_value(&e.then_block)?;
 
     match e.else_block {
         Some(ref block) => expr_returns_value(block),
-        None => Err(e.pos),
+        None => Err(e.span),
     }
 }
 

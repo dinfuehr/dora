@@ -838,18 +838,6 @@ impl Stmt {
         }
     }
 
-    pub fn pos(&self) -> Position {
-        match *self {
-            Stmt::Let(ref stmt) => stmt.pos,
-            Stmt::While(ref stmt) => stmt.pos,
-            Stmt::For(ref stmt) => stmt.pos,
-            Stmt::Expr(ref stmt) => stmt.pos,
-            Stmt::Break(ref stmt) => stmt.pos,
-            Stmt::Continue(ref stmt) => stmt.pos,
-            Stmt::Return(ref stmt) => stmt.pos,
-        }
-    }
-
     pub fn span(&self) -> Span {
         match *self {
             Stmt::Let(ref stmt) => stmt.span,

@@ -3320,10 +3320,11 @@ impl<'a> TypeCheck<'a> {
 
     fn check_stmt_break_and_continue(&mut self, stmt: &ast::Stmt) {
         if !self.in_loop {
-            self.sa
-                .diag
-                .lock()
-                .report(self.fct.file_id, stmt.pos(), ErrorMessage::OutsideLoop);
+            self.sa.diag.lock().report_span(
+                self.fct.file_id,
+                stmt.span(),
+                ErrorMessage::OutsideLoop,
+            );
         }
     }
 }
