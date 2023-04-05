@@ -849,7 +849,7 @@ impl<'a> Parser<'a> {
             if !restrict.contains(&modifier.value) {
                 self.report_error_at(
                     ParseError::MisplacedAnnotation(modifier.value.name().into()),
-                    modifier.pos,
+                    modifier.span,
                 );
             }
         }
@@ -2085,11 +2085,12 @@ impl<'a> Parser<'a> {
     }
 
     fn report_error(&mut self, msg: ParseError) {
-        self.report_error_at(msg, self.token.position);
+        self.report_error_at(msg, self.token.span);
     }
 
-    fn report_error_at(&mut self, msg: ParseError, pos: Position) {
-        self.errors.push(ParseErrorWithLocation::new(pos, msg));
+    fn report_error_at(&mut self, msg: ParseError, span: Span) {
+        self.errors
+            .push(ParseErrorWithLocation::new_span(span, msg));
     }
 
     fn error_and_advance(&mut self, msg: ParseError) -> Result<(), ParseErrorWithLocation> {
