@@ -1,13 +1,8 @@
 use std::sync::Arc;
 
-use crate::lexer::position::Position;
-
 pub struct Reader {
     content: Arc<String>,
-
-    idx: usize,
-    pos: Position,
-
+    offset: usize,
     tabwidth: u32,
 }
 
@@ -20,8 +15,7 @@ impl Reader {
         let reader = Reader {
             content,
 
-            idx: 0,
-            pos: Position::new(1, 1),
+            offset: 0,
             tabwidth: 4,
         };
 
@@ -35,26 +29,8 @@ impl Reader {
     pub fn advance(&mut self) -> Option<char> {
         let curr = self.curr();
 
-        match curr {
-            Some('\n') => {
-                self.pos = Position::new(self.pos.line + 1, 1);
-            }
-
-            Some('\t') => {
-                let tabdepth = (self.pos.column - 1) / self.tabwidth;
-                let col = 1 + self.tabwidth * (tabdepth + 1);
-                self.pos = Position::new(self.pos.line, col);
-            }
-
-            Some(_) => {
-                self.pos = Position::new(self.pos.line, self.pos.column + 1);
-            }
-
-            None => panic!("advancing from eof"),
-        }
-
         if let Some(ch) = curr {
-            self.idx += ch.len_utf8();
+            self.offset += ch.len_utf8();
         }
 
         self.curr()
@@ -65,7 +41,7 @@ impl Reader {
     }
 
     pub fn nth(&self, offset: usize) -> Option<char> {
-        let pos = self.idx + offset;
+        let pos = self.offset + offset;
 
         if pos < self.content.len() {
             self.content[pos..].chars().next()
@@ -74,15 +50,10 @@ impl Reader {
         }
     }
 
-    pub fn pos(&self) -> Position {
-        self.pos
+    pub fn offset(&self) -> u32 {
+        self.offset as u32
     }
 
-    pub fn idx(&self) -> u32 {
-        self.idx as u32
-    }
-
-    #[cfg(test)]
     pub fn content(&self) -> Arc<String> {
         self.content.clone()
     }

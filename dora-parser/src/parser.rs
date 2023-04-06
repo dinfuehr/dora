@@ -9,10 +9,10 @@ use crate::error::{ParseError, ParseErrorWithLocation};
 
 use crate::interner::*;
 
-use crate::lexer::position::{Position, Span};
 use crate::lexer::reader::Reader;
 use crate::lexer::token::*;
 use crate::lexer::*;
+use crate::Span;
 
 pub struct Parser<'a> {
     lexer: Lexer,
@@ -46,7 +46,7 @@ impl<'a> Parser<'a> {
     }
 
     fn common_init(reader: Reader, interner: &'a mut Interner) -> Parser<'a> {
-        let token = Token::new(TokenKind::End, Position::new(1, 1), Span::invalid());
+        let token = Token::new(TokenKind::End, Span::invalid());
         let lexer = Lexer::new(reader);
 
         let parser = Parser {
@@ -1006,7 +1006,7 @@ impl<'a> Parser<'a> {
                 Ok(Type::create_self(self.generate_id(), span))
             }
 
-            TokenKind::Identifier(_) => {
+            TokenKind::Identifier => {
                 let start = self.token.span.start();
                 let path = self.parse_path()?;
 
@@ -1685,7 +1685,7 @@ impl<'a> Parser<'a> {
             TokenKind::LitInt(_, _, _) => self.parse_lit_int(),
             TokenKind::LitFloat(_, _) => self.parse_lit_float(),
             TokenKind::StringTail(_) | TokenKind::StringExpr(_) => self.parse_string(),
-            TokenKind::Identifier(_) => self.parse_identifier(),
+            TokenKind::Identifier => self.parse_identifier(),
             TokenKind::True => self.parse_bool_literal(),
             TokenKind::False => self.parse_bool_literal(),
             TokenKind::This => self.parse_this(),
@@ -1962,8 +1962,9 @@ impl<'a> Parser<'a> {
     fn expect_identifier(&mut self) -> Result<Name, ParseErrorWithLocation> {
         let tok = self.advance_token()?;
 
-        if let TokenKind::Identifier(ref value) = tok.kind {
-            let interned = self.interner.intern(value);
+        if let TokenKind::Identifier = tok.kind {
+            let value = self.source_span(tok.span);
+            let interned = self.interner.intern(&value);
 
             Ok(interned)
         } else {
@@ -2019,6 +2020,12 @@ impl<'a> Parser<'a> {
         };
 
         mem::replace(&mut self.token, token)
+    }
+
+    fn source_span(&self, span: Span) -> String {
+        let start = span.start() as usize;
+        let end = span.end() as usize;
+        String::from(&self.lexer.source()[start..end])
     }
 
     fn span_from(&self, start: u32) -> Span {

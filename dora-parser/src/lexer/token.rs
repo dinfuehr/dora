@@ -1,7 +1,7 @@
 use std::fmt;
 use std::result::Result;
 
-use crate::lexer::position::{Position, Span};
+use crate::lexer::position::Span;
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum TokenKind {
@@ -11,7 +11,7 @@ pub enum TokenKind {
     LitChar(char),
     LitInt(String, IntBase, IntSuffix),
     LitFloat(String, FloatSuffix),
-    Identifier(String),
+    Identifier,
     True,
     False,
     End,
@@ -128,7 +128,7 @@ impl TokenKind {
                 FloatSuffix::Float32 => "float32 number",
                 FloatSuffix::Float64 => "float64 number",
             },
-            TokenKind::Identifier(_) => "identifier",
+            TokenKind::Identifier => "identifier",
             TokenKind::True => "true",
             TokenKind::False => "false",
 
@@ -249,17 +249,12 @@ pub enum FloatSuffix {
 #[derive(Debug)]
 pub struct Token {
     pub kind: TokenKind,
-    pub position: Position,
     pub span: Span,
 }
 
 impl Token {
-    pub fn new(tok: TokenKind, pos: Position, span: Span) -> Token {
-        Token {
-            kind: tok,
-            position: pos,
-            span,
-        }
+    pub fn new(tok: TokenKind, span: Span) -> Token {
+        Token { kind: tok, span }
     }
 
     pub fn is_eof(&self) -> bool {
@@ -268,7 +263,7 @@ impl Token {
 
     pub fn is_identifier(&self) -> bool {
         match self.kind {
-            TokenKind::Identifier(_) => true,
+            TokenKind::Identifier => true,
             _ => false,
         }
     }
@@ -293,7 +288,7 @@ impl Token {
             TokenKind::StringTail(ref val) => format!("\"{}\" tail", &val),
             TokenKind::StringExpr(ref val) => format!("\"{}\" expr", &val),
 
-            TokenKind::Identifier(ref val) => val.clone(),
+            TokenKind::Identifier => "identifier".into(),
 
             _ => self.kind.name().into(),
         }
