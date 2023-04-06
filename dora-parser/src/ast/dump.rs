@@ -348,7 +348,7 @@ impl<'a> AstDumper<'a> {
             self,
             "param {} @ {} {}",
             self.str(param.name),
-            param.pos,
+            param.span,
             param.id
         );
 
@@ -372,7 +372,7 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_stmt_let(&mut self, stmt: &StmtLetType) {
-        dump!(self, "let @ {} {}", stmt.pos, stmt.id);
+        dump!(self, "let @ {} {}", stmt.span, stmt.id);
 
         self.indent(|d| {
             d.dump_stmt_let_pattern(&stmt.pattern);
@@ -412,7 +412,7 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_stmt_for(&mut self, stmt: &StmtForType) {
-        dump!(self, "for @ {} {}", stmt.pos, stmt.id);
+        dump!(self, "for @ {} {}", stmt.span, stmt.id);
 
         self.indent(|d| {
             d.dump_stmt_let_pattern(&stmt.pattern);
@@ -428,7 +428,7 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_stmt_while(&mut self, stmt: &StmtWhileType) {
-        dump!(self, "while @ {} {}", stmt.pos, stmt.id);
+        dump!(self, "while @ {} {}", stmt.span, stmt.id);
 
         self.indent(|d| {
             dump!(d, "cond");
@@ -451,7 +451,7 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_stmt_return(&mut self, ret: &StmtReturnType) {
-        dump!(self, "return @ {} {}", ret.pos, ret.id);
+        dump!(self, "return @ {} {}", ret.span, ret.id);
 
         self.indent(|d| {
             if let Some(ref expr) = ret.expr {

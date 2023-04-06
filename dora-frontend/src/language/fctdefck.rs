@@ -112,9 +112,9 @@ pub fn check(sa: &SemAnalysis) {
 
         for p in &ast.params {
             if fct.is_variadic {
-                sa.diag.lock().report(
+                sa.diag.lock().report_span(
                     fct.file_id,
-                    p.pos,
+                    p.span,
                     ErrorMessage::VariadicParameterNeedsToBeLast,
                 );
             }

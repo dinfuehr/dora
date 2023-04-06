@@ -24,14 +24,14 @@ use crate::language::sym::{ModuleSymTable, Sym};
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::language::typeparamck::{self, ErrorReporting};
 use crate::language::{always_returns, expr_always_returns, read_type, AllowSelf};
-use crate::language::{report_sym_shadow, TypeParamContext};
+use crate::language::{report_sym_shadow, report_sym_shadow_span, TypeParamContext};
 
 use dora_bytecode::Intrinsic;
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, MatchCaseType, MatchPattern};
 use dora_parser::interner::Name;
-use dora_parser::lexer::position::Position;
 use dora_parser::lexer::token::{FloatSuffix, IntBase, IntSuffix};
+use dora_parser::{Position, Span};
 use fixedbitset::FixedBitSet;
 
 pub struct TypeCheck<'a> {
@@ -227,11 +227,11 @@ impl<'a> TypeCheck<'a> {
             // params are only allowed to replace functions, vars cannot be replaced
             let replaced_sym = self.symtable.insert(param.name, Sym::Var(var_id));
             if let Some(replaced_sym) = replaced_sym {
-                report_sym_shadow(
+                report_sym_shadow_span(
                     self.sa,
                     param.name,
                     self.fct.file_id,
-                    param.pos,
+                    param.span,
                     replaced_sym,
                 )
             }
@@ -268,6 +268,14 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
+    fn add_local_span(&mut self, id: NestedVarId, span: Span) {
+        let name = self.vars.get_var(id).name;
+        match self.symtable.insert(name, Sym::Var(id)) {
+            Some(Sym::Var(_)) | None => {}
+            Some(sym) => report_sym_shadow_span(self.sa, name, self.fct.file_id, span, sym),
+        }
+    }
+
     fn check_stmt_let(&mut self, s: &ast::StmtLetType) {
         let defined_type = if let Some(ref data_type) = s.data_type {
             self.read_type(data_type)
@@ -293,10 +301,11 @@ impl<'a> TypeCheck<'a> {
                 .interner
                 .str(s.pattern.to_name().unwrap())
                 .to_string();
-            self.sa
-                .diag
-                .lock()
-                .report(self.file_id, s.pos, ErrorMessage::VarNeedsTypeInfo(tyname));
+            self.sa.diag.lock().report_span(
+                self.file_id,
+                s.span,
+                ErrorMessage::VarNeedsTypeInfo(tyname),
+            );
 
             return;
         }
@@ -317,15 +326,16 @@ impl<'a> TypeCheck<'a> {
                 let defined_type = defined_type.name_fct(self.sa, self.fct);
                 let expr_type = expr_type.name_fct(self.sa, self.fct);
                 let msg = ErrorMessage::AssignType(name, defined_type, expr_type);
-                self.sa.diag.lock().report(self.file_id, s.pos, msg);
+                self.sa.diag.lock().report_span(self.file_id, s.span, msg);
             }
 
         // let variable binding needs to be assigned
         } else {
-            self.sa
-                .diag
-                .lock()
-                .report(self.file_id, s.pos, ErrorMessage::LetMissingInitialization);
+            self.sa.diag.lock().report_span(
+                self.file_id,
+                s.span,
+                ErrorMessage::LetMissingInitialization,
+            );
         }
     }
 
@@ -346,7 +356,7 @@ impl<'a> TypeCheck<'a> {
             ast::LetPattern::Ident(ref ident) => {
                 let var_id = self.vars.add_var(ident.name, ty, ident.mutable);
 
-                self.add_local(var_id, ident.pos);
+                self.add_local_span(var_id, ident.span);
                 self.analysis
                     .map_vars
                     .insert(ident.id, self.vars.local_var_id(var_id));
@@ -359,9 +369,9 @@ impl<'a> TypeCheck<'a> {
             ast::LetPattern::Tuple(ref tuple) => {
                 if !ty.is_tuple_or_unit() && !ty.is_error() {
                     let ty_name = ty.name_fct(self.sa, self.fct);
-                    self.sa.diag.lock().report(
+                    self.sa.diag.lock().report_span(
                         self.file_id,
-                        tuple.pos,
+                        tuple.span,
                         ErrorMessage::LetPatternExpectedTuple(ty_name),
                     );
                     return;
@@ -370,9 +380,9 @@ impl<'a> TypeCheck<'a> {
                 if ty.is_unit() {
                     // () doesn't have any subparts
                     if tuple.parts.len() != 0 {
-                        self.sa.diag.lock().report(
+                        self.sa.diag.lock().report_span(
                             self.file_id,
-                            tuple.pos,
+                            tuple.span,
                             ErrorMessage::LetPatternShouldBeUnit,
                         );
                     }
@@ -390,9 +400,9 @@ impl<'a> TypeCheck<'a> {
 
                 if subtypes.len() != tuple.parts.len() {
                     let ty_name = ty.name_fct(self.sa, self.fct);
-                    self.sa.diag.lock().report(
+                    self.sa.diag.lock().report_span(
                         self.file_id,
-                        tuple.pos,
+                        tuple.span,
                         ErrorMessage::LetPatternExpectedTupleWithLength(
                             ty_name,
                             subtypes.len(),
@@ -546,7 +556,10 @@ impl<'a> TypeCheck<'a> {
         if !expr_type.is_error() && !expr_type.is_bool() {
             let expr_type = expr_type.name_fct(self.sa, self.fct);
             let msg = ErrorMessage::WhileCondType(expr_type);
-            self.sa.diag.lock().report(self.file_id, stmt.pos, msg);
+            self.sa
+                .diag
+                .lock()
+                .report_span(self.file_id, stmt.span, msg);
         }
 
         self.check_loop_body(&stmt.block);
@@ -561,7 +574,7 @@ impl<'a> TypeCheck<'a> {
             .map(|expr| self.check_expr(&expr, expected_ty))
             .unwrap_or(SourceType::Unit);
 
-        self.check_fct_return_type(s.pos, expr_type);
+        self.check_fct_return_type_span(s.span, expr_type);
     }
 
     fn check_fct_return_type(&mut self, pos: Position, expr_type: SourceType) {
@@ -574,6 +587,19 @@ impl<'a> TypeCheck<'a> {
             let msg = ErrorMessage::ReturnType(fct_type, expr_type);
 
             self.sa.diag.lock().report(self.file_id, pos, msg);
+        }
+    }
+
+    fn check_fct_return_type_span(&mut self, span: Span, expr_type: SourceType) {
+        let fct_type = self.fct.return_type.clone();
+
+        if !expr_type.is_error() && !fct_type.allows(self.sa, expr_type.clone()) {
+            let fct_type = fct_type.name_fct(self.sa, self.fct);
+            let expr_type = expr_type.name_fct(self.sa, self.fct);
+
+            let msg = ErrorMessage::ReturnType(fct_type, expr_type);
+
+            self.sa.diag.lock().report_span(self.file_id, span, msg);
         }
     }
 

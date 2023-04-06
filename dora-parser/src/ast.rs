@@ -724,7 +724,6 @@ pub struct Param {
     pub id: NodeId,
     pub idx: u32,
     pub name: Name,
-    pub pos: Position,
     pub span: Span,
     pub mutable: bool,
     pub data_type: Type,
@@ -745,7 +744,6 @@ pub enum Stmt {
 impl Stmt {
     pub fn create_let(
         id: NodeId,
-        pos: Position,
         span: Span,
         pattern: Box<LetPattern>,
         data_type: Option<Type>,
@@ -753,7 +751,6 @@ impl Stmt {
     ) -> Stmt {
         Stmt::Let(StmtLetType {
             id,
-            pos,
             span,
 
             pattern,
@@ -764,7 +761,6 @@ impl Stmt {
 
     pub fn create_for(
         id: NodeId,
-        pos: Position,
         span: Span,
         pattern: Box<LetPattern>,
         expr: Box<Expr>,
@@ -772,7 +768,6 @@ impl Stmt {
     ) -> Stmt {
         Stmt::For(StmtForType {
             id,
-            pos,
             span,
 
             pattern,
@@ -781,16 +776,9 @@ impl Stmt {
         })
     }
 
-    pub fn create_while(
-        id: NodeId,
-        pos: Position,
-        span: Span,
-        cond: Box<Expr>,
-        block: Box<Stmt>,
-    ) -> Stmt {
+    pub fn create_while(id: NodeId, span: Span, cond: Box<Expr>, block: Box<Stmt>) -> Stmt {
         Stmt::While(StmtWhileType {
             id,
-            pos,
             span,
 
             cond,
@@ -816,14 +804,8 @@ impl Stmt {
         Stmt::Continue(StmtContinueType { id, pos, span })
     }
 
-    pub fn create_return(id: NodeId, pos: Position, span: Span, expr: Option<Box<Expr>>) -> Stmt {
-        Stmt::Return(StmtReturnType {
-            id,
-            pos,
-            span,
-
-            expr,
-        })
+    pub fn create_return(id: NodeId, span: Span, expr: Option<Box<Expr>>) -> Stmt {
+        Stmt::Return(StmtReturnType { id, span, expr })
     }
 
     pub fn id(&self) -> NodeId {
@@ -952,7 +934,6 @@ impl Stmt {
 #[derive(Clone, Debug)]
 pub struct StmtLetType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
 
     pub pattern: Box<LetPattern>,
@@ -1015,14 +996,12 @@ impl LetPattern {
 #[derive(Clone, Debug)]
 pub struct LetUnderscoreType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
 }
 
 #[derive(Clone, Debug)]
 pub struct LetIdentType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
     pub mutable: bool,
     pub name: Name,
@@ -1031,7 +1010,6 @@ pub struct LetIdentType {
 #[derive(Clone, Debug)]
 pub struct LetTupleType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
     pub parts: Vec<Box<LetPattern>>,
 }
@@ -1039,7 +1017,6 @@ pub struct LetTupleType {
 #[derive(Clone, Debug)]
 pub struct StmtForType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
 
     pub pattern: Box<LetPattern>,
@@ -1050,7 +1027,6 @@ pub struct StmtForType {
 #[derive(Clone, Debug)]
 pub struct StmtWhileType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
 
     pub cond: Box<Expr>,
@@ -1069,7 +1045,6 @@ pub struct StmtExprType {
 #[derive(Clone, Debug)]
 pub struct StmtReturnType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
 
     pub expr: Option<Box<Expr>>,

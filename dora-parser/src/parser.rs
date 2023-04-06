@@ -937,7 +937,6 @@ impl<'a> Parser<'a> {
 
     fn parse_function_param(&mut self) -> Result<Param, ParseErrorWithLocation> {
         let start = self.token.span.start();
-        let pos = self.token.position;
 
         let mutable = if self.token.is(TokenKind::Mut) {
             self.advance_token()?;
@@ -966,7 +965,6 @@ impl<'a> Parser<'a> {
             idx: self.param_idx - 1,
             variadic,
             name,
-            pos,
             span,
             mutable,
             data_type,
@@ -1120,7 +1118,7 @@ impl<'a> Parser<'a> {
     fn parse_let(&mut self) -> StmtResult {
         let start = self.token.span.start();
 
-        let pos = self.advance_token()?.position;
+        self.advance_token()?;
         let pattern = self.parse_let_pattern()?;
         let data_type = self.parse_var_type()?;
         let expr = self.parse_var_assignment()?;
@@ -1130,7 +1128,6 @@ impl<'a> Parser<'a> {
 
         Ok(Box::new(Stmt::create_let(
             self.generate_id(),
-            pos,
             span,
             pattern,
             data_type,
@@ -1140,7 +1137,6 @@ impl<'a> Parser<'a> {
 
     fn parse_let_pattern(&mut self) -> Result<Box<LetPattern>, ParseErrorWithLocation> {
         if self.token.is(TokenKind::LParen) {
-            let pos = self.token.position;
             let start = self.token.span.start();
             self.advance_token()?;
 
@@ -1152,18 +1148,15 @@ impl<'a> Parser<'a> {
 
             Ok(Box::new(LetPattern::Tuple(LetTupleType {
                 id: self.generate_id(),
-                pos,
                 span,
                 parts,
             })))
         } else if self.token.is(TokenKind::Underscore) {
-            let pos = self.token.position;
             let span = self.token.span;
             self.advance_token()?;
 
             Ok(Box::new(LetPattern::Underscore(LetUnderscoreType {
                 id: self.generate_id(),
-                pos,
                 span,
             })))
         } else {
@@ -1174,13 +1167,11 @@ impl<'a> Parser<'a> {
             } else {
                 false
             };
-            let pos = self.token.position;
             let name = self.expect_identifier()?;
             let span = self.span_from(start);
 
             Ok(Box::new(LetPattern::Ident(LetIdentType {
                 id: self.generate_id(),
-                pos,
                 span,
                 mutable,
                 name,
@@ -1457,7 +1448,7 @@ impl<'a> Parser<'a> {
 
     fn parse_for(&mut self) -> StmtResult {
         let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::For)?.position;
+        self.expect_token(TokenKind::For)?;
         let pattern = self.parse_let_pattern()?;
         self.expect_token(TokenKind::In)?;
         let expr = self.parse_expression()?;
@@ -1466,7 +1457,6 @@ impl<'a> Parser<'a> {
 
         Ok(Box::new(Stmt::create_for(
             self.generate_id(),
-            pos,
             span,
             pattern,
             expr,
@@ -1476,14 +1466,13 @@ impl<'a> Parser<'a> {
 
     fn parse_while(&mut self) -> StmtResult {
         let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::While)?.position;
+        self.expect_token(TokenKind::While)?;
         let expr = self.parse_expression()?;
         let block = self.parse_block_stmt()?;
         let span = self.span_from(start);
 
         Ok(Box::new(Stmt::create_while(
             self.generate_id(),
-            pos,
             span,
             expr,
             block,
@@ -1514,7 +1503,7 @@ impl<'a> Parser<'a> {
 
     fn parse_return(&mut self) -> StmtResult {
         let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::Return)?.position;
+        self.expect_token(TokenKind::Return)?;
         let expr = if self.token.is(TokenKind::Semicolon) {
             None
         } else {
@@ -1527,7 +1516,6 @@ impl<'a> Parser<'a> {
 
         Ok(Box::new(Stmt::create_return(
             self.generate_id(),
-            pos,
             span,
             expr,
         )))

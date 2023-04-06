@@ -280,7 +280,7 @@ impl<'a> AstBytecodeGen<'a> {
                 if !var.ty.is_unit() {
                     match var.location {
                         VarLocation::Context(context_idx) => {
-                            self.store_in_context(next_reg, context_idx, loc(ident.pos));
+                            self.store_in_context(next_reg, context_idx, self.loc(ident.span));
                         }
 
                         VarLocation::Stack => {
@@ -480,7 +480,7 @@ impl<'a> AstBytecodeGen<'a> {
             VarLocation::Context(context_idx) => {
                 if let Some(ref expr) = stmt.expr {
                     let value_reg = self.visit_expr(expr, DataDest::Alloc);
-                    self.store_in_context(value_reg, context_idx, loc(ident.pos));
+                    self.store_in_context(value_reg, context_idx, self.loc(ident.span));
                     self.free_if_temp(value_reg);
                 }
             }
