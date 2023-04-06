@@ -524,7 +524,7 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_expr_if(&mut self, expr: &ExprIfType) {
-        dump!(self, "if @ {} {}", expr.pos, expr.id);
+        dump!(self, "if @ {} {}", expr.span, expr.id);
 
         self.indent(|d| {
             d.indent(|d| {
@@ -543,12 +543,12 @@ impl<'a> AstDumper<'a> {
 
     fn dump_expr_conv(&mut self, expr: &ExprConvType) {
         self.indent(|d| d.dump_expr(&expr.object));
-        dump!(self, "as @ {} {}", expr.pos, expr.id);
+        dump!(self, "as @ {} {}", expr.span, expr.id);
         self.indent(|d| d.dump_type(&expr.data_type));
     }
 
     fn dump_expr_self(&mut self, selfie: &ExprSelfType) {
-        dump!(self, "self @ {} {}", selfie.pos, selfie.id);
+        dump!(self, "self @ {} {}", selfie.span, selfie.id);
     }
 
     fn dump_expr_lit_char(&mut self, lit: &ExprLitCharType) {
@@ -557,25 +557,25 @@ impl<'a> AstDumper<'a> {
             "lit char {} {} @ {} {}",
             lit.value,
             lit.value as u32,
-            lit.pos,
+            lit.span,
             lit.id
         );
     }
 
     fn dump_expr_lit_int(&mut self, lit: &ExprLitIntType) {
-        dump!(self, "lit int {} @ {} {}", lit.value, lit.pos, lit.id);
+        dump!(self, "lit int {} @ {} {}", lit.value, lit.span, lit.id);
     }
 
     fn dump_expr_lit_float(&mut self, lit: &ExprLitFloatType) {
-        dump!(self, "lit float {} @ {} {}", lit.value, lit.pos, lit.id);
+        dump!(self, "lit float {} @ {} {}", lit.value, lit.span, lit.id);
     }
 
     fn dump_expr_lit_str(&mut self, lit: &ExprLitStrType) {
-        dump!(self, "lit string {:?} @ {} {}", lit.value, lit.pos, lit.id);
+        dump!(self, "lit string {:?} @ {} {}", lit.value, lit.span, lit.id);
     }
 
     fn dump_expr_template(&mut self, tmpl: &ExprTemplateType) {
-        dump!(self, "template @ {} {}", tmpl.pos, tmpl.id);
+        dump!(self, "template @ {} {}", tmpl.span, tmpl.id);
         self.indent(|d| {
             for part in &tmpl.parts {
                 d.dump_expr(part)
@@ -584,7 +584,7 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_expr_lit_bool(&mut self, lit: &ExprLitBoolType) {
-        dump!(self, "lit bool {} @ {} {}", lit.value, lit.pos, lit.id);
+        dump!(self, "lit bool {} @ {} {}", lit.value, lit.span, lit.id);
     }
 
     fn dump_expr_ident(&mut self, ident: &ExprIdentType) {
@@ -598,13 +598,13 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_expr_un(&mut self, expr: &ExprUnType) {
-        dump!(self, "unary {:?} @ {} {}", expr.op, expr.pos, expr.id);
+        dump!(self, "unary {:?} @ {} {}", expr.op, expr.span, expr.id);
         self.indent(|d| d.dump_expr(&expr.opnd));
     }
 
     fn dump_expr_bin(&mut self, expr: &ExprBinType) {
         self.indent(|d| d.dump_expr(&expr.rhs));
-        dump!(self, "binary {:?} @ {} {}", expr.op, expr.pos, expr.id);
+        dump!(self, "binary {:?} @ {} {}", expr.op, expr.span, expr.id);
         self.indent(|d| d.dump_expr(&expr.lhs));
     }
 
@@ -648,7 +648,7 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_expr_paren(&mut self, expr: &ExprParenType) {
-        dump!(self, "paren @ {} {}", expr.pos, expr.id);
+        dump!(self, "paren @ {} {}", expr.span, expr.id);
         self.indent(|d| {
             d.dump_expr(&expr.expr);
         });

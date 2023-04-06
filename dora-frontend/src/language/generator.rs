@@ -649,7 +649,7 @@ impl<'a> AstBytecodeGen<'a> {
         let fct_id = self.sa.known.functions.string_buffer_empty();
         let fct_idx = self.builder.add_const_fct(FunctionId(fct_id.0 as u32));
         self.builder
-            .emit_invoke_static(buffer_register, fct_idx, loc(expr.pos));
+            .emit_invoke_static(buffer_register, fct_idx, self.loc(expr.span));
 
         let part_register = self.alloc_temp(BytecodeType::Ptr);
 
@@ -729,7 +729,7 @@ impl<'a> AstBytecodeGen<'a> {
             self.builder.emit_push_register(part_register);
             let dest_reg = self.ensure_unit_register();
             self.builder
-                .emit_invoke_direct(dest_reg, fct_idx, loc(expr.pos));
+                .emit_invoke_direct(dest_reg, fct_idx, self.loc(expr.span));
         }
 
         self.free_temp(part_register);
@@ -739,7 +739,7 @@ impl<'a> AstBytecodeGen<'a> {
         let fct_idx = self.builder.add_const_fct(FunctionId(fct_id.0 as u32));
         self.builder.emit_push_register(buffer_register);
         self.builder
-            .emit_invoke_direct(buffer_register, fct_idx, loc(expr.pos));
+            .emit_invoke_direct(buffer_register, fct_idx, self.loc(expr.span));
 
         buffer_register
     }
@@ -799,7 +799,7 @@ impl<'a> AstBytecodeGen<'a> {
         let ty = BytecodeType::Trait(trait_id, bty_array_from_ty(&type_params));
         let dest = self.ensure_register(dest, ty);
         self.builder
-            .emit_new_trait_object(dest, idx, object, loc(expr.pos));
+            .emit_new_trait_object(dest, idx, object, self.loc(expr.span));
         self.free_if_temp(object);
         dest
     }
@@ -1752,7 +1752,7 @@ impl<'a> AstBytecodeGen<'a> {
                 IdentType::Context(distance, context_idx) => (*distance, *context_idx),
                 _ => unreachable!(),
             };
-            self.visit_expr_ident_context(distance, context_idx, dest, loc(expr.pos))
+            self.visit_expr_ident_context(distance, context_idx, dest, self.loc(expr.span))
         } else {
             let var_reg = self.var_reg(SELF_VAR_ID);
 
@@ -1923,7 +1923,7 @@ impl<'a> AstBytecodeGen<'a> {
         if expr.op == ast::UnOp::Neg && expr.opnd.is_lit_int() {
             self.visit_expr_lit_int(expr.opnd.to_lit_int().unwrap(), dest, true)
         } else if let Some(intrinsic) = self.get_intrinsic(expr.id) {
-            self.emit_intrinsic_un(&expr.opnd, intrinsic, loc(expr.pos), dest)
+            self.emit_intrinsic_un(&expr.opnd, intrinsic, self.loc(expr.span), dest)
         } else {
             self.visit_expr_un_method(expr, dest)
         }
@@ -1949,7 +1949,7 @@ impl<'a> AstBytecodeGen<'a> {
         let dest = self.ensure_register(dest, function_return_type_bc);
 
         self.builder.emit_push_register(opnd);
-        self.emit_invoke_direct(function_return_type, dest, callee_idx, loc(expr.pos));
+        self.emit_invoke_direct(function_return_type, dest, callee_idx, self.loc(expr.span));
 
         self.free_if_temp(opnd);
 
@@ -1973,7 +1973,7 @@ impl<'a> AstBytecodeGen<'a> {
                 &expr.rhs,
                 info,
                 Some(expr.op),
-                loc(expr.pos),
+                self.loc(expr.span),
                 dest,
             )
         } else {
@@ -2018,7 +2018,12 @@ impl<'a> AstBytecodeGen<'a> {
         self.builder.emit_push_register(lhs);
         self.builder.emit_push_register(rhs);
 
-        self.emit_invoke_direct(function_return_type, result, callee_idx, loc(expr.pos));
+        self.emit_invoke_direct(
+            function_return_type,
+            result,
+            callee_idx,
+            self.loc(expr.span),
+        );
 
         self.free_if_temp(lhs);
         self.free_if_temp(rhs);
@@ -2675,7 +2680,7 @@ impl<'a> AstBytecodeGen<'a> {
                         object,
                         index,
                         value,
-                        loc(expr.pos),
+                        self.loc(expr.span),
                         DataDest::Effect,
                     );
                 }
@@ -2702,7 +2707,7 @@ impl<'a> AstBytecodeGen<'a> {
                 .add_const_fct_types(FunctionId(fct_id.0 as u32), bty_array_from_ty(&type_params));
             let dest = self.ensure_unit_register();
             self.builder
-                .emit_invoke_direct(dest, callee_idx, loc(expr.pos));
+                .emit_invoke_direct(dest, callee_idx, self.loc(expr.span));
 
             self.free_if_temp(obj_reg);
             self.free_if_temp(idx_reg);
@@ -2731,7 +2736,7 @@ impl<'a> AstBytecodeGen<'a> {
         let src = self.visit_expr(&expr.rhs, DataDest::Alloc);
 
         self.builder
-            .emit_store_field(src, obj, field_idx, loc(expr.pos));
+            .emit_store_field(src, obj, field_idx, self.loc(expr.span));
 
         self.free_if_temp(obj);
         self.free_if_temp(src);
@@ -2756,7 +2761,7 @@ impl<'a> AstBytecodeGen<'a> {
             0,
         );
         self.builder
-            .emit_load_field(outer_context_reg, self_reg, idx, loc(expr.pos));
+            .emit_load_field(outer_context_reg, self_reg, idx, self.loc(expr.span));
 
         assert!(distance >= 1);
 
@@ -2776,8 +2781,12 @@ impl<'a> AstBytecodeGen<'a> {
                 bty_array_from_ty(&self.identity_type_params()),
                 0,
             );
-            self.builder
-                .emit_load_field(outer_context_reg, outer_context_reg, idx, loc(expr.pos));
+            self.builder.emit_load_field(
+                outer_context_reg,
+                outer_context_reg,
+                idx,
+                self.loc(expr.span),
+            );
 
             distance_left -= 1;
             outer_fct_id = outer_fct.parent.fct_id();
@@ -2799,7 +2808,7 @@ impl<'a> AstBytecodeGen<'a> {
             field_id.0 as u32,
         );
         self.builder
-            .emit_store_field(value_reg, outer_context_reg, idx, loc(expr.pos));
+            .emit_store_field(value_reg, outer_context_reg, idx, self.loc(expr.span));
 
         self.free_temp(outer_context_reg);
         self.free_if_temp(value_reg);
@@ -2811,7 +2820,7 @@ impl<'a> AstBytecodeGen<'a> {
         match var.location {
             VarLocation::Context(context_idx) => {
                 let value_reg = self.visit_expr(&expr.rhs, DataDest::Alloc);
-                self.store_in_context(value_reg, context_idx, loc(expr.pos));
+                self.store_in_context(value_reg, context_idx, self.loc(expr.span));
                 self.free_if_temp(value_reg);
             }
 

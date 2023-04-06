@@ -1280,7 +1280,7 @@ impl<'a> Parser<'a> {
 
     fn parse_if(&mut self) -> ExprResult {
         let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::If)?.position;
+        self.expect_token(TokenKind::If)?;
 
         let cond = self.parse_expression()?;
 
@@ -1302,7 +1302,6 @@ impl<'a> Parser<'a> {
 
         Ok(Box::new(Expr::create_if(
             self.generate_id(),
-            pos,
             span,
             cond,
             then_block,
@@ -1564,8 +1563,7 @@ impl<'a> Parser<'a> {
                 TokenKind::As => {
                     let right = Box::new(self.parse_type()?);
                     let span = self.span_from(start);
-                    let expr =
-                        Expr::create_conv(self.generate_id(), tok.position, span, left, right);
+                    let expr = Expr::create_conv(self.generate_id(), span, left, right);
 
                     Box::new(expr)
                 }
@@ -1594,7 +1592,6 @@ impl<'a> Parser<'a> {
                 let span = self.span_from(start);
                 Ok(Box::new(Expr::create_un(
                     self.generate_id(),
-                    tok.position,
                     span,
                     op,
                     expr,
@@ -1706,14 +1703,7 @@ impl<'a> Parser<'a> {
 
         let span = self.span_from(start);
 
-        Box::new(Expr::create_bin(
-            self.generate_id(),
-            tok.position,
-            span,
-            op,
-            left,
-            right,
-        ))
+        Box::new(Expr::create_bin(self.generate_id(), span, op, left, right))
     }
 
     fn parse_factor(&mut self) -> ExprResult {
@@ -1750,7 +1740,6 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_parentheses(&mut self) -> ExprResult {
-        let pos = self.token.position;
         let start = self.token.span.start();
         self.expect_token(TokenKind::LParen)?;
 
@@ -1798,24 +1787,17 @@ impl<'a> Parser<'a> {
             self.expect_token(TokenKind::RParen)?;
             let span = self.span_from(start);
 
-            Ok(Box::new(Expr::create_paren(
-                self.generate_id(),
-                pos,
-                span,
-                expr,
-            )))
+            Ok(Box::new(Expr::create_paren(self.generate_id(), span, expr)))
         }
     }
 
     fn parse_lit_char(&mut self) -> ExprResult {
         let span = self.token.span;
         let tok = self.advance_token()?;
-        let pos = tok.position;
 
         if let TokenKind::LitChar(val) = tok.kind {
             Ok(Box::new(Expr::create_lit_char(
                 self.generate_id(),
-                pos,
                 span,
                 val,
             )))
@@ -1827,7 +1809,6 @@ impl<'a> Parser<'a> {
     fn parse_lit_int(&mut self) -> ExprResult {
         let span = self.token.span;
         let tok = self.advance_token()?;
-        let pos = tok.position;
 
         let (value, base, suffix) = match tok.kind {
             TokenKind::LitInt(value, base, suffix) => (value, base, suffix),
@@ -1839,7 +1820,7 @@ impl<'a> Parser<'a> {
 
         match parsed {
             Ok(value) => {
-                let expr = Expr::create_lit_int(self.generate_id(), pos, span, value, base, suffix);
+                let expr = Expr::create_lit_int(self.generate_id(), span, value, base, suffix);
                 Ok(Box::new(expr))
             }
             _ => Err(ParseErrorWithLocation::new_span(
@@ -1852,7 +1833,6 @@ impl<'a> Parser<'a> {
     fn parse_lit_float(&mut self) -> ExprResult {
         let span = self.token.span;
         let tok = self.advance_token()?;
-        let pos = tok.position;
 
         let (value, suffix) = match tok.kind {
             TokenKind::LitFloat(value, suffix) => (value, suffix),
@@ -1864,7 +1844,7 @@ impl<'a> Parser<'a> {
 
         let num = parsed.expect("unparsable float");
 
-        let expr = Expr::create_lit_float(self.generate_id(), pos, span, num, suffix);
+        let expr = Expr::create_lit_float(self.generate_id(), span, num, suffix);
         Ok(Box::new(expr))
     }
 
@@ -1875,7 +1855,6 @@ impl<'a> Parser<'a> {
         match string.kind {
             TokenKind::StringTail(value) => Ok(Box::new(Expr::create_lit_str(
                 self.generate_id(),
-                string.position,
                 span,
                 value,
             ))),
@@ -1885,7 +1864,6 @@ impl<'a> Parser<'a> {
                 let mut parts: Vec<Box<Expr>> = Vec::new();
                 parts.push(Box::new(Expr::create_lit_str(
                     self.generate_id(),
-                    string.position,
                     span,
                     value,
                 )));
@@ -1904,7 +1882,6 @@ impl<'a> Parser<'a> {
                     let token = self.lexer.read_string_continuation()?;
                     self.advance_token_with(token);
 
-                    let pos = self.token.position;
                     let span = self.token.span;
 
                     let (value, finished) = match self.token.kind {
@@ -1915,7 +1892,6 @@ impl<'a> Parser<'a> {
 
                     parts.push(Box::new(Expr::create_lit_str(
                         self.generate_id(),
-                        pos,
                         span,
                         value,
                     )));
@@ -1931,7 +1907,6 @@ impl<'a> Parser<'a> {
 
                 Ok(Box::new(Expr::create_template(
                     self.generate_id(),
-                    string.position,
                     span,
                     parts,
                 )))
@@ -1948,7 +1923,6 @@ impl<'a> Parser<'a> {
 
         Ok(Box::new(Expr::create_lit_bool(
             self.generate_id(),
-            tok.position,
             span,
             value,
         )))
@@ -1956,13 +1930,9 @@ impl<'a> Parser<'a> {
 
     fn parse_this(&mut self) -> ExprResult {
         let span = self.token.span;
-        let tok = self.advance_token()?;
+        self.advance_token()?;
 
-        Ok(Box::new(Expr::create_this(
-            self.generate_id(),
-            tok.position,
-            span,
-        )))
+        Ok(Box::new(Expr::create_this(self.generate_id(), span)))
     }
 
     fn parse_lambda(&mut self) -> ExprResult {

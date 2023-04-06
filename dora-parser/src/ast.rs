@@ -1197,7 +1197,6 @@ impl Expr {
 
     pub fn create_if(
         id: NodeId,
-        pos: Position,
         span: Span,
         cond: Box<Expr>,
         then_block: Box<Expr>,
@@ -1205,7 +1204,6 @@ impl Expr {
     ) -> Expr {
         Expr::If(ExprIfType {
             id,
-            pos,
             span,
 
             cond,
@@ -1230,28 +1228,13 @@ impl Expr {
         })
     }
 
-    pub fn create_un(id: NodeId, pos: Position, span: Span, op: UnOp, opnd: Box<Expr>) -> Expr {
-        Expr::Un(ExprUnType {
-            id,
-            pos,
-            span,
-
-            op,
-            opnd,
-        })
+    pub fn create_un(id: NodeId, span: Span, op: UnOp, opnd: Box<Expr>) -> Expr {
+        Expr::Un(ExprUnType { id, span, op, opnd })
     }
 
-    pub fn create_bin(
-        id: NodeId,
-        pos: Position,
-        span: Span,
-        op: BinOp,
-        lhs: Box<Expr>,
-        rhs: Box<Expr>,
-    ) -> Expr {
+    pub fn create_bin(id: NodeId, span: Span, op: BinOp, lhs: Box<Expr>, rhs: Box<Expr>) -> Expr {
         Expr::Bin(ExprBinType {
             id,
-            pos,
             span,
 
             op,
@@ -1261,16 +1244,9 @@ impl Expr {
         })
     }
 
-    pub fn create_conv(
-        id: NodeId,
-        pos: Position,
-        span: Span,
-        object: Box<Expr>,
-        data_type: Box<Type>,
-    ) -> Expr {
+    pub fn create_conv(id: NodeId, span: Span, object: Box<Expr>, data_type: Box<Type>) -> Expr {
         Expr::Conv(ExprConvType {
             id,
-            pos,
             span,
 
             object,
@@ -1278,19 +1254,12 @@ impl Expr {
         })
     }
 
-    pub fn create_lit_char(id: NodeId, pos: Position, span: Span, value: char) -> Expr {
-        Expr::LitChar(ExprLitCharType {
-            id,
-            pos,
-            span,
-
-            value,
-        })
+    pub fn create_lit_char(id: NodeId, span: Span, value: char) -> Expr {
+        Expr::LitChar(ExprLitCharType { id, span, value })
     }
 
     pub fn create_lit_int(
         id: NodeId,
-        pos: Position,
         span: Span,
         value: u64,
         base: IntBase,
@@ -1298,7 +1267,6 @@ impl Expr {
     ) -> Expr {
         Expr::LitInt(ExprLitIntType {
             id,
-            pos,
             span,
 
             value,
@@ -1307,54 +1275,29 @@ impl Expr {
         })
     }
 
-    pub fn create_lit_float(
-        id: NodeId,
-        pos: Position,
-        span: Span,
-        value: f64,
-        suffix: FloatSuffix,
-    ) -> Expr {
+    pub fn create_lit_float(id: NodeId, span: Span, value: f64, suffix: FloatSuffix) -> Expr {
         Expr::LitFloat(ExprLitFloatType {
             id,
-            pos,
             span,
             value,
             suffix,
         })
     }
 
-    pub fn create_lit_str(id: NodeId, pos: Position, span: Span, value: String) -> Expr {
-        Expr::LitStr(ExprLitStrType {
-            id,
-            pos,
-            span,
-
-            value,
-        })
+    pub fn create_lit_str(id: NodeId, span: Span, value: String) -> Expr {
+        Expr::LitStr(ExprLitStrType { id, span, value })
     }
 
-    pub fn create_template(id: NodeId, pos: Position, span: Span, parts: Vec<Box<Expr>>) -> Expr {
-        Expr::Template(ExprTemplateType {
-            id,
-            pos,
-            span,
-
-            parts,
-        })
+    pub fn create_template(id: NodeId, span: Span, parts: Vec<Box<Expr>>) -> Expr {
+        Expr::Template(ExprTemplateType { id, span, parts })
     }
 
-    pub fn create_lit_bool(id: NodeId, pos: Position, span: Span, value: bool) -> Expr {
-        Expr::LitBool(ExprLitBoolType {
-            id,
-            pos,
-            span,
-
-            value,
-        })
+    pub fn create_lit_bool(id: NodeId, span: Span, value: bool) -> Expr {
+        Expr::LitBool(ExprLitBoolType { id, span, value })
     }
 
-    pub fn create_this(id: NodeId, pos: Position, span: Span) -> Expr {
-        Expr::This(ExprSelfType { id, pos, span })
+    pub fn create_this(id: NodeId, span: Span) -> Expr {
+        Expr::This(ExprSelfType { id, span })
     }
 
     pub fn create_ident(
@@ -1372,14 +1315,8 @@ impl Expr {
         })
     }
 
-    pub fn create_paren(id: NodeId, pos: Position, span: Span, expr: Box<Expr>) -> Expr {
-        Expr::Paren(ExprParenType {
-            id,
-            pos,
-            span,
-
-            expr,
-        })
+    pub fn create_paren(id: NodeId, span: Span, expr: Box<Expr>) -> Expr {
+        Expr::Paren(ExprParenType { id, span, expr })
     }
 
     pub fn create_call(id: NodeId, span: Span, callee: Box<Expr>, args: Vec<Box<Expr>>) -> Expr {
@@ -1795,7 +1732,6 @@ impl Expr {
 #[derive(Clone, Debug)]
 pub struct ExprIfType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
 
     pub cond: Box<Expr>,
@@ -1814,7 +1750,6 @@ pub struct ExprTupleType {
 #[derive(Clone, Debug)]
 pub struct ExprConvType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
 
     pub object: Box<Expr>,
@@ -1824,7 +1759,6 @@ pub struct ExprConvType {
 #[derive(Clone, Debug)]
 pub struct ExprUnType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
 
     pub op: UnOp,
@@ -1834,7 +1768,6 @@ pub struct ExprUnType {
 #[derive(Clone, Debug)]
 pub struct ExprBinType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
 
     pub op: BinOp,
@@ -1846,7 +1779,6 @@ pub struct ExprBinType {
 #[derive(Clone, Debug)]
 pub struct ExprLitCharType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
 
     pub value: char,
@@ -1855,7 +1787,6 @@ pub struct ExprLitCharType {
 #[derive(Clone, Debug)]
 pub struct ExprLitIntType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
 
     pub value: u64,
@@ -1866,7 +1797,6 @@ pub struct ExprLitIntType {
 #[derive(Clone, Debug)]
 pub struct ExprLitFloatType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
 
     pub value: f64,
@@ -1876,7 +1806,6 @@ pub struct ExprLitFloatType {
 #[derive(Clone, Debug)]
 pub struct ExprLitStrType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
 
     pub value: String,
@@ -1885,7 +1814,6 @@ pub struct ExprLitStrType {
 #[derive(Clone, Debug)]
 pub struct ExprTemplateType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
 
     pub parts: Vec<Box<Expr>>,
@@ -1894,7 +1822,6 @@ pub struct ExprTemplateType {
 #[derive(Clone, Debug)]
 pub struct ExprLitBoolType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
 
     pub value: bool,
@@ -1912,7 +1839,6 @@ pub struct ExprBlockType {
 #[derive(Clone, Debug)]
 pub struct ExprSelfType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
 }
 
@@ -1957,7 +1883,6 @@ impl ExprCallType {
 #[derive(Clone, Debug)]
 pub struct ExprParenType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
 
     pub expr: Box<Expr>,

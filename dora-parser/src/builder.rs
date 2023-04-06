@@ -26,7 +26,6 @@ impl Builder {
     ) -> Box<Expr> {
         Box::new(Expr::Bin(ExprBinType {
             id,
-            pos: Position::new(1, 1),
             span: Span::invalid(),
 
             op: BinOp::Assign,

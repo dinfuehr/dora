@@ -29,7 +29,7 @@ fn type_object_set_field() {
     ok("class Foo(a: Int32) fn f(x: Foo) { x.a = 1; }");
     err(
         "class Foo(a: Int32) fn f(x: Foo) { x.a = false; }",
-        pos(1, 40),
+        pos(1, 36),
         ErrorMessage::AssignField("a".into(), "Foo".into(), "Int32".into(), "Bool".into()),
     );
 }
@@ -335,7 +335,7 @@ fn type_let() {
 fn type_assign_lvalue() {
     err(
         "fn f() { 1 = 3; }",
-        pos(1, 12),
+        pos(1, 10),
         ErrorMessage::LvalueExpected,
     );
 }
@@ -367,47 +367,47 @@ fn type_bin_op() {
 
     err(
         "class A class B fn f(a: A, b: B) { a === b; }",
-        pos(1, 38),
+        pos(1, 36),
         ErrorMessage::TypesIncompatible("A".into(), "B".into()),
     );
     err(
         "class A class B fn f(a: A, b: B) { b !== a; }",
-        pos(1, 38),
+        pos(1, 36),
         ErrorMessage::TypesIncompatible("B".into(), "A".into()),
     );
     err(
         "fn f(a: Bool) { a+a; }",
-        pos(1, 18),
+        pos(1, 17),
         ErrorMessage::BinOpType("+".into(), "Bool".into(), "Bool".into()),
     );
     err(
         "fn f(a: Bool) { a^a; }",
-        pos(1, 18),
+        pos(1, 17),
         ErrorMessage::BinOpType("^".into(), "Bool".into(), "Bool".into()),
     );
     err(
         "fn f(a: Int32) { a||a; }",
-        pos(1, 19),
+        pos(1, 18),
         ErrorMessage::BinOpType("||".into(), "Int32".into(), "Int32".into()),
     );
     err(
         "fn f(a: Int32) { a&&a; }",
-        pos(1, 19),
+        pos(1, 18),
         ErrorMessage::BinOpType("&&".into(), "Int32".into(), "Int32".into()),
     );
     err(
         "fn f(a: String) { a-a; }",
-        pos(1, 20),
+        pos(1, 19),
         ErrorMessage::BinOpType("-".into(), "String".into(), "String".into()),
     );
     err(
         "fn f(a: String) { a*a; }",
-        pos(1, 20),
+        pos(1, 19),
         ErrorMessage::BinOpType("*".into(), "String".into(), "String".into()),
     );
     err(
         "fn f(a: String) { a%a; }",
-        pos(1, 20),
+        pos(1, 19),
         ErrorMessage::BinOpType("%".into(), "String".into(), "String".into()),
     );
 }
@@ -533,7 +533,7 @@ fn let_without_initialization() {
 fn reassign_param() {
     err(
         "fn f(a: Int32) { a = 1; }",
-        pos(1, 20),
+        pos(1, 18),
         ErrorMessage::LetReassigned,
     );
 }
@@ -552,7 +552,7 @@ fn reassign_var() {
 fn reassign_let() {
     err(
         "fn f() { let a=1; a=2; }",
-        pos(1, 20),
+        pos(1, 19),
         ErrorMessage::LetReassigned,
     );
 }
@@ -564,7 +564,7 @@ fn reassign_self() {
         impl Foo {
             fn f() { self = Foo(); }
         }",
-        pos(3, 27),
+        pos(3, 22),
         ErrorMessage::LvalueExpected,
     );
 }
@@ -1042,7 +1042,7 @@ fn test_generic_trait_bounds() {
 fn test_operator_on_generic_type() {
     err(
         "fn f[T](a: T, b: T) { a + b; }",
-        pos(1, 25),
+        pos(1, 23),
         ErrorMessage::BinOpType("+".into(), "T".into(), "T".into()),
     );
 }
@@ -1084,7 +1084,7 @@ fn test_global_set() {
     ok("let mut x: Int32 = 0i32; fn foo(a: Int32) { x = a; }");
     err(
         "let x: Int32 = 0i32; fn foo(a: Int32) { x = a; }",
-        pos(1, 43),
+        pos(1, 41),
         ErrorMessage::LetReassigned,
     );
 }
@@ -2009,7 +2009,7 @@ fn test_enum_equals() {
             x == y
         }
     ",
-        pos(4, 15),
+        pos(4, 13),
         ErrorMessage::BinOpType("==".into(), "A".into(), "A".into()),
     );
 }
@@ -3571,7 +3571,7 @@ fn trait_object_cast() {
             f(Bar() as Foo)
         }
     ",
-        pos(6, 21),
+        pos(6, 15),
         ErrorMessage::TypeNotImplementingTrait("Bar".into(), "Foo".into()),
     );
 }
@@ -3714,7 +3714,7 @@ fn mutable_param() {
     ok("fn f(mut x: Int64) { x = 10; }");
     err(
         "fn f(x: Int64) { x = 10; }",
-        pos(1, 20),
+        pos(1, 18),
         ErrorMessage::LetReassigned,
     );
 }

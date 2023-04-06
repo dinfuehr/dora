@@ -850,7 +850,10 @@ impl<'a> TypeCheck<'a> {
         if !expr_type.is_bool() && !expr_type.is_error() {
             let expr_type = expr_type.name_fct(self.sa, self.fct);
             let msg = ErrorMessage::IfCondType(expr_type);
-            self.sa.diag.lock().report(self.file_id, expr.pos, msg);
+            self.sa
+                .diag
+                .lock()
+                .report_span(self.file_id, expr.span, msg);
         }
 
         let then_type = self.check_expr(&expr.then_block, expected_ty.clone());
@@ -870,7 +873,10 @@ impl<'a> TypeCheck<'a> {
                 let then_type_name = then_type.name_fct(self.sa, self.fct);
                 let else_type_name = else_type.name_fct(self.sa, self.fct);
                 let msg = ErrorMessage::IfBranchTypesIncompatible(then_type_name, else_type_name);
-                self.sa.diag.lock().report(self.file_id, expr.pos, msg);
+                self.sa
+                    .diag
+                    .lock()
+                    .report_span(self.file_id, expr.span, msg);
                 then_type
             } else {
                 then_type
@@ -967,7 +973,7 @@ impl<'a> TypeCheck<'a> {
             self.sa
                 .diag
                 .lock()
-                .report(self.file_id, e.pos, ErrorMessage::LvalueExpected);
+                .report_span(self.file_id, e.span, ErrorMessage::LvalueExpected);
         }
 
         self.analysis.set_ty(e.id, SourceType::Unit);
@@ -982,10 +988,11 @@ impl<'a> TypeCheck<'a> {
         let lhs_type = match sym {
             Some(Sym::Var(var_id)) => {
                 if !self.vars.get_var(var_id).mutable {
-                    self.sa
-                        .diag
-                        .lock()
-                        .report(self.file_id, e.pos, ErrorMessage::LetReassigned);
+                    self.sa.diag.lock().report_span(
+                        self.file_id,
+                        e.span,
+                        ErrorMessage::LetReassigned,
+                    );
                 }
 
                 // Variable may have to be context-allocated.
@@ -1002,10 +1009,11 @@ impl<'a> TypeCheck<'a> {
                 let global_var = global_var.read();
 
                 if !e.initializer && !global_var.mutable {
-                    self.sa
-                        .diag
-                        .lock()
-                        .report(self.file_id, e.pos, ErrorMessage::LetReassigned);
+                    self.sa.diag.lock().report_span(
+                        self.file_id,
+                        e.span,
+                        ErrorMessage::LetReassigned,
+                    );
                 }
 
                 self.analysis
@@ -1050,7 +1058,7 @@ impl<'a> TypeCheck<'a> {
             self.analysis.set_ty(e.id, SourceType::Unit);
 
             let msg = ErrorMessage::AssignType(name, lhs_type, rhs_type);
-            self.sa.diag.lock().report(self.file_id, e.pos, msg);
+            self.sa.diag.lock().report_span(self.file_id, e.span, msg);
         }
     }
 
@@ -1092,7 +1100,7 @@ impl<'a> TypeCheck<'a> {
 
             None => {
                 let msg = ErrorMessage::NameExpected;
-                self.sa.diag.lock().report(self.file_id, e.pos, msg);
+                self.sa.diag.lock().report_span(self.file_id, e.span, msg);
 
                 self.analysis.set_ty(e.id, SourceType::Error);
                 return;
@@ -1119,10 +1127,11 @@ impl<'a> TypeCheck<'a> {
                 let fty = replace_type_param(self.sa, field.ty.clone(), &class_type_params, None);
 
                 if !e.initializer && !field.mutable {
-                    self.sa
-                        .diag
-                        .lock()
-                        .report(self.file_id, e.pos, ErrorMessage::LetReassigned);
+                    self.sa.diag.lock().report_span(
+                        self.file_id,
+                        e.span,
+                        ErrorMessage::LetReassigned,
+                    );
                 }
 
                 let rhs_type = self.check_expr(&e.rhs, fty.clone());
@@ -1135,7 +1144,7 @@ impl<'a> TypeCheck<'a> {
                     let rhs_type = rhs_type.name_fct(self.sa, self.fct);
 
                     let msg = ErrorMessage::AssignField(name, object_type, lhs_type, rhs_type);
-                    self.sa.diag.lock().report(self.file_id, e.pos, msg);
+                    self.sa.diag.lock().report_span(self.file_id, e.span, msg);
                 }
 
                 self.analysis.set_ty(e.id, SourceType::Unit);
@@ -1245,7 +1254,7 @@ impl<'a> TypeCheck<'a> {
             let ty = ty.name_fct(self.sa, self.fct);
             let msg = ErrorMessage::UnOpType(op.as_str().into(), ty);
 
-            self.sa.diag.lock().report(self.file_id, e.pos, msg);
+            self.sa.diag.lock().report_span(self.file_id, e.span, msg);
         }
 
         self.analysis.set_ty(e.id, SourceType::Error);
@@ -1346,7 +1355,7 @@ impl<'a> TypeCheck<'a> {
             let rhs_type = rhs_type.name_fct(self.sa, self.fct);
             let msg = ErrorMessage::BinOpType(op.as_str().into(), lhs_type, rhs_type);
 
-            self.sa.diag.lock().report(self.file_id, e.pos, msg);
+            self.sa.diag.lock().report_span(self.file_id, e.span, msg);
 
             self.analysis.set_ty(e.id, SourceType::Error);
 
@@ -1368,9 +1377,9 @@ impl<'a> TypeCheck<'a> {
                 {
                     let lhs_type = lhs_type.name_fct(self.sa, self.fct);
                     let rhs_type = rhs_type.name_fct(self.sa, self.fct);
-                    self.sa.diag.lock().report(
+                    self.sa.diag.lock().report_span(
                         self.file_id,
-                        e.pos,
+                        e.span,
                         ErrorMessage::TypesIncompatible(lhs_type, rhs_type),
                     );
                 }
@@ -1421,7 +1430,7 @@ impl<'a> TypeCheck<'a> {
             let rhs_type = rhs_type.name_fct(self.sa, self.fct);
             let msg = ErrorMessage::BinOpType("equals".into(), lhs_type, rhs_type);
 
-            self.sa.diag.lock().report(self.file_id, e.pos, msg);
+            self.sa.diag.lock().report_span(self.file_id, e.span, msg);
 
             self.analysis.set_ty(e.id, SourceType::Error);
         }
@@ -1443,7 +1452,7 @@ impl<'a> TypeCheck<'a> {
             let rhs_type = rhs_type.name_fct(self.sa, self.fct);
             let msg = ErrorMessage::BinOpType(op, lhs_type, rhs_type);
 
-            self.sa.diag.lock().report(self.file_id, e.pos, msg);
+            self.sa.diag.lock().report_span(self.file_id, e.span, msg);
         }
     }
 
@@ -3102,7 +3111,7 @@ impl<'a> TypeCheck<'a> {
     fn check_expr_this(&mut self, e: &ast::ExprSelfType, _expected_ty: SourceType) -> SourceType {
         if !self.self_available {
             let msg = ErrorMessage::ThisUnavailable;
-            self.sa.diag.lock().report(self.file_id, e.pos, msg);
+            self.sa.diag.lock().report_span(self.file_id, e.span, msg);
             self.analysis.set_ty(e.id, SourceType::Error);
             return SourceType::Error;
         }
@@ -3216,9 +3225,9 @@ impl<'a> TypeCheck<'a> {
                 let object_type = object_type.name_fct(self.sa, self.fct);
                 let check_type = check_type.name_fct(self.sa, self.fct);
 
-                self.sa.diag.lock().report(
+                self.sa.diag.lock().report_span(
                     self.file_id,
-                    e.pos,
+                    e.span,
                     ErrorMessage::TypeNotImplementingTrait(object_type, check_type),
                 );
             }
@@ -3227,10 +3236,11 @@ impl<'a> TypeCheck<'a> {
             check_type
         } else if !check_type.is_error() {
             let name = check_type.name_fct(self.sa, self.fct);
-            self.sa
-                .diag
-                .lock()
-                .report(self.file_id, e.pos, ErrorMessage::TraitExpected(name));
+            self.sa.diag.lock().report_span(
+                self.file_id,
+                e.span,
+                ErrorMessage::TraitExpected(name),
+            );
             let ty = SourceType::Error;
             self.analysis.set_ty(e.id, ty.clone());
             ty
@@ -3590,7 +3600,7 @@ pub fn check_lit_int(
         if (negate && value > max) || (!negate && value >= max) {
             sa.diag
                 .lock()
-                .report(file, e.pos, ErrorMessage::NumberOverflow(ty_name.into()));
+                .report_span(file, e.span, ErrorMessage::NumberOverflow(ty_name.into()));
         }
 
         let value = if negate {
@@ -3613,7 +3623,7 @@ pub fn check_lit_int(
         if value > max {
             sa.diag
                 .lock()
-                .report(file, e.pos, ErrorMessage::NumberOverflow(ty_name.into()));
+                .report_span(file, e.span, ErrorMessage::NumberOverflow(ty_name.into()));
         }
 
         (ty, value as i64)
@@ -3671,7 +3681,7 @@ pub fn check_lit_float(
 
         sa.diag
             .lock()
-            .report(file, e.pos, ErrorMessage::NumberOverflow(ty.into()));
+            .report_span(file, e.span, ErrorMessage::NumberOverflow(ty.into()));
     }
 
     (ty, value)
