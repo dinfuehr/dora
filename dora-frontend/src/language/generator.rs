@@ -635,7 +635,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         match ident_type {
             IdentType::EnumValue(enum_id, type_params, variant_idx) => {
-                self.emit_new_enum(enum_id, type_params, variant_idx, loc(expr.pos), dest)
+                self.emit_new_enum(enum_id, type_params, variant_idx, self.loc(expr.span), dest)
             }
 
             _ => unreachable!(),
@@ -749,7 +749,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         match ident_type {
             IdentType::EnumValue(enum_id, type_params, variant_idx) => {
-                self.emit_new_enum(enum_id, type_params, variant_idx, loc(expr.pos), dest)
+                self.emit_new_enum(enum_id, type_params, variant_idx, self.loc(expr.span), dest)
             }
 
             IdentType::Const(const_id) => self.visit_expr_ident_const(const_id, dest),
@@ -1057,7 +1057,7 @@ impl<'a> AstBytecodeGen<'a> {
         let obj = self.visit_expr(&expr.lhs, DataDest::Alloc);
 
         self.builder
-            .emit_load_field(dest, obj, field_idx, loc(expr.pos));
+            .emit_load_field(dest, obj, field_idx, self.loc(expr.op_span));
         self.free_if_temp(obj);
 
         dest
@@ -1148,7 +1148,8 @@ impl<'a> AstBytecodeGen<'a> {
         let fid = self.sa.known.functions.assert();
         let idx = self.builder.add_const_fct(FunctionId(fid.0 as u32));
         let dest = self.ensure_unit_register();
-        self.builder.emit_invoke_static(dest, idx, loc(expr.pos));
+        self.builder
+            .emit_invoke_static(dest, idx, self.loc(expr.span));
         self.free_if_temp(assert_reg);
     }
 
@@ -1212,7 +1213,7 @@ impl<'a> AstBytecodeGen<'a> {
         let arguments = self.emit_call_arguments(expr, &*callee, &call_type, &arg_types);
 
         // Allocate object for constructor calls
-        self.emit_call_allocate(loc(expr.pos), &call_type, &arg_types, object_argument);
+        self.emit_call_allocate(self.loc(expr.span), &call_type, &arg_types, object_argument);
 
         if let Some(obj_reg) = object_argument {
             self.builder.emit_push_register(obj_reg);
@@ -1225,7 +1226,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.emit_call_inst(
             &call_type,
             return_type,
-            loc(expr.pos),
+            self.loc(expr.span),
             callee_idx,
             return_reg,
         );
@@ -1273,7 +1274,8 @@ impl<'a> AstBytecodeGen<'a> {
         );
         let bytecode_ty = register_bty_from_ty(enum_ty);
         let dest_reg = self.ensure_register(dest, bytecode_ty);
-        self.builder.emit_new_enum(dest_reg, idx, loc(expr.pos));
+        self.builder
+            .emit_new_enum(dest_reg, idx, self.loc(expr.span));
 
         for arg_reg in arguments {
             self.free_if_temp(arg_reg);
@@ -1308,13 +1310,14 @@ impl<'a> AstBytecodeGen<'a> {
 
         let dest_reg = if return_type.is_unit() {
             let dest = self.ensure_unit_register();
-            self.builder.emit_invoke_lambda(dest, idx, loc(node.pos));
+            self.builder
+                .emit_invoke_lambda(dest, idx, self.loc(node.span));
             dest
         } else {
             let bytecode_ty = register_bty_from_ty(return_type);
             let dest_reg = self.ensure_register(dest, bytecode_ty);
             self.builder
-                .emit_invoke_lambda(dest_reg, idx, loc(node.pos));
+                .emit_invoke_lambda(dest_reg, idx, self.loc(node.span));
             dest_reg
         };
 
@@ -1349,7 +1352,8 @@ impl<'a> AstBytecodeGen<'a> {
             .add_const_struct(struct_id, bty_array_from_ty(&type_params));
         let bytecode_ty = BytecodeType::Struct(struct_id, bty_array_from_ty(type_params));
         let dest_reg = self.ensure_register(dest, bytecode_ty);
-        self.builder.emit_new_struct(dest_reg, idx, loc(expr.pos));
+        self.builder
+            .emit_new_struct(dest_reg, idx, self.loc(expr.span));
 
         for arg_reg in arguments {
             self.free_if_temp(arg_reg);
@@ -1381,7 +1385,7 @@ impl<'a> AstBytecodeGen<'a> {
             .add_const_cls_types(cls_id, bty_array_from_ty(type_params));
         let dest_reg = self.ensure_register(dest, BytecodeType::Ptr);
         self.builder
-            .emit_new_object_initialized(dest_reg, idx, loc(expr.pos));
+            .emit_new_object_initialized(dest_reg, idx, self.loc(expr.span));
 
         for arg_reg in arguments {
             self.free_if_temp(arg_reg);
@@ -1527,7 +1531,7 @@ impl<'a> AstBytecodeGen<'a> {
         // Allocate array of given length
         let array_reg = self.ensure_register(dest, BytecodeType::Ptr);
         self.builder
-            .emit_new_array(array_reg, cls_idx, length_reg, loc(expr.pos));
+            .emit_new_array(array_reg, cls_idx, length_reg, self.loc(expr.span));
 
         if element_ty.is_unit() {
             // Evaluate rest arguments
@@ -1542,7 +1546,7 @@ impl<'a> AstBytecodeGen<'a> {
                 let arg_reg = self.visit_expr(arg, DataDest::Alloc);
                 self.builder.emit_const_int64(index_reg, idx as i64);
                 self.builder
-                    .emit_store_array(arg_reg, array_reg, index_reg, loc(expr.pos));
+                    .emit_store_array(arg_reg, array_reg, index_reg, self.loc(expr.span));
                 self.free_if_temp(arg_reg);
             }
 
@@ -2063,17 +2067,22 @@ impl<'a> AstBytecodeGen<'a> {
             let object = expr.object().unwrap();
 
             match expr.args.len() {
-                0 => self.emit_intrinsic_un(object, info, loc(expr.pos), dest),
-                1 => {
-                    self.emit_intrinsic_bin(object, &expr.args[0], info, None, loc(expr.pos), dest)
-                }
+                0 => self.emit_intrinsic_un(object, info, self.loc(expr.span), dest),
+                1 => self.emit_intrinsic_bin(
+                    object,
+                    &expr.args[0],
+                    info,
+                    None,
+                    self.loc(expr.span),
+                    dest,
+                ),
                 2 => {
                     assert_eq!(intrinsic, Intrinsic::ArraySet);
                     self.emit_intrinsic_array_set(
                         expr.object().unwrap(),
                         &expr.args[0],
                         &expr.args[1],
-                        loc(expr.pos),
+                        self.loc(expr.span),
                         dest,
                     )
                 }
@@ -2091,7 +2100,7 @@ impl<'a> AstBytecodeGen<'a> {
                     &expr.args[0],
                     info,
                     None,
-                    loc(expr.pos),
+                    self.loc(expr.span),
                     dest,
                 ),
 
@@ -2127,7 +2136,7 @@ impl<'a> AstBytecodeGen<'a> {
         let length_reg = self.visit_expr(&expr.args[0], DataDest::Alloc);
 
         self.builder
-            .emit_new_array(array_reg, cls_idx, length_reg, loc(expr.pos));
+            .emit_new_array(array_reg, cls_idx, length_reg, self.loc(expr.span));
 
         self.free_if_temp(length_reg);
 
@@ -2842,17 +2851,21 @@ impl<'a> AstBytecodeGen<'a> {
         let ident_type = self.analysis.map_idents.get(ident.id).unwrap();
 
         match ident_type {
-            &IdentType::Var(var_id) => self.visit_expr_ident_var(var_id, dest, loc(ident.pos)),
-            &IdentType::Context(distance, field_id) => {
-                self.visit_expr_ident_context(distance, field_id, dest, loc(ident.pos))
+            &IdentType::Var(var_id) => {
+                self.visit_expr_ident_var(var_id, dest, self.loc(ident.span))
             }
-            &IdentType::Global(gid) => self.visit_expr_ident_global(gid, dest, loc(ident.pos)),
+            &IdentType::Context(distance, field_id) => {
+                self.visit_expr_ident_context(distance, field_id, dest, self.loc(ident.span))
+            }
+            &IdentType::Global(gid) => {
+                self.visit_expr_ident_global(gid, dest, self.loc(ident.span))
+            }
             &IdentType::Const(cid) => self.visit_expr_ident_const(cid, dest),
             &IdentType::EnumValue(enum_id, ref type_params, variant_idx) => self.emit_new_enum(
                 enum_id,
                 type_params.clone(),
                 variant_idx,
-                loc(ident.pos),
+                self.loc(ident.span),
                 dest,
             ),
 

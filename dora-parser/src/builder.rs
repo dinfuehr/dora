@@ -39,7 +39,6 @@ impl Builder {
     pub fn build_ident(&self, id: NodeId, name: Name) -> Box<Expr> {
         Box::new(Expr::Ident(ExprIdentType {
             id,
-            pos: Position::new(1, 1),
             span: Span::invalid(),
 
             name,

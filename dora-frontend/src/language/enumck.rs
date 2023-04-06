@@ -173,7 +173,7 @@ mod tests {
             fn give_me_a(): Foo { Foo::A(2.0f32) }
 
         ",
-            pos(3, 41),
+            pos(3, 35),
             ErrorMessage::EnumArgsIncompatible(
                 "Foo".into(),
                 "A".into(),
@@ -209,7 +209,7 @@ mod tests {
             fn give_me_c(): Foo { Foo::C(12.0f32) }
 
         ",
-            pos(3, 41),
+            pos(3, 35),
             ErrorMessage::EnumArgsIncompatible(
                 "Foo".into(),
                 "C".into(),
@@ -226,7 +226,7 @@ mod tests {
             enum Foo { A(Int32), B(Float32), C}
             fn give_me_c(): Foo { Foo::C() }
         ",
-            pos(3, 41),
+            pos(3, 35),
             ErrorMessage::EnumArgsNoParens("Foo".into(), "C".into()),
         );
     }
@@ -297,7 +297,7 @@ mod tests {
             enum Foo { A(Int32), B }
             fn foo(): Foo { Foo::A(true) }
         ",
-            pos(3, 35),
+            pos(3, 29),
             ErrorMessage::EnumArgsIncompatible(
                 "Foo".into(),
                 "A".into(),
@@ -337,7 +337,7 @@ mod tests {
             enum Foo[T] { A(T), B }
             fn foo() { let tmp = Foo[Int32]::A(true); }
         ",
-            pos(3, 47),
+            pos(3, 34),
             ErrorMessage::EnumArgsIncompatible(
                 "Foo".into(),
                 "A".into(),

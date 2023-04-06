@@ -9,7 +9,7 @@ use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::language::typeparamck::{self, ErrorReporting};
 
 use dora_parser::interner::Name;
-use dora_parser::lexer::position::Position;
+use dora_parser::Span;
 
 #[derive(Clone)]
 enum LookupKind {
@@ -29,7 +29,7 @@ pub struct MethodLookup<'a> {
     fct_tps: Option<&'a SourceTypeArray>,
     type_param_defs: Option<&'a TypeParamDefinition>,
     ret: Option<SourceType>,
-    pos: Option<Position>,
+    span: Option<Span>,
     report_errors: bool,
 
     found_fct_id: Option<FctDefinitionId>,
@@ -51,7 +51,7 @@ impl<'a> MethodLookup<'a> {
             args: None,
             fct_tps: None,
             ret: None,
-            pos: None,
+            span: None,
             report_errors: true,
             type_param_defs: None,
 
@@ -94,8 +94,8 @@ impl<'a> MethodLookup<'a> {
         self
     }
 
-    pub fn pos(mut self, pos: Position) -> MethodLookup<'a> {
-        self.pos = Some(pos);
+    pub fn span(mut self, span: Span) -> MethodLookup<'a> {
+        self.span = Some(span);
         self
     }
 
@@ -175,10 +175,7 @@ impl<'a> MethodLookup<'a> {
                 }
             };
 
-            self.sa
-                .diag
-                .lock()
-                .report(self.file, self.pos.expect("pos not set"), msg);
+            self.report_error(msg);
             return false;
         } else {
             return false;
@@ -226,10 +223,7 @@ impl<'a> MethodLookup<'a> {
                 .map(|a| a.name_fct(self.sa, self.caller))
                 .collect::<Vec<_>>();
             let msg = ErrorMessage::ParamTypesIncompatible(fct_name, fct_params, call_types);
-            self.sa
-                .diag
-                .lock()
-                .report(self.file, self.pos.expect("pos not set"), msg);
+            self.report_error(msg);
             return false;
         }
 
@@ -244,6 +238,13 @@ impl<'a> MethodLookup<'a> {
         } else {
             false
         }
+    }
+
+    fn report_error(&mut self, msg: ErrorMessage) {
+        self.sa
+            .diag
+            .lock()
+            .report_span(self.file, self.span.expect("missing location"), msg);
     }
 
     fn find_method(
@@ -306,7 +307,7 @@ impl<'a> MethodLookup<'a> {
 
     fn check_tps(&self, specified_tps: &TypeParamDefinition, tps: &SourceTypeArray) -> bool {
         let error = if self.report_errors {
-            ErrorReporting::Yes(self.file, self.pos.expect("no pos"))
+            ErrorReporting::Yes(self.file, self.span.expect("no pos"))
         } else {
             ErrorReporting::No
         };

@@ -1359,14 +1359,12 @@ impl Expr {
 
     pub fn create_ident(
         id: NodeId,
-        pos: Position,
         span: Span,
         name: Name,
         type_params: Option<Vec<Type>>,
     ) -> Expr {
         Expr::Ident(ExprIdentType {
             id,
-            pos,
             span,
 
             name,
@@ -1384,16 +1382,9 @@ impl Expr {
         })
     }
 
-    pub fn create_call(
-        id: NodeId,
-        pos: Position,
-        span: Span,
-        callee: Box<Expr>,
-        args: Vec<Box<Expr>>,
-    ) -> Expr {
+    pub fn create_call(id: NodeId, span: Span, callee: Box<Expr>, args: Vec<Box<Expr>>) -> Expr {
         Expr::Call(ExprCallType {
             id,
-            pos,
             span,
 
             callee,
@@ -1403,15 +1394,15 @@ impl Expr {
 
     pub fn create_type_param(
         id: NodeId,
-        pos: Position,
         span: Span,
+        op_span: Span,
         callee: Box<Expr>,
         args: Vec<Type>,
     ) -> Expr {
         Expr::TypeParam(ExprTypeParamType {
             id,
-            pos,
             span,
+            op_span,
 
             callee,
             args,
@@ -1420,16 +1411,15 @@ impl Expr {
 
     pub fn create_path(
         id: NodeId,
-        pos: Position,
         span: Span,
+        op_span: Span,
         lhs: Box<Expr>,
         rhs: Box<Expr>,
     ) -> Expr {
         Expr::Path(ExprPathType {
             id,
-            pos,
             span,
-
+            op_span,
             lhs,
             rhs,
         })
@@ -1437,15 +1427,15 @@ impl Expr {
 
     pub fn create_dot(
         id: NodeId,
-        pos: Position,
         span: Span,
+        op_span: Span,
         lhs: Box<Expr>,
         rhs: Box<Expr>,
     ) -> Expr {
         Expr::Dot(ExprDotType {
             id,
-            pos,
             span,
+            op_span,
 
             lhs,
             rhs,
@@ -1929,7 +1919,6 @@ pub struct ExprSelfType {
 #[derive(Clone, Debug)]
 pub struct ExprIdentType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
 
     pub name: Name,
@@ -1939,7 +1928,6 @@ pub struct ExprIdentType {
 #[derive(Clone, Debug)]
 pub struct ExprCallType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
 
     pub callee: Box<Expr>,
@@ -2035,8 +2023,8 @@ pub struct Path {
 #[derive(Clone, Debug)]
 pub struct ExprTypeParamType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
+    pub op_span: Span,
 
     pub callee: Box<Expr>,
     pub args: Vec<Type>,
@@ -2045,8 +2033,8 @@ pub struct ExprTypeParamType {
 #[derive(Clone, Debug)]
 pub struct ExprPathType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
+    pub op_span: Span,
 
     pub lhs: Box<Expr>,
     pub rhs: Box<Expr>,
@@ -2055,8 +2043,8 @@ pub struct ExprPathType {
 #[derive(Clone, Debug)]
 pub struct ExprDotType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
+    pub op_span: Span,
 
     pub lhs: Box<Expr>,
     pub rhs: Box<Expr>,

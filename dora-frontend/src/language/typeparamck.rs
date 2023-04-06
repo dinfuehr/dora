@@ -1,4 +1,4 @@
-use dora_parser::lexer::position::Position;
+use dora_parser::Span;
 
 use crate::language::error::msg::ErrorMessage;
 use crate::language::sem_analysis::{
@@ -9,7 +9,7 @@ use crate::language::specialize::specialize_type;
 use crate::language::ty::{SourceType, SourceTypeArray};
 
 pub enum ErrorReporting {
-    Yes(SourceFileId, Position),
+    Yes(SourceFileId, Span),
     No,
 }
 
@@ -100,12 +100,12 @@ struct TypeParamCheck<'a> {
 impl<'a> TypeParamCheck<'a> {
     fn check(&self, tps: &SourceTypeArray) -> bool {
         if self.callee_type_param_defs.len() != tps.len() {
-            if let ErrorReporting::Yes(file_id, pos) = self.error {
+            if let ErrorReporting::Yes(file_id, span) = self.error {
                 let msg = ErrorMessage::WrongNumberTypeParams(
                     self.callee_type_param_defs.len(),
                     tps.len(),
                 );
-                self.sa.diag.lock().report(file_id, pos, msg);
+                self.sa.diag.lock().report_span(file_id, span, msg);
             }
             return false;
         }
@@ -124,8 +124,8 @@ impl<'a> TypeParamCheck<'a> {
                 self.caller_type_param_defs,
                 trait_ty.clone(),
             ) {
-                if let ErrorReporting::Yes(file_id, pos) = self.error {
-                    self.fail_trait_bound(file_id, pos, trait_ty, tp_ty.clone());
+                if let ErrorReporting::Yes(file_id, span) = self.error {
+                    self.fail_trait_bound(file_id, span, trait_ty, tp_ty.clone());
                 }
                 succeeded = false;
             }
@@ -137,13 +137,13 @@ impl<'a> TypeParamCheck<'a> {
     fn fail_trait_bound(
         &self,
         file_id: SourceFileId,
-        pos: Position,
+        span: Span,
         trait_ty: SourceType,
         ty: SourceType,
     ) {
         let name = ty.name_with_type_params(self.sa, self.caller_type_param_defs);
         let trait_name = trait_ty.name_with_type_params(self.sa, self.caller_type_param_defs);
         let msg = ErrorMessage::TypeNotImplementingTrait(name, trait_name);
-        self.sa.diag.lock().report(file_id, pos, msg);
+        self.sa.diag.lock().report_span(file_id, span, msg);
     }
 }

@@ -592,7 +592,7 @@ impl<'a> AstDumper<'a> {
             self,
             "ident {} @ {} {}",
             self.str(ident.name),
-            ident.pos,
+            ident.span,
             ident.id
         );
     }
@@ -624,18 +624,18 @@ impl<'a> AstDumper<'a> {
 
     fn dump_expr_dot(&mut self, expr: &ExprDotType) {
         self.indent(|d| d.dump_expr(&expr.rhs));
-        dump!(self, "dot @ {} {}", expr.pos, expr.id);
+        dump!(self, "dot @ {} {}", expr.span, expr.id);
         self.indent(|d| d.dump_expr(&expr.lhs));
     }
 
     fn dump_expr_path(&mut self, expr: &ExprPathType) {
         self.indent(|d| d.dump_expr(&expr.rhs));
-        dump!(self, "path (::) @ {} {}", expr.pos, expr.id);
+        dump!(self, "path (::) @ {} {}", expr.span, expr.id);
         self.indent(|d| d.dump_expr(&expr.lhs));
     }
 
     fn dump_expr_call(&mut self, expr: &ExprCallType) {
-        dump!(self, "call @ {} {}", expr.pos, expr.id);
+        dump!(self, "call @ {} {}", expr.span, expr.id);
 
         self.indent(|d| {
             dump!(d, "callee");
@@ -662,7 +662,7 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_expr_type_param(&mut self, expr: &ExprTypeParamType) {
-        dump!(self, "type param @ {} {}", expr.pos, expr.id);
+        dump!(self, "type param @ {} {}", expr.span, expr.id);
 
         self.indent(|d| {
             dump!(d, "callee");

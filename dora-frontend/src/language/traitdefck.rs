@@ -59,7 +59,7 @@ mod tests {
 
         err(
             "trait Foo { fn foo() { self.bar(); } }",
-            pos(1, 32),
+            pos(1, 24),
             ErrorMessage::UnknownMethod("Self".into(), "bar".into(), Vec::new()),
         );
 

@@ -1612,59 +1612,53 @@ impl<'a> Parser<'a> {
         loop {
             left = match self.token.kind {
                 TokenKind::Dot => {
-                    let tok = self.advance_token()?;
+                    let op_span = self.advance_token()?.span;
                     let rhs = self.parse_factor()?;
                     let span = self.span_from(start);
 
                     Box::new(Expr::create_dot(
                         self.generate_id(),
-                        tok.position,
                         span,
+                        op_span,
                         left,
                         rhs,
                     ))
                 }
 
                 TokenKind::LParen => {
-                    let tok = self.advance_token()?;
+                    self.advance_token()?;
                     let args = self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
                         p.parse_expression()
                     })?;
                     let span = self.span_from(start);
 
-                    Box::new(Expr::create_call(
-                        self.generate_id(),
-                        tok.position,
-                        span,
-                        left,
-                        args,
-                    ))
+                    Box::new(Expr::create_call(self.generate_id(), span, left, args))
                 }
 
                 TokenKind::LBracket => {
-                    let tok = self.advance_token()?;
+                    let op_span = self.advance_token()?.span;
                     let types =
                         self.parse_list(TokenKind::Comma, TokenKind::RBracket, |p| p.parse_type())?;
                     let span = self.span_from(start);
 
                     Box::new(Expr::create_type_param(
                         self.generate_id(),
-                        tok.position,
                         span,
+                        op_span,
                         left,
                         types,
                     ))
                 }
 
                 TokenKind::ColonColon => {
-                    let tok = self.advance_token()?;
+                    let op_span = self.advance_token()?.span;
                     let rhs = self.parse_factor()?;
                     let span = self.span_from(start);
 
                     Box::new(Expr::create_path(
                         self.generate_id(),
-                        tok.position,
                         span,
+                        op_span,
                         left,
                         rhs,
                     ))
@@ -1744,13 +1738,11 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_identifier(&mut self) -> ExprResult {
-        let pos = self.token.position;
         let span = self.token.span;
         let name = self.expect_identifier()?;
 
         Ok(Box::new(Expr::create_ident(
             self.generate_id(),
-            pos,
             span,
             name,
             None,
