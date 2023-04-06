@@ -85,7 +85,7 @@ impl<'x> StructCheck<'x> {
             self.sa
                 .diag
                 .lock()
-                .report_span(self.file_id, f.span, ErrorMessage::ShadowField(name));
+                .report(self.file_id, f.span, ErrorMessage::ShadowField(name));
             return;
         }
 
@@ -116,12 +116,12 @@ mod tests {
         ok("struct Foo { a: Int32, bar: Bar } struct Bar { a: Int32 }");
         err(
             "struct Bar { a: Unknown }",
-            pos(1, 17),
+            (1, 17),
             ErrorMessage::UnknownIdentifier("Unknown".into()),
         );
         err(
             "struct Foo { a: Int32, a: Int32 }",
-            pos(1, 24),
+            (1, 24),
             ErrorMessage::ShadowField("a".into()),
         );
     }
@@ -142,7 +142,7 @@ mod tests {
     fn struct_internal() {
         err(
             "@internal struct Foo",
-            pos(1, 11),
+            (1, 11),
             ErrorMessage::UnresolvedInternal,
         );
     }
@@ -151,19 +151,19 @@ mod tests {
     fn struct_with_type_params_error() {
         err(
             "struct MyStruct[] { f1: Int32 }",
-            pos(1, 1),
+            (1, 1),
             ErrorMessage::TypeParamsExpected,
         );
 
         err(
             "struct MyStruct[X, X] { f1: X }",
-            pos(1, 20),
+            (1, 20),
             ErrorMessage::TypeParamNameNotUnique("X".into()),
         );
 
         err(
             "struct MyStruct[X: NonExistingTrait] { f1: X }",
-            pos(1, 20),
+            (1, 20),
             ErrorMessage::UnknownIdentifier("NonExistingTrait".into()),
         );
     }

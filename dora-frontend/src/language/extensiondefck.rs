@@ -141,11 +141,10 @@ impl<'x> ExtensionCheck<'x> {
         let fct = fct.read();
 
         if fct.ast.block.is_none() && !fct.internal {
-            self.sa.diag.lock().report_span(
-                self.file_id.into(),
-                fct.span,
-                ErrorMessage::MissingFctBody,
-            );
+            self.sa
+                .diag
+                .lock()
+                .report(self.file_id.into(), fct.span, ErrorMessage::MissingFctBody);
         }
 
         if self.extension_ty.is_error() {
@@ -246,10 +245,7 @@ impl<'x> ExtensionCheck<'x> {
             let method = method.read();
             let method_name = self.sa.interner.str(method.name).to_string();
             let msg = ErrorMessage::MethodExists(method_name, method.span);
-            self.sa
-                .diag
-                .lock()
-                .report_span(self.file_id.into(), f.span, msg);
+            self.sa.diag.lock().report(self.file_id.into(), f.span, msg);
             false
         } else {
             true
@@ -275,7 +271,7 @@ pub fn check_for_unconstrained_type_params(
         let tp_name = sa.interner.str(type_param_def).to_string();
         sa.diag
             .lock()
-            .report_span(file_id, span, ErrorMessage::UnconstrainedTypeParam(tp_name));
+            .report(file_id, span, ErrorMessage::UnconstrainedTypeParam(tp_name));
     }
 }
 
@@ -325,14 +321,14 @@ mod tests {
         ok("class A impl A {} impl A {}");
         err(
             "class A impl A[String] {}",
-            pos(1, 14),
+            (1, 14),
             ErrorMessage::WrongNumberTypeParams(0, 1),
         );
 
         ok("class A[T] impl A[Int32] {} impl A[String] {}");
         err(
             "class A[T: std::Zero] impl A[Int32] {} impl A[String] {}",
-            pos(1, 45),
+            (1, 45),
             ErrorMessage::TypeNotImplementingTrait("String".into(), "Zero".into()),
         );
     }
@@ -342,7 +338,7 @@ mod tests {
         ok("class A impl A { fn foo() {} fn bar() {} }");
         err(
             "class A impl A { fn foo() {} fn foo() {} }",
-            pos(1, 30),
+            (1, 30),
             ErrorMessage::MethodExists("foo".into(), Span::new(17, 11)),
         );
     }
@@ -353,7 +349,7 @@ mod tests {
             "class A
             impl A { fn foo() {} }
             impl A { fn foo() {} }",
-            pos(3, 22),
+            (3, 22),
             ErrorMessage::MethodExists("foo".into(), Span::new(29, 11)),
         );
     }
@@ -364,7 +360,7 @@ mod tests {
             "class Foo[T]
             impl Foo[Int32] { fn foo() {} }
             impl Foo[Int32] { fn foo() {} }",
-            pos(3, 31),
+            (3, 31),
             ErrorMessage::MethodExists("foo".into(), Span::new(43, 11)),
         );
 
@@ -380,7 +376,7 @@ mod tests {
             class Foo[T: MyTrait]
             impl Foo[String] {}
         ",
-            pos(3, 18),
+            (3, 18),
             ErrorMessage::TypeNotImplementingTrait("String".into(), "MyTrait".into()),
         );
     }
@@ -393,7 +389,7 @@ mod tests {
 
         err(
             "enum MyEnum { A, B } impl MyEnum { fn foo() {} fn foo() {} }",
-            pos(1, 48),
+            (1, 48),
             ErrorMessage::MethodExists("foo".into(), Span::new(35, 11)),
         );
     }
@@ -416,7 +412,7 @@ mod tests {
             struct MyFoo[T]
             impl[T] MyFoo[Int32] {}
         ",
-            pos(3, 13),
+            (3, 13),
             ErrorMessage::UnconstrainedTypeParam("T".into()),
         );
 
@@ -425,7 +421,7 @@ mod tests {
             struct MyFoo[T]
             impl[A, B] MyFoo[(A, A)] {}
         ",
-            pos(3, 13),
+            (3, 13),
             ErrorMessage::UnconstrainedTypeParam("B".into()),
         );
     }
@@ -463,7 +459,7 @@ mod tests {
             impl foo::MyFoo { fn bar() {} }
             mod foo { class MyFoo }
         ",
-            pos(2, 18),
+            (2, 18),
             ErrorMessage::NotAccessible("foo::MyFoo".into()),
         );
 

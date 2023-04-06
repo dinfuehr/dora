@@ -293,7 +293,7 @@ impl<'a> TypeCheck<'a> {
                 .interner
                 .str(s.pattern.to_name().unwrap())
                 .to_string();
-            self.sa.diag.lock().report_span(
+            self.sa.diag.lock().report(
                 self.file_id,
                 s.span,
                 ErrorMessage::VarNeedsTypeInfo(tyname),
@@ -318,12 +318,12 @@ impl<'a> TypeCheck<'a> {
                 let defined_type = defined_type.name_fct(self.sa, self.fct);
                 let expr_type = expr_type.name_fct(self.sa, self.fct);
                 let msg = ErrorMessage::AssignType(name, defined_type, expr_type);
-                self.sa.diag.lock().report_span(self.file_id, s.span, msg);
+                self.sa.diag.lock().report(self.file_id, s.span, msg);
             }
 
         // let variable binding needs to be assigned
         } else {
-            self.sa.diag.lock().report_span(
+            self.sa.diag.lock().report(
                 self.file_id,
                 s.span,
                 ErrorMessage::LetMissingInitialization,
@@ -361,7 +361,7 @@ impl<'a> TypeCheck<'a> {
             ast::LetPattern::Tuple(ref tuple) => {
                 if !ty.is_tuple_or_unit() && !ty.is_error() {
                     let ty_name = ty.name_fct(self.sa, self.fct);
-                    self.sa.diag.lock().report_span(
+                    self.sa.diag.lock().report(
                         self.file_id,
                         tuple.span,
                         ErrorMessage::LetPatternExpectedTuple(ty_name),
@@ -372,7 +372,7 @@ impl<'a> TypeCheck<'a> {
                 if ty.is_unit() {
                     // () doesn't have any subparts
                     if tuple.parts.len() != 0 {
-                        self.sa.diag.lock().report_span(
+                        self.sa.diag.lock().report(
                             self.file_id,
                             tuple.span,
                             ErrorMessage::LetPatternShouldBeUnit,
@@ -392,7 +392,7 @@ impl<'a> TypeCheck<'a> {
 
                 if subtypes.len() != tuple.parts.len() {
                     let ty_name = ty.name_fct(self.sa, self.fct);
-                    self.sa.diag.lock().report_span(
+                    self.sa.diag.lock().report(
                         self.file_id,
                         tuple.span,
                         ErrorMessage::LetPatternExpectedTupleWithLength(
@@ -461,7 +461,7 @@ impl<'a> TypeCheck<'a> {
         self.sa
             .diag
             .lock()
-            .report_span(self.file_id, stmt.expr.span(), msg);
+            .report(self.file_id, stmt.expr.span(), msg);
 
         // set invalid error type
         self.symtable.push_level();
@@ -548,10 +548,7 @@ impl<'a> TypeCheck<'a> {
         if !expr_type.is_error() && !expr_type.is_bool() {
             let expr_type = expr_type.name_fct(self.sa, self.fct);
             let msg = ErrorMessage::WhileCondType(expr_type);
-            self.sa
-                .diag
-                .lock()
-                .report_span(self.file_id, stmt.span, msg);
+            self.sa.diag.lock().report(self.file_id, stmt.span, msg);
         }
 
         self.check_loop_body(&stmt.block);
@@ -578,7 +575,7 @@ impl<'a> TypeCheck<'a> {
 
             let msg = ErrorMessage::ReturnType(fct_type, expr_type);
 
-            self.sa.diag.lock().report_span(self.file_id, span, msg);
+            self.sa.diag.lock().report(self.file_id, span, msg);
         }
     }
 
@@ -651,7 +648,7 @@ impl<'a> TypeCheck<'a> {
             self.sa
                 .diag
                 .lock()
-                .report_span(self.file_id, node.span, ErrorMessage::EnumExpected);
+                .report(self.file_id, node.span, ErrorMessage::EnumExpected);
         }
 
         let expr_enum_id = expr_type.enum_id();
@@ -693,7 +690,7 @@ impl<'a> TypeCheck<'a> {
                 self.sa
                     .diag
                     .lock()
-                    .report_span(self.file_id, case.value.span(), msg);
+                    .report(self.file_id, case.value.span(), msg);
             }
 
             self.symtable.pop_level();
@@ -703,10 +700,7 @@ impl<'a> TypeCheck<'a> {
 
         if used_variants.count_ones(..) != 0 {
             let msg = ErrorMessage::MatchUncoveredVariant;
-            self.sa
-                .diag
-                .lock()
-                .report_span(self.file_id, node.span, msg);
+            self.sa.diag.lock().report(self.file_id, node.span, msg);
         }
 
         self.analysis.set_ty(node.id, result_type.clone());
@@ -729,10 +723,7 @@ impl<'a> TypeCheck<'a> {
 
                 if negated_used_variants.count_ones(..) == 0 {
                     let msg = ErrorMessage::MatchUnreachablePattern;
-                    self.sa
-                        .diag
-                        .lock()
-                        .report_span(self.file_id, case.span, msg);
+                    self.sa.diag.lock().report(self.file_id, case.span, msg);
                 }
 
                 used_variants.insert_range(..);
@@ -748,10 +739,7 @@ impl<'a> TypeCheck<'a> {
                         if Some(enum_id) == expr_enum_id {
                             if used_variants.contains(variant_idx as usize) {
                                 let msg = ErrorMessage::MatchUnreachablePattern;
-                                self.sa
-                                    .diag
-                                    .lock()
-                                    .report_span(self.file_id, case.span, msg);
+                                self.sa.diag.lock().report(self.file_id, case.span, msg);
                             }
 
                             used_variants.insert(variant_idx as usize);
@@ -776,10 +764,7 @@ impl<'a> TypeCheck<'a> {
 
                             if given_params == 0 && ident.params.is_some() {
                                 let msg = ErrorMessage::MatchPatternNoParens;
-                                self.sa
-                                    .diag
-                                    .lock()
-                                    .report_span(self.file_id, case.span, msg);
+                                self.sa.diag.lock().report(self.file_id, case.span, msg);
                             }
 
                             let expected_params = variant.types.len();
@@ -789,10 +774,7 @@ impl<'a> TypeCheck<'a> {
                                     given_params,
                                     expected_params,
                                 );
-                                self.sa
-                                    .diag
-                                    .lock()
-                                    .report_span(self.file_id, case.span, msg);
+                                self.sa.diag.lock().report(self.file_id, case.span, msg);
                             }
 
                             if let Some(ref params) = ident.params {
@@ -813,7 +795,7 @@ impl<'a> TypeCheck<'a> {
 
                                         if used_idents.insert(name) == false {
                                             let msg = ErrorMessage::VarAlreadyInPattern;
-                                            self.sa.diag.lock().report_span(
+                                            self.sa.diag.lock().report(
                                                 self.file_id,
                                                 param.span,
                                                 msg,
@@ -833,7 +815,7 @@ impl<'a> TypeCheck<'a> {
                             self.sa
                                 .diag
                                 .lock()
-                                .report_span(self.file_id, ident.path.span, msg);
+                                .report(self.file_id, ident.path.span, msg);
                         }
                     }
 
@@ -842,7 +824,7 @@ impl<'a> TypeCheck<'a> {
                         self.sa
                             .diag
                             .lock()
-                            .report_span(self.file_id, ident.path.span, msg);
+                            .report(self.file_id, ident.path.span, msg);
                     }
 
                     Err(()) => {}
@@ -857,10 +839,7 @@ impl<'a> TypeCheck<'a> {
         if !expr_type.is_bool() && !expr_type.is_error() {
             let expr_type = expr_type.name_fct(self.sa, self.fct);
             let msg = ErrorMessage::IfCondType(expr_type);
-            self.sa
-                .diag
-                .lock()
-                .report_span(self.file_id, expr.span, msg);
+            self.sa.diag.lock().report(self.file_id, expr.span, msg);
         }
 
         let then_type = self.check_expr(&expr.then_block, expected_ty.clone());
@@ -880,10 +859,7 @@ impl<'a> TypeCheck<'a> {
                 let then_type_name = then_type.name_fct(self.sa, self.fct);
                 let else_type_name = else_type.name_fct(self.sa, self.fct);
                 let msg = ErrorMessage::IfBranchTypesIncompatible(then_type_name, else_type_name);
-                self.sa
-                    .diag
-                    .lock()
-                    .report_span(self.file_id, expr.span, msg);
+                self.sa.diag.lock().report(self.file_id, expr.span, msg);
                 then_type
             } else {
                 then_type
@@ -950,7 +926,7 @@ impl<'a> TypeCheck<'a> {
 
             None => {
                 let name = self.sa.interner.str(e.name).to_string();
-                self.sa.diag.lock().report_span(
+                self.sa.diag.lock().report(
                     self.fct.file_id,
                     e.span,
                     ErrorMessage::UnknownIdentifier(name),
@@ -959,11 +935,10 @@ impl<'a> TypeCheck<'a> {
             }
 
             _ => {
-                self.sa.diag.lock().report_span(
-                    self.fct.file_id,
-                    e.span,
-                    ErrorMessage::ValueExpected,
-                );
+                self.sa
+                    .diag
+                    .lock()
+                    .report(self.fct.file_id, e.span, ErrorMessage::ValueExpected);
                 SourceType::Error
             }
         }
@@ -980,7 +955,7 @@ impl<'a> TypeCheck<'a> {
             self.sa
                 .diag
                 .lock()
-                .report_span(self.file_id, e.span, ErrorMessage::LvalueExpected);
+                .report(self.file_id, e.span, ErrorMessage::LvalueExpected);
         }
 
         self.analysis.set_ty(e.id, SourceType::Unit);
@@ -995,11 +970,10 @@ impl<'a> TypeCheck<'a> {
         let lhs_type = match sym {
             Some(Sym::Var(var_id)) => {
                 if !self.vars.get_var(var_id).mutable {
-                    self.sa.diag.lock().report_span(
-                        self.file_id,
-                        e.span,
-                        ErrorMessage::LetReassigned,
-                    );
+                    self.sa
+                        .diag
+                        .lock()
+                        .report(self.file_id, e.span, ErrorMessage::LetReassigned);
                 }
 
                 // Variable may have to be context-allocated.
@@ -1016,11 +990,10 @@ impl<'a> TypeCheck<'a> {
                 let global_var = global_var.read();
 
                 if !e.initializer && !global_var.mutable {
-                    self.sa.diag.lock().report_span(
-                        self.file_id,
-                        e.span,
-                        ErrorMessage::LetReassigned,
-                    );
+                    self.sa
+                        .diag
+                        .lock()
+                        .report(self.file_id, e.span, ErrorMessage::LetReassigned);
                 }
 
                 self.analysis
@@ -1031,7 +1004,7 @@ impl<'a> TypeCheck<'a> {
 
             None => {
                 let name = self.sa.interner.str(lhs_ident.name).to_string();
-                self.sa.diag.lock().report_span(
+                self.sa.diag.lock().report(
                     self.fct.file_id,
                     lhs_ident.span,
                     ErrorMessage::UnknownIdentifier(name),
@@ -1041,7 +1014,7 @@ impl<'a> TypeCheck<'a> {
             }
 
             _ => {
-                self.sa.diag.lock().report_span(
+                self.sa.diag.lock().report(
                     self.fct.file_id,
                     lhs_ident.span,
                     ErrorMessage::LvalueExpected,
@@ -1065,7 +1038,7 @@ impl<'a> TypeCheck<'a> {
             self.analysis.set_ty(e.id, SourceType::Unit);
 
             let msg = ErrorMessage::AssignType(name, lhs_type, rhs_type);
-            self.sa.diag.lock().report_span(self.file_id, e.span, msg);
+            self.sa.diag.lock().report(self.file_id, e.span, msg);
         }
     }
 
@@ -1107,7 +1080,7 @@ impl<'a> TypeCheck<'a> {
 
             None => {
                 let msg = ErrorMessage::NameExpected;
-                self.sa.diag.lock().report_span(self.file_id, e.span, msg);
+                self.sa.diag.lock().report(self.file_id, e.span, msg);
 
                 self.analysis.set_ty(e.id, SourceType::Error);
                 return;
@@ -1134,11 +1107,10 @@ impl<'a> TypeCheck<'a> {
                 let fty = replace_type_param(self.sa, field.ty.clone(), &class_type_params, None);
 
                 if !e.initializer && !field.mutable {
-                    self.sa.diag.lock().report_span(
-                        self.file_id,
-                        e.span,
-                        ErrorMessage::LetReassigned,
-                    );
+                    self.sa
+                        .diag
+                        .lock()
+                        .report(self.file_id, e.span, ErrorMessage::LetReassigned);
                 }
 
                 let rhs_type = self.check_expr(&e.rhs, fty.clone());
@@ -1151,7 +1123,7 @@ impl<'a> TypeCheck<'a> {
                     let rhs_type = rhs_type.name_fct(self.sa, self.fct);
 
                     let msg = ErrorMessage::AssignField(name, object_type, lhs_type, rhs_type);
-                    self.sa.diag.lock().report_span(self.file_id, e.span, msg);
+                    self.sa.diag.lock().report(self.file_id, e.span, msg);
                 }
 
                 self.analysis.set_ty(e.id, SourceType::Unit);
@@ -1170,7 +1142,7 @@ impl<'a> TypeCheck<'a> {
         self.sa
             .diag
             .lock()
-            .report_span(self.file_id, field_expr.op_span, msg);
+            .report(self.file_id, field_expr.op_span, msg);
 
         self.analysis.set_ty(e.id, SourceType::Unit);
     }
@@ -1207,7 +1179,7 @@ impl<'a> TypeCheck<'a> {
                 ErrorMessage::UnknownMethod(type_name, name, param_names)
             };
 
-            self.sa.diag.lock().report_span(self.file_id, span, msg);
+            self.sa.diag.lock().report(self.file_id, span, msg);
         }
 
         descriptor
@@ -1261,7 +1233,7 @@ impl<'a> TypeCheck<'a> {
             let ty = ty.name_fct(self.sa, self.fct);
             let msg = ErrorMessage::UnOpType(op.as_str().into(), ty);
 
-            self.sa.diag.lock().report_span(self.file_id, e.span, msg);
+            self.sa.diag.lock().report(self.file_id, e.span, msg);
         }
 
         self.analysis.set_ty(e.id, SourceType::Error);
@@ -1362,7 +1334,7 @@ impl<'a> TypeCheck<'a> {
             let rhs_type = rhs_type.name_fct(self.sa, self.fct);
             let msg = ErrorMessage::BinOpType(op.as_str().into(), lhs_type, rhs_type);
 
-            self.sa.diag.lock().report_span(self.file_id, e.span, msg);
+            self.sa.diag.lock().report(self.file_id, e.span, msg);
 
             self.analysis.set_ty(e.id, SourceType::Error);
 
@@ -1384,7 +1356,7 @@ impl<'a> TypeCheck<'a> {
                 {
                     let lhs_type = lhs_type.name_fct(self.sa, self.fct);
                     let rhs_type = rhs_type.name_fct(self.sa, self.fct);
-                    self.sa.diag.lock().report_span(
+                    self.sa.diag.lock().report(
                         self.file_id,
                         e.span,
                         ErrorMessage::TypesIncompatible(lhs_type, rhs_type),
@@ -1437,7 +1409,7 @@ impl<'a> TypeCheck<'a> {
             let rhs_type = rhs_type.name_fct(self.sa, self.fct);
             let msg = ErrorMessage::BinOpType("equals".into(), lhs_type, rhs_type);
 
-            self.sa.diag.lock().report_span(self.file_id, e.span, msg);
+            self.sa.diag.lock().report(self.file_id, e.span, msg);
 
             self.analysis.set_ty(e.id, SourceType::Error);
         }
@@ -1459,7 +1431,7 @@ impl<'a> TypeCheck<'a> {
             let rhs_type = rhs_type.name_fct(self.sa, self.fct);
             let msg = ErrorMessage::BinOpType(op, lhs_type, rhs_type);
 
-            self.sa.diag.lock().report_span(self.file_id, e.span, msg);
+            self.sa.diag.lock().report(self.file_id, e.span, msg);
         }
     }
 
@@ -1494,7 +1466,7 @@ impl<'a> TypeCheck<'a> {
 
                 None => {
                     let msg = ErrorMessage::NameExpected;
-                    self.sa.diag.lock().report_span(self.file_id, e.span, msg);
+                    self.sa.diag.lock().report(self.file_id, e.span, msg);
 
                     self.analysis.set_ty(e.id, SourceType::Error);
                     return SourceType::Error;
@@ -1509,7 +1481,7 @@ impl<'a> TypeCheck<'a> {
                 self.sa
                     .diag
                     .lock()
-                    .report_span(self.file_id, e.callee.span(), msg);
+                    .report(self.file_id, e.callee.span(), msg);
             }
 
             let expr_type = self.check_expr(callee, SourceType::Any);
@@ -1552,7 +1524,7 @@ impl<'a> TypeCheck<'a> {
                     self.sa
                         .diag
                         .lock()
-                        .report_span(self.file_id, e.callee.span(), msg);
+                        .report(self.file_id, e.callee.span(), msg);
                 }
 
                 let expr_type = self.check_expr(callee, SourceType::Any);
@@ -1576,7 +1548,7 @@ impl<'a> TypeCheck<'a> {
 
         if !enum_accessible_from(self.sa, enum_id, self.module_id) {
             let msg = ErrorMessage::NotAccessible(enum_.name(self.sa));
-            self.sa.diag.lock().report_span(self.file_id, e.span, msg);
+            self.sa.diag.lock().report(self.file_id, e.span, msg);
         }
 
         let type_params = if expected_ty.is_enum_id(enum_id) && type_params.is_empty() {
@@ -1616,12 +1588,12 @@ impl<'a> TypeCheck<'a> {
                 variant_types,
                 arg_types,
             );
-            self.sa.diag.lock().report_span(self.file_id, e.span, msg);
+            self.sa.diag.lock().report(self.file_id, e.span, msg);
         } else if variant.types.is_empty() {
             let enum_name = self.sa.interner.str(enum_.name).to_string();
             let variant_name = self.sa.interner.str(variant.name).to_string();
             let msg = ErrorMessage::EnumArgsNoParens(enum_name, variant_name);
-            self.sa.diag.lock().report_span(self.file_id, e.span, msg);
+            self.sa.diag.lock().report(self.file_id, e.span, msg);
         }
 
         let ty = SourceType::Enum(enum_id, type_params);
@@ -1681,7 +1653,7 @@ impl<'a> TypeCheck<'a> {
                 ErrorMessage::UnknownStaticMethodWithTypeParam
             };
 
-            self.sa.diag.lock().report_span(self.file_id, e.span, msg);
+            self.sa.diag.lock().report(self.file_id, e.span, msg);
 
             self.analysis.set_ty(e.id, SourceType::Error);
             return SourceType::Error;
@@ -1716,7 +1688,7 @@ impl<'a> TypeCheck<'a> {
                 .map(|a| a.name_fct(self.sa, self.fct))
                 .collect::<Vec<_>>();
             let msg = ErrorMessage::ParamTypesIncompatible(fct_name, fct_params, arg_types);
-            self.sa.diag.lock().report_span(self.file_id, e.span, msg);
+            self.sa.diag.lock().report(self.file_id, e.span, msg);
         }
 
         let call_type = CallType::GenericStaticMethod(tp_id, trait_id, fct_id);
@@ -1808,7 +1780,7 @@ impl<'a> TypeCheck<'a> {
                 .map(|a| a.name_fct(self.sa, self.fct))
                 .collect::<Vec<_>>();
             let msg = ErrorMessage::LambdaParamTypesIncompatible(fct_params, arg_types);
-            self.sa.diag.lock().report_span(self.file_id, e.span, msg);
+            self.sa.diag.lock().report(self.file_id, e.span, msg);
         }
 
         let call_type = CallType::Lambda(params, return_type.clone());
@@ -1832,7 +1804,7 @@ impl<'a> TypeCheck<'a> {
             let fct = self.sa.fcts.idx(fct_id);
             let fct = fct.read();
             let msg = ErrorMessage::NotAccessible(fct.display_name(self.sa));
-            self.sa.diag.lock().report_span(self.file_id, e.span, msg);
+            self.sa.diag.lock().report(self.file_id, e.span, msg);
         }
 
         let mut lookup = MethodLookup::new(self.sa, self.fct)
@@ -1885,7 +1857,7 @@ impl<'a> TypeCheck<'a> {
 
                 let name = fct.display_name(self.sa);
                 let msg = ErrorMessage::NotAccessible(name);
-                self.sa.diag.lock().report_span(self.file_id, e.span, msg);
+                self.sa.diag.lock().report(self.file_id, e.span, msg);
             }
 
             self.analysis.set_ty(e.id, return_type.clone());
@@ -1949,7 +1921,7 @@ impl<'a> TypeCheck<'a> {
 
                 let name = fct.display_name(self.sa);
                 let msg = ErrorMessage::NotAccessible(name);
-                self.sa.diag.lock().report_span(self.file_id, e.span, msg);
+                self.sa.diag.lock().report(self.file_id, e.span, msg);
             }
 
             return_type
@@ -1999,7 +1971,7 @@ impl<'a> TypeCheck<'a> {
 
                 let name = self.sa.interner.str(field.name).to_string();
                 let msg = ErrorMessage::NotAccessible(name);
-                self.sa.diag.lock().report_span(self.file_id, e.span, msg);
+                self.sa.diag.lock().report(self.file_id, e.span, msg);
             }
 
             return self.check_expr_call_expr(e, field_type, arg_types);
@@ -2020,7 +1992,7 @@ impl<'a> TypeCheck<'a> {
                 if !struct_field_accessible_from(self.sa, struct_id, field_id, self.module_id) {
                     let name = self.sa.interner.str(field.name).to_string();
                     let msg = ErrorMessage::NotAccessible(name);
-                    self.sa.diag.lock().report_span(self.file_id, e.span, msg);
+                    self.sa.diag.lock().report(self.file_id, e.span, msg);
                 }
 
                 self.analysis.set_ty(e.id, field_type.clone());
@@ -2056,7 +2028,7 @@ impl<'a> TypeCheck<'a> {
             let struct_ = self.sa.structs.idx(struct_id);
             let struct_ = struct_.read();
             let msg = ErrorMessage::NotAccessible(struct_.name(self.sa));
-            self.sa.diag.lock().report_span(self.file_id, e.span, msg);
+            self.sa.diag.lock().report(self.file_id, e.span, msg);
         }
 
         let struct_ = self.sa.structs.idx(struct_id);
@@ -2067,7 +2039,7 @@ impl<'a> TypeCheck<'a> {
             && is_struct_accessible
         {
             let msg = ErrorMessage::StructConstructorNotAccessible(struct_.name(self.sa));
-            self.sa.diag.lock().report_span(self.file_id, e.span, msg);
+            self.sa.diag.lock().report(self.file_id, e.span, msg);
         }
 
         let ty = SourceType::Struct(struct_id, type_params.clone());
@@ -2096,7 +2068,7 @@ impl<'a> TypeCheck<'a> {
                 .map(|a| a.name_fct(self.sa, self.fct))
                 .collect::<Vec<_>>();
             let msg = ErrorMessage::StructArgsIncompatible(struct_name, field_types, arg_types);
-            self.sa.diag.lock().report_span(self.file_id, e.span, msg);
+            self.sa.diag.lock().report(self.file_id, e.span, msg);
         }
 
         self.analysis
@@ -2142,7 +2114,7 @@ impl<'a> TypeCheck<'a> {
             let cls = self.sa.classes.idx(cls_id);
             let cls = cls.read();
             let msg = ErrorMessage::NotAccessible(cls.name(self.sa));
-            self.sa.diag.lock().report_span(self.file_id, e.span, msg);
+            self.sa.diag.lock().report(self.file_id, e.span, msg);
         }
 
         let type_params = if expected_ty.is_cls_id(cls_id) && type_params.is_empty() {
@@ -2171,7 +2143,7 @@ impl<'a> TypeCheck<'a> {
             && is_class_accessible
         {
             let msg = ErrorMessage::ClassConstructorNotAccessible(cls.name(self.sa));
-            self.sa.diag.lock().report_span(self.file_id, e.span, msg);
+            self.sa.diag.lock().report(self.file_id, e.span, msg);
         }
 
         if !self.check_expr_call_class_args(&*cls, type_params.clone(), arg_types) {
@@ -2186,7 +2158,7 @@ impl<'a> TypeCheck<'a> {
                 .map(|a| a.name_fct(self.sa, self.fct))
                 .collect::<Vec<_>>();
             let msg = ErrorMessage::ParamTypesIncompatible(class_name, field_types, arg_types);
-            self.sa.diag.lock().report_span(self.file_id, e.span, msg);
+            self.sa.diag.lock().report(self.file_id, e.span, msg);
         }
 
         self.analysis
@@ -2279,7 +2251,7 @@ impl<'a> TypeCheck<'a> {
                 ErrorMessage::MultipleCandidatesForTypeParam(type_name, name, param_names)
             };
 
-            self.sa.diag.lock().report_span(self.file_id, e.span, msg);
+            self.sa.diag.lock().report(self.file_id, e.span, msg);
             self.analysis.set_ty(e.id, SourceType::Error);
 
             SourceType::Error
@@ -2327,7 +2299,7 @@ impl<'a> TypeCheck<'a> {
             self.sa
                 .diag
                 .lock()
-                .report_span(self.file_id, method_expr.span(), msg);
+                .report(self.file_id, method_expr.span(), msg);
 
             self.analysis.set_ty(e.id, SourceType::Error);
             return SourceType::Error;
@@ -2391,11 +2363,10 @@ impl<'a> TypeCheck<'a> {
                 if let Some(&variant_idx) = enum_.name_to_value.get(&method_name) {
                     if !container_type_params.is_empty() && !type_params.is_empty() {
                         let msg = ErrorMessage::NoTypeParamsExpected;
-                        self.sa.diag.lock().report_span(
-                            self.file_id,
-                            callee_as_path.lhs.span(),
-                            msg,
-                        );
+                        self.sa
+                            .diag
+                            .lock()
+                            .report(self.file_id, callee_as_path.lhs.span(), msg);
                     }
 
                     let used_type_params = if type_params.is_empty() {
@@ -2441,7 +2412,7 @@ impl<'a> TypeCheck<'a> {
                     self.sa
                         .diag
                         .lock()
-                        .report_span(self.file_id, callee_as_path.lhs.span(), msg);
+                        .report(self.file_id, callee_as_path.lhs.span(), msg);
                 }
 
                 self.check_expr_call_generic_static_method(e, id, method_name, &arg_types)
@@ -2453,7 +2424,7 @@ impl<'a> TypeCheck<'a> {
                     self.sa
                         .diag
                         .lock()
-                        .report_span(self.file_id, callee_as_path.lhs.span(), msg);
+                        .report(self.file_id, callee_as_path.lhs.span(), msg);
                 }
 
                 let sym = {
@@ -2468,7 +2439,7 @@ impl<'a> TypeCheck<'a> {
 
             _ => {
                 let msg = ErrorMessage::ClassExpected;
-                self.sa.diag.lock().report_span(self.file_id, e.span, msg);
+                self.sa.diag.lock().report(self.file_id, e.span, msg);
 
                 self.analysis.set_ty(e.id, SourceType::Error);
 
@@ -2503,10 +2474,7 @@ impl<'a> TypeCheck<'a> {
             ident.name
         } else {
             let msg = ErrorMessage::ExpectedSomeIdentifier;
-            self.sa
-                .diag
-                .lock()
-                .report_span(self.file_id, e.rhs.span(), msg);
+            self.sa.diag.lock().report(self.file_id, e.rhs.span(), msg);
             return SourceType::Error;
         };
 
@@ -2526,10 +2494,7 @@ impl<'a> TypeCheck<'a> {
 
             _ => {
                 let msg = ErrorMessage::InvalidLeftSideOfSeparator;
-                self.sa
-                    .diag
-                    .lock()
-                    .report_span(self.file_id, e.lhs.span(), msg);
+                self.sa.diag.lock().report(self.file_id, e.lhs.span(), msg);
 
                 self.analysis.set_ty(e.id, SourceType::Error);
                 SourceType::Error
@@ -2548,7 +2513,7 @@ impl<'a> TypeCheck<'a> {
                 self.sa
                     .diag
                     .lock()
-                    .report_span(self.file_id, expr_path.rhs.span(), msg);
+                    .report(self.file_id, expr_path.rhs.span(), msg);
                 return Err(());
             };
 
@@ -2563,10 +2528,7 @@ impl<'a> TypeCheck<'a> {
 
                 _ => {
                     let msg = ErrorMessage::ExpectedModule;
-                    self.sa
-                        .diag
-                        .lock()
-                        .report_span(self.file_id, expr.span(), msg);
+                    self.sa.diag.lock().report(self.file_id, expr.span(), msg);
                     Err(())
                 }
             }
@@ -2577,10 +2539,7 @@ impl<'a> TypeCheck<'a> {
             Ok(sym)
         } else {
             let msg = ErrorMessage::ExpectedSomeIdentifier;
-            self.sa
-                .diag
-                .lock()
-                .report_span(self.file_id, expr.span(), msg);
+            self.sa.diag.lock().report(self.file_id, expr.span(), msg);
             Err(())
         }
     }
@@ -2595,10 +2554,7 @@ impl<'a> TypeCheck<'a> {
                     if !module_accessible_from(self.sa, module_id, self.module_id) {
                         let module = &self.sa.modules[module_id].read();
                         let msg = ErrorMessage::NotAccessible(module.name(self.sa));
-                        self.sa
-                            .diag
-                            .lock()
-                            .report_span(self.file_id, path.span, msg);
+                        self.sa.diag.lock().report(self.file_id, path.span, msg);
                     }
 
                     let module = &self.sa.modules[module_id].read();
@@ -2611,17 +2567,14 @@ impl<'a> TypeCheck<'a> {
 
                     if !enum_accessible_from(self.sa, enum_id, self.module_id) {
                         let msg = ErrorMessage::NotAccessible(enum_.name(self.sa));
-                        self.sa
-                            .diag
-                            .lock()
-                            .report_span(self.file_id, path.span, msg);
+                        self.sa.diag.lock().report(self.file_id, path.span, msg);
                     }
 
                     if let Some(&variant_idx) = enum_.name_to_value.get(&name) {
                         sym = Some(Sym::EnumVariant(enum_id, variant_idx));
                     } else {
                         let name = self.sa.interner.str(name).to_string();
-                        self.sa.diag.lock().report_span(
+                        self.sa.diag.lock().report(
                             self.file_id.into(),
                             path.span,
                             ErrorMessage::UnknownEnumVariant(name),
@@ -2632,20 +2585,14 @@ impl<'a> TypeCheck<'a> {
 
                 Some(_) => {
                     let msg = ErrorMessage::ExpectedModule;
-                    self.sa
-                        .diag
-                        .lock()
-                        .report_span(self.file_id, path.span, msg);
+                    self.sa.diag.lock().report(self.file_id, path.span, msg);
                     return Err(());
                 }
 
                 None => {
                     let name = self.sa.interner.str(names[0]).to_string();
                     let msg = ErrorMessage::UnknownIdentifier(name);
-                    self.sa
-                        .diag
-                        .lock()
-                        .report_span(self.file_id, path.span, msg);
+                    self.sa.diag.lock().report(self.file_id, path.span, msg);
                     return Err(());
                 }
             }
@@ -2656,10 +2603,7 @@ impl<'a> TypeCheck<'a> {
         } else {
             let name = self.sa.interner.str(names[0]).to_string();
             let msg = ErrorMessage::UnknownIdentifier(name);
-            self.sa
-                .diag
-                .lock()
-                .report_span(self.file_id, path.span, msg);
+            self.sa.diag.lock().report(self.file_id, path.span, msg);
 
             Err(())
         }
@@ -2684,10 +2628,7 @@ impl<'a> TypeCheck<'a> {
                     let global = &self.sa.globals.idx(global_id);
                     let global = global.read();
                     let msg = ErrorMessage::NotAccessible(global.name(self.sa));
-                    self.sa
-                        .diag
-                        .lock()
-                        .report_span(self.file_id, e.op_span, msg);
+                    self.sa.diag.lock().report(self.file_id, e.op_span, msg);
                 }
 
                 let global_var = self.sa.globals.idx(global_id);
@@ -2706,10 +2647,7 @@ impl<'a> TypeCheck<'a> {
                     let const_ = self.sa.consts.idx(const_id);
                     let const_ = const_.read();
                     let msg = ErrorMessage::NotAccessible(const_.name(self.sa));
-                    self.sa
-                        .diag
-                        .lock()
-                        .report_span(self.file_id, e.op_span, msg);
+                    self.sa.diag.lock().report(self.file_id, e.op_span, msg);
                 }
 
                 let const_ = self.sa.consts.idx(const_id);
@@ -2736,7 +2674,7 @@ impl<'a> TypeCheck<'a> {
             None => {
                 let module = module.name(self.sa);
                 let name = self.sa.interner.str(element_name).to_string();
-                self.sa.diag.lock().report_span(
+                self.sa.diag.lock().report(
                     self.fct.file_id,
                     e.span,
                     ErrorMessage::UnknownIdentifierInModule(module, name),
@@ -2745,11 +2683,10 @@ impl<'a> TypeCheck<'a> {
             }
 
             _ => {
-                self.sa.diag.lock().report_span(
-                    self.fct.file_id,
-                    e.span,
-                    ErrorMessage::ValueExpected,
-                );
+                self.sa
+                    .diag
+                    .lock()
+                    .report(self.fct.file_id, e.span, ErrorMessage::ValueExpected);
                 SourceType::Error
             }
         }
@@ -2768,10 +2705,7 @@ impl<'a> TypeCheck<'a> {
 
         if !enum_accessible_from(self.sa, enum_id, self.module_id) {
             let msg = ErrorMessage::NotAccessible(enum_.name(self.sa));
-            self.sa
-                .diag
-                .lock()
-                .report_span(self.file_id, expr_span, msg);
+            self.sa.diag.lock().report(self.file_id, expr_span, msg);
         }
 
         let type_params_ok = typeparamck::check_enum(
@@ -2800,10 +2734,7 @@ impl<'a> TypeCheck<'a> {
                     variant_types,
                     arg_types,
                 );
-                self.sa
-                    .diag
-                    .lock()
-                    .report_span(self.file_id, expr_span, msg);
+                self.sa.diag.lock().report(self.file_id, expr_span, msg);
             }
 
             self.analysis.map_idents.insert(
@@ -2812,7 +2743,7 @@ impl<'a> TypeCheck<'a> {
             );
         } else {
             let name = self.sa.interner.str(name).to_string();
-            self.sa.diag.lock().report_span(
+            self.sa.diag.lock().report(
                 self.file_id,
                 expr_span,
                 ErrorMessage::UnknownEnumVariant(name),
@@ -2855,7 +2786,7 @@ impl<'a> TypeCheck<'a> {
                     ),
 
                 _ => {
-                    self.sa.diag.lock().report_span(
+                    self.sa.diag.lock().report(
                         self.file_id,
                         e.op_span,
                         ErrorMessage::NoTypeParamsExpected,
@@ -2873,7 +2804,7 @@ impl<'a> TypeCheck<'a> {
                 self.sa
                     .diag
                     .lock()
-                    .report_span(self.file_id, path.lhs.span(), msg);
+                    .report(self.file_id, path.lhs.span(), msg);
 
                 self.analysis.set_ty(e.id, SourceType::Error);
                 return SourceType::Error;
@@ -2886,7 +2817,7 @@ impl<'a> TypeCheck<'a> {
                 self.sa
                     .diag
                     .lock()
-                    .report_span(self.file_id, path.rhs.span(), msg);
+                    .report(self.file_id, path.rhs.span(), msg);
 
                 self.analysis.set_ty(e.id, SourceType::Error);
                 return SourceType::Error;
@@ -2906,21 +2837,17 @@ impl<'a> TypeCheck<'a> {
 
                 _ => {
                     let msg = ErrorMessage::NoTypeParamsExpected;
-                    self.sa
-                        .diag
-                        .lock()
-                        .report_span(self.file_id, e.op_span, msg);
+                    self.sa.diag.lock().report(self.file_id, e.op_span, msg);
 
                     self.analysis.set_ty(e.id, SourceType::Error);
                     SourceType::Error
                 }
             }
         } else {
-            self.sa.diag.lock().report_span(
-                self.file_id,
-                e.op_span,
-                ErrorMessage::NoTypeParamsExpected,
-            );
+            self.sa
+                .diag
+                .lock()
+                .report(self.file_id, e.op_span, ErrorMessage::NoTypeParamsExpected);
             self.analysis.set_ty(e.id, SourceType::Error);
             return SourceType::Error;
         }
@@ -2939,10 +2866,7 @@ impl<'a> TypeCheck<'a> {
 
         if !enum_accessible_from(self.sa, enum_id, self.module_id) {
             let msg = ErrorMessage::NotAccessible(enum_.name(self.sa));
-            self.sa
-                .diag
-                .lock()
-                .report_span(self.file_id, expr_span, msg);
+            self.sa.diag.lock().report(self.file_id, expr_span, msg);
         }
 
         let type_params = if expected_ty.is_enum_id(enum_id) && type_params.is_empty() {
@@ -2976,10 +2900,7 @@ impl<'a> TypeCheck<'a> {
                 variant_types,
                 arg_types,
             );
-            self.sa
-                .diag
-                .lock()
-                .report_span(self.file_id, expr_span, msg);
+            self.sa.diag.lock().report(self.file_id, expr_span, msg);
         }
 
         self.analysis.map_idents.insert(
@@ -3010,10 +2931,7 @@ impl<'a> TypeCheck<'a> {
 
             None => {
                 let msg = ErrorMessage::NameExpected;
-                self.sa
-                    .diag
-                    .lock()
-                    .report_span(self.file_id, e.op_span, msg);
+                self.sa.diag.lock().report(self.file_id, e.op_span, msg);
 
                 self.analysis.set_ty(e.id, SourceType::Error);
                 return SourceType::Error;
@@ -3034,10 +2952,7 @@ impl<'a> TypeCheck<'a> {
                 if !struct_field_accessible_from(self.sa, struct_id, field_id, self.module_id) {
                     let name = self.sa.interner.str(field.name).to_string();
                     let msg = ErrorMessage::NotAccessible(name);
-                    self.sa
-                        .diag
-                        .lock()
-                        .report_span(self.file_id, e.op_span, msg);
+                    self.sa.diag.lock().report(self.file_id, e.op_span, msg);
                 }
 
                 self.analysis.set_ty(e.id, fty.clone());
@@ -3063,10 +2978,7 @@ impl<'a> TypeCheck<'a> {
                 if !class_field_accessible_from(self.sa, cls_id, field_id, self.module_id) {
                     let name = self.sa.interner.str(field.name).to_string();
                     let msg = ErrorMessage::NotAccessible(name);
-                    self.sa
-                        .diag
-                        .lock()
-                        .report_span(self.file_id, e.op_span, msg);
+                    self.sa.diag.lock().report(self.file_id, e.op_span, msg);
                 }
 
                 self.analysis.set_ty(e.id, fty.clone());
@@ -3079,10 +2991,7 @@ impl<'a> TypeCheck<'a> {
             let field_name = self.sa.interner.str(name).to_string();
             let expr_name = object_type.name_fct(self.sa, self.fct);
             let msg = ErrorMessage::UnknownField(field_name, expr_name);
-            self.sa
-                .diag
-                .lock()
-                .report_span(self.file_id, e.op_span, msg);
+            self.sa.diag.lock().report(self.file_id, e.op_span, msg);
         }
 
         self.analysis.set_ty(e.id, SourceType::Error);
@@ -3100,10 +3009,7 @@ impl<'a> TypeCheck<'a> {
 
             None => {
                 let msg = ErrorMessage::IndexExpected;
-                self.sa
-                    .diag
-                    .lock()
-                    .report_span(self.file_id, e.op_span, msg);
+                self.sa.diag.lock().report(self.file_id, e.op_span, msg);
 
                 self.analysis.set_ty(e.id, SourceType::Error);
                 return SourceType::Error;
@@ -3115,10 +3021,7 @@ impl<'a> TypeCheck<'a> {
         if index >= subtypes.len() as u64 {
             let msg =
                 ErrorMessage::IllegalTupleIndex(index, object_type.name_fct(self.sa, self.fct));
-            self.sa
-                .diag
-                .lock()
-                .report_span(self.file_id, e.op_span, msg);
+            self.sa.diag.lock().report(self.file_id, e.op_span, msg);
 
             self.analysis.set_ty(e.id, SourceType::Error);
             return SourceType::Error;
@@ -3133,7 +3036,7 @@ impl<'a> TypeCheck<'a> {
     fn check_expr_this(&mut self, e: &ast::ExprSelfType, _expected_ty: SourceType) -> SourceType {
         if !self.self_available {
             let msg = ErrorMessage::ThisUnavailable;
-            self.sa.diag.lock().report_span(self.file_id, e.span, msg);
+            self.sa.diag.lock().report(self.file_id, e.span, msg);
             self.analysis.set_ty(e.id, SourceType::Error);
             return SourceType::Error;
         }
@@ -3247,7 +3150,7 @@ impl<'a> TypeCheck<'a> {
                 let object_type = object_type.name_fct(self.sa, self.fct);
                 let check_type = check_type.name_fct(self.sa, self.fct);
 
-                self.sa.diag.lock().report_span(
+                self.sa.diag.lock().report(
                     self.file_id,
                     e.span,
                     ErrorMessage::TypeNotImplementingTrait(object_type, check_type),
@@ -3258,11 +3161,10 @@ impl<'a> TypeCheck<'a> {
             check_type
         } else if !check_type.is_error() {
             let name = check_type.name_fct(self.sa, self.fct);
-            self.sa.diag.lock().report_span(
-                self.file_id,
-                e.span,
-                ErrorMessage::TraitExpected(name),
-            );
+            self.sa
+                .diag
+                .lock()
+                .report(self.file_id, e.span, ErrorMessage::TraitExpected(name));
             let ty = SourceType::Error;
             self.analysis.set_ty(e.id, ty.clone());
             ty
@@ -3362,7 +3264,7 @@ impl<'a> TypeCheck<'a> {
                 }
 
                 let ty = part_expr.name_fct(self.sa, self.fct);
-                self.sa.diag.lock().report_span(
+                self.sa.diag.lock().report(
                     self.file_id,
                     part.span(),
                     ErrorMessage::ExpectedStringable(ty),
@@ -3406,11 +3308,10 @@ impl<'a> TypeCheck<'a> {
 
     fn check_stmt_break_and_continue(&mut self, stmt: &ast::Stmt) {
         if !self.in_loop {
-            self.sa.diag.lock().report_span(
-                self.fct.file_id,
-                stmt.span(),
-                ErrorMessage::OutsideLoop,
-            );
+            self.sa
+                .diag
+                .lock()
+                .report(self.fct.file_id, stmt.span(), ErrorMessage::OutsideLoop);
         }
     }
 }
@@ -3622,7 +3523,7 @@ pub fn check_lit_int(
         if (negate && value > max) || (!negate && value >= max) {
             sa.diag
                 .lock()
-                .report_span(file, e.span, ErrorMessage::NumberOverflow(ty_name.into()));
+                .report(file, e.span, ErrorMessage::NumberOverflow(ty_name.into()));
         }
 
         let value = if negate {
@@ -3645,7 +3546,7 @@ pub fn check_lit_int(
         if value > max {
             sa.diag
                 .lock()
-                .report_span(file, e.span, ErrorMessage::NumberOverflow(ty_name.into()));
+                .report(file, e.span, ErrorMessage::NumberOverflow(ty_name.into()));
         }
 
         (ty, value as i64)
@@ -3703,7 +3604,7 @@ pub fn check_lit_float(
 
         sa.diag
             .lock()
-            .report_span(file, e.span, ErrorMessage::NumberOverflow(ty.into()));
+            .report(file, e.span, ErrorMessage::NumberOverflow(ty.into()));
     }
 
     (ty, value)

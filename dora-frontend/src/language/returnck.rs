@@ -63,22 +63,22 @@ mod tests {
     fn returns_int() {
         err(
             "fn f(): Int32 { }",
-            pos(1, 15),
+            (1, 15),
             ErrorMessage::ReturnType("Int32".into(), "()".into()),
         );
         err(
             "fn f(): Int32 { if true { return 1; } }",
-            pos(1, 15),
+            (1, 15),
             ErrorMessage::ReturnType("Int32".into(), "()".into()),
         );
         err(
             "fn f(): Int32 { if true { } else { return 1; } }",
-            pos(1, 15),
+            (1, 15),
             ErrorMessage::ReturnType("Int32".into(), "()".into()),
         );
         err(
             "fn f(): Int32 { while true { return 1; } }",
-            pos(1, 15),
+            (1, 15),
             ErrorMessage::ReturnType("Int32".into(), "()".into()),
         );
         ok("fn f(): Int32 { if true { return 1; } else { return 2; } }");

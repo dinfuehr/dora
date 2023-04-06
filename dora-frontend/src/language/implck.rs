@@ -44,7 +44,7 @@ pub fn check(sa: &mut SemAnalysis) {
 
                         let msg =
                             ErrorMessage::ReturnTypeMismatch(impl_return_type, trait_return_type);
-                        sa.diag.lock().report_span(impl_.file_id, method.span, msg);
+                        sa.diag.lock().report(impl_.file_id, method.span, msg);
                     }
                 } else {
                     let args = method
@@ -61,7 +61,7 @@ pub fn check(sa: &mut SemAnalysis) {
                         ErrorMessage::MethodNotInTrait(trait_name, mtd_name, args)
                     };
 
-                    sa.diag.lock().report_span(impl_.file_id, method.span, msg)
+                    sa.diag.lock().report(impl_.file_id, method.span, msg)
                 }
             }
 
@@ -89,7 +89,7 @@ pub fn check(sa: &mut SemAnalysis) {
                     ErrorMessage::MethodMissingFromTrait(trait_name, mtd_name, args)
                 };
 
-                sa.diag.lock().report_span(impl_.file_id, impl_.span, msg)
+                sa.diag.lock().report(impl_.file_id, impl_.span, msg)
             }
 
             impl_for
@@ -113,7 +113,7 @@ mod tests {
             impl Foo for A {
                 fn bar() {}
             }",
-            pos(5, 17),
+            (5, 17),
             ErrorMessage::MethodNotInTrait("Foo".into(), "bar".into(), vec![]),
         );
     }
@@ -127,7 +127,7 @@ mod tests {
             }
             class A
             impl Foo for A {}",
-            pos(6, 13),
+            (6, 13),
             ErrorMessage::MethodMissingFromTrait("Foo".into(), "bar".into(), vec![]),
         );
     }
@@ -154,7 +154,7 @@ mod tests {
             impl Foo for A {
                 @static fn bar() {}
             }",
-            pos(5, 25),
+            (5, 25),
             ErrorMessage::StaticMethodNotInTrait("Foo".into(), "bar".into(), vec![]),
         );
     }
@@ -168,7 +168,7 @@ mod tests {
             }
             class A
             impl Foo for A {}",
-            pos(6, 13),
+            (6, 13),
             ErrorMessage::StaticMethodMissingFromTrait("Foo".into(), "bar".into(), vec![]),
         );
     }
@@ -187,7 +187,7 @@ mod tests {
                 fn m(): Int32 { 0 }
                 fn n(): Bool { true }
               }",
-            pos(9, 17),
+            (9, 17),
             ErrorMessage::ReturnTypeMismatch("Int32".into(), "Bool".into()),
         );
     }

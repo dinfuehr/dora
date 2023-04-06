@@ -244,7 +244,7 @@ impl<'a> MethodLookup<'a> {
         self.sa
             .diag
             .lock()
-            .report_span(self.file, self.span.expect("missing location"), msg);
+            .report(self.file, self.span.expect("missing location"), msg);
     }
 
     fn find_method(

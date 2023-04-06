@@ -75,7 +75,7 @@ impl<'x> ImplCheck<'x> {
                 }
 
                 _ => {
-                    self.sa.diag.lock().report_span(
+                    self.sa.diag.lock().report(
                         self.file_id,
                         self.ast.span,
                         ErrorMessage::ExpectedTrait,
@@ -107,7 +107,7 @@ impl<'x> ImplCheck<'x> {
                     self.ast.span,
                 );
             } else {
-                self.sa.diag.lock().report_span(
+                self.sa.diag.lock().report(
                     self.file_id,
                     self.ast.extended_type.span(),
                     ErrorMessage::ClassEnumStructExpected,
@@ -129,7 +129,7 @@ impl<'x> ImplCheck<'x> {
         let method = method.read();
 
         if method.ast.block.is_none() && !method.internal {
-            self.sa.diag.lock().report_span(
+            self.sa.diag.lock().report(
                 self.file_id.into(),
                 method.span,
                 ErrorMessage::MissingFctBody,
@@ -163,7 +163,7 @@ mod tests {
             }
             class Bar
             impl Foo for Bar { fn foo(): Int32; }",
-            pos(6, 32),
+            (6, 32),
             ErrorMessage::MissingFctBody,
         );
     }
@@ -180,7 +180,7 @@ mod tests {
                 fn foo(): Int32 { return 0; }
                 fn foo(): Int32 { return 1; }
             }",
-            pos(8, 17),
+            (8, 17),
             ErrorMessage::MethodExists("foo".into(), Span::new(141, 29)),
         );
     }
@@ -189,7 +189,7 @@ mod tests {
     fn impl_for_unknown_trait() {
         err(
             "class A impl Foo for A {}",
-            pos(1, 14),
+            (1, 14),
             ErrorMessage::UnknownIdentifier("Foo".into()),
         );
     }
@@ -198,13 +198,13 @@ mod tests {
     fn impl_for_unknown_class() {
         err(
             "trait Foo {} impl Foo for A {}",
-            pos(1, 27),
+            (1, 27),
             ErrorMessage::UnknownIdentifier("A".into()),
         );
 
         err(
             "trait Foo {} trait A {} impl Foo for A {}",
-            pos(1, 38),
+            (1, 38),
             ErrorMessage::ClassEnumStructExpected,
         );
     }
@@ -270,7 +270,7 @@ mod tests {
             trait MyTrait {}
             impl[T] MyTrait for MyFoo[Int32] {}
         ",
-            pos(4, 13),
+            (4, 13),
             ErrorMessage::UnconstrainedTypeParam("T".into()),
         );
     }
@@ -282,7 +282,7 @@ mod tests {
             mod foo { trait MyTrait {} }
             class Foo
             impl foo::MyTrait for Foo {}",
-            pos(4, 18),
+            (4, 18),
             ErrorMessage::NotAccessible("foo::MyTrait".into()),
         );
 
@@ -291,7 +291,7 @@ mod tests {
             mod foo { class Foo }
             trait MyTrait {}
             impl MyTrait for foo::Foo {}",
-            pos(4, 30),
+            (4, 30),
             ErrorMessage::NotAccessible("foo::Foo".into()),
         );
     }

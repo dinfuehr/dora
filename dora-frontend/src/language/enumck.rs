@@ -118,7 +118,7 @@ impl<'x> EnumCheckVariants<'x> {
 
             if result.is_some() {
                 let name = self.sa.interner.str(value.name).to_string();
-                self.sa.diag.lock().report_span(
+                self.sa.diag.lock().report(
                     self.enum_.file_id,
                     value.span,
                     ErrorMessage::ShadowEnumVariant(name),
@@ -129,7 +129,7 @@ impl<'x> EnumCheckVariants<'x> {
         }
 
         if self.ast.variants.is_empty() {
-            self.sa.diag.lock().report_span(
+            self.sa.diag.lock().report(
                 self.enum_.file_id,
                 self.ast.span,
                 ErrorMessage::NoEnumVariant,
@@ -145,11 +145,11 @@ mod tests {
 
     #[test]
     fn enum_definitions() {
-        err("enum Foo {}", pos(1, 1), ErrorMessage::NoEnumVariant);
+        err("enum Foo {}", (1, 1), ErrorMessage::NoEnumVariant);
         ok("enum Foo { A, B, C }");
         err(
             "enum Foo { A, A }",
-            pos(1, 15),
+            (1, 15),
             ErrorMessage::ShadowEnumVariant("A".into()),
         );
     }
@@ -173,7 +173,7 @@ mod tests {
             fn give_me_a(): Foo { Foo::A(2.0f32) }
 
         ",
-            pos(3, 35),
+            (3, 35),
             ErrorMessage::EnumArgsIncompatible(
                 "Foo".into(),
                 "A".into(),
@@ -191,7 +191,7 @@ mod tests {
             fn give_me_a(): Foo { Foo::A }
 
         ",
-            pos(3, 38),
+            (3, 38),
             ErrorMessage::EnumArgsIncompatible(
                 "Foo".into(),
                 "A".into(),
@@ -209,7 +209,7 @@ mod tests {
             fn give_me_c(): Foo { Foo::C(12.0f32) }
 
         ",
-            pos(3, 35),
+            (3, 35),
             ErrorMessage::EnumArgsIncompatible(
                 "Foo".into(),
                 "C".into(),
@@ -226,7 +226,7 @@ mod tests {
             enum Foo { A(Int32), B(Float32), C}
             fn give_me_c(): Foo { Foo::C() }
         ",
-            pos(3, 35),
+            (3, 35),
             ErrorMessage::EnumArgsNoParens("Foo".into(), "C".into()),
         );
     }
@@ -255,19 +255,19 @@ mod tests {
     fn enum_generic_with_failures() {
         err(
             "enum MyOption[] { A, B }",
-            pos(1, 1),
+            (1, 1),
             ErrorMessage::TypeParamsExpected,
         );
 
         err(
             "enum MyOption[X, X] { A, B }",
-            pos(1, 18),
+            (1, 18),
             ErrorMessage::TypeParamNameNotUnique("X".into()),
         );
 
         err(
             "enum MyOption[X: NonExistingTrait] { A, B }",
-            pos(1, 18),
+            (1, 18),
             ErrorMessage::UnknownIdentifier("NonExistingTrait".into()),
         );
     }
@@ -279,7 +279,7 @@ mod tests {
                 enum MyOption[X] { A, B }
                 fn foo(v: MyOption) {}
             ",
-            pos(3, 27),
+            (3, 27),
             ErrorMessage::WrongNumberTypeParams(1, 0),
         );
     }
@@ -297,7 +297,7 @@ mod tests {
             enum Foo { A(Int32), B }
             fn foo(): Foo { Foo::A(true) }
         ",
-            pos(3, 29),
+            (3, 29),
             ErrorMessage::EnumArgsIncompatible(
                 "Foo".into(),
                 "A".into(),
@@ -320,7 +320,7 @@ mod tests {
             enum Foo[T: SomeTrait] { A, B }
             fn foo() { let tmp = Foo[String]::B; }
         ",
-            pos(4, 45),
+            (4, 45),
             ErrorMessage::TypeNotImplementingTrait("String".into(), "SomeTrait".into()),
         );
     }
@@ -337,7 +337,7 @@ mod tests {
             enum Foo[T] { A(T), B }
             fn foo() { let tmp = Foo[Int32]::A(true); }
         ",
-            pos(3, 34),
+            (3, 34),
             ErrorMessage::EnumArgsIncompatible(
                 "Foo".into(),
                 "A".into(),
@@ -359,7 +359,7 @@ mod tests {
             enum Foo[T] { A(T), B }
             fn foo(x: Foo[Int32]): Foo[Float32] { x }
         ",
-            pos(3, 49),
+            (3, 49),
             ErrorMessage::ReturnType("Foo[Float32]".into(), "Foo[Int32]".into()),
         );
     }

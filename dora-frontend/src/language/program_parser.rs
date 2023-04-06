@@ -285,11 +285,10 @@ impl<'a> ProgramParser<'a> {
 
             Err(_) => {
                 if let Some((file_id, span)) = error_location {
-                    self.sa.diag.lock().report_span(
-                        file_id,
-                        span,
-                        ErrorMessage::FileNoAccess(path),
-                    );
+                    self.sa
+                        .diag
+                        .lock()
+                        .report(file_id, span, ErrorMessage::FileNoAccess(path));
                 } else {
                     self.sa
                         .diag
@@ -357,7 +356,7 @@ impl<'a> ProgramParser<'a> {
         let (ast, errors) = parser.parse();
 
         for error in errors {
-            self.sa.diag.lock().report_span(
+            self.sa.diag.lock().report(
                 file_id,
                 error.span,
                 ErrorMessage::Custom(error.error.message()),
@@ -405,7 +404,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
 
             if !package.add_dependency(stmt.name, package_id, top_level_module_id) {
                 let name = self.sa.interner.str(stmt.name).to_string();
-                self.sa.diag.lock().report_span(
+                self.sa.diag.lock().report(
                     self.file_id,
                     stmt.span,
                     ErrorMessage::PackageAlreadyExists(name),
@@ -413,11 +412,10 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
             }
         } else {
             let name = self.sa.interner.str(stmt.name).to_string();
-            self.sa.diag.lock().report_span(
-                self.file_id,
-                stmt.span,
-                ErrorMessage::UnknownPackage(name),
-            );
+            self.sa
+                .diag
+                .lock()
+                .report(self.file_id, stmt.span, ErrorMessage::UnknownPackage(name));
         }
     }
 
@@ -666,32 +664,32 @@ mod tests {
     fn test_class() {
         err(
             "class Foo class Foo",
-            pos(1, 11),
+            (1, 11),
             ErrorMessage::ShadowClass("Foo".into()),
         );
         err(
             "fn Foo() {} class Foo",
-            pos(1, 13),
+            (1, 13),
             ErrorMessage::ShadowFunction("Foo".into()),
         );
         err(
             "class Foo fn Foo() {}",
-            pos(1, 11),
+            (1, 11),
             ErrorMessage::ShadowClass("Foo".into()),
         );
         err(
             "class Foo let Foo: Int32 = 1;",
-            pos(1, 11),
+            (1, 11),
             ErrorMessage::ShadowClass("Foo".into()),
         );
         err(
             "class Foo let mut Foo: Int32 = 1;",
-            pos(1, 11),
+            (1, 11),
             ErrorMessage::ShadowClass("Foo".into()),
         );
         err(
             "class Foo const Foo: Int32 = 1;",
-            pos(1, 11),
+            (1, 11),
             ErrorMessage::ShadowClass("Foo".into()),
         );
     }
@@ -701,42 +699,42 @@ mod tests {
         ok("struct Foo {}");
         err(
             "struct Foo {} struct Foo {}",
-            pos(1, 15),
+            (1, 15),
             ErrorMessage::ShadowStruct("Foo".into()),
         );
         err(
             "struct Foo {} struct Foo {}",
-            pos(1, 15),
+            (1, 15),
             ErrorMessage::ShadowStruct("Foo".into()),
         );
         err(
             "struct Foo {} class Foo",
-            pos(1, 15),
+            (1, 15),
             ErrorMessage::ShadowStruct("Foo".into()),
         );
         err(
             "fn Foo() {} struct Foo {}",
-            pos(1, 13),
+            (1, 13),
             ErrorMessage::ShadowFunction("Foo".into()),
         );
         err(
             "struct Foo {} fn Foo() {}",
-            pos(1, 15),
+            (1, 15),
             ErrorMessage::ShadowStruct("Foo".into()),
         );
         err(
             "struct Foo {} let Foo: Int32 = 1;",
-            pos(1, 15),
+            (1, 15),
             ErrorMessage::ShadowStruct("Foo".into()),
         );
         err(
             "struct Foo {} let mut Foo: Int32 = 1;",
-            pos(1, 15),
+            (1, 15),
             ErrorMessage::ShadowStruct("Foo".into()),
         );
         err(
             "struct Foo {} const Foo: Int32 = 1;",
-            pos(1, 15),
+            (1, 15),
             ErrorMessage::ShadowStruct("Foo".into()),
         );
     }
@@ -746,12 +744,12 @@ mod tests {
         ok("trait Foo {}");
         err(
             "trait Foo {} struct Foo {}",
-            pos(1, 14),
+            (1, 14),
             ErrorMessage::ShadowTrait("Foo".into()),
         );
         err(
             "trait Foo {} class Foo",
-            pos(1, 14),
+            (1, 14),
             ErrorMessage::ShadowTrait("Foo".into()),
         );
     }
@@ -761,17 +759,17 @@ mod tests {
         ok("const foo: Int32 = 0i32;");
         err(
             "const foo: Int32 = 0i32; fn foo() {}",
-            pos(1, 26),
+            (1, 26),
             ErrorMessage::ShadowConst("foo".into()),
         );
         err(
             "const foo: Int32 = 0i32; class foo",
-            pos(1, 26),
+            (1, 26),
             ErrorMessage::ShadowConst("foo".into()),
         );
         err(
             "const foo: Int32 = 0i32; struct foo {}",
-            pos(1, 26),
+            (1, 26),
             ErrorMessage::ShadowConst("foo".into()),
         );
     }
@@ -782,7 +780,7 @@ mod tests {
 
         err(
             "enum Foo { A } class Foo",
-            pos(1, 16),
+            (1, 16),
             ErrorMessage::ShadowEnum("Foo".into()),
         );
     }
@@ -794,13 +792,13 @@ mod tests {
 
         err(
             "mod foo {} mod foo {}",
-            pos(1, 12),
+            (1, 12),
             ErrorMessage::ShadowModule("foo".into()),
         );
 
         err(
             "mod foo { fn bar() {} fn bar() {} }",
-            pos(1, 23),
+            (1, 23),
             ErrorMessage::ShadowFunction("bar".into()),
         );
     }

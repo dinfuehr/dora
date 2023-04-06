@@ -57,10 +57,7 @@ impl<'a> GlobalDefCheck<'a> {
 
         if global_var.initializer.is_none() {
             let msg = ErrorMessage::LetMissingInitialization;
-            self.sa
-                .diag
-                .lock()
-                .report_span(self.file_id, self.ast.span, msg);
+            self.sa.diag.lock().report(self.file_id, self.ast.span, msg);
         }
     }
 }
@@ -76,7 +73,7 @@ mod tests {
         ok("let a: Int32 = 0i32; let mut b: Int32 = a + 1i32;");
         err(
             "let mut a: Int32 = foo;",
-            pos(1, 20),
+            (1, 20),
             ErrorMessage::UnknownIdentifier("foo".into()),
         );
     }
@@ -85,7 +82,7 @@ mod tests {
     fn check_type() {
         err(
             "let mut x: Foo = 0;",
-            pos(1, 12),
+            (1, 12),
             ErrorMessage::UnknownIdentifier("Foo".into()),
         );
     }

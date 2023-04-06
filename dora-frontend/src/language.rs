@@ -3,7 +3,7 @@ use crate::language::sem_analysis::{FctDefinition, SemAnalysis, SourceFileId};
 use crate::language::sym::Sym;
 use dora_parser::ast;
 use dora_parser::interner::Name;
-use dora_parser::{Position, Span};
+use dora_parser::Span;
 
 pub use program::emit_program;
 pub use readty::{read_type, read_type_unchecked, AllowSelf, TypeParamContext};
@@ -171,7 +171,7 @@ fn internalck(sa: &SemAnalysis) {
         if !fct.has_body() && !fct.in_trait() && !fct.internal {
             sa.diag
                 .lock()
-                .report_span(fct.file_id, fct.span, ErrorMessage::MissingFctBody);
+                .report(fct.file_id, fct.span, ErrorMessage::MissingFctBody);
         }
     }
 
@@ -179,7 +179,7 @@ fn internalck(sa: &SemAnalysis) {
         let struct_ = struct_.read();
 
         if struct_.internal && !struct_.internal_resolved {
-            sa.diag.lock().report_span(
+            sa.diag.lock().report(
                 struct_.file_id,
                 struct_.span,
                 ErrorMessage::UnresolvedInternal,
@@ -193,7 +193,7 @@ fn internalck(sa: &SemAnalysis) {
         if cls.internal && !cls.internal_resolved {
             sa.diag
                 .lock()
-                .report_span(cls.file_id(), cls.span(), ErrorMessage::UnresolvedInternal);
+                .report(cls.file_id(), cls.span(), ErrorMessage::UnresolvedInternal);
         }
     }
 }
@@ -208,32 +208,6 @@ pub fn expr_always_returns(e: &ast::Expr) -> bool {
 
 pub fn expr_block_always_returns(e: &ast::ExprBlockType) -> bool {
     returnck::expr_block_returns_value(e).is_ok()
-}
-
-pub fn report_sym_shadow(
-    sa: &SemAnalysis,
-    name: Name,
-    file: SourceFileId,
-    pos: Position,
-    sym: Sym,
-) {
-    let name = sa.interner.str(name).to_string();
-
-    let msg = match sym {
-        Sym::Class(_) => ErrorMessage::ShadowClass(name),
-        Sym::Struct(_) => ErrorMessage::ShadowStruct(name),
-        Sym::Trait(_) => ErrorMessage::ShadowTrait(name),
-        Sym::Enum(_) => ErrorMessage::ShadowEnum(name),
-        Sym::Fct(_) => ErrorMessage::ShadowFunction(name),
-        Sym::Global(_) => ErrorMessage::ShadowGlobal(name),
-        Sym::Const(_) => ErrorMessage::ShadowConst(name),
-        Sym::Var(_) => ErrorMessage::ShadowParam(name),
-        Sym::Module(_) => ErrorMessage::ShadowModule(name),
-        Sym::TypeParam(_) => ErrorMessage::ShadowTypeParam(name),
-        _ => unreachable!(),
-    };
-
-    sa.diag.lock().report(file, pos, msg);
 }
 
 pub fn report_sym_shadow_span(
@@ -259,7 +233,7 @@ pub fn report_sym_shadow_span(
         _ => unreachable!(),
     };
 
-    sa.diag.lock().report_span(file, span, msg);
+    sa.diag.lock().report(file, span, msg);
 }
 
 #[cfg(test)]
@@ -267,7 +241,6 @@ pub mod tests {
     use crate::language::error::msg::{ErrorDescriptor, ErrorMessage};
     use crate::language::sem_analysis::SemAnalysis;
     use crate::language::test;
-    use dora_parser::lexer::position::Position;
     use dora_parser::{compute_line_column, compute_line_starts};
 
     pub fn ok(code: &'static str) {
@@ -305,20 +278,20 @@ pub mod tests {
         })
     }
 
-    pub fn err(code: &'static str, pos: Position, msg: ErrorMessage) {
+    pub fn err(code: &'static str, loc: (u32, u32), msg: ErrorMessage) {
         test::check(code, |vm| {
             let diag = vm.diag.lock();
             let errors = diag.errors();
 
-            let error_pos = if errors.len() == 1 {
+            let error_loc = if errors.len() == 1 {
                 compute_pos(code, &errors[0])
             } else {
                 None
             };
 
-            if errors.len() != 1 || error_pos != Some(pos) || errors[0].msg != msg {
+            if errors.len() != 1 || error_loc != Some(loc) || errors[0].msg != msg {
                 println!("expected:");
-                println!("\t{:?} at {}", msg, pos);
+                println!("\t{:?} at {}:{}", msg, loc.0, loc.1);
                 println!();
                 if errors.is_empty() {
                     println!("but got no error.");
@@ -333,12 +306,12 @@ pub mod tests {
             }
 
             assert_eq!(1, errors.len(), "found {} errors instead", errors.len());
-            assert_eq!(Some(pos), error_pos);
+            assert_eq!(Some(loc), error_loc);
             assert_eq!(msg, errors[0].msg);
         });
     }
 
-    pub fn errors(code: &'static str, vec: &[(Position, ErrorMessage)]) {
+    pub fn errors(code: &'static str, vec: &[((u32, u32), ErrorMessage)]) {
         test::check(code, |vm| {
             let diag = vm.diag.lock();
             let errors = diag.errors();
@@ -353,19 +326,12 @@ pub mod tests {
         });
     }
 
-    fn compute_pos(code: &str, error: &ErrorDescriptor) -> Option<Position> {
-        if let Some(pos) = error.pos {
-            Some(pos)
-        } else if let Some(span) = error.span {
+    fn compute_pos(code: &str, error: &ErrorDescriptor) -> Option<(u32, u32)> {
+        if let Some(span) = error.span {
             let line_starts = compute_line_starts(code);
-            let (line, column) = compute_line_column(&line_starts, span.start());
-            Some(Position::new(line, column))
+            Some(compute_line_column(&line_starts, span.start()))
         } else {
             None
         }
-    }
-
-    pub fn pos(line: u32, col: u32) -> Position {
-        Position::new(line, col)
     }
 }

@@ -98,7 +98,7 @@ fn check_use(
             let msg = ErrorMessage::ExpectedPath;
             sa.diag
                 .lock()
-                .report_span(use_file_id, use_declaration.common_path[idx - 1].span, msg);
+                .report(use_file_id, use_declaration.common_path[idx - 1].span, msg);
             return Err(UseError::Fatal);
         }
 
@@ -121,7 +121,7 @@ fn check_use(
                 UsePathComponentValue::Package
                 | UsePathComponentValue::Super
                 | UsePathComponentValue::This => {
-                    sa.diag.lock().report_span(
+                    sa.diag.lock().report(
                         use_file_id,
                         last_component.span,
                         ErrorMessage::ExpectedPath,
@@ -163,7 +163,7 @@ fn check_use(
             if group.targets.is_empty() {
                 sa.diag
                     .lock()
-                    .report_span(use_file_id, group.span, ErrorMessage::ExpectedPath);
+                    .report(use_file_id, group.span, ErrorMessage::ExpectedPath);
                 return Err(UseError::Fatal);
             }
 
@@ -207,7 +207,7 @@ fn initial_module(
                 if let Some(module_id) = module.parent_module_id {
                     Ok((1, Sym::Module(module_id)))
                 } else {
-                    sa.diag.lock().report_span(
+                    sa.diag.lock().report(
                         use_file_id.into(),
                         first_component.span,
                         ErrorMessage::NoSuperModule,
@@ -246,7 +246,7 @@ fn process_component(
         | UsePathComponentValue::This => {
             sa.diag
                 .lock()
-                .report_span(use_file_id, component.span, ErrorMessage::ExpectedPath);
+                .report(use_file_id, component.span, ErrorMessage::ExpectedPath);
             return Err(UseError::Fatal);
         }
     };
@@ -263,7 +263,7 @@ fn process_component(
                     let module = &sa.modules[module_id].read();
                     let name = sa.interner.str(component_name).to_string();
                     let msg = ErrorMessage::NotAccessibleInModule(module.name(sa), name);
-                    sa.diag.lock().report_span(use_file_id, component.span, msg);
+                    sa.diag.lock().report(use_file_id, component.span, msg);
                     Err(UseError::Fatal)
                 }
             } else if ignore_errors {
@@ -273,7 +273,7 @@ fn process_component(
                 let module = module.read();
                 let name = sa.interner.str(component_name).to_string();
                 let module_name = module.name(sa);
-                sa.diag.lock().report_span(
+                sa.diag.lock().report(
                     use_file_id,
                     component.span,
                     ErrorMessage::UnknownIdentifierInModule(module_name, name),
@@ -289,7 +289,7 @@ fn process_component(
                 Ok(Sym::EnumVariant(enum_id, variant_idx))
             } else {
                 let name = sa.interner.str(component_name).to_string();
-                sa.diag.lock().report_span(
+                sa.diag.lock().report(
                     use_file_id,
                     component.span,
                     ErrorMessage::UnknownEnumVariant(name),
@@ -335,7 +335,7 @@ mod tests {
         ok("let a: Int32 = 0i32; let mut b: Int32 = a + 1i32;");
         err(
             "let mut a: Int32 = foo;",
-            pos(1, 20),
+            (1, 20),
             ErrorMessage::UnknownIdentifier("foo".into()),
         );
     }
@@ -344,7 +344,7 @@ mod tests {
     fn check_type() {
         err(
             "let mut x: Foo = 0;",
-            pos(1, 12),
+            (1, 12),
             ErrorMessage::UnknownIdentifier("Foo".into()),
         );
     }
@@ -360,7 +360,7 @@ mod tests {
                 }
             }
         ",
-            pos(2, 22),
+            (2, 22),
             ErrorMessage::NotAccessibleInModule("foo".into(), "bar".into()),
         );
     }
@@ -376,7 +376,7 @@ mod tests {
                 }
             }
         ",
-            pos(2, 27),
+            (2, 27),
             ErrorMessage::NotAccessibleInModule("foo::bar".into(), "Foo".into()),
         );
     }
@@ -390,7 +390,7 @@ mod tests {
                 fn bar() {}
             }
         ",
-            pos(2, 22),
+            (2, 22),
             ErrorMessage::NotAccessibleInModule("foo".into(), "bar".into()),
         );
     }
@@ -404,7 +404,7 @@ mod tests {
                 let mut bar: Int32 = 12;
             }
         ",
-            pos(2, 22),
+            (2, 22),
             ErrorMessage::NotAccessibleInModule("foo".into(), "bar".into()),
         );
     }
@@ -418,7 +418,7 @@ mod tests {
                 const bar: Int32 = 12;
             }
         ",
-            pos(2, 22),
+            (2, 22),
             ErrorMessage::NotAccessibleInModule("foo".into(), "bar".into()),
         );
     }
@@ -432,7 +432,7 @@ mod tests {
                 enum Bar { A, B, C }
             }
         ",
-            pos(2, 22),
+            (2, 22),
             ErrorMessage::NotAccessibleInModule("foo".into(), "Bar".into()),
         );
     }
@@ -446,7 +446,7 @@ mod tests {
                 enum Bar { A, B, C }
             }
         ",
-            pos(2, 22),
+            (2, 22),
             ErrorMessage::NotAccessibleInModule("foo".into(), "Bar".into()),
         );
 
@@ -467,7 +467,7 @@ mod tests {
                 trait Bar {}
             }
         ",
-            pos(2, 22),
+            (2, 22),
             ErrorMessage::NotAccessibleInModule("foo".into(), "Bar".into()),
         );
     }
@@ -488,7 +488,7 @@ mod tests {
                 struct Bar { f: Int32 }
             }
         ",
-            pos(2, 22),
+            (2, 22),
             ErrorMessage::NotAccessibleInModule("foo".into(), "Bar".into()),
         );
     }
@@ -505,11 +505,11 @@ mod tests {
 
     #[test]
     fn use_keyword_only() {
-        err("use self;", pos(1, 5), ErrorMessage::ExpectedPath);
-        err("use package;", pos(1, 5), ErrorMessage::ExpectedPath);
+        err("use self;", (1, 5), ErrorMessage::ExpectedPath);
+        err("use package;", (1, 5), ErrorMessage::ExpectedPath);
         err(
             "mod foo { use super; }",
-            pos(1, 15),
+            (1, 15),
             ErrorMessage::ExpectedPath,
         );
     }
@@ -518,17 +518,17 @@ mod tests {
     fn use_keyword_in_path() {
         err(
             "use foo::bar::self; mod foo { @pub mod bar {} }",
-            pos(1, 15),
+            (1, 15),
             ErrorMessage::ExpectedPath,
         );
         err(
             "use foo::bar::super; mod foo { @pub mod bar {} }",
-            pos(1, 15),
+            (1, 15),
             ErrorMessage::ExpectedPath,
         );
         err(
             "use foo::bar::package; mod foo { @pub mod bar {} }",
-            pos(1, 15),
+            (1, 15),
             ErrorMessage::ExpectedPath,
         );
     }
@@ -537,7 +537,7 @@ mod tests {
     fn no_use_targets() {
         err(
             "use foo::bar:: {}; mod foo { @pub mod bar {} }",
-            pos(1, 16),
+            (1, 16),
             ErrorMessage::ExpectedPath,
         );
     }
@@ -569,11 +569,11 @@ mod tests {
         ",
             &[
                 (
-                    pos(2, 27),
+                    (2, 27),
                     ErrorMessage::UnknownIdentifierInModule("foo".into(), "f1".into()),
                 ),
                 (
-                    pos(5, 33),
+                    (5, 33),
                     ErrorMessage::UnknownIdentifierInModule("".into(), "f2".into()),
                 ),
             ],

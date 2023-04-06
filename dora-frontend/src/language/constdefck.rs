@@ -64,7 +64,7 @@ mod tests {
     fn const_unknown_type() {
         err(
             "const x: Foo = 0;",
-            pos(1, 10),
+            (1, 10),
             ErrorMessage::UnknownIdentifier("Foo".into()),
         );
 

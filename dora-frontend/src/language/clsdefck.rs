@@ -113,7 +113,7 @@ impl<'x> ClsDefCheck<'x> {
             self.sa
                 .diag
                 .lock()
-                .report_span(file, span, ErrorMessage::ShadowField(name));
+                .report(file, span, ErrorMessage::ShadowField(name));
         }
     }
 }
@@ -134,12 +134,12 @@ mod tests {
         ok("class Foo(a: Bar) class Bar");
         err(
             "class Foo(a: Unknown)",
-            pos(1, 14),
+            (1, 14),
             ErrorMessage::UnknownIdentifier("Unknown".into()),
         );
         err(
             "class Foo(a: Int32, a: Int32)",
-            pos(1, 21),
+            (1, 21),
             ErrorMessage::ShadowField("a".to_string()),
         );
     }
@@ -148,7 +148,7 @@ mod tests {
     fn field_defined_twice() {
         err(
             "class Foo(a: Int32, a: Int32)",
-            pos(1, 21),
+            (1, 21),
             ErrorMessage::ShadowField("a".into()),
         );
     }
@@ -159,10 +159,10 @@ mod tests {
         ok("class A[X, Y]");
         err(
             "class A[T, T]",
-            pos(1, 12),
+            (1, 12),
             ErrorMessage::TypeParamNameNotUnique("T".into()),
         );
-        err("class A[]", pos(1, 1), ErrorMessage::TypeParamsExpected);
+        err("class A[]", (1, 1), ErrorMessage::TypeParamsExpected);
     }
 
     #[test]
@@ -174,12 +174,12 @@ mod tests {
     fn test_generic_bound() {
         err(
             "class A[T: Foo]",
-            pos(1, 12),
+            (1, 12),
             ErrorMessage::UnknownIdentifier("Foo".into()),
         );
         err(
             "class Foo class A[T: Foo]",
-            pos(1, 22),
+            (1, 22),
             ErrorMessage::BoundExpected,
         );
         ok("trait Foo {} class A[T: Foo]");
@@ -190,7 +190,7 @@ mod tests {
         err(
             "trait Foo {}
             class A[T: Foo + Foo]",
-            pos(2, 21),
+            (2, 21),
             ErrorMessage::DuplicateTraitBound,
         );
     }
@@ -201,7 +201,7 @@ mod tests {
             "
             class X
             impl X { @static fn foo() {} @static fn foo(a: String) {} }",
-            pos(3, 50),
+            (3, 50),
             ErrorMessage::MethodExists("foo".into(), Span::new(50, 11)),
         );
     }

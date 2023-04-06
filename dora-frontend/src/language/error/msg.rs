@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use crate::language::sem_analysis::{SemAnalysis, SourceFileId};
-use dora_parser::{compute_line_column, Position, Span};
+use dora_parser::{compute_line_column, Span};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum ErrorMessage {
@@ -607,25 +607,14 @@ impl ErrorMessage {
 #[derive(Clone, Debug)]
 pub struct ErrorDescriptor {
     pub file: Option<SourceFileId>,
-    pub pos: Option<Position>,
     pub span: Option<Span>,
     pub msg: ErrorMessage,
 }
 
 impl ErrorDescriptor {
-    pub fn new(file: SourceFileId, pos: Position, msg: ErrorMessage) -> ErrorDescriptor {
+    pub fn new(file: SourceFileId, span: Span, msg: ErrorMessage) -> ErrorDescriptor {
         ErrorDescriptor {
             file: Some(file),
-            pos: Some(pos),
-            span: None,
-            msg,
-        }
-    }
-
-    pub fn new_span(file: SourceFileId, span: Span, msg: ErrorMessage) -> ErrorDescriptor {
-        ErrorDescriptor {
-            file: Some(file),
-            pos: None,
             span: Some(span),
             msg,
         }
@@ -634,7 +623,6 @@ impl ErrorDescriptor {
     pub fn new_without_location(msg: ErrorMessage) -> ErrorDescriptor {
         ErrorDescriptor {
             file: None,
-            pos: None,
             span: None,
             msg,
         }
@@ -644,13 +632,8 @@ impl ErrorDescriptor {
         if let Some(file) = self.file {
             let file = sa.source_file(file);
 
-            let (line, column) = match self.pos {
-                Some(pos) => (pos.line, pos.column),
-                None => {
-                    let span = self.span.expect("missing location");
-                    compute_line_column(&file.line_starts, span.start())
-                }
-            };
+            let span = self.span.expect("missing location");
+            let (line, column) = compute_line_column(&file.line_starts, span.start());
 
             format!(
                 "error in {:?} at {}:{}: {}",
@@ -660,7 +643,7 @@ impl ErrorDescriptor {
                 self.msg.message()
             )
         } else {
-            assert!(self.pos.is_none());
+            assert!(self.span.is_none());
             format!("error: {}", self.msg.message())
         }
     }

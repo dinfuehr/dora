@@ -60,13 +60,13 @@ mod tests {
 
         err(
             "trait Foo { fn foo() { self.bar(); } }",
-            pos(1, 24),
+            (1, 24),
             ErrorMessage::UnknownMethod("Self".into(), "bar".into(), Vec::new()),
         );
 
         err(
             "trait Foo { fn foo(): Int32 { return false; } }",
-            pos(1, 31),
+            (1, 31),
             ErrorMessage::ReturnType("Int32".into(), "Bool".into()),
         );
     }
@@ -82,18 +82,18 @@ mod tests {
 
         err(
             "trait Bar { fn foo(): Unknown; }",
-            pos(1, 23),
+            (1, 23),
             ErrorMessage::UnknownIdentifier("Unknown".into()),
         );
         err(
             "trait Foo { fn foo(); fn foo(): Int32; }",
-            pos(1, 23),
+            (1, 23),
             ErrorMessage::MethodExists("foo".into(), Span::new(12, 9)),
         );
 
         err(
             "trait Foo { fn foo(); fn foo(); }",
-            pos(1, 23),
+            (1, 23),
             ErrorMessage::MethodExists("foo".into(), Span::new(12, 9)),
         );
     }
@@ -105,7 +105,7 @@ mod tests {
             fn foo(): Int32;
             fn foo(): Self;
         }",
-            pos(3, 13),
+            (3, 13),
             ErrorMessage::MethodExists("foo".into(), Span::new(24, 16)),
         );
     }

@@ -64,9 +64,7 @@ pub fn check(sa: &SemAnalysis) {
                     if !names.insert(type_param.name) {
                         let name = sa.interner.str(type_param.name).to_string();
                         let msg = ErrorMessage::TypeParamNameNotUnique(name);
-                        sa.diag
-                            .lock()
-                            .report_span(fct.file_id, type_param.span, msg);
+                        sa.diag.lock().report(fct.file_id, type_param.span, msg);
                     }
 
                     fct.type_params.add_type_param(type_param.name);
@@ -88,13 +86,11 @@ pub fn check(sa: &SemAnalysis) {
                                     ty,
                                 ) {
                                     let msg = ErrorMessage::DuplicateTraitBound;
-                                    sa.diag
-                                        .lock()
-                                        .report_span(fct.file_id, type_param.span, msg);
+                                    sa.diag.lock().report(fct.file_id, type_param.span, msg);
                                 }
                             } else {
                                 let msg = ErrorMessage::BoundExpected;
-                                sa.diag.lock().report_span(fct.file_id, bound.span(), msg);
+                                sa.diag.lock().report(fct.file_id, bound.span(), msg);
                             }
                         } else {
                             // unknown type, error is already thrown
@@ -106,13 +102,13 @@ pub fn check(sa: &SemAnalysis) {
                 }
             } else {
                 let msg = ErrorMessage::TypeParamsExpected;
-                sa.diag.lock().report_span(fct.file_id, fct.span, msg);
+                sa.diag.lock().report(fct.file_id, fct.span, msg);
             }
         }
 
         for p in &ast.params {
             if fct.is_variadic {
-                sa.diag.lock().report_span(
+                sa.diag.lock().report(
                     fct.file_id,
                     p.span,
                     ErrorMessage::VariadicParameterNeedsToBeLast,
@@ -193,7 +189,7 @@ fn check_test(sa: &SemAnalysis, fct: &FctDefinition) {
         || (!fct.return_type.is_unit() && !fct.return_type.is_error())
     {
         let msg = ErrorMessage::InvalidTestAnnotationUsage;
-        sa.diag.lock().report_span(fct.file_id, fct.span, msg);
+        sa.diag.lock().report(fct.file_id, fct.span, msg);
     }
 }
 
@@ -210,7 +206,7 @@ fn check_against_methods(sa: &SemAnalysis, fct: &FctDefinition, methods: &[FctDe
             let method_name = sa.interner.str(method.name).to_string();
 
             let msg = ErrorMessage::MethodExists(method_name, method.span);
-            sa.diag.lock().report_span(fct.file_id, fct.ast.span, msg);
+            sa.diag.lock().report(fct.file_id, fct.ast.span, msg);
             return;
         }
     }
@@ -225,7 +221,7 @@ mod tests {
     fn self_param() {
         err(
             "fn foo(x: Self) {}",
-            pos(1, 11),
+            (1, 11),
             ErrorMessage::SelfTypeUnavailable,
         );
     }
@@ -234,7 +230,7 @@ mod tests {
     fn self_return_type() {
         err(
             "fn foo(): Self {}",
-            pos(1, 11),
+            (1, 11),
             ErrorMessage::SelfTypeUnavailable,
         );
     }
@@ -254,10 +250,10 @@ mod tests {
         ok("fn f[X, Y]() {}");
         err(
             "fn f[T, T]() {}",
-            pos(1, 9),
+            (1, 9),
             ErrorMessage::TypeParamNameNotUnique("T".into()),
         );
-        err("fn f[]() {}", pos(1, 1), ErrorMessage::TypeParamsExpected);
+        err("fn f[]() {}", (1, 1), ErrorMessage::TypeParamsExpected);
     }
 
     #[test]
@@ -273,12 +269,12 @@ mod tests {
 
         err(
             "fn f() { ||: Foo { }; }",
-            pos(1, 14),
+            (1, 14),
             ErrorMessage::UnknownIdentifier("Foo".into()),
         );
         err(
             "fn f() { |a: Foo| { }; }",
-            pos(1, 14),
+            (1, 14),
             ErrorMessage::UnknownIdentifier("Foo".into()),
         );
     }
@@ -287,12 +283,12 @@ mod tests {
     fn generic_bounds() {
         err(
             "fn f[T: Foo]() {}",
-            pos(1, 9),
+            (1, 9),
             ErrorMessage::UnknownIdentifier("Foo".into()),
         );
         err(
             "class Foo fn f[T: Foo]() {}",
-            pos(1, 19),
+            (1, 19),
             ErrorMessage::BoundExpected,
         );
         ok("trait Foo {} fn f[T: Foo]() {}");
@@ -300,7 +296,7 @@ mod tests {
         err(
             "trait Foo {}
             fn f[T: Foo + Foo]() {  }",
-            pos(2, 18),
+            (2, 18),
             ErrorMessage::DuplicateTraitBound,
         );
     }
@@ -310,7 +306,7 @@ mod tests {
         // Type params need to be cleaned up such that the following code is an error:
         err(
             "fn f(a: T) {}",
-            pos(1, 9),
+            (1, 9),
             ErrorMessage::UnknownIdentifier("T".into()),
         );
     }
