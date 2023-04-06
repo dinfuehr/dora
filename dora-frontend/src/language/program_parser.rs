@@ -357,19 +357,11 @@ impl<'a> ProgramParser<'a> {
         let (ast, errors) = parser.parse();
 
         for error in errors {
-            if let Some(pos) = error.pos {
-                self.sa.diag.lock().report(
-                    file_id,
-                    pos,
-                    ErrorMessage::Custom(error.error.message()),
-                );
-            } else {
-                self.sa.diag.lock().report_span(
-                    file_id,
-                    error.span.expect("missing location"),
-                    ErrorMessage::Custom(error.error.message()),
-                );
-            }
+            self.sa.diag.lock().report_span(
+                file_id,
+                error.span,
+                ErrorMessage::Custom(error.error.message()),
+            );
         }
 
         self.scan_file(

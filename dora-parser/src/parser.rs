@@ -791,7 +791,7 @@ impl<'a> Parser<'a> {
             let modifier = modifier.unwrap();
 
             if modifiers.contains(modifier) {
-                return Err(ParseErrorWithLocation::new_span(
+                return Err(ParseErrorWithLocation::new(
                     self.token.span,
                     ParseError::RedundantAnnotation(modifier.name().into()),
                 ));
@@ -831,7 +831,7 @@ impl<'a> Parser<'a> {
                 "static" => Ok(Some(Modifier::Static)),
                 "Test" => Ok(Some(Modifier::Test)),
                 "optimizeImmediately" => Ok(Some(Modifier::OptimizeImmediately)),
-                annotation => Err(ParseErrorWithLocation::new_span(
+                annotation => Err(ParseErrorWithLocation::new(
                     self.token.span,
                     ParseError::UnknownAnnotation(annotation.into()),
                 )),
@@ -1044,7 +1044,7 @@ impl<'a> Parser<'a> {
                 }
             }
 
-            _ => Err(ParseErrorWithLocation::new_span(
+            _ => Err(ParseErrorWithLocation::new(
                 self.token.span,
                 ParseError::ExpectedType(self.token.name()),
             )),
@@ -1231,7 +1231,7 @@ impl<'a> Parser<'a> {
             TokenKind::Break => Ok(StmtOrExpr::Stmt(self.parse_break()?)),
             TokenKind::Continue => Ok(StmtOrExpr::Stmt(self.parse_continue()?)),
             TokenKind::Return => Ok(StmtOrExpr::Stmt(self.parse_return()?)),
-            TokenKind::Else => Err(ParseErrorWithLocation::new_span(
+            TokenKind::Else => Err(ParseErrorWithLocation::new(
                 self.token.span,
                 ParseError::MisplacedElse,
             )),
@@ -1298,7 +1298,7 @@ impl<'a> Parser<'a> {
 
         while !self.token.is(TokenKind::RBrace) && !self.token.is_eof() {
             if !comma {
-                return Err(ParseErrorWithLocation::new_span(
+                return Err(ParseErrorWithLocation::new(
                     self.token.span,
                     ParseError::ExpectedToken(TokenKind::Comma.name().into(), self.token.name()),
                 ));
@@ -1690,7 +1690,7 @@ impl<'a> Parser<'a> {
             TokenKind::False => self.parse_bool_literal(),
             TokenKind::This => self.parse_this(),
             TokenKind::Or | TokenKind::OrOr => self.parse_lambda(),
-            _ => Err(ParseErrorWithLocation::new_span(
+            _ => Err(ParseErrorWithLocation::new(
                 self.token.span,
                 ParseError::ExpectedFactor(self.token.name().clone()),
             )),
@@ -1793,7 +1793,7 @@ impl<'a> Parser<'a> {
                 let expr = Expr::create_lit_int(self.generate_id(), span, value, base, suffix);
                 Ok(Box::new(expr))
             }
-            _ => Err(ParseErrorWithLocation::new_span(
+            _ => Err(ParseErrorWithLocation::new(
                 span,
                 ParseError::NumberOverflow,
             )),
@@ -1843,7 +1843,7 @@ impl<'a> Parser<'a> {
                     parts.push(expr);
 
                     if !self.token.is(TokenKind::RBrace) {
-                        return Err(ParseErrorWithLocation::new_span(
+                        return Err(ParseErrorWithLocation::new(
                             self.token.span,
                             ParseError::UnclosedStringTemplate,
                         ));
@@ -1967,7 +1967,7 @@ impl<'a> Parser<'a> {
 
             Ok(interned)
         } else {
-            Err(ParseErrorWithLocation::new_span(
+            Err(ParseErrorWithLocation::new(
                 tok.span,
                 ParseError::ExpectedIdentifier(tok.name()),
             ))
@@ -1984,7 +1984,7 @@ impl<'a> Parser<'a> {
 
             Ok(token)
         } else {
-            Err(ParseErrorWithLocation::new_span(
+            Err(ParseErrorWithLocation::new(
                 self.token.span,
                 ParseError::ExpectedToken(kind.name().into(), self.token.name()),
             ))
@@ -1996,13 +1996,12 @@ impl<'a> Parser<'a> {
     }
 
     fn report_error_at(&mut self, msg: ParseError, span: Span) {
-        self.errors
-            .push(ParseErrorWithLocation::new_span(span, msg));
+        self.errors.push(ParseErrorWithLocation::new(span, msg));
     }
 
     fn error_and_advance(&mut self, msg: ParseError) -> Result<(), ParseErrorWithLocation> {
         self.errors
-            .push(ParseErrorWithLocation::new_span(self.token.span, msg));
+            .push(ParseErrorWithLocation::new(self.token.span, msg));
         self.advance_token()?;
         Ok(())
     }
@@ -2099,16 +2098,11 @@ mod tests {
         };
 
         assert_eq!(msg, err.error);
-        if let Some(pos) = err.pos {
-            assert_eq!(line, pos.line);
-            assert_eq!(col, pos.column);
-        } else {
-            let line_starts = compute_line_starts(code);
-            let (computed_line, computed_column) =
-                compute_line_column(&line_starts, err.span.expect("missing location").start());
-            assert_eq!(line, computed_line);
-            assert_eq!(col, computed_column);
-        }
+
+        let line_starts = compute_line_starts(code);
+        let (computed_line, computed_column) = compute_line_column(&line_starts, err.span.start());
+        assert_eq!(line, computed_line);
+        assert_eq!(col, computed_column);
     }
 
     fn parse_stmt(code: &'static str) -> Box<Stmt> {
@@ -2129,16 +2123,10 @@ mod tests {
         };
 
         assert_eq!(msg, err.error);
-        if let Some(pos) = err.pos {
-            assert_eq!(line, pos.line);
-            assert_eq!(col, pos.column);
-        } else {
-            let line_starts = compute_line_starts(code);
-            let (computed_line, computed_column) =
-                compute_line_column(&line_starts, err.span.expect("missing location").start());
-            assert_eq!(line, computed_line);
-            assert_eq!(col, computed_column);
-        }
+        let line_starts = compute_line_starts(code);
+        let (computed_line, computed_column) = compute_line_column(&line_starts, err.span.start());
+        assert_eq!(line, computed_line);
+        assert_eq!(col, computed_column);
     }
 
     fn parse_type(code: &'static str) -> (Type, Interner) {
@@ -2171,16 +2159,10 @@ mod tests {
         let err = &errors[0];
 
         assert_eq!(msg, err.error);
-        if let Some(pos) = err.pos {
-            assert_eq!(line, pos.line);
-            assert_eq!(col, pos.column);
-        } else {
-            let line_starts = compute_line_starts(code);
-            let (computed_line, computed_column) =
-                compute_line_column(&line_starts, err.span.expect("missing location").start());
-            assert_eq!(line, computed_line);
-            assert_eq!(col, computed_column);
-        }
+        let line_starts = compute_line_starts(code);
+        let (computed_line, computed_column) = compute_line_column(&line_starts, err.span.start());
+        assert_eq!(line, computed_line);
+        assert_eq!(col, computed_column);
     }
 
     #[test]

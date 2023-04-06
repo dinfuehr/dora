@@ -39,11 +39,11 @@ impl Lexer {
             self.skip_white();
 
             let pos = self.reader.pos();
-            let idx = self.reader.idx();
+            let start = self.reader.idx();
             let ch = self.curr();
 
             if let None = ch {
-                return Ok(Token::new(TokenKind::End, pos, Span::at(idx)));
+                return Ok(Token::new(TokenKind::End, pos, Span::at(start)));
             }
 
             if is_digit(ch) {
@@ -62,9 +62,11 @@ impl Lexer {
                 return self.read_operator();
             } else {
                 let ch = ch.unwrap();
+                self.read_char();
+                let span = self.span_from(start);
 
                 return Err(ParseErrorWithLocation::new(
-                    pos,
+                    span,
                     ParseError::UnknownChar(ch),
                 ));
             }
@@ -86,7 +88,7 @@ impl Lexer {
     }
 
     fn read_multi_comment(&mut self) -> Result<(), ParseErrorWithLocation> {
-        let pos = self.reader.pos();
+        let start = self.reader.idx();
 
         self.read_char();
         self.read_char();
@@ -96,8 +98,9 @@ impl Lexer {
         }
 
         if self.curr().is_none() {
+            let span = self.span_from(start);
             return Err(ParseErrorWithLocation::new(
-                pos,
+                span,
                 ParseError::UnclosedComment,
             ));
         }
@@ -140,25 +143,26 @@ impl Lexer {
 
     fn read_char_literal(&mut self) -> Result<Token, ParseErrorWithLocation> {
         let pos = self.reader.pos();
-        let idx = self.reader.idx();
+        let start = self.reader.idx();
 
         self.read_char();
-        let ch = self.read_escaped_char(pos, ParseError::UnclosedChar)?;
+        let ch = self.read_escaped_char(start, ParseError::UnclosedChar)?;
 
         if is_char_quote(self.curr()) {
             self.read_char();
 
             let ttype = TokenKind::LitChar(ch);
-            let span = self.span_from(idx);
+            let span = self.span_from(start);
             Ok(Token::new(ttype, pos, span))
         } else {
-            Err(ParseErrorWithLocation::new(pos, ParseError::UnclosedChar))
+            let span = self.span_from(start);
+            Err(ParseErrorWithLocation::new(span, ParseError::UnclosedChar))
         }
     }
 
     fn read_escaped_char(
         &mut self,
-        pos: Position,
+        start: u32,
         unclosed: ParseError,
     ) -> Result<char, ParseErrorWithLocation> {
         if let Some(ch) = self.curr() {
@@ -168,7 +172,8 @@ impl Lexer {
                 let ch = if let Some(ch) = self.curr() {
                     ch
                 } else {
-                    return Err(ParseErrorWithLocation::new(pos, unclosed));
+                    let span = self.span_from(start);
+                    return Err(ParseErrorWithLocation::new(span, unclosed));
                 };
 
                 self.read_char();
@@ -184,20 +189,22 @@ impl Lexer {
                     '$' => Ok('$'),
                     _ => {
                         let msg = ParseError::InvalidEscapeSequence(ch);
-                        Err(ParseErrorWithLocation::new(pos, msg))
+                        let span = self.span_from(start);
+                        Err(ParseErrorWithLocation::new(span, msg))
                     }
                 }
             } else {
                 Ok(ch)
             }
         } else {
-            Err(ParseErrorWithLocation::new(pos, unclosed))
+            let span = self.span_from(start);
+            Err(ParseErrorWithLocation::new(span, unclosed))
         }
     }
 
     fn read_string(&mut self, skip_quote: bool) -> Result<Token, ParseErrorWithLocation> {
         let pos = self.reader.pos();
-        let idx = self.reader.idx();
+        let start = self.reader.idx();
         let mut value = String::new();
 
         if skip_quote {
@@ -211,11 +218,11 @@ impl Lexer {
                 self.read_char();
 
                 let ttype = TokenKind::StringExpr(value);
-                let span = self.span_from(idx);
+                let span = self.span_from(start);
                 return Ok(Token::new(ttype, pos, span));
             }
 
-            let ch = self.read_escaped_char(pos, ParseError::UnclosedString)?;
+            let ch = self.read_escaped_char(start, ParseError::UnclosedString)?;
             value.push(ch);
         }
 
@@ -223,10 +230,14 @@ impl Lexer {
             self.read_char();
 
             let ttype = TokenKind::StringTail(value);
-            let span = self.span_from(idx);
+            let span = self.span_from(start);
             Ok(Token::new(ttype, pos, span))
         } else {
-            Err(ParseErrorWithLocation::new(pos, ParseError::UnclosedString))
+            let span = self.span_from(start);
+            Err(ParseErrorWithLocation::new(
+                span,
+                ParseError::UnclosedString,
+            ))
         }
     }
 
@@ -236,7 +247,7 @@ impl Lexer {
 
     fn read_operator(&mut self) -> Result<Token, ParseErrorWithLocation> {
         let pos = self.reader.pos();
-        let idx = self.reader.idx();
+        let start = self.reader.idx();
         let ch = self.curr().unwrap();
         self.read_char();
 
@@ -371,20 +382,22 @@ impl Lexer {
             '@' => TokenKind::At,
 
             _ => {
+                self.read_char();
+                let span = self.span_from(start);
                 return Err(ParseErrorWithLocation::new(
-                    pos,
+                    span,
                     ParseError::UnknownChar(ch),
                 ));
             }
         };
 
-        let span = self.span_from(idx);
+        let span = self.span_from(start);
         Ok(Token::new(kind, pos, span))
     }
 
     fn read_number(&mut self) -> Result<Token, ParseErrorWithLocation> {
         let pos = self.reader.pos();
-        let idx = self.reader.idx();
+        let start = self.reader.idx();
         let mut value = String::new();
 
         let base = if self.curr() == Some('0') {
@@ -414,11 +427,12 @@ impl Lexer {
         self.read_digits(&mut value, base);
 
         if base == IntBase::Dec && self.curr() == Some('.') && is_digit(self.next()) {
-            return self.read_number_as_float(pos, idx, value);
+            return self.read_number_as_float(pos, start, value);
         }
 
         let kind = if is_identifier_start(self.curr()) {
             let suffix = self.read_identifier_as_string();
+            let span = self.span_from(start);
 
             match suffix.as_str() {
                 "u8" => TokenKind::LitInt(value, base, IntSuffix::UInt8),
@@ -428,7 +442,7 @@ impl Lexer {
                 "f64" if base == IntBase::Dec => TokenKind::LitFloat(value, FloatSuffix::Float64),
                 _ => {
                     return Err(ParseErrorWithLocation::new(
-                        pos,
+                        span,
                         ParseError::InvalidSuffix(suffix),
                     ));
                 }
@@ -437,14 +451,14 @@ impl Lexer {
             TokenKind::LitInt(value, base, IntSuffix::None)
         };
 
-        let span = self.span_from(idx);
+        let span = self.span_from(start);
         Ok(Token::new(kind, pos, span))
     }
 
     fn read_number_as_float(
         &mut self,
         pos: Position,
-        idx: u32,
+        start: u32,
         mut value: String,
     ) -> Result<Token, ParseErrorWithLocation> {
         self.read_char();
@@ -466,13 +480,14 @@ impl Lexer {
 
         let suffix = if is_identifier_start(self.curr()) {
             let suffix = self.read_identifier_as_string();
+            let span = self.span_from(start);
 
             match suffix.as_str() {
                 "f32" => FloatSuffix::Float32,
                 "f64" => FloatSuffix::Float64,
                 _ => {
                     return Err(ParseErrorWithLocation::new(
-                        pos,
+                        span,
                         ParseError::InvalidSuffix(suffix),
                     ));
                 }
@@ -482,7 +497,7 @@ impl Lexer {
         };
 
         let ttype = TokenKind::LitFloat(value, suffix);
-        let span = self.span_from(idx);
+        let span = self.span_from(start);
         return Ok(Token::new(ttype, pos, span));
     }
 
@@ -627,6 +642,10 @@ mod tests {
         assert_tok(reader, TokenKind::End, l, c);
     }
 
+    fn assert_end2(reader: &mut Lexer, start: u32) {
+        assert_tok2(reader, TokenKind::End, start);
+    }
+
     fn assert_tok(reader: &mut Lexer, kind: TokenKind, l: u32, c: u32) {
         let tok = reader.read_token().unwrap();
         assert_eq!(kind, tok.kind);
@@ -634,21 +653,21 @@ mod tests {
         assert_eq!(c, tok.position.column);
     }
 
+    fn assert_tok2(reader: &mut Lexer, kind: TokenKind, start: u32) {
+        let tok = reader.read_token().unwrap();
+        assert_eq!(kind, tok.kind);
+        assert_eq!(start, tok.span.start());
+    }
+
     fn assert_err(reader: &mut Lexer, msg: ParseError, l: u32, c: u32) {
         let err = reader.read_token().unwrap_err();
         let source = reader.source();
         assert_eq!(msg, err.error);
 
-        if let Some(pos) = err.pos {
-            assert_eq!(l, pos.line);
-            assert_eq!(c, pos.column);
-        } else {
-            let line_starts = compute_line_starts(&source);
-            let (line, column) =
-                compute_line_column(&line_starts, err.span.expect("missing location").start());
-            assert_eq!(l, line);
-            assert_eq!(c, column);
-        }
+        let line_starts = compute_line_starts(&source);
+        let (line, column) = compute_line_column(&line_starts, err.span.start());
+        assert_eq!(l, line);
+        assert_eq!(c, column);
     }
 
     #[test]
@@ -661,31 +680,27 @@ mod tests {
     #[test]
     fn test_read_numbers() {
         let mut reader = Lexer::from_str("1 2\n0123 10");
-        assert_tok(
+        assert_tok2(
             &mut reader,
             TokenKind::LitInt("1".into(), IntBase::Dec, IntSuffix::None),
-            1,
-            1,
+            0,
         );
-        assert_tok(
+        assert_tok2(
             &mut reader,
             TokenKind::LitInt("2".into(), IntBase::Dec, IntSuffix::None),
-            1,
-            3,
+            2,
         );
-        assert_tok(
+        assert_tok2(
             &mut reader,
             TokenKind::LitInt("0123".into(), IntBase::Dec, IntSuffix::None),
-            2,
-            1,
+            4,
         );
-        assert_tok(
+        assert_tok2(
             &mut reader,
             TokenKind::LitInt("10".into(), IntBase::Dec, IntSuffix::None),
-            2,
-            6,
+            9,
         );
-        assert_end(&mut reader, 2, 8);
+        assert_end2(&mut reader, 11);
 
         let mut reader = Lexer::from_str("12u8 300u8 1_000 1__1");
         assert_tok(
