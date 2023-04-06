@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::convert::TryInto;
 
-use dora_parser::{ast, compute_line_column, Position, Span};
+use dora_parser::{ast, Span};
 
 use crate::language::sem_analysis::{
     emit_as_bytecode_operation, find_impl, AnalysisData, CallType, ClassDefinitionId,
@@ -69,10 +69,7 @@ struct AstBytecodeGen<'a> {
 
 impl<'a> AstBytecodeGen<'a> {
     fn loc(&self, span: Span) -> Location {
-        let file_id = self.fct.file_id;
-        let file = self.sa.source_file(file_id);
-        let (line, column) = compute_line_column(&file.line_starts, span.start());
-        Location::new(line, column)
+        self.sa.compute_loc(self.fct.file_id, span)
     }
 
     fn generate(mut self, ast: &ast::Function) -> BytecodeFunction {
@@ -112,7 +109,7 @@ impl<'a> AstBytecodeGen<'a> {
 
             match var_self.location {
                 VarLocation::Context(context_idx) => {
-                    self.store_in_context(reg, context_idx, loc(self.fct.pos));
+                    self.store_in_context(reg, context_idx, self.loc(self.fct.span));
                 }
 
                 VarLocation::Stack => {
@@ -132,7 +129,7 @@ impl<'a> AstBytecodeGen<'a> {
 
             match var.location {
                 VarLocation::Context(context_idx) => {
-                    self.store_in_context(reg, context_idx, loc(self.fct.pos));
+                    self.store_in_context(reg, context_idx, self.loc(self.fct.span));
                 }
 
                 VarLocation::Stack => {
@@ -183,7 +180,7 @@ impl<'a> AstBytecodeGen<'a> {
                 bty_array_from_ty(&self.identity_type_params()),
             );
             self.builder
-                .emit_new_object(context_register, idx, loc(self.fct.pos));
+                .emit_new_object(context_register, idx, self.loc(self.fct.span));
             self.context_register = Some(context_register);
 
             if self.analysis.context_has_outer_context_slot() {
@@ -197,8 +194,12 @@ impl<'a> AstBytecodeGen<'a> {
                     BytecodeTypeArray::empty(),
                     0,
                 );
-                self.builder
-                    .emit_load_field(outer_context_reg, self_reg, idx, loc(self.fct.pos));
+                self.builder.emit_load_field(
+                    outer_context_reg,
+                    self_reg,
+                    idx,
+                    self.loc(self.fct.span),
+                );
 
                 // Store value in outer_context field of context object.
                 let idx = self.builder.add_const_field_types(
@@ -210,7 +211,7 @@ impl<'a> AstBytecodeGen<'a> {
                     outer_context_reg,
                     context_register,
                     idx,
-                    loc(self.fct.pos),
+                    self.loc(self.fct.span),
                 );
 
                 self.free_temp(outer_context_reg);
@@ -946,7 +947,7 @@ impl<'a> AstBytecodeGen<'a> {
             FunctionId(lambda_fct_id.0 as u32),
             bty_array_from_ty(&self.identity_type_params()),
         );
-        self.builder.emit_new_lambda(dest, idx, loc(node.pos));
+        self.builder.emit_new_lambda(dest, idx, self.loc(node.span));
 
         dest
     }
@@ -3495,8 +3496,4 @@ fn field_id_from_context_idx(context_idx: ContextIdx, has_outer_context_slot: bo
     let start_idx = if has_outer_context_slot { 1 } else { 0 };
     let ContextIdx(context_idx) = context_idx;
     FieldId(start_idx + context_idx)
-}
-
-fn loc(pos: Position) -> Location {
-    Location::new(pos.line, pos.column)
 }

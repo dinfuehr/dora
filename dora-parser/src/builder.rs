@@ -1,7 +1,7 @@
 use crate::ast::*;
 
 use crate::interner::*;
-use crate::lexer::position::{Position, Span};
+use crate::Span;
 
 pub struct Builder;
 
@@ -78,7 +78,6 @@ impl<'a> BuilderFct {
         Function {
             id,
             kind: FunctionKind::Function,
-            pos: Position::new(1, 1),
             span: Span::invalid(),
             name: self.name,
             method: self.is_method,

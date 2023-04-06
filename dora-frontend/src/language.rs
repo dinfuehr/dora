@@ -171,7 +171,7 @@ fn internalck(sa: &SemAnalysis) {
         if !fct.has_body() && !fct.in_trait() && !fct.internal {
             sa.diag
                 .lock()
-                .report(fct.file_id, fct.pos, ErrorMessage::MissingFctBody);
+                .report_span(fct.file_id, fct.span, ErrorMessage::MissingFctBody);
         }
     }
 

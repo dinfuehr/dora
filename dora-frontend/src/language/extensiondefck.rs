@@ -141,10 +141,11 @@ impl<'x> ExtensionCheck<'x> {
         let fct = fct.read();
 
         if fct.ast.block.is_none() && !fct.internal {
-            self.sa
-                .diag
-                .lock()
-                .report(self.file_id.into(), fct.pos, ErrorMessage::MissingFctBody);
+            self.sa.diag.lock().report_span(
+                self.file_id.into(),
+                fct.span,
+                ErrorMessage::MissingFctBody,
+            );
         }
 
         if self.extension_ty.is_error() {
@@ -244,8 +245,11 @@ impl<'x> ExtensionCheck<'x> {
             let method = self.sa.fcts.idx(method_id);
             let method = method.read();
             let method_name = self.sa.interner.str(method.name).to_string();
-            let msg = ErrorMessage::MethodExists(method_name, method.pos);
-            self.sa.diag.lock().report(self.file_id.into(), f.pos, msg);
+            let msg = ErrorMessage::MethodExists(method_name, method.span);
+            self.sa
+                .diag
+                .lock()
+                .report_span(self.file_id.into(), f.span, msg);
             false
         } else {
             true
@@ -313,6 +317,7 @@ fn discover_type_params(sa: &SemAnalysis, ty: SourceType, used_type_params: &mut
 mod tests {
     use crate::language::error::msg::ErrorMessage;
     use crate::language::tests::*;
+    use dora_parser::Span;
 
     #[test]
     fn extension_empty() {
@@ -338,7 +343,7 @@ mod tests {
         err(
             "class A impl A { fn foo() {} fn foo() {} }",
             pos(1, 30),
-            ErrorMessage::MethodExists("foo".into(), pos(1, 18)),
+            ErrorMessage::MethodExists("foo".into(), Span::new(17, 11)),
         );
     }
 
@@ -349,7 +354,7 @@ mod tests {
             impl A { fn foo() {} }
             impl A { fn foo() {} }",
             pos(3, 22),
-            ErrorMessage::MethodExists("foo".into(), pos(2, 22)),
+            ErrorMessage::MethodExists("foo".into(), Span::new(29, 11)),
         );
     }
 
@@ -360,7 +365,7 @@ mod tests {
             impl Foo[Int32] { fn foo() {} }
             impl Foo[Int32] { fn foo() {} }",
             pos(3, 31),
-            ErrorMessage::MethodExists("foo".into(), pos(2, 31)),
+            ErrorMessage::MethodExists("foo".into(), Span::new(43, 11)),
         );
 
         ok("class Foo[T]
@@ -389,7 +394,7 @@ mod tests {
         err(
             "enum MyEnum { A, B } impl MyEnum { fn foo() {} fn foo() {} }",
             pos(1, 48),
-            ErrorMessage::MethodExists("foo".into(), pos(1, 36)),
+            ErrorMessage::MethodExists("foo".into(), Span::new(35, 11)),
         );
     }
 

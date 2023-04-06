@@ -312,7 +312,7 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_fct(&mut self, fct: &Function) {
-        dump!(self, "fct {} @ {} {}", self.str(fct.name), fct.pos, fct.id);
+        dump!(self, "fct {} @ {} {}", self.str(fct.name), fct.span, fct.id);
 
         self.indent(|d| {
             dump!(d, "internal = {}", fct.internal);
@@ -609,7 +609,7 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_expr_lambda(&mut self, fct: &Arc<Function>) {
-        dump!(self, "lambda @ {} {}", fct.pos, fct.id);
+        dump!(self, "lambda @ {} {}", fct.span, fct.id);
         self.indent(|d| d.dump_fct(fct));
     }
 

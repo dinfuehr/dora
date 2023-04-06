@@ -122,6 +122,7 @@ impl<'x> ClsDefCheck<'x> {
 mod tests {
     use crate::language::error::msg::ErrorMessage;
     use crate::language::tests::*;
+    use dora_parser::Span;
 
     #[test]
     fn test_class_definition() {
@@ -201,7 +202,7 @@ mod tests {
             class X
             impl X { @static fn foo() {} @static fn foo(a: String) {} }",
             pos(3, 50),
-            ErrorMessage::MethodExists("foo".into(), pos(3, 30)),
+            ErrorMessage::MethodExists("foo".into(), Span::new(50, 11)),
         );
     }
 }

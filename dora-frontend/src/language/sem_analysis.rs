@@ -4,8 +4,9 @@ use std::sync::Arc;
 
 use parking_lot::{Mutex, RwLock};
 
-use dora_parser::compute_line_starts;
+use dora_bytecode::Location;
 use dora_parser::interner::{Interner, Name};
+use dora_parser::{compute_line_column, compute_line_starts, Span};
 
 use crate::language::error::diag::Diagnostic;
 #[cfg(test)]
@@ -182,9 +183,7 @@ impl SemAnalysis {
 
         fctid
     }
-}
 
-impl SemAnalysis {
     #[cfg(test)]
     pub fn cls_by_name(&self, name: &'static str) -> ClassDefinitionId {
         let name = self.interner.intern(name);
@@ -428,5 +427,15 @@ impl SemAnalysis {
         self.modules.idx(module_id).write().package_id = Some(package_id);
 
         (package_id, module_id)
+    }
+
+    pub fn compute_loc(&self, file_id: SourceFileId, span: Span) -> Location {
+        let (line, column) = self.compute_line_column(file_id, span);
+        Location::new(line, column)
+    }
+
+    pub fn compute_line_column(&self, file_id: SourceFileId, span: Span) -> (u32, u32) {
+        let file = self.source_file(file_id);
+        compute_line_column(&file.line_starts, span.start())
     }
 }

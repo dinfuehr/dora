@@ -2,11 +2,9 @@ use crate::language::SemAnalysis;
 use dora_bytecode::program::{ClassLayout, ImplData, InternalClass, InternalFunction};
 use dora_bytecode::{
     ClassData, ClassField, EnumData, EnumVariant, FunctionData, FunctionId, FunctionKind,
-    GlobalData, ImplId, Location, ModuleData, ModuleId, PackageData, PackageId, Program,
-    SourceFileData, SourceFileId, StructData, StructField, TraitData, TraitId, TypeParamBound,
-    TypeParamData,
+    GlobalData, ImplId, ModuleData, ModuleId, PackageData, PackageId, Program, SourceFileData,
+    SourceFileId, StructData, StructField, TraitData, TraitId, TypeParamBound, TypeParamData,
 };
-use dora_parser::Position;
 
 use crate::language::generator::bty_from_ty;
 
@@ -141,7 +139,7 @@ fn create_functions(sa: &SemAnalysis) -> Vec<FunctionData> {
 
         result.push(FunctionData {
             name,
-            loc: convert_location(fct.pos()),
+            loc: sa.compute_loc(fct.file_id, fct.span),
             kind,
             file_id: convert_source_file_id(fct.file_id),
             package_id: convert_package_id(fct.package_id),
@@ -401,8 +399,4 @@ fn convert_impl_id(id: ImplDefinitionId) -> ImplId {
 
 fn convert_trait_id(id: TraitDefinitionId) -> TraitId {
     TraitId(id.to_usize().try_into().expect("failure"))
-}
-
-fn convert_location(pos: Position) -> Location {
-    Location::new(pos.line, pos.column)
 }

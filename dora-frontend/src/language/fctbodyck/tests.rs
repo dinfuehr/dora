@@ -1,6 +1,7 @@
 use crate::language::error::msg::ErrorMessage;
 use crate::language::sem_analysis::ConstValue;
 use crate::language::tests::*;
+use dora_parser::Span;
 
 #[test]
 fn type_method_len() {
@@ -94,7 +95,7 @@ fn type_method_defined_twice() {
                  fn bar() {}
              }",
         pos(4, 18),
-        ErrorMessage::MethodExists("bar".into(), pos(3, 18)),
+        ErrorMessage::MethodExists("bar".into(), Span::new(46, 11)),
     );
 
     err(
@@ -104,7 +105,7 @@ fn type_method_defined_twice() {
                  fn bar(): Int32 {}
              }",
         pos(4, 18),
-        ErrorMessage::MethodExists("bar".into(), pos(3, 18)),
+        ErrorMessage::MethodExists("bar".into(), Span::new(45, 11)),
     );
 
     err(
@@ -114,7 +115,7 @@ fn type_method_defined_twice() {
                  fn bar(a: Int32): Int32 {}
              }",
         pos(4, 18),
-        ErrorMessage::MethodExists("bar".into(), pos(3, 18)),
+        ErrorMessage::MethodExists("bar".into(), Span::new(46, 19)),
     );
 
     err(
@@ -124,7 +125,7 @@ fn type_method_defined_twice() {
                 fn bar(a: String) {}
             }",
         pos(4, 17),
-        ErrorMessage::MethodExists("bar".into(), pos(3, 17)),
+        ErrorMessage::MethodExists("bar".into(), Span::new(45, 19)),
     );
 }
 

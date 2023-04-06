@@ -106,7 +106,7 @@ pub fn check(sa: &SemAnalysis) {
                 }
             } else {
                 let msg = ErrorMessage::TypeParamsExpected;
-                sa.diag.lock().report(fct.file_id, fct.pos, msg);
+                sa.diag.lock().report_span(fct.file_id, fct.span, msg);
             }
         }
 
@@ -193,7 +193,7 @@ fn check_test(sa: &SemAnalysis, fct: &FctDefinition) {
         || (!fct.return_type.is_unit() && !fct.return_type.is_error())
     {
         let msg = ErrorMessage::InvalidTestAnnotationUsage;
-        sa.diag.lock().report(fct.file_id, fct.pos, msg);
+        sa.diag.lock().report_span(fct.file_id, fct.span, msg);
     }
 }
 
@@ -209,8 +209,8 @@ fn check_against_methods(sa: &SemAnalysis, fct: &FctDefinition, methods: &[FctDe
         if method.initialized && method.name == fct.name && method.is_static == fct.is_static {
             let method_name = sa.interner.str(method.name).to_string();
 
-            let msg = ErrorMessage::MethodExists(method_name, method.pos);
-            sa.diag.lock().report(fct.file_id, fct.ast.pos, msg);
+            let msg = ErrorMessage::MethodExists(method_name, method.span);
+            sa.diag.lock().report_span(fct.file_id, fct.ast.span, msg);
             return;
         }
     }

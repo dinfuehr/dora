@@ -22,40 +22,37 @@ impl Display for Position {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct Span {
-    start: Loc,
+    start: u32,
     count: u32,
 }
 
 impl Span {
     pub fn new(start: u32, count: u32) -> Span {
-        Span {
-            start: Loc::new(start),
-            count,
-        }
+        Span { start, count }
     }
 
     pub fn at(start: u32) -> Span {
         Span {
-            start: Loc::new(start),
+            start: start,
             count: 0,
         }
     }
 
     pub fn invalid() -> Span {
         Span {
-            start: Loc::invalid(),
+            start: u32::max_value(),
             count: 0,
         }
     }
 
     pub fn is_valid(&self) -> bool {
-        self.start.is_valid()
+        self.start != u32::max_value()
     }
 
     pub fn start(&self) -> u32 {
-        self.start.idx()
+        self.start
     }
 
     pub fn count(&self) -> u32 {
@@ -63,45 +60,12 @@ impl Span {
     }
 
     pub fn end(&self) -> u32 {
-        self.start.idx() + self.count
+        self.start + self.count
     }
 }
 
 impl Display for Span {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        write!(f, "{}-{}", self.start.0, self.start.0 + self.count)
+        write!(f, "{}-{}", self.start, self.end())
     }
-}
-
-#[derive(Copy, Clone, Debug)]
-pub struct Loc(u32);
-
-impl Loc {
-    fn new(pos: u32) -> Loc {
-        assert!(pos < u32::max_value());
-        Loc(pos)
-    }
-
-    fn invalid() -> Loc {
-        Loc(u32::max_value())
-    }
-
-    fn is_valid(&self) -> bool {
-        self.0 != u32::max_value()
-    }
-
-    fn idx(&self) -> u32 {
-        assert!(self.is_valid());
-        self.0
-    }
-}
-
-#[test]
-fn test_new() {
-    let pos = Position::new(3, 1);
-
-    assert_eq!(pos.line, 3);
-    assert_eq!(pos.column, 1);
-
-    assert_eq!(&format!("{}", pos)[..], "3:1");
 }

@@ -859,7 +859,7 @@ impl<'a> Parser<'a> {
         modifiers: &Modifiers,
     ) -> Result<Function, ParseErrorWithLocation> {
         let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::Fn)?.position;
+        self.expect_token(TokenKind::Fn)?;
         let ident = self.expect_identifier()?;
         let type_params = self.parse_type_params()?;
         let params = self.parse_function_params()?;
@@ -871,7 +871,6 @@ impl<'a> Parser<'a> {
             id: self.generate_id(),
             kind: FunctionKind::Function,
             name: ident,
-            pos,
             span,
             method: self.in_class_or_module,
             is_optimize_immediately: modifiers.contains(Modifier::OptimizeImmediately),
@@ -1909,7 +1908,6 @@ impl<'a> Parser<'a> {
     fn parse_lambda(&mut self) -> ExprResult {
         let start = self.token.span.start();
         let tok = self.advance_token()?;
-        let pos = tok.position;
 
         let params = if tok.kind == TokenKind::OrOr {
             // nothing to do
@@ -1944,7 +1942,6 @@ impl<'a> Parser<'a> {
             id: self.generate_id(),
             kind: FunctionKind::Lambda,
             name,
-            pos,
             span,
             method: self.in_class_or_module,
             is_optimize_immediately: false,
@@ -2070,7 +2067,6 @@ mod tests {
     use crate::interner::*;
 
     use crate::error::ParseError;
-    use crate::lexer::position::Position;
     use crate::parser::Parser;
     use crate::{compute_line_column, compute_line_starts};
 
@@ -2613,7 +2609,6 @@ mod tests {
         assert_eq!("b", *interner.str(fct.name));
         assert_eq!(0, fct.params.len());
         assert!(fct.return_type.is_none());
-        assert_eq!(Position::new(1, 1), fct.pos);
     }
 
     #[test]
@@ -2762,12 +2757,10 @@ mod tests {
         let f = prog.fct0();
         assert_eq!("f", *interner.str(f.name));
         assert_eq!(false, f.method);
-        assert_eq!(Position::new(1, 1), f.pos);
 
         let g = prog.fct(1);
         assert_eq!("g", *interner.str(g.name));
         assert_eq!(false, g.method);
-        assert_eq!(Position::new(1, 12), g.pos);
     }
 
     #[test]

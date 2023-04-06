@@ -52,6 +52,7 @@ impl<'x> TraitCheck<'x> {
 mod tests {
     use crate::language::error::msg::ErrorMessage;
     use crate::language::tests::*;
+    use dora_parser::Span;
 
     #[test]
     fn trait_method_with_body() {
@@ -87,13 +88,13 @@ mod tests {
         err(
             "trait Foo { fn foo(); fn foo(): Int32; }",
             pos(1, 23),
-            ErrorMessage::MethodExists("foo".into(), pos(1, 13)),
+            ErrorMessage::MethodExists("foo".into(), Span::new(12, 9)),
         );
 
         err(
             "trait Foo { fn foo(); fn foo(); }",
             pos(1, 23),
-            ErrorMessage::MethodExists("foo".into(), pos(1, 13)),
+            ErrorMessage::MethodExists("foo".into(), Span::new(12, 9)),
         );
     }
 
@@ -105,7 +106,7 @@ mod tests {
             fn foo(): Self;
         }",
             pos(3, 13),
-            ErrorMessage::MethodExists("foo".into(), pos(2, 13)),
+            ErrorMessage::MethodExists("foo".into(), Span::new(24, 16)),
         );
     }
 }

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::Id;
 use dora_parser::ast;
 use dora_parser::interner::Name;
-use dora_parser::lexer::position::Position;
+use dora_parser::Span;
 
 use crate::language::generator::bty_from_ty;
 use crate::language::sem_analysis::{
@@ -51,7 +51,7 @@ pub struct FctDefinition {
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
     pub ast: Arc<ast::Function>,
-    pub pos: Position,
+    pub span: Span,
     pub name: Name,
     pub parent: FctParent,
     pub is_optimize_immediately: bool,
@@ -89,7 +89,7 @@ impl FctDefinition {
             package_id,
             module_id,
             file_id,
-            pos: ast.pos,
+            span: ast.span,
             ast: ast.clone(),
             name: ast.name,
             param_types: Vec::new(),
@@ -183,8 +183,8 @@ impl FctDefinition {
         self.ast.kind.is_lambda()
     }
 
-    pub fn pos(&self) -> Position {
-        self.pos
+    pub fn span(&self) -> Span {
+        self.span
     }
 
     pub fn analysis(&self) -> &AnalysisData {

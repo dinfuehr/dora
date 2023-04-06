@@ -129,9 +129,9 @@ impl<'x> ImplCheck<'x> {
         let method = method.read();
 
         if method.ast.block.is_none() && !method.internal {
-            self.sa.diag.lock().report(
+            self.sa.diag.lock().report_span(
                 self.file_id.into(),
-                method.pos,
+                method.span,
                 ErrorMessage::MissingFctBody,
             );
         }
@@ -152,6 +152,7 @@ impl<'x> ImplCheck<'x> {
 mod tests {
     use crate::language::error::msg::ErrorMessage;
     use crate::language::tests::*;
+    use dora_parser::Span;
 
     #[test]
     fn impl_method_without_body() {
@@ -180,7 +181,7 @@ mod tests {
                 fn foo(): Int32 { return 1; }
             }",
             pos(8, 17),
-            ErrorMessage::MethodExists("foo".into(), pos(7, 17)),
+            ErrorMessage::MethodExists("foo".into(), Span::new(141, 29)),
         );
     }
 

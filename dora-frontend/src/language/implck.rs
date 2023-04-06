@@ -44,7 +44,7 @@ pub fn check(sa: &mut SemAnalysis) {
 
                         let msg =
                             ErrorMessage::ReturnTypeMismatch(impl_return_type, trait_return_type);
-                        sa.diag.lock().report(impl_.file_id, method.pos, msg);
+                        sa.diag.lock().report_span(impl_.file_id, method.span, msg);
                     }
                 } else {
                     let args = method
@@ -61,7 +61,7 @@ pub fn check(sa: &mut SemAnalysis) {
                         ErrorMessage::MethodNotInTrait(trait_name, mtd_name, args)
                     };
 
-                    sa.diag.lock().report(impl_.file_id, method.pos, msg)
+                    sa.diag.lock().report_span(impl_.file_id, method.span, msg)
                 }
             }
 

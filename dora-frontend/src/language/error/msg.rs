@@ -22,7 +22,7 @@ pub enum ErrorMessage {
     UnknownStaticMethodWithTypeParam,
     UnknownStaticMethod(String, String, Vec<String>),
     UnknownCtor,
-    MethodExists(String, Position),
+    MethodExists(String, Span),
     IncompatibleWithNil(String),
     IdentifierExists(String),
     ShadowFunction(String),

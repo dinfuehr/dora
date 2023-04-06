@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use crate::language::error::msg::ErrorMessage;
+use crate::language::report_sym_shadow_span;
 use crate::language::sem_analysis::{
     AnnotationDefinition, ClassDefinition, ConstDefinition, EnumDefinition, ExtensionDefinition,
     ExtensionDefinitionId, FctDefinition, FctParent, GlobalDefinition, GlobalDefinitionId,
@@ -13,7 +14,6 @@ use crate::language::sem_analysis::{
     UseDefinition,
 };
 use crate::language::sym::Sym;
-use crate::language::{report_sym_shadow, report_sym_shadow_span};
 use crate::STDLIB;
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit};
@@ -558,7 +558,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         let sym = Sym::Fct(fctid);
 
         if let Some(sym) = self.insert(node.name, sym) {
-            report_sym_shadow(self.sa, node.name, self.file_id, node.pos, sym);
+            report_sym_shadow_span(self.sa, node.name, self.file_id, node.span, sym);
         }
     }
 

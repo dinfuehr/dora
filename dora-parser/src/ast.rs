@@ -6,8 +6,8 @@ use std::sync::Arc;
 use crate::interner::Interner;
 
 use crate::interner::Name;
-use crate::lexer::position::{Position, Span};
 use crate::lexer::token::{FloatSuffix, IntBase, IntSuffix};
+use crate::Span;
 
 pub mod dump;
 pub mod visit;
@@ -574,7 +574,6 @@ pub struct Function {
     pub id: NodeId,
     pub kind: FunctionKind,
     pub name: Name,
-    pub pos: Position,
     pub span: Span,
     pub method: bool,
     pub is_optimize_immediately: bool,
