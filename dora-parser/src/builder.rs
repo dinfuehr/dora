@@ -110,7 +110,6 @@ impl<'a> BuilderBlock {
     pub fn add_expr(&mut self, id: NodeId, expr: Box<Expr>) -> &mut BuilderBlock {
         let stmt = Box::new(Stmt::Expr(StmtExprType {
             id,
-            pos: Position::new(1, 1),
             span: Span::invalid(),
             expr,
         }));
@@ -122,7 +121,6 @@ impl<'a> BuilderBlock {
     pub fn build(self, id: NodeId) -> Box<ExprBlockType> {
         Box::new(ExprBlockType {
             id,
-            pos: Position::new(1, 1),
             span: Span::invalid(),
             stmts: self.stmts,
             expr: None,

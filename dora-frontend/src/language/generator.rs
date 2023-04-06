@@ -1906,7 +1906,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         let subtypes = ty.tuple_subtypes();
         let idx = self.builder.add_const_tuple(bty_array_from_ty(&subtypes));
-        self.builder.emit_new_tuple(result, idx, loc(e.pos));
+        self.builder.emit_new_tuple(result, idx, self.loc(e.span));
 
         for arg_reg in values {
             self.free_if_temp(arg_reg);

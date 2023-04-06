@@ -1106,7 +1106,6 @@ impl<'a> Parser<'a> {
                 } else {
                     Ok(Box::new(Stmt::create_expr(
                         self.generate_id(),
-                        expr.pos(),
                         expr.span(),
                         expr,
                     )))
@@ -1204,7 +1203,6 @@ impl<'a> Parser<'a> {
         let block = self.parse_block()?;
         Ok(Box::new(Stmt::create_expr(
             self.generate_id(),
-            block.pos(),
             block.span(),
             block,
         )))
@@ -1212,7 +1210,7 @@ impl<'a> Parser<'a> {
 
     fn parse_block(&mut self) -> ExprResult {
         let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::LBrace)?.position;
+        self.expect_token(TokenKind::LBrace)?;
         let mut stmts = vec![];
         let mut expr = None;
 
@@ -1228,7 +1226,6 @@ impl<'a> Parser<'a> {
                     } else if !self.token.is(TokenKind::RBrace) {
                         stmts.push(Box::new(Stmt::create_expr(
                             self.generate_id(),
-                            curr_expr.pos(),
                             curr_expr.span(),
                             curr_expr,
                         )));
@@ -1244,7 +1241,6 @@ impl<'a> Parser<'a> {
 
         Ok(Box::new(Expr::create_block(
             self.generate_id(),
-            pos,
             span,
             stmts,
             expr,
@@ -1272,7 +1268,6 @@ impl<'a> Parser<'a> {
 
                     Ok(StmtOrExpr::Stmt(Box::new(Stmt::create_expr(
                         self.generate_id(),
-                        expr.pos(),
                         span,
                         expr,
                     ))))
@@ -1481,24 +1476,20 @@ impl<'a> Parser<'a> {
 
     fn parse_break(&mut self) -> StmtResult {
         let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::Break)?.position;
+        self.expect_token(TokenKind::Break)?;
         self.expect_semicolon()?;
         let span = self.span_from(start);
 
-        Ok(Box::new(Stmt::create_break(self.generate_id(), pos, span)))
+        Ok(Box::new(Stmt::create_break(self.generate_id(), span)))
     }
 
     fn parse_continue(&mut self) -> StmtResult {
         let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::Continue)?.position;
+        self.expect_token(TokenKind::Continue)?;
         self.expect_semicolon()?;
         let span = self.span_from(start);
 
-        Ok(Box::new(Stmt::create_continue(
-            self.generate_id(),
-            pos,
-            span,
-        )))
+        Ok(Box::new(Stmt::create_continue(self.generate_id(), span)))
     }
 
     fn parse_return(&mut self) -> StmtResult {
@@ -1776,7 +1767,6 @@ impl<'a> Parser<'a> {
             let span = self.span_from(start);
             return Ok(Box::new(Expr::create_tuple(
                 self.generate_id(),
-                pos,
                 span,
                 Vec::new(),
             )));
@@ -1809,7 +1799,6 @@ impl<'a> Parser<'a> {
 
             Ok(Box::new(Expr::create_tuple(
                 self.generate_id(),
-                pos,
                 span,
                 values,
             )))

@@ -83,7 +83,7 @@ impl<'a> TypeCheck<'a> {
         };
 
         if !returns {
-            self.check_fct_return_type(block.pos, return_type);
+            self.check_fct_return_type(block.span, return_type);
         }
 
         self.symtable.pop_level();
@@ -574,23 +574,10 @@ impl<'a> TypeCheck<'a> {
             .map(|expr| self.check_expr(&expr, expected_ty))
             .unwrap_or(SourceType::Unit);
 
-        self.check_fct_return_type_span(s.span, expr_type);
+        self.check_fct_return_type(s.span, expr_type);
     }
 
-    fn check_fct_return_type(&mut self, pos: Position, expr_type: SourceType) {
-        let fct_type = self.fct.return_type.clone();
-
-        if !expr_type.is_error() && !fct_type.allows(self.sa, expr_type.clone()) {
-            let fct_type = fct_type.name_fct(self.sa, self.fct);
-            let expr_type = expr_type.name_fct(self.sa, self.fct);
-
-            let msg = ErrorMessage::ReturnType(fct_type, expr_type);
-
-            self.sa.diag.lock().report(self.file_id, pos, msg);
-        }
-    }
-
-    fn check_fct_return_type_span(&mut self, span: Span, expr_type: SourceType) {
+    fn check_fct_return_type(&mut self, span: Span, expr_type: SourceType) {
         let fct_type = self.fct.return_type.clone();
 
         if !expr_type.is_error() && !fct_type.allows(self.sa, expr_type.clone()) {

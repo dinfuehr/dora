@@ -444,7 +444,7 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_stmt_expr(&mut self, stmt: &StmtExprType) {
-        dump!(self, "expr stmt @ {} {}", stmt.pos, stmt.id);
+        dump!(self, "expr stmt @ {} {}", stmt.span, stmt.id);
         self.indent(|d| {
             d.dump_expr(&stmt.expr);
         });
@@ -463,11 +463,11 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_stmt_break(&mut self, stmt: &StmtBreakType) {
-        dump!(self, "break @ {} {}", stmt.pos, stmt.id);
+        dump!(self, "break @ {} {}", stmt.span, stmt.id);
     }
 
     fn dump_stmt_continue(&mut self, stmt: &StmtContinueType) {
-        dump!(self, "continue @ {} {}", stmt.pos, stmt.id);
+        dump!(self, "continue @ {} {}", stmt.span, stmt.id);
     }
 
     fn dump_expr(&mut self, expr: &Expr) {
@@ -501,7 +501,7 @@ impl<'a> AstDumper<'a> {
             self,
             "block ({} statement(s)) @ {} {}",
             block.stmts.len(),
-            block.pos,
+            block.span,
             block.id
         );
 
@@ -614,7 +614,7 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_expr_tuple(&mut self, expr: &ExprTupleType) {
-        dump!(self, "tuple @ {} {}", expr.pos, expr.id);
+        dump!(self, "tuple @ {} {}", expr.span, expr.id);
         self.indent(|d| {
             for expr in &expr.values {
                 d.dump_expr(expr);

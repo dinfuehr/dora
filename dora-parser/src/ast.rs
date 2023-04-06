@@ -786,22 +786,16 @@ impl Stmt {
         })
     }
 
-    pub fn create_expr(id: NodeId, pos: Position, span: Span, expr: Box<Expr>) -> Stmt {
-        Stmt::Expr(StmtExprType {
-            id,
-            pos,
-            span,
-
-            expr,
-        })
+    pub fn create_expr(id: NodeId, span: Span, expr: Box<Expr>) -> Stmt {
+        Stmt::Expr(StmtExprType { id, span, expr })
     }
 
-    pub fn create_break(id: NodeId, pos: Position, span: Span) -> Stmt {
-        Stmt::Break(StmtBreakType { id, pos, span })
+    pub fn create_break(id: NodeId, span: Span) -> Stmt {
+        Stmt::Break(StmtBreakType { id, span })
     }
 
-    pub fn create_continue(id: NodeId, pos: Position, span: Span) -> Stmt {
-        Stmt::Continue(StmtContinueType { id, pos, span })
+    pub fn create_continue(id: NodeId, span: Span) -> Stmt {
+        Stmt::Continue(StmtContinueType { id, span })
     }
 
     pub fn create_return(id: NodeId, span: Span, expr: Option<Box<Expr>>) -> Stmt {
@@ -1036,7 +1030,6 @@ pub struct StmtWhileType {
 #[derive(Clone, Debug)]
 pub struct StmtExprType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
 
     pub expr: Box<Expr>,
@@ -1053,14 +1046,12 @@ pub struct StmtReturnType {
 #[derive(Clone, Debug)]
 pub struct StmtBreakType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
 }
 
 #[derive(Clone, Debug)]
 pub struct StmtContinueType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
 }
 
@@ -1191,14 +1182,12 @@ pub enum Expr {
 impl Expr {
     pub fn create_block(
         id: NodeId,
-        pos: Position,
         span: Span,
         stmts: Vec<Box<Stmt>>,
         expr: Option<Box<Expr>>,
     ) -> Expr {
         Expr::Block(ExprBlockType {
             id,
-            pos,
             span,
 
             stmts,
@@ -1467,13 +1456,8 @@ impl Expr {
         Expr::Lambda(fct)
     }
 
-    pub fn create_tuple(id: NodeId, pos: Position, span: Span, values: Vec<Box<Expr>>) -> Expr {
-        Expr::Tuple(ExprTupleType {
-            id,
-            pos,
-            span,
-            values,
-        })
+    pub fn create_tuple(id: NodeId, span: Span, values: Vec<Box<Expr>>) -> Expr {
+        Expr::Tuple(ExprTupleType { id, span, values })
     }
 
     pub fn to_un(&self) -> Option<&ExprUnType> {
@@ -1765,32 +1749,6 @@ impl Expr {
         }
     }
 
-    pub fn pos(&self) -> Position {
-        match *self {
-            Expr::Un(ref val) => val.pos,
-            Expr::Bin(ref val) => val.pos,
-            Expr::LitChar(ref val) => val.pos,
-            Expr::LitInt(ref val) => val.pos,
-            Expr::LitFloat(ref val) => val.pos,
-            Expr::LitStr(ref val) => val.pos,
-            Expr::Template(ref val) => val.pos,
-            Expr::LitBool(ref val) => val.pos,
-            Expr::Ident(ref val) => val.pos,
-            Expr::Call(ref val) => val.pos,
-            Expr::TypeParam(ref val) => val.pos,
-            Expr::Path(ref val) => val.pos,
-            Expr::Dot(ref val) => val.pos,
-            Expr::This(ref val) => val.pos,
-            Expr::Conv(ref val) => val.pos,
-            Expr::Lambda(ref val) => val.pos,
-            Expr::Block(ref val) => val.pos,
-            Expr::If(ref val) => val.pos,
-            Expr::Tuple(ref val) => val.pos,
-            Expr::Paren(ref val) => val.pos,
-            Expr::Match(ref val) => val.pos,
-        }
-    }
-
     pub fn span(&self) -> Span {
         match *self {
             Expr::Un(ref val) => val.span,
@@ -1858,7 +1816,6 @@ pub struct ExprIfType {
 #[derive(Clone, Debug)]
 pub struct ExprTupleType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
 
     pub values: Vec<Box<Expr>>,
@@ -1956,7 +1913,6 @@ pub struct ExprLitBoolType {
 #[derive(Clone, Debug)]
 pub struct ExprBlockType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
 
     pub stmts: Vec<Box<Stmt>>,
