@@ -94,7 +94,7 @@ pub fn check(sa: &SemAnalysis) {
                                 }
                             } else {
                                 let msg = ErrorMessage::BoundExpected;
-                                sa.diag.lock().report(fct.file_id, bound.pos(), msg);
+                                sa.diag.lock().report_span(fct.file_id, bound.span(), msg);
                             }
                         } else {
                             // unknown type, error is already thrown

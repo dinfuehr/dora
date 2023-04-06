@@ -304,7 +304,6 @@ pub struct EnumVariant {
 #[derive(Clone, Debug)]
 pub struct Alias {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
     pub name: Name,
     pub ty: Type,
@@ -342,14 +341,12 @@ pub enum Type {
 #[derive(Clone, Debug)]
 pub struct TypeSelfType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
 }
 
 #[derive(Clone, Debug)]
 pub struct TypeTupleType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
 
     pub subtypes: Vec<Box<Type>>,
@@ -358,7 +355,6 @@ pub struct TypeTupleType {
 #[derive(Clone, Debug)]
 pub struct TypeLambdaType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
 
     pub params: Vec<Box<Type>>,
@@ -368,7 +364,6 @@ pub struct TypeLambdaType {
 #[derive(Clone, Debug)]
 pub struct TypeBasicType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
 
     pub path: Path,
@@ -384,49 +379,30 @@ impl TypeBasicType {
 }
 
 impl Type {
-    pub fn create_self(id: NodeId, pos: Position, span: Span) -> Type {
-        Type::This(TypeSelfType { id, pos, span })
+    pub fn create_self(id: NodeId, span: Span) -> Type {
+        Type::This(TypeSelfType { id, span })
     }
 
-    pub fn create_basic(
-        id: NodeId,
-        pos: Position,
-        span: Span,
-        path: Path,
-        params: Vec<Box<Type>>,
-    ) -> Type {
+    pub fn create_basic(id: NodeId, span: Span, path: Path, params: Vec<Box<Type>>) -> Type {
         Type::Basic(TypeBasicType {
             id,
-            pos,
             span,
             path,
             params,
         })
     }
 
-    pub fn create_fct(
-        id: NodeId,
-        pos: Position,
-        span: Span,
-        params: Vec<Box<Type>>,
-        ret: Box<Type>,
-    ) -> Type {
+    pub fn create_fct(id: NodeId, span: Span, params: Vec<Box<Type>>, ret: Box<Type>) -> Type {
         Type::Lambda(TypeLambdaType {
             id,
-            pos,
             span,
             params,
             ret,
         })
     }
 
-    pub fn create_tuple(id: NodeId, pos: Position, span: Span, subtypes: Vec<Box<Type>>) -> Type {
-        Type::Tuple(TypeTupleType {
-            id,
-            pos,
-            span,
-            subtypes,
-        })
+    pub fn create_tuple(id: NodeId, span: Span, subtypes: Vec<Box<Type>>) -> Type {
+        Type::Tuple(TypeTupleType { id, span, subtypes })
     }
 
     pub fn to_basic(&self) -> Option<&TypeBasicType> {
@@ -480,12 +456,12 @@ impl Type {
         }
     }
 
-    pub fn pos(&self) -> Position {
+    pub fn span(&self) -> Span {
         match *self {
-            Type::This(ref val) => val.pos,
-            Type::Basic(ref val) => val.pos,
-            Type::Tuple(ref val) => val.pos,
-            Type::Lambda(ref val) => val.pos,
+            Type::This(ref val) => val.span,
+            Type::Basic(ref val) => val.span,
+            Type::Tuple(ref val) => val.span,
+            Type::Lambda(ref val) => val.span,
         }
     }
 
@@ -635,10 +611,9 @@ impl Modifiers {
         self.0.iter().find(|el| el.value == modifier).is_some()
     }
 
-    pub fn add(&mut self, modifier: Modifier, pos: Position, span: Span) {
+    pub fn add(&mut self, modifier: Modifier, span: Span) {
         self.0.push(ModifierElement {
             value: modifier,
-            pos,
             span,
         });
     }
@@ -652,7 +627,6 @@ impl Modifiers {
 #[derive(Clone, Debug)]
 pub struct ModifierElement {
     pub value: Modifier,
-    pub pos: Position,
     pub span: Span,
 }
 
@@ -680,7 +654,6 @@ impl AnnotationUsages {
 #[derive(Clone, Debug)]
 pub struct AnnotationUsage {
     pub name: Name,
-    pub pos: Position,
     pub span: Span,
     pub type_args: Vec<Type>,
     pub term_args: Vec<Box<Expr>>,
@@ -1214,14 +1187,12 @@ impl Expr {
 
     pub fn create_match(
         id: NodeId,
-        pos: Position,
         span: Span,
         expr: Box<Expr>,
         cases: Vec<MatchCaseType>,
     ) -> Expr {
         Expr::Match(ExprMatchType {
             id,
-            pos,
             span,
             expr,
             cases,
@@ -1891,7 +1862,6 @@ pub struct ExprParenType {
 #[derive(Clone, Debug)]
 pub struct ExprMatchType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
 
     pub expr: Box<Expr>,
@@ -1901,7 +1871,6 @@ pub struct ExprMatchType {
 #[derive(Clone, Debug)]
 pub struct MatchCaseType {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
 
     pub patterns: Vec<MatchPattern>,
@@ -1911,7 +1880,6 @@ pub struct MatchCaseType {
 #[derive(Clone, Debug)]
 pub struct MatchPattern {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
     pub data: MatchPatternData,
 }
@@ -1931,7 +1899,6 @@ pub struct MatchPatternIdent {
 #[derive(Clone, Debug)]
 pub struct MatchPatternParam {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
     pub name: Option<Name>,
     pub mutable: bool,
@@ -1940,7 +1907,6 @@ pub struct MatchPatternParam {
 #[derive(Clone, Debug)]
 pub struct Path {
     pub id: NodeId,
-    pub pos: Position,
     pub span: Span,
     pub names: Vec<Name>,
 }

@@ -234,7 +234,7 @@ fn read_type_param_definition(
                 }
             } else if !ty.is_error() {
                 let msg = ErrorMessage::BoundExpected;
-                sa.diag.lock().report(file_id, bound.pos(), msg);
+                sa.diag.lock().report_span(file_id, bound.span(), msg);
             }
         }
     }

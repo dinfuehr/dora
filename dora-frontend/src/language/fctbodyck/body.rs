@@ -24,14 +24,14 @@ use crate::language::sym::{ModuleSymTable, Sym};
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::language::typeparamck::{self, ErrorReporting};
 use crate::language::{always_returns, expr_always_returns, read_type, AllowSelf};
-use crate::language::{report_sym_shadow, report_sym_shadow_span, TypeParamContext};
+use crate::language::{report_sym_shadow_span, TypeParamContext};
 
 use dora_bytecode::Intrinsic;
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, MatchCaseType, MatchPattern};
 use dora_parser::interner::Name;
 use dora_parser::lexer::token::{FloatSuffix, IntBase, IntSuffix};
-use dora_parser::{Position, Span};
+use dora_parser::Span;
 use fixedbitset::FixedBitSet;
 
 pub struct TypeCheck<'a> {
@@ -260,15 +260,7 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn add_local(&mut self, id: NestedVarId, pos: Position) {
-        let name = self.vars.get_var(id).name;
-        match self.symtable.insert(name, Sym::Var(id)) {
-            Some(Sym::Var(_)) | None => {}
-            Some(sym) => report_sym_shadow(self.sa, name, self.fct.file_id, pos, sym),
-        }
-    }
-
-    fn add_local_span(&mut self, id: NestedVarId, span: Span) {
+    fn add_local(&mut self, id: NestedVarId, span: Span) {
         let name = self.vars.get_var(id).name;
         match self.symtable.insert(name, Sym::Var(id)) {
             Some(Sym::Var(_)) | None => {}
@@ -356,7 +348,7 @@ impl<'a> TypeCheck<'a> {
             ast::LetPattern::Ident(ref ident) => {
                 let var_id = self.vars.add_var(ident.name, ty, ident.mutable);
 
-                self.add_local_span(var_id, ident.span);
+                self.add_local(var_id, ident.span);
                 self.analysis
                     .map_vars
                     .insert(ident.id, self.vars.local_var_id(var_id));
@@ -659,7 +651,7 @@ impl<'a> TypeCheck<'a> {
             self.sa
                 .diag
                 .lock()
-                .report(self.file_id, node.pos, ErrorMessage::EnumExpected);
+                .report_span(self.file_id, node.span, ErrorMessage::EnumExpected);
         }
 
         let expr_enum_id = expr_type.enum_id();
@@ -711,7 +703,10 @@ impl<'a> TypeCheck<'a> {
 
         if used_variants.count_ones(..) != 0 {
             let msg = ErrorMessage::MatchUncoveredVariant;
-            self.sa.diag.lock().report(self.file_id, node.pos, msg);
+            self.sa
+                .diag
+                .lock()
+                .report_span(self.file_id, node.span, msg);
         }
 
         self.analysis.set_ty(node.id, result_type.clone());
@@ -734,7 +729,10 @@ impl<'a> TypeCheck<'a> {
 
                 if negated_used_variants.count_ones(..) == 0 {
                     let msg = ErrorMessage::MatchUnreachablePattern;
-                    self.sa.diag.lock().report(self.file_id, case.pos, msg);
+                    self.sa
+                        .diag
+                        .lock()
+                        .report_span(self.file_id, case.span, msg);
                 }
 
                 used_variants.insert_range(..);
@@ -750,7 +748,10 @@ impl<'a> TypeCheck<'a> {
                         if Some(enum_id) == expr_enum_id {
                             if used_variants.contains(variant_idx as usize) {
                                 let msg = ErrorMessage::MatchUnreachablePattern;
-                                self.sa.diag.lock().report(self.file_id, case.pos, msg);
+                                self.sa
+                                    .diag
+                                    .lock()
+                                    .report_span(self.file_id, case.span, msg);
                             }
 
                             used_variants.insert(variant_idx as usize);
@@ -775,7 +776,10 @@ impl<'a> TypeCheck<'a> {
 
                             if given_params == 0 && ident.params.is_some() {
                                 let msg = ErrorMessage::MatchPatternNoParens;
-                                self.sa.diag.lock().report(self.file_id, case.pos, msg);
+                                self.sa
+                                    .diag
+                                    .lock()
+                                    .report_span(self.file_id, case.span, msg);
                             }
 
                             let expected_params = variant.types.len();
@@ -785,7 +789,10 @@ impl<'a> TypeCheck<'a> {
                                     given_params,
                                     expected_params,
                                 );
-                                self.sa.diag.lock().report(self.file_id, case.pos, msg);
+                                self.sa
+                                    .diag
+                                    .lock()
+                                    .report_span(self.file_id, case.span, msg);
                             }
 
                             if let Some(ref params) = ident.params {
@@ -806,15 +813,15 @@ impl<'a> TypeCheck<'a> {
 
                                         if used_idents.insert(name) == false {
                                             let msg = ErrorMessage::VarAlreadyInPattern;
-                                            self.sa.diag.lock().report(
+                                            self.sa.diag.lock().report_span(
                                                 self.file_id,
-                                                param.pos,
+                                                param.span,
                                                 msg,
                                             );
                                         }
 
                                         let var_id = self.vars.add_var(name, ty, param.mutable);
-                                        self.add_local(var_id, param.pos);
+                                        self.add_local(var_id, param.span);
                                         self.analysis
                                             .map_vars
                                             .insert(param.id, self.vars.local_var_id(var_id));
@@ -826,7 +833,7 @@ impl<'a> TypeCheck<'a> {
                             self.sa
                                 .diag
                                 .lock()
-                                .report(self.file_id, ident.path.pos, msg);
+                                .report_span(self.file_id, ident.path.span, msg);
                         }
                     }
 
@@ -835,7 +842,7 @@ impl<'a> TypeCheck<'a> {
                         self.sa
                             .diag
                             .lock()
-                            .report(self.file_id, ident.path.pos, msg);
+                            .report_span(self.file_id, ident.path.span, msg);
                     }
 
                     Err(()) => {}
@@ -2588,7 +2595,10 @@ impl<'a> TypeCheck<'a> {
                     if !module_accessible_from(self.sa, module_id, self.module_id) {
                         let module = &self.sa.modules[module_id].read();
                         let msg = ErrorMessage::NotAccessible(module.name(self.sa));
-                        self.sa.diag.lock().report(self.file_id, path.pos, msg);
+                        self.sa
+                            .diag
+                            .lock()
+                            .report_span(self.file_id, path.span, msg);
                     }
 
                     let module = &self.sa.modules[module_id].read();
@@ -2601,16 +2611,19 @@ impl<'a> TypeCheck<'a> {
 
                     if !enum_accessible_from(self.sa, enum_id, self.module_id) {
                         let msg = ErrorMessage::NotAccessible(enum_.name(self.sa));
-                        self.sa.diag.lock().report(self.file_id, path.pos, msg);
+                        self.sa
+                            .diag
+                            .lock()
+                            .report_span(self.file_id, path.span, msg);
                     }
 
                     if let Some(&variant_idx) = enum_.name_to_value.get(&name) {
                         sym = Some(Sym::EnumVariant(enum_id, variant_idx));
                     } else {
                         let name = self.sa.interner.str(name).to_string();
-                        self.sa.diag.lock().report(
+                        self.sa.diag.lock().report_span(
                             self.file_id.into(),
-                            path.pos,
+                            path.span,
                             ErrorMessage::UnknownEnumVariant(name),
                         );
                         return Err(());
@@ -2619,14 +2632,20 @@ impl<'a> TypeCheck<'a> {
 
                 Some(_) => {
                     let msg = ErrorMessage::ExpectedModule;
-                    self.sa.diag.lock().report(self.file_id, path.pos, msg);
+                    self.sa
+                        .diag
+                        .lock()
+                        .report_span(self.file_id, path.span, msg);
                     return Err(());
                 }
 
                 None => {
                     let name = self.sa.interner.str(names[0]).to_string();
                     let msg = ErrorMessage::UnknownIdentifier(name);
-                    self.sa.diag.lock().report(self.file_id, path.pos, msg);
+                    self.sa
+                        .diag
+                        .lock()
+                        .report_span(self.file_id, path.span, msg);
                     return Err(());
                 }
             }
@@ -2637,7 +2656,10 @@ impl<'a> TypeCheck<'a> {
         } else {
             let name = self.sa.interner.str(names[0]).to_string();
             let msg = ErrorMessage::UnknownIdentifier(name);
-            self.sa.diag.lock().report(self.file_id, path.pos, msg);
+            self.sa
+                .diag
+                .lock()
+                .report_span(self.file_id, path.span, msg);
 
             Err(())
         }

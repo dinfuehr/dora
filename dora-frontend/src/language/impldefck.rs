@@ -107,9 +107,9 @@ impl<'x> ImplCheck<'x> {
                     self.ast.span,
                 );
             } else {
-                self.sa.diag.lock().report(
+                self.sa.diag.lock().report_span(
                     self.file_id,
-                    self.ast.extended_type.pos(),
+                    self.ast.extended_type.span(),
                     ErrorMessage::ClassEnumStructExpected,
                 );
             }

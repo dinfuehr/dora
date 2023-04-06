@@ -721,7 +721,7 @@ impl<'a> Parser<'a> {
 
     fn parse_alias(&mut self, modifiers: &Modifiers) -> Result<Alias, ParseErrorWithLocation> {
         let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::Alias)?.position;
+        self.expect_token(TokenKind::Alias)?;
         let name = self.expect_identifier()?;
         self.expect_token(TokenKind::Eq)?;
         let ty = self.parse_type()?;
@@ -730,7 +730,6 @@ impl<'a> Parser<'a> {
 
         Ok(Alias {
             id: self.generate_id(),
-            pos,
             name,
             span,
             ty,
@@ -798,7 +797,7 @@ impl<'a> Parser<'a> {
                 ));
             }
 
-            modifiers.add(modifier, self.token.position, self.token.span);
+            modifiers.add(modifier, self.token.span);
         }
 
         Ok(modifiers)
@@ -1003,14 +1002,12 @@ impl<'a> Parser<'a> {
     fn parse_type(&mut self) -> Result<Type, ParseErrorWithLocation> {
         match self.token.kind {
             TokenKind::CapitalThis => {
-                let pos = self.token.position;
                 let span = self.token.span;
                 self.advance_token()?;
-                Ok(Type::create_self(self.generate_id(), pos, span))
+                Ok(Type::create_self(self.generate_id(), span))
             }
 
             TokenKind::Identifier(_) => {
-                let pos = self.token.position;
                 let start = self.token.span.start();
                 let path = self.parse_path()?;
 
@@ -1024,18 +1021,12 @@ impl<'a> Parser<'a> {
                 };
 
                 let span = self.span_from(start);
-                Ok(Type::create_basic(
-                    self.generate_id(),
-                    pos,
-                    span,
-                    path,
-                    params,
-                ))
+                Ok(Type::create_basic(self.generate_id(), span, path, params))
             }
 
             TokenKind::LParen => {
                 let start = self.token.span.start();
-                let token = self.advance_token()?;
+                self.advance_token()?;
                 let subtypes = self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
                     let ty = p.parse_type()?;
 
@@ -1047,21 +1038,10 @@ impl<'a> Parser<'a> {
                     let ret = Box::new(self.parse_type()?);
                     let span = self.span_from(start);
 
-                    Ok(Type::create_fct(
-                        self.generate_id(),
-                        token.position,
-                        span,
-                        subtypes,
-                        ret,
-                    ))
+                    Ok(Type::create_fct(self.generate_id(), span, subtypes, ret))
                 } else {
                     let span = self.span_from(start);
-                    Ok(Type::create_tuple(
-                        self.generate_id(),
-                        token.position,
-                        span,
-                        subtypes,
-                    ))
+                    Ok(Type::create_tuple(self.generate_id(), span, subtypes))
                 }
             }
 
@@ -1073,7 +1053,6 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_path(&mut self) -> Result<Path, ParseErrorWithLocation> {
-        let pos = self.token.position;
         let start = self.token.span.start();
         let name = self.expect_identifier()?;
         let mut names = vec![name];
@@ -1088,7 +1067,6 @@ impl<'a> Parser<'a> {
 
         Ok(Path {
             id: self.generate_id(),
-            pos,
             span,
             names,
         })
@@ -1311,7 +1289,7 @@ impl<'a> Parser<'a> {
 
     fn parse_match(&mut self) -> ExprResult {
         let start = self.token.span.start();
-        let pos = self.expect_token(TokenKind::Match)?.position;
+        self.expect_token(TokenKind::Match)?;
 
         let expr = self.parse_expression()?;
         let mut cases = Vec::new();
@@ -1342,7 +1320,6 @@ impl<'a> Parser<'a> {
 
         Ok(Box::new(Expr::create_match(
             self.generate_id(),
-            pos,
             span,
             expr,
             cases,
@@ -1351,7 +1328,6 @@ impl<'a> Parser<'a> {
 
     fn parse_match_case(&mut self) -> Result<MatchCaseType, ParseErrorWithLocation> {
         let start = self.token.span.start();
-        let pos = self.token.position;
         let mut patterns = Vec::new();
         patterns.push(self.parse_match_pattern()?);
 
@@ -1367,7 +1343,6 @@ impl<'a> Parser<'a> {
 
         Ok(MatchCaseType {
             id: self.generate_id(),
-            pos,
             span,
             patterns,
             value,
@@ -1376,7 +1351,6 @@ impl<'a> Parser<'a> {
 
     fn parse_match_pattern(&mut self) -> Result<MatchPattern, ParseErrorWithLocation> {
         let start = self.token.span.start();
-        let pos = self.token.position;
 
         let data = if self.token.is(TokenKind::Underscore) {
             self.expect_token(TokenKind::Underscore)?;
@@ -1402,7 +1376,6 @@ impl<'a> Parser<'a> {
 
         Ok(MatchPattern {
             id: self.generate_id(),
-            pos,
             span,
             data,
         })
@@ -1410,7 +1383,6 @@ impl<'a> Parser<'a> {
 
     fn parse_match_pattern_param(&mut self) -> Result<MatchPatternParam, ParseErrorWithLocation> {
         let start = self.token.span.start();
-        let pos = self.token.position;
 
         let (mutable, name) = if self.token.is(TokenKind::Underscore) {
             self.expect_token(TokenKind::Underscore)?;
@@ -1433,7 +1405,6 @@ impl<'a> Parser<'a> {
 
         Ok(MatchPatternParam {
             id: self.generate_id(),
-            pos,
             span,
             mutable,
             name,

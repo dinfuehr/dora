@@ -135,7 +135,7 @@ impl<'a> AstDumper<'a> {
             self,
             "alias {} @ {} {}",
             self.str(alias.name),
-            alias.pos,
+            alias.span,
             alias.id
         );
 
@@ -295,7 +295,7 @@ impl<'a> AstDumper<'a> {
                 self,
                 "@{} {}",
                 self.str(annotation_usage.name),
-                annotation_usage.pos
+                annotation_usage.span
             );
         }
     }
@@ -356,7 +356,7 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_type(&mut self, ty: &Type) {
-        dump!(self, "type @ {:?} {}", ty.pos(), ty.id());
+        dump!(self, "type @ {:?} {}", ty.span(), ty.id());
     }
 
     fn dump_stmt(&mut self, stmt: &Stmt) {
@@ -655,7 +655,7 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_expr_match(&mut self, expr: &ExprMatchType) {
-        dump!(self, "match @ {} {}", expr.pos, expr.id);
+        dump!(self, "match @ {} {}", expr.span, expr.id);
         self.indent(|d| {
             d.dump_expr(&expr.expr);
         });

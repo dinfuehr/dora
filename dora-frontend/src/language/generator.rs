@@ -826,7 +826,7 @@ impl<'a> AstBytecodeGen<'a> {
             .builder
             .add_const_enum(EnumId(enum_id.0), bty_array_from_ty(&enum_ty.type_params()));
         self.builder
-            .emit_load_enum_variant(variant_reg, expr_reg, idx, loc(node.pos));
+            .emit_load_enum_variant(variant_reg, expr_reg, idx, self.loc(node.span));
 
         let mut next_lbl = self.builder.create_label();
 
@@ -897,7 +897,7 @@ impl<'a> AstBytecodeGen<'a> {
                                         var_reg,
                                         expr_reg,
                                         idx,
-                                        loc(param.pos),
+                                        self.loc(param.span),
                                     );
                                 }
                             }
