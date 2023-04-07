@@ -1,4 +1,4 @@
-pub use self::lexer::position::Span;
+pub use self::lexer::span::Span;
 pub use self::parser::Parser;
 
 pub mod ast;

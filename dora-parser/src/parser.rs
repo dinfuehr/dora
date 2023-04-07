@@ -9,7 +9,6 @@ use crate::error::{ParseError, ParseErrorWithLocation};
 
 use crate::interner::*;
 
-use crate::lexer::reader::Reader;
 use crate::lexer::token::*;
 use crate::lexer::*;
 use crate::Span;
@@ -36,18 +35,17 @@ enum StmtOrExpr {
 
 impl<'a> Parser<'a> {
     pub fn from_string(code: &'static str, interner: &'a mut Interner) -> Parser<'a> {
-        let reader = Reader::from_string(code);
-        Parser::common_init(reader, interner)
+        let content = Arc::new(String::from(code));
+        Parser::common_init(content, interner)
     }
 
     pub fn from_shared_string(content: Arc<String>, interner: &'a mut Interner) -> Parser<'a> {
-        let reader = Reader::from_shared_string(content);
-        Parser::common_init(reader, interner)
+        Parser::common_init(content, interner)
     }
 
-    fn common_init(reader: Reader, interner: &'a mut Interner) -> Parser<'a> {
+    fn common_init(content: Arc<String>, interner: &'a mut Interner) -> Parser<'a> {
         let token = Token::new(TokenKind::End, Span::invalid());
-        let lexer = Lexer::new(reader);
+        let lexer = Lexer::new(content);
 
         let parser = Parser {
             lexer,

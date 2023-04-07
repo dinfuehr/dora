@@ -2,41 +2,42 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::error::{ParseError, ParseErrorWithLocation};
-use crate::lexer::reader::Reader;
 use crate::lexer::token::{FloatSuffix, IntBase, IntSuffix, Token, TokenKind};
 use crate::Span;
 
-pub mod position;
-pub mod reader;
+pub mod span;
 pub mod token;
 
 pub struct Lexer {
-    reader: Reader,
+    content: Arc<String>,
+    offset: usize,
     keywords: HashMap<&'static str, TokenKind>,
 }
 
 impl Lexer {
-    #[cfg(test)]
     pub fn from_str(code: &str) -> Lexer {
-        let reader = Reader::from_string(code);
-        Lexer::new(reader)
+        Lexer::new(Arc::new(String::from(code)))
     }
 
     pub fn source(&self) -> Arc<String> {
-        self.reader.content()
+        self.content.clone()
     }
 
-    pub fn new(reader: Reader) -> Lexer {
+    pub fn new(content: Arc<String>) -> Lexer {
         let keywords = keywords_in_map();
 
-        Lexer { reader, keywords }
+        Lexer {
+            offset: 0,
+            content,
+            keywords,
+        }
     }
 
     pub fn read_token(&mut self) -> Result<Token, ParseErrorWithLocation> {
         loop {
             self.skip_white();
 
-            let start = self.reader.offset();
+            let start = self.offset();
             let ch = self.curr();
 
             if let None = ch {
@@ -59,7 +60,7 @@ impl Lexer {
                 return self.read_operator();
             } else {
                 let ch = ch.unwrap();
-                self.read_char();
+                self.eat_char();
                 let span = self.span_from(start);
 
                 return Err(ParseErrorWithLocation::new(
@@ -72,26 +73,26 @@ impl Lexer {
 
     fn skip_white(&mut self) {
         while is_whitespace(self.curr()) {
-            self.read_char();
+            self.eat_char();
         }
     }
 
     fn read_comment(&mut self) -> Result<(), ParseErrorWithLocation> {
         while !self.curr().is_none() && !is_newline(self.curr()) {
-            self.read_char();
+            self.eat_char();
         }
 
         Ok(())
     }
 
     fn read_multi_comment(&mut self) -> Result<(), ParseErrorWithLocation> {
-        let start = self.reader.offset();
+        let start = self.offset();
 
-        self.read_char();
-        self.read_char();
+        self.eat_char();
+        self.eat_char();
 
         while !self.curr().is_none() && !self.is_multi_comment_end() {
-            self.read_char();
+            self.eat_char();
         }
 
         if self.curr().is_none() {
@@ -102,14 +103,14 @@ impl Lexer {
             ));
         }
 
-        self.read_char();
-        self.read_char();
+        self.eat_char();
+        self.eat_char();
 
         Ok(())
     }
 
     fn read_identifier(&mut self) -> Result<Token, ParseErrorWithLocation> {
-        let idx = self.reader.offset();
+        let idx = self.offset();
         let value = self.read_identifier_as_string();
 
         let lookup = self.keywords.get(&value[..]).cloned();
@@ -130,7 +131,7 @@ impl Lexer {
 
         while is_identifier(self.curr()) {
             let ch = self.curr().unwrap();
-            self.read_char();
+            self.eat_char();
             value.push(ch);
         }
 
@@ -138,13 +139,13 @@ impl Lexer {
     }
 
     fn read_char_literal(&mut self) -> Result<Token, ParseErrorWithLocation> {
-        let start = self.reader.offset();
+        let start = self.offset();
 
-        self.read_char();
+        self.eat_char();
         let ch = self.read_escaped_char(start, ParseError::UnclosedChar)?;
 
         if is_char_quote(self.curr()) {
-            self.read_char();
+            self.eat_char();
 
             let ttype = TokenKind::LitChar(ch);
             let span = self.span_from(start);
@@ -161,7 +162,7 @@ impl Lexer {
         unclosed: ParseError,
     ) -> Result<char, ParseErrorWithLocation> {
         if let Some(ch) = self.curr() {
-            self.read_char();
+            self.eat_char();
 
             if ch == '\\' {
                 let ch = if let Some(ch) = self.curr() {
@@ -171,7 +172,7 @@ impl Lexer {
                     return Err(ParseErrorWithLocation::new(span, unclosed));
                 };
 
-                self.read_char();
+                self.eat_char();
 
                 match ch {
                     '\\' => Ok('\\'),
@@ -198,18 +199,18 @@ impl Lexer {
     }
 
     fn read_string(&mut self, skip_quote: bool) -> Result<Token, ParseErrorWithLocation> {
-        let start = self.reader.offset();
+        let start = self.offset();
         let mut value = String::new();
 
         if skip_quote {
             assert_eq!(self.curr(), Some('\"'));
-            self.read_char();
+            self.eat_char();
         }
 
         while self.curr().is_some() && !is_quote(self.curr()) {
             if self.curr() == Some('$') && self.next() == Some('{') {
-                self.read_char();
-                self.read_char();
+                self.eat_char();
+                self.eat_char();
 
                 let ttype = TokenKind::StringExpr(value);
                 let span = self.span_from(start);
@@ -221,7 +222,7 @@ impl Lexer {
         }
 
         if is_quote(self.curr()) {
-            self.read_char();
+            self.eat_char();
 
             let ttype = TokenKind::StringTail(value);
             let span = self.span_from(start);
@@ -240,9 +241,9 @@ impl Lexer {
     }
 
     fn read_operator(&mut self) -> Result<Token, ParseErrorWithLocation> {
-        let start = self.reader.offset();
+        let start = self.offset();
         let ch = self.curr().unwrap();
-        self.read_char();
+        self.eat_char();
 
         let nch = self.curr().unwrap_or('x');
         let nnch = self.next().unwrap_or('x');
@@ -251,7 +252,7 @@ impl Lexer {
             '+' => TokenKind::Add,
             '-' => {
                 if nch == '>' {
-                    self.read_char();
+                    self.eat_char();
                     TokenKind::Arrow
                 } else {
                     TokenKind::Sub
@@ -270,7 +271,7 @@ impl Lexer {
 
             '|' => {
                 if nch == '|' {
-                    self.read_char();
+                    self.eat_char();
                     TokenKind::OrOr
                 } else {
                     TokenKind::Or
@@ -279,7 +280,7 @@ impl Lexer {
 
             '&' => {
                 if nch == '&' {
-                    self.read_char();
+                    self.eat_char();
                     TokenKind::AndAnd
                 } else {
                     TokenKind::And
@@ -291,7 +292,7 @@ impl Lexer {
             ';' => TokenKind::Semicolon,
             ':' => {
                 if nch == ':' {
-                    self.read_char();
+                    self.eat_char();
                     TokenKind::ColonColon
                 } else {
                     TokenKind::Colon
@@ -299,8 +300,8 @@ impl Lexer {
             }
             '.' => {
                 if nch == '.' && nnch == '.' {
-                    self.read_char();
-                    self.read_char();
+                    self.eat_char();
+                    self.eat_char();
 
                     TokenKind::DotDotDot
                 } else {
@@ -309,16 +310,16 @@ impl Lexer {
             }
             '=' => {
                 if nch == '=' {
-                    self.read_char();
+                    self.eat_char();
 
                     if nnch == '=' {
-                        self.read_char();
+                        self.eat_char();
                         TokenKind::EqEqEq
                     } else {
                         TokenKind::EqEq
                     }
                 } else if nch == '>' {
-                    self.read_char();
+                    self.eat_char();
                     TokenKind::DoubleArrow
                 } else {
                     TokenKind::Eq
@@ -327,12 +328,12 @@ impl Lexer {
 
             '<' => match nch {
                 '=' => {
-                    self.read_char();
+                    self.eat_char();
                     TokenKind::Le
                 }
 
                 '<' => {
-                    self.read_char();
+                    self.eat_char();
                     TokenKind::LtLt
                 }
 
@@ -341,15 +342,15 @@ impl Lexer {
 
             '>' => match nch {
                 '=' => {
-                    self.read_char();
+                    self.eat_char();
                     TokenKind::Ge
                 }
 
                 '>' => {
-                    self.read_char();
+                    self.eat_char();
 
                     if nnch == '>' {
-                        self.read_char();
+                        self.eat_char();
                         TokenKind::GtGtGt
                     } else {
                         TokenKind::GtGt
@@ -360,10 +361,10 @@ impl Lexer {
             },
             '!' => {
                 if nch == '=' {
-                    self.read_char();
+                    self.eat_char();
 
                     if nnch == '=' {
-                        self.read_char();
+                        self.eat_char();
                         TokenKind::NeEqEq
                     } else {
                         TokenKind::NotEq
@@ -375,7 +376,7 @@ impl Lexer {
             '@' => TokenKind::At,
 
             _ => {
-                self.read_char();
+                self.eat_char();
                 let span = self.span_from(start);
                 return Err(ParseErrorWithLocation::new(
                     span,
@@ -389,7 +390,7 @@ impl Lexer {
     }
 
     fn read_number(&mut self) -> Result<Token, ParseErrorWithLocation> {
-        let start = self.reader.offset();
+        let start = self.offset();
         let mut value = String::new();
 
         let base = if self.curr() == Some('0') {
@@ -397,15 +398,15 @@ impl Lexer {
 
             match next {
                 Some('x') => {
-                    self.read_char();
-                    self.read_char();
+                    self.eat_char();
+                    self.eat_char();
 
                     IntBase::Hex
                 }
 
                 Some('b') => {
-                    self.read_char();
-                    self.read_char();
+                    self.eat_char();
+                    self.eat_char();
 
                     IntBase::Bin
                 }
@@ -452,18 +453,18 @@ impl Lexer {
         start: u32,
         mut value: String,
     ) -> Result<Token, ParseErrorWithLocation> {
-        self.read_char();
+        self.eat_char();
         value.push('.');
 
         self.read_digits(&mut value, IntBase::Dec);
 
         if self.curr() == Some('e') || self.curr() == Some('E') {
             value.push(self.curr().unwrap());
-            self.read_char();
+            self.eat_char();
 
             if self.curr() == Some('+') || self.curr() == Some('-') {
                 value.push(self.curr().unwrap());
-                self.read_char();
+                self.eat_char();
             }
 
             self.read_digits(&mut value, IntBase::Dec);
@@ -493,27 +494,47 @@ impl Lexer {
     }
 
     fn span_from(&self, start: u32) -> Span {
-        Span::new(start, self.reader.offset() - start)
+        Span::new(start, self.offset() - start)
     }
 
     fn read_digits(&mut self, buffer: &mut String, base: IntBase) {
         while is_digit_or_underscore(self.curr(), base) {
             let ch = self.curr().unwrap();
-            self.read_char();
+            self.eat_char();
             buffer.push(ch);
         }
     }
 
-    fn read_char(&mut self) {
-        self.reader.advance();
+    fn offset(&self) -> u32 {
+        self.offset.try_into().expect("overflow")
+    }
+
+    fn eat_char(&mut self) -> Option<char> {
+        let curr = self.curr();
+
+        if let Some(ch) = curr {
+            self.offset += ch.len_utf8();
+        }
+
+        self.curr()
     }
 
     fn curr(&self) -> Option<char> {
-        self.reader.curr()
+        if self.offset < self.content.len() {
+            self.content[self.offset..].chars().next()
+        } else {
+            None
+        }
     }
 
     fn next(&self) -> Option<char> {
-        self.reader.nth(1)
+        let pos = self.offset + 1;
+
+        if pos < self.content.len() {
+            self.content[pos..].chars().next()
+        } else {
+            None
+        }
     }
 
     fn is_comment_start(&self) -> bool {
