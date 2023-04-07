@@ -56,7 +56,7 @@ impl Lexer {
             } else if self.is_multi_comment_start() {
                 self.read_multi_comment()?;
             } else if is_identifier_start(ch) {
-                return self.read_identifier();
+                return Ok(self.read_identifier());
             } else if is_quote(ch) {
                 return self.read_string(true);
             } else if is_char_quote(ch) {
@@ -114,7 +114,7 @@ impl Lexer {
         Ok(())
     }
 
-    fn read_identifier(&mut self) -> Result<Token, ParseErrorWithLocation> {
+    fn read_identifier(&mut self) -> Token {
         let idx = self.offset();
         let value = self.read_identifier_as_string();
 
@@ -128,7 +128,7 @@ impl Lexer {
         };
 
         let span = self.span_from(idx);
-        Ok(Token::new(ttype, span))
+        Token::new(ttype, span)
     }
 
     fn read_identifier_as_string(&mut self) -> String {
