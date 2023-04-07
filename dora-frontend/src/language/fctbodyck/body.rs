@@ -41,7 +41,6 @@ pub struct TypeCheck<'a> {
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
     pub analysis: &'a mut AnalysisData,
-    pub ast: &'a ast::Function,
     pub symtable: &'a mut ModuleSymTable,
     pub in_loop: bool,
     pub self_available: bool,
@@ -52,15 +51,15 @@ pub struct TypeCheck<'a> {
 }
 
 impl<'a> TypeCheck<'a> {
-    pub fn check(&mut self) {
+    pub fn check(&mut self, ast: &ast::Function) {
         let start_level = self.symtable.levels();
         self.symtable.push_level();
         self.vars.enter_function();
 
         self.add_type_params();
-        self.add_params();
+        self.add_params(ast);
 
-        let block = self.ast.block.as_ref().expect("missing block");
+        let block = ast.block.as_ref().expect("missing block");
         let mut returns = false;
 
         for stmt in &block.stmts {
@@ -177,9 +176,9 @@ impl<'a> TypeCheck<'a> {
             self.package_id,
             self.module_id,
             Some(self.file_id),
-            Some(self.ast.span),
+            Some(self.fct.span),
             name,
-            Visibility::from_ast(self.ast.visibility),
+            self.fct.visibility,
             fields,
         );
         class.type_params = Some(self.fct.type_params.clone());
@@ -195,24 +194,20 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn add_params(&mut self) {
+    fn add_params(&mut self, ast: &ast::Function) {
         self.add_hidden_parameter_self();
 
         let self_count = if self.fct.has_self() { 1 } else { 0 };
-        assert_eq!(
-            self.ast.params.len() + self_count,
-            self.fct.param_types.len()
-        );
+        assert_eq!(ast.params.len() + self_count, self.fct.param_types.len());
 
-        for (ind, (param, ty)) in self
-            .ast
+        for (ind, (param, ty)) in ast
             .params
             .iter()
             .zip(self.fct.param_types.iter().skip(self_count))
             .enumerate()
         {
             // is this last argument of function with variadic arguments?
-            let ty = if self.fct.is_variadic && ind == self.ast.params.len() - 1 {
+            let ty = if self.fct.is_variadic && ind == ast.params.len() - 1 {
                 // type of variable is Array[T]
                 self.sa.known.array_ty(ty.clone())
             } else {
@@ -3106,7 +3101,6 @@ impl<'a> TypeCheck<'a> {
                     module_id: self.fct.module_id,
                     file_id: self.fct.file_id,
                     analysis: &mut analysis,
-                    ast: &node,
                     symtable: &mut self.symtable,
                     in_loop: false,
                     self_available: self.self_available.clone(),
@@ -3116,7 +3110,7 @@ impl<'a> TypeCheck<'a> {
                     outer_context_access_from_lambda: false,
                 };
 
-                typeck.check();
+                typeck.check(&node);
             }
 
             if analysis.outer_context_access() {

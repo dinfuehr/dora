@@ -59,7 +59,6 @@ fn check_function(sa: &mut SemAnalysis, id: FctDefinitionId) {
             module_id: fct.module_id,
             file_id: fct.file_id,
             analysis: &mut analysis,
-            ast: &fct.ast,
             symtable: &mut symtable,
             in_loop: false,
             self_available: false,
@@ -69,7 +68,7 @@ fn check_function(sa: &mut SemAnalysis, id: FctDefinitionId) {
             outer_context_access_from_lambda: false,
         };
 
-        typeck.check();
+        typeck.check(&fct.ast);
 
         analysis
     };

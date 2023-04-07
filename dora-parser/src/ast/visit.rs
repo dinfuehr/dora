@@ -117,8 +117,8 @@ pub fn walk_elem<V: Visitor>(v: &mut V, e: &Elem) {
 pub fn walk_global<V: Visitor>(v: &mut V, g: &Global) {
     v.visit_type(&g.data_type);
 
-    if let Some(ref initializer) = g.initializer {
-        v.visit_fct(initializer);
+    if let Some(ref initial_value) = g.initial_value {
+        v.visit_expr(initial_value);
     }
 }
 

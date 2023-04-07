@@ -2,7 +2,7 @@ pub use self::lexer::span::Span;
 pub use self::parser::Parser;
 
 pub mod ast;
-mod builder;
+pub mod builder;
 pub mod error;
 pub mod interner;
 pub mod lexer;

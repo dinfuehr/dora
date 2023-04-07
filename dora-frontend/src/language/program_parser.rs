@@ -17,8 +17,9 @@ use crate::language::sym::Sym;
 use crate::STDLIB;
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit};
+use dora_parser::builder::Builder;
 use dora_parser::interner::Name;
-use dora_parser::parser::Parser;
+use dora_parser::parser::{NodeIdGenerator, Parser};
 use dora_parser::Span;
 
 pub fn parse(sa: &mut SemAnalysis) {
@@ -189,12 +190,14 @@ impl<'a> ProgramParser<'a> {
         module_path: Option<PathBuf>,
         file_lookup: FileLookup,
         ast: &ast::File,
+        id_generator: NodeIdGenerator,
     ) {
-        let mut gdef = GlobalDef {
+        let mut gdef = TopLevelDeclaration {
             sa: self.sa,
             package_id,
             module_id,
             file_id,
+            id_generator,
             external_modules: Vec::new(),
         };
 
@@ -353,7 +356,7 @@ impl<'a> ProgramParser<'a> {
 
         let parser = Parser::from_shared_string(content, &mut self.sa.interner);
 
-        let (ast, errors) = parser.parse();
+        let (ast, id_generator, errors) = parser.parse();
 
         for error in errors {
             self.sa.diag.lock().report(
@@ -370,6 +373,7 @@ impl<'a> ProgramParser<'a> {
             module_path,
             file_lookup,
             &ast,
+            id_generator,
         );
     }
 }
@@ -381,15 +385,16 @@ fn file_as_string(path: &PathBuf) -> Result<String, Error> {
     Ok(content)
 }
 
-struct GlobalDef<'x> {
+struct TopLevelDeclaration<'x> {
     sa: &'x mut SemAnalysis,
     package_id: PackageDefinitionId,
     file_id: SourceFileId,
     module_id: ModuleDefinitionId,
     external_modules: Vec<ModuleDefinitionId>,
+    id_generator: NodeIdGenerator,
 }
 
-impl<'x> visit::Visitor for GlobalDef<'x> {
+impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     fn visit_extern(&mut self, stmt: &Arc<ast::ExternPackage>) {
         if let Some(package_id) = self.sa.package_names.get(&stmt.name).cloned() {
             let top_level_module_id = {
@@ -465,7 +470,7 @@ impl<'x> visit::Visitor for GlobalDef<'x> {
         let global = GlobalDefinition::new(self.package_id, self.module_id, self.file_id, node);
         let global_id = self.sa.globals.push(global);
 
-        find_methods_in_global(self.sa, global_id, node);
+        generate_function_for_initial_value(self.sa, global_id, &self.id_generator, node);
 
         let sym = Sym::Global(global_id);
         if let Some(sym) = self.insert(node.name, sym) {
@@ -625,20 +630,36 @@ fn find_methods_in_extension(
     }
 }
 
-fn find_methods_in_global(
+fn generate_function_for_initial_value(
     sa: &mut SemAnalysis,
     global_id: GlobalDefinitionId,
+    id_generator: &NodeIdGenerator,
     node: &Arc<ast::Global>,
 ) {
-    if let Some(ref initializer) = node.initializer {
+    if let Some(ref initial_value) = node.initial_value {
         let global = sa.globals.idx(global_id);
         let mut global = global.write();
+
+        let function_ast = {
+            let builder = Builder::new();
+            let mut block = builder.build_block();
+
+            let var = builder.build_ident(id_generator.next(), global.name);
+            let assignment =
+                builder.build_initializer_assign(id_generator.next(), var, initial_value.clone());
+
+            block.add_expr(id_generator.next(), assignment);
+
+            let mut fct = builder.build_fct(global.name);
+            fct.block(block.build(id_generator.next()));
+            Arc::new(fct.build(id_generator.next()))
+        };
 
         let fct = FctDefinition::new(
             global.package_id,
             global.module_id,
             global.file_id,
-            initializer,
+            &function_ast,
             FctParent::None,
         );
 
@@ -647,7 +668,7 @@ fn find_methods_in_global(
     }
 }
 
-impl<'x> GlobalDef<'x> {
+impl<'x> TopLevelDeclaration<'x> {
     fn insert(&mut self, name: Name, sym: Sym) -> Option<Sym> {
         let level = self.sa.module_table(self.module_id);
         let mut level = level.write();

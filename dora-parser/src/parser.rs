@@ -4,7 +4,6 @@ use std::sync::Arc;
 
 use crate::ast;
 use crate::ast::*;
-use crate::builder::Builder;
 use crate::error::{ParseError, ParseErrorWithLocation};
 
 use crate::interner::*;
@@ -65,22 +64,24 @@ impl<'a> Parser<'a> {
         self.id_generator.next()
     }
 
-    pub fn parse(mut self) -> (ast::File, Vec<ParseErrorWithLocation>) {
+    pub fn parse(mut self) -> (ast::File, NodeIdGenerator, Vec<ParseErrorWithLocation>) {
         if let Err(msg) = self.init() {
             return (
                 ast::File {
                     elements: Vec::new(),
                 },
+                self.id_generator,
                 vec![msg],
             );
         }
 
         match self.parse_top_level() {
-            Ok(ast_file) => (ast_file, Vec::new()),
+            Ok(ast_file) => (ast_file, self.id_generator, Vec::new()),
             Err(msg) => (
                 ast::File {
                     elements: Vec::new(),
                 },
+                self.id_generator,
                 vec![msg],
             ),
         }
@@ -489,20 +490,15 @@ impl<'a> Parser<'a> {
         self.expect_semicolon()?;
         let span = self.span_from(start);
 
-        let mut global = Global {
+        let global = Global {
             id: self.generate_id(),
             name,
             span,
             data_type,
             mutable,
-            initializer: None,
             visibility: Visibility::from_modifiers(modifiers),
+            initial_value: expr.clone(),
         };
-
-        if let Some(expr) = expr {
-            let initializer = self.generate_global_initializer(&global, expr);
-            global.initializer = Some(Arc::new(initializer));
-        }
 
         Ok(global)
     }
@@ -2029,20 +2025,6 @@ impl<'a> Parser<'a> {
     fn span_from(&self, start: u32) -> Span {
         Span::new(start, self.last_end.unwrap() - start)
     }
-
-    fn generate_global_initializer(&mut self, global: &Global, initializer: Box<Expr>) -> Function {
-        let builder = Builder::new();
-        let mut block = builder.build_block();
-
-        let var = builder.build_ident(self.generate_id(), global.name);
-        let assignment = builder.build_initializer_assign(self.generate_id(), var, initializer);
-
-        block.add_expr(self.generate_id(), assignment);
-
-        let mut fct = builder.build_fct(global.name);
-        fct.block(block.build(self.generate_id()));
-        fct.build(self.generate_id())
-    }
 }
 
 #[derive(Debug)]
@@ -2149,7 +2131,7 @@ mod tests {
     fn parse(code: &'static str) -> (File, Interner) {
         let mut interner = Interner::new();
 
-        let (file, errors) = Parser::from_string(code, &mut interner).parse();
+        let (file, _id_generator, errors) = Parser::from_string(code, &mut interner).parse();
         assert!(errors.is_empty());
 
         (file, interner)
@@ -2158,7 +2140,7 @@ mod tests {
     fn parse_err(code: &'static str, msg: ParseError, line: u32, col: u32) {
         let mut interner = Interner::new();
 
-        let (_ast, errors) = Parser::from_string(code, &mut interner).parse();
+        let (_ast, _id_generator, errors) = Parser::from_string(code, &mut interner).parse();
 
         assert_eq!(errors.len(), 1);
         let err = &errors[0];

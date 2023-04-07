@@ -219,7 +219,7 @@ pub struct Global {
     pub name: Name,
     pub mutable: bool,
     pub data_type: Type,
-    pub initializer: Option<Arc<Function>>,
+    pub initial_value: Option<Box<Expr>>,
     pub visibility: Visibility,
 }
 
