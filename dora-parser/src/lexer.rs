@@ -1,4 +1,6 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::error::{ParseError, ParseErrorWithLocation};
@@ -12,24 +14,27 @@ pub struct Lexer {
     content: Arc<String>,
     offset: usize,
     keywords: HashMap<&'static str, TokenKind>,
+    _errors: Rc<RefCell<Vec<ParseErrorWithLocation>>>,
 }
 
 impl Lexer {
     pub fn from_str(code: &str) -> Lexer {
-        Lexer::new(Arc::new(String::from(code)))
+        let errors = Rc::new(RefCell::new(Vec::new()));
+        Lexer::new(Arc::new(String::from(code)), errors)
     }
 
     pub fn source(&self) -> Arc<String> {
         self.content.clone()
     }
 
-    pub fn new(content: Arc<String>) -> Lexer {
+    pub fn new(content: Arc<String>, errors: Rc<RefCell<Vec<ParseErrorWithLocation>>>) -> Lexer {
         let keywords = keywords_in_map();
 
         Lexer {
             offset: 0,
             content,
             keywords,
+            _errors: errors,
         }
     }
 

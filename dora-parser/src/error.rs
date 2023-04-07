@@ -1,6 +1,6 @@
 use crate::Span;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum ParseError {
     // Lexer errors
     UnknownChar(char),
@@ -62,7 +62,7 @@ impl ParseError {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ParseErrorWithLocation {
     pub span: Span,
     pub error: ParseError,

@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::mem;
+use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::ast;
@@ -20,7 +21,7 @@ pub struct Parser<'a> {
     param_idx: u32,
     in_class_or_module: bool,
     last_end: Option<u32>,
-    errors: Vec<ParseErrorWithLocation>,
+    errors: Rc<RefCell<Vec<ParseErrorWithLocation>>>,
 }
 
 type ExprResult = Result<Box<Expr>, ParseErrorWithLocation>;
@@ -44,7 +45,8 @@ impl<'a> Parser<'a> {
 
     fn common_init(content: Arc<String>, interner: &'a mut Interner) -> Parser<'a> {
         let token = Token::new(TokenKind::End, Span::invalid());
-        let lexer = Lexer::new(content);
+        let errors = Rc::new(RefCell::new(Vec::new()));
+        let lexer = Lexer::new(content, errors.clone());
 
         let parser = Parser {
             lexer,
@@ -54,7 +56,7 @@ impl<'a> Parser<'a> {
             param_idx: 0,
             in_class_or_module: false,
             last_end: Some(0),
-            errors: Vec::new(),
+            errors,
         };
 
         parser
@@ -66,24 +68,35 @@ impl<'a> Parser<'a> {
 
     pub fn parse(mut self) -> (ast::File, NodeIdGenerator, Vec<ParseErrorWithLocation>) {
         if let Err(msg) = self.init() {
+            let mut cloned_errors = self.errors.borrow().clone();
+            cloned_errors.push(msg);
+
             return (
                 ast::File {
                     elements: Vec::new(),
                 },
                 self.id_generator,
-                vec![msg],
+                cloned_errors,
             );
         }
 
         match self.parse_top_level() {
-            Ok(ast_file) => (ast_file, self.id_generator, Vec::new()),
-            Err(msg) => (
-                ast::File {
-                    elements: Vec::new(),
-                },
-                self.id_generator,
-                vec![msg],
-            ),
+            Ok(ast_file) => {
+                let cloned_errors = self.errors.borrow().clone();
+                (ast_file, self.id_generator, cloned_errors)
+            }
+            Err(msg) => {
+                let mut cloned_errors = self.errors.borrow().clone();
+                cloned_errors.push(msg);
+
+                (
+                    ast::File {
+                        elements: Vec::new(),
+                    },
+                    self.id_generator,
+                    cloned_errors,
+                )
+            }
         }
     }
 
@@ -1991,11 +2004,14 @@ impl<'a> Parser<'a> {
     }
 
     fn report_error_at(&mut self, msg: ParseError, span: Span) {
-        self.errors.push(ParseErrorWithLocation::new(span, msg));
+        self.errors
+            .borrow_mut()
+            .push(ParseErrorWithLocation::new(span, msg));
     }
 
     fn error_and_advance(&mut self, msg: ParseError) -> Result<(), ParseErrorWithLocation> {
         self.errors
+            .borrow_mut()
             .push(ParseErrorWithLocation::new(self.token.span, msg));
         self.advance_token()?;
         Ok(())
