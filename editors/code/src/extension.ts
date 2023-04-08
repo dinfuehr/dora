@@ -1,8 +1,15 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
+
+import {
+	LanguageClient,
+	LanguageClientOptions,
+	ServerOptions,
+} from 'vscode-languageclient/node';
+
+let client: LanguageClient;
 
 export function activate(context: vscode.ExtensionContext) {
-	console.log('activate extension');
-
 	const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 0);
 	statusBarItem.text = "dora-server";
 	statusBarItem.show();
@@ -12,8 +19,28 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 
 	context.subscriptions.push(disposable);
+
+	const workspacePath = vscode.workspace.workspaceFolders?.at(0)?.uri.fsPath;
+
+	if (workspacePath) {
+		const serverPath = path.join(workspacePath, 'target', 'debug', 'dora-language-server');
+		const serverOptions: ServerOptions = { command: serverPath };
+
+		const clientOptions: LanguageClientOptions = {
+			documentSelector: [{ scheme: 'file', language: 'dora' }],
+		};
+
+		client = new LanguageClient('dora-language-server', serverOptions, clientOptions);
+		client.start();
+	} else {
+		vscode.window.showInformationMessage("No path for dora-language-server");
+	}
 }
 
-export function deactivate() {
-    console.log("deactivate extension");
+export function deactivate(): Thenable<void> | undefined {
+	if (client) {
+		return client.stop();
+	} else {
+		return undefined;
+	}
 }

@@ -17,6 +17,19 @@
 	"main": "./out/extension.js",
 	"activationEvents": ["workspaceContains:*/dora-project.json"],
 	"contributes": {
+        "configuration": {
+            "title": "Dora",
+            "properties": {
+                "dora.languageServer.path": {
+                    "type": [
+                        "string",
+                        null
+                    ],
+                    "default": null,
+                    "description": "Path to dora-language-server"
+                }
+            }
+        },
 		"languages": [
 			{
 				"id": "dora",
@@ -47,6 +60,9 @@
 		"pretest": "npm run compile && npm run lint",
 		"lint": "eslint src --ext ts",
 		"test": "node ./out/test/runTest.js"
+	  },
+	  "dependencies": {
+		"vscode-languageclient": "^8.1.0"
 	  },
 	  "devDependencies": {
 		"@types/vscode": "^1.77.0",
