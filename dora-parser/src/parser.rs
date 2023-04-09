@@ -209,7 +209,7 @@ impl<'a> Parser<'a> {
             }
 
             _ => {
-                let msg = ParseError::ExpectedTopLevelElement(self.token.name());
+                let msg = ParseError::ExpectedTopLevelDeclaration;
                 self.error_and_advance(msg)?;
             }
         }

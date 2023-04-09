@@ -10,7 +10,7 @@ pub enum ParseError {
     InvalidEscapeSequence(char),
 
     // Parser errors
-    ExpectedTopLevelElement(String),
+    ExpectedTopLevelDeclaration,
     UnknownAnnotation(String),
     RedundantAnnotation(String),
     MisplacedAnnotation(String),
@@ -36,8 +36,8 @@ impl ParseError {
             ParseError::InvalidEscapeSequence(ch) => format!("unknown escape sequence `\\{}`.", ch),
 
             // Parser errors
-            ParseError::ExpectedTopLevelElement(ref token) => {
-                format!("expected function or class but got {}.", token)
+            ParseError::ExpectedTopLevelDeclaration => {
+                format!("expected top-level declaration.")
             }
             ParseError::MisplacedAnnotation(ref modifier) => {
                 format!("misplaced annotation `{}`.", modifier)

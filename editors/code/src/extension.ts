@@ -1,13 +1,11 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as os from 'os';
 
-import {
-	LanguageClient,
-	LanguageClientOptions,
-	ServerOptions,
-} from 'vscode-languageclient/node';
+import * as lc from 'vscode-languageclient/node';
 
-let client: LanguageClient;
+let client: lc.LanguageClient;
+let outputChannel: vscode.OutputChannel;
 
 export function activate(context: vscode.ExtensionContext) {
 	const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 0);
@@ -20,21 +18,20 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(disposable);
 
-	const workspacePath = vscode.workspace.workspaceFolders?.at(0)?.uri.fsPath;
+	const homedir = os.homedir();
+	const serverPath = path.join(homedir, 'code', 'dora', 'target', 'debug', 'dora-language-server');
+	const serverOptions: lc.ServerOptions = { command: serverPath };
 
-	if (workspacePath) {
-		const serverPath = path.join(workspacePath, 'target', 'debug', 'dora-language-server');
-		const serverOptions: ServerOptions = { command: serverPath };
+	outputChannel = vscode.window.createOutputChannel("Dora Language Server");
 
-		const clientOptions: LanguageClientOptions = {
-			documentSelector: [{ scheme: 'file', language: 'dora' }],
-		};
+	const clientOptions: lc.LanguageClientOptions = {
+		documentSelector: [{ scheme: 'file', language: 'dora' }],
+		outputChannel: outputChannel,
+		revealOutputChannelOn: lc.RevealOutputChannelOn.Info,
+	};
 
-		client = new LanguageClient('dora-language-server', serverOptions, clientOptions);
-		client.start();
-	} else {
-		vscode.window.showInformationMessage("No path for dora-language-server");
-	}
+	client = new lc.LanguageClient('Dora Language Server', serverOptions, clientOptions, true);
+	client.start();
 }
 
 export function deactivate(): Thenable<void> | undefined {

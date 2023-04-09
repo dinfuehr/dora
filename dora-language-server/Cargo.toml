@@ -9,7 +9,8 @@ license = "MIT"
 edition = "2021"
 
 [dependencies]
-dora-frontend = { path = "../dora-frontend", version = "0.0.2" }
+dora-parser = { path = "../dora-parser", version = "0.0.2" }
 lsp-server = "*"
 lsp-types = "*"
 serde_json = "*"
+serde = "*"

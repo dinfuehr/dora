@@ -155,9 +155,10 @@ dependencies = [
 name = "dora-language-server"
 version = "0.0.2"
 dependencies = [
- "dora-frontend",
+ "dora-parser",
  "lsp-server",
  "lsp-types",
+ "serde",
  "serde_json",
 ]
 
