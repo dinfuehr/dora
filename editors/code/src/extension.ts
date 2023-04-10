@@ -9,7 +9,7 @@ let outputChannel: vscode.OutputChannel;
 
 export function activate(context: vscode.ExtensionContext) {
 	const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 0);
-	statusBarItem.text = "dora-server";
+	statusBarItem.text = "(dora-server)";
 	statusBarItem.show();
 
 	let disposable = vscode.commands.registerCommand('dora-lang.ping', () => {
@@ -18,8 +18,17 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(disposable);
 
-	const homedir = os.homedir();
-	const serverPath = path.join(homedir, 'code', 'dora', 'target', 'debug', 'dora-language-server');
+	const config = vscode.workspace.getConfiguration("dora.languageServer");
+	const serverPath: string | undefined = config.get("path");
+
+	if (serverPath) {
+		createClient(serverPath, statusBarItem);
+	} else {
+		vscode.window.showInformationMessage("Configure path to server in settings.");
+	}
+}
+
+function createClient(serverPath: string, statusBarItem: vscode.StatusBarItem) {
 	const serverOptions: lc.ServerOptions = { command: serverPath };
 
 	outputChannel = vscode.window.createOutputChannel("Dora Language Server");
@@ -32,6 +41,16 @@ export function activate(context: vscode.ExtensionContext) {
 
 	client = new lc.LanguageClient('Dora Language Server', serverOptions, clientOptions, true);
 	client.start();
+
+	client.onDidChangeState((state) => {
+		if (state.newState === lc.State.Running) {
+			statusBarItem.text = "dora-server";
+		} else if (state.newState === lc.State.Starting) {
+			statusBarItem.text = "dora-server (starting)";
+		} else if (state.newState === lc.State.Stopped) {
+			statusBarItem.text = "dora-server (stopped)";
+		}
+	});
 }
 
 export function deactivate(): Thenable<void> | undefined {
