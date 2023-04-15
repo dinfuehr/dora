@@ -628,12 +628,21 @@ impl ErrorDescriptor {
         }
     }
 
-    pub fn message(&self, sa: &SemAnalysis) -> String {
+    pub fn line_column(&self, sa: &SemAnalysis) -> Option<(u32, u32)> {
         if let Some(file) = self.file {
             let file = sa.source_file(file);
 
             let span = self.span.expect("missing location");
-            let (line, column) = compute_line_column(&file.line_starts, span.start());
+            Some(compute_line_column(&file.line_starts, span.start()))
+        } else {
+            None
+        }
+    }
+
+    pub fn message(&self, sa: &SemAnalysis) -> String {
+        if let Some(file) = self.file {
+            let file = sa.source_file(file);
+            let (line, column) = self.line_column(sa).expect("missing location");
 
             format!(
                 "error in {:?} at {}:{}: {}",

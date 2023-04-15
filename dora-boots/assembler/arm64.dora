@@ -491,6 +491,84 @@ mod encoding {
         0b01010100i32 << 24i32 | imm << 5i32 | cond.encoding()
     }
 
+    pub fn csel(
+        sf: Int32,
+        op: Int32,
+        s: Int32,
+        rm: Register,
+        cond: Cond,
+        op2: Int32,
+        rn: Register,
+        rd: Register,
+    ): Int32 {
+        assert(fitsBit(sf));
+        assert(fitsBit(op));
+        assert(fitsBit(s));
+        assert(rm.isGprOrZero());
+        assert(fitsBit(op2));
+        assert(rn.isGprOrZero());
+        assert(rd.isGpr());
+
+        0b11010100i32 << 21i32
+            | sf << 31i32
+            | op << 30i32
+            | s << 29i32
+            | rm.encodingZero() << 16i32
+            | cond.encoding() << 12i32
+            | op2 << 10i32
+            | rn.encodingZero() << 5i32
+            | rd.encoding()
+    }
+
+    pub fn dataproc1(
+        sf: Int32,
+        s: Int32,
+        opcode2: Int32,
+        opcode: Int32,
+        rn: Register,
+        rd: Register,
+    ): Int32 {
+        assert(fitsBit(sf));
+        assert(fitsBit(sf));
+        assert(fitsU5(opcode2));
+        assert(fitsU6(opcode));
+        assert(rn.isGpr());
+        assert(rd.isGpr());
+
+        sf << 31i32
+            | 1i32 << 30i32
+            | s << 29i32
+            | 0b11010110i32 << 21i32
+            | opcode2 << 16i32
+            | opcode << 10i32
+            | rn.encoding() << 5i32
+            | rd.encoding()
+    }
+
+    pub fn dataproc2(
+        sf: Int32,
+        s: Int32,
+        rm: Register,
+        opcode: Int32,
+        rn: Register,
+        rd: Register,
+    ): Int32 {
+        assert(fitsBit(sf));
+        assert(fitsBit(s));
+        assert(rm.isGpr());
+        assert(fitsU6(opcode));
+        assert(rn.isGpr());
+        assert(rd.isGpr());
+
+        sf << 31i32
+            | s << 29i32
+            | 0b11010110i32 << 21i32
+            | rm.encoding() << 16i32
+            | opcode << 10i32
+            | rn.encoding() << 5i32
+            | rd.encoding()
+    }
+
     fn fitsBit(value: Int32): Bool {
         value >= 0i32 && value < 2i32
     }
@@ -506,6 +584,10 @@ mod encoding {
 
     fn fitsU2(value: Int32): Bool {
         fitsUnsigned(value, 2i32)
+    }
+
+    fn fitsU5(value: Int32): Bool {
+        fitsUnsigned(value, 5i32)
     }
 
     fn fitsU6(value: Int32): Bool {

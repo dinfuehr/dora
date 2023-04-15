@@ -180,12 +180,14 @@ name = "dora-language-server"
 version = "0.0.2"
 dependencies = [
  "crossbeam",
+ "dora-frontend",
  "dora-parser",
  "lsp-server",
  "lsp-types",
  "serde",
  "serde_json",
  "threadpool",
+ "walkdir",
 ]
 
 [[package]]
