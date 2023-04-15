@@ -490,16 +490,11 @@ impl<'a> AstDumper<'a> {
         );
 
         self.indent(|d| {
-            if block.stmts.is_empty() {
-                dump!(d, "no statements");
-            } else {
-                for stmt in &block.stmts {
-                    d.dump_stmt(stmt);
-                }
+            for stmt in &block.stmts {
+                d.dump_stmt(stmt);
             }
 
             if let Some(ref expr) = block.expr {
-                dump!(d, "value");
                 d.dump_expr(expr);
             }
         });
@@ -587,9 +582,9 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_expr_bin(&mut self, expr: &ExprBinType) {
-        self.indent(|d| d.dump_expr(&expr.rhs));
         dump!(self, "binary {:?} @ {} {}", expr.op, expr.pos, expr.id);
         self.indent(|d| d.dump_expr(&expr.lhs));
+        self.indent(|d| d.dump_expr(&expr.rhs));
     }
 
     fn dump_expr_lambda(&mut self, fct: &Arc<Function>) {
