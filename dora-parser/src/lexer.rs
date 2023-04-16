@@ -135,64 +135,70 @@ impl Lexer {
 
     fn read_char_literal(&mut self) -> Result<Token, ParseErrorWithLocation> {
         let start = self.offset();
+        let mut terminated = false;
+        let mut iterations = 0;
+        let mut ch = '\0';
 
         self.eat_char();
-        let ch = self.read_escaped_char(start, ParseError::UnclosedChar)?;
+
+        while self.curr().is_some() && !is_char_quote(self.curr()) {
+            let current_char = self.read_escaped_char()?;
+            if iterations == 0 {
+                ch = current_char;
+            }
+            iterations += 1;
+        }
 
         if is_char_quote(self.curr()) {
             self.eat_char();
-
-            let ttype = TokenKind::LitChar(ch);
-            let span = self.span_from(start);
-            Ok(Token::new(ttype, span))
-        } else {
-            let span = self.span_from(start);
-            Err(ParseErrorWithLocation::new(span, ParseError::UnclosedChar))
+            if iterations == 1 {
+                terminated = true;
+            }
         }
+
+        let ttype = TokenKind::LitChar(ch);
+        let span = self.span_from(start);
+
+        if !terminated {
+            self.report_error_at(ParseError::UnclosedChar, span);
+        }
+
+        Ok(Token::new(ttype, span))
     }
 
-    fn read_escaped_char(
-        &mut self,
-        start: u32,
-        unclosed: ParseError,
-    ) -> Result<char, ParseErrorWithLocation> {
-        if let Some(ch) = self.curr() {
+    fn read_escaped_char(&mut self) -> Result<char, ParseErrorWithLocation> {
+        let ch = self.curr().expect("missing char");
+        let escaped_start = self.offset();
+        self.eat_char();
+
+        if ch == '\\' {
+            let ch = if let Some(ch) = self.curr() {
+                ch
+            } else {
+                let span = self.span_from(escaped_start);
+                self.report_error_at(ParseError::InvalidEscapeSequence, span);
+                return Ok('\\');
+            };
+
             self.eat_char();
 
-            if ch == '\\' {
-                let ch = if let Some(ch) = self.curr() {
-                    ch
-                } else {
-                    let span = self.span_from(start);
-                    self.report_error_at(unclosed, span);
-                    return Ok('\\');
-                };
-
-                self.eat_char();
-
-                match ch {
-                    '\\' => Ok('\\'),
-                    'n' => Ok('\n'),
-                    't' => Ok('\t'),
-                    'r' => Ok('\r'),
-                    '\"' => Ok('\"'),
-                    '\'' => Ok('\''),
-                    '0' => Ok('\0'),
-                    '$' => Ok('$'),
-                    _ => {
-                        let msg = ParseError::InvalidEscapeSequence(ch);
-                        let span = self.span_from(start);
-                        self.report_error_at(msg, span);
-                        Ok(ch)
-                    }
+            match ch {
+                '\\' => Ok('\\'),
+                'n' => Ok('\n'),
+                't' => Ok('\t'),
+                'r' => Ok('\r'),
+                '\"' => Ok('\"'),
+                '\'' => Ok('\''),
+                '0' => Ok('\0'),
+                '$' => Ok('$'),
+                _ => {
+                    let span = self.span_from(escaped_start);
+                    self.report_error_at(ParseError::InvalidEscapeSequence, span);
+                    Ok(ch)
                 }
-            } else {
-                Ok(ch)
             }
         } else {
-            let span = self.span_from(start);
-            self.report_error_at(unclosed, span);
-            Ok('\0')
+            Ok(ch)
         }
     }
 
@@ -206,7 +212,7 @@ impl Lexer {
         }
 
         while self.curr().is_some() && !is_quote(self.curr()) {
-            if self.curr() == Some('$') && self.next() == Some('{') {
+            if self.curr() == Some('$') && self.lookahead() == Some('{') {
                 self.eat_char();
                 self.eat_char();
 
@@ -215,23 +221,26 @@ impl Lexer {
                 return Ok(Token::new(ttype, span));
             }
 
-            let ch = self.read_escaped_char(start, ParseError::UnclosedString)?;
+            let ch = self.read_escaped_char()?;
             value.push(ch);
         }
 
-        if is_quote(self.curr()) {
+        let terminated = if is_quote(self.curr()) {
             self.eat_char();
-
-            let ttype = TokenKind::StringTail(value);
-            let span = self.span_from(start);
-            Ok(Token::new(ttype, span))
+            true
         } else {
+            false
+        };
+
+        let span = self.span_from(start);
+        let ttype = TokenKind::StringTail(value);
+
+        if !terminated {
             let span = self.span_from(start);
-            Err(ParseErrorWithLocation::new(
-                span,
-                ParseError::UnclosedString,
-            ))
+            self.report_error_at(ParseError::UnclosedString, span);
         }
+
+        Ok(Token::new(ttype, span))
     }
 
     pub fn read_string_continuation(&mut self) -> Result<Token, ParseErrorWithLocation> {
@@ -244,7 +253,7 @@ impl Lexer {
         self.eat_char();
 
         let nch = self.curr().unwrap_or('x');
-        let nnch = self.next().unwrap_or('x');
+        let nnch = self.lookahead().unwrap_or('x');
 
         let kind = match ch {
             '+' => TokenKind::Add,
@@ -387,7 +396,7 @@ impl Lexer {
         let mut value = String::new();
 
         let base = if self.curr() == Some('0') {
-            let next = self.next();
+            let next = self.lookahead();
 
             match next {
                 Some('x') => {
@@ -412,7 +421,7 @@ impl Lexer {
 
         self.read_digits(&mut value, base);
 
-        if base == IntBase::Dec && self.curr() == Some('.') && is_digit(self.next()) {
+        if base == IntBase::Dec && self.curr() == Some('.') && is_digit(self.lookahead()) {
             return self.read_number_as_float(start, value);
         }
 
@@ -502,14 +511,12 @@ impl Lexer {
         self.offset.try_into().expect("overflow")
     }
 
-    fn eat_char(&mut self) -> Option<char> {
+    fn eat_char(&mut self) {
         let curr = self.curr();
 
         if let Some(ch) = curr {
             self.offset += ch.len_utf8();
         }
-
-        self.curr()
     }
 
     fn curr(&self) -> Option<char> {
@@ -520,7 +527,7 @@ impl Lexer {
         }
     }
 
-    fn next(&self) -> Option<char> {
+    fn lookahead(&self) -> Option<char> {
         let pos = self.offset + 1;
 
         if pos < self.content.len() {
@@ -537,15 +544,15 @@ impl Lexer {
     }
 
     fn is_comment_start(&self) -> bool {
-        self.curr() == Some('/') && self.next() == Some('/')
+        self.curr() == Some('/') && self.lookahead() == Some('/')
     }
 
     fn is_multi_comment_start(&self) -> bool {
-        self.curr() == Some('/') && self.next() == Some('*')
+        self.curr() == Some('/') && self.lookahead() == Some('*')
     }
 
     fn is_multi_comment_end(&self) -> bool {
-        self.curr() == Some('*') && self.next() == Some('/')
+        self.curr() == Some('*') && self.lookahead() == Some('/')
     }
 }
 
@@ -671,6 +678,12 @@ mod tests {
         (tokens, errors.clone())
     }
 
+    fn lex_success(content: &str) -> Vec<Token> {
+        let (tokens, errors) = lex(content);
+        assert!(errors.is_empty());
+        tokens
+    }
+
     fn assert_end(reader: &mut Lexer, start: u32) {
         assert_tok(reader, TokenKind::End, start, 0);
     }
@@ -682,14 +695,15 @@ mod tests {
         assert_eq!(count, tok.span.count());
     }
 
-    fn assert_err(reader: &mut Lexer, msg: ParseError, start: u32, count: u32) {
-        let err = reader.read_token().unwrap_err();
-        assert_eq!(msg, err.error);
-        assert_eq!(start, err.span.start());
-        assert_eq!(count, err.span.count());
+    fn assert_tok2(tokens: Vec<Token>, kind: TokenKind, start: u32, count: u32) {
+        assert_eq!(tokens.len(), 1);
+        let token = &tokens[0];
+        assert_eq!(kind, token.kind);
+        assert_eq!(start, token.span.start());
+        assert_eq!(count, token.span.count());
     }
 
-    fn assert_err2(errors: Vec<ParseErrorWithLocation>, msg: ParseError, start: u32, count: u32) {
+    fn assert_err(errors: Vec<ParseErrorWithLocation>, msg: ParseError, start: u32, count: u32) {
         assert_eq!(errors.len(), 1);
         let error = &errors[0];
         assert_eq!(msg, error.error);
@@ -818,7 +832,7 @@ mod tests {
     fn test_unfinished_multi_comment() {
         let (tokens, errors) = lex("/*test");
         assert!(tokens.is_empty());
-        assert_err2(errors, ParseError::UnclosedComment, 0, 6);
+        assert_err(errors, ParseError::UnclosedComment, 0, 6);
 
         let (tokens, errors) = lex("1/*test");
         assert_eq!(
@@ -828,7 +842,7 @@ mod tests {
                 Span::new(0, 1)
             )]
         );
-        assert_err2(errors, ParseError::UnclosedComment, 1, 6);
+        assert_err(errors, ParseError::UnclosedComment, 1, 6);
     }
 
     #[test]
@@ -1014,53 +1028,84 @@ mod tests {
 
     #[test]
     fn test_escape_sequences() {
-        let mut reader = Lexer::from_str("\"\\\"\"");
-        assert_tok(&mut reader, TokenKind::StringTail("\"".into()), 0, 4);
+        let tokens = lex_success("\"\\\"\"");
+        assert_eq!(
+            tokens,
+            vec![Token::new(
+                TokenKind::StringTail("\"".into()),
+                Span::new(0, 4)
+            )]
+        );
 
-        let mut reader = Lexer::from_str("\"\\$\"");
-        assert_tok(&mut reader, TokenKind::StringTail("$".into()), 0, 4);
+        let tokens = lex_success("\"\\$\"");
+        assert_tok2(tokens, TokenKind::StringTail("$".into()), 0, 4);
 
-        let mut reader = Lexer::from_str("\"\\\'\"");
-        assert_tok(&mut reader, TokenKind::StringTail("'".into()), 0, 4);
+        let tokens = lex_success("\"\\\'\"");
+        assert_tok2(tokens, TokenKind::StringTail("'".into()), 0, 4);
 
-        let mut reader = Lexer::from_str("\"\\t\"");
-        assert_tok(&mut reader, TokenKind::StringTail("\t".into()), 0, 4);
+        let tokens = lex_success("\"\\t\"");
+        assert_tok2(tokens, TokenKind::StringTail("\t".into()), 0, 4);
 
-        let mut reader = Lexer::from_str("\"\\n\"");
-        assert_tok(&mut reader, TokenKind::StringTail("\n".into()), 0, 4);
+        let tokens = lex_success("\"\\n\"");
+        assert_tok2(tokens, TokenKind::StringTail("\n".into()), 0, 4);
 
-        let mut reader = Lexer::from_str("\"\\r\"");
-        assert_tok(&mut reader, TokenKind::StringTail("\r".into()), 0, 4);
+        let tokens = lex_success("\"\\r\"");
+        assert_tok2(tokens, TokenKind::StringTail("\r".into()), 0, 4);
 
-        let mut reader = Lexer::from_str("\"\\\\\"");
-        assert_tok(&mut reader, TokenKind::StringTail("\\".into()), 0, 4);
+        let tokens = lex_success("\"\\\\\"");
+        assert_tok2(tokens, TokenKind::StringTail("\\".into()), 0, 4);
 
-        let mut reader = Lexer::from_str("\"\\");
-        assert_err(&mut reader, ParseError::UnclosedString, 0, 2);
+        let (tokens, errors) = lex("\"\\");
+        assert_eq!(
+            tokens,
+            vec![Token::new(
+                TokenKind::StringTail("\\".into()),
+                Span::new(0, 2)
+            )]
+        );
+        assert_eq!(
+            errors,
+            vec![
+                ParseErrorWithLocation::new(Span::new(1, 1), ParseError::InvalidEscapeSequence),
+                ParseErrorWithLocation::new(Span::new(0, 2), ParseError::UnclosedString)
+            ]
+        );
     }
 
     #[test]
     fn test_unclosed_string() {
-        let mut reader = Lexer::from_str("\"abc");
-        assert_err(&mut reader, ParseError::UnclosedString, 0, 4);
+        let (tokens, errors) = lex("\"abc");
+        assert_tok2(tokens, TokenKind::StringTail("abc".into()), 0, 4);
+        assert_err(errors, ParseError::UnclosedString, 0, 4);
     }
 
     #[test]
     fn test_unclosed_char() {
-        let mut reader = Lexer::from_str("'a");
-        assert_err(&mut reader, ParseError::UnclosedChar, 0, 2);
+        let (tokens, errors) = lex("'a");
+        assert_tok2(tokens, TokenKind::LitChar('a'), 0, 2);
+        assert_err(errors, ParseError::UnclosedChar, 0, 2);
 
-        let mut reader = Lexer::from_str("'\\");
-        assert_err(&mut reader, ParseError::UnclosedChar, 0, 2);
+        let (tokens, errors) = lex("'\\");
+        assert_tok2(tokens, TokenKind::LitChar('\\'), 0, 2);
+        assert_eq!(
+            errors,
+            vec![
+                ParseErrorWithLocation::new(Span::new(1, 1), ParseError::InvalidEscapeSequence),
+                ParseErrorWithLocation::new(Span::new(0, 2), ParseError::UnclosedChar)
+            ]
+        );
 
-        let mut reader = Lexer::from_str("'\\n");
-        assert_err(&mut reader, ParseError::UnclosedChar, 0, 3);
+        let (tokens, errors) = lex("'\\n");
+        assert_tok2(tokens, TokenKind::LitChar('\n'), 0, 3);
+        assert_err(errors, ParseError::UnclosedChar, 0, 3);
 
-        let mut reader = Lexer::from_str("'ab'");
-        assert_err(&mut reader, ParseError::UnclosedChar, 0, 2);
+        let (tokens, errors) = lex("'ab'");
+        assert_tok2(tokens, TokenKind::LitChar('a'), 0, 4);
+        assert_err(errors, ParseError::UnclosedChar, 0, 4);
 
-        let mut reader = Lexer::from_str("'");
-        assert_err(&mut reader, ParseError::UnclosedChar, 0, 1);
+        let (tokens, errors) = lex("'");
+        assert_tok2(tokens, TokenKind::LitChar('\0'), 0, 1);
+        assert_err(errors, ParseError::UnclosedChar, 0, 1);
     }
 
     #[test]
@@ -1150,14 +1195,14 @@ mod tests {
 
     #[test]
     fn test_invalid_char() {
-        let (tokens, errors) = lex("aöb");
+        let (tokens, errors) = lex("a☕b");
         assert_eq!(
             tokens,
             vec![
                 Token::new(TokenKind::Identifier, Span::new(0, 1)),
-                Token::new(TokenKind::Identifier, Span::new(3, 1))
+                Token::new(TokenKind::Identifier, Span::new(4, 1))
             ]
         );
-        assert_err2(errors, ParseError::UnknownChar('ö'), 1, 2);
+        assert_err(errors, ParseError::UnknownChar('☕'), 1, 3);
     }
 }

@@ -7,7 +7,7 @@ pub enum ParseError {
     UnclosedComment,
     UnclosedString,
     UnclosedChar,
-    InvalidEscapeSequence(char),
+    InvalidEscapeSequence,
 
     // Parser errors
     ExpectedTopLevelDeclaration,
@@ -33,7 +33,7 @@ impl ParseError {
             ParseError::UnclosedComment => "unclosed comment.".into(),
             ParseError::UnclosedString => "unclosed string.".into(),
             ParseError::UnclosedChar => "unclosed char.".into(),
-            ParseError::InvalidEscapeSequence(ch) => format!("unknown escape sequence `\\{}`.", ch),
+            ParseError::InvalidEscapeSequence => "unknown escape sequence.".into(),
 
             // Parser errors
             ParseError::ExpectedTopLevelDeclaration => {
@@ -62,7 +62,7 @@ impl ParseError {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParseErrorWithLocation {
     pub span: Span,
     pub error: ParseError,
