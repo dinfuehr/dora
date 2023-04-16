@@ -22,9 +22,9 @@ pub struct Parser<'a> {
     errors: Rc<RefCell<Vec<ParseErrorWithLocation>>>,
 }
 
-type ExprResult = Result<Box<Expr>, ParseErrorWithLocation>;
-type StmtResult = Result<Box<Stmt>, ParseErrorWithLocation>;
-type StmtOrExprResult = Result<StmtOrExpr, ParseErrorWithLocation>;
+type ExprResult = Result<Box<Expr>, ()>;
+type StmtResult = Result<Box<Stmt>, ()>;
+type StmtOrExprResult = Result<StmtOrExpr, ()>;
 
 enum StmtOrExpr {
     Stmt(Box<Stmt>),
@@ -46,7 +46,7 @@ impl<'a> Parser<'a> {
         let errors = Rc::new(RefCell::new(Vec::new()));
         let lexer = Lexer::new(content, errors.clone());
 
-        let parser = Parser {
+        let mut parser = Parser {
             lexer,
             token,
             id_generator: NodeIdGenerator::new(),
@@ -57,6 +57,8 @@ impl<'a> Parser<'a> {
             errors,
         };
 
+        parser.advance_token();
+
         parser
     }
 
@@ -65,27 +67,13 @@ impl<'a> Parser<'a> {
     }
 
     pub fn parse(mut self) -> (ast::File, NodeIdGenerator, Vec<ParseErrorWithLocation>) {
-        if let Err(msg) = self.init() {
-            let mut cloned_errors = self.errors.borrow().clone();
-            cloned_errors.push(msg);
-
-            return (
-                ast::File {
-                    elements: Vec::new(),
-                },
-                self.id_generator,
-                cloned_errors,
-            );
-        }
-
         match self.parse_top_level() {
             Ok(ast_file) => {
                 let cloned_errors = self.errors.borrow().clone();
                 (ast_file, self.id_generator, cloned_errors)
             }
-            Err(msg) => {
-                let mut cloned_errors = self.errors.borrow().clone();
-                cloned_errors.push(msg);
+            Err(()) => {
+                let cloned_errors = self.errors.borrow().clone();
 
                 (
                     ast::File {
@@ -98,7 +86,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_top_level(&mut self) -> Result<ast::File, ParseErrorWithLocation> {
+    fn parse_top_level(&mut self) -> Result<ast::File, ()> {
         let mut elements = vec![];
 
         while !self.token.is_eof() {
@@ -108,16 +96,7 @@ impl<'a> Parser<'a> {
         Ok(ast::File { elements })
     }
 
-    fn init(&mut self) -> Result<(), ParseErrorWithLocation> {
-        self.advance_token()?;
-
-        Ok(())
-    }
-
-    fn parse_top_level_element(
-        &mut self,
-        elements: &mut Vec<Elem>,
-    ) -> Result<(), ParseErrorWithLocation> {
+    fn parse_top_level_element(&mut self, elements: &mut Vec<Elem>) -> Result<(), ()> {
         let modifiers = self.parse_annotation_usages()?;
 
         match self.token.kind {
@@ -215,7 +194,7 @@ impl<'a> Parser<'a> {
         Ok(())
     }
 
-    fn parse_extern(&mut self) -> Result<ExternPackage, ParseErrorWithLocation> {
+    fn parse_extern(&mut self) -> Result<ExternPackage, ()> {
         let start = self.token.span.start();
 
         self.expect_token(TokenKind::Extern)?;
@@ -238,7 +217,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_use(&mut self) -> Result<Use, ParseErrorWithLocation> {
+    fn parse_use(&mut self) -> Result<Use, ()> {
         self.expect_token(TokenKind::Use)?;
         let use_declaration = self.parse_use_inner()?;
         self.expect_semicolon()?;
@@ -246,7 +225,7 @@ impl<'a> Parser<'a> {
         Ok(use_declaration)
     }
 
-    fn parse_use_inner(&mut self) -> Result<Use, ParseErrorWithLocation> {
+    fn parse_use_inner(&mut self) -> Result<Use, ()> {
         let start = self.token.span.start();
         let mut path = Vec::new();
         let mut allow_brace = false;
@@ -285,7 +264,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_use_as(&mut self) -> Result<UseTargetName, ParseErrorWithLocation> {
+    fn parse_use_as(&mut self) -> Result<UseTargetName, ()> {
         self.expect_token(TokenKind::As)?;
 
         let start = self.token.span.start();
@@ -301,7 +280,7 @@ impl<'a> Parser<'a> {
         Ok(UseTargetName { span, name })
     }
 
-    fn parse_use_path_component(&mut self) -> Result<UsePathComponent, ParseErrorWithLocation> {
+    fn parse_use_path_component(&mut self) -> Result<UsePathComponent, ()> {
         let start = self.token.span.start();
 
         let value = if self.token.is(TokenKind::This) {
@@ -323,7 +302,7 @@ impl<'a> Parser<'a> {
         Ok(UsePathComponent { span, value })
     }
 
-    fn parse_use_brace(&mut self) -> Result<UseTargetDescriptor, ParseErrorWithLocation> {
+    fn parse_use_brace(&mut self) -> Result<UseTargetDescriptor, ()> {
         let start = self.token.span.start();
         self.expect_token(TokenKind::LBrace)?;
 
@@ -337,7 +316,7 @@ impl<'a> Parser<'a> {
         Ok(UseTargetDescriptor::Group(UseTargetGroup { span, targets }))
     }
 
-    fn parse_enum(&mut self, modifiers: &Modifiers) -> Result<Enum, ParseErrorWithLocation> {
+    fn parse_enum(&mut self, modifiers: &Modifiers) -> Result<Enum, ()> {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Enum)?;
         let name = self.expect_identifier()?;
@@ -359,7 +338,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_module(&mut self, modifiers: &Modifiers) -> Result<Module, ParseErrorWithLocation> {
+    fn parse_module(&mut self, modifiers: &Modifiers) -> Result<Module, ()> {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Mod)?;
         let name = self.expect_identifier()?;
@@ -391,12 +370,12 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_enum_variant(&mut self) -> Result<EnumVariant, ParseErrorWithLocation> {
+    fn parse_enum_variant(&mut self) -> Result<EnumVariant, ()> {
         let start = self.token.span.start();
         let name = self.expect_identifier()?;
 
         let types = if self.token.is(TokenKind::LParen) {
-            self.advance_token()?;
+            self.advance_token();
             Some(self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| p.parse_type())?)
         } else {
             None
@@ -412,7 +391,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_const(&mut self, modifiers: &Modifiers) -> Result<Const, ParseErrorWithLocation> {
+    fn parse_const(&mut self, modifiers: &Modifiers) -> Result<Const, ()> {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Const)?;
         let name = self.expect_identifier()?;
@@ -433,7 +412,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_impl(&mut self) -> Result<Impl, ParseErrorWithLocation> {
+    fn parse_impl(&mut self) -> Result<Impl, ()> {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Impl)?;
         let type_params = self.parse_type_params()?;
@@ -441,7 +420,7 @@ impl<'a> Parser<'a> {
         let type_name = self.parse_type()?;
 
         let (class_type, trait_type) = if self.token.is(TokenKind::For) {
-            self.advance_token()?;
+            self.advance_token();
             let class_type = self.parse_type()?;
 
             (class_type, Some(type_name))
@@ -475,12 +454,12 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_global(&mut self, modifiers: &Modifiers) -> Result<Global, ParseErrorWithLocation> {
+    fn parse_global(&mut self, modifiers: &Modifiers) -> Result<Global, ()> {
         let start = self.token.span.start();
-        self.advance_token()?;
+        self.advance_token();
 
         let mutable = if self.token.is(TokenKind::Mut) {
-            self.advance_token()?;
+            self.advance_token();
             true
         } else {
             false
@@ -492,7 +471,7 @@ impl<'a> Parser<'a> {
         let data_type = self.parse_type()?;
 
         let expr = if self.token.is(TokenKind::Eq) {
-            self.advance_token()?;
+            self.advance_token();
             Some(self.parse_expression()?)
         } else {
             None
@@ -514,7 +493,7 @@ impl<'a> Parser<'a> {
         Ok(global)
     }
 
-    fn parse_trait(&mut self, modifiers: &Modifiers) -> Result<Trait, ParseErrorWithLocation> {
+    fn parse_trait(&mut self, modifiers: &Modifiers) -> Result<Trait, ()> {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Trait)?;
         let ident = self.expect_identifier()?;
@@ -546,7 +525,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_struct(&mut self, modifiers: &Modifiers) -> Result<Struct, ParseErrorWithLocation> {
+    fn parse_struct(&mut self, modifiers: &Modifiers) -> Result<Struct, ()> {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Struct)?;
         let ident = self.expect_identifier()?;
@@ -579,7 +558,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_struct_field(&mut self) -> Result<StructField, ParseErrorWithLocation> {
+    fn parse_struct_field(&mut self) -> Result<StructField, ()> {
         let start = self.token.span.start();
 
         let modifiers = self.parse_annotation_usages()?;
@@ -601,7 +580,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_class(&mut self, modifiers: &Modifiers) -> Result<Class, ParseErrorWithLocation> {
+    fn parse_class(&mut self, modifiers: &Modifiers) -> Result<Class, ()> {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Class)?;
 
@@ -635,7 +614,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_class_field(&mut self) -> Result<Field, ParseErrorWithLocation> {
+    fn parse_class_field(&mut self) -> Result<Field, ()> {
         let start = self.token.span.start();
 
         let modifiers = self.parse_annotation_usages()?;
@@ -660,10 +639,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_annotation(
-        &mut self,
-        modifiers: &Modifiers,
-    ) -> Result<Annotation, ParseErrorWithLocation> {
+    fn parse_annotation(&mut self, modifiers: &Modifiers) -> Result<Annotation, ()> {
         let start = self.token.span.start();
         let internal = modifiers.contains(Modifier::Internal);
 
@@ -692,9 +668,7 @@ impl<'a> Parser<'a> {
         Ok(annotation)
     }
 
-    fn parse_annotation_params(
-        &mut self,
-    ) -> Result<Option<Vec<AnnotationParam>>, ParseErrorWithLocation> {
+    fn parse_annotation_params(&mut self) -> Result<Option<Vec<AnnotationParam>>, ()> {
         if !self.token.is(TokenKind::LParen) {
             return Ok(None);
         }
@@ -708,7 +682,7 @@ impl<'a> Parser<'a> {
         Ok(Some(params))
     }
 
-    fn parse_annotation_param(&mut self) -> Result<AnnotationParam, ParseErrorWithLocation> {
+    fn parse_annotation_param(&mut self) -> Result<AnnotationParam, ()> {
         let start = self.token.span.start();
         let name = self.expect_identifier()?;
 
@@ -724,7 +698,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_alias(&mut self, modifiers: &Modifiers) -> Result<Alias, ParseErrorWithLocation> {
+    fn parse_alias(&mut self, modifiers: &Modifiers) -> Result<Alias, ()> {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Alias)?;
         let name = self.expect_identifier()?;
@@ -742,9 +716,9 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_type_params(&mut self) -> Result<Option<Vec<TypeParam>>, ParseErrorWithLocation> {
+    fn parse_type_params(&mut self) -> Result<Option<Vec<TypeParam>>, ()> {
         if self.token.is(TokenKind::LBracket) {
-            self.advance_token()?;
+            self.advance_token();
             let params = self.parse_list(TokenKind::Comma, TokenKind::RBracket, |p| {
                 p.parse_type_param()
             })?;
@@ -755,12 +729,12 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_type_param(&mut self) -> Result<TypeParam, ParseErrorWithLocation> {
+    fn parse_type_param(&mut self) -> Result<TypeParam, ()> {
         let start = self.token.span.start();
         let name = self.expect_identifier()?;
 
         let bounds = if self.token.is(TokenKind::Colon) {
-            self.advance_token()?;
+            self.advance_token();
 
             let mut bounds = Vec::new();
 
@@ -768,7 +742,7 @@ impl<'a> Parser<'a> {
                 bounds.push(self.parse_type()?);
 
                 if self.token.is(TokenKind::Add) {
-                    self.advance_token()?;
+                    self.advance_token();
                 } else {
                     break;
                 }
@@ -784,7 +758,7 @@ impl<'a> Parser<'a> {
         Ok(TypeParam { name, span, bounds })
     }
 
-    fn parse_annotation_usages(&mut self) -> Result<Modifiers, ParseErrorWithLocation> {
+    fn parse_annotation_usages(&mut self) -> Result<Modifiers, ()> {
         let mut modifiers = Modifiers::new();
         loop {
             let modifier = self.parse_annotation_usage()?;
@@ -796,10 +770,8 @@ impl<'a> Parser<'a> {
             let modifier = modifier.unwrap();
 
             if modifiers.contains(modifier) {
-                return Err(ParseErrorWithLocation::new(
-                    self.token.span,
-                    ParseError::RedundantAnnotation(modifier.name().into()),
-                ));
+                self.report_error(ParseError::RedundantAnnotation(modifier.name().into()));
+                return Err(());
             }
 
             modifiers.add(modifier, self.token.span);
@@ -808,24 +780,24 @@ impl<'a> Parser<'a> {
         Ok(modifiers)
     }
 
-    fn parse_annotation_usage(&mut self) -> Result<Option<Modifier>, ParseErrorWithLocation> {
+    fn parse_annotation_usage(&mut self) -> Result<Option<Modifier>, ()> {
         if self.token.is(TokenKind::Pub) {
-            self.advance_token()?;
+            self.advance_token();
             Ok(Some(Modifier::Pub))
         } else if self.token.is(TokenKind::Static) {
-            self.advance_token()?;
+            self.advance_token();
             Ok(Some(Modifier::Static))
         } else {
             if !self.token.is(TokenKind::At) {
                 return Ok(None);
             }
-            self.advance_token()?;
+            self.advance_token();
 
             if self.token.is(TokenKind::Pub) {
-                self.advance_token()?;
+                self.advance_token();
                 return Ok(Some(Modifier::Pub));
             } else if self.token.is(TokenKind::Static) {
-                self.advance_token()?;
+                self.advance_token();
                 return Ok(Some(Modifier::Static));
             }
 
@@ -836,10 +808,10 @@ impl<'a> Parser<'a> {
                 "static" => Ok(Some(Modifier::Static)),
                 "Test" => Ok(Some(Modifier::Test)),
                 "optimizeImmediately" => Ok(Some(Modifier::OptimizeImmediately)),
-                annotation => Err(ParseErrorWithLocation::new(
-                    self.token.span,
-                    ParseError::UnknownAnnotation(annotation.into()),
-                )),
+                annotation => {
+                    self.report_error(ParseError::UnknownAnnotation(annotation.into()));
+                    Err(())
+                }
             }
         }
     }
@@ -859,10 +831,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_function(
-        &mut self,
-        modifiers: &Modifiers,
-    ) -> Result<Function, ParseErrorWithLocation> {
+    fn parse_function(&mut self, modifiers: &Modifiers) -> Result<Function, ()> {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Fn)?;
         let ident = self.expect_identifier()?;
@@ -891,7 +860,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_function_params(&mut self) -> Result<Vec<Param>, ParseErrorWithLocation> {
+    fn parse_function_params(&mut self) -> Result<Vec<Param>, ()> {
         self.expect_token(TokenKind::LParen)?;
         self.param_idx = 0;
 
@@ -909,9 +878,9 @@ impl<'a> Parser<'a> {
         sep: TokenKind,
         stop: TokenKind,
         mut parse: F,
-    ) -> Result<Vec<R>, ParseErrorWithLocation>
+    ) -> Result<Vec<R>, ()>
     where
-        F: FnMut(&mut Parser) -> Result<R, ParseErrorWithLocation>,
+        F: FnMut(&mut Parser) -> Result<R, ()>,
     {
         let mut data = vec![];
         let mut comma = true;
@@ -929,7 +898,7 @@ impl<'a> Parser<'a> {
 
             comma = self.token.is(sep.clone());
             if comma {
-                self.advance_token()?;
+                self.advance_token();
             }
         }
 
@@ -938,11 +907,11 @@ impl<'a> Parser<'a> {
         Ok(data)
     }
 
-    fn parse_function_param(&mut self) -> Result<Param, ParseErrorWithLocation> {
+    fn parse_function_param(&mut self) -> Result<Param, ()> {
         let start = self.token.span.start();
 
         let mutable = if self.token.is(TokenKind::Mut) {
-            self.advance_token()?;
+            self.advance_token();
             true
         } else {
             false
@@ -955,7 +924,7 @@ impl<'a> Parser<'a> {
         let data_type = self.parse_type()?;
 
         let variadic = if self.token.is(TokenKind::DotDotDot) {
-            self.advance_token()?;
+            self.advance_token();
             true
         } else {
             false
@@ -974,9 +943,9 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_function_type(&mut self) -> Result<Option<Type>, ParseErrorWithLocation> {
+    fn parse_function_type(&mut self) -> Result<Option<Type>, ()> {
         if self.token.is(TokenKind::Colon) {
-            self.advance_token()?;
+            self.advance_token();
             let ty = self.parse_type()?;
 
             Ok(Some(ty))
@@ -985,11 +954,9 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_function_block(
-        &mut self,
-    ) -> Result<Option<Box<ExprBlockType>>, ParseErrorWithLocation> {
+    fn parse_function_block(&mut self) -> Result<Option<Box<ExprBlockType>>, ()> {
         if self.token.is(TokenKind::Semicolon) {
-            self.advance_token()?;
+            self.advance_token();
 
             Ok(None)
         } else {
@@ -1003,11 +970,11 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_type(&mut self) -> Result<Type, ParseErrorWithLocation> {
+    fn parse_type(&mut self) -> Result<Type, ()> {
         match self.token.kind {
             TokenKind::CapitalThis => {
                 let span = self.token.span;
-                self.advance_token()?;
+                self.advance_token();
                 Ok(Type::create_self(self.generate_id(), span))
             }
 
@@ -1016,7 +983,7 @@ impl<'a> Parser<'a> {
                 let path = self.parse_path()?;
 
                 let params = if self.token.is(TokenKind::LBracket) {
-                    self.advance_token()?;
+                    self.advance_token();
                     self.parse_list(TokenKind::Comma, TokenKind::RBracket, |p| {
                         Ok(Box::new(p.parse_type()?))
                     })?
@@ -1030,7 +997,7 @@ impl<'a> Parser<'a> {
 
             TokenKind::LParen => {
                 let start = self.token.span.start();
-                self.advance_token()?;
+                self.advance_token();
                 let subtypes = self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
                     let ty = p.parse_type()?;
 
@@ -1038,7 +1005,7 @@ impl<'a> Parser<'a> {
                 })?;
 
                 if self.token.is(TokenKind::Colon) {
-                    self.advance_token()?;
+                    self.advance_token();
                     let ret = Box::new(self.parse_type()?);
                     let span = self.span_from(start);
 
@@ -1049,20 +1016,20 @@ impl<'a> Parser<'a> {
                 }
             }
 
-            _ => Err(ParseErrorWithLocation::new(
-                self.token.span,
-                ParseError::ExpectedType(self.token.name()),
-            )),
+            _ => {
+                self.report_error(ParseError::ExpectedType(self.token.name()));
+                Err(())
+            }
         }
     }
 
-    fn parse_path(&mut self) -> Result<Path, ParseErrorWithLocation> {
+    fn parse_path(&mut self) -> Result<Path, ()> {
         let start = self.token.span.start();
         let name = self.expect_identifier()?;
         let mut names = vec![name];
 
         while self.token.is(TokenKind::ColonColon) {
-            self.advance_token()?;
+            self.advance_token();
             let name = self.expect_identifier()?;
             names.push(name);
         }
@@ -1099,7 +1066,7 @@ impl<'a> Parser<'a> {
     fn parse_let(&mut self) -> StmtResult {
         let start = self.token.span.start();
 
-        self.advance_token()?;
+        self.advance_token();
         let pattern = self.parse_let_pattern()?;
         let data_type = self.parse_var_type()?;
         let expr = self.parse_var_assignment()?;
@@ -1116,10 +1083,10 @@ impl<'a> Parser<'a> {
         )))
     }
 
-    fn parse_let_pattern(&mut self) -> Result<Box<LetPattern>, ParseErrorWithLocation> {
+    fn parse_let_pattern(&mut self) -> Result<Box<LetPattern>, ()> {
         if self.token.is(TokenKind::LParen) {
             let start = self.token.span.start();
-            self.advance_token()?;
+            self.advance_token();
 
             let parts = self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
                 p.parse_let_pattern()
@@ -1134,7 +1101,7 @@ impl<'a> Parser<'a> {
             })))
         } else if self.token.is(TokenKind::Underscore) {
             let span = self.token.span;
-            self.advance_token()?;
+            self.advance_token();
 
             Ok(Box::new(LetPattern::Underscore(LetUnderscoreType {
                 id: self.generate_id(),
@@ -1143,7 +1110,7 @@ impl<'a> Parser<'a> {
         } else {
             let start = self.token.span.start();
             let mutable = if self.token.is(TokenKind::Mut) {
-                self.advance_token()?;
+                self.advance_token();
                 true
             } else {
                 false
@@ -1160,9 +1127,9 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_var_type(&mut self) -> Result<Option<Type>, ParseErrorWithLocation> {
+    fn parse_var_type(&mut self) -> Result<Option<Type>, ()> {
         if self.token.is(TokenKind::Colon) {
-            self.advance_token()?;
+            self.advance_token();
 
             Ok(Some(self.parse_type()?))
         } else {
@@ -1170,7 +1137,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_var_assignment(&mut self) -> Result<Option<Box<Expr>>, ParseErrorWithLocation> {
+    fn parse_var_assignment(&mut self) -> Result<Option<Box<Expr>>, ()> {
         if self.token.is(TokenKind::Eq) {
             self.expect_token(TokenKind::Eq)?;
             let expr = self.parse_expression()?;
@@ -1236,10 +1203,10 @@ impl<'a> Parser<'a> {
             TokenKind::Break => Ok(StmtOrExpr::Stmt(self.parse_break()?)),
             TokenKind::Continue => Ok(StmtOrExpr::Stmt(self.parse_continue()?)),
             TokenKind::Return => Ok(StmtOrExpr::Stmt(self.parse_return()?)),
-            TokenKind::Else => Err(ParseErrorWithLocation::new(
-                self.token.span,
-                ParseError::MisplacedElse,
-            )),
+            TokenKind::Else => {
+                self.report_error(ParseError::MisplacedElse);
+                Err(())
+            }
             TokenKind::For => Ok(StmtOrExpr::Stmt(self.parse_for()?)),
             _ => {
                 let expr = self.parse_expression()?;
@@ -1269,7 +1236,7 @@ impl<'a> Parser<'a> {
         let then_block = self.parse_block()?;
 
         let else_block = if self.token.is(TokenKind::Else) {
-            self.advance_token()?;
+            self.advance_token();
 
             if self.token.is(TokenKind::If) {
                 Some(self.parse_if()?)
@@ -1303,10 +1270,11 @@ impl<'a> Parser<'a> {
 
         while !self.token.is(TokenKind::RBrace) && !self.token.is_eof() {
             if !comma {
-                return Err(ParseErrorWithLocation::new(
-                    self.token.span,
-                    ParseError::ExpectedToken(TokenKind::Comma.name().into(), self.token.name()),
+                self.report_error(ParseError::ExpectedToken(
+                    TokenKind::Comma.name().into(),
+                    self.token.name(),
                 ));
+                return Err(());
             }
 
             let case = self.parse_match_case()?;
@@ -1315,7 +1283,7 @@ impl<'a> Parser<'a> {
             comma = self.token.is(TokenKind::Comma);
 
             if comma {
-                self.advance_token()?;
+                self.advance_token();
             }
         }
 
@@ -1330,13 +1298,13 @@ impl<'a> Parser<'a> {
         )))
     }
 
-    fn parse_match_case(&mut self) -> Result<MatchCaseType, ParseErrorWithLocation> {
+    fn parse_match_case(&mut self) -> Result<MatchCaseType, ()> {
         let start = self.token.span.start();
         let mut patterns = Vec::new();
         patterns.push(self.parse_match_pattern()?);
 
         while self.token.is(TokenKind::Or) {
-            self.advance_token()?;
+            self.advance_token();
             patterns.push(self.parse_match_pattern()?);
         }
 
@@ -1353,7 +1321,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_match_pattern(&mut self) -> Result<MatchPattern, ParseErrorWithLocation> {
+    fn parse_match_pattern(&mut self) -> Result<MatchPattern, ()> {
         let start = self.token.span.start();
 
         let data = if self.token.is(TokenKind::Underscore) {
@@ -1385,7 +1353,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_match_pattern_param(&mut self) -> Result<MatchPatternParam, ParseErrorWithLocation> {
+    fn parse_match_pattern_param(&mut self) -> Result<MatchPatternParam, ()> {
         let start = self.token.span.start();
 
         let (mutable, name) = if self.token.is(TokenKind::Underscore) {
@@ -1532,7 +1500,7 @@ impl<'a> Parser<'a> {
                 return Ok(left);
             }
 
-            let tok = self.advance_token()?;
+            let tok = self.advance_token();
 
             left = match tok.kind {
                 TokenKind::As => {
@@ -1555,7 +1523,7 @@ impl<'a> Parser<'a> {
         match self.token.kind {
             TokenKind::Add | TokenKind::Sub | TokenKind::Not => {
                 let start = self.token.span.start();
-                let tok = self.advance_token()?;
+                let tok = self.advance_token();
                 let op = match tok.kind {
                     TokenKind::Add => UnOp::Plus,
                     TokenKind::Sub => UnOp::Neg,
@@ -1584,7 +1552,7 @@ impl<'a> Parser<'a> {
         loop {
             left = match self.token.kind {
                 TokenKind::Dot => {
-                    let op_span = self.advance_token()?.span;
+                    let op_span = self.advance_token().span;
                     let rhs = self.parse_factor()?;
                     let span = self.span_from(start);
 
@@ -1598,7 +1566,7 @@ impl<'a> Parser<'a> {
                 }
 
                 TokenKind::LParen => {
-                    self.advance_token()?;
+                    self.advance_token();
                     let args = self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
                         p.parse_expression()
                     })?;
@@ -1608,7 +1576,7 @@ impl<'a> Parser<'a> {
                 }
 
                 TokenKind::LBracket => {
-                    let op_span = self.advance_token()?.span;
+                    let op_span = self.advance_token().span;
                     let types =
                         self.parse_list(TokenKind::Comma, TokenKind::RBracket, |p| p.parse_type())?;
                     let span = self.span_from(start);
@@ -1623,7 +1591,7 @@ impl<'a> Parser<'a> {
                 }
 
                 TokenKind::ColonColon => {
-                    let op_span = self.advance_token()?.span;
+                    let op_span = self.advance_token().span;
                     let rhs = self.parse_factor()?;
                     let span = self.span_from(start);
 
@@ -1695,10 +1663,10 @@ impl<'a> Parser<'a> {
             TokenKind::False => self.parse_bool_literal(),
             TokenKind::This => self.parse_this(),
             TokenKind::Or | TokenKind::OrOr => self.parse_lambda(),
-            _ => Err(ParseErrorWithLocation::new(
-                self.token.span,
-                ParseError::ExpectedFactor(self.token.name().clone()),
-            )),
+            _ => {
+                self.report_error(ParseError::ExpectedFactor(self.token.name().clone()));
+                Err(())
+            }
         }
     }
 
@@ -1719,7 +1687,7 @@ impl<'a> Parser<'a> {
         self.expect_token(TokenKind::LParen)?;
 
         if self.token.is(TokenKind::RParen) {
-            self.advance_token()?;
+            self.advance_token();
             let span = self.span_from(start);
             return Ok(Box::new(Expr::create_tuple(
                 self.generate_id(),
@@ -1738,7 +1706,7 @@ impl<'a> Parser<'a> {
                 self.expect_token(TokenKind::Comma)?;
 
                 if self.token.kind == TokenKind::RParen {
-                    self.advance_token()?;
+                    self.advance_token();
                     span = self.span_from(start);
                     break;
                 }
@@ -1747,7 +1715,7 @@ impl<'a> Parser<'a> {
                 values.push(expr);
 
                 if self.token.kind == TokenKind::RParen {
-                    self.advance_token()?;
+                    self.advance_token();
                     span = self.span_from(start);
                     break;
                 }
@@ -1768,7 +1736,7 @@ impl<'a> Parser<'a> {
 
     fn parse_lit_char(&mut self) -> ExprResult {
         let span = self.token.span;
-        let tok = self.advance_token()?;
+        let tok = self.advance_token();
 
         if let TokenKind::LitChar(val) = tok.kind {
             Ok(Box::new(Expr::create_lit_char(
@@ -1783,7 +1751,7 @@ impl<'a> Parser<'a> {
 
     fn parse_lit_int(&mut self) -> ExprResult {
         let span = self.token.span;
-        let tok = self.advance_token()?;
+        let tok = self.advance_token();
 
         let (value, base, suffix) = match tok.kind {
             TokenKind::LitInt(value, base, suffix) => (value, base, suffix),
@@ -1798,16 +1766,16 @@ impl<'a> Parser<'a> {
                 let expr = Expr::create_lit_int(self.generate_id(), span, value, base, suffix);
                 Ok(Box::new(expr))
             }
-            _ => Err(ParseErrorWithLocation::new(
-                span,
-                ParseError::NumberOverflow,
-            )),
+            _ => {
+                self.report_error_at(ParseError::NumberOverflow, span);
+                Err(())
+            }
         }
     }
 
     fn parse_lit_float(&mut self) -> ExprResult {
         let span = self.token.span;
-        let tok = self.advance_token()?;
+        let tok = self.advance_token();
 
         let (value, suffix) = match tok.kind {
             TokenKind::LitFloat(value, suffix) => (value, suffix),
@@ -1825,7 +1793,7 @@ impl<'a> Parser<'a> {
 
     fn parse_string(&mut self) -> ExprResult {
         let span = self.token.span;
-        let string = self.advance_token()?;
+        let string = self.advance_token();
 
         match string.kind {
             TokenKind::StringTail(value) => Ok(Box::new(Expr::create_lit_str(
@@ -1848,10 +1816,8 @@ impl<'a> Parser<'a> {
                     parts.push(expr);
 
                     if !self.token.is(TokenKind::RBrace) {
-                        return Err(ParseErrorWithLocation::new(
-                            self.token.span,
-                            ParseError::UnclosedStringTemplate,
-                        ));
+                        self.report_error(ParseError::UnclosedStringTemplate);
+                        return Err(());
                     }
 
                     let token = self.lexer.read_string_continuation();
@@ -1871,7 +1837,7 @@ impl<'a> Parser<'a> {
                         value,
                     )));
 
-                    self.advance_token()?;
+                    self.advance_token();
 
                     if finished {
                         break;
@@ -1893,7 +1859,7 @@ impl<'a> Parser<'a> {
 
     fn parse_bool_literal(&mut self) -> ExprResult {
         let span = self.token.span;
-        let tok = self.advance_token()?;
+        let tok = self.advance_token();
         let value = tok.is(TokenKind::True);
 
         Ok(Box::new(Expr::create_lit_bool(
@@ -1905,14 +1871,14 @@ impl<'a> Parser<'a> {
 
     fn parse_this(&mut self) -> ExprResult {
         let span = self.token.span;
-        self.advance_token()?;
+        self.advance_token();
 
         Ok(Box::new(Expr::create_this(self.generate_id(), span)))
     }
 
     fn parse_lambda(&mut self) -> ExprResult {
         let start = self.token.span.start();
-        let tok = self.advance_token()?;
+        let tok = self.advance_token();
 
         let params = if tok.kind == TokenKind::OrOr {
             // nothing to do
@@ -1926,7 +1892,7 @@ impl<'a> Parser<'a> {
         };
 
         let return_type = if self.token.is(TokenKind::Colon) {
-            self.advance_token()?;
+            self.advance_token();
             Some(self.parse_type()?)
         } else {
             None
@@ -1964,8 +1930,8 @@ impl<'a> Parser<'a> {
         Ok(Box::new(Expr::create_lambda(function)))
     }
 
-    fn expect_identifier(&mut self) -> Result<Name, ParseErrorWithLocation> {
-        let tok = self.advance_token()?;
+    fn expect_identifier(&mut self) -> Result<Name, ()> {
+        let tok = self.advance_token();
 
         if let TokenKind::Identifier = tok.kind {
             let value = self.source_span(tok.span);
@@ -1973,27 +1939,26 @@ impl<'a> Parser<'a> {
 
             Ok(interned)
         } else {
-            Err(ParseErrorWithLocation::new(
-                tok.span,
-                ParseError::ExpectedIdentifier(tok.name()),
-            ))
+            self.report_error_at(ParseError::ExpectedIdentifier(tok.name()), tok.span);
+            Err(())
         }
     }
 
-    fn expect_semicolon(&mut self) -> Result<Token, ParseErrorWithLocation> {
+    fn expect_semicolon(&mut self) -> Result<Token, ()> {
         self.expect_token(TokenKind::Semicolon)
     }
 
-    fn expect_token(&mut self, kind: TokenKind) -> Result<Token, ParseErrorWithLocation> {
+    fn expect_token(&mut self, kind: TokenKind) -> Result<Token, ()> {
         if self.token.kind == kind {
-            let token = self.advance_token()?;
+            let token = self.advance_token();
 
             Ok(token)
         } else {
-            Err(ParseErrorWithLocation::new(
-                self.token.span,
-                ParseError::ExpectedToken(kind.name().into(), self.token.name()),
-            ))
+            self.report_error(ParseError::ExpectedToken(
+                kind.name().into(),
+                self.token.name(),
+            ));
+            Err(())
         }
     }
 
@@ -2007,17 +1972,17 @@ impl<'a> Parser<'a> {
             .push(ParseErrorWithLocation::new(span, msg));
     }
 
-    fn error_and_advance(&mut self, msg: ParseError) -> Result<(), ParseErrorWithLocation> {
+    fn error_and_advance(&mut self, msg: ParseError) -> Result<(), ()> {
         self.errors
             .borrow_mut()
             .push(ParseErrorWithLocation::new(self.token.span, msg));
-        self.advance_token()?;
+        self.advance_token();
         Ok(())
     }
 
-    fn advance_token(&mut self) -> Result<Token, ParseErrorWithLocation> {
+    fn advance_token(&mut self) -> Token {
         let token = self.lexer.read_token();
-        Ok(self.advance_token_with(token))
+        self.advance_token_with(token)
     }
 
     fn advance_token_with(&mut self, token: Token) -> Token {
@@ -2075,7 +2040,6 @@ mod tests {
 
         let expr = {
             let mut parser = Parser::from_string(code, &mut interner);
-            assert!(parser.init().is_ok());
 
             let result = parser.parse_expression();
 
@@ -2090,13 +2054,14 @@ mod tests {
     }
 
     fn err_expr(code: &'static str, msg: ParseError, line: u32, col: u32) {
-        let err = {
-            let mut interner = Interner::new();
-            let mut parser = Parser::from_string(code, &mut interner);
+        let mut interner = Interner::new();
+        let mut parser = Parser::from_string(code, &mut interner);
 
-            assert!(parser.init().is_ok());
-            parser.parse_expression().unwrap_err()
-        };
+        parser.parse_expression().unwrap_err();
+
+        let errors = parser.errors.borrow().clone();
+        assert_eq!(errors.len(), 1);
+        let err = &errors[0];
 
         assert_eq!(msg, err.error);
 
@@ -2109,19 +2074,18 @@ mod tests {
     fn parse_stmt(code: &'static str) -> Box<Stmt> {
         let mut interner = Interner::new();
         let mut parser = Parser::from_string(code, &mut interner);
-        assert!(parser.init().is_ok());
-
         parser.parse_statement().unwrap()
     }
 
     fn err_stmt(code: &'static str, msg: ParseError, line: u32, col: u32) {
-        let err = {
-            let mut interner = Interner::new();
-            let mut parser = Parser::from_string(code, &mut interner);
+        let mut interner = Interner::new();
+        let mut parser = Parser::from_string(code, &mut interner);
 
-            assert!(parser.init().is_ok());
-            parser.parse_statement().unwrap_err()
-        };
+        parser.parse_statement().unwrap_err();
+
+        let errors = parser.errors.borrow().clone();
+        assert_eq!(errors.len(), 1);
+        let err = &errors[0];
 
         assert_eq!(msg, err.error);
         let line_starts = compute_line_starts(code);
@@ -2134,8 +2098,6 @@ mod tests {
         let mut interner = Interner::new();
         let ty = {
             let mut parser = Parser::from_string(code, &mut interner);
-            assert!(parser.init().is_ok());
-
             parser.parse_type().unwrap()
         };
 
