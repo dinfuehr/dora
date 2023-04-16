@@ -1854,7 +1854,7 @@ impl<'a> Parser<'a> {
                         ));
                     }
 
-                    let token = self.lexer.read_string_continuation()?;
+                    let token = self.lexer.read_string_continuation();
                     self.advance_token_with(token);
 
                     let span = self.token.span;
@@ -2016,7 +2016,7 @@ impl<'a> Parser<'a> {
     }
 
     fn advance_token(&mut self) -> Result<Token, ParseErrorWithLocation> {
-        let token = self.lexer.read_token()?;
+        let token = self.lexer.read_token();
         Ok(self.advance_token_with(token))
     }
 

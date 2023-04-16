@@ -34,7 +34,7 @@ impl Lexer {
         }
     }
 
-    pub fn read_token(&mut self) -> Result<Token, ParseErrorWithLocation> {
+    pub fn read_token(&mut self) -> Token {
         loop {
             self.skip_white();
 
@@ -42,17 +42,17 @@ impl Lexer {
             let ch = self.curr();
 
             if let None = ch {
-                return Ok(Token::new(TokenKind::End, Span::at(start)));
+                return Token::new(TokenKind::End, Span::at(start));
             }
 
             if is_digit(ch) {
                 return self.read_number();
             } else if self.is_comment_start() {
-                self.read_comment()?;
+                self.read_comment();
             } else if self.is_multi_comment_start() {
-                self.read_multi_comment()?;
+                self.read_multi_comment();
             } else if is_identifier_start(ch) {
-                return Ok(self.read_identifier());
+                return self.read_identifier();
             } else if is_quote(ch) {
                 return self.read_string(true);
             } else if is_char_quote(ch) {
@@ -74,15 +74,13 @@ impl Lexer {
         }
     }
 
-    fn read_comment(&mut self) -> Result<(), ParseErrorWithLocation> {
+    fn read_comment(&mut self) {
         while !self.curr().is_none() && !is_newline(self.curr()) {
             self.eat_char();
         }
-
-        Ok(())
     }
 
-    fn read_multi_comment(&mut self) -> Result<(), ParseErrorWithLocation> {
+    fn read_multi_comment(&mut self) {
         let start = self.offset();
 
         self.eat_char();
@@ -95,13 +93,11 @@ impl Lexer {
         if self.curr().is_none() {
             let span = self.span_from(start);
             self.report_error_at(ParseError::UnclosedComment, span);
-            return Ok(());
+            return;
         }
 
         self.eat_char();
         self.eat_char();
-
-        Ok(())
     }
 
     fn read_identifier(&mut self) -> Token {
@@ -133,7 +129,7 @@ impl Lexer {
         value
     }
 
-    fn read_char_literal(&mut self) -> Result<Token, ParseErrorWithLocation> {
+    fn read_char_literal(&mut self) -> Token {
         let start = self.offset();
         let mut terminated = false;
         let mut iterations = 0;
@@ -142,7 +138,7 @@ impl Lexer {
         self.eat_char();
 
         while self.curr().is_some() && !is_char_quote(self.curr()) {
-            let current_char = self.read_escaped_char()?;
+            let current_char = self.read_escaped_char();
             if iterations == 0 {
                 ch = current_char;
             }
@@ -163,10 +159,10 @@ impl Lexer {
             self.report_error_at(ParseError::UnclosedChar, span);
         }
 
-        Ok(Token::new(ttype, span))
+        Token::new(ttype, span)
     }
 
-    fn read_escaped_char(&mut self) -> Result<char, ParseErrorWithLocation> {
+    fn read_escaped_char(&mut self) -> char {
         let ch = self.curr().expect("missing char");
         let escaped_start = self.offset();
         self.eat_char();
@@ -177,32 +173,32 @@ impl Lexer {
             } else {
                 let span = self.span_from(escaped_start);
                 self.report_error_at(ParseError::InvalidEscapeSequence, span);
-                return Ok('\\');
+                return '\\';
             };
 
             self.eat_char();
 
             match ch {
-                '\\' => Ok('\\'),
-                'n' => Ok('\n'),
-                't' => Ok('\t'),
-                'r' => Ok('\r'),
-                '\"' => Ok('\"'),
-                '\'' => Ok('\''),
-                '0' => Ok('\0'),
-                '$' => Ok('$'),
+                '\\' => '\\',
+                'n' => '\n',
+                't' => '\t',
+                'r' => '\r',
+                '\"' => '\"',
+                '\'' => '\'',
+                '0' => '\0',
+                '$' => '$',
                 _ => {
                     let span = self.span_from(escaped_start);
                     self.report_error_at(ParseError::InvalidEscapeSequence, span);
-                    Ok(ch)
+                    ch
                 }
             }
         } else {
-            Ok(ch)
+            ch
         }
     }
 
-    fn read_string(&mut self, skip_quote: bool) -> Result<Token, ParseErrorWithLocation> {
+    fn read_string(&mut self, skip_quote: bool) -> Token {
         let start = self.offset();
         let mut value = String::new();
 
@@ -218,10 +214,10 @@ impl Lexer {
 
                 let ttype = TokenKind::StringExpr(value);
                 let span = self.span_from(start);
-                return Ok(Token::new(ttype, span));
+                return Token::new(ttype, span);
             }
 
-            let ch = self.read_escaped_char()?;
+            let ch = self.read_escaped_char();
             value.push(ch);
         }
 
@@ -240,14 +236,14 @@ impl Lexer {
             self.report_error_at(ParseError::UnclosedString, span);
         }
 
-        Ok(Token::new(ttype, span))
+        Token::new(ttype, span)
     }
 
-    pub fn read_string_continuation(&mut self) -> Result<Token, ParseErrorWithLocation> {
+    pub fn read_string_continuation(&mut self) -> Token {
         self.read_string(false)
     }
 
-    fn read_operator(&mut self) -> Result<Token, ParseErrorWithLocation> {
+    fn read_operator(&mut self) -> Token {
         let start = self.offset();
         let ch = self.curr().unwrap();
         self.eat_char();
@@ -388,10 +384,10 @@ impl Lexer {
         };
 
         let span = self.span_from(start);
-        Ok(Token::new(kind, span))
+        Token::new(kind, span)
     }
 
-    fn read_number(&mut self) -> Result<Token, ParseErrorWithLocation> {
+    fn read_number(&mut self) -> Token {
         let start = self.offset();
         let mut value = String::new();
 
@@ -436,10 +432,8 @@ impl Lexer {
                 "f32" if base == IntBase::Dec => TokenKind::LitFloat(value, FloatSuffix::Float32),
                 "f64" if base == IntBase::Dec => TokenKind::LitFloat(value, FloatSuffix::Float64),
                 _ => {
-                    return Err(ParseErrorWithLocation::new(
-                        span,
-                        ParseError::InvalidSuffix(suffix),
-                    ));
+                    self.report_error_at(ParseError::InvalidSuffix(suffix), span);
+                    TokenKind::LitInt(value, base, IntSuffix::None)
                 }
             }
         } else {
@@ -447,14 +441,10 @@ impl Lexer {
         };
 
         let span = self.span_from(start);
-        Ok(Token::new(kind, span))
+        Token::new(kind, span)
     }
 
-    fn read_number_as_float(
-        &mut self,
-        start: u32,
-        mut value: String,
-    ) -> Result<Token, ParseErrorWithLocation> {
+    fn read_number_as_float(&mut self, start: u32, mut value: String) -> Token {
         self.eat_char();
         value.push('.');
 
@@ -480,10 +470,8 @@ impl Lexer {
                 "f32" => FloatSuffix::Float32,
                 "f64" => FloatSuffix::Float64,
                 _ => {
-                    return Err(ParseErrorWithLocation::new(
-                        span,
-                        ParseError::InvalidSuffix(suffix),
-                    ));
+                    self.report_error_at(ParseError::InvalidSuffix(suffix), span);
+                    FloatSuffix::Float64
                 }
             }
         } else {
@@ -492,7 +480,7 @@ impl Lexer {
 
         let ttype = TokenKind::LitFloat(value, suffix);
         let span = self.span_from(start);
-        return Ok(Token::new(ttype, span));
+        Token::new(ttype, span)
     }
 
     fn span_from(&self, start: u32) -> Span {
@@ -666,7 +654,7 @@ mod tests {
         let mut tokens = Vec::new();
 
         loop {
-            let token = lexer.read_token().expect("lexer failed");
+            let token = lexer.read_token();
             if token.is_eof() {
                 break;
             }
@@ -689,7 +677,7 @@ mod tests {
     }
 
     fn assert_tok(reader: &mut Lexer, kind: TokenKind, start: u32, count: u32) {
-        let tok = reader.read_token().unwrap();
+        let tok = reader.read_token();
         assert_eq!(kind, tok.kind);
         assert_eq!(start, tok.span.start());
         assert_eq!(count, tok.span.count());
