@@ -1,7 +1,7 @@
 use std::fmt;
 use std::result::Result;
 
-use crate::lexer::span::Span;
+use crate::Span;
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum TokenKind {

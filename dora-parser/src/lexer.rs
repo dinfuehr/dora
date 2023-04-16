@@ -4,11 +4,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::error::{ParseError, ParseErrorWithLocation};
-use crate::lexer::token::{FloatSuffix, IntBase, IntSuffix, Token, TokenKind};
-use crate::Span;
-
-pub mod span;
-pub mod token;
+use crate::{FloatSuffix, IntBase, IntSuffix, Span, Token, TokenKind};
 
 pub struct Lexer {
     content: Arc<String>,
@@ -648,8 +644,13 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::lexer::token::{Token, TokenKind};
+    use crate::{
+        FloatSuffix, IntBase, IntSuffix, Lexer, ParseError, ParseErrorWithLocation, Span, Token,
+        TokenKind,
+    };
+    use std::cell::RefCell;
+    use std::rc::Rc;
+    use std::sync::Arc;
 
     fn lex(content: &str) -> (Vec<Token>, Vec<ParseErrorWithLocation>) {
         let content = Arc::new(content.into());

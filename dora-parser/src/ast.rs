@@ -6,8 +6,7 @@ use std::sync::Arc;
 use crate::interner::Interner;
 
 use crate::interner::Name;
-use crate::lexer::token::{FloatSuffix, IntBase, IntSuffix};
-use crate::Span;
+use crate::{FloatSuffix, IntBase, IntSuffix, Span};
 
 pub mod dump;
 pub mod visit;

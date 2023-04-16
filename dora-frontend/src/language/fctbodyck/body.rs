@@ -29,9 +29,7 @@ use crate::language::{report_sym_shadow_span, TypeParamContext};
 use dora_bytecode::Intrinsic;
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, MatchCaseType, MatchPattern};
-use dora_parser::interner::Name;
-use dora_parser::lexer::token::{FloatSuffix, IntBase, IntSuffix};
-use dora_parser::Span;
+use dora_parser::{FloatSuffix, IntBase, IntSuffix, Name, Span};
 use fixedbitset::FixedBitSet;
 
 pub struct TypeCheck<'a> {

@@ -1,5 +1,9 @@
-pub use self::lexer::span::Span;
+pub use self::error::{ParseError, ParseErrorWithLocation};
+pub use self::interner::{Interner, Name};
+pub use self::lexer::Lexer;
 pub use self::parser::Parser;
+pub use self::span::Span;
+pub use self::token::{FloatSuffix, IntBase, IntSuffix, Token, TokenKind};
 
 pub mod ast;
 pub mod builder;
@@ -7,6 +11,8 @@ pub mod error;
 pub mod interner;
 pub mod lexer;
 pub mod parser;
+pub mod span;
+pub mod token;
 
 pub fn compute_line_starts(content: &str) -> Vec<u32> {
     let mut pos: u32 = 0;

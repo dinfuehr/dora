@@ -9,9 +9,7 @@ use crate::error::{ParseError, ParseErrorWithLocation};
 
 use crate::interner::*;
 
-use crate::lexer::token::*;
-use crate::lexer::*;
-use crate::Span;
+use crate::{Lexer, Span, Token, TokenKind};
 
 pub struct Parser<'a> {
     lexer: Lexer,
