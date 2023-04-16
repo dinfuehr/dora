@@ -246,7 +246,7 @@ pub enum FloatSuffix {
     Float64,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Token {
     pub kind: TokenKind,
     pub span: Span,

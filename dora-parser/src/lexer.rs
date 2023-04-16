@@ -14,7 +14,7 @@ pub struct Lexer {
     content: Arc<String>,
     offset: usize,
     keywords: HashMap<&'static str, TokenKind>,
-    _errors: Rc<RefCell<Vec<ParseErrorWithLocation>>>,
+    errors: Rc<RefCell<Vec<ParseErrorWithLocation>>>,
 }
 
 impl Lexer {
@@ -34,7 +34,7 @@ impl Lexer {
             offset: 0,
             content,
             keywords,
-            _errors: errors,
+            errors,
         }
     }
 
@@ -67,11 +67,7 @@ impl Lexer {
                 let ch = ch.unwrap();
                 self.eat_char();
                 let span = self.span_from(start);
-
-                return Err(ParseErrorWithLocation::new(
-                    span,
-                    ParseError::UnknownChar(ch),
-                ));
+                self.report_error_at(ParseError::UnknownChar(ch), span);
             }
         }
     }
@@ -102,10 +98,8 @@ impl Lexer {
 
         if self.curr().is_none() {
             let span = self.span_from(start);
-            return Err(ParseErrorWithLocation::new(
-                span,
-                ParseError::UnclosedComment,
-            ));
+            self.report_error_at(ParseError::UnclosedComment, span);
+            return Ok(());
         }
 
         self.eat_char();
@@ -174,7 +168,8 @@ impl Lexer {
                     ch
                 } else {
                     let span = self.span_from(start);
-                    return Err(ParseErrorWithLocation::new(span, unclosed));
+                    self.report_error_at(unclosed, span);
+                    return Ok('\\');
                 };
 
                 self.eat_char();
@@ -191,7 +186,8 @@ impl Lexer {
                     _ => {
                         let msg = ParseError::InvalidEscapeSequence(ch);
                         let span = self.span_from(start);
-                        Err(ParseErrorWithLocation::new(span, msg))
+                        self.report_error_at(msg, span);
+                        Ok(ch)
                     }
                 }
             } else {
@@ -199,7 +195,8 @@ impl Lexer {
             }
         } else {
             let span = self.span_from(start);
-            Err(ParseErrorWithLocation::new(span, unclosed))
+            self.report_error_at(unclosed, span);
+            Ok('\0')
         }
     }
 
@@ -381,12 +378,7 @@ impl Lexer {
             '@' => TokenKind::At,
 
             _ => {
-                self.eat_char();
-                let span = self.span_from(start);
-                return Err(ParseErrorWithLocation::new(
-                    span,
-                    ParseError::UnknownChar(ch),
-                ));
+                unreachable!()
             }
         };
 
@@ -542,6 +534,12 @@ impl Lexer {
         }
     }
 
+    fn report_error_at(&mut self, msg: ParseError, span: Span) {
+        self.errors
+            .borrow_mut()
+            .push(ParseErrorWithLocation::new(span, msg));
+    }
+
     fn is_comment_start(&self) -> bool {
         self.curr() == Some('/') && self.next() == Some('/')
     }
@@ -581,7 +579,7 @@ fn is_char_quote(ch: Option<char>) -> bool {
 }
 
 fn is_operator(ch: Option<char>) -> bool {
-    ch.map(|ch| "^+-*/%&|,=!~;:.()[]{}<>@".contains(ch))
+    ch.map(|ch| "^+-*/%&|,=!;:.()[]{}<>@".contains(ch))
         .unwrap_or(false)
 }
 
@@ -651,7 +649,26 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lexer::token::TokenKind;
+    use crate::lexer::token::{Token, TokenKind};
+
+    fn lex(content: &str) -> (Vec<Token>, Vec<ParseErrorWithLocation>) {
+        let content = Arc::new(content.into());
+        let errors = Rc::new(RefCell::new(Vec::new()));
+        let mut lexer = Lexer::new(content, errors.clone());
+        let mut tokens = Vec::new();
+
+        loop {
+            let token = lexer.read_token().expect("lexer failed");
+            if token.is_eof() {
+                break;
+            }
+            tokens.push(token);
+        }
+
+        let errors = errors.borrow();
+
+        (tokens, errors.clone())
+    }
 
     fn assert_end(reader: &mut Lexer, start: u32) {
         assert_tok(reader, TokenKind::End, start, 0);
@@ -669,6 +686,14 @@ mod tests {
         assert_eq!(msg, err.error);
         assert_eq!(start, err.span.start());
         assert_eq!(count, err.span.count());
+    }
+
+    fn assert_err2(errors: Vec<ParseErrorWithLocation>, msg: ParseError, start: u32, count: u32) {
+        assert_eq!(errors.len(), 1);
+        let error = &errors[0];
+        assert_eq!(msg, error.error);
+        assert_eq!(start, error.span.start());
+        assert_eq!(count, error.span.count());
     }
 
     #[test]
@@ -790,17 +815,19 @@ mod tests {
 
     #[test]
     fn test_unfinished_multi_comment() {
-        let mut reader = Lexer::from_str("/*test");
-        assert_err(&mut reader, ParseError::UnclosedComment, 0, 6);
+        let (tokens, errors) = lex("/*test");
+        assert!(tokens.is_empty());
+        assert_err2(errors, ParseError::UnclosedComment, 0, 6);
 
-        let mut reader = Lexer::from_str("1/*test");
-        assert_tok(
-            &mut reader,
-            TokenKind::LitInt("1".into(), IntBase::Dec, IntSuffix::None),
-            0,
-            1,
+        let (tokens, errors) = lex("1/*test");
+        assert_eq!(
+            tokens,
+            vec![Token::new(
+                TokenKind::LitInt("1".into(), IntBase::Dec, IntSuffix::None),
+                Span::new(0, 1)
+            )]
         );
-        assert_err(&mut reader, ParseError::UnclosedComment, 1, 6);
+        assert_err2(errors, ParseError::UnclosedComment, 1, 6);
     }
 
     #[test]
@@ -1118,5 +1145,18 @@ mod tests {
         assert_tok(&mut reader, TokenKind::GtGtGt, 4, 3);
         assert_tok(&mut reader, TokenKind::Underscore, 7, 1);
         assert_tok(&mut reader, TokenKind::ColonColon, 8, 2);
+    }
+
+    #[test]
+    fn test_invalid_char() {
+        let (tokens, errors) = lex("aöb");
+        assert_eq!(
+            tokens,
+            vec![
+                Token::new(TokenKind::Identifier, Span::new(0, 1)),
+                Token::new(TokenKind::Identifier, Span::new(3, 1))
+            ]
+        );
+        assert_err2(errors, ParseError::UnknownChar('ö'), 1, 2);
     }
 }
