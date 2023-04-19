@@ -16,8 +16,6 @@ pub struct Parser<'a> {
     token: Token,
     id_generator: NodeIdGenerator,
     interner: &'a mut Interner,
-    param_idx: u32,
-    in_class_or_module: bool,
     last_end: Option<u32>,
     errors: Rc<RefCell<Vec<ParseErrorWithLocation>>>,
 }
@@ -51,8 +49,6 @@ impl<'a> Parser<'a> {
             token,
             id_generator: NodeIdGenerator::new(),
             interner,
-            param_idx: 0,
-            in_class_or_module: false,
             last_end: Some(0),
             errors,
         };
@@ -846,7 +842,6 @@ impl<'a> Parser<'a> {
             kind: FunctionKind::Function,
             name: ident,
             span,
-            method: self.in_class_or_module,
             is_optimize_immediately: modifiers.contains(Modifier::OptimizeImmediately),
             visibility: Visibility::from_modifiers(modifiers),
             is_static: modifiers.contains(Modifier::Static),
@@ -862,11 +857,8 @@ impl<'a> Parser<'a> {
 
     fn parse_function_params(&mut self) -> Result<Vec<Param>, ()> {
         self.expect_token(TokenKind::LParen);
-        self.param_idx = 0;
 
         let params = self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
-            p.param_idx += 1;
-
             p.parse_function_param()
         })?;
 
@@ -934,7 +926,6 @@ impl<'a> Parser<'a> {
 
         Ok(Param {
             id: self.generate_id(),
-            idx: self.param_idx - 1,
             variadic,
             name,
             span,
@@ -1884,9 +1875,7 @@ impl<'a> Parser<'a> {
             // nothing to do
             Vec::new()
         } else {
-            self.param_idx = 0;
             self.parse_list(TokenKind::Comma, TokenKind::Or, |p| {
-                p.param_idx += 1;
                 p.parse_function_param()
             })?
         };
@@ -1914,7 +1903,6 @@ impl<'a> Parser<'a> {
             kind: FunctionKind::Lambda,
             name,
             span,
-            method: self.in_class_or_module,
             is_optimize_immediately: false,
             visibility: Visibility::Default,
             is_static: false,
@@ -2704,11 +2692,9 @@ mod tests {
 
         let f = prog.fct0();
         assert_eq!("f", *interner.str(f.name));
-        assert_eq!(false, f.method);
 
         let g = prog.fct(1);
         assert_eq!("g", *interner.str(g.name));
-        assert_eq!(false, g.method);
     }
 
     #[test]

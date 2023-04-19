@@ -48,7 +48,6 @@ impl Builder {
 
 pub struct BuilderFct {
     name: Name,
-    is_method: bool,
     visibility: Visibility,
     is_constructor: bool,
     return_type: Option<Type>,
@@ -60,7 +59,6 @@ impl<'a> BuilderFct {
     pub fn new(name: Name) -> BuilderFct {
         BuilderFct {
             name,
-            is_method: false,
             visibility: Visibility::Public,
             is_constructor: false,
             return_type: None,
@@ -80,7 +78,6 @@ impl<'a> BuilderFct {
             kind: FunctionKind::Function,
             span: Span::invalid(),
             name: self.name,
-            method: self.is_method,
             is_optimize_immediately: false,
             visibility: self.visibility,
             is_static: false,

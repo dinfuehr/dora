@@ -574,7 +574,6 @@ pub struct Function {
     pub kind: FunctionKind,
     pub name: Name,
     pub span: Span,
-    pub method: bool,
     pub is_optimize_immediately: bool,
     pub visibility: Visibility,
     pub is_static: bool,
@@ -693,7 +692,6 @@ impl Modifier {
 #[derive(Clone, Debug)]
 pub struct Param {
     pub id: NodeId,
-    pub idx: u32,
     pub name: Name,
     pub span: Span,
     pub mutable: bool,
