@@ -1,4 +1,4 @@
-use std::Queue;
+use std.Queue;
 
 fun main(): Unit {
     let q = Queue[Int32]::new();

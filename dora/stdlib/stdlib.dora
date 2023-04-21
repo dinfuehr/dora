@@ -1,9 +1,9 @@
-@pub use collections::{Array, BitSet, BitVec, HashMap, HashSet, List, Queue};
-@pub use traits::{Comparable, Default, Equals, Hash, Iterator, Zero};
-@pub use primitives::{Unit, Bool, Char, Float32, Float64, Int32, Int64, Option, range, Result};
-@pub use rand::Random;
-@pub use string::{CodepointIterator, String, StringBuffer, Stringable};
-@pub use thread::{AtomicInt32, AtomicInt64, Condition, Mutex, Thread};
+@pub use collections.{Array, BitSet, BitVec, HashMap, HashSet, List, Queue};
+@pub use traits.{Comparable, Default, Equals, Hash, Iterator, Zero};
+@pub use primitives.{Unit, Bool, Char, Float32, Float64, Int32, Int64, Option, range, Result};
+@pub use rand.Random;
+@pub use string.{CodepointIterator, String, StringBuffer, Stringable};
+@pub use thread.{AtomicInt32, AtomicInt64, Condition, Mutex, Thread};
 
 @pub mod annotations;
 @pub mod collections;

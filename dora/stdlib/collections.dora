@@ -1,6 +1,6 @@
-use std::traits::{Hash, Equals, Iterator, Default, Zero, Sortable, Identity};
-use std::string::{Stringable, StringBuffer};
-use std::{fatalError, unsafeKillRefs};
+use std.traits.{Hash, Equals, Iterator, Default, Zero, Sortable, Identity};
+use std.string.{Stringable, StringBuffer};
+use std.{fatalError, unsafeKillRefs};
 
 @pub @internal class Array[T]
 

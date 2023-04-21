@@ -1,6 +1,6 @@
 //= vm-args "--gc=copy"
 
-use std::Queue;
+use std.Queue;
 
 const THREADS: Int32 = 10i32;
 const ITERATIONS: Int32 = 10'000i32;

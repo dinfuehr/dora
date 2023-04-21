@@ -352,14 +352,14 @@ mod tests {
     fn use_module() {
         err(
             "
-            use foo::bar::Foo;
+            use foo.bar.Foo;
             mod foo {
                 mod bar {
                     class Foo
                 }
             }
         ",
-            pos(2, 22),
+            pos(2, 21),
             ErrorMessage::NotAccessibleInModule("foo".into(), "bar".into()),
         );
     }
@@ -368,14 +368,14 @@ mod tests {
     fn use_class() {
         err(
             "
-            use foo::bar::Foo;
+            use foo.bar.Foo;
             mod foo {
                 @pub mod bar {
                     class Foo
                 }
             }
         ",
-            pos(2, 27),
+            pos(2, 25),
             ErrorMessage::NotAccessibleInModule("foo::bar".into(), "Foo".into()),
         );
     }
@@ -384,12 +384,12 @@ mod tests {
     fn use_fct() {
         err(
             "
-            use foo::bar;
+            use foo.bar;
             mod foo {
                 fun bar(): Unit {}
             }
         ",
-            pos(2, 22),
+            pos(2, 21),
             ErrorMessage::NotAccessibleInModule("foo".into(), "bar".into()),
         );
     }
@@ -398,12 +398,12 @@ mod tests {
     fn use_global() {
         err(
             "
-            use foo::bar;
+            use foo.bar;
             mod foo {
                 var bar: Int32 = 12;
             }
         ",
-            pos(2, 22),
+            pos(2, 21),
             ErrorMessage::NotAccessibleInModule("foo".into(), "bar".into()),
         );
     }
@@ -412,12 +412,12 @@ mod tests {
     fn use_const() {
         err(
             "
-            use foo::bar;
+            use foo.bar;
             mod foo {
                 const bar: Int32 = 12;
             }
         ",
-            pos(2, 22),
+            pos(2, 21),
             ErrorMessage::NotAccessibleInModule("foo".into(), "bar".into()),
         );
     }
@@ -426,12 +426,12 @@ mod tests {
     fn use_enum() {
         err(
             "
-            use foo::Bar;
+            use foo.Bar;
             @pub mod foo {
                 enum Bar { A, B, C }
             }
         ",
-            pos(2, 22),
+            pos(2, 21),
             ErrorMessage::NotAccessibleInModule("foo".into(), "Bar".into()),
         );
     }
@@ -440,17 +440,17 @@ mod tests {
     fn use_enum_value() {
         err(
             "
-            use foo::Bar::A;
+            use foo.Bar.A;
             mod foo {
                 enum Bar { A, B, C }
             }
         ",
-            pos(2, 22),
+            pos(2, 21),
             ErrorMessage::NotAccessibleInModule("foo".into(), "Bar".into()),
         );
 
         ok("
-            use foo::Bar::{A, B, C};
+            use foo.Bar.{A, B, C};
             mod foo {
                 @pub enum Bar { A, B, C }
             }
@@ -461,12 +461,12 @@ mod tests {
     fn use_trait() {
         err(
             "
-            use foo::Bar;
+            use foo.Bar;
             mod foo {
                 trait Bar {}
             }
         ",
-            pos(2, 22),
+            pos(2, 21),
             ErrorMessage::NotAccessibleInModule("foo".into(), "Bar".into()),
         );
     }
@@ -474,7 +474,7 @@ mod tests {
     #[test]
     fn use_value() {
         ok("
-            use foo::Bar;
+            use foo.Bar;
             mod foo {
                 @pub value Bar { f: Int32 }
             }
@@ -482,12 +482,12 @@ mod tests {
 
         err(
             "
-            use foo::Bar;
+            use foo.Bar;
             mod foo {
                 value Bar { f: Int32 }
             }
         ",
-            pos(2, 22),
+            pos(2, 21),
             ErrorMessage::NotAccessibleInModule("foo".into(), "Bar".into()),
         );
     }
@@ -495,7 +495,7 @@ mod tests {
     #[test]
     fn use_public() {
         ok("
-            @pub use foo::Bar;
+            @pub use foo.Bar;
             @pub mod foo {
                 @pub enum Bar { A, B, C }
             }
@@ -516,18 +516,18 @@ mod tests {
     #[test]
     fn use_keyword_in_path() {
         err(
-            "use foo::bar::self; mod foo { @pub mod bar {} }",
-            pos(1, 15),
+            "use foo.bar.self; mod foo { @pub mod bar {} }",
+            pos(1, 13),
             ErrorMessage::ExpectedPath,
         );
         err(
-            "use foo::bar::super; mod foo { @pub mod bar {} }",
-            pos(1, 15),
+            "use foo.bar.super; mod foo { @pub mod bar {} }",
+            pos(1, 13),
             ErrorMessage::ExpectedPath,
         );
         err(
-            "use foo::bar::package; mod foo { @pub mod bar {} }",
-            pos(1, 15),
+            "use foo.bar.package; mod foo { @pub mod bar {} }",
+            pos(1, 13),
             ErrorMessage::ExpectedPath,
         );
     }
@@ -535,8 +535,8 @@ mod tests {
     #[test]
     fn no_use_targets() {
         err(
-            "use foo::bar:: {}; mod foo { @pub mod bar {} }",
-            pos(1, 16),
+            "use foo.bar. {}; mod foo { @pub mod bar {} }",
+            pos(1, 14),
             ErrorMessage::ExpectedPath,
         );
     }
@@ -544,12 +544,12 @@ mod tests {
     #[test]
     fn use_zig_zag() {
         ok("
-            @pub use foo::f1 as f2;
-            @pub use foo::f3 as f4;
+            @pub use foo.f1 as f2;
+            @pub use foo.f3 as f4;
 
             mod foo {
-                @pub use super::f2 as f3;
-                @pub use super::f4 as f5;
+                @pub use super.f2 as f3;
+                @pub use super.f4 as f5;
 
                 @pub fun f1(): Unit {}
             }
@@ -560,19 +560,19 @@ mod tests {
     fn use_cyclic() {
         errors(
             "
-            @pub use foo::f1 as f2;
+            @pub use foo.f1 as f2;
 
             mod foo {
-                @pub use super::f2 as f1;
+                @pub use super.f2 as f1;
             }
         ",
             &[
                 (
-                    pos(2, 27),
+                    pos(2, 26),
                     ErrorMessage::UnknownIdentifierInModule("foo".into(), "f1".into()),
                 ),
                 (
-                    pos(5, 33),
+                    pos(5, 32),
                     ErrorMessage::UnknownIdentifierInModule("".into(), "f2".into()),
                 ),
             ],

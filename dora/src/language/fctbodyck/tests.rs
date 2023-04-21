@@ -2056,15 +2056,15 @@ fn test_enum_equals() {
 
 #[test]
 fn test_use_enum_value() {
-    ok("enum A { V1(Int32), V2 } use A::V1; fun f(): A { V1(1i32) }");
-    ok("enum A[T] { V1(Int32), V2 } use A::V1; fun f(): A[Int32] { V1[Int32](1i32) }");
-    ok("enum A[T] { V1(Int32), V2 } use A::V1; fun f(): A[Int32] { V1(1i32) }");
+    ok("enum A { V1(Int32), V2 } use A.V1; fun f(): A { V1(1i32) }");
+    ok("enum A[T] { V1(Int32), V2 } use A.V1; fun f(): A[Int32] { V1[Int32](1i32) }");
+    ok("enum A[T] { V1(Int32), V2 } use A.V1; fun f(): A[Int32] { V1(1i32) }");
 
-    ok("enum A { V1, V2 } use A::V2; fun f(): A { V2 }");
+    ok("enum A { V1, V2 } use A.V2; fun f(): A { V2 }");
 
     err(
-        "enum A { V1(Int32), V2 } use A::V1; fun f(): A { V1 }",
-        pos(1, 50),
+        "enum A { V1(Int32), V2 } use A.V1; fun f(): A { V1 }",
+        pos(1, 49),
         ErrorMessage::EnumArgsIncompatible(
             "A".into(),
             "V1".into(),
@@ -2074,8 +2074,8 @@ fn test_use_enum_value() {
     );
 
     err(
-        "enum A { V1(Int32), V2 } use A::V2; fun f(): A { V2(0i32) }",
-        pos(1, 52),
+        "enum A { V1(Int32), V2 } use A.V2; fun f(): A { V2(0i32) }",
+        pos(1, 51),
         ErrorMessage::EnumArgsIncompatible(
             "A".into(),
             "V2".into(),
@@ -2084,13 +2084,13 @@ fn test_use_enum_value() {
         ),
     );
 
-    ok("enum A[T] { V1(Int32), V2 } use A::V2; fun f(): A[Int32] { V2 }");
+    ok("enum A[T] { V1(Int32), V2 } use A.V2; fun f(): A[Int32] { V2 }");
 
-    ok("enum A[T] { V1, V2 } use A::V2; fun f(): A[Int32] { V2[Int32] }");
+    ok("enum A[T] { V1, V2 } use A.V2; fun f(): A[Int32] { V2[Int32] }");
 
     err(
-        "enum A[T] { V1, V2 } use A::V2; fun f(): A[Int32] { V2[Int32, Float32] }",
-        pos(1, 55),
+        "enum A[T] { V1, V2 } use A.V2; fun f(): A[Int32] { V2[Int32, Float32] }",
+        pos(1, 54),
         ErrorMessage::WrongNumberTypeParams(1, 2),
     );
 }
@@ -3272,13 +3272,13 @@ fn mod_const() {
 fn mod_enum_value() {
     ok("
         fun f(): Unit { foo::A; }
-        mod foo { @pub enum Foo { A, B } use Foo::A; }
+        mod foo { @pub enum Foo { A, B } use Foo.A; }
     ");
 
     err(
         "
         fun f(): Unit { foo::A; }
-        mod foo { enum Foo { A, B } use Foo::A; }
+        mod foo { enum Foo { A, B } use Foo.A; }
     ",
         pos(2, 28),
         ErrorMessage::NotAccessible("foo::Foo".into()),
@@ -3286,13 +3286,13 @@ fn mod_enum_value() {
 
     ok("
         fun f(): Unit { foo::bar::A; }
-        mod foo { @pub mod bar { @pub enum Foo { A, B } use Foo::A; } }
+        mod foo { @pub mod bar { @pub enum Foo { A, B } use Foo.A; } }
     ");
 
     err(
         "
         fun f(): Unit { foo::bar::A; }
-        mod foo { @pub mod bar { enum Foo { A, B } use Foo::A; } }
+        mod foo { @pub mod bar { enum Foo { A, B } use Foo.A; } }
     ",
         pos(2, 33),
         ErrorMessage::NotAccessible("foo::bar::Foo".into()),
@@ -3341,13 +3341,13 @@ fn mod_enum() {
 #[test]
 fn mod_use() {
     ok("
-        use foo::bar;
+        use foo.bar;
         fun f(): Unit { bar(); }
         mod foo { @pub fun bar(): Unit {} }
     ");
 
     ok("
-        use foo::bar::baz;
+        use foo.bar.baz;
         fun f(): Unit { baz(); }
         mod foo { @pub mod bar {
             @pub fun baz(): Unit {}
@@ -3355,19 +3355,19 @@ fn mod_use() {
     ");
 
     ok("
-        use foo::bar as baz;
+        use foo.bar as baz;
         fun f(): Unit { baz(); }
         mod foo { @pub fun bar(): Unit {} }
     ");
 
     ok("
-        use foo::bar;
+        use foo.bar;
         fun f(): Int32 { bar }
         mod foo { @pub let bar: Int32 = 10i32; }
     ");
 
     ok("
-        use foo::bar::baz;
+        use foo.bar.baz;
         fun f(): Int32 { baz }
         mod foo { @pub mod bar {
             @pub let baz: Int32 = 10i32;
@@ -3375,7 +3375,7 @@ fn mod_use() {
     ");
 
     ok("
-        use foo::bar;
+        use foo.bar;
         fun f(): Int32 { bar }
         mod foo { @pub let bar: Int32 = 10i32; }
     ");
@@ -3384,13 +3384,13 @@ fn mod_use() {
 #[test]
 fn mod_use_class() {
     ok("
-        use foo::Bar;
+        use foo.Bar;
         fun f(): Unit { Bar(); }
         mod foo { @pub class Bar }
     ");
 
     ok("
-        use foo::Bar;
+        use foo.Bar;
         fun f(): Unit {
             Bar();
             Bar::baz();
@@ -3407,7 +3407,7 @@ fn mod_use_class() {
 #[test]
 fn mod_use_trait() {
     ok("
-        use foo::Bar;
+        use foo.Bar;
         mod foo { @pub trait Bar{} }
     ");
 }
@@ -3415,7 +3415,7 @@ fn mod_use_trait() {
 #[test]
 fn mod_use_std() {
     ok("
-        use std::HashMap;
+        use std.HashMap;
     ");
 }
 
@@ -3424,7 +3424,7 @@ fn mod_use_package() {
     ok("
         class Foo
         mod bar {
-            use package::Foo;
+            use package.Foo;
             fun getfoo(): Foo { Foo() }
         }
     ");
@@ -3436,20 +3436,20 @@ fn mod_use_super() {
         mod baz {
             class Foo
             mod bar {
-                use super::Foo;
+                use super.Foo;
 
                 fun getfoo(): Foo { Foo() }
             }
         }
     ");
 
-    err("use super::Foo;", pos(1, 5), ErrorMessage::NoSuperModule);
+    err("use super.Foo;", pos(1, 5), ErrorMessage::NoSuperModule);
 }
 
 #[test]
 fn mod_use_self() {
     ok("
-        use self::bar::Foo;
+        use self.bar.Foo;
         fun getfoo(): Foo { Foo() }
         mod bar { @pub class Foo }
     ");
@@ -3459,16 +3459,16 @@ fn mod_use_self() {
 fn mod_use_errors() {
     err(
         "
-        use foo::bar::baz;
+        use foo.bar.baz;
         mod foo { @pub mod bar {} }
     ",
-        pos(2, 23),
+        pos(2, 21),
         ErrorMessage::UnknownIdentifierInModule("foo::bar".into(), "baz".into()),
     );
 
     err(
         "
-        use foo::bar;
+        use foo.bar;
     ",
         pos(2, 13),
         ErrorMessage::UnknownIdentifierInModule("".into(), "foo".into()),
@@ -3476,16 +3476,16 @@ fn mod_use_errors() {
 
     err(
         "
-        use foo::bar;
+        use foo.bar;
         mod foo {}
     ",
-        pos(2, 18),
+        pos(2, 17),
         ErrorMessage::UnknownIdentifierInModule("foo".into(), "bar".into()),
     );
 
     err(
         "
-        use foo::bar;
+        use foo.bar;
         fun foo(): Unit {}
     ",
         pos(2, 13),
@@ -3494,10 +3494,10 @@ fn mod_use_errors() {
 
     err(
         "
-        use foo::bar::baz;
+        use foo.bar.baz;
         @pub mod foo { @pub fun bar(): Unit {} }
     ",
-        pos(2, 18),
+        pos(2, 17),
         ErrorMessage::ExpectedPath,
     );
 }

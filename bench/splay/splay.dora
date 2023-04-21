@@ -1,5 +1,5 @@
-use std::fatalError;
-use std::timestamp;
+use std.fatalError;
+use std.timestamp;
 
 fun main(): Unit {
     if std::argc() != 3i32 {

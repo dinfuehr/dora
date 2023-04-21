@@ -1,4 +1,4 @@
-use std::HashMap;
+use std.HashMap;
 
 fun main(): Unit {
     let map = HashMap[Int32, String]::new();

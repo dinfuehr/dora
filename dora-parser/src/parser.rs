@@ -195,8 +195,8 @@ impl<'a> Parser<'a> {
             let component = self.parse_use_path_component()?;
             path.push(component);
 
-            if self.token.is(TokenKind::ColonColon) {
-                self.expect_token(TokenKind::ColonColon)?;
+            if self.token.is(TokenKind::Dot) {
+                self.expect_token(TokenKind::Dot)?;
             } else {
                 break;
             }
@@ -3619,15 +3619,15 @@ mod tests {
     #[test]
     fn parse_use_declaration() {
         parse_err(
-            "use foo::bar{a, b, c}",
+            "use foo.bar{a, b, c}",
             ParseError::ExpectedToken(";".into(), "{".into()),
             1,
-            13,
+            12,
         );
 
         parse_err(
-            "use ::foo;",
-            ParseError::ExpectedIdentifier("::".into()),
+            "use .foo;",
+            ParseError::ExpectedIdentifier(".".into()),
             1,
             5,
         );

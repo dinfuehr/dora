@@ -1,5 +1,5 @@
-use std::BitSet;
-use std::HashMap;
+use std.BitSet;
+use std.HashMap;
 
 fun main(): Unit {
     let map = HashMap[Int32, String]::new();

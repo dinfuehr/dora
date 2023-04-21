@@ -1,7 +1,7 @@
 //= vm-args "--gc=copy"
-use std::collections::BitVec;
-use std::thread::Mutex;
-use std::Thread;
+use std.collections.BitVec;
+use std.thread.Mutex;
+use std.Thread;
 
 fun main(): Unit {
     var i = 0i32;

@@ -1,6 +1,6 @@
-use std::traits::{Default, Equals, Hash, Iterator, Zero};
-use std::string::Stringable;
-use std::fatalError;
+use std.traits.{Default, Equals, Hash, Iterator, Zero};
+use std.string.Stringable;
+use std.fatalError;
 
 @pub @internal value Unit
 
@@ -436,8 +436,8 @@ impl UInt8 {
   None,
 }
 
-use Option::Some;
-use Option::None;
+use Option.Some;
+use Option.None;
 
 impl[T] Option[T] {
   @pub fun isNone(): Bool = if self
@@ -554,8 +554,8 @@ impl[T: Zero] Option[T] {
   Err(E),
 }
 
-use Result::Ok;
-use Result::Err;
+use Result.Ok;
+use Result.Err;
 
 impl[T, E] Result[T, E] {
   @pub fun isOk(): Bool = if self
