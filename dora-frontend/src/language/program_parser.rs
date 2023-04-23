@@ -227,38 +227,40 @@ impl<'a> ProgramParser<'a> {
         let node = module.ast.clone().unwrap();
         let file_id = module.file_id.expect("missing file_id");
 
-        let name = self.sa.interner.str(node.name).to_string();
+        if let Some(ident) = &node.name {
+            let name = self.sa.interner.str(ident.name).to_string();
 
-        match file_lookup {
-            FileLookup::FileSystem => {
-                let module_path = module_path.expect("missing module_path");
+            match file_lookup {
+                FileLookup::FileSystem => {
+                    let module_path = module_path.expect("missing module_path");
 
-                let mut file_path = module_path.clone();
-                file_path.push(format!("{}.dora", name));
+                    let mut file_path = module_path.clone();
+                    file_path.push(format!("{}.dora", name));
 
-                let mut module_path = module_path;
-                module_path.push(&name);
+                    let mut module_path = module_path;
+                    module_path.push(&name);
 
-                self.add_file(
-                    package_id,
-                    module_id,
-                    file_path,
-                    Some(module_path),
-                    Some((file_id, node.span)),
-                    FileLookup::FileSystem,
-                );
-            }
+                    self.add_file(
+                        package_id,
+                        module_id,
+                        file_path,
+                        Some(module_path),
+                        Some((file_id, node.span)),
+                        FileLookup::FileSystem,
+                    );
+                }
 
-            FileLookup::Bundle => {
-                let module_path = module_path.expect("missing module_path");
+                FileLookup::Bundle => {
+                    let module_path = module_path.expect("missing module_path");
 
-                let mut file_path = module_path.clone();
-                file_path.push(format!("{}.dora", name));
+                    let mut file_path = module_path.clone();
+                    file_path.push(format!("{}.dora", name));
 
-                let mut module_path = module_path;
-                module_path.push(&name);
+                    let mut module_path = module_path;
+                    module_path.push(&name);
 
-                self.add_bundled_file(package_id, module_id, file_path, module_path);
+                    self.add_bundled_file(package_id, module_id, file_path, module_path);
+                }
             }
         }
     }
@@ -396,31 +398,34 @@ struct TopLevelDeclaration<'x> {
 
 impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     fn visit_extern(&mut self, stmt: &Arc<ast::ExternPackage>) {
-        if let Some(package_id) = self.sa.package_names.get(&stmt.name).cloned() {
-            let top_level_module_id = {
+        if let Some(name) = &stmt.name {
+            if let Some(package_id) = self.sa.package_names.get(&name.name).cloned() {
+                let top_level_module_id = {
+                    let package = self.sa.packages.idx(package_id);
+                    let package = package.read();
+
+                    package.top_level_module_id()
+                };
+
                 let package = self.sa.packages.idx(package_id);
-                let package = package.read();
+                let mut package = package.write();
 
-                package.top_level_module_id()
-            };
-
-            let package = self.sa.packages.idx(package_id);
-            let mut package = package.write();
-
-            if !package.add_dependency(stmt.name, package_id, top_level_module_id) {
-                let name = self.sa.interner.str(stmt.name).to_string();
+                if !package.add_dependency(name.name, package_id, top_level_module_id) {
+                    let name = self.sa.interner.str(name.name).to_string();
+                    self.sa.diag.lock().report(
+                        self.file_id,
+                        stmt.span,
+                        ErrorMessage::PackageAlreadyExists(name),
+                    );
+                }
+            } else {
+                let name = self.sa.interner.str(name.name).to_string();
                 self.sa.diag.lock().report(
                     self.file_id,
                     stmt.span,
-                    ErrorMessage::PackageAlreadyExists(name),
+                    ErrorMessage::UnknownPackage(name),
                 );
             }
-        } else {
-            let name = self.sa.interner.str(stmt.name).to_string();
-            self.sa
-                .diag
-                .lock()
-                .report(self.file_id, stmt.span, ErrorMessage::UnknownPackage(name));
         }
     }
 
@@ -434,9 +439,10 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         );
         let id = self.sa.modules.push(module);
         let sym = Sym::Module(id);
+        let name = node.name.as_ref().expect("missing name").name;
 
-        if let Some(sym) = self.insert(node.name, sym) {
-            report_sym_shadow_span(self.sa, node.name, self.file_id, node.span, sym);
+        if let Some(sym) = self.insert(name, sym) {
+            report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
 
         if node.elements.is_none() {
@@ -474,8 +480,9 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         generate_function_for_initial_value(self.sa, global_id, &self.id_generator, node);
 
         let sym = Sym::Global(global_id);
-        if let Some(sym) = self.insert(node.name, sym) {
-            report_sym_shadow_span(self.sa, node.name, self.file_id, node.span, sym);
+        let name = node.name.as_ref().expect("missing name").name;
+        if let Some(sym) = self.insert(name, sym) {
+            report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
 
@@ -499,8 +506,9 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         let id = self.sa.consts.push(const_);
 
         let sym = Sym::Const(id);
-        if let Some(sym) = self.insert(node.name, sym) {
-            report_sym_shadow_span(self.sa, node.name, self.file_id, node.span, sym);
+        let name = node.name.as_ref().expect("missing name").name;
+        if let Some(sym) = self.insert(name, sym) {
+            report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
 
@@ -509,9 +517,10 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         let class_id = self.sa.classes.push(class);
 
         let sym = Sym::Class(class_id);
+        let name = node.name.as_ref().expect("missing name").name;
 
-        if let Some(sym) = self.insert(node.name, sym) {
-            report_sym_shadow_span(self.sa, node.name, self.file_id, node.span, sym);
+        if let Some(sym) = self.insert(name, sym) {
+            report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
 
@@ -564,8 +573,9 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         let id = self.sa.enums.push(enum_);
 
         let sym = Sym::Enum(id);
-        if let Some(sym) = self.insert(node.name, sym) {
-            report_sym_shadow_span(self.sa, node.name, self.file_id, node.span, sym);
+        let name = node.name.as_ref().expect("missing name").name;
+        if let Some(sym) = self.insert(name, sym) {
+            report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
 }

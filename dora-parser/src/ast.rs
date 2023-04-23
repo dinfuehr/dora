@@ -223,7 +223,7 @@ pub type Ident = Arc<IdentData>;
 pub struct Global {
     pub id: NodeId,
     pub span: Span,
-    pub name: Name,
+    pub name: Option<Ident>,
     pub mutable: bool,
     pub data_type: Type,
     pub initial_value: Option<Box<Expr>>,
@@ -234,7 +234,7 @@ pub struct Global {
 pub struct Module {
     pub id: NodeId,
     pub span: Span,
-    pub name: Name,
+    pub name: Option<Ident>,
     pub elements: Option<Vec<Elem>>,
     pub visibility: Visibility,
 }
@@ -284,7 +284,7 @@ pub enum UsePathComponentValue {
 pub struct Const {
     pub id: NodeId,
     pub span: Span,
-    pub name: Name,
+    pub name: Option<Ident>,
     pub data_type: Type,
     pub expr: Box<Expr>,
     pub visibility: Visibility,
@@ -294,7 +294,7 @@ pub struct Const {
 pub struct Enum {
     pub id: NodeId,
     pub span: Span,
-    pub name: Name,
+    pub name: Option<Ident>,
     pub type_params: Option<Vec<TypeParam>>,
     pub variants: Vec<EnumVariant>,
     pub visibility: Visibility,
@@ -304,7 +304,7 @@ pub struct Enum {
 pub struct EnumVariant {
     pub id: NodeId,
     pub span: Span,
-    pub name: Name,
+    pub name: Option<Ident>,
     pub types: Option<Vec<Type>>,
 }
 
@@ -331,8 +331,8 @@ pub struct Struct {
 #[derive(Clone, Debug)]
 pub struct StructField {
     pub id: NodeId,
-    pub name: Name,
     pub span: Span,
+    pub name: Option<Ident>,
     pub data_type: Type,
     pub visibility: Visibility,
 }
@@ -506,8 +506,8 @@ pub struct Trait {
 #[derive(Clone, Debug)]
 pub struct Class {
     pub id: NodeId,
-    pub name: Name,
     pub span: Span,
+    pub name: Option<Ident>,
     pub internal: bool,
     pub visibility: Visibility,
 
@@ -519,8 +519,8 @@ pub struct Class {
 pub struct ExternPackage {
     pub id: NodeId,
     pub span: Span,
-    pub name: Name,
-    pub identifier: Name,
+    pub name: Option<Ident>,
+    pub identifier: Option<Ident>,
 }
 
 #[derive(Clone, Debug)]

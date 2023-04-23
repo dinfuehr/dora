@@ -79,9 +79,10 @@ impl<'x> StructCheck<'x> {
 
         let struct_ = self.sa.structs.idx(self.struct_id);
         let mut struct_ = struct_.write();
+        let name = f.name.as_ref().expect("missing name").name;
 
-        if !self.fields.insert(f.name) {
-            let name = self.sa.interner.str(f.name).to_string();
+        if !self.fields.insert(name) {
+            let name = self.sa.interner.str(name).to_string();
             self.sa
                 .diag
                 .lock()
@@ -92,13 +93,13 @@ impl<'x> StructCheck<'x> {
         let field = StructDefinitionField {
             id,
             span: f.span,
-            name: f.name,
+            name,
             ty,
             visibility: Visibility::from_ast(f.visibility),
         };
 
         struct_.fields.push(field);
-        let old = struct_.field_names.insert(f.name, id);
+        let old = struct_.field_names.insert(name, id);
         assert!(old.is_none());
     }
 }

@@ -195,12 +195,12 @@ impl<'a> Parser<'a> {
 
         self.expect_token(TokenKind::Extern);
         self.expect_token(TokenKind::Package);
-        let name = self.expect_identifier()?;
+        let name = self.expect_identifier2();
         let identifier = if self.token.is(TokenKind::As) {
             self.expect_token(TokenKind::As);
-            self.expect_identifier()?
+            self.expect_identifier2()
         } else {
-            name
+            None
         };
 
         let span = self.span_from(start);
@@ -315,7 +315,7 @@ impl<'a> Parser<'a> {
     fn parse_enum(&mut self, modifiers: &Modifiers) -> Result<Enum, ()> {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Enum);
-        let name = self.expect_identifier()?;
+        let name = self.expect_identifier2();
         let type_params = self.parse_type_params()?;
 
         self.expect_token(TokenKind::LBrace);
@@ -337,7 +337,7 @@ impl<'a> Parser<'a> {
     fn parse_module(&mut self, modifiers: &Modifiers) -> Result<Module, ()> {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Mod);
-        let name = self.expect_identifier()?;
+        let name = self.expect_identifier2();
 
         let elements = if self.token.is(TokenKind::LBrace) {
             self.expect_token(TokenKind::LBrace);
@@ -368,7 +368,7 @@ impl<'a> Parser<'a> {
 
     fn parse_enum_variant(&mut self) -> Result<EnumVariant, ()> {
         let start = self.token.span.start();
-        let name = self.expect_identifier()?;
+        let name = self.expect_identifier2();
 
         let types = if self.token.is(TokenKind::LParen) {
             self.advance_token();
@@ -390,7 +390,7 @@ impl<'a> Parser<'a> {
     fn parse_const(&mut self, modifiers: &Modifiers) -> Result<Const, ()> {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Const);
-        let name = self.expect_identifier()?;
+        let name = self.expect_identifier2();
         self.expect_token(TokenKind::Colon);
         let ty = self.parse_type()?;
         self.expect_token(TokenKind::Eq);
@@ -461,7 +461,7 @@ impl<'a> Parser<'a> {
             false
         };
 
-        let name = self.expect_identifier()?;
+        let name = self.expect_identifier2();
 
         self.expect_token(TokenKind::Colon);
         let data_type = self.parse_type()?;
@@ -561,7 +561,7 @@ impl<'a> Parser<'a> {
         let mods = &[Modifier::Pub];
         self.restrict_modifiers(&modifiers, mods);
 
-        let ident = self.expect_identifier()?;
+        let ident = self.expect_identifier2();
 
         self.expect_token(TokenKind::Colon);
         let ty = self.parse_type()?;
@@ -580,7 +580,7 @@ impl<'a> Parser<'a> {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Class);
 
-        let ident = self.expect_identifier()?;
+        let name = self.expect_identifier2();
         let type_params = self.parse_type_params()?;
 
         let fields = if self.token.is(TokenKind::LParen) {
@@ -601,8 +601,8 @@ impl<'a> Parser<'a> {
 
         Ok(Class {
             id: self.generate_id(),
-            name: ident,
             span,
+            name,
             internal: modifiers.contains(Modifier::Internal),
             visibility: Visibility::from_modifiers(modifiers),
             fields,
@@ -3050,7 +3050,7 @@ mod tests {
         assert_eq!("Bar", *interner.str(struc.name.as_ref().unwrap().name));
 
         let f1 = &struc.fields[0];
-        assert_eq!("f1", *interner.str(f1.name));
+        assert_eq!("f1", *interner.str(f1.name.as_ref().unwrap().name));
     }
 
     #[test]
@@ -3066,10 +3066,10 @@ mod tests {
         assert_eq!("FooBar", *interner.str(struc.name.as_ref().unwrap().name));
 
         let f1 = &struc.fields[0];
-        assert_eq!("fa", *interner.str(f1.name));
+        assert_eq!("fa", *interner.str(f1.name.as_ref().unwrap().name));
 
         let f2 = &struc.fields[1];
-        assert_eq!("fb", *interner.str(f2.name));
+        assert_eq!("fb", *interner.str(f2.name.as_ref().unwrap().name));
     }
 
     #[test]
@@ -3234,7 +3234,7 @@ mod tests {
         let (prog, interner) = parse("let b: int = 0;");
         let global = prog.global0();
 
-        assert_eq!("b", *interner.str(global.name));
+        assert_eq!("b", *interner.str(global.name.as_ref().unwrap().name));
         assert_eq!(false, global.mutable);
     }
 
@@ -3294,7 +3294,7 @@ mod tests {
         let (prog, interner) = parse("const x: int = 0;");
         let const_ = prog.const0();
 
-        assert_eq!("x", *interner.str(const_.name));
+        assert_eq!("x", *interner.str(const_.name.as_ref().unwrap().name));
     }
 
     #[test]

@@ -83,7 +83,7 @@ impl ModuleDefinition {
             ast: Some(ast.clone()),
             file_id: Some(file_id),
             parent_module_id: Some(parent_id),
-            name: Some(ast.name),
+            name: Some(ast.name.as_ref().expect("missing name").name),
             table: Arc::new(RwLock::new(SymTable::new())),
             visibility: Visibility::from_ast(ast.visibility),
             parents,

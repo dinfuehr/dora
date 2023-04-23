@@ -81,7 +81,7 @@ impl ClassDefinition {
             file_id: Some(file_id),
             ast: Some(ast.clone()),
             span: Some(ast.span),
-            name: ast.name,
+            name: ast.name.as_ref().expect("missing name").name,
             ty: None,
             internal: ast.internal,
             internal_resolved: false,

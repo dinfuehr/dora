@@ -81,13 +81,8 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_global(&mut self, global: &Global) {
-        dump!(
-            self,
-            "global {} @ {} {}",
-            self.str(global.name),
-            global.span,
-            global.id
-        );
+        dump!(self, "global @ {} {}", global.span, global.id);
+        self.dump_ident(&global.name);
 
         self.indent(|d| {
             d.dump_type(&global.data_type);
@@ -101,24 +96,14 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_extern(&mut self, stmt: &ExternPackage) {
-        dump!(
-            self,
-            "extern package {} as {} @ {} {}",
-            self.str(stmt.name),
-            self.str(stmt.identifier),
-            stmt.span,
-            stmt.id
-        );
+        dump!(self, "extern package @ {} {}", stmt.span, stmt.id);
+        self.dump_ident(&stmt.name);
+        self.dump_ident(&stmt.identifier);
     }
 
     fn dump_const(&mut self, const_: &Const) {
-        dump!(
-            self,
-            "const {} @ {} {}",
-            self.str(const_.name),
-            const_.span,
-            const_.id
-        );
+        dump!(self, "const @ {} {}", const_.span, const_.id);
+        self.dump_ident(&const_.name);
 
         self.indent(|d| {
             d.dump_type(&const_.data_type);
@@ -145,13 +130,8 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_module(&mut self, module: &Module) {
-        dump!(
-            self,
-            "module {} @ {} {}",
-            self.str(module.name),
-            module.span,
-            module.id
-        );
+        dump!(self, "module @ {} {}", module.span, module.id);
+        self.dump_ident(&module.name);
 
         self.indent(|d| {
             if let Some(ref elements) = module.elements {
@@ -163,13 +143,8 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_enum(&mut self, enum_: &Enum) {
-        dump!(
-            self,
-            "enum {} @ {} {}",
-            self.str(enum_.name),
-            enum_.span,
-            enum_.id
-        );
+        dump!(self, "enum @ {} {}", enum_.span, enum_.id);
+        self.dump_ident(&enum_.name);
 
         self.indent(|d| {
             for value in &enum_.variants {
@@ -179,7 +154,8 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_enum_value(&mut self, value: &EnumVariant) {
-        dump!(self, "{} {} {}", value.span, value.id, self.str(value.name));
+        dump!(self, "enum variant @ {} {}", value.span, value.id);
+        self.dump_ident(&value.name);
 
         if let Some(ref types) = value.types {
             self.indent(|d| {
@@ -219,13 +195,8 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_struct_field(&mut self, field: &StructField) {
-        dump!(
-            self,
-            "field {} @ {} {}",
-            self.str(field.name),
-            field.span,
-            field.id
-        );
+        dump!(self, "field @ {} {}", field.span, field.id);
+        self.dump_ident(&field.name);
         self.indent(|d| d.dump_type(&field.data_type));
     }
 
@@ -240,13 +211,8 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_class(&mut self, cls: &Class) {
-        dump!(
-            self,
-            "class {} @ {} {}",
-            self.str(cls.name),
-            cls.span,
-            cls.id
-        );
+        dump!(self, "class @ {} {}", cls.span, cls.id);
+        self.dump_ident(&cls.name);
 
         self.indent(|d| {
             dump!(d, "fields");

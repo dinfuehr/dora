@@ -58,7 +58,7 @@ impl ConstDefinition {
             file_id,
             ast: node.clone(),
             span: node.span,
-            name: node.name,
+            name: node.name.as_ref().expect("missing name").name,
             visibility: Visibility::from_ast(node.visibility),
             ty: SourceType::Error,
             expr: node.expr.clone(),

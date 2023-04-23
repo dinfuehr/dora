@@ -107,17 +107,23 @@ impl<'x> EnumCheckVariants<'x> {
         let mut next_variant_id: u32 = 0;
 
         for value in &self.ast.variants {
+            if value.name.is_none() {
+                continue;
+            }
+
+            let name = value.name.as_ref().expect("missing name").name;
+
             let variant = EnumVariant {
                 id: next_variant_id,
-                name: value.name,
+                name: name,
                 types: Vec::new(),
             };
 
             self.enum_.variants.push(variant);
-            let result = self.enum_.name_to_value.insert(value.name, next_variant_id);
+            let result = self.enum_.name_to_value.insert(name, next_variant_id);
 
             if result.is_some() {
-                let name = self.sa.interner.str(value.name).to_string();
+                let name = self.sa.interner.str(name).to_string();
                 self.sa.diag.lock().report(
                     self.enum_.file_id,
                     value.span,

@@ -70,7 +70,7 @@ impl EnumDefinition {
             file_id,
             ast: node.clone(),
             span: node.span,
-            name: node.name,
+            name: node.name.as_ref().expect("missing name").name,
             type_params: None,
             visibility: Visibility::from_ast(node.visibility),
             variants: Vec::new(),
