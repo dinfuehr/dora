@@ -116,13 +116,8 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_alias(&mut self, alias: &Alias) {
-        dump!(
-            self,
-            "alias {} @ {} {}",
-            self.str(alias.name),
-            alias.span,
-            alias.id
-        );
+        dump!(self, "alias @ {} {}", alias.span, alias.id);
+        self.dump_ident(&alias.name);
 
         self.indent(|d| {
             d.dump_type(&alias.ty);
@@ -263,18 +258,14 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_field(&mut self, field: &Field) {
-        dump!(
-            self,
-            "field {} @ {} {}",
-            self.str(field.name),
-            field.span,
-            field.id
-        );
+        dump!(self, "field @ {} {}", field.span, field.id);
+        self.dump_ident(&field.name);
         self.indent(|d| d.dump_type(&field.data_type));
     }
 
     fn dump_fct(&mut self, fct: &Function) {
-        dump!(self, "fct {} @ {} {}", self.str(fct.name), fct.span, fct.id);
+        dump!(self, "fct @ {} {}", fct.span, fct.id);
+        self.dump_ident(&fct.name);
 
         self.indent(|d| {
             dump!(d, "internal = {}", fct.internal);
@@ -306,13 +297,8 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_param(&mut self, param: &Param) {
-        dump!(
-            self,
-            "param {} @ {} {}",
-            self.str(param.name),
-            param.span,
-            param.id
-        );
+        dump!(self, "param @ {} {}", param.span, param.id);
+        self.dump_ident(&param.name);
 
         self.indent(|d| d.dump_type(&param.data_type));
     }

@@ -562,9 +562,10 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         );
         let fctid = self.sa.add_fct(fct);
         let sym = Sym::Fct(fctid);
+        let name = node.name.as_ref().expect("missing name").name;
 
-        if let Some(sym) = self.insert(node.name, sym) {
-            report_sym_shadow_span(self.sa, node.name, self.file_id, node.span, sym);
+        if let Some(sym) = self.insert(name, sym) {
+            report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
 

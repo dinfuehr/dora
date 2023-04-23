@@ -212,21 +212,17 @@ impl<'a> TypeCheck<'a> {
                 ty.clone()
             };
 
-            let var_id = self.vars.add_var(param.name, ty, param.mutable);
+            let name = param.name.as_ref().expect("missing name").name;
+
+            let var_id = self.vars.add_var(name, ty, param.mutable);
             self.analysis
                 .map_vars
                 .insert(param.id, self.vars.local_var_id(var_id));
 
             // params are only allowed to replace functions, vars cannot be replaced
-            let replaced_sym = self.symtable.insert(param.name, Sym::Var(var_id));
+            let replaced_sym = self.symtable.insert(name, Sym::Var(var_id));
             if let Some(replaced_sym) = replaced_sym {
-                report_sym_shadow_span(
-                    self.sa,
-                    param.name,
-                    self.fct.file_id,
-                    param.span,
-                    replaced_sym,
-                )
+                report_sym_shadow_span(self.sa, name, self.fct.file_id, param.span, replaced_sym)
             }
         }
     }

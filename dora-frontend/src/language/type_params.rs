@@ -206,17 +206,18 @@ fn read_type_param_definition(
 
     for (id, type_param) in ast_type_params.iter().enumerate() {
         let id = TypeParamId(id);
+        let name = type_param.name.as_ref().expect("missing name").name;
 
-        if !names.insert(type_param.name) {
-            let name = sa.interner.str(type_param.name).to_string();
+        if !names.insert(name) {
+            let name = sa.interner.str(name).to_string();
             let msg = ErrorMessage::TypeParamNameNotUnique(name);
             sa.diag.lock().report(file_id, type_param.span, msg);
         }
 
         let sym = Sym::TypeParam(id);
-        symtable.insert(type_param.name, sym);
+        symtable.insert(name, sym);
 
-        result_type_params.add_type_param(type_param.name);
+        result_type_params.add_type_param(name);
     }
 
     // 2) Read bounds for type parameters.

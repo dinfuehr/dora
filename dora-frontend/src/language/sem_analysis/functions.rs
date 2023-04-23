@@ -91,7 +91,7 @@ impl FctDefinition {
             file_id,
             span: ast.span,
             ast: ast.clone(),
-            name: ast.name,
+            name: ast.name.as_ref().expect("missing name").name,
             param_types: Vec::new(),
             return_type: SourceType::Error,
             parent,

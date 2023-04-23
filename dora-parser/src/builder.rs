@@ -1,5 +1,6 @@
-use crate::ast::*;
+use std::sync::Arc;
 
+use crate::ast::*;
 use crate::interner::*;
 use crate::Span;
 
@@ -77,7 +78,10 @@ impl<'a> BuilderFct {
             id,
             kind: FunctionKind::Function,
             span: Span::invalid(),
-            name: self.name,
+            name: Some(Arc::new(IdentData {
+                name: self.name,
+                span: Span::invalid(),
+            })),
             is_optimize_immediately: false,
             visibility: self.visibility,
             is_static: false,

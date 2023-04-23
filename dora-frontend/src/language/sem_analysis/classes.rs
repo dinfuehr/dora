@@ -354,7 +354,7 @@ impl TypeParamDefinition {
             ast_type_params
                 .iter()
                 .map(|type_param| TypeParam {
-                    name: type_param.name,
+                    name: type_param.name.as_ref().expect("missing name").name,
                 })
                 .collect()
         } else {

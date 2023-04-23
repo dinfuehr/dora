@@ -312,7 +312,7 @@ pub struct EnumVariant {
 pub struct Alias {
     pub id: NodeId,
     pub span: Span,
-    pub name: Name,
+    pub name: Option<Ident>,
     pub ty: Type,
     pub visibility: Visibility,
 }
@@ -537,8 +537,8 @@ pub struct Annotation {
 
 #[derive(Clone, Debug)]
 pub struct TypeParam {
-    pub name: Name,
     pub span: Span,
+    pub name: Option<Ident>,
     pub bounds: Vec<Type>,
 }
 
@@ -552,8 +552,8 @@ pub struct AnnotationParam {
 #[derive(Clone, Debug)]
 pub struct Field {
     pub id: NodeId,
-    pub name: Name,
     pub span: Span,
+    pub name: Option<Ident>,
     pub data_type: Type,
     pub primary_ctor: bool,
     pub expr: Option<Box<Expr>>,
@@ -580,8 +580,8 @@ impl FunctionKind {
 pub struct Function {
     pub id: NodeId,
     pub kind: FunctionKind,
-    pub name: Name,
     pub span: Span,
+    pub name: Option<Ident>,
     pub is_optimize_immediately: bool,
     pub visibility: Visibility,
     pub is_static: bool,
@@ -700,8 +700,8 @@ impl Modifier {
 #[derive(Clone, Debug)]
 pub struct Param {
     pub id: NodeId,
-    pub name: Name,
     pub span: Span,
+    pub name: Option<Ident>,
     pub mutable: bool,
     pub data_type: Type,
     pub variadic: bool,

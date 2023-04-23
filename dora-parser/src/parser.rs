@@ -617,7 +617,7 @@ impl<'a> Parser<'a> {
         let mods = &[Modifier::Pub];
         self.restrict_modifiers(&modifiers, mods);
 
-        let name = self.expect_identifier()?;
+        let name = self.expect_identifier2();
 
         self.expect_token(TokenKind::Colon);
         let data_type = self.parse_type()?;
@@ -697,7 +697,7 @@ impl<'a> Parser<'a> {
     fn parse_alias(&mut self, modifiers: &Modifiers) -> Result<Alias, ()> {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Alias);
-        let name = self.expect_identifier()?;
+        let name = self.expect_identifier2();
         self.expect_token(TokenKind::Eq);
         let ty = self.parse_type()?;
         self.expect_semicolon();
@@ -727,7 +727,7 @@ impl<'a> Parser<'a> {
 
     fn parse_type_param(&mut self) -> Result<TypeParam, ()> {
         let start = self.token.span.start();
-        let name = self.expect_identifier()?;
+        let name = self.expect_identifier2();
 
         let bounds = if self.token.is(TokenKind::Colon) {
             self.advance_token();
@@ -830,7 +830,7 @@ impl<'a> Parser<'a> {
     fn parse_function(&mut self, modifiers: &Modifiers) -> Result<Function, ()> {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Fn);
-        let ident = self.expect_identifier()?;
+        let name = self.expect_identifier2();
         let type_params = self.parse_type_params()?;
         let params = self.parse_function_params()?;
         let return_type = self.parse_function_type()?;
@@ -840,7 +840,7 @@ impl<'a> Parser<'a> {
         Ok(Function {
             id: self.generate_id(),
             kind: FunctionKind::Function,
-            name: ident,
+            name,
             span,
             is_optimize_immediately: modifiers.contains(Modifier::OptimizeImmediately),
             visibility: Visibility::from_modifiers(modifiers),
@@ -909,7 +909,7 @@ impl<'a> Parser<'a> {
             false
         };
 
-        let name = self.expect_identifier()?;
+        let name = self.expect_identifier2();
 
         self.expect_token(TokenKind::Colon);
 
@@ -1901,7 +1901,7 @@ impl<'a> Parser<'a> {
         let function = Arc::new(Function {
             id: self.generate_id(),
             kind: FunctionKind::Lambda,
-            name,
+            name: Some(Arc::new(IdentData { span: span, name })),
             span,
             is_optimize_immediately: false,
             visibility: Visibility::Default,
@@ -2557,7 +2557,7 @@ mod tests {
         let (prog, interner) = parse("fn b() { }");
         let fct = prog.fct0();
 
-        assert_eq!("b", *interner.str(fct.name));
+        assert_eq!("b", *interner.str(fct.name.as_ref().unwrap().name));
         assert_eq!(0, fct.params.len());
         assert!(fct.return_type.is_none());
     }
@@ -2576,8 +2576,8 @@ mod tests {
         let p1 = &f1.params[0];
         let p2 = &f2.params[0];
 
-        assert_eq!("a", *interner1.str(p1.name));
-        assert_eq!("a", *interner2.str(p2.name));
+        assert_eq!("a", *interner1.str(p1.name.as_ref().unwrap().name));
+        assert_eq!("a", *interner2.str(p2.name.as_ref().unwrap().name));
 
         assert_eq!(
             "int",
@@ -2602,11 +2602,11 @@ mod tests {
         let p2a = &f2.params[0];
         let p2b = &f2.params[1];
 
-        assert_eq!("a", *interner1.str(p1a.name));
-        assert_eq!("a", *interner2.str(p2a.name));
+        assert_eq!("a", *interner1.str(p1a.name.as_ref().unwrap().name));
+        assert_eq!("a", *interner2.str(p2a.name.as_ref().unwrap().name));
 
-        assert_eq!("b", *interner1.str(p1b.name));
-        assert_eq!("b", *interner2.str(p2b.name));
+        assert_eq!("b", *interner1.str(p1b.name.as_ref().unwrap().name));
+        assert_eq!("b", *interner2.str(p2b.name.as_ref().unwrap().name));
 
         assert_eq!(
             "int",
@@ -2706,10 +2706,10 @@ mod tests {
         let (prog, interner) = parse("fn f() { } fn g() { }");
 
         let f = prog.fct0();
-        assert_eq!("f", *interner.str(f.name));
+        assert_eq!("f", *interner.str(f.name.as_ref().unwrap().name));
 
         let g = prog.fct(1);
-        assert_eq!("g", *interner.str(g.name));
+        assert_eq!("g", *interner.str(g.name.as_ref().unwrap().name));
     }
 
     #[test]
@@ -3001,11 +3001,17 @@ mod tests {
         let cls = prog.cls0();
 
         let f1 = &cls.fields[0];
-        assert_eq!("f1", &interner.str(f1.name).to_string());
+        assert_eq!(
+            "f1",
+            &interner.str(f1.name.as_ref().unwrap().name).to_string()
+        );
         assert_eq!(true, f1.mutable);
 
         let f2 = &cls.fields[1];
-        assert_eq!("f2", &interner.str(f2.name).to_string());
+        assert_eq!(
+            "f2",
+            &interner.str(f2.name.as_ref().unwrap().name).to_string()
+        );
         assert_eq!(true, f2.mutable);
     }
 
@@ -3138,14 +3144,20 @@ mod tests {
 
         let type_params = cls.type_params.as_ref().unwrap();
         assert_eq!(1, type_params.len());
-        assert_eq!("T", *interner.str(type_params[0].name));
+        assert_eq!(
+            "T",
+            *interner.str(type_params[0].name.as_ref().unwrap().name)
+        );
 
         let (prog, interner) = parse("class Foo[X]");
         let cls = prog.cls0();
 
         let type_params = cls.type_params.as_ref().unwrap();
         assert_eq!(1, type_params.len());
-        assert_eq!("X", *interner.str(type_params[0].name));
+        assert_eq!(
+            "X",
+            *interner.str(type_params[0].name.as_ref().unwrap().name)
+        );
     }
 
     #[test]
@@ -3155,8 +3167,14 @@ mod tests {
 
         let type_params = cls.type_params.as_ref().unwrap();
         assert_eq!(2, type_params.len());
-        assert_eq!("A", *interner.str(type_params[0].name));
-        assert_eq!("B", *interner.str(type_params[1].name));
+        assert_eq!(
+            "A",
+            *interner.str(type_params[0].name.as_ref().unwrap().name)
+        );
+        assert_eq!(
+            "B",
+            *interner.str(type_params[1].name.as_ref().unwrap().name)
+        );
     }
 
     #[test]
@@ -3350,7 +3368,7 @@ mod tests {
         assert_eq!(1, lambda.params.len());
 
         let param = &lambda.params[0];
-        assert_eq!("a", *interner.str(param.name));
+        assert_eq!("a", *interner.str(param.name.as_ref().unwrap().name));
         let basic = param.data_type.to_basic().unwrap();
         assert_eq!("A", *interner.str(basic.name()));
 
@@ -3368,12 +3386,12 @@ mod tests {
         assert_eq!(2, lambda.params.len());
 
         let param = &lambda.params[0];
-        assert_eq!("a", *interner.str(param.name));
+        assert_eq!("a", *interner.str(param.name.as_ref().unwrap().name));
         let basic = param.data_type.to_basic().unwrap();
         assert_eq!("A", *interner.str(basic.name()));
 
         let param = &lambda.params[1];
-        assert_eq!("b", *interner.str(param.name));
+        assert_eq!("b", *interner.str(param.name.as_ref().unwrap().name));
         let basic = param.data_type.to_basic().unwrap();
         assert_eq!("B", *interner.str(basic.name()));
 

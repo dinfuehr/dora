@@ -76,7 +76,8 @@ impl<'x> ClsDefCheck<'x> {
             AllowSelf::No,
         )
         .unwrap_or(SourceType::Error);
-        self.add_field(f.span, f.name, ty, f.mutable, f.visibility);
+        let name = f.name.as_ref().expect("missing name").name;
+        self.add_field(f.span, name, ty, f.mutable, f.visibility);
     }
 
     fn add_field(

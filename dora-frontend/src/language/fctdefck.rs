@@ -61,13 +61,15 @@ pub fn check(sa: &SemAnalysis) {
                 let mut names = HashSet::new();
 
                 for (type_param_id, type_param) in type_params.iter().enumerate() {
-                    if !names.insert(type_param.name) {
-                        let name = sa.interner.str(type_param.name).to_string();
+                    let name = type_param.name.as_ref().expect("missing name").name;
+
+                    if !names.insert(name) {
+                        let name = sa.interner.str(name).to_string();
                         let msg = ErrorMessage::TypeParamNameNotUnique(name);
                         sa.diag.lock().report(fct.file_id, type_param.span, msg);
                     }
 
-                    fct.type_params.add_type_param(type_param.name);
+                    fct.type_params.add_type_param(name);
 
                     for bound in &type_param.bounds {
                         let ty = language::read_type(
@@ -98,7 +100,7 @@ pub fn check(sa: &SemAnalysis) {
                     }
 
                     let sym = Sym::TypeParam(TypeParamId(container_type_params + type_param_id));
-                    sym_table.insert(type_param.name, sym);
+                    sym_table.insert(name, sym);
                 }
             } else {
                 let msg = ErrorMessage::TypeParamsExpected;
