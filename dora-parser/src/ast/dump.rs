@@ -221,14 +221,8 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_annotation(&mut self, annotation: &Annotation) {
-        dump!(
-            self,
-            "annotation {} @ {} {}",
-            self.str(annotation.name),
-            annotation.span,
-            annotation.id
-        );
-
+        dump!(self, "annotation @ {} {}", annotation.span, annotation.id);
+        self.dump_ident(&annotation.name);
         self.indent(|d| {
             dump!(d, "params");
             if let Some(params) = &annotation.term_params {
@@ -240,8 +234,8 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_annotation_param(&mut self, param: &AnnotationParam) {
-        dump!(self, "param {} @ {}", self.str(param.name), param.span);
-
+        dump!(self, "param @ {}", param.span);
+        self.dump_ident(&param.name);
         self.indent(|d| d.dump_type(&param.data_type));
     }
 

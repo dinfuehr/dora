@@ -335,7 +335,8 @@ impl<'a> TypeCheck<'a> {
     fn check_stmt_let_pattern(&mut self, pattern: &ast::LetPattern, ty: SourceType) {
         match pattern {
             ast::LetPattern::Ident(ref ident) => {
-                let var_id = self.vars.add_var(ident.name, ty, ident.mutable);
+                let name = ident.name.as_ref().expect("missing name").name;
+                let var_id = self.vars.add_var(name, ty, ident.mutable);
 
                 self.add_local(var_id, ident.span);
                 self.analysis

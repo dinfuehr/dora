@@ -527,7 +527,7 @@ pub struct ExternPackage {
 pub struct Annotation {
     pub id: NodeId,
     pub span: Span,
-    pub name: Name,
+    pub name: Option<Ident>,
     pub annotation_usages: AnnotationUsages,
     pub internal: Option<Modifier>,
 
@@ -544,8 +544,8 @@ pub struct TypeParam {
 
 #[derive(Clone, Debug)]
 pub struct AnnotationParam {
-    pub name: Name,
     pub span: Span,
+    pub name: Option<Ident>,
     pub data_type: Type,
 }
 
@@ -944,7 +944,7 @@ impl LetPattern {
 
     pub fn to_name(&self) -> Option<Name> {
         match self {
-            LetPattern::Ident(ref ident) => Some(ident.name),
+            LetPattern::Ident(ref ident) => ident.name.as_ref().map(|i| i.name),
             _ => None,
         }
     }
@@ -975,7 +975,7 @@ pub struct LetIdentType {
     pub id: NodeId,
     pub span: Span,
     pub mutable: bool,
-    pub name: Name,
+    pub name: Option<Ident>,
 }
 
 #[derive(Clone, Debug)]

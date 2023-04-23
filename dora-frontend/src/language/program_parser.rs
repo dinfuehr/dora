@@ -536,19 +536,21 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     }
 
     fn visit_annotation(&mut self, node: &Arc<ast::Annotation>) {
+        let name = node.name.as_ref().expect("missing name").name;
+
         let annotation = AnnotationDefinition::new(
             self.package_id,
             self.module_id,
             self.file_id,
             node.span,
-            node.name,
+            name,
         );
         let id = self.sa.annotations.push(annotation);
 
         let sym = Sym::Annotation(id);
 
-        if let Some(sym) = self.insert(node.name, sym) {
-            report_sym_shadow_span(self.sa, node.name, self.file_id, node.span, sym);
+        if let Some(sym) = self.insert(name, sym) {
+            report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
 

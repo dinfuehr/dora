@@ -637,12 +637,15 @@ impl<'a> Parser<'a> {
 
     fn parse_annotation(&mut self, modifiers: &Modifiers) -> Result<Annotation, ()> {
         let start = self.token.span.start();
-        let internal = modifiers.contains(Modifier::Internal);
 
         self.expect_token(TokenKind::Annotation);
-        let ident = self.expect_identifier()?;
-        let internal = if internal {
-            Modifier::find(&self.interner.str(ident))
+        let name = self.expect_identifier2();
+        let internal = if modifiers.contains(Modifier::Internal) {
+            if let Some(name) = &name {
+                Modifier::find(&self.interner.str(name.name))
+            } else {
+                None
+            }
         } else {
             None
         };
@@ -652,7 +655,7 @@ impl<'a> Parser<'a> {
 
         let annotation = Annotation {
             id: self.generate_id(),
-            name: ident,
+            name,
             span,
             // use method argument after signature has been adapted
             annotation_usages: AnnotationUsages::new(),
@@ -680,7 +683,7 @@ impl<'a> Parser<'a> {
 
     fn parse_annotation_param(&mut self) -> Result<AnnotationParam, ()> {
         let start = self.token.span.start();
-        let name = self.expect_identifier()?;
+        let name = self.expect_identifier2();
 
         self.expect_token(TokenKind::Colon);
         let data_type = self.parse_type()?;
@@ -797,17 +800,21 @@ impl<'a> Parser<'a> {
                 return Ok(Some(Modifier::Static));
             }
 
-            let ident = self.expect_identifier()?;
-            match self.interner.str(ident).as_str() {
-                "internal" => Ok(Some(Modifier::Internal)),
-                "pub" => Ok(Some(Modifier::Pub)),
-                "static" => Ok(Some(Modifier::Static)),
-                "Test" => Ok(Some(Modifier::Test)),
-                "optimizeImmediately" => Ok(Some(Modifier::OptimizeImmediately)),
-                annotation => {
-                    self.report_error(ParseError::UnknownAnnotation(annotation.into()));
-                    Err(())
+            let name = self.expect_identifier2();
+            if let Some(name) = &name {
+                match self.interner.str(name.name).as_str() {
+                    "internal" => Ok(Some(Modifier::Internal)),
+                    "pub" => Ok(Some(Modifier::Pub)),
+                    "static" => Ok(Some(Modifier::Static)),
+                    "Test" => Ok(Some(Modifier::Test)),
+                    "optimizeImmediately" => Ok(Some(Modifier::OptimizeImmediately)),
+                    annotation => {
+                        self.report_error(ParseError::UnknownAnnotation(annotation.into()));
+                        Err(())
+                    }
                 }
+            } else {
+                Ok(None)
             }
         }
     }
@@ -1106,7 +1113,7 @@ impl<'a> Parser<'a> {
             } else {
                 false
             };
-            let name = self.expect_identifier()?;
+            let name = self.expect_identifier2();
             let span = self.span_from(start);
 
             Ok(Box::new(LetPattern::Ident(LetIdentType {
