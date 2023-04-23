@@ -456,8 +456,9 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         find_methods_in_trait(self.sa, trait_id, node);
 
         let sym = Sym::Trait(trait_id);
-        if let Some(sym) = self.insert(node.name, sym) {
-            report_sym_shadow_span(self.sa, node.name, self.file_id, node.span, sym);
+        let name = node.name.as_ref().expect("missing name").name;
+        if let Some(sym) = self.insert(name, sym) {
+            report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
 
@@ -519,8 +520,9 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         let id = self.sa.structs.push(struct_);
 
         let sym = Sym::Struct(id);
-        if let Some(sym) = self.insert(node.name, sym) {
-            report_sym_shadow_span(self.sa, node.name, self.file_id, node.span, sym);
+        let name = node.name.as_ref().expect("missing name").name;
+        if let Some(sym) = self.insert(name, sym) {
+            report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
 

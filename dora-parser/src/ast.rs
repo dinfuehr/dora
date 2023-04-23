@@ -212,6 +212,14 @@ impl Elem {
 }
 
 #[derive(Clone, Debug)]
+pub struct IdentData {
+    pub span: Span,
+    pub name: Name,
+}
+
+pub type Ident = Arc<IdentData>;
+
+#[derive(Clone, Debug)]
 pub struct Global {
     pub id: NodeId,
     pub span: Span,
@@ -313,7 +321,7 @@ pub struct Alias {
 pub struct Struct {
     pub id: NodeId,
     pub span: Span,
-    pub name: Name,
+    pub name: Option<Ident>,
     pub fields: Vec<StructField>,
     pub visibility: Visibility,
     pub internal: bool,
@@ -488,7 +496,7 @@ pub struct Impl {
 #[derive(Clone, Debug)]
 pub struct Trait {
     pub id: NodeId,
-    pub name: Name,
+    pub name: Option<Ident>,
     pub type_params: Option<Vec<TypeParam>>,
     pub span: Span,
     pub methods: Vec<Arc<Function>>,

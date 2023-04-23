@@ -74,7 +74,7 @@ impl StructDefinition {
             primitive_ty: None,
             visibility: Visibility::from_ast(node.visibility),
             span: node.span,
-            name: node.name,
+            name: node.name.as_ref().expect("missing name").name,
             internal: node.internal,
             internal_resolved: false,
             type_params: None,

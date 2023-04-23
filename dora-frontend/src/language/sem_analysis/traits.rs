@@ -72,7 +72,7 @@ impl TraitDefinition {
             ast: node.clone(),
             visibility: Visibility::from_ast(node.visibility),
             span: node.span,
-            name: node.name,
+            name: node.name.as_ref().expect("missing name").name,
             is_trait_object: false,
             type_params: None,
             methods: Vec::new(),

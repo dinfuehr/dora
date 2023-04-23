@@ -492,7 +492,7 @@ impl<'a> Parser<'a> {
     fn parse_trait(&mut self, modifiers: &Modifiers) -> Result<Trait, ()> {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Trait);
-        let ident = self.expect_identifier()?;
+        let name = self.expect_identifier2();
         let type_params = self.parse_type_params()?;
 
         self.expect_token(TokenKind::LBrace);
@@ -513,7 +513,7 @@ impl<'a> Parser<'a> {
 
         Ok(Trait {
             id: self.generate_id(),
-            name: ident,
+            name,
             type_params,
             span,
             methods,
@@ -524,7 +524,7 @@ impl<'a> Parser<'a> {
     fn parse_struct(&mut self, modifiers: &Modifiers) -> Result<Struct, ()> {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Struct);
-        let ident = self.expect_identifier()?;
+        let ident = self.expect_identifier2();
         let type_params = self.parse_type_params()?;
 
         let fields = if self.token.is(TokenKind::LParen) {
@@ -1932,6 +1932,21 @@ impl<'a> Parser<'a> {
         }
     }
 
+    fn expect_identifier2(&mut self) -> Option<Ident> {
+        let token = self.advance_token();
+
+        if let TokenKind::Identifier = token.kind {
+            let span = token.span;
+            let value = self.source_span(token.span);
+            let name = self.interner.intern(&value);
+
+            Some(Arc::new(IdentData { span, name }))
+        } else {
+            self.report_error_at(ParseError::ExpectedIdentifier(token.name()), token.span);
+            None
+        }
+    }
+
     fn expect_semicolon(&mut self) -> bool {
         self.expect_token(TokenKind::Semicolon)
     }
@@ -3020,7 +3035,7 @@ mod tests {
         let (prog, interner) = parse("struct Foo {}");
         let struc = prog.struct0();
         assert_eq!(0, struc.fields.len());
-        assert_eq!("Foo", *interner.str(struc.name));
+        assert_eq!("Foo", *interner.str(struc.name.as_ref().unwrap().name));
     }
 
     #[test]
@@ -3032,7 +3047,7 @@ mod tests {
         );
         let struc = prog.struct0();
         assert_eq!(1, struc.fields.len());
-        assert_eq!("Bar", *interner.str(struc.name));
+        assert_eq!("Bar", *interner.str(struc.name.as_ref().unwrap().name));
 
         let f1 = &struc.fields[0];
         assert_eq!("f1", *interner.str(f1.name));
@@ -3048,7 +3063,7 @@ mod tests {
         );
         let struc = prog.struct0();
         assert_eq!(2, struc.fields.len());
-        assert_eq!("FooBar", *interner.str(struc.name));
+        assert_eq!("FooBar", *interner.str(struc.name.as_ref().unwrap().name));
 
         let f1 = &struc.fields[0];
         assert_eq!("fa", *interner.str(f1.name));
@@ -3066,7 +3081,7 @@ mod tests {
         );
         let struct_ = prog.struct0();
         assert_eq!(2, struct_.fields.len());
-        assert_eq!("Bar", *interner.str(struct_.name));
+        assert_eq!("Bar", *interner.str(struct_.name.as_ref().unwrap().name));
 
         assert_eq!(2, struct_.type_params.as_ref().unwrap().len());
     }
@@ -3149,7 +3164,7 @@ mod tests {
         let (prog, interner) = parse("trait Foo { }");
         let trait_ = prog.trait0();
 
-        assert_eq!("Foo", *interner.str(trait_.name));
+        assert_eq!("Foo", *interner.str(trait_.name.as_ref().unwrap().name));
         assert_eq!(0, trait_.methods.len());
     }
 
@@ -3158,7 +3173,7 @@ mod tests {
         let (prog, interner) = parse("trait Foo { fn empty(); }");
         let trait_ = prog.trait0();
 
-        assert_eq!("Foo", *interner.str(trait_.name));
+        assert_eq!("Foo", *interner.str(trait_.name.as_ref().unwrap().name));
         assert_eq!(1, trait_.methods.len());
         assert_eq!(false, trait_.methods[0].is_static);
     }
@@ -3168,7 +3183,7 @@ mod tests {
         let (prog, interner) = parse("trait Foo { @static fn empty(); }");
         let trait_ = prog.trait0();
 
-        assert_eq!("Foo", *interner.str(trait_.name));
+        assert_eq!("Foo", *interner.str(trait_.name.as_ref().unwrap().name));
         assert_eq!(1, trait_.methods.len());
         assert_eq!(true, trait_.methods[0].is_static);
     }

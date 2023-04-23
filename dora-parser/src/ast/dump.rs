@@ -208,13 +208,8 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_struct(&mut self, struc: &Struct) {
-        dump!(
-            self,
-            "struct {} @ {} {}",
-            self.str(struc.name),
-            struc.span,
-            struc.id
-        );
+        dump!(self, "struct @ {} {}", struc.span, struc.id);
+        self.dump_ident(&struc.name);
 
         self.indent(|d| {
             for field in &struc.fields {
@@ -235,8 +230,9 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_trait(&mut self, t: &Trait) {
-        dump!(self, "trait {} @ {} {}", self.str(t.name), t.span, t.id);
+        dump!(self, "trait @ {} {}", t.span, t.id);
         self.indent(|d| {
+            d.dump_ident(&t.name);
             for m in &t.methods {
                 d.dump_fct(m);
             }
@@ -672,6 +668,14 @@ impl<'a> AstDumper<'a> {
                 d.dump_type(arg);
             }
         });
+    }
+
+    fn dump_ident(&self, ident: &Option<Ident>) {
+        if let Some(ident) = ident {
+            dump!(self, "ident {}", self.str(ident.name));
+        } else {
+            dump!(self, "missing ident");
+        }
     }
 
     fn indent<F>(&mut self, fct: F)
