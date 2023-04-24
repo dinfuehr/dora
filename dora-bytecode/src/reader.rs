@@ -1,8 +1,7 @@
 use std::iter::Iterator;
 
 use crate::{
-    BytecodeInstruction, BytecodeOffset, BytecodeOpcode, ConstPoolIdx, GlobalId, OperandWidth,
-    Register,
+    BytecodeInstruction, BytecodeOffset, BytecodeOpcode, ConstPoolIdx, GlobalId, Register,
 };
 pub fn read<T: BytecodeVisitor>(data: &[u8], visitor: &mut T) {
     BytecodeFullIteration::new(data, visitor).read();
@@ -11,25 +10,15 @@ pub fn read<T: BytecodeVisitor>(data: &[u8], visitor: &mut T) {
 pub struct BytecodeReader<'a> {
     code: &'a [u8],
     offset: usize,
-    width: OperandWidth,
 }
 
 impl<'a> BytecodeReader<'a> {
     pub fn new(code: &'a [u8]) -> BytecodeReader<'a> {
-        BytecodeReader {
-            code,
-            offset: 0,
-            width: OperandWidth::Normal,
-        }
+        BytecodeReader { code, offset: 0 }
     }
 
     pub fn read_opcode_at(code: &'a [u8], offset: usize) -> BytecodeOpcode {
-        let mut reader = BytecodeReader {
-            code,
-            offset,
-            width: OperandWidth::Normal,
-        };
-
+        let mut reader = BytecodeReader { code, offset };
         reader.read_opcode()
     }
 
@@ -37,13 +26,11 @@ impl<'a> BytecodeReader<'a> {
         self.offset
     }
 
-    fn read_instruction(&mut self) -> (usize, OperandWidth, BytecodeOpcode, BytecodeInstruction) {
+    fn read_instruction(&mut self) -> (usize, BytecodeOpcode, BytecodeInstruction) {
         let start = self.offset();
         let opcode = self.read_opcode();
 
         let inst = match opcode {
-            BytecodeOpcode::Wide => unreachable!(),
-
             BytecodeOpcode::Add => {
                 let dest = self.read_register();
                 let lhs = self.read_register();
@@ -280,37 +267,23 @@ impl<'a> BytecodeReader<'a> {
             }
 
             BytecodeOpcode::JumpLoop => {
-                let offset = self.read_offset();
+                let offset = self.read_index();
                 BytecodeInstruction::JumpLoop { offset }
             }
             BytecodeOpcode::LoopStart => BytecodeInstruction::LoopStart,
             BytecodeOpcode::JumpIfFalse => {
                 let opnd = self.read_register();
-                let offset = self.read_offset();
+                let offset = self.read_forward_offset();
                 BytecodeInstruction::JumpIfFalse { opnd, offset }
-            }
-            BytecodeOpcode::JumpIfFalseConst => {
-                let opnd = self.read_register();
-                let idx = self.read_const_pool_idx();
-                BytecodeInstruction::JumpIfFalseConst { opnd, idx }
             }
             BytecodeOpcode::JumpIfTrue => {
                 let opnd = self.read_register();
-                let offset = self.read_offset();
+                let offset = self.read_forward_offset();
                 BytecodeInstruction::JumpIfTrue { opnd, offset }
             }
-            BytecodeOpcode::JumpIfTrueConst => {
-                let opnd = self.read_register();
-                let idx = self.read_const_pool_idx();
-                BytecodeInstruction::JumpIfTrueConst { opnd, idx }
-            }
             BytecodeOpcode::Jump => {
-                let offset = self.read_offset();
+                let offset = self.read_forward_offset();
                 BytecodeInstruction::Jump { offset }
-            }
-            BytecodeOpcode::JumpConst => {
-                let idx = self.read_const_pool_idx();
-                BytecodeInstruction::JumpConst { idx }
             }
 
             BytecodeOpcode::InvokeDirect => {
@@ -424,7 +397,7 @@ impl<'a> BytecodeReader<'a> {
             }
         };
 
-        (start, self.width, opcode, inst)
+        (start, opcode, inst)
     }
 
     fn read_register(&mut self) -> Register {
@@ -439,37 +412,42 @@ impl<'a> BytecodeReader<'a> {
         ConstPoolIdx(self.read_index())
     }
 
-    fn read_offset(&mut self) -> u32 {
-        self.read_index()
+    fn read_forward_offset(&mut self) -> u32 {
+        self.read_u32_fixed()
     }
 
     fn read_index(&mut self) -> u32 {
-        match self.width {
-            OperandWidth::Normal => self.read_byte() as u32,
-            OperandWidth::Wide => self.read_wide(),
-        }
+        self.read_u32_variable()
     }
 
     fn read_opcode(&mut self) -> BytecodeOpcode {
-        let mut opcode = self.read_byte();
-
-        if opcode == BytecodeOpcode::Wide.into() {
-            self.width = OperandWidth::Wide;
-            opcode = self.read_byte();
-        } else {
-            self.width = OperandWidth::Normal;
-        }
-
+        let opcode = self.read_byte();
         BytecodeOpcode::try_from(opcode).expect("illegal opcode")
     }
 
-    fn read_wide(&mut self) -> u32 {
+    fn read_u32_fixed(&mut self) -> u32 {
         let v1 = self.read_byte() as u32;
         let v2 = self.read_byte() as u32;
         let v3 = self.read_byte() as u32;
         let v4 = self.read_byte() as u32;
 
         (v4 << 24) | (v3 << 16) | (v2 << 8) | v1
+    }
+
+    fn read_u32_variable(&mut self) -> u32 {
+        let mut result: u32 = 0;
+        let mut shift: u32 = 0;
+
+        loop {
+            let byte = self.read_byte() as u32;
+            result |= (byte & 0x7F) << shift;
+            if byte & 0x80 == 0 {
+                break;
+            }
+            shift += 7;
+        }
+
+        result
     }
 
     fn read_byte(&mut self) -> u8 {
@@ -484,7 +462,7 @@ impl<'a> Iterator for BytecodeReader<'a> {
 
     fn next(&mut self) -> Option<BytecodeInstruction> {
         if self.offset < self.code.len() {
-            let (_start, _width, _opcode, inst) = self.read_instruction();
+            let (_start, _opcode, inst) = self.read_instruction();
             Some(inst)
         } else {
             assert_eq!(self.offset, self.code.len());
@@ -666,20 +644,11 @@ where
             BytecodeInstruction::JumpIfFalse { opnd, offset } => {
                 self.visitor.visit_jump_if_false(opnd, offset);
             }
-            BytecodeInstruction::JumpIfFalseConst { opnd, idx } => {
-                self.visitor.visit_jump_if_false_const(opnd, idx);
-            }
             BytecodeInstruction::JumpIfTrue { opnd, offset } => {
                 self.visitor.visit_jump_if_true(opnd, offset);
             }
-            BytecodeInstruction::JumpIfTrueConst { opnd, idx } => {
-                self.visitor.visit_jump_if_true_const(opnd, idx);
-            }
             BytecodeInstruction::Jump { offset } => {
                 self.visitor.visit_jump(offset);
-            }
-            BytecodeInstruction::JumpConst { idx } => {
-                self.visitor.visit_jump_const(idx);
             }
 
             BytecodeInstruction::InvokeDirect { dest, fct } => {
@@ -918,13 +887,7 @@ pub trait BytecodeVisitor {
     fn visit_jump_if_false(&mut self, _opnd: Register, _offset: u32) {
         unimplemented!();
     }
-    fn visit_jump_if_false_const(&mut self, _opnd: Register, _idx: ConstPoolIdx) {
-        unimplemented!();
-    }
     fn visit_jump_if_true(&mut self, _opnd: Register, _offset: u32) {
-        unimplemented!();
-    }
-    fn visit_jump_if_true_const(&mut self, _opnd: Register, _idx: ConstPoolIdx) {
         unimplemented!();
     }
     fn visit_jump_loop(&mut self, _offset: u32) {
@@ -934,9 +897,6 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
     fn visit_jump(&mut self, _offset: u32) {
-        unimplemented!();
-    }
-    fn visit_jump_const(&mut self, _idx: ConstPoolIdx) {
         unimplemented!();
     }
 

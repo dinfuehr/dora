@@ -43,8 +43,6 @@ pub enum BytecodeTypeKind {
 #[derive(IntoPrimitive, TryFromPrimitive, Copy, Clone, PartialEq, Eq)]
 #[repr(u8)]
 pub enum BytecodeOpcode {
-    Wide,
-
     Add,
     Sub,
     Neg,
@@ -98,11 +96,8 @@ pub enum BytecodeOpcode {
 
     // Forward jumps
     Jump,
-    JumpConst,
     JumpIfFalse,
-    JumpIfFalseConst,
     JumpIfTrue,
-    JumpIfTrueConst,
 
     InvokeDirect,
     InvokeVirtual,
@@ -128,20 +123,6 @@ pub enum BytecodeOpcode {
     LoadTraitObjectValue,
 
     Ret,
-}
-
-fn opcode_size(width: OperandWidth) -> u32 {
-    match width {
-        OperandWidth::Normal => 1,
-        OperandWidth::Wide => 2,
-    }
-}
-
-fn operand_size(width: OperandWidth) -> u32 {
-    match width {
-        OperandWidth::Normal => 1,
-        OperandWidth::Wide => 4,
-    }
 }
 
 impl BytecodeOpcode {
@@ -203,82 +184,6 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeVirtual
             | BytecodeOpcode::InvokeLambda => true,
             _ => false,
-        }
-    }
-
-    pub fn size(self, width: OperandWidth) -> u32 {
-        match self {
-            BytecodeOpcode::Wide => unreachable!(),
-
-            BytecodeOpcode::LoopStart => opcode_size(width),
-
-            BytecodeOpcode::PushRegister
-            | BytecodeOpcode::ConstTrue
-            | BytecodeOpcode::ConstFalse
-            | BytecodeOpcode::Ret
-            | BytecodeOpcode::JumpConst
-            | BytecodeOpcode::Jump
-            | BytecodeOpcode::JumpLoop => opcode_size(width) + 1 * operand_size(width),
-
-            BytecodeOpcode::Neg
-            | BytecodeOpcode::Not
-            | BytecodeOpcode::Mov
-            | BytecodeOpcode::LoadGlobal
-            | BytecodeOpcode::StoreGlobal
-            | BytecodeOpcode::ConstChar
-            | BytecodeOpcode::ConstInt32
-            | BytecodeOpcode::ConstInt64
-            | BytecodeOpcode::ConstFloat32
-            | BytecodeOpcode::ConstFloat64
-            | BytecodeOpcode::ConstString
-            | BytecodeOpcode::ArrayLength
-            | BytecodeOpcode::NewObject
-            | BytecodeOpcode::NewTuple
-            | BytecodeOpcode::NewEnum
-            | BytecodeOpcode::NewStruct
-            | BytecodeOpcode::InvokeGenericDirect
-            | BytecodeOpcode::InvokeGenericStatic
-            | BytecodeOpcode::InvokeStatic
-            | BytecodeOpcode::InvokeDirect
-            | BytecodeOpcode::InvokeVirtual
-            | BytecodeOpcode::JumpIfTrueConst
-            | BytecodeOpcode::JumpIfTrue
-            | BytecodeOpcode::JumpIfFalseConst
-            | BytecodeOpcode::JumpIfFalse => opcode_size(width) + 2 * operand_size(width),
-
-            BytecodeOpcode::Add
-            | BytecodeOpcode::Sub
-            | BytecodeOpcode::Mul
-            | BytecodeOpcode::Div
-            | BytecodeOpcode::Mod
-            | BytecodeOpcode::And
-            | BytecodeOpcode::Or
-            | BytecodeOpcode::Xor
-            | BytecodeOpcode::Shl
-            | BytecodeOpcode::Shr
-            | BytecodeOpcode::Sar
-            | BytecodeOpcode::LoadEnumVariant
-            | BytecodeOpcode::LoadStructField
-            | BytecodeOpcode::LoadField
-            | BytecodeOpcode::StoreField
-            | BytecodeOpcode::TestEq
-            | BytecodeOpcode::TestNe
-            | BytecodeOpcode::TestGt
-            | BytecodeOpcode::TestGe
-            | BytecodeOpcode::TestLt
-            | BytecodeOpcode::TestLe
-            | BytecodeOpcode::LoadArray
-            | BytecodeOpcode::StoreArray
-            | BytecodeOpcode::NewArray
-            | BytecodeOpcode::NewTraitObject => opcode_size(width) + 3 * operand_size(width),
-
-            BytecodeOpcode::LoadTupleElement | BytecodeOpcode::LoadEnumElement => {
-                opcode_size(width) + 4 * operand_size(width)
-            }
-
-            BytecodeOpcode::ConstUInt8 => opcode_size(width) + operand_size(width) + 1,
-
-            _ => unreachable!(),
         }
     }
 
@@ -522,24 +427,13 @@ pub enum BytecodeInstruction {
     Jump {
         offset: u32,
     },
-    JumpConst {
-        idx: ConstPoolIdx,
-    },
     JumpIfFalse {
         opnd: Register,
         offset: u32,
     },
-    JumpIfFalseConst {
-        opnd: Register,
-        idx: ConstPoolIdx,
-    },
     JumpIfTrue {
         opnd: Register,
         offset: u32,
-    },
-    JumpIfTrueConst {
-        opnd: Register,
-        idx: ConstPoolIdx,
     },
 
     InvokeDirect {
@@ -631,28 +525,6 @@ pub enum BytecodeInstruction {
     Ret {
         opnd: Register,
     },
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum OperandWidth {
-    Normal,
-    Wide,
-}
-
-impl OperandWidth {
-    pub fn size(self) -> usize {
-        match self {
-            OperandWidth::Normal => 1,
-            OperandWidth::Wide => 4,
-        }
-    }
-
-    pub fn needs_bytecode(self) -> bool {
-        match self {
-            OperandWidth::Normal => false,
-            OperandWidth::Wide => true,
-        }
-    }
 }
 
 #[derive(Copy, Clone, PartialEq, Debug, Eq, Hash)]

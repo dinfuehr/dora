@@ -4412,18 +4412,10 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         self.jumps.push((self.next_idx - 1, offset));
         self.emit(Bytecode::JumpIfFalse(opnd, 0));
     }
-    fn visit_jump_if_false_const(&mut self, opnd: Register, idx: ConstPoolIdx) {
-        let value = self.bc.const_pool(idx).to_int32().expect("int expected");
-        self.visit_jump_if_false(opnd, value as u32);
-    }
     fn visit_jump_if_true(&mut self, opnd: Register, offset: u32) {
         let offset = BytecodeOffset(self.pc.to_u32() + offset);
         self.jumps.push((self.next_idx - 1, offset));
         self.emit(Bytecode::JumpIfTrue(opnd, 0));
-    }
-    fn visit_jump_if_true_const(&mut self, opnd: Register, idx: ConstPoolIdx) {
-        let value = self.bc.const_pool(idx).to_int32().expect("int expected");
-        self.visit_jump_if_true(opnd, value as u32);
     }
     fn visit_jump_loop(&mut self, offset: u32) {
         let offset = BytecodeOffset(self.pc.to_u32() - offset);
@@ -4434,10 +4426,6 @@ impl<'a> BytecodeVisitor for BytecodeArrayBuilder<'a> {
         let offset = BytecodeOffset(self.pc.to_u32() + offset);
         self.jumps.push((self.next_idx - 1, offset));
         self.emit(Bytecode::Jump(0));
-    }
-    fn visit_jump_const(&mut self, idx: ConstPoolIdx) {
-        let value = self.bc.const_pool(idx).to_int32().expect("int expected");
-        self.visit_jump(value as u32);
     }
     fn visit_loop_start(&mut self) {
         self.emit(Bytecode::LoopStart);

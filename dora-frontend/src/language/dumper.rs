@@ -324,34 +324,10 @@ impl<'a> BytecodeDumper<'a> {
         writeln!(self.w, " {}, {} # target {}", opnd, offset, bc_target).expect("write! failed");
     }
 
-    fn emit_cond_jump_const(&mut self, name: &str, opnd: Register, idx: ConstPoolIdx) {
-        self.emit_start(name);
-        let offset = self.bc.const_pool(idx).to_int32().expect("int expected");
-        let bc_target = self.pos.to_u32() as i32 + offset;
-        writeln!(
-            self.w,
-            " {}, ConstPooldId({}) # offset {}, target {}",
-            opnd, idx.0, offset, bc_target
-        )
-        .expect("write! failed");
-    }
-
     fn emit_jump(&mut self, name: &str, offset: i32) {
         self.emit_start(name);
         let bc_target = self.pos.to_u32() as i32 + offset;
         writeln!(self.w, " {} # target {}", offset, bc_target).expect("write! failed");
-    }
-
-    fn emit_jump_const(&mut self, name: &str, idx: ConstPoolIdx) {
-        self.emit_start(name);
-        let offset = self.bc.const_pool(idx).to_int32().expect("int expected");
-        let bc_target = self.pos.to_u32() as i32 + offset;
-        writeln!(
-            self.w,
-            " ConstPoolId({}) # offset {}, target {}",
-            idx.0, offset, bc_target
-        )
-        .expect("write! failed");
     }
 
     fn emit_field(&mut self, name: &str, r1: Register, r2: Register, field_idx: ConstPoolIdx) {
@@ -733,14 +709,8 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     fn visit_jump_if_false(&mut self, opnd: Register, offset: u32) {
         self.emit_cond_jump("JumpIfFalse", opnd, offset as i32);
     }
-    fn visit_jump_if_false_const(&mut self, opnd: Register, idx: ConstPoolIdx) {
-        self.emit_cond_jump_const("JumpIfFalseConst", opnd, idx);
-    }
     fn visit_jump_if_true(&mut self, opnd: Register, offset: u32) {
         self.emit_cond_jump("JumpIfTrue", opnd, offset as i32);
-    }
-    fn visit_jump_if_true_const(&mut self, opnd: Register, idx: ConstPoolIdx) {
-        self.emit_cond_jump_const("JumpIfTrueConst", opnd, idx);
     }
     fn visit_jump_loop(&mut self, offset: u32) {
         self.emit_jump("JumpLoop", -(offset as i32));
@@ -750,9 +720,6 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     }
     fn visit_jump(&mut self, offset: u32) {
         self.emit_jump("Jump", offset as i32);
-    }
-    fn visit_jump_const(&mut self, idx: ConstPoolIdx) {
-        self.emit_jump_const("JumpConst", idx);
     }
 
     fn visit_invoke_direct(&mut self, dest: Register, fctdef: ConstPoolIdx) {

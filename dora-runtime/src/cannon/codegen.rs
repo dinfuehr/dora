@@ -4599,48 +4599,13 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
         );
         self.emit_jump_if(opnd, target, false);
     }
-    fn visit_jump_if_false_const(&mut self, opnd: Register, idx: ConstPoolIdx) {
-        let offset = self
-            .bytecode
-            .const_pool(idx)
-            .to_int32()
-            .expect("int expected");
-        let target = BytecodeOffset((self.current_offset.to_u32() as i32 + offset) as u32);
-        comment!(
-            self,
-            format!(
-                "JumpIfFalseConst {}, ConstPoolId({}) # target {}",
-                opnd,
-                offset,
-                target.to_usize()
-            )
-        );
-        self.emit_jump_if(opnd, target, false);
-    }
+
     fn visit_jump_if_true(&mut self, opnd: Register, offset: u32) {
         let target = BytecodeOffset(self.current_offset.to_u32() + offset);
         comment!(
             self,
             format!(
                 "JumpIfTrue {}, {} # target {}",
-                opnd,
-                offset,
-                target.to_usize()
-            )
-        );
-        self.emit_jump_if(opnd, target, true);
-    }
-    fn visit_jump_if_true_const(&mut self, opnd: Register, idx: ConstPoolIdx) {
-        let offset = self
-            .bytecode
-            .const_pool(idx)
-            .to_int32()
-            .expect("int expected");
-        let target = BytecodeOffset((self.current_offset.to_u32() as i32 + offset) as u32);
-        comment!(
-            self,
-            format!(
-                "JumpIfTrueConst {}, ConstPoolId({}) # target {}",
                 opnd,
                 offset,
                 target.to_usize()
@@ -4663,22 +4628,6 @@ impl<'a> BytecodeVisitor for CannonCodeGen<'a> {
             format!("Jump {} # target {}", offset, target.to_usize())
         );
         self.emit_jump(target);
-    }
-    fn visit_jump_const(&mut self, idx: ConstPoolIdx) {
-        let offset = self
-            .bytecode
-            .const_pool(idx)
-            .to_int32()
-            .expect("int expected");
-        comment!(self, {
-            let target = BytecodeOffset((self.current_offset.to_u32() as i32 + offset) as u32);
-            format!(
-                "JumpConst ConstPoolId({}) # target {}",
-                idx.0,
-                target.to_usize()
-            )
-        });
-        self.visit_jump(offset as u32);
     }
     fn visit_loop_start(&mut self) {
         comment!(self, format!("LoopStart"));
