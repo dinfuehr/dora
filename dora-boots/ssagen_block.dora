@@ -83,28 +83,12 @@ impl EdgeCreator {
                 let targetBlock = self.blockMap.blockAt(self.offset + distance.toInt64()).getOrPanic();
                 self.currentBlock.getOrPanic().addSuccessor(targetBlock);
             },
-            BytecodeInstruction::JumpIfFalseConst(_opnd, idx) => {
-                let distance = self.bc.constPool(idx).toInt32().getOrPanic();
-                let targetBlock = self.blockMap.blockAt(self.offset + distance.toInt64()).getOrPanic();
-                self.currentBlock.getOrPanic().addSuccessor(targetBlock);
-            },
             BytecodeInstruction::JumpIfTrue(_opnd, distance) => {
-                let targetBlock = self.blockMap.blockAt(self.offset + distance.toInt64()).getOrPanic();
-                self.currentBlock.getOrPanic().addSuccessor(targetBlock);
-            },
-            BytecodeInstruction::JumpIfTrueConst(_opnd, idx) => {
-                let distance = self.bc.constPool(idx).toInt32().getOrPanic();
                 let targetBlock = self.blockMap.blockAt(self.offset + distance.toInt64()).getOrPanic();
                 self.currentBlock.getOrPanic().addSuccessor(targetBlock);
             },
             BytecodeInstruction::Jump(distance) => {
                 let targetBlock = self.blockMap.blockAt(self.offset + distance.toInt64()).getOrPanic();
-                self.currentBlock.getOrPanic().addSuccessor(targetBlock);
-                self.markBlockTerminated();
-            },
-            BytecodeInstruction::JumpConst(idx) => {
-                let offset = self.bc.constPool(idx).toInt32().getOrPanic();
-                let targetBlock = self.blockMap.blockAt(self.offset + offset.toInt64()).getOrPanic();
                 self.currentBlock.getOrPanic().addSuccessor(targetBlock);
                 self.markBlockTerminated();
             },
@@ -190,26 +174,11 @@ impl BlockCreator {
                 self.ensureBlockLazy(start + distance.toInt64());
                 self.ensureBlock(start + size);
             },
-            BytecodeInstruction::JumpIfFalseConst(_opnd, idx) => {
-                let distance = self.bc.constPool(idx).toInt32().getOrPanic();
-                self.ensureBlockLazy(start + distance.toInt64());
-                self.ensureBlock(start + size);
-            },
             BytecodeInstruction::JumpIfTrue(_opnd, distance) => {
                 self.ensureBlockLazy(start + distance.toInt64());
                 self.ensureBlock(start + size);
             },
-            BytecodeInstruction::JumpIfTrueConst(_opnd, idx) => {
-                let distance = self.bc.constPool(idx).toInt32().getOrPanic();
-                self.ensureBlockLazy(start + distance.toInt64());
-                self.ensureBlock(start + size);
-            },
             BytecodeInstruction::Jump(distance) => {
-                self.ensureBlockLazy(start + distance.toInt64());
-                self.ensureBlock(start + size);
-            },
-            BytecodeInstruction::JumpConst(idx) => {
-                let distance = self.bc.constPool(idx).toInt32().getOrPanic();
                 self.ensureBlockLazy(start + distance.toInt64());
                 self.ensureBlock(start + size);
             },

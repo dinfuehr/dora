@@ -214,17 +214,17 @@ impl BytecodeBuilder {
 
     pub fn emitJumpIfFalse(opnd: BytecodeRegister, lbl: BytecodeLabel) {
         assert(!lbl.isBound());
-        self.emitJmpForward(opc::BC_JUMP_IF_FALSE, opc::BC_JUMP_IF_FALSE_CONST, Some[BytecodeRegister](opnd), lbl);
+        self.emitJmpForward(opc::BC_JUMP_IF_FALSE, Some[BytecodeRegister](opnd), lbl);
     }
 
     pub fn emitJumpIfTrue(opnd: BytecodeRegister, lbl: BytecodeLabel) {
         assert(!lbl.isBound());
-        self.emitJmpForward(opc::BC_JUMP_IF_TRUE, opc::BC_JUMP_IF_TRUE_CONST, Some[BytecodeRegister](opnd), lbl);
+        self.emitJmpForward(opc::BC_JUMP_IF_TRUE, Some[BytecodeRegister](opnd), lbl);
     }
 
     pub fn emitJump(lbl: BytecodeLabel) {
         assert(!lbl.isBound());
-        self.emitJmpForward(opc::BC_JUMP, opc::BC_JUMP_CONST, None[BytecodeRegister], lbl);
+        self.emitJmpForward(opc::BC_JUMP, None[BytecodeRegister], lbl);
     }
 
     pub fn emitInvokeDirect(dest: BytecodeRegister, fct: FctId, start: BytecodeRegister, count: Int32) {
@@ -278,29 +278,7 @@ impl BytecodeBuilder {
 
             let opcode = self.code(jump.inst.toInt64()).toInt32();
 
-            if opcode == opc::BC_WIDE {
-                // wide is guaranteed to not use constant pool
-                self.patchInt32(jump.target, offset);
-            } else if isWide(offset) {
-                // Need to update const pool entry
-                let idx = self.code(jump.target.toInt64());
-                self.constPool(idx.toInt64()) = ConstPoolEntry::Int32(offset);
-            } else {
-                // Offset fits into byte, replace instruction with jump+immediate
-                let opcode = if opcode == opc::BC_JUMP_CONST {
-                    opc::BC_JUMP
-                } else if opcode == opc::BC_JUMP_IF_FALSE_CONST {
-                    opc::BC_JUMP_IF_FALSE
-                } else if opcode == opc::BC_JUMP_IF_TRUE_CONST {
-                    opc::BC_JUMP_IF_TRUE
-                } else {
-                    std::fatalError("unexpected opcode ${opc::bytecodeName(opcode)} (${opcode})");
-                    unreachable[Int32]()
-                };
-
-                self.code(jump.inst.toInt64()) = opcode.toUInt8();
-                self.code(jump.target.toInt64()) = offset.toUInt8();
-            }
+            self.patchInt32(jump.target, offset);
         }
 
         self.unresolvedJumps.clear();
@@ -318,29 +296,15 @@ impl BytecodeBuilder {
         self.emitVal2(inst, offset);
     }
 
-    fn emitJmpForward(inst: Int32, instConst: Int32, opnd: Option[BytecodeRegister], lbl: BytecodeLabel) {
-        assert(!isWide(inst));
-        assert(!isWide(instConst));
+    fn emitJmpForward(inst: Int32, opnd: Option[BytecodeRegister], lbl: BytecodeLabel) {
         let start = self.code.size().toInt32();
-        let mut target = 0i32;
 
-        if (opnd.isSome() && isWide(opnd.getOrPanic().value)) || isWide(self.constPool.size().toInt32()) {
-            self.emitWide();
-            self.emitOpcode(inst);
-            if opnd.isSome() {
-                self.emitInt32(opnd.getOrPanic().value);
-            }
-            target = self.code.size().toInt32();
-            self.emitInt32(0i32);
-        } else {
-            self.emitOpcode(instConst);
-            if opnd.isSome() {
-                self.emitByte(opnd.getOrPanic().value);
-            }
-            let idx = self.addConst(ConstPoolEntry::Int32(0i32));
-            target = self.code.size().toInt32();
-            self.emitByte(idx.value);
+        self.emitOpcode(inst);
+        if opnd.isSome() {
+            self.emitInt32Variable(opnd.getOrPanic().value);
         }
+        let target = self.code.size().toInt32();
+        self.emitInt32Fixed(0i32);
 
         self.unresolvedJumps.push(UnresolvedJump(start, target, lbl));
     }
@@ -402,73 +366,33 @@ impl BytecodeBuilder {
     }
 
     fn emitVal2(opcode: Int32, v1: Int32) {
-        if isWide(v1) {
-            self.emitWide();
-            self.emitOpcode(opcode);
-            self.emitInt32(v1);
-        } else {
-            self.emitOpcode(opcode);
-            self.emitByte(v1);
-        }
+        self.emitOpcode(opcode);
+        self.emitInt32Variable(v1);
     }
 
     fn emitVal3(opcode: Int32, v1: Int32, v2: Int32) {
-        if isWide(v1) || isWide(v2) {
-            self.emitWide();
-            self.emitOpcode(opcode);
-            self.emitInt32(v1);
-            self.emitInt32(v2);
-        } else {
-            self.emitOpcode(opcode);
-            self.emitByte(v1);
-            self.emitByte(v2);
-        }
+        self.emitOpcode(opcode);
+        self.emitInt32Variable(v1);
+        self.emitInt32Variable(v2);
     }
 
     fn emitVal4(opcode: Int32, v1: Int32, v2: Int32, v3: Int32) {
-        if isWide(v1) || isWide(v2) || isWide(v3) {
-            self.emitWide();
-            self.emitOpcode(opcode);
-            self.emitInt32(v1);
-            self.emitInt32(v2);
-            self.emitInt32(v3);
-        } else {
-            self.emitOpcode(opcode);
-            self.emitByte(v1);
-            self.emitByte(v2);
-            self.emitByte(v3);
-        }
+        self.emitOpcode(opcode);
+        self.emitInt32Variable(v1);
+        self.emitInt32Variable(v2);
+        self.emitInt32Variable(v3);
     }
 
     fn emitVal5(opcode: Int32, v1: Int32, v2: Int32, v3: Int32, v4: Int32) {
-        if isWide(v1) || isWide(v2) || isWide(v3) || isWide(v4) {
-            self.emitWide();
-            self.emitOpcode(opcode);
-            self.emitInt32(v1);
-            self.emitInt32(v2);
-            self.emitInt32(v3);
-            self.emitInt32(v4);
-        } else {
-            self.emitOpcode(opcode);
-            self.emitByte(v1);
-            self.emitByte(v2);
-            self.emitByte(v3);
-            self.emitByte(v4);
-        }
-    }
-
-    fn emitWide() {
-        self.emitByte(opc::BC_WIDE);
+        self.emitOpcode(opcode);
+        self.emitInt32Variable(v1);
+        self.emitInt32Variable(v2);
+        self.emitInt32Variable(v3);
+        self.emitInt32Variable(v4);
     }
 
     fn emitOpcode(opcode: Int32) {
-        if opcode >= 255i32 {
-            self.emitByte(255i32);
-            assert(opcode < 512i32);
-            self.emitByte(opcode - 255i32);
-        } else {
-            self.emitByte(opcode);
-        }
+        self.emitByte(opcode);
     }
 
     fn emitByte(val: Int32) {
@@ -476,12 +400,26 @@ impl BytecodeBuilder {
         self.code.push(val.toUInt8());
     }
 
-    fn emitInt32(val: Int32) {
+    fn emitInt32Fixed(val: Int32) {
         assert(val >= 0i32);
         self.emitByte(val & 0xFFi32);
         self.emitByte((val >>> 8i32) & 0xFFi32);
         self.emitByte((val >>> 16i32) & 0xFFi32);
         self.emitByte((val >>> 24i32) & 0xFFi32);
+    }
+
+    fn emitInt32Variable(mut value: Int32) {
+        while true {
+            let mut byte = value & 0x7Fi32;
+            value = value >> 7i32;
+            if value != 0i32 {
+                byte = byte | 0x80i32;
+            }
+
+            self.code.push(byte.toUInt8());
+
+            if value == 0i32 { break; }
+        }
     }
 
     fn patchInt32(idx: Int32, val: Int32) {
@@ -492,10 +430,6 @@ impl BytecodeBuilder {
         self.code(idx + 2i64) = ((val >>> 16i32) & 0xFFi32).toUInt8();
         self.code(idx + 3i64) = ((val >>> 24i32) & 0xFFi32).toUInt8();
     }
-}
-
-fn isWide(val: Int32): Bool {
-    val > 255i32
 }
 
 class BytecodeLabel(off: Int32)

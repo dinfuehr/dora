@@ -176,20 +176,11 @@ impl BytecodeDumper {
             BytecodeInstruction::Jump(distance) => {
                 self.emitInt("Jump", distance);
             },
-            BytecodeInstruction::JumpConst(idx) => {
-                self.emitIdx("JumpConst", idx);
-            },
             BytecodeInstruction::JumpIfFalse(opnd, distance) => {
                 self.emitReg1AndInt("JumpIfFalse", opnd, distance);
             },
-            BytecodeInstruction::JumpIfFalseConst(opnd, idx) => {
-                self.emitReg1AndIdx("JumpIfFalseConst", opnd, idx);
-            },
             BytecodeInstruction::JumpIfTrue(opnd, distance) => {
                 self.emitReg1AndInt("JumpIfTrue", opnd, distance);
-            },
-            BytecodeInstruction::JumpIfTrueConst(opnd, idx) => {
-                self.emitReg1AndIdx("JumpIfTrueConst", opnd, idx);
             },
 
             BytecodeInstruction::InvokeDirect(dest, idx) => {

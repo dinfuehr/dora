@@ -396,22 +396,10 @@ impl SsaGen {
             BytecodeInstruction::Jump(distance) => {
                 self.emitJump(distance);
             },
-            BytecodeInstruction::JumpConst(idx) => {
-                let distance = self.bc.constPool(idx).toInt32().getOrPanic();
-                self.emitJump(distance);
-            },
             BytecodeInstruction::JumpIfFalse(opnd, distance) => {
                 self.emitConditionalJump(opnd, distance, false);
             },
-            BytecodeInstruction::JumpIfFalseConst(opnd, idx) => {
-                let distance = self.bc.constPool(idx).toInt32().getOrPanic();
-                self.emitConditionalJump(opnd, distance, false);
-            },
             BytecodeInstruction::JumpIfTrue(opnd, distance) => {
-                self.emitConditionalJump(opnd, distance, true);
-            },
-            BytecodeInstruction::JumpIfTrueConst(opnd, idx) => {
-                let distance = self.bc.constPool(idx).toInt32().getOrPanic();
                 self.emitConditionalJump(opnd, distance, true);
             },
 
