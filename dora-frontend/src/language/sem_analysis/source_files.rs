@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use crate::language::sem_analysis::{ModuleDefinitionId, PackageDefinitionId};
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct SourceFileId(pub usize);
 
 impl SourceFileId {

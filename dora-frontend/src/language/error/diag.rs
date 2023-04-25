@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use crate::language::error::msg::{ErrorDescriptor, ErrorMessage};
 use crate::language::sem_analysis::{SemAnalysis, SourceFileId};
 
@@ -28,9 +30,37 @@ impl Diagnostic {
         !self.errors.is_empty()
     }
 
-    pub fn dump(&self, sa: &SemAnalysis) {
+    pub fn dump(&mut self, sa: &SemAnalysis) {
+        self.sort();
+
         for err in &self.errors {
             eprintln!("{}", &err.message(sa));
         }
+    }
+
+    fn sort(&mut self) {
+        self.errors.sort_by(|el1, el2| {
+            if el1.file.is_none() {
+                return Ordering::Less;
+            }
+
+            if el2.file.is_none() {
+                return Ordering::Greater;
+            }
+
+            let el1_file = el1.file.expect("missing location");
+            let el1_span = el1.span.expect("missing span");
+
+            let el2_file = el2.file.expect("missing location");
+            let el2_span = el2.span.expect("missing span");
+
+            let result = el1_file.cmp(&el2_file);
+
+            if result.is_eq() {
+                el1_span.start().cmp(&el2_span.start())
+            } else {
+                result
+            }
+        });
     }
 }
