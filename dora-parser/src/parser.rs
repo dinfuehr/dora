@@ -264,7 +264,7 @@ impl<'a> Parser<'a> {
             self.expect_token(TokenKind::Underscore);
             None
         } else {
-            Some(self.expect_identifier()?)
+            self.expect_identifier2()
         };
 
         let span = self.span_from(start);
@@ -1299,9 +1299,9 @@ impl<'a> Parser<'a> {
                 false
             };
 
-            let ident = self.expect_identifier()?;
+            let ident = self.expect_identifier2();
 
-            (mutable, Some(ident))
+            (mutable, ident)
         };
 
         let span = self.span_from(start);

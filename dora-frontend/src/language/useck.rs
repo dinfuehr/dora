@@ -145,19 +145,19 @@ fn check_use(
         UseTargetDescriptor::As(target) => {
             let last_component = use_declaration.common_path.last().expect("no component");
 
-            let name = target.name.expect("target expected");
+            if let Some(ident) = &target.name {
+                assert!(all_resolved.insert((use_file_id, use_declaration.id)));
+                *resolved = true;
 
-            assert!(all_resolved.insert((use_file_id, use_declaration.id)));
-            *resolved = true;
-
-            define_use_target(
-                sa,
-                use_file_id,
-                last_component.span,
-                use_module_id,
-                name,
-                previous_sym,
-            )?;
+                define_use_target(
+                    sa,
+                    use_file_id,
+                    last_component.span,
+                    use_module_id,
+                    ident.name,
+                    previous_sym,
+                )?;
+            }
         }
         UseTargetDescriptor::Group(ref group) => {
             if group.targets.is_empty() {

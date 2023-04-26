@@ -249,7 +249,7 @@ pub struct UseTargetGroup {
 #[derive(Clone, Debug)]
 pub struct UseTargetName {
     pub span: Span,
-    pub name: Option<Name>,
+    pub name: Option<Ident>,
 }
 
 #[derive(Clone, Debug)]
@@ -1847,7 +1847,7 @@ pub struct MatchPatternIdent {
 pub struct MatchPatternParam {
     pub id: NodeId,
     pub span: Span,
-    pub name: Option<Name>,
+    pub name: Option<Ident>,
     pub mutable: bool,
 }
 

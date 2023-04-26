@@ -769,7 +769,7 @@ impl<'a> TypeCheck<'a> {
 
                             if let Some(ref params) = ident.params {
                                 for (idx, param) in params.iter().enumerate() {
-                                    if let Some(name) = param.name {
+                                    if let Some(ident) = &param.name {
                                         let ty = if idx < variant.types.len() {
                                             variant.types[idx].clone()
                                         } else {
@@ -783,7 +783,7 @@ impl<'a> TypeCheck<'a> {
                                             None,
                                         );
 
-                                        if used_idents.insert(name) == false {
+                                        if used_idents.insert(ident.name) == false {
                                             let msg = ErrorMessage::VarAlreadyInPattern;
                                             self.sa.diag.lock().report(
                                                 self.file_id,
@@ -792,7 +792,8 @@ impl<'a> TypeCheck<'a> {
                                             );
                                         }
 
-                                        let var_id = self.vars.add_var(name, ty, param.mutable);
+                                        let var_id =
+                                            self.vars.add_var(ident.name, ty, param.mutable);
                                         self.add_local(var_id, param.span);
                                         self.analysis
                                             .map_vars
