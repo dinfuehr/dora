@@ -324,7 +324,7 @@ impl Shift {
 
 mod encoding {
     use package::assembler::Register;
-    use super::{Extend, Shift, Cond};
+    use super::{Extend, Shift, Cond, NeonRegister};
 
     pub fn uncondBranchImm(op: Int32, imm26: Int32): Int32 {
         assert(fitsUnsigned(op, 1i32));
@@ -569,12 +569,506 @@ mod encoding {
             | rd.encoding()
     }
 
+    pub fn dataproc3(
+        sf: Int32,
+        op54: Int32,
+        op31: Int32,
+        rm: Register,
+        o0: Int32,
+        ra: Register,
+        rn: Register,
+        rd: Register,
+    ): Int32 {
+        assert(fitsBit(sf));
+        assert(fitsU2(op54));
+        assert(fitsU3(op31));
+        assert(rm.isGpr());
+        assert(fitsBit(o0));
+        assert(ra.isGprOrZero());
+        assert(rn.isGpr());
+        assert(rd.isGpr());
+
+        sf << 31i32
+            | op54 << 29i32
+            | 0b11011i32 << 24i32
+            | op31 << 21i32
+            | rm.encoding() << 16i32
+            | o0 << 15i32
+            | ra.encodingZero() << 10i32
+            | rn.encoding() << 5i32
+            | rd.encoding()
+    }
+
+    pub fn exception(opc: Int32, imm16: Int32, op2: Int32, ll: Int32): Int32 {
+        assert(fitsU3(opc));
+        assert(fitsU16(imm16));
+        assert(op2 == 0i32);
+        assert(fitsU2(ll));
+
+        0b11010100i32 << 24i32 | opc << 21i32 | imm16 << 5i32 | op2 << 2i32 | ll
+    }
+
+    pub fn fp_compare(
+        m: Int32,
+        s: Int32,
+        ty: Int32,
+        rm: NeonRegister,
+        op: Int32,
+        rn: NeonRegister,
+        opcode2: Int32,
+    ): Int32 {
+        assert(m == 0i32);
+        assert(s == 0i32);
+        assert(fitsBit(ty));
+        assert(fitsU2(op));
+        assert(fitsU5(opcode2));
+
+        m << 31i32
+            | s << 29i32
+            | 0b11110i32 << 24i32
+            | ty << 22i32
+            | 1i32 << 21i32
+            | rm.encoding() << 16i32
+            | op << 14i32
+            | 0b1000i32 << 10i32
+            | rn.encoding() << 5i32
+            | opcode2
+    }
+
+    pub fn fp_dataproc1(
+        m: Int32,
+        s: Int32,
+        ty: Int32,
+        opcode: Int32,
+        rn: NeonRegister,
+        rd: NeonRegister,
+    ): Int32 {
+        assert(m == 0i32);
+        assert(s == 0i32);
+        assert(fitsU2(ty));
+        assert(fitsU6(opcode));
+
+        m << 31i32
+            | s << 29i32
+            | 0b11110i32 << 24i32
+            | ty << 22i32
+            | 1i32 << 21i32
+            | opcode << 15i32
+            | 0b10000i32 << 10i32
+            | rn.encoding() << 5i32
+            | rd.encoding()
+    }
+
+    pub fn fp_dataproc2(
+        m: Int32,
+        s: Int32,
+        ty: Int32,
+        rm: NeonRegister,
+        opcode: Int32,
+        rn: NeonRegister,
+        rd: NeonRegister,
+    ): Int32 {
+        assert(m == 0i32);
+        assert(s == 0i32);
+        assert(fitsBit(ty));
+        assert(fitsU4(opcode));
+
+        m << 31i32
+            | s << 29i32
+            | 0b11110i32 << 24i32
+            | ty << 22i32
+            | 1i32 << 21i32
+            | rm.encoding() << 16i32
+            | opcode << 12i32
+            | 0b10i32 << 10i32
+            | rn.encoding() << 5i32
+            | rd.encoding()
+    }
+
+    pub fn fp_int(
+        sf: Int32,
+        s: Int32,
+        ty: Int32,
+        rmode: Int32,
+        opcode: Int32,
+        rn: Int32,
+        rd: Int32,
+    ): Int32 {
+        assert(fitsBit(sf));
+        assert(fitsBit(s));
+        assert(fitsU2(ty));
+        assert(fitsU2(rmode));
+        assert(fitsU3(opcode));
+        assert(fitsU5(rn));
+        assert(fitsU5(rd));
+
+        sf << 31i32
+            | s << 29i32
+            | 0b11110i32 << 24i32
+            | ty << 22i32
+            | 1i32 << 21i32
+            | rmode << 19i32
+            | opcode << 16i32
+            | rn << 5i32
+            | rd
+    }
+
+    pub fn ldst_exclusive(
+        size: Int32,
+        o2: Int32,
+        l: Int32,
+        o1: Int32,
+        rs: Register,
+        o0: Int32,
+        rt2: Register,
+        rn: Register,
+        rt: Register,
+    ): Int32 {
+        assert(fitsU2(size));
+        assert(fitsBit(o2));
+        assert(fitsBit(l));
+        assert(fitsBit(o1));
+        assert(fitsBit(o0));
+        assert(rs.isGprOrZero());
+        assert(rt2.isGprOrZero());
+        assert(rn.isGprOrSp());
+        assert(rt.isGprOrZero());
+
+        size << 30i32
+            | 0b001000i32 << 24i32
+            | o2 << 23i32
+            | l << 22i32
+            | o1 << 21i32
+            | rs.encodingZero() << 16i32
+            | o0 << 15i32
+            | rt2.encodingZero() << 10i32
+            | rn.encodingSp() << 5i32
+            | rt.encodingZero()
+    }
+
+    pub fn ldst_pair(
+        opc: Int32,
+        v: Int32,
+        l: Int32,
+        imm7: Int32,
+        rt2: Register,
+        rn: Register,
+        rt: Register,
+    ): Int32 {
+        assert(fitsU2(opc));
+        assert(fitsBit(v));
+        assert(fitsBit(l));
+        assert(fitsI7(imm7));
+        assert(rt2.isGpr());
+        assert(rn.isGprOrSp());
+        assert(rt.isGpr());
+
+        opc << 30i32
+            | 0b101i32 << 27i32
+            | 1i32 << 24i32
+            | l << 22i32
+            | (imm7 & 0x7Fi32) << 15i32
+            | rt2.encoding() << 10i32
+            | rn.encodingSp() << 5i32
+            | rt.encoding()
+    }
+
+    pub fn ldst_pair_post(
+        opc: Int32,
+        v: Int32,
+        l: Int32,
+        imm7: Int32,
+        rt2: Register,
+        rn: Register,
+        rt: Register,
+    ): Int32 {
+        assert(fitsU2(opc));
+        assert(fitsBit(v));
+        assert(fitsBit(l));
+        assert(fitsI7(imm7));
+        assert(rt2.isGpr());
+        assert(rn.isGprOrSp());
+        assert(rt.isGpr());
+
+        opc << 30i32
+            | 0b101i32 << 27i32
+            | v << 26i32
+            | 0b001i32 << 23i32
+            | l << 22i32
+            | (imm7 & 0x7Fi32) << 15i32
+            | rt2.encoding() << 10i32
+            | rn.encodingSp() << 5i32
+            | rt.encoding()
+    }
+
+    pub fn ldst_pair_pre(
+        opc: Int32,
+        v: Int32,
+        l: Int32,
+        imm7: Int32,
+        rt2: Register,
+        rn: Register,
+        rt: Register,
+    ): Int32 {
+        assert(fitsU2(opc));
+        assert(fitsBit(v));
+        assert(fitsBit(l));
+        assert(fitsI7(imm7));
+        assert(rt2.isGpr());
+        assert(rn.isGprOrSp());
+        assert(rt.isGpr());
+
+        opc << 30i32
+            | 0b101i32 << 27i32
+            | v << 26i32
+            | 0b011i32 << 23i32
+            | l << 22i32
+            | (imm7 & 0x7Fi32) << 15i32
+            | rt2.encoding() << 10i32
+            | rn.encodingSp() << 5i32
+            | rt.encoding()
+    }
+
+    pub fn logical_imm(
+        sf: Int32,
+        opc: Int32,
+        n_immr_imms: Int32,
+        rn: Register,
+        rd: Register,
+    ): Int32 {
+        assert(fitsBit(sf));
+        assert(fitsU2(opc));
+        assert(fitsU13(n_immr_imms));
+        assert(rn.isGpr());
+        assert(rd.isGpr());
+
+        sf << 31i32
+            | opc << 29i32
+            | 0b100100i32 << 23i32
+            | n_immr_imms << 10i32
+            | rn.encoding() << 5i32
+            | rd.encoding()
+    }
+
+    pub fn logical_shreg(
+        sf: Int32,
+        opc: Int32,
+        shift: Shift,
+        n: Int32,
+        rm: Register,
+        imm6: Int32,
+        rn: Register,
+        rd: Register,
+    ): Int32 {
+        assert(fitsBit(sf));
+        assert(fitsU2(opc));
+        assert(fitsBit(n));
+        assert(rm.isGprOrZero());
+        assert(fitsU5(imm6));
+        assert(rn.isGprOrZero());
+        assert(rd.isGpr());
+
+        0b01010i32 << 24i32
+            | sf << 31i32
+            | opc << 29i32
+            | shift.encoding() << 22i32
+            | n << 21i32
+            | rm.encodingZero() << 16i32
+            | imm6 << 10i32
+            | rn.encodingZero() << 5i32
+            | rd.encoding()
+    }
+
+    pub fn move_wide_imm(sf: Int32, opc: Int32, hw: Int32, imm16: Int32, rd: Register): Int32 {
+        assert(fitsBit(sf));
+        assert(fitsU2(opc));
+        assert(fitsU2(hw));
+        if sf == 0i32 {
+            assert(fitsBit(hw));
+        }
+        assert(fitsU16(imm16));
+        assert(rd.isGpr());
+
+        0b100101i32 << 23i32 | sf << 31i32 | opc << 29i32 | hw << 21i32 | imm16 << 5i32 | rd.encoding()
+    }
+
+    pub fn ldst_regimm(
+        size: Int32,
+        v: Int32,
+        opc: Int32,
+        imm12: Int32,
+        rn: Register,
+        rt: Int32,
+    ): Int32 {
+        assert(fitsU2(size));
+        assert(fitsBit(v));
+        assert(fitsU2(opc));
+        assert(fitsU12(imm12));
+        assert(rn.isGprOrSp());
+        assert(fitsU5(rt));
+
+        0b111001i32 << 24i32
+            | size << 30i32
+            | v << 26i32
+            | opc << 22i32
+            | imm12 << 10i32
+            | rn.encodingSp() << 5i32
+            | rt
+    }
+
+    pub fn ldst_regoffset(
+        size: Int32,
+        v: Int32,
+        opc: Int32,
+        rm: Register,
+        option: Extend,
+        s: Int32,
+        rn: Register,
+        rt: Int32,
+    ): Int32 {
+        assert(fitsU2(size));
+        assert(fitsBit(v));
+        assert(fitsU2(opc));
+        assert(rm.isGprOrZero());
+        assert(fitsBit(s));
+        assert(rn.isGprOrSp());
+        assert(fitsU5(rt));
+
+        0b111i32 << 27i32
+            | 1i32 << 21i32
+            | 0b10i32 << 10i32
+            | size << 30i32
+            | v << 26i32
+            | opc << 22i32
+            | rm.encodingZero() << 16i32
+            | option.ldst_encoding() << 13i32
+            | s << 12i32
+            | rn.encodingSp() << 5i32
+            | rt
+    }
+
+    pub fn ldst_reg_unscaledimm(
+        size: Int32,
+        v: Int32,
+        opc: Int32,
+        imm9: Int32,
+        rn: Register,
+        rt: Int32,
+    ): Int32 {
+        assert(fitsU2(size));
+        assert(fitsBit(v));
+        assert(fitsU2(opc));
+        assert(fitsI9(imm9));
+        assert(rn.isGprOrSp());
+        assert(fitsU5(rt));
+
+        let imm = imm9 & 0x1FFi32;
+
+        size << 30i32 | 0b111i32 << 27i32 | v << 26i32 | opc << 22i32 | imm << 12i32 | rn.encodingSp() << 5i32 | rt
+    }
+
+    pub fn simd_across_lanes(
+        q: Int32,
+        u: Int32,
+        size: Int32,
+        opcode: Int32,
+        rn: NeonRegister,
+        rd: NeonRegister,
+    ): Int32 {
+        assert(fitsBit(q));
+        assert(fitsBit(u));
+        assert(fitsU2(size));
+        assert(fitsU5(opcode));
+
+        q << 30i32
+            | u << 29i32
+            | 0b01110i32 << 24i32
+            | size << 22i32
+            | 0b11000i32 << 17i32
+            | opcode << 12i32
+            | 0b10i32 << 10i32
+            | rn.encoding() << 5i32
+            | rd.encoding()
+    }
+
+    pub fn pcrel(op: Int32, imm: Int32, rd: Register): Int32 {
+        assert(fitsI21(imm));
+        assert(fitsBit(op));
+        assert(rd.isGpr());
+
+        let immlo = imm & 3i32;
+        let immhi = (imm >> 2i32) & 0x7FFFFi32;
+
+        1i32 << 28i32 | op << 31i32 | immlo << 29i32 | immhi << 5i32 | rd.encoding()
+    }
+
+    pub fn simd_2regs_misc(
+        q: Int32,
+        u: Int32,
+        size: Int32,
+        opcode: Int32,
+        rn: NeonRegister,
+        rd: NeonRegister,
+    ): Int32 {
+        assert(fitsBit(q));
+        assert(fitsBit(u));
+        assert(fitsU2(size));
+        assert(fitsU5(opcode));
+
+        q << 30i32
+            | u << 29i32
+            | 0b01110i32 << 24i32
+            | size << 22i32
+            | 0b10000i32 << 17i32
+            | opcode << 12i32
+            | 0b10i32 << 10i32
+            | rn.encoding() << 5i32
+            | rd.encoding()
+    }
+
+    pub fn system(imm: Int32): Int32 {
+        assert(fitsU7(imm));
+        0xD503201Fi32 | imm << 5i32
+    }
+
+    pub fn uncond_branch_imm(op: Int32, imm26: Int32): Int32 {
+        assert(fitsBit(op));
+        assert(fitsI26(imm26));
+
+        0b101i32 << 26i32 | op << 31i32 | (imm26 & 0x3FFFFFFi32)
+    }
+
+    pub fn uncond_branch_reg(opc: Int32, op2: Int32, op3: Int32, rn: Register, op4: Int32): Int32 {
+        assert(fitsU4(opc));
+        assert(fitsU5(op2));
+        assert(fitsU6(op3));
+        assert(fitsU5(op4));
+
+        0b1101011i32 << 25i32 | opc << 21i32 | op2 << 16i32 | op3 << 10i32 | rn.encoding() << 5i32 | op4
+    }
+
     fn fitsBit(value: Int32): Bool {
         value >= 0i32 && value < 2i32
     }
 
+    fn fitsI7(value: Int32): Bool {
+        fitsSigned(value, 7i32)
+    }
+
+    fn fitsI9(value: Int32): Bool {
+        fitsSigned(value, 9i32)
+    }
+
     fn fitsI19(value: Int32): Bool {
         fitsSigned(value, 19i32)
+    }
+
+    fn fitsI21(value: Int32): Bool {
+        fitsSigned(value, 21i32)
+    }
+
+    fn fitsI26(value: Int32): Bool {
+        fitsSigned(value, 26i32)
     }
 
     fn fitsSigned(value: Int32, bits: Int32): Bool {
@@ -586,12 +1080,36 @@ mod encoding {
         fitsUnsigned(value, 2i32)
     }
 
+    fn fitsU3(value: Int32): Bool {
+        fitsUnsigned(value, 3i32)
+    }
+
+    fn fitsU4(value: Int32): Bool {
+        fitsUnsigned(value, 4i32)
+    }
+
     fn fitsU5(value: Int32): Bool {
         fitsUnsigned(value, 5i32)
     }
 
     fn fitsU6(value: Int32): Bool {
         fitsUnsigned(value, 6i32)
+    }
+
+    fn fitsU7(value: Int32): Bool {
+        fitsUnsigned(value, 7i32)
+    }
+
+    fn fitsU12(value: Int32): Bool {
+        fitsUnsigned(value, 12i32)
+    }
+
+    fn fitsU13(value: Int32): Bool {
+        fitsUnsigned(value, 13i32)
+    }
+
+    fn fitsU16(value: Int32): Bool {
+        fitsUnsigned(value, 16i32)
     }
 
     fn fitsUnsigned(value: Int32, bits: Int32): Bool {
