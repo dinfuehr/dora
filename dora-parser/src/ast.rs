@@ -263,7 +263,7 @@ pub enum UsePathComponentValue {
     This,
     Super,
     Package,
-    Name(Name),
+    Name(Ident),
 }
 
 #[derive(Clone, Debug)]
@@ -367,7 +367,7 @@ impl TypeBasicType {
     #[cfg(test)]
     pub fn name(&self) -> Name {
         assert_eq!(self.path.names.len(), 1);
-        self.path.names.last().cloned().unwrap()
+        self.path.names.last().cloned().unwrap().name
     }
 }
 
@@ -1855,7 +1855,7 @@ pub struct MatchPatternParam {
 pub struct Path {
     pub id: NodeId,
     pub span: Span,
-    pub names: Vec<Name>,
+    pub names: Vec<Ident>,
 }
 
 #[derive(Clone, Debug)]

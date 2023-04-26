@@ -7,9 +7,8 @@ use crate::language::sem_analysis::{module_package, ModuleDefinitionId, SemAnaly
 use crate::language::sym::{ModuleSymTable, Sym};
 
 use dora_parser::ast::{
-    self, NodeId, UsePathComponent, UsePathComponentValue, UseTargetDescriptor,
+    self, Ident, NodeId, UsePathComponent, UsePathComponentValue, UseTargetDescriptor,
 };
-use dora_parser::interner::Name;
 use dora_parser::Span;
 
 use super::sem_analysis::SourceFileId;
@@ -117,7 +116,7 @@ fn check_use(
             let last_component = use_declaration.common_path.last().expect("no component");
 
             let name = match last_component.value {
-                UsePathComponentValue::Name(name) => name,
+                UsePathComponentValue::Name(ref name) => name.clone(),
                 UsePathComponentValue::Package
                 | UsePathComponentValue::Super
                 | UsePathComponentValue::This => {
@@ -154,7 +153,7 @@ fn check_use(
                     use_file_id,
                     last_component.span,
                     use_module_id,
-                    ident.name,
+                    ident.clone(),
                     previous_sym,
                 )?;
             }
@@ -215,8 +214,8 @@ fn initial_module(
                     Err(UseError::Fatal)
                 }
             }
-            UsePathComponentValue::Name(name) => {
-                if let Some(package_id) = sa.package_names.get(&name).cloned() {
+            UsePathComponentValue::Name(ref ident) => {
+                if let Some(package_id) = sa.package_names.get(&ident.name).cloned() {
                     let package = sa.packages.idx(package_id);
                     let package = package.read();
 
@@ -240,7 +239,7 @@ fn process_component(
     ignore_errors: bool,
 ) -> Result<Sym, UseError> {
     let component_name = match component.value {
-        UsePathComponentValue::Name(name) => name,
+        UsePathComponentValue::Name(ref name) => name.clone(),
         UsePathComponentValue::Package
         | UsePathComponentValue::Super
         | UsePathComponentValue::This => {
@@ -254,14 +253,14 @@ fn process_component(
     match previous_sym {
         Sym::Module(module_id) => {
             let symtable = ModuleSymTable::new(sa, module_id);
-            let current_sym = symtable.get(component_name);
+            let current_sym = symtable.get(component_name.name);
 
             if let Some(current_sym) = current_sym {
                 if sym_accessible_from(sa, current_sym.clone(), use_module_id) {
                     Ok(current_sym)
                 } else {
                     let module = &sa.modules[module_id].read();
-                    let name = sa.interner.str(component_name).to_string();
+                    let name = sa.interner.str(component_name.name).to_string();
                     let msg = ErrorMessage::NotAccessibleInModule(module.name(sa), name);
                     sa.diag.lock().report(use_file_id, component.span, msg);
                     Err(UseError::Fatal)
@@ -271,7 +270,7 @@ fn process_component(
             } else {
                 let module = sa.modules.idx(module_id);
                 let module = module.read();
-                let name = sa.interner.str(component_name).to_string();
+                let name = sa.interner.str(component_name.name).to_string();
                 let module_name = module.name(sa);
                 sa.diag.lock().report(
                     use_file_id,
@@ -285,10 +284,10 @@ fn process_component(
         Sym::Enum(enum_id) => {
             let enum_ = sa.enums[enum_id].read();
 
-            if let Some(&variant_idx) = enum_.name_to_value.get(&component_name) {
+            if let Some(&variant_idx) = enum_.name_to_value.get(&component_name.name) {
                 Ok(Sym::EnumVariant(enum_id, variant_idx))
             } else {
-                let name = sa.interner.str(component_name).to_string();
+                let name = sa.interner.str(component_name.name).to_string();
                 sa.diag.lock().report(
                     use_file_id,
                     component.span,
@@ -307,7 +306,7 @@ fn define_use_target(
     use_file_id: SourceFileId,
     use_span: Span,
     module_id: ModuleDefinitionId,
-    name: Name,
+    ident: Ident,
     sym: Sym,
 ) -> Result<(), UseError> {
     let module = sa.modules.idx(module_id);
@@ -316,8 +315,8 @@ fn define_use_target(
     let table = module.table.clone();
     let mut table = table.write();
 
-    if let Some(old_sym) = table.insert(name, sym) {
-        report_sym_shadow_span(sa, name, use_file_id, use_span, old_sym);
+    if let Some(old_sym) = table.insert(ident.name, sym) {
+        report_sym_shadow_span(sa, ident.name, use_file_id, use_span, old_sym);
         Err(UseError::Fatal)
     } else {
         Ok(())

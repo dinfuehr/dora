@@ -2537,9 +2537,9 @@ impl<'a> TypeCheck<'a> {
 
     fn read_path(&mut self, path: &ast::Path) -> Result<Sym, ()> {
         let names = &path.names;
-        let mut sym = self.symtable.get(names[0]);
+        let mut sym = self.symtable.get(names[0].name);
 
-        for &name in &names[1..] {
+        for ident in &names[1..] {
             match sym {
                 Some(Sym::Module(module_id)) => {
                     if !module_accessible_from(self.sa, module_id, self.module_id) {
@@ -2550,7 +2550,7 @@ impl<'a> TypeCheck<'a> {
 
                     let module = &self.sa.modules[module_id].read();
                     let symtable = module.table.read();
-                    sym = symtable.get(name);
+                    sym = symtable.get(ident.name);
                 }
 
                 Some(Sym::Enum(enum_id)) => {
@@ -2561,10 +2561,10 @@ impl<'a> TypeCheck<'a> {
                         self.sa.diag.lock().report(self.file_id, path.span, msg);
                     }
 
-                    if let Some(&variant_idx) = enum_.name_to_value.get(&name) {
+                    if let Some(&variant_idx) = enum_.name_to_value.get(&ident.name) {
                         sym = Some(Sym::EnumVariant(enum_id, variant_idx));
                     } else {
-                        let name = self.sa.interner.str(name).to_string();
+                        let name = self.sa.interner.str(ident.name).to_string();
                         self.sa.diag.lock().report(
                             self.file_id.into(),
                             path.span,
@@ -2581,7 +2581,7 @@ impl<'a> TypeCheck<'a> {
                 }
 
                 None => {
-                    let name = self.sa.interner.str(names[0]).to_string();
+                    let name = self.sa.interner.str(names[0].name).to_string();
                     let msg = ErrorMessage::UnknownIdentifier(name);
                     self.sa.diag.lock().report(self.file_id, path.span, msg);
                     return Err(());
@@ -2592,7 +2592,7 @@ impl<'a> TypeCheck<'a> {
         if let Some(sym) = sym {
             Ok(sym)
         } else {
-            let name = self.sa.interner.str(names[0]).to_string();
+            let name = self.sa.interner.str(names[0].name).to_string();
             let msg = ErrorMessage::UnknownIdentifier(name);
             self.sa.diag.lock().report(self.file_id, path.span, msg);
 

@@ -190,10 +190,10 @@ impl<'a> Parser<'a> {
 
         self.expect_token(TokenKind::Extern);
         self.expect_token(TokenKind::Package);
-        let name = self.expect_identifier2();
+        let name = self.expect_identifier();
         let identifier = if self.token.is(TokenKind::As) {
             self.expect_token(TokenKind::As);
-            self.expect_identifier2()
+            self.expect_identifier()
         } else {
             None
         };
@@ -264,7 +264,7 @@ impl<'a> Parser<'a> {
             self.expect_token(TokenKind::Underscore);
             None
         } else {
-            self.expect_identifier2()
+            self.expect_identifier()
         };
 
         let span = self.span_from(start);
@@ -284,8 +284,12 @@ impl<'a> Parser<'a> {
             self.expect_token(TokenKind::Super);
             UsePathComponentValue::Super
         } else {
-            let name = self.expect_identifier()?;
-            UsePathComponentValue::Name(name)
+            let name = self.expect_identifier();
+            if let Some(name) = name {
+                UsePathComponentValue::Name(name)
+            } else {
+                return Err(());
+            }
         };
 
         let span = self.span_from(start);
@@ -310,7 +314,7 @@ impl<'a> Parser<'a> {
     fn parse_enum(&mut self, modifiers: &Modifiers) -> Result<Enum, ()> {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Enum);
-        let name = self.expect_identifier2();
+        let name = self.expect_identifier();
         let type_params = self.parse_type_params()?;
 
         self.expect_token(TokenKind::LBrace);
@@ -332,7 +336,7 @@ impl<'a> Parser<'a> {
     fn parse_module(&mut self, modifiers: &Modifiers) -> Result<Module, ()> {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Mod);
-        let name = self.expect_identifier2();
+        let name = self.expect_identifier();
 
         let elements = if self.token.is(TokenKind::LBrace) {
             self.expect_token(TokenKind::LBrace);
@@ -363,7 +367,7 @@ impl<'a> Parser<'a> {
 
     fn parse_enum_variant(&mut self) -> Result<EnumVariant, ()> {
         let start = self.token.span.start();
-        let name = self.expect_identifier2();
+        let name = self.expect_identifier();
 
         let types = if self.token.is(TokenKind::LParen) {
             self.advance_token();
@@ -385,7 +389,7 @@ impl<'a> Parser<'a> {
     fn parse_const(&mut self, modifiers: &Modifiers) -> Result<Const, ()> {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Const);
-        let name = self.expect_identifier2();
+        let name = self.expect_identifier();
         self.expect_token(TokenKind::Colon);
         let ty = self.parse_type()?;
         self.expect_token(TokenKind::Eq);
@@ -456,7 +460,7 @@ impl<'a> Parser<'a> {
             false
         };
 
-        let name = self.expect_identifier2();
+        let name = self.expect_identifier();
 
         self.expect_token(TokenKind::Colon);
         let data_type = self.parse_type()?;
@@ -487,7 +491,7 @@ impl<'a> Parser<'a> {
     fn parse_trait(&mut self, modifiers: &Modifiers) -> Result<Trait, ()> {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Trait);
-        let name = self.expect_identifier2();
+        let name = self.expect_identifier();
         let type_params = self.parse_type_params()?;
 
         self.expect_token(TokenKind::LBrace);
@@ -519,7 +523,7 @@ impl<'a> Parser<'a> {
     fn parse_struct(&mut self, modifiers: &Modifiers) -> Result<Struct, ()> {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Struct);
-        let ident = self.expect_identifier2();
+        let ident = self.expect_identifier();
         let type_params = self.parse_type_params()?;
 
         let fields = if self.token.is(TokenKind::LParen) {
@@ -556,7 +560,7 @@ impl<'a> Parser<'a> {
         let mods = &[Annotation::Pub];
         self.restrict_modifiers(&modifiers, mods);
 
-        let ident = self.expect_identifier2();
+        let ident = self.expect_identifier();
 
         self.expect_token(TokenKind::Colon);
         let ty = self.parse_type()?;
@@ -575,7 +579,7 @@ impl<'a> Parser<'a> {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Class);
 
-        let name = self.expect_identifier2();
+        let name = self.expect_identifier();
         let type_params = self.parse_type_params()?;
 
         let fields = if self.token.is(TokenKind::LParen) {
@@ -612,7 +616,7 @@ impl<'a> Parser<'a> {
         let mods = &[Annotation::Pub];
         self.restrict_modifiers(&modifiers, mods);
 
-        let name = self.expect_identifier2();
+        let name = self.expect_identifier();
 
         self.expect_token(TokenKind::Colon);
         let data_type = self.parse_type()?;
@@ -633,7 +637,7 @@ impl<'a> Parser<'a> {
     fn parse_alias(&mut self, modifiers: &Modifiers) -> Result<Alias, ()> {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Alias);
-        let name = self.expect_identifier2();
+        let name = self.expect_identifier();
         self.expect_token(TokenKind::Eq);
         let ty = self.parse_type()?;
         self.expect_semicolon();
@@ -663,7 +667,7 @@ impl<'a> Parser<'a> {
 
     fn parse_type_param(&mut self) -> Result<TypeParam, ()> {
         let start = self.token.span.start();
-        let name = self.expect_identifier2();
+        let name = self.expect_identifier();
 
         let bounds = if self.token.is(TokenKind::Colon) {
             self.advance_token();
@@ -733,7 +737,7 @@ impl<'a> Parser<'a> {
                 return Ok(Some(Annotation::Static));
             }
 
-            let name = self.expect_identifier2();
+            let name = self.expect_identifier();
             if let Some(name) = &name {
                 match self.interner.str(name.name).as_str() {
                     "internal" => Ok(Some(Annotation::Internal)),
@@ -770,7 +774,7 @@ impl<'a> Parser<'a> {
     fn parse_function(&mut self, modifiers: &Modifiers) -> Result<Function, ()> {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Fn);
-        let name = self.expect_identifier2();
+        let name = self.expect_identifier();
         let type_params = self.parse_type_params()?;
         let params = self.parse_function_params()?;
         let return_type = self.parse_function_type()?;
@@ -849,7 +853,7 @@ impl<'a> Parser<'a> {
             false
         };
 
-        let name = self.expect_identifier2();
+        let name = self.expect_identifier();
 
         self.expect_token(TokenKind::Colon);
 
@@ -956,13 +960,20 @@ impl<'a> Parser<'a> {
 
     fn parse_path(&mut self) -> Result<Path, ()> {
         let start = self.token.span.start();
-        let name = self.expect_identifier()?;
-        let mut names = vec![name];
+        let mut names = Vec::new();
+        let name = self.expect_identifier();
+        if let Some(name) = name {
+            names.push(name);
+        }
 
         while self.token.is(TokenKind::ColonColon) {
             self.advance_token();
-            let name = self.expect_identifier()?;
-            names.push(name);
+            let name = self.expect_identifier();
+            if let Some(name) = name {
+                names.push(name);
+            } else {
+                break;
+            }
         }
 
         let span = self.span_from(start);
@@ -1046,7 +1057,7 @@ impl<'a> Parser<'a> {
             } else {
                 false
             };
-            let name = self.expect_identifier2();
+            let name = self.expect_identifier();
             let span = self.span_from(start);
 
             Ok(Box::new(LetPattern::Ident(LetIdentType {
@@ -1299,7 +1310,7 @@ impl<'a> Parser<'a> {
                 false
             };
 
-            let ident = self.expect_identifier2();
+            let ident = self.expect_identifier();
 
             (mutable, ident)
         };
@@ -1602,7 +1613,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_identifier(&mut self) -> ExprResult {
-        let ident = self.expect_identifier2().expect("identifier expected");
+        let ident = self.expect_identifier().expect("identifier expected");
 
         Ok(Box::new(Expr::create_ident(
             self.generate_id(),
@@ -1856,21 +1867,7 @@ impl<'a> Parser<'a> {
         Ok(Box::new(Expr::create_lambda(function)))
     }
 
-    fn expect_identifier(&mut self) -> Result<Name, ()> {
-        let tok = self.advance_token();
-
-        if let TokenKind::Identifier = tok.kind {
-            let value = self.source_span(tok.span);
-            let interned = self.interner.intern(&value);
-
-            Ok(interned)
-        } else {
-            self.report_error_at(ParseError::ExpectedIdentifier(tok.name()), tok.span);
-            Err(())
-        }
-    }
-
-    fn expect_identifier2(&mut self) -> Option<Ident> {
+    fn expect_identifier(&mut self) -> Option<Ident> {
         let token = self.advance_token();
 
         if let TokenKind::Identifier = token.kind {
@@ -2783,8 +2780,8 @@ mod tests {
 
         assert_eq!(0, basic.params.len());
         assert_eq!(2, basic.path.names.len());
-        assert_eq!("foo", *interner.str(basic.path.names[0]));
-        assert_eq!("bla", *interner.str(basic.path.names[1]));
+        assert_eq!("foo", *interner.str(basic.path.names[0].name));
+        assert_eq!("bla", *interner.str(basic.path.names[1].name));
     }
 
     #[test]

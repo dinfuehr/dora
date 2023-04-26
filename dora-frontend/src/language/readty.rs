@@ -106,7 +106,7 @@ fn read_type_basic_unchecked(
         Some(_) => {
             let name = sa
                 .interner
-                .str(node.path.names.last().cloned().unwrap())
+                .str(node.path.names.last().cloned().unwrap().name)
                 .to_string();
             let msg = ErrorMessage::UnknownType(name);
             sa.diag.lock().report(file_id, node.span, msg);
@@ -116,7 +116,7 @@ fn read_type_basic_unchecked(
         None => {
             let name = sa
                 .interner
-                .str(node.path.names.last().cloned().unwrap())
+                .str(node.path.names.last().cloned().unwrap().name)
                 .to_string();
             let msg = ErrorMessage::UnknownIdentifier(name);
             sa.diag.lock().report(file_id, node.span, msg);
@@ -463,19 +463,19 @@ fn read_type_path(
     let names = &basic.path.names;
 
     if names.len() > 1 {
-        let first_name = names.first().cloned().unwrap();
-        let last_name = names.last().cloned().unwrap();
+        let first_name = names.first().cloned().unwrap().name;
+        let last_name = names.last().cloned().unwrap().name;
         let mut module_table = table_for_module(sa, file_id, basic, table.get(first_name))?;
 
-        for &name in &names[1..names.len() - 1] {
-            let sym = module_table.read().get(name);
+        for ident in &names[1..names.len() - 1] {
+            let sym = module_table.read().get(ident.name);
             module_table = table_for_module(sa, file_id, basic, sym)?;
         }
 
         let sym = module_table.read().get(last_name);
         Ok(sym)
     } else {
-        let name = names.last().cloned().unwrap();
+        let name = names.last().cloned().unwrap().name;
         Ok(table.get(name))
     }
 }
