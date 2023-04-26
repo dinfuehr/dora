@@ -7,7 +7,6 @@ use crate::language::sym::Sym;
 
 pub fn sym_accessible_from(sa: &SemAnalysis, sym: Sym, module_id: ModuleDefinitionId) -> bool {
     match sym {
-        Sym::Annotation(_) => unimplemented!(),
         Sym::Class(class_id) => class_accessible_from(sa, class_id, module_id),
         Sym::Const(const_id) => const_accessible_from(sa, const_id, module_id),
         Sym::Enum(enum_id) => enum_accessible_from(sa, enum_id, module_id),

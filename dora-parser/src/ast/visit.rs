@@ -29,10 +29,6 @@ pub trait Visitor: Sized {
         walk_struct(self, s);
     }
 
-    fn visit_annotation(&mut self, a: &Arc<Annotation>) {
-        walk_annotation(self, a);
-    }
-
     fn visit_const(&mut self, c: &Arc<Const>) {
         walk_const(self, c);
     }
@@ -103,7 +99,6 @@ pub fn walk_elem<V: Visitor>(v: &mut V, e: &Elem) {
         Elem::Struct(ref s) => v.visit_struct(s),
         Elem::Trait(ref t) => v.visit_trait(t),
         Elem::Impl(ref i) => v.visit_impl(i),
-        Elem::Annotation(ref a) => v.visit_annotation(a),
         Elem::Global(ref g) => v.visit_global(g),
         Elem::Const(ref c) => v.visit_const(c),
         Elem::Enum(ref e) => v.visit_enum(e),
@@ -139,8 +134,6 @@ pub fn walk_class<V: Visitor>(v: &mut V, c: &Arc<Class>) {
         v.visit_field(f);
     }
 }
-
-pub fn walk_annotation<V: Visitor>(_v: &mut V, _a: &Arc<Annotation>) {}
 
 pub fn walk_const<V: Visitor>(v: &mut V, c: &Arc<Const>) {
     v.visit_type(&c.data_type);

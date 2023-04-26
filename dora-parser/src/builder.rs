@@ -42,7 +42,6 @@ impl Builder {
             span: Span::invalid(),
 
             name,
-            type_params: None,
         }))
     }
 }

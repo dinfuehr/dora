@@ -1,6 +1,5 @@
 use crate::language::sem_analysis::{
-    AnnotationDefinitionId, ClassDefinitionId, EnumDefinitionId, FctDefinitionId,
-    StructDefinitionId, TraitDefinitionId,
+    ClassDefinitionId, EnumDefinitionId, FctDefinitionId, StructDefinitionId, TraitDefinitionId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 
@@ -8,7 +7,6 @@ use crate::language::ty::{SourceType, SourceTypeArray};
 pub struct KnownElements {
     pub classes: KnownClasses,
     pub traits: KnownTraits,
-    pub annotations: KnownAnnotations,
     pub functions: KnownFunctions,
     pub enums: KnownEnums,
     pub structs: KnownStructs,
@@ -21,7 +19,6 @@ impl KnownElements {
             functions: KnownFunctions::new(),
             traits: KnownTraits::new(),
             enums: KnownEnums::new(),
-            annotations: KnownAnnotations::new(),
             structs: KnownStructs::new(),
         }
     }
@@ -198,41 +195,6 @@ impl KnownTraits {
 
     pub fn zero(&self) -> TraitDefinitionId {
         self.zero.expect("uninitialized")
-    }
-}
-
-#[derive(Debug)]
-pub struct KnownAnnotations {
-    pub internal: Option<AnnotationDefinitionId>,
-    pub test: Option<AnnotationDefinitionId>,
-    pub cannon: Option<AnnotationDefinitionId>,
-    pub optimize_immediately: Option<AnnotationDefinitionId>,
-}
-
-impl KnownAnnotations {
-    pub fn new() -> KnownAnnotations {
-        KnownAnnotations {
-            internal: None,
-            test: None,
-            cannon: None,
-            optimize_immediately: None,
-        }
-    }
-
-    pub fn internal(&self) -> AnnotationDefinitionId {
-        self.internal.expect("uninitialized")
-    }
-
-    pub fn test(&self) -> AnnotationDefinitionId {
-        self.test.expect("uninitialized")
-    }
-
-    pub fn cannon(&self) -> AnnotationDefinitionId {
-        self.cannon.expect("uninitialized")
-    }
-
-    pub fn optimize_immediately(&self) -> AnnotationDefinitionId {
-        self.optimize_immediately.expect("uninitialized")
     }
 }
 

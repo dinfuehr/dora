@@ -31,6 +31,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         fs::remove_file(&stdlib_bundle_path)?;
     }
 
+    eprintln!("regenerate bundlaeasdf");
+
     let mut stdlib = File::create(&stdlib_bundle_path)?;
 
     writeln!(&mut stdlib, r#"["#,)?;

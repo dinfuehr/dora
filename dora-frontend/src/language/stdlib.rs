@@ -1,39 +1,13 @@
 use crate::language::sem_analysis::{
-    AnnotationDefinitionId, ClassDefinition, ClassDefinitionId, EnumDefinitionId,
-    ExtensionDefinitionId, FctDefinitionId, Field, FieldId, ModuleDefinition, ModuleDefinitionId,
-    SemAnalysis, StructDefinitionId, TraitDefinitionId, TypeParamDefinition, Visibility,
+    ClassDefinition, ClassDefinitionId, EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId,
+    Field, FieldId, ModuleDefinition, ModuleDefinitionId, SemAnalysis, StructDefinitionId,
+    TraitDefinitionId, TypeParamDefinition, Visibility,
 };
 use crate::language::sym::Sym;
 use crate::language::ty::SourceType;
 
 use dora_bytecode::{Intrinsic, NativeFunction};
-use dora_parser::ast::Modifier;
 use dora_parser::interner::Name;
-
-pub fn resolve_internal_annotations(sa: &mut SemAnalysis) {
-    let stdlib_id = sa.stdlib_module_id();
-
-    sa.known.annotations.internal = Some(internal_annotation(
-        sa,
-        stdlib_id,
-        "annotations::internal",
-        Modifier::Internal,
-    ));
-
-    sa.known.annotations.test = Some(internal_annotation(
-        sa,
-        stdlib_id,
-        "annotations::Test",
-        Modifier::Test,
-    ));
-
-    sa.known.annotations.optimize_immediately = Some(internal_annotation(
-        sa,
-        stdlib_id,
-        "annotations::optimizeImmediately",
-        Modifier::OptimizeImmediately,
-    ));
-}
 
 pub fn resolve_internal_classes(sa: &mut SemAnalysis) {
     let stdlib_id = sa.stdlib_module_id();
@@ -308,23 +282,6 @@ fn resolve_name(sa: &SemAnalysis, name: &str, module_id: ModuleDefinitionId) -> 
     }
 
     sym
-}
-
-fn internal_annotation(
-    sa: &mut SemAnalysis,
-    module_id: ModuleDefinitionId,
-    name: &str,
-    internal_annotation: Modifier,
-) -> AnnotationDefinitionId {
-    let annotation_id = resolve_name(sa, name, module_id)
-        .to_annotation()
-        .expect("annotation expected");
-
-    let annotation = sa.annotations.idx(annotation_id);
-    let mut annotation = annotation.write();
-    annotation.internal_annotation = Some(internal_annotation);
-
-    annotation_id
 }
 
 fn find_trait(

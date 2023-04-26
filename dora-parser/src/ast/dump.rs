@@ -69,7 +69,6 @@ impl<'a> AstDumper<'a> {
             Elem::Struct(ref node) => self.dump_struct(node),
             Elem::Trait(ref node) => self.dump_trait(node),
             Elem::Impl(ref node) => self.dump_impl(node),
-            Elem::Annotation(ref node) => self.dump_annotation(node),
             Elem::Global(ref node) => self.dump_global(node),
             Elem::Const(ref node) => self.dump_const(node),
             Elem::Enum(ref node) => self.dump_enum(node),
@@ -218,25 +217,6 @@ impl<'a> AstDumper<'a> {
                 }
             });
         });
-    }
-
-    fn dump_annotation(&mut self, annotation: &Annotation) {
-        dump!(self, "annotation @ {} {}", annotation.span, annotation.id);
-        self.dump_ident(&annotation.name);
-        self.indent(|d| {
-            dump!(d, "params");
-            if let Some(params) = &annotation.term_params {
-                for param in params {
-                    d.dump_annotation_param(param);
-                }
-            }
-        });
-    }
-
-    fn dump_annotation_param(&mut self, param: &AnnotationParam) {
-        dump!(self, "param @ {}", param.span);
-        self.dump_ident(&param.name);
-        self.indent(|d| d.dump_type(&param.data_type));
     }
 
     #[allow(dead_code)]

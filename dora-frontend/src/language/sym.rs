@@ -6,9 +6,9 @@ use std::sync::Arc;
 use self::Sym::*;
 
 use crate::language::sem_analysis::{
-    AnnotationDefinitionId, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId,
-    FctDefinitionId, FieldId, GlobalDefinitionId, ModuleDefinitionId, NestedVarId, SemAnalysis,
-    StructDefinitionId, TraitDefinitionId, TypeParamId,
+    ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId,
+    GlobalDefinitionId, ModuleDefinitionId, NestedVarId, SemAnalysis, StructDefinitionId,
+    TraitDefinitionId, TypeParamId,
 };
 use dora_parser::interner::Name;
 
@@ -112,10 +112,6 @@ impl ModuleSymTable {
         self.get(name).and_then(|n| n.to_var())
     }
 
-    pub fn get_annotation(&self, name: Name) -> Option<AnnotationDefinitionId> {
-        self.get(name).and_then(|n| n.to_annotation())
-    }
-
     pub fn insert(&mut self, name: Name, sym: Sym) -> Option<Sym> {
         self.levels.last_mut().unwrap().insert(name, sym)
     }
@@ -187,7 +183,6 @@ pub enum Sym {
     Field(FieldId),
     Fct(FctDefinitionId),
     Var(NestedVarId),
-    Annotation(AnnotationDefinitionId),
     Global(GlobalDefinitionId),
     Const(ConstDefinitionId),
     Module(ModuleDefinitionId),
@@ -310,20 +305,6 @@ impl Sym {
     pub fn to_global(&self) -> Option<GlobalDefinitionId> {
         match *self {
             Global(id) => Some(id),
-            _ => None,
-        }
-    }
-
-    pub fn is_annotation(&self) -> bool {
-        match *self {
-            Annotation(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn to_annotation(&self) -> Option<AnnotationDefinitionId> {
-        match *self {
-            Annotation(id) => Some(id),
             _ => None,
         }
     }

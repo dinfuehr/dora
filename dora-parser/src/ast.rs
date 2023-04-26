@@ -73,11 +73,6 @@ impl File {
     }
 
     #[cfg(test)]
-    pub fn ann0(&self) -> &Annotation {
-        self.elements[0].to_annotation().unwrap()
-    }
-
-    #[cfg(test)]
     pub fn global0(&self) -> &Global {
         self.elements[0].to_global().unwrap()
     }
@@ -104,7 +99,6 @@ pub enum Elem {
     Struct(Arc<Struct>),
     Trait(Arc<Trait>),
     Impl(Arc<Impl>),
-    Annotation(Arc<Annotation>),
     Global(Arc<Global>),
     Const(Arc<Const>),
     Enum(Arc<Enum>),
@@ -122,7 +116,6 @@ impl Elem {
             &Elem::Struct(ref s) => s.id,
             &Elem::Trait(ref t) => t.id,
             &Elem::Impl(ref i) => i.id,
-            &Elem::Annotation(ref a) => a.id,
             &Elem::Global(ref g) => g.id,
             &Elem::Const(ref c) => c.id,
             &Elem::Enum(ref e) => e.id,
@@ -185,13 +178,6 @@ impl Elem {
     pub fn to_impl(&self) -> Option<&Impl> {
         match self {
             &Elem::Impl(ref impl_) => Some(impl_),
-            _ => None,
-        }
-    }
-
-    pub fn to_annotation(&self) -> Option<&Annotation> {
-        match self {
-            &Elem::Annotation(ref annotation) => Some(annotation),
             _ => None,
         }
     }
@@ -524,29 +510,10 @@ pub struct ExternPackage {
 }
 
 #[derive(Clone, Debug)]
-pub struct Annotation {
-    pub id: NodeId,
-    pub span: Span,
-    pub name: Option<Ident>,
-    pub annotation_usages: AnnotationUsages,
-    pub internal: Option<Modifier>,
-
-    pub type_params: Option<Vec<TypeParam>>,
-    pub term_params: Option<Vec<AnnotationParam>>,
-}
-
-#[derive(Clone, Debug)]
 pub struct TypeParam {
     pub span: Span,
     pub name: Option<Ident>,
     pub bounds: Vec<Type>,
-}
-
-#[derive(Clone, Debug)]
-pub struct AnnotationParam {
-    pub span: Span,
-    pub name: Option<Ident>,
-    pub data_type: Type,
 }
 
 #[derive(Clone, Debug)]
@@ -612,11 +579,11 @@ impl Modifiers {
         Modifiers(Vec::new())
     }
 
-    pub fn contains(&self, modifier: Modifier) -> bool {
+    pub fn contains(&self, modifier: Annotation) -> bool {
         self.0.iter().find(|el| el.value == modifier).is_some()
     }
 
-    pub fn add(&mut self, modifier: Modifier, span: Span) {
+    pub fn add(&mut self, modifier: Annotation, span: Span) {
         self.0.push(ModifierElement {
             value: modifier,
             span,
@@ -631,7 +598,7 @@ impl Modifiers {
 // remove in next step
 #[derive(Clone, Debug)]
 pub struct ModifierElement {
-    pub value: Modifier,
+    pub value: Annotation,
     pub span: Span,
 }
 
@@ -666,7 +633,7 @@ pub struct AnnotationUsage {
 
 // rename to InternalAnnotation in next step
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum Modifier {
+pub enum Annotation {
     Internal,
     Pub,
     Static,
@@ -674,25 +641,14 @@ pub enum Modifier {
     OptimizeImmediately,
 }
 
-impl Modifier {
-    pub fn find(name: &str) -> Option<Modifier> {
-        match name {
-            "internal" => Some(Modifier::Internal),
-            "pub" => Some(Modifier::Pub),
-            "static" => Some(Modifier::Static),
-            "test" => Some(Modifier::Test),
-            "optimizeImmediately" => Some(Modifier::OptimizeImmediately),
-            _ => None,
-        }
-    }
-
+impl Annotation {
     pub fn name(&self) -> &'static str {
         match *self {
-            Modifier::Internal => "internal",
-            Modifier::Pub => "pub",
-            Modifier::Static => "static",
-            Modifier::Test => "test",
-            Modifier::OptimizeImmediately => "optimizeImmediately",
+            Annotation::Internal => "internal",
+            Annotation::Pub => "pub",
+            Annotation::Static => "static",
+            Annotation::Test => "test",
+            Annotation::OptimizeImmediately => "optimizeImmediately",
         }
     }
 }
@@ -1275,19 +1231,8 @@ impl Expr {
         Expr::This(ExprSelfType { id, span })
     }
 
-    pub fn create_ident(
-        id: NodeId,
-        span: Span,
-        name: Name,
-        type_params: Option<Vec<Type>>,
-    ) -> Expr {
-        Expr::Ident(ExprIdentType {
-            id,
-            span,
-
-            name,
-            type_params,
-        })
+    pub fn create_ident(id: NodeId, span: Span, name: Name) -> Expr {
+        Expr::Ident(ExprIdentType { id, span, name })
     }
 
     pub fn create_paren(id: NodeId, span: Span, expr: Box<Expr>) -> Expr {
@@ -1821,9 +1766,7 @@ pub struct ExprSelfType {
 pub struct ExprIdentType {
     pub id: NodeId,
     pub span: Span,
-
     pub name: Name,
-    pub type_params: Option<Vec<Type>>,
 }
 
 #[derive(Clone, Debug)]
@@ -1953,7 +1896,7 @@ pub enum Visibility {
 
 impl Visibility {
     pub fn from_modifiers(modifiers: &Modifiers) -> Visibility {
-        if modifiers.contains(Modifier::Pub) {
+        if modifiers.contains(Annotation::Pub) {
             Visibility::Public
         } else {
             Visibility::Default

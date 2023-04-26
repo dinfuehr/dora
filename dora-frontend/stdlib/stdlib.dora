@@ -5,7 +5,6 @@ pub use rand::Random;
 pub use string::{CodepointIterator, String, StringBuffer, Stringable};
 pub use thread::{AtomicInt32, AtomicInt64, Condition, Mutex, Thread};
 
-pub mod annotations;
 pub mod collections;
 pub mod io;
 pub mod primitives;

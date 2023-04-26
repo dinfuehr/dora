@@ -15,7 +15,6 @@ use crate::language::sym::SymTable;
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::{GrowableVec, MutableVec};
 
-pub use self::annotations::{AnnotationDefinition, AnnotationDefinitionId};
 pub use self::classes::{
     find_field_in_class, find_methods_in_class, Bound, Candidate, ClassDefinition,
     ClassDefinitionId, Field, FieldId, TypeParamDefinition, TypeParamId, Visibility,
@@ -46,7 +45,6 @@ pub use self::traits::{TraitDefinition, TraitDefinitionId};
 pub use self::tuples::create_tuple;
 pub use self::uses::UseDefinition;
 
-mod annotations;
 mod classes;
 mod consts;
 mod enums;
@@ -90,7 +88,6 @@ pub struct SemAnalysis {
     pub structs: MutableVec<StructDefinition>, // stores all struct source definitions
     pub classes: MutableVec<ClassDefinition>, // stores all class source definitions
     pub extensions: MutableVec<ExtensionDefinition>, // stores all extension definitions
-    pub annotations: MutableVec<AnnotationDefinition>, // stores all annotation source definitions
     pub modules: MutableVec<ModuleDefinition>, // stores all module definitions
     pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
     pub enums: MutableVec<EnumDefinition>,   // stores all enum source definitions
@@ -118,7 +115,6 @@ impl SemAnalysis {
             structs: MutableVec::new(),
             classes: MutableVec::new(),
             extensions: MutableVec::new(),
-            annotations: MutableVec::new(),
             modules: MutableVec::new(),
             enums: MutableVec::new(),
             traits: MutableVec::new(),

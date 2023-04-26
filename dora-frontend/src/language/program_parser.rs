@@ -7,11 +7,10 @@ use std::sync::Arc;
 use crate::language::error::msg::ErrorMessage;
 use crate::language::report_sym_shadow_span;
 use crate::language::sem_analysis::{
-    AnnotationDefinition, ClassDefinition, ConstDefinition, EnumDefinition, ExtensionDefinition,
-    ExtensionDefinitionId, FctDefinition, FctParent, GlobalDefinition, GlobalDefinitionId,
-    ImplDefinition, ImplDefinitionId, ModuleDefinition, ModuleDefinitionId, PackageDefinitionId,
-    PackageName, SemAnalysis, SourceFileId, StructDefinition, TraitDefinition, TraitDefinitionId,
-    UseDefinition,
+    ClassDefinition, ConstDefinition, EnumDefinition, ExtensionDefinition, ExtensionDefinitionId,
+    FctDefinition, FctParent, GlobalDefinition, GlobalDefinitionId, ImplDefinition,
+    ImplDefinitionId, ModuleDefinition, ModuleDefinitionId, PackageDefinitionId, PackageName,
+    SemAnalysis, SourceFileId, StructDefinition, TraitDefinition, TraitDefinitionId, UseDefinition,
 };
 use crate::language::sym::Sym;
 use crate::STDLIB;
@@ -530,25 +529,6 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
 
         let sym = Sym::Struct(id);
         let name = node.name.as_ref().expect("missing name").name;
-        if let Some(sym) = self.insert(name, sym) {
-            report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
-        }
-    }
-
-    fn visit_annotation(&mut self, node: &Arc<ast::Annotation>) {
-        let name = node.name.as_ref().expect("missing name").name;
-
-        let annotation = AnnotationDefinition::new(
-            self.package_id,
-            self.module_id,
-            self.file_id,
-            node.span,
-            name,
-        );
-        let id = self.sa.annotations.push(annotation);
-
-        let sym = Sym::Annotation(id);
-
         if let Some(sym) = self.insert(name, sym) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }

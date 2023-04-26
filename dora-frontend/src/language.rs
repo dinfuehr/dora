@@ -53,9 +53,6 @@ pub fn check(sa: &mut SemAnalysis) -> bool {
     program_parser::parse(sa);
     return_on_error!(sa);
 
-    // add internal annotations early
-    stdlib::resolve_internal_annotations(sa);
-
     // define internal classes
     stdlib::resolve_internal_classes(sa);
 
