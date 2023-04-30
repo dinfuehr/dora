@@ -315,7 +315,7 @@ impl<'a> Parser<'a> {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Enum);
         let name = self.expect_identifier();
-        let type_params = self.parse_type_params()?;
+        let type_params = self.parse_type_params();
 
         self.expect_token(TokenKind::LBrace);
         let variants = self.parse_list(TokenKind::Comma, TokenKind::RBrace, |p| {
@@ -371,7 +371,7 @@ impl<'a> Parser<'a> {
 
         let types = if self.token.is(TokenKind::LParen) {
             self.advance_token();
-            Some(self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| p.parse_type())?)
+            Some(self.parse_list2(TokenKind::Comma, TokenKind::RParen, |p| p.parse_type()))
         } else {
             None
         };
@@ -391,7 +391,7 @@ impl<'a> Parser<'a> {
         self.expect_token(TokenKind::Const);
         let name = self.expect_identifier();
         self.expect_token(TokenKind::Colon);
-        let ty = self.parse_type()?;
+        let ty = self.parse_type();
         self.expect_token(TokenKind::Eq);
         let expr = self.parse_expression()?;
         self.expect_semicolon();
@@ -410,13 +410,13 @@ impl<'a> Parser<'a> {
     fn parse_impl(&mut self) -> Result<Impl, ()> {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Impl);
-        let type_params = self.parse_type_params()?;
+        let type_params = self.parse_type_params();
 
-        let type_name = self.parse_type()?;
+        let type_name = self.parse_type();
 
         let (class_type, trait_type) = if self.token.is(TokenKind::For) {
             self.advance_token();
-            let class_type = self.parse_type()?;
+            let class_type = self.parse_type();
 
             (class_type, Some(type_name))
         } else {
@@ -463,7 +463,7 @@ impl<'a> Parser<'a> {
         let name = self.expect_identifier();
 
         self.expect_token(TokenKind::Colon);
-        let data_type = self.parse_type()?;
+        let data_type = self.parse_type();
 
         let expr = if self.token.is(TokenKind::Eq) {
             self.advance_token();
@@ -492,7 +492,7 @@ impl<'a> Parser<'a> {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Trait);
         let name = self.expect_identifier();
-        let type_params = self.parse_type_params()?;
+        let type_params = self.parse_type_params();
 
         self.expect_token(TokenKind::LBrace);
 
@@ -524,7 +524,7 @@ impl<'a> Parser<'a> {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Struct);
         let ident = self.expect_identifier();
-        let type_params = self.parse_type_params()?;
+        let type_params = self.parse_type_params();
 
         let fields = if self.token.is(TokenKind::LParen) {
             self.expect_token(TokenKind::LParen);
@@ -563,7 +563,7 @@ impl<'a> Parser<'a> {
         let ident = self.expect_identifier();
 
         self.expect_token(TokenKind::Colon);
-        let ty = self.parse_type()?;
+        let ty = self.parse_type();
         let span = self.span_from(start);
 
         Ok(StructField {
@@ -580,7 +580,7 @@ impl<'a> Parser<'a> {
         self.expect_token(TokenKind::Class);
 
         let name = self.expect_identifier();
-        let type_params = self.parse_type_params()?;
+        let type_params = self.parse_type_params();
 
         let fields = if self.token.is(TokenKind::LParen) {
             self.expect_token(TokenKind::LParen);
@@ -619,7 +619,7 @@ impl<'a> Parser<'a> {
         let name = self.expect_identifier();
 
         self.expect_token(TokenKind::Colon);
-        let data_type = self.parse_type()?;
+        let data_type = self.parse_type();
         let span = self.span_from(start);
 
         Ok(Field {
@@ -639,7 +639,7 @@ impl<'a> Parser<'a> {
         self.expect_token(TokenKind::Alias);
         let name = self.expect_identifier();
         self.expect_token(TokenKind::Eq);
-        let ty = self.parse_type()?;
+        let ty = self.parse_type();
         self.expect_semicolon();
         let span = self.span_from(start);
 
@@ -652,20 +652,20 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_type_params(&mut self) -> Result<Option<Vec<TypeParam>>, ()> {
+    fn parse_type_params(&mut self) -> Option<Vec<TypeParam>> {
         if self.token.is(TokenKind::LBracket) {
             self.advance_token();
-            let params = self.parse_list(TokenKind::Comma, TokenKind::RBracket, |p| {
+            let params = self.parse_list2(TokenKind::Comma, TokenKind::RBracket, |p| {
                 p.parse_type_param()
-            })?;
+            });
 
-            Ok(Some(params))
+            Some(params)
         } else {
-            Ok(None)
+            None
         }
     }
 
-    fn parse_type_param(&mut self) -> Result<TypeParam, ()> {
+    fn parse_type_param(&mut self) -> TypeParam {
         let start = self.token.span.start();
         let name = self.expect_identifier();
 
@@ -675,7 +675,7 @@ impl<'a> Parser<'a> {
             let mut bounds = Vec::new();
 
             loop {
-                bounds.push(self.parse_type()?);
+                bounds.push(self.parse_type());
 
                 if self.token.is(TokenKind::Add) {
                     self.advance_token();
@@ -691,7 +691,7 @@ impl<'a> Parser<'a> {
 
         let span = self.span_from(start);
 
-        Ok(TypeParam { name, span, bounds })
+        TypeParam { name, span, bounds }
     }
 
     fn parse_annotation_usages(&mut self) -> Result<Modifiers, ()> {
@@ -775,9 +775,9 @@ impl<'a> Parser<'a> {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Fn);
         let name = self.expect_identifier();
-        let type_params = self.parse_type_params()?;
-        let params = self.parse_function_params()?;
-        let return_type = self.parse_function_type()?;
+        let type_params = self.parse_type_params();
+        let params = self.parse_function_params();
+        let return_type = self.parse_function_type();
         let block = self.parse_function_block()?;
         let span = self.span_from(start);
 
@@ -799,14 +799,12 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_function_params(&mut self) -> Result<Vec<Param>, ()> {
+    fn parse_function_params(&mut self) -> Vec<Param> {
         self.expect_token(TokenKind::LParen);
 
-        let params = self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
+        self.parse_list2(TokenKind::Comma, TokenKind::RParen, |p| {
             p.parse_function_param()
-        })?;
-
-        Ok(params)
+        })
     }
 
     fn parse_list<F, R>(
@@ -845,7 +843,7 @@ impl<'a> Parser<'a> {
 
     fn parse_list2<F, R>(&mut self, sep: TokenKind, stop: TokenKind, mut parse: F) -> Vec<R>
     where
-        F: FnMut(&mut Parser) -> Option<R>,
+        F: FnMut(&mut Parser) -> R,
     {
         let mut data = vec![];
         let mut comma = true;
@@ -856,13 +854,12 @@ impl<'a> Parser<'a> {
                     sep.name().into(),
                     self.token.name(),
                 ));
+
+                break;
             }
 
             let entry = parse(self);
-            if entry.is_none() {
-                break;
-            }
-            data.push(entry.unwrap());
+            data.push(entry);
 
             comma = self.token.is(sep.clone());
             if comma {
@@ -875,7 +872,7 @@ impl<'a> Parser<'a> {
         data
     }
 
-    fn parse_function_param(&mut self) -> Result<Param, ()> {
+    fn parse_function_param(&mut self) -> Param {
         let start = self.token.span.start();
 
         let mutable = if self.token.is(TokenKind::Mut) {
@@ -889,7 +886,7 @@ impl<'a> Parser<'a> {
 
         self.expect_token(TokenKind::Colon);
 
-        let data_type = self.parse_type()?;
+        let data_type = self.parse_type();
 
         let variadic = if self.token.is(TokenKind::DotDotDot) {
             self.advance_token();
@@ -900,24 +897,24 @@ impl<'a> Parser<'a> {
 
         let span = self.span_from(start);
 
-        Ok(Param {
+        Param {
             id: self.generate_id(),
             variadic,
             name,
             span,
             mutable,
             data_type,
-        })
+        }
     }
 
-    fn parse_function_type(&mut self) -> Result<Option<Type>, ()> {
+    fn parse_function_type(&mut self) -> Option<Type> {
         if self.token.is(TokenKind::Colon) {
             self.advance_token();
-            let ty = self.parse_type()?;
+            let ty = self.parse_type();
 
-            Ok(Some(ty))
+            Some(ty)
         } else {
-            Ok(None)
+            None
         }
     }
 
@@ -932,12 +929,12 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_type(&mut self) -> Result<Type, ()> {
+    fn parse_type(&mut self) -> Type {
         match self.token.kind {
             TokenKind::CapitalThis => {
                 let span = self.token.span;
                 self.advance_token();
-                Ok(Arc::new(TypeData::create_self(self.generate_id(), span)))
+                Arc::new(TypeData::create_self(self.generate_id(), span))
             }
 
             TokenKind::Identifier => {
@@ -946,117 +943,50 @@ impl<'a> Parser<'a> {
 
                 let params = if self.token.is(TokenKind::LBracket) {
                     self.advance_token();
-                    self.parse_list(TokenKind::Comma, TokenKind::RBracket, |p| {
-                        Ok(p.parse_type()?)
-                    })?
+                    self.parse_list2(TokenKind::Comma, TokenKind::RBracket, |p| p.parse_type())
                 } else {
                     Vec::new()
                 };
 
                 let span = self.span_from(start);
-                Ok(Arc::new(TypeData::create_basic(
+                Arc::new(TypeData::create_basic(
                     self.generate_id(),
                     span,
                     path,
                     params,
-                )))
-            }
-
-            TokenKind::LParen => {
-                let start = self.token.span.start();
-                self.advance_token();
-                let subtypes = self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
-                    let ty = p.parse_type()?;
-
-                    Ok(ty)
-                })?;
-
-                if self.token.is(TokenKind::Colon) {
-                    self.advance_token();
-                    let ret = self.parse_type()?;
-                    let span = self.span_from(start);
-
-                    Ok(Arc::new(TypeData::create_fct(
-                        self.generate_id(),
-                        span,
-                        subtypes,
-                        Some(ret),
-                    )))
-                } else {
-                    let span = self.span_from(start);
-                    Ok(Arc::new(TypeData::create_tuple(
-                        self.generate_id(),
-                        span,
-                        subtypes,
-                    )))
-                }
-            }
-
-            _ => {
-                self.report_error(ParseError::ExpectedType(self.token.name()));
-                Err(())
-            }
-        }
-    }
-
-    fn parse_type2(&mut self) -> Option<Type> {
-        match self.token.kind {
-            TokenKind::CapitalThis => {
-                let span = self.token.span;
-                self.advance_token();
-                Some(Arc::new(TypeData::create_self(self.generate_id(), span)))
-            }
-
-            TokenKind::Identifier => {
-                let start = self.token.span.start();
-                let path = self.parse_path();
-
-                let params = if self.token.is(TokenKind::LBracket) {
-                    self.advance_token();
-                    self.parse_list2(TokenKind::Comma, TokenKind::RBracket, |p| p.parse_type2())
-                } else {
-                    Vec::new()
-                };
-
-                let span = self.span_from(start);
-                Some(Arc::new(TypeData::create_basic(
-                    self.generate_id(),
-                    span,
-                    path,
-                    params,
-                )))
+                ))
             }
 
             TokenKind::LParen => {
                 let start = self.token.span.start();
                 self.advance_token();
                 let subtypes =
-                    self.parse_list2(TokenKind::Comma, TokenKind::RParen, |p| p.parse_type2());
+                    self.parse_list2(TokenKind::Comma, TokenKind::RParen, |p| p.parse_type());
 
                 if self.token.is(TokenKind::Colon) {
                     self.advance_token();
-                    let ret = self.parse_type2();
+                    let ret = self.parse_type();
                     let span = self.span_from(start);
 
-                    Some(Arc::new(TypeData::create_fct(
+                    Arc::new(TypeData::create_fct(
                         self.generate_id(),
                         span,
                         subtypes,
-                        ret,
-                    )))
+                        Some(ret),
+                    ))
                 } else {
                     let span = self.span_from(start);
-                    Some(Arc::new(TypeData::create_tuple(
-                        self.generate_id(),
-                        span,
-                        subtypes,
-                    )))
+                    Arc::new(TypeData::create_tuple(self.generate_id(), span, subtypes))
                 }
             }
 
             _ => {
+                let span = self.token.span;
                 self.report_error(ParseError::ExpectedType(self.token.name()));
-                None
+                Arc::new(TypeData::Error {
+                    id: self.generate_id(),
+                    span,
+                })
             }
         }
     }
@@ -1177,7 +1107,7 @@ impl<'a> Parser<'a> {
         if self.token.is(TokenKind::Colon) {
             self.advance_token();
 
-            self.parse_type2()
+            Some(self.parse_type())
         } else {
             None
         }
@@ -1550,7 +1480,7 @@ impl<'a> Parser<'a> {
 
             left = match tok.kind {
                 TokenKind::As => {
-                    let right = self.parse_type()?;
+                    let right = self.parse_type();
                     let span = self.span_from(start);
                     let expr = ExprData::create_conv(self.generate_id(), span, left, right);
 
@@ -1624,7 +1554,7 @@ impl<'a> Parser<'a> {
                 TokenKind::LBracket => {
                     let op_span = self.advance_token().span;
                     let types =
-                        self.parse_list(TokenKind::Comma, TokenKind::RBracket, |p| p.parse_type())?;
+                        self.parse_list2(TokenKind::Comma, TokenKind::RBracket, |p| p.parse_type());
                     let span = self.span_from(start);
 
                     Arc::new(ExprData::create_type_param(
@@ -1701,8 +1631,8 @@ impl<'a> Parser<'a> {
             TokenKind::LBrace => self.parse_block(),
             TokenKind::If => self.parse_if(),
             TokenKind::LitChar(_) => self.parse_lit_char(),
-            TokenKind::LitInt(_, _, _) => self.parse_lit_int(),
-            TokenKind::LitFloat(_, _) => self.parse_lit_float(),
+            TokenKind::LitInt(_, _, _) => Ok(self.parse_lit_int()),
+            TokenKind::LitFloat(_, _) => Ok(self.parse_lit_float()),
             TokenKind::StringTail(_) | TokenKind::StringExpr(_) => self.parse_string(),
             TokenKind::Identifier => self.parse_identifier(),
             TokenKind::True => self.parse_bool_literal(),
@@ -1797,7 +1727,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_lit_int(&mut self) -> ExprResult {
+    fn parse_lit_int(&mut self) -> Expr {
         let span = self.token.span;
         let tok = self.advance_token();
 
@@ -1807,21 +1737,16 @@ impl<'a> Parser<'a> {
         };
 
         let filtered = value.chars().filter(|&ch| ch != '_').collect::<String>();
-        let parsed = u64::from_str_radix(&filtered, base.num());
+        let value = u64::from_str_radix(&filtered, base.num()).unwrap_or_else(|_| {
+            self.report_error_at(ParseError::NumberOverflow, span);
+            0
+        });
 
-        match parsed {
-            Ok(value) => {
-                let expr = ExprData::create_lit_int(self.generate_id(), span, value, base, suffix);
-                Ok(Arc::new(expr))
-            }
-            _ => {
-                self.report_error_at(ParseError::NumberOverflow, span);
-                Err(())
-            }
-        }
+        let expr = ExprData::create_lit_int(self.generate_id(), span, value, base, suffix);
+        Arc::new(expr)
     }
 
-    fn parse_lit_float(&mut self) -> ExprResult {
+    fn parse_lit_float(&mut self) -> Expr {
         let span = self.token.span;
         let tok = self.advance_token();
 
@@ -1836,7 +1761,7 @@ impl<'a> Parser<'a> {
         let num = parsed.expect("unparsable float");
 
         let expr = ExprData::create_lit_float(self.generate_id(), span, num, suffix);
-        Ok(Arc::new(expr))
+        Arc::new(expr)
     }
 
     fn parse_string(&mut self) -> ExprResult {
@@ -1865,7 +1790,7 @@ impl<'a> Parser<'a> {
 
                     if !self.token.is(TokenKind::RBrace) {
                         self.report_error(ParseError::UnclosedStringTemplate);
-                        return Err(());
+                        break;
                     }
 
                     let token = self.lexer.read_string_continuation();
@@ -1932,14 +1857,14 @@ impl<'a> Parser<'a> {
             // nothing to do
             Vec::new()
         } else {
-            self.parse_list(TokenKind::Comma, TokenKind::Or, |p| {
+            self.parse_list2(TokenKind::Comma, TokenKind::Or, |p| {
                 p.parse_function_param()
-            })?
+            })
         };
 
         let return_type = if self.token.is(TokenKind::Colon) {
             self.advance_token();
-            Some(self.parse_type()?)
+            Some(self.parse_type())
         } else {
             None
         };
@@ -2138,7 +2063,7 @@ mod tests {
         let mut interner = Interner::new();
         let ty = {
             let mut parser = Parser::from_string(code, &mut interner);
-            parser.parse_type().unwrap()
+            parser.parse_type()
         };
 
         (ty, interner)

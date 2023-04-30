@@ -331,6 +331,7 @@ pub enum TypeData {
     Basic(TypeBasicType),
     Tuple(TypeTupleType),
     Lambda(TypeLambdaType),
+    Error { id: NodeId, span: Span },
 }
 
 #[derive(Clone, Debug)]
@@ -452,6 +453,8 @@ impl TypeData {
                     format!("({}) -> ()", types.join(", "))
                 }
             }
+
+            TypeData::Error { .. } => "error type".into(),
         }
     }
 
@@ -461,6 +464,7 @@ impl TypeData {
             TypeData::Basic(ref val) => val.span,
             TypeData::Tuple(ref val) => val.span,
             TypeData::Lambda(ref val) => val.span,
+            TypeData::Error { span, .. } => span,
         }
     }
 
@@ -470,6 +474,7 @@ impl TypeData {
             TypeData::Basic(ref val) => val.id,
             TypeData::Tuple(ref val) => val.id,
             TypeData::Lambda(ref val) => val.id,
+            TypeData::Error { id, .. } => id,
         }
     }
 }

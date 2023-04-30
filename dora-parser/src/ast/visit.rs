@@ -215,6 +215,8 @@ pub fn walk_type<V: Visitor>(v: &mut V, t: &TypeData) {
                 v.visit_type(&ret);
             }
         }
+
+        TypeData::Error { .. } => {}
     }
 }
 

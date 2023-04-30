@@ -46,6 +46,7 @@ pub fn read_type_unchecked(
         ast::TypeData::Basic(ref node) => read_type_basic_unchecked(sa, table, file_id, node),
         ast::TypeData::Tuple(ref node) => read_type_tuple_unchecked(sa, table, file_id, node),
         ast::TypeData::Lambda(ref node) => read_type_lambda_unchecked(sa, table, file_id, node),
+        ast::TypeData::Error { .. } => SourceType::Error,
     }
 }
 
@@ -234,6 +235,8 @@ pub fn verify_type(
                 }
             }
         }
+
+        &ast::TypeData::Error { .. } => {}
     }
 
     true
