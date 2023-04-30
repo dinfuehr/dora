@@ -624,6 +624,7 @@ impl<'a> AstBytecodeGen<'a> {
             ast::ExprData::Paren(ref paren) => self.visit_expr(&paren.expr, dest),
             ast::ExprData::Match(ref expr) => self.visit_expr_match(expr, dest),
             ast::ExprData::Lambda(ref node) => self.visit_expr_lambda(node, dest),
+            ast::ExprData::Error { .. } => unreachable!(),
         }
     }
 

@@ -3304,6 +3304,7 @@ impl<'a> TypeCheck<'a> {
             ast::ExprData::Tuple(ref expr) => self.check_expr_tuple(expr, expected_ty),
             ast::ExprData::Paren(ref expr) => self.check_expr_paren(expr, expected_ty),
             ast::ExprData::Match(ref expr) => self.check_expr_match(expr, expected_ty),
+            ast::ExprData::Error { .. } => SourceType::Error,
         }
     }
 

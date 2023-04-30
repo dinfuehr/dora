@@ -650,6 +650,7 @@ pub enum Annotation {
     Static,
     Test,
     OptimizeImmediately,
+    Error,
 }
 
 impl Annotation {
@@ -660,6 +661,7 @@ impl Annotation {
             Annotation::Static => "static",
             Annotation::Test => "test",
             Annotation::OptimizeImmediately => "optimizeImmediately",
+            Annotation::Error => "<error>",
         }
     }
 }
@@ -1125,6 +1127,7 @@ pub enum ExprData {
     Tuple(ExprTupleType),
     Paren(ExprParenType),
     Match(ExprMatchType),
+    Error { id: NodeId, span: Span },
 }
 
 impl ExprData {
@@ -1612,6 +1615,7 @@ impl ExprData {
             ExprData::Tuple(ref val) => val.span,
             ExprData::Paren(ref val) => val.span,
             ExprData::Match(ref val) => val.span,
+            ExprData::Error { span, .. } => span,
         }
     }
 
@@ -1638,6 +1642,7 @@ impl ExprData {
             ExprData::Tuple(ref val) => val.id,
             ExprData::Paren(ref val) => val.id,
             ExprData::Match(ref val) => val.id,
+            ExprData::Error { id, .. } => id,
         }
     }
 }

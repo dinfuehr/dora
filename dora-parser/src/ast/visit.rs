@@ -347,5 +347,6 @@ pub fn walk_expr<V: Visitor>(v: &mut V, e: &ExprData) {
         ExprData::LitStr(_) => {}
         ExprData::LitBool(_) => {}
         ExprData::Ident(_) => {}
+        ExprData::Error { .. } => {}
     }
 }

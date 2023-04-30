@@ -415,6 +415,9 @@ impl<'a> AstDumper<'a> {
             ExprData::Tuple(ref expr) => self.dump_expr_tuple(expr),
             ExprData::Paren(ref expr) => self.dump_expr_paren(expr),
             ExprData::Match(ref expr) => self.dump_expr_match(expr),
+            ExprData::Error { id, span } => {
+                dump!(self, "error @ {} {}", span, id);
+            }
         }
     }
 

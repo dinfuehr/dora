@@ -93,7 +93,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_top_level_element(&mut self, elements: &mut Vec<Elem>) -> Result<(), ()> {
-        let modifiers = self.parse_annotation_usages()?;
+        let modifiers = self.parse_annotation_usages();
 
         match self.token.kind {
             TokenKind::Fn => {
@@ -112,13 +112,13 @@ impl<'a> Parser<'a> {
 
             TokenKind::Class => {
                 self.restrict_modifiers(&modifiers, &[Annotation::Internal, Annotation::Pub]);
-                let class = self.parse_class(&modifiers)?;
+                let class = self.parse_class(&modifiers);
                 elements.push(Elem::Class(Arc::new(class)));
             }
 
             TokenKind::Struct => {
                 self.restrict_modifiers(&modifiers, &[Annotation::Pub, Annotation::Internal]);
-                let struc = self.parse_struct(&modifiers)?;
+                let struc = self.parse_struct(&modifiers);
                 elements.push(Elem::Struct(Arc::new(struc)));
             }
 
@@ -136,7 +136,7 @@ impl<'a> Parser<'a> {
 
             TokenKind::Alias => {
                 self.restrict_modifiers(&modifiers, &[Annotation::Pub]);
-                let alias = self.parse_alias(&modifiers)?;
+                let alias = self.parse_alias(&modifiers);
                 elements.push(Elem::Alias(Arc::new(alias)));
             }
 
@@ -393,7 +393,7 @@ impl<'a> Parser<'a> {
         self.expect_token(TokenKind::Colon);
         let ty = self.parse_type();
         self.expect_token(TokenKind::Eq);
-        let expr = self.parse_expression()?;
+        let expr = self.parse_expression();
         self.expect_semicolon();
         let span = self.span_from(start);
 
@@ -428,7 +428,7 @@ impl<'a> Parser<'a> {
         let mut methods = Vec::new();
 
         while !self.token.is(TokenKind::RBrace) {
-            let modifiers = self.parse_annotation_usages()?;
+            let modifiers = self.parse_annotation_usages();
             let mods = &[Annotation::Static, Annotation::Internal, Annotation::Pub];
             self.restrict_modifiers(&modifiers, mods);
 
@@ -467,7 +467,7 @@ impl<'a> Parser<'a> {
 
         let expr = if self.token.is(TokenKind::Eq) {
             self.advance_token();
-            Some(self.parse_expression()?)
+            Some(self.parse_expression())
         } else {
             None
         };
@@ -499,7 +499,7 @@ impl<'a> Parser<'a> {
         let mut methods = Vec::new();
 
         while !self.token.is(TokenKind::RBrace) {
-            let modifiers = self.parse_annotation_usages()?;
+            let modifiers = self.parse_annotation_usages();
             let mods = &[Annotation::Static];
             self.restrict_modifiers(&modifiers, mods);
 
@@ -520,7 +520,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_struct(&mut self, modifiers: &Modifiers) -> Result<Struct, ()> {
+    fn parse_struct(&mut self, modifiers: &Modifiers) -> Struct {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Struct);
         let ident = self.expect_identifier();
@@ -528,21 +528,21 @@ impl<'a> Parser<'a> {
 
         let fields = if self.token.is(TokenKind::LParen) {
             self.expect_token(TokenKind::LParen);
-            self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
+            self.parse_list2(TokenKind::Comma, TokenKind::RParen, |p| {
                 p.parse_struct_field()
-            })?
+            })
         } else if self.token.is(TokenKind::LBrace) {
             self.expect_token(TokenKind::LBrace);
-            self.parse_list(TokenKind::Comma, TokenKind::RBrace, |p| {
+            self.parse_list2(TokenKind::Comma, TokenKind::RBrace, |p| {
                 p.parse_struct_field()
-            })?
+            })
         } else {
             Vec::new()
         };
 
         let span = self.span_from(start);
 
-        Ok(Struct {
+        Struct {
             id: self.generate_id(),
             name: ident,
             span,
@@ -550,13 +550,13 @@ impl<'a> Parser<'a> {
             visibility: Visibility::from_modifiers(modifiers),
             internal: modifiers.contains(Annotation::Internal),
             type_params,
-        })
+        }
     }
 
-    fn parse_struct_field(&mut self) -> Result<StructField, ()> {
+    fn parse_struct_field(&mut self) -> StructField {
         let start = self.token.span.start();
 
-        let modifiers = self.parse_annotation_usages()?;
+        let modifiers = self.parse_annotation_usages();
         let mods = &[Annotation::Pub];
         self.restrict_modifiers(&modifiers, mods);
 
@@ -566,16 +566,16 @@ impl<'a> Parser<'a> {
         let ty = self.parse_type();
         let span = self.span_from(start);
 
-        Ok(StructField {
+        StructField {
             id: self.generate_id(),
             name: ident,
             span,
             data_type: ty,
             visibility: Visibility::from_modifiers(&modifiers),
-        })
+        }
     }
 
-    fn parse_class(&mut self, modifiers: &Modifiers) -> Result<Class, ()> {
+    fn parse_class(&mut self, modifiers: &Modifiers) -> Class {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Class);
 
@@ -584,21 +584,21 @@ impl<'a> Parser<'a> {
 
         let fields = if self.token.is(TokenKind::LParen) {
             self.expect_token(TokenKind::LParen);
-            self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
+            self.parse_list2(TokenKind::Comma, TokenKind::RParen, |p| {
                 p.parse_class_field()
-            })?
+            })
         } else if self.token.is(TokenKind::LBrace) {
             self.expect_token(TokenKind::LBrace);
-            self.parse_list(TokenKind::Comma, TokenKind::RBrace, |p| {
+            self.parse_list2(TokenKind::Comma, TokenKind::RBrace, |p| {
                 p.parse_class_field()
-            })?
+            })
         } else {
             Vec::new()
         };
 
         let span = self.span_from(start);
 
-        Ok(Class {
+        Class {
             id: self.generate_id(),
             span,
             name,
@@ -606,13 +606,13 @@ impl<'a> Parser<'a> {
             visibility: Visibility::from_modifiers(modifiers),
             fields,
             type_params,
-        })
+        }
     }
 
-    fn parse_class_field(&mut self) -> Result<Field, ()> {
+    fn parse_class_field(&mut self) -> Field {
         let start = self.token.span.start();
 
-        let modifiers = self.parse_annotation_usages()?;
+        let modifiers = self.parse_annotation_usages();
         let mods = &[Annotation::Pub];
         self.restrict_modifiers(&modifiers, mods);
 
@@ -622,7 +622,7 @@ impl<'a> Parser<'a> {
         let data_type = self.parse_type();
         let span = self.span_from(start);
 
-        Ok(Field {
+        Field {
             id: self.generate_id(),
             name,
             span,
@@ -631,10 +631,10 @@ impl<'a> Parser<'a> {
             expr: None,
             mutable: true,
             visibility: Visibility::from_modifiers(&modifiers),
-        })
+        }
     }
 
-    fn parse_alias(&mut self, modifiers: &Modifiers) -> Result<Alias, ()> {
+    fn parse_alias(&mut self, modifiers: &Modifiers) -> Alias {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Alias);
         let name = self.expect_identifier();
@@ -643,13 +643,13 @@ impl<'a> Parser<'a> {
         self.expect_semicolon();
         let span = self.span_from(start);
 
-        Ok(Alias {
+        Alias {
             id: self.generate_id(),
             name,
             span,
             ty,
             visibility: Visibility::from_modifiers(modifiers),
-        })
+        }
     }
 
     fn parse_type_params(&mut self) -> Option<Vec<TypeParam>> {
@@ -694,10 +694,10 @@ impl<'a> Parser<'a> {
         TypeParam { name, span, bounds }
     }
 
-    fn parse_annotation_usages(&mut self) -> Result<Modifiers, ()> {
+    fn parse_annotation_usages(&mut self) -> Modifiers {
         let mut modifiers = Modifiers::new();
         loop {
-            let modifier = self.parse_annotation_usage()?;
+            let modifier = self.parse_annotation_usage();
 
             if modifier.is_none() {
                 break;
@@ -707,52 +707,54 @@ impl<'a> Parser<'a> {
 
             if modifiers.contains(modifier) {
                 self.report_error(ParseError::RedundantAnnotation(modifier.name().into()));
-                return Err(());
+                continue;
             }
 
             modifiers.add(modifier, self.token.span);
         }
 
-        Ok(modifiers)
+        modifiers
     }
 
-    fn parse_annotation_usage(&mut self) -> Result<Option<Annotation>, ()> {
+    fn parse_annotation_usage(&mut self) -> Option<Annotation> {
         if self.token.is(TokenKind::Pub) {
             self.advance_token();
-            Ok(Some(Annotation::Pub))
+            Some(Annotation::Pub)
         } else if self.token.is(TokenKind::Static) {
             self.advance_token();
-            Ok(Some(Annotation::Static))
+            Some(Annotation::Static)
         } else {
             if !self.token.is(TokenKind::At) {
-                return Ok(None);
+                return None;
             }
             self.advance_token();
 
             if self.token.is(TokenKind::Pub) {
                 self.advance_token();
-                return Ok(Some(Annotation::Pub));
+                return Some(Annotation::Pub);
             } else if self.token.is(TokenKind::Static) {
                 self.advance_token();
-                return Ok(Some(Annotation::Static));
+                return Some(Annotation::Static);
             }
 
             let name = self.expect_identifier();
-            if let Some(name) = &name {
+            let annotation = if let Some(name) = &name {
                 match self.interner.str(name.name).as_str() {
-                    "internal" => Ok(Some(Annotation::Internal)),
-                    "pub" => Ok(Some(Annotation::Pub)),
-                    "static" => Ok(Some(Annotation::Static)),
-                    "Test" => Ok(Some(Annotation::Test)),
-                    "optimizeImmediately" => Ok(Some(Annotation::OptimizeImmediately)),
+                    "internal" => Annotation::Internal,
+                    "pub" => Annotation::Pub,
+                    "static" => Annotation::Static,
+                    "Test" => Annotation::Test,
+                    "optimizeImmediately" => Annotation::OptimizeImmediately,
                     annotation => {
                         self.report_error(ParseError::UnknownAnnotation(annotation.into()));
-                        Err(())
+                        Annotation::Error
                     }
                 }
             } else {
-                Ok(None)
-            }
+                Annotation::Error
+            };
+
+            Some(annotation)
         }
     }
 
@@ -1116,7 +1118,7 @@ impl<'a> Parser<'a> {
     fn parse_var_assignment(&mut self) -> Result<Option<Expr>, ()> {
         if self.token.is(TokenKind::Eq) {
             self.expect_token(TokenKind::Eq);
-            let expr = self.parse_expression()?;
+            let expr = self.parse_expression();
 
             Ok(Some(expr))
         } else {
@@ -1185,7 +1187,7 @@ impl<'a> Parser<'a> {
             }
             TokenKind::For => Ok(StmtOrExpr::Stmt(self.parse_for()?)),
             _ => {
-                let expr = self.parse_expression()?;
+                let expr = self.parse_expression();
 
                 if self.token.is(TokenKind::Semicolon) {
                     self.expect_token(TokenKind::Semicolon);
@@ -1207,7 +1209,7 @@ impl<'a> Parser<'a> {
         let start = self.token.span.start();
         self.expect_token(TokenKind::If);
 
-        let cond = self.parse_expression()?;
+        let cond = self.parse_expression();
 
         let then_block = self.parse_block()?;
 
@@ -1238,7 +1240,7 @@ impl<'a> Parser<'a> {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Match);
 
-        let expr = self.parse_expression()?;
+        let expr = self.parse_expression();
         let mut cases = Vec::new();
         let mut comma = true;
 
@@ -1286,7 +1288,7 @@ impl<'a> Parser<'a> {
 
         self.expect_token(TokenKind::DoubleArrow);
 
-        let value = self.parse_expression()?;
+        let value = self.parse_expression();
         let span = self.span_from(start);
 
         Ok(MatchCaseType {
@@ -1364,7 +1366,7 @@ impl<'a> Parser<'a> {
         self.expect_token(TokenKind::For);
         let pattern = self.parse_let_pattern()?;
         self.expect_token(TokenKind::In);
-        let expr = self.parse_expression()?;
+        let expr = self.parse_expression();
         let block = self.parse_block_stmt()?;
         let span = self.span_from(start);
 
@@ -1380,7 +1382,7 @@ impl<'a> Parser<'a> {
     fn parse_while(&mut self) -> StmtResult {
         let start = self.token.span.start();
         self.expect_token(TokenKind::While);
-        let expr = self.parse_expression()?;
+        let expr = self.parse_expression();
         let block = self.parse_block_stmt()?;
         let span = self.span_from(start);
 
@@ -1419,7 +1421,7 @@ impl<'a> Parser<'a> {
         let expr = if self.token.is(TokenKind::Semicolon) {
             None
         } else {
-            let expr = self.parse_expression()?;
+            let expr = self.parse_expression();
             Some(expr)
         };
 
@@ -1433,7 +1435,9 @@ impl<'a> Parser<'a> {
         )))
     }
 
-    fn parse_expression(&mut self) -> ExprResult {
+    fn parse_expression(&mut self) -> Expr {
+        let span = self.token.span;
+
         let result = match self.token.kind {
             TokenKind::LBrace => self.parse_block(),
             TokenKind::If => self.parse_if(),
@@ -1441,7 +1445,13 @@ impl<'a> Parser<'a> {
             _ => self.parse_binary(0),
         };
 
-        result
+        match result {
+            Ok(expr) => expr,
+            Err(_) => Arc::new(ExprData::Error {
+                id: self.generate_id(),
+                span,
+            }),
+        }
     }
 
     fn parse_binary(&mut self, precedence: u32) -> ExprResult {
@@ -1546,9 +1556,9 @@ impl<'a> Parser<'a> {
 
                 TokenKind::LParen => {
                     self.advance_token();
-                    let args = self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
+                    let args = self.parse_list2(TokenKind::Comma, TokenKind::RParen, |p| {
                         p.parse_expression()
-                    })?;
+                    });
                     let span = self.span_from(start);
 
                     Arc::new(ExprData::create_call(self.generate_id(), span, left, args))
@@ -1673,7 +1683,7 @@ impl<'a> Parser<'a> {
             )));
         }
 
-        let expr = self.parse_expression()?;
+        let expr = self.parse_expression();
 
         if self.token.kind == TokenKind::Comma {
             let mut values = vec![expr];
@@ -1688,7 +1698,7 @@ impl<'a> Parser<'a> {
                     break;
                 }
 
-                let expr = self.parse_expression()?;
+                let expr = self.parse_expression();
                 values.push(expr);
 
                 if self.token.kind == TokenKind::RParen {
@@ -1788,7 +1798,7 @@ impl<'a> Parser<'a> {
                 )));
 
                 loop {
-                    let expr = self.parse_expression()?;
+                    let expr = self.parse_expression();
                     parts.push(expr);
 
                     if !self.token.is(TokenKind::RBrace) {
@@ -2010,12 +2020,9 @@ mod tests {
             let mut parser = Parser::from_string(code, &mut interner);
 
             let result = parser.parse_expression();
+            assert!(parser.errors.borrow().is_empty());
 
-            if let Err(ref msg) = result {
-                println!("error parsing: {:?}", msg);
-            }
-
-            result.unwrap()
+            result
         };
 
         (expr, interner)
@@ -2025,7 +2032,7 @@ mod tests {
         let mut interner = Interner::new();
         let mut parser = Parser::from_string(code, &mut interner);
 
-        parser.parse_expression().unwrap_err();
+        let _expr = parser.parse_expression();
 
         let errors = parser.errors.borrow().clone();
         assert_eq!(errors.len(), 1);
@@ -3411,16 +3418,6 @@ mod tests {
 
         let (expr, _) = parse_expr("1 + {}");
         assert!(expr.is_bin());
-    }
-
-    #[test]
-    fn parse_if_expr() {
-        parse_err(
-            "fn f() { if true { 1 } else { 2 } * 4 }",
-            ParseError::ExpectedFactor("*".into()),
-            1,
-            35,
-        );
     }
 
     #[test]
