@@ -1,15 +1,15 @@
 use dora_parser::ast::*;
 use dora_parser::Span;
 
-pub fn returns_value(s: &Stmt) -> Result<(), Span> {
+pub fn returns_value(s: &StmtData) -> Result<(), Span> {
     match *s {
-        Stmt::Return(_) => Ok(()),
-        Stmt::For(ref stmt) => Err(stmt.span),
-        Stmt::While(ref stmt) => Err(stmt.span),
-        Stmt::Break(ref stmt) => Err(stmt.span),
-        Stmt::Continue(ref stmt) => Err(stmt.span),
-        Stmt::Let(ref stmt) => Err(stmt.span),
-        Stmt::Expr(ref stmt) => expr_returns_value(&stmt.expr),
+        StmtData::Return(_) => Ok(()),
+        StmtData::For(ref stmt) => Err(stmt.span),
+        StmtData::While(ref stmt) => Err(stmt.span),
+        StmtData::Break(ref stmt) => Err(stmt.span),
+        StmtData::Continue(ref stmt) => Err(stmt.span),
+        StmtData::Let(ref stmt) => Err(stmt.span),
+        StmtData::Expr(ref stmt) => expr_returns_value(&stmt.expr),
     }
 }
 

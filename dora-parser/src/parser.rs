@@ -21,11 +21,11 @@ pub struct Parser<'a> {
 }
 
 type ExprResult = Result<Expr, ()>;
-type StmtResult = Result<Box<Stmt>, ()>;
+type StmtResult = Result<Stmt, ()>;
 type StmtOrExprResult = Result<StmtOrExpr, ()>;
 
 enum StmtOrExpr {
-    Stmt(Box<Stmt>),
+    Stmt(Stmt),
     Expr(Expr),
 }
 
@@ -1030,7 +1030,7 @@ impl<'a> Parser<'a> {
                     self.expect_semicolon();
                 }
 
-                Ok(Box::new(Stmt::create_expr(
+                Ok(Arc::new(StmtData::create_expr(
                     self.generate_id(),
                     expr.span(),
                     expr,
@@ -1050,7 +1050,7 @@ impl<'a> Parser<'a> {
         self.expect_semicolon();
         let span = self.span_from(start);
 
-        Ok(Box::new(Stmt::create_let(
+        Ok(Arc::new(StmtData::create_let(
             self.generate_id(),
             span,
             pattern,
@@ -1126,7 +1126,7 @@ impl<'a> Parser<'a> {
 
     fn parse_block_stmt(&mut self) -> StmtResult {
         let block = self.parse_block()?;
-        Ok(Box::new(Stmt::create_expr(
+        Ok(Arc::new(StmtData::create_expr(
             self.generate_id(),
             block.span(),
             block,
@@ -1149,7 +1149,7 @@ impl<'a> Parser<'a> {
                         expr = Some(curr_expr);
                         break;
                     } else if !self.token.is(TokenKind::RBrace) {
-                        stmts.push(Box::new(Stmt::create_expr(
+                        stmts.push(Arc::new(StmtData::create_expr(
                             self.generate_id(),
                             curr_expr.span(),
                             curr_expr,
@@ -1191,7 +1191,7 @@ impl<'a> Parser<'a> {
                     self.expect_token(TokenKind::Semicolon);
                     let span = self.span_from(expr.span().start());
 
-                    Ok(StmtOrExpr::Stmt(Box::new(Stmt::create_expr(
+                    Ok(StmtOrExpr::Stmt(Arc::new(StmtData::create_expr(
                         self.generate_id(),
                         span,
                         expr,
@@ -1368,7 +1368,7 @@ impl<'a> Parser<'a> {
         let block = self.parse_block_stmt()?;
         let span = self.span_from(start);
 
-        Ok(Box::new(Stmt::create_for(
+        Ok(Arc::new(StmtData::create_for(
             self.generate_id(),
             span,
             pattern,
@@ -1384,7 +1384,7 @@ impl<'a> Parser<'a> {
         let block = self.parse_block_stmt()?;
         let span = self.span_from(start);
 
-        Ok(Box::new(Stmt::create_while(
+        Ok(Arc::new(StmtData::create_while(
             self.generate_id(),
             span,
             expr,
@@ -1398,7 +1398,7 @@ impl<'a> Parser<'a> {
         self.expect_semicolon();
         let span = self.span_from(start);
 
-        Ok(Box::new(Stmt::create_break(self.generate_id(), span)))
+        Ok(Arc::new(StmtData::create_break(self.generate_id(), span)))
     }
 
     fn parse_continue(&mut self) -> StmtResult {
@@ -1407,7 +1407,10 @@ impl<'a> Parser<'a> {
         self.expect_semicolon();
         let span = self.span_from(start);
 
-        Ok(Box::new(Stmt::create_continue(self.generate_id(), span)))
+        Ok(Arc::new(StmtData::create_continue(
+            self.generate_id(),
+            span,
+        )))
     }
 
     fn parse_return(&mut self) -> StmtResult {
@@ -1423,7 +1426,7 @@ impl<'a> Parser<'a> {
         self.expect_semicolon();
         let span = self.span_from(start);
 
-        Ok(Box::new(Stmt::create_return(
+        Ok(Arc::new(StmtData::create_return(
             self.generate_id(),
             span,
             expr,
@@ -2036,7 +2039,7 @@ mod tests {
         assert_eq!(col, computed_column);
     }
 
-    fn parse_stmt(code: &'static str) -> Box<Stmt> {
+    fn parse_stmt(code: &'static str) -> Stmt {
         let mut interner = Interner::new();
         let mut parser = Parser::from_string(code, &mut interner);
         parser.parse_statement().unwrap()

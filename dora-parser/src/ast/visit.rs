@@ -77,7 +77,7 @@ pub trait Visitor: Sized {
         walk_type(self, t);
     }
 
-    fn visit_stmt(&mut self, s: &Stmt) {
+    fn visit_stmt(&mut self, s: &StmtData) {
         walk_stmt(self, s);
     }
 
@@ -220,9 +220,9 @@ pub fn walk_type<V: Visitor>(v: &mut V, t: &TypeData) {
     }
 }
 
-pub fn walk_stmt<V: Visitor>(v: &mut V, s: &Stmt) {
+pub fn walk_stmt<V: Visitor>(v: &mut V, s: &StmtData) {
     match *s {
-        Stmt::Let(ref value) => {
+        StmtData::Let(ref value) => {
             if let Some(ref ty) = value.data_type {
                 v.visit_type(ty);
             }
@@ -232,28 +232,28 @@ pub fn walk_stmt<V: Visitor>(v: &mut V, s: &Stmt) {
             }
         }
 
-        Stmt::For(ref value) => {
+        StmtData::For(ref value) => {
             v.visit_expr(&value.expr);
             v.visit_stmt(&value.block);
         }
 
-        Stmt::While(ref value) => {
+        StmtData::While(ref value) => {
             v.visit_expr(&value.cond);
             v.visit_stmt(&value.block);
         }
 
-        Stmt::Expr(ref value) => {
+        StmtData::Expr(ref value) => {
             v.visit_expr(&value.expr);
         }
 
-        Stmt::Return(ref value) => {
+        StmtData::Return(ref value) => {
             if let Some(ref e) = value.expr {
                 v.visit_expr(e);
             }
         }
 
-        Stmt::Break(_) => {}
-        Stmt::Continue(_) => {}
+        StmtData::Break(_) => {}
+        StmtData::Continue(_) => {}
     }
 }
 

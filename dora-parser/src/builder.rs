@@ -91,7 +91,7 @@ impl<'a> BuilderFct {
 }
 
 pub struct BuilderBlock {
-    stmts: Vec<Box<Stmt>>,
+    stmts: Vec<Stmt>,
 }
 
 impl<'a> BuilderBlock {
@@ -100,7 +100,7 @@ impl<'a> BuilderBlock {
     }
 
     pub fn add_expr(&mut self, id: NodeId, expr: Expr) -> &mut BuilderBlock {
-        let stmt = Box::new(Stmt::Expr(StmtExprType {
+        let stmt = Arc::new(StmtData::Expr(StmtExprType {
             id,
             span: Span::invalid(),
             expr,

@@ -674,8 +674,10 @@ pub struct Param {
     pub variadic: bool,
 }
 
+pub type Stmt = Arc<StmtData>;
+
 #[derive(Clone, Debug)]
-pub enum Stmt {
+pub enum StmtData {
     Let(StmtLetType),
     While(StmtWhileType),
     Expr(StmtExprType),
@@ -685,15 +687,15 @@ pub enum Stmt {
     For(StmtForType),
 }
 
-impl Stmt {
+impl StmtData {
     pub fn create_let(
         id: NodeId,
         span: Span,
         pattern: Box<LetPattern>,
         data_type: Option<Type>,
         expr: Option<Expr>,
-    ) -> Stmt {
-        Stmt::Let(StmtLetType {
+    ) -> StmtData {
+        StmtData::Let(StmtLetType {
             id,
             span,
 
@@ -708,9 +710,9 @@ impl Stmt {
         span: Span,
         pattern: Box<LetPattern>,
         expr: Expr,
-        block: Box<Stmt>,
-    ) -> Stmt {
-        Stmt::For(StmtForType {
+        block: Stmt,
+    ) -> StmtData {
+        StmtData::For(StmtForType {
             id,
             span,
 
@@ -720,8 +722,8 @@ impl Stmt {
         })
     }
 
-    pub fn create_while(id: NodeId, span: Span, cond: Expr, block: Box<Stmt>) -> Stmt {
-        Stmt::While(StmtWhileType {
+    pub fn create_while(id: NodeId, span: Span, cond: Expr, block: Stmt) -> StmtData {
+        StmtData::While(StmtWhileType {
             id,
             span,
 
@@ -730,140 +732,140 @@ impl Stmt {
         })
     }
 
-    pub fn create_expr(id: NodeId, span: Span, expr: Expr) -> Stmt {
-        Stmt::Expr(StmtExprType { id, span, expr })
+    pub fn create_expr(id: NodeId, span: Span, expr: Expr) -> StmtData {
+        StmtData::Expr(StmtExprType { id, span, expr })
     }
 
-    pub fn create_break(id: NodeId, span: Span) -> Stmt {
-        Stmt::Break(StmtBreakType { id, span })
+    pub fn create_break(id: NodeId, span: Span) -> StmtData {
+        StmtData::Break(StmtBreakType { id, span })
     }
 
-    pub fn create_continue(id: NodeId, span: Span) -> Stmt {
-        Stmt::Continue(StmtContinueType { id, span })
+    pub fn create_continue(id: NodeId, span: Span) -> StmtData {
+        StmtData::Continue(StmtContinueType { id, span })
     }
 
-    pub fn create_return(id: NodeId, span: Span, expr: Option<Expr>) -> Stmt {
-        Stmt::Return(StmtReturnType { id, span, expr })
+    pub fn create_return(id: NodeId, span: Span, expr: Option<Expr>) -> StmtData {
+        StmtData::Return(StmtReturnType { id, span, expr })
     }
 
     pub fn id(&self) -> NodeId {
         match *self {
-            Stmt::Let(ref stmt) => stmt.id,
-            Stmt::While(ref stmt) => stmt.id,
-            Stmt::For(ref stmt) => stmt.id,
-            Stmt::Expr(ref stmt) => stmt.id,
-            Stmt::Break(ref stmt) => stmt.id,
-            Stmt::Continue(ref stmt) => stmt.id,
-            Stmt::Return(ref stmt) => stmt.id,
+            StmtData::Let(ref stmt) => stmt.id,
+            StmtData::While(ref stmt) => stmt.id,
+            StmtData::For(ref stmt) => stmt.id,
+            StmtData::Expr(ref stmt) => stmt.id,
+            StmtData::Break(ref stmt) => stmt.id,
+            StmtData::Continue(ref stmt) => stmt.id,
+            StmtData::Return(ref stmt) => stmt.id,
         }
     }
 
     pub fn span(&self) -> Span {
         match *self {
-            Stmt::Let(ref stmt) => stmt.span,
-            Stmt::While(ref stmt) => stmt.span,
-            Stmt::For(ref stmt) => stmt.span,
-            Stmt::Expr(ref stmt) => stmt.span,
-            Stmt::Break(ref stmt) => stmt.span,
-            Stmt::Continue(ref stmt) => stmt.span,
-            Stmt::Return(ref stmt) => stmt.span,
+            StmtData::Let(ref stmt) => stmt.span,
+            StmtData::While(ref stmt) => stmt.span,
+            StmtData::For(ref stmt) => stmt.span,
+            StmtData::Expr(ref stmt) => stmt.span,
+            StmtData::Break(ref stmt) => stmt.span,
+            StmtData::Continue(ref stmt) => stmt.span,
+            StmtData::Return(ref stmt) => stmt.span,
         }
     }
 
     pub fn to_let(&self) -> Option<&StmtLetType> {
         match *self {
-            Stmt::Let(ref val) => Some(val),
+            StmtData::Let(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_let(&self) -> bool {
         match *self {
-            Stmt::Let(_) => true,
+            StmtData::Let(_) => true,
             _ => false,
         }
     }
 
     pub fn to_while(&self) -> Option<&StmtWhileType> {
         match *self {
-            Stmt::While(ref val) => Some(val),
+            StmtData::While(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_while(&self) -> bool {
         match *self {
-            Stmt::While(_) => true,
+            StmtData::While(_) => true,
             _ => false,
         }
     }
 
     pub fn to_for(&self) -> Option<&StmtForType> {
         match *self {
-            Stmt::For(ref val) => Some(val),
+            StmtData::For(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_for(&self) -> bool {
         match *self {
-            Stmt::For(_) => true,
+            StmtData::For(_) => true,
             _ => false,
         }
     }
 
     pub fn to_expr(&self) -> Option<&StmtExprType> {
         match *self {
-            Stmt::Expr(ref val) => Some(val),
+            StmtData::Expr(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_expr(&self) -> bool {
         match *self {
-            Stmt::Expr(_) => true,
+            StmtData::Expr(_) => true,
             _ => false,
         }
     }
 
     pub fn to_return(&self) -> Option<&StmtReturnType> {
         match *self {
-            Stmt::Return(ref val) => Some(val),
+            StmtData::Return(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_return(&self) -> bool {
         match *self {
-            Stmt::Return(_) => true,
+            StmtData::Return(_) => true,
             _ => false,
         }
     }
 
     pub fn to_break(&self) -> Option<&StmtBreakType> {
         match *self {
-            Stmt::Break(ref val) => Some(val),
+            StmtData::Break(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_break(&self) -> bool {
         match *self {
-            Stmt::Break(_) => true,
+            StmtData::Break(_) => true,
             _ => false,
         }
     }
 
     pub fn to_continue(&self) -> Option<&StmtContinueType> {
         match *self {
-            Stmt::Continue(ref val) => Some(val),
+            StmtData::Continue(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_continue(&self) -> bool {
         match *self {
-            Stmt::Continue(_) => true,
+            StmtData::Continue(_) => true,
             _ => false,
         }
     }
@@ -959,7 +961,7 @@ pub struct StmtForType {
 
     pub pattern: Box<LetPattern>,
     pub expr: Expr,
-    pub block: Box<Stmt>,
+    pub block: Stmt,
 }
 
 #[derive(Clone, Debug)]
@@ -968,7 +970,7 @@ pub struct StmtWhileType {
     pub span: Span,
 
     pub cond: Expr,
-    pub block: Box<Stmt>,
+    pub block: Stmt,
 }
 
 #[derive(Clone, Debug)]
@@ -1126,12 +1128,7 @@ pub enum ExprData {
 }
 
 impl ExprData {
-    pub fn create_block(
-        id: NodeId,
-        span: Span,
-        stmts: Vec<Box<Stmt>>,
-        expr: Option<Expr>,
-    ) -> ExprData {
+    pub fn create_block(id: NodeId, span: Span, stmts: Vec<Stmt>, expr: Option<Expr>) -> ExprData {
         ExprData::Block(ExprBlockType {
             id,
             span,
@@ -1748,7 +1745,7 @@ pub struct ExprBlockType {
     pub id: NodeId,
     pub span: Span,
 
-    pub stmts: Vec<Box<Stmt>>,
+    pub stmts: Vec<Stmt>,
     pub expr: Option<Expr>,
 }
 

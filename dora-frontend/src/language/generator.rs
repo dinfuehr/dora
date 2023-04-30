@@ -220,15 +220,15 @@ impl<'a> AstBytecodeGen<'a> {
         }
     }
 
-    fn visit_stmt(&mut self, stmt: &ast::Stmt) {
+    fn visit_stmt(&mut self, stmt: &ast::StmtData) {
         match *stmt {
-            ast::Stmt::Return(ref ret) => self.visit_stmt_return(ret),
-            ast::Stmt::Break(ref stmt) => self.visit_stmt_break(stmt),
-            ast::Stmt::Continue(ref stmt) => self.visit_stmt_continue(stmt),
-            ast::Stmt::Expr(ref expr) => self.visit_stmt_expr(expr),
-            ast::Stmt::Let(ref stmt) => self.visit_stmt_let(stmt),
-            ast::Stmt::While(ref stmt) => self.visit_stmt_while(stmt),
-            ast::Stmt::For(ref stmt) => self.visit_stmt_for(stmt),
+            ast::StmtData::Return(ref ret) => self.visit_stmt_return(ret),
+            ast::StmtData::Break(ref stmt) => self.visit_stmt_break(stmt),
+            ast::StmtData::Continue(ref stmt) => self.visit_stmt_continue(stmt),
+            ast::StmtData::Expr(ref expr) => self.visit_stmt_expr(expr),
+            ast::StmtData::Let(ref stmt) => self.visit_stmt_let(stmt),
+            ast::StmtData::While(ref stmt) => self.visit_stmt_while(stmt),
+            ast::StmtData::For(ref stmt) => self.visit_stmt_for(stmt),
         }
     }
 

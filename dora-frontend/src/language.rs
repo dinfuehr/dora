@@ -195,7 +195,7 @@ fn internalck(sa: &SemAnalysis) {
     }
 }
 
-pub fn always_returns(s: &ast::Stmt) -> bool {
+pub fn always_returns(s: &ast::StmtData) -> bool {
     returnck::returns_value(s).is_ok()
 }
 

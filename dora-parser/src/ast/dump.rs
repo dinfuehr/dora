@@ -41,7 +41,7 @@ pub fn dump_expr<'a>(expr: &'a ExprData, interner: &'a Interner) {
     dumper.dump_expr(expr);
 }
 
-pub fn dump_stmt<'a>(stmt: &'a Stmt, interner: &'a Interner) {
+pub fn dump_stmt<'a>(stmt: &'a StmtData, interner: &'a Interner) {
     let mut dumper = AstDumper {
         interner,
         indent: 0,
@@ -281,15 +281,15 @@ impl<'a> AstDumper<'a> {
         dump!(self, "type @ {:?} {}", ty.span(), ty.id());
     }
 
-    fn dump_stmt(&mut self, stmt: &Stmt) {
+    fn dump_stmt(&mut self, stmt: &StmtData) {
         match *stmt {
-            Stmt::Return(ref ret) => self.dump_stmt_return(ret),
-            Stmt::Break(ref stmt) => self.dump_stmt_break(stmt),
-            Stmt::Continue(ref stmt) => self.dump_stmt_continue(stmt),
-            Stmt::Expr(ref expr) => self.dump_stmt_expr(expr),
-            Stmt::Let(ref stmt) => self.dump_stmt_let(stmt),
-            Stmt::While(ref stmt) => self.dump_stmt_while(stmt),
-            Stmt::For(ref stmt) => self.dump_stmt_for(stmt),
+            StmtData::Return(ref ret) => self.dump_stmt_return(ret),
+            StmtData::Break(ref stmt) => self.dump_stmt_break(stmt),
+            StmtData::Continue(ref stmt) => self.dump_stmt_continue(stmt),
+            StmtData::Expr(ref expr) => self.dump_stmt_expr(expr),
+            StmtData::Let(ref stmt) => self.dump_stmt_let(stmt),
+            StmtData::While(ref stmt) => self.dump_stmt_while(stmt),
+            StmtData::For(ref stmt) => self.dump_stmt_for(stmt),
         }
     }
 

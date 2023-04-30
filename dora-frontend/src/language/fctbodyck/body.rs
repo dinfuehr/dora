@@ -469,7 +469,7 @@ impl<'a> TypeCheck<'a> {
         self.symtable.pop_level();
     }
 
-    fn check_loop_body(&mut self, stmt: &ast::Stmt) {
+    fn check_loop_body(&mut self, stmt: &ast::StmtData) {
         let old_in_loop = self.in_loop;
         self.in_loop = true;
         self.visit_stmt(&stmt);
@@ -3307,7 +3307,7 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn check_stmt_break_and_continue(&mut self, stmt: &ast::Stmt) {
+    fn check_stmt_break_and_continue(&mut self, stmt: &ast::StmtData) {
         if !self.in_loop {
             self.sa
                 .diag
@@ -3322,18 +3322,18 @@ impl<'a> Visitor for TypeCheck<'a> {
         unreachable!();
     }
 
-    fn visit_stmt(&mut self, s: &ast::Stmt) {
+    fn visit_stmt(&mut self, s: &ast::StmtData) {
         match *s {
-            ast::Stmt::Let(ref stmt) => self.check_stmt_let(stmt),
-            ast::Stmt::While(ref stmt) => self.check_stmt_while(stmt),
-            ast::Stmt::For(ref stmt) => self.check_stmt_for(stmt),
-            ast::Stmt::Return(ref stmt) => self.check_stmt_return(stmt),
+            ast::StmtData::Let(ref stmt) => self.check_stmt_let(stmt),
+            ast::StmtData::While(ref stmt) => self.check_stmt_while(stmt),
+            ast::StmtData::For(ref stmt) => self.check_stmt_for(stmt),
+            ast::StmtData::Return(ref stmt) => self.check_stmt_return(stmt),
 
             // for the rest of the statements, no special handling is necessary
-            ast::Stmt::Break(_) | ast::Stmt::Continue(_) => {
+            ast::StmtData::Break(_) | ast::StmtData::Continue(_) => {
                 self.check_stmt_break_and_continue(s);
             }
-            ast::Stmt::Expr(ref stmt) => {
+            ast::StmtData::Expr(ref stmt) => {
                 self.check_expr(&stmt.expr, SourceType::Any);
             }
         }
