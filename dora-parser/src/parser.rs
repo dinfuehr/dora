@@ -926,7 +926,7 @@ impl<'a> Parser<'a> {
 
             Ok(None)
         } else {
-            let block = self.parse_block()?;
+            let block = self.parse_block();
             Ok(Some(block))
         }
     }
@@ -1127,7 +1127,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_block_stmt(&mut self) -> StmtResult {
-        let block = self.parse_block()?;
+        let block = self.parse_block();
         Ok(Arc::new(StmtData::create_expr(
             self.generate_id(),
             block.span(),
@@ -1135,14 +1135,25 @@ impl<'a> Parser<'a> {
         )))
     }
 
-    fn parse_block(&mut self) -> ExprResult {
+    fn parse_block(&mut self) -> Expr {
         let start = self.token.span.start();
         self.expect_token(TokenKind::LBrace);
         let mut stmts = vec![];
         let mut expr = None;
 
         while !self.token.is(TokenKind::RBrace) && !self.token.is_eof() {
-            let stmt_or_expr = self.parse_statement_or_expression()?;
+            let span = self.token.span;
+            let stmt_or_expr = match self.parse_statement_or_expression() {
+                Ok(stmt_or_expr) => stmt_or_expr,
+                Err(_) => {
+                    let expr = Arc::new(ExprData::Error {
+                        id: self.generate_id(),
+                        span,
+                    });
+
+                    StmtOrExpr::Expr(expr)
+                }
+            };
 
             match stmt_or_expr {
                 StmtOrExpr::Stmt(stmt) => stmts.push(stmt),
@@ -1166,21 +1177,21 @@ impl<'a> Parser<'a> {
         self.expect_token(TokenKind::RBrace);
         let span = self.span_from(start);
 
-        Ok(Arc::new(ExprData::create_block(
+        Arc::new(ExprData::create_block(
             self.generate_id(),
             span,
             stmts,
             expr,
-        )))
+        ))
     }
 
     fn parse_statement_or_expression(&mut self) -> StmtOrExprResult {
         match self.token.kind {
             TokenKind::Let => Ok(StmtOrExpr::Stmt(self.parse_let()?)),
             TokenKind::While => Ok(StmtOrExpr::Stmt(self.parse_while()?)),
-            TokenKind::Break => Ok(StmtOrExpr::Stmt(self.parse_break()?)),
-            TokenKind::Continue => Ok(StmtOrExpr::Stmt(self.parse_continue()?)),
-            TokenKind::Return => Ok(StmtOrExpr::Stmt(self.parse_return()?)),
+            TokenKind::Break => Ok(StmtOrExpr::Stmt(self.parse_break())),
+            TokenKind::Continue => Ok(StmtOrExpr::Stmt(self.parse_continue())),
+            TokenKind::Return => Ok(StmtOrExpr::Stmt(self.parse_return())),
             TokenKind::Else => {
                 self.report_error(ParseError::MisplacedElse);
                 Err(())
@@ -1211,7 +1222,7 @@ impl<'a> Parser<'a> {
 
         let cond = self.parse_expression();
 
-        let then_block = self.parse_block()?;
+        let then_block = self.parse_block();
 
         let else_block = if self.token.is(TokenKind::Else) {
             self.advance_token();
@@ -1219,7 +1230,7 @@ impl<'a> Parser<'a> {
             if self.token.is(TokenKind::If) {
                 Some(self.parse_if()?)
             } else {
-                Some(self.parse_block()?)
+                Some(self.parse_block())
             }
         } else {
             None
@@ -1394,28 +1405,25 @@ impl<'a> Parser<'a> {
         )))
     }
 
-    fn parse_break(&mut self) -> StmtResult {
+    fn parse_break(&mut self) -> Stmt {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Break);
         self.expect_semicolon();
         let span = self.span_from(start);
 
-        Ok(Arc::new(StmtData::create_break(self.generate_id(), span)))
+        Arc::new(StmtData::create_break(self.generate_id(), span))
     }
 
-    fn parse_continue(&mut self) -> StmtResult {
+    fn parse_continue(&mut self) -> Stmt {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Continue);
         self.expect_semicolon();
         let span = self.span_from(start);
 
-        Ok(Arc::new(StmtData::create_continue(
-            self.generate_id(),
-            span,
-        )))
+        Arc::new(StmtData::create_continue(self.generate_id(), span))
     }
 
-    fn parse_return(&mut self) -> StmtResult {
+    fn parse_return(&mut self) -> Stmt {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Return);
         let expr = if self.token.is(TokenKind::Semicolon) {
@@ -1428,18 +1436,14 @@ impl<'a> Parser<'a> {
         self.expect_semicolon();
         let span = self.span_from(start);
 
-        Ok(Arc::new(StmtData::create_return(
-            self.generate_id(),
-            span,
-            expr,
-        )))
+        Arc::new(StmtData::create_return(self.generate_id(), span, expr))
     }
 
     fn parse_expression(&mut self) -> Expr {
         let span = self.token.span;
 
         let result = match self.token.kind {
-            TokenKind::LBrace => self.parse_block(),
+            TokenKind::LBrace => Ok(self.parse_block()),
             TokenKind::If => self.parse_if(),
             TokenKind::Match => self.parse_match(),
             _ => self.parse_binary(0),
@@ -1639,34 +1643,38 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_factor(&mut self) -> ExprResult {
+        let span = self.token.span;
         match self.token.kind {
             TokenKind::LParen => self.parse_parentheses(),
-            TokenKind::LBrace => self.parse_block(),
+            TokenKind::LBrace => Ok(self.parse_block()),
             TokenKind::If => self.parse_if(),
             TokenKind::LitChar(_) => self.parse_lit_char(),
             TokenKind::LitInt(_, _, _) => Ok(self.parse_lit_int()),
             TokenKind::LitFloat(_, _) => Ok(self.parse_lit_float()),
-            TokenKind::StringTail(_) | TokenKind::StringExpr(_) => self.parse_string(),
-            TokenKind::Identifier => self.parse_identifier(),
-            TokenKind::True => self.parse_bool_literal(),
-            TokenKind::False => self.parse_bool_literal(),
-            TokenKind::This => self.parse_this(),
+            TokenKind::StringTail(_) | TokenKind::StringExpr(_) => Ok(self.parse_string()),
+            TokenKind::Identifier => Ok(self.parse_identifier()),
+            TokenKind::True => Ok(self.parse_bool_literal()),
+            TokenKind::False => Ok(self.parse_bool_literal()),
+            TokenKind::This => Ok(self.parse_this()),
             TokenKind::Or | TokenKind::OrOr => self.parse_lambda(),
             _ => {
                 self.report_error(ParseError::ExpectedFactor(self.token.name().clone()));
-                Err(())
+                Ok(Arc::new(ExprData::Error {
+                    id: self.generate_id(),
+                    span,
+                }))
             }
         }
     }
 
-    fn parse_identifier(&mut self) -> ExprResult {
+    fn parse_identifier(&mut self) -> Expr {
         let ident = self.expect_identifier().expect("identifier expected");
 
-        Ok(Arc::new(ExprData::create_ident(
+        Arc::new(ExprData::create_ident(
             self.generate_id(),
             ident.span,
             ident.name,
-        )))
+        ))
     }
 
     fn parse_parentheses(&mut self) -> ExprResult {
@@ -1777,16 +1785,14 @@ impl<'a> Parser<'a> {
         Arc::new(expr)
     }
 
-    fn parse_string(&mut self) -> ExprResult {
+    fn parse_string(&mut self) -> Expr {
         let span = self.token.span;
         let string = self.advance_token();
 
         match string.kind {
-            TokenKind::StringTail(value) => Ok(Arc::new(ExprData::create_lit_str(
-                self.generate_id(),
-                span,
-                value,
-            ))),
+            TokenKind::StringTail(value) => {
+                Arc::new(ExprData::create_lit_str(self.generate_id(), span, value))
+            }
 
             TokenKind::StringExpr(value) => {
                 let start = self.token.span.start();
@@ -1832,34 +1838,26 @@ impl<'a> Parser<'a> {
 
                 let span = self.span_from(start);
 
-                Ok(Arc::new(ExprData::create_template(
-                    self.generate_id(),
-                    span,
-                    parts,
-                )))
+                Arc::new(ExprData::create_template(self.generate_id(), span, parts))
             }
 
             _ => unreachable!(),
         }
     }
 
-    fn parse_bool_literal(&mut self) -> ExprResult {
+    fn parse_bool_literal(&mut self) -> Expr {
         let span = self.token.span;
         let tok = self.advance_token();
         let value = tok.is(TokenKind::True);
 
-        Ok(Arc::new(ExprData::create_lit_bool(
-            self.generate_id(),
-            span,
-            value,
-        )))
+        Arc::new(ExprData::create_lit_bool(self.generate_id(), span, value))
     }
 
-    fn parse_this(&mut self) -> ExprResult {
+    fn parse_this(&mut self) -> Expr {
         let span = self.token.span;
         self.advance_token();
 
-        Ok(Arc::new(ExprData::create_this(self.generate_id(), span)))
+        Arc::new(ExprData::create_this(self.generate_id(), span))
     }
 
     fn parse_lambda(&mut self) -> ExprResult {
@@ -1882,7 +1880,7 @@ impl<'a> Parser<'a> {
             None
         };
 
-        let block = self.parse_block()?;
+        let block = self.parse_block();
 
         let span = self.span_from(start);
 
