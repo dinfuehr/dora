@@ -39,13 +39,13 @@ pub fn read_type_unchecked(
     sa: &SemAnalysis,
     table: &ModuleSymTable,
     file_id: SourceFileId,
-    t: &ast::Type,
+    t: &ast::TypeData,
 ) -> SourceType {
     match *t {
-        ast::Type::This(_) => SourceType::This,
-        ast::Type::Basic(ref node) => read_type_basic_unchecked(sa, table, file_id, node),
-        ast::Type::Tuple(ref node) => read_type_tuple_unchecked(sa, table, file_id, node),
-        ast::Type::Lambda(ref node) => read_type_lambda_unchecked(sa, table, file_id, node),
+        ast::TypeData::This(_) => SourceType::This,
+        ast::TypeData::Basic(ref node) => read_type_basic_unchecked(sa, table, file_id, node),
+        ast::TypeData::Tuple(ref node) => read_type_tuple_unchecked(sa, table, file_id, node),
+        ast::TypeData::Lambda(ref node) => read_type_lambda_unchecked(sa, table, file_id, node),
     }
 }
 
@@ -169,13 +169,13 @@ pub fn verify_type(
     sa: &SemAnalysis,
     module_id: ModuleDefinitionId,
     file_id: SourceFileId,
-    t: &ast::Type,
+    t: &ast::TypeData,
     ty: SourceType,
     ctxt: TypeParamContext,
     allow_self: AllowSelf,
 ) -> bool {
     match t {
-        &ast::Type::This(ref node) => {
+        &ast::TypeData::This(ref node) => {
             assert_eq!(ty, SourceType::This);
 
             if allow_self == AllowSelf::No {
@@ -186,13 +186,13 @@ pub fn verify_type(
             }
         }
 
-        &ast::Type::Basic(ref node) => {
+        &ast::TypeData::Basic(ref node) => {
             if !verify_type_basic(sa, module_id, file_id, node, ty, ctxt, allow_self) {
                 return false;
             }
         }
 
-        &ast::Type::Tuple(ref node) => {
+        &ast::TypeData::Tuple(ref node) => {
             assert!(ty.is_tuple_or_unit());
 
             if ty.is_unit() {
@@ -210,7 +210,7 @@ pub fn verify_type(
             }
         }
 
-        &ast::Type::Lambda(ref node) => {
+        &ast::TypeData::Lambda(ref node) => {
             assert!(ty.is_lambda());
 
             let (params, return_type) = ty.to_lambda().expect("lambda expected");
@@ -433,7 +433,7 @@ pub fn read_type(
     sa: &SemAnalysis,
     table: &ModuleSymTable,
     file_id: SourceFileId,
-    t: &ast::Type,
+    t: &ast::TypeData,
     ctxt: TypeParamContext,
     allow_self: AllowSelf,
 ) -> Option<SourceType> {

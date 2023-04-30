@@ -277,7 +277,7 @@ impl<'a> AstDumper<'a> {
         self.indent(|d| d.dump_type(&param.data_type));
     }
 
-    fn dump_type(&mut self, ty: &Type) {
+    fn dump_type(&mut self, ty: &TypeData) {
         dump!(self, "type @ {:?} {}", ty.span(), ty.id());
     }
 

@@ -843,6 +843,44 @@ impl<'a> Parser<'a> {
         Ok(data)
     }
 
+    #[allow(unused)]
+    fn parse_list2<F, R>(
+        &mut self,
+        sep: TokenKind,
+        stop: TokenKind,
+        mut parse: F,
+    ) -> Result<Vec<R>, ()>
+    where
+        F: FnMut(&mut Parser) -> Option<R>,
+    {
+        let mut data = vec![];
+        let mut comma = true;
+
+        while !self.token.is(stop.clone()) && !self.token.is_eof() {
+            if !comma {
+                self.report_error(ParseError::ExpectedToken(
+                    sep.name().into(),
+                    self.token.name(),
+                ));
+            }
+
+            let entry = parse(self);
+            if entry.is_none() {
+                break;
+            }
+            data.push(entry.unwrap());
+
+            comma = self.token.is(sep.clone());
+            if comma {
+                self.advance_token();
+            }
+        }
+
+        self.expect_token(stop);
+
+        Ok(data)
+    }
+
     fn parse_function_param(&mut self) -> Result<Param, ()> {
         let start = self.token.span.start();
 
@@ -910,24 +948,29 @@ impl<'a> Parser<'a> {
             TokenKind::CapitalThis => {
                 let span = self.token.span;
                 self.advance_token();
-                Ok(Type::create_self(self.generate_id(), span))
+                Ok(Arc::new(TypeData::create_self(self.generate_id(), span)))
             }
 
             TokenKind::Identifier => {
                 let start = self.token.span.start();
-                let path = self.parse_path()?;
+                let path = self.parse_path();
 
                 let params = if self.token.is(TokenKind::LBracket) {
                     self.advance_token();
                     self.parse_list(TokenKind::Comma, TokenKind::RBracket, |p| {
-                        Ok(Box::new(p.parse_type()?))
+                        Ok(p.parse_type()?)
                     })?
                 } else {
                     Vec::new()
                 };
 
                 let span = self.span_from(start);
-                Ok(Type::create_basic(self.generate_id(), span, path, params))
+                Ok(Arc::new(TypeData::create_basic(
+                    self.generate_id(),
+                    span,
+                    path,
+                    params,
+                )))
             }
 
             TokenKind::LParen => {
@@ -936,18 +979,27 @@ impl<'a> Parser<'a> {
                 let subtypes = self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
                     let ty = p.parse_type()?;
 
-                    Ok(Box::new(ty))
+                    Ok(ty)
                 })?;
 
                 if self.token.is(TokenKind::Colon) {
                     self.advance_token();
-                    let ret = Box::new(self.parse_type()?);
+                    let ret = self.parse_type()?;
                     let span = self.span_from(start);
 
-                    Ok(Type::create_fct(self.generate_id(), span, subtypes, ret))
+                    Ok(Arc::new(TypeData::create_fct(
+                        self.generate_id(),
+                        span,
+                        subtypes,
+                        ret,
+                    )))
                 } else {
                     let span = self.span_from(start);
-                    Ok(Type::create_tuple(self.generate_id(), span, subtypes))
+                    Ok(Arc::new(TypeData::create_tuple(
+                        self.generate_id(),
+                        span,
+                        subtypes,
+                    )))
                 }
             }
 
@@ -958,9 +1010,10 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_path(&mut self) -> Result<Path, ()> {
+    fn parse_path(&mut self) -> Path {
         let start = self.token.span.start();
         let mut names = Vec::new();
+        assert!(self.token.is_identifier());
         let name = self.expect_identifier();
         if let Some(name) = name {
             names.push(name);
@@ -978,7 +1031,7 @@ impl<'a> Parser<'a> {
 
         let span = self.span_from(start);
 
-        Ok(Path {
+        Arc::new(PathData {
             id: self.generate_id(),
             span,
             names,
@@ -1270,7 +1323,7 @@ impl<'a> Parser<'a> {
             self.expect_token(TokenKind::Underscore);
             MatchPatternData::Underscore
         } else {
-            let path = self.parse_path()?;
+            let path = self.parse_path();
 
             let params = if self.token.is(TokenKind::LParen) {
                 self.expect_token(TokenKind::LParen);
@@ -1446,7 +1499,7 @@ impl<'a> Parser<'a> {
 
             left = match tok.kind {
                 TokenKind::As => {
-                    let right = Box::new(self.parse_type()?);
+                    let right = self.parse_type()?;
                     let span = self.span_from(start);
                     let expr = Expr::create_conv(self.generate_id(), span, left, right);
 

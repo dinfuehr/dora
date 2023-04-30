@@ -320,7 +320,7 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn read_type(&mut self, t: &ast::Type) -> SourceType {
+    fn read_type(&mut self, t: &ast::TypeData) -> SourceType {
         read_type(
             self.sa,
             &self.symtable,
@@ -2535,7 +2535,7 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn read_path(&mut self, path: &ast::Path) -> Result<Sym, ()> {
+    fn read_path(&mut self, path: &ast::PathData) -> Result<Sym, ()> {
         let names = &path.names;
         let mut sym = self.symtable.get(names[0].name);
 

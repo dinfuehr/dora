@@ -323,8 +323,10 @@ pub struct StructField {
     pub visibility: Visibility,
 }
 
+pub type Type = Arc<TypeData>;
+
 #[derive(Clone, Debug)]
-pub enum Type {
+pub enum TypeData {
     This(TypeSelfType),
     Basic(TypeBasicType),
     Tuple(TypeTupleType),
@@ -342,7 +344,7 @@ pub struct TypeTupleType {
     pub id: NodeId,
     pub span: Span,
 
-    pub subtypes: Vec<Box<Type>>,
+    pub subtypes: Vec<Type>,
 }
 
 #[derive(Clone, Debug)]
@@ -350,8 +352,8 @@ pub struct TypeLambdaType {
     pub id: NodeId,
     pub span: Span,
 
-    pub params: Vec<Box<Type>>,
-    pub ret: Box<Type>,
+    pub params: Vec<Type>,
+    pub ret: Type,
 }
 
 #[derive(Clone, Debug)]
@@ -360,7 +362,7 @@ pub struct TypeBasicType {
     pub span: Span,
 
     pub path: Path,
-    pub params: Vec<Box<Type>>,
+    pub params: Vec<Type>,
 }
 
 impl TypeBasicType {
@@ -371,13 +373,13 @@ impl TypeBasicType {
     }
 }
 
-impl Type {
-    pub fn create_self(id: NodeId, span: Span) -> Type {
-        Type::This(TypeSelfType { id, span })
+impl TypeData {
+    pub fn create_self(id: NodeId, span: Span) -> TypeData {
+        TypeData::This(TypeSelfType { id, span })
     }
 
-    pub fn create_basic(id: NodeId, span: Span, path: Path, params: Vec<Box<Type>>) -> Type {
-        Type::Basic(TypeBasicType {
+    pub fn create_basic(id: NodeId, span: Span, path: Path, params: Vec<Type>) -> TypeData {
+        TypeData::Basic(TypeBasicType {
             id,
             span,
             path,
@@ -385,8 +387,8 @@ impl Type {
         })
     }
 
-    pub fn create_fct(id: NodeId, span: Span, params: Vec<Box<Type>>, ret: Box<Type>) -> Type {
-        Type::Lambda(TypeLambdaType {
+    pub fn create_fct(id: NodeId, span: Span, params: Vec<Type>, ret: Type) -> TypeData {
+        TypeData::Lambda(TypeLambdaType {
             id,
             span,
             params,
@@ -394,27 +396,27 @@ impl Type {
         })
     }
 
-    pub fn create_tuple(id: NodeId, span: Span, subtypes: Vec<Box<Type>>) -> Type {
-        Type::Tuple(TypeTupleType { id, span, subtypes })
+    pub fn create_tuple(id: NodeId, span: Span, subtypes: Vec<Type>) -> TypeData {
+        TypeData::Tuple(TypeTupleType { id, span, subtypes })
     }
 
     pub fn to_basic(&self) -> Option<&TypeBasicType> {
         match *self {
-            Type::Basic(ref val) => Some(val),
+            TypeData::Basic(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn to_tuple(&self) -> Option<&TypeTupleType> {
         match *self {
-            Type::Tuple(ref val) => Some(val),
+            TypeData::Tuple(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn to_fct(&self) -> Option<&TypeLambdaType> {
         match *self {
-            Type::Lambda(ref val) => Some(val),
+            TypeData::Lambda(ref val) => Some(val),
             _ => None,
         }
     }
@@ -422,7 +424,7 @@ impl Type {
     #[cfg(test)]
     pub fn is_unit(&self) -> bool {
         match self {
-            &Type::Tuple(ref val) if val.subtypes.len() == 0 => true,
+            &TypeData::Tuple(ref val) if val.subtypes.len() == 0 => true,
             _ => false,
         }
     }
@@ -430,17 +432,17 @@ impl Type {
     #[cfg(test)]
     pub fn to_string(&self, interner: &Interner) -> String {
         match *self {
-            Type::This(_) => "Self".into(),
-            Type::Basic(ref val) => format!("{}", *interner.str(val.name())),
+            TypeData::This(_) => "Self".into(),
+            TypeData::Basic(ref val) => format!("{}", *interner.str(val.name())),
 
-            Type::Tuple(ref val) => {
+            TypeData::Tuple(ref val) => {
                 let types: Vec<String> =
                     val.subtypes.iter().map(|t| t.to_string(interner)).collect();
 
                 format!("({})", types.join(", "))
             }
 
-            Type::Lambda(ref val) => {
+            TypeData::Lambda(ref val) => {
                 let types: Vec<String> = val.params.iter().map(|t| t.to_string(interner)).collect();
                 let ret = val.ret.to_string(interner);
 
@@ -451,19 +453,19 @@ impl Type {
 
     pub fn span(&self) -> Span {
         match *self {
-            Type::This(ref val) => val.span,
-            Type::Basic(ref val) => val.span,
-            Type::Tuple(ref val) => val.span,
-            Type::Lambda(ref val) => val.span,
+            TypeData::This(ref val) => val.span,
+            TypeData::Basic(ref val) => val.span,
+            TypeData::Tuple(ref val) => val.span,
+            TypeData::Lambda(ref val) => val.span,
         }
     }
 
     pub fn id(&self) -> NodeId {
         match *self {
-            Type::This(ref val) => val.id,
-            Type::Basic(ref val) => val.id,
-            Type::Tuple(ref val) => val.id,
-            Type::Lambda(ref val) => val.id,
+            TypeData::This(ref val) => val.id,
+            TypeData::Basic(ref val) => val.id,
+            TypeData::Tuple(ref val) => val.id,
+            TypeData::Lambda(ref val) => val.id,
         }
     }
 }
@@ -627,7 +629,7 @@ impl AnnotationUsages {
 pub struct AnnotationUsage {
     pub name: Name,
     pub span: Span,
-    pub type_args: Vec<Type>,
+    pub type_args: Vec<TypeData>,
     pub term_args: Vec<Box<Expr>>,
 }
 
@@ -1175,7 +1177,7 @@ impl Expr {
         })
     }
 
-    pub fn create_conv(id: NodeId, span: Span, object: Box<Expr>, data_type: Box<Type>) -> Expr {
+    pub fn create_conv(id: NodeId, span: Span, object: Box<Expr>, data_type: Type) -> Expr {
         Expr::Conv(ExprConvType {
             id,
             span,
@@ -1673,7 +1675,7 @@ pub struct ExprConvType {
     pub span: Span,
 
     pub object: Box<Expr>,
-    pub data_type: Box<Type>,
+    pub data_type: Type,
 }
 
 #[derive(Clone, Debug)]
@@ -1851,8 +1853,10 @@ pub struct MatchPatternParam {
     pub mutable: bool,
 }
 
+pub type Path = Arc<PathData>;
+
 #[derive(Clone, Debug)]
-pub struct Path {
+pub struct PathData {
     pub id: NodeId,
     pub span: Span,
     pub names: Vec<Ident>,

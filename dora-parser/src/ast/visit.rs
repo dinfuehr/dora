@@ -73,7 +73,7 @@ pub trait Visitor: Sized {
         walk_param(self, p);
     }
 
-    fn visit_type(&mut self, t: &Type) {
+    fn visit_type(&mut self, t: &TypeData) {
         walk_type(self, t);
     }
 
@@ -202,17 +202,17 @@ pub fn walk_param<V: Visitor>(v: &mut V, p: &Param) {
     v.visit_type(&p.data_type);
 }
 
-pub fn walk_type<V: Visitor>(v: &mut V, t: &Type) {
+pub fn walk_type<V: Visitor>(v: &mut V, t: &TypeData) {
     match *t {
-        Type::This(_) => {}
-        Type::Basic(_) => {}
-        Type::Tuple(ref tuple) => {
+        TypeData::This(_) => {}
+        TypeData::Basic(_) => {}
+        TypeData::Tuple(ref tuple) => {
             for ty in &tuple.subtypes {
                 v.visit_type(ty);
             }
         }
 
-        Type::Lambda(ref fct) => {
+        TypeData::Lambda(ref fct) => {
             for ty in &fct.params {
                 v.visit_type(ty);
             }
