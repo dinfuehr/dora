@@ -199,7 +199,7 @@ pub fn always_returns(s: &ast::Stmt) -> bool {
     returnck::returns_value(s).is_ok()
 }
 
-pub fn expr_always_returns(e: &ast::Expr) -> bool {
+pub fn expr_always_returns(e: &ast::ExprData) -> bool {
     returnck::expr_returns_value(e).is_ok()
 }
 

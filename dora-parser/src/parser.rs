@@ -20,13 +20,13 @@ pub struct Parser<'a> {
     errors: Rc<RefCell<Vec<ParseErrorWithLocation>>>,
 }
 
-type ExprResult = Result<Box<Expr>, ()>;
+type ExprResult = Result<Expr, ()>;
 type StmtResult = Result<Box<Stmt>, ()>;
 type StmtOrExprResult = Result<StmtOrExpr, ()>;
 
 enum StmtOrExpr {
     Stmt(Box<Stmt>),
-    Expr(Box<Expr>),
+    Expr(Expr),
 }
 
 impl<'a> Parser<'a> {
@@ -927,19 +927,14 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_function_block(&mut self) -> Result<Option<Box<ExprBlockType>>, ()> {
+    fn parse_function_block(&mut self) -> Result<Option<Expr>, ()> {
         if self.token.is(TokenKind::Semicolon) {
             self.advance_token();
 
             Ok(None)
         } else {
             let block = self.parse_block()?;
-
-            if let Expr::Block(block_type) = *block {
-                Ok(Some(Box::new(block_type)))
-            } else {
-                unreachable!()
-            }
+            Ok(Some(block))
         }
     }
 
@@ -1132,7 +1127,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_var_assignment(&mut self) -> Result<Option<Box<Expr>>, ()> {
+    fn parse_var_assignment(&mut self) -> Result<Option<Expr>, ()> {
         if self.token.is(TokenKind::Eq) {
             self.expect_token(TokenKind::Eq);
             let expr = self.parse_expression()?;
@@ -1183,7 +1178,7 @@ impl<'a> Parser<'a> {
         self.expect_token(TokenKind::RBrace);
         let span = self.span_from(start);
 
-        Ok(Box::new(Expr::create_block(
+        Ok(Arc::new(ExprData::create_block(
             self.generate_id(),
             span,
             stmts,
@@ -1244,7 +1239,7 @@ impl<'a> Parser<'a> {
 
         let span = self.span_from(start);
 
-        Ok(Box::new(Expr::create_if(
+        Ok(Arc::new(ExprData::create_if(
             self.generate_id(),
             span,
             cond,
@@ -1285,7 +1280,7 @@ impl<'a> Parser<'a> {
         self.expect_token(TokenKind::RBrace);
         let span = self.span_from(start);
 
-        Ok(Box::new(Expr::create_match(
+        Ok(Arc::new(ExprData::create_match(
             self.generate_id(),
             span,
             expr,
@@ -1501,9 +1496,9 @@ impl<'a> Parser<'a> {
                 TokenKind::As => {
                     let right = self.parse_type()?;
                     let span = self.span_from(start);
-                    let expr = Expr::create_conv(self.generate_id(), span, left, right);
+                    let expr = ExprData::create_conv(self.generate_id(), span, left, right);
 
-                    Box::new(expr)
+                    Arc::new(expr)
                 }
 
                 _ => {
@@ -1528,7 +1523,7 @@ impl<'a> Parser<'a> {
 
                 let expr = self.parse_primary()?;
                 let span = self.span_from(start);
-                Ok(Box::new(Expr::create_un(
+                Ok(Arc::new(ExprData::create_un(
                     self.generate_id(),
                     span,
                     op,
@@ -1551,7 +1546,7 @@ impl<'a> Parser<'a> {
                     let rhs = self.parse_factor()?;
                     let span = self.span_from(start);
 
-                    Box::new(Expr::create_dot(
+                    Arc::new(ExprData::create_dot(
                         self.generate_id(),
                         span,
                         op_span,
@@ -1567,7 +1562,7 @@ impl<'a> Parser<'a> {
                     })?;
                     let span = self.span_from(start);
 
-                    Box::new(Expr::create_call(self.generate_id(), span, left, args))
+                    Arc::new(ExprData::create_call(self.generate_id(), span, left, args))
                 }
 
                 TokenKind::LBracket => {
@@ -1576,7 +1571,7 @@ impl<'a> Parser<'a> {
                         self.parse_list(TokenKind::Comma, TokenKind::RBracket, |p| p.parse_type())?;
                     let span = self.span_from(start);
 
-                    Box::new(Expr::create_type_param(
+                    Arc::new(ExprData::create_type_param(
                         self.generate_id(),
                         span,
                         op_span,
@@ -1590,7 +1585,7 @@ impl<'a> Parser<'a> {
                     let rhs = self.parse_factor()?;
                     let span = self.span_from(start);
 
-                    Box::new(Expr::create_path(
+                    Arc::new(ExprData::create_path(
                         self.generate_id(),
                         span,
                         op_span,
@@ -1606,13 +1601,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn create_binary(
-        &mut self,
-        tok: Token,
-        start: u32,
-        left: Box<Expr>,
-        right: Box<Expr>,
-    ) -> Box<Expr> {
+    fn create_binary(&mut self, tok: Token, start: u32, left: Expr, right: Expr) -> Expr {
         let op = match tok.kind {
             TokenKind::Eq => BinOp::Assign,
             TokenKind::OrOr => BinOp::Or,
@@ -1641,7 +1630,13 @@ impl<'a> Parser<'a> {
 
         let span = self.span_from(start);
 
-        Box::new(Expr::create_bin(self.generate_id(), span, op, left, right))
+        Arc::new(ExprData::create_bin(
+            self.generate_id(),
+            span,
+            op,
+            left,
+            right,
+        ))
     }
 
     fn parse_factor(&mut self) -> ExprResult {
@@ -1668,7 +1663,7 @@ impl<'a> Parser<'a> {
     fn parse_identifier(&mut self) -> ExprResult {
         let ident = self.expect_identifier().expect("identifier expected");
 
-        Ok(Box::new(Expr::create_ident(
+        Ok(Arc::new(ExprData::create_ident(
             self.generate_id(),
             ident.span,
             ident.name,
@@ -1682,7 +1677,7 @@ impl<'a> Parser<'a> {
         if self.token.is(TokenKind::RParen) {
             self.advance_token();
             let span = self.span_from(start);
-            return Ok(Box::new(Expr::create_tuple(
+            return Ok(Arc::new(ExprData::create_tuple(
                 self.generate_id(),
                 span,
                 Vec::new(),
@@ -1714,7 +1709,7 @@ impl<'a> Parser<'a> {
                 }
             }
 
-            Ok(Box::new(Expr::create_tuple(
+            Ok(Arc::new(ExprData::create_tuple(
                 self.generate_id(),
                 span,
                 values,
@@ -1723,7 +1718,11 @@ impl<'a> Parser<'a> {
             self.expect_token(TokenKind::RParen);
             let span = self.span_from(start);
 
-            Ok(Box::new(Expr::create_paren(self.generate_id(), span, expr)))
+            Ok(Arc::new(ExprData::create_paren(
+                self.generate_id(),
+                span,
+                expr,
+            )))
         }
     }
 
@@ -1732,7 +1731,7 @@ impl<'a> Parser<'a> {
         let tok = self.advance_token();
 
         if let TokenKind::LitChar(val) = tok.kind {
-            Ok(Box::new(Expr::create_lit_char(
+            Ok(Arc::new(ExprData::create_lit_char(
                 self.generate_id(),
                 span,
                 val,
@@ -1756,8 +1755,8 @@ impl<'a> Parser<'a> {
 
         match parsed {
             Ok(value) => {
-                let expr = Expr::create_lit_int(self.generate_id(), span, value, base, suffix);
-                Ok(Box::new(expr))
+                let expr = ExprData::create_lit_int(self.generate_id(), span, value, base, suffix);
+                Ok(Arc::new(expr))
             }
             _ => {
                 self.report_error_at(ParseError::NumberOverflow, span);
@@ -1780,8 +1779,8 @@ impl<'a> Parser<'a> {
 
         let num = parsed.expect("unparsable float");
 
-        let expr = Expr::create_lit_float(self.generate_id(), span, num, suffix);
-        Ok(Box::new(expr))
+        let expr = ExprData::create_lit_float(self.generate_id(), span, num, suffix);
+        Ok(Arc::new(expr))
     }
 
     fn parse_string(&mut self) -> ExprResult {
@@ -1789,7 +1788,7 @@ impl<'a> Parser<'a> {
         let string = self.advance_token();
 
         match string.kind {
-            TokenKind::StringTail(value) => Ok(Box::new(Expr::create_lit_str(
+            TokenKind::StringTail(value) => Ok(Arc::new(ExprData::create_lit_str(
                 self.generate_id(),
                 span,
                 value,
@@ -1797,8 +1796,8 @@ impl<'a> Parser<'a> {
 
             TokenKind::StringExpr(value) => {
                 let start = self.token.span.start();
-                let mut parts: Vec<Box<Expr>> = Vec::new();
-                parts.push(Box::new(Expr::create_lit_str(
+                let mut parts: Vec<Expr> = Vec::new();
+                parts.push(Arc::new(ExprData::create_lit_str(
                     self.generate_id(),
                     span,
                     value,
@@ -1824,7 +1823,7 @@ impl<'a> Parser<'a> {
                         _ => unreachable!(),
                     };
 
-                    parts.push(Box::new(Expr::create_lit_str(
+                    parts.push(Arc::new(ExprData::create_lit_str(
                         self.generate_id(),
                         span,
                         value,
@@ -1839,7 +1838,7 @@ impl<'a> Parser<'a> {
 
                 let span = self.span_from(start);
 
-                Ok(Box::new(Expr::create_template(
+                Ok(Arc::new(ExprData::create_template(
                     self.generate_id(),
                     span,
                     parts,
@@ -1855,7 +1854,7 @@ impl<'a> Parser<'a> {
         let tok = self.advance_token();
         let value = tok.is(TokenKind::True);
 
-        Ok(Box::new(Expr::create_lit_bool(
+        Ok(Arc::new(ExprData::create_lit_bool(
             self.generate_id(),
             span,
             value,
@@ -1866,7 +1865,7 @@ impl<'a> Parser<'a> {
         let span = self.token.span;
         self.advance_token();
 
-        Ok(Box::new(Expr::create_this(self.generate_id(), span)))
+        Ok(Arc::new(ExprData::create_this(self.generate_id(), span)))
     }
 
     fn parse_lambda(&mut self) -> ExprResult {
@@ -1891,11 +1890,6 @@ impl<'a> Parser<'a> {
 
         let block = self.parse_block()?;
 
-        let block = match *block {
-            Expr::Block(block_type) => Some(Box::new(block_type)),
-            _ => unreachable!(),
-        };
-
         let span = self.span_from(start);
 
         let name = self.interner.intern("closure");
@@ -1913,11 +1907,11 @@ impl<'a> Parser<'a> {
             is_test: false,
             params,
             return_type,
-            block,
+            block: Some(block),
             type_params: None,
         });
 
-        Ok(Box::new(Expr::create_lambda(function)))
+        Ok(Arc::new(ExprData::create_lambda(function)))
     }
 
     fn expect_identifier(&mut self) -> Option<Ident> {
@@ -2025,7 +2019,7 @@ mod tests {
     use crate::parser::Parser;
     use crate::{compute_line_column, compute_line_starts};
 
-    fn parse_expr(code: &'static str) -> (Box<Expr>, Interner) {
+    fn parse_expr(code: &'static str) -> (Expr, Interner) {
         let mut interner = Interner::new();
 
         let expr = {

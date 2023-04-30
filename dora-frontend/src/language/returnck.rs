@@ -13,10 +13,10 @@ pub fn returns_value(s: &Stmt) -> Result<(), Span> {
     }
 }
 
-pub fn expr_returns_value(e: &Expr) -> Result<(), Span> {
+pub fn expr_returns_value(e: &ExprData) -> Result<(), Span> {
     match *e {
-        Expr::Block(ref block) => expr_block_returns_value(block),
-        Expr::If(ref expr) => expr_if_returns_value(expr),
+        ExprData::Block(ref block) => expr_block_returns_value(block),
+        ExprData::If(ref expr) => expr_if_returns_value(expr),
         _ => Err(e.span()),
     }
 }

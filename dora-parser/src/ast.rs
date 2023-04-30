@@ -212,7 +212,7 @@ pub struct Global {
     pub name: Option<Ident>,
     pub mutable: bool,
     pub data_type: Type,
-    pub initial_value: Option<Box<Expr>>,
+    pub initial_value: Option<Expr>,
     pub visibility: Visibility,
 }
 
@@ -272,7 +272,7 @@ pub struct Const {
     pub span: Span,
     pub name: Option<Ident>,
     pub data_type: Type,
-    pub expr: Box<Expr>,
+    pub expr: Expr,
     pub visibility: Visibility,
 }
 
@@ -525,7 +525,7 @@ pub struct Field {
     pub name: Option<Ident>,
     pub data_type: Type,
     pub primary_ctor: bool,
-    pub expr: Option<Box<Expr>>,
+    pub expr: Option<Expr>,
     pub mutable: bool,
     pub visibility: Visibility,
 }
@@ -561,12 +561,12 @@ pub struct Function {
     pub params: Vec<Param>,
 
     pub return_type: Option<Type>,
-    pub block: Option<Box<ExprBlockType>>,
+    pub block: Option<Expr>,
     pub type_params: Option<Vec<TypeParam>>,
 }
 
 impl Function {
-    pub fn block(&self) -> &ExprBlockType {
+    pub fn block(&self) -> &Expr {
         self.block.as_ref().unwrap()
     }
 }
@@ -630,7 +630,7 @@ pub struct AnnotationUsage {
     pub name: Name,
     pub span: Span,
     pub type_args: Vec<TypeData>,
-    pub term_args: Vec<Box<Expr>>,
+    pub term_args: Vec<Expr>,
 }
 
 // rename to InternalAnnotation in next step
@@ -682,7 +682,7 @@ impl Stmt {
         span: Span,
         pattern: Box<LetPattern>,
         data_type: Option<Type>,
-        expr: Option<Box<Expr>>,
+        expr: Option<Expr>,
     ) -> Stmt {
         Stmt::Let(StmtLetType {
             id,
@@ -698,7 +698,7 @@ impl Stmt {
         id: NodeId,
         span: Span,
         pattern: Box<LetPattern>,
-        expr: Box<Expr>,
+        expr: Expr,
         block: Box<Stmt>,
     ) -> Stmt {
         Stmt::For(StmtForType {
@@ -711,7 +711,7 @@ impl Stmt {
         })
     }
 
-    pub fn create_while(id: NodeId, span: Span, cond: Box<Expr>, block: Box<Stmt>) -> Stmt {
+    pub fn create_while(id: NodeId, span: Span, cond: Expr, block: Box<Stmt>) -> Stmt {
         Stmt::While(StmtWhileType {
             id,
             span,
@@ -721,7 +721,7 @@ impl Stmt {
         })
     }
 
-    pub fn create_expr(id: NodeId, span: Span, expr: Box<Expr>) -> Stmt {
+    pub fn create_expr(id: NodeId, span: Span, expr: Expr) -> Stmt {
         Stmt::Expr(StmtExprType { id, span, expr })
     }
 
@@ -733,7 +733,7 @@ impl Stmt {
         Stmt::Continue(StmtContinueType { id, span })
     }
 
-    pub fn create_return(id: NodeId, span: Span, expr: Option<Box<Expr>>) -> Stmt {
+    pub fn create_return(id: NodeId, span: Span, expr: Option<Expr>) -> Stmt {
         Stmt::Return(StmtReturnType { id, span, expr })
     }
 
@@ -868,7 +868,7 @@ pub struct StmtLetType {
     pub pattern: Box<LetPattern>,
 
     pub data_type: Option<Type>,
-    pub expr: Option<Box<Expr>>,
+    pub expr: Option<Expr>,
 }
 
 #[derive(Clone, Debug)]
@@ -949,7 +949,7 @@ pub struct StmtForType {
     pub span: Span,
 
     pub pattern: Box<LetPattern>,
-    pub expr: Box<Expr>,
+    pub expr: Expr,
     pub block: Box<Stmt>,
 }
 
@@ -958,7 +958,7 @@ pub struct StmtWhileType {
     pub id: NodeId,
     pub span: Span,
 
-    pub cond: Box<Expr>,
+    pub cond: Expr,
     pub block: Box<Stmt>,
 }
 
@@ -967,7 +967,7 @@ pub struct StmtExprType {
     pub id: NodeId,
     pub span: Span,
 
-    pub expr: Box<Expr>,
+    pub expr: Expr,
 }
 
 #[derive(Clone, Debug)]
@@ -975,7 +975,7 @@ pub struct StmtReturnType {
     pub id: NodeId,
     pub span: Span,
 
-    pub expr: Option<Box<Expr>>,
+    pub expr: Option<Expr>,
 }
 
 #[derive(Clone, Debug)]
@@ -1089,8 +1089,10 @@ impl BinOp {
     }
 }
 
+pub type Expr = Arc<ExprData>;
+
 #[derive(Clone, Debug)]
-pub enum Expr {
+pub enum ExprData {
     Un(ExprUnType),
     Bin(ExprBinType),
     LitChar(ExprLitCharType),
@@ -1114,14 +1116,14 @@ pub enum Expr {
     Match(ExprMatchType),
 }
 
-impl Expr {
+impl ExprData {
     pub fn create_block(
         id: NodeId,
         span: Span,
         stmts: Vec<Box<Stmt>>,
-        expr: Option<Box<Expr>>,
-    ) -> Expr {
-        Expr::Block(ExprBlockType {
+        expr: Option<Expr>,
+    ) -> ExprData {
+        ExprData::Block(ExprBlockType {
             id,
             span,
 
@@ -1133,11 +1135,11 @@ impl Expr {
     pub fn create_if(
         id: NodeId,
         span: Span,
-        cond: Box<Expr>,
-        then_block: Box<Expr>,
-        else_block: Option<Box<Expr>>,
-    ) -> Expr {
-        Expr::If(ExprIfType {
+        cond: Expr,
+        then_block: Expr,
+        else_block: Option<Expr>,
+    ) -> ExprData {
+        ExprData::If(ExprIfType {
             id,
             span,
 
@@ -1147,13 +1149,8 @@ impl Expr {
         })
     }
 
-    pub fn create_match(
-        id: NodeId,
-        span: Span,
-        expr: Box<Expr>,
-        cases: Vec<MatchCaseType>,
-    ) -> Expr {
-        Expr::Match(ExprMatchType {
+    pub fn create_match(id: NodeId, span: Span, expr: Expr, cases: Vec<MatchCaseType>) -> ExprData {
+        ExprData::Match(ExprMatchType {
             id,
             span,
             expr,
@@ -1161,12 +1158,12 @@ impl Expr {
         })
     }
 
-    pub fn create_un(id: NodeId, span: Span, op: UnOp, opnd: Box<Expr>) -> Expr {
-        Expr::Un(ExprUnType { id, span, op, opnd })
+    pub fn create_un(id: NodeId, span: Span, op: UnOp, opnd: Expr) -> ExprData {
+        ExprData::Un(ExprUnType { id, span, op, opnd })
     }
 
-    pub fn create_bin(id: NodeId, span: Span, op: BinOp, lhs: Box<Expr>, rhs: Box<Expr>) -> Expr {
-        Expr::Bin(ExprBinType {
+    pub fn create_bin(id: NodeId, span: Span, op: BinOp, lhs: Expr, rhs: Expr) -> ExprData {
+        ExprData::Bin(ExprBinType {
             id,
             span,
 
@@ -1177,8 +1174,8 @@ impl Expr {
         })
     }
 
-    pub fn create_conv(id: NodeId, span: Span, object: Box<Expr>, data_type: Type) -> Expr {
-        Expr::Conv(ExprConvType {
+    pub fn create_conv(id: NodeId, span: Span, object: Expr, data_type: Type) -> ExprData {
+        ExprData::Conv(ExprConvType {
             id,
             span,
 
@@ -1187,8 +1184,8 @@ impl Expr {
         })
     }
 
-    pub fn create_lit_char(id: NodeId, span: Span, value: char) -> Expr {
-        Expr::LitChar(ExprLitCharType { id, span, value })
+    pub fn create_lit_char(id: NodeId, span: Span, value: char) -> ExprData {
+        ExprData::LitChar(ExprLitCharType { id, span, value })
     }
 
     pub fn create_lit_int(
@@ -1197,8 +1194,8 @@ impl Expr {
         value: u64,
         base: IntBase,
         suffix: IntSuffix,
-    ) -> Expr {
-        Expr::LitInt(ExprLitIntType {
+    ) -> ExprData {
+        ExprData::LitInt(ExprLitIntType {
             id,
             span,
 
@@ -1208,8 +1205,8 @@ impl Expr {
         })
     }
 
-    pub fn create_lit_float(id: NodeId, span: Span, value: f64, suffix: FloatSuffix) -> Expr {
-        Expr::LitFloat(ExprLitFloatType {
+    pub fn create_lit_float(id: NodeId, span: Span, value: f64, suffix: FloatSuffix) -> ExprData {
+        ExprData::LitFloat(ExprLitFloatType {
             id,
             span,
             value,
@@ -1217,32 +1214,32 @@ impl Expr {
         })
     }
 
-    pub fn create_lit_str(id: NodeId, span: Span, value: String) -> Expr {
-        Expr::LitStr(ExprLitStrType { id, span, value })
+    pub fn create_lit_str(id: NodeId, span: Span, value: String) -> ExprData {
+        ExprData::LitStr(ExprLitStrType { id, span, value })
     }
 
-    pub fn create_template(id: NodeId, span: Span, parts: Vec<Box<Expr>>) -> Expr {
-        Expr::Template(ExprTemplateType { id, span, parts })
+    pub fn create_template(id: NodeId, span: Span, parts: Vec<Expr>) -> ExprData {
+        ExprData::Template(ExprTemplateType { id, span, parts })
     }
 
-    pub fn create_lit_bool(id: NodeId, span: Span, value: bool) -> Expr {
-        Expr::LitBool(ExprLitBoolType { id, span, value })
+    pub fn create_lit_bool(id: NodeId, span: Span, value: bool) -> ExprData {
+        ExprData::LitBool(ExprLitBoolType { id, span, value })
     }
 
-    pub fn create_this(id: NodeId, span: Span) -> Expr {
-        Expr::This(ExprSelfType { id, span })
+    pub fn create_this(id: NodeId, span: Span) -> ExprData {
+        ExprData::This(ExprSelfType { id, span })
     }
 
-    pub fn create_ident(id: NodeId, span: Span, name: Name) -> Expr {
-        Expr::Ident(ExprIdentType { id, span, name })
+    pub fn create_ident(id: NodeId, span: Span, name: Name) -> ExprData {
+        ExprData::Ident(ExprIdentType { id, span, name })
     }
 
-    pub fn create_paren(id: NodeId, span: Span, expr: Box<Expr>) -> Expr {
-        Expr::Paren(ExprParenType { id, span, expr })
+    pub fn create_paren(id: NodeId, span: Span, expr: Expr) -> ExprData {
+        ExprData::Paren(ExprParenType { id, span, expr })
     }
 
-    pub fn create_call(id: NodeId, span: Span, callee: Box<Expr>, args: Vec<Box<Expr>>) -> Expr {
-        Expr::Call(ExprCallType {
+    pub fn create_call(id: NodeId, span: Span, callee: Expr, args: Vec<Expr>) -> ExprData {
+        ExprData::Call(ExprCallType {
             id,
             span,
 
@@ -1255,10 +1252,10 @@ impl Expr {
         id: NodeId,
         span: Span,
         op_span: Span,
-        callee: Box<Expr>,
+        callee: Expr,
         args: Vec<Type>,
-    ) -> Expr {
-        Expr::TypeParam(ExprTypeParamType {
+    ) -> ExprData {
+        ExprData::TypeParam(ExprTypeParamType {
             id,
             span,
             op_span,
@@ -1268,14 +1265,8 @@ impl Expr {
         })
     }
 
-    pub fn create_path(
-        id: NodeId,
-        span: Span,
-        op_span: Span,
-        lhs: Box<Expr>,
-        rhs: Box<Expr>,
-    ) -> Expr {
-        Expr::Path(ExprPathType {
+    pub fn create_path(id: NodeId, span: Span, op_span: Span, lhs: Expr, rhs: Expr) -> ExprData {
+        ExprData::Path(ExprPathType {
             id,
             span,
             op_span,
@@ -1284,14 +1275,8 @@ impl Expr {
         })
     }
 
-    pub fn create_dot(
-        id: NodeId,
-        span: Span,
-        op_span: Span,
-        lhs: Box<Expr>,
-        rhs: Box<Expr>,
-    ) -> Expr {
-        Expr::Dot(ExprDotType {
+    pub fn create_dot(id: NodeId, span: Span, op_span: Span, lhs: Expr, rhs: Expr) -> ExprData {
+        ExprData::Dot(ExprDotType {
             id,
             span,
             op_span,
@@ -1301,352 +1286,352 @@ impl Expr {
         })
     }
 
-    pub fn create_lambda(fct: Arc<Function>) -> Expr {
-        Expr::Lambda(fct)
+    pub fn create_lambda(fct: Arc<Function>) -> ExprData {
+        ExprData::Lambda(fct)
     }
 
-    pub fn create_tuple(id: NodeId, span: Span, values: Vec<Box<Expr>>) -> Expr {
-        Expr::Tuple(ExprTupleType { id, span, values })
+    pub fn create_tuple(id: NodeId, span: Span, values: Vec<Expr>) -> ExprData {
+        ExprData::Tuple(ExprTupleType { id, span, values })
     }
 
     pub fn to_un(&self) -> Option<&ExprUnType> {
         match *self {
-            Expr::Un(ref val) => Some(val),
+            ExprData::Un(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_un(&self) -> bool {
         match *self {
-            Expr::Un(_) => true,
+            ExprData::Un(_) => true,
             _ => false,
         }
     }
 
     pub fn to_bin(&self) -> Option<&ExprBinType> {
         match *self {
-            Expr::Bin(ref val) => Some(val),
+            ExprData::Bin(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_bin(&self) -> bool {
         match *self {
-            Expr::Bin(_) => true,
+            ExprData::Bin(_) => true,
             _ => false,
         }
     }
 
     pub fn to_paren(&self) -> Option<&ExprParenType> {
         match *self {
-            Expr::Paren(ref val) => Some(val),
+            ExprData::Paren(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_paren(&self) -> bool {
         match *self {
-            Expr::Paren(_) => true,
+            ExprData::Paren(_) => true,
             _ => false,
         }
     }
 
     pub fn to_ident(&self) -> Option<&ExprIdentType> {
         match *self {
-            Expr::Ident(ref val) => Some(val),
+            ExprData::Ident(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_ident(&self) -> bool {
         match *self {
-            Expr::Ident(_) => true,
+            ExprData::Ident(_) => true,
             _ => false,
         }
     }
 
     pub fn to_call(&self) -> Option<&ExprCallType> {
         match *self {
-            Expr::Call(ref val) => Some(val),
+            ExprData::Call(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_call(&self) -> bool {
         match *self {
-            Expr::Call(_) => true,
+            ExprData::Call(_) => true,
             _ => false,
         }
     }
 
     pub fn to_path(&self) -> Option<&ExprPathType> {
         match *self {
-            Expr::Path(ref val) => Some(val),
+            ExprData::Path(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_path(&self) -> bool {
         match *self {
-            Expr::Path(_) => true,
+            ExprData::Path(_) => true,
             _ => false,
         }
     }
 
     pub fn to_type_param(&self) -> Option<&ExprTypeParamType> {
         match *self {
-            Expr::TypeParam(ref val) => Some(val),
+            ExprData::TypeParam(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_type_param(&self) -> bool {
         match *self {
-            Expr::TypeParam(_) => true,
+            ExprData::TypeParam(_) => true,
             _ => false,
         }
     }
 
     pub fn to_lit_char(&self) -> Option<&ExprLitCharType> {
         match *self {
-            Expr::LitChar(ref val) => Some(val),
+            ExprData::LitChar(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_lit_char(&self) -> bool {
         match *self {
-            Expr::LitChar(_) => true,
+            ExprData::LitChar(_) => true,
             _ => false,
         }
     }
 
     pub fn to_lit_int(&self) -> Option<&ExprLitIntType> {
         match *self {
-            Expr::LitInt(ref val) => Some(val),
+            ExprData::LitInt(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_lit_int(&self) -> bool {
         match *self {
-            Expr::LitInt(_) => true,
+            ExprData::LitInt(_) => true,
             _ => false,
         }
     }
 
     pub fn to_template(&self) -> Option<&ExprTemplateType> {
         match *self {
-            Expr::Template(ref val) => Some(val),
+            ExprData::Template(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_template(&self) -> bool {
         match *self {
-            Expr::Template(_) => true,
+            ExprData::Template(_) => true,
             _ => false,
         }
     }
 
     pub fn to_lit_float(&self) -> Option<&ExprLitFloatType> {
         match *self {
-            Expr::LitFloat(ref val) => Some(val),
+            ExprData::LitFloat(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_lit_float(&self) -> bool {
         match *self {
-            Expr::LitFloat(_) => true,
+            ExprData::LitFloat(_) => true,
             _ => false,
         }
     }
 
     pub fn to_lit_str(&self) -> Option<&ExprLitStrType> {
         match *self {
-            Expr::LitStr(ref val) => Some(val),
+            ExprData::LitStr(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_lit_str(&self) -> bool {
         match *self {
-            Expr::LitStr(_) => true,
+            ExprData::LitStr(_) => true,
             _ => false,
         }
     }
 
     pub fn to_lit_bool(&self) -> Option<&ExprLitBoolType> {
         match *self {
-            Expr::LitBool(ref val) => Some(val),
+            ExprData::LitBool(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_lit_bool(&self) -> bool {
         match *self {
-            Expr::LitBool(_) => true,
+            ExprData::LitBool(_) => true,
             _ => false,
         }
     }
 
     pub fn is_lit_true(&self) -> bool {
         match *self {
-            Expr::LitBool(ref lit) if lit.value => true,
+            ExprData::LitBool(ref lit) if lit.value => true,
             _ => false,
         }
     }
 
     pub fn to_dot(&self) -> Option<&ExprDotType> {
         match *self {
-            Expr::Dot(ref val) => Some(val),
+            ExprData::Dot(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_dot(&self) -> bool {
         match *self {
-            Expr::Dot(_) => true,
+            ExprData::Dot(_) => true,
             _ => false,
         }
     }
 
     pub fn is_this(&self) -> bool {
         match *self {
-            Expr::This(_) => true,
+            ExprData::This(_) => true,
             _ => false,
         }
     }
 
     pub fn to_conv(&self) -> Option<&ExprConvType> {
         match *self {
-            Expr::Conv(ref val) => Some(val),
+            ExprData::Conv(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_conv(&self) -> bool {
         match *self {
-            Expr::Conv(_) => true,
+            ExprData::Conv(_) => true,
             _ => false,
         }
     }
 
     pub fn to_lambda(&self) -> Option<Arc<Function>> {
         match *self {
-            Expr::Lambda(ref val) => Some(val.clone()),
+            ExprData::Lambda(ref val) => Some(val.clone()),
             _ => None,
         }
     }
 
     pub fn is_lambda(&self) -> bool {
         match self {
-            &Expr::Lambda(_) => true,
+            &ExprData::Lambda(_) => true,
             _ => false,
         }
     }
 
     pub fn to_tuple(&self) -> Option<&ExprTupleType> {
         match *self {
-            Expr::Tuple(ref val) => Some(val),
+            ExprData::Tuple(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_tuple(&self) -> bool {
         match *self {
-            Expr::Tuple(_) => true,
+            ExprData::Tuple(_) => true,
             _ => false,
         }
     }
 
     pub fn to_block(&self) -> Option<&ExprBlockType> {
         match *self {
-            Expr::Block(ref val) => Some(val),
+            ExprData::Block(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_block(&self) -> bool {
         match self {
-            &Expr::Block(_) => true,
+            &ExprData::Block(_) => true,
             _ => false,
         }
     }
 
     pub fn to_if(&self) -> Option<&ExprIfType> {
         match *self {
-            Expr::If(ref val) => Some(val),
+            ExprData::If(ref val) => Some(val),
             _ => None,
         }
     }
 
     pub fn is_if(&self) -> bool {
         match *self {
-            Expr::If(_) => true,
+            ExprData::If(_) => true,
             _ => false,
         }
     }
 
     pub fn needs_semicolon(&self) -> bool {
         match self {
-            &Expr::Block(_) => false,
-            &Expr::If(_) => false,
-            &Expr::Match(_) => false,
+            &ExprData::Block(_) => false,
+            &ExprData::If(_) => false,
+            &ExprData::Match(_) => false,
             _ => true,
         }
     }
 
     pub fn span(&self) -> Span {
         match *self {
-            Expr::Un(ref val) => val.span,
-            Expr::Bin(ref val) => val.span,
-            Expr::LitChar(ref val) => val.span,
-            Expr::LitInt(ref val) => val.span,
-            Expr::LitFloat(ref val) => val.span,
-            Expr::LitStr(ref val) => val.span,
-            Expr::Template(ref val) => val.span,
-            Expr::LitBool(ref val) => val.span,
-            Expr::Ident(ref val) => val.span,
-            Expr::Call(ref val) => val.span,
-            Expr::TypeParam(ref val) => val.span,
-            Expr::Path(ref val) => val.span,
-            Expr::Dot(ref val) => val.span,
-            Expr::This(ref val) => val.span,
-            Expr::Conv(ref val) => val.span,
-            Expr::Lambda(ref val) => val.span,
-            Expr::Block(ref val) => val.span,
-            Expr::If(ref val) => val.span,
-            Expr::Tuple(ref val) => val.span,
-            Expr::Paren(ref val) => val.span,
-            Expr::Match(ref val) => val.span,
+            ExprData::Un(ref val) => val.span,
+            ExprData::Bin(ref val) => val.span,
+            ExprData::LitChar(ref val) => val.span,
+            ExprData::LitInt(ref val) => val.span,
+            ExprData::LitFloat(ref val) => val.span,
+            ExprData::LitStr(ref val) => val.span,
+            ExprData::Template(ref val) => val.span,
+            ExprData::LitBool(ref val) => val.span,
+            ExprData::Ident(ref val) => val.span,
+            ExprData::Call(ref val) => val.span,
+            ExprData::TypeParam(ref val) => val.span,
+            ExprData::Path(ref val) => val.span,
+            ExprData::Dot(ref val) => val.span,
+            ExprData::This(ref val) => val.span,
+            ExprData::Conv(ref val) => val.span,
+            ExprData::Lambda(ref val) => val.span,
+            ExprData::Block(ref val) => val.span,
+            ExprData::If(ref val) => val.span,
+            ExprData::Tuple(ref val) => val.span,
+            ExprData::Paren(ref val) => val.span,
+            ExprData::Match(ref val) => val.span,
         }
     }
 
     pub fn id(&self) -> NodeId {
         match *self {
-            Expr::Un(ref val) => val.id,
-            Expr::Bin(ref val) => val.id,
-            Expr::LitChar(ref val) => val.id,
-            Expr::LitInt(ref val) => val.id,
-            Expr::LitFloat(ref val) => val.id,
-            Expr::LitStr(ref val) => val.id,
-            Expr::Template(ref val) => val.id,
-            Expr::LitBool(ref val) => val.id,
-            Expr::Ident(ref val) => val.id,
-            Expr::Call(ref val) => val.id,
-            Expr::TypeParam(ref val) => val.id,
-            Expr::Path(ref val) => val.id,
-            Expr::Dot(ref val) => val.id,
-            Expr::This(ref val) => val.id,
-            Expr::Conv(ref val) => val.id,
-            Expr::Lambda(ref val) => val.id,
-            Expr::Block(ref val) => val.id,
-            Expr::If(ref val) => val.id,
-            Expr::Tuple(ref val) => val.id,
-            Expr::Paren(ref val) => val.id,
-            Expr::Match(ref val) => val.id,
+            ExprData::Un(ref val) => val.id,
+            ExprData::Bin(ref val) => val.id,
+            ExprData::LitChar(ref val) => val.id,
+            ExprData::LitInt(ref val) => val.id,
+            ExprData::LitFloat(ref val) => val.id,
+            ExprData::LitStr(ref val) => val.id,
+            ExprData::Template(ref val) => val.id,
+            ExprData::LitBool(ref val) => val.id,
+            ExprData::Ident(ref val) => val.id,
+            ExprData::Call(ref val) => val.id,
+            ExprData::TypeParam(ref val) => val.id,
+            ExprData::Path(ref val) => val.id,
+            ExprData::Dot(ref val) => val.id,
+            ExprData::This(ref val) => val.id,
+            ExprData::Conv(ref val) => val.id,
+            ExprData::Lambda(ref val) => val.id,
+            ExprData::Block(ref val) => val.id,
+            ExprData::If(ref val) => val.id,
+            ExprData::Tuple(ref val) => val.id,
+            ExprData::Paren(ref val) => val.id,
+            ExprData::Match(ref val) => val.id,
         }
     }
 }
@@ -1656,9 +1641,9 @@ pub struct ExprIfType {
     pub id: NodeId,
     pub span: Span,
 
-    pub cond: Box<Expr>,
-    pub then_block: Box<Expr>,
-    pub else_block: Option<Box<Expr>>,
+    pub cond: Expr,
+    pub then_block: Expr,
+    pub else_block: Option<Expr>,
 }
 
 #[derive(Clone, Debug)]
@@ -1666,7 +1651,7 @@ pub struct ExprTupleType {
     pub id: NodeId,
     pub span: Span,
 
-    pub values: Vec<Box<Expr>>,
+    pub values: Vec<Expr>,
 }
 
 #[derive(Clone, Debug)]
@@ -1674,7 +1659,7 @@ pub struct ExprConvType {
     pub id: NodeId,
     pub span: Span,
 
-    pub object: Box<Expr>,
+    pub object: Expr,
     pub data_type: Type,
 }
 
@@ -1684,7 +1669,7 @@ pub struct ExprUnType {
     pub span: Span,
 
     pub op: UnOp,
-    pub opnd: Box<Expr>,
+    pub opnd: Expr,
 }
 
 #[derive(Clone, Debug)]
@@ -1694,8 +1679,8 @@ pub struct ExprBinType {
 
     pub op: BinOp,
     pub initializer: bool,
-    pub lhs: Box<Expr>,
-    pub rhs: Box<Expr>,
+    pub lhs: Expr,
+    pub rhs: Expr,
 }
 
 #[derive(Clone, Debug)]
@@ -1738,7 +1723,7 @@ pub struct ExprTemplateType {
     pub id: NodeId,
     pub span: Span,
 
-    pub parts: Vec<Box<Expr>>,
+    pub parts: Vec<Expr>,
 }
 
 #[derive(Clone, Debug)]
@@ -1755,7 +1740,7 @@ pub struct ExprBlockType {
     pub span: Span,
 
     pub stmts: Vec<Box<Stmt>>,
-    pub expr: Option<Box<Expr>>,
+    pub expr: Option<Expr>,
 }
 
 #[derive(Clone, Debug)]
@@ -1776,12 +1761,12 @@ pub struct ExprCallType {
     pub id: NodeId,
     pub span: Span,
 
-    pub callee: Box<Expr>,
-    pub args: Vec<Box<Expr>>,
+    pub callee: Expr,
+    pub args: Vec<Expr>,
 }
 
 impl ExprCallType {
-    pub fn object(&self) -> Option<&Expr> {
+    pub fn object(&self) -> Option<&ExprData> {
         if let Some(type_param) = self.callee.to_type_param() {
             if let Some(dot) = type_param.callee.to_dot() {
                 Some(&dot.lhs)
@@ -1795,7 +1780,7 @@ impl ExprCallType {
         }
     }
 
-    pub fn object_or_callee(&self) -> &Expr {
+    pub fn object_or_callee(&self) -> &ExprData {
         self.object().unwrap_or(&self.callee)
     }
 }
@@ -1805,7 +1790,7 @@ pub struct ExprParenType {
     pub id: NodeId,
     pub span: Span,
 
-    pub expr: Box<Expr>,
+    pub expr: Expr,
 }
 
 #[derive(Clone, Debug)]
@@ -1813,7 +1798,7 @@ pub struct ExprMatchType {
     pub id: NodeId,
     pub span: Span,
 
-    pub expr: Box<Expr>,
+    pub expr: Expr,
     pub cases: Vec<MatchCaseType>,
 }
 
@@ -1823,7 +1808,7 @@ pub struct MatchCaseType {
     pub span: Span,
 
     pub patterns: Vec<MatchPattern>,
-    pub value: Box<Expr>,
+    pub value: Expr,
 }
 
 #[derive(Clone, Debug)]
@@ -1868,7 +1853,7 @@ pub struct ExprTypeParamType {
     pub span: Span,
     pub op_span: Span,
 
-    pub callee: Box<Expr>,
+    pub callee: Expr,
     pub args: Vec<Type>,
 }
 
@@ -1878,8 +1863,8 @@ pub struct ExprPathType {
     pub span: Span,
     pub op_span: Span,
 
-    pub lhs: Box<Expr>,
-    pub rhs: Box<Expr>,
+    pub lhs: Expr,
+    pub rhs: Expr,
 }
 
 #[derive(Clone, Debug)]
@@ -1888,8 +1873,8 @@ pub struct ExprDotType {
     pub span: Span,
     pub op_span: Span,
 
-    pub lhs: Box<Expr>,
-    pub rhs: Box<Expr>,
+    pub lhs: Expr,
+    pub rhs: Expr,
 }
 
 #[derive(Copy, Clone, Debug)]

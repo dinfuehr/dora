@@ -138,7 +138,8 @@ impl<'a> AstBytecodeGen<'a> {
             }
         }
 
-        if let Some(ref block) = ast.block {
+        if let ast::ExprData::Block(ref block) = ast.block.as_ref().expect("missing block").as_ref()
+        {
             for stmt in &block.stmts {
                 self.visit_stmt(stmt);
             }
@@ -600,33 +601,33 @@ impl<'a> AstBytecodeGen<'a> {
         self.builder.emit_jump_loop(cond);
     }
 
-    fn visit_expr(&mut self, expr: &ast::Expr, dest: DataDest) -> Register {
+    fn visit_expr(&mut self, expr: &ast::ExprData, dest: DataDest) -> Register {
         match *expr {
-            ast::Expr::Un(ref un) => self.visit_expr_un(un, dest),
-            ast::Expr::Bin(ref bin) => self.visit_expr_bin(bin, dest),
-            ast::Expr::Dot(ref field) => self.visit_expr_dot(field, dest),
-            ast::Expr::Block(ref block) => self.visit_expr_block(block, dest),
-            ast::Expr::If(ref expr) => self.visit_expr_if(expr, dest),
-            ast::Expr::Template(ref template) => self.visit_expr_template(template, dest),
-            ast::Expr::TypeParam(ref expr) => self.visit_expr_type_param(expr, dest),
-            ast::Expr::Path(ref path) => self.visit_expr_path(path, dest),
-            ast::Expr::LitChar(ref lit) => self.visit_expr_lit_char(lit, dest),
-            ast::Expr::LitInt(ref lit) => self.visit_expr_lit_int(lit, dest, false),
-            ast::Expr::LitFloat(ref lit) => self.visit_expr_lit_float(lit, dest),
-            ast::Expr::LitStr(ref lit) => self.visit_expr_lit_string(lit, dest),
-            ast::Expr::LitBool(ref lit) => self.visit_expr_lit_bool(lit, dest),
-            ast::Expr::Ident(ref ident) => self.visit_expr_ident(ident, dest),
-            ast::Expr::Call(ref call) => self.visit_expr_call(call, dest),
-            ast::Expr::This(ref expr) => self.visit_expr_self(expr, dest),
-            ast::Expr::Conv(ref conv) => self.visit_expr_conv(conv, dest),
-            ast::Expr::Tuple(ref tuple) => self.visit_expr_tuple(tuple, dest),
-            ast::Expr::Paren(ref paren) => self.visit_expr(&paren.expr, dest),
-            ast::Expr::Match(ref expr) => self.visit_expr_match(expr, dest),
-            ast::Expr::Lambda(ref node) => self.visit_expr_lambda(node, dest),
+            ast::ExprData::Un(ref un) => self.visit_expr_un(un, dest),
+            ast::ExprData::Bin(ref bin) => self.visit_expr_bin(bin, dest),
+            ast::ExprData::Dot(ref field) => self.visit_expr_dot(field, dest),
+            ast::ExprData::Block(ref block) => self.visit_expr_block(block, dest),
+            ast::ExprData::If(ref expr) => self.visit_expr_if(expr, dest),
+            ast::ExprData::Template(ref template) => self.visit_expr_template(template, dest),
+            ast::ExprData::TypeParam(ref expr) => self.visit_expr_type_param(expr, dest),
+            ast::ExprData::Path(ref path) => self.visit_expr_path(path, dest),
+            ast::ExprData::LitChar(ref lit) => self.visit_expr_lit_char(lit, dest),
+            ast::ExprData::LitInt(ref lit) => self.visit_expr_lit_int(lit, dest, false),
+            ast::ExprData::LitFloat(ref lit) => self.visit_expr_lit_float(lit, dest),
+            ast::ExprData::LitStr(ref lit) => self.visit_expr_lit_string(lit, dest),
+            ast::ExprData::LitBool(ref lit) => self.visit_expr_lit_bool(lit, dest),
+            ast::ExprData::Ident(ref ident) => self.visit_expr_ident(ident, dest),
+            ast::ExprData::Call(ref call) => self.visit_expr_call(call, dest),
+            ast::ExprData::This(ref expr) => self.visit_expr_self(expr, dest),
+            ast::ExprData::Conv(ref conv) => self.visit_expr_conv(conv, dest),
+            ast::ExprData::Tuple(ref tuple) => self.visit_expr_tuple(tuple, dest),
+            ast::ExprData::Paren(ref paren) => self.visit_expr(&paren.expr, dest),
+            ast::ExprData::Match(ref expr) => self.visit_expr_match(expr, dest),
+            ast::ExprData::Lambda(ref node) => self.visit_expr_lambda(node, dest),
         }
     }
 
-    fn emit_expr_for_effect(&mut self, expr: &ast::Expr) {
+    fn emit_expr_for_effect(&mut self, expr: &ast::ExprData) {
         let reg = self.visit_expr(expr, DataDest::Effect);
         self.free_if_temp(reg);
     }
@@ -2223,9 +2224,9 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn emit_intrinsic_array_set(
         &mut self,
-        arr: &ast::Expr,
-        idx: &ast::Expr,
-        src: &ast::Expr,
+        arr: &ast::ExprData,
+        idx: &ast::ExprData,
+        src: &ast::ExprData,
         location: Location,
         dest: DataDest,
     ) -> Register {
@@ -2246,7 +2247,7 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn emit_intrinsic_un(
         &mut self,
-        opnd: &ast::Expr,
+        opnd: &ast::ExprData,
         info: IntrinsicInfo,
         location: Location,
         dest: DataDest,
@@ -2296,8 +2297,8 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn emit_intrinsic_bin(
         &mut self,
-        lhs: &ast::Expr,
-        rhs: &ast::Expr,
+        lhs: &ast::ExprData,
+        rhs: &ast::ExprData,
         info: IntrinsicInfo,
         op: Option<ast::BinOp>,
         location: Location,
@@ -2660,8 +2661,8 @@ impl<'a> AstBytecodeGen<'a> {
             }
         } else {
             match *expr.lhs {
-                ast::Expr::Dot(ref dot) => self.visit_expr_assign_dot(expr, dot),
-                ast::Expr::Call(ref call) => self.visit_expr_assign_call(expr, call),
+                ast::ExprData::Dot(ref dot) => self.visit_expr_assign_dot(expr, dot),
+                ast::ExprData::Call(ref call) => self.visit_expr_assign_call(expr, call),
                 _ => unreachable!(),
             };
         }

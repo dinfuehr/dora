@@ -19,13 +19,8 @@ impl Builder {
         BuilderFct::new(name)
     }
 
-    pub fn build_initializer_assign(
-        &self,
-        id: NodeId,
-        lhs: Box<Expr>,
-        rhs: Box<Expr>,
-    ) -> Box<Expr> {
-        Box::new(Expr::Bin(ExprBinType {
+    pub fn build_initializer_assign(&self, id: NodeId, lhs: Expr, rhs: Expr) -> Expr {
+        Arc::new(ExprData::Bin(ExprBinType {
             id,
             span: Span::invalid(),
 
@@ -36,8 +31,8 @@ impl Builder {
         }))
     }
 
-    pub fn build_ident(&self, id: NodeId, name: Name) -> Box<Expr> {
-        Box::new(Expr::Ident(ExprIdentType {
+    pub fn build_ident(&self, id: NodeId, name: Name) -> Expr {
+        Arc::new(ExprData::Ident(ExprIdentType {
             id,
             span: Span::invalid(),
 
@@ -52,7 +47,7 @@ pub struct BuilderFct {
     is_constructor: bool,
     return_type: Option<Type>,
     params: Vec<Param>,
-    block: Option<Box<ExprBlockType>>,
+    block: Option<Expr>,
 }
 
 impl<'a> BuilderFct {
@@ -67,7 +62,7 @@ impl<'a> BuilderFct {
         }
     }
 
-    pub fn block(&mut self, block: Box<ExprBlockType>) -> &mut BuilderFct {
+    pub fn block(&mut self, block: Expr) -> &mut BuilderFct {
         self.block = Some(block);
         self
     }
@@ -104,7 +99,7 @@ impl<'a> BuilderBlock {
         BuilderBlock { stmts: Vec::new() }
     }
 
-    pub fn add_expr(&mut self, id: NodeId, expr: Box<Expr>) -> &mut BuilderBlock {
+    pub fn add_expr(&mut self, id: NodeId, expr: Expr) -> &mut BuilderBlock {
         let stmt = Box::new(Stmt::Expr(StmtExprType {
             id,
             span: Span::invalid(),
@@ -115,12 +110,12 @@ impl<'a> BuilderBlock {
         self
     }
 
-    pub fn build(self, id: NodeId) -> Box<ExprBlockType> {
-        Box::new(ExprBlockType {
+    pub fn build(self, id: NodeId) -> Expr {
+        Arc::new(ExprData::Block(ExprBlockType {
             id,
             span: Span::invalid(),
             stmts: self.stmts,
             expr: None,
-        })
+        }))
     }
 }

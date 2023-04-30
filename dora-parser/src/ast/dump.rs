@@ -32,7 +32,7 @@ pub fn dump_fct(fct: &Function, interner: &Interner) {
     dumper.dump_fct(fct);
 }
 
-pub fn dump_expr<'a>(expr: &'a Expr, interner: &'a Interner) {
+pub fn dump_expr<'a>(expr: &'a ExprData, interner: &'a Interner) {
     let mut dumper = AstDumper {
         interner,
         indent: 0,
@@ -265,7 +265,7 @@ impl<'a> AstDumper<'a> {
             dump!(d, "executes");
 
             if let Some(ref block) = fct.block {
-                d.indent(|d| d.dump_expr_block(block));
+                d.indent(|d| d.dump_expr(block));
             }
         });
     }
@@ -392,29 +392,29 @@ impl<'a> AstDumper<'a> {
         dump!(self, "continue @ {} {}", stmt.span, stmt.id);
     }
 
-    fn dump_expr(&mut self, expr: &Expr) {
+    fn dump_expr(&mut self, expr: &ExprData) {
         match *expr {
-            Expr::Un(ref un) => self.dump_expr_un(un),
-            Expr::Bin(ref bin) => self.dump_expr_bin(bin),
-            Expr::Dot(ref field) => self.dump_expr_dot(field),
-            Expr::LitChar(ref lit) => self.dump_expr_lit_char(lit),
-            Expr::LitInt(ref lit) => self.dump_expr_lit_int(lit),
-            Expr::LitFloat(ref lit) => self.dump_expr_lit_float(lit),
-            Expr::LitStr(ref lit) => self.dump_expr_lit_str(lit),
-            Expr::Template(ref tmpl) => self.dump_expr_template(tmpl),
-            Expr::LitBool(ref lit) => self.dump_expr_lit_bool(lit),
-            Expr::Ident(ref ident) => self.dump_expr_ident(ident),
-            Expr::Call(ref call) => self.dump_expr_call(call),
-            Expr::TypeParam(ref expr) => self.dump_expr_type_param(expr),
-            Expr::Path(ref path) => self.dump_expr_path(path),
-            Expr::This(ref selfie) => self.dump_expr_self(selfie),
-            Expr::Conv(ref expr) => self.dump_expr_conv(expr),
-            Expr::Lambda(ref expr) => self.dump_expr_lambda(expr),
-            Expr::Block(ref expr) => self.dump_expr_block(expr),
-            Expr::If(ref expr) => self.dump_expr_if(expr),
-            Expr::Tuple(ref expr) => self.dump_expr_tuple(expr),
-            Expr::Paren(ref expr) => self.dump_expr_paren(expr),
-            Expr::Match(ref expr) => self.dump_expr_match(expr),
+            ExprData::Un(ref un) => self.dump_expr_un(un),
+            ExprData::Bin(ref bin) => self.dump_expr_bin(bin),
+            ExprData::Dot(ref field) => self.dump_expr_dot(field),
+            ExprData::LitChar(ref lit) => self.dump_expr_lit_char(lit),
+            ExprData::LitInt(ref lit) => self.dump_expr_lit_int(lit),
+            ExprData::LitFloat(ref lit) => self.dump_expr_lit_float(lit),
+            ExprData::LitStr(ref lit) => self.dump_expr_lit_str(lit),
+            ExprData::Template(ref tmpl) => self.dump_expr_template(tmpl),
+            ExprData::LitBool(ref lit) => self.dump_expr_lit_bool(lit),
+            ExprData::Ident(ref ident) => self.dump_expr_ident(ident),
+            ExprData::Call(ref call) => self.dump_expr_call(call),
+            ExprData::TypeParam(ref expr) => self.dump_expr_type_param(expr),
+            ExprData::Path(ref path) => self.dump_expr_path(path),
+            ExprData::This(ref selfie) => self.dump_expr_self(selfie),
+            ExprData::Conv(ref expr) => self.dump_expr_conv(expr),
+            ExprData::Lambda(ref expr) => self.dump_expr_lambda(expr),
+            ExprData::Block(ref expr) => self.dump_expr_block(expr),
+            ExprData::If(ref expr) => self.dump_expr_if(expr),
+            ExprData::Tuple(ref expr) => self.dump_expr_tuple(expr),
+            ExprData::Paren(ref expr) => self.dump_expr_paren(expr),
+            ExprData::Match(ref expr) => self.dump_expr_match(expr),
         }
     }
 

@@ -40,7 +40,7 @@ pub struct ConstDefinition {
     pub span: Span,
     pub name: Name,
     pub ty: SourceType,
-    pub expr: Box<ast::Expr>,
+    pub expr: ast::Expr,
     pub value: ConstValue,
 }
 

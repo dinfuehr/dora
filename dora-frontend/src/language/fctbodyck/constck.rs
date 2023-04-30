@@ -13,24 +13,24 @@ pub struct ConstCheck<'a> {
 }
 
 impl<'a> ConstCheck<'a> {
-    pub fn check_expr(&mut self, expr: &Expr) -> (SourceType, ConstValue) {
+    pub fn check_expr(&mut self, expr: &ExprData) -> (SourceType, ConstValue) {
         let expected_type = self.const_.ty.clone();
 
         let (ty, lit) = match expr {
-            &Expr::LitChar(ref expr) => (SourceType::Char, ConstValue::Char(expr.value)),
-            &Expr::LitInt(ref expr) => {
+            &ExprData::LitChar(ref expr) => (SourceType::Char, ConstValue::Char(expr.value)),
+            &ExprData::LitInt(ref expr) => {
                 let (ty, value) =
                     check_lit_int(self.sa, self.const_.file_id, expr, false, expected_type);
 
                 (ty, ConstValue::Int(value))
             }
-            &Expr::LitFloat(ref expr) => {
+            &ExprData::LitFloat(ref expr) => {
                 let (ty, val) = check_lit_float(self.sa, self.const_.file_id, expr, false);
                 (ty, ConstValue::Float(val))
             }
-            &Expr::LitBool(ref expr) => (SourceType::Bool, ConstValue::Bool(expr.value)),
+            &ExprData::LitBool(ref expr) => (SourceType::Bool, ConstValue::Bool(expr.value)),
 
-            &Expr::Un(ref expr) if expr.op == UnOp::Neg && expr.opnd.is_lit_int() => {
+            &ExprData::Un(ref expr) if expr.op == UnOp::Neg && expr.opnd.is_lit_int() => {
                 let lit_int = expr.opnd.to_lit_int().unwrap();
                 let ty = determine_type_literal_int(lit_int, expected_type.clone());
 
@@ -54,7 +54,7 @@ impl<'a> ConstCheck<'a> {
                 (ty, ConstValue::Int(value))
             }
 
-            &Expr::Un(ref expr) if expr.op == UnOp::Neg && expr.opnd.is_lit_float() => {
+            &ExprData::Un(ref expr) if expr.op == UnOp::Neg && expr.opnd.is_lit_float() => {
                 let (ty, val) = check_lit_float(
                     self.sa,
                     self.const_.file_id,

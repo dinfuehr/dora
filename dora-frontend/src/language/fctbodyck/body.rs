@@ -57,36 +57,45 @@ impl<'a> TypeCheck<'a> {
         self.add_type_params();
         self.add_params(ast);
 
-        let block = ast.block.as_ref().expect("missing block");
-        let mut returns = false;
-
-        for stmt in &block.stmts {
-            self.visit_stmt(stmt);
-
-            if always_returns(stmt) {
-                returns = true;
-            }
-        }
-
-        let return_type = if let Some(ref value) = &block.expr {
-            if expr_always_returns(value) {
-                returns = true;
-            }
-
-            let return_type = self.fct.return_type.clone();
-            self.check_expr(value, return_type)
-        } else {
-            SourceType::Unit
-        };
-
-        if !returns {
-            self.check_fct_return_type(block.span, return_type);
-        }
+        self.check_body(ast);
 
         self.symtable.pop_level();
         assert_eq!(self.symtable.levels(), start_level);
 
         self.prepare_local_and_context_vars();
+    }
+
+    fn check_body(&mut self, ast: &ast::Function) {
+        let block = ast.block.as_ref().expect("missing block");
+
+        if let ast::ExprData::Block(ref block) = block.as_ref() {
+            let mut returns = false;
+
+            for stmt in &block.stmts {
+                self.visit_stmt(stmt);
+
+                if always_returns(stmt) {
+                    returns = true;
+                }
+            }
+
+            let return_type = if let Some(ref value) = &block.expr {
+                if expr_always_returns(value) {
+                    returns = true;
+                }
+
+                let return_type = self.fct.return_type.clone();
+                self.check_expr(value, return_type)
+            } else {
+                SourceType::Unit
+            };
+
+            if !returns {
+                self.check_fct_return_type(block.span, return_type);
+            }
+        } else {
+            unreachable!()
+        }
     }
 
     fn prepare_local_and_context_vars(&mut self) {
@@ -1484,7 +1493,7 @@ impl<'a> TypeCheck<'a> {
         &mut self,
         e: &ast::ExprCallType,
         expected_ty: SourceType,
-        callee: &ast::Expr,
+        callee: &ast::ExprData,
         sym: Option<Sym>,
         type_params: SourceTypeArray,
         arg_types: &[SourceType],
@@ -2253,7 +2262,7 @@ impl<'a> TypeCheck<'a> {
         &mut self,
         e: &ast::ExprCallType,
         expected_ty: SourceType,
-        callee: &ast::Expr,
+        callee: &ast::ExprData,
         type_params: SourceTypeArray,
         arg_types: &[SourceType],
     ) -> SourceType {
@@ -2493,7 +2502,7 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn read_path_expr(&mut self, expr: &ast::Expr) -> Result<Option<Sym>, ()> {
+    fn read_path_expr(&mut self, expr: &ast::ExprData) -> Result<Option<Sym>, ()> {
         if let Some(expr_path) = expr.to_path() {
             let sym = self.read_path_expr(&expr_path.lhs)?;
 
@@ -3270,29 +3279,31 @@ impl<'a> TypeCheck<'a> {
         str_ty
     }
 
-    fn check_expr(&mut self, e: &ast::Expr, expected_ty: SourceType) -> SourceType {
+    fn check_expr(&mut self, e: &ast::ExprData, expected_ty: SourceType) -> SourceType {
         match *e {
-            ast::Expr::LitChar(ref expr) => self.check_expr_lit_char(expr, expected_ty),
-            ast::Expr::LitInt(ref expr) => self.check_expr_lit_int(expr, false, expected_ty),
-            ast::Expr::LitFloat(ref expr) => self.check_expr_lit_float(expr, false, expected_ty),
-            ast::Expr::LitStr(ref expr) => self.check_expr_lit_str(expr, expected_ty),
-            ast::Expr::Template(ref expr) => self.check_expr_template(expr, expected_ty),
-            ast::Expr::LitBool(ref expr) => self.check_expr_lit_bool(expr, expected_ty),
-            ast::Expr::Ident(ref expr) => self.check_expr_ident(expr, expected_ty),
-            ast::Expr::Un(ref expr) => self.check_expr_un(expr, expected_ty),
-            ast::Expr::Bin(ref expr) => self.check_expr_bin(expr, expected_ty),
-            ast::Expr::Call(ref expr) => self.check_expr_call(expr, expected_ty),
-            ast::Expr::TypeParam(ref expr) => self.check_expr_type_param(expr, expected_ty),
-            ast::Expr::Path(ref expr) => self.check_expr_path(expr, expected_ty),
-            ast::Expr::Dot(ref expr) => self.check_expr_dot(expr, expected_ty),
-            ast::Expr::This(ref expr) => self.check_expr_this(expr, expected_ty),
-            ast::Expr::Conv(ref expr) => self.check_expr_conv(expr, expected_ty),
-            ast::Expr::Lambda(ref expr) => self.check_expr_lambda(expr, expected_ty),
-            ast::Expr::Block(ref expr) => self.check_expr_block(expr, expected_ty),
-            ast::Expr::If(ref expr) => self.check_expr_if(expr, expected_ty),
-            ast::Expr::Tuple(ref expr) => self.check_expr_tuple(expr, expected_ty),
-            ast::Expr::Paren(ref expr) => self.check_expr_paren(expr, expected_ty),
-            ast::Expr::Match(ref expr) => self.check_expr_match(expr, expected_ty),
+            ast::ExprData::LitChar(ref expr) => self.check_expr_lit_char(expr, expected_ty),
+            ast::ExprData::LitInt(ref expr) => self.check_expr_lit_int(expr, false, expected_ty),
+            ast::ExprData::LitFloat(ref expr) => {
+                self.check_expr_lit_float(expr, false, expected_ty)
+            }
+            ast::ExprData::LitStr(ref expr) => self.check_expr_lit_str(expr, expected_ty),
+            ast::ExprData::Template(ref expr) => self.check_expr_template(expr, expected_ty),
+            ast::ExprData::LitBool(ref expr) => self.check_expr_lit_bool(expr, expected_ty),
+            ast::ExprData::Ident(ref expr) => self.check_expr_ident(expr, expected_ty),
+            ast::ExprData::Un(ref expr) => self.check_expr_un(expr, expected_ty),
+            ast::ExprData::Bin(ref expr) => self.check_expr_bin(expr, expected_ty),
+            ast::ExprData::Call(ref expr) => self.check_expr_call(expr, expected_ty),
+            ast::ExprData::TypeParam(ref expr) => self.check_expr_type_param(expr, expected_ty),
+            ast::ExprData::Path(ref expr) => self.check_expr_path(expr, expected_ty),
+            ast::ExprData::Dot(ref expr) => self.check_expr_dot(expr, expected_ty),
+            ast::ExprData::This(ref expr) => self.check_expr_this(expr, expected_ty),
+            ast::ExprData::Conv(ref expr) => self.check_expr_conv(expr, expected_ty),
+            ast::ExprData::Lambda(ref expr) => self.check_expr_lambda(expr, expected_ty),
+            ast::ExprData::Block(ref expr) => self.check_expr_block(expr, expected_ty),
+            ast::ExprData::If(ref expr) => self.check_expr_if(expr, expected_ty),
+            ast::ExprData::Tuple(ref expr) => self.check_expr_tuple(expr, expected_ty),
+            ast::ExprData::Paren(ref expr) => self.check_expr_paren(expr, expected_ty),
+            ast::ExprData::Match(ref expr) => self.check_expr_match(expr, expected_ty),
         }
     }
 
@@ -3307,7 +3318,7 @@ impl<'a> TypeCheck<'a> {
 }
 
 impl<'a> Visitor for TypeCheck<'a> {
-    fn visit_expr(&mut self, _e: &ast::Expr) {
+    fn visit_expr(&mut self, _e: &ast::ExprData) {
         unreachable!();
     }
 
