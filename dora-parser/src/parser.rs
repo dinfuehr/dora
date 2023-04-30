@@ -843,13 +843,7 @@ impl<'a> Parser<'a> {
         Ok(data)
     }
 
-    #[allow(unused)]
-    fn parse_list2<F, R>(
-        &mut self,
-        sep: TokenKind,
-        stop: TokenKind,
-        mut parse: F,
-    ) -> Result<Vec<R>, ()>
+    fn parse_list2<F, R>(&mut self, sep: TokenKind, stop: TokenKind, mut parse: F) -> Vec<R>
     where
         F: FnMut(&mut Parser) -> Option<R>,
     {
@@ -878,7 +872,7 @@ impl<'a> Parser<'a> {
 
         self.expect_token(stop);
 
-        Ok(data)
+        data
     }
 
     fn parse_function_param(&mut self) -> Result<Param, ()> {
@@ -986,7 +980,7 @@ impl<'a> Parser<'a> {
                         self.generate_id(),
                         span,
                         subtypes,
-                        ret,
+                        Some(ret),
                     )))
                 } else {
                     let span = self.span_from(start);
@@ -1001,6 +995,68 @@ impl<'a> Parser<'a> {
             _ => {
                 self.report_error(ParseError::ExpectedType(self.token.name()));
                 Err(())
+            }
+        }
+    }
+
+    fn parse_type2(&mut self) -> Option<Type> {
+        match self.token.kind {
+            TokenKind::CapitalThis => {
+                let span = self.token.span;
+                self.advance_token();
+                Some(Arc::new(TypeData::create_self(self.generate_id(), span)))
+            }
+
+            TokenKind::Identifier => {
+                let start = self.token.span.start();
+                let path = self.parse_path();
+
+                let params = if self.token.is(TokenKind::LBracket) {
+                    self.advance_token();
+                    self.parse_list2(TokenKind::Comma, TokenKind::RBracket, |p| p.parse_type2())
+                } else {
+                    Vec::new()
+                };
+
+                let span = self.span_from(start);
+                Some(Arc::new(TypeData::create_basic(
+                    self.generate_id(),
+                    span,
+                    path,
+                    params,
+                )))
+            }
+
+            TokenKind::LParen => {
+                let start = self.token.span.start();
+                self.advance_token();
+                let subtypes =
+                    self.parse_list2(TokenKind::Comma, TokenKind::RParen, |p| p.parse_type2());
+
+                if self.token.is(TokenKind::Colon) {
+                    self.advance_token();
+                    let ret = self.parse_type2();
+                    let span = self.span_from(start);
+
+                    Some(Arc::new(TypeData::create_fct(
+                        self.generate_id(),
+                        span,
+                        subtypes,
+                        ret,
+                    )))
+                } else {
+                    let span = self.span_from(start);
+                    Some(Arc::new(TypeData::create_tuple(
+                        self.generate_id(),
+                        span,
+                        subtypes,
+                    )))
+                }
+            }
+
+            _ => {
+                self.report_error(ParseError::ExpectedType(self.token.name()));
+                None
             }
         }
     }
@@ -1058,7 +1114,7 @@ impl<'a> Parser<'a> {
 
         self.advance_token();
         let pattern = self.parse_let_pattern()?;
-        let data_type = self.parse_var_type()?;
+        let data_type = self.parse_var_type();
         let expr = self.parse_var_assignment()?;
 
         self.expect_semicolon();
@@ -1117,13 +1173,13 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_var_type(&mut self) -> Result<Option<Type>, ()> {
+    fn parse_var_type(&mut self) -> Option<Type> {
         if self.token.is(TokenKind::Colon) {
             self.advance_token();
 
-            Ok(Some(self.parse_type()?))
+            self.parse_type2()
         } else {
-            Ok(None)
+            None
         }
     }
 
@@ -2854,7 +2910,7 @@ mod tests {
         let fct = ty.to_fct().unwrap();
 
         assert_eq!(0, fct.params.len());
-        assert!(fct.ret.is_unit());
+        assert!(fct.ret.as_ref().unwrap().is_unit());
     }
 
     #[test]
@@ -2864,7 +2920,10 @@ mod tests {
 
         assert_eq!(1, fct.params.len());
         assert_eq!("A", *interner.str(fct.params[0].to_basic().unwrap().name()));
-        assert_eq!("B", *interner.str(fct.ret.to_basic().unwrap().name()));
+        assert_eq!(
+            "B",
+            *interner.str(fct.ret.as_ref().unwrap().to_basic().unwrap().name())
+        );
     }
 
     #[test]
@@ -2875,7 +2934,10 @@ mod tests {
         assert_eq!(2, fct.params.len());
         assert_eq!("A", *interner.str(fct.params[0].to_basic().unwrap().name()));
         assert_eq!("B", *interner.str(fct.params[1].to_basic().unwrap().name()));
-        assert_eq!("C", *interner.str(fct.ret.to_basic().unwrap().name()));
+        assert_eq!(
+            "C",
+            *interner.str(fct.ret.as_ref().unwrap().to_basic().unwrap().name())
+        );
     }
 
     #[test]

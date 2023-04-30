@@ -353,7 +353,7 @@ pub struct TypeLambdaType {
     pub span: Span,
 
     pub params: Vec<Type>,
-    pub ret: Type,
+    pub ret: Option<Type>,
 }
 
 #[derive(Clone, Debug)]
@@ -387,7 +387,7 @@ impl TypeData {
         })
     }
 
-    pub fn create_fct(id: NodeId, span: Span, params: Vec<Type>, ret: Type) -> TypeData {
+    pub fn create_fct(id: NodeId, span: Span, params: Vec<Type>, ret: Option<Type>) -> TypeData {
         TypeData::Lambda(TypeLambdaType {
             id,
             span,
@@ -444,9 +444,13 @@ impl TypeData {
 
             TypeData::Lambda(ref val) => {
                 let types: Vec<String> = val.params.iter().map(|t| t.to_string(interner)).collect();
-                let ret = val.ret.to_string(interner);
 
-                format!("({}) -> {}", types.join(", "), ret)
+                if let Some(ref ret) = val.ret {
+                    let ret = ret.to_string(interner);
+                    format!("({}) -> {}", types.join(", "), ret)
+                } else {
+                    format!("({}) -> ()", types.join(", "))
+                }
             }
         }
     }

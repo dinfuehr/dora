@@ -211,7 +211,9 @@ pub fn walk_type<V: Visitor>(v: &mut V, t: &TypeData) {
                 v.visit_type(ty);
             }
 
-            v.visit_type(&fct.ret);
+            if let Some(ref ret) = fct.ret {
+                v.visit_type(&ret);
+            }
         }
     }
 }

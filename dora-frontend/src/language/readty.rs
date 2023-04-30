@@ -139,7 +139,12 @@ fn read_type_lambda_unchecked(
     }
 
     let params = SourceTypeArray::with(params);
-    let return_type = read_type_unchecked(sa, table, file_id, &node.ret);
+
+    let return_type = if let Some(ref ret) = node.ret {
+        read_type_unchecked(sa, table, file_id, ret)
+    } else {
+        SourceType::Unit
+    };
 
     SourceType::Lambda(params, Box::new(return_type))
 }
@@ -223,16 +228,10 @@ pub fn verify_type(
                 }
             }
 
-            if !verify_type(
-                sa,
-                module_id,
-                file_id,
-                &node.ret,
-                return_type,
-                ctxt,
-                allow_self,
-            ) {
-                return false;
+            if let Some(ref ret) = node.ret {
+                if !verify_type(sa, module_id, file_id, ret, return_type, ctxt, allow_self) {
+                    return false;
+                }
             }
         }
     }
