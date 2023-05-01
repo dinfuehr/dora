@@ -92,8 +92,10 @@ impl fmt::Display for NodeId {
     }
 }
 
+pub type Elem = Arc<ElemData>;
+
 #[derive(Clone, Debug)]
-pub enum Elem {
+pub enum ElemData {
     Function(Arc<Function>),
     Class(Arc<Class>),
     Struct(Arc<Struct>),
@@ -106,92 +108,94 @@ pub enum Elem {
     Module(Arc<Module>),
     Use(Arc<Use>),
     Extern(Arc<ExternPackage>),
+    Error { id: NodeId, span: Span },
 }
 
-impl Elem {
+impl ElemData {
     pub fn id(&self) -> NodeId {
         match self {
-            &Elem::Function(ref f) => f.id,
-            &Elem::Class(ref c) => c.id,
-            &Elem::Struct(ref s) => s.id,
-            &Elem::Trait(ref t) => t.id,
-            &Elem::Impl(ref i) => i.id,
-            &Elem::Global(ref g) => g.id,
-            &Elem::Const(ref c) => c.id,
-            &Elem::Enum(ref e) => e.id,
-            &Elem::Alias(ref e) => e.id,
-            &Elem::Module(ref e) => e.id,
-            &Elem::Use(ref e) => e.id,
-            &Elem::Extern(ref e) => e.id,
+            &ElemData::Function(ref f) => f.id,
+            &ElemData::Class(ref c) => c.id,
+            &ElemData::Struct(ref s) => s.id,
+            &ElemData::Trait(ref t) => t.id,
+            &ElemData::Impl(ref i) => i.id,
+            &ElemData::Global(ref g) => g.id,
+            &ElemData::Const(ref c) => c.id,
+            &ElemData::Enum(ref e) => e.id,
+            &ElemData::Alias(ref e) => e.id,
+            &ElemData::Module(ref e) => e.id,
+            &ElemData::Use(ref e) => e.id,
+            &ElemData::Extern(ref e) => e.id,
+            &ElemData::Error { id, .. } => id,
         }
     }
 
     pub fn to_function(&self) -> Option<&Function> {
         match self {
-            &Elem::Function(ref fct) => Some(fct),
+            &ElemData::Function(ref fct) => Some(fct),
             _ => None,
         }
     }
 
     pub fn to_class(&self) -> Option<&Class> {
         match self {
-            &Elem::Class(ref class) => Some(class),
+            &ElemData::Class(ref class) => Some(class),
             _ => None,
         }
     }
 
     pub fn to_enum(&self) -> Option<&Enum> {
         match self {
-            &Elem::Enum(ref enum_) => Some(enum_),
+            &ElemData::Enum(ref enum_) => Some(enum_),
             _ => None,
         }
     }
 
     pub fn to_alias(&self) -> Option<&Alias> {
         match self {
-            &Elem::Alias(ref alias) => Some(alias),
+            &ElemData::Alias(ref alias) => Some(alias),
             _ => None,
         }
     }
 
     pub fn to_module(&self) -> Option<&Module> {
         match self {
-            &Elem::Module(ref module) => Some(module),
+            &ElemData::Module(ref module) => Some(module),
             _ => None,
         }
     }
 
     pub fn to_struct(&self) -> Option<&Struct> {
         match self {
-            &Elem::Struct(ref struc) => Some(struc),
+            &ElemData::Struct(ref struc) => Some(struc),
             _ => None,
         }
     }
 
     pub fn to_trait(&self) -> Option<&Trait> {
         match self {
-            &Elem::Trait(ref trait_) => Some(trait_),
+            &ElemData::Trait(ref trait_) => Some(trait_),
             _ => None,
         }
     }
 
     pub fn to_impl(&self) -> Option<&Impl> {
         match self {
-            &Elem::Impl(ref impl_) => Some(impl_),
+            &ElemData::Impl(ref impl_) => Some(impl_),
             _ => None,
         }
     }
 
     pub fn to_global(&self) -> Option<&Global> {
         match self {
-            &Elem::Global(ref global) => Some(global),
+            &ElemData::Global(ref global) => Some(global),
             _ => None,
         }
     }
 
     pub fn to_const(&self) -> Option<&Const> {
         match self {
-            &Elem::Const(ref konst) => Some(konst),
+            &ElemData::Const(ref konst) => Some(konst),
             _ => None,
         }
     }
@@ -264,6 +268,7 @@ pub enum UsePathComponentValue {
     Super,
     Package,
     Name(Ident),
+    Error,
 }
 
 #[derive(Clone, Debug)]

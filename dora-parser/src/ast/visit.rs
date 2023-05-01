@@ -92,20 +92,21 @@ pub fn walk_file<V: Visitor>(v: &mut V, f: &File) {
     }
 }
 
-pub fn walk_elem<V: Visitor>(v: &mut V, e: &Elem) {
+pub fn walk_elem<V: Visitor>(v: &mut V, e: &ElemData) {
     match e {
-        Elem::Function(f) => v.visit_fct(f),
-        Elem::Class(ref c) => v.visit_class(c),
-        Elem::Struct(ref s) => v.visit_struct(s),
-        Elem::Trait(ref t) => v.visit_trait(t),
-        Elem::Impl(ref i) => v.visit_impl(i),
-        Elem::Global(ref g) => v.visit_global(g),
-        Elem::Const(ref c) => v.visit_const(c),
-        Elem::Enum(ref e) => v.visit_enum(e),
-        Elem::Alias(ref e) => v.visit_alias(e),
-        Elem::Module(ref e) => v.visit_module(e),
-        Elem::Use(ref i) => v.visit_use(i),
-        Elem::Extern(ref stmt) => v.visit_extern(stmt),
+        ElemData::Function(f) => v.visit_fct(f),
+        ElemData::Class(ref c) => v.visit_class(c),
+        ElemData::Struct(ref s) => v.visit_struct(s),
+        ElemData::Trait(ref t) => v.visit_trait(t),
+        ElemData::Impl(ref i) => v.visit_impl(i),
+        ElemData::Global(ref g) => v.visit_global(g),
+        ElemData::Const(ref c) => v.visit_const(c),
+        ElemData::Enum(ref e) => v.visit_enum(e),
+        ElemData::Alias(ref e) => v.visit_alias(e),
+        ElemData::Module(ref e) => v.visit_module(e),
+        ElemData::Use(ref i) => v.visit_use(i),
+        ElemData::Extern(ref stmt) => v.visit_extern(stmt),
+        ElemData::Error { .. } => {}
     }
 }
 

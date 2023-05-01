@@ -119,7 +119,8 @@ fn check_use(
                 UsePathComponentValue::Name(ref name) => name.clone(),
                 UsePathComponentValue::Package
                 | UsePathComponentValue::Super
-                | UsePathComponentValue::This => {
+                | UsePathComponentValue::This
+                | UsePathComponentValue::Error => {
                     sa.diag.lock().report(
                         use_file_id,
                         last_component.span,
@@ -224,6 +225,7 @@ fn initial_module(
                     Ok((0, Sym::Module(use_module_id)))
                 }
             }
+            UsePathComponentValue::Error => Err(UseError::Fatal),
         }
     } else {
         Err(UseError::Fatal)
@@ -242,7 +244,8 @@ fn process_component(
         UsePathComponentValue::Name(ref name) => name.clone(),
         UsePathComponentValue::Package
         | UsePathComponentValue::Super
-        | UsePathComponentValue::This => {
+        | UsePathComponentValue::This
+        | UsePathComponentValue::Error => {
             sa.diag
                 .lock()
                 .report(use_file_id, component.span, ErrorMessage::ExpectedPath);
