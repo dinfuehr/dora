@@ -112,24 +112,6 @@ pub enum ElemData {
 }
 
 impl ElemData {
-    pub fn id(&self) -> NodeId {
-        match self {
-            &ElemData::Function(ref f) => f.id,
-            &ElemData::Class(ref c) => c.id,
-            &ElemData::Struct(ref s) => s.id,
-            &ElemData::Trait(ref t) => t.id,
-            &ElemData::Impl(ref i) => i.id,
-            &ElemData::Global(ref g) => g.id,
-            &ElemData::Const(ref c) => c.id,
-            &ElemData::Enum(ref e) => e.id,
-            &ElemData::Alias(ref e) => e.id,
-            &ElemData::Module(ref e) => e.id,
-            &ElemData::Use(ref e) => e.id,
-            &ElemData::Extern(ref e) => e.id,
-            &ElemData::Error { id, .. } => id,
-        }
-    }
-
     pub fn to_function(&self) -> Option<&Function> {
         match self {
             &ElemData::Function(ref fct) => Some(fct),
@@ -753,18 +735,6 @@ impl StmtData {
 
     pub fn create_return(id: NodeId, span: Span, expr: Option<Expr>) -> StmtData {
         StmtData::Return(StmtReturnType { id, span, expr })
-    }
-
-    pub fn id(&self) -> NodeId {
-        match *self {
-            StmtData::Let(ref stmt) => stmt.id,
-            StmtData::While(ref stmt) => stmt.id,
-            StmtData::For(ref stmt) => stmt.id,
-            StmtData::Expr(ref stmt) => stmt.id,
-            StmtData::Break(ref stmt) => stmt.id,
-            StmtData::Continue(ref stmt) => stmt.id,
-            StmtData::Return(ref stmt) => stmt.id,
-        }
     }
 
     pub fn span(&self) -> Span {

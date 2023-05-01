@@ -3338,8 +3338,6 @@ impl<'a> Visitor for TypeCheck<'a> {
                 self.check_expr(&stmt.expr, SourceType::Any);
             }
         }
-
-        self.analysis.set_ty(s.id(), SourceType::Unit);
     }
 }
 
