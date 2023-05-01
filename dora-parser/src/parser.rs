@@ -20,10 +20,6 @@ pub struct Parser<'a> {
     errors: Rc<RefCell<Vec<ParseErrorWithLocation>>>,
 }
 
-type ExprResult = Result<Expr, ()>;
-type StmtResult = Result<Stmt, ()>;
-type StmtOrExprResult = Result<StmtOrExpr, ()>;
-
 enum StmtOrExpr {
     Stmt(Stmt),
     Expr(Expr),
@@ -1022,69 +1018,65 @@ impl<'a> Parser<'a> {
     }
 
     #[cfg(test)]
-    fn parse_statement(&mut self) -> StmtResult {
-        let stmt_or_expr = self.parse_statement_or_expression()?;
+    fn parse_statement(&mut self) -> Stmt {
+        let stmt_or_expr = self.parse_statement_or_expression();
 
         match stmt_or_expr {
-            StmtOrExpr::Stmt(stmt) => Ok(stmt),
+            StmtOrExpr::Stmt(stmt) => stmt,
             StmtOrExpr::Expr(expr) => {
                 if expr.needs_semicolon() {
                     self.expect_semicolon();
                 }
 
-                Ok(Arc::new(StmtData::create_expr(
-                    self.generate_id(),
-                    expr.span(),
-                    expr,
-                )))
+                Arc::new(StmtData::create_expr(self.generate_id(), expr.span(), expr))
             }
         }
     }
 
-    fn parse_let(&mut self) -> StmtResult {
+    fn parse_let(&mut self) -> Stmt {
         let start = self.token.span.start();
 
         self.advance_token();
-        let pattern = self.parse_let_pattern()?;
+        let pattern = self.parse_let_pattern();
         let data_type = self.parse_var_type();
-        let expr = self.parse_var_assignment()?;
+        let expr = self.parse_var_assignment();
 
         self.expect_semicolon();
         let span = self.span_from(start);
 
-        Ok(Arc::new(StmtData::create_let(
+        Arc::new(StmtData::create_let(
             self.generate_id(),
             span,
             pattern,
             data_type,
             expr,
-        )))
+        ))
     }
 
-    fn parse_let_pattern(&mut self) -> Result<Box<LetPattern>, ()> {
+    fn parse_let_pattern(&mut self) -> Box<LetPattern> {
         if self.token.is(TokenKind::LParen) {
             let start = self.token.span.start();
             self.advance_token();
 
-            let parts = self.parse_list(TokenKind::Comma, TokenKind::RParen, |p| {
+            let parts = self.parse_list2(TokenKind::Comma, TokenKind::RParen, |p| {
                 p.parse_let_pattern()
-            })?;
+            });
 
             let span = self.span_from(start);
 
-            Ok(Box::new(LetPattern::Tuple(LetTupleType {
+            Box::new(LetPattern::Tuple(LetTupleType {
                 id: self.generate_id(),
                 span,
                 parts,
-            })))
+            }))
         } else if self.token.is(TokenKind::Underscore) {
             let span = self.token.span;
             self.advance_token();
 
-            Ok(Box::new(LetPattern::Underscore(LetUnderscoreType {
+            Box::new(LetPattern::Underscore(LetUnderscoreType {
                 id: self.generate_id(),
                 span,
-            })))
+            }))
         } else {
             let start = self.token.span.start();
             let mutable = if self.token.is(TokenKind::Mut) {
@@ -1096,12 +1088,12 @@ impl<'a> Parser<'a> {
             let name = self.expect_identifier();
             let span = self.span_from(start);
 
-            Ok(Box::new(LetPattern::Ident(LetIdentType {
+            Box::new(LetPattern::Ident(LetIdentType {
                 id: self.generate_id(),
                 span,
                 mutable,
                 name,
-            })))
+            }))
         }
     }
 
@@ -1115,24 +1107,24 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_var_assignment(&mut self) -> Result<Option<Expr>, ()> {
+    fn parse_var_assignment(&mut self) -> Option<Expr> {
         if self.token.is(TokenKind::Eq) {
             self.expect_token(TokenKind::Eq);
             let expr = self.parse_expression();
 
-            Ok(Some(expr))
+            Some(expr)
         } else {
-            Ok(None)
+            None
         }
     }
 
-    fn parse_block_stmt(&mut self) -> StmtResult {
+    fn parse_block_stmt(&mut self) -> Stmt {
         let block = self.parse_block();
-        Ok(Arc::new(StmtData::create_expr(
+        Arc::new(StmtData::create_expr(
             self.generate_id(),
             block.span(),
             block,
-        )))
+        ))
     }
 
     fn parse_block(&mut self) -> Expr {
@@ -1142,18 +1134,7 @@ impl<'a> Parser<'a> {
         let mut expr = None;
 
         while !self.token.is(TokenKind::RBrace) && !self.token.is_eof() {
-            let span = self.token.span;
-            let stmt_or_expr = match self.parse_statement_or_expression() {
-                Ok(stmt_or_expr) => stmt_or_expr,
-                Err(_) => {
-                    let expr = Arc::new(ExprData::Error {
-                        id: self.generate_id(),
-                        span,
-                    });
-
-                    StmtOrExpr::Expr(expr)
-                }
-            };
+            let stmt_or_expr = self.parse_statement_or_expression();
 
             match stmt_or_expr {
                 StmtOrExpr::Stmt(stmt) => stmts.push(stmt),
@@ -1185,18 +1166,22 @@ impl<'a> Parser<'a> {
         ))
     }
 
-    fn parse_statement_or_expression(&mut self) -> StmtOrExprResult {
+    fn parse_statement_or_expression(&mut self) -> StmtOrExpr {
         match self.token.kind {
-            TokenKind::Let => Ok(StmtOrExpr::Stmt(self.parse_let()?)),
-            TokenKind::While => Ok(StmtOrExpr::Stmt(self.parse_while()?)),
-            TokenKind::Break => Ok(StmtOrExpr::Stmt(self.parse_break())),
-            TokenKind::Continue => Ok(StmtOrExpr::Stmt(self.parse_continue())),
-            TokenKind::Return => Ok(StmtOrExpr::Stmt(self.parse_return())),
+            TokenKind::Let => StmtOrExpr::Stmt(self.parse_let()),
+            TokenKind::While => StmtOrExpr::Stmt(self.parse_while()),
+            TokenKind::Break => StmtOrExpr::Stmt(self.parse_break()),
+            TokenKind::Continue => StmtOrExpr::Stmt(self.parse_continue()),
+            TokenKind::Return => StmtOrExpr::Stmt(self.parse_return()),
             TokenKind::Else => {
+                let span = self.token.span;
                 self.report_error(ParseError::MisplacedElse);
-                Err(())
+                StmtOrExpr::Expr(Arc::new(ExprData::Error {
+                    id: self.generate_id(),
+                    span,
+                }))
             }
-            TokenKind::For => Ok(StmtOrExpr::Stmt(self.parse_for()?)),
+            TokenKind::For => StmtOrExpr::Stmt(self.parse_for()),
             _ => {
                 let expr = self.parse_expression();
 
@@ -1204,19 +1189,19 @@ impl<'a> Parser<'a> {
                     self.expect_token(TokenKind::Semicolon);
                     let span = self.span_from(expr.span().start());
 
-                    Ok(StmtOrExpr::Stmt(Arc::new(StmtData::create_expr(
+                    StmtOrExpr::Stmt(Arc::new(StmtData::create_expr(
                         self.generate_id(),
                         span,
                         expr,
-                    ))))
+                    )))
                 } else {
-                    Ok(StmtOrExpr::Expr(expr))
+                    StmtOrExpr::Expr(expr)
                 }
             }
         }
     }
 
-    fn parse_if(&mut self) -> ExprResult {
+    fn parse_if(&mut self) -> Expr {
         let start = self.token.span.start();
         self.expect_token(TokenKind::If);
 
@@ -1228,7 +1213,7 @@ impl<'a> Parser<'a> {
             self.advance_token();
 
             if self.token.is(TokenKind::If) {
-                Some(self.parse_if()?)
+                Some(self.parse_if())
             } else {
                 Some(self.parse_block())
             }
@@ -1238,16 +1223,16 @@ impl<'a> Parser<'a> {
 
         let span = self.span_from(start);
 
-        Ok(Arc::new(ExprData::create_if(
+        Arc::new(ExprData::create_if(
             self.generate_id(),
             span,
             cond,
             then_block,
             else_block,
-        )))
+        ))
     }
 
-    fn parse_match(&mut self) -> ExprResult {
+    fn parse_match(&mut self) -> Expr {
         let start = self.token.span.start();
         self.expect_token(TokenKind::Match);
 
@@ -1263,10 +1248,10 @@ impl<'a> Parser<'a> {
                     TokenKind::Comma.name().into(),
                     self.token.name(),
                 ));
-                return Err(());
+                break;
             }
 
-            let case = self.parse_match_case()?;
+            let case = self.parse_match_case();
             cases.push(case);
 
             comma = self.token.is(TokenKind::Comma);
@@ -1279,22 +1264,22 @@ impl<'a> Parser<'a> {
         self.expect_token(TokenKind::RBrace);
         let span = self.span_from(start);
 
-        Ok(Arc::new(ExprData::create_match(
+        Arc::new(ExprData::create_match(
             self.generate_id(),
             span,
             expr,
             cases,
-        )))
+        ))
     }
 
-    fn parse_match_case(&mut self) -> Result<MatchCaseType, ()> {
+    fn parse_match_case(&mut self) -> MatchCaseType {
         let start = self.token.span.start();
         let mut patterns = Vec::new();
-        patterns.push(self.parse_match_pattern()?);
+        patterns.push(self.parse_match_pattern());
 
         while self.token.is(TokenKind::Or) {
             self.advance_token();
-            patterns.push(self.parse_match_pattern()?);
+            patterns.push(self.parse_match_pattern());
         }
 
         self.expect_token(TokenKind::DoubleArrow);
@@ -1302,15 +1287,15 @@ impl<'a> Parser<'a> {
         let value = self.parse_expression();
         let span = self.span_from(start);
 
-        Ok(MatchCaseType {
+        MatchCaseType {
             id: self.generate_id(),
             span,
             patterns,
             value,
-        })
+        }
     }
 
-    fn parse_match_pattern(&mut self) -> Result<MatchPattern, ()> {
+    fn parse_match_pattern(&mut self) -> MatchPattern {
         let start = self.token.span.start();
 
         let data = if self.token.is(TokenKind::Underscore) {
@@ -1321,9 +1306,9 @@ impl<'a> Parser<'a> {
 
             let params = if self.token.is(TokenKind::LParen) {
                 self.expect_token(TokenKind::LParen);
-                let params = self.parse_list(TokenKind::Comma, TokenKind::RParen, |this| {
+                let params = self.parse_list2(TokenKind::Comma, TokenKind::RParen, |this| {
                     this.parse_match_pattern_param()
-                })?;
+                });
 
                 Some(params)
             } else {
@@ -1335,14 +1320,14 @@ impl<'a> Parser<'a> {
 
         let span = self.span_from(start);
 
-        Ok(MatchPattern {
+        MatchPattern {
             id: self.generate_id(),
             span,
             data,
-        })
+        }
     }
 
-    fn parse_match_pattern_param(&mut self) -> Result<MatchPatternParam, ()> {
+    fn parse_match_pattern_param(&mut self) -> MatchPatternParam {
         let start = self.token.span.start();
 
         let (mutable, name) = if self.token.is(TokenKind::Underscore) {
@@ -1364,45 +1349,45 @@ impl<'a> Parser<'a> {
 
         let span = self.span_from(start);
 
-        Ok(MatchPatternParam {
+        MatchPatternParam {
             id: self.generate_id(),
             span,
             mutable,
             name,
-        })
+        }
     }
 
-    fn parse_for(&mut self) -> StmtResult {
+    fn parse_for(&mut self) -> Stmt {
         let start = self.token.span.start();
         self.expect_token(TokenKind::For);
-        let pattern = self.parse_let_pattern()?;
+        let pattern = self.parse_let_pattern();
         self.expect_token(TokenKind::In);
         let expr = self.parse_expression();
-        let block = self.parse_block_stmt()?;
+        let block = self.parse_block_stmt();
         let span = self.span_from(start);
 
-        Ok(Arc::new(StmtData::create_for(
+        Arc::new(StmtData::create_for(
             self.generate_id(),
             span,
             pattern,
             expr,
             block,
-        )))
+        ))
     }
 
-    fn parse_while(&mut self) -> StmtResult {
+    fn parse_while(&mut self) -> Stmt {
         let start = self.token.span.start();
         self.expect_token(TokenKind::While);
         let expr = self.parse_expression();
-        let block = self.parse_block_stmt()?;
+        let block = self.parse_block_stmt();
         let span = self.span_from(start);
 
-        Ok(Arc::new(StmtData::create_while(
+        Arc::new(StmtData::create_while(
             self.generate_id(),
             span,
             expr,
             block,
-        )))
+        ))
     }
 
     fn parse_break(&mut self) -> Stmt {
@@ -1440,27 +1425,17 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_expression(&mut self) -> Expr {
-        let span = self.token.span;
-
-        let result = match self.token.kind {
-            TokenKind::LBrace => Ok(self.parse_block()),
+        match self.token.kind {
+            TokenKind::LBrace => self.parse_block(),
             TokenKind::If => self.parse_if(),
             TokenKind::Match => self.parse_match(),
             _ => self.parse_binary(0),
-        };
-
-        match result {
-            Ok(expr) => expr,
-            Err(_) => Arc::new(ExprData::Error {
-                id: self.generate_id(),
-                span,
-            }),
         }
     }
 
-    fn parse_binary(&mut self, precedence: u32) -> ExprResult {
+    fn parse_binary(&mut self, precedence: u32) -> Expr {
         let start = self.token.span.start();
-        let mut left = self.parse_unary()?;
+        let mut left = self.parse_unary();
 
         loop {
             let right_precedence = match self.token.kind {
@@ -1485,12 +1460,12 @@ impl<'a> Parser<'a> {
                 | TokenKind::GtGtGt => 6,
                 TokenKind::As => 7,
                 _ => {
-                    return Ok(left);
+                    return left;
                 }
             };
 
             if precedence >= right_precedence {
-                return Ok(left);
+                return left;
             }
 
             let tok = self.advance_token();
@@ -1505,14 +1480,14 @@ impl<'a> Parser<'a> {
                 }
 
                 _ => {
-                    let right = self.parse_binary(right_precedence)?;
+                    let right = self.parse_binary(right_precedence);
                     self.create_binary(tok, start, left, right)
                 }
             };
         }
     }
 
-    fn parse_unary(&mut self) -> ExprResult {
+    fn parse_unary(&mut self) -> Expr {
         match self.token.kind {
             TokenKind::Add | TokenKind::Sub | TokenKind::Not => {
                 let start = self.token.span.start();
@@ -1524,29 +1499,24 @@ impl<'a> Parser<'a> {
                     _ => unreachable!(),
                 };
 
-                let expr = self.parse_primary()?;
+                let expr = self.parse_primary();
                 let span = self.span_from(start);
-                Ok(Arc::new(ExprData::create_un(
-                    self.generate_id(),
-                    span,
-                    op,
-                    expr,
-                )))
+                Arc::new(ExprData::create_un(self.generate_id(), span, op, expr))
             }
 
             _ => self.parse_primary(),
         }
     }
 
-    fn parse_primary(&mut self) -> ExprResult {
+    fn parse_primary(&mut self) -> Expr {
         let start = self.token.span.start();
-        let mut left = self.parse_factor()?;
+        let mut left = self.parse_factor();
 
         loop {
             left = match self.token.kind {
                 TokenKind::Dot => {
                     let op_span = self.advance_token().span;
-                    let rhs = self.parse_factor()?;
+                    let rhs = self.parse_factor();
                     let span = self.span_from(start);
 
                     Arc::new(ExprData::create_dot(
@@ -1585,7 +1555,7 @@ impl<'a> Parser<'a> {
 
                 TokenKind::ColonColon => {
                     let op_span = self.advance_token().span;
-                    let rhs = self.parse_factor()?;
+                    let rhs = self.parse_factor();
                     let span = self.span_from(start);
 
                     Arc::new(ExprData::create_path(
@@ -1598,7 +1568,7 @@ impl<'a> Parser<'a> {
                 }
 
                 _ => {
-                    return Ok(left);
+                    return left;
                 }
             }
         }
@@ -1642,27 +1612,27 @@ impl<'a> Parser<'a> {
         ))
     }
 
-    fn parse_factor(&mut self) -> ExprResult {
+    fn parse_factor(&mut self) -> Expr {
         let span = self.token.span;
         match self.token.kind {
             TokenKind::LParen => self.parse_parentheses(),
-            TokenKind::LBrace => Ok(self.parse_block()),
+            TokenKind::LBrace => self.parse_block(),
             TokenKind::If => self.parse_if(),
             TokenKind::LitChar(_) => self.parse_lit_char(),
-            TokenKind::LitInt(_, _, _) => Ok(self.parse_lit_int()),
-            TokenKind::LitFloat(_, _) => Ok(self.parse_lit_float()),
-            TokenKind::StringTail(_) | TokenKind::StringExpr(_) => Ok(self.parse_string()),
-            TokenKind::Identifier => Ok(self.parse_identifier()),
-            TokenKind::True => Ok(self.parse_bool_literal()),
-            TokenKind::False => Ok(self.parse_bool_literal()),
-            TokenKind::This => Ok(self.parse_this()),
+            TokenKind::LitInt(_, _, _) => self.parse_lit_int(),
+            TokenKind::LitFloat(_, _) => self.parse_lit_float(),
+            TokenKind::StringTail(_) | TokenKind::StringExpr(_) => self.parse_string(),
+            TokenKind::Identifier => self.parse_identifier(),
+            TokenKind::True => self.parse_bool_literal(),
+            TokenKind::False => self.parse_bool_literal(),
+            TokenKind::This => self.parse_this(),
             TokenKind::Or | TokenKind::OrOr => self.parse_lambda(),
             _ => {
                 self.report_error(ParseError::ExpectedFactor(self.token.name().clone()));
-                Ok(Arc::new(ExprData::Error {
+                Arc::new(ExprData::Error {
                     id: self.generate_id(),
                     span,
-                }))
+                })
             }
         }
     }
@@ -1677,18 +1647,14 @@ impl<'a> Parser<'a> {
         ))
     }
 
-    fn parse_parentheses(&mut self) -> ExprResult {
+    fn parse_parentheses(&mut self) -> Expr {
         let start = self.token.span.start();
         self.expect_token(TokenKind::LParen);
 
         if self.token.is(TokenKind::RParen) {
             self.advance_token();
             let span = self.span_from(start);
-            return Ok(Arc::new(ExprData::create_tuple(
-                self.generate_id(),
-                span,
-                Vec::new(),
-            )));
+            return Arc::new(ExprData::create_tuple(self.generate_id(), span, Vec::new()));
         }
 
         let expr = self.parse_expression();
@@ -1716,33 +1682,21 @@ impl<'a> Parser<'a> {
                 }
             }
 
-            Ok(Arc::new(ExprData::create_tuple(
-                self.generate_id(),
-                span,
-                values,
-            )))
+            Arc::new(ExprData::create_tuple(self.generate_id(), span, values))
         } else {
             self.expect_token(TokenKind::RParen);
             let span = self.span_from(start);
 
-            Ok(Arc::new(ExprData::create_paren(
-                self.generate_id(),
-                span,
-                expr,
-            )))
+            Arc::new(ExprData::create_paren(self.generate_id(), span, expr))
         }
     }
 
-    fn parse_lit_char(&mut self) -> ExprResult {
+    fn parse_lit_char(&mut self) -> Expr {
         let span = self.token.span;
         let tok = self.advance_token();
 
         if let TokenKind::LitChar(val) = tok.kind {
-            Ok(Arc::new(ExprData::create_lit_char(
-                self.generate_id(),
-                span,
-                val,
-            )))
+            Arc::new(ExprData::create_lit_char(self.generate_id(), span, val))
         } else {
             unreachable!();
         }
@@ -1860,7 +1814,7 @@ impl<'a> Parser<'a> {
         Arc::new(ExprData::create_this(self.generate_id(), span))
     }
 
-    fn parse_lambda(&mut self) -> ExprResult {
+    fn parse_lambda(&mut self) -> Expr {
         let start = self.token.span.start();
         let tok = self.advance_token();
 
@@ -1903,7 +1857,7 @@ impl<'a> Parser<'a> {
             type_params: None,
         });
 
-        Ok(Arc::new(ExprData::create_lambda(function)))
+        Arc::new(ExprData::create_lambda(function))
     }
 
     fn expect_identifier(&mut self) -> Option<Ident> {
@@ -2047,7 +2001,9 @@ mod tests {
     fn parse_stmt(code: &'static str) -> Stmt {
         let mut interner = Interner::new();
         let mut parser = Parser::from_string(code, &mut interner);
-        parser.parse_statement().unwrap()
+        let result = parser.parse_statement();
+        assert!(parser.errors.borrow().is_empty());
+        result
     }
 
     fn err_stmt(code: &'static str, msg: ParseError, line: u32, col: u32) {
@@ -2793,11 +2749,6 @@ mod tests {
         let ret = stmt.to_return().unwrap();
 
         assert!(ret.expr.is_none());
-    }
-
-    #[test]
-    fn parse_else() {
-        err_stmt("else", ParseError::MisplacedElse, 1, 1);
     }
 
     #[test]
