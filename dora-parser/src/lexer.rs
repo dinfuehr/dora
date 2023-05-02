@@ -1,6 +1,4 @@
-use std::cell::RefCell;
 use std::collections::HashMap;
-use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::error::{ParseError, ParseErrorWithLocation};
@@ -10,29 +8,32 @@ pub struct Lexer {
     content: Arc<String>,
     offset: usize,
     keywords: HashMap<&'static str, TokenKind>,
-    errors: Rc<RefCell<Vec<ParseErrorWithLocation>>>,
+    errors: Vec<ParseErrorWithLocation>,
     in_string_template: bool,
     open_braces: usize,
 }
 
 impl Lexer {
     pub fn from_str(code: &str) -> Lexer {
-        let errors = Rc::new(RefCell::new(Vec::new()));
-        Lexer::new(Arc::new(String::from(code)), errors)
+        Lexer::new(Arc::new(String::from(code)))
     }
 
     pub fn source(&self) -> Arc<String> {
         self.content.clone()
     }
 
-    pub fn new(content: Arc<String>, errors: Rc<RefCell<Vec<ParseErrorWithLocation>>>) -> Lexer {
+    pub fn errors(self) -> Vec<ParseErrorWithLocation> {
+        self.errors
+    }
+
+    pub fn new(content: Arc<String>) -> Lexer {
         let keywords = keywords_in_map();
 
         Lexer {
             offset: 0,
             content,
             keywords,
-            errors,
+            errors: Vec::new(),
             in_string_template: false,
             open_braces: 0,
         }
@@ -540,9 +541,7 @@ impl Lexer {
     }
 
     fn report_error_at(&mut self, msg: ParseError, span: Span) {
-        self.errors
-            .borrow_mut()
-            .push(ParseErrorWithLocation::new(span, msg));
+        self.errors.push(ParseErrorWithLocation::new(span, msg));
     }
 
     fn is_comment_start(&self) -> bool {
@@ -656,14 +655,11 @@ mod tests {
         FloatSuffix, IntBase, IntSuffix, Lexer, ParseError, ParseErrorWithLocation, Span, Token,
         TokenKind,
     };
-    use std::cell::RefCell;
-    use std::rc::Rc;
     use std::sync::Arc;
 
     fn lex(content: &str) -> (Vec<Token>, Vec<ParseErrorWithLocation>) {
         let content = Arc::new(content.into());
-        let errors = Rc::new(RefCell::new(Vec::new()));
-        let mut lexer = Lexer::new(content, errors.clone());
+        let mut lexer = Lexer::new(content);
         let mut tokens = Vec::new();
 
         loop {
@@ -674,9 +670,7 @@ mod tests {
             tokens.push(token);
         }
 
-        let errors = errors.borrow();
-
-        (tokens, errors.clone())
+        (tokens, lexer.errors)
     }
 
     fn lex_success(content: &str) -> Vec<Token> {

@@ -1,6 +1,5 @@
 use std::cell::RefCell;
 use std::mem;
-use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::ast;
@@ -17,7 +16,7 @@ pub struct Parser<'a> {
     id_generator: NodeIdGenerator,
     interner: &'a mut Interner,
     last_end: Option<u32>,
-    errors: Rc<RefCell<Vec<ParseErrorWithLocation>>>,
+    errors: Vec<ParseErrorWithLocation>,
 }
 
 enum StmtOrExpr {
@@ -37,8 +36,7 @@ impl<'a> Parser<'a> {
 
     fn common_init(content: Arc<String>, interner: &'a mut Interner) -> Parser<'a> {
         let token = Token::new(TokenKind::End, Span::invalid());
-        let errors = Rc::new(RefCell::new(Vec::new()));
-        let lexer = Lexer::new(content, errors.clone());
+        let lexer = Lexer::new(content);
 
         let mut parser = Parser {
             lexer,
@@ -46,7 +44,7 @@ impl<'a> Parser<'a> {
             id_generator: NodeIdGenerator::new(),
             interner,
             last_end: Some(0),
-            errors,
+            errors: Vec::new(),
         };
 
         parser.advance_token();
@@ -60,8 +58,9 @@ impl<'a> Parser<'a> {
 
     pub fn parse(mut self) -> (ast::File, NodeIdGenerator, Vec<ParseErrorWithLocation>) {
         let ast_file = self.parse_top_level();
-        let cloned_errors = self.errors.borrow().clone();
-        (ast_file, self.id_generator, cloned_errors)
+        let mut errors = self.errors;
+        errors.append(&mut self.lexer.errors());
+        (ast_file, self.id_generator, errors)
     }
 
     fn parse_top_level(&mut self) -> ast::File {
@@ -1847,14 +1846,11 @@ impl<'a> Parser<'a> {
     }
 
     fn report_error_at(&mut self, msg: ParseError, span: Span) {
-        self.errors
-            .borrow_mut()
-            .push(ParseErrorWithLocation::new(span, msg));
+        self.errors.push(ParseErrorWithLocation::new(span, msg));
     }
 
     fn error_and_advance(&mut self, msg: ParseError) {
         self.errors
-            .borrow_mut()
             .push(ParseErrorWithLocation::new(self.token.span, msg));
         self.advance_token();
     }
@@ -1921,7 +1917,7 @@ mod tests {
             let mut parser = Parser::from_string(code, &mut interner);
 
             let result = parser.parse_expression();
-            assert!(parser.errors.borrow().is_empty());
+            assert!(parser.errors.is_empty());
 
             result
         };
@@ -1935,7 +1931,7 @@ mod tests {
 
         let _expr = parser.parse_expression();
 
-        let errors = parser.errors.borrow().clone();
+        let errors = parser.errors;
         assert_eq!(errors.len(), 1);
         let err = &errors[0];
 
@@ -1951,7 +1947,7 @@ mod tests {
         let mut interner = Interner::new();
         let mut parser = Parser::from_string(code, &mut interner);
         let result = parser.parse_statement();
-        assert!(parser.errors.borrow().is_empty());
+        assert!(parser.errors.is_empty());
         result
     }
 
@@ -1961,7 +1957,7 @@ mod tests {
 
         let _ = parser.parse_statement();
 
-        let errors = parser.errors.borrow().clone();
+        let errors = parser.errors.clone();
         assert_eq!(errors.len(), 1);
         let err = &errors[0];
 
