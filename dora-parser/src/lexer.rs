@@ -11,6 +11,8 @@ pub struct Lexer {
     offset: usize,
     keywords: HashMap<&'static str, TokenKind>,
     errors: Rc<RefCell<Vec<ParseErrorWithLocation>>>,
+    in_string_template: bool,
+    open_braces: usize,
 }
 
 impl Lexer {
@@ -31,6 +33,8 @@ impl Lexer {
             content,
             keywords,
             errors,
+            in_string_template: false,
+            open_braces: 0,
         }
     }
 
@@ -269,8 +273,18 @@ impl Lexer {
             ')' => TokenKind::RParen,
             '[' => TokenKind::LBracket,
             ']' => TokenKind::RBracket,
-            '{' => TokenKind::LBrace,
-            '}' => TokenKind::RBrace,
+            '{' => {
+                if self.in_string_template {
+                    self.open_braces += 1;
+                }
+                TokenKind::LBrace
+            }
+            '}' => {
+                if self.in_string_template {
+                    self.open_braces -= 1;
+                }
+                TokenKind::RBrace
+            }
 
             '|' => {
                 if nch == '|' {
