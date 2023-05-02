@@ -14,6 +14,7 @@ pub enum ErrorMessage {
     UnknownField(String, String),
     UnknownMethod(String, String, Vec<String>),
     UnknownEnumVariant(String),
+    UnknownSuffix,
     MultipleCandidatesForMethod(String, String, Vec<String>),
     VariadicParameterNeedsToBeLast,
     UnknownMethodForTypeParam(String, String, Vec<String>),
@@ -188,6 +189,7 @@ impl ErrorMessage {
             ErrorMessage::UnknownEnumVariant(ref name) => {
                 format!("no variant with name `{}` in enumeration.", name)
             }
+            ErrorMessage::UnknownSuffix => "unknown integer suffix".into(),
             ErrorMessage::MultipleCandidatesForMethod(ref cls, ref name, ref args) => {
                 let args = args.join(", ");
                 format!(

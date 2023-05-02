@@ -1568,8 +1568,8 @@ impl<'a> Parser<'a> {
             TokenKind::LBrace => self.parse_block(),
             TokenKind::If => self.parse_if(),
             TokenKind::LitChar(_) => self.parse_lit_char(),
-            TokenKind::LitInt(_, _, _) => self.parse_lit_int(),
-            TokenKind::LitFloat(_, _) => self.parse_lit_float(),
+            TokenKind::LitInt(..) => self.parse_lit_int(),
+            TokenKind::LitFloat(..) => self.parse_lit_float(),
             TokenKind::StringTail(_) | TokenKind::StringExpr(_) => self.parse_string(),
             TokenKind::Identifier => self.parse_identifier(),
             TokenKind::True => self.parse_bool_literal(),
@@ -1655,18 +1655,13 @@ impl<'a> Parser<'a> {
         let span = self.token.span;
         let tok = self.advance_token();
 
-        let (value, base, suffix) = match tok.kind {
-            TokenKind::LitInt(value, base, suffix) => (value, base, suffix),
+        let (value_string, base, suffix_string) = match tok.kind {
+            TokenKind::LitInt(value, base, suffix_string) => (value, base, suffix_string),
             _ => unreachable!(),
         };
 
-        let filtered = value.chars().filter(|&ch| ch != '_').collect::<String>();
-        let value = u64::from_str_radix(&filtered, base.num()).unwrap_or_else(|_| {
-            self.report_error_at(ParseError::NumberOverflow, span);
-            0
-        });
-
-        let expr = ExprData::create_lit_int(self.generate_id(), span, value, base, suffix);
+        let expr =
+            ExprData::create_lit_int(self.generate_id(), span, value_string, base, suffix_string);
         Arc::new(expr)
     }
 
@@ -2000,7 +1995,7 @@ mod tests {
         let (expr, _) = parse_expr("10");
 
         let lit = expr.to_lit_int().unwrap();
-        assert_eq!(10, lit.value);
+        assert_eq!(String::from("10"), lit.value);
     }
 
     #[test]
@@ -2008,7 +2003,7 @@ mod tests {
         let (expr, _) = parse_expr("1____0");
 
         let lit = expr.to_lit_int().unwrap();
-        assert_eq!(10, lit.value);
+        assert_eq!(String::from("1____0"), lit.value);
     }
 
     #[test]
@@ -2061,7 +2056,7 @@ mod tests {
         let ident = dot.lhs.to_ident().unwrap();
         assert_eq!("bar", *interner.str(ident.name));
 
-        assert_eq!(12, dot.rhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("12"), dot.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2132,8 +2127,8 @@ mod tests {
 
         let mul = expr.to_bin().unwrap();
         assert_eq!(BinOp::Mul, mul.op);
-        assert_eq!(6, mul.lhs.to_lit_int().unwrap().value);
-        assert_eq!(3, mul.rhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("6"), mul.lhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("3"), mul.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2145,10 +2140,10 @@ mod tests {
 
         let mul2 = mul1.lhs.to_bin().unwrap();
         assert_eq!(BinOp::Mul, mul2.op);
-        assert_eq!(6, mul2.lhs.to_lit_int().unwrap().value);
-        assert_eq!(3, mul2.rhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("6"), mul2.lhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("3"), mul2.rhs.to_lit_int().unwrap().value);
 
-        assert_eq!(4, mul1.rhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("4"), mul1.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2157,8 +2152,8 @@ mod tests {
 
         let div = expr.to_bin().unwrap();
         assert_eq!(BinOp::Div, div.op);
-        assert_eq!(4, div.lhs.to_lit_int().unwrap().value);
-        assert_eq!(5, div.rhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("4"), div.lhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("5"), div.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2167,8 +2162,8 @@ mod tests {
 
         let div = expr.to_bin().unwrap();
         assert_eq!(BinOp::Mod, div.op);
-        assert_eq!(2, div.lhs.to_lit_int().unwrap().value);
-        assert_eq!(15, div.rhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("2"), div.lhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("15"), div.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2177,8 +2172,8 @@ mod tests {
 
         let add = expr.to_bin().unwrap();
         assert_eq!(BinOp::Add, add.op);
-        assert_eq!(2, add.lhs.to_lit_int().unwrap().value);
-        assert_eq!(3, add.rhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("2"), add.lhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("3"), add.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2186,11 +2181,11 @@ mod tests {
         let (expr, _) = parse_expr("1+2+3");
 
         let add = expr.to_bin().unwrap();
-        assert_eq!(3, add.rhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("3"), add.rhs.to_lit_int().unwrap().value);
 
         let lhs = add.lhs.to_bin().unwrap();
-        assert_eq!(1, lhs.lhs.to_lit_int().unwrap().value);
-        assert_eq!(2, lhs.rhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("1"), lhs.lhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("2"), lhs.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2198,11 +2193,11 @@ mod tests {
         let (expr, _) = parse_expr("1+(2+3)");
 
         let add = expr.to_bin().unwrap();
-        assert_eq!(1, add.lhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("1"), add.lhs.to_lit_int().unwrap().value);
 
         let rhs = add.rhs.to_paren().unwrap().expr.to_bin().unwrap();
-        assert_eq!(2, rhs.lhs.to_lit_int().unwrap().value);
-        assert_eq!(3, rhs.rhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("2"), rhs.lhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("3"), rhs.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2211,8 +2206,8 @@ mod tests {
 
         let add = expr.to_bin().unwrap();
         assert_eq!(BinOp::Sub, add.op);
-        assert_eq!(1, add.lhs.to_lit_int().unwrap().value);
-        assert_eq!(2, add.rhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("1"), add.lhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("2"), add.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2221,8 +2216,8 @@ mod tests {
 
         let add = expr.to_bin().unwrap();
         assert_eq!(BinOp::Or, add.op);
-        assert_eq!(1, add.lhs.to_lit_int().unwrap().value);
-        assert_eq!(2, add.rhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("1"), add.lhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("2"), add.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2231,8 +2226,8 @@ mod tests {
 
         let add = expr.to_bin().unwrap();
         assert_eq!(BinOp::And, add.op);
-        assert_eq!(1, add.lhs.to_lit_int().unwrap().value);
-        assert_eq!(2, add.rhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("1"), add.lhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("2"), add.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2241,8 +2236,8 @@ mod tests {
 
         let or = expr.to_bin().unwrap();
         assert_eq!(BinOp::BitOr, or.op);
-        assert_eq!(1, or.lhs.to_lit_int().unwrap().value);
-        assert_eq!(2, or.rhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("1"), or.lhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("2"), or.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2251,8 +2246,8 @@ mod tests {
 
         let and = expr.to_bin().unwrap();
         assert_eq!(BinOp::BitAnd, and.op);
-        assert_eq!(1, and.lhs.to_lit_int().unwrap().value);
-        assert_eq!(2, and.rhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("1"), and.lhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("2"), and.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2261,8 +2256,8 @@ mod tests {
 
         let xor = expr.to_bin().unwrap();
         assert_eq!(BinOp::BitXor, xor.op);
-        assert_eq!(1, xor.lhs.to_lit_int().unwrap().value);
-        assert_eq!(2, xor.rhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("1"), xor.lhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("2"), xor.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2271,8 +2266,8 @@ mod tests {
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Cmp(CmpOp::Lt), cmp.op);
-        assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
-        assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("1"), cmp.lhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("2"), cmp.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2281,8 +2276,8 @@ mod tests {
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Cmp(CmpOp::Le), cmp.op);
-        assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
-        assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("1"), cmp.lhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("2"), cmp.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2291,8 +2286,8 @@ mod tests {
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Cmp(CmpOp::Gt), cmp.op);
-        assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
-        assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("1"), cmp.lhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("2"), cmp.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2301,8 +2296,8 @@ mod tests {
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Cmp(CmpOp::Ge), cmp.op);
-        assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
-        assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("1"), cmp.lhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("2"), cmp.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2311,8 +2306,8 @@ mod tests {
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Cmp(CmpOp::Eq), cmp.op);
-        assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
-        assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("1"), cmp.lhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("2"), cmp.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2321,8 +2316,8 @@ mod tests {
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Cmp(CmpOp::Ne), cmp.op);
-        assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
-        assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("1"), cmp.lhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("2"), cmp.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2331,8 +2326,8 @@ mod tests {
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Cmp(CmpOp::IsNot), cmp.op);
-        assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
-        assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("1"), cmp.lhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("2"), cmp.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2341,8 +2336,8 @@ mod tests {
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Cmp(CmpOp::Is), cmp.op);
-        assert_eq!(1, cmp.lhs.to_lit_int().unwrap().value);
-        assert_eq!(2, cmp.rhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("1"), cmp.lhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("2"), cmp.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2352,7 +2347,7 @@ mod tests {
         let assign = expr.to_bin().unwrap();
         assert!(assign.lhs.is_ident());
         assert_eq!(BinOp::Assign, assign.op);
-        assert_eq!(4, assign.rhs.to_lit_int().unwrap().value);
+        assert_eq!(String::from("4"), assign.rhs.to_lit_int().unwrap().value);
     }
 
     #[test]
@@ -2398,11 +2393,6 @@ mod tests {
             *interner.str(call.callee.to_ident().unwrap().name)
         );
         assert_eq!(3, call.args.len());
-
-        for i in 0..3 {
-            let lit = call.args[i as usize].to_lit_int().unwrap();
-            assert_eq!(i + 1, lit.value);
-        }
     }
 
     #[test]
@@ -2626,9 +2616,12 @@ mod tests {
         assert_eq!(1, block.stmts.len());
 
         let expr = &block.stmts[0].to_expr().unwrap().expr;
-        assert_eq!(1, expr.to_lit_int().unwrap().value);
+        assert_eq!(String::from("1"), expr.to_lit_int().unwrap().value);
 
-        assert_eq!(2, block.expr.as_ref().unwrap().to_lit_int().unwrap().value);
+        assert_eq!(
+            String::from("2"),
+            block.expr.as_ref().unwrap().to_lit_int().unwrap().value
+        );
     }
 
     #[test]
@@ -2639,10 +2632,10 @@ mod tests {
         assert_eq!(2, block.stmts.len());
 
         let expr = &block.stmts[0].to_expr().unwrap().expr;
-        assert_eq!(1, expr.to_lit_int().unwrap().value);
+        assert_eq!(String::from("1"), expr.to_lit_int().unwrap().value);
 
         let expr = &block.stmts[1].to_expr().unwrap().expr;
-        assert_eq!(2, expr.to_lit_int().unwrap().value);
+        assert_eq!(String::from("2"), expr.to_lit_int().unwrap().value);
 
         assert!(block.expr.is_none());
     }
@@ -2666,7 +2659,10 @@ mod tests {
         let stmt = parse_stmt("return 1;");
         let ret = stmt.to_return().unwrap();
 
-        assert_eq!(1, ret.expr.as_ref().unwrap().to_lit_int().unwrap().value);
+        assert_eq!(
+            String::from("1"),
+            ret.expr.as_ref().unwrap().to_lit_int().unwrap().value
+        );
     }
 
     #[test]
@@ -2982,9 +2978,9 @@ mod tests {
         assert_eq!(tmpl.parts.len(), 5);
 
         assert_eq!("a".to_string(), tmpl.parts[0].to_lit_str().unwrap().value);
-        assert_eq!(1, tmpl.parts[1].to_lit_int().unwrap().value);
+        assert_eq!(String::from("1"), tmpl.parts[1].to_lit_int().unwrap().value);
         assert_eq!("b".to_string(), tmpl.parts[2].to_lit_str().unwrap().value);
-        assert_eq!(2, tmpl.parts[3].to_lit_int().unwrap().value);
+        assert_eq!(String::from("2"), tmpl.parts[3].to_lit_int().unwrap().value);
         assert_eq!("c".to_string(), tmpl.parts[4].to_lit_str().unwrap().value);
 
         let (expr, _) = parse_expr("\"a\\${1}b\"");

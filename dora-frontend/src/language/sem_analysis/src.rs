@@ -18,6 +18,7 @@ pub struct AnalysisData {
     pub map_idents: NodeMap<IdentType>,
     pub map_tys: NodeMap<SourceType>,
     pub map_vars: NodeMap<VarId>,
+    pub map_literals: NodeMap<(i64, f64)>,
     pub map_cls: NodeMap<ClassDefinitionId>,
     pub map_fors: NodeMap<ForTypeInfo>,
     pub map_lambdas: NodeMap<FctDefinitionId>,
@@ -37,6 +38,7 @@ impl AnalysisData {
             map_cls: NodeMap::new(),
             map_fors: NodeMap::new(),
             map_lambdas: NodeMap::new(),
+            map_literals: NodeMap::new(),
 
             vars: VarAccess::empty(),
             context_cls_id: None,
@@ -47,6 +49,14 @@ impl AnalysisData {
 
     pub fn set_ty(&mut self, id: ast::NodeId, ty: SourceType) {
         self.map_tys.insert_or_replace(id, ty);
+    }
+
+    pub fn set_literal_value(&mut self, id: ast::NodeId, value_i64: i64, value_f64: f64) {
+        self.map_literals.insert(id, (value_i64, value_f64));
+    }
+
+    pub fn literal_value(&self, id: ast::NodeId) -> (i64, f64) {
+        self.map_literals.get(id).expect("no literal found").clone()
     }
 
     pub fn ty(&self, id: ast::NodeId) -> SourceType {

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::error::{ParseError, ParseErrorWithLocation};
-use crate::{FloatSuffix, IntBase, IntSuffix, Span, Token, TokenKind};
+use crate::{FloatSuffix, IntBase, Span, Token, TokenKind};
 
 pub struct Lexer {
     content: Arc<String>,
@@ -441,18 +441,18 @@ impl Lexer {
             let span = self.span_from(start);
 
             match suffix.as_str() {
-                "u8" => TokenKind::LitInt(value, base, IntSuffix::UInt8),
-                "i32" => TokenKind::LitInt(value, base, IntSuffix::Int32),
-                "i64" => TokenKind::LitInt(value, base, IntSuffix::Int64),
+                "u8" => TokenKind::LitInt(value, base, Some(suffix)),
+                "i32" => TokenKind::LitInt(value, base, Some(suffix)),
+                "i64" => TokenKind::LitInt(value, base, Some(suffix)),
                 "f32" if base == IntBase::Dec => TokenKind::LitFloat(value, FloatSuffix::Float32),
                 "f64" if base == IntBase::Dec => TokenKind::LitFloat(value, FloatSuffix::Float64),
                 _ => {
                     self.report_error_at(ParseError::InvalidSuffix(suffix), span);
-                    TokenKind::LitInt(value, base, IntSuffix::None)
+                    TokenKind::LitInt(value, base, None)
                 }
             }
         } else {
-            TokenKind::LitInt(value, base, IntSuffix::None)
+            TokenKind::LitInt(value, base, None)
         };
 
         let span = self.span_from(start);
@@ -652,8 +652,7 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        FloatSuffix, IntBase, IntSuffix, Lexer, ParseError, ParseErrorWithLocation, Span, Token,
-        TokenKind,
+        FloatSuffix, IntBase, Lexer, ParseError, ParseErrorWithLocation, Span, Token, TokenKind,
     };
     use std::sync::Arc;
 
@@ -718,25 +717,25 @@ mod tests {
         let mut reader = Lexer::from_str("1 2\n0123 10");
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("1".into(), IntBase::Dec, IntSuffix::None),
+            TokenKind::LitInt("1".into(), IntBase::Dec, None),
             0,
             1,
         );
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("2".into(), IntBase::Dec, IntSuffix::None),
+            TokenKind::LitInt("2".into(), IntBase::Dec, None),
             2,
             1,
         );
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("0123".into(), IntBase::Dec, IntSuffix::None),
+            TokenKind::LitInt("0123".into(), IntBase::Dec, None),
             4,
             4,
         );
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("10".into(), IntBase::Dec, IntSuffix::None),
+            TokenKind::LitInt("10".into(), IntBase::Dec, None),
             9,
             2,
         );
@@ -745,25 +744,25 @@ mod tests {
         let mut reader = Lexer::from_str("12u8 300u8 1_000 1__1");
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("12".into(), IntBase::Dec, IntSuffix::UInt8),
+            TokenKind::LitInt("12".into(), IntBase::Dec, Some("u8".into())),
             0,
             4,
         );
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("300".into(), IntBase::Dec, IntSuffix::UInt8),
+            TokenKind::LitInt("300".into(), IntBase::Dec, Some("u8".into())),
             5,
             5,
         );
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("1_000".into(), IntBase::Dec, IntSuffix::None),
+            TokenKind::LitInt("1_000".into(), IntBase::Dec, None),
             11,
             5,
         );
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("1__1".into(), IntBase::Dec, IntSuffix::None),
+            TokenKind::LitInt("1__1".into(), IntBase::Dec, None),
             17,
             4,
         );
@@ -774,19 +773,19 @@ mod tests {
         let mut reader = Lexer::from_str("1i32 2u8 3i64");
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("1".into(), IntBase::Dec, IntSuffix::Int32),
+            TokenKind::LitInt("1".into(), IntBase::Dec, Some("i32".into())),
             0,
             4,
         );
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("2".into(), IntBase::Dec, IntSuffix::UInt8),
+            TokenKind::LitInt("2".into(), IntBase::Dec, Some("u8".into())),
             5,
             3,
         );
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("3".into(), IntBase::Dec, IntSuffix::Int64),
+            TokenKind::LitInt("3".into(), IntBase::Dec, Some("i64".into())),
             9,
             4,
         );
@@ -798,7 +797,7 @@ mod tests {
         let mut reader = Lexer::from_str("//test\n1");
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("1".into(), IntBase::Dec, IntSuffix::None),
+            TokenKind::LitInt("1".into(), IntBase::Dec, None),
             7,
             1,
         );
@@ -816,7 +815,7 @@ mod tests {
         let mut reader = Lexer::from_str("/*test*/1");
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("1".into(), IntBase::Dec, IntSuffix::None),
+            TokenKind::LitInt("1".into(), IntBase::Dec, None),
             8,
             1,
         );
@@ -833,7 +832,7 @@ mod tests {
         assert_eq!(
             tokens,
             vec![Token::new(
-                TokenKind::LitInt("1".into(), IntBase::Dec, IntSuffix::None),
+                TokenKind::LitInt("1".into(), IntBase::Dec, None),
                 Span::new(0, 1)
             )]
         );
@@ -854,19 +853,19 @@ mod tests {
         let mut reader = Lexer::from_str("1 2 3");
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("1".into(), IntBase::Dec, IntSuffix::None),
+            TokenKind::LitInt("1".into(), IntBase::Dec, None),
             0,
             1,
         );
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("2".into(), IntBase::Dec, IntSuffix::None),
+            TokenKind::LitInt("2".into(), IntBase::Dec, None),
             2,
             1,
         );
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("3".into(), IntBase::Dec, IntSuffix::None),
+            TokenKind::LitInt("3".into(), IntBase::Dec, None),
             4,
             1,
         );
@@ -943,25 +942,25 @@ mod tests {
 
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("1".into(), IntBase::Hex, IntSuffix::None),
+            TokenKind::LitInt("1".into(), IntBase::Hex, None),
             0,
             3,
         );
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("2".into(), IntBase::Hex, IntSuffix::Int64),
+            TokenKind::LitInt("2".into(), IntBase::Hex, Some("i64".into())),
             4,
             6,
         );
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("ABCDEF".into(), IntBase::Hex, IntSuffix::None),
+            TokenKind::LitInt("ABCDEF".into(), IntBase::Hex, None),
             11,
             8,
         );
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("B1".into(), IntBase::Hex, IntSuffix::Int64),
+            TokenKind::LitInt("B1".into(), IntBase::Hex, Some("i64".into())),
             20,
             7,
         );
@@ -972,19 +971,19 @@ mod tests {
         let mut reader = Lexer::from_str("1\n2\n3");
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("1".into(), IntBase::Dec, IntSuffix::None),
+            TokenKind::LitInt("1".into(), IntBase::Dec, None),
             0,
             1,
         );
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("2".into(), IntBase::Dec, IntSuffix::None),
+            TokenKind::LitInt("2".into(), IntBase::Dec, None),
             2,
             1,
         );
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("3".into(), IntBase::Dec, IntSuffix::None),
+            TokenKind::LitInt("3".into(), IntBase::Dec, None),
             4,
             1,
         );
@@ -996,19 +995,19 @@ mod tests {
         let mut reader = Lexer::from_str("1\t2\t3");
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("1".into(), IntBase::Dec, IntSuffix::None),
+            TokenKind::LitInt("1".into(), IntBase::Dec, None),
             0,
             1,
         );
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("2".into(), IntBase::Dec, IntSuffix::None),
+            TokenKind::LitInt("2".into(), IntBase::Dec, None),
             2,
             1,
         );
         assert_tok(
             &mut reader,
-            TokenKind::LitInt("3".into(), IntBase::Dec, IntSuffix::None),
+            TokenKind::LitInt("3".into(), IntBase::Dec, None),
             4,
             1,
         );

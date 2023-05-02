@@ -19,10 +19,16 @@ impl<'a> ConstCheck<'a> {
         let (ty, lit) = match expr {
             &ExprData::LitChar(ref expr) => (SourceType::Char, ConstValue::Char(expr.value)),
             &ExprData::LitInt(ref expr) => {
-                let (ty, value) =
+                let (ty, value_i64, value_f64) =
                     check_lit_int(self.sa, self.const_.file_id, expr, false, expected_type);
 
-                (ty, ConstValue::Int(value))
+                let value = if ty.is_float() {
+                    ConstValue::Float(value_f64)
+                } else {
+                    ConstValue::Int(value_i64)
+                };
+
+                (ty, value)
             }
             &ExprData::LitFloat(ref expr) => {
                 let (ty, val) = check_lit_float(self.sa, self.const_.file_id, expr, false);
@@ -32,7 +38,12 @@ impl<'a> ConstCheck<'a> {
 
             &ExprData::Un(ref expr) if expr.op == UnOp::Neg && expr.opnd.is_lit_int() => {
                 let lit_int = expr.opnd.to_lit_int().unwrap();
-                let ty = determine_type_literal_int(lit_int, expected_type.clone());
+                let ty = determine_type_literal_int(
+                    self.sa,
+                    self.const_.file_id,
+                    lit_int,
+                    expected_type.clone(),
+                );
 
                 if ty == SourceType::UInt8 {
                     let ty = SourceType::UInt8.name(self.sa);
@@ -43,7 +54,7 @@ impl<'a> ConstCheck<'a> {
                         .report(self.const_.file_id, expr.span, msg);
                 }
 
-                let (ty, value) = check_lit_int(
+                let (ty, value_i64, value_f64) = check_lit_int(
                     self.sa,
                     self.const_.file_id,
                     expr.opnd.to_lit_int().unwrap(),
@@ -51,7 +62,13 @@ impl<'a> ConstCheck<'a> {
                     expected_type,
                 );
 
-                (ty, ConstValue::Int(value))
+                let value = if ty.is_float() {
+                    ConstValue::Float(value_f64)
+                } else {
+                    ConstValue::Int(value_i64)
+                };
+
+                (ty, value)
             }
 
             &ExprData::Un(ref expr) if expr.op == UnOp::Neg && expr.opnd.is_lit_float() => {

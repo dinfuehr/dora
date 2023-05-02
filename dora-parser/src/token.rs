@@ -9,7 +9,7 @@ pub enum TokenKind {
     StringTail(String),
     StringExpr(String),
     LitChar(char),
-    LitInt(String, IntBase, IntSuffix),
+    LitInt(String, IntBase, Option<String>),
     LitFloat(String, FloatSuffix),
     Identifier,
     True,
@@ -116,17 +116,9 @@ impl TokenKind {
             // literals
             TokenKind::StringTail(_) => "string tail",
             TokenKind::StringExpr(_) => "string epxr",
-            TokenKind::LitInt(_, _, suffix) => match suffix {
-                IntSuffix::UInt8 => "byte number",
-                IntSuffix::Int32 => "int32 number",
-                IntSuffix::Int64 => "int64 number",
-                IntSuffix::None => "untyped number",
-            },
+            TokenKind::LitInt(..) => "integer literal",
             TokenKind::LitChar(_) => "char",
-            TokenKind::LitFloat(_, suffix) => match suffix {
-                FloatSuffix::Float32 => "float32 number",
-                FloatSuffix::Float64 => "float64 number",
-            },
+            TokenKind::LitFloat(..) => "float literal",
             TokenKind::Identifier => "identifier",
             TokenKind::True => "true",
             TokenKind::False => "false",
@@ -272,16 +264,7 @@ impl Token {
 
     pub fn name(&self) -> String {
         match self.kind {
-            TokenKind::LitInt(ref val, _, suffix) => {
-                let suffix = match suffix {
-                    IntSuffix::UInt8 => "B",
-                    IntSuffix::Int32 => "",
-                    IntSuffix::Int64 => "L",
-                    IntSuffix::None => "",
-                };
-
-                format!("{}{}", val, suffix)
-            }
+            TokenKind::LitInt(..) => "integer literal".into(),
 
             TokenKind::StringTail(ref val) => format!("\"{}\" tail", &val),
             TokenKind::StringExpr(ref val) => format!("\"{}\" expr", &val),

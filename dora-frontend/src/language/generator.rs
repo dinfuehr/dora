@@ -1115,13 +1115,8 @@ impl<'a> AstBytecodeGen<'a> {
         dest: DataDest,
     ) -> Register {
         let tuple = self.visit_expr(&expr.lhs, DataDest::Alloc);
-        let idx: u32 = expr
-            .rhs
-            .to_lit_int()
-            .unwrap()
-            .value
-            .try_into()
-            .expect("too large");
+        let (value_i64, _) = self.analysis.literal_value(expr.rhs.id());
+        let idx: u32 = value_i64.try_into().expect("too large");
 
         let subtypes = tuple_ty.tuple_subtypes();
         let ty = subtypes[idx as usize].clone();
@@ -1787,13 +1782,14 @@ impl<'a> AstBytecodeGen<'a> {
         &mut self,
         lit: &ast::ExprLitIntType,
         dest: DataDest,
-        neg: bool,
+        _neg: bool,
     ) -> Register {
         if dest.is_effect() {
             return Register::invalid();
         }
 
         let ty = self.analysis.ty(lit.id);
+        let (value_i64, value_f64) = self.analysis.literal_value(lit.id);
 
         let ty = match ty {
             SourceType::UInt8 => BytecodeType::UInt8,
@@ -1801,16 +1797,12 @@ impl<'a> AstBytecodeGen<'a> {
             SourceType::Int64 => BytecodeType::Int64,
             SourceType::Float32 => {
                 let dest = self.ensure_register(dest, BytecodeType::Float32);
-                let value = lit.value as f32;
-                let value = if neg { -value } else { value };
-                self.builder.emit_const_float32(dest, value);
+                self.builder.emit_const_float32(dest, value_f64 as f32);
                 return dest;
             }
             SourceType::Float64 => {
                 let dest = self.ensure_register(dest, BytecodeType::Float64);
-                let value = lit.value as f64;
-                let value = if neg { -value } else { value };
-                self.builder.emit_const_float64(dest, value);
+                self.builder.emit_const_float64(dest, value_f64);
                 return dest;
             }
             _ => unreachable!(),
@@ -1818,16 +1810,10 @@ impl<'a> AstBytecodeGen<'a> {
 
         let dest = self.ensure_register(dest, ty.clone());
 
-        let value = if neg {
-            (lit.value as i64).wrapping_neg()
-        } else {
-            lit.value as i64
-        };
-
         match ty {
-            BytecodeType::UInt8 => self.builder.emit_const_uint8(dest, value as u8),
-            BytecodeType::Int32 => self.builder.emit_const_int32(dest, value as i32),
-            BytecodeType::Int64 => self.builder.emit_const_int64(dest, value),
+            BytecodeType::UInt8 => self.builder.emit_const_uint8(dest, value_i64 as u8),
+            BytecodeType::Int32 => self.builder.emit_const_int32(dest, value_i64 as i32),
+            BytecodeType::Int64 => self.builder.emit_const_int64(dest, value_i64),
             _ => unreachable!(),
         }
 

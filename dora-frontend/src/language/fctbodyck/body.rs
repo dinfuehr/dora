@@ -29,7 +29,7 @@ use crate::language::{report_sym_shadow_span, TypeParamContext};
 use dora_bytecode::Intrinsic;
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, MatchCaseType, MatchPattern};
-use dora_parser::{FloatSuffix, IntBase, IntSuffix, Name, Span};
+use dora_parser::{FloatSuffix, IntBase, Name, Span};
 use fixedbitset::FixedBitSet;
 
 pub struct TypeCheck<'a> {
@@ -3005,7 +3005,22 @@ impl<'a> TypeCheck<'a> {
         object_type: SourceType,
     ) -> SourceType {
         let index = match e.rhs.to_lit_int() {
-            Some(ident) => ident.value,
+            Some(literal) => {
+                let (_, value_i64, _) =
+                    check_lit_int(self.sa, self.file_id, literal, false, SourceType::Any);
+
+                if literal.base != IntBase::Dec || literal.suffix.is_some() {
+                    self.sa.diag.lock().report(
+                        self.file_id,
+                        literal.span,
+                        ErrorMessage::IndexExpected,
+                    );
+                }
+
+                self.analysis.set_literal_value(literal.id, value_i64, 0.0);
+
+                value_i64 as u64
+            }
 
             None => {
                 let msg = ErrorMessage::IndexExpected;
@@ -3178,9 +3193,11 @@ impl<'a> TypeCheck<'a> {
         negate: bool,
         expected_ty: SourceType,
     ) -> SourceType {
-        let (ty, _) = check_lit_int(self.sa, self.file_id, e, negate, expected_ty);
+        let (ty, value_i64, value_f64) =
+            check_lit_int(self.sa, self.file_id, e, negate, expected_ty);
 
         self.analysis.set_ty(e.id, ty.clone());
+        self.analysis.set_literal_value(e.id, value_i64, value_f64);
 
         ty
     }
@@ -3506,11 +3523,33 @@ pub fn check_lit_int(
     e: &ast::ExprLitIntType,
     negate: bool,
     expected_type: SourceType,
-) -> (SourceType, i64) {
-    let ty = determine_type_literal_int(e, expected_type);
+) -> (SourceType, i64, f64) {
+    let ty = determine_type_literal_int(sa, file, e, expected_type);
+
+    if ty.is_float() {
+        let filtered = e.value.chars().filter(|&ch| ch != '_').collect::<String>();
+        let parsed = filtered.parse::<f64>();
+
+        let value = parsed.expect("unparsable float");
+        let value = if negate { -value } else { value };
+
+        return (ty, 0, value);
+    }
 
     let ty_name = ty.name(sa);
-    let value = e.value;
+
+    let filtered = e.value.chars().filter(|&ch| ch != '_').collect::<String>();
+    let value = u64::from_str_radix(&filtered, e.base.num());
+
+    let value = match value {
+        Ok(value) => value,
+        Err(_) => {
+            sa.diag
+                .lock()
+                .report(file, e.span, ErrorMessage::NumberOverflow(ty_name));
+            return (ty, 0, 0.0);
+        }
+    };
 
     if e.base == IntBase::Dec {
         let max = match ty {
@@ -3532,7 +3571,7 @@ pub fn check_lit_int(
             value as i64
         };
 
-        (ty, value)
+        (ty, value, 0.0)
     } else {
         assert!(!negate);
 
@@ -3549,24 +3588,41 @@ pub fn check_lit_int(
                 .report(file, e.span, ErrorMessage::NumberOverflow(ty_name.into()));
         }
 
-        (ty, value as i64)
+        (ty, value as i64, 0.0)
     }
 }
 
-fn determine_suffix_type_int_literal(e: &ast::ExprLitIntType) -> Option<SourceType> {
-    match e.suffix {
-        IntSuffix::UInt8 => Some(SourceType::UInt8),
-        IntSuffix::Int32 => Some(SourceType::Int32),
-        IntSuffix::Int64 => Some(SourceType::Int64),
-        IntSuffix::None => None,
+fn determine_suffix_type_int_literal(
+    sa: &SemAnalysis,
+    file: SourceFileId,
+    e: &ast::ExprLitIntType,
+) -> Option<SourceType> {
+    if let Some(ref suffix) = e.suffix {
+        match suffix.as_str() {
+            "u8" => Some(SourceType::UInt8),
+            "i32" => Some(SourceType::Int32),
+            "i64" => Some(SourceType::Int64),
+            "f32" => Some(SourceType::Float32),
+            "f64" => Some(SourceType::Float64),
+            _ => {
+                sa.diag
+                    .lock()
+                    .report(file, e.span, ErrorMessage::UnknownSuffix);
+                None
+            }
+        }
+    } else {
+        None
     }
 }
 
 pub fn determine_type_literal_int(
+    sa: &SemAnalysis,
+    file: SourceFileId,
     e: &ast::ExprLitIntType,
     expected_type: SourceType,
 ) -> SourceType {
-    let suffix_type = determine_suffix_type_int_literal(e);
+    let suffix_type = determine_suffix_type_int_literal(sa, file, e);
 
     let default_type = match expected_type {
         SourceType::UInt8 => SourceType::UInt8,
