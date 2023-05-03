@@ -5,7 +5,7 @@ fn main() {
     assert(1.4E-45f32.asInt32() == 1i32);
     assert(4.2E-45f32.asInt32() == 3i32);
     assert((-1f32).asInt32() == (-1082130432i32));
-    assert((-0f32).asInt32() == (-2147483648i32));
+    assert((-0.0f32).asInt32() == (-2147483648i32));
 
     // x64 and AArch64 use different sign bits for the NaN returned
     // by 0.0f32/0.0f32, be more forgiving here and mask out the sign bit.

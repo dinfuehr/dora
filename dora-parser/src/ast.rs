@@ -6,7 +6,7 @@ use std::sync::Arc;
 use crate::interner::Interner;
 
 use crate::interner::Name;
-use crate::{FloatSuffix, IntBase, Span};
+use crate::Span;
 
 pub mod dump;
 pub mod visit;
@@ -1172,30 +1172,12 @@ impl ExprData {
         ExprData::LitChar(ExprLitCharType { id, span, value })
     }
 
-    pub fn create_lit_int(
-        id: NodeId,
-        span: Span,
-        value_string: String,
-        base: IntBase,
-        suffix_string: Option<String>,
-    ) -> ExprData {
-        ExprData::LitInt(ExprLitIntType {
-            id,
-            span,
-
-            value: value_string,
-            base,
-            suffix: suffix_string,
-        })
+    pub fn create_lit_int(id: NodeId, span: Span, value: String) -> ExprData {
+        ExprData::LitInt(ExprLitIntType { id, span, value })
     }
 
-    pub fn create_lit_float(id: NodeId, span: Span, value: f64, suffix: FloatSuffix) -> ExprData {
-        ExprData::LitFloat(ExprLitFloatType {
-            id,
-            span,
-            value,
-            suffix,
-        })
+    pub fn create_lit_float(id: NodeId, span: Span, value: String) -> ExprData {
+        ExprData::LitFloat(ExprLitFloatType { id, span, value })
     }
 
     pub fn create_lit_str(id: NodeId, span: Span, value: String) -> ExprData {
@@ -1683,8 +1665,6 @@ pub struct ExprLitIntType {
     pub span: Span,
 
     pub value: String,
-    pub base: IntBase,
-    pub suffix: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -1692,8 +1672,7 @@ pub struct ExprLitFloatType {
     pub id: NodeId,
     pub span: Span,
 
-    pub value: f64,
-    pub suffix: FloatSuffix,
+    pub value: String,
 }
 
 #[derive(Clone, Debug)]

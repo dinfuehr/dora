@@ -3,7 +3,7 @@ pub use self::interner::{Interner, Name};
 pub use self::lexer::Lexer;
 pub use self::parser::Parser;
 pub use self::span::Span;
-pub use self::token::{FloatSuffix, IntBase, Token, TokenKind};
+pub use self::token::{Token, TokenKind};
 
 pub mod ast;
 pub mod builder;

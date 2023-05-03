@@ -9,8 +9,8 @@ pub enum TokenKind {
     StringTail(String),
     StringExpr(String),
     LitChar(char),
-    LitInt(String, IntBase, Option<String>),
-    LitFloat(String, FloatSuffix),
+    LitInt,
+    LitFloat,
     Identifier,
     True,
     False,
@@ -116,9 +116,9 @@ impl TokenKind {
             // literals
             TokenKind::StringTail(_) => "string tail",
             TokenKind::StringExpr(_) => "string epxr",
-            TokenKind::LitInt(..) => "integer literal",
+            TokenKind::LitInt => "integer literal",
             TokenKind::LitChar(_) => "char",
-            TokenKind::LitFloat(..) => "float literal",
+            TokenKind::LitFloat => "float literal",
             TokenKind::Identifier => "identifier",
             TokenKind::True => "true",
             TokenKind::False => "false",
@@ -222,20 +222,6 @@ impl TokenKind {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub enum IntSuffix {
-    UInt8,
-    Int32,
-    Int64,
-    None,
-}
-
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub enum FloatSuffix {
-    Float32,
-    Float64,
-}
-
 #[derive(Debug, PartialEq, Eq)]
 pub struct Token {
     pub kind: TokenKind,
@@ -264,7 +250,7 @@ impl Token {
 
     pub fn name(&self) -> String {
         match self.kind {
-            TokenKind::LitInt(..) => "integer literal".into(),
+            TokenKind::LitInt => "integer literal".into(),
 
             TokenKind::StringTail(ref val) => format!("\"{}\" tail", &val),
             TokenKind::StringExpr(ref val) => format!("\"{}\" expr", &val),
@@ -279,22 +265,5 @@ impl Token {
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         write!(f, "{}", self.name())
-    }
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum IntBase {
-    Bin,
-    Dec,
-    Hex,
-}
-
-impl IntBase {
-    pub fn num(self) -> u32 {
-        match self {
-            IntBase::Bin => 2,
-            IntBase::Dec => 10,
-            IntBase::Hex => 16,
-        }
     }
 }

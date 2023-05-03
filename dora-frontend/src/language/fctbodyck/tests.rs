@@ -753,6 +753,11 @@ fn test_literal_bin_int_overflow() {
 #[test]
 fn test_literal_int64_overflow() {
     err(
+        "fn f() { let x = 922337203685477580800000i64; }",
+        (1, 18),
+        ErrorMessage::NumberLimitOverflow,
+    );
+    err(
         "fn f() { let x = 9223372036854775808i64; }",
         (1, 18),
         ErrorMessage::NumberOverflow("Int64".into()),
@@ -767,19 +772,14 @@ fn test_literal_int64_overflow() {
 }
 
 #[test]
-fn test_literal_float_overflow() {
+fn test_literal_float_format() {
+    ok("fn f() { let x = -340282350000000000000000000000000000000f32; }");
     err(
-        "fn f() { let x = -340282350000000000000000000000000000000f32; }",
-        (1, 19),
-        ErrorMessage::NumberOverflow("Float32".into()),
-    );
-    ok("fn f() { let x = -340282340000000000000000000000000000000f32; }");
-    err(
-        "fn f() { let x = 340282350000000000000000000000000000001f32; }",
+        "fn f() { let x = 0b1001f32; }",
         (1, 18),
-        ErrorMessage::NumberOverflow("Float32".into()),
+        ErrorMessage::InvalidNumberFormat,
     );
-    ok("fn f() { let x = 340282340000000000000000000000000000000f32; }");
+    ok("fn f() { let x = 0x1001f32; }");
 }
 
 #[test]
@@ -1002,8 +1002,23 @@ fn test_assignment_to_const() {
 fn test_unary_minus_byte() {
     err(
         "const m1: UInt8 = -1u8;",
+        (1, 20),
+        ErrorMessage::NegativeUnsigned,
+    );
+    err(
+        "const m1: UInt8 = -1;",
         (1, 19),
-        ErrorMessage::UnOpType("-".into(), "UInt8".into()),
+        ErrorMessage::AssignType("m1".into(), "UInt8".into(), "Int64".into()),
+    );
+    err(
+        "const m1: UInt8 = -1i32;",
+        (1, 19),
+        ErrorMessage::AssignType("m1".into(), "UInt8".into(), "Int32".into()),
+    );
+    err(
+        "fn main() { let m1: UInt8 = -1u8; }",
+        (1, 30),
+        ErrorMessage::NegativeUnsigned,
     );
     ok("const m1: Int32 = -1i32;");
     ok("const m1: Int64 = -1i64;");

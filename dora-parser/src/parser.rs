@@ -1568,8 +1568,8 @@ impl<'a> Parser<'a> {
             TokenKind::LBrace => self.parse_block(),
             TokenKind::If => self.parse_if(),
             TokenKind::LitChar(_) => self.parse_lit_char(),
-            TokenKind::LitInt(..) => self.parse_lit_int(),
-            TokenKind::LitFloat(..) => self.parse_lit_float(),
+            TokenKind::LitInt => self.parse_lit_int(),
+            TokenKind::LitFloat => self.parse_lit_float(),
             TokenKind::StringTail(_) | TokenKind::StringExpr(_) => self.parse_string(),
             TokenKind::Identifier => self.parse_identifier(),
             TokenKind::True => self.parse_bool_literal(),
@@ -1652,34 +1652,23 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_lit_int(&mut self) -> Expr {
+        assert_eq!(self.token.kind, TokenKind::LitInt);
         let span = self.token.span;
-        let tok = self.advance_token();
+        let value = self.source_span(span);
+        self.advance_token();
 
-        let (value_string, base, suffix_string) = match tok.kind {
-            TokenKind::LitInt(value, base, suffix_string) => (value, base, suffix_string),
-            _ => unreachable!(),
-        };
-
-        let expr =
-            ExprData::create_lit_int(self.generate_id(), span, value_string, base, suffix_string);
+        let expr = ExprData::create_lit_int(self.generate_id(), span, value);
         Arc::new(expr)
     }
 
     fn parse_lit_float(&mut self) -> Expr {
+        assert_eq!(self.token.kind, TokenKind::LitFloat);
         let span = self.token.span;
-        let tok = self.advance_token();
+        self.advance_token();
 
-        let (value, suffix) = match tok.kind {
-            TokenKind::LitFloat(value, suffix) => (value, suffix),
-            _ => unreachable!(),
-        };
+        let value = self.source_span(span);
 
-        let filtered = value.chars().filter(|&ch| ch != '_').collect::<String>();
-        let parsed = filtered.parse::<f64>();
-
-        let num = parsed.expect("unparsable float");
-
-        let expr = ExprData::create_lit_float(self.generate_id(), span, num, suffix);
+        let expr = ExprData::create_lit_float(self.generate_id(), span, value);
         Arc::new(expr)
     }
 
@@ -2968,7 +2957,7 @@ mod tests {
 
         let lit = expr.to_lit_float().unwrap();
 
-        assert_eq!(1.2, lit.value);
+        assert_eq!("1.2", lit.value);
     }
 
     #[test]

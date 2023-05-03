@@ -1826,6 +1826,7 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         let ty = self.analysis.ty(lit.id);
+        let (_, value_f64) = self.analysis.literal_value(lit.id);
 
         let ty = match ty {
             SourceType::Float32 => BytecodeType::Float32,
@@ -1836,8 +1837,8 @@ impl<'a> AstBytecodeGen<'a> {
         let dest = self.ensure_register(dest, ty.clone());
 
         match ty {
-            BytecodeType::Float32 => self.builder.emit_const_float32(dest, lit.value as f32),
-            BytecodeType::Float64 => self.builder.emit_const_float64(dest, lit.value),
+            BytecodeType::Float32 => self.builder.emit_const_float32(dest, value_f64 as f32),
+            BytecodeType::Float64 => self.builder.emit_const_float64(dest, value_f64),
             _ => unreachable!(),
         }
 

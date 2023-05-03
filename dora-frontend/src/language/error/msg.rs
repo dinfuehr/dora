@@ -90,7 +90,9 @@ pub enum ErrorMessage {
     UnclosedChar,
     UnclosedString,
     NumberOverflow(String),
+    NumberLimitOverflow,
     InvalidSuffix(String),
+    InvalidNumberFormat,
     ExpectedClass(String),
     ExpectedFactor(String),
     ExpectedToken(String, String),
@@ -168,6 +170,7 @@ pub enum ErrorMessage {
     MissingFileArgument,
     PackageAlreadyExists(String),
     UnknownPackage(String),
+    NegativeUnsigned,
 }
 
 impl ErrorMessage {
@@ -343,6 +346,7 @@ impl ErrorMessage {
                 "unary operator `{}` can not handle value of type `{} {}`.",
                 op, op, expr
             ),
+            ErrorMessage::NegativeUnsigned => "cannot use `-` with UInt8".into(),
             ErrorMessage::BinOpType(ref op, ref lhs, ref rhs) => format!(
                 "binary operator `{}` can not handle expression of type `{} {} {}`",
                 op, lhs, op, rhs
@@ -416,7 +420,11 @@ impl ErrorMessage {
             ErrorMessage::NumberOverflow(ref ty) => {
                 format!("number does not fit into type {}.", ty)
             }
+            ErrorMessage::NumberLimitOverflow => {
+                format!("number exceeds maximum value.")
+            }
             ErrorMessage::InvalidSuffix(ref suffix) => format!("invalid suffix `{}`.", suffix),
+            ErrorMessage::InvalidNumberFormat => "invalid number format.".into(),
             ErrorMessage::ExpectedClass(ref cls) => format!("expected class name but got {}.", cls),
             ErrorMessage::ExpectedFactor(ref got) => format!("factor expected but got {}.", got),
             ErrorMessage::ExpectedTrait => format!("expected trait."),

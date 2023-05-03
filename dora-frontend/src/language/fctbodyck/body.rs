@@ -29,7 +29,7 @@ use crate::language::{report_sym_shadow_span, TypeParamContext};
 use dora_bytecode::Intrinsic;
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, MatchCaseType, MatchPattern};
-use dora_parser::{FloatSuffix, IntBase, Name, Span};
+use dora_parser::{Name, Span};
 use fixedbitset::FixedBitSet;
 
 pub struct TypeCheck<'a> {
@@ -3006,10 +3006,10 @@ impl<'a> TypeCheck<'a> {
     ) -> SourceType {
         let index = match e.rhs.to_lit_int() {
             Some(literal) => {
-                let (_, value_i64, _) =
+                let (ty, value_i64, _) =
                     check_lit_int(self.sa, self.file_id, literal, false, SourceType::Any);
 
-                if literal.base != IntBase::Dec || literal.suffix.is_some() {
+                if ty.is_float() {
                     self.sa.diag.lock().report(
                         self.file_id,
                         literal.span,
@@ -3208,9 +3208,10 @@ impl<'a> TypeCheck<'a> {
         negate: bool,
         _expected_ty: SourceType,
     ) -> SourceType {
-        let (ty, _) = check_lit_float(self.sa, self.file_id, e, negate);
+        let (ty, value) = check_lit_float(self.sa, self.file_id, e, negate);
 
         self.analysis.set_ty(e.id, ty.clone());
+        self.analysis.set_literal_value(e.id, 0, value);
 
         ty
     }
@@ -3517,6 +3518,40 @@ fn arg_allows(
     }
 }
 
+fn parse_lit_int(mut value: &str) -> (u32, String, String) {
+    let base = if value.starts_with("0b") {
+        value = &value[2..];
+        2
+    } else if value.starts_with("0x") {
+        value = &value[2..];
+        16
+    } else {
+        10
+    };
+
+    let mut it = value.chars().peekable();
+    let mut filtered_value = String::new();
+
+    while let Some(&ch) = it.peek() {
+        if ch.is_digit(base) {
+            filtered_value.push(ch);
+            it.next();
+        } else if ch == '_' {
+            it.next();
+        } else {
+            break;
+        }
+    }
+
+    let mut suffix = String::new();
+
+    for ch in it {
+        suffix.push(ch);
+    }
+
+    (base, filtered_value, suffix)
+}
+
 pub fn check_lit_int(
     sa: &SemAnalysis,
     file: SourceFileId,
@@ -3524,34 +3559,49 @@ pub fn check_lit_int(
     negate: bool,
     expected_type: SourceType,
 ) -> (SourceType, i64, f64) {
-    let ty = determine_type_literal_int(sa, file, e, expected_type);
+    let (base, value, suffix) = parse_lit_int(&e.value);
+    let suffix_type = determine_suffix_type_int_literal(sa, file, e.span, &suffix);
+
+    let ty = suffix_type.unwrap_or_else(|| match expected_type {
+        SourceType::UInt8 if !negate => SourceType::UInt8,
+        SourceType::Int32 => SourceType::Int32,
+        SourceType::Int64 => SourceType::Int64,
+        _ => SourceType::Int64,
+    });
 
     if ty.is_float() {
-        let filtered = e.value.chars().filter(|&ch| ch != '_').collect::<String>();
-        let parsed = filtered.parse::<f64>();
-
-        let value = parsed.expect("unparsable float");
+        let value = value.parse::<f64>().expect("unparsable float");
         let value = if negate { -value } else { value };
+
+        if base != 10 {
+            sa.diag
+                .lock()
+                .report(file, e.span, ErrorMessage::InvalidNumberFormat);
+        }
 
         return (ty, 0, value);
     }
 
+    if negate && ty == SourceType::UInt8 {
+        sa.diag
+            .lock()
+            .report(file, e.span, ErrorMessage::NegativeUnsigned);
+    }
+
     let ty_name = ty.name(sa);
+    let parsed_value = u64::from_str_radix(&value, base);
 
-    let filtered = e.value.chars().filter(|&ch| ch != '_').collect::<String>();
-    let value = u64::from_str_radix(&filtered, e.base.num());
-
-    let value = match value {
+    let value = match parsed_value {
         Ok(value) => value,
         Err(_) => {
             sa.diag
                 .lock()
-                .report(file, e.span, ErrorMessage::NumberOverflow(ty_name));
+                .report(file, e.span, ErrorMessage::NumberLimitOverflow);
             return (ty, 0, 0.0);
         }
     };
 
-    if e.base == IntBase::Dec {
+    if base == 10 {
         let max = match ty {
             SourceType::UInt8 => 256,
             SourceType::Int32 => 1u64 << 31,
@@ -3595,43 +3645,62 @@ pub fn check_lit_int(
 fn determine_suffix_type_int_literal(
     sa: &SemAnalysis,
     file: SourceFileId,
-    e: &ast::ExprLitIntType,
+    span: Span,
+    suffix: &str,
 ) -> Option<SourceType> {
-    if let Some(ref suffix) = e.suffix {
-        match suffix.as_str() {
-            "u8" => Some(SourceType::UInt8),
-            "i32" => Some(SourceType::Int32),
-            "i64" => Some(SourceType::Int64),
-            "f32" => Some(SourceType::Float32),
-            "f64" => Some(SourceType::Float64),
-            _ => {
-                sa.diag
-                    .lock()
-                    .report(file, e.span, ErrorMessage::UnknownSuffix);
-                None
-            }
+    match suffix {
+        "u8" => Some(SourceType::UInt8),
+        "i32" => Some(SourceType::Int32),
+        "i64" => Some(SourceType::Int64),
+        "f32" => Some(SourceType::Float32),
+        "f64" => Some(SourceType::Float64),
+        "" => None,
+        _ => {
+            sa.diag
+                .lock()
+                .report(file, span, ErrorMessage::UnknownSuffix);
+            None
         }
-    } else {
-        None
     }
 }
 
-pub fn determine_type_literal_int(
-    sa: &SemAnalysis,
-    file: SourceFileId,
-    e: &ast::ExprLitIntType,
-    expected_type: SourceType,
-) -> SourceType {
-    let suffix_type = determine_suffix_type_int_literal(sa, file, e);
-
-    let default_type = match expected_type {
-        SourceType::UInt8 => SourceType::UInt8,
-        SourceType::Int32 => SourceType::Int32,
-        SourceType::Int64 => SourceType::Int64,
-        _ => SourceType::Int64,
+fn parse_lit_float(mut value: &str) -> (u32, String, String) {
+    let base = if value.starts_with("0b") {
+        value = &value[2..];
+        2
+    } else if value.starts_with("0x") {
+        value = &value[2..];
+        16
+    } else {
+        10
     };
 
-    suffix_type.unwrap_or(default_type)
+    let mut it = value.chars().peekable();
+    let mut filtered_value = String::new();
+    let mut allow_scientific = true;
+
+    while let Some(&ch) = it.peek() {
+        if ch.is_digit(base) || ch == '.' || ch == '-' || ch == '+' {
+            filtered_value.push(ch);
+            it.next();
+        } else if ch == '_' {
+            it.next();
+        } else if (ch == 'e' || ch == 'E') && allow_scientific {
+            filtered_value.push(ch);
+            it.next();
+            allow_scientific = false;
+        } else {
+            break;
+        }
+    }
+
+    let mut suffix = String::new();
+
+    for ch in it {
+        suffix.push(ch);
+    }
+
+    (base, filtered_value, suffix)
 }
 
 pub fn check_lit_float(
@@ -3640,27 +3709,44 @@ pub fn check_lit_float(
     e: &ast::ExprLitFloatType,
     negate: bool,
 ) -> (SourceType, f64) {
-    let ty = match e.suffix {
-        FloatSuffix::Float32 => SourceType::Float32,
-        FloatSuffix::Float64 => SourceType::Float64,
-    };
+    let (base, value, suffix) = parse_lit_float(&e.value);
 
-    let (min, max) = match e.suffix {
-        FloatSuffix::Float32 => (f32::MIN as f64, f32::MAX as f64),
-        FloatSuffix::Float64 => (f64::MIN, f64::MAX),
-    };
-
-    let value = if negate { -e.value } else { e.value };
-
-    if value < min || value > max {
-        let ty = match e.suffix {
-            FloatSuffix::Float32 => "Float32",
-            FloatSuffix::Float64 => "Float64",
-        };
-
+    if base != 10 {
         sa.diag
             .lock()
-            .report(file, e.span, ErrorMessage::NumberOverflow(ty.into()));
+            .report(file, e.span, ErrorMessage::InvalidNumberFormat);
+    }
+
+    let ty = match suffix.as_str() {
+        "f32" => SourceType::Float32,
+        "f64" => SourceType::Float64,
+        "" => SourceType::Float64,
+        _ => {
+            sa.diag
+                .lock()
+                .report(file, e.span, ErrorMessage::UnknownSuffix);
+            SourceType::Float64
+        }
+    };
+
+    let (min, max) = match ty {
+        SourceType::Float32 => (f32::MIN as f64, f32::MAX as f64),
+        SourceType::Float64 => (f64::MIN, f64::MAX),
+        _ => unreachable!(),
+    };
+
+    let value = value.parse::<f64>().expect("unparsable float");
+    let value = if negate { -value } else { value };
+
+    if value < min || value > max {
+        let name = match ty {
+            SourceType::Float32 => "Float32",
+            SourceType::Float64 => "Float64",
+            _ => unreachable!(),
+        };
+        sa.diag
+            .lock()
+            .report(file, e.span, ErrorMessage::NumberOverflow(name.into()));
     }
 
     (ty, value)
