@@ -8,14 +8,15 @@ use crate::error::{ParseError, ParseErrorWithLocation};
 
 use crate::interner::*;
 
-use crate::{Lexer, Span, Token, TokenKind};
+use crate::{lex, Span, Token, TokenKind};
 
 pub struct Parser<'a> {
-    lexer: Lexer,
+    tokens: Vec<Token>,
     token: Token,
+    token_idx: usize,
     id_generator: NodeIdGenerator,
     interner: &'a mut Interner,
-    last_end: Option<u32>,
+    content: Arc<String>,
     errors: Vec<ParseErrorWithLocation>,
 }
 
@@ -35,19 +36,19 @@ impl<'a> Parser<'a> {
     }
 
     fn common_init(content: Arc<String>, interner: &'a mut Interner) -> Parser<'a> {
-        let token = Token::new(TokenKind::End, Span::invalid());
-        let lexer = Lexer::new(content);
+        let (tokens, errors) = lex(&*content);
 
         let mut parser = Parser {
-            lexer,
-            token,
+            token: Token::new(TokenKind::End, Span::invalid()),
+            tokens,
+            token_idx: 0,
             id_generator: NodeIdGenerator::new(),
             interner,
-            last_end: Some(0),
-            errors: Vec::new(),
+            content,
+            errors,
         };
 
-        parser.advance_token();
+        parser.setup_token();
 
         parser
     }
@@ -58,9 +59,7 @@ impl<'a> Parser<'a> {
 
     pub fn parse(mut self) -> (ast::File, NodeIdGenerator, Vec<ParseErrorWithLocation>) {
         let ast_file = self.parse_top_level();
-        let mut errors = self.errors;
-        errors.append(&mut self.lexer.errors());
-        (ast_file, self.id_generator, errors)
+        (ast_file, self.id_generator, self.errors)
     }
 
     fn parse_top_level(&mut self) -> ast::File {
@@ -1694,20 +1693,15 @@ impl<'a> Parser<'a> {
                     let expr = self.parse_expression();
                     parts.push(expr);
 
-                    if !self.token.is(TokenKind::RBrace) {
-                        self.report_error(ParseError::UnclosedStringTemplate);
-                        break;
-                    }
-
-                    let token = self.lexer.read_string_continuation();
-                    self.advance_token_with(token);
-
                     let span = self.token.span;
 
                     let (value, finished) = match self.token.kind {
                         TokenKind::StringTail(ref value) => (value.clone(), true),
                         TokenKind::StringExpr(ref value) => (value.clone(), false),
-                        _ => unreachable!(),
+                        _ => {
+                            self.report_error(ParseError::UnclosedStringTemplate);
+                            (String::new(), true)
+                        }
                     };
 
                     parts.push(Arc::new(ExprData::create_lit_str(
@@ -1840,15 +1834,19 @@ impl<'a> Parser<'a> {
     }
 
     fn advance_token(&mut self) -> Token {
-        let token = self.lexer.read_token();
-        self.advance_token_with(token)
+        if self.token_idx < self.tokens.len() {
+            self.token_idx += 1;
+        }
+
+        self.setup_token()
     }
 
-    fn advance_token_with(&mut self, token: Token) -> Token {
-        self.last_end = if self.token.span.is_valid() {
-            Some(self.token.span.end())
+    fn setup_token(&mut self) -> Token {
+        let token = if self.token_idx == self.tokens.len() {
+            let span = Span::new(self.content.len().try_into().expect("overflow"), 0);
+            Token::new(TokenKind::End, span)
         } else {
-            None
+            self.tokens[self.token_idx].clone()
         };
 
         mem::replace(&mut self.token, token)
@@ -1857,11 +1855,16 @@ impl<'a> Parser<'a> {
     fn source_span(&self, span: Span) -> String {
         let start = span.start() as usize;
         let end = span.end() as usize;
-        String::from(&self.lexer.source()[start..end])
+        String::from(&self.content[start..end])
     }
 
     fn span_from(&self, start: u32) -> Span {
-        Span::new(start, self.last_end.unwrap() - start)
+        if self.tokens[self.token_idx].span.start() == start {
+            self.tokens[self.token_idx].span.clone()
+        } else {
+            let last_token_end = self.tokens[self.token_idx - 1].span.end();
+            Span::new(start, last_token_end - start)
+        }
     }
 }
 
@@ -1946,6 +1949,7 @@ mod tests {
         let err = &errors[0];
 
         assert_eq!(msg, err.error);
+        println!("error = {}", err.span);
         let line_starts = compute_line_starts(code);
         let (computed_line, computed_column) = compute_line_column(&line_starts, err.span.start());
         assert_eq!(line, computed_line);

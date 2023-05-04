@@ -4,13 +4,30 @@ use std::sync::Arc;
 use crate::error::{ParseError, ParseErrorWithLocation};
 use crate::{Span, Token, TokenKind};
 
+pub fn lex(content: &str) -> (Vec<Token>, Vec<ParseErrorWithLocation>) {
+    let content = Arc::new(content.into());
+    let mut lexer = Lexer::new(content);
+    let mut tokens = Vec::new();
+
+    loop {
+        let token = lexer.read_token();
+
+        if token.is_eof() {
+            break;
+        }
+
+        tokens.push(token);
+    }
+
+    (tokens, lexer.errors)
+}
+
 pub struct Lexer {
     content: Arc<String>,
     offset: usize,
     keywords: HashMap<&'static str, TokenKind>,
     errors: Vec<ParseErrorWithLocation>,
-    in_string_template: bool,
-    open_braces: usize,
+    open_braces: Vec<usize>,
 }
 
 impl Lexer {
@@ -34,8 +51,7 @@ impl Lexer {
             content,
             keywords,
             errors: Vec::new(),
-            in_string_template: false,
-            open_braces: 0,
+            open_braces: Vec::new(),
         }
     }
 
@@ -59,7 +75,7 @@ impl Lexer {
             } else if is_identifier_start(ch) {
                 return self.read_identifier();
             } else if is_quote(ch) {
-                return self.read_string(true);
+                return self.read_string(false);
             } else if is_char_quote(ch) {
                 return self.read_char_literal();
             } else if is_operator(ch) {
@@ -203,11 +219,14 @@ impl Lexer {
         }
     }
 
-    fn read_string(&mut self, skip_quote: bool) -> Token {
-        let start = self.offset();
+    fn read_string(&mut self, continuation: bool) -> Token {
+        let mut start = self.offset();
         let mut value = String::new();
 
-        if skip_quote {
+        if continuation {
+            // } was already consumed by read_operator().
+            start -= 1;
+        } else {
             assert_eq!(self.curr(), Some('\"'));
             self.eat_char();
         }
@@ -216,6 +235,8 @@ impl Lexer {
             if self.curr() == Some('$') && self.lookahead() == Some('{') {
                 self.eat_char();
                 self.eat_char();
+
+                self.open_braces.push(1);
 
                 let ttype = TokenKind::StringExpr(value);
                 let span = self.span_from(start);
@@ -242,10 +263,6 @@ impl Lexer {
         }
 
         Token::new(ttype, span)
-    }
-
-    pub fn read_string_continuation(&mut self) -> Token {
-        self.read_string(false)
     }
 
     fn read_operator(&mut self) -> Token {
@@ -275,14 +292,19 @@ impl Lexer {
             '[' => TokenKind::LBracket,
             ']' => TokenKind::RBracket,
             '{' => {
-                if self.in_string_template {
-                    self.open_braces += 1;
+                if let Some(open_braces_top) = self.open_braces.last_mut() {
+                    *open_braces_top += 1;
                 }
                 TokenKind::LBrace
             }
             '}' => {
-                if self.in_string_template {
-                    self.open_braces -= 1;
+                if let Some(open_braces_top) = self.open_braces.last_mut() {
+                    *open_braces_top -= 1;
+
+                    if *open_braces_top == 0 {
+                        self.open_braces.pop();
+                        return self.read_string(true);
+                    }
                 }
                 TokenKind::RBrace
             }
@@ -616,29 +638,27 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Lexer, ParseError, ParseErrorWithLocation, Span, Token, TokenKind};
-    use std::sync::Arc;
-
-    fn lex(content: &str) -> (Vec<Token>, Vec<ParseErrorWithLocation>) {
-        let content = Arc::new(content.into());
-        let mut lexer = Lexer::new(content);
-        let mut tokens = Vec::new();
-
-        loop {
-            let token = lexer.read_token();
-            if token.is_eof() {
-                break;
-            }
-            tokens.push(token);
-        }
-
-        (tokens, lexer.errors)
-    }
+    use crate::{lex, Lexer, ParseError, ParseErrorWithLocation, Span, Token, TokenKind};
 
     fn lex_success(content: &str) -> Vec<Token> {
         let (tokens, errors) = lex(content);
         assert!(errors.is_empty());
         tokens
+    }
+
+    fn dump_tokens(tokens: Vec<Token>) -> String {
+        let mut content = String::new();
+
+        for token in tokens {
+            content.push_str(&format!(
+                "{:?}@{}..{}\n",
+                token.kind,
+                token.span.start(),
+                token.span.end()
+            ));
+        }
+
+        content
     }
 
     fn assert_end(reader: &mut Lexer, start: u32) {
@@ -980,5 +1000,21 @@ mod tests {
             ]
         );
         assert_err(errors, ParseError::UnknownChar('☕'), 1, 3);
+    }
+
+    #[test]
+    fn test_string_template() {
+        let tokens = lex_success(r#""1${a}2${b}3"{}"#);
+        assert_eq!(
+            dump_tokens(tokens),
+            r#"StringExpr("1")@0..4
+Identifier@4..5
+StringExpr("2")@5..9
+Identifier@9..10
+StringTail("3")@10..13
+LBrace@13..14
+RBrace@14..15
+"#
+        );
     }
 }
