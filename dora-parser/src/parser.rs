@@ -1859,12 +1859,8 @@ impl<'a> Parser<'a> {
     }
 
     fn span_from(&self, start: u32) -> Span {
-        if self.tokens[self.token_idx].span.start() == start {
-            self.tokens[self.token_idx].span.clone()
-        } else {
-            let last_token_end = self.tokens[self.token_idx - 1].span.end();
-            Span::new(start, last_token_end - start)
-        }
+        let last_token_end = self.tokens[self.token_idx - 1].span.end();
+        Span::new(start, last_token_end - start)
     }
 }
 
