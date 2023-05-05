@@ -114,7 +114,7 @@ pub enum ErrorMessage {
     MisplacedAnnotation(String),
     RedundantAnnotation(String),
     UnknownAnnotation(String),
-    InvalidEscapeSequence(char),
+    InvalidEscapeSequence,
     MissingFctBody,
     FctCallExpected,
     ThisOrSuperExpected(String),
@@ -171,6 +171,7 @@ pub enum ErrorMessage {
     PackageAlreadyExists(String),
     UnknownPackage(String),
     NegativeUnsigned,
+    InvalidCharLiteral,
 }
 
 impl ErrorMessage {
@@ -465,9 +466,6 @@ impl ErrorMessage {
                 format!("unknown character {} (codepoint {}).", ch, ch as usize)
             }
             ErrorMessage::UnclosedComment => "unclosed comment.".into(),
-            ErrorMessage::InvalidEscapeSequence(ch) => {
-                format!("unknown escape sequence `\\{}`.", ch)
-            }
             ErrorMessage::UnclosedString => "unclosed string.".into(),
             ErrorMessage::UnclosedChar => "unclosed char.".into(),
             ErrorMessage::IoError => "error reading from file.".into(),
@@ -609,6 +607,12 @@ impl ErrorMessage {
             }
             ErrorMessage::UnknownPackage(ref name) => {
                 format!("no package with name `{}` was found.", name)
+            }
+            ErrorMessage::InvalidCharLiteral => {
+                format!("invalid char literal.")
+            }
+            ErrorMessage::InvalidEscapeSequence => {
+                format!("invalid escape sequence.")
             }
         }
     }

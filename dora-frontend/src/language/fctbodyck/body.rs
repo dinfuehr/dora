@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 use std::convert::TryFrom;
+use std::str::Chars;
 use std::sync::Arc;
 use std::{f32, f64};
 
@@ -3216,17 +3217,6 @@ impl<'a> TypeCheck<'a> {
         ty
     }
 
-    fn check_expr_lit_str(
-        &mut self,
-        e: &ast::ExprLitStrType,
-        _expected_ty: SourceType,
-    ) -> SourceType {
-        let str_ty = self.sa.cls(self.sa.known.classes.string());
-        self.analysis.set_ty(e.id, str_ty.clone());
-
-        str_ty
-    }
-
     fn check_expr_lit_bool(
         &mut self,
         e: &ast::ExprLitBoolType,
@@ -3242,15 +3232,32 @@ impl<'a> TypeCheck<'a> {
         e: &ast::ExprLitCharType,
         _expected_ty: SourceType,
     ) -> SourceType {
+        let value = check_lit_char(self.sa, self.file_id, e);
+
         self.analysis.set_ty(e.id, SourceType::Char);
+        self.analysis.set_literal_char(e.id, value);
 
         SourceType::Char
+    }
+
+    fn check_expr_lit_str(
+        &mut self,
+        e: &ast::ExprLitStrType,
+        _expected_ty: SourceType,
+    ) -> SourceType {
+        let value = check_lit_str(self.sa, self.file_id, e);
+
+        let str_ty = self.sa.cls(self.sa.known.classes.string());
+        self.analysis.set_ty(e.id, str_ty.clone());
+        self.analysis.set_literal_string(e.id, value);
+
+        str_ty
     }
 
     fn check_expr_template(
         &mut self,
         e: &ast::ExprTemplateType,
-        _expected_ty: SourceType,
+        expected_ty: SourceType,
     ) -> SourceType {
         let stringable_trait = self.sa.known.traits.stringable();
         let stringable_trait_ty = SourceType::new_trait(stringable_trait);
@@ -3287,7 +3294,13 @@ impl<'a> TypeCheck<'a> {
                     ErrorMessage::ExpectedStringable(ty),
                 );
             } else {
-                assert!(part.is_lit_str());
+                match part.as_ref() {
+                    ast::ExprData::LitStr(ref e) => {
+                        self.check_expr_lit_str(e, expected_ty.clone());
+                    }
+
+                    _ => unreachable!(),
+                }
             }
         }
 
@@ -3518,38 +3531,90 @@ fn arg_allows(
     }
 }
 
-fn parse_lit_int(mut value: &str) -> (u32, String, String) {
-    let base = if value.starts_with("0b") {
-        value = &value[2..];
-        2
-    } else if value.starts_with("0x") {
-        value = &value[2..];
-        16
-    } else {
-        10
-    };
+fn check_lit_str(sa: &SemAnalysis, file_id: SourceFileId, e: &ast::ExprLitStrType) -> String {
+    let mut value = e.value.as_str();
+    assert!(value.starts_with("\"") || value.starts_with("}"));
+    value = &value[1..];
 
-    let mut it = value.chars().peekable();
-    let mut filtered_value = String::new();
+    let mut it = value.chars();
+    let mut result = String::new();
 
-    while let Some(&ch) = it.peek() {
-        if ch.is_digit(base) {
-            filtered_value.push(ch);
-            it.next();
-        } else if ch == '_' {
-            it.next();
+    while it.as_str() != "\"" && it.as_str() != "${" && !it.as_str().is_empty() {
+        let ch = parse_escaped_char(sa, file_id, e.span.start() + 1, &mut it);
+        result.push(ch);
+    }
+
+    result
+}
+
+pub fn check_lit_char(sa: &SemAnalysis, file_id: SourceFileId, e: &ast::ExprLitCharType) -> char {
+    let mut value = e.value.as_str();
+    assert!(value.starts_with("\'"));
+    value = &value[1..];
+
+    if value.is_empty() {
+        // unclosed char was already reported
+        return '\0';
+    } else if value == "\'" {
+        // empty char literal ''
+        sa.diag
+            .lock()
+            .report(file_id, e.span, ErrorMessage::InvalidCharLiteral);
+        return '\0';
+    }
+
+    let mut it = value.chars();
+    let result = parse_escaped_char(sa, file_id, e.span.start() + 1, &mut it);
+
+    // Check whether the char literal ends now.
+    if it.as_str() != "\'" {
+        sa.diag
+            .lock()
+            .report(file_id, e.span, ErrorMessage::InvalidCharLiteral);
+    }
+
+    result
+}
+
+fn parse_escaped_char(
+    sa: &SemAnalysis,
+    file_id: SourceFileId,
+    offset: u32,
+    it: &mut Chars,
+) -> char {
+    let ch = it.next().expect("missing char");
+    if ch == '\\' {
+        if let Some(ch) = it.next() {
+            match ch {
+                '\\' => '\\',
+                'n' => '\n',
+                't' => '\t',
+                'r' => '\r',
+                '\"' => '\"',
+                '\'' => '\'',
+                '0' => '\0',
+                '$' => '$',
+                _ => {
+                    let count = 1 + ch.len_utf8() as u32;
+                    sa.diag.lock().report(
+                        file_id,
+                        Span::new(offset, count),
+                        ErrorMessage::InvalidEscapeSequence,
+                    );
+                    '\0'
+                }
+            }
         } else {
-            break;
+            sa.diag.lock().report(
+                file_id,
+                Span::new(offset, 1),
+                ErrorMessage::InvalidEscapeSequence,
+            );
+            '\0'
         }
+    } else {
+        ch
     }
-
-    let mut suffix = String::new();
-
-    for ch in it {
-        suffix.push(ch);
-    }
-
-    (base, filtered_value, suffix)
 }
 
 pub fn check_lit_int(
@@ -3642,6 +3707,40 @@ pub fn check_lit_int(
     }
 }
 
+fn parse_lit_int(mut value: &str) -> (u32, String, String) {
+    let base = if value.starts_with("0b") {
+        value = &value[2..];
+        2
+    } else if value.starts_with("0x") {
+        value = &value[2..];
+        16
+    } else {
+        10
+    };
+
+    let mut it = value.chars().peekable();
+    let mut filtered_value = String::new();
+
+    while let Some(&ch) = it.peek() {
+        if ch.is_digit(base) {
+            filtered_value.push(ch);
+            it.next();
+        } else if ch == '_' {
+            it.next();
+        } else {
+            break;
+        }
+    }
+
+    let mut suffix = String::new();
+
+    for ch in it {
+        suffix.push(ch);
+    }
+
+    (base, filtered_value, suffix)
+}
+
 fn determine_suffix_type_int_literal(
     sa: &SemAnalysis,
     file: SourceFileId,
@@ -3662,45 +3761,6 @@ fn determine_suffix_type_int_literal(
             None
         }
     }
-}
-
-fn parse_lit_float(mut value: &str) -> (u32, String, String) {
-    let base = if value.starts_with("0b") {
-        value = &value[2..];
-        2
-    } else if value.starts_with("0x") {
-        value = &value[2..];
-        16
-    } else {
-        10
-    };
-
-    let mut it = value.chars().peekable();
-    let mut filtered_value = String::new();
-    let mut allow_scientific = true;
-
-    while let Some(&ch) = it.peek() {
-        if ch.is_digit(base) || ch == '.' || ch == '-' || ch == '+' {
-            filtered_value.push(ch);
-            it.next();
-        } else if ch == '_' {
-            it.next();
-        } else if (ch == 'e' || ch == 'E') && allow_scientific {
-            filtered_value.push(ch);
-            it.next();
-            allow_scientific = false;
-        } else {
-            break;
-        }
-    }
-
-    let mut suffix = String::new();
-
-    for ch in it {
-        suffix.push(ch);
-    }
-
-    (base, filtered_value, suffix)
 }
 
 pub fn check_lit_float(
@@ -3750,6 +3810,45 @@ pub fn check_lit_float(
     }
 
     (ty, value)
+}
+
+fn parse_lit_float(mut value: &str) -> (u32, String, String) {
+    let base = if value.starts_with("0b") {
+        value = &value[2..];
+        2
+    } else if value.starts_with("0x") {
+        value = &value[2..];
+        16
+    } else {
+        10
+    };
+
+    let mut it = value.chars().peekable();
+    let mut filtered_value = String::new();
+    let mut allow_scientific = true;
+
+    while let Some(&ch) = it.peek() {
+        if ch.is_digit(base) || ch == '.' || ch == '-' || ch == '+' {
+            filtered_value.push(ch);
+            it.next();
+        } else if ch == '_' {
+            it.next();
+        } else if (ch == 'e' || ch == 'E') && allow_scientific {
+            filtered_value.push(ch);
+            it.next();
+            allow_scientific = false;
+        } else {
+            break;
+        }
+    }
+
+    let mut suffix = String::new();
+
+    for ch in it {
+        suffix.push(ch);
+    }
+
+    (base, filtered_value, suffix)
 }
 
 struct MethodDescriptor {

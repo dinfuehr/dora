@@ -152,80 +152,35 @@ impl Lexer {
 
     fn read_char_literal(&mut self) -> Token {
         let start = self.offset();
-        let mut terminated = false;
-        let mut iterations = 0;
-        let mut ch = '\0';
-
         self.eat_char();
 
         while self.curr().is_some() && !is_char_quote(self.curr()) {
-            let current_char = self.read_escaped_char();
-            if iterations == 0 {
-                ch = current_char;
-            }
-            iterations += 1;
+            self.read_escaped_char();
         }
 
         if is_char_quote(self.curr()) {
             self.eat_char();
-            if iterations == 1 {
-                terminated = true;
-            }
-        }
-
-        let ttype = TokenKind::LitChar(ch);
-        let span = self.span_from(start);
-
-        if !terminated {
+        } else {
+            let span = self.span_from(start);
             self.report_error_at(ParseError::UnclosedChar, span);
         }
 
-        Token::new(ttype, span)
+        let span = self.span_from(start);
+        Token::new(TokenKind::LitChar, span)
     }
 
-    fn read_escaped_char(&mut self) -> char {
-        let ch = self.curr().expect("missing char");
-        let escaped_start = self.offset();
-        self.eat_char();
-
-        if ch == '\\' {
-            let ch = if let Some(ch) = self.curr() {
-                ch
-            } else {
-                let span = self.span_from(escaped_start);
-                self.report_error_at(ParseError::InvalidEscapeSequence, span);
-                return '\\';
-            };
-
+    fn read_escaped_char(&mut self) {
+        if self.eat_char() == Some('\\') {
             self.eat_char();
-
-            match ch {
-                '\\' => '\\',
-                'n' => '\n',
-                't' => '\t',
-                'r' => '\r',
-                '\"' => '\"',
-                '\'' => '\'',
-                '0' => '\0',
-                '$' => '$',
-                _ => {
-                    let span = self.span_from(escaped_start);
-                    self.report_error_at(ParseError::InvalidEscapeSequence, span);
-                    ch
-                }
-            }
-        } else {
-            ch
         }
     }
 
     fn read_string(&mut self, continuation: bool) -> Token {
         let mut start = self.offset();
-        let mut value = String::new();
 
         if continuation {
             // } was already consumed by read_operator().
-            start -= 1;
+            start -= '}'.len_utf8() as u32;
         } else {
             assert_eq!(self.curr(), Some('\"'));
             self.eat_char();
@@ -238,31 +193,23 @@ impl Lexer {
 
                 self.open_braces.push(1);
 
-                let ttype = TokenKind::StringExpr(value);
+                let ttype = TokenKind::StringExpr;
                 let span = self.span_from(start);
                 return Token::new(ttype, span);
             }
 
-            let ch = self.read_escaped_char();
-            value.push(ch);
+            self.read_escaped_char();
         }
 
-        let terminated = if is_quote(self.curr()) {
+        if is_quote(self.curr()) {
             self.eat_char();
-            true
         } else {
-            false
-        };
-
-        let span = self.span_from(start);
-        let ttype = TokenKind::StringTail(value);
-
-        if !terminated {
             let span = self.span_from(start);
             self.report_error_at(ParseError::UnclosedString, span);
         }
 
-        Token::new(ttype, span)
+        let span = self.span_from(start);
+        Token::new(TokenKind::StringTail, span)
     }
 
     fn read_operator(&mut self) -> Token {
@@ -502,11 +449,14 @@ impl Lexer {
         self.offset.try_into().expect("overflow")
     }
 
-    fn eat_char(&mut self) {
+    fn eat_char(&mut self) -> Option<char> {
         let curr = self.curr();
 
         if let Some(ch) = curr {
             self.offset += ch.len_utf8();
+            Some(ch)
+        } else {
+            None
         }
     }
 
@@ -519,10 +469,10 @@ impl Lexer {
     }
 
     fn lookahead(&self) -> Option<char> {
-        let pos = self.offset + 1;
-
-        if pos < self.content.len() {
-            self.content[pos..].chars().next()
+        if self.offset < self.content.len() {
+            let mut it = self.content[self.offset..].chars();
+            it.next();
+            it.next()
         } else {
             None
         }
@@ -819,7 +769,7 @@ mod tests {
     #[test]
     fn test_string_with_newline() {
         let mut reader = Lexer::from_str("\"abc\ndef\"");
-        assert_tok(&mut reader, TokenKind::StringTail("abc\ndef".into()), 0, 9);
+        assert_tok(&mut reader, TokenKind::StringTail, 0, 9);
     }
 
     #[test]
@@ -827,87 +777,80 @@ mod tests {
         let tokens = lex_success("\"\\\"\"");
         assert_eq!(
             tokens,
-            vec![Token::new(
-                TokenKind::StringTail("\"".into()),
-                Span::new(0, 4)
-            )]
+            vec![Token::new(TokenKind::StringTail, Span::new(0, 4))]
         );
 
         let tokens = lex_success("\"\\$\"");
-        assert_tok2(tokens, TokenKind::StringTail("$".into()), 0, 4);
+        assert_tok2(tokens, TokenKind::StringTail, 0, 4);
 
         let tokens = lex_success("\"\\\'\"");
-        assert_tok2(tokens, TokenKind::StringTail("'".into()), 0, 4);
+        assert_tok2(tokens, TokenKind::StringTail, 0, 4);
 
         let tokens = lex_success("\"\\t\"");
-        assert_tok2(tokens, TokenKind::StringTail("\t".into()), 0, 4);
+        assert_tok2(tokens, TokenKind::StringTail, 0, 4);
 
         let tokens = lex_success("\"\\n\"");
-        assert_tok2(tokens, TokenKind::StringTail("\n".into()), 0, 4);
+        assert_tok2(tokens, TokenKind::StringTail, 0, 4);
 
         let tokens = lex_success("\"\\r\"");
-        assert_tok2(tokens, TokenKind::StringTail("\r".into()), 0, 4);
+        assert_tok2(tokens, TokenKind::StringTail, 0, 4);
 
         let tokens = lex_success("\"\\\\\"");
-        assert_tok2(tokens, TokenKind::StringTail("\\".into()), 0, 4);
+        assert_tok2(tokens, TokenKind::StringTail, 0, 4);
 
         let (tokens, errors) = lex("\"\\");
         assert_eq!(
             tokens,
-            vec![Token::new(
-                TokenKind::StringTail("\\".into()),
-                Span::new(0, 2)
-            )]
+            vec![Token::new(TokenKind::StringTail, Span::new(0, 2))]
         );
         assert_eq!(
             errors,
-            vec![
-                ParseErrorWithLocation::new(Span::new(1, 1), ParseError::InvalidEscapeSequence),
-                ParseErrorWithLocation::new(Span::new(0, 2), ParseError::UnclosedString)
-            ]
+            vec![ParseErrorWithLocation::new(
+                Span::new(0, 2),
+                ParseError::UnclosedString
+            )]
         );
     }
 
     #[test]
     fn test_unclosed_string() {
         let (tokens, errors) = lex("\"abc");
-        assert_tok2(tokens, TokenKind::StringTail("abc".into()), 0, 4);
+        assert_tok2(tokens, TokenKind::StringTail, 0, 4);
         assert_err(errors, ParseError::UnclosedString, 0, 4);
     }
 
     #[test]
     fn test_unclosed_char() {
         let (tokens, errors) = lex("'a");
-        assert_tok2(tokens, TokenKind::LitChar('a'), 0, 2);
+        assert_tok2(tokens, TokenKind::LitChar, 0, 2);
         assert_err(errors, ParseError::UnclosedChar, 0, 2);
 
         let (tokens, errors) = lex("'\\");
-        assert_tok2(tokens, TokenKind::LitChar('\\'), 0, 2);
+        assert_tok2(tokens, TokenKind::LitChar, 0, 2);
         assert_eq!(
             errors,
-            vec![
-                ParseErrorWithLocation::new(Span::new(1, 1), ParseError::InvalidEscapeSequence),
-                ParseErrorWithLocation::new(Span::new(0, 2), ParseError::UnclosedChar)
-            ]
+            vec![ParseErrorWithLocation::new(
+                Span::new(0, 2),
+                ParseError::UnclosedChar
+            )]
         );
 
         let (tokens, errors) = lex("'\\n");
-        assert_tok2(tokens, TokenKind::LitChar('\n'), 0, 3);
+        assert_tok2(tokens, TokenKind::LitChar, 0, 3);
         assert_err(errors, ParseError::UnclosedChar, 0, 3);
 
-        let (tokens, errors) = lex("'ab'");
-        assert_tok2(tokens, TokenKind::LitChar('a'), 0, 4);
-        assert_err(errors, ParseError::UnclosedChar, 0, 4);
+        let tokens = lex_success("'ab'");
+        assert_tok2(tokens, TokenKind::LitChar, 0, 4);
 
         let (tokens, errors) = lex("'");
-        assert_tok2(tokens, TokenKind::LitChar('\0'), 0, 1);
+        assert_tok2(tokens, TokenKind::LitChar, 0, 1);
         assert_err(errors, ParseError::UnclosedChar, 0, 1);
     }
 
     #[test]
     fn test_string() {
         let mut reader = Lexer::from_str("\"abc\"");
-        assert_tok(&mut reader, TokenKind::StringTail("abc".into()), 0, 5);
+        assert_tok(&mut reader, TokenKind::StringTail, 0, 5);
         assert_end(&mut reader, 5);
     }
 
@@ -1007,11 +950,11 @@ mod tests {
         let tokens = lex_success(r#""1${a}2${b}3"{}"#);
         assert_eq!(
             dump_tokens(tokens),
-            r#"StringExpr("1")@0..4
+            r#"StringExpr@0..4
 Identifier@4..5
-StringExpr("2")@5..9
+StringExpr@5..9
 Identifier@9..10
-StringTail("3")@10..13
+StringTail@10..13
 LBrace@13..14
 RBrace@14..15
 "#

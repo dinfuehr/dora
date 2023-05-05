@@ -658,7 +658,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         for part in &expr.parts {
             if let Some(ref lit_str) = part.to_lit_str() {
-                let value = lit_str.value.clone();
+                let value = self.analysis.literal_string(lit_str.id);
                 self.builder.emit_const_string(part_register, value);
             } else {
                 let ty = self.ty(part.id());
@@ -1773,7 +1773,8 @@ impl<'a> AstBytecodeGen<'a> {
 
         let dest = self.ensure_register(dest, BytecodeType::Char);
 
-        self.builder.emit_const_char(dest, lit.value);
+        let value = self.analysis.literal_char(lit.id);
+        self.builder.emit_const_char(dest, value);
 
         dest
     }
@@ -1851,7 +1852,8 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         let dest = self.ensure_register(dest, BytecodeType::Ptr);
-        self.builder.emit_const_string(dest, lit.value.clone());
+        let value = self.analysis.literal_string(lit.id);
+        self.builder.emit_const_string(dest, value);
 
         dest
     }

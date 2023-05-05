@@ -1168,8 +1168,12 @@ impl ExprData {
         })
     }
 
-    pub fn create_lit_char(id: NodeId, span: Span, value: char) -> ExprData {
-        ExprData::LitChar(ExprLitCharType { id, span, value })
+    pub fn create_lit_char(id: NodeId, span: Span, full_value: String) -> ExprData {
+        ExprData::LitChar(ExprLitCharType {
+            id,
+            span,
+            value: full_value,
+        })
     }
 
     pub fn create_lit_int(id: NodeId, span: Span, value: String) -> ExprData {
@@ -1655,8 +1659,7 @@ pub struct ExprBinType {
 pub struct ExprLitCharType {
     pub id: NodeId,
     pub span: Span,
-
-    pub value: char,
+    pub value: String,
 }
 
 #[derive(Clone, Debug)]

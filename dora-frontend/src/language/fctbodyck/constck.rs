@@ -1,5 +1,5 @@
 use crate::language::error::msg::ErrorMessage;
-use crate::language::fctbodyck::body::{check_lit_float, check_lit_int};
+use crate::language::fctbodyck::body::{check_lit_char, check_lit_float, check_lit_int};
 use crate::language::sem_analysis::{ConstDefinition, ConstValue, SemAnalysis};
 use crate::language::ty::SourceType;
 
@@ -15,7 +15,10 @@ impl<'a> ConstCheck<'a> {
         let expected_type = self.const_.ty.clone();
 
         let (ty, lit) = match expr {
-            &ExprData::LitChar(ref expr) => (SourceType::Char, ConstValue::Char(expr.value)),
+            &ExprData::LitChar(ref e) => {
+                let value = check_lit_char(self.sa, self.const_.file_id, e);
+                (SourceType::Char, ConstValue::Char(value))
+            }
             &ExprData::LitInt(ref expr) => {
                 let (ty, value_i64, value_f64) =
                     check_lit_int(self.sa, self.const_.file_id, expr, false, expected_type);

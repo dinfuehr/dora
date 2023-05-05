@@ -480,14 +480,7 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_expr_lit_char(&mut self, lit: &ExprLitCharType) {
-        dump!(
-            self,
-            "lit char {} {} @ {} {}",
-            lit.value,
-            lit.value as u32,
-            lit.span,
-            lit.id
-        );
+        dump!(self, "lit char {} @ {} {}", lit.value, lit.span, lit.id);
     }
 
     fn dump_expr_lit_int(&mut self, lit: &ExprLitIntType) {

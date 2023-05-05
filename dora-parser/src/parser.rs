@@ -1566,10 +1566,10 @@ impl<'a> Parser<'a> {
             TokenKind::LParen => self.parse_parentheses(),
             TokenKind::LBrace => self.parse_block(),
             TokenKind::If => self.parse_if(),
-            TokenKind::LitChar(_) => self.parse_lit_char(),
+            TokenKind::LitChar => self.parse_lit_char(),
             TokenKind::LitInt => self.parse_lit_int(),
             TokenKind::LitFloat => self.parse_lit_float(),
-            TokenKind::StringTail(_) | TokenKind::StringExpr(_) => self.parse_string(),
+            TokenKind::StringTail | TokenKind::StringExpr => self.parse_string(),
             TokenKind::Identifier => self.parse_identifier(),
             TokenKind::True => self.parse_bool_literal(),
             TokenKind::False => self.parse_bool_literal(),
@@ -1642,9 +1642,10 @@ impl<'a> Parser<'a> {
     fn parse_lit_char(&mut self) -> Expr {
         let span = self.token.span;
         let tok = self.advance_token();
+        let value = self.source_span(span);
 
-        if let TokenKind::LitChar(val) = tok.kind {
-            Arc::new(ExprData::create_lit_char(self.generate_id(), span, val))
+        if let TokenKind::LitChar = tok.kind {
+            Arc::new(ExprData::create_lit_char(self.generate_id(), span, value))
         } else {
             unreachable!();
         }
@@ -1674,13 +1675,14 @@ impl<'a> Parser<'a> {
     fn parse_string(&mut self) -> Expr {
         let span = self.token.span;
         let string = self.advance_token();
+        let value = self.source_span(span);
 
         match string.kind {
-            TokenKind::StringTail(value) => {
+            TokenKind::StringTail => {
                 Arc::new(ExprData::create_lit_str(self.generate_id(), span, value))
             }
 
-            TokenKind::StringExpr(value) => {
+            TokenKind::StringExpr => {
                 let start = self.token.span.start();
                 let mut parts: Vec<Expr> = Vec::new();
                 parts.push(Arc::new(ExprData::create_lit_str(
@@ -1694,10 +1696,11 @@ impl<'a> Parser<'a> {
                     parts.push(expr);
 
                     let span = self.token.span;
+                    let value = self.source_span(span);
 
                     let (value, finished) = match self.token.kind {
-                        TokenKind::StringTail(ref value) => (value.clone(), true),
-                        TokenKind::StringExpr(ref value) => (value.clone(), false),
+                        TokenKind::StringTail => (value, true),
+                        TokenKind::StringExpr => (value, false),
                         _ => {
                             self.report_error(ParseError::UnclosedStringTemplate);
                             (String::new(), true)
@@ -2000,7 +2003,7 @@ mod tests {
         let (expr, _) = parse_expr("\"abc\"");
 
         let lit = expr.to_lit_str().unwrap();
-        assert_eq!("abc", &lit.value);
+        assert_eq!("\"abc\"", &lit.value);
     }
 
     #[test]
@@ -2966,11 +2969,20 @@ mod tests {
         let tmpl = expr.to_template().unwrap();
         assert_eq!(tmpl.parts.len(), 5);
 
-        assert_eq!("a".to_string(), tmpl.parts[0].to_lit_str().unwrap().value);
+        assert_eq!(
+            "\"a${".to_string(),
+            tmpl.parts[0].to_lit_str().unwrap().value
+        );
         assert_eq!(String::from("1"), tmpl.parts[1].to_lit_int().unwrap().value);
-        assert_eq!("b".to_string(), tmpl.parts[2].to_lit_str().unwrap().value);
+        assert_eq!(
+            "}b${".to_string(),
+            tmpl.parts[2].to_lit_str().unwrap().value
+        );
         assert_eq!(String::from("2"), tmpl.parts[3].to_lit_int().unwrap().value);
-        assert_eq!("c".to_string(), tmpl.parts[4].to_lit_str().unwrap().value);
+        assert_eq!(
+            "}c\"".to_string(),
+            tmpl.parts[4].to_lit_str().unwrap().value
+        );
 
         let (expr, _) = parse_expr("\"a\\${1}b\"");
         assert!(expr.is_lit_str());
@@ -3100,7 +3112,7 @@ mod tests {
         let (expr, _) = parse_expr("'a'");
         let lit = expr.to_lit_char().unwrap();
 
-        assert_eq!('a', lit.value);
+        assert_eq!("'a'", lit.value);
     }
 
     #[test]

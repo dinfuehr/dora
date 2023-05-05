@@ -19,6 +19,8 @@ pub struct AnalysisData {
     pub map_tys: NodeMap<SourceType>,
     pub map_vars: NodeMap<VarId>,
     pub map_literals: NodeMap<(i64, f64)>,
+    pub map_char_literals: NodeMap<char>,
+    pub map_string_literals: NodeMap<String>,
     pub map_cls: NodeMap<ClassDefinitionId>,
     pub map_fors: NodeMap<ForTypeInfo>,
     pub map_lambdas: NodeMap<FctDefinitionId>,
@@ -39,6 +41,8 @@ impl AnalysisData {
             map_fors: NodeMap::new(),
             map_lambdas: NodeMap::new(),
             map_literals: NodeMap::new(),
+            map_char_literals: NodeMap::new(),
+            map_string_literals: NodeMap::new(),
 
             vars: VarAccess::empty(),
             context_cls_id: None,
@@ -57,6 +61,28 @@ impl AnalysisData {
 
     pub fn literal_value(&self, id: ast::NodeId) -> (i64, f64) {
         self.map_literals.get(id).expect("no literal found").clone()
+    }
+
+    pub fn set_literal_char(&mut self, id: ast::NodeId, value: char) {
+        self.map_char_literals.insert(id, value)
+    }
+
+    pub fn literal_char(&self, id: ast::NodeId) -> char {
+        self.map_char_literals
+            .get(id)
+            .expect("no literal found")
+            .clone()
+    }
+
+    pub fn set_literal_string(&mut self, id: ast::NodeId, value: String) {
+        self.map_string_literals.insert(id, value);
+    }
+
+    pub fn literal_string(&self, id: ast::NodeId) -> String {
+        self.map_string_literals
+            .get(id)
+            .expect("no literal found")
+            .clone()
     }
 
     pub fn ty(&self, id: ast::NodeId) -> SourceType {

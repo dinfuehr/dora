@@ -6,9 +6,9 @@ use crate::Span;
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum TokenKind {
     // literals
-    StringTail(String),
-    StringExpr(String),
-    LitChar(char),
+    StringTail,
+    StringExpr,
+    LitChar,
     LitInt,
     LitFloat,
     Identifier,
@@ -114,10 +114,10 @@ impl TokenKind {
     pub fn name(&self) -> &str {
         match *self {
             // literals
-            TokenKind::StringTail(_) => "string tail",
-            TokenKind::StringExpr(_) => "string epxr",
+            TokenKind::StringTail => "string tail",
+            TokenKind::StringExpr => "string epxr",
             TokenKind::LitInt => "integer literal",
-            TokenKind::LitChar(_) => "char",
+            TokenKind::LitChar => "char",
             TokenKind::LitFloat => "float literal",
             TokenKind::Identifier => "identifier",
             TokenKind::True => "true",
@@ -251,10 +251,7 @@ impl Token {
     pub fn name(&self) -> String {
         match self.kind {
             TokenKind::LitInt => "integer literal".into(),
-
-            TokenKind::StringTail(ref val) => format!("\"{}\" tail", &val),
-            TokenKind::StringExpr(ref val) => format!("\"{}\" expr", &val),
-
+            TokenKind::StringTail | TokenKind::StringExpr => "string literal".into(),
             TokenKind::Identifier => "identifier".into(),
 
             _ => self.kind.name().into(),

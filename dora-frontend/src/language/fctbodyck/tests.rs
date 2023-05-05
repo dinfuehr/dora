@@ -3739,3 +3739,49 @@ fn self_unavailable_in_lambda() {
         ErrorMessage::ThisUnavailable,
     );
 }
+
+#[test]
+fn invalid_escape_sequence() {
+    err(
+        r#"
+fn f() { '\k'; }
+"#,
+        (2, 11),
+        ErrorMessage::InvalidEscapeSequence,
+    );
+
+    err(
+        r#"
+fn f() { "\k"; }
+"#,
+        (2, 11),
+        ErrorMessage::InvalidEscapeSequence,
+    );
+}
+
+#[test]
+fn invalid_char_literal() {
+    err(
+        r#"
+fn f() { 'abc'; }
+"#,
+        (2, 10),
+        ErrorMessage::InvalidCharLiteral,
+    );
+
+    err(
+        r#"
+fn f() { 'abc'; }
+"#,
+        (2, 10),
+        ErrorMessage::InvalidCharLiteral,
+    );
+
+    err(
+        r#"
+fn f() { ''; }
+"#,
+        (2, 10),
+        ErrorMessage::InvalidCharLiteral,
+    );
+}
