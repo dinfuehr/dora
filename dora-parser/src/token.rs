@@ -3,221 +3,269 @@ use std::result::Result;
 
 use crate::Span;
 
-#[derive(PartialEq, Eq, Debug, Clone)]
+pub struct TokenSet(u128);
+
+impl TokenSet {
+    pub const fn new(kinds: &[TokenKind]) -> TokenSet {
+        let mut value = 0;
+        let mut i = 0;
+
+        while i < kinds.len() {
+            value |= 1 << (kinds[i] as u8);
+            i += 1;
+        }
+
+        TokenSet(value)
+    }
+
+    pub const fn union(&self, other: TokenSet) -> TokenSet {
+        TokenSet(self.0 | other.0)
+    }
+
+    pub fn contains(&self, kind: TokenKind) -> bool {
+        self.0 & (1 << (kind as u8)) != 0
+    }
+}
+
+pub const EXPRESSION_FIRST: TokenSet = TokenSet::new(&[
+    TokenKind::TRUE,
+    TokenKind::FALSE,
+    TokenKind::STRING_LITERAL,
+    TokenKind::TEMPLATE_LITERAL,
+    TokenKind::CHAR_LITERAL,
+    TokenKind::INT_LITERAL,
+    TokenKind::FLOAT_LITERAL,
+    TokenKind::IDENTIFIER,
+    TokenKind::IF,
+    TokenKind::MATCH,
+    TokenKind::L_BRACE,
+    TokenKind::L_PAREN,
+    TokenKind::THIS,
+    TokenKind::OR,
+    TokenKind::OR_OR,
+    TokenKind::NOT,
+    TokenKind::SUB,
+    TokenKind::ADD,
+]);
+
+#[derive(PartialEq, Eq, Debug, Copy, Clone)]
+#[allow(non_camel_case_types)]
+#[repr(u8)]
 pub enum TokenKind {
     // literals
-    StringTail,
-    StringExpr,
-    LitChar,
-    LitInt,
-    LitFloat,
-    Identifier,
-    True,
-    False,
-    End,
+    STRING_LITERAL,
+    TEMPLATE_LITERAL,
+    CHAR_LITERAL,
+    INT_LITERAL,
+    FLOAT_LITERAL,
+    IDENTIFIER,
+    TRUE,
+    FALSE,
 
     // "big" shapes
-    Class,
-    Enum,
-    Struct,
-    Trait,
-    Impl,
-    Mod,
-    Use,
-    Package,
-    Extern,
+    CLASS,
+    ENUM,
+    STRUCT,
+    TRAIT,
+    IMPL,
+    MOD,
+    USE,
+    PACKAGE,
+    EXTERN,
 
     // "small" shapes
-    Fn,
-    Let,
-    Mut,
-    Const,
+    FN,
+    LET,
+    MUT,
+    CONST,
 
     // control flow
-    Return,
-    If,
-    Else,
-    While,
-    For,
-    In,
-    Break,
-    Continue,
-    Match,
+    RETURN,
+    IF,
+    ELSE,
+    WHILE,
+    FOR,
+    IN,
+    BREAK,
+    CONTINUE,
+    MATCH,
 
     // qualifiers
-    This,
-    Super,
-    Pub,
-    Static,
+    THIS,
+    SUPER,
+    PUB,
+    STATIC,
 
     // casting
-    As,
+    AS,
 
     // operators – numbers
-    Add,
-    Sub,
-    Mul,
-    Div,
-    Modulo,
+    ADD,
+    SUB,
+    MUL,
+    DIV,
+    MODULO,
 
     // operators – logic
-    Not,
-    Or,
-    And,
-    Caret,
-    AndAnd,
-    OrOr,
+    NOT,
+    OR,
+    AND,
+    CARET,
+    AND_AND,
+    OR_OR,
 
     // operators – comparisons
-    EqEq,
-    NotEq,
-    EqEqEq,
-    NeEqEq,
-    Lt,
-    Le,
-    Gt,
-    Ge,
+    EQ_EQ,
+    NOT_EQ,
+    EQ_EQ_EQ,
+    NOT_EQ_EQ,
+    LT,
+    LE,
+    GT,
+    GE,
 
     // operators – shifts
-    GtGt,
-    GtGtGt,
-    LtLt,
+    GT_GT,
+    GT_GT_GT,
+    LT_LT,
 
     // basic syntax
-    Eq,
-    Comma,
-    Semicolon,
-    Dot,
-    DotDotDot,
-    Colon,
-    ColonColon,
-    At,
-    Arrow,
-    DoubleArrow,
+    EQ,
+    COMMA,
+    SEMICOLON,
+    DOT,
+    DOT_DOT_DOT,
+    COLON,
+    COLON_COLON,
+    AT,
+    ARROW,
+    DOUBLE_ARROW,
 
     // brackets
-    LParen,
-    RParen,
-    LBracket,
-    RBracket,
-    LBrace,
-    RBrace,
+    L_PAREN,
+    R_PAREN,
+    L_BRACKET,
+    R_BRACKET,
+    L_BRACE,
+    R_BRACE,
 
     // unused
-    Type,
-    Alias,
-    CapitalThis,
-    Underscore,
+    TYPE,
+    ALIAS,
+    CAPITAL_THIS,
+    UNDERSCORE,
+
+    EOF,
 }
 
 impl TokenKind {
     pub fn name(&self) -> &str {
         match *self {
             // literals
-            TokenKind::StringTail => "string tail",
-            TokenKind::StringExpr => "string epxr",
-            TokenKind::LitInt => "integer literal",
-            TokenKind::LitChar => "char",
-            TokenKind::LitFloat => "float literal",
-            TokenKind::Identifier => "identifier",
-            TokenKind::True => "true",
-            TokenKind::False => "false",
+            TokenKind::STRING_LITERAL => "string tail",
+            TokenKind::TEMPLATE_LITERAL => "string epxr",
+            TokenKind::INT_LITERAL => "integer literal",
+            TokenKind::CHAR_LITERAL => "char",
+            TokenKind::FLOAT_LITERAL => "float literal",
+            TokenKind::IDENTIFIER => "identifier",
+            TokenKind::TRUE => "true",
+            TokenKind::FALSE => "false",
 
             // "big" shapes
-            TokenKind::Class => "class",
-            TokenKind::Enum => "enum",
-            TokenKind::Struct => "struct",
-            TokenKind::Trait => "trait",
-            TokenKind::Impl => "impl",
-            TokenKind::Mod => "mod",
-            TokenKind::Use => "use",
-            TokenKind::Package => "package",
-            TokenKind::Extern => "extern",
+            TokenKind::CLASS => "class",
+            TokenKind::ENUM => "enum",
+            TokenKind::STRUCT => "struct",
+            TokenKind::TRAIT => "trait",
+            TokenKind::IMPL => "impl",
+            TokenKind::MOD => "mod",
+            TokenKind::USE => "use",
+            TokenKind::PACKAGE => "package",
+            TokenKind::EXTERN => "extern",
 
             // "small" shapes
-            TokenKind::Fn => "fn",
-            TokenKind::Let => "let",
-            TokenKind::Mut => "mut",
-            TokenKind::Const => "const",
+            TokenKind::FN => "fn",
+            TokenKind::LET => "let",
+            TokenKind::MUT => "mut",
+            TokenKind::CONST => "const",
 
             // control flow
-            TokenKind::Return => "return",
-            TokenKind::If => "if",
-            TokenKind::Else => "else",
-            TokenKind::While => "while",
-            TokenKind::For => "for",
-            TokenKind::In => "in",
-            TokenKind::Break => "break",
-            TokenKind::Continue => "continue",
-            TokenKind::Match => "match",
+            TokenKind::RETURN => "return",
+            TokenKind::IF => "if",
+            TokenKind::ELSE => "else",
+            TokenKind::WHILE => "while",
+            TokenKind::FOR => "for",
+            TokenKind::IN => "in",
+            TokenKind::BREAK => "break",
+            TokenKind::CONTINUE => "continue",
+            TokenKind::MATCH => "match",
 
             // qualifiers
-            TokenKind::This => "self",
-            TokenKind::Super => "super",
-            TokenKind::Pub => "pub",
-            TokenKind::Static => "static",
+            TokenKind::THIS => "self",
+            TokenKind::SUPER => "super",
+            TokenKind::PUB => "pub",
+            TokenKind::STATIC => "static",
 
             // casting
-            TokenKind::As => "as",
+            TokenKind::AS => "as",
 
             // operators – arithmetic
-            TokenKind::Add => "+",
-            TokenKind::Sub => "-",
-            TokenKind::Mul => "*",
-            TokenKind::Div => "/",
-            TokenKind::Modulo => "%",
+            TokenKind::ADD => "+",
+            TokenKind::SUB => "-",
+            TokenKind::MUL => "*",
+            TokenKind::DIV => "/",
+            TokenKind::MODULO => "%",
 
             // operators – logic
-            TokenKind::Not => "!",
-            TokenKind::Or => "|",
-            TokenKind::And => "&",
-            TokenKind::Caret => "^",
-            TokenKind::AndAnd => "&&",
-            TokenKind::OrOr => "||",
+            TokenKind::NOT => "!",
+            TokenKind::OR => "|",
+            TokenKind::AND => "&",
+            TokenKind::CARET => "^",
+            TokenKind::AND_AND => "&&",
+            TokenKind::OR_OR => "||",
 
             // operators – comparisons
-            TokenKind::EqEq => "==",
-            TokenKind::NotEq => "!=",
-            TokenKind::EqEqEq => "===",
-            TokenKind::NeEqEq => "!==",
-            TokenKind::Lt => "<",
-            TokenKind::Le => "<=",
-            TokenKind::Gt => ">",
-            TokenKind::Ge => ">=",
+            TokenKind::EQ_EQ => "==",
+            TokenKind::NOT_EQ => "!=",
+            TokenKind::EQ_EQ_EQ => "===",
+            TokenKind::NOT_EQ_EQ => "!==",
+            TokenKind::LT => "<",
+            TokenKind::LE => "<=",
+            TokenKind::GT => ">",
+            TokenKind::GE => ">=",
 
             // operators – shifts
-            TokenKind::GtGt => ">>",
-            TokenKind::GtGtGt => ">>>",
-            TokenKind::LtLt => "<<",
+            TokenKind::GT_GT => ">>",
+            TokenKind::GT_GT_GT => ">>>",
+            TokenKind::LT_LT => "<<",
 
             // basic syntax
-            TokenKind::Eq => "=",
-            TokenKind::Comma => ",",
-            TokenKind::Semicolon => ";",
-            TokenKind::Dot => ".",
-            TokenKind::DotDotDot => "...",
-            TokenKind::Colon => ":",
-            TokenKind::ColonColon => "::",
-            TokenKind::At => "@",
-            TokenKind::Arrow => "->",
-            TokenKind::DoubleArrow => "=>",
+            TokenKind::EQ => "=",
+            TokenKind::COMMA => ",",
+            TokenKind::SEMICOLON => ";",
+            TokenKind::DOT => ".",
+            TokenKind::DOT_DOT_DOT => "...",
+            TokenKind::COLON => ":",
+            TokenKind::COLON_COLON => "::",
+            TokenKind::AT => "@",
+            TokenKind::ARROW => "->",
+            TokenKind::DOUBLE_ARROW => "=>",
 
             // brackets
-            TokenKind::LParen => "(",
-            TokenKind::RParen => ")",
-            TokenKind::LBracket => "[",
-            TokenKind::RBracket => "]",
-            TokenKind::LBrace => "{",
-            TokenKind::RBrace => "}",
+            TokenKind::L_PAREN => "(",
+            TokenKind::R_PAREN => ")",
+            TokenKind::L_BRACKET => "[",
+            TokenKind::R_BRACKET => "]",
+            TokenKind::L_BRACE => "{",
+            TokenKind::R_BRACE => "}",
 
             // unused
-            TokenKind::Type => "type",
-            TokenKind::Alias => "alias",
-            TokenKind::CapitalThis => "Self",
-            TokenKind::Underscore => "_",
+            TokenKind::TYPE => "type",
+            TokenKind::ALIAS => "alias",
+            TokenKind::CAPITAL_THIS => "Self",
+            TokenKind::UNDERSCORE => "_",
 
             // end of file
-            TokenKind::End => "<<EOF>>",
+            TokenKind::EOF => "<<EOF>>",
         }
     }
 }
@@ -234,12 +282,12 @@ impl Token {
     }
 
     pub fn is_eof(&self) -> bool {
-        self.kind == TokenKind::End
+        self.kind == TokenKind::EOF
     }
 
     pub fn is_identifier(&self) -> bool {
         match self.kind {
-            TokenKind::Identifier => true,
+            TokenKind::IDENTIFIER => true,
             _ => false,
         }
     }
@@ -250,9 +298,9 @@ impl Token {
 
     pub fn name(&self) -> String {
         match self.kind {
-            TokenKind::LitInt => "integer literal".into(),
-            TokenKind::StringTail | TokenKind::StringExpr => "string literal".into(),
-            TokenKind::Identifier => "identifier".into(),
+            TokenKind::INT_LITERAL => "integer literal".into(),
+            TokenKind::STRING_LITERAL | TokenKind::TEMPLATE_LITERAL => "string literal".into(),
+            TokenKind::IDENTIFIER => "identifier".into(),
 
             _ => self.kind.name().into(),
         }

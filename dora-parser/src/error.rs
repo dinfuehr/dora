@@ -22,6 +22,7 @@ pub enum ParseError {
     UnclosedStringTemplate,
     ExpectedIdentifier(String),
     InvalidSuffix(String),
+    ExpectedExpression,
 }
 
 impl ParseError {
@@ -58,6 +59,7 @@ impl ParseError {
                 format!("identifier expected but got {}.", tok)
             }
             ParseError::InvalidSuffix(ref suffix) => format!("invalid suffix `{}`", suffix),
+            ParseError::ExpectedExpression => "expected expression.".into(),
         }
     }
 }
