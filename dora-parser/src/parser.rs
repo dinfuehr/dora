@@ -1073,15 +1073,6 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_block_stmt(&mut self) -> Stmt {
-        let block = self.parse_block();
-        Arc::new(StmtData::create_expr(
-            self.generate_id(),
-            block.span(),
-            block,
-        ))
-    }
-
     fn parse_block(&mut self) -> Expr {
         let start = self.token.span.start();
         self.expect(TokenKind::L_BRACE);
@@ -1318,7 +1309,7 @@ impl<'a> Parser<'a> {
         let pattern = self.parse_let_pattern();
         self.eat(TokenKind::IN);
         let expr = self.parse_expression();
-        let block = self.parse_block_stmt();
+        let block = self.parse_block();
         let span = self.span_from(start);
 
         Arc::new(StmtData::create_for(
@@ -1334,7 +1325,7 @@ impl<'a> Parser<'a> {
         let start = self.token.span.start();
         self.expect(TokenKind::WHILE);
         let expr = self.parse_expression();
-        let block = self.parse_block_stmt();
+        let block = self.parse_block();
         let span = self.span_from(start);
 
         Arc::new(StmtData::create_while(
@@ -2628,7 +2619,7 @@ mod tests {
         let whilestmt = stmt.to_while().unwrap();
 
         assert!(whilestmt.cond.is_lit_bool());
-        assert!(whilestmt.block.is_expr());
+        assert!(whilestmt.block.is_block());
     }
 
     #[test]

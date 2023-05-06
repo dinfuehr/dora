@@ -417,7 +417,7 @@ impl<'a> TypeCheck<'a> {
         if object_type.is_error() {
             self.symtable.push_level();
             self.check_stmt_let_pattern(&stmt.pattern, SourceType::Error);
-            self.visit_stmt(&stmt.block);
+            self.check_expr(&stmt.block, SourceType::Any);
             self.symtable.pop_level();
             return;
         }
@@ -470,10 +470,10 @@ impl<'a> TypeCheck<'a> {
         self.symtable.pop_level();
     }
 
-    fn check_loop_body(&mut self, stmt: &ast::StmtData) {
+    fn check_loop_body(&mut self, expr: &ast::ExprData) {
         let old_in_loop = self.in_loop;
         self.in_loop = true;
-        self.visit_stmt(&stmt);
+        self.check_expr(expr, SourceType::Any);
         self.in_loop = old_in_loop;
     }
 

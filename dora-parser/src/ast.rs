@@ -699,7 +699,7 @@ impl StmtData {
         span: Span,
         pattern: Box<LetPattern>,
         expr: Expr,
-        block: Stmt,
+        block: Expr,
     ) -> StmtData {
         StmtData::For(StmtForType {
             id,
@@ -711,7 +711,7 @@ impl StmtData {
         })
     }
 
-    pub fn create_while(id: NodeId, span: Span, cond: Expr, block: Stmt) -> StmtData {
+    pub fn create_while(id: NodeId, span: Span, cond: Expr, block: Expr) -> StmtData {
         StmtData::While(StmtWhileType {
             id,
             span,
@@ -938,7 +938,7 @@ pub struct StmtForType {
 
     pub pattern: Box<LetPattern>,
     pub expr: Expr,
-    pub block: Stmt,
+    pub block: Expr,
 }
 
 #[derive(Clone, Debug)]
@@ -947,7 +947,7 @@ pub struct StmtWhileType {
     pub span: Span,
 
     pub cond: Expr,
-    pub block: Stmt,
+    pub block: Expr,
 }
 
 #[derive(Clone, Debug)]

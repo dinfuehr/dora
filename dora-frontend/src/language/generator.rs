@@ -445,7 +445,7 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         self.loops.push(LoopLabels::new(lbl_cond, lbl_end));
-        self.visit_stmt(&stmt.block);
+        self.emit_expr_for_effect(&stmt.block);
         self.loops.pop().unwrap();
 
         self.builder.emit_jump_loop(lbl_cond);
@@ -557,7 +557,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.builder.emit_jump_if_false(cond_reg, end_lbl);
         self.free_if_temp(cond_reg);
         self.loops.push(LoopLabels::new(cond_lbl, end_lbl));
-        self.visit_stmt(&stmt.block);
+        self.emit_expr_for_effect(&stmt.block);
         self.loops.pop().unwrap();
         self.builder.emit_jump_loop(cond_lbl);
         self.builder.bind_label(end_lbl);

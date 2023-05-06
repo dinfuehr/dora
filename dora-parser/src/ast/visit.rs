@@ -235,12 +235,12 @@ pub fn walk_stmt<V: Visitor>(v: &mut V, s: &StmtData) {
 
         StmtData::For(ref value) => {
             v.visit_expr(&value.expr);
-            v.visit_stmt(&value.block);
+            v.visit_expr(&value.block);
         }
 
         StmtData::While(ref value) => {
             v.visit_expr(&value.cond);
-            v.visit_stmt(&value.block);
+            v.visit_expr(&value.block);
         }
 
         StmtData::Expr(ref value) => {

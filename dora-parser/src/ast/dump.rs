@@ -347,7 +347,7 @@ impl<'a> AstDumper<'a> {
             });
             dump!(d, "body");
             d.indent(|d| {
-                d.dump_stmt(&stmt.block);
+                d.dump_expr(&stmt.block);
             });
         });
     }
@@ -363,7 +363,7 @@ impl<'a> AstDumper<'a> {
 
             dump!(d, "body");
             d.indent(|d| {
-                d.dump_stmt(&stmt.block);
+                d.dump_expr(&stmt.block);
             });
         });
     }
