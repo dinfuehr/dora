@@ -46,6 +46,8 @@ pub const EXPRESSION_FIRST: TokenSet = TokenSet::new(&[
     TokenKind::NOT,
     TokenKind::SUB,
     TokenKind::ADD,
+    TokenKind::FOR,
+    TokenKind::WHILE,
 ]);
 
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]

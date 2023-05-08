@@ -138,25 +138,6 @@ impl<'a> AstBytecodeGen<'a> {
             }
         }
 
-        if let ast::ExprData::Block(ref block) = ast.block.as_ref().expect("missing block").as_ref()
-        {
-            for stmt in &block.stmts {
-                self.visit_stmt(stmt);
-            }
-
-            if let Some(ref value) = block.expr {
-                let reg = self.visit_expr(value, DataDest::Alloc);
-
-                if !expr_block_always_returns(block) {
-                    self.emit_ret_value(reg);
-                }
-
-                self.free_if_temp(reg);
-            }
-        } else {
-            unreachable!();
-        }
-
         let return_type = if self.fct.return_type.is_unit() {
             None
         } else {
@@ -164,7 +145,27 @@ impl<'a> AstBytecodeGen<'a> {
         };
         self.builder.set_return_type(return_type);
 
-        if self.fct.return_type.is_unit() {
+        let mut needs_return = true;
+
+        let block = ast.block.as_ref().expect("missing block");
+        let block = block.to_block().expect("block node expected");
+
+        for stmt in &block.stmts {
+            self.visit_stmt(stmt);
+        }
+
+        if let Some(ref value) = block.expr {
+            let reg = self.visit_expr(value, DataDest::Alloc);
+
+            if !expr_block_always_returns(block) {
+                self.emit_ret_value(reg);
+            }
+
+            needs_return = false;
+            self.free_if_temp(reg);
+        }
+
+        if needs_return && self.fct.return_type.is_unit() {
             let dest = self.ensure_unit_register();
             self.builder.emit_ret(dest);
         }
@@ -227,13 +228,12 @@ impl<'a> AstBytecodeGen<'a> {
             ast::StmtData::Continue(ref stmt) => self.visit_stmt_continue(stmt),
             ast::StmtData::Expr(ref expr) => self.visit_stmt_expr(expr),
             ast::StmtData::Let(ref stmt) => self.visit_stmt_let(stmt),
-            ast::StmtData::While(ref stmt) => self.visit_stmt_while(stmt),
-            ast::StmtData::For(ref stmt) => self.visit_stmt_for(stmt),
         }
     }
 
-    fn visit_stmt_for(&mut self, stmt: &ast::StmtForType) {
-        self.visit_stmt_for_iterator(stmt);
+    fn visit_expr_for(&mut self, expr: &ast::ExprForType, _dest: DataDest) -> Register {
+        self.visit_expr_for_iterator(expr);
+        self.ensure_unit_register()
     }
 
     fn visit_stmt_for_pattern_setup(&mut self, pattern: &ast::LetPattern) {
@@ -354,7 +354,7 @@ impl<'a> AstBytecodeGen<'a> {
         }
     }
 
-    fn visit_stmt_for_iterator(&mut self, stmt: &ast::StmtForType) {
+    fn visit_expr_for_iterator(&mut self, stmt: &ast::ExprForType) {
         self.push_scope();
         let for_type_info = self.analysis.map_fors.get(stmt.id).unwrap().clone();
 
@@ -549,7 +549,7 @@ impl<'a> AstBytecodeGen<'a> {
         }
     }
 
-    fn visit_stmt_while(&mut self, stmt: &ast::StmtWhileType) {
+    fn visit_expr_while(&mut self, stmt: &ast::ExprWhileType, _dest: DataDest) -> Register {
         let cond_lbl = self.builder.define_label();
         let end_lbl = self.builder.create_label();
         self.builder.emit_loop_start();
@@ -561,6 +561,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.loops.pop().unwrap();
         self.builder.emit_jump_loop(cond_lbl);
         self.builder.bind_label(end_lbl);
+        self.ensure_unit_register()
     }
 
     fn visit_stmt_expr(&mut self, stmt: &ast::StmtExprType) {
@@ -624,6 +625,8 @@ impl<'a> AstBytecodeGen<'a> {
             ast::ExprData::Paren(ref paren) => self.visit_expr(&paren.expr, dest),
             ast::ExprData::Match(ref expr) => self.visit_expr_match(expr, dest),
             ast::ExprData::Lambda(ref node) => self.visit_expr_lambda(node, dest),
+            ast::ExprData::For(ref node) => self.visit_expr_for(node, dest),
+            ast::ExprData::While(ref node) => self.visit_expr_while(node, dest),
             ast::ExprData::Error { .. } => unreachable!(),
         }
     }

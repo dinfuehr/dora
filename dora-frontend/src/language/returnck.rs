@@ -4,8 +4,6 @@ use dora_parser::Span;
 pub fn returns_value(s: &StmtData) -> Result<(), Span> {
     match *s {
         StmtData::Return(_) => Ok(()),
-        StmtData::For(ref stmt) => Err(stmt.span),
-        StmtData::While(ref stmt) => Err(stmt.span),
         StmtData::Break(ref stmt) => Err(stmt.span),
         StmtData::Continue(ref stmt) => Err(stmt.span),
         StmtData::Let(ref stmt) => Err(stmt.span),
@@ -17,6 +15,8 @@ pub fn expr_returns_value(e: &ExprData) -> Result<(), Span> {
     match *e {
         ExprData::Block(ref block) => expr_block_returns_value(block),
         ExprData::If(ref expr) => expr_if_returns_value(expr),
+        ExprData::For(ref expr) => Err(expr.span),
+        ExprData::While(ref expr) => Err(expr.span),
         _ => Err(e.span()),
     }
 }

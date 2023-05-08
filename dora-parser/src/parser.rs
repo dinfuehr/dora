@@ -756,7 +756,7 @@ impl<'a> Parser<'a> {
 
     fn parse_function(&mut self, modifiers: &Modifiers) -> Arc<Function> {
         let start = self.token.span.start();
-        self.expect(TokenKind::FN);
+        self.eat(TokenKind::FN);
         let name = self.eat_identifier();
         let type_params = self.parse_type_params();
         let params = self.parse_function_params();
@@ -1075,7 +1075,7 @@ impl<'a> Parser<'a> {
 
     fn parse_block(&mut self) -> Expr {
         let start = self.token.span.start();
-        self.expect(TokenKind::L_BRACE);
+        self.eat(TokenKind::L_BRACE);
         let mut stmts = vec![];
         let mut expr = None;
 
@@ -1115,7 +1115,6 @@ impl<'a> Parser<'a> {
     fn parse_statement_or_expression(&mut self) -> StmtOrExpr {
         match self.current() {
             TokenKind::LET => StmtOrExpr::Stmt(self.parse_let()),
-            TokenKind::WHILE => StmtOrExpr::Stmt(self.parse_while()),
             TokenKind::BREAK => StmtOrExpr::Stmt(self.parse_break()),
             TokenKind::CONTINUE => StmtOrExpr::Stmt(self.parse_continue()),
             TokenKind::RETURN => StmtOrExpr::Stmt(self.parse_return()),
@@ -1127,7 +1126,6 @@ impl<'a> Parser<'a> {
                     span,
                 }))
             }
-            TokenKind::FOR => StmtOrExpr::Stmt(self.parse_for()),
             _ => {
                 let expr = self.parse_expression();
 
@@ -1303,7 +1301,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_for(&mut self) -> Stmt {
+    fn parse_for(&mut self) -> Expr {
         let start = self.token.span.start();
         self.expect(TokenKind::FOR);
         let pattern = self.parse_let_pattern();
@@ -1312,7 +1310,7 @@ impl<'a> Parser<'a> {
         let block = self.parse_block();
         let span = self.span_from(start);
 
-        Arc::new(StmtData::create_for(
+        Arc::new(ExprData::create_for(
             self.generate_id(),
             span,
             pattern,
@@ -1321,14 +1319,14 @@ impl<'a> Parser<'a> {
         ))
     }
 
-    fn parse_while(&mut self) -> Stmt {
+    fn parse_while(&mut self) -> Expr {
         let start = self.token.span.start();
-        self.expect(TokenKind::WHILE);
+        self.eat(TokenKind::WHILE);
         let expr = self.parse_expression();
         let block = self.parse_block();
         let span = self.span_from(start);
 
-        Arc::new(StmtData::create_while(
+        Arc::new(ExprData::create_while(
             self.generate_id(),
             span,
             expr,
@@ -1581,6 +1579,8 @@ impl<'a> Parser<'a> {
             TokenKind::FALSE => self.parse_bool_literal(),
             TokenKind::THIS => self.parse_this(),
             TokenKind::OR | TokenKind::OR_OR => self.parse_lambda(),
+            TokenKind::FOR => self.parse_for(),
+            TokenKind::WHILE => self.parse_while(),
             _ => {
                 self.report_error(ParseError::ExpectedFactor(self.token.name().clone()));
                 Arc::new(ExprData::Error {
@@ -2615,8 +2615,8 @@ mod tests {
 
     #[test]
     fn parse_while() {
-        let stmt = parse_stmt("while true { 2; }");
-        let whilestmt = stmt.to_while().unwrap();
+        let (expr, _) = parse_expr("while true { 2; }");
+        let whilestmt = expr.to_while().unwrap();
 
         assert!(whilestmt.cond.is_lit_bool());
         assert!(whilestmt.block.is_block());
@@ -2966,9 +2966,9 @@ mod tests {
 
     #[test]
     fn parse_struct_lit_while() {
-        let stmt = parse_stmt("while i < n { }");
-        let while_stmt = stmt.to_while().unwrap();
-        let bin = while_stmt.cond.to_bin().unwrap();
+        let (expr, _) = parse_expr("while i < n { }");
+        let while_expr = expr.to_while().unwrap();
+        let bin = while_expr.cond.to_bin().unwrap();
 
         assert!(bin.lhs.is_ident());
         assert!(bin.rhs.is_ident());
@@ -3284,8 +3284,8 @@ mod tests {
 
     #[test]
     fn parse_for() {
-        let stmt = parse_stmt("for i in a+b {}");
-        assert!(stmt.is_for());
+        let (expr, _) = parse_expr("for i in a+b {}");
+        assert!(expr.is_for());
     }
 
     #[test]

@@ -95,11 +95,7 @@ fn gen_generic_identity() {
 #[test]
 fn gen_generic_static_trait() {
     let result = code("trait Foo { @static fn baz(); } fn f[T: Foo]() { T::baz() }");
-    let expected = vec![
-        InvokeGenericStatic(r(0), ConstPoolIdx(0)),
-        Ret(r(0)),
-        Ret(r(0)),
-    ];
+    let expected = vec![InvokeGenericStatic(r(0), ConstPoolIdx(0)), Ret(r(0))];
     assert_eq!(expected, result);
 }
 
@@ -109,7 +105,6 @@ fn gen_generic_direct_trait() {
     let expected = vec![
         PushRegister(r(0)),
         InvokeGenericDirect(r(1), ConstPoolIdx(0)),
-        Ret(r(1)),
         Ret(r(1)),
     ];
     assert_eq!(expected, result);
@@ -4106,7 +4101,6 @@ fn gen_invoke_lambda() {
             let expected = vec![
                 PushRegister(r(0)),
                 InvokeLambda(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);

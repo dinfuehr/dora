@@ -668,12 +668,10 @@ pub type Stmt = Arc<StmtData>;
 #[derive(Clone, Debug)]
 pub enum StmtData {
     Let(StmtLetType),
-    While(StmtWhileType),
     Expr(StmtExprType),
     Break(StmtBreakType),
     Continue(StmtContinueType),
     Return(StmtReturnType),
-    For(StmtForType),
 }
 
 impl StmtData {
@@ -691,33 +689,6 @@ impl StmtData {
             pattern,
             data_type,
             expr,
-        })
-    }
-
-    pub fn create_for(
-        id: NodeId,
-        span: Span,
-        pattern: Box<LetPattern>,
-        expr: Expr,
-        block: Expr,
-    ) -> StmtData {
-        StmtData::For(StmtForType {
-            id,
-            span,
-
-            pattern,
-            expr,
-            block,
-        })
-    }
-
-    pub fn create_while(id: NodeId, span: Span, cond: Expr, block: Expr) -> StmtData {
-        StmtData::While(StmtWhileType {
-            id,
-            span,
-
-            cond,
-            block,
         })
     }
 
@@ -740,8 +711,6 @@ impl StmtData {
     pub fn span(&self) -> Span {
         match *self {
             StmtData::Let(ref stmt) => stmt.span,
-            StmtData::While(ref stmt) => stmt.span,
-            StmtData::For(ref stmt) => stmt.span,
             StmtData::Expr(ref stmt) => stmt.span,
             StmtData::Break(ref stmt) => stmt.span,
             StmtData::Continue(ref stmt) => stmt.span,
@@ -759,34 +728,6 @@ impl StmtData {
     pub fn is_let(&self) -> bool {
         match *self {
             StmtData::Let(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn to_while(&self) -> Option<&StmtWhileType> {
-        match *self {
-            StmtData::While(ref val) => Some(val),
-            _ => None,
-        }
-    }
-
-    pub fn is_while(&self) -> bool {
-        match *self {
-            StmtData::While(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn to_for(&self) -> Option<&StmtForType> {
-        match *self {
-            StmtData::For(ref val) => Some(val),
-            _ => None,
-        }
-    }
-
-    pub fn is_for(&self) -> bool {
-        match *self {
-            StmtData::For(_) => true,
             _ => false,
         }
     }
@@ -932,7 +873,7 @@ pub struct LetTupleType {
 }
 
 #[derive(Clone, Debug)]
-pub struct StmtForType {
+pub struct ExprForType {
     pub id: NodeId,
     pub span: Span,
 
@@ -942,7 +883,7 @@ pub struct StmtForType {
 }
 
 #[derive(Clone, Debug)]
-pub struct StmtWhileType {
+pub struct ExprWhileType {
     pub id: NodeId,
     pub span: Span,
 
@@ -1099,6 +1040,8 @@ pub enum ExprData {
     Lambda(Arc<Function>),
     Block(ExprBlockType),
     If(ExprIfType),
+    For(ExprForType),
+    While(ExprWhileType),
     Tuple(ExprTupleType),
     Paren(ExprParenType),
     Match(ExprMatchType),
@@ -1139,6 +1082,33 @@ impl ExprData {
             span,
             expr,
             cases,
+        })
+    }
+
+    pub fn create_for(
+        id: NodeId,
+        span: Span,
+        pattern: Box<LetPattern>,
+        expr: Expr,
+        block: Expr,
+    ) -> ExprData {
+        ExprData::For(ExprForType {
+            id,
+            span,
+
+            pattern,
+            expr,
+            block,
+        })
+    }
+
+    pub fn create_while(id: NodeId, span: Span, cond: Expr, block: Expr) -> ExprData {
+        ExprData::While(ExprWhileType {
+            id,
+            span,
+
+            cond,
+            block,
         })
     }
 
@@ -1262,6 +1232,34 @@ impl ExprData {
 
     pub fn create_tuple(id: NodeId, span: Span, values: Vec<Expr>) -> ExprData {
         ExprData::Tuple(ExprTupleType { id, span, values })
+    }
+
+    pub fn to_for(&self) -> Option<&ExprForType> {
+        match *self {
+            ExprData::For(ref val) => Some(val),
+            _ => None,
+        }
+    }
+
+    pub fn is_for(&self) -> bool {
+        match *self {
+            ExprData::For(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_while(&self) -> Option<&ExprWhileType> {
+        match *self {
+            ExprData::While(ref val) => Some(val),
+            _ => None,
+        }
+    }
+
+    pub fn is_while(&self) -> bool {
+        match *self {
+            ExprData::While(_) => true,
+            _ => false,
+        }
     }
 
     pub fn to_un(&self) -> Option<&ExprUnType> {
@@ -1549,6 +1547,8 @@ impl ExprData {
             &ExprData::Block(_) => false,
             &ExprData::If(_) => false,
             &ExprData::Match(_) => false,
+            &ExprData::For(_) => false,
+            &ExprData::While(_) => false,
             _ => true,
         }
     }
@@ -1576,6 +1576,8 @@ impl ExprData {
             ExprData::Tuple(ref val) => val.span,
             ExprData::Paren(ref val) => val.span,
             ExprData::Match(ref val) => val.span,
+            ExprData::For(ref val) => val.span,
+            ExprData::While(ref val) => val.span,
             ExprData::Error { span, .. } => span,
         }
     }
@@ -1603,6 +1605,8 @@ impl ExprData {
             ExprData::Tuple(ref val) => val.id,
             ExprData::Paren(ref val) => val.id,
             ExprData::Match(ref val) => val.id,
+            ExprData::For(ref val) => val.id,
+            ExprData::While(ref val) => val.id,
             ExprData::Error { id, .. } => id,
         }
     }

@@ -233,16 +233,6 @@ pub fn walk_stmt<V: Visitor>(v: &mut V, s: &StmtData) {
             }
         }
 
-        StmtData::For(ref value) => {
-            v.visit_expr(&value.expr);
-            v.visit_expr(&value.block);
-        }
-
-        StmtData::While(ref value) => {
-            v.visit_expr(&value.cond);
-            v.visit_expr(&value.block);
-        }
-
         StmtData::Expr(ref value) => {
             v.visit_expr(&value.expr);
         }
@@ -325,6 +315,16 @@ pub fn walk_expr<V: Visitor>(v: &mut V, e: &ExprData) {
             if let Some(ref b) = value.else_block {
                 v.visit_expr(b);
             }
+        }
+
+        ExprData::For(ref value) => {
+            v.visit_expr(&value.expr);
+            v.visit_expr(&value.block);
+        }
+
+        ExprData::While(ref value) => {
+            v.visit_expr(&value.cond);
+            v.visit_expr(&value.block);
         }
 
         ExprData::Tuple(ref value) => {

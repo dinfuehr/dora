@@ -291,8 +291,6 @@ impl<'a> AstDumper<'a> {
             StmtData::Continue(ref stmt) => self.dump_stmt_continue(stmt),
             StmtData::Expr(ref expr) => self.dump_stmt_expr(expr),
             StmtData::Let(ref stmt) => self.dump_stmt_let(stmt),
-            StmtData::While(ref stmt) => self.dump_stmt_while(stmt),
-            StmtData::For(ref stmt) => self.dump_stmt_for(stmt),
         }
     }
 
@@ -336,7 +334,7 @@ impl<'a> AstDumper<'a> {
         }
     }
 
-    fn dump_stmt_for(&mut self, stmt: &StmtForType) {
+    fn dump_expr_for(&mut self, stmt: &ExprForType) {
         dump!(self, "for @ {} {}", stmt.span, stmt.id);
 
         self.indent(|d| {
@@ -352,18 +350,18 @@ impl<'a> AstDumper<'a> {
         });
     }
 
-    fn dump_stmt_while(&mut self, stmt: &StmtWhileType) {
-        dump!(self, "while @ {} {}", stmt.span, stmt.id);
+    fn dump_expr_while(&mut self, expr: &ExprWhileType) {
+        dump!(self, "while @ {} {}", expr.span, expr.id);
 
         self.indent(|d| {
             dump!(d, "cond");
             d.indent(|d| {
-                d.dump_expr(&stmt.cond);
+                d.dump_expr(&expr.cond);
             });
 
             dump!(d, "body");
             d.indent(|d| {
-                d.dump_expr(&stmt.block);
+                d.dump_expr(&expr.block);
             });
         });
     }
@@ -418,6 +416,8 @@ impl<'a> AstDumper<'a> {
             ExprData::Tuple(ref expr) => self.dump_expr_tuple(expr),
             ExprData::Paren(ref expr) => self.dump_expr_paren(expr),
             ExprData::Match(ref expr) => self.dump_expr_match(expr),
+            ExprData::For(ref expr) => self.dump_expr_for(expr),
+            ExprData::While(ref stmt) => self.dump_expr_while(stmt),
             ExprData::Error { id, span } => {
                 dump!(self, "error @ {} {}", span, id);
             }

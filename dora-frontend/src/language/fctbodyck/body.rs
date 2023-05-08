@@ -411,7 +411,7 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn check_stmt_for(&mut self, stmt: &ast::StmtForType) {
+    fn check_expr_for(&mut self, stmt: &ast::ExprForType, _expected_ty: SourceType) -> SourceType {
         let object_type = self.check_expr(&stmt.expr, SourceType::Any);
 
         if object_type.is_error() {
@@ -419,7 +419,7 @@ impl<'a> TypeCheck<'a> {
             self.check_stmt_let_pattern(&stmt.pattern, SourceType::Error);
             self.check_expr(&stmt.block, SourceType::Any);
             self.symtable.pop_level();
-            return;
+            return SourceType::Unit;
         }
 
         if let Some((for_type_info, ret_type)) =
@@ -432,7 +432,7 @@ impl<'a> TypeCheck<'a> {
             self.analysis.map_fors.insert(stmt.id, for_type_info);
             self.check_loop_body(&stmt.block);
             self.symtable.pop_level();
-            return;
+            return SourceType::Unit;
         }
 
         if let Some((make_iterator, iterator_type)) =
@@ -452,7 +452,7 @@ impl<'a> TypeCheck<'a> {
 
                 self.check_loop_body(&stmt.block);
                 self.symtable.pop_level();
-                return;
+                return SourceType::Unit;
             }
         }
 
@@ -468,6 +468,7 @@ impl<'a> TypeCheck<'a> {
         self.check_stmt_let_pattern(&stmt.pattern, SourceType::Error);
         self.check_loop_body(&stmt.block);
         self.symtable.pop_level();
+        SourceType::Unit
     }
 
     fn check_loop_body(&mut self, expr: &ast::ExprData) {
@@ -542,8 +543,12 @@ impl<'a> TypeCheck<'a> {
         ))
     }
 
-    fn check_stmt_while(&mut self, stmt: &ast::StmtWhileType) {
-        let expr_type = self.check_expr(&stmt.cond, SourceType::Any);
+    fn check_expr_while(
+        &mut self,
+        stmt: &ast::ExprWhileType,
+        _expected_ty: SourceType,
+    ) -> SourceType {
+        let expr_type = self.check_expr(&stmt.cond, SourceType::Bool);
 
         if !expr_type.is_error() && !expr_type.is_bool() {
             let expr_type = expr_type.name_fct(self.sa, self.fct);
@@ -552,6 +557,7 @@ impl<'a> TypeCheck<'a> {
         }
 
         self.check_loop_body(&stmt.block);
+        SourceType::Unit
     }
 
     fn check_stmt_return(&mut self, s: &ast::StmtReturnType) {
@@ -3335,6 +3341,8 @@ impl<'a> TypeCheck<'a> {
             ast::ExprData::Tuple(ref expr) => self.check_expr_tuple(expr, expected_ty),
             ast::ExprData::Paren(ref expr) => self.check_expr_paren(expr, expected_ty),
             ast::ExprData::Match(ref expr) => self.check_expr_match(expr, expected_ty),
+            ast::ExprData::For(ref expr) => self.check_expr_for(expr, expected_ty),
+            ast::ExprData::While(ref expr) => self.check_expr_while(expr, expected_ty),
             ast::ExprData::Error { .. } => SourceType::Error,
         }
     }
@@ -3357,8 +3365,6 @@ impl<'a> Visitor for TypeCheck<'a> {
     fn visit_stmt(&mut self, s: &ast::StmtData) {
         match *s {
             ast::StmtData::Let(ref stmt) => self.check_stmt_let(stmt),
-            ast::StmtData::While(ref stmt) => self.check_stmt_while(stmt),
-            ast::StmtData::For(ref stmt) => self.check_stmt_for(stmt),
             ast::StmtData::Return(ref stmt) => self.check_stmt_return(stmt),
 
             // for the rest of the statements, no special handling is necessary
