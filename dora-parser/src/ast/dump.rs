@@ -286,7 +286,6 @@ impl<'a> AstDumper<'a> {
 
     fn dump_stmt(&mut self, stmt: &StmtData) {
         match *stmt {
-            StmtData::Return(ref ret) => self.dump_stmt_return(ret),
             StmtData::Expr(ref expr) => self.dump_stmt_expr(expr),
             StmtData::Let(ref stmt) => self.dump_stmt_let(stmt),
         }
@@ -371,7 +370,7 @@ impl<'a> AstDumper<'a> {
         });
     }
 
-    fn dump_stmt_return(&mut self, ret: &StmtReturnType) {
+    fn dump_expr_return(&mut self, ret: &ExprReturnType) {
         dump!(self, "return @ {} {}", ret.span, ret.id);
 
         self.indent(|d| {
@@ -418,6 +417,7 @@ impl<'a> AstDumper<'a> {
             ExprData::While(ref expr) => self.dump_expr_while(expr),
             ExprData::Break(ref expr) => self.dump_expr_break(expr),
             ExprData::Continue(ref expr) => self.dump_expr_continue(expr),
+            ExprData::Return(ref ret) => self.dump_expr_return(ret),
             ExprData::Error { id, span } => {
                 dump!(self, "error @ {} {}", span, id);
             }

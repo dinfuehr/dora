@@ -669,7 +669,6 @@ pub type Stmt = Arc<StmtData>;
 pub enum StmtData {
     Let(StmtLetType),
     Expr(StmtExprType),
-    Return(StmtReturnType),
 }
 
 impl StmtData {
@@ -694,15 +693,10 @@ impl StmtData {
         StmtData::Expr(StmtExprType { id, span, expr })
     }
 
-    pub fn create_return(id: NodeId, span: Span, expr: Option<Expr>) -> StmtData {
-        StmtData::Return(StmtReturnType { id, span, expr })
-    }
-
     pub fn span(&self) -> Span {
         match *self {
             StmtData::Let(ref stmt) => stmt.span,
             StmtData::Expr(ref stmt) => stmt.span,
-            StmtData::Return(ref stmt) => stmt.span,
         }
     }
 
@@ -730,20 +724,6 @@ impl StmtData {
     pub fn is_expr(&self) -> bool {
         match *self {
             StmtData::Expr(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn to_return(&self) -> Option<&StmtReturnType> {
-        match *self {
-            StmtData::Return(ref val) => Some(val),
-            _ => None,
-        }
-    }
-
-    pub fn is_return(&self) -> bool {
-        match *self {
-            StmtData::Return(_) => true,
             _ => false,
         }
     }
@@ -860,7 +840,7 @@ pub struct StmtExprType {
 }
 
 #[derive(Clone, Debug)]
-pub struct StmtReturnType {
+pub struct ExprReturnType {
     pub id: NodeId,
     pub span: Span,
 
@@ -1007,6 +987,7 @@ pub enum ExprData {
     Match(ExprMatchType),
     Break(ExprBreakType),
     Continue(ExprContinueType),
+    Return(ExprReturnType),
     Error { id: NodeId, span: Span },
 }
 
@@ -1072,6 +1053,10 @@ impl ExprData {
             cond,
             block,
         })
+    }
+
+    pub fn create_return(id: NodeId, span: Span, expr: Option<Expr>) -> ExprData {
+        ExprData::Return(ExprReturnType { id, span, expr })
     }
 
     pub fn create_break(id: NodeId, span: Span) -> ExprData {
@@ -1540,6 +1525,20 @@ impl ExprData {
         }
     }
 
+    pub fn to_return(&self) -> Option<&ExprReturnType> {
+        match *self {
+            ExprData::Return(ref val) => Some(val),
+            _ => None,
+        }
+    }
+
+    pub fn is_return(&self) -> bool {
+        match *self {
+            ExprData::Return(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn needs_semicolon(&self) -> bool {
         match self {
             &ExprData::Block(_) => false,
@@ -1578,6 +1577,7 @@ impl ExprData {
             ExprData::While(ref val) => val.span,
             ExprData::Break(ref val) => val.span,
             ExprData::Continue(ref val) => val.span,
+            ExprData::Return(ref val) => val.span,
             ExprData::Error { span, .. } => span,
         }
     }
@@ -1609,6 +1609,7 @@ impl ExprData {
             ExprData::While(ref val) => val.id,
             ExprData::Break(ref val) => val.id,
             ExprData::Continue(ref val) => val.id,
+            ExprData::Return(ref val) => val.id,
             ExprData::Error { id, .. } => id,
         }
     }

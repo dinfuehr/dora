@@ -59,22 +59,22 @@ impl<'a> Parser<'a> {
     }
 
     pub fn parse(mut self) -> (ast::File, NodeIdGenerator, Vec<ParseErrorWithLocation>) {
-        let ast_file = self.parse_top_level();
+        let ast_file = self.parse_file();
         (ast_file, self.id_generator, self.errors)
     }
 
-    fn parse_top_level(&mut self) -> ast::File {
+    fn parse_file(&mut self) -> ast::File {
         let mut elements = vec![];
 
         while !self.is_eof() {
-            elements.push(self.parse_top_level_element());
+            elements.push(self.parse_element());
         }
 
         ast::File { elements }
     }
 
-    fn parse_top_level_element(&mut self) -> Elem {
-        let modifiers = self.parse_annotation_usages();
+    fn parse_element(&mut self) -> Elem {
+        let modifiers = self.parse_modifiers();
 
         match self.current() {
             TokenKind::FN => {
@@ -327,7 +327,7 @@ impl<'a> Parser<'a> {
             let mut elements = Vec::new();
 
             while !self.is(TokenKind::R_BRACE) && !self.is_eof() {
-                elements.push(self.parse_top_level_element());
+                elements.push(self.parse_element());
             }
 
             self.eat(TokenKind::R_BRACE);
@@ -411,7 +411,7 @@ impl<'a> Parser<'a> {
         let mut methods = Vec::new();
 
         while !self.is(TokenKind::R_BRACE) {
-            let modifiers = self.parse_annotation_usages();
+            let modifiers = self.parse_modifiers();
             let mods = &[Annotation::Static, Annotation::Internal, Annotation::Pub];
             self.restrict_modifiers(&modifiers, mods);
 
@@ -480,7 +480,7 @@ impl<'a> Parser<'a> {
         let mut methods = Vec::new();
 
         while !self.is(TokenKind::R_BRACE) && !self.is_eof() {
-            let modifiers = self.parse_annotation_usages();
+            let modifiers = self.parse_modifiers();
             let mods = &[Annotation::Static];
             self.restrict_modifiers(&modifiers, mods);
 
@@ -537,7 +537,7 @@ impl<'a> Parser<'a> {
     fn parse_struct_field(&mut self) -> StructField {
         let start = self.token.span.start();
 
-        let modifiers = self.parse_annotation_usages();
+        let modifiers = self.parse_modifiers();
         let mods = &[Annotation::Pub];
         self.restrict_modifiers(&modifiers, mods);
 
@@ -593,7 +593,7 @@ impl<'a> Parser<'a> {
     fn parse_class_field(&mut self) -> Field {
         let start = self.token.span.start();
 
-        let modifiers = self.parse_annotation_usages();
+        let modifiers = self.parse_modifiers();
         let mods = &[Annotation::Pub];
         self.restrict_modifiers(&modifiers, mods);
 
@@ -675,10 +675,10 @@ impl<'a> Parser<'a> {
         TypeParam { name, span, bounds }
     }
 
-    fn parse_annotation_usages(&mut self) -> Modifiers {
+    fn parse_modifiers(&mut self) -> Modifiers {
         let mut modifiers = Modifiers::new();
         loop {
-            let modifier = self.parse_annotation_usage();
+            let modifier = self.parse_modifier();
 
             if modifier.is_none() {
                 break;
@@ -697,7 +697,7 @@ impl<'a> Parser<'a> {
         modifiers
     }
 
-    fn parse_annotation_usage(&mut self) -> Option<Annotation> {
+    fn parse_modifier(&mut self) -> Option<Annotation> {
         if self.is(TokenKind::PUB) {
             self.advance_token();
             Some(Annotation::Pub)
@@ -1115,15 +1115,6 @@ impl<'a> Parser<'a> {
     fn parse_statement_or_expression(&mut self) -> StmtOrExpr {
         match self.current() {
             TokenKind::LET => StmtOrExpr::Stmt(self.parse_let()),
-            TokenKind::RETURN => StmtOrExpr::Stmt(self.parse_return()),
-            TokenKind::ELSE => {
-                let span = self.token.span;
-                self.report_error(ParseError::MisplacedElse);
-                StmtOrExpr::Expr(Arc::new(ExprData::Error {
-                    id: self.generate_id(),
-                    span,
-                }))
-            }
             _ => {
                 let expr = self.parse_expression();
 
@@ -1335,7 +1326,6 @@ impl<'a> Parser<'a> {
     fn parse_break(&mut self) -> Expr {
         let start = self.token.span.start();
         self.expect(TokenKind::BREAK);
-        self.eat_semicolon();
         let span = self.span_from(start);
 
         Arc::new(ExprData::create_break(self.generate_id(), span))
@@ -1344,13 +1334,12 @@ impl<'a> Parser<'a> {
     fn parse_continue(&mut self) -> Expr {
         let start = self.token.span.start();
         self.expect(TokenKind::CONTINUE);
-        self.eat_semicolon();
         let span = self.span_from(start);
 
         Arc::new(ExprData::create_continue(self.generate_id(), span))
     }
 
-    fn parse_return(&mut self) -> Stmt {
+    fn parse_return(&mut self) -> Expr {
         let start = self.token.span.start();
         self.expect(TokenKind::RETURN);
         let expr = if self.is(TokenKind::SEMICOLON) {
@@ -1360,10 +1349,8 @@ impl<'a> Parser<'a> {
             Some(expr)
         };
 
-        self.eat_semicolon();
         let span = self.span_from(start);
-
-        Arc::new(StmtData::create_return(self.generate_id(), span, expr))
+        Arc::new(ExprData::create_return(self.generate_id(), span, expr))
     }
 
     fn parse_expression(&mut self) -> Expr {
@@ -1581,6 +1568,7 @@ impl<'a> Parser<'a> {
             TokenKind::WHILE => self.parse_while(),
             TokenKind::BREAK => self.parse_break(),
             TokenKind::CONTINUE => self.parse_continue(),
+            TokenKind::RETURN => self.parse_return(),
             _ => {
                 self.report_error(ParseError::ExpectedFactor(self.token.name().clone()));
                 Arc::new(ExprData::Error {
@@ -2676,8 +2664,8 @@ mod tests {
 
     #[test]
     fn parse_return_value() {
-        let stmt = parse_stmt("return 1;");
-        let ret = stmt.to_return().unwrap();
+        let (expr, _) = parse_expr("return 1;");
+        let ret = expr.to_return().unwrap();
 
         assert_eq!(
             String::from("1"),
@@ -2687,8 +2675,8 @@ mod tests {
 
     #[test]
     fn parse_return() {
-        let stmt = parse_stmt("return;");
-        let ret = stmt.to_return().unwrap();
+        let (expr, _) = parse_expr("return;");
+        let ret = expr.to_return().unwrap();
 
         assert!(ret.expr.is_none());
     }

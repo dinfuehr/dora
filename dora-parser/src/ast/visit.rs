@@ -236,12 +236,6 @@ pub fn walk_stmt<V: Visitor>(v: &mut V, s: &StmtData) {
         StmtData::Expr(ref value) => {
             v.visit_expr(&value.expr);
         }
-
-        StmtData::Return(ref value) => {
-            if let Some(ref e) = value.expr {
-                v.visit_expr(e);
-            }
-        }
     }
 }
 
@@ -336,6 +330,12 @@ pub fn walk_expr<V: Visitor>(v: &mut V, e: &ExprData) {
 
         ExprData::Match(ref value) => {
             v.visit_expr(&value.expr);
+        }
+
+        ExprData::Return(ref value) => {
+            if let Some(ref e) = value.expr {
+                v.visit_expr(e);
+            }
         }
 
         ExprData::Break(_) => {}

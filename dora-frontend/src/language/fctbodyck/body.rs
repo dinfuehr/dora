@@ -560,16 +560,21 @@ impl<'a> TypeCheck<'a> {
         SourceType::Unit
     }
 
-    fn check_stmt_return(&mut self, s: &ast::StmtReturnType) {
+    fn check_expr_return(
+        &mut self,
+        expr: &ast::ExprReturnType,
+        _expected_ty: SourceType,
+    ) -> SourceType {
         let expected_ty = self.fct.return_type.clone();
 
-        let expr_type = s
+        let expr_type = expr
             .expr
             .as_ref()
             .map(|expr| self.check_expr(&expr, expected_ty))
             .unwrap_or(SourceType::Unit);
 
-        self.check_fct_return_type(s.span, expr_type);
+        self.check_fct_return_type(expr.span, expr_type);
+        SourceType::Unit
     }
 
     fn check_fct_return_type(&mut self, span: Span, expr_type: SourceType) {
@@ -3343,6 +3348,7 @@ impl<'a> TypeCheck<'a> {
             ast::ExprData::Match(ref expr) => self.check_expr_match(expr, expected_ty),
             ast::ExprData::For(ref expr) => self.check_expr_for(expr, expected_ty),
             ast::ExprData::While(ref expr) => self.check_expr_while(expr, expected_ty),
+            ast::ExprData::Return(ref expr) => self.check_expr_return(expr, expected_ty),
             ast::ExprData::Break(..) | ast::ExprData::Continue(..) => {
                 self.check_expr_break_and_continue(e, expected_ty)
             }
@@ -3374,7 +3380,6 @@ impl<'a> Visitor for TypeCheck<'a> {
     fn visit_stmt(&mut self, s: &ast::StmtData) {
         match *s {
             ast::StmtData::Let(ref stmt) => self.check_stmt_let(stmt),
-            ast::StmtData::Return(ref stmt) => self.check_stmt_return(stmt),
 
             ast::StmtData::Expr(ref stmt) => {
                 self.check_expr(&stmt.expr, SourceType::Any);
