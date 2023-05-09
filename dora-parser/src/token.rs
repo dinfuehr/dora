@@ -48,6 +48,8 @@ pub const EXPRESSION_FIRST: TokenSet = TokenSet::new(&[
     TokenKind::ADD,
     TokenKind::FOR,
     TokenKind::WHILE,
+    TokenKind::BREAK,
+    TokenKind::CONTINUE,
 ]);
 
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]

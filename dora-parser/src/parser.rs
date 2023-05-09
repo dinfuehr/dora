@@ -1115,8 +1115,6 @@ impl<'a> Parser<'a> {
     fn parse_statement_or_expression(&mut self) -> StmtOrExpr {
         match self.current() {
             TokenKind::LET => StmtOrExpr::Stmt(self.parse_let()),
-            TokenKind::BREAK => StmtOrExpr::Stmt(self.parse_break()),
-            TokenKind::CONTINUE => StmtOrExpr::Stmt(self.parse_continue()),
             TokenKind::RETURN => StmtOrExpr::Stmt(self.parse_return()),
             TokenKind::ELSE => {
                 let span = self.token.span;
@@ -1334,22 +1332,22 @@ impl<'a> Parser<'a> {
         ))
     }
 
-    fn parse_break(&mut self) -> Stmt {
+    fn parse_break(&mut self) -> Expr {
         let start = self.token.span.start();
         self.expect(TokenKind::BREAK);
         self.eat_semicolon();
         let span = self.span_from(start);
 
-        Arc::new(StmtData::create_break(self.generate_id(), span))
+        Arc::new(ExprData::create_break(self.generate_id(), span))
     }
 
-    fn parse_continue(&mut self) -> Stmt {
+    fn parse_continue(&mut self) -> Expr {
         let start = self.token.span.start();
         self.expect(TokenKind::CONTINUE);
         self.eat_semicolon();
         let span = self.span_from(start);
 
-        Arc::new(StmtData::create_continue(self.generate_id(), span))
+        Arc::new(ExprData::create_continue(self.generate_id(), span))
     }
 
     fn parse_return(&mut self) -> Stmt {
@@ -1581,6 +1579,8 @@ impl<'a> Parser<'a> {
             TokenKind::OR | TokenKind::OR_OR => self.parse_lambda(),
             TokenKind::FOR => self.parse_for(),
             TokenKind::WHILE => self.parse_while(),
+            TokenKind::BREAK => self.parse_break(),
+            TokenKind::CONTINUE => self.parse_continue(),
             _ => {
                 self.report_error(ParseError::ExpectedFactor(self.token.name().clone()));
                 Arc::new(ExprData::Error {
@@ -2664,16 +2664,14 @@ mod tests {
 
     #[test]
     fn parse_break() {
-        let stmt = parse_stmt("break;");
-
-        assert!(stmt.is_break());
+        let (expr, _) = parse_expr("break;");
+        assert!(expr.is_break());
     }
 
     #[test]
     fn parse_continue() {
-        let stmt = parse_stmt("continue;");
-
-        assert!(stmt.is_continue());
+        let (expr, _) = parse_expr("continue;");
+        assert!(expr.is_continue());
     }
 
     #[test]

@@ -3343,17 +3343,26 @@ impl<'a> TypeCheck<'a> {
             ast::ExprData::Match(ref expr) => self.check_expr_match(expr, expected_ty),
             ast::ExprData::For(ref expr) => self.check_expr_for(expr, expected_ty),
             ast::ExprData::While(ref expr) => self.check_expr_while(expr, expected_ty),
+            ast::ExprData::Break(..) | ast::ExprData::Continue(..) => {
+                self.check_expr_break_and_continue(e, expected_ty)
+            }
             ast::ExprData::Error { .. } => SourceType::Error,
         }
     }
 
-    fn check_stmt_break_and_continue(&mut self, stmt: &ast::StmtData) {
+    fn check_expr_break_and_continue(
+        &mut self,
+        expr: &ast::ExprData,
+        _expected_ty: SourceType,
+    ) -> SourceType {
         if !self.in_loop {
             self.sa
                 .diag
                 .lock()
-                .report(self.fct.file_id, stmt.span(), ErrorMessage::OutsideLoop);
+                .report(self.fct.file_id, expr.span(), ErrorMessage::OutsideLoop);
         }
+
+        SourceType::Unit
     }
 }
 
@@ -3367,10 +3376,6 @@ impl<'a> Visitor for TypeCheck<'a> {
             ast::StmtData::Let(ref stmt) => self.check_stmt_let(stmt),
             ast::StmtData::Return(ref stmt) => self.check_stmt_return(stmt),
 
-            // for the rest of the statements, no special handling is necessary
-            ast::StmtData::Break(_) | ast::StmtData::Continue(_) => {
-                self.check_stmt_break_and_continue(s);
-            }
             ast::StmtData::Expr(ref stmt) => {
                 self.check_expr(&stmt.expr, SourceType::Any);
             }

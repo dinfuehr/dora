@@ -287,8 +287,6 @@ impl<'a> AstDumper<'a> {
     fn dump_stmt(&mut self, stmt: &StmtData) {
         match *stmt {
             StmtData::Return(ref ret) => self.dump_stmt_return(ret),
-            StmtData::Break(ref stmt) => self.dump_stmt_break(stmt),
-            StmtData::Continue(ref stmt) => self.dump_stmt_continue(stmt),
             StmtData::Expr(ref expr) => self.dump_stmt_expr(expr),
             StmtData::Let(ref stmt) => self.dump_stmt_let(stmt),
         }
@@ -385,11 +383,11 @@ impl<'a> AstDumper<'a> {
         });
     }
 
-    fn dump_stmt_break(&mut self, stmt: &StmtBreakType) {
+    fn dump_expr_break(&mut self, stmt: &ExprBreakType) {
         dump!(self, "break @ {} {}", stmt.span, stmt.id);
     }
 
-    fn dump_stmt_continue(&mut self, stmt: &StmtContinueType) {
+    fn dump_expr_continue(&mut self, stmt: &ExprContinueType) {
         dump!(self, "continue @ {} {}", stmt.span, stmt.id);
     }
 
@@ -417,7 +415,9 @@ impl<'a> AstDumper<'a> {
             ExprData::Paren(ref expr) => self.dump_expr_paren(expr),
             ExprData::Match(ref expr) => self.dump_expr_match(expr),
             ExprData::For(ref expr) => self.dump_expr_for(expr),
-            ExprData::While(ref stmt) => self.dump_expr_while(stmt),
+            ExprData::While(ref expr) => self.dump_expr_while(expr),
+            ExprData::Break(ref expr) => self.dump_expr_break(expr),
+            ExprData::Continue(ref expr) => self.dump_expr_continue(expr),
             ExprData::Error { id, span } => {
                 dump!(self, "error @ {} {}", span, id);
             }

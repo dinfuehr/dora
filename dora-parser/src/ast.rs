@@ -669,8 +669,6 @@ pub type Stmt = Arc<StmtData>;
 pub enum StmtData {
     Let(StmtLetType),
     Expr(StmtExprType),
-    Break(StmtBreakType),
-    Continue(StmtContinueType),
     Return(StmtReturnType),
 }
 
@@ -696,14 +694,6 @@ impl StmtData {
         StmtData::Expr(StmtExprType { id, span, expr })
     }
 
-    pub fn create_break(id: NodeId, span: Span) -> StmtData {
-        StmtData::Break(StmtBreakType { id, span })
-    }
-
-    pub fn create_continue(id: NodeId, span: Span) -> StmtData {
-        StmtData::Continue(StmtContinueType { id, span })
-    }
-
     pub fn create_return(id: NodeId, span: Span, expr: Option<Expr>) -> StmtData {
         StmtData::Return(StmtReturnType { id, span, expr })
     }
@@ -712,8 +702,6 @@ impl StmtData {
         match *self {
             StmtData::Let(ref stmt) => stmt.span,
             StmtData::Expr(ref stmt) => stmt.span,
-            StmtData::Break(ref stmt) => stmt.span,
-            StmtData::Continue(ref stmt) => stmt.span,
             StmtData::Return(ref stmt) => stmt.span,
         }
     }
@@ -756,34 +744,6 @@ impl StmtData {
     pub fn is_return(&self) -> bool {
         match *self {
             StmtData::Return(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn to_break(&self) -> Option<&StmtBreakType> {
-        match *self {
-            StmtData::Break(ref val) => Some(val),
-            _ => None,
-        }
-    }
-
-    pub fn is_break(&self) -> bool {
-        match *self {
-            StmtData::Break(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn to_continue(&self) -> Option<&StmtContinueType> {
-        match *self {
-            StmtData::Continue(ref val) => Some(val),
-            _ => None,
-        }
-    }
-
-    pub fn is_continue(&self) -> bool {
-        match *self {
-            StmtData::Continue(_) => true,
             _ => false,
         }
     }
@@ -908,13 +868,13 @@ pub struct StmtReturnType {
 }
 
 #[derive(Clone, Debug)]
-pub struct StmtBreakType {
+pub struct ExprBreakType {
     pub id: NodeId,
     pub span: Span,
 }
 
 #[derive(Clone, Debug)]
-pub struct StmtContinueType {
+pub struct ExprContinueType {
     pub id: NodeId,
     pub span: Span,
 }
@@ -1045,6 +1005,8 @@ pub enum ExprData {
     Tuple(ExprTupleType),
     Paren(ExprParenType),
     Match(ExprMatchType),
+    Break(ExprBreakType),
+    Continue(ExprContinueType),
     Error { id: NodeId, span: Span },
 }
 
@@ -1110,6 +1072,14 @@ impl ExprData {
             cond,
             block,
         })
+    }
+
+    pub fn create_break(id: NodeId, span: Span) -> ExprData {
+        ExprData::Break(ExprBreakType { id, span })
+    }
+
+    pub fn create_continue(id: NodeId, span: Span) -> ExprData {
+        ExprData::Continue(ExprContinueType { id, span })
     }
 
     pub fn create_un(id: NodeId, span: Span, op: UnOp, opnd: Expr) -> ExprData {
@@ -1542,6 +1512,34 @@ impl ExprData {
         }
     }
 
+    pub fn to_break(&self) -> Option<&ExprBreakType> {
+        match *self {
+            ExprData::Break(ref val) => Some(val),
+            _ => None,
+        }
+    }
+
+    pub fn is_break(&self) -> bool {
+        match *self {
+            ExprData::Break(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_continue(&self) -> Option<&ExprContinueType> {
+        match *self {
+            ExprData::Continue(ref val) => Some(val),
+            _ => None,
+        }
+    }
+
+    pub fn is_continue(&self) -> bool {
+        match *self {
+            ExprData::Continue(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn needs_semicolon(&self) -> bool {
         match self {
             &ExprData::Block(_) => false,
@@ -1578,6 +1576,8 @@ impl ExprData {
             ExprData::Match(ref val) => val.span,
             ExprData::For(ref val) => val.span,
             ExprData::While(ref val) => val.span,
+            ExprData::Break(ref val) => val.span,
+            ExprData::Continue(ref val) => val.span,
             ExprData::Error { span, .. } => span,
         }
     }
@@ -1607,6 +1607,8 @@ impl ExprData {
             ExprData::Match(ref val) => val.id,
             ExprData::For(ref val) => val.id,
             ExprData::While(ref val) => val.id,
+            ExprData::Break(ref val) => val.id,
+            ExprData::Continue(ref val) => val.id,
             ExprData::Error { id, .. } => id,
         }
     }

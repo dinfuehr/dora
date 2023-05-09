@@ -242,9 +242,6 @@ pub fn walk_stmt<V: Visitor>(v: &mut V, s: &StmtData) {
                 v.visit_expr(e);
             }
         }
-
-        StmtData::Break(_) => {}
-        StmtData::Continue(_) => {}
     }
 }
 
@@ -340,6 +337,9 @@ pub fn walk_expr<V: Visitor>(v: &mut V, e: &ExprData) {
         ExprData::Match(ref value) => {
             v.visit_expr(&value.expr);
         }
+
+        ExprData::Break(_) => {}
+        ExprData::Continue(_) => {}
 
         ExprData::This(_) => {}
         ExprData::LitChar(_) => {}

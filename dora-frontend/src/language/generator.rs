@@ -224,8 +224,6 @@ impl<'a> AstBytecodeGen<'a> {
     fn visit_stmt(&mut self, stmt: &ast::StmtData) {
         match *stmt {
             ast::StmtData::Return(ref ret) => self.visit_stmt_return(ret),
-            ast::StmtData::Break(ref stmt) => self.visit_stmt_break(stmt),
-            ast::StmtData::Continue(ref stmt) => self.visit_stmt_continue(stmt),
             ast::StmtData::Expr(ref expr) => self.visit_stmt_expr(expr),
             ast::StmtData::Let(ref stmt) => self.visit_stmt_let(stmt),
         }
@@ -592,14 +590,16 @@ impl<'a> AstBytecodeGen<'a> {
         self.builder.emit_ret(result_reg);
     }
 
-    fn visit_stmt_break(&mut self, _stmt: &ast::StmtBreakType) {
+    fn visit_expr_break(&mut self, _stmt: &ast::ExprBreakType, _dest: DataDest) -> Register {
         let end = self.loops.last().unwrap().end;
         self.builder.emit_jump(end);
+        self.ensure_unit_register()
     }
 
-    fn visit_stmt_continue(&mut self, _stmt: &ast::StmtContinueType) {
+    fn visit_expr_continue(&mut self, _stmt: &ast::ExprContinueType, _dest: DataDest) -> Register {
         let cond = self.loops.last().unwrap().cond;
         self.builder.emit_jump_loop(cond);
+        self.ensure_unit_register()
     }
 
     fn visit_expr(&mut self, expr: &ast::ExprData, dest: DataDest) -> Register {
@@ -627,6 +627,8 @@ impl<'a> AstBytecodeGen<'a> {
             ast::ExprData::Lambda(ref node) => self.visit_expr_lambda(node, dest),
             ast::ExprData::For(ref node) => self.visit_expr_for(node, dest),
             ast::ExprData::While(ref node) => self.visit_expr_while(node, dest),
+            ast::ExprData::Break(ref node) => self.visit_expr_break(node, dest),
+            ast::ExprData::Continue(ref node) => self.visit_expr_continue(node, dest),
             ast::ExprData::Error { .. } => unreachable!(),
         }
     }
