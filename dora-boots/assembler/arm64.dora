@@ -205,7 +205,7 @@ impl AssemblerArm64 {
 
     pub fn bc(cond: Cond, target: Label) {
         if target.isBound() {
-            let diff = self.buffer.position() - target.offset;
+            let diff = target.offset - self.buffer.position();
             assert(diff % 4 == 0);
             self.bc_imm(cond, (diff / 4).toInt32());
         } else {
@@ -226,7 +226,7 @@ impl AssemblerArm64 {
 
     pub fn bl(target: Label) {
         if target.isBound() {
-            let diff = self.buffer.position() - target.offset;
+            let diff = target.offset - self.buffer.position();
             assert(diff % 4 == 0);
             let inst = encoding::uncond_branch_imm(0b1i32, (diff / 4).toInt32());
             self.buffer.emitInt32(inst);
@@ -1210,7 +1210,7 @@ mod encoding {
 }
 
 mod tests {
-    use super::{assertAsm32, assertAsmEnd, R0, R10, R30, AssemblerArm64};
+    use super::{assertAsm32, assertAsmEnd, R0, R10, R30, AssemblerArm64, Cond};
 
     @Test
     fn test_asm_ret() {
@@ -1243,7 +1243,7 @@ mod tests {
     }
 
     @Test
-    fn test_b() {
+    fn test_b_backward() {
         let asm = AssemblerArm64::new();
         let target = asm.buffer.createAndBindLabel();
         asm.nop();
@@ -1256,7 +1256,38 @@ mod tests {
             0x17ffffffi32,
         );
         assertAsmEnd(buffer);
+    }
 
+    @Test
+    fn test_bl_backward() {
+        let asm = AssemblerArm64::new();
+        let target = asm.buffer.createAndBindLabel();
+        asm.nop();
+        asm.bl(target);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            0xd503201fi32,
+            0x97ffffffi32,
+        );
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn test_bc_backward() {
+        let asm = AssemblerArm64::new();
+        let target = asm.buffer.createAndBindLabel();
+        asm.nop();
+        asm.bc(Cond::EQ, target);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            0xd503201fi32,
+            0x54ffffe0i32,
+        );
+        assertAsmEnd(buffer);
     }
 
     @Test
