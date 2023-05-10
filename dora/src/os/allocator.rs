@@ -1,5 +1,3 @@
-use std::ptr;
-
 use crate::gc::{Address, Region};
 use crate::mem;
 use crate::os::page_size;
@@ -7,6 +5,8 @@ use crate::os::page_size;
 #[cfg(target_family = "unix")]
 fn reserve(size: usize, jitting: bool) -> Address {
     debug_assert!(mem::is_page_aligned(size));
+
+    use std::ptr;
 
     let mut flags = libc::MAP_PRIVATE | libc::MAP_ANON;
 
@@ -39,10 +39,9 @@ fn map_jit_flag() -> i32 {
 fn reserve(size: usize, _jitting: bool) -> Address {
     debug_assert!(mem::is_page_aligned(size));
 
-    use winapi::um::memoryapi::VirtualAlloc;
-    use winapi::um::winnt::{MEM_RESERVE, PAGE_NOACCESS};
+    use windows::Win32::System::Memory::{VirtualAlloc, MEM_RESERVE, PAGE_NOACCESS};
 
-    let ptr = unsafe { VirtualAlloc(ptr::null_mut(), size, MEM_RESERVE, PAGE_NOACCESS) };
+    let ptr = unsafe { VirtualAlloc(None, size, MEM_RESERVE, PAGE_NOACCESS) };
 
     if ptr.is_null() {
         panic!("VirtualAlloc failed");
@@ -68,12 +67,11 @@ pub fn free(ptr: Address, size: usize) {
     debug_assert!(ptr.is_page_aligned());
     debug_assert!(mem::is_page_aligned(size));
 
-    use winapi::um::memoryapi::VirtualFree;
-    use winapi::um::winnt::MEM_RELEASE;
+    use windows::Win32::System::Memory::{VirtualFree, MEM_RELEASE};
 
     let result = unsafe { VirtualFree(ptr.to_mut_ptr(), 0, MEM_RELEASE) };
 
-    if result == 0 {
+    if result.ok().is_err() {
         panic!("VirtualFree failed");
     }
 }
@@ -148,6 +146,8 @@ pub fn reserve_align(size: usize, align: usize, jitting: bool) -> Reservation {
 pub fn commit(size: usize, executable: bool) -> Address {
     debug_assert!(mem::is_page_aligned(size));
 
+    use std::ptr;
+
     let mut prot = libc::PROT_READ | libc::PROT_WRITE;
 
     if executable {
@@ -176,8 +176,9 @@ pub fn commit(size: usize, executable: bool) -> Address {
 pub fn commit(size: usize, executable: bool) -> Address {
     debug_assert!(mem::is_page_aligned(size));
 
-    use winapi::um::memoryapi::VirtualAlloc;
-    use winapi::um::winnt::{MEM_COMMIT, MEM_RESERVE, PAGE_EXECUTE_READWRITE, PAGE_READWRITE};
+    use windows::Win32::System::Memory::{
+        VirtualAlloc, MEM_COMMIT, MEM_RESERVE, PAGE_EXECUTE_READWRITE, PAGE_READWRITE,
+    };
 
     let prot = if executable {
         PAGE_EXECUTE_READWRITE
@@ -185,7 +186,7 @@ pub fn commit(size: usize, executable: bool) -> Address {
         PAGE_READWRITE
     };
 
-    let ptr = unsafe { VirtualAlloc(ptr::null_mut(), size, MEM_COMMIT | MEM_RESERVE, prot) };
+    let ptr = unsafe { VirtualAlloc(None, size, MEM_COMMIT | MEM_RESERVE, prot) };
 
     if ptr.is_null() {
         panic!("VirtualAlloc failed");
@@ -228,10 +229,9 @@ pub fn commit_at(ptr: Address, size: usize, permissions: MemoryPermission) {
     debug_assert!(ptr.is_page_aligned());
     debug_assert!(mem::is_page_aligned(size));
 
-    use winapi::um::memoryapi::VirtualAlloc;
-    use winapi::um::winnt::{
-        MEM_COMMIT, PAGE_EXECUTE_READ, PAGE_EXECUTE_READWRITE, PAGE_NOACCESS, PAGE_READONLY,
-        PAGE_READWRITE,
+    use windows::Win32::System::Memory::{
+        VirtualAlloc, MEM_COMMIT, PAGE_EXECUTE_READ, PAGE_EXECUTE_READWRITE, PAGE_NOACCESS,
+        PAGE_READONLY, PAGE_READWRITE,
     };
 
     let protection = match permissions {
@@ -242,7 +242,7 @@ pub fn commit_at(ptr: Address, size: usize, permissions: MemoryPermission) {
         MemoryPermission::ReadWriteExecute => PAGE_EXECUTE_READWRITE,
     };
 
-    let result = unsafe { VirtualAlloc(ptr.to_mut_ptr(), size, MEM_COMMIT, protection) };
+    let result = unsafe { VirtualAlloc(Some(ptr.to_mut_ptr()), size, MEM_COMMIT, protection) };
 
     if result != ptr.to_mut_ptr() {
         panic!("VirtualAlloc failed");
@@ -298,12 +298,11 @@ fn uncommit(ptr: Address, size: usize) {
     debug_assert!(ptr.is_page_aligned());
     debug_assert!(mem::is_page_aligned(size));
 
-    use winapi::um::memoryapi::VirtualFree;
-    use winapi::um::winnt::MEM_DECOMMIT;
+    use windows::Win32::System::Memory::{VirtualFree, MEM_DECOMMIT};
 
     let result = unsafe { VirtualFree(ptr.to_mut_ptr(), size, MEM_DECOMMIT) };
 
-    if result == 0 {
+    if result.ok().is_err() {
         panic!("VirtualFree failed");
     }
 }
@@ -331,12 +330,11 @@ pub fn discard(ptr: Address, size: usize) {
     debug_assert!(ptr.is_page_aligned());
     debug_assert!(mem::is_page_aligned(size));
 
-    use winapi::um::memoryapi::VirtualFree;
-    use winapi::um::winnt::MEM_DECOMMIT;
+    use windows::Win32::System::Memory::{VirtualFree, MEM_DECOMMIT};
 
     let result = unsafe { VirtualFree(ptr.to_mut_ptr(), size, MEM_DECOMMIT) };
 
-    if result == 0 {
+    if result.ok().is_err() {
         panic!("VirtualFree failed");
     }
 }
@@ -371,9 +369,9 @@ pub fn protect(start: Address, size: usize, access: MemoryPermission) {
     debug_assert!(start.is_page_aligned());
     debug_assert!(mem::is_page_aligned(size));
 
-    use winapi::um::memoryapi::VirtualAlloc;
-    use winapi::um::winnt::{
-        MEM_COMMIT, PAGE_EXECUTE_READ, PAGE_EXECUTE_READWRITE, PAGE_READONLY, PAGE_READWRITE,
+    use windows::Win32::System::Memory::{
+        VirtualAlloc, MEM_COMMIT, PAGE_EXECUTE_READ, PAGE_EXECUTE_READWRITE, PAGE_READONLY,
+        PAGE_READWRITE,
     };
 
     if access == MemoryPermission::None {
@@ -389,7 +387,7 @@ pub fn protect(start: Address, size: usize, access: MemoryPermission) {
         MemoryPermission::ReadWriteExecute => PAGE_EXECUTE_READWRITE,
     };
 
-    let ptr = unsafe { VirtualAlloc(start.to_mut_ptr(), size, MEM_COMMIT, protection) };
+    let ptr = unsafe { VirtualAlloc(Some(start.to_mut_ptr()), size, MEM_COMMIT, protection) };
 
     if ptr.is_null() {
         panic!("VirtualAlloc failed");

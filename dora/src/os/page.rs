@@ -47,11 +47,11 @@ fn determine_page_size() -> usize {
 
 #[cfg(target_family = "windows")]
 fn determine_page_size() -> usize {
-    use winapi::um::sysinfoapi::{GetSystemInfo, LPSYSTEM_INFO, SYSTEM_INFO};
+    use windows::Win32::System::SystemInformation::{GetSystemInfo, SYSTEM_INFO};
 
     unsafe {
         let mut system_info: SYSTEM_INFO = std::mem::zeroed();
-        GetSystemInfo(&mut system_info as LPSYSTEM_INFO);
+        GetSystemInfo(&mut system_info);
 
         system_info.dwPageSize as usize
     }
