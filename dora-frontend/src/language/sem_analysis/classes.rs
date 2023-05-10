@@ -73,6 +73,7 @@ impl ClassDefinition {
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
         ast: &Arc<ast::Class>,
+        name: Name,
     ) -> ClassDefinition {
         ClassDefinition {
             id: None,
@@ -81,7 +82,7 @@ impl ClassDefinition {
             file_id: Some(file_id),
             ast: Some(ast.clone()),
             span: Some(ast.span),
-            name: ast.name.as_ref().expect("missing name").name,
+            name,
             ty: None,
             internal: ast.internal,
             internal_resolved: false,
@@ -345,24 +346,6 @@ impl TypeParamDefinition {
     pub fn new() -> TypeParamDefinition {
         TypeParamDefinition {
             type_params: Vec::new(),
-            bounds: Vec::new(),
-        }
-    }
-
-    pub fn new_ast(type_params: &Option<Vec<ast::TypeParam>>) -> TypeParamDefinition {
-        let type_params = if let Some(ast_type_params) = type_params {
-            ast_type_params
-                .iter()
-                .map(|type_param| TypeParam {
-                    name: type_param.name.as_ref().expect("missing name").name,
-                })
-                .collect()
-        } else {
-            Vec::new()
-        };
-
-        TypeParamDefinition {
-            type_params,
             bounds: Vec::new(),
         }
     }

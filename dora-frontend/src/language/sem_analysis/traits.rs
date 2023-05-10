@@ -63,6 +63,7 @@ impl TraitDefinition {
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
         node: &Arc<ast::Trait>,
+        name: Name,
     ) -> TraitDefinition {
         TraitDefinition {
             id: None,
@@ -72,7 +73,7 @@ impl TraitDefinition {
             ast: node.clone(),
             visibility: Visibility::from_ast(node.visibility),
             span: node.span,
-            name: node.name.as_ref().expect("missing name").name,
+            name,
             is_trait_object: false,
             type_params: None,
             methods: Vec::new(),

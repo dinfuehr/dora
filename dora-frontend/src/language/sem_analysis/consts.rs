@@ -50,6 +50,7 @@ impl ConstDefinition {
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
         node: &Arc<ast::Const>,
+        name: Name,
     ) -> ConstDefinition {
         ConstDefinition {
             id: None,
@@ -58,7 +59,7 @@ impl ConstDefinition {
             file_id,
             ast: node.clone(),
             span: node.span,
-            name: node.name.as_ref().expect("missing name").name,
+            name,
             visibility: Visibility::from_ast(node.visibility),
             ty: SourceType::Error,
             expr: node.expr.clone(),

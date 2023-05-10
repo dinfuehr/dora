@@ -292,6 +292,10 @@ impl AssemblerArm64 {
         }
     }
 
+    pub fn nop() {
+        self.buffer.emitInt32(encoding::system(0i32));
+    }
+
     pub fn finalize(): Array[UInt8] {
         self.resolveJumps();
         while self.buffer.size() % 16 != 0 {
@@ -1209,7 +1213,7 @@ mod tests {
     use super::{assertAsm32, assertAsmEnd, R0, R10, R30, AssemblerArm64};
 
     @Test
-    fn testAsmRet() {
+    fn test_asm_ret() {
         let asm = AssemblerArm64::new();
         asm.ret();
         asm.retReg(R0);
@@ -1235,6 +1239,25 @@ mod tests {
         assertAsm32(buffer, 0xd61f03c0i32);
         assertAsm32(buffer, 0xd63f0000i32);
         assertAsm32(buffer, 0xd63f03c0i32);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn test_b() {
+        let asm = AssemblerArm64::new();
+        let target = asm.buffer.createAndBindLabel();
+        asm.nop();
+        asm.b(target);
+        let buffer = asm.finalizeTesting();
+    }
+
+    @Test
+    fn test_nop() {
+        let asm = AssemblerArm64::new();
+        asm.nop();
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(buffer, 0xd503201fi32);
         assertAsmEnd(buffer);
     }
 }

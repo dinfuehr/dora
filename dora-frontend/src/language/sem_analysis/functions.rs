@@ -82,6 +82,7 @@ impl FctDefinition {
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
         ast: &Arc<ast::Function>,
+        name: Name,
         parent: FctParent,
     ) -> FctDefinition {
         FctDefinition {
@@ -91,7 +92,7 @@ impl FctDefinition {
             file_id,
             span: ast.span,
             ast: ast.clone(),
-            name: ast.name.as_ref().expect("missing name").name,
+            name,
             param_types: Vec::new(),
             return_type: SourceType::Error,
             parent,

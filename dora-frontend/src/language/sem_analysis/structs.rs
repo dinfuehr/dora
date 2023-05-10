@@ -64,6 +64,7 @@ impl StructDefinition {
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
         node: &Arc<ast::Struct>,
+        name: Name,
     ) -> StructDefinition {
         StructDefinition {
             id: None,
@@ -74,7 +75,7 @@ impl StructDefinition {
             primitive_ty: None,
             visibility: Visibility::from_ast(node.visibility),
             span: node.span,
-            name: node.name.as_ref().expect("missing name").name,
+            name,
             internal: node.internal,
             internal_resolved: false,
             type_params: None,

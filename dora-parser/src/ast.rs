@@ -581,11 +581,8 @@ impl Modifiers {
         self.0.iter().find(|el| el.value == modifier).is_some()
     }
 
-    pub fn add(&mut self, modifier: Annotation, span: Span) {
-        self.0.push(ModifierElement {
-            value: modifier,
-            span,
-        });
+    pub fn add(&mut self, modifier: ModifierElement) {
+        self.0.push(modifier);
     }
 
     pub fn iter(&self) -> Iter<ModifierElement> {
@@ -641,6 +638,10 @@ pub enum Annotation {
 }
 
 impl Annotation {
+    pub fn is_error(&self) -> bool {
+        *self == Annotation::Error
+    }
+
     pub fn name(&self) -> &'static str {
         match *self {
             Annotation::Internal => "internal",

@@ -70,6 +70,7 @@ impl ModuleDefinition {
         parent_id: ModuleDefinitionId,
         file_id: SourceFileId,
         ast: &Arc<ast::Module>,
+        name: Name,
     ) -> ModuleDefinition {
         let parent = &sa.modules[parent_id].read();
         let mut parents = parent.parents.clone();
@@ -83,7 +84,7 @@ impl ModuleDefinition {
             ast: Some(ast.clone()),
             file_id: Some(file_id),
             parent_module_id: Some(parent_id),
-            name: Some(ast.name.as_ref().expect("missing name").name),
+            name: Some(name),
             table: Arc::new(RwLock::new(SymTable::new())),
             visibility: Visibility::from_ast(ast.visibility),
             parents,

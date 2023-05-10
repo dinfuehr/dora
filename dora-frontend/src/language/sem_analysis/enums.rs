@@ -62,6 +62,7 @@ impl EnumDefinition {
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
         node: &Arc<ast::Enum>,
+        name: Name,
     ) -> EnumDefinition {
         EnumDefinition {
             id: None,
@@ -70,7 +71,7 @@ impl EnumDefinition {
             file_id,
             ast: node.clone(),
             span: node.span,
-            name: node.name.as_ref().expect("missing name").name,
+            name,
             type_params: None,
             visibility: Visibility::from_ast(node.visibility),
             variants: Vec::new(),

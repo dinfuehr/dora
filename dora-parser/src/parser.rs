@@ -686,24 +686,34 @@ impl<'a> Parser<'a> {
 
             let modifier = modifier.unwrap();
 
-            if modifiers.contains(modifier) {
-                self.report_error(ParseError::RedundantAnnotation(modifier.name().into()));
+            if !modifier.value.is_error() && modifiers.contains(modifier.value) {
+                self.report_error(ParseError::RedundantAnnotation(
+                    modifier.value.name().into(),
+                ));
                 continue;
             }
 
-            modifiers.add(modifier, self.token.span);
+            modifiers.add(modifier);
         }
 
         modifiers
     }
 
-    fn parse_modifier(&mut self) -> Option<Annotation> {
+    fn parse_modifier(&mut self) -> Option<ModifierElement> {
+        let start = self.token.span.start();
+
         if self.is(TokenKind::PUB) {
             self.advance_token();
-            Some(Annotation::Pub)
+            Some(ModifierElement {
+                value: Annotation::Pub,
+                span: self.span_from(start),
+            })
         } else if self.is(TokenKind::STATIC) {
             self.advance_token();
-            Some(Annotation::Static)
+            Some(ModifierElement {
+                value: Annotation::Static,
+                span: self.span_from(start),
+            })
         } else {
             if !self.is(TokenKind::AT) {
                 return None;
@@ -712,13 +722,20 @@ impl<'a> Parser<'a> {
 
             if self.is(TokenKind::PUB) {
                 self.advance_token();
-                return Some(Annotation::Pub);
+                return Some(ModifierElement {
+                    value: Annotation::Pub,
+                    span: self.span_from(start),
+                });
             } else if self.is(TokenKind::STATIC) {
                 self.advance_token();
-                return Some(Annotation::Static);
+                return Some(ModifierElement {
+                    value: Annotation::Static,
+                    span: self.span_from(start),
+                });
             }
 
             let name = self.eat_identifier();
+            let span = self.span_from(start);
             let annotation = if let Some(name) = &name {
                 match self.interner.str(name.name).as_str() {
                     "internal" => Annotation::Internal,
@@ -727,7 +744,10 @@ impl<'a> Parser<'a> {
                     "Test" => Annotation::Test,
                     "optimizeImmediately" => Annotation::OptimizeImmediately,
                     annotation => {
-                        self.report_error(ParseError::UnknownAnnotation(annotation.into()));
+                        self.report_error_at(
+                            ParseError::UnknownAnnotation(annotation.into()),
+                            span,
+                        );
                         Annotation::Error
                     }
                 }
@@ -735,7 +755,10 @@ impl<'a> Parser<'a> {
                 Annotation::Error
             };
 
-            Some(annotation)
+            Some(ModifierElement {
+                value: annotation,
+                span,
+            })
         }
     }
 
@@ -745,6 +768,10 @@ impl<'a> Parser<'a> {
 
     fn restrict_modifiers(&mut self, modifiers: &Modifiers, restrict: &[Annotation]) {
         for modifier in modifiers.iter() {
+            if modifier.value.is_error() {
+                continue;
+            }
+
             if !restrict.contains(&modifier.value) {
                 self.report_error_at(
                     ParseError::MisplacedAnnotation(modifier.value.name().into()),
@@ -1762,12 +1789,10 @@ impl<'a> Parser<'a> {
 
         let span = self.span_from(start);
 
-        let name = self.interner.intern("closure");
-
         let function = Arc::new(Function {
             id: self.generate_id(),
             kind: FunctionKind::Lambda,
-            name: Some(Arc::new(IdentData { span: span, name })),
+            name: None,
             span,
             is_optimize_immediately: false,
             visibility: Visibility::Default,

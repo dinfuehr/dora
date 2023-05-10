@@ -429,18 +429,19 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     }
 
     fn visit_module(&mut self, node: &Arc<ast::Module>) {
+        let name = ensure_name(self.sa, &node.name);
         let module = ModuleDefinition::new_inner(
             self.sa,
             self.package_id,
             self.module_id,
             self.file_id,
             node,
+            name,
         );
         let id = self.sa.modules.push(module);
         let sym = Sym::Module(id);
-        let name = node.name.as_ref().expect("missing name").name;
 
-        if let Some(sym) = self.insert(name, sym) {
+        if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
 
@@ -455,14 +456,20 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     }
 
     fn visit_trait(&mut self, node: &Arc<ast::Trait>) {
-        let trait_ = TraitDefinition::new(self.package_id, self.module_id, self.file_id, node);
+        let trait_ = TraitDefinition::new(
+            self.package_id,
+            self.module_id,
+            self.file_id,
+            node,
+            ensure_name(self.sa, &node.name),
+        );
         let trait_id = self.sa.traits.push(trait_);
 
         find_methods_in_trait(self.sa, trait_id, node);
 
         let sym = Sym::Trait(trait_id);
-        let name = node.name.as_ref().expect("missing name").name;
-        if let Some(sym) = self.insert(name, sym) {
+
+        if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
@@ -473,14 +480,19 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     }
 
     fn visit_global(&mut self, node: &Arc<ast::Global>) {
-        let global = GlobalDefinition::new(self.package_id, self.module_id, self.file_id, node);
+        let global = GlobalDefinition::new(
+            self.package_id,
+            self.module_id,
+            self.file_id,
+            node,
+            ensure_name(self.sa, &node.name),
+        );
         let global_id = self.sa.globals.push(global);
 
         generate_function_for_initial_value(self.sa, global_id, &self.id_generator, node);
 
         let sym = Sym::Global(global_id);
-        let name = node.name.as_ref().expect("missing name").name;
-        if let Some(sym) = self.insert(name, sym) {
+        if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
@@ -501,35 +513,49 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     }
 
     fn visit_const(&mut self, node: &Arc<ast::Const>) {
-        let const_ = ConstDefinition::new(self.package_id, self.module_id, self.file_id, node);
+        let const_ = ConstDefinition::new(
+            self.package_id,
+            self.module_id,
+            self.file_id,
+            node,
+            ensure_name(self.sa, &node.name),
+        );
         let id = self.sa.consts.push(const_);
 
         let sym = Sym::Const(id);
-        let name = node.name.as_ref().expect("missing name").name;
-        if let Some(sym) = self.insert(name, sym) {
+        if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
 
     fn visit_class(&mut self, node: &Arc<ast::Class>) {
-        let class = ClassDefinition::new(self.package_id, self.module_id, self.file_id, node);
+        let class = ClassDefinition::new(
+            self.package_id,
+            self.module_id,
+            self.file_id,
+            node,
+            ensure_name(self.sa, &node.name),
+        );
         let class_id = self.sa.classes.push(class);
 
         let sym = Sym::Class(class_id);
-        let name = node.name.as_ref().expect("missing name").name;
-
-        if let Some(sym) = self.insert(name, sym) {
+        if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
 
     fn visit_struct(&mut self, node: &Arc<ast::Struct>) {
-        let struct_ = StructDefinition::new(self.package_id, self.module_id, self.file_id, node);
+        let struct_ = StructDefinition::new(
+            self.package_id,
+            self.module_id,
+            self.file_id,
+            node,
+            ensure_name(self.sa, &node.name),
+        );
         let id = self.sa.structs.push(struct_);
 
         let sym = Sym::Struct(id);
-        let name = node.name.as_ref().expect("missing name").name;
-        if let Some(sym) = self.insert(name, sym) {
+        if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
@@ -540,24 +566,28 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             self.module_id,
             self.file_id,
             node,
+            ensure_name(self.sa, &node.name),
             FctParent::None,
         );
         let fctid = self.sa.add_fct(fct);
         let sym = Sym::Fct(fctid);
-        let name = node.name.as_ref().expect("missing name").name;
-
-        if let Some(sym) = self.insert(name, sym) {
+        if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
 
     fn visit_enum(&mut self, node: &Arc<ast::Enum>) {
-        let enum_ = EnumDefinition::new(self.package_id, self.module_id, self.file_id, node);
+        let enum_ = EnumDefinition::new(
+            self.package_id,
+            self.module_id,
+            self.file_id,
+            node,
+            ensure_name(self.sa, &node.name),
+        );
         let id = self.sa.enums.push(enum_);
 
         let sym = Sym::Enum(id);
-        let name = node.name.as_ref().expect("missing name").name;
-        if let Some(sym) = self.insert(name, sym) {
+        if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
@@ -577,6 +607,7 @@ fn find_methods_in_trait(
             trait_.module_id,
             trait_.file_id,
             method_node,
+            ensure_name(sa, &method_node.name),
             FctParent::Trait(trait_id),
         );
 
@@ -595,6 +626,7 @@ fn find_methods_in_impl(sa: &mut SemAnalysis, impl_id: ImplDefinitionId, node: &
             impl_.module_id,
             impl_.file_id,
             method_node,
+            ensure_name(sa, &method_node.name),
             FctParent::Impl(impl_id),
         );
 
@@ -617,6 +649,7 @@ fn find_methods_in_extension(
             extension.module_id,
             extension.file_id,
             method_node,
+            ensure_name(sa, &method_node.name),
             FctParent::Extension(extension_id),
         );
 
@@ -655,6 +688,7 @@ fn generate_function_for_initial_value(
             global.module_id,
             global.file_id,
             &function_ast,
+            ensure_name(sa, &function_ast.name),
             FctParent::None,
         );
 
@@ -663,11 +697,27 @@ fn generate_function_for_initial_value(
     }
 }
 
+fn ensure_name(sa: &mut SemAnalysis, ident: &Option<ast::Ident>) -> Name {
+    if let Some(ident) = ident {
+        ident.name
+    } else {
+        sa.interner.intern("<missing name>")
+    }
+}
+
 impl<'x> TopLevelDeclaration<'x> {
     fn insert(&mut self, name: Name, sym: Sym) -> Option<Sym> {
         let level = self.sa.module_table(self.module_id);
         let mut level = level.write();
         level.insert(name, sym)
+    }
+
+    fn insert_optional(&mut self, ident: &Option<ast::Ident>, sym: Sym) -> Option<(Name, Sym)> {
+        if let Some(ident) = ident {
+            self.insert(ident.name, sym).map(|sym| (ident.name, sym))
+        } else {
+            None
+        }
     }
 }
 

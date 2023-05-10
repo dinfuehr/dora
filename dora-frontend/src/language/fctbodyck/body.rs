@@ -3105,11 +3105,14 @@ impl<'a> TypeCheck<'a> {
         let mut params_with_ctxt = vec![SourceType::Ptr];
         params_with_ctxt.append(&mut params);
 
+        let name = self.sa.interner.intern("<closure>");
+
         let mut lambda = FctDefinition::new(
             self.package_id,
             self.module_id,
             self.file_id,
             node,
+            name,
             FctParent::Function(parent_fct_id),
         );
         lambda.param_types = params_with_ctxt;
