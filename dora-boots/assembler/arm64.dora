@@ -87,15 +87,15 @@ let F30: NeonRegister = NeonRegister(30i32);
 let F31: NeonRegister = NeonRegister(31i32);
 
 class ForwardJump {
-    offset: Int32,
+    offset: Int64,
     label: Label,
     kind: JumpKind
 }
 
 enum JumpKind {
-    Unconditional,
+    Unconditional(Bool),
     Conditional(Cond),
-    NonZero(Bool, Register),
+    Zero(Bool, Bool, Register),
 }
 
 enum Cond {
@@ -163,42 +163,137 @@ impl Cond {
 
 pub class AssemblerArm64 {
     buffer: AssemblerBuffer,
+    jumps: Vec[ForwardJump],
 }
 
 impl AssemblerArm64 {
     pub static fn new(): AssemblerArm64 {
-        AssemblerArm64(AssemblerBuffer::new())
+        AssemblerArm64(
+            AssemblerBuffer::new(),
+            Vec[ForwardJump]::new()
+        )
     }
 
     pub fn ret() {
-        let inst = encoding::uncondBranchReg(0b0010i32, 0b11111i32, 0i32, REG_LR, 0i32);
+        let inst = encoding::uncond_branch_reg(0b0010i32, 0b11111i32, 0i32, REG_LR, 0i32);
         self.buffer.emitInt32(inst);
     }
 
     pub fn retReg(rn: Register) {
-        let inst = encoding::uncondBranchReg(0b0010i32, 0b11111i32, 0i32, rn, 0i32);
+        let inst = encoding::uncond_branch_reg(0b0010i32, 0b11111i32, 0i32, rn, 0i32);
         self.buffer.emitInt32(inst);
     }
 
-    pub fn b(label: Label) {
-        unreachable[()]();
+    pub fn b(target: Label) {
+        if target.isBound() {
+            let diff = self.buffer.position() - target.offset;
+            assert(diff % 4 == 0);
+            let inst = encoding::uncond_branch_imm(0b0i32, (diff / 4).toInt32());
+            self.buffer.emitInt32(inst);
+        } else {
+            let pos = self.buffer.position();
+            self.buffer.emitInt32(0i32);
+            self.jumps.push(ForwardJump(
+                pos,
+                target,
+                JumpKind::Unconditional(false),
+            ));
+        }
     }
 
-    pub fn bl(label: Label) {
-        unreachable[()]();
+
+
+    pub fn bc(cond: Cond, target: Label) {
+        if target.isBound() {
+            let diff = self.buffer.position() - target.offset;
+            assert(diff % 4 == 0);
+            self.bc_imm(cond, (diff / 4).toInt32());
+        } else {
+            let pos = self.buffer.position();
+            self.buffer.emitInt32(0i32);
+            self.jumps.push(ForwardJump(
+                pos,
+                target,
+                JumpKind::Conditional(cond),
+            ));
+        }
+    }
+
+    fn bc_imm(cond: Cond, diff: Int32) {
+        let inst = encoding::cond_branch_imm(cond, diff);
+        self.buffer.emitInt32(inst);
+    }
+
+    pub fn bl(target: Label) {
+        if target.isBound() {
+            let diff = self.buffer.position() - target.offset;
+            assert(diff % 4 == 0);
+            let inst = encoding::uncond_branch_imm(0b1i32, (diff / 4).toInt32());
+            self.buffer.emitInt32(inst);
+        } else {
+            let pos = self.buffer.position();
+            self.buffer.emitInt32(0i32);
+            self.jumps.push(ForwardJump(
+                pos,
+                target,
+                JumpKind::Unconditional(true),
+            ));
+        }
     }
 
     pub fn blr(rn: Register) {
-        let inst = encoding::uncondBranchReg(0b0001i32, 0b11111i32, 0i32, rn, 0i32);
+        let inst = encoding::uncond_branch_reg(0b0001i32, 0b11111i32, 0i32, rn, 0i32);
         self.buffer.emitInt32(inst);
     }
 
     pub fn br(rn: Register) {
-        let inst = encoding::uncondBranchReg(0b0000i32, 0b11111i32, 0i32, rn, 0i32);
+        let inst = encoding::uncond_branch_reg(0b0000i32, 0b11111i32, 0i32, rn, 0i32);
         self.buffer.emitInt32(inst);
     }
 
+    pub fn cbnz(reg: Register, target: Label) {
+        self.common_cbz_cbnz(true, true, reg, target);
+    }
+
+    pub fn cbnz_w(reg: Register, target: Label) {
+        self.common_cbz_cbnz(false, true, reg, target);
+    }
+
+    pub fn cbz(reg: Register, target: Label) {
+        self.common_cbz_cbnz(true, false, reg, target);
+    }
+
+    pub fn cbz_w(reg: Register, target: Label) {
+        self.common_cbz_cbnz(false, false, reg, target);
+    }
+
+    fn common_cbz_cbnz(sf: Bool, value: Bool, reg: Register, target: Label) {
+        if target.isBound() {
+            let diff = self.buffer.position() - target.offset;
+            assert(diff % 4 == 0);
+
+            let inst =
+                encoding::cmp_branch_imm(
+                    sf.toInt32(),
+                    value.toInt32(),
+                    reg,
+                    (diff / 4).toInt32(),
+                );
+            self.buffer.emitInt32(inst);
+        } else {
+            let pos = self.buffer.position();
+            self.buffer.emitInt32(0i32);
+
+            self.jumps.push(ForwardJump(
+                pos,
+                target,
+                JumpKind::Zero(sf, value, reg),
+            ));
+        }
+    }
+
     pub fn finalize(): Array[UInt8] {
+        self.resolveJumps();
         while self.buffer.size() % 16 != 0 {
             self.ret();
         }
@@ -206,7 +301,16 @@ impl AssemblerArm64 {
     }
 
     fn finalizeTesting(): MachineCode {
+        self.resolveJumps();
         MachineCode::new(self.buffer.toArray())
+    }
+
+    fn resolveJumps() {
+        for jmp in self.jumps {
+            assert(jmp.label.isBound());
+        }
+
+        self.jumps.clear();
     }
 }
 
@@ -325,23 +429,6 @@ impl Shift {
 mod encoding {
     use package::assembler::Register;
     use super::{Extend, Shift, Cond, NeonRegister};
-
-    pub fn uncondBranchImm(op: Int32, imm26: Int32): Int32 {
-        assert(fitsUnsigned(op, 1i32));
-        assert(fitsSigned(imm26, 26i32));
-
-        0b101i32 << 26i32 | op << 31i32 | (imm26 & 0x3FFFFFFi32)
-    }
-
-    pub fn uncondBranchReg(opc: Int32, op2: Int32, op3: Int32, rn: Register, op4: Int32): Int32 {
-        assert(fitsUnsigned(opc, 4i32));
-        assert(fitsUnsigned(op2, 5i32));
-        assert(fitsUnsigned(op3, 6i32));
-        assert(rn.isGpr());
-        assert(fitsUnsigned(op4, 5i32));
-
-        0b1101011i32 << 25i32 | opc << 21i32 | op2 << 16i32 | op3 << 10i32 | rn.encoding() << 5i32 | op4
-    }
 
     pub fn addsub_extreg(
         sf: Int32,
@@ -1119,7 +1206,7 @@ mod encoding {
 }
 
 mod tests {
-    use super::{assertAsm32, assertAsmEnd, R0, R10, AssemblerArm64};
+    use super::{assertAsm32, assertAsmEnd, R0, R10, R30, AssemblerArm64};
 
     @Test
     fn testAsmRet() {
@@ -1132,6 +1219,22 @@ mod tests {
         assertAsm32(buffer, 0xd65f03c0i32);
         assertAsm32(buffer, 0xd65f0000i32);
         assertAsm32(buffer, 0xd65f0140i32);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn test_br_blr() {
+        let asm = AssemblerArm64::new();
+        asm.br(R0);
+        asm.br(R30);
+        asm.blr(R0);
+        asm.blr(R30);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(buffer, 0xd61f0000i32);
+        assertAsm32(buffer, 0xd61f03c0i32);
+        assertAsm32(buffer, 0xd63f0000i32);
+        assertAsm32(buffer, 0xd63f03c0i32);
         assertAsmEnd(buffer);
     }
 }
