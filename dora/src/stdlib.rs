@@ -5,7 +5,7 @@ use std::io::{self, Write};
 use std::mem;
 use std::str;
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use crate::gc::{Address, GcReason};
 use crate::handle::{handle, handle_scope, Handle};
@@ -112,9 +112,11 @@ pub extern "C" fn unreachable() {
 }
 
 pub extern "C" fn timestamp() -> u64 {
-    use crate::timer;
-
-    timer::timestamp()
+    // this is not a monotonic clock, but the plan is to implement this "natively" anyway
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as u64
 }
 
 pub extern "C" fn println(val: Handle<Str>) {

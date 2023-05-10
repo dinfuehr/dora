@@ -1,17 +1,15 @@
-use time;
+use std::time::Instant;
 
 pub struct Timer {
     active: bool,
-    timestamp: u64,
+    timestamp: Instant,
 }
 
 impl Timer {
     pub fn new(active: bool) -> Timer {
-        let ts = if active { timestamp() } else { 0 };
-
         Timer {
             active,
-            timestamp: ts,
+            timestamp: timestamp(),
         }
     }
 
@@ -21,21 +19,21 @@ impl Timer {
         let last = self.timestamp;
         self.timestamp = curr;
 
-        in_ms(curr - last)
+        (curr - last).as_millis() as f32
     }
 
-    pub fn stop_with<F>(&self, f: F) -> u64
+    pub fn stop_with<F>(&self, f: F) -> u128
     where
-        F: FnOnce(f32),
+        F: FnOnce(u128),
     {
         if self.active {
             let ts = timestamp() - self.timestamp;
 
-            f(in_ms(ts));
+            f(ts.as_millis());
 
-            ts
+            ts.as_nanos()
         } else {
-            0
+            0u128
         }
     }
 }
@@ -44,6 +42,6 @@ pub fn in_ms(ns: u64) -> f32 {
     (ns as f32) / 1000.0 / 1000.0
 }
 
-pub fn timestamp() -> u64 {
-    time::precise_time_ns()
+pub fn timestamp() -> Instant {
+    Instant::now()
 }

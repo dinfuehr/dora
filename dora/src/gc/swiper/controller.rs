@@ -3,6 +3,7 @@ use std::cmp::{max, min};
 use std::f32;
 use std::fmt;
 use std::sync::Arc;
+use std::time::Instant;
 
 use crate::driver::cmd::Args;
 use crate::gc::swiper::large::LargeSpace;
@@ -105,7 +106,7 @@ pub fn stop(
     let mut config = config.lock();
 
     let gc_end = timer::timestamp();
-    config.gc_duration = timer::in_ms(gc_end - config.gc_start);
+    config.gc_duration = (gc_end - config.gc_start).as_millis() as f32;
 
     assert!(young.eden_active().empty());
     assert!(young.from_active().empty());
@@ -221,7 +222,7 @@ pub struct HeapConfig {
     pub old_size: usize,
     pub old_limit: usize,
 
-    gc_start: u64,
+    gc_start: Instant,
     gc_duration: f32,
 
     start_object_size: usize,
@@ -255,7 +256,7 @@ impl HeapConfig {
             old_size: 0,
             old_limit: 0,
 
-            gc_start: 0,
+            gc_start: Instant::now(),
             gc_duration: 0f32,
 
             start_object_size: 0,

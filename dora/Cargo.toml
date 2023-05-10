@@ -20,7 +20,6 @@ walkdir = "2"
 byteorder = "*"
 lazy_static = "*"
 libc = "*"
-time = "0.1.*"
 capstone = { version = "*", optional = true }
 dora-asm = { path = "../dora-asm", version = "0.0.1" }
 dora-parser = { path = "../dora-parser", version = "0.0.2" }
@@ -33,7 +32,7 @@ fixedbitset = "*"
 num_cpus = "*"
 memoffset = "*"
 seahash = "4.1.0"
-option-ext = "0.1.0"
+option-ext = "0.2.0"
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "*", features = ["memoryapi"] }
