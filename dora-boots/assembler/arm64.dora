@@ -3,7 +3,6 @@ use package::assembler::Label;
 use package::assembler::MachineCode;
 use package::assembler::Register;
 use package::assembler::assertAsm32;
-use package::assembler::assertAsmEnd;
 
 let R0: Register = Register(0i32);
 let R1: Register = Register(1i32);
@@ -188,7 +187,7 @@ impl AssemblerArm64 {
         if target.isBound() {
             let diff = target.offset - self.buffer.position();
             assert(diff % 4 == 0);
-            let inst = encoding::uncond_branch_imm(0b0i32, (diff / 4).toInt32());
+            let inst = encoding::uncond_branch_imm(0i32, (diff / 4).toInt32());
             self.buffer.emitInt32(inst);
         } else {
             let pos = self.buffer.position();
@@ -211,6 +210,7 @@ impl AssemblerArm64 {
         } else {
             let pos = self.buffer.position();
             self.buffer.emitInt32(0i32);
+            self.buffer.emitInt32(0i32);
             self.jumps.push(ForwardJump(
                 pos,
                 target,
@@ -228,7 +228,7 @@ impl AssemblerArm64 {
         if target.isBound() {
             let diff = target.offset - self.buffer.position();
             assert(diff % 4 == 0);
-            let inst = encoding::uncond_branch_imm(0b1i32, (diff / 4).toInt32());
+            let inst = encoding::uncond_branch_imm(1i32, (diff / 4).toInt32());
             self.buffer.emitInt32(inst);
         } else {
             let pos = self.buffer.position();
@@ -269,7 +269,7 @@ impl AssemblerArm64 {
 
     fn common_cbz_cbnz(sf: Bool, value: Bool, reg: Register, target: Label) {
         if target.isBound() {
-            let diff = self.buffer.position() - target.offset;
+            let diff = target.offset - self.buffer.position();
             assert(diff % 4 == 0);
 
             let inst =
@@ -282,6 +282,7 @@ impl AssemblerArm64 {
             self.buffer.emitInt32(inst);
         } else {
             let pos = self.buffer.position();
+            self.buffer.emitInt32(0i32);
             self.buffer.emitInt32(0i32);
 
             self.jumps.push(ForwardJump(
@@ -310,11 +311,38 @@ impl AssemblerArm64 {
     }
 
     fn resolveJumps() {
+        let old_position = self.buffer.position();
+
         for jmp in self.jumps {
             assert(jmp.label.isBound());
+
+            let distance = jmp.label.offset - jmp.offset;
+            assert(distance % 4 == 0);
+            let distance = (distance / 4).toInt32();
+
+            self.buffer.setPosition(jmp.offset);
+
+            match jmp.kind {
+                JumpKind::Conditional(cond) => {
+                    self.bc_imm(cond, distance);
+                    self.nop();
+                },
+
+                JumpKind::Unconditional(with_link) => {
+                    let inst = encoding::uncond_branch_imm(with_link.toInt32(), distance);
+                    self.buffer.emitInt32(inst);
+                },
+
+                JumpKind::Zero(sf, value, rt) => {
+                    let inst = encoding::cmp_branch_imm(sf.toInt32(), value.toInt32(), rt, distance);
+                    self.buffer.emitInt32(inst);
+                    self.nop();
+                }
+            }
         }
 
         self.jumps.clear();
+        self.buffer.setPosition(old_position);
     }
 }
 
@@ -1210,7 +1238,7 @@ mod encoding {
 }
 
 mod tests {
-    use super::{assertAsm32, assertAsmEnd, R0, R10, R30, AssemblerArm64, Cond};
+    use super::{assertAsm32, R0, R10, R17, R30, AssemblerArm64, Cond};
 
     @Test
     fn test_asm_ret() {
@@ -1220,10 +1248,12 @@ mod tests {
         asm.retReg(R10);
         let buffer = asm.finalizeTesting();
 
-        assertAsm32(buffer, 0xd65f03c0i32);
-        assertAsm32(buffer, 0xd65f0000i32);
-        assertAsm32(buffer, 0xd65f0140i32);
-        assertAsmEnd(buffer);
+        assertAsm32(
+            buffer,
+            0xd65f03c0i32,
+            0xd65f0000i32,
+            0xd65f0140i32
+        );
     }
 
     @Test
@@ -1235,11 +1265,13 @@ mod tests {
         asm.blr(R30);
         let buffer = asm.finalizeTesting();
 
-        assertAsm32(buffer, 0xd61f0000i32);
-        assertAsm32(buffer, 0xd61f03c0i32);
-        assertAsm32(buffer, 0xd63f0000i32);
-        assertAsm32(buffer, 0xd63f03c0i32);
-        assertAsmEnd(buffer);
+        assertAsm32(
+            buffer,
+            0xd61f0000i32,
+            0xd61f03c0i32,
+            0xd63f0000i32,
+            0xd63f03c0i32,
+        );
     }
 
     @Test
@@ -1255,7 +1287,22 @@ mod tests {
             0xd503201fi32,
             0x17ffffffi32,
         );
-        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn test_b_forward() {
+        let asm = AssemblerArm64::new();
+        let target = asm.buffer.createLabel();
+        asm.b(target);
+        asm.nop();
+        asm.buffer.bindLabel(target);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            0x14000002i32,
+            0xd503201fi32,
+        );
     }
 
     @Test
@@ -1271,7 +1318,22 @@ mod tests {
             0xd503201fi32,
             0x97ffffffi32,
         );
-        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn test_bl_forward() {
+        let asm = AssemblerArm64::new();
+        let target = asm.buffer.createLabel();
+        asm.bl(target);
+        asm.nop();
+        asm.buffer.bindLabel(target);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            0x94000002i32,
+            0xd503201fi32,
+        );
     }
 
     @Test
@@ -1287,7 +1349,55 @@ mod tests {
             0xd503201fi32,
             0x54ffffe0i32,
         );
-        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn test_bc_forward() {
+        let asm = AssemblerArm64::new();
+        let target = asm.buffer.createLabel();
+        asm.bc(Cond::NE, target);
+        asm.nop();
+        asm.buffer.bindLabel(target);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            0x54000061i32,
+            0xd503201fi32,
+            0xd503201fi32,
+        );
+    }
+
+    @Test
+    fn test_cbz_backward() {
+        let asm = AssemblerArm64::new();
+        let target = asm.buffer.createAndBindLabel();
+        asm.nop();
+        asm.cbz(R17, target);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            0xd503201fi32,
+            0xb4fffff1i32,
+        );
+    }
+
+    @Test
+    fn test_cbz_forward() {
+        let asm = AssemblerArm64::new();
+        let target = asm.buffer.createLabel();
+        asm.cbz(R17, target);
+        asm.nop();
+        asm.buffer.bindLabel(target);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            0xb4000071i32,
+            0xd503201fi32,
+            0xd503201fi32,
+        );
     }
 
     @Test
@@ -1297,6 +1407,5 @@ mod tests {
         let buffer = asm.finalizeTesting();
 
         assertAsm32(buffer, 0xd503201fi32);
-        assertAsmEnd(buffer);
     }
 }

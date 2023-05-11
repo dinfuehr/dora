@@ -184,49 +184,44 @@ fn assertAsm(code: MachineCode, bytes: UInt8...) {
 }
 
 fn assertAsm32(code: MachineCode, values: Int32...) {
-    assert(code.start % 4i64 == 0i64);
-    assert(code.bytes.size() % 4i64 == 0i64);
+    assert(code.start % 4 == 0);
+    assert(code.bytes.size() % 4 == 0);
 
-    assert(code.start + values.size() * 4i64 <= code.bytes.size());
+    let mut success = true;
 
-    let mut idx = 0i64;
+    if code.start + values.size() * 4 == code.bytes.size() {
+        let mut idx = 0;
 
-    while idx < values.size() {
-        let exp = values(idx);
-        let got = code.getInt32(code.start + idx * 4i64);
-
-        if exp != got {
-            println("expected ${exp.toStringHex()} at index ${code.start + idx} but got ${got.toStringHex()}");
-
-            let mut i = 0i64;
-            print("expected: ");
-
-            for (idx, value) in values.enumerate() {
-                if i > 0i64 { print(", "); }
-                let value = values(i);
-                print("${value.toStringHex()}");
-                i = i + 1i64;
+        for value in values {
+            if value != code.getInt32(code.start + idx * 4) {
+                success = false;
+                break;
             }
 
-            i = 0i64;
-            println("");
-            print("got:      ");
-
-            while i < values.size() {
-                if i > 0i64 { print(", "); }
-                let value = code.getInt32(code.start + i * 4i64);
-                print("${value.toStringHex()}");
-                i = i + 1i64;
-            }
-            println("");
+            idx = idx + 1;
         }
-
-        assert(exp == got);
-
-        idx = idx + 1i64;
+    } else {
+        success = false;
     }
 
-    code.start = code.start + values.size() * 4i64;
+    if !success {
+        print("expected: ");
+        for (idx, value) in values.enumerate() {
+            if idx > 0i64 { print(", "); }
+            print("${value.toStringHex()}");
+        }
+        println("");
+        print("got:      ");
+        let mut idx = code.start;
+        while idx < code.bytes.size() {
+            if idx > code.start { print(", "); }
+            let value = code.getInt32(idx);
+            print("${value.toStringHex()}");
+            idx = idx + 4;
+        }
+        println("");
+        std::fatalError("broken assertion");
+    }
 }
 
 fn assertAsmEnd(code: MachineCode) {
