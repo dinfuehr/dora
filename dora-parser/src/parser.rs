@@ -1585,7 +1585,8 @@ impl<'a> Parser<'a> {
             TokenKind::CHAR_LITERAL => self.parse_lit_char(),
             TokenKind::INT_LITERAL => self.parse_lit_int(),
             TokenKind::FLOAT_LITERAL => self.parse_lit_float(),
-            TokenKind::STRING_LITERAL | TokenKind::TEMPLATE_LITERAL => self.parse_string(),
+            TokenKind::STRING_LITERAL => self.parse_string(),
+            TokenKind::TEMPLATE_LITERAL => self.parse_template(),
             TokenKind::IDENTIFIER => self.parse_identifier(),
             TokenKind::TRUE => self.parse_bool_literal(),
             TokenKind::FALSE => self.parse_bool_literal(),
@@ -1693,61 +1694,60 @@ impl<'a> Parser<'a> {
         Arc::new(expr)
     }
 
-    fn parse_string(&mut self) -> Expr {
+    fn parse_template(&mut self) -> Expr {
         let span = self.token.span;
-        let string = self.advance_token();
+        let start = span.start();
+        assert!(self.is(TokenKind::TEMPLATE_LITERAL));
+        self.advance_token();
         let value = self.source_span(span);
 
-        match string.kind {
-            TokenKind::STRING_LITERAL => {
-                Arc::new(ExprData::create_lit_str(self.generate_id(), span, value))
+        let mut parts: Vec<Expr> = Vec::new();
+        parts.push(Arc::new(ExprData::create_lit_str(
+            self.generate_id(),
+            span,
+            value,
+        )));
+
+        let mut done = false;
+
+        while !done {
+            let expr = self.parse_expression();
+            parts.push(expr);
+
+            let span = self.token.span;
+
+            if !self.is(TokenKind::TEMPLATE_LITERAL) {
+                done = true;
             }
 
-            TokenKind::TEMPLATE_LITERAL => {
-                let start = self.token.span.start();
-                let mut parts: Vec<Expr> = Vec::new();
-                parts.push(Arc::new(ExprData::create_lit_str(
-                    self.generate_id(),
-                    span,
-                    value,
-                )));
-
-                loop {
-                    let expr = self.parse_expression();
-                    parts.push(expr);
-
-                    let span = self.token.span;
-                    let value = self.source_span(span);
-
-                    let (value, finished) = match self.current() {
-                        TokenKind::STRING_LITERAL => (value, true),
-                        TokenKind::TEMPLATE_LITERAL => (value, false),
-                        _ => {
-                            self.report_error(ParseError::UnclosedStringTemplate);
-                            (String::new(), true)
-                        }
-                    };
-
-                    parts.push(Arc::new(ExprData::create_lit_str(
-                        self.generate_id(),
-                        span,
-                        value,
-                    )));
-
-                    self.advance_token();
-
-                    if finished {
-                        break;
-                    }
-                }
-
-                let span = self.span_from(start);
-
-                Arc::new(ExprData::create_template(self.generate_id(), span, parts))
+            if !self.is(TokenKind::TEMPLATE_LITERAL) && !self.is(TokenKind::TEMPLATE_END_LITERAL) {
+                self.report_error(ParseError::UnclosedStringTemplate);
+                break;
             }
 
-            _ => unreachable!(),
+            let value = self.source_span(span);
+
+            parts.push(Arc::new(ExprData::create_lit_str(
+                self.generate_id(),
+                span,
+                value,
+            )));
+
+            self.advance_token();
         }
+
+        let span = self.span_from(start);
+
+        Arc::new(ExprData::create_template(self.generate_id(), span, parts))
+    }
+
+    fn parse_string(&mut self) -> Expr {
+        let span = self.token.span;
+        assert!(self.is(TokenKind::STRING_LITERAL));
+        self.advance_token();
+
+        let value = self.source_span(span);
+        Arc::new(ExprData::create_lit_str(self.generate_id(), span, value))
     }
 
     fn parse_bool_literal(&mut self) -> Expr {

@@ -60,6 +60,7 @@ pub enum TokenKind {
     // literals
     STRING_LITERAL,
     TEMPLATE_LITERAL,
+    TEMPLATE_END_LITERAL,
     CHAR_LITERAL,
     INT_LITERAL,
     FLOAT_LITERAL,
@@ -168,7 +169,8 @@ impl TokenKind {
         match *self {
             // literals
             TokenKind::STRING_LITERAL => "string tail",
-            TokenKind::TEMPLATE_LITERAL => "string epxr",
+            TokenKind::TEMPLATE_LITERAL => "template string",
+            TokenKind::TEMPLATE_END_LITERAL => "template string end",
             TokenKind::INT_LITERAL => "integer literal",
             TokenKind::CHAR_LITERAL => "char",
             TokenKind::FLOAT_LITERAL => "float literal",

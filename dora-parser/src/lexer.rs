@@ -209,7 +209,12 @@ impl Lexer {
         }
 
         let span = self.span_from(start);
-        Token::new(TokenKind::STRING_LITERAL, span)
+        let kind = if continuation {
+            TokenKind::TEMPLATE_END_LITERAL
+        } else {
+            TokenKind::STRING_LITERAL
+        };
+        Token::new(kind, span)
     }
 
     fn read_operator(&mut self) -> Token {
@@ -957,7 +962,7 @@ mod tests {
 IDENTIFIER@4..5
 TEMPLATE_LITERAL@5..9
 IDENTIFIER@9..10
-STRING_LITERAL@10..13
+TEMPLATE_END_LITERAL@10..13
 L_BRACE@13..14
 R_BRACE@14..15
 "#
