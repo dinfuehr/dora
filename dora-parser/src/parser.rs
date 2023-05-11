@@ -1381,6 +1381,10 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_expression(&mut self) -> Expr {
+        self.parse_binary(0)
+    }
+
+    fn parse_binary(&mut self, precedence: u32) -> Expr {
         if !self.is_set(EXPRESSION_FIRST) {
             self.report_error(ParseError::ExpectedExpression);
             return Arc::new(ExprData::Error {
@@ -1389,15 +1393,6 @@ impl<'a> Parser<'a> {
             });
         }
 
-        match self.current() {
-            TokenKind::L_BRACE => self.parse_block(),
-            TokenKind::IF => self.parse_if(),
-            TokenKind::MATCH => self.parse_match(),
-            _ => self.parse_binary(0),
-        }
-    }
-
-    fn parse_binary(&mut self, precedence: u32) -> Expr {
         let start = self.token.span.start();
         let mut left = self.parse_unary();
 
@@ -1597,6 +1592,7 @@ impl<'a> Parser<'a> {
             TokenKind::BREAK => self.parse_break(),
             TokenKind::CONTINUE => self.parse_continue(),
             TokenKind::RETURN => self.parse_return(),
+            TokenKind::MATCH => self.parse_match(),
             _ => {
                 self.report_error(ParseError::ExpectedFactor(self.token.name().clone()));
                 Arc::new(ExprData::Error {
