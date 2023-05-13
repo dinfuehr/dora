@@ -161,6 +161,13 @@ pub enum TokenKind {
     CAPITAL_THIS,
     UNDERSCORE,
 
+    // trivia
+    WHITESPACE,
+    LINE_COMMENT,
+    MULTILINE_COMMENT,
+
+    UNKNOWN,
+
     EOF,
 }
 
@@ -271,6 +278,12 @@ impl TokenKind {
             TokenKind::CAPITAL_THIS => "Self",
             TokenKind::UNDERSCORE => "_",
 
+            // trivia
+            TokenKind::WHITESPACE => "whitespace",
+            TokenKind::LINE_COMMENT | TokenKind::MULTILINE_COMMENT => "comment",
+
+            TokenKind::UNKNOWN => "unknown",
+
             // end of file
             TokenKind::EOF => "<<EOF>>",
         }
@@ -286,6 +299,13 @@ pub struct Token {
 impl Token {
     pub fn new(tok: TokenKind, span: Span) -> Token {
         Token { kind: tok, span }
+    }
+
+    pub fn is_trivia(&self) -> bool {
+        match self.kind {
+            TokenKind::LINE_COMMENT | TokenKind::MULTILINE_COMMENT | TokenKind::WHITESPACE => true,
+            _ => false,
+        }
     }
 
     pub fn is_eof(&self) -> bool {

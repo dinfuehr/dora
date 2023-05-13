@@ -12,7 +12,9 @@ pub fn lex(content: &str) -> (Vec<Token>, Vec<ParseErrorWithLocation>) {
     loop {
         let token = lexer.read_token();
 
-        if token.is_eof() {
+        if token.is_trivia() {
+            continue;
+        } else if token.is_eof() {
             break;
         }
 
@@ -56,52 +58,65 @@ impl Lexer {
     }
 
     pub fn read_token(&mut self) -> Token {
-        loop {
-            self.skip_white();
+        let start = self.offset();
+        let ch = self.curr();
 
-            let start = self.offset();
-            let ch = self.curr();
+        if let None = ch {
+            return Token::new(TokenKind::EOF, Span::at(start));
+        }
 
-            if let None = ch {
-                return Token::new(TokenKind::EOF, Span::at(start));
-            }
-
-            if is_digit(ch) {
-                return self.read_number();
-            } else if self.is_comment_start() {
-                self.read_comment();
-            } else if self.is_multi_comment_start() {
-                self.read_multi_comment();
-            } else if is_identifier_start(ch) {
-                return self.read_identifier();
-            } else if is_quote(ch) {
-                return self.read_string(false);
-            } else if is_char_quote(ch) {
-                return self.read_char_literal();
-            } else if is_operator(ch) {
-                return self.read_operator();
-            } else {
-                let ch = ch.unwrap();
-                self.eat_char();
-                let span = self.span_from(start);
-                self.report_error_at(ParseError::UnknownChar(ch), span);
-            }
+        if is_whitespace(ch) {
+            return self.read_white_space();
+        } else if is_digit(ch) {
+            return self.read_number();
+        } else if self.is_line_comment() {
+            return self.read_line_comment();
+        } else if self.is_multiline_comment() {
+            return self.read_multiline_comment();
+        } else if is_identifier_start(ch) {
+            return self.read_identifier();
+        } else if is_quote(ch) {
+            return self.read_string(false);
+        } else if is_char_quote(ch) {
+            return self.read_char_literal();
+        } else if is_operator(ch) {
+            return self.read_operator();
+        } else {
+            return self.read_unknown_char();
         }
     }
 
-    fn skip_white(&mut self) {
+    fn read_unknown_char(&mut self) -> Token {
+        let start = self.offset();
+        let ch = self.curr().expect("missing char");
+        self.eat_char();
+        let span = self.span_from(start);
+        self.report_error_at(ParseError::UnknownChar(ch), span);
+        Token::new(TokenKind::UNKNOWN, span)
+    }
+
+    fn read_white_space(&mut self) -> Token {
+        let idx = self.offset();
         while is_whitespace(self.curr()) {
             self.eat_char();
         }
+
+        let span = self.span_from(idx);
+        Token::new(TokenKind::WHITESPACE, span)
     }
 
-    fn read_comment(&mut self) {
+    fn read_line_comment(&mut self) -> Token {
+        let idx = self.offset();
+
         while !self.curr().is_none() && !is_newline(self.curr()) {
             self.eat_char();
         }
+
+        let span = self.span_from(idx);
+        Token::new(TokenKind::LINE_COMMENT, span)
     }
 
-    fn read_multi_comment(&mut self) {
+    fn read_multiline_comment(&mut self) -> Token {
         let start = self.offset();
 
         self.eat_char();
@@ -114,11 +129,13 @@ impl Lexer {
         if self.curr().is_none() {
             let span = self.span_from(start);
             self.report_error_at(ParseError::UnclosedComment, span);
-            return;
         }
 
         self.eat_char();
         self.eat_char();
+
+        let span = self.span_from(start);
+        Token::new(TokenKind::MULTILINE_COMMENT, span)
     }
 
     fn read_identifier(&mut self) -> Token {
@@ -487,11 +504,11 @@ impl Lexer {
         self.errors.push(ParseErrorWithLocation::new(span, msg));
     }
 
-    fn is_comment_start(&self) -> bool {
+    fn is_line_comment(&self) -> bool {
         self.curr() == Some('/') && self.lookahead() == Some('/')
     }
 
-    fn is_multi_comment_start(&self) -> bool {
+    fn is_multiline_comment(&self) -> bool {
         self.curr() == Some('/') && self.lookahead() == Some('*')
     }
 
@@ -652,47 +669,64 @@ mod tests {
 
     #[test]
     fn test_read_numbers() {
-        let mut reader = Lexer::from_str("1 2\n0123 10");
-        assert_tok(&mut reader, TokenKind::INT_LITERAL, 0, 1);
-        assert_tok(&mut reader, TokenKind::INT_LITERAL, 2, 1);
-        assert_tok(&mut reader, TokenKind::INT_LITERAL, 4, 4);
-        assert_tok(&mut reader, TokenKind::INT_LITERAL, 9, 2);
-        assert_end(&mut reader, 11);
+        let tokens = lex_success("1 2\n0123 10");
+        assert_eq!(
+            tokens,
+            vec![
+                Token::new(TokenKind::INT_LITERAL, Span::new(0, 1)),
+                Token::new(TokenKind::INT_LITERAL, Span::new(2, 1)),
+                Token::new(TokenKind::INT_LITERAL, Span::new(4, 4)),
+                Token::new(TokenKind::INT_LITERAL, Span::new(9, 2)),
+            ]
+        );
 
-        let mut reader = Lexer::from_str("12u8 300u8 1_000 1__1");
-        assert_tok(&mut reader, TokenKind::INT_LITERAL, 0, 4);
-        assert_tok(&mut reader, TokenKind::INT_LITERAL, 5, 5);
-        assert_tok(&mut reader, TokenKind::INT_LITERAL, 11, 5);
-        assert_tok(&mut reader, TokenKind::INT_LITERAL, 17, 4);
+        let tokens = lex_success("12u8 300u8 1_000 1__1");
+        assert_eq!(
+            tokens,
+            vec![
+                Token::new(TokenKind::INT_LITERAL, Span::new(0, 4)),
+                Token::new(TokenKind::INT_LITERAL, Span::new(5, 5)),
+                Token::new(TokenKind::INT_LITERAL, Span::new(11, 5)),
+                Token::new(TokenKind::INT_LITERAL, Span::new(17, 4)),
+            ]
+        );
     }
 
     #[test]
     fn test_read_numbers_with_suffix() {
-        let mut reader = Lexer::from_str("1i32 2u8 3i64");
-        assert_tok(&mut reader, TokenKind::INT_LITERAL, 0, 4);
-        assert_tok(&mut reader, TokenKind::INT_LITERAL, 5, 3);
-        assert_tok(&mut reader, TokenKind::INT_LITERAL, 9, 4);
-        assert_end(&mut reader, 13);
+        let tokens = lex_success("1i32 2u8 3i64");
+        assert_eq!(
+            tokens,
+            vec![
+                Token::new(TokenKind::INT_LITERAL, Span::new(0, 4)),
+                Token::new(TokenKind::INT_LITERAL, Span::new(5, 3)),
+                Token::new(TokenKind::INT_LITERAL, Span::new(9, 4)),
+            ]
+        );
     }
 
     #[test]
     fn test_skip_single_line_comment() {
-        let mut reader = Lexer::from_str("//test\n1");
-        assert_tok(&mut reader, TokenKind::INT_LITERAL, 7, 1);
-        assert_end(&mut reader, 8);
+        let tokens = lex_success("//test\n1");
+        assert_eq!(
+            tokens,
+            vec![Token::new(TokenKind::INT_LITERAL, Span::new(7, 1)),]
+        );
     }
 
     #[test]
     fn test_unfinished_line_comment() {
-        let mut reader = Lexer::from_str("//abc");
-        assert_end(&mut reader, 5);
+        let tokens = lex_success("//abc");
+        assert!(tokens.is_empty());
     }
 
     #[test]
     fn test_skip_multi_comment() {
-        let mut reader = Lexer::from_str("/*test*/1");
-        assert_tok(&mut reader, TokenKind::INT_LITERAL, 8, 1);
-        assert_end(&mut reader, 9);
+        let tokens = lex_success("/*test*/1");
+        assert_eq!(
+            tokens,
+            vec![Token::new(TokenKind::INT_LITERAL, Span::new(8, 1))]
+        );
     }
 
     #[test]
@@ -711,73 +745,106 @@ mod tests {
 
     #[test]
     fn test_read_identifier() {
-        let mut reader = Lexer::from_str("abc ident test");
-        assert_tok(&mut reader, TokenKind::IDENTIFIER, 0, 3);
-        assert_tok(&mut reader, TokenKind::IDENTIFIER, 4, 5);
-        assert_tok(&mut reader, TokenKind::IDENTIFIER, 10, 4);
-        assert_end(&mut reader, 14);
+        let tokens = lex_success("abc ident test");
+        assert_eq!(
+            tokens,
+            vec![
+                Token::new(TokenKind::IDENTIFIER, Span::new(0, 3)),
+                Token::new(TokenKind::IDENTIFIER, Span::new(4, 5)),
+                Token::new(TokenKind::IDENTIFIER, Span::new(10, 4)),
+            ]
+        );
     }
 
     #[test]
     fn test_code_with_spaces() {
-        let mut reader = Lexer::from_str("1 2 3");
-        assert_tok(&mut reader, TokenKind::INT_LITERAL, 0, 1);
-        assert_tok(&mut reader, TokenKind::INT_LITERAL, 2, 1);
-        assert_tok(&mut reader, TokenKind::INT_LITERAL, 4, 1);
-        assert_end(&mut reader, 5);
+        let tokens = lex_success("1 2 3");
+        assert_eq!(
+            tokens,
+            vec![
+                Token::new(TokenKind::INT_LITERAL, Span::new(0, 1)),
+                Token::new(TokenKind::INT_LITERAL, Span::new(2, 1)),
+                Token::new(TokenKind::INT_LITERAL, Span::new(4, 1))
+            ]
+        );
     }
 
     #[test]
     fn test_float_numbers() {
-        let mut reader = Lexer::from_str("1f32 1.0 0.1f32 1.3f64 4f64");
-        assert_tok(&mut reader, TokenKind::INT_LITERAL, 0, 4);
-        assert_tok(&mut reader, TokenKind::FLOAT_LITERAL, 5, 3);
-        assert_tok(&mut reader, TokenKind::FLOAT_LITERAL, 9, 6);
-        assert_tok(&mut reader, TokenKind::FLOAT_LITERAL, 16, 6);
-        assert_tok(&mut reader, TokenKind::INT_LITERAL, 23, 4);
+        let tokens = lex_success("1f32 1.0 0.1f32 1.3f64 4f64");
+        assert_eq!(
+            tokens,
+            vec![
+                Token::new(TokenKind::INT_LITERAL, Span::new(0, 4)),
+                Token::new(TokenKind::FLOAT_LITERAL, Span::new(5, 3)),
+                Token::new(TokenKind::FLOAT_LITERAL, Span::new(9, 6)),
+                Token::new(TokenKind::FLOAT_LITERAL, Span::new(16, 6)),
+                Token::new(TokenKind::INT_LITERAL, Span::new(23, 4)),
+            ]
+        );
     }
 
     #[test]
     fn test_float_scientific_notation() {
-        let mut reader = Lexer::from_str("1.0e1 1.0E1 1.0e+1 1.0e-1");
-        assert_tok(&mut reader, TokenKind::FLOAT_LITERAL, 0, 5);
-        assert_tok(&mut reader, TokenKind::FLOAT_LITERAL, 6, 5);
-        assert_tok(&mut reader, TokenKind::FLOAT_LITERAL, 12, 6);
-        assert_tok(&mut reader, TokenKind::FLOAT_LITERAL, 19, 6);
+        let tokens = lex_success("1.0e1 1.0E1 1.0e+1 1.0e-1");
+        assert_eq!(
+            tokens,
+            vec![
+                Token::new(TokenKind::FLOAT_LITERAL, Span::new(0, 5)),
+                Token::new(TokenKind::FLOAT_LITERAL, Span::new(6, 5)),
+                Token::new(TokenKind::FLOAT_LITERAL, Span::new(12, 6)),
+                Token::new(TokenKind::FLOAT_LITERAL, Span::new(19, 6)),
+            ]
+        );
     }
 
     #[test]
     fn test_hex_numbers() {
-        let mut reader = Lexer::from_str("0x1 0x2i64 0xABCDEF 0xB1i64");
-
-        assert_tok(&mut reader, TokenKind::INT_LITERAL, 0, 3);
-        assert_tok(&mut reader, TokenKind::INT_LITERAL, 4, 6);
-        assert_tok(&mut reader, TokenKind::INT_LITERAL, 11, 8);
-        assert_tok(&mut reader, TokenKind::INT_LITERAL, 20, 7);
+        let tokens = lex_success("0x1 0x2i64 0xABCDEF 0xB1i64");
+        assert_eq!(
+            tokens,
+            vec![
+                Token::new(TokenKind::INT_LITERAL, Span::new(0, 3)),
+                Token::new(TokenKind::INT_LITERAL, Span::new(4, 6)),
+                Token::new(TokenKind::INT_LITERAL, Span::new(11, 8)),
+                Token::new(TokenKind::INT_LITERAL, Span::new(20, 7)),
+            ]
+        );
     }
 
     #[test]
     fn test_code_with_newlines() {
-        let mut reader = Lexer::from_str("1\n2\n3");
-        assert_tok(&mut reader, TokenKind::INT_LITERAL, 0, 1);
-        assert_tok(&mut reader, TokenKind::INT_LITERAL, 2, 1);
-        assert_tok(&mut reader, TokenKind::INT_LITERAL, 4, 1);
-        assert_end(&mut reader, 5);
+        let tokens = lex_success("1\n2\n3");
+        assert_eq!(
+            tokens,
+            vec![
+                Token::new(TokenKind::INT_LITERAL, Span::new(0, 1)),
+                Token::new(TokenKind::INT_LITERAL, Span::new(2, 1)),
+                Token::new(TokenKind::INT_LITERAL, Span::new(4, 1))
+            ]
+        );
     }
 
     #[test]
     fn test_code_with_tabs() {
-        let mut reader = Lexer::from_str("1\t2\t3");
-        assert_tok(&mut reader, TokenKind::INT_LITERAL, 0, 1);
-        assert_tok(&mut reader, TokenKind::INT_LITERAL, 2, 1);
-        assert_tok(&mut reader, TokenKind::INT_LITERAL, 4, 1);
-        assert_end(&mut reader, 5);
+        let tokens = lex_success("1\t2\t3");
+        assert_eq!(
+            tokens,
+            vec![
+                Token::new(TokenKind::INT_LITERAL, Span::new(0, 1)),
+                Token::new(TokenKind::INT_LITERAL, Span::new(2, 1)),
+                Token::new(TokenKind::INT_LITERAL, Span::new(4, 1))
+            ]
+        );
     }
 
     #[test]
     fn test_string_with_newline() {
-        let mut reader = Lexer::from_str("\"abc\ndef\"");
-        assert_tok(&mut reader, TokenKind::STRING_LITERAL, 0, 9);
+        let tokens = lex_success("\"abc\ndef\"");
+        assert_eq!(
+            tokens,
+            vec![Token::new(TokenKind::STRING_LITERAL, Span::new(0, 9)),]
+        );
     }
 
     #[test]
@@ -864,39 +931,64 @@ mod tests {
 
     #[test]
     fn test_keywords() {
-        let mut reader = Lexer::from_str("fn let while if else match");
-        assert_tok(&mut reader, TokenKind::FN, 0, 2);
-        assert_tok(&mut reader, TokenKind::LET, 3, 3);
-        assert_tok(&mut reader, TokenKind::WHILE, 7, 5);
-        assert_tok(&mut reader, TokenKind::IF, 13, 2);
-        assert_tok(&mut reader, TokenKind::ELSE, 16, 4);
-        assert_tok(&mut reader, TokenKind::MATCH, 21, 5);
+        let tokens = lex_success("fn let while if else match");
+        assert_eq!(
+            tokens,
+            vec![
+                Token::new(TokenKind::FN, Span::new(0, 2)),
+                Token::new(TokenKind::LET, Span::new(3, 3)),
+                Token::new(TokenKind::WHILE, Span::new(7, 5)),
+                Token::new(TokenKind::IF, Span::new(13, 2)),
+                Token::new(TokenKind::ELSE, Span::new(16, 4)),
+                Token::new(TokenKind::MATCH, Span::new(21, 5)),
+            ]
+        );
 
-        let mut reader = Lexer::from_str("self class super mod");
-        assert_tok(&mut reader, TokenKind::THIS, 0, 4);
-        assert_tok(&mut reader, TokenKind::CLASS, 5, 5);
-        assert_tok(&mut reader, TokenKind::SUPER, 11, 5);
-        assert_tok(&mut reader, TokenKind::MOD, 17, 3);
+        let tokens = lex_success("self class super mod");
+        assert_eq!(
+            tokens,
+            vec![
+                Token::new(TokenKind::THIS, Span::new(0, 4)),
+                Token::new(TokenKind::CLASS, Span::new(5, 5)),
+                Token::new(TokenKind::SUPER, Span::new(11, 5)),
+                Token::new(TokenKind::MOD, Span::new(17, 3)),
+            ]
+        );
 
-        let mut reader = Lexer::from_str("break continue return");
-        assert_tok(&mut reader, TokenKind::BREAK, 0, 5);
-        assert_tok(&mut reader, TokenKind::CONTINUE, 6, 8);
-        assert_tok(&mut reader, TokenKind::RETURN, 15, 6);
+        let tokens = lex_success("break continue return");
+        assert_eq!(
+            tokens,
+            vec![
+                Token::new(TokenKind::BREAK, Span::new(0, 5)),
+                Token::new(TokenKind::CONTINUE, Span::new(6, 8)),
+                Token::new(TokenKind::RETURN, Span::new(15, 6)),
+            ]
+        );
 
-        let mut reader = Lexer::from_str("type struct enum alias trait const");
-        assert_tok(&mut reader, TokenKind::TYPE, 0, 4);
-        assert_tok(&mut reader, TokenKind::STRUCT, 5, 6);
-        assert_tok(&mut reader, TokenKind::ENUM, 12, 4);
-        assert_tok(&mut reader, TokenKind::ALIAS, 17, 5);
-        assert_tok(&mut reader, TokenKind::TRAIT, 23, 5);
-        assert_tok(&mut reader, TokenKind::CONST, 29, 5);
+        let tokens = lex_success("type struct enum alias trait const");
+        assert_eq!(
+            tokens,
+            vec![
+                Token::new(TokenKind::TYPE, Span::new(0, 4)),
+                Token::new(TokenKind::STRUCT, Span::new(5, 6)),
+                Token::new(TokenKind::ENUM, Span::new(12, 4)),
+                Token::new(TokenKind::ALIAS, Span::new(17, 5)),
+                Token::new(TokenKind::TRAIT, Span::new(23, 5)),
+                Token::new(TokenKind::CONST, Span::new(29, 5)),
+            ]
+        );
 
-        let mut reader = Lexer::from_str("for in impl Self mut");
-        assert_tok(&mut reader, TokenKind::FOR, 0, 3);
-        assert_tok(&mut reader, TokenKind::IN, 4, 2);
-        assert_tok(&mut reader, TokenKind::IMPL, 7, 4);
-        assert_tok(&mut reader, TokenKind::CAPITAL_THIS, 12, 4);
-        assert_tok(&mut reader, TokenKind::MUT, 17, 3);
+        let tokens = lex_success("for in impl Self mut");
+        assert_eq!(
+            tokens,
+            vec![
+                Token::new(TokenKind::FOR, Span::new(0, 3)),
+                Token::new(TokenKind::IN, Span::new(4, 2)),
+                Token::new(TokenKind::IMPL, Span::new(7, 4)),
+                Token::new(TokenKind::CAPITAL_THIS, Span::new(12, 4)),
+                Token::new(TokenKind::MUT, Span::new(17, 3)),
+            ]
+        );
     }
 
     #[test]
@@ -947,6 +1039,7 @@ mod tests {
             tokens,
             vec![
                 Token::new(TokenKind::IDENTIFIER, Span::new(0, 1)),
+                Token::new(TokenKind::UNKNOWN, Span::new(1, 3)),
                 Token::new(TokenKind::IDENTIFIER, Span::new(4, 1))
             ]
         );
