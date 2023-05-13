@@ -809,7 +809,8 @@ impl<'a> Parser<'a> {
 
         while !self.is(stop.clone()) && !self.is_eof() {
             if !comma {
-                self.report_error(ParseError::ExpectedToken(sep.name().into()));
+                let sep_name = token_name(sep).expect("missing name");
+                self.report_error(ParseError::ExpectedToken(sep_name.into()));
 
                 break;
             }
@@ -1174,7 +1175,7 @@ impl<'a> Parser<'a> {
 
         while !self.is(TokenKind::R_BRACE) && !self.is_eof() {
             if !comma {
-                self.report_error(ParseError::ExpectedToken(TokenKind::COMMA.name().into()));
+                self.report_error(ParseError::ExpectedToken(",".into()));
                 break;
             }
 
@@ -1722,12 +1723,12 @@ impl<'a> Parser<'a> {
 
     fn parse_lambda(&mut self) -> Expr {
         let start = self.token.span.start();
-        let tok = self.advance_token();
 
-        let params = if tok.kind == TokenKind::OR_OR {
+        let params = if self.eat(TokenKind::OR_OR) {
             // nothing to do
             Vec::new()
         } else {
+            self.assert(TokenKind::OR);
             self.parse_list(TokenKind::COMMA, TokenKind::OR, |p| {
                 p.parse_function_param()
             })
@@ -1784,10 +1785,13 @@ impl<'a> Parser<'a> {
     }
 
     fn expect(&mut self, kind: TokenKind) -> bool {
+        debug_assert!(token_name(kind).is_some());
+
         if self.eat(kind) {
             true
         } else {
-            self.report_error(ParseError::ExpectedToken(kind.name().into()));
+            let kind = token_name(kind).expect("missing name");
+            self.report_error(ParseError::ExpectedToken(kind.into()));
             false
         }
     }
@@ -1863,6 +1867,28 @@ impl<'a> Parser<'a> {
     fn span_from(&self, start: u32) -> Span {
         let last_token_end = self.tokens[self.token_idx - 1].span.end();
         Span::new(start, last_token_end - start)
+    }
+}
+
+fn token_name(kind: TokenKind) -> Option<&'static str> {
+    match kind {
+        TokenKind::PACKAGE => Some("package"),
+        TokenKind::IN => Some("in"),
+        TokenKind::EQ => Some("="),
+        TokenKind::COMMA => Some(","),
+        TokenKind::SEMICOLON => Some(";"),
+        TokenKind::DOT => Some("."),
+        TokenKind::COLON => Some(":"),
+        TokenKind::ARROW => Some("->"),
+        TokenKind::DOUBLE_ARROW => Some("=>"),
+        TokenKind::OR => Some("|"),
+        TokenKind::L_PAREN => Some("("),
+        TokenKind::R_PAREN => Some(")"),
+        TokenKind::L_BRACKET => Some("["),
+        TokenKind::R_BRACKET => Some("]"),
+        TokenKind::L_BRACE => Some("{"),
+        TokenKind::R_BRACE => Some("}"),
+        _ => None,
     }
 }
 
