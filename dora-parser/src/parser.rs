@@ -314,9 +314,7 @@ impl<'a> Parser<'a> {
         self.assert(TokenKind::MOD);
         let name = self.expect_identifier();
 
-        let elements = if self.is(TokenKind::L_BRACE) {
-            self.expect(TokenKind::L_BRACE);
-
+        let elements = if self.eat(TokenKind::L_BRACE) {
             let mut elements = Vec::new();
 
             while !self.is(TokenKind::R_BRACE) && !self.is_eof() {
@@ -548,13 +546,11 @@ impl<'a> Parser<'a> {
         let name = self.expect_identifier();
         let type_params = self.parse_type_params();
 
-        let fields = if self.is(TokenKind::L_PAREN) {
-            self.assert(TokenKind::L_PAREN);
+        let fields = if self.eat(TokenKind::L_PAREN) {
             self.parse_list(TokenKind::COMMA, TokenKind::R_PAREN, |p| {
                 p.parse_class_field()
             })
-        } else if self.is(TokenKind::L_BRACE) {
-            self.assert(TokenKind::L_BRACE);
+        } else if self.eat(TokenKind::L_BRACE) {
             self.parse_list(TokenKind::COMMA, TokenKind::R_BRACE, |p| {
                 p.parse_class_field()
             })
@@ -1120,8 +1116,7 @@ impl<'a> Parser<'a> {
             _ => {
                 let expr = self.parse_expression();
 
-                if self.is(TokenKind::SEMICOLON) {
-                    self.expect(TokenKind::SEMICOLON);
+                if self.eat(TokenKind::SEMICOLON) {
                     let span = self.span_from(expr.span().start());
 
                     StmtOrExpr::Stmt(Arc::new(StmtData::create_expr(
@@ -1235,8 +1230,7 @@ impl<'a> Parser<'a> {
         } else {
             let path = self.parse_path();
 
-            let params = if self.is(TokenKind::L_PAREN) {
-                self.expect(TokenKind::L_PAREN);
+            let params = if self.eat(TokenKind::L_PAREN) {
                 let params = self.parse_list(TokenKind::COMMA, TokenKind::R_PAREN, |this| {
                     this.parse_match_pattern_param()
                 });
