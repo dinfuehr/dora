@@ -14,13 +14,13 @@ pub enum ParseError {
     UnknownAnnotation(String),
     RedundantAnnotation(String),
     MisplacedAnnotation(String),
-    ExpectedToken(String, String),
-    ExpectedType(String),
+    ExpectedToken(String),
+    ExpectedType,
     MisplacedElse,
-    ExpectedFactor(String),
+    ExpectedFactor,
     NumberOverflow,
     UnclosedStringTemplate,
-    ExpectedIdentifier(String),
+    ExpectedIdentifier,
     InvalidSuffix(String),
     ExpectedExpression,
 }
@@ -47,16 +47,16 @@ impl ParseError {
                 format!("redundant annotation {}.", token)
             }
             ParseError::UnknownAnnotation(ref token) => format!("unknown annotation {}.", token),
-            ParseError::ExpectedToken(ref exp, ref got) => {
-                format!("expected {} but got {}.", exp, got)
+            ParseError::ExpectedToken(ref exp) => {
+                format!("expected `{}`.", exp)
             }
             ParseError::NumberOverflow => "number too large to be represented.".into(),
-            ParseError::ExpectedType(ref got) => format!("type expected but got {}.", got),
+            ParseError::ExpectedType => format!("type expected."),
             ParseError::MisplacedElse => "misplace else.".into(),
-            ParseError::ExpectedFactor(ref got) => format!("factor expected but got {}.", got),
+            ParseError::ExpectedFactor => format!("factor expected."),
             ParseError::UnclosedStringTemplate => "unclosed string template.".into(),
-            ParseError::ExpectedIdentifier(ref tok) => {
-                format!("identifier expected but got {}.", tok)
+            ParseError::ExpectedIdentifier => {
+                format!("identifier expected.")
             }
             ParseError::InvalidSuffix(ref suffix) => format!("invalid suffix `{}`", suffix),
             ParseError::ExpectedExpression => "expected expression.".into(),

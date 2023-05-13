@@ -1,6 +1,3 @@
-use std::fmt;
-use std::result::Result;
-
 use crate::Span;
 
 pub struct TokenSet(u128);
@@ -166,6 +163,7 @@ pub enum TokenKind {
     LINE_COMMENT,
     MULTILINE_COMMENT,
 
+    // unknown character
     UNKNOWN,
 
     EOF,
@@ -174,14 +172,6 @@ pub enum TokenKind {
 impl TokenKind {
     pub fn name(&self) -> &str {
         match *self {
-            // literals
-            TokenKind::STRING_LITERAL => "string tail",
-            TokenKind::TEMPLATE_LITERAL => "template string",
-            TokenKind::TEMPLATE_END_LITERAL => "template string end",
-            TokenKind::INT_LITERAL => "integer literal",
-            TokenKind::CHAR_LITERAL => "char",
-            TokenKind::FLOAT_LITERAL => "float literal",
-            TokenKind::IDENTIFIER => "identifier",
             TokenKind::TRUE => "true",
             TokenKind::FALSE => "false",
 
@@ -278,14 +268,7 @@ impl TokenKind {
             TokenKind::CAPITAL_THIS => "Self",
             TokenKind::UNDERSCORE => "_",
 
-            // trivia
-            TokenKind::WHITESPACE => "whitespace",
-            TokenKind::LINE_COMMENT | TokenKind::MULTILINE_COMMENT => "comment",
-
-            TokenKind::UNKNOWN => "unknown",
-
-            // end of file
-            TokenKind::EOF => "<<EOF>>",
+            _ => unreachable!(),
         }
     }
 }
@@ -321,21 +304,5 @@ impl Token {
 
     pub fn is(&self, kind: TokenKind) -> bool {
         self.kind == kind
-    }
-
-    pub fn name(&self) -> String {
-        match self.kind {
-            TokenKind::INT_LITERAL => "integer literal".into(),
-            TokenKind::STRING_LITERAL | TokenKind::TEMPLATE_LITERAL => "string literal".into(),
-            TokenKind::IDENTIFIER => "identifier".into(),
-
-            _ => self.kind.name().into(),
-        }
-    }
-}
-
-impl fmt::Display for Token {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(f, "{}", self.name())
     }
 }
