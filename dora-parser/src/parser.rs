@@ -1,5 +1,4 @@
 use std::cell::RefCell;
-use std::mem;
 use std::sync::Arc;
 
 use crate::ast;
@@ -13,7 +12,6 @@ use crate::{lex, Span, Token, TokenKind, TokenSet};
 
 pub struct Parser<'a> {
     tokens: Vec<Token>,
-    token: Token,
     token_idx: usize,
     id_generator: NodeIdGenerator,
     interner: &'a mut Interner,
@@ -37,21 +35,16 @@ impl<'a> Parser<'a> {
     }
 
     fn common_init(content: Arc<String>, interner: &'a mut Interner) -> Parser<'a> {
-        let (tokens, errors) = lex(&*content);
+        let (tokens, errors) = lex(&*content, false);
 
-        let mut parser = Parser {
-            token: Token::new(TokenKind::EOF, Span::invalid()),
+        Parser {
             tokens,
             token_idx: 0,
             id_generator: NodeIdGenerator::new(),
             interner,
             content,
             errors,
-        };
-
-        parser.setup_token();
-
-        parser
+        }
     }
 
     fn generate_id(&mut self) -> NodeId {
@@ -158,7 +151,7 @@ impl<'a> Parser<'a> {
             }
 
             _ => {
-                let span = self.token.span;
+                let span = self.current_span();
                 let msg = ParseError::ExpectedTopLevelDeclaration;
                 self.error_and_advance(msg);
                 Arc::new(ElemData::Error {
@@ -170,7 +163,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_extern(&mut self) -> Arc<ExternPackage> {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
 
         self.assert(TokenKind::EXTERN);
         self.expect(TokenKind::PACKAGE);
@@ -200,7 +193,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_use_inner(&mut self) -> Arc<Use> {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
         let mut path = Vec::new();
         let mut allow_brace = false;
 
@@ -239,7 +232,7 @@ impl<'a> Parser<'a> {
     fn parse_use_as(&mut self) -> UseTargetName {
         self.assert(TokenKind::AS);
 
-        let start = self.token.span.start();
+        let start = self.current_span().start();
 
         let name = if self.eat(TokenKind::UNDERSCORE) {
             None
@@ -252,7 +245,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_use_path_component(&mut self) -> UsePathComponent {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
 
         let value = if self.eat(TokenKind::THIS) {
             UsePathComponentValue::This
@@ -275,7 +268,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_use_brace(&mut self) -> UseTargetDescriptor {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
         self.assert(TokenKind::L_BRACE);
 
         let targets = self.parse_list(TokenKind::COMMA, TokenKind::R_BRACE, |p| {
@@ -288,7 +281,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_enum(&mut self, modifiers: &Modifiers) -> Arc<Enum> {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
         self.assert(TokenKind::ENUM);
         let name = self.expect_identifier();
         let type_params = self.parse_type_params();
@@ -310,7 +303,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_module(&mut self, modifiers: &Modifiers) -> Arc<Module> {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
         self.assert(TokenKind::MOD);
         let name = self.expect_identifier();
 
@@ -340,11 +333,11 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_enum_variant(&mut self) -> EnumVariant {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
         let name = self.expect_identifier();
 
         let types = if self.is(TokenKind::L_PAREN) {
-            self.advance_token();
+            self.advance();
             Some(self.parse_list(TokenKind::COMMA, TokenKind::R_PAREN, |p| p.parse_type()))
         } else {
             None
@@ -361,7 +354,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_const(&mut self, modifiers: &Modifiers) -> Arc<Const> {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
         self.assert(TokenKind::CONST);
         let name = self.expect_identifier();
         self.expect(TokenKind::COLON);
@@ -382,14 +375,14 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_impl(&mut self) -> Arc<Impl> {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
         self.assert(TokenKind::IMPL);
         let type_params = self.parse_type_params();
 
         let type_name = self.parse_type();
 
         let (class_type, trait_type) = if self.is(TokenKind::FOR) {
-            self.advance_token();
+            self.advance();
             let class_type = self.parse_type();
 
             (class_type, Some(type_name))
@@ -424,7 +417,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_global(&mut self, modifiers: &Modifiers) -> Arc<Global> {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
         self.assert(TokenKind::LET);
 
         let mutable = self.eat(TokenKind::MUT);
@@ -434,7 +427,7 @@ impl<'a> Parser<'a> {
         let data_type = self.parse_type();
 
         let expr = if self.is(TokenKind::EQ) {
-            self.advance_token();
+            self.advance();
             Some(self.parse_expression())
         } else {
             None
@@ -455,7 +448,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_trait(&mut self, modifiers: &Modifiers) -> Arc<Trait> {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
         self.assert(TokenKind::TRAIT);
         let name = self.expect_identifier();
         let type_params = self.parse_type_params();
@@ -487,7 +480,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_struct(&mut self, modifiers: &Modifiers) -> Arc<Struct> {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
         self.assert(TokenKind::STRUCT);
         let ident = self.expect_identifier();
         let type_params = self.parse_type_params();
@@ -518,7 +511,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_struct_field(&mut self) -> StructField {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
 
         let modifiers = self.parse_modifiers();
         let mods = &[Annotation::Pub];
@@ -540,7 +533,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_class(&mut self, modifiers: &Modifiers) -> Arc<Class> {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
         self.assert(TokenKind::CLASS);
 
         let name = self.expect_identifier();
@@ -572,7 +565,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_class_field(&mut self) -> Field {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
 
         let modifiers = self.parse_modifiers();
         let mods = &[Annotation::Pub];
@@ -597,7 +590,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_alias(&mut self, modifiers: &Modifiers) -> Arc<Alias> {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
         self.assert(TokenKind::ALIAS);
         let name = self.expect_identifier();
         self.expect(TokenKind::EQ);
@@ -616,7 +609,7 @@ impl<'a> Parser<'a> {
 
     fn parse_type_params(&mut self) -> Option<Vec<TypeParam>> {
         if self.is(TokenKind::L_BRACKET) {
-            self.advance_token();
+            self.advance();
             let params = self.parse_list(TokenKind::COMMA, TokenKind::R_BRACKET, |p| {
                 p.parse_type_param()
             });
@@ -628,11 +621,11 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_type_param(&mut self) -> TypeParam {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
         let name = self.expect_identifier();
 
         let bounds = if self.is(TokenKind::COLON) {
-            self.advance_token();
+            self.advance();
 
             let mut bounds = Vec::new();
 
@@ -640,7 +633,7 @@ impl<'a> Parser<'a> {
                 bounds.push(self.parse_type());
 
                 if self.is(TokenKind::ADD) {
-                    self.advance_token();
+                    self.advance();
                 } else {
                     break;
                 }
@@ -681,16 +674,16 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_modifier(&mut self) -> Option<ModifierElement> {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
 
         if self.is(TokenKind::PUB) {
-            self.advance_token();
+            self.advance();
             Some(ModifierElement {
                 value: Annotation::Pub,
                 span: self.span_from(start),
             })
         } else if self.is(TokenKind::STATIC) {
-            self.advance_token();
+            self.advance();
             Some(ModifierElement {
                 value: Annotation::Static,
                 span: self.span_from(start),
@@ -699,16 +692,16 @@ impl<'a> Parser<'a> {
             if !self.is(TokenKind::AT) {
                 return None;
             }
-            self.advance_token();
+            self.advance();
 
             if self.is(TokenKind::PUB) {
-                self.advance_token();
+                self.advance();
                 return Some(ModifierElement {
                     value: Annotation::Pub,
                     span: self.span_from(start),
                 });
             } else if self.is(TokenKind::STATIC) {
-                self.advance_token();
+                self.advance();
                 return Some(ModifierElement {
                     value: Annotation::Static,
                     span: self.span_from(start),
@@ -763,7 +756,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_function(&mut self, modifiers: &Modifiers) -> Arc<Function> {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
         self.assert(TokenKind::FN);
         let name = self.expect_identifier();
         let type_params = self.parse_type_params();
@@ -820,7 +813,7 @@ impl<'a> Parser<'a> {
 
             comma = self.is(sep.clone());
             if comma {
-                self.advance_token();
+                self.advance();
             }
         }
 
@@ -830,7 +823,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_function_param(&mut self) -> Param {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
 
         let mutable = self.eat(TokenKind::MUT);
         let name = self.expect_identifier();
@@ -840,7 +833,7 @@ impl<'a> Parser<'a> {
         let data_type = self.parse_type();
 
         let variadic = if self.is(TokenKind::DOT_DOT_DOT) {
-            self.advance_token();
+            self.advance();
             true
         } else {
             false
@@ -883,13 +876,13 @@ impl<'a> Parser<'a> {
     fn parse_type(&mut self) -> Type {
         match self.current() {
             TokenKind::CAPITAL_THIS => {
-                let span = self.token.span;
-                self.advance_token();
+                let span = self.current_span();
+                self.advance();
                 Arc::new(TypeData::create_self(self.generate_id(), span))
             }
 
             TokenKind::IDENTIFIER => {
-                let start = self.token.span.start();
+                let start = self.current_span().start();
                 let path = self.parse_path();
 
                 let params = if self.is(TokenKind::L_BRACKET) {
@@ -909,7 +902,7 @@ impl<'a> Parser<'a> {
             }
 
             TokenKind::L_PAREN => {
-                let start = self.token.span.start();
+                let start = self.current_span().start();
                 self.assert(TokenKind::L_PAREN);
                 let subtypes =
                     self.parse_list(TokenKind::COMMA, TokenKind::R_PAREN, |p| p.parse_type());
@@ -932,7 +925,7 @@ impl<'a> Parser<'a> {
             }
 
             _ => {
-                let span = self.token.span;
+                let span = self.current_span();
                 self.report_error(ParseError::ExpectedType);
                 Arc::new(TypeData::Error {
                     id: self.generate_id(),
@@ -943,16 +936,16 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_path(&mut self) -> Path {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
         let mut names = Vec::new();
-        assert!(self.token.is_identifier());
+        assert_eq!(self.current(), TokenKind::IDENTIFIER);
         let name = self.expect_identifier();
         if let Some(name) = name {
             names.push(name);
         }
 
         while self.is(TokenKind::COLON_COLON) {
-            self.advance_token();
+            self.advance();
             let name = self.expect_identifier();
             if let Some(name) = name {
                 names.push(name);
@@ -987,7 +980,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_let(&mut self) -> Stmt {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
 
         self.assert(TokenKind::LET);
         let pattern = self.parse_let_pattern();
@@ -1008,7 +1001,7 @@ impl<'a> Parser<'a> {
 
     fn parse_let_pattern(&mut self) -> Box<LetPattern> {
         if self.is(TokenKind::L_PAREN) {
-            let start = self.token.span.start();
+            let start = self.current_span().start();
             self.assert(TokenKind::L_PAREN);
 
             let parts = self.parse_list(TokenKind::COMMA, TokenKind::R_PAREN, |p| {
@@ -1023,7 +1016,7 @@ impl<'a> Parser<'a> {
                 parts,
             }))
         } else if self.is(TokenKind::UNDERSCORE) {
-            let span = self.token.span;
+            let span = self.current_span();
             self.assert(TokenKind::UNDERSCORE);
 
             Box::new(LetPattern::Underscore(LetUnderscoreType {
@@ -1031,9 +1024,9 @@ impl<'a> Parser<'a> {
                 span,
             }))
         } else {
-            let start = self.token.span.start();
+            let start = self.current_span().start();
             let mutable = if self.is(TokenKind::MUT) {
-                self.advance_token();
+                self.advance();
                 true
             } else {
                 false
@@ -1071,7 +1064,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_block(&mut self) -> Expr {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
         let mut stmts = vec![];
         let mut expr = None;
 
@@ -1133,7 +1126,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_if(&mut self) -> Expr {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
         self.assert(TokenKind::IF);
 
         let cond = self.parse_expression();
@@ -1141,7 +1134,7 @@ impl<'a> Parser<'a> {
         let then_block = self.parse_block();
 
         let else_block = if self.is(TokenKind::ELSE) {
-            self.advance_token();
+            self.advance();
 
             if self.is(TokenKind::IF) {
                 Some(self.parse_if())
@@ -1164,7 +1157,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_match(&mut self) -> Expr {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
         self.assert(TokenKind::MATCH);
 
         let expr = self.parse_expression();
@@ -1185,7 +1178,7 @@ impl<'a> Parser<'a> {
             comma = self.is(TokenKind::COMMA);
 
             if comma {
-                self.advance_token();
+                self.advance();
             }
         }
 
@@ -1201,12 +1194,12 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_match_case(&mut self) -> MatchCaseType {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
         let mut patterns = Vec::new();
         patterns.push(self.parse_match_pattern());
 
         while self.is(TokenKind::OR) {
-            self.advance_token();
+            self.advance();
             patterns.push(self.parse_match_pattern());
         }
 
@@ -1224,7 +1217,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_match_pattern(&mut self) -> MatchPattern {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
 
         let data = if self.eat(TokenKind::UNDERSCORE) {
             MatchPatternData::Underscore
@@ -1254,7 +1247,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_match_pattern_param(&mut self) -> MatchPatternParam {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
 
         let (mutable, name) = if self.is(TokenKind::UNDERSCORE) {
             self.assert(TokenKind::UNDERSCORE);
@@ -1278,7 +1271,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_for(&mut self) -> Expr {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
         self.assert(TokenKind::FOR);
         let pattern = self.parse_let_pattern();
         self.expect(TokenKind::IN);
@@ -1296,7 +1289,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_while(&mut self) -> Expr {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
         self.assert(TokenKind::WHILE);
         let expr = self.parse_expression();
         let block = self.parse_block();
@@ -1311,7 +1304,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_break(&mut self) -> Expr {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
         self.assert(TokenKind::BREAK);
         let span = self.span_from(start);
 
@@ -1319,7 +1312,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_continue(&mut self) -> Expr {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
         self.assert(TokenKind::CONTINUE);
         let span = self.span_from(start);
 
@@ -1327,7 +1320,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_return(&mut self) -> Expr {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
         self.assert(TokenKind::RETURN);
         let expr = if self.is(TokenKind::SEMICOLON) {
             None
@@ -1349,11 +1342,11 @@ impl<'a> Parser<'a> {
             self.report_error(ParseError::ExpectedExpression);
             return Arc::new(ExprData::Error {
                 id: self.generate_id(),
-                span: self.token.span,
+                span: self.current_span(),
             });
         }
 
-        let start = self.token.span.start();
+        let start = self.current_span().start();
         let mut left = self.parse_unary();
 
         loop {
@@ -1387,9 +1380,10 @@ impl<'a> Parser<'a> {
                 return left;
             }
 
-            let tok = self.advance_token();
+            let kind = self.current();
+            self.advance();
 
-            left = match tok.kind {
+            left = match kind {
                 TokenKind::AS => {
                     let right = self.parse_type();
                     let span = self.span_from(start);
@@ -1400,7 +1394,7 @@ impl<'a> Parser<'a> {
 
                 _ => {
                     let right = self.parse_binary(right_precedence);
-                    self.create_binary(tok, start, left, right)
+                    self.create_binary(kind, start, left, right)
                 }
             };
         }
@@ -1409,9 +1403,10 @@ impl<'a> Parser<'a> {
     fn parse_unary(&mut self) -> Expr {
         match self.current() {
             TokenKind::ADD | TokenKind::SUB | TokenKind::NOT => {
-                let start = self.token.span.start();
-                let tok = self.advance_token();
-                let op = match tok.kind {
+                let start = self.current_span().start();
+                let kind = self.current();
+                self.advance();
+                let op = match kind {
                     TokenKind::ADD => UnOp::Plus,
                     TokenKind::SUB => UnOp::Neg,
                     TokenKind::NOT => UnOp::Not,
@@ -1428,13 +1423,14 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_primary(&mut self) -> Expr {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
         let mut left = self.parse_factor();
 
         loop {
             left = match self.current() {
                 TokenKind::DOT => {
-                    let op_span = self.advance_token().span;
+                    let op_span = self.current_span();
+                    self.assert(TokenKind::DOT);
                     let rhs = self.parse_factor();
                     let span = self.span_from(start);
 
@@ -1448,7 +1444,7 @@ impl<'a> Parser<'a> {
                 }
 
                 TokenKind::L_PAREN => {
-                    self.advance_token();
+                    self.advance();
                     let args = self.parse_list(TokenKind::COMMA, TokenKind::R_PAREN, |p| {
                         p.parse_expression()
                     });
@@ -1458,7 +1454,8 @@ impl<'a> Parser<'a> {
                 }
 
                 TokenKind::L_BRACKET => {
-                    let op_span = self.advance_token().span;
+                    let op_span = self.current_span();
+                    self.assert(TokenKind::L_BRACKET);
                     let types =
                         self.parse_list(TokenKind::COMMA, TokenKind::R_BRACKET, |p| p.parse_type());
                     let span = self.span_from(start);
@@ -1473,7 +1470,8 @@ impl<'a> Parser<'a> {
                 }
 
                 TokenKind::COLON_COLON => {
-                    let op_span = self.advance_token().span;
+                    let op_span = self.current_span();
+                    self.assert(TokenKind::COLON_COLON);
                     let rhs = self.parse_factor();
                     let span = self.span_from(start);
 
@@ -1493,8 +1491,8 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn create_binary(&mut self, tok: Token, start: u32, left: Expr, right: Expr) -> Expr {
-        let op = match tok.kind {
+    fn create_binary(&mut self, kind: TokenKind, start: u32, left: Expr, right: Expr) -> Expr {
+        let op = match kind {
             TokenKind::EQ => BinOp::Assign,
             TokenKind::OR_OR => BinOp::Or,
             TokenKind::AND_AND => BinOp::And,
@@ -1517,7 +1515,7 @@ impl<'a> Parser<'a> {
             TokenKind::LT_LT => BinOp::ShiftL,
             TokenKind::GT_GT => BinOp::ArithShiftR,
             TokenKind::GT_GT_GT => BinOp::LogicalShiftR,
-            _ => panic!("unimplemented token {:?}", tok),
+            _ => panic!("unimplemented token {:?}", kind),
         };
 
         let span = self.span_from(start);
@@ -1532,7 +1530,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_factor(&mut self) -> Expr {
-        let span = self.token.span;
+        let span = self.current_span();
         match self.current() {
             TokenKind::L_PAREN => self.parse_parentheses(),
             TokenKind::L_BRACE => self.parse_block(),
@@ -1574,11 +1572,11 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_parentheses(&mut self) -> Expr {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
         self.assert(TokenKind::L_PAREN);
 
         if self.is(TokenKind::R_PAREN) {
-            self.advance_token();
+            self.advance();
             let span = self.span_from(start);
             return Arc::new(ExprData::create_tuple(self.generate_id(), span, Vec::new()));
         }
@@ -1593,7 +1591,7 @@ impl<'a> Parser<'a> {
                 self.expect(TokenKind::COMMA);
 
                 if self.current() == TokenKind::R_PAREN {
-                    self.advance_token();
+                    self.advance();
                     span = self.span_from(start);
                     break;
                 }
@@ -1602,7 +1600,7 @@ impl<'a> Parser<'a> {
                 values.push(expr);
 
                 if self.current() == TokenKind::R_PAREN {
-                    self.advance_token();
+                    self.advance();
                     span = self.span_from(start);
                     break;
                 }
@@ -1618,22 +1616,18 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_lit_char(&mut self) -> Expr {
-        let span = self.token.span;
-        let tok = self.advance_token();
+        let span = self.current_span();
+        self.assert(TokenKind::CHAR_LITERAL);
         let value = self.source_span(span);
 
-        if let TokenKind::CHAR_LITERAL = tok.kind {
-            Arc::new(ExprData::create_lit_char(self.generate_id(), span, value))
-        } else {
-            unreachable!();
-        }
+        Arc::new(ExprData::create_lit_char(self.generate_id(), span, value))
     }
 
     fn parse_lit_int(&mut self) -> Expr {
         assert_eq!(self.current(), TokenKind::INT_LITERAL);
-        let span = self.token.span;
+        let span = self.current_span();
         let value = self.source_span(span);
-        self.advance_token();
+        self.advance();
 
         let expr = ExprData::create_lit_int(self.generate_id(), span, value);
         Arc::new(expr)
@@ -1641,8 +1635,8 @@ impl<'a> Parser<'a> {
 
     fn parse_lit_float(&mut self) -> Expr {
         assert_eq!(self.current(), TokenKind::FLOAT_LITERAL);
-        let span = self.token.span;
-        self.advance_token();
+        let span = self.current_span();
+        self.advance();
 
         let value = self.source_span(span);
 
@@ -1651,10 +1645,10 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_template(&mut self) -> Expr {
-        let span = self.token.span;
+        let span = self.current_span();
         let start = span.start();
         assert!(self.is(TokenKind::TEMPLATE_LITERAL));
-        self.advance_token();
+        self.advance();
         let value = self.source_span(span);
 
         let mut parts: Vec<Expr> = Vec::new();
@@ -1670,7 +1664,7 @@ impl<'a> Parser<'a> {
             let expr = self.parse_expression();
             parts.push(expr);
 
-            let span = self.token.span;
+            let span = self.current_span();
 
             if !self.is(TokenKind::TEMPLATE_LITERAL) {
                 done = true;
@@ -1689,7 +1683,7 @@ impl<'a> Parser<'a> {
                 value,
             )));
 
-            self.advance_token();
+            self.advance();
         }
 
         let span = self.span_from(start);
@@ -1698,31 +1692,31 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_string(&mut self) -> Expr {
-        let span = self.token.span;
-        assert!(self.is(TokenKind::STRING_LITERAL));
-        self.advance_token();
+        let span = self.current_span();
+        self.assert(TokenKind::STRING_LITERAL);
 
         let value = self.source_span(span);
         Arc::new(ExprData::create_lit_str(self.generate_id(), span, value))
     }
 
     fn parse_bool_literal(&mut self) -> Expr {
-        let span = self.token.span;
-        let tok = self.advance_token();
-        let value = tok.is(TokenKind::TRUE);
+        let span = self.current_span();
+        let kind = self.current();
+        self.advance();
+        let value = kind == TokenKind::TRUE;
 
         Arc::new(ExprData::create_lit_bool(self.generate_id(), span, value))
     }
 
     fn parse_this(&mut self) -> Expr {
-        let span = self.token.span;
-        self.advance_token();
+        let span = self.current_span();
+        self.advance();
 
         Arc::new(ExprData::create_this(self.generate_id(), span))
     }
 
     fn parse_lambda(&mut self) -> Expr {
-        let start = self.token.span.start();
+        let start = self.current_span().start();
 
         let params = if self.eat(TokenKind::OR_OR) {
             // nothing to do
@@ -1735,7 +1729,7 @@ impl<'a> Parser<'a> {
         };
 
         let return_type = if self.is(TokenKind::COLON) {
-            self.advance_token();
+            self.advance();
             Some(self.parse_type())
         } else {
             None
@@ -1770,16 +1764,15 @@ impl<'a> Parser<'a> {
     }
 
     fn expect_identifier(&mut self) -> Option<Ident> {
-        let token = self.advance_token();
+        let span = self.current_span();
 
-        if let TokenKind::IDENTIFIER = token.kind {
-            let span = token.span;
-            let value = self.source_span(token.span);
+        if self.eat(TokenKind::IDENTIFIER) {
+            let value = self.source_span(span);
             let name = self.interner.intern(&value);
 
             Some(Arc::new(IdentData { span, name }))
         } else {
-            self.report_error_at(ParseError::ExpectedIdentifier, token.span);
+            self.report_error_at(ParseError::ExpectedIdentifier, span);
             None
         }
     }
@@ -1798,7 +1791,7 @@ impl<'a> Parser<'a> {
 
     fn eat(&mut self, kind: TokenKind) -> bool {
         if self.current() == kind {
-            self.advance_token();
+            self.advance();
             true
         } else {
             false
@@ -1806,7 +1799,7 @@ impl<'a> Parser<'a> {
     }
 
     fn report_error(&mut self, msg: ParseError) {
-        self.report_error_at(msg, self.token.span);
+        self.report_error_at(msg, self.current_span());
     }
 
     fn report_error_at(&mut self, msg: ParseError, span: Span) {
@@ -1815,16 +1808,14 @@ impl<'a> Parser<'a> {
 
     fn error_and_advance(&mut self, msg: ParseError) {
         self.errors
-            .push(ParseErrorWithLocation::new(self.token.span, msg));
-        self.advance_token();
+            .push(ParseErrorWithLocation::new(self.current_span(), msg));
+        self.advance();
     }
 
-    fn advance_token(&mut self) -> Token {
+    fn advance(&mut self) {
         if self.token_idx < self.tokens.len() {
             self.token_idx += 1;
         }
-
-        self.setup_token()
     }
 
     fn current(&self) -> TokenKind {
@@ -1832,6 +1823,14 @@ impl<'a> Parser<'a> {
             self.tokens[self.token_idx].kind
         } else {
             TokenKind::EOF
+        }
+    }
+
+    fn current_span(&self) -> Span {
+        if self.token_idx < self.tokens.len() {
+            self.tokens[self.token_idx].span
+        } else {
+            Span::new(self.content.len().try_into().expect("overflow"), 0)
         }
     }
 
@@ -1845,17 +1844,6 @@ impl<'a> Parser<'a> {
 
     fn is_eof(&self) -> bool {
         self.current() == TokenKind::EOF
-    }
-
-    fn setup_token(&mut self) -> Token {
-        let token = if self.token_idx == self.tokens.len() {
-            let span = Span::new(self.content.len().try_into().expect("overflow"), 0);
-            Token::new(TokenKind::EOF, span)
-        } else {
-            self.tokens[self.token_idx].clone()
-        };
-
-        mem::replace(&mut self.token, token)
     }
 
     fn source_span(&self, span: Span) -> String {

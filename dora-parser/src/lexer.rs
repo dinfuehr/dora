@@ -4,7 +4,7 @@ use std::sync::Arc;
 use crate::error::{ParseError, ParseErrorWithLocation};
 use crate::{Span, Token, TokenKind};
 
-pub fn lex(content: &str) -> (Vec<Token>, Vec<ParseErrorWithLocation>) {
+pub fn lex(content: &str, include_trivia: bool) -> (Vec<Token>, Vec<ParseErrorWithLocation>) {
     let content = Arc::new(content.into());
     let mut lexer = Lexer::new(content);
     let mut tokens = Vec::new();
@@ -12,7 +12,7 @@ pub fn lex(content: &str) -> (Vec<Token>, Vec<ParseErrorWithLocation>) {
     loop {
         let token = lexer.read_token();
 
-        if token.is_trivia() {
+        if token.is_trivia() && !include_trivia {
             continue;
         } else if token.is_eof() {
             break;
@@ -613,7 +613,7 @@ mod tests {
     use crate::{lex, Lexer, ParseError, ParseErrorWithLocation, Span, Token, TokenKind};
 
     fn lex_success(content: &str) -> Vec<Token> {
-        let (tokens, errors) = lex(content);
+        let (tokens, errors) = lex(content, false);
         assert!(errors.is_empty());
         tokens
     }
@@ -731,11 +731,11 @@ mod tests {
 
     #[test]
     fn test_unfinished_multi_comment() {
-        let (tokens, errors) = lex("/*test");
+        let (tokens, errors) = lex("/*test", false);
         assert!(tokens.is_empty());
         assert_err(errors, ParseError::UnclosedComment, 0, 6);
 
-        let (tokens, errors) = lex("1/*test");
+        let (tokens, errors) = lex("1/*test", false);
         assert_eq!(
             tokens,
             vec![Token::new(TokenKind::INT_LITERAL, Span::new(0, 1))]
@@ -873,7 +873,7 @@ mod tests {
         let tokens = lex_success("\"\\\\\"");
         assert_tok2(tokens, TokenKind::STRING_LITERAL, 0, 4);
 
-        let (tokens, errors) = lex("\"\\");
+        let (tokens, errors) = lex("\"\\", false);
         assert_eq!(
             tokens,
             vec![Token::new(TokenKind::STRING_LITERAL, Span::new(0, 2))]
@@ -889,18 +889,18 @@ mod tests {
 
     #[test]
     fn test_unclosed_string() {
-        let (tokens, errors) = lex("\"abc");
+        let (tokens, errors) = lex("\"abc", false);
         assert_tok2(tokens, TokenKind::STRING_LITERAL, 0, 4);
         assert_err(errors, ParseError::UnclosedString, 0, 4);
     }
 
     #[test]
     fn test_unclosed_char() {
-        let (tokens, errors) = lex("'a");
+        let (tokens, errors) = lex("'a", false);
         assert_tok2(tokens, TokenKind::CHAR_LITERAL, 0, 2);
         assert_err(errors, ParseError::UnclosedChar, 0, 2);
 
-        let (tokens, errors) = lex("'\\");
+        let (tokens, errors) = lex("'\\", false);
         assert_tok2(tokens, TokenKind::CHAR_LITERAL, 0, 2);
         assert_eq!(
             errors,
@@ -910,14 +910,14 @@ mod tests {
             )]
         );
 
-        let (tokens, errors) = lex("'\\n");
+        let (tokens, errors) = lex("'\\n", false);
         assert_tok2(tokens, TokenKind::CHAR_LITERAL, 0, 3);
         assert_err(errors, ParseError::UnclosedChar, 0, 3);
 
         let tokens = lex_success("'ab'");
         assert_tok2(tokens, TokenKind::CHAR_LITERAL, 0, 4);
 
-        let (tokens, errors) = lex("'");
+        let (tokens, errors) = lex("'", false);
         assert_tok2(tokens, TokenKind::CHAR_LITERAL, 0, 1);
         assert_err(errors, ParseError::UnclosedChar, 0, 1);
     }
@@ -1034,7 +1034,7 @@ mod tests {
 
     #[test]
     fn test_invalid_char() {
-        let (tokens, errors) = lex("a☕b");
+        let (tokens, errors) = lex("a☕b", false);
         assert_eq!(
             tokens,
             vec![
