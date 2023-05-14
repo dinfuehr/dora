@@ -963,22 +963,6 @@ impl<'a> Parser<'a> {
         })
     }
 
-    #[cfg(test)]
-    fn parse_statement(&mut self) -> Stmt {
-        let stmt_or_expr = self.parse_statement_or_expression();
-
-        match stmt_or_expr {
-            StmtOrExpr::Stmt(stmt) => stmt,
-            StmtOrExpr::Expr(expr) => {
-                if expr.needs_semicolon() {
-                    self.expect(TokenKind::SEMICOLON);
-                }
-
-                Arc::new(StmtData::create_expr(self.generate_id(), expr.span(), expr))
-            }
-        }
-    }
-
     fn parse_let(&mut self) -> Stmt {
         let start = self.current_span().start();
 
@@ -1942,30 +1926,12 @@ mod tests {
         assert_eq!(col, computed_column);
     }
 
-    fn parse_stmt(code: &'static str) -> Stmt {
+    fn parse_let(code: &'static str) -> Stmt {
         let mut interner = Interner::new();
         let mut parser = Parser::from_string(code, &mut interner);
-        let result = parser.parse_statement();
+        let result = parser.parse_let();
         assert!(parser.errors.is_empty());
         result
-    }
-
-    fn err_stmt(code: &'static str, msg: ParseError, line: u32, col: u32) {
-        let mut interner = Interner::new();
-        let mut parser = Parser::from_string(code, &mut interner);
-
-        let _ = parser.parse_statement();
-
-        let errors = parser.errors.clone();
-        assert_eq!(errors.len(), 1);
-        let err = &errors[0];
-
-        assert_eq!(msg, err.error);
-        println!("error = {}", err.span);
-        let line_starts = compute_line_starts(code);
-        let (computed_line, computed_column) = compute_line_column(&line_starts, err.span.start());
-        assert_eq!(line, computed_line);
-        assert_eq!(col, computed_column);
     }
 
     fn parse_type(code: &'static str) -> (Type, Interner) {
@@ -2477,7 +2443,7 @@ mod tests {
 
     #[test]
     fn parse_let_without_type() {
-        let stmt = parse_stmt("let a = 1;");
+        let stmt = parse_let("let a = 1;");
         let var = stmt.to_let().unwrap();
 
         assert!(var.data_type.is_none());
@@ -2486,7 +2452,7 @@ mod tests {
 
     #[test]
     fn parse_let_with_type() {
-        let stmt = parse_stmt("let x : int = 1;");
+        let stmt = parse_let("let x : int = 1;");
         let var = stmt.to_let().unwrap();
 
         assert!(var.data_type.is_some());
@@ -2495,7 +2461,7 @@ mod tests {
 
     #[test]
     fn parse_let_underscore() {
-        let stmt = parse_stmt("let _ = 1;");
+        let stmt = parse_let("let _ = 1;");
         let let_decl = stmt.to_let().unwrap();
 
         assert!(let_decl.pattern.is_underscore());
@@ -2503,7 +2469,7 @@ mod tests {
 
     #[test]
     fn parse_let_tuple() {
-        let stmt = parse_stmt("let (mut a, b, (c, d)) = 1;");
+        let stmt = parse_let("let (mut a, b, (c, d)) = 1;");
         let let_decl = stmt.to_let().unwrap();
 
         assert!(let_decl.pattern.is_tuple());
@@ -2516,7 +2482,7 @@ mod tests {
 
     #[test]
     fn parse_let_ident() {
-        let stmt = parse_stmt("let x = 1;");
+        let stmt = parse_let("let x = 1;");
         let let_decl = stmt.to_let().unwrap();
 
         assert!(let_decl.pattern.is_ident());
@@ -2524,7 +2490,7 @@ mod tests {
 
     #[test]
     fn parse_let_ident_mut() {
-        let stmt = parse_stmt("let mut x = 1;");
+        let stmt = parse_let("let mut x = 1;");
         let let_decl = stmt.to_let().unwrap();
 
         assert!(let_decl.pattern.is_ident());
@@ -2533,7 +2499,7 @@ mod tests {
 
     #[test]
     fn parse_let_with_type_but_without_assignment() {
-        let stmt = parse_stmt("let x : int;");
+        let stmt = parse_let("let x : int;");
         let var = stmt.to_let().unwrap();
 
         assert!(var.data_type.is_some());
@@ -2542,7 +2508,7 @@ mod tests {
 
     #[test]
     fn parse_let_without_type_and_assignment() {
-        let stmt = parse_stmt("let x;");
+        let stmt = parse_let("let x;");
         let var = stmt.to_let().unwrap();
 
         assert!(var.data_type.is_none());
@@ -2558,19 +2524,6 @@ mod tests {
 
         let g = prog.fct(1);
         assert_eq!("g", *interner.str(g.name.as_ref().unwrap().name));
-    }
-
-    #[test]
-    fn parse_expr_stmt() {
-        let stmt = parse_stmt("1;");
-        let expr = stmt.to_expr().unwrap();
-
-        assert!(expr.expr.is_lit_int());
-    }
-
-    #[test]
-    fn parse_expr_stmt_without_semicolon() {
-        err_stmt("1", ParseError::ExpectedToken(";".into()), 1, 2);
     }
 
     #[test]
