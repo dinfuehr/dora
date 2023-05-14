@@ -1482,26 +1482,27 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_parentheses(&mut self) -> Expr {
-        let start = self.current_span().start();
+        self.start_node();
         self.assert(TokenKind::L_PAREN);
 
         if self.eat(TokenKind::R_PAREN) {
-            let span = self.span_from(start);
-            return Arc::new(ExprData::create_tuple(self.generate_id(), span, Vec::new()));
+            return Arc::new(ExprData::create_tuple(
+                self.generate_id(),
+                self.finish_node(),
+                Vec::new(),
+            ));
         }
 
         let expr = self.parse_expression();
 
         if self.current() == TokenKind::COMMA {
             let mut values = vec![expr];
-            let span;
 
             loop {
                 self.expect(TokenKind::COMMA);
 
                 if self.current() == TokenKind::R_PAREN {
                     self.advance();
-                    span = self.span_from(start);
                     break;
                 }
 
@@ -1510,17 +1511,22 @@ impl<'a> Parser<'a> {
 
                 if self.current() == TokenKind::R_PAREN {
                     self.advance();
-                    span = self.span_from(start);
                     break;
                 }
             }
 
-            Arc::new(ExprData::create_tuple(self.generate_id(), span, values))
+            Arc::new(ExprData::create_tuple(
+                self.generate_id(),
+                self.finish_node(),
+                values,
+            ))
         } else {
             self.expect(TokenKind::R_PAREN);
-            let span = self.span_from(start);
-
-            Arc::new(ExprData::create_paren(self.generate_id(), span, expr))
+            Arc::new(ExprData::create_paren(
+                self.generate_id(),
+                self.finish_node(),
+                expr,
+            ))
         }
     }
 
@@ -1624,7 +1630,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_lambda(&mut self) -> Expr {
-        let start = self.current_span().start();
+        self.start_node();
 
         let params = if self.eat(TokenKind::OR_OR) {
             // nothing to do
@@ -1644,13 +1650,11 @@ impl<'a> Parser<'a> {
 
         let block = self.parse_block();
 
-        let span = self.span_from(start);
-
         let function = Arc::new(Function {
             id: self.generate_id(),
             kind: FunctionKind::Lambda,
             name: None,
-            span,
+            span: self.finish_node(),
             is_optimize_immediately: false,
             visibility: Visibility::Default,
             is_static: false,
