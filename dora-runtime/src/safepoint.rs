@@ -54,37 +54,15 @@ fn stop_threads(vm: &VM, threads: &[Arc<DoraThread>]) {
     let mut running = 0;
 
     for thread in threads.iter() {
-        let mut current_state = thread.state_relaxed();
+        let current_state = thread
+            .tld
+            .state
+            .fetch_or(ThreadState::SafepointRequested as u8, Ordering::SeqCst);
 
-        loop {
-            let next_state = match current_state {
-                ThreadState::Running => ThreadState::SafepointRequested,
-                ThreadState::Parked => ThreadState::ParkedSafepoint,
-                ThreadState::Safepoint => {
-                    running += 1;
-                    break;
-                }
-                state => panic!("unexpected state {:?} when stopping threads", state),
-            };
-
-            match thread.tld.state.compare_exchange(
-                current_state as u8,
-                next_state as u8,
-                Ordering::SeqCst,
-                Ordering::SeqCst,
-            ) {
-                Ok(_) => {
-                    if current_state == ThreadState::Running {
-                        running += 1;
-                    }
-
-                    break;
-                }
-
-                Err(state) => {
-                    current_state = state.into();
-                }
-            }
+        if current_state == ThreadState::Running as u8 {
+            running += 1;
+        } else {
+            assert_eq!(current_state, ThreadState::Parked as u8);
         }
     }
 
