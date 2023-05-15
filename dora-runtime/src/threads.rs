@@ -2,7 +2,7 @@ use parking_lot::{Condvar, Mutex};
 use std::cell::RefCell;
 use std::convert::From;
 use std::ptr;
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use crate::gc::{tlab, Address, Region, K};
@@ -134,7 +134,6 @@ pub struct DoraThread {
     id: AtomicUsize,
     pub handles: HandleMemory,
     pub tld: ThreadLocalData,
-    pub state: AtomicUsize,
     join_data: JoinData,
     blocking_data: BlockingData,
 }
@@ -151,8 +150,7 @@ impl DoraThread {
         Arc::new(DoraThread {
             id: AtomicUsize::new(id),
             handles: HandleMemory::new(),
-            tld: ThreadLocalData::new(),
-            state: AtomicUsize::new(initial_state as usize),
+            tld: ThreadLocalData::new(initial_state),
             join_data: JoinData::new(),
             blocking_data: BlockingData::new(),
         })
@@ -198,7 +196,7 @@ impl DoraThread {
     }
 
     pub fn state_relaxed(&self) -> ThreadState {
-        self.state.load(Ordering::Relaxed).into()
+        self.tld.state.load(Ordering::Relaxed).into()
     }
 
     pub fn is_running(&self) -> bool {
@@ -211,10 +209,11 @@ impl DoraThread {
 
     pub fn park(&self, vm: &VM) {
         if self
+            .tld
             .state
             .compare_exchange(
-                ThreadState::Running as usize,
-                ThreadState::Parked as usize,
+                ThreadState::Running as u8,
+                ThreadState::Parked as u8,
                 Ordering::SeqCst,
                 Ordering::SeqCst,
             )
@@ -226,10 +225,11 @@ impl DoraThread {
 
     fn park_slow(&self, vm: &VM) {
         assert!(self
+            .tld
             .state
             .compare_exchange(
-                ThreadState::SafepointRequested as usize,
-                ThreadState::ParkedSafepoint as usize,
+                ThreadState::SafepointRequested as u8,
+                ThreadState::ParkedSafepoint as u8,
                 Ordering::SeqCst,
                 Ordering::SeqCst,
             )
@@ -239,10 +239,11 @@ impl DoraThread {
 
     pub fn unpark(&self, vm: &VM) {
         if self
+            .tld
             .state
             .compare_exchange(
-                ThreadState::Parked as usize,
-                ThreadState::Running as usize,
+                ThreadState::Parked as u8,
+                ThreadState::Running as u8,
                 Ordering::SeqCst,
                 Ordering::SeqCst,
             )
@@ -254,15 +255,15 @@ impl DoraThread {
 
     fn unpark_slow(&self, vm: &VM) {
         loop {
-            match self.state.compare_exchange(
-                ThreadState::Parked as usize,
-                ThreadState::Running as usize,
+            match self.tld.state.compare_exchange(
+                ThreadState::Parked as u8,
+                ThreadState::Running as u8,
                 Ordering::SeqCst,
                 Ordering::SeqCst,
             ) {
                 Ok(_) => break,
                 Err(state) => {
-                    assert_eq!(state, ThreadState::ParkedSafepoint as usize);
+                    assert_eq!(state, ThreadState::ParkedSafepoint as u8);
                     vm.threads.barrier.wait_in_unpark();
                 }
             }
@@ -370,6 +371,7 @@ impl BlockingData {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[repr(u8)]
 pub enum ThreadState {
     Running = 0,
     Parked = 1,
@@ -378,8 +380,8 @@ pub enum ThreadState {
     Safepoint = 4,
 }
 
-impl From<usize> for ThreadState {
-    fn from(value: usize) -> ThreadState {
+impl From<u8> for ThreadState {
+    fn from(value: u8) -> ThreadState {
         match value {
             0 => ThreadState::Running,
             1 => ThreadState::Parked,
@@ -421,20 +423,20 @@ pub struct ThreadLocalData {
     tlab_top: AtomicUsize,
     tlab_end: AtomicUsize,
     concurrent_marking: AtomicBool,
+    pub state: AtomicU8,
     stack_limit: AtomicUsize,
-    safepoint_requested: AtomicBool,
     dtn: AtomicUsize,
     managed_thread_handle: AtomicUsize,
 }
 
 impl ThreadLocalData {
-    pub fn new() -> ThreadLocalData {
+    pub fn new(initial_state: ThreadState) -> ThreadLocalData {
         ThreadLocalData {
             tlab_top: AtomicUsize::new(0),
             tlab_end: AtomicUsize::new(0),
             concurrent_marking: AtomicBool::new(false),
             stack_limit: AtomicUsize::new(0),
-            safepoint_requested: AtomicBool::new(false),
+            state: AtomicU8::new(initial_state as u8),
             dtn: AtomicUsize::new(0),
             managed_thread_handle: AtomicUsize::new(0),
         }
@@ -483,8 +485,8 @@ impl ThreadLocalData {
         offset_of!(ThreadLocalData, concurrent_marking) as i32
     }
 
-    pub fn safepoint_requested_offset() -> i32 {
-        offset_of!(ThreadLocalData, safepoint_requested) as i32
+    pub fn state_offset() -> i32 {
+        offset_of!(ThreadLocalData, state) as i32
     }
 
     pub fn stack_limit(&self) -> Address {
@@ -501,14 +503,6 @@ impl ThreadLocalData {
 
     pub fn managed_thread_handle_offset() -> i32 {
         offset_of!(ThreadLocalData, managed_thread_handle) as i32
-    }
-
-    pub fn set_safepoint_requested(&self) {
-        self.safepoint_requested.store(true, Ordering::Relaxed);
-    }
-
-    pub fn clear_safepoint_requested(&self) {
-        self.safepoint_requested.store(false, Ordering::Relaxed);
     }
 }
 

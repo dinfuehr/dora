@@ -51,10 +51,6 @@ where
 fn stop_threads(vm: &VM, threads: &[Arc<DoraThread>]) {
     vm.threads.barrier.arm();
 
-    for thread in threads.iter() {
-        thread.tld.set_safepoint_requested();
-    }
-
     let mut running = 0;
 
     for thread in threads.iter() {
@@ -71,9 +67,9 @@ fn stop_threads(vm: &VM, threads: &[Arc<DoraThread>]) {
                 state => panic!("unexpected state {:?} when stopping threads", state),
             };
 
-            match thread.state.compare_exchange(
-                current_state as usize,
-                next_state as usize,
+            match thread.tld.state.compare_exchange(
+                current_state as u8,
+                next_state as u8,
                 Ordering::SeqCst,
                 Ordering::SeqCst,
             ) {
@@ -97,13 +93,10 @@ fn stop_threads(vm: &VM, threads: &[Arc<DoraThread>]) {
 
 fn resume_threads(vm: &VM, threads: &[Arc<DoraThread>]) {
     for thread in threads.iter() {
-        thread.tld.clear_safepoint_requested();
-    }
-
-    for thread in threads.iter() {
         let old_state: ThreadState = thread
+            .tld
             .state
-            .swap(ThreadState::Parked as usize, Ordering::SeqCst)
+            .swap(ThreadState::Parked as u8, Ordering::SeqCst)
             .into();
 
         assert!(old_state == ThreadState::Safepoint || old_state == ThreadState::ParkedSafepoint);
@@ -121,10 +114,11 @@ pub extern "C" fn safepoint_slow() {
     let vm = get_vm();
 
     let state: ThreadState = thread
+        .tld
         .state
-        .swap(ThreadState::Safepoint as usize, Ordering::SeqCst)
+        .swap(ThreadState::Safepoint as u8, Ordering::SeqCst)
         .into();
-    assert!(state == ThreadState::SafepointRequested || state == ThreadState::Running);
+    assert_eq!(state, ThreadState::SafepointRequested);
     vm.threads.barrier.wait_in_safepoint();
     thread.unpark(vm);
 }

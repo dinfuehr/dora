@@ -35,11 +35,9 @@ impl MacroAssembler {
     }
 
     pub fn safepoint(&mut self, lbl_slow: Label) {
+        debug_assert_eq!(crate::threads::ThreadState::Running as u8, 0);
         self.asm.cmpb_ai(
-            AsmAddress::offset(
-                REG_THREAD.into(),
-                ThreadLocalData::safepoint_requested_offset(),
-            ),
+            AsmAddress::offset(REG_THREAD.into(), ThreadLocalData::state_offset()),
             Immediate(0),
         );
 

@@ -37,9 +37,10 @@ impl MacroAssembler {
     }
 
     pub fn safepoint(&mut self, lbl_safepoint: Label) {
-        let offset = ThreadLocalData::safepoint_requested_offset() as u32;
+        let offset = ThreadLocalData::state_offset() as u32;
         self.asm
             .ldr_imm_b(REG_TMP1.into(), REG_THREAD.into(), offset);
+        debug_assert_eq!(crate::threads::ThreadState::Running as u32, 0);
         self.asm.cbnz(REG_TMP1.into(), lbl_safepoint);
     }
 
