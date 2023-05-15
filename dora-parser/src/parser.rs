@@ -36,7 +36,7 @@ impl<'a> Parser<'a> {
     }
 
     fn common_init(content: Arc<String>, interner: &'a mut Interner) -> Parser<'a> {
-        let (tokens, errors) = lex(&*content, false);
+        let (tokens, errors) = lex(&*content, true);
 
         Parser {
             tokens,
@@ -60,6 +60,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_file(&mut self) -> ast::File {
+        self.skip_trivia();
         let mut elements = vec![];
 
         while !self.is_eof() {
@@ -155,8 +156,8 @@ impl<'a> Parser<'a> {
 
             _ => {
                 let span = self.current_span();
-                let msg = ParseError::ExpectedTopLevelDeclaration;
-                self.error_and_advance(msg);
+                self.report_error_at(ParseError::ExpectedTopLevelDeclaration, span);
+                self.advance();
                 Arc::new(ElemData::Error {
                     id: self.id_generator.next(),
                     span,
@@ -834,7 +835,7 @@ impl<'a> Parser<'a> {
         match self.current() {
             TokenKind::CAPITAL_THIS => {
                 let span = self.current_span();
-                self.advance();
+                self.assert(TokenKind::CAPITAL_THIS);
                 Arc::new(TypeData::create_self(self.generate_id(), span))
             }
 
@@ -1354,7 +1355,7 @@ impl<'a> Parser<'a> {
                 }
 
                 TokenKind::L_PAREN => {
-                    self.advance();
+                    self.assert(TokenKind::L_PAREN);
                     let args = self.parse_list(TokenKind::COMMA, TokenKind::R_PAREN, |p| {
                         p.parse_expression()
                     });
@@ -1501,16 +1502,14 @@ impl<'a> Parser<'a> {
             loop {
                 self.expect(TokenKind::COMMA);
 
-                if self.current() == TokenKind::R_PAREN {
-                    self.advance();
+                if self.eat(TokenKind::R_PAREN) {
                     break;
                 }
 
                 let expr = self.parse_expression();
                 values.push(expr);
 
-                if self.current() == TokenKind::R_PAREN {
-                    self.advance();
+                if self.eat(TokenKind::R_PAREN) {
                     break;
                 }
             }
@@ -1539,20 +1538,17 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_lit_int(&mut self) -> Expr {
-        assert_eq!(self.current(), TokenKind::INT_LITERAL);
         let span = self.current_span();
+        self.assert(TokenKind::INT_LITERAL);
         let value = self.source_span(span);
-        self.advance();
 
         let expr = ExprData::create_lit_int(self.generate_id(), span, value);
         Arc::new(expr)
     }
 
     fn parse_lit_float(&mut self) -> Expr {
-        assert_eq!(self.current(), TokenKind::FLOAT_LITERAL);
         let span = self.current_span();
-        self.advance();
-
+        self.assert(TokenKind::FLOAT_LITERAL);
         let value = self.source_span(span);
 
         let expr = ExprData::create_lit_float(self.generate_id(), span, value);
@@ -1616,7 +1612,7 @@ impl<'a> Parser<'a> {
     fn parse_bool_literal(&mut self) -> Expr {
         let span = self.current_span();
         let kind = self.current();
-        self.advance();
+        self.assert(kind);
         let value = kind == TokenKind::TRUE;
 
         Arc::new(ExprData::create_lit_bool(self.generate_id(), span, value))
@@ -1624,7 +1620,7 @@ impl<'a> Parser<'a> {
 
     fn parse_this(&mut self) -> Expr {
         let span = self.current_span();
-        self.advance();
+        self.assert(TokenKind::THIS);
 
         Arc::new(ExprData::create_this(self.generate_id(), span))
     }
@@ -1717,13 +1713,18 @@ impl<'a> Parser<'a> {
         self.errors.push(ParseErrorWithLocation::new(span, msg));
     }
 
-    fn error_and_advance(&mut self, msg: ParseError) {
-        self.errors
-            .push(ParseErrorWithLocation::new(self.current_span(), msg));
-        self.advance();
+    fn advance(&mut self) {
+        self.raw_advance();
+        self.skip_trivia();
     }
 
-    fn advance(&mut self) {
+    fn skip_trivia(&mut self) {
+        while self.current().is_trivia() {
+            self.raw_advance();
+        }
+    }
+
+    fn raw_advance(&mut self) {
         if self.token_idx < self.tokens.len() {
             self.token_idx += 1;
         }
@@ -1763,9 +1764,19 @@ impl<'a> Parser<'a> {
 
     fn finish_node(&mut self) -> Span {
         let start_token = self.nodes.pop().expect("missing node start");
-        let end_token = self.token_idx - 1;
 
-        if start_token >= end_token {
+        let mut end_token = self.token_idx - 1;
+        assert!(end_token < self.tokens.len());
+
+        while end_token > start_token {
+            if !self.tokens[end_token].is_trivia() {
+                break;
+            }
+
+            end_token -= 1;
+        }
+
+        if start_token == end_token {
             if start_token == self.tokens.len() {
                 self.eof_span()
             } else {

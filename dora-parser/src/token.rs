@@ -169,6 +169,15 @@ pub enum TokenKind {
     EOF,
 }
 
+impl TokenKind {
+    pub fn is_trivia(self) -> bool {
+        match self {
+            TokenKind::LINE_COMMENT | TokenKind::MULTILINE_COMMENT | TokenKind::WHITESPACE => true,
+            _ => false,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Token {
     pub kind: TokenKind,
@@ -181,10 +190,7 @@ impl Token {
     }
 
     pub fn is_trivia(&self) -> bool {
-        match self.kind {
-            TokenKind::LINE_COMMENT | TokenKind::MULTILINE_COMMENT | TokenKind::WHITESPACE => true,
-            _ => false,
-        }
+        self.kind.is_trivia()
     }
 
     pub fn is_eof(&self) -> bool {
