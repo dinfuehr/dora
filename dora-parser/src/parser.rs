@@ -10,6 +10,7 @@ use crate::error::{ParseError, ParseErrorWithLocation};
 use crate::interner::*;
 
 use crate::token::EXPRESSION_FIRST;
+use crate::TokenKind::*;
 use crate::{lex, Span, Token, TokenKind, TokenSet};
 
 pub struct Parser<'a> {
@@ -69,7 +70,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_file(&mut self) -> ast::File {
-        self.builder.start_node(TokenKind::SOURCE_FILE.into());
+        self.builder.start_node(SOURCE_FILE.into());
         self.skip_trivia();
         let mut elements = vec![];
 
@@ -85,7 +86,7 @@ impl<'a> Parser<'a> {
         let modifiers = self.parse_modifiers();
 
         match self.current() {
-            TokenKind::FN => {
+            FN => {
                 self.restrict_modifiers(
                     &modifiers,
                     &[
@@ -99,67 +100,67 @@ impl<'a> Parser<'a> {
                 Arc::new(ElemData::Function(fct))
             }
 
-            TokenKind::CLASS => {
+            CLASS => {
                 self.restrict_modifiers(&modifiers, &[Annotation::Internal, Annotation::Pub]);
                 let class = self.parse_class(&modifiers);
                 Arc::new(ElemData::Class(class))
             }
 
-            TokenKind::STRUCT => {
+            STRUCT => {
                 self.restrict_modifiers(&modifiers, &[Annotation::Pub, Annotation::Internal]);
                 let struc = self.parse_struct(&modifiers);
                 Arc::new(ElemData::Struct(struc))
             }
 
-            TokenKind::TRAIT => {
+            TRAIT => {
                 self.restrict_modifiers(&modifiers, &[Annotation::Pub]);
                 let trait_ = self.parse_trait(&modifiers);
                 Arc::new(ElemData::Trait(trait_))
             }
 
-            TokenKind::IMPL => {
+            IMPL => {
                 self.ban_modifiers(&modifiers);
                 let impl_ = self.parse_impl();
                 Arc::new(ElemData::Impl(impl_))
             }
 
-            TokenKind::ALIAS => {
+            ALIAS => {
                 self.restrict_modifiers(&modifiers, &[Annotation::Pub]);
                 let alias = self.parse_alias(&modifiers);
                 Arc::new(ElemData::Alias(alias))
             }
 
-            TokenKind::LET => {
+            LET => {
                 self.restrict_modifiers(&modifiers, &[Annotation::Pub]);
                 let global = self.parse_global(&modifiers);
                 Arc::new(ElemData::Global(global))
             }
 
-            TokenKind::CONST => {
+            CONST => {
                 self.restrict_modifiers(&modifiers, &[Annotation::Pub]);
                 let const_ = self.parse_const(&modifiers);
                 Arc::new(ElemData::Const(const_))
             }
 
-            TokenKind::ENUM => {
+            ENUM => {
                 self.restrict_modifiers(&modifiers, &[Annotation::Pub]);
                 let enum_ = self.parse_enum(&modifiers);
                 Arc::new(ElemData::Enum(enum_))
             }
 
-            TokenKind::MOD => {
+            MOD => {
                 self.restrict_modifiers(&modifiers, &[Annotation::Pub]);
                 let module = self.parse_module(&modifiers);
                 Arc::new(ElemData::Module(module))
             }
 
-            TokenKind::USE => {
+            USE => {
                 self.restrict_modifiers(&modifiers, &[Annotation::Pub]);
                 let use_stmt = self.parse_use();
                 Arc::new(ElemData::Use(use_stmt))
             }
 
-            TokenKind::EXTERN => {
+            EXTERN => {
                 self.ban_modifiers(&modifiers);
                 let extern_stmt = self.parse_extern();
                 Arc::new(ElemData::Extern(extern_stmt))
@@ -180,10 +181,10 @@ impl<'a> Parser<'a> {
     fn parse_extern(&mut self) -> Arc<ExternPackage> {
         self.start_node();
 
-        self.assert(TokenKind::EXTERN);
-        self.expect(TokenKind::PACKAGE);
+        self.assert(EXTERN);
+        self.expect(PACKAGE);
         let name = self.expect_identifier();
-        let identifier = if self.eat(TokenKind::AS) {
+        let identifier = if self.eat(AS) {
             self.expect_identifier()
         } else {
             None
@@ -198,9 +199,9 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_use(&mut self) -> Arc<Use> {
-        self.assert(TokenKind::USE);
+        self.assert(USE);
         let use_declaration = self.parse_use_inner();
-        self.expect(TokenKind::SEMICOLON);
+        self.expect(SEMICOLON);
 
         use_declaration
     }
@@ -211,7 +212,7 @@ impl<'a> Parser<'a> {
         let mut allow_brace = false;
 
         loop {
-            if self.is(TokenKind::L_BRACE) {
+            if self.is(L_BRACE) {
                 allow_brace = true;
                 break;
             }
@@ -219,14 +220,14 @@ impl<'a> Parser<'a> {
             let component = self.parse_use_path_component();
             path.push(component);
 
-            if !self.eat(TokenKind::COLON_COLON) {
+            if !self.eat(COLON_COLON) {
                 break;
             }
         }
 
-        let target = if allow_brace && self.is(TokenKind::L_BRACE) {
+        let target = if allow_brace && self.is(L_BRACE) {
             self.parse_use_brace()
-        } else if self.is(TokenKind::AS) {
+        } else if self.is(AS) {
             UseTargetDescriptor::As(self.parse_use_as())
         } else {
             UseTargetDescriptor::Default
@@ -242,9 +243,9 @@ impl<'a> Parser<'a> {
 
     fn parse_use_as(&mut self) -> UseTargetName {
         self.start_node();
-        self.assert(TokenKind::AS);
+        self.assert(AS);
 
-        let name = if self.eat(TokenKind::UNDERSCORE) {
+        let name = if self.eat(UNDERSCORE) {
             None
         } else {
             self.expect_identifier()
@@ -259,11 +260,11 @@ impl<'a> Parser<'a> {
     fn parse_use_path_component(&mut self) -> UsePathComponent {
         self.start_node();
 
-        let value = if self.eat(TokenKind::THIS) {
+        let value = if self.eat(THIS) {
             UsePathComponentValue::This
-        } else if self.eat(TokenKind::PACKAGE) {
+        } else if self.eat(PACKAGE) {
             UsePathComponentValue::Package
-        } else if self.eat(TokenKind::SUPER) {
+        } else if self.eat(SUPER) {
             UsePathComponentValue::Super
         } else {
             let name = self.expect_identifier();
@@ -282,11 +283,9 @@ impl<'a> Parser<'a> {
 
     fn parse_use_brace(&mut self) -> UseTargetDescriptor {
         self.start_node();
-        self.assert(TokenKind::L_BRACE);
+        self.assert(L_BRACE);
 
-        let targets = self.parse_list(TokenKind::COMMA, TokenKind::R_BRACE, |p| {
-            p.parse_use_inner()
-        });
+        let targets = self.parse_list(COMMA, R_BRACE, |p| p.parse_use_inner());
 
         UseTargetDescriptor::Group(UseTargetGroup {
             span: self.finish_node(),
@@ -296,14 +295,12 @@ impl<'a> Parser<'a> {
 
     fn parse_enum(&mut self, modifiers: &Modifiers) -> Arc<Enum> {
         self.start_node();
-        self.assert(TokenKind::ENUM);
+        self.assert(ENUM);
         let name = self.expect_identifier();
         let type_params = self.parse_type_params();
 
-        self.expect(TokenKind::L_BRACE);
-        let variants = self.parse_list(TokenKind::COMMA, TokenKind::R_BRACE, |p| {
-            p.parse_enum_variant()
-        });
+        self.expect(L_BRACE);
+        let variants = self.parse_list(COMMA, R_BRACE, |p| p.parse_enum_variant());
         Arc::new(Enum {
             id: self.generate_id(),
             span: self.finish_node(),
@@ -316,20 +313,20 @@ impl<'a> Parser<'a> {
 
     fn parse_module(&mut self, modifiers: &Modifiers) -> Arc<Module> {
         self.start_node();
-        self.assert(TokenKind::MOD);
+        self.assert(MOD);
         let name = self.expect_identifier();
 
-        let elements = if self.eat(TokenKind::L_BRACE) {
+        let elements = if self.eat(L_BRACE) {
             let mut elements = Vec::new();
 
-            while !self.is(TokenKind::R_BRACE) && !self.is_eof() {
+            while !self.is(R_BRACE) && !self.is_eof() {
                 elements.push(self.parse_element());
             }
 
-            self.expect(TokenKind::R_BRACE);
+            self.expect(R_BRACE);
             Some(elements)
         } else {
-            self.expect(TokenKind::SEMICOLON);
+            self.expect(SEMICOLON);
             None
         };
 
@@ -346,8 +343,8 @@ impl<'a> Parser<'a> {
         self.start_node();
         let name = self.expect_identifier();
 
-        let types = if self.eat(TokenKind::L_PAREN) {
-            Some(self.parse_list(TokenKind::COMMA, TokenKind::R_PAREN, |p| p.parse_type()))
+        let types = if self.eat(L_PAREN) {
+            Some(self.parse_list(COMMA, R_PAREN, |p| p.parse_type()))
         } else {
             None
         };
@@ -362,13 +359,13 @@ impl<'a> Parser<'a> {
 
     fn parse_const(&mut self, modifiers: &Modifiers) -> Arc<Const> {
         self.start_node();
-        self.assert(TokenKind::CONST);
+        self.assert(CONST);
         let name = self.expect_identifier();
-        self.expect(TokenKind::COLON);
+        self.expect(COLON);
         let ty = self.parse_type();
-        self.expect(TokenKind::EQ);
+        self.expect(EQ);
         let expr = self.parse_expression();
-        self.expect(TokenKind::SEMICOLON);
+        self.expect(SEMICOLON);
 
         Arc::new(Const {
             id: self.generate_id(),
@@ -382,12 +379,12 @@ impl<'a> Parser<'a> {
 
     fn parse_impl(&mut self) -> Arc<Impl> {
         self.start_node();
-        self.assert(TokenKind::IMPL);
+        self.assert(IMPL);
         let type_params = self.parse_type_params();
 
         let type_name = self.parse_type();
 
-        let (class_type, trait_type) = if self.eat(TokenKind::FOR) {
+        let (class_type, trait_type) = if self.eat(FOR) {
             let class_type = self.parse_type();
 
             (class_type, Some(type_name))
@@ -395,11 +392,11 @@ impl<'a> Parser<'a> {
             (type_name, None)
         };
 
-        self.expect(TokenKind::L_BRACE);
+        self.expect(L_BRACE);
 
         let mut methods = Vec::new();
 
-        while !self.is(TokenKind::R_BRACE) {
+        while !self.is(R_BRACE) {
             let modifiers = self.parse_modifiers();
             let mods = &[Annotation::Static, Annotation::Internal, Annotation::Pub];
             self.restrict_modifiers(&modifiers, mods);
@@ -408,7 +405,7 @@ impl<'a> Parser<'a> {
             methods.push(method);
         }
 
-        self.expect(TokenKind::R_BRACE);
+        self.expect(R_BRACE);
 
         Arc::new(Impl {
             id: self.generate_id(),
@@ -422,21 +419,21 @@ impl<'a> Parser<'a> {
 
     fn parse_global(&mut self, modifiers: &Modifiers) -> Arc<Global> {
         self.start_node();
-        self.assert(TokenKind::LET);
+        self.assert(LET);
 
-        let mutable = self.eat(TokenKind::MUT);
+        let mutable = self.eat(MUT);
         let name = self.expect_identifier();
 
-        self.expect(TokenKind::COLON);
+        self.expect(COLON);
         let data_type = self.parse_type();
 
-        let expr = if self.eat(TokenKind::EQ) {
+        let expr = if self.eat(EQ) {
             Some(self.parse_expression())
         } else {
             None
         };
 
-        self.expect(TokenKind::SEMICOLON);
+        self.expect(SEMICOLON);
 
         Arc::new(Global {
             id: self.generate_id(),
@@ -451,15 +448,15 @@ impl<'a> Parser<'a> {
 
     fn parse_trait(&mut self, modifiers: &Modifiers) -> Arc<Trait> {
         self.start_node();
-        self.assert(TokenKind::TRAIT);
+        self.assert(TRAIT);
         let name = self.expect_identifier();
         let type_params = self.parse_type_params();
 
-        self.expect(TokenKind::L_BRACE);
+        self.expect(L_BRACE);
 
         let mut methods = Vec::new();
 
-        while !self.is(TokenKind::R_BRACE) && !self.is_eof() {
+        while !self.is(R_BRACE) && !self.is_eof() {
             let modifiers = self.parse_modifiers();
             let mods = &[Annotation::Static];
             self.restrict_modifiers(&modifiers, mods);
@@ -468,7 +465,7 @@ impl<'a> Parser<'a> {
             methods.push(method);
         }
 
-        self.expect(TokenKind::R_BRACE);
+        self.expect(R_BRACE);
 
         Arc::new(Trait {
             id: self.generate_id(),
@@ -482,18 +479,14 @@ impl<'a> Parser<'a> {
 
     fn parse_struct(&mut self, modifiers: &Modifiers) -> Arc<Struct> {
         self.start_node();
-        self.assert(TokenKind::STRUCT);
+        self.assert(STRUCT);
         let ident = self.expect_identifier();
         let type_params = self.parse_type_params();
 
-        let fields = if self.eat(TokenKind::L_PAREN) {
-            self.parse_list(TokenKind::COMMA, TokenKind::R_PAREN, |p| {
-                p.parse_struct_field()
-            })
-        } else if self.eat(TokenKind::L_BRACE) {
-            self.parse_list(TokenKind::COMMA, TokenKind::R_BRACE, |p| {
-                p.parse_struct_field()
-            })
+        let fields = if self.eat(L_PAREN) {
+            self.parse_list(COMMA, R_PAREN, |p| p.parse_struct_field())
+        } else if self.eat(L_BRACE) {
+            self.parse_list(COMMA, R_BRACE, |p| p.parse_struct_field())
         } else {
             Vec::new()
         };
@@ -518,7 +511,7 @@ impl<'a> Parser<'a> {
 
         let ident = self.expect_identifier();
 
-        self.expect(TokenKind::COLON);
+        self.expect(COLON);
         let ty = self.parse_type();
 
         StructField {
@@ -532,19 +525,15 @@ impl<'a> Parser<'a> {
 
     fn parse_class(&mut self, modifiers: &Modifiers) -> Arc<Class> {
         self.start_node();
-        self.assert(TokenKind::CLASS);
+        self.assert(CLASS);
 
         let name = self.expect_identifier();
         let type_params = self.parse_type_params();
 
-        let fields = if self.eat(TokenKind::L_PAREN) {
-            self.parse_list(TokenKind::COMMA, TokenKind::R_PAREN, |p| {
-                p.parse_class_field()
-            })
-        } else if self.eat(TokenKind::L_BRACE) {
-            self.parse_list(TokenKind::COMMA, TokenKind::R_BRACE, |p| {
-                p.parse_class_field()
-            })
+        let fields = if self.eat(L_PAREN) {
+            self.parse_list(COMMA, R_PAREN, |p| p.parse_class_field())
+        } else if self.eat(L_BRACE) {
+            self.parse_list(COMMA, R_BRACE, |p| p.parse_class_field())
         } else {
             Vec::new()
         };
@@ -569,7 +558,7 @@ impl<'a> Parser<'a> {
 
         let name = self.expect_identifier();
 
-        self.expect(TokenKind::COLON);
+        self.expect(COLON);
         let data_type = self.parse_type();
 
         Field {
@@ -586,11 +575,11 @@ impl<'a> Parser<'a> {
 
     fn parse_alias(&mut self, modifiers: &Modifiers) -> Arc<Alias> {
         self.start_node();
-        self.assert(TokenKind::ALIAS);
+        self.assert(ALIAS);
         let name = self.expect_identifier();
-        self.expect(TokenKind::EQ);
+        self.expect(EQ);
         let ty = self.parse_type();
-        self.expect(TokenKind::SEMICOLON);
+        self.expect(SEMICOLON);
 
         Arc::new(Alias {
             id: self.generate_id(),
@@ -602,10 +591,8 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_type_params(&mut self) -> Option<Vec<TypeParam>> {
-        if self.eat(TokenKind::L_BRACKET) {
-            let params = self.parse_list(TokenKind::COMMA, TokenKind::R_BRACKET, |p| {
-                p.parse_type_param()
-            });
+        if self.eat(L_BRACKET) {
+            let params = self.parse_list(COMMA, R_BRACKET, |p| p.parse_type_param());
 
             Some(params)
         } else {
@@ -617,13 +604,13 @@ impl<'a> Parser<'a> {
         self.start_node();
         let name = self.expect_identifier();
 
-        let bounds = if self.eat(TokenKind::COLON) {
+        let bounds = if self.eat(COLON) {
             let mut bounds = Vec::new();
 
             loop {
                 bounds.push(self.parse_type());
 
-                if !self.eat(TokenKind::ADD) {
+                if !self.eat(ADD) {
                     break;
                 }
             }
@@ -667,23 +654,23 @@ impl<'a> Parser<'a> {
     fn parse_modifier(&mut self) -> Option<ModifierElement> {
         self.start_node();
 
-        if self.eat(TokenKind::PUB) {
+        if self.eat(PUB) {
             Some(ModifierElement {
                 value: Annotation::Pub,
                 span: self.finish_node(),
             })
-        } else if self.eat(TokenKind::STATIC) {
+        } else if self.eat(STATIC) {
             Some(ModifierElement {
                 value: Annotation::Static,
                 span: self.finish_node(),
             })
-        } else if self.eat(TokenKind::AT) {
-            if self.eat(TokenKind::PUB) {
+        } else if self.eat(AT) {
+            if self.eat(PUB) {
                 return Some(ModifierElement {
                     value: Annotation::Pub,
                     span: self.finish_node(),
                 });
-            } else if self.eat(TokenKind::STATIC) {
+            } else if self.eat(STATIC) {
                 return Some(ModifierElement {
                     value: Annotation::Static,
                     span: self.finish_node(),
@@ -741,7 +728,7 @@ impl<'a> Parser<'a> {
 
     fn parse_function(&mut self, modifiers: &Modifiers) -> Arc<Function> {
         self.start_node();
-        self.assert(TokenKind::FN);
+        self.assert(FN);
         let name = self.expect_identifier();
         let type_params = self.parse_type_params();
         let params = self.parse_function_params();
@@ -767,10 +754,8 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_function_params(&mut self) -> Vec<Param> {
-        if self.expect(TokenKind::L_PAREN) {
-            self.parse_list(TokenKind::COMMA, TokenKind::R_PAREN, |p| {
-                p.parse_function_param()
-            })
+        if self.expect(L_PAREN) {
+            self.parse_list(COMMA, R_PAREN, |p| p.parse_function_param())
         } else {
             Vec::new()
         }
@@ -804,14 +789,14 @@ impl<'a> Parser<'a> {
 
     fn parse_function_param(&mut self) -> Param {
         self.start_node();
-        let mutable = self.eat(TokenKind::MUT);
+        let mutable = self.eat(MUT);
         let name = self.expect_identifier();
 
-        self.expect(TokenKind::COLON);
+        self.expect(COLON);
 
         let data_type = self.parse_type();
 
-        let variadic = self.eat(TokenKind::DOT_DOT_DOT);
+        let variadic = self.eat(DOT_DOT_DOT);
 
         Param {
             id: self.generate_id(),
@@ -824,7 +809,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_function_type(&mut self) -> Option<Type> {
-        if self.eat(TokenKind::COLON) {
+        if self.eat(COLON) {
             let ty = self.parse_type();
 
             Some(ty)
@@ -834,7 +819,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_function_block(&mut self) -> Option<Expr> {
-        if self.eat(TokenKind::SEMICOLON) {
+        if self.eat(SEMICOLON) {
             None
         } else {
             let block = self.parse_block();
@@ -844,18 +829,18 @@ impl<'a> Parser<'a> {
 
     fn parse_type(&mut self) -> Type {
         match self.current() {
-            TokenKind::CAPITAL_THIS => {
+            CAPITAL_THIS => {
                 let span = self.current_span();
-                self.assert(TokenKind::CAPITAL_THIS);
+                self.assert(CAPITAL_THIS);
                 Arc::new(TypeData::create_self(self.generate_id(), span))
             }
 
-            TokenKind::IDENTIFIER => {
+            IDENTIFIER => {
                 self.start_node();
                 let path = self.parse_path();
 
-                let params = if self.eat(TokenKind::L_BRACKET) {
-                    self.parse_list(TokenKind::COMMA, TokenKind::R_BRACKET, |p| p.parse_type())
+                let params = if self.eat(L_BRACKET) {
+                    self.parse_list(COMMA, R_BRACKET, |p| p.parse_type())
                 } else {
                     Vec::new()
                 };
@@ -868,13 +853,12 @@ impl<'a> Parser<'a> {
                 ))
             }
 
-            TokenKind::L_PAREN => {
+            L_PAREN => {
                 self.start_node();
-                self.assert(TokenKind::L_PAREN);
-                let subtypes =
-                    self.parse_list(TokenKind::COMMA, TokenKind::R_PAREN, |p| p.parse_type());
+                self.assert(L_PAREN);
+                let subtypes = self.parse_list(COMMA, R_PAREN, |p| p.parse_type());
 
-                if self.eat(TokenKind::COLON) {
+                if self.eat(COLON) {
                     let ret = self.parse_type();
 
                     Arc::new(TypeData::create_fct(
@@ -906,13 +890,13 @@ impl<'a> Parser<'a> {
     fn parse_path(&mut self) -> Path {
         self.start_node();
         let mut names = Vec::new();
-        assert_eq!(self.current(), TokenKind::IDENTIFIER);
+        assert_eq!(self.current(), IDENTIFIER);
         let name = self.expect_identifier();
         if let Some(name) = name {
             names.push(name);
         }
 
-        while self.eat(TokenKind::COLON_COLON) {
+        while self.eat(COLON_COLON) {
             let name = self.expect_identifier();
             if let Some(name) = name {
                 names.push(name);
@@ -931,12 +915,12 @@ impl<'a> Parser<'a> {
     fn parse_let(&mut self) -> Stmt {
         self.start_node();
 
-        self.assert(TokenKind::LET);
+        self.assert(LET);
         let pattern = self.parse_let_pattern();
         let data_type = self.parse_var_type();
         let expr = self.parse_var_assignment();
 
-        self.expect(TokenKind::SEMICOLON);
+        self.expect(SEMICOLON);
 
         Arc::new(StmtData::create_let(
             self.generate_id(),
@@ -949,23 +933,21 @@ impl<'a> Parser<'a> {
 
     fn parse_let_pattern(&mut self) -> Box<LetPattern> {
         self.start_node();
-        if self.eat(TokenKind::L_PAREN) {
-            let parts = self.parse_list(TokenKind::COMMA, TokenKind::R_PAREN, |p| {
-                p.parse_let_pattern()
-            });
+        if self.eat(L_PAREN) {
+            let parts = self.parse_list(COMMA, R_PAREN, |p| p.parse_let_pattern());
 
             Box::new(LetPattern::Tuple(LetTupleType {
                 id: self.generate_id(),
                 span: self.finish_node(),
                 parts,
             }))
-        } else if self.eat(TokenKind::UNDERSCORE) {
+        } else if self.eat(UNDERSCORE) {
             Box::new(LetPattern::Underscore(LetUnderscoreType {
                 id: self.generate_id(),
                 span: self.finish_node(),
             }))
         } else {
-            let mutable = self.eat(TokenKind::MUT);
+            let mutable = self.eat(MUT);
             let name = self.expect_identifier();
 
             Box::new(LetPattern::Ident(LetIdentType {
@@ -978,7 +960,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_var_type(&mut self) -> Option<Type> {
-        if self.eat(TokenKind::COLON) {
+        if self.eat(COLON) {
             Some(self.parse_type())
         } else {
             None
@@ -986,7 +968,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_var_assignment(&mut self) -> Option<Expr> {
-        if self.eat(TokenKind::EQ) {
+        if self.eat(EQ) {
             let expr = self.parse_expression();
 
             Some(expr)
@@ -1000,8 +982,8 @@ impl<'a> Parser<'a> {
         let mut stmts = vec![];
         let mut expr = None;
 
-        if self.expect(TokenKind::L_BRACE) {
-            while !self.is(TokenKind::R_BRACE) && !self.is_eof() {
+        if self.expect(L_BRACE) {
+            while !self.is(R_BRACE) && !self.is_eof() {
                 let stmt_or_expr = self.parse_statement_or_expression();
 
                 match stmt_or_expr {
@@ -1010,7 +992,7 @@ impl<'a> Parser<'a> {
                         if curr_expr.needs_semicolon() {
                             expr = Some(curr_expr);
                             break;
-                        } else if !self.is(TokenKind::R_BRACE) {
+                        } else if !self.is(R_BRACE) {
                             stmts.push(Arc::new(StmtData::create_expr(
                                 self.generate_id(),
                                 curr_expr.span(),
@@ -1023,7 +1005,7 @@ impl<'a> Parser<'a> {
                 }
             }
 
-            self.expect(TokenKind::R_BRACE);
+            self.expect(R_BRACE);
         }
 
         Arc::new(ExprData::create_block(
@@ -1036,11 +1018,11 @@ impl<'a> Parser<'a> {
 
     fn parse_statement_or_expression(&mut self) -> StmtOrExpr {
         match self.current() {
-            TokenKind::LET => StmtOrExpr::Stmt(self.parse_let()),
+            LET => StmtOrExpr::Stmt(self.parse_let()),
             _ => {
                 let expr = self.parse_expression();
 
-                if self.eat(TokenKind::SEMICOLON) {
+                if self.eat(SEMICOLON) {
                     let span = self.span_from(expr.span().start());
 
                     StmtOrExpr::Stmt(Arc::new(StmtData::create_expr(
@@ -1057,14 +1039,14 @@ impl<'a> Parser<'a> {
 
     fn parse_if(&mut self) -> Expr {
         self.start_node();
-        self.assert(TokenKind::IF);
+        self.assert(IF);
 
         let cond = self.parse_expression();
 
         let then_block = self.parse_block();
 
-        let else_block = if self.eat(TokenKind::ELSE) {
-            if self.is(TokenKind::IF) {
+        let else_block = if self.eat(ELSE) {
+            if self.is(IF) {
                 Some(self.parse_if())
             } else {
                 Some(self.parse_block())
@@ -1084,15 +1066,15 @@ impl<'a> Parser<'a> {
 
     fn parse_match(&mut self) -> Expr {
         self.start_node();
-        self.assert(TokenKind::MATCH);
+        self.assert(MATCH);
 
         let expr = self.parse_expression();
         let mut cases = Vec::new();
         let mut comma = true;
 
-        self.expect(TokenKind::L_BRACE);
+        self.expect(L_BRACE);
 
-        while !self.is(TokenKind::R_BRACE) && !self.is_eof() {
+        while !self.is(R_BRACE) && !self.is_eof() {
             if !comma {
                 self.report_error(ParseError::ExpectedToken(",".into()));
                 break;
@@ -1101,10 +1083,10 @@ impl<'a> Parser<'a> {
             let case = self.parse_match_case();
             cases.push(case);
 
-            comma = self.eat(TokenKind::COMMA);
+            comma = self.eat(COMMA);
         }
 
-        self.expect(TokenKind::R_BRACE);
+        self.expect(R_BRACE);
 
         Arc::new(ExprData::create_match(
             self.generate_id(),
@@ -1119,11 +1101,11 @@ impl<'a> Parser<'a> {
         let mut patterns = Vec::new();
         patterns.push(self.parse_match_pattern());
 
-        while self.eat(TokenKind::OR) {
+        while self.eat(OR) {
             patterns.push(self.parse_match_pattern());
         }
 
-        self.expect(TokenKind::DOUBLE_ARROW);
+        self.expect(DOUBLE_ARROW);
 
         let value = self.parse_expression();
 
@@ -1138,15 +1120,14 @@ impl<'a> Parser<'a> {
     fn parse_match_pattern(&mut self) -> MatchPattern {
         self.start_node();
 
-        let data = if self.eat(TokenKind::UNDERSCORE) {
+        let data = if self.eat(UNDERSCORE) {
             MatchPatternData::Underscore
         } else {
             let path = self.parse_path();
 
-            let params = if self.eat(TokenKind::L_PAREN) {
-                let params = self.parse_list(TokenKind::COMMA, TokenKind::R_PAREN, |this| {
-                    this.parse_match_pattern_param()
-                });
+            let params = if self.eat(L_PAREN) {
+                let params =
+                    self.parse_list(COMMA, R_PAREN, |this| this.parse_match_pattern_param());
 
                 Some(params)
             } else {
@@ -1166,10 +1147,10 @@ impl<'a> Parser<'a> {
     fn parse_match_pattern_param(&mut self) -> MatchPatternParam {
         self.start_node();
 
-        let (mutable, name) = if self.eat(TokenKind::UNDERSCORE) {
+        let (mutable, name) = if self.eat(UNDERSCORE) {
             (false, None)
         } else {
-            let mutable = self.eat(TokenKind::MUT);
+            let mutable = self.eat(MUT);
             let ident = self.expect_identifier();
 
             (mutable, ident)
@@ -1185,9 +1166,9 @@ impl<'a> Parser<'a> {
 
     fn parse_for(&mut self) -> Expr {
         self.start_node();
-        self.assert(TokenKind::FOR);
+        self.assert(FOR);
         let pattern = self.parse_let_pattern();
-        self.expect(TokenKind::IN);
+        self.expect(IN);
         let expr = self.parse_expression();
         let block = self.parse_block();
 
@@ -1202,7 +1183,7 @@ impl<'a> Parser<'a> {
 
     fn parse_while(&mut self) -> Expr {
         self.start_node();
-        self.assert(TokenKind::WHILE);
+        self.assert(WHILE);
         let expr = self.parse_expression();
         let block = self.parse_block();
 
@@ -1216,7 +1197,7 @@ impl<'a> Parser<'a> {
 
     fn parse_break(&mut self) -> Expr {
         self.start_node();
-        self.assert(TokenKind::BREAK);
+        self.assert(BREAK);
 
         Arc::new(ExprData::create_break(
             self.generate_id(),
@@ -1226,7 +1207,7 @@ impl<'a> Parser<'a> {
 
     fn parse_continue(&mut self) -> Expr {
         self.start_node();
-        self.assert(TokenKind::CONTINUE);
+        self.assert(CONTINUE);
 
         Arc::new(ExprData::create_continue(
             self.generate_id(),
@@ -1236,8 +1217,8 @@ impl<'a> Parser<'a> {
 
     fn parse_return(&mut self) -> Expr {
         self.start_node();
-        self.assert(TokenKind::RETURN);
-        let expr = if self.is(TokenKind::SEMICOLON) {
+        self.assert(RETURN);
+        let expr = if self.is(SEMICOLON) {
             None
         } else {
             let expr = self.parse_expression();
@@ -1269,26 +1250,13 @@ impl<'a> Parser<'a> {
 
         loop {
             let right_precedence = match self.current() {
-                TokenKind::EQ => 1,
-                TokenKind::OR_OR => 2,
-                TokenKind::AND_AND => 3,
-                TokenKind::EQ_EQ
-                | TokenKind::NOT_EQ
-                | TokenKind::LT
-                | TokenKind::LE
-                | TokenKind::GT
-                | TokenKind::GE
-                | TokenKind::EQ_EQ_EQ
-                | TokenKind::NOT_EQ_EQ => 4,
-                TokenKind::ADD | TokenKind::SUB | TokenKind::OR | TokenKind::CARET => 5,
-                TokenKind::MUL
-                | TokenKind::DIV
-                | TokenKind::MODULO
-                | TokenKind::AND
-                | TokenKind::LT_LT
-                | TokenKind::GT_GT
-                | TokenKind::GT_GT_GT => 6,
-                TokenKind::AS => 7,
+                EQ => 1,
+                OR_OR => 2,
+                AND_AND => 3,
+                EQ_EQ | NOT_EQ | LT | LE | GT | GE | EQ_EQ_EQ | NOT_EQ_EQ => 4,
+                ADD | SUB | OR | CARET => 5,
+                MUL | DIV | MODULO | AND | LT_LT | GT_GT | GT_GT_GT => 6,
+                AS => 7,
                 _ => {
                     return left;
                 }
@@ -1302,7 +1270,7 @@ impl<'a> Parser<'a> {
             self.advance();
 
             left = match kind {
-                TokenKind::AS => {
+                AS => {
                     let right = self.parse_type();
                     let span = self.span_from(start);
                     let expr = ExprData::create_conv(self.generate_id(), span, left, right);
@@ -1320,14 +1288,14 @@ impl<'a> Parser<'a> {
 
     fn parse_unary(&mut self) -> Expr {
         match self.current() {
-            TokenKind::ADD | TokenKind::SUB | TokenKind::NOT => {
+            ADD | SUB | NOT => {
                 self.start_node();
                 let kind = self.current();
                 self.advance();
                 let op = match kind {
-                    TokenKind::ADD => UnOp::Plus,
-                    TokenKind::SUB => UnOp::Neg,
-                    TokenKind::NOT => UnOp::Not,
+                    ADD => UnOp::Plus,
+                    SUB => UnOp::Neg,
+                    NOT => UnOp::Not,
                     _ => unreachable!(),
                 };
 
@@ -1350,9 +1318,9 @@ impl<'a> Parser<'a> {
 
         loop {
             left = match self.current() {
-                TokenKind::DOT => {
+                DOT => {
                     let op_span = self.current_span();
-                    self.assert(TokenKind::DOT);
+                    self.assert(DOT);
                     let rhs = self.parse_factor();
                     let span = self.span_from(start);
 
@@ -1365,21 +1333,18 @@ impl<'a> Parser<'a> {
                     ))
                 }
 
-                TokenKind::L_PAREN => {
-                    self.assert(TokenKind::L_PAREN);
-                    let args = self.parse_list(TokenKind::COMMA, TokenKind::R_PAREN, |p| {
-                        p.parse_expression()
-                    });
+                L_PAREN => {
+                    self.assert(L_PAREN);
+                    let args = self.parse_list(COMMA, R_PAREN, |p| p.parse_expression());
                     let span = self.span_from(start);
 
                     Arc::new(ExprData::create_call(self.generate_id(), span, left, args))
                 }
 
-                TokenKind::L_BRACKET => {
+                L_BRACKET => {
                     let op_span = self.current_span();
-                    self.assert(TokenKind::L_BRACKET);
-                    let types =
-                        self.parse_list(TokenKind::COMMA, TokenKind::R_BRACKET, |p| p.parse_type());
+                    self.assert(L_BRACKET);
+                    let types = self.parse_list(COMMA, R_BRACKET, |p| p.parse_type());
                     let span = self.span_from(start);
 
                     Arc::new(ExprData::create_type_param(
@@ -1391,9 +1356,9 @@ impl<'a> Parser<'a> {
                     ))
                 }
 
-                TokenKind::COLON_COLON => {
+                COLON_COLON => {
                     let op_span = self.current_span();
-                    self.assert(TokenKind::COLON_COLON);
+                    self.assert(COLON_COLON);
                     let rhs = self.parse_factor();
                     let span = self.span_from(start);
 
@@ -1415,28 +1380,28 @@ impl<'a> Parser<'a> {
 
     fn create_binary(&mut self, kind: TokenKind, start: u32, left: Expr, right: Expr) -> Expr {
         let op = match kind {
-            TokenKind::EQ => BinOp::Assign,
-            TokenKind::OR_OR => BinOp::Or,
-            TokenKind::AND_AND => BinOp::And,
-            TokenKind::EQ_EQ => BinOp::Cmp(CmpOp::Eq),
-            TokenKind::NOT_EQ => BinOp::Cmp(CmpOp::Ne),
-            TokenKind::LT => BinOp::Cmp(CmpOp::Lt),
-            TokenKind::LE => BinOp::Cmp(CmpOp::Le),
-            TokenKind::GT => BinOp::Cmp(CmpOp::Gt),
-            TokenKind::GE => BinOp::Cmp(CmpOp::Ge),
-            TokenKind::EQ_EQ_EQ => BinOp::Cmp(CmpOp::Is),
-            TokenKind::NOT_EQ_EQ => BinOp::Cmp(CmpOp::IsNot),
-            TokenKind::OR => BinOp::BitOr,
-            TokenKind::AND => BinOp::BitAnd,
-            TokenKind::CARET => BinOp::BitXor,
-            TokenKind::ADD => BinOp::Add,
-            TokenKind::SUB => BinOp::Sub,
-            TokenKind::MUL => BinOp::Mul,
-            TokenKind::DIV => BinOp::Div,
-            TokenKind::MODULO => BinOp::Mod,
-            TokenKind::LT_LT => BinOp::ShiftL,
-            TokenKind::GT_GT => BinOp::ArithShiftR,
-            TokenKind::GT_GT_GT => BinOp::LogicalShiftR,
+            EQ => BinOp::Assign,
+            OR_OR => BinOp::Or,
+            AND_AND => BinOp::And,
+            EQ_EQ => BinOp::Cmp(CmpOp::Eq),
+            NOT_EQ => BinOp::Cmp(CmpOp::Ne),
+            LT => BinOp::Cmp(CmpOp::Lt),
+            LE => BinOp::Cmp(CmpOp::Le),
+            GT => BinOp::Cmp(CmpOp::Gt),
+            GE => BinOp::Cmp(CmpOp::Ge),
+            EQ_EQ_EQ => BinOp::Cmp(CmpOp::Is),
+            NOT_EQ_EQ => BinOp::Cmp(CmpOp::IsNot),
+            OR => BinOp::BitOr,
+            AND => BinOp::BitAnd,
+            CARET => BinOp::BitXor,
+            ADD => BinOp::Add,
+            SUB => BinOp::Sub,
+            MUL => BinOp::Mul,
+            DIV => BinOp::Div,
+            MODULO => BinOp::Mod,
+            LT_LT => BinOp::ShiftL,
+            GT_GT => BinOp::ArithShiftR,
+            GT_GT_GT => BinOp::LogicalShiftR,
             _ => panic!("unimplemented token {:?}", kind),
         };
 
@@ -1454,25 +1419,25 @@ impl<'a> Parser<'a> {
     fn parse_factor(&mut self) -> Expr {
         let span = self.current_span();
         match self.current() {
-            TokenKind::L_PAREN => self.parse_parentheses(),
-            TokenKind::L_BRACE => self.parse_block(),
-            TokenKind::IF => self.parse_if(),
-            TokenKind::CHAR_LITERAL => self.parse_lit_char(),
-            TokenKind::INT_LITERAL => self.parse_lit_int(),
-            TokenKind::FLOAT_LITERAL => self.parse_lit_float(),
-            TokenKind::STRING_LITERAL => self.parse_string(),
-            TokenKind::TEMPLATE_LITERAL => self.parse_template(),
-            TokenKind::IDENTIFIER => self.parse_identifier(),
-            TokenKind::TRUE => self.parse_bool_literal(),
-            TokenKind::FALSE => self.parse_bool_literal(),
-            TokenKind::THIS => self.parse_this(),
-            TokenKind::OR | TokenKind::OR_OR => self.parse_lambda(),
-            TokenKind::FOR => self.parse_for(),
-            TokenKind::WHILE => self.parse_while(),
-            TokenKind::BREAK => self.parse_break(),
-            TokenKind::CONTINUE => self.parse_continue(),
-            TokenKind::RETURN => self.parse_return(),
-            TokenKind::MATCH => self.parse_match(),
+            L_PAREN => self.parse_parentheses(),
+            L_BRACE => self.parse_block(),
+            IF => self.parse_if(),
+            CHAR_LITERAL => self.parse_lit_char(),
+            INT_LITERAL => self.parse_lit_int(),
+            FLOAT_LITERAL => self.parse_lit_float(),
+            STRING_LITERAL => self.parse_string(),
+            TEMPLATE_LITERAL => self.parse_template(),
+            IDENTIFIER => self.parse_identifier(),
+            TRUE => self.parse_bool_literal(),
+            FALSE => self.parse_bool_literal(),
+            THIS => self.parse_this(),
+            OR | OR_OR => self.parse_lambda(),
+            FOR => self.parse_for(),
+            WHILE => self.parse_while(),
+            BREAK => self.parse_break(),
+            CONTINUE => self.parse_continue(),
+            RETURN => self.parse_return(),
+            MATCH => self.parse_match(),
             _ => {
                 self.report_error(ParseError::ExpectedFactor);
                 Arc::new(ExprData::Error {
@@ -1495,9 +1460,9 @@ impl<'a> Parser<'a> {
 
     fn parse_parentheses(&mut self) -> Expr {
         self.start_node();
-        self.assert(TokenKind::L_PAREN);
+        self.assert(L_PAREN);
 
-        if self.eat(TokenKind::R_PAREN) {
+        if self.eat(R_PAREN) {
             return Arc::new(ExprData::create_tuple(
                 self.generate_id(),
                 self.finish_node(),
@@ -1507,20 +1472,20 @@ impl<'a> Parser<'a> {
 
         let expr = self.parse_expression();
 
-        if self.current() == TokenKind::COMMA {
+        if self.current() == COMMA {
             let mut values = vec![expr];
 
             loop {
-                self.expect(TokenKind::COMMA);
+                self.expect(COMMA);
 
-                if self.eat(TokenKind::R_PAREN) {
+                if self.eat(R_PAREN) {
                     break;
                 }
 
                 let expr = self.parse_expression();
                 values.push(expr);
 
-                if self.eat(TokenKind::R_PAREN) {
+                if self.eat(R_PAREN) {
                     break;
                 }
             }
@@ -1531,7 +1496,7 @@ impl<'a> Parser<'a> {
                 values,
             ))
         } else {
-            self.expect(TokenKind::R_PAREN);
+            self.expect(R_PAREN);
             Arc::new(ExprData::create_paren(
                 self.generate_id(),
                 self.finish_node(),
@@ -1542,7 +1507,7 @@ impl<'a> Parser<'a> {
 
     fn parse_lit_char(&mut self) -> Expr {
         let span = self.current_span();
-        self.assert(TokenKind::CHAR_LITERAL);
+        self.assert(CHAR_LITERAL);
         let value = self.source_span(span);
 
         Arc::new(ExprData::create_lit_char(self.generate_id(), span, value))
@@ -1550,7 +1515,7 @@ impl<'a> Parser<'a> {
 
     fn parse_lit_int(&mut self) -> Expr {
         let span = self.current_span();
-        self.assert(TokenKind::INT_LITERAL);
+        self.assert(INT_LITERAL);
         let value = self.source_span(span);
 
         let expr = ExprData::create_lit_int(self.generate_id(), span, value);
@@ -1559,7 +1524,7 @@ impl<'a> Parser<'a> {
 
     fn parse_lit_float(&mut self) -> Expr {
         let span = self.current_span();
-        self.assert(TokenKind::FLOAT_LITERAL);
+        self.assert(FLOAT_LITERAL);
         let value = self.source_span(span);
 
         let expr = ExprData::create_lit_float(self.generate_id(), span, value);
@@ -1569,7 +1534,7 @@ impl<'a> Parser<'a> {
     fn parse_template(&mut self) -> Expr {
         let span = self.current_span();
         let start = span.start();
-        self.assert(TokenKind::TEMPLATE_LITERAL);
+        self.assert(TEMPLATE_LITERAL);
         let value = self.source_span(span);
 
         let mut parts: Vec<Expr> = Vec::new();
@@ -1587,11 +1552,11 @@ impl<'a> Parser<'a> {
 
             let span = self.current_span();
 
-            if !self.is(TokenKind::TEMPLATE_LITERAL) {
+            if !self.is(TEMPLATE_LITERAL) {
                 done = true;
             }
 
-            if !self.is(TokenKind::TEMPLATE_LITERAL) && !self.is(TokenKind::TEMPLATE_END_LITERAL) {
+            if !self.is(TEMPLATE_LITERAL) && !self.is(TEMPLATE_END_LITERAL) {
                 self.report_error(ParseError::UnclosedStringTemplate);
                 break;
             }
@@ -1614,7 +1579,7 @@ impl<'a> Parser<'a> {
 
     fn parse_string(&mut self) -> Expr {
         let span = self.current_span();
-        self.assert(TokenKind::STRING_LITERAL);
+        self.assert(STRING_LITERAL);
 
         let value = self.source_span(span);
         Arc::new(ExprData::create_lit_str(self.generate_id(), span, value))
@@ -1624,14 +1589,14 @@ impl<'a> Parser<'a> {
         let span = self.current_span();
         let kind = self.current();
         self.assert(kind);
-        let value = kind == TokenKind::TRUE;
+        let value = kind == TRUE;
 
         Arc::new(ExprData::create_lit_bool(self.generate_id(), span, value))
     }
 
     fn parse_this(&mut self) -> Expr {
         let span = self.current_span();
-        self.assert(TokenKind::THIS);
+        self.assert(THIS);
 
         Arc::new(ExprData::create_this(self.generate_id(), span))
     }
@@ -1639,17 +1604,15 @@ impl<'a> Parser<'a> {
     fn parse_lambda(&mut self) -> Expr {
         self.start_node();
 
-        let params = if self.eat(TokenKind::OR_OR) {
+        let params = if self.eat(OR_OR) {
             // nothing to do
             Vec::new()
         } else {
-            self.assert(TokenKind::OR);
-            self.parse_list(TokenKind::COMMA, TokenKind::OR, |p| {
-                p.parse_function_param()
-            })
+            self.assert(OR);
+            self.parse_list(COMMA, OR, |p| p.parse_function_param())
         };
 
-        let return_type = if self.eat(TokenKind::COLON) {
+        let return_type = if self.eat(COLON) {
             Some(self.parse_type())
         } else {
             None
@@ -1684,7 +1647,7 @@ impl<'a> Parser<'a> {
     fn expect_identifier(&mut self) -> Option<Ident> {
         let span = self.current_span();
 
-        if self.eat(TokenKind::IDENTIFIER) {
+        if self.eat(IDENTIFIER) {
             let value = self.source_span(span);
             let name = self.interner.intern(&value);
 
@@ -1748,7 +1711,7 @@ impl<'a> Parser<'a> {
         if self.token_idx < self.tokens.len() {
             self.tokens[self.token_idx].kind
         } else {
-            TokenKind::EOF
+            EOF
         }
     }
 
@@ -1769,7 +1732,7 @@ impl<'a> Parser<'a> {
     }
 
     fn is_eof(&self) -> bool {
-        self.current() == TokenKind::EOF
+        self.current() == EOF
     }
 
     fn start_node(&mut self) {
@@ -1830,22 +1793,22 @@ impl<'a> Parser<'a> {
 
 fn token_name(kind: TokenKind) -> Option<&'static str> {
     match kind {
-        TokenKind::PACKAGE => Some("package"),
-        TokenKind::IN => Some("in"),
-        TokenKind::EQ => Some("="),
-        TokenKind::COMMA => Some(","),
-        TokenKind::SEMICOLON => Some(";"),
-        TokenKind::DOT => Some("."),
-        TokenKind::COLON => Some(":"),
-        TokenKind::ARROW => Some("->"),
-        TokenKind::DOUBLE_ARROW => Some("=>"),
-        TokenKind::OR => Some("|"),
-        TokenKind::L_PAREN => Some("("),
-        TokenKind::R_PAREN => Some(")"),
-        TokenKind::L_BRACKET => Some("["),
-        TokenKind::R_BRACKET => Some("]"),
-        TokenKind::L_BRACE => Some("{"),
-        TokenKind::R_BRACE => Some("}"),
+        PACKAGE => Some("package"),
+        IN => Some("in"),
+        EQ => Some("="),
+        COMMA => Some(","),
+        SEMICOLON => Some(";"),
+        DOT => Some("."),
+        COLON => Some(":"),
+        ARROW => Some("->"),
+        DOUBLE_ARROW => Some("=>"),
+        OR => Some("|"),
+        L_PAREN => Some("("),
+        R_PAREN => Some(")"),
+        L_BRACKET => Some("["),
+        R_BRACKET => Some("]"),
+        L_BRACE => Some("{"),
+        R_BRACE => Some("}"),
         _ => None,
     }
 }
