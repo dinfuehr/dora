@@ -167,6 +167,9 @@ pub enum TokenKind {
     UNKNOWN,
 
     EOF,
+
+    // Syntax tree nodes
+    SOURCE_FILE,
 }
 
 impl TokenKind {
@@ -175,6 +178,12 @@ impl TokenKind {
             TokenKind::LINE_COMMENT | TokenKind::MULTILINE_COMMENT | TokenKind::WHITESPACE => true,
             _ => false,
         }
+    }
+}
+
+impl From<TokenKind> for rowan::SyntaxKind {
+    fn from(value: TokenKind) -> Self {
+        rowan::SyntaxKind(value as u16)
     }
 }
 

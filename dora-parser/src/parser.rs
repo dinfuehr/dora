@@ -1,6 +1,8 @@
 use std::cell::RefCell;
 use std::sync::Arc;
 
+use rowan::GreenNodeBuilder;
+
 use crate::ast;
 use crate::ast::*;
 use crate::error::{ParseError, ParseErrorWithLocation};
@@ -15,6 +17,7 @@ pub struct Parser<'a> {
     token_idx: usize,
     id_generator: NodeIdGenerator,
     interner: &'a mut Interner,
+    builder: GreenNodeBuilder<'static>,
     content: Arc<String>,
     errors: Vec<ParseErrorWithLocation>,
     nodes: Vec<usize>,
@@ -41,6 +44,7 @@ impl<'a> Parser<'a> {
         Parser {
             tokens,
             token_idx: 0,
+            builder: GreenNodeBuilder::new(),
             id_generator: NodeIdGenerator::new(),
             interner,
             content,
@@ -56,10 +60,16 @@ impl<'a> Parser<'a> {
     pub fn parse(mut self) -> (ast::File, NodeIdGenerator, Vec<ParseErrorWithLocation>) {
         let ast_file = self.parse_file();
         assert!(self.nodes.is_empty());
+
+        let green = self.builder.finish();
+        let green_len: u32 = green.text_len().into();
+        assert_eq!(green_len, self.content.len() as u32);
+
         (ast_file, self.id_generator, self.errors)
     }
 
     fn parse_file(&mut self) -> ast::File {
+        self.builder.start_node(TokenKind::SOURCE_FILE.into());
         self.skip_trivia();
         let mut elements = vec![];
 
@@ -67,6 +77,7 @@ impl<'a> Parser<'a> {
             elements.push(self.parse_element());
         }
 
+        self.builder.finish_node();
         ast::File { elements }
     }
 
@@ -1726,6 +1737,9 @@ impl<'a> Parser<'a> {
 
     fn raw_advance(&mut self) {
         if self.token_idx < self.tokens.len() {
+            let kind = self.current();
+            let value = self.source_span(self.current_span());
+            self.builder.token(kind.into(), &value);
             self.token_idx += 1;
         }
     }
