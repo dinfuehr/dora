@@ -173,14 +173,24 @@ impl AssemblerArm64 {
         )
     }
 
-    pub fn ret() {
-        let inst = encoding::uncond_branch_reg(0b0010i32, 0b11111i32, 0i32, REG_LR, 0i32);
-        self.buffer.emitInt32(inst);
+    pub fn add_ext(
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        extend: Extend,
+        amount: Int32,
+    ) {
+        self.buffer.emitInt32(encoding::addsub_extreg(1i32, 0i32, 0i32, 0i32, rm, extend, amount, rn, rd));
     }
 
-    pub fn retReg(rn: Register) {
-        let inst = encoding::uncond_branch_reg(0b0010i32, 0b11111i32, 0i32, rn, 0i32);
-        self.buffer.emitInt32(inst);
+    pub fn add_ext_w(
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        extend: Extend,
+        amount: Int32,
+    ) {
+        self.buffer.emitInt32(encoding::addsub_extreg(0i32, 0i32, 0i32, 0i32, rm, extend, amount, rn, rd));
     }
 
     pub fn b(target: Label) {
@@ -296,6 +306,18 @@ impl AssemblerArm64 {
     pub fn nop() {
         self.buffer.emitInt32(encoding::system(0i32));
     }
+
+
+    pub fn ret() {
+        let inst = encoding::uncond_branch_reg(0b0010i32, 0b11111i32, 0i32, REG_LR, 0i32);
+        self.buffer.emitInt32(inst);
+    }
+
+    pub fn retReg(rn: Register) {
+        let inst = encoding::uncond_branch_reg(0b0010i32, 0b11111i32, 0i32, rn, 0i32);
+        self.buffer.emitInt32(inst);
+    }
+
 
     pub fn finalize(): Array[UInt8] {
         self.resolveJumps();
@@ -1238,7 +1260,7 @@ mod encoding {
 }
 
 mod tests {
-    use super::{assertAsm32, R0, R10, R17, R30, AssemblerArm64, Cond};
+    use super::{assertAsm32, R0, R1, R2, R10, R17, R30, REG_SP, AssemblerArm64, Cond, Extend};
 
     @Test
     fn test_asm_ret() {
@@ -1408,4 +1430,27 @@ mod tests {
 
         assertAsm32(buffer, 0xd503201fi32);
     }
+
+    @Test
+    fn test_add_extreg() {
+        let asm = AssemblerArm64::new();
+        asm.add_ext(REG_SP, R1, R2, Extend::UXTX, 1i32);
+        asm.add_ext(R1, REG_SP, R2, Extend::UXTX, 2i32);
+        asm.add_ext_w(REG_SP, R1, R2, Extend::UXTW, 1i32);
+        asm.add_ext_w(R1, REG_SP, R2, Extend::UXTW, 2i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // add sp, x1, x2, uxtx #1
+            0x8b22643fi32,
+            // add x1, sp, x2, uxtx #2
+            0x8b226be1i32,
+            // add wsp, w1, w2, uxtw #1
+            0x0b22443fi32,
+            // add w1, wsp, w2, uxtw #2
+            0x0b224be1i32,
+        );
+    }
+
 }

@@ -23,6 +23,7 @@ pub enum ParseError {
     ExpectedIdentifier,
     InvalidSuffix(String),
     ExpectedExpression,
+    ExpectedImplElement,
 }
 
 impl ParseError {
@@ -60,6 +61,7 @@ impl ParseError {
             }
             ParseError::InvalidSuffix(ref suffix) => format!("invalid suffix `{}`", suffix),
             ParseError::ExpectedExpression => "expected expression.".into(),
+            ParseError::ExpectedImplElement => "expected impl element (function).".into(),
         }
     }
 }

@@ -405,8 +405,13 @@ impl<'a> Parser<'a> {
             let mods = &[Annotation::Static, Annotation::Internal, Annotation::Pub];
             self.restrict_modifiers(&modifiers, mods);
 
-            let method = self.parse_function(&modifiers);
-            methods.push(method);
+            if self.is(FN) {
+                let method = self.parse_function(&modifiers);
+                methods.push(method);
+            } else {
+                self.report_error(ParseError::ExpectedImplElement);
+                self.advance();
+            }
         }
 
         self.expect(R_BRACE);
