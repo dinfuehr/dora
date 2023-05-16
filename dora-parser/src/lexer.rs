@@ -2,29 +2,38 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::error::{ParseError, ParseErrorWithLocation};
-use crate::{Span, Token, TokenKind};
+use crate::TokenKind::*;
+use crate::{Span, TokenKind};
 
-pub fn lex(content: &str, include_trivia: bool) -> (Vec<Token>, Vec<ParseErrorWithLocation>) {
+pub struct LexerResult {
+    pub tokens: Vec<TokenKind>,
+    pub widths: Vec<u32>,
+    pub errors: Vec<ParseErrorWithLocation>,
+}
+
+pub fn lex(content: &str) -> LexerResult {
     let content = Arc::new(content.into());
     let mut lexer = Lexer::new(content);
     let mut tokens = Vec::new();
+    let mut widths = Vec::new();
 
-    loop {
+    while !lexer.is_eof() {
+        let start = lexer.offset();
         let token = lexer.read_token();
-
-        if token.is_trivia() && !include_trivia {
-            continue;
-        } else if token.is_eof() {
-            break;
-        }
-
+        assert!(token < TokenKind::EOF);
+        let end = lexer.offset();
         tokens.push(token);
+        widths.push(end - start);
     }
 
-    (tokens, lexer.errors)
+    LexerResult {
+        tokens,
+        widths,
+        errors: lexer.errors,
+    }
 }
 
-pub struct Lexer {
+struct Lexer {
     content: Arc<String>,
     offset: usize,
     keywords: HashMap<&'static str, TokenKind>,
@@ -33,19 +42,7 @@ pub struct Lexer {
 }
 
 impl Lexer {
-    pub fn from_str(code: &str) -> Lexer {
-        Lexer::new(Arc::new(String::from(code)))
-    }
-
-    pub fn source(&self) -> Arc<String> {
-        self.content.clone()
-    }
-
-    pub fn errors(self) -> Vec<ParseErrorWithLocation> {
-        self.errors
-    }
-
-    pub fn new(content: Arc<String>) -> Lexer {
+    fn new(content: Arc<String>) -> Lexer {
         let keywords = keywords_in_map();
 
         Lexer {
@@ -57,66 +54,57 @@ impl Lexer {
         }
     }
 
-    pub fn read_token(&mut self) -> Token {
-        let start = self.offset();
-        let ch = self.curr();
-
-        if let None = ch {
-            return Token::new(TokenKind::EOF, Span::at(start));
-        }
+    fn read_token(&mut self) -> TokenKind {
+        let ch = self.curr().expect("end of file reached");
+        let ch = Some(ch);
 
         if is_whitespace(ch) {
-            return self.read_white_space();
+            self.read_white_space()
         } else if is_digit(ch) {
-            return self.read_number();
+            self.read_number()
         } else if self.is_line_comment() {
-            return self.read_line_comment();
+            self.read_line_comment()
         } else if self.is_multiline_comment() {
-            return self.read_multiline_comment();
+            self.read_multiline_comment()
         } else if is_identifier_start(ch) {
-            return self.read_identifier();
+            self.read_identifier()
         } else if is_quote(ch) {
-            return self.read_string(false);
+            self.read_string(false)
         } else if is_char_quote(ch) {
-            return self.read_char_literal();
+            self.read_char_literal()
         } else if is_operator(ch) {
-            return self.read_operator();
+            self.read_operator()
         } else {
-            return self.read_unknown_char();
+            self.read_unknown_char()
         }
     }
 
-    fn read_unknown_char(&mut self) -> Token {
+    fn read_unknown_char(&mut self) -> TokenKind {
         let start = self.offset();
         let ch = self.curr().expect("missing char");
         self.eat_char();
         let span = self.span_from(start);
         self.report_error_at(ParseError::UnknownChar(ch), span);
-        Token::new(TokenKind::UNKNOWN, span)
+        UNKNOWN
     }
 
-    fn read_white_space(&mut self) -> Token {
-        let idx = self.offset();
+    fn read_white_space(&mut self) -> TokenKind {
         while is_whitespace(self.curr()) {
             self.eat_char();
         }
 
-        let span = self.span_from(idx);
-        Token::new(TokenKind::WHITESPACE, span)
+        WHITESPACE
     }
 
-    fn read_line_comment(&mut self) -> Token {
-        let idx = self.offset();
-
+    fn read_line_comment(&mut self) -> TokenKind {
         while !self.curr().is_none() && !is_newline(self.curr()) {
             self.eat_char();
         }
 
-        let span = self.span_from(idx);
-        Token::new(TokenKind::LINE_COMMENT, span)
+        LINE_COMMENT
     }
 
-    fn read_multiline_comment(&mut self) -> Token {
+    fn read_multiline_comment(&mut self) -> TokenKind {
         let start = self.offset();
 
         self.eat_char();
@@ -134,25 +122,21 @@ impl Lexer {
         self.eat_char();
         self.eat_char();
 
-        let span = self.span_from(start);
-        Token::new(TokenKind::MULTILINE_COMMENT, span)
+        MULTILINE_COMMENT
     }
 
-    fn read_identifier(&mut self) -> Token {
-        let idx = self.offset();
+    fn read_identifier(&mut self) -> TokenKind {
         let value = self.read_identifier_as_string();
 
         let lookup = self.keywords.get(&value[..]).cloned();
-        let ttype = if let Some(tok_type) = lookup {
+
+        if let Some(tok_type) = lookup {
             tok_type
         } else if value == "_" {
-            TokenKind::UNDERSCORE
+            UNDERSCORE
         } else {
-            TokenKind::IDENTIFIER
-        };
-
-        let span = self.span_from(idx);
-        Token::new(ttype, span)
+            IDENTIFIER
+        }
     }
 
     fn read_identifier_as_string(&mut self) -> String {
@@ -167,7 +151,7 @@ impl Lexer {
         value
     }
 
-    fn read_char_literal(&mut self) -> Token {
+    fn read_char_literal(&mut self) -> TokenKind {
         let start = self.offset();
         self.eat_char();
 
@@ -182,8 +166,7 @@ impl Lexer {
             self.report_error_at(ParseError::UnclosedChar, span);
         }
 
-        let span = self.span_from(start);
-        Token::new(TokenKind::CHAR_LITERAL, span)
+        CHAR_LITERAL
     }
 
     fn read_escaped_char(&mut self) {
@@ -192,7 +175,7 @@ impl Lexer {
         }
     }
 
-    fn read_string(&mut self, continuation: bool) -> Token {
+    fn read_string(&mut self, continuation: bool) -> TokenKind {
         let mut start = self.offset();
 
         if continuation {
@@ -209,10 +192,7 @@ impl Lexer {
                 self.eat_char();
 
                 self.open_braces.push(1);
-
-                let ttype = TokenKind::TEMPLATE_LITERAL;
-                let span = self.span_from(start);
-                return Token::new(ttype, span);
+                return TEMPLATE_LITERAL;
             }
 
             self.read_escaped_char();
@@ -225,46 +205,43 @@ impl Lexer {
             self.report_error_at(ParseError::UnclosedString, span);
         }
 
-        let span = self.span_from(start);
-        let kind = if continuation {
-            TokenKind::TEMPLATE_END_LITERAL
+        if continuation {
+            TEMPLATE_END_LITERAL
         } else {
-            TokenKind::STRING_LITERAL
-        };
-        Token::new(kind, span)
+            STRING_LITERAL
+        }
     }
 
-    fn read_operator(&mut self) -> Token {
-        let start = self.offset();
+    fn read_operator(&mut self) -> TokenKind {
         let ch = self.curr().unwrap();
         self.eat_char();
 
         let nch = self.curr().unwrap_or('x');
         let nnch = self.lookahead().unwrap_or('x');
 
-        let kind = match ch {
-            '+' => TokenKind::ADD,
+        match ch {
+            '+' => ADD,
             '-' => {
                 if nch == '>' {
                     self.eat_char();
-                    TokenKind::ARROW
+                    ARROW
                 } else {
-                    TokenKind::SUB
+                    SUB
                 }
             }
-            '*' => TokenKind::MUL,
-            '/' => TokenKind::DIV,
-            '%' => TokenKind::MODULO,
+            '*' => MUL,
+            '/' => DIV,
+            '%' => MODULO,
 
-            '(' => TokenKind::L_PAREN,
-            ')' => TokenKind::R_PAREN,
-            '[' => TokenKind::L_BRACKET,
-            ']' => TokenKind::R_BRACKET,
+            '(' => L_PAREN,
+            ')' => R_PAREN,
+            '[' => L_BRACKET,
+            ']' => R_BRACKET,
             '{' => {
                 if let Some(open_braces_top) = self.open_braces.last_mut() {
                     *open_braces_top += 1;
                 }
-                TokenKind::L_BRACE
+                L_BRACE
             }
             '}' => {
                 if let Some(open_braces_top) = self.open_braces.last_mut() {
@@ -275,36 +252,36 @@ impl Lexer {
                         return self.read_string(true);
                     }
                 }
-                TokenKind::R_BRACE
+                R_BRACE
             }
 
             '|' => {
                 if nch == '|' {
                     self.eat_char();
-                    TokenKind::OR_OR
+                    OR_OR
                 } else {
-                    TokenKind::OR
+                    OR
                 }
             }
 
             '&' => {
                 if nch == '&' {
                     self.eat_char();
-                    TokenKind::AND_AND
+                    AND_AND
                 } else {
-                    TokenKind::AND
+                    AND
                 }
             }
 
-            '^' => TokenKind::CARET,
-            ',' => TokenKind::COMMA,
-            ';' => TokenKind::SEMICOLON,
+            '^' => CARET,
+            ',' => COMMA,
+            ';' => SEMICOLON,
             ':' => {
                 if nch == ':' {
                     self.eat_char();
-                    TokenKind::COLON_COLON
+                    COLON_COLON
                 } else {
-                    TokenKind::COLON
+                    COLON
                 }
             }
             '.' => {
@@ -312,9 +289,9 @@ impl Lexer {
                     self.eat_char();
                     self.eat_char();
 
-                    TokenKind::DOT_DOT_DOT
+                    DOT_DOT_DOT
                 } else {
-                    TokenKind::DOT
+                    DOT
                 }
             }
             '=' => {
@@ -323,36 +300,36 @@ impl Lexer {
 
                     if nnch == '=' {
                         self.eat_char();
-                        TokenKind::EQ_EQ_EQ
+                        EQ_EQ_EQ
                     } else {
-                        TokenKind::EQ_EQ
+                        EQ_EQ
                     }
                 } else if nch == '>' {
                     self.eat_char();
-                    TokenKind::DOUBLE_ARROW
+                    DOUBLE_ARROW
                 } else {
-                    TokenKind::EQ
+                    EQ
                 }
             }
 
             '<' => match nch {
                 '=' => {
                     self.eat_char();
-                    TokenKind::LE
+                    LE
                 }
 
                 '<' => {
                     self.eat_char();
-                    TokenKind::LT_LT
+                    LT_LT
                 }
 
-                _ => TokenKind::LT,
+                _ => LT,
             },
 
             '>' => match nch {
                 '=' => {
                     self.eat_char();
-                    TokenKind::GE
+                    GE
                 }
 
                 '>' => {
@@ -360,13 +337,13 @@ impl Lexer {
 
                     if nnch == '>' {
                         self.eat_char();
-                        TokenKind::GT_GT_GT
+                        GT_GT_GT
                     } else {
-                        TokenKind::GT_GT
+                        GT_GT
                     }
                 }
 
-                _ => TokenKind::GT,
+                _ => GT,
             },
             '!' => {
                 if nch == '=' {
@@ -374,28 +351,23 @@ impl Lexer {
 
                     if nnch == '=' {
                         self.eat_char();
-                        TokenKind::NOT_EQ_EQ
+                        NOT_EQ_EQ
                     } else {
-                        TokenKind::NOT_EQ
+                        NOT_EQ
                     }
                 } else {
-                    TokenKind::NOT
+                    NOT
                 }
             }
-            '@' => TokenKind::AT,
+            '@' => AT,
 
             _ => {
                 unreachable!()
             }
-        };
-
-        let span = self.span_from(start);
-        Token::new(kind, span)
+        }
     }
 
-    fn read_number(&mut self) -> Token {
-        let start = self.offset();
-
+    fn read_number(&mut self) -> TokenKind {
         let base = if self.curr() == Some('0') {
             let next = self.lookahead();
 
@@ -423,18 +395,17 @@ impl Lexer {
         self.read_digits(base);
 
         if base == 10 && self.curr() == Some('.') && is_digit(self.lookahead()) {
-            return self.read_number_as_float(start);
+            return self.read_number_as_float();
         }
 
         if is_identifier_start(self.curr()) {
             self.read_identifier_as_string();
         }
 
-        let span = self.span_from(start);
-        Token::new(TokenKind::INT_LITERAL, span)
+        INT_LITERAL
     }
 
-    fn read_number_as_float(&mut self, start: u32) -> Token {
+    fn read_number_as_float(&mut self) -> TokenKind {
         self.eat_char();
 
         self.read_digits(10);
@@ -453,8 +424,7 @@ impl Lexer {
             self.read_identifier_as_string();
         }
 
-        let span = self.span_from(start);
-        Token::new(TokenKind::FLOAT_LITERAL, span)
+        FLOAT_LITERAL
     }
 
     fn span_from(&self, start: u32) -> Span {
@@ -480,6 +450,10 @@ impl Lexer {
         } else {
             None
         }
+    }
+
+    fn is_eof(&self) -> bool {
+        self.offset == self.content.len()
     }
 
     fn curr(&self) -> Option<char> {
@@ -561,95 +535,91 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     let mut keywords = HashMap::with_capacity(30);
 
     // literals
-    keywords.insert("true", TokenKind::TRUE);
-    keywords.insert("false", TokenKind::FALSE);
+    keywords.insert("true", TRUE);
+    keywords.insert("false", FALSE);
 
     // "big" shapes
-    keywords.insert("class", TokenKind::CLASS);
-    keywords.insert("enum", TokenKind::ENUM);
-    keywords.insert("struct", TokenKind::STRUCT);
-    keywords.insert("trait", TokenKind::TRAIT);
-    keywords.insert("impl", TokenKind::IMPL);
-    keywords.insert("mod", TokenKind::MOD);
-    keywords.insert("use", TokenKind::USE);
-    keywords.insert("package", TokenKind::PACKAGE);
+    keywords.insert("class", CLASS);
+    keywords.insert("enum", ENUM);
+    keywords.insert("struct", STRUCT);
+    keywords.insert("trait", TRAIT);
+    keywords.insert("impl", IMPL);
+    keywords.insert("mod", MOD);
+    keywords.insert("use", USE);
+    keywords.insert("package", PACKAGE);
 
     // "small" shapes
-    keywords.insert("fn", TokenKind::FN);
-    keywords.insert("let", TokenKind::LET);
-    keywords.insert("mut", TokenKind::MUT);
-    keywords.insert("const", TokenKind::CONST);
+    keywords.insert("fn", FN);
+    keywords.insert("let", LET);
+    keywords.insert("mut", MUT);
+    keywords.insert("const", CONST);
 
     // control flow
-    keywords.insert("return", TokenKind::RETURN);
-    keywords.insert("if", TokenKind::IF);
-    keywords.insert("else", TokenKind::ELSE);
-    keywords.insert("while", TokenKind::WHILE);
-    keywords.insert("for", TokenKind::FOR);
-    keywords.insert("in", TokenKind::IN);
-    keywords.insert("break", TokenKind::BREAK);
-    keywords.insert("continue", TokenKind::CONTINUE);
-    keywords.insert("match", TokenKind::MATCH);
+    keywords.insert("return", RETURN);
+    keywords.insert("if", IF);
+    keywords.insert("else", ELSE);
+    keywords.insert("while", WHILE);
+    keywords.insert("for", FOR);
+    keywords.insert("in", IN);
+    keywords.insert("break", BREAK);
+    keywords.insert("continue", CONTINUE);
+    keywords.insert("match", MATCH);
 
     // qualifiers
-    keywords.insert("self", TokenKind::THIS);
-    keywords.insert("super", TokenKind::SUPER);
-    keywords.insert("pub", TokenKind::PUB);
-    keywords.insert("static", TokenKind::STATIC);
+    keywords.insert("self", THIS);
+    keywords.insert("super", SUPER);
+    keywords.insert("pub", PUB);
+    keywords.insert("static", STATIC);
 
     // casting
-    keywords.insert("as", TokenKind::AS);
+    keywords.insert("as", AS);
 
     // unused
-    keywords.insert("type", TokenKind::TYPE);
-    keywords.insert("alias", TokenKind::ALIAS);
-    keywords.insert("Self", TokenKind::CAPITAL_THIS);
+    keywords.insert("type", TYPE);
+    keywords.insert("alias", ALIAS);
+    keywords.insert("Self", CAPITAL_THIS);
 
     keywords
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{lex, Lexer, ParseError, ParseErrorWithLocation, Span, Token, TokenKind};
+    use crate::TokenKind::*;
+    use crate::{ParseError, ParseErrorWithLocation, TokenKind};
 
-    fn lex_success(content: &str) -> Vec<Token> {
-        let (tokens, errors) = lex(content, false);
-        assert!(errors.is_empty());
-        tokens
+    fn lex_success(content: &str) -> Vec<(TokenKind, u32)> {
+        let result = crate::lex(content);
+        assert!(result.errors.is_empty());
+
+        result
+            .tokens
+            .iter()
+            .zip(result.widths.iter())
+            .map(|(t, w)| (t.to_owned(), w.to_owned()))
+            .collect()
     }
 
-    fn dump_tokens(tokens: Vec<Token>) -> String {
-        let mut content = String::new();
+    fn lex(content: &str) -> (Vec<(TokenKind, u32)>, Vec<ParseErrorWithLocation>) {
+        let result = crate::lex(content);
+        let token_with_widths = result
+            .tokens
+            .iter()
+            .zip(result.widths.iter())
+            .map(|(t, w)| (t.to_owned(), w.to_owned()))
+            .collect();
+        (token_with_widths, result.errors)
+    }
 
-        for token in tokens {
-            content.push_str(&format!(
-                "{:?}@{}..{}\n",
-                token.kind,
-                token.span.start(),
-                token.span.end()
-            ));
+    fn dump_tokens(tokens: Vec<(TokenKind, u32)>) -> String {
+        let mut content = String::new();
+        let mut start: u32 = 0;
+
+        for (token, length) in tokens {
+            content.push_str(&format!("{:?}@{}..{}\n", token, start, start + length));
+            start += length;
         }
 
         content
-    }
-
-    fn assert_end(reader: &mut Lexer, start: u32) {
-        assert_tok(reader, TokenKind::EOF, start, 0);
-    }
-
-    fn assert_tok(reader: &mut Lexer, kind: TokenKind, start: u32, count: u32) {
-        let tok = reader.read_token();
-        assert_eq!(kind, tok.kind);
-        assert_eq!(start, tok.span.start());
-        assert_eq!(count, tok.span.count());
-    }
-
-    fn assert_tok2(tokens: Vec<Token>, kind: TokenKind, start: u32, count: u32) {
-        assert_eq!(tokens.len(), 1);
-        let token = &tokens[0];
-        assert_eq!(kind, token.kind);
-        assert_eq!(start, token.span.start());
-        assert_eq!(count, token.span.count());
     }
 
     fn assert_err(errors: Vec<ParseErrorWithLocation>, msg: ParseError, start: u32, count: u32) {
@@ -662,9 +632,8 @@ mod tests {
 
     #[test]
     fn test_read_empty_file() {
-        let mut reader = Lexer::from_str("");
-        assert_end(&mut reader, 0);
-        assert_end(&mut reader, 0);
+        let tokens = lex_success("");
+        assert!(tokens.is_empty());
     }
 
     #[test]
@@ -673,10 +642,13 @@ mod tests {
         assert_eq!(
             tokens,
             vec![
-                Token::new(TokenKind::INT_LITERAL, Span::new(0, 1)),
-                Token::new(TokenKind::INT_LITERAL, Span::new(2, 1)),
-                Token::new(TokenKind::INT_LITERAL, Span::new(4, 4)),
-                Token::new(TokenKind::INT_LITERAL, Span::new(9, 2)),
+                (INT_LITERAL, 1),
+                (WHITESPACE, 1),
+                (INT_LITERAL, 1),
+                (WHITESPACE, 1),
+                (INT_LITERAL, 4),
+                (WHITESPACE, 1),
+                (INT_LITERAL, 2),
             ]
         );
 
@@ -684,10 +656,13 @@ mod tests {
         assert_eq!(
             tokens,
             vec![
-                Token::new(TokenKind::INT_LITERAL, Span::new(0, 4)),
-                Token::new(TokenKind::INT_LITERAL, Span::new(5, 5)),
-                Token::new(TokenKind::INT_LITERAL, Span::new(11, 5)),
-                Token::new(TokenKind::INT_LITERAL, Span::new(17, 4)),
+                (INT_LITERAL, 4),
+                (WHITESPACE, 1),
+                (INT_LITERAL, 5),
+                (WHITESPACE, 1),
+                (INT_LITERAL, 5),
+                (WHITESPACE, 1),
+                (INT_LITERAL, 4),
             ]
         );
     }
@@ -698,9 +673,11 @@ mod tests {
         assert_eq!(
             tokens,
             vec![
-                Token::new(TokenKind::INT_LITERAL, Span::new(0, 4)),
-                Token::new(TokenKind::INT_LITERAL, Span::new(5, 3)),
-                Token::new(TokenKind::INT_LITERAL, Span::new(9, 4)),
+                (INT_LITERAL, 4),
+                (WHITESPACE, 1),
+                (INT_LITERAL, 3),
+                (WHITESPACE, 1),
+                (INT_LITERAL, 4),
             ]
         );
     }
@@ -710,36 +687,30 @@ mod tests {
         let tokens = lex_success("//test\n1");
         assert_eq!(
             tokens,
-            vec![Token::new(TokenKind::INT_LITERAL, Span::new(7, 1)),]
+            vec![(LINE_COMMENT, 6), (WHITESPACE, 1), (INT_LITERAL, 1)]
         );
     }
 
     #[test]
     fn test_unfinished_line_comment() {
         let tokens = lex_success("//abc");
-        assert!(tokens.is_empty());
+        assert_eq!(tokens, &[(LINE_COMMENT, 5)]);
     }
 
     #[test]
     fn test_skip_multi_comment() {
         let tokens = lex_success("/*test*/1");
-        assert_eq!(
-            tokens,
-            vec![Token::new(TokenKind::INT_LITERAL, Span::new(8, 1))]
-        );
+        assert_eq!(tokens, &[(MULTILINE_COMMENT, 8), (INT_LITERAL, 1)]);
     }
 
     #[test]
     fn test_unfinished_multi_comment() {
-        let (tokens, errors) = lex("/*test", false);
-        assert!(tokens.is_empty());
+        let (tokens, errors) = lex("/*test");
+        assert_eq!(tokens, &[(MULTILINE_COMMENT, 6)]);
         assert_err(errors, ParseError::UnclosedComment, 0, 6);
 
-        let (tokens, errors) = lex("1/*test", false);
-        assert_eq!(
-            tokens,
-            vec![Token::new(TokenKind::INT_LITERAL, Span::new(0, 1))]
-        );
+        let (tokens, errors) = lex("1/*test");
+        assert_eq!(tokens, &[(INT_LITERAL, 1), (MULTILINE_COMMENT, 6)]);
         assert_err(errors, ParseError::UnclosedComment, 1, 6);
     }
 
@@ -749,9 +720,11 @@ mod tests {
         assert_eq!(
             tokens,
             vec![
-                Token::new(TokenKind::IDENTIFIER, Span::new(0, 3)),
-                Token::new(TokenKind::IDENTIFIER, Span::new(4, 5)),
-                Token::new(TokenKind::IDENTIFIER, Span::new(10, 4)),
+                (IDENTIFIER, 3),
+                (WHITESPACE, 1),
+                (IDENTIFIER, 5),
+                (WHITESPACE, 1),
+                (IDENTIFIER, 4),
             ]
         );
     }
@@ -762,9 +735,11 @@ mod tests {
         assert_eq!(
             tokens,
             vec![
-                Token::new(TokenKind::INT_LITERAL, Span::new(0, 1)),
-                Token::new(TokenKind::INT_LITERAL, Span::new(2, 1)),
-                Token::new(TokenKind::INT_LITERAL, Span::new(4, 1))
+                (INT_LITERAL, 1),
+                (WHITESPACE, 1),
+                (INT_LITERAL, 1),
+                (WHITESPACE, 1),
+                (INT_LITERAL, 1)
             ]
         );
     }
@@ -775,11 +750,15 @@ mod tests {
         assert_eq!(
             tokens,
             vec![
-                Token::new(TokenKind::INT_LITERAL, Span::new(0, 4)),
-                Token::new(TokenKind::FLOAT_LITERAL, Span::new(5, 3)),
-                Token::new(TokenKind::FLOAT_LITERAL, Span::new(9, 6)),
-                Token::new(TokenKind::FLOAT_LITERAL, Span::new(16, 6)),
-                Token::new(TokenKind::INT_LITERAL, Span::new(23, 4)),
+                (INT_LITERAL, 4),
+                (WHITESPACE, 1),
+                (FLOAT_LITERAL, 3),
+                (WHITESPACE, 1),
+                (FLOAT_LITERAL, 6),
+                (WHITESPACE, 1),
+                (FLOAT_LITERAL, 6),
+                (WHITESPACE, 1),
+                (INT_LITERAL, 4),
             ]
         );
     }
@@ -790,10 +769,13 @@ mod tests {
         assert_eq!(
             tokens,
             vec![
-                Token::new(TokenKind::FLOAT_LITERAL, Span::new(0, 5)),
-                Token::new(TokenKind::FLOAT_LITERAL, Span::new(6, 5)),
-                Token::new(TokenKind::FLOAT_LITERAL, Span::new(12, 6)),
-                Token::new(TokenKind::FLOAT_LITERAL, Span::new(19, 6)),
+                (FLOAT_LITERAL, 5),
+                (WHITESPACE, 1),
+                (FLOAT_LITERAL, 5),
+                (WHITESPACE, 1),
+                (FLOAT_LITERAL, 6),
+                (WHITESPACE, 1),
+                (FLOAT_LITERAL, 6),
             ]
         );
     }
@@ -804,10 +786,13 @@ mod tests {
         assert_eq!(
             tokens,
             vec![
-                Token::new(TokenKind::INT_LITERAL, Span::new(0, 3)),
-                Token::new(TokenKind::INT_LITERAL, Span::new(4, 6)),
-                Token::new(TokenKind::INT_LITERAL, Span::new(11, 8)),
-                Token::new(TokenKind::INT_LITERAL, Span::new(20, 7)),
+                (INT_LITERAL, 3),
+                (WHITESPACE, 1),
+                (INT_LITERAL, 6),
+                (WHITESPACE, 1),
+                (INT_LITERAL, 8),
+                (WHITESPACE, 1),
+                (INT_LITERAL, 7),
             ]
         );
     }
@@ -818,9 +803,11 @@ mod tests {
         assert_eq!(
             tokens,
             vec![
-                Token::new(TokenKind::INT_LITERAL, Span::new(0, 1)),
-                Token::new(TokenKind::INT_LITERAL, Span::new(2, 1)),
-                Token::new(TokenKind::INT_LITERAL, Span::new(4, 1))
+                (INT_LITERAL, 1),
+                (WHITESPACE, 1),
+                (INT_LITERAL, 1),
+                (WHITESPACE, 1),
+                (INT_LITERAL, 1)
             ]
         );
     }
@@ -831,9 +818,11 @@ mod tests {
         assert_eq!(
             tokens,
             vec![
-                Token::new(TokenKind::INT_LITERAL, Span::new(0, 1)),
-                Token::new(TokenKind::INT_LITERAL, Span::new(2, 1)),
-                Token::new(TokenKind::INT_LITERAL, Span::new(4, 1))
+                (INT_LITERAL, 1),
+                (WHITESPACE, 1),
+                (INT_LITERAL, 1),
+                (WHITESPACE, 1),
+                (INT_LITERAL, 1)
             ]
         );
     }
@@ -841,92 +830,70 @@ mod tests {
     #[test]
     fn test_string_with_newline() {
         let tokens = lex_success("\"abc\ndef\"");
-        assert_eq!(
-            tokens,
-            vec![Token::new(TokenKind::STRING_LITERAL, Span::new(0, 9)),]
-        );
+        assert_eq!(tokens, vec![(STRING_LITERAL, 9),]);
     }
 
     #[test]
     fn test_escape_sequences() {
         let tokens = lex_success("\"\\\"\"");
-        assert_eq!(
-            tokens,
-            vec![Token::new(TokenKind::STRING_LITERAL, Span::new(0, 4))]
-        );
+        assert_eq!(tokens, vec![(STRING_LITERAL, 4)]);
 
         let tokens = lex_success("\"\\$\"");
-        assert_tok2(tokens, TokenKind::STRING_LITERAL, 0, 4);
+        assert_eq!(tokens, &[(STRING_LITERAL, 4)]);
 
         let tokens = lex_success("\"\\\'\"");
-        assert_tok2(tokens, TokenKind::STRING_LITERAL, 0, 4);
+        assert_eq!(tokens, &[(STRING_LITERAL, 4)]);
 
         let tokens = lex_success("\"\\t\"");
-        assert_tok2(tokens, TokenKind::STRING_LITERAL, 0, 4);
+        assert_eq!(tokens, &[(STRING_LITERAL, 4)]);
 
         let tokens = lex_success("\"\\n\"");
-        assert_tok2(tokens, TokenKind::STRING_LITERAL, 0, 4);
+        assert_eq!(tokens, &[(STRING_LITERAL, 4)]);
 
         let tokens = lex_success("\"\\r\"");
-        assert_tok2(tokens, TokenKind::STRING_LITERAL, 0, 4);
+        assert_eq!(tokens, &[(STRING_LITERAL, 4)]);
 
         let tokens = lex_success("\"\\\\\"");
-        assert_tok2(tokens, TokenKind::STRING_LITERAL, 0, 4);
+        assert_eq!(tokens, &[(STRING_LITERAL, 4)]);
 
-        let (tokens, errors) = lex("\"\\", false);
-        assert_eq!(
-            tokens,
-            vec![Token::new(TokenKind::STRING_LITERAL, Span::new(0, 2))]
-        );
-        assert_eq!(
-            errors,
-            vec![ParseErrorWithLocation::new(
-                Span::new(0, 2),
-                ParseError::UnclosedString
-            )]
-        );
+        let (tokens, errors) = lex("\"\\");
+        assert_eq!(tokens, vec![(STRING_LITERAL, 2)]);
+        assert_err(errors, ParseError::UnclosedString, 0, 2);
     }
 
     #[test]
     fn test_unclosed_string() {
-        let (tokens, errors) = lex("\"abc", false);
-        assert_tok2(tokens, TokenKind::STRING_LITERAL, 0, 4);
+        let (tokens, errors) = lex("\"abc");
+        assert_eq!(tokens, &[(STRING_LITERAL, 4)]);
         assert_err(errors, ParseError::UnclosedString, 0, 4);
     }
 
     #[test]
     fn test_unclosed_char() {
-        let (tokens, errors) = lex("'a", false);
-        assert_tok2(tokens, TokenKind::CHAR_LITERAL, 0, 2);
+        let (tokens, errors) = lex("'a");
+        assert_eq!(tokens, &[(CHAR_LITERAL, 2)]);
         assert_err(errors, ParseError::UnclosedChar, 0, 2);
 
-        let (tokens, errors) = lex("'\\", false);
-        assert_tok2(tokens, TokenKind::CHAR_LITERAL, 0, 2);
-        assert_eq!(
-            errors,
-            vec![ParseErrorWithLocation::new(
-                Span::new(0, 2),
-                ParseError::UnclosedChar
-            )]
-        );
+        let (tokens, errors) = lex("'\\");
+        assert_eq!(tokens, &[(CHAR_LITERAL, 2)]);
+        assert_err(errors, ParseError::UnclosedChar, 0, 2);
 
-        let (tokens, errors) = lex("'\\n", false);
-        assert_tok2(tokens, TokenKind::CHAR_LITERAL, 0, 3);
+        let (tokens, errors) = lex("'\\n");
+        assert_eq!(tokens, &[(CHAR_LITERAL, 3)]);
         assert_err(errors, ParseError::UnclosedChar, 0, 3);
 
         let tokens = lex_success("'ab'");
-        assert_tok2(tokens, TokenKind::CHAR_LITERAL, 0, 4);
+        assert_eq!(tokens, &[(CHAR_LITERAL, 4)]);
 
-        let (tokens, errors) = lex("'", false);
-        assert_tok2(tokens, TokenKind::CHAR_LITERAL, 0, 1);
+        let (tokens, errors) = lex("'");
+        assert_eq!(tokens, &[(CHAR_LITERAL, 1)]);
         assert_err(errors, ParseError::UnclosedChar, 0, 1);
     }
 
     #[test]
     fn test_string() {
-        let mut reader = Lexer::from_str("\"abc\"");
-        assert_tok(&mut reader, TokenKind::STRING_LITERAL, 0, 5);
-        assert_end(&mut reader, 5);
+        let tokens = lex_success("\"abc\"");
+        assert_eq!(tokens, &[(STRING_LITERAL, 5)]);
     }
 
     #[test]
@@ -935,12 +902,17 @@ mod tests {
         assert_eq!(
             tokens,
             vec![
-                Token::new(TokenKind::FN, Span::new(0, 2)),
-                Token::new(TokenKind::LET, Span::new(3, 3)),
-                Token::new(TokenKind::WHILE, Span::new(7, 5)),
-                Token::new(TokenKind::IF, Span::new(13, 2)),
-                Token::new(TokenKind::ELSE, Span::new(16, 4)),
-                Token::new(TokenKind::MATCH, Span::new(21, 5)),
+                (FN, 2),
+                (WHITESPACE, 1),
+                (LET, 3),
+                (WHITESPACE, 1),
+                (WHILE, 5),
+                (WHITESPACE, 1),
+                (IF, 2),
+                (WHITESPACE, 1),
+                (ELSE, 4),
+                (WHITESPACE, 1),
+                (MATCH, 5),
             ]
         );
 
@@ -948,10 +920,13 @@ mod tests {
         assert_eq!(
             tokens,
             vec![
-                Token::new(TokenKind::THIS, Span::new(0, 4)),
-                Token::new(TokenKind::CLASS, Span::new(5, 5)),
-                Token::new(TokenKind::SUPER, Span::new(11, 5)),
-                Token::new(TokenKind::MOD, Span::new(17, 3)),
+                (THIS, 4),
+                (WHITESPACE, 1),
+                (CLASS, 5),
+                (WHITESPACE, 1),
+                (SUPER, 5),
+                (WHITESPACE, 1),
+                (MOD, 3),
             ]
         );
 
@@ -959,9 +934,11 @@ mod tests {
         assert_eq!(
             tokens,
             vec![
-                Token::new(TokenKind::BREAK, Span::new(0, 5)),
-                Token::new(TokenKind::CONTINUE, Span::new(6, 8)),
-                Token::new(TokenKind::RETURN, Span::new(15, 6)),
+                (BREAK, 5),
+                (WHITESPACE, 1),
+                (CONTINUE, 8),
+                (WHITESPACE, 1),
+                (RETURN, 6),
             ]
         );
 
@@ -969,12 +946,17 @@ mod tests {
         assert_eq!(
             tokens,
             vec![
-                Token::new(TokenKind::TYPE, Span::new(0, 4)),
-                Token::new(TokenKind::STRUCT, Span::new(5, 6)),
-                Token::new(TokenKind::ENUM, Span::new(12, 4)),
-                Token::new(TokenKind::ALIAS, Span::new(17, 5)),
-                Token::new(TokenKind::TRAIT, Span::new(23, 5)),
-                Token::new(TokenKind::CONST, Span::new(29, 5)),
+                (TYPE, 4),
+                (WHITESPACE, 1),
+                (STRUCT, 6),
+                (WHITESPACE, 1),
+                (ENUM, 4),
+                (WHITESPACE, 1),
+                (ALIAS, 5),
+                (WHITESPACE, 1),
+                (TRAIT, 5),
+                (WHITESPACE, 1),
+                (CONST, 5),
             ]
         );
 
@@ -982,67 +964,66 @@ mod tests {
         assert_eq!(
             tokens,
             vec![
-                Token::new(TokenKind::FOR, Span::new(0, 3)),
-                Token::new(TokenKind::IN, Span::new(4, 2)),
-                Token::new(TokenKind::IMPL, Span::new(7, 4)),
-                Token::new(TokenKind::CAPITAL_THIS, Span::new(12, 4)),
-                Token::new(TokenKind::MUT, Span::new(17, 3)),
+                (FOR, 3),
+                (WHITESPACE, 1),
+                (IN, 2),
+                (WHITESPACE, 1),
+                (IMPL, 4),
+                (WHITESPACE, 1),
+                (CAPITAL_THIS, 4),
+                (WHITESPACE, 1),
+                (MUT, 3),
             ]
         );
     }
 
     #[test]
     fn test_operators() {
-        let mut reader = Lexer::from_str("==-*/%.@...,");
-        assert_tok(&mut reader, TokenKind::EQ_EQ, 0, 2);
-        assert_tok(&mut reader, TokenKind::SUB, 2, 1);
-        assert_tok(&mut reader, TokenKind::MUL, 3, 1);
-        assert_tok(&mut reader, TokenKind::DIV, 4, 1);
-        assert_tok(&mut reader, TokenKind::MODULO, 5, 1);
-        assert_tok(&mut reader, TokenKind::DOT, 6, 1);
-        assert_tok(&mut reader, TokenKind::AT, 7, 1);
-        assert_tok(&mut reader, TokenKind::DOT_DOT_DOT, 8, 3);
-        assert_tok(&mut reader, TokenKind::COMMA, 11, 1);
+        let tokens = lex_success("==-*/%.@...,");
+        assert_eq!(
+            tokens,
+            vec![
+                (EQ_EQ, 2),
+                (SUB, 1),
+                (MUL, 1),
+                (DIV, 1),
+                (MODULO, 1),
+                (DOT, 1),
+                (AT, 1),
+                (DOT_DOT_DOT, 3),
+                (COMMA, 1),
+            ]
+        );
 
-        let mut reader = Lexer::from_str("<=<>=><");
-        assert_tok(&mut reader, TokenKind::LE, 0, 2);
-        assert_tok(&mut reader, TokenKind::LT, 2, 1);
-        assert_tok(&mut reader, TokenKind::GE, 3, 2);
-        assert_tok(&mut reader, TokenKind::GT, 5, 1);
-        assert_tok(&mut reader, TokenKind::LT, 6, 1);
+        let tokens = lex_success("<=<>=><");
+        assert_eq!(tokens, vec![(LE, 2), (LT, 1), (GE, 2), (GT, 1), (LT, 1),]);
 
-        let mut reader = Lexer::from_str("!=====!");
-        assert_tok(&mut reader, TokenKind::NOT_EQ_EQ, 0, 3);
-        assert_tok(&mut reader, TokenKind::EQ_EQ_EQ, 3, 3);
-        assert_tok(&mut reader, TokenKind::NOT, 6, 1);
+        let tokens = lex_success("!=====!");
+        assert_eq!(tokens, vec![(NOT_EQ_EQ, 3), (EQ_EQ_EQ, 3), (NOT, 1),]);
 
-        let mut reader = Lexer::from_str("!=!");
-        assert_tok(&mut reader, TokenKind::NOT_EQ, 0, 2);
-        assert_tok(&mut reader, TokenKind::NOT, 2, 1);
+        let tokens = lex_success("!=!");
+        assert_eq!(tokens, vec![(NOT_EQ, 2), (NOT, 1),]);
 
-        let mut reader = Lexer::from_str("=>->");
-        assert_tok(&mut reader, TokenKind::DOUBLE_ARROW, 0, 2);
-        assert_tok(&mut reader, TokenKind::ARROW, 2, 2);
+        let tokens = lex_success("=>->");
+        assert_eq!(tokens, vec![(DOUBLE_ARROW, 2), (ARROW, 2),]);
 
-        let mut reader = Lexer::from_str(">><<>>>_::");
-        assert_tok(&mut reader, TokenKind::GT_GT, 0, 2);
-        assert_tok(&mut reader, TokenKind::LT_LT, 2, 2);
-        assert_tok(&mut reader, TokenKind::GT_GT_GT, 4, 3);
-        assert_tok(&mut reader, TokenKind::UNDERSCORE, 7, 1);
-        assert_tok(&mut reader, TokenKind::COLON_COLON, 8, 2);
+        let tokens = lex_success(">><<>>>_::");
+        assert_eq!(
+            tokens,
+            vec![
+                (GT_GT, 2),
+                (LT_LT, 2),
+                (GT_GT_GT, 3),
+                (UNDERSCORE, 1),
+                (COLON_COLON, 2),
+            ]
+        );
     }
 
     #[test]
     fn test_invalid_char() {
-        let (tokens, errors) = lex("a☕b", false);
-        assert_eq!(
-            tokens,
-            vec![
-                Token::new(TokenKind::IDENTIFIER, Span::new(0, 1)),
-                Token::new(TokenKind::UNKNOWN, Span::new(1, 3)),
-                Token::new(TokenKind::IDENTIFIER, Span::new(4, 1))
-            ]
-        );
+        let (tokens, errors) = lex("a☕b");
+        assert_eq!(tokens, vec![(IDENTIFIER, 1), (UNKNOWN, 3), (IDENTIFIER, 1)]);
         assert_err(errors, ParseError::UnknownChar('☕'), 1, 3);
     }
 

@@ -1,5 +1,3 @@
-use crate::Span;
-
 pub struct TokenSet(u128);
 
 impl TokenSet {
@@ -50,7 +48,7 @@ pub const EXPRESSION_FIRST: TokenSet = TokenSet::new(&[
     TokenKind::RETURN,
 ]);
 
-#[derive(PartialEq, Eq, Debug, Copy, Clone)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Copy, Clone)]
 #[allow(non_camel_case_types)]
 #[repr(u8)]
 pub enum TokenKind {
@@ -166,11 +164,14 @@ pub enum TokenKind {
     // unknown character
     UNKNOWN,
 
+    // End-of-file. This is the last token - see LAST_TOKEN.
     EOF,
 
     // Syntax tree nodes
     SOURCE_FILE,
 }
+
+pub const LAST_TOKEN: TokenKind = TokenKind::EOF;
 
 impl TokenKind {
     pub fn is_trivia(self) -> bool {
@@ -179,41 +180,14 @@ impl TokenKind {
             _ => false,
         }
     }
+
+    pub fn is_eof(self) -> bool {
+        self == TokenKind::EOF
+    }
 }
 
 impl From<TokenKind> for rowan::SyntaxKind {
     fn from(value: TokenKind) -> Self {
         rowan::SyntaxKind(value as u16)
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct Token {
-    pub kind: TokenKind,
-    pub span: Span,
-}
-
-impl Token {
-    pub fn new(tok: TokenKind, span: Span) -> Token {
-        Token { kind: tok, span }
-    }
-
-    pub fn is_trivia(&self) -> bool {
-        self.kind.is_trivia()
-    }
-
-    pub fn is_eof(&self) -> bool {
-        self.kind == TokenKind::EOF
-    }
-
-    pub fn is_identifier(&self) -> bool {
-        match self.kind {
-            TokenKind::IDENTIFIER => true,
-            _ => false,
-        }
-    }
-
-    pub fn is(&self, kind: TokenKind) -> bool {
-        self.kind == kind
     }
 }

@@ -1,9 +1,9 @@
 pub use self::error::{ParseError, ParseErrorWithLocation};
 pub use self::interner::{Interner, Name};
-pub use self::lexer::{lex, Lexer};
+pub use self::lexer::lex;
 pub use self::parser::Parser;
 pub use self::span::Span;
-pub use self::token::{Token, TokenKind, TokenSet};
+pub use self::token::{TokenKind, TokenSet};
 
 pub mod ast;
 pub mod builder;

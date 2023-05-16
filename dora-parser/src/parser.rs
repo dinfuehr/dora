@@ -11,17 +11,19 @@ use crate::interner::*;
 
 use crate::token::EXPRESSION_FIRST;
 use crate::TokenKind::*;
-use crate::{lex, Span, Token, TokenKind, TokenSet};
+use crate::{lex, Span, TokenKind, TokenSet};
 
 pub struct Parser<'a> {
-    tokens: Vec<Token>,
+    tokens: Vec<TokenKind>,
+    token_widths: Vec<u32>,
     token_idx: usize,
     id_generator: NodeIdGenerator,
     interner: &'a mut Interner,
     builder: GreenNodeBuilder<'static>,
     content: Arc<String>,
     errors: Vec<ParseErrorWithLocation>,
-    nodes: Vec<usize>,
+    nodes: Vec<(usize, u32)>,
+    offset: u32,
 }
 
 enum StmtOrExpr {
@@ -40,16 +42,18 @@ impl<'a> Parser<'a> {
     }
 
     fn common_init(content: Arc<String>, interner: &'a mut Interner) -> Parser<'a> {
-        let (tokens, errors) = lex(&*content, true);
+        let result = lex(&*content);
 
         Parser {
-            tokens,
+            tokens: result.tokens,
+            token_widths: result.widths,
             token_idx: 0,
             builder: GreenNodeBuilder::new(),
             id_generator: NodeIdGenerator::new(),
+            offset: 0,
             interner,
             content,
-            errors,
+            errors: result.errors,
             nodes: Vec::new(),
         }
     }
@@ -1702,6 +1706,9 @@ impl<'a> Parser<'a> {
         if self.token_idx < self.tokens.len() {
             let kind = self.current();
             let value = self.source_span(self.current_span());
+            let len = self.token_widths[self.token_idx];
+            self.offset += len;
+            debug_assert!(kind <= EOF);
             self.builder.token(kind.into(), &value);
             self.token_idx += 1;
         }
@@ -1709,7 +1716,7 @@ impl<'a> Parser<'a> {
 
     fn current(&self) -> TokenKind {
         if self.token_idx < self.tokens.len() {
-            self.tokens[self.token_idx].kind
+            self.tokens[self.token_idx]
         } else {
             EOF
         }
@@ -1717,9 +1724,10 @@ impl<'a> Parser<'a> {
 
     fn current_span(&self) -> Span {
         if self.token_idx < self.tokens.len() {
-            self.tokens[self.token_idx].span
+            let length = self.token_widths[self.token_idx];
+            Span::new(self.offset, length)
         } else {
-            self.eof_span()
+            Span::at(self.offset)
         }
     }
 
@@ -1736,39 +1744,26 @@ impl<'a> Parser<'a> {
     }
 
     fn start_node(&mut self) {
-        self.nodes.push(self.token_idx);
+        self.nodes.push((self.token_idx, self.offset));
     }
 
     fn finish_node(&mut self) -> Span {
-        let start_token = self.nodes.pop().expect("missing node start");
+        let (start_token, start_offset) = self.nodes.pop().expect("missing node start");
 
         let mut end_token = self.token_idx - 1;
         assert!(end_token < self.tokens.len());
+        let mut end_offset = self.offset;
 
         while end_token > start_token {
             if !self.tokens[end_token].is_trivia() {
                 break;
             }
 
+            end_offset -= self.token_widths[end_token];
             end_token -= 1;
         }
 
-        if start_token == end_token {
-            if start_token == self.tokens.len() {
-                self.eof_span()
-            } else {
-                self.tokens[start_token].span
-            }
-        } else {
-            let start = self.tokens[start_token].span.start();
-            let end: u32 = if end_token == self.tokens.len() {
-                self.content.len().try_into().expect("overflow")
-            } else {
-                self.tokens[end_token].span.end()
-            };
-
-            Span::new(start, end - start)
-        }
+        Span::new(start_offset, end_offset - start_offset)
     }
 
     fn abandon_node(&mut self) {
@@ -1781,13 +1776,8 @@ impl<'a> Parser<'a> {
         String::from(&self.content[start..end])
     }
 
-    fn eof_span(&self) -> Span {
-        Span::new(self.content.len().try_into().expect("overflow"), 0)
-    }
-
     fn span_from(&self, start: u32) -> Span {
-        let last_token_end = self.tokens[self.token_idx - 1].span.end();
-        Span::new(start, last_token_end - start)
+        Span::new(start, self.offset - start)
     }
 }
 
