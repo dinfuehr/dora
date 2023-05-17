@@ -1,8 +1,8 @@
 use crate::language::error::msg::ErrorMessage;
 use crate::language::fctbodyck::body::args_compatible_fct;
 use crate::language::sem_analysis::{
-    find_methods_in_class, find_methods_in_enum, find_methods_in_struct, FctDefinition,
-    FctDefinitionId, SemAnalysis, SourceFileId, TraitDefinitionId, TypeParamDefinition,
+    find_methods_in_class, find_methods_in_enum, find_methods_in_struct, FctDefinitionId,
+    SemAnalysis, SourceFileId, TraitDefinitionId, TypeParamDefinition,
 };
 use crate::language::specialize::replace_type_param;
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -10,6 +10,48 @@ use crate::language::typeparamck::{self, ErrorReporting};
 
 use dora_parser::interner::Name;
 use dora_parser::Span;
+
+pub struct MethodLookupResult {
+    found_fct_id: Option<FctDefinitionId>,
+    found_class_type: Option<SourceType>,
+    found_ret: Option<SourceType>,
+    found_container_type_params: Option<SourceTypeArray>,
+    found_multiple_functions: bool,
+    found: bool,
+}
+
+impl MethodLookupResult {
+    fn new() -> MethodLookupResult {
+        MethodLookupResult {
+            found_fct_id: None,
+            found_class_type: None,
+            found_ret: None,
+            found_container_type_params: None,
+            found_multiple_functions: false,
+            found: false,
+        }
+    }
+
+    pub fn find(&self) -> bool {
+        self.found
+    }
+
+    pub fn found_fct_id(&self) -> Option<FctDefinitionId> {
+        self.found_fct_id
+    }
+
+    pub fn found_class_type(&self) -> Option<SourceType> {
+        self.found_class_type.clone()
+    }
+
+    pub fn found_container_type_params(&self) -> Option<SourceTypeArray> {
+        self.found_container_type_params.clone()
+    }
+
+    pub fn found_ret(&self) -> Option<SourceType> {
+        self.found_ret.clone()
+    }
+}
 
 #[derive(Clone)]
 enum LookupKind {
@@ -21,31 +63,26 @@ enum LookupKind {
 
 pub struct MethodLookup<'a> {
     sa: &'a SemAnalysis,
-    caller: &'a FctDefinition,
     file: SourceFileId,
     kind: Option<LookupKind>,
     name: Option<Name>,
     args: Option<&'a [SourceType]>,
     fct_tps: Option<&'a SourceTypeArray>,
-    type_param_defs: Option<&'a TypeParamDefinition>,
+    type_param_defs: &'a TypeParamDefinition,
     ret: Option<SourceType>,
     span: Option<Span>,
     report_errors: bool,
-
-    found_fct_id: Option<FctDefinitionId>,
-    found_class_type: Option<SourceType>,
-    found_ret: Option<SourceType>,
-    found_container_type_params: Option<SourceTypeArray>,
-
-    found_multiple_functions: bool,
 }
 
 impl<'a> MethodLookup<'a> {
-    pub fn new(sa: &'a SemAnalysis, caller: &'a FctDefinition) -> MethodLookup<'a> {
+    pub fn new(
+        sa: &'a SemAnalysis,
+        file_id: SourceFileId,
+        caller_type_param_defs: &'a TypeParamDefinition,
+    ) -> MethodLookup<'a> {
         MethodLookup {
             sa,
-            caller,
-            file: caller.file_id,
+            file: file_id,
             kind: None,
             name: None,
             args: None,
@@ -53,14 +90,7 @@ impl<'a> MethodLookup<'a> {
             ret: None,
             span: None,
             report_errors: true,
-            type_param_defs: None,
-
-            found_fct_id: None,
-            found_class_type: None,
-            found_ret: None,
-            found_container_type_params: None,
-
-            found_multiple_functions: false,
+            type_param_defs: caller_type_param_defs,
         }
     }
 
@@ -104,26 +134,22 @@ impl<'a> MethodLookup<'a> {
         self
     }
 
-    pub fn type_param_defs(mut self, tp_defs: &'a TypeParamDefinition) -> MethodLookup<'a> {
-        self.type_param_defs = Some(tp_defs);
-        self
-    }
-
     pub fn name(mut self, name: Name) -> MethodLookup<'a> {
         self.name = Some(name);
         self
     }
 
-    pub fn find(&mut self) -> bool {
+    pub fn find(&mut self) -> MethodLookupResult {
         let kind = self.kind.clone().expect("kind not set");
         let args = self.args.expect("args not set");
+        let mut result = MethodLookupResult::new();
 
         let fct_id = match kind {
             LookupKind::Callee(fct_id) => Some(fct_id),
 
             LookupKind::Method(ref obj) => {
                 let name = self.name.expect("name not set");
-                self.find_method(obj.clone(), name, false)
+                self.find_method(&mut result, obj.clone(), name, false)
             }
 
             LookupKind::Trait(trait_id) => {
@@ -133,11 +159,11 @@ impl<'a> MethodLookup<'a> {
 
             LookupKind::Static(ref obj) => {
                 let name = self.name.expect("name not set");
-                self.find_method(obj.clone(), name, true)
+                self.find_method(&mut result, obj.clone(), name, true)
             }
         };
 
-        self.found_fct_id = fct_id;
+        result.found_fct_id = fct_id;
 
         let fct_id = if let Some(fct_id) = fct_id {
             fct_id
@@ -147,15 +173,15 @@ impl<'a> MethodLookup<'a> {
             let name = self.sa.interner.str(name).to_string();
             let param_names = args
                 .iter()
-                .map(|a| a.name_fct(self.sa, self.caller))
+                .map(|a| self.ty_name(a))
                 .collect::<Vec<String>>();
 
             let msg = match kind {
                 LookupKind::Callee(_) => unreachable!(),
                 LookupKind::Method(ref obj) => {
-                    let type_name = obj.name_fct(self.sa, self.caller);
+                    let type_name = self.ty_name(obj);
 
-                    if self.found_multiple_functions {
+                    if result.found_multiple_functions {
                         ErrorMessage::MultipleCandidatesForMethod(type_name, name, param_names)
                     } else {
                         ErrorMessage::UnknownMethod(type_name, name, param_names)
@@ -170,15 +196,15 @@ impl<'a> MethodLookup<'a> {
                 }
 
                 LookupKind::Static(ref obj) => {
-                    let type_name = obj.name_fct(self.sa, self.caller);
+                    let type_name = self.ty_name(obj);
                     ErrorMessage::UnknownStaticMethod(type_name, name, param_names)
                 }
             };
 
             self.report_error(msg);
-            return false;
+            return result;
         } else {
-            return false;
+            return result;
         };
 
         let fct = self.sa.fcts.idx(fct_id);
@@ -186,7 +212,7 @@ impl<'a> MethodLookup<'a> {
 
         let container_tps = match kind {
             LookupKind::Method(_) | LookupKind::Static(_) => {
-                self.found_container_type_params.clone().unwrap()
+                result.found_container_type_params.clone().unwrap()
             }
             _ => SourceTypeArray::empty(),
         };
@@ -200,16 +226,16 @@ impl<'a> MethodLookup<'a> {
         let type_params = container_tps.connect(&fct_tps);
 
         if !self.check_tps(&fct.type_params, &type_params) {
-            return false;
+            return result;
         }
 
         if args.contains(&SourceType::Error) {
-            return false;
+            return result;
         }
 
         if !args_compatible_fct(self.sa, &*fct, args, &type_params, None) {
             if !self.report_errors {
-                return false;
+                return result;
             }
 
             let fct_name = self.sa.interner.str(fct.name).to_string();
@@ -218,13 +244,10 @@ impl<'a> MethodLookup<'a> {
                 .iter()
                 .map(|a| a.name_fct(self.sa, &*fct))
                 .collect::<Vec<_>>();
-            let call_types = args
-                .iter()
-                .map(|a| a.name_fct(self.sa, self.caller))
-                .collect::<Vec<_>>();
+            let call_types = args.iter().map(|a| self.ty_name(a)).collect::<Vec<_>>();
             let msg = ErrorMessage::ParamTypesIncompatible(fct_name, fct_params, call_types);
             self.report_error(msg);
-            return false;
+            return result;
         }
 
         let cmp_type = {
@@ -233,11 +256,11 @@ impl<'a> MethodLookup<'a> {
         };
 
         if self.ret.is_none() || self.ret.clone().unwrap() == cmp_type {
-            self.found_ret = Some(cmp_type);
-            true
-        } else {
-            false
+            result.found_ret = Some(cmp_type);
+            result.found = true;
         }
+
+        result
     }
 
     fn report_error(&mut self, msg: ErrorMessage) {
@@ -249,44 +272,27 @@ impl<'a> MethodLookup<'a> {
 
     fn find_method(
         &mut self,
+        result: &mut MethodLookupResult,
         object_type: SourceType,
         name: Name,
         is_static: bool,
     ) -> Option<FctDefinitionId> {
         let candidates = if object_type.is_enum() {
-            find_methods_in_enum(
-                self.sa,
-                object_type,
-                self.type_param_defs.unwrap(),
-                name,
-                is_static,
-            )
+            find_methods_in_enum(self.sa, object_type, self.type_param_defs, name, is_static)
         } else if object_type.is_struct() || object_type.is_primitive() {
-            find_methods_in_struct(
-                self.sa,
-                object_type,
-                self.type_param_defs.unwrap(),
-                name,
-                is_static,
-            )
+            find_methods_in_struct(self.sa, object_type, self.type_param_defs, name, is_static)
         } else if object_type.is_cls() {
-            find_methods_in_class(
-                self.sa,
-                object_type,
-                self.type_param_defs.unwrap(),
-                name,
-                is_static,
-            )
+            find_methods_in_class(self.sa, object_type, self.type_param_defs, name, is_static)
         } else {
             Vec::new()
         };
 
-        self.found_multiple_functions = candidates.len() > 1;
+        result.found_multiple_functions = candidates.len() > 1;
 
         if candidates.len() == 1 {
             let candidate = candidates.first().unwrap();
-            self.found_class_type = Some(candidate.object_type.clone());
-            self.found_container_type_params = Some(candidate.container_type_params.clone());
+            result.found_class_type = Some(candidate.object_type.clone());
+            result.found_container_type_params = Some(candidate.container_type_params.clone());
             Some(candidate.fct_id)
         } else {
             None
@@ -312,22 +318,10 @@ impl<'a> MethodLookup<'a> {
             ErrorReporting::No
         };
 
-        typeparamck::check_params(self.sa, self.caller, error, specified_tps, tps)
+        typeparamck::check_params(self.sa, self.type_param_defs, specified_tps, tps, error)
     }
 
-    pub fn found_fct_id(&self) -> Option<FctDefinitionId> {
-        self.found_fct_id
-    }
-
-    pub fn found_class_type(&self) -> Option<SourceType> {
-        self.found_class_type.clone()
-    }
-
-    pub fn found_container_type_params(&self) -> Option<SourceTypeArray> {
-        self.found_container_type_params.clone()
-    }
-
-    pub fn found_ret(&self) -> Option<SourceType> {
-        self.found_ret.clone()
+    fn ty_name(&self, ty: &SourceType) -> String {
+        ty.name_with_type_params(self.sa, self.type_param_defs)
     }
 }

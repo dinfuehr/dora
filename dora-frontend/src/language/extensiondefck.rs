@@ -5,7 +5,7 @@ use crate::language::sem_analysis::{
 };
 use crate::language::sym::{ModuleSymTable, Sym};
 use crate::language::ty::SourceType;
-use crate::language::{read_type, AllowSelf, TypeParamContext};
+use crate::language::{read_type_context, AllowSelf, TypeParamContext};
 
 use dora_parser::ast;
 use dora_parser::Span;
@@ -61,7 +61,7 @@ impl<'x> ExtensionCheck<'x> {
             }
         }
 
-        if let Some(extension_ty) = read_type(
+        if let Some(extension_ty) = read_type_context(
             self.sa,
             &self.sym,
             self.file_id.into(),

@@ -12,20 +12,21 @@ use crate::language::access::{
 };
 use crate::language::error::msg::ErrorMessage;
 use crate::language::fctbodyck::lookup::MethodLookup;
+use crate::language::report_sym_shadow_span;
 use crate::language::sem_analysis::{
-    create_tuple, find_field_in_class, find_methods_in_class, find_methods_in_enum,
+    create_tuple, find_field_in_class, find_impl, find_methods_in_class, find_methods_in_enum,
     find_methods_in_struct, implements_trait, AnalysisData, CallType, ClassDefinition,
     ClassDefinitionId, ContextIdx, EnumDefinitionId, EnumVariant, FctDefinition, FctDefinitionId,
-    FctParent, Field, FieldId, ForTypeInfo, IdentType, ModuleDefinitionId, NestedVarId,
-    PackageDefinitionId, SemAnalysis, SourceFileId, StructDefinition, StructDefinitionId,
-    TypeParamDefinition, TypeParamId, Var, VarAccess, VarId, VarLocation, Visibility,
+    FctParent, Field, FieldId, ForTypeInfo, GlobalDefinition, IdentType, ModuleDefinitionId,
+    NestedVarId, PackageDefinitionId, SemAnalysis, SourceFileId, StructDefinition,
+    StructDefinitionId, TypeParamDefinition, TypeParamId, Var, VarAccess, VarId, VarLocation,
+    Visibility,
 };
 use crate::language::specialize::replace_type_param;
 use crate::language::sym::{ModuleSymTable, Sym};
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::language::typeparamck::{self, ErrorReporting};
 use crate::language::{always_returns, expr_always_returns, read_type, AllowSelf};
-use crate::language::{report_sym_shadow_span, TypeParamContext};
 
 use dora_bytecode::Intrinsic;
 use dora_parser::ast::visit::Visitor;
@@ -35,7 +36,8 @@ use fixedbitset::FixedBitSet;
 
 pub struct TypeCheck<'a> {
     pub sa: &'a mut SemAnalysis,
-    pub fct: &'a FctDefinition,
+    pub fct: Option<&'a FctDefinition>,
+    pub type_param_defs: &'a TypeParamDefinition,
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
@@ -50,15 +52,44 @@ pub struct TypeCheck<'a> {
 }
 
 impl<'a> TypeCheck<'a> {
-    pub fn check(&mut self, ast: &ast::Function) {
+    pub fn check_fct(&mut self, ast: &ast::Function) {
+        self.check_common(|self_| {
+            self_.add_params(ast);
+            self_.check_body(ast);
+        })
+    }
+
+    pub fn check_initializer(&mut self, global: &GlobalDefinition, expr: &ast::Expr) {
+        // Global initializer never has self.
+        self.analysis.set_has_self(false);
+
+        self.check_common(|self_| {
+            let expr_ty = self_.check_expr(expr, global.ty.clone());
+
+            if !global.ty.is_error()
+                && !expr_ty.is_error()
+                && !global.ty.allows(self_.sa, expr_ty.clone())
+            {
+                let name = self_.sa.interner.str(global.name).to_string();
+                let global_ty = self_.ty_name(&global.ty);
+                let expr_ty = self_.ty_name(&expr_ty);
+                let msg = ErrorMessage::AssignType(name, global_ty, expr_ty);
+                self_.sa.diag.lock().report(self_.file_id, global.span, msg);
+            }
+        })
+    }
+
+    fn check_common<F>(&mut self, fct: F)
+    where
+        F: FnOnce(&mut TypeCheck<'a>),
+    {
         let start_level = self.symtable.levels();
         self.symtable.push_level();
         self.vars.enter_function();
 
         self.add_type_params();
-        self.add_params(ast);
 
-        self.check_body(ast);
+        fct(self);
 
         self.symtable.pop_level();
         assert_eq!(self.symtable.levels(), start_level);
@@ -68,6 +99,7 @@ impl<'a> TypeCheck<'a> {
 
     fn check_body(&mut self, ast: &ast::Function) {
         let block = ast.block.as_ref().expect("missing block");
+        let fct = self.fct.expect("missing fct");
 
         if let ast::ExprData::Block(ref block) = block.as_ref() {
             let mut returns = false;
@@ -85,14 +117,14 @@ impl<'a> TypeCheck<'a> {
                     returns = true;
                 }
 
-                let return_type = self.fct.return_type.clone();
+                let return_type = fct.return_type.clone();
                 self.check_expr(value, return_type)
             } else {
                 SourceType::Unit
             };
 
             if !returns {
-                self.check_fct_return_type(block.span, return_type);
+                self.check_fct_return_type(fct, block.span, return_type);
             }
         } else {
             unreachable!()
@@ -131,7 +163,9 @@ impl<'a> TypeCheck<'a> {
         let mut fields = Vec::with_capacity(number_fields);
         let mut map: Vec<Option<NestedVarId>> = vec![None; number_fields];
 
-        let needs_outer_context_slot = self.fct.is_lambda()
+        let is_lambda = self.fct.map(|f| f.is_lambda()).unwrap_or(false);
+
+        let needs_outer_context_slot = is_lambda
             && (self.outer_context_access_in_function || self.outer_context_access_from_lambda);
 
         if needs_outer_context_slot {
@@ -175,21 +209,18 @@ impl<'a> TypeCheck<'a> {
             });
         }
 
-        let mut name = self.fct.display_name(self.sa);
-        name.push_str("$Context");
-
-        let name = self.sa.interner.intern(&name);
+        let name = self.sa.interner.intern("$Context");
 
         let mut class = ClassDefinition::new_without_source(
             self.package_id,
             self.module_id,
             Some(self.file_id),
-            Some(self.fct.span),
+            None,
             name,
-            self.fct.visibility,
+            Visibility::Public,
             fields,
         );
-        class.type_params = Some(self.fct.type_params.clone());
+        class.type_params = Some(self.type_param_defs.clone());
         let class_id = self.sa.classes.push(class);
         self.analysis.context_cls_id = Some(class_id);
 
@@ -197,25 +228,39 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn add_type_params(&mut self) {
-        for (id, name) in self.fct.type_params.names() {
+        if !self.in_function() {
+            // no type params in global initializers
+            return;
+        }
+
+        let fct = self.fct.expect("missing fct");
+
+        for (id, name) in fct.type_params.names() {
             self.symtable.insert(name, Sym::TypeParam(id));
         }
     }
 
     fn add_params(&mut self, ast: &ast::Function) {
+        let fct = self.fct.expect("missing fct");
         self.add_hidden_parameter_self();
 
-        let self_count = if self.fct.has_self() { 1 } else { 0 };
-        assert_eq!(ast.params.len() + self_count, self.fct.param_types.len());
+        let self_count = if fct.has_self() { 1 } else { 0 };
+        assert_eq!(ast.params.len() + self_count, fct.param_types.len());
 
         for (ind, (param, ty)) in ast
             .params
             .iter()
-            .zip(self.fct.param_types.iter().skip(self_count))
+            .zip(
+                self.fct
+                    .expect("missing fct")
+                    .param_types
+                    .iter()
+                    .skip(self_count),
+            )
             .enumerate()
         {
             // is this last argument of function with variadic arguments?
-            let ty = if self.fct.is_variadic && ind == ast.params.len() - 1 {
+            let ty = if fct.is_variadic && ind == ast.params.len() - 1 {
                 // type of variable is Array[T]
                 self.sa.known.array_ty(ty.clone())
             } else {
@@ -232,20 +277,25 @@ impl<'a> TypeCheck<'a> {
             // params are only allowed to replace functions, vars cannot be replaced
             let replaced_sym = self.symtable.insert(name, Sym::Var(var_id));
             if let Some(replaced_sym) = replaced_sym {
-                report_sym_shadow_span(self.sa, name, self.fct.file_id, param.span, replaced_sym)
+                report_sym_shadow_span(self.sa, name, self.file_id, param.span, replaced_sym)
             }
         }
     }
 
     fn add_hidden_parameter_self(&mut self) {
-        if !self.fct.has_self() {
+        self.analysis.set_has_self(self.has_self());
+
+        if !self.has_self() {
             return;
         }
 
-        let self_ty = self.fct.param_types[0].clone();
+        // Only functions can use `self`.
+        let fct = self.fct.expect("missing fct");
+
+        let self_ty = fct.param_types[0].clone();
 
         // The lambda-object isn't available through `self` in lambdas.
-        if !self.fct.is_lambda() {
+        if !fct.is_lambda() {
             assert!(!self.self_available);
             self.self_available = true;
         }
@@ -254,7 +304,7 @@ impl<'a> TypeCheck<'a> {
 
         assert!(!self.vars.has_local_vars());
         let var_id = self.vars.add_var(name, self_ty, false);
-        if !self.fct.is_lambda() {
+        if !fct.is_lambda() {
             assert_eq!(NestedVarId(0), var_id);
         }
     }
@@ -263,7 +313,7 @@ impl<'a> TypeCheck<'a> {
         let name = self.vars.get_var(id).name;
         match self.symtable.insert(name, Sym::Var(id)) {
             Some(Sym::Var(_)) | None => {}
-            Some(sym) => report_sym_shadow_span(self.sa, name, self.fct.file_id, span, sym),
+            Some(sym) => report_sym_shadow_span(self.sa, name, self.file_id, span, sym),
         }
     }
 
@@ -314,8 +364,8 @@ impl<'a> TypeCheck<'a> {
                     .interner
                     .str(s.pattern.to_name().unwrap())
                     .to_string();
-                let defined_type = defined_type.name_fct(self.sa, self.fct);
-                let expr_type = expr_type.name_fct(self.sa, self.fct);
+                let defined_type = self.ty_name(&defined_type);
+                let expr_type = self.ty_name(&expr_type);
                 let msg = ErrorMessage::AssignType(name, defined_type, expr_type);
                 self.sa.diag.lock().report(self.file_id, s.span, msg);
             }
@@ -334,9 +384,9 @@ impl<'a> TypeCheck<'a> {
         read_type(
             self.sa,
             &self.symtable,
-            self.fct.file_id,
+            self.file_id,
             t,
-            TypeParamContext::Fct(self.fct),
+            self.type_param_defs,
             AllowSelf::No,
         )
         .unwrap_or(SourceType::Error)
@@ -360,7 +410,7 @@ impl<'a> TypeCheck<'a> {
 
             ast::LetPattern::Tuple(ref tuple) => {
                 if !ty.is_tuple_or_unit() && !ty.is_error() {
-                    let ty_name = ty.name_fct(self.sa, self.fct);
+                    let ty_name = self.ty_name(&ty);
                     self.sa.diag.lock().report(
                         self.file_id,
                         tuple.span,
@@ -391,7 +441,7 @@ impl<'a> TypeCheck<'a> {
                 let subtypes = ty.tuple_subtypes();
 
                 if subtypes.len() != tuple.parts.len() {
-                    let ty_name = ty.name_fct(self.sa, self.fct);
+                    let ty_name = self.ty_name(&ty);
                     self.sa.diag.lock().report(
                         self.file_id,
                         tuple.span,
@@ -456,7 +506,7 @@ impl<'a> TypeCheck<'a> {
             }
         }
 
-        let name = object_type.name_fct(self.sa, self.fct);
+        let name = self.ty_name(&object_type);
         let msg = ErrorMessage::TypeNotUsableInForIn(name);
         self.sa
             .diag
@@ -484,12 +534,12 @@ impl<'a> TypeCheck<'a> {
     ) -> Option<(FctDefinitionId, SourceType)> {
         let make_iterator_name = self.sa.interner.intern("makeIterator");
 
-        let mut lookup = MethodLookup::new(self.sa, self.fct)
+        let lookup = MethodLookup::new(self.sa, self.file_id, self.type_param_defs)
             .no_error_reporting()
             .method(object_type)
             .name(make_iterator_name)
-            .type_param_defs(&self.fct.type_params)
-            .args(&[]);
+            .args(&[])
+            .find();
 
         if lookup.find() {
             let make_iterator_id = lookup.found_fct_id().unwrap();
@@ -507,18 +557,18 @@ impl<'a> TypeCheck<'a> {
     ) -> Option<(ForTypeInfo, SourceType)> {
         let next_name = self.sa.interner.intern("next");
 
-        let mut next = MethodLookup::new(self.sa, self.fct)
+        let lookup_next = MethodLookup::new(self.sa, self.file_id, self.type_param_defs)
             .no_error_reporting()
             .method(object_type.clone())
             .name(next_name)
-            .type_param_defs(&self.fct.type_params)
-            .args(&[]);
+            .args(&[])
+            .find();
 
-        if !next.find() {
+        if !lookup_next.find() {
             return None;
         }
 
-        let next_result_type = next.found_ret().unwrap();
+        let next_result_type = lookup_next.found_ret().unwrap();
 
         let value_type = if let SourceType::Enum(enum_id, type_params) = next_result_type.clone() {
             if enum_id == self.sa.known.enums.option() {
@@ -534,7 +584,7 @@ impl<'a> TypeCheck<'a> {
         Some((
             ForTypeInfo {
                 make_iterator: None,
-                next: next.found_fct_id().expect("fct_id missing"),
+                next: lookup_next.found_fct_id().expect("fct_id missing"),
                 iterator_type: object_type,
                 next_type: next_result_type,
                 value_type: value_type.clone(),
@@ -551,7 +601,7 @@ impl<'a> TypeCheck<'a> {
         let expr_type = self.check_expr(&stmt.cond, SourceType::Bool);
 
         if !expr_type.is_error() && !expr_type.is_bool() {
-            let expr_type = expr_type.name_fct(self.sa, self.fct);
+            let expr_type = self.ty_name(&expr_type);
             let msg = ErrorMessage::WhileCondType(expr_type);
             self.sa.diag.lock().report(self.file_id, stmt.span, msg);
         }
@@ -565,24 +615,37 @@ impl<'a> TypeCheck<'a> {
         expr: &ast::ExprReturnType,
         _expected_ty: SourceType,
     ) -> SourceType {
-        let expected_ty = self.fct.return_type.clone();
+        if self.in_function() {
+            let fct = self.fct.expect("missing fct");
+            let expected_ty = fct.return_type.clone();
 
-        let expr_type = expr
-            .expr
-            .as_ref()
-            .map(|expr| self.check_expr(&expr, expected_ty))
-            .unwrap_or(SourceType::Unit);
+            let expr_type = expr
+                .expr
+                .as_ref()
+                .map(|expr| self.check_expr(&expr, expected_ty))
+                .unwrap_or(SourceType::Unit);
 
-        self.check_fct_return_type(expr.span, expr_type);
+            self.check_fct_return_type(fct, expr.span, expr_type);
+        } else {
+            self.sa
+                .diag
+                .lock()
+                .report(self.file_id, expr.span, ErrorMessage::InvalidReturn);
+
+            if let Some(ref expr) = expr.expr {
+                self.check_expr(expr.as_ref(), SourceType::Any);
+            }
+        }
+
         SourceType::Unit
     }
 
-    fn check_fct_return_type(&mut self, span: Span, expr_type: SourceType) {
-        let fct_type = self.fct.return_type.clone();
+    fn check_fct_return_type(&mut self, fct: &FctDefinition, span: Span, expr_type: SourceType) {
+        let fct_type = fct.return_type.clone();
 
         if !expr_type.is_error() && !fct_type.allows(self.sa, expr_type.clone()) {
-            let fct_type = fct_type.name_fct(self.sa, self.fct);
-            let expr_type = expr_type.name_fct(self.sa, self.fct);
+            let fct_type = self.ty_name(&fct_type);
+            let expr_type = self.ty_name(&expr_type);
 
             let msg = ErrorMessage::ReturnType(fct_type, expr_type);
 
@@ -694,8 +757,8 @@ impl<'a> TypeCheck<'a> {
             } else if case_ty.is_error() {
                 // ignore this case
             } else if !result_type.allows(self.sa, case_ty.clone()) {
-                let result_type_name = result_type.name_fct(self.sa, self.fct);
-                let case_ty_name = case_ty.name_fct(self.sa, self.fct);
+                let result_type_name = self.ty_name(&result_type);
+                let case_ty_name = self.ty_name(&case_ty);
                 let msg =
                     ErrorMessage::MatchBranchTypesIncompatible(result_type_name, case_ty_name);
                 self.sa
@@ -849,7 +912,7 @@ impl<'a> TypeCheck<'a> {
         let expr_type = self.check_expr(&expr.cond, SourceType::Any);
 
         if !expr_type.is_bool() && !expr_type.is_error() {
-            let expr_type = expr_type.name_fct(self.sa, self.fct);
+            let expr_type = self.ty_name(&expr_type);
             let msg = ErrorMessage::IfCondType(expr_type);
             self.sa.diag.lock().report(self.file_id, expr.span, msg);
         }
@@ -868,8 +931,8 @@ impl<'a> TypeCheck<'a> {
             } else if else_type.is_error() {
                 then_type
             } else if !then_type.allows(self.sa, else_type.clone()) {
-                let then_type_name = then_type.name_fct(self.sa, self.fct);
-                let else_type_name = else_type.name_fct(self.sa, self.fct);
+                let then_type_name = self.ty_name(&then_type);
+                let else_type_name = self.ty_name(&else_type);
                 let msg = ErrorMessage::IfBranchTypesIncompatible(then_type_name, else_type_name);
                 self.sa.diag.lock().report(self.file_id, expr.span, msg);
                 then_type
@@ -939,7 +1002,7 @@ impl<'a> TypeCheck<'a> {
             None => {
                 let name = self.sa.interner.str(e.name).to_string();
                 self.sa.diag.lock().report(
-                    self.fct.file_id,
+                    self.file_id,
                     e.span,
                     ErrorMessage::UnknownIdentifier(name),
                 );
@@ -950,7 +1013,7 @@ impl<'a> TypeCheck<'a> {
                 self.sa
                     .diag
                     .lock()
-                    .report(self.fct.file_id, e.span, ErrorMessage::ValueExpected);
+                    .report(self.file_id, e.span, ErrorMessage::ValueExpected);
                 SourceType::Error
             }
         }
@@ -1017,7 +1080,7 @@ impl<'a> TypeCheck<'a> {
             None => {
                 let name = self.sa.interner.str(lhs_ident.name).to_string();
                 self.sa.diag.lock().report(
-                    self.fct.file_id,
+                    self.file_id,
                     lhs_ident.span,
                     ErrorMessage::UnknownIdentifier(name),
                 );
@@ -1027,7 +1090,7 @@ impl<'a> TypeCheck<'a> {
 
             _ => {
                 self.sa.diag.lock().report(
-                    self.fct.file_id,
+                    self.file_id,
                     lhs_ident.span,
                     ErrorMessage::LvalueExpected,
                 );
@@ -1044,8 +1107,8 @@ impl<'a> TypeCheck<'a> {
         {
             let ident = e.lhs.to_ident().unwrap();
             let name = self.sa.interner.str(ident.name).to_string();
-            let lhs_type = lhs_type.name_fct(self.sa, self.fct);
-            let rhs_type = rhs_type.name_fct(self.sa, self.fct);
+            let lhs_type = self.ty_name(&lhs_type);
+            let rhs_type = self.ty_name(&rhs_type);
 
             self.analysis.set_ty(e.id, SourceType::Unit);
 
@@ -1130,9 +1193,9 @@ impl<'a> TypeCheck<'a> {
                 if !fty.allows(self.sa, rhs_type.clone()) && !rhs_type.is_error() {
                     let name = self.sa.interner.str(name).to_string();
 
-                    let object_type = object_type.name_fct(self.sa, self.fct);
-                    let lhs_type = fty.name_fct(self.sa, self.fct);
-                    let rhs_type = rhs_type.name_fct(self.sa, self.fct);
+                    let object_type = self.ty_name(&object_type);
+                    let lhs_type = self.ty_name(&fty);
+                    let rhs_type = self.ty_name(&rhs_type);
 
                     let msg = ErrorMessage::AssignField(name, object_type, lhs_type, rhs_type);
                     self.sa.diag.lock().report(self.file_id, e.span, msg);
@@ -1149,7 +1212,7 @@ impl<'a> TypeCheck<'a> {
 
         // field not found, report error
         let field_name = self.sa.interner.str(name).to_string();
-        let expr_name = object_type.name_fct(self.sa, self.fct);
+        let expr_name = self.ty_name(&object_type);
         let msg = ErrorMessage::UnknownField(field_name, expr_name);
         self.sa
             .diag
@@ -1171,7 +1234,7 @@ impl<'a> TypeCheck<'a> {
         let descriptor = lookup_method(
             self.sa,
             object_type.clone(),
-            &self.fct.type_params,
+            self.type_param_defs,
             is_static,
             name,
             args,
@@ -1179,11 +1242,11 @@ impl<'a> TypeCheck<'a> {
         );
 
         if descriptor.is_none() {
-            let type_name = object_type.name_fct(self.sa, self.fct);
+            let type_name = self.ty_name(&object_type);
             let name = self.sa.interner.str(name).to_string();
             let param_names = args
                 .iter()
-                .map(|a| a.name_fct(self.sa, self.fct))
+                .map(|a| self.ty_name(a))
                 .collect::<Vec<String>>();
             let msg = if is_static {
                 ErrorMessage::UnknownStaticMethod(type_name, name, param_names)
@@ -1228,7 +1291,7 @@ impl<'a> TypeCheck<'a> {
             if let Some(descriptor) = lookup_method(
                 self.sa,
                 ty.clone(),
-                &self.fct.type_params,
+                self.type_param_defs,
                 false,
                 name,
                 &call_types,
@@ -1242,7 +1305,7 @@ impl<'a> TypeCheck<'a> {
                 return descriptor.return_type;
             }
 
-            let ty = ty.name_fct(self.sa, self.fct);
+            let ty = self.ty_name(&ty);
             let msg = ErrorMessage::UnOpType(op.as_str().into(), ty);
 
             self.sa.diag.lock().report(self.file_id, e.span, msg);
@@ -1326,7 +1389,7 @@ impl<'a> TypeCheck<'a> {
         if let Some(descriptor) = lookup_method(
             self.sa,
             lhs_type.clone(),
-            &self.fct.type_params,
+            self.type_param_defs,
             false,
             name,
             &call_types,
@@ -1342,8 +1405,8 @@ impl<'a> TypeCheck<'a> {
 
             descriptor.return_type
         } else {
-            let lhs_type = lhs_type.name_fct(self.sa, self.fct);
-            let rhs_type = rhs_type.name_fct(self.sa, self.fct);
+            let lhs_type = self.ty_name(&lhs_type);
+            let rhs_type = self.ty_name(&rhs_type);
             let msg = ErrorMessage::BinOpType(op.as_str().into(), lhs_type, rhs_type);
 
             self.sa.diag.lock().report(self.file_id, e.span, msg);
@@ -1366,8 +1429,8 @@ impl<'a> TypeCheck<'a> {
                 if !lhs_type.allows(self.sa, rhs_type.clone())
                     && !rhs_type.allows(self.sa, lhs_type.clone())
                 {
-                    let lhs_type = lhs_type.name_fct(self.sa, self.fct);
-                    let rhs_type = rhs_type.name_fct(self.sa, self.fct);
+                    let lhs_type = self.ty_name(&lhs_type);
+                    let rhs_type = self.ty_name(&rhs_type);
                     self.sa.diag.lock().report(
                         self.file_id,
                         e.span,
@@ -1417,8 +1480,8 @@ impl<'a> TypeCheck<'a> {
 
             self.analysis.set_ty(e.id, SourceType::Bool);
         } else {
-            let lhs_type = lhs_type.name_fct(self.sa, self.fct);
-            let rhs_type = rhs_type.name_fct(self.sa, self.fct);
+            let lhs_type = self.ty_name(&lhs_type);
+            let rhs_type = self.ty_name(&rhs_type);
             let msg = ErrorMessage::BinOpType("equals".into(), lhs_type, rhs_type);
 
             self.sa.diag.lock().report(self.file_id, e.span, msg);
@@ -1439,8 +1502,8 @@ impl<'a> TypeCheck<'a> {
             || !expected_type.allows(self.sa, rhs_type.clone())
         {
             let op = op.as_str().into();
-            let lhs_type = lhs_type.name_fct(self.sa, self.fct);
-            let rhs_type = rhs_type.name_fct(self.sa, self.fct);
+            let lhs_type = self.ty_name(&lhs_type);
+            let rhs_type = self.ty_name(&rhs_type);
             let msg = ErrorMessage::BinOpType(op, lhs_type, rhs_type);
 
             self.sa.diag.lock().report(self.file_id, e.span, msg);
@@ -1571,7 +1634,7 @@ impl<'a> TypeCheck<'a> {
 
         let type_params_ok = typeparamck::check_enum(
             self.sa,
-            self.fct,
+            self.type_param_defs,
             enum_id,
             &type_params,
             ErrorReporting::Yes(self.file_id, e.span),
@@ -1592,7 +1655,7 @@ impl<'a> TypeCheck<'a> {
                 .collect::<Vec<_>>();
             let arg_types = arg_types
                 .iter()
-                .map(|a| a.name_fct(self.sa, self.fct))
+                .map(|a| self.ty_name(a))
                 .collect::<Vec<_>>();
             let msg = ErrorMessage::EnumArgsIncompatible(
                 enum_name,
@@ -1649,7 +1712,7 @@ impl<'a> TypeCheck<'a> {
     ) -> SourceType {
         let mut fcts = Vec::new();
 
-        for trait_ty in self.fct.type_params.bounds_for_type_param(tp_id) {
+        for trait_ty in self.type_param_defs.bounds_for_type_param(tp_id) {
             let trait_id = trait_ty.trait_id().expect("trait expected");
             let trait_ = self.sa.traits[trait_id].read();
 
@@ -1693,11 +1756,11 @@ impl<'a> TypeCheck<'a> {
             let fct_params = fct
                 .params_without_self()
                 .iter()
-                .map(|a| a.name_fct(self.sa, self.fct))
+                .map(|a| self.ty_name(a))
                 .collect::<Vec<_>>();
             let arg_types = arg_types
                 .iter()
-                .map(|a| a.name_fct(self.sa, self.fct))
+                .map(|a| self.ty_name(a))
                 .collect::<Vec<_>>();
             let msg = ErrorMessage::ParamTypesIncompatible(fct_name, fct_params, arg_types);
             self.sa.diag.lock().report(self.file_id, e.span, msg);
@@ -1768,7 +1831,7 @@ impl<'a> TypeCheck<'a> {
         let (params, return_type) = expr_type.to_lambda().expect("lambda expected");
 
         // Type params are mapped to themselves.
-        let type_params_count = self.fct.type_params.len();
+        let type_params_count = self.type_param_defs.len();
         let type_params = (0..type_params_count)
             .into_iter()
             .map(|idx| SourceType::TypeParam(TypeParamId(idx)))
@@ -1783,13 +1846,10 @@ impl<'a> TypeCheck<'a> {
             &type_params,
             None,
         ) {
-            let fct_params = params
-                .iter()
-                .map(|a| a.name_fct(self.sa, self.fct))
-                .collect::<Vec<_>>();
+            let fct_params = params.iter().map(|a| self.ty_name(&a)).collect::<Vec<_>>();
             let arg_types = arg_types
                 .iter()
-                .map(|a| a.name_fct(self.sa, self.fct))
+                .map(|a| self.ty_name(a))
                 .collect::<Vec<_>>();
             let msg = ErrorMessage::LambdaParamTypesIncompatible(fct_params, arg_types);
             self.sa.diag.lock().report(self.file_id, e.span, msg);
@@ -1819,11 +1879,12 @@ impl<'a> TypeCheck<'a> {
             self.sa.diag.lock().report(self.file_id, e.span, msg);
         }
 
-        let mut lookup = MethodLookup::new(self.sa, self.fct)
+        let lookup = MethodLookup::new(self.sa, self.file_id, self.type_param_defs)
             .span(e.span)
             .callee(fct_id)
             .args(&arg_types)
-            .fct_type_params(&type_params);
+            .fct_type_params(&type_params)
+            .find();
 
         let ty = if lookup.find() {
             let call_type = CallType::Fct(fct_id, type_params.clone());
@@ -1847,13 +1908,13 @@ impl<'a> TypeCheck<'a> {
         fct_type_params: SourceTypeArray,
         arg_types: &[SourceType],
     ) -> SourceType {
-        let mut lookup = MethodLookup::new(self.sa, self.fct)
+        let lookup = MethodLookup::new(self.sa, self.file_id, self.type_param_defs)
             .span(e.span)
             .static_method(object_type)
             .name(method_name)
             .args(arg_types)
             .fct_type_params(&fct_type_params)
-            .type_param_defs(&self.fct.type_params);
+            .find();
 
         if lookup.find() {
             let fct_id = lookup.found_fct_id().unwrap();
@@ -1901,13 +1962,13 @@ impl<'a> TypeCheck<'a> {
             return SourceType::Error;
         }
 
-        let mut lookup = MethodLookup::new(self.sa, self.fct)
+        let lookup = MethodLookup::new(self.sa, self.file_id, self.type_param_defs)
             .no_error_reporting()
             .method(object_type.clone())
             .name(method_name)
             .fct_type_params(&fct_type_params)
-            .type_param_defs(&self.fct.type_params)
-            .args(arg_types);
+            .args(arg_types)
+            .find();
 
         if lookup.find() {
             let fct_id = lookup.found_fct_id().unwrap();
@@ -1942,13 +2003,13 @@ impl<'a> TypeCheck<'a> {
             self.check_expr_call_field(e, object_type, method_name, fct_type_params, arg_types)
         } else {
             // Lookup the method again, but this time with error reporting
-            let mut lookup = MethodLookup::new(self.sa, self.fct)
+            let lookup = MethodLookup::new(self.sa, self.file_id, self.type_param_defs)
                 .method(object_type)
                 .name(method_name)
                 .fct_type_params(&fct_type_params)
-                .type_param_defs(&self.fct.type_params)
                 .span(e.span)
-                .args(arg_types);
+                .args(arg_types)
+                .find();
 
             assert!(!lookup.find());
 
@@ -2013,13 +2074,13 @@ impl<'a> TypeCheck<'a> {
         }
 
         // No field with that name as well, so report method
-        let mut lookup = MethodLookup::new(self.sa, self.fct)
+        let lookup = MethodLookup::new(self.sa, self.file_id, self.type_param_defs)
             .method(object_type)
             .name(method_name)
             .fct_type_params(&type_params)
-            .type_param_defs(&self.fct.type_params)
             .span(e.span)
-            .args(arg_types);
+            .args(arg_types)
+            .find();
         assert!(!lookup.find());
 
         self.analysis.set_ty(e.id, SourceType::Error);
@@ -2057,7 +2118,7 @@ impl<'a> TypeCheck<'a> {
         let ty = SourceType::Struct(struct_id, type_params.clone());
         let type_params_ok = typeparamck::check_struct(
             self.sa,
-            self.fct,
+            self.type_param_defs,
             struct_id,
             &type_params,
             ErrorReporting::Yes(self.file_id, e.span),
@@ -2077,7 +2138,7 @@ impl<'a> TypeCheck<'a> {
                 .collect::<Vec<_>>();
             let arg_types = arg_types
                 .iter()
-                .map(|a| a.name_fct(self.sa, self.fct))
+                .map(|a| self.ty_name(a))
                 .collect::<Vec<_>>();
             let msg = ErrorMessage::StructArgsIncompatible(struct_name, field_types, arg_types);
             self.sa.diag.lock().report(self.file_id, e.span, msg);
@@ -2137,7 +2198,7 @@ impl<'a> TypeCheck<'a> {
 
         if !typeparamck::check_class(
             self.sa,
-            self.fct,
+            self.type_param_defs,
             cls_id,
             &type_params,
             ErrorReporting::Yes(self.file_id, e.span),
@@ -2167,7 +2228,7 @@ impl<'a> TypeCheck<'a> {
                 .collect::<Vec<_>>();
             let arg_types = arg_types
                 .iter()
-                .map(|a| a.name_fct(self.sa, self.fct))
+                .map(|a| self.ty_name(a))
                 .collect::<Vec<_>>();
             let msg = ErrorMessage::ParamTypesIncompatible(class_name, field_types, arg_types);
             self.sa.diag.lock().report(self.file_id, e.span, msg);
@@ -2228,7 +2289,7 @@ impl<'a> TypeCheck<'a> {
     ) -> SourceType {
         let mut found_fcts = Vec::new();
 
-        for trait_ty in self.fct.type_params.bounds_for_type_param(id) {
+        for trait_ty in self.type_param_defs.bounds_for_type_param(id) {
             let trait_id = trait_ty.trait_id().expect("trait expected");
             let trait_ = self.sa.traits[trait_id].read();
 
@@ -2251,11 +2312,11 @@ impl<'a> TypeCheck<'a> {
 
             return_type
         } else {
-            let type_name = object_type.name_fct(self.sa, self.fct);
+            let type_name = self.ty_name(&object_type);
             let name = self.sa.interner.str(name).to_string();
             let param_names = args
                 .iter()
-                .map(|a| a.name_fct(self.sa, self.fct))
+                .map(|a| self.ty_name(a))
                 .collect::<Vec<String>>();
             let msg = if found_fcts.len() == 0 {
                 ErrorMessage::UnknownMethodForTypeParam(type_name, name, param_names)
@@ -2321,7 +2382,7 @@ impl<'a> TypeCheck<'a> {
             Some(Sym::Class(cls_id)) => {
                 if typeparamck::check_class(
                     self.sa,
-                    self.fct,
+                    self.type_param_defs,
                     cls_id,
                     &container_type_params,
                     ErrorReporting::Yes(self.file_id, e.span),
@@ -2344,7 +2405,7 @@ impl<'a> TypeCheck<'a> {
 
                 if typeparamck::check_struct(
                     self.sa,
-                    self.fct,
+                    self.type_param_defs,
                     struct_id,
                     &container_type_params,
                     ErrorReporting::Yes(self.file_id, e.span),
@@ -2398,7 +2459,7 @@ impl<'a> TypeCheck<'a> {
                 } else {
                     if typeparamck::check_enum(
                         self.sa,
-                        self.fct,
+                        self.type_param_defs,
                         enum_id,
                         &container_type_params,
                         ErrorReporting::Yes(self.file_id, e.span),
@@ -2687,7 +2748,7 @@ impl<'a> TypeCheck<'a> {
                 let module = module.name(self.sa);
                 let name = self.sa.interner.str(element_name).to_string();
                 self.sa.diag.lock().report(
-                    self.fct.file_id,
+                    self.file_id,
                     e.span,
                     ErrorMessage::UnknownIdentifierInModule(module, name),
                 );
@@ -2698,7 +2759,7 @@ impl<'a> TypeCheck<'a> {
                 self.sa
                     .diag
                     .lock()
-                    .report(self.fct.file_id, e.span, ErrorMessage::ValueExpected);
+                    .report(self.file_id, e.span, ErrorMessage::ValueExpected);
                 SourceType::Error
             }
         }
@@ -2722,7 +2783,7 @@ impl<'a> TypeCheck<'a> {
 
         let type_params_ok = typeparamck::check_enum(
             self.sa,
-            self.fct,
+            self.type_param_defs,
             enum_id,
             &type_params,
             ErrorReporting::Yes(self.file_id, expr_span),
@@ -2889,7 +2950,7 @@ impl<'a> TypeCheck<'a> {
 
         let type_params_ok = typeparamck::check_enum(
             self.sa,
-            self.fct,
+            self.type_param_defs,
             enum_id,
             &type_params,
             ErrorReporting::Yes(self.file_id, expr_span),
@@ -2903,7 +2964,7 @@ impl<'a> TypeCheck<'a> {
             let variant_types = variant
                 .types
                 .iter()
-                .map(|a| a.name_fct(self.sa, self.fct))
+                .map(|a| self.ty_name(a))
                 .collect::<Vec<_>>();
             let arg_types = Vec::new();
             let msg = ErrorMessage::EnumArgsIncompatible(
@@ -3001,7 +3062,7 @@ impl<'a> TypeCheck<'a> {
         // field not found, report error
         if !object_type.is_error() {
             let field_name = self.sa.interner.str(name).to_string();
-            let expr_name = object_type.name_fct(self.sa, self.fct);
+            let expr_name = self.ty_name(&object_type);
             let msg = ErrorMessage::UnknownField(field_name, expr_name);
             self.sa.diag.lock().report(self.file_id, e.op_span, msg);
         }
@@ -3046,8 +3107,7 @@ impl<'a> TypeCheck<'a> {
         let subtypes = object_type.tuple_subtypes();
 
         if index >= subtypes.len() as u64 {
-            let msg =
-                ErrorMessage::IllegalTupleIndex(index, object_type.name_fct(self.sa, self.fct));
+            let msg = ErrorMessage::IllegalTupleIndex(index, self.ty_name(&object_type));
             self.sa.diag.lock().report(self.file_id, e.op_span, msg);
 
             self.analysis.set_ty(e.id, SourceType::Error);
@@ -3100,7 +3160,7 @@ impl<'a> TypeCheck<'a> {
         }
 
         let ty = SourceType::Lambda(SourceTypeArray::with(params.clone()), Box::new(ret.clone()));
-        let parent_fct_id = self.fct.id();
+        let parent_fct_id = self.fct().id();
 
         let mut params_with_ctxt = vec![SourceType::Ptr];
         params_with_ctxt.append(&mut params);
@@ -3117,7 +3177,7 @@ impl<'a> TypeCheck<'a> {
         );
         lambda.param_types = params_with_ctxt;
         lambda.return_type = ret;
-        lambda.type_params = self.fct.type_params.clone();
+        lambda.type_params = self.type_param_defs.clone();
         let lambda_fct_id = self.sa.add_fct(lambda);
         self.analysis.map_lambdas.insert(node.id, lambda_fct_id);
 
@@ -3131,10 +3191,11 @@ impl<'a> TypeCheck<'a> {
 
                 let mut typeck = TypeCheck {
                     sa: self.sa,
-                    fct: &*lambda,
-                    package_id: self.fct.package_id,
-                    module_id: self.fct.module_id,
-                    file_id: self.fct.file_id,
+                    fct: Some(&*lambda),
+                    type_param_defs: &lambda.type_params,
+                    package_id: self.package_id,
+                    module_id: self.module_id,
+                    file_id: self.file_id,
                     analysis: &mut analysis,
                     symtable: &mut self.symtable,
                     in_loop: false,
@@ -3145,7 +3206,7 @@ impl<'a> TypeCheck<'a> {
                     outer_context_access_from_lambda: false,
                 };
 
-                typeck.check(&node);
+                typeck.check_fct(&node);
             }
 
             if analysis.outer_context_access() {
@@ -3171,13 +3232,13 @@ impl<'a> TypeCheck<'a> {
             let implements = implements_trait(
                 self.sa,
                 object_type.clone(),
-                &self.fct.type_params,
+                &self.type_param_defs,
                 check_type.clone(),
             );
 
             if !implements {
-                let object_type = object_type.name_fct(self.sa, self.fct);
-                let check_type = check_type.name_fct(self.sa, self.fct);
+                let object_type = self.ty_name(&object_type);
+                let check_type = self.ty_name(&check_type);
 
                 self.sa.diag.lock().report(
                     self.file_id,
@@ -3189,7 +3250,7 @@ impl<'a> TypeCheck<'a> {
             self.analysis.set_ty(e.id, check_type.clone());
             check_type
         } else if !check_type.is_error() {
-            let name = check_type.name_fct(self.sa, self.fct);
+            let name = self.ty_name(&check_type);
             self.sa
                 .diag
                 .lock()
@@ -3284,24 +3345,36 @@ impl<'a> TypeCheck<'a> {
                     continue;
                 }
 
-                let implements_stringable = if let SourceType::TypeParam(id) = part_expr {
-                    self.fct
-                        .type_params
+                if let SourceType::TypeParam(id) = part_expr {
+                    if self
+                        .type_param_defs
                         .implements_trait(id, stringable_trait_ty.clone())
+                    {
+                        continue;
+                    }
                 } else {
-                    implements_trait(
+                    let stringable_impl_id = find_impl(
                         self.sa,
                         part_expr.clone(),
-                        &self.fct.type_params,
+                        &self.type_param_defs,
                         stringable_trait_ty.clone(),
-                    )
-                };
+                    );
 
-                if implements_stringable {
-                    continue;
+                    if let Some(stringable_impl_id) = stringable_impl_id {
+                        let impl_ = self.sa.impls[stringable_impl_id].read();
+                        let name = self.sa.interner.intern("toString");
+                        let to_string_id = impl_
+                            .instance_names
+                            .get(&name)
+                            .cloned()
+                            .expect("method toString() not found");
+
+                        self.analysis.map_templates.insert(part.id(), to_string_id);
+                        continue;
+                    }
                 }
 
-                let ty = part_expr.name_fct(self.sa, self.fct);
+                let ty = self.ty_name(&part_expr);
                 self.sa.diag.lock().report(
                     self.file_id,
                     part.span(),
@@ -3368,10 +3441,26 @@ impl<'a> TypeCheck<'a> {
             self.sa
                 .diag
                 .lock()
-                .report(self.fct.file_id, expr.span(), ErrorMessage::OutsideLoop);
+                .report(self.file_id, expr.span(), ErrorMessage::OutsideLoop);
         }
 
         SourceType::Unit
+    }
+
+    fn fct(&self) -> &FctDefinition {
+        self.fct.expect("missing function")
+    }
+
+    fn has_self(&self) -> bool {
+        self.fct.map(|fct| fct.has_self()).unwrap_or(false)
+    }
+
+    fn in_function(&self) -> bool {
+        self.fct.is_some()
+    }
+
+    fn ty_name(&self, ty: &SourceType) -> String {
+        ty.name_with_type_params(self.sa, self.type_param_defs)
     }
 }
 

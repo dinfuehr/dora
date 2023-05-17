@@ -72,7 +72,7 @@ pub fn check(sa: &SemAnalysis) {
                     fct.type_params.add_type_param(name);
 
                     for bound in &type_param.bounds {
-                        let ty = language::read_type(
+                        let ty = language::read_type_context(
                             sa,
                             &sym_table,
                             fct.file_id,
@@ -117,7 +117,7 @@ pub fn check(sa: &SemAnalysis) {
                 );
             }
 
-            let ty = language::read_type(
+            let ty = language::read_type_context(
                 sa,
                 &sym_table,
                 fct.file_id,
@@ -139,7 +139,7 @@ pub fn check(sa: &SemAnalysis) {
         }
 
         if let Some(ret) = ast.return_type.as_ref() {
-            let ty = language::read_type(
+            let ty = language::read_type_context(
                 sa,
                 &sym_table,
                 fct.file_id,

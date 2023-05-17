@@ -172,6 +172,7 @@ pub enum ErrorMessage {
     UnknownPackage(String),
     NegativeUnsigned,
     InvalidCharLiteral,
+    InvalidReturn,
 }
 
 impl ErrorMessage {
@@ -613,6 +614,9 @@ impl ErrorMessage {
             }
             ErrorMessage::InvalidEscapeSequence => {
                 format!("invalid escape sequence.")
+            }
+            ErrorMessage::InvalidReturn => {
+                format!("`return` cannot be used in this context.")
             }
         }
     }

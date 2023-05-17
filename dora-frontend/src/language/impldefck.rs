@@ -61,7 +61,7 @@ impl<'x> ImplCheck<'x> {
 
         let ast_trait_type = self.ast.trait_type.as_ref().unwrap();
 
-        if let Some(trait_ty) = language::read_type(
+        if let Some(trait_ty) = language::read_type_context(
             self.sa,
             &self.sym,
             self.file_id.into(),
@@ -84,7 +84,7 @@ impl<'x> ImplCheck<'x> {
             }
         }
 
-        if let Some(class_ty) = language::read_type(
+        if let Some(class_ty) = language::read_type_context(
             self.sa,
             &self.sym,
             self.file_id.into(),

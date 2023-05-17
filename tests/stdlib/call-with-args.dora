@@ -1,9 +1,0 @@
-//= error
-
-fn main() {
-    std::call("foo");
-}
-
-fn foo(a: Int32) {
-    println(a.toString());
-}

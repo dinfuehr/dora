@@ -8,7 +8,7 @@ use crate::language::error::msg::ErrorMessage;
 use crate::language::sem_analysis::{EnumDefinition, EnumVariant, SemAnalysis, SourceFileId};
 use crate::language::sym::{ModuleSymTable, Sym};
 use crate::language::ty::SourceType;
-use crate::language::{read_type, AllowSelf, TypeParamContext};
+use crate::language::{read_type_context, AllowSelf, TypeParamContext};
 
 pub fn check(sa: &SemAnalysis) {
     for enum_ in sa.enums.iter() {
@@ -54,7 +54,7 @@ impl<'x> EnumCheck<'x> {
 
             if let Some(ref variant_types) = value.types {
                 for ty in variant_types {
-                    let variant_ty = read_type(
+                    let variant_ty = read_type_context(
                         self.sa,
                         &symtable,
                         self.file_id.into(),

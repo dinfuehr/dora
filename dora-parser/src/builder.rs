@@ -19,10 +19,10 @@ impl Builder {
         BuilderFct::new(name)
     }
 
-    pub fn build_initializer_assign(&self, id: NodeId, lhs: Expr, rhs: Expr) -> Expr {
+    pub fn build_initializer_assign(&self, id: NodeId, span: Span, lhs: Expr, rhs: Expr) -> Expr {
         Arc::new(ExprData::Bin(ExprBinType {
             id,
-            span: Span::invalid(),
+            span,
 
             op: BinOp::Assign,
             initializer: true,
@@ -31,13 +31,8 @@ impl Builder {
         }))
     }
 
-    pub fn build_ident(&self, id: NodeId, name: Name) -> Expr {
-        Arc::new(ExprData::Ident(ExprIdentType {
-            id,
-            span: Span::invalid(),
-
-            name,
-        }))
+    pub fn build_ident(&self, id: NodeId, span: Span, name: Name) -> Expr {
+        Arc::new(ExprData::Ident(ExprIdentType { id, span, name }))
     }
 }
 
@@ -67,14 +62,14 @@ impl<'a> BuilderFct {
         self
     }
 
-    pub fn build(self, id: NodeId) -> Function {
+    pub fn build(self, id: NodeId, span: Span) -> Function {
         Function {
             id,
             kind: FunctionKind::Function,
-            span: Span::invalid(),
+            span,
             name: Some(Arc::new(IdentData {
                 name: self.name,
-                span: Span::invalid(),
+                span,
             })),
             is_optimize_immediately: false,
             visibility: self.visibility,
@@ -102,7 +97,7 @@ impl<'a> BuilderBlock {
     pub fn add_expr(&mut self, id: NodeId, expr: Expr) -> &mut BuilderBlock {
         let stmt = Arc::new(StmtData::Expr(StmtExprType {
             id,
-            span: Span::invalid(),
+            span: expr.span(),
             expr,
         }));
 
@@ -110,10 +105,10 @@ impl<'a> BuilderBlock {
         self
     }
 
-    pub fn build(self, id: NodeId) -> Expr {
+    pub fn build(self, id: NodeId, span: Span) -> Expr {
         Arc::new(ExprData::Block(ExprBlockType {
             id,
-            span: Span::invalid(),
+            span,
             stmts: self.stmts,
             expr: None,
         }))

@@ -2,8 +2,8 @@ use dora_parser::Span;
 
 use crate::language::error::msg::ErrorMessage;
 use crate::language::sem_analysis::{
-    implements_trait, ClassDefinitionId, EnumDefinitionId, FctDefinition, SemAnalysis,
-    SourceFileId, StructDefinitionId, TypeParamDefinition,
+    implements_trait, ClassDefinitionId, EnumDefinitionId, SemAnalysis, SourceFileId,
+    StructDefinitionId, TypeParamDefinition,
 };
 use crate::language::specialize::specialize_type;
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -15,7 +15,7 @@ pub enum ErrorReporting {
 
 pub fn check_enum(
     sa: &SemAnalysis,
-    fct: &FctDefinition,
+    caller_type_param_defs: &TypeParamDefinition,
     enum_id: EnumDefinitionId,
     type_params: &SourceTypeArray,
     error: ErrorReporting,
@@ -25,7 +25,7 @@ pub fn check_enum(
 
     let checker = TypeParamCheck {
         sa,
-        caller_type_param_defs: &fct.type_params,
+        caller_type_param_defs,
         callee_type_param_defs: enum_.type_params(),
         error,
     };
@@ -35,7 +35,7 @@ pub fn check_enum(
 
 pub fn check_struct(
     sa: &SemAnalysis,
-    fct: &FctDefinition,
+    caller_type_param_defs: &TypeParamDefinition,
     struct_id: StructDefinitionId,
     type_params: &SourceTypeArray,
     error: ErrorReporting,
@@ -45,7 +45,7 @@ pub fn check_struct(
 
     let checker = TypeParamCheck {
         sa,
-        caller_type_param_defs: &fct.type_params,
+        caller_type_param_defs,
         callee_type_param_defs: struct_.type_params(),
         error,
     };
@@ -55,7 +55,7 @@ pub fn check_struct(
 
 pub fn check_class(
     sa: &SemAnalysis,
-    fct: &FctDefinition,
+    caller_type_param_defs: &TypeParamDefinition,
     cls_id: ClassDefinitionId,
     type_params: &SourceTypeArray,
     error: ErrorReporting,
@@ -65,7 +65,7 @@ pub fn check_class(
 
     let checker = TypeParamCheck {
         sa,
-        caller_type_param_defs: &fct.type_params,
+        caller_type_param_defs,
         callee_type_param_defs: cls.type_params(),
         error,
     };
@@ -75,15 +75,15 @@ pub fn check_class(
 
 pub fn check_params<'a>(
     sa: &'a SemAnalysis,
-    fct: &'a FctDefinition,
-    error: ErrorReporting,
+    caller_type_param_defs: &'a TypeParamDefinition,
     callee_type_param_defs: &'a TypeParamDefinition,
     params: &'a SourceTypeArray,
+    error: ErrorReporting,
 ) -> bool {
     let checker = TypeParamCheck {
         sa,
-        caller_type_param_defs: &fct.type_params,
-        callee_type_param_defs: callee_type_param_defs,
+        caller_type_param_defs,
+        callee_type_param_defs,
         error,
     };
 

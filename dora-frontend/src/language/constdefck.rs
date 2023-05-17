@@ -39,7 +39,7 @@ struct ConstCheck<'x> {
 
 impl<'x> ConstCheck<'x> {
     fn check(&mut self) {
-        let ty = language::read_type(
+        let ty = language::read_type_context(
             self.sa,
             &self.symtable,
             self.file_id,

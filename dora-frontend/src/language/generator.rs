@@ -4,9 +4,9 @@ use std::convert::TryInto;
 use dora_parser::{ast, Span};
 
 use crate::language::sem_analysis::{
-    emit_as_bytecode_operation, find_impl, AnalysisData, CallType, ClassDefinitionId,
-    ConstDefinitionId, ContextIdx, EnumDefinitionId, FctDefinition, FctDefinitionId, FieldId,
-    GlobalDefinitionId, IdentType, SemAnalysis, StructDefinitionId, TraitDefinitionId, TypeParamId,
+    emit_as_bytecode_operation, AnalysisData, CallType, ClassDefinitionId, ConstDefinitionId,
+    ContextIdx, EnumDefinitionId, FctDefinition, FctDefinitionId, FieldId, GlobalDefinitionId,
+    IdentType, SemAnalysis, SourceFileId, StructDefinitionId, TraitDefinitionId, TypeParamId,
     VarId,
 };
 use crate::language::specialize::specialize_type;
@@ -42,6 +42,9 @@ pub fn generate(sa: &SemAnalysis, fct: &FctDefinition, src: &AnalysisData) -> By
     let ast_bytecode_generator = AstBytecodeGen {
         sa,
         fct,
+        return_type: Some(fct.return_type.clone()),
+        file_id: fct.file_id,
+        span: fct.span,
         analysis: src,
 
         builder: BytecodeBuilder::new(),
@@ -50,7 +53,7 @@ pub fn generate(sa: &SemAnalysis, fct: &FctDefinition, src: &AnalysisData) -> By
         unit_register: None,
         context_register: None,
     };
-    ast_bytecode_generator.generate(&fct.ast)
+    ast_bytecode_generator.generate_fct(&fct.ast)
 }
 
 const SELF_VAR_ID: VarId = VarId(0);
@@ -58,6 +61,9 @@ const SELF_VAR_ID: VarId = VarId(0);
 struct AstBytecodeGen<'a> {
     sa: &'a SemAnalysis,
     fct: &'a FctDefinition,
+    return_type: Option<SourceType>,
+    file_id: SourceFileId,
+    span: Span,
     analysis: &'a AnalysisData,
 
     builder: BytecodeBuilder,
@@ -69,15 +75,23 @@ struct AstBytecodeGen<'a> {
 
 impl<'a> AstBytecodeGen<'a> {
     fn loc(&self, span: Span) -> Location {
-        self.sa.compute_loc(self.fct.file_id, span)
+        self.sa.compute_loc(self.file_id, span)
     }
 
-    fn generate(mut self, ast: &ast::Function) -> BytecodeFunction {
+    fn generate_fct(mut self, ast: &ast::Function) -> BytecodeFunction {
         self.push_scope();
+        self.create_params(ast);
+        self.create_context();
+        self.initialize_params(ast);
+        self.emit_function_body(ast);
+        self.pop_scope();
+        self.builder.generate()
+    }
 
+    fn create_params(&mut self, ast: &ast::Function) {
         let mut params = Vec::new();
 
-        if self.fct.has_self() {
+        if self.analysis.has_self() {
             let var_self = self.analysis.vars.get_self();
             let var_ty = var_self.ty.clone();
 
@@ -100,16 +114,16 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         self.builder.set_params(params);
+    }
 
-        self.create_context();
-
-        let next_register_idx = if self.fct.has_self() {
+    fn initialize_params(&mut self, ast: &ast::Function) {
+        let next_register_idx = if self.analysis.has_self() {
             let var_self = self.analysis.vars.get_self();
             let reg = Register(0);
 
             match var_self.location {
                 VarLocation::Context(context_idx) => {
-                    self.store_in_context(reg, context_idx, self.loc(self.fct.span));
+                    self.store_in_context(reg, context_idx, self.loc(self.span));
                 }
 
                 VarLocation::Stack => {
@@ -129,7 +143,7 @@ impl<'a> AstBytecodeGen<'a> {
 
             match var.location {
                 VarLocation::Context(context_idx) => {
-                    self.store_in_context(reg, context_idx, self.loc(self.fct.span));
+                    self.store_in_context(reg, context_idx, self.loc(self.span));
                 }
 
                 VarLocation::Stack => {
@@ -137,13 +151,20 @@ impl<'a> AstBytecodeGen<'a> {
                 }
             }
         }
+    }
 
-        let return_type = if self.fct.return_type.is_unit() {
+    fn emit_function_body(&mut self, ast: &ast::Function) {
+        let return_type = self
+            .return_type
+            .as_ref()
+            .expect("missing return type")
+            .clone();
+        let bty_return_type = if return_type.is_unit() {
             None
         } else {
-            Some(bty_from_ty(self.fct.return_type.clone()))
+            Some(bty_from_ty(return_type.clone()))
         };
-        self.builder.set_return_type(return_type);
+        self.builder.set_return_type(bty_return_type);
 
         let mut needs_return = true;
 
@@ -165,13 +186,10 @@ impl<'a> AstBytecodeGen<'a> {
             self.free_if_temp(reg);
         }
 
-        if needs_return && self.fct.return_type.is_unit() {
+        if needs_return && return_type.is_unit() {
             let dest = self.ensure_unit_register();
             self.builder.emit_ret(dest);
         }
-
-        self.pop_scope();
-        self.builder.generate()
     }
 
     fn create_context(&mut self) {
@@ -182,7 +200,7 @@ impl<'a> AstBytecodeGen<'a> {
                 bty_array_from_ty(&self.identity_type_params()),
             );
             self.builder
-                .emit_new_object(context_register, idx, self.loc(self.fct.span));
+                .emit_new_object(context_register, idx, self.loc(self.span));
             self.context_register = Some(context_register);
 
             if self.analysis.context_has_outer_context_slot() {
@@ -196,12 +214,8 @@ impl<'a> AstBytecodeGen<'a> {
                     BytecodeTypeArray::empty(),
                     0,
                 );
-                self.builder.emit_load_field(
-                    outer_context_reg,
-                    self_reg,
-                    idx,
-                    self.loc(self.fct.span),
-                );
+                self.builder
+                    .emit_load_field(outer_context_reg, self_reg, idx, self.loc(self.span));
 
                 // Store value in outer_context field of context object.
                 let idx = self.builder.add_const_field_types(
@@ -213,7 +227,7 @@ impl<'a> AstBytecodeGen<'a> {
                     outer_context_reg,
                     context_register,
                     idx,
-                    self.loc(self.fct.span),
+                    self.loc(self.span),
                 );
 
                 self.free_temp(outer_context_reg);
@@ -579,7 +593,11 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn emit_ret_value(&mut self, result_reg: Register) {
-        let ret_ty = self.fct.return_type.clone();
+        let ret_ty = self
+            .return_type
+            .as_ref()
+            .expect("missing return type")
+            .clone();
 
         if ret_ty.is_unit() {
             let dest = self.ensure_unit_register();
@@ -706,20 +724,11 @@ impl<'a> AstBytecodeGen<'a> {
                     self.builder.emit_push_register(expr_register);
 
                     // build toString() call
-                    let name = self.sa.interner.intern("toString");
-                    let stringable_impl_id = find_impl(
-                        self.sa,
-                        ty,
-                        &self.fct.type_params,
-                        SourceType::new_trait(self.sa.known.traits.stringable()),
-                    )
-                    .expect("impl of Stringable not found");
-                    let impl_ = self.sa.impls[stringable_impl_id].read();
-                    let to_string_id = impl_
-                        .instance_names
-                        .get(&name)
-                        .cloned()
-                        .expect("method toString() not found");
+                    let to_string_id = self
+                        .analysis
+                        .map_templates
+                        .get(part.id())
+                        .expect("missing toString id");
 
                     let fct_idx = self
                         .builder

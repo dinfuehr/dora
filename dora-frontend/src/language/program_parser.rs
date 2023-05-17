@@ -489,7 +489,9 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         );
         let global_id = self.sa.globals.push(global);
 
-        generate_function_for_initial_value(self.sa, global_id, &self.id_generator, node);
+        if !self.sa.args.check_global_initializer {
+            generate_function_for_initial_value(self.sa, global_id, &self.id_generator, node);
+        }
 
         let sym = Sym::Global(global_id);
         if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
@@ -667,20 +669,25 @@ fn generate_function_for_initial_value(
     if let Some(ref initial_value) = node.initial_value {
         let global = sa.globals.idx(global_id);
         let mut global = global.write();
+        let span = global.span;
 
         let function_ast = {
             let builder = Builder::new();
             let mut block = builder.build_block();
 
-            let var = builder.build_ident(id_generator.next(), global.name);
-            let assignment =
-                builder.build_initializer_assign(id_generator.next(), var, initial_value.clone());
+            let var = builder.build_ident(id_generator.next(), span, global.name);
+            let assignment = builder.build_initializer_assign(
+                id_generator.next(),
+                span,
+                var,
+                initial_value.clone(),
+            );
 
             block.add_expr(id_generator.next(), assignment);
 
             let mut fct = builder.build_fct(global.name);
-            fct.block(block.build(id_generator.next()));
-            Arc::new(fct.build(id_generator.next()))
+            fct.block(block.build(id_generator.next(), span));
+            Arc::new(fct.build(id_generator.next(), span))
         };
 
         let fct = FctDefinition::new(

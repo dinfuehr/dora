@@ -1,6 +1,8 @@
 use crate::language::fctbodyck::body::{TypeCheck, VarManager};
 use crate::language::fctbodyck::constck::ConstCheck;
-use crate::language::sem_analysis::{AnalysisData, FctDefinitionId, SemAnalysis};
+use crate::language::sem_analysis::{
+    AnalysisData, FctDefinitionId, GlobalDefinitionId, SemAnalysis, TypeParamDefinition,
+};
 use crate::language::sym::ModuleSymTable;
 
 pub mod body;
@@ -31,6 +33,15 @@ pub fn check(sa: &mut SemAnalysis) {
 
         const_.value = value;
     }
+
+    if sa.args.check_global_initializer {
+        let mut idx: u32 = 0;
+
+        while idx < sa.globals.len() as u32 {
+            check_global(sa, GlobalDefinitionId(idx));
+            idx += 1;
+        }
+    }
 }
 
 fn check_function(sa: &mut SemAnalysis, id: FctDefinitionId) {
@@ -54,7 +65,8 @@ fn check_function(sa: &mut SemAnalysis, id: FctDefinitionId) {
 
         let mut typeck = TypeCheck {
             sa,
-            fct: &fct,
+            fct: Some(&*fct),
+            type_param_defs: &fct.type_params,
             package_id: fct.package_id,
             module_id: fct.module_id,
             file_id: fct.file_id,
@@ -68,10 +80,52 @@ fn check_function(sa: &mut SemAnalysis, id: FctDefinitionId) {
             outer_context_access_from_lambda: false,
         };
 
-        typeck.check(&fct.ast);
+        typeck.check_fct(&fct.ast);
 
         analysis
     };
 
     fct.write().analysis = Some(analysis);
+}
+
+fn check_global(sa: &mut SemAnalysis, id: GlobalDefinitionId) {
+    let global = sa.globals.idx(id);
+
+    let analysis = {
+        let global = global.read();
+
+        if global.ast.initial_value.is_none() {
+            return;
+        }
+
+        let mut analysis = AnalysisData::new();
+        let mut symtable = ModuleSymTable::new(sa, global.module_id);
+        let mut vars = VarManager::new();
+
+        let mut typeck = TypeCheck {
+            sa,
+            fct: None,
+            type_param_defs: &TypeParamDefinition::new(),
+            package_id: global.package_id,
+            module_id: global.module_id,
+            file_id: global.file_id,
+            analysis: &mut analysis,
+            symtable: &mut symtable,
+            in_loop: false,
+            self_available: false,
+            vars: &mut vars,
+            contains_lambda: false,
+            outer_context_access_in_function: false,
+            outer_context_access_from_lambda: false,
+        };
+
+        typeck.check_initializer(
+            &*global,
+            global.ast.initial_value.as_ref().expect("missing expr"),
+        );
+
+        analysis
+    };
+
+    global.write().analysis = Some(analysis);
 }

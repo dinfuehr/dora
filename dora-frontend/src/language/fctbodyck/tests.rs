@@ -1099,6 +1099,11 @@ fn test_global_set() {
         (1, 41),
         ErrorMessage::LetReassigned,
     );
+    err(
+        "let x: Int32 = true;",
+        (1, 1),
+        ErrorMessage::AssignType("x".into(), "Int32".into(), "Bool".into()),
+    );
 }
 
 #[test]

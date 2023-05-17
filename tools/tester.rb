@@ -73,6 +73,7 @@ $all_configs = {
 $exit_after_n_failures = nil
 $env = {}
 $verbose = false
+$check_only = false
 
 def process_arguments
   idx = 0
@@ -110,6 +111,8 @@ def process_arguments
       $stress_timeout = 60
     elsif arg == "--verbose"
       $verbose = true
+    elsif arg == "--check"
+      $check_only = true
     else
       $files.push(arg)
     end
@@ -432,6 +435,7 @@ def run_test(test_case, config, mutex)
   cmdline = "#{binary_path}"
   cmdline << " #{$all_configs[config]}" unless $all_configs[config].empty?
   cmdline << " #{test_case.vm_args}" unless test_case.vm_args.empty?
+  cmdline << " --check" if $check_only
   cmdline << " #{test_case.test_file}"
   cmdline << " #{test_case.args}" unless test_case.args.empty?
 
@@ -467,6 +471,11 @@ def check_test_run_result(test_case, result)
 
   return "test timed out after #{test_case.get_timeout} seconds" if
     timeout
+
+  if $check_only
+    return "semantic check failed" if exit_code != 0
+    return true
+  end
 
   if test_case.expectation.fail
     position, message = read_error_message(stderr)

@@ -177,7 +177,7 @@ pub fn verify_type(
     file_id: SourceFileId,
     t: &ast::TypeData,
     ty: SourceType,
-    ctxt: TypeParamContext,
+    type_param_defs: &TypeParamDefinition,
     allow_self: AllowSelf,
 ) -> bool {
     match t {
@@ -193,7 +193,15 @@ pub fn verify_type(
         }
 
         &ast::TypeData::Basic(ref node) => {
-            if !verify_type_basic(sa, module_id, file_id, node, ty, ctxt, allow_self) {
+            if !verify_type_basic(
+                sa,
+                module_id,
+                file_id,
+                node,
+                ty,
+                type_param_defs,
+                allow_self,
+            ) {
                 return false;
             }
         }
@@ -210,7 +218,15 @@ pub fn verify_type(
             assert_eq!(subtypes.len(), node.subtypes.len());
 
             for (subtype, ast_param) in subtypes.iter().zip(node.subtypes.iter()) {
-                if !verify_type(sa, module_id, file_id, ast_param, subtype, ctxt, allow_self) {
+                if !verify_type(
+                    sa,
+                    module_id,
+                    file_id,
+                    ast_param,
+                    subtype,
+                    type_param_defs,
+                    allow_self,
+                ) {
                     return false;
                 }
             }
@@ -224,13 +240,29 @@ pub fn verify_type(
             assert_eq!(params.len(), node.params.len());
 
             for (param, ast_param) in params.iter().zip(node.params.iter()) {
-                if !verify_type(sa, module_id, file_id, ast_param, param, ctxt, allow_self) {
+                if !verify_type(
+                    sa,
+                    module_id,
+                    file_id,
+                    ast_param,
+                    param,
+                    type_param_defs,
+                    allow_self,
+                ) {
                     return false;
                 }
             }
 
             if let Some(ref ret) = node.ret {
-                if !verify_type(sa, module_id, file_id, ret, return_type, ctxt, allow_self) {
+                if !verify_type(
+                    sa,
+                    module_id,
+                    file_id,
+                    ret,
+                    return_type,
+                    type_param_defs,
+                    allow_self,
+                ) {
                     return false;
                 }
             }
@@ -248,7 +280,7 @@ fn verify_type_basic(
     file_id: SourceFileId,
     node: &ast::TypeBasicType,
     ty: SourceType,
-    ctxt: TypeParamContext,
+    type_param_defs: &TypeParamDefinition,
     allow_self: AllowSelf,
 ) -> bool {
     match ty {
@@ -271,7 +303,7 @@ fn verify_type_basic(
                     file_id,
                     ast_type_param,
                     type_param,
-                    ctxt,
+                    type_param_defs,
                     allow_self,
                 ) {
                     return false;
@@ -284,7 +316,7 @@ fn verify_type_basic(
                 type_params.types(),
                 file_id,
                 node.span,
-                ctxt,
+                type_param_defs,
             ) {
                 return false;
             }
@@ -307,7 +339,7 @@ fn verify_type_basic(
                     file_id,
                     ast_type_param,
                     type_param,
-                    ctxt,
+                    type_param_defs,
                     allow_self,
                 ) {
                     return false;
@@ -320,7 +352,7 @@ fn verify_type_basic(
                 type_params.types(),
                 file_id,
                 node.span,
-                ctxt,
+                type_param_defs,
             ) {
                 return false;
             }
@@ -363,7 +395,7 @@ fn verify_type_basic(
                     file_id,
                     ast_type_param,
                     type_param,
-                    ctxt,
+                    type_param_defs,
                     allow_self,
                 ) {
                     return false;
@@ -376,7 +408,7 @@ fn verify_type_basic(
                 type_params.types(),
                 file_id,
                 node.span,
-                ctxt,
+                type_param_defs,
             ) {
                 return false;
             }
@@ -399,7 +431,7 @@ fn verify_type_basic(
                     file_id,
                     ast_type_param,
                     type_param,
-                    ctxt,
+                    type_param_defs,
                     allow_self,
                 ) {
                     return false;
@@ -412,7 +444,7 @@ fn verify_type_basic(
                 type_params.types(),
                 file_id,
                 node.span,
-                ctxt,
+                type_param_defs,
             ) {
                 return false;
             }
@@ -431,7 +463,7 @@ fn verify_type_basic(
     true
 }
 
-pub fn read_type(
+pub fn read_type_context(
     sa: &SemAnalysis,
     table: &ModuleSymTable,
     file_id: SourceFileId,
@@ -439,17 +471,32 @@ pub fn read_type(
     ctxt: TypeParamContext,
     allow_self: AllowSelf,
 ) -> Option<SourceType> {
+    use_type_params(sa, ctxt, |type_param_defs| {
+        read_type(sa, table, file_id, t, type_param_defs, allow_self)
+    })
+}
+
+pub fn read_type(
+    sa: &SemAnalysis,
+    table: &ModuleSymTable,
+    file_id: SourceFileId,
+    t: &ast::TypeData,
+    type_param_defs: &TypeParamDefinition,
+    allow_self: AllowSelf,
+) -> Option<SourceType> {
     let ty = read_type_unchecked(sa, table, file_id, t);
 
-    if verify_type(
+    let is_good = verify_type(
         sa,
         table.module_id(),
         file_id,
         t,
         ty.clone(),
-        ctxt,
+        type_param_defs,
         allow_self,
-    ) {
+    );
+
+    if is_good {
         Some(ty)
     } else {
         None
@@ -505,7 +552,7 @@ fn check_type_params(
     type_params: &[SourceType],
     file_id: SourceFileId,
     span: Span,
-    ctxt: TypeParamContext,
+    type_param_defs: &TypeParamDefinition,
 ) -> bool {
     if tp_definitions.len() != type_params.len() {
         let msg = ErrorMessage::WrongNumberTypeParams(tp_definitions.len(), type_params.len());
@@ -517,21 +564,19 @@ fn check_type_params(
 
     let mut success = true;
 
-    use_type_params(sa, ctxt, |check_type_param_defs| {
-        for bound in tp_definitions.bounds() {
-            let tp_ty = bound.ty();
-            let trait_ty = bound.trait_ty();
-            let tp_ty = specialize_type(sa, tp_ty, &type_params_sta);
+    for bound in tp_definitions.bounds() {
+        let tp_ty = bound.ty();
+        let trait_ty = bound.trait_ty();
+        let tp_ty = specialize_type(sa, tp_ty, &type_params_sta);
 
-            if !implements_trait(sa, tp_ty.clone(), check_type_param_defs, trait_ty.clone()) {
-                let name = tp_ty.name_with_type_params(sa, check_type_param_defs);
-                let trait_name = trait_ty.name_with_type_params(sa, check_type_param_defs);
-                let msg = ErrorMessage::TypeNotImplementingTrait(name, trait_name);
-                sa.diag.lock().report(file_id, span, msg);
-                success = false;
-            }
+        if !implements_trait(sa, tp_ty.clone(), type_param_defs, trait_ty.clone()) {
+            let name = tp_ty.name_with_type_params(sa, type_param_defs);
+            let trait_name = trait_ty.name_with_type_params(sa, type_param_defs);
+            let msg = ErrorMessage::TypeNotImplementingTrait(name, trait_name);
+            sa.diag.lock().report(file_id, span, msg);
+            success = false;
         }
-    });
+    }
 
     success
 }

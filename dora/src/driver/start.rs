@@ -111,6 +111,7 @@ fn compile_into_program(args: &Args, file: String) -> Result<Program, ()> {
         arg_file: Some(file),
         packages: args.packages.clone(),
         test_file_as_string: None,
+        check_global_initializer: false,
     };
 
     let mut sa = SemAnalysis::new(sem_args);

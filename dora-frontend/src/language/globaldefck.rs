@@ -41,7 +41,7 @@ struct GlobalDefCheck<'a> {
 
 impl<'a> GlobalDefCheck<'a> {
     fn check(&mut self) {
-        let ty = language::read_type(
+        let ty = language::read_type_context(
             self.sa,
             &self.symtable,
             self.file_id,
@@ -55,7 +55,7 @@ impl<'a> GlobalDefCheck<'a> {
         let mut global_var = global_var.write();
         global_var.ty = ty;
 
-        if global_var.initializer.is_none() {
+        if global_var.ast.initial_value.is_none() {
             let msg = ErrorMessage::LetMissingInitialization;
             self.sa.diag.lock().report(self.file_id, self.ast.span, msg);
         }

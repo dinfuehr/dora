@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::sync::Arc;
 
 use crate::error::{ParseError, ParseErrorWithLocation};
 use crate::TokenKind::*;
@@ -12,7 +11,6 @@ pub struct LexerResult {
 }
 
 pub fn lex(content: &str) -> LexerResult {
-    let content = Arc::new(content.into());
     let mut lexer = Lexer::new(content);
     let mut tokens = Vec::new();
     let mut widths = Vec::new();
@@ -33,16 +31,16 @@ pub fn lex(content: &str) -> LexerResult {
     }
 }
 
-struct Lexer {
-    content: Arc<String>,
+struct Lexer<'a> {
+    content: &'a str,
     offset: usize,
     keywords: HashMap<&'static str, TokenKind>,
     errors: Vec<ParseErrorWithLocation>,
     open_braces: Vec<usize>,
 }
 
-impl Lexer {
-    fn new(content: Arc<String>) -> Lexer {
+impl<'a> Lexer<'a> {
+    fn new(content: &str) -> Lexer {
         let keywords = keywords_in_map();
 
         Lexer {
@@ -627,7 +625,7 @@ mod tests {
         let error = &errors[0];
         assert_eq!(msg, error.error);
         assert_eq!(start, error.span.start());
-        assert_eq!(count, error.span.count());
+        assert_eq!(count, error.span.len());
     }
 
     #[test]

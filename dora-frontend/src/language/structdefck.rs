@@ -67,7 +67,7 @@ impl<'x> StructCheck<'x> {
     }
 
     fn visit_struct_field(&mut self, f: &ast::StructField, id: StructDefinitionFieldId) {
-        let ty = language::read_type(
+        let ty = language::read_type_context(
             self.sa,
             &self.symtable,
             self.file_id,

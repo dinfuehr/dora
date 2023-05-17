@@ -4,42 +4,31 @@ use std::result::Result;
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct Span {
     start: u32,
-    count: u32,
+    len: u32,
 }
 
 impl Span {
-    pub fn new(start: u32, count: u32) -> Span {
-        Span { start, count }
+    pub fn new(start: u32, len: u32) -> Span {
+        Span { start, len }
     }
 
     pub fn at(start: u32) -> Span {
         Span {
             start: start,
-            count: 0,
+            len: 0,
         }
-    }
-
-    pub fn invalid() -> Span {
-        Span {
-            start: u32::max_value(),
-            count: 0,
-        }
-    }
-
-    pub fn is_valid(&self) -> bool {
-        self.start != u32::max_value()
     }
 
     pub fn start(&self) -> u32 {
         self.start
     }
 
-    pub fn count(&self) -> u32 {
-        self.count
+    pub fn len(&self) -> u32 {
+        self.len
     }
 
     pub fn end(&self) -> u32 {
-        self.start + self.count
+        self.start + self.len
     }
 }
 

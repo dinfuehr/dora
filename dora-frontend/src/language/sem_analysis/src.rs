@@ -14,6 +14,8 @@ use crate::language::ty::{SourceType, SourceTypeArray};
 
 #[derive(Debug)]
 pub struct AnalysisData {
+    pub has_self: Option<bool>,
+    pub map_templates: NodeMap<FctDefinitionId>,
     pub map_calls: NodeMap<Arc<CallType>>, // maps function call to FctId
     pub map_idents: NodeMap<IdentType>,
     pub map_tys: NodeMap<SourceType>,
@@ -33,6 +35,8 @@ pub struct AnalysisData {
 impl AnalysisData {
     pub fn new() -> AnalysisData {
         AnalysisData {
+            has_self: None,
+            map_templates: NodeMap::new(),
             map_calls: NodeMap::new(),
             map_idents: NodeMap::new(),
             map_tys: NodeMap::new(),
@@ -49,6 +53,14 @@ impl AnalysisData {
             context_has_outer_context_slot: None,
             outer_context_access: None,
         }
+    }
+
+    pub fn set_has_self(&mut self, value: bool) {
+        self.has_self = Some(value);
+    }
+
+    pub fn has_self(&self) -> bool {
+        self.has_self.expect("has_self uninitialized")
     }
 
     pub fn set_ty(&mut self, id: ast::NodeId, ty: SourceType) {

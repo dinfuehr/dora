@@ -6,7 +6,7 @@ use crate::language::sem_analysis::{
 };
 use crate::language::sym::{ModuleSymTable, Sym};
 use crate::language::ty::SourceType;
-use crate::language::{read_type, AllowSelf, TypeParamContext};
+use crate::language::{read_type_context, AllowSelf, TypeParamContext};
 
 use dora_parser::ast;
 use dora_parser::interner::Name;
@@ -67,7 +67,7 @@ impl<'x> ClsDefCheck<'x> {
     }
 
     fn visit_field(&mut self, f: &ast::Field) {
-        let ty = read_type(
+        let ty = read_type_context(
             self.sa,
             &self.sym,
             self.file_id.into(),

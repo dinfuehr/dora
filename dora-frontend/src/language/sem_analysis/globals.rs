@@ -2,8 +2,8 @@ use std::convert::TryInto;
 use std::sync::Arc;
 
 use crate::language::sem_analysis::{
-    module_path, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, SemAnalysis,
-    SourceFileId, Visibility,
+    module_path, AnalysisData, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId,
+    SemAnalysis, SourceFileId, Visibility,
 };
 use crate::language::ty::SourceType;
 use crate::Id;
@@ -50,6 +50,7 @@ pub struct GlobalDefinition {
     pub mutable: bool,
     pub name: Name,
     pub initializer: Option<FctDefinitionId>,
+    pub analysis: Option<AnalysisData>,
 }
 
 impl GlobalDefinition {
@@ -72,6 +73,7 @@ impl GlobalDefinition {
             ty: SourceType::Unit,
             mutable: node.mutable,
             initializer: None,
+            analysis: None,
         }
     }
 

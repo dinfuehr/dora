@@ -6,7 +6,7 @@ use dora_parser::interner::Name;
 use dora_parser::Span;
 
 pub use program::emit_program;
-pub use readty::{read_type, read_type_unchecked, AllowSelf, TypeParamContext};
+pub use readty::{read_type, read_type_context, read_type_unchecked, AllowSelf, TypeParamContext};
 
 pub(crate) mod access;
 mod clsdefck;
