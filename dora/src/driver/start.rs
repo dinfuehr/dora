@@ -5,8 +5,8 @@ use std::time::Instant;
 
 use crate::driver::cmd::{self, Args};
 use dora_bytecode::{FunctionData, FunctionId, PackageId, Program};
-use dora_frontend::language;
-use dora_frontend::language::sema::{Sema, SemaArgs};
+use dora_frontend as language;
+use dora_frontend::sema::{Sema, SemaArgs};
 use dora_runtime::{clear_vm, display_fct, execute_on_main, set_vm, VM};
 
 pub fn start() -> i32 {
@@ -116,7 +116,7 @@ fn compile_into_program(args: &Args, file: String) -> Result<Program, ()> {
 
     let mut sa = Sema::new(sem_args);
 
-    let success = language::check(&mut sa);
+    let success = language::check_program(&mut sa);
     assert_eq!(success, !sa.diag.lock().has_errors());
 
     if report_errors(&sa) {

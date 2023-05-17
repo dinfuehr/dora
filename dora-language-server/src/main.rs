@@ -405,8 +405,7 @@ fn document_symbol_request(server_state: &mut ServerState, request: Request) {
 }
 
 fn compile_project(project: ProjectConfig, sender: Sender<MainLoopTask>) {
-    use dora_frontend::language;
-    use dora_frontend::language::sema::{Sema, SemaArgs};
+    use dora_frontend::sema::{Sema, SemaArgs};
     let sem_args = SemaArgs {
         arg_file: Some(project.main.to_string_lossy().into_owned()),
         packages: Vec::new(),
@@ -416,7 +415,7 @@ fn compile_project(project: ProjectConfig, sender: Sender<MainLoopTask>) {
 
     let mut sa = Sema::new(sem_args);
 
-    let success = language::check(&mut sa);
+    let success = dora_frontend::check_program(&mut sa);
     assert_eq!(success, !sa.diag.lock().has_errors());
     let mut errors_by_file: HashMap<PathBuf, Vec<Diagnostic>> = HashMap::new();
 
