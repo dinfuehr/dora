@@ -1,6 +1,6 @@
 use crate::language::error::msg::ErrorMessage;
-use crate::language::sem_analysis::{
-    EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId, SemAnalysis, SourceFileId,
+use crate::language::sema::{
+    EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId, Sema, SourceFileId,
     StructDefinitionId, TypeParamDefinition, TypeParamId,
 };
 use crate::language::sym::{ModuleSymTable, Sym};
@@ -11,7 +11,7 @@ use dora_parser::ast;
 use dora_parser::Span;
 use fixedbitset::FixedBitSet;
 
-pub fn check(sa: &SemAnalysis) {
+pub fn check(sa: &Sema) {
     for extension in sa.extensions.iter() {
         let (extension_id, file_id, module_id, ast) = {
             let extension = extension.read();
@@ -38,7 +38,7 @@ pub fn check(sa: &SemAnalysis) {
 }
 
 struct ExtensionCheck<'x> {
-    sa: &'x SemAnalysis,
+    sa: &'x Sema,
     file_id: SourceFileId,
     sym: ModuleSymTable,
     extension_id: ExtensionDefinitionId,
@@ -256,7 +256,7 @@ impl<'x> ExtensionCheck<'x> {
 }
 
 pub fn check_for_unconstrained_type_params(
-    sa: &SemAnalysis,
+    sa: &Sema,
     ty: SourceType,
     type_params_defs: &TypeParamDefinition,
     file_id: SourceFileId,
@@ -277,7 +277,7 @@ pub fn check_for_unconstrained_type_params(
     }
 }
 
-fn discover_type_params(sa: &SemAnalysis, ty: SourceType, used_type_params: &mut FixedBitSet) {
+fn discover_type_params(sa: &Sema, ty: SourceType, used_type_params: &mut FixedBitSet) {
     match ty {
         SourceType::Error
         | SourceType::Unit

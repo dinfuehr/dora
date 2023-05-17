@@ -1,11 +1,11 @@
-use crate::language::sem_analysis::{
+use crate::language::sema::{
     ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId, FctParent, FieldId,
-    GlobalDefinitionId, ModuleDefinitionId, SemAnalysis, StructDefinitionFieldId,
-    StructDefinitionId, TraitDefinitionId, Visibility,
+    GlobalDefinitionId, ModuleDefinitionId, Sema, StructDefinitionFieldId, StructDefinitionId,
+    TraitDefinitionId, Visibility,
 };
 use crate::language::sym::Sym;
 
-pub fn sym_accessible_from(sa: &SemAnalysis, sym: Sym, module_id: ModuleDefinitionId) -> bool {
+pub fn sym_accessible_from(sa: &Sema, sym: Sym, module_id: ModuleDefinitionId) -> bool {
     match sym {
         Sym::Class(class_id) => class_accessible_from(sa, class_id, module_id),
         Sym::Const(const_id) => const_accessible_from(sa, const_id, module_id),
@@ -23,7 +23,7 @@ pub fn sym_accessible_from(sa: &SemAnalysis, sym: Sym, module_id: ModuleDefiniti
 }
 
 pub fn global_accessible_from(
-    sa: &SemAnalysis,
+    sa: &Sema,
     global_id: GlobalDefinitionId,
     module_id: ModuleDefinitionId,
 ) -> bool {
@@ -34,7 +34,7 @@ pub fn global_accessible_from(
 }
 
 pub fn class_accessible_from(
-    sa: &SemAnalysis,
+    sa: &Sema,
     cls_id: ClassDefinitionId,
     module_id: ModuleDefinitionId,
 ) -> bool {
@@ -45,7 +45,7 @@ pub fn class_accessible_from(
 }
 
 pub fn class_field_accessible_from(
-    sa: &SemAnalysis,
+    sa: &Sema,
     cls_id: ClassDefinitionId,
     field_id: FieldId,
     module_id: ModuleDefinitionId,
@@ -68,7 +68,7 @@ pub fn class_field_accessible_from(
 }
 
 pub fn method_accessible_from(
-    sa: &SemAnalysis,
+    sa: &Sema,
     fct_id: FctDefinitionId,
     module_id: ModuleDefinitionId,
 ) -> bool {
@@ -89,7 +89,7 @@ pub fn method_accessible_from(
 }
 
 pub fn fct_accessible_from(
-    sa: &SemAnalysis,
+    sa: &Sema,
     fct_id: FctDefinitionId,
     module_id: ModuleDefinitionId,
 ) -> bool {
@@ -100,7 +100,7 @@ pub fn fct_accessible_from(
 }
 
 pub fn enum_accessible_from(
-    sa: &SemAnalysis,
+    sa: &Sema,
     enum_id: EnumDefinitionId,
     module_id: ModuleDefinitionId,
 ) -> bool {
@@ -110,7 +110,7 @@ pub fn enum_accessible_from(
 }
 
 pub fn struct_accessible_from(
-    sa: &SemAnalysis,
+    sa: &Sema,
     struct_id: StructDefinitionId,
     module_id: ModuleDefinitionId,
 ) -> bool {
@@ -121,7 +121,7 @@ pub fn struct_accessible_from(
 }
 
 pub fn struct_field_accessible_from(
-    sa: &SemAnalysis,
+    sa: &Sema,
     struct_id: StructDefinitionId,
     field_id: StructDefinitionFieldId,
     module_id: ModuleDefinitionId,
@@ -144,7 +144,7 @@ pub fn struct_field_accessible_from(
 }
 
 pub fn module_accessible_from(
-    sa: &SemAnalysis,
+    sa: &Sema,
     target_id: ModuleDefinitionId,
     from_id: ModuleDefinitionId,
 ) -> bool {
@@ -152,7 +152,7 @@ pub fn module_accessible_from(
 }
 
 pub fn trait_accessible_from(
-    sa: &SemAnalysis,
+    sa: &Sema,
     trait_id: TraitDefinitionId,
     module_id: ModuleDefinitionId,
 ) -> bool {
@@ -162,7 +162,7 @@ pub fn trait_accessible_from(
 }
 
 pub fn const_accessible_from(
-    sa: &SemAnalysis,
+    sa: &Sema,
     const_id: ConstDefinitionId,
     module_id: ModuleDefinitionId,
 ) -> bool {
@@ -173,7 +173,7 @@ pub fn const_accessible_from(
 }
 
 pub fn is_default_accessible(
-    sa: &SemAnalysis,
+    sa: &Sema,
     target_id: ModuleDefinitionId,
     from_id: ModuleDefinitionId,
 ) -> bool {
@@ -187,7 +187,7 @@ pub fn is_default_accessible(
 }
 
 fn accessible_from(
-    sa: &SemAnalysis,
+    sa: &Sema,
     target_module_id: ModuleDefinitionId,
     element_visibility: Visibility,
     user_module_id: ModuleDefinitionId,
@@ -256,7 +256,7 @@ fn accessible_from(
 }
 
 fn common_parent(
-    sa: &SemAnalysis,
+    sa: &Sema,
     lhs_id: ModuleDefinitionId,
     rhs_id: ModuleDefinitionId,
 ) -> Option<ModuleDefinitionId> {
@@ -293,7 +293,7 @@ fn common_parent(
 }
 
 pub fn module_contains(
-    sa: &SemAnalysis,
+    sa: &Sema,
     parent_id: ModuleDefinitionId,
     child_id: ModuleDefinitionId,
 ) -> bool {

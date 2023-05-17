@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 
 use crate::language::error::msg::{ErrorDescriptor, ErrorMessage};
-use crate::language::sem_analysis::{SemAnalysis, SourceFileId};
+use crate::language::sema::{Sema, SourceFileId};
 
 use dora_parser::Span;
 
@@ -30,7 +30,7 @@ impl Diagnostic {
         !self.errors.is_empty()
     }
 
-    pub fn dump(&mut self, sa: &SemAnalysis) {
+    pub fn dump(&mut self, sa: &Sema) {
         self.sort();
 
         for err in &self.errors {

@@ -1,6 +1,6 @@
-use crate::language::sem_analysis::{FctDefinitionId, SemAnalysis, TraitDefinition};
+use crate::language::sema::{FctDefinitionId, Sema, TraitDefinition};
 
-pub fn check(sa: &SemAnalysis) {
+pub fn check(sa: &Sema) {
     for trait_ in sa.traits.iter() {
         let mut trait_ = trait_.write();
 
@@ -15,7 +15,7 @@ pub fn check(sa: &SemAnalysis) {
 }
 
 struct TraitCheck<'x> {
-    sa: &'x SemAnalysis,
+    sa: &'x Sema,
     trait_: &'x mut TraitDefinition,
     vtable_index: u32,
 }

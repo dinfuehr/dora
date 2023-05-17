@@ -1,6 +1,6 @@
-use crate::language::sem_analysis::{
+use crate::language::sema::{
     ClassDefinition, ClassDefinitionId, EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId,
-    Field, FieldId, ModuleDefinition, ModuleDefinitionId, SemAnalysis, StructDefinitionId,
+    Field, FieldId, ModuleDefinition, ModuleDefinitionId, Sema, StructDefinitionId,
     TraitDefinitionId, TypeParamDefinition, Visibility,
 };
 use crate::language::sym::Sym;
@@ -9,7 +9,7 @@ use crate::language::ty::SourceType;
 use dora_bytecode::{Intrinsic, NativeFunction};
 use dora_parser::interner::Name;
 
-pub fn resolve_internal_classes(sa: &mut SemAnalysis) {
+pub fn resolve_internal_classes(sa: &mut Sema) {
     let stdlib_id = sa.stdlib_module_id();
 
     sa.known.structs.bool = Some(internal_struct(
@@ -85,7 +85,7 @@ pub fn resolve_internal_classes(sa: &mut SemAnalysis) {
     sa.known.enums.option = Some(find_enum(sa, stdlib_id, "primitives::Option"));
 }
 
-pub fn fill_prelude(sa: &mut SemAnalysis) {
+pub fn fill_prelude(sa: &mut Sema) {
     let stdlib_id = sa.stdlib_module_id();
 
     let symbols = [
@@ -156,12 +156,12 @@ pub fn fill_prelude(sa: &mut SemAnalysis) {
     prelude.insert(stdlib_name, Sym::Module(stdlib_id));
 }
 
-fn final_path_name(sa: &mut SemAnalysis, path: &str) -> Name {
+fn final_path_name(sa: &mut Sema, path: &str) -> Name {
     let name = path.split("::").last().expect("name missing");
     sa.interner.intern(name)
 }
 
-pub fn discover_known_methods(sa: &mut SemAnalysis) {
+pub fn discover_known_methods(sa: &mut Sema) {
     let stdlib_id = sa.stdlib_module_id();
 
     sa.known.functions.string_buffer_empty = Some(find_static_method(
@@ -194,7 +194,7 @@ pub fn discover_known_methods(sa: &mut SemAnalysis) {
     }
 }
 
-pub fn create_lambda_class(sa: &mut SemAnalysis) {
+pub fn create_lambda_class(sa: &mut Sema) {
     let class_name = sa.interner.intern("$Lambda");
     let context_name = sa.interner.intern("context");
 
@@ -220,17 +220,13 @@ pub fn create_lambda_class(sa: &mut SemAnalysis) {
     sa.known.classes.lambda = Some(class_id);
 }
 
-fn find_class(sa: &SemAnalysis, module_id: ModuleDefinitionId, name: &str) -> ClassDefinitionId {
+fn find_class(sa: &Sema, module_id: ModuleDefinitionId, name: &str) -> ClassDefinitionId {
     resolve_name(sa, name, module_id)
         .to_class()
         .expect("class expected")
 }
 
-fn internal_class(
-    sa: &SemAnalysis,
-    module_id: ModuleDefinitionId,
-    name: &str,
-) -> ClassDefinitionId {
+fn internal_class(sa: &Sema, module_id: ModuleDefinitionId, name: &str) -> ClassDefinitionId {
     let cls_id = find_class(sa, module_id, name);
 
     let cls = sa.classes.idx(cls_id);
@@ -242,7 +238,7 @@ fn internal_class(
 }
 
 fn internal_struct(
-    sa: &mut SemAnalysis,
+    sa: &mut Sema,
     module_id: ModuleDefinitionId,
     name: &str,
     ty: Option<SourceType>,
@@ -261,7 +257,7 @@ fn internal_struct(
     struct_id
 }
 
-fn resolve_name(sa: &SemAnalysis, name: &str, module_id: ModuleDefinitionId) -> Sym {
+fn resolve_name(sa: &Sema, name: &str, module_id: ModuleDefinitionId) -> Sym {
     let path = name.split("::");
     let mut sym = Sym::Module(module_id);
 
@@ -284,23 +280,19 @@ fn resolve_name(sa: &SemAnalysis, name: &str, module_id: ModuleDefinitionId) -> 
     sym
 }
 
-fn find_trait(
-    sa: &mut SemAnalysis,
-    module_id: ModuleDefinitionId,
-    name: &str,
-) -> TraitDefinitionId {
+fn find_trait(sa: &mut Sema, module_id: ModuleDefinitionId, name: &str) -> TraitDefinitionId {
     resolve_name(sa, name, module_id)
         .to_trait()
         .expect("trait expected")
 }
 
-fn find_enum(sa: &mut SemAnalysis, module_id: ModuleDefinitionId, name: &str) -> EnumDefinitionId {
+fn find_enum(sa: &mut Sema, module_id: ModuleDefinitionId, name: &str) -> EnumDefinitionId {
     resolve_name(sa, name, module_id)
         .to_enum()
         .expect("enum not found")
 }
 
-pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
+pub fn resolve_internal_functions(sa: &mut Sema) {
     let stdlib_id = sa.stdlib_module_id();
 
     native_fct(sa, stdlib_id, "fatalError", NativeFunction::FatalError);
@@ -1599,7 +1591,7 @@ pub fn resolve_internal_functions(sa: &mut SemAnalysis) {
 }
 
 fn find_instance_method(
-    sa: &SemAnalysis,
+    sa: &Sema,
     module_id: ModuleDefinitionId,
     container_name: &str,
     name: &str,
@@ -1607,7 +1599,7 @@ fn find_instance_method(
     find_class_method(sa, module_id, container_name, name, false)
 }
 
-fn find_function(sa: &SemAnalysis, module_id: ModuleDefinitionId, name: &str) -> FctDefinitionId {
+fn find_function(sa: &Sema, module_id: ModuleDefinitionId, name: &str) -> FctDefinitionId {
     let fct_id = resolve_name(sa, name, module_id)
         .to_fct()
         .expect("function expected");
@@ -1616,7 +1608,7 @@ fn find_function(sa: &SemAnalysis, module_id: ModuleDefinitionId, name: &str) ->
 }
 
 fn find_static_method(
-    sa: &SemAnalysis,
+    sa: &Sema,
     module_id: ModuleDefinitionId,
     container_name: &str,
     name: &str,
@@ -1625,7 +1617,7 @@ fn find_static_method(
 }
 
 fn find_class_method(
-    sa: &SemAnalysis,
+    sa: &Sema,
     module_id: ModuleDefinitionId,
     container_name: &str,
     name: &str,
@@ -1657,7 +1649,7 @@ fn find_class_method(
 }
 
 fn intrinsic_fct(
-    sa: &mut SemAnalysis,
+    sa: &mut Sema,
     module_id: ModuleDefinitionId,
     name: &str,
     intrinsic: Intrinsic,
@@ -1666,7 +1658,7 @@ fn intrinsic_fct(
 }
 
 fn native_fct(
-    sa: &mut SemAnalysis,
+    sa: &mut Sema,
     module_id: ModuleDefinitionId,
     name: &str,
     native: NativeFunction,
@@ -1675,7 +1667,7 @@ fn native_fct(
 }
 
 fn common_fct(
-    sa: &mut SemAnalysis,
+    sa: &mut Sema,
     module_id: ModuleDefinitionId,
     name: &str,
     marker: FctImplementation,
@@ -1697,7 +1689,7 @@ fn common_fct(
 }
 
 fn intrinsic_method(
-    sa: &SemAnalysis,
+    sa: &Sema,
     module_id: ModuleDefinitionId,
     container_name: &str,
     method_name: &str,
@@ -1714,7 +1706,7 @@ fn intrinsic_method(
 }
 
 fn native_method(
-    sa: &SemAnalysis,
+    sa: &Sema,
     module_id: ModuleDefinitionId,
     container_name: &str,
     method_name: &str,
@@ -1731,7 +1723,7 @@ fn native_method(
 }
 
 fn intrinsic_static(
-    sa: &SemAnalysis,
+    sa: &Sema,
     module_id: ModuleDefinitionId,
     container_name: &str,
     method_name: &str,
@@ -1748,7 +1740,7 @@ fn intrinsic_static(
 }
 
 fn native_static(
-    sa: &SemAnalysis,
+    sa: &Sema,
     module_id: ModuleDefinitionId,
     container_name: &str,
     method_name: &str,
@@ -1770,7 +1762,7 @@ enum FctImplementation {
 }
 
 fn common_method(
-    sa: &SemAnalysis,
+    sa: &Sema,
     module_id: ModuleDefinitionId,
     container_name: &str,
     method_name: &str,
@@ -1802,7 +1794,7 @@ fn common_method(
 }
 
 fn internal_extension_method(
-    sa: &SemAnalysis,
+    sa: &Sema,
     extensions: &[ExtensionDefinitionId],
     name_as_string: &str,
     is_static: bool,

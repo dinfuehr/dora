@@ -9,8 +9,8 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::Span;
 
-use crate::language::sem_analysis::{
-    extension_matches_ty, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, SemAnalysis,
+use crate::language::sema::{
+    extension_matches_ty, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
     SourceFileId, TraitDefinitionId, TypeParamDefinition,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -108,7 +108,7 @@ impl Index<ImplDefinitionId> for Vec<RwLock<ImplDefinition>> {
 }
 
 pub fn impl_matches(
-    sa: &SemAnalysis,
+    sa: &Sema,
     check_ty: SourceType,
     check_type_param_defs: &TypeParamDefinition,
     impl_id: ImplDefinitionId,
@@ -124,7 +124,7 @@ pub fn impl_matches(
 }
 
 pub fn find_trait_impl(
-    sa: &SemAnalysis,
+    sa: &Sema,
     fct_id: FctDefinitionId,
     trait_ty: SourceType,
     object_type: SourceType,
@@ -152,7 +152,7 @@ pub fn find_trait_impl(
 }
 
 pub fn implements_trait(
-    sa: &SemAnalysis,
+    sa: &Sema,
     check_ty: SourceType,
     check_type_param_defs: &TypeParamDefinition,
     trait_ty: SourceType,
@@ -190,7 +190,7 @@ pub fn implements_trait(
 }
 
 pub fn find_impl(
-    sa: &SemAnalysis,
+    sa: &Sema,
     check_ty: SourceType,
     check_type_param_defs: &TypeParamDefinition,
     trait_ty: SourceType,

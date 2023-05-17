@@ -5,11 +5,11 @@ use dora_parser::Span;
 
 use crate::language::error::msg::ErrorMessage;
 use crate::language::readty::read_type_unchecked;
-use crate::language::sem_analysis::{SemAnalysis, SourceFileId, TypeParamDefinition, TypeParamId};
+use crate::language::sema::{Sema, SourceFileId, TypeParamDefinition, TypeParamId};
 use crate::language::sym::{ModuleSymTable, Sym};
 use crate::language::ty::{SourceType, SourceTypeArray};
 
-pub fn check(sa: &SemAnalysis) {
+pub fn check(sa: &Sema) {
     check_traits(sa);
     check_impls(sa);
     check_classes(sa);
@@ -18,7 +18,7 @@ pub fn check(sa: &SemAnalysis) {
     check_extensions(sa);
 }
 
-fn check_traits(sa: &SemAnalysis) {
+fn check_traits(sa: &Sema) {
     for trait_ in sa.traits.iter() {
         let type_param_definition;
 
@@ -42,7 +42,7 @@ fn check_traits(sa: &SemAnalysis) {
     }
 }
 
-fn check_impls(sa: &SemAnalysis) {
+fn check_impls(sa: &Sema) {
     for impl_ in sa.impls.iter() {
         let type_param_definition;
 
@@ -68,7 +68,7 @@ fn check_impls(sa: &SemAnalysis) {
     }
 }
 
-fn check_classes(sa: &SemAnalysis) {
+fn check_classes(sa: &Sema) {
     for cls in sa.classes.iter() {
         let type_param_definition;
 
@@ -99,7 +99,7 @@ fn check_classes(sa: &SemAnalysis) {
     }
 }
 
-fn check_enums(sa: &SemAnalysis) {
+fn check_enums(sa: &Sema) {
     for enum_ in sa.enums.iter() {
         let type_param_definition;
 
@@ -123,7 +123,7 @@ fn check_enums(sa: &SemAnalysis) {
     }
 }
 
-fn check_structs(sa: &SemAnalysis) {
+fn check_structs(sa: &Sema) {
     for struct_ in sa.structs.iter() {
         let type_param_definition;
 
@@ -147,7 +147,7 @@ fn check_structs(sa: &SemAnalysis) {
     }
 }
 
-fn check_extensions(sa: &SemAnalysis) {
+fn check_extensions(sa: &Sema) {
     for extension in sa.extensions.iter() {
         let type_param_definition;
 
@@ -180,7 +180,7 @@ fn build_type_params(number_type_params: usize) -> SourceTypeArray {
 }
 
 fn read_type_param_definition(
-    sa: &SemAnalysis,
+    sa: &Sema,
     ast_type_params: Option<&Vec<ast::TypeParam>>,
     symtable: &mut ModuleSymTable,
     file_id: SourceFileId,

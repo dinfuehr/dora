@@ -6,10 +6,10 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::Span;
 
-use crate::language::sem_analysis::{
+use crate::language::sema::{
     extension_matches, impl_matches, module_path, Candidate, ExtensionDefinitionId,
-    ModuleDefinitionId, PackageDefinitionId, SemAnalysis, SourceFileId, TypeParamDefinition,
-    TypeParamId, Visibility,
+    ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, TypeParamId,
+    Visibility,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::Id;
@@ -93,11 +93,11 @@ impl StructDefinition {
         self.type_params.as_ref().expect("uninitialized")
     }
 
-    pub fn name(&self, sa: &SemAnalysis) -> String {
+    pub fn name(&self, sa: &Sema) -> String {
         module_path(sa, self.module_id, self.name)
     }
 
-    pub fn name_with_params(&self, sa: &SemAnalysis, type_params: &SourceTypeArray) -> String {
+    pub fn name_with_params(&self, sa: &Sema, type_params: &SourceTypeArray) -> String {
         let mut name = self.name(sa);
 
         if type_params.len() > 0 {
@@ -168,7 +168,7 @@ pub struct StructDefinitionField {
 }
 
 pub fn find_methods_in_struct(
-    sa: &SemAnalysis,
+    sa: &Sema,
     object_type: SourceType,
     type_param_defs: &TypeParamDefinition,
     name: Name,

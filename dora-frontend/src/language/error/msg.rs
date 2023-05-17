@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::language::sem_analysis::{SemAnalysis, SourceFileId};
+use crate::language::sema::{Sema, SourceFileId};
 use dora_parser::{compute_line_column, Span};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -646,7 +646,7 @@ impl ErrorDescriptor {
         }
     }
 
-    pub fn line_column(&self, sa: &SemAnalysis) -> Option<(u32, u32)> {
+    pub fn line_column(&self, sa: &Sema) -> Option<(u32, u32)> {
         if let Some(file) = self.file {
             let file = sa.source_file(file);
 
@@ -657,7 +657,7 @@ impl ErrorDescriptor {
         }
     }
 
-    pub fn message(&self, sa: &SemAnalysis) -> String {
+    pub fn message(&self, sa: &Sema) -> String {
         if let Some(file) = self.file {
             let file = sa.source_file(file);
             let (line, column) = self.line_column(sa).expect("missing location");

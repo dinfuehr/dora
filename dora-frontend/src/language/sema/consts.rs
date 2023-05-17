@@ -4,8 +4,8 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::Span;
 
-use crate::language::sem_analysis::{
-    module_path, ModuleDefinitionId, PackageDefinitionId, SemAnalysis, SourceFileId, Visibility,
+use crate::language::sema::{
+    module_path, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId, Visibility,
 };
 use crate::language::ty::SourceType;
 use crate::Id;
@@ -71,7 +71,7 @@ impl ConstDefinition {
         self.id.expect("id missing")
     }
 
-    pub fn name(&self, sa: &SemAnalysis) -> String {
+    pub fn name(&self, sa: &Sema) -> String {
         module_path(sa, self.module_id, self.name)
     }
 }

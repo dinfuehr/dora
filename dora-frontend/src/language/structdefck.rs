@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 
 use crate::language::error::msg::ErrorMessage;
-use crate::language::sem_analysis::{
-    SemAnalysis, SourceFileId, StructDefinitionField, StructDefinitionFieldId, StructDefinitionId,
+use crate::language::sema::{
+    Sema, SourceFileId, StructDefinitionField, StructDefinitionFieldId, StructDefinitionId,
     Visibility,
 };
 use crate::language::sym::{ModuleSymTable, Sym};
@@ -12,7 +12,7 @@ use crate::language::{self, AllowSelf, TypeParamContext};
 use dora_parser::ast;
 use dora_parser::interner::Name;
 
-pub fn check(sa: &SemAnalysis) {
+pub fn check(sa: &Sema) {
     for struct_ in sa.structs.iter() {
         let (struct_id, file_id, ast, module_id) = {
             let struct_ = struct_.read();
@@ -38,7 +38,7 @@ pub fn check(sa: &SemAnalysis) {
 }
 
 struct StructCheck<'x> {
-    sa: &'x SemAnalysis,
+    sa: &'x Sema,
     struct_id: StructDefinitionId,
     file_id: SourceFileId,
     ast: &'x ast::Struct,

@@ -1,12 +1,12 @@
 use crate::language::error::msg::ErrorMessage;
 use crate::language::fctbodyck::body::{check_lit_char, check_lit_float, check_lit_int};
-use crate::language::sem_analysis::{ConstDefinition, ConstValue, SemAnalysis};
+use crate::language::sema::{ConstDefinition, ConstValue, Sema};
 use crate::language::ty::SourceType;
 
 use dora_parser::ast::*;
 
 pub struct ConstCheck<'a> {
-    pub sa: &'a SemAnalysis,
+    pub sa: &'a Sema,
     pub const_: &'a ConstDefinition,
 }
 

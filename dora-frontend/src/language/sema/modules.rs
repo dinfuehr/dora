@@ -1,7 +1,7 @@
 use parking_lot::RwLock;
 use std::sync::Arc;
 
-use crate::language::sem_analysis::{PackageDefinitionId, SemAnalysis, Visibility};
+use crate::language::sema::{PackageDefinitionId, Sema, Visibility};
 use crate::language::sym::SymTable;
 use crate::language::SourceFileId;
 use crate::Id;
@@ -65,7 +65,7 @@ impl ModuleDefinition {
     }
 
     pub fn new_inner(
-        sa: &mut SemAnalysis,
+        sa: &mut Sema,
         package_id: PackageDefinitionId,
         parent_id: ModuleDefinitionId,
         file_id: SourceFileId,
@@ -100,7 +100,7 @@ impl ModuleDefinition {
         self.package_id.expect("uninitialized package_id")
     }
 
-    pub fn name(&self, sa: &SemAnalysis) -> String {
+    pub fn name(&self, sa: &Sema) -> String {
         let mut path = String::new();
 
         for &module_id in &self.parents {
@@ -127,7 +127,7 @@ impl ModuleDefinition {
     }
 }
 
-pub fn module_package(sa: &SemAnalysis, module_id: ModuleDefinitionId) -> ModuleDefinitionId {
+pub fn module_package(sa: &Sema, module_id: ModuleDefinitionId) -> ModuleDefinitionId {
     let module = &sa.modules[module_id].read();
 
     if let Some(&global_id) = module.parents.first() {
@@ -137,7 +137,7 @@ pub fn module_package(sa: &SemAnalysis, module_id: ModuleDefinitionId) -> Module
     }
 }
 
-pub fn module_path(sa: &SemAnalysis, module_id: ModuleDefinitionId, name: Name) -> String {
+pub fn module_path(sa: &Sema, module_id: ModuleDefinitionId, name: Name) -> String {
     let module = &sa.modules[module_id].read();
     let mut result = module.name(sa);
 

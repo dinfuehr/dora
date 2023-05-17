@@ -6,10 +6,9 @@ use dora_parser::interner::Name;
 use dora_parser::Span;
 
 use crate::language::generator::bty_from_ty;
-use crate::language::sem_analysis::{
+use crate::language::sema::{
     module_path, AnalysisData, ExtensionDefinitionId, ImplDefinitionId, ModuleDefinitionId,
-    PackageDefinitionId, SemAnalysis, SourceFileId, TraitDefinitionId, TypeParamDefinition,
-    Visibility,
+    PackageDefinitionId, Sema, SourceFileId, TraitDefinitionId, TypeParamDefinition, Visibility,
 };
 use crate::language::ty::SourceType;
 use dora_bytecode::{BytecodeFunction, BytecodeType, BytecodeTypeArray, Intrinsic, NativeFunction};
@@ -140,7 +139,7 @@ impl FctDefinition {
         }
     }
 
-    pub fn display_name(&self, sa: &SemAnalysis) -> String {
+    pub fn display_name(&self, sa: &Sema) -> String {
         let mut repr = match self.parent {
             FctParent::Trait(trait_id) => {
                 let trait_ = sa.traits[trait_id].read();
@@ -228,7 +227,7 @@ impl FctDefinition {
     }
 }
 
-fn path_for_type(sa: &SemAnalysis, ty: SourceType) -> String {
+fn path_for_type(sa: &Sema, ty: SourceType) -> String {
     if let Some(enum_id) = ty.enum_id() {
         let enum_ = &sa.enums[enum_id];
         let enum_ = enum_.read();

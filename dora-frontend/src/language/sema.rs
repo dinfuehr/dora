@@ -62,16 +62,16 @@ mod traits;
 mod tuples;
 mod uses;
 
-pub struct SemAnalysisArgs {
+pub struct SemaArgs {
     pub packages: Vec<(String, PathBuf)>,
     pub arg_file: Option<String>,
     pub test_file_as_string: Option<&'static str>,
     pub check_global_initializer: bool,
 }
 
-impl SemAnalysisArgs {
-    pub fn for_test(input: &'static str) -> SemAnalysisArgs {
-        SemAnalysisArgs {
+impl SemaArgs {
+    pub fn for_test(input: &'static str) -> SemaArgs {
+        SemaArgs {
             packages: Vec::new(),
             arg_file: None,
             test_file_as_string: Some(input),
@@ -80,8 +80,8 @@ impl SemAnalysisArgs {
     }
 }
 
-pub struct SemAnalysis {
-    pub args: SemAnalysisArgs,
+pub struct Sema {
+    pub args: SemaArgs,
     pub interner: Interner,
     pub source_files: Vec<SourceFile>,
     pub diag: Mutex<Diagnostic>,
@@ -108,9 +108,9 @@ pub struct SemAnalysis {
     pub boots_package_id: Option<PackageDefinitionId>,
 }
 
-impl SemAnalysis {
-    pub fn new(args: SemAnalysisArgs) -> SemAnalysis {
-        SemAnalysis {
+impl Sema {
+    pub fn new(args: SemaArgs) -> Sema {
+        Sema {
             args,
             source_files: Vec::new(),
             consts: MutableVec::new(),

@@ -6,7 +6,7 @@ use std::time::Instant;
 use crate::driver::cmd::{self, Args};
 use dora_bytecode::{FunctionData, FunctionId, PackageId, Program};
 use dora_frontend::language;
-use dora_frontend::language::sem_analysis::{SemAnalysis, SemAnalysisArgs};
+use dora_frontend::language::sema::{Sema, SemaArgs};
 use dora_runtime::{clear_vm, display_fct, execute_on_main, set_vm, VM};
 
 pub fn start() -> i32 {
@@ -107,14 +107,14 @@ pub fn start() -> i32 {
 }
 
 fn compile_into_program(args: &Args, file: String) -> Result<Program, ()> {
-    let sem_args = SemAnalysisArgs {
+    let sem_args = SemaArgs {
         arg_file: Some(file),
         packages: args.packages.clone(),
         test_file_as_string: None,
         check_global_initializer: false,
     };
 
-    let mut sa = SemAnalysis::new(sem_args);
+    let mut sa = Sema::new(sem_args);
 
     let success = language::check(&mut sa);
     assert_eq!(success, !sa.diag.lock().has_errors());
@@ -209,7 +209,7 @@ fn encode_and_decode_for_testing(prog: Program) -> Program {
     decoded_prog
 }
 
-fn report_errors(sa: &SemAnalysis) -> bool {
+fn report_errors(sa: &Sema) -> bool {
     if sa.diag.lock().has_errors() {
         sa.diag.lock().dump(&sa);
         let no_errors = sa.diag.lock().errors().len();

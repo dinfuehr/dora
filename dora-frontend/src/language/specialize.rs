@@ -1,16 +1,12 @@
-use crate::language::sem_analysis::{create_tuple, SemAnalysis};
+use crate::language::sema::{create_tuple, Sema};
 use crate::language::ty::{SourceType, SourceTypeArray};
 
-pub fn specialize_type(
-    sa: &SemAnalysis,
-    ty: SourceType,
-    type_params: &SourceTypeArray,
-) -> SourceType {
+pub fn specialize_type(sa: &Sema, ty: SourceType, type_params: &SourceTypeArray) -> SourceType {
     replace_type_param(sa, ty, type_params, None)
 }
 
 pub fn replace_type_param(
-    sa: &SemAnalysis,
+    sa: &Sema,
     ty: SourceType,
     type_params: &SourceTypeArray,
     self_ty: Option<SourceType>,

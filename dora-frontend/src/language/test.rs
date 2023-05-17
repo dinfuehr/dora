@@ -1,9 +1,9 @@
 use crate::language;
-use crate::language::sem_analysis::{SemAnalysis, SemAnalysisArgs};
+use crate::language::sema::{Sema, SemaArgs};
 
 pub fn check_valid<F, T>(code: &'static str, f: F) -> T
 where
-    F: FnOnce(&SemAnalysis) -> T,
+    F: FnOnce(&Sema) -> T,
 {
     check(code, |sa| {
         if sa.diag.lock().has_errors() {
@@ -18,10 +18,10 @@ where
 
 pub fn check<F, T>(code: &'static str, f: F) -> T
 where
-    F: FnOnce(&SemAnalysis) -> T,
+    F: FnOnce(&Sema) -> T,
 {
-    let args: SemAnalysisArgs = SemAnalysisArgs::for_test(code);
-    let mut sa = SemAnalysis::new(args);
+    let args: SemaArgs = SemaArgs::for_test(code);
+    let mut sa = Sema::new(args);
 
     let result = language::check(&mut sa);
     assert_eq!(result, !sa.diag.lock().has_errors());

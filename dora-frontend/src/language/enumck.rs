@@ -5,12 +5,12 @@ use parking_lot::RwLock;
 use dora_parser::ast;
 
 use crate::language::error::msg::ErrorMessage;
-use crate::language::sem_analysis::{EnumDefinition, EnumVariant, SemAnalysis, SourceFileId};
+use crate::language::sema::{EnumDefinition, EnumVariant, Sema, SourceFileId};
 use crate::language::sym::{ModuleSymTable, Sym};
 use crate::language::ty::SourceType;
 use crate::language::{read_type_context, AllowSelf, TypeParamContext};
 
-pub fn check(sa: &SemAnalysis) {
+pub fn check(sa: &Sema) {
     for enum_ in sa.enums.iter() {
         let ast = enum_.read().ast.clone();
 
@@ -26,7 +26,7 @@ pub fn check(sa: &SemAnalysis) {
 }
 
 struct EnumCheck<'x> {
-    sa: &'x SemAnalysis,
+    sa: &'x Sema,
     file_id: SourceFileId,
     ast: &'x Arc<ast::Enum>,
     enum_: &'x RwLock<EnumDefinition>,
@@ -81,7 +81,7 @@ impl<'x> EnumCheck<'x> {
     }
 }
 
-pub fn check_variants(sa: &SemAnalysis) {
+pub fn check_variants(sa: &Sema) {
     for enum_ in sa.enums.iter() {
         let mut enum_ = enum_.write();
         let ast = enum_.ast.clone();
@@ -97,7 +97,7 @@ pub fn check_variants(sa: &SemAnalysis) {
 }
 
 struct EnumCheckVariants<'x> {
-    sa: &'x SemAnalysis,
+    sa: &'x Sema,
     ast: &'x Arc<ast::Enum>,
     enum_: &'x mut EnumDefinition,
 }

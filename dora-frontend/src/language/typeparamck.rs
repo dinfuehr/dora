@@ -1,9 +1,9 @@
 use dora_parser::Span;
 
 use crate::language::error::msg::ErrorMessage;
-use crate::language::sem_analysis::{
-    implements_trait, ClassDefinitionId, EnumDefinitionId, SemAnalysis, SourceFileId,
-    StructDefinitionId, TypeParamDefinition,
+use crate::language::sema::{
+    implements_trait, ClassDefinitionId, EnumDefinitionId, Sema, SourceFileId, StructDefinitionId,
+    TypeParamDefinition,
 };
 use crate::language::specialize::specialize_type;
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -14,7 +14,7 @@ pub enum ErrorReporting {
 }
 
 pub fn check_enum(
-    sa: &SemAnalysis,
+    sa: &Sema,
     caller_type_param_defs: &TypeParamDefinition,
     enum_id: EnumDefinitionId,
     type_params: &SourceTypeArray,
@@ -34,7 +34,7 @@ pub fn check_enum(
 }
 
 pub fn check_struct(
-    sa: &SemAnalysis,
+    sa: &Sema,
     caller_type_param_defs: &TypeParamDefinition,
     struct_id: StructDefinitionId,
     type_params: &SourceTypeArray,
@@ -54,7 +54,7 @@ pub fn check_struct(
 }
 
 pub fn check_class(
-    sa: &SemAnalysis,
+    sa: &Sema,
     caller_type_param_defs: &TypeParamDefinition,
     cls_id: ClassDefinitionId,
     type_params: &SourceTypeArray,
@@ -74,7 +74,7 @@ pub fn check_class(
 }
 
 pub fn check_params<'a>(
-    sa: &'a SemAnalysis,
+    sa: &'a Sema,
     caller_type_param_defs: &'a TypeParamDefinition,
     callee_type_param_defs: &'a TypeParamDefinition,
     params: &'a SourceTypeArray,
@@ -91,7 +91,7 @@ pub fn check_params<'a>(
 }
 
 struct TypeParamCheck<'a> {
-    sa: &'a SemAnalysis,
+    sa: &'a Sema,
     caller_type_param_defs: &'a TypeParamDefinition,
     callee_type_param_defs: &'a TypeParamDefinition,
     error: ErrorReporting,

@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use crate::language::access::sym_accessible_from;
 use crate::language::error::msg::ErrorMessage;
 use crate::language::report_sym_shadow_span;
-use crate::language::sem_analysis::{module_package, ModuleDefinitionId, SemAnalysis};
+use crate::language::sema::{module_package, ModuleDefinitionId, Sema};
 use crate::language::sym::{ModuleSymTable, Sym};
 
 use dora_parser::ast::{
@@ -11,9 +11,9 @@ use dora_parser::ast::{
 };
 use dora_parser::Span;
 
-use super::sem_analysis::SourceFileId;
+use super::sema::SourceFileId;
 
-pub fn check<'a>(sa: &SemAnalysis) {
+pub fn check<'a>(sa: &Sema) {
     let mut all_resolved = HashSet::<(SourceFileId, NodeId)>::new();
     let mut more_work = true;
 
@@ -66,7 +66,7 @@ enum UseError {
 }
 
 fn check_use(
-    sa: &SemAnalysis,
+    sa: &Sema,
     use_declaration: &ast::Use,
     use_module_id: ModuleDefinitionId,
     use_file_id: SourceFileId,
@@ -186,7 +186,7 @@ fn check_use(
 }
 
 fn initial_module(
-    sa: &SemAnalysis,
+    sa: &Sema,
     use_declaration: &ast::Use,
     use_module_id: ModuleDefinitionId,
     use_file_id: SourceFileId,
@@ -233,7 +233,7 @@ fn initial_module(
 }
 
 fn process_component(
-    sa: &SemAnalysis,
+    sa: &Sema,
     use_module_id: ModuleDefinitionId,
     use_file_id: SourceFileId,
     previous_sym: Sym,
@@ -305,7 +305,7 @@ fn process_component(
 }
 
 fn define_use_target(
-    sa: &SemAnalysis,
+    sa: &Sema,
     use_file_id: SourceFileId,
     use_span: Span,
     module_id: ModuleDefinitionId,

@@ -5,9 +5,9 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::Span;
 
-use crate::language::sem_analysis::{
+use crate::language::sema::{
     extension_matches, impl_matches, module_path, ExtensionDefinitionId, FctDefinitionId,
-    ModuleDefinitionId, PackageDefinitionId, SemAnalysis, SourceFileId,
+    ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId,
 };
 use crate::language::specialize::replace_type_param;
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -170,11 +170,11 @@ impl ClassDefinition {
         panic!("field not found!")
     }
 
-    pub fn name(&self, sa: &SemAnalysis) -> String {
+    pub fn name(&self, sa: &Sema) -> String {
         module_path(sa, self.module_id, self.name)
     }
 
-    pub fn name_with_params(&self, sa: &SemAnalysis, type_list: &SourceTypeArray) -> String {
+    pub fn name_with_params(&self, sa: &Sema, type_list: &SourceTypeArray) -> String {
         let name = sa.interner.str(self.name);
 
         if type_list.len() > 0 {
@@ -245,7 +245,7 @@ impl IndexMut<FieldId> for Vec<Field> {
 }
 
 pub fn find_field_in_class(
-    sa: &SemAnalysis,
+    sa: &Sema,
     class: SourceType,
     name: Name,
 ) -> Option<(SourceType, FieldId, SourceType)> {
@@ -279,7 +279,7 @@ pub struct Candidate {
 }
 
 pub fn find_methods_in_class(
-    sa: &SemAnalysis,
+    sa: &Sema,
     object_type: SourceType,
     type_param_defs: &TypeParamDefinition,
     name: Name,

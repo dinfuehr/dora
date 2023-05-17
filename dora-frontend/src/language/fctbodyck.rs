@@ -1,7 +1,7 @@
 use crate::language::fctbodyck::body::{TypeCheck, VarManager};
 use crate::language::fctbodyck::constck::ConstCheck;
-use crate::language::sem_analysis::{
-    AnalysisData, FctDefinitionId, GlobalDefinitionId, SemAnalysis, TypeParamDefinition,
+use crate::language::sema::{
+    AnalysisData, FctDefinitionId, GlobalDefinitionId, Sema, TypeParamDefinition,
 };
 use crate::language::sym::ModuleSymTable;
 
@@ -11,7 +11,7 @@ mod lookup;
 #[cfg(test)]
 mod tests;
 
-pub fn check(sa: &mut SemAnalysis) {
+pub fn check(sa: &mut Sema) {
     let mut idx = 0;
 
     while idx < sa.fcts.len() {
@@ -44,7 +44,7 @@ pub fn check(sa: &mut SemAnalysis) {
     }
 }
 
-fn check_function(sa: &mut SemAnalysis, id: FctDefinitionId) {
+fn check_function(sa: &mut Sema, id: FctDefinitionId) {
     let fct = sa.fcts.idx(id);
 
     let analysis = {
@@ -88,7 +88,7 @@ fn check_function(sa: &mut SemAnalysis, id: FctDefinitionId) {
     fct.write().analysis = Some(analysis);
 }
 
-fn check_global(sa: &mut SemAnalysis, id: GlobalDefinitionId) {
+fn check_global(sa: &mut Sema, id: GlobalDefinitionId) {
     let global = sa.globals.idx(id);
 
     let analysis = {

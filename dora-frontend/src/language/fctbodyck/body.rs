@@ -13,14 +13,13 @@ use crate::language::access::{
 use crate::language::error::msg::ErrorMessage;
 use crate::language::fctbodyck::lookup::MethodLookup;
 use crate::language::report_sym_shadow_span;
-use crate::language::sem_analysis::{
+use crate::language::sema::{
     create_tuple, find_field_in_class, find_impl, find_methods_in_class, find_methods_in_enum,
     find_methods_in_struct, implements_trait, AnalysisData, CallType, ClassDefinition,
     ClassDefinitionId, ContextIdx, EnumDefinitionId, EnumVariant, FctDefinition, FctDefinitionId,
     FctParent, Field, FieldId, ForTypeInfo, GlobalDefinition, IdentType, ModuleDefinitionId,
-    NestedVarId, PackageDefinitionId, SemAnalysis, SourceFileId, StructDefinition,
-    StructDefinitionId, TypeParamDefinition, TypeParamId, Var, VarAccess, VarId, VarLocation,
-    Visibility,
+    NestedVarId, PackageDefinitionId, Sema, SourceFileId, StructDefinition, StructDefinitionId,
+    TypeParamDefinition, TypeParamId, Var, VarAccess, VarId, VarLocation, Visibility,
 };
 use crate::language::specialize::replace_type_param;
 use crate::language::sym::{ModuleSymTable, Sym};
@@ -35,7 +34,7 @@ use dora_parser::{Name, Span};
 use fixedbitset::FixedBitSet;
 
 pub struct TypeCheck<'a> {
-    pub sa: &'a mut SemAnalysis,
+    pub sa: &'a mut Sema,
     pub fct: Option<&'a FctDefinition>,
     pub type_param_defs: &'a TypeParamDefinition,
     pub package_id: PackageDefinitionId,
@@ -3481,7 +3480,7 @@ impl<'a> Visitor for TypeCheck<'a> {
 }
 
 pub fn args_compatible_fct(
-    sa: &SemAnalysis,
+    sa: &Sema,
     callee: &FctDefinition,
     args: &[SourceType],
     type_params: &SourceTypeArray,
@@ -3500,7 +3499,7 @@ pub fn args_compatible_fct(
 }
 
 fn args_compatible(
-    sa: &SemAnalysis,
+    sa: &Sema,
     fct_arg_types: &[SourceType],
     variadic_arguments: bool,
     args: &[SourceType],
@@ -3548,12 +3547,7 @@ fn args_compatible(
     true
 }
 
-fn arg_allows(
-    sa: &SemAnalysis,
-    def: SourceType,
-    arg: SourceType,
-    self_ty: Option<SourceType>,
-) -> bool {
+fn arg_allows(sa: &Sema, def: SourceType, arg: SourceType, self_ty: Option<SourceType>) -> bool {
     match def {
         SourceType::Error | SourceType::Any => unreachable!(),
         SourceType::Unit
@@ -3639,7 +3633,7 @@ fn arg_allows(
     }
 }
 
-fn check_lit_str(sa: &SemAnalysis, file_id: SourceFileId, e: &ast::ExprLitStrType) -> String {
+fn check_lit_str(sa: &Sema, file_id: SourceFileId, e: &ast::ExprLitStrType) -> String {
     let mut value = e.value.as_str();
     assert!(value.starts_with("\"") || value.starts_with("}"));
     value = &value[1..];
@@ -3655,7 +3649,7 @@ fn check_lit_str(sa: &SemAnalysis, file_id: SourceFileId, e: &ast::ExprLitStrTyp
     result
 }
 
-pub fn check_lit_char(sa: &SemAnalysis, file_id: SourceFileId, e: &ast::ExprLitCharType) -> char {
+pub fn check_lit_char(sa: &Sema, file_id: SourceFileId, e: &ast::ExprLitCharType) -> char {
     let mut value = e.value.as_str();
     assert!(value.starts_with("\'"));
     value = &value[1..];
@@ -3684,12 +3678,7 @@ pub fn check_lit_char(sa: &SemAnalysis, file_id: SourceFileId, e: &ast::ExprLitC
     result
 }
 
-fn parse_escaped_char(
-    sa: &SemAnalysis,
-    file_id: SourceFileId,
-    offset: u32,
-    it: &mut Chars,
-) -> char {
+fn parse_escaped_char(sa: &Sema, file_id: SourceFileId, offset: u32, it: &mut Chars) -> char {
     let ch = it.next().expect("missing char");
     if ch == '\\' {
         if let Some(ch) = it.next() {
@@ -3726,7 +3715,7 @@ fn parse_escaped_char(
 }
 
 pub fn check_lit_int(
-    sa: &SemAnalysis,
+    sa: &Sema,
     file: SourceFileId,
     e: &ast::ExprLitIntType,
     negate: bool,
@@ -3850,7 +3839,7 @@ fn parse_lit_int(mut value: &str) -> (u32, String, String) {
 }
 
 fn determine_suffix_type_int_literal(
-    sa: &SemAnalysis,
+    sa: &Sema,
     file: SourceFileId,
     span: Span,
     suffix: &str,
@@ -3872,7 +3861,7 @@ fn determine_suffix_type_int_literal(
 }
 
 pub fn check_lit_float(
-    sa: &SemAnalysis,
+    sa: &Sema,
     file: SourceFileId,
     e: &ast::ExprLitFloatType,
     negate: bool,
@@ -3966,7 +3955,7 @@ struct MethodDescriptor {
 }
 
 fn lookup_method(
-    sa: &SemAnalysis,
+    sa: &Sema,
     object_type: SourceType,
     type_param_defs: &TypeParamDefinition,
     is_static: bool,
@@ -4006,7 +3995,7 @@ fn lookup_method(
     None
 }
 
-fn is_simple_enum(sa: &SemAnalysis, ty: SourceType) -> bool {
+fn is_simple_enum(sa: &Sema, ty: SourceType) -> bool {
     match ty {
         SourceType::Enum(enum_id, _) => {
             let enum_ = sa.enums[enum_id].read();

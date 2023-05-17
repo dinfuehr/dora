@@ -3,11 +3,10 @@ use std::convert::TryInto;
 
 use dora_parser::{ast, Span};
 
-use crate::language::sem_analysis::{
+use crate::language::sema::{
     emit_as_bytecode_operation, AnalysisData, CallType, ClassDefinitionId, ConstDefinitionId,
     ContextIdx, EnumDefinitionId, FctDefinition, FctDefinitionId, FieldId, GlobalDefinitionId,
-    IdentType, SemAnalysis, SourceFileId, StructDefinitionId, TraitDefinitionId, TypeParamId,
-    VarId,
+    IdentType, Sema, SourceFileId, StructDefinitionId, TraitDefinitionId, TypeParamId, VarId,
 };
 use crate::language::specialize::specialize_type;
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -17,7 +16,7 @@ use dora_bytecode::{
     EnumId, FunctionId, GlobalId, Intrinsic, Label, Location, Register, StructId, TraitId,
 };
 
-use super::sem_analysis::VarLocation;
+use super::sema::VarLocation;
 
 pub struct LoopLabels {
     cond: Label,
@@ -30,7 +29,7 @@ impl LoopLabels {
     }
 }
 
-pub fn generate_fct(sa: &SemAnalysis, id: FctDefinitionId) -> BytecodeFunction {
+pub fn generate_fct(sa: &Sema, id: FctDefinitionId) -> BytecodeFunction {
     let fct = sa.fcts.idx(id);
     let fct = fct.read();
     let analysis = fct.analysis();
@@ -38,7 +37,7 @@ pub fn generate_fct(sa: &SemAnalysis, id: FctDefinitionId) -> BytecodeFunction {
     generate(sa, &fct, analysis)
 }
 
-pub fn generate(sa: &SemAnalysis, fct: &FctDefinition, src: &AnalysisData) -> BytecodeFunction {
+pub fn generate(sa: &Sema, fct: &FctDefinition, src: &AnalysisData) -> BytecodeFunction {
     let ast_bytecode_generator = AstBytecodeGen {
         sa,
         fct,
@@ -59,7 +58,7 @@ pub fn generate(sa: &SemAnalysis, fct: &FctDefinition, src: &AnalysisData) -> By
 const SELF_VAR_ID: VarId = VarId(0);
 
 struct AstBytecodeGen<'a> {
-    sa: &'a SemAnalysis,
+    sa: &'a Sema,
     fct: &'a FctDefinition,
     return_type: Option<SourceType>,
     file_id: SourceFileId,

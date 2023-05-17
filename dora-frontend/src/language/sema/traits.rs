@@ -8,9 +8,9 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::Span;
 
-use crate::language::sem_analysis::{
-    module_path, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, SemAnalysis,
-    SourceFileId, TypeParamDefinition, Visibility,
+use crate::language::sema::{
+    module_path, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId,
+    TypeParamDefinition, Visibility,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};
 use crate::Id;
@@ -90,11 +90,11 @@ impl TraitDefinition {
         self.type_params.as_ref().expect("uninitialized")
     }
 
-    pub fn name(&self, sa: &SemAnalysis) -> String {
+    pub fn name(&self, sa: &Sema) -> String {
         module_path(sa, self.module_id, self.name)
     }
 
-    pub fn name_with_params(&self, sa: &SemAnalysis, type_list: &SourceTypeArray) -> String {
+    pub fn name_with_params(&self, sa: &Sema, type_list: &SourceTypeArray) -> String {
         let name = module_path(sa, self.module_id, self.name);
 
         if type_list.len() > 0 {
@@ -110,12 +110,7 @@ impl TraitDefinition {
         }
     }
 
-    pub fn find_method(
-        &self,
-        sa: &SemAnalysis,
-        name: Name,
-        is_static: bool,
-    ) -> Option<FctDefinitionId> {
+    pub fn find_method(&self, sa: &Sema, name: Name, is_static: bool) -> Option<FctDefinitionId> {
         for &method in &self.methods {
             let method = sa.fcts.idx(method);
             let method = method.read();
@@ -130,7 +125,7 @@ impl TraitDefinition {
 
     pub fn find_method_with_replace(
         &self,
-        sa: &SemAnalysis,
+        sa: &Sema,
         is_static: bool,
         name: Name,
         replace: Option<SourceType>,

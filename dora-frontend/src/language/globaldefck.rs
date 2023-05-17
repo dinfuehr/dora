@@ -1,11 +1,11 @@
 use crate::language::error::msg::ErrorMessage;
-use crate::language::sem_analysis::{GlobalDefinitionId, SemAnalysis, SourceFileId};
+use crate::language::sema::{GlobalDefinitionId, Sema, SourceFileId};
 use crate::language::sym::ModuleSymTable;
 use crate::language::ty::SourceType;
 use crate::language::{self, AllowSelf, TypeParamContext};
 use dora_parser::ast;
 
-pub fn check<'a>(sa: &SemAnalysis) {
+pub fn check<'a>(sa: &Sema) {
     for global in sa.globals.iter() {
         let (global_id, file_id, ast, module_id) = {
             let global = global.read();
@@ -32,7 +32,7 @@ pub fn check<'a>(sa: &SemAnalysis) {
 }
 
 struct GlobalDefCheck<'a> {
-    sa: &'a SemAnalysis,
+    sa: &'a Sema,
     file_id: SourceFileId,
     global_id: GlobalDefinitionId,
     ast: &'a ast::Global,

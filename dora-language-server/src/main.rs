@@ -406,15 +406,15 @@ fn document_symbol_request(server_state: &mut ServerState, request: Request) {
 
 fn compile_project(project: ProjectConfig, sender: Sender<MainLoopTask>) {
     use dora_frontend::language;
-    use dora_frontend::language::sem_analysis::{SemAnalysis, SemAnalysisArgs};
-    let sem_args = SemAnalysisArgs {
+    use dora_frontend::language::sema::{Sema, SemaArgs};
+    let sem_args = SemaArgs {
         arg_file: Some(project.main.to_string_lossy().into_owned()),
         packages: Vec::new(),
         test_file_as_string: None,
         check_global_initializer: false,
     };
 
-    let mut sa = SemAnalysis::new(sem_args);
+    let mut sa = Sema::new(sem_args);
 
     let success = language::check(&mut sa);
     assert_eq!(success, !sa.diag.lock().has_errors());

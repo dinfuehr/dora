@@ -1,16 +1,16 @@
 use std::io;
 
 use crate::language::generator::{ty_array_from_bty, ty_from_bty};
-use crate::language::sem_analysis::{
-    ClassDefinitionId, EnumDefinitionId, FctDefinition, FctDefinitionId, GlobalDefinitionId,
-    SemAnalysis, StructDefinitionId, TraitDefinitionId,
+use crate::language::sema::{
+    ClassDefinitionId, EnumDefinitionId, FctDefinition, FctDefinitionId, GlobalDefinitionId, Sema,
+    StructDefinitionId, TraitDefinitionId,
 };
 use dora_bytecode::{
     read, BytecodeFunction, BytecodeOffset, BytecodeVisitor, ConstPoolEntry, ConstPoolIdx,
     GlobalId, Register,
 };
 
-pub fn dump(vm: &SemAnalysis, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
+pub fn dump(vm: &Sema, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
     let mut stdout = io::stdout();
     if let Some(fct) = fct {
         println!("{}", fct.display_name(vm));
@@ -230,7 +230,7 @@ struct BytecodeDumper<'a> {
     bc: &'a BytecodeFunction,
     pos: BytecodeOffset,
     w: &'a mut dyn io::Write,
-    sa: &'a SemAnalysis,
+    sa: &'a Sema,
 }
 
 impl<'a> BytecodeDumper<'a> {

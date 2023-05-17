@@ -1,10 +1,9 @@
 use std::ops::Index;
 use std::sync::Arc;
 
-use crate::language::sem_analysis::{
-    ClassDefinition, ClassDefinitionId, EnumDefinition, EnumDefinitionId, FctDefinition,
-    SemAnalysis, StructDefinition, StructDefinitionId, TraitDefinitionId, TypeParamDefinition,
-    TypeParamId,
+use crate::language::sema::{
+    ClassDefinition, ClassDefinitionId, EnumDefinition, EnumDefinitionId, FctDefinition, Sema,
+    StructDefinition, StructDefinitionId, TraitDefinitionId, TypeParamDefinition, TypeParamId,
 };
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -193,7 +192,7 @@ impl SourceType {
         }
     }
 
-    pub fn primitive_struct_id(&self, sa: &SemAnalysis) -> Option<StructDefinitionId> {
+    pub fn primitive_struct_id(&self, sa: &Sema) -> Option<StructDefinitionId> {
         match self {
             SourceType::Bool => Some(sa.known.structs.bool()),
             SourceType::UInt8 => Some(sa.known.structs.uint8()),
@@ -264,7 +263,7 @@ impl SourceType {
         }
     }
 
-    pub fn name(&self, sa: &SemAnalysis) -> String {
+    pub fn name(&self, sa: &Sema) -> String {
         let writer = SourceTypePrinter {
             sa,
             type_params: None,
@@ -273,11 +272,7 @@ impl SourceType {
         writer.name(self.clone())
     }
 
-    pub fn name_with_type_params(
-        &self,
-        sa: &SemAnalysis,
-        type_params: &TypeParamDefinition,
-    ) -> String {
+    pub fn name_with_type_params(&self, sa: &Sema, type_params: &TypeParamDefinition) -> String {
         let writer = SourceTypePrinter {
             sa,
             type_params: Some(type_params),
@@ -286,7 +281,7 @@ impl SourceType {
         writer.name(self.clone())
     }
 
-    pub fn name_fct(&self, sa: &SemAnalysis, fct: &FctDefinition) -> String {
+    pub fn name_fct(&self, sa: &Sema, fct: &FctDefinition) -> String {
         let writer = SourceTypePrinter {
             sa,
             type_params: Some(&fct.type_params),
@@ -295,7 +290,7 @@ impl SourceType {
         writer.name(self.clone())
     }
 
-    pub fn name_cls(&self, sa: &SemAnalysis, cls: &ClassDefinition) -> String {
+    pub fn name_cls(&self, sa: &Sema, cls: &ClassDefinition) -> String {
         let writer = SourceTypePrinter {
             sa,
             type_params: Some(cls.type_params()),
@@ -304,7 +299,7 @@ impl SourceType {
         writer.name(self.clone())
     }
 
-    pub fn name_struct(&self, sa: &SemAnalysis, struct_: &StructDefinition) -> String {
+    pub fn name_struct(&self, sa: &Sema, struct_: &StructDefinition) -> String {
         let writer = SourceTypePrinter {
             sa,
             type_params: Some(struct_.type_params()),
@@ -313,7 +308,7 @@ impl SourceType {
         writer.name(self.clone())
     }
 
-    pub fn name_enum(&self, sa: &SemAnalysis, enum_: &EnumDefinition) -> String {
+    pub fn name_enum(&self, sa: &Sema, enum_: &EnumDefinition) -> String {
         let writer = SourceTypePrinter {
             sa,
             type_params: Some(enum_.type_params()),
@@ -345,7 +340,7 @@ impl SourceType {
         }
     }
 
-    pub fn allows(&self, sa: &SemAnalysis, other: SourceType) -> bool {
+    pub fn allows(&self, sa: &Sema, other: SourceType) -> bool {
         match self {
             // allow all types for Error, there is already an error,
             // don't report too many messages for the same error
@@ -414,7 +409,7 @@ impl SourceType {
         }
     }
 
-    pub fn is_defined_type(&self, sa: &SemAnalysis) -> bool {
+    pub fn is_defined_type(&self, sa: &Sema) -> bool {
         match self {
             SourceType::Error | SourceType::This | SourceType::Any | SourceType::Ptr => false,
             SourceType::Unit
@@ -577,7 +572,7 @@ impl SourceTypeArray {
         }
     }
 
-    pub fn name(&self, sa: &SemAnalysis) -> String {
+    pub fn name(&self, sa: &Sema) -> String {
         let mut result = String::new();
         let mut first = true;
         result.push('[');
@@ -595,7 +590,7 @@ impl SourceTypeArray {
         result
     }
 
-    pub fn tuple_name(&self, sa: &SemAnalysis) -> String {
+    pub fn tuple_name(&self, sa: &Sema) -> String {
         let mut result = String::new();
         let mut first = true;
         result.push('(');
@@ -652,7 +647,7 @@ impl<'a> Iterator for SourceTypeArrayIter<'a> {
 }
 
 struct SourceTypePrinter<'a> {
-    sa: &'a SemAnalysis,
+    sa: &'a Sema,
     type_params: Option<&'a TypeParamDefinition>,
 }
 

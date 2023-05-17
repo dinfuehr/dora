@@ -1,15 +1,15 @@
 use crate::language::error::msg::ErrorMessage;
 use crate::language::extensiondefck::check_for_unconstrained_type_params;
-use crate::language::sem_analysis::{FctDefinitionId, ImplDefinitionId, SemAnalysis, SourceFileId};
+use crate::language::sema::{FctDefinitionId, ImplDefinitionId, Sema, SourceFileId};
 use crate::language::sym::{ModuleSymTable, Sym};
 use crate::language::ty::SourceType;
 use crate::language::{self, AllowSelf, TypeParamContext};
 
 use dora_parser::ast;
 
-use super::sem_analysis::ImplDefinition;
+use super::sema::ImplDefinition;
 
-pub fn check(sa: &SemAnalysis) {
+pub fn check(sa: &Sema) {
     for impl_ in sa.impls.iter() {
         let (impl_id, file_id, module_id, ast) = {
             let impl_ = impl_.read();
@@ -35,7 +35,7 @@ pub fn check(sa: &SemAnalysis) {
 }
 
 struct ImplCheck<'x> {
-    sa: &'x SemAnalysis,
+    sa: &'x Sema,
     file_id: SourceFileId,
     impl_id: ImplDefinitionId,
     sym: ModuleSymTable,

@@ -5,9 +5,9 @@ use std::sync::Arc;
 
 use self::Sym::*;
 
-use crate::language::sem_analysis::{
+use crate::language::sema::{
     ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId,
-    GlobalDefinitionId, ModuleDefinitionId, NestedVarId, SemAnalysis, StructDefinitionId,
+    GlobalDefinitionId, ModuleDefinitionId, NestedVarId, Sema, StructDefinitionId,
     TraitDefinitionId, TypeParamId,
 };
 use dora_parser::interner::Name;
@@ -21,7 +21,7 @@ pub struct ModuleSymTable {
 }
 
 impl ModuleSymTable {
-    pub fn new(sa: &SemAnalysis, module_id: ModuleDefinitionId) -> ModuleSymTable {
+    pub fn new(sa: &Sema, module_id: ModuleDefinitionId) -> ModuleSymTable {
         let module = sa.modules.idx(module_id);
         let module = module.read();
         let outer = module.table.clone();
@@ -166,7 +166,7 @@ impl SymTable {
         self.get(name).and_then(|n| n.to_global())
     }
 
-    pub fn dump(&self, sa: &SemAnalysis) {
+    pub fn dump(&self, sa: &Sema) {
         for (key, value) in &self.table {
             println!("{} -> {:?}", sa.interner.str(*key), value);
         }

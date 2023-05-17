@@ -5,7 +5,7 @@ use std::convert::TryInto;
 use std::ops::Index;
 use std::sync::Arc;
 
-use crate::language::sem_analysis::{
+use crate::language::sema::{
     FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, SourceFileId, TypeParamDefinition,
 };
 use crate::language::ty::SourceType;
@@ -96,13 +96,13 @@ impl Index<ExtensionDefinitionId> for Vec<RwLock<ExtensionDefinition>> {
 }
 
 mod matching {
-    use crate::language::sem_analysis::{
-        implements_trait, ExtensionDefinitionId, SemAnalysis, TypeParamDefinition,
+    use crate::language::sema::{
+        implements_trait, ExtensionDefinitionId, Sema, TypeParamDefinition,
     };
     use crate::language::ty::{SourceType, SourceTypeArray};
 
     pub fn extension_matches(
-        sa: &SemAnalysis,
+        sa: &Sema,
         check_ty: SourceType,
         check_type_param_defs: &TypeParamDefinition,
         extension_id: ExtensionDefinitionId,
@@ -118,7 +118,7 @@ mod matching {
     }
 
     pub fn extension_matches_ty(
-        sa: &SemAnalysis,
+        sa: &Sema,
         check_ty: SourceType,
         check_type_param_defs: &TypeParamDefinition,
         ext_ty: SourceType,
@@ -145,7 +145,7 @@ mod matching {
     }
 
     fn matches(
-        sa: &SemAnalysis,
+        sa: &Sema,
         check_ty: SourceType,
         check_type_param_defs: &TypeParamDefinition,
         ext_ty: SourceType,
@@ -204,7 +204,7 @@ mod matching {
     }
 
     fn compare_type_param_bounds(
-        _sa: &SemAnalysis,
+        _sa: &Sema,
         check_ty: SourceType,
         check_type_param_defs: &TypeParamDefinition,
         ext_ty: SourceType,
@@ -224,7 +224,7 @@ mod matching {
     }
 
     fn concrete_type_fulfills_bounds(
-        sa: &SemAnalysis,
+        sa: &Sema,
         check_ty: SourceType,
         check_type_param_defs: &TypeParamDefinition,
         ext_ty: SourceType,
@@ -242,7 +242,7 @@ mod matching {
     }
 
     fn compare_concrete_types(
-        sa: &SemAnalysis,
+        sa: &Sema,
         check_ty: SourceType,
         check_type_param_defs: &TypeParamDefinition,
         ext_ty: SourceType,
@@ -361,7 +361,7 @@ mod matching {
     }
 
     fn compare_type_params(
-        sa: &SemAnalysis,
+        sa: &Sema,
         check_ty: SourceType,
         check_type_param_defs: &TypeParamDefinition,
         ext_ty: SourceType,

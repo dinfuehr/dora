@@ -1,14 +1,12 @@
 use std::collections::HashSet;
 
 use crate::language::error::msg::ErrorMessage;
-use crate::language::sem_analysis::{
-    FctDefinition, FctDefinitionId, FctParent, SemAnalysis, TypeParamId,
-};
+use crate::language::sema::{FctDefinition, FctDefinitionId, FctParent, Sema, TypeParamId};
 use crate::language::sym::{ModuleSymTable, Sym};
 use crate::language::ty::SourceType;
 use crate::language::{self, AllowSelf, TypeParamContext};
 
-pub fn check(sa: &SemAnalysis) {
+pub fn check(sa: &Sema) {
     for fct in sa.fcts.iter() {
         let mut fct = fct.write();
         let ast = fct.ast.clone();
@@ -178,7 +176,7 @@ pub fn check(sa: &SemAnalysis) {
     }
 }
 
-fn check_test(sa: &SemAnalysis, fct: &FctDefinition) {
+fn check_test(sa: &Sema, fct: &FctDefinition) {
     debug_assert!(fct.initialized);
 
     if !fct.is_test {
@@ -195,7 +193,7 @@ fn check_test(sa: &SemAnalysis, fct: &FctDefinition) {
     }
 }
 
-fn check_against_methods(sa: &SemAnalysis, fct: &FctDefinition, methods: &[FctDefinitionId]) {
+fn check_against_methods(sa: &Sema, fct: &FctDefinition, methods: &[FctDefinitionId]) {
     for &method in methods {
         if method == fct.id() {
             continue;

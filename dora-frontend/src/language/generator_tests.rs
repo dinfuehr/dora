@@ -3,7 +3,7 @@ use std::mem;
 
 use self::Bytecode::*;
 use crate::language::generator::{bty_from_ty, generate_fct};
-use crate::language::sem_analysis::{create_tuple, FctDefinitionId, SemAnalysis};
+use crate::language::sema::{create_tuple, FctDefinitionId, Sema};
 use crate::language::test;
 use crate::language::ty::{SourceType, SourceTypeArray};
 use dora_bytecode::{
@@ -57,7 +57,7 @@ fn code_method_with_struct_name(code: &'static str, struct_name: &'static str) -
 
 fn gen<F>(code: &'static str, testfct: F)
 where
-    F: FnOnce(&SemAnalysis, Vec<Bytecode>),
+    F: FnOnce(&Sema, Vec<Bytecode>),
 {
     test::check_valid(code, |sa| {
         let fct_id = sa.fct_by_name("f").expect("no function `f`.");
@@ -70,7 +70,7 @@ where
 
 fn gen_fct<F>(code: &'static str, testfct: F)
 where
-    F: FnOnce(&SemAnalysis, Vec<Bytecode>, BytecodeFunction),
+    F: FnOnce(&Sema, Vec<Bytecode>, BytecodeFunction),
 {
     test::check_valid(code, |sa| {
         let fct_id = sa.fct_by_name("f").expect("no function `f`.");

@@ -5,10 +5,10 @@ use crate::language::access::{
     class_accessible_from, enum_accessible_from, struct_accessible_from, trait_accessible_from,
 };
 use crate::language::error::msg::ErrorMessage;
-use crate::language::sem_analysis::{
+use crate::language::sema::{
     implements_trait, ClassDefinitionId, EnumDefinitionId, ExtensionDefinitionId, FctDefinition,
-    ImplDefinition, ModuleDefinitionId, SemAnalysis, SourceFileId, StructDefinitionId,
-    TraitDefinitionId, TypeParamDefinition,
+    ImplDefinition, ModuleDefinitionId, Sema, SourceFileId, StructDefinitionId, TraitDefinitionId,
+    TypeParamDefinition,
 };
 use crate::language::specialize::specialize_type;
 use crate::language::sym::{ModuleSymTable, Sym, SymTable};
@@ -36,7 +36,7 @@ pub enum AllowSelf {
 }
 
 pub fn read_type_unchecked(
-    sa: &SemAnalysis,
+    sa: &Sema,
     table: &ModuleSymTable,
     file_id: SourceFileId,
     t: &ast::TypeData,
@@ -51,7 +51,7 @@ pub fn read_type_unchecked(
 }
 
 fn read_type_basic_unchecked(
-    sa: &SemAnalysis,
+    sa: &Sema,
     table: &ModuleSymTable,
     file_id: SourceFileId,
     node: &TypeBasicType,
@@ -127,7 +127,7 @@ fn read_type_basic_unchecked(
 }
 
 fn read_type_lambda_unchecked(
-    sa: &SemAnalysis,
+    sa: &Sema,
     table: &ModuleSymTable,
     file_id: SourceFileId,
     node: &TypeLambdaType,
@@ -151,7 +151,7 @@ fn read_type_lambda_unchecked(
 }
 
 fn read_type_tuple_unchecked(
-    sa: &SemAnalysis,
+    sa: &Sema,
     table: &ModuleSymTable,
     file_id: SourceFileId,
     node: &TypeTupleType,
@@ -172,7 +172,7 @@ fn read_type_tuple_unchecked(
 }
 
 pub fn verify_type(
-    sa: &SemAnalysis,
+    sa: &Sema,
     module_id: ModuleDefinitionId,
     file_id: SourceFileId,
     t: &ast::TypeData,
@@ -275,7 +275,7 @@ pub fn verify_type(
 }
 
 fn verify_type_basic(
-    sa: &SemAnalysis,
+    sa: &Sema,
     module_id: ModuleDefinitionId,
     file_id: SourceFileId,
     node: &ast::TypeBasicType,
@@ -464,7 +464,7 @@ fn verify_type_basic(
 }
 
 pub fn read_type_context(
-    sa: &SemAnalysis,
+    sa: &Sema,
     table: &ModuleSymTable,
     file_id: SourceFileId,
     t: &ast::TypeData,
@@ -477,7 +477,7 @@ pub fn read_type_context(
 }
 
 pub fn read_type(
-    sa: &SemAnalysis,
+    sa: &Sema,
     table: &ModuleSymTable,
     file_id: SourceFileId,
     t: &ast::TypeData,
@@ -504,7 +504,7 @@ pub fn read_type(
 }
 
 fn read_type_path(
-    sa: &SemAnalysis,
+    sa: &Sema,
     table: &ModuleSymTable,
     file_id: SourceFileId,
     basic: &TypeBasicType,
@@ -530,7 +530,7 @@ fn read_type_path(
 }
 
 fn table_for_module(
-    sa: &SemAnalysis,
+    sa: &Sema,
     file_id: SourceFileId,
     basic: &TypeBasicType,
     sym: Option<Sym>,
@@ -547,7 +547,7 @@ fn table_for_module(
 }
 
 fn check_type_params(
-    sa: &SemAnalysis,
+    sa: &Sema,
     tp_definitions: &TypeParamDefinition,
     type_params: &[SourceType],
     file_id: SourceFileId,
@@ -581,7 +581,7 @@ fn check_type_params(
     success
 }
 
-fn use_type_params<F, R>(sa: &SemAnalysis, ctxt: TypeParamContext, callback: F) -> R
+fn use_type_params<F, R>(sa: &Sema, ctxt: TypeParamContext, callback: F) -> R
 where
     F: FnOnce(&TypeParamDefinition) -> R,
 {

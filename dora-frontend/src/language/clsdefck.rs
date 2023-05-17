@@ -1,9 +1,7 @@
 use std::collections::HashSet;
 
 use crate::language::error::msg::ErrorMessage;
-use crate::language::sem_analysis::{
-    ClassDefinitionId, Field, FieldId, SemAnalysis, SourceFileId, Visibility,
-};
+use crate::language::sema::{ClassDefinitionId, Field, FieldId, Sema, SourceFileId, Visibility};
 use crate::language::sym::{ModuleSymTable, Sym};
 use crate::language::ty::SourceType;
 use crate::language::{read_type_context, AllowSelf, TypeParamContext};
@@ -12,7 +10,7 @@ use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::Span;
 
-pub fn check(sa: &SemAnalysis) {
+pub fn check(sa: &Sema) {
     for cls in sa.classes.iter() {
         let (cls_id, file_id, ast, module_id) = {
             let cls = cls.read();
@@ -38,7 +36,7 @@ pub fn check(sa: &SemAnalysis) {
 }
 
 struct ClsDefCheck<'x> {
-    sa: &'x SemAnalysis,
+    sa: &'x Sema,
     cls_id: ClassDefinitionId,
     file_id: SourceFileId,
     ast: &'x ast::Class,

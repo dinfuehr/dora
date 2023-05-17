@@ -1,5 +1,5 @@
 use crate::language::error::msg::ErrorMessage;
-use crate::language::sem_analysis::{FctDefinition, SemAnalysis, SourceFileId};
+use crate::language::sema::{FctDefinition, Sema, SourceFileId};
 use crate::language::sym::Sym;
 use dora_parser::ast;
 use dora_parser::interner::Name;
@@ -27,7 +27,7 @@ pub mod program;
 mod program_parser;
 mod readty;
 mod returnck;
-pub mod sem_analysis;
+pub mod sema;
 mod specialize;
 mod stdlib;
 mod structdefck;
@@ -48,7 +48,7 @@ macro_rules! return_on_error {
     }};
 }
 
-pub fn check(sa: &mut SemAnalysis) -> bool {
+pub fn check(sa: &mut Sema) -> bool {
     // This phase loads and parses all files. Also creates top-level-elements.
     program_parser::parse(sa);
     return_on_error!(sa);
@@ -108,7 +108,7 @@ pub fn check(sa: &mut SemAnalysis) -> bool {
     true
 }
 
-pub fn emit_ast(sa: &SemAnalysis, filter: &str) {
+pub fn emit_ast(sa: &Sema, filter: &str) {
     for fct in sa.fcts.iter() {
         let fct = fct.read();
 
@@ -118,7 +118,7 @@ pub fn emit_ast(sa: &SemAnalysis, filter: &str) {
     }
 }
 
-pub fn generate_bytecode(sa: &SemAnalysis) {
+pub fn generate_bytecode(sa: &Sema) {
     for fct in sa.fcts.iter() {
         let bc = {
             let fct = fct.read();
@@ -135,7 +135,7 @@ pub fn generate_bytecode(sa: &SemAnalysis) {
     }
 }
 
-pub fn emit_bytecode(sa: &SemAnalysis, filter: &str) {
+pub fn emit_bytecode(sa: &Sema, filter: &str) {
     for fct in sa.fcts.iter() {
         let fct = fct.read();
 
@@ -145,7 +145,7 @@ pub fn emit_bytecode(sa: &SemAnalysis, filter: &str) {
     }
 }
 
-fn fct_pattern_match(sa: &SemAnalysis, fct: &FctDefinition, pattern: &str) -> bool {
+fn fct_pattern_match(sa: &Sema, fct: &FctDefinition, pattern: &str) -> bool {
     if pattern == "all" {
         return true;
     }
@@ -161,7 +161,7 @@ fn fct_pattern_match(sa: &SemAnalysis, fct: &FctDefinition, pattern: &str) -> bo
     false
 }
 
-fn internalck(sa: &SemAnalysis) {
+fn internalck(sa: &Sema) {
     for fct in sa.fcts.iter() {
         let fct = fct.read();
 
@@ -207,13 +207,7 @@ pub fn expr_block_always_returns(e: &ast::ExprBlockType) -> bool {
     returnck::expr_block_returns_value(e).is_ok()
 }
 
-pub fn report_sym_shadow_span(
-    sa: &SemAnalysis,
-    name: Name,
-    file: SourceFileId,
-    span: Span,
-    sym: Sym,
-) {
+pub fn report_sym_shadow_span(sa: &Sema, name: Name, file: SourceFileId, span: Span, sym: Sym) {
     let name = sa.interner.str(name).to_string();
 
     let msg = match sym {
@@ -236,7 +230,7 @@ pub fn report_sym_shadow_span(
 #[cfg(test)]
 pub mod tests {
     use crate::language::error::msg::{ErrorDescriptor, ErrorMessage};
-    use crate::language::sem_analysis::SemAnalysis;
+    use crate::language::sema::Sema;
     use crate::language::test;
     use dora_parser::{compute_line_column, compute_line_starts};
 
@@ -257,7 +251,7 @@ pub mod tests {
 
     pub fn ok_with_test<F, R>(code: &'static str, f: F) -> R
     where
-        F: FnOnce(&SemAnalysis) -> R,
+        F: FnOnce(&Sema) -> R,
     {
         test::check(code, |vm| {
             let diag = vm.diag.lock();

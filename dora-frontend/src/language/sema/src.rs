@@ -5,7 +5,7 @@ use std::sync::Arc;
 use dora_bytecode::Intrinsic;
 use dora_parser::ast;
 
-use crate::language::sem_analysis::{
+use crate::language::sema::{
     ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId,
     GlobalDefinitionId, StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId,
     TypeParamId,

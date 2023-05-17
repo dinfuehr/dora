@@ -1,4 +1,4 @@
-use crate::language::SemAnalysis;
+use crate::language::Sema;
 use dora_bytecode::program::{ClassLayout, ImplData, InternalClass, InternalFunction};
 use dora_bytecode::{
     ClassData, ClassField, EnumData, EnumVariant, FunctionData, FunctionId, FunctionKind,
@@ -8,15 +8,15 @@ use dora_bytecode::{
 
 use crate::language::generator::bty_from_ty;
 
-use crate::language::sem_analysis as sa;
-use crate::language::sem_analysis::{
+use crate::language::sema as sa;
+use crate::language::sema::{
     ClassDefinition, FctDefinitionId, FctParent, ModuleDefinitionId, PackageDefinitionId,
     PackageName, StructDefinition, TypeParamDefinition,
 };
 
-use super::sem_analysis::{ImplDefinitionId, TraitDefinitionId};
+use super::sema::{ImplDefinitionId, TraitDefinitionId};
 
-pub fn emit_program(sa: SemAnalysis) -> Program {
+pub fn emit_program(sa: Sema) -> Program {
     Program {
         packages: create_packages(&sa),
         modules: create_modules(&sa),
@@ -35,7 +35,7 @@ pub fn emit_program(sa: SemAnalysis) -> Program {
     }
 }
 
-fn create_packages(sa: &SemAnalysis) -> Vec<PackageData> {
+fn create_packages(sa: &Sema) -> Vec<PackageData> {
     let mut result = Vec::new();
 
     for pkg in sa.packages.iter() {
@@ -57,7 +57,7 @@ fn create_packages(sa: &SemAnalysis) -> Vec<PackageData> {
     result
 }
 
-fn create_modules(sa: &SemAnalysis) -> Vec<ModuleData> {
+fn create_modules(sa: &Sema) -> Vec<ModuleData> {
     let mut result = Vec::new();
 
     for module in sa.modules.iter() {
@@ -78,7 +78,7 @@ fn create_modules(sa: &SemAnalysis) -> Vec<ModuleData> {
     result
 }
 
-fn create_impls(sa: &SemAnalysis) -> Vec<ImplData> {
+fn create_impls(sa: &Sema) -> Vec<ImplData> {
     let mut result = Vec::new();
 
     for impl_ in sa.impls.iter() {
@@ -112,7 +112,7 @@ fn create_impls(sa: &SemAnalysis) -> Vec<ImplData> {
     result
 }
 
-fn create_functions(sa: &SemAnalysis) -> Vec<FunctionData> {
+fn create_functions(sa: &Sema) -> Vec<FunctionData> {
     let mut result = Vec::new();
 
     for fct in sa.fcts.iter() {
@@ -166,7 +166,7 @@ fn create_functions(sa: &SemAnalysis) -> Vec<FunctionData> {
     result
 }
 
-fn create_globals(sa: &SemAnalysis) -> Vec<GlobalData> {
+fn create_globals(sa: &Sema) -> Vec<GlobalData> {
     let mut result = Vec::new();
 
     for global in sa.globals.iter() {
@@ -185,7 +185,7 @@ fn create_globals(sa: &SemAnalysis) -> Vec<GlobalData> {
     result
 }
 
-fn create_classes(sa: &SemAnalysis) -> Vec<ClassData> {
+fn create_classes(sa: &Sema) -> Vec<ClassData> {
     let mut result = Vec::new();
 
     for class in sa.classes.iter() {
@@ -227,7 +227,7 @@ fn create_class_layout(class: &ClassDefinition) -> ClassLayout {
     }
 }
 
-fn create_class_fields(sa: &SemAnalysis, class: &ClassDefinition) -> Vec<ClassField> {
+fn create_class_fields(sa: &Sema, class: &ClassDefinition) -> Vec<ClassField> {
     class
         .fields
         .iter()
@@ -238,7 +238,7 @@ fn create_class_fields(sa: &SemAnalysis, class: &ClassDefinition) -> Vec<ClassFi
         .collect()
 }
 
-fn create_structs(sa: &SemAnalysis) -> Vec<StructData> {
+fn create_structs(sa: &Sema) -> Vec<StructData> {
     let mut result = Vec::new();
 
     for struct_ in sa.structs.iter() {
@@ -256,7 +256,7 @@ fn create_structs(sa: &SemAnalysis) -> Vec<StructData> {
     result
 }
 
-fn create_type_params(sa: &SemAnalysis, type_params: &TypeParamDefinition) -> TypeParamData {
+fn create_type_params(sa: &Sema, type_params: &TypeParamDefinition) -> TypeParamData {
     let names = type_params
         .names()
         .map(|(_, name)| sa.interner.str(name).to_string())
@@ -274,7 +274,7 @@ fn create_type_params(sa: &SemAnalysis, type_params: &TypeParamDefinition) -> Ty
     TypeParamData { names, bounds }
 }
 
-fn create_struct_fields(sa: &SemAnalysis, struct_: &StructDefinition) -> Vec<StructField> {
+fn create_struct_fields(sa: &Sema, struct_: &StructDefinition) -> Vec<StructField> {
     struct_
         .fields
         .iter()
@@ -285,7 +285,7 @@ fn create_struct_fields(sa: &SemAnalysis, struct_: &StructDefinition) -> Vec<Str
         .collect()
 }
 
-fn create_enums(sa: &SemAnalysis) -> Vec<EnumData> {
+fn create_enums(sa: &Sema) -> Vec<EnumData> {
     let mut result = Vec::new();
 
     for enum_ in sa.enums.iter() {
@@ -303,7 +303,7 @@ fn create_enums(sa: &SemAnalysis) -> Vec<EnumData> {
     result
 }
 
-fn create_enum_variants(sa: &SemAnalysis, enum_: &sa::EnumDefinition) -> Vec<EnumVariant> {
+fn create_enum_variants(sa: &Sema, enum_: &sa::EnumDefinition) -> Vec<EnumVariant> {
     let mut result = Vec::new();
 
     for variant in &enum_.variants {
@@ -321,7 +321,7 @@ fn create_enum_variants(sa: &SemAnalysis, enum_: &sa::EnumDefinition) -> Vec<Enu
     result
 }
 
-fn create_traits(sa: &SemAnalysis) -> Vec<TraitData> {
+fn create_traits(sa: &Sema) -> Vec<TraitData> {
     let mut result = Vec::new();
 
     for trait_ in sa.traits.iter() {
@@ -343,7 +343,7 @@ fn create_traits(sa: &SemAnalysis) -> Vec<TraitData> {
     result
 }
 
-fn create_source_files(sa: &SemAnalysis) -> Vec<SourceFileData> {
+fn create_source_files(sa: &Sema) -> Vec<SourceFileData> {
     let mut result = Vec::new();
 
     for file in sa.source_files.iter() {
@@ -355,7 +355,7 @@ fn create_source_files(sa: &SemAnalysis) -> Vec<SourceFileData> {
     result
 }
 
-fn find_main_fct_id(sa: &SemAnalysis) -> Option<FunctionId> {
+fn find_main_fct_id(sa: &Sema) -> Option<FunctionId> {
     let name = sa.interner.intern("main");
     let fctid = if let Some(id) = sa.module_table(sa.program_module_id()).read().get_fct(name) {
         id

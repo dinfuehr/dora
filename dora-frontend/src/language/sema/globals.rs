@@ -1,9 +1,9 @@
 use std::convert::TryInto;
 use std::sync::Arc;
 
-use crate::language::sem_analysis::{
-    module_path, AnalysisData, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId,
-    SemAnalysis, SourceFileId, Visibility,
+use crate::language::sema::{
+    module_path, AnalysisData, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
+    SourceFileId, Visibility,
 };
 use crate::language::ty::SourceType;
 use crate::Id;
@@ -85,7 +85,7 @@ impl GlobalDefinition {
         self.initializer.is_some()
     }
 
-    pub fn name(&self, sa: &SemAnalysis) -> String {
+    pub fn name(&self, sa: &Sema) -> String {
         module_path(sa, self.module_id, self.name)
     }
 }

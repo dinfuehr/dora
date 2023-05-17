@@ -1,9 +1,9 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::language::error::msg::ErrorMessage;
-use crate::language::sem_analysis::SemAnalysis;
+use crate::language::sema::Sema;
 
-pub fn check(sa: &mut SemAnalysis) {
+pub fn check(sa: &mut Sema) {
     for impl_ in sa.impls.iter() {
         let impl_for = {
             let impl_ = impl_.read();

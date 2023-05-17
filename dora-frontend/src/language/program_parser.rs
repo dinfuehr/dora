@@ -6,11 +6,11 @@ use std::sync::Arc;
 
 use crate::language::error::msg::ErrorMessage;
 use crate::language::report_sym_shadow_span;
-use crate::language::sem_analysis::{
+use crate::language::sema::{
     ClassDefinition, ConstDefinition, EnumDefinition, ExtensionDefinition, ExtensionDefinitionId,
     FctDefinition, FctParent, GlobalDefinition, GlobalDefinitionId, ImplDefinition,
-    ImplDefinitionId, ModuleDefinition, ModuleDefinitionId, PackageDefinitionId, PackageName,
-    SemAnalysis, SourceFileId, StructDefinition, TraitDefinition, TraitDefinitionId, UseDefinition,
+    ImplDefinitionId, ModuleDefinition, ModuleDefinitionId, PackageDefinitionId, PackageName, Sema,
+    SourceFileId, StructDefinition, TraitDefinition, TraitDefinitionId, UseDefinition,
 };
 use crate::language::sym::Sym;
 use crate::STDLIB;
@@ -21,7 +21,7 @@ use dora_parser::interner::Name;
 use dora_parser::parser::{NodeIdGenerator, Parser};
 use dora_parser::Span;
 
-pub fn parse(sa: &mut SemAnalysis) {
+pub fn parse(sa: &mut Sema) {
     let mut discoverer = ProgramParser::new(sa);
     discoverer.parse_all();
 }
@@ -33,13 +33,13 @@ enum FileLookup {
 }
 
 struct ProgramParser<'a> {
-    sa: &'a mut SemAnalysis,
+    sa: &'a mut Sema,
     files_to_parse: VecDeque<(SourceFileId, FileLookup, Option<PathBuf>)>,
     packages: HashMap<String, PathBuf>,
 }
 
 impl<'a> ProgramParser<'a> {
-    fn new(sa: &mut SemAnalysis) -> ProgramParser {
+    fn new(sa: &mut Sema) -> ProgramParser {
         ProgramParser {
             sa,
             files_to_parse: VecDeque::new(),
@@ -387,7 +387,7 @@ fn file_as_string(path: &PathBuf) -> Result<String, Error> {
 }
 
 struct TopLevelDeclaration<'x> {
-    sa: &'x mut SemAnalysis,
+    sa: &'x mut Sema,
     package_id: PackageDefinitionId,
     file_id: SourceFileId,
     module_id: ModuleDefinitionId,
@@ -595,11 +595,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     }
 }
 
-fn find_methods_in_trait(
-    sa: &mut SemAnalysis,
-    trait_id: TraitDefinitionId,
-    node: &Arc<ast::Trait>,
-) {
+fn find_methods_in_trait(sa: &mut Sema, trait_id: TraitDefinitionId, node: &Arc<ast::Trait>) {
     let trait_ = sa.traits.idx(trait_id);
     let mut trait_ = trait_.write();
 
@@ -618,7 +614,7 @@ fn find_methods_in_trait(
     }
 }
 
-fn find_methods_in_impl(sa: &mut SemAnalysis, impl_id: ImplDefinitionId, node: &Arc<ast::Impl>) {
+fn find_methods_in_impl(sa: &mut Sema, impl_id: ImplDefinitionId, node: &Arc<ast::Impl>) {
     let impl_ = sa.impls.idx(impl_id);
     let mut impl_ = impl_.write();
 
@@ -638,7 +634,7 @@ fn find_methods_in_impl(sa: &mut SemAnalysis, impl_id: ImplDefinitionId, node: &
 }
 
 fn find_methods_in_extension(
-    sa: &mut SemAnalysis,
+    sa: &mut Sema,
     extension_id: ExtensionDefinitionId,
     node: &Arc<ast::Impl>,
 ) {
@@ -661,7 +657,7 @@ fn find_methods_in_extension(
 }
 
 fn generate_function_for_initial_value(
-    sa: &mut SemAnalysis,
+    sa: &mut Sema,
     global_id: GlobalDefinitionId,
     id_generator: &NodeIdGenerator,
     node: &Arc<ast::Global>,
@@ -704,7 +700,7 @@ fn generate_function_for_initial_value(
     }
 }
 
-fn ensure_name(sa: &mut SemAnalysis, ident: &Option<ast::Ident>) -> Name {
+fn ensure_name(sa: &mut Sema, ident: &Option<ast::Ident>) -> Name {
     if let Some(ident) = ident {
         ident.name
     } else {

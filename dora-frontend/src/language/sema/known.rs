@@ -1,4 +1,4 @@
-use crate::language::sem_analysis::{
+use crate::language::sema::{
     ClassDefinitionId, EnumDefinitionId, FctDefinitionId, StructDefinitionId, TraitDefinitionId,
 };
 use crate::language::ty::{SourceType, SourceTypeArray};

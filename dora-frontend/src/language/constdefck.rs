@@ -1,11 +1,11 @@
-use crate::language::sem_analysis::{ConstDefinitionId, SemAnalysis, SourceFileId};
+use crate::language::sema::{ConstDefinitionId, Sema, SourceFileId};
 use crate::language::sym::ModuleSymTable;
 use crate::language::ty::SourceType;
 use crate::language::{self, AllowSelf, TypeParamContext};
 
 use dora_parser::ast;
 
-pub fn check(sa: &SemAnalysis) {
+pub fn check(sa: &Sema) {
     for const_ in sa.consts.iter() {
         let (const_id, file_id, ast, module_id) = {
             let const_ = const_.read();
@@ -30,7 +30,7 @@ pub fn check(sa: &SemAnalysis) {
 }
 
 struct ConstCheck<'x> {
-    sa: &'x SemAnalysis,
+    sa: &'x Sema,
     const_id: ConstDefinitionId,
     file_id: SourceFileId,
     ast: &'x ast::Const,

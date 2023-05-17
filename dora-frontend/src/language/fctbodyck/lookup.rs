@@ -1,8 +1,8 @@
 use crate::language::error::msg::ErrorMessage;
 use crate::language::fctbodyck::body::args_compatible_fct;
-use crate::language::sem_analysis::{
-    find_methods_in_class, find_methods_in_enum, find_methods_in_struct, FctDefinitionId,
-    SemAnalysis, SourceFileId, TraitDefinitionId, TypeParamDefinition,
+use crate::language::sema::{
+    find_methods_in_class, find_methods_in_enum, find_methods_in_struct, FctDefinitionId, Sema,
+    SourceFileId, TraitDefinitionId, TypeParamDefinition,
 };
 use crate::language::specialize::replace_type_param;
 use crate::language::ty::{SourceType, SourceTypeArray};
@@ -62,7 +62,7 @@ enum LookupKind {
 }
 
 pub struct MethodLookup<'a> {
-    sa: &'a SemAnalysis,
+    sa: &'a Sema,
     file: SourceFileId,
     kind: Option<LookupKind>,
     name: Option<Name>,
@@ -76,7 +76,7 @@ pub struct MethodLookup<'a> {
 
 impl<'a> MethodLookup<'a> {
     pub fn new(
-        sa: &'a SemAnalysis,
+        sa: &'a Sema,
         file_id: SourceFileId,
         caller_type_param_defs: &'a TypeParamDefinition,
     ) -> MethodLookup<'a> {
