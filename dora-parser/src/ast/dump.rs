@@ -2,8 +2,6 @@ use std::sync::Arc;
 
 use crate::ast::*;
 
-use crate::interner::{ArcStr, Interner, Name};
-
 macro_rules! dump {
     ($self_:ident, $($message:tt)*) => {{
         for _ in 0..($self_.indent*2) {
@@ -14,48 +12,35 @@ macro_rules! dump {
     }};
 }
 
-pub fn dump_file(ast: &Arc<File>, interner: &Interner) {
-    let mut dumper = AstDumper {
-        interner,
-        indent: 0,
-    };
+pub fn dump_file(ast: &Arc<File>) {
+    let mut dumper = AstDumper { indent: 0 };
 
     dumper.dump_file(ast);
 }
 
-pub fn dump_fct(fct: &Function, interner: &Interner) {
-    let mut dumper = AstDumper {
-        interner,
-        indent: 0,
-    };
+pub fn dump_fct(fct: &Function) {
+    let mut dumper = AstDumper { indent: 0 };
 
     dumper.dump_fct(fct);
 }
 
-pub fn dump_expr<'a>(expr: &'a ExprData, interner: &'a Interner) {
-    let mut dumper = AstDumper {
-        interner,
-        indent: 0,
-    };
+pub fn dump_expr<'a>(expr: &'a ExprData) {
+    let mut dumper = AstDumper { indent: 0 };
 
     dumper.dump_expr(expr);
 }
 
-pub fn dump_stmt<'a>(stmt: &'a StmtData, interner: &'a Interner) {
-    let mut dumper = AstDumper {
-        interner,
-        indent: 0,
-    };
+pub fn dump_stmt<'a>(stmt: &'a StmtData) {
+    let mut dumper = AstDumper { indent: 0 };
 
     dumper.dump_stmt(stmt);
 }
 
-struct AstDumper<'a> {
-    interner: &'a Interner,
+struct AstDumper {
     indent: u32,
 }
 
-impl<'a> AstDumper<'a> {
+impl AstDumper {
     fn dump_file(&mut self, f: &File) {
         for el in &f.elements {
             self.dump_elem(el);
@@ -586,7 +571,7 @@ impl<'a> AstDumper<'a> {
 
     fn dump_ident(&self, ident: &Option<Ident>) {
         if let Some(ident) = ident {
-            dump!(self, "ident {}", self.str(ident.name));
+            dump!(self, "ident {}", ident.name_as_string);
         } else {
             dump!(self, "missing ident");
         }
@@ -602,9 +587,5 @@ impl<'a> AstDumper<'a> {
         fct(self);
 
         self.indent = old;
-    }
-
-    fn str(&self, name: Name) -> ArcStr {
-        self.interner.str(name)
     }
 }

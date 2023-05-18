@@ -187,6 +187,7 @@ impl ElemData {
 pub struct IdentData {
     pub span: Span,
     pub name: Name,
+    pub name_as_string: String,
 }
 
 pub type Ident = Arc<IdentData>;
@@ -355,9 +356,15 @@ pub struct TypeBasicType {
 
 impl TypeBasicType {
     #[cfg(test)]
-    pub fn name(&self) -> Name {
+    pub fn name(&self) -> String {
         assert_eq!(self.path.names.len(), 1);
-        self.path.names.last().cloned().unwrap().name
+        self.path
+            .names
+            .last()
+            .cloned()
+            .unwrap()
+            .name_as_string
+            .clone()
     }
 }
 
@@ -421,7 +428,7 @@ impl TypeData {
     pub fn to_string(&self, interner: &Interner) -> String {
         match *self {
             TypeData::This(_) => "Self".into(),
-            TypeData::Basic(ref val) => format!("{}", *interner.str(val.name())),
+            TypeData::Basic(ref val) => val.name(),
 
             TypeData::Tuple(ref val) => {
                 let types: Vec<String> =

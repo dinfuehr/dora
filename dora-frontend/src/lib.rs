@@ -118,7 +118,7 @@ pub fn emit_ast(sa: &Sema, filter: &str) {
         let fct = fct.read();
 
         if fct_pattern_match(sa, &*fct, filter) {
-            ast::dump::dump_fct(&fct.ast, &sa.interner);
+            ast::dump::dump_fct(&fct.ast);
         }
     }
 }
