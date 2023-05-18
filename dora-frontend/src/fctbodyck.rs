@@ -60,6 +60,7 @@ fn check_function(sa: &mut Sema, id: FctDefinitionId) {
         let mut analysis = AnalysisData::new();
         let mut symtable = ModuleSymTable::new(sa, fct.module_id);
         let mut vars = VarManager::new();
+        let mut outer_context_classes = Vec::new();
 
         let mut typeck = TypeCheck {
             sa,
@@ -74,6 +75,7 @@ fn check_function(sa: &mut Sema, id: FctDefinitionId) {
             self_available: false,
             vars: &mut vars,
             contains_lambda: false,
+            outer_context_classes: &mut outer_context_classes,
             outer_context_access_in_function: false,
             outer_context_access_from_lambda: false,
         };
@@ -99,6 +101,7 @@ fn check_global(sa: &mut Sema, id: GlobalDefinitionId) {
         let mut analysis = AnalysisData::new();
         let mut symtable = ModuleSymTable::new(sa, global.module_id);
         let mut vars = VarManager::new();
+        let mut outer_context_classes = Vec::new();
 
         let mut typeck = TypeCheck {
             sa,
@@ -113,6 +116,7 @@ fn check_global(sa: &mut Sema, id: GlobalDefinitionId) {
             self_available: false,
             vars: &mut vars,
             contains_lambda: false,
+            outer_context_classes: &mut outer_context_classes,
             outer_context_access_in_function: false,
             outer_context_access_from_lambda: false,
         };

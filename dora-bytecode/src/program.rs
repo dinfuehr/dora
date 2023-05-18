@@ -47,7 +47,7 @@ pub struct FunctionData {
 #[derive(Debug, Decode, Encode)]
 pub enum FunctionKind {
     Impl(ImplId),
-    Lambda(FunctionId),
+    Lambda,
     Trait(TraitId),
     Method,
     Function,

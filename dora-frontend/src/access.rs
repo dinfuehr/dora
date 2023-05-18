@@ -82,7 +82,7 @@ pub fn method_accessible_from(
             Visibility::Public
         }
 
-        FctParent::Function(_) | FctParent::None => unreachable!(),
+        FctParent::Function | FctParent::None => unreachable!(),
     };
 
     accessible_from(sa, fct.module_id, element_visibility, module_id)

@@ -1,14 +1,17 @@
+use std::collections::HashMap;
+
 use crate::Sema;
 use dora_bytecode::program::{ClassLayout, ImplData, InternalClass, InternalFunction};
 use dora_bytecode::{
-    ClassData, ClassField, EnumData, EnumVariant, FunctionData, FunctionId, FunctionKind,
-    GlobalData, ImplId, ModuleData, ModuleId, PackageData, PackageId, Program, SourceFileData,
-    SourceFileId, StructData, StructField, TraitData, TraitId, TypeParamBound, TypeParamData,
+    BytecodeType, ClassData, ClassField, EnumData, EnumVariant, FunctionData, FunctionId,
+    FunctionKind, GlobalData, ImplId, ModuleData, ModuleId, PackageData, PackageId, Program,
+    SourceFileData, SourceFileId, StructData, StructField, TraitData, TraitId, TypeParamBound,
+    TypeParamData,
 };
 
 use crate::generator::bty_from_ty;
 
-use crate::sema as sa;
+use crate::sema::{self as sa, GlobalDefinition, GlobalDefinitionId};
 use crate::sema::{
     ClassDefinition, FctDefinitionId, FctParent, ModuleDefinitionId, PackageDefinitionId,
     PackageName, StructDefinition, TypeParamDefinition,
@@ -16,12 +19,20 @@ use crate::sema::{
 
 use super::sema::{ImplDefinitionId, TraitDefinitionId};
 
+struct Emitter {
+    global_initializer: HashMap<GlobalDefinitionId, FunctionId>,
+}
+
 pub fn emit_program(sa: Sema) -> Program {
+    let mut emitter = Emitter {
+        global_initializer: HashMap::new(),
+    };
+
     Program {
         packages: create_packages(&sa),
         modules: create_modules(&sa),
-        functions: create_functions(&sa),
-        globals: create_globals(&sa),
+        functions: create_functions(&sa, &mut emitter),
+        globals: create_globals(&sa, &emitter),
         classes: create_classes(&sa),
         structs: create_structs(&sa),
         enums: create_enums(&sa),
@@ -112,7 +123,7 @@ fn create_impls(sa: &Sema) -> Vec<ImplData> {
     result
 }
 
-fn create_functions(sa: &Sema) -> Vec<FunctionData> {
+fn create_functions(sa: &Sema, e: &mut Emitter) -> Vec<FunctionData> {
     let mut result = Vec::new();
 
     for fct in sa.fcts.iter() {
@@ -129,9 +140,7 @@ fn create_functions(sa: &Sema) -> Vec<FunctionData> {
 
         let kind = match fct.parent {
             FctParent::Extension(..) => FunctionKind::Method,
-            FctParent::Function(function_id) => {
-                FunctionKind::Lambda(convert_function_id(function_id))
-            }
+            FctParent::Function => FunctionKind::Lambda,
             FctParent::Impl(impl_id) => FunctionKind::Impl(convert_impl_id(impl_id)),
             FctParent::Trait(trait_id) => FunctionKind::Trait(convert_trait_id(trait_id)),
             FctParent::None => FunctionKind::Function,
@@ -163,10 +172,48 @@ fn create_functions(sa: &Sema) -> Vec<FunctionData> {
         })
     }
 
+    if !sa.args.check_global_initializer {
+        return result;
+    }
+
+    for global in sa.globals.iter() {
+        let global = global.read();
+
+        if global.ast.initial_value.is_none() {
+            continue;
+        }
+
+        let fct_id = FunctionId(result.len().try_into().expect("overflow"));
+        let name = sa.interner.str(global.name).to_string();
+
+        result.push(FunctionData {
+            name,
+            loc: sa.compute_loc(global.file_id, global.span),
+            kind: FunctionKind::Function,
+            file_id: convert_source_file_id(global.file_id),
+            package_id: convert_package_id(global.package_id),
+            module_id: convert_module_id(global.module_id),
+            type_params: create_type_params(sa, &TypeParamDefinition::new()),
+            source_file_id: Some(convert_source_file_id(global.file_id)),
+            params: Vec::new(),
+            return_type: BytecodeType::Unit,
+            native: None,
+            intrinsic: None,
+            internal: None,
+            is_test: false,
+            vtable_index: None,
+            is_optimize_immediately: false,
+            is_variadic: false,
+            bytecode: Some(global.bytecode.as_ref().expect("missing bytecode").clone()),
+        });
+
+        e.global_initializer.insert(global.id(), fct_id);
+    }
+
     result
 }
 
-fn create_globals(sa: &Sema) -> Vec<GlobalData> {
+fn create_globals(sa: &Sema, e: &Emitter) -> Vec<GlobalData> {
     let mut result = Vec::new();
 
     for global in sa.globals.iter() {
@@ -178,11 +225,28 @@ fn create_globals(sa: &Sema) -> Vec<GlobalData> {
             ty: bty_from_ty(global.ty.clone()),
             mutable: global.mutable,
             name,
-            initializer: global.initializer.map(|t| convert_function_id(t)),
+            initializer: global_initializer_function_id(sa, &*global, e),
         })
     }
 
     result
+}
+
+fn global_initializer_function_id(
+    _sa: &Sema,
+    global: &GlobalDefinition,
+    e: &Emitter,
+) -> Option<FunctionId> {
+    if _sa.args.check_global_initializer {
+        Some(
+            e.global_initializer
+                .get(&global.id())
+                .expect("missing initializer")
+                .to_owned(),
+        )
+    } else {
+        global.initializer.map(|t| convert_function_id(t))
+    }
 }
 
 fn create_classes(sa: &Sema) -> Vec<ClassData> {

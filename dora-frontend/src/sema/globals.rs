@@ -8,6 +8,7 @@ use crate::sema::{
 use crate::ty::SourceType;
 use crate::Id;
 
+use dora_bytecode::BytecodeFunction;
 use dora_parser::ast;
 use dora_parser::interner::Name;
 use dora_parser::Span;
@@ -51,6 +52,7 @@ pub struct GlobalDefinition {
     pub name: Name,
     pub initializer: Option<FctDefinitionId>,
     pub analysis: Option<AnalysisData>,
+    pub bytecode: Option<BytecodeFunction>,
 }
 
 impl GlobalDefinition {
@@ -74,6 +76,7 @@ impl GlobalDefinition {
             mutable: node.mutable,
             initializer: None,
             analysis: None,
+            bytecode: None,
         }
     }
 

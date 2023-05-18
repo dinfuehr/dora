@@ -4,6 +4,8 @@ use std::str::Chars;
 use std::sync::Arc;
 use std::{f32, f64};
 
+use parking_lot::RwLock;
+
 use crate::access::{
     class_accessible_from, class_field_accessible_from, const_accessible_from,
     enum_accessible_from, fct_accessible_from, global_accessible_from, is_default_accessible,
@@ -16,10 +18,11 @@ use crate::report_sym_shadow_span;
 use crate::sema::{
     create_tuple, find_field_in_class, find_impl, find_methods_in_class, find_methods_in_enum,
     find_methods_in_struct, implements_trait, AnalysisData, CallType, ClassDefinition,
-    ClassDefinitionId, ContextIdx, EnumDefinitionId, EnumVariant, FctDefinition, FctDefinitionId,
-    FctParent, Field, FieldId, ForTypeInfo, GlobalDefinition, IdentType, ModuleDefinitionId,
-    NestedVarId, PackageDefinitionId, Sema, SourceFileId, StructDefinition, StructDefinitionId,
-    TypeParamDefinition, TypeParamId, Var, VarAccess, VarId, VarLocation, Visibility,
+    ClassDefinitionId, ContextIdx, ContextInfo, EnumDefinitionId, EnumVariant, FctDefinition,
+    FctDefinitionId, FctParent, Field, FieldId, ForTypeInfo, GlobalDefinition, IdentType,
+    ModuleDefinitionId, NestedVarId, OuterContextResolver, PackageDefinitionId, Sema, SourceFileId,
+    StructDefinition, StructDefinitionId, TypeParamDefinition, TypeParamId, Var, VarAccess, VarId,
+    VarLocation, Visibility,
 };
 use crate::specialize::replace_type_param;
 use crate::sym::{ModuleSymTable, Sym};
@@ -46,6 +49,7 @@ pub struct TypeCheck<'a> {
     pub self_available: bool,
     pub vars: &'a mut VarManager,
     pub contains_lambda: bool,
+    pub outer_context_classes: &'a mut Vec<OuterContextResolver>,
     pub outer_context_access_in_function: bool,
     pub outer_context_access_from_lambda: bool,
 }
@@ -82,6 +86,7 @@ impl<'a> TypeCheck<'a> {
     where
         F: FnOnce(&mut TypeCheck<'a>),
     {
+        self.outer_context_classes.push(Arc::new(RwLock::new(None)));
         let start_level = self.symtable.levels();
         self.symtable.push_level();
         self.vars.enter_function();
@@ -89,11 +94,13 @@ impl<'a> TypeCheck<'a> {
         self.add_type_params();
 
         fct(self);
-
         self.symtable.pop_level();
         assert_eq!(self.symtable.levels(), start_level);
 
         self.prepare_local_and_context_vars();
+        self.outer_context_classes
+            .pop()
+            .expect("missing context class");
     }
 
     fn check_body(&mut self, ast: &ast::Function) {
@@ -222,8 +229,16 @@ impl<'a> TypeCheck<'a> {
         class.type_params = Some(self.type_param_defs.clone());
         let class_id = self.sa.classes.push(class);
         self.analysis.context_cls_id = Some(class_id);
-
         self.analysis.context_has_outer_context_slot = Some(needs_outer_context_slot);
+        let mut context_info = self
+            .outer_context_classes
+            .last()
+            .expect("missing entry")
+            .write();
+        *context_info = Some(ContextInfo {
+            has_outer_context_slot: needs_outer_context_slot,
+            context_cls_id: class_id,
+        });
     }
 
     fn add_type_params(&mut self) {
@@ -3159,7 +3174,6 @@ impl<'a> TypeCheck<'a> {
         }
 
         let ty = SourceType::Lambda(SourceTypeArray::with(params.clone()), Box::new(ret.clone()));
-        let parent_fct_id = self.fct().id();
 
         let mut params_with_ctxt = vec![SourceType::Ptr];
         params_with_ctxt.append(&mut params);
@@ -3172,7 +3186,7 @@ impl<'a> TypeCheck<'a> {
             self.file_id,
             node,
             name,
-            FctParent::Function(parent_fct_id),
+            FctParent::Function,
         );
         lambda.param_types = params_with_ctxt;
         lambda.return_type = ret;
@@ -3184,6 +3198,7 @@ impl<'a> TypeCheck<'a> {
             let lambda = self.sa.fcts.idx(lambda_fct_id);
 
             let mut analysis = AnalysisData::new();
+            analysis.outer_context_infos = self.outer_context_classes.clone();
 
             {
                 let lambda = lambda.read();
@@ -3201,6 +3216,7 @@ impl<'a> TypeCheck<'a> {
                     self_available: self.self_available.clone(),
                     vars: self.vars,
                     contains_lambda: false,
+                    outer_context_classes: self.outer_context_classes,
                     outer_context_access_in_function: false,
                     outer_context_access_from_lambda: false,
                 };
@@ -3444,10 +3460,6 @@ impl<'a> TypeCheck<'a> {
         }
 
         SourceType::Unit
-    }
-
-    fn fct(&self) -> &FctDefinition {
-        self.fct.expect("missing function")
     }
 
     fn has_self(&self) -> bool {

@@ -2,6 +2,8 @@ use std::collections::hash_map::{HashMap, Iter};
 use std::ops::{Index, IndexMut};
 use std::sync::Arc;
 
+use parking_lot::RwLock;
+
 use dora_bytecode::Intrinsic;
 use dora_parser::ast;
 
@@ -28,6 +30,7 @@ pub struct AnalysisData {
     pub map_lambdas: NodeMap<FctDefinitionId>,
     pub vars: VarAccess, // variables in functions
     pub context_cls_id: Option<ClassDefinitionId>,
+    pub outer_context_infos: Vec<OuterContextResolver>,
     pub context_has_outer_context_slot: Option<bool>,
     pub outer_context_access: Option<bool>,
 }
@@ -50,6 +53,7 @@ impl AnalysisData {
 
             vars: VarAccess::empty(),
             context_cls_id: None,
+            outer_context_infos: Vec::new(),
             context_has_outer_context_slot: None,
             outer_context_access: None,
         }
@@ -112,6 +116,14 @@ impl AnalysisData {
     pub fn outer_context_access(&self) -> bool {
         self.outer_context_access.expect("missing")
     }
+}
+
+pub type OuterContextResolver = Arc<RwLock<Option<ContextInfo>>>;
+
+#[derive(Clone, Debug)]
+pub struct ContextInfo {
+    pub has_outer_context_slot: bool,
+    pub context_cls_id: ClassDefinitionId,
 }
 
 #[derive(Clone, Debug)]

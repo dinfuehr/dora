@@ -44,7 +44,7 @@ pub fn check(sa: &Sema) {
 
             FctParent::None => {}
 
-            FctParent::Function(_) => unimplemented!(),
+            FctParent::Function => unimplemented!(),
         }
 
         for (id, name) in fct.type_params.names() {

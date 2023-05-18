@@ -162,7 +162,7 @@ impl FctDefinition {
                 return module_path(sa, self.module_id, self.name);
             }
 
-            FctParent::Function(_) => "lamba".into(),
+            FctParent::Function => "lamba".into(),
         };
 
         if !self.has_parent() || self.is_static {
@@ -194,9 +194,7 @@ impl FctDefinition {
     pub fn has_self(&self) -> bool {
         match self.parent {
             FctParent::Trait(_) | FctParent::Impl(_) | FctParent::Extension(_) => !self.is_static,
-
-            FctParent::Function(_) => true,
-
+            FctParent::Function => true,
             _ => false,
         }
     }
@@ -256,7 +254,7 @@ pub enum FctParent {
     Trait(TraitDefinitionId),
     Impl(ImplDefinitionId),
     Extension(ExtensionDefinitionId),
-    Function(FctDefinitionId),
+    Function,
     None,
 }
 
@@ -272,13 +270,6 @@ impl FctParent {
         match self {
             &FctParent::Trait(_) => true,
             _ => false,
-        }
-    }
-
-    pub fn fct_id(&self) -> FctDefinitionId {
-        match self {
-            &FctParent::Function(id) => id,
-            _ => unreachable!(),
         }
     }
 

@@ -5,8 +5,9 @@ use dora_parser::{ast, Span};
 
 use crate::sema::{
     emit_as_bytecode_operation, AnalysisData, CallType, ClassDefinitionId, ConstDefinitionId,
-    ContextIdx, EnumDefinitionId, FctDefinition, FctDefinitionId, FieldId, GlobalDefinitionId,
-    IdentType, Sema, SourceFileId, StructDefinitionId, TraitDefinitionId, TypeParamId, VarId,
+    ContextIdx, EnumDefinitionId, FctDefinition, FctDefinitionId, FieldId, GlobalDefinition,
+    GlobalDefinitionId, IdentType, Sema, SourceFileId, StructDefinitionId, TraitDefinitionId,
+    TypeParamId, VarId,
 };
 use crate::specialize::specialize_type;
 use crate::ty::{SourceType, SourceTypeArray};
@@ -29,18 +30,19 @@ impl LoopLabels {
     }
 }
 
-pub fn generate_fct(sa: &Sema, id: FctDefinitionId) -> BytecodeFunction {
+pub fn generate_fct_id(sa: &Sema, id: FctDefinitionId) -> BytecodeFunction {
     let fct = sa.fcts.idx(id);
     let fct = fct.read();
     let analysis = fct.analysis();
 
-    generate(sa, &fct, analysis)
+    generate_fct(sa, &fct, analysis)
 }
 
-pub fn generate(sa: &Sema, fct: &FctDefinition, src: &AnalysisData) -> BytecodeFunction {
+pub fn generate_fct(sa: &Sema, fct: &FctDefinition, src: &AnalysisData) -> BytecodeFunction {
     let ast_bytecode_generator = AstBytecodeGen {
         sa,
-        fct,
+        type_params_len: fct.type_params.len(),
+        is_lambda: fct.is_lambda(),
         return_type: Some(fct.return_type.clone()),
         file_id: fct.file_id,
         span: fct.span,
@@ -55,11 +57,40 @@ pub fn generate(sa: &Sema, fct: &FctDefinition, src: &AnalysisData) -> BytecodeF
     ast_bytecode_generator.generate_fct(&fct.ast)
 }
 
+pub fn generate_global_initializer(
+    sa: &Sema,
+    global: &GlobalDefinition,
+    src: &AnalysisData,
+) -> BytecodeFunction {
+    let ast_bytecode_generator = AstBytecodeGen {
+        sa,
+        type_params_len: 0,
+        is_lambda: false,
+        return_type: None,
+        file_id: global.file_id,
+        span: global.span,
+        analysis: src,
+
+        builder: BytecodeBuilder::new(),
+        loops: Vec::new(),
+        var_registers: HashMap::new(),
+        unit_register: None,
+        context_register: None,
+    };
+    let expr = global
+        .ast
+        .initial_value
+        .as_ref()
+        .expect("missing initializer");
+    ast_bytecode_generator.generate_global_initializer(global.id(), expr)
+}
+
 const SELF_VAR_ID: VarId = VarId(0);
 
 struct AstBytecodeGen<'a> {
     sa: &'a Sema,
-    fct: &'a FctDefinition,
+    type_params_len: usize,
+    is_lambda: bool,
     return_type: Option<SourceType>,
     file_id: SourceFileId,
     span: Span,
@@ -83,6 +114,19 @@ impl<'a> AstBytecodeGen<'a> {
         self.create_context();
         self.initialize_params(ast);
         self.emit_function_body(ast);
+        self.pop_scope();
+        self.builder.generate()
+    }
+
+    fn generate_global_initializer(
+        mut self,
+        global_id: GlobalDefinitionId,
+        expr: &ast::ExprData,
+    ) -> BytecodeFunction {
+        self.push_scope();
+        self.builder.set_params(Vec::new());
+        self.create_context();
+        self.emit_global_initializer(global_id, expr);
         self.pop_scope();
         self.builder.generate()
     }
@@ -189,6 +233,12 @@ impl<'a> AstBytecodeGen<'a> {
             let dest = self.ensure_unit_register();
             self.builder.emit_ret(dest);
         }
+    }
+
+    fn emit_global_initializer(&mut self, global_id: GlobalDefinitionId, expr: &ast::ExprData) {
+        let value = self.visit_expr(expr, DataDest::Alloc);
+        self.builder.emit_store_global(value, GlobalId(global_id.0));
+        self.free_if_temp(value);
     }
 
     fn create_context(&mut self) {
@@ -1754,7 +1804,7 @@ impl<'a> AstBytecodeGen<'a> {
             return Register::invalid();
         }
 
-        if self.fct.is_lambda() {
+        if self.is_lambda {
             let ident = self
                 .analysis
                 .map_idents
@@ -2771,16 +2821,15 @@ impl<'a> AstBytecodeGen<'a> {
 
         assert!(distance >= 1);
 
-        let mut outer_fct_id = self.fct.parent.fct_id();
         let mut distance_left = distance;
+        let mut outer_cls_idx = self.analysis.outer_context_infos.len() - 1;
 
         while distance_left > 1 {
-            let outer_fct = self.sa.fcts.idx(outer_fct_id);
-            let outer_fct = outer_fct.read();
-            let outer_cls_id = outer_fct
-                .analysis()
-                .context_cls_id
-                .expect("context class missing");
+            let outer_cls_id = self.analysis.outer_context_infos[outer_cls_idx]
+                .read()
+                .as_ref()
+                .expect("uninitialized context class id")
+                .context_cls_id;
 
             let idx = self.builder.add_const_field_types(
                 ClassId(outer_cls_id.0 as u32),
@@ -2795,21 +2844,22 @@ impl<'a> AstBytecodeGen<'a> {
             );
 
             distance_left -= 1;
-            outer_fct_id = outer_fct.parent.fct_id();
+            outer_cls_idx -= 1;
         }
 
         assert_eq!(distance_left, 1);
 
         // Store value in context field
-        let outer_fct = self.sa.fcts.idx(outer_fct_id);
-        let outer_fct = outer_fct.read();
-        let analysis = outer_fct.analysis();
-        let outer_cls_id = analysis.context_cls_id.expect("context class missing");
+        let outer_context_info = self.analysis.outer_context_infos[outer_cls_idx]
+            .read()
+            .as_ref()
+            .expect("uninitialized context class id")
+            .clone();
 
         let field_id =
-            field_id_from_context_idx(context_idx, analysis.context_has_outer_context_slot());
+            field_id_from_context_idx(context_idx, outer_context_info.has_outer_context_slot);
         let idx = self.builder.add_const_field_types(
-            ClassId(outer_cls_id.0 as u32),
+            ClassId(outer_context_info.context_cls_id.0 as u32),
             bty_array_from_ty(&self.identity_type_params()),
             field_id.0 as u32,
         );
@@ -2915,17 +2965,15 @@ impl<'a> AstBytecodeGen<'a> {
 
         assert!(distance >= 1);
 
-        let mut outer_fct_id = self.fct.parent.fct_id();
+        let mut outer_cls_idx = self.analysis.outer_context_infos.len() - 1;
         let mut distance_left = distance;
 
         while distance_left > 1 {
-            let outer_fct = self.sa.fcts.idx(outer_fct_id);
-            let outer_fct = outer_fct.read();
-            let outer_cls_id = outer_fct
-                .analysis()
-                .context_cls_id
-                .expect("context class missing");
-
+            let outer_cls_id = self.analysis.outer_context_infos[outer_cls_idx]
+                .read()
+                .as_ref()
+                .expect("uninitialized context class id")
+                .context_cls_id;
             let idx = self.builder.add_const_field_types(
                 ClassId(outer_cls_id.0 as u32),
                 bty_array_from_ty(&self.identity_type_params()),
@@ -2935,21 +2983,23 @@ impl<'a> AstBytecodeGen<'a> {
                 .emit_load_field(outer_context_reg, outer_context_reg, idx, location);
 
             distance_left -= 1;
-            outer_fct_id = outer_fct.parent.fct_id();
+            outer_cls_idx -= 1;
         }
 
         assert_eq!(distance_left, 1);
 
-        let outer_fct = self.sa.fcts.idx(outer_fct_id);
-        let outer_fct = outer_fct.read();
-        let analysis = outer_fct.analysis();
-        let outer_cls_id = analysis.context_cls_id.expect("context class missing");
+        let outer_context_info = self.analysis.outer_context_infos[outer_cls_idx]
+            .read()
+            .as_ref()
+            .expect("uninitialized context class id")
+            .clone();
+        let outer_cls_id = outer_context_info.context_cls_id;
 
         let outer_cls = self.sa.classes.idx(outer_cls_id);
         let outer_cls = outer_cls.read();
 
         let field_id =
-            field_id_from_context_idx(context_idx, analysis.context_has_outer_context_slot());
+            field_id_from_context_idx(context_idx, outer_context_info.has_outer_context_slot);
         let field = &outer_cls.fields[field_id];
 
         let ty: BytecodeType = register_bty_from_ty(field.ty.clone());
@@ -3247,11 +3297,6 @@ impl<'a> AstBytecodeGen<'a> {
             return None;
         };
 
-        // the function we compile right now is never an intrinsic
-        if self.fct.id() == fid {
-            return None;
-        }
-
         let fct = self.sa.fcts.idx(fid);
         let fct = fct.read();
 
@@ -3263,13 +3308,11 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn identity_type_params(&self) -> SourceTypeArray {
-        let len = self.fct.type_params.len();
-
-        if len == 0 {
+        if self.type_params_len == 0 {
             return SourceTypeArray::empty();
         }
 
-        let type_params = (0..len)
+        let type_params = (0..self.type_params_len)
             .into_iter()
             .map(|idx| SourceType::TypeParam(TypeParamId(idx)))
             .collect::<Vec<SourceType>>();

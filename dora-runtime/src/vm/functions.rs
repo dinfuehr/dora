@@ -29,7 +29,7 @@ pub fn display_fct(vm: &VM, fct_id: FunctionId) -> String {
 
         FunctionKind::Function => return module_path_name(vm, fct.module_id, &fct.name),
 
-        FunctionKind::Lambda(_) => "lamba".into(),
+        FunctionKind::Lambda => "lamba".into(),
     };
 
     repr.push_str("::");

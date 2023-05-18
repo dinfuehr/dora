@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::mem;
 
 use self::Bytecode::*;
-use crate::generator::{bty_from_ty, generate_fct};
+use crate::generator::{bty_from_ty, generate_fct_id};
 use crate::sema::{create_tuple, FctDefinitionId, Sema};
 use crate::test;
 use crate::ty::{SourceType, SourceTypeArray};
@@ -15,7 +15,7 @@ use dora_bytecode::{
 fn code(code: &'static str) -> Vec<Bytecode> {
     test::check_valid(code, |sa| {
         let fct_id = sa.fct_by_name("f").expect("no function `f`.");
-        let fct = generate_fct(sa, fct_id);
+        let fct = generate_fct_id(sa, fct_id);
         build(&fct)
     })
 }
@@ -23,7 +23,7 @@ fn code(code: &'static str) -> Vec<Bytecode> {
 fn position(code: &'static str) -> Vec<(u32, u32)> {
     test::check_valid(code, |sa| {
         let fct_id = sa.fct_by_name("f").expect("no function `f`.");
-        let fct = generate_fct(sa, fct_id);
+        let fct = generate_fct_id(sa, fct_id);
         fct.locations()
             .iter()
             .map(|(bci, location)| (bci.0, location.line()))
@@ -40,7 +40,7 @@ fn code_method_with_class_name(code: &'static str, class_name: &'static str) -> 
         let fct_id = sa
             .cls_method_by_name(class_name, "f", false)
             .unwrap_or_else(|| panic!("no function `f` in Class `{}`.", class_name));
-        let fct = generate_fct(sa, fct_id);
+        let fct = generate_fct_id(sa, fct_id);
         build(&fct)
     })
 }
@@ -50,7 +50,7 @@ fn code_method_with_struct_name(code: &'static str, struct_name: &'static str) -
         let fct_id = sa
             .struct_method_by_name(struct_name, "f", false)
             .unwrap_or_else(|| panic!("no function `f` in Class `{}`.", struct_name));
-        let fct = generate_fct(sa, fct_id);
+        let fct = generate_fct_id(sa, fct_id);
         build(&fct)
     })
 }
@@ -61,7 +61,7 @@ where
 {
     test::check_valid(code, |sa| {
         let fct_id = sa.fct_by_name("f").expect("no function `f`.");
-        let fct = generate_fct(sa, fct_id);
+        let fct = generate_fct_id(sa, fct_id);
         let code = build(&fct);
 
         testfct(sa, code);
@@ -74,7 +74,7 @@ where
 {
     test::check_valid(code, |sa| {
         let fct_id = sa.fct_by_name("f").expect("no function `f`.");
-        let fct = generate_fct(sa, fct_id);
+        let fct = generate_fct_id(sa, fct_id);
         let code = build(&fct);
 
         testfct(sa, code, fct);
@@ -4064,7 +4064,7 @@ fn gen_access_lambda_args() {
                 _ => unreachable!(),
             };
 
-            let lambda = generate_fct(sa, FctDefinitionId(lambda_id.0 as usize));
+            let lambda = generate_fct_id(sa, FctDefinitionId(lambda_id.0 as usize));
             let code = build(&lambda);
 
             let expected = vec![Add(r(3), r(1), r(2)), Ret(r(3))];
