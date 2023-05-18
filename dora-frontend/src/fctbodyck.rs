@@ -32,13 +32,11 @@ pub fn check(sa: &mut Sema) {
         const_.value = value;
     }
 
-    if sa.args.check_global_initializer {
-        let mut idx: u32 = 0;
+    let mut idx: u32 = 0;
 
-        while idx < sa.globals.len() as u32 {
-            check_global(sa, GlobalDefinitionId(idx));
-            idx += 1;
-        }
+    while idx < sa.globals.len() as u32 {
+        check_global(sa, GlobalDefinitionId(idx));
+        idx += 1;
     }
 }
 

@@ -172,10 +172,6 @@ fn create_functions(sa: &Sema, e: &mut Emitter) -> Vec<FunctionData> {
         })
     }
 
-    if !sa.args.check_global_initializer {
-        return result;
-    }
-
     for global in sa.globals.iter() {
         let global = global.read();
 
@@ -237,16 +233,12 @@ fn global_initializer_function_id(
     global: &GlobalDefinition,
     e: &Emitter,
 ) -> Option<FunctionId> {
-    if _sa.args.check_global_initializer {
-        Some(
-            e.global_initializer
-                .get(&global.id())
-                .expect("missing initializer")
-                .to_owned(),
-        )
-    } else {
-        global.initializer.map(|t| convert_function_id(t))
-    }
+    Some(
+        e.global_initializer
+            .get(&global.id())
+            .expect("missing initializer")
+            .to_owned(),
+    )
 }
 
 fn create_classes(sa: &Sema) -> Vec<ClassData> {

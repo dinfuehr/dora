@@ -8,17 +8,16 @@ use crate::error::msg::ErrorMessage;
 use crate::report_sym_shadow_span;
 use crate::sema::{
     ClassDefinition, ConstDefinition, EnumDefinition, ExtensionDefinition, ExtensionDefinitionId,
-    FctDefinition, FctParent, GlobalDefinition, GlobalDefinitionId, ImplDefinition,
-    ImplDefinitionId, ModuleDefinition, ModuleDefinitionId, PackageDefinitionId, PackageName, Sema,
-    SourceFileId, StructDefinition, TraitDefinition, TraitDefinitionId, UseDefinition,
+    FctDefinition, FctParent, GlobalDefinition, ImplDefinition, ImplDefinitionId, ModuleDefinition,
+    ModuleDefinitionId, PackageDefinitionId, PackageName, Sema, SourceFileId, StructDefinition,
+    TraitDefinition, TraitDefinitionId, UseDefinition,
 };
 use crate::sym::Sym;
 use crate::STDLIB;
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit};
-use dora_parser::builder::Builder;
 use dora_parser::interner::Name;
-use dora_parser::parser::{NodeIdGenerator, Parser};
+use dora_parser::parser::Parser;
 use dora_parser::Span;
 
 pub fn parse(sa: &mut Sema) {
@@ -189,14 +188,12 @@ impl<'a> ProgramParser<'a> {
         module_path: Option<PathBuf>,
         file_lookup: FileLookup,
         ast: &ast::File,
-        id_generator: NodeIdGenerator,
     ) {
         let mut gdef = TopLevelDeclaration {
             sa: self.sa,
             package_id,
             module_id,
             file_id,
-            id_generator,
             external_modules: Vec::new(),
         };
 
@@ -357,7 +354,7 @@ impl<'a> ProgramParser<'a> {
 
         let parser = Parser::from_shared_string(content, &mut self.sa.interner);
 
-        let (ast, id_generator, errors) = parser.parse();
+        let (ast, errors) = parser.parse();
 
         for error in errors {
             self.sa.diag.lock().report(
@@ -374,7 +371,6 @@ impl<'a> ProgramParser<'a> {
             module_path,
             file_lookup,
             &ast,
-            id_generator,
         );
     }
 }
@@ -392,7 +388,6 @@ struct TopLevelDeclaration<'x> {
     file_id: SourceFileId,
     module_id: ModuleDefinitionId,
     external_modules: Vec<ModuleDefinitionId>,
-    id_generator: NodeIdGenerator,
 }
 
 impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
@@ -488,10 +483,6 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             ensure_name(self.sa, &node.name),
         );
         let global_id = self.sa.globals.push(global);
-
-        if !self.sa.args.check_global_initializer {
-            generate_function_for_initial_value(self.sa, global_id, &self.id_generator, node);
-        }
 
         let sym = Sym::Global(global_id);
         if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
@@ -653,50 +644,6 @@ fn find_methods_in_extension(
 
         let fct_id = sa.add_fct(fct);
         extension.methods.push(fct_id);
-    }
-}
-
-fn generate_function_for_initial_value(
-    sa: &mut Sema,
-    global_id: GlobalDefinitionId,
-    id_generator: &NodeIdGenerator,
-    node: &Arc<ast::Global>,
-) {
-    if let Some(ref initial_value) = node.initial_value {
-        let global = sa.globals.idx(global_id);
-        let mut global = global.write();
-        let span = global.span;
-
-        let function_ast = {
-            let builder = Builder::new();
-            let mut block = builder.build_block();
-
-            let var = builder.build_ident(id_generator.next(), span, global.name);
-            let assignment = builder.build_initializer_assign(
-                id_generator.next(),
-                span,
-                var,
-                initial_value.clone(),
-            );
-
-            block.add_expr(id_generator.next(), assignment);
-
-            let mut fct = builder.build_fct(global.name);
-            fct.block(block.build(id_generator.next(), span));
-            Arc::new(fct.build(id_generator.next(), span))
-        };
-
-        let fct = FctDefinition::new(
-            global.package_id,
-            global.module_id,
-            global.file_id,
-            &function_ast,
-            ensure_name(sa, &function_ast.name),
-            FctParent::None,
-        );
-
-        let fct_id = sa.add_fct(fct);
-        global.initializer = Some(fct_id);
     }
 }
 

@@ -1,4 +1,3 @@
-use std::cell::RefCell;
 use std::sync::Arc;
 
 use rowan::GreenNodeBuilder;
@@ -17,7 +16,7 @@ pub struct Parser<'a> {
     tokens: Vec<TokenKind>,
     token_widths: Vec<u32>,
     token_idx: usize,
-    id_generator: NodeIdGenerator,
+    next_node_id: usize,
     interner: &'a mut Interner,
     builder: GreenNodeBuilder<'static>,
     content: Arc<String>,
@@ -49,7 +48,7 @@ impl<'a> Parser<'a> {
             token_widths: result.widths,
             token_idx: 0,
             builder: GreenNodeBuilder::new(),
-            id_generator: NodeIdGenerator::new(),
+            next_node_id: 0,
             offset: 0,
             interner,
             content,
@@ -58,11 +57,13 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn generate_id(&mut self) -> NodeId {
-        self.id_generator.next()
+    fn new_node_id(&mut self) -> NodeId {
+        let value = self.next_node_id;
+        self.next_node_id += 1;
+        NodeId(value)
     }
 
-    pub fn parse(mut self) -> (ast::File, NodeIdGenerator, Vec<ParseErrorWithLocation>) {
+    pub fn parse(mut self) -> (ast::File, Vec<ParseErrorWithLocation>) {
         let ast_file = self.parse_file();
         assert!(self.nodes.is_empty());
 
@@ -70,7 +71,7 @@ impl<'a> Parser<'a> {
         let green_len: u32 = green.text_len().into();
         assert_eq!(green_len, self.content.len() as u32);
 
-        (ast_file, self.id_generator, self.errors)
+        (ast_file, self.errors)
     }
 
     fn parse_file(&mut self) -> ast::File {
@@ -175,7 +176,7 @@ impl<'a> Parser<'a> {
                 self.report_error_at(ParseError::ExpectedTopLevelDeclaration, span);
                 self.advance();
                 Arc::new(ElemData::Error {
-                    id: self.id_generator.next(),
+                    id: self.new_node_id(),
                     span,
                 })
             }
@@ -195,7 +196,7 @@ impl<'a> Parser<'a> {
         };
 
         Arc::new(ExternPackage {
-            id: self.generate_id(),
+            id: self.new_node_id(),
             span: self.finish_node(),
             name,
             identifier,
@@ -238,7 +239,7 @@ impl<'a> Parser<'a> {
         };
 
         Arc::new(Use {
-            id: self.generate_id(),
+            id: self.new_node_id(),
             span: self.finish_node(),
             common_path: path,
             target,
@@ -306,7 +307,7 @@ impl<'a> Parser<'a> {
         self.expect(L_BRACE);
         let variants = self.parse_list(COMMA, R_BRACE, |p| p.parse_enum_variant());
         Arc::new(Enum {
-            id: self.generate_id(),
+            id: self.new_node_id(),
             span: self.finish_node(),
             name,
             type_params,
@@ -335,7 +336,7 @@ impl<'a> Parser<'a> {
         };
 
         Arc::new(Module {
-            id: self.generate_id(),
+            id: self.new_node_id(),
             span: self.finish_node(),
             name,
             elements,
@@ -354,7 +355,7 @@ impl<'a> Parser<'a> {
         };
 
         EnumVariant {
-            id: self.generate_id(),
+            id: self.new_node_id(),
             span: self.finish_node(),
             name,
             types,
@@ -372,7 +373,7 @@ impl<'a> Parser<'a> {
         self.expect(SEMICOLON);
 
         Arc::new(Const {
-            id: self.generate_id(),
+            id: self.new_node_id(),
             span: self.finish_node(),
             name,
             data_type: ty,
@@ -417,7 +418,7 @@ impl<'a> Parser<'a> {
         self.expect(R_BRACE);
 
         Arc::new(Impl {
-            id: self.generate_id(),
+            id: self.new_node_id(),
             span: self.finish_node(),
             type_params,
             trait_type,
@@ -445,7 +446,7 @@ impl<'a> Parser<'a> {
         self.expect(SEMICOLON);
 
         Arc::new(Global {
-            id: self.generate_id(),
+            id: self.new_node_id(),
             name,
             span: self.finish_node(),
             data_type,
@@ -477,7 +478,7 @@ impl<'a> Parser<'a> {
         self.expect(R_BRACE);
 
         Arc::new(Trait {
-            id: self.generate_id(),
+            id: self.new_node_id(),
             name,
             type_params,
             span: self.finish_node(),
@@ -501,7 +502,7 @@ impl<'a> Parser<'a> {
         };
 
         Arc::new(Struct {
-            id: self.generate_id(),
+            id: self.new_node_id(),
             name: ident,
             span: self.finish_node(),
             fields,
@@ -524,7 +525,7 @@ impl<'a> Parser<'a> {
         let ty = self.parse_type();
 
         StructField {
-            id: self.generate_id(),
+            id: self.new_node_id(),
             name: ident,
             span: self.finish_node(),
             data_type: ty,
@@ -548,7 +549,7 @@ impl<'a> Parser<'a> {
         };
 
         Arc::new(Class {
-            id: self.generate_id(),
+            id: self.new_node_id(),
             span: self.finish_node(),
             name,
             internal: modifiers.contains(Annotation::Internal),
@@ -571,7 +572,7 @@ impl<'a> Parser<'a> {
         let data_type = self.parse_type();
 
         Field {
-            id: self.generate_id(),
+            id: self.new_node_id(),
             name,
             span: self.finish_node(),
             data_type,
@@ -591,7 +592,7 @@ impl<'a> Parser<'a> {
         self.expect(SEMICOLON);
 
         Arc::new(Alias {
-            id: self.generate_id(),
+            id: self.new_node_id(),
             name,
             span: self.finish_node(),
             ty,
@@ -745,7 +746,7 @@ impl<'a> Parser<'a> {
         let block = self.parse_function_block();
 
         Arc::new(Function {
-            id: self.generate_id(),
+            id: self.new_node_id(),
             kind: FunctionKind::Function,
             name,
             span: self.finish_node(),
@@ -808,7 +809,7 @@ impl<'a> Parser<'a> {
         let variadic = self.eat(DOT_DOT_DOT);
 
         Param {
-            id: self.generate_id(),
+            id: self.new_node_id(),
             variadic,
             name,
             span: self.finish_node(),
@@ -841,7 +842,7 @@ impl<'a> Parser<'a> {
             CAPITAL_THIS => {
                 let span = self.current_span();
                 self.assert(CAPITAL_THIS);
-                Arc::new(TypeData::create_self(self.generate_id(), span))
+                Arc::new(TypeData::create_self(self.new_node_id(), span))
             }
 
             IDENTIFIER => {
@@ -855,7 +856,7 @@ impl<'a> Parser<'a> {
                 };
 
                 Arc::new(TypeData::create_basic(
-                    self.generate_id(),
+                    self.new_node_id(),
                     self.finish_node(),
                     path,
                     params,
@@ -871,14 +872,14 @@ impl<'a> Parser<'a> {
                     let ret = self.parse_type();
 
                     Arc::new(TypeData::create_fct(
-                        self.generate_id(),
+                        self.new_node_id(),
                         self.finish_node(),
                         subtypes,
                         Some(ret),
                     ))
                 } else {
                     Arc::new(TypeData::create_tuple(
-                        self.generate_id(),
+                        self.new_node_id(),
                         self.finish_node(),
                         subtypes,
                     ))
@@ -889,7 +890,7 @@ impl<'a> Parser<'a> {
                 let span = self.current_span();
                 self.report_error(ParseError::ExpectedType);
                 Arc::new(TypeData::Error {
-                    id: self.generate_id(),
+                    id: self.new_node_id(),
                     span,
                 })
             }
@@ -915,7 +916,7 @@ impl<'a> Parser<'a> {
         }
 
         Arc::new(PathData {
-            id: self.generate_id(),
+            id: self.new_node_id(),
             span: self.finish_node(),
             names,
         })
@@ -932,7 +933,7 @@ impl<'a> Parser<'a> {
         self.expect(SEMICOLON);
 
         Arc::new(StmtData::create_let(
-            self.generate_id(),
+            self.new_node_id(),
             self.finish_node(),
             pattern,
             data_type,
@@ -946,13 +947,13 @@ impl<'a> Parser<'a> {
             let parts = self.parse_list(COMMA, R_PAREN, |p| p.parse_let_pattern());
 
             Box::new(LetPattern::Tuple(LetTupleType {
-                id: self.generate_id(),
+                id: self.new_node_id(),
                 span: self.finish_node(),
                 parts,
             }))
         } else if self.eat(UNDERSCORE) {
             Box::new(LetPattern::Underscore(LetUnderscoreType {
-                id: self.generate_id(),
+                id: self.new_node_id(),
                 span: self.finish_node(),
             }))
         } else {
@@ -960,7 +961,7 @@ impl<'a> Parser<'a> {
             let name = self.expect_identifier();
 
             Box::new(LetPattern::Ident(LetIdentType {
-                id: self.generate_id(),
+                id: self.new_node_id(),
                 span: self.finish_node(),
                 mutable,
                 name,
@@ -1003,7 +1004,7 @@ impl<'a> Parser<'a> {
                             break;
                         } else if !self.is(R_BRACE) {
                             stmts.push(Arc::new(StmtData::create_expr(
-                                self.generate_id(),
+                                self.new_node_id(),
                                 curr_expr.span(),
                                 curr_expr,
                             )));
@@ -1018,7 +1019,7 @@ impl<'a> Parser<'a> {
         }
 
         Arc::new(ExprData::create_block(
-            self.generate_id(),
+            self.new_node_id(),
             self.finish_node(),
             stmts,
             expr,
@@ -1035,7 +1036,7 @@ impl<'a> Parser<'a> {
                     let span = self.span_from(expr.span().start());
 
                     StmtOrExpr::Stmt(Arc::new(StmtData::create_expr(
-                        self.generate_id(),
+                        self.new_node_id(),
                         span,
                         expr,
                     )))
@@ -1065,7 +1066,7 @@ impl<'a> Parser<'a> {
         };
 
         Arc::new(ExprData::create_if(
-            self.generate_id(),
+            self.new_node_id(),
             self.finish_node(),
             cond,
             then_block,
@@ -1098,7 +1099,7 @@ impl<'a> Parser<'a> {
         self.expect(R_BRACE);
 
         Arc::new(ExprData::create_match(
-            self.generate_id(),
+            self.new_node_id(),
             self.finish_node(),
             expr,
             cases,
@@ -1119,7 +1120,7 @@ impl<'a> Parser<'a> {
         let value = self.parse_expression();
 
         MatchCaseType {
-            id: self.generate_id(),
+            id: self.new_node_id(),
             span: self.finish_node(),
             patterns,
             value,
@@ -1147,7 +1148,7 @@ impl<'a> Parser<'a> {
         };
 
         MatchPattern {
-            id: self.generate_id(),
+            id: self.new_node_id(),
             span: self.finish_node(),
             data,
         }
@@ -1166,7 +1167,7 @@ impl<'a> Parser<'a> {
         };
 
         MatchPatternParam {
-            id: self.generate_id(),
+            id: self.new_node_id(),
             span: self.finish_node(),
             mutable,
             name,
@@ -1182,7 +1183,7 @@ impl<'a> Parser<'a> {
         let block = self.parse_block();
 
         Arc::new(ExprData::create_for(
-            self.generate_id(),
+            self.new_node_id(),
             self.finish_node(),
             pattern,
             expr,
@@ -1197,7 +1198,7 @@ impl<'a> Parser<'a> {
         let block = self.parse_block();
 
         Arc::new(ExprData::create_while(
-            self.generate_id(),
+            self.new_node_id(),
             self.finish_node(),
             expr,
             block,
@@ -1209,7 +1210,7 @@ impl<'a> Parser<'a> {
         self.assert(BREAK);
 
         Arc::new(ExprData::create_break(
-            self.generate_id(),
+            self.new_node_id(),
             self.finish_node(),
         ))
     }
@@ -1219,7 +1220,7 @@ impl<'a> Parser<'a> {
         self.assert(CONTINUE);
 
         Arc::new(ExprData::create_continue(
-            self.generate_id(),
+            self.new_node_id(),
             self.finish_node(),
         ))
     }
@@ -1235,7 +1236,7 @@ impl<'a> Parser<'a> {
         };
 
         Arc::new(ExprData::create_return(
-            self.generate_id(),
+            self.new_node_id(),
             self.finish_node(),
             expr,
         ))
@@ -1249,7 +1250,7 @@ impl<'a> Parser<'a> {
         if !self.is_set(EXPRESSION_FIRST) {
             self.report_error(ParseError::ExpectedExpression);
             return Arc::new(ExprData::Error {
-                id: self.generate_id(),
+                id: self.new_node_id(),
                 span: self.current_span(),
             });
         }
@@ -1282,7 +1283,7 @@ impl<'a> Parser<'a> {
                 AS => {
                     let right = self.parse_type();
                     let span = self.span_from(start);
-                    let expr = ExprData::create_conv(self.generate_id(), span, left, right);
+                    let expr = ExprData::create_conv(self.new_node_id(), span, left, right);
 
                     Arc::new(expr)
                 }
@@ -1310,7 +1311,7 @@ impl<'a> Parser<'a> {
 
                 let expr = self.parse_primary();
                 Arc::new(ExprData::create_un(
-                    self.generate_id(),
+                    self.new_node_id(),
                     self.finish_node(),
                     op,
                     expr,
@@ -1334,7 +1335,7 @@ impl<'a> Parser<'a> {
                     let span = self.span_from(start);
 
                     Arc::new(ExprData::create_dot(
-                        self.generate_id(),
+                        self.new_node_id(),
                         span,
                         op_span,
                         left,
@@ -1347,7 +1348,7 @@ impl<'a> Parser<'a> {
                     let args = self.parse_list(COMMA, R_PAREN, |p| p.parse_expression());
                     let span = self.span_from(start);
 
-                    Arc::new(ExprData::create_call(self.generate_id(), span, left, args))
+                    Arc::new(ExprData::create_call(self.new_node_id(), span, left, args))
                 }
 
                 L_BRACKET => {
@@ -1357,7 +1358,7 @@ impl<'a> Parser<'a> {
                     let span = self.span_from(start);
 
                     Arc::new(ExprData::create_type_param(
-                        self.generate_id(),
+                        self.new_node_id(),
                         span,
                         op_span,
                         left,
@@ -1372,7 +1373,7 @@ impl<'a> Parser<'a> {
                     let span = self.span_from(start);
 
                     Arc::new(ExprData::create_path(
-                        self.generate_id(),
+                        self.new_node_id(),
                         span,
                         op_span,
                         left,
@@ -1417,7 +1418,7 @@ impl<'a> Parser<'a> {
         let span = self.span_from(start);
 
         Arc::new(ExprData::create_bin(
-            self.generate_id(),
+            self.new_node_id(),
             span,
             op,
             left,
@@ -1450,7 +1451,7 @@ impl<'a> Parser<'a> {
             _ => {
                 self.report_error(ParseError::ExpectedFactor);
                 Arc::new(ExprData::Error {
-                    id: self.generate_id(),
+                    id: self.new_node_id(),
                     span,
                 })
             }
@@ -1461,7 +1462,7 @@ impl<'a> Parser<'a> {
         let ident = self.expect_identifier().expect("identifier expected");
 
         Arc::new(ExprData::create_ident(
-            self.generate_id(),
+            self.new_node_id(),
             ident.span,
             ident.name,
         ))
@@ -1473,7 +1474,7 @@ impl<'a> Parser<'a> {
 
         if self.eat(R_PAREN) {
             return Arc::new(ExprData::create_tuple(
-                self.generate_id(),
+                self.new_node_id(),
                 self.finish_node(),
                 Vec::new(),
             ));
@@ -1500,14 +1501,14 @@ impl<'a> Parser<'a> {
             }
 
             Arc::new(ExprData::create_tuple(
-                self.generate_id(),
+                self.new_node_id(),
                 self.finish_node(),
                 values,
             ))
         } else {
             self.expect(R_PAREN);
             Arc::new(ExprData::create_paren(
-                self.generate_id(),
+                self.new_node_id(),
                 self.finish_node(),
                 expr,
             ))
@@ -1519,7 +1520,7 @@ impl<'a> Parser<'a> {
         self.assert(CHAR_LITERAL);
         let value = self.source_span(span);
 
-        Arc::new(ExprData::create_lit_char(self.generate_id(), span, value))
+        Arc::new(ExprData::create_lit_char(self.new_node_id(), span, value))
     }
 
     fn parse_lit_int(&mut self) -> Expr {
@@ -1527,7 +1528,7 @@ impl<'a> Parser<'a> {
         self.assert(INT_LITERAL);
         let value = self.source_span(span);
 
-        let expr = ExprData::create_lit_int(self.generate_id(), span, value);
+        let expr = ExprData::create_lit_int(self.new_node_id(), span, value);
         Arc::new(expr)
     }
 
@@ -1536,7 +1537,7 @@ impl<'a> Parser<'a> {
         self.assert(FLOAT_LITERAL);
         let value = self.source_span(span);
 
-        let expr = ExprData::create_lit_float(self.generate_id(), span, value);
+        let expr = ExprData::create_lit_float(self.new_node_id(), span, value);
         Arc::new(expr)
     }
 
@@ -1548,7 +1549,7 @@ impl<'a> Parser<'a> {
 
         let mut parts: Vec<Expr> = Vec::new();
         parts.push(Arc::new(ExprData::create_lit_str(
-            self.generate_id(),
+            self.new_node_id(),
             span,
             value,
         )));
@@ -1573,7 +1574,7 @@ impl<'a> Parser<'a> {
             let value = self.source_span(span);
 
             parts.push(Arc::new(ExprData::create_lit_str(
-                self.generate_id(),
+                self.new_node_id(),
                 span,
                 value,
             )));
@@ -1583,7 +1584,7 @@ impl<'a> Parser<'a> {
 
         let span = self.span_from(start);
 
-        Arc::new(ExprData::create_template(self.generate_id(), span, parts))
+        Arc::new(ExprData::create_template(self.new_node_id(), span, parts))
     }
 
     fn parse_string(&mut self) -> Expr {
@@ -1591,7 +1592,7 @@ impl<'a> Parser<'a> {
         self.assert(STRING_LITERAL);
 
         let value = self.source_span(span);
-        Arc::new(ExprData::create_lit_str(self.generate_id(), span, value))
+        Arc::new(ExprData::create_lit_str(self.new_node_id(), span, value))
     }
 
     fn parse_bool_literal(&mut self) -> Expr {
@@ -1600,14 +1601,14 @@ impl<'a> Parser<'a> {
         self.assert(kind);
         let value = kind == TRUE;
 
-        Arc::new(ExprData::create_lit_bool(self.generate_id(), span, value))
+        Arc::new(ExprData::create_lit_bool(self.new_node_id(), span, value))
     }
 
     fn parse_this(&mut self) -> Expr {
         let span = self.current_span();
         self.assert(THIS);
 
-        Arc::new(ExprData::create_this(self.generate_id(), span))
+        Arc::new(ExprData::create_this(self.new_node_id(), span))
     }
 
     fn parse_lambda(&mut self) -> Expr {
@@ -1630,7 +1631,7 @@ impl<'a> Parser<'a> {
         let block = self.parse_block();
 
         let function = Arc::new(Function {
-            id: self.generate_id(),
+            id: self.new_node_id(),
             kind: FunctionKind::Lambda,
             name: None,
             span: self.finish_node(),
@@ -1808,26 +1809,6 @@ fn token_name(kind: TokenKind) -> Option<&'static str> {
     }
 }
 
-#[derive(Debug)]
-pub struct NodeIdGenerator {
-    value: RefCell<usize>,
-}
-
-impl NodeIdGenerator {
-    pub fn new() -> NodeIdGenerator {
-        NodeIdGenerator {
-            value: RefCell::new(1),
-        }
-    }
-
-    pub fn next(&self) -> NodeId {
-        let value = *self.value.borrow();
-        *self.value.borrow_mut() += 1;
-
-        NodeId(value)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::ast::*;
@@ -1891,7 +1872,7 @@ mod tests {
     fn parse(code: &'static str) -> (File, Interner) {
         let mut interner = Interner::new();
 
-        let (file, _id_generator, errors) = Parser::from_string(code, &mut interner).parse();
+        let (file, errors) = Parser::from_string(code, &mut interner).parse();
         assert!(errors.is_empty());
 
         (file, interner)

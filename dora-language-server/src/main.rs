@@ -254,7 +254,7 @@ fn check_file(uri: Url, content: String, version: i32, sender: Sender<MainLoopTa
     let mut interner = dora_parser::interner::Interner::new();
     let line_starts = compute_line_starts(&content);
     let parser = dora_parser::Parser::from_shared_string(Arc::new(content), &mut interner);
-    let (_, _, errors) = parser.parse();
+    let (_, errors) = parser.parse();
     let mut diagnostics = Vec::new();
     for error in errors {
         let (line, column) = compute_line_column(&line_starts, error.span.start());
@@ -410,7 +410,6 @@ fn compile_project(project: ProjectConfig, sender: Sender<MainLoopTask>) {
         arg_file: Some(project.main.to_string_lossy().into_owned()),
         packages: Vec::new(),
         test_file_as_string: None,
-        check_global_initializer: false,
     };
 
     let mut sa = Sema::new(sem_args);

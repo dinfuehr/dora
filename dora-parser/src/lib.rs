@@ -6,7 +6,6 @@ pub use self::span::Span;
 pub use self::token::{TokenKind, TokenSet};
 
 pub mod ast;
-pub mod builder;
 pub mod error;
 pub mod interner;
 pub mod lexer;

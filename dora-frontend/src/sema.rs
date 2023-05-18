@@ -66,7 +66,6 @@ pub struct SemaArgs {
     pub packages: Vec<(String, PathBuf)>,
     pub arg_file: Option<String>,
     pub test_file_as_string: Option<&'static str>,
-    pub check_global_initializer: bool,
 }
 
 impl SemaArgs {
@@ -75,7 +74,6 @@ impl SemaArgs {
             packages: Vec::new(),
             arg_file: None,
             test_file_as_string: Some(input),
-            check_global_initializer: false,
         }
     }
 }

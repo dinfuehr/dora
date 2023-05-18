@@ -238,6 +238,8 @@ impl<'a> AstBytecodeGen<'a> {
     fn emit_global_initializer(&mut self, global_id: GlobalDefinitionId, expr: &ast::ExprData) {
         let value = self.visit_expr(expr, DataDest::Alloc);
         self.builder.emit_store_global(value, GlobalId(global_id.0));
+        let result = self.ensure_unit_register();
+        self.builder.emit_ret(result);
         self.free_if_temp(value);
     }
 

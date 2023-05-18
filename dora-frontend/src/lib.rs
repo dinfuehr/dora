@@ -139,21 +139,19 @@ pub fn generate_bytecode(sa: &Sema) {
         fct.write().bytecode = Some(bc);
     }
 
-    if sa.args.check_global_initializer {
-        for global in sa.globals.iter() {
-            let bc = {
-                let global = global.read();
+    for global in sa.globals.iter() {
+        let bc = {
+            let global = global.read();
 
-                if global.ast.initial_value.is_none() {
-                    continue;
-                }
+            if global.ast.initial_value.is_none() {
+                continue;
+            }
 
-                let analysis = global.analysis.as_ref().expect("missing analysis");
-                generator::generate_global_initializer(sa, &*global, analysis)
-            };
+            let analysis = global.analysis.as_ref().expect("missing analysis");
+            generator::generate_global_initializer(sa, &*global, analysis)
+        };
 
-            global.write().bytecode = Some(bc);
-        }
+        global.write().bytecode = Some(bc);
     }
 }
 
