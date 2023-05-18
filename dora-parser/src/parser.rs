@@ -1460,12 +1460,9 @@ impl<'a> Parser<'a> {
 
     fn parse_identifier(&mut self) -> Expr {
         let ident = self.expect_identifier().expect("identifier expected");
+        let name = self.interner.str(ident.name).to_string();
 
-        Arc::new(ExprData::create_ident(
-            self.new_node_id(),
-            ident.span,
-            ident.name,
-        ))
+        Arc::new(ExprData::create_ident(self.new_node_id(), ident.span, name))
     }
 
     fn parse_parentheses(&mut self) -> Expr {
@@ -1880,10 +1877,10 @@ mod tests {
 
     #[test]
     fn parse_ident() {
-        let (expr, interner) = parse_expr("a");
+        let (expr, _) = parse_expr("a");
 
         let ident = expr.to_ident().unwrap();
-        assert_eq!("a", *interner.str(ident.name));
+        assert_eq!("a", ident.name);
     }
 
     #[test]
@@ -1928,14 +1925,14 @@ mod tests {
 
     #[test]
     fn parse_field_access() {
-        let (expr, interner) = parse_expr("obj.field");
+        let (expr, _) = parse_expr("obj.field");
         let dot = expr.to_dot().unwrap();
 
         let ident = dot.lhs.to_ident().unwrap();
-        assert_eq!("obj", *interner.str(ident.name));
+        assert_eq!("obj", ident.name);
 
         let ident = dot.rhs.to_ident().unwrap();
-        assert_eq!("field", *interner.str(ident.name));
+        assert_eq!("field", ident.name);
     }
 
     #[test]
@@ -1946,11 +1943,11 @@ mod tests {
 
     #[test]
     fn parse_field_non_ident() {
-        let (expr, interner) = parse_expr("bar.12");
+        let (expr, _) = parse_expr("bar.12");
         let dot = expr.to_dot().unwrap();
 
         let ident = dot.lhs.to_ident().unwrap();
-        assert_eq!("bar", *interner.str(ident.name));
+        assert_eq!("bar", ident.name);
 
         assert_eq!(String::from("12"), dot.rhs.to_lit_int().unwrap().value);
     }
@@ -2272,22 +2269,19 @@ mod tests {
 
     #[test]
     fn parse_call_without_params() {
-        let (expr, interner) = parse_expr("fname()");
+        let (expr, _) = parse_expr("fname()");
 
         let call = expr.to_call().unwrap();
-        assert_eq!("fname", *interner.str(call.callee.to_ident().unwrap().name));
+        assert_eq!("fname", call.callee.to_ident().unwrap().name);
         assert_eq!(0, call.args.len());
     }
 
     #[test]
     fn parse_call_with_params() {
-        let (expr, interner) = parse_expr("fname2(1,2,3)");
+        let (expr, _) = parse_expr("fname2(1,2,3)");
 
         let call = expr.to_call().unwrap();
-        assert_eq!(
-            "fname2",
-            *interner.str(call.callee.to_ident().unwrap().name)
-        );
+        assert_eq!("fname2", call.callee.to_ident().unwrap().name);
         assert_eq!(3, call.args.len());
     }
 
@@ -2714,11 +2708,11 @@ mod tests {
 
     #[test]
     fn parse_array_index() {
-        let (expr, interner) = parse_expr("a(b)");
+        let (expr, _) = parse_expr("a(b)");
         let call = expr.to_call().unwrap();
-        assert_eq!("a", *interner.str(call.callee.to_ident().unwrap().name));
+        assert_eq!("a", call.callee.to_ident().unwrap().name);
         assert_eq!(1, call.args.len());
-        assert_eq!("b", *interner.str(call.args[0].to_ident().unwrap().name));
+        assert_eq!("b", call.args[0].to_ident().unwrap().name);
     }
 
     #[test]

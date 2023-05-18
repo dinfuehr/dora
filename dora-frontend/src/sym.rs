@@ -58,6 +58,11 @@ impl ModuleSymTable {
         self.levels.len()
     }
 
+    pub fn get_string(&self, sa: &Sema, name: &str) -> Option<Sym> {
+        let interned_name = sa.interner.intern(name);
+        self.get(interned_name)
+    }
+
     pub fn get(&self, name: Name) -> Option<Sym> {
         for level in self.levels.iter().rev() {
             if let Some(val) = level.get(name) {

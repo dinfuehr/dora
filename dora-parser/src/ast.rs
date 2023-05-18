@@ -605,7 +605,7 @@ impl AnnotationUsages {
         AnnotationUsages(Vec::new())
     }
 
-    pub fn contains(&self, name: Name) -> bool {
+    pub fn contains(&self, name: String) -> bool {
         self.0.iter().find(|el| el.name == name).is_some()
     }
 
@@ -620,7 +620,7 @@ impl AnnotationUsages {
 
 #[derive(Clone, Debug)]
 pub struct AnnotationUsage {
-    pub name: Name,
+    pub name: String,
     pub span: Span,
     pub type_args: Vec<TypeData>,
     pub term_args: Vec<Expr>,
@@ -1126,7 +1126,7 @@ impl ExprData {
         ExprData::This(ExprSelfType { id, span })
     }
 
-    pub fn create_ident(id: NodeId, span: Span, name: Name) -> ExprData {
+    pub fn create_ident(id: NodeId, span: Span, name: String) -> ExprData {
         ExprData::Ident(ExprIdentType { id, span, name })
     }
 
@@ -1729,7 +1729,7 @@ pub struct ExprSelfType {
 pub struct ExprIdentType {
     pub id: NodeId,
     pub span: Span,
-    pub name: Name,
+    pub name: String,
 }
 
 #[derive(Clone, Debug)]

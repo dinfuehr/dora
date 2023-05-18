@@ -963,7 +963,8 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn check_expr_ident(&mut self, e: &ast::ExprIdentType, expected_ty: SourceType) -> SourceType {
-        let sym = self.symtable.get(e.name);
+        let interned_name = self.sa.interner.intern(&e.name);
+        let sym = self.symtable.get(interned_name);
 
         match sym {
             Some(Sym::Var(var_id)) => {
@@ -1014,11 +1015,10 @@ impl<'a> TypeCheck<'a> {
             ),
 
             None => {
-                let name = self.sa.interner.str(e.name).to_string();
                 self.sa.diag.lock().report(
                     self.file_id,
                     e.span,
-                    ErrorMessage::UnknownIdentifier(name),
+                    ErrorMessage::UnknownIdentifier(e.name.clone()),
                 );
                 SourceType::Error
             }
@@ -1054,7 +1054,7 @@ impl<'a> TypeCheck<'a> {
         self.analysis.set_ty(e.id, SourceType::Unit);
 
         let lhs_ident = e.lhs.to_ident().unwrap();
-        let sym = self.symtable.get(lhs_ident.name);
+        let sym = self.symtable.get_string(self.sa, &lhs_ident.name);
 
         let lhs_type = match sym {
             Some(Sym::Var(var_id)) => {
@@ -1092,11 +1092,10 @@ impl<'a> TypeCheck<'a> {
             }
 
             None => {
-                let name = self.sa.interner.str(lhs_ident.name).to_string();
                 self.sa.diag.lock().report(
                     self.file_id,
                     lhs_ident.span,
-                    ErrorMessage::UnknownIdentifier(name),
+                    ErrorMessage::UnknownIdentifier(lhs_ident.name.clone()),
                 );
 
                 return;
@@ -1120,13 +1119,12 @@ impl<'a> TypeCheck<'a> {
             && !lhs_type.allows(self.sa, rhs_type.clone())
         {
             let ident = e.lhs.to_ident().unwrap();
-            let name = self.sa.interner.str(ident.name).to_string();
             let lhs_type = self.ty_name(&lhs_type);
             let rhs_type = self.ty_name(&rhs_type);
 
             self.analysis.set_ty(e.id, SourceType::Unit);
 
-            let msg = ErrorMessage::AssignType(name, lhs_type, rhs_type);
+            let msg = ErrorMessage::AssignType(ident.name.clone(), lhs_type, rhs_type);
             self.sa.diag.lock().report(self.file_id, e.span, msg);
         }
     }
@@ -1165,7 +1163,7 @@ impl<'a> TypeCheck<'a> {
         let field_expr = e.lhs.to_dot().unwrap();
 
         let name = match field_expr.rhs.to_ident() {
-            Some(ident) => ident.name,
+            Some(ident) => ident.name.clone(),
 
             None => {
                 let msg = ErrorMessage::NameExpected;
@@ -1176,11 +1174,13 @@ impl<'a> TypeCheck<'a> {
             }
         };
 
+        let interned_name = self.sa.interner.intern(&name);
+
         let object_type = self.check_expr(&field_expr.lhs, SourceType::Any);
 
         if object_type.cls_id().is_some() {
             if let Some((cls_ty, field_id, _)) =
-                find_field_in_class(self.sa, object_type.clone(), name)
+                find_field_in_class(self.sa, object_type.clone(), interned_name)
             {
                 let ident_type = IdentType::Field(cls_ty.clone(), field_id);
                 self.analysis
@@ -1205,8 +1205,6 @@ impl<'a> TypeCheck<'a> {
                 let rhs_type = self.check_expr(&e.rhs, fty.clone());
 
                 if !fty.allows(self.sa, rhs_type.clone()) && !rhs_type.is_error() {
-                    let name = self.sa.interner.str(name).to_string();
-
                     let object_type = self.ty_name(&object_type);
                     let lhs_type = self.ty_name(&fty);
                     let rhs_type = self.ty_name(&rhs_type);
@@ -1225,9 +1223,8 @@ impl<'a> TypeCheck<'a> {
         self.check_expr(&e.rhs, SourceType::Any);
 
         // field not found, report error
-        let field_name = self.sa.interner.str(name).to_string();
         let expr_name = self.ty_name(&object_type);
-        let msg = ErrorMessage::UnknownField(field_name, expr_name);
+        let msg = ErrorMessage::UnknownField(name, expr_name);
         self.sa
             .diag
             .lock()
@@ -1544,14 +1541,14 @@ impl<'a> TypeCheck<'a> {
             .collect();
 
         if let Some(expr_ident) = callee.to_ident() {
-            let sym = self.symtable.get(expr_ident.name);
+            let sym = self.symtable.get_string(self.sa, &expr_ident.name);
 
             self.check_expr_call_sym(e, expected_ty, callee, sym, type_params, &arg_types)
         } else if let Some(expr_dot) = callee.to_dot() {
             let object_type = self.check_expr(&expr_dot.lhs, SourceType::Any);
 
             let method_name = match expr_dot.rhs.to_ident() {
-                Some(ident) => ident.name,
+                Some(ident) => ident.name.clone(),
 
                 None => {
                     let msg = ErrorMessage::NameExpected;
@@ -1721,16 +1718,17 @@ impl<'a> TypeCheck<'a> {
         &mut self,
         e: &ast::ExprCallType,
         tp_id: TypeParamId,
-        name: Name,
+        name: String,
         arg_types: &[SourceType],
     ) -> SourceType {
         let mut fcts = Vec::new();
+        let interned_name = self.sa.interner.intern(&name);
 
         for trait_ty in self.type_param_defs.bounds_for_type_param(tp_id) {
             let trait_id = trait_ty.trait_id().expect("trait expected");
             let trait_ = self.sa.traits[trait_id].read();
 
-            if let Some(fct_id) = trait_.find_method(self.sa, name, true) {
+            if let Some(fct_id) = trait_.find_method(self.sa, interned_name, true) {
                 fcts.push((trait_id, fct_id));
             }
         }
@@ -1766,7 +1764,6 @@ impl<'a> TypeCheck<'a> {
             &SourceTypeArray::empty(),
             Some(tp.clone()),
         ) {
-            let fct_name = self.sa.interner.str(name).to_string();
             let fct_params = fct
                 .params_without_self()
                 .iter()
@@ -1776,7 +1773,7 @@ impl<'a> TypeCheck<'a> {
                 .iter()
                 .map(|a| self.ty_name(a))
                 .collect::<Vec<_>>();
-            let msg = ErrorMessage::ParamTypesIncompatible(fct_name, fct_params, arg_types);
+            let msg = ErrorMessage::ParamTypesIncompatible(name, fct_params, arg_types);
             self.sa.diag.lock().report(self.file_id, e.span, msg);
         }
 
@@ -1918,14 +1915,15 @@ impl<'a> TypeCheck<'a> {
         &mut self,
         e: &ast::ExprCallType,
         object_type: SourceType,
-        method_name: Name,
+        method_name: String,
         fct_type_params: SourceTypeArray,
         arg_types: &[SourceType],
     ) -> SourceType {
+        let interned_method_name = self.sa.interner.intern(&method_name);
         let lookup = MethodLookup::new(self.sa, self.file_id, self.type_param_defs)
             .span(e.span)
             .static_method(object_type)
-            .name(method_name)
+            .name(interned_method_name)
             .args(arg_types)
             .fct_type_params(&fct_type_params)
             .find();
@@ -1961,7 +1959,7 @@ impl<'a> TypeCheck<'a> {
         &mut self,
         e: &ast::ExprCallType,
         object_type: SourceType,
-        method_name: Name,
+        method_name: String,
         fct_type_params: SourceTypeArray,
         arg_types: &[SourceType],
     ) -> SourceType {
@@ -1976,10 +1974,12 @@ impl<'a> TypeCheck<'a> {
             return SourceType::Error;
         }
 
+        let interned_method_name = self.sa.interner.intern(&method_name);
+
         let lookup = MethodLookup::new(self.sa, self.file_id, self.type_param_defs)
             .no_error_reporting()
             .method(object_type.clone())
-            .name(method_name)
+            .name(interned_method_name)
             .fct_type_params(&fct_type_params)
             .args(arg_types)
             .find();
@@ -2019,7 +2019,7 @@ impl<'a> TypeCheck<'a> {
             // Lookup the method again, but this time with error reporting
             let lookup = MethodLookup::new(self.sa, self.file_id, self.type_param_defs)
                 .method(object_type)
-                .name(method_name)
+                .name(interned_method_name)
                 .fct_type_params(&fct_type_params)
                 .span(e.span)
                 .args(arg_types)
@@ -2037,12 +2037,13 @@ impl<'a> TypeCheck<'a> {
         &mut self,
         e: &ast::ExprCallType,
         object_type: SourceType,
-        method_name: Name,
+        method_name: String,
         type_params: SourceTypeArray,
         arg_types: &[SourceType],
     ) -> SourceType {
+        let interned_method_name = self.sa.interner.intern(&method_name);
         if let Some((actual_type, field_id, field_type)) =
-            find_field_in_class(self.sa, object_type.clone(), method_name)
+            find_field_in_class(self.sa, object_type.clone(), interned_method_name)
         {
             self.analysis.set_ty(e.callee.id(), field_type.clone());
             self.analysis
@@ -2067,7 +2068,7 @@ impl<'a> TypeCheck<'a> {
         if let Some(struct_id) = object_type.struct_id() {
             let struct_ = self.sa.structs.idx(struct_id);
             let struct_ = struct_.read();
-            if let Some(&field_id) = struct_.field_names.get(&method_name) {
+            if let Some(&field_id) = struct_.field_names.get(&interned_method_name) {
                 let ident_type = IdentType::StructField(object_type.clone(), field_id);
                 self.analysis.map_idents.insert_or_replace(e.id, ident_type);
 
@@ -2090,7 +2091,7 @@ impl<'a> TypeCheck<'a> {
         // No field with that name as well, so report method
         let lookup = MethodLookup::new(self.sa, self.file_id, self.type_param_defs)
             .method(object_type)
-            .name(method_name)
+            .name(interned_method_name)
             .fct_type_params(&type_params)
             .span(e.span)
             .args(arg_types)
@@ -2281,7 +2282,7 @@ impl<'a> TypeCheck<'a> {
         &mut self,
         e: &ast::ExprCallType,
         tp_id: TypeParamId,
-        name: Name,
+        name: String,
         arg_types: &[SourceType],
     ) -> SourceType {
         self.check_expr_call_generic_type_param(
@@ -2298,16 +2299,19 @@ impl<'a> TypeCheck<'a> {
         e: &ast::ExprCallType,
         object_type: SourceType,
         id: TypeParamId,
-        name: Name,
+        name: String,
         args: &[SourceType],
     ) -> SourceType {
         let mut found_fcts = Vec::new();
+        let interned_name = self.sa.interner.intern(&name);
 
         for trait_ty in self.type_param_defs.bounds_for_type_param(id) {
             let trait_id = trait_ty.trait_id().expect("trait expected");
             let trait_ = self.sa.traits[trait_id].read();
 
-            if let Some(fid) = trait_.find_method_with_replace(self.sa, false, name, None, args) {
+            if let Some(fid) =
+                trait_.find_method_with_replace(self.sa, false, interned_name, None, args)
+            {
                 found_fcts.push(fid);
             }
         }
@@ -2327,7 +2331,6 @@ impl<'a> TypeCheck<'a> {
             return_type
         } else {
             let type_name = self.ty_name(&object_type);
-            let name = self.sa.interner.str(name).to_string();
             let param_names = args
                 .iter()
                 .map(|a| self.ty_name(a))
@@ -2380,7 +2383,7 @@ impl<'a> TypeCheck<'a> {
         };
 
         let method_name = if let Some(method_name_expr) = method_expr.to_ident() {
-            method_name_expr.name
+            method_name_expr.name.clone()
         } else {
             let msg = ErrorMessage::ExpectedSomeIdentifier;
             self.sa
@@ -2391,6 +2394,8 @@ impl<'a> TypeCheck<'a> {
             self.analysis.set_ty(e.id, SourceType::Error);
             return SourceType::Error;
         };
+
+        let interned_method_name = self.sa.interner.intern(&method_name);
 
         match sym {
             Some(Sym::Class(cls_id)) => {
@@ -2447,7 +2452,7 @@ impl<'a> TypeCheck<'a> {
                 let enum_ = self.sa.enums.idx(enum_id);
                 let enum_ = enum_.read();
 
-                if let Some(&variant_idx) = enum_.name_to_value.get(&method_name) {
+                if let Some(&variant_idx) = enum_.name_to_value.get(&interned_method_name) {
                     if !container_type_params.is_empty() && !type_params.is_empty() {
                         let msg = ErrorMessage::NoTypeParamsExpected;
                         self.sa
@@ -2518,7 +2523,7 @@ impl<'a> TypeCheck<'a> {
                     let module = &self.sa.modules[module_id].read();
                     let table = module.table.read();
 
-                    table.get(method_name)
+                    table.get(interned_method_name)
                 };
 
                 self.check_expr_call_sym(e, expected_ty, callee, sym, type_params, arg_types)
@@ -2558,7 +2563,7 @@ impl<'a> TypeCheck<'a> {
         };
 
         let element_name = if let Some(ident) = e.rhs.to_ident() {
-            ident.name
+            ident.name.clone()
         } else {
             let msg = ErrorMessage::ExpectedSomeIdentifier;
             self.sa.diag.lock().report(self.file_id, e.rhs.span(), msg);
@@ -2594,7 +2599,7 @@ impl<'a> TypeCheck<'a> {
             let sym = self.read_path_expr(&expr_path.lhs)?;
 
             let element_name = if let Some(ident) = expr_path.rhs.to_ident() {
-                ident.name
+                ident.name.clone()
             } else {
                 let msg = ErrorMessage::ExpectedSomeIdentifier;
                 self.sa
@@ -2604,11 +2609,13 @@ impl<'a> TypeCheck<'a> {
                 return Err(());
             };
 
+            let interned_element_name = self.sa.interner.intern(&element_name);
+
             match sym {
                 Some(Sym::Module(module_id)) => {
                     let module = &self.sa.modules[module_id].read();
                     let symtable = module.table.read();
-                    let sym = symtable.get(element_name);
+                    let sym = symtable.get(interned_element_name);
 
                     Ok(sym)
                 }
@@ -2620,8 +2627,7 @@ impl<'a> TypeCheck<'a> {
                 }
             }
         } else if let Some(expr_ident) = expr.to_ident() {
-            let container_name = expr_ident.name;
-            let sym = self.symtable.get(container_name);
+            let sym = self.symtable.get_string(self.sa, &expr_ident.name);
 
             Ok(sym)
         } else {
@@ -2701,13 +2707,15 @@ impl<'a> TypeCheck<'a> {
         e: &ast::ExprPathType,
         expected_ty: SourceType,
         module_id: ModuleDefinitionId,
-        element_name: Name,
+        element_name: String,
     ) -> SourceType {
         let module = &self.sa.modules.idx(module_id);
         let module = module.read();
         let table = module.table.read();
 
-        let sym = table.get(element_name);
+        let interned_element_name = self.sa.interner.intern(&element_name);
+
+        let sym = table.get(interned_element_name);
 
         match sym {
             Some(Sym::Global(global_id)) => {
@@ -2760,11 +2768,10 @@ impl<'a> TypeCheck<'a> {
 
             None => {
                 let module = module.name(self.sa);
-                let name = self.sa.interner.str(element_name).to_string();
                 self.sa.diag.lock().report(
                     self.file_id,
                     e.span,
-                    ErrorMessage::UnknownIdentifierInModule(module, name),
+                    ErrorMessage::UnknownIdentifierInModule(module, element_name),
                 );
                 SourceType::Error
             }
@@ -2786,7 +2793,7 @@ impl<'a> TypeCheck<'a> {
         _expected_ty: SourceType,
         enum_id: EnumDefinitionId,
         type_params: SourceTypeArray,
-        name: Name,
+        name: String,
     ) -> SourceType {
         let enum_ = self.sa.enums[enum_id].read();
 
@@ -2803,7 +2810,9 @@ impl<'a> TypeCheck<'a> {
             ErrorReporting::Yes(self.file_id, expr_span),
         );
 
-        if let Some(&value) = enum_.name_to_value.get(&name) {
+        let interned_name = self.sa.interner.intern(&name);
+
+        if let Some(&value) = enum_.name_to_value.get(&interned_name) {
             let variant = &enum_.variants[value as usize];
 
             if !variant.types.is_empty() {
@@ -2829,7 +2838,6 @@ impl<'a> TypeCheck<'a> {
                 IdentType::EnumValue(enum_id, type_params.clone(), value),
             );
         } else {
-            let name = self.sa.interner.str(name).to_string();
             self.sa.diag.lock().report(
                 self.file_id,
                 expr_span,
@@ -2857,9 +2865,7 @@ impl<'a> TypeCheck<'a> {
         let type_params: SourceTypeArray = SourceTypeArray::with(type_params);
 
         if let Some(ident) = e.callee.to_ident() {
-            let method_name = ident.name;
-
-            let sym = self.symtable.get(method_name);
+            let sym = self.symtable.get_string(self.sa, &ident.name);
 
             match sym {
                 Some(Sym::EnumVariant(enum_id, variant_idx)) => self
@@ -2885,7 +2891,7 @@ impl<'a> TypeCheck<'a> {
             }
         } else if let Some(path) = e.callee.to_path() {
             let container_name = if let Some(container_expr) = path.lhs.to_ident() {
-                container_expr.name
+                container_expr.name.clone()
             } else {
                 let msg = ErrorMessage::ExpectedSomeIdentifier;
                 self.sa
@@ -2898,7 +2904,7 @@ impl<'a> TypeCheck<'a> {
             };
 
             let method_name = if let Some(ident) = path.rhs.to_ident() {
-                ident.name
+                ident.name.clone()
             } else {
                 let msg = ErrorMessage::ExpectedSomeIdentifier;
                 self.sa
@@ -2910,7 +2916,7 @@ impl<'a> TypeCheck<'a> {
                 return SourceType::Error;
             };
 
-            let sym = self.symtable.get(container_name);
+            let sym = self.symtable.get_string(self.sa, &container_name);
 
             match sym {
                 Some(Sym::Enum(enum_id)) => self.check_enum_value_without_args(
@@ -3014,7 +3020,7 @@ impl<'a> TypeCheck<'a> {
         }
 
         let name = match e.rhs.to_ident() {
-            Some(ident) => ident.name,
+            Some(ident) => ident.name.clone(),
 
             None => {
                 let msg = ErrorMessage::NameExpected;
@@ -3025,10 +3031,12 @@ impl<'a> TypeCheck<'a> {
             }
         };
 
+        let interned_name = self.sa.interner.intern(&name);
+
         if let Some(struct_id) = object_type.struct_id() {
             let struct_ = self.sa.structs.idx(struct_id);
             let struct_ = struct_.read();
-            if let Some(&field_id) = struct_.field_names.get(&name) {
+            if let Some(&field_id) = struct_.field_names.get(&interned_name) {
                 let ident_type = IdentType::StructField(object_type.clone(), field_id);
                 self.analysis.map_idents.insert_or_replace(e.id, ident_type);
 
@@ -3049,7 +3057,7 @@ impl<'a> TypeCheck<'a> {
 
         if object_type.cls_id().is_some() {
             if let Some((cls_ty, field_id, _)) =
-                find_field_in_class(self.sa, object_type.clone(), name)
+                find_field_in_class(self.sa, object_type.clone(), interned_name)
             {
                 let ident_type = IdentType::Field(cls_ty.clone(), field_id);
                 self.analysis.map_idents.insert_or_replace(e.id, ident_type);
@@ -3075,9 +3083,8 @@ impl<'a> TypeCheck<'a> {
 
         // field not found, report error
         if !object_type.is_error() {
-            let field_name = self.sa.interner.str(name).to_string();
             let expr_name = self.ty_name(&object_type);
-            let msg = ErrorMessage::UnknownField(field_name, expr_name);
+            let msg = ErrorMessage::UnknownField(name, expr_name);
             self.sa.diag.lock().report(self.file_id, e.op_span, msg);
         }
 

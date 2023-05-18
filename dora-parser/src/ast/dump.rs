@@ -225,12 +225,7 @@ impl<'a> AstDumper<'a> {
     #[allow(dead_code)]
     fn dump_annotation_usages(&self, annotation_usages: &AnnotationUsages) {
         for annotation_usage in annotation_usages.iter() {
-            dump!(
-                self,
-                "@{} {}",
-                self.str(annotation_usage.name),
-                annotation_usage.span
-            );
+            dump!(self, "@{} {}", annotation_usage.name, annotation_usage.span);
         }
     }
 
@@ -509,13 +504,7 @@ impl<'a> AstDumper<'a> {
     }
 
     fn dump_expr_ident(&mut self, ident: &ExprIdentType) {
-        dump!(
-            self,
-            "ident {} @ {} {}",
-            self.str(ident.name),
-            ident.span,
-            ident.id
-        );
+        dump!(self, "ident {} @ {} {}", ident.name, ident.span, ident.id);
     }
 
     fn dump_expr_un(&mut self, expr: &ExprUnType) {
