@@ -264,7 +264,7 @@ pub struct Enum {
     pub id: NodeId,
     pub span: Span,
     pub name: Option<Ident>,
-    pub type_params: Option<Vec<TypeParam>>,
+    pub type_params: Option<TypeParams>,
     pub variants: Vec<EnumVariant>,
     pub visibility: Visibility,
 }
@@ -294,7 +294,7 @@ pub struct Struct {
     pub fields: Vec<StructField>,
     pub visibility: Visibility,
     pub internal: bool,
-    pub type_params: Option<Vec<TypeParam>>,
+    pub type_params: Option<TypeParams>,
 }
 
 #[derive(Clone, Debug)]
@@ -472,7 +472,7 @@ pub struct Impl {
     pub id: NodeId,
     pub span: Span,
 
-    pub type_params: Option<Vec<TypeParam>>,
+    pub type_params: Option<TypeParams>,
     pub trait_type: Option<Type>,
     pub extended_type: Type,
     pub methods: Vec<Arc<Function>>,
@@ -482,7 +482,7 @@ pub struct Impl {
 pub struct Trait {
     pub id: NodeId,
     pub name: Option<Ident>,
-    pub type_params: Option<Vec<TypeParam>>,
+    pub type_params: Option<TypeParams>,
     pub span: Span,
     pub methods: Vec<Arc<Function>>,
     pub visibility: Visibility,
@@ -497,7 +497,7 @@ pub struct Class {
     pub visibility: Visibility,
 
     pub fields: Vec<Field>,
-    pub type_params: Option<Vec<TypeParam>>,
+    pub type_params: Option<TypeParams>,
 }
 
 #[derive(Clone, Debug)]
@@ -506,6 +506,12 @@ pub struct ExternPackage {
     pub span: Span,
     pub name: Option<Ident>,
     pub identifier: Option<Ident>,
+}
+
+#[derive(Clone, Debug)]
+pub struct TypeParams {
+    pub span: Span,
+    pub params: Vec<TypeParam>,
 }
 
 #[derive(Clone, Debug)]
@@ -559,7 +565,7 @@ pub struct Function {
 
     pub return_type: Option<Type>,
     pub block: Option<Expr>,
-    pub type_params: Option<Vec<TypeParam>>,
+    pub type_params: Option<TypeParams>,
 }
 
 impl Function {

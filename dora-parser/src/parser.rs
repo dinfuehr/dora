@@ -596,11 +596,16 @@ impl Parser {
         })
     }
 
-    fn parse_type_params(&mut self) -> Option<Vec<TypeParam>> {
-        if self.eat(L_BRACKET) {
+    fn parse_type_params(&mut self) -> Option<TypeParams> {
+        if self.is(L_BRACKET) {
+            self.start_node();
+            self.assert(L_BRACKET);
             let params = self.parse_list(COMMA, R_BRACKET, |p| p.parse_type_param());
 
-            Some(params)
+            Some(TypeParams {
+                span: self.finish_node(),
+                params,
+            })
         } else {
             None
         }
@@ -2756,7 +2761,7 @@ mod tests {
         assert_eq!(2, struct_.fields.len());
         assert_eq!("Bar", struct_.name.as_ref().unwrap().name_as_string);
 
-        assert_eq!(2, struct_.type_params.as_ref().unwrap().len());
+        assert_eq!(2, struct_.type_params.as_ref().unwrap().params.len());
     }
 
     #[test]
@@ -2819,15 +2824,21 @@ mod tests {
         let cls = prog.cls0();
 
         let type_params = cls.type_params.as_ref().unwrap();
-        assert_eq!(1, type_params.len());
-        assert_eq!("T", type_params[0].name.as_ref().unwrap().name_as_string);
+        assert_eq!(1, type_params.params.len());
+        assert_eq!(
+            "T",
+            type_params.params[0].name.as_ref().unwrap().name_as_string
+        );
 
         let prog = parse("class Foo[X]");
         let cls = prog.cls0();
 
         let type_params = cls.type_params.as_ref().unwrap();
-        assert_eq!(1, type_params.len());
-        assert_eq!("X", type_params[0].name.as_ref().unwrap().name_as_string);
+        assert_eq!(1, type_params.params.len());
+        assert_eq!(
+            "X",
+            type_params.params[0].name.as_ref().unwrap().name_as_string
+        );
     }
 
     #[test]
@@ -2836,9 +2847,15 @@ mod tests {
         let cls = prog.cls0();
 
         let type_params = cls.type_params.as_ref().unwrap();
-        assert_eq!(2, type_params.len());
-        assert_eq!("A", type_params[0].name.as_ref().unwrap().name_as_string);
-        assert_eq!("B", type_params[1].name.as_ref().unwrap().name_as_string);
+        assert_eq!(2, type_params.params.len());
+        assert_eq!(
+            "A",
+            type_params.params[0].name.as_ref().unwrap().name_as_string
+        );
+        assert_eq!(
+            "B",
+            type_params.params[1].name.as_ref().unwrap().name_as_string
+        );
     }
 
     #[test]
@@ -2959,7 +2976,7 @@ mod tests {
         let prog = parse("fn f[T]() {}");
         let fct = prog.fct0();
 
-        assert_eq!(1, fct.type_params.as_ref().unwrap().len());
+        assert_eq!(1, fct.type_params.as_ref().unwrap().params.len());
     }
 
     #[test]
@@ -2975,7 +2992,7 @@ mod tests {
         let prog = parse("class A[T: Foo]");
         let cls = prog.cls0();
 
-        let type_param = &cls.type_params.as_ref().unwrap()[0];
+        let type_param = &cls.type_params.as_ref().unwrap().params[0];
         assert_eq!(1, type_param.bounds.len());
     }
 
@@ -2984,7 +3001,7 @@ mod tests {
         let prog = parse("class A[T: Foo + Bar]");
         let cls = prog.cls0();
 
-        let type_param = &cls.type_params.as_ref().unwrap()[0];
+        let type_param = &cls.type_params.as_ref().unwrap().params[0];
         assert_eq!(2, type_param.bounds.len());
     }
 

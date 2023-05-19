@@ -55,10 +55,10 @@ pub fn check(sa: &Sema) {
         fct.container_type_params = container_type_params;
 
         if let Some(ref type_params) = ast.type_params {
-            if type_params.len() > 0 {
+            if type_params.params.len() > 0 {
                 let mut names = HashSet::new();
 
-                for (type_param_id, type_param) in type_params.iter().enumerate() {
+                for (type_param_id, type_param) in type_params.params.iter().enumerate() {
                     let name = sa.interner.intern(
                         &type_param
                             .name

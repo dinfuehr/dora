@@ -181,7 +181,7 @@ fn build_type_params(number_type_params: usize) -> SourceTypeArray {
 
 fn read_type_param_definition(
     sa: &Sema,
-    ast_type_params: Option<&Vec<ast::TypeParam>>,
+    ast_type_params: Option<&ast::TypeParams>,
     symtable: &mut ModuleSymTable,
     file_id: SourceFileId,
     span: Span,
@@ -192,7 +192,7 @@ fn read_type_param_definition(
 
     let ast_type_params = ast_type_params.expect("type params expected");
 
-    if ast_type_params.len() == 0 {
+    if ast_type_params.params.len() == 0 {
         let msg = ErrorMessage::TypeParamsExpected;
         sa.diag.lock().report(file_id, span, msg);
 
@@ -204,7 +204,7 @@ fn read_type_param_definition(
 
     // 1) Discover all type parameters.
 
-    for (id, type_param) in ast_type_params.iter().enumerate() {
+    for (id, type_param) in ast_type_params.params.iter().enumerate() {
         let id = TypeParamId(id);
         if let Some(ref ident) = type_param.name {
             let iname = sa.interner.intern(&ident.name_as_string);
@@ -227,7 +227,7 @@ fn read_type_param_definition(
 
     // 2) Read bounds for type parameters.
 
-    for (id, type_param) in ast_type_params.iter().enumerate() {
+    for (id, type_param) in ast_type_params.params.iter().enumerate() {
         let id = TypeParamId(id);
 
         for bound in &type_param.bounds {

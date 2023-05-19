@@ -1,12 +1,11 @@
 use crossbeam::channel::{Receiver, Sender};
 use crossbeam::select;
-use dora_parser::{compute_line_column, compute_line_starts};
-use lsp_server::{Connection, Message, Notification, Request, Response};
+use dora_parser::compute_line_column;
+use lsp_server::{Connection, Message, Notification};
 use lsp_types::notification::Notification as _;
 use lsp_types::{
-    ClientCapabilities, Diagnostic, DocumentSymbolResponse, InitializeParams, Location, OneOf,
-    Position, PublishDiagnosticsParams, Range, ServerCapabilities, SymbolInformation, SymbolKind,
-    TextDocumentSyncCapability, TextDocumentSyncKind, Url,
+    ClientCapabilities, Diagnostic, InitializeParams, OneOf, Position, PublishDiagnosticsParams,
+    Range, ServerCapabilities, TextDocumentSyncCapability, TextDocumentSyncKind, Url,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -17,6 +16,10 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use threadpool::ThreadPool;
 use walkdir::WalkDir;
+
+use crate::symbols::document_symbol_request;
+
+mod symbols;
 
 fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
     let (connection, io_threads) = Connection::stdio();
@@ -249,37 +252,6 @@ fn did_change_notification(_server_state: &mut ServerState, notification: Notifi
     }
 }
 
-#[allow(dead_code)]
-fn check_file(uri: Url, content: String, version: i32, sender: Sender<MainLoopTask>) {
-    let line_starts = compute_line_starts(&content);
-    let parser = dora_parser::Parser::from_shared_string(Arc::new(content));
-    let (_, errors) = parser.parse();
-    let mut diagnostics = Vec::new();
-    for error in errors {
-        let (line, column) = compute_line_column(&line_starts, error.span.start());
-        let start = Position::new(line - 1, column - 1);
-        let (line, column) = compute_line_column(&line_starts, error.span.end());
-        let end = Position::new(line - 1, column - 1);
-        diagnostics.push(Diagnostic {
-            range: Range::new(start, end),
-            message: error.error.message(),
-            ..Default::default()
-        })
-    }
-    let params = PublishDiagnosticsParams {
-        uri,
-        version: Some(version),
-        diagnostics,
-    };
-    let notification =
-        lsp_server::Notification::new("textDocument/publishDiagnostics".into(), params);
-    sender
-        .send(MainLoopTask::SendResponse(Message::Notification(
-            notification,
-        )))
-        .expect("failed send");
-}
-
 fn did_open_notification(_server_state: &mut ServerState, notification: Notification) {
     let result =
         serde_json::from_value::<lsp_types::DidOpenTextDocumentParams>(notification.params);
@@ -329,77 +301,6 @@ fn did_save_notification(server_state: &mut ServerState, notification: Notificat
             })
         }
         Err(_) => {}
-    }
-}
-
-fn document_symbol_request(server_state: &mut ServerState, request: Request) {
-    let result = serde_json::from_value::<lsp_types::DocumentSymbolParams>(request.params);
-    match result {
-        Ok(result) => {
-            let uri = result.text_document.uri.clone();
-            let path = result
-                .text_document
-                .uri
-                .to_file_path()
-                .expect("file path expected");
-            if let Some(_content) = server_state.opened_files.get(&path) {
-                eprintln!("now parse file");
-                #[allow(deprecated)]
-                let symbols = vec![
-                    SymbolInformation {
-                        name: "foo".into(),
-                        kind: SymbolKind::FUNCTION,
-                        tags: None,
-                        deprecated: None,
-                        container_name: None,
-                        location: Location {
-                            uri: uri.clone(),
-                            range: Range {
-                                start: Position {
-                                    line: 6,
-                                    character: 7,
-                                },
-                                end: Position {
-                                    line: 6,
-                                    character: 21,
-                                },
-                            },
-                        },
-                    },
-                    SymbolInformation {
-                        name: "bar".into(),
-                        kind: SymbolKind::FUNCTION,
-                        tags: None,
-                        deprecated: None,
-                        container_name: None,
-                        location: Location {
-                            uri: uri.clone(),
-                            range: Range {
-                                start: Position {
-                                    line: 23,
-                                    character: 18,
-                                },
-                                end: Position {
-                                    line: 23,
-                                    character: 21,
-                                },
-                            },
-                        },
-                    },
-                ];
-                let response = DocumentSymbolResponse::Flat(symbols);
-                let response = Response::new_ok(request.id, response);
-                server_state
-                    .threadpool_sender
-                    .send(MainLoopTask::SendResponse(Message::Response(response)))
-                    .expect("send failed");
-            } else {
-                eprintln!("unknown file {}", path.display());
-            }
-        }
-        Err(_) => {
-            eprintln!("broken params");
-        }
     }
 }
 
