@@ -2,8 +2,8 @@ use std::collections::hash_map::HashMap;
 use std::convert::TryInto;
 use std::sync::Arc;
 
+use crate::interner::Name;
 use dora_parser::ast;
-use dora_parser::interner::Name;
 use dora_parser::Span;
 
 use crate::sema::{

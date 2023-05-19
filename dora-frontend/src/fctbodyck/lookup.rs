@@ -1,5 +1,6 @@
 use crate::error::msg::ErrorMessage;
 use crate::fctbodyck::body::args_compatible_fct;
+use crate::interner::Name;
 use crate::sema::{
     find_methods_in_class, find_methods_in_enum, find_methods_in_struct, FctDefinitionId, Sema,
     SourceFileId, TraitDefinitionId, TypeParamDefinition,
@@ -7,8 +8,6 @@ use crate::sema::{
 use crate::specialize::replace_type_param;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::typeparamck::{self, ErrorReporting};
-
-use dora_parser::interner::Name;
 use dora_parser::Span;
 
 pub struct MethodLookupResult {

@@ -1,8 +1,8 @@
 use std::ops::{Index, IndexMut};
 use std::sync::Arc;
 
+use crate::interner::Name;
 use dora_parser::ast;
-use dora_parser::interner::Name;
 use dora_parser::Span;
 
 use crate::sema::{

@@ -2,10 +2,6 @@ use std::fmt;
 use std::slice::Iter;
 use std::sync::Arc;
 
-#[cfg(test)]
-use crate::interner::Interner;
-
-use crate::interner::Name;
 use crate::Span;
 
 pub mod dump;
@@ -186,7 +182,6 @@ impl ElemData {
 #[derive(Clone, Debug)]
 pub struct IdentData {
     pub span: Span,
-    pub name: Name,
     pub name_as_string: String,
 }
 
@@ -425,23 +420,22 @@ impl TypeData {
     }
 
     #[cfg(test)]
-    pub fn to_string(&self, interner: &Interner) -> String {
+    pub fn to_string(&self) -> String {
         match *self {
             TypeData::This(_) => "Self".into(),
             TypeData::Basic(ref val) => val.name(),
 
             TypeData::Tuple(ref val) => {
-                let types: Vec<String> =
-                    val.subtypes.iter().map(|t| t.to_string(interner)).collect();
+                let types: Vec<String> = val.subtypes.iter().map(|t| t.to_string()).collect();
 
                 format!("({})", types.join(", "))
             }
 
             TypeData::Lambda(ref val) => {
-                let types: Vec<String> = val.params.iter().map(|t| t.to_string(interner)).collect();
+                let types: Vec<String> = val.params.iter().map(|t| t.to_string()).collect();
 
                 if let Some(ref ret) = val.ret {
-                    let ret = ret.to_string(interner);
+                    let ret = ret.to_string();
                     format!("({}) -> {}", types.join(", "), ret)
                 } else {
                     format!("({}) -> ()", types.join(", "))
@@ -777,9 +771,9 @@ impl LetPattern {
         }
     }
 
-    pub fn to_name(&self) -> Option<Name> {
+    pub fn to_name(&self) -> Option<String> {
         match self {
-            LetPattern::Ident(ref ident) => ident.name.as_ref().map(|i| i.name),
+            LetPattern::Ident(ref ident) => ident.name.as_ref().map(|i| i.name_as_string.clone()),
             _ => None,
         }
     }

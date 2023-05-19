@@ -30,10 +30,11 @@ use crate::ty::{SourceType, SourceTypeArray};
 use crate::typeparamck::{self, ErrorReporting};
 use crate::{always_returns, expr_always_returns, read_type, AllowSelf};
 
+use crate::interner::Name;
 use dora_bytecode::Intrinsic;
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, MatchCaseType, MatchPattern};
-use dora_parser::{Name, Span};
+use dora_parser::Span;
 use fixedbitset::FixedBitSet;
 
 pub struct TypeCheck<'a> {
@@ -281,7 +282,10 @@ impl<'a> TypeCheck<'a> {
                 ty.clone()
             };
 
-            let name = param.name.as_ref().expect("missing name").name;
+            let name = self
+                .sa
+                .interner
+                .intern(&param.name.as_ref().expect("missing name").name_as_string);
 
             let var_id = self.vars.add_var(name, ty, param.mutable);
             self.analysis
@@ -351,11 +355,7 @@ impl<'a> TypeCheck<'a> {
         };
 
         if !defined_type.is_error() && !defined_type.is_defined_type(self.sa) {
-            let tyname = self
-                .sa
-                .interner
-                .str(s.pattern.to_name().unwrap())
-                .to_string();
+            let tyname = s.pattern.to_name().unwrap();
             self.sa.diag.lock().report(
                 self.file_id,
                 s.span,
@@ -373,11 +373,7 @@ impl<'a> TypeCheck<'a> {
                 && !defined_type.is_error()
                 && !defined_type.allows(self.sa, expr_type.clone())
             {
-                let name = self
-                    .sa
-                    .interner
-                    .str(s.pattern.to_name().unwrap())
-                    .to_string();
+                let name = s.pattern.to_name().unwrap();
                 let defined_type = self.ty_name(&defined_type);
                 let expr_type = self.ty_name(&expr_type);
                 let msg = ErrorMessage::AssignType(name, defined_type, expr_type);
@@ -409,7 +405,10 @@ impl<'a> TypeCheck<'a> {
     fn check_stmt_let_pattern(&mut self, pattern: &ast::LetPattern, ty: SourceType) {
         match pattern {
             ast::LetPattern::Ident(ref ident) => {
-                let name = ident.name.as_ref().expect("missing name").name;
+                let name = self
+                    .sa
+                    .interner
+                    .intern(&ident.name.as_ref().expect("missing name").name_as_string);
                 let var_id = self.vars.add_var(name, ty, ident.mutable);
 
                 self.add_local(var_id, ident.span);
@@ -881,7 +880,9 @@ impl<'a> TypeCheck<'a> {
                                             None,
                                         );
 
-                                        if used_idents.insert(ident.name) == false {
+                                        let iname = self.sa.interner.intern(&ident.name_as_string);
+
+                                        if used_idents.insert(iname) == false {
                                             let msg = ErrorMessage::VarAlreadyInPattern;
                                             self.sa.diag.lock().report(
                                                 self.file_id,
@@ -890,8 +891,7 @@ impl<'a> TypeCheck<'a> {
                                             );
                                         }
 
-                                        let var_id =
-                                            self.vars.add_var(ident.name, ty, param.mutable);
+                                        let var_id = self.vars.add_var(iname, ty, param.mutable);
                                         self.add_local(var_id, param.span);
                                         self.analysis
                                             .map_vars
@@ -2639,7 +2639,7 @@ impl<'a> TypeCheck<'a> {
 
     fn read_path(&mut self, path: &ast::PathData) -> Result<Sym, ()> {
         let names = &path.names;
-        let mut sym = self.symtable.get(names[0].name);
+        let mut sym = self.symtable.get_string(self.sa, &names[0].name_as_string);
 
         for ident in &names[1..] {
             match sym {
@@ -2650,9 +2650,11 @@ impl<'a> TypeCheck<'a> {
                         self.sa.diag.lock().report(self.file_id, path.span, msg);
                     }
 
+                    let iname = self.sa.interner.intern(&ident.name_as_string);
+
                     let module = &self.sa.modules[module_id].read();
                     let symtable = module.table.read();
-                    sym = symtable.get(ident.name);
+                    sym = symtable.get(iname);
                 }
 
                 Some(Sym::Enum(enum_id)) => {
@@ -2663,10 +2665,12 @@ impl<'a> TypeCheck<'a> {
                         self.sa.diag.lock().report(self.file_id, path.span, msg);
                     }
 
-                    if let Some(&variant_idx) = enum_.name_to_value.get(&ident.name) {
+                    let iname = self.sa.interner.intern(&ident.name_as_string);
+
+                    if let Some(&variant_idx) = enum_.name_to_value.get(&iname) {
                         sym = Some(Sym::EnumVariant(enum_id, variant_idx));
                     } else {
-                        let name = self.sa.interner.str(ident.name).to_string();
+                        let name = ident.name_as_string.clone();
                         self.sa.diag.lock().report(
                             self.file_id.into(),
                             path.span,
@@ -2683,7 +2687,7 @@ impl<'a> TypeCheck<'a> {
                 }
 
                 None => {
-                    let name = self.sa.interner.str(names[0].name).to_string();
+                    let name = names[0].name_as_string.clone();
                     let msg = ErrorMessage::UnknownIdentifier(name);
                     self.sa.diag.lock().report(self.file_id, path.span, msg);
                     return Err(());
@@ -2694,7 +2698,7 @@ impl<'a> TypeCheck<'a> {
         if let Some(sym) = sym {
             Ok(sym)
         } else {
-            let name = self.sa.interner.str(names[0].name).to_string();
+            let name = names[0].name_as_string.clone();
             let msg = ErrorMessage::UnknownIdentifier(name);
             self.sa.diag.lock().report(self.file_id, path.span, msg);
 

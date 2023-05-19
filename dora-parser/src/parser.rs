@@ -6,18 +6,15 @@ use crate::ast;
 use crate::ast::*;
 use crate::error::{ParseError, ParseErrorWithLocation};
 
-use crate::interner::*;
-
 use crate::token::EXPRESSION_FIRST;
 use crate::TokenKind::*;
 use crate::{lex, Span, TokenKind, TokenSet};
 
-pub struct Parser<'a> {
+pub struct Parser {
     tokens: Vec<TokenKind>,
     token_widths: Vec<u32>,
     token_idx: usize,
     next_node_id: usize,
-    interner: &'a mut Interner,
     builder: GreenNodeBuilder<'static>,
     content: Arc<String>,
     errors: Vec<ParseErrorWithLocation>,
@@ -30,17 +27,17 @@ enum StmtOrExpr {
     Expr(Expr),
 }
 
-impl<'a> Parser<'a> {
-    pub fn from_string(code: &'static str, interner: &'a mut Interner) -> Parser<'a> {
+impl Parser {
+    pub fn from_string(code: &'static str) -> Parser {
         let content = Arc::new(String::from(code));
-        Parser::common_init(content, interner)
+        Parser::common_init(content)
     }
 
-    pub fn from_shared_string(content: Arc<String>, interner: &'a mut Interner) -> Parser<'a> {
-        Parser::common_init(content, interner)
+    pub fn from_shared_string(content: Arc<String>) -> Parser {
+        Parser::common_init(content)
     }
 
-    fn common_init(content: Arc<String>, interner: &'a mut Interner) -> Parser<'a> {
+    fn common_init(content: Arc<String>) -> Parser {
         let result = lex(&*content);
 
         Parser {
@@ -50,7 +47,6 @@ impl<'a> Parser<'a> {
             builder: GreenNodeBuilder::new(),
             next_node_id: 0,
             offset: 0,
-            interner,
             content,
             errors: result.errors,
             nodes: Vec::new(),
@@ -689,7 +685,7 @@ impl<'a> Parser<'a> {
 
             let ident = self.expect_identifier();
             let annotation = if let Some(ident) = &ident {
-                match self.interner.str(ident.name).as_str() {
+                match ident.name_as_string.as_str() {
                     "internal" => Annotation::Internal,
                     "pub" => Annotation::Pub,
                     "static" => Annotation::Static,
@@ -1460,9 +1456,12 @@ impl<'a> Parser<'a> {
 
     fn parse_identifier(&mut self) -> Expr {
         let ident = self.expect_identifier().expect("identifier expected");
-        let name = self.interner.str(ident.name).to_string();
 
-        Arc::new(ExprData::create_ident(self.new_node_id(), ident.span, name))
+        Arc::new(ExprData::create_ident(
+            self.new_node_id(),
+            ident.span,
+            ident.name_as_string.clone(),
+        ))
     }
 
     fn parse_parentheses(&mut self) -> Expr {
@@ -1656,11 +1655,9 @@ impl<'a> Parser<'a> {
 
         if self.eat(IDENTIFIER) {
             let value = self.source_span(span);
-            let name = self.interner.intern(&value);
 
             Some(Arc::new(IdentData {
                 span,
-                name,
                 name_as_string: value,
             }))
         } else {
@@ -1813,30 +1810,22 @@ fn token_name(kind: TokenKind) -> Option<&'static str> {
 #[cfg(test)]
 mod tests {
     use crate::ast::*;
-    use crate::interner::*;
 
     use crate::error::ParseError;
     use crate::parser::Parser;
     use crate::{compute_line_column, compute_line_starts};
 
-    fn parse_expr(code: &'static str) -> (Expr, Interner) {
-        let mut interner = Interner::new();
+    fn parse_expr(code: &'static str) -> Expr {
+        let mut parser = Parser::from_string(code);
 
-        let expr = {
-            let mut parser = Parser::from_string(code, &mut interner);
+        let result = parser.parse_expression();
+        assert!(parser.errors.is_empty());
 
-            let result = parser.parse_expression();
-            assert!(parser.errors.is_empty());
-
-            result
-        };
-
-        (expr, interner)
+        result
     }
 
     fn err_expr(code: &'static str, msg: ParseError, line: u32, col: u32) {
-        let mut interner = Interner::new();
-        let mut parser = Parser::from_string(code, &mut interner);
+        let mut parser = Parser::from_string(code);
 
         let _expr = parser.parse_expression();
 
@@ -1853,43 +1842,33 @@ mod tests {
     }
 
     fn parse_let(code: &'static str) -> Stmt {
-        let mut interner = Interner::new();
-        let mut parser = Parser::from_string(code, &mut interner);
+        let mut parser = Parser::from_string(code);
         let result = parser.parse_let();
         assert!(parser.errors.is_empty());
         result
     }
 
-    fn parse_type(code: &'static str) -> (Type, Interner) {
-        let mut interner = Interner::new();
-        let ty = {
-            let mut parser = Parser::from_string(code, &mut interner);
-            parser.parse_type()
-        };
-
-        (ty, interner)
+    fn parse_type(code: &'static str) -> Type {
+        let mut parser = Parser::from_string(code);
+        parser.parse_type()
     }
 
-    fn parse(code: &'static str) -> (File, Interner) {
-        let mut interner = Interner::new();
-
-        let (file, errors) = Parser::from_string(code, &mut interner).parse();
+    fn parse(code: &'static str) -> File {
+        let (file, errors) = Parser::from_string(code).parse();
         assert!(errors.is_empty());
-
-        (file, interner)
+        file
     }
 
     #[test]
     fn parse_ident() {
-        let (expr, _) = parse_expr("a");
-
+        let expr = parse_expr("a");
         let ident = expr.to_ident().unwrap();
         assert_eq!("a", ident.name);
     }
 
     #[test]
     fn parse_number() {
-        let (expr, _) = parse_expr("10");
+        let expr = parse_expr("10");
 
         let lit = expr.to_lit_int().unwrap();
         assert_eq!(String::from("10"), lit.value);
@@ -1897,7 +1876,7 @@ mod tests {
 
     #[test]
     fn parse_number_with_underscore() {
-        let (expr, _) = parse_expr("1____0");
+        let expr = parse_expr("1____0");
 
         let lit = expr.to_lit_int().unwrap();
         assert_eq!(String::from("1____0"), lit.value);
@@ -1905,7 +1884,7 @@ mod tests {
 
     #[test]
     fn parse_string() {
-        let (expr, _) = parse_expr("\"abc\"");
+        let expr = parse_expr("\"abc\"");
 
         let lit = expr.to_lit_str().unwrap();
         assert_eq!("\"abc\"", &lit.value);
@@ -1913,7 +1892,7 @@ mod tests {
 
     #[test]
     fn parse_true() {
-        let (expr, _) = parse_expr("true");
+        let expr = parse_expr("true");
 
         let lit = expr.to_lit_bool().unwrap();
         assert_eq!(true, lit.value);
@@ -1921,7 +1900,7 @@ mod tests {
 
     #[test]
     fn parse_false() {
-        let (expr, _) = parse_expr("true");
+        let expr = parse_expr("true");
 
         let lit = expr.to_lit_bool().unwrap();
         assert_eq!(true, lit.value);
@@ -1929,7 +1908,7 @@ mod tests {
 
     #[test]
     fn parse_field_access() {
-        let (expr, _) = parse_expr("obj.field");
+        let expr = parse_expr("obj.field");
         let dot = expr.to_dot().unwrap();
 
         let ident = dot.lhs.to_ident().unwrap();
@@ -1941,13 +1920,13 @@ mod tests {
 
     #[test]
     fn parse_field_negated() {
-        let (expr, _) = parse_expr("-obj.field");
+        let expr = parse_expr("-obj.field");
         assert!(expr.to_un().unwrap().opnd.is_dot());
     }
 
     #[test]
     fn parse_field_non_ident() {
-        let (expr, _) = parse_expr("bar.12");
+        let expr = parse_expr("bar.12");
         let dot = expr.to_dot().unwrap();
 
         let ident = dot.lhs.to_ident().unwrap();
@@ -1958,14 +1937,14 @@ mod tests {
 
     #[test]
     fn parse_self() {
-        let (expr, _) = parse_expr("self");
+        let expr = parse_expr("self");
 
         assert!(expr.is_this());
     }
 
     #[test]
     fn parse_neg() {
-        let (expr, _) = parse_expr("-1");
+        let expr = parse_expr("-1");
 
         let un = expr.to_un().unwrap();
         assert_eq!(UnOp::Neg, un.op);
@@ -1975,7 +1954,7 @@ mod tests {
 
     #[test]
     fn parse_neg_twice() {
-        let (expr, _) = parse_expr("-(-3)");
+        let expr = parse_expr("-(-3)");
 
         let neg1 = expr.to_un().unwrap();
         assert_eq!(UnOp::Neg, neg1.op);
@@ -1993,7 +1972,7 @@ mod tests {
 
     #[test]
     fn parse_unary_plus() {
-        let (expr, _) = parse_expr("+2");
+        let expr = parse_expr("+2");
 
         let add = expr.to_un().unwrap();
         assert_eq!(UnOp::Plus, add.op);
@@ -2008,7 +1987,7 @@ mod tests {
 
     #[test]
     fn parse_unary_plus_twice() {
-        let (expr, _) = parse_expr("+(+9)");
+        let expr = parse_expr("+(+9)");
 
         let add1 = expr.to_un().unwrap();
         assert_eq!(UnOp::Plus, add1.op);
@@ -2020,7 +1999,7 @@ mod tests {
 
     #[test]
     fn parse_mul() {
-        let (expr, _) = parse_expr("6*3");
+        let expr = parse_expr("6*3");
 
         let mul = expr.to_bin().unwrap();
         assert_eq!(BinOp::Mul, mul.op);
@@ -2030,7 +2009,7 @@ mod tests {
 
     #[test]
     fn parse_multiple_muls() {
-        let (expr, _) = parse_expr("6*3*4");
+        let expr = parse_expr("6*3*4");
 
         let mul1 = expr.to_bin().unwrap();
         assert_eq!(BinOp::Mul, mul1.op);
@@ -2045,7 +2024,7 @@ mod tests {
 
     #[test]
     fn parse_div() {
-        let (expr, _) = parse_expr("4/5");
+        let expr = parse_expr("4/5");
 
         let div = expr.to_bin().unwrap();
         assert_eq!(BinOp::Div, div.op);
@@ -2055,7 +2034,7 @@ mod tests {
 
     #[test]
     fn parse_mod() {
-        let (expr, _) = parse_expr("2%15");
+        let expr = parse_expr("2%15");
 
         let div = expr.to_bin().unwrap();
         assert_eq!(BinOp::Mod, div.op);
@@ -2065,7 +2044,7 @@ mod tests {
 
     #[test]
     fn parse_add() {
-        let (expr, _) = parse_expr("2+3");
+        let expr = parse_expr("2+3");
 
         let add = expr.to_bin().unwrap();
         assert_eq!(BinOp::Add, add.op);
@@ -2075,7 +2054,7 @@ mod tests {
 
     #[test]
     fn parse_add_left_associativity() {
-        let (expr, _) = parse_expr("1+2+3");
+        let expr = parse_expr("1+2+3");
 
         let add = expr.to_bin().unwrap();
         assert_eq!(String::from("3"), add.rhs.to_lit_int().unwrap().value);
@@ -2087,7 +2066,7 @@ mod tests {
 
     #[test]
     fn parse_add_right_associativity_via_parens() {
-        let (expr, _) = parse_expr("1+(2+3)");
+        let expr = parse_expr("1+(2+3)");
 
         let add = expr.to_bin().unwrap();
         assert_eq!(String::from("1"), add.lhs.to_lit_int().unwrap().value);
@@ -2099,7 +2078,7 @@ mod tests {
 
     #[test]
     fn parse_sub() {
-        let (expr, _) = parse_expr("1-2");
+        let expr = parse_expr("1-2");
 
         let add = expr.to_bin().unwrap();
         assert_eq!(BinOp::Sub, add.op);
@@ -2109,7 +2088,7 @@ mod tests {
 
     #[test]
     fn parse_or() {
-        let (expr, _) = parse_expr("1||2");
+        let expr = parse_expr("1||2");
 
         let add = expr.to_bin().unwrap();
         assert_eq!(BinOp::Or, add.op);
@@ -2119,7 +2098,7 @@ mod tests {
 
     #[test]
     fn parse_and() {
-        let (expr, _) = parse_expr("1&&2");
+        let expr = parse_expr("1&&2");
 
         let add = expr.to_bin().unwrap();
         assert_eq!(BinOp::And, add.op);
@@ -2129,7 +2108,7 @@ mod tests {
 
     #[test]
     fn parse_bit_or() {
-        let (expr, _) = parse_expr("1|2");
+        let expr = parse_expr("1|2");
 
         let or = expr.to_bin().unwrap();
         assert_eq!(BinOp::BitOr, or.op);
@@ -2139,7 +2118,7 @@ mod tests {
 
     #[test]
     fn parse_bit_and() {
-        let (expr, _) = parse_expr("1&2");
+        let expr = parse_expr("1&2");
 
         let and = expr.to_bin().unwrap();
         assert_eq!(BinOp::BitAnd, and.op);
@@ -2149,7 +2128,7 @@ mod tests {
 
     #[test]
     fn parse_bit_xor() {
-        let (expr, _) = parse_expr("1^2");
+        let expr = parse_expr("1^2");
 
         let xor = expr.to_bin().unwrap();
         assert_eq!(BinOp::BitXor, xor.op);
@@ -2159,7 +2138,7 @@ mod tests {
 
     #[test]
     fn parse_lt() {
-        let (expr, _) = parse_expr("1<2");
+        let expr = parse_expr("1<2");
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Cmp(CmpOp::Lt), cmp.op);
@@ -2169,7 +2148,7 @@ mod tests {
 
     #[test]
     fn parse_le() {
-        let (expr, _) = parse_expr("1<=2");
+        let expr = parse_expr("1<=2");
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Cmp(CmpOp::Le), cmp.op);
@@ -2179,7 +2158,7 @@ mod tests {
 
     #[test]
     fn parse_gt() {
-        let (expr, _) = parse_expr("1>2");
+        let expr = parse_expr("1>2");
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Cmp(CmpOp::Gt), cmp.op);
@@ -2189,7 +2168,7 @@ mod tests {
 
     #[test]
     fn parse_ge() {
-        let (expr, _) = parse_expr("1>=2");
+        let expr = parse_expr("1>=2");
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Cmp(CmpOp::Ge), cmp.op);
@@ -2199,7 +2178,7 @@ mod tests {
 
     #[test]
     fn parse_eq() {
-        let (expr, _) = parse_expr("1==2");
+        let expr = parse_expr("1==2");
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Cmp(CmpOp::Eq), cmp.op);
@@ -2209,7 +2188,7 @@ mod tests {
 
     #[test]
     fn parse_ne() {
-        let (expr, _) = parse_expr("1!=2");
+        let expr = parse_expr("1!=2");
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Cmp(CmpOp::Ne), cmp.op);
@@ -2219,7 +2198,7 @@ mod tests {
 
     #[test]
     fn parse_is_not() {
-        let (expr, _) = parse_expr("1!==2");
+        let expr = parse_expr("1!==2");
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Cmp(CmpOp::IsNot), cmp.op);
@@ -2229,7 +2208,7 @@ mod tests {
 
     #[test]
     fn parse_is() {
-        let (expr, _) = parse_expr("1===2");
+        let expr = parse_expr("1===2");
 
         let cmp = expr.to_bin().unwrap();
         assert_eq!(BinOp::Cmp(CmpOp::Is), cmp.op);
@@ -2239,7 +2218,7 @@ mod tests {
 
     #[test]
     fn parse_assign() {
-        let (expr, _) = parse_expr("a=4");
+        let expr = parse_expr("a=4");
 
         let assign = expr.to_bin().unwrap();
         assert!(assign.lhs.is_ident());
@@ -2249,7 +2228,7 @@ mod tests {
 
     #[test]
     fn parse_shift_right() {
-        let (expr, _) = parse_expr("a>>4");
+        let expr = parse_expr("a>>4");
 
         let bin = expr.to_bin().unwrap();
         assert_eq!(BinOp::ArithShiftR, bin.op);
@@ -2257,7 +2236,7 @@ mod tests {
 
     #[test]
     fn parse_unsigned_shift_right() {
-        let (expr, _) = parse_expr("a>>>4");
+        let expr = parse_expr("a>>>4");
 
         let bin = expr.to_bin().unwrap();
         assert_eq!(BinOp::LogicalShiftR, bin.op);
@@ -2265,7 +2244,7 @@ mod tests {
 
     #[test]
     fn parse_left() {
-        let (expr, _) = parse_expr("a<<4");
+        let expr = parse_expr("a<<4");
 
         let bin = expr.to_bin().unwrap();
         assert_eq!(BinOp::ShiftL, bin.op);
@@ -2273,7 +2252,7 @@ mod tests {
 
     #[test]
     fn parse_call_without_params() {
-        let (expr, _) = parse_expr("fname()");
+        let expr = parse_expr("fname()");
 
         let call = expr.to_call().unwrap();
         assert_eq!("fname", call.callee.to_ident().unwrap().name);
@@ -2282,7 +2261,7 @@ mod tests {
 
     #[test]
     fn parse_call_with_params() {
-        let (expr, _) = parse_expr("fname2(1,2,3)");
+        let expr = parse_expr("fname2(1,2,3)");
 
         let call = expr.to_call().unwrap();
         assert_eq!("fname2", call.callee.to_ident().unwrap().name);
@@ -2291,20 +2270,20 @@ mod tests {
 
     #[test]
     fn parse_function() {
-        let (prog, interner) = parse("fn b() { }");
+        let prog = parse("fn b() { }");
         let fct = prog.fct0();
 
-        assert_eq!("b", *interner.str(fct.name.as_ref().unwrap().name));
+        assert_eq!("b", fct.name.as_ref().unwrap().name_as_string);
         assert_eq!(0, fct.params.len());
         assert!(fct.return_type.is_none());
     }
 
     #[test]
     fn parse_function_with_single_param() {
-        let (p1, interner1) = parse("fn f(a:int) { }");
+        let p1 = parse("fn f(a:int) { }");
         let f1 = p1.fct0();
 
-        let (p2, interner2) = parse("fn f(a:int,) { }");
+        let p2 = parse("fn f(a:int,) { }");
         let f2 = p2.fct0();
 
         assert_eq!(f1.params.len(), 1);
@@ -2313,8 +2292,8 @@ mod tests {
         let p1 = &f1.params[0];
         let p2 = &f2.params[0];
 
-        assert_eq!("a", *interner1.str(p1.name.as_ref().unwrap().name));
-        assert_eq!("a", *interner2.str(p2.name.as_ref().unwrap().name));
+        assert_eq!("a", p1.name.as_ref().unwrap().name_as_string);
+        assert_eq!("a", p2.name.as_ref().unwrap().name_as_string);
 
         assert_eq!("int", p1.data_type.to_basic().unwrap().name());
         assert_eq!("int", p2.data_type.to_basic().unwrap().name());
@@ -2322,10 +2301,10 @@ mod tests {
 
     #[test]
     fn parse_function_with_multiple_params() {
-        let (p1, interner1) = parse("fn f(a:int, b:str) { }");
+        let p1 = parse("fn f(a:int, b:str) { }");
         let f1 = p1.fct0();
 
-        let (p2, interner2) = parse("fn f(a:int, b:str,) { }");
+        let p2 = parse("fn f(a:int, b:str,) { }");
         let f2 = p2.fct0();
 
         let p1a = &f1.params[0];
@@ -2333,11 +2312,11 @@ mod tests {
         let p2a = &f2.params[0];
         let p2b = &f2.params[1];
 
-        assert_eq!("a", *interner1.str(p1a.name.as_ref().unwrap().name));
-        assert_eq!("a", *interner2.str(p2a.name.as_ref().unwrap().name));
+        assert_eq!("a", p1a.name.as_ref().unwrap().name_as_string);
+        assert_eq!("a", p2a.name.as_ref().unwrap().name_as_string);
 
-        assert_eq!("b", *interner1.str(p1b.name.as_ref().unwrap().name));
-        assert_eq!("b", *interner2.str(p2b.name.as_ref().unwrap().name));
+        assert_eq!("b", p1b.name.as_ref().unwrap().name_as_string);
+        assert_eq!("b", p2b.name.as_ref().unwrap().name_as_string);
 
         assert_eq!("int", p1a.data_type.to_basic().unwrap().name());
         assert_eq!("int", p2a.data_type.to_basic().unwrap().name());
@@ -2422,18 +2401,18 @@ mod tests {
 
     #[test]
     fn parse_multiple_functions() {
-        let (prog, interner) = parse("fn f() { } fn g() { }");
+        let prog = parse("fn f() { } fn g() { }");
 
         let f = prog.fct0();
-        assert_eq!("f", *interner.str(f.name.as_ref().unwrap().name));
+        assert_eq!("f", f.name.as_ref().unwrap().name_as_string);
 
         let g = prog.fct(1);
-        assert_eq!("g", *interner.str(g.name.as_ref().unwrap().name));
+        assert_eq!("g", g.name.as_ref().unwrap().name_as_string);
     }
 
     #[test]
     fn parse_if() {
-        let (expr, _) = parse_expr("if true { 2; } else { 3; }");
+        let expr = parse_expr("if true { 2; } else { 3; }");
         let ifexpr = expr.to_if().unwrap();
 
         assert!(ifexpr.cond.is_lit_bool());
@@ -2442,7 +2421,7 @@ mod tests {
 
     #[test]
     fn parse_if_without_else() {
-        let (expr, _) = parse_expr("if true { 2; }");
+        let expr = parse_expr("if true { 2; }");
         let ifexpr = expr.to_if().unwrap();
 
         assert!(ifexpr.cond.is_lit_bool());
@@ -2451,7 +2430,7 @@ mod tests {
 
     #[test]
     fn parse_while() {
-        let (expr, _) = parse_expr("while true { 2; }");
+        let expr = parse_expr("while true { 2; }");
         let whilestmt = expr.to_while().unwrap();
 
         assert!(whilestmt.cond.is_lit_bool());
@@ -2460,7 +2439,7 @@ mod tests {
 
     #[test]
     fn parse_empty_block() {
-        let (expr, _) = parse_expr("{}");
+        let expr = parse_expr("{}");
         let block = expr.to_block().unwrap();
 
         assert_eq!(0, block.stmts.len());
@@ -2468,7 +2447,7 @@ mod tests {
 
     #[test]
     fn parse_block_with_one_stmt() {
-        let (expr, _) = parse_expr("{ 1; 2 }");
+        let expr = parse_expr("{ 1; 2 }");
         let block = expr.to_block().unwrap();
 
         assert_eq!(1, block.stmts.len());
@@ -2484,7 +2463,7 @@ mod tests {
 
     #[test]
     fn parse_block_with_multiple_stmts() {
-        let (expr, _) = parse_expr("{ 1; 2; }");
+        let expr = parse_expr("{ 1; 2; }");
         let block = expr.to_block().unwrap();
 
         assert_eq!(2, block.stmts.len());
@@ -2500,19 +2479,19 @@ mod tests {
 
     #[test]
     fn parse_break() {
-        let (expr, _) = parse_expr("break;");
+        let expr = parse_expr("break;");
         assert!(expr.is_break());
     }
 
     #[test]
     fn parse_continue() {
-        let (expr, _) = parse_expr("continue;");
+        let expr = parse_expr("continue;");
         assert!(expr.is_continue());
     }
 
     #[test]
     fn parse_return_value() {
-        let (expr, _) = parse_expr("return 1;");
+        let expr = parse_expr("return 1;");
         let ret = expr.to_return().unwrap();
 
         assert_eq!(
@@ -2523,7 +2502,7 @@ mod tests {
 
     #[test]
     fn parse_return() {
-        let (expr, _) = parse_expr("return;");
+        let expr = parse_expr("return;");
         let ret = expr.to_return().unwrap();
 
         assert!(ret.expr.is_none());
@@ -2531,7 +2510,7 @@ mod tests {
 
     #[test]
     fn parse_type_basic() {
-        let (ty, _) = parse_type("bla");
+        let ty = parse_type("bla");
         let basic = ty.to_basic().unwrap();
 
         assert_eq!(0, basic.params.len());
@@ -2540,18 +2519,18 @@ mod tests {
 
     #[test]
     fn parse_type_basic_mod() {
-        let (ty, interner) = parse_type("foo::bla");
+        let ty = parse_type("foo::bla");
         let basic = ty.to_basic().unwrap();
 
         assert_eq!(0, basic.params.len());
         assert_eq!(2, basic.path.names.len());
-        assert_eq!("foo", *interner.str(basic.path.names[0].name));
-        assert_eq!("bla", *interner.str(basic.path.names[1].name));
+        assert_eq!("foo", basic.path.names[0].name_as_string);
+        assert_eq!("bla", basic.path.names[1].name_as_string);
     }
 
     #[test]
     fn parse_type_basic_with_params() {
-        let (ty, _) = parse_type("Foo[A, B]");
+        let ty = parse_type("Foo[A, B]");
         let basic = ty.to_basic().unwrap();
 
         assert_eq!(2, basic.params.len());
@@ -2562,7 +2541,7 @@ mod tests {
 
     #[test]
     fn parse_type_lambda_no_params() {
-        let (ty, _) = parse_type("(): ()");
+        let ty = parse_type("(): ()");
         let fct = ty.to_fct().unwrap();
 
         assert_eq!(0, fct.params.len());
@@ -2571,7 +2550,7 @@ mod tests {
 
     #[test]
     fn parse_type_lambda_one_param() {
-        let (ty, _) = parse_type("(A): B");
+        let ty = parse_type("(A): B");
         let fct = ty.to_fct().unwrap();
 
         assert_eq!(1, fct.params.len());
@@ -2581,7 +2560,7 @@ mod tests {
 
     #[test]
     fn parse_type_lambda_two_params() {
-        let (ty, _) = parse_type("(A, B): C");
+        let ty = parse_type("(A, B): C");
         let fct = ty.to_fct().unwrap();
 
         assert_eq!(2, fct.params.len());
@@ -2592,7 +2571,7 @@ mod tests {
 
     #[test]
     fn parse_type_unit() {
-        let (ty, _) = parse_type("()");
+        let ty = parse_type("()");
         let ty = ty.to_tuple().unwrap();
 
         assert!(ty.subtypes.is_empty());
@@ -2600,7 +2579,7 @@ mod tests {
 
     #[test]
     fn parse_type_tuple_with_one_type() {
-        let (ty, _) = parse_type("(c)");
+        let ty = parse_type("(c)");
 
         let subtypes = &ty.to_tuple().unwrap().subtypes;
         assert_eq!(1, subtypes.len());
@@ -2611,7 +2590,7 @@ mod tests {
 
     #[test]
     fn parse_type_tuple_with_two_types() {
-        let (ty, _) = parse_type("(a, b)");
+        let ty = parse_type("(a, b)");
 
         let subtypes = &ty.to_tuple().unwrap().subtypes;
         assert_eq!(2, subtypes.len());
@@ -2625,14 +2604,14 @@ mod tests {
 
     #[test]
     fn parse_class_with_param() {
-        let (prog, _) = parse("class Foo(a: int)");
+        let prog = parse("class Foo(a: int)");
         let class = prog.cls0();
         assert_eq!(1, class.fields.len());
     }
 
     #[test]
     fn parse_class_with_param_var() {
-        let (prog, _) = parse("class Foo(a: int)");
+        let prog = parse("class Foo(a: int)");
         let class = prog.cls0();
 
         assert_eq!(1, class.fields.len());
@@ -2641,7 +2620,7 @@ mod tests {
 
     #[test]
     fn parse_class_with_params() {
-        let (prog, _) = parse("class Foo(a: int, b: int)");
+        let prog = parse("class Foo(a: int, b: int)");
         let class = prog.cls0();
 
         assert_eq!(2, class.fields.len());
@@ -2649,32 +2628,32 @@ mod tests {
 
     #[test]
     fn parse_class() {
-        let (prog, _) = parse("class Foo { a: Int64, b: Bool }");
+        let prog = parse("class Foo { a: Int64, b: Bool }");
         let class = prog.cls0();
         assert_eq!(class.fields.len(), 2);
 
-        let (prog, _) = parse("class Foo(a: Int64, b: Bool)");
+        let prog = parse("class Foo(a: Int64, b: Bool)");
         let class = prog.cls0();
         assert_eq!(class.fields.len(), 2);
 
-        let (prog, _) = parse("class Foo");
+        let prog = parse("class Foo");
         let class = prog.cls0();
         assert!(class.fields.is_empty());
     }
 
     #[test]
     fn parse_method_invocation() {
-        let (expr, _) = parse_expr("a.foo()");
+        let expr = parse_expr("a.foo()");
         let call = expr.to_call().unwrap();
         assert!(call.callee.is_dot());
         assert_eq!(0, call.args.len());
 
-        let (expr, _) = parse_expr("a.foo(1)");
+        let expr = parse_expr("a.foo(1)");
         let call = expr.to_call().unwrap();
         assert!(call.callee.is_dot());
         assert_eq!(1, call.args.len());
 
-        let (expr, _) = parse_expr("a.foo(1,2)");
+        let expr = parse_expr("a.foo(1,2)");
         let call = expr.to_call().unwrap();
         assert!(call.callee.is_dot());
         assert_eq!(2, call.args.len());
@@ -2682,7 +2661,7 @@ mod tests {
 
     #[test]
     fn parse_array_index() {
-        let (expr, _) = parse_expr("a(b)");
+        let expr = parse_expr("a(b)");
         let call = expr.to_call().unwrap();
         assert_eq!("a", call.callee.to_ident().unwrap().name);
         assert_eq!(1, call.args.len());
@@ -2691,71 +2670,65 @@ mod tests {
 
     #[test]
     fn parse_field() {
-        let (prog, interner) = parse("class A { f1: int, f2: int }");
+        let prog = parse("class A { f1: int, f2: int }");
         let cls = prog.cls0();
 
         let f1 = &cls.fields[0];
-        assert_eq!(
-            "f1",
-            &interner.str(f1.name.as_ref().unwrap().name).to_string()
-        );
+        assert_eq!("f1", f1.name.as_ref().unwrap().name_as_string);
         assert_eq!(true, f1.mutable);
 
         let f2 = &cls.fields[1];
-        assert_eq!(
-            "f2",
-            &interner.str(f2.name.as_ref().unwrap().name).to_string()
-        );
+        assert_eq!("f2", f2.name.as_ref().unwrap().name_as_string);
         assert_eq!(true, f2.mutable);
     }
 
     #[test]
     fn parse_as_expr() {
-        let (expr, _) = parse_expr("a as String");
+        let expr = parse_expr("a as String");
         let expr = expr.to_conv().unwrap();
         assert_eq!(true, expr.object.is_ident());
     }
 
     #[test]
     fn parse_internal() {
-        let (prog, _) = parse("@internal fn foo();");
+        let prog = parse("@internal fn foo();");
         let fct = prog.fct0();
         assert!(fct.internal);
     }
 
     #[test]
     fn parse_function_without_body() {
-        let (prog, _) = parse("fn foo();");
+        let prog = parse("fn foo();");
         let fct = prog.fct0();
         assert!(fct.block.is_none());
     }
 
     #[test]
     fn parse_struct_empty() {
-        let (prog, interner) = parse("struct Foo {}");
+        let prog = parse("struct Foo {}");
         let struc = prog.struct0();
         assert_eq!(0, struc.fields.len());
-        assert_eq!("Foo", *interner.str(struc.name.as_ref().unwrap().name));
+        assert_eq!("Foo", struc.name.as_ref().unwrap().name_as_string);
     }
 
     #[test]
     fn parse_struct_one_field() {
-        let (prog, interner) = parse(
+        let prog = parse(
             "struct Bar {
             f1: Foo1,
         }",
         );
         let struc = prog.struct0();
         assert_eq!(1, struc.fields.len());
-        assert_eq!("Bar", *interner.str(struc.name.as_ref().unwrap().name));
+        assert_eq!("Bar", struc.name.as_ref().unwrap().name_as_string);
 
         let f1 = &struc.fields[0];
-        assert_eq!("f1", *interner.str(f1.name.as_ref().unwrap().name));
+        assert_eq!("f1", f1.name.as_ref().unwrap().name_as_string);
     }
 
     #[test]
     fn parse_struct_multiple_fields() {
-        let (prog, interner) = parse(
+        let prog = parse(
             "struct FooBar {
             fa: Foo1,
             fb: Foo2,
@@ -2763,32 +2736,32 @@ mod tests {
         );
         let struc = prog.struct0();
         assert_eq!(2, struc.fields.len());
-        assert_eq!("FooBar", *interner.str(struc.name.as_ref().unwrap().name));
+        assert_eq!("FooBar", struc.name.as_ref().unwrap().name_as_string);
 
         let f1 = &struc.fields[0];
-        assert_eq!("fa", *interner.str(f1.name.as_ref().unwrap().name));
+        assert_eq!("fa", f1.name.as_ref().unwrap().name_as_string);
 
         let f2 = &struc.fields[1];
-        assert_eq!("fb", *interner.str(f2.name.as_ref().unwrap().name));
+        assert_eq!("fb", f2.name.as_ref().unwrap().name_as_string);
     }
 
     #[test]
     fn parse_struct_with_type_params() {
-        let (prog, interner) = parse(
+        let prog = parse(
             "struct Bar[T1, T2] {
             f1: T1, f2: T2,
         }",
         );
         let struct_ = prog.struct0();
         assert_eq!(2, struct_.fields.len());
-        assert_eq!("Bar", *interner.str(struct_.name.as_ref().unwrap().name));
+        assert_eq!("Bar", struct_.name.as_ref().unwrap().name_as_string);
 
         assert_eq!(2, struct_.type_params.as_ref().unwrap().len());
     }
 
     #[test]
     fn parse_struct_lit_while() {
-        let (expr, _) = parse_expr("while i < n { }");
+        let expr = parse_expr("while i < n { }");
         let while_expr = expr.to_while().unwrap();
         let bin = while_expr.cond.to_bin().unwrap();
 
@@ -2798,7 +2771,7 @@ mod tests {
 
     #[test]
     fn parse_struct_lit_if() {
-        let (expr, _) = parse_expr("if i < n { }");
+        let expr = parse_expr("if i < n { }");
         let ifexpr = expr.to_if().unwrap();
         let bin = ifexpr.cond.to_bin().unwrap();
 
@@ -2808,7 +2781,7 @@ mod tests {
 
     #[test]
     fn parse_lit_float() {
-        let (expr, _) = parse_expr("1.2");
+        let expr = parse_expr("1.2");
 
         let lit = expr.to_lit_float().unwrap();
 
@@ -2817,7 +2790,7 @@ mod tests {
 
     #[test]
     fn parse_template() {
-        let (expr, _) = parse_expr("\"a${1}b${2}c\"");
+        let expr = parse_expr("\"a${1}b${2}c\"");
         let tmpl = expr.to_template().unwrap();
         assert_eq!(tmpl.parts.len(), 5);
 
@@ -2836,132 +2809,111 @@ mod tests {
             tmpl.parts[4].to_lit_str().unwrap().value
         );
 
-        let (expr, _) = parse_expr("\"a\\${1}b\"");
+        let expr = parse_expr("\"a\\${1}b\"");
         assert!(expr.is_lit_str());
     }
 
     #[test]
     fn parse_class_type_params() {
-        let (prog, interner) = parse("class Foo[T]");
+        let prog = parse("class Foo[T]");
         let cls = prog.cls0();
 
         let type_params = cls.type_params.as_ref().unwrap();
         assert_eq!(1, type_params.len());
-        assert_eq!(
-            "T",
-            *interner.str(type_params[0].name.as_ref().unwrap().name)
-        );
+        assert_eq!("T", type_params[0].name.as_ref().unwrap().name_as_string);
 
-        let (prog, interner) = parse("class Foo[X]");
+        let prog = parse("class Foo[X]");
         let cls = prog.cls0();
 
         let type_params = cls.type_params.as_ref().unwrap();
         assert_eq!(1, type_params.len());
-        assert_eq!(
-            "X",
-            *interner.str(type_params[0].name.as_ref().unwrap().name)
-        );
+        assert_eq!("X", type_params[0].name.as_ref().unwrap().name_as_string);
     }
 
     #[test]
     fn parse_multiple_class_type_params() {
-        let (prog, interner) = parse("class Foo[A, B]");
+        let prog = parse("class Foo[A, B]");
         let cls = prog.cls0();
 
         let type_params = cls.type_params.as_ref().unwrap();
         assert_eq!(2, type_params.len());
-        assert_eq!(
-            "A",
-            *interner.str(type_params[0].name.as_ref().unwrap().name)
-        );
-        assert_eq!(
-            "B",
-            *interner.str(type_params[1].name.as_ref().unwrap().name)
-        );
+        assert_eq!("A", type_params[0].name.as_ref().unwrap().name_as_string);
+        assert_eq!("B", type_params[1].name.as_ref().unwrap().name_as_string);
     }
 
     #[test]
     fn parse_empty_trait() {
-        let (prog, interner) = parse("trait Foo { }");
+        let prog = parse("trait Foo { }");
         let trait_ = prog.trait0();
 
-        assert_eq!("Foo", *interner.str(trait_.name.as_ref().unwrap().name));
+        assert_eq!("Foo", trait_.name.as_ref().unwrap().name_as_string);
         assert_eq!(0, trait_.methods.len());
     }
 
     #[test]
     fn parse_trait_with_function() {
-        let (prog, interner) = parse("trait Foo { fn empty(); }");
+        let prog = parse("trait Foo { fn empty(); }");
         let trait_ = prog.trait0();
 
-        assert_eq!("Foo", *interner.str(trait_.name.as_ref().unwrap().name));
+        assert_eq!("Foo", trait_.name.as_ref().unwrap().name_as_string);
         assert_eq!(1, trait_.methods.len());
         assert_eq!(false, trait_.methods[0].is_static);
     }
 
     #[test]
     fn parse_trait_with_static_function() {
-        let (prog, interner) = parse("trait Foo { @static fn empty(); }");
+        let prog = parse("trait Foo { @static fn empty(); }");
         let trait_ = prog.trait0();
 
-        assert_eq!("Foo", *interner.str(trait_.name.as_ref().unwrap().name));
+        assert_eq!("Foo", trait_.name.as_ref().unwrap().name_as_string);
         assert_eq!(1, trait_.methods.len());
         assert_eq!(true, trait_.methods[0].is_static);
     }
 
     #[test]
     fn parse_empty_impl() {
-        let (prog, interner) = parse("impl Foo for A {}");
+        let prog = parse("impl Foo for A {}");
         let impl_ = prog.impl0();
 
-        assert_eq!(
-            "Foo",
-            impl_.trait_type.as_ref().unwrap().to_string(&interner)
-        );
-        assert_eq!("A", impl_.extended_type.to_string(&interner));
+        assert_eq!("Foo", impl_.trait_type.as_ref().unwrap().to_string());
+        assert_eq!("A", impl_.extended_type.to_string());
         assert_eq!(0, impl_.methods.len());
     }
 
     #[test]
     fn parse_impl_with_function() {
-        let (prog, interner) = parse("impl Bar for B { fn foo(); }");
+        let prog = parse("impl Bar for B { fn foo(); }");
         let impl_ = prog.impl0();
 
-        assert_eq!(
-            "Bar",
-            impl_.trait_type.as_ref().unwrap().to_string(&interner)
-        );
-        assert_eq!("B", impl_.extended_type.to_string(&interner));
+        assert_eq!("Bar", impl_.trait_type.as_ref().unwrap().to_string());
+        assert_eq!("B", impl_.extended_type.to_string());
         assert_eq!(1, impl_.methods.len());
         assert_eq!(false, impl_.methods[0].is_static);
     }
 
     #[test]
     fn parse_impl_with_static_function() {
-        let (prog, interner) = parse("impl Bar for B { @static fn foo(); }");
+        let prog = parse("impl Bar for B { @static fn foo(); }");
         let impl_ = prog.impl0();
 
-        assert_eq!(
-            "Bar",
-            impl_.trait_type.as_ref().unwrap().to_string(&interner)
-        );
-        assert_eq!("B", impl_.extended_type.to_string(&interner));
+        assert_eq!("Bar", impl_.trait_type.as_ref().unwrap().to_string());
+        assert_eq!("B", impl_.extended_type.to_string());
         assert_eq!(1, impl_.methods.len());
         assert_eq!(true, impl_.methods[0].is_static);
     }
 
     #[test]
     fn parse_global_let() {
-        let (prog, interner) = parse("let b: int = 0;");
+        let prog = parse("let b: int = 0;");
         let global = prog.global0();
 
-        assert_eq!("b", *interner.str(global.name.as_ref().unwrap().name));
+        assert_eq!("b", global.name.as_ref().unwrap().name_as_string);
         assert_eq!(false, global.mutable);
     }
 
     #[test]
     fn parse_lit_char() {
-        let (expr, _) = parse_expr("'a'");
+        let expr = parse_expr("'a'");
         let lit = expr.to_lit_char().unwrap();
 
         assert_eq!("'a'", lit.value);
@@ -2969,25 +2921,25 @@ mod tests {
 
     #[test]
     fn parse_fct_call_with_type_param() {
-        let (expr, _) = parse_expr("Array[Int]()");
+        let expr = parse_expr("Array[Int]()");
         let call = expr.to_call().unwrap();
         let type_params = call.callee.to_type_param().unwrap();
 
         assert_eq!(1, type_params.args.len());
 
-        let (expr, _) = parse_expr("Foo[Int, Long]()");
+        let expr = parse_expr("Foo[Int, Long]()");
         let call = expr.to_call().unwrap();
         let type_params = call.callee.to_type_param().unwrap();
 
         assert_eq!(2, type_params.args.len());
 
-        let (expr, _) = parse_expr("Bar[]()");
+        let expr = parse_expr("Bar[]()");
         let call = expr.to_call().unwrap();
         let type_params = call.callee.to_type_param().unwrap();
 
         assert_eq!(0, type_params.args.len());
 
-        let (expr, _) = parse_expr("Vec()");
+        let expr = parse_expr("Vec()");
         let call = expr.to_call().unwrap();
 
         assert!(call.callee.is_ident());
@@ -2995,7 +2947,7 @@ mod tests {
 
     #[test]
     fn parse_call_with_path() {
-        let (expr, _) = parse_expr("Foo::get()");
+        let expr = parse_expr("Foo::get()");
         let call = expr.to_call().unwrap();
 
         assert!(call.callee.is_path());
@@ -3004,7 +2956,7 @@ mod tests {
 
     #[test]
     fn parse_fct_with_type_params() {
-        let (prog, _) = parse("fn f[T]() {}");
+        let prog = parse("fn f[T]() {}");
         let fct = prog.fct0();
 
         assert_eq!(1, fct.type_params.as_ref().unwrap().len());
@@ -3012,15 +2964,15 @@ mod tests {
 
     #[test]
     fn parse_const() {
-        let (prog, interner) = parse("const x: int = 0;");
+        let prog = parse("const x: int = 0;");
         let const_ = prog.const0();
 
-        assert_eq!("x", *interner.str(const_.name.as_ref().unwrap().name));
+        assert_eq!("x", const_.name.as_ref().unwrap().name_as_string);
     }
 
     #[test]
     fn parse_generic_with_bound() {
-        let (prog, _) = parse("class A[T: Foo]");
+        let prog = parse("class A[T: Foo]");
         let cls = prog.cls0();
 
         let type_param = &cls.type_params.as_ref().unwrap()[0];
@@ -3029,7 +2981,7 @@ mod tests {
 
     #[test]
     fn parse_generic_with_multiple_bounds() {
-        let (prog, _) = parse("class A[T: Foo + Bar]");
+        let prog = parse("class A[T: Foo + Bar]");
         let cls = prog.cls0();
 
         let type_param = &cls.type_params.as_ref().unwrap()[0];
@@ -3038,7 +2990,7 @@ mod tests {
 
     #[test]
     fn parse_lambda_no_params_no_return_value() {
-        let (expr, _) = parse_expr("|| {}");
+        let expr = parse_expr("|| {}");
         let lambda = expr.to_lambda().unwrap();
 
         assert!(lambda.return_type.is_none());
@@ -3046,7 +2998,7 @@ mod tests {
 
     #[test]
     fn parse_lambda_no_params_unit_as_return_value() {
-        let (expr, _) = parse_expr("|| : () {}");
+        let expr = parse_expr("|| : () {}");
         let lambda = expr.to_lambda().unwrap();
         let ret = lambda.return_type.as_ref().unwrap();
 
@@ -3055,7 +3007,7 @@ mod tests {
 
     #[test]
     fn parse_lambda_no_params_with_return_value() {
-        let (expr, _) = parse_expr("||: A {}");
+        let expr = parse_expr("||: A {}");
         let lambda = expr.to_lambda().unwrap();
         let ret = lambda.return_type.as_ref().unwrap();
         let basic = ret.to_basic().unwrap();
@@ -3065,13 +3017,13 @@ mod tests {
 
     #[test]
     fn parse_lambda_with_one_param() {
-        let (expr, interner) = parse_expr("|a: A|: B {}");
+        let expr = parse_expr("|a: A|: B {}");
         let lambda = expr.to_lambda().unwrap();
 
         assert_eq!(1, lambda.params.len());
 
         let param = &lambda.params[0];
-        assert_eq!("a", *interner.str(param.name.as_ref().unwrap().name));
+        assert_eq!("a", param.name.as_ref().unwrap().name_as_string);
         let basic = param.data_type.to_basic().unwrap();
         assert_eq!("A", basic.name());
 
@@ -3083,18 +3035,18 @@ mod tests {
 
     #[test]
     fn parse_lambda_with_two_params() {
-        let (expr, interner) = parse_expr("|a: A, b: B|: C {}");
+        let expr = parse_expr("|a: A, b: B|: C {}");
         let lambda = expr.to_lambda().unwrap();
 
         assert_eq!(2, lambda.params.len());
 
         let param = &lambda.params[0];
-        assert_eq!("a", *interner.str(param.name.as_ref().unwrap().name));
+        assert_eq!("a", param.name.as_ref().unwrap().name_as_string);
         let basic = param.data_type.to_basic().unwrap();
         assert_eq!("A", basic.name());
 
         let param = &lambda.params[1];
-        assert_eq!("b", *interner.str(param.name.as_ref().unwrap().name));
+        assert_eq!("b", param.name.as_ref().unwrap().name_as_string);
         let basic = param.data_type.to_basic().unwrap();
         assert_eq!("B", basic.name());
 
@@ -3106,19 +3058,19 @@ mod tests {
 
     #[test]
     fn parse_for() {
-        let (expr, _) = parse_expr("for i in a+b {}");
+        let expr = parse_expr("for i in a+b {}");
         assert!(expr.is_for());
     }
 
     #[test]
     fn parse_new_call_ident() {
-        let (expr, _interner) = parse_expr("i");
+        let expr = parse_expr("i");
         assert!(expr.is_ident());
     }
 
     #[test]
     fn parse_new_call_path() {
-        let (expr, _interner) = parse_expr("Foo::bar");
+        let expr = parse_expr("Foo::bar");
         let path = expr.to_path().unwrap();
         assert!(path.lhs.is_ident());
         assert!(path.rhs.is_ident());
@@ -3126,7 +3078,7 @@ mod tests {
 
     #[test]
     fn parse_new_call_call() {
-        let (expr, _interner) = parse_expr("foo(1,2)");
+        let expr = parse_expr("foo(1,2)");
         let call = expr.to_call().unwrap();
         assert!(call.callee.is_ident());
         assert_eq!(call.args.len(), 2);
@@ -3134,41 +3086,41 @@ mod tests {
 
     #[test]
     fn parse_block() {
-        let (expr, _) = parse_expr("{1}");
+        let expr = parse_expr("{1}");
         assert!(expr.to_block().unwrap().expr.as_ref().unwrap().is_lit_int());
 
-        let (expr, _) = parse_expr("({}) + 1");
+        let expr = parse_expr("({}) + 1");
         assert!(expr.is_bin());
 
-        let (expr, _) = parse_expr("1 + {}");
+        let expr = parse_expr("1 + {}");
         assert!(expr.is_bin());
     }
 
     #[test]
     fn parse_tuple() {
-        let (expr, _) = parse_expr("(1,)");
+        let expr = parse_expr("(1,)");
         assert_eq!(expr.to_tuple().unwrap().values.len(), 1);
 
-        let (expr, _) = parse_expr("(1)");
+        let expr = parse_expr("(1)");
         assert!(expr.is_paren());
 
-        let (expr, _) = parse_expr("(1,2,3)");
+        let expr = parse_expr("(1,2,3)");
         assert_eq!(expr.to_tuple().unwrap().values.len(), 3);
 
-        let (expr, _) = parse_expr("(1,2,3,4,)");
+        let expr = parse_expr("(1,2,3,4,)");
         assert_eq!(expr.to_tuple().unwrap().values.len(), 4);
     }
 
     #[test]
     fn parse_enum() {
-        let (prog, _) = parse("enum Foo { A, B, C }");
+        let prog = parse("enum Foo { A, B, C }");
         let enum_ = prog.enum0();
         assert_eq!(enum_.variants.len(), 3);
     }
 
     #[test]
     fn parse_enum_with_type_params() {
-        let (prog, _) = parse("enum MyOption[T] { None, Some(T), }");
+        let prog = parse("enum MyOption[T] { None, Some(T), }");
         let enum_ = prog.enum0();
         assert_eq!(enum_.variants.len(), 2);
         assert!(enum_.variants[0].types.is_none());
@@ -3177,13 +3129,13 @@ mod tests {
 
     #[test]
     fn parse_alias() {
-        let (prog, _) = parse("alias NewType = Int;");
+        let prog = parse("alias NewType = Int;");
         let _alias = prog.alias0();
     }
 
     #[test]
     fn parse_module() {
-        let (prog, _) = parse("mod foo { fn bar() {} fn baz() {} }");
+        let prog = parse("mod foo { fn bar() {} fn baz() {} }");
         let module = prog.module0();
         let elements = module.elements.as_ref().unwrap();
         assert_eq!(elements.len(), 2);
@@ -3193,7 +3145,7 @@ mod tests {
 
     #[test]
     fn parse_mod_without_body() {
-        let (prog, _) = parse("mod foo;");
+        let prog = parse("mod foo;");
         let module = prog.module0();
         assert!(module.elements.is_none());
     }

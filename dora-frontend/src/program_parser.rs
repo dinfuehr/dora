@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use crate::error::msg::ErrorMessage;
+use crate::interner::Name;
 use crate::report_sym_shadow_span;
 use crate::sema::{
     ClassDefinition, ConstDefinition, EnumDefinition, ExtensionDefinition, ExtensionDefinitionId,
@@ -16,7 +17,6 @@ use crate::sym::Sym;
 use crate::STDLIB;
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit};
-use dora_parser::interner::Name;
 use dora_parser::parser::Parser;
 use dora_parser::Span;
 
@@ -80,7 +80,9 @@ impl<'a> ProgramParser<'a> {
         let stdlib_name = "std";
         let stdlib_iname = self.sa.interner.intern(stdlib_name);
         let (package_id, module_id) = self.sa.add_package(PackageName::Stdlib, Some(stdlib_iname));
-        self.sa.package_names.insert(stdlib_iname, package_id);
+        self.sa
+            .package_names
+            .insert(stdlib_name.to_string(), package_id);
         self.sa.set_stdlib_module_id(module_id);
         self.sa.set_stdlib_package_id(package_id);
 
@@ -126,11 +128,15 @@ impl<'a> ProgramParser<'a> {
     }
 
     fn add_boots_package(&mut self) {
-        let boots_name = "boots";
-        if let Some(boots_path) = self.packages.remove(boots_name) {
-            let boots_name = self.sa.interner.intern(boots_name);
-            let (package_id, module_id) = self.sa.add_package(PackageName::Boots, Some(boots_name));
-            self.sa.package_names.insert(boots_name, package_id);
+        let boots_name: String = "boots".into();
+        if let Some(boots_path) = self.packages.remove(&boots_name) {
+            let interned_boots_name = self.sa.interner.intern(&boots_name);
+            let (package_id, module_id) = self
+                .sa
+                .add_package(PackageName::Boots, Some(interned_boots_name));
+            self.sa
+                .package_names
+                .insert(String::from(boots_name), package_id);
             self.sa.set_boots_module_id(module_id);
             self.sa.set_boots_package_id(package_id);
             self.add_file_from_filesystem(package_id, module_id, PathBuf::from(boots_path));
@@ -172,9 +178,9 @@ impl<'a> ProgramParser<'a> {
 
         for (name, path) in packages {
             let iname = self.sa.interner.intern(&name);
-            let package_name = PackageName::External(iname);
+            let package_name = PackageName::External(name.clone());
             let (package_id, module_id) = self.sa.add_package(package_name, Some(iname));
-            self.sa.package_names.insert(iname, package_id);
+            self.sa.package_names.insert(name, package_id);
 
             self.add_file_from_filesystem(package_id, module_id, path);
         }
@@ -224,17 +230,15 @@ impl<'a> ProgramParser<'a> {
         let file_id = module.file_id.expect("missing file_id");
 
         if let Some(ident) = &node.name {
-            let name = self.sa.interner.str(ident.name).to_string();
-
             match file_lookup {
                 FileLookup::FileSystem => {
                     let module_path = module_path.expect("missing module_path");
 
                     let mut file_path = module_path.clone();
-                    file_path.push(format!("{}.dora", name));
+                    file_path.push(format!("{}.dora", ident.name_as_string));
 
                     let mut module_path = module_path;
-                    module_path.push(&name);
+                    module_path.push(&ident.name_as_string);
 
                     self.add_file(
                         package_id,
@@ -250,10 +254,10 @@ impl<'a> ProgramParser<'a> {
                     let module_path = module_path.expect("missing module_path");
 
                     let mut file_path = module_path.clone();
-                    file_path.push(format!("{}.dora", name));
+                    file_path.push(format!("{}.dora", ident.name_as_string));
 
                     let mut module_path = module_path;
-                    module_path.push(&name);
+                    module_path.push(&ident.name_as_string);
 
                     self.add_bundled_file(package_id, module_id, file_path, module_path);
                 }
@@ -352,7 +356,7 @@ impl<'a> ProgramParser<'a> {
         let module_id = file.module_id;
         let content = file.content.clone();
 
-        let parser = Parser::from_shared_string(content, &mut self.sa.interner);
+        let parser = Parser::from_shared_string(content);
 
         let (ast, errors) = parser.parse();
 
@@ -393,7 +397,7 @@ struct TopLevelDeclaration<'x> {
 impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     fn visit_extern(&mut self, stmt: &Arc<ast::ExternPackage>) {
         if let Some(name) = &stmt.name {
-            if let Some(package_id) = self.sa.package_names.get(&name.name).cloned() {
+            if let Some(package_id) = self.sa.package_names.get(&name.name_as_string).cloned() {
                 let top_level_module_id = {
                     let package = self.sa.packages.idx(package_id);
                     let package = package.read();
@@ -403,9 +407,10 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
 
                 let package = self.sa.packages.idx(package_id);
                 let mut package = package.write();
+                let iname = self.sa.interner.intern(&name.name_as_string);
 
-                if !package.add_dependency(name.name, package_id, top_level_module_id) {
-                    let name = self.sa.interner.str(name.name).to_string();
+                if !package.add_dependency(iname, package_id, top_level_module_id) {
+                    let name = name.name_as_string.clone();
                     self.sa.diag.lock().report(
                         self.file_id,
                         stmt.span,
@@ -413,11 +418,10 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                     );
                 }
             } else {
-                let name = self.sa.interner.str(name.name).to_string();
                 self.sa.diag.lock().report(
                     self.file_id,
                     stmt.span,
-                    ErrorMessage::UnknownPackage(name),
+                    ErrorMessage::UnknownPackage(name.name_as_string.clone()),
                 );
             }
         }
@@ -649,7 +653,7 @@ fn find_methods_in_extension(
 
 fn ensure_name(sa: &mut Sema, ident: &Option<ast::Ident>) -> Name {
     if let Some(ident) = ident {
-        ident.name
+        sa.interner.intern(&ident.name_as_string)
     } else {
         sa.interner.intern("<missing name>")
     }
@@ -664,7 +668,8 @@ impl<'x> TopLevelDeclaration<'x> {
 
     fn insert_optional(&mut self, ident: &Option<ast::Ident>, sym: Sym) -> Option<(Name, Sym)> {
         if let Some(ident) = ident {
-            self.insert(ident.name, sym).map(|sym| (ident.name, sym))
+            let name = self.sa.interner.intern(&ident.name_as_string);
+            self.insert(name, sym).map(|sym| (name, sym))
         } else {
             None
         }

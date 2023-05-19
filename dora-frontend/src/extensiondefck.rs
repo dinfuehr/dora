@@ -240,7 +240,10 @@ impl<'x> ExtensionCheck<'x> {
             &extension.instance_names
         };
 
-        let name = f.name.as_ref().expect("missing name").name;
+        let name = self
+            .sa
+            .interner
+            .intern(&f.name.as_ref().expect("missing name").name_as_string);
 
         if let Some(&method_id) = table.get(&name) {
             let method = self.sa.fcts.idx(method_id);

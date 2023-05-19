@@ -1,8 +1,8 @@
 use crate::error::msg::ErrorMessage;
+use crate::interner::Name;
 use crate::sema::{FctDefinition, Sema, SourceFileId};
 use crate::sym::Sym;
 use dora_parser::ast;
-use dora_parser::interner::Name;
 use dora_parser::Span;
 
 pub use program::emit_program;
@@ -23,6 +23,7 @@ mod generator_tests;
 mod globaldefck;
 mod implck;
 mod impldefck;
+mod interner;
 pub mod program;
 mod program_parser;
 mod readty;

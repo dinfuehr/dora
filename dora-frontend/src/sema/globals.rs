@@ -1,16 +1,15 @@
 use std::convert::TryInto;
 use std::sync::Arc;
 
+use crate::interner::Name;
 use crate::sema::{
     module_path, AnalysisData, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
     SourceFileId, Visibility,
 };
 use crate::ty::SourceType;
 use crate::Id;
-
 use dora_bytecode::BytecodeFunction;
 use dora_parser::ast;
-use dora_parser::interner::Name;
 use dora_parser::Span;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]

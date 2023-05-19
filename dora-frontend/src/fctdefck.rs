@@ -59,7 +59,13 @@ pub fn check(sa: &Sema) {
                 let mut names = HashSet::new();
 
                 for (type_param_id, type_param) in type_params.iter().enumerate() {
-                    let name = type_param.name.as_ref().expect("missing name").name;
+                    let name = sa.interner.intern(
+                        &type_param
+                            .name
+                            .as_ref()
+                            .expect("missing name")
+                            .name_as_string,
+                    );
 
                     if !names.insert(name) {
                         let name = sa.interner.str(name).to_string();

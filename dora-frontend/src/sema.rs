@@ -4,8 +4,8 @@ use std::sync::Arc;
 
 use parking_lot::{Mutex, RwLock};
 
+use crate::interner::{Interner, Name};
 use dora_bytecode::Location;
-use dora_parser::interner::{Interner, Name};
 use dora_parser::{compute_line_column, compute_line_starts, Span};
 
 use crate::error::diag::Diagnostic;
@@ -96,7 +96,7 @@ pub struct Sema {
     pub globals: MutableVec<GlobalDefinition>, // stores all global variables
     pub uses: Vec<UseDefinition>,            // stores all uses
     pub packages: MutableVec<PackageDefinition>,
-    pub package_names: HashMap<Name, PackageDefinitionId>,
+    pub package_names: HashMap<String, PackageDefinitionId>,
     pub prelude_module_id: Option<ModuleDefinitionId>,
     pub stdlib_module_id: Option<ModuleDefinitionId>,
     pub program_module_id: Option<ModuleDefinitionId>,

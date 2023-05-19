@@ -6,8 +6,8 @@ use crate::sema::{
 use crate::sym::Sym;
 use crate::ty::SourceType;
 
+use crate::interner::Name;
 use dora_bytecode::{Intrinsic, NativeFunction};
-use dora_parser::interner::Name;
 
 pub fn resolve_internal_classes(sa: &mut Sema) {
     let stdlib_id = sa.stdlib_module_id();

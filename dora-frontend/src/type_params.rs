@@ -207,16 +207,18 @@ fn read_type_param_definition(
     for (id, type_param) in ast_type_params.iter().enumerate() {
         let id = TypeParamId(id);
         if let Some(ref ident) = type_param.name {
-            if !names.insert(ident.name) {
-                let name = sa.interner.str(ident.name).to_string();
+            let iname = sa.interner.intern(&ident.name_as_string);
+
+            if !names.insert(iname) {
+                let name = ident.name_as_string.clone();
                 let msg = ErrorMessage::TypeParamNameNotUnique(name);
                 sa.diag.lock().report(file_id, type_param.span, msg);
             }
 
             let sym = Sym::TypeParam(id);
-            symtable.insert(ident.name, sym);
+            symtable.insert(iname, sym);
 
-            result_type_params.add_type_param(ident.name);
+            result_type_params.add_type_param(iname);
         } else {
             let name = sa.interner.intern("<missing name>");
             result_type_params.add_type_param(name);

@@ -105,20 +105,28 @@ fn read_type_basic_unchecked(
         }
 
         Some(_) => {
-            let name = sa
-                .interner
-                .str(node.path.names.last().cloned().unwrap().name)
-                .to_string();
+            let name = node
+                .path
+                .names
+                .last()
+                .cloned()
+                .unwrap()
+                .name_as_string
+                .clone();
             let msg = ErrorMessage::UnknownType(name);
             sa.diag.lock().report(file_id, node.span, msg);
             SourceType::Error
         }
 
         None => {
-            let name = sa
-                .interner
-                .str(node.path.names.last().cloned().unwrap().name)
-                .to_string();
+            let name = node
+                .path
+                .names
+                .last()
+                .cloned()
+                .unwrap()
+                .name_as_string
+                .clone();
             let msg = ErrorMessage::UnknownIdentifier(name);
             sa.diag.lock().report(file_id, node.span, msg);
             SourceType::Error
@@ -512,20 +520,25 @@ fn read_type_path(
     let names = &basic.path.names;
 
     if names.len() > 1 {
-        let first_name = names.first().cloned().unwrap().name;
-        let last_name = names.last().cloned().unwrap().name;
+        let first_name = sa
+            .interner
+            .intern(&names.first().cloned().unwrap().name_as_string);
+        let last_name = sa
+            .interner
+            .intern(&names.last().cloned().unwrap().name_as_string);
         let mut module_table = table_for_module(sa, file_id, basic, table.get(first_name))?;
 
         for ident in &names[1..names.len() - 1] {
-            let sym = module_table.read().get(ident.name);
+            let name = sa.interner.intern(&ident.name_as_string);
+            let sym = module_table.read().get(name);
             module_table = table_for_module(sa, file_id, basic, sym)?;
         }
 
         let sym = module_table.read().get(last_name);
         Ok(sym)
     } else {
-        let name = names.last().cloned().unwrap().name;
-        Ok(table.get(name))
+        let name = &names.last().cloned().unwrap().name_as_string;
+        Ok(table.get_string(sa, name))
     }
 }
 

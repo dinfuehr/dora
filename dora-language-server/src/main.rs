@@ -251,9 +251,8 @@ fn did_change_notification(_server_state: &mut ServerState, notification: Notifi
 
 #[allow(dead_code)]
 fn check_file(uri: Url, content: String, version: i32, sender: Sender<MainLoopTask>) {
-    let mut interner = dora_parser::interner::Interner::new();
     let line_starts = compute_line_starts(&content);
-    let parser = dora_parser::Parser::from_shared_string(Arc::new(content), &mut interner);
+    let parser = dora_parser::Parser::from_shared_string(Arc::new(content));
     let (_, errors) = parser.parse();
     let mut diagnostics = Vec::new();
     for error in errors {

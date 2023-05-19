@@ -5,6 +5,7 @@ use std::convert::TryInto;
 use std::ops::Index;
 use std::sync::Arc;
 
+use crate::interner::Name;
 use crate::sema::{
     FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, SourceFileId, TypeParamDefinition,
 };
@@ -13,7 +14,6 @@ use crate::Id;
 
 pub use self::matching::{extension_matches, extension_matches_ty};
 use dora_parser::ast;
-use dora_parser::interner::Name;
 use dora_parser::Span;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]

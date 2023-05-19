@@ -9,8 +9,8 @@ use crate::sym::{ModuleSymTable, Sym};
 use crate::ty::SourceType;
 use crate::{read_type_context, AllowSelf, TypeParamContext};
 
+use crate::interner::Name;
 use dora_parser::ast;
-use dora_parser::interner::Name;
 
 pub fn check(sa: &Sema) {
     for struct_ in sa.structs.iter() {
@@ -79,7 +79,10 @@ impl<'x> StructCheck<'x> {
 
         let struct_ = self.sa.structs.idx(self.struct_id);
         let mut struct_ = struct_.write();
-        let name = f.name.as_ref().expect("missing name").name;
+        let name = self
+            .sa
+            .interner
+            .intern(&f.name.as_ref().expect("missing name").name_as_string);
 
         if !self.fields.insert(name) {
             let name = self.sa.interner.str(name).to_string();

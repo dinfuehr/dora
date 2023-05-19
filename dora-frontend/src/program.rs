@@ -56,7 +56,7 @@ fn create_packages(sa: &Sema) -> Vec<PackageData> {
             PackageName::Boots => "boots".into(),
             PackageName::Stdlib => "stdlib".into(),
             PackageName::Program => "program".into(),
-            PackageName::External(name) => sa.interner.str(name).to_string(),
+            PackageName::External(ref name) => name.clone(),
         };
 
         result.push(PackageData {

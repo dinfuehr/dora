@@ -111,7 +111,10 @@ impl<'x> EnumCheckVariants<'x> {
                 continue;
             }
 
-            let name = value.name.as_ref().expect("missing name").name;
+            let name = self
+                .sa
+                .interner
+                .intern(&value.name.as_ref().expect("missing name").name_as_string);
 
             let variant = EnumVariant {
                 id: next_variant_id,

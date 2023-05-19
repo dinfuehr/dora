@@ -6,8 +6,8 @@ use crate::sym::SymTable;
 use crate::Id;
 use crate::SourceFileId;
 
+use crate::interner::Name;
 use dora_parser::ast;
-use dora_parser::interner::Name;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct ModuleDefinitionId(pub usize);

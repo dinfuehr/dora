@@ -6,8 +6,8 @@ use crate::sym::{ModuleSymTable, Sym};
 use crate::ty::SourceType;
 use crate::{read_type_context, AllowSelf, TypeParamContext};
 
+use crate::interner::Name;
 use dora_parser::ast;
-use dora_parser::interner::Name;
 use dora_parser::Span;
 
 pub fn check(sa: &Sema) {
@@ -74,7 +74,10 @@ impl<'x> ClsDefCheck<'x> {
             AllowSelf::No,
         )
         .unwrap_or(SourceType::Error);
-        let name = f.name.as_ref().expect("missing name").name;
+        let name = self
+            .sa
+            .interner
+            .intern(&f.name.as_ref().expect("missing name").name_as_string);
         self.add_field(f.span, name, ty, f.mutable, f.visibility);
     }
 

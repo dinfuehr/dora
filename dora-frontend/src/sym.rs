@@ -5,12 +5,12 @@ use std::sync::Arc;
 
 use self::Sym::*;
 
+use crate::interner::Name;
 use crate::sema::{
     ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId,
     GlobalDefinitionId, ModuleDefinitionId, NestedVarId, Sema, StructDefinitionId,
     TraitDefinitionId, TypeParamId,
 };
-use dora_parser::interner::Name;
 
 pub struct ModuleSymTable {
     module_id: ModuleDefinitionId,

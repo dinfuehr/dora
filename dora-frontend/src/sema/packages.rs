@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use dora_parser::interner::Name;
+use crate::interner::Name;
 
 use parking_lot::RwLock;
 
@@ -56,13 +56,6 @@ impl PackageDefinition {
         }
     }
 
-    pub fn iname(&self) -> Option<Name> {
-        match self.name {
-            PackageName::External(name) => Some(name),
-            _ => None,
-        }
-    }
-
     pub fn top_level_module_id(&self) -> ModuleDefinitionId {
         self.top_level_module_id.expect("uninitialized module id")
     }
@@ -101,5 +94,5 @@ pub enum PackageName {
     Stdlib,
     Boots,
     Program,
-    External(Name),
+    External(String),
 }
