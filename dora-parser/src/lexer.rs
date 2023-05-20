@@ -537,31 +537,31 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     keywords.insert("false", FALSE);
 
     // "big" shapes
-    keywords.insert("class", CLASS);
-    keywords.insert("enum", ENUM);
-    keywords.insert("struct", STRUCT);
-    keywords.insert("trait", TRAIT);
-    keywords.insert("impl", IMPL);
-    keywords.insert("mod", MOD);
-    keywords.insert("use", USE);
-    keywords.insert("package", PACKAGE);
+    keywords.insert("class", CLASS_KW);
+    keywords.insert("enum", ENUM_KW);
+    keywords.insert("struct", STRUCT_KW);
+    keywords.insert("trait", TRAIT_KW);
+    keywords.insert("impl", IMPL_KW);
+    keywords.insert("mod", MOD_KW);
+    keywords.insert("use", USE_KW);
+    keywords.insert("package", PACKAGE_KW);
 
     // "small" shapes
-    keywords.insert("fn", FN);
-    keywords.insert("let", LET);
-    keywords.insert("mut", MUT);
-    keywords.insert("const", CONST);
+    keywords.insert("fn", FN_KW);
+    keywords.insert("let", LET_KW);
+    keywords.insert("mut", MUT_KW);
+    keywords.insert("const", CONST_KW);
 
     // control flow
-    keywords.insert("return", RETURN);
-    keywords.insert("if", IF);
-    keywords.insert("else", ELSE);
-    keywords.insert("while", WHILE);
-    keywords.insert("for", FOR);
-    keywords.insert("in", IN);
-    keywords.insert("break", BREAK);
-    keywords.insert("continue", CONTINUE);
-    keywords.insert("match", MATCH);
+    keywords.insert("return", RETURN_KW);
+    keywords.insert("if", IF_KW);
+    keywords.insert("else", ELSE_KW);
+    keywords.insert("while", WHILE_KW);
+    keywords.insert("for", FOR_KW);
+    keywords.insert("in", IN_KW);
+    keywords.insert("break", BREAK_KW);
+    keywords.insert("continue", CONTINUE_KW);
+    keywords.insert("match", MATCH_KW);
 
     // qualifiers
     keywords.insert("self", THIS);
@@ -573,9 +573,9 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     keywords.insert("as", AS);
 
     // unused
-    keywords.insert("type", TYPE);
-    keywords.insert("alias", ALIAS);
-    keywords.insert("Self", CAPITAL_THIS);
+    keywords.insert("type", TYPE_KW);
+    keywords.insert("alias", ALIAS_KW);
+    keywords.insert("Self", CAPITAL_THIS_BLOCK);
 
     keywords
 }
@@ -900,17 +900,17 @@ mod tests {
         assert_eq!(
             tokens,
             vec![
-                (FN, 2),
+                (FN_KW, 2),
                 (WHITESPACE, 1),
-                (LET, 3),
+                (LET_KW, 3),
                 (WHITESPACE, 1),
-                (WHILE, 5),
+                (WHILE_KW, 5),
                 (WHITESPACE, 1),
-                (IF, 2),
+                (IF_KW, 2),
                 (WHITESPACE, 1),
-                (ELSE, 4),
+                (ELSE_KW, 4),
                 (WHITESPACE, 1),
-                (MATCH, 5),
+                (MATCH_KW, 5),
             ]
         );
 
@@ -920,11 +920,11 @@ mod tests {
             vec![
                 (THIS, 4),
                 (WHITESPACE, 1),
-                (CLASS, 5),
+                (CLASS_KW, 5),
                 (WHITESPACE, 1),
                 (SUPER, 5),
                 (WHITESPACE, 1),
-                (MOD, 3),
+                (MOD_KW, 3),
             ]
         );
 
@@ -932,11 +932,11 @@ mod tests {
         assert_eq!(
             tokens,
             vec![
-                (BREAK, 5),
+                (BREAK_KW, 5),
                 (WHITESPACE, 1),
-                (CONTINUE, 8),
+                (CONTINUE_KW, 8),
                 (WHITESPACE, 1),
-                (RETURN, 6),
+                (RETURN_KW, 6),
             ]
         );
 
@@ -944,17 +944,17 @@ mod tests {
         assert_eq!(
             tokens,
             vec![
-                (TYPE, 4),
+                (TYPE_KW, 4),
                 (WHITESPACE, 1),
-                (STRUCT, 6),
+                (STRUCT_KW, 6),
                 (WHITESPACE, 1),
-                (ENUM, 4),
+                (ENUM_KW, 4),
                 (WHITESPACE, 1),
-                (ALIAS, 5),
+                (ALIAS_KW, 5),
                 (WHITESPACE, 1),
-                (TRAIT, 5),
+                (TRAIT_KW, 5),
                 (WHITESPACE, 1),
-                (CONST, 5),
+                (CONST_KW, 5),
             ]
         );
 
@@ -962,15 +962,15 @@ mod tests {
         assert_eq!(
             tokens,
             vec![
-                (FOR, 3),
+                (FOR_KW, 3),
                 (WHITESPACE, 1),
-                (IN, 2),
+                (IN_KW, 2),
                 (WHITESPACE, 1),
-                (IMPL, 4),
+                (IMPL_KW, 4),
                 (WHITESPACE, 1),
-                (CAPITAL_THIS, 4),
+                (CAPITAL_THIS_BLOCK, 4),
                 (WHITESPACE, 1),
-                (MUT, 3),
+                (MUT_KW, 3),
             ]
         );
     }

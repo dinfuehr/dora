@@ -1,3 +1,4 @@
+pub use self::ast::NodeId;
 pub use self::error::{ParseError, ParseErrorWithLocation};
 pub use self::lexer::lex;
 pub use self::parser::Parser;
@@ -9,6 +10,7 @@ pub mod error;
 pub mod lexer;
 pub mod parser;
 pub mod span;
+pub mod syntax;
 pub mod token;
 
 pub fn compute_line_starts(content: &str) -> Vec<u32> {

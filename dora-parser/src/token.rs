@@ -31,8 +31,8 @@ pub const EXPRESSION_FIRST: TokenSet = TokenSet::new(&[
     TokenKind::INT_LITERAL,
     TokenKind::FLOAT_LITERAL,
     TokenKind::IDENTIFIER,
-    TokenKind::IF,
-    TokenKind::MATCH,
+    TokenKind::IF_KW,
+    TokenKind::MATCH_KW,
     TokenKind::L_BRACE,
     TokenKind::L_PAREN,
     TokenKind::THIS,
@@ -41,11 +41,11 @@ pub const EXPRESSION_FIRST: TokenSet = TokenSet::new(&[
     TokenKind::NOT,
     TokenKind::SUB,
     TokenKind::ADD,
-    TokenKind::FOR,
-    TokenKind::WHILE,
-    TokenKind::BREAK,
-    TokenKind::CONTINUE,
-    TokenKind::RETURN,
+    TokenKind::FOR_KW,
+    TokenKind::WHILE_KW,
+    TokenKind::BREAK_KW,
+    TokenKind::CONTINUE_KW,
+    TokenKind::RETURN_KW,
 ]);
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Copy, Clone)]
@@ -64,32 +64,32 @@ pub enum TokenKind {
     FALSE,
 
     // "big" shapes
-    CLASS,
-    ENUM,
-    STRUCT,
-    TRAIT,
-    IMPL,
-    MOD,
-    USE,
-    PACKAGE,
-    EXTERN,
+    CLASS_KW,
+    ENUM_KW,
+    STRUCT_KW,
+    TRAIT_KW,
+    IMPL_KW,
+    MOD_KW,
+    USE_KW,
+    PACKAGE_KW,
+    EXTERN_KW,
 
     // "small" shapes
-    FN,
-    LET,
-    MUT,
-    CONST,
+    FN_KW,
+    LET_KW,
+    MUT_KW,
+    CONST_KW,
 
     // control flow
-    RETURN,
-    IF,
-    ELSE,
-    WHILE,
-    FOR,
-    IN,
-    BREAK,
-    CONTINUE,
-    MATCH,
+    RETURN_KW,
+    IF_KW,
+    ELSE_KW,
+    WHILE_KW,
+    FOR_KW,
+    IN_KW,
+    BREAK_KW,
+    CONTINUE_KW,
+    MATCH_KW,
 
     // qualifiers
     THIS,
@@ -151,9 +151,9 @@ pub enum TokenKind {
     R_BRACE,
 
     // unused
-    TYPE,
-    ALIAS,
-    CAPITAL_THIS,
+    TYPE_KW,
+    ALIAS_KW,
+    CAPITAL_THIS_BLOCK,
     UNDERSCORE,
 
     // trivia
@@ -169,6 +169,23 @@ pub enum TokenKind {
 
     // Syntax tree nodes
     SOURCE_FILE,
+
+    ALIAS,
+    FN,
+    STRUCT,
+    CLASS,
+    USE,
+    EXTERN,
+    ENUM,
+    MODULE,
+    CONST,
+    IMPL,
+    GLOBAL,
+    TRAIT,
+    LIST,
+    IDENT,
+    TYPE_PARAMS,
+    TYPE_PARAM,
 }
 
 pub const LAST_TOKEN: TokenKind = TokenKind::EOF;
@@ -183,11 +200,5 @@ impl TokenKind {
 
     pub fn is_eof(self) -> bool {
         self == TokenKind::EOF
-    }
-}
-
-impl From<TokenKind> for rowan::SyntaxKind {
-    fn from(value: TokenKind) -> Self {
-        rowan::SyntaxKind(value as u16)
     }
 }
