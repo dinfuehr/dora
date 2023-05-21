@@ -2,6 +2,7 @@ use std::fmt;
 use std::slice::Iter;
 use std::sync::Arc;
 
+use crate::syntax::SyntaxNode;
 use crate::Span;
 
 pub mod dump;
@@ -9,6 +10,7 @@ pub mod visit;
 
 #[derive(Clone, Debug)]
 pub struct File {
+    pub syntax: SyntaxNode,
     pub elements: Vec<Elem>,
 }
 
@@ -191,6 +193,7 @@ pub type Ident = Arc<IdentData>;
 pub struct Global {
     pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
     pub name: Option<Ident>,
     pub mutable: bool,
     pub data_type: Type,
@@ -211,6 +214,7 @@ pub struct Module {
 pub struct Use {
     pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
     pub common_path: Vec<UsePathComponent>,
     pub target: UseTargetDescriptor,
 }
@@ -253,6 +257,7 @@ pub enum UsePathComponentValue {
 pub struct Const {
     pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
     pub name: Option<Ident>,
     pub data_type: Type,
     pub expr: Expr,
@@ -263,6 +268,7 @@ pub struct Const {
 pub struct Enum {
     pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
     pub name: Option<Ident>,
     pub type_params: Option<TypeParams>,
     pub variants: Vec<EnumVariant>,
@@ -281,6 +287,7 @@ pub struct EnumVariant {
 pub struct Alias {
     pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
     pub name: Option<Ident>,
     pub ty: Type,
     pub visibility: Visibility,
@@ -290,6 +297,7 @@ pub struct Alias {
 pub struct Struct {
     pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
     pub name: Option<Ident>,
     pub fields: Vec<StructField>,
     pub visibility: Visibility,
@@ -321,12 +329,14 @@ pub enum TypeData {
 pub struct TypeSelfType {
     pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
 }
 
 #[derive(Clone, Debug)]
 pub struct TypeTupleType {
     pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
 
     pub subtypes: Vec<Type>,
 }
@@ -335,6 +345,7 @@ pub struct TypeTupleType {
 pub struct TypeLambdaType {
     pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
 
     pub params: Vec<Type>,
     pub ret: Option<Type>,
@@ -344,6 +355,7 @@ pub struct TypeLambdaType {
 pub struct TypeBasicType {
     pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
 
     pub path: Path,
     pub params: Vec<Type>,
@@ -364,30 +376,54 @@ impl TypeBasicType {
 }
 
 impl TypeData {
-    pub fn create_self(id: NodeId, span: Span) -> TypeData {
-        TypeData::This(TypeSelfType { id, span })
+    pub fn create_self(id: NodeId, span: Span, syntax: SyntaxNode) -> TypeData {
+        TypeData::This(TypeSelfType { id, span, syntax })
     }
 
-    pub fn create_basic(id: NodeId, span: Span, path: Path, params: Vec<Type>) -> TypeData {
+    pub fn create_basic(
+        id: NodeId,
+        span: Span,
+        syntax: SyntaxNode,
+        path: Path,
+        params: Vec<Type>,
+    ) -> TypeData {
         TypeData::Basic(TypeBasicType {
             id,
             span,
+            syntax,
             path,
             params,
         })
     }
 
-    pub fn create_fct(id: NodeId, span: Span, params: Vec<Type>, ret: Option<Type>) -> TypeData {
+    pub fn create_fct(
+        id: NodeId,
+        span: Span,
+        syntax: SyntaxNode,
+        params: Vec<Type>,
+        ret: Option<Type>,
+    ) -> TypeData {
         TypeData::Lambda(TypeLambdaType {
             id,
             span,
+            syntax,
             params,
             ret,
         })
     }
 
-    pub fn create_tuple(id: NodeId, span: Span, subtypes: Vec<Type>) -> TypeData {
-        TypeData::Tuple(TypeTupleType { id, span, subtypes })
+    pub fn create_tuple(
+        id: NodeId,
+        span: Span,
+        syntax: SyntaxNode,
+        subtypes: Vec<Type>,
+    ) -> TypeData {
+        TypeData::Tuple(TypeTupleType {
+            id,
+            span,
+            syntax,
+            subtypes,
+        })
     }
 
     pub fn to_basic(&self) -> Option<&TypeBasicType> {
@@ -471,6 +507,7 @@ impl TypeData {
 pub struct Impl {
     pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
 
     pub type_params: Option<TypeParams>,
     pub trait_type: Option<Type>,
@@ -482,6 +519,7 @@ pub struct Impl {
 pub struct Trait {
     pub id: NodeId,
     pub name: Option<Ident>,
+    pub syntax: SyntaxNode,
     pub type_params: Option<TypeParams>,
     pub span: Span,
     pub methods: Vec<Arc<Function>>,
@@ -492,6 +530,7 @@ pub struct Trait {
 pub struct Class {
     pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
     pub name: Option<Ident>,
     pub internal: bool,
     pub visibility: Visibility,
@@ -504,6 +543,7 @@ pub struct Class {
 pub struct ExternPackage {
     pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
     pub name: Option<Ident>,
     pub identifier: Option<Ident>,
 }
@@ -551,8 +591,9 @@ impl FunctionKind {
 #[derive(Clone, Debug)]
 pub struct Function {
     pub id: NodeId,
-    pub kind: FunctionKind,
     pub span: Span,
+    pub syntax: SyntaxNode,
+    pub kind: FunctionKind,
     pub name: Option<Ident>,
     pub is_optimize_immediately: bool,
     pub visibility: Visibility,
@@ -824,6 +865,7 @@ pub struct LetTupleType {
 pub struct ExprForType {
     pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
 
     pub pattern: Box<LetPattern>,
     pub expr: Expr,
@@ -834,6 +876,7 @@ pub struct ExprForType {
 pub struct ExprWhileType {
     pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
 
     pub cond: Expr,
     pub block: Expr,
@@ -851,6 +894,7 @@ pub struct StmtExprType {
 pub struct ExprReturnType {
     pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
 
     pub expr: Option<Expr>,
 }
@@ -859,12 +903,14 @@ pub struct ExprReturnType {
 pub struct ExprBreakType {
     pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
 }
 
 #[derive(Clone, Debug)]
 pub struct ExprContinueType {
     pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
 }
 
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
@@ -1000,10 +1046,17 @@ pub enum ExprData {
 }
 
 impl ExprData {
-    pub fn create_block(id: NodeId, span: Span, stmts: Vec<Stmt>, expr: Option<Expr>) -> ExprData {
+    pub fn create_block(
+        id: NodeId,
+        span: Span,
+        syntax: SyntaxNode,
+        stmts: Vec<Stmt>,
+        expr: Option<Expr>,
+    ) -> ExprData {
         ExprData::Block(ExprBlockType {
             id,
             span,
+            syntax,
 
             stmts,
             expr,
@@ -1013,6 +1066,7 @@ impl ExprData {
     pub fn create_if(
         id: NodeId,
         span: Span,
+        syntax: SyntaxNode,
         cond: Expr,
         then_block: Expr,
         else_block: Option<Expr>,
@@ -1020,17 +1074,24 @@ impl ExprData {
         ExprData::If(ExprIfType {
             id,
             span,
-
+            syntax,
             cond,
             then_block,
             else_block,
         })
     }
 
-    pub fn create_match(id: NodeId, span: Span, expr: Expr, cases: Vec<MatchCaseType>) -> ExprData {
+    pub fn create_match(
+        id: NodeId,
+        span: Span,
+        syntax: SyntaxNode,
+        expr: Expr,
+        cases: Vec<MatchCaseType>,
+    ) -> ExprData {
         ExprData::Match(ExprMatchType {
             id,
             span,
+            syntax,
             expr,
             cases,
         })
@@ -1039,6 +1100,7 @@ impl ExprData {
     pub fn create_for(
         id: NodeId,
         span: Span,
+        syntax: SyntaxNode,
         pattern: Box<LetPattern>,
         expr: Expr,
         block: Expr,
@@ -1046,6 +1108,7 @@ impl ExprData {
         ExprData::For(ExprForType {
             id,
             span,
+            syntax,
 
             pattern,
             expr,
@@ -1053,30 +1116,53 @@ impl ExprData {
         })
     }
 
-    pub fn create_while(id: NodeId, span: Span, cond: Expr, block: Expr) -> ExprData {
+    pub fn create_while(
+        id: NodeId,
+        span: Span,
+        syntax: SyntaxNode,
+        cond: Expr,
+        block: Expr,
+    ) -> ExprData {
         ExprData::While(ExprWhileType {
             id,
             span,
+            syntax,
 
             cond,
             block,
         })
     }
 
-    pub fn create_return(id: NodeId, span: Span, expr: Option<Expr>) -> ExprData {
-        ExprData::Return(ExprReturnType { id, span, expr })
+    pub fn create_return(
+        id: NodeId,
+        span: Span,
+        syntax: SyntaxNode,
+        expr: Option<Expr>,
+    ) -> ExprData {
+        ExprData::Return(ExprReturnType {
+            id,
+            span,
+            syntax,
+            expr,
+        })
     }
 
-    pub fn create_break(id: NodeId, span: Span) -> ExprData {
-        ExprData::Break(ExprBreakType { id, span })
+    pub fn create_break(id: NodeId, span: Span, syntax: SyntaxNode) -> ExprData {
+        ExprData::Break(ExprBreakType { id, span, syntax })
     }
 
-    pub fn create_continue(id: NodeId, span: Span) -> ExprData {
-        ExprData::Continue(ExprContinueType { id, span })
+    pub fn create_continue(id: NodeId, span: Span, syntax: SyntaxNode) -> ExprData {
+        ExprData::Continue(ExprContinueType { id, span, syntax })
     }
 
-    pub fn create_un(id: NodeId, span: Span, op: UnOp, opnd: Expr) -> ExprData {
-        ExprData::Un(ExprUnType { id, span, op, opnd })
+    pub fn create_un(id: NodeId, span: Span, syntax: SyntaxNode, op: UnOp, opnd: Expr) -> ExprData {
+        ExprData::Un(ExprUnType {
+            id,
+            span,
+            syntax,
+            op,
+            opnd,
+        })
     }
 
     pub fn create_bin(id: NodeId, span: Span, op: BinOp, lhs: Expr, rhs: Expr) -> ExprData {
@@ -1101,44 +1187,85 @@ impl ExprData {
         })
     }
 
-    pub fn create_lit_char(id: NodeId, span: Span, full_value: String) -> ExprData {
+    pub fn create_lit_char(
+        id: NodeId,
+        span: Span,
+        syntax: SyntaxNode,
+        full_value: String,
+    ) -> ExprData {
         ExprData::LitChar(ExprLitCharType {
             id,
             span,
+            syntax,
             value: full_value,
         })
     }
 
-    pub fn create_lit_int(id: NodeId, span: Span, value: String) -> ExprData {
-        ExprData::LitInt(ExprLitIntType { id, span, value })
+    pub fn create_lit_int(id: NodeId, span: Span, syntax: SyntaxNode, value: String) -> ExprData {
+        ExprData::LitInt(ExprLitIntType {
+            id,
+            span,
+            syntax,
+            value,
+        })
     }
 
-    pub fn create_lit_float(id: NodeId, span: Span, value: String) -> ExprData {
-        ExprData::LitFloat(ExprLitFloatType { id, span, value })
+    pub fn create_lit_float(id: NodeId, span: Span, syntax: SyntaxNode, value: String) -> ExprData {
+        ExprData::LitFloat(ExprLitFloatType {
+            id,
+            span,
+            syntax,
+            value,
+        })
     }
 
-    pub fn create_lit_str(id: NodeId, span: Span, value: String) -> ExprData {
-        ExprData::LitStr(ExprLitStrType { id, span, value })
+    pub fn create_lit_str(id: NodeId, span: Span, syntax: SyntaxNode, value: String) -> ExprData {
+        ExprData::LitStr(ExprLitStrType {
+            id,
+            span,
+            syntax,
+            value,
+        })
     }
 
-    pub fn create_template(id: NodeId, span: Span, parts: Vec<Expr>) -> ExprData {
-        ExprData::Template(ExprTemplateType { id, span, parts })
+    pub fn create_template(
+        id: NodeId,
+        span: Span,
+        syntax: SyntaxNode,
+        parts: Vec<Expr>,
+    ) -> ExprData {
+        ExprData::Template(ExprTemplateType {
+            id,
+            span,
+            syntax,
+            parts,
+        })
     }
 
     pub fn create_lit_bool(id: NodeId, span: Span, value: bool) -> ExprData {
         ExprData::LitBool(ExprLitBoolType { id, span, value })
     }
 
-    pub fn create_this(id: NodeId, span: Span) -> ExprData {
-        ExprData::This(ExprSelfType { id, span })
+    pub fn create_this(id: NodeId, span: Span, syntax: SyntaxNode) -> ExprData {
+        ExprData::This(ExprSelfType { id, span, syntax })
     }
 
-    pub fn create_ident(id: NodeId, span: Span, name: String) -> ExprData {
-        ExprData::Ident(ExprIdentType { id, span, name })
+    pub fn create_ident(id: NodeId, span: Span, syntax: SyntaxNode, name: String) -> ExprData {
+        ExprData::Ident(ExprIdentType {
+            id,
+            span,
+            syntax,
+            name,
+        })
     }
 
-    pub fn create_paren(id: NodeId, span: Span, expr: Expr) -> ExprData {
-        ExprData::Paren(ExprParenType { id, span, expr })
+    pub fn create_paren(id: NodeId, span: Span, syntax: SyntaxNode, expr: Expr) -> ExprData {
+        ExprData::Paren(ExprParenType {
+            id,
+            span,
+            syntax,
+            expr,
+        })
     }
 
     pub fn create_call(id: NodeId, span: Span, callee: Expr, args: Vec<Expr>) -> ExprData {
@@ -1193,8 +1320,13 @@ impl ExprData {
         ExprData::Lambda(fct)
     }
 
-    pub fn create_tuple(id: NodeId, span: Span, values: Vec<Expr>) -> ExprData {
-        ExprData::Tuple(ExprTupleType { id, span, values })
+    pub fn create_tuple(id: NodeId, span: Span, syntax: SyntaxNode, values: Vec<Expr>) -> ExprData {
+        ExprData::Tuple(ExprTupleType {
+            id,
+            span,
+            syntax,
+            values,
+        })
     }
 
     pub fn to_for(&self) -> Option<&ExprForType> {
@@ -1627,6 +1759,7 @@ impl ExprData {
 pub struct ExprIfType {
     pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
 
     pub cond: Expr,
     pub then_block: Expr,
@@ -1637,6 +1770,7 @@ pub struct ExprIfType {
 pub struct ExprTupleType {
     pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
 
     pub values: Vec<Expr>,
 }
@@ -1654,6 +1788,7 @@ pub struct ExprConvType {
 pub struct ExprUnType {
     pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
 
     pub op: UnOp,
     pub opnd: Expr,
@@ -1674,6 +1809,7 @@ pub struct ExprBinType {
 pub struct ExprLitCharType {
     pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
     pub value: String,
 }
 
@@ -1681,6 +1817,7 @@ pub struct ExprLitCharType {
 pub struct ExprLitIntType {
     pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
 
     pub value: String,
 }
@@ -1689,6 +1826,7 @@ pub struct ExprLitIntType {
 pub struct ExprLitFloatType {
     pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
 
     pub value: String,
 }
@@ -1697,6 +1835,7 @@ pub struct ExprLitFloatType {
 pub struct ExprLitStrType {
     pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
 
     pub value: String,
 }
@@ -1705,6 +1844,7 @@ pub struct ExprLitStrType {
 pub struct ExprTemplateType {
     pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
 
     pub parts: Vec<Expr>,
 }
@@ -1721,6 +1861,7 @@ pub struct ExprLitBoolType {
 pub struct ExprBlockType {
     pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
 
     pub stmts: Vec<Stmt>,
     pub expr: Option<Expr>,
@@ -1730,12 +1871,14 @@ pub struct ExprBlockType {
 pub struct ExprSelfType {
     pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
 }
 
 #[derive(Clone, Debug)]
 pub struct ExprIdentType {
     pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
     pub name: String,
 }
 
@@ -1772,7 +1915,7 @@ impl ExprCallType {
 pub struct ExprParenType {
     pub id: NodeId,
     pub span: Span,
-
+    pub syntax: SyntaxNode,
     pub expr: Expr,
 }
 
@@ -1780,6 +1923,7 @@ pub struct ExprParenType {
 pub struct ExprMatchType {
     pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
 
     pub expr: Expr,
     pub cases: Vec<MatchCaseType>,

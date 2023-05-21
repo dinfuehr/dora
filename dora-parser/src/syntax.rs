@@ -5,11 +5,13 @@ use crate::{NodeId, Span, TokenKind};
 pub type SyntaxNode = Arc<SyntaxNodeData>;
 pub type SyntaxToken = Arc<SyntaxTokenData>;
 
+#[derive(Clone, Debug)]
 pub enum SyntaxChild {
     Node(SyntaxNode),
     Token(SyntaxToken),
 }
 
+#[derive(Clone, Debug)]
 pub struct SyntaxNodeData {
     pub id: NodeId,
     pub kind: TokenKind,
@@ -49,6 +51,7 @@ impl SyntaxNodeData {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct SyntaxTokenData {
     id: NodeId,
     kind: TokenKind,
@@ -84,7 +87,7 @@ impl SyntaxTokenData {
 }
 
 pub struct SyntaxTreeBuilder {
-    open_nodes: Vec<(usize, u32)>,
+    nodes: Vec<(usize, u32)>,
     next_id: usize,
     children: Vec<SyntaxChild>,
     offset: u32,
@@ -93,7 +96,7 @@ pub struct SyntaxTreeBuilder {
 impl SyntaxTreeBuilder {
     pub fn new() -> SyntaxTreeBuilder {
         SyntaxTreeBuilder {
-            open_nodes: Vec::new(),
+            nodes: Vec::new(),
             next_id: 0,
             children: Vec::new(),
             offset: 0,
@@ -101,7 +104,7 @@ impl SyntaxTreeBuilder {
     }
 
     pub fn start_node(&mut self) {
-        self.open_nodes.push((self.children.len(), self.offset));
+        self.nodes.push((self.children.len(), self.offset));
     }
 
     pub fn token(&mut self, kind: TokenKind, value: String) {
@@ -119,13 +122,17 @@ impl SyntaxTreeBuilder {
 
     pub fn finish_node(&mut self, kind: TokenKind) -> SyntaxNode {
         assert!(kind > TokenKind::EOF);
-        let (children_start, start) = self.open_nodes.pop().expect("missing node start");
+        let (children_start, start) = self.nodes.pop().expect("missing node start");
         let children = self.children.drain(children_start..).collect::<Vec<_>>();
         let id = self.new_node_id();
         let span = Span::new(start, self.offset - start);
         let node = Arc::new(SyntaxNodeData::new(id, kind, span, children));
         self.children.push(SyntaxChild::Node(node.clone()));
         node
+    }
+
+    pub fn abandon_node(&mut self) {
+        self.nodes.pop().expect("missing node start");
     }
 
     pub fn create_tree(self) -> SyntaxNode {

@@ -564,10 +564,10 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     keywords.insert("match", MATCH_KW);
 
     // qualifiers
-    keywords.insert("self", THIS);
-    keywords.insert("super", SUPER);
-    keywords.insert("pub", PUB);
-    keywords.insert("static", STATIC);
+    keywords.insert("self", SELF_KW);
+    keywords.insert("super", SUPER_KW);
+    keywords.insert("pub", PUB_KW);
+    keywords.insert("static", STATIC_KW);
 
     // casting
     keywords.insert("as", AS);
@@ -575,7 +575,7 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     // unused
     keywords.insert("type", TYPE_KW);
     keywords.insert("alias", ALIAS_KW);
-    keywords.insert("Self", CAPITAL_THIS_BLOCK);
+    keywords.insert("Self", UPCASE_SELF_KW);
 
     keywords
 }
@@ -918,11 +918,11 @@ mod tests {
         assert_eq!(
             tokens,
             vec![
-                (THIS, 4),
+                (SELF_KW, 4),
                 (WHITESPACE, 1),
                 (CLASS_KW, 5),
                 (WHITESPACE, 1),
-                (SUPER, 5),
+                (SUPER_KW, 5),
                 (WHITESPACE, 1),
                 (MOD_KW, 3),
             ]
@@ -968,7 +968,7 @@ mod tests {
                 (WHITESPACE, 1),
                 (IMPL_KW, 4),
                 (WHITESPACE, 1),
-                (CAPITAL_THIS_BLOCK, 4),
+                (UPCASE_SELF_KW, 4),
                 (WHITESPACE, 1),
                 (MUT_KW, 3),
             ]

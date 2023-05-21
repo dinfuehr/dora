@@ -77,8 +77,8 @@ impl Parser {
             elements.push(self.parse_element());
         }
 
-        self.builder.finish_node(SOURCE_FILE);
-        ast::File { elements }
+        let syntax = self.builder.finish_node(SOURCE_FILE);
+        ast::File { syntax, elements }
     }
 
     fn parse_element(&mut self) -> Elem {
@@ -189,11 +189,12 @@ impl Parser {
             None
         };
 
-        self.builder.finish_node(EXTERN);
+        let syntax = self.builder.finish_node(EXTERN);
 
         Arc::new(ExternPackage {
             id: self.new_node_id(),
             span: self.finish_node(),
+            syntax,
             name,
             identifier,
         })
@@ -211,6 +212,7 @@ impl Parser {
 
     fn parse_use_inner(&mut self) -> Arc<Use> {
         self.start_node();
+        self.builder.start_node();
         let mut path = Vec::new();
         let mut allow_brace = false;
 
@@ -236,9 +238,12 @@ impl Parser {
             UseTargetDescriptor::Default
         };
 
+        let syntax = self.builder.finish_node(USE_PATH);
+
         Arc::new(Use {
             id: self.new_node_id(),
             span: self.finish_node(),
+            syntax,
             common_path: path,
             target,
         })
@@ -263,11 +268,11 @@ impl Parser {
     fn parse_use_path_component(&mut self) -> UsePathComponent {
         self.start_node();
 
-        let value = if self.eat(THIS) {
+        let value = if self.eat(SELF_KW) {
             UsePathComponentValue::This
         } else if self.eat(PACKAGE_KW) {
             UsePathComponentValue::Package
-        } else if self.eat(SUPER) {
+        } else if self.eat(SUPER_KW) {
             UsePathComponentValue::Super
         } else {
             let name = self.expect_identifier();
@@ -304,10 +309,11 @@ impl Parser {
 
         self.expect(L_BRACE);
         let variants = self.parse_list(COMMA, R_BRACE, |p| p.parse_enum_variant());
-        self.builder.finish_node(ENUM);
+        let syntax = self.builder.finish_node(ENUM);
         Arc::new(Enum {
             id: self.new_node_id(),
             span: self.finish_node(),
+            syntax,
             name,
             type_params,
             variants,
@@ -373,11 +379,12 @@ impl Parser {
         let expr = self.parse_expression();
         self.expect(SEMICOLON);
 
-        self.builder.finish_node(CONST);
+        let syntax = self.builder.finish_node(CONST);
 
         Arc::new(Const {
             id: self.new_node_id(),
             span: self.finish_node(),
+            syntax,
             name,
             data_type: ty,
             expr,
@@ -421,11 +428,12 @@ impl Parser {
 
         self.expect(R_BRACE);
 
-        self.builder.finish_node(IMPL);
+        let syntax = self.builder.finish_node(IMPL);
 
         Arc::new(Impl {
             id: self.new_node_id(),
             span: self.finish_node(),
+            syntax,
             type_params,
             trait_type,
             extended_type: class_type,
@@ -451,11 +459,12 @@ impl Parser {
 
         self.expect(SEMICOLON);
 
-        self.builder.finish_node(GLOBAL);
+        let syntax = self.builder.finish_node(GLOBAL);
 
         Arc::new(Global {
             id: self.new_node_id(),
             name,
+            syntax,
             span: self.finish_node(),
             data_type,
             mutable,
@@ -485,11 +494,12 @@ impl Parser {
         }
 
         self.expect(R_BRACE);
-        self.builder.finish_node(TRAIT);
+        let syntax = self.builder.finish_node(TRAIT);
 
         Arc::new(Trait {
             id: self.new_node_id(),
             name,
+            syntax,
             type_params,
             span: self.finish_node(),
             methods,
@@ -511,11 +521,12 @@ impl Parser {
             Vec::new()
         };
 
-        self.builder.finish_node(STRUCT);
+        let syntax = self.builder.finish_node(STRUCT);
 
         Arc::new(Struct {
             id: self.new_node_id(),
             name: ident,
+            syntax,
             span: self.finish_node(),
             fields,
             visibility: Visibility::from_modifiers(modifiers),
@@ -560,11 +571,12 @@ impl Parser {
             Vec::new()
         };
 
-        self.builder.finish_node(CLASS);
+        let syntax = self.builder.finish_node(CLASS);
 
         Arc::new(Class {
             id: self.new_node_id(),
             span: self.finish_node(),
+            syntax,
             name,
             internal: modifiers.contains(Annotation::Internal),
             visibility: Visibility::from_modifiers(modifiers),
@@ -605,11 +617,12 @@ impl Parser {
         let ty = self.parse_type();
         self.expect(SEMICOLON);
 
-        self.builder.finish_node(ALIAS);
+        let syntax = self.builder.finish_node(ALIAS);
 
         Arc::new(Alias {
             id: self.new_node_id(),
             name,
+            syntax,
             span: self.finish_node(),
             ty,
             visibility: Visibility::from_modifiers(modifiers),
@@ -690,23 +703,23 @@ impl Parser {
     fn parse_modifier(&mut self) -> Option<ModifierElement> {
         self.start_node();
 
-        if self.eat(PUB) {
+        if self.eat(PUB_KW) {
             Some(ModifierElement {
                 value: Annotation::Pub,
                 span: self.finish_node(),
             })
-        } else if self.eat(STATIC) {
+        } else if self.eat(STATIC_KW) {
             Some(ModifierElement {
                 value: Annotation::Static,
                 span: self.finish_node(),
             })
         } else if self.eat(AT) {
-            if self.eat(PUB) {
+            if self.eat(PUB_KW) {
                 return Some(ModifierElement {
                     value: Annotation::Pub,
                     span: self.finish_node(),
                 });
-            } else if self.eat(STATIC) {
+            } else if self.eat(STATIC_KW) {
                 return Some(ModifierElement {
                     value: Annotation::Static,
                     span: self.finish_node(),
@@ -771,7 +784,7 @@ impl Parser {
         let return_type = self.parse_function_type();
         let block = self.parse_function_block();
 
-        self.builder.finish_node(FN);
+        let syntax = self.builder.finish_node(FN);
 
         Arc::new(Function {
             id: self.new_node_id(),
@@ -788,6 +801,7 @@ impl Parser {
             return_type,
             block,
             type_params,
+            syntax,
         })
     }
 
@@ -866,11 +880,13 @@ impl Parser {
     }
 
     fn parse_type(&mut self) -> Type {
+        self.builder.start_node();
         match self.current() {
-            CAPITAL_THIS_BLOCK => {
+            UPCASE_SELF_KW => {
                 let span = self.current_span();
-                self.assert(CAPITAL_THIS_BLOCK);
-                Arc::new(TypeData::create_self(self.new_node_id(), span))
+                self.assert(UPCASE_SELF_KW);
+                let syntax = self.builder.finish_node(SELF_TYPE);
+                Arc::new(TypeData::create_self(self.new_node_id(), span, syntax))
             }
 
             IDENTIFIER => {
@@ -883,9 +899,12 @@ impl Parser {
                     Vec::new()
                 };
 
+                let syntax = self.builder.finish_node(REGULAR_TYPE);
+
                 Arc::new(TypeData::create_basic(
                     self.new_node_id(),
                     self.finish_node(),
+                    syntax,
                     path,
                     params,
                 ))
@@ -899,16 +918,22 @@ impl Parser {
                 if self.eat(COLON) {
                     let ret = self.parse_type();
 
+                    let syntax = self.builder.finish_node(LAMBDA_TYPE);
+
                     Arc::new(TypeData::create_fct(
                         self.new_node_id(),
                         self.finish_node(),
+                        syntax,
                         subtypes,
                         Some(ret),
                     ))
                 } else {
+                    let syntax = self.builder.finish_node(TUPLE_TYPE);
+
                     Arc::new(TypeData::create_tuple(
                         self.new_node_id(),
                         self.finish_node(),
+                        syntax,
                         subtypes,
                     ))
                 }
@@ -917,6 +942,7 @@ impl Parser {
             _ => {
                 let span = self.current_span();
                 self.report_error(ParseError::ExpectedType);
+                self.builder.abandon_node();
                 Arc::new(TypeData::Error {
                     id: self.new_node_id(),
                     span,
@@ -1017,6 +1043,7 @@ impl Parser {
 
     fn parse_block(&mut self) -> Expr {
         self.start_node();
+        self.builder.start_node();
         let mut stmts = vec![];
         let mut expr = None;
 
@@ -1046,9 +1073,12 @@ impl Parser {
             self.expect(R_BRACE);
         }
 
+        let syntax = self.builder.finish_node(BLOCK_EXPR);
+
         Arc::new(ExprData::create_block(
             self.new_node_id(),
             self.finish_node(),
+            syntax,
             stmts,
             expr,
         ))
@@ -1077,6 +1107,7 @@ impl Parser {
 
     fn parse_if(&mut self) -> Expr {
         self.start_node();
+        self.builder.start_node();
         self.assert(IF_KW);
 
         let cond = self.parse_expression();
@@ -1093,9 +1124,12 @@ impl Parser {
             None
         };
 
+        let syntax = self.builder.finish_node(IF_EXPR);
+
         Arc::new(ExprData::create_if(
             self.new_node_id(),
             self.finish_node(),
+            syntax,
             cond,
             then_block,
             else_block,
@@ -1104,6 +1138,7 @@ impl Parser {
 
     fn parse_match(&mut self) -> Expr {
         self.start_node();
+        self.builder.start_node();
         self.assert(MATCH_KW);
 
         let expr = self.parse_expression();
@@ -1125,10 +1160,12 @@ impl Parser {
         }
 
         self.expect(R_BRACE);
+        let syntax = self.builder.finish_node(MATCH_EXPR);
 
         Arc::new(ExprData::create_match(
             self.new_node_id(),
             self.finish_node(),
+            syntax,
             expr,
             cases,
         ))
@@ -1204,15 +1241,18 @@ impl Parser {
 
     fn parse_for(&mut self) -> Expr {
         self.start_node();
+        self.builder.start_node();
         self.assert(FOR_KW);
         let pattern = self.parse_let_pattern();
         self.expect(IN_KW);
         let expr = self.parse_expression();
         let block = self.parse_block();
+        let syntax = self.builder.finish_node(FOR_EXPR);
 
         Arc::new(ExprData::create_for(
             self.new_node_id(),
             self.finish_node(),
+            syntax,
             pattern,
             expr,
             block,
@@ -1221,13 +1261,16 @@ impl Parser {
 
     fn parse_while(&mut self) -> Expr {
         self.start_node();
+        self.builder.start_node();
         self.assert(WHILE_KW);
         let expr = self.parse_expression();
         let block = self.parse_block();
+        let syntax = self.builder.finish_node(WHILE_EXPR);
 
         Arc::new(ExprData::create_while(
             self.new_node_id(),
             self.finish_node(),
+            syntax,
             expr,
             block,
         ))
@@ -1235,26 +1278,33 @@ impl Parser {
 
     fn parse_break(&mut self) -> Expr {
         self.start_node();
+        self.builder.start_node();
         self.assert(BREAK_KW);
+        let syntax = self.builder.finish_node(BREAK_EXPR);
 
         Arc::new(ExprData::create_break(
             self.new_node_id(),
             self.finish_node(),
+            syntax,
         ))
     }
 
     fn parse_continue(&mut self) -> Expr {
         self.start_node();
+        self.builder.start_node();
         self.assert(CONTINUE_KW);
+        let syntax = self.builder.finish_node(CONTINUE_EXPR);
 
         Arc::new(ExprData::create_continue(
             self.new_node_id(),
             self.finish_node(),
+            syntax,
         ))
     }
 
     fn parse_return(&mut self) -> Expr {
         self.start_node();
+        self.builder.start_node();
         self.assert(RETURN_KW);
         let expr = if self.is(SEMICOLON) {
             None
@@ -1263,18 +1313,21 @@ impl Parser {
             Some(expr)
         };
 
+        let syntax = self.builder.finish_node(RETURN_EXPR);
+
         Arc::new(ExprData::create_return(
             self.new_node_id(),
             self.finish_node(),
+            syntax,
             expr,
         ))
     }
 
     fn parse_expression(&mut self) -> Expr {
-        self.parse_binary(0)
+        self.parse_binary_expr(0)
     }
 
-    fn parse_binary(&mut self, precedence: u32) -> Expr {
+    fn parse_binary_expr(&mut self, precedence: u32) -> Expr {
         if !self.is_set(EXPRESSION_FIRST) {
             self.report_error(ParseError::ExpectedExpression);
             return Arc::new(ExprData::Error {
@@ -1284,7 +1337,7 @@ impl Parser {
         }
 
         let start = self.current_span().start();
-        let mut left = self.parse_unary();
+        let mut left = self.parse_unary_expr();
 
         loop {
             let right_precedence = match self.current() {
@@ -1317,17 +1370,18 @@ impl Parser {
                 }
 
                 _ => {
-                    let right = self.parse_binary(right_precedence);
+                    let right = self.parse_binary_expr(right_precedence);
                     self.create_binary(kind, start, left, right)
                 }
             };
         }
     }
 
-    fn parse_unary(&mut self) -> Expr {
+    fn parse_unary_expr(&mut self) -> Expr {
         match self.current() {
             ADD | SUB | NOT => {
                 self.start_node();
+                self.builder.start_node();
                 let kind = self.current();
                 self.advance();
                 let op = match kind {
@@ -1337,20 +1391,22 @@ impl Parser {
                     _ => unreachable!(),
                 };
 
-                let expr = self.parse_primary();
+                let expr = self.parse_postfix_expr();
+                let syntax = self.builder.finish_node(UNARY_EXPR);
                 Arc::new(ExprData::create_un(
                     self.new_node_id(),
                     self.finish_node(),
+                    syntax,
                     op,
                     expr,
                 ))
             }
 
-            _ => self.parse_primary(),
+            _ => self.parse_postfix_expr(),
         }
     }
 
-    fn parse_primary(&mut self) -> Expr {
+    fn parse_postfix_expr(&mut self) -> Expr {
         let start = self.current_span().start();
         let mut left = self.parse_factor();
 
@@ -1468,7 +1524,7 @@ impl Parser {
             IDENTIFIER => self.parse_identifier(),
             TRUE => self.parse_bool_literal(),
             FALSE => self.parse_bool_literal(),
-            THIS => self.parse_this(),
+            SELF_KW => self.parse_this(),
             OR | OR_OR => self.parse_lambda(),
             FOR_KW => self.parse_for(),
             WHILE_KW => self.parse_while(),
@@ -1487,23 +1543,28 @@ impl Parser {
     }
 
     fn parse_identifier(&mut self) -> Expr {
+        self.builder.start_node();
         let ident = self.expect_identifier().expect("identifier expected");
-
+        let syntax = self.builder.finish_node(IDENT_EXPR);
         Arc::new(ExprData::create_ident(
             self.new_node_id(),
             ident.span,
+            syntax,
             ident.name_as_string.clone(),
         ))
     }
 
     fn parse_parentheses(&mut self) -> Expr {
         self.start_node();
+        self.builder.start_node();
         self.assert(L_PAREN);
 
         if self.eat(R_PAREN) {
+            let syntax = self.builder.finish_node(TUPLE_EXPR);
             return Arc::new(ExprData::create_tuple(
                 self.new_node_id(),
                 self.finish_node(),
+                syntax,
                 Vec::new(),
             ));
         }
@@ -1528,16 +1589,22 @@ impl Parser {
                 }
             }
 
+            let syntax = self.builder.finish_node(TUPLE_EXPR);
+
             Arc::new(ExprData::create_tuple(
                 self.new_node_id(),
                 self.finish_node(),
+                syntax,
                 values,
             ))
         } else {
+            let syntax = self.builder.finish_node(PAREN_EXPR);
+
             self.expect(R_PAREN);
             Arc::new(ExprData::create_paren(
                 self.new_node_id(),
                 self.finish_node(),
+                syntax,
                 expr,
             ))
         }
@@ -1545,48 +1612,71 @@ impl Parser {
 
     fn parse_lit_char(&mut self) -> Expr {
         let span = self.current_span();
+        self.builder.start_node();
         self.assert(CHAR_LITERAL);
         let value = self.source_span(span);
 
-        Arc::new(ExprData::create_lit_char(self.new_node_id(), span, value))
+        let syntax = self.builder.finish_node(CHAR_LIT_EXPR);
+        Arc::new(ExprData::create_lit_char(
+            self.new_node_id(),
+            span,
+            syntax,
+            value,
+        ))
     }
 
     fn parse_lit_int(&mut self) -> Expr {
         let span = self.current_span();
+        self.builder.start_node();
         self.assert(INT_LITERAL);
         let value = self.source_span(span);
 
-        let expr = ExprData::create_lit_int(self.new_node_id(), span, value);
-        Arc::new(expr)
+        let syntax = self.builder.finish_node(INT_LIT_EXPR);
+        Arc::new(ExprData::create_lit_int(
+            self.new_node_id(),
+            span,
+            syntax,
+            value,
+        ))
     }
 
     fn parse_lit_float(&mut self) -> Expr {
         let span = self.current_span();
+        self.builder.start_node();
         self.assert(FLOAT_LITERAL);
         let value = self.source_span(span);
 
-        let expr = ExprData::create_lit_float(self.new_node_id(), span, value);
-        Arc::new(expr)
+        let syntax = self.builder.finish_node(FLOAT_LIT_EXPR);
+        Arc::new(ExprData::create_lit_float(
+            self.new_node_id(),
+            span,
+            syntax,
+            value,
+        ))
     }
 
     fn parse_template(&mut self) -> Expr {
+        self.builder.start_node();
         let span = self.current_span();
         let start = span.start();
+
+        self.builder.start_node();
         self.assert(TEMPLATE_LITERAL);
         let value = self.source_span(span);
+        let syntax = self.builder.finish_node(STRING_LIT_EXPR);
 
         let mut parts: Vec<Expr> = Vec::new();
         parts.push(Arc::new(ExprData::create_lit_str(
             self.new_node_id(),
             span,
+            syntax,
             value,
         )));
 
         let mut done = false;
 
         while !done {
-            let expr = self.parse_expression();
-            parts.push(expr);
+            parts.push(self.parse_expression());
 
             let span = self.current_span();
 
@@ -1599,48 +1689,68 @@ impl Parser {
                 break;
             }
 
+            self.builder.start_node();
             let value = self.source_span(span);
+            self.advance();
+            let syntax = self.builder.finish_node(STRING_LIT_EXPR);
 
             parts.push(Arc::new(ExprData::create_lit_str(
                 self.new_node_id(),
                 span,
+                syntax,
                 value,
             )));
-
-            self.advance();
         }
 
         let span = self.span_from(start);
 
-        Arc::new(ExprData::create_template(self.new_node_id(), span, parts))
+        let syntax = self.builder.finish_node(TEMPLATE_EXPR);
+        Arc::new(ExprData::create_template(
+            self.new_node_id(),
+            span,
+            syntax,
+            parts,
+        ))
     }
 
     fn parse_string(&mut self) -> Expr {
         let span = self.current_span();
+        self.builder.start_node();
         self.assert(STRING_LITERAL);
 
         let value = self.source_span(span);
-        Arc::new(ExprData::create_lit_str(self.new_node_id(), span, value))
+        let syntax = self.builder.finish_node(STRING_LIT_EXPR);
+        Arc::new(ExprData::create_lit_str(
+            self.new_node_id(),
+            span,
+            syntax,
+            value,
+        ))
     }
 
     fn parse_bool_literal(&mut self) -> Expr {
+        self.builder.start_node();
         let span = self.current_span();
         let kind = self.current();
         self.assert(kind);
         let value = kind == TRUE;
+        self.builder.finish_node(BOOL_LIT_EXPR);
 
         Arc::new(ExprData::create_lit_bool(self.new_node_id(), span, value))
     }
 
     fn parse_this(&mut self) -> Expr {
+        self.builder.start_node();
         let span = self.current_span();
-        self.assert(THIS);
+        self.assert(SELF_KW);
+        let syntax = self.builder.finish_node(THIS_EXPR);
 
-        Arc::new(ExprData::create_this(self.new_node_id(), span))
+        Arc::new(ExprData::create_this(self.new_node_id(), span, syntax))
     }
 
     fn parse_lambda(&mut self) -> Expr {
         self.start_node();
+        self.builder.start_node();
 
         let params = if self.eat(OR_OR) {
             // nothing to do
@@ -1657,6 +1767,7 @@ impl Parser {
         };
 
         let block = self.parse_block();
+        let syntax = self.builder.finish_node(LAMBDA_EXPR);
 
         let function = Arc::new(Function {
             id: self.new_node_id(),
@@ -1673,6 +1784,7 @@ impl Parser {
             return_type,
             block: Some(block),
             type_params: None,
+            syntax,
         });
 
         Arc::new(ExprData::create_lambda(function))

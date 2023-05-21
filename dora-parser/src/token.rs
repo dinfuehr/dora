@@ -35,7 +35,7 @@ pub const EXPRESSION_FIRST: TokenSet = TokenSet::new(&[
     TokenKind::MATCH_KW,
     TokenKind::L_BRACE,
     TokenKind::L_PAREN,
-    TokenKind::THIS,
+    TokenKind::SELF_KW,
     TokenKind::OR,
     TokenKind::OR_OR,
     TokenKind::NOT,
@@ -92,10 +92,10 @@ pub enum TokenKind {
     MATCH_KW,
 
     // qualifiers
-    THIS,
-    SUPER,
-    PUB,
-    STATIC,
+    SELF_KW,
+    SUPER_KW,
+    PUB_KW,
+    STATIC_KW,
 
     // casting
     AS,
@@ -153,7 +153,7 @@ pub enum TokenKind {
     // unused
     TYPE_KW,
     ALIAS_KW,
-    CAPITAL_THIS_BLOCK,
+    UPCASE_SELF_KW,
     UNDERSCORE,
 
     // trivia
@@ -175,6 +175,7 @@ pub enum TokenKind {
     STRUCT,
     CLASS,
     USE,
+    USE_PATH,
     EXTERN,
     ENUM,
     MODULE,
@@ -186,6 +187,34 @@ pub enum TokenKind {
     IDENT,
     TYPE_PARAMS,
     TYPE_PARAM,
+
+    // Types
+    SELF_TYPE,
+    REGULAR_TYPE,
+    LAMBDA_TYPE,
+    TUPLE_TYPE,
+
+    // Expressions
+    TUPLE_EXPR,
+    PAREN_EXPR,
+    CHAR_LIT_EXPR,
+    INT_LIT_EXPR,
+    FLOAT_LIT_EXPR,
+    STRING_LIT_EXPR,
+    TEMPLATE_EXPR,
+    BLOCK_EXPR,
+    IF_EXPR,
+    IDENT_EXPR,
+    BOOL_LIT_EXPR,
+    THIS_EXPR,
+    LAMBDA_EXPR,
+    FOR_EXPR,
+    WHILE_EXPR,
+    MATCH_EXPR,
+    BREAK_EXPR,
+    CONTINUE_EXPR,
+    RETURN_EXPR,
+    UNARY_EXPR,
 }
 
 pub const LAST_TOKEN: TokenKind = TokenKind::EOF;
