@@ -251,6 +251,7 @@ impl Parser {
 
     fn parse_use_as(&mut self) -> UseTargetName {
         self.start_node();
+        self.builder.start_node();
         self.assert(AS);
 
         let name = if self.eat(UNDERSCORE) {
@@ -259,7 +260,10 @@ impl Parser {
             self.expect_identifier()
         };
 
+        let syntax = self.builder.finish_node(USE_RENAME);
+
         UseTargetName {
+            syntax,
             span: self.finish_node(),
             name,
         }
@@ -310,6 +314,7 @@ impl Parser {
         self.expect(L_BRACE);
         let variants = self.parse_list(COMMA, R_BRACE, |p| p.parse_enum_variant());
         let syntax = self.builder.finish_node(ENUM);
+
         Arc::new(Enum {
             id: self.new_node_id(),
             span: self.finish_node(),
@@ -353,6 +358,7 @@ impl Parser {
 
     fn parse_enum_variant(&mut self) -> EnumVariant {
         self.start_node();
+        self.builder.start_node();
         let name = self.expect_identifier();
 
         let types = if self.eat(L_PAREN) {
@@ -361,9 +367,12 @@ impl Parser {
             None
         };
 
+        let syntax = self.builder.finish_node(ENUM_VARIANT);
+
         EnumVariant {
             id: self.new_node_id(),
             span: self.finish_node(),
+            syntax,
             name,
             types,
         }
@@ -537,6 +546,7 @@ impl Parser {
 
     fn parse_struct_field(&mut self) -> StructField {
         self.start_node();
+        self.builder.start_node();
 
         let modifiers = self.parse_modifiers();
         let mods = &[Annotation::Pub];
@@ -547,10 +557,13 @@ impl Parser {
         self.expect(COLON);
         let ty = self.parse_type();
 
+        let syntax = self.builder.finish_node(STRUCT_FIELD);
+
         StructField {
             id: self.new_node_id(),
-            name: ident,
             span: self.finish_node(),
+            syntax,
+            name: ident,
             data_type: ty,
             visibility: Visibility::from_modifiers(&modifiers),
         }
@@ -587,6 +600,7 @@ impl Parser {
 
     fn parse_class_field(&mut self) -> Field {
         self.start_node();
+        self.builder.start_node();
 
         let modifiers = self.parse_modifiers();
         let mods = &[Annotation::Pub];
@@ -597,10 +611,13 @@ impl Parser {
         self.expect(COLON);
         let data_type = self.parse_type();
 
+        let syntax = self.builder.finish_node(CLASS_FIELD);
+
         Field {
             id: self.new_node_id(),
-            name,
             span: self.finish_node(),
+            syntax,
+            name,
             data_type,
             primary_ctor: false,
             expr: None,
@@ -678,12 +695,17 @@ impl Parser {
 
     fn parse_modifiers(&mut self) -> Modifiers {
         let mut modifiers = Modifiers::new();
+        let marker = self.builder.create_marker();
+        let mut found = false;
+
         loop {
             let modifier = self.parse_modifier();
 
             if modifier.is_none() {
                 break;
             }
+
+            found = true;
 
             let modifier = modifier.unwrap();
 
@@ -695,6 +717,10 @@ impl Parser {
             }
 
             modifiers.add(modifier);
+        }
+
+        if found {
+            self.builder.finish_node_starting_at(MODIFIERS, marker);
         }
 
         modifiers

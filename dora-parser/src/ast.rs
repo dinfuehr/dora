@@ -234,6 +234,7 @@ pub struct UseTargetGroup {
 
 #[derive(Clone, Debug)]
 pub struct UseTargetName {
+    pub syntax: SyntaxNode,
     pub span: Span,
     pub name: Option<Ident>,
 }
@@ -279,6 +280,7 @@ pub struct Enum {
 pub struct EnumVariant {
     pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
     pub name: Option<Ident>,
     pub types: Option<Vec<Type>>,
 }
@@ -309,6 +311,7 @@ pub struct Struct {
 pub struct StructField {
     pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
     pub name: Option<Ident>,
     pub data_type: Type,
     pub visibility: Visibility,
@@ -617,6 +620,7 @@ pub struct TypeParam {
 pub struct Field {
     pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
     pub name: Option<Ident>,
     pub data_type: Type,
     pub primary_ctor: bool,
@@ -669,24 +673,26 @@ impl Function {
 
 // remove in next step
 #[derive(Clone, Debug)]
-pub struct Modifiers(Vec<ModifierElement>);
+pub struct Modifiers {
+    items: Vec<ModifierElement>,
+}
 
 // remove in next step
 impl Modifiers {
     pub fn new() -> Modifiers {
-        Modifiers(Vec::new())
+        Modifiers { items: Vec::new() }
     }
 
     pub fn contains(&self, modifier: Annotation) -> bool {
-        self.0.iter().find(|el| el.value == modifier).is_some()
+        self.items.iter().find(|el| el.value == modifier).is_some()
     }
 
     pub fn add(&mut self, modifier: ModifierElement) {
-        self.0.push(modifier);
+        self.items.push(modifier);
     }
 
     pub fn iter(&self) -> Iter<ModifierElement> {
-        self.0.iter()
+        self.items.iter()
     }
 }
 

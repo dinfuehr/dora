@@ -173,11 +173,15 @@ pub enum TokenKind {
     ALIAS,
     FN,
     STRUCT,
+    STRUCT_FIELD,
     CLASS,
+    CLASS_FIELD,
     USE,
     USE_PATH,
+    USE_RENAME,
     EXTERN,
     ENUM,
+    ENUM_VARIANT,
     MODULE,
     CONST,
     IMPL,
@@ -187,6 +191,8 @@ pub enum TokenKind {
     IDENT,
     TYPE_PARAMS,
     TYPE_PARAM,
+
+    MODIFIERS,
 
     // Types
     SELF_TYPE,
