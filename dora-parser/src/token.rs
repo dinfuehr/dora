@@ -215,6 +215,9 @@ pub enum TokenKind {
     CONTINUE_EXPR,
     RETURN_EXPR,
     UNARY_EXPR,
+    POSTFIX_EXPR,
+    BINARY_EXPR,
+    CONV_EXPR,
 }
 
 pub const LAST_TOKEN: TokenKind = TokenKind::EOF;

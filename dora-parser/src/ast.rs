@@ -322,6 +322,8 @@ pub enum TypeData {
     Basic(TypeBasicType),
     Tuple(TypeTupleType),
     Lambda(TypeLambdaType),
+    Path(TypePathType),
+    Generic(TypeGenericType),
     Error { id: NodeId, span: Span },
 }
 
@@ -361,6 +363,25 @@ pub struct TypeBasicType {
     pub params: Vec<Type>,
 }
 
+#[derive(Clone, Debug)]
+pub struct TypePathType {
+    pub id: NodeId,
+    pub span: Span,
+    pub syntax: SyntaxNode,
+
+    pub path: Path,
+}
+
+#[derive(Clone, Debug)]
+pub struct TypeGenericType {
+    pub id: NodeId,
+    pub span: Span,
+    pub syntax: SyntaxNode,
+
+    pub path: Type,
+    pub params: Vec<Type>,
+}
+
 impl TypeBasicType {
     #[cfg(test)]
     pub fn name(&self) -> String {
@@ -388,6 +409,31 @@ impl TypeData {
         params: Vec<Type>,
     ) -> TypeData {
         TypeData::Basic(TypeBasicType {
+            id,
+            span,
+            syntax,
+            path,
+            params,
+        })
+    }
+
+    pub fn create_path(id: NodeId, span: Span, syntax: SyntaxNode, path: Path) -> TypeData {
+        TypeData::Path(TypePathType {
+            id,
+            span,
+            syntax,
+            path,
+        })
+    }
+
+    pub fn create_generic(
+        id: NodeId,
+        span: Span,
+        syntax: SyntaxNode,
+        path: Type,
+        params: Vec<Type>,
+    ) -> TypeData {
+        TypeData::Generic(TypeGenericType {
             id,
             span,
             syntax,
@@ -478,6 +524,8 @@ impl TypeData {
                 }
             }
 
+            TypeData::Generic(..) | TypeData::Path(..) => unreachable!(),
+
             TypeData::Error { .. } => "error type".into(),
         }
     }
@@ -489,6 +537,8 @@ impl TypeData {
             TypeData::Tuple(ref val) => val.span,
             TypeData::Lambda(ref val) => val.span,
             TypeData::Error { span, .. } => span,
+            TypeData::Path(ref val) => val.span,
+            TypeData::Generic(ref val) => val.span,
         }
     }
 
@@ -499,6 +549,8 @@ impl TypeData {
             TypeData::Tuple(ref val) => val.id,
             TypeData::Lambda(ref val) => val.id,
             TypeData::Error { id, .. } => id,
+            TypeData::Path(ref val) => val.id,
+            TypeData::Generic(ref val) => val.id,
         }
     }
 }

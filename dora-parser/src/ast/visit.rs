@@ -217,6 +217,13 @@ pub fn walk_type<V: Visitor>(v: &mut V, t: &TypeData) {
             }
         }
 
+        TypeData::Path(..) => {}
+        TypeData::Generic(ref ty) => {
+            for ty in &ty.params {
+                v.visit_type(ty);
+            }
+        }
+
         TypeData::Error { .. } => {}
     }
 }

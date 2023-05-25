@@ -107,6 +107,13 @@ impl SyntaxTreeBuilder {
         self.nodes.push((self.children.len(), self.offset));
     }
 
+    pub fn create_marker(&mut self) -> Marker {
+        Marker {
+            children: self.children.len(),
+            offset: self.offset,
+        }
+    }
+
     pub fn token(&mut self, kind: TokenKind, value: String) {
         assert!(kind < TokenKind::EOF);
         let id = self.new_node_id();
@@ -123,6 +130,22 @@ impl SyntaxTreeBuilder {
     pub fn finish_node(&mut self, kind: TokenKind) -> SyntaxNode {
         assert!(kind > TokenKind::EOF);
         let (children_start, start) = self.nodes.pop().expect("missing node start");
+        self.finish_node_common(kind, children_start, start)
+    }
+
+    pub fn finish_node_starting_at(&mut self, kind: TokenKind, marker: Marker) -> SyntaxNode {
+        assert!(kind > TokenKind::EOF);
+        let children_start = marker.children;
+        let start = marker.offset;
+        self.finish_node_common(kind, children_start, start)
+    }
+
+    fn finish_node_common(
+        &mut self,
+        kind: TokenKind,
+        children_start: usize,
+        start: u32,
+    ) -> SyntaxNode {
         let children = self.children.drain(children_start..).collect::<Vec<_>>();
         let id = self.new_node_id();
         let span = Span::new(start, self.offset - start);
@@ -150,4 +173,10 @@ impl SyntaxTreeBuilder {
         self.next_id += 1;
         NodeId(usize::MAX - value)
     }
+}
+
+#[derive(Clone)]
+pub struct Marker {
+    children: usize,
+    offset: u32,
 }

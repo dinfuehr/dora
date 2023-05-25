@@ -1337,6 +1337,7 @@ impl Parser {
         }
 
         let start = self.current_span().start();
+        let marker = self.builder.create_marker();
         let mut left = self.parse_unary_expr();
 
         loop {
@@ -1364,6 +1365,10 @@ impl Parser {
                 AS => {
                     let right = self.parse_type();
                     let span = self.span_from(start);
+
+                    self.builder
+                        .finish_node_starting_at(CONV_EXPR, marker.clone());
+
                     let expr = ExprData::create_conv(self.new_node_id(), span, left, right);
 
                     Arc::new(expr)
@@ -1371,6 +1376,8 @@ impl Parser {
 
                 _ => {
                     let right = self.parse_binary_expr(right_precedence);
+                    self.builder
+                        .finish_node_starting_at(BINARY_EXPR, marker.clone());
                     self.create_binary(kind, start, left, right)
                 }
             };
@@ -1408,6 +1415,7 @@ impl Parser {
 
     fn parse_postfix_expr(&mut self) -> Expr {
         let start = self.current_span().start();
+        let marker = self.builder.create_marker();
         let mut left = self.parse_factor();
 
         loop {
@@ -1417,6 +1425,9 @@ impl Parser {
                     self.assert(DOT);
                     let rhs = self.parse_factor();
                     let span = self.span_from(start);
+
+                    self.builder
+                        .finish_node_starting_at(POSTFIX_EXPR, marker.clone());
 
                     Arc::new(ExprData::create_dot(
                         self.new_node_id(),
@@ -1432,6 +1443,9 @@ impl Parser {
                     let args = self.parse_list(COMMA, R_PAREN, |p| p.parse_expression());
                     let span = self.span_from(start);
 
+                    self.builder
+                        .finish_node_starting_at(POSTFIX_EXPR, marker.clone());
+
                     Arc::new(ExprData::create_call(self.new_node_id(), span, left, args))
                 }
 
@@ -1440,6 +1454,9 @@ impl Parser {
                     self.assert(L_BRACKET);
                     let types = self.parse_list(COMMA, R_BRACKET, |p| p.parse_type());
                     let span = self.span_from(start);
+
+                    self.builder
+                        .finish_node_starting_at(POSTFIX_EXPR, marker.clone());
 
                     Arc::new(ExprData::create_type_param(
                         self.new_node_id(),
@@ -1455,6 +1472,9 @@ impl Parser {
                     self.assert(COLON_COLON);
                     let rhs = self.parse_factor();
                     let span = self.span_from(start);
+
+                    self.builder
+                        .finish_node_starting_at(POSTFIX_EXPR, marker.clone());
 
                     Arc::new(ExprData::create_path(
                         self.new_node_id(),
