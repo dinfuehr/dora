@@ -194,6 +194,7 @@ pub struct Global {
     pub id: NodeId,
     pub span: Span,
     pub syntax: SyntaxNode,
+    pub modifiers: Modifiers,
     pub name: Option<Ident>,
     pub mutable: bool,
     pub data_type: Type,
@@ -205,6 +206,8 @@ pub struct Global {
 pub struct Module {
     pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
+    pub modifiers: Modifiers,
     pub name: Option<Ident>,
     pub elements: Option<Vec<Elem>>,
     pub visibility: Visibility,
@@ -241,6 +244,7 @@ pub struct UseTargetName {
 
 #[derive(Clone, Debug)]
 pub struct UsePathComponent {
+    pub syntax: SyntaxNode,
     pub span: Span,
     pub value: UsePathComponentValue,
 }
@@ -259,6 +263,7 @@ pub struct Const {
     pub id: NodeId,
     pub span: Span,
     pub syntax: SyntaxNode,
+    pub modifiers: Modifiers,
     pub name: Option<Ident>,
     pub data_type: Type,
     pub expr: Expr,
@@ -270,6 +275,7 @@ pub struct Enum {
     pub id: NodeId,
     pub span: Span,
     pub syntax: SyntaxNode,
+    pub modifiers: Modifiers,
     pub name: Option<Ident>,
     pub type_params: Option<TypeParams>,
     pub variants: Vec<EnumVariant>,
@@ -290,6 +296,7 @@ pub struct Alias {
     pub id: NodeId,
     pub span: Span,
     pub syntax: SyntaxNode,
+    pub modifiers: Modifiers,
     pub name: Option<Ident>,
     pub ty: Type,
     pub visibility: Visibility,
@@ -300,6 +307,7 @@ pub struct Struct {
     pub id: NodeId,
     pub span: Span,
     pub syntax: SyntaxNode,
+    pub modifiers: Modifiers,
     pub name: Option<Ident>,
     pub fields: Vec<StructField>,
     pub visibility: Visibility,
@@ -575,6 +583,7 @@ pub struct Trait {
     pub id: NodeId,
     pub name: Option<Ident>,
     pub syntax: SyntaxNode,
+    pub modifiers: Modifiers,
     pub type_params: Option<TypeParams>,
     pub span: Span,
     pub methods: Vec<Arc<Function>>,
@@ -586,6 +595,7 @@ pub struct Class {
     pub id: NodeId,
     pub span: Span,
     pub syntax: SyntaxNode,
+    pub modifiers: Modifiers,
     pub name: Option<Ident>,
     pub internal: bool,
     pub visibility: Visibility,
@@ -599,6 +609,7 @@ pub struct ExternPackage {
     pub id: NodeId,
     pub span: Span,
     pub syntax: SyntaxNode,
+    pub modifiers: Modifiers,
     pub name: Option<Ident>,
     pub identifier: Option<Ident>,
 }
@@ -649,6 +660,7 @@ pub struct Function {
     pub id: NodeId,
     pub span: Span,
     pub syntax: SyntaxNode,
+    pub modifiers: Modifiers,
     pub kind: FunctionKind,
     pub name: Option<Ident>,
     pub is_optimize_immediately: bool,

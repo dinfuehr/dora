@@ -95,25 +95,25 @@ impl Parser {
                         Annotation::Pub,
                     ],
                 );
-                let fct = self.parse_function(&modifiers);
+                let fct = self.parse_function(modifiers);
                 Arc::new(ElemData::Function(fct))
             }
 
             CLASS_KW => {
                 self.restrict_modifiers(&modifiers, &[Annotation::Internal, Annotation::Pub]);
-                let class = self.parse_class(&modifiers);
+                let class = self.parse_class(modifiers);
                 Arc::new(ElemData::Class(class))
             }
 
             STRUCT_KW => {
                 self.restrict_modifiers(&modifiers, &[Annotation::Pub, Annotation::Internal]);
-                let struc = self.parse_struct(&modifiers);
+                let struc = self.parse_struct(modifiers);
                 Arc::new(ElemData::Struct(struc))
             }
 
             TRAIT_KW => {
                 self.restrict_modifiers(&modifiers, &[Annotation::Pub]);
-                let trait_ = self.parse_trait(&modifiers);
+                let trait_ = self.parse_trait(modifiers);
                 Arc::new(ElemData::Trait(trait_))
             }
 
@@ -125,43 +125,43 @@ impl Parser {
 
             ALIAS_KW => {
                 self.restrict_modifiers(&modifiers, &[Annotation::Pub]);
-                let alias = self.parse_alias(&modifiers);
+                let alias = self.parse_alias(modifiers);
                 Arc::new(ElemData::Alias(alias))
             }
 
             LET_KW => {
                 self.restrict_modifiers(&modifiers, &[Annotation::Pub]);
-                let global = self.parse_global(&modifiers);
+                let global = self.parse_global(modifiers);
                 Arc::new(ElemData::Global(global))
             }
 
             CONST_KW => {
                 self.restrict_modifiers(&modifiers, &[Annotation::Pub]);
-                let const_ = self.parse_const(&modifiers);
+                let const_ = self.parse_const(modifiers);
                 Arc::new(ElemData::Const(const_))
             }
 
             ENUM_KW => {
                 self.restrict_modifiers(&modifiers, &[Annotation::Pub]);
-                let enum_ = self.parse_enum(&modifiers);
+                let enum_ = self.parse_enum(modifiers);
                 Arc::new(ElemData::Enum(enum_))
             }
 
             MOD_KW => {
                 self.restrict_modifiers(&modifiers, &[Annotation::Pub]);
-                let module = self.parse_module(&modifiers);
+                let module = self.parse_module(modifiers);
                 Arc::new(ElemData::Module(module))
             }
 
             USE_KW => {
                 self.restrict_modifiers(&modifiers, &[Annotation::Pub]);
-                let use_stmt = self.parse_use();
+                let use_stmt = self.parse_use(modifiers);
                 Arc::new(ElemData::Use(use_stmt))
             }
 
             EXTERN_KW => {
                 self.ban_modifiers(&modifiers);
-                let extern_stmt = self.parse_extern();
+                let extern_stmt = self.parse_extern(modifiers);
                 Arc::new(ElemData::Extern(extern_stmt))
             }
 
@@ -177,7 +177,7 @@ impl Parser {
         }
     }
 
-    fn parse_extern(&mut self) -> Arc<ExternPackage> {
+    fn parse_extern(&mut self, modifiers: Modifiers) -> Arc<ExternPackage> {
         self.start_node();
 
         self.assert(EXTERN_KW);
@@ -195,12 +195,13 @@ impl Parser {
             id: self.new_node_id(),
             span: self.finish_node(),
             syntax,
+            modifiers,
             name,
             identifier,
         })
     }
 
-    fn parse_use(&mut self) -> Arc<Use> {
+    fn parse_use(&mut self, _modifiers: Modifiers) -> Arc<Use> {
         self.assert(USE_KW);
         let use_declaration = self.parse_use_inner();
         self.expect(SEMICOLON);
@@ -271,6 +272,7 @@ impl Parser {
 
     fn parse_use_path_component(&mut self) -> UsePathComponent {
         self.start_node();
+        self.builder.start_node();
 
         let value = if self.eat(SELF_KW) {
             UsePathComponentValue::This
@@ -287,7 +289,10 @@ impl Parser {
             }
         };
 
+        let syntax = self.builder.finish_node(USE_COMPONENT);
+
         UsePathComponent {
+            syntax,
             span: self.finish_node(),
             value,
         }
@@ -305,7 +310,7 @@ impl Parser {
         })
     }
 
-    fn parse_enum(&mut self, modifiers: &Modifiers) -> Arc<Enum> {
+    fn parse_enum(&mut self, modifiers: Modifiers) -> Arc<Enum> {
         self.start_node();
         self.assert(ENUM_KW);
         let name = self.expect_identifier();
@@ -319,14 +324,15 @@ impl Parser {
             id: self.new_node_id(),
             span: self.finish_node(),
             syntax,
+            modifiers: modifiers.clone(),
             name,
             type_params,
             variants,
-            visibility: Visibility::from_modifiers(modifiers),
+            visibility: Visibility::from_modifiers(&modifiers),
         })
     }
 
-    fn parse_module(&mut self, modifiers: &Modifiers) -> Arc<Module> {
+    fn parse_module(&mut self, modifiers: Modifiers) -> Arc<Module> {
         self.start_node();
         self.assert(MOD_KW);
         let name = self.expect_identifier();
@@ -345,14 +351,16 @@ impl Parser {
             None
         };
 
-        self.builder.finish_node(MODULE);
+        let syntax = self.builder.finish_node(MODULE);
 
         Arc::new(Module {
             id: self.new_node_id(),
             span: self.finish_node(),
+            syntax,
+            modifiers: modifiers.clone(),
             name,
             elements,
-            visibility: Visibility::from_modifiers(modifiers),
+            visibility: Visibility::from_modifiers(&modifiers),
         })
     }
 
@@ -378,7 +386,7 @@ impl Parser {
         }
     }
 
-    fn parse_const(&mut self, modifiers: &Modifiers) -> Arc<Const> {
+    fn parse_const(&mut self, modifiers: Modifiers) -> Arc<Const> {
         self.start_node();
         self.assert(CONST_KW);
         let name = self.expect_identifier();
@@ -394,10 +402,11 @@ impl Parser {
             id: self.new_node_id(),
             span: self.finish_node(),
             syntax,
+            modifiers: modifiers.clone(),
             name,
             data_type: ty,
             expr,
-            visibility: Visibility::from_modifiers(modifiers),
+            visibility: Visibility::from_modifiers(&modifiers),
         })
     }
 
@@ -427,7 +436,7 @@ impl Parser {
             self.restrict_modifiers(&modifiers, mods);
 
             if self.is(FN_KW) {
-                let method = self.parse_function(&modifiers);
+                let method = self.parse_function(modifiers);
                 methods.push(method);
             } else {
                 self.report_error(ParseError::ExpectedImplElement);
@@ -450,7 +459,7 @@ impl Parser {
         })
     }
 
-    fn parse_global(&mut self, modifiers: &Modifiers) -> Arc<Global> {
+    fn parse_global(&mut self, modifiers: Modifiers) -> Arc<Global> {
         self.start_node();
         self.assert(LET_KW);
 
@@ -474,15 +483,16 @@ impl Parser {
             id: self.new_node_id(),
             name,
             syntax,
+            modifiers: modifiers.clone(),
             span: self.finish_node(),
             data_type,
             mutable,
-            visibility: Visibility::from_modifiers(modifiers),
+            visibility: Visibility::from_modifiers(&modifiers),
             initial_value: expr.clone(),
         })
     }
 
-    fn parse_trait(&mut self, modifiers: &Modifiers) -> Arc<Trait> {
+    fn parse_trait(&mut self, modifiers: Modifiers) -> Arc<Trait> {
         self.start_node();
         self.assert(TRAIT_KW);
         let name = self.expect_identifier();
@@ -498,7 +508,7 @@ impl Parser {
             let mods = &[Annotation::Static];
             self.restrict_modifiers(&modifiers, mods);
 
-            let method = self.parse_function(&modifiers);
+            let method = self.parse_function(modifiers);
             methods.push(method);
         }
 
@@ -509,14 +519,15 @@ impl Parser {
             id: self.new_node_id(),
             name,
             syntax,
+            modifiers: modifiers.clone(),
             type_params,
             span: self.finish_node(),
             methods,
-            visibility: Visibility::from_modifiers(modifiers),
+            visibility: Visibility::from_modifiers(&modifiers),
         })
     }
 
-    fn parse_struct(&mut self, modifiers: &Modifiers) -> Arc<Struct> {
+    fn parse_struct(&mut self, modifiers: Modifiers) -> Arc<Struct> {
         self.start_node();
         self.assert(STRUCT_KW);
         let ident = self.expect_identifier();
@@ -536,9 +547,10 @@ impl Parser {
             id: self.new_node_id(),
             name: ident,
             syntax,
+            modifiers: modifiers.clone(),
             span: self.finish_node(),
             fields,
-            visibility: Visibility::from_modifiers(modifiers),
+            visibility: Visibility::from_modifiers(&modifiers),
             internal: modifiers.contains(Annotation::Internal),
             type_params,
         })
@@ -569,7 +581,7 @@ impl Parser {
         }
     }
 
-    fn parse_class(&mut self, modifiers: &Modifiers) -> Arc<Class> {
+    fn parse_class(&mut self, modifiers: Modifiers) -> Arc<Class> {
         self.start_node();
         self.assert(CLASS_KW);
 
@@ -590,9 +602,10 @@ impl Parser {
             id: self.new_node_id(),
             span: self.finish_node(),
             syntax,
+            modifiers: modifiers.clone(),
             name,
             internal: modifiers.contains(Annotation::Internal),
-            visibility: Visibility::from_modifiers(modifiers),
+            visibility: Visibility::from_modifiers(&modifiers),
             fields,
             type_params,
         })
@@ -626,7 +639,7 @@ impl Parser {
         }
     }
 
-    fn parse_alias(&mut self, modifiers: &Modifiers) -> Arc<Alias> {
+    fn parse_alias(&mut self, modifiers: Modifiers) -> Arc<Alias> {
         self.start_node();
         self.assert(ALIAS_KW);
         let name = self.expect_identifier();
@@ -640,9 +653,10 @@ impl Parser {
             id: self.new_node_id(),
             name,
             syntax,
+            modifiers: modifiers.clone(),
             span: self.finish_node(),
             ty,
-            visibility: Visibility::from_modifiers(modifiers),
+            visibility: Visibility::from_modifiers(&modifiers),
         })
     }
 
@@ -801,7 +815,7 @@ impl Parser {
         }
     }
 
-    fn parse_function(&mut self, modifiers: &Modifiers) -> Arc<Function> {
+    fn parse_function(&mut self, modifiers: Modifiers) -> Arc<Function> {
         self.start_node();
         self.assert(FN_KW);
         let name = self.expect_identifier();
@@ -815,10 +829,11 @@ impl Parser {
         Arc::new(Function {
             id: self.new_node_id(),
             kind: FunctionKind::Function,
+            modifiers: modifiers.clone(),
             name,
             span: self.finish_node(),
             is_optimize_immediately: modifiers.contains(Annotation::OptimizeImmediately),
-            visibility: Visibility::from_modifiers(modifiers),
+            visibility: Visibility::from_modifiers(&modifiers),
             is_static: modifiers.contains(Annotation::Static),
             internal: modifiers.contains(Annotation::Internal),
             is_constructor: false,
@@ -1818,6 +1833,7 @@ impl Parser {
         let function = Arc::new(Function {
             id: self.new_node_id(),
             kind: FunctionKind::Lambda,
+            modifiers: Modifiers::new(),
             name: None,
             span: self.finish_node(),
             is_optimize_immediately: false,

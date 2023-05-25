@@ -16,7 +16,7 @@ use crate::sema::{
 use crate::sym::Sym;
 use crate::STDLIB;
 use dora_parser::ast::visit::Visitor;
-use dora_parser::ast::{self, visit};
+use dora_parser::ast::{self, visit, Annotation, Modifiers};
 use dora_parser::parser::Parser;
 use dora_parser::Span;
 
@@ -558,6 +558,15 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     }
 
     fn visit_fct(&mut self, node: &Arc<ast::Function>) {
+        check_modifiers(
+            &node.modifiers,
+            &[
+                Annotation::Internal,
+                Annotation::OptimizeImmediately,
+                Annotation::Test,
+                Annotation::Pub,
+            ],
+        );
         let fct = FctDefinition::new(
             self.package_id,
             self.module_id,
@@ -657,6 +666,10 @@ fn ensure_name(sa: &mut Sema, ident: &Option<ast::Ident>) -> Name {
     } else {
         sa.interner.intern("<missing name>")
     }
+}
+
+fn check_modifiers(_modifiers: &Modifiers, _allow_list: &[Annotation]) {
+    // TODO
 }
 
 impl<'x> TopLevelDeclaration<'x> {

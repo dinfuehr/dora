@@ -178,6 +178,7 @@ pub enum TokenKind {
     CLASS_FIELD,
     USE,
     USE_PATH,
+    USE_COMPONENT,
     USE_RENAME,
     EXTERN,
     ENUM,
