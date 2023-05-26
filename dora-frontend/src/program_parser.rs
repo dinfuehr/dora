@@ -1,4 +1,4 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs;
 use std::io::{Error, Read};
 use std::path::{Path, PathBuf};
@@ -395,8 +395,9 @@ struct TopLevelDeclaration<'x> {
 }
 
 impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
-    fn visit_extern(&mut self, stmt: &Arc<ast::ExternPackage>) {
-        if let Some(name) = &stmt.name {
+    fn visit_extern(&mut self, node: &Arc<ast::ExternPackage>) {
+        check_modifiers(self.sa, self.file_id, &node.modifiers, &[]);
+        if let Some(name) = &node.name {
             if let Some(package_id) = self.sa.package_names.get(&name.name_as_string).cloned() {
                 let top_level_module_id = {
                     let package = self.sa.packages.idx(package_id);
@@ -413,14 +414,14 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                     let name = name.name_as_string.clone();
                     self.sa.diag.lock().report(
                         self.file_id,
-                        stmt.span,
+                        node.span,
                         ErrorMessage::PackageAlreadyExists(name),
                     );
                 }
             } else {
                 self.sa.diag.lock().report(
                     self.file_id,
-                    stmt.span,
+                    node.span,
                     ErrorMessage::UnknownPackage(name.name_as_string.clone()),
                 );
             }
@@ -428,6 +429,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     }
 
     fn visit_module(&mut self, node: &Arc<ast::Module>) {
+        check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
         let name = ensure_name(self.sa, &node.name);
         let module = ModuleDefinition::new_inner(
             self.sa,
@@ -455,6 +457,8 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     }
 
     fn visit_trait(&mut self, node: &Arc<ast::Trait>) {
+        check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
+
         let trait_ = TraitDefinition::new(
             self.package_id,
             self.module_id,
@@ -474,11 +478,14 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     }
 
     fn visit_use(&mut self, node: &Arc<ast::Use>) {
+        check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
         let use_def = UseDefinition::new(self.package_id, self.module_id, self.file_id, node);
         self.sa.uses.push(use_def);
     }
 
     fn visit_global(&mut self, node: &Arc<ast::Global>) {
+        check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
+
         let global = GlobalDefinition::new(
             self.package_id,
             self.module_id,
@@ -495,6 +502,8 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     }
 
     fn visit_impl(&mut self, node: &Arc<ast::Impl>) {
+        check_modifiers(self.sa, self.file_id, &node.modifiers, &[]);
+
         if node.trait_type.is_some() {
             let impl_ = ImplDefinition::new(self.package_id, self.module_id, self.file_id, node);
             let impl_id = self.sa.impls.push(impl_);
@@ -510,6 +519,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     }
 
     fn visit_const(&mut self, node: &Arc<ast::Const>) {
+        check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
         let const_ = ConstDefinition::new(
             self.package_id,
             self.module_id,
@@ -526,6 +536,13 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     }
 
     fn visit_class(&mut self, node: &Arc<ast::Class>) {
+        check_modifiers(
+            self.sa,
+            self.file_id,
+            &node.modifiers,
+            &[Annotation::Internal, Annotation::Pub],
+        );
+
         let class = ClassDefinition::new(
             self.package_id,
             self.module_id,
@@ -542,6 +559,13 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     }
 
     fn visit_struct(&mut self, node: &Arc<ast::Struct>) {
+        check_modifiers(
+            self.sa,
+            self.file_id,
+            &node.modifiers,
+            &[Annotation::Pub, Annotation::Internal],
+        );
+
         let struct_ = StructDefinition::new(
             self.package_id,
             self.module_id,
@@ -559,6 +583,8 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
 
     fn visit_fct(&mut self, node: &Arc<ast::Function>) {
         check_modifiers(
+            self.sa,
+            self.file_id,
             &node.modifiers,
             &[
                 Annotation::Internal,
@@ -584,6 +610,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     }
 
     fn visit_enum(&mut self, node: &Arc<ast::Enum>) {
+        check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
         let enum_ = EnumDefinition::new(
             self.package_id,
             self.module_id,
@@ -669,8 +696,23 @@ fn ensure_name(sa: &mut Sema, ident: &Option<ast::Ident>) -> Name {
     }
 }
 
-fn check_modifiers(_modifiers: &Option<Modifiers>, _allow_list: &[Annotation]) {
-    // TODO
+fn check_modifiers(
+    sa: &Sema,
+    file_id: SourceFileId,
+    modifiers: &Option<Modifiers>,
+    _allow_list: &[Annotation],
+) {
+    if let Some(modifiers) = modifiers {
+        let mut set = HashSet::new();
+
+        for modifier in modifiers.iter() {
+            if !set.insert(&modifier.value) {
+                sa.diag
+                    .lock()
+                    .report(file_id, modifier.span, ErrorMessage::RedundantAnnotation);
+            }
+        }
+    }
 }
 
 impl<'x> TopLevelDeclaration<'x> {

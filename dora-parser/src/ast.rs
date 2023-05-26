@@ -218,6 +218,7 @@ pub struct Use {
     pub id: NodeId,
     pub span: Span,
     pub syntax: SyntaxNode,
+    pub modifiers: Option<Modifiers>,
     pub common_path: Vec<UsePathComponent>,
     pub target: UseTargetDescriptor,
 }
@@ -572,6 +573,7 @@ pub struct Impl {
     pub span: Span,
     pub syntax: SyntaxNode,
 
+    pub modifiers: Option<Modifiers>,
     pub type_params: Option<TypeParams>,
     pub trait_type: Option<Type>,
     pub extended_type: Type,
@@ -743,7 +745,7 @@ pub struct AnnotationUsage {
 }
 
 // rename to InternalAnnotation in next step
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Annotation {
     Internal,
     Pub,

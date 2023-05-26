@@ -119,7 +119,7 @@ impl Parser {
 
             IMPL_KW => {
                 self.ban_modifiers(&modifiers);
-                let impl_ = self.parse_impl();
+                let impl_ = self.parse_impl(modifiers);
                 Arc::new(ElemData::Impl(impl_))
             }
 
@@ -167,7 +167,7 @@ impl Parser {
 
             _ => {
                 let span = self.current_span();
-                self.report_error_at(ParseError::ExpectedTopLevelDeclaration, span);
+                self.report_error_at(ParseError::ExpectedElement, span);
                 self.advance();
                 Arc::new(ElemData::Error {
                     id: self.new_node_id(),
@@ -201,9 +201,9 @@ impl Parser {
         })
     }
 
-    fn parse_use(&mut self, _modifiers: Option<Modifiers>) -> Arc<Use> {
+    fn parse_use(&mut self, modifiers: Option<Modifiers>) -> Arc<Use> {
         self.assert(USE_KW);
-        let use_declaration = self.parse_use_inner();
+        let use_declaration = self.parse_use_inner(modifiers);
         self.expect(SEMICOLON);
 
         self.builder.finish_node(USE);
@@ -211,7 +211,7 @@ impl Parser {
         use_declaration
     }
 
-    fn parse_use_inner(&mut self) -> Arc<Use> {
+    fn parse_use_inner(&mut self, modifiers: Option<Modifiers>) -> Arc<Use> {
         self.start_node();
         self.builder.start_node();
         let mut path = Vec::new();
@@ -245,6 +245,7 @@ impl Parser {
             id: self.new_node_id(),
             span: self.finish_node(),
             syntax,
+            modifiers,
             common_path: path,
             target,
         })
@@ -302,7 +303,7 @@ impl Parser {
         self.start_node();
         self.assert(L_BRACE);
 
-        let targets = self.parse_list(COMMA, R_BRACE, |p| p.parse_use_inner());
+        let targets = self.parse_list(COMMA, R_BRACE, |p| p.parse_use_inner(None));
 
         UseTargetDescriptor::Group(UseTargetGroup {
             span: self.finish_node(),
@@ -410,7 +411,7 @@ impl Parser {
         })
     }
 
-    fn parse_impl(&mut self) -> Arc<Impl> {
+    fn parse_impl(&mut self, modifiers: Option<Modifiers>) -> Arc<Impl> {
         self.start_node();
         self.assert(IMPL_KW);
         let type_params = self.parse_type_params();
@@ -452,6 +453,7 @@ impl Parser {
             id: self.new_node_id(),
             span: self.finish_node(),
             syntax,
+            modifiers,
             type_params,
             trait_type,
             extended_type: class_type,
@@ -715,14 +717,13 @@ impl Parser {
     fn parse_modifiers(&mut self) -> Option<Modifiers> {
         self.start_node();
         let marker = self.builder.create_marker();
-        let mut found = false;
         let mut modifiers: Vec<ModifierElement> = Vec::new();
 
         loop {
             let modifier = self.parse_modifier();
 
             if modifier.is_none() {
-                if !found {
+                if modifiers.is_empty() {
                     self.abandon_node();
                     return None;
                 }
@@ -730,26 +731,10 @@ impl Parser {
                 break;
             }
 
-            found = true;
-
-            let modifier = modifier.unwrap();
-
-            if !modifier.value.is_error()
-                && modifiers
-                    .iter()
-                    .find(|e| e.value == modifier.value)
-                    .is_some()
-            {
-                self.report_error(ParseError::RedundantAnnotation(
-                    modifier.value.name().into(),
-                ));
-                continue;
-            }
-
-            modifiers.push(modifier);
+            modifiers.push(modifier.unwrap());
         }
 
-        assert!(found);
+        assert!(!modifiers.is_empty());
         let syntax = self.builder.finish_node_starting_at(MODIFIERS, marker);
 
         Some(Modifiers {

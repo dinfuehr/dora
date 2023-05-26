@@ -112,7 +112,7 @@ pub enum ErrorMessage {
     IoError,
     ExpectedClassElement(String),
     MisplacedAnnotation(String),
-    RedundantAnnotation(String),
+    RedundantAnnotation,
     UnknownAnnotation(String),
     InvalidEscapeSequence,
     MissingFctBody,
@@ -459,8 +459,8 @@ impl ErrorMessage {
             ErrorMessage::MisplacedAnnotation(ref modifier) => {
                 format!("misplaced annotation `{}`.", modifier)
             }
-            ErrorMessage::RedundantAnnotation(ref token) => {
-                format!("redundant annotation {}.", token)
+            ErrorMessage::RedundantAnnotation => {
+                format!("redundant annotation.")
             }
             ErrorMessage::UnknownAnnotation(ref token) => format!("unknown annotation {}.", token),
             ErrorMessage::UnknownChar(ch) => {

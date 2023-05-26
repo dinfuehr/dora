@@ -10,18 +10,15 @@ pub enum ParseError {
     InvalidEscapeSequence,
 
     // Parser errors
-    ExpectedTopLevelDeclaration,
+    ExpectedElement,
     UnknownAnnotation(String),
-    RedundantAnnotation(String),
     MisplacedAnnotation(String),
     ExpectedToken(String),
     ExpectedType,
     MisplacedElse,
     ExpectedFactor,
-    NumberOverflow,
     UnclosedStringTemplate,
     ExpectedIdentifier,
-    InvalidSuffix(String),
     ExpectedExpression,
     ExpectedImplElement,
 }
@@ -38,20 +35,16 @@ impl ParseError {
             ParseError::InvalidEscapeSequence => "unknown escape sequence.".into(),
 
             // Parser errors
-            ParseError::ExpectedTopLevelDeclaration => {
+            ParseError::ExpectedElement => {
                 format!("expected top-level declaration.")
             }
             ParseError::MisplacedAnnotation(ref modifier) => {
                 format!("misplaced annotation `{}`.", modifier)
             }
-            ParseError::RedundantAnnotation(ref token) => {
-                format!("redundant annotation {}.", token)
-            }
             ParseError::UnknownAnnotation(ref token) => format!("unknown annotation {}.", token),
             ParseError::ExpectedToken(ref exp) => {
                 format!("expected `{}`.", exp)
             }
-            ParseError::NumberOverflow => "number too large to be represented.".into(),
             ParseError::ExpectedType => format!("type expected."),
             ParseError::MisplacedElse => "misplace else.".into(),
             ParseError::ExpectedFactor => format!("factor expected."),
@@ -59,7 +52,6 @@ impl ParseError {
             ParseError::ExpectedIdentifier => {
                 format!("identifier expected.")
             }
-            ParseError::InvalidSuffix(ref suffix) => format!("invalid suffix `{}`", suffix),
             ParseError::ExpectedExpression => "expected expression.".into(),
             ParseError::ExpectedImplElement => "expected impl element (function).".into(),
         }
