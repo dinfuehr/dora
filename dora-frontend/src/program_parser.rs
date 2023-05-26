@@ -668,7 +668,7 @@ fn ensure_name(sa: &mut Sema, ident: &Option<ast::Ident>) -> Name {
     }
 }
 
-fn check_modifiers(_modifiers: &Modifiers, _allow_list: &[Annotation]) {
+fn check_modifiers(_modifiers: &Option<Modifiers>, _allow_list: &[Annotation]) {
     // TODO
 }
 

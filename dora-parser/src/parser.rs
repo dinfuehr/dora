@@ -177,7 +177,7 @@ impl Parser {
         }
     }
 
-    fn parse_extern(&mut self, modifiers: Modifiers) -> Arc<ExternPackage> {
+    fn parse_extern(&mut self, modifiers: Option<Modifiers>) -> Arc<ExternPackage> {
         self.start_node();
 
         self.assert(EXTERN_KW);
@@ -201,7 +201,7 @@ impl Parser {
         })
     }
 
-    fn parse_use(&mut self, _modifiers: Modifiers) -> Arc<Use> {
+    fn parse_use(&mut self, _modifiers: Option<Modifiers>) -> Arc<Use> {
         self.assert(USE_KW);
         let use_declaration = self.parse_use_inner();
         self.expect(SEMICOLON);
@@ -310,7 +310,7 @@ impl Parser {
         })
     }
 
-    fn parse_enum(&mut self, modifiers: Modifiers) -> Arc<Enum> {
+    fn parse_enum(&mut self, modifiers: Option<Modifiers>) -> Arc<Enum> {
         self.start_node();
         self.assert(ENUM_KW);
         let name = self.expect_identifier();
@@ -332,7 +332,7 @@ impl Parser {
         })
     }
 
-    fn parse_module(&mut self, modifiers: Modifiers) -> Arc<Module> {
+    fn parse_module(&mut self, modifiers: Option<Modifiers>) -> Arc<Module> {
         self.start_node();
         self.assert(MOD_KW);
         let name = self.expect_identifier();
@@ -386,7 +386,7 @@ impl Parser {
         }
     }
 
-    fn parse_const(&mut self, modifiers: Modifiers) -> Arc<Const> {
+    fn parse_const(&mut self, modifiers: Option<Modifiers>) -> Arc<Const> {
         self.start_node();
         self.assert(CONST_KW);
         let name = self.expect_identifier();
@@ -459,7 +459,7 @@ impl Parser {
         })
     }
 
-    fn parse_global(&mut self, modifiers: Modifiers) -> Arc<Global> {
+    fn parse_global(&mut self, modifiers: Option<Modifiers>) -> Arc<Global> {
         self.start_node();
         self.assert(LET_KW);
 
@@ -492,7 +492,7 @@ impl Parser {
         })
     }
 
-    fn parse_trait(&mut self, modifiers: Modifiers) -> Arc<Trait> {
+    fn parse_trait(&mut self, modifiers: Option<Modifiers>) -> Arc<Trait> {
         self.start_node();
         self.assert(TRAIT_KW);
         let name = self.expect_identifier();
@@ -527,7 +527,7 @@ impl Parser {
         })
     }
 
-    fn parse_struct(&mut self, modifiers: Modifiers) -> Arc<Struct> {
+    fn parse_struct(&mut self, modifiers: Option<Modifiers>) -> Arc<Struct> {
         self.start_node();
         self.assert(STRUCT_KW);
         let ident = self.expect_identifier();
@@ -551,7 +551,9 @@ impl Parser {
             span: self.finish_node(),
             fields,
             visibility: Visibility::from_modifiers(&modifiers),
-            internal: modifiers.contains(Annotation::Internal),
+            internal: modifiers
+                .map(|m| m.contains(Annotation::Internal))
+                .unwrap_or_default(),
             type_params,
         })
     }
@@ -581,7 +583,7 @@ impl Parser {
         }
     }
 
-    fn parse_class(&mut self, modifiers: Modifiers) -> Arc<Class> {
+    fn parse_class(&mut self, modifiers: Option<Modifiers>) -> Arc<Class> {
         self.start_node();
         self.assert(CLASS_KW);
 
@@ -604,7 +606,10 @@ impl Parser {
             syntax,
             modifiers: modifiers.clone(),
             name,
-            internal: modifiers.contains(Annotation::Internal),
+            internal: modifiers
+                .as_ref()
+                .map(|m| m.contains(Annotation::Internal))
+                .unwrap_or_default(),
             visibility: Visibility::from_modifiers(&modifiers),
             fields,
             type_params,
@@ -639,7 +644,7 @@ impl Parser {
         }
     }
 
-    fn parse_alias(&mut self, modifiers: Modifiers) -> Arc<Alias> {
+    fn parse_alias(&mut self, modifiers: Option<Modifiers>) -> Arc<Alias> {
         self.start_node();
         self.assert(ALIAS_KW);
         let name = self.expect_identifier();
@@ -707,7 +712,7 @@ impl Parser {
         }
     }
 
-    fn parse_modifiers(&mut self) -> Modifiers {
+    fn parse_modifiers(&mut self) -> Option<Modifiers> {
         let mut modifiers = Modifiers::new();
         let marker = self.builder.create_marker();
         let mut found = false;
@@ -737,7 +742,7 @@ impl Parser {
             self.builder.finish_node_starting_at(MODIFIERS, marker);
         }
 
-        modifiers
+        Some(modifiers)
     }
 
     fn parse_modifier(&mut self) -> Option<ModifierElement> {
@@ -796,26 +801,28 @@ impl Parser {
         }
     }
 
-    fn ban_modifiers(&mut self, modifiers: &Modifiers) {
+    fn ban_modifiers(&mut self, modifiers: &Option<Modifiers>) {
         self.restrict_modifiers(modifiers, &[]);
     }
 
-    fn restrict_modifiers(&mut self, modifiers: &Modifiers, restrict: &[Annotation]) {
-        for modifier in modifiers.iter() {
-            if modifier.value.is_error() {
-                continue;
-            }
+    fn restrict_modifiers(&mut self, modifiers: &Option<Modifiers>, restrict: &[Annotation]) {
+        if let Some(modifiers) = modifiers {
+            for modifier in modifiers.iter() {
+                if modifier.value.is_error() {
+                    continue;
+                }
 
-            if !restrict.contains(&modifier.value) {
-                self.report_error_at(
-                    ParseError::MisplacedAnnotation(modifier.value.name().into()),
-                    modifier.span,
-                );
+                if !restrict.contains(&modifier.value) {
+                    self.report_error_at(
+                        ParseError::MisplacedAnnotation(modifier.value.name().into()),
+                        modifier.span,
+                    );
+                }
             }
         }
     }
 
-    fn parse_function(&mut self, modifiers: Modifiers) -> Arc<Function> {
+    fn parse_function(&mut self, modifiers: Option<Modifiers>) -> Arc<Function> {
         self.start_node();
         self.assert(FN_KW);
         let name = self.expect_identifier();
@@ -832,12 +839,24 @@ impl Parser {
             modifiers: modifiers.clone(),
             name,
             span: self.finish_node(),
-            is_optimize_immediately: modifiers.contains(Annotation::OptimizeImmediately),
+            is_optimize_immediately: modifiers
+                .as_ref()
+                .map(|m| m.contains(Annotation::OptimizeImmediately))
+                .unwrap_or_default(),
             visibility: Visibility::from_modifiers(&modifiers),
-            is_static: modifiers.contains(Annotation::Static),
-            internal: modifiers.contains(Annotation::Internal),
+            is_static: modifiers
+                .as_ref()
+                .map(|m| m.contains(Annotation::Static))
+                .unwrap_or_default(),
+            internal: modifiers
+                .as_ref()
+                .map(|m| m.contains(Annotation::Internal))
+                .unwrap_or_default(),
             is_constructor: false,
-            is_test: modifiers.contains(Annotation::Test),
+            is_test: modifiers
+                .as_ref()
+                .map(|m| m.contains(Annotation::Test))
+                .unwrap_or_default(),
             params,
             return_type,
             block,
@@ -1833,7 +1852,7 @@ impl Parser {
         let function = Arc::new(Function {
             id: self.new_node_id(),
             kind: FunctionKind::Lambda,
-            modifiers: Modifiers::new(),
+            modifiers: None,
             name: None,
             span: self.finish_node(),
             is_optimize_immediately: false,
