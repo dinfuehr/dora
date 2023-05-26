@@ -686,33 +686,31 @@ impl Function {
 // remove in next step
 #[derive(Clone, Debug)]
 pub struct Modifiers {
-    items: Vec<ModifierElement>,
+    pub id: NodeId,
+    pub span: Span,
+    pub syntax: SyntaxNode,
+    pub modifiers: Vec<ModifierElement>,
 }
 
-// remove in next step
 impl Modifiers {
-    pub fn new() -> Modifiers {
-        Modifiers { items: Vec::new() }
-    }
-
     pub fn contains(&self, modifier: Annotation) -> bool {
-        self.items.iter().find(|el| el.value == modifier).is_some()
-    }
-
-    pub fn add(&mut self, modifier: ModifierElement) {
-        self.items.push(modifier);
+        self.modifiers
+            .iter()
+            .find(|el| el.value == modifier)
+            .is_some()
     }
 
     pub fn iter(&self) -> Iter<ModifierElement> {
-        self.items.iter()
+        self.modifiers.iter()
     }
 }
 
-// remove in next step
 #[derive(Clone, Debug)]
 pub struct ModifierElement {
-    pub value: Annotation,
+    pub id: NodeId,
     pub span: Span,
+    pub syntax: SyntaxNode,
+    pub value: Annotation,
 }
 
 #[derive(Clone, Debug)]

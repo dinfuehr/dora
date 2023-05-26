@@ -567,6 +567,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 Annotation::Pub,
             ],
         );
+
         let fct = FctDefinition::new(
             self.package_id,
             self.module_id,

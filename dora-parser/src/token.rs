@@ -194,6 +194,7 @@ pub enum TokenKind {
     TYPE_PARAM,
 
     MODIFIERS,
+    MODIFIER,
 
     // Types
     SELF_TYPE,

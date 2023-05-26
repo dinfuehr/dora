@@ -713,14 +713,20 @@ impl Parser {
     }
 
     fn parse_modifiers(&mut self) -> Option<Modifiers> {
-        let mut modifiers = Modifiers::new();
+        self.start_node();
         let marker = self.builder.create_marker();
         let mut found = false;
+        let mut modifiers: Vec<ModifierElement> = Vec::new();
 
         loop {
             let modifier = self.parse_modifier();
 
             if modifier.is_none() {
+                if !found {
+                    self.abandon_node();
+                    return None;
+                }
+
                 break;
             }
 
@@ -728,77 +734,79 @@ impl Parser {
 
             let modifier = modifier.unwrap();
 
-            if !modifier.value.is_error() && modifiers.contains(modifier.value) {
+            if !modifier.value.is_error()
+                && modifiers
+                    .iter()
+                    .find(|e| e.value == modifier.value)
+                    .is_some()
+            {
                 self.report_error(ParseError::RedundantAnnotation(
                     modifier.value.name().into(),
                 ));
                 continue;
             }
 
-            modifiers.add(modifier);
+            modifiers.push(modifier);
         }
 
-        if found {
-            self.builder.finish_node_starting_at(MODIFIERS, marker);
-        }
+        assert!(found);
+        let syntax = self.builder.finish_node_starting_at(MODIFIERS, marker);
 
-        Some(modifiers)
+        Some(Modifiers {
+            id: self.new_node_id(),
+            span: self.finish_node(),
+            syntax,
+            modifiers,
+        })
     }
 
     fn parse_modifier(&mut self) -> Option<ModifierElement> {
         self.start_node();
+        let m = self.builder.create_marker();
 
-        if self.eat(PUB_KW) {
-            Some(ModifierElement {
-                value: Annotation::Pub,
-                span: self.finish_node(),
-            })
+        let value = if self.eat(PUB_KW) {
+            Annotation::Pub
         } else if self.eat(STATIC_KW) {
-            Some(ModifierElement {
-                value: Annotation::Static,
-                span: self.finish_node(),
-            })
+            Annotation::Static
         } else if self.eat(AT) {
             if self.eat(PUB_KW) {
-                return Some(ModifierElement {
-                    value: Annotation::Pub,
-                    span: self.finish_node(),
-                });
+                Annotation::Pub
             } else if self.eat(STATIC_KW) {
-                return Some(ModifierElement {
-                    value: Annotation::Static,
-                    span: self.finish_node(),
-                });
-            }
-
-            let ident = self.expect_identifier();
-            let annotation = if let Some(ident) = &ident {
-                match ident.name_as_string.as_str() {
-                    "internal" => Annotation::Internal,
-                    "pub" => Annotation::Pub,
-                    "static" => Annotation::Static,
-                    "Test" => Annotation::Test,
-                    "optimizeImmediately" => Annotation::OptimizeImmediately,
-                    annotation => {
-                        self.report_error_at(
-                            ParseError::UnknownAnnotation(annotation.into()),
-                            ident.span,
-                        );
-                        Annotation::Error
-                    }
-                }
+                Annotation::Static
             } else {
-                Annotation::Error
-            };
-
-            Some(ModifierElement {
-                value: annotation,
-                span: self.finish_node(),
-            })
+                let ident = self.expect_identifier();
+                if let Some(ident) = &ident {
+                    match ident.name_as_string.as_str() {
+                        "internal" => Annotation::Internal,
+                        "pub" => Annotation::Pub,
+                        "static" => Annotation::Static,
+                        "Test" => Annotation::Test,
+                        "optimizeImmediately" => Annotation::OptimizeImmediately,
+                        annotation => {
+                            self.report_error_at(
+                                ParseError::UnknownAnnotation(annotation.into()),
+                                ident.span,
+                            );
+                            Annotation::Error
+                        }
+                    }
+                } else {
+                    Annotation::Error
+                }
+            }
         } else {
             self.abandon_node();
-            None
-        }
+            return None;
+        };
+
+        let syntax = self.builder.finish_node_starting_at(MODIFIER, m);
+
+        Some(ModifierElement {
+            id: self.new_node_id(),
+            span: self.finish_node(),
+            syntax,
+            value,
+        })
     }
 
     fn ban_modifiers(&mut self, modifiers: &Option<Modifiers>) {
