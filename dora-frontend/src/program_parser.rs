@@ -18,7 +18,7 @@ use crate::sym::Sym;
 use crate::ty::SourceType;
 use crate::STDLIB;
 use dora_parser::ast::visit::Visitor;
-use dora_parser::ast::{self, visit, Modifiers};
+use dora_parser::ast::{self, visit, ModifierList};
 use dora_parser::parser::Parser;
 use dora_parser::Span;
 
@@ -877,7 +877,7 @@ impl Annotation {
 fn check_modifiers(
     sa: &Sema,
     file_id: SourceFileId,
-    modifiers: &Option<Modifiers>,
+    modifiers: &Option<ModifierList>,
     allow_list: &[Annotation],
 ) -> ParsedModifiers {
     let mut parsed_modifiers = ParsedModifiers::default();

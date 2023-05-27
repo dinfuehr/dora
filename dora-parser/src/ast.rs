@@ -213,7 +213,7 @@ pub struct Global {
     pub id: NodeId,
     pub span: Span,
     pub syntax: SyntaxNode,
-    pub modifiers: Option<Modifiers>,
+    pub modifiers: Option<ModifierList>,
     pub name: Option<Ident>,
     pub mutable: bool,
     pub data_type: Type,
@@ -225,7 +225,7 @@ pub struct Module {
     pub id: NodeId,
     pub span: Span,
     pub syntax: SyntaxNode,
-    pub modifiers: Option<Modifiers>,
+    pub modifiers: Option<ModifierList>,
     pub name: Option<Ident>,
     pub elements: Option<Vec<Elem>>,
 }
@@ -235,7 +235,7 @@ pub struct Use {
     pub id: NodeId,
     pub span: Span,
     pub syntax: SyntaxNode,
-    pub modifiers: Option<Modifiers>,
+    pub modifiers: Option<ModifierList>,
     pub common_path: Vec<UsePathComponent>,
     pub target: UseTargetDescriptor,
 }
@@ -281,7 +281,7 @@ pub struct Const {
     pub id: NodeId,
     pub span: Span,
     pub syntax: SyntaxNode,
-    pub modifiers: Option<Modifiers>,
+    pub modifiers: Option<ModifierList>,
     pub name: Option<Ident>,
     pub data_type: Type,
     pub expr: Expr,
@@ -292,7 +292,7 @@ pub struct Enum {
     pub id: NodeId,
     pub span: Span,
     pub syntax: SyntaxNode,
-    pub modifiers: Option<Modifiers>,
+    pub modifiers: Option<ModifierList>,
     pub name: Option<Ident>,
     pub type_params: Option<TypeParams>,
     pub variants: Vec<EnumVariant>,
@@ -312,7 +312,7 @@ pub struct Alias {
     pub id: NodeId,
     pub span: Span,
     pub syntax: SyntaxNode,
-    pub modifiers: Option<Modifiers>,
+    pub modifiers: Option<ModifierList>,
     pub name: Option<Ident>,
     pub ty: Type,
 }
@@ -322,7 +322,7 @@ pub struct Struct {
     pub id: NodeId,
     pub span: Span,
     pub syntax: SyntaxNode,
-    pub modifiers: Option<Modifiers>,
+    pub modifiers: Option<ModifierList>,
     pub name: Option<Ident>,
     pub fields: Vec<StructField>,
     pub type_params: Option<TypeParams>,
@@ -333,7 +333,7 @@ pub struct StructField {
     pub id: NodeId,
     pub span: Span,
     pub syntax: SyntaxNode,
-    pub modifiers: Option<Modifiers>,
+    pub modifiers: Option<ModifierList>,
     pub name: Option<Ident>,
     pub data_type: Type,
 }
@@ -585,7 +585,7 @@ pub struct Impl {
     pub span: Span,
     pub syntax: SyntaxNode,
 
-    pub modifiers: Option<Modifiers>,
+    pub modifiers: Option<ModifierList>,
     pub type_params: Option<TypeParams>,
     pub trait_type: Option<Type>,
     pub extended_type: Type,
@@ -597,7 +597,7 @@ pub struct Trait {
     pub id: NodeId,
     pub name: Option<Ident>,
     pub syntax: SyntaxNode,
-    pub modifiers: Option<Modifiers>,
+    pub modifiers: Option<ModifierList>,
     pub type_params: Option<TypeParams>,
     pub span: Span,
     pub methods: Vec<Elem>,
@@ -608,7 +608,7 @@ pub struct Class {
     pub id: NodeId,
     pub span: Span,
     pub syntax: SyntaxNode,
-    pub modifiers: Option<Modifiers>,
+    pub modifiers: Option<ModifierList>,
     pub name: Option<Ident>,
 
     pub fields: Vec<Field>,
@@ -620,7 +620,7 @@ pub struct ExternPackage {
     pub id: NodeId,
     pub span: Span,
     pub syntax: SyntaxNode,
-    pub modifiers: Option<Modifiers>,
+    pub modifiers: Option<ModifierList>,
     pub name: Option<Ident>,
     pub identifier: Option<Ident>,
 }
@@ -643,7 +643,7 @@ pub struct Field {
     pub id: NodeId,
     pub span: Span,
     pub syntax: SyntaxNode,
-    pub modifiers: Option<Modifiers>,
+    pub modifiers: Option<ModifierList>,
     pub name: Option<Ident>,
     pub data_type: Type,
     pub primary_ctor: bool,
@@ -671,7 +671,7 @@ pub struct Function {
     pub id: NodeId,
     pub span: Span,
     pub syntax: SyntaxNode,
-    pub modifiers: Option<Modifiers>,
+    pub modifiers: Option<ModifierList>,
     pub kind: FunctionKind,
 
     pub name: Option<Ident>,
@@ -689,14 +689,14 @@ impl Function {
 
 // remove in next step
 #[derive(Clone, Debug)]
-pub struct Modifiers {
+pub struct ModifierList {
     pub id: NodeId,
     pub span: Span,
     pub syntax: SyntaxNode,
     pub modifiers: Vec<Modifier>,
 }
 
-impl Modifiers {
+impl ModifierList {
     pub fn iter(&self) -> Iter<Modifier> {
         self.modifiers.iter()
     }

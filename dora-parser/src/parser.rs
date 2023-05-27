@@ -157,7 +157,7 @@ impl Parser {
         }
     }
 
-    fn parse_extern(&mut self, modifiers: Option<Modifiers>) -> Arc<ExternPackage> {
+    fn parse_extern(&mut self, modifiers: Option<ModifierList>) -> Arc<ExternPackage> {
         self.start_node();
 
         self.assert(EXTERN_KW);
@@ -181,7 +181,7 @@ impl Parser {
         })
     }
 
-    fn parse_use(&mut self, modifiers: Option<Modifiers>) -> Arc<Use> {
+    fn parse_use(&mut self, modifiers: Option<ModifierList>) -> Arc<Use> {
         self.assert(USE_KW);
         let use_declaration = self.parse_use_inner(modifiers);
         self.expect(SEMICOLON);
@@ -191,7 +191,7 @@ impl Parser {
         use_declaration
     }
 
-    fn parse_use_inner(&mut self, modifiers: Option<Modifiers>) -> Arc<Use> {
+    fn parse_use_inner(&mut self, modifiers: Option<ModifierList>) -> Arc<Use> {
         self.start_node();
         self.builder.start_node();
         let mut path = Vec::new();
@@ -291,7 +291,7 @@ impl Parser {
         })
     }
 
-    fn parse_enum(&mut self, modifiers: Option<Modifiers>) -> Arc<Enum> {
+    fn parse_enum(&mut self, modifiers: Option<ModifierList>) -> Arc<Enum> {
         self.start_node();
         self.assert(ENUM_KW);
         let name = self.expect_identifier();
@@ -312,7 +312,7 @@ impl Parser {
         })
     }
 
-    fn parse_module(&mut self, modifiers: Option<Modifiers>) -> Arc<Module> {
+    fn parse_module(&mut self, modifiers: Option<ModifierList>) -> Arc<Module> {
         self.start_node();
         self.assert(MOD_KW);
         let name = self.expect_identifier();
@@ -365,7 +365,7 @@ impl Parser {
         }
     }
 
-    fn parse_const(&mut self, modifiers: Option<Modifiers>) -> Arc<Const> {
+    fn parse_const(&mut self, modifiers: Option<ModifierList>) -> Arc<Const> {
         self.start_node();
         self.assert(CONST_KW);
         let name = self.expect_identifier();
@@ -388,7 +388,7 @@ impl Parser {
         })
     }
 
-    fn parse_impl(&mut self, modifiers: Option<Modifiers>) -> Arc<Impl> {
+    fn parse_impl(&mut self, modifiers: Option<ModifierList>) -> Arc<Impl> {
         self.start_node();
         self.assert(IMPL_KW);
         let type_params = self.parse_type_params();
@@ -427,7 +427,7 @@ impl Parser {
         })
     }
 
-    fn parse_global(&mut self, modifiers: Option<Modifiers>) -> Arc<Global> {
+    fn parse_global(&mut self, modifiers: Option<ModifierList>) -> Arc<Global> {
         self.start_node();
         self.assert(LET_KW);
 
@@ -459,7 +459,7 @@ impl Parser {
         })
     }
 
-    fn parse_trait(&mut self, modifiers: Option<Modifiers>) -> Arc<Trait> {
+    fn parse_trait(&mut self, modifiers: Option<ModifierList>) -> Arc<Trait> {
         self.start_node();
         self.assert(TRAIT_KW);
         let name = self.expect_identifier();
@@ -487,7 +487,7 @@ impl Parser {
         })
     }
 
-    fn parse_struct(&mut self, modifiers: Option<Modifiers>) -> Arc<Struct> {
+    fn parse_struct(&mut self, modifiers: Option<ModifierList>) -> Arc<Struct> {
         self.start_node();
         self.assert(STRUCT_KW);
         let ident = self.expect_identifier();
@@ -537,7 +537,7 @@ impl Parser {
         }
     }
 
-    fn parse_class(&mut self, modifiers: Option<Modifiers>) -> Arc<Class> {
+    fn parse_class(&mut self, modifiers: Option<ModifierList>) -> Arc<Class> {
         self.start_node();
         self.assert(CLASS_KW);
 
@@ -591,7 +591,7 @@ impl Parser {
         }
     }
 
-    fn parse_alias(&mut self, modifiers: Option<Modifiers>) -> Arc<Alias> {
+    fn parse_alias(&mut self, modifiers: Option<ModifierList>) -> Arc<Alias> {
         self.start_node();
         self.assert(ALIAS_KW);
         let name = self.expect_identifier();
@@ -658,7 +658,7 @@ impl Parser {
         }
     }
 
-    fn parse_modifiers(&mut self) -> Option<Modifiers> {
+    fn parse_modifiers(&mut self) -> Option<ModifierList> {
         self.start_node();
         let marker = self.builder.create_marker();
         let mut modifiers: Vec<Modifier> = Vec::new();
@@ -681,7 +681,7 @@ impl Parser {
         assert!(!modifiers.is_empty());
         let syntax = self.builder.finish_node_starting_at(MODIFIERS, marker);
 
-        Some(Modifiers {
+        Some(ModifierList {
             id: self.new_node_id(),
             span: self.finish_node(),
             syntax,
@@ -713,7 +713,7 @@ impl Parser {
         })
     }
 
-    fn parse_function(&mut self, modifiers: Option<Modifiers>) -> Arc<Function> {
+    fn parse_function(&mut self, modifiers: Option<ModifierList>) -> Arc<Function> {
         self.start_node();
         self.assert(FN_KW);
         let name = self.expect_identifier();
