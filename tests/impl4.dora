@@ -4,13 +4,13 @@ fn main() {
 }
 
 trait DefaultValue {
-    @static fn default(): Self;
+    static fn default(): Self;
 }
 
 class A(a: Int32)
 
 impl DefaultValue for A {
-    @static fn default(): A {
+    static fn default(): A {
         return A(0i32);
     }
 }

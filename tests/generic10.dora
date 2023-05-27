@@ -11,7 +11,7 @@ fn main() {
 class Bar[T](val: T, x: Pair[T, Int32])
 
 impl[T] Bar[T] {
-    @static fn new(val: T): Bar[T] {
+    static fn new(val: T): Bar[T] {
         Bar[T](val, Pair[T, Int32](val, 10i32))
     }
 }

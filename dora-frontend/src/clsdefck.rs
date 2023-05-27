@@ -157,9 +157,9 @@ mod tests {
         err(
             "
             class X
-            impl X { @static fn foo() {} @static fn foo(a: String) {} }",
-            (3, 50),
-            ErrorMessage::MethodExists("foo".into(), Span::new(50, 11)),
+            impl X { static fn foo() {} static fn foo(a: String) {} }",
+            (3, 48),
+            ErrorMessage::MethodExists("foo".into(), Span::new(49, 11)),
         );
     }
 }

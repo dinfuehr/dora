@@ -833,7 +833,7 @@ fn test_invoke_static_method_as_instance_method() {
     err(
         "class A
         impl A {
-            @static fn foo() {}
+            static fn foo() {}
             fn test() { self.foo(); }
         }",
         (4, 25),
@@ -847,9 +847,9 @@ fn test_invoke_method_as_static() {
         "class A
         impl A {
             fn foo() {}
-            @static fn test() { A::foo(); }
+            static fn test() { A::foo(); }
         }",
-        (4, 33),
+        (4, 32),
         ErrorMessage::UnknownStaticMethod("A".into(), "foo".into(), vec![]),
     );
 }
@@ -1080,7 +1080,7 @@ fn test_find_class_method_precedence() {
     );
 
     ok("class A
-            impl A { @static fn foo() {} }
+            impl A { static fn foo() {} }
             trait Foo { fn foo(a: Int32); }
             impl Foo for A { fn foo(a:  Int32) {} }
             fn test(a: A) { a.foo(1i32); }");
@@ -1281,14 +1281,14 @@ fn test_new_call_fct_with_wrong_type_params() {
 
 #[test]
 fn test_new_call_static_method() {
-    ok("class Foo impl Foo { @static fn bar() {} }
+    ok("class Foo impl Foo { static fn bar() {} }
             fn f() { Foo::bar(); }");
 }
 
 #[test]
 fn test_new_call_static_method_wrong_params() {
     err(
-        "class Foo impl Foo { @static fn bar() {} }
+        "class Foo impl Foo { static fn bar() {} }
             fn f() { Foo::bar(1i32); }",
         (2, 22),
         ErrorMessage::ParamTypesIncompatible("bar".into(), Vec::new(), vec!["Int32".into()]),
@@ -1297,7 +1297,7 @@ fn test_new_call_static_method_wrong_params() {
 
 #[test]
 fn test_new_call_static_method_type_params() {
-    ok("class Foo impl Foo { @static fn bar[T]() {} }
+    ok("class Foo impl Foo { static fn bar[T]() {} }
             fn f() { Foo::bar[Int32](); }");
 }
 
@@ -1539,28 +1539,28 @@ fn test_type_param_call() {
 #[test]
 fn test_static_method_call_with_type_param() {
     err(
-        "trait X { @static fn bar(): Int32; }
+        "trait X { static fn bar(): Int32; }
         fn f[T: X]() { T::foo(); }",
         (2, 24),
         ErrorMessage::UnknownStaticMethodWithTypeParam,
     );
 
     err(
-        "trait X { @static fn foo(): Int32; }
-        trait Y { @static fn foo(): String; }
+        "trait X { static fn foo(): Int32; }
+        trait Y { static fn foo(): String; }
         fn f[T: X + Y]() { T::foo(); }",
         (3, 28),
         ErrorMessage::MultipleCandidatesForStaticMethodWithTypeParam,
     );
 
     err(
-        "trait X { @static fn foo(): Int32; }
+        "trait X { static fn foo(): Int32; }
         fn f[T: X](): Int32 { return T::foo(1i32); }",
         (2, 38),
         ErrorMessage::ParamTypesIncompatible("foo".into(), Vec::new(), vec!["Int32".into()]),
     );
 
-    ok("trait X { @static fn foo(): Int32; }
+    ok("trait X { static fn foo(): Int32; }
         fn f[T: X](): Int32 { return T::foo(); }");
 }
 
@@ -1729,7 +1729,7 @@ fn test_struct_with_static_method() {
     ok("
         struct Foo(value: Int32)
         impl Foo {
-            @static fn bar() {}
+            static fn bar() {}
         }
         fn f() {
             Foo::bar();
@@ -1739,7 +1739,7 @@ fn test_struct_with_static_method() {
     ok("
         struct Foo[T](value: Int32)
         impl[T] Foo[T] {
-            @static fn bar() {}
+            static fn bar() {}
         }
         fn f() {
             Foo[Int32]::bar();
@@ -1763,7 +1763,7 @@ fn test_enum_with_static_method() {
     ok("
         enum Foo { A, B }
         impl Foo {
-            @static fn bar() {}
+            static fn bar() {}
         }
         fn f() {
             Foo::bar();
@@ -2853,14 +2853,14 @@ fn mod_fct_call() {
 
     ok("
         fn f() { foo::g(); }
-        mod foo { @pub fn g() {} }
+        mod foo { pub fn g() {} }
     ");
 
     ok("
         fn f() { foo::bar::baz(); }
         mod foo {
-            @pub mod bar {
-                @pub fn baz() {}
+            pub mod bar {
+                pub fn baz() {}
             }
         }
     ");
@@ -2869,7 +2869,7 @@ fn mod_fct_call() {
         "
         fn f() { foo::bar::baz(); }
         mod foo {
-            @pub mod bar {
+            pub mod bar {
                 fn baz() {}
             }
         }
@@ -2883,7 +2883,7 @@ fn mod_fct_call() {
 fn mod_ctor_call() {
     ok("
         fn f() { foo::Foo(); }
-        mod foo { @pub class Foo }
+        mod foo { pub class Foo }
     ");
 
     err(
@@ -2897,13 +2897,13 @@ fn mod_ctor_call() {
 
     ok("
         fn f() { foo::bar::Foo(); }
-        mod foo { @pub mod bar { @pub class Foo } }
+        mod foo { pub mod bar { pub class Foo } }
     ");
 
     err(
         "
         fn f() { foo::bar::Foo(); }
-        mod foo { @pub mod bar { class Foo } }
+        mod foo { pub mod bar { class Foo } }
     ",
         (2, 18),
         ErrorMessage::NotAccessible("foo::bar::Foo".into()),
@@ -2915,7 +2915,7 @@ fn mod_class_field() {
     err(
         "
         fn f(x: foo::Foo) { let a = x.bar; }
-        mod foo { @pub class Foo(bar: Int32) }
+        mod foo { pub class Foo(bar: Int32) }
     ",
         (2, 38),
         ErrorMessage::NotAccessible("bar".into()),
@@ -2924,7 +2924,7 @@ fn mod_class_field() {
     err(
         "
         fn f(x: foo::Foo) { let a = x.bar(10i64); }
-        mod foo { @pub class Foo(bar: Array[Int32]) }
+        mod foo { pub class Foo(bar: Array[Int32]) }
     ",
         (2, 37),
         ErrorMessage::NotAccessible("bar".into()),
@@ -2933,7 +2933,7 @@ fn mod_class_field() {
     err(
         "
         fn f(x: foo::Foo) { x.bar(10i64) = 10i32; }
-        mod foo { @pub class Foo(bar: Array[Int32]) }
+        mod foo { pub class Foo(bar: Array[Int32]) }
     ",
         (2, 30),
         ErrorMessage::NotAccessible("bar".into()),
@@ -2941,7 +2941,7 @@ fn mod_class_field() {
 
     ok("
         fn f(x: foo::Foo) { let a = x.bar; }
-        mod foo { @pub class Foo(@pub bar: Int32) }
+        mod foo { pub class Foo(pub bar: Int32) }
     ");
 }
 
@@ -2950,8 +2950,8 @@ fn mod_class_method() {
     ok("
         fn f(x: foo::Foo) { x.bar(); }
         mod foo {
-            @pub class Foo
-            impl Foo { @pub fn bar() {} }
+            pub class Foo
+            impl Foo { pub fn bar() {} }
         }
     ");
 
@@ -2959,7 +2959,7 @@ fn mod_class_method() {
         "
         fn f(x: foo::Foo) { x.bar(); }
         mod foo {
-            @pub class Foo
+            pub class Foo
             impl Foo { fn bar() {} }
         }
     ",
@@ -2973,8 +2973,8 @@ fn mod_class_static_method() {
     ok("
         fn f() { foo::Foo::bar(); }
         mod foo {
-            @pub class Foo
-            impl Foo { @pub @static fn bar() {} }
+            pub class Foo
+            impl Foo { pub static fn bar() {} }
         }
     ");
 
@@ -2982,8 +2982,8 @@ fn mod_class_static_method() {
         "
         fn f() { foo::Foo::bar(); }
         mod foo {
-            @pub class Foo
-            impl Foo { @static fn bar() {} }
+            pub class Foo
+            impl Foo { static fn bar() {} }
         }
     ",
         (2, 18),
@@ -2996,7 +2996,7 @@ fn mod_struct_field() {
     err(
         "
         fn f(x: foo::Foo) { let a = x.bar; }
-        mod foo { @pub struct Foo(bar: Int32) }
+        mod foo { pub struct Foo(bar: Int32) }
     ",
         (2, 38),
         ErrorMessage::NotAccessible("bar".into()),
@@ -3004,13 +3004,13 @@ fn mod_struct_field() {
 
     ok("
         fn f(x: foo::Foo) { let a = x.bar(10i64); }
-        mod foo { @pub struct Foo(@pub bar: Array[Int32]) }
+        mod foo { pub struct Foo(pub bar: Array[Int32]) }
     ");
 
     err(
         "
         fn f(x: foo::Foo) { let a = x.bar(10i64); }
-        mod foo { @pub struct Foo(bar: Array[Int32]) }
+        mod foo { pub struct Foo(bar: Array[Int32]) }
     ",
         (2, 37),
         ErrorMessage::NotAccessible("bar".into()),
@@ -3019,7 +3019,7 @@ fn mod_struct_field() {
     err(
         "
         fn f(x: foo::Foo) { x.bar(10i64) = 10i32; }
-        mod foo { @pub struct Foo(bar: Array[Int32]) }
+        mod foo { pub struct Foo(bar: Array[Int32]) }
     ",
         (2, 30),
         ErrorMessage::NotAccessible("bar".into()),
@@ -3027,7 +3027,7 @@ fn mod_struct_field() {
 
     ok("
         fn f(x: foo::Foo) { let a = x.bar; }
-        mod foo { @pub struct Foo(@pub bar: Int32) }
+        mod foo { pub struct Foo(pub bar: Int32) }
     ");
 }
 
@@ -3035,7 +3035,7 @@ fn mod_struct_field() {
 fn mod_path_in_type() {
     ok("
         fn f(): foo::Foo { foo::Foo() }
-        mod foo { @pub class Foo }
+        mod foo { pub class Foo }
     ");
 
     err(
@@ -3069,7 +3069,7 @@ fn mod_path_in_type() {
 fn mod_global() {
     ok("
         fn f(): Int32 { foo::x }
-        mod foo { @pub let x: Int32 = 1i32; }
+        mod foo { pub let x: Int32 = 1i32; }
     ");
 
     err(
@@ -3143,7 +3143,7 @@ fn mod_class_new() {
         "
         fn f() { foo::Foo(1i32); }
         mod foo {
-            class Foo(@pub f: Int32)
+            class Foo(pub f: Int32)
         }
     ",
         (2, 18),
@@ -3154,7 +3154,7 @@ fn mod_class_new() {
         "
         fn f() { foo::Foo(1i32); }
         mod foo {
-            @pub class Foo(f: Int32)
+            pub class Foo(f: Int32)
         }
     ",
         (2, 18),
@@ -3179,7 +3179,7 @@ fn mod_struct() {
         "
         fn f() { foo::Foo(1i32); }
         mod foo {
-            struct Foo(@pub f: Int32)
+            struct Foo(pub f: Int32)
         }
     ",
         (2, 18),
@@ -3190,7 +3190,7 @@ fn mod_struct() {
         "
         fn f() { foo::Foo(1i32); }
         mod foo {
-            @pub struct Foo(f: Int32)
+            pub struct Foo(f: Int32)
         }
     ",
         (2, 18),
@@ -3200,14 +3200,14 @@ fn mod_struct() {
     ok("
         fn f() { foo::Foo(1i32); }
         mod foo {
-            @pub struct Foo(@pub f: Int32)
+            pub struct Foo(pub f: Int32)
         }
     ");
 
     ok("
         fn f(value: foo::Foo) {}
         mod foo {
-            @pub struct Foo(f: Int32)
+            pub struct Foo(f: Int32)
         }
     ");
 
@@ -3227,7 +3227,7 @@ fn mod_struct() {
 fn mod_const() {
     ok("
         fn f(): Int32 { foo::x }
-        mod foo { @pub const x: Int32 = 1i32; }
+        mod foo { pub const x: Int32 = 1i32; }
     ");
 
     err(
@@ -3241,7 +3241,7 @@ fn mod_const() {
 
     ok("
         fn f(): Int32 { foo::bar::x }
-        mod foo { @pub mod bar { @pub const x: Int32 = 1i32; } }
+        mod foo { pub mod bar { pub const x: Int32 = 1i32; } }
     ");
 }
 
@@ -3249,7 +3249,7 @@ fn mod_const() {
 fn mod_enum_value() {
     ok("
         fn f() { foo::A; }
-        mod foo { @pub enum Foo { A, B } use Foo::A; }
+        mod foo { pub enum Foo { A, B } use Foo::A; }
     ");
 
     err(
@@ -3263,13 +3263,13 @@ fn mod_enum_value() {
 
     ok("
         fn f() { foo::bar::A; }
-        mod foo { @pub mod bar { @pub enum Foo { A, B } use Foo::A; } }
+        mod foo { pub mod bar { pub enum Foo { A, B } use Foo::A; } }
     ");
 
     err(
         "
         fn f() { foo::bar::A; }
-        mod foo { @pub mod bar { enum Foo { A, B } use Foo::A; } }
+        mod foo { pub mod bar { enum Foo { A, B } use Foo::A; } }
     ",
         (2, 26),
         ErrorMessage::NotAccessible("foo::bar::Foo".into()),
@@ -3293,14 +3293,14 @@ fn mod_enum() {
         fn f() {
             foo::Foo::B;
         }
-        mod foo { @pub enum Foo { A, B } }
+        mod foo { pub enum Foo { A, B } }
     ");
 
     ok("
         fn f() {
             foo::Foo::A(1i32);
         }
-        mod foo { @pub enum Foo { A(Int32), B } }
+        mod foo { pub enum Foo { A(Int32), B } }
     ");
 
     err(
@@ -3320,41 +3320,41 @@ fn mod_use() {
     ok("
         use foo::bar;
         fn f() { bar(); }
-        mod foo { @pub fn bar() {} }
+        mod foo { pub fn bar() {} }
     ");
 
     ok("
         use foo::bar::baz;
         fn f() { baz(); }
-        mod foo { @pub mod bar {
-            @pub fn baz() {}
+        mod foo { pub mod bar {
+            pub fn baz() {}
         } }
     ");
 
     ok("
         use foo::bar as baz;
         fn f() { baz(); }
-        mod foo { @pub fn bar() {} }
+        mod foo { pub fn bar() {} }
     ");
 
     ok("
         use foo::bar;
         fn f(): Int32 { bar }
-        mod foo { @pub let bar: Int32 = 10i32; }
+        mod foo { pub let bar: Int32 = 10i32; }
     ");
 
     ok("
         use foo::bar::baz;
         fn f(): Int32 { baz }
-        mod foo { @pub mod bar {
-            @pub let baz: Int32 = 10i32;
+        mod foo { pub mod bar {
+            pub let baz: Int32 = 10i32;
         } }
     ");
 
     ok("
         use foo::bar;
         fn f(): Int32 { bar }
-        mod foo { @pub let bar: Int32 = 10i32; }
+        mod foo { pub let bar: Int32 = 10i32; }
     ");
 }
 
@@ -3363,7 +3363,7 @@ fn mod_use_class() {
     ok("
         use foo::Bar;
         fn f() { Bar(); }
-        mod foo { @pub class Bar }
+        mod foo { pub class Bar }
     ");
 
     ok("
@@ -3373,9 +3373,9 @@ fn mod_use_class() {
             Bar::baz();
         }
         mod foo {
-            @pub class Bar
+            pub class Bar
             impl Bar {
-                @pub @static fn baz() {}
+                pub static fn baz() {}
             }
         }
     ");
@@ -3385,7 +3385,7 @@ fn mod_use_class() {
 fn mod_use_trait() {
     ok("
         use foo::Bar;
-        mod foo { @pub trait Bar{} }
+        mod foo { pub trait Bar{} }
     ");
 }
 
@@ -3428,7 +3428,7 @@ fn mod_use_self() {
     ok("
         use self::bar::Foo;
         fn getfoo(): Foo { Foo() }
-        mod bar { @pub class Foo }
+        mod bar { pub class Foo }
     ");
 }
 
@@ -3437,7 +3437,7 @@ fn mod_use_errors() {
     err(
         "
         use foo::bar::baz;
-        mod foo { @pub mod bar {} }
+        mod foo { pub mod bar {} }
     ",
         (2, 23),
         ErrorMessage::UnknownIdentifierInModule("foo::bar".into(), "baz".into()),
@@ -3472,7 +3472,7 @@ fn mod_use_errors() {
     err(
         "
         use foo::bar::baz;
-        @pub mod foo { @pub fn bar() {} }
+        pub mod foo { pub fn bar() {} }
     ",
         (2, 18),
         ErrorMessage::ExpectedPath,
@@ -3491,7 +3491,7 @@ fn mod_inside() {
 
     ok("
         fn f(x: foo::Foo) {}
-        mod foo { @pub class Foo }
+        mod foo { pub class Foo }
     ");
 
     err(
@@ -3533,7 +3533,7 @@ fn different_fct_call_kinds() {
         (1, 38),
         ErrorMessage::NoTypeParamsExpected,
     );
-    ok("trait MyTrait { @static fn foo(); } fn f[T: MyTrait]() { T::foo(); }");
+    ok("trait MyTrait { static fn foo(); } fn f[T: MyTrait]() { T::foo(); }");
     ok("class Foo impl Foo { fn bar() {} } fn f(g: Foo) { g.bar(); }");
     ok("class Foo impl Foo { fn bar[T]() {} } fn f(g: Foo) { g.bar[Int32](); }");
 }

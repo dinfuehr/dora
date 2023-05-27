@@ -5,7 +5,7 @@ class SomeIterator {
 }
 
 impl SomeIterator {
-    @static fn new(start: Int64, end: Int64): SomeIterator {
+    static fn new(start: Int64, end: Int64): SomeIterator {
         SomeIterator(start, end, start)
     }
 

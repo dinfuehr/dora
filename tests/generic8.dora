@@ -6,7 +6,7 @@ fn main() {
 class A[T](x: Array[T])
 
 impl[T] A[T] {
-    @static fn new(): A[T] {
+    static fn new(): A[T] {
         A[T](Array[T]::new())
     }
 }

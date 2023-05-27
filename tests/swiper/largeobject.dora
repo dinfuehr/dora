@@ -525,7 +525,7 @@ class LargeObject {
 }
 
 impl LargeObject {
-    @static fn new(): LargeObject {
+    static fn new(): LargeObject {
         LargeObject(
             0,
             0,

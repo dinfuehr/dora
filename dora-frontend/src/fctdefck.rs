@@ -245,7 +245,7 @@ mod tests {
     fn allow_same_method_as_static_and_non_static() {
         ok("class Foo
             impl Foo {
-                @static fn foo() {}
+                static fn foo() {}
                 fn foo() {}
             }");
     }

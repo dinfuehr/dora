@@ -3,7 +3,7 @@ fn main() {
 }
 
 trait X {
-    @static fn foo(): Self;
+    static fn foo(): Self;
 }
 
 fn f[T: X + std::Stringable](): String {
@@ -17,7 +17,7 @@ impl std::Stringable for Bar {
 }
 
 impl X for Bar {
-    @static fn foo(): Bar { Bar(1i32) }
+    static fn foo(): Bar { Bar(1i32) }
 }
 
 class Baz(x: Int32)
@@ -27,5 +27,5 @@ impl std::Stringable for Baz {
 }
 
 impl X for Baz {
-    @static fn foo(): Baz { Baz(2i32) }
+    static fn foo(): Baz { Baz(2i32) }
 }

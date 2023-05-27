@@ -15,7 +15,7 @@ class SharedQueue[T] {
 }
 
 impl[T] SharedQueue[T] {
-    @static fn new(capacity: Int64): SharedQueue[T] {
+    static fn new(capacity: Int64): SharedQueue[T] {
         SharedQueue[T](
             capacity,
             std::Mutex::new(),
@@ -57,7 +57,7 @@ class Producer {
 }
 
 impl Producer {
-    @static fn new(queue: SharedQueue[Int32]): Producer {
+    static fn new(queue: SharedQueue[Int32]): Producer {
         Producer(queue, 0i32)
     }
 
@@ -78,7 +78,7 @@ class Consumer {
 }
 
 impl Consumer {
-    @static fn new(queue: SharedQueue[Int32]): Consumer {
+    static fn new(queue: SharedQueue[Int32]): Consumer {
         Consumer(
             queue,
             0i32,

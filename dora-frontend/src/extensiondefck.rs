@@ -482,7 +482,7 @@ mod tests {
 
         ok("
             impl foo::MyFoo { fn bar() {} }
-            mod foo { @pub class MyFoo }
+            mod foo { pub class MyFoo }
         ");
     }
 }

@@ -698,13 +698,7 @@ impl Parser {
         } else if self.eat(STATIC_KW) {
             // done
         } else if self.eat(AT) {
-            if self.eat(PUB_KW) {
-                // done
-            } else if self.eat(STATIC_KW) {
-                // done
-            } else {
-                self.expect_identifier();
-            }
+            self.expect_identifier();
         } else {
             self.abandon_node();
             return None;
@@ -2970,7 +2964,7 @@ mod tests {
 
     #[test]
     fn parse_trait_with_static_function() {
-        let prog = parse("trait Foo { @static fn empty(); }");
+        let prog = parse("trait Foo { static fn empty(); }");
         let trait_ = prog.trait0();
 
         assert_eq!("Foo", trait_.name.as_ref().unwrap().name_as_string);
@@ -2999,7 +2993,7 @@ mod tests {
 
     #[test]
     fn parse_impl_with_static_function() {
-        let prog = parse("impl Bar for B { @static fn foo(); }");
+        let prog = parse("impl Bar for B { static fn foo(); }");
         let impl_ = prog.impl0();
 
         assert_eq!("Bar", impl_.trait_type.as_ref().unwrap().to_string());

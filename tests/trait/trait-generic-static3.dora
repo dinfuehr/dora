@@ -4,8 +4,8 @@ fn main() {
 }
 
 trait X {
-    @static fn foo(): Self;
-    @static fn makeString(x: Self): String;
+    static fn foo(): Self;
+    static fn makeString(x: Self): String;
 }
 
 fn f[T: X](): String {
@@ -20,13 +20,13 @@ fn g[T: X](): String {
 class Bar(x: Int32)
 
 impl X for Bar {
-    @static fn foo(): Bar { Bar(1i32) }
-    @static fn makeString(value: Bar): String { "BAR${value.x}" }
+    static fn foo(): Bar { Bar(1i32) }
+    static fn makeString(value: Bar): String { "BAR${value.x}" }
 }
 
 class Baz(x: Int32)
 
 impl X for Baz {
-    @static fn foo(): Baz { Baz(2i32) }
-    @static fn makeString(value: Baz): String { "BAZ${value.x}" }
+    static fn foo(): Baz { Baz(2i32) }
+    static fn makeString(value: Baz): String { "BAZ${value.x}" }
 }

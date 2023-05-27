@@ -1,7 +1,7 @@
 class Foo(value: Int32)
 
 impl Foo {
-    @static fn new(value: Int32): Foo {
+    static fn new(value: Int32): Foo {
         std::forceCollect();
         Foo(value)
     }

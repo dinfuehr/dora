@@ -727,34 +727,6 @@ impl Modifier {
     }
 }
 
-// rename to InternalAnnotation in next step
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum Annotation {
-    Internal,
-    Pub,
-    Static,
-    Test,
-    OptimizeImmediately,
-    Error,
-}
-
-impl Annotation {
-    pub fn is_error(&self) -> bool {
-        *self == Annotation::Error
-    }
-
-    pub fn name(&self) -> &'static str {
-        match *self {
-            Annotation::Internal => "internal",
-            Annotation::Pub => "pub",
-            Annotation::Static => "static",
-            Annotation::Test => "test",
-            Annotation::OptimizeImmediately => "optimizeImmediately",
-            Annotation::Error => "<error>",
-        }
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct Param {
     pub id: NodeId,

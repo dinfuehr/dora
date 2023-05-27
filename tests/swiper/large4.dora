@@ -16415,7 +16415,7 @@ class LargeObject {
 }
 
 impl LargeObject {
-    @static fn new(f: Foo): LargeObject {
+    static fn new(f: Foo): LargeObject {
         LargeObject(
             f,
             0,

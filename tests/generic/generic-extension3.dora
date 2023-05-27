@@ -10,19 +10,19 @@ impl[X: TypeDescriptor] MyClass[X] {
 }
 
 trait TypeDescriptor {
-    @static fn name(): String;
+    static fn name(): String;
 }
 
 impl TypeDescriptor for Foo {
-    @static fn name(): String { "Foo" }
+    static fn name(): String { "Foo" }
 }
 
 impl TypeDescriptor for Int32 {
-    @static fn name(): String { "Int32" }
+    static fn name(): String { "Int32" }
 }
 
 impl TypeDescriptor for Float32 {
-    @static fn name(): String { "Float32" }
+    static fn name(): String { "Float32" }
 }
 
 fn f() {

@@ -53,7 +53,7 @@ class TreeThread {
 }
 
 impl TreeThread {
-    @static fn new(nextDepth: std::AtomicInt32, maxDepth: Int32, results: Array[String]): TreeThread {
+    static fn new(nextDepth: std::AtomicInt32, maxDepth: Int32, results: Array[String]): TreeThread {
         TreeThread(nextDepth, maxDepth, results)
     }
 

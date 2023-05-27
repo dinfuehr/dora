@@ -1,7 +1,7 @@
 class Foo(array: Array[Int32]) 
 
 impl Foo {
-    @static fn new(): Foo {
+    static fn new(): Foo {
         Foo(Array[Int32]::new(1i32, 2i32, 3i32))
     }
 }

@@ -89,7 +89,7 @@ class CardSpanningObject {
 }
 
 impl CardSpanningObject {
-    @static fn new(f: Foo): CardSpanningObject {
+    static fn new(f: Foo): CardSpanningObject {
         CardSpanningObject(
             f,
             f,

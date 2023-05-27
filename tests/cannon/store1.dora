@@ -69,56 +69,56 @@ fn storePtr(x: FooPtr, z: FooInt32) {
 
 class FooBool(y: Bool)
 impl FooBool {
-    @static fn new(): FooBool {
+    static fn new(): FooBool {
         FooBool(false)
     }
 }
 class FooByte(y: UInt8)
 impl FooByte {
-    @static fn new(): FooByte {
+    static fn new(): FooByte {
         FooByte(0u8)
     }
 }
 
 class FooChar(y: Char)
 impl FooChar {
-    @static fn new(): FooChar {
+    static fn new(): FooChar {
         FooChar('\0')
     }
 }
 class FooInt32(y: Int32)
 impl FooInt32 {
-    @static fn new(): FooInt32 {
+    static fn new(): FooInt32 {
         FooInt32(0i32)
     }
 }
 class FooInt64(y: Int64)
 impl FooInt64 {
-    @static fn new(): FooInt64 {
+    static fn new(): FooInt64 {
         FooInt64(0)
     }
 }
 class FooFloat32(y: Float32)
 impl FooFloat32 {
-    @static fn new(): FooFloat32 {
+    static fn new(): FooFloat32 {
         FooFloat32(0.0f32)
     }
 }
 class FooFloat64(y: Float64)
 impl FooFloat64 {
-    @static fn new(): FooFloat64 {
+    static fn new(): FooFloat64 {
         FooFloat64(0.0)
     }
 }
 class FooString(y: String)
 impl FooString {
-    @static fn new(): FooString {
+    static fn new(): FooString {
         FooString("")
     }
 }
 class FooPtr(y: FooInt32) 
 impl FooPtr {
-    @static fn new(): FooPtr {
+    static fn new(): FooPtr {
         FooPtr(FooInt32(0i32))
     }
 }

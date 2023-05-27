@@ -10,11 +10,11 @@ class Node {
 }
 
 impl Node {
-    @static fn new(left: Option[Node], right: Option[Node]): Node {
+    static fn new(left: Option[Node], right: Option[Node]): Node {
         Node(left, right, 0i32, 0i32)
     }
 
-    @static fn leaf(): Node {
+    static fn leaf(): Node {
         Node::new(Option[Node]::None, Option[Node]::None)
     }
 }

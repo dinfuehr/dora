@@ -37,7 +37,7 @@ class Benchmark {
 }
 
 impl Benchmark {
-    @static fn new(): Benchmark {
+    static fn new(): Benchmark {
         Benchmark(
             SplayTree::new(),
             0i32,
@@ -166,7 +166,7 @@ class SplayTree {
 }
 
 impl SplayTree {
-    @static fn new(): SplayTree {
+    static fn new(): SplayTree {
         SplayTree(None[SplayNode])
     }
 
@@ -376,7 +376,7 @@ class SplayNode {
 }
 
 impl SplayNode {
-    @static fn new(key: Int32, value: Option[PayloadNode]): SplayNode {
+    static fn new(key: Int32, value: Option[PayloadNode]): SplayNode {
         SplayNode(key, value, None[SplayNode], None[SplayNode])
     }
 }

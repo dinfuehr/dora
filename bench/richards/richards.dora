@@ -77,7 +77,7 @@ class Scheduler {
 }
 
 impl Scheduler {
-    @static fn new(): Scheduler {
+    static fn new(): Scheduler {
         Scheduler(
             0i32,
             0i32,
@@ -218,7 +218,7 @@ impl TaskControlBlock {
         return task;
     }
 
-    @static fn new(link: Option[TaskControlBlock], id: Int32, priority: Int32, queue: Option[Packet], task: Task): TaskControlBlock {
+    static fn new(link: Option[TaskControlBlock], id: Int32, priority: Int32, queue: Option[Packet], task: Task): TaskControlBlock {
         if queue.isNone() {
             return TaskControlBlock(link, id, priority, queue, task, STATE_SUSPENDED);
         } else {
@@ -245,7 +245,7 @@ class IdleTask {
 }
 
 impl IdleTask {
-    @static fn new(scheduler: Scheduler, seed: Int32, count: Int32): IdleTask {
+    static fn new(scheduler: Scheduler, seed: Int32, count: Int32): IdleTask {
         IdleTask(scheduler, seed, count)
     }
 }
@@ -276,7 +276,7 @@ class DeviceTask {
 }
 
 impl DeviceTask {
-    @static fn new(scheduler: Scheduler): DeviceTask {
+    static fn new(scheduler: Scheduler): DeviceTask {
         DeviceTask(scheduler, None[Packet])
     }
 }
@@ -308,7 +308,7 @@ class WorkerTask {
 }
 
 impl WorkerTask {
-    @static fn new(scheduler: Scheduler, v1: Int32, v2: Int32): WorkerTask {
+    static fn new(scheduler: Scheduler, v1: Int32, v2: Int32): WorkerTask {
         WorkerTask(scheduler, v1, v2)
     }
 }
@@ -350,7 +350,7 @@ class HandlerTask {
 }
 
 impl HandlerTask {
-    @static fn new(scheduler: Scheduler): HandlerTask {
+    static fn new(scheduler: Scheduler): HandlerTask {
         HandlerTask(scheduler, None[Packet], None[Packet])
     }
 }
@@ -420,7 +420,7 @@ impl Packet {
         return queue.getOrPanic();
     }
 
-    @static fn new(link: Option[Packet], id: Int32, kind: Int32): Packet {
+    static fn new(link: Option[Packet], id: Int32, kind: Int32): Packet {
         let array: Array[Int32] = Array[Int32]::newDefault(DATA_SIZE.toInt64());
         return Packet(link, id, kind, 0i32, array);
     }

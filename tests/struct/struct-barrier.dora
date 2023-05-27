@@ -3,7 +3,7 @@
 class TupleClass(value: Pair)
 
 impl TupleClass {
-    @static fn new(): TupleClass {
+    static fn new(): TupleClass {
         TupleClass(Pair(Foo(0i32), 0))
     }
 }

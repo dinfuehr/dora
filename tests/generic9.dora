@@ -9,7 +9,7 @@ fn main() {
 class A[T](default: T, x: Array[T])
 
 impl[T] A[T] {
-    @static fn new(default: T): A[T] {
+    static fn new(default: T): A[T] {
         A[T](default, Array[T]::fill(10, default))
     }
 }

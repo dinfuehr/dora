@@ -18,7 +18,7 @@ use crate::sym::Sym;
 use crate::ty::SourceType;
 use crate::STDLIB;
 use dora_parser::ast::visit::Visitor;
-use dora_parser::ast::{self, visit, Annotation, Modifiers};
+use dora_parser::ast::{self, visit, Modifiers};
 use dora_parser::parser::Parser;
 use dora_parser::Span;
 
@@ -843,6 +843,33 @@ impl ParsedModifiers {
             Visibility::Public
         } else {
             Visibility::Module
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+enum Annotation {
+    Internal,
+    Pub,
+    Static,
+    Test,
+    OptimizeImmediately,
+    Error,
+}
+
+impl Annotation {
+    fn is_error(&self) -> bool {
+        *self == Annotation::Error
+    }
+
+    fn name(&self) -> &'static str {
+        match *self {
+            Annotation::Internal => "internal",
+            Annotation::Pub => "pub",
+            Annotation::Static => "static",
+            Annotation::Test => "test",
+            Annotation::OptimizeImmediately => "optimizeImmediately",
+            Annotation::Error => "<error>",
         }
     }
 }

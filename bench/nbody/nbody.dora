@@ -19,7 +19,7 @@ class NBodySystem {
 }
 
 impl NBodySystem {
-    @static fn new(): NBodySystem {
+    static fn new(): NBodySystem {
         let bodies = Array[Body]::new(
             Body::sun(),
             Body::jupiter(),
@@ -125,7 +125,7 @@ class Body {
 }
 
 impl Body {
-    @static fn new(): Body {
+    static fn new(): Body {
         Body(
             0.0, 0.0, 0.0,
             0.0, 0.0, 0.0,
@@ -140,7 +140,7 @@ impl Body {
       return self;
    }
 
-    @static fn jupiter(): Body {
+    static fn jupiter(): Body {
         let p = Body::new();
         p.x = 4.84143144246472090e+00;
         p.y = -1.16032004402742839e+00;
@@ -152,7 +152,7 @@ impl Body {
         return p;
     }
 
-   @static fn saturn(): Body {
+   static fn saturn(): Body {
       let p = Body::new();
       p.x = 8.34336671824457987e+00;
       p.y = 4.12479856412430479e+00;
@@ -164,7 +164,7 @@ impl Body {
       return p;
    }
 
-   @static fn uranus(): Body {
+   static fn uranus(): Body {
       let p = Body::new();
       p.x = 1.28943695621391310e+01;
       p.y = -1.51111514016986312e+01;
@@ -176,7 +176,7 @@ impl Body {
       return p;
    }
 
-   @static fn neptune(): Body {
+   static fn neptune(): Body {
       let p = Body::new();
       p.x = 1.53796971148509165e+01;
       p.y = -2.59193146099879641e+01;
@@ -188,7 +188,7 @@ impl Body {
       return p;
    }
 
-   @static fn sun(): Body {
+   static fn sun(): Body {
       let p = Body::new();
       p.mass = SOLAR_MASS;
       return p;

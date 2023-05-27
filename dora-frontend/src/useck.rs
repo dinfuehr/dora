@@ -376,7 +376,7 @@ mod tests {
             "
             use foo::bar::Foo;
             mod foo {
-                @pub mod bar {
+                pub mod bar {
                     class Foo
                 }
             }
@@ -433,7 +433,7 @@ mod tests {
         err(
             "
             use foo::Bar;
-            @pub mod foo {
+            pub mod foo {
                 enum Bar { A, B, C }
             }
         ",
@@ -458,7 +458,7 @@ mod tests {
         ok("
             use foo::Bar::{A, B, C};
             mod foo {
-                @pub enum Bar { A, B, C }
+                pub enum Bar { A, B, C }
             }
         ");
     }
@@ -482,7 +482,7 @@ mod tests {
         ok("
             use foo::Bar;
             mod foo {
-                @pub struct Bar { f: Int32 }
+                pub struct Bar { f: Int32 }
             }
         ");
 
@@ -501,9 +501,9 @@ mod tests {
     #[test]
     fn use_public() {
         ok("
-            @pub use foo::Bar;
-            @pub mod foo {
-                @pub enum Bar { A, B, C }
+            pub use foo::Bar;
+            pub mod foo {
+                pub enum Bar { A, B, C }
             }
         ");
     }
@@ -522,17 +522,17 @@ mod tests {
     #[test]
     fn use_keyword_in_path() {
         err(
-            "use foo::bar::self; mod foo { @pub mod bar {} }",
+            "use foo::bar::self; mod foo { pub mod bar {} }",
             (1, 15),
             ErrorMessage::ExpectedPath,
         );
         err(
-            "use foo::bar::super; mod foo { @pub mod bar {} }",
+            "use foo::bar::super; mod foo { pub mod bar {} }",
             (1, 15),
             ErrorMessage::ExpectedPath,
         );
         err(
-            "use foo::bar::package; mod foo { @pub mod bar {} }",
+            "use foo::bar::package; mod foo { pub mod bar {} }",
             (1, 15),
             ErrorMessage::ExpectedPath,
         );
@@ -541,7 +541,7 @@ mod tests {
     #[test]
     fn no_use_targets() {
         err(
-            "use foo::bar:: {}; mod foo { @pub mod bar {} }",
+            "use foo::bar:: {}; mod foo { pub mod bar {} }",
             (1, 16),
             ErrorMessage::ExpectedPath,
         );
@@ -550,14 +550,14 @@ mod tests {
     #[test]
     fn use_zig_zag() {
         ok("
-            @pub use foo::f1 as f2;
-            @pub use foo::f3 as f4;
+            pub use foo::f1 as f2;
+            pub use foo::f3 as f4;
 
             mod foo {
-                @pub use super::f2 as f3;
-                @pub use super::f4 as f5;
+                pub use super::f2 as f3;
+                pub use super::f4 as f5;
 
-                @pub fn f1() {}
+                pub fn f1() {}
             }
         ");
     }
@@ -566,19 +566,19 @@ mod tests {
     fn use_cyclic() {
         errors(
             "
-            @pub use foo::f1 as f2;
+            pub use foo::f1 as f2;
 
             mod foo {
-                @pub use super::f2 as f1;
+                pub use super::f2 as f1;
             }
         ",
             &[
                 (
-                    (2, 27),
+                    (2, 26),
                     ErrorMessage::UnknownIdentifierInModule("foo".into(), "f1".into()),
                 ),
                 (
-                    (5, 33),
+                    (5, 32),
                     ErrorMessage::UnknownIdentifierInModule("".into(), "f2".into()),
                 ),
             ],

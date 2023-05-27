@@ -3,7 +3,7 @@
 class TupleClass(value: (Foo, Int64))
 
 impl TupleClass {
-    @static fn new(): TupleClass {
+    static fn new(): TupleClass {
         TupleClass((Foo(4711i32), 4712i64))
     }
 }

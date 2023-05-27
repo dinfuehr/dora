@@ -94,7 +94,7 @@ fn gen_generic_identity() {
 
 #[test]
 fn gen_generic_static_trait() {
-    let result = code("trait Foo { @static fn baz(); } fn f[T: Foo]() { T::baz() }");
+    let result = code("trait Foo { static fn baz(); } fn f[T: Foo]() { T::baz() }");
     let expected = vec![InvokeGenericStatic(r(0), ConstPoolIdx(0)), Ret(r(0))];
     assert_eq!(expected, result);
 }

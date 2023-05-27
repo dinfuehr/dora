@@ -653,7 +653,7 @@ mod tests {
     fn module_class() {
         ok("
             fn f(x: foo::Foo) {}
-            mod foo { @pub class Foo }
+            mod foo { pub class Foo }
         ");
 
         err(
@@ -670,7 +670,7 @@ mod tests {
     fn mod_enum() {
         ok("
             fn f(x: foo::Foo) {}
-            mod foo { @pub enum Foo { A, B } }
+            mod foo { pub enum Foo { A, B } }
         ");
 
         err(
@@ -687,7 +687,7 @@ mod tests {
     fn mod_trait() {
         ok("
             fn f(x: foo::Foo) {}
-            mod foo { @pub trait Foo {} }
+            mod foo { pub trait Foo {} }
         ");
 
         err(

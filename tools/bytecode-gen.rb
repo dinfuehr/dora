@@ -62,7 +62,7 @@ def output
         opcode = 0
 
         for bytecode in bytecodes
-            f.puts "@pub const BC_#{snake_case(bytecode)}: Int32 = #{opcode};"
+            f.puts "pub const BC_#{snake_case(bytecode)}: Int32 = #{opcode};"
             opcode += 1
         end
 
@@ -70,7 +70,7 @@ def output
         type_code = 0
 
         for type in types
-            f.puts "@pub const BC_TYPE_#{snake_case(type)}: Int32 = #{type_code};"
+            f.puts "pub const BC_TYPE_#{snake_case(type)}: Int32 = #{type_code};"
             type_code += 1
         end
 
@@ -78,12 +78,12 @@ def output
         code = 0
 
         for opcode in constpool_opcodes
-            f.puts "@pub const CONSTPOOL_OPCODE_#{snake_case(opcode)}: Int32 = #{code};"
+            f.puts "pub const CONSTPOOL_OPCODE_#{snake_case(opcode)}: Int32 = #{code};"
             code += 1
         end
 
         f.puts
-        f.puts "@pub fn bytecodeName(opcode: Int32): String {"
+        f.puts "pub fn bytecodeName(opcode: Int32): String {"
 
         for bytecode in bytecodes
             f.puts "  if opcode == BC_#{snake_case(bytecode)} { return #{bytecode.inspect}; }"
@@ -93,7 +93,7 @@ def output
         f.puts "}"
         f.puts
 
-        f.puts "@pub fn bytecodeTypeName(code: Int32): String {"
+        f.puts "pub fn bytecodeTypeName(code: Int32): String {"
 
         for type in types
             f.puts "  if code == BC_TYPE_#{snake_case(type)} { return #{type.inspect}; }"
@@ -106,7 +106,7 @@ def output
         code = 0
 
         for opcode in instruction_sets
-            f.puts "@pub const INSTRUCTION_SET_#{snake_case(opcode)}: Int32 = #{code};"
+            f.puts "pub const INSTRUCTION_SET_#{snake_case(opcode)}: Int32 = #{code};"
             code += 1
         end
 
