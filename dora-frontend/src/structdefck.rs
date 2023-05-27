@@ -1,15 +1,8 @@
-use std::collections::HashSet;
-
-use crate::error::msg::ErrorMessage;
-use crate::sema::{
-    Sema, SourceFileId, StructDefinitionField, StructDefinitionFieldId, StructDefinitionId,
-    Visibility,
-};
+use crate::sema::{Sema, SourceFileId, StructDefinitionId};
 use crate::sym::{ModuleSymTable, Sym};
 use crate::ty::SourceType;
 use crate::{read_type_context, AllowSelf, TypeParamContext};
 
-use crate::interner::Name;
 use dora_parser::ast;
 
 pub fn check(sa: &Sema) {
@@ -30,7 +23,6 @@ pub fn check(sa: &Sema) {
             file_id,
             ast: &ast,
             symtable: ModuleSymTable::new(sa, module_id),
-            fields: HashSet::new(),
         };
 
         clsck.check();
@@ -43,7 +35,6 @@ struct StructCheck<'x> {
     file_id: SourceFileId,
     ast: &'x ast::Struct,
     symtable: ModuleSymTable,
-    fields: HashSet<Name>,
 }
 
 impl<'x> StructCheck<'x> {
@@ -60,13 +51,13 @@ impl<'x> StructCheck<'x> {
         }
 
         for (idx, field) in self.ast.fields.iter().enumerate() {
-            self.visit_struct_field(field, idx.into());
+            self.visit_struct_field(idx, field);
         }
 
         self.symtable.pop_level();
     }
 
-    fn visit_struct_field(&mut self, f: &ast::StructField, id: StructDefinitionFieldId) {
+    fn visit_struct_field(&mut self, idx: usize, f: &ast::StructField) {
         let ty = read_type_context(
             self.sa,
             &self.symtable,
@@ -79,31 +70,7 @@ impl<'x> StructCheck<'x> {
 
         let struct_ = self.sa.structs.idx(self.struct_id);
         let mut struct_ = struct_.write();
-        let name = self
-            .sa
-            .interner
-            .intern(&f.name.as_ref().expect("missing name").name_as_string);
-
-        if !self.fields.insert(name) {
-            let name = self.sa.interner.str(name).to_string();
-            self.sa
-                .diag
-                .lock()
-                .report(self.file_id, f.span, ErrorMessage::ShadowField(name));
-            return;
-        }
-
-        let field = StructDefinitionField {
-            id,
-            span: f.span,
-            name,
-            ty,
-            visibility: Visibility::from_ast(f.visibility),
-        };
-
-        struct_.fields.push(field);
-        let old = struct_.field_names.insert(name, id);
-        assert!(old.is_none());
+        struct_.fields[idx].ty = ty;
     }
 }
 

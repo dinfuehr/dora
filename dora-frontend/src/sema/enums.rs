@@ -3,6 +3,7 @@ use std::convert::TryInto;
 use std::sync::Arc;
 
 use crate::interner::Name;
+use crate::program_parser::ParsedModifiers;
 use dora_parser::ast;
 use dora_parser::Span;
 
@@ -56,11 +57,12 @@ pub struct EnumDefinition {
 }
 
 impl EnumDefinition {
-    pub fn new(
+    pub(crate) fn new(
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
         node: &Arc<ast::Enum>,
+        modifiers: ParsedModifiers,
         name: Name,
     ) -> EnumDefinition {
         EnumDefinition {
@@ -72,7 +74,7 @@ impl EnumDefinition {
             span: node.span,
             name,
             type_params: None,
-            visibility: Visibility::from_ast(node.visibility),
+            visibility: modifiers.visibility(),
             variants: Vec::new(),
             name_to_value: HashMap::new(),
             extensions: Vec::new(),

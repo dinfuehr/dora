@@ -9,11 +9,13 @@ use crate::interner::Name;
 use crate::report_sym_shadow_span;
 use crate::sema::{
     ClassDefinition, ConstDefinition, EnumDefinition, ExtensionDefinition, ExtensionDefinitionId,
-    FctDefinition, FctParent, GlobalDefinition, ImplDefinition, ImplDefinitionId, ModuleDefinition,
-    ModuleDefinitionId, PackageDefinitionId, PackageName, Sema, SourceFileId, StructDefinition,
-    TraitDefinition, TraitDefinitionId, UseDefinition, Visibility,
+    FctDefinition, FctParent, Field, FieldId, GlobalDefinition, ImplDefinition, ImplDefinitionId,
+    ModuleDefinition, ModuleDefinitionId, PackageDefinitionId, PackageName, Sema, SourceFileId,
+    StructDefinition, StructDefinitionField, StructDefinitionFieldId, TraitDefinition,
+    TraitDefinitionId, UseDefinition, Visibility,
 };
 use crate::sym::Sym;
+use crate::ty::SourceType;
 use crate::STDLIB;
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit, Annotation, Modifiers};
@@ -429,7 +431,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     }
 
     fn visit_module(&mut self, node: &Arc<ast::Module>) {
-        check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
+        let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
         let name = ensure_name(self.sa, &node.name);
         let module = ModuleDefinition::new_inner(
             self.sa,
@@ -437,6 +439,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             self.module_id,
             self.file_id,
             node,
+            modifiers,
             name,
         );
         let id = self.sa.modules.push(module);
@@ -457,13 +460,14 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     }
 
     fn visit_trait(&mut self, node: &Arc<ast::Trait>) {
-        check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
+        let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
 
         let trait_ = TraitDefinition::new(
             self.package_id,
             self.module_id,
             self.file_id,
             node,
+            modifiers,
             ensure_name(self.sa, &node.name),
         );
         let trait_id = self.sa.traits.push(trait_);
@@ -478,19 +482,26 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     }
 
     fn visit_use(&mut self, node: &Arc<ast::Use>) {
-        check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
-        let use_def = UseDefinition::new(self.package_id, self.module_id, self.file_id, node);
+        let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
+        let use_def = UseDefinition::new(
+            self.package_id,
+            self.module_id,
+            self.file_id,
+            node,
+            modifiers,
+        );
         self.sa.uses.push(use_def);
     }
 
     fn visit_global(&mut self, node: &Arc<ast::Global>) {
-        check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
+        let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
 
         let global = GlobalDefinition::new(
             self.package_id,
             self.module_id,
             self.file_id,
             node,
+            modifiers,
             ensure_name(self.sa, &node.name),
         );
         let global_id = self.sa.globals.push(global);
@@ -519,12 +530,13 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     }
 
     fn visit_const(&mut self, node: &Arc<ast::Const>) {
-        check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
+        let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
         let const_ = ConstDefinition::new(
             self.package_id,
             self.module_id,
             self.file_id,
             node,
+            modifiers,
             ensure_name(self.sa, &node.name),
         );
         let id = self.sa.consts.push(const_);
@@ -536,19 +548,44 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     }
 
     fn visit_class(&mut self, node: &Arc<ast::Class>) {
-        check_modifiers(
+        let modifiers = check_modifiers(
             self.sa,
             self.file_id,
             &node.modifiers,
             &[Annotation::Internal, Annotation::Pub],
         );
 
+        let mut fields = Vec::with_capacity(node.fields.len());
+        let mut used_names: HashSet<Name> = HashSet::new();
+
+        for (idx, field) in node.fields.iter().enumerate() {
+            let modifiers =
+                check_modifiers(self.sa, self.file_id, &field.modifiers, &[Annotation::Pub]);
+
+            let name = self
+                .sa
+                .interner
+                .intern(&field.name.as_ref().expect("missing name").name_as_string);
+
+            check_if_symbol_exists(self.sa, self.file_id, &mut used_names, name, field.span);
+
+            fields.push(Field {
+                id: FieldId(idx),
+                name,
+                ty: SourceType::Error,
+                mutable: field.mutable,
+                visibility: modifiers.visibility(),
+            });
+        }
+
         let class = ClassDefinition::new(
             self.package_id,
             self.module_id,
             self.file_id,
             node,
+            modifiers,
             ensure_name(self.sa, &node.name),
+            fields,
         );
         let class_id = self.sa.classes.push(class);
 
@@ -556,22 +593,51 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
+
+        for field in &node.fields {
+            check_modifiers(self.sa, self.file_id, &field.modifiers, &[Annotation::Pub]);
+        }
     }
 
     fn visit_struct(&mut self, node: &Arc<ast::Struct>) {
-        check_modifiers(
+        let modifiers = check_modifiers(
             self.sa,
             self.file_id,
             &node.modifiers,
             &[Annotation::Pub, Annotation::Internal],
         );
 
+        let mut fields = Vec::with_capacity(node.fields.len());
+        let mut used_names: HashSet<Name> = HashSet::new();
+
+        for (idx, field) in node.fields.iter().enumerate() {
+            let modifiers =
+                check_modifiers(self.sa, self.file_id, &field.modifiers, &[Annotation::Pub]);
+
+            let name = self
+                .sa
+                .interner
+                .intern(&field.name.as_ref().expect("missing name").name_as_string);
+
+            check_if_symbol_exists(self.sa, self.file_id, &mut used_names, name, field.span);
+
+            fields.push(StructDefinitionField {
+                id: StructDefinitionFieldId(idx),
+                name,
+                span: field.span,
+                ty: SourceType::Error,
+                visibility: modifiers.visibility(),
+            });
+        }
+
         let struct_ = StructDefinition::new(
             self.package_id,
             self.module_id,
             self.file_id,
             node,
+            modifiers,
             ensure_name(self.sa, &node.name),
+            fields,
         );
         let id = self.sa.structs.push(struct_);
 
@@ -611,12 +677,13 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     }
 
     fn visit_enum(&mut self, node: &Arc<ast::Enum>) {
-        check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
+        let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
         let enum_ = EnumDefinition::new(
             self.package_id,
             self.module_id,
             self.file_id,
             node,
+            modifiers,
             ensure_name(self.sa, &node.name),
         );
         let id = self.sa.enums.push(enum_);
@@ -633,7 +700,12 @@ fn find_methods_in_trait(sa: &mut Sema, trait_id: TraitDefinitionId, node: &Arc<
     let mut trait_ = trait_.write();
 
     for method_node in &node.methods {
-        let modifiers = check_modifiers(sa, trait_.file_id, &method_node.modifiers, &[]);
+        let modifiers = check_modifiers(
+            sa,
+            trait_.file_id,
+            &method_node.modifiers,
+            &[Annotation::Static],
+        );
 
         let fct = FctDefinition::new(
             trait_.package_id,
@@ -655,7 +727,12 @@ fn find_methods_in_impl(sa: &mut Sema, impl_id: ImplDefinitionId, node: &Arc<ast
     let mut impl_ = impl_.write();
 
     for method_node in &node.methods {
-        let modifiers = check_modifiers(sa, impl_.file_id, &method_node.modifiers, &[]);
+        let modifiers = check_modifiers(
+            sa,
+            impl_.file_id,
+            &method_node.modifiers,
+            &[Annotation::Static, Annotation::Internal],
+        );
 
         let fct = FctDefinition::new(
             impl_.package_id,
@@ -685,7 +762,7 @@ fn find_methods_in_extension(
             sa,
             extension.file_id,
             &method_node.modifiers,
-            &[Annotation::Internal],
+            &[Annotation::Internal, Annotation::Static, Annotation::Pub],
         );
 
         let fct = FctDefinition::new(
@@ -734,7 +811,7 @@ fn check_modifiers(
     sa: &Sema,
     file_id: SourceFileId,
     modifiers: &Option<Modifiers>,
-    _allow_list: &[Annotation],
+    allow_list: &[Annotation],
 ) -> ParsedModifiers {
     let mut parsed_modifiers = ParsedModifiers::default();
 
@@ -744,10 +821,22 @@ fn check_modifiers(
         for modifier in modifiers.iter() {
             let value = check_modifier(sa, file_id, modifier, &mut parsed_modifiers);
 
-            if value != Annotation::Error && !set.insert(value) {
+            if value.is_error() {
+                continue;
+            }
+
+            if !set.insert(value) {
                 sa.diag
                     .lock()
                     .report(file_id, modifier.span, ErrorMessage::RedundantAnnotation);
+            }
+
+            if !allow_list.contains(&value) {
+                sa.diag.lock().report(
+                    file_id,
+                    modifier.span,
+                    ErrorMessage::MisplacedAnnotation(modifier.value.name().into()),
+                );
             }
         }
     }
@@ -816,6 +905,21 @@ impl<'x> TopLevelDeclaration<'x> {
         } else {
             None
         }
+    }
+}
+
+fn check_if_symbol_exists(
+    sa: &Sema,
+    file_id: SourceFileId,
+    used_names: &mut HashSet<Name>,
+    name: Name,
+    span: Span,
+) {
+    if !used_names.insert(name) {
+        let name = sa.interner.str(name).to_string();
+        sa.diag
+            .lock()
+            .report(file_id, span, ErrorMessage::ShadowField(name));
     }
 }
 

@@ -231,7 +231,7 @@ fn internal_class(sa: &Sema, module_id: ModuleDefinitionId, name: &str) -> Class
 
     let cls = sa.classes.idx(cls_id);
     let mut cls = cls.write();
-    assert!(cls.internal);
+    assert!(cls.is_internal);
     cls.internal_resolved = true;
 
     cls_id
@@ -250,7 +250,7 @@ fn internal_struct(
     let struct_ = sa.structs.idx(struct_id);
     let mut struct_ = struct_.write();
 
-    assert!(struct_.internal);
+    assert!(struct_.is_internal);
     struct_.primitive_ty = ty;
     struct_.internal_resolved = true;
 

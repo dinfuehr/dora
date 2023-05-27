@@ -1,14 +1,9 @@
-use std::collections::HashSet;
-
-use crate::error::msg::ErrorMessage;
-use crate::sema::{ClassDefinitionId, Field, FieldId, Sema, SourceFileId, Visibility};
+use crate::sema::{ClassDefinitionId, Sema, SourceFileId};
 use crate::sym::{ModuleSymTable, Sym};
 use crate::ty::SourceType;
 use crate::{read_type_context, AllowSelf, TypeParamContext};
 
-use crate::interner::Name;
 use dora_parser::ast;
-use dora_parser::Span;
 
 pub fn check(sa: &Sema) {
     for cls in sa.classes.iter() {
@@ -28,7 +23,6 @@ pub fn check(sa: &Sema) {
             file_id,
             ast: &ast,
             sym: ModuleSymTable::new(sa, module_id),
-            table: HashSet::new(),
         };
 
         clsck.check();
@@ -41,7 +35,6 @@ struct ClsDefCheck<'x> {
     file_id: SourceFileId,
     ast: &'x ast::Class,
     sym: ModuleSymTable,
-    table: HashSet<Name>,
 }
 
 impl<'x> ClsDefCheck<'x> {
@@ -57,14 +50,14 @@ impl<'x> ClsDefCheck<'x> {
             }
         }
 
-        for field in &self.ast.fields {
-            self.visit_field(field);
+        for (idx, field) in self.ast.fields.iter().enumerate() {
+            self.visit_field(idx, field);
         }
 
         self.sym.pop_level();
     }
 
-    fn visit_field(&mut self, f: &ast::Field) {
+    fn visit_field(&mut self, idx: usize, f: &ast::Field) {
         let ty = read_type_context(
             self.sa,
             &self.sym,
@@ -74,49 +67,11 @@ impl<'x> ClsDefCheck<'x> {
             AllowSelf::No,
         )
         .unwrap_or(SourceType::Error);
-        let name = self
-            .sa
-            .interner
-            .intern(&f.name.as_ref().expect("missing name").name_as_string);
-        self.add_field(f.span, name, ty, f.mutable, f.visibility);
-    }
 
-    fn add_field(
-        &mut self,
-        span: Span,
-        name: Name,
-        ty: SourceType,
-        mutable: bool,
-        visibility: ast::Visibility,
-    ) {
         let cls = self.sa.classes.idx(self.cls_id);
         let mut cls = cls.write();
 
-        let id: FieldId = cls.fields.len().into();
-
-        let field = Field {
-            id,
-            name,
-            ty,
-            mutable,
-            visibility: Visibility::from_ast(visibility),
-        };
-
-        self.check_if_symbol_exists(name, span);
-
-        cls.fields.push(field);
-    }
-
-    fn check_if_symbol_exists(&mut self, name: Name, span: Span) {
-        if !self.table.insert(name) {
-            let file: SourceFileId = self.file_id.into();
-
-            let name = self.sa.interner.str(name).to_string();
-            self.sa
-                .diag
-                .lock()
-                .report(file, span, ErrorMessage::ShadowField(name));
-        }
+        cls.fields[idx].ty = ty;
     }
 }
 

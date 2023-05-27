@@ -2,6 +2,7 @@ use std::convert::TryInto;
 use std::sync::Arc;
 
 use crate::interner::Name;
+use crate::program_parser::ParsedModifiers;
 use crate::sema::{
     module_path, AnalysisData, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
     SourceFileId, Visibility,
@@ -55,11 +56,12 @@ pub struct GlobalDefinition {
 }
 
 impl GlobalDefinition {
-    pub fn new(
+    pub(crate) fn new(
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
         node: &Arc<ast::Global>,
+        modifiers: ParsedModifiers,
         name: Name,
     ) -> GlobalDefinition {
         GlobalDefinition {
@@ -70,7 +72,7 @@ impl GlobalDefinition {
             ast: node.clone(),
             span: node.span,
             name,
-            visibility: Visibility::from_ast(node.visibility),
+            visibility: modifiers.visibility(),
             ty: SourceType::Unit,
             mutable: node.mutable,
             initializer: None,

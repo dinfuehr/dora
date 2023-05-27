@@ -3,6 +3,7 @@ use std::convert::TryInto;
 use std::sync::Arc;
 
 use crate::interner::Name;
+use crate::program_parser::ParsedModifiers;
 use dora_parser::ast;
 use dora_parser::Span;
 
@@ -49,7 +50,7 @@ pub struct StructDefinition {
     pub primitive_ty: Option<SourceType>,
     pub type_params: Option<TypeParamDefinition>,
     pub visibility: Visibility,
-    pub internal: bool,
+    pub is_internal: bool,
     pub internal_resolved: bool,
     pub span: Span,
     pub name: Name,
@@ -59,13 +60,25 @@ pub struct StructDefinition {
 }
 
 impl StructDefinition {
-    pub fn new(
+    pub(crate) fn new(
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
         node: &Arc<ast::Struct>,
+        modifiers: ParsedModifiers,
         name: Name,
+        fields: Vec<StructDefinitionField>,
     ) -> StructDefinition {
+        let mut field_names = HashMap::new();
+
+        for field in &fields {
+            if field_names.contains_key(&field.name) {
+                continue;
+            }
+
+            field_names.insert(field.name, field.id);
+        }
+
         StructDefinition {
             id: None,
             package_id,
@@ -73,14 +86,14 @@ impl StructDefinition {
             file_id,
             ast: node.clone(),
             primitive_ty: None,
-            visibility: Visibility::from_ast(node.visibility),
+            visibility: modifiers.visibility(),
             span: node.span,
             name,
-            internal: node.internal,
+            is_internal: modifiers.is_internal,
             internal_resolved: false,
             type_params: None,
-            fields: Vec::new(),
-            field_names: HashMap::new(),
+            fields,
+            field_names,
             extensions: Vec::new(),
         }
     }
@@ -129,7 +142,7 @@ impl StructDefinition {
 
     pub fn all_fields_are_public(&self) -> bool {
         // "Internal" structs don't have any outside visible fields.
-        if self.internal {
+        if self.is_internal {
             return false;
         }
 

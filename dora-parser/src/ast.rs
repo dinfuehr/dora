@@ -200,7 +200,6 @@ pub struct Global {
     pub mutable: bool,
     pub data_type: Type,
     pub initial_value: Option<Expr>,
-    pub visibility: Visibility,
 }
 
 #[derive(Clone, Debug)]
@@ -211,7 +210,6 @@ pub struct Module {
     pub modifiers: Option<Modifiers>,
     pub name: Option<Ident>,
     pub elements: Option<Vec<Elem>>,
-    pub visibility: Visibility,
 }
 
 #[derive(Clone, Debug)]
@@ -269,7 +267,6 @@ pub struct Const {
     pub name: Option<Ident>,
     pub data_type: Type,
     pub expr: Expr,
-    pub visibility: Visibility,
 }
 
 #[derive(Clone, Debug)]
@@ -281,7 +278,6 @@ pub struct Enum {
     pub name: Option<Ident>,
     pub type_params: Option<TypeParams>,
     pub variants: Vec<EnumVariant>,
-    pub visibility: Visibility,
 }
 
 #[derive(Clone, Debug)]
@@ -301,7 +297,6 @@ pub struct Alias {
     pub modifiers: Option<Modifiers>,
     pub name: Option<Ident>,
     pub ty: Type,
-    pub visibility: Visibility,
 }
 
 #[derive(Clone, Debug)]
@@ -312,7 +307,6 @@ pub struct Struct {
     pub modifiers: Option<Modifiers>,
     pub name: Option<Ident>,
     pub fields: Vec<StructField>,
-    pub visibility: Visibility,
     pub internal: bool,
     pub type_params: Option<TypeParams>,
 }
@@ -322,9 +316,9 @@ pub struct StructField {
     pub id: NodeId,
     pub span: Span,
     pub syntax: SyntaxNode,
+    pub modifiers: Option<Modifiers>,
     pub name: Option<Ident>,
     pub data_type: Type,
-    pub visibility: Visibility,
 }
 
 pub type Type = Arc<TypeData>;
@@ -590,7 +584,6 @@ pub struct Trait {
     pub type_params: Option<TypeParams>,
     pub span: Span,
     pub methods: Vec<Arc<Function>>,
-    pub visibility: Visibility,
 }
 
 #[derive(Clone, Debug)]
@@ -601,7 +594,6 @@ pub struct Class {
     pub modifiers: Option<Modifiers>,
     pub name: Option<Ident>,
     pub internal: bool,
-    pub visibility: Visibility,
 
     pub fields: Vec<Field>,
     pub type_params: Option<TypeParams>,
@@ -635,12 +627,12 @@ pub struct Field {
     pub id: NodeId,
     pub span: Span,
     pub syntax: SyntaxNode,
+    pub modifiers: Option<Modifiers>,
     pub name: Option<Ident>,
     pub data_type: Type,
     pub primary_ctor: bool,
     pub expr: Option<Expr>,
     pub mutable: bool,
-    pub visibility: Visibility,
 }
 
 #[derive(Clone, Debug)]
@@ -667,7 +659,6 @@ pub struct Function {
     pub kind: FunctionKind,
     pub name: Option<Ident>,
     pub is_optimize_immediately: bool,
-    pub visibility: Visibility,
     pub is_static: bool,
     pub is_test: bool,
     pub internal: bool,
@@ -2062,39 +2053,6 @@ pub struct ExprDotType {
 
     pub lhs: Expr,
     pub rhs: Expr,
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum Visibility {
-    Public,
-    Default,
-}
-
-impl Visibility {
-    pub fn from_modifiers(modifiers: &Option<Modifiers>) -> Visibility {
-        let has_pub = modifiers
-            .as_ref()
-            .map(|m| m.contains(Annotation::Pub))
-            .unwrap_or_default();
-        if has_pub {
-            Visibility::Public
-        } else {
-            Visibility::Default
-        }
-    }
-    pub fn is_public(self) -> bool {
-        match self {
-            Visibility::Public => true,
-            Visibility::Default => false,
-        }
-    }
-
-    pub fn is_default(self) -> bool {
-        match self {
-            Visibility::Public => false,
-            Visibility::Default => true,
-        }
-    }
 }
 
 fn find_token(node: &SyntaxNode, token: TokenKind) -> Option<SyntaxToken> {

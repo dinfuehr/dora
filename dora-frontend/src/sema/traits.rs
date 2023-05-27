@@ -5,6 +5,7 @@ use std::ops::Index;
 use std::sync::Arc;
 
 use crate::interner::Name;
+use crate::program_parser::ParsedModifiers;
 use dora_parser::ast;
 use dora_parser::Span;
 
@@ -58,11 +59,12 @@ pub struct TraitDefinition {
 }
 
 impl TraitDefinition {
-    pub fn new(
+    pub(crate) fn new(
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
         node: &Arc<ast::Trait>,
+        modifiers: ParsedModifiers,
         name: Name,
     ) -> TraitDefinition {
         TraitDefinition {
@@ -71,7 +73,7 @@ impl TraitDefinition {
             module_id,
             file_id,
             ast: node.clone(),
-            visibility: Visibility::from_ast(node.visibility),
+            visibility: modifiers.visibility(),
             span: node.span,
             name,
             is_trait_object: false,

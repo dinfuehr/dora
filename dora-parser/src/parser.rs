@@ -329,7 +329,6 @@ impl Parser {
             name,
             type_params,
             variants,
-            visibility: Visibility::from_modifiers(&modifiers),
         })
     }
 
@@ -361,7 +360,6 @@ impl Parser {
             modifiers: modifiers.clone(),
             name,
             elements,
-            visibility: Visibility::from_modifiers(&modifiers),
         })
     }
 
@@ -407,7 +405,6 @@ impl Parser {
             name,
             data_type: ty,
             expr,
-            visibility: Visibility::from_modifiers(&modifiers),
         })
     }
 
@@ -489,7 +486,6 @@ impl Parser {
             span: self.finish_node(),
             data_type,
             mutable,
-            visibility: Visibility::from_modifiers(&modifiers),
             initial_value: expr.clone(),
         })
     }
@@ -525,7 +521,6 @@ impl Parser {
             type_params,
             span: self.finish_node(),
             methods,
-            visibility: Visibility::from_modifiers(&modifiers),
         })
     }
 
@@ -552,7 +547,6 @@ impl Parser {
             modifiers: modifiers.clone(),
             span: self.finish_node(),
             fields,
-            visibility: Visibility::from_modifiers(&modifiers),
             internal: modifiers
                 .map(|m| m.contains(Annotation::Internal))
                 .unwrap_or_default(),
@@ -579,9 +573,9 @@ impl Parser {
             id: self.new_node_id(),
             span: self.finish_node(),
             syntax,
+            modifiers,
             name: ident,
             data_type: ty,
-            visibility: Visibility::from_modifiers(&modifiers),
         }
     }
 
@@ -612,7 +606,6 @@ impl Parser {
                 .as_ref()
                 .map(|m| m.contains(Annotation::Internal))
                 .unwrap_or_default(),
-            visibility: Visibility::from_modifiers(&modifiers),
             fields,
             type_params,
         })
@@ -637,12 +630,12 @@ impl Parser {
             id: self.new_node_id(),
             span: self.finish_node(),
             syntax,
+            modifiers,
             name,
             data_type,
             primary_ctor: false,
             expr: None,
             mutable: true,
-            visibility: Visibility::from_modifiers(&modifiers),
         }
     }
 
@@ -663,7 +656,6 @@ impl Parser {
             modifiers: modifiers.clone(),
             span: self.finish_node(),
             ty,
-            visibility: Visibility::from_modifiers(&modifiers),
         })
     }
 
@@ -836,7 +828,6 @@ impl Parser {
                 .as_ref()
                 .map(|m| m.contains(Annotation::OptimizeImmediately))
                 .unwrap_or_default(),
-            visibility: Visibility::from_modifiers(&modifiers),
             is_static: modifiers
                 .as_ref()
                 .map(|m| m.contains(Annotation::Static))
@@ -1849,7 +1840,6 @@ impl Parser {
             name: None,
             span: self.finish_node(),
             is_optimize_immediately: false,
-            visibility: Visibility::Default,
             is_static: false,
             internal: false,
             is_constructor: false,

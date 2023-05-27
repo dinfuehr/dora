@@ -196,7 +196,7 @@ fn internalck(sa: &Sema) {
     for struct_ in sa.structs.iter() {
         let struct_ = struct_.read();
 
-        if struct_.internal && !struct_.internal_resolved {
+        if struct_.is_internal && !struct_.internal_resolved {
             sa.diag.lock().report(
                 struct_.file_id,
                 struct_.span,
@@ -208,7 +208,7 @@ fn internalck(sa: &Sema) {
     for cls in sa.classes.iter() {
         let cls = cls.read();
 
-        if cls.internal && !cls.internal_resolved {
+        if cls.is_internal && !cls.internal_resolved {
             sa.diag
                 .lock()
                 .report(cls.file_id(), cls.span(), ErrorMessage::UnresolvedInternal);

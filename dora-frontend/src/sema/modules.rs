@@ -1,6 +1,7 @@
 use parking_lot::RwLock;
 use std::sync::Arc;
 
+use crate::program_parser::ParsedModifiers;
 use crate::sema::{PackageDefinitionId, Sema, Visibility};
 use crate::sym::SymTable;
 use crate::Id;
@@ -49,7 +50,7 @@ pub struct ModuleDefinition {
 }
 
 impl ModuleDefinition {
-    pub fn new_top_level(name: Option<Name>) -> ModuleDefinition {
+    pub(crate) fn new_top_level(name: Option<Name>) -> ModuleDefinition {
         ModuleDefinition {
             id: None,
             package_id: None,
@@ -64,12 +65,13 @@ impl ModuleDefinition {
         }
     }
 
-    pub fn new_inner(
+    pub(crate) fn new_inner(
         sa: &mut Sema,
         package_id: PackageDefinitionId,
         parent_id: ModuleDefinitionId,
         file_id: SourceFileId,
         ast: &Arc<ast::Module>,
+        modifiers: ParsedModifiers,
         name: Name,
     ) -> ModuleDefinition {
         let parent = &sa.modules[parent_id].read();
@@ -86,7 +88,7 @@ impl ModuleDefinition {
             parent_module_id: Some(parent_id),
             name: Some(name),
             table: Arc::new(RwLock::new(SymTable::new())),
-            visibility: Visibility::from_ast(ast.visibility),
+            visibility: modifiers.visibility(),
             parents,
             depth,
         }

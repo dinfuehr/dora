@@ -2,6 +2,7 @@ use std::ops::{Index, IndexMut};
 use std::sync::Arc;
 
 use crate::interner::Name;
+use crate::program_parser::ParsedModifiers;
 use dora_parser::ast;
 use dora_parser::Span;
 
@@ -52,7 +53,7 @@ pub struct ClassDefinition {
     pub span: Option<Span>,
     pub name: Name,
     pub ty: Option<SourceType>,
-    pub internal: bool,
+    pub is_internal: bool,
     pub internal_resolved: bool,
     pub visibility: Visibility,
 
@@ -68,12 +69,14 @@ pub struct ClassDefinition {
 }
 
 impl ClassDefinition {
-    pub fn new(
+    pub(crate) fn new(
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
         ast: &Arc<ast::Class>,
+        modifiers: ParsedModifiers,
         name: Name,
+        fields: Vec<Field>,
     ) -> ClassDefinition {
         ClassDefinition {
             id: None,
@@ -84,11 +87,11 @@ impl ClassDefinition {
             span: Some(ast.span),
             name,
             ty: None,
-            internal: ast.internal,
+            is_internal: modifiers.is_internal,
             internal_resolved: false,
-            visibility: Visibility::from_ast(ast.visibility),
+            visibility: modifiers.visibility(),
 
-            fields: Vec::new(),
+            fields,
 
             extensions: Vec::new(),
 
@@ -117,7 +120,7 @@ impl ClassDefinition {
             span,
             name,
             ty: None,
-            internal: false,
+            is_internal: false,
             internal_resolved: false,
             visibility,
 
@@ -192,7 +195,7 @@ impl ClassDefinition {
 
     pub fn all_fields_are_public(&self) -> bool {
         // "Internal" classes don't have any outside visible fields.
-        if self.internal {
+        if self.is_internal {
             return false;
         }
 
@@ -503,15 +506,6 @@ pub enum Visibility {
 }
 
 impl Visibility {
-    pub fn from_ast(visibility: ast::Visibility) -> Visibility {
-        if visibility.is_public() {
-            Visibility::Public
-        } else {
-            assert!(visibility.is_default());
-            Visibility::Module
-        }
-    }
-
     pub fn is_public(&self) -> bool {
         match self {
             Visibility::Public => true,
