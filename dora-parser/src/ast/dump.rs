@@ -218,7 +218,6 @@ impl AstDumper {
         self.dump_ident(&fct.name);
 
         self.indent(|d| {
-            dump!(d, "internal = {}", fct.internal);
             dump!(d, "params");
             d.indent(|d| {
                 if fct.params.is_empty() {

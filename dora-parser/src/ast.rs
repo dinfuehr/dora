@@ -307,7 +307,6 @@ pub struct Struct {
     pub modifiers: Option<Modifiers>,
     pub name: Option<Ident>,
     pub fields: Vec<StructField>,
-    pub internal: bool,
     pub type_params: Option<TypeParams>,
 }
 
@@ -593,7 +592,6 @@ pub struct Class {
     pub syntax: SyntaxNode,
     pub modifiers: Option<Modifiers>,
     pub name: Option<Ident>,
-    pub internal: bool,
 
     pub fields: Vec<Field>,
     pub type_params: Option<TypeParams>,
@@ -658,11 +656,7 @@ pub struct Function {
     pub modifiers: Option<Modifiers>,
     pub kind: FunctionKind,
     pub name: Option<Ident>,
-    pub is_optimize_immediately: bool,
     pub is_static: bool,
-    pub is_test: bool,
-    pub internal: bool,
-    pub is_constructor: bool,
 
     pub params: Vec<Param>,
 

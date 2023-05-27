@@ -547,9 +547,6 @@ impl Parser {
             modifiers: modifiers.clone(),
             span: self.finish_node(),
             fields,
-            internal: modifiers
-                .map(|m| m.contains(Annotation::Internal))
-                .unwrap_or_default(),
             type_params,
         })
     }
@@ -602,10 +599,6 @@ impl Parser {
             syntax,
             modifiers: modifiers.clone(),
             name,
-            internal: modifiers
-                .as_ref()
-                .map(|m| m.contains(Annotation::Internal))
-                .unwrap_or_default(),
             fields,
             type_params,
         })
@@ -824,22 +817,9 @@ impl Parser {
             modifiers: modifiers.clone(),
             name,
             span: self.finish_node(),
-            is_optimize_immediately: modifiers
-                .as_ref()
-                .map(|m| m.contains(Annotation::OptimizeImmediately))
-                .unwrap_or_default(),
             is_static: modifiers
                 .as_ref()
                 .map(|m| m.contains(Annotation::Static))
-                .unwrap_or_default(),
-            internal: modifiers
-                .as_ref()
-                .map(|m| m.contains(Annotation::Internal))
-                .unwrap_or_default(),
-            is_constructor: false,
-            is_test: modifiers
-                .as_ref()
-                .map(|m| m.contains(Annotation::Test))
                 .unwrap_or_default(),
             params,
             return_type,
@@ -1839,11 +1819,7 @@ impl Parser {
             modifiers: None,
             name: None,
             span: self.finish_node(),
-            is_optimize_immediately: false,
             is_static: false,
-            internal: false,
-            is_constructor: false,
-            is_test: false,
             params,
             return_type,
             block: Some(block),
@@ -2900,9 +2876,7 @@ mod tests {
 
     #[test]
     fn parse_internal() {
-        let prog = parse("@internal fn foo();");
-        let fct = prog.fct0();
-        assert!(fct.internal);
+        parse("@internal fn foo();");
     }
 
     #[test]

@@ -62,7 +62,6 @@ pub struct FctDefinition {
     pub internal_resolved: bool,
     pub param_types: Vec<SourceType>,
     pub return_type: SourceType,
-    pub is_constructor: bool,
     pub is_variadic: bool,
 
     pub vtable_index: Option<u32>,
@@ -103,7 +102,6 @@ impl FctDefinition {
             is_test: modifiers.is_test,
             is_internal: modifiers.is_internal,
             internal_resolved: false,
-            is_constructor: ast.is_constructor,
             vtable_index: None,
             initialized: false,
             is_variadic: false,
