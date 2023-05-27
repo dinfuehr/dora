@@ -2,8 +2,9 @@ use std::fmt;
 use std::slice::Iter;
 use std::sync::Arc;
 
-use crate::syntax::SyntaxNode;
-use crate::Span;
+use crate::syntax::{SyntaxNode, SyntaxToken};
+use crate::token::TokenKind::*;
+use crate::{Span, TokenKind};
 
 pub mod dump;
 pub mod visit;
@@ -691,7 +692,7 @@ pub struct Modifiers {
     pub id: NodeId,
     pub span: Span,
     pub syntax: SyntaxNode,
-    pub modifiers: Vec<ModifierElement>,
+    pub modifiers: Vec<Modifier>,
 }
 
 impl Modifiers {
@@ -702,46 +703,35 @@ impl Modifiers {
             .is_some()
     }
 
-    pub fn iter(&self) -> Iter<ModifierElement> {
+    pub fn iter(&self) -> Iter<Modifier> {
         self.modifiers.iter()
     }
 }
 
 #[derive(Clone, Debug)]
-pub struct ModifierElement {
+pub struct Modifier {
     pub id: NodeId,
     pub span: Span,
     pub syntax: SyntaxNode,
     pub value: Annotation,
 }
 
-#[derive(Clone, Debug)]
-pub struct AnnotationUsages(Vec<AnnotationUsage>);
-
-impl AnnotationUsages {
-    pub fn new() -> AnnotationUsages {
-        AnnotationUsages(Vec::new())
+impl Modifier {
+    pub fn pub_token(&self) -> Option<SyntaxToken> {
+        find_token(&self.syntax, PUB_KW)
     }
 
-    pub fn contains(&self, name: String) -> bool {
-        self.0.iter().find(|el| el.name == name).is_some()
+    pub fn static_token(&self) -> Option<SyntaxToken> {
+        find_token(&self.syntax, STATIC_KW)
     }
 
-    pub fn add(&mut self, annotation_usage: AnnotationUsage) {
-        self.0.push(annotation_usage);
+    pub fn at_token(&self) -> Option<SyntaxToken> {
+        find_token(&self.syntax, AT)
     }
 
-    pub fn iter(&self) -> Iter<AnnotationUsage> {
-        self.0.iter()
+    pub fn ident_token(&self) -> Option<SyntaxToken> {
+        find_token(&self.syntax, IDENTIFIER)
     }
-}
-
-#[derive(Clone, Debug)]
-pub struct AnnotationUsage {
-    pub name: String,
-    pub span: Span,
-    pub type_args: Vec<TypeData>,
-    pub term_args: Vec<Expr>,
 }
 
 // rename to InternalAnnotation in next step
@@ -2105,4 +2095,11 @@ impl Visibility {
             Visibility::Default => true,
         }
     }
+}
+
+fn find_token(node: &SyntaxNode, token: TokenKind) -> Option<SyntaxToken> {
+    node.children
+        .iter()
+        .find(|c| c.kind() == token)
+        .map(|t| t.to_token().expect("should be token"))
 }

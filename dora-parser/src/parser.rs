@@ -717,7 +717,7 @@ impl Parser {
     fn parse_modifiers(&mut self) -> Option<Modifiers> {
         self.start_node();
         let marker = self.builder.create_marker();
-        let mut modifiers: Vec<ModifierElement> = Vec::new();
+        let mut modifiers: Vec<Modifier> = Vec::new();
 
         loop {
             let modifier = self.parse_modifier();
@@ -745,7 +745,7 @@ impl Parser {
         })
     }
 
-    fn parse_modifier(&mut self) -> Option<ModifierElement> {
+    fn parse_modifier(&mut self) -> Option<Modifier> {
         self.start_node();
         let m = self.builder.create_marker();
 
@@ -786,7 +786,7 @@ impl Parser {
 
         let syntax = self.builder.finish_node_starting_at(MODIFIER, m);
 
-        Some(ModifierElement {
+        Some(Modifier {
             id: self.new_node_id(),
             span: self.finish_node(),
             syntax,

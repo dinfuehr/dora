@@ -582,7 +582,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     }
 
     fn visit_fct(&mut self, node: &Arc<ast::Function>) {
-        check_modifiers(
+        let modifiers = check_modifiers(
             self.sa,
             self.file_id,
             &node.modifiers,
@@ -599,6 +599,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             self.module_id,
             self.file_id,
             node,
+            modifiers,
             ensure_name(self.sa, &node.name),
             FctParent::None,
         );
@@ -632,11 +633,14 @@ fn find_methods_in_trait(sa: &mut Sema, trait_id: TraitDefinitionId, node: &Arc<
     let mut trait_ = trait_.write();
 
     for method_node in &node.methods {
+        let modifiers = check_modifiers(sa, trait_.file_id, &method_node.modifiers, &[]);
+
         let fct = FctDefinition::new(
             trait_.package_id,
             trait_.module_id,
             trait_.file_id,
             method_node,
+            modifiers,
             ensure_name(sa, &method_node.name),
             FctParent::Trait(trait_id),
         );
@@ -651,11 +655,14 @@ fn find_methods_in_impl(sa: &mut Sema, impl_id: ImplDefinitionId, node: &Arc<ast
     let mut impl_ = impl_.write();
 
     for method_node in &node.methods {
+        let modifiers = check_modifiers(sa, impl_.file_id, &method_node.modifiers, &[]);
+
         let fct = FctDefinition::new(
             impl_.package_id,
             impl_.module_id,
             impl_.file_id,
             method_node,
+            modifiers,
             ensure_name(sa, &method_node.name),
             FctParent::Impl(impl_id),
         );
@@ -674,11 +681,14 @@ fn find_methods_in_extension(
     let mut extension = extension.write();
 
     for method_node in &node.methods {
+        let modifiers = check_modifiers(sa, extension.file_id, &node.modifiers, &[]);
+
         let fct = FctDefinition::new(
             extension.package_id,
             extension.module_id,
             extension.file_id,
             method_node,
+            modifiers,
             ensure_name(sa, &method_node.name),
             FctParent::Extension(extension_id),
         );
@@ -696,21 +706,83 @@ fn ensure_name(sa: &mut Sema, ident: &Option<ast::Ident>) -> Name {
     }
 }
 
+#[derive(Default)]
+pub(crate) struct ParsedModifiers {
+    pub is_pub: bool,
+    pub is_static: bool,
+    pub is_test: bool,
+    pub is_optimize_immediately: bool,
+    pub is_internal: bool,
+}
+
 fn check_modifiers(
     sa: &Sema,
     file_id: SourceFileId,
     modifiers: &Option<Modifiers>,
     _allow_list: &[Annotation],
-) {
+) -> ParsedModifiers {
+    let mut parsed_modifiers = ParsedModifiers::default();
+
     if let Some(modifiers) = modifiers {
-        let mut set = HashSet::new();
+        let mut set: HashSet<Annotation> = HashSet::new();
 
         for modifier in modifiers.iter() {
-            if !set.insert(&modifier.value) {
+            let value = check_modifier(sa, file_id, modifier, &mut parsed_modifiers);
+
+            if !set.insert(value) {
                 sa.diag
                     .lock()
                     .report(file_id, modifier.span, ErrorMessage::RedundantAnnotation);
             }
+        }
+    }
+
+    parsed_modifiers
+}
+
+fn check_modifier(
+    sa: &Sema,
+    file_id: SourceFileId,
+    modifier: &ast::Modifier,
+    parsed_modifiers: &mut ParsedModifiers,
+) -> Annotation {
+    if modifier.pub_token().is_some() {
+        parsed_modifiers.is_pub = true;
+        Annotation::Pub
+    } else if modifier.static_token().is_some() {
+        parsed_modifiers.is_static = true;
+        Annotation::Static
+    } else {
+        assert!(modifier.at_token().is_some());
+
+        if let Some(ident) = modifier.ident_token() {
+            match ident.value() {
+                "Test" => {
+                    parsed_modifiers.is_test = true;
+                    Annotation::Test
+                }
+
+                "optimizeImmediately" => {
+                    parsed_modifiers.is_optimize_immediately = true;
+                    Annotation::OptimizeImmediately
+                }
+
+                "internal" => {
+                    parsed_modifiers.is_internal = true;
+                    Annotation::Internal
+                }
+
+                _ => {
+                    sa.diag.lock().report(
+                        file_id,
+                        ident.span(),
+                        ErrorMessage::UnknownAnnotation(ident.value().into()),
+                    );
+                    Annotation::Error
+                }
+            }
+        } else {
+            Annotation::Error
         }
     }
 }

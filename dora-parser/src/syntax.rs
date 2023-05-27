@@ -11,6 +11,29 @@ pub enum SyntaxChild {
     Token(SyntaxToken),
 }
 
+impl SyntaxChild {
+    pub fn kind(&self) -> TokenKind {
+        match self {
+            SyntaxChild::Node(ref node) => node.kind,
+            SyntaxChild::Token(ref token) => token.kind,
+        }
+    }
+
+    pub fn to_node(&self) -> Option<SyntaxNode> {
+        match self {
+            SyntaxChild::Node(ref node) => Some(node.clone()),
+            SyntaxChild::Token(..) => None,
+        }
+    }
+
+    pub fn to_token(&self) -> Option<SyntaxToken> {
+        match self {
+            SyntaxChild::Node(..) => None,
+            SyntaxChild::Token(ref token) => Some(token.clone()),
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct SyntaxNodeData {
     pub id: NodeId,
@@ -179,4 +202,35 @@ impl SyntaxTreeBuilder {
 pub struct Marker {
     children: usize,
     offset: u32,
+}
+
+pub fn dump(node: &SyntaxNode) {
+    dump_node(node, 0);
+}
+
+fn dump_node(node: &SyntaxNode, level: usize) {
+    println!(
+        "{}{:?} {}..{}",
+        "  ".repeat(level),
+        node.kind(),
+        node.span().start(),
+        node.span().end()
+    );
+
+    for child in node.children() {
+        match child {
+            SyntaxChild::Node(ref node) => dump_node(node, level + 1),
+            SyntaxChild::Token(ref token) => dump_token(token, level + 1),
+        }
+    }
+}
+
+fn dump_token(token: &SyntaxToken, level: usize) {
+    println!(
+        "{}{:?} {}..{}",
+        "  ".repeat(level),
+        token.kind(),
+        token.span().start(),
+        token.span().end()
+    );
 }

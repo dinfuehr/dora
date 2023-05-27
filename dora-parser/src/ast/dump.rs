@@ -207,13 +207,6 @@ impl AstDumper {
         });
     }
 
-    #[allow(dead_code)]
-    fn dump_annotation_usages(&self, annotation_usages: &AnnotationUsages) {
-        for annotation_usage in annotation_usages.iter() {
-            dump!(self, "@{} {}", annotation_usage.name, annotation_usage.span);
-        }
-    }
-
     fn dump_field(&mut self, field: &Field) {
         dump!(self, "field @ {} {}", field.span, field.id);
         self.dump_ident(&field.name);

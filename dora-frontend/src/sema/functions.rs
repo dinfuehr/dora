@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::interner::Name;
+use crate::program_parser::ParsedModifiers;
 use crate::Id;
 use dora_parser::ast;
 use dora_parser::Span;
@@ -76,11 +77,12 @@ pub struct FctDefinition {
 }
 
 impl FctDefinition {
-    pub fn new(
+    pub(crate) fn new(
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
         ast: &Arc<ast::Function>,
+        _modifiers: ParsedModifiers,
         name: Name,
         parent: FctParent,
     ) -> FctDefinition {
