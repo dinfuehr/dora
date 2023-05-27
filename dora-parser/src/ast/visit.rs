@@ -120,13 +120,13 @@ pub fn walk_global<V: Visitor>(v: &mut V, g: &Global) {
 
 pub fn walk_trait<V: Visitor>(v: &mut V, t: &Arc<Trait>) {
     for m in &t.methods {
-        v.visit_method(m);
+        walk_elem(v, m);
     }
 }
 
 pub fn walk_impl<V: Visitor>(v: &mut V, i: &Arc<Impl>) {
     for m in &i.methods {
-        v.visit_method(m);
+        walk_elem(v, m);
     }
 }
 

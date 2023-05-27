@@ -86,81 +86,61 @@ impl Parser {
         let modifiers = self.parse_modifiers();
         match self.current() {
             FN_KW => {
-                self.restrict_modifiers(
-                    &modifiers,
-                    &[
-                        Annotation::Internal,
-                        Annotation::OptimizeImmediately,
-                        Annotation::Test,
-                        Annotation::Pub,
-                    ],
-                );
                 let fct = self.parse_function(modifiers);
                 Arc::new(ElemData::Function(fct))
             }
 
             CLASS_KW => {
-                self.restrict_modifiers(&modifiers, &[Annotation::Internal, Annotation::Pub]);
                 let class = self.parse_class(modifiers);
                 Arc::new(ElemData::Class(class))
             }
 
             STRUCT_KW => {
-                self.restrict_modifiers(&modifiers, &[Annotation::Pub, Annotation::Internal]);
                 let struc = self.parse_struct(modifiers);
                 Arc::new(ElemData::Struct(struc))
             }
 
             TRAIT_KW => {
-                self.restrict_modifiers(&modifiers, &[Annotation::Pub]);
                 let trait_ = self.parse_trait(modifiers);
                 Arc::new(ElemData::Trait(trait_))
             }
 
             IMPL_KW => {
-                self.ban_modifiers(&modifiers);
                 let impl_ = self.parse_impl(modifiers);
                 Arc::new(ElemData::Impl(impl_))
             }
 
             ALIAS_KW => {
-                self.restrict_modifiers(&modifiers, &[Annotation::Pub]);
                 let alias = self.parse_alias(modifiers);
                 Arc::new(ElemData::Alias(alias))
             }
 
             LET_KW => {
-                self.restrict_modifiers(&modifiers, &[Annotation::Pub]);
                 let global = self.parse_global(modifiers);
                 Arc::new(ElemData::Global(global))
             }
 
             CONST_KW => {
-                self.restrict_modifiers(&modifiers, &[Annotation::Pub]);
                 let const_ = self.parse_const(modifiers);
                 Arc::new(ElemData::Const(const_))
             }
 
             ENUM_KW => {
-                self.restrict_modifiers(&modifiers, &[Annotation::Pub]);
                 let enum_ = self.parse_enum(modifiers);
                 Arc::new(ElemData::Enum(enum_))
             }
 
             MOD_KW => {
-                self.restrict_modifiers(&modifiers, &[Annotation::Pub]);
                 let module = self.parse_module(modifiers);
                 Arc::new(ElemData::Module(module))
             }
 
             USE_KW => {
-                self.restrict_modifiers(&modifiers, &[Annotation::Pub]);
                 let use_stmt = self.parse_use(modifiers);
                 Arc::new(ElemData::Use(use_stmt))
             }
 
             EXTERN_KW => {
-                self.ban_modifiers(&modifiers);
                 let extern_stmt = self.parse_extern(modifiers);
                 Arc::new(ElemData::Extern(extern_stmt))
             }
@@ -427,19 +407,8 @@ impl Parser {
 
         let mut methods = Vec::new();
 
-        while !self.is(R_BRACE) {
-            self.builder.start_node();
-            let modifiers = self.parse_modifiers();
-            let mods = &[Annotation::Static, Annotation::Internal, Annotation::Pub];
-            self.restrict_modifiers(&modifiers, mods);
-
-            if self.is(FN_KW) {
-                let method = self.parse_function(modifiers);
-                methods.push(method);
-            } else {
-                self.report_error(ParseError::ExpectedImplElement);
-                self.advance();
-            }
+        while !self.is(R_BRACE) && !self.is_eof() {
+            methods.push(self.parse_element());
         }
 
         self.expect(R_BRACE);
@@ -501,13 +470,7 @@ impl Parser {
         let mut methods = Vec::new();
 
         while !self.is(R_BRACE) && !self.is_eof() {
-            self.builder.start_node();
-            let modifiers = self.parse_modifiers();
-            let mods = &[Annotation::Static];
-            self.restrict_modifiers(&modifiers, mods);
-
-            let method = self.parse_function(modifiers);
-            methods.push(method);
+            methods.push(self.parse_element());
         }
 
         self.expect(R_BRACE);
@@ -556,8 +519,6 @@ impl Parser {
         self.builder.start_node();
 
         let modifiers = self.parse_modifiers();
-        let mods = &[Annotation::Pub];
-        self.restrict_modifiers(&modifiers, mods);
 
         let ident = self.expect_identifier();
 
@@ -609,8 +570,6 @@ impl Parser {
         self.builder.start_node();
 
         let modifiers = self.parse_modifiers();
-        let mods = &[Annotation::Pub];
-        self.restrict_modifiers(&modifiers, mods);
 
         let name = self.expect_identifier();
 
@@ -734,35 +693,17 @@ impl Parser {
         self.start_node();
         let m = self.builder.create_marker();
 
-        let value = if self.eat(PUB_KW) {
-            Annotation::Pub
+        if self.eat(PUB_KW) {
+            // done
         } else if self.eat(STATIC_KW) {
-            Annotation::Static
+            // done
         } else if self.eat(AT) {
             if self.eat(PUB_KW) {
-                Annotation::Pub
+                // done
             } else if self.eat(STATIC_KW) {
-                Annotation::Static
+                // done
             } else {
-                let ident = self.expect_identifier();
-                if let Some(ident) = &ident {
-                    match ident.name_as_string.as_str() {
-                        "internal" => Annotation::Internal,
-                        "pub" => Annotation::Pub,
-                        "static" => Annotation::Static,
-                        "Test" => Annotation::Test,
-                        "optimizeImmediately" => Annotation::OptimizeImmediately,
-                        annotation => {
-                            self.report_error_at(
-                                ParseError::UnknownAnnotation(annotation.into()),
-                                ident.span,
-                            );
-                            Annotation::Error
-                        }
-                    }
-                } else {
-                    Annotation::Error
-                }
+                self.expect_identifier();
             }
         } else {
             self.abandon_node();
@@ -775,29 +716,7 @@ impl Parser {
             id: self.new_node_id(),
             span: self.finish_node(),
             syntax,
-            value,
         })
-    }
-
-    fn ban_modifiers(&mut self, modifiers: &Option<Modifiers>) {
-        self.restrict_modifiers(modifiers, &[]);
-    }
-
-    fn restrict_modifiers(&mut self, modifiers: &Option<Modifiers>, restrict: &[Annotation]) {
-        if let Some(modifiers) = modifiers {
-            for modifier in modifiers.iter() {
-                if modifier.value.is_error() {
-                    continue;
-                }
-
-                if !restrict.contains(&modifier.value) {
-                    self.report_error_at(
-                        ParseError::MisplacedAnnotation(modifier.value.name().into()),
-                        modifier.span,
-                    );
-                }
-            }
-        }
     }
 
     fn parse_function(&mut self, modifiers: Option<Modifiers>) -> Arc<Function> {

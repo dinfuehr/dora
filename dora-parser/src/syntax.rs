@@ -1,3 +1,4 @@
+use std::io;
 use std::sync::Arc;
 
 use crate::{NodeId, Span, TokenKind};
@@ -6,30 +7,49 @@ pub type SyntaxNode = Arc<SyntaxNodeData>;
 pub type SyntaxToken = Arc<SyntaxTokenData>;
 
 #[derive(Clone, Debug)]
-pub enum SyntaxChild {
+pub enum SyntaxElement {
     Node(SyntaxNode),
     Token(SyntaxToken),
 }
 
-impl SyntaxChild {
+impl From<SyntaxNode> for SyntaxElement {
+    fn from(value: SyntaxNode) -> Self {
+        SyntaxElement::Node(value)
+    }
+}
+
+impl From<SyntaxToken> for SyntaxElement {
+    fn from(value: SyntaxToken) -> Self {
+        SyntaxElement::Token(value)
+    }
+}
+
+impl SyntaxElement {
     pub fn kind(&self) -> TokenKind {
         match self {
-            SyntaxChild::Node(ref node) => node.kind,
-            SyntaxChild::Token(ref token) => token.kind,
+            SyntaxElement::Node(ref node) => node.kind(),
+            SyntaxElement::Token(ref token) => token.kind(),
+        }
+    }
+
+    pub fn span(&self) -> Span {
+        match self {
+            SyntaxElement::Node(ref node) => node.span(),
+            SyntaxElement::Token(ref token) => token.span(),
         }
     }
 
     pub fn to_node(&self) -> Option<SyntaxNode> {
         match self {
-            SyntaxChild::Node(ref node) => Some(node.clone()),
-            SyntaxChild::Token(..) => None,
+            SyntaxElement::Node(ref node) => Some(node.clone()),
+            SyntaxElement::Token(..) => None,
         }
     }
 
     pub fn to_token(&self) -> Option<SyntaxToken> {
         match self {
-            SyntaxChild::Node(..) => None,
-            SyntaxChild::Token(ref token) => Some(token.clone()),
+            SyntaxElement::Node(..) => None,
+            SyntaxElement::Token(ref token) => Some(token.clone()),
         }
     }
 }
@@ -39,7 +59,7 @@ pub struct SyntaxNodeData {
     pub id: NodeId,
     pub kind: TokenKind,
     pub span: Span,
-    pub children: Vec<SyntaxChild>,
+    pub children: Vec<SyntaxElement>,
 }
 
 impl SyntaxNodeData {
@@ -47,7 +67,7 @@ impl SyntaxNodeData {
         id: NodeId,
         kind: TokenKind,
         span: Span,
-        children: Vec<SyntaxChild>,
+        children: Vec<SyntaxElement>,
     ) -> SyntaxNodeData {
         SyntaxNodeData {
             id,
@@ -69,7 +89,7 @@ impl SyntaxNodeData {
         self.span
     }
 
-    pub fn children(&self) -> &[SyntaxChild] {
+    pub fn children(&self) -> &[SyntaxElement] {
         &self.children
     }
 }
@@ -112,7 +132,7 @@ impl SyntaxTokenData {
 pub struct SyntaxTreeBuilder {
     nodes: Vec<(usize, u32)>,
     next_id: usize,
-    children: Vec<SyntaxChild>,
+    children: Vec<SyntaxElement>,
     offset: u32,
 }
 
@@ -145,9 +165,7 @@ impl SyntaxTreeBuilder {
         self.offset += len;
         let span = Span::new(start, len);
         self.children
-            .push(SyntaxChild::Token(Arc::new(SyntaxTokenData::new(
-                id, kind, span, value,
-            ))));
+            .push(Arc::new(SyntaxTokenData::new(id, kind, span, value)).into());
     }
 
     pub fn finish_node(&mut self, kind: TokenKind) -> SyntaxNode {
@@ -173,7 +191,7 @@ impl SyntaxTreeBuilder {
         let id = self.new_node_id();
         let span = Span::new(start, self.offset - start);
         let node = Arc::new(SyntaxNodeData::new(id, kind, span, children));
-        self.children.push(SyntaxChild::Node(node.clone()));
+        self.children.push(SyntaxElement::Node(node.clone()));
         node
     }
 
@@ -184,11 +202,7 @@ impl SyntaxTreeBuilder {
     pub fn create_tree(self) -> SyntaxNode {
         assert_eq!(self.children.len(), 1);
         let child = self.children.into_iter().next().expect("missing element");
-
-        match child {
-            SyntaxChild::Node(node) => node.clone(),
-            SyntaxChild::Token(..) => unreachable!(),
-        }
+        child.to_node().expect("node expected")
     }
 
     fn new_node_id(&mut self) -> NodeId {
@@ -205,32 +219,37 @@ pub struct Marker {
 }
 
 pub fn dump(node: &SyntaxNode) {
-    dump_node(node, 0);
+    let mut stdout = io::stdout();
+    dump_node(&mut stdout, node, 0);
 }
 
-fn dump_node(node: &SyntaxNode, level: usize) {
-    println!(
+fn dump_node(w: &mut dyn io::Write, node: &SyntaxNode, level: usize) {
+    writeln!(
+        w,
         "{}{:?} {}..{}",
         "  ".repeat(level),
         node.kind(),
         node.span().start(),
         node.span().end()
-    );
+    )
+    .expect("write! failed");
 
     for child in node.children() {
         match child {
-            SyntaxChild::Node(ref node) => dump_node(node, level + 1),
-            SyntaxChild::Token(ref token) => dump_token(token, level + 1),
+            SyntaxElement::Node(ref node) => dump_node(w, node, level + 1),
+            SyntaxElement::Token(ref token) => dump_token(w, token, level + 1),
         }
     }
 }
 
-fn dump_token(token: &SyntaxToken, level: usize) {
-    println!(
+fn dump_token(w: &mut dyn io::Write, token: &SyntaxToken, level: usize) {
+    writeln!(
+        w,
         "{}{:?} {}..{}",
         "  ".repeat(level),
         token.kind(),
         token.span().start(),
         token.span().end()
-    );
+    )
+    .expect("write! failed");
 }

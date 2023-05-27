@@ -11,8 +11,6 @@ pub enum ParseError {
 
     // Parser errors
     ExpectedElement,
-    UnknownAnnotation(String),
-    MisplacedAnnotation(String),
     ExpectedToken(String),
     ExpectedType,
     MisplacedElse,
@@ -20,7 +18,6 @@ pub enum ParseError {
     UnclosedStringTemplate,
     ExpectedIdentifier,
     ExpectedExpression,
-    ExpectedImplElement,
 }
 
 impl ParseError {
@@ -38,10 +35,6 @@ impl ParseError {
             ParseError::ExpectedElement => {
                 format!("expected top-level declaration.")
             }
-            ParseError::MisplacedAnnotation(ref modifier) => {
-                format!("misplaced annotation `{}`.", modifier)
-            }
-            ParseError::UnknownAnnotation(ref token) => format!("unknown annotation {}.", token),
             ParseError::ExpectedToken(ref exp) => {
                 format!("expected `{}`.", exp)
             }
@@ -53,7 +46,6 @@ impl ParseError {
                 format!("identifier expected.")
             }
             ParseError::ExpectedExpression => "expected expression.".into(),
-            ParseError::ExpectedImplElement => "expected impl element (function).".into(),
         }
     }
 }

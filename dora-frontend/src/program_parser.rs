@@ -699,26 +699,39 @@ fn find_methods_in_trait(sa: &mut Sema, trait_id: TraitDefinitionId, node: &Arc<
     let trait_ = sa.traits.idx(trait_id);
     let mut trait_ = trait_.write();
 
-    for method_node in &node.methods {
-        let modifiers = check_modifiers(
-            sa,
-            trait_.file_id,
-            &method_node.modifiers,
-            &[Annotation::Static],
-        );
+    for child in &node.methods {
+        match child.as_ref() {
+            ast::ElemData::Function(ref method_node) => {
+                let modifiers = check_modifiers(
+                    sa,
+                    trait_.file_id,
+                    &method_node.modifiers,
+                    &[Annotation::Static],
+                );
 
-        let fct = FctDefinition::new(
-            trait_.package_id,
-            trait_.module_id,
-            trait_.file_id,
-            method_node,
-            modifiers,
-            ensure_name(sa, &method_node.name),
-            FctParent::Trait(trait_id),
-        );
+                let fct = FctDefinition::new(
+                    trait_.package_id,
+                    trait_.module_id,
+                    trait_.file_id,
+                    method_node,
+                    modifiers,
+                    ensure_name(sa, &method_node.name),
+                    FctParent::Trait(trait_id),
+                );
 
-        let fct_id = sa.add_fct(fct);
-        trait_.methods.push(fct_id);
+                let fct_id = sa.add_fct(fct);
+                trait_.methods.push(fct_id);
+            }
+
+            ast::ElemData::Error { .. } => {
+                // ignore
+            }
+
+            _ => sa
+                .diag
+                .lock()
+                .report(trait_.file_id, child.span(), ErrorMessage::ExpectedMethod),
+        }
     }
 }
 
@@ -726,26 +739,39 @@ fn find_methods_in_impl(sa: &mut Sema, impl_id: ImplDefinitionId, node: &Arc<ast
     let impl_ = sa.impls.idx(impl_id);
     let mut impl_ = impl_.write();
 
-    for method_node in &node.methods {
-        let modifiers = check_modifiers(
-            sa,
-            impl_.file_id,
-            &method_node.modifiers,
-            &[Annotation::Static, Annotation::Internal],
-        );
+    for child in &node.methods {
+        match child.as_ref() {
+            ast::ElemData::Function(ref method_node) => {
+                let modifiers = check_modifiers(
+                    sa,
+                    impl_.file_id,
+                    &method_node.modifiers,
+                    &[Annotation::Static, Annotation::Internal],
+                );
 
-        let fct = FctDefinition::new(
-            impl_.package_id,
-            impl_.module_id,
-            impl_.file_id,
-            method_node,
-            modifiers,
-            ensure_name(sa, &method_node.name),
-            FctParent::Impl(impl_id),
-        );
+                let fct = FctDefinition::new(
+                    impl_.package_id,
+                    impl_.module_id,
+                    impl_.file_id,
+                    method_node,
+                    modifiers,
+                    ensure_name(sa, &method_node.name),
+                    FctParent::Impl(impl_id),
+                );
 
-        let fct_id = sa.add_fct(fct);
-        impl_.methods.push(fct_id);
+                let fct_id = sa.add_fct(fct);
+                impl_.methods.push(fct_id);
+            }
+
+            ast::ElemData::Error { .. } => {
+                // ignore
+            }
+
+            _ => sa
+                .diag
+                .lock()
+                .report(impl_.file_id, child.span(), ErrorMessage::ExpectedMethod),
+        }
     }
 }
 
@@ -757,26 +783,40 @@ fn find_methods_in_extension(
     let extension = sa.extensions.idx(extension_id);
     let mut extension = extension.write();
 
-    for method_node in &node.methods {
-        let modifiers = check_modifiers(
-            sa,
-            extension.file_id,
-            &method_node.modifiers,
-            &[Annotation::Internal, Annotation::Static, Annotation::Pub],
-        );
+    for child in &node.methods {
+        match child.as_ref() {
+            ast::ElemData::Function(ref method_node) => {
+                let modifiers = check_modifiers(
+                    sa,
+                    extension.file_id,
+                    &method_node.modifiers,
+                    &[Annotation::Internal, Annotation::Static, Annotation::Pub],
+                );
 
-        let fct = FctDefinition::new(
-            extension.package_id,
-            extension.module_id,
-            extension.file_id,
-            method_node,
-            modifiers,
-            ensure_name(sa, &method_node.name),
-            FctParent::Extension(extension_id),
-        );
+                let fct = FctDefinition::new(
+                    extension.package_id,
+                    extension.module_id,
+                    extension.file_id,
+                    method_node,
+                    modifiers,
+                    ensure_name(sa, &method_node.name),
+                    FctParent::Extension(extension_id),
+                );
 
-        let fct_id = sa.add_fct(fct);
-        extension.methods.push(fct_id);
+                let fct_id = sa.add_fct(fct);
+                extension.methods.push(fct_id);
+            }
+
+            ast::ElemData::Error { .. } => {
+                // ignore
+            }
+
+            _ => sa.diag.lock().report(
+                extension.file_id,
+                child.span(),
+                ErrorMessage::ExpectedMethod,
+            ),
+        }
     }
 }
 
@@ -835,7 +875,7 @@ fn check_modifiers(
                 sa.diag.lock().report(
                     file_id,
                     modifier.span,
-                    ErrorMessage::MisplacedAnnotation(modifier.value.name().into()),
+                    ErrorMessage::MisplacedAnnotation(value.name().into()),
                 );
             }
         }

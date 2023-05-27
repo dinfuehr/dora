@@ -111,6 +111,24 @@ pub enum ElemData {
 }
 
 impl ElemData {
+    pub fn span(&self) -> Span {
+        match self {
+            ElemData::Function(ref node) => node.span,
+            ElemData::Class(ref node) => node.span,
+            ElemData::Struct(ref node) => node.span,
+            ElemData::Trait(ref node) => node.span,
+            ElemData::Impl(ref node) => node.span,
+            ElemData::Global(ref node) => node.span,
+            ElemData::Const(ref node) => node.span,
+            ElemData::Enum(ref node) => node.span,
+            ElemData::Alias(ref node) => node.span,
+            ElemData::Module(ref node) => node.span,
+            ElemData::Use(ref node) => node.span,
+            ElemData::Extern(ref node) => node.span,
+            ElemData::Error { span, .. } => span.clone(),
+        }
+    }
+
     pub fn to_function(&self) -> Option<&Function> {
         match self {
             &ElemData::Function(ref fct) => Some(fct),
@@ -571,7 +589,7 @@ pub struct Impl {
     pub type_params: Option<TypeParams>,
     pub trait_type: Option<Type>,
     pub extended_type: Type,
-    pub methods: Vec<Arc<Function>>,
+    pub methods: Vec<Elem>,
 }
 
 #[derive(Clone, Debug)]
@@ -582,7 +600,7 @@ pub struct Trait {
     pub modifiers: Option<Modifiers>,
     pub type_params: Option<TypeParams>,
     pub span: Span,
-    pub methods: Vec<Arc<Function>>,
+    pub methods: Vec<Elem>,
 }
 
 #[derive(Clone, Debug)]
@@ -655,13 +673,12 @@ pub struct Function {
     pub syntax: SyntaxNode,
     pub modifiers: Option<Modifiers>,
     pub kind: FunctionKind,
+
     pub name: Option<Ident>,
-
+    pub type_params: Option<TypeParams>,
     pub params: Vec<Param>,
-
     pub return_type: Option<Type>,
     pub block: Option<Expr>,
-    pub type_params: Option<TypeParams>,
 }
 
 impl Function {
@@ -680,13 +697,6 @@ pub struct Modifiers {
 }
 
 impl Modifiers {
-    pub fn contains(&self, modifier: Annotation) -> bool {
-        self.modifiers
-            .iter()
-            .find(|el| el.value == modifier)
-            .is_some()
-    }
-
     pub fn iter(&self) -> Iter<Modifier> {
         self.modifiers.iter()
     }
@@ -697,7 +707,6 @@ pub struct Modifier {
     pub id: NodeId,
     pub span: Span,
     pub syntax: SyntaxNode,
-    pub value: Annotation,
 }
 
 impl Modifier {

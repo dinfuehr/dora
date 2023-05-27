@@ -160,7 +160,7 @@ impl AstDumper {
             d.dump_type(&impl_.extended_type);
 
             for mtd in &impl_.methods {
-                d.dump_fct(mtd);
+                d.dump_elem(mtd);
             }
         });
     }
@@ -187,7 +187,7 @@ impl AstDumper {
         self.indent(|d| {
             d.dump_ident(&t.name);
             for m in &t.methods {
-                d.dump_fct(m);
+                d.dump_elem(m);
             }
         });
     }
