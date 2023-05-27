@@ -140,7 +140,7 @@ impl<'x> ExtensionCheck<'x> {
         let fct = self.sa.fcts.idx(fct_id);
         let fct = fct.read();
 
-        if fct.ast.block.is_none() && !fct.internal {
+        if fct.ast.block.is_none() && !fct.is_internal {
             self.sa
                 .diag
                 .lock()

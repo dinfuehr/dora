@@ -1872,10 +1872,8 @@ impl Parser {
         let span = self.current_span();
 
         if self.is(IDENTIFIER) {
-            self.builder.start_node();
             self.assert(IDENTIFIER);
             let value = self.source_span(span);
-            self.builder.finish_node(IDENT);
 
             Some(Arc::new(IdentData {
                 span,

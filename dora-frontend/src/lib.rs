@@ -186,7 +186,7 @@ fn internalck(sa: &Sema) {
     for fct in sa.fcts.iter() {
         let fct = fct.read();
 
-        if !fct.has_body() && !fct.in_trait() && !fct.internal {
+        if !fct.has_body() && !fct.in_trait() && !fct.is_internal {
             sa.diag
                 .lock()
                 .report(fct.file_id, fct.span, ErrorMessage::MissingFctBody);

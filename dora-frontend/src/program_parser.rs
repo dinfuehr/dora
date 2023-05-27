@@ -11,7 +11,7 @@ use crate::sema::{
     ClassDefinition, ConstDefinition, EnumDefinition, ExtensionDefinition, ExtensionDefinitionId,
     FctDefinition, FctParent, GlobalDefinition, ImplDefinition, ImplDefinitionId, ModuleDefinition,
     ModuleDefinitionId, PackageDefinitionId, PackageName, Sema, SourceFileId, StructDefinition,
-    TraitDefinition, TraitDefinitionId, UseDefinition,
+    TraitDefinition, TraitDefinitionId, UseDefinition, Visibility,
 };
 use crate::sym::Sym;
 use crate::STDLIB;
@@ -681,7 +681,12 @@ fn find_methods_in_extension(
     let mut extension = extension.write();
 
     for method_node in &node.methods {
-        let modifiers = check_modifiers(sa, extension.file_id, &node.modifiers, &[]);
+        let modifiers = check_modifiers(
+            sa,
+            extension.file_id,
+            &method_node.modifiers,
+            &[Annotation::Internal],
+        );
 
         let fct = FctDefinition::new(
             extension.package_id,
@@ -715,6 +720,16 @@ pub(crate) struct ParsedModifiers {
     pub is_internal: bool,
 }
 
+impl ParsedModifiers {
+    pub(crate) fn visibility(&self) -> Visibility {
+        if self.is_pub {
+            Visibility::Public
+        } else {
+            Visibility::Module
+        }
+    }
+}
+
 fn check_modifiers(
     sa: &Sema,
     file_id: SourceFileId,
@@ -729,7 +744,7 @@ fn check_modifiers(
         for modifier in modifiers.iter() {
             let value = check_modifier(sa, file_id, modifier, &mut parsed_modifiers);
 
-            if !set.insert(value) {
+            if value != Annotation::Error && !set.insert(value) {
                 sa.diag
                     .lock()
                     .report(file_id, modifier.span, ErrorMessage::RedundantAnnotation);

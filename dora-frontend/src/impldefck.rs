@@ -128,7 +128,7 @@ impl<'x> ImplCheck<'x> {
         let method = self.sa.fcts.idx(fct_id);
         let method = method.read();
 
-        if method.ast.block.is_none() && !method.internal {
+        if method.ast.block.is_none() && !method.is_internal {
             self.sa.diag.lock().report(
                 self.file_id.into(),
                 method.span,
