@@ -829,7 +829,7 @@ fn ensure_name(sa: &mut Sema, ident: &Option<ast::Ident>) -> Name {
 }
 
 #[derive(Default)]
-pub(crate) struct ParsedModifiers {
+pub(crate) struct ParsedModifierList {
     pub is_pub: bool,
     pub is_static: bool,
     pub is_test: bool,
@@ -837,7 +837,7 @@ pub(crate) struct ParsedModifiers {
     pub is_internal: bool,
 }
 
-impl ParsedModifiers {
+impl ParsedModifierList {
     pub(crate) fn visibility(&self) -> Visibility {
         if self.is_pub {
             Visibility::Public
@@ -879,8 +879,8 @@ fn check_modifiers(
     file_id: SourceFileId,
     modifiers: &Option<ModifierList>,
     allow_list: &[Annotation],
-) -> ParsedModifiers {
-    let mut parsed_modifiers = ParsedModifiers::default();
+) -> ParsedModifierList {
+    let mut parsed_modifiers = ParsedModifierList::default();
 
     if let Some(modifiers) = modifiers {
         let mut set: HashSet<Annotation> = HashSet::new();
@@ -915,7 +915,7 @@ fn check_modifier(
     sa: &Sema,
     file_id: SourceFileId,
     modifier: &ast::Modifier,
-    parsed_modifiers: &mut ParsedModifiers,
+    parsed_modifiers: &mut ParsedModifierList,
 ) -> Annotation {
     if modifier.pub_token().is_some() {
         parsed_modifiers.is_pub = true;

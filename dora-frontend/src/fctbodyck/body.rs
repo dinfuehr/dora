@@ -14,7 +14,7 @@ use crate::access::{
 };
 use crate::error::msg::ErrorMessage;
 use crate::fctbodyck::lookup::MethodLookup;
-use crate::program_parser::ParsedModifiers;
+use crate::program_parser::ParsedModifierList;
 use crate::report_sym_shadow_span;
 use crate::sema::{
     create_tuple, find_field_in_class, find_impl, find_methods_in_class, find_methods_in_enum,
@@ -3197,7 +3197,7 @@ impl<'a> TypeCheck<'a> {
             self.module_id,
             self.file_id,
             node,
-            ParsedModifiers::default(),
+            ParsedModifierList::default(),
             name,
             FctParent::Function,
         );

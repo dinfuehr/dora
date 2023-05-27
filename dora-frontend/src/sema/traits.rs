@@ -5,7 +5,7 @@ use std::ops::Index;
 use std::sync::Arc;
 
 use crate::interner::Name;
-use crate::program_parser::ParsedModifiers;
+use crate::program_parser::ParsedModifierList;
 use dora_parser::ast;
 use dora_parser::Span;
 
@@ -64,7 +64,7 @@ impl TraitDefinition {
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
         node: &Arc<ast::Trait>,
-        modifiers: ParsedModifiers,
+        modifiers: ParsedModifierList,
         name: Name,
     ) -> TraitDefinition {
         TraitDefinition {

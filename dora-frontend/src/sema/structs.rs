@@ -3,7 +3,7 @@ use std::convert::TryInto;
 use std::sync::Arc;
 
 use crate::interner::Name;
-use crate::program_parser::ParsedModifiers;
+use crate::program_parser::ParsedModifierList;
 use dora_parser::ast;
 use dora_parser::Span;
 
@@ -65,7 +65,7 @@ impl StructDefinition {
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
         node: &Arc<ast::Struct>,
-        modifiers: ParsedModifiers,
+        modifiers: ParsedModifierList,
         name: Name,
         fields: Vec<StructDefinitionField>,
     ) -> StructDefinition {

@@ -2,7 +2,7 @@ use std::convert::TryInto;
 use std::sync::Arc;
 
 use crate::interner::Name;
-use crate::program_parser::ParsedModifiers;
+use crate::program_parser::ParsedModifierList;
 use crate::sema::{
     module_path, AnalysisData, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
     SourceFileId, Visibility,
@@ -61,7 +61,7 @@ impl GlobalDefinition {
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
         node: &Arc<ast::Global>,
-        modifiers: ParsedModifiers,
+        modifiers: ParsedModifierList,
         name: Name,
     ) -> GlobalDefinition {
         GlobalDefinition {

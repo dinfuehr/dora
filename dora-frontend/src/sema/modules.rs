@@ -1,7 +1,7 @@
 use parking_lot::RwLock;
 use std::sync::Arc;
 
-use crate::program_parser::ParsedModifiers;
+use crate::program_parser::ParsedModifierList;
 use crate::sema::{PackageDefinitionId, Sema, Visibility};
 use crate::sym::SymTable;
 use crate::Id;
@@ -71,7 +71,7 @@ impl ModuleDefinition {
         parent_id: ModuleDefinitionId,
         file_id: SourceFileId,
         ast: &Arc<ast::Module>,
-        modifiers: ParsedModifiers,
+        modifiers: ParsedModifierList,
         name: Name,
     ) -> ModuleDefinition {
         let parent = &sa.modules[parent_id].read();

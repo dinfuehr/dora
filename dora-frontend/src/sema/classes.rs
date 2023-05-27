@@ -2,7 +2,7 @@ use std::ops::{Index, IndexMut};
 use std::sync::Arc;
 
 use crate::interner::Name;
-use crate::program_parser::ParsedModifiers;
+use crate::program_parser::ParsedModifierList;
 use dora_parser::ast;
 use dora_parser::Span;
 
@@ -74,7 +74,7 @@ impl ClassDefinition {
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
         ast: &Arc<ast::Class>,
-        modifiers: ParsedModifiers,
+        modifiers: ParsedModifierList,
         name: Name,
         fields: Vec<Field>,
     ) -> ClassDefinition {

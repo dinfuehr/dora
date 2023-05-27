@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    program_parser::ParsedModifiers,
+    program_parser::ParsedModifierList,
     sema::{ModuleDefinitionId, PackageDefinitionId, SourceFileId, Visibility},
 };
 use dora_parser::ast;
@@ -20,7 +20,7 @@ impl UseDefinition {
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
         node: &Arc<ast::Use>,
-        modifiers: ParsedModifiers,
+        modifiers: ParsedModifierList,
     ) -> UseDefinition {
         UseDefinition {
             package_id,
