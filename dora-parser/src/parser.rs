@@ -817,10 +817,6 @@ impl Parser {
             modifiers: modifiers.clone(),
             name,
             span: self.finish_node(),
-            is_static: modifiers
-                .as_ref()
-                .map(|m| m.contains(Annotation::Static))
-                .unwrap_or_default(),
             params,
             return_type,
             block,
@@ -1819,7 +1815,6 @@ impl Parser {
             modifiers: None,
             name: None,
             span: self.finish_node(),
-            is_static: false,
             params,
             return_type,
             block: Some(block),
@@ -3052,7 +3047,6 @@ mod tests {
 
         assert_eq!("Foo", trait_.name.as_ref().unwrap().name_as_string);
         assert_eq!(1, trait_.methods.len());
-        assert_eq!(false, trait_.methods[0].is_static);
     }
 
     #[test]
@@ -3062,7 +3056,6 @@ mod tests {
 
         assert_eq!("Foo", trait_.name.as_ref().unwrap().name_as_string);
         assert_eq!(1, trait_.methods.len());
-        assert_eq!(true, trait_.methods[0].is_static);
     }
 
     #[test]
@@ -3083,7 +3076,6 @@ mod tests {
         assert_eq!("Bar", impl_.trait_type.as_ref().unwrap().to_string());
         assert_eq!("B", impl_.extended_type.to_string());
         assert_eq!(1, impl_.methods.len());
-        assert_eq!(false, impl_.methods[0].is_static);
     }
 
     #[test]
@@ -3094,7 +3086,6 @@ mod tests {
         assert_eq!("Bar", impl_.trait_type.as_ref().unwrap().to_string());
         assert_eq!("B", impl_.extended_type.to_string());
         assert_eq!(1, impl_.methods.len());
-        assert_eq!(true, impl_.methods[0].is_static);
     }
 
     #[test]

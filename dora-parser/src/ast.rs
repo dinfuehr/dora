@@ -656,7 +656,6 @@ pub struct Function {
     pub modifiers: Option<Modifiers>,
     pub kind: FunctionKind,
     pub name: Option<Ident>,
-    pub is_static: bool,
 
     pub params: Vec<Param>,
 

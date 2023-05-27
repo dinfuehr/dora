@@ -152,7 +152,7 @@ impl<'x> ExtensionCheck<'x> {
         }
 
         let success = match self.extension_ty {
-            SourceType::Enum(enum_id, _) => self.check_in_enum(&fct.ast, enum_id),
+            SourceType::Enum(enum_id, _) => self.check_in_enum(&fct.ast, fct.is_static, enum_id),
             SourceType::Bool
             | SourceType::UInt8
             | SourceType::Char
@@ -164,10 +164,12 @@ impl<'x> ExtensionCheck<'x> {
                     .extension_ty
                     .primitive_struct_id(self.sa)
                     .expect("primitive expected");
-                self.check_in_struct(&fct.ast, struct_id)
+                self.check_in_struct(&fct.ast, fct.is_static, struct_id)
             }
-            SourceType::Struct(struct_id, _) => self.check_in_struct(&fct.ast, struct_id),
-            _ => self.check_in_class(&fct.ast),
+            SourceType::Struct(struct_id, _) => {
+                self.check_in_struct(&fct.ast, fct.is_static, struct_id)
+            }
+            _ => self.check_in_class(&fct.ast, fct.is_static),
         };
 
         if !success {
@@ -188,11 +190,11 @@ impl<'x> ExtensionCheck<'x> {
         }
     }
 
-    fn check_in_enum(&self, f: &ast::Function, enum_id: EnumDefinitionId) -> bool {
+    fn check_in_enum(&self, f: &ast::Function, is_static: bool, enum_id: EnumDefinitionId) -> bool {
         let enum_ = self.sa.enums[enum_id].read();
 
         for &extension_id in &enum_.extensions {
-            if !self.check_extension(f, extension_id) {
+            if !self.check_extension(f, is_static, extension_id) {
                 return false;
             }
         }
@@ -200,12 +202,17 @@ impl<'x> ExtensionCheck<'x> {
         true
     }
 
-    fn check_in_struct(&self, f: &ast::Function, struct_id: StructDefinitionId) -> bool {
+    fn check_in_struct(
+        &self,
+        f: &ast::Function,
+        is_static: bool,
+        struct_id: StructDefinitionId,
+    ) -> bool {
         let struct_ = self.sa.structs.idx(struct_id);
         let struct_ = struct_.read();
 
         for &extension_id in &struct_.extensions {
-            if !self.check_extension(f, extension_id) {
+            if !self.check_extension(f, is_static, extension_id) {
                 return false;
             }
         }
@@ -213,13 +220,13 @@ impl<'x> ExtensionCheck<'x> {
         true
     }
 
-    fn check_in_class(&self, f: &ast::Function) -> bool {
+    fn check_in_class(&self, f: &ast::Function, is_static: bool) -> bool {
         let cls_id = self.extension_ty.cls_id().unwrap();
         let cls = self.sa.classes.idx(cls_id);
         let cls = cls.read();
 
         for &extension_id in &cls.extensions {
-            if !self.check_extension(f, extension_id) {
+            if !self.check_extension(f, is_static, extension_id) {
                 return false;
             }
         }
@@ -227,14 +234,19 @@ impl<'x> ExtensionCheck<'x> {
         true
     }
 
-    fn check_extension(&self, f: &ast::Function, extension_id: ExtensionDefinitionId) -> bool {
+    fn check_extension(
+        &self,
+        f: &ast::Function,
+        is_static: bool,
+        extension_id: ExtensionDefinitionId,
+    ) -> bool {
         let extension = self.sa.extensions[extension_id].read();
 
         if extension.ty.type_params() != self.extension_ty.type_params() {
             return true;
         }
 
-        let table = if f.is_static {
+        let table = if is_static {
             &extension.static_names
         } else {
             &extension.instance_names
