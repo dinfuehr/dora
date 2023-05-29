@@ -7,10 +7,10 @@ pub use self::token::{TokenKind, TokenSet};
 
 pub mod ast;
 pub mod error;
+pub mod green;
 pub mod lexer;
 pub mod parser;
 pub mod span;
-pub mod syntax;
 pub mod token;
 
 pub fn compute_line_starts(content: &str) -> Vec<u32> {

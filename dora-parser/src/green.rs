@@ -3,73 +3,73 @@ use std::sync::Arc;
 
 use crate::{NodeId, Span, TokenKind};
 
-pub type SyntaxNode = Arc<SyntaxNodeData>;
-pub type SyntaxToken = Arc<SyntaxTokenData>;
+pub type GreenNode = Arc<GreenNodeData>;
+pub type GreenToken = Arc<GreenTokenData>;
 
 #[derive(Clone, Debug)]
-pub enum SyntaxElement {
-    Node(SyntaxNode),
-    Token(SyntaxToken),
+pub enum GreenElement {
+    Node(GreenNode),
+    Token(GreenToken),
 }
 
-impl From<SyntaxNode> for SyntaxElement {
-    fn from(value: SyntaxNode) -> Self {
-        SyntaxElement::Node(value)
+impl From<GreenNode> for GreenElement {
+    fn from(value: GreenNode) -> Self {
+        GreenElement::Node(value)
     }
 }
 
-impl From<SyntaxToken> for SyntaxElement {
-    fn from(value: SyntaxToken) -> Self {
-        SyntaxElement::Token(value)
+impl From<GreenToken> for GreenElement {
+    fn from(value: GreenToken) -> Self {
+        GreenElement::Token(value)
     }
 }
 
-impl SyntaxElement {
+impl GreenElement {
     pub fn kind(&self) -> TokenKind {
         match self {
-            SyntaxElement::Node(ref node) => node.kind(),
-            SyntaxElement::Token(ref token) => token.kind(),
+            GreenElement::Node(ref node) => node.kind(),
+            GreenElement::Token(ref token) => token.kind(),
         }
     }
 
     pub fn span(&self) -> Span {
         match self {
-            SyntaxElement::Node(ref node) => node.span(),
-            SyntaxElement::Token(ref token) => token.span(),
+            GreenElement::Node(ref node) => node.span(),
+            GreenElement::Token(ref token) => token.span(),
         }
     }
 
-    pub fn to_node(&self) -> Option<SyntaxNode> {
+    pub fn to_node(&self) -> Option<GreenNode> {
         match self {
-            SyntaxElement::Node(ref node) => Some(node.clone()),
-            SyntaxElement::Token(..) => None,
+            GreenElement::Node(ref node) => Some(node.clone()),
+            GreenElement::Token(..) => None,
         }
     }
 
-    pub fn to_token(&self) -> Option<SyntaxToken> {
+    pub fn to_token(&self) -> Option<GreenToken> {
         match self {
-            SyntaxElement::Node(..) => None,
-            SyntaxElement::Token(ref token) => Some(token.clone()),
+            GreenElement::Node(..) => None,
+            GreenElement::Token(ref token) => Some(token.clone()),
         }
     }
 }
 
 #[derive(Clone, Debug)]
-pub struct SyntaxNodeData {
+pub struct GreenNodeData {
     pub id: NodeId,
     pub kind: TokenKind,
     pub span: Span,
-    pub children: Vec<SyntaxElement>,
+    pub children: Vec<GreenElement>,
 }
 
-impl SyntaxNodeData {
+impl GreenNodeData {
     pub fn new(
         id: NodeId,
         kind: TokenKind,
         span: Span,
-        children: Vec<SyntaxElement>,
-    ) -> SyntaxNodeData {
-        SyntaxNodeData {
+        children: Vec<GreenElement>,
+    ) -> GreenNodeData {
+        GreenNodeData {
             id,
             kind,
             span,
@@ -89,22 +89,22 @@ impl SyntaxNodeData {
         self.span
     }
 
-    pub fn children(&self) -> &[SyntaxElement] {
+    pub fn children(&self) -> &[GreenElement] {
         &self.children
     }
 }
 
 #[derive(Clone, Debug)]
-pub struct SyntaxTokenData {
+pub struct GreenTokenData {
     id: NodeId,
     kind: TokenKind,
     span: Span,
     value: String,
 }
 
-impl SyntaxTokenData {
-    pub fn new(id: NodeId, kind: TokenKind, span: Span, value: String) -> SyntaxTokenData {
-        SyntaxTokenData {
+impl GreenTokenData {
+    pub fn new(id: NodeId, kind: TokenKind, span: Span, value: String) -> GreenTokenData {
+        GreenTokenData {
             id,
             kind,
             span,
@@ -129,16 +129,16 @@ impl SyntaxTokenData {
     }
 }
 
-pub struct SyntaxTreeBuilder {
+pub struct GreenTreeBuilder {
     nodes: Vec<(usize, u32)>,
     next_id: usize,
-    children: Vec<SyntaxElement>,
+    children: Vec<GreenElement>,
     offset: u32,
 }
 
-impl SyntaxTreeBuilder {
-    pub fn new() -> SyntaxTreeBuilder {
-        SyntaxTreeBuilder {
+impl GreenTreeBuilder {
+    pub fn new() -> GreenTreeBuilder {
+        GreenTreeBuilder {
             nodes: Vec::new(),
             next_id: 0,
             children: Vec::new(),
@@ -165,16 +165,16 @@ impl SyntaxTreeBuilder {
         self.offset += len;
         let span = Span::new(start, len);
         self.children
-            .push(Arc::new(SyntaxTokenData::new(id, kind, span, value)).into());
+            .push(Arc::new(GreenTokenData::new(id, kind, span, value)).into());
     }
 
-    pub fn finish_node(&mut self, kind: TokenKind) -> SyntaxNode {
+    pub fn finish_node(&mut self, kind: TokenKind) -> GreenNode {
         assert!(kind > TokenKind::EOF);
         let (children_start, start) = self.nodes.pop().expect("missing node start");
         self.finish_node_common(kind, children_start, start)
     }
 
-    pub fn finish_node_starting_at(&mut self, kind: TokenKind, marker: Marker) -> SyntaxNode {
+    pub fn finish_node_starting_at(&mut self, kind: TokenKind, marker: Marker) -> GreenNode {
         assert!(kind > TokenKind::EOF);
         let children_start = marker.children;
         let start = marker.offset;
@@ -186,12 +186,12 @@ impl SyntaxTreeBuilder {
         kind: TokenKind,
         children_start: usize,
         start: u32,
-    ) -> SyntaxNode {
+    ) -> GreenNode {
         let children = self.children.drain(children_start..).collect::<Vec<_>>();
         let id = self.new_node_id();
         let span = Span::new(start, self.offset - start);
-        let node = Arc::new(SyntaxNodeData::new(id, kind, span, children));
-        self.children.push(SyntaxElement::Node(node.clone()));
+        let node = Arc::new(GreenNodeData::new(id, kind, span, children));
+        self.children.push(GreenElement::Node(node.clone()));
         node
     }
 
@@ -199,7 +199,7 @@ impl SyntaxTreeBuilder {
         self.nodes.pop().expect("missing node start");
     }
 
-    pub fn create_tree(self) -> SyntaxNode {
+    pub fn create_tree(self) -> GreenNode {
         assert_eq!(self.children.len(), 1);
         let child = self.children.into_iter().next().expect("missing element");
         child.to_node().expect("node expected")
@@ -218,12 +218,12 @@ pub struct Marker {
     offset: u32,
 }
 
-pub fn dump(node: &SyntaxNode) {
+pub fn dump(node: &GreenNode) {
     let mut stdout = io::stdout();
     dump_node(&mut stdout, node, 0);
 }
 
-fn dump_node(w: &mut dyn io::Write, node: &SyntaxNode, level: usize) {
+fn dump_node(w: &mut dyn io::Write, node: &GreenNode, level: usize) {
     writeln!(
         w,
         "{}{:?} {}..{}",
@@ -236,13 +236,13 @@ fn dump_node(w: &mut dyn io::Write, node: &SyntaxNode, level: usize) {
 
     for child in node.children() {
         match child {
-            SyntaxElement::Node(ref node) => dump_node(w, node, level + 1),
-            SyntaxElement::Token(ref token) => dump_token(w, token, level + 1),
+            GreenElement::Node(ref node) => dump_node(w, node, level + 1),
+            GreenElement::Token(ref token) => dump_token(w, token, level + 1),
         }
     }
 }
 
-fn dump_token(w: &mut dyn io::Write, token: &SyntaxToken, level: usize) {
+fn dump_token(w: &mut dyn io::Write, token: &GreenToken, level: usize) {
     writeln!(
         w,
         "{}{:?} {}..{}",

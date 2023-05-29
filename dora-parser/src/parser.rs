@@ -4,7 +4,7 @@ use crate::ast;
 use crate::ast::*;
 use crate::error::{ParseError, ParseErrorWithLocation};
 
-use crate::syntax::SyntaxTreeBuilder;
+use crate::green::GreenTreeBuilder;
 use crate::token::EXPRESSION_FIRST;
 use crate::TokenKind::*;
 use crate::{lex, Span, TokenKind, TokenSet};
@@ -18,7 +18,7 @@ pub struct Parser {
     errors: Vec<ParseErrorWithLocation>,
     nodes: Vec<(usize, u32)>,
     offset: u32,
-    builder: SyntaxTreeBuilder,
+    builder: GreenTreeBuilder,
 }
 
 enum StmtOrExpr {
@@ -48,7 +48,7 @@ impl Parser {
             content,
             errors: result.errors,
             nodes: Vec::new(),
-            builder: SyntaxTreeBuilder::new(),
+            builder: GreenTreeBuilder::new(),
         }
     }
 
