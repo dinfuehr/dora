@@ -191,11 +191,11 @@ impl FctDefinition {
         self.analysis.as_ref().unwrap()
     }
 
-    pub fn has_self(&self) -> bool {
+    pub fn has_hidden_self_argument(&self) -> bool {
         match self.parent {
             FctParent::Trait(_) | FctParent::Impl(_) | FctParent::Extension(_) => !self.is_static,
             FctParent::Function => true,
-            _ => false,
+            FctParent::None => false,
         }
     }
 
@@ -204,7 +204,7 @@ impl FctDefinition {
     }
 
     pub fn params_without_self(&self) -> &[SourceType] {
-        if self.has_self() {
+        if self.has_hidden_self_argument() {
             &self.param_types[1..]
         } else {
             &self.param_types

@@ -49,7 +49,7 @@ pub struct TypeCheck<'a> {
     pub symtable: &'a mut ModuleSymTable,
     pub in_loop: bool,
     pub is_lambda: bool,
-    pub self_available: bool,
+    pub is_self_available: bool,
     pub vars: &'a mut VarManager,
     pub contains_lambda: bool,
     pub outer_context_classes: &'a mut Vec<OuterContextResolver>,
@@ -60,6 +60,7 @@ pub struct TypeCheck<'a> {
 impl<'a> TypeCheck<'a> {
     pub fn check_fct(&mut self, ast: &ast::Function) {
         self.check_common(|self_| {
+            self_.add_type_params();
             self_.add_params(ast);
             self_.check_body(ast);
         })
@@ -93,8 +94,6 @@ impl<'a> TypeCheck<'a> {
         let start_level = self.symtable.levels();
         self.symtable.push_level();
         self.vars.enter_function();
-
-        self.add_type_params();
 
         fct(self);
         self.symtable.pop_level();
@@ -243,11 +242,6 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn add_type_params(&mut self) {
-        if !self.in_function() {
-            // no type params in global initializers
-            return;
-        }
-
         let fct = self.fct.expect("missing fct");
 
         for (id, name) in fct.type_params.names() {
@@ -259,7 +253,7 @@ impl<'a> TypeCheck<'a> {
         let fct = self.fct.expect("missing fct");
         self.add_hidden_parameter_self();
 
-        let self_count = if fct.has_self() { 1 } else { 0 };
+        let self_count = if fct.has_hidden_self_argument() { 1 } else { 0 };
         assert_eq!(ast.params.len() + self_count, fct.param_types.len());
 
         for (ind, (param, ty)) in ast
@@ -301,9 +295,9 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn add_hidden_parameter_self(&mut self) {
-        self.analysis.set_has_self(self.has_self());
+        self.analysis.set_has_self(self.has_hidden_self_argument());
 
-        if !self.has_self() {
+        if !self.has_hidden_self_argument() {
             return;
         }
 
@@ -311,20 +305,10 @@ impl<'a> TypeCheck<'a> {
         let fct = self.fct.expect("missing fct");
 
         let self_ty = fct.param_types[0].clone();
-
-        // The lambda-object isn't available through `self` in lambdas.
-        if !self.is_lambda {
-            assert!(!self.self_available);
-            self.self_available = true;
-        }
-
         let name = self.sa.interner.intern("self");
 
         assert!(!self.vars.has_local_vars());
-        let var_id = self.vars.add_var(name, self_ty, false);
-        if !self.is_lambda {
-            assert_eq!(NestedVarId(0), var_id);
-        }
+        self.vars.add_var(name, self_ty, false);
     }
 
     fn add_local(&mut self, id: NestedVarId, span: Span) {
@@ -628,8 +612,7 @@ impl<'a> TypeCheck<'a> {
         expr: &ast::ExprReturnType,
         _expected_ty: SourceType,
     ) -> SourceType {
-        if self.in_function() {
-            let fct = self.fct.expect("missing fct");
+        if let Some(fct) = self.fct {
             let expected_ty = fct.return_type.clone();
 
             let expr_type = expr
@@ -3146,14 +3129,14 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn check_expr_this(&mut self, e: &ast::ExprSelfType, _expected_ty: SourceType) -> SourceType {
-        if !self.self_available {
+        if !self.is_self_available {
             let msg = ErrorMessage::ThisUnavailable;
             self.sa.diag.lock().report(self.file_id, e.span, msg);
             self.analysis.set_ty(e.id, SourceType::Error);
             return SourceType::Error;
         }
 
-        assert!(self.self_available);
+        assert!(self.is_self_available);
         let var_id = NestedVarId(0);
         let ident = self
             .vars
@@ -3226,7 +3209,7 @@ impl<'a> TypeCheck<'a> {
                     symtable: &mut self.symtable,
                     in_loop: false,
                     is_lambda: true,
-                    self_available: self.self_available.clone(),
+                    is_self_available: self.is_self_available,
                     vars: self.vars,
                     contains_lambda: false,
                     outer_context_classes: self.outer_context_classes,
@@ -3475,12 +3458,10 @@ impl<'a> TypeCheck<'a> {
         SourceType::Unit
     }
 
-    fn has_self(&self) -> bool {
-        self.fct.map(|fct| fct.has_self()).unwrap_or(false)
-    }
-
-    fn in_function(&self) -> bool {
-        self.fct.is_some()
+    fn has_hidden_self_argument(&self) -> bool {
+        self.fct
+            .map(|fct| fct.has_hidden_self_argument())
+            .unwrap_or(false)
     }
 
     fn ty_name(&self, ty: &SourceType) -> String {

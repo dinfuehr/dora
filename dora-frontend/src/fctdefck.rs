@@ -19,7 +19,7 @@ pub fn check(sa: &Sema) {
                 let impl_ = sa.impls[impl_id].read();
                 fct.type_params.append(impl_.type_params());
 
-                if fct.has_self() {
+                if fct.has_hidden_self_argument() {
                     fct.param_types.push(impl_.extended_ty.clone());
                 }
             }
@@ -28,7 +28,7 @@ pub fn check(sa: &Sema) {
                 let extension = sa.extensions[extension_id].read();
                 fct.type_params.append(extension.type_params());
 
-                if fct.has_self() {
+                if fct.has_hidden_self_argument() {
                     fct.param_types.push(extension.ty.clone());
                 }
             }
@@ -37,7 +37,7 @@ pub fn check(sa: &Sema) {
                 let trait_ = sa.traits[trait_id].read();
                 fct.type_params.append(&trait_.type_params());
 
-                if fct.has_self() {
+                if fct.has_hidden_self_argument() {
                     fct.param_types.push(SourceType::This);
                 }
             }

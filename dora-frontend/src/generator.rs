@@ -1471,7 +1471,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         let mut arg_types = Vec::with_capacity(fct.params_with_self().len());
 
-        if fct.has_self() {
+        if fct.has_hidden_self_argument() {
             let self_type = match call_type {
                 CallType::TraitObjectMethod(trait_ty, _) => {
                     // trait methods use Self as type for self argument but specialize_type_for_call can't handle Self.
