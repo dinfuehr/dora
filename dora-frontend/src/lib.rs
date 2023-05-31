@@ -5,7 +5,7 @@ use crate::sym::Sym;
 use dora_parser::ast;
 use dora_parser::Span;
 
-pub use program::emit_program;
+pub use program_emitter::emit_program;
 pub use readty::{read_type, read_type_context, read_type_unchecked, AllowSelf, TypeParamContext};
 
 pub(crate) mod access;
@@ -24,7 +24,7 @@ mod globaldefck;
 mod implck;
 mod impldefck;
 mod interner;
-pub mod program;
+pub mod program_emitter;
 mod program_parser;
 mod readty;
 mod returnck;

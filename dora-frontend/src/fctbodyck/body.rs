@@ -48,6 +48,7 @@ pub struct TypeCheck<'a> {
     pub analysis: &'a mut AnalysisData,
     pub symtable: &'a mut ModuleSymTable,
     pub in_loop: bool,
+    pub is_lambda: bool,
     pub self_available: bool,
     pub vars: &'a mut VarManager,
     pub contains_lambda: bool,
@@ -171,9 +172,7 @@ impl<'a> TypeCheck<'a> {
         let mut fields = Vec::with_capacity(number_fields);
         let mut map: Vec<Option<NestedVarId>> = vec![None; number_fields];
 
-        let is_lambda = self.fct.map(|f| f.is_lambda()).unwrap_or(false);
-
-        let needs_outer_context_slot = is_lambda
+        let needs_outer_context_slot = self.is_lambda
             && (self.outer_context_access_in_function || self.outer_context_access_from_lambda);
 
         if needs_outer_context_slot {
@@ -314,7 +313,7 @@ impl<'a> TypeCheck<'a> {
         let self_ty = fct.param_types[0].clone();
 
         // The lambda-object isn't available through `self` in lambdas.
-        if !fct.is_lambda() {
+        if !self.is_lambda {
             assert!(!self.self_available);
             self.self_available = true;
         }
@@ -323,7 +322,7 @@ impl<'a> TypeCheck<'a> {
 
         assert!(!self.vars.has_local_vars());
         let var_id = self.vars.add_var(name, self_ty, false);
-        if !fct.is_lambda() {
+        if !self.is_lambda {
             assert_eq!(NestedVarId(0), var_id);
         }
     }
@@ -3226,6 +3225,7 @@ impl<'a> TypeCheck<'a> {
                     analysis: &mut analysis,
                     symtable: &mut self.symtable,
                     in_loop: false,
+                    is_lambda: true,
                     self_available: self.self_available.clone(),
                     vars: self.vars,
                     contains_lambda: false,

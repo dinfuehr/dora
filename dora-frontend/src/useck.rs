@@ -217,10 +217,10 @@ fn initial_module(
             }
             UsePathComponentValue::Name(ref ident) => {
                 if let Some(package_id) = sa.package_names.get(&ident.name_as_string).cloned() {
-                    let package = sa.packages.idx(package_id);
-                    let package = package.read();
-
-                    Ok((1, Sym::Module(package.top_level_module_id())))
+                    Ok((
+                        1,
+                        Sym::Module(sa.packages[package_id].top_level_module_id()),
+                    ))
                 } else {
                     Ok((0, Sym::Module(use_module_id)))
                 }

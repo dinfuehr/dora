@@ -26,9 +26,7 @@ impl ModuleSymTable {
         let module = module.read();
         let outer = module.table.clone();
 
-        let package = sa.packages.idx(module.package_id());
-        let package = package.read();
-        let dependencies = package.table.clone();
+        let dependencies = sa.packages[module.package_id()].table.clone();
 
         let prelude = sa.modules[sa.prelude_module_id()].read().table.clone();
 

@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::ops::{Index, IndexMut};
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -95,7 +96,7 @@ pub struct Sema {
     pub impls: MutableVec<ImplDefinition>,   // stores all impl definitions
     pub globals: MutableVec<GlobalDefinition>, // stores all global variables
     pub uses: Vec<UseDefinition>,            // stores all uses
-    pub packages: MutableVec<PackageDefinition>,
+    pub packages: Vec<PackageDefinition>,
     pub package_names: HashMap<String, PackageDefinitionId>,
     pub prelude_module_id: Option<ModuleDefinitionId>,
     pub stdlib_module_id: Option<ModuleDefinitionId>,
@@ -104,6 +105,20 @@ pub struct Sema {
     pub stdlib_package_id: Option<PackageDefinitionId>,
     pub program_package_id: Option<PackageDefinitionId>,
     pub boots_package_id: Option<PackageDefinitionId>,
+}
+
+impl Index<PackageDefinitionId> for Vec<PackageDefinition> {
+    type Output = PackageDefinition;
+
+    fn index(&self, index: PackageDefinitionId) -> &Self::Output {
+        &self[index.0]
+    }
+}
+
+impl IndexMut<PackageDefinitionId> for Vec<PackageDefinition> {
+    fn index_mut(&mut self, index: PackageDefinitionId) -> &mut Self::Output {
+        &mut self[index.0]
+    }
 }
 
 impl Sema {
@@ -125,7 +140,7 @@ impl Sema {
             known: KnownElements::new(),
             diag: Mutex::new(Diagnostic::new()),
             fcts: GrowableVec::new(),
-            packages: MutableVec::new(),
+            packages: Vec::new(),
             package_names: HashMap::new(),
             prelude_module_id: None,
             stdlib_module_id: None,
@@ -418,7 +433,8 @@ impl Sema {
         let module_id = self.modules.push(module);
 
         let package = PackageDefinition::new(package_name, module_id);
-        let package_id = self.packages.push(package);
+        let package_id = PackageDefinitionId(self.packages.len());
+        self.packages.push(package);
 
         self.modules.idx(module_id).write().package_id = Some(package_id);
 

@@ -401,18 +401,15 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         check_modifiers(self.sa, self.file_id, &node.modifiers, &[]);
         if let Some(name) = &node.name {
             if let Some(package_id) = self.sa.package_names.get(&name.name_as_string).cloned() {
-                let top_level_module_id = {
-                    let package = self.sa.packages.idx(package_id);
-                    let package = package.read();
+                let top_level_module_id = self.sa.packages[package_id].top_level_module_id();
 
-                    package.top_level_module_id()
-                };
-
-                let package = self.sa.packages.idx(package_id);
-                let mut package = package.write();
                 let iname = self.sa.interner.intern(&name.name_as_string);
 
-                if !package.add_dependency(iname, package_id, top_level_module_id) {
+                if !self.sa.packages[package_id].add_dependency(
+                    iname,
+                    package_id,
+                    top_level_module_id,
+                ) {
                     let name = name.name_as_string.clone();
                     self.sa.diag.lock().report(
                         self.file_id,

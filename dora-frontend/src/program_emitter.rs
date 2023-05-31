@@ -50,8 +50,6 @@ fn create_packages(sa: &Sema) -> Vec<PackageData> {
     let mut result = Vec::new();
 
     for pkg in sa.packages.iter() {
-        let pkg = pkg.read();
-
         let name = match pkg.name {
             PackageName::Boots => "boots".into(),
             PackageName::Stdlib => "stdlib".into(),
