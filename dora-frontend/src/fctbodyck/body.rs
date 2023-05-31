@@ -40,15 +40,17 @@ use fixedbitset::FixedBitSet;
 
 pub struct TypeCheck<'a> {
     pub sa: &'a mut Sema,
-    pub fct: Option<&'a FctDefinition>,
     pub type_param_defs: &'a TypeParamDefinition,
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
     pub analysis: &'a mut AnalysisData,
     pub symtable: &'a mut ModuleSymTable,
+    pub param_types: Vec<SourceType>,
+    pub return_type: Option<SourceType>,
     pub in_loop: bool,
     pub is_lambda: bool,
+    pub has_hidden_self_argument: bool,
     pub is_self_available: bool,
     pub vars: &'a mut VarManager,
     pub contains_lambda: bool,
@@ -58,9 +60,9 @@ pub struct TypeCheck<'a> {
 }
 
 impl<'a> TypeCheck<'a> {
-    pub fn check_fct(&mut self, ast: &ast::Function) {
+    pub fn check_fct(&mut self, fct: &FctDefinition, ast: &ast::Function) {
         self.check_common(|self_| {
-            self_.add_type_params();
+            self_.add_type_params(fct);
             self_.add_params(ast);
             self_.check_body(ast);
         })
@@ -107,7 +109,11 @@ impl<'a> TypeCheck<'a> {
 
     fn check_body(&mut self, ast: &ast::Function) {
         let block = ast.block.as_ref().expect("missing block");
-        let fct = self.fct.expect("missing fct");
+        let fct_return_type = self
+            .return_type
+            .as_ref()
+            .expect("missing return type")
+            .clone();
 
         if let ast::ExprData::Block(ref block) = block.as_ref() {
             let mut returns = false;
@@ -125,14 +131,13 @@ impl<'a> TypeCheck<'a> {
                     returns = true;
                 }
 
-                let return_type = fct.return_type.clone();
-                self.check_expr(value, return_type)
+                self.check_expr(value, fct_return_type.clone())
             } else {
                 SourceType::Unit
             };
 
             if !returns {
-                self.check_fct_return_type(fct, block.span, return_type);
+                self.check_fct_return_type(fct_return_type, block.span, return_type);
             }
         } else {
             unreachable!()
@@ -241,35 +246,28 @@ impl<'a> TypeCheck<'a> {
         });
     }
 
-    fn add_type_params(&mut self) {
-        let fct = self.fct.expect("missing fct");
-
+    fn add_type_params(&mut self, fct: &FctDefinition) {
         for (id, name) in fct.type_params.names() {
             self.symtable.insert(name, Sym::TypeParam(id));
         }
     }
 
     fn add_params(&mut self, ast: &ast::Function) {
-        let fct = self.fct.expect("missing fct");
         self.add_hidden_parameter_self();
 
-        let self_count = if fct.has_hidden_self_argument() { 1 } else { 0 };
-        assert_eq!(ast.params.len() + self_count, fct.param_types.len());
+        let self_count = if self.has_hidden_self_argument { 1 } else { 0 };
+        assert_eq!(ast.params.len() + self_count, self.param_types.len());
 
         for (ind, (param, ty)) in ast
             .params
             .iter()
-            .zip(
-                self.fct
-                    .expect("missing fct")
-                    .param_types
-                    .iter()
-                    .skip(self_count),
-            )
+            .zip(self.param_types.iter().skip(self_count))
             .enumerate()
         {
             // is this last argument of function with variadic arguments?
-            let ty = if fct.is_variadic && ind == ast.params.len() - 1 {
+            let ty = if ind == ast.params.len() - 1
+                && ast.params.last().expect("missing param").variadic
+            {
                 // type of variable is Array[T]
                 self.sa.known.array_ty(ty.clone())
             } else {
@@ -295,16 +293,14 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn add_hidden_parameter_self(&mut self) {
-        self.analysis.set_has_self(self.has_hidden_self_argument());
+        self.analysis.set_has_self(self.has_hidden_self_argument);
 
-        if !self.has_hidden_self_argument() {
+        if !self.has_hidden_self_argument {
             return;
         }
 
         // Only functions can use `self`.
-        let fct = self.fct.expect("missing fct");
-
-        let self_ty = fct.param_types[0].clone();
+        let self_ty = self.param_types[0].clone();
         let name = self.sa.interner.intern("self");
 
         assert!(!self.vars.has_local_vars());
@@ -612,16 +608,16 @@ impl<'a> TypeCheck<'a> {
         expr: &ast::ExprReturnType,
         _expected_ty: SourceType,
     ) -> SourceType {
-        if let Some(fct) = self.fct {
-            let expected_ty = fct.return_type.clone();
+        if let Some(ref return_type) = self.return_type {
+            let expected_ty = return_type.clone();
 
             let expr_type = expr
                 .expr
                 .as_ref()
-                .map(|expr| self.check_expr(&expr, expected_ty))
+                .map(|expr| self.check_expr(&expr, expected_ty.clone()))
                 .unwrap_or(SourceType::Unit);
 
-            self.check_fct_return_type(fct, expr.span, expr_type);
+            self.check_fct_return_type(expected_ty, expr.span, expr_type);
         } else {
             self.sa
                 .diag
@@ -636,11 +632,14 @@ impl<'a> TypeCheck<'a> {
         SourceType::Unit
     }
 
-    fn check_fct_return_type(&mut self, fct: &FctDefinition, span: Span, expr_type: SourceType) {
-        let fct_type = fct.return_type.clone();
-
-        if !expr_type.is_error() && !fct_type.allows(self.sa, expr_type.clone()) {
-            let fct_type = self.ty_name(&fct_type);
+    fn check_fct_return_type(
+        &mut self,
+        fct_return_type: SourceType,
+        span: Span,
+        expr_type: SourceType,
+    ) {
+        if !expr_type.is_error() && !fct_return_type.allows(self.sa, expr_type.clone()) {
+            let fct_type = self.ty_name(&fct_return_type);
             let expr_type = self.ty_name(&expr_type);
 
             let msg = ErrorMessage::ReturnType(fct_type, expr_type);
@@ -3200,7 +3199,6 @@ impl<'a> TypeCheck<'a> {
 
                 let mut typeck = TypeCheck {
                     sa: self.sa,
-                    fct: Some(&*lambda),
                     type_param_defs: &lambda.type_params,
                     package_id: self.package_id,
                     module_id: self.module_id,
@@ -3209,6 +3207,9 @@ impl<'a> TypeCheck<'a> {
                     symtable: &mut self.symtable,
                     in_loop: false,
                     is_lambda: true,
+                    param_types: lambda.param_types.clone(),
+                    return_type: Some(lambda.return_type.clone()),
+                    has_hidden_self_argument: true,
                     is_self_available: self.is_self_available,
                     vars: self.vars,
                     contains_lambda: false,
@@ -3217,7 +3218,7 @@ impl<'a> TypeCheck<'a> {
                     outer_context_access_from_lambda: false,
                 };
 
-                typeck.check_fct(&node);
+                typeck.check_fct(&*lambda, &node);
             }
 
             if analysis.outer_context_access() {
@@ -3456,12 +3457,6 @@ impl<'a> TypeCheck<'a> {
         }
 
         SourceType::Unit
-    }
-
-    fn has_hidden_self_argument(&self) -> bool {
-        self.fct
-            .map(|fct| fct.has_hidden_self_argument())
-            .unwrap_or(false)
     }
 
     fn ty_name(&self, ty: &SourceType) -> String {

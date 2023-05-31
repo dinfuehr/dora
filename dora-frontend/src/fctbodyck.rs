@@ -62,14 +62,16 @@ fn check_function(sa: &mut Sema, id: FctDefinitionId) {
 
         let mut typeck = TypeCheck {
             sa,
-            fct: Some(&*fct),
             type_param_defs: &fct.type_params,
             package_id: fct.package_id,
             module_id: fct.module_id,
             file_id: fct.file_id,
             analysis: &mut analysis,
             symtable: &mut symtable,
+            param_types: fct.params_with_self().to_owned(),
+            return_type: Some(fct.return_type.clone()),
             in_loop: false,
+            has_hidden_self_argument: fct.has_hidden_self_argument(),
             is_self_available: fct.has_hidden_self_argument(),
             is_lambda: false,
             vars: &mut vars,
@@ -79,7 +81,7 @@ fn check_function(sa: &mut Sema, id: FctDefinitionId) {
             outer_context_access_from_lambda: false,
         };
 
-        typeck.check_fct(&fct.ast);
+        typeck.check_fct(&*fct, &fct.ast);
 
         analysis
     };
@@ -104,7 +106,6 @@ fn check_global(sa: &mut Sema, id: GlobalDefinitionId) {
 
         let mut typeck = TypeCheck {
             sa,
-            fct: None,
             type_param_defs: &TypeParamDefinition::new(),
             package_id: global.package_id,
             module_id: global.module_id,
@@ -113,6 +114,9 @@ fn check_global(sa: &mut Sema, id: GlobalDefinitionId) {
             symtable: &mut symtable,
             in_loop: false,
             is_lambda: false,
+            param_types: Vec::new(),
+            return_type: None,
+            has_hidden_self_argument: false,
             is_self_available: false,
             vars: &mut vars,
             contains_lambda: false,
