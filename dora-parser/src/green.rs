@@ -1,7 +1,7 @@
 use std::io;
 use std::sync::Arc;
 
-use crate::{NodeId, Span, TokenKind};
+use crate::{Span, TokenKind};
 
 pub type GreenNode = Arc<GreenNodeData>;
 pub type GreenToken = Arc<GreenTokenData>;
@@ -32,10 +32,10 @@ impl GreenElement {
         }
     }
 
-    pub fn span(&self) -> Span {
+    pub fn len(&self) -> u32 {
         match self {
-            GreenElement::Node(ref node) => node.span(),
-            GreenElement::Token(ref token) => token.span(),
+            GreenElement::Node(ref node) => node.len(),
+            GreenElement::Token(ref token) => token.len(),
         }
     }
 
@@ -56,29 +56,25 @@ impl GreenElement {
 
 #[derive(Clone, Debug)]
 pub struct GreenNodeData {
-    pub id: NodeId,
     pub kind: TokenKind,
     pub span: Span,
+    pub len: u32,
     pub children: Vec<GreenElement>,
 }
 
 impl GreenNodeData {
     pub fn new(
-        id: NodeId,
         kind: TokenKind,
         span: Span,
+        len: u32,
         children: Vec<GreenElement>,
     ) -> GreenNodeData {
         GreenNodeData {
-            id,
             kind,
             span,
+            len,
             children,
         }
-    }
-
-    pub fn id(&self) -> NodeId {
-        self.id
     }
 
     pub fn kind(&self) -> TokenKind {
@@ -87,6 +83,11 @@ impl GreenNodeData {
 
     pub fn span(&self) -> Span {
         self.span
+    }
+
+    pub fn len(&self) -> u32 {
+        assert_eq!(self.span.len(), self.len);
+        self.len
     }
 
     pub fn children(&self) -> &[GreenElement] {
@@ -96,24 +97,20 @@ impl GreenNodeData {
 
 #[derive(Clone, Debug)]
 pub struct GreenTokenData {
-    id: NodeId,
     kind: TokenKind,
     span: Span,
+    len: u32,
     value: String,
 }
 
 impl GreenTokenData {
-    pub fn new(id: NodeId, kind: TokenKind, span: Span, value: String) -> GreenTokenData {
+    pub fn new(kind: TokenKind, span: Span, len: u32, value: String) -> GreenTokenData {
         GreenTokenData {
-            id,
             kind,
             span,
+            len,
             value,
         }
-    }
-
-    pub fn id(&self) -> NodeId {
-        self.id
     }
 
     pub fn kind(&self) -> TokenKind {
@@ -124,6 +121,11 @@ impl GreenTokenData {
         self.span
     }
 
+    pub fn len(&self) -> u32 {
+        assert_eq!(self.span.len(), self.len);
+        self.len
+    }
+
     pub fn value(&self) -> &str {
         self.value.as_str()
     }
@@ -131,7 +133,6 @@ impl GreenTokenData {
 
 pub struct GreenTreeBuilder {
     nodes: Vec<(usize, u32)>,
-    next_id: usize,
     children: Vec<GreenElement>,
     offset: u32,
 }
@@ -140,7 +141,6 @@ impl GreenTreeBuilder {
     pub fn new() -> GreenTreeBuilder {
         GreenTreeBuilder {
             nodes: Vec::new(),
-            next_id: 0,
             children: Vec::new(),
             offset: 0,
         }
@@ -159,13 +159,12 @@ impl GreenTreeBuilder {
 
     pub fn token(&mut self, kind: TokenKind, value: String) {
         assert!(kind < TokenKind::EOF);
-        let id = self.new_node_id();
         let start = self.offset;
         let len = value.len().try_into().expect("overflow");
         self.offset += len;
         let span = Span::new(start, len);
         self.children
-            .push(Arc::new(GreenTokenData::new(id, kind, span, value)).into());
+            .push(Arc::new(GreenTokenData::new(kind, span, len, value)).into());
     }
 
     pub fn finish_node(&mut self, kind: TokenKind) -> GreenNode {
@@ -188,9 +187,13 @@ impl GreenTreeBuilder {
         start: u32,
     ) -> GreenNode {
         let children = self.children.drain(children_start..).collect::<Vec<_>>();
-        let id = self.new_node_id();
-        let span = Span::new(start, self.offset - start);
-        let node = Arc::new(GreenNodeData::new(id, kind, span, children));
+        let len = self.offset - start;
+        let node = Arc::new(GreenNodeData::new(
+            kind,
+            Span::new(start, len),
+            len,
+            children,
+        ));
         self.children.push(GreenElement::Node(node.clone()));
         node
     }
@@ -204,12 +207,6 @@ impl GreenTreeBuilder {
         let child = self.children.into_iter().next().expect("missing element");
         child.to_node().expect("node expected")
     }
-
-    fn new_node_id(&mut self) -> NodeId {
-        let value = self.next_id;
-        self.next_id += 1;
-        NodeId(usize::MAX - value)
-    }
 }
 
 #[derive(Clone)]
@@ -220,36 +217,38 @@ pub struct Marker {
 
 pub fn dump(node: &GreenNode) {
     let mut stdout = io::stdout();
-    dump_node(&mut stdout, node, 0);
+    dump_node(&mut stdout, node, 0, 0);
 }
 
-fn dump_node(w: &mut dyn io::Write, node: &GreenNode, level: usize) {
+fn dump_node(w: &mut dyn io::Write, node: &GreenNode, level: usize, mut offset: u32) {
     writeln!(
         w,
         "{}{:?} {}..{}",
         "  ".repeat(level),
         node.kind(),
-        node.span().start(),
-        node.span().end()
+        offset,
+        offset + node.len()
     )
     .expect("write! failed");
 
     for child in node.children() {
         match child {
-            GreenElement::Node(ref node) => dump_node(w, node, level + 1),
-            GreenElement::Token(ref token) => dump_token(w, token, level + 1),
+            GreenElement::Node(ref node) => dump_node(w, node, level + 1, offset),
+            GreenElement::Token(ref token) => dump_token(w, token, level + 1, offset),
         }
+
+        offset += child.len();
     }
 }
 
-fn dump_token(w: &mut dyn io::Write, token: &GreenToken, level: usize) {
+fn dump_token(w: &mut dyn io::Write, token: &GreenToken, level: usize, offset: u32) {
     writeln!(
         w,
         "{}{:?} {}..{}",
         "  ".repeat(level),
         token.kind(),
-        token.span().start(),
-        token.span().end()
+        offset,
+        offset + token.len()
     )
     .expect("write! failed");
 }

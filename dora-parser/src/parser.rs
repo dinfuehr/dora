@@ -63,7 +63,7 @@ impl Parser {
         assert!(self.nodes.is_empty());
 
         let tree = self.builder.create_tree();
-        assert_eq!(tree.span().len(), self.content.len() as u32);
+        assert_eq!(tree.len(), self.content.len() as u32);
 
         (ast_file, self.errors)
     }
