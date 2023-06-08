@@ -1,7 +1,7 @@
 use std::io;
 use std::sync::Arc;
 
-use crate::{Span, TokenKind};
+use crate::TokenKind;
 
 pub type GreenNode = Arc<GreenNodeData>;
 pub type GreenToken = Arc<GreenTokenData>;
@@ -86,31 +86,20 @@ impl GreenNodeData {
 #[derive(Clone, Debug)]
 pub struct GreenTokenData {
     kind: TokenKind,
-    span: Span,
     len: u32,
     value: String,
 }
 
 impl GreenTokenData {
-    pub fn new(kind: TokenKind, span: Span, len: u32, value: String) -> GreenTokenData {
-        GreenTokenData {
-            kind,
-            span,
-            len,
-            value,
-        }
+    pub fn new(kind: TokenKind, len: u32, value: String) -> GreenTokenData {
+        GreenTokenData { kind, len, value }
     }
 
     pub fn kind(&self) -> TokenKind {
         self.kind
     }
 
-    pub fn span(&self) -> Span {
-        self.span
-    }
-
     pub fn len(&self) -> u32 {
-        assert_eq!(self.span.len(), self.len);
         self.len
     }
 
@@ -147,12 +136,10 @@ impl GreenTreeBuilder {
 
     pub fn token(&mut self, kind: TokenKind, value: String) {
         assert!(kind < TokenKind::EOF);
-        let start = self.offset;
         let len = value.len().try_into().expect("overflow");
         self.offset += len;
-        let span = Span::new(start, len);
         self.children
-            .push(Arc::new(GreenTokenData::new(kind, span, len, value)).into());
+            .push(Arc::new(GreenTokenData::new(kind, len, value)).into());
     }
 
     pub fn finish_node(&mut self, kind: TokenKind) -> GreenNode {

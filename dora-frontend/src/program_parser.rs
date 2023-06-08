@@ -943,7 +943,7 @@ fn check_modifier(
                 _ => {
                     sa.diag.lock().report(
                         file_id,
-                        ident.span(),
+                        modifier.span,
                         ErrorMessage::UnknownAnnotation(ident.value().into()),
                     );
                     Annotation::Error
