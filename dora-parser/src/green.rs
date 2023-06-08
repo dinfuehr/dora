@@ -57,21 +57,14 @@ impl GreenElement {
 #[derive(Clone, Debug)]
 pub struct GreenNodeData {
     pub kind: TokenKind,
-    pub span: Span,
     pub len: u32,
     pub children: Vec<GreenElement>,
 }
 
 impl GreenNodeData {
-    pub fn new(
-        kind: TokenKind,
-        span: Span,
-        len: u32,
-        children: Vec<GreenElement>,
-    ) -> GreenNodeData {
+    pub fn new(kind: TokenKind, len: u32, children: Vec<GreenElement>) -> GreenNodeData {
         GreenNodeData {
             kind,
-            span,
             len,
             children,
         }
@@ -81,12 +74,7 @@ impl GreenNodeData {
         self.kind
     }
 
-    pub fn span(&self) -> Span {
-        self.span
-    }
-
     pub fn len(&self) -> u32 {
-        assert_eq!(self.span.len(), self.len);
         self.len
     }
 
@@ -188,12 +176,7 @@ impl GreenTreeBuilder {
     ) -> GreenNode {
         let children = self.children.drain(children_start..).collect::<Vec<_>>();
         let len = self.offset - start;
-        let node = Arc::new(GreenNodeData::new(
-            kind,
-            Span::new(start, len),
-            len,
-            children,
-        ));
+        let node = Arc::new(GreenNodeData::new(kind, len, children));
         self.children.push(GreenElement::Node(node.clone()));
         node
     }
