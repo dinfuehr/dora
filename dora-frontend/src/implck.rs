@@ -44,7 +44,7 @@ pub fn check(sa: &mut Sema) {
 
                         let msg =
                             ErrorMessage::ReturnTypeMismatch(impl_return_type, trait_return_type);
-                        sa.diag.lock().report(impl_.file_id, method.span, msg);
+                        sa.report(impl_.file_id, method.span, msg);
                     }
                 } else {
                     let args = method
@@ -61,7 +61,7 @@ pub fn check(sa: &mut Sema) {
                         ErrorMessage::MethodNotInTrait(trait_name, mtd_name, args)
                     };
 
-                    sa.diag.lock().report(impl_.file_id, method.span, msg)
+                    sa.report(impl_.file_id, method.span, msg)
                 }
             }
 
@@ -89,7 +89,7 @@ pub fn check(sa: &mut Sema) {
                     ErrorMessage::MethodMissingFromTrait(trait_name, mtd_name, args)
                 };
 
-                sa.diag.lock().report(impl_.file_id, impl_.span, msg)
+                sa.report(impl_.file_id, impl_.span, msg)
             }
 
             impl_for

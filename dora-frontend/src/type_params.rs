@@ -194,7 +194,7 @@ fn read_type_param_definition(
 
     if ast_type_params.params.len() == 0 {
         let msg = ErrorMessage::TypeParamsExpected;
-        sa.diag.lock().report(file_id, span, msg);
+        sa.report(file_id, span, msg);
 
         return TypeParamDefinition::new();
     }
@@ -212,7 +212,7 @@ fn read_type_param_definition(
             if !names.insert(iname) {
                 let name = ident.name_as_string.clone();
                 let msg = ErrorMessage::TypeParamNameNotUnique(name);
-                sa.diag.lock().report(file_id, type_param.span, msg);
+                sa.report(file_id, type_param.span, msg);
             }
 
             let sym = Sym::TypeParam(id);
@@ -236,11 +236,11 @@ fn read_type_param_definition(
             if ty.is_trait() {
                 if !result_type_params.add_bound(id, ty) {
                     let msg = ErrorMessage::DuplicateTraitBound;
-                    sa.diag.lock().report(file_id, type_param.span, msg);
+                    sa.report(file_id, type_param.span, msg);
                 }
             } else if !ty.is_error() {
                 let msg = ErrorMessage::BoundExpected;
-                sa.diag.lock().report(file_id, bound.span(), msg);
+                sa.report(file_id, bound.span(), msg);
             }
         }
     }

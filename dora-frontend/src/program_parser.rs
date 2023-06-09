@@ -61,8 +61,6 @@ impl<'a> ProgramParser<'a> {
         for (name, file) in &self.sa.args.packages {
             if self.packages.contains_key(name) {
                 self.sa
-                    .diag
-                    .lock()
                     .report_without_location(ErrorMessage::PackageAlreadyExists(name.clone()));
             } else {
                 let result = self.packages.insert(name.into(), file.clone());
@@ -162,8 +160,6 @@ impl<'a> ProgramParser<'a> {
                 );
             } else {
                 self.sa
-                    .diag
-                    .lock()
                     .report_without_location(ErrorMessage::MissingFileArgument);
             }
         } else {
@@ -293,13 +289,9 @@ impl<'a> ProgramParser<'a> {
             Err(_) => {
                 if let Some((file_id, span)) = error_location {
                     self.sa
-                        .diag
-                        .lock()
                         .report(file_id, span, ErrorMessage::FileNoAccess(path));
                 } else {
                     self.sa
-                        .diag
-                        .lock()
                         .report_without_location(ErrorMessage::FileNoAccess(path));
                 }
             }
@@ -363,7 +355,7 @@ impl<'a> ProgramParser<'a> {
         let (ast, errors) = parser.parse();
 
         for error in errors {
-            self.sa.diag.lock().report(
+            self.sa.report(
                 file_id,
                 error.span,
                 ErrorMessage::Custom(error.error.message()),
@@ -411,14 +403,14 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                     top_level_module_id,
                 ) {
                     let name = name.name_as_string.clone();
-                    self.sa.diag.lock().report(
+                    self.sa.report(
                         self.file_id,
                         node.span,
                         ErrorMessage::PackageAlreadyExists(name),
                     );
                 }
             } else {
-                self.sa.diag.lock().report(
+                self.sa.report(
                     self.file_id,
                     node.span,
                     ErrorMessage::UnknownPackage(name.name_as_string.clone()),
@@ -724,10 +716,7 @@ fn find_methods_in_trait(sa: &mut Sema, trait_id: TraitDefinitionId, node: &Arc<
                 // ignore
             }
 
-            _ => sa
-                .diag
-                .lock()
-                .report(trait_.file_id, child.span(), ErrorMessage::ExpectedMethod),
+            _ => sa.report(trait_.file_id, child.span(), ErrorMessage::ExpectedMethod),
         }
     }
 }
@@ -764,10 +753,7 @@ fn find_methods_in_impl(sa: &mut Sema, impl_id: ImplDefinitionId, node: &Arc<ast
                 // ignore
             }
 
-            _ => sa
-                .diag
-                .lock()
-                .report(impl_.file_id, child.span(), ErrorMessage::ExpectedMethod),
+            _ => sa.report(impl_.file_id, child.span(), ErrorMessage::ExpectedMethod),
         }
     }
 }
@@ -808,7 +794,7 @@ fn find_methods_in_extension(
                 // ignore
             }
 
-            _ => sa.diag.lock().report(
+            _ => sa.report(
                 extension.file_id,
                 child.span(),
                 ErrorMessage::ExpectedMethod,
@@ -890,13 +876,11 @@ fn check_modifiers(
             }
 
             if !set.insert(value) {
-                sa.diag
-                    .lock()
-                    .report(file_id, modifier.span, ErrorMessage::RedundantAnnotation);
+                sa.report(file_id, modifier.span, ErrorMessage::RedundantAnnotation);
             }
 
             if !allow_list.contains(&value) {
-                sa.diag.lock().report(
+                sa.report(
                     file_id,
                     modifier.span,
                     ErrorMessage::MisplacedAnnotation(value.name().into()),
@@ -941,7 +925,7 @@ fn check_modifier(
                 }
 
                 _ => {
-                    sa.diag.lock().report(
+                    sa.report(
                         file_id,
                         modifier.span,
                         ErrorMessage::UnknownAnnotation(ident.value().into()),
@@ -981,9 +965,7 @@ fn check_if_symbol_exists(
 ) {
     if !used_names.insert(name) {
         let name = sa.interner.str(name).to_string();
-        sa.diag
-            .lock()
-            .report(file_id, span, ErrorMessage::ShadowField(name));
+        sa.report(file_id, span, ErrorMessage::ShadowField(name));
     }
 }
 

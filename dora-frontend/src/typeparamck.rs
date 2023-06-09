@@ -105,7 +105,7 @@ impl<'a> TypeParamCheck<'a> {
                     self.callee_type_param_defs.len(),
                     tps.len(),
                 );
-                self.sa.diag.lock().report(file_id, span, msg);
+                self.sa.report(file_id, span, msg);
             }
             return false;
         }
@@ -144,6 +144,6 @@ impl<'a> TypeParamCheck<'a> {
         let name = ty.name_with_type_params(self.sa, self.caller_type_param_defs);
         let trait_name = trait_ty.name_with_type_params(self.sa, self.caller_type_param_defs);
         let msg = ErrorMessage::TypeNotImplementingTrait(name, trait_name);
-        self.sa.diag.lock().report(file_id, span, msg);
+        self.sa.report(file_id, span, msg);
     }
 }

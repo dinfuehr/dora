@@ -67,10 +67,7 @@ impl<'a> ConstCheck<'a> {
 
             _ => {
                 let msg = ErrorMessage::ConstValueExpected;
-                self.sa
-                    .diag
-                    .lock()
-                    .report(self.const_.file_id, expr.span(), msg);
+                self.sa.report(self.const_.file_id, expr.span(), msg);
                 return (SourceType::Error, ConstValue::None);
             }
         };
@@ -80,10 +77,7 @@ impl<'a> ConstCheck<'a> {
             let const_ty = self.const_.ty().name(self.sa);
             let ty = ty.name(self.sa);
             let msg = ErrorMessage::AssignType(name, const_ty, ty);
-            self.sa
-                .diag
-                .lock()
-                .report(self.const_.file_id, expr.span(), msg);
+            self.sa.report(self.const_.file_id, expr.span(), msg);
         }
 
         (ty, lit)

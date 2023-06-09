@@ -142,8 +142,6 @@ impl<'x> ExtensionCheck<'x> {
 
         if fct.ast.block.is_none() && !fct.is_internal {
             self.sa
-                .diag
-                .lock()
                 .report(self.file_id.into(), fct.span, ErrorMessage::MissingFctBody);
         }
 
@@ -262,7 +260,7 @@ impl<'x> ExtensionCheck<'x> {
             let method = method.read();
             let method_name = self.sa.interner.str(method.name).to_string();
             let msg = ErrorMessage::MethodExists(method_name, method.span);
-            self.sa.diag.lock().report(self.file_id.into(), f.span, msg);
+            self.sa.report(self.file_id.into(), f.span, msg);
             false
         } else {
             true
@@ -286,9 +284,7 @@ pub fn check_for_unconstrained_type_params(
     for idx in bitset.ones() {
         let type_param_def = type_params_defs.name(TypeParamId(idx));
         let tp_name = sa.interner.str(type_param_def).to_string();
-        sa.diag
-            .lock()
-            .report(file_id, span, ErrorMessage::UnconstrainedTypeParam(tp_name));
+        sa.report(file_id, span, ErrorMessage::UnconstrainedTypeParam(tp_name));
     }
 }
 

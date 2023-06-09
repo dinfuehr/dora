@@ -10,6 +10,7 @@ use dora_bytecode::Location;
 use dora_parser::{compute_line_column, compute_line_starts, Span};
 
 use crate::error::diag::Diagnostic;
+use crate::error::msg::ErrorMessage;
 #[cfg(test)]
 use crate::sym::ModuleSymTable;
 use crate::sym::SymTable;
@@ -449,5 +450,13 @@ impl Sema {
     pub fn compute_line_column(&self, file_id: SourceFileId, span: Span) -> (u32, u32) {
         let file = self.source_file(file_id);
         compute_line_column(&file.line_starts, span.start())
+    }
+
+    pub fn report(&self, file: SourceFileId, span: Span, msg: ErrorMessage) {
+        self.diag.lock().report(file, span, msg);
+    }
+
+    pub fn report_without_location(&self, msg: ErrorMessage) {
+        self.diag.lock().report_without_location(msg);
     }
 }

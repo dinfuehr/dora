@@ -95,9 +95,7 @@ fn check_use(
     {
         if !previous_sym.is_enum() && !previous_sym.is_module() {
             let msg = ErrorMessage::ExpectedPath;
-            sa.diag
-                .lock()
-                .report(use_file_id, use_declaration.common_path[idx - 1].span, msg);
+            sa.report(use_file_id, use_declaration.common_path[idx - 1].span, msg);
             return Err(UseError::Fatal);
         }
 
@@ -121,11 +119,7 @@ fn check_use(
                 | UsePathComponentValue::Super
                 | UsePathComponentValue::This
                 | UsePathComponentValue::Error => {
-                    sa.diag.lock().report(
-                        use_file_id,
-                        last_component.span,
-                        ErrorMessage::ExpectedPath,
-                    );
+                    sa.report(use_file_id, last_component.span, ErrorMessage::ExpectedPath);
                     return Err(UseError::Fatal);
                 }
             };
@@ -161,9 +155,7 @@ fn check_use(
         }
         UseTargetDescriptor::Group(ref group) => {
             if group.targets.is_empty() {
-                sa.diag
-                    .lock()
-                    .report(use_file_id, group.span, ErrorMessage::ExpectedPath);
+                sa.report(use_file_id, group.span, ErrorMessage::ExpectedPath);
                 return Err(UseError::Fatal);
             }
 
@@ -207,7 +199,7 @@ fn initial_module(
                 if let Some(module_id) = module.parent_module_id {
                     Ok((1, Sym::Module(module_id)))
                 } else {
-                    sa.diag.lock().report(
+                    sa.report(
                         use_file_id.into(),
                         first_component.span,
                         ErrorMessage::NoSuperModule,
@@ -246,9 +238,7 @@ fn process_component(
         | UsePathComponentValue::Super
         | UsePathComponentValue::This
         | UsePathComponentValue::Error => {
-            sa.diag
-                .lock()
-                .report(use_file_id, component.span, ErrorMessage::ExpectedPath);
+            sa.report(use_file_id, component.span, ErrorMessage::ExpectedPath);
             return Err(UseError::Fatal);
         }
     };
@@ -265,7 +255,7 @@ fn process_component(
                     let module = &sa.modules[module_id].read();
                     let name = component_name.name_as_string.clone();
                     let msg = ErrorMessage::NotAccessibleInModule(module.name(sa), name);
-                    sa.diag.lock().report(use_file_id, component.span, msg);
+                    sa.report(use_file_id, component.span, msg);
                     Err(UseError::Fatal)
                 }
             } else if ignore_errors {
@@ -275,7 +265,7 @@ fn process_component(
                 let module = module.read();
                 let name = component_name.name_as_string.clone();
                 let module_name = module.name(sa);
-                sa.diag.lock().report(
+                sa.report(
                     use_file_id,
                     component.span,
                     ErrorMessage::UnknownIdentifierInModule(module_name, name),
@@ -292,7 +282,7 @@ fn process_component(
                 Ok(Sym::EnumVariant(enum_id, variant_idx))
             } else {
                 let name = component_name.name_as_string.clone();
-                sa.diag.lock().report(
+                sa.report(
                     use_file_id,
                     component.span,
                     ErrorMessage::UnknownEnumVariant(name),

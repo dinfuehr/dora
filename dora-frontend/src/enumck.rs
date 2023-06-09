@@ -127,7 +127,7 @@ impl<'x> EnumCheckVariants<'x> {
 
             if result.is_some() {
                 let name = self.sa.interner.str(name).to_string();
-                self.sa.diag.lock().report(
+                self.sa.report(
                     self.enum_.file_id,
                     value.span,
                     ErrorMessage::ShadowEnumVariant(name),
@@ -138,7 +138,7 @@ impl<'x> EnumCheckVariants<'x> {
         }
 
         if self.ast.variants.is_empty() {
-            self.sa.diag.lock().report(
+            self.sa.report(
                 self.enum_.file_id,
                 self.ast.span,
                 ErrorMessage::NoEnumVariant,

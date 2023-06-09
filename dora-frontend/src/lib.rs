@@ -187,9 +187,7 @@ fn internalck(sa: &Sema) {
         let fct = fct.read();
 
         if !fct.has_body() && !fct.in_trait() && !fct.is_internal {
-            sa.diag
-                .lock()
-                .report(fct.file_id, fct.span, ErrorMessage::MissingFctBody);
+            sa.report(fct.file_id, fct.span, ErrorMessage::MissingFctBody);
         }
     }
 
@@ -197,7 +195,7 @@ fn internalck(sa: &Sema) {
         let struct_ = struct_.read();
 
         if struct_.is_internal && !struct_.internal_resolved {
-            sa.diag.lock().report(
+            sa.report(
                 struct_.file_id,
                 struct_.span,
                 ErrorMessage::UnresolvedInternal,
@@ -209,9 +207,7 @@ fn internalck(sa: &Sema) {
         let cls = cls.read();
 
         if cls.is_internal && !cls.internal_resolved {
-            sa.diag
-                .lock()
-                .report(cls.file_id(), cls.span(), ErrorMessage::UnresolvedInternal);
+            sa.report(cls.file_id(), cls.span(), ErrorMessage::UnresolvedInternal);
         }
     }
 }
@@ -245,7 +241,7 @@ pub fn report_sym_shadow_span(sa: &Sema, name: Name, file: SourceFileId, span: S
         _ => unreachable!(),
     };
 
-    sa.diag.lock().report(file, span, msg);
+    sa.report(file, span, msg);
 }
 
 #[cfg(test)]

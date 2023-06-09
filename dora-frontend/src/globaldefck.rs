@@ -57,7 +57,7 @@ impl<'a> GlobalDefCheck<'a> {
 
         if global_var.ast.initial_value.is_none() {
             let msg = ErrorMessage::LetMissingInitialization;
-            self.sa.diag.lock().report(self.file_id, self.ast.span, msg);
+            self.sa.report(self.file_id, self.ast.span, msg);
         }
     }
 }

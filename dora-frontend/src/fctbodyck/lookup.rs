@@ -264,8 +264,6 @@ impl<'a> MethodLookup<'a> {
 
     fn report_error(&mut self, msg: ErrorMessage) {
         self.sa
-            .diag
-            .lock()
             .report(self.file, self.span.expect("missing location"), msg);
     }
 

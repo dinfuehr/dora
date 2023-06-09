@@ -88,7 +88,7 @@ fn read_type_basic_unchecked(
                     primitive_ty.clone()
                 } else {
                     let msg = ErrorMessage::WrongNumberTypeParams(0, type_params.len());
-                    sa.diag.lock().report(file_id, node.span, msg);
+                    sa.report(file_id, node.span, msg);
                     SourceType::Error
                 }
             } else {
@@ -99,7 +99,7 @@ fn read_type_basic_unchecked(
         Some(Sym::TypeParam(type_param_id)) => {
             if node.params.len() > 0 {
                 let msg = ErrorMessage::NoTypeParamsExpected;
-                sa.diag.lock().report(file_id, node.span, msg);
+                sa.report(file_id, node.span, msg);
             }
 
             SourceType::TypeParam(type_param_id)
@@ -115,7 +115,7 @@ fn read_type_basic_unchecked(
                 .name_as_string
                 .clone();
             let msg = ErrorMessage::UnknownType(name);
-            sa.diag.lock().report(file_id, node.span, msg);
+            sa.report(file_id, node.span, msg);
             SourceType::Error
         }
 
@@ -129,7 +129,7 @@ fn read_type_basic_unchecked(
                 .name_as_string
                 .clone();
             let msg = ErrorMessage::UnknownIdentifier(name);
-            sa.diag.lock().report(file_id, node.span, msg);
+            sa.report(file_id, node.span, msg);
             SourceType::Error
         }
     }
@@ -194,9 +194,7 @@ pub fn verify_type(
             assert_eq!(ty, SourceType::This);
 
             if allow_self == AllowSelf::No {
-                sa.diag
-                    .lock()
-                    .report(file_id, node.span, ErrorMessage::SelfTypeUnavailable);
+                sa.report(file_id, node.span, ErrorMessage::SelfTypeUnavailable);
                 return false;
             }
         }
@@ -303,7 +301,7 @@ fn verify_type_basic(
 
             if !class_accessible_from(sa, cls_id, module_id) {
                 let msg = ErrorMessage::NotAccessible(cls.name(sa));
-                sa.diag.lock().report(file_id, node.span, msg);
+                sa.report(file_id, node.span, msg);
                 return false;
             }
 
@@ -339,7 +337,7 @@ fn verify_type_basic(
 
             if !enum_accessible_from(sa, enum_id, module_id) {
                 let msg = ErrorMessage::NotAccessible(enum_.name(sa));
-                sa.diag.lock().report(file_id, node.span, msg);
+                sa.report(file_id, node.span, msg);
                 return false;
             }
 
@@ -384,7 +382,7 @@ fn verify_type_basic(
                 let struct_ = sa.structs.idx(struct_id);
                 let struct_ = struct_.read();
                 let msg = ErrorMessage::NotAccessible(struct_.name(sa));
-                sa.diag.lock().report(file_id, node.span, msg);
+                sa.report(file_id, node.span, msg);
                 return false;
             }
         }
@@ -395,7 +393,7 @@ fn verify_type_basic(
 
             if !struct_accessible_from(sa, struct_id, module_id) {
                 let msg = ErrorMessage::NotAccessible(struct_.name(sa));
-                sa.diag.lock().report(file_id, node.span, msg);
+                sa.report(file_id, node.span, msg);
                 return false;
             }
 
@@ -431,7 +429,7 @@ fn verify_type_basic(
 
             if !trait_accessible_from(sa, trait_id, module_id) {
                 let msg = ErrorMessage::NotAccessible(trait_.name(sa));
-                sa.diag.lock().report(file_id, node.span, msg);
+                sa.report(file_id, node.span, msg);
                 return false;
             }
 
@@ -556,7 +554,7 @@ fn table_for_module(
 
         _ => {
             let msg = ErrorMessage::ExpectedModule;
-            sa.diag.lock().report(file_id, basic.span, msg);
+            sa.report(file_id, basic.span, msg);
             Err(())
         }
     }
@@ -572,7 +570,7 @@ fn check_type_params(
 ) -> bool {
     if tp_definitions.len() != type_params.len() {
         let msg = ErrorMessage::WrongNumberTypeParams(tp_definitions.len(), type_params.len());
-        sa.diag.lock().report(file_id, span, msg);
+        sa.report(file_id, span, msg);
         return false;
     }
 
@@ -589,7 +587,7 @@ fn check_type_params(
             let name = tp_ty.name_with_type_params(sa, type_param_defs);
             let trait_name = trait_ty.name_with_type_params(sa, type_param_defs);
             let msg = ErrorMessage::TypeNotImplementingTrait(name, trait_name);
-            sa.diag.lock().report(file_id, span, msg);
+            sa.report(file_id, span, msg);
             success = false;
         }
     }

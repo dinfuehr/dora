@@ -70,7 +70,7 @@ pub fn check(sa: &Sema) {
                     if !names.insert(name) {
                         let name = sa.interner.str(name).to_string();
                         let msg = ErrorMessage::TypeParamNameNotUnique(name);
-                        sa.diag.lock().report(fct.file_id, type_param.span, msg);
+                        sa.report(fct.file_id, type_param.span, msg);
                     }
 
                     fct.type_params.add_type_param(name);
@@ -92,11 +92,11 @@ pub fn check(sa: &Sema) {
                                     ty,
                                 ) {
                                     let msg = ErrorMessage::DuplicateTraitBound;
-                                    sa.diag.lock().report(fct.file_id, type_param.span, msg);
+                                    sa.report(fct.file_id, type_param.span, msg);
                                 }
                             } else {
                                 let msg = ErrorMessage::BoundExpected;
-                                sa.diag.lock().report(fct.file_id, bound.span(), msg);
+                                sa.report(fct.file_id, bound.span(), msg);
                             }
                         } else {
                             // unknown type, error is already thrown
@@ -108,13 +108,13 @@ pub fn check(sa: &Sema) {
                 }
             } else {
                 let msg = ErrorMessage::TypeParamsExpected;
-                sa.diag.lock().report(fct.file_id, fct.span, msg);
+                sa.report(fct.file_id, fct.span, msg);
             }
         }
 
         for p in &ast.params {
             if fct.is_variadic {
-                sa.diag.lock().report(
+                sa.report(
                     fct.file_id,
                     p.span,
                     ErrorMessage::VariadicParameterNeedsToBeLast,
@@ -195,7 +195,7 @@ fn check_test(sa: &Sema, fct: &FctDefinition) {
         || (!fct.return_type.is_unit() && !fct.return_type.is_error())
     {
         let msg = ErrorMessage::InvalidTestAnnotationUsage;
-        sa.diag.lock().report(fct.file_id, fct.span, msg);
+        sa.report(fct.file_id, fct.span, msg);
     }
 }
 
@@ -212,7 +212,7 @@ fn check_against_methods(sa: &Sema, fct: &FctDefinition, methods: &[FctDefinitio
             let method_name = sa.interner.str(method.name).to_string();
 
             let msg = ErrorMessage::MethodExists(method_name, method.span);
-            sa.diag.lock().report(fct.file_id, fct.ast.span, msg);
+            sa.report(fct.file_id, fct.ast.span, msg);
             return;
         }
     }

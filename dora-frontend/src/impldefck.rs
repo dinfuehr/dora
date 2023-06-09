@@ -75,11 +75,8 @@ impl<'x> ImplCheck<'x> {
                 }
 
                 _ => {
-                    self.sa.diag.lock().report(
-                        self.file_id,
-                        self.ast.span,
-                        ErrorMessage::ExpectedTrait,
-                    );
+                    self.sa
+                        .report(self.file_id, self.ast.span, ErrorMessage::ExpectedTrait);
                 }
             }
         }
@@ -107,7 +104,7 @@ impl<'x> ImplCheck<'x> {
                     self.ast.span,
                 );
             } else {
-                self.sa.diag.lock().report(
+                self.sa.report(
                     self.file_id,
                     self.ast.extended_type.span(),
                     ErrorMessage::ClassEnumStructExpected,
@@ -129,7 +126,7 @@ impl<'x> ImplCheck<'x> {
         let method = method.read();
 
         if method.ast.block.is_none() && !method.is_internal {
-            self.sa.diag.lock().report(
+            self.sa.report(
                 self.file_id.into(),
                 method.span,
                 ErrorMessage::MissingFctBody,
