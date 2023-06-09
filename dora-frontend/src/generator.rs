@@ -3027,14 +3027,14 @@ impl<'a> AstBytecodeGen<'a> {
 
         let const_ = self.sa.consts.idx(const_id);
         let const_ = const_.read();
-        let ty = const_.ty.clone();
+        let ty = const_.ty();
 
         let bytecode_ty = register_bty_from_ty(ty.clone());
         let dest = self.ensure_register(dest, bytecode_ty);
 
         match ty {
             SourceType::Bool => {
-                if const_.value.to_bool() {
+                if const_.value().to_bool() {
                     self.builder.emit_const_true(dest);
                 } else {
                     self.builder.emit_const_false(dest);
@@ -3042,31 +3042,31 @@ impl<'a> AstBytecodeGen<'a> {
             }
 
             SourceType::Char => {
-                self.builder.emit_const_char(dest, const_.value.to_char());
+                self.builder.emit_const_char(dest, const_.value().to_char());
             }
 
             SourceType::UInt8 => {
                 self.builder
-                    .emit_const_uint8(dest, const_.value.to_int() as u8);
+                    .emit_const_uint8(dest, const_.value().to_int() as u8);
             }
 
             SourceType::Int32 => {
                 self.builder
-                    .emit_const_int32(dest, const_.value.to_int() as i32);
+                    .emit_const_int32(dest, const_.value().to_int() as i32);
             }
 
             SourceType::Int64 => {
-                self.builder.emit_const_int64(dest, const_.value.to_int());
+                self.builder.emit_const_int64(dest, const_.value().to_int());
             }
 
             SourceType::Float32 => {
                 self.builder
-                    .emit_const_float32(dest, const_.value.to_float() as f32);
+                    .emit_const_float32(dest, const_.value().to_float() as f32);
             }
 
             SourceType::Float64 => {
                 self.builder
-                    .emit_const_float64(dest, const_.value.to_float());
+                    .emit_const_float64(dest, const_.value().to_float());
             }
 
             _ => unimplemented!(),

@@ -12,7 +12,7 @@ pub struct ConstCheck<'a> {
 
 impl<'a> ConstCheck<'a> {
     pub fn check_expr(&mut self, expr: &ExprData) -> (SourceType, ConstValue) {
-        let expected_type = self.const_.ty.clone();
+        let expected_type = self.const_.ty();
 
         let (ty, lit) = match expr {
             &ExprData::LitChar(ref e) => {
@@ -75,9 +75,9 @@ impl<'a> ConstCheck<'a> {
             }
         };
 
-        if !self.const_.ty.allows(self.sa, ty.clone()) {
+        if !self.const_.ty().allows(self.sa, ty.clone()) {
             let name = self.sa.interner.str(self.const_.name).to_string();
-            let const_ty = self.const_.ty.name(self.sa);
+            let const_ty = self.const_.ty().name(self.sa);
             let ty = ty.name(self.sa);
             let msg = ErrorMessage::AssignType(name, const_ty, ty);
             self.sa

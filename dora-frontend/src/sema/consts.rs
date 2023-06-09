@@ -1,3 +1,4 @@
+use once_cell::sync::OnceCell;
 use std::sync::Arc;
 
 use crate::interner::Name;
@@ -40,9 +41,9 @@ pub struct ConstDefinition {
     pub visibility: Visibility,
     pub span: Span,
     pub name: Name,
-    pub ty: SourceType,
+    pub ty: OnceCell<SourceType>,
     pub expr: ast::Expr,
-    pub value: ConstValue,
+    pub value: OnceCell<ConstValue>,
 }
 
 impl ConstDefinition {
@@ -63,9 +64,9 @@ impl ConstDefinition {
             span: node.span,
             name,
             visibility: modifiers.visibility(),
-            ty: SourceType::Error,
+            ty: OnceCell::new(),
             expr: node.expr.clone(),
-            value: ConstValue::None,
+            value: OnceCell::new(),
         }
     }
 
@@ -75,6 +76,14 @@ impl ConstDefinition {
 
     pub fn name(&self, sa: &Sema) -> String {
         module_path(sa, self.module_id, self.name)
+    }
+
+    pub fn ty(&self) -> SourceType {
+        self.ty.get().expect("uninitialized").to_owned()
+    }
+
+    pub fn value(&self) -> &ConstValue {
+        self.value.get().expect("uninitialized")
     }
 }
 

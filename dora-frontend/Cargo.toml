@@ -18,3 +18,4 @@ dora-bytecode = { path = "../dora-bytecode", version = "0.0.2" }
 parking_lot = "*"
 fixedbitset = "*"
 num_enum = "*"
+once_cell = "*"

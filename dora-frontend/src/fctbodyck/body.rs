@@ -978,13 +978,13 @@ impl<'a> TypeCheck<'a> {
                 let const_ = self.sa.consts.idx(const_id);
                 let const_ = const_.read();
 
-                self.analysis.set_ty(e.id, const_.ty.clone());
+                self.analysis.set_ty(e.id, const_.ty());
 
                 self.analysis
                     .map_idents
                     .insert(e.id, IdentType::Const(const_id));
 
-                const_.ty.clone()
+                const_.ty()
             }
 
             Some(Sym::EnumVariant(enum_id, variant_idx)) => self.check_enum_value_without_args_id(
@@ -2734,13 +2734,13 @@ impl<'a> TypeCheck<'a> {
                 let const_ = self.sa.consts.idx(const_id);
                 let const_ = const_.read();
 
-                self.analysis.set_ty(e.id, const_.ty.clone());
+                self.analysis.set_ty(e.id, const_.ty());
 
                 self.analysis
                     .map_idents
                     .insert(e.id, IdentType::Const(const_id));
 
-                const_.ty.clone()
+                const_.ty()
             }
 
             Some(Sym::EnumVariant(enum_id, variant_idx)) => self.check_enum_value_without_args_id(

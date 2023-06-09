@@ -50,8 +50,8 @@ impl<'x> ConstCheck<'x> {
         .unwrap_or(SourceType::Error);
 
         let const_ = self.sa.consts.idx(self.const_id);
-        let mut const_ = const_.write();
-        const_.ty = ty;
+        let const_ = const_.read();
+        const_.ty.set(ty).expect("already initialized");
     }
 }
 

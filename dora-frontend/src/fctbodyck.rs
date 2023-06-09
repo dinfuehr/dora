@@ -18,7 +18,7 @@ pub fn check(sa: &mut Sema) {
     }
 
     for const_ in sa.consts.iter() {
-        let mut const_ = const_.write();
+        let const_ = const_.read();
 
         let (_, value) = {
             let mut constck = ConstCheck {
@@ -29,7 +29,7 @@ pub fn check(sa: &mut Sema) {
             constck.check_expr(&const_.expr)
         };
 
-        const_.value = value;
+        const_.value.set(value).expect("already initialized");
     }
 
     let mut idx: u32 = 0;
