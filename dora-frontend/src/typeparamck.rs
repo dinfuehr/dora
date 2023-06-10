@@ -40,8 +40,7 @@ pub fn check_struct(
     type_params: &SourceTypeArray,
     error: ErrorReporting,
 ) -> bool {
-    let struct_ = sa.structs.idx(struct_id);
-    let struct_ = struct_.read();
+    let struct_ = &sa.structs[struct_id];
 
     let checker = TypeParamCheck {
         sa,

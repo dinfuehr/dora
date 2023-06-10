@@ -1147,10 +1147,9 @@ impl<'a> AstBytecodeGen<'a> {
             _ => unreachable!(),
         };
 
-        let struct_ = self.sa.structs.idx(struct_id);
-        let struct_ = struct_.read();
+        let struct_ = &self.sa.structs[struct_id];
         let field = &struct_.fields[field_idx.to_usize()];
-        let ty = specialize_type(self.sa, field.ty.clone(), &type_params);
+        let ty = specialize_type(self.sa, field.ty(), &type_params);
 
         if ty.is_unit() {
             assert!(dest.is_unit());
@@ -1161,7 +1160,7 @@ impl<'a> AstBytecodeGen<'a> {
         let ty: BytecodeType = register_bty_from_ty(ty);
         let dest = self.ensure_register(dest, ty);
         let const_idx = self.builder.add_const_struct_field(
-            StructId(struct_id.0),
+            StructId(struct_id.index().try_into().expect("overflow")),
             bty_array_from_ty(&type_params),
             field_idx.0 as u32,
         );
@@ -1408,7 +1407,7 @@ impl<'a> AstBytecodeGen<'a> {
             self.builder.emit_push_register(arg_reg);
         }
 
-        let struct_id = StructId(struct_id.0);
+        let struct_id = StructId(struct_id.index().try_into().expect("overflow"));
 
         let idx = self
             .builder
@@ -3453,9 +3452,10 @@ pub fn bty_from_ty(ty: SourceType) -> BytecodeType {
         SourceType::Enum(enum_id, type_params) => {
             BytecodeType::Enum(EnumId(enum_id.0), bty_array_from_ty(&type_params))
         }
-        SourceType::Struct(struct_id, type_params) => {
-            BytecodeType::Struct(StructId(struct_id.0), bty_array_from_ty(&type_params))
-        }
+        SourceType::Struct(struct_id, type_params) => BytecodeType::Struct(
+            StructId(struct_id.index().try_into().expect("overflow")),
+            bty_array_from_ty(&type_params),
+        ),
         SourceType::Tuple(subtypes) => BytecodeType::Tuple(bty_array_from_ty(&subtypes)),
         SourceType::TypeParam(idx) => BytecodeType::TypeParam(idx.to_usize() as u32),
         SourceType::Lambda(params, return_type) => BytecodeType::Lambda(
@@ -3485,9 +3485,10 @@ pub fn register_bty_from_ty(ty: SourceType) -> BytecodeType {
         SourceType::Enum(enum_id, type_params) => {
             BytecodeType::Enum(EnumId(enum_id.0), bty_array_from_ty(&type_params))
         }
-        SourceType::Struct(struct_id, type_params) => {
-            BytecodeType::Struct(StructId(struct_id.0), bty_array_from_ty(&type_params))
-        }
+        SourceType::Struct(struct_id, type_params) => BytecodeType::Struct(
+            StructId(struct_id.index().try_into().expect("overflow")),
+            bty_array_from_ty(&type_params),
+        ),
         SourceType::Tuple(subtypes) => BytecodeType::Tuple(bty_array_from_ty(&subtypes)),
         SourceType::TypeParam(idx) => BytecodeType::TypeParam(idx.to_usize() as u32),
         SourceType::Lambda(_, _) => BytecodeType::Ptr,

@@ -80,8 +80,7 @@ fn read_type_basic_unchecked(
         Some(Sym::Class(class_id)) => SourceType::Class(class_id, type_params),
         Some(Sym::Trait(trait_id)) => SourceType::Trait(trait_id, type_params),
         Some(Sym::Struct(struct_id)) => {
-            let struct_ = sa.structs.idx(struct_id);
-            let struct_ = struct_.read();
+            let struct_ = &sa.structs[struct_id];
 
             if let Some(ref primitive_ty) = struct_.primitive_ty {
                 if type_params.is_empty() {
@@ -379,8 +378,7 @@ fn verify_type_basic(
                 .expect("primitive struct expected");
 
             if !struct_accessible_from(sa, struct_id, module_id) {
-                let struct_ = sa.structs.idx(struct_id);
-                let struct_ = struct_.read();
+                let struct_ = &sa.structs[struct_id];
                 let msg = ErrorMessage::NotAccessible(struct_.name(sa));
                 sa.report(file_id, node.span, msg);
                 return false;
@@ -388,8 +386,7 @@ fn verify_type_basic(
         }
 
         SourceType::Struct(struct_id, type_params) => {
-            let struct_ = sa.structs.idx(struct_id);
-            let struct_ = struct_.read();
+            let struct_ = &sa.structs[struct_id];
 
             if !struct_accessible_from(sa, struct_id, module_id) {
                 let msg = ErrorMessage::NotAccessible(struct_.name(sa));
@@ -615,9 +612,7 @@ where
         }
 
         TypeParamContext::Struct(struct_id) => {
-            let struct_ = &sa.structs.idx(struct_id);
-            let struct_ = struct_.read();
-
+            let struct_ = &sa.structs[struct_id];
             callback(struct_.type_params())
         }
 

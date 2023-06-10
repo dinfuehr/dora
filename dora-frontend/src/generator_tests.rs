@@ -2343,7 +2343,10 @@ fn gen_new_struct() {
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(1)),
-                &ConstPoolEntry::Struct(StructId(struct_id.0), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Struct(
+                    StructId(struct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -2367,7 +2370,7 @@ fn gen_new_struct() {
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::Struct(
-                    StructId(struct_id.0),
+                    StructId(struct_id.index().try_into().expect("overflow")),
                     BytecodeTypeArray::one(BytecodeType::TypeParam(0))
                 )
             );
@@ -2400,7 +2403,11 @@ fn gen_struct_field() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::StructField(StructId(struct_id.0), BytecodeTypeArray::empty(), 0)
+                &ConstPoolEntry::StructField(
+                    StructId(struct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty(),
+                    0
+                )
             );
         },
     );
@@ -2417,7 +2424,7 @@ fn gen_struct_field() {
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::StructField(
-                    StructId(struct_id.0),
+                    StructId(struct_id.index().try_into().expect("overflow")),
                     BytecodeTypeArray::one(BytecodeType::Int32),
                     0
                 )

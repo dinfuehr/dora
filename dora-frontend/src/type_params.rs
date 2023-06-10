@@ -124,11 +124,10 @@ fn check_enums(sa: &Sema) {
 }
 
 fn check_structs(sa: &Sema) {
-    for struct_ in sa.structs.iter() {
+    for (_struct_id, struct_) in sa.structs.iter() {
         let type_param_definition;
 
         {
-            let struct_ = struct_.read();
             let mut symtable = ModuleSymTable::new(sa, struct_.module_id);
             symtable.push_level();
 
@@ -143,7 +142,10 @@ fn check_structs(sa: &Sema) {
             symtable.pop_level();
         }
 
-        struct_.write().type_params = Some(type_param_definition);
+        struct_
+            .type_params
+            .set(type_param_definition)
+            .expect("already initialized");
     }
 }
 

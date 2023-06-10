@@ -89,7 +89,7 @@ pub struct Sema {
     pub diag: RefCell<Diagnostic>,
     pub known: KnownElements,
     pub consts: Arena<ConstDefinition>, // stores all const definitions
-    pub structs: MutableVec<StructDefinition>, // stores all struct source definitions
+    pub structs: Arena<StructDefinition>, // stores all struct source definitions
     pub classes: MutableVec<ClassDefinition>, // stores all class source definitions
     pub extensions: MutableVec<ExtensionDefinition>, // stores all extension definitions
     pub modules: MutableVec<ModuleDefinition>, // stores all module definitions
@@ -130,7 +130,7 @@ impl Sema {
             args,
             source_files: Vec::new(),
             consts: Arena::new(),
-            structs: MutableVec::new(),
+            structs: Arena::new(),
             classes: MutableVec::new(),
             extensions: MutableVec::new(),
             modules: MutableVec::new(),
@@ -269,8 +269,7 @@ impl Sema {
         let struct_id = ModuleSymTable::new(self, self.program_module_id())
             .get_struct(struct_name)
             .expect("struct not found");
-        let struct_ = self.structs.idx(struct_id);
-        let struct_ = struct_.read();
+        let struct_ = &self.structs[struct_id];
 
         let candidates = find_methods_in_struct(
             self,

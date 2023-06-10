@@ -247,9 +247,7 @@ fn internal_struct(
         .to_struct()
         .expect("struct expected");
 
-    let struct_ = sa.structs.idx(struct_id);
-    let mut struct_ = struct_.write();
-
+    let struct_ = &mut sa.structs[struct_id];
     assert!(struct_.is_internal);
     struct_.primitive_ty = ty;
     struct_.internal_resolved = true;
@@ -1780,9 +1778,9 @@ fn common_method(
         }
 
         Sym::Struct(struct_id) => {
-            let struct_ = sa.structs.idx(struct_id);
-            let struct_ = struct_.read();
-            internal_extension_method(sa, &struct_.extensions, method_name, is_static, marker)
+            let struct_ = &sa.structs[struct_id];
+            let extensions = struct_.extensions.borrow();
+            internal_extension_method(sa, &extensions, method_name, is_static, marker)
         }
         Sym::Enum(enum_id) => {
             let enum_ = &sa.enums[enum_id].read();

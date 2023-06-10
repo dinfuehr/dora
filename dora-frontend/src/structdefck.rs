@@ -6,9 +6,8 @@ use crate::{read_type_context, AllowSelf, TypeParamContext};
 use dora_parser::ast;
 
 pub fn check(sa: &Sema) {
-    for struct_ in sa.structs.iter() {
+    for (_struct_id, struct_) in sa.structs.iter() {
         let (struct_id, file_id, ast, module_id) = {
-            let struct_ = struct_.read();
             (
                 struct_.id(),
                 struct_.file_id,
@@ -42,8 +41,7 @@ impl<'x> StructCheck<'x> {
         self.symtable.push_level();
 
         {
-            let struct_ = self.sa.structs.idx(self.struct_id);
-            let struct_ = struct_.read();
+            let struct_ = &self.sa.structs[self.struct_id];
 
             for (id, name) in struct_.type_params().names() {
                 self.symtable.insert(name, Sym::TypeParam(id));
@@ -68,9 +66,8 @@ impl<'x> StructCheck<'x> {
         )
         .unwrap_or(SourceType::Error);
 
-        let struct_ = self.sa.structs.idx(self.struct_id);
-        let mut struct_ = struct_.write();
-        struct_.fields[idx].ty = ty;
+        let struct_ = &self.sa.structs[self.struct_id];
+        struct_.fields[idx].ty.set(ty).expect("already initialized");
     }
 }
 

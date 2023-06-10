@@ -21,6 +21,7 @@ use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit, ModifierList};
 use dora_parser::parser::Parser;
 use dora_parser::Span;
+use once_cell::unsync::OnceCell;
 
 pub fn parse(sa: &mut Sema) {
     let mut discoverer = ProgramParser::new(sa);
@@ -613,7 +614,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 id: StructDefinitionFieldId(idx),
                 name,
                 span: field.span,
-                ty: SourceType::Error,
+                ty: OnceCell::new(),
                 visibility: modifiers.visibility(),
             });
         }
@@ -627,7 +628,8 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             ensure_name(self.sa, &node.name),
             fields,
         );
-        let id = self.sa.structs.push(struct_);
+        let id = self.sa.structs.alloc(struct_);
+        self.sa.structs[id].id = Some(id);
 
         let sym = Sym::Struct(id);
         if let Some((name, sym)) = self.insert_optional(&node.name, sym) {

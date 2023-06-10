@@ -190,9 +190,7 @@ fn internalck(sa: &Sema) {
         }
     }
 
-    for struct_ in sa.structs.iter() {
-        let struct_ = struct_.read();
-
+    for (_struct_id, struct_) in sa.structs.iter() {
         if struct_.is_internal && !struct_.internal_resolved {
             sa.report(
                 struct_.file_id,

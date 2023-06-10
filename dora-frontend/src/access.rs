@@ -114,9 +114,7 @@ pub fn struct_accessible_from(
     struct_id: StructDefinitionId,
     module_id: ModuleDefinitionId,
 ) -> bool {
-    let struct_ = sa.structs.idx(struct_id);
-    let struct_ = struct_.read();
-
+    let struct_ = &sa.structs[struct_id];
     accessible_from(sa, struct_.module_id, struct_.visibility, module_id)
 }
 
@@ -126,9 +124,7 @@ pub fn struct_field_accessible_from(
     field_id: StructDefinitionFieldId,
     module_id: ModuleDefinitionId,
 ) -> bool {
-    let struct_ = sa.structs.idx(struct_id);
-    let struct_ = struct_.read();
-
+    let struct_ = &sa.structs[struct_id];
     let field = &struct_.fields[field_id.to_usize()];
 
     accessible_from(

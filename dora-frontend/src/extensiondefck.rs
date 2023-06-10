@@ -87,17 +87,13 @@ impl<'x> ExtensionCheck<'x> {
                     let struct_id = extension_ty
                         .primitive_struct_id(self.sa)
                         .expect("primitive expected");
-                    let struct_ = self.sa.structs.idx(struct_id);
-                    let mut struct_ = struct_.write();
-
-                    struct_.extensions.push(self.extension_id);
+                    let struct_ = &self.sa.structs[struct_id];
+                    struct_.extensions.borrow_mut().push(self.extension_id);
                 }
 
                 SourceType::Struct(struct_id, _) => {
-                    let struct_ = self.sa.structs.idx(struct_id);
-                    let mut struct_ = struct_.write();
-
-                    struct_.extensions.push(self.extension_id);
+                    let struct_ = &self.sa.structs[struct_id];
+                    struct_.extensions.borrow_mut().push(self.extension_id);
                 }
 
                 _ => {
@@ -206,10 +202,10 @@ impl<'x> ExtensionCheck<'x> {
         is_static: bool,
         struct_id: StructDefinitionId,
     ) -> bool {
-        let struct_ = self.sa.structs.idx(struct_id);
-        let struct_ = struct_.read();
+        let struct_ = &self.sa.structs[struct_id];
+        let extensions = struct_.extensions.borrow();
 
-        for &extension_id in &struct_.extensions {
+        for &extension_id in extensions.iter() {
             if !self.check_extension(f, is_static, extension_id) {
                 return false;
             }

@@ -235,12 +235,10 @@ fn path_for_type(sa: &Sema, ty: SourceType) -> String {
         let cls = cls.read();
         cls.name(sa)
     } else if let Some(struct_id) = ty.struct_id() {
-        let struct_ = sa.structs.idx(struct_id);
-        let struct_ = struct_.read();
+        let struct_ = &sa.structs[struct_id];
         struct_.name(sa)
     } else if let Some(struct_id) = ty.primitive_struct_id(sa) {
-        let struct_ = sa.structs.idx(struct_id);
-        let struct_ = struct_.read();
+        let struct_ = &sa.structs[struct_id];
         struct_.name(sa)
     } else if ty.is_tuple_or_unit() {
         unimplemented!()

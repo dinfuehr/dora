@@ -295,8 +295,7 @@ fn create_class_fields(sa: &Sema, class: &ClassDefinition) -> Vec<ClassField> {
 fn create_structs(sa: &Sema) -> Vec<StructData> {
     let mut result = Vec::new();
 
-    for struct_ in sa.structs.iter() {
-        let struct_ = struct_.read();
+    for (_struct_id, struct_) in sa.structs.iter() {
         let name = sa.interner.str(struct_.name).to_string();
 
         result.push(StructData {
@@ -333,7 +332,7 @@ fn create_struct_fields(sa: &Sema, struct_: &StructDefinition) -> Vec<StructFiel
         .fields
         .iter()
         .map(|f| StructField {
-            ty: bty_from_ty(f.ty.clone()),
+            ty: bty_from_ty(f.ty()),
             name: sa.interner.str(f.name).to_string(),
         })
         .collect()

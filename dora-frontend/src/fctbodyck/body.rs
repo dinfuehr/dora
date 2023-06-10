@@ -1999,16 +1999,14 @@ impl<'a> TypeCheck<'a> {
         }
 
         if let Some(struct_id) = object_type.struct_id() {
-            let struct_ = self.sa.structs.idx(struct_id);
-            let struct_ = struct_.read();
+            let struct_ = &self.sa.structs[struct_id];
             if let Some(&field_id) = struct_.field_names.get(&interned_method_name) {
                 let ident_type = IdentType::StructField(object_type.clone(), field_id);
                 self.analysis.map_idents.insert_or_replace(e.id, ident_type);
 
                 let field = &struct_.fields[field_id.to_usize()];
                 let struct_type_params = object_type.type_params();
-                let field_type =
-                    replace_type_param(self.sa, field.ty.clone(), &struct_type_params, None);
+                let field_type = replace_type_param(self.sa, field.ty(), &struct_type_params, None);
 
                 if !struct_field_accessible_from(self.sa, struct_id, field_id, self.module_id) {
                     let name = self.sa.interner.str(field.name).to_string();
@@ -2046,14 +2044,12 @@ impl<'a> TypeCheck<'a> {
         let is_struct_accessible = struct_accessible_from(self.sa, struct_id, self.module_id);
 
         if !is_struct_accessible {
-            let struct_ = self.sa.structs.idx(struct_id);
-            let struct_ = struct_.read();
+            let struct_ = &self.sa.structs[struct_id];
             let msg = ErrorMessage::NotAccessible(struct_.name(self.sa));
             self.sa.report(self.file_id, e.span, msg);
         }
 
-        let struct_ = self.sa.structs.idx(struct_id);
-        let struct_ = struct_.read();
+        let struct_ = &self.sa.structs[struct_id];
 
         if !is_default_accessible(self.sa, struct_.module_id, self.module_id)
             && !struct_.all_fields_are_public()
@@ -2077,12 +2073,12 @@ impl<'a> TypeCheck<'a> {
             return SourceType::Error;
         }
 
-        if !self.check_expr_call_struct_args(&*struct_, type_params.clone(), arg_types) {
+        if !check_expr_call_struct_args(self.sa, struct_, type_params.clone(), arg_types) {
             let struct_name = self.sa.interner.str(struct_.name).to_string();
             let field_types = struct_
                 .fields
                 .iter()
-                .map(|field| field.ty.name_struct(self.sa, &*struct_))
+                .map(|field| field.ty().name_struct(self.sa, &*struct_))
                 .collect::<Vec<_>>();
             let arg_types = arg_types
                 .iter()
@@ -2098,27 +2094,6 @@ impl<'a> TypeCheck<'a> {
 
         self.analysis.set_ty(e.id, ty.clone());
         ty
-    }
-
-    fn check_expr_call_struct_args(
-        &mut self,
-        struct_: &StructDefinition,
-        type_params: SourceTypeArray,
-        arg_types: &[SourceType],
-    ) -> bool {
-        if struct_.fields.len() != arg_types.len() {
-            return false;
-        }
-
-        for (def_ty, arg_ty) in struct_.fields.iter().zip(arg_types) {
-            let def_ty = replace_type_param(self.sa, def_ty.ty.clone(), &type_params, None);
-
-            if !def_ty.allows(self.sa, arg_ty.clone()) {
-                return false;
-            }
-        }
-
-        true
     }
 
     fn check_expr_call_class(
@@ -2349,8 +2324,7 @@ impl<'a> TypeCheck<'a> {
             }
 
             Some(Sym::Struct(struct_id)) => {
-                let struct_ = self.sa.structs.idx(struct_id);
-                let struct_ = struct_.read();
+                let struct_ = &self.sa.structs[struct_id];
 
                 if typeparamck::check_struct(
                     self.sa,
@@ -2940,15 +2914,14 @@ impl<'a> TypeCheck<'a> {
         let interned_name = self.sa.interner.intern(&name);
 
         if let Some(struct_id) = object_type.struct_id() {
-            let struct_ = self.sa.structs.idx(struct_id);
-            let struct_ = struct_.read();
+            let struct_ = &self.sa.structs[struct_id];
             if let Some(&field_id) = struct_.field_names.get(&interned_name) {
                 let ident_type = IdentType::StructField(object_type.clone(), field_id);
                 self.analysis.map_idents.insert_or_replace(e.id, ident_type);
 
                 let field = &struct_.fields[field_id.to_usize()];
                 let struct_type_params = object_type.type_params();
-                let fty = replace_type_param(self.sa, field.ty.clone(), &struct_type_params, None);
+                let fty = replace_type_param(self.sa, field.ty(), &struct_type_params, None);
 
                 if !struct_field_accessible_from(self.sa, struct_id, field_id, self.module_id) {
                     let name = self.sa.interner.str(field.name).to_string();
@@ -4027,4 +4000,25 @@ pub struct VarDefinition {
     pub ty: SourceType,
     pub mutable: bool,
     pub location: VarLocation,
+}
+
+fn check_expr_call_struct_args(
+    sa: &Sema,
+    struct_: &StructDefinition,
+    type_params: SourceTypeArray,
+    arg_types: &[SourceType],
+) -> bool {
+    if struct_.fields.len() != arg_types.len() {
+        return false;
+    }
+
+    for (def_ty, arg_ty) in struct_.fields.iter().zip(arg_types) {
+        let def_ty = replace_type_param(sa, def_ty.ty(), &type_params, None);
+
+        if !def_ty.allows(sa, arg_ty.clone()) {
+            return false;
+        }
+    }
+
+    true
 }

@@ -1,6 +1,9 @@
+use std::cell::RefCell;
 use std::collections::hash_map::HashMap;
-use std::convert::TryInto;
 use std::sync::Arc;
+
+use id_arena::Id;
+use once_cell::unsync::OnceCell;
 
 use crate::interner::Name;
 use crate::program_parser::ParsedModifierList;
@@ -13,32 +16,8 @@ use crate::sema::{
     Visibility,
 };
 use crate::ty::{SourceType, SourceTypeArray};
-use crate::Id;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct StructDefinitionId(pub u32);
-
-impl StructDefinitionId {
-    pub fn to_usize(self) -> usize {
-        self.0 as usize
-    }
-}
-
-impl Id for StructDefinition {
-    type IdType = StructDefinitionId;
-
-    fn id_to_usize(id: StructDefinitionId) -> usize {
-        id.0 as usize
-    }
-
-    fn usize_to_id(value: usize) -> StructDefinitionId {
-        StructDefinitionId(value.try_into().unwrap())
-    }
-
-    fn store_id(value: &mut StructDefinition, id: StructDefinitionId) {
-        value.id = Some(id);
-    }
-}
+pub type StructDefinitionId = Id<StructDefinition>;
 
 #[derive(Debug)]
 pub struct StructDefinition {
@@ -48,7 +27,7 @@ pub struct StructDefinition {
     pub file_id: SourceFileId,
     pub ast: Arc<ast::Struct>,
     pub primitive_ty: Option<SourceType>,
-    pub type_params: Option<TypeParamDefinition>,
+    pub type_params: OnceCell<TypeParamDefinition>,
     pub visibility: Visibility,
     pub is_internal: bool,
     pub internal_resolved: bool,
@@ -56,7 +35,7 @@ pub struct StructDefinition {
     pub name: Name,
     pub fields: Vec<StructDefinitionField>,
     pub field_names: HashMap<Name, StructDefinitionFieldId>,
-    pub extensions: Vec<ExtensionDefinitionId>,
+    pub extensions: RefCell<Vec<ExtensionDefinitionId>>,
 }
 
 impl StructDefinition {
@@ -91,10 +70,10 @@ impl StructDefinition {
             name,
             is_internal: modifiers.is_internal,
             internal_resolved: false,
-            type_params: None,
+            type_params: OnceCell::new(),
             fields,
             field_names,
-            extensions: Vec::new(),
+            extensions: RefCell::new(Vec::new()),
         }
     }
 
@@ -103,7 +82,7 @@ impl StructDefinition {
     }
 
     pub fn type_params(&self) -> &TypeParamDefinition {
-        self.type_params.as_ref().expect("uninitialized")
+        self.type_params.get().expect("uninitialized")
     }
 
     pub fn name(&self, sa: &Sema) -> String {
@@ -176,8 +155,14 @@ pub struct StructDefinitionField {
     pub id: StructDefinitionFieldId,
     pub span: Span,
     pub name: Name,
-    pub ty: SourceType,
+    pub ty: OnceCell<SourceType>,
     pub visibility: Visibility,
+}
+
+impl StructDefinitionField {
+    pub fn ty(&self) -> SourceType {
+        self.ty.get().expect("uninitialized").clone()
+    }
 }
 
 pub fn find_methods_in_struct(

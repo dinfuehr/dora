@@ -684,9 +684,8 @@ impl<'a> SourceTypePrinter<'a> {
                 }
             }
             SourceType::Struct(sid, type_params) => {
-                let struc = self.sa.structs.idx(sid);
-                let struc = struc.read();
-                let name = struc.name;
+                let struct_ = &self.sa.structs[sid];
+                let name = struct_.name;
                 let name = self.sa.interner.str(name).to_string();
 
                 if type_params.len() == 0 {
