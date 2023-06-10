@@ -1,7 +1,8 @@
 use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
-use crate::sema::{FctDefinition, Sema, SourceFileId};
+use crate::sema::{Sema, SourceFileId};
 use crate::sym::Sym;
+use dora_bytecode::Program;
 use dora_parser::ast;
 use dora_parser::Span;
 
@@ -117,8 +118,9 @@ pub fn check_program(sa: &mut Sema) -> bool {
 pub fn emit_ast(sa: &Sema, filter: &str) {
     for fct in sa.fcts.iter() {
         let fct = fct.read();
+        let fct_name = fct.display_name(sa);
 
-        if fct_pattern_match(sa, &*fct, filter) {
+        if fct_pattern_match(&fct_name, filter) {
             ast::dump::dump_fct(&fct.ast);
         }
     }
@@ -156,25 +158,23 @@ pub fn generate_bytecode(sa: &Sema) {
     }
 }
 
-pub fn emit_bytecode(sa: &Sema, filter: &str) {
-    for fct in sa.fcts.iter() {
-        let fct = fct.read();
-
-        if fct_pattern_match(sa, &*fct, filter) {
-            dumper::dump(sa, Some(&*fct), fct.bytecode.as_ref().unwrap());
+pub fn emit_bytecode(prog: &Program, filter: &str) {
+    for fct in prog.functions.iter() {
+        if let Some(ref bc) = fct.bytecode {
+            if fct_pattern_match(&fct.name, filter) {
+                dumper::dump(prog, fct, bc);
+            }
         }
     }
 }
 
-fn fct_pattern_match(sa: &Sema, fct: &FctDefinition, pattern: &str) -> bool {
+fn fct_pattern_match(name: &str, pattern: &str) -> bool {
     if pattern == "all" {
         return true;
     }
 
-    let fct_name = fct.display_name(sa);
-
     for part in pattern.split(',') {
-        if fct_name.contains(part) {
+        if name.contains(part) {
             return true;
         }
     }

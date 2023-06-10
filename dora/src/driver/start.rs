@@ -132,13 +132,13 @@ fn compile_into_program(args: &Args, file: String) -> Result<Program, ()> {
 
     language::generate_bytecode(&sa);
 
-    if let Some(ref filter) = args.flag_emit_bytecode {
-        language::emit_bytecode(&sa, filter);
-    }
-
     // Create a serializable data structure from bytecode and metadata.
     // Here we drop the generated AST.
     let prog = language::emit_program(sa);
+
+    if let Some(ref filter) = args.flag_emit_bytecode {
+        language::emit_bytecode(&prog, filter);
+    }
 
     Ok(prog)
 }
