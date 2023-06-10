@@ -1,5 +1,6 @@
 pub mod builder;
 pub mod data;
+pub mod dumper;
 pub mod program;
 pub mod reader;
 pub mod ty;
@@ -10,6 +11,7 @@ mod tests;
 
 pub use builder::*;
 pub use data::*;
+pub use dumper::{dump, dump_stdout};
 pub use program::{
     ClassData, ClassField, ClassId, EnumData, EnumId, EnumVariant, FunctionData, FunctionId,
     FunctionKind, GlobalData, GlobalId, ImplData, ImplId, Intrinsic, ModuleData, ModuleId,

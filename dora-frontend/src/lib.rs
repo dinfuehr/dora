@@ -2,7 +2,7 @@ use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
 use crate::sema::{Sema, SourceFileId};
 use crate::sym::Sym;
-use dora_bytecode::Program;
+use dora_bytecode::{dump_stdout, Program};
 use dora_parser::ast;
 use dora_parser::Span;
 
@@ -12,7 +12,6 @@ pub use readty::{read_type, read_type_context, read_type_unchecked, AllowSelf, T
 pub(crate) mod access;
 mod clsdefck;
 mod constdefck;
-mod dumper;
 mod enumck;
 pub mod error;
 mod extensiondefck;
@@ -162,7 +161,7 @@ pub fn emit_bytecode(prog: &Program, filter: &str) {
     for fct in prog.functions.iter() {
         if let Some(ref bc) = fct.bytecode {
             if fct_pattern_match(&fct.name, filter) {
-                dumper::dump(prog, fct, bc);
+                dump_stdout(prog, fct, bc);
             }
         }
     }

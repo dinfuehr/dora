@@ -1,172 +1,196 @@
 use std::fmt::Display;
 use std::io;
 
-use dora_bytecode::{
+use crate::{
     read, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeTypeArray, BytecodeVisitor,
     ConstPoolEntry, ConstPoolIdx, FunctionData, GlobalId, Program, Register,
 };
 
-pub fn dump(prog: &Program, fct: &FunctionData, bc: &BytecodeFunction) {
+pub fn dump_stdout(prog: &Program, fct: &FunctionData, bc: &BytecodeFunction) {
     let mut stdout = io::stdout();
-    println!("{}", fct.name);
+    dump(&mut stdout, prog, fct, bc).expect("I/O failure");
+}
+
+pub fn dump(
+    w: &mut dyn io::Write,
+    prog: &Program,
+    fct: &FunctionData,
+    bc: &BytecodeFunction,
+) -> std::io::Result<()> {
+    writeln!(w, "{}", fct.name)?;
     let mut visitor = BytecodeDumper {
         bc,
         pos: BytecodeOffset(0),
-        w: &mut stdout,
+        w,
         prog,
     };
     read(bc.code(), &mut visitor);
 
     let align = "   ";
 
-    println!();
-    println!("  Registers:");
+    writeln!(w)?;
+    writeln!(w, "  Registers:")?;
 
     for (idx, ty) in bc.registers().iter().enumerate() {
-        println!("{}{} => {:?}", align, idx, ty);
+        writeln!(w, "{}{} => {:?}", align, idx, ty)?;
     }
 
-    println!();
-    println!("  Constants:");
+    writeln!(w)?;
+    writeln!(w, "  Constants:")?;
 
     for (idx, entry) in bc.const_pool_entries().iter().enumerate() {
         match entry {
             ConstPoolEntry::String(ref value) => {
-                println!("{}{} => String \"{}\"", align, idx, value)
+                writeln!(w, "{}{} => String \"{}\"", align, idx, value)?
             }
-            ConstPoolEntry::Int32(ref value) => println!("{}{} => Int32 {}", align, idx, value),
-            ConstPoolEntry::Int64(ref value) => println!("{}{} => Int64 {}", align, idx, value),
-            ConstPoolEntry::Float32(ref value) => println!("{}{} => Float32 {}", align, idx, value),
-            ConstPoolEntry::Float64(ref value) => println!("{}{} => Float64 {}", align, idx, value),
-            ConstPoolEntry::Char(ref value) => println!("{}{} => Char {}", align, idx, value),
+            ConstPoolEntry::Int32(ref value) => writeln!(w, "{}{} => Int32 {}", align, idx, value)?,
+            ConstPoolEntry::Int64(ref value) => writeln!(w, "{}{} => Int64 {}", align, idx, value)?,
+            ConstPoolEntry::Float32(ref value) => {
+                writeln!(w, "{}{} => Float32 {}", align, idx, value)?;
+            }
+            ConstPoolEntry::Float64(ref value) => {
+                writeln!(w, "{}{} => Float64 {}", align, idx, value)?;
+            }
+            ConstPoolEntry::Char(ref value) => writeln!(w, "{}{} => Char {}", align, idx, value)?,
             ConstPoolEntry::Class(cls_id, type_params) => {
                 let cls = &prog.classes[cls_id.0 as usize];
-                println!(
+                writeln!(
+                    w,
                     "{}{} => Class {}{}",
                     align,
                     idx,
                     cls.name,
                     fmt_name(prog, &cls.name, type_params)
-                )
+                )?;
             }
             ConstPoolEntry::Struct(struct_id, type_params) => {
                 let struct_ = &prog.structs[struct_id.0 as usize];
-                println!(
+                writeln!(
+                    w,
                     "{}{} => Struct {}",
                     align,
                     idx,
                     fmt_name(prog, &struct_.name, type_params)
-                )
+                )?;
             }
             ConstPoolEntry::StructField(struct_id, type_params, field_idx) => {
                 let struct_ = &prog.structs[struct_id.0 as usize];
                 let field = &struct_.fields[*field_idx as usize];
-                println!(
+                writeln!(
+                    w,
                     "{}{} => StructField {}.{}",
                     align,
                     idx,
                     fmt_name(prog, &struct_.name, type_params),
                     field.name
-                )
+                )?;
             }
             ConstPoolEntry::Enum(enum_id, type_params) => {
                 let enum_ = &prog.enums[enum_id.0 as usize];
-                println!(
+                writeln!(
+                    w,
                     "{}{} => Enum {}",
                     align,
                     idx,
                     fmt_name(prog, &enum_.name, type_params)
-                )
+                )?;
             }
             ConstPoolEntry::EnumVariant(enum_id, type_params, variant_idx) => {
                 let enum_ = &prog.enums[enum_id.0 as usize];
                 let variant = &enum_.variants[*variant_idx as usize];
-                println!(
+                writeln!(
+                    w,
                     "{}{} => EnumVariant {}::{}",
                     align,
                     idx,
                     fmt_name(prog, &enum_.name, &type_params),
                     variant.name,
-                )
+                )?;
             }
             ConstPoolEntry::EnumElement(enum_id, type_params, variant_idx, element_idx) => {
                 let enum_ = &prog.enums[enum_id.0 as usize];
                 let variant = &enum_.variants[*variant_idx as usize];
-                println!(
+                writeln!(
+                    w,
                     "{}{} => EnumVariantElement {}::{}::{}",
                     align,
                     idx,
                     fmt_name(prog, &enum_.name, &type_params),
                     variant.name,
                     element_idx,
-                )
+                )?;
             }
             ConstPoolEntry::Field(cls_id, type_params, field_id) => {
                 let cls = &prog.classes[cls_id.0 as usize];
                 let field = &cls.fields[*field_id as usize];
-                println!(
+                writeln!(
+                    w,
                     "{}{} => Field {}.{}",
                     align,
                     idx,
                     fmt_name(prog, &cls.name, type_params),
                     field.name
-                )
+                )?;
             }
             ConstPoolEntry::Fct(fct_id, type_params) => {
                 let fct = &prog.functions[fct_id.0 as usize];
 
-                println!(
+                writeln!(
+                    w,
                     "{}{} => Fct {}",
                     align,
                     idx,
                     fmt_name(prog, &fct.name, type_params)
-                );
+                )?;
             }
             ConstPoolEntry::Generic(id, fct_id, type_params) => {
                 let fct = &prog.functions[fct_id.0 as usize];
 
-                println!(
+                writeln!(
+                    w,
                     "{}{} => TypeParam({}) Method {}",
                     align,
                     idx,
                     id,
                     fmt_name(prog, &fct.name, type_params)
-                );
+                )?;
             }
             ConstPoolEntry::Trait(trait_id, type_params, object_ty) => {
                 let trait_ = &prog.traits[trait_id.0 as usize];
-                println!(
+                writeln!(
+                    w,
                     "{}{} => Trait {} from {}",
                     align,
                     idx,
                     fmt_name(prog, &trait_.name, type_params),
                     fmt_ty(prog, object_ty),
-                )
+                )?
             }
             ConstPoolEntry::TupleElement(_tuple_id, _idx) => {
-                println!("{}{} => TupleElement {}.{}", align, idx, "subtypes", idx)
+                writeln!(w, "{}{} => TupleElement {}.{}", align, idx, "subtypes", idx)?
             }
             ConstPoolEntry::Tuple(ref subtypes) => {
-                println!("{}{} => Tuple {}", align, idx, fmt_tuple(prog, subtypes))
+                writeln!(w, "{}{} => Tuple {}", align, idx, fmt_tuple(prog, subtypes))?
             }
-            ConstPoolEntry::Lambda(ref params, ref return_type) => {
-                println!(
-                    "{}{} => Lambda {}: {}",
-                    align,
-                    idx,
-                    fmt_tuple(prog, params),
-                    fmt_ty(prog, return_type)
-                )
-            }
+            ConstPoolEntry::Lambda(ref params, ref return_type) => writeln!(
+                w,
+                "{}{} => Lambda {}: {}",
+                align,
+                idx,
+                fmt_tuple(prog, params),
+                fmt_ty(prog, return_type)
+            )?,
         }
     }
 
-    println!();
-    println!("  Locations:");
+    writeln!(w,)?;
+    writeln!(w, "  Locations:")?;
     for (bc_offset, line) in bc.locations().iter() {
-        println!("{}{} => {}", align, bc_offset.0, line);
+        writeln!(w, "{}{} => {}", align, bc_offset.0, line)?;
     }
-    println!();
+    writeln!(w,)?;
+
+    Ok(())
 }
 
 fn fmt_tuple<'a>(prog: &'a Program, types: &'a BytecodeTypeArray) -> TuplePrinter<'a> {
