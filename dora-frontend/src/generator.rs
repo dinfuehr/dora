@@ -6,8 +6,7 @@ use dora_parser::{ast, Span};
 use crate::sema::{
     emit_as_bytecode_operation, AnalysisData, CallType, ClassDefinitionId, ConstDefinitionId,
     ContextIdx, EnumDefinitionId, FctDefinition, FctDefinitionId, FieldId, GlobalDefinition,
-    GlobalDefinitionId, IdentType, Sema, SourceFileId, StructDefinitionId, TraitDefinitionId,
-    TypeParamId, VarId,
+    GlobalDefinitionId, IdentType, Sema, SourceFileId, StructDefinitionId, TypeParamId, VarId,
 };
 use crate::specialize::specialize_type;
 use crate::ty::{SourceType, SourceTypeArray};
@@ -3466,50 +3465,6 @@ pub fn bty_from_ty(ty: SourceType) -> BytecodeType {
         SourceType::Ptr => BytecodeType::Ptr,
         SourceType::This => BytecodeType::This,
         _ => panic!("SourceType {:?} cannot be converted to BytecodeType", ty),
-    }
-}
-
-pub fn ty_array_from_bty(ty: &BytecodeTypeArray) -> SourceTypeArray {
-    let mut source_subtypes = Vec::with_capacity(ty.len());
-    for subtype in ty.iter() {
-        source_subtypes.push(ty_from_bty(subtype));
-    }
-    SourceTypeArray::with(source_subtypes)
-}
-
-pub fn ty_from_bty(ty: BytecodeType) -> SourceType {
-    match ty {
-        BytecodeType::Unit => SourceType::Unit,
-        BytecodeType::Bool => SourceType::Bool,
-        BytecodeType::UInt8 => SourceType::UInt8,
-        BytecodeType::Char => SourceType::Char,
-        BytecodeType::Int32 => SourceType::Int32,
-        BytecodeType::Int64 => SourceType::Int64,
-        BytecodeType::Float32 => SourceType::Float32,
-        BytecodeType::Float64 => SourceType::Float64,
-        BytecodeType::Class(class_id, type_params) => SourceType::Class(
-            ClassDefinitionId(class_id.0 as usize),
-            ty_array_from_bty(&type_params),
-        ),
-        BytecodeType::Trait(trait_id, type_params) => SourceType::Trait(
-            TraitDefinitionId(trait_id.0),
-            ty_array_from_bty(&type_params),
-        ),
-        BytecodeType::Enum(enum_id, type_params) => {
-            SourceType::Enum(EnumDefinitionId(enum_id.0), ty_array_from_bty(&type_params))
-        }
-        BytecodeType::Struct(struct_id, type_params) => SourceType::Struct(
-            StructDefinitionId(struct_id.0),
-            ty_array_from_bty(&type_params),
-        ),
-        BytecodeType::Tuple(subtypes) => SourceType::Tuple(ty_array_from_bty(&subtypes)),
-        BytecodeType::TypeParam(idx) => SourceType::TypeParam(TypeParamId(idx as usize)),
-        BytecodeType::Lambda(params, return_type) => SourceType::Lambda(
-            ty_array_from_bty(&params),
-            Box::new(ty_from_bty(*return_type)),
-        ),
-        BytecodeType::Ptr => SourceType::Ptr,
-        BytecodeType::This => SourceType::This,
     }
 }
 
