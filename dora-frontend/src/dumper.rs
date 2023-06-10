@@ -10,16 +10,16 @@ use dora_bytecode::{
     GlobalId, Register,
 };
 
-pub fn dump(vm: &Sema, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
+pub fn dump(sa: &Sema, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
     let mut stdout = io::stdout();
     if let Some(fct) = fct {
-        println!("{}", fct.display_name(vm));
+        println!("{}", fct.display_name(sa));
     }
     let mut visitor = BytecodeDumper {
         bc,
         pos: BytecodeOffset(0),
         w: &mut stdout,
-        sa: vm,
+        sa,
     };
     read(bc.code(), &mut visitor);
 
@@ -46,126 +46,126 @@ pub fn dump(vm: &Sema, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
             ConstPoolEntry::Float64(ref value) => println!("{}{} => Float64 {}", align, idx, value),
             ConstPoolEntry::Char(ref value) => println!("{}{} => Char {}", align, idx, value),
             ConstPoolEntry::Class(cls_id, type_params) => {
-                let cls = vm.classes.idx(ClassDefinitionId(cls_id.0 as usize));
+                let cls = sa.classes.idx(ClassDefinitionId(cls_id.0 as usize));
                 let cls = cls.read();
                 let type_params = ty_array_from_bty(type_params);
                 println!(
                     "{}{} => Class {}",
                     align,
                     idx,
-                    cls.name_with_params(vm, &type_params)
+                    cls.name_with_params(sa, &type_params)
                 )
             }
             ConstPoolEntry::Struct(struct_id, type_params) => {
-                let struct_ = vm.structs.idx(StructDefinitionId(struct_id.0));
+                let struct_ = sa.structs.idx(StructDefinitionId(struct_id.0));
                 let struct_ = struct_.read();
                 let type_params = ty_array_from_bty(type_params);
                 println!(
                     "{}{} => Struct {}",
                     align,
                     idx,
-                    struct_.name_with_params(vm, &type_params)
+                    struct_.name_with_params(sa, &type_params)
                 )
             }
             ConstPoolEntry::StructField(struct_id, type_params, field_idx) => {
-                let struct_ = vm.structs.idx(StructDefinitionId(struct_id.0));
+                let struct_ = sa.structs.idx(StructDefinitionId(struct_id.0));
                 let struct_ = struct_.read();
                 let type_params = ty_array_from_bty(type_params);
                 let field = &struct_.fields[*field_idx as usize];
-                let fname = vm.interner.str(field.name);
+                let fname = sa.interner.str(field.name);
                 println!(
                     "{}{} => StructField {}.{}",
                     align,
                     idx,
-                    struct_.name_with_params(vm, &type_params),
+                    struct_.name_with_params(sa, &type_params),
                     fname
                 )
             }
             ConstPoolEntry::Enum(enum_id, type_params) => {
-                let enum_ = &vm.enums[EnumDefinitionId(enum_id.0)];
+                let enum_ = &sa.enums[EnumDefinitionId(enum_id.0)];
                 let enum_ = enum_.read();
                 let type_params = ty_array_from_bty(type_params);
                 println!(
                     "{}{} => Enum {}",
                     align,
                     idx,
-                    enum_.name_with_params(vm, &type_params)
+                    enum_.name_with_params(sa, &type_params)
                 )
             }
             ConstPoolEntry::EnumVariant(cls_id, type_params, variant_idx) => {
-                let enum_ = &vm.enums[EnumDefinitionId(cls_id.0)];
+                let enum_ = &sa.enums[EnumDefinitionId(cls_id.0)];
                 let enum_ = enum_.read();
                 let variant = &enum_.variants[*variant_idx as usize];
-                let variant_name = vm.interner.str(variant.name);
+                let variant_name = sa.interner.str(variant.name);
                 let type_params = ty_array_from_bty(type_params);
                 println!(
                     "{}{} => EnumVariant {}::{}",
                     align,
                     idx,
-                    enum_.name_with_params(vm, &type_params),
+                    enum_.name_with_params(sa, &type_params),
                     variant_name,
                 )
             }
             ConstPoolEntry::EnumElement(enum_id, type_params, variant_idx, element_idx) => {
-                let enum_ = &vm.enums[EnumDefinitionId(enum_id.0)];
+                let enum_ = &sa.enums[EnumDefinitionId(enum_id.0)];
                 let enum_ = enum_.read();
                 let type_params = ty_array_from_bty(type_params);
                 let variant = &enum_.variants[*variant_idx as usize];
-                let variant_name = vm.interner.str(variant.name);
+                let variant_name = sa.interner.str(variant.name);
                 println!(
                     "{}{} => EnumVariantElement {}::{}::{}",
                     align,
                     idx,
-                    enum_.name_with_params(vm, &type_params),
+                    enum_.name_with_params(sa, &type_params),
                     variant_name,
                     element_idx,
                 )
             }
             ConstPoolEntry::Field(cls_id, type_params, field_id) => {
-                let cls = vm.classes.idx(ClassDefinitionId(cls_id.0 as usize));
+                let cls = sa.classes.idx(ClassDefinitionId(cls_id.0 as usize));
                 let cls = cls.read();
                 let type_params = ty_array_from_bty(type_params);
                 let field = &cls.fields[*field_id as usize];
-                let fname = vm.interner.str(field.name);
+                let fname = sa.interner.str(field.name);
                 println!(
                     "{}{} => Field {}.{}",
                     align,
                     idx,
-                    cls.name_with_params(vm, &type_params),
+                    cls.name_with_params(sa, &type_params),
                     fname,
                 )
             }
             ConstPoolEntry::Fct(fct_id, type_params) => {
-                let fct = vm.fcts.idx(FctDefinitionId(fct_id.0 as usize));
+                let fct = sa.fcts.idx(FctDefinitionId(fct_id.0 as usize));
                 let fct = fct.read();
                 let type_params = ty_array_from_bty(type_params);
 
                 if type_params.len() > 0 {
                     let type_params = type_params
                         .iter()
-                        .map(|n| n.name(vm))
+                        .map(|n| n.name(sa))
                         .collect::<Vec<_>>()
                         .join(", ");
                     println!(
                         "{}{} => Fct {} with [{}]",
                         align,
                         idx,
-                        fct.display_name(vm),
+                        fct.display_name(sa),
                         type_params
                     );
                 } else {
-                    println!("{}{} => Fct {}", align, idx, fct.display_name(vm));
+                    println!("{}{} => Fct {}", align, idx, fct.display_name(sa));
                 }
             }
             ConstPoolEntry::Generic(id, fct_id, type_params) => {
-                let fct = vm.fcts.idx(FctDefinitionId(fct_id.0 as usize));
+                let fct = sa.fcts.idx(FctDefinitionId(fct_id.0 as usize));
                 let fct = fct.read();
                 let type_params = ty_array_from_bty(type_params);
 
                 if type_params.len() > 0 {
                     let type_params = type_params
                         .iter()
-                        .map(|n| n.name(vm))
+                        .map(|n| n.name(sa))
                         .collect::<Vec<_>>()
                         .join(", ");
                     println!(
@@ -173,7 +173,7 @@ pub fn dump(vm: &Sema, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
                         align,
                         idx,
                         id,
-                        fct.display_name(vm),
+                        fct.display_name(sa),
                         type_params
                     );
                 } else {
@@ -182,13 +182,13 @@ pub fn dump(vm: &Sema, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
                         align,
                         idx,
                         id,
-                        fct.display_name(vm)
+                        fct.display_name(sa)
                     );
                 }
             }
             ConstPoolEntry::Trait(trait_id, type_params, object_ty) => {
                 let trait_id = TraitDefinitionId(trait_id.0);
-                let trait_ = vm.traits.idx(trait_id);
+                let trait_ = sa.traits.idx(trait_id);
                 let trait_ = trait_.read();
                 let type_params = ty_array_from_bty(type_params);
                 let object_ty = ty_from_bty(object_ty.clone());
@@ -196,8 +196,8 @@ pub fn dump(vm: &Sema, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
                     "{}{} => Trait {} from {}",
                     align,
                     idx,
-                    trait_.name_with_params(vm, &type_params),
-                    object_ty.name(vm),
+                    trait_.name_with_params(sa, &type_params),
+                    object_ty.name(sa),
                 )
             }
             ConstPoolEntry::TupleElement(_tuple_id, _idx) => {
@@ -205,14 +205,14 @@ pub fn dump(vm: &Sema, fct: Option<&FctDefinition>, bc: &BytecodeFunction) {
             }
             ConstPoolEntry::Tuple(ref subtypes) => {
                 let source_type_array = ty_array_from_bty(subtypes);
-                let tuple_name = source_type_array.tuple_name(vm);
+                let tuple_name = source_type_array.tuple_name(sa);
                 println!("{}{} => Tuple {}", align, idx, tuple_name)
             }
             ConstPoolEntry::Lambda(ref params, ref return_type) => {
                 let params = ty_array_from_bty(params);
                 let return_type = ty_from_bty(return_type.clone());
-                let params = params.tuple_name(vm);
-                let return_type = return_type.name(vm);
+                let params = params.tuple_name(sa);
+                let return_type = return_type.name(sa);
                 println!("{}{} => Lambda {}: {}", align, idx, params, return_type)
             }
         }
