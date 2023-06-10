@@ -242,8 +242,7 @@ fn global_initializer_function_id(
 fn create_classes(sa: &Sema) -> Vec<ClassData> {
     let mut result = Vec::new();
 
-    for class in sa.classes.iter() {
-        let class = class.read();
+    for (_class_id, class) in sa.classes.iter() {
         let name = sa.interner.str(class.name).to_string();
 
         let internal_class = if class.is_array {
@@ -286,7 +285,7 @@ fn create_class_fields(sa: &Sema, class: &ClassDefinition) -> Vec<ClassField> {
         .fields
         .iter()
         .map(|f| ClassField {
-            ty: bty_from_ty(f.ty.clone()),
+            ty: bty_from_ty(f.ty()),
             name: sa.interner.str(f.name).to_string(),
         })
         .collect()

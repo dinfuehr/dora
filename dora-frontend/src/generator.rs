@@ -246,7 +246,7 @@ impl<'a> AstBytecodeGen<'a> {
         if let Some(cls_id) = self.analysis.context_cls_id {
             let context_register = self.builder.alloc_global(BytecodeType::Ptr);
             let idx = self.builder.add_const_cls_types(
-                ClassId(cls_id.0 as u32),
+                ClassId(cls_id.index().try_into().expect("overflow")),
                 bty_array_from_ty(&self.identity_type_params()),
             );
             self.builder
@@ -260,7 +260,7 @@ impl<'a> AstBytecodeGen<'a> {
                 let outer_context_reg = self.alloc_temp(BytecodeType::Ptr);
                 let lambda_cls_id = self.sa.known.classes.lambda();
                 let idx = self.builder.add_const_field_types(
-                    ClassId(lambda_cls_id.0 as u32),
+                    ClassId(lambda_cls_id.index().try_into().expect("overflow")),
                     BytecodeTypeArray::empty(),
                     0,
                 );
@@ -269,7 +269,7 @@ impl<'a> AstBytecodeGen<'a> {
 
                 // Store value in outer_context field of context object.
                 let idx = self.builder.add_const_field_types(
-                    ClassId(cls_id.0 as u32),
+                    ClassId(cls_id.index().try_into().expect("overflow")),
                     bty_array_from_ty(&self.identity_type_params()),
                     0,
                 );
@@ -1105,17 +1105,15 @@ impl<'a> AstBytecodeGen<'a> {
         let cls_id = cls_ty.cls_id().expect("class expected");
         let type_params = cls_ty.type_params();
         let field_idx = self.builder.add_const_field_types(
-            ClassId(cls_id.0 as u32),
+            ClassId(cls_id.index().try_into().expect("overflow")),
             bty_array_from_ty(&type_params),
             field_id.0 as u32,
         );
 
         let field_ty = {
-            let cls = self.sa.classes.idx(cls_id);
-            let cls = cls.read();
-
+            let cls = &self.sa.classes[cls_id];
             let field = &cls.fields[field_id.to_usize()];
-            field.ty.clone()
+            field.ty()
         };
 
         let field_ty = specialize_type(self.sa, field_ty, &type_params);
@@ -1441,7 +1439,7 @@ impl<'a> AstBytecodeGen<'a> {
             self.builder.emit_push_register(arg_reg);
         }
 
-        let cls_id = ClassId(cls_id.0 as u32);
+        let cls_id = ClassId(cls_id.index().try_into().expect("overflow"));
         let idx = self
             .builder
             .add_const_cls_types(cls_id, bty_array_from_ty(type_params));
@@ -1581,9 +1579,10 @@ impl<'a> AstBytecodeGen<'a> {
         let ty = self.sa.known.array_ty(element_ty.clone());
         let cls_id = ty.cls_id().expect("class expected");
         let type_params = ty.type_params();
-        let cls_idx = self
-            .builder
-            .add_const_cls_types(ClassId(cls_id.0 as u32), bty_array_from_ty(&type_params));
+        let cls_idx = self.builder.add_const_cls_types(
+            ClassId(cls_id.index().try_into().expect("overflow")),
+            bty_array_from_ty(&type_params),
+        );
 
         // Store length in a register
         let length_reg = self.alloc_temp(BytecodeType::Int64);
@@ -1634,9 +1633,10 @@ impl<'a> AstBytecodeGen<'a> {
                 let cls_id = ty.cls_id().expect("should be class");
                 let type_params = ty.type_params();
 
-                let idx = self
-                    .builder
-                    .add_const_cls_types(ClassId(cls_id.0 as u32), bty_array_from_ty(&type_params));
+                let idx = self.builder.add_const_cls_types(
+                    ClassId(cls_id.index().try_into().expect("overflow")),
+                    bty_array_from_ty(&type_params),
+                );
                 self.builder
                     .emit_new_object(object_reg.expect("reg missing"), idx, location);
             }
@@ -2189,9 +2189,10 @@ impl<'a> AstBytecodeGen<'a> {
         let element_ty = self.ty(expr.id);
         let cls_id = element_ty.cls_id().expect("class expected");
         let type_params = element_ty.type_params();
-        let cls_idx = self
-            .builder
-            .add_const_cls_types(ClassId(cls_id.0 as u32), bty_array_from_ty(&type_params));
+        let cls_idx = self.builder.add_const_cls_types(
+            ClassId(cls_id.index().try_into().expect("overflow")),
+            bty_array_from_ty(&type_params),
+        );
 
         let array_reg = self.ensure_register(dest, BytecodeType::Ptr);
         let length_reg = self.visit_expr(&expr.args[0], DataDest::Alloc);
@@ -2783,7 +2784,7 @@ impl<'a> AstBytecodeGen<'a> {
         let cls_id = cls_ty.cls_id().expect("class expected");
         let type_params = cls_ty.type_params();
         let field_idx = self.builder.add_const_field_types(
-            ClassId(cls_id.0 as u32),
+            ClassId(cls_id.index().try_into().expect("overflow")),
             bty_array_from_ty(&type_params),
             field_id.0 as u32,
         );
@@ -2812,7 +2813,7 @@ impl<'a> AstBytecodeGen<'a> {
         let outer_context_reg = self.alloc_temp(BytecodeType::Ptr);
         let lambda_cls_id = self.sa.known.classes.lambda();
         let idx = self.builder.add_const_field_types(
-            ClassId(lambda_cls_id.0 as u32),
+            ClassId(lambda_cls_id.index().try_into().expect("overflow")),
             BytecodeTypeArray::empty(),
             0,
         );
@@ -2832,7 +2833,7 @@ impl<'a> AstBytecodeGen<'a> {
                 .context_cls_id;
 
             let idx = self.builder.add_const_field_types(
-                ClassId(outer_cls_id.0 as u32),
+                ClassId(outer_cls_id.index().try_into().expect("overflow")),
                 bty_array_from_ty(&self.identity_type_params()),
                 0,
             );
@@ -2859,7 +2860,13 @@ impl<'a> AstBytecodeGen<'a> {
         let field_id =
             field_id_from_context_idx(context_idx, outer_context_info.has_outer_context_slot);
         let idx = self.builder.add_const_field_types(
-            ClassId(outer_context_info.context_cls_id.0 as u32),
+            ClassId(
+                outer_context_info
+                    .context_cls_id
+                    .index()
+                    .try_into()
+                    .expect("overflow"),
+            ),
             bty_array_from_ty(&self.identity_type_params()),
             field_id.0 as u32,
         );
@@ -2956,7 +2963,7 @@ impl<'a> AstBytecodeGen<'a> {
         let outer_context_reg = self.alloc_temp(BytecodeType::Ptr);
         let lambda_cls_id = self.sa.known.classes.lambda();
         let idx = self.builder.add_const_field_types(
-            ClassId(lambda_cls_id.0 as u32),
+            ClassId(lambda_cls_id.index().try_into().expect("overflow")),
             BytecodeTypeArray::empty(),
             0,
         );
@@ -2975,7 +2982,7 @@ impl<'a> AstBytecodeGen<'a> {
                 .expect("uninitialized context class id")
                 .context_cls_id;
             let idx = self.builder.add_const_field_types(
-                ClassId(outer_cls_id.0 as u32),
+                ClassId(outer_cls_id.index().try_into().expect("overflow")),
                 bty_array_from_ty(&self.identity_type_params()),
                 0,
             );
@@ -2995,18 +3002,16 @@ impl<'a> AstBytecodeGen<'a> {
             .clone();
         let outer_cls_id = outer_context_info.context_cls_id;
 
-        let outer_cls = self.sa.classes.idx(outer_cls_id);
-        let outer_cls = outer_cls.read();
-
+        let outer_cls = &self.sa.classes[outer_cls_id];
         let field_id =
             field_id_from_context_idx(context_idx, outer_context_info.has_outer_context_slot);
         let field = &outer_cls.fields[field_id];
 
-        let ty: BytecodeType = register_bty_from_ty(field.ty.clone());
+        let ty: BytecodeType = register_bty_from_ty(field.ty());
         let value_reg = self.ensure_register(dest, ty);
 
         let idx = self.builder.add_const_field_types(
-            ClassId(outer_cls_id.0 as u32),
+            ClassId(outer_cls_id.index().try_into().expect("overflow")),
             bty_array_from_ty(&self.identity_type_params()),
             field_id.0 as u32,
         );
@@ -3145,7 +3150,7 @@ impl<'a> AstBytecodeGen<'a> {
         let field_id =
             field_id_from_context_idx(context_idx, self.analysis.context_has_outer_context_slot());
         let field_idx = self.builder.add_const_field_types(
-            ClassId(cls_id.0 as u32),
+            ClassId(cls_id.index().try_into().expect("overflow")),
             bty_array_from_ty(&self.identity_type_params()),
             field_id.0 as u32,
         );
@@ -3160,7 +3165,7 @@ impl<'a> AstBytecodeGen<'a> {
         let field_id =
             field_id_from_context_idx(context_idx, self.analysis.context_has_outer_context_slot());
         let field_idx = self.builder.add_const_field_types(
-            ClassId(cls_id.0 as u32),
+            ClassId(cls_id.index().try_into().expect("overflow")),
             bty_array_from_ty(&self.identity_type_params()),
             field_id.0 as u32,
         );
@@ -3443,7 +3448,7 @@ pub fn bty_from_ty(ty: SourceType) -> BytecodeType {
         SourceType::Float32 => BytecodeType::Float32,
         SourceType::Float64 => BytecodeType::Float64,
         SourceType::Class(class_id, type_params) => BytecodeType::Class(
-            ClassId(class_id.0.try_into().expect("overflow")),
+            ClassId(class_id.index().try_into().expect("overflow")),
             bty_array_from_ty(&type_params),
         ),
         SourceType::Trait(trait_id, type_params) => {

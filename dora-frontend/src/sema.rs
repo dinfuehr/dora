@@ -90,7 +90,7 @@ pub struct Sema {
     pub known: KnownElements,
     pub consts: Arena<ConstDefinition>, // stores all const definitions
     pub structs: Arena<StructDefinition>, // stores all struct source definitions
-    pub classes: MutableVec<ClassDefinition>, // stores all class source definitions
+    pub classes: Arena<ClassDefinition>, // stores all class source definitions
     pub extensions: MutableVec<ExtensionDefinition>, // stores all extension definitions
     pub modules: MutableVec<ModuleDefinition>, // stores all module definitions
     pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
@@ -131,7 +131,7 @@ impl Sema {
             source_files: Vec::new(),
             consts: Arena::new(),
             structs: Arena::new(),
-            classes: MutableVec::new(),
+            classes: Arena::new(),
             extensions: MutableVec::new(),
             modules: MutableVec::new(),
             enums: MutableVec::new(),
@@ -244,8 +244,7 @@ impl Sema {
         let cls_id = ModuleSymTable::new(self, self.program_module_id())
             .get_class(class_name)
             .expect("class not found");
-        let cls = self.classes.idx(cls_id);
-        let cls = cls.read();
+        let cls = &self.classes[cls_id];
 
         let candidates =
             find_methods_in_class(self, cls.ty(), cls.type_params(), function_name, is_static);
@@ -298,8 +297,7 @@ impl Sema {
         let cls_id = ModuleSymTable::new(self, self.program_module_id())
             .get_class(class_name)
             .expect("class not found");
-        let cls = self.classes.idx(cls_id);
-        let cls = cls.read();
+        let cls = &self.classes[cls_id];
         let field_id = cls.field_by_name(field_name);
 
         (cls_id, field_id)

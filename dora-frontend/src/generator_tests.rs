@@ -122,7 +122,7 @@ fn gen_load_field_uint8() {
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::Field(
-                    ClassId(cls.0 as u32),
+                    ClassId(cls.index().try_into().expect("overflow")),
                     BytecodeTypeArray::empty(),
                     field.0 as u32
                 )
@@ -149,7 +149,7 @@ fn gen_store_field_uint8() {
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::Field(
-                    ClassId(cls.0 as u32),
+                    ClassId(cls.index().try_into().expect("overflow")),
                     BytecodeTypeArray::empty(),
                     field.0 as u32
                 )
@@ -2574,7 +2574,10 @@ fn gen_new_object() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Class(ClassId(cls_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Class(
+                    ClassId(cls_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -2597,7 +2600,10 @@ fn gen_new_object_initialized() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Class(ClassId(cls_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Class(
+                    ClassId(cls_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -2635,7 +2641,7 @@ fn gen_new_array() {
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::Class(
-                    ClassId(cls_id.0 as u32),
+                    ClassId(cls_id.index().try_into().expect("overflow")),
                     BytecodeTypeArray::one(BytecodeType::Int32)
                 )
             );
@@ -2935,7 +2941,10 @@ fn gen_new_object_with_multiple_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(3)),
-                &ConstPoolEntry::Class(ClassId(cls_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Class(
+                    ClassId(cls_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );

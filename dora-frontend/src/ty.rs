@@ -667,8 +667,7 @@ impl<'a> SourceTypePrinter<'a> {
             SourceType::Ptr => panic!("type Ptr only for internal use."),
             SourceType::This => "Self".into(),
             SourceType::Class(id, type_params) => {
-                let cls = self.sa.classes.idx(id);
-                let cls = cls.read();
+                let cls = &self.sa.classes[id];
                 let base = self.sa.interner.str(cls.name);
 
                 if type_params.len() == 0 {

@@ -98,9 +98,8 @@ impl<'x> ExtensionCheck<'x> {
 
                 _ => {
                     let cls_id = extension_ty.cls_id().unwrap();
-                    let cls = self.sa.classes.idx(cls_id);
-                    let mut cls = cls.write();
-                    cls.extensions.push(self.extension_id);
+                    let cls = &self.sa.classes[cls_id];
+                    cls.extensions.borrow_mut().push(self.extension_id);
                 }
             }
 
@@ -216,10 +215,10 @@ impl<'x> ExtensionCheck<'x> {
 
     fn check_in_class(&self, f: &ast::Function, is_static: bool) -> bool {
         let cls_id = self.extension_ty.cls_id().unwrap();
-        let cls = self.sa.classes.idx(cls_id);
-        let cls = cls.read();
+        let cls = &self.sa.classes[cls_id];
+        let extensions = cls.extensions.borrow();
 
-        for &extension_id in &cls.extensions {
+        for &extension_id in extensions.iter() {
             if !self.check_extension(f, is_static, extension_id) {
                 return false;
             }

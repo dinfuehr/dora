@@ -69,11 +69,10 @@ fn check_impls(sa: &Sema) {
 }
 
 fn check_classes(sa: &Sema) {
-    for cls in sa.classes.iter() {
+    for (cls_id, cls) in sa.classes.iter() {
         let type_param_definition;
 
         {
-            let cls = cls.read();
             let mut symtable = ModuleSymTable::new(sa, cls.module_id);
             symtable.push_level();
 
@@ -89,13 +88,15 @@ fn check_classes(sa: &Sema) {
         }
 
         let number_type_params = type_param_definition.len();
-        cls.write().type_params = Some(type_param_definition);
-
-        let cls_id = cls.read().id();
-        cls.write().ty = Some(SourceType::Class(
-            cls_id,
-            build_type_params(number_type_params),
-        ));
+        cls.type_params
+            .set(type_param_definition)
+            .expect("already initialized");
+        cls.ty
+            .set(SourceType::Class(
+                cls_id,
+                build_type_params(number_type_params),
+            ))
+            .expect("already initialized");
     }
 }
 

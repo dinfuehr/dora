@@ -200,9 +200,7 @@ fn internalck(sa: &Sema) {
         }
     }
 
-    for cls in sa.classes.iter() {
-        let cls = cls.read();
-
+    for (_cls_id, cls) in sa.classes.iter() {
         if cls.is_internal && !cls.internal_resolved {
             sa.report(cls.file_id(), cls.span(), ErrorMessage::UnresolvedInternal);
         }

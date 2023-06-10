@@ -4,6 +4,7 @@ use std::str::Chars;
 use std::sync::Arc;
 use std::{f32, f64};
 
+use once_cell::unsync::OnceCell;
 use parking_lot::RwLock;
 
 use crate::access::{
@@ -185,7 +186,7 @@ impl<'a> TypeCheck<'a> {
             fields.push(Field {
                 id: FieldId(0),
                 name,
-                ty: SourceType::Ptr,
+                ty: OnceCell::with_value(SourceType::Ptr),
                 mutable: true,
                 visibility: Visibility::Module,
             });
@@ -214,7 +215,7 @@ impl<'a> TypeCheck<'a> {
             fields.push(Field {
                 id,
                 name: var.name,
-                ty: var.ty.clone(),
+                ty: OnceCell::with_value(var.ty.clone()),
                 mutable: true,
                 visibility: Visibility::Module,
             });
@@ -222,7 +223,7 @@ impl<'a> TypeCheck<'a> {
 
         let name = self.sa.interner.intern("$Context");
 
-        let mut class = ClassDefinition::new_without_source(
+        let class = ClassDefinition::new_without_source(
             self.package_id,
             self.module_id,
             Some(self.file_id),
@@ -231,8 +232,12 @@ impl<'a> TypeCheck<'a> {
             Visibility::Public,
             fields,
         );
-        class.type_params = Some(self.type_param_defs.clone());
-        let class_id = self.sa.classes.push(class);
+        class
+            .type_params
+            .set(self.type_param_defs.clone())
+            .expect("already initialized");
+        let class_id = self.sa.classes.alloc(class);
+        self.sa.classes[class_id].id = Some(class_id);
         self.analysis.context_cls_id = Some(class_id);
         self.analysis.context_has_outer_context_slot = Some(needs_outer_context_slot);
         let mut context_info = self
@@ -1131,13 +1136,12 @@ impl<'a> TypeCheck<'a> {
                     .map_idents
                     .insert_or_replace(e.lhs.id(), ident_type);
 
-                let cls = self.sa.classes.idx(cls_ty.cls_id().expect("no class"));
-                let cls = cls.read();
+                let cls = &self.sa.classes[cls_ty.cls_id().expect("no class")];
                 let field = &cls.fields[field_id];
 
                 let class_type_params = cls_ty.type_params();
 
-                let fty = replace_type_param(self.sa, field.ty.clone(), &class_type_params, None);
+                let fty = replace_type_param(self.sa, field.ty(), &class_type_params, None);
 
                 if !e.initializer && !field.mutable {
                     self.sa
@@ -1986,8 +1990,7 @@ impl<'a> TypeCheck<'a> {
             let cls_id = object_type.cls_id().expect("class expected");
 
             if !class_field_accessible_from(self.sa, cls_id, field_id, self.module_id) {
-                let cls = self.sa.classes.idx(cls_id);
-                let cls = cls.read();
+                let cls = &self.sa.classes[cls_id];
                 let field = &cls.fields[field_id];
 
                 let name = self.sa.interner.str(field.name).to_string();
@@ -2107,8 +2110,7 @@ impl<'a> TypeCheck<'a> {
         let is_class_accessible = class_accessible_from(self.sa, cls_id, self.module_id);
 
         if !is_class_accessible {
-            let cls = self.sa.classes.idx(cls_id);
-            let cls = cls.read();
+            let cls = &self.sa.classes[cls_id];
             let msg = ErrorMessage::NotAccessible(cls.name(self.sa));
             self.sa.report(self.file_id, e.span, msg);
         }
@@ -2129,9 +2131,7 @@ impl<'a> TypeCheck<'a> {
             return SourceType::Error;
         };
 
-        let cls = self.sa.classes.idx(cls_id);
-        let cls = cls.read();
-
+        let cls = &self.sa.classes[cls_id];
         let cls_ty = self.sa.cls_with_type_list(cls_id, type_params.clone());
 
         if !is_default_accessible(self.sa, cls.module_id, self.module_id)
@@ -2142,12 +2142,12 @@ impl<'a> TypeCheck<'a> {
             self.sa.report(self.file_id, e.span, msg);
         }
 
-        if !self.check_expr_call_class_args(&*cls, type_params.clone(), arg_types) {
+        if !check_expr_call_class_args(self.sa, cls, type_params.clone(), arg_types) {
             let class_name = cls.name(self.sa);
             let field_types = cls
                 .fields
                 .iter()
-                .map(|field| field.ty.name_cls(self.sa, &*cls))
+                .map(|field| field.ty().name_cls(self.sa, &*cls))
                 .collect::<Vec<_>>();
             let arg_types = arg_types
                 .iter()
@@ -2163,27 +2163,6 @@ impl<'a> TypeCheck<'a> {
 
         self.analysis.set_ty(e.id, cls_ty.clone());
         cls_ty
-    }
-
-    fn check_expr_call_class_args(
-        &mut self,
-        cls: &ClassDefinition,
-        type_params: SourceTypeArray,
-        arg_types: &[SourceType],
-    ) -> bool {
-        if cls.fields.len() != arg_types.len() {
-            return false;
-        }
-
-        for (def_ty, arg_ty) in cls.fields.iter().zip(arg_types) {
-            let def_ty = replace_type_param(self.sa, def_ty.ty.clone(), &type_params, None);
-
-            if !def_ty.allows(self.sa, arg_ty.clone()) {
-                return false;
-            }
-        }
-
-        true
     }
 
     fn check_expr_call_generic(
@@ -2942,12 +2921,10 @@ impl<'a> TypeCheck<'a> {
                 self.analysis.map_idents.insert_or_replace(e.id, ident_type);
 
                 let cls_id = cls_ty.cls_id().expect("no class");
-                let cls = self.sa.classes.idx(cls_id);
-                let cls = cls.read();
-
+                let cls = &self.sa.classes[cls_id];
                 let field = &cls.fields[field_id];
                 let class_type_params = cls_ty.type_params();
-                let fty = replace_type_param(self.sa, field.ty.clone(), &class_type_params, None);
+                let fty = replace_type_param(self.sa, field.ty(), &class_type_params, None);
 
                 if !class_field_accessible_from(self.sa, cls_id, field_id, self.module_id) {
                     let name = self.sa.interner.str(field.name).to_string();
@@ -4013,6 +3990,27 @@ fn check_expr_call_struct_args(
     }
 
     for (def_ty, arg_ty) in struct_.fields.iter().zip(arg_types) {
+        let def_ty = replace_type_param(sa, def_ty.ty(), &type_params, None);
+
+        if !def_ty.allows(sa, arg_ty.clone()) {
+            return false;
+        }
+    }
+
+    true
+}
+
+fn check_expr_call_class_args(
+    sa: &Sema,
+    cls: &ClassDefinition,
+    type_params: SourceTypeArray,
+    arg_types: &[SourceType],
+) -> bool {
+    if cls.fields.len() != arg_types.len() {
+        return false;
+    }
+
+    for (def_ty, arg_ty) in cls.fields.iter().zip(arg_types) {
         let def_ty = replace_type_param(sa, def_ty.ty(), &type_params, None);
 
         if !def_ty.allows(sa, arg_ty.clone()) {

@@ -6,9 +6,8 @@ use crate::{read_type_context, AllowSelf, TypeParamContext};
 use dora_parser::ast;
 
 pub fn check(sa: &Sema) {
-    for cls in sa.classes.iter() {
+    for (_cls_id, cls) in sa.classes.iter() {
         let (cls_id, file_id, ast, module_id) = {
-            let cls = cls.read();
             (
                 cls.id(),
                 cls.file_id(),
@@ -42,8 +41,7 @@ impl<'x> ClsDefCheck<'x> {
         self.sym.push_level();
 
         {
-            let cls = self.sa.classes.idx(self.cls_id);
-            let cls = cls.read();
+            let cls = &self.sa.classes[self.cls_id];
 
             for (id, name) in cls.type_params().names() {
                 self.sym.insert(name, Sym::TypeParam(id));
@@ -68,10 +66,8 @@ impl<'x> ClsDefCheck<'x> {
         )
         .unwrap_or(SourceType::Error);
 
-        let cls = self.sa.classes.idx(self.cls_id);
-        let mut cls = cls.write();
-
-        cls.fields[idx].ty = ty;
+        let cls = &self.sa.classes[self.cls_id];
+        cls.fields[idx].ty.set(ty).expect("already initialized");
     }
 }
 

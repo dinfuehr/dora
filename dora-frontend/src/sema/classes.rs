@@ -1,5 +1,9 @@
+use std::cell::RefCell;
 use std::ops::{Index, IndexMut};
 use std::sync::Arc;
+
+use id_arena::Id;
+use once_cell::unsync::OnceCell;
 
 use crate::interner::Name;
 use crate::program_parser::ParsedModifierList;
@@ -12,36 +16,8 @@ use crate::sema::{
 };
 use crate::specialize::replace_type_param;
 use crate::ty::{SourceType, SourceTypeArray};
-use crate::Id;
 
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub struct ClassDefinitionId(pub usize);
-
-impl ClassDefinitionId {
-    pub fn max() -> ClassDefinitionId {
-        ClassDefinitionId(usize::max_value())
-    }
-
-    pub fn to_usize(self) -> usize {
-        self.0
-    }
-}
-
-impl Id for ClassDefinition {
-    type IdType = ClassDefinitionId;
-
-    fn id_to_usize(id: ClassDefinitionId) -> usize {
-        id.0
-    }
-
-    fn usize_to_id(value: usize) -> ClassDefinitionId {
-        ClassDefinitionId(value)
-    }
-
-    fn store_id(value: &mut ClassDefinition, id: ClassDefinitionId) {
-        value.id = Some(id);
-    }
-}
+pub type ClassDefinitionId = Id<ClassDefinition>;
 
 #[derive(Debug)]
 pub struct ClassDefinition {
@@ -52,16 +28,16 @@ pub struct ClassDefinition {
     pub ast: Option<Arc<ast::Class>>,
     pub span: Option<Span>,
     pub name: Name,
-    pub ty: Option<SourceType>,
+    pub ty: OnceCell<SourceType>,
     pub is_internal: bool,
     pub internal_resolved: bool,
     pub visibility: Visibility,
 
     pub fields: Vec<Field>,
 
-    pub extensions: Vec<ExtensionDefinitionId>,
+    pub extensions: RefCell<Vec<ExtensionDefinitionId>>,
 
-    pub type_params: Option<TypeParamDefinition>,
+    pub type_params: OnceCell<TypeParamDefinition>,
 
     // true if this class is the generic Array class
     pub is_array: bool,
@@ -86,16 +62,16 @@ impl ClassDefinition {
             ast: Some(ast.clone()),
             span: Some(ast.span),
             name,
-            ty: None,
+            ty: OnceCell::new(),
             is_internal: modifiers.is_internal,
             internal_resolved: false,
             visibility: modifiers.visibility(),
 
             fields,
 
-            extensions: Vec::new(),
+            extensions: RefCell::new(Vec::new()),
 
-            type_params: None,
+            type_params: OnceCell::new(),
 
             is_array: false,
             is_str: false,
@@ -119,16 +95,16 @@ impl ClassDefinition {
             ast: None,
             span,
             name,
-            ty: None,
+            ty: OnceCell::new(),
             is_internal: false,
             internal_resolved: false,
             visibility,
 
             fields,
 
-            extensions: Vec::new(),
+            extensions: RefCell::new(Vec::new()),
 
-            type_params: None,
+            type_params: OnceCell::new(),
 
             is_array: false,
             is_str: false,
@@ -152,15 +128,15 @@ impl ClassDefinition {
     }
 
     pub fn type_params(&self) -> &TypeParamDefinition {
-        self.type_params.as_ref().expect("uninitialized")
+        self.type_params.get().expect("uninitialized")
     }
 
     pub fn type_params_mut(&mut self) -> &mut TypeParamDefinition {
-        self.type_params.as_mut().expect("uninitialized")
+        self.type_params.get_mut().expect("uninitialized")
     }
 
     pub fn ty(&self) -> SourceType {
-        self.ty.clone().expect("not initialized")
+        self.ty.get().expect("not initialized").clone()
     }
 
     pub fn field_by_name(&self, name: Name) -> FieldId {
@@ -228,9 +204,15 @@ impl From<usize> for FieldId {
 pub struct Field {
     pub id: FieldId,
     pub name: Name,
-    pub ty: SourceType,
+    pub ty: OnceCell<SourceType>,
     pub mutable: bool,
     pub visibility: Visibility,
+}
+
+impl Field {
+    pub fn ty(&self) -> SourceType {
+        self.ty.get().expect("uninitalized").clone()
+    }
 }
 
 impl Index<FieldId> for Vec<Field> {
@@ -257,8 +239,7 @@ pub fn find_field_in_class(
     }
 
     let cls_id = class.cls_id().expect("no class");
-    let cls = sa.classes.idx(cls_id);
-    let cls = cls.read();
+    let cls = &sa.classes[cls_id];
 
     let type_list = class.type_params();
 
@@ -267,7 +248,7 @@ pub fn find_field_in_class(
             return Some((
                 class,
                 field.id,
-                replace_type_param(sa, field.ty.clone(), &type_list, None),
+                replace_type_param(sa, field.ty(), &type_list, None),
             ));
         }
     }

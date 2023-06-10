@@ -38,9 +38,7 @@ pub fn class_accessible_from(
     cls_id: ClassDefinitionId,
     module_id: ModuleDefinitionId,
 ) -> bool {
-    let cls = sa.classes.idx(cls_id);
-    let cls = cls.read();
-
+    let cls = &sa.classes[cls_id];
     accessible_from(sa, cls.module_id, cls.visibility, module_id)
 }
 
@@ -50,9 +48,7 @@ pub fn class_field_accessible_from(
     field_id: FieldId,
     module_id: ModuleDefinitionId,
 ) -> bool {
-    let cls = sa.classes.idx(cls_id);
-    let cls = cls.read();
-
+    let cls = &sa.classes[cls_id];
     let field = &cls.fields[field_id];
 
     accessible_from(

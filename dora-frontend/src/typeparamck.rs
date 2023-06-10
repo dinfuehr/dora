@@ -59,8 +59,7 @@ pub fn check_class(
     type_params: &SourceTypeArray,
     error: ErrorReporting,
 ) -> bool {
-    let cls = sa.classes.idx(cls_id);
-    let cls = cls.read();
+    let cls = &sa.classes[cls_id];
 
     let checker = TypeParamCheck {
         sa,

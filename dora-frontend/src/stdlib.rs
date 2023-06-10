@@ -1,3 +1,5 @@
+use once_cell::unsync::OnceCell;
+
 use crate::sema::{
     ClassDefinition, ClassDefinitionId, EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId,
     Field, FieldId, ModuleDefinition, ModuleDefinitionId, Sema, StructDefinitionId,
@@ -64,14 +66,12 @@ pub fn resolve_internal_classes(sa: &mut Sema) {
     sa.known.classes.atomic_int32 = Some(find_class(sa, stdlib_id, "thread::AtomicInt32"));
     sa.known.classes.atomic_int64 = Some(find_class(sa, stdlib_id, "thread::AtomicInt64"));
 
-    let cls = sa.classes.idx(sa.known.classes.string());
-    let mut cls = cls.write();
+    let cls = &mut sa.classes[sa.known.classes.string()];
     cls.is_str = true;
 
     sa.known.classes.array = Some(internal_class(sa, stdlib_id, "collections::Array"));
 
-    let cls = sa.classes.idx(sa.known.classes.array());
-    let mut cls = cls.write();
+    let cls = &mut sa.classes[sa.known.classes.array()];
     cls.is_array = true;
 
     sa.known.classes.stacktrace = Some(find_class(sa, stdlib_id, "Stacktrace"));
@@ -201,12 +201,12 @@ pub fn create_lambda_class(sa: &mut Sema) {
     let fields = vec![Field {
         id: FieldId(0),
         name: context_name,
-        ty: SourceType::Ptr,
+        ty: OnceCell::with_value(SourceType::Ptr),
         mutable: false,
         visibility: Visibility::Public,
     }];
 
-    let mut class = ClassDefinition::new_without_source(
+    let class = ClassDefinition::new_without_source(
         sa.stdlib_package_id(),
         sa.stdlib_module_id(),
         None,
@@ -215,8 +215,12 @@ pub fn create_lambda_class(sa: &mut Sema) {
         Visibility::Public,
         fields,
     );
-    class.type_params = Some(TypeParamDefinition::new());
-    let class_id = sa.classes.push(class);
+    class
+        .type_params
+        .set(TypeParamDefinition::new())
+        .expect("already initialized");
+    let class_id = sa.classes.alloc(class);
+    sa.classes[class_id].id = Some(class_id);
     sa.known.classes.lambda = Some(class_id);
 }
 
@@ -226,11 +230,10 @@ fn find_class(sa: &Sema, module_id: ModuleDefinitionId, name: &str) -> ClassDefi
         .expect("class expected")
 }
 
-fn internal_class(sa: &Sema, module_id: ModuleDefinitionId, name: &str) -> ClassDefinitionId {
+fn internal_class(sa: &mut Sema, module_id: ModuleDefinitionId, name: &str) -> ClassDefinitionId {
     let cls_id = find_class(sa, module_id, name);
 
-    let cls = sa.classes.idx(cls_id);
-    let mut cls = cls.write();
+    let cls = &mut sa.classes[cls_id];
     assert!(cls.is_internal);
     cls.internal_resolved = true;
 
@@ -1625,11 +1628,11 @@ fn find_class_method(
         .to_class()
         .expect("class not found");
 
-    let cls = sa.classes.idx(cls_id);
-    let cls = cls.read();
+    let cls = &sa.classes[cls_id];
+    let extensions = cls.extensions.borrow();
     let intern_name = sa.interner.intern(name);
 
-    for &extension_id in &cls.extensions {
+    for &extension_id in extensions.iter() {
         let extension = sa.extensions.idx(extension_id);
         let extension = extension.read();
 
@@ -1771,10 +1774,9 @@ fn common_method(
 
     match sym {
         Sym::Class(cls_id) => {
-            let cls = sa.classes.idx(cls_id);
-            let cls = cls.read();
-
-            internal_extension_method(sa, &cls.extensions, method_name, is_static, marker)
+            let cls = &sa.classes[cls_id];
+            let extensions = cls.extensions.borrow();
+            internal_extension_method(sa, &extensions, method_name, is_static, marker)
         }
 
         Sym::Struct(struct_id) => {

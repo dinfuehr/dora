@@ -295,8 +295,7 @@ fn verify_type_basic(
         SourceType::TypeParam(_) => {}
 
         SourceType::Class(cls_id, type_params) => {
-            let cls = sa.classes.idx(cls_id);
-            let cls = cls.read();
+            let cls = &sa.classes[cls_id];
 
             if !class_accessible_from(sa, cls_id, module_id) {
                 let msg = ErrorMessage::NotAccessible(cls.name(sa));
@@ -598,9 +597,7 @@ where
 {
     match ctxt {
         TypeParamContext::Class(cls_id) => {
-            let cls = sa.classes.idx(cls_id);
-            let cls = cls.read();
-
+            let cls = &sa.classes[cls_id];
             callback(cls.type_params())
         }
 

@@ -15,7 +15,6 @@ use crate::sema::{
     TraitDefinitionId, UseDefinition, Visibility,
 };
 use crate::sym::Sym;
-use crate::ty::SourceType;
 use crate::STDLIB;
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit, ModifierList};
@@ -561,7 +560,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             fields.push(Field {
                 id: FieldId(idx),
                 name,
-                ty: SourceType::Error,
+                ty: OnceCell::new(),
                 mutable: field.mutable,
                 visibility: modifiers.visibility(),
             });
@@ -576,7 +575,8 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             ensure_name(self.sa, &node.name),
             fields,
         );
-        let class_id = self.sa.classes.push(class);
+        let class_id = self.sa.classes.alloc(class);
+        self.sa.classes[class_id].id = Some(class_id);
 
         let sym = Sym::Class(class_id);
         if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
