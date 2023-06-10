@@ -48,7 +48,7 @@ pub use utils::{GrowableVec, Id, MutableVec};
 
 macro_rules! return_on_error {
     ($vm: ident) => {{
-        if $vm.diag.lock().has_errors() {
+        if $vm.diag.borrow().has_errors() {
             return false;
         }
     }};
@@ -253,7 +253,7 @@ pub mod tests {
 
     pub fn ok(code: &'static str) {
         test::check(code, |vm| {
-            let diag = vm.diag.lock();
+            let diag = vm.diag.borrow();
             let errors = diag.errors();
 
             for e in errors {
@@ -271,7 +271,7 @@ pub mod tests {
         F: FnOnce(&Sema) -> R,
     {
         test::check(code, |vm| {
-            let diag = vm.diag.lock();
+            let diag = vm.diag.borrow();
             let errors = diag.errors();
 
             for e in errors {
@@ -288,7 +288,7 @@ pub mod tests {
 
     pub fn err(code: &'static str, loc: (u32, u32), msg: ErrorMessage) {
         test::check(code, |vm| {
-            let diag = vm.diag.lock();
+            let diag = vm.diag.borrow();
             let errors = diag.errors();
 
             let error_loc = if errors.len() == 1 {
@@ -321,7 +321,7 @@ pub mod tests {
 
     pub fn errors(code: &'static str, vec: &[((u32, u32), ErrorMessage)]) {
         test::check(code, |vm| {
-            let diag = vm.diag.lock();
+            let diag = vm.diag.borrow();
             let errors = diag.errors();
 
             println!("errors = {:?}", errors);

@@ -17,9 +17,7 @@ pub fn check(sa: &mut Sema) {
         idx += 1;
     }
 
-    for const_ in sa.consts.iter() {
-        let const_ = const_.read();
-
+    for (_const_id, const_) in sa.consts.iter() {
         let (_, value) = {
             let mut constck = ConstCheck {
                 sa,

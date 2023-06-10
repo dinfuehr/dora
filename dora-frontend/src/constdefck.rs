@@ -6,9 +6,8 @@ use crate::{read_type_context, AllowSelf, TypeParamContext};
 use dora_parser::ast;
 
 pub fn check(sa: &Sema) {
-    for const_ in sa.consts.iter() {
+    for (_const_id, const_) in sa.consts.iter() {
         let (const_id, file_id, ast, module_id) = {
-            let const_ = const_.read();
             (
                 const_.id(),
                 const_.file_id,
@@ -49,8 +48,7 @@ impl<'x> ConstCheck<'x> {
         )
         .unwrap_or(SourceType::Error);
 
-        let const_ = self.sa.consts.idx(self.const_id);
-        let const_ = const_.read();
+        let const_ = &self.sa.consts[self.const_id];
         const_.ty.set(ty).expect("already initialized");
     }
 }

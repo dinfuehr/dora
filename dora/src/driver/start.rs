@@ -116,7 +116,7 @@ fn compile_into_program(args: &Args, file: String) -> Result<Program, ()> {
     let mut sa = Sema::new(sem_args);
 
     let success = language::check_program(&mut sa);
-    assert_eq!(success, !sa.diag.lock().has_errors());
+    assert_eq!(success, !sa.diag.borrow().has_errors());
 
     if report_errors(&sa) {
         return Err(());
@@ -209,9 +209,9 @@ fn encode_and_decode_for_testing(prog: Program) -> Program {
 }
 
 fn report_errors(sa: &Sema) -> bool {
-    if sa.diag.lock().has_errors() {
-        sa.diag.lock().dump(&sa);
-        let no_errors = sa.diag.lock().errors().len();
+    if sa.diag.borrow().has_errors() {
+        sa.diag.borrow_mut().dump(&sa);
+        let no_errors = sa.diag.borrow().errors().len();
 
         if no_errors == 1 {
             eprintln!("{} error found.", no_errors);

@@ -3025,8 +3025,7 @@ impl<'a> AstBytecodeGen<'a> {
             return Register::invalid();
         }
 
-        let const_ = self.sa.consts.idx(const_id);
-        let const_ = const_.read();
+        let const_ = &self.sa.consts[const_id];
         let ty = const_.ty();
 
         let bytecode_ty = register_bty_from_ty(ty.clone());

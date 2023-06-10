@@ -1,3 +1,4 @@
+use id_arena::Id;
 use once_cell::sync::OnceCell;
 use std::sync::Arc;
 
@@ -10,26 +11,8 @@ use crate::sema::{
     module_path, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId, Visibility,
 };
 use crate::ty::SourceType;
-use crate::Id;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct ConstDefinitionId(usize);
-
-impl Id for ConstDefinition {
-    type IdType = ConstDefinitionId;
-
-    fn id_to_usize(id: ConstDefinitionId) -> usize {
-        id.0
-    }
-
-    fn usize_to_id(value: usize) -> ConstDefinitionId {
-        ConstDefinitionId(value)
-    }
-
-    fn store_id(value: &mut ConstDefinition, id: ConstDefinitionId) {
-        value.id = Some(id);
-    }
-}
+pub type ConstDefinitionId = Id<ConstDefinition>;
 
 #[derive(Clone, Debug)]
 pub struct ConstDefinition {

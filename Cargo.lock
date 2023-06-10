@@ -170,6 +170,7 @@ dependencies = [
  "dora-bytecode",
  "dora-parser",
  "fixedbitset",
+ "id-arena",
  "num_enum",
  "once_cell",
  "parking_lot",
@@ -261,6 +262,12 @@ checksum = "ee512640fe35acbfb4bb779db6f0d80704c2cacfa2e39b601ef3e3f47d1ae4c7"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "id-arena"
+version = "2.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25a2bc672d1148e28034f176e01fffebb08b35768468cc954630da77a1449005"
 
 [[package]]
 name = "idna"

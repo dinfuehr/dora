@@ -315,10 +315,10 @@ fn compile_project(project: ProjectConfig, sender: Sender<MainLoopTask>) {
     let mut sa = Sema::new(sem_args);
 
     let success = dora_frontend::check_program(&mut sa);
-    assert_eq!(success, !sa.diag.lock().has_errors());
+    assert_eq!(success, !sa.diag.borrow().has_errors());
     let mut errors_by_file: HashMap<PathBuf, Vec<Diagnostic>> = HashMap::new();
 
-    for error in sa.diag.lock().errors() {
+    for error in sa.diag.borrow().errors() {
         if let Some(file_id) = error.file {
             let span = error.span.expect("missing location");
             let source_file = sa.source_file(file_id);

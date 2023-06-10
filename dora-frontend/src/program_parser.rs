@@ -317,8 +317,6 @@ impl<'a> ProgramParser<'a> {
             );
         } else {
             self.sa
-                .diag
-                .lock()
                 .report_without_location(ErrorMessage::FileDoesNotExist(path));
         }
     }
@@ -528,7 +526,8 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             modifiers,
             ensure_name(self.sa, &node.name),
         );
-        let id = self.sa.consts.push(const_);
+        let id = self.sa.consts.alloc(const_);
+        self.sa.consts[id].id = Some(id);
 
         let sym = Sym::Const(id);
         if let Some((name, sym)) = self.insert_optional(&node.name, sym) {

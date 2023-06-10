@@ -166,8 +166,7 @@ pub fn const_accessible_from(
     const_id: ConstDefinitionId,
     module_id: ModuleDefinitionId,
 ) -> bool {
-    let const_ = sa.consts.idx(const_id);
-    let const_ = const_.read();
+    let const_ = &sa.consts[const_id];
 
     accessible_from(sa, const_.module_id, const_.visibility, module_id)
 }

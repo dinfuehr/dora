@@ -949,8 +949,7 @@ impl<'a> TypeCheck<'a> {
             }
 
             Some(Sym::Const(const_id)) => {
-                let const_ = self.sa.consts.idx(const_id);
-                let const_ = const_.read();
+                let const_ = &self.sa.consts[const_id];
 
                 self.analysis.set_ty(e.id, const_.ty());
 
@@ -2662,15 +2661,12 @@ impl<'a> TypeCheck<'a> {
 
             Some(Sym::Const(const_id)) => {
                 if !const_accessible_from(self.sa, const_id, self.module_id) {
-                    let const_ = self.sa.consts.idx(const_id);
-                    let const_ = const_.read();
+                    let const_ = &self.sa.consts[const_id];
                     let msg = ErrorMessage::NotAccessible(const_.name(self.sa));
                     self.sa.report(self.file_id, e.op_span, msg);
                 }
 
-                let const_ = self.sa.consts.idx(const_id);
-                let const_ = const_.read();
-
+                let const_ = &self.sa.consts[const_id];
                 self.analysis.set_ty(e.id, const_.ty());
 
                 self.analysis

@@ -6,8 +6,8 @@ where
     F: FnOnce(&Sema) -> T,
 {
     check(code, |sa| {
-        if sa.diag.lock().has_errors() {
-            sa.diag.lock().dump(sa);
+        if sa.diag.borrow().has_errors() {
+            sa.diag.borrow_mut().dump(sa);
             println!("{}", code);
             panic!("unexpected error in test::parse()");
         }
@@ -24,7 +24,7 @@ where
     let mut sa = Sema::new(args);
 
     let result = check_program(&mut sa);
-    assert_eq!(result, !sa.diag.lock().has_errors());
+    assert_eq!(result, !sa.diag.borrow().has_errors());
 
     f(&sa)
 }

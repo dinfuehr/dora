@@ -1,9 +1,11 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::{Index, IndexMut};
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use parking_lot::{Mutex, RwLock};
+use id_arena::Arena;
+use parking_lot::RwLock;
 
 use crate::interner::{Interner, Name};
 use dora_bytecode::Location;
@@ -84,19 +86,19 @@ pub struct Sema {
     pub args: SemaArgs,
     pub interner: Interner,
     pub source_files: Vec<SourceFile>,
-    pub diag: Mutex<Diagnostic>,
+    pub diag: RefCell<Diagnostic>,
     pub known: KnownElements,
-    pub consts: MutableVec<ConstDefinition>, // stores all const definitions
+    pub consts: Arena<ConstDefinition>, // stores all const definitions
     pub structs: MutableVec<StructDefinition>, // stores all struct source definitions
     pub classes: MutableVec<ClassDefinition>, // stores all class source definitions
     pub extensions: MutableVec<ExtensionDefinition>, // stores all extension definitions
     pub modules: MutableVec<ModuleDefinition>, // stores all module definitions
     pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
-    pub enums: MutableVec<EnumDefinition>,   // stores all enum source definitions
+    pub enums: MutableVec<EnumDefinition>, // stores all enum source definitions
     pub traits: MutableVec<TraitDefinition>, // stores all trait definitions
-    pub impls: MutableVec<ImplDefinition>,   // stores all impl definitions
+    pub impls: MutableVec<ImplDefinition>, // stores all impl definitions
     pub globals: MutableVec<GlobalDefinition>, // stores all global variables
-    pub uses: Vec<UseDefinition>,            // stores all uses
+    pub uses: Vec<UseDefinition>,       // stores all uses
     pub packages: Vec<PackageDefinition>,
     pub package_names: HashMap<String, PackageDefinitionId>,
     pub prelude_module_id: Option<ModuleDefinitionId>,
@@ -127,7 +129,7 @@ impl Sema {
         Sema {
             args,
             source_files: Vec::new(),
-            consts: MutableVec::new(),
+            consts: Arena::new(),
             structs: MutableVec::new(),
             classes: MutableVec::new(),
             extensions: MutableVec::new(),
@@ -139,7 +141,7 @@ impl Sema {
             uses: Vec::new(),
             interner: Interner::new(),
             known: KnownElements::new(),
-            diag: Mutex::new(Diagnostic::new()),
+            diag: RefCell::new(Diagnostic::new()),
             fcts: GrowableVec::new(),
             packages: Vec::new(),
             package_names: HashMap::new(),
@@ -453,10 +455,10 @@ impl Sema {
     }
 
     pub fn report(&self, file: SourceFileId, span: Span, msg: ErrorMessage) {
-        self.diag.lock().report(file, span, msg);
+        self.diag.borrow_mut().report(file, span, msg);
     }
 
     pub fn report_without_location(&self, msg: ErrorMessage) {
-        self.diag.lock().report_without_location(msg);
+        self.diag.borrow_mut().report_without_location(msg);
     }
 }
