@@ -8,9 +8,9 @@ use package::bytecode::reader::BytecodeIterator;
 pub fn bytecodeDump(bc: BytecodeFunction) {
     let dumper = BytecodeDumper::new(bc);
 
-    for instInfo in BytecodeIterator::new(bc.code) {
-        dumper.pos = instInfo.start.toInt32();
-        dumper.dumpInstruction(instInfo.inst);
+    for inst in BytecodeIterator::new(bc.code) {
+        dumper.pos = inst.start.toInt32();
+        dumper.dumpInstruction(inst.op);
     }
 
     let mut i = 0i64;

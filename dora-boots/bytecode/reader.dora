@@ -351,5 +351,5 @@ pub struct BytecodeInstructionInfo {
     pub start: Int64,
     pub opcode: Int32,
     pub size: Int64,
-    pub inst: BytecodeInstruction,
+    pub op: BytecodeInstruction,
 }

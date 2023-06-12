@@ -14,7 +14,7 @@ fn testBytecodeRet() {
     assert(instructions.size() == 1);
     assert(instructions(0).size == 2);
 
-    match instructions(0).inst {
+    match instructions(0).op {
         BytecodeInstruction::Ret(reg) => {
             assert(r0 == reg);
         },
@@ -31,7 +31,7 @@ fn testBytecodeRetInt() {
     assert(instructions.size() == 1);
     assert(instructions(0).size == 2);
 
-    match instructions(0).inst {
+    match instructions(0).op {
         BytecodeInstruction::Ret(opnd) => {
             assert(opnd.value == 17i32);
         },
@@ -48,7 +48,7 @@ fn testBytecodeRetWide() {
     assert(instructions.size() == 1);
     assert(instructions(0).size == 3);
 
-    match instructions(0).inst {
+    match instructions(0).op {
         BytecodeInstruction::Ret(opnd) => {
             assert(opnd.value == 256i32);
         },
@@ -65,7 +65,7 @@ fn testBytecodeMov() {
     assert(instructions.size() == 1);
     assert(instructions(0).size == 3);
 
-    match instructions(0).inst {
+    match instructions(0).op {
         BytecodeInstruction::Mov(dest, src) => {
             assert(dest.value == 0i32 && src.value == 1i32);
         },
@@ -82,7 +82,7 @@ fn testBytecodeMovWide() {
     assert(instructions.size() == 1);
     assert(instructions(0).size == 5);
 
-    match instructions(0).inst {
+    match instructions(0).op {
         BytecodeInstruction::Mov(dest, src) => {
             assert(dest.value == 256i32 && src.value == 255i32);
         },
@@ -99,7 +99,7 @@ fn testBytecodeConstByte() {
     assert(instructions.size() == 1);
     assert(instructions(0).size == 3);
 
-    match instructions(0).inst {
+    match instructions(0).op {
         BytecodeInstruction::ConstUInt8(dest, value) => {
             assert(dest.value == 127i32 && value == 255u8);
         },
@@ -116,7 +116,7 @@ fn testBytecodeConstByteWide() {
     assert(instructions.size() == 1);
     assert(instructions(0).size == 4);
 
-    match instructions(0).inst {
+    match instructions(0).op {
         BytecodeInstruction::ConstUInt8(dest, value) => {
             assert(dest.value == 128i32 && value == 255u8);
         },
@@ -133,7 +133,7 @@ fn testBytecodeConstString() {
     assert(instructions.size() == 1);
     assert(instructions(0).size == 3);
 
-    match instructions(0).inst {
+    match instructions(0).op {
         BytecodeInstruction::ConstString(dest, idx) => {
             assert(dest.value == 7i32 && idx.value == 0i32);
         },
@@ -150,7 +150,7 @@ fn testBytecodeSubFloat32() {
     assert(instructions.size() == 1);
     assert(instructions(0).size == 4);
 
-    match instructions(0).inst {
+    match instructions(0).op {
         BytecodeInstruction::Sub(dest, lhs, rhs) => {
             assert(dest.value == 2i32 && lhs.value == 9i32 && rhs.value == 127i32);
         },
@@ -168,7 +168,7 @@ fn testBytecodeJumpBack() {
     assert(instructions.size() == 1);
     assert(instructions(0).size == 2);
 
-    match instructions(0).inst {
+    match instructions(0).op {
         BytecodeInstruction::JumpLoop(distance) => {
             assert(distance == 0i32);
         },
@@ -192,7 +192,7 @@ fn testBytecodeJumpBackWide() {
     assert(instructions.size() == 129);
     assert(instructions(128).size == 3);
 
-    match instructions(128).inst {
+    match instructions(128).op {
         BytecodeInstruction::JumpLoop(distance) => {
             assert(distance == 256i32);
         },
@@ -211,7 +211,7 @@ fn testBytecodeJump() {
     assert(instructions.size() == 1);
     assert(instructions(0).size == 5);
 
-    match instructions(0).inst {
+    match instructions(0).op {
         BytecodeInstruction::Jump(distance) => {
             assert(distance == 5i32);
         },
@@ -236,7 +236,7 @@ fn testBytecodeJumpFar() {
     assert(instructions.size() == 257);
     assert(instructions(0).size == 5);
 
-    match instructions(0).inst {
+    match instructions(0).op {
         BytecodeInstruction::Jump(distance) => {
             assert(distance == 517i32);
         },
@@ -255,7 +255,7 @@ fn testBytecodeCondJump() {
     assert(instructions.size() == 1);
     assert(instructions(0).size == 6);
 
-    match instructions(0).inst {
+    match instructions(0).op {
         BytecodeInstruction::JumpIfTrue(opnd, distance) => {
             assert(opnd == BytecodeRegister(9i32) && distance == 6i32);
         },
@@ -280,7 +280,7 @@ fn testBytecodeCondJumpFar() {
     assert(instructions.size() == 257);
     assert(instructions(0).size == 6);
 
-    match instructions(0).inst {
+    match instructions(0).op {
         BytecodeInstruction::JumpIfFalse(opnd, distance) => {
             assert(opnd == BytecodeRegister(9i32) && distance == 518i32);
         },
@@ -299,7 +299,7 @@ fn testBytecodeCondJumpWide() {
     assert(instructions.size() == 1);
     assert(instructions(0).size == 7);
 
-    match instructions(0).inst {
+    match instructions(0).op {
         BytecodeInstruction::JumpIfTrue(opnd, distance) => {
             assert(opnd == BytecodeRegister(128i32) && distance == 7i32);
         },

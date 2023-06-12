@@ -13,7 +13,6 @@ mod dominator;
 mod graph;
 mod interface;
 mod pipeline;
-mod ssagen_block;
 mod ssagen_tests;
 mod ssagen;
 
