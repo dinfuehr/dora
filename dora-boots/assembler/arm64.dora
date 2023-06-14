@@ -209,12 +209,22 @@ impl AssemblerArm64 {
 
     pub fn add_imm(rd: Register, rn: Register, imm: Int32) {
         let (shift, imm12) = encoding::imm12(imm);
-        self.buffer.emitInt32(encoding::addsub_imm(1i32, 0i32, 0i32, shift, imm12, rn, rd));
+        self.buffer.emitInt32(encoding::addsub_imm(1i32, 0i32, false, shift, imm12, rn, rd));
     }
 
     pub fn add_imm_w(rd: Register, rn: Register, imm: Int32) {
         let (shift, imm12) = encoding::imm12(imm);
-        self.buffer.emitInt32(encoding::addsub_imm(0i32, 0i32, 0i32, shift, imm12, rn, rd));
+        self.buffer.emitInt32(encoding::addsub_imm(0i32, 0i32, false, shift, imm12, rn, rd));
+    }
+
+    pub fn adds_imm(rd: Register, rn: Register, imm: Int32) {
+        let (shift, imm12) = encoding::imm12(imm);
+        self.buffer.emitInt32(encoding::addsub_imm(1i32, 0i32, true, shift, imm12, rn, rd));
+    }
+
+    pub fn adds_imm_w(rd: Register, rn: Register, imm: Int32) {
+        let (shift, imm12) = encoding::imm12(imm);
+        self.buffer.emitInt32(encoding::addsub_imm(0i32, 0i32, true, shift, imm12, rn, rd));
     }
 
     pub fn b(target: Label) {
@@ -587,7 +597,7 @@ mod encoding {
     pub fn addsub_imm(
         sf: Int32,
         op: Int32,
-        s: Int32,
+        s: Bool,
         shift: Int32,
         imm12: Int32,
         rn: Register,
@@ -595,12 +605,11 @@ mod encoding {
     ): Int32 {
         assert(fitsBit(sf));
         assert(fitsBit(op));
-        assert(fitsBit(s));
         assert(fitsBit(shift));
         assert(fitsU12(imm12));
         assert(rn.isGprOrSp());
 
-        let rd = if s != 0i32 {
+        let rd = if s {
             assert(rd.isGprOrZero());
             rd.encodingZero()
         } else {
@@ -611,7 +620,7 @@ mod encoding {
         0b10001i32 << 24i32
             | sf << 31i32
             | op << 30i32
-            | s << 29i32
+            | s.toInt32() << 29i32
             | shift << 22i32
             | imm12 << 10i32
             | rn.encodingSp() << 5i32
@@ -1326,7 +1335,8 @@ mod encoding {
 
 mod tests {
     use super::{assertAsm32, AssemblerArm64, Cond, Extend};
-    use super::{R0, R1, R2, R3, R4, R10, R17, R30, REG_SP};
+    use super::{REG_ZERO, REG_SP};
+    use super::{R0, R1, R2, R3, R4, R10, R17, R30};
 
     @Test
     fn test_asm_ret() {
@@ -1554,6 +1564,40 @@ mod tests {
     }
 
     @Test
+    fn test_adds_imm() {
+        let asm = AssemblerArm64::new();
+        asm.adds_imm(REG_ZERO, REG_SP, 0i32);
+        asm.adds_imm(R0, R1, 0i32);
+        asm.adds_imm(REG_ZERO, REG_SP, 1i32);
+        asm.adds_imm(R2, R3, 1i32);
+        asm.adds_imm(REG_ZERO, REG_SP, 4096i32);
+        asm.adds_imm(R0, R1, 4096i32);
+        asm.adds_imm(REG_ZERO, REG_SP, 8192i32);
+        asm.adds_imm(R2, R3, 8192i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // cmn sp, #0x0
+            0xb10003ffi32,
+            // adds x0, x1, #0x0
+            0xb1000020i32,
+            // cmn sp, #0x1
+            0xb10007ffi32,
+            // adds x2, x3, #0x1
+            0xb1000462i32,
+            // cmn sp, #0x1, lsl #12
+            0xb14007ffi32,
+            // adds x0, x1, #0x1, lsl #12
+            0xb1400420i32,
+            // cmn sp, #0x2, lsl #12
+            0xb1400bffi32,
+            // adds x2, x3, #0x2, lsl #12
+            0xb1400862i32,
+        );
+    }
+
+    @Test
     fn test_add_imm_w() {
         let asm = AssemblerArm64::new();
         asm.add_imm_w(REG_SP, REG_SP, 0i32);
@@ -1584,6 +1628,40 @@ mod tests {
             0x11400bffi32,
             // add w2, w3, #0x2, lsl #12
             0x11400862i32,
+        );
+    }
+
+    @Test
+    fn test_adds_imm_w() {
+        let asm = AssemblerArm64::new();
+        asm.adds_imm_w(REG_ZERO, REG_SP, 0i32);
+        asm.adds_imm_w(R0, R1, 0i32);
+        asm.adds_imm_w(REG_ZERO, REG_SP, 1i32);
+        asm.adds_imm_w(R2, R3, 1i32);
+        asm.adds_imm_w(REG_ZERO, REG_SP, 4096i32);
+        asm.adds_imm_w(R0, R1, 4096i32);
+        asm.adds_imm_w(REG_ZERO, REG_SP, 8192i32);
+        asm.adds_imm_w(R2, R3, 8192i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // cmn wsp, #0x0
+            0x310003ffi32,
+            // adds w0, w1, #0x0
+            0x31000020i32,
+            // cmn wsp, #0x1
+            0x310007ffi32,
+            // adds w2, w3, #0x1
+            0x31000462i32,
+            // cmn wsp, #0x1, lsl #12
+            0x314007ffi32,
+            // adds w0, w1, #0x1, lsl #12
+            0x31400420i32,
+            // cmn wsp, #0x2, lsl #12
+            0x31400bffi32,
+            // adds w2, w3, #0x2, lsl #12
+            0x31400862i32,
         );
     }
 }
