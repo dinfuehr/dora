@@ -180,7 +180,7 @@ impl AssemblerArm64 {
         extend: Extend,
         amount: Int32,
     ) {
-        self.buffer.emitInt32(encoding::addsub_extreg(1i32, 0i32, 0i32, 0i32, rm, extend, amount, rn, rd));
+        self.buffer.emitInt32(encoding::addsub_extreg(1i32, 0i32, false, 0i32, rm, extend, amount, rn, rd));
     }
 
     pub fn add_ext_w(
@@ -190,7 +190,31 @@ impl AssemblerArm64 {
         extend: Extend,
         amount: Int32,
     ) {
-        self.buffer.emitInt32(encoding::addsub_extreg(0i32, 0i32, 0i32, 0i32, rm, extend, amount, rn, rd));
+        self.buffer.emitInt32(encoding::addsub_extreg(0i32, 0i32, false, 0i32, rm, extend, amount, rn, rd));
+    }
+
+    pub fn add_sh(rd: Register, rn: Register, rm: Register, shift: Shift, amount: Int32) {
+        self.buffer.emitInt32(encoding::addsub_shreg(1i32, 0i32, 0i32, shift, rm, amount, rn, rd));
+    }
+
+    pub fn add_sh_w(
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        shift: Shift,
+        amount: Int32,
+    ) {
+        self.buffer.emitInt32(encoding::addsub_shreg(0i32, 0i32, 0i32, shift, rm, amount, rn, rd));
+    }
+
+    pub fn add_imm(rd: Register, rn: Register, imm: Int32) {
+        let (shift, imm12) = encoding::imm12(imm);
+        self.buffer.emitInt32(encoding::addsub_imm(1i32, 0i32, 0i32, shift, imm12, rn, rd));
+    }
+
+    pub fn add_imm_w(rd: Register, rn: Register, imm: Int32) {
+        let (shift, imm12) = encoding::imm12(imm);
+        self.buffer.emitInt32(encoding::addsub_imm(0i32, 0i32, 0i32, shift, imm12, rn, rd));
     }
 
     pub fn b(target: Label) {
@@ -405,16 +429,6 @@ impl Register {
             31i32
         }
     }
-
-    fn encodingZeroOrSp(): Int32 {
-        if self.isGpr() {
-            self.value
-        } else if self == REG_ZERO || self == REG_SP {
-            31i32
-        } else {
-            unreachable[Int32]()
-        }
-    }
 }
 
 pub enum Extend {
@@ -484,10 +498,26 @@ mod encoding {
     use package::assembler::Register;
     use super::{Extend, Shift, Cond, NeonRegister};
 
+    pub fn imm12(mut imm: Int32): (Int32, Int32) {
+        if imm < (1i32 << 12i32) {
+            return (0i32, imm);
+        }
+
+        imm = imm >> 12i32;
+
+        if imm < (1i32 << 12i32) {
+            (1i32, imm)
+        } else {
+            std::fatalError("illegal value");
+            unreachable[(Int32, Int32)]()
+        }
+
+    }
+
     pub fn addsub_extreg(
         sf: Int32,
         op: Int32,
-        s: Int32,
+        s: Bool,
         opt: Int32,
         rm: Register,
         option: Extend,
@@ -497,22 +527,23 @@ mod encoding {
     ): Int32 {
         assert(fitsBit(sf));
         assert(fitsBit(op));
-        assert(fitsBit(s));
         assert(opt == 0i32);
         assert(rm.isGprOrZero());
         assert(fitsU2(imm3));
         assert(rn.isGprOrSp());
 
         // Register 31 is xzr when setting flags or xsp when not.
-        if s != 0i32 {
+        let rd = if s {
             assert(rd.isGprOrZero());
+            rd.encodingZero()
         } else {
             assert(rd.isGprOrSp());
-        }
+            rd.encodingSp()
+        };
 
         sf << 31i32
             | op << 30i32
-            | s << 29i32
+            | s.toInt32() << 29i32
             | 0b01011i32 << 24i32
             | opt << 22i32
             | 1i32 << 21i32
@@ -520,7 +551,7 @@ mod encoding {
             | option.encoding() << 13i32
             | imm3 << 10i32
             | rn.encodingSp() << 5i32
-            | rd.encodingZeroOrSp()
+            | rd
     }
 
     pub fn addsub_shreg(
@@ -551,6 +582,40 @@ mod encoding {
             | imm6 << 10i32
             | rn.encodingZero() << 5i32
             | rd.encodingZero()
+    }
+
+    pub fn addsub_imm(
+        sf: Int32,
+        op: Int32,
+        s: Int32,
+        shift: Int32,
+        imm12: Int32,
+        rn: Register,
+        rd: Register,
+    ): Int32 {
+        assert(fitsBit(sf));
+        assert(fitsBit(op));
+        assert(fitsBit(s));
+        assert(fitsBit(shift));
+        assert(fitsU12(imm12));
+        assert(rn.isGprOrSp());
+
+        let rd = if s != 0i32 {
+            assert(rd.isGprOrZero());
+            rd.encodingZero()
+        } else {
+            assert(rd.isGprOrSp());
+            rd.encodingSp()
+        };
+
+        0b10001i32 << 24i32
+            | sf << 31i32
+            | op << 30i32
+            | s << 29i32
+            | shift << 22i32
+            | imm12 << 10i32
+            | rn.encodingSp() << 5i32
+            | rd
     }
 
     pub fn atomic_op(
@@ -1260,7 +1325,8 @@ mod encoding {
 }
 
 mod tests {
-    use super::{assertAsm32, R0, R1, R2, R10, R17, R30, REG_SP, AssemblerArm64, Cond, Extend};
+    use super::{assertAsm32, AssemblerArm64, Cond, Extend};
+    use super::{R0, R1, R2, R3, R4, R10, R17, R30, REG_SP};
 
     @Test
     fn test_asm_ret() {
@@ -1453,4 +1519,71 @@ mod tests {
         );
     }
 
+    @Test
+    fn test_add_imm() {
+        let asm = AssemblerArm64::new();
+        asm.add_imm(REG_SP, REG_SP, 0i32);
+        asm.add_imm(R0, R1, 0i32);
+        asm.add_imm(REG_SP, REG_SP, 1i32);
+        asm.add_imm(R2, R3, 1i32);
+        asm.add_imm(REG_SP, REG_SP, 4096i32);
+        asm.add_imm(R0, R1, 4096i32);
+        asm.add_imm(REG_SP, REG_SP, 8192i32);
+        asm.add_imm(R2, R3, 8192i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // mov sp, sp
+            0x910003ffi32,
+            // add x0, x1, #0x0
+            0x91000020i32,
+            // add sp, sp, #0x1
+            0x910007ffi32,
+            // add x2, x3, #0x1
+            0x91000462i32,
+            // add sp, sp, #0x1, lsl #12
+            0x914007ffi32,
+            // add x0, x1, #0x1, lsl #12
+            0x91400420i32,
+            // add sp, sp, #0x2, lsl #12
+            0x91400bffi32,
+            // add x2, x3, #0x2, lsl #12
+            0x91400862i32,
+        );
+    }
+
+    @Test
+    fn test_add_imm_w() {
+        let asm = AssemblerArm64::new();
+        asm.add_imm_w(REG_SP, REG_SP, 0i32);
+        asm.add_imm_w(R0, R1, 0i32);
+        asm.add_imm_w(REG_SP, REG_SP, 1i32);
+        asm.add_imm_w(R2, R3, 1i32);
+        asm.add_imm_w(REG_SP, REG_SP, 4096i32);
+        asm.add_imm_w(R0, R1, 4096i32);
+        asm.add_imm_w(REG_SP, REG_SP, 8192i32);
+        asm.add_imm_w(R2, R3, 8192i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // mov wsp, wsp
+            0x110003ffi32,
+            // add w0, w1, #0x0
+            0x11000020i32,
+            // add wsp, wsp, #0x1
+            0x110007ffi32,
+            // add w2, w3, #0x1
+            0x11000462i32,
+            // add wsp, wsp, #0x1, lsl #12
+            0x114007ffi32,
+            // add w0, w1, #0x1, lsl #12
+            0x11400420i32,
+            // add wsp, wsp, #0x2, lsl #12
+            0x11400bffi32,
+            // add w2, w3, #0x2, lsl #12
+            0x11400862i32,
+        );
+    }
 }
