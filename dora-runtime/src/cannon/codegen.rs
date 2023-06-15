@@ -1481,7 +1481,7 @@ impl<'a> CannonCodeGen<'a> {
             register_bty(global_var.ty.clone())
         );
 
-        if let Some(initializer) = global_var.initializer {
+        if let Some(initializer) = global_var.initial_value {
             let ptr = self.get_call_target(initializer, BytecodeTypeArray::empty());
             let position = self.bytecode.offset_location(self.current_offset.to_u32());
             let gcpoint = self.create_gcpoint();
@@ -1533,7 +1533,7 @@ impl<'a> CannonCodeGen<'a> {
         let src = self.reg(src);
         self.asm.copy_bytecode_ty(bytecode_type, dest, src);
 
-        if global_var.initializer.is_some() {
+        if global_var.initial_value.is_some() {
             let address_init = self
                 .vm
                 .global_variable_memory
@@ -4809,7 +4809,7 @@ pub fn register_bty(ty: BytecodeType) -> BytecodeType {
     }
 }
 
-fn result_passed_as_argument(ty: BytecodeType) -> bool {
+pub fn result_passed_as_argument(ty: BytecodeType) -> bool {
     match ty {
         BytecodeType::Unit
         | BytecodeType::Bool

@@ -62,7 +62,7 @@ pub struct GlobalData {
     pub ty: BytecodeType,
     pub mutable: bool,
     pub name: String,
-    pub initializer: Option<FunctionId>,
+    pub initial_value: Option<FunctionId>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]

@@ -1,0 +1,14 @@
+struct Foo {
+    a: Int64,
+    b: Int64,
+    c: Int64,
+}
+
+let foo: Foo = Foo(100, 200, 300);
+
+fn main() {
+    let tmp = foo;
+    assert(tmp.a == 100);
+    assert(tmp.b == 200);
+    assert(tmp.c == 300);
+}

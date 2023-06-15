@@ -1,9 +1,12 @@
 use std::mem;
 
-use crate::cannon::codegen::{mode, result_reg_mode, RegOrOffset};
+use crate::cannon::codegen::{mode, result_passed_as_argument, result_reg_mode, size, RegOrOffset};
 use crate::compiler::codegen::{ensure_native_stub, AllocationSize, AnyReg};
 use crate::compiler::dora_exit_stubs::{NativeFct, NativeFctKind};
-use crate::cpu::{FReg, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_THREAD, REG_TMP1, REG_TMP2};
+use crate::cpu::{
+    FReg, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1, REG_TMP2,
+    STACK_FRAME_ALIGNMENT,
+};
 use crate::gc::tlab::TLAB_OBJECT_SIZE;
 use crate::gc::Address;
 use crate::masm::{CodeDescriptor, CondCode, Label, MacroAssembler, Mem, ScratchReg};
@@ -81,10 +84,12 @@ impl<'a> BaselineAssembler<'a> {
     }
 
     pub fn increase_stack_frame(&mut self, size: i32) {
+        debug_assert_eq!(size % STACK_FRAME_ALIGNMENT as i32, 0);
         self.masm.increase_stack_frame(size);
     }
 
     pub fn decrease_stack_frame(&mut self, size: i32) {
+        debug_assert_eq!(size % STACK_FRAME_ALIGNMENT as i32, 0);
         self.masm.decrease_stack_frame(size);
     }
 
@@ -1116,6 +1121,17 @@ impl<'a> BaselineAssembler<'a> {
         gcpoint: GcPoint,
     ) {
         self.masm.bind_label(lbl_start);
+        let ty = self.vm.program.globals[global_id.0 as usize].ty.clone();
+        let ty_size =
+            crate::mem::align_i32(size(self.vm, ty.clone()), STACK_FRAME_ALIGNMENT as i32);
+
+        let store_result_on_stack = result_passed_as_argument(ty.clone());
+
+        if store_result_on_stack {
+            self.increase_stack_frame(ty_size);
+            self.copy_reg(MachineMode::Ptr, REG_PARAMS[0], REG_SP);
+        }
+
         self.direct_call(
             fct_id,
             ptr,
@@ -1125,6 +1141,32 @@ impl<'a> BaselineAssembler<'a> {
             None,
             REG_RESULT.into(),
         );
+
+        let address_value = self
+            .vm
+            .global_variable_memory
+            .as_ref()
+            .unwrap()
+            .address_value(global_id);
+        let disp = self.masm.add_addr(address_value);
+        let pos = self.masm.pos() as i32;
+        self.masm.load_constpool(REG_TMP1, disp + pos);
+        self.masm
+            .store_mem(MachineMode::Ptr, Mem::Base(REG_TMP1, 0), REG_RESULT.into());
+
+        if store_result_on_stack {
+            self.copy_reg(MachineMode::Ptr, REG_PARAMS[0], REG_SP);
+            self.copy_bytecode_ty(
+                ty.clone(),
+                RegOrOffset::Reg(REG_TMP1),
+                RegOrOffset::Reg(REG_SP),
+            );
+            self.decrease_stack_frame(ty_size);
+        } else {
+            let ty_mode = mode(self.vm, ty.clone());
+            self.masm
+                .store_mem(ty_mode, Mem::Base(REG_TMP1, 0), result_reg_mode(ty_mode));
+        }
 
         let address_init = self
             .vm

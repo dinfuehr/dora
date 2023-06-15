@@ -3,10 +3,9 @@ use std::collections::HashMap;
 use crate::Sema;
 use dora_bytecode::program::{ClassLayout, ImplData, InternalClass, InternalFunction};
 use dora_bytecode::{
-    BytecodeType, ClassData, ClassField, EnumData, EnumVariant, FunctionData, FunctionId,
-    FunctionKind, GlobalData, ImplId, ModuleData, ModuleId, PackageData, PackageId, Program,
-    SourceFileData, SourceFileId, StructData, StructField, TraitData, TraitId, TypeParamBound,
-    TypeParamData,
+    ClassData, ClassField, EnumData, EnumVariant, FunctionData, FunctionId, FunctionKind,
+    GlobalData, ImplId, ModuleData, ModuleId, PackageData, PackageId, Program, SourceFileData,
+    SourceFileId, StructData, StructField, TraitData, TraitId, TypeParamBound, TypeParamData,
 };
 
 use crate::generator::bty_from_ty;
@@ -190,7 +189,7 @@ fn create_functions(sa: &Sema, e: &mut Emitter) -> Vec<FunctionData> {
             type_params: create_type_params(sa, &TypeParamDefinition::new()),
             source_file_id: Some(convert_source_file_id(global.file_id)),
             params: Vec::new(),
-            return_type: BytecodeType::Unit,
+            return_type: bty_from_ty(global.ty.clone()),
             native: None,
             intrinsic: None,
             internal: None,
@@ -219,7 +218,7 @@ fn create_globals(sa: &Sema, e: &Emitter) -> Vec<GlobalData> {
             ty: bty_from_ty(global.ty.clone()),
             mutable: global.mutable,
             name,
-            initializer: global_initializer_function_id(sa, &*global, e),
+            initial_value: global_initializer_function_id(sa, &*global, e),
         })
     }
 

@@ -65,7 +65,7 @@ pub fn generate_global_initializer(
         sa,
         type_params_len: 0,
         is_lambda: false,
-        return_type: None,
+        return_type: Some(global.ty.clone()),
         file_id: global.file_id,
         span: global.span,
         analysis: src,
@@ -81,7 +81,7 @@ pub fn generate_global_initializer(
         .initial_value
         .as_ref()
         .expect("missing initializer");
-    ast_bytecode_generator.generate_global_initializer(global.id(), expr)
+    ast_bytecode_generator.generate_global_initializer(expr)
 }
 
 const SELF_VAR_ID: VarId = VarId(0);
@@ -117,15 +117,11 @@ impl<'a> AstBytecodeGen<'a> {
         self.builder.generate()
     }
 
-    fn generate_global_initializer(
-        mut self,
-        global_id: GlobalDefinitionId,
-        expr: &ast::ExprData,
-    ) -> BytecodeFunction {
+    fn generate_global_initializer(mut self, expr: &ast::ExprData) -> BytecodeFunction {
         self.push_scope();
         self.builder.set_params(Vec::new());
         self.create_context();
-        self.emit_global_initializer(global_id, expr);
+        self.emit_global_initializer(expr);
         self.pop_scope();
         self.builder.generate()
     }
@@ -234,12 +230,10 @@ impl<'a> AstBytecodeGen<'a> {
         }
     }
 
-    fn emit_global_initializer(&mut self, global_id: GlobalDefinitionId, expr: &ast::ExprData) {
-        let value = self.visit_expr(expr, DataDest::Alloc);
-        self.builder.emit_store_global(value, GlobalId(global_id.0));
-        let result = self.ensure_unit_register();
+    fn emit_global_initializer(&mut self, expr: &ast::ExprData) {
+        let result = self.visit_expr(expr, DataDest::Alloc);
         self.builder.emit_ret(result);
-        self.free_if_temp(value);
+        self.free_if_temp(result);
     }
 
     fn create_context(&mut self) {
