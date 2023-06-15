@@ -939,6 +939,7 @@ impl<'a> BaselineAssembler<'a> {
         self.slow_paths.push(SlowPathKind::InitializeGlobal(
             lbl_init_global,
             lbl_return,
+            global_id,
             fid,
             ptr,
             location,
@@ -1009,6 +1010,8 @@ impl<'a> BaselineAssembler<'a> {
         let slow_paths = mem::replace(&mut self.slow_paths, Vec::new());
 
         for slow_path in slow_paths {
+            self.masm.emit_comment("slow path".into());
+
             match slow_path {
                 SlowPathKind::TlabAllocationFailure(
                     lbl_start,
@@ -1031,12 +1034,15 @@ impl<'a> BaselineAssembler<'a> {
                 SlowPathKind::InitializeGlobal(
                     lbl_start,
                     lbl_return,
+                    global_id,
                     fct_id,
                     ptr,
                     pos,
                     gcpoint,
                 ) => {
-                    self.slow_path_global(lbl_start, lbl_return, fct_id, ptr, pos, gcpoint);
+                    self.slow_path_global(
+                        lbl_start, lbl_return, global_id, fct_id, ptr, pos, gcpoint,
+                    );
                 }
 
                 SlowPathKind::Assert(lbl_start, pos) => {
@@ -1103,6 +1109,7 @@ impl<'a> BaselineAssembler<'a> {
         &mut self,
         lbl_start: Label,
         lbl_return: Label,
+        global_id: GlobalId,
         fct_id: FunctionId,
         ptr: Address,
         location: Location,
@@ -1118,6 +1125,21 @@ impl<'a> BaselineAssembler<'a> {
             None,
             REG_RESULT.into(),
         );
+
+        let address_init = self
+            .vm
+            .global_variable_memory
+            .as_ref()
+            .unwrap()
+            .address_init(global_id);
+
+        let disp = self.masm.add_addr(address_init);
+        let pos = self.masm.pos() as i32;
+        self.masm.load_constpool(REG_RESULT, disp + pos);
+        self.masm
+            .load_int_const(MachineMode::Int32, REG_TMP1, INITIALIZED as i64);
+        self.masm.store_int8_synchronized(REG_TMP1, REG_RESULT);
+
         self.masm.jump(lbl_return);
     }
 
@@ -1137,5 +1159,13 @@ enum SlowPathKind {
     StackOverflow(Label, Label, Location, GcPoint),
     Safepoint(Label, Label, Location, GcPoint),
     Assert(Label, Location),
-    InitializeGlobal(Label, Label, FunctionId, Address, Location, GcPoint),
+    InitializeGlobal(
+        Label,
+        Label,
+        GlobalId,
+        FunctionId,
+        Address,
+        Location,
+        GcPoint,
+    ),
 }

@@ -974,16 +974,16 @@ impl MacroAssembler {
         self.asm.ldar(dest.into(), address.into());
     }
 
-    pub fn store_int8_synchronized(&mut self, dest: Reg, address: Reg) {
-        self.asm.stlrb(dest.into(), address.into());
+    pub fn store_int8_synchronized(&mut self, src: Reg, address: Reg) {
+        self.asm.stlrb(src.into(), address.into());
     }
 
-    pub fn store_int32_synchronized(&mut self, dest: Reg, address: Reg) {
-        self.asm.stlr_w(dest.into(), address.into());
+    pub fn store_int32_synchronized(&mut self, src: Reg, address: Reg) {
+        self.asm.stlr_w(src.into(), address.into());
     }
 
-    pub fn store_int64_synchronized(&mut self, dest: Reg, address: Reg) {
-        self.asm.stlr(dest.into(), address.into());
+    pub fn store_int64_synchronized(&mut self, src: Reg, address: Reg) {
+        self.asm.stlr(src.into(), address.into());
     }
 
     pub fn exchange_int32_synchronized(&mut self, old: Reg, new: Reg, address: Reg) {
