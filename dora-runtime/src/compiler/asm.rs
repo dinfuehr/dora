@@ -12,7 +12,7 @@ use crate::stdlib;
 use crate::threads::ThreadLocalData;
 use crate::vm::{
     create_enum_instance, create_struct_instance, get_concrete_tuple_bty_array, EnumLayout,
-    GcPoint, LazyCompilationSite, Trap, VM,
+    GcPoint, LazyCompilationSite, Trap, INITIALIZED, VM,
 };
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId, GlobalId, Location, StructId};
 
@@ -236,6 +236,10 @@ impl<'a> BaselineAssembler<'a> {
 
     pub fn load_int64_synchronized(&mut self, dest: Reg, addr: Reg) {
         self.masm.load_int64_synchronized(dest, addr);
+    }
+
+    pub fn store_int8_synchronized(&mut self, src: Reg, addr: Reg) {
+        self.masm.store_int8_synchronized(src, addr);
     }
 
     pub fn store_int32_synchronized(&mut self, src: Reg, addr: Reg) {
@@ -913,7 +917,7 @@ impl<'a> BaselineAssembler<'a> {
         location: Location,
         gcpoint: GcPoint,
     ) {
-        let lbl_global = self.masm.create_label();
+        let lbl_init_global = self.masm.create_label();
         let lbl_return = self.masm.create_label();
 
         let address_init = self
@@ -926,17 +930,19 @@ impl<'a> BaselineAssembler<'a> {
         let disp = self.masm.add_addr(address_init);
         let pos = self.masm.pos() as i32;
         self.masm.load_constpool(REG_RESULT, disp + pos);
-        self.masm.load_mem(
-            MachineMode::Int8,
-            REG_RESULT.into(),
-            Mem::Base(REG_RESULT, 0),
-        );
-        self.masm.cmp_reg_imm(MachineMode::Ptr, REG_RESULT, 0);
-        self.masm.jump_if(CondCode::Zero, lbl_global);
+        self.masm.load_int8_synchronized(REG_RESULT, REG_RESULT);
+        self.masm
+            .cmp_reg_imm(MachineMode::Ptr, REG_RESULT, INITIALIZED as i32);
+        self.masm.jump_if(CondCode::NotEqual, lbl_init_global);
         self.masm.bind_label(lbl_return);
 
         self.slow_paths.push(SlowPathKind::InitializeGlobal(
-            lbl_global, lbl_return, fid, ptr, location, gcpoint,
+            lbl_init_global,
+            lbl_return,
+            fid,
+            ptr,
+            location,
+            gcpoint,
         ));
     }
 

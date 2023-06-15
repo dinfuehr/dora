@@ -5,6 +5,10 @@ use crate::os;
 use crate::vm::{add_ref_fields, VM};
 use dora_bytecode::GlobalId;
 
+pub const UNINITIALIZED: u8 = 0;
+pub const RUNNING: u8 = 1;
+pub const INITIALIZED: u8 = 2;
+
 pub fn init_global_addresses(vm: &mut VM) {
     let number_globals = vm.program.globals.len();
     let mut backing_memory_size = 0;
@@ -66,10 +70,6 @@ impl GlobalVariableMemory {
 
     pub fn address_init(&self, idx: GlobalId) -> Address {
         self.variables[idx.0 as usize].address_init
-    }
-
-    pub fn is_initialized(&self, idx: GlobalId) -> bool {
-        unsafe { *self.address_init(idx).to_ptr::<bool>() }
     }
 
     pub fn start(&self) -> Address {

@@ -20,7 +20,7 @@ use crate::vm::{
     ensure_class_instance_for_enum_variant, ensure_class_instance_for_lambda,
     ensure_class_instance_for_trait_object, find_trait_impl, get_concrete_tuple_bty,
     get_concrete_tuple_bty_array, specialize_bty, specialize_bty_array, EnumLayout, GcPoint,
-    LazyCompilationSite, Trap, VM,
+    LazyCompilationSite, Trap, INITIALIZED, VM,
 };
 use crate::vtable::VTable;
 use dora_bytecode::{
@@ -1481,20 +1481,12 @@ impl<'a> CannonCodeGen<'a> {
             register_bty(global_var.ty.clone())
         );
 
-        if global_var.initializer.is_some()
-            && !self
-                .vm
-                .global_variable_memory
-                .as_ref()
-                .unwrap()
-                .is_initialized(global_id)
-        {
-            let fid = global_var.initializer.unwrap();
-            let ptr = self.get_call_target(fid, BytecodeTypeArray::empty());
+        if let Some(initializer) = global_var.initializer {
+            let ptr = self.get_call_target(initializer, BytecodeTypeArray::empty());
             let position = self.bytecode.offset_location(self.current_offset.to_u32());
             let gcpoint = self.create_gcpoint();
             self.asm
-                .ensure_global(global_id, fid, ptr, position, gcpoint);
+                .ensure_global(global_id, initializer, ptr, position, gcpoint);
         }
 
         let address_value = self
@@ -1541,14 +1533,7 @@ impl<'a> CannonCodeGen<'a> {
         let src = self.reg(src);
         self.asm.copy_bytecode_ty(bytecode_type, dest, src);
 
-        if global_var.initializer.is_some()
-            && !self
-                .vm
-                .global_variable_memory
-                .as_ref()
-                .unwrap()
-                .is_initialized(global_id)
-        {
+        if global_var.initializer.is_some() {
             let address_init = self
                 .vm
                 .global_variable_memory
@@ -1559,9 +1544,10 @@ impl<'a> CannonCodeGen<'a> {
             let disp = self.asm.add_addr(address_init);
             let pos = self.asm.pos() as i32;
             self.asm.load_constpool(REG_RESULT, disp + pos);
-            self.asm.load_int_const(MachineMode::Int8, REG_TMP1, 1);
             self.asm
-                .store_mem(MachineMode::Int8, Mem::Base(REG_RESULT, 0), REG_TMP1.into());
+                .load_int_const(MachineMode::Int8, REG_TMP1, INITIALIZED as i64);
+            self.asm
+                .store_int8_synchronized(REG_TMP1.into(), REG_RESULT.into())
         }
     }
 

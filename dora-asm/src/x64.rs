@@ -249,6 +249,12 @@ impl AssemblerX64 {
         self.emit_address(src.low_bits(), dest);
     }
 
+    pub fn movb_ra(&mut self, dest: Register, src: Address) {
+        self.emit_rex32_byte_address(dest, src);
+        self.emit_u8(0x8a);
+        self.emit_address(dest.low_bits(), src);
+    }
+
     pub fn movb_ai(&mut self, dest: Address, src: Immediate) {
         assert!(src.is_int8() || src.is_uint8());
         self.emit_rex32_address_optional(dest);
@@ -635,6 +641,12 @@ impl AssemblerX64 {
         self.emit_rex64_modrm(src, dest);
         self.emit_u8(0x09);
         self.emit_modrm_registers(src, dest);
+    }
+
+    pub fn xchgb_ar(&mut self, dest: Address, src: Register) {
+        self.emit_rex32_byte_address(src, dest);
+        self.emit_u8(0x86);
+        self.emit_address(src.low_bits(), dest);
     }
 
     pub fn xchgq_ar(&mut self, dest: Address, src: Register) {
@@ -2217,6 +2229,13 @@ mod tests {
     }
 
     #[test]
+    fn test_movb_ra() {
+        assert_emit!(0x8A, 0x04, 0x24; movb_ra(RAX, Address::offset(RSP, 0)));
+        assert_emit!(0x40, 0x8A, 0x34, 0x24; movb_ra(RSI, Address::offset(RSP, 0)));
+        assert_emit!(0x44, 0x8A, 0x04, 0x24; movb_ra(R8, Address::offset(RSP, 0)));
+    }
+
+    #[test]
     fn test_movzxb_ra() {
         assert_emit!(0x0f, 0xb6, 0x00; movzxb_ra(RAX, Address::offset(RAX, 0)));
         assert_emit!(0x44, 0x0f, 0xb6, 0x00; movzxb_ra(R8, Address::offset(RAX, 0)));
@@ -2780,6 +2799,14 @@ mod tests {
         assert_emit!(0x87, 0x07; xchgl_ar(Address::offset(RDI, 0), RAX));
         assert_emit!(0x41, 0x87, 0x07; xchgl_ar(Address::offset(R15, 0), RAX));
         assert_emit!(0x44, 0x87, 0x38; xchgl_ar(Address::offset(RAX, 0), R15));
+    }
+
+    #[test]
+    fn test_xchgb_ar() {
+        assert_emit!(0x40, 0x86, 0x38; xchgb_ar(Address::offset(RAX, 0), RDI));
+        assert_emit!(0x86, 0x07; xchgb_ar(Address::offset(RDI, 0), RAX));
+        assert_emit!(0x41, 0x86, 0x07; xchgb_ar(Address::offset(R15, 0), RAX));
+        assert_emit!(0x44, 0x86, 0x38; xchgb_ar(Address::offset(RAX, 0), R15));
     }
 
     #[test]

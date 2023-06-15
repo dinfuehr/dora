@@ -900,12 +900,21 @@ impl MacroAssembler {
         self.asm.xorl_rr(dest.into(), dest.into());
     }
 
+    pub fn load_int8_synchronized(&mut self, dest: Reg, addr: Reg) {
+        self.asm
+            .movzxb_ra(dest.into(), AsmAddress::reg(addr.into()));
+    }
+
     pub fn load_int32_synchronized(&mut self, dest: Reg, addr: Reg) {
         self.asm.movl_ra(dest.into(), AsmAddress::reg(addr.into()));
     }
 
     pub fn load_int64_synchronized(&mut self, dest: Reg, addr: Reg) {
         self.asm.movq_ra(dest.into(), AsmAddress::reg(addr.into()));
+    }
+
+    pub fn store_int8_synchronized(&mut self, dest: Reg, addr: Reg) {
+        self.asm.xchgb_ar(AsmAddress::reg(addr.into()), dest.into());
     }
 
     pub fn store_int32_synchronized(&mut self, dest: Reg, addr: Reg) {

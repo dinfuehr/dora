@@ -1195,6 +1195,18 @@ impl AssemblerArm64 {
         ))
     }
 
+    pub fn ldarb(&mut self, rt: Register, rn: Register) {
+        self.emit_u32(cls::ldst_exclusive(
+            0b00, 1, 1, 0, REG_ZERO, 1, REG_ZERO, rn, rt,
+        ))
+    }
+
+    pub fn ldarh(&mut self, rt: Register, rn: Register) {
+        self.emit_u32(cls::ldst_exclusive(
+            0b01, 1, 1, 0, REG_ZERO, 1, REG_ZERO, rn, rt,
+        ))
+    }
+
     pub fn ldar_w(&mut self, rt: Register, rn: Register) {
         self.emit_u32(cls::ldst_exclusive(
             0b10, 1, 1, 0, REG_ZERO, 1, REG_ZERO, rn, rt,
@@ -1466,6 +1478,18 @@ impl AssemblerArm64 {
     pub fn stlr(&mut self, rt: Register, rn: Register) {
         self.emit_u32(cls::ldst_exclusive(
             0b11, 1, 0, 0, REG_ZERO, 1, REG_ZERO, rn, rt,
+        ))
+    }
+
+    pub fn stlrb(&mut self, rt: Register, rn: Register) {
+        self.emit_u32(cls::ldst_exclusive(
+            0b00, 1, 0, 0, REG_ZERO, 1, REG_ZERO, rn, rt,
+        ))
+    }
+
+    pub fn stlrh(&mut self, rt: Register, rn: Register) {
+        self.emit_u32(cls::ldst_exclusive(
+            0b01, 1, 0, 0, REG_ZERO, 1, REG_ZERO, rn, rt,
         ))
     }
 
@@ -3779,6 +3803,12 @@ mod tests {
         assert_emit!(0xc8dfffff; ldar(REG_ZERO, REG_SP));
         assert_emit!(0xc8dffc20; ldar(R0, R1));
 
+        assert_emit!(0x08dfffff; ldarb(REG_ZERO, REG_SP));
+        assert_emit!(0x08dffc20; ldarb(R0, R1));
+
+        assert_emit!(0x48dfffff; ldarh(REG_ZERO, REG_SP));
+        assert_emit!(0x48dffc20; ldarh(R0, R1));
+
         assert_emit!(0x88dfffff; ldar_w(REG_ZERO, REG_SP));
         assert_emit!(0x88dffc20; ldar_w(R0, R1));
     }
@@ -3787,6 +3817,12 @@ mod tests {
     fn test_stlr() {
         assert_emit!(0xc89fffff; stlr(REG_ZERO, REG_SP));
         assert_emit!(0xc89ffc20; stlr(R0, R1));
+
+        assert_emit!(0x089fffff; stlrb(REG_ZERO, REG_SP));
+        assert_emit!(0x089ffc20; stlrb(R0, R1));
+
+        assert_emit!(0x489fffff; stlrh(REG_ZERO, REG_SP));
+        assert_emit!(0x489ffc20; stlrh(R0, R1));
 
         assert_emit!(0x889fffff; stlr_w(REG_ZERO, REG_SP));
         assert_emit!(0x889ffc20; stlr_w(R0, R1));
