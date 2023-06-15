@@ -8,7 +8,7 @@ use package::graph_builder::createGraph;
 use package::graph::dump::assertGraph;
 
 @Test
-fn testSsaGenRet() {
+fn test_ret_void() {
     let b = BytecodeBuilder::new();
     let r0 = b.addRegister(BytecodeType::Unit);
     b.emitRet(r0);
@@ -23,7 +23,7 @@ fn testSsaGenRet() {
 }
 
 @Test
-fn testSsaGenRetIntConst() {
+fn test_int32_const() {
     let b = BytecodeBuilder::new();
     let r0 = b.addRegister(BytecodeType::Int32);
     let idx = b.addConst(ConstPoolEntry::Int32(4711i32));
@@ -40,7 +40,7 @@ fn testSsaGenRetIntConst() {
 }
 
 @Test
-fn testSsaGenRetInt64Const() {
+fn test_int64_const() {
     let b = BytecodeBuilder::new();
     let r0 = b.addRegister(BytecodeType::Int64);
     let idx = b.addConst(ConstPoolEntry::Int64(4711));
@@ -57,7 +57,7 @@ fn testSsaGenRetInt64Const() {
 }
 
 @Test
-fn testSsaGenIdInt() {
+fn test_int32_argument() {
     let b = BytecodeBuilder::new();
     let r0 = b.addRegister(BytecodeType::Int32);
     b.setArguments(1i32);
@@ -74,7 +74,7 @@ fn testSsaGenIdInt() {
 }
 
 @Test
-fn testSsaGenAddIntArguments() {
+fn test_add_int32_arguments() {
     let b = BytecodeBuilder::new();
     b.addNRegisters(BytecodeType::Int32, 3);
     b.setArguments(2i32);
@@ -94,7 +94,7 @@ fn testSsaGenAddIntArguments() {
 }
 
 @Test
-fn testSsaGenAddFloat32Arguments() {
+fn test_add_float32_arguments() {
     let b = BytecodeBuilder::new();
     b.addNRegisters(BytecodeType::Float32, 3);
     b.setArguments(2i32);
@@ -113,10 +113,31 @@ fn testSsaGenAddFloat32Arguments() {
 ");
 }
 
+@Test
+fn test_add_int32_const_lhs() {
+    let b = BytecodeBuilder::new();
+    b.addNRegisters(BytecodeType::Int32, 3);
+    b.setArguments(1i32);
+    b.emitConstInt32Value(r(1), 10i32);
+    b.emitAdd(r(2), r(1), r(0));
+    b.emitRet(r(2));
+    let fct = b.generate();
+
+    let graph = createGraph(fct);
+
+    assertGraph(graph, "
+@0:
+  %0: Arg.Int32(0) [%2]
+  %1: Const.Int32(#10) [%2]
+  %2: Add.Int32 %0, %1 [%3]
+  %3: Ret.Int32 %2
+");
+}
+
 fn bcSsaGenAddFloat32Arguments(a: Float32, b: Float32): Float32 { a + b }
 
 @Test
-fn testSsaGenMultipleAssignments() {
+fn test_multiple_assignments() {
     let b = BytecodeBuilder::new();
     b.addNRegisters(BytecodeType::Int32, 5);
     b.setArguments(1i32);

@@ -162,6 +162,11 @@ impl BytecodeBuilder {
         self.emitReg1AndIdx(opc::BC_CONST_INT32, dest, idx);
     }
 
+    pub fn emitConstInt32Value(dest: BytecodeRegister, value: Int32) {
+        let idx = self.addConst(ConstPoolEntry::Int32(value));
+        self.emitReg1AndIdx(opc::BC_CONST_INT32, dest, idx);
+    }
+
     pub fn emitConstInt64(dest: BytecodeRegister, idx: ConstPoolId) {
         self.emitReg1AndIdx(opc::BC_CONST_INT64, dest, idx);
     }

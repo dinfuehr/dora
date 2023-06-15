@@ -438,10 +438,15 @@ pub enum Op {
     Not,
 
     Add,
+    CheckedAdd,
     Sub,
+    CheckedSub,
     Mul,
+    CheckedMul,
     Div,
-    Mod, 
+    CheckedDiv,
+    Mod,
+    CheckedMod,
     And,
     Or,
     Xor,
@@ -468,6 +473,29 @@ pub enum Op {
     Arg,
 }
 
+impl Op {
+    pub fn isConst(): Bool {
+        match self {
+            Op::NullConst => true,
+            Op::Int32Const => true,
+            Op::Int64Const => true,
+            Op::Float32Const => true,
+            Op::Float64Const => true,
+            _ => false
+        }
+    }
+
+    pub fn isCommutative(): Bool {
+        match self {
+            Op::Add => true,
+            Op::Mul => true,
+            Op::CheckedAdd => true,
+            Op::CheckedMul => true,
+            _ => false
+        }
+    }
+}
+
 fn opName(op: Op): String {
     match op {
         Op::NullConst => "Const.Null",
@@ -485,10 +513,15 @@ fn opName(op: Op): String {
         Op::Neg => "Neg",
         Op::Not => "Not",
         Op::Add => "Add",
+        Op::CheckedAdd => "CheckedAdd",
         Op::Sub => "Sub",
+        Op::CheckedSub => "CheckedSub",
         Op::Mul => "Mul",
+        Op::CheckedMul => "CheckedMul",
         Op::Div => "Div",
+        Op::CheckedDiv => "CheckedDiv",
         Op::Mod => "Mod",
+        Op::CheckedMod => "CheckedMod",
         Op::And => "And",
         Op::Or => "Or",
         Op::Xor => "Xor",
@@ -570,6 +603,10 @@ impl Inst {
 
     pub fn isPhi(): Bool {
         self.op() == Op::Phi
+    }
+
+    pub fn isConst(): Bool {
+        self.op().isConst()
     }
 
     pub fn getType(): Type {
@@ -765,10 +802,15 @@ impl Inst {
             Op::Neg => false,
             Op::Not => false,
             Op::Add => false,
+            Op::CheckedAdd => true,
             Op::Sub => false,
+            Op::CheckedSub => true,
             Op::Mul => false,
+            Op::CheckedMul => true,
             Op::Div => false,
+            Op::CheckedDiv => true,
             Op::Mod => false,
+            Op::CheckedMod => true,
             Op::And => false,
             Op::Or => false,
             Op::Xor => false,

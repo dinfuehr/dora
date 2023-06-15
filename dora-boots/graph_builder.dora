@@ -526,8 +526,15 @@ impl SsaGen {
             _ => unreachable[Type](),
         };
 
-        let lhsInst = self.readVariable(lhs, self.current());
-        let rhsInst = self.readVariable(rhs, self.current());
+        let mut lhsInst = self.readVariable(lhs, self.current());
+        let mut rhsInst = self.readVariable(rhs, self.current());
+
+        if op.isCommutative() && lhsInst.isConst() {
+            let tmp = lhsInst;
+            lhsInst = rhsInst;
+            rhsInst = tmp;
+        }
+
         let destInst = createBinaryInst(op, ty, lhsInst, rhsInst);
         self.current().appendInst(destInst);
         self.writeVariable(dest, self.current(), destInst);
