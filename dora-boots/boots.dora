@@ -1,8 +1,5 @@
 use interface::compile;
 
-use ssagen_tests::bcSsaGenWhileCountDown;
-use ssagen_tests::bcSsaGenIfReturnInBothBranches;
-
 mod assembler;
 mod bytecode;
 mod codegen;
@@ -13,6 +10,6 @@ mod dominator;
 mod graph;
 mod interface;
 mod pipeline;
-mod ssagen_tests;
-mod ssagen;
+mod graph_builder_tests;
+mod graph_builder;
 

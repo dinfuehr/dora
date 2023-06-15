@@ -1,6 +1,6 @@
 use package::interface::CompilationInfo;
 use package::graph::Graph;
-use package::ssagen::createGraph;
+use package::graph_builder::createGraph;
 
 class CompilationJob {
     compilation_info: CompilationInfo,

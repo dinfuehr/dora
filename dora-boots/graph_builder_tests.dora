@@ -4,7 +4,7 @@ use package::bytecode::data::BytecodeType;
 use package::bytecode::data::ConstPoolEntry;
 use package::bytecode::dump::bytecodeDump;
 use package::bytecode::builder::BytecodeBuilder;
-use package::ssagen::createGraph;
+use package::graph_builder::createGraph;
 use package::graph::dump::assertGraph;
 
 @Test

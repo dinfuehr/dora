@@ -1,11 +1,11 @@
 use package::bytecode::builder::BytecodeBuilder;
 use package::bytecode::data::BytecodeFunction;
 use package::bytecode::data::BytecodeType;
-use package::ssagen::createGraph;
+use package::graph_builder::createGraph;
 use package::graph::Block;
 use package::graph::dump::dumpGraph;
-use package::bcSsaGenWhileCountDown;
-use package::bcSsaGenIfReturnInBothBranches;
+use package::graph_builder_tests::bcSsaGenWhileCountDown;
+use package::graph_builder_tests::bcSsaGenIfReturnInBothBranches;
 
 fn assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
     let graph = createGraph(fct);
