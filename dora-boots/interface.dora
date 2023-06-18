@@ -5,6 +5,7 @@ use package::deserializer::decodeCompilationInfo;
 use package::deserializer::ByteReader;
 use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
+use package::pipeline::CompilationJob;
 
 pub fn compile(encoded: Array[UInt8]): Array[UInt8] {
     let reader = ByteReader::new(encoded);
@@ -12,10 +13,7 @@ pub fn compile(encoded: Array[UInt8]): Array[UInt8] {
     assert(!reader.moreBytes());
     // bytecodeDump(info.bc);
 
-    match ci.arch {
-        Architecture::X64 => CodeGenX64::new(ci).generate(),
-        Architecture::Arm64 => CodeGenArm64::new(ci).generate(),
-    }
+    CompilationJob::new(ci).run()
 }
 
 pub class CompilationInfo(

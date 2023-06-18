@@ -1,8 +1,10 @@
-use package::interface::CompilationInfo;
+use package::interface::{Architecture, CompilationInfo};
 use package::graph::Graph;
 use package::graph_builder::createGraph;
+use package::codegen::x64::CodeGenX64;
+use package::codegen::arm64::CodeGenArm64;
 
-class CompilationJob {
+pub class CompilationJob {
     compilation_info: CompilationInfo,
     graph: Option[Graph],
 }
@@ -12,10 +14,10 @@ impl CompilationJob {
         CompilationJob(info, None[Graph])
     }
 
-    fn run() {
+    pub fn run(): Array[UInt8] {
         self.createGraph();
         self.optimizeGraph();
-        self.assembleCode();
+        self.assembleCode()
     }
 
     fn createGraph() {
@@ -27,7 +29,10 @@ impl CompilationJob {
         // TODO
     }
 
-    fn assembleCode() {
-        // TODO
+    fn assembleCode(): Array[UInt8] {
+        match self.compilation_info.arch {
+            Architecture::X64 => CodeGenX64::new(self.compilation_info).generate(),
+            Architecture::Arm64 => CodeGenArm64::new(self.compilation_info).generate(),
+        }
     }
 }
