@@ -51,8 +51,9 @@ pub const EXPRESSION_FIRST: TokenSet = TokenSet::new(&[
     RETURN_KW,
 ]);
 
-#[allow(unused)]
-pub const PARAM_LIST_RECOVERY_SET: TokenSet = TokenSet::new(&[FN_KW, L_BRACE]);
+pub const PARAM_LIST_RECOVERY_SET: TokenSet = TokenSet::new(&[FN_KW, OR, L_BRACE]);
+
+pub const EMPTY: TokenSet = TokenSet::new(&[]);
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Copy, Clone)]
 #[allow(non_camel_case_types)]

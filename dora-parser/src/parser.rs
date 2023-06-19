@@ -5,7 +5,7 @@ use crate::ast::*;
 use crate::error::{ParseError, ParseErrorWithLocation};
 
 use crate::green::GreenTreeBuilder;
-use crate::token::EXPRESSION_FIRST;
+use crate::token::{EXPRESSION_FIRST, PARAM_LIST_RECOVERY_SET};
 use crate::TokenKind::*;
 use crate::{lex, Span, TokenKind, TokenSet};
 
@@ -739,8 +739,16 @@ impl Parser {
     }
 
     fn parse_function_params(&mut self) -> Vec<Param> {
-        if self.eat(L_PAREN) {
-            self.parse_list(COMMA, R_PAREN, |p| p.parse_function_param())
+        if self.is(L_PAREN) {
+            self.parse_list2(
+                L_PAREN,
+                COMMA,
+                R_PAREN,
+                PARAM_LIST_RECOVERY_SET,
+                ParseError::ExpectedParam,
+                PARAM_LIST,
+                |p| p.parse_function_param_wrapper(),
+            )
         } else {
             self.report_error(ParseError::ExpectedParams);
             Vec::new()
@@ -773,7 +781,6 @@ impl Parser {
         data
     }
 
-    #[allow(unused)]
     fn parse_list2<F, R>(
         &mut self,
         start: TokenKind,
@@ -817,9 +824,8 @@ impl Parser {
         data
     }
 
-    #[allow(unused)]
     fn parse_function_param_wrapper(&mut self) -> Option<Param> {
-        if self.is(MUT_KW) || self.is(IDENT) {
+        if self.is(MUT_KW) || self.is(IDENTIFIER) {
             Some(self.parse_function_param())
         } else {
             None
@@ -1763,8 +1769,16 @@ impl Parser {
             // nothing to do
             Vec::new()
         } else {
-            self.assert(OR);
-            self.parse_list(COMMA, OR, |p| p.parse_function_param())
+            assert!(self.is(OR));
+            self.parse_list2(
+                OR,
+                COMMA,
+                OR,
+                PARAM_LIST_RECOVERY_SET,
+                ParseError::ExpectedParam,
+                PARAM_LIST,
+                |p| p.parse_function_param_wrapper(),
+            )
         };
 
         let return_type = if self.eat(COLON) {
