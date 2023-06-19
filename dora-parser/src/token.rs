@@ -1,3 +1,6 @@
+use TokenKind::*;
+
+#[derive(Copy, Clone)]
 pub struct TokenSet(u128);
 
 impl TokenSet {
@@ -23,30 +26,33 @@ impl TokenSet {
 }
 
 pub const EXPRESSION_FIRST: TokenSet = TokenSet::new(&[
-    TokenKind::TRUE,
-    TokenKind::FALSE,
-    TokenKind::STRING_LITERAL,
-    TokenKind::TEMPLATE_LITERAL,
-    TokenKind::CHAR_LITERAL,
-    TokenKind::INT_LITERAL,
-    TokenKind::FLOAT_LITERAL,
-    TokenKind::IDENTIFIER,
-    TokenKind::IF_KW,
-    TokenKind::MATCH_KW,
-    TokenKind::L_BRACE,
-    TokenKind::L_PAREN,
-    TokenKind::SELF_KW,
-    TokenKind::OR,
-    TokenKind::OR_OR,
-    TokenKind::NOT,
-    TokenKind::SUB,
-    TokenKind::ADD,
-    TokenKind::FOR_KW,
-    TokenKind::WHILE_KW,
-    TokenKind::BREAK_KW,
-    TokenKind::CONTINUE_KW,
-    TokenKind::RETURN_KW,
+    TRUE,
+    FALSE,
+    STRING_LITERAL,
+    TEMPLATE_LITERAL,
+    CHAR_LITERAL,
+    INT_LITERAL,
+    FLOAT_LITERAL,
+    IDENTIFIER,
+    IF_KW,
+    MATCH_KW,
+    L_BRACE,
+    L_PAREN,
+    SELF_KW,
+    OR,
+    OR_OR,
+    NOT,
+    SUB,
+    ADD,
+    FOR_KW,
+    WHILE_KW,
+    BREAK_KW,
+    CONTINUE_KW,
+    RETURN_KW,
 ]);
+
+#[allow(unused)]
+pub const PARAM_LIST_RECOVERY_SET: TokenSet = TokenSet::new(&[FN_KW, L_BRACE]);
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Copy, Clone)]
 #[allow(non_camel_case_types)]
@@ -192,6 +198,8 @@ pub enum TokenKind {
     IDENT,
     TYPE_PARAMS,
     TYPE_PARAM,
+
+    PARAM_LIST,
 
     MODIFIERS,
     MODIFIER,

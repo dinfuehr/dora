@@ -13,6 +13,8 @@ pub enum ParseError {
     ExpectedElement,
     ExpectedToken(String),
     ExpectedType,
+    ExpectedParams,
+    ExpectedParam,
     MisplacedElse,
     ExpectedFactor,
     UnclosedStringTemplate,
@@ -38,6 +40,8 @@ impl ParseError {
             ParseError::ExpectedToken(ref exp) => {
                 format!("expected `{}`.", exp)
             }
+            ParseError::ExpectedParams => "expected parameters.".into(),
+            ParseError::ExpectedParam => "expected param.".into(),
             ParseError::ExpectedType => format!("type expected."),
             ParseError::MisplacedElse => "misplace else.".into(),
             ParseError::ExpectedFactor => format!("factor expected."),

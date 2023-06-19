@@ -739,9 +739,10 @@ impl Parser {
     }
 
     fn parse_function_params(&mut self) -> Vec<Param> {
-        if self.expect(L_PAREN) {
+        if self.eat(L_PAREN) {
             self.parse_list(COMMA, R_PAREN, |p| p.parse_function_param())
         } else {
+            self.report_error(ParseError::ExpectedParams);
             Vec::new()
         }
     }
@@ -770,6 +771,59 @@ impl Parser {
         self.expect(stop);
 
         data
+    }
+
+    #[allow(unused)]
+    fn parse_list2<F, R>(
+        &mut self,
+        start: TokenKind,
+        sep: TokenKind,
+        stop: TokenKind,
+        recovery_set: TokenSet,
+        msg: ParseError,
+        node: TokenKind,
+        mut parse: F,
+    ) -> Vec<R>
+    where
+        F: FnMut(&mut Parser) -> Option<R>,
+    {
+        let mut data = vec![];
+        self.builder.start_node();
+        self.assert(start);
+
+        while !self.is(stop.clone()) && !self.is_eof() {
+            let entry = parse(self);
+
+            match entry {
+                Some(entry) => data.push(entry),
+                None => {
+                    if self.is_set(recovery_set) {
+                        break;
+                    }
+
+                    self.report_error(msg.clone());
+                    self.advance();
+                }
+            }
+
+            if !self.is(stop.clone()) {
+                self.expect(sep);
+            }
+        }
+
+        self.expect(stop);
+        self.builder.finish_node(node);
+
+        data
+    }
+
+    #[allow(unused)]
+    fn parse_function_param_wrapper(&mut self) -> Option<Param> {
+        if self.is(MUT_KW) || self.is(IDENT) {
+            Some(self.parse_function_param())
+        } else {
+            None
+        }
     }
 
     fn parse_function_param(&mut self) -> Param {
