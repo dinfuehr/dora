@@ -10,7 +10,7 @@ pub struct UseDefinition {
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
-    pub ast: Arc<ast::Use>,
+    pub ast: Arc<ast::UsePath>,
     pub visibility: Visibility,
 }
 
@@ -19,7 +19,7 @@ impl UseDefinition {
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
-        node: &Arc<ast::Use>,
+        node: &Arc<ast::UsePath>,
         modifiers: ParsedModifierList,
     ) -> UseDefinition {
         UseDefinition {

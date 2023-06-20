@@ -51,7 +51,17 @@ pub const EXPRESSION_FIRST: TokenSet = TokenSet::new(&[
     RETURN_KW,
 ]);
 
-pub const PARAM_LIST_RECOVERY_SET: TokenSet = TokenSet::new(&[FN_KW, OR, L_BRACE]);
+pub const PARAM_LIST_RS: TokenSet = TokenSet::new(&[FN_KW, OR, L_BRACE]);
+pub const ENUM_VARIANT_RS: TokenSet = EMPTY;
+pub const ENUM_VARIANT_ARGUMENT_RS: TokenSet = EMPTY;
+pub const TYPE_PARAM_RS: TokenSet = EMPTY;
+pub const USE_PATH_ATOM_FIRST: TokenSet =
+    TokenSet::new(&[SELF_KW, PACKAGE_KW, SUPER_KW, IDENTIFIER]);
+
+pub const ELEM_FIRST: TokenSet = TokenSet::new(&[
+    FN_KW, CLASS_KW, STRUCT_KW, TRAIT_KW, IMPL_KW, ALIAS_KW, LET_KW, CONST_KW, ENUM_KW, MOD_KW,
+    USE_KW, EXTERN_KW,
+]);
 
 pub const EMPTY: TokenSet = TokenSet::new(&[]);
 
@@ -189,7 +199,9 @@ pub enum TokenKind {
     USE_RENAME,
     EXTERN,
     ENUM,
+    ENUM_VARIANT_LIST,
     ENUM_VARIANT,
+    ENUM_VARIANT_ARGUMENT_LIST,
     MODULE,
     CONST,
     IMPL,

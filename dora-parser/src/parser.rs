@@ -5,7 +5,10 @@ use crate::ast::*;
 use crate::error::{ParseError, ParseErrorWithLocation};
 
 use crate::green::GreenTreeBuilder;
-use crate::token::{EXPRESSION_FIRST, PARAM_LIST_RECOVERY_SET};
+use crate::token::{
+    ELEM_FIRST, ENUM_VARIANT_ARGUMENT_RS, ENUM_VARIANT_RS, EXPRESSION_FIRST, PARAM_LIST_RS,
+    TYPE_PARAM_RS, USE_PATH_ATOM_FIRST,
+};
 use crate::TokenKind::*;
 use crate::{lex, Span, TokenKind, TokenSet};
 
@@ -146,6 +149,7 @@ impl Parser {
             }
 
             _ => {
+                assert!(!ELEM_FIRST.contains(self.current()));
                 let span = self.current_span();
                 self.report_error_at(ParseError::ExpectedElement, span);
                 self.advance();
@@ -181,9 +185,9 @@ impl Parser {
         })
     }
 
-    fn parse_use(&mut self, modifiers: Option<ModifierList>) -> Arc<Use> {
+    fn parse_use(&mut self, modifiers: Option<ModifierList>) -> Arc<UsePath> {
         self.assert(USE_KW);
-        let use_declaration = self.parse_use_inner(modifiers);
+        let use_declaration = self.parse_use_path(modifiers);
         self.expect(SEMICOLON);
 
         self.builder.finish_node(USE);
@@ -191,37 +195,43 @@ impl Parser {
         use_declaration
     }
 
-    fn parse_use_inner(&mut self, modifiers: Option<ModifierList>) -> Arc<Use> {
+    fn parse_use_path(&mut self, modifiers: Option<ModifierList>) -> Arc<UsePath> {
         self.start_node();
         self.builder.start_node();
         let mut path = Vec::new();
-        let mut allow_brace = false;
 
-        loop {
-            if self.is(L_BRACE) {
-                allow_brace = true;
-                break;
+        let target = if self.is_set(USE_PATH_ATOM_FIRST) {
+            path.push(self.parse_use_atom());
+
+            while self.is(COLON_COLON) && self.nth_is_set(1, USE_PATH_ATOM_FIRST) {
+                self.advance();
+                path.push(self.parse_use_atom());
             }
 
-            let component = self.parse_use_path_component();
-            path.push(component);
+            if self.is(COLON_COLON) {
+                self.advance();
 
-            if !self.eat(COLON_COLON) {
-                break;
+                if self.is(L_BRACE) {
+                    self.parse_use_brace()
+                } else {
+                    self.report_error(ParseError::ExpectedUsePath);
+                    UsePathDescriptor::Error
+                }
+            } else if self.is(AS) {
+                UsePathDescriptor::As(self.parse_use_as())
+            } else {
+                UsePathDescriptor::Default
             }
-        }
-
-        let target = if allow_brace && self.is(L_BRACE) {
+        } else if self.is(L_BRACE) {
             self.parse_use_brace()
-        } else if self.is(AS) {
-            UseTargetDescriptor::As(self.parse_use_as())
         } else {
-            UseTargetDescriptor::Default
+            self.report_error(ParseError::ExpectedUsePath);
+            UsePathDescriptor::Error
         };
 
         let green = self.builder.finish_node(USE_PATH);
 
-        Arc::new(Use {
+        Arc::new(UsePath {
             id: self.new_node_id(),
             span: self.finish_node(),
             green,
@@ -251,7 +261,8 @@ impl Parser {
         }
     }
 
-    fn parse_use_path_component(&mut self) -> UsePathComponent {
+    fn parse_use_atom(&mut self) -> UseAtom {
+        assert!(self.is_set(USE_PATH_ATOM_FIRST));
         self.start_node();
         self.builder.start_node();
 
@@ -272,20 +283,20 @@ impl Parser {
 
         let green = self.builder.finish_node(USE_COMPONENT);
 
-        UsePathComponent {
+        UseAtom {
             green,
             span: self.finish_node(),
             value,
         }
     }
 
-    fn parse_use_brace(&mut self) -> UseTargetDescriptor {
+    fn parse_use_brace(&mut self) -> UsePathDescriptor {
         self.start_node();
         self.assert(L_BRACE);
 
-        let targets = self.parse_list(COMMA, R_BRACE, |p| p.parse_use_inner(None));
+        let targets = self.parse_list(COMMA, R_BRACE, |p| p.parse_use_path(None));
 
-        UseTargetDescriptor::Group(UseTargetGroup {
+        UsePathDescriptor::Group(UseTargetGroup {
             span: self.finish_node(),
             targets,
         })
@@ -297,8 +308,26 @@ impl Parser {
         let name = self.expect_identifier();
         let type_params = self.parse_type_params();
 
-        self.expect(L_BRACE);
-        let variants = self.parse_list(COMMA, R_BRACE, |p| p.parse_enum_variant());
+        let variants = if self.is(L_BRACE) {
+            self.parse_list2(
+                L_BRACE,
+                COMMA,
+                R_BRACE,
+                ENUM_VARIANT_RS,
+                ParseError::ExpectedEnumVariant,
+                ENUM_VARIANT_LIST,
+                |p| {
+                    if p.is(IDENTIFIER) {
+                        Some(p.parse_enum_variant())
+                    } else {
+                        None
+                    }
+                },
+            )
+        } else {
+            self.report_error(ParseError::ExpectedEnumVariants);
+            Vec::new()
+        };
         let green = self.builder.finish_node(ENUM);
 
         Arc::new(Enum {
@@ -348,8 +377,16 @@ impl Parser {
         self.builder.start_node();
         let name = self.expect_identifier();
 
-        let types = if self.eat(L_PAREN) {
-            Some(self.parse_list(COMMA, R_PAREN, |p| p.parse_type()))
+        let types = if self.is(L_PAREN) {
+            Some(self.parse_list2(
+                L_PAREN,
+                COMMA,
+                R_PAREN,
+                ENUM_VARIANT_ARGUMENT_RS,
+                ParseError::ExpectedType,
+                ENUM_VARIANT_ARGUMENT_LIST,
+                |p| p.parse_type_wrapper(),
+            ))
         } else {
             None
         };
@@ -615,14 +652,29 @@ impl Parser {
         if self.is(L_BRACKET) {
             self.builder.start_node();
             self.start_node();
-            self.assert(L_BRACKET);
-            let params = self.parse_list(COMMA, R_BRACKET, |p| p.parse_type_param());
+            let params = self.parse_list2(
+                L_BRACKET,
+                COMMA,
+                R_BRACKET,
+                TYPE_PARAM_RS,
+                ParseError::ExpectedTypeParam,
+                TYPE_PARAMS,
+                |p| p.parse_type_param_wrapper(),
+            );
             self.builder.finish_node(TYPE_PARAMS);
 
             Some(TypeParams {
                 span: self.finish_node(),
                 params,
             })
+        } else {
+            None
+        }
+    }
+
+    fn parse_type_param_wrapper(&mut self) -> Option<TypeParam> {
+        if self.is(IDENTIFIER) {
+            Some(self.parse_type_param())
         } else {
             None
         }
@@ -744,7 +796,7 @@ impl Parser {
                 L_PAREN,
                 COMMA,
                 R_PAREN,
-                PARAM_LIST_RECOVERY_SET,
+                PARAM_LIST_RS,
                 ParseError::ExpectedParam,
                 PARAM_LIST,
                 |p| p.parse_function_param_wrapper(),
@@ -799,10 +851,17 @@ impl Parser {
         self.assert(start);
 
         while !self.is(stop.clone()) && !self.is_eof() {
+            let pos_before_element = self.token_idx;
             let entry = parse(self);
 
             match entry {
-                Some(entry) => data.push(entry),
+                Some(entry) => {
+                    // Callback needs to at least advance by one token, otherwise
+                    // we might loop forever here.
+                    assert!(self.token_idx > pos_before_element);
+                    data.push(entry)
+                }
+
                 None => {
                     if self.is_set(recovery_set) {
                         break;
@@ -872,6 +931,14 @@ impl Parser {
         }
     }
 
+    fn parse_type_wrapper(&mut self) -> Option<Type> {
+        if self.is(UPCASE_SELF_KW) || self.is(IDENTIFIER) || self.is(L_PAREN) {
+            Some(self.parse_type())
+        } else {
+            None
+        }
+    }
+
     fn parse_type(&mut self) -> Type {
         self.builder.start_node();
         match self.current() {
@@ -886,8 +953,16 @@ impl Parser {
                 self.start_node();
                 let path = self.parse_path();
 
-                let params = if self.eat(L_BRACKET) {
-                    self.parse_list(COMMA, R_BRACKET, |p| p.parse_type())
+                let params = if self.is(L_BRACKET) {
+                    self.parse_list2(
+                        L_BRACKET,
+                        COMMA,
+                        R_BRACKET,
+                        TYPE_PARAM_RS,
+                        ParseError::ExpectedType,
+                        LIST,
+                        |p| p.parse_type_wrapper(),
+                    )
                 } else {
                     Vec::new()
                 };
@@ -905,8 +980,15 @@ impl Parser {
 
             L_PAREN => {
                 self.start_node();
-                self.assert(L_PAREN);
-                let subtypes = self.parse_list(COMMA, R_PAREN, |p| p.parse_type());
+                let subtypes = self.parse_list2(
+                    L_PAREN,
+                    COMMA,
+                    R_PAREN,
+                    TYPE_PARAM_RS,
+                    ParseError::ExpectedType,
+                    LIST,
+                    |p| p.parse_type_wrapper(),
+                );
 
                 if self.eat(COLON) {
                     let ret = self.parse_type();
@@ -1774,7 +1856,7 @@ impl Parser {
                 OR,
                 COMMA,
                 OR,
-                PARAM_LIST_RECOVERY_SET,
+                PARAM_LIST_RS,
                 ParseError::ExpectedParam,
                 PARAM_LIST,
                 |p| p.parse_function_param_wrapper(),
@@ -1880,8 +1962,12 @@ impl Parser {
     }
 
     fn current(&self) -> TokenKind {
-        if self.token_idx < self.tokens.len() {
-            self.tokens[self.token_idx]
+        self.nth(0)
+    }
+
+    fn nth(&self, idx: usize) -> TokenKind {
+        if self.token_idx + idx < self.tokens.len() {
+            self.tokens[self.token_idx + idx]
         } else {
             EOF
         }
@@ -1902,6 +1988,15 @@ impl Parser {
 
     fn is_set(&self, set: TokenSet) -> bool {
         set.contains(self.current())
+    }
+
+    #[allow(unused)]
+    fn nth_is(&self, idx: usize, kind: TokenKind) -> bool {
+        self.nth(idx) == kind
+    }
+
+    fn nth_is_set(&self, idx: usize, set: TokenSet) -> bool {
+        set.contains(self.nth(idx))
     }
 
     fn is_eof(&self) -> bool {

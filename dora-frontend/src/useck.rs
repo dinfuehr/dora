@@ -6,9 +6,7 @@ use crate::report_sym_shadow_span;
 use crate::sema::{module_package, ModuleDefinitionId, Sema};
 use crate::sym::{ModuleSymTable, Sym};
 
-use dora_parser::ast::{
-    self, Ident, NodeId, UsePathComponent, UsePathComponentValue, UseTargetDescriptor,
-};
+use dora_parser::ast::{self, Ident, NodeId, UseAtom, UsePathComponentValue, UsePathDescriptor};
 use dora_parser::Span;
 
 use super::sema::SourceFileId;
@@ -67,7 +65,7 @@ enum UseError {
 
 fn check_use(
     sa: &Sema,
-    use_declaration: &ast::Use,
+    use_declaration: &ast::UsePath,
     use_module_id: ModuleDefinitionId,
     use_file_id: SourceFileId,
     previous_sym: Option<Sym>,
@@ -110,7 +108,7 @@ fn check_use(
     }
 
     match &use_declaration.target {
-        UseTargetDescriptor::Default => {
+        UsePathDescriptor::Default => {
             let last_component = use_declaration.common_path.last().expect("no component");
 
             let name = match last_component.value {
@@ -136,7 +134,7 @@ fn check_use(
                 previous_sym,
             )?;
         }
-        UseTargetDescriptor::As(target) => {
+        UsePathDescriptor::As(target) => {
             let last_component = use_declaration.common_path.last().expect("no component");
 
             if let Some(ident) = &target.name {
@@ -153,7 +151,7 @@ fn check_use(
                 )?;
             }
         }
-        UseTargetDescriptor::Group(ref group) => {
+        UsePathDescriptor::Group(ref group) => {
             if group.targets.is_empty() {
                 sa.report(use_file_id, group.span, ErrorMessage::ExpectedPath);
                 return Err(UseError::Fatal);
@@ -172,6 +170,8 @@ fn check_use(
                 )?;
             }
         }
+
+        UsePathDescriptor::Error => {}
     }
 
     Ok(())
@@ -179,7 +179,7 @@ fn check_use(
 
 fn initial_module(
     sa: &Sema,
-    use_declaration: &ast::Use,
+    use_declaration: &ast::UsePath,
     use_module_id: ModuleDefinitionId,
     use_file_id: SourceFileId,
     previous_sym: Option<Sym>,
@@ -229,7 +229,7 @@ fn process_component(
     use_module_id: ModuleDefinitionId,
     use_file_id: SourceFileId,
     previous_sym: Sym,
-    component: &UsePathComponent,
+    component: &UseAtom,
     ignore_errors: bool,
 ) -> Result<Sym, UseError> {
     let component_name = match component.value {

@@ -105,7 +105,7 @@ pub enum ElemData {
     Enum(Arc<Enum>),
     Alias(Arc<Alias>),
     Module(Arc<Module>),
-    Use(Arc<Use>),
+    Use(Arc<UsePath>),
     Extern(Arc<ExternPackage>),
     Error { id: NodeId, span: Span },
 }
@@ -231,26 +231,27 @@ pub struct Module {
 }
 
 #[derive(Clone, Debug)]
-pub struct Use {
+pub struct UsePath {
     pub id: NodeId,
     pub span: Span,
     pub green: GreenNode,
     pub modifiers: Option<ModifierList>,
-    pub common_path: Vec<UsePathComponent>,
-    pub target: UseTargetDescriptor,
+    pub common_path: Vec<UseAtom>,
+    pub target: UsePathDescriptor,
 }
 
 #[derive(Clone, Debug)]
-pub enum UseTargetDescriptor {
+pub enum UsePathDescriptor {
     Default,
     As(UseTargetName),
     Group(UseTargetGroup),
+    Error,
 }
 
 #[derive(Clone, Debug)]
 pub struct UseTargetGroup {
     pub span: Span,
-    pub targets: Vec<Arc<Use>>,
+    pub targets: Vec<Arc<UsePath>>,
 }
 
 #[derive(Clone, Debug)]
@@ -261,7 +262,7 @@ pub struct UseTargetName {
 }
 
 #[derive(Clone, Debug)]
-pub struct UsePathComponent {
+pub struct UseAtom {
     pub green: GreenNode,
     pub span: Span,
     pub value: UsePathComponentValue,
