@@ -7,7 +7,7 @@ use crate::error::{ParseError, ParseErrorWithLocation};
 use crate::green::GreenTreeBuilder;
 use crate::token::{
     ELEM_FIRST, ENUM_VARIANT_ARGUMENT_RS, ENUM_VARIANT_RS, EXPRESSION_FIRST, PARAM_LIST_RS,
-    TYPE_PARAM_RS, USE_PATH_ATOM_FIRST,
+    TYPE_PARAM_RS, USE_PATH_ATOM_FIRST, USE_PATH_FIRST,
 };
 use crate::TokenKind::*;
 use crate::{lex, Span, TokenKind, TokenSet};
@@ -219,7 +219,7 @@ impl Parser {
                 self.advance();
 
                 if self.is(L_BRACE) {
-                    self.parse_use_brace()
+                    UsePathDescriptor::Group(self.parse_use_group())
                 } else {
                     self.report_error(ParseError::ExpectedUsePath);
                     UsePathDescriptor::Error
@@ -230,7 +230,7 @@ impl Parser {
                 UsePathDescriptor::Default
             }
         } else if self.is(L_BRACE) {
-            self.parse_use_brace()
+            UsePathDescriptor::Group(self.parse_use_group())
         } else {
             self.report_error(ParseError::ExpectedUsePath);
             UsePathDescriptor::Error
@@ -296,14 +296,32 @@ impl Parser {
         }
     }
 
-    fn parse_use_brace(&mut self) -> UsePathDescriptor {
+    fn parse_use_group(&mut self) -> Arc<UseGroup> {
         self.start_node();
-        self.assert(L_BRACE);
+        self.builder.start_node();
 
-        let targets = self.parse_list(COMMA, R_BRACE, |p| p.parse_use_path());
+        let targets = self.parse_list2(
+            L_BRACE,
+            COMMA,
+            R_BRACE,
+            ELEM_FIRST,
+            ParseError::ExpectedUsePath,
+            USE_GROUP,
+            |p| {
+                if p.is_set(USE_PATH_FIRST) {
+                    Some(p.parse_use_path())
+                } else {
+                    None
+                }
+            },
+        );
 
-        UsePathDescriptor::Group(UseTargetGroup {
+        let green = self.builder.finish_node(USE_GROUP);
+
+        Arc::new(UseGroup {
+            id: self.new_node_id(),
             span: self.finish_node(),
+            green,
             targets,
         })
     }

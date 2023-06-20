@@ -252,13 +252,15 @@ pub struct UsePath {
 pub enum UsePathDescriptor {
     Default,
     As(UseTargetName),
-    Group(UseTargetGroup),
+    Group(Arc<UseGroup>),
     Error,
 }
 
 #[derive(Clone, Debug)]
-pub struct UseTargetGroup {
+pub struct UseGroup {
+    pub id: NodeId,
     pub span: Span,
+    pub green: GreenNode,
     pub targets: Vec<Arc<UsePath>>,
 }
 

@@ -57,6 +57,8 @@ pub const ENUM_VARIANT_ARGUMENT_RS: TokenSet = EMPTY;
 pub const TYPE_PARAM_RS: TokenSet = EMPTY;
 pub const USE_PATH_ATOM_FIRST: TokenSet =
     TokenSet::new(&[SELF_KW, PACKAGE_KW, SUPER_KW, IDENTIFIER]);
+pub const USE_PATH_FIRST: TokenSet =
+    USE_PATH_ATOM_FIRST.union(TokenSet::new(&[TokenKind::L_BRACE]));
 
 pub const ELEM_FIRST: TokenSet = TokenSet::new(&[
     FN_KW, CLASS_KW, STRUCT_KW, TRAIT_KW, IMPL_KW, ALIAS_KW, LET_KW, CONST_KW, ENUM_KW, MOD_KW,
@@ -194,6 +196,7 @@ pub enum TokenKind {
     CLASS,
     CLASS_FIELD,
     USE,
+    USE_GROUP,
     USE_PATH,
     USE_COMPONENT,
     USE_RENAME,
