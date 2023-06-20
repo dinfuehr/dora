@@ -98,7 +98,7 @@ impl AstDumper {
         });
     }
 
-    fn dump_use(&mut self, node: &UsePath) {
+    fn dump_use(&mut self, node: &Use) {
         dump!(self, "use @ {} {}", node.span, node.id);
     }
 

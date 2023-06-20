@@ -45,7 +45,7 @@ pub trait Visitor: Sized {
         walk_module(self, e);
     }
 
-    fn visit_use(&mut self, i: &Arc<UsePath>) {
+    fn visit_use(&mut self, i: &Arc<Use>) {
         walk_use(self, i);
     }
 
@@ -157,7 +157,7 @@ pub fn walk_module<V: Visitor>(v: &mut V, node: &Arc<Module>) {
     }
 }
 
-pub fn walk_use<V: Visitor>(_v: &mut V, _use: &Arc<UsePath>) {
+pub fn walk_use<V: Visitor>(_v: &mut V, _use: &Arc<Use>) {
     // nothing to do
 }
 

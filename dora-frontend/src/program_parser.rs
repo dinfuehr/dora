@@ -468,13 +468,13 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_use(&mut self, node: &Arc<ast::UsePath>) {
+    fn visit_use(&mut self, node: &Arc<ast::Use>) {
         let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
         let use_def = UseDefinition::new(
             self.package_id,
             self.module_id,
             self.file_id,
-            node,
+            &node.path,
             modifiers,
         );
         self.sa.uses.push(use_def);

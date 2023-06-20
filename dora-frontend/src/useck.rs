@@ -85,15 +85,10 @@ fn check_use(
         previous_sym,
     )?;
 
-    for (idx, component) in use_declaration
-        .common_path
-        .iter()
-        .enumerate()
-        .skip(start_idx)
-    {
+    for (idx, component) in use_declaration.path.iter().enumerate().skip(start_idx) {
         if !previous_sym.is_enum() && !previous_sym.is_module() {
             let msg = ErrorMessage::ExpectedPath;
-            sa.report(use_file_id, use_declaration.common_path[idx - 1].span, msg);
+            sa.report(use_file_id, use_declaration.path[idx - 1].span, msg);
             return Err(UseError::Fatal);
         }
 
@@ -109,7 +104,7 @@ fn check_use(
 
     match &use_declaration.target {
         UsePathDescriptor::Default => {
-            let last_component = use_declaration.common_path.last().expect("no component");
+            let last_component = use_declaration.path.last().expect("no component");
 
             let name = match last_component.value {
                 UsePathComponentValue::Name(ref name) => name.clone(),
@@ -135,7 +130,7 @@ fn check_use(
             )?;
         }
         UsePathDescriptor::As(target) => {
-            let last_component = use_declaration.common_path.last().expect("no component");
+            let last_component = use_declaration.path.last().expect("no component");
 
             if let Some(ident) = &target.name {
                 assert!(all_resolved.insert((use_file_id, use_declaration.id)));
@@ -188,7 +183,7 @@ fn initial_module(
         return Ok((0, namespace));
     }
 
-    if let Some(first_component) = use_declaration.common_path.first() {
+    if let Some(first_component) = use_declaration.path.first() {
         match first_component.value {
             UsePathComponentValue::This => Ok((1, Sym::Module(use_module_id))),
             UsePathComponentValue::Package => {

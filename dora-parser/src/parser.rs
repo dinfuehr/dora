@@ -185,17 +185,24 @@ impl Parser {
         })
     }
 
-    fn parse_use(&mut self, modifiers: Option<ModifierList>) -> Arc<UsePath> {
+    fn parse_use(&mut self, modifiers: Option<ModifierList>) -> Arc<Use> {
+        self.start_node();
         self.assert(USE_KW);
-        let use_declaration = self.parse_use_path(modifiers);
+        let path = self.parse_use_path();
         self.expect(SEMICOLON);
 
-        self.builder.finish_node(USE);
+        let green = self.builder.finish_node(USE);
 
-        use_declaration
+        Arc::new(Use {
+            id: self.new_node_id(),
+            span: self.finish_node(),
+            green,
+            modifiers,
+            path,
+        })
     }
 
-    fn parse_use_path(&mut self, modifiers: Option<ModifierList>) -> Arc<UsePath> {
+    fn parse_use_path(&mut self) -> Arc<UsePath> {
         self.start_node();
         self.builder.start_node();
         let mut path = Vec::new();
@@ -235,8 +242,7 @@ impl Parser {
             id: self.new_node_id(),
             span: self.finish_node(),
             green,
-            modifiers,
-            common_path: path,
+            path,
             target,
         })
     }
@@ -294,7 +300,7 @@ impl Parser {
         self.start_node();
         self.assert(L_BRACE);
 
-        let targets = self.parse_list(COMMA, R_BRACE, |p| p.parse_use_path(None));
+        let targets = self.parse_list(COMMA, R_BRACE, |p| p.parse_use_path());
 
         UsePathDescriptor::Group(UseTargetGroup {
             span: self.finish_node(),
