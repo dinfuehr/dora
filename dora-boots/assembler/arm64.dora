@@ -365,6 +365,54 @@ impl AssemblerArm64 {
         self.buffer.emitInt32(encoding::exception(0b001i32, imm16, 0i32, 0i32));
     }
 
+   pub fn cas(cmp: Register, new: Register, addr: Register) {
+        self.buffer.emitInt32(encoding::ldst_exclusive(
+            0b11i32, 1i32, 0i32, 1i32, cmp, 0i32, REG_ZERO, addr, new,
+        ))
+    }
+
+    pub fn cas_w(cmp: Register, new: Register, addr: Register) {
+        self.buffer.emitInt32(encoding::ldst_exclusive(
+            0b10i32, 1i32, 0i32, 1i32, cmp, 0i32, REG_ZERO, addr, new,
+        ))
+    }
+
+    pub fn casa(cmp: Register, new: Register, addr: Register) {
+        self.buffer.emitInt32(encoding::ldst_exclusive(
+            0b11i32, 1i32, 1i32, 1i32, cmp, 0i32, REG_ZERO, addr, new,
+        ))
+    }
+
+    pub fn casa_w(cmp: Register, new: Register, addr: Register) {
+        self.buffer.emitInt32(encoding::ldst_exclusive(
+            0b10i32, 1i32, 1i32, 1i32, cmp, 0i32, REG_ZERO, addr, new,
+        ))
+    }
+
+    pub fn casal(cmp: Register, new: Register, addr: Register) {
+        self.buffer.emitInt32(encoding::ldst_exclusive(
+            0b11i32, 1i32, 1i32, 1i32, cmp, 1i32, REG_ZERO, addr, new,
+        ))
+    }
+
+    pub fn casal_w(cmp: Register, new: Register, addr: Register) {
+        self.buffer.emitInt32(encoding::ldst_exclusive(
+            0b10i32, 1i32, 1i32, 1i32, cmp, 1i32, REG_ZERO, addr, new,
+        ))
+    }
+
+    pub fn casl(cmp: Register, new: Register, addr: Register) {
+        self.buffer.emitInt32(encoding::ldst_exclusive(
+            0b11i32, 1i32, 0i32, 1i32, cmp, 1i32, REG_ZERO, addr, new,
+        ))
+    }
+
+    pub fn casl_w(cmp: Register, new: Register, addr: Register) {
+        self.buffer.emitInt32(encoding::ldst_exclusive(
+            0b10i32, 1i32, 0i32, 1i32, cmp, 1i32, REG_ZERO, addr, new,
+        ))
+    }
+
     pub fn cbnz(reg: Register, target: Label) {
         self.common_cbz_cbnz(true, true, reg, target);
     }
@@ -2000,6 +2048,40 @@ mod tests {
             0xd4200000i32,
             // brk #0xffff
             0xd43fffe0i32,
+        );
+    }
+
+    @Test
+    fn test_cas() {
+        let asm = AssemblerArm64::new();
+        asm.cas(R0, R1, R2);
+        asm.cas_w(R0, R1, R2);
+        asm.casa(R0, R1, R2);
+        asm.casa_w(R0, R1, R2);
+        asm.casl(R0, R1, R2);
+        asm.casl_w(R0, R1, R2);
+        asm.casal(R0, R1, R2);
+        asm.casal_w(R0, R1, R2);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // cas x0, x1, [x2]
+            0xc8a07c41i32,
+            // cas w0, w1, [x2]
+            0x88a07c41i32,
+            // casa x0, x1, [x2]
+            0xc8e07c41i32,
+            // casa w0, w1, [x2]
+            0x88e07c41i32,
+            // casl x0, x1, [x2]
+            0xc8a0fc41i32,
+            // casl w0, w1, [x2]
+            0x88a0fc41i32,
+            // casal x0, x1, [x2]
+            0xc8e0fc41i32,
+            // casal w0, w1, [x2]
+            0x88e0fc41i32,
         );
     }
 }
