@@ -198,11 +198,11 @@ impl MacroAssembler {
     }
 
     pub fn jump_if(&mut self, cond: CondCode, target: Label) {
-        self.asm.bc_l(cond.into(), target);
+        self.asm.bc(cond.into(), target);
     }
 
     pub fn jump(&mut self, target: Label) {
-        self.asm.b_l(target);
+        self.asm.b(target);
     }
 
     pub fn jump_reg(&mut self, reg: Reg) {
@@ -257,17 +257,17 @@ impl MacroAssembler {
             MachineMode::Int32 => {
                 self.asm.movz_w((*scratch).into(), 0x8000, 1);
                 self.asm.cmp_w(lhs.into(), (*scratch).into());
-                self.asm.bc_l(Cond::NE, lbl_div);
+                self.asm.bc(Cond::NE, lbl_div);
                 self.asm.cmn_imm_w(rhs.into(), 1, 0);
-                self.asm.bc_l(Cond::EQ, lbl_overflow);
+                self.asm.bc(Cond::EQ, lbl_overflow);
             }
 
             MachineMode::Int64 => {
                 self.asm.movz((*scratch).into(), 0x8000, 3);
                 self.asm.cmp(lhs.into(), (*scratch).into());
-                self.asm.bc_l(Cond::NE, lbl_div);
+                self.asm.bc(Cond::NE, lbl_div);
                 self.asm.cmn_imm(rhs.into(), 1, 0);
-                self.asm.bc_l(Cond::EQ, lbl_overflow);
+                self.asm.bc(Cond::EQ, lbl_overflow);
             }
 
             _ => unreachable!(),
@@ -324,7 +324,7 @@ impl MacroAssembler {
                 self.asm.cmp_ext(dest.into(), dest.into(), Extend::SXTW, 0);
 
                 let lbl_overflow = self.create_label();
-                self.asm.bc_l(Cond::NE, lbl_overflow);
+                self.asm.bc(Cond::NE, lbl_overflow);
                 self.emit_bailout(lbl_overflow, Trap::OVERFLOW, location);
             }
             MachineMode::Int64 => {
@@ -353,7 +353,7 @@ impl MacroAssembler {
                 }
 
                 self.asm.cmp_sh(tmp_reg.into(), dest.into(), Shift::ASR, 63);
-                self.asm.bc_l(Cond::NE, lbl_overflow);
+                self.asm.bc(Cond::NE, lbl_overflow);
                 self.emit_bailout(lbl_overflow, Trap::OVERFLOW, location);
             }
             _ => panic!("unimplemented mode {:?}", mode),
@@ -387,7 +387,7 @@ impl MacroAssembler {
         }
 
         let lbl_overflow = self.create_label();
-        self.asm.bc_l(Cond::VS, lbl_overflow);
+        self.asm.bc(Cond::VS, lbl_overflow);
         self.emit_bailout(lbl_overflow, Trap::OVERFLOW, location);
     }
 
@@ -430,7 +430,7 @@ impl MacroAssembler {
         }
 
         let lbl_overflow = self.create_label();
-        self.asm.bc_l(Cond::VS, lbl_overflow);
+        self.asm.bc(Cond::VS, lbl_overflow);
         self.emit_bailout(lbl_overflow, Trap::OVERFLOW, location);
     }
 
@@ -1029,7 +1029,7 @@ impl MacroAssembler {
             let loop_end = self.asm.create_label();
             self.asm.ldaxr_w((*current).into(), address.into());
             self.asm.cmp_w((*current).into(), expected.into());
-            self.asm.bc_l(Cond::NE, loop_end);
+            self.asm.bc(Cond::NE, loop_end);
             self.asm
                 .stlxr_w((*state).into(), new.into(), address.into());
             self.asm.cbnz_w((*state).into(), loop_start);
@@ -1055,7 +1055,7 @@ impl MacroAssembler {
             let loop_end = self.asm.create_label();
             self.asm.ldaxr((*current).into(), address.into());
             self.asm.cmp((*current).into(), expected.into());
-            self.asm.bc_l(Cond::NE, loop_end);
+            self.asm.bc(Cond::NE, loop_end);
             self.asm.stlxr((*state).into(), new.into(), address.into());
             self.asm.cbnz((*state).into(), loop_start);
             self.asm.bind_label(loop_end);

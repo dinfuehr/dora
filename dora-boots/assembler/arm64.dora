@@ -253,6 +253,14 @@ impl AssemblerArm64 {
         self.buffer.emitInt32(encoding::pcrel(0i32, imm, rd));
     }
 
+    pub fn asrv(rd: Register, rn: Register, rm: Register) {
+        self.buffer.emitInt32(encoding::dataproc2(1i32, 0i32, rm, 0b1010i32, rn, rd));
+    }
+
+    pub fn asrv_w(rd: Register, rn: Register, rm: Register) {
+        self.buffer.emitInt32(encoding::dataproc2(0i32, 0i32, rm, 0b1010i32, rn, rd));
+    }
+
     pub fn b(target: Label) {
         if target.isBound() {
             let diff = target.offset - self.buffer.position();
@@ -269,8 +277,6 @@ impl AssemblerArm64 {
             ));
         }
     }
-
-
 
     pub fn bc(cond: Cond, target: Label) {
         if target.isBound() {
@@ -292,6 +298,30 @@ impl AssemblerArm64 {
     fn bc_imm(cond: Cond, diff: Int32) {
         let inst = encoding::cond_branch_imm(cond, diff);
         self.buffer.emitInt32(inst);
+    }
+
+    pub fn bfm(rd: Register, rn: Register, immr: Int32, imms: Int32) {
+        self.buffer.emitInt32(encoding::bitfield(1i32, 0b01i32, 1i32, immr, imms, rn, rd));
+    }
+
+    pub fn bfm_w(rd: Register, rn: Register, immr: Int32, imms: Int32) {
+        self.buffer.emitInt32(encoding::bitfield(0i32, 0b01i32, 0i32, immr, imms, rn, rd));
+    }
+
+    pub fn bic_sh(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
+        self.buffer.emitInt32(encoding::logical_shreg(1i32, 0b00i32, shift, 1i32, rm, imm6, rn, rd));
+    }
+
+    pub fn bic_sh_w(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
+        self.buffer.emitInt32(encoding::logical_shreg(0i32, 0b00i32, shift, 1i32, rm, imm6, rn, rd));
+    }
+
+    pub fn bics_sh(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
+        self.buffer.emitInt32(encoding::logical_shreg(1i32, 0b11i32, shift, 1i32, rm, imm6, rn, rd));
+    }
+
+    pub fn bics_sh_w(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
+        self.buffer.emitInt32(encoding::logical_shreg(0i32, 0b11i32, shift, 1i32, rm, imm6, rn, rd));
     }
 
     pub fn bl(target: Label) {
@@ -319,6 +349,10 @@ impl AssemblerArm64 {
     pub fn br(rn: Register) {
         let inst = encoding::uncond_branch_reg(0b0000i32, 0b11111i32, 0i32, rn, 0i32);
         self.buffer.emitInt32(inst);
+    }
+
+    pub fn brk(imm16: Int32) {
+        self.buffer.emitInt32(encoding::exception(0b001i32, imm16, 0i32, 0i32));
     }
 
     pub fn cbnz(reg: Register, target: Label) {
@@ -1801,6 +1835,86 @@ mod tests {
             0x1000003ci32,
             // adr x27, 8
             0x1000005bi32,
+        );
+    }
+
+    @Test
+    fn test_asrv() {
+        let asm = AssemblerArm64::new();
+        asm.asrv(R0, R1, R2);
+        asm.asrv_w(R0, R1, R2);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // asr x0, x1, x2
+            0x9ac22820i32,
+            // asr w0, w1, w2
+            0x1ac22820i32,
+        );
+    }
+
+    @Test
+    fn test_bfm() {
+        let asm = AssemblerArm64::new();
+        asm.bfm(R0, R1, 1i32, 2i32);
+        asm.bfm_w(R2, R3, 3i32, 4i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // bfxil x0, x1, #1, #2
+            0xb3410820i32,
+            // bfxil w2, w3, #3, #2
+            0x33031062i32,
+        );
+    }
+
+    @Test
+    fn test_bic_sh() {
+        let asm = AssemblerArm64::new();
+        asm.bic_sh(R0, R1, R2, Shift::LSR, 2i32);
+        asm.bic_sh_w(R2, R3, R4, Shift::LSL, 2i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // bic x0, x1, x2, lsr #2
+            0x8a620820i32,
+            // bic w2, w3, w4, lsl #2
+            0x0a240862i32,
+        );
+    }
+
+    @Test
+    fn test_bics_sh() {
+        let asm = AssemblerArm64::new();
+        asm.bics_sh(R0, R1, R2, Shift::LSR, 2i32);
+        asm.bics_sh_w(R2, R3, R4, Shift::LSL, 2i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // bics x0, x1, x2, lsr #2
+            0xea620820i32,
+            // bics w2, w3, w4, lsl #2
+            0x6a240862i32,
+        );
+    }
+
+    @Test
+    fn test_brk() {
+        let asm = AssemblerArm64::new();
+        asm.brk(0i32);
+        asm.brk(0xFFFFi32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // brk #0
+            0xd4200000i32,
+            // brk #0xffff
+            0xd43fffe0i32,
         );
     }
 }

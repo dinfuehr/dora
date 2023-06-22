@@ -394,11 +394,11 @@ impl AssemblerArm64 {
         self.emit_u32(cls::dataproc2(0, 0, rm, 0b1010, rn, rd));
     }
 
-    pub fn b_imm(&mut self, imm26: i32) {
+    fn b_imm(&mut self, imm26: i32) {
         self.emit_u32(cls::uncond_branch_imm(0, imm26));
     }
 
-    pub fn b_l(&mut self, target: Label) {
+    pub fn b(&mut self, target: Label) {
         let value = self.offset(target);
 
         match value {
@@ -424,11 +424,11 @@ impl AssemblerArm64 {
         self.emit_u32(cls::uncond_branch_reg(0b0000, 0b11111, 0, rn, 0));
     }
 
-    pub fn bc_imm(&mut self, cond: Cond, diff: i32) {
+    fn bc_imm(&mut self, cond: Cond, diff: i32) {
         self.emit_u32(inst::b_cond_imm(cond.into(), diff));
     }
 
-    pub fn bc_l(&mut self, cond: Cond, target: Label) {
+    pub fn bc(&mut self, cond: Cond, target: Label) {
         let value = self.offset(target);
 
         match value {
