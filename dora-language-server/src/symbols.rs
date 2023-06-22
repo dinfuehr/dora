@@ -19,14 +19,17 @@ pub(super) fn document_symbol_request(server_state: &mut ServerState, request: R
                 .to_file_path()
                 .expect("file path expected");
             if let Some(content) = server_state.opened_files.get(&path) {
-                eprintln!("now parse file");
-                let symbols = parse_file(content.clone());
-                let response = DocumentSymbolResponse::Nested(symbols);
-                let response = Response::new_ok(request.id, response);
-                server_state
-                    .threadpool_sender
-                    .send(MainLoopTask::SendResponse(Message::Response(response)))
-                    .expect("send failed");
+                let content = content.clone();
+                let sender = server_state.threadpool_sender.clone();
+
+                server_state.threadpool.execute(move || {
+                    let symbols = parse_file(content);
+                    let response = DocumentSymbolResponse::Nested(symbols);
+                    let response = Response::new_ok(request.id, response);
+                    sender
+                        .send(MainLoopTask::SendResponse(Message::Response(response)))
+                        .expect("send failed");
+                });
             } else {
                 eprintln!("unknown file {}", path.display());
             }
