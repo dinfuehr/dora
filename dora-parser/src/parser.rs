@@ -6,8 +6,9 @@ use crate::error::{ParseError, ParseErrorWithLocation};
 
 use crate::green::GreenTreeBuilder;
 use crate::token::{
-    ELEM_FIRST, ENUM_VARIANT_ARGUMENT_RS, ENUM_VARIANT_RS, EXPRESSION_FIRST, PARAM_LIST_RS,
-    TYPE_PARAM_RS, USE_PATH_ATOM_FIRST, USE_PATH_FIRST,
+    ELEM_FIRST, EMPTY, ENUM_VARIANT_ARGUMENT_RS, ENUM_VARIANT_RS, EXPRESSION_FIRST, FIELD_FIRST,
+    LET_PATTERN_FIRST, LET_PATTERN_RS, MATCH_PATTERN_FIRST, MATCH_PATTERN_RS, MODIFIER_FIRST,
+    PARAM_LIST_RS, TYPE_PARAM_RS, USE_PATH_ATOM_FIRST, USE_PATH_FIRST,
 };
 use crate::TokenKind::*;
 use crate::{lex, Span, TokenKind, TokenSet};
@@ -300,7 +301,7 @@ impl Parser {
         self.start_node();
         self.builder.start_node();
 
-        let targets = self.parse_list2(
+        let targets = self.parse_list(
             L_BRACE,
             COMMA,
             R_BRACE,
@@ -333,7 +334,7 @@ impl Parser {
         let type_params = self.parse_type_params();
 
         let variants = if self.is(L_BRACE) {
-            self.parse_list2(
+            self.parse_list(
                 L_BRACE,
                 COMMA,
                 R_BRACE,
@@ -402,7 +403,7 @@ impl Parser {
         let name = self.expect_identifier();
 
         let types = if self.is(L_PAREN) {
-            Some(self.parse_list2(
+            Some(self.parse_list(
                 L_PAREN,
                 COMMA,
                 R_PAREN,
@@ -554,10 +555,38 @@ impl Parser {
         let ident = self.expect_identifier();
         let type_params = self.parse_type_params();
 
-        let fields = if self.eat(L_PAREN) {
-            self.parse_list(COMMA, R_PAREN, |p| p.parse_struct_field())
-        } else if self.eat(L_BRACE) {
-            self.parse_list(COMMA, R_BRACE, |p| p.parse_struct_field())
+        let fields = if self.is(L_PAREN) {
+            self.parse_list(
+                L_PAREN,
+                COMMA,
+                R_PAREN,
+                ELEM_FIRST,
+                ParseError::ExpectedField,
+                LIST,
+                |p| {
+                    if p.is_set(FIELD_FIRST) {
+                        Some(p.parse_struct_field())
+                    } else {
+                        None
+                    }
+                },
+            )
+        } else if self.is(L_BRACE) {
+            self.parse_list(
+                L_BRACE,
+                COMMA,
+                R_BRACE,
+                ELEM_FIRST,
+                ParseError::ExpectedField,
+                LIST,
+                |p| {
+                    if p.is_set(FIELD_FIRST) {
+                        Some(p.parse_struct_field())
+                    } else {
+                        None
+                    }
+                },
+            )
         } else {
             Vec::new()
         };
@@ -605,10 +634,38 @@ impl Parser {
         let name = self.expect_identifier();
         let type_params = self.parse_type_params();
 
-        let fields = if self.eat(L_PAREN) {
-            self.parse_list(COMMA, R_PAREN, |p| p.parse_class_field())
-        } else if self.eat(L_BRACE) {
-            self.parse_list(COMMA, R_BRACE, |p| p.parse_class_field())
+        let fields = if self.is(L_PAREN) {
+            self.parse_list(
+                L_PAREN,
+                COMMA,
+                R_PAREN,
+                ELEM_FIRST,
+                ParseError::ExpectedField,
+                LIST,
+                |p| {
+                    if p.is_set(FIELD_FIRST) {
+                        Some(p.parse_class_field())
+                    } else {
+                        None
+                    }
+                },
+            )
+        } else if self.is(L_BRACE) {
+            self.parse_list(
+                L_BRACE,
+                COMMA,
+                R_BRACE,
+                ELEM_FIRST,
+                ParseError::ExpectedField,
+                LIST,
+                |p| {
+                    if p.is_set(FIELD_FIRST) {
+                        Some(p.parse_class_field())
+                    } else {
+                        None
+                    }
+                },
+            )
         } else {
             Vec::new()
         };
@@ -676,7 +733,7 @@ impl Parser {
         if self.is(L_BRACKET) {
             self.builder.start_node();
             self.start_node();
-            let params = self.parse_list2(
+            let params = self.parse_list(
                 L_BRACKET,
                 COMMA,
                 R_BRACKET,
@@ -735,37 +792,30 @@ impl Parser {
     }
 
     fn parse_modifiers(&mut self) -> Option<ModifierList> {
-        self.start_node();
-        let marker = self.builder.create_marker();
-        let mut modifiers: Vec<Modifier> = Vec::new();
+        if self.is_set(MODIFIER_FIRST) {
+            self.start_node();
+            let marker = self.builder.create_marker();
+            let mut modifiers: Vec<Modifier> = Vec::new();
 
-        loop {
-            let modifier = self.parse_modifier();
-
-            if modifier.is_none() {
-                if modifiers.is_empty() {
-                    self.abandon_node();
-                    return None;
-                }
-
-                break;
+            while self.is_set(MODIFIER_FIRST) {
+                modifiers.push(self.parse_modifier());
             }
 
-            modifiers.push(modifier.unwrap());
+            assert!(!modifiers.is_empty());
+            let green = self.builder.finish_node_starting_at(MODIFIERS, marker);
+
+            Some(ModifierList {
+                id: self.new_node_id(),
+                span: self.finish_node(),
+                green,
+                modifiers,
+            })
+        } else {
+            None
         }
-
-        assert!(!modifiers.is_empty());
-        let green = self.builder.finish_node_starting_at(MODIFIERS, marker);
-
-        Some(ModifierList {
-            id: self.new_node_id(),
-            span: self.finish_node(),
-            green,
-            modifiers,
-        })
     }
 
-    fn parse_modifier(&mut self) -> Option<Modifier> {
+    fn parse_modifier(&mut self) -> Modifier {
         self.start_node();
         let m = self.builder.create_marker();
 
@@ -773,20 +823,18 @@ impl Parser {
             // done
         } else if self.eat(STATIC_KW) {
             // done
-        } else if self.eat(AT) {
-            self.expect_identifier();
         } else {
-            self.abandon_node();
-            return None;
-        };
+            self.assert(AT);
+            self.expect_identifier();
+        }
 
         let green = self.builder.finish_node_starting_at(MODIFIER, m);
 
-        Some(Modifier {
+        Modifier {
             id: self.new_node_id(),
             span: self.finish_node(),
             green,
-        })
+        }
     }
 
     fn parse_function(&mut self, modifiers: Option<ModifierList>) -> Arc<Function> {
@@ -816,7 +864,7 @@ impl Parser {
 
     fn parse_function_params(&mut self) -> Vec<Param> {
         if self.is(L_PAREN) {
-            self.parse_list2(
+            self.parse_list(
                 L_PAREN,
                 COMMA,
                 R_PAREN,
@@ -831,33 +879,7 @@ impl Parser {
         }
     }
 
-    fn parse_list<F, R>(&mut self, sep: TokenKind, stop: TokenKind, mut parse: F) -> Vec<R>
-    where
-        F: FnMut(&mut Parser) -> R,
-    {
-        let mut data = vec![];
-        let mut comma = true;
-
-        while !self.is(stop.clone()) && !self.is_eof() {
-            if !comma {
-                let sep_name = token_name(sep).expect("missing name");
-                self.report_error(ParseError::ExpectedToken(sep_name.into()));
-
-                break;
-            }
-
-            let entry = parse(self);
-            data.push(entry);
-
-            comma = self.eat(sep.clone());
-        }
-
-        self.expect(stop);
-
-        data
-    }
-
-    fn parse_list2<F, R>(
+    fn parse_list<F, R>(
         &mut self,
         start: TokenKind,
         sep: TokenKind,
@@ -978,7 +1000,7 @@ impl Parser {
                 let path = self.parse_path();
 
                 let params = if self.is(L_BRACKET) {
-                    self.parse_list2(
+                    self.parse_list(
                         L_BRACKET,
                         COMMA,
                         R_BRACKET,
@@ -1004,7 +1026,7 @@ impl Parser {
 
             L_PAREN => {
                 self.start_node();
-                let subtypes = self.parse_list2(
+                let subtypes = self.parse_list(
                     L_PAREN,
                     COMMA,
                     R_PAREN,
@@ -1095,9 +1117,24 @@ impl Parser {
     }
 
     fn parse_let_pattern(&mut self) -> Box<LetPattern> {
+        assert!(self.is_set(LET_PATTERN_FIRST));
         self.start_node();
-        if self.eat(L_PAREN) {
-            let parts = self.parse_list(COMMA, R_PAREN, |p| p.parse_let_pattern());
+        if self.is(L_PAREN) {
+            let parts = self.parse_list(
+                L_PAREN,
+                COMMA,
+                R_PAREN,
+                LET_PATTERN_RS,
+                ParseError::ExpectedPattern,
+                PATTERN_LIST,
+                |p| {
+                    if p.is_set(LET_PATTERN_FIRST) {
+                        Some(p.parse_let_pattern())
+                    } else {
+                        None
+                    }
+                },
+            );
 
             Box::new(LetPattern::Tuple(LetTupleType {
                 id: self.new_node_id(),
@@ -1299,9 +1336,22 @@ impl Parser {
         } else {
             let path = self.parse_path();
 
-            let params = if self.eat(L_PAREN) {
-                let params =
-                    self.parse_list(COMMA, R_PAREN, |this| this.parse_match_pattern_param());
+            let params = if self.is(L_PAREN) {
+                let params = self.parse_list(
+                    L_PAREN,
+                    COMMA,
+                    R_PAREN,
+                    MATCH_PATTERN_RS,
+                    ParseError::ExpectedPattern,
+                    PATTERN_LIST,
+                    |p| {
+                        if p.is_set(MATCH_PATTERN_FIRST) {
+                            Some(p.parse_match_pattern_param())
+                        } else {
+                            None
+                        }
+                    },
+                );
 
                 Some(params)
             } else {
@@ -1538,8 +1588,21 @@ impl Parser {
                 }
 
                 L_PAREN => {
-                    self.assert(L_PAREN);
-                    let args = self.parse_list(COMMA, R_PAREN, |p| p.parse_expression());
+                    let args = self.parse_list(
+                        L_PAREN,
+                        COMMA,
+                        R_PAREN,
+                        EMPTY,
+                        ParseError::ExpectedExpression,
+                        EXPR_LIST,
+                        |p| {
+                            if p.is_set(EXPRESSION_FIRST) {
+                                Some(p.parse_expression())
+                            } else {
+                                None
+                            }
+                        },
+                    );
                     let span = self.span_from(start);
 
                     self.builder
@@ -1550,8 +1613,15 @@ impl Parser {
 
                 L_BRACKET => {
                     let op_span = self.current_span();
-                    self.assert(L_BRACKET);
-                    let types = self.parse_list(COMMA, R_BRACKET, |p| p.parse_type());
+                    let types = self.parse_list(
+                        L_BRACKET,
+                        COMMA,
+                        R_BRACKET,
+                        TYPE_PARAM_RS,
+                        ParseError::ExpectedType,
+                        TYPE_LIST,
+                        |p| p.parse_type_wrapper(),
+                    );
                     let span = self.span_from(start);
 
                     self.builder
@@ -1876,7 +1946,7 @@ impl Parser {
             Vec::new()
         } else {
             assert!(self.is(OR));
-            self.parse_list2(
+            self.parse_list(
                 OR,
                 COMMA,
                 OR,
@@ -2048,10 +2118,6 @@ impl Parser {
         }
 
         Span::new(start_offset, end_offset - start_offset)
-    }
-
-    fn abandon_node(&mut self) {
-        self.nodes.pop().expect("missing node start");
     }
 
     fn source_span(&self, span: Span) -> String {

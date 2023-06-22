@@ -59,6 +59,13 @@ pub const USE_PATH_ATOM_FIRST: TokenSet =
     TokenSet::new(&[SELF_KW, PACKAGE_KW, SUPER_KW, IDENTIFIER]);
 pub const USE_PATH_FIRST: TokenSet =
     USE_PATH_ATOM_FIRST.union(TokenSet::new(&[TokenKind::L_BRACE]));
+pub const MODIFIER_FIRST: TokenSet = TokenSet::new(&[AT, PUB_KW, STATIC_KW]);
+pub const FIELD_FIRST: TokenSet = TokenSet::new(&[IDENTIFIER, COLON]).union(MODIFIER_FIRST);
+pub const FIELD_RS: TokenSet = ELEM_FIRST;
+pub const LET_PATTERN_FIRST: TokenSet = TokenSet::new(&[L_PAREN, MUT_KW, UNDERSCORE, IDENTIFIER]);
+pub const LET_PATTERN_RS: TokenSet = TokenSet::new(&[EQ]);
+pub const MATCH_PATTERN_FIRST: TokenSet = TokenSet::new(&[UNDERSCORE, MUT_KW, IDENTIFIER]);
+pub const MATCH_PATTERN_RS: TokenSet = TokenSet::new(&[DOUBLE_ARROW]);
 
 pub const ELEM_FIRST: TokenSet = TokenSet::new(&[
     FN_KW, CLASS_KW, STRUCT_KW, TRAIT_KW, IMPL_KW, ALIAS_KW, LET_KW, CONST_KW, ENUM_KW, MOD_KW,
@@ -214,6 +221,9 @@ pub enum TokenKind {
     IDENT,
     TYPE_PARAMS,
     TYPE_PARAM,
+    TYPE_LIST,
+    EXPR_LIST,
+    PATTERN_LIST,
 
     PARAM_LIST,
 
