@@ -208,22 +208,22 @@ impl AssemblerArm64 {
     }
 
     pub fn add_imm(rd: Register, rn: Register, imm: Int32) {
-        let (shift, imm12) = encoding::imm12(imm);
+        let (shift, imm12) = imm_encoding::imm12(imm);
         self.buffer.emitInt32(encoding::addsub_imm(1i32, 0i32, false, shift, imm12, rn, rd));
     }
 
     pub fn add_imm_w(rd: Register, rn: Register, imm: Int32) {
-        let (shift, imm12) = encoding::imm12(imm);
+        let (shift, imm12) = imm_encoding::imm12(imm);
         self.buffer.emitInt32(encoding::addsub_imm(0i32, 0i32, false, shift, imm12, rn, rd));
     }
 
     pub fn adds_imm(rd: Register, rn: Register, imm: Int32) {
-        let (shift, imm12) = encoding::imm12(imm);
+        let (shift, imm12) = imm_encoding::imm12(imm);
         self.buffer.emitInt32(encoding::addsub_imm(1i32, 0i32, true, shift, imm12, rn, rd));
     }
 
     pub fn adds_imm_w(rd: Register, rn: Register, imm: Int32) {
-        let (shift, imm12) = encoding::imm12(imm);
+        let (shift, imm12) = imm_encoding::imm12(imm);
         self.buffer.emitInt32(encoding::addsub_imm(0i32, 0i32, true, shift, imm12, rn, rd));
     }
 
@@ -259,6 +259,16 @@ impl AssemblerArm64 {
 
     pub fn asrv_w(rd: Register, rn: Register, rm: Register) {
         self.buffer.emitInt32(encoding::dataproc2(0i32, 0i32, rm, 0b1010i32, rn, rd));
+    }
+
+    pub fn and_imm(rd: Register, rn: Register, imm: Int64) {
+        let n_immr_imms = imm_encoding::logical_imm(imm, 64).getOrPanic();
+        self.buffer.emitInt32(encoding::logical_imm(1i32, 0b00i32, n_immr_imms, rn, rd));
+    }
+
+    pub fn and_imm_w(rd: Register, rn: Register, imm: Int64) {
+        let n_immr_imms = imm_encoding::logical_imm(imm, 32).getOrPanic();
+        self.buffer.emitInt32(encoding::logical_imm(0i32, 0b00i32, n_immr_imms, rn, rd));
     }
 
     pub fn b(target: Label) {
@@ -585,9 +595,79 @@ impl Shift {
     }
 }
 
-mod encoding {
-    use package::assembler::Register;
-    use super::{Extend, Shift, Cond, NeonRegister};
+mod imm_encoding {
+    pub fn logical_imm(mut imm: Int64, reg_size: Int64): Option[Int32] {
+        assert(reg_size == 32 || reg_size == 64);
+
+        if imm == 0 || imm == !0 || (reg_size != 64 && (imm >> reg_size.toInt32() != 0 || imm == (!0i32).toInt64())) {
+            return None;
+        }
+
+        // determine element size, use smallest possible element size
+        let mut size: Int64 = reg_size;
+
+        while size > 2 {
+            size = size / 2;
+
+            let mask: Int64 = (1 << size.toInt32()) - 1;
+
+            if (imm & mask) != (imm >> size.toInt32()) & mask {
+                size = size * 2;
+                break;
+            }
+        }
+
+        // truncate immediate to element size
+        let mask = !0 >> (64 - size).toInt32();
+        imm = imm & mask;
+
+        let mut rotation: Int64 = 0;
+        let mut ones: Int64 = 0;
+
+        if isShiftedMask(imm) {
+            let tz = imm.countZeroBitsTrailing().toInt64();
+
+            rotation = (size - tz) & (size - 1);
+            ones = (!(imm >> tz.toInt32())).countZeroBitsTrailing().toInt64();
+
+        // not all immediates are shifted masks: e.g. 1001
+        } else {
+            // extend imm again to 64 bits: e.g. 1..1|1001
+            imm = imm | !mask;
+
+            // the negation of the immediate now needs to be
+            // a shifted mask
+            if !isShiftedMask(!imm) {
+                return None;
+            }
+
+            let lo = (!imm).countZeroBitsLeading().toInt64();
+            let to = (!imm).countZeroBitsTrailing().toInt64();
+
+            rotation = lo - (64 - size);
+            ones = lo + to - (64 - size);
+        }
+
+        assert(ones > 0);
+        assert(rotation < size);
+
+        let immr = rotation;
+        let mut nimms = !(size - 1) << 1i32;
+        nimms = nimms | (ones - 1);
+
+        let n = ((nimms >> 6i32) & 1) ^ 1;
+
+        let result = n << 12i32 | immr << 6i32 | nimms & 0x3f;
+        Some(result.toInt32())
+    }
+
+    fn isShiftedMask(imm: Int64): Bool {
+        imm != 0 && isMask((imm - 1) | imm)
+    }
+
+    fn isMask(imm: Int64): Bool {
+        imm != 0 && imm.wrappingAdd(1) & imm == 0
+    }
 
     pub fn imm12(mut imm: Int32): (Int32, Int32) {
         if imm < (1i32 << 12i32) {
@@ -604,6 +684,11 @@ mod encoding {
         }
 
     }
+}
+
+mod encoding {
+    use package::assembler::Register;
+    use super::{Extend, Shift, Cond, NeonRegister};
 
     pub fn addsub_extreg(
         sf: Int32,
