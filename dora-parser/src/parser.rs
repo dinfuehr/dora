@@ -154,6 +154,8 @@ impl Parser {
                 let span = self.current_span();
                 self.report_error_at(ParseError::ExpectedElement, span);
                 self.advance();
+                self.builder.finish_node(ERROR);
+
                 Arc::new(ElemData::Error {
                     id: self.new_node_id(),
                     span,
