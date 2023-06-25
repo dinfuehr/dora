@@ -1596,7 +1596,7 @@ impl Parser {
                         R_PAREN,
                         EMPTY,
                         ParseError::ExpectedExpression,
-                        EXPR_LIST,
+                        ARG_LIST,
                         |p| {
                             if p.is_set(EXPRESSION_FIRST) {
                                 Some(p.parse_expression())

@@ -222,7 +222,7 @@ pub enum TokenKind {
     TYPE_PARAMS,
     TYPE_PARAM,
     TYPE_LIST,
-    EXPR_LIST,
+    ARG_LIST,
     PATTERN_LIST,
 
     PARAM_LIST,
