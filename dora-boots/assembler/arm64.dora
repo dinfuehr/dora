@@ -527,6 +527,59 @@ impl AssemblerArm64 {
         self.emit(encoding::addsub_shreg(0i32, 1i32, 1i32, shift, rm, amount, rn, REG_ZERO));
     }
 
+
+    pub fn cnt(q: Int32, size: Int32, rd: NeonRegister, rn: NeonRegister) {
+        self.emit(encoding::simd_2regs_misc(q, 0i32, size, 0b00101i32, rn, rd));
+    }
+
+    pub fn csel(rd: Register, rn: Register, rm: Register, cond: Cond) {
+        self.emit(encoding::csel(1i32, 0i32, 0i32, rm, cond, 0i32, rn, rd));
+    }
+
+    pub fn csel_w(rd: Register, rn: Register, rm: Register, cond: Cond) {
+        self.emit(encoding::csel(0i32, 0i32, 0i32, rm, cond, 0i32, rn, rd));
+    }
+
+    pub fn cset(rd: Register, cond: Cond) {
+        self.csinc(rd, REG_ZERO, REG_ZERO, cond.invert());
+    }
+
+    pub fn cset_w(rd: Register, cond: Cond) {
+        self.csinc_w(rd, REG_ZERO, REG_ZERO, cond.invert());
+    }
+
+    pub fn csinc(rd: Register, rn: Register, rm: Register, cond: Cond) {
+        self.emit(encoding::csel(1i32, 0i32, 0i32, rm, cond, 1i32, rn, rd));
+    }
+
+    pub fn csinc_w(rd: Register, rn: Register, rm: Register, cond: Cond) {
+        self.emit(encoding::csel(0i32, 0i32, 0i32, rm, cond, 1i32, rn, rd));
+    }
+
+    pub fn csinv(rd: Register, rn: Register, rm: Register, cond: Cond) {
+        self.emit(encoding::csel(1i32, 1i32, 0i32, rm, cond, 0i32, rn, rd));
+    }
+
+    pub fn csinv_w(rd: Register, rn: Register, rm: Register, cond: Cond) {
+        self.emit(encoding::csel(0i32, 1i32, 0i32, rm, cond, 0i32, rn, rd));
+    }
+
+    pub fn eon_sh(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
+        self.emit(encoding::logical_shreg(1i32, 0b10i32, shift, 1i32, rm, imm6, rn, rd));
+    }
+
+    pub fn eon_sh_w(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
+        self.emit(encoding::logical_shreg(0i32, 0b10i32, shift, 1i32, rm, imm6, rn, rd));
+    }
+
+    pub fn eor_sh(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
+        self.emit(encoding::logical_shreg(1i32, 0b10i32, shift, 0i32, rm, imm6, rn, rd));
+    }
+
+    pub fn eor_sh_w(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
+        self.emit(encoding::logical_shreg(0i32, 0b10i32, shift, 0i32, rm, imm6, rn, rd));
+    }
+
     pub fn nop() {
         self.emit(encoding::system(0i32));
     }
@@ -1669,6 +1722,7 @@ mod tests {
         R0, R1, R2, R3, R4, R5, R6, R8, R9, R10,
         R17, R27, R28, R29, R30
     };
+    use super::{F0, F1, F2, F3};
 
     @Test
     fn test_asm_ret() {
@@ -2406,6 +2460,118 @@ mod tests {
             0xf1000420i32,
             // subs w2, w3, #0x1, lsl #12
             0x71400462i32,
+        );
+    }
+
+    @Test
+    fn test_csel() {
+        let asm = AssemblerArm64::new();
+        asm.csel(R0, R1, R2, Cond::EQ);
+        asm.csel_w(R2, R3, R4, Cond::NE);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // csel x0, x1, x2, eq // eq = none
+            0x9a820020i32,
+            // csel w2, w3, w4, ne // ne = any
+            0x1a841062i32,
+        );
+    }
+
+    @Test
+    fn test_csinc() {
+        let asm = AssemblerArm64::new();
+        asm.csinc(R0, R1, R2, Cond::EQ);
+        asm.csinc_w(R2, R3, R4, Cond::NE);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // csinc x0, x1, x2, eq // eq = none
+            0x9a820420i32,
+            // csinc w2, w3, w4, ne // ne = any
+            0x1a841462i32,
+        );
+    }
+
+    @Test
+    fn test_csinv() {
+        let asm = AssemblerArm64::new();
+        asm.csinv(R0, R1, R2, Cond::EQ);
+        asm.csinv_w(R2, R3, R4, Cond::NE);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // csinv x0, x1, x2, eq // eq = none
+            0xda820020i32,
+            // csinv w2, w3, w4, ne // ne = any
+            0x5a841062i32,
+        );
+    }
+
+    @Test
+    fn test_cset() {
+        let asm = AssemblerArm64::new();
+        asm.cset(R0, Cond::EQ);
+        asm.cset_w(R1, Cond::NE);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // cset x0, eq // eq = none
+            0x9a9f17e0i32,
+            // cset w1, ne // ne = any
+            0x1a9f07e1i32,
+        );
+    }
+
+    @Test
+    fn test_eon_sh() {
+        let asm = AssemblerArm64::new();
+        asm.eon_sh(R0, R1, R2, Shift::LSL, 2i32);
+        asm.eon_sh_w(R2, R3, R4, Shift::LSR, 1i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // eon x0, x1, x2, lsl #2
+            0xca220820i32,
+            // eon w2, w3, w4, lsr #1
+            0x4a640462i32,
+        );
+    }
+
+    @Test
+    fn test_eor_sh() {
+        let asm = AssemblerArm64::new();
+        asm.eor_sh(R0, R1, R2, Shift::LSL, 2i32);
+        asm.eor_sh_w(R2, R3, R4, Shift::LSR, 1i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // eor x0, x1, x2, lsl #2
+            0xca020820i32,
+            // eor w2, w3, w4, lsr #1
+            0x4a440462i32,
+        );
+    }
+
+    @Test
+    fn test_cnt() {
+        let asm = AssemblerArm64::new();
+        asm.cnt(1i32, 0i32, F0, F1);
+        asm.cnt(0i32, 0i32, F2, F3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // cnt v0.16b, v1.16b
+            0x4e205820i32,
+            // cnt v2.8b, v3.8b
+            0x0e205862i32,
         );
     }
 }
