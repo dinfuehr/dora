@@ -644,10 +644,24 @@ impl Shift {
 }
 
 mod imm_encoding {
+    pub struct LogicalImm {
+        n: Int32,
+        immr: Int32,
+        imms: Int32,
+    }
+
     pub fn logical_imm(mut imm: Int64, reg_size: Int64): Option[Int32] {
         assert(reg_size == 32 || reg_size == 64);
 
-        if imm == 0 || imm == !0 || (reg_size != 64 && (imm >> reg_size.toInt32() != 0 || imm == (!0i32).toInt64())) {
+        if reg_size == 32 {
+            assert(imm < (1 << 32i32));
+        }
+
+        if imm == 0 || imm == !0 {
+            return None;
+        }
+
+        if reg_size == 32 && imm == 0xFFFF_FFFF {
             return None;
         }
 
@@ -666,7 +680,7 @@ mod imm_encoding {
         }
 
         // truncate immediate to element size
-        let mask = !0 >> (64 - size).toInt32();
+        let mask = !0 >>> (64 - size).toInt32();
         imm = imm & mask;
 
         let mut rotation: Int64 = 0;
@@ -1549,6 +1563,7 @@ mod encoding {
 
 mod tests {
     use super::{assertAsm32, AssemblerArm64, Cond, Extend, Shift};
+    use super::imm_encoding;
     use super::{REG_ZERO, REG_SP};
     use super::{
         R0, R1, R2, R3, R4, R5, R6, R8, R9, R10,
@@ -2083,5 +2098,29 @@ mod tests {
             // casal w0, w1, [x2]
             0x88e0fc41i32,
         );
+    }
+
+    @Test
+    fn test_logical_imm() {
+        assert(imm_encoding::logical_imm(0, 64).isNone());
+        assert(imm_encoding::logical_imm(!0, 64).isNone());
+
+        assert(imm_encoding::logical_imm(0, 32).isNone());
+        assert(imm_encoding::logical_imm((1 << 32i32) - 1, 32).isNone());
+
+        let result = imm_encoding::logical_imm(0x55555555, 32);
+        assert(Some[Int32](0b0_000000_111100i32) == result);
+        assert(
+            Some[Int32](0b0_000000_111100i32) ==
+            imm_encoding::logical_imm(0x5555555555555555, 64)
+        );
+        assert(Some[Int32](0b0_000001_111100i32) == imm_encoding::logical_imm(0xaaaaaaaa, 32));
+        assert(
+            Some[Int32](0b0_000001_111100i32) ==
+            imm_encoding::logical_imm(0xaaaaaaaaaaaaaaaa, 64)
+        );
+        assert(Some[Int32](0b0_000000_111000i32) == imm_encoding::logical_imm(0x11111111, 32));
+        assert(Some[Int32](0b0_000001_111000i32) == imm_encoding::logical_imm(0x88888888, 32));
+        assert(Some[Int32](0b0_000001_111001i32) == imm_encoding::logical_imm(0x99999999, 32));
     }
 }
