@@ -10,6 +10,7 @@ use dora_parser::{compute_line_column, compute_line_starts, Parser, Span};
 use crate::{MainLoopTask, ServerState};
 
 pub(super) fn document_symbol_request(server_state: &mut ServerState, request: Request) {
+    eprintln!("got documentSymbol request on main thread");
     let result = serde_json::from_value::<lsp_types::DocumentSymbolParams>(request.params);
     match result {
         Ok(result) => {
@@ -23,6 +24,7 @@ pub(super) fn document_symbol_request(server_state: &mut ServerState, request: R
                 let sender = server_state.threadpool_sender.clone();
 
                 server_state.threadpool.execute(move || {
+                    eprintln!("parse file on background thread.");
                     let symbols = parse_file(content);
                     let response = DocumentSymbolResponse::Nested(symbols);
                     let response = Response::new_ok(request.id, response);

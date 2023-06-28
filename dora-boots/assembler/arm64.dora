@@ -180,7 +180,7 @@ impl AssemblerArm64 {
         extend: Extend,
         amount: Int32,
     ) {
-        self.buffer.emitInt32(encoding::addsub_extreg(1i32, 0i32, false, 0i32, rm, extend, amount, rn, rd));
+        self.emit(encoding::addsub_extreg(1i32, 0i32, false, 0i32, rm, extend, amount, rn, rd));
     }
 
     pub fn add_ext_w(
@@ -190,11 +190,11 @@ impl AssemblerArm64 {
         extend: Extend,
         amount: Int32,
     ) {
-        self.buffer.emitInt32(encoding::addsub_extreg(0i32, 0i32, false, 0i32, rm, extend, amount, rn, rd));
+        self.emit(encoding::addsub_extreg(0i32, 0i32, false, 0i32, rm, extend, amount, rn, rd));
     }
 
     pub fn add_sh(rd: Register, rn: Register, rm: Register, shift: Shift, amount: Int32) {
-        self.buffer.emitInt32(encoding::addsub_shreg(1i32, 0i32, 0i32, shift, rm, amount, rn, rd));
+        self.emit(encoding::addsub_shreg(1i32, 0i32, 0i32, shift, rm, amount, rn, rd));
     }
 
     pub fn add_sh_w(
@@ -204,31 +204,31 @@ impl AssemblerArm64 {
         shift: Shift,
         amount: Int32,
     ) {
-        self.buffer.emitInt32(encoding::addsub_shreg(0i32, 0i32, 0i32, shift, rm, amount, rn, rd));
+        self.emit(encoding::addsub_shreg(0i32, 0i32, 0i32, shift, rm, amount, rn, rd));
     }
 
     pub fn add_imm(rd: Register, rn: Register, imm: Int32) {
         let (shift, imm12) = imm_encoding::imm12(imm);
-        self.buffer.emitInt32(encoding::addsub_imm(1i32, 0i32, false, shift, imm12, rn, rd));
+        self.emit(encoding::addsub_imm(1i32, 0i32, false, shift, imm12, rn, rd));
     }
 
     pub fn add_imm_w(rd: Register, rn: Register, imm: Int32) {
         let (shift, imm12) = imm_encoding::imm12(imm);
-        self.buffer.emitInt32(encoding::addsub_imm(0i32, 0i32, false, shift, imm12, rn, rd));
+        self.emit(encoding::addsub_imm(0i32, 0i32, false, shift, imm12, rn, rd));
     }
 
     pub fn adds_imm(rd: Register, rn: Register, imm: Int32) {
         let (shift, imm12) = imm_encoding::imm12(imm);
-        self.buffer.emitInt32(encoding::addsub_imm(1i32, 0i32, true, shift, imm12, rn, rd));
+        self.emit(encoding::addsub_imm(1i32, 0i32, true, shift, imm12, rn, rd));
     }
 
     pub fn adds_imm_w(rd: Register, rn: Register, imm: Int32) {
         let (shift, imm12) = imm_encoding::imm12(imm);
-        self.buffer.emitInt32(encoding::addsub_imm(0i32, 0i32, true, shift, imm12, rn, rd));
+        self.emit(encoding::addsub_imm(0i32, 0i32, true, shift, imm12, rn, rd));
     }
 
     pub fn adds_sh(rd: Register, rn: Register, rm: Register, shift: Shift, amount: Int32) {
-        self.buffer.emitInt32(encoding::addsub_shreg(1i32, 0i32, 1i32, shift, rm, amount, rn, rd));
+        self.emit(encoding::addsub_shreg(1i32, 0i32, 1i32, shift, rm, amount, rn, rd));
     }
 
     pub fn adds_sh_w(
@@ -238,37 +238,53 @@ impl AssemblerArm64 {
         shift: Shift,
         amount: Int32,
     ) {
-        self.buffer.emitInt32(encoding::addsub_shreg(0i32, 0i32, 1i32, shift, rm, amount, rn, rd));
+        self.emit(encoding::addsub_shreg(0i32, 0i32, 1i32, shift, rm, amount, rn, rd));
     }
 
     pub fn adds(rd: Register, rn: Register, rm: Register) {
-        self.buffer.emitInt32(encoding::addsub_shreg(1i32, 0i32, 1i32, Shift::LSL, rm, 0i32, rn, rd));
+        self.emit(encoding::addsub_shreg(1i32, 0i32, 1i32, Shift::LSL, rm, 0i32, rn, rd));
     }
 
     pub fn adds_w(rd: Register, rn: Register, rm: Register) {
-        self.buffer.emitInt32(encoding::addsub_shreg(0i32, 0i32, 1i32, Shift::LSL, rm, 0i32, rn, rd));
+        self.emit(encoding::addsub_shreg(0i32, 0i32, 1i32, Shift::LSL, rm, 0i32, rn, rd));
     }
 
     pub fn adr_imm(rd: Register, imm: Int32) {
-        self.buffer.emitInt32(encoding::pcrel(0i32, imm, rd));
-    }
-
-    pub fn asrv(rd: Register, rn: Register, rm: Register) {
-        self.buffer.emitInt32(encoding::dataproc2(1i32, 0i32, rm, 0b1010i32, rn, rd));
-    }
-
-    pub fn asrv_w(rd: Register, rn: Register, rm: Register) {
-        self.buffer.emitInt32(encoding::dataproc2(0i32, 0i32, rm, 0b1010i32, rn, rd));
+        self.emit(encoding::pcrel(0i32, imm, rd));
     }
 
     pub fn and_imm(rd: Register, rn: Register, imm: Int64) {
-        let n_immr_imms = imm_encoding::logical_imm(imm, 64).getOrPanic();
-        self.buffer.emitInt32(encoding::logical_imm(1i32, 0b00i32, n_immr_imms, rn, rd));
+        let n_immr_imms = imm_encoding::logical(imm, 64).getOrPanic();
+        self.emit(encoding::logical_imm(1i32, 0b00i32, n_immr_imms, rn, rd));
     }
 
     pub fn and_imm_w(rd: Register, rn: Register, imm: Int64) {
-        let n_immr_imms = imm_encoding::logical_imm(imm, 32).getOrPanic();
-        self.buffer.emitInt32(encoding::logical_imm(0i32, 0b00i32, n_immr_imms, rn, rd));
+        let n_immr_imms = imm_encoding::logical(imm, 32).getOrPanic();
+        self.emit(encoding::logical_imm(0i32, 0b00i32, n_immr_imms, rn, rd));
+    }
+
+    pub fn and_sh(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
+        self.emit(encoding::logical_shreg(1i32, 0b00i32, shift, 0i32, rm, imm6, rn, rd));
+    }
+
+    pub fn and_sh_w(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
+        self.emit(encoding::logical_shreg(0i32, 0b00i32, shift, 0i32, rm, imm6, rn, rd));
+    }
+
+    pub fn ands_sh(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
+        self.emit(encoding::logical_shreg(1i32, 0b11i32, shift, 0i32, rm, imm6, rn, rd));
+    }
+
+    pub fn ands_sh_w(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
+        self.emit(encoding::logical_shreg(0i32, 0b11i32, shift, 0i32, rm, imm6, rn, rd));
+    }
+
+    pub fn asrv(rd: Register, rn: Register, rm: Register) {
+        self.emit(encoding::dataproc2(1i32, 0i32, rm, 0b1010i32, rn, rd));
+    }
+
+    pub fn asrv_w(rd: Register, rn: Register, rm: Register) {
+        self.emit(encoding::dataproc2(0i32, 0i32, rm, 0b1010i32, rn, rd));
     }
 
     pub fn b(target: Label) {
@@ -276,16 +292,21 @@ impl AssemblerArm64 {
             let diff = target.offset - self.buffer.position();
             assert(diff % 4 == 0);
             let inst = encoding::uncond_branch_imm(0i32, (diff / 4).toInt32());
-            self.buffer.emitInt32(inst);
+            self.emit(inst);
         } else {
             let pos = self.buffer.position();
-            self.buffer.emitInt32(0i32);
+            self.emit(0i32);
             self.jumps.push(ForwardJump(
                 pos,
                 target,
                 JumpKind::Unconditional(false),
             ));
         }
+    }
+
+    pub fn b_r(rn: Register) {
+        let inst = encoding::uncond_branch_reg(0b0000i32, 0b11111i32, 0i32, rn, 0i32);
+        self.emit(inst);
     }
 
     pub fn bc(cond: Cond, target: Label) {
@@ -295,8 +316,8 @@ impl AssemblerArm64 {
             self.bc_imm(cond, (diff / 4).toInt32());
         } else {
             let pos = self.buffer.position();
-            self.buffer.emitInt32(0i32);
-            self.buffer.emitInt32(0i32);
+            self.emit(0i32);
+            self.emit(0i32);
             self.jumps.push(ForwardJump(
                 pos,
                 target,
@@ -307,31 +328,31 @@ impl AssemblerArm64 {
 
     fn bc_imm(cond: Cond, diff: Int32) {
         let inst = encoding::cond_branch_imm(cond, diff);
-        self.buffer.emitInt32(inst);
+        self.emit(inst);
     }
 
     pub fn bfm(rd: Register, rn: Register, immr: Int32, imms: Int32) {
-        self.buffer.emitInt32(encoding::bitfield(1i32, 0b01i32, 1i32, immr, imms, rn, rd));
+        self.emit(encoding::bitfield(1i32, 0b01i32, 1i32, immr, imms, rn, rd));
     }
 
     pub fn bfm_w(rd: Register, rn: Register, immr: Int32, imms: Int32) {
-        self.buffer.emitInt32(encoding::bitfield(0i32, 0b01i32, 0i32, immr, imms, rn, rd));
+        self.emit(encoding::bitfield(0i32, 0b01i32, 0i32, immr, imms, rn, rd));
     }
 
     pub fn bic_sh(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
-        self.buffer.emitInt32(encoding::logical_shreg(1i32, 0b00i32, shift, 1i32, rm, imm6, rn, rd));
+        self.emit(encoding::logical_shreg(1i32, 0b00i32, shift, 1i32, rm, imm6, rn, rd));
     }
 
     pub fn bic_sh_w(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
-        self.buffer.emitInt32(encoding::logical_shreg(0i32, 0b00i32, shift, 1i32, rm, imm6, rn, rd));
+        self.emit(encoding::logical_shreg(0i32, 0b00i32, shift, 1i32, rm, imm6, rn, rd));
     }
 
     pub fn bics_sh(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
-        self.buffer.emitInt32(encoding::logical_shreg(1i32, 0b11i32, shift, 1i32, rm, imm6, rn, rd));
+        self.emit(encoding::logical_shreg(1i32, 0b11i32, shift, 1i32, rm, imm6, rn, rd));
     }
 
     pub fn bics_sh_w(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
-        self.buffer.emitInt32(encoding::logical_shreg(0i32, 0b11i32, shift, 1i32, rm, imm6, rn, rd));
+        self.emit(encoding::logical_shreg(0i32, 0b11i32, shift, 1i32, rm, imm6, rn, rd));
     }
 
     pub fn bl(target: Label) {
@@ -339,10 +360,10 @@ impl AssemblerArm64 {
             let diff = target.offset - self.buffer.position();
             assert(diff % 4 == 0);
             let inst = encoding::uncond_branch_imm(1i32, (diff / 4).toInt32());
-            self.buffer.emitInt32(inst);
+            self.emit(inst);
         } else {
             let pos = self.buffer.position();
-            self.buffer.emitInt32(0i32);
+            self.emit(0i32);
             self.jumps.push(ForwardJump(
                 pos,
                 target,
@@ -351,64 +372,59 @@ impl AssemblerArm64 {
         }
     }
 
-    pub fn blr(rn: Register) {
+    pub fn bl_r(rn: Register) {
         let inst = encoding::uncond_branch_reg(0b0001i32, 0b11111i32, 0i32, rn, 0i32);
-        self.buffer.emitInt32(inst);
-    }
-
-    pub fn br(rn: Register) {
-        let inst = encoding::uncond_branch_reg(0b0000i32, 0b11111i32, 0i32, rn, 0i32);
-        self.buffer.emitInt32(inst);
+        self.emit(inst);
     }
 
     pub fn brk(imm16: Int32) {
-        self.buffer.emitInt32(encoding::exception(0b001i32, imm16, 0i32, 0i32));
+        self.emit(encoding::exception(0b001i32, imm16, 0i32, 0i32));
     }
 
    pub fn cas(cmp: Register, new: Register, addr: Register) {
-        self.buffer.emitInt32(encoding::ldst_exclusive(
+        self.emit(encoding::ldst_exclusive(
             0b11i32, 1i32, 0i32, 1i32, cmp, 0i32, REG_ZERO, addr, new,
         ))
     }
 
     pub fn cas_w(cmp: Register, new: Register, addr: Register) {
-        self.buffer.emitInt32(encoding::ldst_exclusive(
+        self.emit(encoding::ldst_exclusive(
             0b10i32, 1i32, 0i32, 1i32, cmp, 0i32, REG_ZERO, addr, new,
         ))
     }
 
     pub fn casa(cmp: Register, new: Register, addr: Register) {
-        self.buffer.emitInt32(encoding::ldst_exclusive(
+        self.emit(encoding::ldst_exclusive(
             0b11i32, 1i32, 1i32, 1i32, cmp, 0i32, REG_ZERO, addr, new,
         ))
     }
 
     pub fn casa_w(cmp: Register, new: Register, addr: Register) {
-        self.buffer.emitInt32(encoding::ldst_exclusive(
+        self.emit(encoding::ldst_exclusive(
             0b10i32, 1i32, 1i32, 1i32, cmp, 0i32, REG_ZERO, addr, new,
         ))
     }
 
     pub fn casal(cmp: Register, new: Register, addr: Register) {
-        self.buffer.emitInt32(encoding::ldst_exclusive(
+        self.emit(encoding::ldst_exclusive(
             0b11i32, 1i32, 1i32, 1i32, cmp, 1i32, REG_ZERO, addr, new,
         ))
     }
 
     pub fn casal_w(cmp: Register, new: Register, addr: Register) {
-        self.buffer.emitInt32(encoding::ldst_exclusive(
+        self.emit(encoding::ldst_exclusive(
             0b10i32, 1i32, 1i32, 1i32, cmp, 1i32, REG_ZERO, addr, new,
         ))
     }
 
     pub fn casl(cmp: Register, new: Register, addr: Register) {
-        self.buffer.emitInt32(encoding::ldst_exclusive(
+        self.emit(encoding::ldst_exclusive(
             0b11i32, 1i32, 0i32, 1i32, cmp, 1i32, REG_ZERO, addr, new,
         ))
     }
 
     pub fn casl_w(cmp: Register, new: Register, addr: Register) {
-        self.buffer.emitInt32(encoding::ldst_exclusive(
+        self.emit(encoding::ldst_exclusive(
             0b10i32, 1i32, 0i32, 1i32, cmp, 1i32, REG_ZERO, addr, new,
         ))
     }
@@ -441,11 +457,11 @@ impl AssemblerArm64 {
                     reg,
                     (diff / 4).toInt32(),
                 );
-            self.buffer.emitInt32(inst);
+            self.emit(inst);
         } else {
             let pos = self.buffer.position();
-            self.buffer.emitInt32(0i32);
-            self.buffer.emitInt32(0i32);
+            self.emit(0i32);
+            self.emit(0i32);
 
             self.jumps.push(ForwardJump(
                 pos,
@@ -455,31 +471,117 @@ impl AssemblerArm64 {
         }
     }
 
+    pub fn cls_w(rd: Register, rn: Register) {
+        self.emit(encoding::dataproc1(0i32, 0i32, 0b00000i32, 0b000101i32, rn, rd));
+    }
+
+    pub fn cls(rd: Register, rn: Register) {
+        self.emit(encoding::dataproc1(1i32, 0i32, 0b00000i32, 0b000101i32, rn, rd));
+    }
+
+    pub fn clz_w(rd: Register, rn: Register) {
+        self.emit(encoding::dataproc1(0i32, 0i32, 0b00000i32, 0b000100i32, rn, rd));
+    }
+
+    pub fn clz(rd: Register, rn: Register) {
+        self.emit(encoding::dataproc1(1i32, 0i32, 0b00000i32, 0b000100i32, rn, rd));
+    }
+
+    pub fn cmn_imm(rn: Register, imm: Int32) {
+        self.adds_imm(REG_ZERO, rn, imm);
+    }
+
+    pub fn cmn_imm_w(rn: Register, imm: Int32) {
+        self.adds_imm_w(REG_ZERO, rn, imm);
+    }
+
+    pub fn cmp(rn: Register, rm: Register) {
+        self.subs(REG_ZERO, rn, rm);
+    }
+
+    pub fn cmp_w(rn: Register, rm: Register) {
+        self.subs_w(REG_ZERO, rn, rm);
+    }
+
+    pub fn cmp_ext(rn: Register, rm: Register, extend: Extend, amount: Int32) {
+        self.subs_ext(REG_ZERO, rn, rm, extend, amount);
+    }
+
+    pub fn cmp_ext_w(rn: Register, rm: Register, extend: Extend, amount: Int32) {
+        self.subs_ext_w(REG_ZERO, rn, rm, extend, amount);
+    }
+
+    pub fn cmp_imm(rn: Register, imm: Int32) {
+        self.subs_imm(REG_ZERO, rn, imm);
+    }
+
+    pub fn cmp_imm_w(rn: Register, imm: Int32) {
+        self.subs_imm_w(REG_ZERO, rn, imm);
+    }
+
+    pub fn cmp_sh(rn: Register, rm: Register, shift: Shift, amount: Int32) {
+        self.emit(encoding::addsub_shreg(1i32, 1i32, 1i32, shift, rm, amount, rn, REG_ZERO));
+    }
+
+    pub fn cmp_sh_w(rn: Register, rm: Register, shift: Shift, amount: Int32) {
+        self.emit(encoding::addsub_shreg(0i32, 1i32, 1i32, shift, rm, amount, rn, REG_ZERO));
+    }
+
     pub fn nop() {
-        self.buffer.emitInt32(encoding::system(0i32));
+        self.emit(encoding::system(0i32));
     }
 
 
     pub fn ret() {
         let inst = encoding::uncond_branch_reg(0b0010i32, 0b11111i32, 0i32, REG_LR, 0i32);
-        self.buffer.emitInt32(inst);
+        self.emit(inst);
     }
 
     pub fn ret_r(rn: Register) {
         let inst = encoding::uncond_branch_reg(0b0010i32, 0b11111i32, 0i32, rn, 0i32);
-        self.buffer.emitInt32(inst);
+        self.emit(inst);
     }
 
     pub fn subs(rd: Register, rn: Register, rm: Register) {
-        self.buffer.emitInt32(encoding::addsub_shreg(1i32, 1i32, 1i32, Shift::LSL, rm, 0i32, rn, rd));
+        self.emit(encoding::addsub_shreg(1i32, 1i32, 1i32, Shift::LSL, rm, 0i32, rn, rd));
     }
 
     pub fn subs_w(rd: Register, rn: Register, rm: Register) {
-        self.buffer.emitInt32(encoding::addsub_shreg(0i32, 1i32, 1i32, Shift::LSL, rm, 0i32, rn, rd));
+        self.emit(encoding::addsub_shreg(0i32, 1i32, 1i32, Shift::LSL, rm, 0i32, rn, rd));
+    }
+
+    pub fn subs_ext(
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        extend: Extend,
+        amount: Int32,
+    ) {
+        self.emit(encoding::addsub_extreg(1i32, 1i32, true, 0i32, rm, extend, amount, rn, rd));
+    }
+
+    pub fn subs_ext_w(
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        extend: Extend,
+        amount: Int32,
+    ) {
+        self.emit(encoding::addsub_extreg(0i32, 1i32, true, 0i32, rm, extend, amount, rn, rd));
+    }
+
+    pub fn subs_imm(rd: Register, rn: Register, imm: Int32) {
+        let (shift, imm12) = imm_encoding::imm12(imm);
+        self.emit(encoding::addsub_imm(1i32, 1i32, true, shift, imm12, rn, rd));
+    }
+
+    pub fn subs_imm_w(rd: Register, rn: Register, imm: Int32) {
+        let (shift, imm12) = imm_encoding::imm12(imm);
+        self.emit(encoding::addsub_imm(0i32, 1i32, true, shift, imm12, rn, rd));
     }
 
     pub fn subs_sh(rd: Register, rn: Register, rm: Register, shift: Shift, amount: Int32) {
-        self.buffer.emitInt32(encoding::addsub_shreg(1i32, 1i32, 1i32, shift, rm, amount, rn, rd));
+        self.emit(encoding::addsub_shreg(1i32, 1i32, 1i32, shift, rm, amount, rn, rd));
     }
 
     pub fn subs_sh_w(
@@ -489,7 +591,7 @@ impl AssemblerArm64 {
         shift: Shift,
         amount: Int32,
     ) {
-        self.buffer.emitInt32(encoding::addsub_shreg(0i32, 1i32, 1i32, shift, rm, amount, rn, rd));
+        self.emit(encoding::addsub_shreg(0i32, 1i32, 1i32, shift, rm, amount, rn, rd));
     }
 
     pub fn finalize(): Array[UInt8] {
@@ -525,12 +627,12 @@ impl AssemblerArm64 {
 
                 JumpKind::Unconditional(with_link) => {
                     let inst = encoding::uncond_branch_imm(with_link.toInt32(), distance);
-                    self.buffer.emitInt32(inst);
+                    self.emit(inst);
                 },
 
                 JumpKind::Zero(sf, value, rt) => {
                     let inst = encoding::cmp_branch_imm(sf.toInt32(), value.toInt32(), rt, distance);
-                    self.buffer.emitInt32(inst);
+                    self.emit(inst);
                     self.nop();
                 }
             }
@@ -538,6 +640,10 @@ impl AssemblerArm64 {
 
         self.jumps.clear();
         self.buffer.setPosition(old_position);
+    }
+
+    fn emit(value: Int32) {
+        self.buffer.emitInt32(value);
     }
 }
 
@@ -644,13 +750,7 @@ impl Shift {
 }
 
 mod imm_encoding {
-    pub struct LogicalImm {
-        n: Int32,
-        immr: Int32,
-        imms: Int32,
-    }
-
-    pub fn logical_imm(mut imm: Int64, reg_size: Int64): Option[Int32] {
+    pub fn logical(mut imm: Int64, reg_size: Int64): Option[Int32] {
         assert(reg_size == 32 || reg_size == 64);
 
         if reg_size == 32 {
@@ -1589,10 +1689,10 @@ mod tests {
     @Test
     fn test_br_blr() {
         let asm = AssemblerArm64::new();
-        asm.br(R0);
-        asm.br(R30);
-        asm.blr(R0);
-        asm.blr(R30);
+        asm.b_r(R0);
+        asm.b_r(R30);
+        asm.bl_r(R0);
+        asm.bl_r(R30);
         let buffer = asm.finalizeTesting();
 
         assertAsm32(
@@ -1990,15 +2090,15 @@ mod tests {
     fn test_asrv() {
         let asm = AssemblerArm64::new();
         asm.asrv(R0, R1, R2);
-        asm.asrv_w(R0, R1, R2);
+        asm.asrv_w(R3, R4, R5);
         let buffer = asm.finalizeTesting();
 
         assertAsm32(
             buffer,
             // asr x0, x1, x2
             0x9ac22820i32,
-            // asr w0, w1, w2
-            0x1ac22820i32,
+            // asr w3, w4, w5
+            0x1ac52883i32,
         );
     }
 
@@ -2102,25 +2202,210 @@ mod tests {
 
     @Test
     fn test_logical_imm() {
-        assert(imm_encoding::logical_imm(0, 64).isNone());
-        assert(imm_encoding::logical_imm(!0, 64).isNone());
+        assert(imm_encoding::logical(0, 64).isNone());
+        assert(imm_encoding::logical(!0, 64).isNone());
 
-        assert(imm_encoding::logical_imm(0, 32).isNone());
-        assert(imm_encoding::logical_imm((1 << 32i32) - 1, 32).isNone());
+        assert(imm_encoding::logical(0, 32).isNone());
+        assert(imm_encoding::logical((1 << 32i32) - 1, 32).isNone());
 
-        let result = imm_encoding::logical_imm(0x55555555, 32);
+        let result = imm_encoding::logical(0x55555555, 32);
         assert(Some[Int32](0b0_000000_111100i32) == result);
         assert(
             Some[Int32](0b0_000000_111100i32) ==
-            imm_encoding::logical_imm(0x5555555555555555, 64)
+            imm_encoding::logical(0x5555555555555555, 64)
         );
-        assert(Some[Int32](0b0_000001_111100i32) == imm_encoding::logical_imm(0xaaaaaaaa, 32));
+        assert(Some[Int32](0b0_000001_111100i32) == imm_encoding::logical(0xaaaaaaaa, 32));
         assert(
             Some[Int32](0b0_000001_111100i32) ==
-            imm_encoding::logical_imm(0xaaaaaaaaaaaaaaaa, 64)
+            imm_encoding::logical(0xaaaaaaaaaaaaaaaa, 64)
         );
-        assert(Some[Int32](0b0_000000_111000i32) == imm_encoding::logical_imm(0x11111111, 32));
-        assert(Some[Int32](0b0_000001_111000i32) == imm_encoding::logical_imm(0x88888888, 32));
-        assert(Some[Int32](0b0_000001_111001i32) == imm_encoding::logical_imm(0x99999999, 32));
+        assert(Some[Int32](0b0_000000_111000i32) == imm_encoding::logical(0x11111111, 32));
+        assert(Some[Int32](0b0_000001_111000i32) == imm_encoding::logical(0x88888888, 32));
+        assert(Some[Int32](0b0_000001_111001i32) == imm_encoding::logical(0x99999999, 32));
+    }
+
+    @Test
+    fn test_and() {
+        let asm = AssemblerArm64::new();
+        asm.and_imm(R0, R1, 1);
+        asm.and_imm(R0, R1, 0xaaaaaaaa_aaaaaaaa);
+        asm.and_imm_w(R0, R1, 1);
+        asm.and_imm_w(R0, R1, 0xaaaaaaaa);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // and x0, x1, #0x1
+            0x92400020i32,
+            // and x0, x1, #0xaaaaaaaaaaaaaaaa
+            0x9201f020i32,
+            // and w0, w1, #0x1
+            0x12000020i32,
+            // and w0, w1, #0xaaaaaaaa
+            0x1201f020i32,
+        );
+    }
+
+    @Test
+    fn test_and_sh_ands_sh() {
+        let asm = AssemblerArm64::new();
+        asm.and_sh(R0, R1, R2, Shift::LSR, 1i32);
+        asm.and_sh_w(R3, R4, R5, Shift::LSL, 2i32);
+        asm.ands_sh(R0, R1, R2, Shift::LSR, 1i32);
+        asm.ands_sh_w(R3, R4, R5, Shift::LSL, 2i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // and x0, x1, x2, lsr #1
+            0x8a420420i32,
+            // and w3, w4, w5, lsl #2
+            0x0a050883i32,
+            // ands x0, x1, x2, lsr #1
+            0xea420420i32,
+            // ands w3, w4, w5, lsl #2
+            0x6a050883i32,
+        );
+    }
+
+    @Test
+    fn test_cls_clz() {
+        let asm = AssemblerArm64::new();
+        asm.cls(R0, R1);
+        asm.cls_w(R2, R3);
+        asm.clz(R0, R1);
+        asm.clz_w(R2, R3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // cls x0, x1
+            0xdac01420i32,
+            // cls w2, w3
+            0x5ac01462i32,
+            // clz x0, x1
+            0xdac01020i32,
+            // clz w2, w3
+            0x5ac01062i32,
+        );
+    }
+
+    @Test
+    fn test_cmn_imm() {
+        let asm = AssemblerArm64::new();
+        asm.cmn_imm(R0, 1i32);
+        asm.cmn_imm_w(R0, 4096i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // cmn x0, #0x1
+            0xb100041fi32,
+            // cmn w0, #0x1, lsl #12
+            0x3140041fi32,
+        );
+    }
+
+    @Test
+    fn test_cmp() {
+        let asm = AssemblerArm64::new();
+        asm.cmp(R0, R1);
+        asm.cmp_w(R2, R3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // cmp x0, x1
+            0xeb01001fi32,
+            // cmp w2, w3
+            0x6b03005fi32,
+        );
+    }
+
+
+    @Test
+    fn test_cmp_ext() {
+        let asm = AssemblerArm64::new();
+        asm.cmp_ext(R0, R1, Extend::UXTX, 2i32);
+        asm.cmp_ext(R2, R3, Extend::UXTX, 0i32);
+        asm.cmp_ext_w(R0, R1, Extend::UXTW, 2i32);
+        asm.cmp_ext_w(R2, R3, Extend::UXTW, 0i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // cmp x0, x1, uxtx #2
+            0xeb21681fi32,
+            // cmp x2, x3, uxtx
+            0xeb23605fi32,
+            // cmp w0, w1, uxtw #2
+            0x6b21481fi32,
+            // cmp w2, w3, uxtw
+            0x6b23405fi32,
+        );
+    }
+
+    @Test
+    fn test_cmp_imm() {
+        let asm = AssemblerArm64::new();
+        asm.cmp_imm(R0, 1i32);
+        asm.cmp_imm_w(R2, 4096i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // cmp x0, #0x1
+            0xf100041fi32,
+            // cmp w2, #0x1, lsl #12
+            0x7140045fi32,
+        );
+    }
+
+    @Test
+    fn test_cmp_sh() {
+        let asm = AssemblerArm64::new();
+        asm.cmp_sh(R0, R1, Shift::LSR, 2i32);
+        asm.cmp_sh_w(R2, R3, Shift::LSL, 1i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // cmp x0, x1, lsr #2
+            0xeb41081fi32,
+            // cmp w2, w3, lsl #1
+            0x6b03045fi32,
+        );
+    }
+
+    @Test
+    fn test_subs_ext() {
+        let asm = AssemblerArm64::new();
+        asm.subs_ext(R0, R1, R2, Extend::UXTX, 2i32);
+        asm.subs_ext_w(R2, R3, R4, Extend::UXTW, 1i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // subs x0, x1, x2, uxtx #2
+            0xeb226820i32,
+            // subs w2, w3, w4, uxtw #1
+            0x6b244462i32,
+        );
+    }
+
+    @Test
+    fn test_subs_imm() {
+        let asm = AssemblerArm64::new();
+        asm.subs_imm(R0, R1, 1i32);
+        asm.subs_imm_w(R2, R3, 4096i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // subs x0, x1, #0x1
+            0xf1000420i32,
+            // subs w2, w3, #0x1, lsl #12
+            0x71400462i32,
+        );
     }
 }
