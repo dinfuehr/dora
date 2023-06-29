@@ -693,10 +693,6 @@ impl AssemblerArm64 {
         self.emit_u32(cls::logical_shreg(0, 0b10, shift, 0, rm, imm6, rn, rd));
     }
 
-    pub fn fadd_h(&mut self, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
-        self.emit_u32(cls::fp_dataproc2(0, 0, FLOAT_TYPE_HALF, rm, 0b0010, rn, rd));
-    }
-
     pub fn fadd_s(&mut self, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
         self.emit_u32(cls::fp_dataproc2(
             0,
@@ -725,10 +721,6 @@ impl AssemblerArm64 {
         self.emit_u32(cls::fp_compare(0, 0, FLOAT_TYPE_DOUBLE, rm, 0, rn, 0));
     }
 
-    pub fn fcmp_h(&mut self, rn: NeonRegister, rm: NeonRegister) {
-        self.emit_u32(cls::fp_compare(0, 0, FLOAT_TYPE_HALF, rm, 0, rn, 0));
-    }
-
     pub fn fcmp_s(&mut self, rn: NeonRegister, rm: NeonRegister) {
         self.emit_u32(cls::fp_compare(0, 0, FLOAT_TYPE_SINGLE, rm, 0, rn, 0));
     }
@@ -737,20 +729,30 @@ impl AssemblerArm64 {
         self.emit_u32(cls::fp_compare(0, 0, FLOAT_TYPE_DOUBLE, rm, 0, rn, 0b10000));
     }
 
-    pub fn fcmpe_h(&mut self, rn: NeonRegister, rm: NeonRegister) {
-        self.emit_u32(cls::fp_compare(0, 0, FLOAT_TYPE_HALF, rm, 0, rn, 0b10000));
-    }
-
     pub fn fcmpe_s(&mut self, rn: NeonRegister, rm: NeonRegister) {
         self.emit_u32(cls::fp_compare(0, 0, FLOAT_TYPE_SINGLE, rm, 0, rn, 0b10000));
     }
 
     pub fn fcvt_ds(&mut self, rd: NeonRegister, rn: NeonRegister) {
-        self.emit_u32(cls::fp_dataproc1(0, 0, 0b01, 0b000100, rn, rd));
+        self.emit_u32(cls::fp_dataproc1(
+            0,
+            0,
+            FLOAT_TYPE_SINGLE,
+            0b000100 | FLOAT_TYPE_DOUBLE,
+            rn,
+            rd,
+        ));
     }
 
     pub fn fcvt_sd(&mut self, rd: NeonRegister, rn: NeonRegister) {
-        self.emit_u32(cls::fp_dataproc1(0, 0, 0b00, 0b000101, rn, rd));
+        self.emit_u32(cls::fp_dataproc1(
+            0,
+            0,
+            FLOAT_TYPE_DOUBLE,
+            0b000100 | FLOAT_TYPE_SINGLE,
+            rn,
+            rd,
+        ));
     }
 
     pub fn fcvtzs_d(&mut self, rd: Register, rn: NeonRegister) {
@@ -758,18 +760,6 @@ impl AssemblerArm64 {
             1,
             0,
             FLOAT_TYPE_DOUBLE,
-            0b11,
-            0b000,
-            rn.encoding(),
-            rd.encoding(),
-        ));
-    }
-
-    pub fn fcvtzs_h(&mut self, rd: Register, rn: NeonRegister) {
-        self.emit_u32(cls::fp_int(
-            1,
-            0,
-            FLOAT_TYPE_HALF,
             0b11,
             0b000,
             rn.encoding(),
@@ -801,18 +791,6 @@ impl AssemblerArm64 {
         ));
     }
 
-    pub fn fcvtzs_wh(&mut self, rd: Register, rn: NeonRegister) {
-        self.emit_u32(cls::fp_int(
-            0,
-            0,
-            FLOAT_TYPE_HALF,
-            0b11,
-            0b000,
-            rn.encoding(),
-            rd.encoding(),
-        ));
-    }
-
     pub fn fcvtzs_ws(&mut self, rd: Register, rn: NeonRegister) {
         self.emit_u32(cls::fp_int(
             0,
@@ -837,10 +815,6 @@ impl AssemblerArm64 {
         ));
     }
 
-    pub fn fdiv_h(&mut self, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
-        self.emit_u32(cls::fp_dataproc2(0, 0, FLOAT_TYPE_HALF, rm, 0b0001, rn, rd));
-    }
-
     pub fn fdiv_s(&mut self, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
         self.emit_u32(cls::fp_dataproc2(
             0,
@@ -855,10 +829,6 @@ impl AssemblerArm64 {
 
     pub fn fmov_d(&mut self, rd: NeonRegister, rn: NeonRegister) {
         self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_DOUBLE, 0b000000, rn, rd));
-    }
-
-    pub fn fmov_h(&mut self, rd: NeonRegister, rn: NeonRegister) {
-        self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_HALF, 0b000000, rn, rd));
     }
 
     pub fn fmov_s(&mut self, rd: NeonRegister, rn: NeonRegister) {
@@ -877,55 +847,7 @@ impl AssemblerArm64 {
         ));
     }
 
-    pub fn fmov_fs_h(&mut self, rd: NeonRegister, rn: Register) {
-        self.emit_u32(cls::fp_int(
-            1,
-            0,
-            FLOAT_TYPE_HALF,
-            0b00,
-            0b111,
-            rn.encoding(),
-            rd.encoding(),
-        ));
-    }
-
     pub fn fmov_fs_s(&mut self, rd: NeonRegister, rn: Register) {
-        self.emit_u32(cls::fp_int(
-            1,
-            0,
-            FLOAT_TYPE_SINGLE,
-            0b00,
-            0b111,
-            rn.encoding(),
-            rd.encoding(),
-        ));
-    }
-
-    pub fn fmov_fs_wd(&mut self, rd: NeonRegister, rn: Register) {
-        self.emit_u32(cls::fp_int(
-            0,
-            0,
-            FLOAT_TYPE_DOUBLE,
-            0b00,
-            0b111,
-            rn.encoding(),
-            rd.encoding(),
-        ));
-    }
-
-    pub fn fmov_fs_wh(&mut self, rd: NeonRegister, rn: Register) {
-        self.emit_u32(cls::fp_int(
-            0,
-            0,
-            FLOAT_TYPE_HALF,
-            0b00,
-            0b111,
-            rn.encoding(),
-            rd.encoding(),
-        ));
-    }
-
-    pub fn fmov_fs_ws(&mut self, rd: NeonRegister, rn: Register) {
         self.emit_u32(cls::fp_int(
             0,
             0,
@@ -949,56 +871,8 @@ impl AssemblerArm64 {
         ));
     }
 
-    pub fn fmov_sf_h(&mut self, rd: Register, rn: NeonRegister) {
-        self.emit_u32(cls::fp_int(
-            1,
-            0,
-            FLOAT_TYPE_HALF,
-            0b00,
-            0b110,
-            rn.encoding(),
-            rd.encoding(),
-        ));
-    }
-
     pub fn fmov_sf_s(&mut self, rd: Register, rn: NeonRegister) {
         self.emit_u32(cls::fp_int(
-            1,
-            0,
-            FLOAT_TYPE_SINGLE,
-            0b00,
-            0b110,
-            rn.encoding(),
-            rd.encoding(),
-        ));
-    }
-
-    pub fn fmov_sf_wd(&mut self, rd: Register, rn: NeonRegister) {
-        self.emit_u32(cls::fp_int(
-            0,
-            0,
-            FLOAT_TYPE_DOUBLE,
-            0b00,
-            0b110,
-            rn.encoding(),
-            rd.encoding(),
-        ));
-    }
-
-    pub fn fmov_sf_wh(&mut self, rd: Register, rn: NeonRegister) {
-        self.emit_u32(cls::fp_int(
-            0,
-            0,
-            FLOAT_TYPE_HALF,
-            0b00,
-            0b110,
-            rn.encoding(),
-            rd.encoding(),
-        ));
-    }
-
-    pub fn fmov_sf_ws(&mut self, rd: Register, rn: NeonRegister) {
-        self.emit_u32(cls::fp_int(
             0,
             0,
             FLOAT_TYPE_SINGLE,
@@ -1007,10 +881,6 @@ impl AssemblerArm64 {
             rn.encoding(),
             rd.encoding(),
         ));
-    }
-
-    pub fn fmul_h(&mut self, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
-        self.emit_u32(cls::fp_dataproc2(0, 0, FLOAT_TYPE_HALF, rm, 0b0000, rn, rd));
     }
 
     pub fn fmul_s(&mut self, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
@@ -1041,20 +911,12 @@ impl AssemblerArm64 {
         self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_DOUBLE, 0b000001, rn, rd));
     }
 
-    pub fn fabs_h(&mut self, rd: NeonRegister, rn: NeonRegister) {
-        self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_HALF, 0b000001, rn, rd));
-    }
-
     pub fn fabs_s(&mut self, rd: NeonRegister, rn: NeonRegister) {
         self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_SINGLE, 0b000001, rn, rd));
     }
 
     pub fn fneg_d(&mut self, rd: NeonRegister, rn: NeonRegister) {
         self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_DOUBLE, 0b000010, rn, rd));
-    }
-
-    pub fn fneg_h(&mut self, rd: NeonRegister, rn: NeonRegister) {
-        self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_HALF, 0b000010, rn, rd));
     }
 
     pub fn fneg_s(&mut self, rd: NeonRegister, rn: NeonRegister) {
@@ -1105,16 +967,8 @@ impl AssemblerArm64 {
         self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_DOUBLE, 0b000011, rn, rd));
     }
 
-    pub fn fsqrt_h(&mut self, rd: NeonRegister, rn: NeonRegister) {
-        self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_HALF, 0b000011, rn, rd));
-    }
-
     pub fn fsqrt_s(&mut self, rd: NeonRegister, rn: NeonRegister) {
         self.emit_u32(cls::fp_dataproc1(0, 0, FLOAT_TYPE_SINGLE, 0b000011, rn, rd));
-    }
-
-    pub fn fsub_h(&mut self, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
-        self.emit_u32(cls::fp_dataproc2(0, 0, FLOAT_TYPE_HALF, rm, 0b0011, rn, rd));
     }
 
     pub fn fsub_s(&mut self, rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
@@ -2004,18 +1858,6 @@ impl AssemblerArm64 {
         ));
     }
 
-    pub fn scvtf_h(&mut self, rd: NeonRegister, rn: Register) {
-        self.emit_u32(cls::fp_int(
-            1,
-            0,
-            FLOAT_TYPE_HALF,
-            0b00,
-            0b010,
-            rn.encoding(),
-            rd.encoding(),
-        ));
-    }
-
     pub fn scvtf_s(&mut self, rd: NeonRegister, rn: Register) {
         self.emit_u32(cls::fp_int(
             1,
@@ -2033,18 +1875,6 @@ impl AssemblerArm64 {
             0,
             0,
             FLOAT_TYPE_DOUBLE,
-            0b00,
-            0b010,
-            rn.encoding(),
-            rd.encoding(),
-        ));
-    }
-
-    pub fn scvtf_wh(&mut self, rd: NeonRegister, rn: Register) {
-        self.emit_u32(cls::fp_int(
-            0,
-            0,
-            FLOAT_TYPE_HALF,
             0b00,
             0b010,
             rn.encoding(),
@@ -3290,7 +3120,6 @@ pub fn fits_ldst_unscaled(value: i32) -> bool {
     fits_i9(value)
 }
 
-const FLOAT_TYPE_HALF: u32 = 0b11;
 const FLOAT_TYPE_SINGLE: u32 = 0b00;
 const FLOAT_TYPE_DOUBLE: u32 = 0b01;
 
@@ -3469,6 +3298,14 @@ mod tests {
         assert_emit!(0x1e620041; scvtf_wd(F1, R2));
         assert_emit!(0x9e220083; scvtf_s(F3, R4));
         assert_emit!(0x9e620083; scvtf_d(F3, R4));
+    }
+
+    #[test]
+    fn test_fcvt() {
+        assert_emit!(0x1e624020; fcvt_sd(F0, F1)); // x0, d1
+        assert_emit!(0x1e624062; fcvt_sd(F2, F3)); // x7, s2
+        assert_emit!(0x1e22c020; fcvt_ds(F0, F1)); // w0, d1
+        assert_emit!(0x1e22c062; fcvt_ds(F2, F3)); // w7, s2
     }
 
     #[test]
@@ -3993,5 +3830,65 @@ mod tests {
         assert_eq!(0, shift_movn(1));
         assert_eq!(1, shift_movn(0xFFFF));
         assert_eq!(2, shift_movn(0xFFFFFFFF));
+    }
+
+    #[test]
+    fn test_fdiv() {
+        assert_emit!(0x1e221820; fdiv_s(F0, F1, F2)); // fdiv s0, s1, s2
+        assert_emit!(0x1e651883; fdiv_d(F3, F4, F5)); // fdiv d3, d4, d5
+    }
+
+    #[test]
+    fn test_fmov() {
+        assert_emit!(0x1e204020; fmov_s(F0, F1)); // fmov s0, s1
+        assert_emit!(0x1e604062; fmov_d(F2, F3)); // fmov d2, d3
+    }
+
+    #[test]
+    fn test_fmov_fs() {
+        assert_emit!(0x1e270020; fmov_fs_s(F0, R1)); // fmov s0, w1
+        assert_emit!(0x9e670062; fmov_fs_d(F2, R3)); // fmov d2, x3
+    }
+
+    #[test]
+    fn test_fmov_sf() {
+        assert_emit!(0x1e260020; fmov_sf_s(R0, F1)); // fmov w0, s1
+        assert_emit!(0x9e660062; fmov_sf_d(R2, F3)); // fmov x2, d3
+    }
+
+    #[test]
+    fn test_frintn() {
+        assert_emit!(0x1e244020; frintn_s(F0, F1)); // frintn s0, s1
+        assert_emit!(0x1e644062; frintn_d(F2, F3)); // frintn d2, d3
+    }
+
+    #[test]
+    fn test_frintp() {
+        assert_emit!(0x1e24c020; frintp_s(F0, F1)); // frintp s0, s1
+        assert_emit!(0x1e64c062; frintp_d(F2, F3)); // frintp d2, d3
+    }
+
+    #[test]
+    fn test_frintm() {
+        assert_emit!(0x1e254020; frintm_s(F0, F1)); // frintm s0, s1
+        assert_emit!(0x1e654062; frintm_d(F2, F3)); // frintm d2, d3
+    }
+
+    #[test]
+    fn test_frintz() {
+        assert_emit!(0x1e25c020; frintz_s(F0, F1)); // frintz s0, s1
+        assert_emit!(0x1e65c062; frintz_d(F2, F3)); // frintz d2, d3
+    }
+
+    #[test]
+    fn test_frinta() {
+        assert_emit!(0x1e264020; frinta_s(F0, F1)); // frinta s0, s1
+        assert_emit!(0x1e664062; frinta_d(F2, F3)); // frinta d2, d3
+    }
+
+    #[test]
+    fn test_fsub() {
+        assert_emit!(0x1e223820; fsub_s(F0, F1, F2)); // fsub s0, s1, s2
+        assert_emit!(0x1e653883; fsub_d(F3, F4, F5)); // fsub d3, d4, d5
     }
 }

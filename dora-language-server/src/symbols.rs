@@ -26,6 +26,7 @@ pub(super) fn document_symbol_request(server_state: &mut ServerState, request: R
                 server_state.threadpool.execute(move || {
                     eprintln!("parse file on background thread.");
                     let symbols = parse_file(content);
+                    eprintln!("parse done on background thread.");
                     let response = DocumentSymbolResponse::Nested(symbols);
                     let response = Response::new_ok(request.id, response);
                     sender

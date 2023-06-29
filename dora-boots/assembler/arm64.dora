@@ -43,6 +43,9 @@ let REG_SP: Register = Register(33i32);
 let REG_FP: Register = R29;
 let REG_LR: Register = R30;
 
+const FLOAT_TYPE_SINGLE: Int32 = 0b00;
+const FLOAT_TYPE_DOUBLE: Int32 = 0b01;
+
 struct NeonRegister(value: Int32)
 
 impl NeonRegister {
@@ -578,6 +581,294 @@ impl AssemblerArm64 {
 
     pub fn eor_sh_w(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
         self.emit(encoding::logical_shreg(0i32, 0b10i32, shift, 0i32, rm, imm6, rn, rd));
+    }
+
+    pub fn fadd_s(rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
+        self.emit(encoding::fp_dataproc2(
+            0i32,
+            0i32,
+            FLOAT_TYPE_SINGLE,
+            rm,
+            0b0010i32,
+            rn,
+            rd,
+        ));
+    }
+
+    pub fn fadd_d(rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
+        self.emit(encoding::fp_dataproc2(
+            0i32,
+            0i32,
+            FLOAT_TYPE_DOUBLE,
+            rm,
+            0b0010i32,
+            rn,
+            rd,
+        ));
+    }
+
+    pub fn fcmp_d(rn: NeonRegister, rm: NeonRegister) {
+        self.emit(encoding::fp_compare(0i32, 0i32, FLOAT_TYPE_DOUBLE, rm, 0i32, rn, 0i32));
+    }
+
+    pub fn fcmp_s(rn: NeonRegister, rm: NeonRegister) {
+        self.emit(encoding::fp_compare(0i32, 0i32, FLOAT_TYPE_SINGLE, rm, 0i32, rn, 0i32));
+    }
+
+    pub fn fcmpe_d(rn: NeonRegister, rm: NeonRegister) {
+        self.emit(encoding::fp_compare(0i32, 0i32, FLOAT_TYPE_DOUBLE, rm, 0i32, rn, 0b10000i32));
+    }
+
+    pub fn fcmpe_s(rn: NeonRegister, rm: NeonRegister) {
+        self.emit(encoding::fp_compare(0i32, 0i32, FLOAT_TYPE_SINGLE, rm, 0i32, rn, 0b10000i32));
+    }
+
+    pub fn fcvt_ds(rd: NeonRegister, rn: NeonRegister) {
+        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b000100i32 | FLOAT_TYPE_DOUBLE, rn, rd));
+    }
+
+    pub fn fcvt_sd(rd: NeonRegister, rn: NeonRegister) {
+        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b000100i32 | FLOAT_TYPE_SINGLE, rn, rd));
+    }
+
+    pub fn fcvtzs_d(rd: Register, rn: NeonRegister) {
+        self.emit(encoding::fp_int(
+            1i32,
+            0i32,
+            FLOAT_TYPE_DOUBLE,
+            0b11i32,
+            0b000i32,
+            rn.encoding(),
+            rd.encoding(),
+        ));
+    }
+
+    pub fn fcvtzs_s(rd: Register, rn: NeonRegister) {
+        self.emit(encoding::fp_int(
+            1i32,
+            0i32,
+            FLOAT_TYPE_SINGLE,
+            0b11i32,
+            0b000i32,
+            rn.encoding(),
+            rd.encoding(),
+        ));
+    }
+
+    pub fn fcvtzs_wd(rd: Register, rn: NeonRegister) {
+        self.emit(encoding::fp_int(
+            0i32,
+            0i32,
+            FLOAT_TYPE_DOUBLE,
+            0b11i32,
+            0b000i32,
+            rn.encoding(),
+            rd.encoding(),
+        ));
+    }
+
+    pub fn fcvtzs_ws(rd: Register, rn: NeonRegister) {
+        self.emit(encoding::fp_int(
+            0i32,
+            0i32,
+            FLOAT_TYPE_SINGLE,
+            0b11i32,
+            0b000i32,
+            rn.encoding(),
+            rd.encoding(),
+        ));
+    }
+
+    pub fn fdiv_d(rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
+        self.emit(encoding::fp_dataproc2(
+            0i32,
+            0i32,
+            FLOAT_TYPE_DOUBLE,
+            rm,
+            0b0001i32,
+            rn,
+            rd,
+        ));
+    }
+
+    pub fn fdiv_s(rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
+        self.emit(encoding::fp_dataproc2(
+            0i32,
+            0i32,
+            FLOAT_TYPE_SINGLE,
+            rm,
+            0b0001i32,
+            rn,
+            rd,
+        ));
+    }
+
+    pub fn fmov_d(rd: NeonRegister, rn: NeonRegister) {
+        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b000000i32, rn, rd));
+    }
+
+    pub fn fmov_s(rd: NeonRegister, rn: NeonRegister) {
+        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b000000i32, rn, rd));
+    }
+
+    pub fn fmov_fs_d(rd: NeonRegister, rn: Register) {
+        self.emit(encoding::fp_int(
+            1i32,
+            0i32,
+            FLOAT_TYPE_DOUBLE,
+            0b00i32,
+            0b111i32,
+            rn.encoding(),
+            rd.encoding(),
+        ));
+    }
+
+    pub fn fmov_fs_s(rd: NeonRegister, rn: Register) {
+        self.emit(encoding::fp_int(
+            0i32,
+            0i32,
+            FLOAT_TYPE_SINGLE,
+            0b00i32,
+            0b111i32,
+            rn.encoding(),
+            rd.encoding(),
+        ));
+    }
+
+    pub fn fmov_sf_d(rd: Register, rn: NeonRegister) {
+        self.emit(encoding::fp_int(
+            1i32,
+            0i32,
+            FLOAT_TYPE_DOUBLE,
+            0b00i32,
+            0b110i32,
+            rn.encoding(),
+            rd.encoding(),
+        ));
+    }
+
+    pub fn fmov_sf_s(rd: Register, rn: NeonRegister) {
+        self.emit(encoding::fp_int(
+            0i32,
+            0i32,
+            FLOAT_TYPE_SINGLE,
+            0b00i32,
+            0b110i32,
+            rn.encoding(),
+            rd.encoding(),
+        ));
+    }
+
+    pub fn fmul_s(rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
+        self.emit(encoding::fp_dataproc2(
+            0i32,
+            0i32,
+            FLOAT_TYPE_SINGLE,
+            rm,
+            0b0000i32,
+            rn,
+            rd,
+        ));
+    }
+
+    pub fn fmul_d(rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
+        self.emit(encoding::fp_dataproc2(
+            0i32,
+            0i32,
+            FLOAT_TYPE_DOUBLE,
+            rm,
+            0b0000i32,
+            rn,
+            rd,
+        ));
+    }
+
+    pub fn fabs_d(rd: NeonRegister, rn: NeonRegister) {
+        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b000001i32, rn, rd));
+    }
+
+    pub fn fabs_s(rd: NeonRegister, rn: NeonRegister) {
+        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b000001i32, rn, rd));
+    }
+
+    pub fn fneg_d(rd: NeonRegister, rn: NeonRegister) {
+        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b000010i32, rn, rd));
+    }
+
+    pub fn fneg_s(rd: NeonRegister, rn: NeonRegister) {
+        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b000010i32, rn, rd));
+    }
+
+    pub fn frintn_d(rd: NeonRegister, rn: NeonRegister) {
+        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b001000i32, rn, rd));
+    }
+
+    pub fn frintn_s(rd: NeonRegister, rn: NeonRegister) {
+        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b001000i32, rn, rd));
+    }
+
+    pub fn frintp_d(rd: NeonRegister, rn: NeonRegister) {
+        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b001001i32, rn, rd));
+    }
+
+    pub fn frintp_s(rd: NeonRegister, rn: NeonRegister) {
+        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b001001i32, rn, rd));
+    }
+
+    pub fn frintm_d(rd: NeonRegister, rn: NeonRegister) {
+        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b001010i32, rn, rd));
+    }
+
+    pub fn frintm_s(rd: NeonRegister, rn: NeonRegister) {
+        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b001010i32, rn, rd));
+    }
+
+    pub fn frintz_d(rd: NeonRegister, rn: NeonRegister) {
+        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b001011i32, rn, rd));
+    }
+
+    pub fn frintz_s(rd: NeonRegister, rn: NeonRegister) {
+        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b001011i32, rn, rd));
+    }
+
+    pub fn frinta_d(rd: NeonRegister, rn: NeonRegister) {
+        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b001100i32, rn, rd));
+    }
+
+    pub fn frinta_s(rd: NeonRegister, rn: NeonRegister) {
+        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b001100i32, rn, rd));
+    }
+
+    pub fn fsqrt_d(rd: NeonRegister, rn: NeonRegister) {
+        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b000011i32, rn, rd));
+    }
+
+    pub fn fsqrt_s(rd: NeonRegister, rn: NeonRegister) {
+        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b000011i32, rn, rd));
+    }
+
+    pub fn fsub_s(rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
+        self.emit(encoding::fp_dataproc2(
+            0i32,
+            0i32,
+            FLOAT_TYPE_SINGLE,
+            rm,
+            0b0011i32,
+            rn,
+            rd,
+        ));
+    }
+
+    pub fn fsub_d(rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
+        self.emit(encoding::fp_dataproc2(
+            0i32,
+            0i32,
+            FLOAT_TYPE_DOUBLE,
+            rm,
+            0b0011i32,
+            rn,
+            rd,
+        ));
     }
 
     pub fn nop() {
@@ -1722,7 +2013,7 @@ mod tests {
         R0, R1, R2, R3, R4, R5, R6, R8, R9, R10,
         R17, R27, R28, R29, R30
     };
-    use super::{F0, F1, F2, F3};
+    use super::{F0, F1, F2, F3, F4, F5};
 
     @Test
     fn test_asm_ret() {
@@ -2572,6 +2863,322 @@ mod tests {
             0x4e205820i32,
             // cnt v2.8b, v3.8b
             0x0e205862i32,
+        );
+    }
+
+    @Test
+    fn test_fadd() {
+        let asm = AssemblerArm64::new();
+        asm.fadd_s(F0, F1, F2);
+        asm.fadd_d(F0, F1, F2);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // fadd s0, s1, s2
+            0x1e222820i32,
+            // fadd d0, d1, d2
+            0x1e622820i32,
+        );
+    }
+
+    @Test
+    fn test_fcmp() {
+        let asm = AssemblerArm64::new();
+        asm.fcmp_s(F0, F1);
+        asm.fcmp_d(F2, F3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // fcmp s0, s1
+            0x1e212000i32,
+            // fcmp d2, d3
+            0x1e632040i32,
+        );
+    }
+
+    @Test
+    fn test_fcmpe() {
+        let asm = AssemblerArm64::new();
+        asm.fcmpe_s(F0, F1);
+        asm.fcmpe_d(F2, F3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // fcmpe s0, s1
+            0x1e212010i32,
+            // fcmpe d2, d3
+            0x1e632050i32,
+        );
+    }
+
+    @Test
+    fn test_fcvt() {
+        let asm = AssemblerArm64::new();
+        asm.fcvt_sd(F0, F1);
+        asm.fcvt_sd(F2, F3);
+        asm.fcvt_ds(F0, F1);
+        asm.fcvt_ds(F2, F3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // fcvt s0, d1
+            0x1e624020i32,
+            // fcvt s2, d3
+            0x1e624062i32,
+            // fcvt d0, s1
+            0x1e22c020i32,
+            // fcvt d2, s3
+            0x1e22c062i32,
+        );
+    }
+
+    @Test
+    fn test_fcvtzs() {
+        let asm = AssemblerArm64::new();
+        asm.fcvtzs_ws(R0, F1);
+        asm.fcvtzs_wd(R2, F3);
+        asm.fcvtzs_s(R0, F1);
+        asm.fcvtzs_d(R2, F3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // fcvtzs w0, s1
+            0x1e380020i32,
+            // fcvtzs w2, d3
+            0x1e780062i32,
+            // fcvtzs x0, s1
+            0x9e380020i32,
+            // fcvtzs x2, d3
+            0x9e780062i32,
+        );
+    }
+
+    @Test
+    fn test_fdiv() {
+        let asm = AssemblerArm64::new();
+        asm.fdiv_s(F0, F1, F2);
+        asm.fdiv_d(F3, F4, F5);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // fdiv s0, s1, s2
+            0x1e221820i32,
+            // fdiv d3, d4, d5
+            0x1e651883i32,
+        );
+    }
+
+    @Test
+    fn test_fmov() {
+        let asm = AssemblerArm64::new();
+        asm.fmov_s(F0, F1);
+        asm.fmov_d(F2, F3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // fmov s0, s1
+            0x1e204020i32,
+            // fmov d2, d3
+            0x1e604062i32,
+        );
+    }
+
+    @Test
+    fn test_fmov_fs() {
+        let asm = AssemblerArm64::new();
+        asm.fmov_fs_s(F0, R1);
+        asm.fmov_fs_d(F2, R3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // fmov s0, w1
+            0x1e270020i32,
+            // fmov d2, x3
+            0x9e670062i32,
+        );
+    }
+
+    @Test
+    fn test_fmov_sf() {
+        let asm = AssemblerArm64::new();
+        asm.fmov_sf_s(R0, F1);
+        asm.fmov_sf_d(R2, F3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // fmov w0, s1
+            0x1e260020i32,
+            // fmov x2, d3
+            0x9e660062i32,
+        );
+    }
+
+    @Test
+    fn test_fmul() {
+        let asm = AssemblerArm64::new();
+        asm.fmul_s(F0, F1, F2);
+        asm.fmul_d(F3, F4, F5);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // fmul s0, s1, s2
+            0x1e220820i32,
+            // fmul d3, d4, d5
+            0x1e650883i32,
+        );
+    }
+
+    @Test
+    fn test_fabs() {
+        let asm = AssemblerArm64::new();
+        asm.fabs_s(F0, F1);
+        asm.fabs_d(F2, F3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // fabs s0, s1
+            0x1e20c020i32,
+            // fabs d2, d3
+            0x1e60c062i32,
+        );
+    }
+
+    @Test
+    fn test_fneg() {
+        let asm = AssemblerArm64::new();
+        asm.fneg_s(F0, F1);
+        asm.fneg_d(F2, F3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // fneg s0, s1
+            0x1e214020i32,
+            // fneg d2, d3
+            0x1e614062i32,
+        );
+    }
+
+    @Test
+    fn test_frintn() {
+        let asm = AssemblerArm64::new();
+        asm.frintn_s(F0, F1);
+        asm.frintn_d(F2, F3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // frintn s0, s1
+            0x1e244020i32,
+            // frintn d2, d3
+            0x1e644062i32,
+        );
+    }
+
+    @Test
+    fn test_frintp() {
+        let asm = AssemblerArm64::new();
+        asm.frintp_s(F0, F1);
+        asm.frintp_d(F2, F3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // frintp s0, s1
+            0x1e24c020i32,
+            // frintp d2, d3
+            0x1e64c062i32,
+        );
+    }
+
+    @Test
+    fn test_frintm() {
+        let asm = AssemblerArm64::new();
+        asm.frintm_s(F0, F1);
+        asm.frintm_d(F2, F3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // frintm s0, s1
+            0x1e254020i32,
+            // frintm d2, d3
+            0x1e654062i32,
+        );
+    }
+
+    @Test
+    fn test_frintz() {
+        let asm = AssemblerArm64::new();
+        asm.frintz_s(F0, F1);
+        asm.frintz_d(F2, F3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // frintz s0, s1
+            0x1e25c020i32,
+            // frintz d2, d3
+            0x1e65c062i32,
+        );
+    }
+
+    @Test
+    fn test_frinta() {
+        let asm = AssemblerArm64::new();
+        asm.frinta_s(F0, F1);
+        asm.frinta_d(F2, F3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // frinta s0, s1
+            0x1e264020i32,
+            // frinta d2, d3
+            0x1e664062i32,
+        );
+    }
+
+    @Test
+    fn test_fsqrt() {
+        let asm = AssemblerArm64::new();
+        asm.fsqrt_s(F0, F1);
+        asm.fsqrt_d(F2, F3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // fsqrt s0, s1
+            0x1e21c020i32,
+            // fsqrt d2, d3
+            0x1e61c062i32,
+        );
+    }
+
+    @Test
+    fn test_fsub() {
+        let asm = AssemblerArm64::new();
+        asm.fsub_s(F0, F1, F2);
+        asm.fsub_d(F3, F4, F5);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // fsub s0, s1, s2
+            0x1e223820i32,
+            // fsub d3, d4, d5
+            0x1e653883i32,
         );
     }
 }

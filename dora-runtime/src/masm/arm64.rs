@@ -552,10 +552,10 @@ impl MacroAssembler {
 
         match mode {
             MachineMode::Int32 => {
-                self.asm.fmov_fs_ws(scratch.into(), src.into());
+                self.asm.fmov_fs_s(scratch.into(), src.into());
                 self.asm.cnt(0, 0b00, scratch.into(), scratch.into());
                 self.asm.addv(0, 0b00, scratch.into(), scratch.into());
-                self.asm.fmov_sf_ws(dest.into(), scratch.into());
+                self.asm.fmov_sf_s(dest.into(), scratch.into());
             }
 
             MachineMode::Int64 => {
@@ -671,11 +671,11 @@ impl MacroAssembler {
     }
 
     pub fn float32_to_float64(&mut self, dest: FReg, src: FReg) {
-        self.asm.fcvt_sd(dest.into(), src.into());
+        self.asm.fcvt_ds(dest.into(), src.into());
     }
 
     pub fn float64_to_float32(&mut self, dest: FReg, src: FReg) {
-        self.asm.fcvt_ds(dest.into(), src.into());
+        self.asm.fcvt_sd(dest.into(), src.into());
     }
 
     pub fn int_as_float(
@@ -687,7 +687,7 @@ impl MacroAssembler {
     ) {
         match (dest_mode, src_mode) {
             (MachineMode::Float32, MachineMode::Int32) => {
-                self.asm.fmov_fs_ws(dest.into(), src.into());
+                self.asm.fmov_fs_s(dest.into(), src.into());
             }
             (MachineMode::Float64, MachineMode::Int64) => {
                 self.asm.fmov_fs_d(dest.into(), src.into());
@@ -705,7 +705,7 @@ impl MacroAssembler {
     ) {
         match (dest_mode, src_mode) {
             (MachineMode::Int32, MachineMode::Float32) => {
-                self.asm.fmov_sf_ws(dest.into(), src.into())
+                self.asm.fmov_sf_s(dest.into(), src.into())
             }
             (MachineMode::Int64, MachineMode::Float64) => {
                 self.asm.fmov_sf_d(dest.into(), src.into())
