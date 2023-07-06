@@ -1301,7 +1301,7 @@ impl MacroAssembler {
             .lsr_imm((*scratch1).into(), src.into(), CARD_SIZE_BITS as u32);
         let scratch2 = self.get_scratch();
         self.load_int_const(MachineMode::Ptr, *scratch2, card_table_offset as i64);
-        self.asm.str_ind_b(
+        self.asm.strb_reg(
             REG_ZERO.into(),
             (*scratch1).into(),
             (*scratch2).into(),
@@ -1329,42 +1329,42 @@ impl MacroAssembler {
                     .add((*scratch).into(), (*scratch).into(), base.into());
 
                 match mode {
-                    MachineMode::Int8 => self.asm.str_ind_b(
+                    MachineMode::Int8 => self.asm.strb_reg(
                         src.reg().into(),
                         (*scratch).into(),
                         index.into(),
                         Extend::LSL,
                         0,
                     ),
-                    MachineMode::Int32 => self.asm.str_ind_w(
+                    MachineMode::Int32 => self.asm.str_reg_w(
                         src.reg().into(),
                         (*scratch).into(),
                         index.into(),
                         Extend::LSL,
-                        1,
+                        2,
                     ),
                     MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => {
-                        self.asm.str_ind(
+                        self.asm.str_reg(
                             src.reg().into(),
                             (*scratch).into(),
                             index.into(),
                             Extend::LSL,
-                            1,
+                            3,
                         )
                     }
-                    MachineMode::Float32 => self.asm.str_ind_s(
+                    MachineMode::Float32 => self.asm.str_reg_s(
                         src.freg().into(),
                         (*scratch).into(),
                         index.into(),
                         Extend::LSL,
-                        1,
+                        2,
                     ),
-                    MachineMode::Float64 => self.asm.str_ind_d(
+                    MachineMode::Float64 => self.asm.str_reg_d(
                         src.freg().into(),
                         (*scratch).into(),
                         index.into(),
                         Extend::LSL,
-                        1,
+                        3,
                     ),
                 }
             }
@@ -1388,9 +1388,9 @@ impl MacroAssembler {
             && offset % mode.size() == 0
             && asm::fits_addsub_imm((offset / mode.size()) as u32)
         {
-            let offset = (offset / mode.size()) as u32;
+            let offset = offset as u32;
             match mode {
-                MachineMode::Int8 => self.asm.str_imm_b(src.reg().into(), base.into(), offset),
+                MachineMode::Int8 => self.asm.strb_imm(src.reg().into(), base.into(), offset),
                 MachineMode::Int32 => self.asm.str_imm_w(src.reg().into(), base.into(), offset),
                 MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => {
                     self.asm.str_imm(src.reg().into(), base.into(), offset)
@@ -1400,58 +1400,47 @@ impl MacroAssembler {
             }
         } else if asm::fits_ldst_unscaled(offset) {
             match mode {
-                MachineMode::Int8 => self
-                    .asm
-                    .str_unscaled_b(src.reg().into(), base.into(), offset),
-                MachineMode::Int32 => {
-                    self.asm
-                        .str_unscaled_w(src.reg().into(), base.into(), offset)
-                }
+                MachineMode::Int8 => self.asm.sturb(src.reg().into(), base.into(), offset),
+                MachineMode::Int32 => self.asm.stur_w(src.reg().into(), base.into(), offset),
                 MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => {
-                    self.asm.str_unscaled(src.reg().into(), base.into(), offset)
+                    self.asm.stur(src.reg().into(), base.into(), offset)
                 }
-                MachineMode::Float32 => {
-                    self.asm
-                        .str_unscaled_s(src.freg().into(), base.into(), offset)
-                }
-                MachineMode::Float64 => {
-                    self.asm
-                        .str_unscaled_d(src.freg().into(), base.into(), offset)
-                }
+                MachineMode::Float32 => self.asm.stur_s(src.freg().into(), base.into(), offset),
+                MachineMode::Float64 => self.asm.stur_d(src.freg().into(), base.into(), offset),
             }
         } else {
             let scratch = self.get_scratch();
             self.load_int_const(MachineMode::Ptr, *scratch, offset as i64);
             match mode {
-                MachineMode::Int8 => self.asm.str_ind_b(
+                MachineMode::Int8 => self.asm.strb_reg(
                     src.reg().into(),
                     base.into(),
                     (*scratch).into(),
                     Extend::LSL,
                     0,
                 ),
-                MachineMode::Int32 => self.asm.str_ind_w(
+                MachineMode::Int32 => self.asm.str_reg_w(
                     src.reg().into(),
                     base.into(),
                     (*scratch).into(),
                     Extend::LSL,
                     0,
                 ),
-                MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => self.asm.str_ind(
+                MachineMode::IntPtr | MachineMode::Int64 | MachineMode::Ptr => self.asm.str_reg(
                     src.reg().into(),
                     base.into(),
                     (*scratch).into(),
                     Extend::LSL,
                     0,
                 ),
-                MachineMode::Float32 => self.asm.str_ind_s(
+                MachineMode::Float32 => self.asm.str_reg_s(
                     src.freg().into(),
                     base.into(),
                     (*scratch).into(),
                     Extend::LSL,
                     0,
                 ),
-                MachineMode::Float64 => self.asm.str_ind_d(
+                MachineMode::Float64 => self.asm.str_reg_d(
                     src.freg().into(),
                     base.into(),
                     (*scratch).into(),
