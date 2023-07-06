@@ -1374,6 +1374,236 @@ impl AssemblerArm64 {
         ))
     }
 
+    pub fn lsl_imm(&mut self, rd: Register, rn: Register, shift: u32) {
+        let (val, mask) = (64, 0x3f);
+        self.ubfm(rd, rn, (val - shift) & mask, val - 1 - shift);
+    }
+
+    pub fn lsl_imm_w(&mut self, rd: Register, rn: Register, shift: u32) {
+        let (val, mask) = (32, 0x1f);
+        self.ubfm_w(rd, rn, (val - shift) & mask, val - 1 - shift);
+    }
+
+    pub fn lslv(&mut self, rd: Register, rn: Register, rm: Register) {
+        self.emit_u32(cls::dataproc2(1, 0, rm, 0b1000, rn, rd));
+    }
+
+    pub fn lslv_w(&mut self, rd: Register, rn: Register, rm: Register) {
+        self.emit_u32(cls::dataproc2(0, 0, rm, 0b1000, rn, rd));
+    }
+
+    pub fn lsr_imm(&mut self, rd: Register, rn: Register, shift: u32) {
+        self.ubfm(rd, rn, shift, 63);
+    }
+
+    pub fn lsr_imm_w(&mut self, rd: Register, rn: Register, shift: u32) {
+        self.ubfm_w(rd, rn, shift, 31);
+    }
+
+    pub fn lsrv(&mut self, rd: Register, rn: Register, rm: Register) {
+        self.emit_u32(cls::dataproc2(1, 0, rm, 0b1001, rn, rd));
+    }
+
+    pub fn lsrv_w(&mut self, rd: Register, rn: Register, rm: Register) {
+        self.emit_u32(cls::dataproc2(0, 0, rm, 0b1001, rn, rd));
+    }
+
+    pub fn madd(&mut self, rd: Register, rn: Register, rm: Register, ra: Register) {
+        self.emit_u32(cls::dataproc3(1, 0, 0, rm, 0, ra, rn, rd));
+    }
+
+    pub fn madd_w(&mut self, rd: Register, rn: Register, rm: Register, ra: Register) {
+        self.emit_u32(cls::dataproc3(0, 0, 0, rm, 0, ra, rn, rd));
+    }
+
+    pub fn mov(&mut self, rd: Register, rs: Register) {
+        if rd == REG_SP || rs == REG_SP {
+            self.add_imm(rd, rs, 0, 0);
+        } else {
+            self.orr_sh(rd, REG_ZERO, rs, Shift::LSL, 0);
+        }
+    }
+
+    pub fn mov_w(&mut self, rd: Register, rs: Register) {
+        if rd == REG_SP || rs == REG_SP {
+            self.add_imm_w(rd, rs, 0, 0);
+        } else {
+            self.orr_sh_w(rd, REG_ZERO, rs, Shift::LSL, 0);
+        }
+    }
+
+    pub fn movn(&mut self, rd: Register, imm16: u32, shift: u32) {
+        self.emit_u32(cls::move_wide_imm(1, 0b00, shift, imm16, rd));
+    }
+
+    pub fn movn_w(&mut self, rd: Register, imm16: u32, shift: u32) {
+        self.emit_u32(cls::move_wide_imm(0, 0b00, shift, imm16, rd));
+    }
+
+    pub fn movz(&mut self, rd: Register, imm16: u32, shift: u32) {
+        self.emit_u32(cls::move_wide_imm(1, 0b10, shift, imm16, rd));
+    }
+
+    pub fn movz_w(&mut self, rd: Register, imm16: u32, shift: u32) {
+        self.emit_u32(cls::move_wide_imm(0, 0b10, shift, imm16, rd));
+    }
+
+    pub fn movk(&mut self, rd: Register, imm16: u32, shift: u32) {
+        self.emit_u32(cls::move_wide_imm(1, 0b11, shift, imm16, rd));
+    }
+
+    pub fn movk_w(&mut self, rd: Register, imm16: u32, shift: u32) {
+        self.emit_u32(cls::move_wide_imm(0, 0b11, shift, imm16, rd));
+    }
+
+    pub fn msub(&mut self, rd: Register, rn: Register, rm: Register, ra: Register) {
+        self.emit_u32(cls::dataproc3(1, 0, 0, rm, 1, ra, rn, rd));
+    }
+
+    pub fn msub_w(&mut self, rd: Register, rn: Register, rm: Register, ra: Register) {
+        self.emit_u32(cls::dataproc3(0, 0, 0, rm, 1, ra, rn, rd));
+    }
+
+    pub fn mul(&mut self, rd: Register, rn: Register, rm: Register) {
+        self.madd(rd, rn, rm, REG_ZERO);
+    }
+
+    pub fn mul_w(&mut self, rd: Register, rn: Register, rm: Register) {
+        self.madd_w(rd, rn, rm, REG_ZERO);
+    }
+
+    pub fn muls(&mut self, rd: Register, rn: Register, rm: Register) {
+        self.madd(rd, rn, rm, REG_ZERO);
+    }
+
+    pub fn muls_w(&mut self, rd: Register, rn: Register, rm: Register) {
+        self.madd_w(rd, rn, rm, REG_ZERO);
+    }
+
+    pub fn nop(&mut self) {
+        self.emit_u32(cls::system(0));
+    }
+
+    pub fn orn_sh(&mut self, rd: Register, rn: Register, rm: Register, shift: Shift, imm6: u32) {
+        self.emit_u32(cls::logical_shreg(1, 0b01, shift, 1, rm, imm6, rn, rd));
+    }
+
+    pub fn orn_sh_w(&mut self, rd: Register, rn: Register, rm: Register, shift: Shift, imm6: u32) {
+        self.emit_u32(cls::logical_shreg(0, 0b01, shift, 1, rm, imm6, rn, rd));
+    }
+
+    pub fn orr_sh(&mut self, rd: Register, rn: Register, rm: Register, shift: Shift, imm6: u32) {
+        self.emit_u32(cls::logical_shreg(1, 0b01, shift, 0, rm, imm6, rn, rd));
+    }
+
+    pub fn orr_sh_w(&mut self, rd: Register, rn: Register, rm: Register, shift: Shift, imm6: u32) {
+        self.emit_u32(cls::logical_shreg(0, 0b01, shift, 0, rm, imm6, rn, rd));
+    }
+
+    pub fn rbit_w(&mut self, rd: Register, rn: Register) {
+        self.emit_u32(cls::dataproc1(0, 0, 0b00000, 0b000000, rn, rd));
+    }
+
+    pub fn rbit(&mut self, rd: Register, rn: Register) {
+        self.emit_u32(cls::dataproc1(1, 0, 0b00000, 0b000000, rn, rd));
+    }
+
+    pub fn ret(&mut self, rn: Register) {
+        self.emit_u32(cls::uncond_branch_reg(0b0010, 0b11111, 0, rn, 0));
+    }
+
+    pub fn rev_w(&mut self, rd: Register, rn: Register) {
+        self.emit_u32(cls::dataproc1(0, 0, 0b00000, 0b000001, rn, rd));
+    }
+
+    pub fn rev(&mut self, rd: Register, rn: Register) {
+        self.emit_u32(cls::dataproc1(0, 0, 0b00000, 0b000001, rn, rd));
+    }
+
+    pub fn rorv(&mut self, rd: Register, rn: Register, rm: Register) {
+        self.emit_u32(cls::dataproc2(1, 0, rm, 0b1011, rn, rd));
+    }
+
+    pub fn rorv_w(&mut self, rd: Register, rn: Register, rm: Register) {
+        self.emit_u32(cls::dataproc2(0, 0, rm, 0b1011, rn, rd));
+    }
+
+    pub fn sbfm(&mut self, rd: Register, rn: Register, immr: u32, imms: u32) {
+        self.emit_u32(cls::bitfield(1, 0b00, 1, immr, imms, rn, rd));
+    }
+
+    pub fn sbfm_w(&mut self, rd: Register, rn: Register, immr: u32, imms: u32) {
+        self.emit_u32(cls::bitfield(0, 0b00, 0, immr, imms, rn, rd));
+    }
+
+    pub fn sdiv(&mut self, rd: Register, rn: Register, rm: Register) {
+        self.emit_u32(cls::dataproc2(1, 0, rm, 0b11, rn, rd));
+    }
+
+    pub fn sdiv_w(&mut self, rd: Register, rn: Register, rm: Register) {
+        self.emit_u32(cls::dataproc2(0, 0, rm, 0b11, rn, rd));
+    }
+
+    pub fn scvtf_d(&mut self, rd: NeonRegister, rn: Register) {
+        self.emit_u32(cls::fp_int(
+            1,
+            0,
+            FLOAT_TYPE_DOUBLE,
+            0b00,
+            0b010,
+            rn.encoding(),
+            rd.encoding(),
+        ));
+    }
+
+    pub fn scvtf_s(&mut self, rd: NeonRegister, rn: Register) {
+        self.emit_u32(cls::fp_int(
+            1,
+            0,
+            FLOAT_TYPE_SINGLE,
+            0b00,
+            0b010,
+            rn.encoding(),
+            rd.encoding(),
+        ));
+    }
+
+    pub fn scvtf_wd(&mut self, rd: NeonRegister, rn: Register) {
+        self.emit_u32(cls::fp_int(
+            0,
+            0,
+            FLOAT_TYPE_DOUBLE,
+            0b00,
+            0b010,
+            rn.encoding(),
+            rd.encoding(),
+        ));
+    }
+
+    pub fn scvtf_ws(&mut self, rd: NeonRegister, rn: Register) {
+        self.emit_u32(cls::fp_int(
+            0,
+            0,
+            FLOAT_TYPE_SINGLE,
+            0b00,
+            0b010,
+            rn.encoding(),
+            rd.encoding(),
+        ));
+    }
+
+    pub fn smaddl(&mut self, rd: Register, rn: Register, rm: Register, ra: Register) {
+        self.emit_u32(cls::dataproc3(1, 0b00, 0b001, rm, 0, ra, rn, rd));
+    }
+
+    pub fn smull(&mut self, rd: Register, rn: Register, rm: Register) {
+        self.smaddl(rd, rn, rm, REG_ZERO);
+    }
+
+    pub fn smulh(&mut self, rd: Register, rn: Register, rm: Register) {
+        self.emit_u32(cls::dataproc3(1, 0, 0b010, rm, 0, REG_ZERO, rn, rd));
+    }
+
     pub fn stlr(&mut self, rt: Register, rn: Register) {
         self.emit_u32(cls::ldst_exclusive(
             0b11, 1, 0, 0, REG_ZERO, 1, REG_ZERO, rn, rt,
@@ -1702,268 +1932,6 @@ impl AssemblerArm64 {
         ));
     }
 
-    pub fn swp(&mut self, new: Register, old: Register, address: Register) {
-        self.emit_u32(cls::atomic_op(0b11, 0, 0, 0, new, 1, 0b000, address, old))
-    }
-
-    pub fn swp_w(&mut self, new: Register, old: Register, address: Register) {
-        self.emit_u32(cls::atomic_op(0b10, 0, 0, 0, new, 1, 0b000, address, old))
-    }
-
-    pub fn swpa(&mut self, new: Register, old: Register, address: Register) {
-        self.emit_u32(cls::atomic_op(0b11, 0, 1, 0, new, 1, 0b000, address, old))
-    }
-
-    pub fn swpa_w(&mut self, new: Register, old: Register, address: Register) {
-        self.emit_u32(cls::atomic_op(0b10, 0, 1, 0, new, 1, 0b000, address, old))
-    }
-
-    pub fn swpal(&mut self, new: Register, old: Register, address: Register) {
-        self.emit_u32(cls::atomic_op(0b11, 0, 1, 1, new, 1, 0b000, address, old))
-    }
-
-    pub fn swpal_w(&mut self, new: Register, old: Register, address: Register) {
-        self.emit_u32(cls::atomic_op(0b10, 0, 1, 1, new, 1, 0b000, address, old))
-    }
-
-    pub fn swpl(&mut self, new: Register, old: Register, address: Register) {
-        self.emit_u32(cls::atomic_op(0b11, 0, 0, 1, new, 1, 0b000, address, old))
-    }
-
-    pub fn swpl_w(&mut self, new: Register, old: Register, address: Register) {
-        self.emit_u32(cls::atomic_op(0b10, 0, 0, 1, new, 1, 0b000, address, old))
-    }
-
-    pub fn lsl_imm(&mut self, rd: Register, rn: Register, shift: u32) {
-        let (val, mask) = (64, 0x3f);
-        self.ubfm(rd, rn, (val - shift) & mask, val - 1 - shift);
-    }
-
-    pub fn lsl_imm_w(&mut self, rd: Register, rn: Register, shift: u32) {
-        let (val, mask) = (32, 0x1f);
-        self.ubfm_w(rd, rn, (val - shift) & mask, val - 1 - shift);
-    }
-
-    pub fn lslv(&mut self, rd: Register, rn: Register, rm: Register) {
-        self.emit_u32(cls::dataproc2(1, 0, rm, 0b1000, rn, rd));
-    }
-
-    pub fn lslv_w(&mut self, rd: Register, rn: Register, rm: Register) {
-        self.emit_u32(cls::dataproc2(0, 0, rm, 0b1000, rn, rd));
-    }
-
-    pub fn lsr_imm(&mut self, rd: Register, rn: Register, shift: u32) {
-        self.ubfm(rd, rn, shift, 63);
-    }
-
-    pub fn lsr_imm_w(&mut self, rd: Register, rn: Register, shift: u32) {
-        self.ubfm_w(rd, rn, shift, 31);
-    }
-
-    pub fn lsrv(&mut self, rd: Register, rn: Register, rm: Register) {
-        self.emit_u32(cls::dataproc2(1, 0, rm, 0b1001, rn, rd));
-    }
-
-    pub fn lsrv_w(&mut self, rd: Register, rn: Register, rm: Register) {
-        self.emit_u32(cls::dataproc2(0, 0, rm, 0b1001, rn, rd));
-    }
-
-    pub fn madd(&mut self, rd: Register, rn: Register, rm: Register, ra: Register) {
-        self.emit_u32(cls::dataproc3(1, 0, 0, rm, 0, ra, rn, rd));
-    }
-
-    pub fn madd_w(&mut self, rd: Register, rn: Register, rm: Register, ra: Register) {
-        self.emit_u32(cls::dataproc3(0, 0, 0, rm, 0, ra, rn, rd));
-    }
-
-    pub fn mov(&mut self, rd: Register, rs: Register) {
-        if rd == REG_SP || rs == REG_SP {
-            self.add_imm(rd, rs, 0, 0);
-        } else {
-            self.orr_sh(rd, REG_ZERO, rs, Shift::LSL, 0);
-        }
-    }
-
-    pub fn mov_w(&mut self, rd: Register, rs: Register) {
-        if rd == REG_SP || rs == REG_SP {
-            self.add_imm_w(rd, rs, 0, 0);
-        } else {
-            self.orr_sh_w(rd, REG_ZERO, rs, Shift::LSL, 0);
-        }
-    }
-
-    pub fn movn(&mut self, rd: Register, imm16: u32, shift: u32) {
-        self.emit_u32(cls::move_wide_imm(1, 0b00, shift, imm16, rd));
-    }
-
-    pub fn movn_w(&mut self, rd: Register, imm16: u32, shift: u32) {
-        self.emit_u32(cls::move_wide_imm(0, 0b00, shift, imm16, rd));
-    }
-
-    pub fn movz(&mut self, rd: Register, imm16: u32, shift: u32) {
-        self.emit_u32(cls::move_wide_imm(1, 0b10, shift, imm16, rd));
-    }
-
-    pub fn movz_w(&mut self, rd: Register, imm16: u32, shift: u32) {
-        self.emit_u32(cls::move_wide_imm(0, 0b10, shift, imm16, rd));
-    }
-
-    pub fn movk(&mut self, rd: Register, imm16: u32, shift: u32) {
-        self.emit_u32(cls::move_wide_imm(1, 0b11, shift, imm16, rd));
-    }
-
-    pub fn movk_w(&mut self, rd: Register, imm16: u32, shift: u32) {
-        self.emit_u32(cls::move_wide_imm(0, 0b11, shift, imm16, rd));
-    }
-
-    pub fn msub(&mut self, rd: Register, rn: Register, rm: Register, ra: Register) {
-        self.emit_u32(cls::dataproc3(1, 0, 0, rm, 1, ra, rn, rd));
-    }
-
-    pub fn msub_w(&mut self, rd: Register, rn: Register, rm: Register, ra: Register) {
-        self.emit_u32(cls::dataproc3(0, 0, 0, rm, 1, ra, rn, rd));
-    }
-
-    pub fn mul(&mut self, rd: Register, rn: Register, rm: Register) {
-        self.madd(rd, rn, rm, REG_ZERO);
-    }
-
-    pub fn mul_w(&mut self, rd: Register, rn: Register, rm: Register) {
-        self.madd_w(rd, rn, rm, REG_ZERO);
-    }
-
-    pub fn muls(&mut self, rd: Register, rn: Register, rm: Register) {
-        self.madd(rd, rn, rm, REG_ZERO);
-    }
-
-    pub fn muls_w(&mut self, rd: Register, rn: Register, rm: Register) {
-        self.madd_w(rd, rn, rm, REG_ZERO);
-    }
-
-    pub fn nop(&mut self) {
-        self.emit_u32(cls::system(0));
-    }
-
-    pub fn orn_sh(&mut self, rd: Register, rn: Register, rm: Register, shift: Shift, imm6: u32) {
-        self.emit_u32(cls::logical_shreg(1, 0b01, shift, 1, rm, imm6, rn, rd));
-    }
-
-    pub fn orn_sh_w(&mut self, rd: Register, rn: Register, rm: Register, shift: Shift, imm6: u32) {
-        self.emit_u32(cls::logical_shreg(0, 0b01, shift, 1, rm, imm6, rn, rd));
-    }
-
-    pub fn orr_sh(&mut self, rd: Register, rn: Register, rm: Register, shift: Shift, imm6: u32) {
-        self.emit_u32(cls::logical_shreg(1, 0b01, shift, 0, rm, imm6, rn, rd));
-    }
-
-    pub fn orr_sh_w(&mut self, rd: Register, rn: Register, rm: Register, shift: Shift, imm6: u32) {
-        self.emit_u32(cls::logical_shreg(0, 0b01, shift, 0, rm, imm6, rn, rd));
-    }
-
-    pub fn rbit_w(&mut self, rd: Register, rn: Register) {
-        self.emit_u32(cls::dataproc1(0, 0, 0b00000, 0b000000, rn, rd));
-    }
-
-    pub fn rbit(&mut self, rd: Register, rn: Register) {
-        self.emit_u32(cls::dataproc1(1, 0, 0b00000, 0b000000, rn, rd));
-    }
-
-    pub fn ret(&mut self, rn: Register) {
-        self.emit_u32(cls::uncond_branch_reg(0b0010, 0b11111, 0, rn, 0));
-    }
-
-    pub fn rev_w(&mut self, rd: Register, rn: Register) {
-        self.emit_u32(cls::dataproc1(0, 0, 0b00000, 0b000001, rn, rd));
-    }
-
-    pub fn rev(&mut self, rd: Register, rn: Register) {
-        self.emit_u32(cls::dataproc1(0, 0, 0b00000, 0b000001, rn, rd));
-    }
-
-    pub fn rorv(&mut self, rd: Register, rn: Register, rm: Register) {
-        self.emit_u32(cls::dataproc2(1, 0, rm, 0b1011, rn, rd));
-    }
-
-    pub fn rorv_w(&mut self, rd: Register, rn: Register, rm: Register) {
-        self.emit_u32(cls::dataproc2(0, 0, rm, 0b1011, rn, rd));
-    }
-
-    pub fn sbfm(&mut self, rd: Register, rn: Register, immr: u32, imms: u32) {
-        self.emit_u32(cls::bitfield(1, 0b00, 1, immr, imms, rn, rd));
-    }
-
-    pub fn sbfm_w(&mut self, rd: Register, rn: Register, immr: u32, imms: u32) {
-        self.emit_u32(cls::bitfield(0, 0b00, 0, immr, imms, rn, rd));
-    }
-
-    pub fn sdiv(&mut self, rd: Register, rn: Register, rm: Register) {
-        self.emit_u32(cls::dataproc2(1, 0, rm, 0b11, rn, rd));
-    }
-
-    pub fn sdiv_w(&mut self, rd: Register, rn: Register, rm: Register) {
-        self.emit_u32(cls::dataproc2(0, 0, rm, 0b11, rn, rd));
-    }
-
-    pub fn scvtf_d(&mut self, rd: NeonRegister, rn: Register) {
-        self.emit_u32(cls::fp_int(
-            1,
-            0,
-            FLOAT_TYPE_DOUBLE,
-            0b00,
-            0b010,
-            rn.encoding(),
-            rd.encoding(),
-        ));
-    }
-
-    pub fn scvtf_s(&mut self, rd: NeonRegister, rn: Register) {
-        self.emit_u32(cls::fp_int(
-            1,
-            0,
-            FLOAT_TYPE_SINGLE,
-            0b00,
-            0b010,
-            rn.encoding(),
-            rd.encoding(),
-        ));
-    }
-
-    pub fn scvtf_wd(&mut self, rd: NeonRegister, rn: Register) {
-        self.emit_u32(cls::fp_int(
-            0,
-            0,
-            FLOAT_TYPE_DOUBLE,
-            0b00,
-            0b010,
-            rn.encoding(),
-            rd.encoding(),
-        ));
-    }
-
-    pub fn scvtf_ws(&mut self, rd: NeonRegister, rn: Register) {
-        self.emit_u32(cls::fp_int(
-            0,
-            0,
-            FLOAT_TYPE_SINGLE,
-            0b00,
-            0b010,
-            rn.encoding(),
-            rd.encoding(),
-        ));
-    }
-
-    pub fn smaddl(&mut self, rd: Register, rn: Register, rm: Register, ra: Register) {
-        self.emit_u32(cls::dataproc3(1, 0b00, 0b001, rm, 0, ra, rn, rd));
-    }
-
-    pub fn smull(&mut self, rd: Register, rn: Register, rm: Register) {
-        self.smaddl(rd, rn, rm, REG_ZERO);
-    }
-
-    pub fn smulh(&mut self, rd: Register, rn: Register, rm: Register) {
-        self.emit_u32(cls::dataproc3(1, 0, 0b010, rm, 0, REG_ZERO, rn, rd));
-    }
-
     pub fn sub(&mut self, rd: Register, rn: Register, rm: Register) {
         if rd == REG_SP || rn == REG_SP {
             self.sub_ext(rd, rn, rm, Extend::UXTX, 0);
@@ -2076,6 +2044,38 @@ impl AssemblerArm64 {
         amount: u32,
     ) {
         self.emit_u32(cls::addsub_shreg(0, 1, 1, shift, rm, amount, rn, rd));
+    }
+
+    pub fn swp(&mut self, new: Register, old: Register, address: Register) {
+        self.emit_u32(cls::atomic_op(0b11, 0, 0, 0, new, 1, 0b000, address, old))
+    }
+
+    pub fn swp_w(&mut self, new: Register, old: Register, address: Register) {
+        self.emit_u32(cls::atomic_op(0b10, 0, 0, 0, new, 1, 0b000, address, old))
+    }
+
+    pub fn swpa(&mut self, new: Register, old: Register, address: Register) {
+        self.emit_u32(cls::atomic_op(0b11, 0, 1, 0, new, 1, 0b000, address, old))
+    }
+
+    pub fn swpa_w(&mut self, new: Register, old: Register, address: Register) {
+        self.emit_u32(cls::atomic_op(0b10, 0, 1, 0, new, 1, 0b000, address, old))
+    }
+
+    pub fn swpal(&mut self, new: Register, old: Register, address: Register) {
+        self.emit_u32(cls::atomic_op(0b11, 0, 1, 1, new, 1, 0b000, address, old))
+    }
+
+    pub fn swpal_w(&mut self, new: Register, old: Register, address: Register) {
+        self.emit_u32(cls::atomic_op(0b10, 0, 1, 1, new, 1, 0b000, address, old))
+    }
+
+    pub fn swpl(&mut self, new: Register, old: Register, address: Register) {
+        self.emit_u32(cls::atomic_op(0b11, 0, 0, 1, new, 1, 0b000, address, old))
+    }
+
+    pub fn swpl_w(&mut self, new: Register, old: Register, address: Register) {
+        self.emit_u32(cls::atomic_op(0b10, 0, 0, 1, new, 1, 0b000, address, old))
     }
 
     pub fn sxtw(&mut self, rd: Register, rn: Register) {
