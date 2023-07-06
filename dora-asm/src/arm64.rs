@@ -1067,12 +1067,28 @@ impl AssemblerArm64 {
         ))
     }
 
-    pub fn ldp(&mut self, rt: Register, rt2: Register, rn: Register, imm7: i32) {
-        self.emit_u32(cls::ldst_pair(0b10, 0, 1, imm7, rt2, rn, rt));
+    pub fn ldaxr(&mut self, rt: Register, rn: Register) {
+        self.emit_u32(cls::ldst_exclusive(
+            0b11, 0, 1, 0, REG_ZERO, 1, REG_ZERO, rn, rt,
+        ))
     }
 
-    pub fn ldp_w(&mut self, rt: Register, rt2: Register, rn: Register, imm7: i32) {
-        self.emit_u32(cls::ldst_pair(0b00, 0, 1, imm7, rt2, rn, rt));
+    pub fn ldaxr_w(&mut self, rt: Register, rn: Register) {
+        self.emit_u32(cls::ldst_exclusive(
+            0b10, 0, 1, 0, REG_ZERO, 1, REG_ZERO, rn, rt,
+        ))
+    }
+
+    pub fn ldp(&mut self, rt: Register, rt2: Register, rn: Register, imm: i32) {
+        assert_eq!(imm % 8, 0);
+        let imm = imm / 8;
+        self.emit_u32(cls::ldst_pair(0b10, 0, 1, imm, rt2, rn, rt));
+    }
+
+    pub fn ldp_w(&mut self, rt: Register, rt2: Register, rn: Register, imm: i32) {
+        assert_eq!(imm % 4, 0);
+        let imm = imm / 4;
+        self.emit_u32(cls::ldst_pair(0b00, 0, 1, imm, rt2, rn, rt));
     }
 
     pub fn ldp_post(&mut self, rt: Register, rt2: Register, rn: Register, imm7: i32) {
@@ -1083,50 +1099,45 @@ impl AssemblerArm64 {
         self.emit_u32(cls::ldst_pair_post(0b00, 0, 1, imm7, rt2, rn, rt));
     }
 
-    pub fn ldr_imm(&mut self, rt: Register, rn: Register, imm12: u32) {
+    pub fn ldr_imm(&mut self, rt: Register, rn: Register, imm: u32) {
         assert!(rt.is_gpr());
-        self.emit_u32(cls::ldst_regimm(0b11, 0, 0b01, imm12, rn, rt.encoding()));
+        assert_eq!(imm % 8, 0);
+        let imm = imm / 8;
+        self.emit_u32(cls::ldst_regimm(0b11, 0, 0b01, imm, rn, rt.encoding()));
     }
 
-    pub fn ldr_ind(
-        &mut self,
-        rt: Register,
-        rn: Register,
-        rm: Register,
-        extend: Extend,
-        amount: u32,
-    ) {
-        assert!(rt.is_gpr());
-        self.emit_u32(cls::ldst_regoffset(
-            0b11,
-            0,
-            0b01,
-            rm,
-            extend,
-            amount,
-            rn,
-            rt.encoding(),
-        ));
-    }
-
-    pub fn ldr_unscaled(&mut self, rt: Register, rn: Register, imm9: i32) {
-        assert!(rt.is_gpr());
-        self.emit_u32(cls::ldst_reg_unscaledimm(
-            0b11,
-            0,
-            0b01,
-            imm9,
-            rn,
-            rt.encoding(),
-        ));
-    }
-
-    pub fn ldr_imm_b(&mut self, rt: Register, rn: Register, imm12: u32) {
+    pub fn ldrb_imm(&mut self, rt: Register, rn: Register, imm12: u32) {
         assert!(rt.is_gpr());
         self.emit_u32(cls::ldst_regimm(0b00, 0, 0b01, imm12, rn, rt.encoding()));
     }
 
-    pub fn ldr_ind_b(
+    pub fn ldr_imm_d(&mut self, rt: NeonRegister, rn: Register, imm: u32) {
+        assert_eq!(imm % 8, 0);
+        let imm = imm / 8;
+        self.emit_u32(cls::ldst_regimm(0b11, 1, 0b01, imm, rn, rt.encoding()));
+    }
+
+    pub fn ldrh_imm(&mut self, rt: Register, rn: Register, imm: u32) {
+        assert!(rt.is_gpr());
+        assert_eq!(imm % 2, 0);
+        let imm = imm / 2;
+        self.emit_u32(cls::ldst_regimm(0b01, 0, 0b01, imm, rn, rt.encoding()));
+    }
+
+    pub fn ldr_imm_s(&mut self, rt: NeonRegister, rn: Register, imm: u32) {
+        assert_eq!(imm % 4, 0);
+        let imm = imm / 4;
+        self.emit_u32(cls::ldst_regimm(0b10, 1, 0b01, imm, rn, rt.encoding()));
+    }
+
+    pub fn ldr_imm_w(&mut self, rt: Register, rn: Register, imm: u32) {
+        assert!(rt.is_gpr());
+        assert_eq!(imm % 4, 0);
+        let imm = imm / 4;
+        self.emit_u32(cls::ldst_regimm(0b10, 0, 0b01, imm, rn, rt.encoding()));
+    }
+
+    pub fn ldr_reg(
         &mut self,
         rt: Register,
         rn: Register,
@@ -1135,6 +1146,34 @@ impl AssemblerArm64 {
         amount: u32,
     ) {
         assert!(rt.is_gpr());
+        let amount = if amount == 0 {
+            0
+        } else {
+            assert_eq!(amount, 3);
+            1
+        };
+        self.emit_u32(cls::ldst_regoffset(
+            0b11,
+            0,
+            0b01,
+            rm,
+            extend,
+            amount,
+            rn,
+            rt.encoding(),
+        ));
+    }
+
+    pub fn ldrb_reg(
+        &mut self,
+        rt: Register,
+        rn: Register,
+        rm: Register,
+        extend: Extend,
+        amount: u32,
+    ) {
+        assert!(rt.is_gpr());
+        assert_eq!(amount, 0);
         self.emit_u32(cls::ldst_regoffset(
             0b00,
             0,
@@ -1147,7 +1186,125 @@ impl AssemblerArm64 {
         ));
     }
 
-    pub fn ldr_unscaled_b(&mut self, rt: Register, rn: Register, imm9: i32) {
+    pub fn ldr_reg_d(
+        &mut self,
+        rt: NeonRegister,
+        rn: Register,
+        rm: Register,
+        extend: Extend,
+        amount: u32,
+    ) {
+        let amount = if amount == 0 {
+            0
+        } else {
+            assert_eq!(amount, 3);
+            1
+        };
+        self.emit_u32(cls::ldst_regoffset(
+            0b11,
+            1,
+            0b01,
+            rm,
+            extend,
+            amount,
+            rn,
+            rt.encoding(),
+        ));
+    }
+
+    pub fn ldrh_reg(
+        &mut self,
+        rt: Register,
+        rn: Register,
+        rm: Register,
+        extend: Extend,
+        amount: u32,
+    ) {
+        let amount = if amount == 0 {
+            0
+        } else {
+            assert_eq!(amount, 1);
+            1
+        };
+        assert!(rt.is_gpr());
+        self.emit_u32(cls::ldst_regoffset(
+            0b01,
+            0,
+            0b01,
+            rm,
+            extend,
+            amount,
+            rn,
+            rt.encoding(),
+        ));
+    }
+
+    pub fn ldr_reg_s(
+        &mut self,
+        rt: NeonRegister,
+        rn: Register,
+        rm: Register,
+        extend: Extend,
+        amount: u32,
+    ) {
+        let amount = if amount == 0 {
+            0
+        } else {
+            assert_eq!(amount, 2);
+            1
+        };
+        self.emit_u32(cls::ldst_regoffset(
+            0b10,
+            1,
+            0b01,
+            rm,
+            extend,
+            amount,
+            rn,
+            rt.encoding(),
+        ));
+    }
+
+    pub fn ldr_reg_w(
+        &mut self,
+        rt: Register,
+        rn: Register,
+        rm: Register,
+        extend: Extend,
+        amount: u32,
+    ) {
+        assert!(rt.is_gpr());
+        let amount = if amount == 0 {
+            0
+        } else {
+            assert_eq!(amount, 2);
+            1
+        };
+        self.emit_u32(cls::ldst_regoffset(
+            0b10,
+            0,
+            0b01,
+            rm,
+            extend,
+            amount,
+            rn,
+            rt.encoding(),
+        ));
+    }
+
+    pub fn ldur(&mut self, rt: Register, rn: Register, imm9: i32) {
+        assert!(rt.is_gpr());
+        self.emit_u32(cls::ldst_reg_unscaledimm(
+            0b11,
+            0,
+            0b01,
+            imm9,
+            rn,
+            rt.encoding(),
+        ));
+    }
+
+    pub fn ldurb(&mut self, rt: Register, rn: Register, imm9: i32) {
         assert!(rt.is_gpr());
         self.emit_u32(cls::ldst_reg_unscaledimm(
             0b00,
@@ -1159,31 +1316,7 @@ impl AssemblerArm64 {
         ));
     }
 
-    pub fn ldr_imm_d(&mut self, rt: NeonRegister, rn: Register, imm12: u32) {
-        self.emit_u32(cls::ldst_regimm(0b11, 1, 0b01, imm12, rn, rt.encoding()));
-    }
-
-    pub fn ldr_ind_d(
-        &mut self,
-        rt: NeonRegister,
-        rn: Register,
-        rm: Register,
-        extend: Extend,
-        amount: u32,
-    ) {
-        self.emit_u32(cls::ldst_regoffset(
-            0b11,
-            1,
-            0b01,
-            rm,
-            extend,
-            amount,
-            rn,
-            rt.encoding(),
-        ));
-    }
-
-    pub fn ldr_unscaled_d(&mut self, rt: NeonRegister, rn: Register, imm9: i32) {
+    pub fn ldur_d(&mut self, rt: NeonRegister, rn: Register, imm9: i32) {
         self.emit_u32(cls::ldst_reg_unscaledimm(
             0b11,
             1,
@@ -1194,33 +1327,7 @@ impl AssemblerArm64 {
         ));
     }
 
-    pub fn ldr_imm_h(&mut self, rt: Register, rn: Register, imm12: u32) {
-        assert!(rt.is_gpr());
-        self.emit_u32(cls::ldst_regimm(0b01, 0, 0b01, imm12, rn, rt.encoding()));
-    }
-
-    pub fn ldr_ind_h(
-        &mut self,
-        rt: Register,
-        rn: Register,
-        rm: Register,
-        extend: Extend,
-        amount: u32,
-    ) {
-        assert!(rt.is_gpr());
-        self.emit_u32(cls::ldst_regoffset(
-            0b01,
-            0,
-            0b01,
-            rm,
-            extend,
-            amount,
-            rn,
-            rt.encoding(),
-        ));
-    }
-
-    pub fn ldr_unscaled_h(&mut self, rt: Register, rn: Register, imm9: i32) {
+    pub fn ldurh(&mut self, rt: Register, rn: Register, imm9: i32) {
         assert!(rt.is_gpr());
         self.emit_u32(cls::ldst_reg_unscaledimm(
             0b01,
@@ -1232,31 +1339,7 @@ impl AssemblerArm64 {
         ));
     }
 
-    pub fn ldr_imm_s(&mut self, rt: NeonRegister, rn: Register, imm12: u32) {
-        self.emit_u32(cls::ldst_regimm(0b10, 1, 0b01, imm12, rn, rt.encoding()));
-    }
-
-    pub fn ldr_ind_s(
-        &mut self,
-        rt: NeonRegister,
-        rn: Register,
-        rm: Register,
-        extend: Extend,
-        amount: u32,
-    ) {
-        self.emit_u32(cls::ldst_regoffset(
-            0b10,
-            1,
-            0b01,
-            rm,
-            extend,
-            amount,
-            rn,
-            rt.encoding(),
-        ));
-    }
-
-    pub fn ldr_unscaled_s(&mut self, rt: NeonRegister, rn: Register, imm9: i32) {
+    pub fn ldur_s(&mut self, rt: NeonRegister, rn: Register, imm9: i32) {
         self.emit_u32(cls::ldst_reg_unscaledimm(
             0b10,
             1,
@@ -1267,33 +1350,7 @@ impl AssemblerArm64 {
         ));
     }
 
-    pub fn ldr_imm_w(&mut self, rt: Register, rn: Register, imm12: u32) {
-        assert!(rt.is_gpr());
-        self.emit_u32(cls::ldst_regimm(0b10, 0, 0b01, imm12, rn, rt.encoding()));
-    }
-
-    pub fn ldr_ind_w(
-        &mut self,
-        rt: Register,
-        rn: Register,
-        rm: Register,
-        extend: Extend,
-        amount: u32,
-    ) {
-        assert!(rt.is_gpr());
-        self.emit_u32(cls::ldst_regoffset(
-            0b10,
-            0,
-            0b01,
-            rm,
-            extend,
-            amount,
-            rn,
-            rt.encoding(),
-        ));
-    }
-
-    pub fn ldr_unscaled_w(&mut self, rt: Register, rn: Register, imm9: i32) {
+    pub fn ldur_w(&mut self, rt: Register, rn: Register, imm9: i32) {
         assert!(rt.is_gpr());
         self.emit_u32(cls::ldst_reg_unscaledimm(
             0b10,
@@ -1314,18 +1371,6 @@ impl AssemblerArm64 {
     pub fn ldxr_w(&mut self, rt: Register, rn: Register) {
         self.emit_u32(cls::ldst_exclusive(
             0b10, 0, 1, 0, REG_ZERO, 0, REG_ZERO, rn, rt,
-        ))
-    }
-
-    pub fn ldaxr(&mut self, rt: Register, rn: Register) {
-        self.emit_u32(cls::ldst_exclusive(
-            0b11, 0, 1, 0, REG_ZERO, 1, REG_ZERO, rn, rt,
-        ))
-    }
-
-    pub fn ldaxr_w(&mut self, rt: Register, rn: Register) {
-        self.emit_u32(cls::ldst_exclusive(
-            0b10, 0, 1, 0, REG_ZERO, 1, REG_ZERO, rn, rt,
         ))
     }
 
@@ -2691,10 +2736,10 @@ mod cls {
         assert!(rn.is_gpr_or_sp());
         assert!(fits_u5(rt));
 
-        0b111u32 << 27
+        size << 30
+            | 0b111u32 << 27
             | 1u32 << 21
             | 0b10u32 << 10
-            | size << 30
             | v << 26
             | opc << 22
             | rm.encoding_zero() << 16
@@ -3382,11 +3427,11 @@ mod tests {
     #[test]
     fn test_ldp() {
         assert_emit!(0x29400440; ldp_w(R0, R1, R2, 0));
-        assert_emit!(0x294090a3; ldp_w(R3, R4, R5, 1));
-        assert_emit!(0x294110a3; ldp_w(R3, R4, R5, 2));
+        assert_emit!(0x294090a3; ldp_w(R3, R4, R5, 4));
+        assert_emit!(0x294110a3; ldp_w(R3, R4, R5, 8));
         assert_emit!(0xa9400440; ldp(R0, R1, R2, 0));
-        assert_emit!(0xa94090a3; ldp(R3, R4, R5, 1));
-        assert_emit!(0xa94110a3; ldp(R3, R4, R5, 2));
+        assert_emit!(0xa94090a3; ldp(R3, R4, R5, 8));
+        assert_emit!(0xa94110a3; ldp(R3, R4, R5, 16));
     }
 
     #[test]
@@ -3551,37 +3596,49 @@ mod tests {
     }
 
     #[test]
-    fn test_ldr_ind() {
-        assert_emit!(0x38626820; ldr_ind_b(R0, R1, R2, Extend::LSL, 0));
-        assert_emit!(0x38656883; ldr_ind_b(R3, R4, R5, Extend::LSL, 0));
+    fn test_ldur() {
+        assert_emit!(0xf8401020; ldur(R0, R1, 1)); // ldur x0, [x1, #1]
+        assert_emit!(0x385fd020; ldurb(R0, R1, -3)); // ldurb w0, [x1, #-3]
+        assert_emit!(0x78405020; ldurh(R0, R1, 5)); // ldurh w0, [x1, #5]
+        assert_emit!(0xb8407020; ldur_w(R0, R1, 7)); // ldur w0, [x1, #7]
+        assert_emit!(0xfc409020; ldur_d(F0, R1, 9)); // ldur d0, [x1, #9]
+        assert_emit!(0xbc40b020; ldur_s(F0, R1, 11)); // ldur s0, [x1, #11]
+    }
 
-        assert_emit!(0x78626820; ldr_ind_h(R0, R1, R2, Extend::LSL, 0));
-        assert_emit!(0x78656883; ldr_ind_h(R3, R4, R5, Extend::LSL, 0));
+    #[test]
+    fn test_ldr_reg() {
+        assert_emit!(0x38626820; ldrb_reg(R0, R1, R2, Extend::LSL, 0));
+        assert_emit!(0x38656883; ldrb_reg(R3, R4, R5, Extend::LSL, 0));
 
-        assert_emit!(0xb8626820; ldr_ind_w(R0, R1, R2, Extend::LSL, 0));
-        assert_emit!(0xb8657883; ldr_ind_w(R3, R4, R5, Extend::LSL, 1));
-        assert_emit!(0xb86858e6; ldr_ind_w(R6, R7, R8, Extend::UXTW, 1));
-        assert_emit!(0xb86bd949; ldr_ind_w(R9, R10, R11, Extend::SXTW, 1));
+        assert_emit!(0x78626820; ldrh_reg(R0, R1, R2, Extend::LSL, 0));
+        assert_emit!(0x78656883; ldrh_reg(R3, R4, R5, Extend::LSL, 0));
 
-        assert_emit!(0xf8626820; ldr_ind(R0, R1, R2, Extend::LSL, 0));
-        assert_emit!(0xf8657883; ldr_ind(R3, R4, R5, Extend::LSL, 1));
-        assert_emit!(0xf86858e6; ldr_ind(R6, R7, R8, Extend::UXTW, 1));
-        assert_emit!(0xf86bd949; ldr_ind(R9, R10, R11, Extend::SXTW, 1));
+        assert_emit!(0xb8626820; ldr_reg_w(R0, R1, R2, Extend::LSL, 0));
+        assert_emit!(0xb8657883; ldr_reg_w(R3, R4, R5, Extend::LSL, 2));
+        assert_emit!(0xb86858e6; ldr_reg_w(R6, R7, R8, Extend::UXTW, 2));
+        assert_emit!(0xb86bd949; ldr_reg_w(R9, R10, R11, Extend::SXTW, 2));
+
+        assert_emit!(0xf8626820; ldr_reg(R0, R1, R2, Extend::LSL, 0));
+        assert_emit!(0xf8657883; ldr_reg(R3, R4, R5, Extend::LSL, 3));
+        assert_emit!(0xf86858e6; ldr_reg(R6, R7, R8, Extend::UXTW, 3));
+        assert_emit!(0xf86bd949; ldr_reg(R9, R10, R11, Extend::SXTW, 3));
+
+        assert_emit!(0xf8627820; ldr_reg(R0, R1, R2, Extend::LSL, 3)); // ldr x0, [x1, x2, lsl #3]
+        assert_emit!(0x38626820; ldrb_reg(R0, R1, R2, Extend::LSL, 0)); // ldrb w0, [x1, x2]
+        assert_emit!(0x78627820; ldrh_reg(R0, R1, R2, Extend::LSL, 1)); // ldrh w0, [x1, x2, lsl #1]
+        assert_emit!(0xb8627820; ldr_reg_w(R0, R1, R2, Extend::LSL, 2)); // ldr w0, [x1, x2, lsl #2]
+        assert_emit!(0xfc627820; ldr_reg_d(F0, R1, R2, Extend::LSL, 3)); // ldr d0, [x1, x2, lsl #3]
+        assert_emit!(0xbc627820; ldr_reg_s(F0, R1, R2, Extend::LSL, 2)); // ldr s0, [x1, x2, lsl #2]
     }
 
     #[test]
     fn test_ldr_imm() {
-        assert_emit!(0x39400420; ldr_imm_b(R0, R1, 1));
-        assert_emit!(0x39400862; ldr_imm_b(R2, R3, 2));
-
-        assert_emit!(0x79400420; ldr_imm_h(R0, R1, 1));
-        assert_emit!(0x79400862; ldr_imm_h(R2, R3, 2));
-
-        assert_emit!(0xb9400420; ldr_imm_w(R0, R1, 1));
-        assert_emit!(0xb9400862; ldr_imm_w(R2, R3, 2));
-
-        assert_emit!(0xf9400420; ldr_imm(R0, R1, 1));
-        assert_emit!(0xf9400862; ldr_imm(R2, R3, 2));
+        assert_emit!(0xf9400820; ldr_imm(R0, R1, 16)); // ldr x0, [x1, #16]
+        assert_emit!(0x39406420; ldrb_imm(R0, R1, 25)); // ldrb w0, [x1, #25]
+        assert_emit!(0x79402420; ldrh_imm(R0, R1, 18)); // ldrh w0, [x1, #18]
+        assert_emit!(0xb9400c20; ldr_imm_w(R0, R1, 12)); // ldr w0, [x1, #12]
+        assert_emit!(0xfd400c20; ldr_imm_d(F0, R1, 24)); // ldr d0, [x1, #24]
+        assert_emit!(0xbd400420; ldr_imm_s(F0, R1, 4)); // ldr s0, [x1, #4]
     }
 
     #[test]
