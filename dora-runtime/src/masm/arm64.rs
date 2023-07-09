@@ -182,8 +182,8 @@ impl MacroAssembler {
 
     pub fn cmp_zero(&mut self, mode: MachineMode, lhs: Reg) {
         match mode {
-            MachineMode::Int8 | MachineMode::Int32 => self.asm.cmp_imm_w(lhs.into(), 0, 0),
-            MachineMode::Int64 | MachineMode::Ptr => self.asm.cmp_imm(lhs.into(), 0, 0),
+            MachineMode::Int8 | MachineMode::Int32 => self.asm.cmp_imm_w(lhs.into(), 0),
+            MachineMode::Int64 | MachineMode::Ptr => self.asm.cmp_imm(lhs.into(), 0),
             _ => unreachable!(),
         }
     }
@@ -191,7 +191,7 @@ impl MacroAssembler {
     pub fn test_and_jump_if(&mut self, cond: CondCode, reg: Reg, lbl: Label) {
         assert!(cond == CondCode::Zero || cond == CondCode::NonZero);
 
-        self.asm.cmp_imm(reg.into(), 0, 0);
+        self.asm.cmp_imm(reg.into(), 0);
         self.jump_if(cond, lbl);
     }
 
@@ -253,18 +253,18 @@ impl MacroAssembler {
         let scratch = self.get_scratch();
         match mode {
             MachineMode::Int32 => {
-                self.asm.movz_w((*scratch).into(), 0x8000, 1);
+                self.asm.movz_w((*scratch).into(), 0x8000, 16);
                 self.asm.cmp_w(lhs.into(), (*scratch).into());
                 self.asm.bc(Cond::NE, lbl_div);
-                self.asm.cmn_imm_w(rhs.into(), 1, 0);
+                self.asm.cmn_imm_w(rhs.into(), 1);
                 self.asm.bc(Cond::EQ, lbl_overflow);
             }
 
             MachineMode::Int64 => {
-                self.asm.movz((*scratch).into(), 0x8000, 3);
+                self.asm.movz((*scratch).into(), 0x8000, 48);
                 self.asm.cmp(lhs.into(), (*scratch).into());
                 self.asm.bc(Cond::NE, lbl_div);
-                self.asm.cmn_imm(rhs.into(), 1, 0);
+                self.asm.cmn_imm(rhs.into(), 1);
                 self.asm.bc(Cond::EQ, lbl_overflow);
             }
 
@@ -392,9 +392,9 @@ impl MacroAssembler {
     pub fn int_add_imm(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, value: i64) {
         if (value as u32) as i64 == value && asm::fits_addsub_imm(value as u32) {
             match mode {
-                MachineMode::Int32 => self.asm.add_imm_w(dest.into(), lhs.into(), value as u32, 0),
+                MachineMode::Int32 => self.asm.add_imm_w(dest.into(), lhs.into(), value as u32),
                 MachineMode::Int64 | MachineMode::Ptr => {
-                    self.asm.add_imm(dest.into(), lhs.into(), value as u32, 0)
+                    self.asm.add_imm(dest.into(), lhs.into(), value as u32)
                 }
                 _ => unreachable!(),
             }
@@ -434,16 +434,16 @@ impl MacroAssembler {
 
     pub fn int_shl(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
         match mode {
-            MachineMode::Int32 => self.asm.lslv_w(dest.into(), lhs.into(), rhs.into()),
-            MachineMode::Int64 => self.asm.lslv(dest.into(), lhs.into(), rhs.into()),
+            MachineMode::Int32 => self.asm.lsl_w(dest.into(), lhs.into(), rhs.into()),
+            MachineMode::Int64 => self.asm.lsl(dest.into(), lhs.into(), rhs.into()),
             _ => panic!("unimplemented mode {:?}", mode),
         }
     }
 
     pub fn int_shr(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
         match mode {
-            MachineMode::Int32 => self.asm.lsrv_w(dest.into(), lhs.into(), rhs.into()),
-            MachineMode::Int64 => self.asm.lsrv(dest.into(), lhs.into(), rhs.into()),
+            MachineMode::Int32 => self.asm.lsr_w(dest.into(), lhs.into(), rhs.into()),
+            MachineMode::Int64 => self.asm.lsr(dest.into(), lhs.into(), rhs.into()),
             _ => panic!("unimplemented mode {:?}", mode),
         }
     }
@@ -481,16 +481,16 @@ impl MacroAssembler {
         }
 
         match mode {
-            MachineMode::Int32 => self.asm.rorv_w(dest.into(), lhs.into(), (*scratch).into()),
-            MachineMode::Int64 => self.asm.rorv(dest.into(), lhs.into(), (*scratch).into()),
+            MachineMode::Int32 => self.asm.ror_w(dest.into(), lhs.into(), (*scratch).into()),
+            MachineMode::Int64 => self.asm.ror(dest.into(), lhs.into(), (*scratch).into()),
             _ => panic!("unimplemented mode {:?}", mode),
         }
     }
 
     pub fn int_ror(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
         match mode {
-            MachineMode::Int32 => self.asm.rorv_w(dest.into(), lhs.into(), rhs.into()),
-            MachineMode::Int64 => self.asm.rorv(dest.into(), lhs.into(), rhs.into()),
+            MachineMode::Int32 => self.asm.ror_w(dest.into(), lhs.into(), rhs.into()),
+            MachineMode::Int64 => self.asm.ror(dest.into(), lhs.into(), rhs.into()),
             _ => panic!("unimplemented mode {:?}", mode),
         }
     }
@@ -629,16 +629,16 @@ impl MacroAssembler {
     ) {
         match (dest_mode, src_mode) {
             (MachineMode::Float32, MachineMode::Int32) => {
-                self.asm.scvtf_ws(dest.into(), src.into())
+                self.asm.scvtf_si_sw(dest.into(), src.into())
             }
             (MachineMode::Float32, MachineMode::Int64) => {
-                self.asm.scvtf_ws(dest.into(), src.into())
+                self.asm.scvtf_si_sx(dest.into(), src.into())
             }
             (MachineMode::Float64, MachineMode::Int32) => {
-                self.asm.scvtf_wd(dest.into(), src.into())
+                self.asm.scvtf_si_dw(dest.into(), src.into())
             }
             (MachineMode::Float64, MachineMode::Int64) => {
-                self.asm.scvtf_wd(dest.into(), src.into())
+                self.asm.scvtf_si_dx(dest.into(), src.into())
             }
             _ => unreachable!(),
         }
@@ -906,7 +906,7 @@ impl MacroAssembler {
             };
 
         if element_size == 1 {
-            self.asm.add_imm(dest.into(), length.into(), size as u32, 0);
+            self.asm.add_imm(dest.into(), length.into(), size as u32);
         } else if element_size == 2 || element_size == 4 || element_size == 8 {
             let shift = match element_size {
                 2 => 1,
@@ -916,12 +916,12 @@ impl MacroAssembler {
             };
 
             self.asm.lsl_imm(dest.into(), length.into(), shift);
-            self.asm.add_imm(dest.into(), dest.into(), size as u32, 0);
+            self.asm.add_imm(dest.into(), dest.into(), size as u32);
         } else {
             let scratch = self.get_scratch();
             self.load_int_const(MachineMode::Ptr, *scratch, element_size as i64);
             self.asm.mul(dest.into(), length.into(), (*scratch).into());
-            self.asm.add_imm(dest.into(), dest.into(), size as u32, 0);
+            self.asm.add_imm(dest.into(), dest.into(), size as u32);
         }
 
         if element_size != ptr_width() {
@@ -938,7 +938,7 @@ impl MacroAssembler {
         self.asm
             .mul((*scratch).into(), index.into(), (*scratch).into());
         self.asm
-            .add_imm((*scratch).into(), (*scratch).into(), offset as u32, 0);
+            .add_imm((*scratch).into(), (*scratch).into(), offset as u32);
         self.asm.add(dest.into(), obj.into(), (*scratch).into());
     }
 
@@ -1243,8 +1243,7 @@ impl MacroAssembler {
         match mem {
             Mem::Local(offset) => {
                 if asm::fits_addsub_imm(offset as u32) {
-                    self.asm
-                        .add_imm(dest.into(), REG_FP.into(), offset as u32, 0);
+                    self.asm.add_imm(dest.into(), REG_FP.into(), offset as u32);
                 } else {
                     let scratch = self.get_scratch();
                     self.load_int_const(MachineMode::Ptr, *scratch, offset as i64);
@@ -1254,7 +1253,7 @@ impl MacroAssembler {
 
             Mem::Base(base, disp) => {
                 if asm::fits_addsub_imm(disp as u32) {
-                    self.asm.add_imm(dest.into(), base.into(), disp as u32, 0);
+                    self.asm.add_imm(dest.into(), base.into(), disp as u32);
                 } else {
                     let scratch = self.get_scratch();
                     self.load_int_const(MachineMode::Ptr, *scratch, disp as i64);
@@ -1267,7 +1266,7 @@ impl MacroAssembler {
 
                 if asm::fits_addsub_imm(disp as u32) {
                     self.asm
-                        .add_imm((*scratch).into(), base.into(), disp as u32, 0);
+                        .add_imm((*scratch).into(), base.into(), disp as u32);
                 } else {
                     self.load_int_const(MachineMode::Ptr, *scratch, disp as i64);
                     self.asm
@@ -1464,11 +1463,11 @@ impl MacroAssembler {
     }
 
     pub fn copy_sp(&mut self, dest: Reg) {
-        self.asm.add_imm(dest.into(), REG_SP.into(), 0, 0);
+        self.asm.mov(dest.into(), REG_SP.into());
     }
 
     pub fn set_sp(&mut self, src: Reg) {
-        self.asm.add_imm(REG_SP.into(), src.into(), 0, 0);
+        self.asm.mov(REG_SP.into(), src.into());
     }
 
     pub fn copy_pc(&mut self, dest: Reg) {
@@ -1524,7 +1523,7 @@ impl MacroAssembler {
 
         if asm::fits_movz(imm, register_size) {
             let shift = asm::shift_movz(imm);
-            let imm = ((imm >> (shift * 16)) & 0xFFFF) as u32;
+            let imm = ((imm >> shift) & 0xFFFF) as u32;
 
             if sf != 0 {
                 self.asm.movz(dest.into(), imm, shift);
@@ -1533,7 +1532,7 @@ impl MacroAssembler {
             }
         } else if asm::fits_movn(imm, register_size) {
             let shift = asm::shift_movn(imm);
-            let imm = (((!imm) >> (shift * 16)) & 0xFFFF) as u32;
+            let imm = (((!imm) >> shift) & 0xFFFF) as u32;
 
             if sf != 0 {
                 self.asm.movn(dest.into(), imm, shift);
@@ -1559,24 +1558,26 @@ impl MacroAssembler {
                     if first {
                         if invert {
                             if sf != 0 {
-                                self.asm.movn(dest.into(), (!cur_halfword) & 0xFFFF, ind);
+                                self.asm
+                                    .movn(dest.into(), (!cur_halfword) & 0xFFFF, cur_shift);
                             } else {
-                                self.asm.movn_w(dest.into(), (!cur_halfword) & 0xFFFF, ind);
+                                self.asm
+                                    .movn_w(dest.into(), (!cur_halfword) & 0xFFFF, cur_shift);
                             }
                         } else {
                             if sf != 0 {
-                                self.asm.movz(dest.into(), cur_halfword, ind);
+                                self.asm.movz(dest.into(), cur_halfword, cur_shift);
                             } else {
-                                self.asm.movz_w(dest.into(), cur_halfword, ind);
+                                self.asm.movz_w(dest.into(), cur_halfword, cur_shift);
                             }
                         }
 
                         first = false;
                     } else {
                         if sf != 0 {
-                            self.asm.movk(dest.into(), cur_halfword, ind);
+                            self.asm.movk(dest.into(), cur_halfword, cur_shift);
                         } else {
-                            self.asm.movk_w(dest.into(), cur_halfword, ind);
+                            self.asm.movk_w(dest.into(), cur_halfword, cur_shift);
                         }
                     }
                 }

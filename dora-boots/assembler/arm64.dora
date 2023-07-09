@@ -1251,10 +1251,149 @@ impl AssemblerArm64 {
         ))
     }
 
+    pub fn lsl_imm(rd: Register, rn: Register, shift: Int32) {
+        let (val, mask) = (64i32, 0x3fi32);
+        self.ubfm(rd, rn, (val - shift) & mask, val - 1i32 - shift);
+    }
+
+    pub fn lsl_imm_w(rd: Register, rn: Register, shift: Int32) {
+        let (val, mask) = (32i32, 0x1fi32);
+        self.ubfm_w(rd, rn, (val - shift) & mask, val - 1i32 - shift);
+    }
+
+    pub fn lsl(rd: Register, rn: Register, rm: Register) {
+        self.emit(encoding::dataproc2(1i32, 0i32, rm, 0b1000i32, rn, rd));
+    }
+
+    pub fn lsl_w(rd: Register, rn: Register, rm: Register) {
+        self.emit(encoding::dataproc2(0i32, 0i32, rm, 0b1000i32, rn, rd));
+    }
+
+    pub fn lsr_imm(rd: Register, rn: Register, shift: Int32) {
+        self.ubfm(rd, rn, shift, 63i32);
+    }
+
+    pub fn lsr_imm_w(rd: Register, rn: Register, shift: Int32) {
+        self.ubfm_w(rd, rn, shift, 31i32);
+    }
+
+    pub fn lsr(rd: Register, rn: Register, rm: Register) {
+        self.emit(encoding::dataproc2(1i32, 0i32, rm, 0b1001i32, rn, rd));
+    }
+
+    pub fn lsr_w(rd: Register, rn: Register, rm: Register) {
+        self.emit(encoding::dataproc2(0i32, 0i32, rm, 0b1001i32, rn, rd));
+    }
+
+    pub fn madd(rd: Register, rn: Register, rm: Register, ra: Register) {
+        self.emit(encoding::dataproc3(1i32, 0i32, 0i32, rm, 0i32, ra, rn, rd));
+    }
+
+    pub fn madd_w(rd: Register, rn: Register, rm: Register, ra: Register) {
+        self.emit(encoding::dataproc3(0i32, 0i32, 0i32, rm, 0i32, ra, rn, rd));
+    }
+
+    pub fn mov(rd: Register, rs: Register) {
+        if rd == REG_SP || rs == REG_SP {
+            self.add_imm(rd, rs, 0i32);
+        } else {
+            self.orr_sh(rd, REG_ZERO, rs, Shift::LSL, 0i32);
+        }
+    }
+
+    pub fn mov_w(rd: Register, rs: Register) {
+        if rd == REG_SP || rs == REG_SP {
+            self.add_imm_w(rd, rs, 0i32);
+        } else {
+            self.orr_sh_w(rd, REG_ZERO, rs, Shift::LSL, 0i32);
+        }
+    }
+
+    pub fn movn(rd: Register, imm16: Int32, shift: Int32) {
+        assert(shift % 16i32 == 0i32);
+        assert(shift < 64i32);
+        let shift = shift / 16i32;
+        self.emit(encoding::move_wide_imm(1i32, 0b00i32, shift, imm16, rd));
+    }
+
+    pub fn movn_w(rd: Register, imm16: Int32, shift: Int32) {
+        assert(shift % 16i32 == 0i32);
+        assert(shift < 32i32);
+        let shift = shift / 16i32;
+        self.emit(encoding::move_wide_imm(0i32, 0b00i32, shift, imm16, rd));
+    }
+
+    pub fn movz(rd: Register, imm16: Int32, shift: Int32) {
+        assert(shift % 16i32 == 0i32);
+        assert(shift < 64i32);
+        let shift = shift / 16i32;
+        self.emit(encoding::move_wide_imm(1i32, 0b10i32, shift, imm16, rd));
+    }
+
+    pub fn movz_w(rd: Register, imm16: Int32, shift: Int32) {
+        assert(shift % 16i32 == 0i32);
+        assert(shift < 32i32);
+        let shift = shift / 16i32;
+        self.emit(encoding::move_wide_imm(0i32, 0b10i32, shift, imm16, rd));
+    }
+
+    pub fn movk(rd: Register, imm16: Int32, shift: Int32) {
+        assert(shift % 16i32 == 0i32);
+        assert(shift < 64i32);
+        let shift = shift / 16i32;
+        self.emit(encoding::move_wide_imm(1i32, 0b11i32, shift, imm16, rd));
+    }
+
+    pub fn movk_w(rd: Register, imm16: Int32, shift: Int32) {
+        assert(shift % 16i32 == 0i32);
+        assert(shift < 32i32);
+        let shift = shift / 16i32;
+        self.emit(encoding::move_wide_imm(0i32, 0b11i32, shift, imm16, rd));
+    }
+
+    pub fn msub(rd: Register, rn: Register, rm: Register, ra: Register) {
+        self.emit(encoding::dataproc3(1i32, 0i32, 0i32, rm, 1i32, ra, rn, rd));
+    }
+
+    pub fn msub_w(rd: Register, rn: Register, rm: Register, ra: Register) {
+        self.emit(encoding::dataproc3(0i32, 0i32, 0i32, rm, 1i32, ra, rn, rd));
+    }
+
+    pub fn mul(rd: Register, rn: Register, rm: Register) {
+        self.madd(rd, rn, rm, REG_ZERO);
+    }
+
+    pub fn mul_w(rd: Register, rn: Register, rm: Register) {
+        self.madd_w(rd, rn, rm, REG_ZERO);
+    }
+
     pub fn nop() {
         self.emit(encoding::system(0i32));
     }
 
+    pub fn orn_sh(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
+        self.emit(encoding::logical_shreg(1i32, 0b01i32, shift, 1i32, rm, imm6, rn, rd));
+    }
+
+    pub fn orn_sh_w(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
+        self.emit(encoding::logical_shreg(0i32, 0b01i32, shift, 1i32, rm, imm6, rn, rd));
+    }
+
+    pub fn orr_sh(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
+        self.emit(encoding::logical_shreg(1i32, 0b01i32, shift, 0i32, rm, imm6, rn, rd));
+    }
+
+    pub fn orr_sh_w(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
+        self.emit(encoding::logical_shreg(0i32, 0b01i32, shift, 0i32, rm, imm6, rn, rd));
+    }
+
+    pub fn rbit_w(rd: Register, rn: Register) {
+        self.emit(encoding::dataproc1(0i32, 0i32, 0b00000i32, 0b000000i32, rn, rd));
+    }
+
+    pub fn rbit(rd: Register, rn: Register) {
+        self.emit(encoding::dataproc1(1i32, 0i32, 0b00000i32, 0b000000i32, rn, rd));
+    }
 
     pub fn ret() {
         let inst = encoding::uncond_branch_reg(0b0010i32, 0b11111i32, 0i32, REG_LR, 0i32);
@@ -1264,6 +1403,102 @@ impl AssemblerArm64 {
     pub fn ret_r(rn: Register) {
         let inst = encoding::uncond_branch_reg(0b0010i32, 0b11111i32, 0i32, rn, 0i32);
         self.emit(inst);
+    }
+
+    pub fn rev_w(rd: Register, rn: Register) {
+        self.emit(encoding::dataproc1(0i32, 0i32, 0b00000i32, 0b000010i32, rn, rd));
+    }
+
+    pub fn rev(rd: Register, rn: Register) {
+        self.emit(encoding::dataproc1(1i32, 0i32, 0b00000i32, 0b000011i32, rn, rd));
+    }
+
+    pub fn ror(rd: Register, rn: Register, rm: Register) {
+        self.emit(encoding::dataproc2(1i32, 0i32, rm, 0b1011i32, rn, rd));
+    }
+
+    pub fn ror_w(rd: Register, rn: Register, rm: Register) {
+        self.emit(encoding::dataproc2(0i32, 0i32, rm, 0b1011i32, rn, rd));
+    }
+
+    pub fn sbfm(rd: Register, rn: Register, immr: Int32, imms: Int32) {
+        self.emit(encoding::bitfield(1i32, 0b00i32, 1i32, immr, imms, rn, rd));
+    }
+
+    pub fn sbfm_w(rd: Register, rn: Register, immr: Int32, imms: Int32) {
+        self.emit(encoding::bitfield(0i32, 0b00i32, 0i32, immr, imms, rn, rd));
+    }
+
+    pub fn sdiv(rd: Register, rn: Register, rm: Register) {
+        self.emit(encoding::dataproc2(1i32, 0i32, rm, 0b11i32, rn, rd));
+    }
+
+    pub fn sdiv_w(rd: Register, rn: Register, rm: Register) {
+        self.emit(encoding::dataproc2(0i32, 0i32, rm, 0b11i32, rn, rd));
+    }
+
+    // scvtf (scalar, integer) - 32-bit to double-precision
+    pub fn scvtf_si_dw(rd: NeonRegister, rn: Register) {
+        self.emit(encoding::fp_int(
+            0i32,
+            0i32,
+            FLOAT_TYPE_DOUBLE,
+            0b00i32,
+            0b010i32,
+            rn.encoding(),
+            rd.encoding(),
+        ));
+    }
+
+    // scvtf (scalar, integer) - 64-bit to double-precision
+    pub fn scvtf_si_dx(rd: NeonRegister, rn: Register) {
+        self.emit(encoding::fp_int(
+            1i32,
+            0i32,
+            FLOAT_TYPE_DOUBLE,
+            0b00i32,
+            0b010i32,
+            rn.encoding(),
+            rd.encoding(),
+        ));
+    }
+
+    // scvtf (scalar, integer) - 32-bit to single-precision
+    pub fn scvtf_si_sw(rd: NeonRegister, rn: Register) {
+        self.emit(encoding::fp_int(
+            0i32,
+            0i32,
+            FLOAT_TYPE_SINGLE,
+            0b00i32,
+            0b010i32,
+            rn.encoding(),
+            rd.encoding(),
+        ));
+    }
+
+    // scvtf (scalar, integer) - 64-bit to single-precision
+    pub fn scvtf_si_sx(rd: NeonRegister, rn: Register) {
+        self.emit(encoding::fp_int(
+            1i32,
+            0i32,
+            FLOAT_TYPE_SINGLE,
+            0b00i32,
+            0b010i32,
+            rn.encoding(),
+            rd.encoding(),
+        ));
+    }
+
+    pub fn smaddl(rd: Register, rn: Register, rm: Register, ra: Register) {
+        self.emit(encoding::dataproc3(1i32, 0b00i32, 0b001i32, rm, 0i32, ra, rn, rd));
+    }
+
+    pub fn smull(rd: Register, rn: Register, rm: Register) {
+        self.smaddl(rd, rn, rm, REG_ZERO);
+    }
+
+    pub fn smulh(rd: Register, rn: Register, rm: Register) {
+        self.emit(encoding::dataproc3(1i32, 0i32, 0b010i32, rm, 0i32, REG_ZERO, rn, rd));
     }
 
     pub fn stlr(rt: Register, rn: Register) {
@@ -1625,6 +1860,66 @@ impl AssemblerArm64 {
         ));
     }
 
+    pub fn sub(rd: Register, rn: Register, rm: Register) {
+        if rd == REG_SP || rn == REG_SP {
+            self.sub_ext(rd, rn, rm, Extend::UXTX, 0i32);
+        } else {
+            self.sub_sh(rd, rn, rm, Shift::LSL, 0i32);
+        }
+    }
+
+    pub fn sub_w(rd: Register, rn: Register, rm: Register) {
+        if rd == REG_SP || rn == REG_SP {
+            self.sub_ext_w(rd, rn, rm, Extend::UXTW, 0i32);
+        } else {
+            self.sub_sh_w(rd, rn, rm, Shift::LSL, 0i32);
+        }
+    }
+
+    pub fn sub_ext(
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        extend: Extend,
+        amount: Int32,
+    ) {
+        self.emit(encoding::addsub_extreg(1i32, 1i32, false, 0i32, rm, extend, amount, rn, rd));
+    }
+
+    pub fn sub_ext_w(
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        extend: Extend,
+        amount: Int32,
+    ) {
+        self.emit(encoding::addsub_extreg(0i32, 1i32, false, 0i32, rm, extend, amount, rn, rd));
+    }
+
+    pub fn sub_sh(rd: Register, rn: Register, rm: Register, shift: Shift, amount: Int32) {
+        self.emit(encoding::addsub_shreg(1i32, 1i32, 0i32, shift, rm, amount, rn, rd));
+    }
+
+    pub fn sub_sh_w(
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        shift: Shift,
+        amount: Int32,
+    ) {
+        self.emit(encoding::addsub_shreg(0i32, 1i32, 0i32, shift, rm, amount, rn, rd));
+    }
+
+    pub fn sub_imm(rd: Register, rn: Register, imm: Int32) {
+        let (shift, imm12) = imm_encoding::imm12(imm);
+        self.emit(encoding::addsub_imm(1i32, 1i32, false, shift, imm12, rn, rd));
+    }
+
+    pub fn sub_imm_w(rd: Register, rn: Register, imm: Int32) {
+        let (shift, imm12) = imm_encoding::imm12(imm);
+        self.emit(encoding::addsub_imm(0i32, 1i32, false, shift, imm12, rn, rd));
+    }
+
     pub fn subs(rd: Register, rn: Register, rm: Register) {
         self.emit(encoding::addsub_shreg(1i32, 1i32, 1i32, Shift::LSL, rm, 0i32, rn, rd));
     }
@@ -1675,6 +1970,67 @@ impl AssemblerArm64 {
         amount: Int32,
     ) {
         self.emit(encoding::addsub_shreg(0i32, 1i32, 1i32, shift, rm, amount, rn, rd));
+    }
+
+
+    pub fn swp(new: Register, old: Register, address: Register) {
+        self.emit(encoding::atomic_op(0b11i32, 0i32, 0i32, 0i32, new, 1i32, 0b000i32, address, old))
+    }
+
+    pub fn swp_w(new: Register, old: Register, address: Register) {
+        self.emit(encoding::atomic_op(0b10i32, 0i32, 0i32, 0i32, new, 1i32, 0b000i32, address, old))
+    }
+
+    pub fn swpa(new: Register, old: Register, address: Register) {
+        self.emit(encoding::atomic_op(0b11i32, 0i32, 1i32, 0i32, new, 1i32, 0b000i32, address, old))
+    }
+
+    pub fn swpa_w(new: Register, old: Register, address: Register) {
+        self.emit(encoding::atomic_op(0b10i32, 0i32, 1i32, 0i32, new, 1i32, 0b000i32, address, old))
+    }
+
+    pub fn swpal(new: Register, old: Register, address: Register) {
+        self.emit(encoding::atomic_op(0b11i32, 0i32, 1i32, 1i32, new, 1i32, 0b000i32, address, old))
+    }
+
+    pub fn swpal_w(new: Register, old: Register, address: Register) {
+        self.emit(encoding::atomic_op(0b10i32, 0i32, 1i32, 1i32, new, 1i32, 0b000i32, address, old))
+    }
+
+    pub fn swpl(new: Register, old: Register, address: Register) {
+        self.emit(encoding::atomic_op(0b11i32, 0i32, 0i32, 1i32, new, 1i32, 0b000i32, address, old))
+    }
+
+    pub fn swpl_w(new: Register, old: Register, address: Register) {
+        self.emit(encoding::atomic_op(0b10i32, 0i32, 0i32, 1i32, new, 1i32, 0b000i32, address, old))
+    }
+
+    pub fn sxtw(rd: Register, rn: Register) {
+        self.sbfm(rd, rn, 0i32, 31i32);
+    }
+
+    pub fn ubfm(rd: Register, rn: Register, immr: Int32, imms: Int32) {
+        self.emit(encoding::bitfield(1i32, 0b10i32, 1i32, immr, imms, rn, rd));
+    }
+
+    pub fn ubfm_w(rd: Register, rn: Register, immr: Int32, imms: Int32) {
+        self.emit(encoding::bitfield(0i32, 0b10i32, 0i32, immr, imms, rn, rd));
+    }
+
+    pub fn udiv(rd: Register, rn: Register, rm: Register) {
+        self.emit(encoding::dataproc2(1i32, 0i32, rm, 0b10i32, rn, rd));
+    }
+
+    pub fn udiv_w(rd: Register, rn: Register, rm: Register) {
+        self.emit(encoding::dataproc2(0i32, 0i32, rm, 0b10i32, rn, rd));
+    }
+
+    pub fn uxtb(rd: Register, rn: Register) {
+        self.ubfm_w(rd, rn, 0i32, 7i32);
+    }
+
+    pub fn uxtw(rd: Register, rn: Register) {
+        self.ubfm(rd, rn, 0i32, 31i32);
     }
 
     pub fn finalize(): Array[UInt8] {
@@ -2155,7 +2511,7 @@ mod encoding {
         rd: Register,
     ): Int32 {
         assert(fitsBit(sf));
-        assert(fitsBit(sf));
+        assert(fitsBit(s));
         assert(fitsU5(opcode2));
         assert(fitsU6(opcode));
         assert(rn.isGpr());
@@ -4340,6 +4696,590 @@ mod tests {
             0xc8007c41i32,
             // stxr w3, w4, [x5]
             0x88037ca4i32,
+        );
+    }
+
+    @Test
+    fn test_lsl_imm() {
+        let asm = AssemblerArm64::new();
+        asm.lsl_imm(R0, R1, 4i32);
+        asm.lsl_imm_w(R2, R3, 8i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // lsl x0, x1, #4
+            0xd37cec20i32,
+            // lsl w2, w3, #8
+            0x53185c62i32,
+        );
+    }
+
+    @Test
+    fn test_lsl() {
+        let asm = AssemblerArm64::new();
+        asm.lsl(R0, R1, R2);
+        asm.lsl_w(R2, R3, R4);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // lsl x0, x1, x2
+            0x9ac22020i32,
+            // lsl w2, w3, w4
+            0x1ac42062i32,
+        );
+    }
+
+    @Test
+    fn test_lsr_imm() {
+        let asm = AssemblerArm64::new();
+        asm.lsr_imm(R0, R1, 4i32);
+        asm.lsr_imm_w(R2, R3, 8i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // lsr x0, x1, #4
+            0xd344fc20i32,
+            // lsr w2, w3, #8
+            0x53087c62i32,
+        );
+    }
+
+    @Test
+    fn test_lsr() {
+        let asm = AssemblerArm64::new();
+        asm.lsr(R0, R1, R2);
+        asm.lsr_w(R2, R3, R4);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // lsr x0, x1, x2
+            0x9ac22420i32,
+            // lsr w2, w3, w4
+            0x1ac42462i32,
+        );
+    }
+
+    @Test
+    fn test_madd() {
+        let asm = AssemblerArm64::new();
+        asm.madd(R0, R1, R2, R3);
+        asm.madd_w(R4, R5, R6, R7);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // madd x0, x1, x2, x3
+            0x9b020c20i32,
+            // madd w4, w5, w6, w7
+            0x1b061ca4i32,
+        );
+    }
+
+    @Test
+    fn test_mov() {
+        let asm = AssemblerArm64::new();
+        asm.mov(R0, REG_SP);
+        asm.mov(REG_SP, R0);
+        asm.mov(R1, R2);
+        asm.mov_w(R0, REG_SP);
+        asm.mov_w(REG_SP, R0);
+        asm.mov_w(R1, R2);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // mov x0, sp
+            0x910003e0i32,
+            // mov sp, x0
+            0x9100001fi32,
+            // mov x1, x2
+            0xaa0203e1i32,
+            // mov w0, wsp
+            0x110003e0i32,
+            // mov wsp, w0
+            0x1100001fi32,
+            // mov w1, w2
+            0x2a0203e1i32,
+        );
+    }
+
+    @Test
+    fn test_movn() {
+        let asm = AssemblerArm64::new();
+        asm.movn(R0, 0xFFFFi32, 0i32);
+        asm.movn(R1, 0xFFFFi32, 16i32);
+        asm.movn(R2, 0xFFFFi32, 48i32);
+        asm.movn_w(R0, 0xFFFFi32, 0i32);
+        asm.movn_w(R1, 0xFFFFi32, 16i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // mov x0, #-65536
+            0x929fffe0i32,
+            // mov x1, #-4294901761
+            0x92bfffe1i32,
+            // mov x2, #281474976710655
+            0x92ffffe2i32,
+            // movn w0, #65535
+            0x129fffe0i32,
+            // movn w1, #65535, lsl #16
+            0x12bfffe1i32,
+        );
+    }
+
+    @Test
+    fn test_movz() {
+        let asm = AssemblerArm64::new();
+        asm.movz(R0, 0xFFFFi32, 0i32);
+        asm.movz(R1, 0xFFFFi32, 16i32);
+        asm.movz(R2, 0xFFFFi32, 48i32);
+        asm.movz_w(R0, 0xFFFFi32, 0i32);
+        asm.movz_w(R1, 0xFFFFi32, 16i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // mov x0, #65535
+            0xd29fffe0i32,
+            // mov x1, #4294901760
+            0xd2bfffe1i32,
+            // mov x2, #-281474976710656
+            0xd2ffffe2i32,
+            // mov w0, #65535
+            0x529fffe0i32,
+            // mov w1, #-65536
+            0x52bfffe1i32,
+        );
+    }
+
+    @Test
+    fn test_movk() {
+        let asm = AssemblerArm64::new();
+        asm.movk(R0, 0xFFFFi32, 48i32);
+        asm.movk_w(R1, 0xFFFFi32, 16i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // movk x0, #65535, lsl #48
+            0xf2ffffe0i32,
+            // movk w1, #65535, lsl #16
+            0x72bfffe1i32,
+        );
+    }
+
+    @Test
+    fn test_msub() {
+        let asm = AssemblerArm64::new();
+        asm.msub(R0, R1, R2, R3);
+        asm.msub_w(R4, R5, R6, R7);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // msub x0, x1, x2, x3
+            0x9b028c20i32,
+            // msub w4, w5, w6, w7
+            0x1b069ca4i32,
+        );
+    }
+
+    @Test
+    fn test_mul() {
+        let asm = AssemblerArm64::new();
+        asm.mul(R0, R1, R2);
+        asm.mul_w(R4, R5, R6);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // mul x0, x1, x2
+            0x9b027c20i32,
+            // mul w4, w5, w6
+            0x1b067ca4i32,
+        );
+    }
+
+    @Test
+    fn test_orn() {
+        let asm = AssemblerArm64::new();
+        asm.orn_sh(R0, R1, R2, Shift::LSL, 0i32);
+        asm.orn_sh_w(R4, R5, R6, Shift::LSL, 2i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // orn x0, x1, x2
+            0xaa220020i32,
+            // orn w4, w5, w6, lsl #2
+            0x2a2608a4i32,
+        );
+    }
+
+    @Test
+    fn test_orr() {
+        let asm = AssemblerArm64::new();
+        asm.orr_sh(R0, R1, R2, Shift::LSL, 0i32);
+        asm.orr_sh_w(R4, R5, R6, Shift::LSL, 2i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // orr x0, x1, x2
+            0xaa020020i32,
+            // orr w4, w5, w6, lsl #2
+            0x2a0608a4i32,
+        );
+    }
+
+    @Test
+    fn test_rbit() {
+        let asm = AssemblerArm64::new();
+        asm.rbit(R0, R1);
+        asm.rbit_w(R2, R3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // rbit x0, x1
+            0xdac00020i32,
+            // rbit w2, w3
+            0x5ac00062i32,
+        );
+    }
+
+    @Test
+    fn test_rev() {
+        let asm = AssemblerArm64::new();
+        asm.rev(R0, R1);
+        asm.rev_w(R2, R3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // rev x0, x1
+            0xdac00c20i32,
+            // rev w2, w3
+            0x5ac00862i32,
+        );
+    }
+
+    @Test
+    fn test_ror() {
+        let asm = AssemblerArm64::new();
+        asm.ror(R0, R1, R2);
+        asm.ror_w(R3, R4, R5);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // ror x0, x1, x2
+            0x9ac22c20i32,
+            // ror w3, w4, w5
+            0x1ac52c83i32,
+        );
+    }
+
+    @Test
+    fn test_sbfm() {
+        let asm = AssemblerArm64::new();
+        asm.sbfm(R0, R1, 0i32, 1i32);
+        asm.sbfm_w(R2, R3, 4i32, 5i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // sbfx x0, x1, #0, #2
+            0x93400420i32,
+            // sbfx w2, w3, #4, #2
+            0x13041462i32,
+        );
+    }
+
+    @Test
+    fn test_sdiv() {
+        let asm = AssemblerArm64::new();
+        asm.sdiv(R0, R1, R2);
+        asm.sdiv_w(R3, R4, R5);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // sdiv x0, x1, x2
+            0x9ac20c20i32,
+            // sdiv w3, w4, w5
+            0x1ac50c83i32,
+        );
+    }
+
+    @Test
+    fn test_scvtf_si() {
+        let asm = AssemblerArm64::new();
+        asm.scvtf_si_sw(F0, R1);
+        asm.scvtf_si_sx(F0, R1);
+        asm.scvtf_si_dw(F0, R1);
+        asm.scvtf_si_dx(F0, R1);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // scvtf s0, w1
+            0x1e220020i32,
+            // scvtf s0, x1
+            0x9e220020i32,
+            // scvtf d0, w1
+            0x1e620020i32,
+            // scvtf d0, x1
+            0x9e620020i32,
+        );
+    }
+
+    @Test
+    fn test_smaddl() {
+        let asm = AssemblerArm64::new();
+        asm.smaddl(R0, R1, R2, R3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // smaddl x0, w1, w2, x3
+            0x9b220c20i32,
+        );
+    }
+
+    @Test
+    fn test_smull() {
+        let asm = AssemblerArm64::new();
+        asm.smull(R0, R1, R2);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // smull x0, w1, w2
+            0x9b227c20i32,
+        );
+    }
+
+    @Test
+    fn test_smulh() {
+        let asm = AssemblerArm64::new();
+        asm.smulh(R0, R1, R2);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // smulh x0, x1, x2
+            0x9b427c20i32,
+        );
+    }
+
+    @Test
+    fn test_sub() {
+        let asm = AssemblerArm64::new();
+        asm.sub(REG_SP, REG_SP, R0);
+        asm.sub(R0, R1, R2);
+        asm.sub_w(REG_SP, REG_SP, R0);
+        asm.sub_w(R3, R4, R5);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // sub sp, sp, x0
+            0xcb2063ffi32,
+            // sub x0, x1, x2
+            0xcb020020i32,
+            // sub wsp, wsp, w0
+            0x4b2043ffi32,
+            // sub w3, w4, w5
+            0x4b050083i32,
+        );
+    }
+
+    @Test
+    fn test_sub_ext() {
+        let asm = AssemblerArm64::new();
+        asm.sub_ext(R0, R1, R2, Extend::UXTX, 2i32);
+        asm.sub_ext_w(R2, R3, R4, Extend::UXTW, 1i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // sub x0, x1, x2, uxtx #2
+            0xcb226820i32,
+            // sub w2, w3, w4, uxtw #1
+            0x4b244462i32,
+        );
+    }
+
+    @Test
+    fn test_sub_sh() {
+        let asm = AssemblerArm64::new();
+        asm.sub_sh(R0, R1, R2, Shift::LSL, 2i32);
+        asm.sub_sh_w(R2, R3, R4, Shift::LSL, 1i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // sub x0, x1, x2, lsl #2
+            0xcb020820i32,
+            // sub w2, w3, w4, lsl #1
+            0x4b040462i32,
+        );
+    }
+
+    @Test
+    fn test_sub_imm() {
+        let asm = AssemblerArm64::new();
+        asm.sub_imm(R0, R1, 1i32);
+        asm.sub_imm_w(R2, R3, 0xFFFi32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // sub x0, x1, #1
+            0xd1000420i32,
+            // sub w2, w3, #4095
+            0x513ffc62i32,
+        );
+    }
+
+    @Test
+    fn test_swp() {
+        let asm = AssemblerArm64::new();
+        asm.swp(R0, R1, R2);
+        asm.swp_w(R3, R4, R5);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // swp x0, x1, [x2]
+            0xf8208041i32,
+            // swp w3, w4, [x5]
+            0xb82380a4i32,
+        );
+    }
+
+    @Test
+    fn test_swpa() {
+        let asm = AssemblerArm64::new();
+        asm.swpa(R0, R1, R2);
+        asm.swpa_w(R3, R4, R5);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // swpa x0, x1, [x2]
+            0xf8a08041i32,
+            // swpa w3, w4, [x5]
+            0xb8a380a4i32,
+        );
+    }
+
+    @Test
+    fn test_swpl() {
+        let asm = AssemblerArm64::new();
+        asm.swpl(R0, R1, R2);
+        asm.swpl_w(R3, R4, R5);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // swpl x0, x1, [x2]
+            0xf8608041i32,
+            // swpl w3, w4, [x5]
+            0xb86380a4i32,
+        );
+    }
+
+    @Test
+    fn test_swpal() {
+        let asm = AssemblerArm64::new();
+        asm.swpal(R0, R1, R2);
+        asm.swpal_w(R3, R4, R5);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // swpal x0, x1, [x2]
+            0xf8e08041i32,
+            // swpal w3, w4, [x5]
+            0xb8e380a4i32,
+        );
+    }
+
+    @Test
+    fn test_sxtw() {
+        let asm = AssemblerArm64::new();
+        asm.sxtw(R0, R1);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // sxtw x0, w1
+            0x93407c20i32,
+        );
+    }
+
+    @Test
+    fn test_ubfm() {
+        let asm = AssemblerArm64::new();
+        asm.ubfm(R0, R1, 1i32, 2i32);
+        asm.ubfm_w(R2, R3, 3i32, 4i32);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // ubfx x0, x1, #1, #2
+            0xd3410820i32,
+            // ubfx w2, w3, #3, #2
+            0x53031062i32,
+        );
+    }
+
+    @Test
+    fn test_udiv() {
+        let asm = AssemblerArm64::new();
+        asm.udiv(R0, R1, R2);
+        asm.udiv_w(R3, R4, R5);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // udiv x0, x1, x2
+            0x9ac20820i32,
+            // udiv w3, w4, w5
+            0x1ac50883i32,
+        );
+    }
+
+    @Test
+    fn test_uxtb() {
+        let asm = AssemblerArm64::new();
+        asm.uxtb(R0, R1);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // uxtb w0, w1
+            0x53001c20i32,
+        );
+    }
+
+    @Test
+    fn test_uxtw() {
+        let asm = AssemblerArm64::new();
+        asm.uxtw(R2, R3);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm32(
+            buffer,
+            // ubfx x2, x3, #0, #32
+            0xd3407c62i32,
         );
     }
 }
