@@ -2,7 +2,6 @@ use package::assembler::AssemblerBuffer;
 use package::assembler::Label;
 use package::assembler::MachineCode;
 use package::assembler::Register;
-use package::assembler::assertAsm32;
 
 let R0: Register = Register(0i32);
 let R1: Register = Register(1i32);
@@ -3101,7 +3100,8 @@ mod encoding {
 }
 
 mod tests {
-    use super::{assertAsm32, AssemblerArm64, Cond, Extend, Shift};
+    use package::assembler::MachineCode;
+    use super::{AssemblerArm64, Cond, Extend, Shift};
     use super::imm_encoding;
     use super::{REG_ZERO, REG_SP};
     use super::{
@@ -5281,5 +5281,46 @@ mod tests {
             // ubfx x2, x3, #0, #32
             0xd3407c62i32,
         );
+    }
+
+    fn assertAsm32(code: MachineCode, values: Int32...) {
+        assert(code.start % 4 == 0);
+        assert(code.bytes.size() % 4 == 0);
+
+        let mut success = true;
+
+        if code.start + values.size() * 4 == code.bytes.size() {
+            let mut idx = 0;
+
+            for value in values {
+                if value != code.getInt32(code.start + idx * 4) {
+                    success = false;
+                    break;
+                }
+
+                idx = idx + 1;
+            }
+        } else {
+            success = false;
+        }
+
+        if !success {
+            print("expected: ");
+            for (idx, value) in values.enumerate() {
+                if idx > 0i64 { print(", "); }
+                print("${value.toStringHex()}");
+            }
+            println("");
+            print("got:      ");
+            let mut idx = code.start;
+            while idx < code.bytes.size() {
+                if idx > code.start { print(", "); }
+                let value = code.getInt32(idx);
+                print("${value.toStringHex()}");
+                idx = idx + 4;
+            }
+            println("");
+            std::fatalError("broken assertion");
+        }
     }
 }

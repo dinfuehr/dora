@@ -2,8 +2,6 @@ use package::assembler::AssemblerBuffer;
 use package::assembler::Label;
 use package::assembler::MachineCode;
 use package::assembler::Register;
-use package::assembler::assertAsm;
-use package::assembler::assertAsmEnd;
 
 pub let RAX: Register = Register(0i32);
 pub let RCX: Register = Register(1i32);
@@ -78,23 +76,23 @@ impl AssemblerX64 {
         self.buffer.createAndBindLabel()
     }
 
-    fn addlrr(dest: Register, src: Register) {
+    fn addl_rr(dest: Register, src: Register) {
         self.emitRex32ModRmOptional(src, dest);
         self.emitByte(0x01u8);
         self.emitModRmReg(src, dest);
     }
 
-    fn addqri(reg: Register, imm: Immediate) {
+    fn addq_ri(reg: Register, imm: Immediate) {
         self.emitAlu64Imm(reg, imm, 0b000i32, 0x05u8);
     }
 
-    fn addqrr(dest: Register, src: Register) {
+    fn addq_rr(dest: Register, src: Register) {
         self.emitRex64ModRm(src, dest);
         self.emitByte(0x01u8);
         self.emitModRmReg(src, dest);
     }
 
-    fn addssrr(dest: XmmRegister, src: XmmRegister) {
+    fn addss_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF3u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -102,7 +100,7 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fn addsdrr(dest: XmmRegister, src: XmmRegister) {
+    fn addsd_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF2u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -110,23 +108,23 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fn andlrr(dest: Register, src: Register) {
+    fn andl_rr(dest: Register, src: Register) {
         self.emitRex32ModRmOptional(src, dest);
         self.emitByte(0x21u8);
         self.emitModRmReg(src, dest);
     }
 
-    fn andqri(lhs: Register, imm: Immediate) {
+    fn andq_ri(lhs: Register, imm: Immediate) {
         self.emitAlu64Imm(lhs, imm, 0b100i32, 0x25u8);
     }
 
-    fn andqrr(dest: Register, src: Register) {
+    fn andq_rr(dest: Register, src: Register) {
         self.emitRex64ModRm(src, dest);
         self.emitByte(0x21u8);
         self.emitModRmReg(src, dest);
     }
 
-    fn callr(src: Register) {
+    fn call_r(src: Register) {
         self.emitRex32RmFieldOptional(src);
         self.emitByte(0xFFu8);
         self.emitModRmOpcode(0b010i32, src);
@@ -150,7 +148,7 @@ impl AssemblerX64 {
         self.emitModRmReg(dest, src);
     }
 
-    fn cmpbai(lhs: Address, rhs: Immediate) {
+    fn cmpb_ai(lhs: Address, rhs: Immediate) {
         assert(rhs.isInt8() || rhs.isUInt8());
         self.emitRex32AddressOptional(lhs);
         self.emitByte(0x80u8);
@@ -158,13 +156,13 @@ impl AssemblerX64 {
         self.emitByte(rhs.toUInt8());
     }
 
-    fn cmpbar(lhs: Address, rhs: Register) {
+    fn cmpb_ar(lhs: Address, rhs: Register) {
         self.emitRex32ModRmAddressByteOptional(rhs, lhs);
         self.emitByte(0x38u8);
         self.emitAddress(rhs.lowBits(), lhs);
     }
 
-    fn cmplai(lhs: Address, imm: Immediate) {
+    fn cmpl_ai(lhs: Address, imm: Immediate) {
         assert(imm.isInt32() || imm.isUInt32());
         self.emitRex32AddressOptional(lhs);
 
@@ -179,17 +177,17 @@ impl AssemblerX64 {
         }
     }
 
-    fn cmplar(lhs: Address, rhs: Register) {
+    fn cmpl_ar(lhs: Address, rhs: Register) {
         self.emitRex32ModRmAddressOptional(rhs, lhs);
         self.emitByte(0x39u8);
         self.emitAddress(rhs.lowBits(), lhs);
     }
 
-    fn cmplri(lhs: Register, imm: Immediate) {
+    fn cmpl_ri(lhs: Register, imm: Immediate) {
         self.emitAlu32Imm(lhs, imm, 0b111i32, 0x3Du8);
     }
 
-    fn cmpqai(lhs: Address, imm: Immediate) {
+    fn cmpq_ai(lhs: Address, imm: Immediate) {
         assert(imm.isInt32());
         self.emitRex64Address(lhs);
 
@@ -204,23 +202,23 @@ impl AssemblerX64 {
         }
     }
 
-    fn cmpqar(lhs: Address, rhs: Register) {
+    fn cmpq_ar(lhs: Address, rhs: Register) {
         self.emitRex64ModRmAddress(rhs, lhs);
         self.emitByte(0x39u8);
         self.emitAddress(rhs.lowBits(), lhs);
     }
 
-    fn cmplrr(dest: Register, src: Register) {
+    fn cmpl_rr(dest: Register, src: Register) {
         self.emitRex32ModRmOptional(src, dest);
         self.emitByte(0x39u8);
         self.emitModRmReg(src, dest);
     }
 
-    fn cmpqri(lhs: Register, imm: Immediate) {
+    fn cmpq_ri(lhs: Register, imm: Immediate) {
         self.emitAlu64Imm(lhs, imm, 0b111i32, 0x3Du8);
     }
 
-    fn cmpqrr(dest: Register, src: Register) {
+    fn cmpq_rr(dest: Register, src: Register) {
         self.emitRex64ModRm(src, dest);
         self.emitByte(0x39u8);
         self.emitModRmReg(src, dest);
@@ -231,7 +229,7 @@ impl AssemblerX64 {
         self.emitByte(0x99u8);
     }
 
-    fn cvtsd2ssrr(dest: XmmRegister, src: XmmRegister) {
+    fn cvtsd2ss_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF2u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -239,7 +237,7 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fn cvtsi2ssdrr(dest: XmmRegister, src: Register) {
+    fn cvtsi2ssd_rr(dest: XmmRegister, src: Register) {
         self.emitByte(0xF3u8);
         self.emitRexOptional(false, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -247,7 +245,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, dest.lowBits(), src.lowBits());
     }
 
-    fn cvtsi2ssqrr(dest: XmmRegister, src: Register) {
+    fn cvtsi2ssq_rr(dest: XmmRegister, src: Register) {
         self.emitByte(0xF3u8);
         self.emitRexOptional(true, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -255,7 +253,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, dest.lowBits(), src.lowBits());
     }
 
-    fn cvtsi2sddrr(dest: XmmRegister, src: Register) {
+    fn cvtsi2sdd_rr(dest: XmmRegister, src: Register) {
         self.emitByte(0xF2u8);
         self.emitRexOptional(false, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -263,7 +261,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, dest.lowBits(), src.lowBits());
     }
 
-    fn cvtsi2sdqrr(dest: XmmRegister, src: Register) {
+    fn cvtsi2sdq_rr(dest: XmmRegister, src: Register) {
         self.emitByte(0xF2u8);
         self.emitRexOptional(true, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -271,7 +269,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, dest.lowBits(), src.lowBits());
     }
 
-    fn cvtss2sdrr(dest: XmmRegister, src: XmmRegister) {
+    fn cvtss2sd_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF3u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -279,7 +277,7 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fn cvttsd2sidrr(dest: Register, src: XmmRegister) {
+    fn cvttsd2sid_rr(dest: Register, src: XmmRegister) {
         self.emitByte(0xF2u8);
         self.emitRexOptional(false, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -287,7 +285,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, dest.lowBits(), src.lowBits());
     }
 
-    fn cvttsd2siqrr(dest: Register, src: XmmRegister) {
+    fn cvttsd2siq_rr(dest: Register, src: XmmRegister) {
         self.emitByte(0xF2u8);
         self.emitRexOptional(true, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -295,7 +293,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, dest.lowBits(), src.lowBits());
     }
 
-    fn cvttss2sidrr(dest: Register, src: XmmRegister) {
+    fn cvttss2sid_rr(dest: Register, src: XmmRegister) {
         self.emitByte(0xF3u8);
         self.emitRexOptional(false, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -303,7 +301,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, dest.lowBits(), src.lowBits());
     }
 
-    fn cvttss2siqrr(dest: Register, src: XmmRegister) {
+    fn cvttss2siq_rr(dest: Register, src: XmmRegister) {
         self.emitByte(0xF3u8);
         self.emitRexOptional(true, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -311,7 +309,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, dest.lowBits(), src.lowBits());
     }
 
-    fn divssrr(dest: XmmRegister, src: XmmRegister) {
+    fn divss_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF3u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -319,7 +317,7 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fn divsdrr(dest: XmmRegister, src: XmmRegister) {
+    fn divsd_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF2u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -327,26 +325,26 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fn idivlr(src: Register) {
+    fn idivl_r(src: Register) {
         self.emitRex32RmFieldOptional(src);
         self.emitByte(0xF7u8);
         self.emitModRmOpcode(0b111i32, src);
     }
 
-    fn idivqr(src: Register) {
+    fn idivq_r(src: Register) {
         self.emitRex64RmField(src);
         self.emitByte(0xF7u8);
         self.emitModRmOpcode(0b111i32, src);
     }
 
-    fn imullrr(dest: Register, src: Register) {
+    fn imull_rr(dest: Register, src: Register) {
         self.emitRex32ModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
         self.emitByte(0xAFu8);
         self.emitModRmReg(dest, src);
     }
 
-    fn imulqrr(dest: Register, src: Register) {
+    fn imulq_rr(dest: Register, src: Register) {
         self.emitRex64ModRm(dest, src);
         self.emitByte(0x0Fu8);
         self.emitByte(0xAFu8);
@@ -383,7 +381,7 @@ impl AssemblerX64 {
         }
     }
 
-    fn jccNear(condition: Condition, dest: Label) {
+    fn jcc_near(condition: Condition, dest: Label) {
         if dest.isBound() {
             // backwards jump
             // rip = end of current instruction = pc + 2
@@ -399,7 +397,7 @@ impl AssemblerX64 {
         }
     }
 
-    fn jmpr(reg: Register) {
+    fn jmp_r(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte(0xFFu8);
         self.emitModRmOpcode(0b100i32, reg);
@@ -429,7 +427,7 @@ impl AssemblerX64 {
         }
     }
 
-    fn jmpNear(dest: Label) {
+    fn jmp_near(dest: Label) {
         if dest.isBound() {
             // backwards jump
             // rip = end of current instruction = pc + 2
@@ -451,7 +449,7 @@ impl AssemblerX64 {
         self.emitAddress(dest.lowBits(), src);
     }
 
-    fn lzcntlrr(dest: Register, src: Register) {
+    fn lzcntl_rr(dest: Register, src: Register) {
         self.emitByte(0xF3u8);
         self.emitRex32ModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -459,7 +457,7 @@ impl AssemblerX64 {
         self.emitModRmReg(dest, src);
     }
 
-    fn lzcntqrr(dest: Register, src: Register) {
+    fn lzcntq_rr(dest: Register, src: Register) {
         self.emitByte(0xF3u8);
         self.emitRex64ModRm(dest, src);
         self.emitByte(0x0Fu8);
@@ -467,7 +465,7 @@ impl AssemblerX64 {
         self.emitModRmReg(dest, src);
     }
 
-    fn movbai(dest: Address, src: Immediate) {
+    fn movb_ai(dest: Address, src: Immediate) {
         assert(src.isInt8() || src.isUInt8());
         self.emitRex32AddressOptional(dest);
         self.emitByte(0xC6u8);
@@ -475,13 +473,13 @@ impl AssemblerX64 {
         self.emitByte(src.toUInt8());
     }
 
-    fn movbar(dest: Address, src: Register) {
+    fn movb_ar(dest: Address, src: Register) {
         self.emitRex32ModRmAddressByteOptional(src, dest);
         self.emitByte(0x88u8);
         self.emitAddress(src.lowBits(), dest);
     }
 
-    fn movdrx(dest: Register, src: XmmRegister) {
+    fn movd_rx(dest: Register, src: XmmRegister) {
         self.emitByte(0x66u8);
         self.emitRexOptional(false, src.needsRexBit(), false, dest.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -489,7 +487,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, src.lowBits(), dest.lowBits());
     }
 
-    fn movdxr(dest: XmmRegister, src: Register) {
+    fn movd_xr(dest: XmmRegister, src: Register) {
         self.emitByte(0x66u8);
         self.emitRexOptional(false, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -497,7 +495,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, dest.lowBits(), src.lowBits());
     }
 
-    fn movlai(dest: Address, imm: Immediate) {
+    fn movl_ai(dest: Address, imm: Immediate) {
         assert(imm.isInt32() || imm.isUInt32());
         self.emitRex32AddressOptional(dest);
         self.emitByte(0xC7u8);
@@ -505,38 +503,38 @@ impl AssemblerX64 {
         self.emitInt32(imm.toInt32());
     }
 
-    fn movlar(dest: Address, src: Register) {
+    fn movl_ar(dest: Address, src: Register) {
         self.emitRex32ModRmAddressOptional(src, dest);
         self.emitByte(0x89u8);
         self.emitAddress(src.lowBits(), dest);
     }
 
-    fn movlra(dest: Register, src: Address) {
+    fn movl_ra(dest: Register, src: Address) {
         self.emitRex32ModRmAddressOptional(dest, src);
         self.emitByte(0x8Bu8);
         self.emitAddress(dest.lowBits(), src);
     }
 
-    fn movlri(dest: Register, imm: Immediate) {
+    fn movl_ri(dest: Register, imm: Immediate) {
         assert(imm.isInt32());
         self.emitRex32RmFieldOptional(dest);
         self.emitByte((0xB8i32 + dest.lowBits()).toUInt8());
         self.emitInt32(imm.toInt32());
     }
 
-    fn movlrr(dest: Register, src: Register) {
+    fn movl_rr(dest: Register, src: Register) {
         self.emitRex32ModRmOptional(src, dest);
         self.emitByte(0x89u8);
         self.emitModRmReg(src, dest);
     }
 
-    fn movqar(dest: Address, src: Register) {
+    fn movq_ar(dest: Address, src: Register) {
         self.emitRex64ModRmAddress(src, dest);
         self.emitByte(0x89u8);
         self.emitAddress(src.lowBits(), dest);
     }
 
-    fn movqai(dest: Address, imm: Immediate) {
+    fn movq_ai(dest: Address, imm: Immediate) {
         assert(imm.isInt32());
         self.emitRex64Address(dest);
         self.emitByte(0xC7u8);
@@ -544,13 +542,13 @@ impl AssemblerX64 {
         self.emitInt32(imm.toInt32());
     }
 
-    fn movqra(dest: Register, src: Address) {
+    fn movq_ra(dest: Register, src: Address) {
         self.emitRex64ModRmAddress(dest, src);
         self.emitByte(0x8Bu8);
         self.emitAddress(dest.lowBits(), src);
     }
 
-    fn movqri(dest: Register, imm: Immediate) {
+    fn movq_ri(dest: Register, imm: Immediate) {
         if imm.isInt32() {
             self.emitRex64RmField(dest);
             self.emitByte(0xC7u8);
@@ -563,13 +561,13 @@ impl AssemblerX64 {
         }
     }
 
-    pub fn movqrr(dest: Register, src: Register) {
+    pub fn movq_rr(dest: Register, src: Register) {
         self.emitRex64ModRm(src, dest);
         self.emitByte(0x89u8);
         self.emitModRmReg(src, dest);
     }
 
-    fn movqrx(dest: Register, src: XmmRegister) {
+    fn movq_rx(dest: Register, src: XmmRegister) {
         self.emitByte(0x66u8);
         self.emitRexOptional(true, src.needsRexBit(), false, dest.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -577,7 +575,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, src.lowBits(), dest.lowBits());
     }
 
-    fn movqxr(dest: XmmRegister, src: Register) {
+    fn movq_xr(dest: XmmRegister, src: Register) {
         self.emitByte(0x66u8);
         self.emitRexOptional(true, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -585,7 +583,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, dest.lowBits(), src.lowBits());
     }
 
-    fn movsdrr(dest: XmmRegister, src: XmmRegister) {
+    fn movsd_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF2u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -593,7 +591,7 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fn movsdra(dest: XmmRegister, src: Address) {
+    fn movsd_ra(dest: XmmRegister, src: Address) {
         self.emitByte(0xF2u8);
         self.emitRexSseAddressOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -601,7 +599,7 @@ impl AssemblerX64 {
         self.emitAddress(dest.lowBits(), src);
     }
 
-    fn movsdar(dest: Address, src: XmmRegister) {
+    fn movsd_ar(dest: Address, src: XmmRegister) {
         self.emitByte(0xF2u8);
         self.emitRexSseAddressOptional(src, dest);
         self.emitByte(0x0Fu8);
@@ -609,7 +607,7 @@ impl AssemblerX64 {
         self.emitAddress(src.lowBits(), dest);
     }
 
-    fn movssar(dest: Address, src: XmmRegister) {
+    fn movss_ar(dest: Address, src: XmmRegister) {
         self.emitByte(0xF3u8);
         self.emitRexSseAddressOptional(src, dest);
         self.emitByte(0x0Fu8);
@@ -617,7 +615,7 @@ impl AssemblerX64 {
         self.emitAddress(src.lowBits(), dest);
     }
 
-    fn movssrr(dest: XmmRegister, src: XmmRegister) {
+    fn movss_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF3u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -625,7 +623,7 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fn movssra(dest: XmmRegister, src: Address) {
+    fn movss_ra(dest: XmmRegister, src: Address) {
         self.emitByte(0xF3u8);
         self.emitRexSseAddressOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -633,55 +631,55 @@ impl AssemblerX64 {
         self.emitAddress(dest.lowBits(), src);
     }
 
-    fn movsxblra(dest: Register, src: Address) {
+    fn movsxbl_ra(dest: Register, src: Address) {
         self.emitRex32ModRmAddressOptional(dest, src);
         self.emitByte(0x0Fu8);
         self.emitByte(0xBEu8);
         self.emitAddress(dest.lowBits(), src);
     }
 
-    fn movsxblrr(dest: Register, src: Register) {
+    fn movsxbl_rr(dest: Register, src: Register) {
         self.emitRex32ModRmByteOptional(dest, src);
         self.emitByte(0x0Fu8);
         self.emitByte(0xBEu8);
         self.emitModRmReg(dest, src);
     }
 
-    fn movsxbqra(dest: Register, src: Address) {
+    fn movsxbq_ra(dest: Register, src: Address) {
         self.emitRex64ModRmAddress(dest, src);
         self.emitByte(0x0Fu8);
         self.emitByte(0xBEu8);
         self.emitAddress(dest.lowBits(), src);
     }
 
-    fn movsxbqrr(dest: Register, src: Register) {
+    fn movsxbq_rr(dest: Register, src: Register) {
         self.emitRex64ModRm(dest, src);
         self.emitByte(0x0Fu8);
         self.emitByte(0xBEu8);
         self.emitModRmReg(dest, src);
     }
 
-    fn movsxlqrr(dest: Register, src: Register) {
+    fn movsxlq_rr(dest: Register, src: Register) {
         self.emitRex64ModRm(dest, src);
         self.emitByte(0x63u8);
         self.emitModRmReg(dest, src);
     }
 
-    fn movzxbrr(dest: Register, src: Register) {
+    fn movzxb_rr(dest: Register, src: Register) {
         self.emitRex32ModRmByteOptional(dest, src);
         self.emitByte(0x0Fu8);
         self.emitByte(0xB6u8);
         self.emitModRmReg(dest, src);
     }
 
-    fn movzxbra(dest: Register, src: Address) {
+    fn movzxb_ra(dest: Register, src: Address) {
         self.emitRex32ModRmAddressOptional(dest, src);
         self.emitByte(0x0Fu8);
         self.emitByte(0xB6u8);
         self.emitAddress(dest.lowBits(), src);
     }
 
-    fn mulssrr(dest: XmmRegister, src: XmmRegister) {
+    fn mulss_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF3u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -689,7 +687,7 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fn mulsdrr(dest: XmmRegister, src: XmmRegister) {
+    fn mulsd_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF2u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -697,13 +695,13 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fn neglr(reg: Register) {
+    fn negl_r(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte(0xF7u8);
         self.emitModRmOpcode(0b011i32, reg);
     }
 
-    fn negqr(reg: Register) {
+    fn negq_r(reg: Register) {
         self.emitRex64RmField(reg);
         self.emitByte(0xF7u8);
         self.emitModRmOpcode(0b011i32, reg);
@@ -713,36 +711,36 @@ impl AssemblerX64 {
         self.emitByte(0x90u8);
     }
 
-    fn notlr(reg: Register) {
+    fn notl_r(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte(0xF7u8);
         self.emitModRmOpcode(0b010i32, reg);
     }
 
-    fn notqr(reg: Register) {
+    fn notq_r(reg: Register) {
         self.emitRex64RmField(reg);
         self.emitByte(0xF7u8);
         self.emitModRmOpcode(0b010i32, reg);
     }
 
-    fn orlrr(dest: Register, src: Register) {
+    fn orl_rr(dest: Register, src: Register) {
         self.emitRex32ModRmOptional(src, dest);
         self.emitByte(0x09u8);
         self.emitModRmReg(src, dest);
     }
 
-    fn orqrr(dest: Register, src: Register) {
+    fn orq_rr(dest: Register, src: Register) {
         self.emitRex64ModRm(src, dest);
         self.emitByte(0x09u8);
         self.emitModRmReg(src, dest);
     }
 
-    pub fn pushqr(reg: Register) {
+    pub fn pushq_r(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte((0x50i32 + reg.lowBits()).toUInt8());
     }
 
-    fn popcntlrr(dest: Register, src: Register) {
+    fn popcntl_rr(dest: Register, src: Register) {
         self.emitByte(0xF3u8);
         self.emitRex32ModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -750,7 +748,7 @@ impl AssemblerX64 {
         self.emitModRmReg(dest, src);
     }
 
-    fn popcntqrr(dest: Register, src: Register) {
+    fn popcntq_rr(dest: Register, src: Register) {
         self.emitByte(0xF3u8);
         self.emitRex64ModRm(dest, src);
         self.emitByte(0x0Fu8);
@@ -758,12 +756,12 @@ impl AssemblerX64 {
         self.emitModRmReg(dest, src);
     }
 
-    pub fn popqr(reg: Register) {
+    pub fn popq_r(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte((0x58i32 + reg.lowBits()).toUInt8());
     }
 
-    fn pxorrr(dest: XmmRegister, src: XmmRegister) {
+    fn pxor_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0x66u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -775,37 +773,37 @@ impl AssemblerX64 {
         self.emitByte(0xC3u8);
     }
 
-    fn rollr(reg: Register) {
+    fn roll_r(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte(0xD3u8);
         self.emitModRmOpcode(0b000i32, reg);
     }
 
-    fn rolqr(reg: Register) {
+    fn rolq_r(reg: Register) {
         self.emitRex64RmField(reg);
         self.emitByte(0xD3u8);
         self.emitModRmOpcode(0b000i32, reg);
     }
 
-    fn rorlr(reg: Register) {
+    fn rorl_r(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte(0xD3u8);
         self.emitModRmOpcode(0b001i32, reg);
     }
 
-    fn rorqr(reg: Register) {
+    fn rorq_r(reg: Register) {
         self.emitRex64RmField(reg);
         self.emitByte(0xD3u8);
         self.emitModRmOpcode(0b001i32, reg);
     }
 
-    fn sarlr(reg: Register) {
+    fn sarl_r(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte(0xD3u8);
         self.emitModRmOpcode(0b111i32, reg);
     }
 
-    fn sarlri(lhs: Register, rhs: Immediate) {
+    fn sarl_ri(lhs: Register, rhs: Immediate) {
         assert(rhs.isInt8());
         self.emitRex32RmFieldOptional(lhs);
         self.emitByte(0xC1u8);
@@ -813,13 +811,13 @@ impl AssemblerX64 {
         self.emitByte(rhs.toUInt8());
     }
 
-    fn sarqr(reg: Register) {
+    fn sarq_r(reg: Register) {
         self.emitRex64RmField(reg);
         self.emitByte(0xD3u8);
         self.emitModRmOpcode(0b111i32, reg);
     }
 
-    fn sarqri(lhs: Register, rhs: Immediate) {
+    fn sarq_ri(lhs: Register, rhs: Immediate) {
         assert(rhs.isInt8());
         self.emitRex64RmField(lhs);
         self.emitByte(0xC1u8);
@@ -827,7 +825,7 @@ impl AssemblerX64 {
         self.emitByte(rhs.toUInt8());
     }
 
-    fn setccr(condition: Condition, dest: Register) {
+    fn setcc_r(condition: Condition, dest: Register) {
         if dest.needsRexBit() || dest.lowBits() > 3i32 {
             self.emitRex(false, false, false, dest.needsRexBit());
         }
@@ -837,13 +835,13 @@ impl AssemblerX64 {
         self.emitModRmOpcode(0i32, dest);
     }
 
-    fn shllr(reg: Register) {
+    fn shll_r(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte(0xD3u8);
         self.emitModRmOpcode(0b100i32, reg);
     }
 
-    fn shllri(lhs: Register, rhs: Immediate) {
+    fn shll_ri(lhs: Register, rhs: Immediate) {
         assert(rhs.isInt8());
         self.emitRex32RmFieldOptional(lhs);
         self.emitByte(0xC1u8);
@@ -851,13 +849,13 @@ impl AssemblerX64 {
         self.emitByte(rhs.toUInt8());
     }
 
-    fn shlqr(reg: Register) {
+    fn shlq_r(reg: Register) {
         self.emitRex64RmField(reg);
         self.emitByte(0xD3u8);
         self.emitModRmOpcode(0b100i32, reg);
     }
 
-    fn shlqri(lhs: Register, rhs: Immediate) {
+    fn shlq_ri(lhs: Register, rhs: Immediate) {
         assert(rhs.isInt8());
         self.emitRex64RmField(lhs);
         self.emitByte(0xC1u8);
@@ -865,13 +863,13 @@ impl AssemblerX64 {
         self.emitByte(rhs.toUInt8());
     }
 
-    fn shrlr(reg: Register) {
+    fn shrl_r(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte(0xD3u8);
         self.emitModRmOpcode(0b101i32, reg);
     }
 
-    fn shrlri(lhs: Register, rhs: Immediate) {
+    fn shrl_ri(lhs: Register, rhs: Immediate) {
         assert(rhs.isInt8());
         self.emitRex32RmFieldOptional(lhs);
         self.emitByte(0xC1u8);
@@ -879,13 +877,13 @@ impl AssemblerX64 {
         self.emitByte(rhs.toUInt8());
     }
 
-    fn shrqr(reg: Register) {
+    fn shrq_r(reg: Register) {
         self.emitRex64RmField(reg);
         self.emitByte(0xD3u8);
         self.emitModRmOpcode(0b101i32, reg);
     }
 
-    fn shrqri(lhs: Register, rhs: Immediate) {
+    fn shrq_ri(lhs: Register, rhs: Immediate) {
         assert(rhs.isInt8());
         self.emitRex64RmField(lhs);
         self.emitByte(0xC1u8);
@@ -893,7 +891,7 @@ impl AssemblerX64 {
         self.emitByte(rhs.toUInt8());
     }
 
-    fn sqrtssrr(dest: XmmRegister, src: XmmRegister) {
+    fn sqrtss_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF3u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -901,7 +899,7 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fn sqrtsdrr(dest: XmmRegister, src: XmmRegister) {
+    fn sqrtsd_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF2u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -909,23 +907,23 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fn sublrr(dest: Register, src: Register) {
+    fn subl_rr(dest: Register, src: Register) {
         self.emitRex32ModRmOptional(src, dest);
         self.emitByte(0x29u8);
         self.emitModRmReg(src, dest);
     }
 
-    fn subqri(reg: Register, imm: Immediate) {
+    fn subq_ri(reg: Register, imm: Immediate) {
         self.emitAlu64Imm(reg, imm, 0b101i32, 0x2Du8);
     }
 
-    fn subqrr(dest: Register, src: Register) {
+    fn subq_rr(dest: Register, src: Register) {
         self.emitRex64ModRm(src, dest);
         self.emitByte(0x29u8);
         self.emitModRmReg(src, dest);
     }
 
-    fn subssrr(dest: XmmRegister, src: XmmRegister) {
+    fn subss_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF3u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -933,7 +931,7 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fn subsdrr(dest: XmmRegister, src: XmmRegister) {
+    fn subsd_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF2u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -941,13 +939,13 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fn testlrr(lhs: Register, rhs: Register) {
+    fn testl_rr(lhs: Register, rhs: Register) {
         self.emitRex32ModRmOptional(rhs, lhs);
         self.emitByte(0x85u8);
         self.emitModRmReg(rhs, lhs);
     }
 
-    fn testlri(lhs: Register, imm: Immediate) {
+    fn testl_ri(lhs: Register, imm: Immediate) {
         assert(imm.isInt32());
 
         if imm.isUInt8() {
@@ -972,13 +970,13 @@ impl AssemblerX64 {
         }
     }
 
-    fn testlar(lhs: Address, rhs: Register) {
+    fn testl_ar(lhs: Address, rhs: Register) {
         self.emitRex32ModRmAddressOptional(rhs, lhs);
         self.emitByte(0x85u8);
         self.emitAddress(rhs.lowBits(), lhs);
     }
 
-    fn testlai(lhs: Address, rhs: Immediate) {
+    fn testl_ai(lhs: Address, rhs: Immediate) {
         assert(rhs.isInt32());
         self.emitRex32AddressOptional(lhs);
         self.emitByte(0xF7u8);
@@ -986,13 +984,13 @@ impl AssemblerX64 {
         self.emitInt32(rhs.toInt32());
     }
 
-    fn testqrr(lhs: Register, rhs: Register) {
+    fn testq_rr(lhs: Register, rhs: Register) {
         self.emitRex64ModRm(rhs, lhs);
         self.emitByte(0x85u8);
         self.emitModRmReg(rhs, lhs);
     }
 
-    fn testqai(lhs: Address, rhs: Immediate) {
+    fn testq_ai(lhs: Address, rhs: Immediate) {
         assert(rhs.isInt32());
         self.emitRex64Address(lhs);
         self.emitByte(0xF7u8);
@@ -1000,13 +998,13 @@ impl AssemblerX64 {
         self.emitInt32(rhs.toInt32());
     }
 
-    fn testqar(lhs: Address, rhs: Register) {
+    fn testq_ar(lhs: Address, rhs: Register) {
         self.emitRex64ModRmAddress(rhs, lhs);
         self.emitByte(0x85u8);
         self.emitAddress(rhs.lowBits(), lhs);
     }
 
-    fn tzcntlrr(dest: Register, src: Register) {
+    fn tzcntl_rr(dest: Register, src: Register) {
         self.emitByte(0xF3u8);
         self.emitRex32ModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -1014,7 +1012,7 @@ impl AssemblerX64 {
         self.emitModRmReg(dest, src);
     }
 
-    fn tzcntqrr(dest: Register, src: Register) {
+    fn tzcntq_rr(dest: Register, src: Register) {
         self.emitByte(0xF3u8);
         self.emitRex64ModRm(dest, src);
         self.emitByte(0x0Fu8);
@@ -1022,14 +1020,14 @@ impl AssemblerX64 {
         self.emitModRmReg(dest, src);
     }
 
-    fn ucomissrr(dest: XmmRegister, src: XmmRegister) {
+    fn ucomiss_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
         self.emitByte(0x2Eu8);
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fn ucomisdrr(dest: XmmRegister, src: XmmRegister) {
+    fn ucomisd_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0x66u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -1037,17 +1035,17 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fn xorlrr(dest: Register, src: Register) {
+    fn xorl_rr(dest: Register, src: Register) {
         self.emitRex32ModRmOptional(src, dest);
         self.emitByte(0x31u8);
         self.emitModRmReg(src, dest);
     }
 
-    fn xorlri(lhs: Register, rhs: Immediate) {
+    fn xorl_ri(lhs: Register, rhs: Immediate) {
         self.emitAlu32Imm(lhs, rhs, 0b110i32, 0x35u8);
     }
 
-    fn xorpdra(dest: XmmRegister, src: Address) {
+    fn xorpd_ra(dest: XmmRegister, src: Address) {
         self.emitByte(0x66u8);
         self.emitRexSseAddressOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -1055,21 +1053,21 @@ impl AssemblerX64 {
         self.emitAddress(dest.lowBits(), src);
     }
 
-    fn xorpsra(dest: XmmRegister, src: Address) {
+    fn xorps_ra(dest: XmmRegister, src: Address) {
         self.emitRexSseAddressOptional(dest, src);
         self.emitByte(0x0Fu8);
         self.emitByte(0x57u8);
         self.emitAddress(dest.lowBits(), src);
     }
 
-    fn xorpsrr(dest: XmmRegister, src: XmmRegister) {
+    fn xorps_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
         self.emitByte(0x57u8);
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fn xorqrr(dest: Register, src: Register) {
+    fn xorq_rr(dest: Register, src: Register) {
         self.emitRex64ModRm(src, dest);
         self.emitByte(0x31u8);
         self.emitModRmReg(src, dest);
@@ -1629,2166 +1627,2217 @@ impl Register {
     fn needsRexBit(): Bool { self.value > 7i32 }
 }
 
-@Test
-fn testAsmRegisters() {
-    assert(RAX.lowBits() == 0i32 && !RAX.needsRexBit());
-    assert(RCX.lowBits() == 1i32 && !RCX.needsRexBit());
-    assert(RDX.lowBits() == 2i32 && !RDX.needsRexBit());
-    assert(RBX.lowBits() == 3i32 && !RBX.needsRexBit());
-    assert(RSP.lowBits() == 4i32 && !RSP.needsRexBit());
-    assert(RBP.lowBits() == 5i32 && !RBP.needsRexBit());
-    assert(RSI.lowBits() == 6i32 && !RSI.needsRexBit());
-    assert(RDI.lowBits() == 7i32 && !RDI.needsRexBit());
-
-    assert(R8.lowBits() == 0i32 && R8.needsRexBit());
-    assert(R9.lowBits() == 1i32 && R9.needsRexBit());
-    assert(R10.lowBits() == 2i32 && R10.needsRexBit());
-    assert(R11.lowBits() == 3i32 && R11.needsRexBit());
-    assert(R12.lowBits() == 4i32 && R12.needsRexBit());
-    assert(R13.lowBits() == 5i32 && R13.needsRexBit());
-    assert(R14.lowBits() == 6i32 && R14.needsRexBit());
-    assert(R15.lowBits() == 7i32 && R15.needsRexBit());
-}
-
-@Test
-fn testAsmPushqr() {
-    let asm = AssemblerX64::new();
-    asm.pushqr(RAX);
-    asm.pushqr(RSP);
-    asm.pushqr(R8);
-    asm.pushqr(R15);
-    let buffer = asm.finalizeTesting();
-    assertAsm(buffer, 0x50u8);
-    assertAsm(buffer, 0x54u8);
-    assertAsm(buffer, 0x41u8, 0x50u8);
-    assertAsm(buffer, 0x41u8, 0x57u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmPopqr() {
-    let asm = AssemblerX64::new();
-    asm.popqr(RAX);
-    asm.popqr(RSP);
-    asm.popqr(R8);
-    asm.popqr(R15);
-    let buffer = asm.finalizeTesting();
-    assertAsm(buffer, 0x58u8);
-    assertAsm(buffer, 0x5Cu8);
-    assertAsm(buffer, 0x41u8, 0x58u8);
-    assertAsm(buffer, 0x41u8, 0x5Fu8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmMovqrr() {
-    let asm = AssemblerX64::new();
-    asm.movqrr(R15, RAX);
-    asm.movqrr(RAX, R15);
-    let buffer = asm.finalizeTesting();
-    assertAsm(buffer, 0x49u8, 0x89u8, 0xC7u8);
-    assertAsm(buffer, 0x4Cu8, 0x89u8, 0xF8u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmMovlrr() {
-    let asm = AssemblerX64::new();
-    asm.movlrr(R15, RAX);
-    asm.movlrr(RAX, R15);
-    asm.movlrr(RCX, RAX);
-    let buffer = asm.finalizeTesting();
-    assertAsm(buffer, 0x41u8, 0x89u8, 0xC7u8);
-    assertAsm(buffer, 0x44u8, 0x89u8, 0xF8u8);
-    assertAsm(buffer, 0x89u8, 0xC1u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmAddqrr() {
-    let asm = AssemblerX64::new();
-    asm.addqrr(RAX, RBX);
-    asm.addqrr(RAX, R12);
-    asm.addqrr(R12, RAX);
-    asm.addqrr(R15, RSP);
-    let buffer = asm.finalizeTesting();
-    assertAsm(buffer, 0x48u8, 0x01u8, 0xD8u8);
-    assertAsm(buffer, 0x4Cu8, 0x01u8, 0xE0u8);
-    assertAsm(buffer, 0x49u8, 0x01u8, 0xC4u8);
-    assertAsm(buffer, 0x49u8, 0x01u8, 0xE7u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmAddlrr() {
-    let asm = AssemblerX64::new();
-    asm.addlrr(RAX, RBX);
-    asm.addlrr(RCX, R15);
-    let buffer = asm.finalizeTesting();
-    assertAsm(buffer, 0x01u8, 0xD8u8);
-    assertAsm(buffer, 0x44u8, 0x01u8, 0xF9u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmAddqri() {
-    let asm = AssemblerX64::new();
-    asm.addqri(RAX, Immediate(0x11i64));
-    asm.addqri(R15, Immediate(0x11i64));
-    asm.addqri(RAX, Immediate(0x2211i64));
-    asm.addqri(RCX, Immediate(0x2211i64));
-    asm.addqri(R15, Immediate(0x2211i64));
-    let buffer = asm.finalizeTesting();
-    assertAsm(buffer, 0x48u8, 0x83u8, 0xC0u8, 0x11u8);
-    assertAsm(buffer, 0x49u8, 0x83u8, 0xC7u8, 0x11u8);
-    assertAsm(buffer, 0x48u8, 0x05u8, 0x11u8, 0x22u8, 0u8, 0u8);
-    assertAsm(buffer, 0x48u8, 0x81u8, 0xC1u8, 0x11u8, 0x22u8, 0u8, 0u8);
-    assertAsm(buffer, 0x49u8, 0x81u8, 0xC7u8, 0x11u8, 0x22u8, 0u8, 0u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmSubqrr() {
-    let asm = AssemblerX64::new();
-    asm.subqrr(RAX, RBX);
-    asm.subqrr(RCX, R15);
-    let buffer = asm.finalizeTesting();
-    assertAsm(buffer, 0x48u8, 0x29u8, 0xD8u8);
-    assertAsm(buffer, 0x4Cu8, 0x29u8, 0xF9u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmSubqri() {
-    let asm = AssemblerX64::new();
-    asm.subqri(RAX, Immediate(0x11i64));
-    asm.subqri(R15, Immediate(0x11i64));
-    asm.subqri(RAX, Immediate(0x2211i64));
-    asm.subqri(RCX, Immediate(0x2211i64));
-    asm.subqri(R15, Immediate(0x2211i64));
-    let buffer = asm.finalizeTesting();
-    assertAsm(buffer, 0x48u8, 0x83u8, 0xE8u8, 0x11u8);
-    assertAsm(buffer, 0x49u8, 0x83u8, 0xEFu8, 0x11u8);
-    assertAsm(buffer, 0x48u8, 0x2Du8, 0x11u8, 0x22u8, 0u8, 0u8);
-    assertAsm(buffer, 0x48u8, 0x81u8, 0xE9u8, 0x11u8, 0x22u8, 0u8, 0u8);
-    assertAsm(buffer, 0x49u8, 0x81u8, 0xEFu8, 0x11u8, 0x22u8, 0u8, 0u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmRetq() {
-    let asm = AssemblerX64::new();
-    asm.retq();
-    let buffer = asm.finalizeTesting();
-    assertAsm(buffer, 0xC3u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmNop() {
-    let asm = AssemblerX64::new();
-    asm.nop();
-    let buffer = asm.finalizeTesting();
-    assertAsm(buffer, 0x90u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmCdqCqo() {
-    let asm = AssemblerX64::new();
-    asm.cdq();
-    asm.cqo();
-    let buffer = asm.finalizeTesting();
-    assertAsm(buffer, 0x99u8);
-    assertAsm(buffer, 0x48u8, 0x99u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmOrlrr() {
-    let asm = AssemblerX64::new();
-    asm.orlrr(RAX, R15);
-    asm.orlrr(RAX, RCX);
-    asm.orlrr(R15, RAX);
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x44u8, 0x09u8, 0xF8u8);
-    assertAsm(buffer, 0x09u8, 0xC8u8);
-    assertAsm(buffer, 0x41u8, 0x09u8, 0xC7u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmOrqrr() {
-    let asm = AssemblerX64::new();
-    asm.orqrr(RAX, R15);
-    asm.orqrr(RAX, RCX);
-    asm.orqrr(R15, RAX);
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x4Cu8, 0x09u8, 0xF8u8);
-    assertAsm(buffer, 0x48u8, 0x09u8, 0xC8u8);
-    assertAsm(buffer, 0x49u8, 0x09u8, 0xC7u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmAndlrr() {
-    let asm = AssemblerX64::new();
-    asm.andlrr(RAX, R15);
-    asm.andlrr(RAX, RCX);
-    asm.andlrr(R15, RAX);
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x44u8, 0x21u8, 0xF8u8);
-    assertAsm(buffer, 0x21u8, 0xC8u8);
-    assertAsm(buffer, 0x41u8, 0x21u8, 0xC7u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmAndqrr() {
-    let asm = AssemblerX64::new();
-    asm.andqrr(RAX, R15);
-    asm.andqrr(RAX, RCX);
-    asm.andqrr(R15, RAX);
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x4Cu8, 0x21u8, 0xF8u8);
-    assertAsm(buffer, 0x48u8, 0x21u8, 0xC8u8);
-    assertAsm(buffer, 0x49u8, 0x21u8, 0xC7u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmXorlrr() {
-    let asm = AssemblerX64::new();
-    asm.xorlrr(RAX, R15);
-    asm.xorlrr(RAX, RCX);
-    asm.xorlrr(R15, RAX);
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x44u8, 0x31u8, 0xF8u8);
-    assertAsm(buffer, 0x31u8, 0xC8u8);
-    assertAsm(buffer, 0x41u8, 0x31u8, 0xC7u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmXorqrr() {
-    let asm = AssemblerX64::new();
-    asm.xorqrr(RAX, R15);
-    asm.xorqrr(RAX, RCX);
-    asm.xorqrr(R15, RAX);
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x4Cu8, 0x31u8, 0xF8u8);
-    assertAsm(buffer, 0x48u8, 0x31u8, 0xC8u8);
-    assertAsm(buffer, 0x49u8, 0x31u8, 0xC7u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmCmplrr() {
-    let asm = AssemblerX64::new();
-    asm.cmplrr(RAX, R15);
-    asm.cmplrr(R15, RBX);
-    asm.cmplrr(RAX, RBX);
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x44u8, 0x39u8, 0xF8u8);
-    assertAsm(buffer, 0x41u8, 0x39u8, 0xDFu8);
-    assertAsm(buffer, 0x39u8, 0xD8u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmCmpqrr() {
-    let asm = AssemblerX64::new();
-    asm.cmpqrr(RAX, R15);
-    asm.cmpqrr(R15, RBX);
-    asm.cmpqrr(RAX, RBX);
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x4Cu8, 0x39u8, 0xF8u8);
-    assertAsm(buffer, 0x49u8, 0x39u8, 0xDFu8);
-    assertAsm(buffer, 0x48u8, 0x39u8, 0xD8u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmImullrr() {
-    let asm = AssemblerX64::new();
-    asm.imullrr(RAX, RBX);
-    asm.imullrr(RCX, R15);
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x0Fu8, 0xAFu8, 0xC3u8);
-    assertAsm(buffer, 0x41u8, 0x0Fu8, 0xAFu8, 0xCFu8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmImulqrr() {
-    let asm = AssemblerX64::new();
-    asm.imulqrr(RAX, RBX);
-    asm.imulqrr(RCX, R15);
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x48u8, 0x0Fu8, 0xAFu8, 0xC3u8);
-    assertAsm(buffer, 0x49u8, 0x0Fu8, 0xAFu8, 0xCFu8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmIdivlr() {
-    let asm = AssemblerX64::new();
-    asm.idivlr(RAX);
-    asm.idivlr(R15);
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF7u8, 0xF8u8);
-    assertAsm(buffer, 0x41u8, 0xF7u8, 0xFFu8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmIdivqr() {
-    let asm = AssemblerX64::new();
-    asm.idivqr(RAX);
-    asm.idivqr(R15);
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x48u8, 0xF7u8, 0xF8u8);
-    assertAsm(buffer, 0x49u8, 0xF7u8, 0xFFu8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmSetccr() {
-    let asm = AssemblerX64::new();
-    asm.setccr(Condition::Equal, RAX);
-    asm.setccr(Condition::NotEqual, R15);
-    asm.setccr(Condition::GreaterOrEqual, RCX);
-    asm.setccr(Condition::Greater, RDX);
-    asm.setccr(Condition::LessOrEqual, RSI);
-    asm.setccr(Condition::Less, RDI);
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x0Fu8, 0x94u8, 0xC0u8);
-    assertAsm(buffer, 0x41u8, 0x0Fu8, 0x95u8, 0xC7u8);
-    assertAsm(buffer, 0x0Fu8, 0x9Du8, 0xC1u8);
-    assertAsm(buffer, 0x0Fu8, 0x9Fu8, 0xC2u8);
-    assertAsm(buffer, 0x40u8, 0x0Fu8, 0x9Eu8, 0xC6u8);
-    assertAsm(buffer, 0x40u8, 0x0Fu8, 0x9Cu8, 0xC7u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmCallr() {
-    let asm = AssemblerX64::new();
-    asm.callr(RAX);
-    asm.callr(R15);
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xFFu8, 0xD0u8);
-    assertAsm(buffer, 0x41u8, 0xFFu8, 0xD7u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmCmovl() {
-    let asm = AssemblerX64::new();
-    asm.cmovl(Condition::Equal, R15, RAX);
-    asm.cmovl(Condition::NotEqual, RAX, R13);
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x44u8, 0x0Fu8, 0x44u8, 0xF8u8);
-    assertAsm(buffer, 0x41u8, 0x0Fu8, 0x45u8, 0xC5u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmCmovq() {
-    let asm = AssemblerX64::new();
-    asm.cmovq(Condition::Greater, RAX, RCX);
-    asm.cmovq(Condition::Equal, R15, RAX);
-    asm.cmovq(Condition::NotEqual, RAX, R13);
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x48u8, 0x0Fu8, 0x4Fu8, 0xC1u8);
-    assertAsm(buffer, 0x4Cu8, 0x0Fu8, 0x44u8, 0xF8u8);
-    assertAsm(buffer, 0x49u8, 0x0Fu8, 0x45u8, 0xC5u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmMovlri() {
-    let asm = AssemblerX64::new();
-    asm.movlri(RAX, Immediate(2i64));
-    asm.movlri(R14, Immediate(3i64));
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xB8u8, 2u8, 0u8, 0u8, 0u8);
-    assertAsm(buffer, 0x41u8, 0xBEu8, 3u8, 0u8, 0u8, 0u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmMovqri() {
-    let asm = AssemblerX64::new();
-    asm.movqri(RAX, Immediate(1i64));
-    asm.movqri(R15, Immediate(-1i64));
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x48u8, 0xC7u8, 0xC0u8, 1u8, 0u8, 0u8, 0u8);
-    assertAsm(buffer, 0x49u8, 0xC7u8, 0xC7u8, 0xFFu8, 0xFFu8, 0xFFu8, 0xFFu8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testTestlrr() {
-    let asm = AssemblerX64::new();
-    asm.testlrr(RAX, RAX);
-    asm.testlrr(RSI, RAX);
-    asm.testlrr(R15, RAX);
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x85u8, 0xC0u8);
-    assertAsm(buffer, 0x85u8, 0xC6u8);
-    assertAsm(buffer, 0x41u8, 0x85u8, 0xC7u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testTestqrr() {
-    let asm = AssemblerX64::new();
-    asm.testqrr(RAX, RAX);
-    asm.testqrr(RSI, RAX);
-    asm.testqrr(R15, RAX);
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x48u8, 0x85u8, 0xC0u8);
-    assertAsm(buffer, 0x48u8, 0x85u8, 0xC6u8);
-    assertAsm(buffer, 0x49u8, 0x85u8, 0xC7u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmMovqra() {
-    let asm = AssemblerX64::new();
-    asm.movqra(RAX, Address::offset(RSP, 0i32));
-    asm.movqra(RAX, Address::offset(RSP, 1i32));
-
-    asm.movqra(R15, Address::offset(RSP, 0i32));
-    asm.movqra(R15, Address::offset(RSP, 1i32));
-
-    asm.movqra(R15, Address::offset(RSP, 127i32));
-    asm.movqra(R15, Address::offset(RSP, -128i32));
-
-    asm.movqra(R15, Address::offset(RSP, 128i32));
-    asm.movqra(R15, Address::offset(RSP, -129i32));
-
-    asm.movqra(RAX, Address::offset(RBP, 0i32));
-    asm.movqra(RAX, Address::offset(RBP, 1i32));
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x48u8, 0x8Bu8, 0x04u8, 0x24u8);
-    assertAsm(buffer, 0x48u8, 0x8Bu8, 0x44u8, 0x24u8, 1u8);
-
-    assertAsm(buffer, 0x4Cu8, 0x8Bu8, 0x3Cu8, 0x24u8);
-    assertAsm(buffer, 0x4Cu8, 0x8Bu8, 0x7Cu8, 0x24u8, 1u8);
-
-    assertAsm(buffer, 0x4Cu8, 0x8Bu8, 0x7Cu8, 0x24u8, 0x7Fu8);
-    assertAsm(buffer, 0x4Cu8, 0x8Bu8, 0x7Cu8, 0x24u8, 0x80u8);
-
-    assertAsm(buffer, 0x4Cu8, 0x8Bu8, 0xBCu8, 0x24u8, 0x80u8, 0u8, 0u8, 0u8);
-    assertAsm(buffer, 0x4Cu8, 0x8Bu8, 0xBCu8, 0x24u8, 0x7Fu8, 0xFFu8, 0xFFu8, 0xFFu8);
-
-    assertAsm(buffer, 0x48u8, 0x8Bu8, 0x45u8, 0u8);
-    assertAsm(buffer, 0x48u8, 0x8Bu8, 0x45u8, 1u8);
-
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmMovqar() {
-    let asm = AssemblerX64::new();
-    asm.movqar(Address::offset(RBP, 0i32), RAX);
-    asm.movqar(Address::offset(R13, 0i32), RAX);
-    asm.movqar(Address::array(RAX, RBP, ScaleFactor::Four, 1i32), RAX);
-    asm.movqar(Address::array(RBP, RAX, ScaleFactor::Eight, 0i32), RAX);
-    asm.movqar(Address::array(R13, RAX, ScaleFactor::Eight, 0i32), RAX);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x48u8, 0x89u8, 0x45u8, 0u8);
-    assertAsm(buffer, 0x49u8, 0x89u8, 0x45u8, 0u8);
-    assertAsm(buffer, 0x48u8, 0x89u8, 0x44u8, 0xA8u8, 1u8);
-    assertAsm(buffer, 0x48u8, 0x89u8, 0x44u8, 0xc5u8, 0u8);
-    assertAsm(buffer, 0x49u8, 0x89u8, 0x44u8, 0xc5u8, 0u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmMovlra() {
-    let asm = AssemblerX64::new();
-    asm.movlra(RAX, Address::offset(RBP, 0i32));
-    asm.movlra(RAX, Address::rip(0i32));
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x8Bu8, 0x45u8, 0u8);
-    assertAsm(buffer, 0x8Bu8, 0x05u8, 0u8, 0u8, 0u8, 0u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmMovlar() {
-    let asm = AssemblerX64::new();
-    asm.movlar(Address::offset(RBP, 0i32), RAX);
-    asm.movlar(Address::offset(RBP, 0i32), R15);
-    asm.movlar(Address::offset(R8, 0i32), R15);
-    asm.movlar(Address::array(R8, R9, ScaleFactor::Four, 0i32), R15);
-    asm.movlar(Address::array(RAX, RBP, ScaleFactor::Four, 1i32), RAX);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x89u8, 0x45u8, 0u8);
-    assertAsm(buffer, 0x44u8, 0x89u8, 0x7Du8, 0u8);
-    assertAsm(buffer, 0x45u8, 0x89u8, 0x38u8);
-    assertAsm(buffer, 0x47u8, 0x89u8, 0x3Cu8, 0x88u8);
-    assertAsm(buffer, 0x89u8, 0x44u8, 0xA8u8, 1u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmLea() {
-    let asm = AssemblerX64::new();
-    asm.lea(RAX, Address::offset(RAX, 0i32));
-    asm.lea(RAX, Address::offset(RAX, 1i32));
-    asm.lea(RAX, Address::offset(R8, 0i32));
-    asm.lea(R8, Address::offset(RAX, 0i32));
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x48u8, 0x8Du8, 0x00u8);
-    assertAsm(buffer, 0x48u8, 0x8Du8, 0x40u8, 1u8);
-    assertAsm(buffer, 0x49u8, 0x8Du8, 0x00u8);
-    assertAsm(buffer, 0x4Cu8, 0x8Du8, 0x00u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmMovbar() {
-    let asm = AssemblerX64::new();
-    asm.movbar(Address::offset(RSP, 0i32), RAX);
-    asm.movbar(Address::offset(RSP, 0i32), RSI);
-    asm.movbar(Address::offset(RSP, 0i32), R8);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x88u8, 0x04u8, 0x24u8);
-    assertAsm(buffer, 0x40u8, 0x88u8, 0x34u8, 0x24u8);
-    assertAsm(buffer, 0x44u8, 0x88u8, 0x04u8, 0x24u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmMovbai() {
-    let asm = AssemblerX64::new();
-    asm.movbai(Address::offset(RAX, 0i32), Immediate(1i64));
-    asm.movbai(Address::offset(RAX, 0i32), Immediate(127i64));
-    asm.movbai(Address::offset(RAX, 0i32), Immediate(255i64));
-    asm.movbai(Address::offset(RAX, 0i32), Immediate(-128i64));
-    asm.movbai(Address::offset(RAX, 0i32), Immediate(128i64));
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xC6u8, 0x00u8, 1u8);
-    assertAsm(buffer, 0xC6u8, 0x00u8, 0x7Fu8);
-    assertAsm(buffer, 0xC6u8, 0x00u8, 0xFFu8);
-    assertAsm(buffer, 0xC6u8, 0x00u8, 0x80u8);
-    assertAsm(buffer, 0xC6u8, 0x00u8, 0x80u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmMovqai() {
-    let asm = AssemblerX64::new();
-    asm.movqai(Address::offset(RAX, 0i32), Immediate(1i64));
-    asm.movqai(Address::offset(R8, 0i32), Immediate(Int32::maxValue().toInt64()));
-    asm.movqai(Address::offset(RDI, 0i32), Immediate(Int32::maxValue().toInt64()));
-    asm.movqai(Address::offset(R15, 0i32), Immediate(Int32::minValue().toInt64()));
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x48u8, 0xC7u8, 0x00u8, 1u8, 0u8, 0u8, 0u8);
-    assertAsm(buffer, 0x49u8, 0xC7u8, 0x00u8, 0xFFu8, 0xFFu8, 0xFFu8, 0x7Fu8);
-    assertAsm(buffer, 0x48u8, 0xC7u8, 0x07u8, 0xFFu8, 0xFFu8, 0xFFu8, 0x7Fu8);
-    assertAsm(buffer, 0x49u8, 0xC7u8, 0x07u8, 0u8, 0u8, 0u8, 0x80u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmMovlai() {
-    let asm = AssemblerX64::new();
-    asm.movlai(Address::offset(RAX, 0i32), Immediate(1i64));
-    asm.movlai(Address::offset(R8, 0i32), Immediate((1i64 << 32i32) - 1i64));
-    asm.movlai(Address::offset(RDI, 0i32), Immediate(Int32::maxValue().toInt64()));
-    asm.movlai(Address::offset(R15, 0i32), Immediate(Int32::minValue().toInt64()));
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xC7u8, 0x00u8, 1u8, 0u8, 0u8, 0u8);
-    assertAsm(buffer, 0x41u8, 0xC7u8, 0x00u8, 0xFFu8, 0xFFu8, 0xFFu8, 0xFFu8);
-    assertAsm(buffer, 0xC7u8, 0x07u8, 0xFFu8, 0xFFu8, 0xFFu8, 0x7Fu8);
-    assertAsm(buffer, 0x41u8, 0xC7u8, 0x07u8, 0u8, 0u8, 0u8, 0x80u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmTestlri() {
-    let asm = AssemblerX64::new();
-    asm.testlri(RAX, Immediate(1i64));
-    asm.testlri(RCX, Immediate(255i64));
-    asm.testlri(RDX, Immediate(1i64));
-    asm.testlri(RBX, Immediate(1i64));
-
-    asm.testlri(RSI, Immediate(1i64));
-    asm.testlri(RDI, Immediate(1i64));
-    asm.testlri(R8, Immediate(1i64));
-    asm.testlri(R15, Immediate(1i64));
-
-    asm.testlri(RAX, Immediate(256i64));
-    asm.testlri(RDI, Immediate(256i64));
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xA8u8, 1u8);
-    assertAsm(buffer, 0xF6u8, 0xC1u8, 255u8);
-    assertAsm(buffer, 0xF6u8, 0xC2u8, 1u8);
-    assertAsm(buffer, 0xF6u8, 0xC3u8, 1u8);
-
-    assertAsm(buffer, 0x40u8, 0xF6u8, 0xC6u8, 1u8);
-    assertAsm(buffer, 0x40u8, 0xF6u8, 0xC7u8, 1u8);
-    assertAsm(buffer, 0x41u8, 0xF6u8, 0xC0u8, 1u8);
-    assertAsm(buffer, 0x41u8, 0xF6u8, 0xC7u8, 1u8);
-
-    assertAsm(buffer, 0xA9u8, 0u8, 1u8, 0u8, 0u8);
-    assertAsm(buffer, 0xF7u8, 0xC7u8, 0u8, 1u8, 0u8, 0u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmTestlar() {
-    let asm = AssemblerX64::new();
-    asm.testlar(Address::offset(RDI, 1i32), RAX);
-    asm.testlar(Address::offset(RDI, 0i32), RAX);
-
-    asm.testlar(Address::offset(R8, 0i32), RAX);
-    asm.testlar(Address::offset(R8, 1i32), RAX);
-    asm.testlar(Address::offset(R8, 0i32), R15);
-
-    asm.testlar(Address::offset(RAX, 0i32), R15);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x85u8, 0x47u8, 1u8);
-    assertAsm(buffer, 0x85u8, 0x07u8);
-
-    assertAsm(buffer, 0x41u8, 0x85u8, 0x00u8);
-    assertAsm(buffer, 0x41u8, 0x85u8, 0x40u8, 1u8);
-    assertAsm(buffer, 0x45u8, 0x85u8, 0x38u8);
-
-    assertAsm(buffer, 0x44u8, 0x85u8, 0x38u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmTestlai() {
-    let asm = AssemblerX64::new();
-    asm.testlai(Address::offset(RAX, 0i32), Immediate(1i64));
-    asm.testlai(Address::offset(RAX, 1i32), Immediate(1i64));
-
-    asm.testlai(Address::offset(R8, 0i32), Immediate(1i64));
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF7u8, 0x00u8, 1u8, 0u8, 0u8, 0u8);
-    assertAsm(buffer, 0xF7u8, 0x40u8, 1u8, 1u8, 0u8, 0u8, 0u8);
-
-    assertAsm(buffer, 0x41u8, 0xF7u8, 0x00u8, 1u8, 0u8, 0u8, 0u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmTestqai() {
-    let asm = AssemblerX64::new();
-    asm.testqai(Address::offset(RAX, 0i32), Immediate(1i64));
-    asm.testqai(Address::offset(RAX, 1i32), Immediate(1i64));
-
-    asm.testqai(Address::offset(R8, 0i32), Immediate(1i64));
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x48u8, 0xF7u8, 0x00u8, 1u8, 0u8, 0u8, 0u8);
-    assertAsm(buffer, 0x48u8, 0xF7u8, 0x40u8, 1u8, 1u8, 0u8, 0u8, 0u8);
-
-    assertAsm(buffer, 0x49u8, 0xF7u8, 0x00u8, 1u8, 0u8, 0u8, 0u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmTestqar() {
-    let asm = AssemblerX64::new();
-    asm.testqar(Address::offset(RDI, 1i32), RAX);
-    asm.testqar(Address::offset(R8, 0i32), R15);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x48u8, 0x85u8, 0x47u8, 1u8);
-    assertAsm(buffer, 0x4Du8, 0x85u8, 0x38u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmMovzxbrr() {
-    let asm = AssemblerX64::new();
-    asm.movzxbrr(RAX, RAX);
-    asm.movzxbrr(RAX, RDI);
-    asm.movzxbrr(RDI, RAX);
-    asm.movzxbrr(RAX, R15);
-    asm.movzxbrr(R15, RBX);
-    asm.movzxbrr(RCX, RSI);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x0Fu8, 0xB6u8, 0xC0u8);
-    assertAsm(buffer, 0x40u8, 0x0Fu8, 0xB6u8, 0xC7u8);
-    assertAsm(buffer, 0x0Fu8, 0xB6u8, 0xF8u8);
-    assertAsm(buffer, 0x41u8, 0x0Fu8, 0xB6u8, 0xC7u8);
-    assertAsm(buffer, 0x44u8, 0x0Fu8, 0xB6u8, 0xFBu8);
-    assertAsm(buffer, 0x40u8, 0x0Fu8, 0xB6u8, 0xCEu8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmMovzxbra() {
-    let asm = AssemblerX64::new();
-    asm.movzxbra(RAX, Address::offset(RAX, 0i32));
-    asm.movzxbra(R8, Address::offset(RAX, 0i32));
-    asm.movzxbra(RAX, Address::offset(R8, 0i32));
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x0Fu8, 0xB6u8, 0x00u8);
-    assertAsm(buffer, 0x44u8, 0x0Fu8, 0xB6u8, 0x00u8);
-    assertAsm(buffer, 0x41u8, 0x0Fu8, 0xB6u8, 0x00u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmMovsxblrr() {
-    let asm = AssemblerX64::new();
-    asm.movsxblrr(RAX, RAX);
-    asm.movsxblrr(RAX, R8);
-    asm.movsxblrr(RSP, RAX);
-    asm.movsxblrr(R15, RAX);
-
-    asm.movsxblrr(RAX, RBX);
-    asm.movsxblrr(RAX, RSP);
-    asm.movsxblrr(RAX, RDI);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x0Fu8, 0xBEu8, 0xC0u8);
-    assertAsm(buffer, 0x41u8, 0x0Fu8, 0xBEu8, 0xC0u8);
-    assertAsm(buffer, 0x0Fu8, 0xBEu8, 0xE0u8);
-    assertAsm(buffer, 0x44u8, 0x0Fu8, 0xBEu8, 0xF8u8);
-
-    assertAsm(buffer, 0x0Fu8, 0xBEu8, 0xC3u8);
-    assertAsm(buffer, 0x40u8, 0x0Fu8, 0xBEu8, 0xC4u8);
-    assertAsm(buffer, 0x40u8, 0x0Fu8, 0xBEu8, 0xC7u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testasmMovsxblra() {
-    let asm = AssemblerX64::new();
-    asm.movsxblra(RAX, Address::offset(RAX, 0i32));
-    asm.movsxblra(R8, Address::offset(RAX, 0i32));
-    asm.movsxblra(RSP, Address::offset(RAX, 0i32));
-    asm.movsxblra(RDI, Address::offset(RAX, 0i32));
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x0Fu8, 0xBEu8, 0x00u8);
-    assertAsm(buffer, 0x44u8, 0x0Fu8, 0xBEu8, 0x00u8);
-    assertAsm(buffer, 0x0Fu8, 0xBEu8, 0x20u8);
-    assertAsm(buffer, 0x0Fu8, 0xBEu8, 0x38u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmMovsxbqrr() {
-    let asm = AssemblerX64::new();
-    asm.movsxbqrr(RAX, RAX);
-    asm.movsxbqrr(RAX, R8);
-    asm.movsxbqrr(RSP, RAX);
-    asm.movsxbqrr(R15, RAX);
-
-    asm.movsxbqrr(RAX, RBX);
-    asm.movsxbqrr(RAX, RSP);
-    asm.movsxbqrr(RAX, RDI);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x48u8, 0x0Fu8, 0xBEu8, 0xC0u8);
-    assertAsm(buffer, 0x49u8, 0x0Fu8, 0xBEu8, 0xC0u8);
-    assertAsm(buffer, 0x48u8, 0x0Fu8, 0xBEu8, 0xE0u8);
-    assertAsm(buffer, 0x4Cu8, 0x0Fu8, 0xBEu8, 0xF8u8);
-
-    assertAsm(buffer, 0x48u8, 0x0Fu8, 0xBEu8, 0xC3u8);
-    assertAsm(buffer, 0x48u8, 0x0Fu8, 0xBEu8, 0xC4u8);
-    assertAsm(buffer, 0x48u8, 0x0Fu8, 0xBEu8, 0xC7u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmMovsxbqra() {
-    let asm = AssemblerX64::new();
-    asm.movsxbqra(RAX, Address::offset(RAX, 0i32));
-    asm.movsxbqra(R8, Address::offset(RAX, 0i32));
-    asm.movsxbqra(RSP, Address::offset(RAX, 0i32));
-    asm.movsxbqra(RDI, Address::offset(RAX, 0i32));
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x48u8, 0x0Fu8, 0xBEu8, 0x00u8);
-    assertAsm(buffer, 0x4Cu8, 0x0Fu8, 0xBEu8, 0x00u8);
-    assertAsm(buffer, 0x48u8, 0x0Fu8, 0xBEu8, 0x20u8);
-    assertAsm(buffer, 0x48u8, 0x0Fu8, 0xBEu8, 0x38u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmMovsxlqrr() {
-    let asm = AssemblerX64::new();
-    asm.movsxlqrr(R15, RAX);
-    asm.movsxlqrr(RAX, R15);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x4Cu8, 0x63u8, 0xF8u8);
-    assertAsm(buffer, 0x49u8, 0x63u8, 0xC7u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmMovssrr() {
-    let asm = AssemblerX64::new();
-    asm.movssrr(XMM0, XMM1);
-    asm.movssrr(XMM8, XMM1);
-    asm.movssrr(XMM0, XMM9);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF3u8, 0x0Fu8, 0x10u8, 0xC1u8);
-    assertAsm(buffer, 0xF3u8, 0x44u8, 0x0Fu8, 0x10u8, 0xC1u8);
-    assertAsm(buffer, 0xF3u8, 0x41u8, 0x0Fu8, 0x10u8, 0xC1u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmMovssra() {
-    let asm = AssemblerX64::new();
-    asm.movssra(XMM0, Address::offset(RAX, 0i32));
-    asm.movssra(XMM8, Address::offset(RAX, 0i32));
-
-    asm.movssra(XMM0, Address::offset(R8, 0i32));
-    asm.movssra(XMM8, Address::offset(R15, 0i32));
-
-    asm.movssra(XMM9, Address::offset(RAX, 0i32));
-    asm.movssra(XMM15, Address::offset(RAX, 0i32));
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF3u8, 0x0Fu8, 0x10u8, 0x00u8);
-    assertAsm(buffer, 0xF3u8, 0x44u8, 0x0Fu8, 0x10u8, 0x00u8);
-
-    assertAsm(buffer, 0xF3u8, 0x41u8, 0x0Fu8, 0x10u8, 0x00u8);
-    assertAsm(buffer, 0xF3u8, 0x45u8, 0x0Fu8, 0x10u8, 0x07u8);
-
-    assertAsm(buffer, 0xF3u8, 0x44u8, 0x0Fu8, 0x10u8, 0x08u8);
-    assertAsm(buffer, 0xF3u8, 0x44u8, 0x0Fu8, 0x10u8, 0x38u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmMovssar() {
-    let asm = AssemblerX64::new();
-    asm.movssar(Address::offset(RAX, 0i32), XMM0);
-    asm.movssar(Address::offset(RAX, 0i32), XMM8);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF3u8, 0x0Fu8, 0x11u8, 0x00u8);
-    assertAsm(buffer, 0xF3u8, 0x44u8, 0x0Fu8, 0x11u8, 0x00u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmMovsdrr() {
-    let asm = AssemblerX64::new();
-    asm.movsdrr(XMM0, XMM1);
-    asm.movsdrr(XMM8, XMM1);
-    asm.movsdrr(XMM0, XMM9);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF2u8, 0x0Fu8, 0x10u8, 0xC1u8);
-    assertAsm(buffer, 0xF2u8, 0x44u8, 0x0Fu8, 0x10u8, 0xC1u8);
-    assertAsm(buffer, 0xF2u8, 0x41u8, 0x0Fu8, 0x10u8, 0xC1u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmMovsdra() {
-    let asm = AssemblerX64::new();
-    asm.movsdra(XMM0, Address::offset(RAX, 0i32));
-    asm.movsdra(XMM8, Address::offset(RAX, 0i32));
-
-    asm.movsdra(XMM0, Address::offset(R8, 0i32));
-    asm.movsdra(XMM8, Address::offset(R15, 0i32));
-
-    asm.movsdra(XMM9, Address::offset(RAX, 0i32));
-    asm.movsdra(XMM15, Address::offset(RAX, 0i32));
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF2u8, 0x0Fu8, 0x10u8, 0x00u8);
-    assertAsm(buffer, 0xF2u8, 0x44u8, 0x0Fu8, 0x10u8, 0x00u8);
-
-    assertAsm(buffer, 0xF2u8, 0x41u8, 0x0Fu8, 0x10u8, 0x00u8);
-    assertAsm(buffer, 0xF2u8, 0x45u8, 0x0Fu8, 0x10u8, 0x07u8);
-
-    assertAsm(buffer, 0xF2u8, 0x44u8, 0x0Fu8, 0x10u8, 0x08u8);
-    assertAsm(buffer, 0xF2u8, 0x44u8, 0x0Fu8, 0x10u8, 0x38u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmMovsdar() {
-    let asm = AssemblerX64::new();
-    asm.movsdar(Address::offset(RAX, 0i32), XMM0);
-    asm.movsdar(Address::offset(RAX, 0i32), XMM8);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF2u8, 0x0Fu8, 0x11u8, 0x00u8);
-    assertAsm(buffer, 0xF2u8, 0x44u8, 0x0Fu8, 0x11u8, 0x00u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmAddssrr() {
-    let asm = AssemblerX64::new();
-    asm.addssrr(XMM0, XMM1);
-    asm.addssrr(XMM3, XMM15);
-    asm.addssrr(XMM8, XMM4);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF3u8, 0x0Fu8, 0x58u8, 0xC1u8);
-    assertAsm(buffer, 0xF3u8, 0x41u8, 0x0Fu8, 0x58u8, 0xDFu8);
-    assertAsm(buffer, 0xF3u8, 0x44u8, 0x0Fu8, 0x58u8, 0xC4u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmAddsdrr() {
-    let asm = AssemblerX64::new();
-    asm.addsdrr(XMM0, XMM1);
-    asm.addsdrr(XMM3, XMM15);
-    asm.addsdrr(XMM8, XMM4);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF2u8, 0x0Fu8, 0x58u8, 0xC1u8);
-    assertAsm(buffer, 0xF2u8, 0x41u8, 0x0Fu8, 0x58u8, 0xDFu8);
-    assertAsm(buffer, 0xF2u8, 0x44u8, 0x0Fu8, 0x58u8, 0xC4u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmSubssrr() {
-    let asm = AssemblerX64::new();
-    asm.subssrr(XMM0, XMM1);
-    asm.subssrr(XMM3, XMM15);
-    asm.subssrr(XMM8, XMM4);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF3u8, 0x0Fu8, 0x5Cu8, 0xC1u8);
-    assertAsm(buffer, 0xF3u8, 0x41u8, 0x0Fu8, 0x5Cu8, 0xDFu8);
-    assertAsm(buffer, 0xF3u8, 0x44u8, 0x0Fu8, 0x5Cu8, 0xC4u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmSubsdrr() {
-    let asm = AssemblerX64::new();
-    asm.subsdrr(XMM0, XMM1);
-    asm.subsdrr(XMM3, XMM15);
-    asm.subsdrr(XMM8, XMM4);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF2u8, 0x0Fu8, 0x5Cu8, 0xC1u8);
-    assertAsm(buffer, 0xF2u8, 0x41u8, 0x0Fu8, 0x5Cu8, 0xDFu8);
-    assertAsm(buffer, 0xF2u8, 0x44u8, 0x0Fu8, 0x5Cu8, 0xC4u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmMulssrr() {
-    let asm = AssemblerX64::new();
-    asm.mulssrr(XMM0, XMM1);
-    asm.mulssrr(XMM3, XMM15);
-    asm.mulssrr(XMM8, XMM4);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF3u8, 0x0Fu8, 0x59u8, 0xC1u8);
-    assertAsm(buffer, 0xF3u8, 0x41u8, 0x0Fu8, 0x59u8, 0xDFu8);
-    assertAsm(buffer, 0xF3u8, 0x44u8, 0x0Fu8, 0x59u8, 0xC4u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmMulsdrr() {
-    let asm = AssemblerX64::new();
-    asm.mulsdrr(XMM0, XMM1);
-    asm.mulsdrr(XMM3, XMM15);
-    asm.mulsdrr(XMM8, XMM4);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF2u8, 0x0Fu8, 0x59u8, 0xC1u8);
-    assertAsm(buffer, 0xF2u8, 0x41u8, 0x0Fu8, 0x59u8, 0xDFu8);
-    assertAsm(buffer, 0xF2u8, 0x44u8, 0x0Fu8, 0x59u8, 0xC4u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmDivssrr() {
-    let asm = AssemblerX64::new();
-    asm.divssrr(XMM0, XMM1);
-    asm.divssrr(XMM3, XMM15);
-    asm.divssrr(XMM8, XMM4);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF3u8, 0x0Fu8, 0x5Eu8, 0xC1u8);
-    assertAsm(buffer, 0xF3u8, 0x41u8, 0x0Fu8, 0x5Eu8, 0xDFu8);
-    assertAsm(buffer, 0xF3u8, 0x44u8, 0x0Fu8, 0x5Eu8, 0xC4u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmDivsdrr() {
-    let asm = AssemblerX64::new();
-    asm.divsdrr(XMM0, XMM1);
-    asm.divsdrr(XMM3, XMM15);
-    asm.divsdrr(XMM8, XMM4);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF2u8, 0x0Fu8, 0x5Eu8, 0xC1u8);
-    assertAsm(buffer, 0xF2u8, 0x41u8, 0x0Fu8, 0x5Eu8, 0xDFu8);
-    assertAsm(buffer, 0xF2u8, 0x44u8, 0x0Fu8, 0x5Eu8, 0xC4u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmUcomissrr() {
-    let asm = AssemblerX64::new();
-    asm.ucomissrr(XMM1, XMM0);
-    asm.ucomissrr(XMM15, XMM3);
-    asm.ucomissrr(XMM4, XMM8);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x0Fu8, 0x2Eu8, 0xC8u8);
-    assertAsm(buffer, 0x44u8, 0x0Fu8, 0x2Eu8, 0xFBu8);
-    assertAsm(buffer, 0x41u8, 0x0Fu8, 0x2Eu8, 0xE0u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmUcomisdrr() {
-    let asm = AssemblerX64::new();
-    asm.ucomisdrr(XMM1, XMM0);
-    asm.ucomisdrr(XMM15, XMM3);
-    asm.ucomisdrr(XMM4, XMM8);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x66u8, 0x0Fu8, 0x2Eu8, 0xC8u8);
-    assertAsm(buffer, 0x66u8, 0x44u8, 0x0Fu8, 0x2Eu8, 0xFBu8);
-    assertAsm(buffer, 0x66u8, 0x41u8, 0x0Fu8, 0x2Eu8, 0xE0u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmPxorrr() {
-    let asm = AssemblerX64::new();
-    asm.pxorrr(XMM1, XMM0);
-    asm.pxorrr(XMM15, XMM3);
-    asm.pxorrr(XMM4, XMM8);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x66u8, 0x0Fu8, 0xEFu8, 0xC8u8);
-    assertAsm(buffer, 0x66u8, 0x44u8, 0x0Fu8, 0xEFu8, 0xFBu8);
-    assertAsm(buffer, 0x66u8, 0x41u8, 0x0Fu8, 0xEFu8, 0xE0u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmSqrtssrr() {
-    let asm = AssemblerX64::new();
-    asm.sqrtssrr(XMM1, XMM0);
-    asm.sqrtssrr(XMM15, XMM3);
-    asm.sqrtssrr(XMM4, XMM8);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF3u8, 0x0Fu8, 0x51u8, 0xC8u8);
-    assertAsm(buffer, 0xF3u8, 0x44u8, 0x0Fu8, 0x51u8, 0xFBu8);
-    assertAsm(buffer, 0xF3u8, 0x41u8, 0x0Fu8, 0x51u8, 0xE0u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmSqrtsdrr() {
-    let asm = AssemblerX64::new();
-    asm.sqrtsdrr(XMM1, XMM0);
-    asm.sqrtsdrr(XMM15, XMM3);
-    asm.sqrtsdrr(XMM4, XMM8);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF2u8, 0x0Fu8, 0x51u8, 0xC8u8);
-    assertAsm(buffer, 0xF2u8, 0x44u8, 0x0Fu8, 0x51u8, 0xFBu8);
-    assertAsm(buffer, 0xF2u8, 0x41u8, 0x0Fu8, 0x51u8, 0xE0u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmTzcntlrr() {
-    let asm = AssemblerX64::new();
-    asm.tzcntlrr(RDI, RAX);
-    asm.tzcntlrr(RAX, RDI);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF3u8, 0x0Fu8, 0xBCu8, 0xF8u8);
-    assertAsm(buffer, 0xF3u8, 0x0Fu8, 0xBCu8, 0xC7u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmTzcntqrr() {
-    let asm = AssemblerX64::new();
-    asm.tzcntqrr(RDI, RAX);
-    asm.tzcntqrr(RAX, RDI);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF3u8, 0x48u8, 0x0Fu8, 0xBCu8, 0xF8u8);
-    assertAsm(buffer, 0xF3u8, 0x48u8, 0x0Fu8, 0xBCu8, 0xC7u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmLzcntlrr() {
-    let asm = AssemblerX64::new();
-    asm.lzcntlrr(RDI, RAX);
-    asm.lzcntlrr(RAX, RDI);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF3u8, 0x0Fu8, 0xBDu8, 0xF8u8);
-    assertAsm(buffer, 0xF3u8, 0x0Fu8, 0xBDu8, 0xC7u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmLzcntqrr() {
-    let asm = AssemblerX64::new();
-    asm.lzcntqrr(RDI, RAX);
-    asm.lzcntqrr(RAX, RDI);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF3u8, 0x48u8, 0x0Fu8, 0xBDu8, 0xF8u8);
-    assertAsm(buffer, 0xF3u8, 0x48u8, 0x0Fu8, 0xBDu8, 0xC7u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmPopcntlrr() {
-    let asm = AssemblerX64::new();
-    asm.popcntlrr(RDI, RAX);
-    asm.popcntlrr(RAX, RDI);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF3u8, 0x0Fu8, 0xB8u8, 0xF8u8);
-    assertAsm(buffer, 0xF3u8, 0x0Fu8, 0xB8u8, 0xC7u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmPopcntqrr() {
-    let asm = AssemblerX64::new();
-    asm.popcntqrr(RDI, RAX);
-    asm.popcntqrr(RAX, RDI);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF3u8, 0x48u8, 0x0Fu8, 0xB8u8, 0xF8u8);
-    assertAsm(buffer, 0xF3u8, 0x48u8, 0x0Fu8, 0xB8u8, 0xC7u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmCvtss2sdrr() {
-    let asm = AssemblerX64::new();
-    asm.cvtss2sdrr(XMM0, XMM1);
-    asm.cvtss2sdrr(XMM3, XMM15);
-    asm.cvtss2sdrr(XMM8, XMM4);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF3u8, 0x0Fu8, 0x5Au8, 0xC1u8);
-    assertAsm(buffer, 0xF3u8, 0x41u8, 0x0Fu8, 0x5Au8, 0xDFu8);
-    assertAsm(buffer, 0xF3u8, 0x44u8, 0x0Fu8, 0x5Au8, 0xC4u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmCvtsd2ssrr() {
-    let asm = AssemblerX64::new();
-    asm.cvtsd2ssrr(XMM0, XMM1);
-    asm.cvtsd2ssrr(XMM3, XMM15);
-    asm.cvtsd2ssrr(XMM8, XMM4);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF2u8, 0x0Fu8, 0x5Au8, 0xC1u8);
-    assertAsm(buffer, 0xF2u8, 0x41u8, 0x0Fu8, 0x5Au8, 0xDFu8);
-    assertAsm(buffer, 0xF2u8, 0x44u8, 0x0Fu8, 0x5Au8, 0xC4u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmMovdrx() {
-    let asm = AssemblerX64::new();
-    asm.movdrx(RDI, XMM0);
-    asm.movdrx(R8, XMM0);
-    asm.movdrx(R8, XMM7);
-    asm.movdrx(R8, XMM8);
-    asm.movdrx(R8, XMM15);
-    asm.movdrx(R15, XMM0);
-    asm.movdrx(R15, XMM7);
-    asm.movdrx(R15, XMM8);
-    asm.movdrx(R15, XMM15);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x66u8, 0x0Fu8, 0x7Eu8, 0xC7u8);
-    assertAsm(buffer, 0x66u8, 0x41u8, 0x0Fu8, 0x7Eu8, 0xC0u8);
-    assertAsm(buffer, 0x66u8, 0x41u8, 0x0Fu8, 0x7Eu8, 0xF8u8);
-    assertAsm(buffer, 0x66u8, 0x45u8, 0x0Fu8, 0x7Eu8, 0xC0u8);
-    assertAsm(buffer, 0x66u8, 0x45u8, 0x0Fu8, 0x7Eu8, 0xF8u8);
-    assertAsm(buffer, 0x66u8, 0x41u8, 0x0Fu8, 0x7Eu8, 0xC7u8);
-    assertAsm(buffer, 0x66u8, 0x41u8, 0x0Fu8, 0x7Eu8, 0xFFu8);
-    assertAsm(buffer, 0x66u8, 0x45u8, 0x0Fu8, 0x7Eu8, 0xC7u8);
-    assertAsm(buffer, 0x66u8, 0x45u8, 0x0Fu8, 0x7Eu8, 0xFFu8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmMovdxr() {
-    let asm = AssemblerX64::new();
-    asm.movdxr(XMM0, RAX);
-    asm.movdxr(XMM0, R8);
-    asm.movdxr(XMM7, R8);
-    asm.movdxr(XMM8, R8);
-    asm.movdxr(XMM15, R8);
-    asm.movdxr(XMM0, R15);
-    asm.movdxr(XMM7, R15);
-    asm.movdxr(XMM8, R15);
-    asm.movdxr(XMM15, R15);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x66u8, 0x0Fu8, 0x6Eu8, 0xC0u8);
-    assertAsm(buffer, 0x66u8, 0x41u8, 0x0Fu8, 0x6Eu8, 0xC0u8);
-    assertAsm(buffer, 0x66u8, 0x41u8, 0x0Fu8, 0x6Eu8, 0xF8u8);
-    assertAsm(buffer, 0x66u8, 0x45u8, 0x0Fu8, 0x6Eu8, 0xC0u8);
-    assertAsm(buffer, 0x66u8, 0x45u8, 0x0Fu8, 0x6Eu8, 0xF8u8);
-    assertAsm(buffer, 0x66u8, 0x41u8, 0x0Fu8, 0x6Eu8, 0xC7u8);
-    assertAsm(buffer, 0x66u8, 0x41u8, 0x0Fu8, 0x6Eu8, 0xFFu8);
-    assertAsm(buffer, 0x66u8, 0x45u8, 0x0Fu8, 0x6Eu8, 0xC7u8);
-    assertAsm(buffer, 0x66u8, 0x45u8, 0x0Fu8, 0x6Eu8, 0xFFu8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmMovqrx() {
-    let asm = AssemblerX64::new();
-    asm.movqrx(RDI, XMM0);
-    asm.movqrx(R8, XMM0);
-    asm.movqrx(R8, XMM7);
-    asm.movqrx(R8, XMM8);
-    asm.movqrx(R8, XMM15);
-    asm.movqrx(R15, XMM0);
-    asm.movqrx(R15, XMM7);
-    asm.movqrx(R15, XMM8);
-    asm.movqrx(R15, XMM15);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x66u8, 0x48u8, 0x0Fu8, 0x7Eu8, 0xC7u8);
-    assertAsm(buffer, 0x66u8, 0x49u8, 0x0Fu8, 0x7Eu8, 0xC0u8);
-    assertAsm(buffer, 0x66u8, 0x49u8, 0x0Fu8, 0x7Eu8, 0xF8u8);
-    assertAsm(buffer, 0x66u8, 0x4Du8, 0x0Fu8, 0x7Eu8, 0xC0u8);
-    assertAsm(buffer, 0x66u8, 0x4Du8, 0x0Fu8, 0x7Eu8, 0xF8u8);
-    assertAsm(buffer, 0x66u8, 0x49u8, 0x0Fu8, 0x7Eu8, 0xC7u8);
-    assertAsm(buffer, 0x66u8, 0x49u8, 0x0Fu8, 0x7Eu8, 0xFFu8);
-    assertAsm(buffer, 0x66u8, 0x4Du8, 0x0Fu8, 0x7Eu8, 0xC7u8);
-    assertAsm(buffer, 0x66u8, 0x4Du8, 0x0Fu8, 0x7Eu8, 0xFFu8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmMovqxr() {
-    let asm = AssemblerX64::new();
-    asm.movqxr(XMM0, RAX);
-    asm.movqxr(XMM0, R8);
-    asm.movqxr(XMM7, R8);
-    asm.movqxr(XMM8, R8);
-    asm.movqxr(XMM15, R8);
-    asm.movqxr(XMM0, R15);
-    asm.movqxr(XMM7, R15);
-    asm.movqxr(XMM8, R15);
-    asm.movqxr(XMM15, R15);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x66u8, 0x48u8, 0x0Fu8, 0x6Eu8, 0xC0u8);
-    assertAsm(buffer, 0x66u8, 0x49u8, 0x0Fu8, 0x6Eu8, 0xC0u8);
-    assertAsm(buffer, 0x66u8, 0x49u8, 0x0Fu8, 0x6Eu8, 0xF8u8);
-    assertAsm(buffer, 0x66u8, 0x4Du8, 0x0Fu8, 0x6Eu8, 0xC0u8);
-    assertAsm(buffer, 0x66u8, 0x4Du8, 0x0Fu8, 0x6Eu8, 0xF8u8);
-    assertAsm(buffer, 0x66u8, 0x49u8, 0x0Fu8, 0x6Eu8, 0xC7u8);
-    assertAsm(buffer, 0x66u8, 0x49u8, 0x0Fu8, 0x6Eu8, 0xFFu8);
-    assertAsm(buffer, 0x66u8, 0x4Du8, 0x0Fu8, 0x6Eu8, 0xC7u8);
-    assertAsm(buffer, 0x66u8, 0x4Du8, 0x0Fu8, 0x6Eu8, 0xFFu8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmXorpsra() {
-    let asm = AssemblerX64::new();
-    asm.xorpsra(XMM0, Address::offset(RBP, -8i32));
-    asm.xorpsra(XMM8, Address::offset(R8, 0i32));
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x0Fu8, 0x57u8, 0x45u8, 0xF8u8);
-    assertAsm(buffer, 0x45u8, 0x0Fu8, 0x57u8, 0x00u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmXorpsrr() {
-    let asm = AssemblerX64::new();
-    asm.xorpsrr(XMM0, XMM1);
-    asm.xorpsrr(XMM7, XMM8);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x0Fu8, 0x57u8, 0xC1u8);
-    assertAsm(buffer, 0x41u8, 0x0Fu8, 0x57u8, 0xF8u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmXorpdra() {
-    let asm = AssemblerX64::new();
-    asm.xorpdra(XMM0, Address::offset(RBP, -8i32));
-    asm.xorpdra(XMM8, Address::offset(R8, 0i32));
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x66u8, 0x0Fu8, 0x57u8, 0x45u8, 0xF8u8);
-    assertAsm(buffer, 0x66u8, 0x45u8, 0x0Fu8, 0x57u8, 0x00u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmXorlri() {
-    let asm = AssemblerX64::new();
-    asm.xorlri(RAX, Immediate(1i64));
-    asm.xorlri(R8, Immediate(127i64));
-    asm.xorlri(R15, Immediate(-128i64));
-
-    asm.xorlri(RAX, Immediate(128i64));
-    asm.xorlri(R8, Immediate(-129i64));
-    asm.xorlri(R15, Immediate(128i64));
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x83u8, 0xF0u8, 1u8);
-    assertAsm(buffer, 0x41u8, 0x83u8, 0xF0u8, 0x7Fu8);
-    assertAsm(buffer, 0x41u8, 0x83u8, 0xF7u8, 0x80u8);
-
-    assertAsm(buffer, 0x35u8, 0x80u8, 0u8, 0u8, 0u8);
-    assertAsm(buffer, 0x41u8, 0x81u8, 0xF0u8, 0x7Fu8, 0xFFu8, 0xFFu8, 0xFFu8);
-    assertAsm(buffer, 0x41u8, 0x81u8, 0xF7u8, 0x80u8, 0u8, 0u8, 0u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmCmpbar() {
-    let asm = AssemblerX64::new();
-    asm.cmpbar(Address::offset(RAX, 0i32), RAX);
-    asm.cmpbar(Address::offset(RAX, 0i32), RBX);
-    asm.cmpbar(Address::offset(RAX, 0i32), RSP);
-    asm.cmpbar(Address::offset(RAX, 0i32), RDI);
-    asm.cmpbar(Address::offset(RAX, 0i32), R8);
-    asm.cmpbar(Address::offset(R8, 0i32), RAX);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x38u8, 0x00u8);
-    assertAsm(buffer, 0x38u8, 0x18u8);
-    assertAsm(buffer, 0x40u8, 0x38u8, 0x20u8);
-    assertAsm(buffer, 0x40u8, 0x38u8, 0x38u8);
-    assertAsm(buffer, 0x44u8, 0x38u8, 0x00u8);
-    assertAsm(buffer, 0x41u8, 0x38u8, 0x00u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmCmpbai() {
-    let asm = AssemblerX64::new();
-    asm.cmpbai(Address::offset(RAX, 0i32), Immediate(1i64));
-    asm.cmpbai(Address::offset(RAX, 0i32), Immediate(127i64));
-    asm.cmpbai(Address::offset(RAX, 0i32), Immediate(-128i64));
-    asm.cmpbai(Address::offset(RAX, 0i32), Immediate(255i64));
-    asm.cmpbai(Address::offset(R8, 0i32), Immediate(255i64));
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x80u8, 0x38u8, 1u8);
-    assertAsm(buffer, 0x80u8, 0x38u8, 0x7Fu8);
-    assertAsm(buffer, 0x80u8, 0x38u8, 0x80u8);
-    assertAsm(buffer, 0x80u8, 0x38u8, 0xFFu8);
-    assertAsm(buffer, 0x41u8, 0x80u8, 0x38u8, 0xFFu8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmCmplri() {
-    let asm = AssemblerX64::new();
-    asm.cmplri(RAX, Immediate(0i64));
-    asm.cmplri(R15, Immediate(0i64));
-    asm.cmplri(R9, Immediate(0i64));
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x83u8, 0xF8u8, 0u8);
-    assertAsm(buffer, 0x41u8, 0x83u8, 0xFFu8, 0u8);
-    assertAsm(buffer, 0x41u8, 0x83u8, 0xF9u8, 0u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmCmplai() {
-    let asm = AssemblerX64::new();
-    asm.cmplai(Address::offset(RAX, 0i32), Immediate(127i64));
-    asm.cmplai(Address::offset(RAX, 0i32), Immediate(-128i64));
-    asm.cmplai(Address::offset(RAX, 0i32), Immediate(128i64));
-    asm.cmplai(Address::offset(R8, 0i32), Immediate(128i64));
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x83u8, 0x38u8, 0x7Fu8);
-    assertAsm(buffer, 0x83u8, 0x38u8, 0x80u8);
-    assertAsm(buffer, 0x81u8, 0x38u8, 0x80u8, 0u8, 0u8, 0u8);
-    assertAsm(buffer, 0x41u8, 0x81u8, 0x38u8, 0x80u8, 0u8, 0u8, 0u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmCmplar() {
-    let asm = AssemblerX64::new();
-    asm.cmplar(Address::offset(RBX, 1i32), RAX);
-    asm.cmplar(Address::offset(RBX, 1i32), R10);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x39u8, 0x43u8, 1u8);
-    assertAsm(buffer, 0x44u8, 0x39u8, 0x53u8, 1u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmCmpqai() {
-    let asm = AssemblerX64::new();
-    asm.cmpqai(Address::offset(RAX, 0i32), Immediate(127i64));
-    asm.cmpqai(Address::offset(RAX, 0i32), Immediate(-128i64));
-    asm.cmpqai(Address::offset(RAX, 0i32), Immediate(128i64));
-    asm.cmpqai(Address::offset(R8, 0i32), Immediate(128i64));
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x48u8, 0x83u8, 0x38u8, 0x7Fu8);
-    assertAsm(buffer, 0x48u8, 0x83u8, 0x38u8, 0x80u8);
-    assertAsm(buffer, 0x48u8, 0x81u8, 0x38u8, 0x80u8, 0u8, 0u8, 0u8);
-    assertAsm(buffer, 0x49u8, 0x81u8, 0x38u8, 0x80u8, 0u8, 0u8, 0u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmCmpqar() {
-    let asm = AssemblerX64::new();
-    asm.cmpqar(Address::offset(RBX, 1i32), RAX);
-    asm.cmpqar(Address::offset(RBX, 256i32), RAX);
-    asm.cmpqar(Address::offset(RDI, 1i32), RAX);
-    asm.cmpqar(Address::offset(R9, 1i32), RAX);
-    asm.cmpqar(Address::offset(RDI, 1i32), R10);
-    asm.cmpqar(Address::rip(1i32), RAX);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x48u8, 0x39u8, 0x43u8, 1u8);
-    assertAsm(buffer, 0x48u8, 0x39u8, 0x83u8, 0u8, 1u8, 0u8, 0u8);
-    assertAsm(buffer, 0x48u8, 0x39u8, 0x47u8, 1u8);
-    assertAsm(buffer, 0x49u8, 0x39u8, 0x41u8, 1u8);
-    assertAsm(buffer, 0x4Cu8, 0x39u8, 0x57u8, 1u8);
-    assertAsm(buffer, 0x48u8, 0x39u8, 0x05u8, 1u8, 0u8, 0u8, 0u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmCmpqri() {
-    let asm = AssemblerX64::new();
-    asm.cmpqri(RAX, Immediate(127i64));
-    asm.cmpqri(R15, Immediate(-128i64));
-    asm.cmpqri(R9, Immediate(0i64));
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x48u8, 0x83u8, 0xF8u8, 0x7Fu8);
-    assertAsm(buffer, 0x49u8, 0x83u8, 0xFFu8, 0x80u8);
-    assertAsm(buffer, 0x49u8, 0x83u8, 0xF9u8, 0u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmNotlr() {
-    let asm = AssemblerX64::new();
-    asm.notlr(RAX);
-    asm.notlr(R15);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF7u8, 0xD0u8);
-    assertAsm(buffer, 0x41u8, 0xF7u8, 0xD7u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmNotqr() {
-    let asm = AssemblerX64::new();
-    asm.notqr(RAX);
-    asm.notqr(R15);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x48u8, 0xF7u8, 0xD0u8);
-    assertAsm(buffer, 0x49u8, 0xF7u8, 0xD7u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmNeglr() {
-    let asm = AssemblerX64::new();
-    asm.neglr(RAX);
-    asm.neglr(R15);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF7u8, 0xD8u8);
-    assertAsm(buffer, 0x41u8, 0xF7u8, 0xDFu8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmNegqr() {
-    let asm = AssemblerX64::new();
-    asm.negqr(RAX);
-    asm.negqr(R15);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x48u8, 0xF7u8, 0xD8u8);
-    assertAsm(buffer, 0x49u8, 0xF7u8, 0xDFu8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmAndqri() {
-    let asm = AssemblerX64::new();
-    asm.andqri(RAX, Immediate(-8i64));
-    asm.andqri(RAX, Immediate(128i64));
-    asm.andqri(R9, Immediate(-8i64));
-    asm.andqri(R9, Immediate(128i64));
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x48u8, 0x83u8, 0xE0u8, 0xF8u8);
-    assertAsm(buffer, 0x48u8, 0x25u8, 0x80u8, 0u8, 0u8, 0u8);
-    assertAsm(buffer, 0x49u8, 0x83u8, 0xE1u8, 0xF8u8);
-    assertAsm(buffer, 0x49u8, 0x81u8, 0xE1u8, 0x80u8, 0u8, 0u8, 0u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmJmpr() {
-    let asm = AssemblerX64::new();
-    asm.jmpr(RAX);
-    asm.jmpr(RDI);
-    asm.jmpr(R8);
-    asm.jmpr(R15);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xFFu8, 0xE0u8);
-    assertAsm(buffer, 0xFFu8, 0xE7u8);
-    assertAsm(buffer, 0x41u8, 0xFFu8, 0xE0u8);
-    assertAsm(buffer, 0x41u8, 0xFFu8, 0xE7u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmShrlri() {
-    let asm = AssemblerX64::new();
-    asm.shrlri(RAX, Immediate(2i64));
-    asm.shrlri(R8, Immediate(2i64));
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xC1u8, 0xE8u8, 2u8);
-    assertAsm(buffer, 0x41u8, 0xC1u8, 0xE8u8, 2u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmShrlr() {
-    let asm = AssemblerX64::new();
-    asm.shrlr(RAX);
-    asm.shrlr(R8);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xD3u8, 0xE8u8);
-    assertAsm(buffer, 0x41u8, 0xD3u8, 0xE8u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmShrqri() {
-    let asm = AssemblerX64::new();
-    asm.shrqri(RAX, Immediate(2i64));
-    asm.shrqri(R8, Immediate(2i64));
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x48u8, 0xC1u8, 0xE8u8, 2u8);
-    assertAsm(buffer, 0x49u8, 0xC1u8, 0xE8u8, 2u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmShrqr() {
-    let asm = AssemblerX64::new();
-    asm.shrqr(RAX);
-    asm.shrqr(R8);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x48u8, 0xD3u8, 0xE8u8);
-    assertAsm(buffer, 0x49u8, 0xD3u8, 0xE8u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmSarlri() {
-    let asm = AssemblerX64::new();
-    asm.sarlri(RAX, Immediate(2i64));
-    asm.sarlri(R8, Immediate(2i64));
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xC1u8, 0xF8u8, 2u8);
-    assertAsm(buffer, 0x41u8, 0xC1u8, 0xF8u8, 2u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmSarlr() {
-    let asm = AssemblerX64::new();
-    asm.sarlr(RAX);
-    asm.sarlr(R8);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xD3u8, 0xF8u8);
-    assertAsm(buffer, 0x41u8, 0xD3u8, 0xF8u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmSarqri() {
-    let asm = AssemblerX64::new();
-    asm.sarqri(RAX, Immediate(2i64));
-    asm.sarqri(R8, Immediate(2i64));
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x48u8, 0xC1u8, 0xF8u8, 2u8);
-    assertAsm(buffer, 0x49u8, 0xC1u8, 0xF8u8, 2u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmSarqr() {
-    let asm = AssemblerX64::new();
-    asm.sarqr(RAX);
-    asm.sarqr(R8);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x48u8, 0xD3u8, 0xF8u8);
-    assertAsm(buffer, 0x49u8, 0xD3u8, 0xF8u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmShllri() {
-    let asm = AssemblerX64::new();
-    asm.shllri(RAX, Immediate(2i64));
-    asm.shllri(R8, Immediate(2i64));
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xC1u8, 0xE0u8, 2u8);
-    assertAsm(buffer, 0x41u8, 0xC1u8, 0xE0u8, 2u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmShllr() {
-    let asm = AssemblerX64::new();
-    asm.shllr(RAX);
-    asm.shllr(R8);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xD3u8, 0xE0u8);
-    assertAsm(buffer, 0x41u8, 0xD3u8, 0xE0u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmShlqri() {
-    let asm = AssemblerX64::new();
-    asm.shlqri(RAX, Immediate(2i64));
-    asm.shlqri(R8, Immediate(2i64));
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x48u8, 0xC1u8, 0xE0u8, 2u8);
-    assertAsm(buffer, 0x49u8, 0xC1u8, 0xE0u8, 2u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmShlqr() {
-    let asm = AssemblerX64::new();
-    asm.shlqr(RAX);
-    asm.shlqr(R8);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x48u8, 0xD3u8, 0xE0u8);
-    assertAsm(buffer, 0x49u8, 0xD3u8, 0xE0u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmRollr() {
-    let asm = AssemblerX64::new();
-    asm.rollr(RAX);
-    asm.rollr(R8);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xD3u8, 0xC0u8);
-    assertAsm(buffer, 0x41u8, 0xD3u8, 0xC0u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmRolqr() {
-    let asm = AssemblerX64::new();
-    asm.rolqr(RAX);
-    asm.rolqr(R8);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x48u8, 0xD3u8, 0xC0u8);
-    assertAsm(buffer, 0x49u8, 0xD3u8, 0xC0u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmRorlr() {
-    let asm = AssemblerX64::new();
-    asm.rorlr(RAX);
-    asm.rorlr(R8);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xD3u8, 0xC8u8);
-    assertAsm(buffer, 0x41u8, 0xD3u8, 0xC8u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmRorqr() {
-    let asm = AssemblerX64::new();
-    asm.rorqr(RAX);
-    asm.rorqr(R8);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x48u8, 0xD3u8, 0xC8u8);
-    assertAsm(buffer, 0x49u8, 0xD3u8, 0xC8u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmCvtsi2ssdrr() {
-    let asm = AssemblerX64::new();
-    asm.cvtsi2ssdrr(XMM0, RCX);
-    asm.cvtsi2ssdrr(XMM3, R15);
-    asm.cvtsi2ssdrr(XMM8, RSP);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF3u8, 0x0Fu8, 0x2Au8, 0xC1u8);
-    assertAsm(buffer, 0xF3u8, 0x41u8, 0x0Fu8, 0x2Au8, 0xDFu8);
-    assertAsm(buffer, 0xF3u8, 0x44u8, 0x0Fu8, 0x2Au8, 0xC4u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmCvtsi2ssqrr() {
-    let asm = AssemblerX64::new();
-    asm.cvtsi2ssqrr(XMM0, RCX);
-    asm.cvtsi2ssqrr(XMM3, R15);
-    asm.cvtsi2ssqrr(XMM8, RSP);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF3u8, 0x48u8, 0x0Fu8, 0x2Au8, 0xC1u8);
-    assertAsm(buffer, 0xF3u8, 0x49u8, 0x0Fu8, 0x2Au8, 0xDFu8);
-    assertAsm(buffer, 0xF3u8, 0x4Cu8, 0x0Fu8, 0x2Au8, 0xC4u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmCvtsi2sddrr() {
-    let asm = AssemblerX64::new();
-    asm.cvtsi2sddrr(XMM0, RCX);
-    asm.cvtsi2sddrr(XMM3, R15);
-    asm.cvtsi2sddrr(XMM8, RSP);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF2u8, 0x0Fu8, 0x2Au8, 0xC1u8);
-    assertAsm(buffer, 0xF2u8, 0x41u8, 0x0Fu8, 0x2Au8, 0xDFu8);
-    assertAsm(buffer, 0xF2u8, 0x44u8, 0x0Fu8, 0x2Au8, 0xC4u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmCvtsi2sdqrr() {
-    let asm = AssemblerX64::new();
-    asm.cvtsi2sdqrr(XMM0, RCX);
-    asm.cvtsi2sdqrr(XMM3, R15);
-    asm.cvtsi2sdqrr(XMM8, RSP);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF2u8, 0x48u8, 0x0Fu8, 0x2Au8, 0xC1u8);
-    assertAsm(buffer, 0xF2u8, 0x49u8, 0x0Fu8, 0x2Au8, 0xDFu8);
-    assertAsm(buffer, 0xF2u8, 0x4Cu8, 0x0Fu8, 0x2Au8, 0xC4u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmCvttss2sidrr() {
-    let asm = AssemblerX64::new();
-    asm.cvttss2sidrr(RCX, XMM0);
-    asm.cvttss2sidrr(R15, XMM3);
-    asm.cvttss2sidrr(RSP, XMM8);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF3u8, 0x0Fu8, 0x2Cu8, 0xC8u8);
-    assertAsm(buffer, 0xF3u8, 0x44u8, 0x0Fu8, 0x2Cu8, 0xFBu8);
-    assertAsm(buffer, 0xF3u8, 0x41u8, 0x0Fu8, 0x2Cu8, 0xE0u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmCvttss2siqrr() {
-    let asm = AssemblerX64::new();
-    asm.cvttss2siqrr(RCX, XMM0);
-    asm.cvttss2siqrr(R15, XMM3);
-    asm.cvttss2siqrr(RSP, XMM8);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF3u8, 0x48u8, 0x0Fu8, 0x2Cu8, 0xC8u8);
-    assertAsm(buffer, 0xF3u8, 0x4Cu8, 0x0Fu8, 0x2Cu8, 0xFBu8);
-    assertAsm(buffer, 0xF3u8, 0x49u8, 0x0Fu8, 0x2Cu8, 0xE0u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmCvttsd2sidrr() {
-    let asm = AssemblerX64::new();
-    asm.cvttsd2sidrr(RCX, XMM0);
-    asm.cvttsd2sidrr(R15, XMM3);
-    asm.cvttsd2sidrr(RSP, XMM8);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF2u8, 0x0Fu8, 0x2Cu8, 0xC8u8);
-    assertAsm(buffer, 0xF2u8, 0x44u8, 0x0Fu8, 0x2Cu8, 0xFBu8);
-    assertAsm(buffer, 0xF2u8, 0x41u8, 0x0Fu8, 0x2Cu8, 0xE0u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmCvttsd2siqrr() {
-    let asm = AssemblerX64::new();
-    asm.cvttsd2siqrr(RCX, XMM0);
-    asm.cvttsd2siqrr(R15, XMM3);
-    asm.cvttsd2siqrr(RSP, XMM8);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xF2u8, 0x48u8, 0x0Fu8, 0x2Cu8, 0xC8u8);
-    assertAsm(buffer, 0xF2u8, 0x4Cu8, 0x0Fu8, 0x2Cu8, 0xFBu8);
-    assertAsm(buffer, 0xF2u8, 0x49u8, 0x0Fu8, 0x2Cu8, 0xE0u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmJmpBackwardNear() {
-    let asm = AssemblerX64::new();
-    let lbl = asm.createAndBindLabel();
-    asm.jmp(lbl);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xEBu8, 0xFEu8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmJmpBackwardStillNear() {
-    let asm = AssemblerX64::new();
-    let lbl = asm.createAndBindLabel();
-    for x in std::range(0i32, 126i32) {
+mod tests {
+    use super::{Address, AssemblerX64, Condition, Immediate, MachineCode, ScaleFactor};
+    use super::{RAX, RCX, RDX, RBX, RSP, RBP, RSI, RDI};
+    use super::{R8, R9, R10, R11, R12, R13, R14, R15};
+    use super::{XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6};
+    use super::{XMM7, XMM8, XMM9, XMM10, XMM11, XMM12, XMM13};
+    use super::{XMM14, XMM15};
+
+    @Test
+    fn Registers() {
+        assert(RAX.lowBits() == 0i32 && !RAX.needsRexBit());
+        assert(RCX.lowBits() == 1i32 && !RCX.needsRexBit());
+        assert(RDX.lowBits() == 2i32 && !RDX.needsRexBit());
+        assert(RBX.lowBits() == 3i32 && !RBX.needsRexBit());
+        assert(RSP.lowBits() == 4i32 && !RSP.needsRexBit());
+        assert(RBP.lowBits() == 5i32 && !RBP.needsRexBit());
+        assert(RSI.lowBits() == 6i32 && !RSI.needsRexBit());
+        assert(RDI.lowBits() == 7i32 && !RDI.needsRexBit());
+
+        assert(R8.lowBits() == 0i32 && R8.needsRexBit());
+        assert(R9.lowBits() == 1i32 && R9.needsRexBit());
+        assert(R10.lowBits() == 2i32 && R10.needsRexBit());
+        assert(R11.lowBits() == 3i32 && R11.needsRexBit());
+        assert(R12.lowBits() == 4i32 && R12.needsRexBit());
+        assert(R13.lowBits() == 5i32 && R13.needsRexBit());
+        assert(R14.lowBits() == 6i32 && R14.needsRexBit());
+        assert(R15.lowBits() == 7i32 && R15.needsRexBit());
+    }
+
+    @Test
+    fn Pushqr() {
+        let asm = AssemblerX64::new();
+        asm.pushq_r(RAX);
+        asm.pushq_r(RSP);
+        asm.pushq_r(R8);
+        asm.pushq_r(R15);
+        let buffer = asm.finalizeTesting();
+        assertAsm(buffer, 0x50u8);
+        assertAsm(buffer, 0x54u8);
+        assertAsm(buffer, 0x41u8, 0x50u8);
+        assertAsm(buffer, 0x41u8, 0x57u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Popqr() {
+        let asm = AssemblerX64::new();
+        asm.popq_r(RAX);
+        asm.popq_r(RSP);
+        asm.popq_r(R8);
+        asm.popq_r(R15);
+        let buffer = asm.finalizeTesting();
+        assertAsm(buffer, 0x58u8);
+        assertAsm(buffer, 0x5Cu8);
+        assertAsm(buffer, 0x41u8, 0x58u8);
+        assertAsm(buffer, 0x41u8, 0x5Fu8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Movqrr() {
+        let asm = AssemblerX64::new();
+        asm.movq_rr(R15, RAX);
+        asm.movq_rr(RAX, R15);
+        let buffer = asm.finalizeTesting();
+        assertAsm(buffer, 0x49u8, 0x89u8, 0xC7u8);
+        assertAsm(buffer, 0x4Cu8, 0x89u8, 0xF8u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Movlrr() {
+        let asm = AssemblerX64::new();
+        asm.movl_rr(R15, RAX);
+        asm.movl_rr(RAX, R15);
+        asm.movl_rr(RCX, RAX);
+        let buffer = asm.finalizeTesting();
+        assertAsm(buffer, 0x41u8, 0x89u8, 0xC7u8);
+        assertAsm(buffer, 0x44u8, 0x89u8, 0xF8u8);
+        assertAsm(buffer, 0x89u8, 0xC1u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Addqrr() {
+        let asm = AssemblerX64::new();
+        asm.addq_rr(RAX, RBX);
+        asm.addq_rr(RAX, R12);
+        asm.addq_rr(R12, RAX);
+        asm.addq_rr(R15, RSP);
+        let buffer = asm.finalizeTesting();
+        assertAsm(buffer, 0x48u8, 0x01u8, 0xD8u8);
+        assertAsm(buffer, 0x4Cu8, 0x01u8, 0xE0u8);
+        assertAsm(buffer, 0x49u8, 0x01u8, 0xC4u8);
+        assertAsm(buffer, 0x49u8, 0x01u8, 0xE7u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Addlrr() {
+        let asm = AssemblerX64::new();
+        asm.addl_rr(RAX, RBX);
+        asm.addl_rr(RCX, R15);
+        let buffer = asm.finalizeTesting();
+        assertAsm(buffer, 0x01u8, 0xD8u8);
+        assertAsm(buffer, 0x44u8, 0x01u8, 0xF9u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Addqri() {
+        let asm = AssemblerX64::new();
+        asm.addq_ri(RAX, Immediate(0x11i64));
+        asm.addq_ri(R15, Immediate(0x11i64));
+        asm.addq_ri(RAX, Immediate(0x2211i64));
+        asm.addq_ri(RCX, Immediate(0x2211i64));
+        asm.addq_ri(R15, Immediate(0x2211i64));
+        let buffer = asm.finalizeTesting();
+        assertAsm(buffer, 0x48u8, 0x83u8, 0xC0u8, 0x11u8);
+        assertAsm(buffer, 0x49u8, 0x83u8, 0xC7u8, 0x11u8);
+        assertAsm(buffer, 0x48u8, 0x05u8, 0x11u8, 0x22u8, 0u8, 0u8);
+        assertAsm(buffer, 0x48u8, 0x81u8, 0xC1u8, 0x11u8, 0x22u8, 0u8, 0u8);
+        assertAsm(buffer, 0x49u8, 0x81u8, 0xC7u8, 0x11u8, 0x22u8, 0u8, 0u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Subqrr() {
+        let asm = AssemblerX64::new();
+        asm.subq_rr(RAX, RBX);
+        asm.subq_rr(RCX, R15);
+        let buffer = asm.finalizeTesting();
+        assertAsm(buffer, 0x48u8, 0x29u8, 0xD8u8);
+        assertAsm(buffer, 0x4Cu8, 0x29u8, 0xF9u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Subqri() {
+        let asm = AssemblerX64::new();
+        asm.subq_ri(RAX, Immediate(0x11i64));
+        asm.subq_ri(R15, Immediate(0x11i64));
+        asm.subq_ri(RAX, Immediate(0x2211i64));
+        asm.subq_ri(RCX, Immediate(0x2211i64));
+        asm.subq_ri(R15, Immediate(0x2211i64));
+        let buffer = asm.finalizeTesting();
+        assertAsm(buffer, 0x48u8, 0x83u8, 0xE8u8, 0x11u8);
+        assertAsm(buffer, 0x49u8, 0x83u8, 0xEFu8, 0x11u8);
+        assertAsm(buffer, 0x48u8, 0x2Du8, 0x11u8, 0x22u8, 0u8, 0u8);
+        assertAsm(buffer, 0x48u8, 0x81u8, 0xE9u8, 0x11u8, 0x22u8, 0u8, 0u8);
+        assertAsm(buffer, 0x49u8, 0x81u8, 0xEFu8, 0x11u8, 0x22u8, 0u8, 0u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Retq() {
+        let asm = AssemblerX64::new();
+        asm.retq();
+        let buffer = asm.finalizeTesting();
+        assertAsm(buffer, 0xC3u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Nop() {
+        let asm = AssemblerX64::new();
         asm.nop();
-    }
-    asm.jmp(lbl);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsmNop(buffer, 126i64);
-    assertAsm(buffer, 0xEBu8, 0x80u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmJmpBackwardAlreadyFar() {
-    let asm = AssemblerX64::new();
-    let lbl = asm.createAndBindLabel();
-    for x in std::range(0i32, 127i32) {
-        asm.nop();
-    }
-    asm.jmp(lbl);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsmNop(buffer, 127i64);
-    assertAsm(buffer, 0xE9u8, 0x7Cu8, 0xFFu8, 0xFFu8, 0xFFu8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmJmpForward() {
-    let asm = AssemblerX64::new();
-    let lbl = asm.createLabel();
-    asm.jmp(lbl);
-    asm.bindLabel(lbl);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xE9u8, 0u8, 0u8, 0u8, 0u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmJmpNearForward() {
-    let asm = AssemblerX64::new();
-    let lbl = asm.createLabel();
-    asm.jmpNear(lbl);
-    asm.bindLabel(lbl);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xEBu8, 0u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmJmpNearBackward() {
-    let asm = AssemblerX64::new();
-    let lbl = asm.createAndBindLabel();
-    asm.jmpNear(lbl);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0xEBu8, 0xFEu8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmJccNearBackward() {
-    let asm = AssemblerX64::new();
-    let lbl = asm.createAndBindLabel();
-    asm.jccNear(Condition::Overflow, lbl);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x70u8, 0xFEu8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmJccNearForward() {
-    let asm = AssemblerX64::new();
-    let lbl = asm.createLabel();
-    asm.jccNear(Condition::Overflow, lbl);
-    asm.bindLabel(lbl);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x70u8, 0x00u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmJccBackwardNear() {
-    let asm = AssemblerX64::new();
-    let lbl = asm.createAndBindLabel();
-    asm.jcc(Condition::Overflow, lbl);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x70u8, 0xFEu8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmJccBackwardStillNear() {
-    let asm = AssemblerX64::new();
-    let lbl = asm.createAndBindLabel();
-    for x in std::range(0i32, 126i32) {
-        asm.nop();
-    }
-    asm.jcc(Condition::Overflow, lbl);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsmNop(buffer, 126i64);
-    assertAsm(buffer, 0x70u8, 0x80u8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmJccBackwardAlreadyFar() {
-    let asm = AssemblerX64::new();
-    let lbl = asm.createAndBindLabel();
-    for x in std::range(0i32, 127i32) {
-        asm.nop();
-    }
-    asm.jcc(Condition::Overflow, lbl);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsmNop(buffer, 127i64);
-    assertAsm(buffer, 0x0Fu8, 0x80u8, 0x7Bu8, 0xFFu8, 0xFFu8, 0xFFu8);
-    assertAsmEnd(buffer);
-}
-
-@Test
-fn testAsmJccForward() {
-    let asm = AssemblerX64::new();
-    let lbl = asm.createLabel();
-    asm.jcc(Condition::Overflow, lbl);
-    asm.bindLabel(lbl);
-
-    let buffer = asm.finalizeTesting();
-
-    assertAsm(buffer, 0x0Fu8, 0x80u8, 0u8, 0u8, 0u8, 0u8);
-    assertAsmEnd(buffer);
-}
-
-fn assertAsmNop(code: MachineCode, length: Int64) {
-    assert(length > 0i64);
-
-    let mut idx = 0i64;
-    while idx < length {
-        assert(0x90u8 == code.bytes(code.start + idx));
-        idx = idx + 1i64;
+        let buffer = asm.finalizeTesting();
+        assertAsm(buffer, 0x90u8);
+        assertAsmEnd(buffer);
     }
 
-    code.start = code.start + length;
+    @Test
+    fn CdqCqo() {
+        let asm = AssemblerX64::new();
+        asm.cdq();
+        asm.cqo();
+        let buffer = asm.finalizeTesting();
+        assertAsm(buffer, 0x99u8);
+        assertAsm(buffer, 0x48u8, 0x99u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Orlrr() {
+        let asm = AssemblerX64::new();
+        asm.orl_rr(RAX, R15);
+        asm.orl_rr(RAX, RCX);
+        asm.orl_rr(R15, RAX);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x44u8, 0x09u8, 0xF8u8);
+        assertAsm(buffer, 0x09u8, 0xC8u8);
+        assertAsm(buffer, 0x41u8, 0x09u8, 0xC7u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Orqrr() {
+        let asm = AssemblerX64::new();
+        asm.orq_rr(RAX, R15);
+        asm.orq_rr(RAX, RCX);
+        asm.orq_rr(R15, RAX);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x4Cu8, 0x09u8, 0xF8u8);
+        assertAsm(buffer, 0x48u8, 0x09u8, 0xC8u8);
+        assertAsm(buffer, 0x49u8, 0x09u8, 0xC7u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Andlrr() {
+        let asm = AssemblerX64::new();
+        asm.andl_rr(RAX, R15);
+        asm.andl_rr(RAX, RCX);
+        asm.andl_rr(R15, RAX);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x44u8, 0x21u8, 0xF8u8);
+        assertAsm(buffer, 0x21u8, 0xC8u8);
+        assertAsm(buffer, 0x41u8, 0x21u8, 0xC7u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Andqrr() {
+        let asm = AssemblerX64::new();
+        asm.andq_rr(RAX, R15);
+        asm.andq_rr(RAX, RCX);
+        asm.andq_rr(R15, RAX);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x4Cu8, 0x21u8, 0xF8u8);
+        assertAsm(buffer, 0x48u8, 0x21u8, 0xC8u8);
+        assertAsm(buffer, 0x49u8, 0x21u8, 0xC7u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Xorlrr() {
+        let asm = AssemblerX64::new();
+        asm.xorl_rr(RAX, R15);
+        asm.xorl_rr(RAX, RCX);
+        asm.xorl_rr(R15, RAX);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x44u8, 0x31u8, 0xF8u8);
+        assertAsm(buffer, 0x31u8, 0xC8u8);
+        assertAsm(buffer, 0x41u8, 0x31u8, 0xC7u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Xorqrr() {
+        let asm = AssemblerX64::new();
+        asm.xorq_rr(RAX, R15);
+        asm.xorq_rr(RAX, RCX);
+        asm.xorq_rr(R15, RAX);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x4Cu8, 0x31u8, 0xF8u8);
+        assertAsm(buffer, 0x48u8, 0x31u8, 0xC8u8);
+        assertAsm(buffer, 0x49u8, 0x31u8, 0xC7u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Cmplrr() {
+        let asm = AssemblerX64::new();
+        asm.cmpl_rr(RAX, R15);
+        asm.cmpl_rr(R15, RBX);
+        asm.cmpl_rr(RAX, RBX);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x44u8, 0x39u8, 0xF8u8);
+        assertAsm(buffer, 0x41u8, 0x39u8, 0xDFu8);
+        assertAsm(buffer, 0x39u8, 0xD8u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Cmpqrr() {
+        let asm = AssemblerX64::new();
+        asm.cmpq_rr(RAX, R15);
+        asm.cmpq_rr(R15, RBX);
+        asm.cmpq_rr(RAX, RBX);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x4Cu8, 0x39u8, 0xF8u8);
+        assertAsm(buffer, 0x49u8, 0x39u8, 0xDFu8);
+        assertAsm(buffer, 0x48u8, 0x39u8, 0xD8u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Imullrr() {
+        let asm = AssemblerX64::new();
+        asm.imull_rr(RAX, RBX);
+        asm.imull_rr(RCX, R15);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x0Fu8, 0xAFu8, 0xC3u8);
+        assertAsm(buffer, 0x41u8, 0x0Fu8, 0xAFu8, 0xCFu8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Imulqrr() {
+        let asm = AssemblerX64::new();
+        asm.imulq_rr(RAX, RBX);
+        asm.imulq_rr(RCX, R15);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x48u8, 0x0Fu8, 0xAFu8, 0xC3u8);
+        assertAsm(buffer, 0x49u8, 0x0Fu8, 0xAFu8, 0xCFu8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Idivlr() {
+        let asm = AssemblerX64::new();
+        asm.idivl_r(RAX);
+        asm.idivl_r(R15);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF7u8, 0xF8u8);
+        assertAsm(buffer, 0x41u8, 0xF7u8, 0xFFu8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Idivqr() {
+        let asm = AssemblerX64::new();
+        asm.idivq_r(RAX);
+        asm.idivq_r(R15);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x48u8, 0xF7u8, 0xF8u8);
+        assertAsm(buffer, 0x49u8, 0xF7u8, 0xFFu8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Setccr() {
+        let asm = AssemblerX64::new();
+        asm.setcc_r(Condition::Equal, RAX);
+        asm.setcc_r(Condition::NotEqual, R15);
+        asm.setcc_r(Condition::GreaterOrEqual, RCX);
+        asm.setcc_r(Condition::Greater, RDX);
+        asm.setcc_r(Condition::LessOrEqual, RSI);
+        asm.setcc_r(Condition::Less, RDI);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x0Fu8, 0x94u8, 0xC0u8);
+        assertAsm(buffer, 0x41u8, 0x0Fu8, 0x95u8, 0xC7u8);
+        assertAsm(buffer, 0x0Fu8, 0x9Du8, 0xC1u8);
+        assertAsm(buffer, 0x0Fu8, 0x9Fu8, 0xC2u8);
+        assertAsm(buffer, 0x40u8, 0x0Fu8, 0x9Eu8, 0xC6u8);
+        assertAsm(buffer, 0x40u8, 0x0Fu8, 0x9Cu8, 0xC7u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Callr() {
+        let asm = AssemblerX64::new();
+        asm.call_r(RAX);
+        asm.call_r(R15);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xFFu8, 0xD0u8);
+        assertAsm(buffer, 0x41u8, 0xFFu8, 0xD7u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Cmovl() {
+        let asm = AssemblerX64::new();
+        asm.cmovl(Condition::Equal, R15, RAX);
+        asm.cmovl(Condition::NotEqual, RAX, R13);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x44u8, 0x0Fu8, 0x44u8, 0xF8u8);
+        assertAsm(buffer, 0x41u8, 0x0Fu8, 0x45u8, 0xC5u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Cmovq() {
+        let asm = AssemblerX64::new();
+        asm.cmovq(Condition::Greater, RAX, RCX);
+        asm.cmovq(Condition::Equal, R15, RAX);
+        asm.cmovq(Condition::NotEqual, RAX, R13);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x48u8, 0x0Fu8, 0x4Fu8, 0xC1u8);
+        assertAsm(buffer, 0x4Cu8, 0x0Fu8, 0x44u8, 0xF8u8);
+        assertAsm(buffer, 0x49u8, 0x0Fu8, 0x45u8, 0xC5u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Movlri() {
+        let asm = AssemblerX64::new();
+        asm.movl_ri(RAX, Immediate(2i64));
+        asm.movl_ri(R14, Immediate(3i64));
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xB8u8, 2u8, 0u8, 0u8, 0u8);
+        assertAsm(buffer, 0x41u8, 0xBEu8, 3u8, 0u8, 0u8, 0u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Movqri() {
+        let asm = AssemblerX64::new();
+        asm.movq_ri(RAX, Immediate(1i64));
+        asm.movq_ri(R15, Immediate(-1i64));
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x48u8, 0xC7u8, 0xC0u8, 1u8, 0u8, 0u8, 0u8);
+        assertAsm(buffer, 0x49u8, 0xC7u8, 0xC7u8, 0xFFu8, 0xFFu8, 0xFFu8, 0xFFu8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn testTestlrr() {
+        let asm = AssemblerX64::new();
+        asm.testl_rr(RAX, RAX);
+        asm.testl_rr(RSI, RAX);
+        asm.testl_rr(R15, RAX);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x85u8, 0xC0u8);
+        assertAsm(buffer, 0x85u8, 0xC6u8);
+        assertAsm(buffer, 0x41u8, 0x85u8, 0xC7u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn testTestqrr() {
+        let asm = AssemblerX64::new();
+        asm.testq_rr(RAX, RAX);
+        asm.testq_rr(RSI, RAX);
+        asm.testq_rr(R15, RAX);
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x48u8, 0x85u8, 0xC0u8);
+        assertAsm(buffer, 0x48u8, 0x85u8, 0xC6u8);
+        assertAsm(buffer, 0x49u8, 0x85u8, 0xC7u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Movqra() {
+        let asm = AssemblerX64::new();
+        asm.movq_ra(RAX, Address::offset(RSP, 0i32));
+        asm.movq_ra(RAX, Address::offset(RSP, 1i32));
+
+        asm.movq_ra(R15, Address::offset(RSP, 0i32));
+        asm.movq_ra(R15, Address::offset(RSP, 1i32));
+
+        asm.movq_ra(R15, Address::offset(RSP, 127i32));
+        asm.movq_ra(R15, Address::offset(RSP, -128i32));
+
+        asm.movq_ra(R15, Address::offset(RSP, 128i32));
+        asm.movq_ra(R15, Address::offset(RSP, -129i32));
+
+        asm.movq_ra(RAX, Address::offset(RBP, 0i32));
+        asm.movq_ra(RAX, Address::offset(RBP, 1i32));
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x48u8, 0x8Bu8, 0x04u8, 0x24u8);
+        assertAsm(buffer, 0x48u8, 0x8Bu8, 0x44u8, 0x24u8, 1u8);
+
+        assertAsm(buffer, 0x4Cu8, 0x8Bu8, 0x3Cu8, 0x24u8);
+        assertAsm(buffer, 0x4Cu8, 0x8Bu8, 0x7Cu8, 0x24u8, 1u8);
+
+        assertAsm(buffer, 0x4Cu8, 0x8Bu8, 0x7Cu8, 0x24u8, 0x7Fu8);
+        assertAsm(buffer, 0x4Cu8, 0x8Bu8, 0x7Cu8, 0x24u8, 0x80u8);
+
+        assertAsm(buffer, 0x4Cu8, 0x8Bu8, 0xBCu8, 0x24u8, 0x80u8, 0u8, 0u8, 0u8);
+        assertAsm(buffer, 0x4Cu8, 0x8Bu8, 0xBCu8, 0x24u8, 0x7Fu8, 0xFFu8, 0xFFu8, 0xFFu8);
+
+        assertAsm(buffer, 0x48u8, 0x8Bu8, 0x45u8, 0u8);
+        assertAsm(buffer, 0x48u8, 0x8Bu8, 0x45u8, 1u8);
+
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Movqar() {
+        let asm = AssemblerX64::new();
+        asm.movq_ar(Address::offset(RBP, 0i32), RAX);
+        asm.movq_ar(Address::offset(R13, 0i32), RAX);
+        asm.movq_ar(Address::array(RAX, RBP, ScaleFactor::Four, 1i32), RAX);
+        asm.movq_ar(Address::array(RBP, RAX, ScaleFactor::Eight, 0i32), RAX);
+        asm.movq_ar(Address::array(R13, RAX, ScaleFactor::Eight, 0i32), RAX);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x48u8, 0x89u8, 0x45u8, 0u8);
+        assertAsm(buffer, 0x49u8, 0x89u8, 0x45u8, 0u8);
+        assertAsm(buffer, 0x48u8, 0x89u8, 0x44u8, 0xA8u8, 1u8);
+        assertAsm(buffer, 0x48u8, 0x89u8, 0x44u8, 0xc5u8, 0u8);
+        assertAsm(buffer, 0x49u8, 0x89u8, 0x44u8, 0xc5u8, 0u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Movlra() {
+        let asm = AssemblerX64::new();
+        asm.movl_ra(RAX, Address::offset(RBP, 0i32));
+        asm.movl_ra(RAX, Address::rip(0i32));
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x8Bu8, 0x45u8, 0u8);
+        assertAsm(buffer, 0x8Bu8, 0x05u8, 0u8, 0u8, 0u8, 0u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Movlar() {
+        let asm = AssemblerX64::new();
+        asm.movl_ar(Address::offset(RBP, 0i32), RAX);
+        asm.movl_ar(Address::offset(RBP, 0i32), R15);
+        asm.movl_ar(Address::offset(R8, 0i32), R15);
+        asm.movl_ar(Address::array(R8, R9, ScaleFactor::Four, 0i32), R15);
+        asm.movl_ar(Address::array(RAX, RBP, ScaleFactor::Four, 1i32), RAX);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x89u8, 0x45u8, 0u8);
+        assertAsm(buffer, 0x44u8, 0x89u8, 0x7Du8, 0u8);
+        assertAsm(buffer, 0x45u8, 0x89u8, 0x38u8);
+        assertAsm(buffer, 0x47u8, 0x89u8, 0x3Cu8, 0x88u8);
+        assertAsm(buffer, 0x89u8, 0x44u8, 0xA8u8, 1u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Lea() {
+        let asm = AssemblerX64::new();
+        asm.lea(RAX, Address::offset(RAX, 0i32));
+        asm.lea(RAX, Address::offset(RAX, 1i32));
+        asm.lea(RAX, Address::offset(R8, 0i32));
+        asm.lea(R8, Address::offset(RAX, 0i32));
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x48u8, 0x8Du8, 0x00u8);
+        assertAsm(buffer, 0x48u8, 0x8Du8, 0x40u8, 1u8);
+        assertAsm(buffer, 0x49u8, 0x8Du8, 0x00u8);
+        assertAsm(buffer, 0x4Cu8, 0x8Du8, 0x00u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Movbar() {
+        let asm = AssemblerX64::new();
+        asm.movb_ar(Address::offset(RSP, 0i32), RAX);
+        asm.movb_ar(Address::offset(RSP, 0i32), RSI);
+        asm.movb_ar(Address::offset(RSP, 0i32), R8);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x88u8, 0x04u8, 0x24u8);
+        assertAsm(buffer, 0x40u8, 0x88u8, 0x34u8, 0x24u8);
+        assertAsm(buffer, 0x44u8, 0x88u8, 0x04u8, 0x24u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Movbai() {
+        let asm = AssemblerX64::new();
+        asm.movb_ai(Address::offset(RAX, 0i32), Immediate(1i64));
+        asm.movb_ai(Address::offset(RAX, 0i32), Immediate(127i64));
+        asm.movb_ai(Address::offset(RAX, 0i32), Immediate(255i64));
+        asm.movb_ai(Address::offset(RAX, 0i32), Immediate(-128i64));
+        asm.movb_ai(Address::offset(RAX, 0i32), Immediate(128i64));
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xC6u8, 0x00u8, 1u8);
+        assertAsm(buffer, 0xC6u8, 0x00u8, 0x7Fu8);
+        assertAsm(buffer, 0xC6u8, 0x00u8, 0xFFu8);
+        assertAsm(buffer, 0xC6u8, 0x00u8, 0x80u8);
+        assertAsm(buffer, 0xC6u8, 0x00u8, 0x80u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Movqai() {
+        let asm = AssemblerX64::new();
+        asm.movq_ai(Address::offset(RAX, 0i32), Immediate(1i64));
+        asm.movq_ai(Address::offset(R8, 0i32), Immediate(Int32::maxValue().toInt64()));
+        asm.movq_ai(Address::offset(RDI, 0i32), Immediate(Int32::maxValue().toInt64()));
+        asm.movq_ai(Address::offset(R15, 0i32), Immediate(Int32::minValue().toInt64()));
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x48u8, 0xC7u8, 0x00u8, 1u8, 0u8, 0u8, 0u8);
+        assertAsm(buffer, 0x49u8, 0xC7u8, 0x00u8, 0xFFu8, 0xFFu8, 0xFFu8, 0x7Fu8);
+        assertAsm(buffer, 0x48u8, 0xC7u8, 0x07u8, 0xFFu8, 0xFFu8, 0xFFu8, 0x7Fu8);
+        assertAsm(buffer, 0x49u8, 0xC7u8, 0x07u8, 0u8, 0u8, 0u8, 0x80u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Movlai() {
+        let asm = AssemblerX64::new();
+        asm.movl_ai(Address::offset(RAX, 0i32), Immediate(1i64));
+        asm.movl_ai(Address::offset(R8, 0i32), Immediate((1i64 << 32i32) - 1i64));
+        asm.movl_ai(Address::offset(RDI, 0i32), Immediate(Int32::maxValue().toInt64()));
+        asm.movl_ai(Address::offset(R15, 0i32), Immediate(Int32::minValue().toInt64()));
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xC7u8, 0x00u8, 1u8, 0u8, 0u8, 0u8);
+        assertAsm(buffer, 0x41u8, 0xC7u8, 0x00u8, 0xFFu8, 0xFFu8, 0xFFu8, 0xFFu8);
+        assertAsm(buffer, 0xC7u8, 0x07u8, 0xFFu8, 0xFFu8, 0xFFu8, 0x7Fu8);
+        assertAsm(buffer, 0x41u8, 0xC7u8, 0x07u8, 0u8, 0u8, 0u8, 0x80u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Testlri() {
+        let asm = AssemblerX64::new();
+        asm.testl_ri(RAX, Immediate(1i64));
+        asm.testl_ri(RCX, Immediate(255i64));
+        asm.testl_ri(RDX, Immediate(1i64));
+        asm.testl_ri(RBX, Immediate(1i64));
+
+        asm.testl_ri(RSI, Immediate(1i64));
+        asm.testl_ri(RDI, Immediate(1i64));
+        asm.testl_ri(R8, Immediate(1i64));
+        asm.testl_ri(R15, Immediate(1i64));
+
+        asm.testl_ri(RAX, Immediate(256i64));
+        asm.testl_ri(RDI, Immediate(256i64));
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xA8u8, 1u8);
+        assertAsm(buffer, 0xF6u8, 0xC1u8, 255u8);
+        assertAsm(buffer, 0xF6u8, 0xC2u8, 1u8);
+        assertAsm(buffer, 0xF6u8, 0xC3u8, 1u8);
+
+        assertAsm(buffer, 0x40u8, 0xF6u8, 0xC6u8, 1u8);
+        assertAsm(buffer, 0x40u8, 0xF6u8, 0xC7u8, 1u8);
+        assertAsm(buffer, 0x41u8, 0xF6u8, 0xC0u8, 1u8);
+        assertAsm(buffer, 0x41u8, 0xF6u8, 0xC7u8, 1u8);
+
+        assertAsm(buffer, 0xA9u8, 0u8, 1u8, 0u8, 0u8);
+        assertAsm(buffer, 0xF7u8, 0xC7u8, 0u8, 1u8, 0u8, 0u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Testlar() {
+        let asm = AssemblerX64::new();
+        asm.testl_ar(Address::offset(RDI, 1i32), RAX);
+        asm.testl_ar(Address::offset(RDI, 0i32), RAX);
+
+        asm.testl_ar(Address::offset(R8, 0i32), RAX);
+        asm.testl_ar(Address::offset(R8, 1i32), RAX);
+        asm.testl_ar(Address::offset(R8, 0i32), R15);
+
+        asm.testl_ar(Address::offset(RAX, 0i32), R15);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x85u8, 0x47u8, 1u8);
+        assertAsm(buffer, 0x85u8, 0x07u8);
+
+        assertAsm(buffer, 0x41u8, 0x85u8, 0x00u8);
+        assertAsm(buffer, 0x41u8, 0x85u8, 0x40u8, 1u8);
+        assertAsm(buffer, 0x45u8, 0x85u8, 0x38u8);
+
+        assertAsm(buffer, 0x44u8, 0x85u8, 0x38u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Testlai() {
+        let asm = AssemblerX64::new();
+        asm.testl_ai(Address::offset(RAX, 0i32), Immediate(1i64));
+        asm.testl_ai(Address::offset(RAX, 1i32), Immediate(1i64));
+
+        asm.testl_ai(Address::offset(R8, 0i32), Immediate(1i64));
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF7u8, 0x00u8, 1u8, 0u8, 0u8, 0u8);
+        assertAsm(buffer, 0xF7u8, 0x40u8, 1u8, 1u8, 0u8, 0u8, 0u8);
+
+        assertAsm(buffer, 0x41u8, 0xF7u8, 0x00u8, 1u8, 0u8, 0u8, 0u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Testqai() {
+        let asm = AssemblerX64::new();
+        asm.testq_ai(Address::offset(RAX, 0i32), Immediate(1i64));
+        asm.testq_ai(Address::offset(RAX, 1i32), Immediate(1i64));
+
+        asm.testq_ai(Address::offset(R8, 0i32), Immediate(1i64));
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x48u8, 0xF7u8, 0x00u8, 1u8, 0u8, 0u8, 0u8);
+        assertAsm(buffer, 0x48u8, 0xF7u8, 0x40u8, 1u8, 1u8, 0u8, 0u8, 0u8);
+
+        assertAsm(buffer, 0x49u8, 0xF7u8, 0x00u8, 1u8, 0u8, 0u8, 0u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Testqar() {
+        let asm = AssemblerX64::new();
+        asm.testq_ar(Address::offset(RDI, 1i32), RAX);
+        asm.testq_ar(Address::offset(R8, 0i32), R15);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x48u8, 0x85u8, 0x47u8, 1u8);
+        assertAsm(buffer, 0x4Du8, 0x85u8, 0x38u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Movzxbrr() {
+        let asm = AssemblerX64::new();
+        asm.movzxb_rr(RAX, RAX);
+        asm.movzxb_rr(RAX, RDI);
+        asm.movzxb_rr(RDI, RAX);
+        asm.movzxb_rr(RAX, R15);
+        asm.movzxb_rr(R15, RBX);
+        asm.movzxb_rr(RCX, RSI);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x0Fu8, 0xB6u8, 0xC0u8);
+        assertAsm(buffer, 0x40u8, 0x0Fu8, 0xB6u8, 0xC7u8);
+        assertAsm(buffer, 0x0Fu8, 0xB6u8, 0xF8u8);
+        assertAsm(buffer, 0x41u8, 0x0Fu8, 0xB6u8, 0xC7u8);
+        assertAsm(buffer, 0x44u8, 0x0Fu8, 0xB6u8, 0xFBu8);
+        assertAsm(buffer, 0x40u8, 0x0Fu8, 0xB6u8, 0xCEu8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Movzxbra() {
+        let asm = AssemblerX64::new();
+        asm.movzxb_ra(RAX, Address::offset(RAX, 0i32));
+        asm.movzxb_ra(R8, Address::offset(RAX, 0i32));
+        asm.movzxb_ra(RAX, Address::offset(R8, 0i32));
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x0Fu8, 0xB6u8, 0x00u8);
+        assertAsm(buffer, 0x44u8, 0x0Fu8, 0xB6u8, 0x00u8);
+        assertAsm(buffer, 0x41u8, 0x0Fu8, 0xB6u8, 0x00u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Movsxblrr() {
+        let asm = AssemblerX64::new();
+        asm.movsxbl_rr(RAX, RAX);
+        asm.movsxbl_rr(RAX, R8);
+        asm.movsxbl_rr(RSP, RAX);
+        asm.movsxbl_rr(R15, RAX);
+
+        asm.movsxbl_rr(RAX, RBX);
+        asm.movsxbl_rr(RAX, RSP);
+        asm.movsxbl_rr(RAX, RDI);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x0Fu8, 0xBEu8, 0xC0u8);
+        assertAsm(buffer, 0x41u8, 0x0Fu8, 0xBEu8, 0xC0u8);
+        assertAsm(buffer, 0x0Fu8, 0xBEu8, 0xE0u8);
+        assertAsm(buffer, 0x44u8, 0x0Fu8, 0xBEu8, 0xF8u8);
+
+        assertAsm(buffer, 0x0Fu8, 0xBEu8, 0xC3u8);
+        assertAsm(buffer, 0x40u8, 0x0Fu8, 0xBEu8, 0xC4u8);
+        assertAsm(buffer, 0x40u8, 0x0Fu8, 0xBEu8, 0xC7u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Movsxblra() {
+        let asm = AssemblerX64::new();
+        asm.movsxbl_ra(RAX, Address::offset(RAX, 0i32));
+        asm.movsxbl_ra(R8, Address::offset(RAX, 0i32));
+        asm.movsxbl_ra(RSP, Address::offset(RAX, 0i32));
+        asm.movsxbl_ra(RDI, Address::offset(RAX, 0i32));
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x0Fu8, 0xBEu8, 0x00u8);
+        assertAsm(buffer, 0x44u8, 0x0Fu8, 0xBEu8, 0x00u8);
+        assertAsm(buffer, 0x0Fu8, 0xBEu8, 0x20u8);
+        assertAsm(buffer, 0x0Fu8, 0xBEu8, 0x38u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Movsxbqrr() {
+        let asm = AssemblerX64::new();
+        asm.movsxbq_rr(RAX, RAX);
+        asm.movsxbq_rr(RAX, R8);
+        asm.movsxbq_rr(RSP, RAX);
+        asm.movsxbq_rr(R15, RAX);
+
+        asm.movsxbq_rr(RAX, RBX);
+        asm.movsxbq_rr(RAX, RSP);
+        asm.movsxbq_rr(RAX, RDI);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x48u8, 0x0Fu8, 0xBEu8, 0xC0u8);
+        assertAsm(buffer, 0x49u8, 0x0Fu8, 0xBEu8, 0xC0u8);
+        assertAsm(buffer, 0x48u8, 0x0Fu8, 0xBEu8, 0xE0u8);
+        assertAsm(buffer, 0x4Cu8, 0x0Fu8, 0xBEu8, 0xF8u8);
+
+        assertAsm(buffer, 0x48u8, 0x0Fu8, 0xBEu8, 0xC3u8);
+        assertAsm(buffer, 0x48u8, 0x0Fu8, 0xBEu8, 0xC4u8);
+        assertAsm(buffer, 0x48u8, 0x0Fu8, 0xBEu8, 0xC7u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Movsxbqra() {
+        let asm = AssemblerX64::new();
+        asm.movsxbq_ra(RAX, Address::offset(RAX, 0i32));
+        asm.movsxbq_ra(R8, Address::offset(RAX, 0i32));
+        asm.movsxbq_ra(RSP, Address::offset(RAX, 0i32));
+        asm.movsxbq_ra(RDI, Address::offset(RAX, 0i32));
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x48u8, 0x0Fu8, 0xBEu8, 0x00u8);
+        assertAsm(buffer, 0x4Cu8, 0x0Fu8, 0xBEu8, 0x00u8);
+        assertAsm(buffer, 0x48u8, 0x0Fu8, 0xBEu8, 0x20u8);
+        assertAsm(buffer, 0x48u8, 0x0Fu8, 0xBEu8, 0x38u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Movsxlqrr() {
+        let asm = AssemblerX64::new();
+        asm.movsxlq_rr(R15, RAX);
+        asm.movsxlq_rr(RAX, R15);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x4Cu8, 0x63u8, 0xF8u8);
+        assertAsm(buffer, 0x49u8, 0x63u8, 0xC7u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Movssrr() {
+        let asm = AssemblerX64::new();
+        asm.movss_rr(XMM0, XMM1);
+        asm.movss_rr(XMM8, XMM1);
+        asm.movss_rr(XMM0, XMM9);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF3u8, 0x0Fu8, 0x10u8, 0xC1u8);
+        assertAsm(buffer, 0xF3u8, 0x44u8, 0x0Fu8, 0x10u8, 0xC1u8);
+        assertAsm(buffer, 0xF3u8, 0x41u8, 0x0Fu8, 0x10u8, 0xC1u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Movssra() {
+        let asm = AssemblerX64::new();
+        asm.movss_ra(XMM0, Address::offset(RAX, 0i32));
+        asm.movss_ra(XMM8, Address::offset(RAX, 0i32));
+
+        asm.movss_ra(XMM0, Address::offset(R8, 0i32));
+        asm.movss_ra(XMM8, Address::offset(R15, 0i32));
+
+        asm.movss_ra(XMM9, Address::offset(RAX, 0i32));
+        asm.movss_ra(XMM15, Address::offset(RAX, 0i32));
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF3u8, 0x0Fu8, 0x10u8, 0x00u8);
+        assertAsm(buffer, 0xF3u8, 0x44u8, 0x0Fu8, 0x10u8, 0x00u8);
+
+        assertAsm(buffer, 0xF3u8, 0x41u8, 0x0Fu8, 0x10u8, 0x00u8);
+        assertAsm(buffer, 0xF3u8, 0x45u8, 0x0Fu8, 0x10u8, 0x07u8);
+
+        assertAsm(buffer, 0xF3u8, 0x44u8, 0x0Fu8, 0x10u8, 0x08u8);
+        assertAsm(buffer, 0xF3u8, 0x44u8, 0x0Fu8, 0x10u8, 0x38u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Movssar() {
+        let asm = AssemblerX64::new();
+        asm.movss_ar(Address::offset(RAX, 0i32), XMM0);
+        asm.movss_ar(Address::offset(RAX, 0i32), XMM8);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF3u8, 0x0Fu8, 0x11u8, 0x00u8);
+        assertAsm(buffer, 0xF3u8, 0x44u8, 0x0Fu8, 0x11u8, 0x00u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Movsdrr() {
+        let asm = AssemblerX64::new();
+        asm.movsd_rr(XMM0, XMM1);
+        asm.movsd_rr(XMM8, XMM1);
+        asm.movsd_rr(XMM0, XMM9);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF2u8, 0x0Fu8, 0x10u8, 0xC1u8);
+        assertAsm(buffer, 0xF2u8, 0x44u8, 0x0Fu8, 0x10u8, 0xC1u8);
+        assertAsm(buffer, 0xF2u8, 0x41u8, 0x0Fu8, 0x10u8, 0xC1u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Movsdra() {
+        let asm = AssemblerX64::new();
+        asm.movsd_ra(XMM0, Address::offset(RAX, 0i32));
+        asm.movsd_ra(XMM8, Address::offset(RAX, 0i32));
+
+        asm.movsd_ra(XMM0, Address::offset(R8, 0i32));
+        asm.movsd_ra(XMM8, Address::offset(R15, 0i32));
+
+        asm.movsd_ra(XMM9, Address::offset(RAX, 0i32));
+        asm.movsd_ra(XMM15, Address::offset(RAX, 0i32));
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF2u8, 0x0Fu8, 0x10u8, 0x00u8);
+        assertAsm(buffer, 0xF2u8, 0x44u8, 0x0Fu8, 0x10u8, 0x00u8);
+
+        assertAsm(buffer, 0xF2u8, 0x41u8, 0x0Fu8, 0x10u8, 0x00u8);
+        assertAsm(buffer, 0xF2u8, 0x45u8, 0x0Fu8, 0x10u8, 0x07u8);
+
+        assertAsm(buffer, 0xF2u8, 0x44u8, 0x0Fu8, 0x10u8, 0x08u8);
+        assertAsm(buffer, 0xF2u8, 0x44u8, 0x0Fu8, 0x10u8, 0x38u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Movsdar() {
+        let asm = AssemblerX64::new();
+        asm.movsd_ar(Address::offset(RAX, 0i32), XMM0);
+        asm.movsd_ar(Address::offset(RAX, 0i32), XMM8);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF2u8, 0x0Fu8, 0x11u8, 0x00u8);
+        assertAsm(buffer, 0xF2u8, 0x44u8, 0x0Fu8, 0x11u8, 0x00u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Addssrr() {
+        let asm = AssemblerX64::new();
+        asm.addss_rr(XMM0, XMM1);
+        asm.addss_rr(XMM3, XMM15);
+        asm.addss_rr(XMM8, XMM4);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF3u8, 0x0Fu8, 0x58u8, 0xC1u8);
+        assertAsm(buffer, 0xF3u8, 0x41u8, 0x0Fu8, 0x58u8, 0xDFu8);
+        assertAsm(buffer, 0xF3u8, 0x44u8, 0x0Fu8, 0x58u8, 0xC4u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Addsdrr() {
+        let asm = AssemblerX64::new();
+        asm.addsd_rr(XMM0, XMM1);
+        asm.addsd_rr(XMM3, XMM15);
+        asm.addsd_rr(XMM8, XMM4);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF2u8, 0x0Fu8, 0x58u8, 0xC1u8);
+        assertAsm(buffer, 0xF2u8, 0x41u8, 0x0Fu8, 0x58u8, 0xDFu8);
+        assertAsm(buffer, 0xF2u8, 0x44u8, 0x0Fu8, 0x58u8, 0xC4u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Subssrr() {
+        let asm = AssemblerX64::new();
+        asm.subss_rr(XMM0, XMM1);
+        asm.subss_rr(XMM3, XMM15);
+        asm.subss_rr(XMM8, XMM4);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF3u8, 0x0Fu8, 0x5Cu8, 0xC1u8);
+        assertAsm(buffer, 0xF3u8, 0x41u8, 0x0Fu8, 0x5Cu8, 0xDFu8);
+        assertAsm(buffer, 0xF3u8, 0x44u8, 0x0Fu8, 0x5Cu8, 0xC4u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Subsdrr() {
+        let asm = AssemblerX64::new();
+        asm.subsd_rr(XMM0, XMM1);
+        asm.subsd_rr(XMM3, XMM15);
+        asm.subsd_rr(XMM8, XMM4);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF2u8, 0x0Fu8, 0x5Cu8, 0xC1u8);
+        assertAsm(buffer, 0xF2u8, 0x41u8, 0x0Fu8, 0x5Cu8, 0xDFu8);
+        assertAsm(buffer, 0xF2u8, 0x44u8, 0x0Fu8, 0x5Cu8, 0xC4u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Mulssrr() {
+        let asm = AssemblerX64::new();
+        asm.mulss_rr(XMM0, XMM1);
+        asm.mulss_rr(XMM3, XMM15);
+        asm.mulss_rr(XMM8, XMM4);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF3u8, 0x0Fu8, 0x59u8, 0xC1u8);
+        assertAsm(buffer, 0xF3u8, 0x41u8, 0x0Fu8, 0x59u8, 0xDFu8);
+        assertAsm(buffer, 0xF3u8, 0x44u8, 0x0Fu8, 0x59u8, 0xC4u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Mulsdrr() {
+        let asm = AssemblerX64::new();
+        asm.mulsd_rr(XMM0, XMM1);
+        asm.mulsd_rr(XMM3, XMM15);
+        asm.mulsd_rr(XMM8, XMM4);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF2u8, 0x0Fu8, 0x59u8, 0xC1u8);
+        assertAsm(buffer, 0xF2u8, 0x41u8, 0x0Fu8, 0x59u8, 0xDFu8);
+        assertAsm(buffer, 0xF2u8, 0x44u8, 0x0Fu8, 0x59u8, 0xC4u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Divssrr() {
+        let asm = AssemblerX64::new();
+        asm.divss_rr(XMM0, XMM1);
+        asm.divss_rr(XMM3, XMM15);
+        asm.divss_rr(XMM8, XMM4);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF3u8, 0x0Fu8, 0x5Eu8, 0xC1u8);
+        assertAsm(buffer, 0xF3u8, 0x41u8, 0x0Fu8, 0x5Eu8, 0xDFu8);
+        assertAsm(buffer, 0xF3u8, 0x44u8, 0x0Fu8, 0x5Eu8, 0xC4u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Divsdrr() {
+        let asm = AssemblerX64::new();
+        asm.divsd_rr(XMM0, XMM1);
+        asm.divsd_rr(XMM3, XMM15);
+        asm.divsd_rr(XMM8, XMM4);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF2u8, 0x0Fu8, 0x5Eu8, 0xC1u8);
+        assertAsm(buffer, 0xF2u8, 0x41u8, 0x0Fu8, 0x5Eu8, 0xDFu8);
+        assertAsm(buffer, 0xF2u8, 0x44u8, 0x0Fu8, 0x5Eu8, 0xC4u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Ucomissrr() {
+        let asm = AssemblerX64::new();
+        asm.ucomiss_rr(XMM1, XMM0);
+        asm.ucomiss_rr(XMM15, XMM3);
+        asm.ucomiss_rr(XMM4, XMM8);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x0Fu8, 0x2Eu8, 0xC8u8);
+        assertAsm(buffer, 0x44u8, 0x0Fu8, 0x2Eu8, 0xFBu8);
+        assertAsm(buffer, 0x41u8, 0x0Fu8, 0x2Eu8, 0xE0u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Ucomisdrr() {
+        let asm = AssemblerX64::new();
+        asm.ucomisd_rr(XMM1, XMM0);
+        asm.ucomisd_rr(XMM15, XMM3);
+        asm.ucomisd_rr(XMM4, XMM8);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x66u8, 0x0Fu8, 0x2Eu8, 0xC8u8);
+        assertAsm(buffer, 0x66u8, 0x44u8, 0x0Fu8, 0x2Eu8, 0xFBu8);
+        assertAsm(buffer, 0x66u8, 0x41u8, 0x0Fu8, 0x2Eu8, 0xE0u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Pxorrr() {
+        let asm = AssemblerX64::new();
+        asm.pxor_rr(XMM1, XMM0);
+        asm.pxor_rr(XMM15, XMM3);
+        asm.pxor_rr(XMM4, XMM8);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x66u8, 0x0Fu8, 0xEFu8, 0xC8u8);
+        assertAsm(buffer, 0x66u8, 0x44u8, 0x0Fu8, 0xEFu8, 0xFBu8);
+        assertAsm(buffer, 0x66u8, 0x41u8, 0x0Fu8, 0xEFu8, 0xE0u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Sqrtssrr() {
+        let asm = AssemblerX64::new();
+        asm.sqrtss_rr(XMM1, XMM0);
+        asm.sqrtss_rr(XMM15, XMM3);
+        asm.sqrtss_rr(XMM4, XMM8);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF3u8, 0x0Fu8, 0x51u8, 0xC8u8);
+        assertAsm(buffer, 0xF3u8, 0x44u8, 0x0Fu8, 0x51u8, 0xFBu8);
+        assertAsm(buffer, 0xF3u8, 0x41u8, 0x0Fu8, 0x51u8, 0xE0u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Sqrtsdrr() {
+        let asm = AssemblerX64::new();
+        asm.sqrtsd_rr(XMM1, XMM0);
+        asm.sqrtsd_rr(XMM15, XMM3);
+        asm.sqrtsd_rr(XMM4, XMM8);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF2u8, 0x0Fu8, 0x51u8, 0xC8u8);
+        assertAsm(buffer, 0xF2u8, 0x44u8, 0x0Fu8, 0x51u8, 0xFBu8);
+        assertAsm(buffer, 0xF2u8, 0x41u8, 0x0Fu8, 0x51u8, 0xE0u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Tzcntlrr() {
+        let asm = AssemblerX64::new();
+        asm.tzcntl_rr(RDI, RAX);
+        asm.tzcntl_rr(RAX, RDI);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF3u8, 0x0Fu8, 0xBCu8, 0xF8u8);
+        assertAsm(buffer, 0xF3u8, 0x0Fu8, 0xBCu8, 0xC7u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Tzcntqrr() {
+        let asm = AssemblerX64::new();
+        asm.tzcntq_rr(RDI, RAX);
+        asm.tzcntq_rr(RAX, RDI);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF3u8, 0x48u8, 0x0Fu8, 0xBCu8, 0xF8u8);
+        assertAsm(buffer, 0xF3u8, 0x48u8, 0x0Fu8, 0xBCu8, 0xC7u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Lzcntlrr() {
+        let asm = AssemblerX64::new();
+        asm.lzcntl_rr(RDI, RAX);
+        asm.lzcntl_rr(RAX, RDI);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF3u8, 0x0Fu8, 0xBDu8, 0xF8u8);
+        assertAsm(buffer, 0xF3u8, 0x0Fu8, 0xBDu8, 0xC7u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Lzcntqrr() {
+        let asm = AssemblerX64::new();
+        asm.lzcntq_rr(RDI, RAX);
+        asm.lzcntq_rr(RAX, RDI);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF3u8, 0x48u8, 0x0Fu8, 0xBDu8, 0xF8u8);
+        assertAsm(buffer, 0xF3u8, 0x48u8, 0x0Fu8, 0xBDu8, 0xC7u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Popcntlrr() {
+        let asm = AssemblerX64::new();
+        asm.popcntl_rr(RDI, RAX);
+        asm.popcntl_rr(RAX, RDI);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF3u8, 0x0Fu8, 0xB8u8, 0xF8u8);
+        assertAsm(buffer, 0xF3u8, 0x0Fu8, 0xB8u8, 0xC7u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Popcntqrr() {
+        let asm = AssemblerX64::new();
+        asm.popcntq_rr(RDI, RAX);
+        asm.popcntq_rr(RAX, RDI);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF3u8, 0x48u8, 0x0Fu8, 0xB8u8, 0xF8u8);
+        assertAsm(buffer, 0xF3u8, 0x48u8, 0x0Fu8, 0xB8u8, 0xC7u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Cvtss2sdrr() {
+        let asm = AssemblerX64::new();
+        asm.cvtss2sd_rr(XMM0, XMM1);
+        asm.cvtss2sd_rr(XMM3, XMM15);
+        asm.cvtss2sd_rr(XMM8, XMM4);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF3u8, 0x0Fu8, 0x5Au8, 0xC1u8);
+        assertAsm(buffer, 0xF3u8, 0x41u8, 0x0Fu8, 0x5Au8, 0xDFu8);
+        assertAsm(buffer, 0xF3u8, 0x44u8, 0x0Fu8, 0x5Au8, 0xC4u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Cvtsd2ssrr() {
+        let asm = AssemblerX64::new();
+        asm.cvtsd2ss_rr(XMM0, XMM1);
+        asm.cvtsd2ss_rr(XMM3, XMM15);
+        asm.cvtsd2ss_rr(XMM8, XMM4);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF2u8, 0x0Fu8, 0x5Au8, 0xC1u8);
+        assertAsm(buffer, 0xF2u8, 0x41u8, 0x0Fu8, 0x5Au8, 0xDFu8);
+        assertAsm(buffer, 0xF2u8, 0x44u8, 0x0Fu8, 0x5Au8, 0xC4u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Movdrx() {
+        let asm = AssemblerX64::new();
+        asm.movd_rx(RDI, XMM0);
+        asm.movd_rx(R8, XMM0);
+        asm.movd_rx(R8, XMM7);
+        asm.movd_rx(R8, XMM8);
+        asm.movd_rx(R8, XMM15);
+        asm.movd_rx(R15, XMM0);
+        asm.movd_rx(R15, XMM7);
+        asm.movd_rx(R15, XMM8);
+        asm.movd_rx(R15, XMM15);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x66u8, 0x0Fu8, 0x7Eu8, 0xC7u8);
+        assertAsm(buffer, 0x66u8, 0x41u8, 0x0Fu8, 0x7Eu8, 0xC0u8);
+        assertAsm(buffer, 0x66u8, 0x41u8, 0x0Fu8, 0x7Eu8, 0xF8u8);
+        assertAsm(buffer, 0x66u8, 0x45u8, 0x0Fu8, 0x7Eu8, 0xC0u8);
+        assertAsm(buffer, 0x66u8, 0x45u8, 0x0Fu8, 0x7Eu8, 0xF8u8);
+        assertAsm(buffer, 0x66u8, 0x41u8, 0x0Fu8, 0x7Eu8, 0xC7u8);
+        assertAsm(buffer, 0x66u8, 0x41u8, 0x0Fu8, 0x7Eu8, 0xFFu8);
+        assertAsm(buffer, 0x66u8, 0x45u8, 0x0Fu8, 0x7Eu8, 0xC7u8);
+        assertAsm(buffer, 0x66u8, 0x45u8, 0x0Fu8, 0x7Eu8, 0xFFu8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Movdxr() {
+        let asm = AssemblerX64::new();
+        asm.movd_xr(XMM0, RAX);
+        asm.movd_xr(XMM0, R8);
+        asm.movd_xr(XMM7, R8);
+        asm.movd_xr(XMM8, R8);
+        asm.movd_xr(XMM15, R8);
+        asm.movd_xr(XMM0, R15);
+        asm.movd_xr(XMM7, R15);
+        asm.movd_xr(XMM8, R15);
+        asm.movd_xr(XMM15, R15);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x66u8, 0x0Fu8, 0x6Eu8, 0xC0u8);
+        assertAsm(buffer, 0x66u8, 0x41u8, 0x0Fu8, 0x6Eu8, 0xC0u8);
+        assertAsm(buffer, 0x66u8, 0x41u8, 0x0Fu8, 0x6Eu8, 0xF8u8);
+        assertAsm(buffer, 0x66u8, 0x45u8, 0x0Fu8, 0x6Eu8, 0xC0u8);
+        assertAsm(buffer, 0x66u8, 0x45u8, 0x0Fu8, 0x6Eu8, 0xF8u8);
+        assertAsm(buffer, 0x66u8, 0x41u8, 0x0Fu8, 0x6Eu8, 0xC7u8);
+        assertAsm(buffer, 0x66u8, 0x41u8, 0x0Fu8, 0x6Eu8, 0xFFu8);
+        assertAsm(buffer, 0x66u8, 0x45u8, 0x0Fu8, 0x6Eu8, 0xC7u8);
+        assertAsm(buffer, 0x66u8, 0x45u8, 0x0Fu8, 0x6Eu8, 0xFFu8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Movqrx() {
+        let asm = AssemblerX64::new();
+        asm.movq_rx(RDI, XMM0);
+        asm.movq_rx(R8, XMM0);
+        asm.movq_rx(R8, XMM7);
+        asm.movq_rx(R8, XMM8);
+        asm.movq_rx(R8, XMM15);
+        asm.movq_rx(R15, XMM0);
+        asm.movq_rx(R15, XMM7);
+        asm.movq_rx(R15, XMM8);
+        asm.movq_rx(R15, XMM15);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x66u8, 0x48u8, 0x0Fu8, 0x7Eu8, 0xC7u8);
+        assertAsm(buffer, 0x66u8, 0x49u8, 0x0Fu8, 0x7Eu8, 0xC0u8);
+        assertAsm(buffer, 0x66u8, 0x49u8, 0x0Fu8, 0x7Eu8, 0xF8u8);
+        assertAsm(buffer, 0x66u8, 0x4Du8, 0x0Fu8, 0x7Eu8, 0xC0u8);
+        assertAsm(buffer, 0x66u8, 0x4Du8, 0x0Fu8, 0x7Eu8, 0xF8u8);
+        assertAsm(buffer, 0x66u8, 0x49u8, 0x0Fu8, 0x7Eu8, 0xC7u8);
+        assertAsm(buffer, 0x66u8, 0x49u8, 0x0Fu8, 0x7Eu8, 0xFFu8);
+        assertAsm(buffer, 0x66u8, 0x4Du8, 0x0Fu8, 0x7Eu8, 0xC7u8);
+        assertAsm(buffer, 0x66u8, 0x4Du8, 0x0Fu8, 0x7Eu8, 0xFFu8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Movqxr() {
+        let asm = AssemblerX64::new();
+        asm.movq_xr(XMM0, RAX);
+        asm.movq_xr(XMM0, R8);
+        asm.movq_xr(XMM7, R8);
+        asm.movq_xr(XMM8, R8);
+        asm.movq_xr(XMM15, R8);
+        asm.movq_xr(XMM0, R15);
+        asm.movq_xr(XMM7, R15);
+        asm.movq_xr(XMM8, R15);
+        asm.movq_xr(XMM15, R15);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x66u8, 0x48u8, 0x0Fu8, 0x6Eu8, 0xC0u8);
+        assertAsm(buffer, 0x66u8, 0x49u8, 0x0Fu8, 0x6Eu8, 0xC0u8);
+        assertAsm(buffer, 0x66u8, 0x49u8, 0x0Fu8, 0x6Eu8, 0xF8u8);
+        assertAsm(buffer, 0x66u8, 0x4Du8, 0x0Fu8, 0x6Eu8, 0xC0u8);
+        assertAsm(buffer, 0x66u8, 0x4Du8, 0x0Fu8, 0x6Eu8, 0xF8u8);
+        assertAsm(buffer, 0x66u8, 0x49u8, 0x0Fu8, 0x6Eu8, 0xC7u8);
+        assertAsm(buffer, 0x66u8, 0x49u8, 0x0Fu8, 0x6Eu8, 0xFFu8);
+        assertAsm(buffer, 0x66u8, 0x4Du8, 0x0Fu8, 0x6Eu8, 0xC7u8);
+        assertAsm(buffer, 0x66u8, 0x4Du8, 0x0Fu8, 0x6Eu8, 0xFFu8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Xorpsra() {
+        let asm = AssemblerX64::new();
+        asm.xorps_ra(XMM0, Address::offset(RBP, -8i32));
+        asm.xorps_ra(XMM8, Address::offset(R8, 0i32));
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x0Fu8, 0x57u8, 0x45u8, 0xF8u8);
+        assertAsm(buffer, 0x45u8, 0x0Fu8, 0x57u8, 0x00u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Xorpsrr() {
+        let asm = AssemblerX64::new();
+        asm.xorps_rr(XMM0, XMM1);
+        asm.xorps_rr(XMM7, XMM8);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x0Fu8, 0x57u8, 0xC1u8);
+        assertAsm(buffer, 0x41u8, 0x0Fu8, 0x57u8, 0xF8u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Xorpdra() {
+        let asm = AssemblerX64::new();
+        asm.xorpd_ra(XMM0, Address::offset(RBP, -8i32));
+        asm.xorpd_ra(XMM8, Address::offset(R8, 0i32));
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x66u8, 0x0Fu8, 0x57u8, 0x45u8, 0xF8u8);
+        assertAsm(buffer, 0x66u8, 0x45u8, 0x0Fu8, 0x57u8, 0x00u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Xorlri() {
+        let asm = AssemblerX64::new();
+        asm.xorl_ri(RAX, Immediate(1i64));
+        asm.xorl_ri(R8, Immediate(127i64));
+        asm.xorl_ri(R15, Immediate(-128i64));
+
+        asm.xorl_ri(RAX, Immediate(128i64));
+        asm.xorl_ri(R8, Immediate(-129i64));
+        asm.xorl_ri(R15, Immediate(128i64));
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x83u8, 0xF0u8, 1u8);
+        assertAsm(buffer, 0x41u8, 0x83u8, 0xF0u8, 0x7Fu8);
+        assertAsm(buffer, 0x41u8, 0x83u8, 0xF7u8, 0x80u8);
+
+        assertAsm(buffer, 0x35u8, 0x80u8, 0u8, 0u8, 0u8);
+        assertAsm(buffer, 0x41u8, 0x81u8, 0xF0u8, 0x7Fu8, 0xFFu8, 0xFFu8, 0xFFu8);
+        assertAsm(buffer, 0x41u8, 0x81u8, 0xF7u8, 0x80u8, 0u8, 0u8, 0u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Cmpbar() {
+        let asm = AssemblerX64::new();
+        asm.cmpb_ar(Address::offset(RAX, 0i32), RAX);
+        asm.cmpb_ar(Address::offset(RAX, 0i32), RBX);
+        asm.cmpb_ar(Address::offset(RAX, 0i32), RSP);
+        asm.cmpb_ar(Address::offset(RAX, 0i32), RDI);
+        asm.cmpb_ar(Address::offset(RAX, 0i32), R8);
+        asm.cmpb_ar(Address::offset(R8, 0i32), RAX);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x38u8, 0x00u8);
+        assertAsm(buffer, 0x38u8, 0x18u8);
+        assertAsm(buffer, 0x40u8, 0x38u8, 0x20u8);
+        assertAsm(buffer, 0x40u8, 0x38u8, 0x38u8);
+        assertAsm(buffer, 0x44u8, 0x38u8, 0x00u8);
+        assertAsm(buffer, 0x41u8, 0x38u8, 0x00u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Cmpbai() {
+        let asm = AssemblerX64::new();
+        asm.cmpb_ai(Address::offset(RAX, 0i32), Immediate(1i64));
+        asm.cmpb_ai(Address::offset(RAX, 0i32), Immediate(127i64));
+        asm.cmpb_ai(Address::offset(RAX, 0i32), Immediate(-128i64));
+        asm.cmpb_ai(Address::offset(RAX, 0i32), Immediate(255i64));
+        asm.cmpb_ai(Address::offset(R8, 0i32), Immediate(255i64));
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x80u8, 0x38u8, 1u8);
+        assertAsm(buffer, 0x80u8, 0x38u8, 0x7Fu8);
+        assertAsm(buffer, 0x80u8, 0x38u8, 0x80u8);
+        assertAsm(buffer, 0x80u8, 0x38u8, 0xFFu8);
+        assertAsm(buffer, 0x41u8, 0x80u8, 0x38u8, 0xFFu8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Cmplri() {
+        let asm = AssemblerX64::new();
+        asm.cmpl_ri(RAX, Immediate(0i64));
+        asm.cmpl_ri(R15, Immediate(0i64));
+        asm.cmpl_ri(R9, Immediate(0i64));
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x83u8, 0xF8u8, 0u8);
+        assertAsm(buffer, 0x41u8, 0x83u8, 0xFFu8, 0u8);
+        assertAsm(buffer, 0x41u8, 0x83u8, 0xF9u8, 0u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Cmplai() {
+        let asm = AssemblerX64::new();
+        asm.cmpl_ai(Address::offset(RAX, 0i32), Immediate(127i64));
+        asm.cmpl_ai(Address::offset(RAX, 0i32), Immediate(-128i64));
+        asm.cmpl_ai(Address::offset(RAX, 0i32), Immediate(128i64));
+        asm.cmpl_ai(Address::offset(R8, 0i32), Immediate(128i64));
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x83u8, 0x38u8, 0x7Fu8);
+        assertAsm(buffer, 0x83u8, 0x38u8, 0x80u8);
+        assertAsm(buffer, 0x81u8, 0x38u8, 0x80u8, 0u8, 0u8, 0u8);
+        assertAsm(buffer, 0x41u8, 0x81u8, 0x38u8, 0x80u8, 0u8, 0u8, 0u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Cmplar() {
+        let asm = AssemblerX64::new();
+        asm.cmpl_ar(Address::offset(RBX, 1i32), RAX);
+        asm.cmpl_ar(Address::offset(RBX, 1i32), R10);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x39u8, 0x43u8, 1u8);
+        assertAsm(buffer, 0x44u8, 0x39u8, 0x53u8, 1u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Cmpqai() {
+        let asm = AssemblerX64::new();
+        asm.cmpq_ai(Address::offset(RAX, 0i32), Immediate(127i64));
+        asm.cmpq_ai(Address::offset(RAX, 0i32), Immediate(-128i64));
+        asm.cmpq_ai(Address::offset(RAX, 0i32), Immediate(128i64));
+        asm.cmpq_ai(Address::offset(R8, 0i32), Immediate(128i64));
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x48u8, 0x83u8, 0x38u8, 0x7Fu8);
+        assertAsm(buffer, 0x48u8, 0x83u8, 0x38u8, 0x80u8);
+        assertAsm(buffer, 0x48u8, 0x81u8, 0x38u8, 0x80u8, 0u8, 0u8, 0u8);
+        assertAsm(buffer, 0x49u8, 0x81u8, 0x38u8, 0x80u8, 0u8, 0u8, 0u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Cmpqar() {
+        let asm = AssemblerX64::new();
+        asm.cmpq_ar(Address::offset(RBX, 1i32), RAX);
+        asm.cmpq_ar(Address::offset(RBX, 256i32), RAX);
+        asm.cmpq_ar(Address::offset(RDI, 1i32), RAX);
+        asm.cmpq_ar(Address::offset(R9, 1i32), RAX);
+        asm.cmpq_ar(Address::offset(RDI, 1i32), R10);
+        asm.cmpq_ar(Address::rip(1i32), RAX);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x48u8, 0x39u8, 0x43u8, 1u8);
+        assertAsm(buffer, 0x48u8, 0x39u8, 0x83u8, 0u8, 1u8, 0u8, 0u8);
+        assertAsm(buffer, 0x48u8, 0x39u8, 0x47u8, 1u8);
+        assertAsm(buffer, 0x49u8, 0x39u8, 0x41u8, 1u8);
+        assertAsm(buffer, 0x4Cu8, 0x39u8, 0x57u8, 1u8);
+        assertAsm(buffer, 0x48u8, 0x39u8, 0x05u8, 1u8, 0u8, 0u8, 0u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Cmpqri() {
+        let asm = AssemblerX64::new();
+        asm.cmpq_ri(RAX, Immediate(127i64));
+        asm.cmpq_ri(R15, Immediate(-128i64));
+        asm.cmpq_ri(R9, Immediate(0i64));
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x48u8, 0x83u8, 0xF8u8, 0x7Fu8);
+        assertAsm(buffer, 0x49u8, 0x83u8, 0xFFu8, 0x80u8);
+        assertAsm(buffer, 0x49u8, 0x83u8, 0xF9u8, 0u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Notlr() {
+        let asm = AssemblerX64::new();
+        asm.notl_r(RAX);
+        asm.notl_r(R15);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF7u8, 0xD0u8);
+        assertAsm(buffer, 0x41u8, 0xF7u8, 0xD7u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Notqr() {
+        let asm = AssemblerX64::new();
+        asm.notq_r(RAX);
+        asm.notq_r(R15);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x48u8, 0xF7u8, 0xD0u8);
+        assertAsm(buffer, 0x49u8, 0xF7u8, 0xD7u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Neglr() {
+        let asm = AssemblerX64::new();
+        asm.negl_r(RAX);
+        asm.negl_r(R15);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF7u8, 0xD8u8);
+        assertAsm(buffer, 0x41u8, 0xF7u8, 0xDFu8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Negqr() {
+        let asm = AssemblerX64::new();
+        asm.negq_r(RAX);
+        asm.negq_r(R15);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x48u8, 0xF7u8, 0xD8u8);
+        assertAsm(buffer, 0x49u8, 0xF7u8, 0xDFu8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Andqri() {
+        let asm = AssemblerX64::new();
+        asm.andq_ri(RAX, Immediate(-8i64));
+        asm.andq_ri(RAX, Immediate(128i64));
+        asm.andq_ri(R9, Immediate(-8i64));
+        asm.andq_ri(R9, Immediate(128i64));
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x48u8, 0x83u8, 0xE0u8, 0xF8u8);
+        assertAsm(buffer, 0x48u8, 0x25u8, 0x80u8, 0u8, 0u8, 0u8);
+        assertAsm(buffer, 0x49u8, 0x83u8, 0xE1u8, 0xF8u8);
+        assertAsm(buffer, 0x49u8, 0x81u8, 0xE1u8, 0x80u8, 0u8, 0u8, 0u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Jmpr() {
+        let asm = AssemblerX64::new();
+        asm.jmp_r(RAX);
+        asm.jmp_r(RDI);
+        asm.jmp_r(R8);
+        asm.jmp_r(R15);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xFFu8, 0xE0u8);
+        assertAsm(buffer, 0xFFu8, 0xE7u8);
+        assertAsm(buffer, 0x41u8, 0xFFu8, 0xE0u8);
+        assertAsm(buffer, 0x41u8, 0xFFu8, 0xE7u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Shrlri() {
+        let asm = AssemblerX64::new();
+        asm.shrl_ri(RAX, Immediate(2i64));
+        asm.shrl_ri(R8, Immediate(2i64));
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xC1u8, 0xE8u8, 2u8);
+        assertAsm(buffer, 0x41u8, 0xC1u8, 0xE8u8, 2u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Shrlr() {
+        let asm = AssemblerX64::new();
+        asm.shrl_r(RAX);
+        asm.shrl_r(R8);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xD3u8, 0xE8u8);
+        assertAsm(buffer, 0x41u8, 0xD3u8, 0xE8u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Shrqri() {
+        let asm = AssemblerX64::new();
+        asm.shrq_ri(RAX, Immediate(2i64));
+        asm.shrq_ri(R8, Immediate(2i64));
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x48u8, 0xC1u8, 0xE8u8, 2u8);
+        assertAsm(buffer, 0x49u8, 0xC1u8, 0xE8u8, 2u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Shrqr() {
+        let asm = AssemblerX64::new();
+        asm.shrq_r(RAX);
+        asm.shrq_r(R8);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x48u8, 0xD3u8, 0xE8u8);
+        assertAsm(buffer, 0x49u8, 0xD3u8, 0xE8u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Sarlri() {
+        let asm = AssemblerX64::new();
+        asm.sarl_ri(RAX, Immediate(2i64));
+        asm.sarl_ri(R8, Immediate(2i64));
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xC1u8, 0xF8u8, 2u8);
+        assertAsm(buffer, 0x41u8, 0xC1u8, 0xF8u8, 2u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Sarlr() {
+        let asm = AssemblerX64::new();
+        asm.sarl_r(RAX);
+        asm.sarl_r(R8);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xD3u8, 0xF8u8);
+        assertAsm(buffer, 0x41u8, 0xD3u8, 0xF8u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Sarqri() {
+        let asm = AssemblerX64::new();
+        asm.sarq_ri(RAX, Immediate(2i64));
+        asm.sarq_ri(R8, Immediate(2i64));
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x48u8, 0xC1u8, 0xF8u8, 2u8);
+        assertAsm(buffer, 0x49u8, 0xC1u8, 0xF8u8, 2u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Sarqr() {
+        let asm = AssemblerX64::new();
+        asm.sarq_r(RAX);
+        asm.sarq_r(R8);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x48u8, 0xD3u8, 0xF8u8);
+        assertAsm(buffer, 0x49u8, 0xD3u8, 0xF8u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Shllri() {
+        let asm = AssemblerX64::new();
+        asm.shll_ri(RAX, Immediate(2i64));
+        asm.shll_ri(R8, Immediate(2i64));
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xC1u8, 0xE0u8, 2u8);
+        assertAsm(buffer, 0x41u8, 0xC1u8, 0xE0u8, 2u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Shllr() {
+        let asm = AssemblerX64::new();
+        asm.shll_r(RAX);
+        asm.shll_r(R8);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xD3u8, 0xE0u8);
+        assertAsm(buffer, 0x41u8, 0xD3u8, 0xE0u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Shlqri() {
+        let asm = AssemblerX64::new();
+        asm.shlq_ri(RAX, Immediate(2i64));
+        asm.shlq_ri(R8, Immediate(2i64));
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x48u8, 0xC1u8, 0xE0u8, 2u8);
+        assertAsm(buffer, 0x49u8, 0xC1u8, 0xE0u8, 2u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Shlqr() {
+        let asm = AssemblerX64::new();
+        asm.shlq_r(RAX);
+        asm.shlq_r(R8);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x48u8, 0xD3u8, 0xE0u8);
+        assertAsm(buffer, 0x49u8, 0xD3u8, 0xE0u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Rollr() {
+        let asm = AssemblerX64::new();
+        asm.roll_r(RAX);
+        asm.roll_r(R8);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xD3u8, 0xC0u8);
+        assertAsm(buffer, 0x41u8, 0xD3u8, 0xC0u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Rolqr() {
+        let asm = AssemblerX64::new();
+        asm.rolq_r(RAX);
+        asm.rolq_r(R8);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x48u8, 0xD3u8, 0xC0u8);
+        assertAsm(buffer, 0x49u8, 0xD3u8, 0xC0u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Rorlr() {
+        let asm = AssemblerX64::new();
+        asm.rorl_r(RAX);
+        asm.rorl_r(R8);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xD3u8, 0xC8u8);
+        assertAsm(buffer, 0x41u8, 0xD3u8, 0xC8u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Rorqr() {
+        let asm = AssemblerX64::new();
+        asm.rorq_r(RAX);
+        asm.rorq_r(R8);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x48u8, 0xD3u8, 0xC8u8);
+        assertAsm(buffer, 0x49u8, 0xD3u8, 0xC8u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Cvtsi2ssdrr() {
+        let asm = AssemblerX64::new();
+        asm.cvtsi2ssd_rr(XMM0, RCX);
+        asm.cvtsi2ssd_rr(XMM3, R15);
+        asm.cvtsi2ssd_rr(XMM8, RSP);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF3u8, 0x0Fu8, 0x2Au8, 0xC1u8);
+        assertAsm(buffer, 0xF3u8, 0x41u8, 0x0Fu8, 0x2Au8, 0xDFu8);
+        assertAsm(buffer, 0xF3u8, 0x44u8, 0x0Fu8, 0x2Au8, 0xC4u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Cvtsi2ssqrr() {
+        let asm = AssemblerX64::new();
+        asm.cvtsi2ssq_rr(XMM0, RCX);
+        asm.cvtsi2ssq_rr(XMM3, R15);
+        asm.cvtsi2ssq_rr(XMM8, RSP);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF3u8, 0x48u8, 0x0Fu8, 0x2Au8, 0xC1u8);
+        assertAsm(buffer, 0xF3u8, 0x49u8, 0x0Fu8, 0x2Au8, 0xDFu8);
+        assertAsm(buffer, 0xF3u8, 0x4Cu8, 0x0Fu8, 0x2Au8, 0xC4u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Cvtsi2sddrr() {
+        let asm = AssemblerX64::new();
+        asm.cvtsi2sdd_rr(XMM0, RCX);
+        asm.cvtsi2sdd_rr(XMM3, R15);
+        asm.cvtsi2sdd_rr(XMM8, RSP);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF2u8, 0x0Fu8, 0x2Au8, 0xC1u8);
+        assertAsm(buffer, 0xF2u8, 0x41u8, 0x0Fu8, 0x2Au8, 0xDFu8);
+        assertAsm(buffer, 0xF2u8, 0x44u8, 0x0Fu8, 0x2Au8, 0xC4u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Cvtsi2sdqrr() {
+        let asm = AssemblerX64::new();
+        asm.cvtsi2sdq_rr(XMM0, RCX);
+        asm.cvtsi2sdq_rr(XMM3, R15);
+        asm.cvtsi2sdq_rr(XMM8, RSP);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF2u8, 0x48u8, 0x0Fu8, 0x2Au8, 0xC1u8);
+        assertAsm(buffer, 0xF2u8, 0x49u8, 0x0Fu8, 0x2Au8, 0xDFu8);
+        assertAsm(buffer, 0xF2u8, 0x4Cu8, 0x0Fu8, 0x2Au8, 0xC4u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Cvttss2sidrr() {
+        let asm = AssemblerX64::new();
+        asm.cvttss2sid_rr(RCX, XMM0);
+        asm.cvttss2sid_rr(R15, XMM3);
+        asm.cvttss2sid_rr(RSP, XMM8);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF3u8, 0x0Fu8, 0x2Cu8, 0xC8u8);
+        assertAsm(buffer, 0xF3u8, 0x44u8, 0x0Fu8, 0x2Cu8, 0xFBu8);
+        assertAsm(buffer, 0xF3u8, 0x41u8, 0x0Fu8, 0x2Cu8, 0xE0u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Cvttss2siqrr() {
+        let asm = AssemblerX64::new();
+        asm.cvttss2siq_rr(RCX, XMM0);
+        asm.cvttss2siq_rr(R15, XMM3);
+        asm.cvttss2siq_rr(RSP, XMM8);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF3u8, 0x48u8, 0x0Fu8, 0x2Cu8, 0xC8u8);
+        assertAsm(buffer, 0xF3u8, 0x4Cu8, 0x0Fu8, 0x2Cu8, 0xFBu8);
+        assertAsm(buffer, 0xF3u8, 0x49u8, 0x0Fu8, 0x2Cu8, 0xE0u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Cvttsd2sidrr() {
+        let asm = AssemblerX64::new();
+        asm.cvttsd2sid_rr(RCX, XMM0);
+        asm.cvttsd2sid_rr(R15, XMM3);
+        asm.cvttsd2sid_rr(RSP, XMM8);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF2u8, 0x0Fu8, 0x2Cu8, 0xC8u8);
+        assertAsm(buffer, 0xF2u8, 0x44u8, 0x0Fu8, 0x2Cu8, 0xFBu8);
+        assertAsm(buffer, 0xF2u8, 0x41u8, 0x0Fu8, 0x2Cu8, 0xE0u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn Cvttsd2siqrr() {
+        let asm = AssemblerX64::new();
+        asm.cvttsd2siq_rr(RCX, XMM0);
+        asm.cvttsd2siq_rr(R15, XMM3);
+        asm.cvttsd2siq_rr(RSP, XMM8);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xF2u8, 0x48u8, 0x0Fu8, 0x2Cu8, 0xC8u8);
+        assertAsm(buffer, 0xF2u8, 0x4Cu8, 0x0Fu8, 0x2Cu8, 0xFBu8);
+        assertAsm(buffer, 0xF2u8, 0x49u8, 0x0Fu8, 0x2Cu8, 0xE0u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn JmpBackwardNear() {
+        let asm = AssemblerX64::new();
+        let lbl = asm.createAndBindLabel();
+        asm.jmp(lbl);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xEBu8, 0xFEu8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn JmpBackwardStillNear() {
+        let asm = AssemblerX64::new();
+        let lbl = asm.createAndBindLabel();
+        for x in std::range(0i32, 126i32) {
+            asm.nop();
+        }
+        asm.jmp(lbl);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsmNop(buffer, 126i64);
+        assertAsm(buffer, 0xEBu8, 0x80u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn JmpBackwardAlreadyFar() {
+        let asm = AssemblerX64::new();
+        let lbl = asm.createAndBindLabel();
+        for x in std::range(0i32, 127i32) {
+            asm.nop();
+        }
+        asm.jmp(lbl);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsmNop(buffer, 127i64);
+        assertAsm(buffer, 0xE9u8, 0x7Cu8, 0xFFu8, 0xFFu8, 0xFFu8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn JmpForward() {
+        let asm = AssemblerX64::new();
+        let lbl = asm.createLabel();
+        asm.jmp(lbl);
+        asm.bindLabel(lbl);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xE9u8, 0u8, 0u8, 0u8, 0u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn JmpNearForward() {
+        let asm = AssemblerX64::new();
+        let lbl = asm.createLabel();
+        asm.jmp_near(lbl);
+        asm.bindLabel(lbl);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xEBu8, 0u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn JmpNearBackward() {
+        let asm = AssemblerX64::new();
+        let lbl = asm.createAndBindLabel();
+        asm.jmp_near(lbl);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0xEBu8, 0xFEu8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn JccNearBackward() {
+        let asm = AssemblerX64::new();
+        let lbl = asm.createAndBindLabel();
+        asm.jcc_near(Condition::Overflow, lbl);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x70u8, 0xFEu8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn JccNearForward() {
+        let asm = AssemblerX64::new();
+        let lbl = asm.createLabel();
+        asm.jcc_near(Condition::Overflow, lbl);
+        asm.bindLabel(lbl);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x70u8, 0x00u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn JccBackwardNear() {
+        let asm = AssemblerX64::new();
+        let lbl = asm.createAndBindLabel();
+        asm.jcc(Condition::Overflow, lbl);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x70u8, 0xFEu8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn JccBackwardStillNear() {
+        let asm = AssemblerX64::new();
+        let lbl = asm.createAndBindLabel();
+        for x in std::range(0i32, 126i32) {
+            asm.nop();
+        }
+        asm.jcc(Condition::Overflow, lbl);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsmNop(buffer, 126i64);
+        assertAsm(buffer, 0x70u8, 0x80u8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn JccBackwardAlreadyFar() {
+        let asm = AssemblerX64::new();
+        let lbl = asm.createAndBindLabel();
+        for x in std::range(0i32, 127i32) {
+            asm.nop();
+        }
+        asm.jcc(Condition::Overflow, lbl);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsmNop(buffer, 127i64);
+        assertAsm(buffer, 0x0Fu8, 0x80u8, 0x7Bu8, 0xFFu8, 0xFFu8, 0xFFu8);
+        assertAsmEnd(buffer);
+    }
+
+    @Test
+    fn JccForward() {
+        let asm = AssemblerX64::new();
+        let lbl = asm.createLabel();
+        asm.jcc(Condition::Overflow, lbl);
+        asm.bindLabel(lbl);
+
+        let buffer = asm.finalizeTesting();
+
+        assertAsm(buffer, 0x0Fu8, 0x80u8, 0u8, 0u8, 0u8, 0u8);
+        assertAsmEnd(buffer);
+    }
+
+    fn assertAsmNop(code: MachineCode, length: Int64) {
+        assert(length > 0i64);
+
+        let mut idx = 0i64;
+        while idx < length {
+            assert(0x90u8 == code.bytes(code.start + idx));
+            idx = idx + 1i64;
+        }
+
+        code.start = code.start + length;
+    }
+
+    fn assertAsm(code: MachineCode, bytes: UInt8...) {
+        assert(code.start + bytes.size() <= code.bytes.size());
+
+        for (idx, exp) in bytes.enumerate() {
+            let got = code.bytes(code.start + idx);
+
+            if exp != got {
+                println("expected ${exp.toStringHex()} at index ${code.start + idx} but got ${got.toStringHex()}");
+
+                let mut i = 0i64;
+                print("expected: ");
+
+                while i < bytes.size() {
+                    if i > 0i64 { print(", "); }
+                    let value = bytes(i);
+                    print("${value.toStringHex()}");
+                    i = i + 1i64;
+                }
+
+                i = 0i64;
+                println("");
+                print("buffer: ");
+
+                while i < bytes.size() {
+                    if i > 0i64 { print(", "); }
+                    let value = code.bytes(code.start + i);
+                    print("${value.toStringHex()}");
+                    i = i + 1i64;
+                }
+                println("");
+            }
+
+            assert(exp == got);
+        }
+
+        code.start = code.start + bytes.size();
+    }
+
+    fn assertAsmEnd(code: MachineCode) {
+        assert(code.start == code.bytes.size());
+    }
 }

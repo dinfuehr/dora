@@ -15,13 +15,13 @@ impl CodeGenX64 {
     }
 
     pub fn prolog() {
-        self.asm.pushqr(RBP);
-        self.asm.movqrr(RBP, RSP);
+        self.asm.pushq_r(RBP);
+        self.asm.movq_rr(RBP, RSP);
     }
 
     pub fn epilog() {
-        self.asm.movqrr(RSP, RBP);
-        self.asm.popqr(RBP);
+        self.asm.movq_rr(RSP, RBP);
+        self.asm.popq_r(RBP);
         self.asm.retq();
     }
 

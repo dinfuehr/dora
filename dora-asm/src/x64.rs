@@ -166,36 +166,165 @@ impl AssemblerX64 {
         self.set_position(old_position);
     }
 
-    pub fn pushq_r(&mut self, reg: Register) {
+    pub fn addq_rr(&mut self, dest: Register, src: Register) {
+        self.emit_rex64_modrm(src, dest);
+        self.emit_u8(0x01);
+        self.emit_modrm_registers(src, dest);
+    }
+
+    pub fn addl_ri(&mut self, dest: Register, imm: Immediate) {
+        self.emit_alu32_imm(dest, imm, 0b000, 0x05);
+    }
+
+    pub fn addq_ri(&mut self, dest: Register, imm: Immediate) {
+        self.emit_alu64_imm(dest, imm, 0b000, 0x05);
+    }
+
+    pub fn addl_rr(&mut self, dest: Register, src: Register) {
+        self.emit_rex32_optional(src, dest);
+        self.emit_u8(0x01);
+        self.emit_modrm_registers(src, dest);
+    }
+
+    pub fn addss_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
+        self.emit_u8(0xf3);
+        self.emit_rex_sse_modrm_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x58);
+        self.emit_modrm_sse_registers(dest, src);
+    }
+
+    pub fn addsd_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
+        self.emit_u8(0xf2);
+        self.emit_rex_sse_modrm_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x58);
+        self.emit_modrm_sse_registers(dest, src);
+    }
+
+    pub fn andl_rr(&mut self, dest: Register, src: Register) {
+        self.emit_rex32_optional(src, dest);
+        self.emit_u8(0x21);
+        self.emit_modrm_registers(src, dest);
+    }
+
+    pub fn andps_ra(&mut self, dest: XmmRegister, src: Address) {
+        self.emit_rex_sse_address_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x54);
+        self.emit_address(dest.low_bits(), src);
+    }
+
+    pub fn andq_rr(&mut self, dest: Register, src: Register) {
+        self.emit_rex64_modrm(src, dest);
+        self.emit_u8(0x21);
+        self.emit_modrm_registers(src, dest);
+    }
+
+    pub fn andq_ri(&mut self, dest: Register, imm: Immediate) {
+        self.emit_alu64_imm(dest, imm, 0b100, 0x25);
+    }
+
+    pub fn call_r(&mut self, reg: Register) {
         self.emit_rex32_rm_optional(reg);
-        self.emit_u8(0x50 + reg.low_bits());
+        self.emit_u8(0xFF);
+        self.emit_modrm_opcode(0b010, reg);
     }
 
-    pub fn popq_r(&mut self, reg: Register) {
-        self.emit_rex32_rm_optional(reg);
-        self.emit_u8(0x58 + reg.low_bits());
+    pub fn cdq(&mut self) {
+        self.emit_u8(0x99);
     }
 
-    pub fn int3(&mut self) {
-        self.emit_u8(0xCC);
+    pub fn cmpb_ar(&mut self, lhs: Address, rhs: Register) {
+        self.emit_rex32_byte_address(rhs, lhs);
+        self.emit_u8(0x38);
+        self.emit_address(rhs.low_bits(), lhs);
     }
 
-    pub fn retq(&mut self) {
-        self.emit_u8(0xC3);
+    pub fn cmpb_ai(&mut self, lhs: Address, rhs: Immediate) {
+        assert!(rhs.is_int8() || rhs.is_uint8());
+        self.emit_rex32_address_optional(lhs);
+        self.emit_u8(0x80);
+        self.emit_address(0b111, lhs);
+        self.emit_u8(rhs.uint8());
     }
 
-    pub fn nop(&mut self) {
-        self.emit_u8(0x90);
+    pub fn cmpl_rr(&mut self, dest: Register, src: Register) {
+        self.emit_rex32_optional(src, dest);
+        self.emit_u8(0x39);
+        self.emit_modrm_registers(src, dest);
     }
 
-    pub fn setcc_r(&mut self, condition: Condition, dest: Register) {
-        if dest.needs_rex() || dest.low_bits() > 3 {
-            self.emit_rex(false, false, false, dest.needs_rex());
+    pub fn cmpl_ar(&mut self, lhs: Address, rhs: Register) {
+        self.emit_rex32_modrm_address(rhs, lhs);
+        self.emit_u8(0x39);
+        self.emit_address(rhs.low_bits(), lhs);
+    }
+
+    pub fn cmpl_ai(&mut self, lhs: Address, rhs: Immediate) {
+        assert!(rhs.is_int32() || rhs.is_uint32());
+
+        if rhs.is_int8() {
+            self.emit_rex32_address_optional(lhs);
+            self.emit_u8(0x83);
+            self.emit_address(0b111, lhs);
+            self.emit_u8(rhs.int8() as u8);
+        } else {
+            self.emit_rex32_address_optional(lhs);
+            self.emit_u8(0x81);
+            self.emit_address(0b111, lhs);
+            self.emit_u32(rhs.uint32());
         }
+    }
 
-        self.emit_u8(0x0F);
-        self.emit_u8((0x90 + condition.int()) as u8);
-        self.emit_modrm_opcode(0, dest);
+    pub fn cmpq_rr(&mut self, lhs: Register, rhs: Register) {
+        self.emit_rex64_modrm(rhs, lhs);
+        self.emit_u8(0x39);
+        self.emit_modrm_registers(rhs, lhs);
+    }
+
+    pub fn cmpq_ar(&mut self, lhs: Address, rhs: Register) {
+        self.emit_rex64_modrm_address(rhs, lhs);
+        self.emit_u8(0x39);
+        self.emit_address(rhs.low_bits(), lhs);
+    }
+
+    pub fn cmpq_ai(&mut self, lhs: Address, rhs: Immediate) {
+        assert!(rhs.is_int32());
+
+        if rhs.is_int8() {
+            self.emit_rex64_address(lhs);
+            self.emit_u8(0x83);
+            self.emit_address(0b111, lhs);
+            self.emit_u8(rhs.int8() as u8);
+        } else {
+            self.emit_rex64_address(lhs);
+            self.emit_u8(0x81);
+            self.emit_address(0b111, lhs);
+            self.emit_u32(rhs.int32() as u32);
+        }
+    }
+
+    pub fn cmpq_ri(&mut self, reg: Register, imm: Immediate) {
+        self.emit_alu64_imm(reg, imm, 0b111, 0x3d);
+    }
+
+    pub fn cmpl_ri(&mut self, reg: Register, imm: Immediate) {
+        self.emit_alu32_imm(reg, imm, 0b111, 0x3d);
+    }
+
+    pub fn cmpxchgq_ar(&mut self, dest: Address, src: Register) {
+        self.emit_rex64_modrm_address(src, dest);
+        self.emit_u8(0x0f);
+        self.emit_u8(0xb1);
+        self.emit_address(src.low_bits(), dest);
+    }
+
+    pub fn cmpxchgl_ar(&mut self, dest: Address, src: Register) {
+        self.emit_rex32_modrm_address(src, dest);
+        self.emit_u8(0x0f);
+        self.emit_u8(0xb1);
+        self.emit_address(src.low_bits(), dest);
     }
 
     pub fn cmovl(&mut self, condition: Condition, dest: Register, src: Register) {
@@ -212,10 +341,305 @@ impl AssemblerX64 {
         self.emit_modrm_registers(dest, src);
     }
 
+    pub fn cqo(&mut self) {
+        self.emit_rex64();
+        self.emit_u8(0x99);
+    }
+
+    pub fn cvtsd2ss_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
+        self.emit_u8(0xf2);
+        self.emit_rex_sse_modrm_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x5a);
+        self.emit_modrm_sse_registers(dest, src);
+    }
+
+    pub fn cvtss2sd_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
+        self.emit_u8(0xf3);
+        self.emit_rex_sse_modrm_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x5a);
+        self.emit_modrm_sse_registers(dest, src);
+    }
+
+    pub fn cvtsi2ssd_rr(&mut self, dest: XmmRegister, src: Register) {
+        self.emit_u8(0xf3);
+        self.emit_rex_optional(false, dest.needs_rex(), false, src.needs_rex());
+        self.emit_u8(0x0f);
+        self.emit_u8(0x2a);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
+    }
+
+    pub fn cvtsi2ssq_rr(&mut self, dest: XmmRegister, src: Register) {
+        self.emit_u8(0xf3);
+        self.emit_rex_optional(true, dest.needs_rex(), false, src.needs_rex());
+        self.emit_u8(0x0f);
+        self.emit_u8(0x2a);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
+    }
+
+    pub fn cvtsi2sdd_rr(&mut self, dest: XmmRegister, src: Register) {
+        self.emit_u8(0xf2);
+        self.emit_rex_optional(false, dest.needs_rex(), false, src.needs_rex());
+        self.emit_u8(0x0f);
+        self.emit_u8(0x2a);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
+    }
+
+    pub fn cvtsi2sdq_rr(&mut self, dest: XmmRegister, src: Register) {
+        self.emit_u8(0xf2);
+        self.emit_rex_optional(true, dest.needs_rex(), false, src.needs_rex());
+        self.emit_u8(0x0f);
+        self.emit_u8(0x2a);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
+    }
+
+    pub fn cvttss2sid_rr(&mut self, dest: Register, src: XmmRegister) {
+        self.emit_u8(0xf3);
+        self.emit_rex_optional(false, dest.needs_rex(), false, src.needs_rex());
+        self.emit_u8(0x0f);
+        self.emit_u8(0x2c);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
+    }
+
+    pub fn cvttss2siq_rr(&mut self, dest: Register, src: XmmRegister) {
+        self.emit_u8(0xf3);
+        self.emit_rex_optional(true, dest.needs_rex(), false, src.needs_rex());
+        self.emit_u8(0x0f);
+        self.emit_u8(0x2c);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
+    }
+
+    pub fn cvttsd2sid_rr(&mut self, dest: Register, src: XmmRegister) {
+        self.emit_u8(0xf2);
+        self.emit_rex_optional(false, dest.needs_rex(), false, src.needs_rex());
+        self.emit_u8(0x0f);
+        self.emit_u8(0x2c);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
+    }
+
+    pub fn cvttsd2siq_rr(&mut self, dest: Register, src: XmmRegister) {
+        self.emit_u8(0xf2);
+        self.emit_rex_optional(true, dest.needs_rex(), false, src.needs_rex());
+        self.emit_u8(0x0f);
+        self.emit_u8(0x2c);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
+    }
+
+    pub fn divss_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
+        self.emit_u8(0xf3);
+        self.emit_rex_sse_modrm_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x5e);
+        self.emit_modrm_sse_registers(dest, src);
+    }
+
+    pub fn divsd_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
+        self.emit_u8(0xf2);
+        self.emit_rex_sse_modrm_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x5e);
+        self.emit_modrm_sse_registers(dest, src);
+    }
+
+    pub fn idivl_r(&mut self, reg: Register) {
+        self.emit_rex32_rm_optional(reg);
+        self.emit_u8(0xF7);
+        self.emit_modrm_opcode(0b111, reg);
+    }
+
+    pub fn idivq_r(&mut self, src: Register) {
+        self.emit_rex64_rm(src);
+        self.emit_u8(0xF7);
+        self.emit_modrm_opcode(0b111, src);
+    }
+
+    pub fn imull_rr(&mut self, dest: Register, src: Register) {
+        self.emit_rex32_optional(dest, src);
+        self.emit_u8(0x0F);
+        self.emit_u8(0xAF);
+        self.emit_modrm_registers(dest, src);
+    }
+
+    pub fn imulq_rr(&mut self, dest: Register, src: Register) {
+        self.emit_rex64_modrm(dest, src);
+        self.emit_u8(0x0F);
+        self.emit_u8(0xAF);
+        self.emit_modrm_registers(dest, src);
+    }
+
+    pub fn int3(&mut self) {
+        self.emit_u8(0xCC);
+    }
+
+    pub fn jcc(&mut self, condition: Condition, target: Label) {
+        if let Some(target_offset) = self.offset(target) {
+            // backwards jump
+            // rip = end of current instruction = pc + 2
+            let target_offset = target_offset as usize;
+            assert!(target_offset <= self.position());
+            let distance = self.position() + 2 - target_offset;
+            let distance = -(distance as isize);
+            assert!(distance <= -2);
+
+            if distance >= -128 {
+                self.emit_u8(0x70 + condition.int());
+                self.emit_u8(distance as u8);
+            } else {
+                let distance = self.position() + 6 - target_offset;
+                let distance = -(distance as isize);
+                self.emit_u8(0x0F);
+                self.emit_u8(0x80 + condition.int());
+                self.emit_u32(distance as u32);
+            }
+        } else {
+            // forward jump - conservatively assume far jump
+            self.emit_u8(0x0F);
+            self.emit_u8(0x80 + condition.int());
+            self.unresolved_jumps.push(ForwardJump {
+                offset: self.position().try_into().unwrap(),
+                label: target,
+                distance: JumpDistance::Far,
+            });
+            self.emit_u32(0);
+        }
+    }
+
+    pub fn jcc_near(&mut self, condition: Condition, target: Label) {
+        if let Some(target_offset) = self.offset(target) {
+            // backwards jump
+            // rip = end of current instruction = pc + 2
+            let target_offset = target_offset as usize;
+            assert!(target_offset <= self.position());
+            let distance = self.position() + 2 - target_offset;
+            let distance = -(distance as isize);
+            assert!(-128 <= distance && distance <= -2);
+            self.emit_u8(0x70 + condition.int());
+            self.emit_u8(distance as u8);
+        } else {
+            // forward jump
+            self.emit_u8(0x70 + condition.int());
+            self.unresolved_jumps.push(ForwardJump {
+                offset: self.position().try_into().unwrap(),
+                label: target,
+                distance: JumpDistance::Near,
+            });
+            self.emit_u8(0);
+        }
+    }
+
+    pub fn jmp(&mut self, target: Label) {
+        if let Some(target_offset) = self.offset(target) {
+            // backwards jump
+            // rip = end of current instruction = pc + 2
+            let target_offset = target_offset as usize;
+            assert!(target_offset <= self.position());
+            let distance = self.position() + 2 - target_offset;
+            let distance = -(distance as isize);
+            assert!(distance <= -2);
+
+            if distance >= -128 {
+                self.emit_u8(0xEB);
+                self.emit_u8(distance as u8);
+            } else {
+                let distance = self.position() + 5 - target_offset;
+                let distance = -(distance as isize);
+                self.emit_u8(0xE9);
+                self.emit_u32(distance as u32);
+            }
+        } else {
+            // forward jump - conservatively assume far jump
+            self.emit_u8(0xE9);
+            self.unresolved_jumps.push(ForwardJump {
+                offset: self.position().try_into().unwrap(),
+                label: target,
+                distance: JumpDistance::Far,
+            });
+            self.emit_u32(0);
+        }
+    }
+
+    pub fn jmp_near(&mut self, target: Label) {
+        if let Some(target_offset) = self.offset(target) {
+            // backwards jump
+            // rip = end of current instruction = pc + 2
+            let target_offset = target_offset as usize;
+            assert!(target_offset <= self.position());
+            let distance = self.position() + 2 - target_offset;
+            let distance = -(distance as isize);
+            assert!(-128 <= distance && distance <= -2);
+            self.emit_u8(0xEB);
+            self.emit_u8(distance as u8);
+        } else {
+            // forward jump - conservatively assume far jump
+            self.emit_u8(0xEB);
+            self.unresolved_jumps.push(ForwardJump {
+                offset: self.position().try_into().unwrap(),
+                label: target,
+                distance: JumpDistance::Near,
+            });
+            self.emit_u8(0);
+        }
+    }
+
+    pub fn jmp_r(&mut self, reg: Register) {
+        self.emit_rex32_rm_optional(reg);
+        self.emit_u8(0xff);
+        self.emit_modrm_opcode(0b100, reg);
+    }
+
     pub fn lea(&mut self, dest: Register, src: Address) {
         self.emit_rex64_modrm_address(dest, src);
         self.emit_u8(0x8D);
         self.emit_address(dest.low_bits(), src);
+    }
+
+    pub fn lock_cmpxchgq_ar(&mut self, dest: Address, src: Register) {
+        self.emit_lock_prefix();
+        self.emit_rex64_modrm_address(src, dest);
+        self.emit_u8(0x0f);
+        self.emit_u8(0xb1);
+        self.emit_address(src.low_bits(), dest);
+    }
+
+    pub fn lock_cmpxchgl_ar(&mut self, dest: Address, src: Register) {
+        self.emit_lock_prefix();
+        self.emit_rex32_modrm_address(src, dest);
+        self.emit_u8(0x0f);
+        self.emit_u8(0xb1);
+        self.emit_address(src.low_bits(), dest);
+    }
+
+    pub fn lock_xaddq_ar(&mut self, dest: Address, src: Register) {
+        self.emit_lock_prefix();
+        self.emit_rex64_modrm_address(src, dest);
+        self.emit_u8(0x0f);
+        self.emit_u8(0xc1);
+        self.emit_address(src.low_bits(), dest);
+    }
+
+    pub fn lock_xaddl_ar(&mut self, dest: Address, src: Register) {
+        self.emit_lock_prefix();
+        self.emit_rex32_modrm_address(src, dest);
+        self.emit_u8(0x0f);
+        self.emit_u8(0xc1);
+        self.emit_address(src.low_bits(), dest);
+    }
+
+    pub fn lzcntl_rr(&mut self, dest: Register, src: Register) {
+        self.emit_u8(0xf3);
+        self.emit_rex32_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0xbd);
+        self.emit_modrm_registers(dest, src);
+    }
+
+    pub fn lzcntq_rr(&mut self, dest: Register, src: Register) {
+        self.emit_u8(0xf3);
+        self.emit_rex64_modrm(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0xbd);
+        self.emit_modrm_registers(dest, src);
     }
 
     pub fn movq_rr(&mut self, dest: Register, src: Register) {
@@ -261,6 +685,38 @@ impl AssemblerX64 {
         self.emit_u8(0xc6);
         self.emit_address(0b000, dest);
         self.emit_u8(src.uint8());
+    }
+
+    pub fn movd_rx(&mut self, dest: Register, src: XmmRegister) {
+        self.emit_u8(0x66);
+        self.emit_rex_optional(false, src.needs_rex(), false, dest.needs_rex());
+        self.emit_u8(0x0f);
+        self.emit_u8(0x7e);
+        self.emit_modrm(0b11, src.low_bits(), dest.low_bits());
+    }
+
+    pub fn movd_xr(&mut self, dest: XmmRegister, src: Register) {
+        self.emit_u8(0x66);
+        self.emit_rex_optional(false, dest.needs_rex(), false, src.needs_rex());
+        self.emit_u8(0x0f);
+        self.emit_u8(0x6e);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
+    }
+
+    pub fn movq_rx(&mut self, dest: Register, src: XmmRegister) {
+        self.emit_u8(0x66);
+        self.emit_rex_optional(true, src.needs_rex(), false, dest.needs_rex());
+        self.emit_u8(0x0f);
+        self.emit_u8(0x7e);
+        self.emit_modrm(0b11, src.low_bits(), dest.low_bits());
+    }
+
+    pub fn movq_xr(&mut self, dest: XmmRegister, src: Register) {
+        self.emit_u8(0x66);
+        self.emit_rex_optional(true, dest.needs_rex(), false, src.needs_rex());
+        self.emit_u8(0x0f);
+        self.emit_u8(0x6e);
+        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
     pub fn movq_ar(&mut self, dest: Address, src: Register) {
@@ -406,185 +862,122 @@ impl AssemblerX64 {
         self.emit_address(src.low_bits(), dest);
     }
 
-    pub fn addq_rr(&mut self, dest: Register, src: Register) {
-        self.emit_rex64_modrm(src, dest);
-        self.emit_u8(0x01);
-        self.emit_modrm_registers(src, dest);
-    }
-
-    pub fn addl_ri(&mut self, dest: Register, imm: Immediate) {
-        self.emit_alu32_imm(dest, imm, 0b000, 0x05);
-    }
-
-    pub fn addq_ri(&mut self, dest: Register, imm: Immediate) {
-        self.emit_alu64_imm(dest, imm, 0b000, 0x05);
-    }
-
-    pub fn addl_rr(&mut self, dest: Register, src: Register) {
-        self.emit_rex32_optional(src, dest);
-        self.emit_u8(0x01);
-        self.emit_modrm_registers(src, dest);
-    }
-
-    pub fn addss_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
+    pub fn mulss_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
         self.emit_u8(0xf3);
         self.emit_rex_sse_modrm_optional(dest, src);
         self.emit_u8(0x0f);
-        self.emit_u8(0x58);
+        self.emit_u8(0x59);
         self.emit_modrm_sse_registers(dest, src);
     }
 
-    pub fn addsd_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
+    pub fn mulsd_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
         self.emit_u8(0xf2);
         self.emit_rex_sse_modrm_optional(dest, src);
         self.emit_u8(0x0f);
-        self.emit_u8(0x58);
+        self.emit_u8(0x59);
         self.emit_modrm_sse_registers(dest, src);
     }
 
-    pub fn subq_rr(&mut self, dest: Register, src: Register) {
-        self.emit_rex64_modrm(src, dest);
-        self.emit_u8(0x29);
-        self.emit_modrm_registers(src, dest);
+    pub fn negl(&mut self, reg: Register) {
+        self.emit_rex32_rm_optional(reg);
+        self.emit_u8(0xF7);
+        self.emit_modrm_opcode(0b011, reg);
     }
 
-    pub fn subq_ri(&mut self, dest: Register, imm: Immediate) {
-        self.emit_alu64_imm(dest, imm, 0b101, 0x2D);
+    pub fn negq(&mut self, reg: Register) {
+        self.emit_rex64_rm(reg);
+        self.emit_u8(0xF7);
+        self.emit_modrm_opcode(0b011, reg);
     }
 
-    pub fn subq_ri32(&mut self, dest: Register, imm: Immediate) {
-        self.emit_alu64_imm(dest, imm, 0b101, 0x2D);
+    pub fn nop(&mut self) {
+        self.emit_u8(0x90);
     }
 
-    pub fn subl_rr(&mut self, dest: Register, src: Register) {
+    pub fn notl(&mut self, reg: Register) {
+        self.emit_rex32_rm_optional(reg);
+        self.emit_u8(0xF7);
+        self.emit_modrm_opcode(0b010, reg);
+    }
+
+    pub fn notq(&mut self, reg: Register) {
+        self.emit_rex64_rm(reg);
+        self.emit_u8(0xF7);
+        self.emit_modrm_opcode(0b010, reg);
+    }
+
+    pub fn orl_rr(&mut self, dest: Register, src: Register) {
         self.emit_rex32_optional(src, dest);
-        self.emit_u8(0x29);
+        self.emit_u8(0x09);
         self.emit_modrm_registers(src, dest);
     }
 
-    pub fn subss_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
+    pub fn orq_rr(&mut self, dest: Register, src: Register) {
+        self.emit_rex64_modrm(src, dest);
+        self.emit_u8(0x09);
+        self.emit_modrm_registers(src, dest);
+    }
+
+    pub fn pushq_r(&mut self, reg: Register) {
+        self.emit_rex32_rm_optional(reg);
+        self.emit_u8(0x50 + reg.low_bits());
+    }
+
+    pub fn popcntl_rr(&mut self, dest: Register, src: Register) {
         self.emit_u8(0xf3);
-        self.emit_rex_sse_modrm_optional(dest, src);
+        self.emit_rex32_optional(dest, src);
         self.emit_u8(0x0f);
-        self.emit_u8(0x5c);
-        self.emit_modrm_sse_registers(dest, src);
+        self.emit_u8(0xb8);
+        self.emit_modrm_registers(dest, src);
     }
 
-    pub fn subsd_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
-        self.emit_u8(0xf2);
-        self.emit_rex_sse_modrm_optional(dest, src);
+    pub fn popcntq_rr(&mut self, dest: Register, src: Register) {
+        self.emit_u8(0xf3);
+        self.emit_rex64_modrm(dest, src);
         self.emit_u8(0x0f);
-        self.emit_u8(0x5c);
-        self.emit_modrm_sse_registers(dest, src);
+        self.emit_u8(0xb8);
+        self.emit_modrm_registers(dest, src);
     }
 
-    pub fn andl_rr(&mut self, dest: Register, src: Register) {
-        self.emit_rex32_optional(src, dest);
-        self.emit_u8(0x21);
-        self.emit_modrm_registers(src, dest);
+    pub fn popq_r(&mut self, reg: Register) {
+        self.emit_rex32_rm_optional(reg);
+        self.emit_u8(0x58 + reg.low_bits());
     }
 
-    pub fn andq_rr(&mut self, dest: Register, src: Register) {
-        self.emit_rex64_modrm(src, dest);
-        self.emit_u8(0x21);
-        self.emit_modrm_registers(src, dest);
-    }
-
-    pub fn andq_ri(&mut self, dest: Register, imm: Immediate) {
-        self.emit_alu64_imm(dest, imm, 0b100, 0x25);
-    }
-
-    pub fn cmpb_ar(&mut self, lhs: Address, rhs: Register) {
-        self.emit_rex32_byte_address(rhs, lhs);
-        self.emit_u8(0x38);
-        self.emit_address(rhs.low_bits(), lhs);
-    }
-
-    pub fn cmpb_ai(&mut self, lhs: Address, rhs: Immediate) {
-        assert!(rhs.is_int8() || rhs.is_uint8());
-        self.emit_rex32_address_optional(lhs);
-        self.emit_u8(0x80);
-        self.emit_address(0b111, lhs);
-        self.emit_u8(rhs.uint8());
-    }
-
-    pub fn cmpl_rr(&mut self, dest: Register, src: Register) {
-        self.emit_rex32_optional(src, dest);
-        self.emit_u8(0x39);
-        self.emit_modrm_registers(src, dest);
-    }
-
-    pub fn cmpl_ar(&mut self, lhs: Address, rhs: Register) {
-        self.emit_rex32_modrm_address(rhs, lhs);
-        self.emit_u8(0x39);
-        self.emit_address(rhs.low_bits(), lhs);
-    }
-
-    pub fn cmpl_ai(&mut self, lhs: Address, rhs: Immediate) {
-        assert!(rhs.is_int32() || rhs.is_uint32());
-
-        if rhs.is_int8() {
-            self.emit_rex32_address_optional(lhs);
-            self.emit_u8(0x83);
-            self.emit_address(0b111, lhs);
-            self.emit_u8(rhs.int8() as u8);
-        } else {
-            self.emit_rex32_address_optional(lhs);
-            self.emit_u8(0x81);
-            self.emit_address(0b111, lhs);
-            self.emit_u32(rhs.uint32());
-        }
-    }
-
-    pub fn cmpq_rr(&mut self, lhs: Register, rhs: Register) {
-        self.emit_rex64_modrm(rhs, lhs);
-        self.emit_u8(0x39);
-        self.emit_modrm_registers(rhs, lhs);
-    }
-
-    pub fn cmpq_ar(&mut self, lhs: Address, rhs: Register) {
-        self.emit_rex64_modrm_address(rhs, lhs);
-        self.emit_u8(0x39);
-        self.emit_address(rhs.low_bits(), lhs);
-    }
-
-    pub fn cmpq_ai(&mut self, lhs: Address, rhs: Immediate) {
-        assert!(rhs.is_int32());
-
-        if rhs.is_int8() {
-            self.emit_rex64_address(lhs);
-            self.emit_u8(0x83);
-            self.emit_address(0b111, lhs);
-            self.emit_u8(rhs.int8() as u8);
-        } else {
-            self.emit_rex64_address(lhs);
-            self.emit_u8(0x81);
-            self.emit_address(0b111, lhs);
-            self.emit_u32(rhs.int32() as u32);
-        }
-    }
-
-    pub fn cmpq_ri(&mut self, reg: Register, imm: Immediate) {
-        self.emit_alu64_imm(reg, imm, 0b111, 0x3d);
-    }
-
-    pub fn cmpl_ri(&mut self, reg: Register, imm: Immediate) {
-        self.emit_alu32_imm(reg, imm, 0b111, 0x3d);
-    }
-
-    pub fn ucomiss_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
-        self.emit_rex_sse_modrm_optional(dest, src);
-        self.emit_u8(0x0f);
-        self.emit_u8(0x2e);
-        self.emit_modrm_sse_registers(dest, src);
-    }
-
-    pub fn ucomisd_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
+    pub fn pxor_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
         self.emit_u8(0x66);
         self.emit_rex_sse_modrm_optional(dest, src);
         self.emit_u8(0x0f);
-        self.emit_u8(0x2e);
+        self.emit_u8(0xef);
         self.emit_modrm_sse_registers(dest, src);
+    }
+
+    pub fn retq(&mut self) {
+        self.emit_u8(0xC3);
+    }
+
+    pub fn roll_r(&mut self, opnd: Register) {
+        self.emit_rex32_rm_optional(opnd);
+        self.emit_u8(0xd3);
+        self.emit_modrm_opcode(0b000, opnd);
+    }
+
+    pub fn rolq_r(&mut self, opnd: Register) {
+        self.emit_rex64_rm(opnd);
+        self.emit_u8(0xd3);
+        self.emit_modrm_opcode(0b000, opnd);
+    }
+
+    pub fn rorl_r(&mut self, opnd: Register) {
+        self.emit_rex32_rm_optional(opnd);
+        self.emit_u8(0xd3);
+        self.emit_modrm_opcode(0b001, opnd);
+    }
+
+    pub fn rorq_r(&mut self, opnd: Register) {
+        self.emit_rex64_rm(opnd);
+        self.emit_u8(0xd3);
+        self.emit_modrm_opcode(0b001, opnd);
     }
 
     pub fn roundss_ri(&mut self, reg: XmmRegister, imm: Immediate) {
@@ -605,573 +998,6 @@ impl AssemblerX64 {
         self.emit_u8(0x0b);
         self.emit_modrm_sse_registers(reg, reg);
         self.emit_u8(imm.uint8());
-    }
-
-    pub fn sqrtss_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
-        self.emit_u8(0xf3);
-        self.emit_rex_sse_modrm_optional(dest, src);
-        self.emit_u8(0x0f);
-        self.emit_u8(0x51);
-        self.emit_modrm_sse_registers(dest, src);
-    }
-
-    pub fn sqrtsd_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
-        self.emit_u8(0xf2);
-        self.emit_rex_sse_modrm_optional(dest, src);
-        self.emit_u8(0x0f);
-        self.emit_u8(0x51);
-        self.emit_modrm_sse_registers(dest, src);
-    }
-
-    pub fn pxor_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
-        self.emit_u8(0x66);
-        self.emit_rex_sse_modrm_optional(dest, src);
-        self.emit_u8(0x0f);
-        self.emit_u8(0xef);
-        self.emit_modrm_sse_registers(dest, src);
-    }
-
-    pub fn orl_rr(&mut self, dest: Register, src: Register) {
-        self.emit_rex32_optional(src, dest);
-        self.emit_u8(0x09);
-        self.emit_modrm_registers(src, dest);
-    }
-
-    pub fn orq_rr(&mut self, dest: Register, src: Register) {
-        self.emit_rex64_modrm(src, dest);
-        self.emit_u8(0x09);
-        self.emit_modrm_registers(src, dest);
-    }
-
-    pub fn xchgb_ar(&mut self, dest: Address, src: Register) {
-        self.emit_rex32_byte_address(src, dest);
-        self.emit_u8(0x86);
-        self.emit_address(src.low_bits(), dest);
-    }
-
-    pub fn xchgq_ar(&mut self, dest: Address, src: Register) {
-        self.emit_rex64_modrm_address(src, dest);
-        self.emit_u8(0x87);
-        self.emit_address(src.low_bits(), dest);
-    }
-
-    pub fn xchgl_ar(&mut self, dest: Address, src: Register) {
-        self.emit_rex32_modrm_address(src, dest);
-        self.emit_u8(0x87);
-        self.emit_address(src.low_bits(), dest);
-    }
-
-    pub fn cmpxchgq_ar(&mut self, dest: Address, src: Register) {
-        self.emit_rex64_modrm_address(src, dest);
-        self.emit_u8(0x0f);
-        self.emit_u8(0xb1);
-        self.emit_address(src.low_bits(), dest);
-    }
-
-    pub fn cmpxchgl_ar(&mut self, dest: Address, src: Register) {
-        self.emit_rex32_modrm_address(src, dest);
-        self.emit_u8(0x0f);
-        self.emit_u8(0xb1);
-        self.emit_address(src.low_bits(), dest);
-    }
-
-    pub fn lock_cmpxchgq_ar(&mut self, dest: Address, src: Register) {
-        self.emit_lock_prefix();
-        self.emit_rex64_modrm_address(src, dest);
-        self.emit_u8(0x0f);
-        self.emit_u8(0xb1);
-        self.emit_address(src.low_bits(), dest);
-    }
-
-    pub fn lock_cmpxchgl_ar(&mut self, dest: Address, src: Register) {
-        self.emit_lock_prefix();
-        self.emit_rex32_modrm_address(src, dest);
-        self.emit_u8(0x0f);
-        self.emit_u8(0xb1);
-        self.emit_address(src.low_bits(), dest);
-    }
-
-    pub fn andps_ra(&mut self, dest: XmmRegister, src: Address) {
-        self.emit_rex_sse_address_optional(dest, src);
-        self.emit_u8(0x0f);
-        self.emit_u8(0x54);
-        self.emit_address(dest.low_bits(), src);
-    }
-
-    pub fn xorl_rr(&mut self, dest: Register, src: Register) {
-        self.emit_rex32_optional(src, dest);
-        self.emit_u8(0x31);
-        self.emit_modrm_registers(src, dest);
-    }
-
-    pub fn xorl_ri(&mut self, lhs: Register, rhs: Immediate) {
-        self.emit_alu32_imm(lhs, rhs, 0b110, 0x35);
-    }
-
-    pub fn xorq_rr(&mut self, dest: Register, src: Register) {
-        self.emit_rex64_modrm(src, dest);
-        self.emit_u8(0x31);
-        self.emit_modrm_registers(src, dest);
-    }
-
-    pub fn xorps_ra(&mut self, dest: XmmRegister, src: Address) {
-        self.emit_rex_sse_address_optional(dest, src);
-        self.emit_u8(0x0f);
-        self.emit_u8(0x57);
-        self.emit_address(dest.low_bits(), src);
-    }
-
-    pub fn xorps_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
-        self.emit_rex_sse_modrm_optional(dest, src);
-        self.emit_u8(0x0f);
-        self.emit_u8(0x57);
-        self.emit_modrm_sse_registers(dest, src);
-    }
-
-    pub fn xorpd_ra(&mut self, dest: XmmRegister, src: Address) {
-        self.emit_u8(0x66);
-        self.emit_rex_sse_address_optional(dest, src);
-        self.emit_u8(0x0f);
-        self.emit_u8(0x57);
-        self.emit_address(dest.low_bits(), src);
-    }
-
-    pub fn testl_rr(&mut self, lhs: Register, rhs: Register) {
-        self.emit_rex32_optional(rhs, lhs);
-        self.emit_u8(0x85);
-        self.emit_modrm_registers(rhs, lhs);
-    }
-
-    pub fn testl_ri(&mut self, lhs: Register, rhs: Immediate) {
-        assert!(rhs.is_int32());
-
-        if rhs.is_uint8() {
-            if lhs == RAX {
-                self.emit_u8(0xa8);
-            } else if lhs.value() < 4 {
-                self.emit_u8(0xf6);
-                self.emit_modrm_opcode(0b000, lhs);
-            } else {
-                self.emit_rex(false, false, false, lhs.needs_rex());
-                self.emit_u8(0xf6);
-                self.emit_modrm_opcode(0b000, lhs);
-            }
-            self.emit_u8(rhs.uint8());
-        } else if lhs == RAX {
-            self.emit_u8(0xa9);
-            self.emit_u32(rhs.int32() as u32);
-        } else {
-            self.emit_u8(0xf7);
-            self.emit_modrm_opcode(0b000, lhs);
-            self.emit_u32(rhs.int32() as u32);
-        }
-    }
-
-    pub fn testl_ar(&mut self, lhs: Address, rhs: Register) {
-        self.emit_rex32_modrm_address(rhs, lhs);
-        self.emit_u8(0x85);
-        self.emit_address(rhs.low_bits(), lhs);
-    }
-
-    pub fn testl_ai(&mut self, lhs: Address, rhs: Immediate) {
-        assert!(rhs.is_int32());
-        self.emit_rex32_address_optional(lhs);
-        self.emit_u8(0xf7);
-        self.emit_address(0b000, lhs);
-        self.emit_u32(rhs.int32() as u32);
-    }
-
-    pub fn testq_rr(&mut self, lhs: Register, rhs: Register) {
-        self.emit_rex64_modrm(rhs, lhs);
-        self.emit_u8(0x85);
-        self.emit_modrm_registers(rhs, lhs);
-    }
-
-    pub fn testq_ar(&mut self, lhs: Address, rhs: Register) {
-        self.emit_rex64_modrm_address(rhs, lhs);
-        self.emit_u8(0x85);
-        self.emit_address(rhs.low_bits(), lhs);
-    }
-
-    pub fn testq_ai(&mut self, lhs: Address, rhs: Immediate) {
-        assert!(rhs.is_int32());
-        self.emit_rex64_address(lhs);
-        self.emit_u8(0xf7);
-        self.emit_address(0b000, lhs);
-        self.emit_u32(rhs.int32() as u32);
-    }
-
-    pub fn imull_rr(&mut self, dest: Register, src: Register) {
-        self.emit_rex32_optional(dest, src);
-        self.emit_u8(0x0F);
-        self.emit_u8(0xAF);
-        self.emit_modrm_registers(dest, src);
-    }
-
-    pub fn imulq_rr(&mut self, dest: Register, src: Register) {
-        self.emit_rex64_modrm(dest, src);
-        self.emit_u8(0x0F);
-        self.emit_u8(0xAF);
-        self.emit_modrm_registers(dest, src);
-    }
-
-    pub fn mulss_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
-        self.emit_u8(0xf3);
-        self.emit_rex_sse_modrm_optional(dest, src);
-        self.emit_u8(0x0f);
-        self.emit_u8(0x59);
-        self.emit_modrm_sse_registers(dest, src);
-    }
-
-    pub fn mulsd_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
-        self.emit_u8(0xf2);
-        self.emit_rex_sse_modrm_optional(dest, src);
-        self.emit_u8(0x0f);
-        self.emit_u8(0x59);
-        self.emit_modrm_sse_registers(dest, src);
-    }
-
-    pub fn divss_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
-        self.emit_u8(0xf3);
-        self.emit_rex_sse_modrm_optional(dest, src);
-        self.emit_u8(0x0f);
-        self.emit_u8(0x5e);
-        self.emit_modrm_sse_registers(dest, src);
-    }
-
-    pub fn divsd_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
-        self.emit_u8(0xf2);
-        self.emit_rex_sse_modrm_optional(dest, src);
-        self.emit_u8(0x0f);
-        self.emit_u8(0x5e);
-        self.emit_modrm_sse_registers(dest, src);
-    }
-
-    pub fn idivl_r(&mut self, reg: Register) {
-        self.emit_rex32_rm_optional(reg);
-        self.emit_u8(0xF7);
-        self.emit_modrm_opcode(0b111, reg);
-    }
-
-    pub fn idivq_r(&mut self, src: Register) {
-        self.emit_rex64_rm(src);
-        self.emit_u8(0xF7);
-        self.emit_modrm_opcode(0b111, src);
-    }
-
-    pub fn call_r(&mut self, reg: Register) {
-        self.emit_rex32_rm_optional(reg);
-        self.emit_u8(0xFF);
-        self.emit_modrm_opcode(0b010, reg);
-    }
-
-    pub fn cdq(&mut self) {
-        self.emit_u8(0x99);
-    }
-
-    pub fn cqo(&mut self) {
-        self.emit_rex64();
-        self.emit_u8(0x99);
-    }
-
-    pub fn negl(&mut self, reg: Register) {
-        self.emit_rex32_rm_optional(reg);
-        self.emit_u8(0xF7);
-        self.emit_modrm_opcode(0b011, reg);
-    }
-
-    pub fn negq(&mut self, reg: Register) {
-        self.emit_rex64_rm(reg);
-        self.emit_u8(0xF7);
-        self.emit_modrm_opcode(0b011, reg);
-    }
-
-    pub fn notl(&mut self, reg: Register) {
-        self.emit_rex32_rm_optional(reg);
-        self.emit_u8(0xF7);
-        self.emit_modrm_opcode(0b010, reg);
-    }
-
-    pub fn notq(&mut self, reg: Register) {
-        self.emit_rex64_rm(reg);
-        self.emit_u8(0xF7);
-        self.emit_modrm_opcode(0b010, reg);
-    }
-
-    pub fn jcc(&mut self, condition: Condition, target: Label) {
-        if let Some(target_offset) = self.offset(target) {
-            // backwards jump
-            // rip = end of current instruction = pc + 2
-            let target_offset = target_offset as usize;
-            assert!(target_offset <= self.position());
-            let distance = self.position() + 2 - target_offset;
-            let distance = -(distance as isize);
-            assert!(distance <= -2);
-
-            if distance >= -128 {
-                self.emit_u8(0x70 + condition.int());
-                self.emit_u8(distance as u8);
-            } else {
-                let distance = self.position() + 6 - target_offset;
-                let distance = -(distance as isize);
-                self.emit_u8(0x0F);
-                self.emit_u8(0x80 + condition.int());
-                self.emit_u32(distance as u32);
-            }
-        } else {
-            // forward jump - conservatively assume far jump
-            self.emit_u8(0x0F);
-            self.emit_u8(0x80 + condition.int());
-            self.unresolved_jumps.push(ForwardJump {
-                offset: self.position().try_into().unwrap(),
-                label: target,
-                distance: JumpDistance::Far,
-            });
-            self.emit_u32(0);
-        }
-    }
-
-    pub fn jcc_near(&mut self, condition: Condition, target: Label) {
-        if let Some(target_offset) = self.offset(target) {
-            // backwards jump
-            // rip = end of current instruction = pc + 2
-            let target_offset = target_offset as usize;
-            assert!(target_offset <= self.position());
-            let distance = self.position() + 2 - target_offset;
-            let distance = -(distance as isize);
-            assert!(-128 <= distance && distance <= -2);
-            self.emit_u8(0x70 + condition.int());
-            self.emit_u8(distance as u8);
-        } else {
-            // forward jump
-            self.emit_u8(0x70 + condition.int());
-            self.unresolved_jumps.push(ForwardJump {
-                offset: self.position().try_into().unwrap(),
-                label: target,
-                distance: JumpDistance::Near,
-            });
-            self.emit_u8(0);
-        }
-    }
-
-    pub fn jmp(&mut self, target: Label) {
-        if let Some(target_offset) = self.offset(target) {
-            // backwards jump
-            // rip = end of current instruction = pc + 2
-            let target_offset = target_offset as usize;
-            assert!(target_offset <= self.position());
-            let distance = self.position() + 2 - target_offset;
-            let distance = -(distance as isize);
-            assert!(distance <= -2);
-
-            if distance >= -128 {
-                self.emit_u8(0xEB);
-                self.emit_u8(distance as u8);
-            } else {
-                let distance = self.position() + 5 - target_offset;
-                let distance = -(distance as isize);
-                self.emit_u8(0xE9);
-                self.emit_u32(distance as u32);
-            }
-        } else {
-            // forward jump - conservatively assume far jump
-            self.emit_u8(0xE9);
-            self.unresolved_jumps.push(ForwardJump {
-                offset: self.position().try_into().unwrap(),
-                label: target,
-                distance: JumpDistance::Far,
-            });
-            self.emit_u32(0);
-        }
-    }
-
-    pub fn jmp_near(&mut self, target: Label) {
-        if let Some(target_offset) = self.offset(target) {
-            // backwards jump
-            // rip = end of current instruction = pc + 2
-            let target_offset = target_offset as usize;
-            assert!(target_offset <= self.position());
-            let distance = self.position() + 2 - target_offset;
-            let distance = -(distance as isize);
-            assert!(-128 <= distance && distance <= -2);
-            self.emit_u8(0xEB);
-            self.emit_u8(distance as u8);
-        } else {
-            // forward jump - conservatively assume far jump
-            self.emit_u8(0xEB);
-            self.unresolved_jumps.push(ForwardJump {
-                offset: self.position().try_into().unwrap(),
-                label: target,
-                distance: JumpDistance::Near,
-            });
-            self.emit_u8(0);
-        }
-    }
-
-    pub fn jmp_r(&mut self, reg: Register) {
-        self.emit_rex32_rm_optional(reg);
-        self.emit_u8(0xff);
-        self.emit_modrm_opcode(0b100, reg);
-    }
-
-    pub fn tzcntl_rr(&mut self, dest: Register, src: Register) {
-        self.emit_u8(0xf3);
-        self.emit_rex32_optional(dest, src);
-        self.emit_u8(0x0f);
-        self.emit_u8(0xbc);
-        self.emit_modrm_registers(dest, src);
-    }
-
-    pub fn tzcntq_rr(&mut self, dest: Register, src: Register) {
-        self.emit_u8(0xf3);
-        self.emit_rex64_modrm(dest, src);
-        self.emit_u8(0x0f);
-        self.emit_u8(0xbc);
-        self.emit_modrm_registers(dest, src);
-    }
-
-    pub fn lzcntl_rr(&mut self, dest: Register, src: Register) {
-        self.emit_u8(0xf3);
-        self.emit_rex32_optional(dest, src);
-        self.emit_u8(0x0f);
-        self.emit_u8(0xbd);
-        self.emit_modrm_registers(dest, src);
-    }
-
-    pub fn lzcntq_rr(&mut self, dest: Register, src: Register) {
-        self.emit_u8(0xf3);
-        self.emit_rex64_modrm(dest, src);
-        self.emit_u8(0x0f);
-        self.emit_u8(0xbd);
-        self.emit_modrm_registers(dest, src);
-    }
-
-    pub fn popcntl_rr(&mut self, dest: Register, src: Register) {
-        self.emit_u8(0xf3);
-        self.emit_rex32_optional(dest, src);
-        self.emit_u8(0x0f);
-        self.emit_u8(0xb8);
-        self.emit_modrm_registers(dest, src);
-    }
-
-    pub fn popcntq_rr(&mut self, dest: Register, src: Register) {
-        self.emit_u8(0xf3);
-        self.emit_rex64_modrm(dest, src);
-        self.emit_u8(0x0f);
-        self.emit_u8(0xb8);
-        self.emit_modrm_registers(dest, src);
-    }
-
-    pub fn cvtsd2ss_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
-        self.emit_u8(0xf2);
-        self.emit_rex_sse_modrm_optional(dest, src);
-        self.emit_u8(0x0f);
-        self.emit_u8(0x5a);
-        self.emit_modrm_sse_registers(dest, src);
-    }
-
-    pub fn cvtss2sd_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
-        self.emit_u8(0xf3);
-        self.emit_rex_sse_modrm_optional(dest, src);
-        self.emit_u8(0x0f);
-        self.emit_u8(0x5a);
-        self.emit_modrm_sse_registers(dest, src);
-    }
-
-    pub fn cvtsi2ssd_rr(&mut self, dest: XmmRegister, src: Register) {
-        self.emit_u8(0xf3);
-        self.emit_rex_optional(false, dest.needs_rex(), false, src.needs_rex());
-        self.emit_u8(0x0f);
-        self.emit_u8(0x2a);
-        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
-    }
-
-    pub fn cvtsi2ssq_rr(&mut self, dest: XmmRegister, src: Register) {
-        self.emit_u8(0xf3);
-        self.emit_rex_optional(true, dest.needs_rex(), false, src.needs_rex());
-        self.emit_u8(0x0f);
-        self.emit_u8(0x2a);
-        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
-    }
-
-    pub fn cvtsi2sdd_rr(&mut self, dest: XmmRegister, src: Register) {
-        self.emit_u8(0xf2);
-        self.emit_rex_optional(false, dest.needs_rex(), false, src.needs_rex());
-        self.emit_u8(0x0f);
-        self.emit_u8(0x2a);
-        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
-    }
-
-    pub fn cvtsi2sdq_rr(&mut self, dest: XmmRegister, src: Register) {
-        self.emit_u8(0xf2);
-        self.emit_rex_optional(true, dest.needs_rex(), false, src.needs_rex());
-        self.emit_u8(0x0f);
-        self.emit_u8(0x2a);
-        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
-    }
-
-    pub fn cvttss2sid_rr(&mut self, dest: Register, src: XmmRegister) {
-        self.emit_u8(0xf3);
-        self.emit_rex_optional(false, dest.needs_rex(), false, src.needs_rex());
-        self.emit_u8(0x0f);
-        self.emit_u8(0x2c);
-        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
-    }
-
-    pub fn cvttss2siq_rr(&mut self, dest: Register, src: XmmRegister) {
-        self.emit_u8(0xf3);
-        self.emit_rex_optional(true, dest.needs_rex(), false, src.needs_rex());
-        self.emit_u8(0x0f);
-        self.emit_u8(0x2c);
-        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
-    }
-
-    pub fn cvttsd2sid_rr(&mut self, dest: Register, src: XmmRegister) {
-        self.emit_u8(0xf2);
-        self.emit_rex_optional(false, dest.needs_rex(), false, src.needs_rex());
-        self.emit_u8(0x0f);
-        self.emit_u8(0x2c);
-        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
-    }
-
-    pub fn cvttsd2siq_rr(&mut self, dest: Register, src: XmmRegister) {
-        self.emit_u8(0xf2);
-        self.emit_rex_optional(true, dest.needs_rex(), false, src.needs_rex());
-        self.emit_u8(0x0f);
-        self.emit_u8(0x2c);
-        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
-    }
-
-    pub fn movd_rx(&mut self, dest: Register, src: XmmRegister) {
-        self.emit_u8(0x66);
-        self.emit_rex_optional(false, src.needs_rex(), false, dest.needs_rex());
-        self.emit_u8(0x0f);
-        self.emit_u8(0x7e);
-        self.emit_modrm(0b11, src.low_bits(), dest.low_bits());
-    }
-
-    pub fn movd_xr(&mut self, dest: XmmRegister, src: Register) {
-        self.emit_u8(0x66);
-        self.emit_rex_optional(false, dest.needs_rex(), false, src.needs_rex());
-        self.emit_u8(0x0f);
-        self.emit_u8(0x6e);
-        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
-    }
-
-    pub fn movq_rx(&mut self, dest: Register, src: XmmRegister) {
-        self.emit_u8(0x66);
-        self.emit_rex_optional(true, src.needs_rex(), false, dest.needs_rex());
-        self.emit_u8(0x0f);
-        self.emit_u8(0x7e);
-        self.emit_modrm(0b11, src.low_bits(), dest.low_bits());
-    }
-
-    pub fn movq_xr(&mut self, dest: XmmRegister, src: Register) {
-        self.emit_u8(0x66);
-        self.emit_rex_optional(true, dest.needs_rex(), false, src.needs_rex());
-        self.emit_u8(0x0f);
-        self.emit_u8(0x6e);
-        self.emit_modrm(0b11, dest.low_bits(), src.low_bits());
     }
 
     pub fn shrl_ri(&mut self, lhs: Register, rhs: Immediate) {
@@ -1258,28 +1084,218 @@ impl AssemblerX64 {
         self.emit_u8(rhs.int8() as u8);
     }
 
-    pub fn roll_r(&mut self, opnd: Register) {
-        self.emit_rex32_rm_optional(opnd);
-        self.emit_u8(0xd3);
-        self.emit_modrm_opcode(0b000, opnd);
+    pub fn subq_rr(&mut self, dest: Register, src: Register) {
+        self.emit_rex64_modrm(src, dest);
+        self.emit_u8(0x29);
+        self.emit_modrm_registers(src, dest);
     }
 
-    pub fn rolq_r(&mut self, opnd: Register) {
-        self.emit_rex64_rm(opnd);
-        self.emit_u8(0xd3);
-        self.emit_modrm_opcode(0b000, opnd);
+    pub fn subq_ri(&mut self, dest: Register, imm: Immediate) {
+        self.emit_alu64_imm(dest, imm, 0b101, 0x2D);
     }
 
-    pub fn rorl_r(&mut self, opnd: Register) {
-        self.emit_rex32_rm_optional(opnd);
-        self.emit_u8(0xd3);
-        self.emit_modrm_opcode(0b001, opnd);
+    pub fn subq_ri32(&mut self, dest: Register, imm: Immediate) {
+        self.emit_alu64_imm(dest, imm, 0b101, 0x2D);
     }
 
-    pub fn rorq_r(&mut self, opnd: Register) {
-        self.emit_rex64_rm(opnd);
-        self.emit_u8(0xd3);
-        self.emit_modrm_opcode(0b001, opnd);
+    pub fn subl_rr(&mut self, dest: Register, src: Register) {
+        self.emit_rex32_optional(src, dest);
+        self.emit_u8(0x29);
+        self.emit_modrm_registers(src, dest);
+    }
+
+    pub fn subss_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
+        self.emit_u8(0xf3);
+        self.emit_rex_sse_modrm_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x5c);
+        self.emit_modrm_sse_registers(dest, src);
+    }
+
+    pub fn subsd_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
+        self.emit_u8(0xf2);
+        self.emit_rex_sse_modrm_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x5c);
+        self.emit_modrm_sse_registers(dest, src);
+    }
+
+    pub fn sqrtss_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
+        self.emit_u8(0xf3);
+        self.emit_rex_sse_modrm_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x51);
+        self.emit_modrm_sse_registers(dest, src);
+    }
+
+    pub fn sqrtsd_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
+        self.emit_u8(0xf2);
+        self.emit_rex_sse_modrm_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x51);
+        self.emit_modrm_sse_registers(dest, src);
+    }
+
+    pub fn setcc_r(&mut self, condition: Condition, dest: Register) {
+        if dest.needs_rex() || dest.low_bits() > 3 {
+            self.emit_rex(false, false, false, dest.needs_rex());
+        }
+
+        self.emit_u8(0x0F);
+        self.emit_u8((0x90 + condition.int()) as u8);
+        self.emit_modrm_opcode(0, dest);
+    }
+
+    pub fn testl_rr(&mut self, lhs: Register, rhs: Register) {
+        self.emit_rex32_optional(rhs, lhs);
+        self.emit_u8(0x85);
+        self.emit_modrm_registers(rhs, lhs);
+    }
+
+    pub fn testl_ri(&mut self, lhs: Register, rhs: Immediate) {
+        assert!(rhs.is_int32());
+
+        if rhs.is_uint8() {
+            if lhs == RAX {
+                self.emit_u8(0xa8);
+            } else if lhs.value() < 4 {
+                self.emit_u8(0xf6);
+                self.emit_modrm_opcode(0b000, lhs);
+            } else {
+                self.emit_rex(false, false, false, lhs.needs_rex());
+                self.emit_u8(0xf6);
+                self.emit_modrm_opcode(0b000, lhs);
+            }
+            self.emit_u8(rhs.uint8());
+        } else if lhs == RAX {
+            self.emit_u8(0xa9);
+            self.emit_u32(rhs.int32() as u32);
+        } else {
+            self.emit_u8(0xf7);
+            self.emit_modrm_opcode(0b000, lhs);
+            self.emit_u32(rhs.int32() as u32);
+        }
+    }
+
+    pub fn testl_ar(&mut self, lhs: Address, rhs: Register) {
+        self.emit_rex32_modrm_address(rhs, lhs);
+        self.emit_u8(0x85);
+        self.emit_address(rhs.low_bits(), lhs);
+    }
+
+    pub fn testl_ai(&mut self, lhs: Address, rhs: Immediate) {
+        assert!(rhs.is_int32());
+        self.emit_rex32_address_optional(lhs);
+        self.emit_u8(0xf7);
+        self.emit_address(0b000, lhs);
+        self.emit_u32(rhs.int32() as u32);
+    }
+
+    pub fn testq_rr(&mut self, lhs: Register, rhs: Register) {
+        self.emit_rex64_modrm(rhs, lhs);
+        self.emit_u8(0x85);
+        self.emit_modrm_registers(rhs, lhs);
+    }
+
+    pub fn testq_ar(&mut self, lhs: Address, rhs: Register) {
+        self.emit_rex64_modrm_address(rhs, lhs);
+        self.emit_u8(0x85);
+        self.emit_address(rhs.low_bits(), lhs);
+    }
+
+    pub fn testq_ai(&mut self, lhs: Address, rhs: Immediate) {
+        assert!(rhs.is_int32());
+        self.emit_rex64_address(lhs);
+        self.emit_u8(0xf7);
+        self.emit_address(0b000, lhs);
+        self.emit_u32(rhs.int32() as u32);
+    }
+
+    pub fn tzcntl_rr(&mut self, dest: Register, src: Register) {
+        self.emit_u8(0xf3);
+        self.emit_rex32_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0xbc);
+        self.emit_modrm_registers(dest, src);
+    }
+
+    pub fn tzcntq_rr(&mut self, dest: Register, src: Register) {
+        self.emit_u8(0xf3);
+        self.emit_rex64_modrm(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0xbc);
+        self.emit_modrm_registers(dest, src);
+    }
+
+    pub fn ucomiss_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
+        self.emit_rex_sse_modrm_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x2e);
+        self.emit_modrm_sse_registers(dest, src);
+    }
+
+    pub fn ucomisd_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
+        self.emit_u8(0x66);
+        self.emit_rex_sse_modrm_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x2e);
+        self.emit_modrm_sse_registers(dest, src);
+    }
+
+    pub fn xchgb_ar(&mut self, dest: Address, src: Register) {
+        self.emit_rex32_byte_address(src, dest);
+        self.emit_u8(0x86);
+        self.emit_address(src.low_bits(), dest);
+    }
+
+    pub fn xchgq_ar(&mut self, dest: Address, src: Register) {
+        self.emit_rex64_modrm_address(src, dest);
+        self.emit_u8(0x87);
+        self.emit_address(src.low_bits(), dest);
+    }
+
+    pub fn xchgl_ar(&mut self, dest: Address, src: Register) {
+        self.emit_rex32_modrm_address(src, dest);
+        self.emit_u8(0x87);
+        self.emit_address(src.low_bits(), dest);
+    }
+
+    pub fn xorl_rr(&mut self, dest: Register, src: Register) {
+        self.emit_rex32_optional(src, dest);
+        self.emit_u8(0x31);
+        self.emit_modrm_registers(src, dest);
+    }
+
+    pub fn xorl_ri(&mut self, lhs: Register, rhs: Immediate) {
+        self.emit_alu32_imm(lhs, rhs, 0b110, 0x35);
+    }
+
+    pub fn xorq_rr(&mut self, dest: Register, src: Register) {
+        self.emit_rex64_modrm(src, dest);
+        self.emit_u8(0x31);
+        self.emit_modrm_registers(src, dest);
+    }
+
+    pub fn xorps_ra(&mut self, dest: XmmRegister, src: Address) {
+        self.emit_rex_sse_address_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x57);
+        self.emit_address(dest.low_bits(), src);
+    }
+
+    pub fn xorps_rr(&mut self, dest: XmmRegister, src: XmmRegister) {
+        self.emit_rex_sse_modrm_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x57);
+        self.emit_modrm_sse_registers(dest, src);
+    }
+
+    pub fn xorpd_ra(&mut self, dest: XmmRegister, src: Address) {
+        self.emit_u8(0x66);
+        self.emit_rex_sse_address_optional(dest, src);
+        self.emit_u8(0x0f);
+        self.emit_u8(0x57);
+        self.emit_address(dest.low_bits(), src);
     }
 
     pub fn xaddq_ar(&mut self, dest: Address, src: Register) {
@@ -1290,22 +1306,6 @@ impl AssemblerX64 {
     }
 
     pub fn xaddl_ar(&mut self, dest: Address, src: Register) {
-        self.emit_rex32_modrm_address(src, dest);
-        self.emit_u8(0x0f);
-        self.emit_u8(0xc1);
-        self.emit_address(src.low_bits(), dest);
-    }
-
-    pub fn lock_xaddq_ar(&mut self, dest: Address, src: Register) {
-        self.emit_lock_prefix();
-        self.emit_rex64_modrm_address(src, dest);
-        self.emit_u8(0x0f);
-        self.emit_u8(0xc1);
-        self.emit_address(src.low_bits(), dest);
-    }
-
-    pub fn lock_xaddl_ar(&mut self, dest: Address, src: Register) {
-        self.emit_lock_prefix();
         self.emit_rex32_modrm_address(src, dest);
         self.emit_u8(0x0f);
         self.emit_u8(0xc1);
