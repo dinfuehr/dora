@@ -21,6 +21,11 @@ pub(super) fn document_symbol_request(server_state: &mut ServerState, request: R
                 .expect("file path expected");
             if let Some(content) = server_state.opened_files.get(&path) {
                 let content = content.clone();
+                eprintln!(
+                    "got file for {} with {} lines",
+                    path.display(),
+                    content.lines().count()
+                );
                 let sender = server_state.threadpool_sender.clone();
 
                 server_state.threadpool.execute(move || {

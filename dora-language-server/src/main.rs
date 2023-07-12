@@ -204,6 +204,7 @@ fn handle_main_loop_task(
 fn handle_message(server_state: &mut ServerState, msg: Message) {
     match msg {
         Message::Notification(notification) => {
+            eprintln!("received notification {}", notification.method);
             if notification.method == "textDocument/didChange" {
                 did_change_notification(server_state, notification);
             } else if notification.method == "textDocument/didOpen" {
@@ -219,6 +220,7 @@ fn handle_message(server_state: &mut ServerState, msg: Message) {
         }
 
         Message::Request(request) => {
+            eprintln!("received request {}", request.method);
             if request.method == "textDocument/documentSymbol" {
                 document_symbol_request(server_state, request);
             } else {
@@ -231,19 +233,24 @@ fn handle_message(server_state: &mut ServerState, msg: Message) {
     }
 }
 
-fn did_change_notification(_server_state: &mut ServerState, notification: Notification) {
+fn did_change_notification(server_state: &mut ServerState, notification: Notification) {
     let result =
         serde_json::from_value::<lsp_types::DidChangeTextDocumentParams>(notification.params);
     match result {
-        Ok(_result) => {
-            // let uri = result.text_document.uri;
-            // let content = result.content_changes[0].text.clone();
-            // let version = result.text_document.version;
-            // let sender = server_state.threadpool_sender.clone();
+        Ok(result) => {
+            let path = result
+                .text_document
+                .uri
+                .to_file_path()
+                .expect("file path expected");
+            let content = Arc::new(result.content_changes[0].text.clone());
+            eprintln!(
+                "CHANGE: {} --> {} lines",
+                path.display(),
+                content.lines().count(),
+            );
 
-            // server_state.threadpool.execute(move || {
-            //     check_file(uri, content, version, sender);
-            // })
+            server_state.opened_files.insert(path, content);
         }
 
         Err(_) => {
