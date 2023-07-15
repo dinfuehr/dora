@@ -559,6 +559,8 @@ pub class Inst {
 
     ty: Type,
 
+    location_data: Option[LocationData],
+
     useListHead: Option[Input],
     useListTail: Option[Input],
 
@@ -577,6 +579,7 @@ impl Inst {
             None[Inst],
             None[Inst],
             Type::Unit,
+            None[LocationData],
             None[Input],
             None[Input],
             Vec[Input]::new(),
@@ -834,6 +837,16 @@ impl Inst {
             Op::Arg => false,
         }
     }
+}
+
+class LocationData {
+    inputs: Vec[Location],
+    temps: Vec[Location],
+    output: Location,
+}
+
+struct Location {
+    value: UInt8,
 }
 
 class UseIterator {
