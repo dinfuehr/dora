@@ -1,38 +1,55 @@
-use package::interface::{Architecture, CompilationInfo};
-use package::graph::Graph;
-use package::graph_builder::createGraph;
+use package::assembler::RegSet;
+use package::codegen::CodeGen;
 use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
+use package::graph::{Graph, LocationData};
+use package::graph_builder::createGraph;
+use package::interface::{Architecture, CompilationInfo};
 
-pub class CompilationJob {
-    compilation_info: CompilationInfo,
-    graph: Option[Graph],
+pub fn compile_function(ci: CompilationInfo): Array[UInt8] {
+    let graph = createGraph(ci.bc);
+    let codegen = createCodeGen(ci);
+
+    ensureLocationData(graph);
+    allocateRegisters(graph, codegen);
+    generate(graph, codegen)
 }
 
-impl CompilationJob {
-    static pub fn new(info: CompilationInfo): CompilationJob {
-        CompilationJob(info, None[Graph])
-    }
-
-    pub fn run(): Array[UInt8] {
-        self.createGraph();
-        self.optimizeGraph();
-        self.assembleCode()
-    }
-
-    fn createGraph() {
-        let graph = createGraph(self.compilation_info.bc);
-        self.graph = Some(graph);
-    }
-
-    fn optimizeGraph() {
-        // TODO
-    }
-
-    fn assembleCode(): Array[UInt8] {
-        match self.compilation_info.arch {
-            Architecture::X64 => CodeGenX64::new(self.compilation_info).generate(),
-            Architecture::Arm64 => CodeGenArm64::new(self.compilation_info).generate(),
+fn ensureLocationData(graph: Graph) {
+    for block in graph.insertionOrderIterator() {
+        for inst in block.instructionsIterator() {
+            inst.setLocationData(LocationData::new());
         }
+    }
+}
+
+fn allocateRegisters(graph: Graph, codegen: CodeGen) {
+    let available_registers = codegen.allocatable_registers();
+    for block in graph.insertionOrderIterator() {
+        for inst in block.instructionsIterator() {
+            let loc = inst.getLocationData();
+            let register = available_registers.acquire().getOrPanic();
+            loc.output = Some(register);
+        }
+    }
+}
+
+fn generate(graph: Graph, codegen: CodeGen): Array[UInt8] {
+    codegen.prolog();
+
+    for block in graph.insertionOrderIterator() {
+        for inst in block.instructionsIterator() {
+
+        }
+    }
+
+    codegen.epilog();
+    codegen.finalize()
+}
+
+fn createCodeGen(ci: CompilationInfo): CodeGen {
+    match ci.arch {
+        Architecture::X64 => CodeGenX64::new(ci) as CodeGen,
+        Architecture::Arm64 => CodeGenArm64::new(ci) as CodeGen,
     }
 }

@@ -1,7 +1,9 @@
 use package::interface::CompilationInfo;
 use package::interface::Architecture;
+use package::codegen::CodeGen;
 use package::assembler::arm64::AssemblerArm64;
-use package::assembler::Label;
+use package::assembler::arm64::{R0, R1, R2};
+use package::assembler::{Label, RegSet};
 
 pub class CodeGenArm64 {
   info: CompilationInfo,
@@ -15,6 +17,25 @@ impl CodeGenArm64 {
 
   pub fn generate(): Array[UInt8] {
     assert(self.info.arch == Architecture::Arm64);
+    self.asm.ret();
+    self.asm.finalize()
+  }
+}
+
+impl CodeGen for CodeGenArm64 {
+  fn allocatable_registers(): RegSet {
+    RegSet::new(R0, R1, R2)
+  }
+
+  fn prolog() {
+
+  }
+
+  fn epilog() {
+
+  }
+
+  fn finalize(): Array[UInt8] {
     self.asm.ret();
     self.asm.finalize()
   }

@@ -2,6 +2,7 @@ use std::Hash;
 use std::Equals;
 use std::BitVec;
 
+use package::assembler::Register;
 use package::graph::ty::Type;
 use package::bytecode::data::GlobalId;
 use package::dominator::buildDominatorTree;
@@ -788,6 +789,14 @@ impl Inst {
         self.block2.getOrPanic()
     }
 
+    pub fn setLocationData(data: LocationData) {
+        self.location_data = Some(data);
+    }
+
+    pub fn getLocationData(): LocationData {
+        self.location_data.getOrPanic()
+    }
+
     pub fn hasSideEffects(): Bool {
         match self.op() {
             Op::NullConst => false,
@@ -839,14 +848,30 @@ impl Inst {
     }
 }
 
-class LocationData {
+pub class LocationData {
     inputs: Vec[Location],
     temps: Vec[Location],
-    output: Location,
+    output: Option[Register],
+}
+
+impl LocationData {
+    pub static fn new(): LocationData {
+        LocationData(
+            Vec[Location]::new(),
+            Vec[Location]::new(),
+            None[Register],
+        )
+    }
 }
 
 struct Location {
     value: UInt8,
+}
+
+impl Location {
+    static fn new(): Location {
+        Location(0u8)
+    }
 }
 
 class UseIterator {

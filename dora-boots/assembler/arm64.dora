@@ -3,41 +3,41 @@ use package::assembler::Label;
 use package::assembler::MachineCode;
 use package::assembler::Register;
 
-let R0: Register = Register(0i32);
-let R1: Register = Register(1i32);
-let R2: Register = Register(2i32);
-let R3: Register = Register(3i32);
-let R4: Register = Register(4i32);
-let R5: Register = Register(5i32);
-let R6: Register = Register(6i32);
-let R7: Register = Register(7i32);
-let R8: Register = Register(8i32);
-let R9: Register = Register(9i32);
-let R10: Register = Register(10i32);
-let R11: Register = Register(11i32);
-let R12: Register = Register(12i32);
-let R13: Register = Register(13i32);
-let R14: Register = Register(14i32);
-let R15: Register = Register(15i32);
+pub let R0: Register = Register(0u8);
+pub let R1: Register = Register(1u8);
+pub let R2: Register = Register(2u8);
+pub let R3: Register = Register(3u8);
+pub let R4: Register = Register(4u8);
+pub let R5: Register = Register(5u8);
+pub let R6: Register = Register(6u8);
+pub let R7: Register = Register(7u8);
+pub let R8: Register = Register(8u8);
+pub let R9: Register = Register(9u8);
+pub let R10: Register = Register(10u8);
+pub let R11: Register = Register(11u8);
+pub let R12: Register = Register(12u8);
+pub let R13: Register = Register(13u8);
+pub let R14: Register = Register(14u8);
+pub let R15: Register = Register(15u8);
 
-let R16: Register = Register(16i32);
-let R17: Register = Register(17i32);
-let R18: Register = Register(18i32);
-let R19: Register = Register(19i32);
-let R20: Register = Register(20i32);
-let R21: Register = Register(21i32);
-let R22: Register = Register(22i32);
-let R23: Register = Register(23i32);
-let R24: Register = Register(24i32);
-let R25: Register = Register(25i32);
-let R26: Register = Register(26i32);
-let R27: Register = Register(27i32);
-let R28: Register = Register(28i32);
-let R29: Register = Register(29i32);
-let R30: Register = Register(30i32);
+pub let R16: Register = Register(16u8);
+pub let R17: Register = Register(17u8);
+pub let R18: Register = Register(18u8);
+pub let R19: Register = Register(19u8);
+pub let R20: Register = Register(20u8);
+pub let R21: Register = Register(21u8);
+pub let R22: Register = Register(22u8);
+pub let R23: Register = Register(23u8);
+pub let R24: Register = Register(24u8);
+pub let R25: Register = Register(25u8);
+pub let R26: Register = Register(26u8);
+pub let R27: Register = Register(27u8);
+pub let R28: Register = Register(28u8);
+pub let R29: Register = Register(29u8);
+pub let R30: Register = Register(30u8);
 
-let REG_ZERO: Register = Register(32i32);
-let REG_SP: Register = Register(33i32);
+let REG_ZERO: Register = Register(32u8);
+let REG_SP: Register = Register(33u8);
 
 let REG_FP: Register = R29;
 let REG_LR: Register = R30;
@@ -2087,7 +2087,7 @@ impl AssemblerArm64 {
 
 impl Register {
     fn isGpr(): Bool {
-        self.value <= 30i32
+        self.value <= 30u8
     }
 
     fn isGprOrZero(): Bool {
@@ -2100,14 +2100,14 @@ impl Register {
 
     fn encoding(): Int32 {
         assert(self.isGpr());
-        self.value
+        self.value.toInt32()
     }
 
     fn encodingZero(): Int32 {
         assert(self.isGprOrZero());
 
         if self.isGpr() {
-            self.value
+            self.value.toInt32()
         } else {
             31i32
         }
@@ -2117,7 +2117,7 @@ impl Register {
         assert(self.isGprOrSp());
 
         if self.isGpr() {
-            self.value
+            self.value.toInt32()
         } else {
             31i32
         }

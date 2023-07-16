@@ -3,23 +3,23 @@ use package::assembler::Label;
 use package::assembler::MachineCode;
 use package::assembler::Register;
 
-pub let RAX: Register = Register(0i32);
-pub let RCX: Register = Register(1i32);
-pub let RDX: Register = Register(2i32);
-pub let RBX: Register = Register(3i32);
-pub let RSP: Register = Register(4i32);
-pub let RBP: Register = Register(5i32);
-pub let RSI: Register = Register(6i32);
-pub let RDI: Register = Register(7i32);
+pub let RAX: Register = Register(0u8);
+pub let RCX: Register = Register(1u8);
+pub let RDX: Register = Register(2u8);
+pub let RBX: Register = Register(3u8);
+pub let RSP: Register = Register(4u8);
+pub let RBP: Register = Register(5u8);
+pub let RSI: Register = Register(6u8);
+pub let RDI: Register = Register(7u8);
 
-pub let R8: Register = Register(8i32);
-pub let R9: Register = Register(9i32);
-pub let R10: Register = Register(10i32);
-pub let R11: Register = Register(11i32);
-pub let R12: Register = Register(12i32);
-pub let R13: Register = Register(13i32);
-pub let R14: Register = Register(14i32);
-pub let R15: Register = Register(15i32);
+pub let R8: Register = Register(8u8);
+pub let R9: Register = Register(9u8);
+pub let R10: Register = Register(10u8);
+pub let R11: Register = Register(11u8);
+pub let R12: Register = Register(12u8);
+pub let R13: Register = Register(13u8);
+pub let R14: Register = Register(14u8);
+pub let R15: Register = Register(15u8);
 
 pub let XMM0: XmmRegister = XmmRegister(0i32);
 pub let XMM1: XmmRegister = XmmRegister(1i32);
@@ -1030,7 +1030,7 @@ impl AssemblerX64 {
         if imm.isUInt8() {
             if lhs == RAX {
                 self.emitByte(0xA8u8);
-            } else if lhs.value < 4i32 {
+            } else if lhs.value < 4u8 {
                 self.emitByte(0xF6u8);
                 self.emitModRmOpcode(0b000i32, lhs);
             } else {
@@ -1237,7 +1237,7 @@ impl AssemblerX64 {
     }
 
     fn emitRex32ModRmByteOptional(modrm_reg: Register, modrm_rm: Register) {
-        if modrm_reg.needsRexBit() || modrm_rm.needsRexBit() || modrm_rm.value > 3i32 {
+        if modrm_reg.needsRexBit() || modrm_rm.needsRexBit() || modrm_rm.value > 3u8 {
             self.emitRex(false, modrm_reg.needsRexBit(), false, modrm_rm.needsRexBit());
         }
     }
@@ -1250,7 +1250,7 @@ impl AssemblerX64 {
     }
 
     fn emitRex32ModRmAddressByteOptional(reg: Register, address: Address) {
-        if address.rex != 0u8 || reg.value > 3i32 {
+        if address.rex != 0u8 || reg.value > 3u8 {
             let rex = 0x40i32 | address.rex.toInt32() | if reg.needsRexBit() { 0x04i32 } else { 0i32 };
             self.emitByte(rex.toUInt8());
         };
@@ -1730,8 +1730,8 @@ fn testConditionCodes() {
 }
 
 impl Register {
-    fn lowBits(): Int32 { self.value & 0b111i32 }
-    fn needsRexBit(): Bool { self.value > 7i32 }
+    fn lowBits(): Int32 { self.value.toInt32() & 0b111i32 }
+    fn needsRexBit(): Bool { self.value > 7u8 }
 }
 
 mod tests {

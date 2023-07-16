@@ -3783,3 +3783,18 @@ fn f() { ''; }
         ErrorMessage::InvalidCharLiteral,
     );
 }
+
+#[test]
+fn immutable_struct_fields() {
+    err(
+        "
+        struct Foo(value: Int64)
+
+        fn f(f: Foo) {
+            f.value = 10;
+        }
+    ",
+        (5, 13),
+        ErrorMessage::StructFieldImmutable,
+    );
+}

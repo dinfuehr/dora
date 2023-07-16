@@ -1164,6 +1164,18 @@ impl<'a> TypeCheck<'a> {
             }
         }
 
+        if object_type.is_struct() {
+            self.sa
+                .report(self.file_id, e.span, ErrorMessage::StructFieldImmutable);
+
+            // We want to see syntax expressions in the assignment expressions even when we can't
+            // find the given field.
+            self.check_expr(&e.rhs, SourceType::Any);
+
+            self.analysis.set_ty(e.id, SourceType::Unit);
+            return;
+        }
+
         // We want to see syntax expressions in the assignment expressions even when we can't
         // find the given field.
         self.check_expr(&e.rhs, SourceType::Any);

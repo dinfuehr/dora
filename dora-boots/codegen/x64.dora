@@ -1,6 +1,7 @@
 use package::assembler::x64::AssemblerX64;
-use package::assembler::x64::RBP;
-use package::assembler::x64::RSP;
+use package::assembler::x64::{RAX, RDI, RSI, RBP, RSP};
+use package::assembler::RegSet;
+use package::codegen::CodeGen;
 use package::interface::CompilationInfo;
 use package::interface::Architecture;
 
@@ -13,19 +14,25 @@ impl CodeGenX64 {
     pub static fn new(info: CompilationInfo): CodeGenX64 {
         CodeGenX64(info, AssemblerX64::new())
     }
+}
 
-    pub fn prolog() {
+impl CodeGen for CodeGenX64 {
+    fn allocatable_registers(): RegSet {
+        RegSet::new(RAX, RDI, RSI)
+    }
+
+    fn prolog() {
         self.asm.pushq_r(RBP);
         self.asm.movq_rr(RBP, RSP);
     }
 
-    pub fn epilog() {
+    fn epilog() {
         self.asm.movq_rr(RSP, RBP);
         self.asm.popq_r(RBP);
         self.asm.retq();
     }
 
-    pub fn generate(): Array[UInt8] {
+    fn finalize(): Array[UInt8] {
         assert(self.info.arch == Architecture::X64);
         self.prolog();
         self.epilog();

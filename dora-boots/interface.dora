@@ -5,15 +5,13 @@ use package::deserializer::decodeCompilationInfo;
 use package::deserializer::ByteReader;
 use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
-use package::pipeline::CompilationJob;
+use package::pipeline::compile_function;
 
 pub fn compile(encoded: Array[UInt8]): Array[UInt8] {
     let reader = ByteReader::new(encoded);
     let ci = decodeCompilationInfo(reader);
     assert(!reader.moreBytes());
-    // bytecodeDump(info.bc);
-
-    CompilationJob::new(ci).run()
+    compile_function(ci)
 }
 
 pub class CompilationInfo(

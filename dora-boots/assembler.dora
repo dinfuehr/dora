@@ -119,7 +119,7 @@ fn testAssemblerBufferEmitInt() {
     assert(buffer.size() == 4i64);
 }
 
-pub struct Register(value: Int32)
+pub struct Register(value: UInt8)
 
 impl Register {
     fn equals(rhs: Register): Bool {
@@ -142,5 +142,49 @@ impl MachineCode {
             self.bytes(idx+1i64).toInt32() << 8i32 |
             self.bytes(idx+2i64).toInt32() << 16i32 |
             self.bytes(idx+3i64).toInt32() << 24i32
+    }
+}
+
+pub class RegSet {
+    value: Int64,
+}
+
+impl RegSet {
+    pub static fn new(registers: Register...): RegSet {
+        let rs = RegSet(0);
+
+        for reg in registers {
+            rs.add(reg);
+        }
+
+        rs
+    }
+
+    pub fn add(reg: Register) {
+        let value = reg.value.toInt32();
+        assert(value < 64i32);
+        self.value = self.value | (1 << value);
+    }
+
+    pub fn contains(reg: Register): Bool {
+        let value = reg.value.toInt32();
+        assert(value < 64i32);
+        (self.value & (1 << value)) != 0
+    }
+
+    pub fn remove(reg: Register) {
+        let value = reg.value.toInt32();
+        assert(value < 64i32);
+        self.value = self.value & !(1 << value);
+    }
+
+    pub fn acquire(): Option[Register] {
+        let idx = self.value.countZeroBitsTrailing();
+
+        if idx == 64i32 {
+            None[Register]
+        } else {
+            Some[Register](Register(idx.toUInt8()))
+        }
     }
 }

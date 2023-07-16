@@ -1,0 +1,8 @@
+//= boots
+//= ignore
+
+fn main() {
+    f();
+}
+
+@optimizeImmediately fn f(): Int64 { 12 }

@@ -123,6 +123,7 @@ pub enum ErrorMessage {
     NoSuperClass(String),
     NotAccessible(String),
     StructConstructorNotAccessible(String),
+    StructFieldImmutable,
     ClassConstructorNotAccessible(String),
     NotAccessibleInModule(String, String),
     RecursiveStructure,
@@ -290,6 +291,9 @@ impl ErrorMessage {
                     "struct `{}({})` cannot be called as `{}({})`",
                     struct_, def, struct_, expr
                 )
+            }
+            ErrorMessage::StructFieldImmutable => {
+                format!("struct fields are not mutable.")
             }
             ErrorMessage::EnumArgsNoParens(ref name, ref variant) => {
                 format!("{}::{} needs to be used without parens.", name, variant)

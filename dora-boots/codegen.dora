@@ -1,2 +1,11 @@
+use package::assembler::RegSet;
+
 pub mod arm64;
 pub mod x64;
+
+pub trait CodeGen {
+    fn allocatable_registers(): RegSet;
+    fn prolog();
+    fn epilog();
+    fn finalize(): Array[UInt8];
+}
