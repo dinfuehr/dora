@@ -9,6 +9,7 @@ use std::ops::Deref;
 pub struct Args {
     pub flag_emit_asm: Option<String>,
     pub flag_emit_asm_file: bool,
+    pub flag_emit_asm_boots: bool,
     pub flag_emit_compiler: bool,
     pub flag_emit_stubs: bool,
     pub flag_enable_perf: bool,
@@ -116,7 +117,7 @@ impl Deref for MemSize {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum CompilerName {
     Cannon,
     Boots,

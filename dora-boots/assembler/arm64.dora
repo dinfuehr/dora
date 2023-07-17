@@ -36,11 +36,11 @@ pub let R28: Register = Register(28u8);
 pub let R29: Register = Register(29u8);
 pub let R30: Register = Register(30u8);
 
-let REG_ZERO: Register = Register(32u8);
-let REG_SP: Register = Register(33u8);
+pub let REG_ZERO: Register = Register(32u8);
+pub let REG_SP: Register = Register(33u8);
 
-let REG_FP: Register = R29;
-let REG_LR: Register = R30;
+pub let REG_FP: Register = R29;
+pub let REG_LR: Register = R30;
 
 const FLOAT_TYPE_SINGLE: Int32 = 0b00;
 const FLOAT_TYPE_DOUBLE: Int32 = 0b01;

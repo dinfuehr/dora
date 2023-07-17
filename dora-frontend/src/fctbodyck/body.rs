@@ -2850,6 +2850,8 @@ impl<'a> TypeCheck<'a> {
         let variant = &enum_.variants[variant_idx as usize];
 
         if !variant.types.is_empty() {
+            println!("pos = {}", expr_span);
+            println!("line = {}", self.sa.compute_loc(self.file_id, expr_span));
             let enum_name = self.sa.interner.str(enum_.name).to_string();
             let variant_name = self.sa.interner.str(variant.name).to_string();
             let variant_types = variant

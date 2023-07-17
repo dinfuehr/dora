@@ -2,7 +2,11 @@
 //= ignore
 
 fn main() {
-    f();
+    let x = f();
+    assert(x == 12);
+    let x = g();
+    assert(x == 13);
 }
 
 @optimizeImmediately fn f(): Int64 { 12 }
+@optimizeImmediately fn g(): Int64 { 13 }

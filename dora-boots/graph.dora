@@ -605,6 +605,10 @@ impl Inst {
         self.inputs
     }
 
+    pub fn getInput(idx: Int64): Input {
+        self.inputs(0)
+    }
+
     pub fn isPhi(): Bool {
         self.op() == Op::Phi
     }
@@ -851,7 +855,7 @@ impl Inst {
 pub class LocationData {
     inputs: Vec[Location],
     temps: Vec[Location],
-    output: Option[Register],
+    output: Option[Location],
 }
 
 impl LocationData {
@@ -859,18 +863,36 @@ impl LocationData {
         LocationData(
             Vec[Location]::new(),
             Vec[Location]::new(),
-            None[Register],
+            None[Location],
         )
+    }
+
+    pub fn setOutputNeeded() {
+        self.output = Some[Location](Location::new());
+    }
+
+    pub fn output(): Option[Location] {
+        self.output
     }
 }
 
-struct Location {
-    value: UInt8,
+class Location {
+    register: Option[Register],
 }
 
 impl Location {
     static fn new(): Location {
-        Location(0u8)
+        Location(
+            None[Register],
+        )
+    }
+
+    pub fn setRegister(register: Register) {
+        self.register = Some(register);
+    }
+
+    pub fn getRegister(): Register {
+        self.register.getOrPanic()
     }
 }
 

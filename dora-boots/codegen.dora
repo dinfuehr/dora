@@ -1,4 +1,5 @@
 use package::assembler::RegSet;
+use package::graph::Inst;
 
 pub mod arm64;
 pub mod x64;
@@ -6,6 +7,7 @@ pub mod x64;
 pub trait CodeGen {
     fn allocatable_registers(): RegSet;
     fn prolog();
+    fn emit(inst: Inst);
     fn epilog();
     fn finalize(): Array[UInt8];
 }

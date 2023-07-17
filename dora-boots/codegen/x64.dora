@@ -1,9 +1,10 @@
-use package::assembler::x64::AssemblerX64;
+use package::assembler::x64::{AssemblerX64, Immediate};
 use package::assembler::x64::{RAX, RDI, RSI, RBP, RSP};
 use package::assembler::RegSet;
 use package::codegen::CodeGen;
 use package::interface::CompilationInfo;
 use package::interface::Architecture;
+use package::graph::{Inst, Op};
 
 pub class CodeGenX64 {
     info: CompilationInfo,
@@ -24,6 +25,33 @@ impl CodeGen for CodeGenX64 {
     fn prolog() {
         self.asm.pushq_r(RBP);
         self.asm.movq_rr(RBP, RSP);
+    }
+
+    fn emit(inst: Inst) {
+        let loc = inst.getLocationData();
+
+        match inst.op() {
+            Op::Int64Const => {
+                let register = loc.output().getOrPanic().getRegister();
+                self.asm.movq_ri(register, Immediate(inst.auxAsInt64()));
+            },
+
+            Op::Return => {
+                if !inst.getInputs().isEmpty() {
+                    let value = inst.getInput(0).getValue();
+                    let register = value.getLocationData().output().getOrPanic().getRegister();
+                    self.asm.movq_rr(RAX, register);
+                }
+
+                self.asm.movq_rr(RSP, RBP);
+                self.asm.popq_r(RBP);
+                self.asm.retq();
+            },
+
+            _ => {
+                unreachable[()]();
+            }
+        }
     }
 
     fn epilog() {

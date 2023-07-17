@@ -63,6 +63,7 @@ pub struct Args {
     pub flag_emit_ast: Option<String>,
     pub flag_output: Option<String>,
     pub flag_emit_asm: Option<String>,
+    pub flag_emit_asm_boots: bool,
     pub flag_emit_asm_file: bool,
     pub flag_emit_bytecode: Option<String>,
     pub flag_emit_compiler: bool,
@@ -112,6 +113,7 @@ impl Default for Args {
             flag_output: None,
             flag_emit_ast: None,
             flag_emit_asm: None,
+            flag_emit_asm_boots: false,
             flag_emit_asm_file: false,
             flag_emit_bytecode: None,
             flag_emit_compiler: false,
@@ -209,6 +211,8 @@ pub fn parse_arguments() -> Result<Args, String> {
             args.flag_emit_asm = Some(argument_value(arg).into());
         } else if arg == "--emit-asm-file" {
             args.flag_emit_asm_file = true;
+        } else if arg == "--emit-asm-boots" {
+            args.flag_emit_asm_boots = true;
         } else if arg.starts_with("--emit-bytecode=") {
             args.flag_emit_bytecode = Some(argument_value(arg).into());
         } else if arg == "--emit-stubs" {
@@ -388,6 +392,7 @@ pub fn print_help() {
 pub fn create_vm_args(args: &Args) -> VmArgs {
     VmArgs {
         flag_emit_asm: args.flag_emit_asm.clone(),
+        flag_emit_asm_boots: args.flag_emit_asm_boots,
         flag_emit_asm_file: args.flag_emit_asm_file,
         flag_emit_compiler: args.flag_emit_compiler,
         flag_emit_stubs: args.flag_emit_stubs,

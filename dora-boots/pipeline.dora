@@ -2,7 +2,7 @@ use package::assembler::RegSet;
 use package::codegen::CodeGen;
 use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
-use package::graph::{Graph, LocationData};
+use package::graph::{Graph, LocationData, Op};
 use package::graph_builder::createGraph;
 use package::interface::{Architecture, CompilationInfo};
 
@@ -18,7 +18,21 @@ pub fn compile_function(ci: CompilationInfo): Array[UInt8] {
 fn ensureLocationData(graph: Graph) {
     for block in graph.insertionOrderIterator() {
         for inst in block.instructionsIterator() {
-            inst.setLocationData(LocationData::new());
+            let loc = LocationData::new();
+
+            match inst.op() {
+                Op::Int64Const => {
+                    loc.setOutputNeeded();
+                },
+
+                Op::Return => {
+                    // no output needed
+                },
+
+                _ => {}
+            }
+
+            inst.setLocationData(loc);
         }
     }
 }
@@ -28,8 +42,11 @@ fn allocateRegisters(graph: Graph, codegen: CodeGen) {
     for block in graph.insertionOrderIterator() {
         for inst in block.instructionsIterator() {
             let loc = inst.getLocationData();
-            let register = available_registers.acquire().getOrPanic();
-            loc.output = Some(register);
+            if loc.output().isSome() {
+                let output = loc.output().getOrPanic();
+                let register = available_registers.acquire().getOrPanic();
+                output.setRegister(register);
+            }
         }
     }
 }
@@ -39,7 +56,7 @@ fn generate(graph: Graph, codegen: CodeGen): Array[UInt8] {
 
     for block in graph.insertionOrderIterator() {
         for inst in block.instructionsIterator() {
-
+            codegen.emit(inst);
         }
     }
 

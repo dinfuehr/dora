@@ -33,7 +33,7 @@ pub fn generate_fct(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray
     let bytecode_fct = program_fct.bytecode.as_ref().expect("bytecode missing");
 
     let emit_debug = should_emit_debug(vm, fct_id);
-    let emit_asm = should_emit_asm(vm, fct_id);
+    let emit_asm = should_emit_asm(vm, fct_id, compiler);
     let mut start = None;
 
     if vm.args.flag_emit_compiler {
@@ -117,7 +117,7 @@ pub fn generate_thunk(
     };
 
     let emit_debug = should_emit_debug(vm, trait_fct_id);
-    let emit_asm = should_emit_asm(vm, trait_fct_id);
+    let emit_asm = should_emit_asm(vm, trait_fct_id, compiler);
     let mut start = None;
 
     if vm.args.flag_emit_compiler {
@@ -194,9 +194,13 @@ pub fn should_emit_debug(vm: &VM, fct_id: FunctionId) -> bool {
     }
 }
 
-pub fn should_emit_asm(vm: &VM, fct_id: FunctionId) -> bool {
+pub fn should_emit_asm(vm: &VM, fct_id: FunctionId, compiler: CompilerName) -> bool {
     if !disassembler::supported() {
         return false;
+    }
+
+    if compiler == CompilerName::Boots && vm.args.flag_emit_asm_boots {
+        return true;
     }
 
     if let Some(ref dbg_names) = vm.args.flag_emit_asm {
@@ -292,7 +296,7 @@ pub fn ensure_native_stub(vm: &VM, fct_id: Option<FunctionId>, native_fct: Nativ
         let code = dora_exit_stubs::generate(vm, native_fct, dbg);
 
         if let Some(fct_id) = fct_id {
-            if should_emit_asm(vm, fct_id) {
+            if should_emit_asm(vm, fct_id, CompilerName::Cannon) {
                 disassembler::disassemble(vm, fct_id, &BytecodeTypeArray::empty(), &code);
             }
         }

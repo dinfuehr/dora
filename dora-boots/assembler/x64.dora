@@ -599,7 +599,7 @@ impl AssemblerX64 {
         self.emitAddress(dest.lowBits(), src);
     }
 
-    fn movq_ri(dest: Register, imm: Immediate) {
+    pub fn movq_ri(dest: Register, imm: Immediate) {
         if imm.isInt32() {
             self.emitRex64RmField(dest);
             self.emitByte(0xC7u8);
@@ -1489,7 +1489,7 @@ impl Condition {
     }
 }
 
-struct Immediate(value: Int64)
+pub struct Immediate(pub value: Int64)
 
 impl Immediate {
     fn isInt8(): Bool {

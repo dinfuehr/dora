@@ -2,8 +2,9 @@ use package::interface::CompilationInfo;
 use package::interface::Architecture;
 use package::codegen::CodeGen;
 use package::assembler::arm64::AssemblerArm64;
-use package::assembler::arm64::{R0, R1, R2};
+use package::assembler::arm64::{R0, R1, R2, REG_FP, REG_SP, REG_LR};
 use package::assembler::{Label, RegSet};
+use package::graph::{Inst, Op};
 
 pub class CodeGenArm64 {
   info: CompilationInfo,
@@ -28,11 +29,44 @@ impl CodeGen for CodeGenArm64 {
   }
 
   fn prolog() {
+    self.asm
+        .stp_pre(REG_FP, REG_LR, REG_SP, -16i32);
+    self.asm.mov(REG_FP, REG_SP);
+  }
 
+  fn emit(inst: Inst) {
+    let loc = inst.getLocationData();
+
+    match inst.op() {
+      Op::Int64Const => {
+        let register = loc.output().getOrPanic().getRegister();
+        self.asm.movz(register, inst.auxAsInt64().toInt32(), 0i32);
+      },
+
+      Op::Return => {
+        if !inst.getInputs().isEmpty() {
+            let value = inst.getInput(0).getValue();
+            let register = value.getLocationData().output().getOrPanic().getRegister();
+            self.asm.mov(R0, register);
+        }
+
+        self.asm.mov(REG_SP, REG_FP);
+        self.asm
+            .ldp_post(REG_FP, REG_LR, REG_SP, 16i32);
+        self.asm.ret();
+      },
+
+      _ => {
+        unreachable[()]();
+      }
+    }
   }
 
   fn epilog() {
-
+    self.asm.mov(REG_SP, REG_FP);
+    self.asm
+        .ldp_post(REG_FP, REG_LR, REG_SP, 16i32);
+    self.asm.ret();
   }
 
   fn finalize(): Array[UInt8] {
