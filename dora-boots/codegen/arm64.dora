@@ -1,6 +1,6 @@
 use package::interface::CompilationInfo;
 use package::interface::Architecture;
-use package::codegen::CodeGen;
+use package::codegen::{CodeGen, CodeDescriptor, CommentTable};
 use package::assembler::arm64::AssemblerArm64;
 use package::assembler::arm64::{R0, R1, R2, REG_FP, REG_SP, REG_LR};
 use package::assembler::{Label, RegSet};
@@ -24,7 +24,7 @@ impl CodeGenArm64 {
 }
 
 impl CodeGen for CodeGenArm64 {
-  fn allocatable_registers(): RegSet {
+  fn allocatableRegisters(): RegSet {
     RegSet::new(R0, R1, R2)
   }
 
@@ -69,8 +69,12 @@ impl CodeGen for CodeGenArm64 {
     self.asm.ret();
   }
 
-  fn finalize(): Array[UInt8] {
-    self.asm.ret();
-    self.asm.finalize()
+  fn finalize(): CodeDescriptor {
+    let code = self.asm.finalize();
+
+    CodeDescriptor(
+      code,
+      CommentTable::new(),
+    )
   }
 }

@@ -1,3 +1,5 @@
+use std::collections::VecIter;
+
 use package::assembler::RegSet;
 use package::graph::Inst;
 
@@ -5,9 +7,38 @@ pub mod arm64;
 pub mod x64;
 
 pub trait CodeGen {
-    fn allocatable_registers(): RegSet;
+    fn allocatableRegisters(): RegSet;
     fn prolog();
     fn emit(inst: Inst);
     fn epilog();
-    fn finalize(): Array[UInt8];
+    fn finalize(): CodeDescriptor;
+}
+
+pub class CodeDescriptor {
+    pub code: Array[UInt8],
+    pub comments: CommentTable,
+}
+
+pub class CommentTable {
+    entries: Vec[(Int32, String)],
+}
+
+impl CommentTable {
+    pub static fn new(): CommentTable {
+        CommentTable(
+            Vec[(Int32, String)]::new(),
+        )
+    }
+
+    pub fn insert(offset: Int32, comment: String) {
+        self.entries.push((offset, comment));
+    }
+
+    pub fn size(): Int64 {
+        self.entries.size()
+    }
+
+    pub fn makeIterator(): VecIter[(Int32, String)] {
+        self.entries.makeIterator()
+    }
 }

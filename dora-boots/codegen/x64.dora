@@ -1,7 +1,7 @@
 use package::assembler::x64::{AssemblerX64, Immediate};
 use package::assembler::x64::{RAX, RDI, RSI, RBP, RSP};
 use package::assembler::RegSet;
-use package::codegen::CodeGen;
+use package::codegen::{CodeGen, CodeDescriptor, CommentTable};
 use package::interface::CompilationInfo;
 use package::interface::Architecture;
 use package::graph::{Inst, Op};
@@ -18,7 +18,7 @@ impl CodeGenX64 {
 }
 
 impl CodeGen for CodeGenX64 {
-    fn allocatable_registers(): RegSet {
+    fn allocatableRegisters(): RegSet {
         RegSet::new(RAX, RDI, RSI)
     }
 
@@ -60,10 +60,12 @@ impl CodeGen for CodeGenX64 {
         self.asm.retq();
     }
 
-    fn finalize(): Array[UInt8] {
-        assert(self.info.arch == Architecture::X64);
-        self.prolog();
-        self.epilog();
-        self.asm.finalize()
+    fn finalize(): CodeDescriptor {
+        let code = self.asm.finalize();
+
+        CodeDescriptor(
+            code,
+            CommentTable::new(),
+        )
     }
 }

@@ -38,20 +38,6 @@ pub struct CodeDescriptor {
     pub relocations: RelocationTable,
 }
 
-impl CodeDescriptor {
-    pub fn from_buffer(code: Vec<u8>) -> CodeDescriptor {
-        CodeDescriptor {
-            constpool: ConstPool::new(),
-            code,
-            lazy_compilation: LazyCompilationData::new(),
-            gcpoints: GcPointTable::new(),
-            comments: CommentTable::new(),
-            positions: LocationTable::new(),
-            relocations: RelocationTable::new(),
-        }
-    }
-}
-
 pub enum Mem {
     // rbp + val1
     Local(i32),

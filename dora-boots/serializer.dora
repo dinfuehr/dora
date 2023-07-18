@@ -1,0 +1,58 @@
+use package::codegen::{CodeDescriptor, CommentTable};
+
+pub fn encodeCodeDescriptor(writer: ByteWriter, descriptor: CodeDescriptor) {
+    encodeArrayUInt8(writer, descriptor.code);
+    encodeCommentTable(writer, descriptor.comments);
+}
+
+pub fn encodeArrayUInt8(writer: ByteWriter, array: Array[UInt8]) {
+    writer.emitInt32(array.size().toInt32());
+
+    for value in array {
+        writer.emitByte(value);
+    }
+}
+
+pub fn encodeCommentTable(writer: ByteWriter, table: CommentTable) {
+    writer.emitInt32(table.size().toInt32());
+
+    for (offset, comment) in table {
+        writer.emitInt32(offset);
+        encodeString(writer, comment);
+    }
+}
+
+pub fn encodeString(writer: ByteWriter, value: String) {
+    writer.emitInt32(value.size().toInt32());
+
+    for byte in value.asBytes() {
+        writer.emitByte(byte);
+    }
+}
+
+pub class ByteWriter {
+    buffer: Vec[UInt8],
+}
+
+impl ByteWriter {
+    pub static fn new(): ByteWriter {
+        ByteWriter(
+            Vec[UInt8]::new(),
+        )
+    }
+
+    pub fn emitInt32(value: Int32) {
+        self.buffer.push(value.toUInt8());
+        self.buffer.push((value >> 8i32).toUInt8());
+        self.buffer.push((value >> 16i32).toUInt8());
+        self.buffer.push((value >> 24i32).toUInt8());
+    }
+
+    pub fn emitByte(value: UInt8) {
+        self.buffer.push(value);
+    }
+
+    pub fn toArray(): Array[UInt8] {
+        self.buffer.toArray()
+    }
+}

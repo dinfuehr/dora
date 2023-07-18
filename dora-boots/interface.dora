@@ -5,13 +5,17 @@ use package::deserializer::decodeCompilationInfo;
 use package::deserializer::ByteReader;
 use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
-use package::pipeline::compile_function;
+use package::compileFunction;
+use package::serializer::{ByteWriter, encodeCodeDescriptor};
 
 pub fn compile(encoded: Array[UInt8]): Array[UInt8] {
     let reader = ByteReader::new(encoded);
     let ci = decodeCompilationInfo(reader);
     assert(!reader.moreBytes());
-    compile_function(ci)
+    let code = compileFunction(ci);
+    let writer = ByteWriter::new();
+    encodeCodeDescriptor(writer, code);
+    writer.toArray()
 }
 
 pub class CompilationInfo(

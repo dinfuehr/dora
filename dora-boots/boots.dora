@@ -1,4 +1,12 @@
-use interface::compile;
+use package::assembler::RegSet;
+use package::codegen::CodeGen;
+use package::codegen::x64::CodeGenX64;
+use package::codegen::arm64::CodeGenArm64;
+use package::codegen::CodeDescriptor;
+use package::graph::{Graph, LocationData, Op};
+use package::graph_builder::createGraph;
+use package::interface::{Architecture, CompilationInfo};
+use package::interface::compile;
 
 mod assembler;
 mod bytecode;
@@ -9,7 +17,72 @@ mod dominator_test;
 mod dominator;
 mod graph;
 mod interface;
-mod pipeline;
 mod graph_builder_tests;
 mod graph_builder;
+mod serializer;
 
+pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
+    let graph = createGraph(ci.bc);
+    let codegen = createCodeGen(ci);
+
+    ensureLocationData(graph);
+    allocateRegisters(graph, codegen);
+    generate(graph, codegen)
+}
+
+fn ensureLocationData(graph: Graph) {
+    for block in graph.insertionOrderIterator() {
+        for inst in block.instructionsIterator() {
+            let loc = LocationData::new();
+
+            match inst.op() {
+                Op::Int64Const => {
+                    loc.setOutputNeeded();
+                },
+
+                Op::Return => {
+                    // no output needed
+                },
+
+                _ => {}
+            }
+
+            inst.setLocationData(loc);
+        }
+    }
+}
+
+fn allocateRegisters(graph: Graph, codegen: CodeGen) {
+    let available_registers = codegen.allocatableRegisters();
+
+    for block in graph.insertionOrderIterator() {
+        for inst in block.instructionsIterator() {
+            let loc = inst.getLocationData();
+            if loc.output().isSome() {
+                let output = loc.output().getOrPanic();
+                let register = available_registers.acquire().getOrPanic();
+                output.setRegister(register);
+            }
+        }
+    }
+}
+
+fn generate(graph: Graph, codegen: CodeGen): CodeDescriptor {
+    codegen.prolog();
+
+    for block in graph.insertionOrderIterator() {
+        for inst in block.instructionsIterator() {
+            codegen.emit(inst);
+        }
+    }
+
+    codegen.epilog();
+    codegen.finalize()
+}
+
+fn createCodeGen(ci: CompilationInfo): CodeGen {
+    match ci.arch {
+        Architecture::X64 => CodeGenX64::new(ci) as CodeGen,
+        Architecture::Arm64 => CodeGenArm64::new(ci) as CodeGen,
+    }
+}

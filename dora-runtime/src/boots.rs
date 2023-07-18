@@ -2,6 +2,7 @@ use std::mem;
 use std::ptr;
 
 use crate::boots::data::InstructionSet;
+use crate::boots::deserializer::{decode_code_descriptor, ByteReader};
 use crate::boots::serializer::allocate_encoded_compilation_info;
 use crate::cannon::CompilationFlags;
 use crate::compiler::codegen::CompilationData;
@@ -13,6 +14,7 @@ use crate::threads::current_thread;
 use crate::vm::VM;
 
 mod data;
+mod deserializer;
 mod serializer;
 
 pub fn compile(
@@ -41,17 +43,20 @@ pub fn compile(
         compile_address,
         encoded_compilation_info.direct_ptr(),
     ));
-    let mut code = vec![0; machine_code.len()];
+    let mut serialized_data = vec![0; machine_code.len()];
 
     unsafe {
         ptr::copy_nonoverlapping(
             machine_code.data() as *mut u8,
-            code.as_mut_ptr(),
+            serialized_data.as_mut_ptr(),
             machine_code.len(),
         );
     }
 
-    CodeDescriptor::from_buffer(code)
+    let mut reader = ByteReader::new(serialized_data);
+    let code = decode_code_descriptor(&mut reader);
+    assert!(!reader.has_more());
+    code
 }
 
 fn get_architecture() -> InstructionSet {
