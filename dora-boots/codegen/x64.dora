@@ -4,7 +4,7 @@ use package::assembler::RegSet;
 use package::codegen::{CodeGen, CodeDescriptor, CommentTable};
 use package::interface::CompilationInfo;
 use package::interface::Architecture;
-use package::graph::{Inst, Op};
+use package::graph::{Inst, Op, LocationData};
 
 pub class CodeGenX64 {
     info: CompilationInfo,
@@ -27,10 +27,34 @@ impl CodeGen for CodeGenX64 {
         self.asm.movq_rr(RBP, RSP);
     }
 
+  fn setLocationConstraints(inst: Inst) {
+    let loc = LocationData::new();
+
+    match inst.op() {
+        Op::Arg => {
+            loc.setOutputRegister(RDI);
+        },
+
+        Op::Int64Const => {
+            loc.setOutputNeeded();
+        },
+
+        Op::Return => {
+            // no output needed
+        },
+
+        _ => {}
+    }
+
+    inst.setLocationData(loc);
+  }
+
     fn emit(inst: Inst) {
         let loc = inst.getLocationData();
 
         match inst.op() {
+            Op::Arg => {},
+
             Op::Int64Const => {
                 let register = loc.output().getOrPanic().getRegister();
                 self.asm.movq_ri(register, Immediate(inst.auxAsInt64()));

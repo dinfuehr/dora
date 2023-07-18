@@ -25,29 +25,15 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
     let graph = createGraph(ci.bc);
     let codegen = createCodeGen(ci);
 
-    ensureLocationData(graph);
+    ensureLocationData(graph, codegen);
     allocateRegisters(graph, codegen);
     generate(graph, codegen)
 }
 
-fn ensureLocationData(graph: Graph) {
+fn ensureLocationData(graph: Graph, codegen: CodeGen) {
     for block in graph.insertionOrderIterator() {
         for inst in block.instructionsIterator() {
-            let loc = LocationData::new();
-
-            match inst.op() {
-                Op::Int64Const => {
-                    loc.setOutputNeeded();
-                },
-
-                Op::Return => {
-                    // no output needed
-                },
-
-                _ => {}
-            }
-
-            inst.setLocationData(loc);
+            codegen.setLocationConstraints(inst);
         }
     }
 }
@@ -60,8 +46,11 @@ fn allocateRegisters(graph: Graph, codegen: CodeGen) {
             let loc = inst.getLocationData();
             if loc.output().isSome() {
                 let output = loc.output().getOrPanic();
-                let register = available_registers.acquire().getOrPanic();
-                output.setRegister(register);
+
+                if !output.hasRegister() {
+                    let register = available_registers.acquire().getOrPanic();
+                    output.setRegister(register);
+                }
             }
         }
     }

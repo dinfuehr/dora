@@ -4,7 +4,7 @@ use package::codegen::{CodeGen, CodeDescriptor, CommentTable};
 use package::assembler::arm64::AssemblerArm64;
 use package::assembler::arm64::{R0, R1, R2, REG_FP, REG_SP, REG_LR};
 use package::assembler::{Label, RegSet};
-use package::graph::{Inst, Op};
+use package::graph::{Inst, Op, LocationData};
 
 pub class CodeGenArm64 {
   info: CompilationInfo,
@@ -34,10 +34,34 @@ impl CodeGen for CodeGenArm64 {
     self.asm.mov(REG_FP, REG_SP);
   }
 
+  fn setLocationConstraints(inst: Inst) {
+    let loc = LocationData::new();
+
+    match inst.op() {
+        Op::Arg => {
+            loc.setOutputRegister(R0)
+        },
+
+        Op::Int64Const => {
+            loc.setOutputNeeded();
+        },
+
+        Op::Return => {
+            // no output needed
+        },
+
+        _ => {}
+    }
+
+    inst.setLocationData(loc);
+  }
+
   fn emit(inst: Inst) {
     let loc = inst.getLocationData();
 
     match inst.op() {
+      Op::Arg => {},
+
       Op::Int64Const => {
         let register = loc.output().getOrPanic().getRegister();
         self.asm.movz(register, inst.auxAsInt64().toInt32(), 0i32);

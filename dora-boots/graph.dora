@@ -871,6 +871,12 @@ impl LocationData {
         self.output = Some[Location](Location::new());
     }
 
+    pub fn setOutputRegister(register: Register) {
+        let location = Location::new();
+        location.setRegister(register);
+        self.output = Some[Location](location);
+    }
+
     pub fn output(): Option[Location] {
         self.output
     }
@@ -889,6 +895,10 @@ impl Location {
 
     pub fn setRegister(register: Register) {
         self.register = Some(register);
+    }
+
+    pub fn hasRegister(): Bool {
+        self.register.isSome()
     }
 
     pub fn getRegister(): Register {

@@ -9,6 +9,7 @@ pub mod x64;
 pub trait CodeGen {
     fn allocatableRegisters(): RegSet;
     fn prolog();
+    fn setLocationConstraints(inst: Inst);
     fn emit(inst: Inst);
     fn epilog();
     fn finalize(): CodeDescriptor;
