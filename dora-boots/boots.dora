@@ -3,7 +3,7 @@ use package::codegen::CodeGen;
 use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
 use package::codegen::CodeDescriptor;
-use package::graph::{Graph, Location, LocationData, Op};
+use package::graph::{Graph, Location, LocationData, Op, opName};
 use package::graph::dump::dumpGraph;
 use package::graph_builder::createGraph;
 use package::interface::{Architecture, CompilationInfo};
@@ -56,18 +56,16 @@ fn allocateRegisters(graph: Graph, codegen: CodeGen) {
     for block in graph.insertionOrderIterator() {
         for inst in block.instructionsIterator() {
             let loc = inst.getLocationData();
-            let inputs = Vec[Location]::new();
+            let mut idx = 0;
+
+            println("op = ${opName(inst.op())}");
 
             for input in inst.getInputs() {
                 let value = input.getValue();
                 let output = value.getLocationData().getOutput();
-
-                let arg_loc = Location::new();
-                arg_loc.setRegister(output.getRegister());
-                inputs.push(arg_loc);
+                loc.getInput(idx).setRegister(output.getRegister());
+                idx = idx + 1;
             }
-
-            loc.setInputs(inputs.toArray());
 
             if loc.hasOutput() {
                 let output = loc.getOutput();

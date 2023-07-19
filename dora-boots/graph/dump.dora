@@ -135,11 +135,8 @@ impl GraphDumper {
         }
 
         let loc = inst.getLocationData();
-
-        if idx < loc.inputs().size() {
-            self.buffer.append(" in ");
-            self.dumpLocation(loc.inputs()(idx));
-        }
+        self.buffer.append(" in ");
+        self.dumpLocation(loc.getInput(idx));
     }
 
     fn dumpLocation(loc: Location) {

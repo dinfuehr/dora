@@ -43,24 +43,28 @@ impl CodeGen for CodeGenArm64 {
     }
 
     fn setLocationConstraints(inst: Inst) {
-        let loc = LocationData::new();
+        let loc = LocationData::new(inst);
 
         match inst.op() {
             Op::Arg => {
                 let idx = inst.auxAsInt32().toInt64();
-                loc.setOutputRegister(REG_PARAMS(idx));
+                loc.requireFixedOutputRegister(REG_PARAMS(idx));
             },
 
             Op::Int64Const => {
-                loc.setOutputNeeded();
+                loc.requireOutputRegister();
             },
 
             Op::Add => {
-                loc.setOutputNeeded();
+                loc.requireInputRegister(0);
+                loc.requireInputRegister(1);
+                loc.requireOutputRegister();
             },
 
             Op::Return => {
-                // no output needed
+                if inst.hasInput() {
+                    loc.requireInputRegister(0);
+                }
             },
 
             _ => {}

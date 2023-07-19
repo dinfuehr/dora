@@ -500,7 +500,7 @@ impl Op {
     }
 }
 
-fn opName(op: Op): String {
+pub fn opName(op: Op): String {
     match op {
         Op::NullConst => "Const.Null",
         Op::Int32Const => "Const.Int32",
@@ -868,28 +868,35 @@ impl Inst {
 }
 
 pub class LocationData {
-    inputs: Array[Location],
-    temps: Array[Location],
+    inputs: Array[Option[Location]],
+    temps: Vec[Location],
     output: Option[Location],
 }
 
 impl LocationData {
-    pub static fn new(): LocationData {
+    pub static fn new(inst: Inst): LocationData {
+        let count = inst.getInputs().size();
+        let inputs = Array[Option[Location]]::fill(count, None[Location]);
         LocationData(
-            Array[Location]::new(),
-            Array[Location]::new(),
+            inputs,
+            Vec[Location]::new(),
             None[Location],
         )
     }
 
-    pub fn setOutputNeeded() {
+    pub fn requireOutputRegister() {
         self.output = Some[Location](Location::new());
     }
 
-    pub fn setOutputRegister(register: Register) {
+    pub fn requireFixedOutputRegister(register: Register) {
         let location = Location::new();
         location.setRegister(register);
         self.output = Some[Location](location);
+    }
+
+    pub fn requireInputRegister(idx: Int64) {
+        let location = Location::new();
+        self.inputs(idx) = Some[Location](location);
     }
 
     pub fn hasOutput(): Bool {
@@ -900,16 +907,12 @@ impl LocationData {
         self.output.getOrPanic()
     }
 
-    pub fn inputs(): Array[Location] {
-        self.inputs
-    }
-
     pub fn getInput(idx: Int64): Location {
-        self.inputs.get(idx)
+        self.inputs.get(idx).getOrPanic()
     }
 
-    pub fn setInputs(inputs: Array[Location]) {
-        self.inputs = inputs;
+    pub fn addTemp(temp: Location) {
+        self.temps.push(temp);
     }
 }
 
