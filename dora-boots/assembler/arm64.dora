@@ -175,6 +175,22 @@ impl AssemblerArm64 {
         )
     }
 
+    pub fn add(rd: Register, rn: Register, rm: Register) {
+        if rd == REG_SP || rn == REG_SP {
+            self.add_ext(rd, rn, rm, Extend::UXTX, 0i32);
+        } else {
+            self.add_sh(rd, rn, rm, Shift::LSL, 0i32);
+        }
+    }
+
+    pub fn add_w(rd: Register, rn: Register, rm: Register) {
+        if rd == REG_SP || rn == REG_SP {
+            self.add_ext_w(rd, rn, rm, Extend::UXTW, 0i32);
+        } else {
+            self.add_sh_w(rd, rn, rm, Shift::LSL, 0i32);
+        }
+    }
+
     pub fn add_ext(
         rd: Register,
         rn: Register,

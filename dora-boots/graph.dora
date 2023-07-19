@@ -606,7 +606,7 @@ impl Inst {
     }
 
     pub fn getInput(idx: Int64): Input {
-        self.inputs(0)
+        self.inputs(idx)
     }
 
     pub fn isPhi(): Bool {

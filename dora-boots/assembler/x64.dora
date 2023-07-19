@@ -64,39 +64,39 @@ impl AssemblerX64 {
         )
     }
 
-    fn createLabel(): Label {
+    pub fn createLabel(): Label {
         self.buffer.createLabel()
     }
 
-    fn bindLabel(lbl: Label) {
+    pub fn bindLabel(lbl: Label) {
         self.buffer.bindLabel(lbl);
     }
 
-    fn createAndBindLabel(): Label {
+    pub fn createAndBindLabel(): Label {
         self.buffer.createAndBindLabel()
     }
 
-    fn addl_ri(dest: Register, imm: Immediate) {
+    pub fn addl_ri(dest: Register, imm: Immediate) {
         self.emitAlu32Imm(dest, imm, 0b000i32, 0x05u8);
     }
 
-    fn addl_rr(dest: Register, src: Register) {
+    pub fn addl_rr(dest: Register, src: Register) {
         self.emitRex32ModRmOptional(src, dest);
         self.emitByte(0x01u8);
         self.emitModRmReg(src, dest);
     }
 
-    fn addq_ri(reg: Register, imm: Immediate) {
+    pub fn addq_ri(reg: Register, imm: Immediate) {
         self.emitAlu64Imm(reg, imm, 0b000i32, 0x05u8);
     }
 
-    fn addq_rr(dest: Register, src: Register) {
+    pub fn addq_rr(dest: Register, src: Register) {
         self.emitRex64ModRm(src, dest);
         self.emitByte(0x01u8);
         self.emitModRmReg(src, dest);
     }
 
-    fn addss_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn addss_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF3u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -104,7 +104,7 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fn addsd_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn addsd_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF2u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -112,54 +112,54 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fn andl_rr(dest: Register, src: Register) {
+    pub fn andl_rr(dest: Register, src: Register) {
         self.emitRex32ModRmOptional(src, dest);
         self.emitByte(0x21u8);
         self.emitModRmReg(src, dest);
     }
 
-    fn andps_ra(dest: XmmRegister, src: Address) {
+    pub fn andps_ra(dest: XmmRegister, src: Address) {
         self.emitRexSseAddressOptional(dest, src);
         self.emitByte(0x0fu8);
         self.emitByte(0x54u8);
         self.emitAddress(dest.lowBits(), src);
     }
 
-    fn andq_ri(lhs: Register, imm: Immediate) {
+    pub fn andq_ri(lhs: Register, imm: Immediate) {
         self.emitAlu64Imm(lhs, imm, 0b100i32, 0x25u8);
     }
 
-    fn andq_rr(dest: Register, src: Register) {
+    pub fn andq_rr(dest: Register, src: Register) {
         self.emitRex64ModRm(src, dest);
         self.emitByte(0x21u8);
         self.emitModRmReg(src, dest);
     }
 
-    fn call_r(src: Register) {
+    pub fn call_r(src: Register) {
         self.emitRex32RmFieldOptional(src);
         self.emitByte(0xFFu8);
         self.emitModRmOpcode(0b010i32, src);
     }
 
-    fn cdq() {
+    pub fn cdq() {
         self.emitByte(0x99u8);
     }
 
-    fn cmovl(condition: Condition, dest: Register, src: Register) {
+    pub fn cmovl(condition: Condition, dest: Register, src: Register) {
         self.emitRex32ModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
         self.emitByte((0x40i32 + condition.toInt32()).toUInt8());
         self.emitModRmReg(dest, src);
     }
 
-    fn cmovq(condition: Condition, dest: Register, src: Register) {
+    pub fn cmovq(condition: Condition, dest: Register, src: Register) {
         self.emitRex64ModRm(dest, src);
         self.emitByte(0x0Fu8);
         self.emitByte((0x40i32 + condition.toInt32()).toUInt8());
         self.emitModRmReg(dest, src);
     }
 
-    fn cmpb_ai(lhs: Address, rhs: Immediate) {
+    pub fn cmpb_ai(lhs: Address, rhs: Immediate) {
         assert(rhs.isInt8() || rhs.isUInt8());
         self.emitRex32AddressOptional(lhs);
         self.emitByte(0x80u8);
@@ -167,13 +167,13 @@ impl AssemblerX64 {
         self.emitByte(rhs.toUInt8());
     }
 
-    fn cmpb_ar(lhs: Address, rhs: Register) {
+    pub fn cmpb_ar(lhs: Address, rhs: Register) {
         self.emitRex32ModRmAddressByteOptional(rhs, lhs);
         self.emitByte(0x38u8);
         self.emitAddress(rhs.lowBits(), lhs);
     }
 
-    fn cmpl_ai(lhs: Address, imm: Immediate) {
+    pub fn cmpl_ai(lhs: Address, imm: Immediate) {
         assert(imm.isInt32() || imm.isUInt32());
         self.emitRex32AddressOptional(lhs);
 
@@ -188,23 +188,23 @@ impl AssemblerX64 {
         }
     }
 
-    fn cmpl_ar(lhs: Address, rhs: Register) {
+    pub fn cmpl_ar(lhs: Address, rhs: Register) {
         self.emitRex32ModRmAddressOptional(rhs, lhs);
         self.emitByte(0x39u8);
         self.emitAddress(rhs.lowBits(), lhs);
     }
 
-    fn cmpl_ri(lhs: Register, imm: Immediate) {
+    pub fn cmpl_ri(lhs: Register, imm: Immediate) {
         self.emitAlu32Imm(lhs, imm, 0b111i32, 0x3Du8);
     }
 
-    fn cmpl_rr(dest: Register, src: Register) {
+    pub fn cmpl_rr(dest: Register, src: Register) {
         self.emitRex32ModRmOptional(src, dest);
         self.emitByte(0x39u8);
         self.emitModRmReg(src, dest);
     }
 
-    fn cmpq_ai(lhs: Address, imm: Immediate) {
+    pub fn cmpq_ai(lhs: Address, imm: Immediate) {
         assert(imm.isInt32());
         self.emitRex64Address(lhs);
 
@@ -219,17 +219,17 @@ impl AssemblerX64 {
         }
     }
 
-    fn cmpq_ar(lhs: Address, rhs: Register) {
+    pub fn cmpq_ar(lhs: Address, rhs: Register) {
         self.emitRex64ModRmAddress(rhs, lhs);
         self.emitByte(0x39u8);
         self.emitAddress(rhs.lowBits(), lhs);
     }
 
-    fn cmpq_ri(lhs: Register, imm: Immediate) {
+    pub fn cmpq_ri(lhs: Register, imm: Immediate) {
         self.emitAlu64Imm(lhs, imm, 0b111i32, 0x3Du8);
     }
 
-    fn cmpq_rr(dest: Register, src: Register) {
+    pub fn cmpq_rr(dest: Register, src: Register) {
         self.emitRex64ModRm(src, dest);
         self.emitByte(0x39u8);
         self.emitModRmReg(src, dest);
@@ -249,12 +249,12 @@ impl AssemblerX64 {
         self.emitAddress(src.lowBits(), dest);
     }
 
-    fn cqo() {
+    pub fn cqo() {
         self.emitRex64();
         self.emitByte(0x99u8);
     }
 
-    fn cvtsd2ss_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn cvtsd2ss_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF2u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -262,7 +262,7 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fn cvtsi2sdd_rr(dest: XmmRegister, src: Register) {
+    pub fn cvtsi2sdd_rr(dest: XmmRegister, src: Register) {
         self.emitByte(0xF2u8);
         self.emitRexOptional(false, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -270,7 +270,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, dest.lowBits(), src.lowBits());
     }
 
-    fn cvtsi2sdq_rr(dest: XmmRegister, src: Register) {
+    pub fn cvtsi2sdq_rr(dest: XmmRegister, src: Register) {
         self.emitByte(0xF2u8);
         self.emitRexOptional(true, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -278,7 +278,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, dest.lowBits(), src.lowBits());
     }
 
-    fn cvtsi2ssd_rr(dest: XmmRegister, src: Register) {
+    pub fn cvtsi2ssd_rr(dest: XmmRegister, src: Register) {
         self.emitByte(0xF3u8);
         self.emitRexOptional(false, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -286,7 +286,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, dest.lowBits(), src.lowBits());
     }
 
-    fn cvtsi2ssq_rr(dest: XmmRegister, src: Register) {
+    pub fn cvtsi2ssq_rr(dest: XmmRegister, src: Register) {
         self.emitByte(0xF3u8);
         self.emitRexOptional(true, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -294,7 +294,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, dest.lowBits(), src.lowBits());
     }
 
-    fn cvtss2sd_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn cvtss2sd_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF3u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -302,7 +302,7 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fn cvttsd2sid_rr(dest: Register, src: XmmRegister) {
+    pub fn cvttsd2sid_rr(dest: Register, src: XmmRegister) {
         self.emitByte(0xF2u8);
         self.emitRexOptional(false, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -310,7 +310,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, dest.lowBits(), src.lowBits());
     }
 
-    fn cvttsd2siq_rr(dest: Register, src: XmmRegister) {
+    pub fn cvttsd2siq_rr(dest: Register, src: XmmRegister) {
         self.emitByte(0xF2u8);
         self.emitRexOptional(true, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -318,7 +318,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, dest.lowBits(), src.lowBits());
     }
 
-    fn cvttss2sid_rr(dest: Register, src: XmmRegister) {
+    pub fn cvttss2sid_rr(dest: Register, src: XmmRegister) {
         self.emitByte(0xF3u8);
         self.emitRexOptional(false, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -326,7 +326,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, dest.lowBits(), src.lowBits());
     }
 
-    fn cvttss2siq_rr(dest: Register, src: XmmRegister) {
+    pub fn cvttss2siq_rr(dest: Register, src: XmmRegister) {
         self.emitByte(0xF3u8);
         self.emitRexOptional(true, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -334,7 +334,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, dest.lowBits(), src.lowBits());
     }
 
-    fn divss_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn divss_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF3u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -342,7 +342,7 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fn divsd_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn divsd_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF2u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -350,37 +350,37 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fn idivl_r(src: Register) {
+    pub fn idivl_r(src: Register) {
         self.emitRex32RmFieldOptional(src);
         self.emitByte(0xF7u8);
         self.emitModRmOpcode(0b111i32, src);
     }
 
-    fn idivq_r(src: Register) {
+    pub fn idivq_r(src: Register) {
         self.emitRex64RmField(src);
         self.emitByte(0xF7u8);
         self.emitModRmOpcode(0b111i32, src);
     }
 
-    fn imull_rr(dest: Register, src: Register) {
+    pub fn imull_rr(dest: Register, src: Register) {
         self.emitRex32ModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
         self.emitByte(0xAFu8);
         self.emitModRmReg(dest, src);
     }
 
-    fn imulq_rr(dest: Register, src: Register) {
+    pub fn imulq_rr(dest: Register, src: Register) {
         self.emitRex64ModRm(dest, src);
         self.emitByte(0x0Fu8);
         self.emitByte(0xAFu8);
         self.emitModRmReg(dest, src);
     }
 
-    fn int3() {
+    pub fn int3() {
         self.emitByte(0xCCu8);
     }
 
-    fn jcc(condition: Condition, dest: Label) {
+    pub fn jcc(condition: Condition, dest: Label) {
         if dest.isBound() {
             // backwards jump
             // rip = end of current instruction = pc + 2
@@ -406,7 +406,7 @@ impl AssemblerX64 {
         }
     }
 
-    fn jcc_near(condition: Condition, dest: Label) {
+    pub fn jcc_near(condition: Condition, dest: Label) {
         if dest.isBound() {
             // backwards jump
             // rip = end of current instruction = pc + 2
@@ -422,7 +422,7 @@ impl AssemblerX64 {
         }
     }
 
-    fn jmp(dest: Label) {
+    pub fn jmp(dest: Label) {
         if dest.isBound() {
             // backwards jump
             // rip = end of current instruction = pc + 2
@@ -446,7 +446,7 @@ impl AssemblerX64 {
         }
     }
 
-    fn jmp_near(dest: Label) {
+    pub fn jmp_near(dest: Label) {
         if dest.isBound() {
             // backwards jump
             // rip = end of current instruction = pc + 2
@@ -462,13 +462,13 @@ impl AssemblerX64 {
         }
     }
 
-    fn jmp_r(reg: Register) {
+    pub fn jmp_r(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte(0xFFu8);
         self.emitModRmOpcode(0b100i32, reg);
     }
 
-    fn lea(dest: Register, src: Address) {
+    pub fn lea(dest: Register, src: Address) {
         self.emitRex64ModRmAddress(dest, src);
         self.emitByte(0x8Du8);
         self.emitAddress(dest.lowBits(), src);
@@ -1524,7 +1524,7 @@ impl Immediate {
     }
 }
 
-enum ScaleFactor {
+pub enum ScaleFactor {
     One,
     Two,
     Four,
@@ -1547,7 +1547,7 @@ impl ScaleFactor {
     }
 }
 
-class Address {
+pub class Address {
     rex: UInt8,
     length: Int64,
     bytes: Array[UInt8],
@@ -1600,7 +1600,7 @@ impl Address {
         self.length = self.length + 4i64;
     }
 
-    static fn offset(base: Register, offset: Int32): Address {
+    pub static fn offset(base: Register, offset: Int32): Address {
         let address = Address::new();
 
         let mode = if offset == 0i32 && base != RBP && base != R13 {
@@ -1630,7 +1630,7 @@ impl Address {
         address
     }
 
-    static fn index(index: Register, factor: ScaleFactor, disp: Int32): Address {
+    pub static fn index(index: Register, factor: ScaleFactor, disp: Int32): Address {
         let address = Address::new();
 
         address.set_modrm(0b00i32, RSP);
@@ -1642,7 +1642,7 @@ impl Address {
         address
     }
 
-    static fn array(base: Register, index: Register, factor: ScaleFactor, disp: Int32): Address {
+    pub static fn array(base: Register, index: Register, factor: ScaleFactor, disp: Int32): Address {
         let address = Address::new();
 
         let mode = if disp == 0i32 && base != RBP && base != R13 {
@@ -1671,7 +1671,7 @@ impl Address {
         address
     }
 
-    static fn rip(disp: Int32): Address {
+    pub static fn rip(disp: Int32): Address {
         let address = Address::new();
 
         address.set_modrm(0b00i32, RBP);

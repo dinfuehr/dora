@@ -1,6 +1,7 @@
-use package::assembler::x64::{AssemblerX64, Immediate};
-use package::assembler::x64::{RAX, RDI, RSI, RBP, RSP};
-use package::assembler::RegSet;
+use package::assembler::x64::{AssemblerX64, Address, Immediate, ScaleFactor};
+use package::assembler::x64::{RAX, RDI, RDX, RCX, RSI, RBP, RSP};
+use package::assembler::x64::{R8, R9};
+use package::assembler::{Register, RegSet};
 use package::codegen::{CodeGen, CodeDescriptor, CommentTable};
 use package::interface::CompilationInfo;
 use package::interface::Architecture;
@@ -15,11 +16,19 @@ impl CodeGenX64 {
     pub static fn new(info: CompilationInfo): CodeGenX64 {
         CodeGenX64(info, AssemblerX64::new())
     }
+
+    fn epilog() {
+        self.asm.movq_rr(RSP, RBP);
+        self.asm.popq_r(RBP);
+        self.asm.retq();
+    }
 }
+
+pub let REG_PARAMS: Array[Register] = Array[Register]::new(RDI, RSI, RDX, RCX, R8, R9);
 
 impl CodeGen for CodeGenX64 {
     fn allocatableRegisters(): RegSet {
-        RegSet::new(RAX, RDI, RSI)
+        RegSet::new(RDI, RSI, RDX, RCX, R8, R9)
     }
 
     fn prolog() {
@@ -32,10 +41,15 @@ impl CodeGen for CodeGenX64 {
 
     match inst.op() {
         Op::Arg => {
-            loc.setOutputRegister(RDI);
+            let idx = inst.auxAsInt32().toInt64();
+            loc.setOutputRegister(REG_PARAMS(idx));
         },
 
         Op::Int64Const => {
+            loc.setOutputNeeded();
+        },
+
+        Op::Add => {
             loc.setOutputNeeded();
         },
 
@@ -60,28 +74,35 @@ impl CodeGen for CodeGenX64 {
                 self.asm.movq_ri(register, Immediate(inst.auxAsInt64()));
             },
 
+            Op::Add => {
+                let lhs = inst.getInput(0).getValue();
+                let lhs = lhs.getLocationData().output().getOrPanic().getRegister();
+
+                let rhs = inst.getInput(1).getValue();
+                let rhs = rhs.getLocationData().output().getOrPanic().getRegister();
+
+                let output = loc.output().getOrPanic().getRegister();
+
+                self.asm.lea(output, Address::array(lhs, rhs, ScaleFactor::One, 0i32));
+            },
+
             Op::Return => {
                 if !inst.getInputs().isEmpty() {
                     let value = inst.getInput(0).getValue();
                     let register = value.getLocationData().output().getOrPanic().getRegister();
-                    self.asm.movq_rr(RAX, register);
+
+                    if RAX != register {
+                        self.asm.movq_rr(RAX, register);
+                    }
                 }
 
-                self.asm.movq_rr(RSP, RBP);
-                self.asm.popq_r(RBP);
-                self.asm.retq();
+                self.epilog();
             },
 
             _ => {
                 unreachable[()]();
             }
         }
-    }
-
-    fn epilog() {
-        self.asm.movq_rr(RSP, RBP);
-        self.asm.popq_r(RBP);
-        self.asm.retq();
     }
 
     fn finalize(): CodeDescriptor {

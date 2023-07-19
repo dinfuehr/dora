@@ -4,6 +4,7 @@ use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
 use package::codegen::CodeDescriptor;
 use package::graph::{Graph, LocationData, Op};
+use package::graph::dump::dumpGraph;
 use package::graph_builder::createGraph;
 use package::interface::{Architecture, CompilationInfo};
 use package::interface::compile;
@@ -50,6 +51,9 @@ fn allocateRegisters(graph: Graph, codegen: CodeGen) {
                 if !output.hasRegister() {
                     let register = available_registers.acquire().getOrPanic();
                     output.setRegister(register);
+                } else {
+                    assert(available_registers.contains(output.getRegister()));
+                    available_registers.remove(output.getRegister());
                 }
             }
         }
@@ -65,7 +69,6 @@ fn generate(graph: Graph, codegen: CodeGen): CodeDescriptor {
         }
     }
 
-    codegen.epilog();
     codegen.finalize()
 }
 
