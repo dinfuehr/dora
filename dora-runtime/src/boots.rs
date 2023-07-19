@@ -27,8 +27,7 @@ pub fn compile(
 
     let encoded_compilation_info = create_handle(allocate_encoded_compilation_info(
         vm,
-        compilation_data.bytecode_fct,
-        &compilation_data.type_params,
+        &compilation_data,
         get_architecture(),
     ));
 

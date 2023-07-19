@@ -3,7 +3,7 @@ use package::codegen::CodeGen;
 use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
 use package::codegen::CodeDescriptor;
-use package::graph::{Graph, LocationData, Op};
+use package::graph::{Graph, Location, LocationData, Op};
 use package::graph::dump::dumpGraph;
 use package::graph_builder::createGraph;
 use package::interface::{Architecture, CompilationInfo};
@@ -26,8 +26,19 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
     let graph = createGraph(ci.bc);
     let codegen = createCodeGen(ci);
 
+    if (ci.emitGraph) {
+        println("after graph building:");
+        println(dumpGraph(graph, ci.arch));
+    }
+
     ensureLocationData(graph, codegen);
     allocateRegisters(graph, codegen);
+
+    if (ci.emitGraph) {
+        println("after register allocation:");
+        println(dumpGraph(graph, ci.arch));
+    }
+
     generate(graph, codegen)
 }
 
@@ -45,15 +56,30 @@ fn allocateRegisters(graph: Graph, codegen: CodeGen) {
     for block in graph.insertionOrderIterator() {
         for inst in block.instructionsIterator() {
             let loc = inst.getLocationData();
-            if loc.output().isSome() {
-                let output = loc.output().getOrPanic();
+            let inputs = Vec[Location]::new();
 
-                if !output.hasRegister() {
-                    let register = available_registers.acquire().getOrPanic();
-                    output.setRegister(register);
-                } else {
+            for input in inst.getInputs() {
+                let value = input.getValue();
+                let output = value.getLocationData().getOutput();
+
+                let arg_loc = Location::new();
+                arg_loc.setRegister(output.getRegister());
+                inputs.push(arg_loc);
+            }
+
+            loc.setInputs(inputs.toArray());
+
+            if loc.hasOutput() {
+                let output = loc.getOutput();
+
+                if output.hasRegister() {
+                    // fixed register was already assigned
                     assert(available_registers.contains(output.getRegister()));
                     available_registers.remove(output.getRegister());
+                } else {
+                    // pick a register
+                    let register = available_registers.acquire().getOrPanic();
+                    output.setRegister(register);
                 }
             }
         }

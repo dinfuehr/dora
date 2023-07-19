@@ -34,6 +34,7 @@ pub fn generate_fct(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray
 
     let emit_debug = should_emit_debug(vm, fct_id);
     let emit_asm = should_emit_asm(vm, fct_id, compiler);
+    let emit_graph = should_emit_graph(vm, fct_id);
     let mut start = None;
 
     if vm.args.flag_emit_compiler {
@@ -50,6 +51,7 @@ pub fn generate_fct(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray
 
         emit_debug,
         emit_code_comments: emit_asm,
+        emit_graph,
     };
 
     let compilation_flags = CompilationFlags::jit();
@@ -142,6 +144,7 @@ pub fn generate_thunk(
 
         emit_debug,
         emit_code_comments: emit_asm,
+        emit_graph: false,
     };
 
     let code_descriptor = match compiler {
@@ -205,6 +208,14 @@ pub fn should_emit_asm(vm: &VM, fct_id: FunctionId, compiler: CompilerName) -> b
 
     if let Some(ref dbg_names) = vm.args.flag_emit_asm {
         fct_pattern_match(vm, fct_id, dbg_names)
+    } else {
+        false
+    }
+}
+
+pub fn should_emit_graph(vm: &VM, fct_id: FunctionId) -> bool {
+    if let Some(ref names) = vm.args.flag_emit_graph {
+        fct_pattern_match(vm, fct_id, names)
     } else {
         false
     }
@@ -316,4 +327,5 @@ pub struct CompilationData<'a> {
 
     pub emit_debug: bool,
     pub emit_code_comments: bool,
+    pub emit_graph: bool,
 }

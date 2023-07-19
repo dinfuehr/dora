@@ -1,23 +1,24 @@
 use std::CodepointIterator;
 use std::StringBuffer;
 
-use package::graph::Graph;
-use package::graph::Block;
-use package::graph::Inst;
-use package::graph::Op;
+use package::assembler::arm64::registerName as registerNameOnArm64;
+use package::assembler::x64::registerName as registerNameOnX64;
+use package::graph::{Block, Graph, Input, Inst, Location, LocationData, Op};
+use package::interface::Architecture;
 
-pub fn dumpGraph(graph: Graph): String {
-    GraphDumper::new(graph).dump()
+pub fn dumpGraph(graph: Graph, architecture: Architecture): String {
+    GraphDumper::new(graph, architecture).dump()
 }
 
 class GraphDumper {
     graph: Graph,
+    architecture: Architecture,
     buffer: StringBuffer,
 }
 
 impl GraphDumper {
-    static fn new(graph: Graph): GraphDumper {
-        GraphDumper(graph, StringBuffer::new())
+    static fn new(graph: Graph, architecture: Architecture): GraphDumper {
+        GraphDumper(graph, architecture, StringBuffer::new())
     }
 
     fn dump(): String {
@@ -77,19 +78,22 @@ impl GraphDumper {
     }
 
     fn dumpInst(inst: Inst) {
-        self.buffer.append("  %${inst.id()}: ${dumpInstName(inst)}");
+        self.buffer.append("  %${inst.id()}: ");
+        self.dumpOutputLocation(inst);
+        self.buffer.append("${dumpInstName(inst)}");
 
         if !inst.getInputs().isEmpty() {
-            let mut first = true;
+            let mut idx = 0;
+            self.buffer.append(" ");
 
             for inp in inst.getInputs() {
-                if first {
-                    self.buffer.append(" %${inp.value.id()}");
-                } else {
-                    self.buffer.append(", %${inp.value.id()}");
+                if idx > 0 {
+                    self.buffer.append(", ");
                 }
 
-                first = false;
+                self.buffer.append("%${inp.value.id()}");
+                self.dumpInputLocation(inst, idx);
+                idx = idx + 1;
             }
         }
 
@@ -98,12 +102,11 @@ impl GraphDumper {
             let mut first = true;
 
             for input in inst.uses() {
-                if first {
-                    self.buffer.append("%${input.usedBy.id()}");
-                } else {
-                    self.buffer.append(", %${input.usedBy.id()}");
+                if !first {
+                    self.buffer.append(", ");
                 }
 
+                self.buffer.append("%${input.usedBy.id()}");
                 first = false;
             }
 
@@ -111,6 +114,45 @@ impl GraphDumper {
         }
 
         self.buffer.appendNewline();
+    }
+
+    fn dumpOutputLocation(inst: Inst) {
+        if !inst.hasLocationData() {
+            return;
+        }
+
+        let loc = inst.getLocationData();
+
+        if loc.hasOutput() {
+            self.dumpLocation(loc.getOutput());
+            self.buffer.append(" <- ");
+        }
+    }
+
+    fn dumpInputLocation(inst: Inst, idx: Int64) {
+        if !inst.hasLocationData() {
+            return;
+        }
+
+        let loc = inst.getLocationData();
+
+        if idx < loc.inputs().size() {
+            self.buffer.append(" in ");
+            self.dumpLocation(loc.inputs()(idx));
+        }
+    }
+
+    fn dumpLocation(loc: Location) {
+        let name = if loc.hasRegister() {
+                        let register = loc.getRegister();
+                        match self.architecture {
+                            Architecture::Arm64 => registerNameOnArm64(register),
+                            Architecture::X64 => registerNameOnX64(register),
+                        }
+                    } else {
+                        "XXX"
+                    };
+        self.buffer.append(name);
     }
 }
 
@@ -176,7 +218,7 @@ fn dumpInstName(inst: Inst): String {
 }
 
 pub fn assertGraph(graph: Graph, output: String) {
-    let graphOutput = dumpGraph(graph);
+    let graphOutput = dumpGraph(graph, Architecture::Arm64);
 
     if !compareStrings(graphOutput, output) {
         println("got: \"${graphOutput}\"");

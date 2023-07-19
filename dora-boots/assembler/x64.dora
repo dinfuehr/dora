@@ -21,6 +21,17 @@ pub let R13: Register = Register(13u8);
 pub let R14: Register = Register(14u8);
 pub let R15: Register = Register(15u8);
 
+pub let REG_NAMES: Array[String] = Array[String]::new(
+    "RAX", "RCX", "RDX", "RBX",
+    "RSP", "RBP", "RSI", "RDI",
+    "R8", "R9", "R10", "R11",
+    "R12", "R13", "R14", "R15",
+);
+
+pub fn registerName(register: Register): String {
+    REG_NAMES(register.value.toInt64())
+}
+
 pub let XMM0: XmmRegister = XmmRegister(0i32);
 pub let XMM1: XmmRegister = XmmRegister(1i32);
 pub let XMM2: XmmRegister = XmmRegister(2i32);

@@ -1,4 +1,7 @@
 #!/bin/sh
 
-cargo run -p dora -- --package boots dora-boots/boots.dora --emit-asm-boots $@
-cargo run -p dora --target x86_64-apple-darwin -- --package boots dora-boots/boots.dora --emit-asm-boots $@
+cargo run -p dora -- --package boots dora-boots/boots.dora $@
+
+if [[ $(uname) == "Darwin" ]]; then
+    cargo run -p dora --target x86_64-apple-darwin -- --package boots dora-boots/boots.dora $@
+fi

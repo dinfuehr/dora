@@ -78,26 +78,22 @@ impl CodeGen for CodeGenArm64 {
       Op::Arg => {},
 
       Op::Int64Const => {
-        let register = loc.output().getOrPanic().getRegister();
+        let register = loc.getOutput().getRegister();
         self.asm.movz(register, inst.auxAsInt64().toInt32(), 0i32);
       },
 
       Op::Add => {
-          let lhs = inst.getInput(0).getValue();
-          let lhs = lhs.getLocationData().output().getOrPanic().getRegister();
+          let lhs = loc.getInput(0).getRegister();
+          let rhs = loc.getInput(1).getRegister();
 
-          let rhs = inst.getInput(1).getValue();
-          let rhs = rhs.getLocationData().output().getOrPanic().getRegister();
-
-          let output = loc.output().getOrPanic().getRegister();
+          let output = loc.getOutput().getRegister();
 
           self.asm.add(output, lhs, rhs);
       },
 
       Op::Return => {
-        if !inst.getInputs().isEmpty() {
-            let value = inst.getInput(0).getValue();
-            let register = value.getLocationData().output().getOrPanic().getRegister();
+        if inst.hasInput() {
+            let register = loc.getInput(0).getRegister();
 
             if R0 != register {
               self.asm.mov(R0, register);

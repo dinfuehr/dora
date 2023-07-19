@@ -9,7 +9,9 @@ pub fn decodeCompilationInfo(reader: ByteReader): CompilationInfo {
     let bc = decodeBytecodeFunction(reader);
     let typeParams = decodeTypeParams(reader);
     let arch = decodeArchitecture(reader);
-    CompilationInfo(bc, typeParams, arch)
+    let emitGraph = reader.readBool();
+    let emitCodeComments = reader.readBool();
+    CompilationInfo(bc, typeParams, arch, emitGraph, emitCodeComments)
 }
 
 pub fn decodeBytecodeFunction(reader: ByteReader): BytecodeFunction {
@@ -166,6 +168,12 @@ impl ByteReader {
         let value = self.array(self.idx);
         self.idx = self.idx + 1i64;
         value
+    }
+
+    pub fn readBool(): Bool {
+        let value = self.readUInt8();
+        assert(value == 0u8 || value == 1u8);
+        value == 1u8
     }
 
     pub fn readInt32(): Int32 {

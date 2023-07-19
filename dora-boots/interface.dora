@@ -21,7 +21,9 @@ pub fn compile(encoded: Array[UInt8]): Array[UInt8] {
 pub class CompilationInfo(
     pub bc: BytecodeFunction,
     pub typeParams: Array[BytecodeType],
-    pub arch: Architecture
+    pub arch: Architecture,
+    pub emitGraph: Bool,
+    pub emitCodeComments: Bool,
 )
 
 pub enum Architecture {

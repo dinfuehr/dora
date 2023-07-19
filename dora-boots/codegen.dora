@@ -1,6 +1,6 @@
 use std::collections::VecIter;
 
-use package::assembler::RegSet;
+use package::assembler::{Register, RegSet};
 use package::graph::Inst;
 
 pub mod arm64;

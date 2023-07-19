@@ -6,6 +6,7 @@ use package::graph::Block;
 use package::graph::dump::dumpGraph;
 use package::graph_builder_tests::bcSsaGenWhileCountDown;
 use package::graph_builder_tests::bcSsaGenIfReturnInBothBranches;
+use package::interface::Architecture;
 
 fn assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
     let graph = createGraph(fct);
@@ -23,7 +24,7 @@ fn assertDominatedBlocks(fct: BytecodeFunction, idoms: Int32...) {
             println("block ${idx}: missing dominator, expected ${expectedDominatorId}");
         } else if dominator.getOrPanic().id() != expectedDominatorId {
             println("block ${idx}: idom is ${dominator.getOrPanic().id()}, expected ${expectedDominatorId}");
-            println(dumpGraph(graph));
+            println(dumpGraph(graph, Architecture::Arm64));
         }
 
         assert(dominator.getOrPanic().id() == expectedDominatorId);

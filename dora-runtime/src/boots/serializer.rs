@@ -3,6 +3,7 @@ use std::convert::TryInto;
 use byteorder::{LittleEndian, WriteBytesExt};
 
 use crate::boots::data::InstructionSet;
+use crate::compiler::codegen::CompilationData;
 use crate::object::{byte_array_from_buffer, Obj, Ref};
 use crate::vm::VM;
 use dora_bytecode::{BytecodeFunction, BytecodeTypeArray, ConstPoolEntry, ConstPoolOpcode};
@@ -10,25 +11,25 @@ use dora_bytecode::{BytecodeType, BytecodeTypeKind};
 
 pub fn allocate_encoded_compilation_info(
     vm: &VM,
-    bytecode_fct: &BytecodeFunction,
-    type_params: &BytecodeTypeArray,
+    compilation_data: &CompilationData,
     architecture: InstructionSet,
 ) -> Ref<Obj> {
     let mut buffer = ByteBuffer::new();
-    encode_compilation_info(vm, bytecode_fct, type_params, architecture, &mut buffer);
+    encode_compilation_info(vm, compilation_data, architecture, &mut buffer);
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
 fn encode_compilation_info(
     vm: &VM,
-    bytecode_fct: &BytecodeFunction,
-    type_params: &BytecodeTypeArray,
+    compilation_data: &CompilationData,
     architecture: InstructionSet,
     buffer: &mut ByteBuffer,
 ) {
-    encode_bytecode_function(vm, bytecode_fct, buffer);
-    encode_type_params(vm, type_params, buffer);
+    encode_bytecode_function(vm, &compilation_data.bytecode_fct, buffer);
+    encode_type_params(vm, &compilation_data.type_params, buffer);
     encode_architecture(architecture, buffer);
+    buffer.emit_bool(compilation_data.emit_graph);
+    buffer.emit_bool(compilation_data.emit_code_comments);
 }
 
 fn encode_bytecode_function(vm: &VM, bytecode_fct: &BytecodeFunction, buffer: &mut ByteBuffer) {
@@ -273,6 +274,10 @@ impl ByteBuffer {
 
     pub fn emit_u8(&mut self, data: u8) {
         self.data.push(data);
+    }
+
+    pub fn emit_bool(&mut self, value: bool) {
+        self.emit_u8(if value { 1 } else { 0 });
     }
 
     pub fn emit_u32(&mut self, data: u32) {

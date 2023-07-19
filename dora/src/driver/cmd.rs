@@ -16,6 +16,8 @@ Options:
     --emit-ast=<fct>        Emits AST to stdout.
     --emit-asm=<fct>        Emits assembly code to stdout.
     --emit-asm-file         Emits assembly code into file `dora-<pid>.asm`.
+    --emit-asm-boots        Emits assembly code for all boots compilations.
+    --emit-graph=<fct>      Emits graph for function.
     --emit-bytecode=<fct>   Emits bytecode to stdout.
     --emit-stubs            Emits generated stubs.
     --emit-debug=<fct>      Emits debug instruction at beginning of functions.
@@ -65,6 +67,7 @@ pub struct Args {
     pub flag_emit_asm: Option<String>,
     pub flag_emit_asm_boots: bool,
     pub flag_emit_asm_file: bool,
+    pub flag_emit_graph: Option<String>,
     pub flag_emit_bytecode: Option<String>,
     pub flag_emit_compiler: bool,
     pub flag_emit_stubs: bool,
@@ -115,6 +118,7 @@ impl Default for Args {
             flag_emit_asm: None,
             flag_emit_asm_boots: false,
             flag_emit_asm_file: false,
+            flag_emit_graph: None,
             flag_emit_bytecode: None,
             flag_emit_compiler: false,
             flag_emit_stubs: false,
@@ -213,6 +217,8 @@ pub fn parse_arguments() -> Result<Args, String> {
             args.flag_emit_asm_file = true;
         } else if arg == "--emit-asm-boots" {
             args.flag_emit_asm_boots = true;
+        } else if arg.starts_with("--emit-graph=") {
+            args.flag_emit_graph = Some(argument_value(arg).into());
         } else if arg.starts_with("--emit-bytecode=") {
             args.flag_emit_bytecode = Some(argument_value(arg).into());
         } else if arg == "--emit-stubs" {
@@ -395,6 +401,7 @@ pub fn create_vm_args(args: &Args) -> VmArgs {
         flag_emit_asm_boots: args.flag_emit_asm_boots,
         flag_emit_asm_file: args.flag_emit_asm_file,
         flag_emit_compiler: args.flag_emit_compiler,
+        flag_emit_graph: args.flag_emit_graph.clone(),
         flag_emit_stubs: args.flag_emit_stubs,
         flag_enable_perf: args.flag_enable_perf,
         flag_omit_bounds_check: args.flag_omit_bounds_check,

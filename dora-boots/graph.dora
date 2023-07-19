@@ -605,6 +605,10 @@ impl Inst {
         self.inputs
     }
 
+    pub fn hasInput(): Bool {
+        !self.inputs.isEmpty()
+    }
+
     pub fn getInput(idx: Int64): Input {
         self.inputs(idx)
     }
@@ -797,6 +801,10 @@ impl Inst {
         self.location_data = Some(data);
     }
 
+    pub fn hasLocationData(): Bool {
+        self.location_data.isSome()
+    }
+
     pub fn getLocationData(): LocationData {
         self.location_data.getOrPanic()
     }
@@ -853,16 +861,16 @@ impl Inst {
 }
 
 pub class LocationData {
-    inputs: Vec[Location],
-    temps: Vec[Location],
+    inputs: Array[Location],
+    temps: Array[Location],
     output: Option[Location],
 }
 
 impl LocationData {
     pub static fn new(): LocationData {
         LocationData(
-            Vec[Location]::new(),
-            Vec[Location]::new(),
+            Array[Location]::new(),
+            Array[Location]::new(),
             None[Location],
         )
     }
@@ -877,17 +885,33 @@ impl LocationData {
         self.output = Some[Location](location);
     }
 
-    pub fn output(): Option[Location] {
-        self.output
+    pub fn hasOutput(): Bool {
+        self.output.isSome()
+    }
+
+    pub fn getOutput(): Location {
+        self.output.getOrPanic()
+    }
+
+    pub fn inputs(): Array[Location] {
+        self.inputs
+    }
+
+    pub fn getInput(idx: Int64): Location {
+        self.inputs.get(idx)
+    }
+
+    pub fn setInputs(inputs: Array[Location]) {
+        self.inputs = inputs;
     }
 }
 
-class Location {
+pub class Location {
     register: Option[Register],
 }
 
 impl Location {
-    static fn new(): Location {
+    pub static fn new(): Location {
         Location(
             None[Register],
         )
