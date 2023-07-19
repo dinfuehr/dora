@@ -8,113 +8,111 @@ use package::assembler::{Label, RegSet, Register};
 use package::graph::{Inst, Op, LocationData};
 
 pub class CodeGenArm64 {
-  info: CompilationInfo,
-  asm: AssemblerArm64,
+    info: CompilationInfo,
+    asm: AssemblerArm64,
 }
 
 impl CodeGenArm64 {
-  pub static fn new(info: CompilationInfo): CodeGenArm64 {
-    CodeGenArm64(info, AssemblerArm64::new())
-  }
+    pub static fn new(info: CompilationInfo): CodeGenArm64 {
+        CodeGenArm64(info, AssemblerArm64::new())
+    }
 
-  pub fn generate(): Array[UInt8] {
-    assert(self.info.arch == Architecture::Arm64);
-    self.asm.ret();
-    self.asm.finalize()
-  }
+    pub fn generate(): Array[UInt8] {
+        assert(self.info.arch == Architecture::Arm64);
+        self.asm.ret();
+        self.asm.finalize()
+    }
 
-  fn epilog() {
-    self.asm.mov(REG_SP, REG_FP);
-    self.asm
-        .ldp_post(REG_FP, REG_LR, REG_SP, 16i32);
-    self.asm.ret();
-  }
+    fn epilog() {
+        self.asm.mov(REG_SP, REG_FP);
+        self.asm.ldp_post(REG_FP, REG_LR, REG_SP, 16i32);
+        self.asm.ret();
+    }
 }
 
 let REG_PARAMS: Array[Register] = Array[Register]::new(R0, R1, R2, R3, R4, R5, R6, R7);
 
 impl CodeGen for CodeGenArm64 {
-  fn allocatableRegisters(): RegSet {
-    RegSet::new(R0, R1, R2, R3, R4, R5, R6, R7)
-  }
-
-  fn prolog() {
-    self.asm
-        .stp_pre(REG_FP, REG_LR, REG_SP, -16i32);
-    self.asm.mov(REG_FP, REG_SP);
-  }
-
-  fn setLocationConstraints(inst: Inst) {
-    let loc = LocationData::new();
-
-    match inst.op() {
-        Op::Arg => {
-            let idx = inst.auxAsInt32().toInt64();
-            loc.setOutputRegister(REG_PARAMS(idx));
-        },
-
-        Op::Int64Const => {
-            loc.setOutputNeeded();
-        },
-
-        Op::Add => {
-            loc.setOutputNeeded();
-        },
-
-        Op::Return => {
-            // no output needed
-        },
-
-        _ => {}
+    fn allocatableRegisters(): RegSet {
+        RegSet::new(R0, R1, R2, R3, R4, R5, R6, R7)
     }
 
-    inst.setLocationData(loc);
-  }
+    fn prolog() {
+        self.asm.stp_pre(REG_FP, REG_LR, REG_SP, -16i32);
+        self.asm.mov(REG_FP, REG_SP);
+    }
 
-  fn emit(inst: Inst) {
-    let loc = inst.getLocationData();
+    fn setLocationConstraints(inst: Inst) {
+        let loc = LocationData::new();
 
-    match inst.op() {
-      Op::Arg => {},
+        match inst.op() {
+            Op::Arg => {
+                let idx = inst.auxAsInt32().toInt64();
+                loc.setOutputRegister(REG_PARAMS(idx));
+            },
 
-      Op::Int64Const => {
-        let register = loc.getOutput().getRegister();
-        self.asm.movz(register, inst.auxAsInt64().toInt32(), 0i32);
-      },
+            Op::Int64Const => {
+                loc.setOutputNeeded();
+            },
 
-      Op::Add => {
-          let lhs = loc.getInput(0).getRegister();
-          let rhs = loc.getInput(1).getRegister();
+            Op::Add => {
+                loc.setOutputNeeded();
+            },
 
-          let output = loc.getOutput().getRegister();
+            Op::Return => {
+                // no output needed
+            },
 
-          self.asm.add(output, lhs, rhs);
-      },
-
-      Op::Return => {
-        if inst.hasInput() {
-            let register = loc.getInput(0).getRegister();
-
-            if R0 != register {
-              self.asm.mov(R0, register);
-            }
+            _ => {}
         }
 
-        self.epilog();
-      },
-
-      _ => {
-        unreachable[()]();
-      }
+        inst.setLocationData(loc);
     }
-  }
 
-  fn finalize(): CodeDescriptor {
-    let code = self.asm.finalize();
+    fn emit(inst: Inst) {
+        let loc = inst.getLocationData();
 
-    CodeDescriptor(
-      code,
-      CommentTable::new(),
-    )
-  }
+        match inst.op() {
+            Op::Arg => {},
+
+            Op::Int64Const => {
+                let register = loc.getOutput().getRegister();
+                self.asm.movz(register, inst.auxAsInt64().toInt32(), 0i32);
+            },
+
+            Op::Add => {
+                let lhs = loc.getInput(0).getRegister();
+                let rhs = loc.getInput(1).getRegister();
+
+                let output = loc.getOutput().getRegister();
+
+                self.asm.add(output, lhs, rhs);
+            },
+
+            Op::Return => {
+                if inst.hasInput() {
+                    let register = loc.getInput(0).getRegister();
+
+                    if R0 != register {
+                    self.asm.mov(R0, register);
+                    }
+                }
+
+                self.epilog();
+            },
+
+            _ => {
+                unreachable[()]();
+            }
+        }
+    }
+
+    fn finalize(): CodeDescriptor {
+        let code = self.asm.finalize();
+
+        CodeDescriptor(
+            code,
+            CommentTable::new(),
+        )
+    }
 }

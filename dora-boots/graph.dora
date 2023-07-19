@@ -472,6 +472,9 @@ pub enum Op {
     FieldGet,
     FieldSet,
     Arg,
+
+    GapMove,
+    GapConstant,
 }
 
 impl Op {
@@ -544,6 +547,8 @@ fn opName(op: Op): String {
         Op::FieldGet => "FieldGet",
         Op::FieldSet => "FieldSet",
         Op::Arg => "Arg",
+        Op::GapMove => "GapMove",
+        Op::GapConstant => "GapConstant",
     }
 }
 
@@ -856,6 +861,8 @@ impl Inst {
             Op::FieldGet => false,
             Op::FieldSet => true,
             Op::Arg => false,
+            Op::GapMove => false,
+            Op::GapConstant => false,
         }
     }
 }

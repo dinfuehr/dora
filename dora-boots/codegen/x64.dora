@@ -36,32 +36,32 @@ impl CodeGen for CodeGenX64 {
         self.asm.movq_rr(RBP, RSP);
     }
 
-  fn setLocationConstraints(inst: Inst) {
-    let loc = LocationData::new();
+    fn setLocationConstraints(inst: Inst) {
+        let loc = LocationData::new();
 
-    match inst.op() {
-        Op::Arg => {
-            let idx = inst.auxAsInt32().toInt64();
-            loc.setOutputRegister(REG_PARAMS(idx));
-        },
+        match inst.op() {
+            Op::Arg => {
+                let idx = inst.auxAsInt32().toInt64();
+                loc.setOutputRegister(REG_PARAMS(idx));
+            },
 
-        Op::Int64Const => {
-            loc.setOutputNeeded();
-        },
+            Op::Int64Const => {
+                loc.setOutputNeeded();
+            },
 
-        Op::Add => {
-            loc.setOutputNeeded();
-        },
+            Op::Add => {
+                loc.setOutputNeeded();
+            },
 
-        Op::Return => {
-            // no output needed
-        },
+            Op::Return => {
+                // no output needed
+            },
 
-        _ => {}
+            _ => {}
+        }
+
+        inst.setLocationData(loc);
     }
-
-    inst.setLocationData(loc);
-  }
 
     fn emit(inst: Inst) {
         let loc = inst.getLocationData();
