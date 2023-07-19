@@ -20,7 +20,7 @@ fn type_object_field() {
     );
     err(
         "class Foo(a:Int32) fn f(x: Foo): Int32 { return x.b; }",
-        (1, 50),
+        (1, 51),
         ErrorMessage::UnknownField("b".into(), "Foo".into()),
     );
 }
@@ -1637,7 +1637,7 @@ fn test_struct_field() {
         struct Foo(f1: Bool)
         fn f(x: Foo): Int32 { x.unknown }
     ",
-        (3, 32),
+        (3, 33),
         ErrorMessage::UnknownField("unknown".into(), "Foo".into()),
     );
 }
@@ -2910,7 +2910,7 @@ fn mod_class_field() {
         fn f(x: foo::Foo) { let a = x.bar; }
         mod foo { pub class Foo(bar: Int32) }
     ",
-        (2, 38),
+        (2, 39),
         ErrorMessage::NotAccessible("bar".into()),
     );
 
@@ -2928,7 +2928,7 @@ fn mod_class_field() {
         fn f(x: foo::Foo) { x.bar(10i64) = 10i32; }
         mod foo { pub class Foo(bar: Array[Int32]) }
     ",
-        (2, 30),
+        (2, 31),
         ErrorMessage::NotAccessible("bar".into()),
     );
 
@@ -2991,7 +2991,7 @@ fn mod_struct_field() {
         fn f(x: foo::Foo) { let a = x.bar; }
         mod foo { pub struct Foo(bar: Int32) }
     ",
-        (2, 38),
+        (2, 39),
         ErrorMessage::NotAccessible("bar".into()),
     );
 
@@ -3014,7 +3014,7 @@ fn mod_struct_field() {
         fn f(x: foo::Foo) { x.bar(10i64) = 10i32; }
         mod foo { pub struct Foo(bar: Array[Int32]) }
     ",
-        (2, 30),
+        (2, 31),
         ErrorMessage::NotAccessible("bar".into()),
     );
 
@@ -3796,5 +3796,23 @@ fn immutable_struct_fields() {
     ",
         (5, 13),
         ErrorMessage::StructFieldImmutable,
+    );
+}
+
+#[test]
+fn missing_enum_arguments() {
+    err(
+        "
+        fn f(): Option[Int64] {
+            Some[Int64]
+        }
+    ",
+        (3, 17),
+        ErrorMessage::EnumArgsIncompatible(
+            "Option".into(),
+            "Some".into(),
+            vec!["T".into()],
+            vec![],
+        ),
     );
 }

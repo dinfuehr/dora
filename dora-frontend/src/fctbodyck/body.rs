@@ -2850,14 +2850,12 @@ impl<'a> TypeCheck<'a> {
         let variant = &enum_.variants[variant_idx as usize];
 
         if !variant.types.is_empty() {
-            println!("pos = {}", expr_span);
-            println!("line = {}", self.sa.compute_loc(self.file_id, expr_span));
             let enum_name = self.sa.interner.str(enum_.name).to_string();
             let variant_name = self.sa.interner.str(variant.name).to_string();
             let variant_types = variant
                 .types
                 .iter()
-                .map(|a| self.ty_name(a))
+                .map(|a| a.name_enum(self.sa, &*enum_))
                 .collect::<Vec<_>>();
             let arg_types = Vec::new();
             let msg = ErrorMessage::EnumArgsIncompatible(
@@ -2919,7 +2917,7 @@ impl<'a> TypeCheck<'a> {
                 if !struct_field_accessible_from(self.sa, struct_id, field_id, self.module_id) {
                     let name = self.sa.interner.str(field.name).to_string();
                     let msg = ErrorMessage::NotAccessible(name);
-                    self.sa.report(self.file_id, e.op_span, msg);
+                    self.sa.report(self.file_id, e.rhs.span(), msg);
                 }
 
                 self.analysis.set_ty(e.id, fty.clone());
@@ -2943,7 +2941,7 @@ impl<'a> TypeCheck<'a> {
                 if !class_field_accessible_from(self.sa, cls_id, field_id, self.module_id) {
                     let name = self.sa.interner.str(field.name).to_string();
                     let msg = ErrorMessage::NotAccessible(name);
-                    self.sa.report(self.file_id, e.op_span, msg);
+                    self.sa.report(self.file_id, e.rhs.span(), msg);
                 }
 
                 self.analysis.set_ty(e.id, fty.clone());
@@ -2955,7 +2953,7 @@ impl<'a> TypeCheck<'a> {
         if !object_type.is_error() {
             let expr_name = self.ty_name(&object_type);
             let msg = ErrorMessage::UnknownField(name, expr_name);
-            self.sa.report(self.file_id, e.op_span, msg);
+            self.sa.report(self.file_id, e.rhs.span(), msg);
         }
 
         self.analysis.set_ty(e.id, SourceType::Error);
