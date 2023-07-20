@@ -505,7 +505,7 @@ impl AssemblerX64 {
         self.xaddl_ar(dest, src);
     }
 
-    fn lzcntl_rr(dest: Register, src: Register) {
+    pub fn lzcntl_rr(dest: Register, src: Register) {
         self.emitByte(0xF3u8);
         self.emitRex32ModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -513,7 +513,7 @@ impl AssemblerX64 {
         self.emitModRmReg(dest, src);
     }
 
-    fn lzcntq_rr(dest: Register, src: Register) {
+    pub fn lzcntq_rr(dest: Register, src: Register) {
         self.emitByte(0xF3u8);
         self.emitRex64ModRm(dest, src);
         self.emitByte(0x0Fu8);
@@ -521,7 +521,7 @@ impl AssemblerX64 {
         self.emitModRmReg(dest, src);
     }
 
-    fn movb_ai(dest: Address, src: Immediate) {
+    pub fn movb_ai(dest: Address, src: Immediate) {
         assert(src.isInt8() || src.isUInt8());
         self.emitRex32AddressOptional(dest);
         self.emitByte(0xC6u8);
@@ -529,19 +529,19 @@ impl AssemblerX64 {
         self.emitByte(src.toUInt8());
     }
 
-    fn movb_ar(dest: Address, src: Register) {
+    pub fn movb_ar(dest: Address, src: Register) {
         self.emitRex32ModRmAddressByteOptional(src, dest);
         self.emitByte(0x88u8);
         self.emitAddress(src.lowBits(), dest);
     }
 
-    fn movb_ra(dest: Register, src: Address) {
+    pub fn movb_ra(dest: Register, src: Address) {
         self.emitRex32ModRmAddressByteOptional(dest, src);
         self.emitByte(0x8au8);
         self.emitAddress(dest.lowBits(), src);
     }
 
-    fn movd_rx(dest: Register, src: XmmRegister) {
+    pub fn movd_rx(dest: Register, src: XmmRegister) {
         self.emitByte(0x66u8);
         self.emitRexOptional(false, src.needsRexBit(), false, dest.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -549,7 +549,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, src.lowBits(), dest.lowBits());
     }
 
-    fn movd_xr(dest: XmmRegister, src: Register) {
+    pub fn movd_xr(dest: XmmRegister, src: Register) {
         self.emitByte(0x66u8);
         self.emitRexOptional(false, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -557,7 +557,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, dest.lowBits(), src.lowBits());
     }
 
-    fn movl_ai(dest: Address, imm: Immediate) {
+    pub fn movl_ai(dest: Address, imm: Immediate) {
         assert(imm.isInt32() || imm.isUInt32());
         self.emitRex32AddressOptional(dest);
         self.emitByte(0xC7u8);
@@ -565,32 +565,32 @@ impl AssemblerX64 {
         self.emitInt32(imm.toInt32());
     }
 
-    fn movl_ar(dest: Address, src: Register) {
+    pub fn movl_ar(dest: Address, src: Register) {
         self.emitRex32ModRmAddressOptional(src, dest);
         self.emitByte(0x89u8);
         self.emitAddress(src.lowBits(), dest);
     }
 
-    fn movl_ra(dest: Register, src: Address) {
+    pub fn movl_ra(dest: Register, src: Address) {
         self.emitRex32ModRmAddressOptional(dest, src);
         self.emitByte(0x8Bu8);
         self.emitAddress(dest.lowBits(), src);
     }
 
-    fn movl_ri(dest: Register, imm: Immediate) {
+    pub fn movl_ri(dest: Register, imm: Immediate) {
         assert(imm.isInt32());
         self.emitRex32RmFieldOptional(dest);
         self.emitByte((0xB8i32 + dest.lowBits()).toUInt8());
         self.emitInt32(imm.toInt32());
     }
 
-    fn movl_rr(dest: Register, src: Register) {
+    pub fn movl_rr(dest: Register, src: Register) {
         self.emitRex32ModRmOptional(src, dest);
         self.emitByte(0x89u8);
         self.emitModRmReg(src, dest);
     }
 
-    fn movq_ai(dest: Address, imm: Immediate) {
+    pub fn movq_ai(dest: Address, imm: Immediate) {
         assert(imm.isInt32());
         self.emitRex64Address(dest);
         self.emitByte(0xC7u8);
@@ -598,13 +598,13 @@ impl AssemblerX64 {
         self.emitInt32(imm.toInt32());
     }
 
-    fn movq_ar(dest: Address, src: Register) {
+    pub fn movq_ar(dest: Address, src: Register) {
         self.emitRex64ModRmAddress(src, dest);
         self.emitByte(0x89u8);
         self.emitAddress(src.lowBits(), dest);
     }
 
-    fn movq_ra(dest: Register, src: Address) {
+    pub fn movq_ra(dest: Register, src: Address) {
         self.emitRex64ModRmAddress(dest, src);
         self.emitByte(0x8Bu8);
         self.emitAddress(dest.lowBits(), src);
@@ -629,7 +629,7 @@ impl AssemblerX64 {
         self.emitModRmReg(src, dest);
     }
 
-    fn movq_rx(dest: Register, src: XmmRegister) {
+    pub fn movq_rx(dest: Register, src: XmmRegister) {
         self.emitByte(0x66u8);
         self.emitRexOptional(true, src.needsRexBit(), false, dest.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -637,7 +637,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, src.lowBits(), dest.lowBits());
     }
 
-    fn movq_xr(dest: XmmRegister, src: Register) {
+    pub fn movq_xr(dest: XmmRegister, src: Register) {
         self.emitByte(0x66u8);
         self.emitRexOptional(true, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -645,7 +645,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, dest.lowBits(), src.lowBits());
     }
 
-    fn movsd_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn movsd_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF2u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -653,7 +653,7 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fn movsd_ra(dest: XmmRegister, src: Address) {
+    pub fn movsd_ra(dest: XmmRegister, src: Address) {
         self.emitByte(0xF2u8);
         self.emitRexSseAddressOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -661,7 +661,7 @@ impl AssemblerX64 {
         self.emitAddress(dest.lowBits(), src);
     }
 
-    fn movsd_ar(dest: Address, src: XmmRegister) {
+    pub fn movsd_ar(dest: Address, src: XmmRegister) {
         self.emitByte(0xF2u8);
         self.emitRexSseAddressOptional(src, dest);
         self.emitByte(0x0Fu8);
@@ -669,7 +669,7 @@ impl AssemblerX64 {
         self.emitAddress(src.lowBits(), dest);
     }
 
-    fn movss_ar(dest: Address, src: XmmRegister) {
+    pub fn movss_ar(dest: Address, src: XmmRegister) {
         self.emitByte(0xF3u8);
         self.emitRexSseAddressOptional(src, dest);
         self.emitByte(0x0Fu8);
@@ -677,7 +677,7 @@ impl AssemblerX64 {
         self.emitAddress(src.lowBits(), dest);
     }
 
-    fn movss_ra(dest: XmmRegister, src: Address) {
+    pub fn movss_ra(dest: XmmRegister, src: Address) {
         self.emitByte(0xF3u8);
         self.emitRexSseAddressOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -685,7 +685,7 @@ impl AssemblerX64 {
         self.emitAddress(dest.lowBits(), src);
     }
 
-    fn movss_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn movss_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF3u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -693,55 +693,55 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fn movsxbl_ra(dest: Register, src: Address) {
+    pub fn movsxbl_ra(dest: Register, src: Address) {
         self.emitRex32ModRmAddressOptional(dest, src);
         self.emitByte(0x0Fu8);
         self.emitByte(0xBEu8);
         self.emitAddress(dest.lowBits(), src);
     }
 
-    fn movsxbl_rr(dest: Register, src: Register) {
+    pub fn movsxbl_rr(dest: Register, src: Register) {
         self.emitRex32ModRmByteOptional(dest, src);
         self.emitByte(0x0Fu8);
         self.emitByte(0xBEu8);
         self.emitModRmReg(dest, src);
     }
 
-    fn movsxbq_ra(dest: Register, src: Address) {
+    pub fn movsxbq_ra(dest: Register, src: Address) {
         self.emitRex64ModRmAddress(dest, src);
         self.emitByte(0x0Fu8);
         self.emitByte(0xBEu8);
         self.emitAddress(dest.lowBits(), src);
     }
 
-    fn movsxbq_rr(dest: Register, src: Register) {
+    pub fn movsxbq_rr(dest: Register, src: Register) {
         self.emitRex64ModRm(dest, src);
         self.emitByte(0x0Fu8);
         self.emitByte(0xBEu8);
         self.emitModRmReg(dest, src);
     }
 
-    fn movsxlq_rr(dest: Register, src: Register) {
+    pub fn movsxlq_rr(dest: Register, src: Register) {
         self.emitRex64ModRm(dest, src);
         self.emitByte(0x63u8);
         self.emitModRmReg(dest, src);
     }
 
-    fn movzxb_ra(dest: Register, src: Address) {
+    pub fn movzxb_ra(dest: Register, src: Address) {
         self.emitRex32ModRmAddressOptional(dest, src);
         self.emitByte(0x0Fu8);
         self.emitByte(0xB6u8);
         self.emitAddress(dest.lowBits(), src);
     }
 
-    fn movzxb_rr(dest: Register, src: Register) {
+    pub fn movzxb_rr(dest: Register, src: Register) {
         self.emitRex32ModRmByteOptional(dest, src);
         self.emitByte(0x0Fu8);
         self.emitByte(0xB6u8);
         self.emitModRmReg(dest, src);
     }
 
-    fn mulss_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn mulss_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF3u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -749,7 +749,7 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fn mulsd_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn mulsd_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF2u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -757,41 +757,41 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fn negl_r(reg: Register) {
+    pub fn negl_r(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte(0xF7u8);
         self.emitModRmOpcode(0b011i32, reg);
     }
 
-    fn negq_r(reg: Register) {
+    pub fn negq_r(reg: Register) {
         self.emitRex64RmField(reg);
         self.emitByte(0xF7u8);
         self.emitModRmOpcode(0b011i32, reg);
     }
 
-    fn nop() {
+    pub fn nop() {
         self.emitByte(0x90u8);
     }
 
-    fn notl_r(reg: Register) {
+    pub fn notl_r(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte(0xF7u8);
         self.emitModRmOpcode(0b010i32, reg);
     }
 
-    fn notq_r(reg: Register) {
+    pub fn notq_r(reg: Register) {
         self.emitRex64RmField(reg);
         self.emitByte(0xF7u8);
         self.emitModRmOpcode(0b010i32, reg);
     }
 
-    fn orl_rr(dest: Register, src: Register) {
+    pub fn orl_rr(dest: Register, src: Register) {
         self.emitRex32ModRmOptional(src, dest);
         self.emitByte(0x09u8);
         self.emitModRmReg(src, dest);
     }
 
-    fn orq_rr(dest: Register, src: Register) {
+    pub fn orq_rr(dest: Register, src: Register) {
         self.emitRex64ModRm(src, dest);
         self.emitByte(0x09u8);
         self.emitModRmReg(src, dest);
@@ -802,7 +802,7 @@ impl AssemblerX64 {
         self.emitByte((0x50i32 + reg.lowBits()).toUInt8());
     }
 
-    fn popcntl_rr(dest: Register, src: Register) {
+    pub fn popcntl_rr(dest: Register, src: Register) {
         self.emitByte(0xF3u8);
         self.emitRex32ModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -810,7 +810,7 @@ impl AssemblerX64 {
         self.emitModRmReg(dest, src);
     }
 
-    fn popcntq_rr(dest: Register, src: Register) {
+    pub fn popcntq_rr(dest: Register, src: Register) {
         self.emitByte(0xF3u8);
         self.emitRex64ModRm(dest, src);
         self.emitByte(0x0Fu8);
@@ -823,7 +823,7 @@ impl AssemblerX64 {
         self.emitByte((0x58i32 + reg.lowBits()).toUInt8());
     }
 
-    fn pxor_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn pxor_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0x66u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -835,7 +835,7 @@ impl AssemblerX64 {
         self.emitByte(0xC3u8);
     }
 
-    fn roll_r(reg: Register) {
+    pub fn roll_r(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte(0xD3u8);
         self.emitModRmOpcode(0b000i32, reg);
@@ -867,25 +867,25 @@ impl AssemblerX64 {
         self.emitByte(mode);
     }
 
-    fn rorl_r(reg: Register) {
+    pub fn rorl_r(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte(0xD3u8);
         self.emitModRmOpcode(0b001i32, reg);
     }
 
-    fn rorq_r(reg: Register) {
+    pub fn rorq_r(reg: Register) {
         self.emitRex64RmField(reg);
         self.emitByte(0xD3u8);
         self.emitModRmOpcode(0b001i32, reg);
     }
 
-    fn sarl_r(reg: Register) {
+    pub fn sarl_r(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte(0xD3u8);
         self.emitModRmOpcode(0b111i32, reg);
     }
 
-    fn sarl_ri(lhs: Register, rhs: Immediate) {
+    pub fn sarl_ri(lhs: Register, rhs: Immediate) {
         assert(rhs.isInt8());
         self.emitRex32RmFieldOptional(lhs);
         self.emitByte(0xC1u8);
@@ -893,13 +893,13 @@ impl AssemblerX64 {
         self.emitByte(rhs.toUInt8());
     }
 
-    fn sarq_r(reg: Register) {
+    pub fn sarq_r(reg: Register) {
         self.emitRex64RmField(reg);
         self.emitByte(0xD3u8);
         self.emitModRmOpcode(0b111i32, reg);
     }
 
-    fn sarq_ri(lhs: Register, rhs: Immediate) {
+    pub fn sarq_ri(lhs: Register, rhs: Immediate) {
         assert(rhs.isInt8());
         self.emitRex64RmField(lhs);
         self.emitByte(0xC1u8);
@@ -907,7 +907,7 @@ impl AssemblerX64 {
         self.emitByte(rhs.toUInt8());
     }
 
-    fn setcc_r(condition: Condition, dest: Register) {
+    pub fn setcc_r(condition: Condition, dest: Register) {
         if dest.needsRexBit() || dest.lowBits() > 3i32 {
             self.emitRex(false, false, false, dest.needsRexBit());
         }
@@ -917,13 +917,13 @@ impl AssemblerX64 {
         self.emitModRmOpcode(0i32, dest);
     }
 
-    fn shll_r(reg: Register) {
+    pub fn shll_r(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte(0xD3u8);
         self.emitModRmOpcode(0b100i32, reg);
     }
 
-    fn shll_ri(lhs: Register, rhs: Immediate) {
+    pub fn shll_ri(lhs: Register, rhs: Immediate) {
         assert(rhs.isInt8());
         self.emitRex32RmFieldOptional(lhs);
         self.emitByte(0xC1u8);
@@ -931,13 +931,13 @@ impl AssemblerX64 {
         self.emitByte(rhs.toUInt8());
     }
 
-    fn shlq_r(reg: Register) {
+    pub fn shlq_r(reg: Register) {
         self.emitRex64RmField(reg);
         self.emitByte(0xD3u8);
         self.emitModRmOpcode(0b100i32, reg);
     }
 
-    fn shlq_ri(lhs: Register, rhs: Immediate) {
+    pub fn shlq_ri(lhs: Register, rhs: Immediate) {
         assert(rhs.isInt8());
         self.emitRex64RmField(lhs);
         self.emitByte(0xC1u8);
@@ -945,13 +945,13 @@ impl AssemblerX64 {
         self.emitByte(rhs.toUInt8());
     }
 
-    fn shrl_r(reg: Register) {
+    pub fn shrl_r(reg: Register) {
         self.emitRex32RmFieldOptional(reg);
         self.emitByte(0xD3u8);
         self.emitModRmOpcode(0b101i32, reg);
     }
 
-    fn shrl_ri(lhs: Register, rhs: Immediate) {
+    pub fn shrl_ri(lhs: Register, rhs: Immediate) {
         assert(rhs.isInt8());
         self.emitRex32RmFieldOptional(lhs);
         self.emitByte(0xC1u8);
@@ -959,13 +959,13 @@ impl AssemblerX64 {
         self.emitByte(rhs.toUInt8());
     }
 
-    fn shrq_r(reg: Register) {
+    pub fn shrq_r(reg: Register) {
         self.emitRex64RmField(reg);
         self.emitByte(0xD3u8);
         self.emitModRmOpcode(0b101i32, reg);
     }
 
-    fn shrq_ri(lhs: Register, rhs: Immediate) {
+    pub fn shrq_ri(lhs: Register, rhs: Immediate) {
         assert(rhs.isInt8());
         self.emitRex64RmField(lhs);
         self.emitByte(0xC1u8);
@@ -973,7 +973,7 @@ impl AssemblerX64 {
         self.emitByte(rhs.toUInt8());
     }
 
-    fn sqrtsd_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn sqrtsd_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF2u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -981,7 +981,7 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fn sqrtss_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn sqrtss_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF3u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -989,23 +989,23 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fn subl_rr(dest: Register, src: Register) {
+    pub fn subl_rr(dest: Register, src: Register) {
         self.emitRex32ModRmOptional(src, dest);
         self.emitByte(0x29u8);
         self.emitModRmReg(src, dest);
     }
 
-    fn subq_ri(reg: Register, imm: Immediate) {
+    pub fn subq_ri(reg: Register, imm: Immediate) {
         self.emitAlu64Imm(reg, imm, 0b101i32, 0x2Du8);
     }
 
-    fn subq_rr(dest: Register, src: Register) {
+    pub fn subq_rr(dest: Register, src: Register) {
         self.emitRex64ModRm(src, dest);
         self.emitByte(0x29u8);
         self.emitModRmReg(src, dest);
     }
 
-    fn subsd_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn subsd_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF2u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -1013,7 +1013,7 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fn subss_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn subss_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0xF3u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -1021,7 +1021,7 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fn testl_ai(lhs: Address, rhs: Immediate) {
+    pub fn testl_ai(lhs: Address, rhs: Immediate) {
         assert(rhs.isInt32());
         self.emitRex32AddressOptional(lhs);
         self.emitByte(0xF7u8);
@@ -1029,13 +1029,13 @@ impl AssemblerX64 {
         self.emitInt32(rhs.toInt32());
     }
 
-    fn testl_ar(lhs: Address, rhs: Register) {
+    pub fn testl_ar(lhs: Address, rhs: Register) {
         self.emitRex32ModRmAddressOptional(rhs, lhs);
         self.emitByte(0x85u8);
         self.emitAddress(rhs.lowBits(), lhs);
     }
 
-    fn testl_ri(lhs: Register, imm: Immediate) {
+    pub fn testl_ri(lhs: Register, imm: Immediate) {
         assert(imm.isInt32());
 
         if imm.isUInt8() {
@@ -1060,13 +1060,13 @@ impl AssemblerX64 {
         }
     }
 
-    fn testl_rr(lhs: Register, rhs: Register) {
+    pub fn testl_rr(lhs: Register, rhs: Register) {
         self.emitRex32ModRmOptional(rhs, lhs);
         self.emitByte(0x85u8);
         self.emitModRmReg(rhs, lhs);
     }
 
-    fn testq_ai(lhs: Address, rhs: Immediate) {
+    pub fn testq_ai(lhs: Address, rhs: Immediate) {
         assert(rhs.isInt32());
         self.emitRex64Address(lhs);
         self.emitByte(0xF7u8);
@@ -1074,19 +1074,19 @@ impl AssemblerX64 {
         self.emitInt32(rhs.toInt32());
     }
 
-    fn testq_ar(lhs: Address, rhs: Register) {
+    pub fn testq_ar(lhs: Address, rhs: Register) {
         self.emitRex64ModRmAddress(rhs, lhs);
         self.emitByte(0x85u8);
         self.emitAddress(rhs.lowBits(), lhs);
     }
 
-    fn testq_rr(lhs: Register, rhs: Register) {
+    pub fn testq_rr(lhs: Register, rhs: Register) {
         self.emitRex64ModRm(rhs, lhs);
         self.emitByte(0x85u8);
         self.emitModRmReg(rhs, lhs);
     }
 
-    fn tzcntl_rr(dest: Register, src: Register) {
+    pub fn tzcntl_rr(dest: Register, src: Register) {
         self.emitByte(0xF3u8);
         self.emitRex32ModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -1094,7 +1094,7 @@ impl AssemblerX64 {
         self.emitModRmReg(dest, src);
     }
 
-    fn tzcntq_rr(dest: Register, src: Register) {
+    pub fn tzcntq_rr(dest: Register, src: Register) {
         self.emitByte(0xF3u8);
         self.emitRex64ModRm(dest, src);
         self.emitByte(0x0Fu8);
@@ -1102,14 +1102,14 @@ impl AssemblerX64 {
         self.emitModRmReg(dest, src);
     }
 
-    fn ucomiss_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn ucomiss_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
         self.emitByte(0x2Eu8);
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fn ucomisd_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn ucomisd_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitByte(0x66u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -1149,17 +1149,17 @@ impl AssemblerX64 {
         self.emitAddress(src.lowBits(), dest);
     }
 
-    fn xorl_ri(lhs: Register, rhs: Immediate) {
+    pub fn xorl_ri(lhs: Register, rhs: Immediate) {
         self.emitAlu32Imm(lhs, rhs, 0b110i32, 0x35u8);
     }
 
-    fn xorl_rr(dest: Register, src: Register) {
+    pub fn xorl_rr(dest: Register, src: Register) {
         self.emitRex32ModRmOptional(src, dest);
         self.emitByte(0x31u8);
         self.emitModRmReg(src, dest);
     }
 
-    fn xorpd_ra(dest: XmmRegister, src: Address) {
+    pub fn xorpd_ra(dest: XmmRegister, src: Address) {
         self.emitByte(0x66u8);
         self.emitRexSseAddressOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -1167,21 +1167,21 @@ impl AssemblerX64 {
         self.emitAddress(dest.lowBits(), src);
     }
 
-    fn xorps_ra(dest: XmmRegister, src: Address) {
+    pub fn xorps_ra(dest: XmmRegister, src: Address) {
         self.emitRexSseAddressOptional(dest, src);
         self.emitByte(0x0Fu8);
         self.emitByte(0x57u8);
         self.emitAddress(dest.lowBits(), src);
     }
 
-    fn xorps_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn xorps_rr(dest: XmmRegister, src: XmmRegister) {
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
         self.emitByte(0x57u8);
         self.emitModRmSseRegisters(dest, src);
     }
 
-    fn xorq_rr(dest: Register, src: Register) {
+    pub fn xorq_rr(dest: Register, src: Register) {
         self.emitRex64ModRm(src, dest);
         self.emitByte(0x31u8);
         self.emitModRmReg(src, dest);

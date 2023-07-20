@@ -40,6 +40,12 @@ impl CodeGen for CodeGenX64 {
         self.asm.movq_rr(RBP, RSP);
     }
 
+    fn setSubLocationData(inst: Inst, loc: LocationData) {
+        loc.requireInputRegister(0);
+        loc.requireInputRegister(1);
+        loc.requireOutputSameAsFirstInput();
+    }
+
     fn emitInt64Const(inst: Inst) {
         let loc = inst.getLocationData();
         let register = loc.getOutput().getRegister();
@@ -54,6 +60,29 @@ impl CodeGen for CodeGenX64 {
         let output = loc.getOutput().getRegister();
 
         self.asm.lea(output, Address::array(lhs, rhs, ScaleFactor::One, 0i32));
+    }
+
+    fn emitSub(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+
+        let output = loc.getOutput().getRegister();
+        assert(output == lhs);
+
+        self.asm.subq_rr(output, rhs);
+    }
+
+    fn emitMul(inst: Inst) {
+        unreachable[()]();
+    }
+
+    fn emitDiv(inst: Inst) {
+        unreachable[()]();
+    }
+
+    fn emitMod(inst: Inst) {
+        unreachable[()]();
     }
 
     fn emitReturn(inst: Inst) {

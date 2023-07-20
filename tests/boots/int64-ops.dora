@@ -1,0 +1,24 @@
+//= boots
+
+fn main() {
+    assert(f1(1, 7) == 8);
+    assert(f1(-2, 4) == 2);
+
+    // assert(f2(1, 7) == -6);
+    // assert(f2(-4, 2) == -6);
+
+    // assert(f3(2, 8) == 16);
+    // assert(f3(12, 10) == 120);
+
+    // assert(f4(5, 3) == 1);
+    // assert(f4(-8, 3) == -2);
+
+    // assert(f5(14, 7) == 0);
+    // assert(f5(15, 4) == 3);
+}
+
+@optimizeImmediately fn f1(a: Int64, b: Int64): Int64 { a + b }
+@optimizeImmediately fn f2(a: Int64, b: Int64): Int64 { a - b }
+@optimizeImmediately fn f3(a: Int64, b: Int64): Int64 { a * b }
+@optimizeImmediately fn f4(a: Int64, b: Int64): Int64 { a / b }
+@optimizeImmediately fn f5(a: Int64, b: Int64): Int64 { a % b }

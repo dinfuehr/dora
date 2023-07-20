@@ -46,6 +46,12 @@ impl CodeGen for CodeGenArm64 {
         self.asm.mov(REG_FP, REG_SP);
     }
 
+    fn setSubLocationData(inst: Inst, loc: LocationData) {
+        loc.requireInputRegister(0);
+        loc.requireInputRegister(1);
+        loc.requireOutputRegister();
+    }
+
     fn emitInt64Const(inst: Inst) {
         let loc = inst.getLocationData();
         let register = loc.getOutput().getRegister();
@@ -60,6 +66,28 @@ impl CodeGen for CodeGenArm64 {
         let output = loc.getOutput().getRegister();
 
         self.asm.add(output, lhs, rhs);
+    }
+
+    fn emitSub(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+
+        let output = loc.getOutput().getRegister();
+
+        self.asm.sub(output, lhs, rhs);
+    }
+
+    fn emitMul(inst: Inst) {
+        unreachable[()]();
+    }
+
+    fn emitDiv(inst: Inst) {
+        unreachable[()]();
+    }
+
+    fn emitMod(inst: Inst) {
+        unreachable[()]();
     }
 
     fn emitReturn(inst: Inst) {

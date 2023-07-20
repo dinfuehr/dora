@@ -10,12 +10,18 @@ pub trait CodeGen {
     fn allocatableRegisters(): RegSet;
     fn argumentRegister(idx: Int64): Register;
     fn prolog();
+    fn finalize(): CodeDescriptor;
+
+    fn setSubLocationData(inst: Inst, loc: LocationData);
 
     fn emitInt64Const(inst: Inst);
     fn emitAdd(inst: Inst);
+    fn emitSub(inst: Inst);
+    fn emitMul(inst: Inst);
+    fn emitDiv(inst: Inst);
+    fn emitMod(inst: Inst);
     fn emitReturn(inst: Inst);
 
-    fn finalize(): CodeDescriptor;
 }
 
 pub fn setLocationConstraints(codegen: CodeGen, inst: Inst) {
@@ -25,7 +31,7 @@ pub fn setLocationConstraints(codegen: CodeGen, inst: Inst) {
         Op::Arg => {
             let idx = inst.auxAsInt32().toInt64();
             let reg = codegen.argumentRegister(idx);
-            loc.requireFixedOutputRegister(reg);
+            loc.requireOutputFixedRegister(reg);
         },
 
         Op::Int64Const => {
@@ -36,6 +42,23 @@ pub fn setLocationConstraints(codegen: CodeGen, inst: Inst) {
             loc.requireInputRegister(0);
             loc.requireInputRegister(1);
             loc.requireOutputRegister();
+        },
+
+        Op::Sub => {
+            codegen.setSubLocationData(inst, loc);
+        },
+
+        Op::Mul => {
+            unreachable[()]();
+        },
+
+        Op::Div => {
+            unreachable[()]();
+
+        },
+
+        Op::Mod => {
+            unreachable[()]();
         },
 
         Op::Return => {
@@ -62,6 +85,22 @@ pub fn emitInst(codegen: CodeGen, inst: Inst) {
 
         Op::Add => {
             codegen.emitAdd(inst);
+        },
+
+        Op::Sub => {
+            codegen.emitSub(inst);
+        },
+
+        Op::Mul => {
+            codegen.emitMul(inst);
+        },
+
+        Op::Div => {
+            codegen.emitDiv(inst);
+        },
+
+        Op::Mod => {
+            codegen.emitMod(inst);
         },
 
         Op::Return => {

@@ -885,18 +885,19 @@ impl LocationData {
     }
 
     pub fn requireOutputRegister() {
-        self.output = Some[Location](Location::new());
+        self.output = Some(Location::someRegister());
     }
 
-    pub fn requireFixedOutputRegister(register: Register) {
-        let location = Location::new();
-        location.setRegister(register);
-        self.output = Some[Location](location);
+    pub fn requireOutputFixedRegister(register: Register) {
+        self.output = Some(Location::fixedRegister(register));
+    }
+
+    pub fn requireOutputSameAsFirstInput() {
+        self.output = Some(Location::sameAsFirstInput());
     }
 
     pub fn requireInputRegister(idx: Int64) {
-        let location = Location::new();
-        self.inputs(idx) = Some[Location](location);
+        self.inputs(idx) = Some[Location](Location::someRegister());
     }
 
     pub fn hasOutput(): Bool {
@@ -916,19 +917,37 @@ impl LocationData {
     }
 }
 
+pub enum Policy {
+    SomeRegister,
+    FixedRegister,
+    SameAsFirstInput,
+}
+
 pub class Location {
+    policy: Policy,
     register: Option[Register],
 }
 
 impl Location {
-    pub static fn new(): Location {
+    pub static fn fixedRegister(register: Register): Location {
         Location(
+            Policy::FixedRegister,
+            Some[Register](register),
+        )
+    }
+
+    pub static fn someRegister(): Location {
+        Location(
+            Policy::SomeRegister,
             None[Register],
         )
     }
 
-    pub fn setRegister(register: Register) {
-        self.register = Some(register);
+    pub static fn sameAsFirstInput(): Location {
+        Location(
+            Policy::SameAsFirstInput,
+            None[Register],
+        )
     }
 
     pub fn hasRegister(): Bool {
@@ -937,6 +956,11 @@ impl Location {
 
     pub fn getRegister(): Register {
         self.register.getOrPanic()
+    }
+
+    pub fn setRegister(register: Register) {
+        assert(self.register.isNone());
+        self.register = Some(register);
     }
 }
 
