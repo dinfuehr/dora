@@ -31,78 +31,42 @@ impl CodeGen for CodeGenX64 {
         RegSet::new(RDI, RSI, RDX, RCX, R8, R9)
     }
 
+    fn argumentRegister(idx: Int64): Register {
+        REG_PARAMS(idx)
+    }
+
     fn prolog() {
         self.asm.pushq_r(RBP);
         self.asm.movq_rr(RBP, RSP);
     }
 
-    fn setLocationConstraints(inst: Inst) {
-        let loc = LocationData::new(inst);
-
-        match inst.op() {
-            Op::Arg => {
-                let idx = inst.auxAsInt32().toInt64();
-                loc.requireFixedOutputRegister(REG_PARAMS(idx));
-            },
-
-            Op::Int64Const => {
-                loc.requireOutputRegister();
-            },
-
-            Op::Add => {
-                loc.requireInputRegister(0);
-                loc.requireInputRegister(1);
-                loc.requireOutputRegister();
-            },
-
-            Op::Return => {
-                if inst.hasInput() {
-                    loc.requireInputRegister(0);
-                }
-            },
-
-            _ => {}
-        }
-
-        inst.setLocationData(loc);
+    fn emitInt64Const(inst: Inst) {
+        let loc = inst.getLocationData();
+        let register = loc.getOutput().getRegister();
+        self.asm.movq_ri(register, Immediate(inst.auxAsInt64()));
     }
 
-    fn emit(inst: Inst) {
+    fn emitAdd(inst: Inst) {
         let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
 
-        match inst.op() {
-            Op::Arg => {},
+        let output = loc.getOutput().getRegister();
 
-            Op::Int64Const => {
-                let register = loc.getOutput().getRegister();
-                self.asm.movq_ri(register, Immediate(inst.auxAsInt64()));
-            },
+        self.asm.lea(output, Address::array(lhs, rhs, ScaleFactor::One, 0i32));
+    }
 
-            Op::Add => {
-                let lhs = loc.getInput(0).getRegister();
-                let rhs = loc.getInput(1).getRegister();
+    fn emitReturn(inst: Inst) {
+        if inst.hasInput() {
+            let loc = inst.getLocationData();
+            let register = loc.getInput(0).getRegister();
 
-                let output = loc.getOutput().getRegister();
-
-                self.asm.lea(output, Address::array(lhs, rhs, ScaleFactor::One, 0i32));
-            },
-
-            Op::Return => {
-                if inst.hasInput() {
-                    let register = loc.getInput(0).getRegister();
-
-                    if RAX != register {
-                        self.asm.movq_rr(RAX, register);
-                    }
-                }
-
-                self.epilog();
-            },
-
-            _ => {
-                unreachable[()]();
+            if RAX != register {
+                self.asm.movq_rr(RAX, register);
             }
         }
+
+        self.epilog();
     }
 
     fn finalize(): CodeDescriptor {

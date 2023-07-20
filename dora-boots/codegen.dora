@@ -1,17 +1,77 @@
 use std::collections::VecIter;
 
 use package::assembler::{Register, RegSet};
-use package::graph::Inst;
+use package::graph::{Inst, LocationData, Op};
 
 pub mod arm64;
 pub mod x64;
 
 pub trait CodeGen {
     fn allocatableRegisters(): RegSet;
+    fn argumentRegister(idx: Int64): Register;
     fn prolog();
-    fn setLocationConstraints(inst: Inst);
-    fn emit(inst: Inst);
+
+    fn emitInt64Const(inst: Inst);
+    fn emitAdd(inst: Inst);
+    fn emitReturn(inst: Inst);
+
     fn finalize(): CodeDescriptor;
+}
+
+pub fn setLocationConstraints(codegen: CodeGen, inst: Inst) {
+    let loc = LocationData::new(inst);
+
+    match inst.op() {
+        Op::Arg => {
+            let idx = inst.auxAsInt32().toInt64();
+            let reg = codegen.argumentRegister(idx);
+            loc.requireFixedOutputRegister(reg);
+        },
+
+        Op::Int64Const => {
+            loc.requireOutputRegister();
+        },
+
+        Op::Add => {
+            loc.requireInputRegister(0);
+            loc.requireInputRegister(1);
+            loc.requireOutputRegister();
+        },
+
+        Op::Return => {
+            if inst.hasInput() {
+                loc.requireInputRegister(0);
+            }
+        },
+
+        _ => {
+            unreachable[()]();
+        }
+    }
+
+    inst.setLocationData(loc);
+}
+
+pub fn emitInst(codegen: CodeGen, inst: Inst) {
+    match inst.op() {
+        Op::Arg => {},
+
+        Op::Int64Const => {
+            codegen.emitInt64Const(inst);
+        },
+
+        Op::Add => {
+            codegen.emitAdd(inst);
+        },
+
+        Op::Return => {
+            codegen.emitReturn(inst);
+        },
+
+        _ => {
+            unreachable[()]();
+        }
+    }
 }
 
 pub class CodeDescriptor {

@@ -2,7 +2,7 @@ use package::assembler::RegSet;
 use package::codegen::CodeGen;
 use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
-use package::codegen::CodeDescriptor;
+use package::codegen::{emitInst, CodeDescriptor, setLocationConstraints};
 use package::graph::{Graph, Location, LocationData, Op, opName};
 use package::graph::dump::dumpGraph;
 use package::graph_builder::createGraph;
@@ -45,7 +45,7 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
 fn ensureLocationData(graph: Graph, codegen: CodeGen) {
     for block in graph.insertionOrderIterator() {
         for inst in block.instructionsIterator() {
-            codegen.setLocationConstraints(inst);
+            setLocationConstraints(codegen, inst);
         }
     }
 }
@@ -57,8 +57,6 @@ fn allocateRegisters(graph: Graph, codegen: CodeGen) {
         for inst in block.instructionsIterator() {
             let loc = inst.getLocationData();
             let mut idx = 0;
-
-            println("op = ${opName(inst.op())}");
 
             for input in inst.getInputs() {
                 let value = input.getValue();
@@ -89,7 +87,7 @@ fn generate(graph: Graph, codegen: CodeGen): CodeDescriptor {
 
     for block in graph.insertionOrderIterator() {
         for inst in block.instructionsIterator() {
-            codegen.emit(inst);
+            emitInst(codegen, inst);
         }
     }
 
