@@ -153,7 +153,9 @@ fn check_use(
             }
 
             for nested_use in &group.targets {
-                check_use(
+                // Ignore errors as an error in `foo::{a, b, c}`
+                // for `a` does not affect `b` or `c`.
+                let _ = check_use(
                     sa,
                     nested_use,
                     use_module_id,
@@ -162,7 +164,7 @@ fn check_use(
                     ignore_errors,
                     all_resolved,
                     resolved,
-                )?;
+                );
             }
         }
 
@@ -568,5 +570,25 @@ mod tests {
                 ),
             ],
         );
+    }
+
+    #[test]
+    fn use_group() {
+        errors(
+            "
+            use foo::{a, b};
+            mod foo {}
+        ",
+            &[
+                (
+                    (2, 23),
+                    ErrorMessage::UnknownIdentifierInModule("foo".into(), "a".into()),
+                ),
+                (
+                    (2, 26),
+                    ErrorMessage::UnknownIdentifierInModule("foo".into(), "b".into()),
+                ),
+            ],
+        )
     }
 }
