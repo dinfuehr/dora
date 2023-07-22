@@ -310,7 +310,7 @@ impl ErrorMessage {
             ErrorMessage::EnumExpected => format!("enum expected."),
             ErrorMessage::EnumVariantExpected => format!("enum variant expected."),
             ErrorMessage::MatchUncoveredVariant => "not all variants are covered.".into(),
-            ErrorMessage::MatchUnreachablePattern => "not all variants are covered.".into(),
+            ErrorMessage::MatchUnreachablePattern => "unreachable pattern.".into(),
             ErrorMessage::VarNeedsTypeInfo(ref name) => format!(
                 "variable `{}` needs either type declaration or expression.",
                 name

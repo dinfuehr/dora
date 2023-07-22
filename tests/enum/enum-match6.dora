@@ -1,0 +1,17 @@
+enum Foo { A, B, C, D, E }
+
+fn main() {
+    assert(value(Foo::A) == 1);
+    assert(value(Foo::B) == 1);
+    assert(value(Foo::C) == 2);
+    assert(value(Foo::D) == 2);
+    assert(value(Foo::E) == 3);
+}
+
+fn value(foo: Foo): Int64 {
+    match foo {
+        Foo::A | Foo::B => 1,
+        Foo::C | Foo::D => 2,
+        Foo::E => 3,
+    }
+}
