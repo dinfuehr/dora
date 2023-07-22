@@ -156,10 +156,8 @@ impl Cond {
         match self {
             Cond::EQ => 0b0000i32,
             Cond::NE => 0b0001i32,
-            Cond::CS => 0b0010i32,
-            Cond::HS => 0b0010i32,
-            Cond::CC => 0b0011i32,
-            Cond::LO => 0b0011i32,
+            Cond::CS | Cond::HS => 0b0010i32,
+            Cond::CC | Cond::LO => 0b0011i32,
             Cond::MI => 0b0100i32,
             Cond::PL => 0b0101i32,
             Cond::VS => 0b0110i32,
