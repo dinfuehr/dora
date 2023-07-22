@@ -1,8 +1,9 @@
-use package::codegen::{CodeDescriptor, CommentTable};
+use package::codegen::{CodeDescriptor, CommentTable, LocationTable};
 
 pub fn encodeCodeDescriptor(writer: ByteWriter, descriptor: CodeDescriptor) {
     encodeArrayUInt8(writer, descriptor.code);
     encodeCommentTable(writer, descriptor.comments);
+    encodeLocationTable(writer, descriptor.locations);
 }
 
 pub fn encodeArrayUInt8(writer: ByteWriter, array: Array[UInt8]) {
@@ -27,6 +28,16 @@ pub fn encodeString(writer: ByteWriter, value: String) {
 
     for byte in value.asBytes() {
         writer.emitByte(byte);
+    }
+}
+
+pub fn encodeLocationTable(writer: ByteWriter, locations: LocationTable) {
+    writer.emitInt32(locations.size().toInt32());
+
+    for (offset, location) in locations {
+        writer.emitInt32(offset);
+        writer.emitInt32(location.line);
+        writer.emitInt32(location.column);
     }
 }
 

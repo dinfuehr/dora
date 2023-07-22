@@ -1,23 +1,39 @@
 use crate::constpool::ConstPool;
 use crate::masm::CodeDescriptor;
 use crate::vm::{CommentTable, GcPointTable, LazyCompilationData, LocationTable, RelocationTable};
+use dora_bytecode::Location;
 
 pub fn decode_code_descriptor(reader: &mut ByteReader) -> CodeDescriptor {
     let code = decode_code(reader);
     let comments = decode_comment_table(reader);
+    let positions = decode_location_table(reader);
     CodeDescriptor {
         code,
         comments,
         constpool: ConstPool::new(),
         lazy_compilation: LazyCompilationData::new(),
         gcpoints: GcPointTable::new(),
-        positions: LocationTable::new(),
+        positions,
         relocations: RelocationTable::new(),
     }
 }
 
 fn decode_code(reader: &mut ByteReader) -> Vec<u8> {
     decode_array_u8(reader)
+}
+
+fn decode_location_table(reader: &mut ByteReader) -> LocationTable {
+    let length = reader.read_u32() as usize;
+    let mut result = LocationTable::new();
+
+    for _ in 0..length {
+        let pos = reader.read_u32();
+        let line = reader.read_u32();
+        let col = reader.read_u32();
+        result.insert(pos, Location::new(line, col));
+    }
+
+    result
 }
 
 fn decode_array_u8(reader: &mut ByteReader) -> Vec<u8> {

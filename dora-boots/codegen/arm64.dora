@@ -1,6 +1,6 @@
 use package::interface::CompilationInfo;
 use package::interface::Architecture;
-use package::codegen::{CodeGen, CodeDescriptor, CommentTable};
+use package::codegen::{CodeGen, CodeDescriptor, CommentTable, LocationTable};
 use package::assembler::arm64::AssemblerArm64;
 use package::assembler::arm64::{R0, R1, R2, R3, R4, R5, R6, R7};
 use package::assembler::arm64::{REG_FP, REG_SP, REG_LR};
@@ -109,6 +109,7 @@ impl CodeGen for CodeGenArm64 {
         CodeDescriptor(
             code,
             CommentTable::new(),
+            LocationTable::new(),
         )
     }
 }

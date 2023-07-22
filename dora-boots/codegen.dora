@@ -116,6 +116,7 @@ pub fn emitInst(codegen: CodeGen, inst: Inst) {
 pub class CodeDescriptor {
     pub code: Array[UInt8],
     pub comments: CommentTable,
+    pub locations: LocationTable,
 }
 
 pub class CommentTable {
@@ -140,4 +141,33 @@ impl CommentTable {
     pub fn makeIterator(): VecIter[(Int32, String)] {
         self.entries.makeIterator()
     }
+}
+
+pub class LocationTable {
+    entries: Vec[(Int32, Location)],
+}
+
+impl LocationTable {
+    pub static fn new(): LocationTable {
+        LocationTable(
+            Vec[(Int32, Location)]::new(),
+        )
+    }
+
+    pub fn insert(offset: Int32, location: Location) {
+        self.entries.push((offset, location));
+    }
+
+    pub fn size(): Int64 {
+        self.entries.size()
+    }
+
+    pub fn makeIterator(): VecIter[(Int32, Location)] {
+        self.entries.makeIterator()
+    }
+}
+
+pub struct Location {
+    pub line: Int32,
+    pub column: Int32,
 }

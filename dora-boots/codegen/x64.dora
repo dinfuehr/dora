@@ -2,7 +2,7 @@ use package::assembler::x64::{AssemblerX64, Address, Immediate, ScaleFactor};
 use package::assembler::x64::{RAX, RDI, RDX, RCX, RSI, RBP, RSP};
 use package::assembler::x64::{R8, R9};
 use package::assembler::{Register, RegSet};
-use package::codegen::{CodeGen, CodeDescriptor, CommentTable};
+use package::codegen::{CodeGen, CodeDescriptor, CommentTable, LocationTable};
 use package::interface::CompilationInfo;
 use package::interface::Architecture;
 use package::graph::{Inst, Op, LocationData};
@@ -104,6 +104,7 @@ impl CodeGen for CodeGenX64 {
         CodeDescriptor(
             code,
             CommentTable::new(),
+            LocationTable::new(),
         )
     }
 }
