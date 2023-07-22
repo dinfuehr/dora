@@ -1855,6 +1855,33 @@ fn test_enum_match() {
 }
 
 #[test]
+fn test_enum_match_multiple_patterns() {
+    ok("
+        enum Foo { A, B, C }
+        fn f(x: Foo): Int64 {
+            match x {
+                Foo::A | Foo::B => 0,
+                Foo::C => 1
+            }
+        }
+    ");
+
+    err(
+        "
+        enum Foo { A(Int64), B(Int64), C }
+        fn f(x: Foo): Int64 {
+            match x {
+                Foo::A(x) | Foo::B(x) => 0,
+                Foo::C => 1
+            }
+        }
+    ",
+        (5, 17),
+        ErrorMessage::MatchMultiplePatternsWithParamsNotSupported,
+    );
+}
+
+#[test]
 fn test_enum_match_with_parens() {
     err(
         "

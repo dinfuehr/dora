@@ -175,6 +175,7 @@ pub enum ErrorMessage {
     NegativeUnsigned,
     InvalidCharLiteral,
     InvalidReturn,
+    MatchMultiplePatternsWithParamsNotSupported,
 }
 
 impl ErrorMessage {
@@ -623,6 +624,9 @@ impl ErrorMessage {
             }
             ErrorMessage::InvalidReturn => {
                 format!("`return` cannot be used in this context.")
+            }
+            ErrorMessage::MatchMultiplePatternsWithParamsNotSupported => {
+                format!("Multiple patterns with arguments in a `match` arm are currently not supported.")
             }
         }
     }

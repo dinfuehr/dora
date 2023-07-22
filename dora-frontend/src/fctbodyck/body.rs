@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::str::Chars;
 use std::sync::Arc;
@@ -35,7 +35,7 @@ use crate::{always_returns, expr_always_returns, read_type, AllowSelf};
 use crate::interner::Name;
 use dora_bytecode::Intrinsic;
 use dora_parser::ast::visit::Visitor;
-use dora_parser::ast::{self, MatchCaseType, MatchPattern};
+use dora_parser::ast::{self, MatchCaseType, MatchPattern, MatchPatternIdent};
 use dora_parser::Span;
 use fixedbitset::FixedBitSet;
 
@@ -726,31 +726,14 @@ impl<'a> TypeCheck<'a> {
 
         for case in &node.cases {
             self.symtable.push_level();
-
-            debug_assert_eq!(case.patterns.len(), 1);
-            let pattern = case.patterns.first().expect("no pattern");
-            self.check_expr_match_pattern(
+            self.check_expr_match_case(
+                case,
                 expr_enum_id,
                 expr_type_params.clone(),
-                case,
-                pattern,
                 &mut used_variants,
+                &mut result_type,
+                expected_ty.clone(),
             );
-
-            let case_ty = self.check_expr(&case.value, expected_ty.clone());
-
-            if result_type.is_error() {
-                result_type = case_ty;
-            } else if case_ty.is_error() {
-                // ignore this case
-            } else if !result_type.allows(self.sa, case_ty.clone()) {
-                let result_type_name = self.ty_name(&result_type);
-                let case_ty_name = self.ty_name(&case_ty);
-                let msg =
-                    ErrorMessage::MatchBranchTypesIncompatible(result_type_name, case_ty_name);
-                self.sa.report(self.file_id, case.value.span(), msg);
-            }
-
             self.symtable.pop_level();
         }
 
@@ -766,6 +749,50 @@ impl<'a> TypeCheck<'a> {
         result_type
     }
 
+    fn check_expr_match_case(
+        &mut self,
+        case: &MatchCaseType,
+        expr_enum_id: Option<EnumDefinitionId>,
+        expr_type_params: SourceTypeArray,
+        used_variants: &mut FixedBitSet,
+        result_type: &mut SourceType,
+        expected_ty: SourceType,
+    ) {
+        let mut has_arguments = false;
+
+        for pattern in &case.patterns {
+            let arguments = self.check_expr_match_pattern(
+                expr_enum_id,
+                expr_type_params.clone(),
+                case,
+                pattern,
+                used_variants,
+            );
+
+            if !arguments.is_empty() {
+                has_arguments = true;
+            }
+        }
+
+        if has_arguments && case.patterns.len() > 1 {
+            let msg = ErrorMessage::MatchMultiplePatternsWithParamsNotSupported;
+            self.sa.report(self.file_id, case.span, msg);
+        }
+
+        let case_ty = self.check_expr(&case.value, expected_ty.clone());
+
+        if result_type.is_error() {
+            *result_type = case_ty;
+        } else if case_ty.is_error() {
+            // ignore this case
+        } else if !result_type.allows(self.sa, case_ty.clone()) {
+            let result_type_name = self.ty_name(&result_type);
+            let case_ty_name = self.ty_name(&case_ty);
+            let msg = ErrorMessage::MatchBranchTypesIncompatible(result_type_name, case_ty_name);
+            self.sa.report(self.file_id, case.value.span(), msg);
+        }
+    }
+
     fn check_expr_match_pattern(
         &mut self,
         expr_enum_id: Option<EnumDefinitionId>,
@@ -773,7 +800,7 @@ impl<'a> TypeCheck<'a> {
         case: &MatchCaseType,
         pattern: &MatchPattern,
         used_variants: &mut FixedBitSet,
-    ) {
+    ) -> HashMap<Name, SourceType> {
         match pattern.data {
             ast::MatchPatternData::Underscore => {
                 let mut negated_used_variants = used_variants.clone();
@@ -785,102 +812,116 @@ impl<'a> TypeCheck<'a> {
                 }
 
                 used_variants.insert_range(..);
+                HashMap::new()
             }
 
             ast::MatchPatternData::Ident(ref ident) => {
                 let sym = self.read_path(&ident.path);
 
-                let mut used_idents: HashSet<Name> = HashSet::new();
-
                 match sym {
                     Ok(Sym::EnumVariant(enum_id, variant_idx)) => {
                         if Some(enum_id) == expr_enum_id {
-                            if used_variants.contains(variant_idx as usize) {
-                                let msg = ErrorMessage::MatchUnreachablePattern;
-                                self.sa.report(self.file_id, case.span, msg);
-                            }
-
-                            used_variants.insert(variant_idx as usize);
-                            self.analysis.map_idents.insert(
-                                pattern.id,
-                                IdentType::EnumValue(
-                                    enum_id,
-                                    expr_type_params.clone(),
-                                    variant_idx,
-                                ),
-                            );
-
-                            let enum_ = self.sa.enums.idx(enum_id);
-                            let enum_ = enum_.read();
-                            let variant = &enum_.variants[variant_idx as usize];
-
-                            let given_params = if let Some(ref params) = ident.params {
-                                params.len()
-                            } else {
-                                0
-                            };
-
-                            if given_params == 0 && ident.params.is_some() {
-                                let msg = ErrorMessage::MatchPatternNoParens;
-                                self.sa.report(self.file_id, case.span, msg);
-                            }
-
-                            let expected_params = variant.types.len();
-
-                            if given_params != expected_params {
-                                let msg = ErrorMessage::MatchPatternWrongNumberOfParams(
-                                    given_params,
-                                    expected_params,
-                                );
-                                self.sa.report(self.file_id, case.span, msg);
-                            }
-
-                            if let Some(ref params) = ident.params {
-                                for (idx, param) in params.iter().enumerate() {
-                                    if let Some(ident) = &param.name {
-                                        let ty = if idx < variant.types.len() {
-                                            variant.types[idx].clone()
-                                        } else {
-                                            SourceType::Error
-                                        };
-
-                                        let ty = replace_type_param(
-                                            self.sa,
-                                            ty,
-                                            &expr_type_params,
-                                            None,
-                                        );
-
-                                        let iname = self.sa.interner.intern(&ident.name_as_string);
-
-                                        if used_idents.insert(iname) == false {
-                                            let msg = ErrorMessage::VarAlreadyInPattern;
-                                            self.sa.report(self.file_id, param.span, msg);
-                                        }
-
-                                        let var_id = self.vars.add_var(iname, ty, param.mutable);
-                                        self.add_local(var_id, param.span);
-                                        self.analysis
-                                            .map_vars
-                                            .insert(param.id, self.vars.local_var_id(var_id));
-                                    }
-                                }
-                            }
+                            self.check_expr_match_pattern_enum_variant(
+                                enum_id,
+                                variant_idx,
+                                expr_type_params,
+                                case,
+                                pattern,
+                                ident,
+                                used_variants,
+                            )
                         } else {
                             let msg = ErrorMessage::EnumVariantExpected;
                             self.sa.report(self.file_id, ident.path.span, msg);
+                            HashMap::new()
                         }
                     }
 
                     Ok(_) => {
                         let msg = ErrorMessage::EnumVariantExpected;
                         self.sa.report(self.file_id, ident.path.span, msg);
+                        HashMap::new()
                     }
 
-                    Err(()) => {}
+                    Err(()) => HashMap::new(),
                 }
             }
         }
+    }
+
+    fn check_expr_match_pattern_enum_variant(
+        &mut self,
+        enum_id: EnumDefinitionId,
+        variant_idx: u32,
+        expr_type_params: SourceTypeArray,
+        case: &MatchCaseType,
+        pattern: &MatchPattern,
+        ident: &MatchPatternIdent,
+        used_variants: &mut FixedBitSet,
+    ) -> HashMap<Name, SourceType> {
+        if used_variants.contains(variant_idx as usize) {
+            let msg = ErrorMessage::MatchUnreachablePattern;
+            self.sa.report(self.file_id, case.span, msg);
+        }
+
+        used_variants.insert(variant_idx as usize);
+        self.analysis.map_idents.insert(
+            pattern.id,
+            IdentType::EnumValue(enum_id, expr_type_params.clone(), variant_idx),
+        );
+
+        let enum_ = self.sa.enums.idx(enum_id);
+        let enum_ = enum_.read();
+        let variant = &enum_.variants[variant_idx as usize];
+
+        let given_params = if let Some(ref params) = ident.params {
+            params.len()
+        } else {
+            0
+        };
+
+        if given_params == 0 && ident.params.is_some() {
+            let msg = ErrorMessage::MatchPatternNoParens;
+            self.sa.report(self.file_id, case.span, msg);
+        }
+
+        let expected_params = variant.types.len();
+
+        if given_params != expected_params {
+            let msg = ErrorMessage::MatchPatternWrongNumberOfParams(given_params, expected_params);
+            self.sa.report(self.file_id, case.span, msg);
+        }
+
+        let mut used_idents: HashMap<Name, SourceType> = HashMap::new();
+
+        if let Some(ref params) = ident.params {
+            for (idx, param) in params.iter().enumerate() {
+                if let Some(ident) = &param.name {
+                    let ty = if idx < variant.types.len() {
+                        variant.types[idx].clone()
+                    } else {
+                        SourceType::Error
+                    };
+
+                    let ty = replace_type_param(self.sa, ty, &expr_type_params, None);
+
+                    let iname = self.sa.interner.intern(&ident.name_as_string);
+
+                    if used_idents.insert(iname, ty.clone()).is_some() {
+                        let msg = ErrorMessage::VarAlreadyInPattern;
+                        self.sa.report(self.file_id, param.span, msg);
+                    }
+
+                    let var_id = self.vars.add_var(iname, ty, param.mutable);
+                    self.add_local(var_id, param.span);
+                    self.analysis
+                        .map_vars
+                        .insert(param.id, self.vars.local_var_id(var_id));
+                }
+            }
+        }
+
+        used_idents
     }
 
     fn check_expr_if(&mut self, expr: &ast::ExprIfType, expected_ty: SourceType) -> SourceType {
