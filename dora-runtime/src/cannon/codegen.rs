@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::cannon::liveness::BytecodeLiveness;
 use crate::compiler::asm::BaselineAssembler;
 use crate::compiler::codegen::{ensure_native_stub, AllocationSize, AnyReg, CompilationData};
-use crate::compiler::dora_exit_stubs::{NativeFct, NativeFctKind};
+use crate::compiler::runtime_entry_trampoline::{NativeFct, NativeFctKind};
 use crate::cpu::{
     has_lzcnt, has_popcnt, has_tzcnt, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS,
     REG_RESULT, REG_SP, REG_TMP1, REG_TMP2, STACK_FRAME_ALIGNMENT,
@@ -2484,7 +2484,7 @@ impl<'a> CannonCodeGen<'a> {
 
         self.emit_load_register(idx, REG_TMP1.into());
 
-        if !self.vm.args.flag_omit_bounds_check {
+        if !self.vm.flags.flag_omit_bounds_check {
             self.asm
                 .check_index_out_of_bounds(position, REG_RESULT, REG_TMP1);
         }
@@ -2639,7 +2639,7 @@ impl<'a> CannonCodeGen<'a> {
 
         self.emit_load_register(idx, REG_TMP1.into());
 
-        if !self.vm.args.flag_omit_bounds_check {
+        if !self.vm.flags.flag_omit_bounds_check {
             self.asm
                 .check_index_out_of_bounds(position, REG_RESULT, REG_TMP1);
         }
@@ -4158,7 +4158,7 @@ impl<'a> CannonCodeGen<'a> {
     fn get_call_target(&mut self, fid: FunctionId, type_params: BytecodeTypeArray) -> Address {
         let fct = &self.vm.program.functions[fid.0 as usize];
 
-        if let Some(&native_pointer) = self.vm.native_implementations.get(&fid) {
+        if let Some(native_pointer) = self.vm.native_methods.get(fid) {
             assert!(type_params.is_empty());
             let internal_fct = NativeFct {
                 fctptr: native_pointer,
@@ -4172,7 +4172,7 @@ impl<'a> CannonCodeGen<'a> {
             self.vm
                 .compilation_database
                 .is_compiled(self.vm, fid, type_params)
-                .unwrap_or(self.vm.stubs.lazy_compilation())
+                .unwrap_or(self.vm.native_methods.lazy_compilation_stub())
         }
     }
 

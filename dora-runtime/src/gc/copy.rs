@@ -14,7 +14,7 @@ use crate::os::{self, MemoryPermission};
 use crate::safepoint;
 use crate::threads::DoraThread;
 use crate::timer::Timer;
-use crate::vm::{Args, VM};
+use crate::vm::{Flags, VM};
 
 pub struct CopyCollector {
     total: Region,
@@ -25,7 +25,7 @@ pub struct CopyCollector {
 }
 
 impl CopyCollector {
-    pub fn new(args: &Args) -> CopyCollector {
+    pub fn new(args: &Flags) -> CopyCollector {
         let alignment = 2 * os::page_size();
         let heap_size = mem::align_usize(args.max_heap_size(), alignment);
         let heap_start = os::commit(heap_size, false);
@@ -87,14 +87,14 @@ impl Collector for CopyCollector {
     }
 
     fn collect(&self, vm: &VM, reason: GcReason) {
-        let mut timer = Timer::new(vm.args.flag_gc_stats);
+        let mut timer = Timer::new(vm.flags.flag_gc_stats);
 
         safepoint::stop_the_world(vm, |threads| {
             tlab::make_iterable_all(vm, threads);
             self.copy_collect(vm, threads, reason);
         });
 
-        if vm.args.flag_gc_stats {
+        if vm.flags.flag_gc_stats {
             let duration = timer.stop();
             let mut stats = self.stats.lock();
             stats.add(duration);
@@ -137,7 +137,7 @@ impl Drop for CopyCollector {
 
 impl CopyCollector {
     fn copy_collect(&self, vm: &VM, threads: &[Arc<DoraThread>], reason: GcReason) {
-        let timer = Timer::new(vm.args.flag_gc_verbose);
+        let timer = Timer::new(vm.flags.flag_gc_verbose);
 
         // enable writing into to-space again (for debug builds)
         if cfg!(debug_assertions) {

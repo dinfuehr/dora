@@ -175,8 +175,8 @@ pub fn resolve_native_functions(vm: &mut VM) {
 
         if let Some(native_function) = fct.native {
             if let Some(ptr) = mappings.remove(&native_function) {
-                vm.native_implementations
-                    .insert(fct_id, Address::from_ptr(ptr));
+                let old = vm.native_methods.insert(fct_id, Address::from_ptr(ptr));
+                assert!(old.is_none());
             }
         }
     }

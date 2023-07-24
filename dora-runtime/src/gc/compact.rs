@@ -12,7 +12,7 @@ use crate::object::Obj;
 use crate::os;
 use crate::safepoint;
 use crate::timer::Timer;
-use crate::vm::{Args, VM};
+use crate::vm::{Flags, VM};
 
 pub struct MarkCompactCollector {
     heap: Region,
@@ -21,7 +21,7 @@ pub struct MarkCompactCollector {
 }
 
 impl MarkCompactCollector {
-    pub fn new(args: &Args) -> MarkCompactCollector {
+    pub fn new(args: &Flags) -> MarkCompactCollector {
         let heap_size = args.max_heap_size();
         let heap_start = os::commit(heap_size, false);
 
@@ -79,7 +79,7 @@ impl Collector for MarkCompactCollector {
     }
 
     fn collect(&self, vm: &VM, reason: GcReason) {
-        let mut timer = Timer::new(vm.args.flag_gc_stats);
+        let mut timer = Timer::new(vm.flags.flag_gc_stats);
 
         safepoint::stop_the_world(vm, |threads| {
             tlab::make_iterable_all(vm, threads);
@@ -87,7 +87,7 @@ impl Collector for MarkCompactCollector {
             self.mark_compact(vm, &rootset, reason);
         });
 
-        if vm.args.flag_gc_stats {
+        if vm.flags.flag_gc_stats {
             let duration = timer.stop();
             let mut stats = self.stats.lock();
             stats.add(duration);

@@ -102,8 +102,8 @@ impl<'a> ParallelFullCollector<'a> {
     }
 
     pub fn collect(&mut self, pool: &mut Pool) {
-        let dev_verbose = self.vm.args.flag_gc_dev_verbose;
-        let stats = self.vm.args.flag_gc_stats;
+        let dev_verbose = self.vm.flags.flag_gc_dev_verbose;
+        let stats = self.vm.flags.flag_gc_stats;
 
         let mut timer = Timer::new(stats);
 
@@ -122,7 +122,7 @@ impl<'a> ParallelFullCollector<'a> {
             println!("Full GC: Phase 1 (marking)");
         }
 
-        if self.vm.args.flag_gc_verify {
+        if self.vm.flags.flag_gc_verify {
             verify_marking(
                 self.young,
                 &*self.old_protected,
@@ -245,7 +245,7 @@ impl<'a> ParallelFullCollector<'a> {
         self.compute_collect_regions();
         self.place_young_units();
 
-        if self.vm.args.flag_gc_verify {
+        if self.vm.flags.flag_gc_verify {
             self.check_units_disjoint();
             self.check_regions_disjoint();
         }

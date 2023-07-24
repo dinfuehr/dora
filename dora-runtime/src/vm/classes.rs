@@ -111,7 +111,7 @@ pub fn create_class_instance_with_vtable(
     let element_size = size.element_size().unwrap_or(-1) as usize;
 
     let vtable_mtdptrs = if vtable_entries > 0 {
-        let compilation_stub = vm.stubs.lazy_compilation().to_usize();
+        let compilation_stub = vm.native_methods.lazy_compilation_stub().to_usize();
         vec![compilation_stub; vtable_entries]
     } else {
         Vec::new()

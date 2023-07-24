@@ -35,5 +35,5 @@ mod vtable;
 
 pub use vm::VM;
 pub use vm::{
-    clear_vm, display_fct, execute_on_main, set_vm, Args, CollectorName, CompilerName, MemSize,
+    clear_vm, display_fct, execute_on_main, set_vm, CollectorName, CompilerName, Flags, MemSize,
 };

@@ -6,7 +6,7 @@ use parking_lot::Mutex;
 
 use crate::gc::{Address, Collector, GcReason, Region};
 use crate::os::{self, Reservation};
-use crate::vm::{Args, VM};
+use crate::vm::{Flags, VM};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 
 pub const REGION_SIZE_BITS: usize = 20;
@@ -20,7 +20,7 @@ pub struct RegionCollector {
 }
 
 impl RegionCollector {
-    pub fn new(args: &Args) -> RegionCollector {
+    pub fn new(args: &Flags) -> RegionCollector {
         let max_heap_size = align_region(args.max_heap_size());
 
         let reservation = os::reserve_align(max_heap_size, REGION_SIZE, false);

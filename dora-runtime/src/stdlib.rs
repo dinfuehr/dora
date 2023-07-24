@@ -359,7 +359,7 @@ fn thread_main(thread: &DoraThread, thread_location: Address, runner_location: A
     };
 
     // execute the runner/lambda
-    let dora_stub_address = vm.stubs.dora_entry();
+    let dora_stub_address = vm.native_methods.dora_entry_trampoline();
     let fct: extern "C" fn(Address, Address, Ref<Obj>) =
         unsafe { mem::transmute(dora_stub_address) };
     fct(tld, fct_ptr, runner_handle.direct());

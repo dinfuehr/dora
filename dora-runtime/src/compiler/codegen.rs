@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use crate::boots;
 use crate::cannon::{self, CompilationFlags};
-use crate::compiler::{dora_exit_stubs, NativeFct};
+use crate::compiler::{runtime_entry_trampoline, NativeFct};
 use crate::cpu::{FReg, Reg};
 use crate::disassembler;
 use crate::gc::Address;
@@ -37,7 +37,7 @@ pub fn generate_fct(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray
     let emit_graph = should_emit_graph(vm, fct_id);
     let mut start = None;
 
-    if vm.args.flag_emit_compiler {
+    if vm.flags.flag_emit_compiler {
         start = Some(Instant::now());
     }
 
@@ -61,7 +61,7 @@ pub fn generate_fct(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray
         CompilerName::Boots => boots::compile(vm, compilation_data, compilation_flags),
     };
 
-    let code = install_code(vm, code_descriptor, CodeKind::DoraFct(fct_id));
+    let code = install_code(vm, code_descriptor, CodeKind::BaselineFct(fct_id));
 
     // We need to insert into CodeMap before releasing the compilation-lock. Otherwise
     // another thread could run that function while the function can't be found in the
@@ -72,7 +72,7 @@ pub fn generate_fct(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray
     vm.compilation_database
         .finish_compilation(fct_id, type_params.clone(), code_id);
 
-    if vm.args.flag_emit_compiler {
+    if vm.flags.flag_emit_compiler {
         let duration = start.expect("missing start time").elapsed();
         println!(
             "compile {} using {} in {}ms.",
@@ -82,7 +82,7 @@ pub fn generate_fct(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray
         );
     }
 
-    if vm.args.flag_enable_perf {
+    if vm.flags.flag_enable_perf {
         let name = display_fct(vm, fct_id);
         os::perf::register_with_perf(&code, &name);
     }
@@ -122,7 +122,7 @@ pub fn generate_thunk(
     let emit_asm = should_emit_asm(vm, trait_fct_id, compiler);
     let mut start = None;
 
-    if vm.args.flag_emit_compiler {
+    if vm.flags.flag_emit_compiler {
         start = Some(Instant::now());
     }
 
@@ -152,7 +152,7 @@ pub fn generate_thunk(
         CompilerName::Boots => unimplemented!(),
     };
 
-    let code = install_code(vm, code_descriptor, CodeKind::DoraFct(trait_fct_id));
+    let code = install_code(vm, code_descriptor, CodeKind::BaselineFct(trait_fct_id));
 
     // We need to insert into CodeMap before releasing the compilation-lock. Otherwise
     // another thread could run that function while the function can't be found in the
@@ -163,7 +163,7 @@ pub fn generate_thunk(
     vm.compilation_database
         .finish_compilation(trait_fct_id, type_params.clone(), code_id);
 
-    if vm.args.flag_emit_compiler {
+    if vm.flags.flag_emit_compiler {
         let duration = start.expect("missing start time").elapsed();
         println!(
             "compile {} using {} in {}ms.",
@@ -173,7 +173,7 @@ pub fn generate_thunk(
         );
     }
 
-    if vm.args.flag_enable_perf {
+    if vm.flags.flag_enable_perf {
         let name = display_fct(vm, trait_fct_id);
         os::perf::register_with_perf(&code, &name);
     }
@@ -190,7 +190,7 @@ pub fn generate_bytecode(vm: &VM, compilation_data: CompilationData) -> CodeDesc
 }
 
 pub fn should_emit_debug(vm: &VM, fct_id: FunctionId) -> bool {
-    if let Some(ref dbg_names) = vm.args.flag_emit_debug {
+    if let Some(ref dbg_names) = vm.flags.flag_emit_debug {
         fct_pattern_match(vm, fct_id, dbg_names)
     } else {
         false
@@ -202,11 +202,11 @@ pub fn should_emit_asm(vm: &VM, fct_id: FunctionId, compiler: CompilerName) -> b
         return false;
     }
 
-    if compiler == CompilerName::Boots && vm.args.flag_emit_asm_boots {
+    if compiler == CompilerName::Boots && vm.flags.flag_emit_asm_boots {
         return true;
     }
 
-    if let Some(ref dbg_names) = vm.args.flag_emit_asm {
+    if let Some(ref dbg_names) = vm.flags.flag_emit_asm {
         fct_pattern_match(vm, fct_id, dbg_names)
     } else {
         false
@@ -214,7 +214,7 @@ pub fn should_emit_asm(vm: &VM, fct_id: FunctionId, compiler: CompilerName) -> b
 }
 
 pub fn should_emit_graph(vm: &VM, fct_id: FunctionId) -> bool {
-    if let Some(ref names) = vm.args.flag_emit_graph {
+    if let Some(ref names) = vm.flags.flag_emit_graph {
         fct_pattern_match(vm, fct_id, names)
     } else {
         false
@@ -292,29 +292,30 @@ pub enum AllocationSize {
 }
 
 pub fn ensure_native_stub(vm: &VM, fct_id: Option<FunctionId>, native_fct: NativeFct) -> Address {
-    let mut native_stubs = vm.native_stubs.lock();
-    let ptr = native_fct.fctptr;
+    vm.native_methods.lock_trampolines(|native_stubs| {
+        let ptr = native_fct.fctptr;
 
-    if let Some(instruction_start) = native_stubs.find_fct(ptr) {
-        instruction_start
-    } else {
-        let dbg = if let Some(fct_id) = fct_id {
-            should_emit_debug(vm, fct_id)
+        if let Some(instruction_start) = native_stubs.find_fct(ptr) {
+            instruction_start
         } else {
-            false
-        };
+            let dbg = if let Some(fct_id) = fct_id {
+                should_emit_debug(vm, fct_id)
+            } else {
+                false
+            };
 
-        let code = dora_exit_stubs::generate(vm, native_fct, dbg);
+            let code = runtime_entry_trampoline::generate(vm, native_fct, dbg);
 
-        if let Some(fct_id) = fct_id {
-            if should_emit_asm(vm, fct_id, CompilerName::Cannon) {
-                disassembler::disassemble(vm, fct_id, &BytecodeTypeArray::empty(), &code);
+            if let Some(fct_id) = fct_id {
+                if should_emit_asm(vm, fct_id, CompilerName::Cannon) {
+                    disassembler::disassemble(vm, fct_id, &BytecodeTypeArray::empty(), &code);
+                }
             }
-        }
 
-        native_stubs.insert_fct(ptr, code.instruction_start());
-        code.instruction_start()
-    }
+            native_stubs.insert_fct(ptr, code.instruction_start());
+            code.instruction_start()
+        }
+    })
 }
 
 pub struct CompilationData<'a> {

@@ -107,7 +107,7 @@ fn iterate_roots_from_stack_frame<F: FnMut(Slot)>(
         let code = vm.code_objects.get(code_id);
 
         match code.descriptor() {
-            CodeKind::DoraFct(_) => {
+            CodeKind::BaselineFct(_) => {
                 let offset = pc - code.instruction_start().to_usize();
                 let gcpoint = code.gcpoint_for_offset(offset as u32).expect("no gcpoint");
 
@@ -119,7 +119,7 @@ fn iterate_roots_from_stack_frame<F: FnMut(Slot)>(
                 true
             }
 
-            CodeKind::NativeStub(_) => {
+            CodeKind::RuntimeEntryTrampoline(_) => {
                 let gcpoint = code.gcpoint_for_offset(0).expect("no gcpoint");
 
                 for &offset in &gcpoint.offsets {
@@ -130,13 +130,13 @@ fn iterate_roots_from_stack_frame<F: FnMut(Slot)>(
                 true
             }
 
-            CodeKind::AllocStub => true,
-            CodeKind::DoraStub => false,
-            CodeKind::GuardCheckStub => true,
-            CodeKind::SafepointStub => true,
-            CodeKind::CompileStub => true,
+            CodeKind::AllocationFailureTrampoline => true,
+            CodeKind::DoraEntryTrampoline => false,
+            CodeKind::StackOverflowTrampoline => true,
+            CodeKind::SafepointTrampoline => true,
+            CodeKind::LazyCompilationStub => true,
 
-            CodeKind::VerifyStub | CodeKind::TrapStub => unreachable!(),
+            CodeKind::TrapTrampoline => unreachable!(),
         }
     } else {
         println!("no code found at pc = {:x}", pc);

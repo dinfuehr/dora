@@ -19,15 +19,17 @@ pub const CODE_ALIGNMENT: usize = 16;
 
 #[derive(Debug, Clone)]
 pub enum CodeKind {
-    DoraFct(FunctionId),
-    CompileStub,
-    TrapStub,
-    AllocStub,
-    VerifyStub,
-    NativeStub(FunctionId),
-    DoraStub,
-    GuardCheckStub,
-    SafepointStub,
+    DoraEntryTrampoline,
+
+    BaselineFct(FunctionId),
+    RuntimeEntryTrampoline(FunctionId),
+
+    LazyCompilationStub,
+
+    StackOverflowTrampoline,
+    SafepointTrampoline,
+    TrapTrampoline,
+    AllocationFailureTrampoline,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -176,8 +178,8 @@ impl Code {
 
     pub fn fct_id(&self) -> FunctionId {
         match self.kind {
-            CodeKind::NativeStub(fct_id) => fct_id,
-            CodeKind::DoraFct(fct_id) => fct_id,
+            CodeKind::RuntimeEntryTrampoline(fct_id) => fct_id,
+            CodeKind::BaselineFct(fct_id) => fct_id,
             _ => panic!("no fctid found"),
         }
     }

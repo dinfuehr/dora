@@ -1,7 +1,7 @@
 use std::default::Default;
 use std::path::PathBuf;
 
-use dora_runtime::Args as VmArgs;
+use dora_runtime::Flags as VmArgs;
 use dora_runtime::{CollectorName, CompilerName, MemSize};
 
 // Write the Docopt usage string.

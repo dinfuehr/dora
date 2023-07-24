@@ -28,7 +28,7 @@ pub fn generate<'a>(vm: &'a VM) -> Arc<Code> {
     let ngen = DoraCompileGen {
         vm,
         masm: MacroAssembler::new(),
-        dbg: vm.args.flag_emit_debug_compile,
+        dbg: vm.flags.flag_emit_debug_compile,
     };
 
     ngen.generate()
@@ -146,7 +146,7 @@ impl<'a> DoraCompileGen<'a> {
         self.masm.jump_reg(REG_TMP1);
 
         let code_descriptor = self.masm.code();
-        install_code_stub(self.vm, code_descriptor, CodeKind::CompileStub)
+        install_code_stub(self.vm, code_descriptor, CodeKind::LazyCompilationStub)
     }
 
     fn store_params(&mut self, mut offset: i32) {

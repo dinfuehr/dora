@@ -1,13 +1,13 @@
 use crate::object::Header;
 use crate::size::InstanceSize;
-use crate::vm::{create_class_instance_with_vtable, setup_stubs, stdlib, ShapeKind, VM};
+use crate::vm::{create_class_instance_with_vtable, setup_builtin_natives, stdlib, ShapeKind, VM};
 
 pub(super) fn setup(vm: &mut VM) {
     stdlib::resolve_native_functions(vm);
     stdlib::resolve_internal_classes(vm);
     stdlib::resolve_internal_functions(vm);
     create_special_classes(vm);
-    setup_stubs(vm);
+    setup_builtin_natives(vm);
 }
 
 fn create_special_classes(vm: &mut VM) {

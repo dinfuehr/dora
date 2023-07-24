@@ -76,7 +76,7 @@ pub fn start() -> i32 {
 
     set_vm(&vm);
 
-    let timer = if vm.args.flag_gc_stats {
+    let timer = if vm.flags.flag_gc_stats {
         Some(Instant::now())
     } else {
         None
@@ -96,7 +96,7 @@ pub fn start() -> i32 {
 
     vm.threads.join_all();
 
-    if vm.args.flag_gc_stats {
+    if vm.flags.flag_gc_stats {
         let duration = timer.expect("missing timer").elapsed();
         vm.dump_gc_summary(duration.as_secs_f32() / 1000f32);
     }

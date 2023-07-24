@@ -100,8 +100,8 @@ impl<'a> MinorCollector<'a> {
     pub fn collect(&mut self) -> bool {
         self.init_old_top = self.old_protected.regions.iter().map(|r| r.top()).collect();
 
-        let dev_verbose = self.vm.args.flag_gc_dev_verbose;
-        let mut timer = Timer::new(self.vm.args.flag_gc_stats);
+        let dev_verbose = self.vm.flags.flag_gc_dev_verbose;
+        let mut timer = Timer::new(self.vm.flags.flag_gc_stats);
 
         self.young.unprotect_from();
         self.young.swap_semi();
@@ -125,7 +125,7 @@ impl<'a> MinorCollector<'a> {
 
         self.visit_dirty_cards();
 
-        if self.vm.args.flag_gc_stats {
+        if self.vm.flags.flag_gc_stats {
             let duration = timer.stop();
             self.phases.roots = duration;
         }
@@ -137,7 +137,7 @@ impl<'a> MinorCollector<'a> {
         self.trace_gray_objects();
         self.iterate_weak_refs();
 
-        if self.vm.args.flag_gc_stats {
+        if self.vm.flags.flag_gc_stats {
             let duration = timer.stop();
             self.phases.tracing = duration;
         }

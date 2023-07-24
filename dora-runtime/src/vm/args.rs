@@ -6,7 +6,7 @@ use std::fmt;
 use std::ops::Deref;
 
 #[derive(Debug)]
-pub struct Args {
+pub struct Flags {
     pub flag_emit_asm: Option<String>,
     pub flag_emit_asm_file: bool,
     pub flag_emit_asm_boots: bool,
@@ -42,7 +42,7 @@ pub struct Args {
     pub flag_disable_barrier: bool,
 }
 
-impl Args {
+impl Flags {
     pub fn min_heap_size(&self) -> usize {
         let min_heap_size = self.flag_min_heap_size.map(|s| *s).unwrap_or(32 * M);
         let max_heap_size = self.max_heap_size();

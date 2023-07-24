@@ -42,7 +42,6 @@ impl NativeStubs {
 pub enum NativeFctKind {
     NativeStub(FunctionId),
     AllocStub,
-    VerifyStub,
     TrapStub,
     GuardCheckStub,
     SafepointStub,
@@ -89,7 +88,7 @@ impl<'a> NativeGen<'a> {
         let framesize = offset_return + if save_return { mem::ptr_width() } else { 0 };
         let framesize = mem::align_i32(framesize, 16);
 
-        if self.dbg || self.vm.args.flag_emit_debug_native {
+        if self.dbg || self.vm.flags.flag_emit_debug_native {
             self.masm.debug();
         }
 
@@ -235,12 +234,11 @@ impl<'a> NativeGen<'a> {
         self.masm.nop();
 
         let kind = match self.fct.desc {
-            NativeFctKind::NativeStub(fid) => CodeKind::NativeStub(fid),
-            NativeFctKind::AllocStub => CodeKind::AllocStub,
-            NativeFctKind::VerifyStub => CodeKind::VerifyStub,
-            NativeFctKind::TrapStub => CodeKind::TrapStub,
-            NativeFctKind::GuardCheckStub => CodeKind::GuardCheckStub,
-            NativeFctKind::SafepointStub => CodeKind::SafepointStub,
+            NativeFctKind::NativeStub(fid) => CodeKind::RuntimeEntryTrampoline(fid),
+            NativeFctKind::AllocStub => CodeKind::AllocationFailureTrampoline,
+            NativeFctKind::TrapStub => CodeKind::TrapTrampoline,
+            NativeFctKind::GuardCheckStub => CodeKind::StackOverflowTrampoline,
+            NativeFctKind::SafepointStub => CodeKind::SafepointTrampoline,
         };
 
         let code_descriptor = self.masm.code();

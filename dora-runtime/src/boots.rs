@@ -33,7 +33,7 @@ pub fn compile(
 
     let tld_address = current_thread().tld_address();
 
-    let dora_stub_address = vm.stubs.dora_entry();
+    let dora_stub_address = vm.native_methods.dora_entry_trampoline();
     let compile_fct_ptr: extern "C" fn(Address, Address, Address) -> Ref<UInt8Array> =
         unsafe { mem::transmute(dora_stub_address) };
 

@@ -25,7 +25,7 @@ use crate::object::Obj;
 use crate::os::{self, MemoryPermission, Reservation};
 use crate::safepoint;
 use crate::threads::DoraThread;
-use crate::vm::{Args, VM};
+use crate::vm::{Flags, VM};
 
 pub mod card;
 mod compact;
@@ -80,7 +80,7 @@ pub struct Swiper {
 }
 
 impl Swiper {
-    pub fn new(args: &Args) -> Swiper {
+    pub fn new(args: &Flags) -> Swiper {
         let max_heap_size = align_gen(args.max_heap_size());
         let min_heap_size = align_gen(args.min_heap_size());
 
@@ -206,7 +206,7 @@ impl Swiper {
     }
 
     fn perform_collection_and_choose(&self, vm: &VM, reason: GcReason) -> CollectionKind {
-        let kind = controller::choose_collection_kind(&self.config, &vm.args, &self.young);
+        let kind = controller::choose_collection_kind(&self.config, &vm.flags, &self.young);
         self.perform_collection(vm, kind, reason)
     }
 
@@ -247,7 +247,7 @@ impl Swiper {
                 &self.young,
                 &self.old,
                 &self.large,
-                &vm.args,
+                &vm.flags,
                 reason,
             );
 
@@ -280,7 +280,7 @@ impl Swiper {
             .map(|r| r.top())
             .collect::<Vec<_>>();
 
-        let promotion_failed = if vm.args.parallel_minor() {
+        let promotion_failed = if vm.flags.parallel_minor() {
             let pool = self.threadpool.as_ref().unwrap();
             let mut pool = pool.lock();
             let mut collector = ParallelMinorCollector::new(
@@ -301,7 +301,7 @@ impl Swiper {
 
             let promotion_failed = collector.collect();
 
-            if vm.args.flag_gc_stats {
+            if vm.flags.flag_gc_stats {
                 let mut config = self.config.lock();
                 config.add_minor(collector.phases());
             }
@@ -325,7 +325,7 @@ impl Swiper {
 
             let promotion_failed = collector.collect();
 
-            if vm.args.flag_gc_stats {
+            if vm.flags.flag_gc_stats {
                 let mut config = self.config.lock();
                 config.add_minor(collector.phases());
             }
@@ -363,7 +363,7 @@ impl Swiper {
             Vec::new(),
         );
 
-        if vm.args.parallel_full() {
+        if vm.flags.parallel_full() {
             let pool = self.threadpool.as_ref().unwrap();
             let mut pool = pool.lock();
             let mut collector = ParallelFullCollector::new(
@@ -384,7 +384,7 @@ impl Swiper {
             );
             collector.collect(&mut pool);
 
-            if vm.args.flag_gc_stats {
+            if vm.flags.flag_gc_stats {
                 let mut config = self.config.lock();
                 config.add_full(collector.phases());
             }
@@ -406,7 +406,7 @@ impl Swiper {
             );
             collector.collect();
 
-            if vm.args.flag_gc_stats {
+            if vm.flags.flag_gc_stats {
                 let mut config = self.config.lock();
                 config.add_full(collector.phases());
             }
@@ -433,8 +433,8 @@ impl Swiper {
         promotion_failed: bool,
         init_old_top: Vec<Address>,
     ) {
-        if vm.args.flag_gc_verify {
-            if vm.args.flag_gc_dev_verbose {
+        if vm.flags.flag_gc_verify {
+            if vm.flags.flag_gc_dev_verbose {
                 println!("GC: Verify {}", name);
             }
 
@@ -455,7 +455,7 @@ impl Swiper {
             );
             verifier.verify();
 
-            if vm.args.flag_gc_dev_verbose {
+            if vm.flags.flag_gc_dev_verbose {
                 println!("GC: Verify {} finished", name);
             }
         }

@@ -2,7 +2,7 @@ use std::mem;
 
 use crate::cannon::codegen::{mode, result_passed_as_argument, result_reg_mode, size, RegOrOffset};
 use crate::compiler::codegen::{ensure_native_stub, AllocationSize, AnyReg};
-use crate::compiler::dora_exit_stubs::{NativeFct, NativeFctKind};
+use crate::compiler::runtime_entry_trampoline::{NativeFct, NativeFctKind};
 use crate::cpu::{
     FReg, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1, REG_TMP2,
     STACK_FRAME_ALIGNMENT,
@@ -894,7 +894,7 @@ impl<'a> BaselineAssembler<'a> {
         array_ref: bool,
         gcpoint: GcPoint,
     ) {
-        if self.vm.args.flag_disable_tlab {
+        if self.vm.flags.flag_disable_tlab {
             self.gc_allocate(dest, size, location, array_ref, gcpoint);
             return;
         }
@@ -1089,7 +1089,8 @@ impl<'a> BaselineAssembler<'a> {
     ) {
         self.masm.bind_label(lbl_stack_overflow);
         self.masm.emit_comment("slow path stack overflow".into());
-        self.masm.raw_call(self.vm.stubs.stack_overflow());
+        self.masm
+            .raw_call(self.vm.native_methods.stack_overflow_trampoline());
         self.masm.emit_gcpoint(gcpoint);
         self.masm.emit_position(location);
         self.masm.jump(lbl_return);
@@ -1104,7 +1105,8 @@ impl<'a> BaselineAssembler<'a> {
     ) {
         self.masm.bind_label(lbl_start);
         self.masm.emit_comment("slow path safepoint".into());
-        self.masm.raw_call(self.vm.stubs.safepoint());
+        self.masm
+            .raw_call(self.vm.native_methods.safepoint_trampoline());
         self.masm.emit_gcpoint(gcpoint);
         self.masm.emit_position(location);
         self.masm.jump(lbl_return);
@@ -1190,7 +1192,7 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.emit_comment("slow path assert".into());
         self.masm
             .load_int_const(MachineMode::Int32, REG_PARAMS[0], Trap::ASSERT.int() as i64);
-        self.masm.raw_call(self.vm.stubs.trap());
+        self.masm.raw_call(self.vm.native_methods.trap_trampoline());
         self.masm.emit_gcpoint(GcPoint::new());
         self.masm.emit_position(location);
     }

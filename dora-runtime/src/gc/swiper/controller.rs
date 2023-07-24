@@ -11,12 +11,12 @@ use crate::gc::swiper::{CollectionKind, CommonOldGen};
 use crate::gc::{align_gen, align_gen_down, formatted_size, AllNumbers, GcReason, GEN_SIZE, M};
 use crate::mem;
 use crate::stdlib;
-use crate::vm::{Args, Trap};
+use crate::vm::{Flags, Trap};
 
 const INIT_HEAP_SIZE_RATIO: usize = 2;
 const INIT_SEMI_RATIO: usize = 3;
 
-pub fn init(config: &mut HeapConfig, args: &Args) {
+pub fn init(config: &mut HeapConfig, args: &Flags) {
     assert!(config.min_heap_size <= config.max_heap_size);
 
     let young_size = if let Some(young_size) = args.young_size() {
@@ -49,7 +49,7 @@ pub fn init(config: &mut HeapConfig, args: &Args) {
     config.old_limit = old_limit;
 }
 
-fn calculate_young_size(args: &Args, young_size: usize, min_semi_size: usize) -> (usize, usize) {
+fn calculate_young_size(args: &Flags, young_size: usize, min_semi_size: usize) -> (usize, usize) {
     let semi_ratio = args.flag_gc_semi_ratio.unwrap_or(INIT_SEMI_RATIO);
     let semi_size = if semi_ratio == 0 {
         0
@@ -66,7 +66,7 @@ fn calculate_young_size(args: &Args, young_size: usize, min_semi_size: usize) ->
 
 pub fn choose_collection_kind(
     _config: &SharedHeapConfig,
-    _args: &Args,
+    _args: &Flags,
     young: &YoungGen,
 ) -> CollectionKind {
     let (eden_size, semi_size) = young.committed_size();
@@ -98,7 +98,7 @@ pub fn stop(
     young: &YoungGen,
     old: &dyn CommonOldGen,
     large: &LargeSpace,
-    args: &Args,
+    args: &Flags,
     reason: GcReason,
 ) {
     let mut config = config.lock();

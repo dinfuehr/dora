@@ -95,8 +95,8 @@ impl<'a> FullCollector<'a> {
     }
 
     pub fn collect(&mut self) {
-        let dev_verbose = self.vm.args.flag_gc_dev_verbose;
-        let stats = self.vm.args.flag_gc_stats;
+        let dev_verbose = self.vm.flags.flag_gc_dev_verbose;
+        let stats = self.vm.flags.flag_gc_stats;
         self.init_old_top = self.old_protected.regions.iter().map(|r| r.top()).collect();
 
         let mut timer = Timer::new(stats);
@@ -116,7 +116,7 @@ impl<'a> FullCollector<'a> {
             println!("Full GC: Phase 1 (marking)");
         }
 
-        if self.vm.args.flag_gc_verify {
+        if self.vm.flags.flag_gc_verify {
             verify_marking(
                 self.young,
                 &*self.old_protected,

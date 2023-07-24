@@ -19,7 +19,7 @@ use crate::object::{Header, Obj};
 use crate::os;
 use crate::threads::DoraThread;
 use crate::vm::VM;
-use crate::vm::{Args, CollectorName};
+use crate::vm::{CollectorName, Flags};
 use crate::vtable::VTable;
 
 pub use crate::gc::root::{iterate_strong_roots, iterate_weak_roots, Slot};
@@ -62,7 +62,7 @@ pub struct Gc {
 }
 
 impl Gc {
-    pub fn new(args: &Args) -> Gc {
+    pub fn new(args: &Flags) -> Gc {
         let readonly_config = SpaceConfig {
             executable: false,
             chunk: CHUNK_SIZE,
@@ -119,11 +119,11 @@ impl Gc {
     }
 
     pub fn alloc(&self, vm: &VM, size: usize, array_ref: bool) -> Address {
-        if vm.args.flag_gc_stress_minor {
+        if vm.flags.flag_gc_stress_minor {
             self.minor_collect(vm, GcReason::StressMinor);
         }
 
-        if vm.args.flag_gc_stress {
+        if vm.flags.flag_gc_stress {
             self.collect(vm, GcReason::Stress);
         }
 

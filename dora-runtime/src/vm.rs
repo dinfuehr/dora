@@ -1,5 +1,5 @@
 use num_enum::{IntoPrimitive, TryFromPrimitive};
-use parking_lot::{Mutex, RwLock};
+use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::mem;
 use std::ptr;
@@ -7,7 +7,6 @@ use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::Arc;
 
 use crate::compiler;
-use crate::compiler::dora_exit_stubs::NativeStubs;
 use crate::gc::{Address, Gc};
 use crate::stack::DoraToNativeInfo;
 use crate::threads::ManagedThread;
@@ -21,7 +20,7 @@ use dora_bytecode::{
     TraitId,
 };
 
-pub use self::args::{Args, CollectorName, CompilerName, MemSize};
+pub use self::args::{CollectorName, CompilerName, Flags, MemSize};
 pub use self::classes::{
     create_class_instance_with_vtable, ClassInstance, ClassInstanceId, FieldInstance, ShapeKind,
 };
@@ -40,13 +39,13 @@ pub use self::globals::{INITIALIZED, RUNNING, UNINITIALIZED};
 pub use self::impls::{bounds_for_tp, find_trait_impl, tp_implements_trait, ty_implements_trait};
 use self::known::KnownElements;
 pub use self::modules::{module_path, module_path_name};
+pub use self::natives::{setup_builtin_natives, NativeMethods};
 pub use self::specialize::{
     add_ref_fields, create_class_instance, create_enum_instance, create_struct_instance,
     ensure_class_instance_for_enum_variant, ensure_class_instance_for_lambda,
     ensure_class_instance_for_trait_object, specialize_bty, specialize_bty_array,
 };
 pub use self::structs::{StructInstance, StructInstanceField, StructInstanceId};
-pub use self::stubs::{setup_stubs, Stubs};
 pub use self::tuples::{get_concrete_tuple_bty, get_concrete_tuple_bty_array, ConcreteTuple};
 pub use self::ty::{display_ty, BytecodeTypeExt};
 pub use self::waitlists::{ManagedCondition, ManagedMutex, WaitLists};
@@ -64,10 +63,10 @@ mod impls;
 mod initialize;
 mod known;
 mod modules;
+mod natives;
 mod specialize;
 mod stdlib;
 mod structs;
-mod stubs;
 mod tuples;
 mod ty;
 mod waitlists;
@@ -125,7 +124,7 @@ impl VmState {
 }
 
 pub struct VM {
-    pub args: Args,
+    pub flags: Flags,
     pub program_args: Vec<String>,
     pub program: Program,
     pub known: KnownElements,
@@ -141,20 +140,18 @@ pub struct VM {
     pub code_map: CodeMap, // stores all compiled functions
     pub global_variable_memory: Option<GlobalVariableMemory>,
     pub gc: Gc, // garbage collector
-    pub native_stubs: Mutex<NativeStubs>,
-    pub native_implementations: HashMap<FunctionId, Address>,
-    pub stubs: Stubs,
+    pub native_methods: NativeMethods,
     pub threads: Threads,
     pub wait_lists: WaitLists,
     pub state: AtomicU8,
 }
 
 impl VM {
-    pub fn new(program: Program, args: Args, program_args: Vec<String>) -> Box<VM> {
+    pub fn new(program: Program, args: Flags, program_args: Vec<String>) -> Box<VM> {
         let gc = Gc::new(&args);
 
         let mut vm = Box::new(VM {
-            args,
+            flags: args,
             program_args,
             program,
             struct_specializations: RwLock::new(HashMap::new()),
@@ -170,9 +167,7 @@ impl VM {
             compilation_database: CompilationDatabase::new(),
             code_objects: CodeObjects::new(),
             code_map: CodeMap::new(),
-            native_stubs: Mutex::new(NativeStubs::new()),
-            native_implementations: HashMap::new(),
-            stubs: Stubs::new(),
+            native_methods: NativeMethods::new(),
             threads: Threads::new(),
             wait_lists: WaitLists::new(),
             state: AtomicU8::new(VmState::Running.into()),
@@ -209,7 +204,7 @@ impl VM {
     pub fn run(&self, fct_id: FunctionId) -> i32 {
         let tld = current_thread().tld_address();
         let ptr = self.ensure_compiled(fct_id);
-        let dora_stub_address = self.stubs.dora_entry();
+        let dora_stub_address = self.native_methods.dora_entry_trampoline();
         let fct: extern "C" fn(Address, Address) -> i32 =
             unsafe { mem::transmute(dora_stub_address) };
         fct(tld, ptr)
@@ -218,7 +213,7 @@ impl VM {
     pub fn run_test(&self, fct_id: FunctionId) {
         let tld = current_thread().tld_address();
         let ptr = self.ensure_compiled(fct_id);
-        let dora_stub_address = self.stubs.dora_entry();
+        let dora_stub_address = self.native_methods.dora_entry_trampoline();
         let fct: extern "C" fn(Address, Address) -> i32 =
             unsafe { mem::transmute(dora_stub_address) };
         fct(tld, ptr);

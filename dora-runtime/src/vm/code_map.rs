@@ -27,19 +27,18 @@ impl CodeMap {
             let code = vm.code_objects.get(code_id);
 
             match code.descriptor() {
-                CodeKind::DoraFct(fct_id) => {
+                CodeKind::BaselineFct(fct_id) => {
                     println!("dora {}", display_fct(vm, fct_id));
                 }
-                CodeKind::CompileStub => println!("compile_stub"),
-                CodeKind::TrapStub => println!("trap_stub"),
-                CodeKind::AllocStub => println!("alloc_stub"),
-                CodeKind::VerifyStub => println!("verify_stub"),
-                CodeKind::NativeStub(fct_id) => {
+                CodeKind::LazyCompilationStub => println!("compile_stub"),
+                CodeKind::TrapTrampoline => println!("trap_stub"),
+                CodeKind::AllocationFailureTrampoline => println!("alloc_stub"),
+                CodeKind::RuntimeEntryTrampoline(fct_id) => {
                     println!("native stub {}", display_fct(vm, fct_id));
                 }
-                CodeKind::DoraStub => println!("dora_stub"),
-                CodeKind::GuardCheckStub => println!("guard_check_stub"),
-                CodeKind::SafepointStub => println!("safepoint_stub"),
+                CodeKind::DoraEntryTrampoline => println!("dora_stub"),
+                CodeKind::StackOverflowTrampoline => println!("guard_check_stub"),
+                CodeKind::SafepointTrampoline => println!("safepoint_stub"),
             }
         }
 

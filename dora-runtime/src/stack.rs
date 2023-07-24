@@ -124,7 +124,7 @@ fn determine_stack_entry(stacktrace: &mut NativeStacktrace, vm: &VM, pc: usize) 
     if let Some(code_id) = code_id {
         let code = vm.code_objects.get(code_id);
         match code.descriptor() {
-            CodeKind::DoraFct(_) => {
+            CodeKind::BaselineFct(_) => {
                 let offset = pc - code.instruction_start().to_usize();
                 let location = code
                     .location_for_offset(offset as u32)
@@ -135,20 +135,20 @@ fn determine_stack_entry(stacktrace: &mut NativeStacktrace, vm: &VM, pc: usize) 
                 true
             }
 
-            CodeKind::NativeStub(fct_id) => {
+            CodeKind::RuntimeEntryTrampoline(fct_id) => {
                 let fct = &vm.program.functions[fct_id.0 as usize];
                 stacktrace.push_entry(code_id, fct.loc);
 
                 true
             }
 
-            CodeKind::TrapStub => true,
-            CodeKind::GuardCheckStub => true,
-            CodeKind::CompileStub => true,
-            CodeKind::AllocStub => true,
-            CodeKind::DoraStub => false,
+            CodeKind::TrapTrampoline => true,
+            CodeKind::StackOverflowTrampoline => true,
+            CodeKind::LazyCompilationStub => true,
+            CodeKind::AllocationFailureTrampoline => true,
+            CodeKind::DoraEntryTrampoline => false,
 
-            CodeKind::VerifyStub | CodeKind::SafepointStub => unreachable!(),
+            CodeKind::SafepointTrampoline => unreachable!(),
         }
     } else {
         println!("no code found at pc = {:x}", pc);
