@@ -291,7 +291,11 @@ pub enum AllocationSize {
     Dynamic(Reg),
 }
 
-pub fn ensure_native_stub(vm: &VM, fct_id: Option<FunctionId>, native_fct: NativeFct) -> Address {
+pub fn ensure_runtime_entry_trampoline(
+    vm: &VM,
+    fct_id: Option<FunctionId>,
+    native_fct: NativeFct,
+) -> Address {
     vm.native_methods.lock_trampolines(|native_stubs| {
         let ptr = native_fct.fctptr;
 

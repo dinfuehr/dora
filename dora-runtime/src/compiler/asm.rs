@@ -1,7 +1,7 @@
 use std::mem;
 
 use crate::cannon::codegen::{mode, result_passed_as_argument, result_reg_mode, size, RegOrOffset};
-use crate::compiler::codegen::{ensure_native_stub, AllocationSize, AnyReg};
+use crate::compiler::codegen::{ensure_runtime_entry_trampoline, AllocationSize, AnyReg};
 use crate::compiler::runtime_entry_trampoline::{NativeFct, NativeFctKind};
 use crate::cpu::{
     FReg, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1, REG_TMP2,
@@ -674,7 +674,7 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.code()
     }
 
-    pub fn native_call(
+    pub fn runtime_call(
         &mut self,
         internal_fct: NativeFct,
         location: Location,
@@ -682,7 +682,7 @@ impl<'a> BaselineAssembler<'a> {
         dest: AnyReg,
     ) {
         let ty = internal_fct.return_type.clone();
-        let ptr = ensure_native_stub(self.vm, None, internal_fct);
+        let ptr = ensure_runtime_entry_trampoline(self.vm, None, internal_fct);
 
         self.masm.raw_call(ptr);
 
@@ -793,10 +793,10 @@ impl<'a> BaselineAssembler<'a> {
             fctptr: Address::from_ptr(stdlib::gc_alloc as *const u8),
             args: BytecodeTypeArray::new(vec![BytecodeType::Int64, BytecodeType::Bool]),
             return_type: BytecodeType::Ptr,
-            desc: NativeFctKind::AllocStub,
+            desc: NativeFctKind::AllocationFailureTrampoline,
         };
 
-        self.native_call(internal_fct, location, gcpoint, dest.into());
+        self.runtime_call(internal_fct, location, gcpoint, dest.into());
         self.masm.test_if_nil_bailout(location, dest, Trap::OOM);
     }
 

@@ -2,7 +2,9 @@ use std::collections::HashMap;
 
 use crate::cannon::liveness::BytecodeLiveness;
 use crate::compiler::asm::BaselineAssembler;
-use crate::compiler::codegen::{ensure_native_stub, AllocationSize, AnyReg, CompilationData};
+use crate::compiler::codegen::{
+    ensure_runtime_entry_trampoline, AllocationSize, AnyReg, CompilationData,
+};
 use crate::compiler::runtime_entry_trampoline::{NativeFct, NativeFctKind};
 use crate::cpu::{
     has_lzcnt, has_popcnt, has_tzcnt, Reg, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS,
@@ -1482,7 +1484,7 @@ impl<'a> CannonCodeGen<'a> {
         );
 
         if let Some(initializer) = global_var.initial_value {
-            let ptr = self.get_call_target(initializer, BytecodeTypeArray::empty());
+            let ptr = self.get_function_call_address(initializer, BytecodeTypeArray::empty());
             let position = self.bytecode.offset_location(self.current_offset.to_u32());
             let gcpoint = self.create_gcpoint();
             self.asm
@@ -2913,7 +2915,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let argsize = self.emit_invoke_arguments(dest, fct_return_type.clone(), arguments);
 
-        let ptr = self.get_call_target(fct_id, type_params.clone());
+        let ptr = self.get_function_call_address(fct_id, type_params.clone());
         let gcpoint = self.create_gcpoint();
 
         let (result_reg, result_mode) = self.call_result_reg_and_mode(dest_ty);
@@ -2983,7 +2985,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let argsize = self.emit_invoke_arguments(dest, fct_return_type.clone(), arguments);
 
-        let ptr = self.get_call_target(fct_id, type_params.clone());
+        let ptr = self.get_function_call_address(fct_id, type_params.clone());
         let gcpoint = self.create_gcpoint();
 
         let (result_reg, result_mode) = self.call_result_reg_and_mode(bytecode_type);
@@ -3157,11 +3159,11 @@ impl<'a> CannonCodeGen<'a> {
                     fctptr: Address::from_ptr(stdlib::unreachable as *const u8),
                     args: BytecodeTypeArray::empty(),
                     return_type: BytecodeType::Unit,
-                    desc: NativeFctKind::NativeStub(fct_id),
+                    desc: NativeFctKind::RuntimeEntryTrampoline(fct_id),
                 };
                 let gcpoint = self.create_gcpoint();
                 let result = REG_RESULT.into();
-                self.asm.native_call(native_fct, location, gcpoint, result);
+                self.asm.runtime_call(native_fct, location, gcpoint, result);
 
                 // Method should never return
                 self.asm.debug();
@@ -4155,20 +4157,27 @@ impl<'a> CannonCodeGen<'a> {
         mem::align_i32(argsize, STACK_FRAME_ALIGNMENT as i32)
     }
 
-    fn get_call_target(&mut self, fid: FunctionId, type_params: BytecodeTypeArray) -> Address {
+    fn get_function_call_address(
+        &mut self,
+        fid: FunctionId,
+        type_params: BytecodeTypeArray,
+    ) -> Address {
         let fct = &self.vm.program.functions[fid.0 as usize];
 
         if let Some(native_pointer) = self.vm.native_methods.get(fid) {
             assert!(type_params.is_empty());
+            // Method is implemented in native code. Create trampoline for invoking it.
             let internal_fct = NativeFct {
                 fctptr: native_pointer,
                 args: BytecodeTypeArray::new(fct.params.clone()),
                 return_type: fct.return_type.clone(),
-                desc: NativeFctKind::NativeStub(fid),
+                desc: NativeFctKind::RuntimeEntryTrampoline(fid),
             };
 
-            ensure_native_stub(self.vm, Some(fid), internal_fct)
+            ensure_runtime_entry_trampoline(self.vm, Some(fid), internal_fct)
         } else {
+            // Method is implemented in Dora. Use the lazy compilation stub if the method
+            // wasn't compiled yet.
             self.vm
                 .compilation_database
                 .is_compiled(self.vm, fid, type_params)

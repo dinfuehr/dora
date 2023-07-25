@@ -73,6 +73,12 @@ fn iterate_roots_from_stack<F: FnMut(Slot)>(vm: &VM, thread: &DoraThread, callba
     }
 }
 
+#[derive(Copy, Clone)]
+struct ManagedFrame {
+    pc: Address,
+    fp: Address,
+}
+
 fn iterate_roots_from_dora_to_native_info<F: FnMut(Slot)>(
     vm: &VM,
     dtn: *const DoraToNativeInfo,
@@ -80,39 +86,46 @@ fn iterate_roots_from_dora_to_native_info<F: FnMut(Slot)>(
 ) -> *const DoraToNativeInfo {
     let dtn = unsafe { &*dtn };
 
-    let mut pc: usize = dtn.pc;
-    let mut fp: usize = dtn.fp;
+    let mut frame = ManagedFrame {
+        pc: dtn.pc.into(),
+        fp: dtn.fp.into(),
+    };
 
-    while fp != 0 {
-        if !iterate_roots_from_stack_frame(vm, fp, pc, callback) {
+    while frame.fp.is_non_null() {
+        if !iterate_roots_from_stack_frame(vm, frame, callback) {
             break;
         }
 
-        pc = unsafe { *((fp + 8) as *const usize) };
-        fp = unsafe { *(fp as *const usize) };
+        frame = read_caller_frame(frame.fp);
     }
 
     dtn.last
 }
 
+fn read_caller_frame(fp: Address) -> ManagedFrame {
+    let pc: Address = unsafe { *fp.add_ptr(1).to_ptr::<Address>() };
+    let fp: Address = unsafe { *fp.to_ptr::<Address>() };
+
+    ManagedFrame { pc, fp }
+}
+
 fn iterate_roots_from_stack_frame<F: FnMut(Slot)>(
     vm: &VM,
-    fp: usize,
-    pc: usize,
+    frame: ManagedFrame,
     callback: &mut F,
 ) -> bool {
-    let code_id = vm.code_map.get(pc.into());
+    let code_id = vm.code_map.get(frame.pc.into());
 
     if let Some(code_id) = code_id {
         let code = vm.code_objects.get(code_id);
 
         match code.descriptor() {
             CodeKind::BaselineFct(_) => {
-                let offset = pc - code.instruction_start().to_usize();
+                let offset = frame.pc.offset_from(code.instruction_start());
                 let gcpoint = code.gcpoint_for_offset(offset as u32).expect("no gcpoint");
 
                 for &offset in &gcpoint.offsets {
-                    let addr = (fp as isize + offset as isize) as usize;
+                    let addr = frame.fp.ioffset(offset as isize);
                     callback(Slot::at(addr.into()));
                 }
 
@@ -123,23 +136,27 @@ fn iterate_roots_from_stack_frame<F: FnMut(Slot)>(
                 let gcpoint = code.gcpoint_for_offset(0).expect("no gcpoint");
 
                 for &offset in &gcpoint.offsets {
-                    let addr = (fp as isize + offset as isize) as usize;
+                    let addr = frame.fp.ioffset(offset as isize);
                     callback(Slot::at(addr.into()));
                 }
 
                 true
             }
 
+            CodeKind::LazyCompilationStub => {
+                // Can't have a GC during compilation yet.
+                unimplemented!()
+            }
+
             CodeKind::AllocationFailureTrampoline => true,
             CodeKind::DoraEntryTrampoline => false,
             CodeKind::StackOverflowTrampoline => true,
             CodeKind::SafepointTrampoline => true,
-            CodeKind::LazyCompilationStub => true,
 
             CodeKind::TrapTrampoline => unreachable!(),
         }
     } else {
-        println!("no code found at pc = {:x}", pc);
+        println!("no code found at pc = {}", frame.pc);
         vm.code_map.dump(vm);
         panic!("invalid stack frame");
     }

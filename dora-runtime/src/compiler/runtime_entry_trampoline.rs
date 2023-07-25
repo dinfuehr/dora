@@ -1,4 +1,3 @@
-use std::collections::hash_map::HashMap;
 use std::mem::size_of;
 use std::sync::Arc;
 
@@ -18,33 +17,13 @@ use crate::vm::install_code_stub;
 use crate::vm::{Code, CodeKind, GcPoint, VM};
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId};
 
-pub struct NativeStubs {
-    map: HashMap<Address, Address>,
-}
-
-impl NativeStubs {
-    pub fn new() -> NativeStubs {
-        NativeStubs {
-            map: HashMap::new(),
-        }
-    }
-
-    pub fn find_fct(&self, key: Address) -> Option<Address> {
-        self.map.get(&key).map(|&code_id| code_id)
-    }
-
-    pub fn insert_fct(&mut self, key: Address, stub: Address) {
-        self.map.entry(key).or_insert(stub);
-    }
-}
-
 #[derive(Clone)]
 pub enum NativeFctKind {
-    NativeStub(FunctionId),
-    AllocStub,
-    TrapStub,
-    GuardCheckStub,
-    SafepointStub,
+    RuntimeEntryTrampoline(FunctionId),
+    AllocationFailureTrampoline,
+    TrapTrampoline,
+    StackOverflowTrampoline,
+    SafepointTrampoline,
 }
 
 pub struct NativeFct {
@@ -234,11 +213,11 @@ impl<'a> NativeGen<'a> {
         self.masm.nop();
 
         let kind = match self.fct.desc {
-            NativeFctKind::NativeStub(fid) => CodeKind::RuntimeEntryTrampoline(fid),
-            NativeFctKind::AllocStub => CodeKind::AllocationFailureTrampoline,
-            NativeFctKind::TrapStub => CodeKind::TrapTrampoline,
-            NativeFctKind::GuardCheckStub => CodeKind::StackOverflowTrampoline,
-            NativeFctKind::SafepointStub => CodeKind::SafepointTrampoline,
+            NativeFctKind::RuntimeEntryTrampoline(fid) => CodeKind::RuntimeEntryTrampoline(fid),
+            NativeFctKind::AllocationFailureTrampoline => CodeKind::AllocationFailureTrampoline,
+            NativeFctKind::TrapTrampoline => CodeKind::TrapTrampoline,
+            NativeFctKind::StackOverflowTrampoline => CodeKind::StackOverflowTrampoline,
+            NativeFctKind::SafepointTrampoline => CodeKind::SafepointTrampoline,
         };
 
         let code_descriptor = self.masm.code();

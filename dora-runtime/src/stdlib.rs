@@ -279,6 +279,10 @@ pub extern "C" fn trap(trap_id: u32) {
     }
 }
 
+pub extern "C" fn stack_overflow() {
+    trap(Trap::STACK_OVERFLOW.int());
+}
+
 pub extern "C" fn spawn_thread(runner: Handle<Obj>) -> Address {
     let vm = get_vm();
 

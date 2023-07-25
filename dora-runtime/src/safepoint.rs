@@ -1,9 +1,8 @@
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
-use crate::stdlib;
 use crate::threads::{current_thread, parked_scope, DoraThread, ThreadState};
-use crate::vm::{get_vm, Trap, VmState, VM};
+use crate::vm::{get_vm, VmState, VM};
 
 pub fn stop_the_world<F, R>(vm: &VM, operation: F) -> R
 where
@@ -81,10 +80,6 @@ fn resume_threads(vm: &VM, threads: &[Arc<DoraThread>]) {
     }
 
     vm.threads.barrier.disarm();
-}
-
-pub extern "C" fn stack_overflow() {
-    stdlib::trap(Trap::STACK_OVERFLOW.int());
 }
 
 pub extern "C" fn safepoint_slow() {

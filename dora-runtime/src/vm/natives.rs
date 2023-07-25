@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use crate::compiler::dora_entry_trampoline;
 use crate::compiler::lazy_compilation_stub;
-use crate::compiler::runtime_entry_trampoline::{self, NativeFct, NativeFctKind, NativeStubs};
+use crate::compiler::runtime_entry_trampoline::{self, NativeFct, NativeFctKind};
 use crate::gc::Address;
 use crate::safepoint;
 use crate::stdlib;
@@ -23,7 +23,7 @@ pub struct NativeMethods {
 
     // Stores all trampolines generated at runtime for Dora-exposed functions
     // in the standard library.
-    trampolines: Mutex<NativeStubs>,
+    trampolines: Mutex<NativeTrampolines>,
 
     // Stores all native implementations for Dora-exposed functions.
     // Filled on startup.
@@ -39,7 +39,7 @@ impl NativeMethods {
             stack_overflow_trampoline: None,
             safepoint_trampoline: None,
 
-            trampolines: Mutex::new(NativeStubs::new()),
+            trampolines: Mutex::new(NativeTrampolines::new()),
             implementations: HashMap::new(),
         }
     }
@@ -74,10 +74,30 @@ impl NativeMethods {
 
     pub fn lock_trampolines<F, R>(&self, fct: F) -> R
     where
-        F: FnOnce(&mut NativeStubs) -> R,
+        F: FnOnce(&mut NativeTrampolines) -> R,
     {
         let mut stdlib_trampolines = self.trampolines.lock();
         fct(&mut *stdlib_trampolines)
+    }
+}
+
+pub struct NativeTrampolines {
+    map: HashMap<Address, Address>,
+}
+
+impl NativeTrampolines {
+    pub fn new() -> NativeTrampolines {
+        NativeTrampolines {
+            map: HashMap::new(),
+        }
+    }
+
+    pub fn find_fct(&self, key: Address) -> Option<Address> {
+        self.map.get(&key).map(|&code_id| code_id)
+    }
+
+    pub fn insert_fct(&mut self, key: Address, stub: Address) {
+        self.map.entry(key).or_insert(stub);
     }
 }
 
@@ -89,7 +109,7 @@ pub fn setup_builtin_natives(vm: &mut VM) {
         fctptr: Address::from_ptr(stdlib::trap as *const u8),
         args: BytecodeTypeArray::one(BytecodeType::Int32),
         return_type: BytecodeType::Unit,
-        desc: NativeFctKind::TrapStub,
+        desc: NativeFctKind::TrapTrampoline,
     };
     let code = runtime_entry_trampoline::generate(vm, ifct, false);
     vm.native_methods.trap_trampoline = Some(code.instruction_start());
@@ -98,10 +118,10 @@ pub fn setup_builtin_natives(vm: &mut VM) {
         Some(lazy_compilation_stub::generate(vm).instruction_start());
 
     let ifct = NativeFct {
-        fctptr: Address::from_ptr(safepoint::stack_overflow as *const u8),
+        fctptr: Address::from_ptr(stdlib::stack_overflow as *const u8),
         args: BytecodeTypeArray::empty(),
         return_type: BytecodeType::Unit,
-        desc: NativeFctKind::GuardCheckStub,
+        desc: NativeFctKind::StackOverflowTrampoline,
     };
     let code = runtime_entry_trampoline::generate(vm, ifct, false);
     vm.native_methods.stack_overflow_trampoline = Some(code.instruction_start());
@@ -110,7 +130,7 @@ pub fn setup_builtin_natives(vm: &mut VM) {
         fctptr: Address::from_ptr(safepoint::safepoint_slow as *const u8),
         args: BytecodeTypeArray::empty(),
         return_type: BytecodeType::Unit,
-        desc: NativeFctKind::SafepointStub,
+        desc: NativeFctKind::SafepointTrampoline,
     };
     let code = runtime_entry_trampoline::generate(vm, ifct, false);
     vm.native_methods.safepoint_trampoline = Some(code.instruction_start());

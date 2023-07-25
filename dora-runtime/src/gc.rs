@@ -252,6 +252,11 @@ impl Address {
     }
 
     #[inline(always)]
+    pub fn ioffset(self, offset: isize) -> Address {
+        Address((self.0 as isize + offset) as usize)
+    }
+
+    #[inline(always)]
     pub fn sub(self, offset: usize) -> Address {
         Address(self.0 - offset)
     }
