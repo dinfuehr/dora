@@ -4,6 +4,7 @@ use std::sync::Arc;
 use crate::compiler;
 use crate::cpu::{
     CCALL_REG_PARAMS, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1,
+    STACK_FRAME_ALIGNMENT,
 };
 use crate::gc::Address;
 use crate::masm::{MacroAssembler, Mem};
@@ -34,6 +35,23 @@ pub fn generate<'a>(vm: &'a VM) -> Arc<Code> {
     ngen.generate()
 }
 
+const FP_OFFSET_SHADOW_STACK: i32 = 0;
+const FRAME_SHADOW_STACK_SIZE: i32 = if cfg!(target_family = "windows") {
+    32
+} else {
+    0
+};
+const FRAME_DTN_OFFSET: i32 = FP_OFFSET_SHADOW_STACK + FRAME_SHADOW_STACK_SIZE;
+const FRAME_DTN_SIZE: i32 = size_of::<DoraToNativeInfo>() as i32;
+const FRAME_PARAMS_OFFSET: i32 = FRAME_DTN_OFFSET + FRAME_DTN_SIZE;
+const FRAME_PARAMS_SIZE: i32 = (FREG_PARAMS.len() + REG_PARAMS.len()) as i32 * mem::ptr_width();
+const FRAME_THREAD_OFFSET: i32 = FRAME_PARAMS_OFFSET + FRAME_PARAMS_SIZE;
+const FRAME_THREAD_SIZE: i32 = mem::ptr_width();
+const FRAME_SIZE: i32 = mem::align_i32(
+    FRAME_THREAD_OFFSET + FRAME_THREAD_SIZE,
+    STACK_FRAME_ALIGNMENT as i32,
+);
+
 struct DoraCompileGen<'a> {
     vm: &'a VM,
     masm: MacroAssembler,
@@ -42,27 +60,15 @@ struct DoraCompileGen<'a> {
 
 impl<'a> DoraCompileGen<'a> {
     pub fn generate(mut self) -> Arc<Code> {
-        let offset_shadow_stack = 0;
-        let offset_dtn = offset_shadow_stack
-            + if cfg!(target_family = "windows") {
-                32
-            } else {
-                0
-            };
-        let offset_params = offset_dtn + size_of::<DoraToNativeInfo>() as i32;
-        let offset_thread =
-            offset_params + (FREG_PARAMS.len() + REG_PARAMS.len()) as i32 * mem::ptr_width();
-        let framesize = mem::align_i32(offset_thread + mem::ptr_width(), 16) as i32;
-
         if self.dbg {
             self.masm.debug();
         }
 
         // the return address is the call-site we need to patch
-        self.masm.prolog(framesize);
+        self.masm.prolog(FRAME_SIZE);
 
         // store params passed in registers on the stack
-        self.store_params(offset_params);
+        self.store_params(FRAME_PARAMS_OFFSET);
 
         // prepare the native call
         self.masm.load_mem(
@@ -73,13 +79,13 @@ impl<'a> DoraCompileGen<'a> {
 
         self.masm.store_mem(
             MachineMode::Ptr,
-            Mem::Base(REG_SP, offset_dtn + DoraToNativeInfo::last_offset()),
+            Mem::Base(REG_SP, FRAME_DTN_OFFSET + DoraToNativeInfo::last_offset()),
             REG_TMP1.into(),
         );
 
         self.masm.store_mem(
             MachineMode::Ptr,
-            Mem::Base(REG_SP, offset_dtn + DoraToNativeInfo::fp_offset()),
+            Mem::Base(REG_SP, FRAME_DTN_OFFSET + DoraToNativeInfo::fp_offset()),
             REG_FP.into(),
         );
 
@@ -87,14 +93,18 @@ impl<'a> DoraCompileGen<'a> {
 
         self.masm.store_mem(
             MachineMode::Ptr,
-            Mem::Base(REG_SP, offset_dtn + DoraToNativeInfo::pc_offset()),
+            Mem::Base(REG_SP, FRAME_DTN_OFFSET + DoraToNativeInfo::pc_offset()),
             REG_TMP1.into(),
         );
 
         self.masm.copy_reg(MachineMode::Ptr, REG_TMP1, REG_SP);
-        if offset_dtn != 0 {
-            self.masm
-                .int_add_imm(MachineMode::Ptr, REG_TMP1, REG_TMP1, offset_dtn as i64);
+        if FRAME_DTN_OFFSET != 0 {
+            self.masm.int_add_imm(
+                MachineMode::Ptr,
+                REG_TMP1,
+                REG_TMP1,
+                FRAME_DTN_OFFSET as i64,
+            );
         }
 
         self.masm.store_mem(
@@ -112,20 +122,20 @@ impl<'a> DoraCompileGen<'a> {
         self.masm.load_mem(
             MachineMode::Ptr,
             CCALL_REG_PARAMS[1].into(),
-            Mem::Base(REG_SP, offset_params),
+            Mem::Base(REG_SP, FRAME_PARAMS_OFFSET),
         );
         self.masm.load_mem(
             MachineMode::Ptr,
             CCALL_REG_PARAMS[2].into(),
-            Mem::Base(REG_SP, offset_params + mem::ptr_width()),
+            Mem::Base(REG_SP, FRAME_PARAMS_OFFSET + mem::ptr_width()),
         );
         self.masm
-            .raw_call(Address::from_ptr(compile_request as *const u8));
+            .raw_call(Address::from_ptr(lazy_compile as *const u8));
 
         self.masm.load_mem(
             MachineMode::Ptr,
             REG_TMP1.into(),
-            Mem::Base(REG_SP, offset_dtn + DoraToNativeInfo::last_offset()),
+            Mem::Base(REG_SP, FRAME_DTN_OFFSET + DoraToNativeInfo::last_offset()),
         );
 
         self.masm.store_mem(
@@ -137,7 +147,7 @@ impl<'a> DoraCompileGen<'a> {
         self.masm.copy_reg(MachineMode::Ptr, REG_TMP1, REG_RESULT);
 
         // restore argument registers from the stack
-        self.load_params(offset_params);
+        self.load_params(FRAME_PARAMS_OFFSET);
 
         // remove the stack frame
         self.masm.epilog_without_return();
@@ -184,7 +194,7 @@ impl<'a> DoraCompileGen<'a> {
     }
 }
 
-fn compile_request(ra: usize, receiver1: Address, receiver2: Address) -> Address {
+fn lazy_compile(ra: usize, receiver1: Address, receiver2: Address) -> Address {
     let vm = get_vm();
 
     let lazy_compilation_site = {

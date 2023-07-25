@@ -6,7 +6,7 @@ use crate::os;
 /// return pointer width: either 4 or 8
 /// (although only 64bit architectures are supported right now)
 #[inline(always)]
-pub fn ptr_width() -> i32 {
+pub const fn ptr_width() -> i32 {
     size_of::<*const u8>() as i32
 }
 
@@ -58,7 +58,7 @@ fn test_page_align() {
 
 /// rounds the given value `val` up to the nearest multiple
 /// of `align`
-pub fn align_i32(value: i32, align: i32) -> i32 {
+pub const fn align_i32(value: i32, align: i32) -> i32 {
     if align == 0 {
         return value;
     }

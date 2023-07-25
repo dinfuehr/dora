@@ -39,24 +39,24 @@ pub fn next_param_offset(param_offset: i32) -> i32 {
 use crate::cpu::{FReg, Reg};
 
 #[cfg(target_family = "unix")]
-pub static REG_PARAMS: [Reg; 6] = [RDI, RSI, RDX, RCX, R8, R9];
+pub const REG_PARAMS: [Reg; 6] = [RDI, RSI, RDX, RCX, R8, R9];
 #[cfg(target_family = "windows")]
-pub static REG_PARAMS: [Reg; 4] = [RCX, RDX, R8, R9];
+pub const REG_PARAMS: [Reg; 4] = [RCX, RDX, R8, R9];
 
 #[cfg(target_family = "unix")]
-pub static FREG_PARAMS: [FReg; 8] = [XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7];
+pub const FREG_PARAMS: [FReg; 8] = [XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7];
 #[cfg(target_family = "windows")]
-pub static FREG_PARAMS: [FReg; 4] = [XMM0, XMM1, XMM2, XMM3];
+pub const FREG_PARAMS: [FReg; 4] = [XMM0, XMM1, XMM2, XMM3];
 
 #[cfg(target_family = "unix")]
-pub static CCALL_REG_PARAMS: [Reg; 6] = [RDI, RSI, RDX, RCX, R8, R9];
+pub const CCALL_REG_PARAMS: [Reg; 6] = [RDI, RSI, RDX, RCX, R8, R9];
 #[cfg(target_family = "windows")]
-pub static CCALL_REG_PARAMS: [Reg; 4] = [RCX, RDX, R8, R9];
+pub const CCALL_REG_PARAMS: [Reg; 4] = [RCX, RDX, R8, R9];
 
 #[cfg(target_family = "unix")]
-pub static CCALL_FREG_PARAMS: [FReg; 8] = [XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7];
+pub const CCALL_FREG_PARAMS: [FReg; 8] = [XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7];
 #[cfg(target_family = "windows")]
-pub static CCALL_FREG_PARAMS: [FReg; 4] = [XMM0, XMM1, XMM2, XMM3];
+pub const CCALL_FREG_PARAMS: [FReg; 4] = [XMM0, XMM1, XMM2, XMM3];
 
 pub const REG_RESULT: Reg = RAX;
 pub const REG_TMP1: Reg = R10;

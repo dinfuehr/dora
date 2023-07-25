@@ -142,11 +142,11 @@ use crate::cpu::{FReg, Reg};
 use dora_asm::arm64 as arm64_asm;
 use dora_asm::arm64::Register;
 
-pub static REG_PARAMS: [Reg; 8] = [R0, R1, R2, R3, R4, R5, R6, R7];
-pub static FREG_PARAMS: [FReg; 8] = [F0, F1, F2, F3, F4, F5, F6, F7];
+pub const REG_PARAMS: [Reg; 8] = [R0, R1, R2, R3, R4, R5, R6, R7];
+pub const FREG_PARAMS: [FReg; 8] = [F0, F1, F2, F3, F4, F5, F6, F7];
 
-pub static CCALL_REG_PARAMS: [Reg; 8] = [R0, R1, R2, R3, R4, R5, R6, R7];
-pub static CCALL_FREG_PARAMS: [FReg; 8] = [F0, F1, F2, F3, F4, F5, F6, F7];
+pub const CCALL_REG_PARAMS: [Reg; 8] = [R0, R1, R2, R3, R4, R5, R6, R7];
+pub const CCALL_FREG_PARAMS: [FReg; 8] = [F0, F1, F2, F3, F4, F5, F6, F7];
 
 pub static SCRATCH: [Reg; 5] = [R9, R12, R13, R14, R15];
 
