@@ -35,13 +35,13 @@ pub fn generate<'a>(vm: &'a VM) -> Arc<Code> {
     ngen.generate()
 }
 
-const FP_OFFSET_SHADOW_STACK: i32 = 0;
+const FRAME_SHADOW_STACK_OFFSET: i32 = 0;
 const FRAME_SHADOW_STACK_SIZE: i32 = if cfg!(target_family = "windows") {
     32
 } else {
     0
 };
-const FRAME_DTN_OFFSET: i32 = FP_OFFSET_SHADOW_STACK + FRAME_SHADOW_STACK_SIZE;
+const FRAME_DTN_OFFSET: i32 = FRAME_SHADOW_STACK_OFFSET + FRAME_SHADOW_STACK_SIZE;
 const FRAME_DTN_SIZE: i32 = size_of::<DoraToNativeInfo>() as i32;
 const FRAME_PARAMS_OFFSET: i32 = FRAME_DTN_OFFSET + FRAME_DTN_SIZE;
 const FRAME_PARAMS_SIZE: i32 = (FREG_PARAMS.len() + REG_PARAMS.len()) as i32 * mem::ptr_width();
