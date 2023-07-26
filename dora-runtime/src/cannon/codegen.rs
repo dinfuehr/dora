@@ -283,7 +283,7 @@ impl<'a> CannonCodeGen<'a> {
     fn store_params_in_registers(&mut self) {
         let mut reg_idx = 0;
         let mut freg_idx = 0;
-        let mut sp_offset = 16;
+        let mut fp_offset = 2 * mem::ptr_width();
 
         if self.has_result_address() {
             self.asm.store_mem(
@@ -320,7 +320,7 @@ impl<'a> CannonCodeGen<'a> {
                     self.store_param_on_stack_tuple(
                         &mut reg_idx,
                         &mut freg_idx,
-                        &mut sp_offset,
+                        &mut fp_offset,
                         dest,
                         param_ty,
                     );
@@ -330,7 +330,7 @@ impl<'a> CannonCodeGen<'a> {
                     self.store_param_on_stack_struct(
                         &mut reg_idx,
                         &mut freg_idx,
-                        &mut sp_offset,
+                        &mut fp_offset,
                         dest,
                         param_ty,
                     );
@@ -340,7 +340,7 @@ impl<'a> CannonCodeGen<'a> {
                     self.store_param_on_stack_enum(
                         &mut reg_idx,
                         &mut freg_idx,
-                        &mut sp_offset,
+                        &mut fp_offset,
                         dest,
                         param_ty,
                     );
@@ -350,7 +350,7 @@ impl<'a> CannonCodeGen<'a> {
                     self.store_param_on_stack_float(
                         &mut reg_idx,
                         &mut freg_idx,
-                        &mut sp_offset,
+                        &mut fp_offset,
                         dest,
                         param_ty,
                     );
@@ -368,7 +368,7 @@ impl<'a> CannonCodeGen<'a> {
                     self.store_param_on_stack_core(
                         &mut reg_idx,
                         &mut freg_idx,
-                        &mut sp_offset,
+                        &mut fp_offset,
                         dest,
                         param_ty,
                     );
@@ -2720,8 +2720,10 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn emit_invoke_virtual_from_bytecode(&mut self, dest: Register, fct_idx: ConstPoolIdx) {
-        let (fct_id, type_params) = match self.bytecode.const_pool(fct_idx) {
-            ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params),
+        let (trait_object_ty, fct_id, type_params) = match self.bytecode.const_pool(fct_idx) {
+            ConstPoolEntry::TraitObjectMethod(trait_object_ty, fct_id, type_params) => {
+                (trait_object_ty.clone(), *fct_id, type_params)
+            }
             _ => unreachable!(),
         };
 
@@ -2731,7 +2733,14 @@ impl<'a> CannonCodeGen<'a> {
         let location = self.bytecode.offset_location(self.current_offset.to_u32());
         let arguments = self.argument_stack.drain(..).collect::<Vec<_>>();
 
-        self.emit_invoke_virtual(dest, fct_id, type_params, arguments, location);
+        self.emit_invoke_virtual(
+            dest,
+            trait_object_ty,
+            fct_id,
+            type_params,
+            arguments,
+            location,
+        );
     }
 
     fn emit_invoke_lambda_from_bytecode(&mut self, dest: Register, idx: ConstPoolIdx) {
@@ -2759,14 +2768,12 @@ impl<'a> CannonCodeGen<'a> {
         let self_register = arguments[0];
 
         let bytecode_type_self = self.bytecode.register_type(self_register);
-        assert!(bytecode_type_self.is_ptr() || bytecode_type_self.is_trait());
+        assert!(bytecode_type_self.is_ptr());
 
         let fct_return_type = self.specialize_bty(return_type);
         assert!(fct_return_type.is_concrete_type());
 
-        debug_assert!(params
-            .iter()
-            .all(|ty| self.specialize_bty(ty).is_concrete_type()));
+        let params = self.specialize_bty_array(&params);
 
         let argsize = self.emit_invoke_arguments(dest, fct_return_type.clone(), arguments);
 
@@ -2781,7 +2788,8 @@ impl<'a> CannonCodeGen<'a> {
             0
         };
 
-        let lazy_compilation_site = LazyCompilationSite::Lambda(self_index == 0);
+        let lazy_compilation_site =
+            LazyCompilationSite::Lambda(self_index == 0, params, fct_return_type);
 
         self.asm.virtual_call(
             vtable_index,
@@ -2801,6 +2809,7 @@ impl<'a> CannonCodeGen<'a> {
     fn emit_invoke_virtual(
         &mut self,
         dest: Register,
+        trait_object_ty: BytecodeType,
         fct_id: FunctionId,
         type_params: BytecodeTypeArray,
         arguments: Vec<Register>,
@@ -2834,6 +2843,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let lazy_compilation_site = LazyCompilationSite::Virtual(
             self_index == 0,
+            trait_object_ty,
             fct_id,
             vtable_index,
             type_params.clone(),
@@ -4139,14 +4149,14 @@ impl<'a> CannonCodeGen<'a> {
             match bytecode_type {
                 BytecodeType::Float32 | BytecodeType::Float64 => {
                     if freg_idx >= FREG_PARAMS.len() {
-                        argsize += 8;
+                        argsize += mem::ptr_width();
                     }
 
                     freg_idx += 1;
                 }
                 _ => {
                     if reg_idx >= REG_PARAMS.len() {
-                        argsize += 8;
+                        argsize += mem::ptr_width();
                     }
 
                     reg_idx += 1;

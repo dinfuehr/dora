@@ -4005,6 +4005,8 @@ fn gen_trait_object_method_call() {
         fn f(x: Foo): Int32 { x.bar() }
     ",
         |sa, code, fct| {
+            let trait_id = sa.trait_by_name("Foo");
+
             let fct_id = sa.trait_method_by_name("Foo", "bar");
             let expected = vec![
                 PushRegister(r(0)),
@@ -4015,7 +4017,11 @@ fn gen_trait_object_method_call() {
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::TraitObjectMethod(
+                    BytecodeType::Trait(TraitId(trait_id.0 as u32), BytecodeTypeArray::empty()),
+                    FunctionId(fct_id.0 as u32),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );

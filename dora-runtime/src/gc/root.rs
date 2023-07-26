@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
-use dora_bytecode::BytecodeTypeArray;
+use dora_bytecode::{BytecodeType, BytecodeTypeArray};
 
 use crate::compiler::lazy_compilation_stub;
 use crate::gc::Address;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::DoraThread;
-use crate::vm::{specialize_bty_array, CodeKind, LazyCompilationSite, VM};
+use crate::vm::{specialize_bty, specialize_bty_array, CodeKind, LazyCompilationSite, VM};
 
 pub fn determine_strong_roots(vm: &VM, threads: &[Arc<DoraThread>]) -> Vec<Slot> {
     let mut rootset = Vec::new();
@@ -185,17 +185,40 @@ where
         .expect("missing lazy compilation site")
         .clone();
 
-    let arguments = match _lazy_compilation_site {
-        LazyCompilationSite::Direct(fct_id, _patch_offset, type_params) => {
+    let (params, is_variadic, return_type) = match _lazy_compilation_site {
+        LazyCompilationSite::Direct(fct_id, _, type_params) => {
             let fct = &vm.program.functions[fct_id.0 as usize];
             let params = BytecodeTypeArray::new(fct.params.clone());
-            specialize_bty_array(&params, &type_params)
+            let params = specialize_bty_array(&params, &type_params);
+            let return_type = specialize_bty(fct.return_type.clone(), &type_params);
+            (params, fct.is_variadic, return_type)
         }
 
-        _ => unimplemented!(),
+        LazyCompilationSite::Virtual(
+            _receiver_is_first,
+            trait_object_ty,
+            fct_id,
+            _,
+            type_params,
+        ) => {
+            let fct = &vm.program.functions[fct_id.0 as usize];
+            let mut params = fct.params.clone();
+            assert_eq!(params[0], BytecodeType::This);
+            params[0] = trait_object_ty;
+            let params = BytecodeTypeArray::new(params);
+            let params = specialize_bty_array(&params, &type_params);
+            let return_type = specialize_bty(fct.return_type.clone(), &type_params);
+            (params, fct.is_variadic, return_type)
+        }
+
+        LazyCompilationSite::Lambda(_, params, return_type) => {
+            debug_assert!(params.is_concrete_type());
+            debug_assert!(return_type.is_concrete_type());
+            (params, false, return_type)
+        }
     };
 
-    lazy_compilation_stub::iterate_roots(vm, frame.fp, &arguments, callback)
+    lazy_compilation_stub::iterate_roots(vm, frame.fp, &params, is_variadic, return_type, callback)
 }
 
 pub fn iterate_weak_roots<F>(vm: &VM, object_updater: F)

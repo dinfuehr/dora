@@ -14,8 +14,9 @@ use crate::specialize::specialize_type;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::{expr_always_returns, expr_block_always_returns};
 use dora_bytecode::{
-    BytecodeBuilder, BytecodeFunction, BytecodeType, BytecodeTypeArray, ClassId, ConstPoolIdx,
-    EnumId, FunctionId, GlobalId, Intrinsic, Label, Location, Register, StructId, TraitId,
+    BytecodeBuilder, BytecodeFunction, BytecodeType, BytecodeTypeArray, ClassId, ConstPoolEntry,
+    ConstPoolIdx, EnumId, FunctionId, GlobalId, Intrinsic, Label, Location, Register, StructId,
+    TraitId,
 };
 
 mod expr;
@@ -3076,6 +3077,13 @@ impl<'a> AstBytecodeGen<'a> {
                     FunctionId(fct.id().0 as u32),
                     bty_array_from_ty(&type_params),
                 )
+            }
+            CallType::TraitObjectMethod(ref trait_object_ty, _) => {
+                self.builder.add_const(ConstPoolEntry::TraitObjectMethod(
+                    bty_from_ty(trait_object_ty.clone()),
+                    FunctionId(fct.id().0 as u32),
+                    bty_array_from_ty(&type_params),
+                ))
             }
             _ => self.builder.add_const_fct_types(
                 FunctionId(fct.id().0 as u32),

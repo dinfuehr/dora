@@ -81,7 +81,7 @@ pub struct Args {
     pub emit_debug_entry: bool,
     pub gc_events: bool,
     pub gc_stress: bool,
-    pub gc_stress_in_lazy_compilation: bool,
+    pub gc_stress_in_lazy_compile: bool,
     pub gc_stress_minor: bool,
     gc_parallel_full: bool,
     gc_parallel_minor: bool,
@@ -133,7 +133,7 @@ impl Default for Args {
             help: false,
             gc_events: false,
             gc_stress: false,
-            gc_stress_in_lazy_compilation: false,
+            gc_stress_in_lazy_compile: false,
             gc_stress_minor: false,
             gc_parallel_full: false,
             gc_parallel_minor: false,
@@ -243,8 +243,8 @@ pub fn parse_arguments() -> Result<Args, String> {
             args.gc_events = true;
         } else if arg == "--gc-stress" {
             args.gc_stress = true;
-        } else if arg == "--gc-stress-in-lazy-compilation" {
-            args.gc_stress_in_lazy_compilation = true;
+        } else if arg == "--gc-stress-in-lazy-compile" {
+            args.gc_stress_in_lazy_compile = true;
         } else if arg == "--gc-stress-minor" {
             args.gc_stress_minor = true;
         } else if arg == "--gc-parallel-full" {
@@ -415,7 +415,7 @@ pub fn create_vm_args(args: &Args) -> VmArgs {
         emit_debug_entry: args.emit_debug_entry,
         gc_events: args.gc_events,
         gc_stress: args.gc_stress,
-        gc_stress_in_lazy_compilation: args.gc_stress_in_lazy_compilation,
+        gc_stress_in_lazy_compile: args.gc_stress_in_lazy_compile,
         gc_stress_minor: args.gc_stress_minor,
         gc_parallel_full: args.gc_parallel_full,
         gc_parallel_minor: args.gc_parallel_minor,

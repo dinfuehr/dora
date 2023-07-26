@@ -60,7 +60,7 @@ pub fn dump(
                     align,
                     idx,
                     cls.name,
-                    fmt_name(prog, &cls.name, type_params)
+                    fmt_name(prog, &cls.name, &type_params)
                 )?;
             }
             ConstPoolEntry::Struct(struct_id, type_params) => {
@@ -70,7 +70,7 @@ pub fn dump(
                     "{}{} => Struct {}",
                     align,
                     idx,
-                    fmt_name(prog, &struct_.name, type_params)
+                    fmt_name(prog, &struct_.name, &type_params)
                 )?;
             }
             ConstPoolEntry::StructField(struct_id, type_params, field_idx) => {
@@ -81,7 +81,7 @@ pub fn dump(
                     "{}{} => StructField {}.{}",
                     align,
                     idx,
-                    fmt_name(prog, &struct_.name, type_params),
+                    fmt_name(prog, &struct_.name, &type_params),
                     field.name
                 )?;
             }
@@ -92,7 +92,7 @@ pub fn dump(
                     "{}{} => Enum {}",
                     align,
                     idx,
-                    fmt_name(prog, &enum_.name, type_params)
+                    fmt_name(prog, &enum_.name, &type_params)
                 )?;
             }
             ConstPoolEntry::EnumVariant(enum_id, type_params, variant_idx) => {
@@ -128,7 +128,7 @@ pub fn dump(
                     "{}{} => Field {}.{}",
                     align,
                     idx,
-                    fmt_name(prog, &cls.name, type_params),
+                    fmt_name(prog, &cls.name, &type_params),
                     field.name
                 )?;
             }
@@ -140,7 +140,19 @@ pub fn dump(
                     "{}{} => Fct {}",
                     align,
                     idx,
-                    fmt_name(prog, &fct.name, type_params)
+                    fmt_name(prog, &fct.name, &type_params)
+                )?;
+            }
+            ConstPoolEntry::TraitObjectMethod(trait_object_ty, fct_id, type_params) => {
+                let fct = &prog.functions[fct_id.0 as usize];
+
+                writeln!(
+                    w,
+                    "{}{} => TraitObjectMethod {}.{}",
+                    align,
+                    idx,
+                    fmt_ty(prog, &trait_object_ty),
+                    fmt_name(prog, &fct.name, &type_params)
                 )?;
             }
             ConstPoolEntry::Generic(id, fct_id, type_params) => {
@@ -152,7 +164,7 @@ pub fn dump(
                     align,
                     idx,
                     id,
-                    fmt_name(prog, &fct.name, type_params)
+                    fmt_name(prog, &fct.name, &type_params)
                 )?;
             }
             ConstPoolEntry::Trait(trait_id, type_params, object_ty) => {
@@ -162,8 +174,8 @@ pub fn dump(
                     "{}{} => Trait {} from {}",
                     align,
                     idx,
-                    fmt_name(prog, &trait_.name, type_params),
-                    fmt_ty(prog, object_ty),
+                    fmt_name(prog, &trait_.name, &type_params),
+                    fmt_ty(prog, &object_ty),
                 )?
             }
             ConstPoolEntry::TupleElement(_tuple_id, _idx) => {

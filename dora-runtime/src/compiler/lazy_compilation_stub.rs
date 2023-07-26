@@ -1,6 +1,7 @@
 use std::mem::size_of;
 use std::sync::Arc;
 
+use crate::cannon::codegen::result_passed_as_argument;
 use crate::compiler;
 use crate::cpu::{
     CCALL_REG_PARAMS, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_THREAD, REG_TMP1,
@@ -14,8 +15,11 @@ use crate::object::Obj;
 use crate::os;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::ThreadLocalData;
-use crate::vm::{get_vm, install_code_stub, Code, CodeKind, LazyCompilationSite, ShapeKind, VM};
-use dora_bytecode::{BytecodeTypeArray, FunctionId};
+use crate::vm::{
+    create_enum_instance, get_vm, install_code_stub, Code, CodeKind, EnumLayout,
+    LazyCompilationSite, ShapeKind, VM,
+};
+use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId};
 
 // This code generates the compiler stub, there should only be one instance
 // of this function be used in Dora. It is necessary for lazy compilation, where
@@ -48,10 +52,13 @@ const FP_SHADOW_STACK_OFFSET: i32 = FP_CALLER_FP - FRAME_SHADOW_STACK_SIZE;
 const FRAME_DTN_SIZE: i32 = size_of::<DoraToNativeInfo>() as i32;
 const FP_DTN_OFFSET: i32 = FP_SHADOW_STACK_OFFSET - FRAME_DTN_SIZE;
 
-const FRAME_PARAMS_SIZE: i32 = (FREG_PARAMS.len() + REG_PARAMS.len()) as i32 * mem::ptr_width();
-const FP_PARAMS_OFFSET: i32 = FP_DTN_OFFSET - FRAME_PARAMS_SIZE;
+const FRAME_REG_PARAMS_SIZE: i32 = REG_PARAMS.len() as i32 * mem::ptr_width();
+const FP_REG_PARAMS_OFFSET: i32 = FP_DTN_OFFSET - FRAME_REG_PARAMS_SIZE;
 
-const UNALIGNED_FRAME_SIZE: i32 = FP_CALLER_FP - FP_PARAMS_OFFSET;
+const FRAME_FREG_PARAMS_SIZE: i32 = FREG_PARAMS.len() as i32 * mem::ptr_width();
+const FP_FREG_PARAMS_OFFSET: i32 = FP_REG_PARAMS_OFFSET - FRAME_FREG_PARAMS_SIZE;
+
+const UNALIGNED_FRAME_SIZE: i32 = FP_CALLER_FP - FP_FREG_PARAMS_OFFSET;
 const FRAME_SIZE: i32 = mem::align_i32(UNALIGNED_FRAME_SIZE, STACK_FRAME_ALIGNMENT as i32);
 
 struct DoraCompileGen<'a> {
@@ -70,7 +77,7 @@ impl<'a> DoraCompileGen<'a> {
         self.masm.prolog(FRAME_SIZE);
 
         // store params passed in registers on the stack
-        self.store_params(FP_PARAMS_OFFSET);
+        self.store_params(FP_REG_PARAMS_OFFSET, FP_FREG_PARAMS_OFFSET);
 
         // prepare the native call
         self.masm.load_mem(
@@ -118,12 +125,12 @@ impl<'a> DoraCompileGen<'a> {
         self.masm.load_mem(
             MachineMode::Ptr,
             CCALL_REG_PARAMS[1].into(),
-            Mem::Base(REG_FP, FP_PARAMS_OFFSET),
+            Mem::Base(REG_FP, FP_REG_PARAMS_OFFSET),
         );
         self.masm.load_mem(
             MachineMode::Ptr,
             CCALL_REG_PARAMS[2].into(),
-            Mem::Base(REG_FP, FP_PARAMS_OFFSET + mem::ptr_width()),
+            Mem::Base(REG_FP, FP_REG_PARAMS_OFFSET + mem::ptr_width()),
         );
         self.masm
             .raw_call(Address::from_ptr(lazy_compile as *const u8));
@@ -143,7 +150,7 @@ impl<'a> DoraCompileGen<'a> {
         self.masm.copy_reg(MachineMode::Ptr, REG_TMP1, REG_RESULT);
 
         // restore argument registers from the stack
-        self.load_params(FP_PARAMS_OFFSET);
+        self.load_params(FP_REG_PARAMS_OFFSET, FP_FREG_PARAMS_OFFSET);
 
         // remove the stack frame
         self.masm.epilog_without_return();
@@ -155,52 +162,162 @@ impl<'a> DoraCompileGen<'a> {
         install_code_stub(self.vm, code_descriptor, CodeKind::LazyCompilationStub)
     }
 
-    fn store_params(&mut self, mut offset: i32) {
+    fn store_params(&mut self, mut reg_offset: i32, mut freg_offset: i32) {
         for reg in &REG_PARAMS {
-            self.masm
-                .store_mem(MachineMode::Ptr, Mem::Base(REG_FP, offset), (*reg).into());
-            offset += mem::ptr_width();
+            self.masm.store_mem(
+                MachineMode::Ptr,
+                Mem::Base(REG_FP, reg_offset),
+                (*reg).into(),
+            );
+            reg_offset += mem::ptr_width();
         }
 
         for reg in &FREG_PARAMS {
             self.masm.store_mem(
                 MachineMode::Float64,
-                Mem::Base(REG_FP, offset),
+                Mem::Base(REG_FP, freg_offset),
                 (*reg).into(),
             );
-            offset += mem::ptr_width();
+            freg_offset += mem::ptr_width();
         }
     }
 
-    fn load_params(&mut self, mut offset: i32) {
+    fn load_params(&mut self, mut reg_offset: i32, mut freg_offset: i32) {
         for reg in &REG_PARAMS {
-            self.masm
-                .load_mem(MachineMode::Ptr, (*reg).into(), Mem::Base(REG_FP, offset));
-            offset += mem::ptr_width();
+            self.masm.load_mem(
+                MachineMode::Ptr,
+                (*reg).into(),
+                Mem::Base(REG_FP, reg_offset),
+            );
+            reg_offset += mem::ptr_width();
         }
 
         for reg in &FREG_PARAMS {
             self.masm.load_mem(
                 MachineMode::Float64,
                 (*reg).into(),
-                Mem::Base(REG_FP, offset),
+                Mem::Base(REG_FP, freg_offset),
             );
-            offset += mem::ptr_width();
+            freg_offset += mem::ptr_width();
         }
     }
 }
 
-pub fn iterate_roots<F>(_vm: &VM, _fp: Address, _arguments: &BytecodeTypeArray, _callback: F)
-where
+pub fn iterate_roots<F>(
+    vm: &VM,
+    fp: Address,
+    params: &BytecodeTypeArray,
+    is_variadic: bool,
+    return_type: BytecodeType,
+    mut callback: F,
+) where
     F: FnMut(Slot),
 {
-    unimplemented!()
+    let mut reg_idx = 0;
+    let mut freg_idx = 0;
+    let mut stack_address = fp.ioffset(FP_FIRST_STACK_ARG as isize);
+
+    if result_passed_as_argument(return_type) {
+        reg_offset(&mut reg_idx, &mut stack_address);
+    }
+
+    for (idx, param_ty) in params.iter().enumerate() {
+        assert!(param_ty.is_concrete_type());
+
+        let param_ty = if idx == params.len() - 1 && is_variadic {
+            BytecodeType::Ptr
+        } else if param_ty.is_unit() {
+            continue;
+        } else {
+            param_ty
+        };
+
+        match param_ty.clone() {
+            BytecodeType::Tuple(..) => {
+                reg_offset(&mut reg_idx, &mut stack_address);
+            }
+
+            BytecodeType::Struct(..) => {
+                reg_offset(&mut reg_idx, &mut stack_address);
+            }
+
+            BytecodeType::Enum(enum_id, type_params) => {
+                let enum_instance_id = create_enum_instance(vm, enum_id, type_params);
+                let enum_instance = vm.enum_instances.idx(enum_instance_id);
+
+                match enum_instance.layout {
+                    EnumLayout::Int => reg_offset(&mut reg_idx, &mut stack_address),
+                    EnumLayout::Tagged | EnumLayout::Ptr => {
+                        reg_offset_pointer(&mut reg_idx, fp, &mut stack_address, &mut callback)
+                    }
+                }
+            }
+
+            BytecodeType::Float32 | BytecodeType::Float64 => {
+                freg_offset(&mut freg_idx, &mut stack_address);
+            }
+
+            BytecodeType::UInt8
+            | BytecodeType::Bool
+            | BytecodeType::Char
+            | BytecodeType::Int32
+            | BytecodeType::Int64 => {
+                reg_offset(&mut reg_idx, &mut stack_address);
+            }
+
+            BytecodeType::Ptr
+            | BytecodeType::Class(_, _)
+            | BytecodeType::Trait(_, _)
+            | BytecodeType::Lambda(_, _) => {
+                reg_offset_pointer(&mut reg_idx, fp, &mut stack_address, &mut callback);
+            }
+
+            BytecodeType::TypeParam(_) | BytecodeType::Unit | BytecodeType::This => {
+                unreachable!()
+            }
+        }
+    }
+}
+
+fn reg_offset(reg_idx: &mut usize, stack_address: &mut Address) {
+    if *reg_idx < REG_PARAMS.len() {
+        *reg_idx += 1;
+    } else {
+        *stack_address = stack_address.add_ptr(1);
+    }
+}
+
+fn reg_offset_pointer<F>(
+    reg_idx: &mut usize,
+    fp: Address,
+    stack_address: &mut Address,
+    callback: &mut F,
+) where
+    F: FnMut(Slot),
+{
+    if *reg_idx < REG_PARAMS.len() {
+        let fp_offset = FP_REG_PARAMS_OFFSET + *reg_idx as i32 * mem::ptr_width();
+        callback(Slot::at(fp.ioffset(fp_offset as isize)));
+        *reg_idx += 1;
+    } else {
+        let slot_address = *stack_address;
+        callback(Slot::at(slot_address));
+        *stack_address = stack_address.add_ptr(1);
+    }
+}
+
+fn freg_offset(freg_idx: &mut usize, stack_address: &mut Address) {
+    if *freg_idx < FREG_PARAMS.len() {
+        *freg_idx += 1;
+    } else {
+        *stack_address = stack_address.add_ptr(1);
+    }
 }
 
 fn lazy_compile(ra: usize, receiver1: Address, receiver2: Address) -> Address {
     let vm = get_vm();
 
-    if vm.flags.gc_stress_in_lazy_compilation {
+    if vm.flags.gc_stress_in_lazy_compile {
         vm.gc.collect(vm, crate::gc::GcReason::Stress);
     }
 
@@ -223,19 +340,23 @@ fn lazy_compile(ra: usize, receiver1: Address, receiver2: Address) -> Address {
             patch_direct_call(vm, ra, fct_id, type_params, disp)
         }
 
-        LazyCompilationSite::Virtual(receiver_is_first, fct_id, vtable_index, ref type_params) => {
-            patch_virtual_call(
-                vm,
-                receiver_is_first,
-                receiver1,
-                receiver2,
-                fct_id,
-                vtable_index,
-                type_params,
-            )
-        }
+        LazyCompilationSite::Virtual(
+            receiver_is_first,
+            _,
+            fct_id,
+            vtable_index,
+            ref type_params,
+        ) => patch_virtual_call(
+            vm,
+            receiver_is_first,
+            receiver1,
+            receiver2,
+            fct_id,
+            vtable_index,
+            type_params,
+        ),
 
-        LazyCompilationSite::Lambda(receiver_is_first) => {
+        LazyCompilationSite::Lambda(receiver_is_first, ..) => {
             patch_lambda_call(vm, receiver_is_first, receiver1, receiver2)
         }
     }

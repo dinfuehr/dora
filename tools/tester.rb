@@ -74,6 +74,7 @@ $exit_after_n_failures = nil
 $env = {}
 $verbose = false
 $check_only = false
+$extra_args = nil
 
 def process_arguments
   idx = 0
@@ -104,6 +105,9 @@ def process_arguments
       idx += 1
     elsif arg == "--release"
       $release = true
+    elsif arg == "--extra-args"
+      $extra_args = ARGV[idx+1].to_s.strip
+      idx += 1
     elsif arg == "--no-capture"
       $capture = false
     elsif arg == "--stress"
@@ -436,6 +440,7 @@ def run_test(test_case, config, mutex)
   cmdline << " #{$all_configs[config]}" unless $all_configs[config].empty?
   cmdline << " #{test_case.vm_args}" unless test_case.vm_args.empty?
   cmdline << " --check" if $check_only
+  cmdline << " #{$extra_args}" if $extra_args
   cmdline << " #{test_case.test_file}"
   cmdline << " #{test_case.args}" unless test_case.args.empty?
 

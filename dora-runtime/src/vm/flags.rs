@@ -22,7 +22,7 @@ pub struct Flags {
     pub gc_events: bool,
     pub gc_stress: bool,
     pub gc_stress_minor: bool,
-    pub gc_stress_in_lazy_compilation: bool,
+    pub gc_stress_in_lazy_compile: bool,
     pub gc_parallel_full: bool,
     pub gc_parallel_minor: bool,
     pub gc_parallel: bool,

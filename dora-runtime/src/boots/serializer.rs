@@ -180,6 +180,12 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
             buffer.emit_id(fct_id.0 as usize);
             encode_bytecode_type_array(vm, source_type_array, buffer);
         }
+        &ConstPoolEntry::TraitObjectMethod(ref trait_object_ty, fct_id, ref source_type_array) => {
+            buffer.emit_u8(ConstPoolOpcode::TraitObjectMethod.into());
+            encode_bytecode_type(vm, trait_object_ty, buffer);
+            buffer.emit_id(fct_id.0 as usize);
+            encode_bytecode_type_array(vm, source_type_array, buffer);
+        }
         &ConstPoolEntry::Generic(tp_id, fct_id, ref source_type_array) => {
             buffer.emit_u8(ConstPoolOpcode::Generic.into());
             buffer.emit_id(tp_id as usize);
