@@ -1,9 +1,12 @@
 use std::sync::Arc;
 
+use dora_bytecode::BytecodeTypeArray;
+
+use crate::compiler::lazy_compilation_stub;
 use crate::gc::Address;
 use crate::stack::DoraToNativeInfo;
 use crate::threads::DoraThread;
-use crate::vm::{CodeKind, VM};
+use crate::vm::{specialize_bty_array, CodeKind, LazyCompilationSite, VM};
 
 pub fn determine_strong_roots(vm: &VM, threads: &[Arc<DoraThread>]) -> Vec<Slot> {
     let mut rootset = Vec::new();
@@ -144,8 +147,8 @@ fn iterate_roots_from_stack_frame<F: FnMut(Slot)>(
             }
 
             CodeKind::LazyCompilationStub => {
-                // Can't have a GC during compilation yet.
-                unimplemented!()
+                iterate_lazy_compilation_stub_roots(vm, frame, callback);
+                true
             }
 
             CodeKind::AllocationFailureTrampoline => true,
@@ -160,6 +163,39 @@ fn iterate_roots_from_stack_frame<F: FnMut(Slot)>(
         vm.code_map.dump(vm);
         panic!("invalid stack frame");
     }
+}
+
+fn iterate_lazy_compilation_stub_roots<F>(vm: &VM, frame: ManagedFrame, callback: F)
+where
+    F: FnMut(Slot),
+{
+    let caller_frame = read_caller_frame(frame.fp);
+    let code_id = vm
+        .code_map
+        .get(caller_frame.pc.into())
+        .expect("code not found");
+    let code = vm.code_objects.get(code_id);
+    let offset: u32 = caller_frame
+        .pc
+        .offset_from(code.instruction_start())
+        .try_into()
+        .expect("too large");
+    let _lazy_compilation_site = code
+        .lazy_for_offset(offset)
+        .expect("missing lazy compilation site")
+        .clone();
+
+    let arguments = match _lazy_compilation_site {
+        LazyCompilationSite::Direct(fct_id, _patch_offset, type_params) => {
+            let fct = &vm.program.functions[fct_id.0 as usize];
+            let params = BytecodeTypeArray::new(fct.params.clone());
+            specialize_bty_array(&params, &type_params)
+        }
+
+        _ => unimplemented!(),
+    };
+
+    lazy_compilation_stub::iterate_roots(vm, frame.fp, &arguments, callback)
 }
 
 pub fn iterate_weak_roots<F>(vm: &VM, object_updater: F)

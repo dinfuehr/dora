@@ -6,7 +6,7 @@ use crate::cpu::{
     CCALL_REG_PARAMS, FREG_PARAMS, REG_FP, REG_PARAMS, REG_RESULT, REG_THREAD, REG_TMP1,
     STACK_FRAME_ALIGNMENT,
 };
-use crate::gc::Address;
+use crate::gc::{Address, Slot};
 use crate::masm::{MacroAssembler, Mem};
 use crate::mem;
 use crate::mode::MachineMode;
@@ -188,6 +188,13 @@ impl<'a> DoraCompileGen<'a> {
             offset += mem::ptr_width();
         }
     }
+}
+
+pub fn iterate_roots<F>(_vm: &VM, _fp: Address, _arguments: &BytecodeTypeArray, _callback: F)
+where
+    F: FnMut(Slot),
+{
+    unimplemented!()
 }
 
 fn lazy_compile(ra: usize, receiver1: Address, receiver2: Address) -> Address {
