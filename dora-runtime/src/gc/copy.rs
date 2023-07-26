@@ -39,7 +39,7 @@ impl CopyCollector {
         let semi_size = heap_size / 2;
         let separator = heap_start.offset(semi_size);
 
-        if args.flag_gc_verbose {
+        if args.gc_verbose {
             println!("GC: {}; semi size: {}", heap, formatted_size(semi_size),);
         }
 
@@ -87,14 +87,14 @@ impl Collector for CopyCollector {
     }
 
     fn collect(&self, vm: &VM, reason: GcReason) {
-        let mut timer = Timer::new(vm.flags.flag_gc_stats);
+        let mut timer = Timer::new(vm.flags.gc_stats);
 
         safepoint::stop_the_world(vm, |threads| {
             tlab::make_iterable_all(vm, threads);
             self.copy_collect(vm, threads, reason);
         });
 
-        if vm.flags.flag_gc_stats {
+        if vm.flags.gc_stats {
             let duration = timer.stop();
             let mut stats = self.stats.lock();
             stats.add(duration);
@@ -137,7 +137,7 @@ impl Drop for CopyCollector {
 
 impl CopyCollector {
     fn copy_collect(&self, vm: &VM, threads: &[Arc<DoraThread>], reason: GcReason) {
-        let timer = Timer::new(vm.flags.flag_gc_verbose);
+        let timer = Timer::new(vm.flags.gc_verbose);
 
         // enable writing into to-space again (for debug builds)
         if cfg!(debug_assertions) {

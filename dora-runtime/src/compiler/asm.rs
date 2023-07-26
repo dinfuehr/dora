@@ -894,7 +894,7 @@ impl<'a> BaselineAssembler<'a> {
         array_ref: bool,
         gcpoint: GcPoint,
     ) {
-        if self.vm.flags.flag_disable_tlab {
+        if self.vm.flags.disable_tlab {
             self.gc_allocate(dest, size, location, array_ref, gcpoint);
             return;
         }

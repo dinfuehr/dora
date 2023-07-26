@@ -148,7 +148,7 @@ impl Swiper {
             max_heap_size,
         );
         let crossing_map = CrossingMap::new(crossing_start, crossing_end, max_heap_size);
-        let young = YoungGen::new(young, eden_size, semi_size, args.flag_gc_verify);
+        let young = YoungGen::new(young, eden_size, semi_size, args.gc_verify);
 
         let config = Arc::new(Mutex::new(config));
         let old = OldGen::new(
@@ -160,7 +160,7 @@ impl Swiper {
         );
         let large = LargeSpace::new(large_start, large_end, config.clone());
 
-        if args.flag_gc_verbose {
+        if args.gc_verbose {
             println!(
                 "GC: heap info: {}, eden {}, semi {}, card {}, crossing {} (region {})",
                 formatted_size(max_heap_size),
@@ -174,7 +174,7 @@ impl Swiper {
 
         let nworkers = args.gc_workers();
 
-        let emit_write_barrier = !args.flag_disable_barrier;
+        let emit_write_barrier = !args.disable_barrier;
 
         let threadpool = if args.parallel_minor() || args.parallel_full() {
             Some(Mutex::new(Pool::new(nworkers as u32)))
@@ -301,7 +301,7 @@ impl Swiper {
 
             let promotion_failed = collector.collect();
 
-            if vm.flags.flag_gc_stats {
+            if vm.flags.gc_stats {
                 let mut config = self.config.lock();
                 config.add_minor(collector.phases());
             }
@@ -325,7 +325,7 @@ impl Swiper {
 
             let promotion_failed = collector.collect();
 
-            if vm.flags.flag_gc_stats {
+            if vm.flags.gc_stats {
                 let mut config = self.config.lock();
                 config.add_minor(collector.phases());
             }
@@ -384,7 +384,7 @@ impl Swiper {
             );
             collector.collect(&mut pool);
 
-            if vm.flags.flag_gc_stats {
+            if vm.flags.gc_stats {
                 let mut config = self.config.lock();
                 config.add_full(collector.phases());
             }
@@ -406,7 +406,7 @@ impl Swiper {
             );
             collector.collect();
 
-            if vm.flags.flag_gc_stats {
+            if vm.flags.gc_stats {
                 let mut config = self.config.lock();
                 config.add_full(collector.phases());
             }
@@ -433,8 +433,8 @@ impl Swiper {
         promotion_failed: bool,
         init_old_top: Vec<Address>,
     ) {
-        if vm.flags.flag_gc_verify {
-            if vm.flags.flag_gc_dev_verbose {
+        if vm.flags.gc_verify {
+            if vm.flags.gc_dev_verbose {
                 println!("GC: Verify {}", name);
             }
 
@@ -455,7 +455,7 @@ impl Swiper {
             );
             verifier.verify();
 
-            if vm.flags.flag_gc_dev_verbose {
+            if vm.flags.gc_dev_verbose {
                 println!("GC: Verify {} finished", name);
             }
         }

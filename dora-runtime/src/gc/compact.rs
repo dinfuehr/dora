@@ -32,7 +32,7 @@ impl MarkCompactCollector {
         let heap_end = heap_start.offset(heap_size);
         let heap = Region::new(heap_start, heap_end);
 
-        if args.flag_gc_verbose {
+        if args.gc_verbose {
             println!("GC: {} {}", heap, formatted_size(heap_size));
         }
 
@@ -79,7 +79,7 @@ impl Collector for MarkCompactCollector {
     }
 
     fn collect(&self, vm: &VM, reason: GcReason) {
-        let mut timer = Timer::new(vm.flags.flag_gc_stats);
+        let mut timer = Timer::new(vm.flags.gc_stats);
 
         safepoint::stop_the_world(vm, |threads| {
             tlab::make_iterable_all(vm, threads);
@@ -87,7 +87,7 @@ impl Collector for MarkCompactCollector {
             self.mark_compact(vm, &rootset, reason);
         });
 
-        if vm.flags.flag_gc_stats {
+        if vm.flags.gc_stats {
             let duration = timer.stop();
             let mut stats = self.stats.lock();
             stats.add(duration);

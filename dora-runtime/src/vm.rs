@@ -20,7 +20,6 @@ use dora_bytecode::{
     TraitId,
 };
 
-pub use self::args::{CollectorName, CompilerName, Flags, MemSize};
 pub use self::classes::{
     create_class_instance_with_vtable, ClassInstance, ClassInstanceId, FieldInstance, ShapeKind,
 };
@@ -33,6 +32,7 @@ pub use self::code_map::CodeMap;
 pub use self::compilation::CompilationDatabase;
 pub use self::enums::{enum_definition_name, EnumInstance, EnumInstanceId, EnumLayout};
 pub use self::extensions::block_matches_ty;
+pub use self::flags::{CollectorName, CompilerName, Flags, MemSize};
 pub use self::functions::display_fct;
 use self::globals::GlobalVariableMemory;
 pub use self::globals::{INITIALIZED, RUNNING, UNINITIALIZED};
@@ -50,13 +50,13 @@ pub use self::tuples::{get_concrete_tuple_bty, get_concrete_tuple_bty_array, Con
 pub use self::ty::{display_ty, BytecodeTypeExt};
 pub use self::waitlists::{ManagedCondition, ManagedMutex, WaitLists};
 
-mod args;
 mod classes;
 mod code;
 mod code_map;
 mod compilation;
 mod enums;
 mod extensions;
+mod flags;
 mod functions;
 mod globals;
 mod impls;

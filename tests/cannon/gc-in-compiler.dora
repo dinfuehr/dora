@@ -1,0 +1,16 @@
+//= ignore
+//= vm-args "--gc=copy --gc-stress-in-lazy-compile"
+
+class Foo {
+    x: Int64,
+    y: Int64,
+}
+
+fn main() {
+    let foo = Foo(3, 107);
+    assert(test(foo) == 110);
+}
+
+fn test(f: Foo): Int64 {
+    f.x + f.y
+}

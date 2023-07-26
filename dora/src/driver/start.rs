@@ -21,12 +21,12 @@ pub fn start() -> i32 {
 
     let mut args = args.unwrap();
 
-    if args.flag_version {
+    if args.version {
         println!("dora v0.01b");
         return 0;
     }
 
-    if args.flag_help {
+    if args.help {
         cmd::print_help();
         return 0;
     }
@@ -55,7 +55,7 @@ pub fn start() -> i32 {
     };
 
     // if --check given, stop after type/semantic check
-    if args.flag_check {
+    if args.check {
         return 0;
     }
 
@@ -76,7 +76,7 @@ pub fn start() -> i32 {
 
     set_vm(&vm);
 
-    let timer = if vm.flags.flag_gc_stats {
+    let timer = if vm.flags.gc_stats {
         Some(Instant::now())
     } else {
         None
@@ -96,7 +96,7 @@ pub fn start() -> i32 {
 
     vm.threads.join_all();
 
-    if vm.flags.flag_gc_stats {
+    if vm.flags.gc_stats {
         let duration = timer.expect("missing timer").elapsed();
         vm.dump_gc_summary(duration.as_secs_f32() / 1000f32);
     }
@@ -126,7 +126,7 @@ fn compile_into_program(args: &Args, file: String) -> Result<Program, ()> {
         return Err(());
     }
 
-    if let Some(ref filter) = args.flag_emit_ast {
+    if let Some(ref filter) = args.emit_ast {
         language::emit_ast(&sa, filter);
     }
 
@@ -136,7 +136,7 @@ fn compile_into_program(args: &Args, file: String) -> Result<Program, ()> {
     // Here we drop the generated AST.
     let prog = language::emit_program(sa);
 
-    if let Some(ref filter) = args.flag_emit_bytecode {
+    if let Some(ref filter) = args.emit_bytecode {
         language::emit_bytecode(&prog, filter);
     }
 
@@ -144,7 +144,7 @@ fn compile_into_program(args: &Args, file: String) -> Result<Program, ()> {
 }
 
 fn command_build(args: &Args, prog: Program) -> i32 {
-    if args.flag_output.is_none() {
+    if args.output.is_none() {
         eprintln!("missing output file");
         return 1;
     }
@@ -152,7 +152,7 @@ fn command_build(args: &Args, prog: Program) -> i32 {
     let config = bincode::config::standard();
     let encoded_program = bincode::encode_to_vec(prog, config).expect("serialization failed");
 
-    let file = args.flag_output.as_ref().expect("missing output");
+    let file = args.output.as_ref().expect("missing output");
 
     match write_program_into_file(&encoded_program, file) {
         Ok(()) => 0,
@@ -275,11 +275,11 @@ fn is_test_fct(fct: &FunctionData) -> bool {
 }
 
 fn test_filter_matches(vm: &VM, args: &Args, fct_id: FunctionId) -> bool {
-    if args.flag_test_filter.is_none() {
+    if args.test_filter.is_none() {
         return true;
     }
 
-    let filter = args.flag_test_filter.as_ref().unwrap();
+    let filter = args.test_filter.as_ref().unwrap();
     let name = display_fct(vm, fct_id);
 
     name.contains(filter)

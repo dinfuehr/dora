@@ -2486,7 +2486,7 @@ impl<'a> CannonCodeGen<'a> {
 
         self.emit_load_register(idx, REG_TMP1.into());
 
-        if !self.vm.flags.flag_omit_bounds_check {
+        if !self.vm.flags.omit_bounds_check {
             self.asm
                 .check_index_out_of_bounds(position, REG_RESULT, REG_TMP1);
         }
@@ -2641,7 +2641,7 @@ impl<'a> CannonCodeGen<'a> {
 
         self.emit_load_register(idx, REG_TMP1.into());
 
-        if !self.vm.flags.flag_omit_bounds_check {
+        if !self.vm.flags.omit_bounds_check {
             self.asm
                 .check_index_out_of_bounds(position, REG_RESULT, REG_TMP1);
         }

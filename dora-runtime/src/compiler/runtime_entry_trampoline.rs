@@ -67,7 +67,7 @@ impl<'a> NativeGen<'a> {
         let framesize = offset_return + if save_return { mem::ptr_width() } else { 0 };
         let framesize = mem::align_i32(framesize, 16);
 
-        if self.dbg || self.vm.flags.flag_emit_debug_native {
+        if self.dbg || self.vm.flags.emit_debug_native {
             self.masm.debug();
         }
 

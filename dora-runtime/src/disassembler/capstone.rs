@@ -20,7 +20,7 @@ pub fn disassemble(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray,
 
     let engine = get_engine().expect("cannot create capstone engine");
 
-    let mut w: Box<dyn Write> = if vm.flags.flag_emit_asm_file {
+    let mut w: Box<dyn Write> = if vm.flags.emit_asm_file {
         let pid = unsafe { libc::getpid() };
         let name = format!("code-{}.asm", pid);
         let file = OpenOptions::new()

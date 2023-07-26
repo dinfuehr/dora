@@ -10,7 +10,7 @@ pub fn install<'a>(vm: &'a VM) -> Arc<Code> {
     let ngen = DoraEntryGen {
         vm,
         masm: MacroAssembler::new(),
-        dbg: vm.flags.flag_emit_debug_entry,
+        dbg: vm.flags.emit_debug_entry,
     };
 
     ngen.install()
@@ -20,7 +20,7 @@ pub fn generate<'a>(vm: &'a VM) -> CodeDescriptor {
     let ngen = DoraEntryGen {
         vm,
         masm: MacroAssembler::new(),
-        dbg: vm.flags.flag_emit_debug_entry,
+        dbg: vm.flags.emit_debug_entry,
     };
 
     ngen.generate()

@@ -128,7 +128,7 @@ impl<'a> ParallelMinorCollector<'a> {
 
         self.from_active = self.young.from_active();
 
-        let dev_verbose = self.vm.flags.flag_gc_dev_verbose;
+        let dev_verbose = self.vm.flags.gc_dev_verbose;
 
         if dev_verbose {
             println!("Minor GC: Worker threads started");
@@ -167,7 +167,7 @@ impl<'a> ParallelMinorCollector<'a> {
         let mut stealers = Vec::with_capacity(self.number_workers);
         let injector = Injector::new();
 
-        let stats = self.vm.flags.flag_gc_stats;
+        let stats = self.vm.flags.gc_stats;
         let timer = Timer::new(stats);
 
         for _ in 0..self.number_workers {

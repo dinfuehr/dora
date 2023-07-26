@@ -70,7 +70,7 @@ impl Gc {
             align: 8,
         };
 
-        let collector_name = args.flag_gc.unwrap_or(CollectorName::Swiper);
+        let collector_name = args.gc.unwrap_or(CollectorName::Swiper);
 
         let collector: Box<dyn Collector + Sync> = match collector_name {
             CollectorName::Zero => Box::new(ZeroCollector::new(args)),
@@ -81,7 +81,7 @@ impl Gc {
             CollectorName::Region => Box::new(RegionCollector::new(args)),
         };
 
-        let supports_tlab = !args.flag_disable_tlab && collector.supports_tlab();
+        let supports_tlab = !args.disable_tlab && collector.supports_tlab();
 
         let code_size = args.code_size();
 
@@ -119,11 +119,11 @@ impl Gc {
     }
 
     pub fn alloc(&self, vm: &VM, size: usize, array_ref: bool) -> Address {
-        if vm.flags.flag_gc_stress_minor {
+        if vm.flags.gc_stress_minor {
             self.minor_collect(vm, GcReason::StressMinor);
         }
 
-        if vm.flags.flag_gc_stress {
+        if vm.flags.gc_stress {
             self.collect(vm, GcReason::Stress);
         }
 

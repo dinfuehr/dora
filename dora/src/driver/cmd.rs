@@ -62,46 +62,47 @@ pub struct Args {
     pub arg_argument: Option<Vec<String>>,
     pub arg_file: Option<String>,
 
-    pub flag_emit_ast: Option<String>,
-    pub flag_output: Option<String>,
-    pub flag_emit_asm: Option<String>,
-    pub flag_emit_asm_boots: bool,
-    pub flag_emit_asm_file: bool,
-    pub flag_emit_graph: Option<String>,
-    pub flag_emit_bytecode: Option<String>,
-    pub flag_emit_compiler: bool,
-    pub flag_emit_stubs: bool,
-    pub flag_enable_perf: bool,
-    pub flag_omit_bounds_check: bool,
-    pub flag_version: bool,
-    pub flag_help: bool,
-    pub flag_emit_debug: Option<String>,
-    pub flag_emit_debug_native: bool,
-    pub flag_emit_debug_compile: bool,
-    pub flag_emit_debug_entry: bool,
-    pub flag_gc_events: bool,
-    pub flag_gc_stress: bool,
-    pub flag_gc_stress_minor: bool,
-    flag_gc_parallel_full: bool,
-    flag_gc_parallel_minor: bool,
-    flag_gc_parallel: bool,
-    pub flag_gc_stats: bool,
-    pub flag_gc_verbose: bool,
-    pub flag_gc_dev_verbose: bool,
-    pub flag_gc_verify: bool,
-    pub flag_gc_worker: usize,
-    flag_gc_young_size: Option<MemSize>,
-    pub flag_gc_semi_ratio: Option<usize>,
-    pub flag_gc: Option<CollectorName>,
-    pub flag_compiler: Option<CompilerName>,
-    pub flag_min_heap_size: Option<MemSize>,
-    pub flag_max_heap_size: Option<MemSize>,
-    pub flag_code_size: Option<MemSize>,
-    pub flag_readonly_size: Option<MemSize>,
-    pub flag_check: bool,
-    pub flag_disable_tlab: bool,
-    pub flag_disable_barrier: bool,
-    pub flag_test_filter: Option<String>,
+    pub emit_ast: Option<String>,
+    pub output: Option<String>,
+    pub emit_asm: Option<String>,
+    pub emit_asm_boots: bool,
+    pub emit_asm_file: bool,
+    pub emit_graph: Option<String>,
+    pub emit_bytecode: Option<String>,
+    pub emit_compiler: bool,
+    pub emit_stubs: bool,
+    pub enable_perf: bool,
+    pub omit_bounds_check: bool,
+    pub version: bool,
+    pub help: bool,
+    pub emit_debug: Option<String>,
+    pub emit_debug_native: bool,
+    pub emit_debug_compile: bool,
+    pub emit_debug_entry: bool,
+    pub gc_events: bool,
+    pub gc_stress: bool,
+    pub gc_stress_in_lazy_compilation: bool,
+    pub gc_stress_minor: bool,
+    gc_parallel_full: bool,
+    gc_parallel_minor: bool,
+    gc_parallel: bool,
+    pub gc_stats: bool,
+    pub gc_verbose: bool,
+    pub gc_dev_verbose: bool,
+    pub gc_verify: bool,
+    pub gc_worker: usize,
+    gc_young_size: Option<MemSize>,
+    pub gc_semi_ratio: Option<usize>,
+    pub gc: Option<CollectorName>,
+    pub compiler: Option<CompilerName>,
+    pub min_heap_size: Option<MemSize>,
+    pub max_heap_size: Option<MemSize>,
+    pub code_size: Option<MemSize>,
+    pub readonly_size: Option<MemSize>,
+    pub check: bool,
+    pub disable_tlab: bool,
+    pub disable_barrier: bool,
+    pub test_filter: Option<String>,
     pub packages: Vec<(String, PathBuf)>,
 
     pub command: Command,
@@ -113,46 +114,47 @@ impl Default for Args {
             arg_argument: None,
             arg_file: None,
 
-            flag_output: None,
-            flag_emit_ast: None,
-            flag_emit_asm: None,
-            flag_emit_asm_boots: false,
-            flag_emit_asm_file: false,
-            flag_emit_graph: None,
-            flag_emit_bytecode: None,
-            flag_emit_compiler: false,
-            flag_emit_stubs: false,
-            flag_emit_debug: None,
-            flag_emit_debug_compile: false,
-            flag_emit_debug_native: false,
-            flag_emit_debug_entry: false,
-            flag_enable_perf: false,
-            flag_omit_bounds_check: false,
-            flag_version: false,
-            flag_help: false,
-            flag_gc_events: false,
-            flag_gc_stress: false,
-            flag_gc_stress_minor: false,
-            flag_gc_parallel_full: false,
-            flag_gc_parallel_minor: false,
-            flag_gc_parallel: false,
-            flag_gc_stats: false,
-            flag_gc_verbose: false,
-            flag_gc_dev_verbose: false,
-            flag_gc_verify: false,
-            flag_gc_worker: 0,
-            flag_gc_young_size: None,
-            flag_gc_semi_ratio: None,
-            flag_gc: None,
-            flag_compiler: None,
-            flag_min_heap_size: None,
-            flag_max_heap_size: None,
-            flag_code_size: None,
-            flag_readonly_size: None,
-            flag_check: false,
-            flag_disable_tlab: false,
-            flag_disable_barrier: false,
-            flag_test_filter: None,
+            output: None,
+            emit_ast: None,
+            emit_asm: None,
+            emit_asm_boots: false,
+            emit_asm_file: false,
+            emit_graph: None,
+            emit_bytecode: None,
+            emit_compiler: false,
+            emit_stubs: false,
+            emit_debug: None,
+            emit_debug_compile: false,
+            emit_debug_native: false,
+            emit_debug_entry: false,
+            enable_perf: false,
+            omit_bounds_check: false,
+            version: false,
+            help: false,
+            gc_events: false,
+            gc_stress: false,
+            gc_stress_in_lazy_compilation: false,
+            gc_stress_minor: false,
+            gc_parallel_full: false,
+            gc_parallel_minor: false,
+            gc_parallel: false,
+            gc_stats: false,
+            gc_verbose: false,
+            gc_dev_verbose: false,
+            gc_verify: false,
+            gc_worker: 0,
+            gc_young_size: None,
+            gc_semi_ratio: None,
+            gc: None,
+            compiler: None,
+            min_heap_size: None,
+            max_heap_size: None,
+            code_size: None,
+            readonly_size: None,
+            check: false,
+            disable_tlab: false,
+            disable_barrier: false,
+            test_filter: None,
             packages: Vec::new(),
 
             command: Command::Run,
@@ -204,61 +206,63 @@ pub fn parse_arguments() -> Result<Args, String> {
         } else if arg == "build" && idx == 1 {
             args.command = Command::Build;
         } else if arg == "--version" || arg == "-v" {
-            args.flag_version = true;
+            args.version = true;
         } else if arg == "--check" {
-            args.flag_check = true;
+            args.check = true;
         } else if arg == "-h" || arg == "--help" {
-            args.flag_help = true;
+            args.help = true;
         } else if arg.starts_with("--emit-ast=") {
-            args.flag_emit_ast = Some(argument_value(arg).into());
+            args.emit_ast = Some(argument_value(arg).into());
         } else if arg.starts_with("--emit-asm=") {
-            args.flag_emit_asm = Some(argument_value(arg).into());
+            args.emit_asm = Some(argument_value(arg).into());
         } else if arg == "--emit-asm-file" {
-            args.flag_emit_asm_file = true;
+            args.emit_asm_file = true;
         } else if arg == "--emit-asm-boots" {
-            args.flag_emit_asm_boots = true;
+            args.emit_asm_boots = true;
         } else if arg.starts_with("--emit-graph=") {
-            args.flag_emit_graph = Some(argument_value(arg).into());
+            args.emit_graph = Some(argument_value(arg).into());
         } else if arg.starts_with("--emit-bytecode=") {
-            args.flag_emit_bytecode = Some(argument_value(arg).into());
+            args.emit_bytecode = Some(argument_value(arg).into());
         } else if arg == "--emit-stubs" {
-            args.flag_emit_stubs = true;
+            args.emit_stubs = true;
         } else if arg.starts_with("--emit-debug=") {
-            args.flag_emit_debug = Some(argument_value(arg).into());
+            args.emit_debug = Some(argument_value(arg).into());
         } else if arg == "--emit-compiler" {
-            args.flag_emit_compiler = true;
+            args.emit_compiler = true;
         } else if arg == "--emit-debug-native" {
-            args.flag_emit_debug_native = true;
+            args.emit_debug_native = true;
         } else if arg == "--emit-debug-compile" {
-            args.flag_emit_debug_compile = true;
+            args.emit_debug_compile = true;
         } else if arg == "--emit-debug-entry" {
-            args.flag_emit_debug_entry = true;
+            args.emit_debug_entry = true;
         } else if arg == "--omit-bounds-check" {
-            args.flag_omit_bounds_check = true;
+            args.omit_bounds_check = true;
         } else if arg == "--enable-perf" {
-            args.flag_enable_perf = true;
+            args.enable_perf = true;
         } else if arg == "--gc-events" {
-            args.flag_gc_events = true;
+            args.gc_events = true;
         } else if arg == "--gc-stress" {
-            args.flag_gc_stress = true;
+            args.gc_stress = true;
+        } else if arg == "--gc-stress-in-lazy-compilation" {
+            args.gc_stress_in_lazy_compilation = true;
         } else if arg == "--gc-stress-minor" {
-            args.flag_gc_stress_minor = true;
+            args.gc_stress_minor = true;
         } else if arg == "--gc-parallel-full" {
-            args.flag_gc_parallel_full = true;
+            args.gc_parallel_full = true;
         } else if arg == "--gc-parallel-minor" {
-            args.flag_gc_parallel_minor = true;
+            args.gc_parallel_minor = true;
         } else if arg == "--gc-parallel" {
-            args.flag_gc_parallel = true;
+            args.gc_parallel = true;
         } else if arg == "--gc-stats" {
-            args.flag_gc_stats = true;
+            args.gc_stats = true;
         } else if arg == "--gc-verbose" {
-            args.flag_gc_verbose = true;
+            args.gc_verbose = true;
         } else if arg == "--gc-dev-verbose" {
-            args.flag_gc_dev_verbose = true;
+            args.gc_dev_verbose = true;
         } else if arg == "--gc-verify" {
-            args.flag_gc_verify = true;
+            args.gc_verify = true;
         } else if arg.starts_with("--gc-worker=") {
-            args.flag_gc_worker = argument_usize(arg)?;
+            args.gc_worker = argument_usize(arg)?;
         } else if arg.starts_with("--gc=") {
             let value = argument_value(arg);
             let value = match value {
@@ -270,11 +274,11 @@ pub fn parse_arguments() -> Result<Args, String> {
                 "region" => CollectorName::Region,
                 _ => return Err(format!("--gc: unknown collector '{}'", value)),
             };
-            args.flag_gc = Some(value);
+            args.gc = Some(value);
         } else if arg.starts_with("--gc-young-size=") {
-            args.flag_gc_young_size = Some(argument_mem_size(arg)?);
+            args.gc_young_size = Some(argument_mem_size(arg)?);
         } else if arg.starts_with("--gc-semi-ratio=") {
-            args.flag_gc_semi_ratio = Some(argument_usize(arg)?);
+            args.gc_semi_ratio = Some(argument_usize(arg)?);
         } else if arg.starts_with("--compiler=") {
             let value = argument_value(arg);
             let value = match value {
@@ -282,27 +286,27 @@ pub fn parse_arguments() -> Result<Args, String> {
                 "boots" => CompilerName::Boots,
                 _ => return Err(format!("--compiler: unknown compiler '{}'", value)),
             };
-            args.flag_compiler = Some(value);
+            args.compiler = Some(value);
         } else if arg.starts_with("--test-filter=") {
-            args.flag_test_filter = Some(argument_value(arg).into());
+            args.test_filter = Some(argument_value(arg).into());
         } else if arg == "--disable-tlab" {
-            args.flag_disable_tlab = true;
+            args.disable_tlab = true;
         } else if arg == "-o" {
             if idx + 1 >= cli_arguments.len() {
                 return Err("-o needs argument".into());
             }
-            args.flag_output = Some(cli_arguments[idx + 1].clone());
+            args.output = Some(cli_arguments[idx + 1].clone());
             idx += 1;
         } else if arg == "--disable-barrier" {
-            args.flag_disable_barrier = true;
+            args.disable_barrier = true;
         } else if arg.starts_with("--min-heap-size=") {
-            args.flag_min_heap_size = Some(argument_mem_size(arg)?);
+            args.min_heap_size = Some(argument_mem_size(arg)?);
         } else if arg.starts_with("--max-heap-size=") {
-            args.flag_max_heap_size = Some(argument_mem_size(arg)?);
+            args.max_heap_size = Some(argument_mem_size(arg)?);
         } else if arg.starts_with("--code-size=") {
-            args.flag_code_size = Some(argument_mem_size(arg)?);
+            args.code_size = Some(argument_mem_size(arg)?);
         } else if arg.starts_with("--readonly-size=") {
-            args.flag_readonly_size = Some(argument_mem_size(arg)?);
+            args.readonly_size = Some(argument_mem_size(arg)?);
         } else if arg == "--package" {
             if idx + 2 >= cli_arguments.len() {
                 return Err("--package needs two arguments".into());
@@ -397,38 +401,39 @@ pub fn print_help() {
 
 pub fn create_vm_args(args: &Args) -> VmArgs {
     VmArgs {
-        flag_emit_asm: args.flag_emit_asm.clone(),
-        flag_emit_asm_boots: args.flag_emit_asm_boots,
-        flag_emit_asm_file: args.flag_emit_asm_file,
-        flag_emit_compiler: args.flag_emit_compiler,
-        flag_emit_graph: args.flag_emit_graph.clone(),
-        flag_emit_stubs: args.flag_emit_stubs,
-        flag_enable_perf: args.flag_enable_perf,
-        flag_omit_bounds_check: args.flag_omit_bounds_check,
-        flag_emit_debug: args.flag_emit_debug.clone(),
-        flag_emit_debug_native: args.flag_emit_debug_native,
-        flag_emit_debug_compile: args.flag_emit_debug_compile,
-        flag_emit_debug_entry: args.flag_emit_debug_entry,
-        flag_gc_events: args.flag_gc_events,
-        flag_gc_stress: args.flag_gc_stress,
-        flag_gc_stress_minor: args.flag_gc_stress_minor,
-        flag_gc_parallel_full: args.flag_gc_parallel_full,
-        flag_gc_parallel_minor: args.flag_gc_parallel_minor,
-        flag_gc_parallel: args.flag_gc_parallel,
-        flag_gc_stats: args.flag_gc_stats,
-        flag_gc_verbose: args.flag_gc_verbose,
-        flag_gc_dev_verbose: args.flag_gc_dev_verbose,
-        flag_gc_verify: args.flag_gc_verify,
-        flag_gc_worker: args.flag_gc_worker,
-        flag_gc_young_size: args.flag_gc_young_size,
-        flag_gc_semi_ratio: args.flag_gc_semi_ratio,
-        flag_gc: args.flag_gc,
-        flag_compiler: args.flag_compiler,
-        flag_min_heap_size: args.flag_min_heap_size,
-        flag_max_heap_size: args.flag_max_heap_size,
-        flag_code_size: args.flag_code_size,
-        flag_readonly_size: args.flag_readonly_size,
-        flag_disable_tlab: args.flag_disable_tlab,
-        flag_disable_barrier: args.flag_disable_barrier,
+        emit_asm: args.emit_asm.clone(),
+        emit_asm_boots: args.emit_asm_boots,
+        emit_asm_file: args.emit_asm_file,
+        emit_compiler: args.emit_compiler,
+        emit_graph: args.emit_graph.clone(),
+        emit_stubs: args.emit_stubs,
+        enable_perf: args.enable_perf,
+        omit_bounds_check: args.omit_bounds_check,
+        emit_debug: args.emit_debug.clone(),
+        emit_debug_native: args.emit_debug_native,
+        emit_debug_compile: args.emit_debug_compile,
+        emit_debug_entry: args.emit_debug_entry,
+        gc_events: args.gc_events,
+        gc_stress: args.gc_stress,
+        gc_stress_in_lazy_compilation: args.gc_stress_in_lazy_compilation,
+        gc_stress_minor: args.gc_stress_minor,
+        gc_parallel_full: args.gc_parallel_full,
+        gc_parallel_minor: args.gc_parallel_minor,
+        gc_parallel: args.gc_parallel,
+        gc_stats: args.gc_stats,
+        gc_verbose: args.gc_verbose,
+        gc_dev_verbose: args.gc_dev_verbose,
+        gc_verify: args.gc_verify,
+        gc_worker: args.gc_worker,
+        gc_young_size: args.gc_young_size,
+        gc_semi_ratio: args.gc_semi_ratio,
+        gc: args.gc,
+        compiler: args.compiler,
+        min_heap_size: args.min_heap_size,
+        max_heap_size: args.max_heap_size,
+        code_size: args.code_size,
+        readonly_size: args.readonly_size,
+        disable_tlab: args.disable_tlab,
+        disable_barrier: args.disable_barrier,
     }
 }

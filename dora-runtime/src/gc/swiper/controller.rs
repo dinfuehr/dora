@@ -50,7 +50,7 @@ pub fn init(config: &mut HeapConfig, args: &Flags) {
 }
 
 fn calculate_young_size(args: &Flags, young_size: usize, min_semi_size: usize) -> (usize, usize) {
-    let semi_ratio = args.flag_gc_semi_ratio.unwrap_or(INIT_SEMI_RATIO);
+    let semi_ratio = args.gc_semi_ratio.unwrap_or(INIT_SEMI_RATIO);
     let semi_size = if semi_ratio == 0 {
         0
     } else {
@@ -147,7 +147,7 @@ pub fn stop(
             config.total_minor_collections += 1;
             config.total_minor_pause += config.gc_duration;
 
-            if args.flag_gc_stats {
+            if args.gc_stats {
                 config.minor_phases.last_mut().unwrap().total = config.gc_duration;
             }
         }
@@ -156,13 +156,13 @@ pub fn stop(
             config.total_full_collections += 1;
             config.total_full_pause += config.gc_duration;
 
-            if args.flag_gc_stats {
+            if args.gc_stats {
                 config.full_phases.last_mut().unwrap().total = config.gc_duration;
             }
         }
     }
 
-    if args.flag_gc_verbose {
+    if args.gc_verbose {
         print(&*config, kind, reason);
     }
 }

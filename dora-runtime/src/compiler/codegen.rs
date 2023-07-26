@@ -37,7 +37,7 @@ pub fn generate_fct(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray
     let emit_graph = should_emit_graph(vm, fct_id);
     let mut start = None;
 
-    if vm.flags.flag_emit_compiler {
+    if vm.flags.emit_compiler {
         start = Some(Instant::now());
     }
 
@@ -72,7 +72,7 @@ pub fn generate_fct(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray
     vm.compilation_database
         .finish_compilation(fct_id, type_params.clone(), code_id);
 
-    if vm.flags.flag_emit_compiler {
+    if vm.flags.emit_compiler {
         let duration = start.expect("missing start time").elapsed();
         println!(
             "compile {} using {} in {}ms.",
@@ -82,7 +82,7 @@ pub fn generate_fct(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray
         );
     }
 
-    if vm.flags.flag_enable_perf {
+    if vm.flags.enable_perf {
         let name = display_fct(vm, fct_id);
         os::perf::register_with_perf(&code, &name);
     }
@@ -122,7 +122,7 @@ pub fn generate_thunk(
     let emit_asm = should_emit_asm(vm, trait_fct_id, compiler);
     let mut start = None;
 
-    if vm.flags.flag_emit_compiler {
+    if vm.flags.emit_compiler {
         start = Some(Instant::now());
     }
 
@@ -163,7 +163,7 @@ pub fn generate_thunk(
     vm.compilation_database
         .finish_compilation(trait_fct_id, type_params.clone(), code_id);
 
-    if vm.flags.flag_emit_compiler {
+    if vm.flags.emit_compiler {
         let duration = start.expect("missing start time").elapsed();
         println!(
             "compile {} using {} in {}ms.",
@@ -173,7 +173,7 @@ pub fn generate_thunk(
         );
     }
 
-    if vm.flags.flag_enable_perf {
+    if vm.flags.enable_perf {
         let name = display_fct(vm, trait_fct_id);
         os::perf::register_with_perf(&code, &name);
     }
@@ -190,7 +190,7 @@ pub fn generate_bytecode(vm: &VM, compilation_data: CompilationData) -> CodeDesc
 }
 
 pub fn should_emit_debug(vm: &VM, fct_id: FunctionId) -> bool {
-    if let Some(ref dbg_names) = vm.flags.flag_emit_debug {
+    if let Some(ref dbg_names) = vm.flags.emit_debug {
         fct_pattern_match(vm, fct_id, dbg_names)
     } else {
         false
@@ -202,11 +202,11 @@ pub fn should_emit_asm(vm: &VM, fct_id: FunctionId, compiler: CompilerName) -> b
         return false;
     }
 
-    if compiler == CompilerName::Boots && vm.flags.flag_emit_asm_boots {
+    if compiler == CompilerName::Boots && vm.flags.emit_asm_boots {
         return true;
     }
 
-    if let Some(ref dbg_names) = vm.flags.flag_emit_asm {
+    if let Some(ref dbg_names) = vm.flags.emit_asm {
         fct_pattern_match(vm, fct_id, dbg_names)
     } else {
         false
@@ -214,7 +214,7 @@ pub fn should_emit_asm(vm: &VM, fct_id: FunctionId, compiler: CompilerName) -> b
 }
 
 pub fn should_emit_graph(vm: &VM, fct_id: FunctionId) -> bool {
-    if let Some(ref names) = vm.flags.flag_emit_graph {
+    if let Some(ref names) = vm.flags.emit_graph {
         fct_pattern_match(vm, fct_id, names)
     } else {
         false

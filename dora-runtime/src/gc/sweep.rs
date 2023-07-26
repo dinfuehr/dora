@@ -32,7 +32,7 @@ impl SweepCollector {
         let heap_end = heap_start.offset(heap_size);
         let heap = Region::new(heap_start, heap_end);
 
-        if args.flag_gc_verbose {
+        if args.gc_verbose {
             println!("GC: {} {}", heap, formatted_size(heap_size));
         }
 
@@ -79,7 +79,7 @@ impl Collector for SweepCollector {
     }
 
     fn collect(&self, vm: &VM, reason: GcReason) {
-        let mut timer = Timer::new(vm.flags.flag_gc_stats);
+        let mut timer = Timer::new(vm.flags.gc_stats);
 
         safepoint::stop_the_world(vm, |threads| {
             tlab::make_iterable_all(vm, threads);
@@ -87,7 +87,7 @@ impl Collector for SweepCollector {
             self.mark_sweep(vm, &rootset, reason);
         });
 
-        if vm.flags.flag_gc_stats {
+        if vm.flags.gc_stats {
             let duration = timer.stop();
             let mut stats = self.stats.lock();
             stats.add(duration);
@@ -167,7 +167,7 @@ struct MarkSweep<'a> {
 
 impl<'a> MarkSweep<'a> {
     fn collect(&mut self) {
-        let dev_verbose = self.vm.flags.flag_gc_dev_verbose;
+        let dev_verbose = self.vm.flags.gc_dev_verbose;
 
         if dev_verbose {
             println!("Sweep GC: Phase 1 (marking)");
