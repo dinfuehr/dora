@@ -8,13 +8,14 @@ use crate::cpu::{
     STACK_FRAME_ALIGNMENT,
 };
 use crate::gc::{Address, Slot};
+use crate::handle::{handle_scope, Handle};
 use crate::masm::{MacroAssembler, Mem};
 use crate::mem;
 use crate::mode::MachineMode;
 use crate::object::Obj;
 use crate::os;
 use crate::stack::DoraToNativeInfo;
-use crate::threads::ThreadLocalData;
+use crate::threads::{current_thread, ThreadLocalData};
 use crate::vm::{
     create_enum_instance, get_vm, install_code_stub, Code, CodeKind, EnumLayout,
     LazyCompilationSite, ShapeKind, VM,
@@ -317,10 +318,6 @@ fn freg_offset(freg_idx: &mut usize, stack_address: &mut Address) {
 fn lazy_compile(ra: usize, receiver1: Address, receiver2: Address) -> Address {
     let vm = get_vm();
 
-    if vm.flags.gc_stress_in_lazy_compile {
-        vm.gc.collect(vm, crate::gc::GcReason::Stress);
-    }
-
     let lazy_compilation_site = {
         let code_id = vm
             .code_map
@@ -335,47 +332,53 @@ fn lazy_compile(ra: usize, receiver1: Address, receiver2: Address) -> Address {
             .clone()
     };
 
-    match lazy_compilation_site {
-        LazyCompilationSite::Direct(fct_id, disp, ref type_params) => {
-            patch_direct_call(vm, ra, fct_id, type_params, disp)
+    handle_scope(|| {
+        let receiver = match lazy_compilation_site {
+            LazyCompilationSite::Direct(..) => None,
+            LazyCompilationSite::Virtual(receiver_is_first, ..)
+            | LazyCompilationSite::Lambda(receiver_is_first, ..) => {
+                let right_receiver = if receiver_is_first {
+                    receiver1
+                } else {
+                    receiver2
+                };
+
+                let handle: Handle<Obj> = current_thread()
+                    .handles
+                    .create_handle(right_receiver.into());
+
+                Some(handle)
+            }
+        };
+
+        if vm.flags.gc_stress_in_lazy_compile {
+            vm.gc.collect(vm, crate::gc::GcReason::Stress);
         }
 
-        LazyCompilationSite::Virtual(
-            receiver_is_first,
-            _,
-            fct_id,
-            vtable_index,
-            ref type_params,
-        ) => patch_virtual_call(
-            vm,
-            receiver_is_first,
-            receiver1,
-            receiver2,
-            fct_id,
-            vtable_index,
-            type_params,
-        ),
+        match lazy_compilation_site {
+            LazyCompilationSite::Direct(fct_id, disp, ref type_params) => {
+                patch_direct_call(vm, ra, fct_id, type_params, disp)
+            }
 
-        LazyCompilationSite::Lambda(receiver_is_first, ..) => {
-            patch_lambda_call(vm, receiver_is_first, receiver1, receiver2)
+            LazyCompilationSite::Virtual(_, _, fct_id, vtable_index, ref type_params) => {
+                patch_virtual_call(
+                    vm,
+                    receiver.expect("missing handle"),
+                    fct_id,
+                    vtable_index,
+                    type_params,
+                )
+            }
+
+            LazyCompilationSite::Lambda(..) => {
+                patch_lambda_call(vm, receiver.expect("missing handle"))
+            }
         }
-    }
+    })
 }
 
-fn patch_lambda_call(
-    vm: &VM,
-    receiver_is_first: bool,
-    receiver1: Address,
-    receiver2: Address,
-) -> Address {
-    let receiver = if receiver_is_first {
-        receiver1
-    } else {
-        receiver2
-    };
-
-    let obj = unsafe { &mut *receiver.to_mut_ptr::<Obj>() };
-    let vtable = obj.header().vtbl();
+fn patch_lambda_call(vm: &VM, receiver: Handle<Obj>) -> Address {
+    let vtable = receiver.header().vtbl();
     let class_instance = vtable.class_instance();
 
     let (lambda_id, type_params) = match &class_instance.kind {
@@ -393,21 +396,12 @@ fn patch_lambda_call(
 
 fn patch_virtual_call(
     vm: &VM,
-    receiver_is_first: bool,
-    receiver1: Address,
-    receiver2: Address,
+    receiver: Handle<Obj>,
     trait_fct_id: FunctionId,
     vtable_index: u32,
     type_params: &BytecodeTypeArray,
 ) -> Address {
-    let receiver = if receiver_is_first {
-        receiver1
-    } else {
-        receiver2
-    };
-
-    let obj = unsafe { &mut *receiver.to_mut_ptr::<Obj>() };
-    let vtable = obj.header().vtbl();
+    let vtable = receiver.header().vtbl();
     let class_instance = vtable.class_instance();
 
     let fct_ptr = match &class_instance.kind {

@@ -326,7 +326,7 @@ where
         }
 
         InstanceSize::StructArray(element_size) => {
-            visit_struct_array_refs(object, cls, element_size as usize, range, f);
+            visit_struct_array_refs(object, cls, element_size as usize, None, f);
         }
 
         InstanceSize::UnitArray
