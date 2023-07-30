@@ -1,0 +1,17 @@
+//= vm-args "--gc=swiper --gc-verify --max-heap-size=128M"
+
+class Foo (value: Int64)
+
+struct Bar {
+    integer: Int64,
+    foo: Foo,
+}
+
+fn main() {
+    let x = Array[Bar]::fill(256, Bar(0, Foo(1_000)));
+    std::forceCollect();
+    x(255) = Bar(12, Foo(2_000));
+    std::forceMinorCollect();
+    assert(x(255).integer == 12);
+    assert(x(255).foo.value == 2_000);
+}

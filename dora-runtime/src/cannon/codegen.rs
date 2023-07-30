@@ -2512,8 +2512,9 @@ impl<'a> CannonCodeGen<'a> {
                 let needs_write_barrier = tuple.contains_references();
 
                 if self.vm.gc.needs_write_barrier() && needs_write_barrier {
+                    self.emit_load_register(arr, REG_RESULT.into());
                     let card_table_offset = self.vm.gc.card_table_offset();
-                    self.asm.emit_barrier(REG_TMP1, card_table_offset);
+                    self.asm.emit_barrier(REG_RESULT, card_table_offset);
                 }
             }
 
@@ -2536,8 +2537,9 @@ impl<'a> CannonCodeGen<'a> {
                 let needs_write_barrier = struct_instance.contains_references();
 
                 if self.vm.gc.needs_write_barrier() && needs_write_barrier {
+                    self.emit_load_register(arr, REG_RESULT.into());
                     let card_table_offset = self.vm.gc.card_table_offset();
-                    self.asm.emit_barrier(REG_TMP1, card_table_offset);
+                    self.asm.emit_barrier(REG_RESULT, card_table_offset);
                 }
             }
 
