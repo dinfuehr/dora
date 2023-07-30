@@ -214,6 +214,8 @@ where
         LazyCompilationSite::Lambda(_, params, return_type) => {
             debug_assert!(params.is_concrete_type());
             debug_assert!(return_type.is_concrete_type());
+            assert!(!params.is_empty());
+            assert_eq!(params[0], BytecodeType::Ptr);
             (params, false, return_type)
         }
     };

@@ -78,7 +78,7 @@ impl<'a> DoraCompileGen<'a> {
         self.masm.prolog(FRAME_SIZE);
 
         // store params passed in registers on the stack
-        self.store_params(FP_REG_PARAMS_OFFSET, FP_FREG_PARAMS_OFFSET);
+        self.store_params();
 
         // prepare the native call
         self.masm.load_mem(
@@ -151,7 +151,7 @@ impl<'a> DoraCompileGen<'a> {
         self.masm.copy_reg(MachineMode::Ptr, REG_TMP1, REG_RESULT);
 
         // restore argument registers from the stack
-        self.load_params(FP_REG_PARAMS_OFFSET, FP_FREG_PARAMS_OFFSET);
+        self.load_params();
 
         // remove the stack frame
         self.masm.epilog_without_return();
@@ -163,43 +163,51 @@ impl<'a> DoraCompileGen<'a> {
         install_code_stub(self.vm, code_descriptor, CodeKind::LazyCompilationStub)
     }
 
-    fn store_params(&mut self, mut reg_offset: i32, mut freg_offset: i32) {
-        for reg in &REG_PARAMS {
+    fn store_params(&mut self) {
+        for (idx, &reg) in REG_PARAMS.iter().enumerate() {
             self.masm.store_mem(
                 MachineMode::Ptr,
-                Mem::Base(REG_FP, reg_offset),
-                (*reg).into(),
+                Mem::Base(
+                    REG_FP,
+                    FP_REG_PARAMS_OFFSET + (idx as i32) * mem::ptr_width(),
+                ),
+                reg.into(),
             );
-            reg_offset += mem::ptr_width();
         }
 
-        for reg in &FREG_PARAMS {
+        for (idx, &reg) in FREG_PARAMS.iter().enumerate() {
             self.masm.store_mem(
                 MachineMode::Float64,
-                Mem::Base(REG_FP, freg_offset),
-                (*reg).into(),
+                Mem::Base(
+                    REG_FP,
+                    FP_FREG_PARAMS_OFFSET + (idx as i32) * mem::ptr_width(),
+                ),
+                reg.into(),
             );
-            freg_offset += mem::ptr_width();
         }
     }
 
-    fn load_params(&mut self, mut reg_offset: i32, mut freg_offset: i32) {
-        for reg in &REG_PARAMS {
+    fn load_params(&mut self) {
+        for (idx, &reg) in REG_PARAMS.iter().enumerate() {
             self.masm.load_mem(
                 MachineMode::Ptr,
-                (*reg).into(),
-                Mem::Base(REG_FP, reg_offset),
+                reg.into(),
+                Mem::Base(
+                    REG_FP,
+                    FP_REG_PARAMS_OFFSET + (idx as i32) * mem::ptr_width(),
+                ),
             );
-            reg_offset += mem::ptr_width();
         }
 
-        for reg in &FREG_PARAMS {
+        for (idx, &reg) in FREG_PARAMS.iter().enumerate() {
             self.masm.load_mem(
                 MachineMode::Float64,
-                (*reg).into(),
-                Mem::Base(REG_FP, freg_offset),
+                reg.into(),
+                Mem::Base(
+                    REG_FP,
+                    FP_FREG_PARAMS_OFFSET + (idx as i32) * mem::ptr_width(),
+                ),
             );
-            freg_offset += mem::ptr_width();
         }
     }
 }
