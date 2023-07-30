@@ -2773,7 +2773,10 @@ impl<'a> CannonCodeGen<'a> {
         let fct_return_type = self.specialize_bty(return_type);
         assert!(fct_return_type.is_concrete_type());
 
-        let params = self.specialize_bty_array(&params);
+        let mut params_including_self = params.to_vec();
+        params_including_self.insert(0, BytecodeType::Ptr);
+        let params_including_self = BytecodeTypeArray::new(params_including_self);
+        let params_including_self = self.specialize_bty_array(&params_including_self);
 
         let argsize = self.emit_invoke_arguments(dest, fct_return_type.clone(), arguments);
 
@@ -2789,7 +2792,7 @@ impl<'a> CannonCodeGen<'a> {
         };
 
         let lazy_compilation_site =
-            LazyCompilationSite::Lambda(self_index == 0, params, fct_return_type);
+            LazyCompilationSite::Lambda(self_index == 0, params_including_self, fct_return_type);
 
         self.asm.virtual_call(
             vtable_index,

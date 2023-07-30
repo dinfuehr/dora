@@ -216,6 +216,10 @@ impl BytecodeTypeArray {
     pub fn is_concrete_type(&self) -> bool {
         self.0.iter().all(|ty| ty.is_concrete_type())
     }
+
+    pub fn to_vec(&self) -> Vec<BytecodeType> {
+        (*self.0).clone()
+    }
 }
 
 impl Index<usize> for BytecodeTypeArray {

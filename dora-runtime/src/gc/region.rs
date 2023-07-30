@@ -73,13 +73,9 @@ impl Collector for RegionCollector {
         }
     }
 
-    fn collect(&self, _vm: &VM, _reason: GcReason) {
-        unimplemented!()
-    }
+    fn collect(&self, _vm: &VM, _reason: GcReason) {}
 
-    fn minor_collect(&self, _vm: &VM, _reason: GcReason) {
-        unimplemented!()
-    }
+    fn minor_collect(&self, _vm: &VM, _reason: GcReason) {}
 
     fn needs_write_barrier(&self) -> bool {
         false
