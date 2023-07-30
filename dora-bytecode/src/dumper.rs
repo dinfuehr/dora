@@ -474,6 +474,7 @@ impl<'a> BytecodeDumper<'a> {
             ConstPoolEntry::Fct(fct_id, _) => fct_id,
             ConstPoolEntry::Generic(_, fct_id, _) => fct_id,
             ConstPoolEntry::Lambda(_, _) => return "lambda".into(),
+            ConstPoolEntry::TraitObjectMethod(_, fct_id, _) => fct_id,
             _ => unreachable!(),
         };
 

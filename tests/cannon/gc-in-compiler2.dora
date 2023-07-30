@@ -1,0 +1,10 @@
+//= vm-args "--gc=copy --gc-stress-in-lazy-compile"
+
+fn main() {
+    let mut escaped = 1;
+    let lambda = |increment: Int64| { escaped = escaped + increment; };
+    lambda(10);
+    assert(escaped == 11);
+    lambda(2);
+    assert(escaped == 13);
+}
