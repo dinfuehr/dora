@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use crate::cpu::{
-    CCALL_REG_PARAMS, REG_FP, REG_PARAMS, REG_THREAD, REG_TMP1, STACK_FRAME_ALIGNMENT,
+    CALLEE_SAVED_REGS, CCALL_REG_PARAMS, REG_FP, REG_PARAMS, REG_THREAD, REG_TMP1,
+    STACK_FRAME_ALIGNMENT,
 };
 use crate::masm::{CodeDescriptor, MacroAssembler, Mem};
 use crate::mem;
@@ -31,10 +32,10 @@ pub fn generate<'a>(vm: &'a VM) -> CodeDescriptor {
 const FP_CALLER_PC_OFFSET: i32 = FP_CALLER_FP_OFFSET + mem::ptr_width();
 const FP_CALLER_FP_OFFSET: i32 = 0;
 
-const FRAME_THREAD_SIZE: i32 = mem::ptr_width();
-const FP_THREAD_OFFSET: i32 = FP_CALLER_FP_OFFSET - FRAME_THREAD_SIZE;
+const FRAME_CALLEE_REGS_SIZE: i32 = (CALLEE_SAVED_REGS.len() as i32) * mem::ptr_width();
+const FP_CALLEE_REGS_OFFSET: i32 = FP_CALLER_FP_OFFSET - FRAME_CALLEE_REGS_SIZE;
 
-const UNALIGNED_FRAME_SIZE: i32 = FP_CALLER_FP_OFFSET - FP_THREAD_OFFSET;
+const UNALIGNED_FRAME_SIZE: i32 = FP_CALLER_FP_OFFSET - FP_CALLEE_REGS_OFFSET;
 const FRAME_SIZE: i32 = mem::align_i32(UNALIGNED_FRAME_SIZE, STACK_FRAME_ALIGNMENT as i32);
 
 struct DoraEntryGen<'a> {
@@ -56,12 +57,7 @@ impl<'a> DoraEntryGen<'a> {
         }
 
         self.masm.prolog(FRAME_SIZE);
-
-        self.masm.store_mem(
-            MachineMode::Ptr,
-            Mem::Base(REG_FP, FP_THREAD_OFFSET),
-            REG_THREAD.into(),
-        );
+        self.save_callee_saved_regs();
 
         self.masm
             .copy_reg(MachineMode::Ptr, REG_THREAD, CCALL_REG_PARAMS[0]);
@@ -71,13 +67,35 @@ impl<'a> DoraEntryGen<'a> {
             .copy_reg(MachineMode::Ptr, REG_PARAMS[0], CCALL_REG_PARAMS[2]);
         self.masm.call_reg(REG_TMP1);
 
-        self.masm.load_mem(
-            MachineMode::Ptr,
-            REG_THREAD.into(),
-            Mem::Base(REG_FP, FP_THREAD_OFFSET),
-        );
+        self.load_callee_saved_regs();
         self.masm.epilog();
 
         self.masm.code()
+    }
+
+    pub fn save_callee_saved_regs(&mut self) {
+        for (idx, &reg) in CALLEE_SAVED_REGS.iter().enumerate() {
+            self.masm.store_mem(
+                MachineMode::Ptr,
+                Mem::Base(
+                    REG_FP,
+                    FP_CALLEE_REGS_OFFSET + (idx as i32) * mem::ptr_width(),
+                ),
+                reg.into(),
+            );
+        }
+    }
+
+    pub fn load_callee_saved_regs(&mut self) {
+        for (idx, &reg) in CALLEE_SAVED_REGS.iter().enumerate() {
+            self.masm.load_mem(
+                MachineMode::Ptr,
+                reg.into(),
+                Mem::Base(
+                    REG_FP,
+                    FP_CALLEE_REGS_OFFSET + (idx as i32) * mem::ptr_width(),
+                ),
+            );
+        }
     }
 }

@@ -77,6 +77,11 @@ pub const FREG_TMP1: FReg = XMM8; // shall not overlap with argument registers
 #[cfg(target_family = "windows")]
 pub const FREG_TMP1: FReg = XMM4; // shall not overlap with argument registers
 
+#[cfg(target_family = "unix")]
+pub const CALLEE_SAVED_REGS: [Reg; 5] = [RBX, R12, R13, R14, R15];
+#[cfg(target_family = "windows")]
+pub const CALLEE_SAVED_REGS: [Reg; 7] = [RBX, RDI, RSI, R12, R13, R14, R15];
+
 pub const STACK_FRAME_ALIGNMENT: usize = 16;
 
 pub const RAX: Reg = Reg(0);

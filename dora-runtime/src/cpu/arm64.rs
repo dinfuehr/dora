@@ -148,6 +148,8 @@ pub const FREG_PARAMS: [FReg; 8] = [F0, F1, F2, F3, F4, F5, F6, F7];
 pub const CCALL_REG_PARAMS: [Reg; 8] = [R0, R1, R2, R3, R4, R5, R6, R7];
 pub const CCALL_FREG_PARAMS: [FReg; 8] = [F0, F1, F2, F3, F4, F5, F6, F7];
 
+pub const CALLEE_SAVED_REGS: [Reg; 10] = [R19, R20, R21, R22, R23, R24, R25, R26, R27, R28];
+
 pub static SCRATCH: [Reg; 5] = [R9, R12, R13, R14, R15];
 
 pub const REG_RESULT: Reg = R0;
