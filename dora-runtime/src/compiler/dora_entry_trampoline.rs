@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use crate::cpu::{CCALL_REG_PARAMS, REG_PARAMS, REG_SP, REG_THREAD, REG_TMP1};
+use crate::cpu::{
+    CCALL_REG_PARAMS, REG_FP, REG_PARAMS, REG_THREAD, REG_TMP1, STACK_FRAME_ALIGNMENT,
+};
 use crate::masm::{CodeDescriptor, MacroAssembler, Mem};
 use crate::mem;
 use crate::mode::MachineMode;
@@ -26,6 +28,15 @@ pub fn generate<'a>(vm: &'a VM) -> CodeDescriptor {
     ngen.generate()
 }
 
+const FP_CALLER_PC_OFFSET: i32 = FP_CALLER_FP_OFFSET + mem::ptr_width();
+const FP_CALLER_FP_OFFSET: i32 = 0;
+
+const FRAME_THREAD_SIZE: i32 = mem::ptr_width();
+const FP_THREAD_OFFSET: i32 = FP_CALLER_FP_OFFSET - FRAME_THREAD_SIZE;
+
+const UNALIGNED_FRAME_SIZE: i32 = FP_CALLER_FP_OFFSET - FP_THREAD_OFFSET;
+const FRAME_SIZE: i32 = mem::align_i32(UNALIGNED_FRAME_SIZE, STACK_FRAME_ALIGNMENT as i32);
+
 struct DoraEntryGen<'a> {
     vm: &'a VM,
     masm: MacroAssembler,
@@ -40,19 +51,15 @@ impl<'a> DoraEntryGen<'a> {
     }
 
     pub fn generate(mut self) -> CodeDescriptor {
-        let framesize = mem::ptr_width_usize();
-        let framesize = mem::align_usize(framesize, 16) as i32;
-
-        let offset_thread = 0;
-
         if self.dbg {
             self.masm.debug();
         }
 
-        self.masm.prolog(framesize);
+        self.masm.prolog(FRAME_SIZE);
+
         self.masm.store_mem(
             MachineMode::Ptr,
-            Mem::Base(REG_SP, offset_thread),
+            Mem::Base(REG_FP, FP_THREAD_OFFSET),
             REG_THREAD.into(),
         );
 
@@ -67,7 +74,7 @@ impl<'a> DoraEntryGen<'a> {
         self.masm.load_mem(
             MachineMode::Ptr,
             REG_THREAD.into(),
-            Mem::Base(REG_SP, offset_thread),
+            Mem::Base(REG_FP, FP_THREAD_OFFSET),
         );
         self.masm.epilog();
 

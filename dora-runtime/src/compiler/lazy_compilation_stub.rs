@@ -40,15 +40,15 @@ pub fn generate<'a>(vm: &'a VM) -> Arc<Code> {
     ngen.generate()
 }
 
-const FP_FIRST_STACK_ARG: i32 = FP_CALLER_PC + mem::ptr_width();
-const FP_CALLER_PC: i32 = FP_CALLER_FP + mem::ptr_width();
-const FP_CALLER_FP: i32 = 0;
+const FP_FIRST_STACK_ARG_OFFSET: i32 = FP_CALLER_PC_OFFSET + mem::ptr_width();
+const FP_CALLER_PC_OFFSET: i32 = FP_CALLER_FP_OFFSET + mem::ptr_width();
+const FP_CALLER_FP_OFFSET: i32 = 0;
 const FRAME_SHADOW_STACK_SIZE: i32 = if cfg!(target_family = "windows") {
     32
 } else {
     0
 };
-const FP_SHADOW_STACK_OFFSET: i32 = FP_CALLER_FP - FRAME_SHADOW_STACK_SIZE;
+const FP_SHADOW_STACK_OFFSET: i32 = FP_CALLER_FP_OFFSET - FRAME_SHADOW_STACK_SIZE;
 
 const FRAME_DTN_SIZE: i32 = size_of::<DoraToNativeInfo>() as i32;
 const FP_DTN_OFFSET: i32 = FP_SHADOW_STACK_OFFSET - FRAME_DTN_SIZE;
@@ -59,7 +59,7 @@ const FP_REG_PARAMS_OFFSET: i32 = FP_DTN_OFFSET - FRAME_REG_PARAMS_SIZE;
 const FRAME_FREG_PARAMS_SIZE: i32 = FREG_PARAMS.len() as i32 * mem::ptr_width();
 const FP_FREG_PARAMS_OFFSET: i32 = FP_REG_PARAMS_OFFSET - FRAME_FREG_PARAMS_SIZE;
 
-const UNALIGNED_FRAME_SIZE: i32 = FP_CALLER_FP - FP_FREG_PARAMS_OFFSET;
+const UNALIGNED_FRAME_SIZE: i32 = FP_CALLER_FP_OFFSET - FP_FREG_PARAMS_OFFSET;
 const FRAME_SIZE: i32 = mem::align_i32(UNALIGNED_FRAME_SIZE, STACK_FRAME_ALIGNMENT as i32);
 
 struct DoraCompileGen<'a> {
@@ -224,7 +224,7 @@ pub fn iterate_roots<F>(
 {
     let mut reg_idx = 0;
     let mut freg_idx = 0;
-    let mut stack_address = fp.ioffset(FP_FIRST_STACK_ARG as isize);
+    let mut stack_address = fp.ioffset(FP_FIRST_STACK_ARG_OFFSET as isize);
 
     if result_passed_as_argument(return_type) {
         reg_offset(&mut reg_idx, &mut stack_address);
