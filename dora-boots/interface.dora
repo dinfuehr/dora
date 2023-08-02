@@ -2,21 +2,31 @@ use package::bytecode::data::BytecodeFunction;
 use package::bytecode::data::BytecodeType;
 use package::deserializer::decodeBytecodeFunction;
 use package::deserializer::decodeCompilationInfo;
+use package::deserializer::decodeConfig;
 use package::deserializer::ByteReader;
 use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
 use package::compileFunction;
 use package::serializer::{ByteWriter, encodeCodeDescriptor};
 
-pub const TRAP_DIV0: Int32 = 0i32;
-pub const TRAP_ASSERT: Int32 = 1i32;
-pub const TRAP_INDEX_OUT_OF_BOUNDS: Int32 = 2i32;
-pub const TRAP_NIL: Int32 = 3i32;
-pub const TRAP_CAST: Int32 = 4i32;
-pub const TRAP_OOM: Int32 = 5i32;
-pub const TRAP_STACK_OVERFLOW: Int32 = 6i32;
-pub const TRAP_ILLEGAL: Int32 = 7i32;
-pub const TRAP_OVERFLOW: Int32 = 8i32;
+pub const TRAP_DIV0: Int32 = 1i32;
+pub const TRAP_ASSERT: Int32 = 2i32;
+pub const TRAP_INDEX_OUT_OF_BOUNDS: Int32 = 3i32;
+pub const TRAP_NIL: Int32 = 4i32;
+pub const TRAP_CAST: Int32 = 5i32;
+pub const TRAP_OOM: Int32 = 6i32;
+pub const TRAP_STACK_OVERFLOW: Int32 = 7i32;
+pub const TRAP_ILLEGAL: Int32 = 8i32;
+pub const TRAP_OVERFLOW: Int32 = 9i32;
+
+@internal pub fn getSystemConfig(): Array[UInt8];
+
+pub class Config {
+    pub architecture: Architecture,
+    pub trap_trampoline: Address,
+}
+
+pub let config: Config = decodeConfig(getSystemConfig());
 
 pub fn compile(encoded: Array[UInt8]): Array[UInt8] {
     let reader = ByteReader::new(encoded);
@@ -28,7 +38,7 @@ pub fn compile(encoded: Array[UInt8]): Array[UInt8] {
     writer.toArray()
 }
 
-pub struct Address(value: Int64)
+pub struct Address(pub value: Int64)
 
 impl Address {
     pub fn toInt64(): Int64 {
@@ -41,7 +51,6 @@ pub let trap_trampoline: Address = Address(0);
 pub class CompilationInfo(
     pub bc: BytecodeFunction,
     pub typeParams: Array[BytecodeType],
-    pub arch: Architecture,
     pub emitGraph: Bool,
     pub emitCodeComments: Bool,
 )

@@ -1,10 +1,9 @@
-use package::assembler::x64::{AssemblerX64, Address, Immediate, ScaleFactor};
+use package::assembler::x64::{AssemblerX64, Address, Condition, Immediate, ScaleFactor};
 use package::assembler::x64::{RAX, RDI, RDX, RCX, RSI, RBP, RSP};
 use package::assembler::x64::{R8, R9, R10, R11};
 use package::assembler::{Register, RegSet};
 use package::codegen::{CodeGen, CodeDescriptor, CommentTable, LocationTable};
-use package::interface::CompilationInfo;
-use package::interface::Architecture;
+use package::interface::{Architecture, CompilationInfo, config, TRAP_DIV0};
 use package::graph::{Inst, Op, LocationData};
 
 pub class CodeGenX64 {
@@ -22,9 +21,16 @@ impl CodeGenX64 {
         self.asm.popq_r(RBP);
         self.asm.retq();
     }
+
+    fn trap(tmp: Register, trap: Int32) {
+        self.asm.movl_ri(CCALL_REG_PARAMS(0), Immediate(trap.toInt64()));
+        self.asm.movq_ri(tmp, Immediate(config.trap_trampoline.toInt64()));
+        self.asm.call_r(tmp);
+    }
 }
 
 pub let REG_PARAMS: Array[Register] = Array[Register]::new(RDI, RSI, RDX, RCX, R8, R9);
+pub let CCALL_REG_PARAMS: Array[Register] = REG_PARAMS;
 
 // Temporary registers that can be used within an instruction.
 pub let REG_TMP1: Register = R10;
@@ -83,7 +89,32 @@ impl CodeGen for CodeGenX64 {
     }
 
     fn emitCheckedDiv(inst: Inst) {
-        unreachable[()]();
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+
+        let output = loc.getOutput().getRegister();
+
+        if output != RAX {
+            self.asm.movq_rr(REG_TMP1, RAX);
+        }
+
+        if lhs != RAX {
+            self.asm.movq_rr(RAX, lhs);
+        }
+
+        self.asm.cqo();
+
+        if rhs != RAX {
+            self.asm.idivq_r(rhs);
+        } else {
+            self.asm.idivq_r(REG_TMP1);
+        }
+
+        if output != RAX {
+            self.asm.movq_rr(output, RAX);
+            self.asm.movq_rr(RAX, REG_TMP1);
+        }
     }
 
     fn emitCheckedMod(inst: Inst) {
@@ -91,7 +122,14 @@ impl CodeGen for CodeGenX64 {
     }
 
     fn emitDivZeroCheck(inst: Inst) {
+        let loc = inst.getLocationData();
+        let op = loc.getInput(0).getRegister();
+
         let lbl_continue = self.asm.createLabel();
+        self.asm.testq_rr(op, op);
+        self.asm.jcc_near(Condition::NotZero, lbl_continue);
+        self.trap(REG_TMP1, TRAP_DIV0);
+        self.asm.bindLabel(lbl_continue);
     }
 
     fn emitReturn(inst: Inst) {

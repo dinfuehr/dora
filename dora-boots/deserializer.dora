@@ -1,17 +1,28 @@
-use package::interface::CompilationInfo;
+use package::interface::{Address, CompilationInfo, Config};
 use package::bytecode::data::ConstPoolEntry;
 use package::bytecode::data::BytecodeType;
 use package::bytecode::data::BytecodeFunction;
 use package::bytecode::opcode as opc;
 use package::interface::Architecture;
 
+pub fn decodeConfig(encoded: Array[UInt8]): Config {
+    let reader = ByteReader::new(encoded);
+    let architecture = decodeArchitecture(reader);
+    let trap_trampoline = reader.readAddress();
+    assert(!reader.moreBytes());
+
+    Config(
+        architecture,
+        trap_trampoline,
+    )
+}
+
 pub fn decodeCompilationInfo(reader: ByteReader): CompilationInfo {
     let bc = decodeBytecodeFunction(reader);
     let typeParams = decodeTypeParams(reader);
-    let arch = decodeArchitecture(reader);
     let emitGraph = reader.readBool();
     let emitCodeComments = reader.readBool();
-    CompilationInfo(bc, typeParams, arch, emitGraph, emitCodeComments)
+    CompilationInfo(bc, typeParams, emitGraph, emitCodeComments)
 }
 
 pub fn decodeBytecodeFunction(reader: ByteReader): BytecodeFunction {
@@ -200,6 +211,10 @@ impl ByteReader {
         let by8 = self.readUInt8().toInt64();
 
         (by8 << 56i32) | (by7 << 48i32) | (by6 << 40i32) | (by5 << 32i32) | (by4 << 24i32) | (by3 << 16i32) | (by2 << 8i32) | by1
+    }
+
+    pub fn readAddress(): Address {
+        Address(self.readInt64())
     }
 
     pub fn readByteArray(): Array[UInt8] {

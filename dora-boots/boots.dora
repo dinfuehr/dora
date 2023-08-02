@@ -7,7 +7,7 @@ use package::graph::{Graph, Location, LocationData, Op, opName};
 use package::graph::dump::dumpGraph;
 use package::graph_builder::createGraph;
 use package::interface::{Architecture, CompilationInfo};
-use package::interface::compile;
+use package::interface::{compile, config, getSystemConfig};
 
 mod assembler;
 mod bytecode;
@@ -28,7 +28,7 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
 
     if (ci.emitGraph) {
         println("after graph building:");
-        println(dumpGraph(graph, ci.arch));
+        println(dumpGraph(graph, config.architecture));
     }
 
     ensureLocationData(graph, codegen);
@@ -36,7 +36,7 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
 
     if (ci.emitGraph) {
         println("after register allocation:");
-        println(dumpGraph(graph, ci.arch));
+        println(dumpGraph(graph, config.architecture));
     }
 
     generate(graph, codegen)
@@ -95,7 +95,7 @@ fn generate(graph: Graph, codegen: CodeGen): CodeDescriptor {
 }
 
 fn createCodeGen(ci: CompilationInfo): CodeGen {
-    match ci.arch {
+    match config.architecture {
         Architecture::X64 => CodeGenX64::new(ci) as CodeGen,
         Architecture::Arm64 => CodeGenArm64::new(ci) as CodeGen,
     }

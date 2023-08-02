@@ -1,4 +1,4 @@
-use package::interface::{Architecture, CompilationInfo, trap_trampoline};
+use package::interface::{Architecture, CompilationInfo, config, TRAP_DIV0};
 use package::codegen::{CodeGen, CodeDescriptor, CommentTable, LocationTable};
 use package::assembler::arm64::AssemblerArm64;
 use package::assembler::arm64::{R0, R1, R2, R3, R4, R5, R6, R7, R10, R11};
@@ -17,7 +17,6 @@ impl CodeGenArm64 {
     }
 
     pub fn generate(): Array[UInt8] {
-        assert(self.info.arch == Architecture::Arm64);
         self.asm.ret();
         self.asm.finalize()
     }
@@ -29,17 +28,21 @@ impl CodeGenArm64 {
     }
 
     fn trap(tmp: Register, trap: Int32) {
-        self.asm.movz(REG_PARAMS(0), trap, 0i32);
-        self.mov_imm(tmp, trap_trampoline.toInt64());
+        self.asm.movz(CCALL_REG_PARAMS(0), trap, 0i32);
+        self.mov_imm(tmp, config.trap_trampoline.toInt64());
         self.asm.bl_r(tmp);
     }
 
     fn mov_imm(dest: Register, imm: Int64) {
-        unimplemented();
+        self.asm.movz(dest, (imm & 0xFF_FF).toInt32(), 0i32);
+        self.asm.movk(dest, ((imm >> 16i32) & 0xFF_FF).toInt32(), 16i32);
+        self.asm.movk(dest, ((imm >> 32i32) & 0xFF_FF).toInt32(), 32i32);
+        self.asm.movk(dest, ((imm >> 48i32) & 0xFF_FF).toInt32(), 48i32);
     }
 }
 
 let REG_PARAMS: Array[Register] = Array[Register]::new(R0, R1, R2, R3, R4, R5, R6, R7);
+let CCALL_REG_PARAMS: Array[Register] = REG_PARAMS;
 
 let REG_TMP1: Register = R10;
 let REG_TMP2: Register = R11;
@@ -122,7 +125,7 @@ impl CodeGen for CodeGenArm64 {
 
         let lbl_continue = self.asm.createLabel();
         self.asm.cbnz(op, lbl_continue);
-        self.asm.brk(0i32);
+        self.trap(REG_TMP1, TRAP_DIV0);
         self.asm.bindLabel(lbl_continue);
     }
 

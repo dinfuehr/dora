@@ -1,0 +1,10 @@
+//= boots
+//= error div0
+//= ignore
+
+fn main() {
+    let x = f(12, 0);
+    unreachable[()]();
+}
+
+@optimizeImmediately fn f(a: Int64, b: Int64): Int64 { a/b }

@@ -1,7 +1,6 @@
 use std::mem;
 use std::ptr;
 
-use crate::boots::data::InstructionSet;
 use crate::boots::deserializer::{decode_code_descriptor, ByteReader};
 use crate::boots::serializer::allocate_encoded_compilation_info;
 use crate::cannon::CompilationFlags;
@@ -11,7 +10,9 @@ use crate::handle::create_handle;
 use crate::masm::CodeDescriptor;
 use crate::object::{Ref, UInt8Array};
 use crate::threads::current_thread;
-use crate::vm::VM;
+use crate::vm::{get_vm, VM};
+
+use self::serializer::allocate_encoded_system_config;
 
 mod data;
 mod deserializer;
@@ -25,11 +26,8 @@ pub fn compile(
     let compile_fct_id = vm.known.boots_compile_fct_id();
     let compile_address = vm.ensure_compiled(compile_fct_id);
 
-    let encoded_compilation_info = create_handle(allocate_encoded_compilation_info(
-        vm,
-        &compilation_data,
-        get_architecture(),
-    ));
+    let encoded_compilation_info =
+        create_handle(allocate_encoded_compilation_info(vm, &compilation_data));
 
     let tld_address = current_thread().tld_address();
 
@@ -58,16 +56,7 @@ pub fn compile(
     code
 }
 
-pub fn config() -> Ref<UInt8Array> {
-    unimplemented!()
-}
-
-fn get_architecture() -> InstructionSet {
-    if cfg!(target_arch = "x86_64") {
-        InstructionSet::X64
-    } else if cfg!(target_arch = "aarch64") {
-        InstructionSet::Arm64
-    } else {
-        panic!("unsupported architecture")
-    }
+pub fn get_system_config() -> Ref<UInt8Array> {
+    let vm = get_vm();
+    allocate_encoded_system_config(vm)
 }

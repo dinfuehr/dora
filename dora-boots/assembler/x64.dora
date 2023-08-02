@@ -1405,7 +1405,7 @@ impl AssemblerX64 {
     }
 }
 
-enum Condition {
+pub enum Condition {
     Overflow,
     NoOverflow,
     Below,

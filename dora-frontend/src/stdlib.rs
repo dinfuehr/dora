@@ -1589,6 +1589,16 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         "fetchAdd",
         Intrinsic::AtomicInt64FetchAdd,
     );
+
+    if sa.has_boots_package() {
+        let boots_module_id = sa.boots_module_id();
+        native_fct(
+            sa,
+            boots_module_id,
+            "getSystemConfig",
+            NativeFunction::BootsGetSystemConfig,
+        );
+    }
 }
 
 fn find_instance_method(

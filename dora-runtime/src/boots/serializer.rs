@@ -4,30 +4,32 @@ use byteorder::{LittleEndian, WriteBytesExt};
 
 use crate::boots::data::InstructionSet;
 use crate::compiler::codegen::CompilationData;
-use crate::object::{byte_array_from_buffer, Obj, Ref};
+use crate::gc::Address;
+use crate::object::{byte_array_from_buffer, Obj, Ref, UInt8Array};
 use crate::vm::VM;
 use dora_bytecode::{BytecodeFunction, BytecodeTypeArray, ConstPoolEntry, ConstPoolOpcode};
 use dora_bytecode::{BytecodeType, BytecodeTypeKind};
 
-pub fn allocate_encoded_compilation_info(
-    vm: &VM,
-    compilation_data: &CompilationData,
-    architecture: InstructionSet,
-) -> Ref<Obj> {
+pub fn allocate_encoded_system_config(vm: &VM) -> Ref<UInt8Array> {
     let mut buffer = ByteBuffer::new();
-    encode_compilation_info(vm, compilation_data, architecture, &mut buffer);
+    encode_system_config(vm, &mut buffer);
     byte_array_from_buffer(vm, buffer.data()).cast()
 }
 
-fn encode_compilation_info(
-    vm: &VM,
-    compilation_data: &CompilationData,
-    architecture: InstructionSet,
-    buffer: &mut ByteBuffer,
-) {
+fn encode_system_config(vm: &VM, buffer: &mut ByteBuffer) {
+    encode_architecture(get_architecture(), buffer);
+    buffer.emit_address(vm.native_methods.trap_trampoline());
+}
+
+pub fn allocate_encoded_compilation_info(vm: &VM, compilation_data: &CompilationData) -> Ref<Obj> {
+    let mut buffer = ByteBuffer::new();
+    encode_compilation_info(vm, compilation_data, &mut buffer);
+    byte_array_from_buffer(vm, buffer.data()).cast()
+}
+
+fn encode_compilation_info(vm: &VM, compilation_data: &CompilationData, buffer: &mut ByteBuffer) {
     encode_bytecode_function(vm, &compilation_data.bytecode_fct, buffer);
     encode_type_params(vm, &compilation_data.type_params, buffer);
-    encode_architecture(architecture, buffer);
     buffer.emit_bool(compilation_data.emit_graph);
     buffer.emit_bool(compilation_data.emit_code_comments);
 }
@@ -255,6 +257,16 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
     }
 }
 
+fn get_architecture() -> InstructionSet {
+    if cfg!(target_arch = "x86_64") {
+        InstructionSet::X64
+    } else if cfg!(target_arch = "aarch64") {
+        InstructionSet::Arm64
+    } else {
+        panic!("unsupported architecture")
+    }
+}
+
 pub struct ByteBuffer {
     data: Vec<u8>,
 }
@@ -290,12 +302,16 @@ impl ByteBuffer {
         self.data.write_u32::<LittleEndian>(data).unwrap();
     }
 
+    pub fn emit_u64(&mut self, data: u64) {
+        self.data.write_u64::<LittleEndian>(data).unwrap();
+    }
+
+    pub fn emit_address(&mut self, data: Address) {
+        self.emit_u64(data.to_usize() as u64);
+    }
+
     pub fn emit_id(&mut self, data: usize) {
         assert!(data <= i32::MAX as usize);
         self.emit_u32(data as u32);
-    }
-
-    pub fn emit_u64(&mut self, data: u64) {
-        self.data.write_u64::<LittleEndian>(data).unwrap();
     }
 }

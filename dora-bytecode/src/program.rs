@@ -276,6 +276,7 @@ pub enum NativeFunction {
     SocketBind,
     SocketAccept,
     StringClone,
+    BootsGetSystemConfig,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Decode, Encode)]

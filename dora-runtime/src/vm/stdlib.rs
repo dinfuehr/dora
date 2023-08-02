@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::boots;
 use crate::gc::Address;
 use crate::stack;
 use crate::stdlib;
@@ -168,6 +169,10 @@ pub fn resolve_native_functions(vm: &mut VM) {
             stdlib::io::socket_accept as *const u8,
         ),
         (NativeFunction::StringClone, stdlib::str_clone as *const u8),
+        (
+            NativeFunction::BootsGetSystemConfig,
+            boots::get_system_config as *const u8,
+        ),
     ]);
 
     for (fct_id, fct) in vm.program.functions.iter().enumerate() {
@@ -179,6 +184,12 @@ pub fn resolve_native_functions(vm: &mut VM) {
                 assert!(old.is_none());
             }
         }
+    }
+
+    if vm.program.boots_package_id.is_none() {
+        assert!(mappings
+            .remove(&NativeFunction::BootsGetSystemConfig)
+            .is_some());
     }
 
     assert!(mappings.is_empty());
