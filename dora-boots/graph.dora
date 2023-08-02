@@ -436,6 +436,7 @@ pub enum Op {
     Return,
 
     Neg,
+    CheckedNeg,
     Not,
 
     Add,
@@ -498,6 +499,10 @@ impl Op {
             _ => false
         }
     }
+
+    pub fn name(): String {
+        opName(self)
+    }
 }
 
 pub fn opName(op: Op): String {
@@ -515,6 +520,7 @@ pub fn opName(op: Op): String {
         Op::If => "If",
         Op::Return => "Return",
         Op::Neg => "Neg",
+        Op::CheckedNeg => "CheckedNeg",
         Op::Not => "Not",
         Op::Add => "Add",
         Op::CheckedAdd => "CheckedAdd",
@@ -829,6 +835,7 @@ impl Inst {
             Op::If => true,
             Op::Return => true,
             Op::Neg => false,
+            Op::CheckedNeg => true,
             Op::Not => false,
             Op::Add => false,
             Op::CheckedAdd => true,

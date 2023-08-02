@@ -1,6 +1,6 @@
 use package::assembler::x64::{AssemblerX64, Address, Immediate, ScaleFactor};
 use package::assembler::x64::{RAX, RDI, RDX, RCX, RSI, RBP, RSP};
-use package::assembler::x64::{R8, R9};
+use package::assembler::x64::{R8, R9, R10, R11};
 use package::assembler::{Register, RegSet};
 use package::codegen::{CodeGen, CodeDescriptor, CommentTable, LocationTable};
 use package::interface::CompilationInfo;
@@ -26,6 +26,10 @@ impl CodeGenX64 {
 
 pub let REG_PARAMS: Array[Register] = Array[Register]::new(RDI, RSI, RDX, RCX, R8, R9);
 
+// Temporary registers that can be used within an instruction.
+pub let REG_TMP1: Register = R10;
+pub let REG_TMP2: Register = R11;
+
 impl CodeGen for CodeGenX64 {
     fn allocatableRegisters(): RegSet {
         RegSet::new(RDI, RSI, RDX, RCX, R8, R9)
@@ -40,19 +44,13 @@ impl CodeGen for CodeGenX64 {
         self.asm.movq_rr(RBP, RSP);
     }
 
-    fn setSubLocationData(inst: Inst, loc: LocationData) {
-        loc.requireInputRegister(0);
-        loc.requireInputRegister(1);
-        loc.requireOutputSameAsFirstInput();
-    }
-
     fn emitInt64Const(inst: Inst) {
         let loc = inst.getLocationData();
         let register = loc.getOutput().getRegister();
         self.asm.movq_ri(register, Immediate(inst.auxAsInt64()));
     }
 
-    fn emitAdd(inst: Inst) {
+    fn emitCheckedAdd(inst: Inst) {
         let loc = inst.getLocationData();
         let lhs = loc.getInput(0).getRegister();
         let rhs = loc.getInput(1).getRegister();
@@ -62,27 +60,38 @@ impl CodeGen for CodeGenX64 {
         self.asm.lea(output, Address::array(lhs, rhs, ScaleFactor::One, 0i32));
     }
 
-    fn emitSub(inst: Inst) {
+    fn emitCheckedSub(inst: Inst) {
         let loc = inst.getLocationData();
         let lhs = loc.getInput(0).getRegister();
         let rhs = loc.getInput(1).getRegister();
 
         let output = loc.getOutput().getRegister();
-        assert(output == lhs);
 
+        self.asm.movq_rr(output, lhs);
         self.asm.subq_rr(output, rhs);
     }
 
-    fn emitMul(inst: Inst) {
+    fn emitCheckedMul(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+
+        let output = loc.getOutput().getRegister();
+
+        self.asm.movq_rr(output, lhs);
+        self.asm.imulq_rr(output, rhs);
+    }
+
+    fn emitCheckedDiv(inst: Inst) {
         unreachable[()]();
     }
 
-    fn emitDiv(inst: Inst) {
+    fn emitCheckedMod(inst: Inst) {
         unreachable[()]();
     }
 
-    fn emitMod(inst: Inst) {
-        unreachable[()]();
+    fn emitDivZeroCheck(inst: Inst) {
+        let lbl_continue = self.asm.createLabel();
     }
 
     fn emitReturn(inst: Inst) {

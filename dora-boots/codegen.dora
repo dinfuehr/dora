@@ -12,14 +12,13 @@ pub trait CodeGen {
     fn prolog();
     fn finalize(): CodeDescriptor;
 
-    fn setSubLocationData(inst: Inst, loc: LocationData);
-
     fn emitInt64Const(inst: Inst);
-    fn emitAdd(inst: Inst);
-    fn emitSub(inst: Inst);
-    fn emitMul(inst: Inst);
-    fn emitDiv(inst: Inst);
-    fn emitMod(inst: Inst);
+    fn emitCheckedAdd(inst: Inst);
+    fn emitCheckedSub(inst: Inst);
+    fn emitCheckedMul(inst: Inst);
+    fn emitCheckedDiv(inst: Inst);
+    fn emitCheckedMod(inst: Inst);
+    fn emitDivZeroCheck(inst: Inst);
     fn emitReturn(inst: Inst);
 
 }
@@ -38,27 +37,18 @@ pub fn setLocationConstraints(codegen: CodeGen, inst: Inst) {
             loc.requireOutputRegister();
         },
 
-        Op::Add => {
+        Op::DivZeroCheck => {
+            loc.requireInputRegister(0);
+        },
+
+        Op::CheckedAdd
+        | Op::CheckedSub
+        | Op::CheckedMul
+        | Op::CheckedDiv
+        | Op::CheckedMod => {
             loc.requireInputRegister(0);
             loc.requireInputRegister(1);
             loc.requireOutputRegister();
-        },
-
-        Op::Sub => {
-            codegen.setSubLocationData(inst, loc);
-        },
-
-        Op::Mul => {
-            unreachable[()]();
-        },
-
-        Op::Div => {
-            unreachable[()]();
-
-        },
-
-        Op::Mod => {
-            unreachable[()]();
         },
 
         Op::Return => {
@@ -68,6 +58,7 @@ pub fn setLocationConstraints(codegen: CodeGen, inst: Inst) {
         },
 
         _ => {
+            println("unsupported op ${inst.op().name()}");
             unreachable[()]();
         }
     }
@@ -83,24 +74,28 @@ pub fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitInt64Const(inst);
         },
 
-        Op::Add => {
-            codegen.emitAdd(inst);
+        Op::CheckedAdd => {
+            codegen.emitCheckedAdd(inst);
         },
 
-        Op::Sub => {
-            codegen.emitSub(inst);
+        Op::CheckedSub => {
+            codegen.emitCheckedSub(inst);
         },
 
-        Op::Mul => {
-            codegen.emitMul(inst);
+        Op::CheckedMul => {
+            codegen.emitCheckedMul(inst);
         },
 
-        Op::Div => {
-            codegen.emitDiv(inst);
+        Op::CheckedDiv => {
+            codegen.emitCheckedDiv(inst);
         },
 
-        Op::Mod => {
-            codegen.emitMod(inst);
+        Op::CheckedMod => {
+            codegen.emitCheckedMod(inst);
+        },
+
+        Op::DivZeroCheck => {
+            codegen.emitDivZeroCheck(inst);
         },
 
         Op::Return => {

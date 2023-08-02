@@ -179,6 +179,7 @@ fn dumpInstName(inst: Inst): String {
             }
         },
         Op::Neg => "Neg.${inst.getType()}",
+        Op::CheckedNeg => "CheckedNeg.${inst.getType()}",
         Op::Not => "Not.${inst.getType()}",
         Op::Add => "Add.${inst.getType()}",
         Op::CheckedAdd => "CheckedAdd.${inst.getType()}",

@@ -88,7 +88,7 @@ fn test_add_int32_arguments() {
 @0:
   %0: Arg.Int32(0) [%2]
   %1: Arg.Int32(1) [%2]
-  %2: Add.Int32 %0, %1 [%3]
+  %2: CheckedAdd.Int32 %0, %1 [%3]
   %3: Ret.Int32 %2
 ");
 }
@@ -108,7 +108,7 @@ fn test_add_float32_arguments() {
 @0:
   %0: Arg.Float32(0) [%2]
   %1: Arg.Float32(1) [%2]
-  %2: Add.Float32 %0, %1 [%3]
+  %2: CheckedAdd.Float32 %0, %1 [%3]
   %3: Ret.Float32 %2
 ");
 }
@@ -129,7 +129,7 @@ fn test_add_int32_const_lhs() {
 @0:
   %0: Arg.Int32(0) [%2]
   %1: Const.Int32(#10) [%2]
-  %2: Add.Int32 %0, %1 [%3]
+  %2: CheckedAdd.Int32 %0, %1 [%3]
   %3: Ret.Int32 %2
 ");
 }
@@ -159,11 +159,11 @@ fn test_multiple_assignments() {
 @0:
   %0: Arg.Int32(0) [%5]
   %1: Const.Int32(#42) [%2, %2]
-  %2: Add.Int32 %1, %1 [%4]
+  %2: CheckedAdd.Int32 %1, %1 [%4]
   %3: Const.Int32(#23) [%4]
-  %4: Add.Int32 %2, %3 [%5, %6]
-  %5: Add.Int32 %4, %0 [%6]
-  %6: Add.Int32 %4, %5 [%7]
+  %4: CheckedAdd.Int32 %2, %3 [%5, %6]
+  %5: CheckedAdd.Int32 %4, %0 [%6]
+  %6: CheckedAdd.Int32 %4, %5 [%7]
   %7: Ret.Int32 %6
 ");
 }
@@ -183,7 +183,7 @@ fn testSsaGenSubIntArguments() {
 @0:
   %0: Arg.Int32(0) [%2]
   %1: Arg.Int32(1) [%2]
-  %2: Sub.Int32 %0, %1 [%3]
+  %2: CheckedSub.Int32 %0, %1 [%3]
   %3: Ret.Int32 %2
 ")
 }
@@ -202,7 +202,7 @@ fn testSsaGenNegIntArgument() {
     assertGraph(graph, "
 @0:
   %0: Arg.Int32(0) [%1]
-  %1: Neg.Int32 %0 [%2]
+  %1: CheckedNeg.Int32 %0 [%2]
   %2: Ret.Int32 %1
 ");
 }
@@ -222,7 +222,7 @@ fn testSsaGenMulIntArguments() {
 @0:
   %0: Arg.Int32(0) [%2]
   %1: Arg.Int32(1) [%2]
-  %2: Mul.Int32 %0, %1 [%3]
+  %2: CheckedMul.Int32 %0, %1 [%3]
   %3: Ret.Int32 %2
 ");
 }
@@ -333,7 +333,7 @@ fn testSsaGenIfWithConditionalAssignment() {
   %5: Goto(@2)
 @2: pred = [@0, @1]
   %6: Phi %1, %4 [%8]
-  %8: Add.Int32 %6, %2 [%9]
+  %8: CheckedAdd.Int32 %6, %2 [%9]
   %9: Ret.Int32 %8
 ");
 }
@@ -360,7 +360,7 @@ fn testSsaGenWhileCountDown() {
   %5: If(@2, @3) %4
 @2: pred = [@1] succ = [@1]
   %6: Const.Int32(#1) [%7]
-  %7: Sub.Int32 %3, %6 [%3]
+  %7: CheckedSub.Int32 %3, %6 [%3]
   %8: Goto(@1)
 @3: pred = [@1]
   %9: Ret.Int32 %3
@@ -445,8 +445,8 @@ fn testSsaGenWhileCountDownWithSum() {
   %6: If(@2, @3) %5
 @2: pred = [@1] succ = [@1]
   %7: Const.Int32(#1) [%8]
-  %8: Sub.Int32 %4, %7 [%10, %4]
-  %10: Add.Int32 %9, %8 [%9]
+  %8: CheckedSub.Int32 %4, %7 [%10, %4]
+  %10: CheckedAdd.Int32 %9, %8 [%9]
   %11: Goto(@1)
 @3: pred = [@1]
   %12: Ret.Int32 %9
@@ -514,7 +514,7 @@ fn testSsaGenDivInt32() {
   %0: Arg.Int32(0) [%3]
   %1: Arg.Int32(1) [%2, %3]
   %2: DivZeroCheck %1
-  %3: Div.Int32 %0, %1 [%4]
+  %3: CheckedDiv.Int32 %0, %1 [%4]
   %4: Ret.Int32 %3
 ");
 }
@@ -535,7 +535,7 @@ fn testSsaGenDivInt64() {
   %0: Arg.Int64(0) [%3]
   %1: Arg.Int64(1) [%2, %3]
   %2: DivZeroCheck %1
-  %3: Div.Int64 %0, %1 [%4]
+  %3: CheckedDiv.Int64 %0, %1 [%4]
   %4: Ret.Int64 %3
 ");
 }

@@ -185,6 +185,18 @@ impl AssemblerArm64 {
         )
     }
 
+    pub fn createLabel(): Label {
+        self.buffer.createLabel()
+    }
+
+    pub fn bindLabel(lbl: Label) {
+        self.buffer.bindLabel(lbl);
+    }
+
+    pub fn createAndBindLabel(): Label {
+        self.buffer.createAndBindLabel()
+    }
+
     pub fn add(rd: Register, rn: Register, rm: Register) {
         if rd == REG_SP || rn == REG_SP {
             self.add_ext(rd, rn, rm, Extend::UXTX, 0i32);

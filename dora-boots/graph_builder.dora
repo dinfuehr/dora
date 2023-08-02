@@ -247,22 +247,22 @@ impl SsaGen {
     fn processInstruction(inst: BytecodeInstruction) {
        match inst {
             BytecodeInstruction::Add(dest, lhs, rhs) => {
-                self.emitBin(dest, lhs, rhs, Op::Add);
+                self.emitBin(dest, lhs, rhs, Op::CheckedAdd);
             },
             BytecodeInstruction::Sub(dest, lhs, rhs) => {
-                self.emitBin(dest, lhs, rhs, Op::Sub);
+                self.emitBin(dest, lhs, rhs, Op::CheckedSub);
             },
             BytecodeInstruction::Neg(dest, src) => {
-                self.emitUn(dest, src, Op::Neg);
+                self.emitUn(dest, src, Op::CheckedNeg);
             },
             BytecodeInstruction::Mul(dest, lhs, rhs) => {
-                self.emitBin(dest, lhs, rhs, Op::Mul);
+                self.emitBin(dest, lhs, rhs, Op::CheckedMul);
             },
             BytecodeInstruction::Div(dest, lhs, rhs) => {
-                self.emitDivMod(dest, lhs, rhs, Op::Div);
+                self.emitDivMod(dest, lhs, rhs, Op::CheckedDiv);
             },
             BytecodeInstruction::Mod(dest, lhs, rhs) => {
-                self.emitDivMod(dest, lhs, rhs, Op::Div);
+                self.emitDivMod(dest, lhs, rhs, Op::CheckedDiv);
             },
             BytecodeInstruction::And(dest, lhs, rhs) => {
                 self.emitBin(dest, lhs, rhs, Op::And);

@@ -1,8 +1,7 @@
-use package::interface::CompilationInfo;
-use package::interface::Architecture;
+use package::interface::{Architecture, CompilationInfo, trap_trampoline};
 use package::codegen::{CodeGen, CodeDescriptor, CommentTable, LocationTable};
 use package::assembler::arm64::AssemblerArm64;
-use package::assembler::arm64::{R0, R1, R2, R3, R4, R5, R6, R7};
+use package::assembler::arm64::{R0, R1, R2, R3, R4, R5, R6, R7, R10, R11};
 use package::assembler::arm64::{REG_FP, REG_SP, REG_LR};
 use package::assembler::{Label, RegSet, Register};
 use package::graph::{Inst, Op, LocationData};
@@ -28,9 +27,22 @@ impl CodeGenArm64 {
         self.asm.ldp_post(REG_FP, REG_LR, REG_SP, 16i32);
         self.asm.ret();
     }
+
+    fn trap(tmp: Register, trap: Int32) {
+        self.asm.movz(REG_PARAMS(0), trap, 0i32);
+        self.mov_imm(tmp, trap_trampoline.toInt64());
+        self.asm.bl_r(tmp);
+    }
+
+    fn mov_imm(dest: Register, imm: Int64) {
+        unimplemented();
+    }
 }
 
 let REG_PARAMS: Array[Register] = Array[Register]::new(R0, R1, R2, R3, R4, R5, R6, R7);
+
+let REG_TMP1: Register = R10;
+let REG_TMP2: Register = R11;
 
 impl CodeGen for CodeGenArm64 {
     fn allocatableRegisters(): RegSet {
@@ -46,19 +58,13 @@ impl CodeGen for CodeGenArm64 {
         self.asm.mov(REG_FP, REG_SP);
     }
 
-    fn setSubLocationData(inst: Inst, loc: LocationData) {
-        loc.requireInputRegister(0);
-        loc.requireInputRegister(1);
-        loc.requireOutputRegister();
-    }
-
     fn emitInt64Const(inst: Inst) {
         let loc = inst.getLocationData();
         let register = loc.getOutput().getRegister();
         self.asm.movz(register, inst.auxAsInt64().toInt32(), 0i32);
     }
 
-    fn emitAdd(inst: Inst) {
+    fn emitCheckedAdd(inst: Inst) {
         let loc = inst.getLocationData();
         let lhs = loc.getInput(0).getRegister();
         let rhs = loc.getInput(1).getRegister();
@@ -68,7 +74,7 @@ impl CodeGen for CodeGenArm64 {
         self.asm.add(output, lhs, rhs);
     }
 
-    fn emitSub(inst: Inst) {
+    fn emitCheckedSub(inst: Inst) {
         let loc = inst.getLocationData();
         let lhs = loc.getInput(0).getRegister();
         let rhs = loc.getInput(1).getRegister();
@@ -78,16 +84,46 @@ impl CodeGen for CodeGenArm64 {
         self.asm.sub(output, lhs, rhs);
     }
 
-    fn emitMul(inst: Inst) {
-        unreachable[()]();
+    fn emitCheckedMul(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+
+        let output = loc.getOutput().getRegister();
+
+        self.asm.mul(output, lhs, rhs);
     }
 
-    fn emitDiv(inst: Inst) {
-        unreachable[()]();
+    fn emitCheckedDiv(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+
+        let output = loc.getOutput().getRegister();
+
+        self.asm.sdiv(output, lhs, rhs);
     }
 
-    fn emitMod(inst: Inst) {
-        unreachable[()]();
+    fn emitCheckedMod(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+
+        let output = loc.getOutput().getRegister();
+
+        self.asm.sdiv(output, lhs, rhs);
+                    self.asm
+                        .msub(output, REG_TMP1, rhs, lhs);
+    }
+
+    fn emitDivZeroCheck(inst: Inst) {
+        let loc = inst.getLocationData();
+        let op = loc.getInput(0).getRegister();
+
+        let lbl_continue = self.asm.createLabel();
+        self.asm.cbnz(op, lbl_continue);
+        self.asm.brk(0i32);
+        self.asm.bindLabel(lbl_continue);
     }
 
     fn emitReturn(inst: Inst) {

@@ -8,6 +8,16 @@ use package::codegen::arm64::CodeGenArm64;
 use package::compileFunction;
 use package::serializer::{ByteWriter, encodeCodeDescriptor};
 
+pub const TRAP_DIV0: Int32 = 0i32;
+pub const TRAP_ASSERT: Int32 = 1i32;
+pub const TRAP_INDEX_OUT_OF_BOUNDS: Int32 = 2i32;
+pub const TRAP_NIL: Int32 = 3i32;
+pub const TRAP_CAST: Int32 = 4i32;
+pub const TRAP_OOM: Int32 = 5i32;
+pub const TRAP_STACK_OVERFLOW: Int32 = 6i32;
+pub const TRAP_ILLEGAL: Int32 = 7i32;
+pub const TRAP_OVERFLOW: Int32 = 8i32;
+
 pub fn compile(encoded: Array[UInt8]): Array[UInt8] {
     let reader = ByteReader::new(encoded);
     let ci = decodeCompilationInfo(reader);
@@ -17,6 +27,16 @@ pub fn compile(encoded: Array[UInt8]): Array[UInt8] {
     encodeCodeDescriptor(writer, code);
     writer.toArray()
 }
+
+pub struct Address(value: Int64)
+
+impl Address {
+    pub fn toInt64(): Int64 {
+        self.value
+    }
+}
+
+pub let trap_trampoline: Address = Address(0);
 
 pub class CompilationInfo(
     pub bc: BytecodeFunction,

@@ -58,6 +58,10 @@ pub fn compile(
     code
 }
 
+pub fn config() -> Ref<UInt8Array> {
+    unimplemented!()
+}
+
 fn get_architecture() -> InstructionSet {
     if cfg!(target_arch = "x86_64") {
         InstructionSet::X64
