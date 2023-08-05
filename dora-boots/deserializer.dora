@@ -1,7 +1,5 @@
 use package::interface::{Address, CompilationInfo, Config};
-use package::bytecode::data::ConstPoolEntry;
-use package::bytecode::data::BytecodeType;
-use package::bytecode::data::BytecodeFunction;
+use package::bytecode::data::{BytecodeFunction, BytecodeType, ConstPoolEntry, Location};
 use package::bytecode::opcode as opc;
 use package::interface::Architecture;
 
@@ -29,8 +27,9 @@ pub fn decodeBytecodeFunction(reader: ByteReader): BytecodeFunction {
     let code = decodeBytecodeArray(reader);
     let constpool = decodeConstPool(reader);
     let registers = decodeRegisters(reader);
+    let locations = decodeLocations(reader);
     let arguments = reader.readInt32();
-    BytecodeFunction(code, constpool, registers, arguments)
+    BytecodeFunction(code, constpool, registers, locations, arguments)
 }
 
 fn decodeBytecodeArray(reader: ByteReader): Array[UInt8] {
@@ -133,6 +132,24 @@ fn decodeConstPoolEntry(reader: ByteReader): ConstPoolEntry {
         println("unknown ConstPoolEntry opcode = ${opcode}");
         unreachable[ConstPoolEntry]()
     }
+}
+
+fn decodeLocations(reader: ByteReader): Array[(Int32, Location)] {
+    let size = reader.readInt32().toInt64();
+
+    let data = Array[(Int32, Location)]::fill(size, (0i32, Location(0i32, 0i32)));
+    let mut i = 0i64;
+
+    while i < size {
+        let offset = reader.readInt32();
+        let line = reader.readInt32();
+        let column = reader.readInt32();
+
+        data(i) = (offset, Location(line, column));
+        i = i + 1i64;
+    }
+
+    data
 }
 
 fn decodeArchitecture(reader: ByteReader): Architecture {

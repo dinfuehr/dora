@@ -38,6 +38,7 @@ fn encode_bytecode_function(vm: &VM, bytecode_fct: &BytecodeFunction, buffer: &m
     encode_bytecode_array(bytecode_fct, buffer);
     encode_constpool_array(vm, bytecode_fct, buffer);
     encode_registers_array(vm, bytecode_fct, buffer);
+    encode_bytecode_locations(bytecode_fct, buffer);
     buffer.emit_u32(bytecode_fct.arguments());
 }
 
@@ -58,6 +59,16 @@ fn encode_registers_array(vm: &VM, fct: &BytecodeFunction, buffer: &mut ByteBuff
 
     for ty in fct.registers().iter() {
         encode_bytecode_type(vm, ty, buffer);
+    }
+}
+
+fn encode_bytecode_locations(fct: &BytecodeFunction, buffer: &mut ByteBuffer) {
+    buffer.emit_u32(fct.locations().len() as u32);
+
+    for (offset, loc) in fct.locations() {
+        buffer.emit_u32(offset.to_u32());
+        buffer.emit_u32(loc.line());
+        buffer.emit_u32(loc.column());
     }
 }
 

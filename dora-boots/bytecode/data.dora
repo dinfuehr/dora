@@ -8,6 +8,7 @@ pub class BytecodeFunction {
     pub code: Array[UInt8],
     pub const_pool: Array[ConstPoolEntry],
     pub registers: Array[BytecodeType],
+    pub locations: Array[(Int32, Location)],
     pub arguments: Int32,
 }
 
@@ -16,8 +17,9 @@ impl BytecodeFunction {
             code: Array[UInt8],
             const_pool: Array[ConstPoolEntry],
             registers: Array[BytecodeType],
+            locations: Array[(Int32, Location)],
             arguments: Int32): BytecodeFunction {
-        BytecodeFunction(code, const_pool, registers, arguments)
+        BytecodeFunction(code, const_pool, registers, locations, arguments)
     }
 
     pub fn constPool(idx: ConstPoolId): ConstPoolEntry {
@@ -35,6 +37,16 @@ impl BytecodeFunction {
         let byte4 = self.codeAt(idx+3i32);
 
         (byte4 << 24i32) | (byte3 << 16i32) | (byte2 << 8i32) | byte1
+    }
+
+    pub fn getLocationAt(at: Int32): Location {
+        for (offset, loc) in self.locations {
+            if offset == at {
+                return loc;
+            }
+        }
+
+        unreachable[Location]()
     }
 }
 
@@ -169,4 +181,9 @@ impl Stringable for BytecodeType {
             BytecodeType::TypeParam(idx) => "TypeParam(${idx})",
         }
     }
+}
+
+pub struct Location {
+    pub line: Int32,
+    pub column: Int32,
 }

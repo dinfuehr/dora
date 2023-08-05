@@ -1,6 +1,6 @@
 //= boots
 //= error div0
-//= ignore
+//= stderr "division by 0\n    f (tests/boots/div0-int64.dora:10)\n    main (tests/boots/div0-int64.dora:6)\n"
 
 fn main() {
     let x = f(12, 0);

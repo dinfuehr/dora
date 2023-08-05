@@ -6,7 +6,7 @@ use package::bytecode::data::ConstPoolId;
 use package::bytecode::data::FieldId;
 use package::bytecode::data::FctId;
 use package::bytecode::data::GlobalId;
-use package::bytecode::data::ClassDefId;
+use package::bytecode::data::{ClassDefId, Location};
 use package::bytecode::opcode as opc;
 
 pub class BytecodeBuilder {
@@ -269,9 +269,10 @@ impl BytecodeBuilder {
         let code = self.code.toArray();
         let constPool = self.constPool.toArray();
         let registers = self.registers.toArray();
+        let locations = Array[(Int32, Location)]::new();
         let arguments = self.arguments;
         assert(arguments.toInt64() <= registers.size());
-        BytecodeFunction(code, constPool, registers, arguments)
+        BytecodeFunction(code, constPool, registers, locations, arguments)
     }
 
     fn resolveJumps() {

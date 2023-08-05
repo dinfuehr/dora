@@ -1,6 +1,8 @@
 use std::collections::VecIter;
 
+use package::bytecode::data::Location;
 use package::assembler::{Register, RegSet};
+use package::interface::CompilationInfo;
 use package::graph::{Inst, LocationData, Op};
 
 pub mod arm64;
@@ -160,9 +162,4 @@ impl LocationTable {
     pub fn makeIterator(): VecIter[(Int32, Location)] {
         self.entries.makeIterator()
     }
-}
-
-pub struct Location {
-    pub line: Int32,
-    pub column: Int32,
 }

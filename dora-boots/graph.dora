@@ -610,8 +610,8 @@ impl Inst {
         self._op.getOrPanic()
     }
 
-    pub fn bytecode_position(): Option[Int32] {
-        self.bytecode_position
+    pub fn bytecode_position(): Int32 {
+        self.bytecode_position.getOrPanic()
     }
 
     pub fn set_bytecode_position(pos: Int32) {

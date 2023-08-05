@@ -572,8 +572,10 @@ impl SsaGen {
         let lhsInst = self.readVariable(lhs, self.current());
         let rhsInst = self.readVariable(rhs, self.current());
         let divZeroCheck = createDivZeroCheck(rhsInst);
+        divZeroCheck.set_bytecode_position(self.offset);
         self.current().appendInst(divZeroCheck);
         let destInst = createBinaryInst(op, ty, lhsInst, rhsInst);
+        destInst.set_bytecode_position(self.offset);
         self.current().appendInst(destInst);
         self.writeVariable(dest, self.current(), destInst);
     }

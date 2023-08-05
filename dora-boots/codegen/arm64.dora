@@ -34,11 +34,11 @@ impl CodeGenArm64 {
         self.asm.ret();
     }
 
-    fn trap(tmp: Register, trap: Int32) {
+    fn trap(tmp: Register, trap: Int32, loc: Location) {
         self.asm.movz(CCALL_REG_PARAMS(0), trap, 0i32);
         self.mov_imm(tmp, config.trap_trampoline.toInt64());
         self.asm.bl_r(tmp);
-        self.locations.insert(self.asm.position(), Location(5i32, 10i32));
+        self.locations.insert(self.asm.position(), loc);
     }
 
     fn mov_imm(dest: Register, imm: Int64) {
@@ -133,7 +133,7 @@ impl CodeGen for CodeGenArm64 {
 
         let lbl_continue = self.asm.createLabel();
         self.asm.cbnz(op, lbl_continue);
-        self.trap(REG_TMP1, TRAP_DIV0);
+        self.trap(REG_TMP1, TRAP_DIV0, self.info.bc.getLocationAt(inst.bytecode_position()));
         self.asm.bindLabel(lbl_continue);
     }
 

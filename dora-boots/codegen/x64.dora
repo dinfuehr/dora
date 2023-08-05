@@ -2,7 +2,8 @@ use package::assembler::x64::{AssemblerX64, Address, Condition, Immediate, Scale
 use package::assembler::x64::{RAX, RDI, RDX, RCX, RSI, RBP, RSP};
 use package::assembler::x64::{R8, R9, R10, R11};
 use package::assembler::{Register, RegSet};
-use package::codegen::{CodeGen, CodeDescriptor, CommentTable, Location, LocationTable};
+use package::bytecode::data::Location;
+use package::codegen::{CodeGen, CodeDescriptor, CommentTable, LocationTable};
 use package::interface::{Architecture, CompilationInfo, config, TRAP_DIV0};
 use package::graph::{Inst, Op, LocationData};
 
@@ -29,11 +30,11 @@ impl CodeGenX64 {
         self.asm.retq();
     }
 
-    fn trap(tmp: Register, trap: Int32) {
+    fn trap(tmp: Register, trap: Int32, loc: Location) {
         self.asm.movl_ri(CCALL_REG_PARAMS(0), Immediate(trap.toInt64()));
         self.asm.movq_ri(tmp, Immediate(config.trap_trampoline.toInt64()));
         self.asm.call_r(tmp);
-        self.locations.insert(self.asm.position(), Location(5i32, 1i32));
+        self.locations.insert(self.asm.position(), loc);
     }
 }
 
@@ -136,7 +137,7 @@ impl CodeGen for CodeGenX64 {
         let lbl_continue = self.asm.createLabel();
         self.asm.testq_rr(op, op);
         self.asm.jcc_near(Condition::NotZero, lbl_continue);
-        self.trap(REG_TMP1, TRAP_DIV0);
+        self.trap(REG_TMP1, TRAP_DIV0, self.info.bc.getLocationAt(inst.bytecode_position()));
         self.asm.bindLabel(lbl_continue);
     }
 
