@@ -66,6 +66,9 @@ jobs:
         with:
           rust-version: "stable"
 
+      - name: Install packages
+        run: apt install gcc-aarch64-linux-gnu
+
       - name: Install ARM64 target
         run: rustup target add aarch64-unknown-linux-gnu
 
