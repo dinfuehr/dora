@@ -2075,11 +2075,17 @@ impl AssemblerArm64 {
     }
 
     pub fn finalize(): Array[UInt8] {
-        self.resolveJumps();
-        while self.buffer.size() % 16 != 0 {
-            self.ret();
-        }
         self.buffer.toArray()
+    }
+
+    pub fn size(): Int64 {
+        self.buffer.size()
+    }
+
+    pub fn alignCodeSize(align: Int64) {
+        while self.buffer.size() % 16 != 0 {
+            self.brk(0i32);
+        }
     }
 
     fn finalizeTesting(): MachineCode {
@@ -2087,7 +2093,7 @@ impl AssemblerArm64 {
         MachineCode::new(self.buffer.toArray())
     }
 
-    fn resolveJumps() {
+    pub fn resolveJumps() {
         let old_position = self.buffer.position();
 
         for jmp in self.jumps {

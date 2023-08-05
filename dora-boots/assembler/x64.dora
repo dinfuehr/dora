@@ -1372,16 +1372,18 @@ impl AssemblerX64 {
         self.jumps.push((pc, lbl, kind));
     }
 
-    fn size(): Int64 {
+    pub fn size(): Int64 {
         self.buffer.size()
     }
 
     pub fn finalize(): Array[UInt8] {
-        self.resolveJumps();
+        self.buffer.toArray()
+    }
+
+    pub fn alignCodeSize(align: Int64) {
         while self.buffer.size() % 16 != 0 {
             self.int3();
         }
-        self.buffer.toArray()
     }
 
     pub fn finalizeTesting(): MachineCode {
@@ -1389,7 +1391,7 @@ impl AssemblerX64 {
         MachineCode::new(self.buffer.toArray())
     }
 
-    fn resolveJumps() {
+    pub fn resolveJumps() {
         for (pc, lbl, distance) in self.jumps {
             assert(lbl.isBound());
 

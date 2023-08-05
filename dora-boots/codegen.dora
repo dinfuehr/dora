@@ -8,6 +8,8 @@ use package::graph::{Inst, LocationData, Op};
 pub mod arm64;
 pub mod x64;
 
+const CODE_SIZE_ALIGNMENT: Int64 = 16;
+
 pub trait CodeGen {
     fn allocatableRegisters(): RegSet;
     fn argumentRegister(idx: Int64): Register;

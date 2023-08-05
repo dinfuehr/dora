@@ -1,5 +1,5 @@
 use package::interface::{Architecture, CompilationInfo, config, TRAP_DIV0};
-use package::codegen::{CodeGen, CodeDescriptor, CommentTable, Location, LocationTable};
+use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen, CodeDescriptor, CommentTable, Location, LocationTable};
 use package::assembler::arm64::AssemblerArm64;
 use package::assembler::arm64::{R0, R1, R2, R3, R4, R5, R6, R7, R10, R11};
 use package::assembler::arm64::{REG_FP, REG_SP, REG_LR};
@@ -11,6 +11,7 @@ pub class CodeGenArm64 {
     asm: AssemblerArm64,
     locations: LocationTable,
     comments: CommentTable,
+    deferred: Vec[(): ()],
 }
 
 impl CodeGenArm64 {
@@ -20,6 +21,7 @@ impl CodeGenArm64 {
             AssemblerArm64::new(),
             LocationTable::new(),
             CommentTable::new(),
+            Vec[(): ()]::new(),
         )
     }
 
@@ -29,6 +31,7 @@ impl CodeGenArm64 {
     }
 
     fn epilog() {
+        self.emitComment("epilog");
         self.asm.mov(REG_SP, REG_FP);
         self.asm.ldp_post(REG_FP, REG_LR, REG_SP, 16i32);
         self.asm.ret();
@@ -46,6 +49,16 @@ impl CodeGenArm64 {
         self.asm.movk(dest, ((imm >> 16i32) & 0xFF_FF).toInt32(), 16i32);
         self.asm.movk(dest, ((imm >> 32i32) & 0xFF_FF).toInt32(), 32i32);
         self.asm.movk(dest, ((imm >> 48i32) & 0xFF_FF).toInt32(), 48i32);
+    }
+
+    fn emitComment(comment: String) {
+        self.comments.insert(self.asm.position(), comment);
+    }
+
+    fn emitDeferredCode() {
+        for code in self.deferred {
+            code();
+        }
     }
 }
 
@@ -122,19 +135,24 @@ impl CodeGen for CodeGenArm64 {
 
         let output = loc.getOutput().getRegister();
 
+        self.emitComment("CheckedMod");
         self.asm.sdiv(output, lhs, rhs);
-                    self.asm
-                        .msub(output, REG_TMP1, rhs, lhs);
+        self.asm.msub(output, REG_TMP1, rhs, lhs);
     }
 
     fn emitDivZeroCheck(inst: Inst) {
         let loc = inst.getLocationData();
         let op = loc.getInput(0).getRegister();
 
-        let lbl_continue = self.asm.createLabel();
-        self.asm.cbnz(op, lbl_continue);
-        self.trap(REG_TMP1, TRAP_DIV0, self.info.bc.getLocationAt(inst.bytecode_position()));
-        self.asm.bindLabel(lbl_continue);
+        let lbl_failure = self.asm.createLabel();
+        self.emitComment("div-by-0 check");
+        self.asm.cbz(op, lbl_failure);
+
+        self.deferred.push(|| {
+            self.emitComment("slow path for div-by-0 check");
+            self.asm.bindLabel(lbl_failure);
+            self.trap(REG_TMP1, TRAP_DIV0, self.info.bc.getLocationAt(inst.bytecode_position()));
+        });
     }
 
     fn emitReturn(inst: Inst) {
@@ -151,6 +169,12 @@ impl CodeGen for CodeGenArm64 {
     }
 
     fn finalize(): CodeDescriptor {
+        self.emitDeferredCode();
+        self.asm.resolveJumps();
+        if self.asm.size() % CODE_SIZE_ALIGNMENT != 0 {
+            self.emitComment("align code");
+            self.asm.alignCodeSize(CODE_SIZE_ALIGNMENT);
+        }
         let code = self.asm.finalize();
 
         CodeDescriptor(

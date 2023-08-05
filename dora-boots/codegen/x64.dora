@@ -3,7 +3,7 @@ use package::assembler::x64::{RAX, RDI, RDX, RCX, RSI, RBP, RSP};
 use package::assembler::x64::{R8, R9, R10, R11};
 use package::assembler::{Register, RegSet};
 use package::bytecode::data::Location;
-use package::codegen::{CodeGen, CodeDescriptor, CommentTable, LocationTable};
+use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen, CodeDescriptor, CommentTable, LocationTable};
 use package::interface::{Architecture, CompilationInfo, config, TRAP_DIV0};
 use package::graph::{Inst, Op, LocationData};
 
@@ -12,6 +12,7 @@ pub class CodeGenX64 {
     asm: AssemblerX64,
     locations: LocationTable,
     comments: CommentTable,
+    deferred: Vec[(): ()],
 }
 
 impl CodeGenX64 {
@@ -21,10 +22,12 @@ impl CodeGenX64 {
             AssemblerX64::new(),
             LocationTable::new(),
             CommentTable::new(),
+            Vec[(): ()]::new(),
         )
     }
 
     fn epilog() {
+        self.emitComment("epilog");
         self.asm.movq_rr(RSP, RBP);
         self.asm.popq_r(RBP);
         self.asm.retq();
@@ -35,6 +38,16 @@ impl CodeGenX64 {
         self.asm.movq_ri(tmp, Immediate(config.trap_trampoline.toInt64()));
         self.asm.call_r(tmp);
         self.locations.insert(self.asm.position(), loc);
+    }
+
+    fn emitComment(comment: String) {
+        self.comments.insert(self.asm.position(), comment);
+    }
+
+    fn emitDeferredCode() {
+        for code in self.deferred {
+            code();
+        }
     }
 }
 
@@ -104,6 +117,8 @@ impl CodeGen for CodeGenX64 {
 
         let output = loc.getOutput().getRegister();
 
+        self.emitComment("CheckedDiv");
+
         if output != RAX {
             self.asm.movq_rr(REG_TMP1, RAX);
         }
@@ -127,6 +142,7 @@ impl CodeGen for CodeGenX64 {
     }
 
     fn emitCheckedMod(inst: Inst) {
+        self.emitComment("CheckedMod");
         unreachable[()]();
     }
 
@@ -134,11 +150,16 @@ impl CodeGen for CodeGenX64 {
         let loc = inst.getLocationData();
         let op = loc.getInput(0).getRegister();
 
-        let lbl_continue = self.asm.createLabel();
+        let lbl_failure = self.asm.createLabel();
+        self.emitComment("div-by-0 check");
         self.asm.testq_rr(op, op);
-        self.asm.jcc_near(Condition::NotZero, lbl_continue);
-        self.trap(REG_TMP1, TRAP_DIV0, self.info.bc.getLocationAt(inst.bytecode_position()));
-        self.asm.bindLabel(lbl_continue);
+        self.asm.jcc_near(Condition::Zero, lbl_failure);
+
+        self.deferred.push(|| {
+            self.emitComment("slow path for div-by-0 check");
+            self.asm.bindLabel(lbl_failure);
+            self.trap(REG_TMP1, TRAP_DIV0, self.info.bc.getLocationAt(inst.bytecode_position()));
+        });
     }
 
     fn emitReturn(inst: Inst) {
@@ -155,6 +176,12 @@ impl CodeGen for CodeGenX64 {
     }
 
     fn finalize(): CodeDescriptor {
+        self.emitDeferredCode();
+        self.asm.resolveJumps();
+        if self.asm.size() % CODE_SIZE_ALIGNMENT != 0 {
+            self.emitComment("align code");
+            self.asm.alignCodeSize(CODE_SIZE_ALIGNMENT);
+        }
         let code = self.asm.finalize();
 
         CodeDescriptor(
