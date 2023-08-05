@@ -563,6 +563,7 @@ pub class Inst {
     block: Option[Block],
 
     _op: Option[Op],
+    bytecode_position: Option[Int32],
 
     aux: Int64,
 
@@ -587,6 +588,7 @@ impl Inst {
             None[Int32],
             None[Block],
             None[Op],
+            None[Int32],
             0,
             None[Inst],
             None[Inst],
@@ -606,6 +608,14 @@ impl Inst {
 
     pub fn op(): Op {
         self._op.getOrPanic()
+    }
+
+    pub fn bytecode_position(): Option[Int32] {
+        self.bytecode_position
+    }
+
+    pub fn set_bytecode_position(pos: Int32) {
+        self.bytecode_position = Some(pos);
     }
 
     pub fn getBlock(): Block {

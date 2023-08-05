@@ -197,6 +197,10 @@ impl AssemblerArm64 {
         self.buffer.createAndBindLabel()
     }
 
+    pub fn position(): Int32 {
+        self.buffer.position().toInt32()
+    }
+
     pub fn add(rd: Register, rn: Register, rm: Register) {
         if rd == REG_SP || rn == REG_SP {
             self.add_ext(rd, rn, rm, Extend::UXTX, 0i32);

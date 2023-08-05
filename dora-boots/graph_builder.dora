@@ -536,6 +536,7 @@ impl SsaGen {
         }
 
         let destInst = createBinaryInst(op, ty, lhsInst, rhsInst);
+        destInst.set_bytecode_position(self.offset);
         self.current().appendInst(destInst);
         self.writeVariable(dest, self.current(), destInst);
     }

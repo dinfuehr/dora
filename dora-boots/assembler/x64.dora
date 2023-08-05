@@ -87,6 +87,10 @@ impl AssemblerX64 {
         self.buffer.createAndBindLabel()
     }
 
+    pub fn position(): Int32 {
+        self.buffer.position().toInt32()
+    }
+
     pub fn addl_ri(dest: Register, imm: Immediate) {
         self.emitAlu32Imm(dest, imm, 0b000i32, 0x05u8);
     }
