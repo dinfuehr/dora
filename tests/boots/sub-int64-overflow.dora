@@ -1,0 +1,9 @@
+//= boots
+//= error overflow
+//= ignore
+
+fn main() {
+    let x = f(Int64::minValue(), 1);
+}
+
+@optimizeImmediately fn f(a: Int64, b: Int64): Int64 { a-b }

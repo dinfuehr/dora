@@ -201,6 +201,7 @@ class TestCase
     self.file = self.test_file = file
     self.args = self.vm_args = ""
     self.configs = [:default]
+    @ignore = false
   end
 
   def get_timeout
@@ -214,6 +215,14 @@ class TestCase
       60
 
     end
+  end
+
+  def set_ignore
+    @ignore = true
+  end
+
+  def ignore?
+    @ignore
   end
 end
 
@@ -432,7 +441,7 @@ def run_tests
 end
 
 def run_test(test_case, config, mutex)
-  if test_case.expectation == :ignore
+  if test_case.ignore?
     return TestResult.new(test_case, config, :ignore, nil)
   end
 
@@ -641,9 +650,7 @@ def parse_test_file(file)
         next if arguments.size == 1
 
         case arguments[1]
-        when "at" then test_case.expectation.position = arguments[2]
         when "code" then test_case.expectation.code = arguments[2].to_i
-        when "message" then test_case.expectation.message = arguments[2].to_s
         when "div0" then test_case.expectation.code = 101
         when "assert" then test_case.expectation.code = 102
         when "array" then test_case.expectation.code = 103
@@ -652,21 +659,19 @@ def parse_test_file(file)
         when "oom" then test_case.expectation.code = 106
         when "stack-overflow" then test_case.expectation.code = 107
         when "overflow" then test_case.expectation.code = 109
-        when "fail"
-          # do nothing
         else
           raise "unknown error expectation in #{file}: #{line}"
         end
 
       when "platform"
         supported = $platform_binding.eval(arguments[1])
-        test_case.expectation = :ignore unless supported
+        test_case.set_ignore unless supported
 
       when "file"
         test_case.test_file = arguments[1]
 
       when "ignore" 
-        test_case.expectation = :ignore
+        test_case.set_ignore
 
       when "stdout"
         case arguments[1]

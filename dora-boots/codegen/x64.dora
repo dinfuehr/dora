@@ -4,7 +4,7 @@ use package::assembler::x64::{R8, R9, R10, R11};
 use package::assembler::{Register, RegSet};
 use package::bytecode::data::Location;
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen, CodeDescriptor, CommentTable, LocationTable};
-use package::interface::{Architecture, CompilationInfo, config, TRAP_DIV0};
+use package::interface::{Architecture, CompilationInfo, config, TRAP_DIV0, TRAP_OVERFLOW};
 use package::graph::{Inst, Op, LocationData};
 
 pub class CodeGenX64 {
@@ -84,8 +84,18 @@ impl CodeGen for CodeGenX64 {
         let rhs = loc.getInput(1).getRegister();
 
         let output = loc.getOutput().getRegister();
+        let lbl_failure = self.asm.createLabel();
 
-        self.asm.lea(output, Address::array(lhs, rhs, ScaleFactor::One, 0i32));
+        self.asm.movq_rr(output, lhs);
+        self.asm.addq_rr(output, rhs);
+
+        self.asm.jcc(Condition::Overflow, lbl_failure);
+
+        self.deferred.push(|| {
+            self.emitComment("slow path for CheckedAdd overflow");
+            self.asm.bindLabel(lbl_failure);
+            self.trap(REG_TMP1, TRAP_OVERFLOW, self.info.bc.getLocationAt(inst.bytecode_position()));
+        });
     }
 
     fn emitCheckedSub(inst: Inst) {
@@ -94,9 +104,18 @@ impl CodeGen for CodeGenX64 {
         let rhs = loc.getInput(1).getRegister();
 
         let output = loc.getOutput().getRegister();
+        let lbl_failure = self.asm.createLabel();
 
         self.asm.movq_rr(output, lhs);
         self.asm.subq_rr(output, rhs);
+
+        self.asm.jcc(Condition::Overflow, lbl_failure);
+
+        self.deferred.push(|| {
+            self.emitComment("slow path for CheckedSub overflow");
+            self.asm.bindLabel(lbl_failure);
+            self.trap(REG_TMP1, TRAP_OVERFLOW, self.info.bc.getLocationAt(inst.bytecode_position()));
+        });
     }
 
     fn emitCheckedMul(inst: Inst) {
@@ -105,9 +124,18 @@ impl CodeGen for CodeGenX64 {
         let rhs = loc.getInput(1).getRegister();
 
         let output = loc.getOutput().getRegister();
+        let lbl_failure = self.asm.createLabel();
 
         self.asm.movq_rr(output, lhs);
         self.asm.imulq_rr(output, rhs);
+
+        self.asm.jcc(Condition::Overflow, lbl_failure);
+
+        self.deferred.push(|| {
+            self.emitComment("slow path for CheckedMul overflow");
+            self.asm.bindLabel(lbl_failure);
+            self.trap(REG_TMP1, TRAP_OVERFLOW, self.info.bc.getLocationAt(inst.bytecode_position()));
+        });
     }
 
     fn emitCheckedDiv(inst: Inst) {
@@ -153,7 +181,7 @@ impl CodeGen for CodeGenX64 {
         let lbl_failure = self.asm.createLabel();
         self.emitComment("div-by-0 check");
         self.asm.testq_rr(op, op);
-        self.asm.jcc_near(Condition::Zero, lbl_failure);
+        self.asm.jcc(Condition::Zero, lbl_failure);
 
         self.deferred.push(|| {
             self.emitComment("slow path for div-by-0 check");
