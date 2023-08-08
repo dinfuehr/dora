@@ -63,9 +63,9 @@ pub fn disassemble(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray,
     .unwrap();
 
     for instr in instrs.iter() {
-        let addr = (instr.address() - start_addr) as u32;
+        let offset = (instr.address() - start_addr) as u32;
 
-        if let Some(gc_point) = code.gcpoint_for_offset(addr) {
+        if let Some(gc_point) = code.gcpoint_for_offset(offset) {
             write!(&mut w, "\t\t  ; gc point = (").unwrap();
             let mut first = true;
 
@@ -85,7 +85,7 @@ pub fn disassemble(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray,
             writeln!(&mut w, ")").unwrap();
         }
 
-        for comment in code.comments_for_offset(addr as u32) {
+        for comment in code.comments_for_offset(offset as u32) {
             writeln!(&mut w, "\t\t  // {}", comment).unwrap();
         }
 

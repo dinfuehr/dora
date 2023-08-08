@@ -299,10 +299,19 @@ impl CommentTable {
         match result {
             Ok(mut idx) => {
                 let mut comments = Vec::new();
+
+                // The index is not guaranteed to point to the first entry
+                // with that offset.
+                while idx > 0 && self.entries[idx - 1].0 == offset {
+                    idx -= 1;
+                }
+
+                // Now find all entries with this offset.
                 while idx < self.entries.len() && self.entries[idx].0 == offset {
                     comments.push(&self.entries[idx].1);
                     idx += 1;
                 }
+
                 comments
             }
             Err(_) => Vec::new(),

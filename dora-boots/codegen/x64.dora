@@ -40,10 +40,6 @@ impl CodeGenX64 {
         self.locations.insert(self.asm.position(), loc);
     }
 
-    fn emitComment(comment: String) {
-        self.comments.insert(self.asm.position(), comment);
-    }
-
     fn emitDeferredCode() {
         for code in self.deferred {
             code();
@@ -70,6 +66,10 @@ impl CodeGen for CodeGenX64 {
     fn prolog() {
         self.asm.pushq_r(RBP);
         self.asm.movq_rr(RBP, RSP);
+    }
+
+    fn emitComment(comment: String) {
+        self.comments.insert(self.asm.position(), comment);
     }
 
     fn emitInt64Const(inst: Inst) {

@@ -3024,7 +3024,7 @@ impl<'a> TypeCheck<'a> {
 
             None => {
                 let msg = ErrorMessage::IndexExpected;
-                self.sa.report(self.file_id, e.op_span, msg);
+                self.sa.report(self.file_id, e.rhs.span(), msg);
 
                 self.analysis.set_ty(e.id, SourceType::Error);
                 return SourceType::Error;

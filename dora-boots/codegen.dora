@@ -25,6 +25,8 @@ pub trait CodeGen {
     fn emitDivZeroCheck(inst: Inst);
     fn emitReturn(inst: Inst);
 
+    fn emitComment(comment: String);
+
 }
 
 pub fn setLocationConstraints(codegen: CodeGen, inst: Inst) {
@@ -130,6 +132,11 @@ impl CommentTable {
     }
 
     pub fn insert(offset: Int32, comment: String) {
+        if self.entries.last().isSome() {
+            let last = self.entries.last().getOrPanic();
+            assert(last.0 <= offset);
+        }
+
         self.entries.push((offset, comment));
     }
 
@@ -154,6 +161,11 @@ impl LocationTable {
     }
 
     pub fn insert(offset: Int32, location: Location) {
+        if self.entries.last().isSome() {
+            let last = self.entries.last().getOrPanic();
+            assert(last.0 <= offset);
+        }
+
         self.entries.push((offset, location));
     }
 

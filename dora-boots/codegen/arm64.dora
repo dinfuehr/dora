@@ -51,10 +51,6 @@ impl CodeGenArm64 {
         self.asm.movk(dest, ((imm >> 48i32) & 0xFF_FF).toInt32(), 48i32);
     }
 
-    fn emitComment(comment: String) {
-        self.comments.insert(self.asm.position(), comment);
-    }
-
     fn emitDeferredCode() {
         for code in self.deferred {
             code();
@@ -80,6 +76,10 @@ impl CodeGen for CodeGenArm64 {
     fn prolog() {
         self.asm.stp_pre(REG_FP, REG_LR, REG_SP, -16i32);
         self.asm.mov(REG_FP, REG_SP);
+    }
+
+    fn emitComment(comment: String) {
+        self.comments.insert(self.asm.position(), comment);
     }
 
     fn emitInt64Const(inst: Inst) {
