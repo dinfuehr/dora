@@ -262,7 +262,7 @@ impl SsaGen {
                 self.emitDivMod(dest, lhs, rhs, Op::CheckedDiv);
             },
             BytecodeInstruction::Mod(dest, lhs, rhs) => {
-                self.emitDivMod(dest, lhs, rhs, Op::CheckedDiv);
+                self.emitDivMod(dest, lhs, rhs, Op::CheckedMod);
             },
             BytecodeInstruction::And(dest, lhs, rhs) => {
                 self.emitBin(dest, lhs, rhs, Op::And);

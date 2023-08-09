@@ -56,6 +56,40 @@ impl CodeGenArm64 {
             code();
         }
     }
+
+    fn emitCheckedDivModCommon(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+
+        assert(inst.op() == Op::CheckedDiv || inst.op() == Op::CheckedMod);
+        let is_div = inst.op() == Op::CheckedDiv;
+
+        let dest = loc.getOutput().getRegister();
+        let lbl_overflow = self.asm.createLabel();
+        let lbl_div = self.asm.createLabel();
+
+        self.asm.movz(REG_TMP1, 0x8000i32, 48i32);
+        self.asm.cmp(lhs, REG_TMP1);
+        self.asm.bc(Cond::NE, lbl_div);
+        self.asm.cmn_imm(rhs, 1i32);
+        self.asm.bc(Cond::EQ, lbl_overflow);
+
+        self.asm.bindLabel(lbl_div);
+        if is_div {
+            self.asm.sdiv(dest, lhs, rhs);
+        } else {
+            self.asm.sdiv(REG_TMP1, lhs, rhs);
+            self.asm.msub(dest, REG_TMP1, rhs, lhs);
+        }
+
+        self.deferred.push(|| {
+            let op = if is_div { "CheckedDiv" } else { "CheckedMod" };
+            self.emitComment("slow path for ${op} overflow");
+            self.asm.bindLabel(lbl_overflow);
+            self.trap(REG_TMP1, TRAP_OVERFLOW, self.info.bc.getLocationAt(inst.bytecode_position()));
+        });
+    }
 }
 
 let REG_PARAMS: Array[Register] = Array[Register]::new(R0, R1, R2, R3, R4, R5, R6, R7);
@@ -146,25 +180,11 @@ impl CodeGen for CodeGenArm64 {
     }
 
     fn emitCheckedDiv(inst: Inst) {
-        let loc = inst.getLocationData();
-        let lhs = loc.getInput(0).getRegister();
-        let rhs = loc.getInput(1).getRegister();
-
-        let output = loc.getOutput().getRegister();
-
-        self.asm.sdiv(output, lhs, rhs);
+        self.emitCheckedDivModCommon(inst);
     }
 
     fn emitCheckedMod(inst: Inst) {
-        let loc = inst.getLocationData();
-        let lhs = loc.getInput(0).getRegister();
-        let rhs = loc.getInput(1).getRegister();
-
-        let output = loc.getOutput().getRegister();
-
-        self.emitComment("CheckedMod");
-        self.asm.sdiv(output, lhs, rhs);
-        self.asm.msub(output, REG_TMP1, rhs, lhs);
+        self.emitCheckedDivModCommon(inst);
     }
 
     fn emitDivZeroCheck(inst: Inst) {
@@ -198,6 +218,7 @@ impl CodeGen for CodeGenArm64 {
     fn finalize(): CodeDescriptor {
         self.emitDeferredCode();
         self.asm.resolveJumps();
+        self.asm.brk(0i32);
         if self.asm.size() % CODE_SIZE_ALIGNMENT != 0 {
             self.emitComment("align code");
             self.asm.alignCodeSize(CODE_SIZE_ALIGNMENT);

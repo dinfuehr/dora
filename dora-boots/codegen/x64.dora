@@ -45,6 +45,73 @@ impl CodeGenX64 {
             code();
         }
     }
+
+    fn emitCheckedDivModCommon(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+
+        assert(inst.op() == Op::CheckedDiv || inst.op() == Op::CheckedMod);
+        let is_div = inst.op() == Op::CheckedDiv;
+
+        let dest = loc.getOutput().getRegister();
+        let lbl_overflow = self.asm.createLabel();
+        let lbl_div = self.asm.createLabel();
+
+        self.emitComment("CheckedMod");
+
+        self.asm.movq_ri(REG_TMP1, Immediate(Int64::minValue()));
+        self.asm.cmpq_rr(REG_TMP1, lhs);
+        self.asm.jcc_near(Condition::NotEqual, lbl_div);
+        self.asm.cmpq_ri(rhs, Immediate(-1));
+        self.asm.jcc(Condition::Equal, lbl_overflow);
+        self.asm.bindLabel(lbl_div);
+
+        let result = if is_div { RAX } else { RDX };
+
+        if dest != RAX {
+            self.asm.pushq_r(RAX);
+        }
+
+        if dest != RDX {
+            self.asm.pushq_r(RDX);
+        }
+
+        if rhs == RAX {
+            self.asm.movq_rr(REG_TMP1, rhs);
+        }
+
+        if lhs != RAX {
+            self.asm.movq_rr(RAX, lhs);
+        }
+
+        self.asm.cqo();
+
+        if rhs != RAX {
+            self.asm.idivq_r(rhs);
+        } else {
+            self.asm.idivq_r(REG_TMP1);
+        }
+
+        if dest != result {
+            self.asm.movq_rr(dest, result);
+        }
+
+        if dest != RDX {
+            self.asm.popq_r(RDX);
+        }
+
+        if dest != RDX {
+            self.asm.popq_r(RAX);
+        }
+
+        self.deferred.push(|| {
+            let op = if is_div { "CheckedDiv" } else { "CheckedMod" };
+            self.emitComment("slow path for ${op} overflow");
+            self.asm.bindLabel(lbl_overflow);
+            self.trap(REG_TMP1, TRAP_OVERFLOW, self.info.bc.getLocationAt(inst.bytecode_position()));
+        });
+    }
 }
 
 pub let REG_PARAMS: Array[Register] = Array[Register]::new(RDI, RSI, RDX, RCX, R8, R9);
@@ -139,39 +206,11 @@ impl CodeGen for CodeGenX64 {
     }
 
     fn emitCheckedDiv(inst: Inst) {
-        let loc = inst.getLocationData();
-        let lhs = loc.getInput(0).getRegister();
-        let rhs = loc.getInput(1).getRegister();
-
-        let output = loc.getOutput().getRegister();
-
-        self.emitComment("CheckedDiv");
-
-        if output != RAX {
-            self.asm.movq_rr(REG_TMP1, RAX);
-        }
-
-        if lhs != RAX {
-            self.asm.movq_rr(RAX, lhs);
-        }
-
-        self.asm.cqo();
-
-        if rhs != RAX {
-            self.asm.idivq_r(rhs);
-        } else {
-            self.asm.idivq_r(REG_TMP1);
-        }
-
-        if output != RAX {
-            self.asm.movq_rr(output, RAX);
-            self.asm.movq_rr(RAX, REG_TMP1);
-        }
+        self.emitCheckedDivModCommon(inst);
     }
 
     fn emitCheckedMod(inst: Inst) {
-        self.emitComment("CheckedMod");
-        unreachable[()]();
+        self.emitCheckedDivModCommon(inst);
     }
 
     fn emitDivZeroCheck(inst: Inst) {
@@ -206,6 +245,7 @@ impl CodeGen for CodeGenX64 {
     fn finalize(): CodeDescriptor {
         self.emitDeferredCode();
         self.asm.resolveJumps();
+        self.asm.nop();
         if self.asm.size() % CODE_SIZE_ALIGNMENT != 0 {
             self.emitComment("align code");
             self.asm.alignCodeSize(CODE_SIZE_ALIGNMENT);
