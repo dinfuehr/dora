@@ -111,7 +111,7 @@ enum JumpKind {
     Zero(Bool, Bool, Register),
 }
 
-enum Cond {
+pub enum Cond {
     EQ, // equal
     NE, // not equal
     CS,
