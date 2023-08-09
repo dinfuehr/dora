@@ -77,34 +77,42 @@ pub fn emitInst(codegen: CodeGen, inst: Inst) {
         Op::Arg => {},
 
         Op::Int64Const => {
+            codegen.emitComment("Int64Const");
             codegen.emitInt64Const(inst);
         },
 
         Op::CheckedAdd => {
+            codegen.emitComment("CheckedAdd");
             codegen.emitCheckedAdd(inst);
         },
 
         Op::CheckedSub => {
+            codegen.emitComment("CheckedSub");
             codegen.emitCheckedSub(inst);
         },
 
         Op::CheckedMul => {
+            codegen.emitComment("CheckedMul");
             codegen.emitCheckedMul(inst);
         },
 
         Op::CheckedDiv => {
+            codegen.emitComment("CheckedDiv");
             codegen.emitCheckedDiv(inst);
         },
 
         Op::CheckedMod => {
+            codegen.emitComment("CheckedMod");
             codegen.emitCheckedMod(inst);
         },
 
         Op::DivZeroCheck => {
+            codegen.emitComment("DivZeroCheck");
             codegen.emitDivZeroCheck(inst);
         },
 
         Op::Return => {
+            codegen.emitComment("Return");
             codegen.emitReturn(inst);
         },
 

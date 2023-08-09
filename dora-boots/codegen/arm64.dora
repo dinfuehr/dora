@@ -192,7 +192,6 @@ impl CodeGen for CodeGenArm64 {
         let op = loc.getInput(0).getRegister();
 
         let lbl_failure = self.asm.createLabel();
-        self.emitComment("div-by-0 check");
         self.asm.cbz(op, lbl_failure);
 
         self.deferred.push(|| {
@@ -219,10 +218,12 @@ impl CodeGen for CodeGenArm64 {
         self.emitDeferredCode();
         self.asm.resolveJumps();
         self.asm.brk(0i32);
+
         if self.asm.size() % CODE_SIZE_ALIGNMENT != 0 {
             self.emitComment("align code");
             self.asm.alignCodeSize(CODE_SIZE_ALIGNMENT);
         }
+
         let code = self.asm.finalize();
 
         CodeDescriptor(

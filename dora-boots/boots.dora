@@ -86,7 +86,7 @@ fn generate(graph: Graph, codegen: CodeGen): CodeDescriptor {
     codegen.prolog();
 
     for block in graph.insertionOrderIterator() {
-        codegen.emitComment("block ${block.id()}");
+        codegen.emitComment("Block ${block.id()}");
 
         for inst in block.instructionsIterator() {
             emitInst(codegen, inst);

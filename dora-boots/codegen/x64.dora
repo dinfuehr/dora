@@ -58,8 +58,6 @@ impl CodeGenX64 {
         let lbl_overflow = self.asm.createLabel();
         let lbl_div = self.asm.createLabel();
 
-        self.emitComment("CheckedMod");
-
         self.asm.movq_ri(REG_TMP1, Immediate(Int64::minValue()));
         self.asm.cmpq_rr(REG_TMP1, lhs);
         self.asm.jcc_near(Condition::NotEqual, lbl_div);
@@ -218,7 +216,6 @@ impl CodeGen for CodeGenX64 {
         let op = loc.getInput(0).getRegister();
 
         let lbl_failure = self.asm.createLabel();
-        self.emitComment("div-by-0 check");
         self.asm.testq_rr(op, op);
         self.asm.jcc(Condition::Zero, lbl_failure);
 
@@ -246,10 +243,12 @@ impl CodeGen for CodeGenX64 {
         self.emitDeferredCode();
         self.asm.resolveJumps();
         self.asm.nop();
+
         if self.asm.size() % CODE_SIZE_ALIGNMENT != 0 {
             self.emitComment("align code");
             self.asm.alignCodeSize(CODE_SIZE_ALIGNMENT);
         }
+
         let code = self.asm.finalize();
 
         CodeDescriptor(

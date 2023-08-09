@@ -85,14 +85,20 @@ pub fn disassemble(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray,
             writeln!(&mut w, ")").unwrap();
         }
 
+        let prefix = format!("  {:#06x}: ", instr.address());
+        let alignment = prefix.len();
+
         for comment in code.comments_for_offset(offset as u32) {
-            writeln!(&mut w, "\t\t  // {}", comment).unwrap();
+            for _ in 0..alignment {
+                write!(&mut w, " ").expect("write() failed");
+            }
+            writeln!(&mut w, "// {}", comment).expect("write() failed");
         }
 
         writeln!(
             &mut w,
-            "  {:#06x}: {}\t\t{}",
-            instr.address(),
+            "{}{}\t\t{}",
+            prefix,
             instr.mnemonic().expect("no mnmemonic found"),
             instr.op_str().expect("no op_str found"),
         )
