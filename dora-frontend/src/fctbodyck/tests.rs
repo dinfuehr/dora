@@ -1982,7 +1982,7 @@ fn test_enum_match_missing_variants() {
             }
         }
     ",
-        (4, 13),
+        (4, 19),
         ErrorMessage::MatchUncoveredVariant,
     );
 
