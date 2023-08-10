@@ -741,7 +741,7 @@ impl<'a> TypeCheck<'a> {
 
         if used_variants.count_ones(..) != 0 {
             let msg = ErrorMessage::MatchUncoveredVariant;
-            self.sa.report(self.file_id, node.span, msg);
+            self.sa.report(self.file_id, node.expr.span(), msg);
         }
 
         self.analysis.set_ty(node.id, result_type.clone());

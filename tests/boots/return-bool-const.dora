@@ -1,0 +1,10 @@
+//= boots
+//= ignore
+
+fn main() {
+    assert(f());
+    assert(!g());
+}
+
+@optimizeImmediately fn f(): Bool { true }
+@optimizeImmediately fn g(): Bool { false }

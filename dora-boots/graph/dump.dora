@@ -157,6 +157,8 @@ fn dumpInstName(inst: Inst): String {
     let op = inst.op();
     match op {
         Op::NullConst => "Const.Null",
+        Op::TrueConst => "Const.True",
+        Op::FalseConst => "Const.False",
         Op::Int32Const => "Const.Int32(#${inst.auxAsInt32()})",
         Op::Int64Const => "Const.Int64(#${inst.auxAsInt64()})",
         Op::Float32Const => "Const.Float32(#${inst.auxAsFloat32()})",

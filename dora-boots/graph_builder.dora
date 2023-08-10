@@ -5,6 +5,7 @@ use package::graph::Graph;
 use package::graph::Block;
 use package::graph::Inst;
 use package::graph::Op;
+use package::graph::createBoolConst;
 use package::graph::createInt32Const;
 use package::graph::createInt64Const;
 use package::graph::createFloat32Const;
@@ -323,10 +324,14 @@ impl SsaGen {
             },
             
             BytecodeInstruction::ConstTrue(dest) => {
-                unimplemented();
+                let inst = createBoolConst(true);
+                self.current().appendInst(inst);
+                self.writeVariable(dest, self.current(), inst);
             },
             BytecodeInstruction::ConstFalse(dest) => {
-                unimplemented();
+                let inst = createBoolConst(false);
+                self.current().appendInst(inst);
+                self.writeVariable(dest, self.current(), inst);
             },
             BytecodeInstruction::ConstUInt8(dest, value) => {
                 unimplemented();

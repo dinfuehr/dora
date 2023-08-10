@@ -418,6 +418,9 @@ impl Input {
 
 pub enum Op {
     NullConst,
+
+    TrueConst,
+    FalseConst,
     
     Int32Const,
     Int64Const,
@@ -508,6 +511,8 @@ impl Op {
 pub fn opName(op: Op): String {
     match op {
         Op::NullConst => "Const.Null",
+        Op::TrueConst => "Const.True",
+        Op::FalseConst => "Const.False",
         Op::Int32Const => "Const.Int32",
         Op::Int64Const => "Const.Int64",
         Op::Float32Const => "Const.Float32",
@@ -833,6 +838,8 @@ impl Inst {
     pub fn hasSideEffects(): Bool {
         match self.op() {
             Op::NullConst => false,
+            Op::TrueConst => false,
+            Op::FalseConst => false,
             Op::Int32Const => false,
             Op::Int64Const => false,
             Op::Float32Const => false,
@@ -1025,6 +1032,17 @@ fn removeUse(input: Input) {
 pub fn createNullConst(value: UInt8): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::NullConst);
+    inst
+}
+
+pub fn createBoolConst(value: Bool): Inst {
+    let inst = Inst::new();
+    let op = if value {
+        Op::TrueConst
+    } else {
+        Op::FalseConst
+    };
+    inst._op = Some(op);
     inst
 }
 
