@@ -554,6 +554,7 @@ impl SsaGen {
 
         let srcInst = self.readVariable(src, self.current());
         let destInst = createUnaryInst(op, ty, srcInst);
+        destInst.set_bytecode_position(self.offset);
         self.current().appendInst(destInst);
         self.writeVariable(dest, self.current(), destInst);
     }

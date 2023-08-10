@@ -1,0 +1,8 @@
+//= boots
+//= error overflow
+
+fn main() {
+    f(Int64::minValue());
+}
+
+@optimizeImmediately fn f(a: Int64): Int64 { -a }

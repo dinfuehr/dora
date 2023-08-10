@@ -1288,7 +1288,6 @@ impl Parser {
         while !self.is(R_BRACE) && !self.is_eof() {
             if !comma {
                 self.report_error(ParseError::ExpectedToken(",".into()));
-                break;
             }
 
             let case = self.parse_match_case();

@@ -226,6 +226,23 @@ impl CodeGen for CodeGenX64 {
         });
     }
 
+    fn emitCheckedNeg(inst: Inst) {
+        let loc = inst.getLocationData();
+        let src = loc.getInput(0).getRegister();
+        let dest = loc.getOutput().getRegister();
+
+        let lbl_overflow = self.asm.createLabel();
+        self.asm.movq_rr(dest, src);
+        self.asm.negq_r(dest);
+        self.asm.jcc(Condition::Overflow, lbl_overflow);
+
+        self.deferred.push(|| {
+            self.emitComment("slow path for CheckedNeg overflow");
+            self.asm.bindLabel(lbl_overflow);
+            self.trap(REG_TMP1, TRAP_OVERFLOW, self.info.bc.getLocationAt(inst.bytecode_position()));
+        });
+    }
+
     fn emitReturn(inst: Inst) {
         if inst.hasInput() {
             let loc = inst.getLocationData();

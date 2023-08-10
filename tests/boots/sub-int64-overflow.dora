@@ -1,6 +1,5 @@
 //= boots
 //= error overflow
-//= ignore
 
 fn main() {
     let x = f(Int64::minValue(), 1);
