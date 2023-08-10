@@ -9,6 +9,7 @@ use package::graph::dump::dumpGraph;
 use package::graph_builder::createGraph;
 use package::interface::{Architecture, CompilationInfo};
 use package::interface::{compile, config, getSystemConfig};
+use package::liveness::computeLiveness;
 
 mod assembler;
 mod bytecode;
@@ -18,9 +19,10 @@ mod deserializer;
 mod dominator_test;
 mod dominator;
 mod graph;
-mod interface;
 mod graph_builder_tests;
 mod graph_builder;
+mod interface;
+mod liveness;
 mod serializer;
 
 pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
@@ -28,6 +30,7 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
     let codegen = createCodeGen(ci);
 
     buildDominatorTree(graph);
+    computeLiveness(graph);
 
     if (ci.emitGraph) {
         println("after graph building:");

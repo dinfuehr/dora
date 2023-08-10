@@ -1,0 +1,17 @@
+use std::collections::BitVec;
+
+use package::graph::Graph;
+
+pub fn computeLiveness(graph: Graph) {
+    for block in graph.postOrderIterator() {
+        let live = BitVec::new();
+
+        for inst in block.reverseInstructionsIterator() {
+            for use_ in inst.uses() {
+                live.insert(use_.getValue().id().toInt64());
+            }
+
+            live.remove(inst.id().toInt64());
+        }
+    }
+}

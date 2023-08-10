@@ -60,7 +60,11 @@ impl GraphDumper {
                 self.buffer.append(", ");
             }
 
-            let block = if is_pred { edge.source } else { edge.target };
+            let block = if is_pred {
+                edge.source
+            } else {
+                edge.target
+            };
             self.buffer.append("@${block.id()}");
 
             if edge.isBackward() {
