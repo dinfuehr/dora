@@ -1,0 +1,7 @@
+//= error overflow
+
+fn main() {
+    f(Int32::minValue());
+}
+
+fn f(a: Int32): Int32 { -a }

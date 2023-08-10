@@ -1,0 +1,6 @@
+fn main() {
+    let x = f(Int64::minValue());
+    assert(x == Int64::minValue());
+}
+
+fn f(a: Int64): Int64 { a.wrappingNeg() }

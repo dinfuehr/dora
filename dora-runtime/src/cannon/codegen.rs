@@ -662,8 +662,10 @@ impl<'a> CannonCodeGen<'a> {
             assert!(bytecode_type == BytecodeType::Int32 || bytecode_type == BytecodeType::Int64);
             self.emit_load_register(src, REG_RESULT.into());
 
+            let loc = self.bytecode.offset_location(self.current_offset.to_u32());
+
             self.asm
-                .int_neg(mode(self.vm, bytecode_type), REG_RESULT, REG_RESULT);
+                .int_neg_checked(mode(self.vm, bytecode_type), REG_RESULT, REG_RESULT, loc);
 
             self.emit_store_register(REG_RESULT.into(), dest);
         }
@@ -759,7 +761,7 @@ impl<'a> CannonCodeGen<'a> {
 
             let position = self.bytecode.offset_location(self.current_offset.to_u32());
 
-            self.asm.int_div(
+            self.asm.int_div_checked(
                 mode(self.vm, bytecode_type),
                 REG_RESULT,
                 REG_RESULT,
@@ -789,7 +791,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let position = self.bytecode.offset_location(self.current_offset.to_u32());
 
-        self.asm.int_mod(
+        self.asm.int_mod_checked(
             mode(self.vm, bytecode_type),
             REG_RESULT,
             REG_RESULT,
@@ -3506,6 +3508,22 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_load_register(lhs_reg, REG_RESULT.into());
                 self.emit_load_register(rhs_reg, REG_TMP1.into());
                 self.asm.int_mul(mode, REG_RESULT, REG_RESULT, REG_TMP1);
+                self.emit_store_register(REG_RESULT.into(), dest);
+            }
+
+            Intrinsic::Int32NegUnchecked | Intrinsic::Int64NegUnchecked => {
+                assert_eq!(arguments.len(), 1);
+
+                let reg = arguments[0];
+
+                let mode = match intrinsic {
+                    Intrinsic::Int32NegUnchecked => MachineMode::Int32,
+                    Intrinsic::Int64NegUnchecked => MachineMode::Int64,
+                    _ => unreachable!(),
+                };
+
+                self.emit_load_register(reg, REG_RESULT.into());
+                self.asm.int_neg(mode, REG_RESULT, REG_RESULT);
                 self.emit_store_register(REG_RESULT.into(), dest);
             }
 

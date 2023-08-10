@@ -1,0 +1,7 @@
+//= error overflow
+
+fn main() {
+    f(Int64::minValue());
+}
+
+fn f(a: Int64): Int64 { -a }

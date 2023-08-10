@@ -207,7 +207,7 @@ impl MacroAssembler {
         self.asm.b_r(reg.into());
     }
 
-    pub fn int_div(
+    pub fn int_div_checked(
         &mut self,
         mode: MachineMode,
         dest: Reg,
@@ -218,7 +218,7 @@ impl MacroAssembler {
         self.divmod_common(mode, dest, lhs, rhs, location, true);
     }
 
-    pub fn int_mod(
+    pub fn int_mod_checked(
         &mut self,
         mode: MachineMode,
         dest: Reg,
@@ -1599,6 +1599,18 @@ impl MacroAssembler {
             MachineMode::Int64 => self.asm.sub(dest.into(), REG_ZERO.into(), src.into()),
             _ => panic!("unimplemented mode {:?}", mode),
         }
+    }
+
+    pub fn int_neg_checked(&mut self, mode: MachineMode, dest: Reg, src: Reg, location: Location) {
+        match mode {
+            MachineMode::Int32 => self.asm.subs_w(dest.into(), REG_ZERO.into(), src.into()),
+            MachineMode::Int64 => self.asm.subs(dest.into(), REG_ZERO.into(), src.into()),
+            _ => panic!("unimplemented mode {:?}", mode),
+        }
+
+        let lbl_overflow = self.create_label();
+        self.asm.bc(Cond::VS, lbl_overflow);
+        self.emit_bailout(lbl_overflow, Trap::OVERFLOW, location);
     }
 
     pub fn int_not(&mut self, mode: MachineMode, dest: Reg, src: Reg) {

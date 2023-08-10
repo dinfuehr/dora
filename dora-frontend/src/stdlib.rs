@@ -859,6 +859,13 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         sa,
         stdlib_id,
         "primitives::Int32",
+        "wrappingNeg",
+        Intrinsic::Int32NegUnchecked,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int32",
         "not",
         Intrinsic::Int32Not,
     );
@@ -1095,6 +1102,13 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         "primitives::Int64",
         "unaryMinus",
         Intrinsic::Int64Neg,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Int64",
+        "wrappingNeg",
+        Intrinsic::Int64NegUnchecked,
     );
     intrinsic_method(
         sa,

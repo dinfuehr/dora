@@ -418,7 +418,7 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.int_mul_checked(mode, dest, lhs, rhs, location);
     }
 
-    pub fn int_div(
+    pub fn int_div_checked(
         &mut self,
         mode: MachineMode,
         dest: Reg,
@@ -426,10 +426,10 @@ impl<'a> BaselineAssembler<'a> {
         rhs: Reg,
         location: Location,
     ) {
-        self.masm.int_div(mode, dest, lhs, rhs, location);
+        self.masm.int_div_checked(mode, dest, lhs, rhs, location);
     }
 
-    pub fn int_mod(
+    pub fn int_mod_checked(
         &mut self,
         mode: MachineMode,
         dest: Reg,
@@ -437,11 +437,15 @@ impl<'a> BaselineAssembler<'a> {
         rhs: Reg,
         location: Location,
     ) {
-        self.masm.int_mod(mode, dest, lhs, rhs, location);
+        self.masm.int_mod_checked(mode, dest, lhs, rhs, location);
     }
 
     pub fn int_neg(&mut self, mode: MachineMode, dest: Reg, src: Reg) {
         self.masm.int_neg(mode, dest, src);
+    }
+
+    pub fn int_neg_checked(&mut self, mode: MachineMode, dest: Reg, src: Reg, location: Location) {
+        self.masm.int_neg_checked(mode, dest, src, location);
     }
 
     pub fn int_not(&mut self, mode: MachineMode, dest: Reg, src: Reg) {

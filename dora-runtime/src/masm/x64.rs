@@ -328,7 +328,7 @@ impl MacroAssembler {
         self.asm.jmp_r(reg.into());
     }
 
-    pub fn int_div(
+    pub fn int_div_checked(
         &mut self,
         mode: MachineMode,
         dest: Reg,
@@ -339,7 +339,7 @@ impl MacroAssembler {
         self.div_common(mode, dest, lhs, rhs, RAX, location);
     }
 
-    pub fn int_mod(
+    pub fn int_mod_checked(
         &mut self,
         mode: MachineMode,
         dest: Reg,
@@ -1157,6 +1157,22 @@ impl MacroAssembler {
         if dest != src {
             self.mov_rr(mode.is64(), dest.into(), src.into());
         }
+    }
+
+    pub fn int_neg_checked(&mut self, mode: MachineMode, dest: Reg, src: Reg, location: Location) {
+        if dest != src {
+            self.mov_rr(mode.is64(), dest.into(), src.into());
+        }
+
+        if mode.is64() {
+            self.asm.negq(dest.into());
+        } else {
+            self.asm.negl(dest.into());
+        }
+
+        let lbl_overflow = self.create_label();
+        self.asm.jcc(Condition::Overflow, lbl_overflow);
+        self.emit_bailout(lbl_overflow, Trap::OVERFLOW, location);
     }
 
     pub fn int_not(&mut self, mode: MachineMode, dest: Reg, src: Reg) {

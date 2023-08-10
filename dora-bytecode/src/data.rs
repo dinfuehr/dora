@@ -215,7 +215,8 @@ impl BytecodeOpcode {
             | BytecodeOpcode::LoadGlobal
             | BytecodeOpcode::Add
             | BytecodeOpcode::Sub
-            | BytecodeOpcode::Mul => true,
+            | BytecodeOpcode::Mul
+            | BytecodeOpcode::Neg => true,
             _ => false,
         }
     }

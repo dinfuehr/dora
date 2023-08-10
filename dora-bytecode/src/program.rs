@@ -350,6 +350,7 @@ pub enum Intrinsic {
 
     Int32Not,
     Int32Neg,
+    Int32NegUnchecked,
     Int32Plus,
 
     Int32CountZeroBits,
@@ -391,6 +392,7 @@ pub enum Intrinsic {
 
     Int64Not,
     Int64Neg,
+    Int64NegUnchecked,
     Int64Plus,
 
     Int64CountZeroBits,

@@ -53,6 +53,7 @@ impl Int32 {
   pub @internal fn wrappingAdd(rhs: Int32): Int32;
   pub @internal fn wrappingSub(rhs: Int32): Int32;
   pub @internal fn wrappingMul(rhs: Int32): Int32;
+  pub @internal fn wrappingNeg(): Int32;
 
   pub @internal fn bitwiseOr(rhs: Int32): Int32;
   pub @internal fn bitwiseAnd(rhs: Int32): Int32;
@@ -233,6 +234,7 @@ impl Int64 {
   pub @internal fn wrappingAdd(rhs: Int64): Int64;
   pub @internal fn wrappingSub(rhs: Int64): Int64;
   pub @internal fn wrappingMul(rhs: Int64): Int64;
+  pub @internal fn wrappingNeg(): Int64;
 
   pub @internal fn bitwiseOr(rhs: Int64): Int64;
   pub @internal fn bitwiseAnd(rhs: Int64): Int64;

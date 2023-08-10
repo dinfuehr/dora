@@ -319,8 +319,9 @@ impl BytecodeBuilder {
         self.writer.emit_mul(dest, lhs, rhs);
     }
 
-    pub fn emit_neg(&mut self, dest: Register, src: Register) {
+    pub fn emit_neg(&mut self, dest: Register, src: Register, location: Location) {
         assert!(self.def(dest) && self.used(src));
+        self.writer.set_location(location);
         self.writer.emit_neg(dest, src);
     }
 
