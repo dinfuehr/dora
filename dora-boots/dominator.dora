@@ -1,8 +1,6 @@
 use std::BitSet;
 
-use package::graph::Graph;
-use package::graph::Block;
-use package::graph::LoopData;
+use package::graph::{Block, Edge, Graph, LoopData};
 
 pub fn buildDominatorTree(graph: Graph) {
     let visited = findBackEdges(graph);
@@ -42,8 +40,8 @@ fn findBackEdges(graph: Graph): BitSet {
             let successor = successorEdge.target;
 
             if visiting.contains(successor.id().toInt64()) {
-                successorEdge.markAsBackwardEdge();
-                successor.addBackEdge(block);
+
+                foundBackEdge(successorEdge);
             } else if visited.contains(successor.id().toInt64()) {
                 // already visited
             } else {
@@ -54,6 +52,18 @@ fn findBackEdges(graph: Graph): BitSet {
     }
 
     visited
+}
+
+fn foundBackEdge(edge: Edge) {
+    edge.markAsBackwardEdge();
+
+    let header = edge.target;
+
+    if header.getLoopData().isNone() {
+        header.setLoopData(LoopData::new(header));
+    }
+
+    header.getLoopData().getOrPanic().addBackEdge(edge);
 }
 
 fn removeUnreachableBlocks(graph: Graph, visited: BitSet) {
@@ -159,8 +169,9 @@ fn computeDominators(graph: Graph) {
             let loopHeaderBlock = block;
             let loopHeader = loopHeaderBlock.getLoopData().getOrPanic();
 
-            for block in loopHeader.backEdges {
-                assert(loopHeaderBlock.dominates(block));
+            for backEdge in loopHeader.getBackEdges() {
+                assert(loopHeaderBlock == backEdge.target);
+                assert(loopHeaderBlock.dominates(backEdge.source));
             }
         }
     }
@@ -168,6 +179,7 @@ fn computeDominators(graph: Graph) {
     // assert that dominators are stable
     for block in graph.reversePostOrderIterator() {
         if block.isEntryBlock() {
+            assert(block.getDominator().isNone());
             continue;
         }
 
@@ -222,18 +234,21 @@ fn commonDominator(b1: Block, b2: Block): Block {
 
 fn discoverLoopBlocks(graph: Graph) {
     for block in graph.postOrderIterator() {
-        if block.isLoopHeader() {
-            let loop = block.getLoopData().getOrPanic();
-            loop.addBlock(block);
+        if !block.isLoopHeader() {
+            continue;
+        }
 
-            for block in loop.backEdges {
-                discoverBlocks(block, loop);
-            }
+        let loop = block.getLoopData().getOrPanic();
+        loop.addBlock(block);
+
+        for backEdge in loop.getBackEdges() {
+            assert(backEdge.target == block);
+            discoverBlocks(loop, backEdge.source);
         }
     }
 }
 
-fn discoverBlocks(block: Block, loop: LoopData) {
+fn discoverBlocks(loop: LoopData, block: Block) {
     if loop.containsBlock(block) {
         return;
     }
@@ -242,7 +257,7 @@ fn discoverBlocks(block: Block, loop: LoopData) {
     updateLoopData(block, loop);
 
     for predecessorEdge in block.predecessors {
-        discoverBlocks(predecessorEdge.source, loop);
+        discoverBlocks(loop, predecessorEdge.source);
     }
 }
 

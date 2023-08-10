@@ -288,13 +288,6 @@ impl Block {
         inst
     }
 
-    pub fn addBackEdge(block: Block) {
-        if self.loopData.isNone() {
-            self.loopData = Some(LoopData::new(self));
-        }
-        self.loopData.getOrPanic().addBackEdge(block);
-    }
-
     pub fn isLoopHeader(): Bool {
         self.loopData.isSome() && self.loopData.getOrPanic().header === self
     }
@@ -350,21 +343,35 @@ impl Equals for Block {
 
 pub class LoopData {
     header: Block,
-    pub backEdges: Vec[Block],
+    backEdges: Vec[Edge],
     blocks: BitVec,
+    parent: Option[LoopData],
+    depth: Int64,
+    subloops: Vec[LoopData],
 }
 
 impl LoopData {
     pub static fn new(header: Block): LoopData {
-        LoopData(header, Vec[Block]::new(), BitVec::new())
+        LoopData(
+            header,
+            Vec[Edge]::new(),
+            BitVec::new(),
+            None[LoopData],
+            0,
+            Vec[LoopData]::new(),
+        )
     }
 
     pub fn getHeader(): Block {
         self.header
     }
 
-    pub fn addBackEdge(block: Block) {
-        self.backEdges.push(block);
+    pub fn addBackEdge(edge: Edge) {
+        self.backEdges.push(edge);
+    }
+
+    pub fn getBackEdges(): Vec[Edge] {
+        self.backEdges
     }
 
     pub fn numberBackEdges(): Int32 {
@@ -372,7 +379,28 @@ impl LoopData {
     }
 
     pub fn addBlock(block: Block) {
+        assert(!self.containsBlock(block));
         self.blocks.insert(block.id().toInt64());
+
+        if block.isLoopHeader() {
+            let loop = block.getLoopData().getOrPanic();
+            loop.setLoopParent(self);
+        }
+    }
+
+    fn setLoopParent(parent: LoopData) {
+        assert(self.parent.isNone());
+        assert(self.depth == 0);
+        self.parent = Some[LoopData](parent);
+        self.increaseLoopDepth();
+    }
+
+    fn increaseLoopDepth() {
+        self.depth = self.depth + 1;
+
+        for subloop in self.subloops {
+            subloop.increaseLoopDepth();
+        }
     }
 
     pub fn containsBlock(block: Block): Bool {
@@ -1364,5 +1392,9 @@ impl Edge {
     pub fn markAsBackwardEdge() {
         assert(!self.backward);
         self.backward = true;
+    }
+
+    pub fn isBackward(): Bool {
+        self.backward
     }
 }

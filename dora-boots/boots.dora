@@ -3,6 +3,7 @@ use package::codegen::CodeGen;
 use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
 use package::codegen::{emitInst, CodeDescriptor, setLocationConstraints};
+use package::dominator::buildDominatorTree;
 use package::graph::{Graph, Location, LocationData, Op, opName};
 use package::graph::dump::dumpGraph;
 use package::graph_builder::createGraph;
@@ -25,6 +26,8 @@ mod serializer;
 pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
     let graph = createGraph(ci.bc);
     let codegen = createCodeGen(ci);
+
+    buildDominatorTree(graph);
 
     if (ci.emitGraph) {
         println("after graph building:");

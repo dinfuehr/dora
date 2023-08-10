@@ -3,7 +3,7 @@ use std::StringBuffer;
 
 use package::assembler::arm64::registerName as registerNameOnArm64;
 use package::assembler::x64::registerName as registerNameOnX64;
-use package::graph::{Block, Graph, Input, Inst, Location, LocationData, Op};
+use package::graph::{Block, Edge, Graph, Input, Inst, Location, LocationData, Op};
 use package::interface::Architecture;
 
 pub fn dumpGraph(graph: Graph, architecture: Architecture): String {
@@ -32,39 +32,8 @@ impl GraphDumper {
     fn dumpBlock(block: Block) {
         self.buffer.append("@${block.id()}:");
 
-        if !block.predecessors.isEmpty() {
-            self.buffer.append(" pred = [");
-            let mut first: Bool = true;
-
-            for pred in block.predecessors {
-                if first {
-                    self.buffer.append("@${pred.source.id()}");
-                } else {
-                    self.buffer.append(", @${pred.source.id()}");
-                }
-
-                first = false;
-            }
-
-            self.buffer.append("]");
-        }
-
-        if !block.successors.isEmpty() {
-            self.buffer.append(" succ = [");
-            let mut first: Bool = true;
-
-            for succ in block.successors {
-                if first {
-                    self.buffer.append("@${succ.target.id()}");
-                } else {
-                    self.buffer.append(", @${succ.target.id()}");
-                }
-
-                first = false;
-            }
-
-            self.buffer.append("]");
-        }
+        self.dumpEdgeList(true, block.predecessors);
+        self.dumpEdgeList(false, block.successors);
 
         self.buffer.appendNewline();
 
@@ -75,6 +44,33 @@ impl GraphDumper {
         for inst in block.instructionsIterator() {
             self.dumpInst(inst);
         }
+    }
+
+    fn dumpEdgeList(is_pred: Bool, edges: Vec[Edge]) {
+        if edges.isEmpty() {
+            return;
+        }
+
+        let name = if is_pred { "pred" } else { "succ" };
+        self.buffer.append(" ${name} = [");
+        let mut first: Bool = true;
+
+        for edge in edges {
+            if !first {
+                self.buffer.append(", ");
+            }
+
+            let block = if is_pred { edge.source } else { edge.target };
+            self.buffer.append("@${block.id()}");
+
+            if edge.isBackward() {
+                self.buffer.append(" (BACK)");
+            }
+
+            first = false;
+        }
+
+        self.buffer.append("]");
     }
 
     fn dumpInst(inst: Inst) {
