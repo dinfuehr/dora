@@ -6,12 +6,33 @@ pub fn computeLiveness(graph: Graph) {
     for block in graph.postOrderIterator() {
         let live = BitVec::new();
 
+        for successorEdge in block.successors {
+            let successor = successorEdge.target;
+            let idx = successorEdge.targetIdx;
+
+            for phi in successor.phisIterator() {
+                let input = phi.getInput(idx);
+                live.insert(input.getValue().id().toInt64());
+            }
+        }
+
+        for successorEdge in block.successors {
+            if successorEdge.isBackward() {
+                continue;
+            }
+
+            let successorLiveIn = successorEdge.target.getLiveIn();
+            // TODO: liveIn.merge(successorLiveIn);
+        }
+
         for inst in block.reverseInstructionsIterator() {
-            for use_ in inst.uses() {
-                live.insert(use_.getValue().id().toInt64());
+            for input in inst.uses() {
+                live.insert(input.getValue().id().toInt64());
             }
 
             live.remove(inst.id().toInt64());
         }
+
+        block.setLiveIn(live);
     }
 }

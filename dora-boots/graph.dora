@@ -191,6 +191,8 @@ pub class Block {
     dominator: Option[Block],
     dominatedBlocks: Vec[Block],
 
+    liveIn: Option[BitVec],
+
     pub predecessors: Vec[Edge],
     pub successors: Vec[Edge],
 
@@ -207,6 +209,7 @@ impl Block {
             None[Graph],
             None[Block],
             Vec[Block]::new(),
+            None[BitVec],
             Vec[Edge]::new(),
             Vec[Edge]::new(),
             None[LoopData],
@@ -258,7 +261,9 @@ impl Block {
     }
 
     pub fn addSuccessor(block: Block): Edge {
-        let edge = Edge::new(self, block);
+        let successorIdx = self.successors.size();
+        let predecessorIdx = block.predecessors.size();
+        let edge = Edge::new(self, successorIdx, block, predecessorIdx);
         self.successors.push(edge);
         block.predecessors.push(edge);
         edge
@@ -330,6 +335,15 @@ impl Block {
 
     pub fn removePhi(inst: Inst) {
         unimplemented();
+    }
+
+    pub fn setLiveIn(liveIn: BitVec) {
+        assert(self.liveIn.isNone());
+        self.liveIn = Some(liveIn);
+    }
+
+    pub fn getLiveIn(): BitVec {
+        self.liveIn.getOrPanic()
     }
 }
 
@@ -1376,15 +1390,19 @@ impl BackwardInstIterator {
 
 pub class Edge {
     pub source: Block,
+    pub sourceIdx: Int64,
     pub target: Block,
+    pub targetIdx: Int64,
     backward: Bool,
 } 
 
 impl Edge {
-    static fn new(source: Block, target: Block): Edge {
+    static fn new(source: Block, sourceIdx: Int64, target: Block, targetIdx: Int64): Edge {
         Edge(
             source,
+            sourceIdx,
             target,
+            targetIdx,
             false,
         )
     }
