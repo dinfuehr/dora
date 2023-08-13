@@ -4,7 +4,7 @@ use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
 use package::codegen::{emitInst, CodeDescriptor, setLocationConstraints};
 use package::dominator::buildDominatorTree;
-use package::graph::{Graph, Location, LocationData, Op, opName};
+use package::graph::{createMove, Graph, Location, LocationData, Op, opName};
 use package::graph::dump::dumpGraph;
 use package::graph_builder::createGraph;
 use package::interface::{Architecture, CompilationInfo};
@@ -39,6 +39,7 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
 
     ensureLocationData(graph, codegen);
     allocateRegisters(graph, codegen);
+    removePhis(graph);
 
     if (ci.emitGraph) {
         println("after register allocation:");
@@ -59,7 +60,15 @@ fn ensureLocationData(graph: Graph, codegen: CodeGen) {
 fn allocateRegisters(graph: Graph, codegen: CodeGen) {
     let available_registers = codegen.allocatableRegisters();
 
-    for block in graph.insertionOrderIterator() {
+    for block in graph.reversePostOrderIterator() {
+        for inst in block.phisIterator() {
+            let loc = inst.getLocationData();
+
+            // pick a register
+            let register = available_registers.acquire().getOrPanic();
+            loc.getOutput().setRegister(register);
+        }
+
         for inst in block.instructionsIterator() {
             let loc = inst.getLocationData();
             let mut idx = 0;
@@ -83,6 +92,31 @@ fn allocateRegisters(graph: Graph, codegen: CodeGen) {
                     let register = available_registers.acquire().getOrPanic();
                     output.setRegister(register);
                 }
+            }
+        }
+    }
+}
+
+fn removePhis(graph: Graph) {
+    for block in graph.insertionOrderIterator() {
+        for phi in block.phisIterator() {
+            let phiDestRegister = phi.getLocationData().getOutput().getRegister();
+
+            for predecessorEdge in block.predecessors {
+                let predecessor = predecessorEdge.source;
+                let value = phi.getInput(predecessorEdge.targetIdx).getValue();
+
+                // Critical edges are not supported yet.
+                assert(predecessor.successors.size() == 1);
+
+                let valueRegister = value.getLocationData().getOutput().getRegister();
+
+                // Insert move into predecessor
+                // TODO: should be parallel move
+                let inst = createMove(phiDestRegister, valueRegister);
+                let terminator = predecessor.lastInst();
+                assert(terminator.isTerminator());
+                predecessor.insertBefore(inst, terminator);
             }
         }
     }

@@ -293,6 +293,19 @@ impl Block {
         inst
     }
 
+    pub fn insertBefore(inst: Inst, location: Inst): Inst {
+        assert(inst.block.isNone() && inst._id.isNone());
+        assert(location.block.getOrPanic() === self);
+
+        inst.block = Some(self);
+        inst._id = Some(self.graph.getOrPanic().nextInstId());
+
+        self.instructions.insertBefore(inst, location);
+        inst.registerUses();
+
+        inst
+    }
+
     pub fn isLoopHeader(): Bool {
         self.loopData.isSome() && self.loopData.getOrPanic().header === self
     }
@@ -523,8 +536,8 @@ pub enum Op {
     FieldSet,
     Arg,
 
-    GapMove,
-    GapConstant,
+    Move,
+    MoveImmediate,
 }
 
 impl Op {
@@ -604,8 +617,8 @@ pub fn opName(op: Op): String {
         Op::FieldGet => "FieldGet",
         Op::FieldSet => "FieldSet",
         Op::Arg => "Arg",
-        Op::GapMove => "GapMove",
-        Op::GapConstant => "GapConstant",
+        Op::Move => "Move",
+        Op::MoveImmediate => "MoveImmediate",
     }
 }
 
@@ -624,6 +637,7 @@ pub class Inst {
     ty: Type,
 
     location_data: Option[LocationData],
+    moves: Vec[(Register, Register)],
 
     useListHead: Option[Input],
     useListTail: Option[Input],
@@ -645,6 +659,7 @@ impl Inst {
             None[Inst],
             Type::Unit,
             None[LocationData],
+            Vec[(Register, Register)]::new(),
             None[Input],
             None[Input],
             Vec[Input]::new(),
@@ -695,6 +710,10 @@ impl Inst {
 
     pub fn getType(): Type {
         return self.ty;
+    }
+
+    pub fn addMove(dest: Register, source: Register) {
+        self.moves.push((dest, source));
     }
 
     pub fn addInput(inst: Inst) {
@@ -931,8 +950,8 @@ impl Inst {
             Op::FieldGet => false,
             Op::FieldSet => true,
             Op::Arg => false,
-            Op::GapMove => false,
-            Op::GapConstant => false,
+            Op::Move => false,
+            Op::MoveImmediate => false,
         }
     }
 }
@@ -947,6 +966,15 @@ impl LocationData {
     pub static fn new(inst: Inst): LocationData {
         let count = inst.getInputs().size();
         let inputs = Array[Option[Location]]::fill(count, None[Location]);
+        LocationData(
+            inputs,
+            Vec[Location]::new(),
+            None[Location],
+        )
+    }
+
+    pub static fn newWith(inputs: Int64): LocationData {
+        let inputs = Array[Option[Location]]::fill(inputs, None[Location]);
         LocationData(
             inputs,
             Vec[Location]::new(),
@@ -1073,6 +1101,18 @@ fn removeUse(input: Input) {
 
     input.previousUse = None;
     input.nextUse = None;
+}
+
+pub fn createMove(dest: Register, source: Register): Inst {
+    let inst = Inst::new();
+    inst._op = Some(Op::Move);
+
+    let loc = LocationData::newWith(1);
+    loc.output = Some(Location::fixedRegister(dest));
+    loc.inputs(0) = Some[Location](Location::fixedRegister(source));
+    inst.setLocationData(loc);
+
+    inst
 }
 
 pub fn createNullConst(value: UInt8): Inst {
@@ -1312,6 +1352,20 @@ impl InstLinkedList {
             inst.next = None;
 
             self.last = Some(inst);
+        }
+    }
+
+    fn insertBefore(inst: Inst, location: Inst) {
+        if location.previous.isNone() {
+            assert(self.first.getOrPanic() === location);
+            inst.previous = None;
+            inst.next = Some(location);
+            location.previous = Some(inst);
+            self.first = Some(inst);
+        } else {
+            inst.previous = Some(location.previous.getOrPanic());
+            inst.next = Some(location);
+            location.previous = Some(inst);
         }
     }
 

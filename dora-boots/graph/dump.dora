@@ -214,8 +214,8 @@ fn dumpInstName(inst: Inst): String {
         Op::FieldGet => "FieldGet.${inst.getType()}",
         Op::FieldSet => "FieldSet",
         Op::Arg => "Arg.${inst.getType()}(${inst.auxAsInt32()})",
-        Op::GapMove => "GapMove",
-        Op::GapConstant => "GapConstant",
+        Op::Move => "Move",
+        Op::MoveImmediate => "MoveImmediate",
     }
 }
 
