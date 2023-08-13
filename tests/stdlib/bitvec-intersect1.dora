@@ -1,0 +1,17 @@
+fn main() {
+    let s1 = std::BitVec::new();
+    s1.insert(0);
+    s1.insert(63);
+    assert(s1.capacity() == 64);
+
+    let s2 = std::BitVec::new();
+    s2.insert(0);
+    s2.insert(1);
+
+    s1.intersectWith(s2);
+    assert(s1.contains(0));
+    assert(!s1.contains(1));
+    assert(!s1.contains(63));
+    assert(!s1.contains(64));
+    assert(s1.capacity() == 64);
+}

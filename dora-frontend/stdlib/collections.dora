@@ -332,19 +332,53 @@ impl BitVec {
   }
 
   pub fn ensureCapacity(newcap: Int64) {
-    if newcap < self.data.size() * 32i64 || newcap == 0i64 {
+    let newsize = (newcap + 31i64) / 32i64;
+    self.ensureSize(newsize);
+  }
+
+  fn ensureSize(newsize: Int64) {
+    if newsize < self.data.size() || newsize == 0 {
       return;
     }
 
-    let newcap = (newcap + 31i64) / 32i64;
-
-    let newarray = Array[Int32]::zero(newcap);
-    Array[Int32]::copy(self.data, 0i64, newarray, 0i64, self.data.size());
+    let newarray = Array[Int32]::zero(newsize);
+    Array[Int32]::copy(self.data, 0, newarray, 0, self.data.size());
     self.data = newarray;
   }
 
   pub fn capacity(): Int64 {
     self.data.size() * 32i64
+  }
+
+  pub fn unionWith(other: BitVec) {
+    self.ensureSize(other.data.size());
+
+    let mut idx = 0;
+    let mut size = self.data.size();
+
+    if size > other.data.size() {
+      size = other.data.size();
+    }
+
+    while idx < size {
+      self.data(idx) = self.data(idx) | other.data(idx);
+      idx = idx + 1;
+    }
+  }
+
+  pub fn intersectWith(other: BitVec) {
+    let mut idx = 0;
+    let mut size = Int64::min(self.data.size(), other.data.size());
+
+    while idx < size {
+      self.data(idx) = self.data(idx) & other.data(idx);
+      idx = idx + 1;
+    }
+
+    while idx < self.data.size() {
+      self.data(idx) = 0i32;
+      idx = idx + 1;
+    }
   }
 }
 
