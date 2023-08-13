@@ -424,6 +424,10 @@ impl LoopData {
     pub fn containsLoop(other: LoopData): Bool {
         self.containsBlock(other.header)
     }
+
+    pub fn blocks(): BitVec {
+        self.blocks
+    }
 }
 
 pub class Input {

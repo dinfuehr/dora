@@ -22,7 +22,7 @@ pub fn computeLiveness(graph: Graph) {
             }
 
             let successorLiveIn = successorEdge.target.getLiveIn();
-            // TODO: liveIn.merge(successorLiveIn);
+            live.unionWith(successorLiveIn);
         }
 
         for inst in block.reverseInstructionsIterator() {
@@ -34,5 +34,19 @@ pub fn computeLiveness(graph: Graph) {
         }
 
         block.setLiveIn(live);
+    }
+
+    for block in graph.reversePostOrderIterator() {
+        if !block.isLoopHeader() {
+            return;
+        }
+
+        let loopData = block.getLoopData().getOrPanic();
+        let liveLoop = block.getLiveIn();
+
+        for loopBlockId in loopData.blocks() {
+            let loopBlock = graph.getBlockWithId(loopBlockId.toInt32());
+            loopBlock.getLiveIn().unionWith(liveLoop);
+        }
     }
 }

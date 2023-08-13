@@ -15,6 +15,8 @@ fn main() {
     assert(!set.contains(64));
     assert(!set.contains(128));
 
+    assertBitVec(set, 0, 63);
+
     set.insert(0);
     set.insert(1);
     set.insert(31);
@@ -31,6 +33,8 @@ fn main() {
     assert(!set.contains(62));
     assert(set.contains(63));
 
+    assertBitVec(set, 0, 1, 31, 32, 63);
+
     set.remove(0);
     set.remove(63);
 
@@ -42,7 +46,20 @@ fn main() {
     assert(!set.contains(64));
     assert(!set.contains(128));
     assert(set.capacity() == 64);
+    assertBitVec(set, 1, 31, 32);
 
     set.insert(64);
     assert(set.capacity() == 96);
+
+    assertBitVec(set, 1, 31, 32, 64);
+}
+
+fn assertBitVec(bitvec: std::BitVec, entries: Int64...) {
+    let it = bitvec.makeIterator();
+
+    for entry in entries {
+        assert(it.next().getOrPanic() == entry);
+    }
+
+    assert(it.next().isNone());
 }

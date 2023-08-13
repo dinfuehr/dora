@@ -14,4 +14,8 @@ fn main() {
     assert(!s1.contains(63));
     assert(!s1.contains(64));
     assert(s1.capacity() == 64);
+
+    let iter = s1.makeIterator();
+    assert(iter.next().getOrPanic() == 0);
+    assert(iter.next().isNone());
 }

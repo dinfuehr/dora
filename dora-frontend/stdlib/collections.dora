@@ -290,9 +290,9 @@ impl BitVec {
       return false;
     }
 
-    let entry_idx = idx / 32i64;
+    let entry_idx = idx >> 5i32;
     let value = self.data.get(entry_idx);
-    let value_idx = idx - entry_idx;
+    let value_idx = idx & 0x1F;
 
     return value & (1i32 << value_idx.toInt32()) != 0i32;
   }
@@ -304,9 +304,9 @@ impl BitVec {
 
     self.ensureCapacity(idx+1i64);
 
-    let entry_idx = idx / 32i64;
+    let entry_idx = idx >> 5i32;
     let mut value = self.data.get(entry_idx);
-    let value_idx = idx - entry_idx;
+    let value_idx = idx & 0x1F;
 
     value = value | (1i32 << value_idx.toInt32());
 
@@ -322,9 +322,9 @@ impl BitVec {
         return;
     }
 
-    let entry_idx = idx / 32i64;
+    let entry_idx = idx >> 5i32;
     let mut value = self.data.get(entry_idx);
-    let value_idx = idx - entry_idx;
+    let value_idx = idx & 0x1F;
 
     value = value & !(1i32 << value_idx.toInt32());
 
@@ -379,6 +379,43 @@ impl BitVec {
       self.data(idx) = 0i32;
       idx = idx + 1;
     }
+  }
+
+  pub fn makeIterator(): BitVecIter {
+    BitVecIter(self, 0, !0i32)
+  }
+}
+
+pub class BitVecIter {
+  bitvec: BitVec,
+  idx: Int64,
+  mask: Int32,
+}
+
+impl BitVecIter {
+  pub fn next(): Option[Int64] {
+    while self.idx < self.bitvec.data.size() {
+      let value = self.bitvec.data(self.idx) & self.mask;
+      let bit = value.countZeroBitsTrailing();
+
+      if bit == 32i32 {
+        self.idx = self.idx + 1;
+        self.mask = !0i32;
+      } else {
+        let result = self.idx * 32 + bit.toInt64();
+
+        if bit == 31i32 {
+          self.idx = self.idx + 1;
+          self.mask = !0i32;
+        } else {
+          self.mask = !((1i32 << (bit + 1i32)) - 1i32);
+        }
+
+        return Some[Int64](result);
+      }
+    }
+
+    None[Int64]
   }
 }
 
