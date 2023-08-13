@@ -184,6 +184,7 @@ impl RegSet {
         if idx == 64i32 {
             None[Register]
         } else {
+            self.value = self.value & !(1 << idx);
             Some[Register](Register(idx.toUInt8()))
         }
     }

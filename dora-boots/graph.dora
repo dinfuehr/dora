@@ -2,7 +2,7 @@ use std::Hash;
 use std::Equals;
 use std::BitVec;
 
-use package::assembler::Register;
+use package::assembler::{Label, Register};
 use package::graph::ty::Type;
 use package::bytecode::data::GlobalId;
 use package::dominator::buildDominatorTree;
@@ -186,6 +186,7 @@ pub class Block {
     phis: InstLinkedList,
     instructions: InstLinkedList,
 
+    label: Option[Label],
     graph: Option[Graph],
 
     dominator: Option[Block],
@@ -206,6 +207,7 @@ impl Block {
             None[Int32],
             InstLinkedList::new(),
             InstLinkedList::new(),
+            None[Label],
             None[Graph],
             None[Block],
             Vec[Block]::new(),
@@ -357,6 +359,15 @@ impl Block {
 
     pub fn getLiveIn(): BitVec {
         self.liveIn.getOrPanic()
+    }
+
+    pub fn setLabel(label: Label) {
+        assert(self.label.isNone());
+        self.label = Some(label);
+    }
+
+    pub fn getLabel(): Label {
+        self.label.getOrPanic()
     }
 }
 

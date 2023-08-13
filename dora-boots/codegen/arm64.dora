@@ -116,6 +116,14 @@ impl CodeGen for CodeGenArm64 {
         self.comments.insert(self.asm.position(), comment);
     }
 
+    fn createLabel(): Label {
+        self.asm.createLabel()
+    }
+
+    fn bindLabel(label: Label) {
+        self.asm.bindLabel(label);
+    }
+
     fn emitTrueConst(inst: Inst) {
         let loc = inst.getLocationData();
         let register = loc.getOutput().getRegister();
@@ -227,6 +235,31 @@ impl CodeGen for CodeGenArm64 {
             self.asm.bindLabel(lbl_overflow);
             self.trap(REG_TMP1, TRAP_OVERFLOW, self.info.bc.getLocationAt(inst.bytecode_position()));
         });
+    }
+
+    fn emitIf(inst: Inst) {
+        let loc = inst.getLocationData();
+        let opnd = loc.getInput(0).getRegister();
+
+        let currentBlock = inst.getBlock();
+        let trueBlock = inst.getTrueBlock();
+        let falseBlock = inst.getFalseBlock();
+
+        if currentBlock.postOrderIdx == trueBlock.postOrderIdx + 1i32 {
+            self.asm.cbz(opnd, falseBlock.getLabel());
+        } else {
+            assert(currentBlock.postOrderIdx == falseBlock.postOrderIdx + 1i32);
+            self.asm.cbnz(opnd, trueBlock.getLabel());
+        }
+    }
+
+    fn emitGoto(inst: Inst) {
+        let currentBlock = inst.getBlock();
+        let targetBlock = inst.getTargetBlock();
+
+        if currentBlock.postOrderIdx != targetBlock.postOrderIdx + 1i32 {
+            self.asm.b(targetBlock.getLabel());
+        }
     }
 
     fn emitReturn(inst: Inst) {

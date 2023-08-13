@@ -1,0 +1,15 @@
+//= boots
+//= ignore
+
+fn main() {
+    assert(f(true) == 10);
+    assert(f(false) == 20);
+}
+
+@optimizeImmediately fn f(x: Bool): Int64 {
+    if x {
+        10
+    } else {
+        20
+    }
+}

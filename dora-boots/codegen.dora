@@ -1,7 +1,7 @@
 use std::collections::VecIter;
 
 use package::bytecode::data::Location;
-use package::assembler::{Register, RegSet};
+use package::assembler::{Label, Register, RegSet};
 use package::interface::CompilationInfo;
 use package::graph::{Inst, LocationData, Op};
 
@@ -16,6 +16,9 @@ pub trait CodeGen {
     fn prolog();
     fn finalize(): CodeDescriptor;
 
+    fn createLabel(): Label;
+    fn bindLabel(label: Label);
+
     fn emitTrueConst(inst: Inst);
     fn emitFalseConst(inst: Inst);
     fn emitInt64Const(inst: Inst);
@@ -26,6 +29,8 @@ pub trait CodeGen {
     fn emitCheckedMod(inst: Inst);
     fn emitDivZeroCheck(inst: Inst);
     fn emitCheckedNeg(inst: Inst);
+    fn emitIf(inst: Inst);
+    fn emitGoto(inst: Inst);
     fn emitReturn(inst: Inst);
 
     fn emitComment(comment: String);
@@ -45,6 +50,16 @@ pub fn setLocationConstraints(codegen: CodeGen, inst: Inst) {
         Op::TrueConst |
         Op::FalseConst => {
             loc.requireOutputRegister();
+        },
+
+        Op::Phi => {
+            loc.requireOutputRegister();
+            let mut idx = 0;
+
+            for input in inst.getInputs() {
+                loc.requireInputRegister(idx);
+                idx = idx + 1;
+            }
         },
 
         Op::Int64Const => {
@@ -69,6 +84,12 @@ pub fn setLocationConstraints(codegen: CodeGen, inst: Inst) {
             loc.requireInputRegister(0);
             loc.requireOutputRegister();
         },
+
+        Op::If => {
+            loc.requireInputRegister(0);
+        },
+
+        Op::Goto => {},
 
         Op::Return => {
             if inst.hasInput() {
@@ -137,6 +158,16 @@ pub fn emitInst(codegen: CodeGen, inst: Inst) {
         Op::DivZeroCheck => {
             codegen.emitComment("DivZeroCheck");
             codegen.emitDivZeroCheck(inst);
+        },
+
+        Op::If => {
+            codegen.emitComment("If");
+            codegen.emitIf(inst);
+        },
+
+        Op::Goto => {
+            codegen.emitComment("Goto");
+            codegen.emitGoto(inst);
         },
 
         Op::Return => {

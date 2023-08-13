@@ -1,0 +1,14 @@
+//= boots
+
+fn main() {
+    assert(f(true) == 10);
+    assert(f(false) == 20);
+}
+
+@optimizeImmediately fn f(x: Bool): Int64 {
+    if x {
+        return 10;
+    } else {
+        return 20;
+    }
+}

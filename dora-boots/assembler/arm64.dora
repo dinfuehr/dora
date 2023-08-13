@@ -38,7 +38,7 @@ pub let R30: Register = Register(30u8);
 
 pub fn registerName(register: Register): String {
     if register.value <= 30u8 {
-        "x#{register.value}"
+        "x${register.value}"
     } else if register == REG_ZERO {
         "xzr"
     } else if register == REG_SP {

@@ -39,18 +39,22 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
 
     ensureLocationData(graph, codegen);
     allocateRegisters(graph, codegen);
-    removePhis(graph);
 
     if (ci.emitGraph) {
         println("after register allocation:");
         println(dumpGraph(graph, config.architecture));
     }
 
+    removePhis(graph);
     generate(graph, codegen)
 }
 
 fn ensureLocationData(graph: Graph, codegen: CodeGen) {
     for block in graph.insertionOrderIterator() {
+        for inst in block.phisIterator() {
+            setLocationConstraints(codegen, inst);
+        }
+
         for inst in block.instructionsIterator() {
             setLocationConstraints(codegen, inst);
         }
@@ -126,7 +130,12 @@ fn generate(graph: Graph, codegen: CodeGen): CodeDescriptor {
     codegen.prolog();
 
     for block in graph.insertionOrderIterator() {
+        block.setLabel(codegen.createLabel());
+    }
+
+    for block in graph.insertionOrderIterator() {
         codegen.emitComment("Block ${block.id()}");
+        codegen.bindLabel(block.getLabel());
 
         for inst in block.instructionsIterator() {
             emitInst(codegen, inst);

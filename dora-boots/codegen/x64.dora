@@ -1,7 +1,7 @@
 use package::assembler::x64::{AssemblerX64, Address, Condition, Immediate, ScaleFactor};
 use package::assembler::x64::{RAX, RDI, RDX, RCX, RSI, RBP, RSP};
 use package::assembler::x64::{R8, R9, R10, R11};
-use package::assembler::{Register, RegSet};
+use package::assembler::{Label, Register, RegSet};
 use package::bytecode::data::Location;
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen, CodeDescriptor, CommentTable, LocationTable};
 use package::interface::{Architecture, CompilationInfo, config, TRAP_DIV0, TRAP_OVERFLOW};
@@ -137,6 +137,14 @@ impl CodeGen for CodeGenX64 {
         self.comments.insert(self.asm.position(), comment);
     }
 
+    fn createLabel(): Label {
+        self.asm.createLabel()
+    }
+
+    fn bindLabel(label: Label) {
+        self.asm.bindLabel(label);
+    }
+
     fn emitInt64Const(inst: Inst) {
         let loc = inst.getLocationData();
         let register = loc.getOutput().getRegister();
@@ -253,6 +261,33 @@ impl CodeGen for CodeGenX64 {
             self.asm.bindLabel(lbl_overflow);
             self.trap(REG_TMP1, TRAP_OVERFLOW, self.info.bc.getLocationAt(inst.bytecode_position()));
         });
+    }
+
+    fn emitIf(inst: Inst) {
+        let loc = inst.getLocationData();
+        let opnd = loc.getInput(0).getRegister();
+
+        let currentBlock = inst.getBlock();
+        let trueBlock = inst.getTrueBlock();
+        let falseBlock = inst.getFalseBlock();
+
+        if currentBlock.postOrderIdx == trueBlock.postOrderIdx + 1i32 {
+            self.asm.testl_rr(opnd, opnd);
+            self.asm.jcc(Condition::Zero, falseBlock.getLabel());
+        } else {
+            assert(currentBlock.postOrderIdx == falseBlock.postOrderIdx + 1i32);
+            self.asm.testl_rr(opnd, opnd);
+            self.asm.jcc(Condition::NotZero, trueBlock.getLabel());
+        }
+    }
+
+    fn emitGoto(inst: Inst) {
+        let currentBlock = inst.getBlock();
+        let targetBlock = inst.getTargetBlock();
+
+        if currentBlock.postOrderIdx != targetBlock.postOrderIdx + 1i32 {
+            self.asm.jmp(targetBlock.getLabel());
+        }
     }
 
     fn emitReturn(inst: Inst) {
