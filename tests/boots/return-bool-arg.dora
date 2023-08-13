@@ -1,0 +1,8 @@
+//= boots
+
+fn main() {
+    assert(f(true));
+    assert(!(f(false)));
+}
+
+@optimizeImmediately fn f(x: Bool): Bool { x }

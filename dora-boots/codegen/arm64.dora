@@ -4,7 +4,7 @@ use package::assembler::arm64::{AssemblerArm64, Cond, Shift};
 use package::assembler::arm64::{R0, R1, R2, R3, R4, R5, R6, R7, R10, R11};
 use package::assembler::arm64::{REG_FP, REG_SP, REG_LR, REG_ZERO};
 use package::assembler::{Label, RegSet, Register};
-use package::graph::{Inst, Op, LocationData};
+use package::graph::{Inst, Op, LocationData, Type};
 
 pub class CodeGenArm64 {
     info: CompilationInfo,
@@ -116,10 +116,22 @@ impl CodeGen for CodeGenArm64 {
         self.comments.insert(self.asm.position(), comment);
     }
 
+    fn emitTrueConst(inst: Inst) {
+        let loc = inst.getLocationData();
+        let register = loc.getOutput().getRegister();
+        self.asm.movz_w(register, 1i32, 0i32);
+    }
+
+    fn emitFalseConst(inst: Inst) {
+        let loc = inst.getLocationData();
+        let register = loc.getOutput().getRegister();
+        self.asm.movz_w(register, 0i32, 0i32);
+    }
+
     fn emitInt64Const(inst: Inst) {
         let loc = inst.getLocationData();
         let register = loc.getOutput().getRegister();
-        self.asm.movz(register, inst.auxAsInt64().toInt32(), 0i32);
+        self.mov_imm(register, inst.auxAsInt64());
     }
 
     fn emitCheckedAdd(inst: Inst) {
@@ -221,9 +233,16 @@ impl CodeGen for CodeGenArm64 {
         if inst.hasInput() {
             let loc = inst.getLocationData();
             let register = loc.getInput(0).getRegister();
+            let ty = inst.getType();
 
             if R0 != register {
-                self.asm.mov(R0, register);
+                if ty == Type::Int64 {
+                    self.asm.mov(R0, register);
+                } else if ty == Type::Bool {
+                    self.asm.mov_w(R0, register);
+                } else {
+                    unreachable[()]();
+                }
             }
         }
 

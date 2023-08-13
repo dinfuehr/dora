@@ -5,7 +5,7 @@ use package::assembler::{Register, RegSet};
 use package::bytecode::data::Location;
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen, CodeDescriptor, CommentTable, LocationTable};
 use package::interface::{Architecture, CompilationInfo, config, TRAP_DIV0, TRAP_OVERFLOW};
-use package::graph::{Inst, Op, LocationData};
+use package::graph::{Inst, Op, LocationData, Type};
 
 pub class CodeGenX64 {
     info: CompilationInfo,
@@ -143,6 +143,18 @@ impl CodeGen for CodeGenX64 {
         self.asm.movq_ri(register, Immediate(inst.auxAsInt64()));
     }
 
+    fn emitTrueConst(inst: Inst) {
+        let loc = inst.getLocationData();
+        let register = loc.getOutput().getRegister();
+        self.asm.movl_ri(register, Immediate(1));
+    }
+
+    fn emitFalseConst(inst: Inst) {
+        let loc = inst.getLocationData();
+        let register = loc.getOutput().getRegister();
+        self.asm.movl_ri(register, Immediate(0));
+    }
+
     fn emitCheckedAdd(inst: Inst) {
         let loc = inst.getLocationData();
         let lhs = loc.getInput(0).getRegister();
@@ -247,9 +259,16 @@ impl CodeGen for CodeGenX64 {
         if inst.hasInput() {
             let loc = inst.getLocationData();
             let register = loc.getInput(0).getRegister();
+            let ty = inst.getType();
 
             if RAX != register {
-                self.asm.movq_rr(RAX, register);
+                if ty == Type::Int64 {
+                    self.asm.movq_rr(RAX, register);
+                } else if ty == Type::Bool {
+                    self.asm.movl_rr(RAX, register);
+                } else {
+                    unreachable[()]();
+                }
             }
         }
 

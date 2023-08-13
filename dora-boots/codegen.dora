@@ -16,6 +16,8 @@ pub trait CodeGen {
     fn prolog();
     fn finalize(): CodeDescriptor;
 
+    fn emitTrueConst(inst: Inst);
+    fn emitFalseConst(inst: Inst);
     fn emitInt64Const(inst: Inst);
     fn emitCheckedAdd(inst: Inst);
     fn emitCheckedSub(inst: Inst);
@@ -38,6 +40,11 @@ pub fn setLocationConstraints(codegen: CodeGen, inst: Inst) {
             let idx = inst.auxAsInt32().toInt64();
             let reg = codegen.argumentRegister(idx);
             loc.requireOutputFixedRegister(reg);
+        },
+
+        Op::TrueConst |
+        Op::FalseConst => {
+            loc.requireOutputRegister();
         },
 
         Op::Int64Const => {
@@ -81,6 +88,16 @@ pub fn setLocationConstraints(codegen: CodeGen, inst: Inst) {
 pub fn emitInst(codegen: CodeGen, inst: Inst) {
     match inst.op() {
         Op::Arg => {},
+
+        Op::TrueConst => {
+            codegen.emitComment("TrueConst");
+            codegen.emitTrueConst(inst);
+        },
+
+        Op::FalseConst => {
+            codegen.emitComment("FalseConst");
+            codegen.emitFalseConst(inst);
+        },
 
         Op::Int64Const => {
             codegen.emitComment("Int64Const");
