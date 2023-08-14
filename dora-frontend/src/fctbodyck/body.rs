@@ -2191,7 +2191,7 @@ impl<'a> TypeCheck<'a> {
         };
 
         let cls = &self.sa.classes[cls_id];
-        let cls_ty = self.sa.cls_with_type_list(cls_id, type_params.clone());
+        let cls_ty = SourceType::Class(cls_id, type_params.clone());
 
         if !is_default_accessible(self.sa, cls.module_id, self.module_id)
             && !cls.all_fields_are_public()
@@ -3259,7 +3259,7 @@ impl<'a> TypeCheck<'a> {
     ) -> SourceType {
         let value = check_lit_str(self.sa, self.file_id, e);
 
-        let str_ty = self.sa.cls(self.sa.known.classes.string());
+        let str_ty = SourceType::Class(self.sa.known.classes.string(), SourceTypeArray::empty());
         self.analysis.set_ty(e.id, str_ty.clone());
         self.analysis.set_literal_string(e.id, value);
 
@@ -3328,7 +3328,7 @@ impl<'a> TypeCheck<'a> {
             }
         }
 
-        let str_ty = self.sa.cls(self.sa.known.classes.string());
+        let str_ty = SourceType::Class(self.sa.known.classes.string(), SourceTypeArray::empty());
         self.analysis.set_ty(e.id, str_ty.clone());
 
         str_ty

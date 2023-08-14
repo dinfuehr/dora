@@ -71,10 +71,10 @@ impl PackageDefinition {
         if table.get(name).is_some() {
             false
         } else {
-            let old_value = self
-                .table
-                .write()
-                .insert(name, SymbolKind::Module(top_level_module_id));
+            let old_value =
+                self.table
+                    .write()
+                    .insert(name, false, SymbolKind::Module(top_level_module_id));
             assert!(old_value.is_none());
             self.dependencies
                 .push(PackageDependency { name, package_id });

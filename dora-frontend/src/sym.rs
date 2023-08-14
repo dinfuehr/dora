@@ -116,7 +116,7 @@ impl ModuleSymTable {
     }
 
     pub fn insert(&mut self, name: Name, sym: SymbolKind) -> Option<Symbol> {
-        self.levels.last_mut().unwrap().insert(name, sym)
+        self.levels.last_mut().unwrap().insert(name, false, sym)
     }
 }
 
@@ -137,8 +137,8 @@ impl SymTable {
         self.table.get(&name).map(|sym| sym.kind.clone())
     }
 
-    pub fn insert(&mut self, name: Name, kind: SymbolKind) -> Option<Symbol> {
-        let symbol = Symbol { export: true, kind };
+    pub fn insert(&mut self, name: Name, is_exported: bool, kind: SymbolKind) -> Option<Symbol> {
+        let symbol = Symbol { is_exported, kind };
         self.table.insert(name, symbol)
     }
 
@@ -179,13 +179,13 @@ impl SymTable {
 
 #[derive(Debug, Clone)]
 pub struct Symbol {
-    export: bool,
+    is_exported: bool,
     kind: SymbolKind,
 }
 
 impl Symbol {
     pub fn is_exported(&self) -> bool {
-        self.export
+        self.is_exported
     }
 
     pub fn kind(&self) -> &SymbolKind {

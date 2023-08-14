@@ -1,4 +1,5 @@
 use crate::error::msg::ErrorMessage;
+use crate::generator_tests::const_by_name;
 use crate::sema::ConstValue;
 use crate::tests::*;
 use dora_parser::Span;
@@ -937,43 +938,43 @@ fn test_const_values() {
                         const e: Float64 = 6.0;",
         |sa| {
             {
-                let id = sa.const_by_name("yes");
+                let id = const_by_name(sa, "yes");
                 let const_ = &sa.consts[id];
                 assert_eq!(&ConstValue::Bool(true), const_.value());
             }
 
             {
-                let id = sa.const_by_name("x");
+                let id = const_by_name(sa, "x");
                 let const_ = &sa.consts[id];
                 assert_eq!(&ConstValue::Int(255), const_.value());
             }
 
             {
-                let id = sa.const_by_name("a");
+                let id = const_by_name(sa, "a");
                 let const_ = &sa.consts[id];
                 assert_eq!(&ConstValue::Int(100), const_.value());
             }
 
             {
-                let id = sa.const_by_name("b");
+                let id = const_by_name(sa, "b");
                 let const_ = &sa.consts[id];
                 assert_eq!(&ConstValue::Int(200), const_.value());
             }
 
             {
-                let id = sa.const_by_name("c");
+                let id = const_by_name(sa, "c");
                 let const_ = &sa.consts[id];
                 assert_eq!(&ConstValue::Char('A'), const_.value());
             }
 
             {
-                let id = sa.const_by_name("d");
+                let id = const_by_name(sa, "d");
                 let const_ = &sa.consts[id];
                 assert_eq!(&ConstValue::Float(3.0), const_.value());
             }
 
             {
-                let id = sa.const_by_name("e");
+                let id = const_by_name(sa, "e");
                 let const_ = &sa.consts[id];
                 assert_eq!(&ConstValue::Float(6.0), const_.value());
             }

@@ -3,8 +3,8 @@ use std::collections::HashSet;
 use crate::access::sym_accessible_from;
 use crate::error::msg::ErrorMessage;
 use crate::report_sym_shadow_span;
-use crate::sema::{module_package, ModuleDefinitionId, Sema};
-use crate::sym::{ModuleSymTable, SymbolKind};
+use crate::sema::{module_package, ModuleDefinitionId, Sema, Visibility};
+use crate::sym::SymbolKind;
 
 use dora_parser::ast::{self, Ident, NodeId, UseAtom, UsePathComponentValue, UsePathDescriptor};
 use dora_parser::Span;
@@ -25,6 +25,7 @@ pub fn check<'a>(sa: &Sema) {
                 &use_elem.ast,
                 use_elem.module_id,
                 use_elem.file_id,
+                use_elem.visibility,
                 None,
                 true,
                 &mut all_resolved,
@@ -50,6 +51,7 @@ pub fn check<'a>(sa: &Sema) {
             &use_elem.ast,
             use_elem.module_id,
             use_elem.file_id,
+            use_elem.visibility,
             None,
             false,
             &mut all_resolved,
@@ -68,6 +70,7 @@ fn check_use(
     use_declaration: &ast::UsePath,
     use_module_id: ModuleDefinitionId,
     use_file_id: SourceFileId,
+    visibility: Visibility,
     previous_sym: Option<SymbolKind>,
     ignore_errors: bool,
     all_resolved: &mut HashSet<(SourceFileId, NodeId)>,
@@ -124,6 +127,7 @@ fn check_use(
                 sa,
                 use_file_id,
                 last_component.span,
+                visibility,
                 use_module_id,
                 name,
                 previous_sym,
@@ -140,6 +144,7 @@ fn check_use(
                     sa,
                     use_file_id,
                     last_component.span,
+                    visibility,
                     use_module_id,
                     ident.clone(),
                     previous_sym,
@@ -160,6 +165,7 @@ fn check_use(
                     nested_use,
                     use_module_id,
                     use_file_id,
+                    visibility,
                     Some(previous_sym.clone()),
                     ignore_errors,
                     all_resolved,
@@ -242,8 +248,13 @@ fn process_component(
 
     match previous_sym {
         SymbolKind::Module(module_id) => {
-            let symtable = ModuleSymTable::new(sa, module_id);
-            let current_sym = symtable.get_string(sa, &component_name.name_as_string);
+            let module = sa.modules.idx(module_id);
+            let module = module.read();
+            let symtable = module.table.clone();
+            let symtable = symtable.read();
+            let name = sa.interner.intern(&component_name.name_as_string);
+
+            let current_sym = symtable.get(name);
 
             if let Some(current_sym) = current_sym {
                 if sym_accessible_from(sa, current_sym.clone(), use_module_id) {
@@ -296,6 +307,7 @@ fn define_use_target(
     sa: &Sema,
     use_file_id: SourceFileId,
     use_span: Span,
+    visibility: Visibility,
     module_id: ModuleDefinitionId,
     ident: Ident,
     sym: SymbolKind,
@@ -308,7 +320,9 @@ fn define_use_target(
 
     let name = sa.interner.intern(&ident.name_as_string);
 
-    if let Some(old_sym) = table.insert(name, sym) {
+    let is_exported = visibility.is_public();
+
+    if let Some(old_sym) = table.insert(name, is_exported, sym) {
         report_sym_shadow_span(sa, name, use_file_id, use_span, old_sym);
         Err(UseError::Fatal)
     } else {
