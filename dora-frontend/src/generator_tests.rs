@@ -21,7 +21,7 @@ use dora_bytecode::{
 
 fn code(code: &'static str) -> Vec<Bytecode> {
     test::check_valid(code, |sa| {
-        let fct_id = fct_by_name(sa, "f").expect("no function `f`.");
+        let fct_id = fct_by_name(sa, "f");
         let fct = generate_fct_id(sa, fct_id);
         build(&fct)
     })
@@ -29,7 +29,7 @@ fn code(code: &'static str) -> Vec<Bytecode> {
 
 fn position(code: &'static str) -> Vec<(u32, u32)> {
     test::check_valid(code, |sa| {
-        let fct_id = fct_by_name(sa, "f").expect("no function `f`.");
+        let fct_id = fct_by_name(sa, "f");
         let fct = generate_fct_id(sa, fct_id);
         fct.locations()
             .iter()
@@ -65,7 +65,7 @@ where
     F: FnOnce(&Sema, Vec<Bytecode>),
 {
     test::check_valid(code, |sa| {
-        let fct_id = fct_by_name(sa, "f").expect("no function `f`.");
+        let fct_id = fct_by_name(sa, "f");
         let fct = generate_fct_id(sa, fct_id);
         let code = build(&fct);
 
@@ -78,7 +78,7 @@ where
     F: FnOnce(&Sema, Vec<Bytecode>, BytecodeFunction),
 {
     test::check_valid(code, |sa| {
-        let fct_id = fct_by_name(sa, "f").expect("no function `f`.");
+        let fct_id = fct_by_name(sa, "f");
         let fct = generate_fct_id(sa, fct_id);
         let code = build(&fct);
 
@@ -1094,7 +1094,7 @@ fn gen_fct_call_void_with_0_args() {
             fn g() { }
             ",
         |sa, code, fct| {
-            let fct_id = fct_by_name(sa, "g").expect("g not found");
+            let fct_id = fct_by_name(sa, "g");
             let expected = vec![InvokeStatic(r(0), ConstPoolIdx(0)), Ret(r(0))];
             assert_eq!(expected, code);
             assert_eq!(
@@ -1113,7 +1113,7 @@ fn gen_fct_call_int_with_0_args() {
             fn g(): Int32 { return 1i32; }
             ",
         |sa, code, fct| {
-            let fct_id = fct_by_name(sa, "g").expect("g not found");
+            let fct_id = fct_by_name(sa, "g");
             let expected = vec![InvokeStatic(r(0), ConstPoolIdx(0)), Ret(r(0))];
             assert_eq!(expected, code);
             assert_eq!(
@@ -1132,7 +1132,7 @@ fn gen_fct_call_int_with_0_args_and_unused_result() {
             fn g(): Int32 { return 1i32; }
             ",
         |sa, code, fct| {
-            let fct_id = fct_by_name(sa, "g").expect("g not found");
+            let fct_id = fct_by_name(sa, "g");
             let expected = vec![InvokeStatic(r(0), ConstPoolIdx(0)), Ret(r(1))];
             assert_eq!(expected, code);
             assert_eq!(
@@ -1151,7 +1151,7 @@ fn gen_fct_call_void_with_1_arg() {
             fn g(a: Int32) { }
             ",
         |sa, code, fct| {
-            let fct_id = fct_by_name(sa, "g").expect("g not found");
+            let fct_id = fct_by_name(sa, "g");
             let expected = vec![
                 ConstInt32(r(0), 1),
                 PushRegister(r(0)),
@@ -1175,7 +1175,7 @@ fn gen_fct_call_void_with_3_args() {
             fn g(a: Int32, b: Int32, c: Int32) { }
             ",
         |sa, code, fct| {
-            let fct_id = fct_by_name(sa, "g").expect("g not found");
+            let fct_id = fct_by_name(sa, "g");
             let expected = vec![
                 ConstInt32(r(0), 1),
                 ConstInt32(r(1), 2),
@@ -1203,7 +1203,7 @@ fn gen_fct_call_int_with_1_arg() {
             fn g(a: Int32): Int32 { return a; }
             ",
         |sa, code, fct| {
-            let fct_id = fct_by_name(sa, "g").expect("g not found");
+            let fct_id = fct_by_name(sa, "g");
             let expected = vec![
                 ConstInt32(r(1), 1),
                 PushRegister(r(1)),
@@ -1227,7 +1227,7 @@ fn gen_fct_call_int_with_3_args() {
             fn g(a: Int32, b: Int32, c: Int32): Int32 { return 1i32; }
             ",
         |sa, code, fct| {
-            let fct_id = fct_by_name(sa, "g").expect("g not found");
+            let fct_id = fct_by_name(sa, "g");
             let expected = vec![
                 ConstInt32(r(1), 1),
                 ConstInt32(r(2), 2),
@@ -3371,7 +3371,7 @@ fn gen_enum_mov_generic() {
 #[test]
 fn gen_unreachable() {
     gen_fct("fn f(): Int32 { unreachable[Int32]() }", |sa, code, fct| {
-        let fct_id = fct_by_name(sa, "unreachable").expect("unreachable not found");
+        let fct_id = fct_by_name(sa, "unreachable");
         let expected = vec![InvokeStatic(r(0), ConstPoolIdx(0)), Ret(r(0))];
         assert_eq!(expected, code);
         assert_eq!(
@@ -4033,29 +4033,37 @@ fn cls_by_name(sa: &Sema, name: &'static str) -> ClassDefinitionId {
     let name = sa.interner.intern(name);
 
     ModuleSymTable::new(sa, sa.program_module_id())
-        .get_class(name)
-        .expect("class not found")
+        .get(name)
+        .expect("symbol not found")
+        .to_class()
+        .expect("class expected")
 }
 
 pub fn struct_by_name(sa: &Sema, name: &'static str) -> StructDefinitionId {
     let name = sa.interner.intern(name);
     ModuleSymTable::new(sa, sa.program_module_id())
-        .get_struct(name)
-        .expect("class not found")
+        .get(name)
+        .expect("symbol not found")
+        .to_struct()
+        .expect("struct expected")
 }
 
 pub fn enum_by_name(sa: &Sema, name: &'static str) -> EnumDefinitionId {
     let name = sa.interner.intern(name);
     ModuleSymTable::new(sa, sa.program_module_id())
-        .get_enum(name)
-        .expect("class not found")
+        .get(name)
+        .expect("symbol not found")
+        .to_enum()
+        .expect("enum expected")
 }
 
 pub fn const_by_name(sa: &Sema, name: &'static str) -> ConstDefinitionId {
     let name = sa.interner.intern(name);
     ModuleSymTable::new(sa, sa.program_module_id())
-        .get_const(name)
-        .expect("class not found")
+        .get(name)
+        .expect("symbol not found")
+        .to_const()
+        .expect("const expected")
 }
 
 pub fn cls_method_by_name(
@@ -4068,8 +4076,10 @@ pub fn cls_method_by_name(
     let function_name = sa.interner.intern(function_name);
 
     let cls_id = ModuleSymTable::new(sa, sa.program_module_id())
-        .get_class(class_name)
-        .expect("class not found");
+        .get(class_name)
+        .expect("symbol not found")
+        .to_class()
+        .expect("class expected");
     let cls = &sa.classes[cls_id];
 
     let candidates =
@@ -4091,8 +4101,10 @@ pub fn struct_method_by_name(
     let function_name = sa.interner.intern(function_name);
 
     let struct_id = ModuleSymTable::new(sa, sa.program_module_id())
-        .get_struct(struct_name)
-        .expect("struct not found");
+        .get(struct_name)
+        .expect("struct not found")
+        .to_struct()
+        .expect("struct expected");
     let struct_ = &sa.structs[struct_id];
 
     let candidates = find_methods_in_struct(
@@ -4119,26 +4131,32 @@ pub fn field_by_name(
     let field_name = sa.interner.intern(field_name);
 
     let cls_id = ModuleSymTable::new(sa, sa.program_module_id())
-        .get_class(class_name)
-        .expect("class not found");
+        .get(class_name)
+        .expect("symbol not found")
+        .to_class()
+        .expect("class expected");
     let cls = &sa.classes[cls_id];
     let field_id = cls.field_by_name(field_name);
 
     (cls_id, field_id)
 }
 
-pub fn fct_by_name(sa: &Sema, name: &str) -> Option<FctDefinitionId> {
+pub fn fct_by_name(sa: &Sema, name: &str) -> FctDefinitionId {
     let name = sa.interner.intern(name);
-    ModuleSymTable::new(sa, sa.program_module_id()).get_fct(name)
+    ModuleSymTable::new(sa, sa.program_module_id())
+        .get(name)
+        .expect("symbol not found")
+        .to_fct()
+        .expect("function expected")
 }
 
 pub fn trait_by_name(sa: &Sema, name: &str) -> TraitDefinitionId {
     let name = sa.interner.intern(name);
-    let trait_id = ModuleSymTable::new(sa, sa.program_module_id())
-        .get_trait(name)
-        .expect("class not found");
-
-    trait_id
+    ModuleSymTable::new(sa, sa.program_module_id())
+        .get(name)
+        .expect("symbol not found")
+        .to_trait()
+        .expect("trait expected")
 }
 
 pub fn trait_method_by_name(sa: &Sema, trait_name: &str, method_name: &str) -> FctDefinitionId {
@@ -4157,8 +4175,10 @@ pub fn trait_method_by_name(sa: &Sema, trait_name: &str, method_name: &str) -> F
 pub fn global_by_name(sa: &Sema, name: &str) -> GlobalDefinitionId {
     let name = sa.interner.intern(name);
     ModuleSymTable::new(sa, sa.program_module_id())
-        .get_global(name)
-        .expect("global not found")
+        .get(name)
+        .expect("symbol not found")
+        .to_global()
+        .expect("global expecte")
 }
 
 fn r(val: usize) -> Register {

@@ -408,13 +408,22 @@ fn create_source_files(sa: &Sema) -> Vec<SourceFileData> {
 
 fn find_main_fct_id(sa: &Sema) -> Option<FunctionId> {
     let name = sa.interner.intern("main");
-    let fctid = if let Some(id) = sa.module_table(sa.program_module_id()).read().get_fct(name) {
-        id
-    } else {
-        return None;
-    };
+    let table = sa.module_table(sa.program_module_id());
+    let sym = table.read().get(name);
 
-    let fct = sa.fcts.idx(fctid);
+    if sym.is_none() {
+        return None;
+    }
+
+    let sym = sym.unwrap();
+
+    if !sym.is_fct() {
+        return None;
+    }
+
+    let fct_id = sym.to_fct().unwrap();
+
+    let fct = sa.fcts.idx(fct_id);
     let fct = fct.read();
     let ret = fct.return_type.clone();
 

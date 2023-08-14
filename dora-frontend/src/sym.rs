@@ -83,38 +83,6 @@ impl ModuleSymTable {
         None
     }
 
-    pub fn get_class(&self, name: Name) -> Option<ClassDefinitionId> {
-        self.get(name).and_then(|n| n.to_class())
-    }
-
-    pub fn get_const(&self, name: Name) -> Option<ConstDefinitionId> {
-        self.get(name).and_then(|n| n.to_const())
-    }
-
-    pub fn get_fct(&self, name: Name) -> Option<FctDefinitionId> {
-        self.get(name).and_then(|n| n.to_fct())
-    }
-
-    pub fn get_struct(&self, name: Name) -> Option<StructDefinitionId> {
-        self.get(name).and_then(|n| n.to_struct())
-    }
-
-    pub fn get_trait(&self, name: Name) -> Option<TraitDefinitionId> {
-        self.get(name).and_then(|n| n.to_trait())
-    }
-
-    pub fn get_enum(&self, name: Name) -> Option<EnumDefinitionId> {
-        self.get(name).and_then(|n| n.to_enum())
-    }
-
-    pub fn get_global(&self, name: Name) -> Option<GlobalDefinitionId> {
-        self.get(name).and_then(|n| n.to_global())
-    }
-
-    pub fn get_var(&self, name: Name) -> Option<NestedVarId> {
-        self.get(name).and_then(|n| n.to_var())
-    }
-
     pub fn insert(&mut self, name: Name, sym: SymbolKind) -> Option<Symbol> {
         self.levels.last_mut().unwrap().insert(name, false, sym)
     }
@@ -140,34 +108,6 @@ impl SymTable {
     pub fn insert(&mut self, name: Name, is_exported: bool, kind: SymbolKind) -> Option<Symbol> {
         let symbol = Symbol { is_exported, kind };
         self.table.insert(name, symbol)
-    }
-
-    pub fn get_fct(&self, name: Name) -> Option<FctDefinitionId> {
-        self.get(name).and_then(|n| n.to_fct())
-    }
-
-    pub fn get_const(&self, name: Name) -> Option<ConstDefinitionId> {
-        self.get(name).and_then(|n| n.to_const())
-    }
-
-    pub fn get_class(&self, name: Name) -> Option<ClassDefinitionId> {
-        self.get(name).and_then(|n| n.to_class())
-    }
-
-    pub fn get_struct(&self, name: Name) -> Option<StructDefinitionId> {
-        self.get(name).and_then(|n| n.to_struct())
-    }
-
-    pub fn get_trait(&self, name: Name) -> Option<TraitDefinitionId> {
-        self.get(name).and_then(|n| n.to_trait())
-    }
-
-    pub fn get_enum(&self, name: Name) -> Option<EnumDefinitionId> {
-        self.get(name).and_then(|n| n.to_enum())
-    }
-
-    pub fn get_global(&self, name: Name) -> Option<GlobalDefinitionId> {
-        self.get(name).and_then(|n| n.to_global())
     }
 
     pub fn dump(&self, sa: &Sema) {
