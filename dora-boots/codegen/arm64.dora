@@ -1,6 +1,6 @@
 use package::interface::{Architecture, CompilationInfo, config, TRAP_DIV0, TRAP_OVERFLOW};
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen, CodeDescriptor, CommentTable, Location, LocationTable};
-use package::assembler::arm64::{AssemblerArm64, Cond, Shift};
+use package::assembler::arm64::{AssemblerArm64, Cond, Shift, registerName};
 use package::assembler::arm64::{R0, R1, R2, R3, R4, R5, R6, R7, R10, R11};
 use package::assembler::arm64::{REG_FP, REG_SP, REG_LR, REG_ZERO};
 use package::assembler::{Label, RegSet, Register};
@@ -114,6 +114,10 @@ impl CodeGen for CodeGenArm64 {
 
     fn emitComment(comment: String) {
         self.comments.insert(self.asm.position(), comment);
+    }
+
+    fn registerName(register: Register): String {
+        registerName(register)
     }
 
     fn createLabel(): Label {
@@ -280,6 +284,14 @@ impl CodeGen for CodeGenArm64 {
         }
 
         self.epilog();
+    }
+
+    fn emitMove(inst: Inst) {
+        let loc = inst.getLocationData();
+        let src = loc.getInput(0).getRegister();
+        let dest = loc.getOutput().getRegister();
+
+        self.asm.mov(dest, src);
     }
 
     fn finalize(): CodeDescriptor {

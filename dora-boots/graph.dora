@@ -1374,6 +1374,8 @@ impl InstLinkedList {
             location.previous = Some(inst);
             self.first = Some(inst);
         } else {
+            let previous = location.previous.getOrPanic();
+            previous.next = Some(inst);
             inst.previous = Some(location.previous.getOrPanic());
             inst.next = Some(location);
             location.previous = Some(inst);

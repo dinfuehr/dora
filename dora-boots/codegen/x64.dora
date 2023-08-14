@@ -1,4 +1,4 @@
-use package::assembler::x64::{AssemblerX64, Address, Condition, Immediate, ScaleFactor};
+use package::assembler::x64::{AssemblerX64, Address, Condition, Immediate, ScaleFactor, registerName};
 use package::assembler::x64::{RAX, RDI, RDX, RCX, RSI, RBP, RSP};
 use package::assembler::x64::{R8, R9, R10, R11};
 use package::assembler::{Label, Register, RegSet};
@@ -135,6 +135,10 @@ impl CodeGen for CodeGenX64 {
 
     fn emitComment(comment: String) {
         self.comments.insert(self.asm.position(), comment);
+    }
+
+    fn registerName(register: Register): String {
+        registerName(register)
     }
 
     fn createLabel(): Label {
@@ -308,6 +312,14 @@ impl CodeGen for CodeGenX64 {
         }
 
         self.epilog();
+    }
+
+    fn emitMove(inst: Inst) {
+        let loc = inst.getLocationData();
+        let src = loc.getInput(0).getRegister();
+        let dest = loc.getOutput().getRegister();
+
+        self.asm.movq_rr(dest, src);
     }
 
     fn finalize(): CodeDescriptor {

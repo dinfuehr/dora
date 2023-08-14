@@ -39,13 +39,13 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
 
     ensureLocationData(graph, codegen);
     allocateRegisters(graph, codegen);
+    removePhis(graph, codegen);
 
     if (ci.emitGraph) {
         println("after register allocation:");
         println(dumpGraph(graph, config.architecture));
     }
 
-    removePhis(graph);
     generate(graph, codegen)
 }
 
@@ -101,7 +101,7 @@ fn allocateRegisters(graph: Graph, codegen: CodeGen) {
     }
 }
 
-fn removePhis(graph: Graph) {
+fn removePhis(graph: Graph, codegen: CodeGen) {
     for block in graph.insertionOrderIterator() {
         for phi in block.phisIterator() {
             let phiDestRegister = phi.getLocationData().getOutput().getRegister();
