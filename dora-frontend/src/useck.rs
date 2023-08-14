@@ -4,7 +4,7 @@ use crate::access::sym_accessible_from;
 use crate::error::msg::ErrorMessage;
 use crate::report_sym_shadow_span;
 use crate::sema::{module_package, ModuleDefinitionId, Sema};
-use crate::sym::{ModuleSymTable, Sym};
+use crate::sym::{ModuleSymTable, SymbolKind};
 
 use dora_parser::ast::{self, Ident, NodeId, UseAtom, UsePathComponentValue, UsePathDescriptor};
 use dora_parser::Span;
@@ -68,7 +68,7 @@ fn check_use(
     use_declaration: &ast::UsePath,
     use_module_id: ModuleDefinitionId,
     use_file_id: SourceFileId,
-    previous_sym: Option<Sym>,
+    previous_sym: Option<SymbolKind>,
     ignore_errors: bool,
     all_resolved: &mut HashSet<(SourceFileId, NodeId)>,
     resolved: &mut bool,
@@ -179,22 +179,22 @@ fn initial_module(
     use_declaration: &ast::UsePath,
     use_module_id: ModuleDefinitionId,
     use_file_id: SourceFileId,
-    previous_sym: Option<Sym>,
-) -> Result<(usize, Sym), UseError> {
+    previous_sym: Option<SymbolKind>,
+) -> Result<(usize, SymbolKind), UseError> {
     if let Some(namespace) = previous_sym {
         return Ok((0, namespace));
     }
 
     if let Some(first_component) = use_declaration.path.first() {
         match first_component.value {
-            UsePathComponentValue::This => Ok((1, Sym::Module(use_module_id))),
+            UsePathComponentValue::This => Ok((1, SymbolKind::Module(use_module_id))),
             UsePathComponentValue::Package => {
-                Ok((1, Sym::Module(module_package(sa, use_module_id))))
+                Ok((1, SymbolKind::Module(module_package(sa, use_module_id))))
             }
             UsePathComponentValue::Super => {
                 let module = &sa.modules[use_module_id].read();
                 if let Some(module_id) = module.parent_module_id {
-                    Ok((1, Sym::Module(module_id)))
+                    Ok((1, SymbolKind::Module(module_id)))
                 } else {
                     sa.report(
                         use_file_id.into(),
@@ -208,10 +208,10 @@ fn initial_module(
                 if let Some(package_id) = sa.package_names.get(&ident.name_as_string).cloned() {
                     Ok((
                         1,
-                        Sym::Module(sa.packages[package_id].top_level_module_id()),
+                        SymbolKind::Module(sa.packages[package_id].top_level_module_id()),
                     ))
                 } else {
-                    Ok((0, Sym::Module(use_module_id)))
+                    Ok((0, SymbolKind::Module(use_module_id)))
                 }
             }
             UsePathComponentValue::Error => Err(UseError::Fatal),
@@ -225,10 +225,10 @@ fn process_component(
     sa: &Sema,
     use_module_id: ModuleDefinitionId,
     use_file_id: SourceFileId,
-    previous_sym: Sym,
+    previous_sym: SymbolKind,
     component: &UseAtom,
     ignore_errors: bool,
-) -> Result<Sym, UseError> {
+) -> Result<SymbolKind, UseError> {
     let component_name = match component.value {
         UsePathComponentValue::Name(ref name) => name.clone(),
         UsePathComponentValue::Package
@@ -241,7 +241,7 @@ fn process_component(
     };
 
     match previous_sym {
-        Sym::Module(module_id) => {
+        SymbolKind::Module(module_id) => {
             let symtable = ModuleSymTable::new(sa, module_id);
             let current_sym = symtable.get_string(sa, &component_name.name_as_string);
 
@@ -271,12 +271,12 @@ fn process_component(
             }
         }
 
-        Sym::Enum(enum_id) => {
+        SymbolKind::Enum(enum_id) => {
             let enum_ = sa.enums[enum_id].read();
             let name = sa.interner.intern(&component_name.name_as_string);
 
             if let Some(&variant_idx) = enum_.name_to_value.get(&name) {
-                Ok(Sym::EnumVariant(enum_id, variant_idx))
+                Ok(SymbolKind::EnumVariant(enum_id, variant_idx))
             } else {
                 let name = component_name.name_as_string.clone();
                 sa.report(
@@ -298,7 +298,7 @@ fn define_use_target(
     use_span: Span,
     module_id: ModuleDefinitionId,
     ident: Ident,
-    sym: Sym,
+    sym: SymbolKind,
 ) -> Result<(), UseError> {
     let module = sa.modules.idx(module_id);
     let module = module.read();

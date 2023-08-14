@@ -5,7 +5,7 @@ use crate::sema::{
     Field, FieldId, ModuleDefinition, ModuleDefinitionId, Sema, StructDefinitionId,
     TraitDefinitionId, TypeParamDefinition, Visibility,
 };
-use crate::sym::Sym;
+use crate::sym::SymbolKind;
 use crate::ty::SourceType;
 
 use crate::interner::Name;
@@ -132,7 +132,8 @@ pub fn fill_prelude(sa: &mut Sema) {
         let enum_ = enum_.read();
 
         for variant in &enum_.variants {
-            let old_sym = prelude.insert(variant.name, Sym::EnumVariant(enum_id, variant.id));
+            let old_sym =
+                prelude.insert(variant.name, SymbolKind::EnumVariant(enum_id, variant.id));
             assert!(old_sym.is_none());
         }
     }
@@ -147,13 +148,14 @@ pub fn fill_prelude(sa: &mut Sema) {
         let enum_ = enum_.read();
 
         for variant in &enum_.variants {
-            let old_sym = prelude.insert(variant.name, Sym::EnumVariant(enum_id, variant.id));
+            let old_sym =
+                prelude.insert(variant.name, SymbolKind::EnumVariant(enum_id, variant.id));
             assert!(old_sym.is_none());
         }
     }
 
     let stdlib_name = sa.interner.intern("std");
-    prelude.insert(stdlib_name, Sym::Module(stdlib_id));
+    prelude.insert(stdlib_name, SymbolKind::Module(stdlib_id));
 }
 
 fn final_path_name(sa: &mut Sema, path: &str) -> Name {
@@ -258,9 +260,9 @@ fn internal_struct(
     struct_id
 }
 
-fn resolve_name(sa: &Sema, name: &str, module_id: ModuleDefinitionId) -> Sym {
+fn resolve_name(sa: &Sema, name: &str, module_id: ModuleDefinitionId) -> SymbolKind {
     let path = name.split("::");
-    let mut sym = Sym::Module(module_id);
+    let mut sym = SymbolKind::Module(module_id);
 
     for name in path {
         let module_id = sym.to_module().expect("module expected");
@@ -1797,18 +1799,18 @@ fn common_method(
     let sym = resolve_name(sa, container_name, module_id);
 
     match sym {
-        Sym::Class(cls_id) => {
+        SymbolKind::Class(cls_id) => {
             let cls = &sa.classes[cls_id];
             let extensions = cls.extensions.borrow();
             internal_extension_method(sa, &extensions, method_name, is_static, marker)
         }
 
-        Sym::Struct(struct_id) => {
+        SymbolKind::Struct(struct_id) => {
             let struct_ = &sa.structs[struct_id];
             let extensions = struct_.extensions.borrow();
             internal_extension_method(sa, &extensions, method_name, is_static, marker)
         }
-        Sym::Enum(enum_id) => {
+        SymbolKind::Enum(enum_id) => {
             let enum_ = &sa.enums[enum_id].read();
             internal_extension_method(sa, &enum_.extensions, method_name, is_static, marker)
         }

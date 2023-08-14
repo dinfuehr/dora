@@ -3,22 +3,22 @@ use crate::sema::{
     GlobalDefinitionId, ModuleDefinitionId, Sema, StructDefinitionFieldId, StructDefinitionId,
     TraitDefinitionId, Visibility,
 };
-use crate::sym::Sym;
+use crate::sym::SymbolKind;
 
-pub fn sym_accessible_from(sa: &Sema, sym: Sym, module_id: ModuleDefinitionId) -> bool {
+pub fn sym_accessible_from(sa: &Sema, sym: SymbolKind, module_id: ModuleDefinitionId) -> bool {
     match sym {
-        Sym::Class(class_id) => class_accessible_from(sa, class_id, module_id),
-        Sym::Const(const_id) => const_accessible_from(sa, const_id, module_id),
-        Sym::Enum(enum_id) => enum_accessible_from(sa, enum_id, module_id),
-        Sym::EnumVariant(_, _) => unreachable!(),
-        Sym::Fct(fct_id) => fct_accessible_from(sa, fct_id, module_id),
-        Sym::Field(_) => unreachable!(),
-        Sym::Global(global_id) => global_accessible_from(sa, global_id, module_id),
-        Sym::Module(sym_module_id) => module_accessible_from(sa, sym_module_id, module_id),
-        Sym::Struct(struct_id) => struct_accessible_from(sa, struct_id, module_id),
-        Sym::Trait(trait_id) => trait_accessible_from(sa, trait_id, module_id),
-        Sym::TypeParam(_) => unreachable!(),
-        Sym::Var(_) => unreachable!(),
+        SymbolKind::Class(class_id) => class_accessible_from(sa, class_id, module_id),
+        SymbolKind::Const(const_id) => const_accessible_from(sa, const_id, module_id),
+        SymbolKind::Enum(enum_id) => enum_accessible_from(sa, enum_id, module_id),
+        SymbolKind::EnumVariant(_, _) => unreachable!(),
+        SymbolKind::Fct(fct_id) => fct_accessible_from(sa, fct_id, module_id),
+        SymbolKind::Field(_) => unreachable!(),
+        SymbolKind::Global(global_id) => global_accessible_from(sa, global_id, module_id),
+        SymbolKind::Module(sym_module_id) => module_accessible_from(sa, sym_module_id, module_id),
+        SymbolKind::Struct(struct_id) => struct_accessible_from(sa, struct_id, module_id),
+        SymbolKind::Trait(trait_id) => trait_accessible_from(sa, trait_id, module_id),
+        SymbolKind::TypeParam(_) => unreachable!(),
+        SymbolKind::Var(_) => unreachable!(),
     }
 }
 

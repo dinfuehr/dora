@@ -1,5 +1,5 @@
 use crate::sema::{Sema, SourceFileId, StructDefinitionId};
-use crate::sym::{ModuleSymTable, Sym};
+use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::ty::SourceType;
 use crate::{read_type_context, AllowSelf, TypeParamContext};
 
@@ -44,7 +44,7 @@ impl<'x> StructCheck<'x> {
             let struct_ = &self.sa.structs[self.struct_id];
 
             for (id, name) in struct_.type_params().names() {
-                self.symtable.insert(name, Sym::TypeParam(id));
+                self.symtable.insert(name, SymbolKind::TypeParam(id));
             }
         }
 

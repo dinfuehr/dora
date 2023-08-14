@@ -6,7 +6,7 @@ use crate::interner::Name;
 use parking_lot::RwLock;
 
 use crate::sema::ModuleDefinitionId;
-use crate::sym::{Sym, SymTable};
+use crate::sym::{SymTable, SymbolKind};
 use crate::Id;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -74,7 +74,7 @@ impl PackageDefinition {
             let old_value = self
                 .table
                 .write()
-                .insert(name, Sym::Module(top_level_module_id));
+                .insert(name, SymbolKind::Module(top_level_module_id));
             assert!(old_value.is_none());
             self.dependencies
                 .push(PackageDependency { name, package_id });

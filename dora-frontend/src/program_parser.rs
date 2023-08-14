@@ -14,7 +14,7 @@ use crate::sema::{
     StructDefinition, StructDefinitionField, StructDefinitionFieldId, TraitDefinition,
     TraitDefinitionId, UseDefinition, Visibility,
 };
-use crate::sym::Sym;
+use crate::sym::{Symbol, SymbolKind};
 use crate::STDLIB;
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit, ModifierList};
@@ -430,7 +430,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             name,
         );
         let id = self.sa.modules.push(module);
-        let sym = Sym::Module(id);
+        let sym = SymbolKind::Module(id);
 
         if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
@@ -461,7 +461,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
 
         find_methods_in_trait(self.sa, trait_id, node);
 
-        let sym = Sym::Trait(trait_id);
+        let sym = SymbolKind::Trait(trait_id);
 
         if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
@@ -493,7 +493,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         );
         let global_id = self.sa.globals.push(global);
 
-        let sym = Sym::Global(global_id);
+        let sym = SymbolKind::Global(global_id);
         if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
@@ -529,7 +529,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         let id = self.sa.consts.alloc(const_);
         self.sa.consts[id].id = Some(id);
 
-        let sym = Sym::Const(id);
+        let sym = SymbolKind::Const(id);
         if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
@@ -578,7 +578,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         let class_id = self.sa.classes.alloc(class);
         self.sa.classes[class_id].id = Some(class_id);
 
-        let sym = Sym::Class(class_id);
+        let sym = SymbolKind::Class(class_id);
         if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
@@ -631,7 +631,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         let id = self.sa.structs.alloc(struct_);
         self.sa.structs[id].id = Some(id);
 
-        let sym = Sym::Struct(id);
+        let sym = SymbolKind::Struct(id);
         if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
@@ -660,7 +660,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             FctParent::None,
         );
         let fctid = self.sa.add_fct(fct);
-        let sym = Sym::Fct(fctid);
+        let sym = SymbolKind::Fct(fctid);
         if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
@@ -678,7 +678,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         );
         let id = self.sa.enums.push(enum_);
 
-        let sym = Sym::Enum(id);
+        let sym = SymbolKind::Enum(id);
         if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
@@ -941,13 +941,17 @@ fn check_modifier(
 }
 
 impl<'x> TopLevelDeclaration<'x> {
-    fn insert(&mut self, name: Name, sym: Sym) -> Option<Sym> {
+    fn insert(&mut self, name: Name, sym: SymbolKind) -> Option<Symbol> {
         let level = self.sa.module_table(self.module_id);
         let mut level = level.write();
         level.insert(name, sym)
     }
 
-    fn insert_optional(&mut self, ident: &Option<ast::Ident>, sym: Sym) -> Option<(Name, Sym)> {
+    fn insert_optional(
+        &mut self,
+        ident: &Option<ast::Ident>,
+        sym: SymbolKind,
+    ) -> Option<(Name, Symbol)> {
         if let Some(ident) = ident {
             let name = self.sa.interner.intern(&ident.name_as_string);
             self.insert(name, sym).map(|sym| (name, sym))

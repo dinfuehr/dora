@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::error::msg::ErrorMessage;
 use crate::sema::{FctDefinition, FctDefinitionId, FctParent, Sema, TypeParamId};
-use crate::sym::{ModuleSymTable, Sym};
+use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::ty::SourceType;
 use crate::{read_type_context, AllowSelf, TypeParamContext};
 
@@ -48,7 +48,7 @@ pub fn check(sa: &Sema) {
         }
 
         for (id, name) in fct.type_params.names() {
-            sym_table.insert(name, Sym::TypeParam(id));
+            sym_table.insert(name, SymbolKind::TypeParam(id));
         }
 
         let container_type_params = fct.type_params.len();
@@ -103,7 +103,8 @@ pub fn check(sa: &Sema) {
                         }
                     }
 
-                    let sym = Sym::TypeParam(TypeParamId(container_type_params + type_param_id));
+                    let sym =
+                        SymbolKind::TypeParam(TypeParamId(container_type_params + type_param_id));
                     sym_table.insert(name, sym);
                 }
             } else {

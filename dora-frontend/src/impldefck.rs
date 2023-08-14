@@ -1,7 +1,7 @@
 use crate::error::msg::ErrorMessage;
 use crate::extensiondefck::check_for_unconstrained_type_params;
 use crate::sema::{FctDefinitionId, ImplDefinitionId, Sema, SourceFileId};
-use crate::sym::{ModuleSymTable, Sym};
+use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::ty::SourceType;
 use crate::{read_type_context, AllowSelf, TypeParamContext};
 
@@ -53,7 +53,7 @@ impl<'x> ImplCheck<'x> {
             let impl_ = impl_.read();
 
             for (id, name) in impl_.type_params().names() {
-                self.sym.insert(name, Sym::TypeParam(id));
+                self.sym.insert(name, SymbolKind::TypeParam(id));
             }
         }
 

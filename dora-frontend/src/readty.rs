@@ -11,7 +11,7 @@ use crate::sema::{
     TypeParamDefinition,
 };
 use crate::specialize::specialize_type;
-use crate::sym::{ModuleSymTable, Sym, SymTable};
+use crate::sym::{ModuleSymTable, SymTable, SymbolKind};
 use crate::ty::{SourceType, SourceTypeArray};
 
 use dora_parser::ast::{self, TypeBasicType, TypeLambdaType, TypeTupleType};
@@ -77,9 +77,9 @@ fn read_type_basic_unchecked(
     let type_params = SourceTypeArray::with(type_params);
 
     match sym {
-        Some(Sym::Class(class_id)) => SourceType::Class(class_id, type_params),
-        Some(Sym::Trait(trait_id)) => SourceType::Trait(trait_id, type_params),
-        Some(Sym::Struct(struct_id)) => {
+        Some(SymbolKind::Class(class_id)) => SourceType::Class(class_id, type_params),
+        Some(SymbolKind::Trait(trait_id)) => SourceType::Trait(trait_id, type_params),
+        Some(SymbolKind::Struct(struct_id)) => {
             let struct_ = &sa.structs[struct_id];
 
             if let Some(ref primitive_ty) = struct_.primitive_ty {
@@ -94,8 +94,8 @@ fn read_type_basic_unchecked(
                 SourceType::Struct(struct_id, type_params)
             }
         }
-        Some(Sym::Enum(enum_id)) => SourceType::Enum(enum_id, type_params),
-        Some(Sym::TypeParam(type_param_id)) => {
+        Some(SymbolKind::Enum(enum_id)) => SourceType::Enum(enum_id, type_params),
+        Some(SymbolKind::TypeParam(type_param_id)) => {
             if node.params.len() > 0 {
                 let msg = ErrorMessage::NoTypeParamsExpected;
                 sa.report(file_id, node.span, msg);
@@ -513,7 +513,7 @@ fn read_type_path(
     table: &ModuleSymTable,
     file_id: SourceFileId,
     basic: &TypeBasicType,
-) -> Result<Option<Sym>, ()> {
+) -> Result<Option<SymbolKind>, ()> {
     let names = &basic.path.names;
 
     if names.len() > 1 {
@@ -543,10 +543,10 @@ fn table_for_module(
     sa: &Sema,
     file_id: SourceFileId,
     basic: &TypeBasicType,
-    sym: Option<Sym>,
+    sym: Option<SymbolKind>,
 ) -> Result<Arc<RwLock<SymTable>>, ()> {
     match sym {
-        Some(Sym::Module(module_id)) => Ok(sa.modules[module_id].read().table.clone()),
+        Some(SymbolKind::Module(module_id)) => Ok(sa.modules[module_id].read().table.clone()),
 
         _ => {
             let msg = ErrorMessage::ExpectedModule;

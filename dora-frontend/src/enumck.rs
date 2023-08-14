@@ -6,7 +6,7 @@ use dora_parser::ast;
 
 use crate::error::msg::ErrorMessage;
 use crate::sema::{EnumDefinition, EnumVariant, Sema, SourceFileId};
-use crate::sym::{ModuleSymTable, Sym};
+use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::ty::SourceType;
 use crate::{read_type_context, AllowSelf, TypeParamContext};
 
@@ -42,7 +42,7 @@ impl<'x> EnumCheck<'x> {
             let enum_ = self.enum_.read();
 
             for (id, name) in enum_.type_params().names() {
-                symtable.insert(name, Sym::TypeParam(id));
+                symtable.insert(name, SymbolKind::TypeParam(id));
             }
         }
 

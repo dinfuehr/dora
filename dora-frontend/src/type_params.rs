@@ -6,7 +6,7 @@ use dora_parser::Span;
 use crate::error::msg::ErrorMessage;
 use crate::readty::read_type_unchecked;
 use crate::sema::{Sema, SourceFileId, TypeParamDefinition, TypeParamId};
-use crate::sym::{ModuleSymTable, Sym};
+use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::ty::{SourceType, SourceTypeArray};
 
 pub fn check(sa: &Sema) {
@@ -218,7 +218,7 @@ fn read_type_param_definition(
                 sa.report(file_id, type_param.span, msg);
             }
 
-            let sym = Sym::TypeParam(id);
+            let sym = SymbolKind::TypeParam(id);
             symtable.insert(iname, sym);
 
             result_type_params.add_type_param(iname);

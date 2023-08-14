@@ -1,5 +1,5 @@
 use crate::sema::{ClassDefinitionId, Sema, SourceFileId};
-use crate::sym::{ModuleSymTable, Sym};
+use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::ty::SourceType;
 use crate::{read_type_context, AllowSelf, TypeParamContext};
 
@@ -44,7 +44,7 @@ impl<'x> ClsDefCheck<'x> {
             let cls = &self.sa.classes[self.cls_id];
 
             for (id, name) in cls.type_params().names() {
-                self.sym.insert(name, Sym::TypeParam(id));
+                self.sym.insert(name, SymbolKind::TypeParam(id));
             }
         }
 

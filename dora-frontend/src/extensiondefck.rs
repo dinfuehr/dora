@@ -3,7 +3,7 @@ use crate::sema::{
     EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId, Sema, SourceFileId,
     StructDefinitionId, TypeParamDefinition, TypeParamId,
 };
-use crate::sym::{ModuleSymTable, Sym};
+use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::ty::SourceType;
 use crate::{read_type_context, AllowSelf, TypeParamContext};
 
@@ -57,7 +57,7 @@ impl<'x> ExtensionCheck<'x> {
             let extension = extension.read();
 
             for (id, name) in extension.type_params().names() {
-                self.sym.insert(name, Sym::TypeParam(id));
+                self.sym.insert(name, SymbolKind::TypeParam(id));
             }
         }
 

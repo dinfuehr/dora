@@ -1,7 +1,7 @@
 use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
 use crate::sema::{Sema, SourceFileId};
-use crate::sym::Sym;
+use crate::sym::{Symbol, SymbolKind};
 use dora_bytecode::{dump_stdout, Program};
 use dora_parser::ast;
 use dora_parser::Span;
@@ -219,20 +219,20 @@ pub fn expr_block_always_returns(e: &ast::ExprBlockType) -> bool {
     returnck::expr_block_returns_value(e).is_ok()
 }
 
-pub fn report_sym_shadow_span(sa: &Sema, name: Name, file: SourceFileId, span: Span, sym: Sym) {
+pub fn report_sym_shadow_span(sa: &Sema, name: Name, file: SourceFileId, span: Span, sym: Symbol) {
     let name = sa.interner.str(name).to_string();
 
-    let msg = match sym {
-        Sym::Class(_) => ErrorMessage::ShadowClass(name),
-        Sym::Struct(_) => ErrorMessage::ShadowStruct(name),
-        Sym::Trait(_) => ErrorMessage::ShadowTrait(name),
-        Sym::Enum(_) => ErrorMessage::ShadowEnum(name),
-        Sym::Fct(_) => ErrorMessage::ShadowFunction(name),
-        Sym::Global(_) => ErrorMessage::ShadowGlobal(name),
-        Sym::Const(_) => ErrorMessage::ShadowConst(name),
-        Sym::Var(_) => ErrorMessage::ShadowParam(name),
-        Sym::Module(_) => ErrorMessage::ShadowModule(name),
-        Sym::TypeParam(_) => ErrorMessage::ShadowTypeParam(name),
+    let msg = match sym.kind() {
+        SymbolKind::Class(_) => ErrorMessage::ShadowClass(name),
+        SymbolKind::Struct(_) => ErrorMessage::ShadowStruct(name),
+        SymbolKind::Trait(_) => ErrorMessage::ShadowTrait(name),
+        SymbolKind::Enum(_) => ErrorMessage::ShadowEnum(name),
+        SymbolKind::Fct(_) => ErrorMessage::ShadowFunction(name),
+        SymbolKind::Global(_) => ErrorMessage::ShadowGlobal(name),
+        SymbolKind::Const(_) => ErrorMessage::ShadowConst(name),
+        SymbolKind::Var(_) => ErrorMessage::ShadowParam(name),
+        SymbolKind::Module(_) => ErrorMessage::ShadowModule(name),
+        SymbolKind::TypeParam(_) => ErrorMessage::ShadowTypeParam(name),
         _ => unreachable!(),
     };
 

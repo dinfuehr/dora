@@ -3,7 +3,7 @@ use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use self::Sym::*;
+use self::SymbolKind::*;
 
 use crate::interner::Name;
 use crate::sema::{
@@ -56,12 +56,12 @@ impl ModuleSymTable {
         self.levels.len()
     }
 
-    pub fn get_string(&self, sa: &Sema, name: &str) -> Option<Sym> {
+    pub fn get_string(&self, sa: &Sema, name: &str) -> Option<SymbolKind> {
         let interned_name = sa.interner.intern(name);
         self.get(interned_name)
     }
 
-    pub fn get(&self, name: Name) -> Option<Sym> {
+    pub fn get(&self, name: Name) -> Option<SymbolKind> {
         for level in self.levels.iter().rev() {
             if let Some(val) = level.get(name) {
                 return Some(val.clone());
@@ -115,14 +115,14 @@ impl ModuleSymTable {
         self.get(name).and_then(|n| n.to_var())
     }
 
-    pub fn insert(&mut self, name: Name, sym: Sym) -> Option<Sym> {
+    pub fn insert(&mut self, name: Name, sym: SymbolKind) -> Option<Symbol> {
         self.levels.last_mut().unwrap().insert(name, sym)
     }
 }
 
 #[derive(Debug)]
 pub struct SymTable {
-    table: HashMap<Name, Sym>,
+    table: HashMap<Name, Symbol>,
 }
 
 impl SymTable {
@@ -133,12 +133,13 @@ impl SymTable {
         }
     }
 
-    pub fn get(&self, name: Name) -> Option<Sym> {
-        self.table.get(&name).cloned()
+    pub fn get(&self, name: Name) -> Option<SymbolKind> {
+        self.table.get(&name).map(|sym| sym.kind.clone())
     }
 
-    pub fn insert(&mut self, name: Name, sym: Sym) -> Option<Sym> {
-        self.table.insert(name, sym)
+    pub fn insert(&mut self, name: Name, kind: SymbolKind) -> Option<Symbol> {
+        let symbol = Symbol { export: true, kind };
+        self.table.insert(name, symbol)
     }
 
     pub fn get_fct(&self, name: Name) -> Option<FctDefinitionId> {
@@ -170,14 +171,30 @@ impl SymTable {
     }
 
     pub fn dump(&self, sa: &Sema) {
-        for (key, value) in &self.table {
-            println!("{} -> {:?}", sa.interner.str(*key), value);
+        for (key, symbol) in &self.table {
+            println!("{} -> {:?}", sa.interner.str(*key), symbol.kind);
         }
     }
 }
 
 #[derive(Debug, Clone)]
-pub enum Sym {
+pub struct Symbol {
+    export: bool,
+    kind: SymbolKind,
+}
+
+impl Symbol {
+    pub fn is_exported(&self) -> bool {
+        self.export
+    }
+
+    pub fn kind(&self) -> &SymbolKind {
+        &self.kind
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum SymbolKind {
     Class(ClassDefinitionId),
     Struct(StructDefinitionId),
     Trait(TraitDefinitionId),
@@ -192,7 +209,7 @@ pub enum Sym {
     EnumVariant(EnumDefinitionId, u32),
 }
 
-impl Sym {
+impl SymbolKind {
     pub fn is_class(&self) -> bool {
         match *self {
             Class(_) => true,
