@@ -177,6 +177,15 @@ pub fn is_default_accessible(
     module_contains(sa, target_id, from_id)
 }
 
+pub fn use_accessible_from(
+    sa: &Sema,
+    target_module_id: ModuleDefinitionId,
+    element_visibility: Visibility,
+    module_id: ModuleDefinitionId,
+) -> bool {
+    accessible_from(sa, target_module_id, element_visibility, module_id)
+}
+
 fn accessible_from(
     sa: &Sema,
     target_module_id: ModuleDefinitionId,

@@ -105,6 +105,10 @@ impl SymTable {
         self.table.get(&name).map(|sym| sym.kind.clone())
     }
 
+    pub fn get_sym(&self, name: Name) -> Option<&Symbol> {
+        self.table.get(&name)
+    }
+
     pub fn insert(&mut self, name: Name, kind: SymbolKind) -> Option<Symbol> {
         let symbol = Symbol {
             visibility: None,
@@ -140,8 +144,8 @@ pub struct Symbol {
 }
 
 impl Symbol {
-    pub fn has_visibility(&self) -> bool {
-        self.visibility.is_some()
+    pub fn visibility(&self) -> Option<&Visibility> {
+        self.visibility.as_ref()
     }
 
     pub fn kind(&self) -> &SymbolKind {

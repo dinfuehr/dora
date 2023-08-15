@@ -176,6 +176,7 @@ pub enum ErrorMessage {
     InvalidCharLiteral,
     InvalidReturn,
     MatchMultiplePatternsWithParamsNotSupported,
+    UseNotAccessible,
 }
 
 impl ErrorMessage {
@@ -628,6 +629,7 @@ impl ErrorMessage {
             ErrorMessage::MatchMultiplePatternsWithParamsNotSupported => {
                 format!("Multiple patterns with arguments in a `match` arm are currently not supported.")
             }
+            ErrorMessage::UseNotAccessible => format!("`use` not accessible."),
         }
     }
 }

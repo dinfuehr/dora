@@ -3,9 +3,10 @@ use std::Equals;
 use std::BitVec;
 
 use package::assembler::{Label, Register};
-use package::graph::ty::Type;
 use package::bytecode::data::GlobalId;
 use package::dominator::buildDominatorTree;
+
+pub use package::graph::ty::Type;
 
 pub mod builder;
 pub mod dump;

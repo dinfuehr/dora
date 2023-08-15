@@ -3846,17 +3846,17 @@ fn missing_enum_arguments() {
 }
 
 #[test]
-#[ignore]
 fn use_needs_pub() {
     err(
         "
-        fn foo(x: test::Bar) {}
+        use test::Bar;
+        fn foo(x: Bar) {}
         mod test {
             use Foo as Bar;
             pub struct Foo(i: Int64)
         }
     ",
-        (3, 17),
-        ErrorMessage::Unimplemented,
+        (2, 19),
+        ErrorMessage::UseNotAccessible,
     );
 }
