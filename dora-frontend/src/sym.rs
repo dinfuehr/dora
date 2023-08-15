@@ -9,7 +9,7 @@ use crate::interner::Name;
 use crate::sema::{
     ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId,
     GlobalDefinitionId, ModuleDefinitionId, NestedVarId, Sema, StructDefinitionId,
-    TraitDefinitionId, TypeParamId,
+    TraitDefinitionId, TypeParamId, Visibility,
 };
 
 pub struct ModuleSymTable {
@@ -84,7 +84,7 @@ impl ModuleSymTable {
     }
 
     pub fn insert(&mut self, name: Name, sym: SymbolKind) -> Option<Symbol> {
-        self.levels.last_mut().unwrap().insert(name, false, sym)
+        self.levels.last_mut().unwrap().insert(name, sym)
     }
 }
 
@@ -105,8 +105,24 @@ impl SymTable {
         self.table.get(&name).map(|sym| sym.kind.clone())
     }
 
-    pub fn insert(&mut self, name: Name, is_exported: bool, kind: SymbolKind) -> Option<Symbol> {
-        let symbol = Symbol { is_exported, kind };
+    pub fn insert(&mut self, name: Name, kind: SymbolKind) -> Option<Symbol> {
+        let symbol = Symbol {
+            visibility: None,
+            kind,
+        };
+        self.table.insert(name, symbol)
+    }
+
+    pub fn insert_use(
+        &mut self,
+        name: Name,
+        visibility: Visibility,
+        kind: SymbolKind,
+    ) -> Option<Symbol> {
+        let symbol = Symbol {
+            visibility: Some(visibility),
+            kind,
+        };
         self.table.insert(name, symbol)
     }
 
@@ -119,13 +135,13 @@ impl SymTable {
 
 #[derive(Debug, Clone)]
 pub struct Symbol {
-    is_exported: bool,
+    visibility: Option<Visibility>,
     kind: SymbolKind,
 }
 
 impl Symbol {
-    pub fn is_exported(&self) -> bool {
-        self.is_exported
+    pub fn has_visibility(&self) -> bool {
+        self.visibility.is_some()
     }
 
     pub fn kind(&self) -> &SymbolKind {

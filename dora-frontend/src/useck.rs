@@ -320,9 +320,7 @@ fn define_use_target(
 
     let name = sa.interner.intern(&ident.name_as_string);
 
-    let is_exported = visibility.is_public();
-
-    if let Some(old_sym) = table.insert(name, is_exported, sym) {
+    if let Some(old_sym) = table.insert_use(name, visibility, sym) {
         report_sym_shadow_span(sa, name, use_file_id, use_span, old_sym);
         Err(UseError::Fatal)
     } else {

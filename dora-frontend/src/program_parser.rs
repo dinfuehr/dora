@@ -944,7 +944,7 @@ impl<'x> TopLevelDeclaration<'x> {
     fn insert(&mut self, name: Name, sym: SymbolKind) -> Option<Symbol> {
         let level = self.sa.module_table(self.module_id);
         let mut level = level.write();
-        level.insert(name, true, sym)
+        level.insert(name, sym)
     }
 
     fn insert_optional(

@@ -118,7 +118,7 @@ pub fn fill_prelude(sa: &mut Sema) {
     for name in &symbols {
         let sym = resolve_name(sa, name, stdlib_id);
         let name = final_path_name(sa, name);
-        let old_sym = prelude.insert(name, true, sym);
+        let old_sym = prelude.insert(name, sym);
         assert!(old_sym.is_none());
     }
 
@@ -132,11 +132,8 @@ pub fn fill_prelude(sa: &mut Sema) {
         let enum_ = enum_.read();
 
         for variant in &enum_.variants {
-            let old_sym = prelude.insert(
-                variant.name,
-                true,
-                SymbolKind::EnumVariant(enum_id, variant.id),
-            );
+            let old_sym =
+                prelude.insert(variant.name, SymbolKind::EnumVariant(enum_id, variant.id));
             assert!(old_sym.is_none());
         }
     }
@@ -151,17 +148,14 @@ pub fn fill_prelude(sa: &mut Sema) {
         let enum_ = enum_.read();
 
         for variant in &enum_.variants {
-            let old_sym = prelude.insert(
-                variant.name,
-                true,
-                SymbolKind::EnumVariant(enum_id, variant.id),
-            );
+            let old_sym =
+                prelude.insert(variant.name, SymbolKind::EnumVariant(enum_id, variant.id));
             assert!(old_sym.is_none());
         }
     }
 
     let stdlib_name = sa.interner.intern("std");
-    prelude.insert(stdlib_name, true, SymbolKind::Module(stdlib_id));
+    prelude.insert(stdlib_name, SymbolKind::Module(stdlib_id));
 }
 
 fn final_path_name(sa: &mut Sema, path: &str) -> Name {
