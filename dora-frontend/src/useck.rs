@@ -12,15 +12,13 @@ use dora_parser::Span;
 use super::sema::SourceFileId;
 
 pub fn check<'a>(sa: &Sema) {
-    let mut resolved = HashSet::<(SourceFileId, NodeId)>::new();
-    let mut more_work = true;
+    let mut processed_uses = HashSet::<(SourceFileId, NodeId)>::new();
 
-    while more_work {
-        let mut did_some_work = false;
-        let mut cancel = false;
+    while {
+        let mut did_resolve_symbol = false;
 
         for use_elem in &sa.uses {
-            let result = check_use(
+            let _ = check_use(
                 sa,
                 &use_elem.ast,
                 use_elem.module_id,
@@ -28,22 +26,13 @@ pub fn check<'a>(sa: &Sema) {
                 use_elem.visibility,
                 None,
                 true,
-                &mut resolved,
-                &mut did_some_work,
+                &mut processed_uses,
+                &mut did_resolve_symbol,
             );
-
-            match result {
-                Ok(()) | Err(UseError::Unresolved) => {}
-                Err(UseError::Fatal) => cancel = true,
-            }
         }
 
-        if cancel {
-            return;
-        }
-
-        more_work = did_some_work;
-    }
+        did_resolve_symbol
+    } {}
 
     for use_elem in &sa.uses {
         let _ = check_use(
@@ -54,15 +43,10 @@ pub fn check<'a>(sa: &Sema) {
             use_elem.visibility,
             None,
             false,
-            &mut resolved,
+            &mut processed_uses,
             &mut false,
         );
     }
-}
-
-enum UseError {
-    Unresolved,
-    Fatal,
 }
 
 fn check_use(
@@ -73,10 +57,10 @@ fn check_use(
     use_visibility: Visibility,
     previous_sym: Option<SymbolKind>,
     ignore_unknown_symbols: bool,
-    resolved: &mut HashSet<(SourceFileId, NodeId)>,
-    did_some_work: &mut bool,
-) -> Result<(), UseError> {
-    if resolved.contains(&(use_file_id, use_declaration.id)) {
+    processed_uses: &mut HashSet<(SourceFileId, NodeId)>,
+    did_resolve_symbol: &mut bool,
+) -> Result<(), ()> {
+    if processed_uses.contains(&(use_file_id, use_declaration.id)) {
         return Ok(());
     }
 
@@ -86,23 +70,25 @@ fn check_use(
         use_module_id,
         use_file_id,
         previous_sym,
+        processed_uses,
     )?;
 
     for (idx, component) in use_declaration.path.iter().enumerate().skip(start_idx) {
         if !previous_sym.is_enum() && !previous_sym.is_module() {
             let msg = ErrorMessage::ExpectedPath;
             sa.report(use_file_id, use_declaration.path[idx - 1].span, msg);
-            assert!(resolved.insert((use_file_id, use_declaration.id)));
-            *did_some_work = true;
-            return Err(UseError::Fatal);
+            assert!(processed_uses.insert((use_file_id, use_declaration.id)));
+            return Err(());
         }
 
         previous_sym = process_component(
             sa,
+            use_declaration,
             use_module_id,
             use_file_id,
             previous_sym,
             component,
+            processed_uses,
             ignore_unknown_symbols,
         )?;
     }
@@ -110,6 +96,7 @@ fn check_use(
     match &use_declaration.target {
         UsePathDescriptor::Default => {
             let last_component = use_declaration.path.last().expect("no component");
+            assert!(processed_uses.insert((use_file_id, use_declaration.id)));
 
             let name = match last_component.value {
                 UsePathComponentValue::Name(ref name) => name.clone(),
@@ -118,12 +105,11 @@ fn check_use(
                 | UsePathComponentValue::This
                 | UsePathComponentValue::Error => {
                     sa.report(use_file_id, last_component.span, ErrorMessage::ExpectedPath);
-                    return Err(UseError::Fatal);
+                    return Err(());
                 }
             };
 
-            assert!(resolved.insert((use_file_id, use_declaration.id)));
-            *did_some_work = true;
+            *did_resolve_symbol = true;
 
             define_use_target(
                 sa,
@@ -137,11 +123,11 @@ fn check_use(
         }
         UsePathDescriptor::As(target) => {
             let last_component = use_declaration.path.last().expect("no component");
-
-            assert!(resolved.insert((use_file_id, use_declaration.id)));
-            *did_some_work = true;
+            assert!(processed_uses.insert((use_file_id, use_declaration.id)));
 
             if let Some(ident) = &target.name {
+                *did_resolve_symbol = true;
+
                 define_use_target(
                     sa,
                     use_file_id,
@@ -156,11 +142,8 @@ fn check_use(
         UsePathDescriptor::Group(ref group) => {
             if group.targets.is_empty() {
                 sa.report(use_file_id, group.span, ErrorMessage::ExpectedPath);
-
-                assert!(resolved.insert((use_file_id, use_declaration.id)));
-                *did_some_work = true;
-
-                return Err(UseError::Fatal);
+                assert!(processed_uses.insert((use_file_id, use_declaration.id)));
+                return Err(());
             }
 
             for nested_use in &group.targets {
@@ -174,15 +157,14 @@ fn check_use(
                     use_visibility,
                     Some(previous_sym.clone()),
                     ignore_unknown_symbols,
-                    resolved,
-                    did_some_work,
+                    processed_uses,
+                    did_resolve_symbol,
                 );
             }
         }
 
         UsePathDescriptor::Error => {
-            assert!(resolved.insert((use_file_id, use_declaration.id)));
-            *did_some_work = true;
+            assert!(processed_uses.insert((use_file_id, use_declaration.id)));
         }
     }
 
@@ -195,7 +177,8 @@ fn initial_module(
     use_module_id: ModuleDefinitionId,
     use_file_id: SourceFileId,
     previous_sym: Option<SymbolKind>,
-) -> Result<(usize, SymbolKind), UseError> {
+    processed_uses: &mut HashSet<(SourceFileId, NodeId)>,
+) -> Result<(usize, SymbolKind), ()> {
     if let Some(namespace) = previous_sym {
         return Ok((0, namespace));
     }
@@ -216,7 +199,8 @@ fn initial_module(
                         first_component.span,
                         ErrorMessage::NoSuperModule,
                     );
-                    Err(UseError::Fatal)
+                    assert!(processed_uses.insert((use_file_id, use_declaration.id)));
+                    Err(())
                 }
             }
             UsePathComponentValue::Name(ref ident) => {
@@ -229,21 +213,23 @@ fn initial_module(
                     Ok((0, SymbolKind::Module(use_module_id)))
                 }
             }
-            UsePathComponentValue::Error => Err(UseError::Fatal),
+            UsePathComponentValue::Error => Err(()),
         }
     } else {
-        Err(UseError::Fatal)
+        Err(())
     }
 }
 
 fn process_component(
     sa: &Sema,
+    use_declaration: &ast::UsePath,
     use_module_id: ModuleDefinitionId,
     use_file_id: SourceFileId,
     previous_sym: SymbolKind,
     component: &UseAtom,
+    processed_uses: &mut HashSet<(SourceFileId, NodeId)>,
     ignore_unknown_symbols: bool,
-) -> Result<SymbolKind, UseError> {
+) -> Result<SymbolKind, ()> {
     let component_name = match component.value {
         UsePathComponentValue::Name(ref name) => name.clone(),
         UsePathComponentValue::Package
@@ -251,7 +237,8 @@ fn process_component(
         | UsePathComponentValue::This
         | UsePathComponentValue::Error => {
             sa.report(use_file_id, component.span, ErrorMessage::ExpectedPath);
-            return Err(UseError::Fatal);
+            assert!(processed_uses.insert((use_file_id, use_declaration.id)));
+            return Err(());
         }
     };
 
@@ -271,7 +258,8 @@ fn process_component(
                     if !use_accessible_from(sa, module_id, visibility.to_owned(), use_module_id) {
                         let msg = ErrorMessage::UseNotAccessible;
                         sa.report(use_file_id, component.span, msg);
-                        return Err(UseError::Fatal);
+                        assert!(processed_uses.insert((use_file_id, use_declaration.id)));
+                        return Err(());
                     }
                 }
 
@@ -281,11 +269,12 @@ fn process_component(
                     let module = &sa.modules[module_id].read();
                     let name = component_name.name_as_string.clone();
                     let msg = ErrorMessage::NotAccessibleInModule(module.name(sa), name);
+                    assert!(processed_uses.insert((use_file_id, use_declaration.id)));
                     sa.report(use_file_id, component.span, msg);
-                    Err(UseError::Fatal)
+                    Err(())
                 }
             } else if ignore_unknown_symbols {
-                Err(UseError::Unresolved)
+                Err(())
             } else {
                 let module = sa.modules.idx(module_id);
                 let module = module.read();
@@ -296,7 +285,7 @@ fn process_component(
                     component.span,
                     ErrorMessage::UnknownIdentifierInModule(module_name, name),
                 );
-                Err(UseError::Unresolved)
+                Err(())
             }
         }
 
@@ -313,7 +302,7 @@ fn process_component(
                     component.span,
                     ErrorMessage::UnknownEnumVariant(name),
                 );
-                Err(UseError::Fatal)
+                Err(())
             }
         }
 
@@ -329,7 +318,7 @@ fn define_use_target(
     module_id: ModuleDefinitionId,
     ident: Ident,
     sym: SymbolKind,
-) -> Result<(), UseError> {
+) -> Result<(), ()> {
     let module = sa.modules.idx(module_id);
     let module = module.read();
 
@@ -340,7 +329,7 @@ fn define_use_target(
 
     if let Some(old_sym) = table.insert_use(name, visibility, sym) {
         report_sym_shadow_span(sa, name, use_file_id, use_span, old_sym);
-        Err(UseError::Fatal)
+        Err(())
     } else {
         Ok(())
     }

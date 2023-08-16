@@ -184,6 +184,10 @@ impl Sema {
         &self.source_files[idx.to_usize()]
     }
 
+    pub fn source_file_mut(&mut self, idx: SourceFileId) -> &mut SourceFile {
+        &mut self.source_files[idx.to_usize()]
+    }
+
     pub fn add_fct(&self, mut fct: FctDefinition) -> FctDefinitionId {
         let mut fcts = self.fcts.lock();
         let fctid = FctDefinitionId(fcts.len());
@@ -211,6 +215,7 @@ impl Sema {
             content,
             module_id,
             line_starts,
+            ast: None,
         });
         file_id
     }

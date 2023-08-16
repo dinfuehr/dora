@@ -343,10 +343,16 @@ impl<'a> ProgramParser<'a> {
         file_lookup: FileLookup,
         module_path: Option<PathBuf>,
     ) {
-        let file = self.sa.source_file(file_id);
-        let package_id = file.package_id;
-        let module_id = file.module_id;
-        let content = file.content.clone();
+        let package_id;
+        let module_id;
+        let content;
+
+        {
+            let file = self.sa.source_file(file_id);
+            package_id = file.package_id;
+            module_id = file.module_id;
+            content = file.content.clone();
+        }
 
         let parser = Parser::from_shared_string(content);
 
@@ -359,6 +365,8 @@ impl<'a> ProgramParser<'a> {
                 ErrorMessage::Custom(error.error.message()),
             );
         }
+
+        self.sa.source_file_mut(file_id).ast = Some(ast.clone());
 
         self.scan_file(
             package_id,

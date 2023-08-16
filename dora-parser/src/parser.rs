@@ -62,14 +62,14 @@ impl Parser {
         NodeId(value)
     }
 
-    pub fn parse(mut self) -> (ast::File, Vec<ParseErrorWithLocation>) {
+    pub fn parse(mut self) -> (Arc<ast::File>, Vec<ParseErrorWithLocation>) {
         let ast_file = self.parse_file();
         assert!(self.nodes.is_empty());
 
         let tree = self.builder.create_tree();
         assert_eq!(tree.len(), self.content.len() as u32);
 
-        (ast_file, self.errors)
+        (Arc::new(ast_file), self.errors)
     }
 
     fn parse_file(&mut self) -> ast::File {
@@ -2157,6 +2157,7 @@ fn token_name(kind: TokenKind) -> Option<&'static str> {
 #[cfg(test)]
 mod tests {
     use crate::ast::*;
+    use std::sync::Arc;
 
     use crate::error::ParseError;
     use crate::parser::Parser;
@@ -2200,7 +2201,7 @@ mod tests {
         parser.parse_type()
     }
 
-    fn parse(code: &'static str) -> File {
+    fn parse(code: &'static str) -> Arc<File> {
         let (file, errors) = Parser::from_string(code).parse();
         assert!(errors.is_empty());
         file

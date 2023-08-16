@@ -2,6 +2,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use crate::sema::{ModuleDefinitionId, PackageDefinitionId};
+use dora_parser::ast;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct SourceFileId(pub usize);
@@ -19,4 +20,5 @@ pub struct SourceFile {
     pub path: PathBuf,
     pub content: Arc<String>,
     pub line_starts: Vec<u32>,
+    pub ast: Option<Arc<ast::File>>,
 }
