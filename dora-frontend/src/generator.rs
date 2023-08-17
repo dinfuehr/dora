@@ -20,6 +20,8 @@ use dora_bytecode::{
 };
 
 mod expr;
+#[cfg(test)]
+pub mod tests;
 
 pub struct LoopLabels {
     cond: Label,

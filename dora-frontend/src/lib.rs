@@ -18,8 +18,6 @@ mod extensiondefck;
 mod fctbodyck;
 mod fctdefck;
 pub mod generator;
-#[cfg(test)]
-mod generator_tests;
 mod globaldefck;
 mod implck;
 mod impldefck;

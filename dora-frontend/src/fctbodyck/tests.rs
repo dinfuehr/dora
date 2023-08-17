@@ -1,5 +1,5 @@
 use crate::error::msg::ErrorMessage;
-use crate::generator_tests::const_by_name;
+use crate::generator::tests::const_by_name;
 use crate::sema::ConstValue;
 use crate::tests::*;
 use dora_parser::Span;
