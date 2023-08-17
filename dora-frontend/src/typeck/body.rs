@@ -1,4 +1,3 @@
-use std::convert::TryFrom;
 use std::str::Chars;
 use std::sync::Arc;
 use std::{f32, f64};
@@ -7,24 +6,22 @@ use once_cell::unsync::OnceCell;
 use parking_lot::RwLock;
 
 use crate::access::{
-    class_field_accessible_from, const_accessible_from, enum_accessible_from,
-    global_accessible_from, module_accessible_from, struct_field_accessible_from,
+    const_accessible_from, enum_accessible_from, global_accessible_from, module_accessible_from,
 };
 use crate::error::msg::ErrorMessage;
 use crate::program_parser::ParsedModifierList;
 use crate::report_sym_shadow_span;
 use crate::sema::{
-    find_field_in_class, find_impl, find_methods_in_class, find_methods_in_enum,
-    find_methods_in_struct, implements_trait, AnalysisData, CallType, ClassDefinition, ContextIdx,
-    ContextInfo, EnumDefinitionId, FctDefinition, FctDefinitionId, FctParent, Field, FieldId,
-    GlobalDefinition, IdentType, ModuleDefinitionId, NestedVarId, OuterContextResolver,
-    PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Var, VarAccess, VarId,
-    VarLocation, Visibility,
+    find_methods_in_class, find_methods_in_enum, find_methods_in_struct, AnalysisData, CallType,
+    ClassDefinition, ContextIdx, ContextInfo, EnumDefinitionId, FctDefinition, FctDefinitionId,
+    FctParent, Field, FieldId, GlobalDefinition, IdentType, ModuleDefinitionId, NestedVarId,
+    OuterContextResolver, PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Var,
+    VarAccess, VarId, VarLocation, Visibility,
 };
 use crate::specialize::replace_type_param;
 use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::ty::{SourceType, SourceTypeArray};
-use crate::typeck::{check_expr, check_expr_call_enum_args};
+use crate::typeck::{check_expr, check_expr_assign, check_expr_call_enum_args, check_expr_lit_int};
 use crate::typeparamck::{self, ErrorReporting};
 use crate::{always_returns, expr_always_returns, read_type, AllowSelf};
 
@@ -466,203 +463,6 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn check_expr_assign(&mut self, e: &ast::ExprBinType) {
-        if e.lhs.is_call() {
-            self.check_expr_assign_call(e);
-        } else if e.lhs.is_dot() {
-            self.check_expr_assign_field(e);
-        } else if e.lhs.is_ident() {
-            self.check_expr_assign_ident(e);
-        } else {
-            self.sa
-                .report(self.file_id, e.span, ErrorMessage::LvalueExpected);
-        }
-
-        self.analysis.set_ty(e.id, SourceType::Unit);
-    }
-
-    fn check_expr_assign_ident(&mut self, e: &ast::ExprBinType) {
-        self.analysis.set_ty(e.id, SourceType::Unit);
-
-        let lhs_ident = e.lhs.to_ident().unwrap();
-        let sym = self.symtable.get_string(self.sa, &lhs_ident.name);
-
-        let lhs_type = match sym {
-            Some(SymbolKind::Var(var_id)) => {
-                if !self.vars.get_var(var_id).mutable {
-                    self.sa
-                        .report(self.file_id, e.span, ErrorMessage::LetReassigned);
-                }
-
-                // Variable may have to be context-allocated.
-                let ident = self
-                    .vars
-                    .check_context_allocated(var_id, &mut self.outer_context_access_in_function);
-                self.analysis.map_idents.insert(e.lhs.id(), ident);
-
-                self.vars.get_var(var_id).ty.clone()
-            }
-
-            Some(SymbolKind::Global(global_id)) => {
-                let global_var = self.sa.globals.idx(global_id);
-                let global_var = global_var.read();
-
-                if !e.initializer && !global_var.mutable {
-                    self.sa
-                        .report(self.file_id, e.span, ErrorMessage::LetReassigned);
-                }
-
-                self.analysis
-                    .map_idents
-                    .insert(e.lhs.id(), IdentType::Global(global_id));
-                global_var.ty.clone()
-            }
-
-            None => {
-                self.sa.report(
-                    self.file_id,
-                    lhs_ident.span,
-                    ErrorMessage::UnknownIdentifier(lhs_ident.name.clone()),
-                );
-
-                return;
-            }
-
-            _ => {
-                self.sa
-                    .report(self.file_id, lhs_ident.span, ErrorMessage::LvalueExpected);
-
-                return;
-            }
-        };
-
-        let rhs_type = check_expr(self, &e.rhs, lhs_type.clone());
-
-        if !lhs_type.is_error()
-            && !rhs_type.is_error()
-            && !lhs_type.allows(self.sa, rhs_type.clone())
-        {
-            let ident = e.lhs.to_ident().unwrap();
-            let lhs_type = self.ty_name(&lhs_type);
-            let rhs_type = self.ty_name(&rhs_type);
-
-            self.analysis.set_ty(e.id, SourceType::Unit);
-
-            let msg = ErrorMessage::AssignType(ident.name.clone(), lhs_type, rhs_type);
-            self.sa.report(self.file_id, e.span, msg);
-        }
-    }
-
-    fn check_expr_assign_call(&mut self, e: &ast::ExprBinType) {
-        let call = e.lhs.to_call().unwrap();
-        let expr_type = check_expr(self, &call.callee, SourceType::Any);
-
-        let mut arg_types: Vec<SourceType> = call
-            .args
-            .iter()
-            .map(|arg| check_expr(self, arg, SourceType::Any))
-            .collect();
-
-        let value_type = check_expr(self, &e.rhs, SourceType::Any);
-
-        let name = self.sa.interner.intern("set");
-        arg_types.push(value_type);
-
-        if let Some(descriptor) = self.find_method(
-            e.span,
-            expr_type.clone(),
-            false,
-            name,
-            &arg_types,
-            &SourceTypeArray::empty(),
-        ) {
-            let call_type = CallType::Expr(expr_type, descriptor.fct_id, descriptor.type_params);
-            self.analysis
-                .map_calls
-                .insert_or_replace(e.id, Arc::new(call_type));
-        }
-    }
-
-    fn check_expr_assign_field(&mut self, e: &ast::ExprBinType) {
-        let field_expr = e.lhs.to_dot().unwrap();
-
-        let name = match field_expr.rhs.to_ident() {
-            Some(ident) => ident.name.clone(),
-
-            None => {
-                let msg = ErrorMessage::NameExpected;
-                self.sa.report(self.file_id, e.span, msg);
-
-                self.analysis.set_ty(e.id, SourceType::Error);
-                return;
-            }
-        };
-
-        let interned_name = self.sa.interner.intern(&name);
-
-        let object_type = check_expr(self, &field_expr.lhs, SourceType::Any);
-
-        if object_type.cls_id().is_some() {
-            if let Some((cls_ty, field_id, _)) =
-                find_field_in_class(self.sa, object_type.clone(), interned_name)
-            {
-                let ident_type = IdentType::Field(cls_ty.clone(), field_id);
-                self.analysis
-                    .map_idents
-                    .insert_or_replace(e.lhs.id(), ident_type);
-
-                let cls = &self.sa.classes[cls_ty.cls_id().expect("no class")];
-                let field = &cls.fields[field_id];
-
-                let class_type_params = cls_ty.type_params();
-
-                let fty = replace_type_param(self.sa, field.ty(), &class_type_params, None);
-
-                if !e.initializer && !field.mutable {
-                    self.sa
-                        .report(self.file_id, e.span, ErrorMessage::LetReassigned);
-                }
-
-                let rhs_type = check_expr(self, &e.rhs, fty.clone());
-
-                if !fty.allows(self.sa, rhs_type.clone()) && !rhs_type.is_error() {
-                    let object_type = self.ty_name(&object_type);
-                    let lhs_type = self.ty_name(&fty);
-                    let rhs_type = self.ty_name(&rhs_type);
-
-                    let msg = ErrorMessage::AssignField(name, object_type, lhs_type, rhs_type);
-                    self.sa.report(self.file_id, e.span, msg);
-                }
-
-                self.analysis.set_ty(e.id, SourceType::Unit);
-                return;
-            }
-        }
-
-        if object_type.is_struct() {
-            self.sa
-                .report(self.file_id, e.span, ErrorMessage::StructFieldImmutable);
-
-            // We want to see syntax expressions in the assignment expressions even when we can't
-            // find the given field.
-            check_expr(self, &e.rhs, SourceType::Any);
-
-            self.analysis.set_ty(e.id, SourceType::Unit);
-            return;
-        }
-
-        // We want to see syntax expressions in the assignment expressions even when we can't
-        // find the given field.
-        check_expr(self, &e.rhs, SourceType::Any);
-
-        // field not found, report error
-        let expr_name = self.ty_name(&object_type);
-        let msg = ErrorMessage::UnknownField(name, expr_name);
-        self.sa.report(self.file_id, field_expr.op_span, msg);
-
-        self.analysis.set_ty(e.id, SourceType::Unit);
-    }
-
     pub(super) fn find_method(
         &mut self,
         span: Span,
@@ -708,7 +508,7 @@ impl<'a> TypeCheck<'a> {
     ) -> SourceType {
         if e.op == ast::UnOp::Neg && e.opnd.is_lit_int() {
             let expr_type =
-                self.check_expr_lit_int(e.opnd.to_lit_int().unwrap(), true, expected_ty);
+                check_expr_lit_int(self, e.opnd.to_lit_int().unwrap(), true, expected_ty);
             self.analysis.set_ty(e.id, expr_type.clone());
             return expr_type;
         }
@@ -767,7 +567,7 @@ impl<'a> TypeCheck<'a> {
         _expected_ty: SourceType,
     ) -> SourceType {
         if e.op.is_any_assign() {
-            self.check_expr_assign(e);
+            check_expr_assign(self, e);
             return SourceType::Unit;
         }
 
@@ -1497,157 +1297,6 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    pub(super) fn check_expr_dot(
-        &mut self,
-        e: &ast::ExprDotType,
-        _expected_ty: SourceType,
-    ) -> SourceType {
-        let object_type = check_expr(self, &e.lhs, SourceType::Any);
-
-        if object_type.is_tuple() {
-            return self.check_expr_dot_tuple(e, object_type);
-        }
-
-        let name = match e.rhs.to_ident() {
-            Some(ident) => ident.name.clone(),
-
-            None => {
-                let msg = ErrorMessage::NameExpected;
-                self.sa.report(self.file_id, e.op_span, msg);
-
-                self.analysis.set_ty(e.id, SourceType::Error);
-                return SourceType::Error;
-            }
-        };
-
-        let interned_name = self.sa.interner.intern(&name);
-
-        if let Some(struct_id) = object_type.struct_id() {
-            let struct_ = &self.sa.structs[struct_id];
-            if let Some(&field_id) = struct_.field_names.get(&interned_name) {
-                let ident_type = IdentType::StructField(object_type.clone(), field_id);
-                self.analysis.map_idents.insert_or_replace(e.id, ident_type);
-
-                let field = &struct_.fields[field_id.to_usize()];
-                let struct_type_params = object_type.type_params();
-                let fty = replace_type_param(self.sa, field.ty(), &struct_type_params, None);
-
-                if !struct_field_accessible_from(self.sa, struct_id, field_id, self.module_id) {
-                    let name = self.sa.interner.str(field.name).to_string();
-                    let msg = ErrorMessage::NotAccessible(name);
-                    self.sa.report(self.file_id, e.rhs.span(), msg);
-                }
-
-                self.analysis.set_ty(e.id, fty.clone());
-                return fty;
-            }
-        }
-
-        if object_type.cls_id().is_some() {
-            if let Some((cls_ty, field_id, _)) =
-                find_field_in_class(self.sa, object_type.clone(), interned_name)
-            {
-                let ident_type = IdentType::Field(cls_ty.clone(), field_id);
-                self.analysis.map_idents.insert_or_replace(e.id, ident_type);
-
-                let cls_id = cls_ty.cls_id().expect("no class");
-                let cls = &self.sa.classes[cls_id];
-                let field = &cls.fields[field_id];
-                let class_type_params = cls_ty.type_params();
-                let fty = replace_type_param(self.sa, field.ty(), &class_type_params, None);
-
-                if !class_field_accessible_from(self.sa, cls_id, field_id, self.module_id) {
-                    let name = self.sa.interner.str(field.name).to_string();
-                    let msg = ErrorMessage::NotAccessible(name);
-                    self.sa.report(self.file_id, e.rhs.span(), msg);
-                }
-
-                self.analysis.set_ty(e.id, fty.clone());
-                return fty;
-            }
-        }
-
-        // field not found, report error
-        if !object_type.is_error() {
-            let expr_name = self.ty_name(&object_type);
-            let msg = ErrorMessage::UnknownField(name, expr_name);
-            self.sa.report(self.file_id, e.rhs.span(), msg);
-        }
-
-        self.analysis.set_ty(e.id, SourceType::Error);
-
-        SourceType::Error
-    }
-
-    fn check_expr_dot_tuple(
-        &mut self,
-        e: &ast::ExprDotType,
-        object_type: SourceType,
-    ) -> SourceType {
-        let index = match e.rhs.to_lit_int() {
-            Some(literal) => {
-                let (ty, value_i64, _) =
-                    check_lit_int(self.sa, self.file_id, literal, false, SourceType::Any);
-
-                if ty.is_float() {
-                    self.sa
-                        .report(self.file_id, literal.span, ErrorMessage::IndexExpected);
-                }
-
-                self.analysis.set_literal_value(literal.id, value_i64, 0.0);
-
-                value_i64 as u64
-            }
-
-            None => {
-                let msg = ErrorMessage::IndexExpected;
-                self.sa.report(self.file_id, e.rhs.span(), msg);
-
-                self.analysis.set_ty(e.id, SourceType::Error);
-                return SourceType::Error;
-            }
-        };
-
-        let subtypes = object_type.tuple_subtypes();
-
-        if index >= subtypes.len() as u64 {
-            let msg = ErrorMessage::IllegalTupleIndex(index, self.ty_name(&object_type));
-            self.sa.report(self.file_id, e.op_span, msg);
-
-            self.analysis.set_ty(e.id, SourceType::Error);
-            return SourceType::Error;
-        }
-
-        let ty = subtypes[usize::try_from(index).unwrap()].clone();
-        self.analysis.set_ty(e.id, ty.clone());
-
-        ty
-    }
-
-    pub(super) fn check_expr_this(
-        &mut self,
-        e: &ast::ExprSelfType,
-        _expected_ty: SourceType,
-    ) -> SourceType {
-        if !self.is_self_available {
-            let msg = ErrorMessage::ThisUnavailable;
-            self.sa.report(self.file_id, e.span, msg);
-            self.analysis.set_ty(e.id, SourceType::Error);
-            return SourceType::Error;
-        }
-
-        assert!(self.is_self_available);
-        let var_id = NestedVarId(0);
-        let ident = self
-            .vars
-            .check_context_allocated(var_id, &mut self.outer_context_access_in_function);
-        self.analysis.map_idents.insert(e.id, ident);
-
-        let var = self.vars.get_var(var_id);
-        self.analysis.set_ty(e.id, var.ty.clone());
-        var.ty.clone()
-    }
-
     pub(super) fn check_expr_lambda(
         &mut self,
         node: &Arc<ast::Function>,
@@ -1732,184 +1381,6 @@ impl<'a> TypeCheck<'a> {
         self.analysis.set_ty(node.id, ty.clone());
 
         ty
-    }
-
-    pub(super) fn check_expr_conv(
-        &mut self,
-        e: &ast::ExprConvType,
-        _expected_ty: SourceType,
-    ) -> SourceType {
-        let object_type = check_expr(self, &e.object, SourceType::Any);
-        self.analysis.set_ty(e.object.id(), object_type.clone());
-
-        let check_type = self.read_type(&e.data_type);
-        self.analysis.set_ty(e.data_type.id(), check_type.clone());
-
-        if check_type.is_trait() {
-            let implements = implements_trait(
-                self.sa,
-                object_type.clone(),
-                &self.type_param_defs,
-                check_type.clone(),
-            );
-
-            if !implements {
-                let object_type = self.ty_name(&object_type);
-                let check_type = self.ty_name(&check_type);
-
-                self.sa.report(
-                    self.file_id,
-                    e.span,
-                    ErrorMessage::TypeNotImplementingTrait(object_type, check_type),
-                );
-            }
-
-            self.analysis.set_ty(e.id, check_type.clone());
-            check_type
-        } else if !check_type.is_error() {
-            let name = self.ty_name(&check_type);
-            self.sa
-                .report(self.file_id, e.span, ErrorMessage::TraitExpected(name));
-            let ty = SourceType::Error;
-            self.analysis.set_ty(e.id, ty.clone());
-            ty
-        } else {
-            SourceType::Error
-        }
-    }
-
-    pub(super) fn check_expr_lit_int(
-        &mut self,
-        e: &ast::ExprLitIntType,
-        negate: bool,
-        expected_ty: SourceType,
-    ) -> SourceType {
-        let (ty, value_i64, value_f64) =
-            check_lit_int(self.sa, self.file_id, e, negate, expected_ty);
-
-        self.analysis.set_ty(e.id, ty.clone());
-        self.analysis.set_literal_value(e.id, value_i64, value_f64);
-
-        ty
-    }
-
-    pub(super) fn check_expr_lit_float(
-        &mut self,
-        e: &ast::ExprLitFloatType,
-        negate: bool,
-        _expected_ty: SourceType,
-    ) -> SourceType {
-        let (ty, value) = check_lit_float(self.sa, self.file_id, e, negate);
-
-        self.analysis.set_ty(e.id, ty.clone());
-        self.analysis.set_literal_value(e.id, 0, value);
-
-        ty
-    }
-
-    pub(super) fn check_expr_lit_bool(
-        &mut self,
-        e: &ast::ExprLitBoolType,
-        _expected_ty: SourceType,
-    ) -> SourceType {
-        self.analysis.set_ty(e.id, SourceType::Bool);
-
-        SourceType::Bool
-    }
-
-    pub(super) fn check_expr_lit_char(
-        &mut self,
-        e: &ast::ExprLitCharType,
-        _expected_ty: SourceType,
-    ) -> SourceType {
-        let value = check_lit_char(self.sa, self.file_id, e);
-
-        self.analysis.set_ty(e.id, SourceType::Char);
-        self.analysis.set_literal_char(e.id, value);
-
-        SourceType::Char
-    }
-
-    pub(super) fn check_expr_lit_str(
-        &mut self,
-        e: &ast::ExprLitStrType,
-        _expected_ty: SourceType,
-    ) -> SourceType {
-        let value = check_lit_str(self.sa, self.file_id, e);
-
-        let str_ty = SourceType::Class(self.sa.known.classes.string(), SourceTypeArray::empty());
-        self.analysis.set_ty(e.id, str_ty.clone());
-        self.analysis.set_literal_string(e.id, value);
-
-        str_ty
-    }
-
-    pub(super) fn check_expr_template(
-        &mut self,
-        e: &ast::ExprTemplateType,
-        expected_ty: SourceType,
-    ) -> SourceType {
-        let stringable_trait = self.sa.known.traits.stringable();
-        let stringable_trait_ty = SourceType::new_trait(stringable_trait);
-
-        for (idx, part) in e.parts.iter().enumerate() {
-            if idx % 2 != 0 {
-                let part_expr = check_expr(self, part, SourceType::Any);
-
-                if part_expr.is_error() {
-                    continue;
-                }
-
-                if let SourceType::TypeParam(id) = part_expr {
-                    if self
-                        .type_param_defs
-                        .implements_trait(id, stringable_trait_ty.clone())
-                    {
-                        continue;
-                    }
-                } else {
-                    let stringable_impl_id = find_impl(
-                        self.sa,
-                        part_expr.clone(),
-                        &self.type_param_defs,
-                        stringable_trait_ty.clone(),
-                    );
-
-                    if let Some(stringable_impl_id) = stringable_impl_id {
-                        let impl_ = self.sa.impls[stringable_impl_id].read();
-                        let name = self.sa.interner.intern("toString");
-                        let to_string_id = impl_
-                            .instance_names
-                            .get(&name)
-                            .cloned()
-                            .expect("method toString() not found");
-
-                        self.analysis.map_templates.insert(part.id(), to_string_id);
-                        continue;
-                    }
-                }
-
-                let ty = self.ty_name(&part_expr);
-                self.sa.report(
-                    self.file_id,
-                    part.span(),
-                    ErrorMessage::ExpectedStringable(ty),
-                );
-            } else {
-                match part.as_ref() {
-                    ast::ExprData::LitStr(ref e) => {
-                        self.check_expr_lit_str(e, expected_ty.clone());
-                    }
-
-                    _ => unreachable!(),
-                }
-            }
-        }
-
-        let str_ty = SourceType::Class(self.sa.known.classes.string(), SourceTypeArray::empty());
-        self.analysis.set_ty(e.id, str_ty.clone());
-
-        str_ty
     }
 
     pub(super) fn check_expr_break_and_continue(
@@ -2094,7 +1565,7 @@ fn arg_allows(sa: &Sema, def: SourceType, arg: SourceType, self_ty: Option<Sourc
     }
 }
 
-fn check_lit_str(sa: &Sema, file_id: SourceFileId, e: &ast::ExprLitStrType) -> String {
+pub fn check_lit_str(sa: &Sema, file_id: SourceFileId, e: &ast::ExprLitStrType) -> String {
     let mut value = e.value.as_str();
     assert!(value.starts_with("\"") || value.starts_with("}"));
     value = &value[1..];
