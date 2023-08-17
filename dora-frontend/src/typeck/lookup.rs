@@ -1,5 +1,4 @@
 use crate::error::msg::ErrorMessage;
-use crate::fctbodyck::body::args_compatible_fct;
 use crate::interner::Name;
 use crate::sema::{
     find_methods_in_class, find_methods_in_enum, find_methods_in_struct, FctDefinitionId, Sema,
@@ -7,6 +6,7 @@ use crate::sema::{
 };
 use crate::specialize::replace_type_param;
 use crate::ty::{SourceType, SourceTypeArray};
+use crate::typeck::body::args_compatible_fct;
 use crate::typeparamck::{self, ErrorReporting};
 use dora_parser::Span;
 

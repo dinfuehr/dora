@@ -15,7 +15,6 @@ mod constdefck;
 mod enumck;
 pub mod error;
 mod extensiondefck;
-mod fctbodyck;
 mod fctdefck;
 pub mod generator;
 mod globaldefck;
@@ -36,6 +35,7 @@ mod test;
 mod traitdefck;
 pub mod ty;
 mod type_params;
+mod typeck;
 mod typeparamck;
 mod useck;
 pub mod utils;
@@ -106,7 +106,7 @@ pub fn check_program(sa: &mut Sema) -> bool {
     return_on_error!(sa);
 
     // check function body
-    fctbodyck::check(sa);
+    typeck::check(sa);
     return_on_error!(sa);
 
     true
