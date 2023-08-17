@@ -15,7 +15,10 @@ use crate::sema::{
 use crate::specialize::replace_type_param;
 use crate::sym::SymbolKind;
 use crate::ty::{SourceType, SourceTypeArray};
-use crate::typeck::{args_compatible, args_compatible_fct, check_expr, MethodLookup, TypeCheck};
+use crate::typeck::{
+    args_compatible, args_compatible_fct, check_enum_value_with_args, check_expr, read_path_expr,
+    MethodLookup, TypeCheck,
+};
 use crate::typeparamck::{self, ErrorReporting};
 
 pub(super) fn check_expr_call(
@@ -718,7 +721,7 @@ fn check_expr_call_path(
     };
     let method_expr = &callee_as_path.rhs;
 
-    let sym = match ck.read_path_expr(container_expr) {
+    let sym = match read_path_expr(ck, container_expr) {
         Ok(sym) => sym,
         Err(()) => {
             ck.analysis.set_ty(e.id, SourceType::Error);
@@ -806,7 +809,8 @@ fn check_expr_call_path(
                     type_params
                 };
 
-                ck.check_enum_value_with_args(
+                check_enum_value_with_args(
+                    ck,
                     e,
                     expected_ty,
                     enum_id,
@@ -896,7 +900,8 @@ fn check_expr_call_sym(
             check_expr_call_struct(ck, e, struct_id, type_params, &arg_types)
         }
 
-        Some(SymbolKind::EnumVariant(enum_id, variant_idx)) => ck.check_enum_value_with_args(
+        Some(SymbolKind::EnumVariant(enum_id, variant_idx)) => check_enum_value_with_args(
+            ck,
             e,
             expected_ty,
             enum_id,

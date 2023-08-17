@@ -2,13 +2,17 @@ use crate::sema::{AnalysisData, FctDefinitionId, GlobalDefinitionId, Sema, TypeP
 use crate::sym::ModuleSymTable;
 use crate::typeck::body::{
     args_compatible, args_compatible_fct, check_lit_char, check_lit_float, check_lit_int,
-    check_lit_str, TypeCheck, VarManager,
+    check_lit_str, is_simple_enum, lookup_method, TypeCheck, VarManager,
 };
 use crate::typeck::call::{check_expr_call, check_expr_call_enum_args};
 use crate::typeck::constck::ConstCheck;
-use crate::typeck::control::{check_expr_for, check_expr_if, check_expr_return, check_expr_while};
-use crate::typeck::expr::{check_expr, check_expr_assign, check_expr_lit_int};
+use crate::typeck::control::{
+    check_expr_break_and_continue, check_expr_for, check_expr_if, check_expr_return,
+    check_expr_while,
+};
+use crate::typeck::expr::{check_enum_value_with_args, check_expr, read_path_expr};
 use crate::typeck::lookup::MethodLookup;
+use crate::typeck::stmt::{check_stmt, check_stmt_let_pattern};
 
 pub mod body;
 mod call;
@@ -16,6 +20,7 @@ mod constck;
 mod control;
 mod expr;
 mod lookup;
+mod stmt;
 #[cfg(test)]
 mod tests;
 
