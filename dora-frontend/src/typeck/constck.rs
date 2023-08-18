@@ -1,7 +1,7 @@
 use crate::error::msg::ErrorMessage;
 use crate::sema::{ConstDefinition, ConstValue, Sema};
 use crate::ty::SourceType;
-use crate::typeck::body::{check_lit_char, check_lit_float, check_lit_int};
+use crate::typeck::function::{check_lit_char, check_lit_float, check_lit_int};
 
 use dora_parser::ast::*;
 

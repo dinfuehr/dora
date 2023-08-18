@@ -1,16 +1,17 @@
 use std::sync::Arc;
 
-use dora_parser::ast;
+use dora_parser::{ast, Span};
 
 use crate::access::{
     class_accessible_from, class_field_accessible_from, fct_accessible_from, is_default_accessible,
     method_accessible_from, struct_accessible_from, struct_field_accessible_from,
 };
 use crate::error::msg::ErrorMessage;
+use crate::interner::Name;
 use crate::sema::{
-    find_field_in_class, CallType, ClassDefinition, ClassDefinitionId, EnumDefinitionId,
-    EnumVariant, FctDefinitionId, IdentType, Sema, StructDefinition, StructDefinitionId,
-    TypeParamId,
+    find_field_in_class, find_methods_in_class, find_methods_in_enum, find_methods_in_struct,
+    CallType, ClassDefinition, ClassDefinitionId, EnumDefinitionId, EnumVariant, FctDefinitionId,
+    IdentType, Sema, StructDefinition, StructDefinitionId, TypeParamDefinition, TypeParamId,
 };
 use crate::specialize::replace_type_param;
 use crate::sym::SymbolKind;
@@ -190,7 +191,8 @@ fn check_expr_call_expr(
 
     let get = ck.sa.interner.intern("get");
 
-    if let Some(descriptor) = ck.find_method(
+    if let Some(descriptor) = find_method(
+        ck,
         e.span,
         expr_type.clone(),
         false,
@@ -920,4 +922,86 @@ fn check_expr_call_sym(
             check_expr_call_expr(ck, e, expr_type, &arg_types)
         }
     }
+}
+
+pub(super) fn find_method(
+    ck: &mut TypeCheck,
+    span: Span,
+    object_type: SourceType,
+    is_static: bool,
+    name: Name,
+    args: &[SourceType],
+    fct_type_params: &SourceTypeArray,
+) -> Option<MethodDescriptor> {
+    let descriptor = lookup_method(
+        ck.sa,
+        object_type.clone(),
+        ck.type_param_defs,
+        is_static,
+        name,
+        args,
+        fct_type_params,
+    );
+
+    if descriptor.is_none() {
+        let type_name = ck.ty_name(&object_type);
+        let name = ck.sa.interner.str(name).to_string();
+        let param_names = args.iter().map(|a| ck.ty_name(a)).collect::<Vec<String>>();
+        let msg = if is_static {
+            ErrorMessage::UnknownStaticMethod(type_name, name, param_names)
+        } else {
+            ErrorMessage::UnknownMethod(type_name, name, param_names)
+        };
+
+        ck.sa.report(ck.file_id, span, msg);
+    }
+
+    descriptor
+}
+
+pub(super) struct MethodDescriptor {
+    pub fct_id: FctDefinitionId,
+    pub type_params: SourceTypeArray,
+    pub return_type: SourceType,
+}
+
+pub(super) fn lookup_method(
+    sa: &Sema,
+    object_type: SourceType,
+    type_param_defs: &TypeParamDefinition,
+    is_static: bool,
+    name: Name,
+    args: &[SourceType],
+    fct_type_params: &SourceTypeArray,
+) -> Option<MethodDescriptor> {
+    let candidates = if object_type.is_enum() {
+        find_methods_in_enum(sa, object_type, type_param_defs, name, is_static)
+    } else if object_type.is_struct() || object_type.is_primitive() {
+        find_methods_in_struct(sa, object_type, type_param_defs, name, is_static)
+    } else if object_type.cls_id().is_some() {
+        find_methods_in_class(sa, object_type, type_param_defs, name, is_static)
+    } else {
+        Vec::new()
+    };
+
+    if candidates.len() == 1 {
+        let method_id = candidates[0].fct_id;
+        let method = sa.fcts.idx(method_id);
+        let method = method.read();
+
+        let container_type_params = &candidates[0].container_type_params;
+        let type_params = container_type_params.connect(fct_type_params);
+
+        if args_compatible_fct(sa, &*method, args, &type_params, None) {
+            let cmp_type = replace_type_param(sa, method.return_type.clone(), &type_params, None);
+
+            return Some(MethodDescriptor {
+                fct_id: method_id,
+                type_params: type_params,
+                return_type: cmp_type,
+            });
+        }
+    }
+
+    None
 }

@@ -6,7 +6,7 @@ use crate::sema::{
 };
 use crate::specialize::replace_type_param;
 use crate::ty::{SourceType, SourceTypeArray};
-use crate::typeck::body::args_compatible_fct;
+use crate::typeck::function::args_compatible_fct;
 use crate::typeparamck::{self, ErrorReporting};
 use dora_parser::Span;
 

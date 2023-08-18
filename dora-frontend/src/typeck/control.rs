@@ -4,7 +4,7 @@ use crate::error::msg::ErrorMessage;
 use crate::expr_always_returns;
 use crate::sema::{FctDefinitionId, ForTypeInfo};
 use crate::ty::SourceType;
-use crate::typeck::{check_expr, check_stmt_let_pattern, MethodLookup, TypeCheck};
+use crate::typeck::{check_expr, check_let_pattern, MethodLookup, TypeCheck};
 
 pub(super) fn check_expr_while(
     ck: &mut TypeCheck,
@@ -39,7 +39,7 @@ pub(super) fn check_expr_for(
 
     if object_type.is_error() {
         ck.symtable.push_level();
-        check_stmt_let_pattern(ck, &stmt.pattern, SourceType::Error);
+        check_let_pattern(ck, &stmt.pattern, SourceType::Error);
         check_expr(ck, &stmt.block, SourceType::Any);
         ck.symtable.pop_level();
         return SourceType::Unit;
@@ -50,7 +50,7 @@ pub(super) fn check_expr_for(
     {
         ck.symtable.push_level();
         // set variable type to return type of next
-        check_stmt_let_pattern(ck, &stmt.pattern, ret_type);
+        check_let_pattern(ck, &stmt.pattern, ret_type);
         // store fct ids for code generation
         ck.analysis.map_fors.insert(stmt.id, for_type_info);
         check_loop_body(ck, &stmt.block);
@@ -67,7 +67,7 @@ pub(super) fn check_expr_for(
             ck.symtable.push_level();
 
             // set variable type to return type of next
-            check_stmt_let_pattern(ck, &stmt.pattern, ret_type);
+            check_let_pattern(ck, &stmt.pattern, ret_type);
 
             // store fct ids for code generation
             for_type_info.make_iterator = Some(make_iterator);
@@ -85,7 +85,7 @@ pub(super) fn check_expr_for(
 
     // set invalid error type
     ck.symtable.push_level();
-    check_stmt_let_pattern(ck, &stmt.pattern, SourceType::Error);
+    check_let_pattern(ck, &stmt.pattern, SourceType::Error);
     check_loop_body(ck, &stmt.block);
     ck.symtable.pop_level();
     SourceType::Unit

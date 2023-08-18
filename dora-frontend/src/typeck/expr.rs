@@ -23,7 +23,8 @@ use crate::ty::{SourceType, SourceTypeArray};
 use crate::typeck::{
     check_expr_break_and_continue, check_expr_call, check_expr_call_enum_args, check_expr_for,
     check_expr_if, check_expr_return, check_expr_while, check_lit_char, check_lit_float,
-    check_lit_int, check_lit_str, check_stmt, is_simple_enum, lookup_method, TypeCheck,
+    check_lit_int, check_lit_str, check_stmt, find_method, is_simple_enum, lookup_method,
+    TypeCheck,
 };
 use crate::typeparamck::{self, ErrorReporting};
 
@@ -521,7 +522,8 @@ fn check_expr_assign_call(ck: &mut TypeCheck, e: &ast::ExprBinType) {
     let name = ck.sa.interner.intern("set");
     arg_types.push(value_type);
 
-    if let Some(descriptor) = ck.find_method(
+    if let Some(descriptor) = find_method(
+        ck,
         e.span,
         expr_type.clone(),
         false,
