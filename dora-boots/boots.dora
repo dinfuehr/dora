@@ -65,8 +65,24 @@ fn allocateRegisters(graph: Graph, codegen: CodeGen) {
     let available_registers = codegen.allocatableRegisters();
 
     for block in graph.reversePostOrderIterator() {
+        let dominator = block.getDominator();
+
+        if dominator.isSome() {
+            let dominator = dominator.getOrPanic();
+            let liveIn = block.getLiveIn();
+        }
+
         for inst in block.phisIterator() {
             let loc = inst.getLocationData();
+
+            for input in inst.getInputs() {
+                let value = input.getValue();
+
+                if value.getLastUse() === input {
+                    let output = value.getLocationData().getOutput();
+                    available_registers.add(output.getRegister());
+                }
+            }
 
             // pick a register
             let register = available_registers.acquire().getOrPanic();
@@ -97,8 +113,19 @@ fn allocateRegisters(graph: Graph, codegen: CodeGen) {
                     output.setRegister(register);
                 }
             }
+
+            for input in inst.getInputs() {
+                let value = input.getValue();
+
+                if value.getLastUse() === input {
+                    let output = value.getLocationData().getOutput();
+                    available_registers.add(output.getRegister());
+                }
+            }
         }
     }
+
+    assert(available_registers == codegen.allocatableRegisters());
 }
 
 fn removePhis(graph: Graph, codegen: CodeGen) {
@@ -133,7 +160,7 @@ fn generate(graph: Graph, codegen: CodeGen): CodeDescriptor {
         block.setLabel(codegen.createLabel());
     }
 
-    for block in graph.insertionOrderIterator() {
+    for block in graph.reversePostOrderIterator() {
         codegen.emitComment("Block ${block.id()}");
         codegen.bindLabel(block.getLabel());
 

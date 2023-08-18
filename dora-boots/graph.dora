@@ -2,7 +2,7 @@ use std::Hash;
 use std::Equals;
 use std::BitVec;
 
-use package::assembler::{Label, Register};
+use package::assembler::{Label, Register, RegMap};
 use package::bytecode::data::GlobalId;
 use package::dominator::buildDominatorTree;
 
@@ -194,6 +194,7 @@ pub class Block {
     dominatedBlocks: Vec[Block],
 
     liveIn: Option[BitVec],
+    inRegs: Option[RegMap[Inst]],
 
     pub predecessors: Vec[Edge],
     pub successors: Vec[Edge],
@@ -213,6 +214,7 @@ impl Block {
             None[Block],
             Vec[Block]::new(),
             None[BitVec],
+            None[RegMap[Inst]],
             Vec[Edge]::new(),
             Vec[Edge]::new(),
             None[LoopData],
@@ -360,6 +362,15 @@ impl Block {
 
     pub fn getLiveIn(): BitVec {
         self.liveIn.getOrPanic()
+    }
+
+    pub fn setInRegs(inRegs: RegMap[Inst]) {
+        assert(self.inRegs.isNone());
+        self.inRegs = Some(inRegs);
+    }
+
+    pub fn getInRegs(): RegMap[Inst] {
+        self.inRegs.getOrPanic()
     }
 
     pub fn setLabel(label: Label) {
@@ -824,6 +835,10 @@ impl Inst {
 
     pub fn uses(): UseIterator {
         UseIterator::new(self)
+    }
+
+    pub fn getLastUse(): Input {
+        self.useListTail.getOrPanic()
     }
 
     pub fn dominates(other: Inst): Bool {

@@ -145,6 +145,42 @@ impl MachineCode {
     }
 }
 
+pub class RegMap[V] {
+    all: Int64,
+    value: Int64,
+    data: Array[Option[V]],
+}
+
+impl[V] RegMap[V] {
+    pub static fn new(rs: RegSet): RegMap[V] {
+        RegMap(
+            rs.value,
+            0,
+            Array[Option[V]]::fill(64, None[V])
+        )
+    }
+
+    pub fn acquire(value: V): Option[Register] {
+        let available = !self.value & self.all;
+        let idx = available.countZeroBitsTrailing();
+
+        if idx == 64i32 {
+            None[Register]
+        } else {
+            self.value = self.value & !(1 << idx);
+            self.data(idx.toInt64()) = Some[V](value);
+            Some[Register](Register(idx.toUInt8()))
+        }
+    }
+
+    pub fn remove(reg: Register) {
+        let value = reg.value.toInt32();
+        assert(value < 64i32);
+        self.value = self.value & !(1 << value);
+        self.data(reg.value.toInt64()) = None[V];
+    }
+}
+
 pub class RegSet {
     value: Int64,
 }
@@ -187,5 +223,9 @@ impl RegSet {
             self.value = self.value & !(1 << idx);
             Some[Register](Register(idx.toUInt8()))
         }
+    }
+
+    pub fn equals(other: RegSet): Bool {
+        self.value == other.value
     }
 }
