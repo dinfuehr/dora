@@ -23,6 +23,12 @@ impl[T] Array[T] {
 
   static @internal fn unsafeNew(size: Int64): Array[T];
 
+  pub fn clone(): Array[T] {
+    let array = Array[T]::unsafeNew(self.size());
+    Array[T]::copy(self, 0, array, 0, self.size());
+    array
+  }
+
   pub static fn fill(len: Int64, value: T): Array[T] {
     let array = Array[T]::unsafeNew(len);
     let mut i = 0i64;

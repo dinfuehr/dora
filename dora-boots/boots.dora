@@ -1,10 +1,10 @@
-use package::assembler::RegSet;
+use package::assembler::{RegMap, RegSet};
 use package::codegen::CodeGen;
 use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
 use package::codegen::{emitInst, CodeDescriptor, setLocationConstraints};
 use package::dominator::buildDominatorTree;
-use package::graph::{createMove, Graph, Location, LocationData, Op, opName};
+use package::graph::{createMove, Graph, Inst, Location, LocationData, Op, opName};
 use package::graph::dump::dumpGraph;
 use package::graph_builder::createGraph;
 use package::interface::{Architecture, CompilationInfo};
@@ -62,15 +62,16 @@ fn ensureLocationData(graph: Graph, codegen: CodeGen) {
 }
 
 fn allocateRegisters(graph: Graph, codegen: CodeGen) {
-    let available_registers = codegen.allocatableRegisters();
-
     for block in graph.reversePostOrderIterator() {
         let dominator = block.getDominator();
 
-        if dominator.isSome() {
+        let inRegs = if dominator.isSome() {
             let dominator = dominator.getOrPanic();
-            let liveIn = block.getLiveIn();
-        }
+            dominator.getInRegs().clone()
+        } else {
+            assert(block === graph.getEntryBlock());
+            RegMap[Inst]::new(codegen.allocatableRegisters())
+        };
 
         for inst in block.phisIterator() {
             let loc = inst.getLocationData();
@@ -80,13 +81,14 @@ fn allocateRegisters(graph: Graph, codegen: CodeGen) {
 
                 if value.getLastUse() === input {
                     let output = value.getLocationData().getOutput();
-                    available_registers.add(output.getRegister());
+                    inRegs.free(output.getRegister());
                 }
             }
 
             // pick a register
-            let register = available_registers.acquire().getOrPanic();
+            let register = inRegs.acquire(inst).getOrPanic();
             loc.getOutput().setRegister(register);
+            
         }
 
         for inst in block.instructionsIterator() {
@@ -105,12 +107,12 @@ fn allocateRegisters(graph: Graph, codegen: CodeGen) {
 
                 if output.hasRegister() {
                     // fixed register was already assigned
-                    assert(available_registers.contains(output.getRegister()));
-                    available_registers.remove(output.getRegister());
+                    inRegs.pick(output.getRegister(), inst);
                 } else {
                     // pick a register
-                    let register = available_registers.acquire().getOrPanic();
+                    let register = inRegs.acquire(inst).getOrPanic();
                     output.setRegister(register);
+                    inRegs.acquire(inst).getOrPanic();
                 }
             }
 
@@ -119,13 +121,14 @@ fn allocateRegisters(graph: Graph, codegen: CodeGen) {
 
                 if value.getLastUse() === input {
                     let output = value.getLocationData().getOutput();
-                    available_registers.add(output.getRegister());
+                    inRegs.free(output.getRegister());
                 }
             }
-        }
-    }
 
-    assert(available_registers == codegen.allocatableRegisters());
+        }
+
+        block.setInRegs(inRegs);
+    }
 }
 
 fn removePhis(graph: Graph, codegen: CodeGen) {

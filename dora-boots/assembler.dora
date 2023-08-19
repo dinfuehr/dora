@@ -146,8 +146,8 @@ impl MachineCode {
 }
 
 pub class RegMap[V] {
-    all: Int64,
-    value: Int64,
+    allocatable: Int64,
+    in_use: Int64,
     data: Array[Option[V]],
 }
 
@@ -160,23 +160,40 @@ impl[V] RegMap[V] {
         )
     }
 
+    pub fn clone(): RegMap[V] {
+        RegMap(
+            self.allocatable,
+            self.in_use,
+            self.data.clone()
+        )
+    }
+
     pub fn acquire(value: V): Option[Register] {
-        let available = !self.value & self.all;
+        let available = !self.in_use & self.allocatable;
         let idx = available.countZeroBitsTrailing();
 
         if idx == 64i32 {
             None[Register]
         } else {
-            self.value = self.value & !(1 << idx);
+            self.in_use = self.in_use | (1 << idx);
             self.data(idx.toInt64()) = Some[V](value);
             Some[Register](Register(idx.toUInt8()))
         }
     }
 
-    pub fn remove(reg: Register) {
+    pub fn pick(reg: Register, value: V) {
+        let available = !self.in_use & self.allocatable;
+        let idx = reg.value.toInt32();
+        assert((available & (1 << idx)) != 0);
+
+        self.in_use = self.in_use | (1 << idx);
+        self.data(idx.toInt64()) = Some[V](value);
+    }
+
+    pub fn free(reg: Register) {
         let value = reg.value.toInt32();
         assert(value < 64i32);
-        self.value = self.value & !(1 << value);
+        self.in_use = self.in_use & !(1 << value);
         self.data(reg.value.toInt64()) = None[V];
     }
 }
