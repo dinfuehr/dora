@@ -62,6 +62,7 @@ impl GraphDumper {
             }
 
             self.buffer.append("%${entry}");
+            first = false;
         }
 
         self.buffer.append("]");

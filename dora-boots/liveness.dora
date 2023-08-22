@@ -26,11 +26,15 @@ pub fn computeLiveness(graph: Graph) {
         }
 
         for inst in block.reverseInstructionsIterator() {
-            for input in inst.uses() {
+            for input in inst.getInputs() {
                 live.insert(input.getValue().id().toInt64());
             }
 
             live.remove(inst.id().toInt64());
+        }
+
+        for phi in block.phisIterator() {
+            live.remove(phi.id().toInt64());
         }
 
         block.setLiveIn(live);

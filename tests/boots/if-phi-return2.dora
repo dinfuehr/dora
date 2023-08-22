@@ -1,0 +1,15 @@
+//= boots
+
+fn main() {
+    assert(f(true, 3) == 30);
+    assert(f(false, 2) == 40);
+}
+
+@optimizeImmediately fn f(x: Bool, multiplier: Int64): Int64 {
+    let result = if x {
+        10
+    } else {
+        20
+    };
+    result * multiplier
+}
