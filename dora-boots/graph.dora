@@ -360,6 +360,10 @@ impl Block {
         self.liveIn = Some(liveIn);
     }
 
+    pub fn hasLiveIn(): Bool {
+        self.liveIn.isSome()
+    }
+
     pub fn getLiveIn(): BitVec {
         self.liveIn.getOrPanic()
     }

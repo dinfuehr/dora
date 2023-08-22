@@ -34,6 +34,7 @@ impl GraphDumper {
 
         self.dumpEdgeList(true, block.predecessors);
         self.dumpEdgeList(false, block.successors);
+        self.dumpLiveIn(block);
 
         self.buffer.appendNewline();
 
@@ -44,6 +45,26 @@ impl GraphDumper {
         for inst in block.instructionsIterator() {
             self.dumpInst(inst);
         }
+    }
+
+    fn dumpLiveIn(block: Block) {
+        if !block.hasLiveIn() {
+            return;
+        }
+
+        let liveIn = block.getLiveIn();
+        self.buffer.append(" liveIn = [");
+        let mut first: Bool = true;
+
+        for entry in liveIn {
+            if !first {
+                self.buffer.append(", ");
+            }
+
+            self.buffer.append("%${entry}");
+        }
+
+        self.buffer.append("]");
     }
 
     fn dumpEdgeList(is_pred: Bool, edges: Vec[Edge]) {
