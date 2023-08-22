@@ -196,6 +196,33 @@ impl[V] RegMap[V] {
         self.in_use = self.in_use & !(1 << value);
         self.data(reg.value.toInt64()) = None[V];
     }
+
+    pub fn makeIterator(): RegMapIterator[V] {
+        RegMapIterator(self, 0)
+    }
+}
+
+pub class RegMapIterator[V] {
+    map: RegMap[V],
+    idx: Int64,
+}
+
+impl[V] RegMapIterator[V] {
+    fn next(): Option[(Register, V)] {
+        while self.idx < self.map.data.size() {
+            let value = self.map.data(self.idx);
+            if value.isSome() {
+                let reg = Register(self.idx.toUInt8());
+                let value = value.getOrPanic();
+                self.idx = self.idx + 1;
+                return Some((reg, value));
+            }
+
+            self.idx = self.idx + 1;
+        }
+
+        None
+    }
 }
 
 pub class RegSet {

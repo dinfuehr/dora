@@ -294,6 +294,16 @@ impl CodeGen for CodeGenArm64 {
         self.asm.mov(dest, src);
     }
 
+    fn emitCompare(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+        let dest = loc.getOutput().getRegister();
+
+        self.asm.cmp(lhs, rhs);
+        self.asm.cset_w(dest, Cond::GT);
+    }
+
     fn finalize(): CodeDescriptor {
         self.emitDeferredCode();
         self.asm.resolveJumps();

@@ -35,6 +35,7 @@ pub trait CodeGen {
     fn emitGoto(inst: Inst);
     fn emitReturn(inst: Inst);
     fn emitMove(inst: Inst);
+    fn emitCompare(inst: Inst);
 
     fn emitComment(comment: String);
 
@@ -189,7 +190,13 @@ pub fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitMove(inst);
         },
 
+        Op::Greater => {
+            codegen.emitComment("Greater");
+            codegen.emitCompare(inst);
+        },
+
         _ => {
+            println("unsupported op ${inst.op().name()}");
             unreachable[()]();
         }
     }

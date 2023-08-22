@@ -1,4 +1,4 @@
-use package::assembler::{RegMap, RegSet};
+use package::assembler::{RegMap, RegSet, Register};
 use package::codegen::CodeGen;
 use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
@@ -73,17 +73,32 @@ fn allocateRegisters(graph: Graph, codegen: CodeGen) {
             RegMap[Inst]::new(codegen.allocatableRegisters())
         };
 
+        let dropRegisters: Vec[Register] = Vec[Register]::new();
+
+        for (reg, inst) in inRegs {
+            if !block.getLiveIn().contains(inst.id().toInt64()) {
+                dropRegisters.push(reg);
+            }
+        }
+
+        for reg in dropRegisters {
+            inRegs.free(reg);
+        }
+
         for inst in block.phisIterator() {
             let loc = inst.getLocationData();
 
-            for input in inst.getInputs() {
+            /*for input in inst.getInputs() {
                 let value = input.getValue();
 
                 if value.getLastUse() === input {
                     let output = value.getLocationData().getOutput();
+                    if !output.hasRegister() {
+                        println("no register for inst ${value.id()}");
+                    }
                     inRegs.free(output.getRegister());
                 }
-            }
+            }*/
 
             // pick a register
             let register = inRegs.acquire(inst).getOrPanic();
@@ -133,11 +148,12 @@ fn allocateRegisters(graph: Graph, codegen: CodeGen) {
 
 fn removePhis(graph: Graph, codegen: CodeGen) {
     for block in graph.insertionOrderIterator() {
-        for phi in block.phisIterator() {
-            let phiDestRegister = phi.getLocationData().getOutput().getRegister();
+        for predecessorEdge in block.predecessors {
+            let predecessor = predecessorEdge.source;
+            let moves = Vec[(Register, Register)]::new();
 
-            for predecessorEdge in block.predecessors {
-                let predecessor = predecessorEdge.source;
+            for phi in block.phisIterator() {
+                let phiDestRegister = phi.getLocationData().getOutput().getRegister();
                 let value = phi.getInput(predecessorEdge.targetIdx).getValue();
 
                 // Critical edges are not supported yet.
@@ -145,9 +161,17 @@ fn removePhis(graph: Graph, codegen: CodeGen) {
 
                 let valueRegister = value.getLocationData().getOutput().getRegister();
 
+                if phiDestRegister == valueRegister {
+                    continue;
+                }
+
+                moves.push((phiDestRegister, valueRegister));
+            }
+
+            for (dest, src) in moves {
                 // Insert move into predecessor
                 // TODO: should be parallel move
-                let inst = createMove(phiDestRegister, valueRegister);
+                let inst = createMove(dest, src);
                 let terminator = predecessor.lastInst();
                 assert(terminator.isTerminator());
                 predecessor.insertBefore(inst, terminator);

@@ -1,6 +1,6 @@
 use package::assembler::x64::{AssemblerX64, Address, Condition, Immediate, ScaleFactor, registerName};
-use package::assembler::x64::{RAX, RDI, RDX, RCX, RSI, RBP, RSP};
-use package::assembler::x64::{R8, R9, R10, R11};
+use package::assembler::x64::{RAX, RDI, RDX, RCX, RSI, RBP, RSP, RBX};
+use package::assembler::x64::{R8, R9, R10, R11, R12, R13, R14, R15};
 use package::assembler::{Label, Register, RegSet};
 use package::bytecode::data::Location;
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen, CodeDescriptor, CommentTable, LocationTable};
@@ -121,7 +121,7 @@ pub let REG_TMP2: Register = R11;
 
 impl CodeGen for CodeGenX64 {
     fn allocatableRegisters(): RegSet {
-        RegSet::new(RDI, RSI, RDX, RCX, R8, R9)
+        RegSet::new(RDI, RSI, RDX, RCX, R8, R9, RBX, R12, R13, R14)
     }
 
     fn argumentRegister(idx: Int64): Register {
@@ -320,6 +320,17 @@ impl CodeGen for CodeGenX64 {
         let dest = loc.getOutput().getRegister();
 
         self.asm.movq_rr(dest, src);
+    }
+
+    fn emitCompare(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getRegister();
+        let rhs = loc.getInput(1).getRegister();
+        let dest = loc.getOutput().getRegister();
+
+        self.asm.cmpq_rr(lhs, rhs);
+        self.asm.setcc_r(Condition::Greater, dest);
+        self.asm.movzxb_rr(dest, dest);
     }
 
     fn finalize(): CodeDescriptor {
