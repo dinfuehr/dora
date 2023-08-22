@@ -9,6 +9,11 @@ fn main() {
 @optimizeImmediately fn f(x: Int64): Int64 {
     let mut x = x;
     let mut res = 0;
-    while x > 0 { x = x - 1; res = res + 2; }
+
+    while x > 0 {
+        x = x - 1;
+        res = res + 2;
+    }
+
     res
 }
