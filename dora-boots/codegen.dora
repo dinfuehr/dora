@@ -73,6 +73,12 @@ pub fn setLocationConstraints(codegen: CodeGen, inst: Inst) {
             loc.requireInputRegister(0);
         },
 
+        Op::Greater => {
+            loc.requireInputRegister(0);
+            loc.requireInputRegister(1);
+            loc.requireOutputRegister();
+        },
+
         Op::CheckedAdd
         | Op::CheckedSub
         | Op::CheckedMul
