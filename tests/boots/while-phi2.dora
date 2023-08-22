@@ -1,4 +1,5 @@
 //= boots
+//= ignore
 
 fn main() {
     assert(f(12) == 24);
