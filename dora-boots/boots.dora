@@ -4,7 +4,7 @@ use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
 use package::codegen::{emitInst, CodeDescriptor, setLocationConstraints};
 use package::dominator::buildDominatorTree;
-use package::graph::{createMove, Graph, Inst, Location, LocationData, Op, opName};
+use package::graph::{createMove, Block, Graph, Inst, Location, LocationData, Op, opName};
 use package::graph::dump::dumpGraph;
 use package::graph_builder::createGraph;
 use package::interface::{Architecture, CompilationInfo};
@@ -150,7 +150,7 @@ fn removePhis(graph: Graph, codegen: CodeGen) {
     for block in graph.insertionOrderIterator() {
         for predecessorEdge in block.predecessors {
             let predecessor = predecessorEdge.source;
-            let moves = Vec[(Register, Register)]::new();
+            let moves = ParallelMoveResolver::new();
 
             for phi in block.phisIterator() {
                 let phiDestRegister = phi.getLocationData().getOutput().getRegister();
@@ -161,21 +161,37 @@ fn removePhis(graph: Graph, codegen: CodeGen) {
 
                 let valueRegister = value.getLocationData().getOutput().getRegister();
 
-                if phiDestRegister == valueRegister {
-                    continue;
-                }
-
-                moves.push((phiDestRegister, valueRegister));
+                moves.add(phiDestRegister, valueRegister);
             }
 
-            for (dest, src) in moves {
-                // Insert move into predecessor
-                // TODO: should be parallel move
-                let inst = createMove(dest, src);
-                let terminator = predecessor.lastInst();
-                assert(terminator.isTerminator());
-                predecessor.insertBefore(inst, terminator);
-            }
+            moves.resolve(predecessor);
+        }
+    }
+}
+
+class ParallelMoveResolver {
+    moves: Vec[(Register, Register)],
+}
+
+impl ParallelMoveResolver {
+    static fn new(): ParallelMoveResolver {
+        ParallelMoveResolver(
+            Vec[(Register, Register)]::new(),
+        )
+    }
+
+    fn add(dest: Register, src: Register) {
+        if dest == src { return; }
+        self.moves.push((dest, src));
+    }
+
+    fn resolve(predecessor: Block) {
+        // TODO: Check dependencies between moves.
+        for (dest, src) in self.moves {
+            let inst = createMove(dest, src);
+            let terminator = predecessor.lastInst();
+            assert(terminator.isTerminator());
+            predecessor.insertBefore(inst, terminator);
         }
     }
 }
