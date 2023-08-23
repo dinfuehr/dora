@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use package::assembler::{RegMap, RegSet, Register};
 use package::codegen::CodeGen;
 use package::codegen::x64::CodeGenX64;
@@ -164,19 +166,30 @@ fn removePhis(graph: Graph, codegen: CodeGen) {
                 moves.add(phiDestRegister, valueRegister);
             }
 
-            moves.resolve(predecessor);
+            moves.resolve(codegen.getScratchRegister());
+            moves.emitMoves(predecessor);
         }
     }
 }
 
 class ParallelMoveResolver {
     moves: Vec[(Register, Register)],
+    orderedMoves: Vec[(Register, Register)],
+    // All written registers.
+    directpreds: HashMap[Register, Register],
+    // All used variables and their current location.
+    locations: HashMap[Register, Register],
+    todo: RegSet,
 }
 
 impl ParallelMoveResolver {
     static fn new(): ParallelMoveResolver {
         ParallelMoveResolver(
             Vec[(Register, Register)]::new(),
+            Vec[(Register, Register)]::new(),
+            HashMap[Register, Register]::new(),
+            HashMap[Register, Register]::new(),
+            RegSet::new(),
         )
     }
 
@@ -185,14 +198,136 @@ impl ParallelMoveResolver {
         self.moves.push((dest, src));
     }
 
-    fn resolve(predecessor: Block) {
-        // TODO: Check dependencies between moves.
+    fn resolve(scratch: Register) {
         for (dest, src) in self.moves {
-            let inst = createMove(dest, src);
-            let terminator = predecessor.lastInst();
-            assert(terminator.isTerminator());
-            predecessor.insertBefore(inst, terminator);
+            assert(!self.directpreds.contains(dest));
+            self.directpreds.insert(dest, src);
+            self.locations.insert(src, src);
+            assert(!self.todo.contains(dest));
+            self.todo.add(dest);
         }
+
+        for (dest, src) in self.moves {
+            if !self.locations.contains(dest) {
+                assert(self.todo.contains(dest));
+                self.emitMoveChainStartingAt(dest);
+            }
+        }
+
+        while !self.todo.isEmpty() {
+            let dest = self.todo.getFirst().getOrPanic();
+            assert(self.inCycle(dest));
+            self.emitOrderedMove(scratch, dest);
+            self.locations.insert(dest, scratch);
+            self.emitMoveChainStartingAt(dest);
+        }
+    }
+
+    fn inCycle(reg: Register): Bool {
+        let start = reg;
+        let mut reg = reg;
+        assert(self.todo.contains(reg));
+
+        while self.directpreds.contains(reg) {
+            reg = self.directpreds.get(reg).getOrPanic();
+            assert(self.todo.contains(reg));
+
+            if reg == start {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    fn emitMoveChainStartingAt(dest: Register) {
+        let mut dest = dest;
+        assert(self.todo.contains(dest));
+
+        while self.todo.contains(dest) {
+            let original_src = self.directpreds.get(dest).getOrPanic();
+            let actual_src = self.locations.get(original_src).getOrPanic();
+            self.emitOrderedMove(dest, actual_src);
+            self.locations.insert(original_src, dest);
+            assert(self.todo.remove(dest));
+
+            if !self.directpreds.contains(original_src) {
+                return;
+            }
+
+            dest = original_src;
+        }
+    }
+
+    fn emitOrderedMove(dest: Register, src: Register) {
+        self.orderedMoves.push((dest, src));
+    }
+
+    fn emitMoves(block: Block) {
+        for (dest, src) in self.orderedMoves {
+            let inst = createMove(dest, src);
+            let terminator = block.lastInst();
+            assert(terminator.isTerminator());
+            block.insertBefore(inst, terminator);
+        }
+    }
+}
+
+@Test
+fn testMovesWithoutDependencies() {
+    let moves = ParallelMoveResolver::new();
+    moves.add(Register(1u8), Register(0u8));
+    moves.add(Register(3u8), Register(2u8));
+    moves.resolve(Register(10u8));
+
+    let mut idx = 0;
+    for move in moves.orderedMoves {
+        assert(move.0 == moves.moves(idx).0);
+        assert(move.1 == moves.moves(idx).1);
+        idx = idx + 1;
+    }
+}
+
+@Test
+fn testMovesWithDependency() {
+    let moves = ParallelMoveResolver::new();
+    moves.add(Register(1u8), Register(0u8));
+    moves.add(Register(2u8), Register(1u8));
+    moves.resolve(Register(10u8));
+
+    let expected = Array[(Register, Register)]::new(
+        (Register(2u8), Register(1u8)),
+        (Register(1u8), Register(0u8)),
+    );
+
+    let mut idx = 0;
+    for move in moves.orderedMoves {
+        assert(move.0 == expected(idx).0);
+        assert(move.1 == expected(idx).1);
+        idx = idx + 1;
+    }
+}
+
+@Test
+fn testMovesWithCycle() {
+    let moves = ParallelMoveResolver::new();
+    moves.add(Register(1u8), Register(0u8));
+    moves.add(Register(2u8), Register(1u8));
+    moves.add(Register(0u8), Register(2u8));
+    moves.resolve(Register(3u8));
+
+    let expected = Array[(Register, Register)]::new(
+        (Register(3u8), Register(0u8)),
+        (Register(0u8), Register(2u8)),
+        (Register(2u8), Register(1u8)),
+        (Register(1u8), Register(3u8)),
+    );
+
+    let mut idx = 0;
+    for move in moves.orderedMoves {
+        assert(move.0 == expected(idx).0);
+        assert(move.1 == expected(idx).1);
+        idx = idx + 1;
     }
 }
 
