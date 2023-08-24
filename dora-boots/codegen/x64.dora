@@ -332,8 +332,18 @@ impl CodeGen for CodeGenX64 {
         let rhs = loc.getInput(1).getRegister();
         let dest = loc.getOutput().getRegister();
 
+        let cond = match inst.op() {
+            Op::Greater => Condition::Greater,
+            Op::GreaterOrEqual => Condition::GreaterOrEqual,
+            Op::Less => Condition::Less,
+            Op::LessOrEqual => Condition::LessOrEqual,
+            Op::Equal => Condition::Equal,
+            Op::NotEqual => Condition::NotEqual,
+            _ => unreachable[Condition](),
+        };
+
         self.asm.cmpq_rr(lhs, rhs);
-        self.asm.setcc_r(Condition::Greater, dest);
+        self.asm.setcc_r(cond, dest);
         self.asm.movzxb_rr(dest, dest);
     }
 

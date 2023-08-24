@@ -304,8 +304,18 @@ impl CodeGen for CodeGenArm64 {
         let rhs = loc.getInput(1).getRegister();
         let dest = loc.getOutput().getRegister();
 
+        let cond = match inst.op() {
+            Op::Greater => Cond::GT,
+            Op::GreaterOrEqual => Cond::GE,
+            Op::Less => Cond::LT,
+            Op::LessOrEqual => Cond::LE,
+            Op::Equal => Cond::EQ,
+            Op::NotEqual => Cond::NE,
+            _ => unreachable[Cond](),
+        };
+
         self.asm.cmp(lhs, rhs);
-        self.asm.cset_w(dest, Cond::GT);
+        self.asm.cset_w(dest, cond);
     }
 
     fn finalize(): CodeDescriptor {

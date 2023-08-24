@@ -76,7 +76,12 @@ pub fn setLocationConstraints(codegen: CodeGen, inst: Inst) {
             loc.requireInputRegister(0);
         },
 
-        Op::Greater => {
+        Op::Greater
+        | Op::GreaterOrEqual
+        | Op::Less
+        | Op::LessOrEqual
+        | Op::Equal
+        | Op::NotEqual => {
             loc.requireInputRegister(0);
             loc.requireInputRegister(1);
             loc.requireOutputRegister();
@@ -192,8 +197,13 @@ pub fn emitInst(codegen: CodeGen, inst: Inst) {
             codegen.emitMove(inst);
         },
 
-        Op::Greater => {
-            codegen.emitComment("Greater");
+        Op::Greater
+        | Op::GreaterOrEqual
+        | Op::Less
+        | Op::LessOrEqual
+        | Op::Equal
+        | Op::NotEqual => {
+            codegen.emitComment("${inst.op().name()}");
             codegen.emitCompare(inst);
         },
 

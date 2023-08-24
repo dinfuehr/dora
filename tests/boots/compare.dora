@@ -1,0 +1,36 @@
+//= boots
+
+fn main() {
+    assert(!gt(2, 3));
+    assert(!gt(1, 1));
+    assert(gt(1, 0));
+    assert(gt(-1, -5));
+    assert(!gt(-3, -2));
+
+    assert(!ge(2, 3));
+    assert(ge(1, 1));
+    assert(ge(1, 0));
+    assert(ge(-1, -5));
+    assert(ge(-2, -2));
+    assert(!ge(-3, -2));
+
+    assert(!lt(3, 2));
+    assert(!lt(1, 1));
+    assert(lt(0, 1));
+    assert(lt(-5, -1));
+    assert(!lt(-2, -3));
+
+    assert(!le(3, 2));
+    assert(le(1, 1));
+    assert(le(0, 1));
+    assert(le(-5, -1));
+    assert(le(-2, -2));
+    assert(!le(-2, -3));
+}
+
+@optimizeImmediately fn gt(a: Int64, b: Int64): Bool { a>b }
+@optimizeImmediately fn ge(a: Int64, b: Int64): Bool { a>=b }
+@optimizeImmediately fn lt(a: Int64, b: Int64): Bool { a<b }
+@optimizeImmediately fn le(a: Int64, b: Int64): Bool { a<=b }
+@optimizeImmediately fn eq(a: Int64, b: Int64): Bool { a==b }
+@optimizeImmediately fn ne(a: Int64, b: Int64): Bool { a!=b }
