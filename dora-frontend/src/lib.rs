@@ -75,6 +75,7 @@ pub fn check_program(sa: &mut Sema) -> bool {
 
     // find all trait implementations for classes
     impldefck::check(sa);
+    return_on_error!(sa);
 
     // checks class/struct/trait/enum definitions
     clsdefck::check(sa);
