@@ -26,6 +26,16 @@ fn main() {
     assert(le(-5, -1));
     assert(le(-2, -2));
     assert(!le(-2, -3));
+
+    assert(eq(1, 1));
+    assert(eq(0, 0));
+    assert(eq(-1, -1));
+    assert(!eq(-1, 1));
+
+    assert(!ne(1, 1));
+    assert(!ne(0, 0));
+    assert(!ne(-1, -1));
+    assert(ne(-1, 1));
 }
 
 @optimizeImmediately fn gt(a: Int64, b: Int64): Bool { a>b }
