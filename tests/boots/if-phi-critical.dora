@@ -1,9 +1,8 @@
 //= boots
-//= ignore
 
 fn main() {
-    assert(f(true) == 10);
-    assert(f(false) == 20);
+    assert(f(true) == 20);
+    assert(f(false) == 10);
 }
 
 @optimizeImmediately fn f(x: Bool): Int64 {

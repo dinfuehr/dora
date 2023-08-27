@@ -6,7 +6,7 @@ use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
 use package::codegen::{emitInst, CodeDescriptor, setLocationConstraints};
 use package::dominator::buildDominatorTree;
-use package::graph::{createMove, Block, Graph, Inst, Location, LocationData, Op, opName};
+use package::graph::{createGotoInst, createMove, Block, Edge, Graph, Inst, Location, LocationData, Op, opName};
 use package::graph::dump::dumpGraph;
 use package::graph_builder::createGraph;
 use package::interface::{Architecture, CompilationInfo};
@@ -37,6 +37,12 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
     }
 
     splitCriticalEdges(graph);
+
+    if (ci.emitGraph) {
+        println("after critical edge splitting:");
+        println(dumpGraph(graph, config.architecture));
+    }
+
     buildDominatorTree(graph);
     computeLiveness(graph);
 
@@ -58,7 +64,54 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
 }
 
 fn splitCriticalEdges(graph: Graph) {
-    // TODO
+    for block in graph.insertionOrderIterator() {
+        if block.predecessors.size() <= 1 {
+            continue;
+        }
+
+        for predecessorEdge in block.predecessors {
+            let predecessor = predecessorEdge.source;
+
+            if predecessor.successors.size() == 1 {
+                continue;
+            }
+
+            // Found a critical edge.
+            splitCriticalEdge(graph, predecessorEdge);
+        }
+    }
+}
+
+fn splitCriticalEdge(graph: Graph, edge: Edge) {
+    let predecessor = edge.source;
+    let successor = edge.target;
+
+    let intermediate = Block::new();
+    graph.addBlock(intermediate);
+
+    let inst = createGotoInst(successor);
+    intermediate.appendInst(inst);
+
+    let terminator = predecessor.lastInst();
+    assert(terminator.op() == Op::If);
+    if terminator.getTrueBlock() === successor {
+        terminator.setTrueBlock(intermediate);
+    } else {
+        assert(terminator.getFalseBlock() === successor);
+        terminator.setFalseBlock(intermediate);
+    }
+
+    let predecessorToIntermediateEdge = Edge::new(edge.source, edge.sourceIdx, intermediate, 0);
+    assert(intermediate.predecessors.isEmpty());
+    intermediate.predecessors.push(predecessorToIntermediateEdge);
+
+    predecessor.successors(edge.sourceIdx) = predecessorToIntermediateEdge;
+
+    let intermediateToSuccessorEdge = edge;
+    intermediateToSuccessorEdge.source = intermediate;
+    intermediateToSuccessorEdge.sourceIdx = 0;
+    assert(intermediate.successors.isEmpty());
+    intermediate.successors.push(intermediateToSuccessorEdge);
 }
 
 fn ensureLocationData(graph: Graph, codegen: CodeGen) {
@@ -168,7 +221,7 @@ fn ssaDestruction(graph: Graph, codegen: CodeGen) {
                 let phiDestRegister = phi.getLocationData().getOutput().getRegister();
                 let value = phi.getInput(predecessorEdge.targetIdx).getValue();
 
-                // Critical edges are not supported yet.
+                // Critical edges should already be split.
                 assert(predecessor.successors.size() == 1);
 
                 let valueRegister = value.getLocationData().getOutput().getRegister();

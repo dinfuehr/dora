@@ -914,9 +914,19 @@ impl Inst {
         self.block1.getOrPanic()
     }
 
+    pub fn setTrueBlock(block: Block) {
+        assert(self.op() == Op::If);
+        self.block1 = Some(block);
+    }
+
     pub fn getFalseBlock(): Block {
         assert(self.op() == Op::If);
         self.block2.getOrPanic()
+    }
+
+    pub fn setFalseBlock(block: Block) {
+        assert(self.op() == Op::If);
+        self.block2 = Some(block);
     }
 
     pub fn setLocationData(data: LocationData) {
@@ -1488,7 +1498,7 @@ pub class Edge {
 } 
 
 impl Edge {
-    static fn new(source: Block, sourceIdx: Int64, target: Block, targetIdx: Int64): Edge {
+    pub static fn new(source: Block, sourceIdx: Int64, target: Block, targetIdx: Int64): Edge {
         Edge(
             source,
             sourceIdx,
