@@ -31,17 +31,23 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
     let graph = createGraph(ci.bc);
     let codegen = createCodeGen(ci);
 
-    buildDominatorTree(graph);
-    computeLiveness(graph);
-
     if (ci.emitGraph) {
         println("after graph building:");
         println(dumpGraph(graph, config.architecture));
     }
 
+    splitCriticalEdges(graph);
+    buildDominatorTree(graph);
+    computeLiveness(graph);
+
+    if (ci.emitGraph) {
+        println("before register allocation:");
+        println(dumpGraph(graph, config.architecture));
+    }
+
     ensureLocationData(graph, codegen);
     allocateRegisters(graph, codegen);
-    removePhis(graph, codegen);
+    ssaDestruction(graph, codegen);
 
     if (ci.emitGraph) {
         println("after register allocation:");
@@ -49,6 +55,10 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
     }
 
     generate(graph, codegen)
+}
+
+fn splitCriticalEdges(graph: Graph) {
+    // TODO
 }
 
 fn ensureLocationData(graph: Graph, codegen: CodeGen) {
@@ -148,7 +158,7 @@ fn allocateRegisters(graph: Graph, codegen: CodeGen) {
     }
 }
 
-fn removePhis(graph: Graph, codegen: CodeGen) {
+fn ssaDestruction(graph: Graph, codegen: CodeGen) {
     for block in graph.insertionOrderIterator() {
         for predecessorEdge in block.predecessors {
             let predecessor = predecessorEdge.source;
