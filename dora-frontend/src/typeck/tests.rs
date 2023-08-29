@@ -1182,7 +1182,7 @@ fn test_for_supports_make_iterator() {
             class Foo
             impl Foo { fn makeIterator(): FooIter { return FooIter(); } }
             class FooIter
-            impl std::Iterator for FooIter {
+            impl FooIter {
                 fn next(): Option[Int32] { Some[Int32](0i32) }
             }
             fn f(): Int32 { for i in Foo() { return i; } return 0i32; }");
@@ -2858,7 +2858,7 @@ fn const_value() {
 
 #[test]
 fn for_var() {
-    ok("fn f() { for i in std::range(0i32, 4i32) { i; } }");
+    ok("fn f() { for i in std::range(0, 4) { i; } }");
 }
 
 #[test]

@@ -1,8 +1,0 @@
-//= stdout "012"
-
-fn main() {
-    for i in std::range(0i32, 5i32) {
-        if i == 3i32 { break; }
-        print(i.toString());
-    }
-}

@@ -107,7 +107,7 @@ impl SsaGen {
 
         let data = Vec[HashMap[Block, Inst]]::new();
 
-        for i in std::range(0i32, self.bc.registers.size().toInt32()) {
+        for i in std::range(0, self.bc.registers.size()) {
             data.push(HashMap[Block, Inst]::new());
         }
 
@@ -210,8 +210,8 @@ impl SsaGen {
         phi.replaceWith(same.getOrPanic());
         phi.remove();
 
-        for i in std::range(0i32, users.size().toInt32()) {
-            let user = users(i.toInt64());
+        for i in std::range(0, users.size()) {
+            let user = users(i);
 
             if user === phi {
                 continue;

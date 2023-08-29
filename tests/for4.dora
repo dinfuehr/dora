@@ -1,7 +1,0 @@
-fn main() {
-    let mut counter = 0i32;
-    for i in std::range(0i32, 0i32) {
-        counter = counter + 1i32;
-    }
-    assert(counter == 0i32);
-}

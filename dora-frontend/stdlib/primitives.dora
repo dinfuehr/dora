@@ -1,4 +1,4 @@
-use std::traits::{Default, Equals, Iterator, Zero};
+use std::traits::{Default, Equals, Zero};
 use std::string::Stringable;
 use std::fatalError;
 
@@ -131,7 +131,7 @@ impl Int32Range {
   }
 }
 
-pub fn range(lower: Int32, upper: Int32): Int32Range {
+pub fn range32(lower: Int32, upper: Int32): Int32Range {
   Int32Range(lower, upper)
 }
 
@@ -140,7 +140,7 @@ class Int32RangeIter {
   value: Int32,
 }
 
-impl Iterator for Int32RangeIter {
+impl Int32RangeIter {
   fn next(): Option[Int32] {
     if self.value < self.range.upper {
       let cur = self.value;
@@ -148,6 +148,35 @@ impl Iterator for Int32RangeIter {
       Some[Int32](cur)
     } else {
       None[Int32]
+    }
+  }
+}
+
+pub class Int64Range(lower: Int64, upper: Int64)
+
+impl Int64Range {
+  pub fn makeIterator(): Int64RangeIter {
+    return Int64RangeIter(self.lower, self.upper);
+  }
+}
+
+pub fn range(lower: Int64, upper: Int64): Int64Range {
+  Int64Range(lower, upper)
+}
+
+class Int64RangeIter {
+  next: Int64,
+  limit: Int64,
+}
+
+impl Int64RangeIter {
+  pub fn next(): Option[Int64] {
+    if self.next < self.limit {
+      let cur = self.next;
+      self.next = cur + 1;
+      Some[Int64](cur)
+    } else {
+      None[Int64]
     }
   }
 }

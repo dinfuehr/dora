@@ -51,6 +51,11 @@ impl CodeGenArm64 {
         self.asm.movk(dest, ((imm >> 48i32) & 0xFF_FF).toInt32(), 48i32);
     }
 
+    fn mov_imm_w(dest: Register, imm: Int32) {
+        self.asm.movz_w(dest, imm & 0xFF_FFi32, 0i32);
+        self.asm.movk_w(dest, (imm >> 16i32) & 0xFF_FFi32, 16i32);
+    }
+
     fn emitDeferredCode() {
         for code in self.deferred {
             code();
@@ -142,6 +147,12 @@ impl CodeGen for CodeGenArm64 {
         let loc = inst.getLocationData();
         let register = loc.getOutput().getRegister();
         self.asm.movz_w(register, 0i32, 0i32);
+    }
+
+    fn emitInt32Const(inst: Inst) {
+        let loc = inst.getLocationData();
+        let register = loc.getOutput().getRegister();
+        self.mov_imm_w(register, inst.auxAsInt32());
     }
 
     fn emitInt64Const(inst: Inst) {
@@ -278,6 +289,8 @@ impl CodeGen for CodeGenArm64 {
 
             if R0 != register {
                 if ty == Type::Int64 {
+                    self.asm.mov(R0, register);
+                } else if ty == Type::Int32 {
                     self.asm.mov(R0, register);
                 } else if ty == Type::Bool {
                     self.asm.mov_w(R0, register);

@@ -26,6 +26,7 @@ pub trait CodeGen {
     fn emitTrueConst(inst: Inst);
     fn emitFalseConst(inst: Inst);
     fn emitInt64Const(inst: Inst);
+    fn emitInt32Const(inst: Inst);
     fn emitCheckedAdd(inst: Inst);
     fn emitCheckedSub(inst: Inst);
     fn emitCheckedMul(inst: Inst);
@@ -68,7 +69,8 @@ pub fn setLocationConstraints(codegen: CodeGen, inst: Inst) {
             }
         },
 
-        Op::Int64Const => {
+        Op::Int32Const
+        | Op::Int64Const => {
             loc.requireOutputRegister();
         },
 
@@ -135,6 +137,11 @@ pub fn emitInst(codegen: CodeGen, inst: Inst) {
         Op::FalseConst => {
             codegen.emitComment("FalseConst");
             codegen.emitFalseConst(inst);
+        },
+
+        Op::Int32Const => {
+            codegen.emitComment("Int32Const");
+            codegen.emitInt32Const(inst);
         },
 
         Op::Int64Const => {

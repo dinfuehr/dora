@@ -162,7 +162,6 @@ pub struct KnownTraits {
     pub equals: Option<TraitDefinitionId>,
     pub comparable: Option<TraitDefinitionId>,
     pub stringable: Option<TraitDefinitionId>,
-    pub iterator: Option<TraitDefinitionId>,
     pub zero: Option<TraitDefinitionId>,
 }
 
@@ -172,7 +171,6 @@ impl KnownTraits {
             equals: None,
             comparable: None,
             stringable: None,
-            iterator: None,
             zero: None,
         }
     }
@@ -187,10 +185,6 @@ impl KnownTraits {
 
     pub fn stringable(&self) -> TraitDefinitionId {
         self.stringable.expect("uninitialized")
-    }
-
-    pub fn iterator(&self) -> TraitDefinitionId {
-        self.iterator.expect("uninitialized")
     }
 
     pub fn zero(&self) -> TraitDefinitionId {

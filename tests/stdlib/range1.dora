@@ -1,10 +1,10 @@
 fn main() {
-    let x = std::range(0i32, 5i32).makeIterator();
+    let x = std::range(0, 5).makeIterator();
 
-    assert(x.next().getOrPanic() == 0i32);
-    assert(x.next().getOrPanic() == 1i32);
-    assert(x.next().getOrPanic() == 2i32);
-    assert(x.next().getOrPanic() == 3i32);
-    assert(x.next().getOrPanic() == 4i32);
+    assert(x.next().getOrPanic() == 0);
+    assert(x.next().getOrPanic() == 1);
+    assert(x.next().getOrPanic() == 2);
+    assert(x.next().getOrPanic() == 3);
+    assert(x.next().getOrPanic() == 4);
     x.next().unwrapNone();
 }

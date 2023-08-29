@@ -4013,7 +4013,7 @@ mod tests {
     fn jmp_backward_still_near() {
         let asm = AssemblerX64::new();
         let lbl = asm.createAndBindLabel();
-        for x in std::range(0i32, 126i32) {
+        for x in std::range(0, 126) {
             asm.nop();
         }
         asm.jmp(lbl);
@@ -4029,7 +4029,7 @@ mod tests {
     fn jmp_backward_already_far() {
         let asm = AssemblerX64::new();
         let lbl = asm.createAndBindLabel();
-        for x in std::range(0i32, 127i32) {
+        for x in std::range(0, 127) {
             asm.nop();
         }
         asm.jmp(lbl);
@@ -4120,7 +4120,7 @@ mod tests {
     fn jcc_backward_still_near() {
         let asm = AssemblerX64::new();
         let lbl = asm.createAndBindLabel();
-        for x in std::range(0i32, 126i32) {
+        for x in std::range(0, 126) {
             asm.nop();
         }
         asm.jcc(Condition::Overflow, lbl);
@@ -4136,7 +4136,7 @@ mod tests {
     fn jcc_backward_already_far() {
         let asm = AssemblerX64::new();
         let lbl = asm.createAndBindLabel();
-        for x in std::range(0i32, 127i32) {
+        for x in std::range(0, 127) {
             asm.nop();
         }
         asm.jcc(Condition::Overflow, lbl);

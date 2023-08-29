@@ -1,0 +1,8 @@
+//= stdout "0124"
+
+fn main() {
+    for i in std::range(0, 5) {
+        if i == 3 { continue; }
+        print(i.toString());
+    }
+}

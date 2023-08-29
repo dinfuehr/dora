@@ -3,11 +3,11 @@ use std::Queue;
 fn main() {
     let q = Queue[Int32]::new();
 
-    for i in std::range(0i32, 100i32) {
-        q.enqueue(i);
+    for i in std::range(0, 100) {
+        q.enqueue(i.toInt32());
     }
 
-    for i in std::range(0i32, 100i32) {
-        assert(q.dequeue() == i);
+    for i in std::range(0, 100) {
+        assert(q.dequeue() == i.toInt32());
     }
 }

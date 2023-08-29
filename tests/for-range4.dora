@@ -1,0 +1,7 @@
+fn main() {
+    let mut counter = 0;
+    for i in std::range(0, 0) {
+        counter = counter + 1;
+    }
+    assert(counter == 0);
+}

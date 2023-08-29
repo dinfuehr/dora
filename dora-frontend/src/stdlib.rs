@@ -80,7 +80,6 @@ pub fn resolve_internal_classes(sa: &mut Sema) {
 
     sa.known.traits.stringable = Some(find_trait(sa, stdlib_id, "string::Stringable"));
     sa.known.traits.zero = Some(find_trait(sa, stdlib_id, "traits::Zero"));
-    sa.known.traits.iterator = Some(find_trait(sa, stdlib_id, "traits::Iterator"));
 
     sa.known.enums.option = Some(find_enum(sa, stdlib_id, "primitives::Option"));
 }

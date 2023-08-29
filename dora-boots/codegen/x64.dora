@@ -159,6 +159,12 @@ impl CodeGen for CodeGenX64 {
         self.asm.movq_ri(register, Immediate(inst.auxAsInt64()));
     }
 
+    fn emitInt32Const(inst: Inst) {
+        let loc = inst.getLocationData();
+        let register = loc.getOutput().getRegister();
+        self.asm.movl_ri(register, Immediate(inst.auxAsInt32().toInt64()));
+    }
+
     fn emitTrueConst(inst: Inst) {
         let loc = inst.getLocationData();
         let register = loc.getOutput().getRegister();
@@ -307,6 +313,8 @@ impl CodeGen for CodeGenX64 {
             if RAX != register {
                 if ty == Type::Int64 {
                     self.asm.movq_rr(RAX, register);
+                } else if ty == Type::Int32 {
+                    self.asm.movl_rr(RAX, register);
                 } else if ty == Type::Bool {
                     self.asm.movl_rr(RAX, register);
                 } else {

@@ -246,7 +246,3 @@ impl Equals for Float64 {
 impl Equals for String {
   fn equals(other: String): Bool { self == other }
 }
-
-pub trait Iterator {
-  fn next(): Option[Int32]; // this should be made generic
-}
