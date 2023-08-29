@@ -1,14 +1,42 @@
 use std::collections::VecIter;
 
 use package::bytecode::data::Location;
+use package::codegen::x64::CodeGenX64;
+use package::codegen::arm64::CodeGenArm64;
 use package::assembler::{Label, Register, RegSet};
-use package::interface::CompilationInfo;
-use package::graph::{Inst, LocationData, Op};
+use package::interface::{Architecture, CompilationInfo, config};
+use package::graph::{Graph, Inst, LocationData, Op};
 
 pub mod arm64;
 pub mod x64;
 
 const CODE_SIZE_ALIGNMENT: Int64 = 16;
+
+pub fn createCodeGen(ci: CompilationInfo): CodeGen {
+    match config.architecture {
+        Architecture::X64 => CodeGenX64::new(ci) as CodeGen,
+        Architecture::Arm64 => CodeGenArm64::new(ci) as CodeGen,
+    }
+}
+
+pub fn generateCode(graph: Graph, codegen: CodeGen): CodeDescriptor {
+    codegen.prolog();
+
+    for block in graph.insertionOrderIterator() {
+        block.setLabel(codegen.createLabel());
+    }
+
+    for block in graph.reversePostOrderIterator() {
+        codegen.emitComment("Block ${block.id()}");
+        codegen.bindLabel(block.getLabel());
+
+        for inst in block.instructionsIterator() {
+            emitInst(codegen, inst);
+        }
+    }
+
+    codegen.finalize()
+}
 
 pub trait CodeGen {
     fn allocatableRegisters(): RegSet;
