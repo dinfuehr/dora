@@ -1055,6 +1055,14 @@ impl LocationData {
         self.output = Some(Location::fixedRegister(register));
     }
 
+    pub fn requireTempRegister() {
+        self.temps.push(Location::someRegister());
+    }
+
+    pub fn requireTempFixedRegister(register: Register) {
+        self.output = Some(Location::fixedRegister(register));
+    }
+
     pub fn requireOutputSameAsFirstInput() {
         self.output = Some(Location::sameAsFirstInput());
     }
@@ -1073,6 +1081,10 @@ impl LocationData {
 
     pub fn getInput(idx: Int64): Location {
         self.inputs.get(idx).getOrPanic()
+    }
+
+    pub fn getTemps(): Vec[Location] {
+        self.temps
     }
 
     pub fn addTemp(temp: Location) {
