@@ -123,6 +123,17 @@ fn ssaDestruction(graph: Graph, codegen: CodeGen) {
                 moves.add(phiDestRegister, valueRegister);
             }
 
+            let blockTracker = block.getTrackerIn();
+            let predecessorTracker = predecessor.getTrackerOut();
+
+            for inst in block.getLiveIn() {
+                let inst = inst.toInt32();
+                let sourceRegister = predecessorTracker.locations.get(inst).getOrPanic();
+                let destRegister = blockTracker.locations.get(inst).getOrPanic();
+                assert(sourceRegister == destRegister);
+                moves.add(destRegister, sourceRegister);
+            }
+
             moves.resolve(codegen.getScratchRegister());
             moves.emitMoves(predecessor);
         }
@@ -132,8 +143,8 @@ fn ssaDestruction(graph: Graph, codegen: CodeGen) {
 pub class InstTracker {
     allocatable: RegSet,
     free: RegSet,
-    data: RegMap[Inst],
-    locations: HashMap[Inst, Register],
+    data: RegMap[Int32],
+    locations: HashMap[Int32, Register],
 }
 
 impl InstTracker {
@@ -141,16 +152,16 @@ impl InstTracker {
         InstTracker(
             allocatable,
             allocatable.clone(),
-            RegMap[Inst]::new(allocatable),
-            HashMap[Inst, Register]::new(),
+            RegMap[Int32]::new(allocatable),
+            HashMap[Int32, Register]::new(),
         )
     }
 
     fn unionWithLiveIn(block: Block) {
-        let dead = Vec[(Register, Inst)]::new();
+        let dead = Vec[(Register, Int32)]::new();
 
         for (reg, inst) in self.data {
-            if !block.getLiveIn().contains(inst.id().toInt64()) {
+            if !block.getLiveIn().contains(inst.toInt64()) {
                 dead.push((reg, inst));
             }
         }
@@ -162,18 +173,18 @@ impl InstTracker {
     }
 
     fn getRegister(inst: Inst): Register {
-        self.locations.get(inst).getOrPanic()
+        self.locations.get(inst.id()).getOrPanic()
     }
 
     fn allocateFixedRegister(reg: Register, value: Inst) {
-        self.data.pick(reg, value);
-        self.locations.insert(value, reg);
+        self.data.pick(reg, value.id());
+        self.locations.insert(value.id(), reg);
     }
 
     fn allocateRegister(value: Inst): Option[Register] {
-        let result = self.data.acquire(value);
+        let result = self.data.acquire(value.id());
         if result.isSome() {
-            self.locations.insert(value, result.getOrPanic());
+            self.locations.insert(value.id(), result.getOrPanic());
         }
         result
     }
@@ -181,7 +192,7 @@ impl InstTracker {
     fn free(inst: Inst) {
         let reg = self.getRegister(inst);
         self.data.free(reg);
-        self.locations.remove(inst);
+        self.locations.remove(inst.id());
     }
 
     fn clone(): InstTracker {

@@ -119,8 +119,13 @@ pub fn setLocationConstraints(codegen: CodeGen, inst: Inst) {
 
         Op::CheckedAdd
         | Op::CheckedSub
-        | Op::CheckedMul
-        | Op::CheckedDiv
+        | Op::CheckedMul => {
+            loc.requireInputRegister(0);
+            loc.requireInputRegister(1);
+            loc.requireOutputRegister();
+        },
+
+        Op::CheckedDiv
         | Op::CheckedMod => {
             loc.requireInputRegister(0);
             loc.requireInputRegister(1);
