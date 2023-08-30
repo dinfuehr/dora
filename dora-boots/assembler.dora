@@ -277,18 +277,7 @@ impl RegSet {
         self.value == 0
     }
 
-    pub fn acquire(): Option[Register] {
-        let idx = self.value.countZeroBitsTrailing();
-
-        if idx == 64i32 {
-            None[Register]
-        } else {
-            self.value = self.value & !(1 << idx);
-            Some[Register](Register(idx.toUInt8()))
-        }
-    }
-
-    pub fn getFirst(): Option[Register] {
+    pub fn first(): Option[Register] {
         let idx = self.value.countZeroBitsTrailing();
 
         if idx == 64i32 {

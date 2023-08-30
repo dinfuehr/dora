@@ -276,6 +276,13 @@ impl BitSet {
 
     self.data.set(entry_idx, value);
   }
+
+  pub fn clone(): BitSet {
+    BitSet(
+      self.data.clone(),
+      self.capacity,
+    )
+  }
 }
 
 pub class BitVec {
@@ -723,6 +730,16 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
         self.values = new_map.values;
         self.entries = new_map.entries;
         self.cap = new_capacity;
+    }
+
+    pub fn clone(): HashMap[K, V] {
+      HashMap(
+        self.inserted_and_deleted.clone(),
+        self.keys.clone(),
+        self.values.clone(),
+        self.entries,
+        self.cap,
+      )
     }
 
     fn isLive(idx: Int64): Bool {

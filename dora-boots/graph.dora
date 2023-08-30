@@ -5,6 +5,7 @@ use std::BitVec;
 use package::assembler::{Label, Register, RegMap};
 use package::bytecode::data::GlobalId;
 use package::dominator::buildDominatorTree;
+use package::regalloc::InstTracker;
 
 pub use package::graph::ty::Type;
 
@@ -194,7 +195,8 @@ pub class Block {
     dominatedBlocks: Vec[Block],
 
     liveIn: Option[BitVec],
-    inRegs: Option[RegMap[Inst]],
+    trackerIn: Option[InstTracker],
+    trackerOut: Option[InstTracker],
 
     pub predecessors: Vec[Edge],
     pub successors: Vec[Edge],
@@ -214,7 +216,8 @@ impl Block {
             None[Block],
             Vec[Block]::new(),
             None[BitVec],
-            None[RegMap[Inst]],
+            None[InstTracker],
+            None[InstTracker],
             Vec[Edge]::new(),
             Vec[Edge]::new(),
             None[LoopData],
@@ -368,13 +371,22 @@ impl Block {
         self.liveIn.getOrPanic()
     }
 
-    pub fn setInRegs(inRegs: RegMap[Inst]) {
-        assert(self.inRegs.isNone());
-        self.inRegs = Some(inRegs);
+    pub fn setTrackerIn(trackerIn: InstTracker) {
+        assert(self.trackerIn.isNone());
+        self.trackerIn = Some(trackerIn);
     }
 
-    pub fn getInRegs(): RegMap[Inst] {
-        self.inRegs.getOrPanic()
+    pub fn getTrackerIn(): InstTracker {
+        self.trackerIn.getOrPanic()
+    }
+
+    pub fn setTrackerOut(trackerOut: InstTracker) {
+        assert(self.trackerOut.isNone());
+        self.trackerOut = Some(trackerOut);
+    }
+
+    pub fn getTrackerOut(): InstTracker {
+        self.trackerOut.getOrPanic()
     }
 
     pub fn setLabel(label: Label) {
@@ -994,6 +1006,18 @@ impl Inst {
             Op::Move => false,
             Op::MoveImmediate => false,
         }
+    }
+}
+
+impl Hash for Inst {
+    fn hash(): Int32 {
+        self.id().hash()
+    }
+}
+
+impl Equals for Inst {
+    fn equals(other: Inst): Bool {
+        self === other
     }
 }
 
