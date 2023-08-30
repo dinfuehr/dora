@@ -290,4 +290,10 @@ impl RegSet {
     pub fn equals(other: RegSet): Bool {
         self.value == other.value
     }
+
+    pub fn clone(): RegSet {
+        RegSet(
+            self.value,
+        )
+    }
 }

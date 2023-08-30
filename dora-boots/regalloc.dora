@@ -52,7 +52,6 @@ impl SimpleRegisterAllocator {
                 // pick a register
                 let register = self.tracker.allocateRegister(inst).getOrPanic();
                 loc.getOutput().setRegister(register);
-                
             }
 
             for inst in block.instructionsIterator() {
@@ -132,6 +131,7 @@ fn ssaDestruction(graph: Graph, codegen: CodeGen) {
 
 pub class InstTracker {
     allocatable: RegSet,
+    free: RegSet,
     data: RegMap[Inst],
     locations: HashMap[Inst, Register],
 }
@@ -140,6 +140,7 @@ impl InstTracker {
     static fn new(allocatable: RegSet): InstTracker {
         InstTracker(
             allocatable,
+            allocatable.clone(),
             RegMap[Inst]::new(allocatable),
             HashMap[Inst, Register]::new(),
         )
@@ -186,6 +187,7 @@ impl InstTracker {
     fn clone(): InstTracker {
         InstTracker(
             self.allocatable,
+            self.free.clone(),
             self.data.clone(),
             self.locations.clone(),
         )
