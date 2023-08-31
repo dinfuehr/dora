@@ -1025,6 +1025,7 @@ pub class LocationData {
     inputs: Array[Option[Location]],
     temps: Vec[Location],
     output: Option[Location],
+    spill_slot: Option[Int32],
 }
 
 impl LocationData {
@@ -1035,6 +1036,7 @@ impl LocationData {
             inputs,
             Vec[Location]::new(),
             None[Location],
+            None[Int32],
         )
     }
 
@@ -1044,6 +1046,7 @@ impl LocationData {
             inputs,
             Vec[Location]::new(),
             None[Location],
+            None[Int32],
         )
     }
 
@@ -1089,6 +1092,18 @@ impl LocationData {
 
     pub fn addTemp(temp: Location) {
         self.temps.push(temp);
+    }
+
+    pub fn setSpillSlot(slot: Int32) {
+        self.spill_slot = Some(slot);
+    }
+
+    pub fn getSpillSlot(): Int32 {
+        self.spill_slot.getOrPanic()
+    }
+
+    pub fn hasSpillSlot(): Bool {
+        self.spill_slot.isSome()
     }
 }
 

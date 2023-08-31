@@ -137,6 +137,13 @@ impl CodeGen for CodeGenArm64 {
         self.asm.bindLabel(label);
     }
 
+    fn spill(inst: Inst) {
+        let loc = inst.getLocationData();
+        let reg = loc.getOutput().getRegister();
+        let spill = loc.getSpillSlot();
+        self.asm.stur(reg, REG_SP, spill);
+    }
+
     fn emitTrueConst(inst: Inst) {
         let loc = inst.getLocationData();
         let register = loc.getOutput().getRegister();

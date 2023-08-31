@@ -153,6 +153,13 @@ impl CodeGen for CodeGenX64 {
         self.asm.bindLabel(label);
     }
 
+    fn spill(inst: Inst) {
+        let loc = inst.getLocationData();
+        let reg = loc.getOutput().getRegister();
+        let slot = loc.getSpillSlot();
+        self.asm.movq_ar(Address::offset(RBP, slot), reg);
+    }
+
     fn emitInt64Const(inst: Inst) {
         let loc = inst.getLocationData();
         let register = loc.getOutput().getRegister();

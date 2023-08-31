@@ -30,6 +30,7 @@ class SimpleRegisterAllocator {
     graph: Graph,
     codegen: CodeGen,
     tracker: InstTracker,
+    currentSpillSlot: Int32,
 }
 
 impl SimpleRegisterAllocator {
@@ -38,6 +39,7 @@ impl SimpleRegisterAllocator {
             graph,
             codegen,
             InstTracker::new(codegen.allocatableRegisters()),
+            0i32,
         )
     }
 
@@ -81,6 +83,7 @@ impl SimpleRegisterAllocator {
         self.allocateFixedRegisterInputs(inst);
         self.allocateArbitraryRegisterInputs(inst);
         self.allocateOutputRegister(inst);
+        self.allocateSpillSlot(inst);
         self.freeDeadValues(inst);
     }
 
@@ -135,6 +138,16 @@ impl SimpleRegisterAllocator {
                 let register = self.tracker.allocateRegister(inst).getOrPanic();
                 output.setRegister(register);
             }
+        }
+    }
+
+    fn allocateSpillSlot(inst: Inst) {
+        let loc = inst.getLocationData();
+
+        if loc.hasOutput() {
+            self.currentSpillSlot = self.currentSpillSlot - 8i32;
+            let slot = self.currentSpillSlot;
+            loc.setSpillSlot(slot);
         }
     }
 

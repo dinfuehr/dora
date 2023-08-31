@@ -32,6 +32,12 @@ pub fn generateCode(graph: Graph, codegen: CodeGen): CodeDescriptor {
 
         for inst in block.instructionsIterator() {
             emitInst(codegen, inst);
+
+            let loc = inst.getLocationData();
+
+            if loc.hasOutput() && loc.hasSpillSlot() {
+                codegen.spill(inst);
+            }
         }
     }
 
@@ -50,6 +56,8 @@ pub trait CodeGen {
 
     fn createLabel(): Label;
     fn bindLabel(label: Label);
+
+    fn spill(inst: Inst);
 
     fn emitTrueConst(inst: Inst);
     fn emitFalseConst(inst: Inst);
