@@ -144,6 +144,24 @@ impl CodeGen for CodeGenArm64 {
         self.asm.stur(reg, REG_SP, spill);
     }
 
+    fn setLocationConstraintsCheckedDiv(inst: Inst, loc: LocationData) {
+        loc.requireInputRegister(0);
+        loc.requireInputRegister(1);
+        loc.requireOutputRegister();
+    }
+
+    fn setLocationConstraintsCheckedMod(inst: Inst, loc: LocationData) {
+        loc.requireInputRegister(0);
+        loc.requireInputRegister(1);
+        loc.requireOutputRegister();
+    }
+
+    fn setLocationConstraintsReturn(inst: Inst, loc: LocationData) {
+        if inst.hasInput() {
+            loc.requireInputFixedRegister(0, R0);
+        }
+    }
+
     fn emitTrueConst(inst: Inst) {
         let loc = inst.getLocationData();
         let register = loc.getOutput().getRegister();

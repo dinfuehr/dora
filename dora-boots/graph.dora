@@ -1050,10 +1050,12 @@ impl LocationData {
     }
 
     pub fn requireOutputRegister() {
+        assert(self.output.isNone());
         self.output = Some(Location::someRegister());
     }
 
     pub fn requireOutputFixedRegister(register: Register) {
+        assert(self.output.isNone());
         self.output = Some(Location::fixedRegister(register));
     }
 
@@ -1062,11 +1064,17 @@ impl LocationData {
     }
 
     pub fn requireTempFixedRegister(register: Register) {
-        self.output = Some(Location::fixedRegister(register));
+        self.temps.push(Location::fixedRegister(register));
     }
 
     pub fn requireInputRegister(idx: Int64) {
+        assert(self.inputs(idx).isNone());
         self.inputs(idx) = Some[Location](Location::someRegister());
+    }
+
+    pub fn requireInputFixedRegister(idx: Int64, register: Register) {
+        assert(self.inputs(idx).isNone());
+        self.inputs(idx) = Some[Location](Location::fixedRegister(register));
     }
 
     pub fn hasOutput(): Bool {
@@ -1083,6 +1091,10 @@ impl LocationData {
 
     pub fn getTemps(): Vec[Location] {
         self.temps
+    }
+
+    pub fn getTemp(idx: Int64): Location {
+        self.temps.get(idx)
     }
 
     pub fn addTemp(temp: Location) {
@@ -1251,18 +1263,6 @@ pub fn createMove(dest: Operand, source: Operand): Inst {
     let loc = LocationData::newWith(1);
     loc.output = Some(Location::operand(dest));
     loc.inputs(0) = Some[Location](Location::operand(source));
-    inst.setLocationData(loc);
-
-    inst
-}
-
-pub fn createReload(dest: Register, slot: Int32): Inst {
-    let inst = Inst::new();
-    inst._op = Some(Op::Move);
-
-    let loc = LocationData::newWith(1);
-    loc.output = Some(Location::fixedRegister(dest));
-    loc.inputs(0) = Some[Location](Location::stack(slot));
     inst.setLocationData(loc);
 
     inst

@@ -123,6 +123,20 @@ impl GraphDumper {
             self.dumpLocation(loc.getInput(0));
         }
 
+        if inst.hasLocationData() {
+            let loc = inst.getLocationData();
+            if !loc.getTemps().isEmpty() {
+                self.buffer.append(" (temps: ");
+                let mut first = true;
+                for temp in loc.getTemps() {
+                    if !first { self.buffer.append(", "); }
+                    self.dumpLocation(temp);
+                    first = false;
+                }
+                self.buffer.append(")");
+            }
+        }
+
         if inst.hasUses() {
             self.buffer.append(" [");
             let mut first = true;

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use package::assembler::{RegMap, RegSet, Register};
 use package::codegen::CodeGen;
 use package::codegen::{emitInst, CodeDescriptor, setLocationConstraints};
-use package::graph::{createGotoInst, createMove, createReload, Block, Edge, Graph, Inst, Location, LocationData, Op, Operand, opName};
+use package::graph::{createGotoInst, createMove, Block, Edge, Graph, Inst, Location, LocationData, Op, Operand, opName};
 
 pub fn performRegisterAllocation(graph: Graph, codegen: CodeGen) {
     ensureLocationData(graph, codegen);
@@ -76,34 +76,50 @@ impl SimpleRegisterAllocator {
     fn allocateInstruction(inst: Inst) {
         assert(self.tracker.protected.isEmpty());
         self.currentInst = Some(inst);
-        self.allocateFixedRegisterInputs(inst);
-        self.allocateArbitraryRegisterInputs(inst);
+        self.allocateFixedRegisters(inst);
+        self.allocateArbitraryRegisters(inst);
         self.allocateOutputRegister(inst);
         self.allocateSpillSlot(inst);
-        self.freeDeadValues(inst);
         self.tracker.protected.clear();
+        self.freeDeadValues(inst);
         self.currentInst = None[Inst];
     }
 
-    fn allocateFixedRegisterInputs(inst: Inst) {
+    fn allocateFixedRegisters(inst: Inst) {
+        assert(self.tracker.protected.isEmpty());
         let loc = inst.getLocationData();
         
         for input in inst.getInputs() {
             let idx = input.getIdx().toInt64();
 
             if loc.getInput(idx).hasRegister() {
-                unreachable[()]();
+                let reg = loc.getInput(idx).getRegister();
+                self.allocateFixedRegister(reg, input.getValue());
+                self.tracker.protect(reg);
             }
         }
 
         for temp in loc.getTemps() {
             if temp.hasRegister() {
-                unreachable[()]();
+                let reg = temp.getRegister();
+                self.allocateFixedTempRegister(reg);
+                self.tracker.protect(reg);
             }
+        }
+
+        if loc.hasOutput() && loc.getOutput().hasRegister() {
+            let reg = loc.getOutput().getRegister();
+
+            if !self.tracker.allocateFixedRegister(reg, inst) {
+                self.tracker.freeRegister(reg);
+                assert(self.tracker.allocateFixedRegister(reg, inst));
+            }
+
+            self.tracker.protect(reg);
         }
     }
 
-    fn allocateArbitraryRegisterInputs(inst: Inst) {
+    fn allocateArbitraryRegisters(inst: Inst) {
         let loc = inst.getLocationData();
 
         for input in inst.getInputs() {
@@ -111,13 +127,16 @@ impl SimpleRegisterAllocator {
 
             if !loc.getInput(idx).hasRegister() {
                 let register = self.allocateArbitraryRegister(input.getValue());
+                self.tracker.protect(register);
                 loc.getInput(idx).setRegister(register);
             }
         }
 
         for temp in loc.getTemps() {
             if !temp.hasRegister() {
-                unreachable[()]();
+                let register = self.allocateArbitraryTempRegister();
+                self.tracker.protect(register);
+                temp.setRegister(register);
             }
         }
     }
@@ -128,13 +147,16 @@ impl SimpleRegisterAllocator {
         if loc.hasOutput() {
             let output = loc.getOutput();
 
-            if output.hasRegister() {
-                // fixed register was already assigned
-                self.allocateFixedRegister(inst, output.getRegister());
-            } else {
+            if !output.hasRegister() {
                 // pick a register
-                let register = self.tracker.allocateRegister(inst).getOrPanic();
-                output.setRegister(register);
+                let register = self.tracker.allocateRegister(inst);
+
+                if register.isSome() {
+                    output.setRegister(register.getOrPanic());
+                } else {
+                    let register = self.tracker.freeUnprotected();
+                    output.setRegister(register);
+                }
             }
         }
     }
@@ -142,7 +164,7 @@ impl SimpleRegisterAllocator {
     fn allocateSpillSlot(inst: Inst) {
         let loc = inst.getLocationData();
 
-        if loc.hasOutput() {
+        if loc.hasOutput() && !loc.hasSpillSlot() {
             self.currentSpillSlot = self.currentSpillSlot - 8i32;
             let slot = self.currentSpillSlot;
             loc.setSpillSlot(slot);
@@ -156,6 +178,12 @@ impl SimpleRegisterAllocator {
             if value.getLastUse() === input {
                 self.tracker.free(value);
             }
+        }
+
+        let loc = inst.getLocationData();
+
+        for temp in loc.getTemps() {
+            self.tracker.freeRegister(temp.getRegister());
         }
     }
 
@@ -173,21 +201,61 @@ impl SimpleRegisterAllocator {
         let register = self.tracker.allocateRegister(value);
 
         if register.isSome() {
-            let slot = value.getLocationData().getSpillSlot();
-            let inst = createReload(register.getOrPanic(), slot);
-            self.currentInst.getOrPanic().insertBefore(inst);
-            return register.getOrPanic();
+            let register = register.getOrPanic();
+            self.emitReloadInst(register, value);
+            return register;
         }
 
         let register = self.tracker.freeUnprotected();
         self.tracker.allocateFixedRegister(register, value);
-
+        self.emitReloadInst(register, value);
         register
     }
 
-    fn allocateFixedRegister(inst: Inst, reg: Register) {
-        assert(self.tracker.free.contains(reg));
-        self.tracker.allocateFixedRegister(reg, inst);
+    fn emitReloadInst(reg: Register, value: Inst) {
+        let slot = value.getLocationData().getSpillSlot();
+        let inst = createMove(Operand::Reg(reg), Operand::Stack(slot));
+        self.currentInst.getOrPanic().insertBefore(inst);
+    }
+
+    fn allocateArbitraryTempRegister(): Register {
+        let register = self.tracker.allocateTempRegister();
+
+        if register.isSome() {
+            return register.getOrPanic();
+        }
+
+        self.tracker.freeUnprotected()
+    }
+
+    fn allocateFixedRegister(reg: Register, inst: Inst) {
+        let current = self.tracker.getRegister(inst);
+
+        if current.isSome() && current.getOrPanic() == reg {
+            return;
+        }
+
+        if !self.tracker.allocateFixedRegister(reg, inst) {
+            self.tracker.freeRegister(reg);
+            assert(self.tracker.allocateFixedRegister(reg, inst));
+        }
+
+        let source = if current.isSome() {
+            Operand::Reg(current.getOrPanic())
+        } else {
+            let slot = inst.getLocationData().getSpillSlot();
+            Operand::Stack(slot)
+        };
+
+        let inst = createMove(Operand::Reg(reg), source);
+        self.currentInst.getOrPanic().insertBefore(inst);
+    }
+
+    fn allocateFixedTempRegister(reg: Register) {
+        if !self.tracker.allocateFixedTempRegister(reg) {
+            self.tracker.freeRegister(reg);
+            assert(self.tracker.allocateFixedTempRegister(reg));
+        }
     }
 }
 
@@ -227,8 +295,8 @@ pub class InstTracker {
     allocatable: RegSet,
     free: RegSet,
     protected: RegSet,
-    data: RegMap[Int32],
-    locations: HashMap[Int32, Register],
+    data: RegMap[Inst],
+    locations: HashMap[Inst, Register],
 }
 
 impl InstTracker {
@@ -237,40 +305,37 @@ impl InstTracker {
             allocatable.clone(),
             allocatable.clone(),
             RegSet::new(),
-            RegMap[Int32]::new(allocatable),
-            HashMap[Int32, Register]::new(),
+            RegMap[Inst]::new(allocatable),
+            HashMap[Inst, Register]::new(),
         )
     }
 
-    fn unionWithLiveIn(block: Block) {
-        let dead = Vec[(Register, Int32)]::new();
-
-        for (reg, inst) in self.data {
-            if !block.getLiveIn().contains(inst.toInt64()) {
-                dead.push((reg, inst));
-            }
-        }
-
-        for (reg, inst) in dead {
-            self.data.free(reg);
-            self.free.add(reg);
-            self.locations.remove(inst);
-        }
-    }
-
     fn getRegister(inst: Inst): Option[Register] {
-        self.locations.get(inst.id())
+        self.locations.get(inst)
     }
 
     fn protect(reg: Register) {
         self.protected.add(reg);
     }
 
-    fn allocateFixedRegister(reg: Register, value: Inst) {
-        assert(self.free.contains(reg));
-        self.free.remove(reg);
-        self.data.pick(reg, value.id());
-        self.locations.insert(value.id(), reg);
+    fn allocateFixedRegister(reg: Register, value: Inst): Bool {
+        if self.free.contains(reg) {
+            self.free.remove(reg);
+            self.data.pick(reg, value);
+            self.locations.insert(value, reg);
+            true
+        } else {
+            false
+        }
+    }
+
+    fn allocateFixedTempRegister(reg: Register): Bool {
+        if self.free.contains(reg) {
+            self.free.remove(reg);
+            true
+        } else {
+            false
+        }
     }
 
     fn allocateRegister(value: Inst): Option[Register] {
@@ -279,8 +344,19 @@ impl InstTracker {
         if result.isSome() {
             let reg = result.getOrPanic();
             self.free.remove(reg);
-            self.data.pick(reg, value.id());
-            self.locations.insert(value.id(), reg);
+            self.data.pick(reg, value);
+            self.locations.insert(value, reg);
+        }
+
+        result
+    }
+
+    fn allocateTempRegister(): Option[Register] {
+        let result = self.free.first();
+
+        if result.isSome() {
+            let reg = result.getOrPanic();
+            self.free.remove(reg);
         }
 
         result
@@ -295,7 +371,17 @@ impl InstTracker {
             self.data.free(reg);
         }
 
-        self.locations.remove(inst.id());
+        self.locations.remove(inst);
+    }
+
+    fn freeRegister(reg: Register) {
+        assert(!self.free.contains(reg));
+        assert(!self.protected.contains(reg));
+        self.free.add(reg);
+        let inst = self.data.free(reg);
+        if inst.isSome() {
+            self.locations.remove(inst.getOrPanic());
+        }
     }
 
     fn freeUnprotected(): Register {

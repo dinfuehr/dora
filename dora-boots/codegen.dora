@@ -68,6 +68,10 @@ pub trait CodeGen {
 
     fn spill(inst: Inst);
 
+    fn setLocationConstraintsCheckedDiv(inst: Inst, loc: LocationData);
+    fn setLocationConstraintsCheckedMod(inst: Inst, loc: LocationData);
+    fn setLocationConstraintsReturn(inst: Inst, loc: LocationData);
+
     fn emitTrueConst(inst: Inst);
     fn emitFalseConst(inst: Inst);
     fn emitInt64Const(inst: Inst);
@@ -86,7 +90,6 @@ pub trait CodeGen {
     fn emitCompare(inst: Inst);
 
     fn emitComment(comment: String);
-
 }
 
 pub fn setLocationConstraints(codegen: CodeGen, inst: Inst) {
@@ -142,11 +145,12 @@ pub fn setLocationConstraints(codegen: CodeGen, inst: Inst) {
             loc.requireOutputRegister();
         },
 
-        Op::CheckedDiv
-        | Op::CheckedMod => {
-            loc.requireInputRegister(0);
-            loc.requireInputRegister(1);
-            loc.requireOutputRegister();
+        Op::CheckedDiv => {
+            codegen.setLocationConstraintsCheckedDiv(inst, loc);
+        },
+
+        Op::CheckedMod => {
+            codegen.setLocationConstraintsCheckedMod(inst, loc);
         },
 
         Op::CheckedNeg => {
@@ -161,9 +165,7 @@ pub fn setLocationConstraints(codegen: CodeGen, inst: Inst) {
         Op::Goto => {},
 
         Op::Return => {
-            if inst.hasInput() {
-                loc.requireInputRegister(0);
-            }
+            codegen.setLocationConstraintsReturn(inst, loc);
         },
 
         _ => {
