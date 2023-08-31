@@ -312,10 +312,21 @@ impl CodeGen for CodeGenArm64 {
 
     fn emitMove(inst: Inst) {
         let loc = inst.getLocationData();
-        let src = loc.getInput(0).getRegister();
-        let dest = loc.getOutput().getRegister();
+        let dest = loc.getOutput().getOperand();
+        let src = loc.getInput(0).getOperand();
 
-        self.asm.mov(dest, src);
+        if dest.isRegister() {
+            if src.isRegister() {
+                self.asm.mov(dest.getRegister(), src.getRegister());
+            } else {
+                assert(src.isStack());
+                self.asm.ldur(dest.getRegister(), REG_FP, src.getStack());
+            }
+        } else {
+            assert(dest.isStack());
+            assert(src.isRegister());
+            self.asm.stur(src.getRegister(), REG_FP, dest.getStack());
+        }
     }
 
     fn emitCompare(inst: Inst) {

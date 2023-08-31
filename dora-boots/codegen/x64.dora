@@ -335,10 +335,21 @@ impl CodeGen for CodeGenX64 {
 
     fn emitMove(inst: Inst) {
         let loc = inst.getLocationData();
-        let src = loc.getInput(0).getRegister();
-        let dest = loc.getOutput().getRegister();
+        let dest = loc.getOutput().getOperand();
+        let src = loc.getInput(0).getOperand();
 
-        self.asm.movq_rr(dest, src);
+        if dest.isRegister() {
+            if src.isRegister() {
+                self.asm.movq_rr(dest.getRegister(), src.getRegister());
+            } else {
+                assert(src.isStack());
+                self.asm.movq_ra(dest.getRegister(), Address::offset(RBP, src.getStack()));
+            }
+        } else {
+            assert(dest.isStack());
+            assert(src.isRegister());
+            self.asm.movq_ar(Address::offset(RBP, dest.getStack()), src.getRegister());
+        }
     }
 
     fn emitCompare(inst: Inst) {

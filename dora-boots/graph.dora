@@ -301,19 +301,6 @@ impl Block {
         inst
     }
 
-    pub fn insertBefore(inst: Inst, location: Inst): Inst {
-        assert(inst.block.isNone() && inst._id.isNone());
-        assert(location.block.getOrPanic() === self);
-
-        inst.block = Some(self);
-        inst._id = Some(self.graph.getOrPanic().nextInstId());
-
-        self.instructions.insertBefore(inst, location);
-        inst.registerUses();
-
-        inst
-    }
-
     pub fn isLoopHeader(): Bool {
         self.loopData.isSome() && self.loopData.getOrPanic().header === self
     }
@@ -817,6 +804,18 @@ impl Inst {
         result
     }
 
+    pub fn insertBefore(inst: Inst) {
+        assert(inst.block.isNone() && inst._id.isNone());
+
+        let block = self.getBlock();
+
+        inst.block = Some(block);
+        inst._id = Some(block.getGraph().nextInstId());
+
+        block.instructions.insertBefore(inst, self);
+        inst.registerUses();
+    }
+
     pub fn replaceWith(replacement: Inst) {
         while self.useListHead.isSome() {
             let input = self.useListHead.getOrPanic();
@@ -1066,10 +1065,6 @@ impl LocationData {
         self.output = Some(Location::fixedRegister(register));
     }
 
-    pub fn requireOutputSameAsFirstInput() {
-        self.output = Some(Location::sameAsFirstInput());
-    }
-
     pub fn requireInputRegister(idx: Int64) {
         self.inputs(idx) = Some[Location](Location::someRegister());
     }
@@ -1107,50 +1102,104 @@ impl LocationData {
     }
 }
 
-pub enum Policy {
-    SomeRegister,
-    FixedRegister,
-    SameAsFirstInput,
+pub enum Operand {
+    None,
+    Reg(Register),
+    Stack(Int32),
+}
+
+impl Operand {
+    pub fn isNone(): Bool {
+        match self {
+            Operand::None => true,
+            _ => false,
+        }
+    }
+
+    pub fn isRegister(): Bool {
+        match self {
+            Operand::Reg(reg) => true,
+            _ => false,
+        }
+    }
+
+    pub fn getRegister(): Register {
+        match self {
+            Operand::Reg(reg) => reg,
+            _ => unreachable[Register](),
+        }
+    }
+
+    pub fn isStack(): Bool {
+        match self {
+            Operand::Stack(slot) => true,
+            _ => false,
+        }
+    }
+
+    pub fn getStack(): Int32 {
+        match self {
+            Operand::Stack(slot) => slot,
+            _ => unreachable[Int32](),
+        }
+    }
 }
 
 pub class Location {
-    policy: Policy,
-    register: Option[Register],
+    operand: Operand,
 }
 
 impl Location {
+    pub static fn operand(operand: Operand): Location {
+        Location(operand)
+    }
+
     pub static fn fixedRegister(register: Register): Location {
         Location(
-            Policy::FixedRegister,
-            Some[Register](register),
+            Operand::Reg(register),
         )
     }
 
     pub static fn someRegister(): Location {
         Location(
-            Policy::SomeRegister,
-            None[Register],
+            Operand::None,
         )
     }
 
-    pub static fn sameAsFirstInput(): Location {
+    pub static fn stack(slot: Int32): Location {
         Location(
-            Policy::SameAsFirstInput,
-            None[Register],
+            Operand::Stack(slot)
         )
+    }
+
+    pub fn getOperand(): Operand {
+        self.operand
     }
 
     pub fn hasRegister(): Bool {
-        self.register.isSome()
+        self.operand.isRegister()
     }
 
     pub fn getRegister(): Register {
-        self.register.getOrPanic()
+        self.operand.getRegister()
     }
 
     pub fn setRegister(register: Register) {
-        assert(self.register.isNone());
-        self.register = Some(register);
+        assert(self.operand.isNone());
+        self.operand = Operand::Reg(register);
+    }
+
+    pub fn hasStack(): Bool {
+        self.operand.isStack()
+    }
+
+    pub fn getStack(): Int32 {
+        self.operand.getStack()
+    }
+
+    pub fn setStack(slot: Int32) {
+        assert(self.operand.isNone());
+        self.operand = Operand::Stack(slot);
     }
 }
 
@@ -1195,13 +1244,25 @@ fn removeUse(input: Input) {
     input.nextUse = None;
 }
 
-pub fn createMove(dest: Register, source: Register): Inst {
+pub fn createMove(dest: Operand, source: Operand): Inst {
+    let inst = Inst::new();
+    inst._op = Some(Op::Move);
+
+    let loc = LocationData::newWith(1);
+    loc.output = Some(Location::operand(dest));
+    loc.inputs(0) = Some[Location](Location::operand(source));
+    inst.setLocationData(loc);
+
+    inst
+}
+
+pub fn createReload(dest: Register, slot: Int32): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Move);
 
     let loc = LocationData::newWith(1);
     loc.output = Some(Location::fixedRegister(dest));
-    loc.inputs(0) = Some[Location](Location::fixedRegister(source));
+    loc.inputs(0) = Some[Location](Location::stack(slot));
     inst.setLocationData(loc);
 
     inst

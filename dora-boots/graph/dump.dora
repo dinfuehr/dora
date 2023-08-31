@@ -3,7 +3,7 @@ use std::StringBuffer;
 
 use package::assembler::arm64::registerName as registerNameOnArm64;
 use package::assembler::x64::registerName as registerNameOnX64;
-use package::graph::{Block, Edge, Graph, Input, Inst, Location, LocationData, Op};
+use package::graph::{Block, Edge, Graph, Input, Inst, Location, LocationData, Op, Operand};
 use package::interface::Architecture;
 
 pub fn dumpGraph(graph: Graph, architecture: Architecture): String {
@@ -151,6 +151,9 @@ impl GraphDumper {
 
         if loc.hasOutput() {
             self.dumpLocation(loc.getOutput());
+            if loc.hasSpillSlot() {
+                self.buffer.append(" / FP${loc.getSpillSlot()}");
+            }
             self.buffer.append(" <- ");
         }
     }
@@ -166,15 +169,18 @@ impl GraphDumper {
     }
 
     fn dumpLocation(loc: Location) {
-        let name = if loc.hasRegister() {
-                        let register = loc.getRegister();
-                        match self.architecture {
-                            Architecture::Arm64 => registerNameOnArm64(register),
-                            Architecture::X64 => registerNameOnX64(register),
-                        }
-                    } else {
-                        "XXX"
-                    };
+        let name = match loc.getOperand() {
+            Operand::Reg(reg) => {
+                match self.architecture {
+                    Architecture::Arm64 => registerNameOnArm64(reg),
+                    Architecture::X64 => registerNameOnX64(reg),
+                }
+            },
+
+            Operand::Stack(slot) => "FP${slot}",
+            Operand::None => "NONE",
+        };
+
         self.buffer.append(name);
     }
 }

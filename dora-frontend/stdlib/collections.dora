@@ -539,9 +539,10 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
 
         let mut hash = key.hash();
         let mut idx = hash.toInt64() & (self.cap - 1i64);
-        let mut insert_idx = None[Int64];
+        let mut insert_idx = -1;
+        let mut iterations = 0;
 
-        while true {
+        while iterations < self.cap {
             if self.isLive(idx) {
                 let current_key = self.keys.get(idx);
 
@@ -552,29 +553,34 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
                 }
 
             } else if self.isDeleted(idx) {
-                // There might be live entries after a deleted one.
-
-                if insert_idx.isNone() {
-                    insert_idx = Some[Int64](idx);
+                if insert_idx < 0 {
+                    insert_idx = idx;
                 }
 
+                // There might be live entries after a deleted one.
+
             } else {
-                let insert_idx = insert_idx.unwrapOr(idx);
+                if insert_idx < 0 {
+                    insert_idx = idx;
+                }
 
-                self.inserted_and_deleted.insert(2i64 * insert_idx);
-                self.inserted_and_deleted.remove(2i64 * insert_idx + 1i64);
-
-                self.keys.set(insert_idx, key);
-                self.values.set(insert_idx, value);
-
-                self.entries = self.entries + 1i64;
-                return None[V];
+                break;
             }
 
             idx = (idx + 1i64) & (self.cap - 1i64);
+            iterations = iterations + 1;
         }
 
-        unreachable[Option[V]]()
+        assert(insert_idx != -1);
+
+        self.inserted_and_deleted.insert(2i64 * insert_idx);
+        self.inserted_and_deleted.remove(2i64 * insert_idx + 1i64);
+
+        self.keys.set(insert_idx, key);
+        self.values.set(insert_idx, value);
+
+        self.entries = self.entries + 1i64;
+        None[V]
     }
 
     pub fn contains(key: K): Bool {
@@ -586,8 +592,9 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
 
         let mut hash = key.hash();
         let mut idx = hash.toInt64() & (self.cap - 1i64);
+        let mut iterations = 0;
 
-        while true {
+        while iterations < self.cap {
             if self.isLive(idx) {
                 let current_key = self.keys.get(idx);
 
@@ -601,6 +608,7 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
             }
 
             idx = (idx + 1i64) & (self.cap - 1i64);
+            iterations = iterations + 1;
         }
 
         false
@@ -615,8 +623,9 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
 
         let mut hash = key.hash();
         let mut idx = hash.toInt64() & (self.cap - 1i64);
+        let mut iterations = 0;
 
-        while true {
+        while iterations < self.cap {
             if self.isLive(idx) {
                 let current_key = self.keys.get(idx);
 
@@ -630,6 +639,7 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
             }
 
             idx = (idx + 1i64) & (self.cap - 1i64);
+            iterations = iterations + 1;
         }
 
         Option[V]::None
@@ -640,8 +650,9 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
 
         let mut hash = key.hash();
         let mut idx = hash.toInt64() & (self.cap - 1i64);
+        let mut iterations = 0;
 
-        while true {
+        while iterations < self.cap {
             if self.isLive(idx) {
                 let current_key = self.keys.get(idx);
 
@@ -662,6 +673,7 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
             }
 
             idx = (idx + 1i64) & (self.cap - 1i64);
+            iterations = iterations + 1;
         }
 
         Option[V]::None
