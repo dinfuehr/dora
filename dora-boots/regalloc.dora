@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use package::assembler::{RegMap, RegSet, Register};
 use package::codegen::CodeGen;
@@ -29,7 +29,7 @@ fn ensureLocationData(graph: Graph, codegen: CodeGen) {
 class SimpleRegisterAllocator {
     graph: Graph,
     codegen: CodeGen,
-    tracker: InstTracker,
+    tracker: Option[InstTracker],
     currentSpillSlot: Int32,
     currentInst: Option[Inst],
 }
@@ -39,7 +39,7 @@ impl SimpleRegisterAllocator {
         SimpleRegisterAllocator(
             graph,
             codegen,
-            InstTracker::new(codegen.allocatableRegisters()),
+            None[InstTracker],
             0i32,
             None[Inst],
         )
@@ -48,7 +48,7 @@ impl SimpleRegisterAllocator {
     fn allocateRegisters() {
         for block in self.graph.reversePostOrderIterator() {
             self.initializeInstTracker(block);
-            block.setTrackerIn(self.tracker.clone());
+            block.setTrackerIn(self.tracker().clone());
 
             for inst in block.phisIterator() {
                 self.allocatePhi(inst);
@@ -58,32 +58,84 @@ impl SimpleRegisterAllocator {
                 self.allocateInstruction(inst);
             }
 
-            block.setTrackerOut(self.tracker);
+            block.setTrackerOut(self.tracker());
         }
     }
 
     fn initializeInstTracker(block: Block) {
-        self.tracker = InstTracker::new(self.codegen.allocatableRegisters());
+        self.tracker = Some(InstTracker::new(self.codegen.allocatableRegisters()));
+
+        if block.isLoopHeader() {
+            // For now everything is spilled at the beginning of a loop.
+            for id in block.getLiveIn() {
+                let inst = self.graph.getInstById(id.toInt32());
+                self.spill(inst);
+            }
+        } else {
+            let candidates = HashMap[Inst, Int64]::new();
+            let all = HashMap[Inst, Register]::new();
+            let predecessorCount = block.predecessors.size();
+
+            for predecessorEdge in block.predecessors {
+                let predecessor = predecessorEdge.source;
+                let predecessorTracker = predecessor.getTrackerOut();
+
+                for (reg, inst) in predecessorTracker.data {
+                    if !block.getLiveIn().contains(inst.id().toInt64()) {
+                        continue;
+                    }
+
+                    let current = candidates.get(inst);
+                    let current = if current.isSome() {
+                        current.getOrPanic() + 1
+                    } else {
+                        1
+                    };
+                    if current == predecessorCount {
+                        assert(all.insert(inst, reg).isNone());
+                    }
+                    candidates.insert(inst, current);
+                }
+            }
+
+            for (inst, reg) in all {
+                assert(self.tracker().allocateFixedRegister(reg, inst));
+            }
+
+            for id in block.getLiveIn() {
+                let inst = self.graph.getInstById(id.toInt32());
+                if all.contains(inst) {
+                    continue;
+                }
+                self.spill(inst);
+            }
+        }
     }
 
     fn allocatePhi(inst: Inst) {
-        self.allocateSpillSlot(inst);
+        let register = self.tracker().allocateRegister(inst);
+
+        if register.isSome() {
+            let loc = inst.getLocationData();
+            loc.getOutput().setRegister(register.getOrPanic());
+        } else {
+            self.spill(inst);
+        }
     }
 
     fn allocateInstruction(inst: Inst) {
-        assert(self.tracker.protected.isEmpty());
+        assert(self.tracker().protected.isEmpty());
         self.currentInst = Some(inst);
         self.allocateFixedRegisters(inst);
         self.allocateArbitraryRegisters(inst);
         self.allocateOutputRegister(inst);
-        self.allocateSpillSlot(inst);
-        self.tracker.protected.clear();
+        self.tracker().protected.clear();
         self.freeDeadValues(inst);
         self.currentInst = None[Inst];
     }
 
     fn allocateFixedRegisters(inst: Inst) {
-        assert(self.tracker.protected.isEmpty());
+        assert(self.tracker().protected.isEmpty());
         let loc = inst.getLocationData();
         
         for input in inst.getInputs() {
@@ -92,7 +144,7 @@ impl SimpleRegisterAllocator {
             if loc.getInput(idx).hasRegister() {
                 let reg = loc.getInput(idx).getRegister();
                 self.allocateFixedRegister(reg, input.getValue());
-                self.tracker.protect(reg);
+                self.tracker().protect(reg);
             }
         }
 
@@ -100,19 +152,33 @@ impl SimpleRegisterAllocator {
             if temp.hasRegister() {
                 let reg = temp.getRegister();
                 self.allocateFixedTempRegister(reg);
-                self.tracker.protect(reg);
+                self.tracker().protect(reg);
             }
         }
 
         if loc.hasOutput() && loc.getOutput().hasRegister() {
             let reg = loc.getOutput().getRegister();
 
-            if !self.tracker.allocateFixedRegister(reg, inst) {
-                self.tracker.freeRegister(reg);
-                assert(self.tracker.allocateFixedRegister(reg, inst));
+            if !self.tracker().allocateFixedRegister(reg, inst) {
+                self.yieldRegister(reg);
+                self.tracker().freeRegister(reg);
+                assert(self.tracker().allocateFixedRegister(reg, inst));
             }
 
-            self.tracker.protect(reg);
+            self.tracker().protect(reg);
+        }
+    }
+
+    fn yieldRegister(reg: Register) {
+        let inst = self.tracker().data.get(reg).getOrPanic();
+        let newReg = self.tracker().allocateRegister(inst);
+
+        if newReg.isSome() {
+            let newReg = newReg.getOrPanic();
+            let inst = createMove(Operand::Reg(newReg), Operand::Reg(reg));
+            self.currentInst.getOrPanic().insertBefore(inst);
+        } else {
+            self.spill(inst);
         }
     }
 
@@ -124,7 +190,7 @@ impl SimpleRegisterAllocator {
 
             if !loc.getInput(idx).hasRegister() {
                 let register = self.allocateArbitraryRegister(input.getValue());
-                self.tracker.protect(register);
+                self.tracker().protect(register);
                 loc.getInput(idx).setRegister(register);
             }
         }
@@ -132,7 +198,7 @@ impl SimpleRegisterAllocator {
         for temp in loc.getTemps() {
             if !temp.hasRegister() {
                 let register = self.allocateArbitraryTempRegister();
-                self.tracker.protect(register);
+                self.tracker().protect(register);
                 temp.setRegister(register);
             }
         }
@@ -146,12 +212,13 @@ impl SimpleRegisterAllocator {
 
             if !output.hasRegister() {
                 // pick a register
-                let register = self.tracker.allocateRegister(inst);
+                let register = self.tracker().allocateRegister(inst);
 
                 if register.isSome() {
                     output.setRegister(register.getOrPanic());
                 } else {
-                    let register = self.tracker.freeUnprotected();
+                    let (register, instInReg) = self.tracker().freeUnprotected();
+                    self.spill(instInReg);
                     output.setRegister(register);
                 }
             }
@@ -168,34 +235,43 @@ impl SimpleRegisterAllocator {
         }
     }
 
+    fn spill(inst: Inst) {
+        let loc = inst.getLocationData();
+        assert(loc.hasOutput());
+
+        if !loc.hasSpillSlot() {
+            self.currentSpillSlot = self.currentSpillSlot - 8i32;
+            let slot = self.currentSpillSlot;
+            loc.setSpillSlot(slot);
+        }
+
+        assert(loc.hasSpillSlot());
+    }
+
     fn freeDeadValues(inst: Inst) {
         for input in inst.getInputs() {
             let value = input.getValue();
 
             if value.getLastUse() === input {
-                self.tracker.free(value);
+                self.tracker().free(value);
             }
         }
 
         let loc = inst.getLocationData();
 
         for temp in loc.getTemps() {
-            self.tracker.freeRegister(temp.getRegister());
+            self.tracker().freeRegister(temp.getRegister());
         }
     }
 
-    fn ensureRegister(value: Inst): Register {
-        self.tracker.getRegister(value).getOrPanic()
-    }
-
     fn allocateArbitraryRegister(value: Inst): Register {
-        let register = self.tracker.getRegister(value);
+        let register = self.tracker().getRegister(value);
 
         if register.isSome() {
             return register.getOrPanic();
         }
 
-        let register = self.tracker.allocateRegister(value);
+        let register = self.tracker().allocateRegister(value);
 
         if register.isSome() {
             let register = register.getOrPanic();
@@ -203,8 +279,9 @@ impl SimpleRegisterAllocator {
             return register;
         }
 
-        let register = self.tracker.freeUnprotected();
-        self.tracker.allocateFixedRegister(register, value);
+        let (register, instInReg) = self.tracker().freeUnprotected();
+        self.spill(instInReg);
+        self.tracker().allocateFixedRegister(register, value);
         self.emitReloadInst(register, value);
         register
     }
@@ -216,25 +293,29 @@ impl SimpleRegisterAllocator {
     }
 
     fn allocateArbitraryTempRegister(): Register {
-        let register = self.tracker.allocateTempRegister();
+        let register = self.tracker().allocateTempRegister();
 
         if register.isSome() {
             return register.getOrPanic();
         }
 
-        self.tracker.freeUnprotected()
+        let (register, instInReg) = self.tracker().freeUnprotected();
+        self.spill(instInReg);
+
+        register
     }
 
     fn allocateFixedRegister(reg: Register, inst: Inst) {
-        let current = self.tracker.getRegister(inst);
+        let current = self.tracker().getRegister(inst);
 
         if current.isSome() && current.getOrPanic() == reg {
             return;
         }
 
-        if !self.tracker.allocateFixedRegister(reg, inst) {
-            self.tracker.freeRegister(reg);
-            assert(self.tracker.allocateFixedRegister(reg, inst));
+        if !self.tracker().allocateFixedRegister(reg, inst) {
+            self.yieldRegister(reg);
+            self.tracker().freeRegister(reg);
+            assert(self.tracker().allocateFixedRegister(reg, inst));
         }
 
         let source = if current.isSome() {
@@ -249,10 +330,15 @@ impl SimpleRegisterAllocator {
     }
 
     fn allocateFixedTempRegister(reg: Register) {
-        if !self.tracker.allocateFixedTempRegister(reg) {
-            self.tracker.freeRegister(reg);
-            assert(self.tracker.allocateFixedTempRegister(reg));
+        if !self.tracker().allocateFixedTempRegister(reg) {
+            self.yieldRegister(reg);
+            self.tracker().freeRegister(reg);
+            assert(self.tracker().allocateFixedTempRegister(reg));
         }
+    }
+
+    fn tracker(): InstTracker {
+        self.tracker.getOrPanic()
     }
 }
 
@@ -262,7 +348,20 @@ fn ssaDestruction(graph: Graph, codegen: CodeGen) {
             let predecessor = predecessorEdge.source;
             let moves = ParallelMoveResolver::new();
 
+            let blockTracker = block.getTrackerIn();
             let predecessorTracker = predecessor.getTrackerOut();
+
+            for (reg, inst) in blockTracker.data {
+                let instRegister = predecessorTracker.getRegister(inst);
+
+                let value = if instRegister.isSome() {
+                    Operand::Reg(instRegister.getOrPanic())
+                } else {
+                    Operand::Stack(inst.getLocationData().getSpillSlot())
+                };
+
+                moves.add(Operand::Reg(reg), value);
+            }
 
             for phi in block.phisIterator() {
                 // Critical edges should already be split.
@@ -386,16 +485,14 @@ impl InstTracker {
         }
     }
 
-    fn freeUnprotected(): Register {
+    fn freeUnprotected(): (Register, Inst) {
         assert(self.free.union(self.allocatable).isEmpty());
         let usedButUnprotected = self.allocatable.difference(self.protected);
         let reg = usedButUnprotected.first().getOrPanic();
         self.free.add(reg);
-        let inst = self.data.free(reg);
-        if inst.isSome() {
-            self.locations.remove(inst.getOrPanic());
-        }
-        reg
+        let inst = self.data.free(reg).getOrPanic();
+        self.locations.remove(inst);
+        (reg, inst)
     }
 
     fn clone(): InstTracker {
@@ -470,7 +567,11 @@ impl ParallelMoveResolver {
     fn addRegister(dest: Register, src: Operand) {
         match src {
             Operand::None => unreachable[()](),
-            Operand::Reg(src) => self.moves.push((dest, src)),
+            Operand::Reg(src) => {
+                if dest != src {
+                    self.moves.push((dest, src));
+                }
+            },
             Operand::Stack(slot) => {
                 self.reloads.push((dest, slot));
             }

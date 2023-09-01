@@ -19,6 +19,7 @@ pub mod verifier;
 pub class Graph {
     entryBlock: Option[Block],
     pub blocks: Vec[Option[Block]],
+    instById: Vec[Option[Inst]],
     postOrder: Vec[Block],
     nextBlockIdValue: Int32,
     nextInstIdValue: Int32,
@@ -29,6 +30,7 @@ impl Graph {
         Graph(
             None[Block],
             Vec[Option[Block]]::new(),
+            Vec[Option[Inst]]::new(),
             Vec[Block]::new(),
             0i32,
             0i32,
@@ -56,11 +58,13 @@ impl Graph {
         self.entryBlock.getOrPanic()
     }
 
-    fn nextInstId(): Int32 {
-        let id = self.nextInstIdValue;
-        self.nextInstIdValue = id + 1i32;
+    pub fn getInstById(id: Int32): Inst {
+        self.instById(id.toInt64()).getOrPanic()
+    }
 
-        id
+    fn assignNextInstId(inst: Inst) {
+        inst._id = Some(self.instById.size().toInt32());
+        self.instById.push(Some[Inst](inst));
     }
 
     fn nextBlockId(): BlockId {
@@ -281,7 +285,7 @@ impl Block {
         assert(phi.block.isNone() && phi._id.isNone());
 
         phi.block = Some(self);
-        phi._id = Some(self.graph.getOrPanic().nextInstId());
+        self.graph.getOrPanic().assignNextInstId(phi);
 
         self.phis.appendInst(phi);
         phi.registerUses();
@@ -293,7 +297,7 @@ impl Block {
         assert(inst.block.isNone() && inst._id.isNone());
 
         inst.block = Some(self);
-        inst._id = Some(self.graph.getOrPanic().nextInstId());
+        self.graph.getOrPanic().assignNextInstId(inst);
 
         self.instructions.appendInst(inst);
         inst.registerUses();
@@ -784,6 +788,8 @@ impl Inst {
         }
 
         self.block = None;
+        block.getGraph().instById(self.id().toInt64()) = None[Inst];
+        self._id = None;
     }
 
     pub fn registerUses() {
@@ -810,7 +816,7 @@ impl Inst {
         let block = self.getBlock();
 
         inst.block = Some(block);
-        inst._id = Some(block.getGraph().nextInstId());
+        block.getGraph().assignNextInstId(inst);
 
         block.instructions.insertBefore(inst, self);
         inst.registerUses();

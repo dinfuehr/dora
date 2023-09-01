@@ -203,6 +203,13 @@ impl[V] RegMap[V] {
         self.data(idx.toInt64()) = Some[V](value);
     }
 
+    pub fn get(reg: Register): Option[V] {
+        let value = reg.value.toInt32();
+        assert((self.in_use & (1 << value)) != 0);
+
+        self.data(value.toInt64())
+    }
+
     pub fn free(reg: Register): Option[V] {
         let value = reg.value.toInt32();
         assert(value < 64i32);

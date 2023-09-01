@@ -1,0 +1,20 @@
+//= boots
+
+fn main() {
+    assert(f(12) == 24);
+    assert(f(9) == 18);
+}
+
+@optimizeImmediately fn f(x: Int64): Int64 {
+    let mut x = x;
+    let mut res = 0;
+    let dec = 1;
+    let inc = 2;
+
+    while x > 0 {
+        x = x - dec;
+        res = res + inc;
+    }
+
+    res
+}
