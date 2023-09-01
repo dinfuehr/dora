@@ -67,9 +67,6 @@ impl SimpleRegisterAllocator {
     }
 
     fn allocatePhi(inst: Inst) {
-        // pick a register
-        let register = self.tracker.allocateRegister(inst).getOrPanic();
-        inst.getLocationData().getOutput().setRegister(register);
         self.allocateSpillSlot(inst);
     }
 
@@ -268,12 +265,17 @@ fn ssaDestruction(graph: Graph, codegen: CodeGen) {
             let predecessorTracker = predecessor.getTrackerOut();
 
             for phi in block.phisIterator() {
-                let phiDestRegister = phi.getLocationData().getOutput().getRegister();
-                let value = phi.getInput(predecessorEdge.targetIdx).getValue();
-
                 // Critical edges should already be split.
                 assert(predecessor.successors.size() == 1);
 
+                let loc = phi.getLocationData();
+                let dest = if loc.hasSpillSlot() {
+                    Operand::Stack(loc.getSpillSlot())
+                } else {
+                    Operand::Reg(loc.getOutput().getRegister())
+                };
+
+                let value = phi.getInput(predecessorEdge.targetIdx).getValue();
                 let valueRegister = predecessorTracker.getRegister(value);
 
                 let value = if valueRegister.isSome() {
@@ -282,7 +284,7 @@ fn ssaDestruction(graph: Graph, codegen: CodeGen) {
                     Operand::Stack(value.getLocationData().getSpillSlot())
                 };
 
-                moves.addOperand(phiDestRegister, value);
+                moves.add(dest, value);
             }
 
             moves.resolve(codegen.getScratchRegister());
@@ -431,6 +433,8 @@ impl InstLocation {
 class ParallelMoveResolver {
     moves: Vec[(Register, Register)],
     reloads: Vec[(Register, Int32)],
+    spills: Vec[(Int32, Register)],
+    stack_copies: Vec[(Int32, Int32)],
     orderedMoves: Vec[(Operand, Operand)],
     // All written registers.
     directpreds: HashMap[Register, Register],
@@ -444,6 +448,8 @@ impl ParallelMoveResolver {
         ParallelMoveResolver(
             Vec[(Register, Register)]::new(),
             Vec[(Register, Int32)]::new(),
+            Vec[(Int32, Register)]::new(),
+            Vec[(Int32, Int32)]::new(),
             Vec[(Operand, Operand)]::new(),
             HashMap[Register, Register]::new(),
             HashMap[Register, Register]::new(),
@@ -451,22 +457,46 @@ impl ParallelMoveResolver {
         )
     }
 
-    fn add(dest: Register, src: Register) {
-        if dest == src { return; }
-        self.moves.push((dest, src));
+    fn add(dest: Operand, src: Operand) {
+        match dest {
+            Operand::None => unreachable[()](),
+            Operand::Reg(dest) => self.addRegister(dest, src),
+            Operand::Stack(dest) => {
+                self.addStack(dest, src);
+            }
+        }
     }
 
-    fn addOperand(dest: Register, src: Operand) {
+    fn addRegister(dest: Register, src: Operand) {
         match src {
             Operand::None => unreachable[()](),
-            Operand::Reg(src) => self.add(dest, src),
+            Operand::Reg(src) => self.moves.push((dest, src)),
             Operand::Stack(slot) => {
                 self.reloads.push((dest, slot));
             }
         }
     }
 
+    fn addStack(dest: Int32, src: Operand) {
+        match src {
+            Operand::None => unreachable[()](),
+            Operand::Reg(src) => self.spills.push((dest, src)),
+            Operand::Stack(src) => {
+                self.stack_copies.push((dest, src));
+            }
+        }
+    }
+
     fn resolve(scratch: Register) {
+        for (slot, src) in self.spills {
+            self.orderedMoves.push((Operand::Stack(slot), Operand::Reg(src)));
+        }
+
+        for (dest, src) in self.stack_copies {
+            self.orderedMoves.push((Operand::Reg(scratch), Operand::Stack(src)));
+            self.orderedMoves.push((Operand::Stack(dest), Operand::Reg(scratch)));
+        }
+
         for (dest, src) in self.moves {
             assert(!self.directpreds.contains(dest));
             self.directpreds.insert(dest, src);
@@ -548,8 +578,8 @@ impl ParallelMoveResolver {
 @Test
 fn testMovesWithoutDependencies() {
     let moves = ParallelMoveResolver::new();
-    moves.add(Register(1u8), Register(0u8));
-    moves.add(Register(3u8), Register(2u8));
+    moves.addRegister(Register(1u8), Operand::Reg(Register(0u8)));
+    moves.addRegister(Register(3u8), Operand::Reg(Register(2u8)));
     moves.resolve(Register(10u8));
 
     let mut idx = 0;
@@ -563,8 +593,8 @@ fn testMovesWithoutDependencies() {
 @Test
 fn testMovesWithDependency() {
     let moves = ParallelMoveResolver::new();
-    moves.add(Register(1u8), Register(0u8));
-    moves.add(Register(2u8), Register(1u8));
+    moves.addRegister(Register(1u8), Operand::Reg(Register(0u8)));
+    moves.addRegister(Register(2u8), Operand::Reg(Register(1u8)));
     moves.resolve(Register(10u8));
 
     let expected = Array[(Register, Register)]::new(
@@ -583,9 +613,9 @@ fn testMovesWithDependency() {
 @Test
 fn testMovesWithCycle() {
     let moves = ParallelMoveResolver::new();
-    moves.add(Register(1u8), Register(0u8));
-    moves.add(Register(2u8), Register(1u8));
-    moves.add(Register(0u8), Register(2u8));
+    moves.addRegister(Register(1u8), Operand::Reg(Register(0u8)));
+    moves.addRegister(Register(2u8), Operand::Reg(Register(1u8)));
+    moves.addRegister(Register(0u8), Operand::Reg(Register(2u8)));
     moves.resolve(Register(3u8));
 
     let expected = Array[(Register, Register)]::new(

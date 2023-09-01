@@ -30,15 +30,6 @@ pub fn generateCode(graph: Graph, codegen: CodeGen): CodeDescriptor {
         codegen.emitComment("Block ${block.id()}");
         codegen.bindLabel(block.getLabel());
 
-        for inst in block.phisIterator() {
-            let loc = inst.getLocationData();
-            assert(loc.hasOutput());
-
-            if loc.hasSpillSlot() {
-                codegen.spill(inst);
-            }
-        }
-
         for inst in block.instructionsIterator() {
             emitInst(codegen, inst);
 
