@@ -194,7 +194,12 @@ impl CodeGen for CodeGenArm64 {
         let output = loc.getOutput().getRegister();
         let lbl_overflow = self.asm.createLabel();
 
-        self.asm.adds(output, lhs, rhs);
+        if inst.getType() == Type::Int32 {
+            self.asm.adds_w(output, lhs, rhs);
+        } else {
+            assert(inst.getType() == Type::Int64);
+            self.asm.adds(output, lhs, rhs);
+        }
         self.asm.bc(Cond::VS, lbl_overflow);
 
         self.deferred.push(|| {
