@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use package::assembler::{RegMap, RegSet, Register};
 use package::CompilationData;
 use package::codegen::CodeGen;
-use package::codegen::{emitInst, CodeDescriptor, setLocationConstraints};
+use package::codegen::{emitInst, CodeDescriptor, setLocationConstraints, STACK_FRAME_ALIGNMENT};
 use package::graph::{createGotoInst, createMove, Block, Edge, Graph, Inst, Location, LocationData, Op, Operand, opName};
 
 pub fn performRegisterAllocation(cd: CompilationData) {
@@ -53,6 +53,8 @@ impl SimpleRegisterAllocator {
             self.allocateBlock(block);
         }
 
+        let stack_alignment = STACK_FRAME_ALIGNMENT.toInt32();
+        self.currentStackSize = (self.currentStackSize + (stack_alignment - 1i32)) & stack_alignment;
         self.cd.stackSize = Some(self.currentStackSize);
     }
 

@@ -12,6 +12,7 @@ pub mod arm64;
 pub mod x64;
 
 const CODE_SIZE_ALIGNMENT: Int64 = 16;
+pub const STACK_FRAME_ALIGNMENT: Int64 = 16;
 
 pub fn createCodeGen(ci: CompilationInfo): CodeGen {
     match config.architecture {
@@ -24,7 +25,9 @@ pub fn generateCode(cd: CompilationData): CodeDescriptor {
     let codegen = cd.codegen;
     let graph = cd.graph;
 
-    codegen.prolog(cd.stackSize.getOrPanic());
+    let stackSize = cd.stackSize.getOrPanic();
+    assert(stackSize % STACK_FRAME_ALIGNMENT.toInt32() == 0i32);
+    codegen.prolog(stackSize);
 
     for block in graph.insertionOrderIterator() {
         block.setLabel(codegen.createLabel());

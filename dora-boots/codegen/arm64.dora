@@ -119,6 +119,10 @@ impl CodeGen for CodeGenArm64 {
     fn prolog(stackSize: Int32) {
         self.asm.stp_pre(REG_FP, REG_LR, REG_SP, -16i32);
         self.asm.mov(REG_FP, REG_SP);
+
+        if stackSize > 0i32 {
+            self.asm.sub_imm(REG_SP, REG_SP, stackSize);
+        }
     }
 
     fn emitComment(comment: String) {
@@ -140,8 +144,8 @@ impl CodeGen for CodeGenArm64 {
     fn spill(inst: Inst) {
         let loc = inst.getLocationData();
         let reg = loc.getOutput().getRegister();
-        let spill = loc.getSpillSlot();
-        self.asm.stur(reg, REG_SP, spill);
+        let slot = loc.getSpillSlot();
+        self.asm.stur(reg, REG_FP, slot);
     }
 
     fn setLocationConstraintsCheckedDiv(inst: Inst, loc: LocationData) {

@@ -107,6 +107,10 @@ impl CodeGen for CodeGenX64 {
     fn prolog(stackSize: Int32) {
         self.asm.pushq_r(RBP);
         self.asm.movq_rr(RBP, RSP);
+
+        if stackSize > 0i32 {
+            self.asm.subq_ri(RSP, Immediate(stackSize.toInt64()));
+        }
     }
 
     fn emitComment(comment: String) {
