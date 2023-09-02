@@ -173,7 +173,6 @@ impl CodeGen for CodeGenX64 {
             self.asm.addq_rr(output, rhs);
         }
 
-
         self.asm.jcc(Condition::Overflow, lbl_overflow);
 
         self.deferred.push(|| {
@@ -191,8 +190,14 @@ impl CodeGen for CodeGenX64 {
         let output = loc.getOutput().getRegister();
         let lbl_overflow = self.asm.createLabel();
 
-        self.asm.movq_rr(output, lhs);
-        self.asm.subq_rr(output, rhs);
+        if inst.getType() == Type::Int32 {
+            self.asm.movl_rr(output, lhs);
+            self.asm.subl_rr(output, rhs);
+        } else {
+            assert(inst.getType() == Type::Int64);
+            self.asm.movq_rr(output, lhs);
+            self.asm.subq_rr(output, rhs);
+        }
 
         self.asm.jcc(Condition::Overflow, lbl_overflow);
 
@@ -211,8 +216,14 @@ impl CodeGen for CodeGenX64 {
         let output = loc.getOutput().getRegister();
         let lbl_overflow = self.asm.createLabel();
 
-        self.asm.movq_rr(output, lhs);
-        self.asm.imulq_rr(output, rhs);
+        if inst.getType() == Type::Int32 {
+            self.asm.movl_rr(output, lhs);
+            self.asm.imull_rr(output, rhs);
+        } else {
+            assert(inst.getType() == Type::Int64);
+            self.asm.movq_rr(output, lhs);
+            self.asm.imulq_rr(output, rhs);
+        }
 
         self.asm.jcc(Condition::Overflow, lbl_overflow);
 
@@ -272,8 +283,16 @@ impl CodeGen for CodeGenX64 {
         let dest = loc.getOutput().getRegister();
 
         let lbl_overflow = self.asm.createLabel();
-        self.asm.movq_rr(dest, src);
-        self.asm.negq_r(dest);
+
+        if inst.getType() == Type::Int32 {
+            self.asm.movl_rr(dest, src);
+            self.asm.negl_r(dest);
+        } else {
+            assert(inst.getType() == Type::Int64);
+            self.asm.movq_rr(dest, src);
+            self.asm.negq_r(dest);
+        }
+
         self.asm.jcc(Condition::Overflow, lbl_overflow);
 
         self.deferred.push(|| {

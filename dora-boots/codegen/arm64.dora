@@ -1,6 +1,6 @@
 use package::interface::{Architecture, CompilationInfo, config, TRAP_DIV0, TRAP_OVERFLOW};
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen, CodeDescriptor, CommentTable, Location, LocationTable};
-use package::assembler::arm64::{AssemblerArm64, Cond, Shift, registerName};
+use package::assembler::arm64::{AssemblerArm64, Cond, Extend, Shift, registerName};
 use package::assembler::arm64::{R0, R1, R2, R3, R4, R5, R6, R7, R10, R11};
 use package::assembler::arm64::{REG_FP, REG_SP, REG_LR, REG_ZERO};
 use package::assembler::{Label, RegSet, Register};
@@ -200,6 +200,7 @@ impl CodeGen for CodeGenArm64 {
             assert(inst.getType() == Type::Int64);
             self.asm.adds(output, lhs, rhs);
         }
+
         self.asm.bc(Cond::VS, lbl_overflow);
 
         self.deferred.push(|| {
@@ -217,7 +218,13 @@ impl CodeGen for CodeGenArm64 {
         let output = loc.getOutput().getRegister();
         let lbl_overflow = self.asm.createLabel();
 
-        self.asm.subs(output, lhs, rhs);
+        if inst.getType() == Type::Int32 {
+            self.asm.subs_w(output, lhs, rhs);
+        } else {
+            assert(inst.getType() == Type::Int64);
+            self.asm.subs(output, lhs, rhs);
+        }
+
         self.asm.bc(Cond::VS, lbl_overflow);
 
         self.deferred.push(|| {
@@ -236,10 +243,17 @@ impl CodeGen for CodeGenArm64 {
         let lbl_overflow = self.asm.createLabel();
         assert(dest != lhs && dest != rhs);
 
-        self.asm.mul(dest, lhs, rhs);
-        self.asm.smulh(REG_TMP1, lhs, rhs);
-        self.asm.cmp_sh(REG_TMP1, dest, Shift::ASR, 63i32);
-        self.asm.bc(Cond::NE, lbl_overflow);
+        if inst.getType() == Type::Int32 {
+            self.asm.smull(dest, lhs, rhs);
+            self.asm.cmp_ext(dest, dest, Extend::SXTW, 0i32);
+            self.asm.bc(Cond::NE, lbl_overflow);
+        } else {
+            assert(inst.getType() == Type::Int64);
+            self.asm.mul(dest, lhs, rhs);
+            self.asm.smulh(REG_TMP1, lhs, rhs);
+            self.asm.cmp_sh(REG_TMP1, dest, Shift::ASR, 63i32);
+            self.asm.bc(Cond::NE, lbl_overflow);
+        }
 
         self.deferred.push(|| {
             self.emitComment("slow path for CheckedMul overflow");
@@ -276,7 +290,14 @@ impl CodeGen for CodeGenArm64 {
         let dest = loc.getOutput().getRegister();
 
         let lbl_overflow = self.asm.createLabel();
-        self.asm.subs(dest, REG_ZERO, src);
+
+        if inst.getType() == Type::Int32 {
+            self.asm.subs_w(dest, REG_ZERO, src);
+        } else {
+            assert(inst.getType() == Type::Int64);
+            self.asm.subs(dest, REG_ZERO, src);
+        }
+
         self.asm.bc(Cond::VS, lbl_overflow);
 
         self.deferred.push(|| {
