@@ -6,6 +6,7 @@ use package::codegen::arm64::CodeGenArm64;
 use package::assembler::{Label, Register, RegSet};
 use package::interface::{Architecture, CompilationInfo, config};
 use package::graph::{Graph, Inst, LocationData, Op};
+use package::CompilationData;
 
 pub mod arm64;
 pub mod x64;
@@ -19,8 +20,11 @@ pub fn createCodeGen(ci: CompilationInfo): CodeGen {
     }
 }
 
-pub fn generateCode(graph: Graph, codegen: CodeGen): CodeDescriptor {
-    codegen.prolog();
+pub fn generateCode(cd: CompilationData): CodeDescriptor {
+    let codegen = cd.codegen;
+    let graph = cd.graph;
+
+    codegen.prolog(cd.stackSize.getOrPanic());
 
     for block in graph.insertionOrderIterator() {
         block.setLabel(codegen.createLabel());
@@ -49,7 +53,7 @@ pub trait CodeGen {
     fn argumentRegister(idx: Int64): Register;
     fn getScratchRegister(): Register;
 
-    fn prolog();
+    fn prolog(stackSize: Int32);
     fn finalize(): CodeDescriptor;
 
     fn registerName(register: Register): String;

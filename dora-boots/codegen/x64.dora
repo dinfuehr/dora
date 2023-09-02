@@ -104,7 +104,7 @@ impl CodeGen for CodeGenX64 {
         REG_TMP1
     }
 
-    fn prolog() {
+    fn prolog(stackSize: Int32) {
         self.asm.pushq_r(RBP);
         self.asm.movq_rr(RBP, RSP);
     }

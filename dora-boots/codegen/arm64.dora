@@ -116,7 +116,7 @@ impl CodeGen for CodeGenArm64 {
         REG_TMP1
     }
 
-    fn prolog() {
+    fn prolog(stackSize: Int32) {
         self.asm.stp_pre(REG_FP, REG_LR, REG_SP, -16i32);
         self.asm.mov(REG_FP, REG_SP);
     }
