@@ -739,7 +739,72 @@ impl Inst {
     }
 
     pub fn getType(): Type {
-        return self.ty;
+        match self.op() {
+            Op::NullConst => Type::Ptr,
+            Op::TrueConst => Type::Bool,
+            Op::FalseConst => Type::Bool,
+            Op::Int32Const => Type::Int32,
+            Op::Int64Const => Type::Int64,
+            Op::Float32Const => Type::Float32,
+            Op::Float64Const => Type::Float64,
+            Op::LoadGlobal => self.ty,
+            Op::StoreGlobal => self.ty,
+            Op::Undef => unreachable[Type](),
+            Op::BoundsCheck => Type::Unit,
+            Op::Goto => unreachable[Type](),
+            Op::If => unreachable[Type](),
+            Op::Return => unreachable[Type](),
+            Op::Neg => self.ty,
+            Op::CheckedNeg => self.ty,
+            Op::Not => self.ty,
+            Op::Add => self.ty,
+            Op::CheckedAdd => self.ty,
+            Op::Sub => self.ty,
+            Op::CheckedSub => self.ty,
+            Op::Mul => self.ty,
+            Op::CheckedMul => self.ty,
+            Op::Div => self.ty,
+            Op::CheckedDiv => self.ty,
+            Op::Mod => self.ty,
+            Op::CheckedMod => self.ty,
+            Op::And => self.ty,
+            Op::Or => self.ty,
+            Op::Xor => self.ty,
+            Op::Shl => self.ty,
+            Op::Shr => self.ty,
+            Op::Sar => self.ty,
+            Op::TestIdentity => Type::Bool,
+            Op::Equal => Type::Bool,
+            Op::NotEqual => Type::Bool,
+            Op::Greater => Type::Bool,
+            Op::GreaterOrEqual => Type::Bool,
+            Op::Less => Type::Bool,
+            Op::LessOrEqual => Type::Bool,
+            Op::Phi => self.ty,
+            Op::DivZeroCheck => unreachable[Type](),
+            Op::ArrayGet => self.ty,
+            Op::ArraySet => unreachable[Type](),
+            Op::ArrayLength => Type::Int64,
+            Op::FieldGet => unreachable[Type](),
+            Op::FieldSet => unreachable[Type](),
+            Op::Arg => self.ty,
+            Op::Move => self.ty,
+            Op::MoveImmediate => self.ty,
+        }
+    }
+
+    pub fn getOperationType(): Type {
+        match self.op() {
+            Op::Return
+            | Op::Equal
+            | Op::NotEqual
+            | Op::Greater
+            | Op::GreaterOrEqual
+            | Op::Less
+            | Op::LessOrEqual
+            | Op::ArraySet => self.ty,
+            _ => self.getType(),
+        }
     }
 
     pub fn addMove(dest: Register, source: Register) {
@@ -1258,9 +1323,10 @@ fn removeUse(input: Input) {
     input.nextUse = None;
 }
 
-pub fn createMove(dest: Operand, source: Operand): Inst {
+pub fn createMoveInst(ty: Type, dest: Operand, source: Operand): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Move);
+    inst.ty = ty;
 
     let loc = LocationData::newWith(1);
     loc.output = Some(Location::operand(dest));
@@ -1365,9 +1431,10 @@ pub fn createUndefInst(): Inst {
     inst
 }
 
-pub fn createPhiInst(): Inst {
+pub fn createPhiInst(ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Phi);
+    inst.ty = ty;
     inst
 }
 
@@ -1395,9 +1462,10 @@ pub fn createArrayGet(array: Inst, index: Inst, ty: Type): Inst {
     inst
 }
 
-pub fn createArraySet(array: Inst, index: Inst, value: Inst): Inst {
+pub fn createArraySet(array: Inst, index: Inst, value: Inst, ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::ArraySet);
+    inst.ty = ty;
     inst.addInput(array);
     inst.addInput(index);
     inst.addInput(value);

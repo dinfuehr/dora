@@ -143,6 +143,9 @@ impl SsaGen {
     }
 
     fn readVariableRecursive(register: BytecodeRegister, block: Block): Inst {
+        let ty = self.bc.registers(register.value.toInt64());
+        let ty = Type::fromBytecodeType(ty);
+
         let value: Inst = if !self.sealedBlocks.contains(block.id().toInt64()) {
             // While all blocks are created with predecessors and successors before
             // this pass in the BlockBuilder already, we still need to handle unsealed blocks.
@@ -150,7 +153,7 @@ impl SsaGen {
             // In this case the while header is filled before the while body. If we wouldn't
             // handle unsealed blocks we wouldn't create a Phi instruction, since the
             // while body predecessor is still empty.
-            let incomplete = createPhiInst();
+            let incomplete = createPhiInst(ty);
             block.appendPhi(incomplete);
 
             if self.incompletePhis.contains(block) {
@@ -165,7 +168,7 @@ impl SsaGen {
         } else if block.predecessors.size() == 1i64 {
             self.readVariable(register, block.predecessors.first().getOrPanic().source)
         } else {
-            let phi = createPhiInst();
+            let phi = createPhiInst(ty);
             block.appendPhi(phi);
             self.writeVariable(register, block, phi);
             self.addPhiOperands(register, phi)
@@ -670,7 +673,7 @@ impl SsaGen {
         let boundsCheckInst = createBoundsCheck(idxInst, arrayLengthInst);
         self.current().appendInst(boundsCheckInst);
 
-        let arraySetInst = createArraySet(arrInst, idxInst, srcInst);
+        let arraySetInst = createArraySet(arrInst, idxInst, srcInst, srcInst.getType());
         self.current().appendInst(arraySetInst);
     }
 

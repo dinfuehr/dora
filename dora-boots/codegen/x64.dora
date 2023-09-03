@@ -337,19 +337,7 @@ impl CodeGen for CodeGenX64 {
         if inst.hasInput() {
             let loc = inst.getLocationData();
             let register = loc.getInput(0).getRegister();
-            let ty = inst.getType();
-
-            if RAX != register {
-                if ty == Type::Int64 {
-                    self.asm.movq_rr(RAX, register);
-                } else if ty == Type::Int32 {
-                    self.asm.movl_rr(RAX, register);
-                } else if ty == Type::Bool {
-                    self.asm.movl_rr(RAX, register);
-                } else {
-                    unreachable[()]();
-                }
-            }
+            assert(register == RAX);
         }
 
         self.epilog();
@@ -359,18 +347,43 @@ impl CodeGen for CodeGenX64 {
         let loc = inst.getLocationData();
         let dest = loc.getOutput().getOperand();
         let src = loc.getInput(0).getOperand();
+        let ty = inst.getType();
 
         if dest.isRegister() {
             if src.isRegister() {
-                self.asm.movq_rr(dest.getRegister(), src.getRegister());
+                // Register-to-Register
+                if ty == Type::Int64 || ty == Type::Ptr {
+                    self.asm.movq_rr(dest.getRegister(), src.getRegister());
+                } else {
+                    assert(ty == Type::Int32 || ty == Type::Bool);
+                    self.asm.movl_rr(dest.getRegister(), src.getRegister());
+                }
             } else {
+                // Reload
                 assert(src.isStack());
-                self.asm.movq_ra(dest.getRegister(), Address::offset(RBP, src.getStack()));
+                if ty == Type::Int64 || ty == Type::Ptr {
+                    self.asm.movq_ra(dest.getRegister(), Address::offset(RBP, src.getStack()));
+                } else if ty == Type::Int32 {
+                    self.asm.movl_ra(dest.getRegister(), Address::offset(RBP, src.getStack()));
+                } else {
+                    assert(ty == Type::Bool);
+                    self.asm.movb_ra(dest.getRegister(), Address::offset(RBP, src.getStack()));
+                }
             }
         } else {
+            // Spill
             assert(dest.isStack());
             assert(src.isRegister());
             self.asm.movq_ar(Address::offset(RBP, dest.getStack()), src.getRegister());
+
+            if ty == Type::Int64 || ty == Type::Ptr {
+                self.asm.movq_ar(Address::offset(RBP, dest.getStack()), src.getRegister());
+            } else if ty == Type::Int32 {
+                self.asm.movl_ar(Address::offset(RBP, dest.getStack()), src.getRegister());
+            } else {
+                assert(ty == Type::Bool);
+                self.asm.movb_ar(Address::offset(RBP, dest.getStack()), src.getRegister());
+            }
         }
     }
 

@@ -220,10 +220,10 @@ fn dumpInstName(inst: Inst): String {
             "If(@${inst.getTrueBlock().id()}, @${inst.getFalseBlock().id()})"
         },
         Op::Return => {
-            if inst.getType().isUnit() {
+            if !inst.hasInput() {
                 "Ret.Void"
             } else {
-                "Ret.${inst.getType()}"
+                "Ret.${inst.getOperationType()}"
             }
         },
         Op::Neg => "Neg.${inst.getType()}",
@@ -246,22 +246,22 @@ fn dumpInstName(inst: Inst): String {
         Op::Shr => "Shr.${inst.getType()}",
         Op::Sar => "Sar.${inst.getType()}",
         Op::TestIdentity => "TestIdentity.${inst.getType()}",
-        Op::Equal => "Equal.${inst.getType()}",
-        Op::NotEqual => "NotEqual.${inst.getType()}",
-        Op::Greater => "Greater.${inst.getType()}",
-        Op::GreaterOrEqual => "GreaterOrEqual.${inst.getType()}",
-        Op::Less => "Less.${inst.getType()}",
-        Op::LessOrEqual => "LessOrEqual.${inst.getType()}",
-        Op::Phi => "Phi",
+        Op::Equal => "Equal.${inst.getOperationType()}",
+        Op::NotEqual => "NotEqual.${inst.getOperationType()}",
+        Op::Greater => "Greater.${inst.getOperationType()}",
+        Op::GreaterOrEqual => "GreaterOrEqual.${inst.getOperationType()}",
+        Op::Less => "Less.${inst.getOperationType()}",
+        Op::LessOrEqual => "LessOrEqual.${inst.getOperationType()}",
+        Op::Phi => "Phi.${inst.getType()}",
         Op::DivZeroCheck => "DivZeroCheck",
         Op::ArrayGet => "ArrayGet.${inst.getType()}",
-        Op::ArraySet => "ArraySet",
+        Op::ArraySet => "ArraySet.${inst.getOperationType()}",
         Op::ArrayLength => "ArrayLength",
         Op::FieldGet => "FieldGet.${inst.getType()}",
         Op::FieldSet => "FieldSet",
         Op::Arg => "Arg.${inst.getType()}(${inst.auxAsInt32()})",
-        Op::Move => "Move",
-        Op::MoveImmediate => "MoveImmediate",
+        Op::Move => "Move.${inst.getType()}",
+        Op::MoveImmediate => "MoveImmediate.${inst.getType()}",
     }
 }
 
