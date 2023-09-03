@@ -1,12 +1,10 @@
 use self::codegen::CannonCodeGen;
 
-use crate::cannon::liveness::BytecodeLiveness;
 use crate::compiler::codegen::CompilationData;
 use crate::masm::CodeDescriptor;
 use crate::vm::VM;
 
 pub mod codegen;
-mod liveness;
 
 pub struct CompilationFlags {
     mode: CompilationMode,
@@ -50,6 +48,5 @@ pub(super) fn compile<'a>(
     compilation_data: CompilationData<'a>,
     flags: CompilationFlags,
 ) -> CodeDescriptor {
-    let liveness = BytecodeLiveness::analyze(compilation_data.bytecode_fct);
-    CannonCodeGen::new(vm, compilation_data, liveness, flags).generate()
+    CannonCodeGen::new(vm, compilation_data, flags).generate()
 }

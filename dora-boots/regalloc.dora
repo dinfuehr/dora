@@ -250,14 +250,6 @@ impl SimpleRegisterAllocator {
     }
 
     fn freeDeadValues(inst: Inst) {
-        for input in inst.getInputs() {
-            let value = input.getValue();
-
-            if value.getLastUse() === input {
-                self.tracker().free(value);
-            }
-        }
-
         let loc = inst.getLocationData();
 
         for temp in loc.getTemps() {

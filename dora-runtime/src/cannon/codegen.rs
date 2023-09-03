@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use crate::cannon::liveness::BytecodeLiveness;
 use crate::compiler::asm::BaselineAssembler;
 use crate::compiler::codegen::{
     ensure_runtime_entry_trampoline, AllocationSize, AnyReg, CompilationData,
@@ -65,7 +64,6 @@ pub struct CannonCodeGen<'a> {
 
     offset_to_address: HashMap<BytecodeOffset, usize>,
     offset_to_label: HashMap<BytecodeOffset, Label>,
-    liveness: BytecodeLiveness,
 
     current_offset: BytecodeOffset,
     argument_stack: Vec<Register>,
@@ -92,7 +90,6 @@ impl<'a> CannonCodeGen<'a> {
     pub(super) fn new(
         vm: &'a VM,
         compilation_data: CompilationData<'a>,
-        liveness: BytecodeLiveness,
         flags: CompilationFlags,
     ) -> CannonCodeGen<'a> {
         CannonCodeGen {
@@ -112,7 +109,6 @@ impl<'a> CannonCodeGen<'a> {
             argument_stack: Vec::new(),
             references: Vec::new(),
             offsets: Vec::new(),
-            liveness,
             framesize: 0,
             register_start_offset: 0,
             flags,

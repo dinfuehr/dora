@@ -858,10 +858,6 @@ impl Inst {
         UseIterator::new(self)
     }
 
-    pub fn getLastUse(): Input {
-        self.useListTail.getOrPanic()
-    }
-
     pub fn dominates(other: Inst): Bool {
         let sblock = self.block.getOrPanic();
         let oblock = other.block.getOrPanic();
