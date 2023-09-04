@@ -20,6 +20,7 @@ pub fn allocate_encoded_system_config(vm: &VM) -> Ref<UInt8Array> {
 
 fn encode_system_config(vm: &VM, buffer: &mut ByteBuffer) {
     encode_architecture(get_architecture(), buffer);
+    buffer.emit_address(vm.native_methods.safepoint_trampoline());
     buffer.emit_address(vm.native_methods.trap_trampoline());
 }
 

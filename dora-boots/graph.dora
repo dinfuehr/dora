@@ -1224,6 +1224,32 @@ impl Operand {
     }
 }
 
+impl Equals for Operand {
+    fn equals(other: Operand): Bool {
+        match self {
+            Operand::None => {
+                other.isNone()
+            },
+            Operand::Reg(reg) => {
+                other.isRegister() && reg == other.getRegister()
+            },
+            Operand::Stack(slot) => {
+                other.isStack() && slot == other.getStack()
+            },
+        }
+    }
+}
+
+impl Hash for Operand {
+    fn hash(): Int32 {
+        match self {
+            Operand::None => 1i32,
+            Operand::Reg(reg) => reg.value.toInt32(),
+            Operand::Stack(slot) => slot,
+        }
+    }
+}
+
 pub class Location {
     operand: Operand,
 }

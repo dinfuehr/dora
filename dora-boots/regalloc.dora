@@ -541,9 +541,15 @@ impl InstLocation {
     }
 }
 
+struct Move {
+    ty: Type,
+    dest: Operand,
+    src: Operand,
+}
+
 class ParallelMoveResolver {
-    moves: Vec[(Type, Operand, Operand)],
-    orderedMoves: Vec[(Type, Operand, Operand)],
+    moves: Vec[Move],
+    orderedMoves: Vec[Move],
     // All written registers.
     directpreds: HashMap[Register, (Register, Type)],
     // All used variables and their current location.
@@ -554,8 +560,8 @@ class ParallelMoveResolver {
 impl ParallelMoveResolver {
     static fn new(): ParallelMoveResolver {
         ParallelMoveResolver(
-            Vec[(Type, Operand, Operand)]::new(),
-            Vec[(Type, Operand, Operand)]::new(),
+            Vec[Move]::new(),
+            Vec[Move]::new(),
             HashMap[Register, (Register, Type)]::new(),
             HashMap[Register, Register]::new(),
             RegSet::new(),
@@ -563,47 +569,40 @@ impl ParallelMoveResolver {
     }
 
     fn add(ty: Type, dest: Operand, src: Operand) {
-        self.moves.push((ty, dest, src));
-    }
-
-    fn addRegister(ty: Type, dest: Register, src: Operand) {
-        self.add(ty, Operand::Reg(dest), src);
-    }
-
-    fn addStack(ty: Type, dest: Int32, src: Operand) {
-        self.add(ty, Operand::Stack(dest), src);
+        if dest == src { return; }
+        self.moves.push(Move(ty, dest, src));
     }
 
     fn resolve(scratch: Register) {
-        for (ty, dest, src) in self.moves {
-            if dest.isStack() && src.isRegister() {
-                self.orderedMoves.push((ty, dest, src));
+        for move in self.moves {
+            if move.dest.isStack() && move.src.isRegister() {
+                self.orderedMoves.push(move);
             }
         }
 
-        for (ty, dest, src) in self.moves {
-            if dest.isStack() && src.isStack() {
-                self.orderedMoves.push((ty, Operand::Reg(scratch), src));
-                self.orderedMoves.push((ty, dest, Operand::Reg(scratch)));
+        for move in self.moves {
+            if move.dest.isStack() && move.src.isStack() {
+                self.emitOrderedMove(move.ty, Operand::Reg(scratch), move.src);
+                self.emitOrderedMove(move.ty, move.dest, Operand::Reg(scratch));
             }
         }
 
-        for (ty, dest, src) in self.moves {
-            if dest.isRegister() && src.isRegister() {
-                let dest = dest.getRegister();
-                let src = src.getRegister();
+        for move in self.moves {
+            if move.dest.isRegister() && move.src.isRegister() {
+                let dest = move.dest.getRegister();
+                let src = move.src.getRegister();
                 assert(!self.directpreds.contains(dest));
-                self.directpreds.insert(dest, (src, ty));
+                self.directpreds.insert(dest, (src, move.ty));
                 self.locations.insert(src, src);
                 assert(!self.todo.contains(dest));
                 self.todo.add(dest);
             }
         }
 
-        for (ty, dest, src) in self.moves {
-            if dest.isRegister() && src.isRegister() {
-                let dest = dest.getRegister();
-                let src = src.getRegister();
+        for move in self.moves {
+            if move.dest.isRegister() && move.src.isRegister() {
+                let dest = move.dest.getRegister();
+                let src = move.src.getRegister();
                 if !self.locations.contains(dest) {
                     assert(self.todo.contains(dest));
                     self.emitMoveChainStartingAt(dest);
@@ -615,14 +614,14 @@ impl ParallelMoveResolver {
             let dest = self.todo.first().getOrPanic();
             assert(self.inCycle(dest));
             let ty = self.directpreds.get(dest).getOrPanic().1;
-            self.emitOrderedMove(ty, scratch, dest);
+            self.emitOrderedMove(ty, Operand::Reg(scratch), Operand::Reg(dest));
             self.locations.insert(dest, scratch);
             self.emitMoveChainStartingAt(dest);
         }
 
-        for (ty, dest, src) in self.moves {
-            if dest.isRegister() && src.isStack() {
-                self.orderedMoves.push((ty, dest, src));
+        for move in self.moves {
+            if move.dest.isRegister() && move.src.isStack() {
+                self.orderedMoves.push(move);
             }
         }
     }
@@ -651,7 +650,7 @@ impl ParallelMoveResolver {
         while self.todo.contains(dest) {
             let (original_src, ty) = self.directpreds.get(dest).getOrPanic();
             let actual_src = self.locations.get(original_src).getOrPanic();
-            self.emitOrderedMove(ty, dest, actual_src);
+            self.emitOrderedMove(ty, Operand::Reg(dest), Operand::Reg(actual_src));
             self.locations.insert(original_src, dest);
             assert(self.todo.remove(dest));
 
@@ -663,13 +662,13 @@ impl ParallelMoveResolver {
         }
     }
 
-    fn emitOrderedMove(ty: Type, dest: Register, src: Register) {
-        self.orderedMoves.push((ty, Operand::Reg(dest), Operand::Reg(src)));
+    fn emitOrderedMove(ty: Type, dest: Operand, src: Operand) {
+        self.orderedMoves.push(Move(ty, dest, src));
     }
 
     fn emitMoves(block: Block) {
-        for (ty, dest, src) in self.orderedMoves {
-            let inst = createMoveInst(ty, dest, src);
+        for move in self.orderedMoves {
+            let inst = createMoveInst(move.ty, move.dest, move.src);
             let terminator = block.lastInst();
             assert(terminator.isTerminator());
             terminator.insertBefore(inst);
@@ -680,57 +679,53 @@ impl ParallelMoveResolver {
 @Test
 fn testMovesWithoutDependencies() {
     let moves = ParallelMoveResolver::new();
-    moves.addRegister(Type::Int64, Register(1u8), Operand::Reg(Register(0u8)));
-    moves.addRegister(Type::Int64, Register(3u8), Operand::Reg(Register(2u8)));
+    moves.add(Type::Int64, r(1), r(0));
+    moves.add(Type::Int64, r(3), r(2));
     moves.resolve(Register(10u8));
 
-    let mut idx = 0;
-    for move in moves.orderedMoves {
-        assert(move.1.getRegister() == moves.moves(idx).1.getRegister());
-        assert(move.2.getRegister() == moves.moves(idx).2.getRegister());
-        idx = idx + 1;
-    }
+    expectMoves(moves, moves.moves.toArray());
 }
 
 @Test
 fn testMovesWithDependency() {
     let moves = ParallelMoveResolver::new();
-    moves.addRegister(Type::Int64, Register(1u8), Operand::Reg(Register(0u8)));
-    moves.addRegister(Type::Int64, Register(2u8), Operand::Reg(Register(1u8)));
+    moves.add(Type::Int64, r(1), r(0));
+    moves.add(Type::Int64, r(2), r(1));
     moves.resolve(Register(10u8));
 
-    let expected = Array[(Register, Register)]::new(
-        (Register(2u8), Register(1u8)),
-        (Register(1u8), Register(0u8)),
-    );
-
-    let mut idx = 0;
-    for move in moves.orderedMoves {
-        assert(move.1.getRegister() == expected(idx).0);
-        assert(move.2.getRegister() == expected(idx).1);
-        idx = idx + 1;
-    }
+    expectMoves(moves, Array[Move]::new(
+        Move(Type::Int64, r(2), r(1)),
+        Move(Type::Int64, r(1), r(0)),
+    ));
 }
 
 @Test
 fn testMovesWithCycle() {
     let moves = ParallelMoveResolver::new();
-    moves.addRegister(Type::Int64, Register(1u8), Operand::Reg(Register(0u8)));
-    moves.addRegister(Type::Int64, Register(2u8), Operand::Reg(Register(1u8)));
-    moves.addRegister(Type::Int64, Register(0u8), Operand::Reg(Register(2u8)));
+    moves.add(Type::Int64, r(1), r(0));
+    moves.add(Type::Int64, r(2), r(1));
+    moves.add(Type::Int64, r(0), r(2));
     moves.resolve(Register(3u8));
 
-    let expected = Array[(Register, Register)]::new(
-        (Register(3u8), Register(0u8)),
-        (Register(0u8), Register(2u8)),
-        (Register(2u8), Register(1u8)),
-        (Register(1u8), Register(3u8)),
-    );
+    expectMoves(moves, Array[Move]::new(
+        Move(Type::Int64, r(3), r(0)),
+        Move(Type::Int64, r(0), r(2)),
+        Move(Type::Int64, r(2), r(1)),
+        Move(Type::Int64, r(1), r(3)),
+    ));
+}
 
+fn expectMoves(moves: ParallelMoveResolver, expected: Array[Move]) {
     let mut idx = 0;
+    assert(moves.orderedMoves.size() == expected.size());
     for move in moves.orderedMoves {
-        assert(move.1.getRegister() == expected(idx).0);
-        assert(move.2.getRegister() == expected(idx).1);
+        assert(move.ty == expected(idx).ty);
+        assert(move.dest == expected(idx).dest);
+        assert(move.src == expected(idx).src);
         idx = idx + 1;
     }
+}
+
+fn r(value: Int64): Operand {
+    Operand::Reg(Register(value.toUInt8()))
 }

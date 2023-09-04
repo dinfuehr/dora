@@ -1,5 +1,5 @@
 use package::interface::{Architecture, CompilationInfo, config, TRAP_DIV0, TRAP_OVERFLOW};
-use package::interface::THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET;
+use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET};
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen, CodeDescriptor, CommentTable, Location, LocationTable};
 use package::assembler::arm64::{AssemblerArm64, Cond, Extend, Shift, registerName};
 use package::assembler::arm64::{R0, R1, R2, R3, R4, R5, R6, R7, R10, R11, R28};
@@ -138,6 +138,21 @@ impl CodeGen for CodeGenArm64 {
             self.emitComment("slow path for stack limit check");
             self.asm.bindLabel(lbl_stack_overflow);
             self.trap(REG_TMP1, TRAP_OVERFLOW, self.ci.loc);
+        });
+    }
+
+    fn emitSafepointCheck() {
+        let lbl_safepoint = self.asm.createLabel();
+        self.asm.ldrb_imm(REG_TMP1, REG_THREAD, THREAD_LOCAL_DATA_STATE_OFFSET);
+        self.asm.cbnz(REG_TMP1, lbl_safepoint);
+
+        self.deferred.push(|| {
+            self.emitComment("slow path safepoint");
+            self.asm.bindLabel(lbl_safepoint);
+
+            self.mov_imm(REG_TMP1, config.safepoint_trampoline.toInt64());
+            self.asm.bl_r(REG_TMP1);
+            self.locations.insert(self.asm.position(), self.ci.loc);
         });
     }
 
@@ -346,6 +361,12 @@ impl CodeGen for CodeGenArm64 {
     fn emitGoto(inst: Inst) {
         let currentBlock = inst.getBlock();
         let targetBlock = inst.getTargetBlock();
+
+        assert(currentBlock.successors.size() == 1);
+
+        if currentBlock.successors(0).isBackward() {
+            self.emitSafepointCheck();
+        }
 
         if currentBlock.postOrderIdx != targetBlock.postOrderIdx + 1i32 {
             self.asm.b(targetBlock.getLabel());

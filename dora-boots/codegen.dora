@@ -33,6 +33,9 @@ pub fn generateCode(cd: CompilationData): CodeDescriptor {
     codegen.emitComment("stack limit check");
     codegen.emitStackLimitCheck();
 
+    codegen.emitComment("safepoint check");
+    codegen.emitSafepointCheck();
+
     for block in graph.insertionOrderIterator() {
         block.setLabel(codegen.createLabel());
     }
@@ -62,6 +65,7 @@ pub trait CodeGen {
 
     fn emitProlog(stackSize: Int32);
     fn emitStackLimitCheck();
+    fn emitSafepointCheck();
 
     fn finalize(): CodeDescriptor;
 

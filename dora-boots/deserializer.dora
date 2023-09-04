@@ -6,11 +6,13 @@ use package::interface::Architecture;
 pub fn decodeConfig(encoded: Array[UInt8]): Config {
     let reader = ByteReader::new(encoded);
     let architecture = decodeArchitecture(reader);
+    let safepoint_trampoline = reader.readAddress();
     let trap_trampoline = reader.readAddress();
     assert(!reader.moreBytes());
 
     Config(
         architecture,
+        safepoint_trampoline,
         trap_trampoline,
     )
 }

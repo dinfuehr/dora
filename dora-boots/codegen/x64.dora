@@ -5,7 +5,7 @@ use package::assembler::{Label, Register, RegSet};
 use package::bytecode::data::Location;
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen, CodeDescriptor, CommentTable, LocationTable};
 use package::interface::{Architecture, CompilationInfo, config, TRAP_DIV0, TRAP_OVERFLOW};
-use package::interface::THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET;
+use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET};
 use package::graph::{Inst, Op, LocationData, Type};
 
 pub class CodeGenX64 {
@@ -125,6 +125,21 @@ impl CodeGen for CodeGenX64 {
             self.emitComment("slow path for stack limit check");
             self.asm.bindLabel(lbl_stack_overflow);
             self.trap(REG_TMP1, TRAP_OVERFLOW, self.ci.loc);
+        });
+    }
+
+    fn emitSafepointCheck() {
+        let lbl_safepoint = self.asm.createLabel();
+        self.asm.cmpb_ai(Address::offset(REG_THREAD, THREAD_LOCAL_DATA_STATE_OFFSET), Immediate(0));
+        self.asm.jcc(Condition::NotEqual, lbl_safepoint);
+
+        self.deferred.push(|| {
+            self.emitComment("slow path safepoint");
+            self.asm.bindLabel(lbl_safepoint);
+
+            self.asm.movq_ri(REG_TMP1, Immediate(config.safepoint_trampoline.toInt64()));
+            self.asm.call_r(REG_TMP1);
+            self.locations.insert(self.asm.position(), self.ci.loc);
         });
     }
 
@@ -342,6 +357,10 @@ impl CodeGen for CodeGenX64 {
     fn emitGoto(inst: Inst) {
         let currentBlock = inst.getBlock();
         let targetBlock = inst.getTargetBlock();
+
+        if currentBlock.successors(0).isBackward() {
+            self.emitSafepointCheck();
+        }
 
         if currentBlock.postOrderIdx != targetBlock.postOrderIdx + 1i32 {
             self.asm.jmp(targetBlock.getLabel());

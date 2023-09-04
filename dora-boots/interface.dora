@@ -22,6 +22,7 @@ pub const TRAP_OVERFLOW: Int32 = 9i32;
 
 pub class Config {
     pub architecture: Architecture,
+    pub safepoint_trampoline: Address,
     pub trap_trampoline: Address,
 }
 
@@ -63,3 +64,7 @@ pub enum Architecture {
 pub const THREAD_LOCAL_DATA_TLAB_TOP_OFFSET: Int32 = 0;
 pub const THREAD_LOCAL_DATA_TLAB_END_OFFSET: Int32 = 8;
 pub const THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET: Int32 = 16;
+pub const THREAD_LOCAL_DATA_DTN_OFFSET: Int32 = 24;
+pub const THREAD_LOCAL_DATA_HANDLE_OFFSET: Int32 = 32;
+pub const THREAD_LOCAL_DATA_MARKING_OFFSET: Int32 = 40;
+pub const THREAD_LOCAL_DATA_STATE_OFFSET: Int32 = 41;
