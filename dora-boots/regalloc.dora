@@ -33,6 +33,7 @@ class SimpleRegisterAllocator {
     codegen: CodeGen,
     tracker: Option[InstTracker],
     currentStackSize: Int32,
+    refs: Vec[Int32],
     currentInst: Option[Inst],
 }
 
@@ -44,6 +45,7 @@ impl SimpleRegisterAllocator {
             cd.codegen,
             None[InstTracker],
             0i32,
+            Vec[Int32]::new(),
             None[Inst],
         )
     }
@@ -241,12 +243,31 @@ impl SimpleRegisterAllocator {
         assert(loc.hasOutput());
 
         if !loc.hasSpillSlot() {
-            self.currentStackSize = self.currentStackSize - 8i32;
-            let slot = self.currentStackSize;
+            let slot = self.allocateSpillSlot(inst.getType());
             loc.setSpillSlot(slot);
         }
 
         assert(loc.hasSpillSlot());
+    }
+
+    fn allocateSpillSlot(ty: Type): Int32 {
+        let (size, alignment) = match ty {
+            Type::Bool => (1i32, 1i32),
+            Type::Int32 => (4i32, 4i32),
+            Type::Ptr | Type::Int64 => (8i32, 8i32),
+            _ => unreachable[(Int32, Int32)](),
+        };
+
+        self.currentStackSize = (self.currentStackSize + (alignment - 1i32)) & alignment;
+        self.currentStackSize = self.currentStackSize + size;
+
+        let offset = -self.currentStackSize;
+
+        if ty == Type::Ptr {
+            self.refs.push(offset);
+        }
+
+        offset
     }
 
     fn freeDeadValues(inst: Inst) {
@@ -556,14 +577,14 @@ impl ParallelMoveResolver {
     fn resolve(scratch: Register) {
         for (ty, dest, src) in self.moves {
             if dest.isStack() && src.isRegister() {
-                self.orderedMoves.push((ty, Operand::Stack(dest.getStack()), Operand::Reg(src.getRegister())));
+                self.orderedMoves.push((ty, dest, src));
             }
         }
 
         for (ty, dest, src) in self.moves {
-            if dest.isStack() && src.isRegister() {
-                self.orderedMoves.push((ty, Operand::Reg(scratch), Operand::Stack(src.getStack())));
-                self.orderedMoves.push((ty, Operand::Stack(dest.getStack()), Operand::Reg(scratch)));
+            if dest.isStack() && src.isStack() {
+                self.orderedMoves.push((ty, Operand::Reg(scratch), src));
+                self.orderedMoves.push((ty, dest, Operand::Reg(scratch)));
             }
         }
 
@@ -601,7 +622,7 @@ impl ParallelMoveResolver {
 
         for (ty, dest, src) in self.moves {
             if dest.isRegister() && src.isStack() {
-                self.orderedMoves.push((ty, Operand::Reg(dest.getRegister()), Operand::Stack(src.getStack())));
+                self.orderedMoves.push((ty, dest, src));
             }
         }
     }
