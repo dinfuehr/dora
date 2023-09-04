@@ -844,6 +844,35 @@ impl[K: Hash + Equals] HashSet[K] {
   pub fn capacity(): Int64 {
     self.map.capacity()
   }
+
+  pub fn makeIterator(): HashSetIter[K] {
+    HashSetIter[K](self.map, 0)
+  }
+}
+
+pub class HashSetIter[K: Hash + Equals] {
+  map: HashMap[K, ()],
+  idx: Int64,
+}
+
+impl[K: Hash + Equals] HashSetIter[K] {
+    pub static fn new(set: HashSet[K]): HashSetIter[K] {
+      HashSetIter[K](set.map, 0)
+    }
+
+    pub fn next(): Option[K] {
+        while self.idx < self.map.capacity() {
+            if self.map.isLive(self.idx) {
+                let key = self.map.keys.get(self.idx);
+                self.idx = self.idx + 1;
+                return Some[K](key);
+            }
+
+            self.idx = self.idx + 1;
+        }
+
+        None[K]
+    }
 }
 
 pub class Vec[T] {

@@ -1,6 +1,7 @@
-use std::Hash;
-use std::Equals;
 use std::BitVec;
+use std::Equals;
+use std::Hash;
+use std::Stringable;
 
 use package::assembler::{Label, Register, RegMap};
 use package::bytecode::data::GlobalId;
@@ -1244,8 +1245,18 @@ impl Hash for Operand {
     fn hash(): Int32 {
         match self {
             Operand::None => 1i32,
-            Operand::Reg(reg) => reg.value.toInt32(),
-            Operand::Stack(slot) => slot,
+            Operand::Reg(reg) => reg.value.toInt32() << 1i32,
+            Operand::Stack(slot) => slot << 1i32 + 1i32,
+        }
+    }
+}
+
+impl Stringable for Operand {
+    fn toString(): String {
+        match self {
+            Operand::None => "None",
+            Operand::Reg(reg) => "Reg(${reg.value})",
+            Operand::Stack(slot) => "Stack(${slot})",
         }
     }
 }

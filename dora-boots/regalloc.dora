@@ -550,11 +550,12 @@ struct Move {
 class ParallelMoveResolver {
     moves: Vec[Move],
     orderedMoves: Vec[Move],
+    types: HashMap[Operand, Type],
     // All written registers.
-    directpreds: HashMap[Register, (Register, Type)],
+    directpreds: HashMap[Operand, Operand],
     // All used variables and their current location.
-    locations: HashMap[Register, Register],
-    todo: RegSet,
+    locations: HashMap[Operand, Operand],
+    todo: HashSet[Operand],
 }
 
 impl ParallelMoveResolver {
@@ -562,9 +563,10 @@ impl ParallelMoveResolver {
         ParallelMoveResolver(
             Vec[Move]::new(),
             Vec[Move]::new(),
-            HashMap[Register, (Register, Type)]::new(),
-            HashMap[Register, Register]::new(),
-            RegSet::new(),
+            HashMap[Operand, Type]::new(),
+            HashMap[Operand, Operand]::new(),
+            HashMap[Operand, Operand]::new(),
+            HashSet[Operand]::new(),
         )
     }
 
@@ -575,67 +577,50 @@ impl ParallelMoveResolver {
 
     fn resolve(scratch: Register) {
         for move in self.moves {
-            if move.dest.isStack() && move.src.isRegister() {
-                self.orderedMoves.push(move);
-            }
+            let ty = move.ty;
+            let dest = move.dest;
+            let src = move.src;
+
+            assert(!self.directpreds.contains(dest));
+            self.directpreds.insert(dest, src);
+            self.locations.insert(src, src);
+            self.types.insert(dest, ty);
+            assert(!self.todo.contains(dest));
+            self.todo.insert(dest);
         }
 
         for move in self.moves {
-            if move.dest.isStack() && move.src.isStack() {
-                self.emitOrderedMove(move.ty, Operand::Reg(scratch), move.src);
-                self.emitOrderedMove(move.ty, move.dest, Operand::Reg(scratch));
-            }
-        }
+            let ty = move.ty;
+            let dest = move.dest;
+            let src = move.src;
 
-        for move in self.moves {
-            if move.dest.isRegister() && move.src.isRegister() {
-                let dest = move.dest.getRegister();
-                let src = move.src.getRegister();
-                assert(!self.directpreds.contains(dest));
-                self.directpreds.insert(dest, (src, move.ty));
-                self.locations.insert(src, src);
-                assert(!self.todo.contains(dest));
-                self.todo.add(dest);
-            }
-        }
-
-        for move in self.moves {
-            if move.dest.isRegister() && move.src.isRegister() {
-                let dest = move.dest.getRegister();
-                let src = move.src.getRegister();
-                if !self.locations.contains(dest) {
-                    assert(self.todo.contains(dest));
-                    self.emitMoveChainStartingAt(dest);
-                }
+            if !self.locations.contains(dest) {
+                assert(self.todo.contains(dest));
+                self.emitMoveChainAt(dest);
             }
         }
 
         while !self.todo.isEmpty() {
-            let dest = self.todo.first().getOrPanic();
+            let dest = self.todo.makeIterator().next().getOrPanic();
+            let ty = self.types.get(dest).getOrPanic();
             assert(self.inCycle(dest));
-            let ty = self.directpreds.get(dest).getOrPanic().1;
-            self.emitOrderedMove(ty, Operand::Reg(scratch), Operand::Reg(dest));
+            let scratch = Operand::Reg(scratch);
+            self.emitOrderedMove(ty, scratch, dest);
             self.locations.insert(dest, scratch);
-            self.emitMoveChainStartingAt(dest);
-        }
-
-        for move in self.moves {
-            if move.dest.isRegister() && move.src.isStack() {
-                self.orderedMoves.push(move);
-            }
+            self.emitMoveChainAt(dest);
         }
     }
 
-    fn inCycle(reg: Register): Bool {
-        let start = reg;
-        let mut reg = reg;
-        assert(self.todo.contains(reg));
+    fn inCycle(opnd: Operand): Bool {
+        let start = opnd;
+        let mut opnd = opnd;
+        assert(self.todo.contains(opnd));
 
-        while self.directpreds.contains(reg) {
-            reg = self.directpreds.get(reg).getOrPanic().0;
-            assert(self.todo.contains(reg));
+        while self.directpreds.contains(opnd) {
+            opnd = self.directpreds.get(opnd).getOrPanic();
+            assert(self.todo.contains(opnd));
 
-            if reg == start {
+            if opnd == start {
                 return true;
             }
         }
@@ -643,14 +628,15 @@ impl ParallelMoveResolver {
         false
     }
 
-    fn emitMoveChainStartingAt(dest: Register) {
+    fn emitMoveChainAt(dest: Operand) {
         let mut dest = dest;
+        let ty = self.types.get(dest).getOrPanic();
         assert(self.todo.contains(dest));
 
         while self.todo.contains(dest) {
-            let (original_src, ty) = self.directpreds.get(dest).getOrPanic();
+            let original_src = self.directpreds.get(dest).getOrPanic();
             let actual_src = self.locations.get(original_src).getOrPanic();
-            self.emitOrderedMove(ty, Operand::Reg(dest), Operand::Reg(actual_src));
+            self.emitOrderedMove(ty, dest, actual_src);
             self.locations.insert(original_src, dest);
             assert(self.todo.remove(dest));
 
@@ -687,7 +673,7 @@ fn testMovesWithoutDependencies() {
 }
 
 @Test
-fn testMovesWithDependency() {
+fn testRegisterMovesWithDependency() {
     let moves = ParallelMoveResolver::new();
     moves.add(Type::Int64, r(1), r(0));
     moves.add(Type::Int64, r(2), r(1));
@@ -700,18 +686,47 @@ fn testMovesWithDependency() {
 }
 
 @Test
-fn testMovesWithCycle() {
+fn testMovesWithDependency() {
+    let moves = ParallelMoveResolver::new();
+    moves.add(Type::Int32, s(1), r(0));
+    moves.add(Type::Int32, r(2), s(1));
+    moves.resolve(Register(10u8));
+
+    expectMoves(moves, Array[Move]::new(
+        Move(Type::Int32, r(2), s(1)),
+        Move(Type::Int32, s(1), r(0)),
+    ));
+}
+
+@Test
+fn testRegisterMovesWithCycle() {
     let moves = ParallelMoveResolver::new();
     moves.add(Type::Int64, r(1), r(0));
     moves.add(Type::Int64, r(2), r(1));
     moves.add(Type::Int64, r(0), r(2));
-    moves.resolve(Register(3u8));
+    moves.resolve(Register(100u8));
 
     expectMoves(moves, Array[Move]::new(
-        Move(Type::Int64, r(3), r(0)),
-        Move(Type::Int64, r(0), r(2)),
+        Move(Type::Int64, r(100), r(2)),
         Move(Type::Int64, r(2), r(1)),
-        Move(Type::Int64, r(1), r(3)),
+        Move(Type::Int64, r(1), r(0)),
+        Move(Type::Int64, r(0), r(100)),
+    ));
+}
+
+@Test
+fn testStackMovesWithCycle() {
+    let moves = ParallelMoveResolver::new();
+    moves.add(Type::Int64, s(1), s(0));
+    moves.add(Type::Int64, s(2), s(1));
+    moves.add(Type::Int64, s(0), s(2));
+    moves.resolve(Register(100u8));
+
+    expectMoves(moves, Array[Move]::new(
+        Move(Type::Int64, r(100), s(2)),
+        Move(Type::Int64, s(2), s(1)),
+        Move(Type::Int64, s(1), s(0)),
+        Move(Type::Int64, s(0), r(100)),
     ));
 }
 
@@ -719,13 +734,18 @@ fn expectMoves(moves: ParallelMoveResolver, expected: Array[Move]) {
     let mut idx = 0;
     assert(moves.orderedMoves.size() == expected.size());
     for move in moves.orderedMoves {
-        assert(move.ty == expected(idx).ty);
-        assert(move.dest == expected(idx).dest);
-        assert(move.src == expected(idx).src);
+        let exp = expected(idx);
+        assert(move.ty == exp.ty);
+        assert(move.dest == exp.dest);
+        assert(move.src == exp.src);
         idx = idx + 1;
     }
 }
 
 fn r(value: Int64): Operand {
     Operand::Reg(Register(value.toUInt8()))
+}
+
+fn s(value: Int64): Operand {
+    Operand::Stack(value.toInt32())
 }
