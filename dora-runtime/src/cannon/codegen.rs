@@ -125,7 +125,7 @@ impl<'a> CannonCodeGen<'a> {
         self.compute_reference_objects();
 
         self.emit_prolog();
-        self.emit_stack_guard();
+        self.emit_stack_limit_check();
         self.emit_clear_registers();
         self.store_params_in_registers();
         self.emit_safepoint();
@@ -519,9 +519,9 @@ impl<'a> CannonCodeGen<'a> {
         self.asm.prolog(self.framesize);
     }
 
-    fn emit_stack_guard(&mut self) {
+    fn emit_stack_limit_check(&mut self) {
         let gcpoint = self.create_gcpoint();
-        self.asm.stack_guard(self.location, gcpoint);
+        self.asm.check_stack_limit(self.location, gcpoint);
     }
 
     fn emit_epilog(&mut self) {

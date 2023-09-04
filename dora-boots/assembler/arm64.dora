@@ -122,7 +122,7 @@ pub enum Cond {
     PL, // positive or zero
     VS, // overflow
     VC, // no overflow
-    HI, // unsigned higher
+    HI, // unsigned higher or same
     LS, // unsigned lower or same
     GE, // signed greater than or equal
     LT, // signed less than

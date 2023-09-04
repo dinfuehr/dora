@@ -229,7 +229,7 @@ impl DoraThread {
             .state
             .compare_exchange(
                 ThreadState::SafepointRequested as u8,
-                ThreadState::ParkedSafepoint as u8,
+                ThreadState::ParkedSafepointRequested as u8,
                 Ordering::SeqCst,
                 Ordering::SeqCst,
             )
@@ -263,7 +263,7 @@ impl DoraThread {
             ) {
                 Ok(_) => break,
                 Err(state) => {
-                    assert_eq!(state, ThreadState::ParkedSafepoint as u8);
+                    assert_eq!(state, ThreadState::ParkedSafepointRequested as u8);
                     vm.threads.barrier.wait_in_unpark();
                 }
             }
@@ -376,7 +376,7 @@ pub enum ThreadState {
     Running = 0,
     Parked = 1,
     SafepointRequested = 2,
-    ParkedSafepoint = 3,
+    ParkedSafepointRequested = 3,
     Safepoint = 4,
 }
 
@@ -386,7 +386,7 @@ impl From<u8> for ThreadState {
             0 => ThreadState::Running,
             1 => ThreadState::Parked,
             2 => ThreadState::SafepointRequested,
-            3 => ThreadState::ParkedSafepoint,
+            3 => ThreadState::ParkedSafepointRequested,
             4 => ThreadState::Safepoint,
             _ => unreachable!(),
         }
@@ -403,7 +403,7 @@ impl ThreadState {
 
     pub fn is_parked(&self) -> bool {
         match *self {
-            ThreadState::Parked | ThreadState::ParkedSafepoint => true,
+            ThreadState::Parked | ThreadState::ParkedSafepointRequested => true,
             _ => false,
         }
     }
@@ -419,14 +419,15 @@ impl Default for ThreadState {
     }
 }
 
+#[repr(C)]
 pub struct ThreadLocalData {
     tlab_top: AtomicUsize,
     tlab_end: AtomicUsize,
-    concurrent_marking: AtomicBool,
-    pub state: AtomicU8,
     stack_limit: AtomicUsize,
     dtn: AtomicUsize,
     managed_thread_handle: AtomicUsize,
+    concurrent_marking: AtomicBool,
+    pub state: AtomicU8,
 }
 
 impl ThreadLocalData {
@@ -434,11 +435,11 @@ impl ThreadLocalData {
         ThreadLocalData {
             tlab_top: AtomicUsize::new(0),
             tlab_end: AtomicUsize::new(0),
-            concurrent_marking: AtomicBool::new(false),
             stack_limit: AtomicUsize::new(0),
-            state: AtomicU8::new(initial_state as u8),
             dtn: AtomicUsize::new(0),
             managed_thread_handle: AtomicUsize::new(0),
+            concurrent_marking: AtomicBool::new(false),
+            state: AtomicU8::new(initial_state as u8),
         }
     }
 

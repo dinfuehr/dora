@@ -26,8 +26,12 @@ pub fn generateCode(cd: CompilationData): CodeDescriptor {
     let graph = cd.graph;
 
     let stackSize = cd.stackSize.getOrPanic();
+    assert(stackSize >= 0i32);
     assert(stackSize % STACK_FRAME_ALIGNMENT.toInt32() == 0i32);
-    codegen.prolog(stackSize);
+    codegen.emitProlog(stackSize);
+
+    codegen.emitComment("stack limit check");
+    codegen.emitStackLimitCheck();
 
     for block in graph.insertionOrderIterator() {
         block.setLabel(codegen.createLabel());
@@ -56,7 +60,9 @@ pub trait CodeGen {
     fn argumentRegister(idx: Int64): Register;
     fn getScratchRegister(): Register;
 
-    fn prolog(stackSize: Int32);
+    fn emitProlog(stackSize: Int32);
+    fn emitStackLimitCheck();
+
     fn finalize(): CodeDescriptor;
 
     fn registerName(register: Register): String;

@@ -76,7 +76,10 @@ fn resume_threads(vm: &VM, threads: &[Arc<DoraThread>]) {
             .swap(ThreadState::Parked as u8, Ordering::SeqCst)
             .into();
 
-        assert!(old_state == ThreadState::Safepoint || old_state == ThreadState::ParkedSafepoint);
+        assert!(
+            old_state == ThreadState::Safepoint
+                || old_state == ThreadState::ParkedSafepointRequested
+        );
     }
 
     vm.threads.barrier.disarm();

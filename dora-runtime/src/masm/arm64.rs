@@ -25,13 +25,12 @@ impl MacroAssembler {
         }
     }
 
-    pub fn check_stack_pointer(&mut self, lbl_overflow: Label) {
+    pub fn check_stack_limit(&mut self, lbl_overflow: Label) {
         let offset = ThreadLocalData::stack_limit_offset() as u32;
         self.asm.ldr_imm(REG_TMP1.into(), REG_THREAD.into(), offset);
         self.asm
-            .add(REG_TMP2.into(), REG_SP.into(), REG_ZERO.into());
-        self.cmp_reg(MachineMode::Ptr, REG_TMP1, REG_TMP2);
-        self.jump_if(CondCode::UnsignedGreater, lbl_overflow);
+            .cmp_ext(REG_SP.into(), REG_TMP1.into(), Extend::UXTX, 0);
+        self.asm.bc(Cond::CC, lbl_overflow);
     }
 
     pub fn safepoint(&mut self, lbl_safepoint: Label) {

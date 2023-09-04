@@ -1,5 +1,4 @@
-use package::bytecode::data::BytecodeFunction;
-use package::bytecode::data::BytecodeType;
+use package::bytecode::data::{BytecodeFunction, BytecodeType, Location};
 use package::deserializer::decodeBytecodeFunction;
 use package::deserializer::decodeCompilationInfo;
 use package::deserializer::decodeConfig;
@@ -51,6 +50,7 @@ pub let trap_trampoline: Address = Address(0);
 pub class CompilationInfo(
     pub bc: BytecodeFunction,
     pub typeParams: Array[BytecodeType],
+    pub loc: Location,
     pub emitGraph: Bool,
     pub emitCodeComments: Bool,
 )
@@ -59,3 +59,7 @@ pub enum Architecture {
     X64,
     Arm64,
 }
+
+pub const THREAD_LOCAL_DATA_TLAB_TOP_OFFSET: Int32 = 0;
+pub const THREAD_LOCAL_DATA_TLAB_END_OFFSET: Int32 = 8;
+pub const THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET: Int32 = 16;

@@ -25,7 +25,7 @@ impl MacroAssembler {
         }
     }
 
-    pub fn check_stack_pointer(&mut self, lbl_overflow: Label) {
+    pub fn check_stack_limit(&mut self, lbl_overflow: Label) {
         self.asm.cmpq_ar(
             AsmAddress::offset(REG_THREAD.into(), ThreadLocalData::stack_limit_offset()),
             RSP.into(),

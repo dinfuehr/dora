@@ -42,9 +42,9 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.prolog(stacksize);
     }
 
-    pub fn stack_guard(&mut self, location: Location, gcpoint: GcPoint) {
+    pub fn check_stack_limit(&mut self, location: Location, gcpoint: GcPoint) {
         let lbl_stack_overflow = self.masm.create_label();
-        self.masm.check_stack_pointer(lbl_stack_overflow);
+        self.masm.check_stack_limit(lbl_stack_overflow);
         let lbl_return = self.masm.create_label();
         self.masm.bind_label(lbl_return);
 

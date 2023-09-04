@@ -5,10 +5,11 @@ use package::assembler::{Label, Register, RegSet};
 use package::bytecode::data::Location;
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen, CodeDescriptor, CommentTable, LocationTable};
 use package::interface::{Architecture, CompilationInfo, config, TRAP_DIV0, TRAP_OVERFLOW};
+use package::interface::THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET;
 use package::graph::{Inst, Op, LocationData, Type};
 
 pub class CodeGenX64 {
-    info: CompilationInfo,
+    ci: CompilationInfo,
     asm: AssemblerX64,
     locations: LocationTable,
     comments: CommentTable,
@@ -16,9 +17,9 @@ pub class CodeGenX64 {
 }
 
 impl CodeGenX64 {
-    pub static fn new(info: CompilationInfo): CodeGenX64 {
+    pub static fn new(ci: CompilationInfo): CodeGenX64 {
         CodeGenX64(
-            info,
+            ci,
             AssemblerX64::new(),
             LocationTable::new(),
             CommentTable::new(),
@@ -79,7 +80,7 @@ impl CodeGenX64 {
             let op = if is_div { "CheckedDiv" } else { "CheckedMod" };
             self.emitComment("slow path for ${op} overflow");
             self.asm.bindLabel(lbl_overflow);
-            self.trap(REG_TMP1, TRAP_OVERFLOW, self.info.bc.getLocationAt(inst.bytecode_position()));
+            self.trap(REG_TMP1, TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
         });
     }
 }
@@ -90,6 +91,8 @@ pub let CCALL_REG_PARAMS: Array[Register] = REG_PARAMS;
 // Temporary registers that can be used within an instruction.
 pub let REG_TMP1: Register = R10;
 pub let REG_TMP2: Register = R11;
+
+let REG_THREAD: Register = R15;
 
 impl CodeGen for CodeGenX64 {
     fn allocatableRegisters(): RegSet {
@@ -104,13 +107,25 @@ impl CodeGen for CodeGenX64 {
         REG_TMP1
     }
 
-    fn prolog(stackSize: Int32) {
+    fn emitProlog(stackSize: Int32) {
         self.asm.pushq_r(RBP);
         self.asm.movq_rr(RBP, RSP);
 
         if stackSize > 0i32 {
             self.asm.subq_ri(RSP, Immediate(stackSize.toInt64()));
         }
+    }
+
+    fn emitStackLimitCheck() {
+        let lbl_stack_overflow = self.asm.createLabel();
+        self.asm.cmpq_ar(Address::offset(REG_THREAD, THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET), RSP);
+        self.asm.jcc(Condition::Above, lbl_stack_overflow);
+
+        self.deferred.push(|| {
+            self.emitComment("slow path for stack limit check");
+            self.asm.bindLabel(lbl_stack_overflow);
+            self.trap(REG_TMP1, TRAP_OVERFLOW, self.ci.loc);
+        });
     }
 
     fn emitComment(comment: String) {
@@ -182,7 +197,7 @@ impl CodeGen for CodeGenX64 {
         self.deferred.push(|| {
             self.emitComment("slow path for CheckedAdd overflow");
             self.asm.bindLabel(lbl_overflow);
-            self.trap(REG_TMP1, TRAP_OVERFLOW, self.info.bc.getLocationAt(inst.bytecode_position()));
+            self.trap(REG_TMP1, TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
         });
     }
 
@@ -208,7 +223,7 @@ impl CodeGen for CodeGenX64 {
         self.deferred.push(|| {
             self.emitComment("slow path for CheckedSub overflow");
             self.asm.bindLabel(lbl_overflow);
-            self.trap(REG_TMP1, TRAP_OVERFLOW, self.info.bc.getLocationAt(inst.bytecode_position()));
+            self.trap(REG_TMP1, TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
         });
     }
 
@@ -234,7 +249,7 @@ impl CodeGen for CodeGenX64 {
         self.deferred.push(|| {
             self.emitComment("slow path for CheckedMul overflow");
             self.asm.bindLabel(lbl_overflow);
-            self.trap(REG_TMP1, TRAP_OVERFLOW, self.info.bc.getLocationAt(inst.bytecode_position()));
+            self.trap(REG_TMP1, TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
         });
     }
 
@@ -277,7 +292,7 @@ impl CodeGen for CodeGenX64 {
         self.deferred.push(|| {
             self.emitComment("slow path for div-by-0 check");
             self.asm.bindLabel(lbl_failure);
-            self.trap(REG_TMP1, TRAP_DIV0, self.info.bc.getLocationAt(inst.bytecode_position()));
+            self.trap(REG_TMP1, TRAP_DIV0, self.ci.bc.getLocationAt(inst.bytecode_position()));
         });
     }
 
@@ -302,7 +317,7 @@ impl CodeGen for CodeGenX64 {
         self.deferred.push(|| {
             self.emitComment("slow path for CheckedNeg overflow");
             self.asm.bindLabel(lbl_overflow);
-            self.trap(REG_TMP1, TRAP_OVERFLOW, self.info.bc.getLocationAt(inst.bytecode_position()));
+            self.trap(REG_TMP1, TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
         });
     }
 

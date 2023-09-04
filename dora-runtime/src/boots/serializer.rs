@@ -7,7 +7,9 @@ use crate::compiler::codegen::CompilationData;
 use crate::gc::Address;
 use crate::object::{byte_array_from_buffer, Obj, Ref, UInt8Array};
 use crate::vm::VM;
-use dora_bytecode::{BytecodeFunction, BytecodeTypeArray, ConstPoolEntry, ConstPoolOpcode};
+use dora_bytecode::{
+    BytecodeFunction, BytecodeTypeArray, ConstPoolEntry, ConstPoolOpcode, Location,
+};
 use dora_bytecode::{BytecodeType, BytecodeTypeKind};
 
 pub fn allocate_encoded_system_config(vm: &VM) -> Ref<UInt8Array> {
@@ -30,6 +32,7 @@ pub fn allocate_encoded_compilation_info(vm: &VM, compilation_data: &Compilation
 fn encode_compilation_info(vm: &VM, compilation_data: &CompilationData, buffer: &mut ByteBuffer) {
     encode_bytecode_function(vm, &compilation_data.bytecode_fct, buffer);
     encode_type_params(vm, &compilation_data.type_params, buffer);
+    encode_location(&compilation_data.loc, buffer);
     buffer.emit_bool(compilation_data.emit_graph);
     buffer.emit_bool(compilation_data.emit_code_comments);
 }
@@ -67,9 +70,13 @@ fn encode_bytecode_locations(fct: &BytecodeFunction, buffer: &mut ByteBuffer) {
 
     for (offset, loc) in fct.locations() {
         buffer.emit_u32(offset.to_u32());
-        buffer.emit_u32(loc.line());
-        buffer.emit_u32(loc.column());
+        encode_location(loc, buffer);
     }
+}
+
+fn encode_location(loc: &Location, buffer: &mut ByteBuffer) {
+    buffer.emit_u32(loc.line());
+    buffer.emit_u32(loc.column());
 }
 
 fn encode_type_params(vm: &VM, type_params: &BytecodeTypeArray, buffer: &mut ByteBuffer) {

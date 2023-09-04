@@ -18,9 +18,10 @@ pub fn decodeConfig(encoded: Array[UInt8]): Config {
 pub fn decodeCompilationInfo(reader: ByteReader): CompilationInfo {
     let bc = decodeBytecodeFunction(reader);
     let typeParams = decodeTypeParams(reader);
+    let loc = decodeLocation(reader);
     let emitGraph = reader.readBool();
     let emitCodeComments = reader.readBool();
-    CompilationInfo(bc, typeParams, emitGraph, emitCodeComments)
+    CompilationInfo(bc, typeParams, loc, emitGraph, emitCodeComments)
 }
 
 pub fn decodeBytecodeFunction(reader: ByteReader): BytecodeFunction {
@@ -142,14 +143,19 @@ fn decodeLocations(reader: ByteReader): Array[(Int32, Location)] {
 
     while i < size {
         let offset = reader.readInt32();
-        let line = reader.readInt32();
-        let column = reader.readInt32();
-
-        data(i) = (offset, Location(line, column));
+        let loc = decodeLocation(reader);
+        data(i) = (offset, loc);
         i = i + 1i64;
     }
 
     data
+}
+
+fn decodeLocation(reader: ByteReader): Location {
+    let line = reader.readInt32();
+    let column = reader.readInt32();
+
+    Location(line, column)
 }
 
 fn decodeArchitecture(reader: ByteReader): Architecture {
