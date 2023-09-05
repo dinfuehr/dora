@@ -2,7 +2,10 @@ use package::interface::{Architecture, CompilationInfo, config, TRAP_DIV0, TRAP_
 use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET};
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen, CodeDescriptor, CommentTable, Location, LocationTable};
 use package::assembler::arm64::{AssemblerArm64, Cond, Extend, Shift, registerName};
-use package::assembler::arm64::{R0, R1, R2, R3, R4, R5, R6, R7, R10, R11, R28};
+use package::assembler::arm64::{R0, R1, R2, R3, R4, R5, R6, R7};
+use package::assembler::arm64::{R8, R9, R10, R11, R12, R13, R14};
+use package::assembler::arm64::{R15, R16, R19, R20, R21, R22, R23};
+use package::assembler::arm64::{R24, R25, R26, R27, R28};
 use package::assembler::arm64::{REG_FP, REG_SP, REG_LR, REG_ZERO};
 use package::assembler::{Label, RegSet, Register};
 use package::graph::{Inst, Op, LocationData, Type};
@@ -75,8 +78,8 @@ impl CodeGenArm64 {
         let lbl_overflow = self.asm.createLabel();
         let lbl_div = self.asm.createLabel();
 
-        self.asm.movz(REG_TMP1, 0x8000i32, 48i32);
-        self.asm.cmp(lhs, REG_TMP1);
+        self.asm.movz(REG_TEMP, 0x8000i32, 48i32);
+        self.asm.cmp(lhs, REG_TEMP);
         self.asm.bc(Cond::NE, lbl_div);
         self.asm.cmn_imm(rhs, 1i32);
         self.asm.bc(Cond::EQ, lbl_overflow);
@@ -85,15 +88,15 @@ impl CodeGenArm64 {
         if is_div {
             self.asm.sdiv(dest, lhs, rhs);
         } else {
-            self.asm.sdiv(REG_TMP1, lhs, rhs);
-            self.asm.msub(dest, REG_TMP1, rhs, lhs);
+            self.asm.sdiv(REG_TEMP, lhs, rhs);
+            self.asm.msub(dest, REG_TEMP, rhs, lhs);
         }
 
         self.deferred.push(|| {
             let op = if is_div { "CheckedDiv" } else { "CheckedMod" };
             self.emitComment("slow path for ${op} overflow");
             self.asm.bindLabel(lbl_overflow);
-            self.trap(REG_TMP1, TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
+            self.trap(REG_TEMP, TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
         });
     }
 }
@@ -101,14 +104,22 @@ impl CodeGenArm64 {
 let REG_PARAMS: Array[Register] = Array[Register]::new(R0, R1, R2, R3, R4, R5, R6, R7);
 let CCALL_REG_PARAMS: Array[Register] = REG_PARAMS;
 
-let REG_TMP1: Register = R10;
-let REG_TMP2: Register = R11;
-
+let REG_TEMP: Register = R16;
 let REG_THREAD: Register = R28;
+
+let ALLOCATABLE_REGS: RegSet = RegSet::new(
+    R0, R1, R2, R3, R4, R5, R6, R7,
+    R8, R9, R10, R11, R12, R13, R14, R15,
+    // R16, R17 and R18 are platform registers
+    R19, R20, R21, R22, R23, R24, R25, R26, R27,
+    // R28 is REG_THREAD
+    // R29 is FP
+    // R30 is LR
+);
 
 impl CodeGen for CodeGenArm64 {
     fn allocatableRegisters(): RegSet {
-        RegSet::new(R0, R1, R2, R3, R4, R5, R6, R7)
+        ALLOCATABLE_REGS
     }
 
     fn argumentRegister(idx: Int64): Register {
@@ -116,7 +127,7 @@ impl CodeGen for CodeGenArm64 {
     }
 
     fn getScratchRegister(): Register {
-        REG_TMP1
+        REG_TEMP
     }
 
     fn emitProlog(stackSize: Int32) {
@@ -130,28 +141,28 @@ impl CodeGen for CodeGenArm64 {
 
     fn emitStackLimitCheck() {
         let lbl_stack_overflow = self.asm.createLabel();
-        self.asm.ldr_imm(REG_TMP1, REG_THREAD, THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET);
-        self.asm.cmp_ext(REG_SP, REG_TMP1, Extend::UXTX, 0i32);
+        self.asm.ldr_imm(REG_TEMP, REG_THREAD, THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET);
+        self.asm.cmp_ext(REG_SP, REG_TEMP, Extend::UXTX, 0i32);
         self.asm.bc(Cond::CC, lbl_stack_overflow);
 
         self.deferred.push(|| {
             self.emitComment("slow path for stack limit check");
             self.asm.bindLabel(lbl_stack_overflow);
-            self.trap(REG_TMP1, TRAP_OVERFLOW, self.ci.loc);
+            self.trap(REG_TEMP, TRAP_OVERFLOW, self.ci.loc);
         });
     }
 
     fn emitSafepointCheck() {
         let lbl_safepoint = self.asm.createLabel();
-        self.asm.ldrb_imm(REG_TMP1, REG_THREAD, THREAD_LOCAL_DATA_STATE_OFFSET);
-        self.asm.cbnz(REG_TMP1, lbl_safepoint);
+        self.asm.ldrb_imm(REG_TEMP, REG_THREAD, THREAD_LOCAL_DATA_STATE_OFFSET);
+        self.asm.cbnz(REG_TEMP, lbl_safepoint);
 
         self.deferred.push(|| {
             self.emitComment("slow path safepoint");
             self.asm.bindLabel(lbl_safepoint);
 
-            self.mov_imm(REG_TMP1, config.safepoint_trampoline.toInt64());
-            self.asm.bl_r(REG_TMP1);
+            self.mov_imm(REG_TEMP, config.safepoint_trampoline.toInt64());
+            self.asm.bl_r(REG_TEMP);
             self.locations.insert(self.asm.position(), self.ci.loc);
         });
     }
@@ -241,7 +252,7 @@ impl CodeGen for CodeGenArm64 {
         self.deferred.push(|| {
             self.emitComment("slow path for CheckedAdd overflow");
             self.asm.bindLabel(lbl_overflow);
-            self.trap(REG_TMP1, TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
+            self.trap(REG_TEMP, TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
         });
     }
 
@@ -265,7 +276,7 @@ impl CodeGen for CodeGenArm64 {
         self.deferred.push(|| {
             self.emitComment("slow path for CheckedSub overflow");
             self.asm.bindLabel(lbl_overflow);
-            self.trap(REG_TMP1, TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
+            self.trap(REG_TEMP, TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
         });
     }
 
@@ -285,15 +296,15 @@ impl CodeGen for CodeGenArm64 {
         } else {
             assert(inst.getType() == Type::Int64);
             self.asm.mul(dest, lhs, rhs);
-            self.asm.smulh(REG_TMP1, lhs, rhs);
-            self.asm.cmp_sh(REG_TMP1, dest, Shift::ASR, 63i32);
+            self.asm.smulh(REG_TEMP, lhs, rhs);
+            self.asm.cmp_sh(REG_TEMP, dest, Shift::ASR, 63i32);
             self.asm.bc(Cond::NE, lbl_overflow);
         }
 
         self.deferred.push(|| {
             self.emitComment("slow path for CheckedMul overflow");
             self.asm.bindLabel(lbl_overflow);
-            self.trap(REG_TMP1, TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
+            self.trap(REG_TEMP, TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
         });
     }
 
@@ -315,7 +326,7 @@ impl CodeGen for CodeGenArm64 {
         self.deferred.push(|| {
             self.emitComment("slow path for div-by-0 check");
             self.asm.bindLabel(lbl_failure);
-            self.trap(REG_TMP1, TRAP_DIV0, self.ci.bc.getLocationAt(inst.bytecode_position()));
+            self.trap(REG_TEMP, TRAP_DIV0, self.ci.bc.getLocationAt(inst.bytecode_position()));
         });
     }
 
@@ -338,7 +349,7 @@ impl CodeGen for CodeGenArm64 {
         self.deferred.push(|| {
             self.emitComment("slow path for CheckedNeg overflow");
             self.asm.bindLabel(lbl_overflow);
-            self.trap(REG_TMP1, TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
+            self.trap(REG_TEMP, TRAP_OVERFLOW, self.ci.bc.getLocationAt(inst.bytecode_position()));
         });
     }
 
