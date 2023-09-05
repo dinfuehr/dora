@@ -8,6 +8,22 @@ use package::interface::{Architecture, CompilationInfo, config, TRAP_DIV0, TRAP_
 use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET};
 use package::graph::{Inst, Op, LocationData, Type};
 
+pub let REG_PARAMS: Array[Register] = Array[Register]::new(RDI, RSI, RDX, RCX, R8, R9);
+pub let CCALL_REG_PARAMS: Array[Register] = REG_PARAMS;
+
+// Temporary registers that can be used within an instruction.
+let REG_TEMP: Register = R10;
+let REG_THREAD: Register = R15;
+
+let ALLOCATABLE_REGS: RegSet = RegSet::new(
+    RAX, RCX, RDX, RBX,
+    // RSP, RBP
+    RSI, RDI, R8, R9,
+    // R10 is REG_TEMP
+    R11, R12, R13, R14,
+    // R15 is REG_THREAD
+);
+
 pub class CodeGenX64 {
     ci: CompilationInfo,
     asm: AssemblerX64,
@@ -84,22 +100,6 @@ impl CodeGenX64 {
         });
     }
 }
-
-pub let REG_PARAMS: Array[Register] = Array[Register]::new(RDI, RSI, RDX, RCX, R8, R9);
-pub let CCALL_REG_PARAMS: Array[Register] = REG_PARAMS;
-
-// Temporary registers that can be used within an instruction.
-let REG_TEMP: Register = R10;
-let REG_THREAD: Register = R15;
-
-let ALLOCATABLE_REGS: RegSet = RegSet::new(
-    RAX, RCX, RDX, RBX,
-    // RSP, RBP
-    RSI, RDI, R8, R9,
-    // R10 is REG_TEMP
-    R11, R12, R13, R14,
-    // R15 is REG_THREAD
-);
 
 impl CodeGen for CodeGenX64 {
     fn allocatableRegisters(): RegSet {
