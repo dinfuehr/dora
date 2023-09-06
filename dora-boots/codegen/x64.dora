@@ -17,10 +17,12 @@ let REG_THREAD: Register = R15;
 
 let ALLOCATABLE_REGS: RegSet = RegSet::new(
     RAX, RCX, RDX, RBX,
-    // RSP, RBP
-    RSI, RDI, R8, R9,
+              RSI, RDI,
+    // RSP is stack pointer
+    // RBP is frame pointer
+    R8 , R9 ,      R11,
     // R10 is REG_TEMP
-    R11, R12, R13, R14,
+    R12, R13, R14,
     // R15 is REG_THREAD
 );
 
