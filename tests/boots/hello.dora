@@ -2,7 +2,7 @@
 
 fn main() {
     f();
-    // assert(g() == 17i32);
+    assert(g() == 17i32);
 }
 
 @optimizeImmediately fn f() {}

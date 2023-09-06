@@ -1,18 +1,17 @@
 use std::collections::{HashMap, HashSet};
 
 use package::assembler::{RegMap, RegSet, Register};
-use package::CompilationData;
 use package::codegen::CodeGen;
 use package::codegen::{emitInst, CodeDescriptor, setLocationConstraints, STACK_FRAME_ALIGNMENT};
 use package::graph::{createGotoInst, createMoveInst, Block, Edge, Graph, Inst, Location, LocationData, Op, Operand, opName, Type};
 
-pub fn performRegisterAllocation(cd: CompilationData) {
-    ensureLocationData(cd.graph, cd.codegen);
+pub fn performRegisterAllocation(graph: Graph, codegen: CodeGen) {
+    ensureLocationData(graph, codegen);
 
-    let allocator = SimpleRegisterAllocator::new(cd);
+    let allocator = SimpleRegisterAllocator::new(graph, codegen);
     allocator.allocateRegisters();
 
-    ssaDestruction(cd.graph, cd.codegen);
+    ssaDestruction(graph, codegen);
 }
 
 fn ensureLocationData(graph: Graph, codegen: CodeGen) {
@@ -28,7 +27,6 @@ fn ensureLocationData(graph: Graph, codegen: CodeGen) {
 }
 
 class SimpleRegisterAllocator {
-    cd: CompilationData,
     graph: Graph,
     codegen: CodeGen,
     tracker: Option[InstTracker],
@@ -38,11 +36,10 @@ class SimpleRegisterAllocator {
 }
 
 impl SimpleRegisterAllocator {
-    static fn new(cd: CompilationData): SimpleRegisterAllocator {
+    static fn new(graph: Graph, codegen: CodeGen): SimpleRegisterAllocator {
         SimpleRegisterAllocator(
-            cd,
-            cd.graph,
-            cd.codegen,
+            graph,
+            codegen,
             None[InstTracker],
             0i32,
             Vec[Int32]::new(),
@@ -57,7 +54,7 @@ impl SimpleRegisterAllocator {
 
         let stack_alignment = STACK_FRAME_ALIGNMENT.toInt32();
         self.currentStackSize = (self.currentStackSize + (stack_alignment - 1i32)) & stack_alignment;
-        self.cd.stackSize = Some(self.currentStackSize);
+        self.graph.setStackSize(self.currentStackSize);
     }
 
     fn allocateBlock(block: Block) {

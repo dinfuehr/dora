@@ -1,5 +1,5 @@
 use package::interface::{Address, CompilationInfo, Config};
-use package::bytecode::data::{BytecodeFunction, BytecodeType, ConstPoolEntry, Location};
+use package::bytecode::data::{BytecodeFunction, BytecodeType, ClassId, ConstPoolEntry, EnumId, FctId, FieldId, Location, StructId, StructFieldId, TraitId};
 use package::bytecode::opcode as opc;
 use package::interface::Architecture;
 
@@ -111,26 +111,88 @@ fn decodeConstPool(reader: ByteReader): Array[ConstPoolEntry] {
 fn decodeConstPoolEntry(reader: ByteReader): ConstPoolEntry {
     let opcode = reader.readUInt8().toInt32();
 
-    if opcode == opc::CONSTPOOL_OPCODE_INT32 {
-        let value = reader.readInt32();
-        ConstPoolEntry::Int32(value)
-    } else if opcode == opc::CONSTPOOL_OPCODE_INT64 {
-        let value = reader.readInt64();
-        ConstPoolEntry::Int64(value)
+    if opcode == opc::CONSTPOOL_OPCODE_STRING {
+        let length = reader.readInt32().toInt64();
+        let value = reader.readStringContent(length);
+        ConstPoolEntry::String(value)
     } else if opcode == opc::CONSTPOOL_OPCODE_FLOAT32 {
         let value = reader.readInt32().asFloat32();
         ConstPoolEntry::Float32(value)
     } else if opcode == opc::CONSTPOOL_OPCODE_FLOAT64 {
         let value = reader.readInt64().asFloat64();
         ConstPoolEntry::Float64(value)
+    } else if opcode == opc::CONSTPOOL_OPCODE_INT32 {
+        let value = reader.readInt32();
+        ConstPoolEntry::Int32(value)
+    } else if opcode == opc::CONSTPOOL_OPCODE_INT64 {
+        let value = reader.readInt64();
+        ConstPoolEntry::Int64(value)
     } else if opcode == opc::CONSTPOOL_OPCODE_CHAR {
         let value = reader.readInt32().toCharUnchecked();
         ConstPoolEntry::Char(value)
-    } else if opcode == opc::CONSTPOOL_OPCODE_STRING {
-        let length = reader.readInt32().toInt64();
-        let value = reader.readStringContent(length);
-
-        ConstPoolEntry::String(value)
+    } else if opcode == opc::CONSTPOOL_OPCODE_CLASS {
+        let cls_id = ClassId(reader.readInt32());
+        let type_params = decodeBytecodeTypeArray(reader);
+        ConstPoolEntry::Class(cls_id, type_params)
+    } else if opcode == opc::CONSTPOOL_OPCODE_FIELD {
+        let cls_id = ClassId(reader.readInt32());
+        let type_params = decodeBytecodeTypeArray(reader);
+        let field_id = FieldId(reader.readInt32());
+        ConstPoolEntry::Field(cls_id, type_params, field_id)
+    } else if opcode == opc::CONSTPOOL_OPCODE_FCT {
+        let fct_id = FctId(reader.readInt32());
+        let type_params = decodeBytecodeTypeArray(reader);
+        ConstPoolEntry::Fct(fct_id, type_params)
+    } else if opcode == opc::CONSTPOOL_OPCODE_TRAIT_OBJECT_METHOD {
+        let ty = decodeBytecodeType(reader);
+        let idx = reader.readInt32();
+        let type_params = decodeBytecodeTypeArray(reader);
+        ConstPoolEntry::TraitObjectMethod(ty, idx, type_params)
+    } else if opcode == opc::CONSTPOOL_OPCODE_GENERIC {
+        let idx = reader.readInt32();
+        let fct_id = FctId(reader.readInt32());
+        let type_params = decodeBytecodeTypeArray(reader);
+        ConstPoolEntry::Generic(idx, fct_id, type_params)
+    } else if opcode == opc::CONSTPOOL_OPCODE_ENUM {
+        let enum_id = EnumId(reader.readInt32());
+        let type_params = decodeBytecodeTypeArray(reader);
+        ConstPoolEntry::Enum(enum_id, type_params)
+    } else if opcode == opc::CONSTPOOL_OPCODE_ENUM_VARIANT {
+        let enum_id = EnumId(reader.readInt32());
+        let type_params = decodeBytecodeTypeArray(reader);
+        let variant = reader.readInt32();
+        ConstPoolEntry::EnumVariant(enum_id, type_params, variant)
+    } else if opcode == opc::CONSTPOOL_OPCODE_ENUM_ELEMENT {
+        let enum_id = EnumId(reader.readInt32());
+        let type_params = decodeBytecodeTypeArray(reader);
+        let variant = reader.readInt32();
+        let idx = reader.readInt32();
+        ConstPoolEntry::EnumElement(enum_id, type_params, variant, idx)
+    } else if opcode == opc::CONSTPOOL_OPCODE_STRUCT {
+        let struct_id = StructId(reader.readInt32());
+        let type_params = decodeBytecodeTypeArray(reader);
+        ConstPoolEntry::Struct(struct_id, type_params)
+    } else if opcode == opc::CONSTPOOL_OPCODE_STRUCT_FIELD {
+        let struct_id = StructId(reader.readInt32());
+        let type_params = decodeBytecodeTypeArray(reader);
+        let field_id = StructFieldId(reader.readInt32());
+        ConstPoolEntry::StructField(struct_id, type_params, field_id)
+    } else if opcode == opc::CONSTPOOL_OPCODE_TRAIT {
+        let trait_id = TraitId(reader.readInt32());
+        let type_params = decodeBytecodeTypeArray(reader);
+        let ty = decodeBytecodeType(reader);
+        ConstPoolEntry::Trait(trait_id, type_params, ty)
+    } else if opcode == opc::CONSTPOOL_OPCODE_TUPLE_ELEMENT {
+        let ty = decodeBytecodeType(reader);
+        let idx = reader.readInt32();
+        ConstPoolEntry::TupleElement(ty, idx)
+    } else if opcode == opc::CONSTPOOL_OPCODE_TUPLE {
+        let types = decodeBytecodeTypeArray(reader);
+        ConstPoolEntry::Tuple(types)
+    } else if opcode == opc::CONSTPOOL_OPCODE_LAMBDA {
+        let params = decodeBytecodeTypeArray(reader);
+        let return_ty = decodeBytecodeType(reader);
+        ConstPoolEntry::Lambda(params, return_ty)
     } else {
         println("unknown ConstPoolEntry opcode = ${opcode}");
         unreachable[ConstPoolEntry]()

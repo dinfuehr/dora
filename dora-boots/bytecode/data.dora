@@ -51,12 +51,26 @@ impl BytecodeFunction {
 }
 
 pub enum ConstPoolEntry {
-    Int32(Int32),
-    Int64(Int64),
+    String(String),
     Float32(Float32),
     Float64(Float64),
+    Int32(Int32),
+    Int64(Int64),
     Char(Char),
-    String(String),
+    Class(ClassId, Array[BytecodeType]),
+    Field(ClassId, Array[BytecodeType], FieldId),
+    Fct(FctId, Array[BytecodeType]),
+    TraitObjectMethod(BytecodeType, Int32, Array[BytecodeType]),
+    Generic(Int32, FctId, Array[BytecodeType]),
+    Enum(EnumId, Array[BytecodeType]),
+    EnumVariant(EnumId, Array[BytecodeType], Int32),
+    EnumElement(EnumId, Array[BytecodeType], Int32, Int32),
+    Struct(StructId, Array[BytecodeType]),
+    StructField(StructId, Array[BytecodeType], StructFieldId),
+    Trait(TraitId, Array[BytecodeType], BytecodeType),
+    TupleElement(BytecodeType, Int32),
+    Tuple(Array[BytecodeType]),
+    Lambda(Array[BytecodeType], BytecodeType),
 }
 
 impl ConstPoolEntry {
@@ -98,6 +112,7 @@ impl Stringable for ConstPoolEntry {
             ConstPoolEntry::Float64(value) => "Float64 ${value}",
             ConstPoolEntry::Char(value) => "Char ${value}",
             ConstPoolEntry::String(value) => "String ${value}",
+            _ => unreachable[String](),
         }
     }
 }
@@ -136,10 +151,14 @@ impl Stringable for BytecodeRegister {
     fn toString(): String { "r${self.value}" }
 }
 
-pub struct ClassDefId(pub value: Int32)
+pub struct EnumId(pub value: Int32)
+pub struct ClassId(pub value: Int32)
 pub struct FieldId(pub value: Int32)
 pub struct GlobalId(pub value: Int32)
 pub struct ConstPoolId(pub value: Int32)
+pub struct StructId(pub value: Int32)
+pub struct StructFieldId(pub value: Int32)
+pub struct TraitId(pub value: Int32)
 
 impl ConstPoolId {
     fn equals(rhs: ConstPoolId): Bool {

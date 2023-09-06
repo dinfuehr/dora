@@ -28,10 +28,8 @@ use package::graph::createUndefInst;
 use package::graph::createPhiInst;
 use package::graph::createArgInst;
 use package::graph::ty::Type;
-use package::bytecode::data::BytecodeFunction;
-use package::bytecode::data::BytecodeRegister;
-use package::bytecode::data::BytecodeType;
-use package::bytecode::data::GlobalId;
+use package::bytecode::data::{BytecodeFunction, BytecodeRegister, BytecodeType};
+use package::bytecode::data::{ConstPoolId, ConstPoolEntry, GlobalId};
 use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::reader::BytecodeIterator;
 
@@ -60,6 +58,8 @@ class SsaGen {
     currentDef: Array[HashMap[Block, Inst]],
     blockTerminated: Bool,
 
+    pushed_registers: Vec[BytecodeRegister],
+
     // a block is considered filled when all instructions are inserted
     filledBlocks: BitSet,
 
@@ -80,6 +80,7 @@ impl SsaGen {
             0i32,
             Array[HashMap[Block, Inst]]::new(),
             false,
+            Vec[BytecodeRegister]::new(),
             BitSet::new(0),
             BitSet::new(0),
             HashMap[Block, HashMap[BytecodeRegister, Inst]]::new(),
@@ -323,7 +324,7 @@ impl SsaGen {
             },
 
             BytecodeInstruction::PushRegister(src) => {
-                unimplemented();
+                self.pushed_registers.push(src);
             },
             
             BytecodeInstruction::ConstTrue(dest) => {
@@ -419,7 +420,7 @@ impl SsaGen {
                 unimplemented();
             },
             BytecodeInstruction::InvokeStatic(dest, idx) => {
-                unimplemented();
+                self.emitInvokeStatic(dest, idx);
             },
             BytecodeInstruction::InvokeGenericStatic(dest, idx) => {
                 unimplemented();
@@ -688,6 +689,12 @@ impl SsaGen {
             self.current().appendInst(inst);
             self.markBlockTerminated();
         }
+    }
+
+    fn emitInvokeStatic(dest: BytecodeRegister, idx: ConstPoolId) {
+        let arguments = self.pushed_registers.toArray();
+        self.pushed_registers.clear();
+        unimplemented();
     }
 }
 

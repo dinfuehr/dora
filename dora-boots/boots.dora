@@ -27,23 +27,9 @@ mod liveness;
 mod regalloc;
 mod serializer;
 
-pub class CompilationData {
-    ci: CompilationInfo,
-    graph: Graph,
-    codegen: CodeGen,
-    stackSize: Option[Int32],
-}
-
 pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
     let graph = createGraph(ci.bc);
     let codegen = createCodeGen(ci);
-
-    let cd = CompilationData(
-        ci,
-        graph,
-        codegen,
-        None[Int32],
-    );
 
     if (ci.emitGraph) {
         println("after graph building:");
@@ -65,14 +51,14 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
         println(dumpGraph(graph, config.architecture));
     }
 
-    performRegisterAllocation(cd);
+    performRegisterAllocation(graph, codegen);
 
     if (ci.emitGraph) {
         println("after register allocation:");
         println(dumpGraph(graph, config.architecture));
     }
 
-    generateCode(cd)
+    generateCode(graph, codegen)
 }
 
 fn splitCriticalEdges(graph: Graph) {

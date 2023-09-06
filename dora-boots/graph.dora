@@ -24,6 +24,7 @@ pub class Graph {
     postOrder: Vec[Block],
     nextBlockIdValue: Int32,
     nextInstIdValue: Int32,
+    stackSize: Option[Int32],
 }
 
 impl Graph {
@@ -35,6 +36,7 @@ impl Graph {
             Vec[Block]::new(),
             0i32,
             0i32,
+            None[Int32]
         )
     }
 
@@ -106,6 +108,15 @@ impl Graph {
 
     pub fn reversePostOrderIterator(): ReversePostOrderIterator {
         ReversePostOrderIterator::new(self.postOrder.toArray())
+    }
+
+    pub fn getStackSize(): Int32 {
+        self.stackSize.getOrPanic()
+    }
+
+    pub fn setStackSize(size: Int32) {
+        assert(self.stackSize.isNone());
+        self.stackSize = Some(size);
     }
 }
 
@@ -549,6 +560,8 @@ pub enum Op {
     Shr,
     Sar,
 
+    InvokeStatic,
+
     TestIdentity,
     Equal,
     NotEqual,
@@ -633,6 +646,7 @@ pub fn opName(op: Op): String {
         Op::Shl => "Shl",
         Op::Shr => "Shr",
         Op::Sar => "Sar",
+        Op::InvokeStatic => "InvokeStatic",
         Op::TestIdentity => "TestIdentity",
         Op::Equal => "Equal",
         Op::NotEqual => "NotEqual",
@@ -774,6 +788,7 @@ impl Inst {
             Op::Shl => self.ty,
             Op::Shr => self.ty,
             Op::Sar => self.ty,
+            Op::InvokeStatic => self.ty,
             Op::TestIdentity => Type::Bool,
             Op::Equal => Type::Bool,
             Op::NotEqual => Type::Bool,
@@ -1055,6 +1070,7 @@ impl Inst {
             Op::Shl => false,
             Op::Shr => false,
             Op::Sar => false,
+            Op::InvokeStatic => true,
             Op::TestIdentity => false,
             Op::Equal => false,
             Op::NotEqual => false,
@@ -1573,6 +1589,12 @@ pub fn createGotoInst(block: Block): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Goto);
     inst.block1 = Some(block);
+    inst
+}
+
+pub fn createInvokeStaticInst(return_ty: Type): Inst {
+    let inst = Inst::new();
+    inst._op = Some(Op::InvokeStatic);
     inst
 }
 

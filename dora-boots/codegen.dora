@@ -6,7 +6,6 @@ use package::codegen::arm64::CodeGenArm64;
 use package::assembler::{Label, Register, RegSet};
 use package::interface::{Architecture, CompilationInfo, config};
 use package::graph::{Graph, Inst, LocationData, Op};
-use package::CompilationData;
 
 pub mod arm64;
 pub mod x64;
@@ -21,11 +20,8 @@ pub fn createCodeGen(ci: CompilationInfo): CodeGen {
     }
 }
 
-pub fn generateCode(cd: CompilationData): CodeDescriptor {
-    let codegen = cd.codegen;
-    let graph = cd.graph;
-
-    let stackSize = cd.stackSize.getOrPanic();
+pub fn generateCode(graph: Graph, codegen: CodeGen): CodeDescriptor {
+    let stackSize = graph.getStackSize();
     assert(stackSize >= 0i32);
     assert(stackSize % STACK_FRAME_ALIGNMENT.toInt32() == 0i32);
     codegen.emitProlog(stackSize);

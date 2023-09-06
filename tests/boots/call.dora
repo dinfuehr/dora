@@ -1,0 +1,12 @@
+//= boots
+//= ignore
+
+fn main() {
+    f();
+}
+
+@optimizeImmediately fn f() {
+    g();
+}
+
+fn g() {}

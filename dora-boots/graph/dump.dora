@@ -245,6 +245,7 @@ fn dumpInstName(inst: Inst): String {
         Op::Shl => "Shl.${inst.getType()}",
         Op::Shr => "Shr.${inst.getType()}",
         Op::Sar => "Sar.${inst.getType()}",
+        Op::InvokeStatic => "InvokeStatic.${inst.getType()}",
         Op::TestIdentity => "TestIdentity.${inst.getType()}",
         Op::Equal => "Equal.${inst.getOperationType()}",
         Op::NotEqual => "NotEqual.${inst.getOperationType()}",

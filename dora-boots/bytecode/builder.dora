@@ -6,7 +6,7 @@ use package::bytecode::data::ConstPoolId;
 use package::bytecode::data::FieldId;
 use package::bytecode::data::FctId;
 use package::bytecode::data::GlobalId;
-use package::bytecode::data::{ClassDefId, Location};
+use package::bytecode::data::{ClassId, Location};
 use package::bytecode::opcode as opc;
 
 pub class BytecodeBuilder {
@@ -122,11 +122,11 @@ impl BytecodeBuilder {
         self.emitReg2(opc::BC_MOV, dest, src);
     }
 
-    pub fn emitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
+    pub fn emitLoadField(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassId, field: FieldId) {
         self.emitField(opc::BC_LOAD_FIELD, dest, obj, cls, field);
     }
 
-    pub fn emitStoreField(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassDefId, field: FieldId) {
+    pub fn emitStoreField(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassId, field: FieldId) {
         self.emitField(opc::BC_STORE_FIELD, src, obj, cls, field);
     }
 
@@ -244,7 +244,7 @@ impl BytecodeBuilder {
         self.emitFct(opc::BC_INVOKE_STATIC, dest, fct, start, count);
     }
 
-    pub fn emitNewObject(dest: BytecodeRegister, cls: ClassDefId) {
+    pub fn emitNewObject(dest: BytecodeRegister, cls: ClassId) {
         self.emitVal3(opc::BC_NEW_OBJECT, dest.value, cls.value);
     }
 
@@ -337,7 +337,7 @@ impl BytecodeBuilder {
         self.emitByte(offset.toInt32());
     }
 
-    fn emitReg1AndCls(inst: Int32, r1: BytecodeRegister, cls: ClassDefId) {
+    fn emitReg1AndCls(inst: Int32, r1: BytecodeRegister, cls: ClassId) {
         self.emitVal3(inst, r1.value, cls.value);
     }
 
@@ -345,7 +345,7 @@ impl BytecodeBuilder {
         self.emitVal3(inst, r1.value, r2.value);
     }
 
-    fn emitReg2AndCls(inst: Int32, r1: BytecodeRegister, r2: BytecodeRegister, cls: ClassDefId) {
+    fn emitReg2AndCls(inst: Int32, r1: BytecodeRegister, r2: BytecodeRegister, cls: ClassId) {
         self.emitVal4(inst, r1.value, r2.value, cls.value);
     }
 
@@ -361,7 +361,7 @@ impl BytecodeBuilder {
         inst: Int32,
         r1: BytecodeRegister,
         r2: BytecodeRegister,
-        cls: ClassDefId,
+        cls: ClassId,
         field: FieldId,
     ) {
         self.emitVal5(inst, r1.value, r2.value, cls.value, field.value);
