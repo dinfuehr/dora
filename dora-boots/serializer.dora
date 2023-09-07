@@ -1,9 +1,21 @@
-use package::codegen::{CodeDescriptor, CommentTable, LocationTable};
+use package::codegen::{CodeDescriptor, CommentTable, GcPoint, GcPointTable,   LazyCompilationData, LocationTable};
+use package::interface::Address;
 
 pub fn encodeCodeDescriptor(writer: ByteWriter, descriptor: CodeDescriptor) {
+    encodeConstPool(writer, descriptor.constPool);
     encodeArrayUInt8(writer, descriptor.code);
-    encodeCommentTable(writer, descriptor.comments);
+    encodeLazyCompilationTable(writer, descriptor.lazyCompilation);
+    encodeGcPointTable(writer, descriptor.gcPoints);
     encodeLocationTable(writer, descriptor.locations);
+    encodeCommentTable(writer, descriptor.comments);
+}
+
+pub fn encodeConstPool(writer: ByteWriter, table: Vec[Address]) {
+    writer.emitInt32(table.size().toInt32());
+
+    for value in table {
+        writer.emitAddress(value);
+    }
 }
 
 pub fn encodeArrayUInt8(writer: ByteWriter, array: Array[UInt8]) {
@@ -20,6 +32,28 @@ pub fn encodeCommentTable(writer: ByteWriter, table: CommentTable) {
     for (offset, comment) in table {
         writer.emitInt32(offset);
         encodeString(writer, comment);
+    }
+}
+
+pub fn encodeLazyCompilationTable(writer: ByteWriter, table: LazyCompilationData) {
+    writer.emitInt32(table.size().toInt32());
+    assert(table.size() == 0);
+}
+
+pub fn encodeGcPointTable(writer: ByteWriter, table: GcPointTable) {
+    writer.emitInt32(table.size().toInt32());
+
+    for (offset, gcpoint) in table {
+        writer.emitInt32(offset);
+        encodeGcPoint(writer, gcpoint);
+    }
+}
+
+pub fn encodeGcPoint(writer: ByteWriter, table: GcPoint) {
+    writer.emitInt32(table.size().toInt32());
+
+    for offset in table {
+        writer.emitInt32(offset);
     }
 }
 
@@ -50,6 +84,15 @@ impl ByteWriter {
         ByteWriter(
             Vec[UInt8]::new(),
         )
+    }
+
+    pub fn emitAddress(address: Address) {
+        self.emitInt64(address.value);
+    }
+
+    pub fn emitInt64(value: Int64) {
+        self.emitInt32((value >> 32i32).toInt32());
+        self.emitInt32(value.toInt32());
     }
 
     pub fn emitInt32(value: Int32) {

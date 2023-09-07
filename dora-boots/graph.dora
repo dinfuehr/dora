@@ -4,7 +4,7 @@ use std::Hash;
 use std::Stringable;
 
 use package::assembler::{Label, Register, RegMap};
-use package::bytecode::data::GlobalId;
+use package::bytecode::data::{BytecodeType, FctId, GlobalId};
 use package::dominator::buildDominatorTree;
 use package::regalloc::InstTracker;
 
@@ -681,8 +681,10 @@ pub class Inst {
 
     ty: Type,
 
+    fct_id: Option[FctId],
+    type_params: Option[Array[BytecodeType]],
+
     location_data: Option[LocationData],
-    moves: Vec[(Register, Register)],
 
     useListHead: Option[Input],
     useListTail: Option[Input],
@@ -703,8 +705,9 @@ impl Inst {
             None[Inst],
             None[Inst],
             Type::Unit,
+            None[FctId],
+            None[Array[BytecodeType]],
             None[LocationData],
-            Vec[(Register, Register)]::new(),
             None[Input],
             None[Input],
             Vec[Input]::new(),
@@ -823,8 +826,14 @@ impl Inst {
         }
     }
 
-    pub fn addMove(dest: Register, source: Register) {
-        self.moves.push((dest, source));
+    pub fn getFctId(): FctId {
+        assert(self.op() == Op::InvokeStatic);
+        self.fct_id.getOrPanic()
+    }
+
+    pub fn getTypeParams(): Array[BytecodeType] {
+        assert(self.op() == Op::InvokeStatic);
+        self.type_params.getOrPanic()
     }
 
     pub fn addInput(inst: Inst) {
@@ -1592,7 +1601,7 @@ pub fn createGotoInst(block: Block): Inst {
     inst
 }
 
-pub fn createInvokeStaticInst(return_ty: Type): Inst {
+pub fn createInvokeStaticInst(fct_id: FctId, type_params: Array[BytecodeType], return_ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::InvokeStatic);
     inst

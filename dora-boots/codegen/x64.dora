@@ -3,8 +3,8 @@ use package::assembler::x64::{RAX, RDI, RDX, RCX, RSI, RBP, RSP, RBX};
 use package::assembler::x64::{R8, R9, R10, R11, R12, R13, R14, R15};
 use package::assembler::{Label, Register, RegSet};
 use package::bytecode::data::Location;
-use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen, CodeDescriptor, CommentTable, LocationTable};
-use package::interface::{Architecture, CompilationInfo, config, TRAP_DIV0, TRAP_OVERFLOW};
+use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen, CodeDescriptor, CommentTable, GcPointTable, LazyCompilationData, LocationTable};
+use package::interface::{Address as RawAddress, Architecture, CompilationInfo, config, TRAP_DIV0, TRAP_OVERFLOW};
 use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET};
 use package::graph::{Inst, Op, LocationData, Type};
 
@@ -29,7 +29,10 @@ let ALLOCATABLE_REGS: RegSet = RegSet::new(
 pub class CodeGenX64 {
     ci: CompilationInfo,
     asm: AssemblerX64,
+    constPool: Vec[RawAddress],
     locations: LocationTable,
+    lazyCompilation: LazyCompilationData,
+    gcPoints: GcPointTable,
     comments: CommentTable,
     deferred: Vec[(): ()],
 }
@@ -39,7 +42,10 @@ impl CodeGenX64 {
         CodeGenX64(
             ci,
             AssemblerX64::new(),
+            Vec[RawAddress]::new(),
             LocationTable::new(),
+            LazyCompilationData::new(),
+            GcPointTable::new(),
             CommentTable::new(),
             Vec[(): ()]::new(),
         )
@@ -451,6 +457,10 @@ impl CodeGen for CodeGenX64 {
         self.asm.movzxb_rr(dest, dest);
     }
 
+    fn emitInvokeStatic(inst: Inst) {
+        unimplemented();
+    }
+
     fn finalize(): CodeDescriptor {
         self.emitDeferredCode();
         self.asm.resolveJumps();
@@ -464,9 +474,12 @@ impl CodeGen for CodeGenX64 {
         let code = self.asm.finalize();
 
         CodeDescriptor(
+            self.constPool,
             code,
-            self.comments,
+            self.lazyCompilation,
+            self.gcPoints,
             self.locations,
+            self.comments,
         )
     }
 }

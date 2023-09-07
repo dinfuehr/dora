@@ -1,6 +1,7 @@
 use std::HashMap;
 use std::BitSet;
 
+use package::graph;
 use package::graph::Graph;
 use package::graph::Block;
 use package::graph::Inst;
@@ -28,7 +29,7 @@ use package::graph::createUndefInst;
 use package::graph::createPhiInst;
 use package::graph::createArgInst;
 use package::graph::ty::Type;
-use package::bytecode::data::{BytecodeFunction, BytecodeRegister, BytecodeType};
+use package::bytecode::data::{BytecodeFunction, BytecodeRegister, BytecodeType, FctId};
 use package::bytecode::data::{ConstPoolId, ConstPoolEntry, GlobalId};
 use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::reader::BytecodeIterator;
@@ -692,9 +693,17 @@ impl SsaGen {
     }
 
     fn emitInvokeStatic(dest: BytecodeRegister, idx: ConstPoolId) {
-        let arguments = self.pushed_registers.toArray();
-        self.pushed_registers.clear();
-        unimplemented();
+        assert(self.pushed_registers.isEmpty());
+        let ty = Type::fromBytecodeType(self.bc.registers(dest.value.toInt64()));
+        assert(ty.isUnit());
+
+        let (fct_id, type_params) = match self.bc.constPool(idx) {
+            ConstPoolEntry::Fct(fct_id, type_params) => (fct_id, type_params),
+            _ => unreachable[(FctId, Array[BytecodeType])](),
+        };
+
+        let inst = graph::createInvokeStaticInst(fct_id, type_params, ty);
+        self.current().appendInst(inst);
     }
 }
 
