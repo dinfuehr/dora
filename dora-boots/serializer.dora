@@ -1,5 +1,6 @@
-use package::codegen::{CodeDescriptor, CommentTable, GcPoint, GcPointTable,   LazyCompilationData, LocationTable};
-use package::interface::Address;
+use package::bytecode::BytecodeType;
+use package::bytecode::opcode as opc;
+use package::interface::{Address, CodeDescriptor, CommentTable, GcPoint, GcPointTable, LazyCompilationData, LazyCompilationSite, LocationTable};
 
 pub fn encodeCodeDescriptor(writer: ByteWriter, descriptor: CodeDescriptor) {
     encodeConstPool(writer, descriptor.constPool);
@@ -10,7 +11,7 @@ pub fn encodeCodeDescriptor(writer: ByteWriter, descriptor: CodeDescriptor) {
     encodeCommentTable(writer, descriptor.comments);
 }
 
-pub fn encodeConstPool(writer: ByteWriter, table: Vec[Address]) {
+fn encodeConstPool(writer: ByteWriter, table: Vec[Address]) {
     writer.emitInt32(table.size().toInt32());
 
     for value in table {
@@ -18,7 +19,7 @@ pub fn encodeConstPool(writer: ByteWriter, table: Vec[Address]) {
     }
 }
 
-pub fn encodeArrayUInt8(writer: ByteWriter, array: Array[UInt8]) {
+fn encodeArrayUInt8(writer: ByteWriter, array: Array[UInt8]) {
     writer.emitInt32(array.size().toInt32());
 
     for value in array {
@@ -26,7 +27,7 @@ pub fn encodeArrayUInt8(writer: ByteWriter, array: Array[UInt8]) {
     }
 }
 
-pub fn encodeCommentTable(writer: ByteWriter, table: CommentTable) {
+fn encodeCommentTable(writer: ByteWriter, table: CommentTable) {
     writer.emitInt32(table.size().toInt32());
 
     for (offset, comment) in table {
@@ -35,12 +36,43 @@ pub fn encodeCommentTable(writer: ByteWriter, table: CommentTable) {
     }
 }
 
-pub fn encodeLazyCompilationTable(writer: ByteWriter, table: LazyCompilationData) {
+fn encodeLazyCompilationTable(writer: ByteWriter, table: LazyCompilationData) {
     writer.emitInt32(table.size().toInt32());
-    assert(table.size() == 0);
+
+    for (offset, site) in table {
+        writer.emitInt32(offset);
+        encodeLazyCompilationSite(writer, site);
+    }
 }
 
-pub fn encodeGcPointTable(writer: ByteWriter, table: GcPointTable) {
+fn encodeLazyCompilationSite(writer: ByteWriter, site: LazyCompilationSite) {
+    match site {
+        LazyCompilationSite::Direct(site) => {
+            writer.emitByte(opc::LAZY_COMPILATION_SITE_DIRECT.toUInt8());
+            writer.emitInt32(site.fct_id.value);
+            encodeBytecodeTypeArray(writer, site.type_params);
+            writer.emitInt32(site.const_pool_offset);
+        },
+
+        LazyCompilationSite::Virtual(site) => {
+            writer.emitByte(opc::LAZY_COMPILATION_SITE_VIRTUAL.toUInt8());
+            writer.emitBool(site.receiver_is_first);
+            writer.emitInt32(site.fct_id.value);
+            encodeBytecodeTypeArray(writer, site.type_params);
+            writer.emitInt32(site.vtable_index);
+            encodeBytecodeType(writer, site.trait_object_ty);
+        },
+
+        LazyCompilationSite::Lambda(site) => {
+            writer.emitByte(opc::LAZY_COMPILATION_SITE_LAMBDA.toUInt8());
+            writer.emitBool(site.receiver_is_first);
+            encodeBytecodeTypeArray(writer, site.params);
+            encodeBytecodeType(writer, site.return_ty);
+        }
+    }
+}
+
+fn encodeGcPointTable(writer: ByteWriter, table: GcPointTable) {
     writer.emitInt32(table.size().toInt32());
 
     for (offset, gcpoint) in table {
@@ -49,7 +81,7 @@ pub fn encodeGcPointTable(writer: ByteWriter, table: GcPointTable) {
     }
 }
 
-pub fn encodeGcPoint(writer: ByteWriter, table: GcPoint) {
+fn encodeGcPoint(writer: ByteWriter, table: GcPoint) {
     writer.emitInt32(table.size().toInt32());
 
     for offset in table {
@@ -57,7 +89,7 @@ pub fn encodeGcPoint(writer: ByteWriter, table: GcPoint) {
     }
 }
 
-pub fn encodeString(writer: ByteWriter, value: String) {
+fn encodeString(writer: ByteWriter, value: String) {
     writer.emitInt32(value.size().toInt32());
 
     for byte in value.asBytes() {
@@ -65,13 +97,89 @@ pub fn encodeString(writer: ByteWriter, value: String) {
     }
 }
 
-pub fn encodeLocationTable(writer: ByteWriter, locations: LocationTable) {
+fn encodeLocationTable(writer: ByteWriter, locations: LocationTable) {
     writer.emitInt32(locations.size().toInt32());
 
     for (offset, location) in locations {
         writer.emitInt32(offset);
         writer.emitInt32(location.line);
         writer.emitInt32(location.column);
+    }
+}
+
+fn encodeBytecodeTypeArray(writer: ByteWriter, types: Array[BytecodeType]) {
+    writer.emitInt32(types.size().toInt32());
+
+    for ty in types {
+        encodeBytecodeType(writer, ty);
+    }
+}
+
+fn encodeBytecodeType(writer: ByteWriter, ty: BytecodeType) {
+    match ty {
+        BytecodeType::Unit => {
+            writer.emitByte(opc::BC_TYPE_UNIT.toUInt8());
+        },
+        BytecodeType::Bool => {
+            writer.emitByte(opc::BC_TYPE_BOOL.toUInt8());
+        },
+        BytecodeType::Char => {
+            writer.emitByte(opc::BC_TYPE_CHAR.toUInt8());
+        },
+        BytecodeType::UInt8 => {
+            writer.emitByte(opc::BC_TYPE_U_INT8.toUInt8());
+        },
+        BytecodeType::Int32 => {
+            writer.emitByte(opc::BC_TYPE_INT32.toUInt8());
+        },
+        BytecodeType::Int64 => {
+            writer.emitByte(opc::BC_TYPE_INT64.toUInt8());
+        },
+        BytecodeType::Float32 => {
+            writer.emitByte(opc::BC_TYPE_FLOAT32.toUInt8());
+        },
+        BytecodeType::Float64 => {
+            writer.emitByte(opc::BC_TYPE_FLOAT64.toUInt8());
+        },
+        BytecodeType::Ptr => {
+            writer.emitByte(opc::BC_TYPE_PTR.toUInt8());
+        },
+        BytecodeType::This => {
+            unreachable[()]();
+        },
+        BytecodeType::Tuple(subtypes) => {
+            writer.emitByte(opc::BC_TYPE_TUPLE.toUInt8());
+            encodeBytecodeTypeArray(writer, subtypes);
+        },
+        BytecodeType::TypeParam(type_param_id) => {
+            writer.emitByte(opc::BC_TYPE_TYPE_PARAM.toUInt8());
+            writer.emitInt32(type_param_id);
+        },
+        BytecodeType::Enum(enum_id, source_type_array) => {
+            writer.emitByte(opc::BC_TYPE_ENUM.toUInt8());
+            writer.emitInt32(enum_id.value);
+            encodeBytecodeTypeArray(writer, source_type_array);
+        },
+        BytecodeType::Struct(struct_id, source_type_array) => {
+            writer.emitByte(opc::BC_TYPE_STRUCT.toUInt8());
+            writer.emitInt32(struct_id.value);
+            encodeBytecodeTypeArray(writer, source_type_array);
+        },
+        BytecodeType::Class(class_id, source_type_array) => {
+            writer.emitByte(opc::BC_TYPE_CLASS.toUInt8());
+            writer.emitInt32(class_id.value);
+            encodeBytecodeTypeArray(writer, source_type_array);
+        },
+        BytecodeType::Trait(trait_id, source_type_array) => {
+            writer.emitByte(opc::BC_TYPE_TRAIT.toUInt8());
+            writer.emitInt32(trait_id.value);
+            encodeBytecodeTypeArray(writer, source_type_array);
+        },
+        BytecodeType::Lambda(params, ret) => {
+            writer.emitByte(opc::BC_TYPE_LAMBDA.toUInt8());
+            encodeBytecodeTypeArray(writer, params);
+            encodeBytecodeType(writer, ret);
+        }
     }
 }
 
@@ -104,6 +212,11 @@ impl ByteWriter {
 
     pub fn emitByte(value: UInt8) {
         self.buffer.push(value);
+    }
+
+    pub fn emitBool(value: Bool) {
+        let value = if value { 1u8 } else { 0u8 };
+        self.emitByte(value);
     }
 
     pub fn toArray(): Array[UInt8] {

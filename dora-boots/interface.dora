@@ -1,4 +1,6 @@
-use package::bytecode::data::{BytecodeFunction, BytecodeType, Location};
+use std::collections::VecIter;
+
+use package::bytecode::{BytecodeFunction, BytecodeType, FctId, Location};
 use package::deserializer::decodeBytecodeFunction;
 use package::deserializer::decodeCompilationInfo;
 use package::deserializer::decodeConfig;
@@ -68,3 +70,159 @@ pub const THREAD_LOCAL_DATA_DTN_OFFSET: Int32 = 24;
 pub const THREAD_LOCAL_DATA_HANDLE_OFFSET: Int32 = 32;
 pub const THREAD_LOCAL_DATA_MARKING_OFFSET: Int32 = 40;
 pub const THREAD_LOCAL_DATA_STATE_OFFSET: Int32 = 41;
+
+pub class CodeDescriptor {
+    pub constPool: Vec[Address],
+    pub code: Array[UInt8],
+    pub lazyCompilation: LazyCompilationData,
+    pub gcPoints: GcPointTable,
+    pub locations: LocationTable,
+    pub comments: CommentTable,
+}
+
+pub class CommentTable {
+    entries: Vec[(Int32, String)],
+}
+
+impl CommentTable {
+    pub static fn new(): CommentTable {
+        CommentTable(
+            Vec[(Int32, String)]::new(),
+        )
+    }
+
+    pub fn insert(offset: Int32, comment: String) {
+        if self.entries.last().isSome() {
+            let last = self.entries.last().getOrPanic();
+            assert(last.0 <= offset);
+        }
+
+        self.entries.push((offset, comment));
+    }
+
+    pub fn size(): Int64 {
+        self.entries.size()
+    }
+
+    pub fn makeIterator(): VecIter[(Int32, String)] {
+        self.entries.makeIterator()
+    }
+}
+
+pub class LocationTable {
+    entries: Vec[(Int32, Location)],
+}
+
+impl LocationTable {
+    pub static fn new(): LocationTable {
+        LocationTable(
+            Vec[(Int32, Location)]::new(),
+        )
+    }
+
+    pub fn insert(offset: Int32, location: Location) {
+        if self.entries.last().isSome() {
+            let last = self.entries.last().getOrPanic();
+            assert(last.0 <= offset);
+        }
+
+        self.entries.push((offset, location));
+    }
+
+    pub fn size(): Int64 {
+        self.entries.size()
+    }
+
+    pub fn makeIterator(): VecIter[(Int32, Location)] {
+        self.entries.makeIterator()
+    }
+}
+
+pub class LazyCompilationData {
+    entries: Vec[(Int32, LazyCompilationSite)],
+}
+
+impl LazyCompilationData {
+    pub static fn new(): LazyCompilationData {
+        LazyCompilationData(
+            Vec[(Int32, LazyCompilationSite)]::new(),
+        )
+    }
+
+    pub fn insert(offset: Int32, site: LazyCompilationSite) {
+        if self.entries.last().isSome() {
+            let last = self.entries.last().getOrPanic();
+            assert(last.0 <= offset);
+        }
+
+        self.entries.push((offset, site));
+    }
+
+    pub fn size(): Int64 {
+        self.entries.size()
+    }
+
+    pub fn makeIterator(): VecIter[(Int32, LazyCompilationSite)] {
+        self.entries.makeIterator()
+    }
+}
+
+pub enum LazyCompilationSite {
+    Direct(LazyCompilationSiteDirect),
+    Virtual(LazyCompilationSiteVirtual),
+    Lambda(LazyCompilationSiteLambda),
+}
+
+pub struct LazyCompilationSiteDirect {
+    pub fct_id: FctId,
+    pub type_params: Array[BytecodeType],
+    pub const_pool_offset: Int32,
+}
+
+pub struct LazyCompilationSiteVirtual {
+    pub receiver_is_first: Bool,
+    pub fct_id: FctId,
+    pub type_params: Array[BytecodeType],
+    pub vtable_index: Int32,
+    pub trait_object_ty: BytecodeType,
+}
+
+pub struct LazyCompilationSiteLambda {
+    pub receiver_is_first: Bool,
+    pub params: Array[BytecodeType],
+    pub return_ty: BytecodeType,
+}
+
+pub class GcPointTable {
+    entries: Vec[(Int32, GcPoint)],
+}
+
+impl GcPointTable {
+    pub static fn new(): GcPointTable {
+        GcPointTable(
+            Vec[(Int32, GcPoint)]::new(),
+        )
+    }
+
+    pub fn size(): Int64 {
+        self.entries.size()
+    }
+
+    pub fn makeIterator(): VecIter[(Int32, GcPoint)] {
+        self.entries.makeIterator()
+    }
+}
+
+pub class GcPoint {
+    offsets: Vec[Int32],
+}
+
+impl GcPoint {
+    pub fn size(): Int64 {
+        self.offsets.size()
+    }
+
+    pub fn makeIterator(): VecIter[Int32] {
+        self.offsets.makeIterator()
+    }
+}

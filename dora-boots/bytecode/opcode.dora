@@ -102,6 +102,10 @@ pub const CONSTPOOL_OPCODE_TUPLE_ELEMENT: Int32 = 17;
 pub const CONSTPOOL_OPCODE_TUPLE: Int32 = 18;
 pub const CONSTPOOL_OPCODE_LAMBDA: Int32 = 19;
 
+pub const LAZY_COMPILATION_SITE_DIRECT: Int32 = 0;
+pub const LAZY_COMPILATION_SITE_VIRTUAL: Int32 = 1;
+pub const LAZY_COMPILATION_SITE_LAMBDA: Int32 = 2;
+
 pub fn bytecodeName(opcode: Int32): String {
   if opcode == BC_ADD { return "Add"; }
   if opcode == BC_SUB { return "Sub"; }

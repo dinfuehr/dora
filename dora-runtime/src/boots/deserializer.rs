@@ -1,11 +1,15 @@
+use crate::boots::data::LazyCompilationSiteKind;
 use crate::constpool::ConstPool;
 use crate::gc::Address;
 use crate::masm::CodeDescriptor;
 use crate::vm::{
-    CommentTable, GcPoint, GcPointTable, LazyCompilationData, LocationTable, RelocationTable,
-    CODE_ALIGNMENT,
+    CommentTable, GcPoint, GcPointTable, LazyCompilationData, LazyCompilationSite, LocationTable,
+    RelocationTable, CODE_ALIGNMENT,
 };
-use dora_bytecode::Location;
+use dora_bytecode::{
+    BytecodeType, BytecodeTypeArray, BytecodeTypeKind, ClassId, EnumId, FunctionId, Location,
+    StructId, TraitId,
+};
 
 pub fn decode_code_descriptor(reader: &mut ByteReader) -> CodeDescriptor {
     let constpool = decode_const_pool(reader);
@@ -80,9 +84,111 @@ fn decode_comment_table(reader: &mut ByteReader) -> CommentTable {
 }
 
 fn decode_lazy_compilation(reader: &mut ByteReader) -> LazyCompilationData {
+    let mut result = LazyCompilationData::new();
     let length = reader.read_u32() as usize;
-    assert_eq!(length, 0);
-    LazyCompilationData::new()
+
+    for _ in 0..length {
+        let offset = reader.read_u32();
+        let comment = decode_lazy_compilation_site(reader);
+        result.insert(offset, comment)
+    }
+
+    result
+}
+
+fn decode_lazy_compilation_site(reader: &mut ByteReader) -> LazyCompilationSite {
+    let kind = LazyCompilationSiteKind::try_from(reader.read_u8()).expect("wrong kind");
+
+    match kind {
+        LazyCompilationSiteKind::Direct => {
+            let fct_id = FunctionId(reader.read_u32());
+            let type_params = decode_bytecode_type_array(reader);
+            let const_pool_offset = reader.read_u32() as i32;
+            LazyCompilationSite::Direct(fct_id, const_pool_offset, type_params)
+        }
+        LazyCompilationSiteKind::Virtual => {
+            let receiver_is_first = reader.read_bool();
+            let fct_id = FunctionId(reader.read_u32());
+            let type_params = decode_bytecode_type_array(reader);
+            let vtable_index = reader.read_u32();
+            let trait_object_ty = decode_bytecode_type(reader);
+            LazyCompilationSite::Virtual(
+                receiver_is_first,
+                trait_object_ty,
+                fct_id,
+                vtable_index,
+                type_params,
+            )
+        }
+        LazyCompilationSiteKind::Lambda => {
+            let receiver_is_first = reader.read_bool();
+            let params = decode_bytecode_type_array(reader);
+            let return_ty = decode_bytecode_type(reader);
+            LazyCompilationSite::Lambda(receiver_is_first, params, return_ty)
+        }
+    }
+}
+
+fn decode_bytecode_type(reader: &mut ByteReader) -> BytecodeType {
+    let kind = BytecodeTypeKind::try_from(reader.read_u8()).expect("wrong kind");
+
+    match kind {
+        BytecodeTypeKind::Unit => BytecodeType::Unit,
+        BytecodeTypeKind::Bool => BytecodeType::Bool,
+        BytecodeTypeKind::UInt8 => BytecodeType::UInt8,
+        BytecodeTypeKind::Char => BytecodeType::Char,
+        BytecodeTypeKind::Int32 => BytecodeType::Int32,
+        BytecodeTypeKind::Int64 => BytecodeType::Int64,
+        BytecodeTypeKind::Float32 => BytecodeType::Float32,
+        BytecodeTypeKind::Float64 => BytecodeType::Float64,
+        BytecodeTypeKind::Ptr => BytecodeType::Ptr,
+        BytecodeTypeKind::Class => {
+            let cls_id = reader.read_u32();
+            let type_params = decode_bytecode_type_array(reader);
+            BytecodeType::Class(ClassId(cls_id), type_params)
+        }
+        BytecodeTypeKind::Struct => {
+            let struct_id = reader.read_u32();
+            let type_params = decode_bytecode_type_array(reader);
+            BytecodeType::Struct(StructId(struct_id), type_params)
+        }
+        BytecodeTypeKind::Enum => {
+            let enum_id = reader.read_u32();
+            let type_params = decode_bytecode_type_array(reader);
+            BytecodeType::Enum(EnumId(enum_id), type_params)
+        }
+        BytecodeTypeKind::Trait => {
+            let trait_id = reader.read_u32();
+            let type_params = decode_bytecode_type_array(reader);
+            BytecodeType::Trait(TraitId(trait_id), type_params)
+        }
+        BytecodeTypeKind::TypeParam => {
+            let id = reader.read_u32();
+            BytecodeType::TypeParam(id)
+        }
+        BytecodeTypeKind::Tuple => {
+            let type_params = decode_bytecode_type_array(reader);
+            BytecodeType::Tuple(type_params)
+        }
+
+        BytecodeTypeKind::Lambda => {
+            let params = decode_bytecode_type_array(reader);
+            let return_ty = decode_bytecode_type(reader);
+            BytecodeType::Lambda(params, Box::new(return_ty))
+        }
+    }
+}
+
+fn decode_bytecode_type_array(reader: &mut ByteReader) -> BytecodeTypeArray {
+    let length = reader.read_u32() as usize;
+    let mut types = Vec::with_capacity(length);
+
+    for _ in 0..length {
+        let ty = decode_bytecode_type(reader);
+        types.push(ty);
+    }
+
+    BytecodeTypeArray::new(types)
 }
 
 fn decode_gcpoint_table(reader: &mut ByteReader) -> GcPointTable {
@@ -122,6 +228,10 @@ pub struct ByteReader {
 impl ByteReader {
     pub fn new(data: Vec<u8>) -> ByteReader {
         ByteReader { idx: 0, data }
+    }
+
+    pub fn read_bool(&mut self) -> bool {
+        self.read_u8() != 0
     }
 
     pub fn read_u8(&mut self) -> u8 {

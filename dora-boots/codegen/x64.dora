@@ -3,10 +3,11 @@ use package::assembler::x64::{RAX, RDI, RDX, RCX, RSI, RBP, RSP, RBX};
 use package::assembler::x64::{R8, R9, R10, R11, R12, R13, R14, R15};
 use package::assembler::{Label, Register, RegSet};
 use package::bytecode::data::Location;
-use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen, CodeDescriptor, CommentTable, GcPointTable, LazyCompilationData, LocationTable};
+use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen};
 use package::interface::{Address as RawAddress, Architecture, CompilationInfo, config, TRAP_DIV0, TRAP_OVERFLOW};
 use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET};
 use package::graph::{Inst, Op, LocationData, Type};
+use package::{CodeDescriptor, CommentTable, GcPointTable, LazyCompilationData, LocationTable};
 
 pub let REG_PARAMS: Array[Register] = Array[Register]::new(RDI, RSI, RDX, RCX, R8, R9);
 pub let CCALL_REG_PARAMS: Array[Register] = REG_PARAMS;

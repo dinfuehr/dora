@@ -1,11 +1,10 @@
-use std::collections::VecIter;
-
 use package::bytecode::data::{BytecodeType, FctId, Location};
 use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
 use package::assembler::{Label, Register, RegSet};
 use package::interface::{Address, Architecture, CompilationInfo, config};
 use package::graph::{Graph, Inst, LocationData, Op};
+use package::CodeDescriptor;
 
 pub mod arm64;
 pub mod x64;
@@ -285,128 +284,5 @@ pub fn emitInst(codegen: CodeGen, inst: Inst) {
             println("unsupported op ${inst.op().name()}");
             unreachable[()]();
         }
-    }
-}
-
-pub class CodeDescriptor {
-    pub constPool: Vec[Address],
-    pub code: Array[UInt8],
-    pub lazyCompilation: LazyCompilationData,
-    pub gcPoints: GcPointTable,
-    pub locations: LocationTable,
-    pub comments: CommentTable,
-}
-
-pub class CommentTable {
-    entries: Vec[(Int32, String)],
-}
-
-impl CommentTable {
-    pub static fn new(): CommentTable {
-        CommentTable(
-            Vec[(Int32, String)]::new(),
-        )
-    }
-
-    pub fn insert(offset: Int32, comment: String) {
-        if self.entries.last().isSome() {
-            let last = self.entries.last().getOrPanic();
-            assert(last.0 <= offset);
-        }
-
-        self.entries.push((offset, comment));
-    }
-
-    pub fn size(): Int64 {
-        self.entries.size()
-    }
-
-    pub fn makeIterator(): VecIter[(Int32, String)] {
-        self.entries.makeIterator()
-    }
-}
-
-pub class LocationTable {
-    entries: Vec[(Int32, Location)],
-}
-
-impl LocationTable {
-    pub static fn new(): LocationTable {
-        LocationTable(
-            Vec[(Int32, Location)]::new(),
-        )
-    }
-
-    pub fn insert(offset: Int32, location: Location) {
-        if self.entries.last().isSome() {
-            let last = self.entries.last().getOrPanic();
-            assert(last.0 <= offset);
-        }
-
-        self.entries.push((offset, location));
-    }
-
-    pub fn size(): Int64 {
-        self.entries.size()
-    }
-
-    pub fn makeIterator(): VecIter[(Int32, Location)] {
-        self.entries.makeIterator()
-    }
-}
-
-pub class LazyCompilationData {
-    entries: Vec[(Int32, LazyCompilationSite)],
-}
-
-impl LazyCompilationData {
-    pub static fn new(): LazyCompilationData {
-        LazyCompilationData(
-            Vec[(Int32, LazyCompilationSite)]::new(),
-        )
-    }
-
-    pub fn size(): Int64 {
-        self.entries.size()
-    }
-}
-
-pub struct LazyCompilationSite {
-    fct_id: FctId,
-    type_params: Array[BytecodeType],
-    const_pool_offset: Int32,
-}
-
-pub class GcPointTable {
-    entries: Vec[(Int32, GcPoint)],
-}
-
-impl GcPointTable {
-    pub static fn new(): GcPointTable {
-        GcPointTable(
-            Vec[(Int32, GcPoint)]::new(),
-        )
-    }
-
-    pub fn size(): Int64 {
-        self.entries.size()
-    }
-
-    pub fn makeIterator(): VecIter[(Int32, GcPoint)] {
-        self.entries.makeIterator()
-    }
-}
-
-pub class GcPoint {
-    offsets: Vec[Int32],
-}
-
-impl GcPoint {
-    pub fn size(): Int64 {
-        self.offsets.size()
-    }
-
-    pub fn makeIterator(): VecIter[Int32] {
-        self.offsets.makeIterator()
     }
 }

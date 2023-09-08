@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use package::assembler::{RegMap, RegSet, Register};
 use package::codegen::CodeGen;
-use package::codegen::{emitInst, CodeDescriptor, setLocationConstraints, STACK_FRAME_ALIGNMENT};
+use package::codegen::{emitInst, setLocationConstraints, STACK_FRAME_ALIGNMENT};
 use package::graph::{createGotoInst, createMoveInst, Block, Edge, Graph, Inst, Location, LocationData, Op, Operand, opName, Type};
 
 pub fn performRegisterAllocation(graph: Graph, codegen: CodeGen) {

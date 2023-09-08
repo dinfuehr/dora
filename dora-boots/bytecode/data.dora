@@ -178,9 +178,14 @@ pub enum BytecodeType {
     Int64,
     Float32,
     Float64,
-    Struct(Int32, Array[BytecodeType]),
+    This,
+    Struct(StructId, Array[BytecodeType]),
+    Enum(EnumId, Array[BytecodeType]),
+    Class(ClassId, Array[BytecodeType]),
+    Trait(TraitId, Array[BytecodeType]),
     Tuple(Array[BytecodeType]),
     TypeParam(Int32),
+    Lambda(Array[BytecodeType], BytecodeType),
 }
 
 impl Stringable for BytecodeType {
@@ -195,9 +200,14 @@ impl Stringable for BytecodeType {
             BytecodeType::Int64 => "Int64",
             BytecodeType::Float32 => "Float32",
             BytecodeType::Float64 => "Float64",
-            BytecodeType::Struct(id, params) => "Struct(${id}, <type params>)",
+            BytecodeType::This => "This",
+            BytecodeType::Struct(id, params) => "Struct(${id.value}, <type params>)",
+            BytecodeType::Enum(id, params) => "Enum(${id.value}, <type params>)",
+            BytecodeType::Class(id, params) => "Class(${id.value}, <type params>)",
+            BytecodeType::Trait(id, params) => "Trait(${id.value}, <type params>)",
             BytecodeType::Tuple(types) => "Tuple(<type params>)",
             BytecodeType::TypeParam(idx) => "TypeParam(${idx})",
+            BytecodeType::Lambda(_, _) => "Lambda(<params>, <return ty>)",
         }
     }
 }

@@ -79,9 +79,21 @@ fn decodeBytecodeType(reader: ByteReader): BytecodeType {
     } else if opcode == opc::BC_TYPE_PTR {
         BytecodeType::Ptr
     } else if opcode == opc::BC_TYPE_STRUCT {
-        let structId = reader.readId();
+        let structId = StructId(reader.readId());
         let typeParams = decodeBytecodeTypeArray(reader);
         BytecodeType::Struct(structId, typeParams)
+    } else if opcode == opc::BC_TYPE_CLASS {
+        let class_id = ClassId(reader.readId());
+        let typeParams = decodeBytecodeTypeArray(reader);
+        BytecodeType::Class(class_id, typeParams)
+    } else if opcode == opc::BC_TYPE_ENUM {
+        let enum_id = EnumId(reader.readId());
+        let typeParams = decodeBytecodeTypeArray(reader);
+        BytecodeType::Enum(enum_id, typeParams)
+    } else if opcode == opc::BC_TYPE_TRAIT {
+        let trait_id = TraitId(reader.readId());
+        let typeParams = decodeBytecodeTypeArray(reader);
+        BytecodeType::Trait(trait_id, typeParams)
     } else if opcode == opc::BC_TYPE_TUPLE {
         let typeParams = decodeBytecodeTypeArray(reader);
         BytecodeType::Tuple(typeParams)
