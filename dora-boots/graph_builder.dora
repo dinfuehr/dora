@@ -703,6 +703,7 @@ impl SsaGen {
         };
 
         let inst = graph::createInvokeStaticInst(fct_id, type_params, ty);
+        inst.set_bytecode_position(self.offset);
         self.current().appendInst(inst);
     }
 }

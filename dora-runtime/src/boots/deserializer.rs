@@ -179,7 +179,7 @@ fn decode_bytecode_type(reader: &mut ByteReader) -> BytecodeType {
     }
 }
 
-fn decode_bytecode_type_array(reader: &mut ByteReader) -> BytecodeTypeArray {
+pub fn decode_bytecode_type_array(reader: &mut ByteReader) -> BytecodeTypeArray {
     let length = reader.read_u32() as usize;
     let mut types = Vec::with_capacity(length);
 

@@ -1482,7 +1482,7 @@ impl<'a> CannonCodeGen<'a> {
         );
 
         if let Some(initializer) = global_var.initial_value {
-            let ptr = self.get_function_call_address(initializer, BytecodeTypeArray::empty());
+            let ptr = get_function_address(self.vm, initializer, BytecodeTypeArray::empty());
             let position = self.bytecode.offset_location(self.current_offset.to_u32());
             let gcpoint = self.create_gcpoint();
             self.asm
@@ -2928,7 +2928,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let argsize = self.emit_invoke_arguments(dest, fct_return_type.clone(), arguments);
 
-        let ptr = self.get_function_call_address(fct_id, type_params.clone());
+        let ptr = get_function_address(self.vm, fct_id, type_params.clone());
         let gcpoint = self.create_gcpoint();
 
         let (result_reg, result_mode) = self.call_result_reg_and_mode(dest_ty);
@@ -2998,7 +2998,7 @@ impl<'a> CannonCodeGen<'a> {
 
         let argsize = self.emit_invoke_arguments(dest, fct_return_type.clone(), arguments);
 
-        let ptr = self.get_function_call_address(fct_id, type_params.clone());
+        let ptr = get_function_address(self.vm, fct_id, type_params.clone());
         let gcpoint = self.create_gcpoint();
 
         let (result_reg, result_mode) = self.call_result_reg_and_mode(bytecode_type);
@@ -4186,34 +4186,6 @@ impl<'a> CannonCodeGen<'a> {
         mem::align_i32(argsize, STACK_FRAME_ALIGNMENT as i32)
     }
 
-    fn get_function_call_address(
-        &mut self,
-        fid: FunctionId,
-        type_params: BytecodeTypeArray,
-    ) -> Address {
-        let fct = &self.vm.program.functions[fid.0 as usize];
-
-        if let Some(native_pointer) = self.vm.native_methods.get(fid) {
-            assert!(type_params.is_empty());
-            // Method is implemented in native code. Create trampoline for invoking it.
-            let internal_fct = NativeFct {
-                fctptr: native_pointer,
-                args: BytecodeTypeArray::new(fct.params.clone()),
-                return_type: fct.return_type.clone(),
-                desc: NativeFctKind::RuntimeEntryTrampoline(fid),
-            };
-
-            ensure_runtime_entry_trampoline(self.vm, Some(fid), internal_fct)
-        } else {
-            // Method is implemented in Dora. Use the lazy compilation stub if the method
-            // wasn't compiled yet.
-            self.vm
-                .compilation_database
-                .is_compiled(self.vm, fid, type_params)
-                .unwrap_or(self.vm.native_methods.lazy_compilation_stub())
-        }
-    }
-
     fn specialize_bty(&self, ty: BytecodeType) -> BytecodeType {
         specialize_bty(ty, &self.type_params)
     }
@@ -5018,5 +4990,28 @@ pub fn register_ty(ty: BytecodeType) -> BytecodeType {
     match ty {
         BytecodeType::Class(_, _) | BytecodeType::Lambda(_, _) => BytecodeType::Ptr,
         _ => ty,
+    }
+}
+
+pub fn get_function_address(vm: &VM, fid: FunctionId, type_params: BytecodeTypeArray) -> Address {
+    let fct = &vm.program.functions[fid.0 as usize];
+
+    if let Some(native_pointer) = vm.native_methods.get(fid) {
+        assert!(type_params.is_empty());
+        // Method is implemented in native code. Create trampoline for invoking it.
+        let internal_fct = NativeFct {
+            fctptr: native_pointer,
+            args: BytecodeTypeArray::new(fct.params.clone()),
+            return_type: fct.return_type.clone(),
+            desc: NativeFctKind::RuntimeEntryTrampoline(fid),
+        };
+
+        ensure_runtime_entry_trampoline(vm, Some(fid), internal_fct)
+    } else {
+        // Method is implemented in Dora. Use the lazy compilation stub if the method
+        // wasn't compiled yet.
+        vm.compilation_database
+            .is_compiled(vm, fid, type_params)
+            .unwrap_or(vm.native_methods.lazy_compilation_stub())
     }
 }

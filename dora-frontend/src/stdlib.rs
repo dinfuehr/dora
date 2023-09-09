@@ -191,7 +191,8 @@ pub fn discover_known_methods(sa: &mut Sema) {
     ));
 
     if sa.has_boots_package() {
-        sa.known.functions.compile = Some(find_function(sa, sa.boots_module_id(), "compile"));
+        let boots_id = sa.boots_module_id();
+        sa.known.functions.compile = Some(find_function(sa, boots_id, "compile"));
     }
 }
 
@@ -1612,6 +1613,12 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
             boots_module_id,
             "getSystemConfig",
             NativeFunction::BootsGetSystemConfig,
+        );
+        native_fct(
+            sa,
+            boots_module_id,
+            "getFunctionAddressRaw",
+            NativeFunction::BootsGetFunctionAddress,
         );
     }
 }

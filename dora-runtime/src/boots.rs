@@ -1,8 +1,11 @@
 use std::mem;
 use std::ptr;
 
+use dora_bytecode::FunctionId;
+
 use crate::boots::deserializer::{decode_code_descriptor, ByteReader};
 use crate::boots::serializer::allocate_encoded_compilation_info;
+use crate::cannon::codegen::get_function_address as get_function_address_raw;
 use crate::cannon::CompilationFlags;
 use crate::compiler::codegen::CompilationData;
 use crate::gc::Address;
@@ -12,6 +15,7 @@ use crate::object::{Ref, UInt8Array};
 use crate::threads::current_thread;
 use crate::vm::{get_vm, VM};
 
+use self::deserializer::decode_bytecode_type_array;
 use self::serializer::allocate_encoded_system_config;
 
 mod data;
@@ -54,6 +58,27 @@ pub fn compile(
     let code = decode_code_descriptor(&mut reader);
     assert!(!reader.has_more());
     code
+}
+
+pub fn get_function_address(data: Ref<UInt8Array>) -> Address {
+    let vm = get_vm();
+
+    let mut serialized_data = vec![0; data.len()];
+
+    unsafe {
+        ptr::copy_nonoverlapping(
+            data.data() as *mut u8,
+            serialized_data.as_mut_ptr(),
+            data.len(),
+        );
+    }
+
+    let mut reader = ByteReader::new(serialized_data);
+    let fct_id = FunctionId(reader.read_u32());
+    let type_params = decode_bytecode_type_array(&mut reader);
+    assert!(!reader.has_more());
+
+    get_function_address_raw(vm, fct_id, type_params)
 }
 
 pub fn get_system_config() -> Ref<UInt8Array> {

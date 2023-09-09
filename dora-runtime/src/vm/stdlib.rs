@@ -173,6 +173,10 @@ pub fn resolve_native_functions(vm: &mut VM) {
             NativeFunction::BootsGetSystemConfig,
             boots::get_system_config as *const u8,
         ),
+        (
+            NativeFunction::BootsGetFunctionAddress,
+            boots::get_function_address as *const u8,
+        ),
     ]);
 
     for (fct_id, fct) in vm.program.functions.iter().enumerate() {
@@ -189,6 +193,10 @@ pub fn resolve_native_functions(vm: &mut VM) {
     if vm.program.boots_package_id.is_none() {
         assert!(mappings
             .remove(&NativeFunction::BootsGetSystemConfig)
+            .is_some());
+
+        assert!(mappings
+            .remove(&NativeFunction::BootsGetFunctionAddress)
             .is_some());
     }
 

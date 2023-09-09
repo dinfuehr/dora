@@ -107,7 +107,7 @@ fn encodeLocationTable(writer: ByteWriter, locations: LocationTable) {
     }
 }
 
-fn encodeBytecodeTypeArray(writer: ByteWriter, types: Array[BytecodeType]) {
+pub fn encodeBytecodeTypeArray(writer: ByteWriter, types: Array[BytecodeType]) {
     writer.emitInt32(types.size().toInt32());
 
     for ty in types {

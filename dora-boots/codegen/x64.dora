@@ -1,10 +1,10 @@
-use package::assembler::x64::{AssemblerX64, Address, Condition, Immediate, ScaleFactor, registerName};
+use package::assembler::x64::{AssemblerX64, Address as Mem, Condition, Immediate, ScaleFactor, registerName};
 use package::assembler::x64::{RAX, RDI, RDX, RCX, RSI, RBP, RSP, RBX};
 use package::assembler::x64::{R8, R9, R10, R11, R12, R13, R14, R15};
 use package::assembler::{Label, Register, RegSet};
-use package::bytecode::data::Location;
+use package::bytecode::data::{ConstPoolId, Location};
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen};
-use package::interface::{Address as RawAddress, Architecture, CompilationInfo, config, TRAP_DIV0, TRAP_OVERFLOW};
+use package::interface::{Address, Architecture, CompilationInfo, config, getFunctionAddress, LazyCompilationSite, LazyCompilationSiteDirect, TRAP_DIV0, TRAP_OVERFLOW};
 use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET};
 use package::graph::{Inst, Op, LocationData, Type};
 use package::{CodeDescriptor, CommentTable, GcPointTable, LazyCompilationData, LocationTable};
@@ -30,7 +30,7 @@ let ALLOCATABLE_REGS: RegSet = RegSet::new(
 pub class CodeGenX64 {
     ci: CompilationInfo,
     asm: AssemblerX64,
-    constPool: Vec[RawAddress],
+    constPool: Vec[Address],
     locations: LocationTable,
     lazyCompilation: LazyCompilationData,
     gcPoints: GcPointTable,
@@ -43,7 +43,7 @@ impl CodeGenX64 {
         CodeGenX64(
             ci,
             AssemblerX64::new(),
-            Vec[RawAddress]::new(),
+            Vec[Address]::new(),
             LocationTable::new(),
             LazyCompilationData::new(),
             GcPointTable::new(),
@@ -64,6 +64,17 @@ impl CodeGenX64 {
         self.asm.movq_ri(tmp, Immediate(config.trap_trampoline.toInt64()));
         self.asm.call_r(tmp);
         self.locations.insert(self.asm.position(), loc);
+    }
+
+    fn loadConstPool(dest: Register, id: ConstPoolId) {
+        let offset = -(self.asm.position() + id.value * 8i32);
+        self.asm.movq_ra(dest, Mem::rip(offset));
+    }
+
+    fn addConstPoolEntry(value: Address): ConstPoolId {
+        let id = ConstPoolId(self.constPool.size().toInt32());
+        self.constPool.push(value);
+        id
     }
 
     fn emitDeferredCode() {
@@ -134,7 +145,7 @@ impl CodeGen for CodeGenX64 {
 
     fn emitStackLimitCheck() {
         let lbl_stack_overflow = self.asm.createLabel();
-        self.asm.cmpq_ar(Address::offset(REG_THREAD, THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET), RSP);
+        self.asm.cmpq_ar(Mem::offset(REG_THREAD, THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET), RSP);
         self.asm.jcc(Condition::Above, lbl_stack_overflow);
 
         self.deferred.push(|| {
@@ -146,7 +157,7 @@ impl CodeGen for CodeGenX64 {
 
     fn emitSafepointCheck() {
         let lbl_safepoint = self.asm.createLabel();
-        self.asm.cmpb_ai(Address::offset(REG_THREAD, THREAD_LOCAL_DATA_STATE_OFFSET), Immediate(0));
+        self.asm.cmpb_ai(Mem::offset(REG_THREAD, THREAD_LOCAL_DATA_STATE_OFFSET), Immediate(0));
         self.asm.jcc(Condition::NotEqual, lbl_safepoint);
 
         self.deferred.push(|| {
@@ -179,7 +190,7 @@ impl CodeGen for CodeGenX64 {
         let loc = inst.getLocationData();
         let reg = loc.getOutput().getRegister();
         let slot = loc.getSpillSlot();
-        self.asm.movq_ar(Address::offset(RBP, slot), reg);
+        self.asm.movq_ar(Mem::offset(RBP, slot), reg);
     }
 
     fn emitInt64Const(inst: Inst) {
@@ -412,27 +423,27 @@ impl CodeGen for CodeGenX64 {
                 // Reload
                 assert(src.isStack());
                 if ty == Type::Int64 || ty == Type::Ptr {
-                    self.asm.movq_ra(dest.getRegister(), Address::offset(RBP, src.getStack()));
+                    self.asm.movq_ra(dest.getRegister(), Mem::offset(RBP, src.getStack()));
                 } else if ty == Type::Int32 {
-                    self.asm.movl_ra(dest.getRegister(), Address::offset(RBP, src.getStack()));
+                    self.asm.movl_ra(dest.getRegister(), Mem::offset(RBP, src.getStack()));
                 } else {
                     assert(ty == Type::Bool);
-                    self.asm.movb_ra(dest.getRegister(), Address::offset(RBP, src.getStack()));
+                    self.asm.movb_ra(dest.getRegister(), Mem::offset(RBP, src.getStack()));
                 }
             }
         } else {
             // Spill
             assert(dest.isStack());
             assert(src.isRegister());
-            self.asm.movq_ar(Address::offset(RBP, dest.getStack()), src.getRegister());
+            self.asm.movq_ar(Mem::offset(RBP, dest.getStack()), src.getRegister());
 
             if ty == Type::Int64 || ty == Type::Ptr {
-                self.asm.movq_ar(Address::offset(RBP, dest.getStack()), src.getRegister());
+                self.asm.movq_ar(Mem::offset(RBP, dest.getStack()), src.getRegister());
             } else if ty == Type::Int32 {
-                self.asm.movl_ar(Address::offset(RBP, dest.getStack()), src.getRegister());
+                self.asm.movl_ar(Mem::offset(RBP, dest.getStack()), src.getRegister());
             } else {
                 assert(ty == Type::Bool);
-                self.asm.movb_ar(Address::offset(RBP, dest.getStack()), src.getRegister());
+                self.asm.movb_ar(Mem::offset(RBP, dest.getStack()), src.getRegister());
             }
         }
     }
@@ -459,7 +470,21 @@ impl CodeGen for CodeGenX64 {
     }
 
     fn emitInvokeStatic(inst: Inst) {
-        unimplemented();
+        let address = getFunctionAddress(inst.getFctId(), inst.getTypeParams());
+        let cp_id = self.addConstPoolEntry(address);
+        self.loadConstPool(REG_TEMP, cp_id);
+        self.asm.call_r(REG_TEMP);
+
+        let pos = self.asm.position();
+        let site = LazyCompilationSiteDirect(
+            inst.getFctId(),
+            inst.getTypeParams(),
+            pos + cp_id.value * 8i32,
+        );
+        let location = self.ci.bc.getLocationAt(inst.bytecode_position());
+
+        self.lazyCompilation.insert(pos, LazyCompilationSite::Direct(site));
+        self.locations.insert(pos, location);
     }
 
     fn finalize(): CodeDescriptor {

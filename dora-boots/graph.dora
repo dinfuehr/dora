@@ -1604,6 +1604,8 @@ pub fn createGotoInst(block: Block): Inst {
 pub fn createInvokeStaticInst(fct_id: FctId, type_params: Array[BytecodeType], return_ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::InvokeStatic);
+    inst.fct_id = Some(fct_id);
+    inst.type_params = Some(type_params);
     inst
 }
 

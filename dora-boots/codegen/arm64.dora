@@ -1,5 +1,5 @@
 use package::bytecode::data::{ConstPoolId, Location};
-use package::interface::{Address, Architecture, CompilationInfo, config, TRAP_DIV0, TRAP_OVERFLOW};
+use package::interface::{Address, Architecture, CompilationInfo, config, TRAP_DIV0, TRAP_OVERFLOW, getFunctionAddress};
 use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET};
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen};
 use package::assembler::arm64::{AssemblerArm64, Cond, Extend, Shift, registerName};
@@ -481,7 +481,8 @@ impl CodeGen for CodeGenArm64 {
     }
 
     fn emitInvokeStatic(inst: Inst) {
-        let cp_id = self.addConstPoolEntry(Address(0));
+        let address = getFunctionAddress(inst.getFctId(), inst.getTypeParams());
+        let cp_id = self.addConstPoolEntry(address);
         self.loadConstPool(REG_TEMP, cp_id);
         self.asm.bl_r(REG_TEMP);
 
@@ -491,8 +492,10 @@ impl CodeGen for CodeGenArm64 {
             inst.getTypeParams(),
             pos + cp_id.value * 8i32,
         );
+        let location = self.ci.bc.getLocationAt(inst.bytecode_position());
 
         self.lazyCompilation.insert(pos, LazyCompilationSite::Direct(site));
+        self.locations.insert(pos, location);
     }
 
     fn finalize(): CodeDescriptor {
