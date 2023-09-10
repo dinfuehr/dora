@@ -124,7 +124,7 @@ fn determine_stack_entry(stacktrace: &mut NativeStacktrace, vm: &VM, pc: usize) 
     if let Some(code_id) = code_id {
         let code = vm.code_objects.get(code_id);
         match code.descriptor() {
-            CodeKind::BaselineFct(_) => {
+            CodeKind::BaselineFct(_) | CodeKind::OptimizedFct(_) => {
                 let offset = pc - code.instruction_start().to_usize();
                 let location = code
                     .location_for_offset(offset as u32)

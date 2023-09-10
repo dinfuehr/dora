@@ -30,6 +30,9 @@ impl CodeMap {
                 CodeKind::BaselineFct(fct_id) => {
                     println!("dora {}", display_fct(vm, fct_id));
                 }
+                CodeKind::OptimizedFct(fct_id) => {
+                    println!("dora(opt) {}", display_fct(vm, fct_id));
+                }
                 CodeKind::LazyCompilationStub => println!("compile_stub"),
                 CodeKind::TrapTrampoline => println!("trap_stub"),
                 CodeKind::AllocationFailureTrampoline => println!("alloc_stub"),

@@ -67,7 +67,7 @@ impl CodeGenX64 {
     }
 
     fn loadConstPool(dest: Register, id: ConstPoolId) {
-        let offset = -(self.asm.position() + id.value * 8i32);
+        let offset = -(self.asm.position() + 7i32 + (id.value + 1i32) * 8i32);
         self.asm.movq_ra(dest, Mem::rip(offset));
     }
 
@@ -479,7 +479,7 @@ impl CodeGen for CodeGenX64 {
         let site = LazyCompilationSiteDirect(
             inst.getFctId(),
             inst.getTypeParams(),
-            pos + cp_id.value * 8i32,
+            pos + (cp_id.value + 1i32) * 8i32,
         );
         let location = self.ci.bc.getLocationAt(inst.bytecode_position());
 

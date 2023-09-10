@@ -123,7 +123,7 @@ fn iterate_roots_from_stack_frame<F: FnMut(Slot)>(
         let code = vm.code_objects.get(code_id);
 
         match code.descriptor() {
-            CodeKind::BaselineFct(_) => {
+            CodeKind::BaselineFct(_) | CodeKind::OptimizedFct(_) => {
                 let offset = frame.pc.offset_from(code.instruction_start());
                 let gcpoint = code.gcpoint_for_offset(offset as u32).expect("no gcpoint");
 

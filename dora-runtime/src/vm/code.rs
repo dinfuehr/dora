@@ -22,6 +22,7 @@ pub enum CodeKind {
     DoraEntryTrampoline,
 
     BaselineFct(FunctionId),
+    OptimizedFct(FunctionId),
     RuntimeEntryTrampoline(FunctionId),
 
     LazyCompilationStub,
@@ -202,6 +203,13 @@ impl Code {
 
     pub fn descriptor(&self) -> CodeKind {
         self.kind.clone()
+    }
+
+    pub fn is_optimized(&self) -> bool {
+        match self.kind {
+            CodeKind::OptimizedFct(_) => true,
+            _ => false,
+        }
     }
 }
 

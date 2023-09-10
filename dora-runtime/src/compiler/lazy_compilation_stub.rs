@@ -326,19 +326,19 @@ fn freg_offset(freg_idx: &mut usize, stack_address: &mut Address) {
 fn lazy_compile(ra: usize, receiver1: Address, receiver2: Address) -> Address {
     let vm = get_vm();
 
-    let lazy_compilation_site = {
-        let code_id = vm
-            .code_map
-            .get(ra.into())
-            .expect("return address not found");
+    let code_id = vm
+        .code_map
+        .get(ra.into())
+        .expect("return address not found");
 
-        let code = vm.code_objects.get(code_id);
+    let code = vm.code_objects.get(code_id);
 
-        let offset = ra - code.instruction_start().to_usize();
-        code.lazy_for_offset(offset as u32)
-            .expect("lazy compilation site not found")
-            .clone()
-    };
+    let offset = ra - code.instruction_start().to_usize();
+
+    let lazy_compilation_site = code
+        .lazy_for_offset(offset as u32)
+        .expect("lazy compilation site not found")
+        .clone();
 
     handle_scope(|| {
         let receiver = match lazy_compilation_site {

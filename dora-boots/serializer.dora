@@ -199,8 +199,8 @@ impl ByteWriter {
     }
 
     pub fn emitInt64(value: Int64) {
-        self.emitInt32((value >> 32i32).toInt32());
         self.emitInt32(value.toInt32());
+        self.emitInt32((value >> 32i32).toInt32());
     }
 
     pub fn emitInt32(value: Int32) {

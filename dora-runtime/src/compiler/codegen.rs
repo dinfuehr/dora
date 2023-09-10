@@ -56,12 +56,18 @@ pub fn generate_fct(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray
 
     let compilation_flags = CompilationFlags::jit();
 
-    let code_descriptor = match compiler {
-        CompilerName::Cannon => cannon::compile(vm, compilation_data, compilation_flags),
-        CompilerName::Boots => boots::compile(vm, compilation_data, compilation_flags),
+    let (code_descriptor, code_kind) = match compiler {
+        CompilerName::Cannon => (
+            cannon::compile(vm, compilation_data, compilation_flags),
+            CodeKind::BaselineFct(fct_id),
+        ),
+        CompilerName::Boots => (
+            boots::compile(vm, compilation_data, compilation_flags),
+            CodeKind::OptimizedFct(fct_id),
+        ),
     };
 
-    let code = install_code(vm, code_descriptor, CodeKind::BaselineFct(fct_id));
+    let code = install_code(vm, code_descriptor, code_kind);
 
     // We need to insert into CodeMap before releasing the compilation-lock. Otherwise
     // another thread could run that function while the function can't be found in the
