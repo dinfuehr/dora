@@ -9,7 +9,7 @@ use crate::cannon::codegen::get_function_address as get_function_address_raw;
 use crate::cannon::CompilationFlags;
 use crate::compiler::codegen::CompilationData;
 use crate::gc::Address;
-use crate::handle::create_handle;
+use crate::handle::{create_handle, Handle};
 use crate::masm::CodeDescriptor;
 use crate::object::{Ref, UInt8Array};
 use crate::threads::current_thread;
@@ -60,7 +60,7 @@ pub fn compile(
     code
 }
 
-pub fn get_function_address(data: Ref<UInt8Array>) -> Address {
+pub fn get_function_address(data: Handle<UInt8Array>) -> Address {
     let vm = get_vm();
 
     let mut serialized_data = vec![0; data.len()];
