@@ -693,18 +693,27 @@ impl SsaGen {
     }
 
     fn emitInvokeStatic(dest: BytecodeRegister, idx: ConstPoolId) {
-        assert(self.pushed_registers.isEmpty());
+        let args = Vec[Inst]::new();
+
+        for reg in self.pushed_registers {
+            let arg = self.readVariable(reg, self.current());
+            args.push(arg);
+        }
+
         let ty = Type::fromBytecodeType(self.bc.registers(dest.value.toInt64()));
-        assert(ty.isUnit());
 
         let (fct_id, type_params) = match self.bc.constPool(idx) {
             ConstPoolEntry::Fct(fct_id, type_params) => (fct_id, type_params),
             _ => unreachable[(FctId, Array[BytecodeType])](),
         };
 
-        let inst = graph::createInvokeStaticInst(fct_id, type_params, ty);
+        let inst = graph::createInvokeStaticInst(fct_id, type_params, args, ty);
         inst.set_bytecode_position(self.offset);
         self.current().appendInst(inst);
+
+        if !ty.isUnit() {
+            self.writeVariable(dest, self.current(), inst);
+        }
     }
 }
 

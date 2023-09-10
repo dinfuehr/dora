@@ -134,6 +134,10 @@ impl CodeGen for CodeGenX64 {
         REG_TEMP
     }
 
+    fn getReturnRegister(): Register {
+        RAX
+    }
+
     fn emitProlog(stackSize: Int32) {
         self.asm.pushq_r(RBP);
         self.asm.movq_rr(RBP, RSP);

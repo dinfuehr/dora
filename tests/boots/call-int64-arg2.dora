@@ -1,0 +1,13 @@
+//= boots
+
+fn main() {
+    f(12, 14);
+}
+
+@optimizeImmediately fn f(x: Int64, y: Int64) {
+    g(y);
+}
+
+fn g(x: Int64) {
+    assert(x == 14);
+}

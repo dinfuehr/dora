@@ -1,5 +1,4 @@
 //= boots
-//= ignore
 
 fn main() {
     f(12);
@@ -9,4 +8,6 @@ fn main() {
     g(x);
 }
 
-fn g(x: Int64) {}
+fn g(x: Int64) {
+    assert(x == 12);
+}

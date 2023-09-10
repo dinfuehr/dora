@@ -155,6 +155,10 @@ impl CodeGen for CodeGenArm64 {
         REG_TEMP
     }
 
+    fn getReturnRegister(): Register {
+        R0
+    }
+
     fn emitProlog(stackSize: Int32) {
         self.asm.stp_pre(REG_FP, REG_LR, REG_SP, -16i32);
         self.asm.mov(REG_FP, REG_SP);

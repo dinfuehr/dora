@@ -971,6 +971,13 @@ impl Inst {
         }
     }
 
+    pub fn isCall(): Bool {
+        match self.op() {
+            Op::InvokeStatic => true,
+            _ => false,
+        }
+    }
+
     pub fn isTerminator(): Bool {
         match self.op() {
             Op::Goto => true,
@@ -1601,11 +1608,17 @@ pub fn createGotoInst(block: Block): Inst {
     inst
 }
 
-pub fn createInvokeStaticInst(fct_id: FctId, type_params: Array[BytecodeType], return_ty: Type): Inst {
+pub fn createInvokeStaticInst(fct_id: FctId, type_params: Array[BytecodeType], args: Vec[Inst], return_ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::InvokeStatic);
     inst.fct_id = Some(fct_id);
     inst.type_params = Some(type_params);
+    inst.ty = return_ty;
+
+    for arg in args {
+        inst.addInput(arg);
+    }
+
     inst
 }
 

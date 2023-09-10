@@ -1,0 +1,13 @@
+//= boots
+
+fn main() {
+    assert(f() == 12);
+}
+
+@optimizeImmediately fn f(): Int64 {
+    g()
+}
+
+fn g(): Int64 {
+    12
+}

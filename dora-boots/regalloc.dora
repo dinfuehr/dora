@@ -138,6 +138,14 @@ impl SimpleRegisterAllocator {
         self.currentInst = Some(inst);
         self.allocateFixedRegisters(inst);
         self.allocateArbitraryRegisters(inst);
+
+        if inst.isCall() {
+            for (reg, inst) in self.tracker().data {
+                self.spill(inst);
+                self.tracker().freeRegisterRaw(reg);
+            }
+        }
+
         self.allocateOutputRegister(inst);
         self.tracker().protected.clear();
         self.freeDeadValues(inst);
@@ -164,18 +172,6 @@ impl SimpleRegisterAllocator {
                 self.allocateFixedTempRegister(reg);
                 self.tracker().protect(reg);
             }
-        }
-
-        if loc.hasOutput() && loc.getOutput().hasRegister() {
-            let reg = loc.getOutput().getRegister();
-
-            if !self.tracker().allocateFixedRegister(reg, inst) {
-                self.yieldRegister(reg);
-                self.tracker().freeRegister(reg);
-                assert(self.tracker().allocateFixedRegister(reg, inst));
-            }
-
-            self.tracker().protect(reg);
         }
     }
 
@@ -220,7 +216,17 @@ impl SimpleRegisterAllocator {
         if loc.hasOutput() {
             let output = loc.getOutput();
 
-            if !output.hasRegister() {
+            if output.hasRegister() {
+                let reg = loc.getOutput().getRegister();
+
+                if !self.tracker().allocateFixedRegister(reg, inst) {
+                    self.yieldRegister(reg);
+                    self.tracker().freeRegister(reg);
+                    assert(self.tracker().allocateFixedRegister(reg, inst));
+                }
+
+                self.tracker().protect(reg);
+            } else {
                 // pick a register
                 let register = self.tracker().allocateRegister(inst);
 
@@ -487,8 +493,12 @@ impl InstTracker {
     }
 
     fn freeRegister(reg: Register) {
-        assert(!self.free.contains(reg));
         assert(!self.protected.contains(reg));
+        self.freeRegisterRaw(reg);
+    }
+
+    fn freeRegisterRaw(reg: Register) {
+        assert(!self.free.contains(reg));
         self.free.add(reg);
         let inst = self.data.free(reg);
         if inst.isSome() {

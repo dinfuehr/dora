@@ -57,6 +57,7 @@ pub trait CodeGen {
     fn allocatableRegisters(): RegSet;
     fn argumentRegister(idx: Int64): Register;
     fn getScratchRegister(): Register;
+    fn getReturnRegister(): Register;
 
     fn emitProlog(stackSize: Int32);
     fn emitStackLimitCheck();
@@ -173,8 +174,18 @@ pub fn setLocationConstraints(codegen: CodeGen, inst: Inst) {
         },
 
         Op::InvokeStatic => {
-            assert(inst.getType().isUnit());
-            assert(!inst.hasInput());
+            let mut idx = 0;
+
+            for input in inst.getInputs() {
+                let arg = codegen.argumentRegister(idx);
+                loc.requireInputFixedRegister(idx, arg);
+                idx = idx + 1;
+            }
+
+            if !inst.getType().isUnit() {
+                let reg = codegen.getReturnRegister();
+                loc.requireOutputFixedRegister(reg);
+            }
         },
 
         _ => {
