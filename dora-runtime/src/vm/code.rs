@@ -179,8 +179,9 @@ impl Code {
 
     pub fn fct_id(&self) -> FunctionId {
         match self.kind {
-            CodeKind::RuntimeEntryTrampoline(fct_id) => fct_id,
-            CodeKind::BaselineFct(fct_id) => fct_id,
+            CodeKind::RuntimeEntryTrampoline(fct_id)
+            | CodeKind::BaselineFct(fct_id)
+            | CodeKind::OptimizedFct(fct_id) => fct_id,
             _ => panic!("no fctid found"),
         }
     }
