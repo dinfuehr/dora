@@ -140,16 +140,20 @@ impl SimpleRegisterAllocator {
         self.allocateArbitraryRegisters(inst);
 
         if inst.isCall() {
-            for (reg, inst) in self.tracker().data {
-                self.spill(inst);
-                self.tracker().freeRegisterRaw(reg);
-            }
+            self.spillAndResetLiveRegisters();
         }
 
         self.allocateOutputRegister(inst);
         self.tracker().protected.clear();
         self.freeDeadValues(inst);
         self.currentInst = None[Inst];
+    }
+
+    fn spillAndResetLiveRegisters() {
+        for (reg, inst) in self.tracker().data {
+            self.spill(inst);
+            self.tracker().freeRegisterRaw(reg);
+        }
     }
 
     fn allocateFixedRegisters(inst: Inst) {
