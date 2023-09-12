@@ -4,7 +4,7 @@ use package::assembler::x64::{R8, R9, R10, R11, R12, R13, R14, R15};
 use package::assembler::{Label, Register, RegSet};
 use package::bytecode::data::{ConstPoolId, Location};
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen};
-use package::interface::{Address, Architecture, CompilationInfo, config, getFunctionAddress, LazyCompilationSite, LazyCompilationSiteDirect, TRAP_DIV0, TRAP_OVERFLOW};
+use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, config, getFunctionAddress, LazyCompilationSite, LazyCompilationSiteDirect, TRAP_DIV0, TRAP_OVERFLOW};
 use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET};
 use package::graph::{Inst, Op, LocationData, Type};
 use package::{CodeDescriptor, CommentTable, GcPointTable, LazyCompilationData, LocationTable};
@@ -30,7 +30,7 @@ let ALLOCATABLE_REGS: RegSet = RegSet::new(
 pub class CodeGenX64 {
     ci: CompilationInfo,
     asm: AssemblerX64,
-    constPool: Vec[Address],
+    constPool: ConstPool,
     locations: LocationTable,
     lazyCompilation: LazyCompilationData,
     gcPoints: GcPointTable,
@@ -43,7 +43,7 @@ impl CodeGenX64 {
         CodeGenX64(
             ci,
             AssemblerX64::new(),
-            Vec[Address]::new(),
+            ConstPool::new(),
             LocationTable::new(),
             LazyCompilationData::new(),
             GcPointTable::new(),
@@ -69,12 +69,6 @@ impl CodeGenX64 {
     fn loadConstPool(dest: Register, id: ConstPoolId) {
         let offset = -(self.asm.position() + 7i32 + (id.value + 1i32) * 8i32);
         self.asm.movq_ra(dest, Mem::rip(offset));
-    }
-
-    fn addConstPoolEntry(value: Address): ConstPoolId {
-        let id = ConstPoolId(self.constPool.size().toInt32());
-        self.constPool.push(value);
-        id
     }
 
     fn emitDeferredCode() {
@@ -475,7 +469,7 @@ impl CodeGen for CodeGenX64 {
 
     fn emitInvokeStatic(inst: Inst) {
         let address = getFunctionAddress(inst.getFctId(), inst.getTypeParams());
-        let cp_id = self.addConstPoolEntry(address);
+        let cp_id = self.constPool.push(ConstPoolEntry::Address(address));
         self.loadConstPool(REG_TEMP, cp_id);
         self.asm.call_r(REG_TEMP);
 

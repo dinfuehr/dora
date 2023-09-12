@@ -6,10 +6,9 @@ use crate::compiler::{runtime_entry_trampoline, NativeFct};
 use crate::cpu::{FReg, Reg};
 use crate::disassembler;
 use crate::gc::Address;
-use crate::masm::CodeDescriptor;
 use crate::os;
 use crate::vm::CompilerName;
-use crate::vm::{display_fct, install_code, CodeKind, VM};
+use crate::vm::{display_fct, install_code, CodeDescriptor, CodeKind, VM};
 use dora_bytecode::{BytecodeFunction, BytecodeType, BytecodeTypeArray, FunctionId, Location};
 
 pub fn generate_fct(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray) -> Address {

@@ -24,9 +24,10 @@ pub use self::classes::{
     create_class_instance_with_vtable, ClassInstance, ClassInstanceId, FieldInstance, ShapeKind,
 };
 pub use self::code::{
-    install_code, install_code_stub, Code, CodeId, CodeKind, CodeObjects, CommentTable, GcPoint,
-    GcPointTable, LazyCompilationData, LazyCompilationSite, LocationTable, ManagedCodeHeader,
-    RelocationTable, CODE_ALIGNMENT,
+    install_code, install_code_stub, Code, CodeDescriptor, CodeId, CodeKind, CodeObjects,
+    CommentTable, ConstPool, ConstPoolEntry, ConstPoolValue, GcPoint, GcPointTable,
+    LazyCompilationData, LazyCompilationSite, LocationTable, ManagedCodeHeader, RelocationTable,
+    CODE_ALIGNMENT,
 };
 pub use self::code_map::CodeMap;
 pub use self::compilation::CompilationDatabase;

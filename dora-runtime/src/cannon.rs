@@ -1,8 +1,7 @@
 use self::codegen::CannonCodeGen;
 
 use crate::compiler::codegen::CompilationData;
-use crate::masm::CodeDescriptor;
-use crate::vm::VM;
+use crate::vm::{CodeDescriptor, VM};
 
 pub mod codegen;
 

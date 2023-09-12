@@ -1,10 +1,8 @@
-use crate::boots::data::LazyCompilationSiteKind;
-use crate::constpool::ConstPool;
+use crate::boots::data::{ConstPoolEntryKind, LazyCompilationSiteKind};
 use crate::gc::Address;
-use crate::masm::CodeDescriptor;
 use crate::vm::{
-    CommentTable, GcPoint, GcPointTable, LazyCompilationData, LazyCompilationSite, LocationTable,
-    RelocationTable, CODE_ALIGNMENT,
+    CodeDescriptor, CommentTable, ConstPool, ConstPoolValue, GcPoint, GcPointTable,
+    LazyCompilationData, LazyCompilationSite, LocationTable, RelocationTable, CODE_ALIGNMENT,
 };
 use dora_bytecode::{
     BytecodeType, BytecodeTypeArray, BytecodeTypeKind, ClassId, EnumId, FunctionId, Location,
@@ -34,11 +32,23 @@ fn decode_const_pool(reader: &mut ByteReader) -> ConstPool {
     let mut pool = ConstPool::new();
 
     for _ in 0..length {
-        pool.add_addr(reader.read_address());
+        let value = decode_const_pool_value(reader);
+        pool.add_value(value);
     }
 
     pool.align(CODE_ALIGNMENT as i32);
     pool
+}
+
+fn decode_const_pool_value(reader: &mut ByteReader) -> ConstPoolValue {
+    let kind: ConstPoolEntryKind = reader.read_u8().try_into().expect("illegal kind");
+
+    match kind {
+        ConstPoolEntryKind::Address => ConstPoolValue::Ptr(reader.read_address()),
+        ConstPoolEntryKind::Float32 => ConstPoolValue::Float32(f32::from_bits(reader.read_u32())),
+        ConstPoolEntryKind::Float64 => ConstPoolValue::Float64(f64::from_bits(reader.read_u64())),
+        ConstPoolEntryKind::Int32 => ConstPoolValue::Int32(reader.read_u32() as i32),
+    }
 }
 
 fn decode_code(reader: &mut ByteReader) -> Vec<u8> {

@@ -3,15 +3,14 @@ use std::ops::Deref;
 use std::rc::Rc;
 
 use crate::compiler::codegen::AnyReg;
-use crate::constpool::ConstPool;
 use crate::cpu::{Reg, SCRATCH};
 use crate::gc::Address;
 use crate::mem;
 use crate::mode::MachineMode;
 use crate::object::Header;
 use crate::vm::{
-    CommentTable, GcPoint, GcPointTable, LazyCompilationData, LazyCompilationSite, LocationTable,
-    RelocationTable, Trap, CODE_ALIGNMENT,
+    CodeDescriptor, CommentTable, ConstPool, GcPoint, GcPointTable, LazyCompilationData,
+    LazyCompilationSite, LocationTable, RelocationTable, Trap, CODE_ALIGNMENT,
 };
 pub use dora_asm::Label;
 use dora_bytecode::Location;
@@ -27,16 +26,6 @@ pub use self::arm64::*;
 
 #[cfg(target_arch = "aarch64")]
 pub mod arm64;
-
-pub struct CodeDescriptor {
-    pub constpool: ConstPool,
-    pub code: Vec<u8>,
-    pub lazy_compilation: LazyCompilationData,
-    pub gcpoints: GcPointTable,
-    pub comments: CommentTable,
-    pub positions: LocationTable,
-    pub relocations: RelocationTable,
-}
 
 pub enum Mem {
     // rbp + val1

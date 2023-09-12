@@ -9,13 +9,13 @@ use crate::cpu::{
 };
 use crate::gc::tlab::TLAB_OBJECT_SIZE;
 use crate::gc::Address;
-use crate::masm::{CodeDescriptor, CondCode, Label, MacroAssembler, Mem, ScratchReg};
+use crate::masm::{CondCode, Label, MacroAssembler, Mem, ScratchReg};
 use crate::mode::MachineMode;
 use crate::stdlib;
 use crate::threads::ThreadLocalData;
 use crate::vm::{
-    create_enum_instance, create_struct_instance, get_concrete_tuple_bty_array, EnumLayout,
-    GcPoint, LazyCompilationSite, Trap, INITIALIZED, VM,
+    create_enum_instance, create_struct_instance, get_concrete_tuple_bty_array, CodeDescriptor,
+    EnumLayout, GcPoint, LazyCompilationSite, Trap, INITIALIZED, VM,
 };
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId, GlobalId, Location, StructId};
 

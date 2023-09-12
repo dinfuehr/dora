@@ -9,6 +9,15 @@ pub enum InstructionSet {
 
 #[derive(TryFromPrimitive, IntoPrimitive)]
 #[repr(u8)]
+pub enum ConstPoolEntryKind {
+    Address,
+    Float32,
+    Float64,
+    Int32,
+}
+
+#[derive(TryFromPrimitive, IntoPrimitive)]
+#[repr(u8)]
 pub enum LazyCompilationSiteKind {
     Direct,
     Virtual,

@@ -1,6 +1,6 @@
 use std::collections::VecIter;
 
-use package::bytecode::{BytecodeFunction, BytecodeType, FctId, Location};
+use package::bytecode::{BytecodeFunction, BytecodeType, ConstPoolId, FctId, Location};
 use package::deserializer::decodeBytecodeFunction;
 use package::deserializer::decodeCompilationInfo;
 use package::deserializer::decodeConfig;
@@ -80,7 +80,7 @@ pub const THREAD_LOCAL_DATA_MARKING_OFFSET: Int32 = 40;
 pub const THREAD_LOCAL_DATA_STATE_OFFSET: Int32 = 41;
 
 pub class CodeDescriptor {
-    pub constPool: Vec[Address],
+    pub constPool: ConstPool,
     pub code: Array[UInt8],
     pub lazyCompilation: LazyCompilationData,
     pub gcPoints: GcPointTable,
@@ -233,4 +233,37 @@ impl GcPoint {
     pub fn makeIterator(): VecIter[Int32] {
         self.offsets.makeIterator()
     }
+}
+
+pub class ConstPool {
+    entries: Vec[ConstPoolEntry],
+}
+
+impl ConstPool {
+    pub static fn new(): ConstPool {
+        ConstPool(
+            Vec[ConstPoolEntry]::new(),
+        )
+    }
+
+    pub fn size(): Int64 {
+        self.entries.size()
+    }
+
+    pub fn push(entry: ConstPoolEntry): ConstPoolId {
+        let id = ConstPoolId(self.entries.size().toInt32());
+        self.entries.push(entry);
+        id
+    }
+
+    pub fn makeIterator(): VecIter[ConstPoolEntry] {
+        self.entries.makeIterator()
+    }
+}
+
+pub enum ConstPoolEntry {
+    Address(Address),
+    Float32(Float32),
+    Float64(Float64),
+    Int32(Int32),
 }

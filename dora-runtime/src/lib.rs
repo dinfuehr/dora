@@ -13,7 +13,6 @@ extern crate memoffset;
 mod boots;
 mod cannon;
 mod compiler;
-mod constpool;
 mod cpu;
 mod disassembler;
 mod gc;

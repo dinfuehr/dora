@@ -1,4 +1,4 @@
-pub use package::bytecode::data::{BytecodeFunction, BytecodeType, FctId, Location};
+pub use package::bytecode::data::{BytecodeFunction, BytecodeType, ConstPoolId, FctId, Location};
 
 pub mod builder;
 pub mod data;

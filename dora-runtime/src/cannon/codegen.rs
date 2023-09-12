@@ -10,7 +10,7 @@ use crate::cpu::{
     REG_RESULT, REG_SP, REG_TMP1, REG_TMP2, STACK_FRAME_ALIGNMENT,
 };
 use crate::gc::Address;
-use crate::masm::{CodeDescriptor, CondCode, Label, Mem};
+use crate::masm::{CondCode, Label, Mem};
 use crate::mem::{self, align_i32};
 use crate::mode::MachineMode;
 use crate::object::{offset_of_array_data, Header, Str};
@@ -20,8 +20,8 @@ use crate::vm::{
     create_class_instance, create_enum_instance, create_struct_instance, display_fct, display_ty,
     ensure_class_instance_for_enum_variant, ensure_class_instance_for_lambda,
     ensure_class_instance_for_trait_object, find_trait_impl, get_concrete_tuple_bty,
-    get_concrete_tuple_bty_array, specialize_bty, specialize_bty_array, EnumLayout, GcPoint,
-    LazyCompilationSite, Trap, INITIALIZED, VM,
+    get_concrete_tuple_bty_array, specialize_bty, specialize_bty_array, CodeDescriptor, EnumLayout,
+    GcPoint, LazyCompilationSite, Trap, INITIALIZED, VM,
 };
 use crate::vtable::VTable;
 use dora_bytecode::{

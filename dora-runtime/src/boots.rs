@@ -10,10 +10,9 @@ use crate::cannon::CompilationFlags;
 use crate::compiler::codegen::CompilationData;
 use crate::gc::Address;
 use crate::handle::{create_handle, Handle};
-use crate::masm::CodeDescriptor;
 use crate::object::{Ref, UInt8Array};
 use crate::threads::current_thread;
-use crate::vm::{get_vm, VM};
+use crate::vm::{get_vm, CodeDescriptor, VM};
 
 use self::deserializer::decode_bytecode_type_array;
 use self::serializer::allocate_encoded_system_config;
