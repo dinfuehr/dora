@@ -84,8 +84,10 @@ pub trait CodeGen {
 
     fn emitTrueConst(inst: Inst);
     fn emitFalseConst(inst: Inst);
-    fn emitInt64Const(inst: Inst);
     fn emitInt32Const(inst: Inst);
+    fn emitInt64Const(inst: Inst);
+    fn emitFloat32Const(inst: Inst);
+    fn emitFloat64Const(inst: Inst);
     fn emitCheckedAdd(inst: Inst);
     fn emitCheckedSub(inst: Inst);
     fn emitCheckedMul(inst: Inst);
@@ -231,6 +233,16 @@ pub fn emitInst(codegen: CodeGen, inst: Inst) {
         Op::Int64Const => {
             codegen.emitComment("Int64Const");
             codegen.emitInt64Const(inst);
+        },
+
+        Op::Float32Const => {
+            codegen.emitComment("Float32Const");
+            codegen.emitFloat32Const(inst);
+        },
+
+        Op::Float64Const => {
+            codegen.emitComment("Float64Const");
+            codegen.emitFloat64Const(inst);
         },
 
         Op::CheckedAdd => {

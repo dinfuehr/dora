@@ -80,6 +80,14 @@ impl CodeGenX64 {
         }
     }
 
+    fn mov_imm_f32(dest: FloatRegister, value: Float32) {
+        unimplemented();
+    }
+
+    fn mov_imm_f64(dest: FloatRegister, value: Float64) {
+        unimplemented();
+    }
+
     fn emitCheckedDivModCommon(inst: Inst) {
         let loc = inst.getLocationData();
         let dest = loc.getOutput().getRegister();
@@ -210,16 +218,28 @@ impl CodeGen for CodeGenX64 {
         self.asm.movq_ar(Mem::offset(RBP, slot), reg);
     }
 
+    fn emitInt32Const(inst: Inst) {
+        let loc = inst.getLocationData();
+        let register = loc.getOutput().getRegister();
+        self.asm.movl_ri(register, Immediate(inst.auxAsInt32().toInt64()));
+    }
+
     fn emitInt64Const(inst: Inst) {
         let loc = inst.getLocationData();
         let register = loc.getOutput().getRegister();
         self.asm.movq_ri(register, Immediate(inst.auxAsInt64()));
     }
 
-    fn emitInt32Const(inst: Inst) {
+    fn emitFloat32Const(inst: Inst) {
         let loc = inst.getLocationData();
-        let register = loc.getOutput().getRegister();
-        self.asm.movl_ri(register, Immediate(inst.auxAsInt32().toInt64()));
+        let register = loc.getOutput().getFloatRegister();
+        self.mov_imm_f32(register, inst.auxAsInt32().asFloat32());
+    }
+
+    fn emitFloat64Const(inst: Inst) {
+        let loc = inst.getLocationData();
+        let register = loc.getOutput().getFloatRegister();
+        self.mov_imm_f64(register, inst.auxAsInt64().asFloat64());
     }
 
     fn emitTrueConst(inst: Inst) {

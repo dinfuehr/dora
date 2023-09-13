@@ -92,6 +92,14 @@ impl CodeGenArm64 {
         self.asm.movk_w(dest, (imm >> 16i32) & 0xFF_FFi32, 16i32);
     }
 
+    fn mov_imm_f32(dest: FloatRegister, value: Float32) {
+        unimplemented();
+    }
+
+    fn mov_imm_f64(dest: FloatRegister, value: Float64) {
+        unimplemented();
+    }
+
     fn loadConstPool(dest: Register, id: ConstPoolId) {
         let offset = -(self.asm.position() + (id.value + 1i32) * 8i32);
         self.asm.adr_imm(dest, offset);
@@ -246,7 +254,11 @@ impl CodeGen for CodeGenArm64 {
 
     fn setLocationConstraintsReturn(inst: Inst, loc: LocationData) {
         if inst.hasInput() {
-            loc.requireInputFixedRegister(0, R0);
+            if inst.getOperationType().isAnyFloat() {
+                loc.requireInputFixedFloatRegister(0, F0);
+            } else {
+                loc.requireInputFixedRegister(0, R0);
+            }
         }
     }
 
@@ -272,6 +284,18 @@ impl CodeGen for CodeGenArm64 {
         let loc = inst.getLocationData();
         let register = loc.getOutput().getRegister();
         self.mov_imm(register, inst.auxAsInt64());
+    }
+
+    fn emitFloat32Const(inst: Inst) {
+        let loc = inst.getLocationData();
+        let register = loc.getOutput().getFloatRegister();
+        self.mov_imm_f32(register, inst.auxAsInt32().asFloat32());
+    }
+
+    fn emitFloat64Const(inst: Inst) {
+        let loc = inst.getLocationData();
+        let register = loc.getOutput().getFloatRegister();
+        self.mov_imm_f64(register, inst.auxAsInt64().asFloat64());
     }
 
     fn emitCheckedAdd(inst: Inst) {
