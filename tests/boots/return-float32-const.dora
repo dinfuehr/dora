@@ -1,0 +1,12 @@
+//= boots
+//= ignore
+
+fn main() {
+    let x = f();
+    assert(x == 12.5f32);
+    let x = g();
+    assert(x == -100.25f32);
+}
+
+@optimizeImmediately fn f(): Int32 { 12.5f32 }
+@optimizeImmediately fn g(): Int32 { -100.25f32 }

@@ -3,6 +3,8 @@ use std::StringBuffer;
 
 use package::assembler::arm64::registerName as registerNameOnArm64;
 use package::assembler::x64::registerName as registerNameOnX64;
+use package::assembler::arm64::floatRegisterName as floatRegisterNameOnArm64;
+use package::assembler::x64::floatRegisterName as floatRegisterNameOnX64;
 use package::graph::{Block, Edge, Graph, Input, Inst, Location, LocationData, Op, Operand};
 use package::interface::Architecture;
 
@@ -190,6 +192,12 @@ impl GraphDumper {
                     Architecture::X64 => registerNameOnX64(reg),
                 }
             },
+            Operand::FloatReg(reg) => {
+                match self.architecture {
+                    Architecture::Arm64 => floatRegisterNameOnArm64(reg),
+                    Architecture::X64 => floatRegisterNameOnX64(reg),
+                }
+            },
 
             Operand::Stack(slot) => "FP${slot}",
             Operand::None => "NONE",
@@ -209,8 +217,8 @@ fn dumpInstName(inst: Inst): String {
         Op::Int64Const => "Const.Int64(#${inst.auxAsInt64()})",
         Op::Float32Const => "Const.Float32(#${inst.auxAsFloat32()})",
         Op::Float64Const => "Const.Float64(#${inst.auxAsFloat64()})",
-        Op::LoadGlobal => "LoadGlobal.${inst.getType()}(${inst.auxAsInt32()})",
-        Op::StoreGlobal => "StoreGlobal.${inst.getType()}(${inst.auxAsInt32()})",
+        Op::LoadGlobal => "LoadGlobal.${inst.getValueType()}(${inst.auxAsInt32()})",
+        Op::StoreGlobal => "StoreGlobal.${inst.getValueType()}(${inst.auxAsInt32()})",
         Op::Undef => "Undef",
         Op::BoundsCheck => "BoundsCheck",
         Op::Goto => {
@@ -226,43 +234,43 @@ fn dumpInstName(inst: Inst): String {
                 "Ret.${inst.getOperationType()}"
             }
         },
-        Op::Neg => "Neg.${inst.getType()}",
-        Op::CheckedNeg => "CheckedNeg.${inst.getType()}",
-        Op::Not => "Not.${inst.getType()}",
-        Op::Add => "Add.${inst.getType()}",
-        Op::CheckedAdd => "CheckedAdd.${inst.getType()}",
-        Op::Sub => "Sub.${inst.getType()}",
-        Op::CheckedSub => "CheckedSub.${inst.getType()}",
-        Op::Mul => "Mul.${inst.getType()}",
-        Op::CheckedMul => "CheckedMul.${inst.getType()}",
-        Op::Div => "Div.${inst.getType()}",
-        Op::CheckedDiv => "CheckedDiv.${inst.getType()}",
-        Op::Mod => "Mod.${inst.getType()}",
-        Op::CheckedMod => "CheckedMod.${inst.getType()}",
-        Op::And => "And.${inst.getType()}",
-        Op::Or => "Or.${inst.getType()}",
-        Op::Xor => "Xor.${inst.getType()}",
-        Op::Shl => "Shl.${inst.getType()}",
-        Op::Shr => "Shr.${inst.getType()}",
-        Op::Sar => "Sar.${inst.getType()}",
-        Op::InvokeStatic => "InvokeStatic.${inst.getType()}",
-        Op::TestIdentity => "TestIdentity.${inst.getType()}",
+        Op::Neg => "Neg.${inst.getValueType()}",
+        Op::CheckedNeg => "CheckedNeg.${inst.getValueType()}",
+        Op::Not => "Not.${inst.getValueType()}",
+        Op::Add => "Add.${inst.getValueType()}",
+        Op::CheckedAdd => "CheckedAdd.${inst.getValueType()}",
+        Op::Sub => "Sub.${inst.getValueType()}",
+        Op::CheckedSub => "CheckedSub.${inst.getValueType()}",
+        Op::Mul => "Mul.${inst.getValueType()}",
+        Op::CheckedMul => "CheckedMul.${inst.getValueType()}",
+        Op::Div => "Div.${inst.getValueType()}",
+        Op::CheckedDiv => "CheckedDiv.${inst.getValueType()}",
+        Op::Mod => "Mod.${inst.getValueType()}",
+        Op::CheckedMod => "CheckedMod.${inst.getValueType()}",
+        Op::And => "And.${inst.getValueType()}",
+        Op::Or => "Or.${inst.getValueType()}",
+        Op::Xor => "Xor.${inst.getValueType()}",
+        Op::Shl => "Shl.${inst.getValueType()}",
+        Op::Shr => "Shr.${inst.getValueType()}",
+        Op::Sar => "Sar.${inst.getValueType()}",
+        Op::InvokeStatic => "InvokeStatic.${inst.getValueType()}",
+        Op::TestIdentity => "TestIdentity.${inst.getValueType()}",
         Op::Equal => "Equal.${inst.getOperationType()}",
         Op::NotEqual => "NotEqual.${inst.getOperationType()}",
         Op::Greater => "Greater.${inst.getOperationType()}",
         Op::GreaterOrEqual => "GreaterOrEqual.${inst.getOperationType()}",
         Op::Less => "Less.${inst.getOperationType()}",
         Op::LessOrEqual => "LessOrEqual.${inst.getOperationType()}",
-        Op::Phi => "Phi.${inst.getType()}",
+        Op::Phi => "Phi.${inst.getValueType()}",
         Op::DivZeroCheck => "DivZeroCheck",
-        Op::ArrayGet => "ArrayGet.${inst.getType()}",
+        Op::ArrayGet => "ArrayGet.${inst.getValueType()}",
         Op::ArraySet => "ArraySet.${inst.getOperationType()}",
         Op::ArrayLength => "ArrayLength",
-        Op::FieldGet => "FieldGet.${inst.getType()}",
+        Op::FieldGet => "FieldGet.${inst.getValueType()}",
         Op::FieldSet => "FieldSet",
-        Op::Arg => "Arg.${inst.getType()}(${inst.auxAsInt32()})",
-        Op::Move => "Move.${inst.getType()}",
-        Op::MoveImmediate => "MoveImmediate.${inst.getType()}",
+        Op::Arg => "Arg.${inst.getValueType()}(${inst.auxAsInt32()})",
+        Op::Move => "Move.${inst.getValueType()}",
+        Op::MoveImmediate => "MoveImmediate.${inst.getValueType()}",
     }
 }
 

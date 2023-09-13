@@ -1,7 +1,7 @@
 use package::assembler::AssemblerBuffer;
 use package::assembler::Label;
 use package::assembler::MachineCode;
-use package::assembler::Register;
+use package::assembler::{Register, FloatRegister};
 
 pub let R0: Register = Register(0u8);
 pub let R1: Register = Register(1u8);
@@ -48,6 +48,10 @@ pub fn registerName(register: Register): String {
     }
 }
 
+pub fn floatRegisterName(register: FloatRegister): String {
+    "f${register.value}"
+}
+
 pub let REG_ZERO: Register = Register(32u8);
 pub let REG_SP: Register = Register(33u8);
 
@@ -57,47 +61,45 @@ pub let REG_LR: Register = R30;
 const FLOAT_TYPE_SINGLE: Int32 = 0b00;
 const FLOAT_TYPE_DOUBLE: Int32 = 0b01;
 
-struct NeonRegister(value: Int32)
-
-impl NeonRegister {
+impl FloatRegister {
     fn encoding(): Int32 {
-        self.value
+        self.value.toInt32()
     }
 }
 
-let F0: NeonRegister = NeonRegister(0i32);
-let F1: NeonRegister = NeonRegister(1i32);
-let F2: NeonRegister = NeonRegister(2i32);
-let F3: NeonRegister = NeonRegister(3i32);
-let F4: NeonRegister = NeonRegister(4i32);
-let F5: NeonRegister = NeonRegister(5i32);
-let F6: NeonRegister = NeonRegister(6i32);
-let F7: NeonRegister = NeonRegister(7i32);
-let F8: NeonRegister = NeonRegister(8i32);
-let F9: NeonRegister = NeonRegister(9i32);
-let F10: NeonRegister = NeonRegister(10i32);
-let F11: NeonRegister = NeonRegister(11i32);
-let F12: NeonRegister = NeonRegister(12i32);
-let F13: NeonRegister = NeonRegister(13i32);
-let F14: NeonRegister = NeonRegister(14i32);
-let F15: NeonRegister = NeonRegister(15i32);
+pub let F0: FloatRegister = FloatRegister(0u8);
+pub let F1: FloatRegister = FloatRegister(1u8);
+pub let F2: FloatRegister = FloatRegister(2u8);
+pub let F3: FloatRegister = FloatRegister(3u8);
+pub let F4: FloatRegister = FloatRegister(4u8);
+pub let F5: FloatRegister = FloatRegister(5u8);
+pub let F6: FloatRegister = FloatRegister(6u8);
+pub let F7: FloatRegister = FloatRegister(7u8);
+pub let F8: FloatRegister = FloatRegister(8u8);
+pub let F9: FloatRegister = FloatRegister(9u8);
+pub let F10: FloatRegister = FloatRegister(10u8);
+pub let F11: FloatRegister = FloatRegister(11u8);
+pub let F12: FloatRegister = FloatRegister(12u8);
+pub let F13: FloatRegister = FloatRegister(13u8);
+pub let F14: FloatRegister = FloatRegister(14u8);
+pub let F15: FloatRegister = FloatRegister(15u8);
 
-let F16: NeonRegister = NeonRegister(16i32);
-let F17: NeonRegister = NeonRegister(17i32);
-let F18: NeonRegister = NeonRegister(18i32);
-let F19: NeonRegister = NeonRegister(19i32);
-let F20: NeonRegister = NeonRegister(20i32);
-let F21: NeonRegister = NeonRegister(21i32);
-let F22: NeonRegister = NeonRegister(22i32);
-let F23: NeonRegister = NeonRegister(23i32);
-let F24: NeonRegister = NeonRegister(24i32);
-let F25: NeonRegister = NeonRegister(25i32);
-let F26: NeonRegister = NeonRegister(26i32);
-let F27: NeonRegister = NeonRegister(27i32);
-let F28: NeonRegister = NeonRegister(28i32);
-let F29: NeonRegister = NeonRegister(29i32);
-let F30: NeonRegister = NeonRegister(30i32);
-let F31: NeonRegister = NeonRegister(31i32);
+pub let F16: FloatRegister = FloatRegister(16u8);
+pub let F17: FloatRegister = FloatRegister(17u8);
+pub let F18: FloatRegister = FloatRegister(18u8);
+pub let F19: FloatRegister = FloatRegister(19u8);
+pub let F20: FloatRegister = FloatRegister(20u8);
+pub let F21: FloatRegister = FloatRegister(21u8);
+pub let F22: FloatRegister = FloatRegister(22u8);
+pub let F23: FloatRegister = FloatRegister(23u8);
+pub let F24: FloatRegister = FloatRegister(24u8);
+pub let F25: FloatRegister = FloatRegister(25u8);
+pub let F26: FloatRegister = FloatRegister(26u8);
+pub let F27: FloatRegister = FloatRegister(27u8);
+pub let F28: FloatRegister = FloatRegister(28u8);
+pub let F29: FloatRegister = FloatRegister(29u8);
+pub let F30: FloatRegister = FloatRegister(30u8);
+pub let F31: FloatRegister = FloatRegister(31u8);
 
 class ForwardJump {
     offset: Int64,
@@ -572,7 +574,7 @@ impl AssemblerArm64 {
     }
 
 
-    pub fn cnt(q: Int32, size: Int32, rd: NeonRegister, rn: NeonRegister) {
+    pub fn cnt(q: Int32, size: Int32, rd: FloatRegister, rn: FloatRegister) {
         self.emit(encoding::simd_2regs_misc(q, 0i32, size, 0b00101i32, rn, rd));
     }
 
@@ -624,7 +626,7 @@ impl AssemblerArm64 {
         self.emit(encoding::logical_shreg(0i32, 0b10i32, shift, 0i32, rm, imm6, rn, rd));
     }
 
-    pub fn fadd_s(rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
+    pub fn fadd_s(rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
         self.emit(encoding::fp_dataproc2(
             0i32,
             0i32,
@@ -636,7 +638,7 @@ impl AssemblerArm64 {
         ));
     }
 
-    pub fn fadd_d(rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
+    pub fn fadd_d(rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
         self.emit(encoding::fp_dataproc2(
             0i32,
             0i32,
@@ -648,31 +650,31 @@ impl AssemblerArm64 {
         ));
     }
 
-    pub fn fcmp_d(rn: NeonRegister, rm: NeonRegister) {
+    pub fn fcmp_d(rn: FloatRegister, rm: FloatRegister) {
         self.emit(encoding::fp_compare(0i32, 0i32, FLOAT_TYPE_DOUBLE, rm, 0i32, rn, 0i32));
     }
 
-    pub fn fcmp_s(rn: NeonRegister, rm: NeonRegister) {
+    pub fn fcmp_s(rn: FloatRegister, rm: FloatRegister) {
         self.emit(encoding::fp_compare(0i32, 0i32, FLOAT_TYPE_SINGLE, rm, 0i32, rn, 0i32));
     }
 
-    pub fn fcmpe_d(rn: NeonRegister, rm: NeonRegister) {
+    pub fn fcmpe_d(rn: FloatRegister, rm: FloatRegister) {
         self.emit(encoding::fp_compare(0i32, 0i32, FLOAT_TYPE_DOUBLE, rm, 0i32, rn, 0b10000i32));
     }
 
-    pub fn fcmpe_s(rn: NeonRegister, rm: NeonRegister) {
+    pub fn fcmpe_s(rn: FloatRegister, rm: FloatRegister) {
         self.emit(encoding::fp_compare(0i32, 0i32, FLOAT_TYPE_SINGLE, rm, 0i32, rn, 0b10000i32));
     }
 
-    pub fn fcvt_ds(rd: NeonRegister, rn: NeonRegister) {
+    pub fn fcvt_ds(rd: FloatRegister, rn: FloatRegister) {
         self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b000100i32 | FLOAT_TYPE_DOUBLE, rn, rd));
     }
 
-    pub fn fcvt_sd(rd: NeonRegister, rn: NeonRegister) {
+    pub fn fcvt_sd(rd: FloatRegister, rn: FloatRegister) {
         self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b000100i32 | FLOAT_TYPE_SINGLE, rn, rd));
     }
 
-    pub fn fcvtzs_d(rd: Register, rn: NeonRegister) {
+    pub fn fcvtzs_d(rd: Register, rn: FloatRegister) {
         self.emit(encoding::fp_int(
             1i32,
             0i32,
@@ -684,7 +686,7 @@ impl AssemblerArm64 {
         ));
     }
 
-    pub fn fcvtzs_s(rd: Register, rn: NeonRegister) {
+    pub fn fcvtzs_s(rd: Register, rn: FloatRegister) {
         self.emit(encoding::fp_int(
             1i32,
             0i32,
@@ -696,7 +698,7 @@ impl AssemblerArm64 {
         ));
     }
 
-    pub fn fcvtzs_wd(rd: Register, rn: NeonRegister) {
+    pub fn fcvtzs_wd(rd: Register, rn: FloatRegister) {
         self.emit(encoding::fp_int(
             0i32,
             0i32,
@@ -708,7 +710,7 @@ impl AssemblerArm64 {
         ));
     }
 
-    pub fn fcvtzs_ws(rd: Register, rn: NeonRegister) {
+    pub fn fcvtzs_ws(rd: Register, rn: FloatRegister) {
         self.emit(encoding::fp_int(
             0i32,
             0i32,
@@ -720,7 +722,7 @@ impl AssemblerArm64 {
         ));
     }
 
-    pub fn fdiv_d(rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
+    pub fn fdiv_d(rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
         self.emit(encoding::fp_dataproc2(
             0i32,
             0i32,
@@ -732,7 +734,7 @@ impl AssemblerArm64 {
         ));
     }
 
-    pub fn fdiv_s(rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
+    pub fn fdiv_s(rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
         self.emit(encoding::fp_dataproc2(
             0i32,
             0i32,
@@ -744,15 +746,15 @@ impl AssemblerArm64 {
         ));
     }
 
-    pub fn fmov_d(rd: NeonRegister, rn: NeonRegister) {
+    pub fn fmov_d(rd: FloatRegister, rn: FloatRegister) {
         self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b000000i32, rn, rd));
     }
 
-    pub fn fmov_s(rd: NeonRegister, rn: NeonRegister) {
+    pub fn fmov_s(rd: FloatRegister, rn: FloatRegister) {
         self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b000000i32, rn, rd));
     }
 
-    pub fn fmov_fs_d(rd: NeonRegister, rn: Register) {
+    pub fn fmov_fs_d(rd: FloatRegister, rn: Register) {
         self.emit(encoding::fp_int(
             1i32,
             0i32,
@@ -764,7 +766,7 @@ impl AssemblerArm64 {
         ));
     }
 
-    pub fn fmov_fs_s(rd: NeonRegister, rn: Register) {
+    pub fn fmov_fs_s(rd: FloatRegister, rn: Register) {
         self.emit(encoding::fp_int(
             0i32,
             0i32,
@@ -776,7 +778,7 @@ impl AssemblerArm64 {
         ));
     }
 
-    pub fn fmov_sf_d(rd: Register, rn: NeonRegister) {
+    pub fn fmov_sf_d(rd: Register, rn: FloatRegister) {
         self.emit(encoding::fp_int(
             1i32,
             0i32,
@@ -788,7 +790,7 @@ impl AssemblerArm64 {
         ));
     }
 
-    pub fn fmov_sf_s(rd: Register, rn: NeonRegister) {
+    pub fn fmov_sf_s(rd: Register, rn: FloatRegister) {
         self.emit(encoding::fp_int(
             0i32,
             0i32,
@@ -800,7 +802,7 @@ impl AssemblerArm64 {
         ));
     }
 
-    pub fn fmul_s(rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
+    pub fn fmul_s(rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
         self.emit(encoding::fp_dataproc2(
             0i32,
             0i32,
@@ -812,7 +814,7 @@ impl AssemblerArm64 {
         ));
     }
 
-    pub fn fmul_d(rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
+    pub fn fmul_d(rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
         self.emit(encoding::fp_dataproc2(
             0i32,
             0i32,
@@ -824,71 +826,71 @@ impl AssemblerArm64 {
         ));
     }
 
-    pub fn fabs_d(rd: NeonRegister, rn: NeonRegister) {
+    pub fn fabs_d(rd: FloatRegister, rn: FloatRegister) {
         self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b000001i32, rn, rd));
     }
 
-    pub fn fabs_s(rd: NeonRegister, rn: NeonRegister) {
+    pub fn fabs_s(rd: FloatRegister, rn: FloatRegister) {
         self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b000001i32, rn, rd));
     }
 
-    pub fn fneg_d(rd: NeonRegister, rn: NeonRegister) {
+    pub fn fneg_d(rd: FloatRegister, rn: FloatRegister) {
         self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b000010i32, rn, rd));
     }
 
-    pub fn fneg_s(rd: NeonRegister, rn: NeonRegister) {
+    pub fn fneg_s(rd: FloatRegister, rn: FloatRegister) {
         self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b000010i32, rn, rd));
     }
 
-    pub fn frintn_d(rd: NeonRegister, rn: NeonRegister) {
+    pub fn frintn_d(rd: FloatRegister, rn: FloatRegister) {
         self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b001000i32, rn, rd));
     }
 
-    pub fn frintn_s(rd: NeonRegister, rn: NeonRegister) {
+    pub fn frintn_s(rd: FloatRegister, rn: FloatRegister) {
         self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b001000i32, rn, rd));
     }
 
-    pub fn frintp_d(rd: NeonRegister, rn: NeonRegister) {
+    pub fn frintp_d(rd: FloatRegister, rn: FloatRegister) {
         self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b001001i32, rn, rd));
     }
 
-    pub fn frintp_s(rd: NeonRegister, rn: NeonRegister) {
+    pub fn frintp_s(rd: FloatRegister, rn: FloatRegister) {
         self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b001001i32, rn, rd));
     }
 
-    pub fn frintm_d(rd: NeonRegister, rn: NeonRegister) {
+    pub fn frintm_d(rd: FloatRegister, rn: FloatRegister) {
         self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b001010i32, rn, rd));
     }
 
-    pub fn frintm_s(rd: NeonRegister, rn: NeonRegister) {
+    pub fn frintm_s(rd: FloatRegister, rn: FloatRegister) {
         self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b001010i32, rn, rd));
     }
 
-    pub fn frintz_d(rd: NeonRegister, rn: NeonRegister) {
+    pub fn frintz_d(rd: FloatRegister, rn: FloatRegister) {
         self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b001011i32, rn, rd));
     }
 
-    pub fn frintz_s(rd: NeonRegister, rn: NeonRegister) {
+    pub fn frintz_s(rd: FloatRegister, rn: FloatRegister) {
         self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b001011i32, rn, rd));
     }
 
-    pub fn frinta_d(rd: NeonRegister, rn: NeonRegister) {
+    pub fn frinta_d(rd: FloatRegister, rn: FloatRegister) {
         self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b001100i32, rn, rd));
     }
 
-    pub fn frinta_s(rd: NeonRegister, rn: NeonRegister) {
+    pub fn frinta_s(rd: FloatRegister, rn: FloatRegister) {
         self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b001100i32, rn, rd));
     }
 
-    pub fn fsqrt_d(rd: NeonRegister, rn: NeonRegister) {
+    pub fn fsqrt_d(rd: FloatRegister, rn: FloatRegister) {
         self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b000011i32, rn, rd));
     }
 
-    pub fn fsqrt_s(rd: NeonRegister, rn: NeonRegister) {
+    pub fn fsqrt_s(rd: FloatRegister, rn: FloatRegister) {
         self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b000011i32, rn, rd));
     }
 
-    pub fn fsub_s(rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
+    pub fn fsub_s(rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
         self.emit(encoding::fp_dataproc2(
             0i32,
             0i32,
@@ -900,7 +902,7 @@ impl AssemblerArm64 {
         ));
     }
 
-    pub fn fsub_d(rd: NeonRegister, rn: NeonRegister, rm: NeonRegister) {
+    pub fn fsub_d(rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
         self.emit(encoding::fp_dataproc2(
             0i32,
             0i32,
@@ -1070,7 +1072,7 @@ impl AssemblerArm64 {
     }
 
     pub fn ldr_reg_d(
-        rt: NeonRegister,
+        rt: FloatRegister,
         rn: Register,
         rm: Register,
         extend: Extend,
@@ -1122,7 +1124,7 @@ impl AssemblerArm64 {
     }
 
     pub fn ldr_reg_s(
-        rt: NeonRegister,
+        rt: FloatRegister,
         rn: Register,
         rm: Register,
         extend: Extend,
@@ -1184,7 +1186,7 @@ impl AssemblerArm64 {
         self.emit(encoding::ldst_regimm(0b00i32, 0i32, 0b01i32, imm, rn, rt.encoding()));
     }
 
-    pub fn ldr_imm_d(rt: NeonRegister, rn: Register, imm: Int32) {
+    pub fn ldr_imm_d(rt: FloatRegister, rn: Register, imm: Int32) {
         assert(imm % 8i32 == 0i32);
         let imm = imm / 8i32;
         self.emit(encoding::ldst_regimm(0b11i32, 1i32, 0b01i32, imm, rn, rt.encoding()));
@@ -1197,7 +1199,7 @@ impl AssemblerArm64 {
         self.emit(encoding::ldst_regimm(0b01i32, 0i32, 0b01i32, imm, rn, rt.encoding()));
     }
 
-    pub fn ldr_imm_s(rt: NeonRegister, rn: Register, imm: Int32) {
+    pub fn ldr_imm_s(rt: FloatRegister, rn: Register, imm: Int32) {
         assert(imm % 4i32 == 0i32);
         let imm = imm / 4i32;
         self.emit(encoding::ldst_regimm(0b10i32, 1i32, 0b01i32, imm, rn, rt.encoding()));
@@ -1234,7 +1236,7 @@ impl AssemblerArm64 {
         ));
     }
 
-    pub fn ldur_d(rt: NeonRegister, rn: Register, imm9: Int32) {
+    pub fn ldur_d(rt: FloatRegister, rn: Register, imm9: Int32) {
         self.emit(encoding::ldst_reg_unscaledimm(
             0b11i32,
             1i32,
@@ -1257,7 +1259,7 @@ impl AssemblerArm64 {
         ));
     }
 
-    pub fn ldur_s(rt: NeonRegister, rn: Register, imm9: Int32) {
+    pub fn ldur_s(rt: FloatRegister, rn: Register, imm9: Int32) {
         self.emit(encoding::ldst_reg_unscaledimm(
             0b10i32,
             1i32,
@@ -1479,7 +1481,7 @@ impl AssemblerArm64 {
     }
 
     // scvtf (scalar, integer) - 32-bit to double-precision
-    pub fn scvtf_si_dw(rd: NeonRegister, rn: Register) {
+    pub fn scvtf_si_dw(rd: FloatRegister, rn: Register) {
         self.emit(encoding::fp_int(
             0i32,
             0i32,
@@ -1492,7 +1494,7 @@ impl AssemblerArm64 {
     }
 
     // scvtf (scalar, integer) - 64-bit to double-precision
-    pub fn scvtf_si_dx(rd: NeonRegister, rn: Register) {
+    pub fn scvtf_si_dx(rd: FloatRegister, rn: Register) {
         self.emit(encoding::fp_int(
             1i32,
             0i32,
@@ -1505,7 +1507,7 @@ impl AssemblerArm64 {
     }
 
     // scvtf (scalar, integer) - 32-bit to single-precision
-    pub fn scvtf_si_sw(rd: NeonRegister, rn: Register) {
+    pub fn scvtf_si_sw(rd: FloatRegister, rn: Register) {
         self.emit(encoding::fp_int(
             0i32,
             0i32,
@@ -1518,7 +1520,7 @@ impl AssemblerArm64 {
     }
 
     // scvtf (scalar, integer) - 64-bit to single-precision
-    pub fn scvtf_si_sx(rd: NeonRegister, rn: Register) {
+    pub fn scvtf_si_sx(rd: FloatRegister, rn: Register) {
         self.emit(encoding::fp_int(
             1i32,
             0i32,
@@ -1630,13 +1632,13 @@ impl AssemblerArm64 {
         ));
     }
 
-    pub fn str_imm_d(rt: NeonRegister, rn: Register, imm: Int32) {
+    pub fn str_imm_d(rt: FloatRegister, rn: Register, imm: Int32) {
         assert(imm % 8i32 == 0i32);
         let imm = imm / 8i32;
         self.emit(encoding::ldst_regimm(0b11i32, 1i32, 0b00i32, imm, rn, rt.encoding()));
     }
 
-    pub fn str_imm_s(rt: NeonRegister, rn: Register, imm: Int32) {
+    pub fn str_imm_s(rt: FloatRegister, rn: Register, imm: Int32) {
         assert(imm % 4i32 == 0i32);
         let imm = imm / 4i32;
         self.emit(encoding::ldst_regimm(0b10i32, 1i32, 0b00i32, imm, rn, rt.encoding()));
@@ -1744,7 +1746,7 @@ impl AssemblerArm64 {
     }
 
     pub fn str_reg_d(
-        rt: NeonRegister,
+        rt: FloatRegister,
         rn: Register,
         rm: Register,
         extend: Extend,
@@ -1769,7 +1771,7 @@ impl AssemblerArm64 {
     }
 
     pub fn str_reg_s(
-        rt: NeonRegister,
+        rt: FloatRegister,
         rn: Register,
         rm: Register,
         extend: Extend,
@@ -1843,7 +1845,7 @@ impl AssemblerArm64 {
         ));
     }
 
-    pub fn stur_d(rt: NeonRegister, rn: Register, imm9: Int32) {
+    pub fn stur_d(rt: FloatRegister, rn: Register, imm9: Int32) {
         self.emit(encoding::ldst_reg_unscaledimm(
             0b11i32,
             1i32,
@@ -1866,7 +1868,7 @@ impl AssemblerArm64 {
         ));
     }
 
-    pub fn stur_s(rt: NeonRegister, rn: Register, imm9: Int32) {
+    pub fn stur_s(rt: FloatRegister, rn: Register, imm9: Int32) {
         self.emit(encoding::ldst_reg_unscaledimm(
             0b10i32,
             1i32,
@@ -2336,7 +2338,7 @@ mod imm_encoding {
 
 mod encoding {
     use package::assembler::Register;
-    use super::{Extend, Shift, Cond, NeonRegister};
+    use super::{Extend, Shift, Cond, FloatRegister};
 
     pub fn addsub_extreg(
         sf: Int32,
@@ -2641,9 +2643,9 @@ mod encoding {
         m: Int32,
         s: Int32,
         ty: Int32,
-        rm: NeonRegister,
+        rm: FloatRegister,
         op: Int32,
-        rn: NeonRegister,
+        rn: FloatRegister,
         opcode2: Int32,
     ): Int32 {
         assert(m == 0i32);
@@ -2669,8 +2671,8 @@ mod encoding {
         s: Int32,
         ty: Int32,
         opcode: Int32,
-        rn: NeonRegister,
-        rd: NeonRegister,
+        rn: FloatRegister,
+        rd: FloatRegister,
     ): Int32 {
         assert(m == 0i32);
         assert(s == 0i32);
@@ -2692,10 +2694,10 @@ mod encoding {
         m: Int32,
         s: Int32,
         ty: Int32,
-        rm: NeonRegister,
+        rm: FloatRegister,
         opcode: Int32,
-        rn: NeonRegister,
-        rd: NeonRegister,
+        rn: FloatRegister,
+        rd: FloatRegister,
     ): Int32 {
         assert(m == 0i32);
         assert(s == 0i32);
@@ -3001,8 +3003,8 @@ mod encoding {
         u: Int32,
         size: Int32,
         opcode: Int32,
-        rn: NeonRegister,
-        rd: NeonRegister,
+        rn: FloatRegister,
+        rd: FloatRegister,
     ): Int32 {
         assert(fitsBit(q));
         assert(fitsBit(u));
@@ -3036,8 +3038,8 @@ mod encoding {
         u: Int32,
         size: Int32,
         opcode: Int32,
-        rn: NeonRegister,
-        rd: NeonRegister,
+        rn: FloatRegister,
+        rd: FloatRegister,
     ): Int32 {
         assert(fitsBit(q));
         assert(fitsBit(u));

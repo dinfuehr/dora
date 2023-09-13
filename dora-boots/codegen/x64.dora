@@ -1,7 +1,8 @@
 use package::assembler::x64::{AssemblerX64, Address as Mem, Condition, Immediate, ScaleFactor, registerName};
 use package::assembler::x64::{RAX, RDI, RDX, RCX, RSI, RBP, RSP, RBX};
 use package::assembler::x64::{R8, R9, R10, R11, R12, R13, R14, R15};
-use package::assembler::{Label, Register, RegSet};
+use package::assembler::x64::{XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7};
+use package::assembler::{FloatRegister, Label, Register, RegSet};
 use package::bytecode::data::{ConstPoolId, Location};
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen};
 use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, config, getFunctionAddress, LazyCompilationSite, LazyCompilationSiteDirect, TRAP_DIV0, TRAP_OVERFLOW};
@@ -10,13 +11,15 @@ use package::graph::{Inst, Op, LocationData, Type};
 use package::{CodeDescriptor, CommentTable, GcPointTable, LazyCompilationData, LocationTable};
 
 pub let REG_PARAMS: Array[Register] = Array[Register]::new(RDI, RSI, RDX, RCX, R8, R9);
+let FLOAT_REG_PARAMS: Array[FloatRegister] = Array[FloatRegister]::new(XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7);
+
 pub let CCALL_REG_PARAMS: Array[Register] = REG_PARAMS;
 
 // Temporary registers that can be used within an instruction.
 let REG_TEMP: Register = R10;
 let REG_THREAD: Register = R15;
 
-let ALLOCATABLE_REGS: RegSet = RegSet::new(
+let ALLOCATABLE_REGS: RegSet[Register] = RegSet[Register]::new(
     RAX, RCX, RDX, RBX,
               RSI, RDI,
     // RSP is stack pointer
@@ -116,12 +119,24 @@ impl CodeGenX64 {
 }
 
 impl CodeGen for CodeGenX64 {
-    fn allocatableRegisters(): RegSet {
+    fn allocatableRegisters(): RegSet[Register] {
         ALLOCATABLE_REGS
+    }
+
+    fn allocatableFloatRegisters(): RegSet[FloatRegister] {
+        RegSet[FloatRegister]::firstN(16i32)
     }
 
     fn argumentRegister(idx: Int64): Register {
         REG_PARAMS(idx)
+    }
+
+    fn argumentRegisters(): Array[Register] {
+        REG_PARAMS
+    }
+
+    fn argumentFloatRegisters(): Array[FloatRegister] {
+        FLOAT_REG_PARAMS
     }
 
     fn getScratchRegister(): Register {
@@ -130,6 +145,10 @@ impl CodeGen for CodeGenX64 {
 
     fn getReturnRegister(): Register {
         RAX
+    }
+
+    fn getFloatReturnRegister(): FloatRegister {
+        XMM0
     }
 
     fn emitProlog(stackSize: Int32) {
@@ -223,11 +242,11 @@ impl CodeGen for CodeGenX64 {
         let output = loc.getOutput().getRegister();
         let lbl_overflow = self.asm.createLabel();
 
-        if inst.getType() == Type::Int32 {
+        if inst.getValueType() == Type::Int32 {
             self.asm.movl_rr(output, lhs);
             self.asm.addl_rr(output, rhs);
         } else {
-            assert(inst.getType() == Type::Int64);
+            assert(inst.getValueType() == Type::Int64);
             self.asm.movq_rr(output, lhs);
             self.asm.addq_rr(output, rhs);
         }
@@ -249,11 +268,11 @@ impl CodeGen for CodeGenX64 {
         let output = loc.getOutput().getRegister();
         let lbl_overflow = self.asm.createLabel();
 
-        if inst.getType() == Type::Int32 {
+        if inst.getValueType() == Type::Int32 {
             self.asm.movl_rr(output, lhs);
             self.asm.subl_rr(output, rhs);
         } else {
-            assert(inst.getType() == Type::Int64);
+            assert(inst.getValueType() == Type::Int64);
             self.asm.movq_rr(output, lhs);
             self.asm.subq_rr(output, rhs);
         }
@@ -275,11 +294,11 @@ impl CodeGen for CodeGenX64 {
         let output = loc.getOutput().getRegister();
         let lbl_overflow = self.asm.createLabel();
 
-        if inst.getType() == Type::Int32 {
+        if inst.getValueType() == Type::Int32 {
             self.asm.movl_rr(output, lhs);
             self.asm.imull_rr(output, rhs);
         } else {
-            assert(inst.getType() == Type::Int64);
+            assert(inst.getValueType() == Type::Int64);
             self.asm.movq_rr(output, lhs);
             self.asm.imulq_rr(output, rhs);
         }
@@ -309,7 +328,11 @@ impl CodeGen for CodeGenX64 {
 
     fn setLocationConstraintsReturn(inst: Inst, loc: LocationData) {
         if inst.hasInput() {
-            loc.requireInputFixedRegister(0, RAX);
+            if inst.getOperationType().isAnyFloat() {
+                loc.requireInputFixedFloatRegister(0, XMM0);
+            } else {
+                loc.requireInputFixedRegister(0, RAX);
+            }
         }
     }
 
@@ -343,11 +366,11 @@ impl CodeGen for CodeGenX64 {
 
         let lbl_overflow = self.asm.createLabel();
 
-        if inst.getType() == Type::Int32 {
+        if inst.getValueType() == Type::Int32 {
             self.asm.movl_rr(dest, src);
             self.asm.negl_r(dest);
         } else {
-            assert(inst.getType() == Type::Int64);
+            assert(inst.getValueType() == Type::Int64);
             self.asm.movq_rr(dest, src);
             self.asm.negq_r(dest);
         }
@@ -395,8 +418,14 @@ impl CodeGen for CodeGenX64 {
     fn emitReturn(inst: Inst) {
         if inst.hasInput() {
             let loc = inst.getLocationData();
-            let register = loc.getInput(0).getRegister();
-            assert(register == RAX);
+
+            if inst.getOperationType().isAnyFloat() {
+                let register = loc.getInput(0).getFloatRegister();
+                assert(register == XMM0);
+            } else {
+                let register = loc.getInput(0).getRegister();
+                assert(register == RAX);
+            }
         }
 
         self.epilog();
@@ -406,7 +435,7 @@ impl CodeGen for CodeGenX64 {
         let loc = inst.getLocationData();
         let dest = loc.getOutput().getOperand();
         let src = loc.getInput(0).getOperand();
-        let ty = inst.getType();
+        let ty = inst.getValueType();
 
         if dest.isRegister() {
             if src.isRegister() {

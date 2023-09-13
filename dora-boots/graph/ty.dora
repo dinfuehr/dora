@@ -43,7 +43,11 @@ impl Type {
         }
     }
 
-    fn isFloat32(): Bool {
+    pub fn isAnyFloat(): Bool {
+        self.isFloat32() || self.isFloat64()
+    }
+
+    pub fn isFloat32(): Bool {
         match self {
             Type::Float32 => true,
             _ => false,

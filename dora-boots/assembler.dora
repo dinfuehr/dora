@@ -122,6 +122,11 @@ fn testAssemblerBufferEmitInt() {
     assert(buffer.size() == 4i64);
 }
 
+pub trait RegisterType {
+    static fn fromInt32(value: Int32): Self;
+    fn toInt32(): Int32;
+}
+
 pub struct Register(pub value: UInt8)
 
 impl Register {
@@ -132,6 +137,46 @@ impl Register {
 
 impl Hash for Register {
     fn hash(): Int32 {
+        self.value.toInt32()
+    }
+}
+
+impl Equals for Register {
+  fn equals(other: Register): Bool { self.value == other.value }
+}
+
+impl RegisterType for Register {
+    static fn fromInt32(value: Int32): Register {
+        assert(value < 64i32);
+        Register(value.toUInt8())
+    }
+
+    fn toInt32(): Int32 {
+        self.value.toInt32()
+    }
+}
+
+pub struct FloatRegister(pub value: UInt8)
+
+impl FloatRegister {
+    fn equals(rhs: FloatRegister): Bool {
+        self.value == rhs.value
+    }
+}
+
+impl Hash for FloatRegister {
+    fn hash(): Int32 {
+        self.value.toInt32()
+    }
+}
+
+impl RegisterType for FloatRegister {
+    static fn fromInt32(value: Int32): FloatRegister {
+        assert(value < 64i32);
+        FloatRegister(value.toUInt8())
+    }
+
+    fn toInt32(): Int32 {
         self.value.toInt32()
     }
 }
@@ -158,14 +203,14 @@ impl MachineCode {
     }
 }
 
-pub class RegMap[V] {
+pub class RegMap[T: RegisterType, V] {
     allocatable: Int64,
     in_use: Int64,
     data: Array[Option[V]],
 }
 
-impl[V] RegMap[V] {
-    pub static fn new(rs: RegSet): RegMap[V] {
+impl[T: RegisterType, V] RegMap[T, V] {
+    pub static fn new(rs: RegSet[T]): RegMap[T, V] {
         RegMap(
             rs.value,
             0,
@@ -173,7 +218,7 @@ impl[V] RegMap[V] {
         )
     }
 
-    pub fn clone(): RegMap[V] {
+    pub fn clone(): RegMap[T, V] {
         RegMap(
             self.allocatable,
             self.in_use,
@@ -181,63 +226,63 @@ impl[V] RegMap[V] {
         )
     }
 
-    pub fn acquire(value: V): Option[Register] {
+    pub fn acquire(value: V): Option[T] {
         let available = !self.in_use & self.allocatable;
         let idx = available.countZeroBitsTrailing();
 
         if idx == 64i32 {
-            None[Register]
+            None[T]
         } else {
             self.in_use = self.in_use | (1 << idx);
             self.data(idx.toInt64()) = Some[V](value);
-            Some[Register](Register(idx.toUInt8()))
+            Some[T](T::fromInt32(idx))
         }
     }
 
-    pub fn pick(reg: Register, value: V) {
+    pub fn pick(reg: T, value: V) {
         let available = !self.in_use & self.allocatable;
-        let idx = reg.value.toInt32();
+        let idx = reg.toInt32();
         assert((available & (1 << idx)) != 0);
 
         self.in_use = self.in_use | (1 << idx);
         self.data(idx.toInt64()) = Some[V](value);
     }
 
-    pub fn get(reg: Register): Option[V] {
-        let value = reg.value.toInt32();
+    pub fn get(reg: T): Option[V] {
+        let value = reg.toInt32();
         assert((self.in_use & (1 << value)) != 0);
 
         self.data(value.toInt64())
     }
 
-    pub fn free(reg: Register): Option[V] {
-        let value = reg.value.toInt32();
+    pub fn free(reg: T): Option[V] {
+        let value = reg.toInt32();
         assert(value < 64i32);
         self.in_use = self.in_use & !(1 << value);
-        let result = self.data(reg.value.toInt64());
-        self.data(reg.value.toInt64()) = None[V];
+        let result = self.data(value.toInt64());
+        self.data(value.toInt64()) = None[V];
         result
     }
 
-    pub fn makeIterator(): RegMapIterator[V] {
+    pub fn makeIterator(): RegMapIterator[T, V] {
         RegMapIterator(self, 0)
     }
 }
 
-pub class RegMapIterator[V] {
-    map: RegMap[V],
+pub class RegMapIterator[T: RegisterType, V] {
+    map: RegMap[T, V],
     idx: Int64,
 }
 
-impl[V] RegMapIterator[V] {
-    fn next(): Option[(Register, V)] {
+impl[T: RegisterType, V] RegMapIterator[T, V] {
+    fn next(): Option[(T, V)] {
         while self.idx < self.map.data.size() {
             let value = self.map.data(self.idx);
             if value.isSome() {
-                let reg = Register(self.idx.toUInt8());
+                let reg = T::fromInt32(self.idx.toInt32());
                 let value = value.getOrPanic();
                 self.idx = self.idx + 1;
-                return Some((reg, value));
+                return Some[(T, V)]((reg, value));
             }
 
             self.idx = self.idx + 1;
@@ -247,13 +292,13 @@ impl[V] RegMapIterator[V] {
     }
 }
 
-pub class RegSet {
+pub class RegSet[T: RegisterType] {
     value: Int64,
 }
 
-impl RegSet {
-    pub static fn new(registers: Register...): RegSet {
-        let rs = RegSet(0);
+impl[T: RegisterType] RegSet[T] {
+    pub static fn new(registers: T...): RegSet[T] {
+        let rs = RegSet[T](0);
 
         for reg in registers {
             rs.add(reg);
@@ -262,20 +307,24 @@ impl RegSet {
         rs
     }
 
-    pub fn add(reg: Register) {
-        let value = reg.value.toInt32();
+    pub static fn firstN(registers: Int32): RegSet[T] {
+        RegSet[T]((1 << registers) - 1)
+    }
+
+    pub fn add(reg: T) {
+        let value = reg.toInt32();
         assert(value < 64i32);
         self.value = self.value | (1 << value);
     }
 
-    pub fn contains(reg: Register): Bool {
-        let value = reg.value.toInt32();
+    pub fn contains(reg: T): Bool {
+        let value = reg.toInt32();
         assert(value < 64i32);
         (self.value & (1 << value)) != 0
     }
 
-    pub fn remove(reg: Register): Bool {
-        let value = reg.value.toInt32();
+    pub fn remove(reg: T): Bool {
+        let value = reg.toInt32();
         assert(value < 64i32);
         let contains = (self.value | (1 << value)) != 0;
         self.value = self.value & !(1 << value);
@@ -286,13 +335,13 @@ impl RegSet {
         self.value == 0
     }
 
-    pub fn first(): Option[Register] {
+    pub fn first(): Option[T] {
         let idx = self.value.countZeroBitsTrailing();
 
         if idx == 64i32 {
-            None[Register]
+            None[T]
         } else {
-            Some[Register](Register(idx.toUInt8()))
+            Some[T](T::fromInt32(idx))
         }
     }
 
@@ -300,19 +349,23 @@ impl RegSet {
         self.value = 0
     }
 
-    pub fn equals(other: RegSet): Bool {
+    pub fn equals(other: RegSet[T]): Bool {
         self.value == other.value
     }
 
-    pub fn union(other: RegSet): RegSet {
+    pub fn intersect(other: RegSet[T]): RegSet[T] {
         RegSet(self.value & other.value)
     }
 
-    pub fn difference(other: RegSet): RegSet {
+    pub fn union(other: RegSet[T]): RegSet[T] {
+        RegSet(self.value | other.value)
+    }
+
+    pub fn difference(other: RegSet[T]): RegSet[T] {
         RegSet(self.value & !other.value)
     }
 
-    pub fn clone(): RegSet {
+    pub fn clone(): RegSet[T] {
         RegSet(
             self.value,
         )

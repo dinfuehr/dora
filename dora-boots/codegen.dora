@@ -1,7 +1,7 @@
 use package::bytecode::data::{BytecodeType, FctId, Location};
 use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
-use package::assembler::{Label, Register, RegSet};
+use package::assembler::{FloatRegister, Label, Register, RegSet};
 use package::interface::{Address, Architecture, CompilationInfo, config};
 use package::graph::{Graph, Inst, LocationData, Op};
 use package::CodeDescriptor;
@@ -54,10 +54,16 @@ pub fn generateCode(graph: Graph, codegen: CodeGen): CodeDescriptor {
 }
 
 pub trait CodeGen {
-    fn allocatableRegisters(): RegSet;
+    fn allocatableRegisters(): RegSet[Register];
+    fn allocatableFloatRegisters(): RegSet[FloatRegister];
+
     fn argumentRegister(idx: Int64): Register;
+    fn argumentRegisters(): Array[Register];
+    fn argumentFloatRegisters(): Array[FloatRegister];
+
     fn getScratchRegister(): Register;
     fn getReturnRegister(): Register;
+    fn getFloatReturnRegister(): FloatRegister;
 
     fn emitProlog(stackSize: Int32);
     fn emitStackLimitCheck();
@@ -103,8 +109,14 @@ pub fn setLocationConstraints(codegen: CodeGen, inst: Inst) {
     match inst.op() {
         Op::Arg => {
             let idx = inst.auxAsInt32().toInt64();
-            let reg = codegen.argumentRegister(idx);
-            loc.requireOutputFixedRegister(reg);
+
+            if inst.getValueType().isAnyFloat() {
+                let reg = codegen.argumentFloatRegisters().get(idx);
+                loc.requireOutputFixedFloatRegister(reg);
+            } else {
+                let reg = codegen.argumentRegister(idx);
+                loc.requireOutputFixedRegister(reg);
+            }
         },
 
         Op::TrueConst |
@@ -182,7 +194,7 @@ pub fn setLocationConstraints(codegen: CodeGen, inst: Inst) {
                 idx = idx + 1;
             }
 
-            if !inst.getType().isUnit() {
+            if !inst.getValueType().isUnit() {
                 let reg = codegen.getReturnRegister();
                 loc.requireOutputFixedRegister(reg);
             }

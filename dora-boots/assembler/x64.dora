@@ -1,7 +1,7 @@
 use package::assembler::AssemblerBuffer;
 use package::assembler::Label;
 use package::assembler::MachineCode;
-use package::assembler::Register;
+use package::assembler::{Register, FloatRegister};
 
 pub let RAX: Register = Register(0u8);
 pub let RCX: Register = Register(1u8);
@@ -32,29 +32,31 @@ pub fn registerName(register: Register): String {
     REG_NAMES(register.value.toInt64())
 }
 
-pub let XMM0: XmmRegister = XmmRegister(0i32);
-pub let XMM1: XmmRegister = XmmRegister(1i32);
-pub let XMM2: XmmRegister = XmmRegister(2i32);
-pub let XMM3: XmmRegister = XmmRegister(3i32);
-pub let XMM4: XmmRegister = XmmRegister(4i32);
-pub let XMM5: XmmRegister = XmmRegister(5i32);
-pub let XMM6: XmmRegister = XmmRegister(6i32);
-pub let XMM7: XmmRegister = XmmRegister(7i32);
+pub fn floatRegisterName(register: FloatRegister): String {
+    "XMM${register.value}"
+}
 
-pub let XMM8: XmmRegister = XmmRegister(8i32);
-pub let XMM9: XmmRegister = XmmRegister(9i32);
-pub let XMM10: XmmRegister = XmmRegister(10i32);
-pub let XMM11: XmmRegister = XmmRegister(11i32);
-pub let XMM12: XmmRegister = XmmRegister(12i32);
-pub let XMM13: XmmRegister = XmmRegister(13i32);
-pub let XMM14: XmmRegister = XmmRegister(14i32);
-pub let XMM15: XmmRegister = XmmRegister(15i32);
+pub let XMM0: FloatRegister = FloatRegister(0u8);
+pub let XMM1: FloatRegister = FloatRegister(1u8);
+pub let XMM2: FloatRegister = FloatRegister(2u8);
+pub let XMM3: FloatRegister = FloatRegister(3u8);
+pub let XMM4: FloatRegister = FloatRegister(4u8);
+pub let XMM5: FloatRegister = FloatRegister(5u8);
+pub let XMM6: FloatRegister = FloatRegister(6u8);
+pub let XMM7: FloatRegister = FloatRegister(7u8);
 
-struct XmmRegister(value: Int32)
+pub let XMM8: FloatRegister = FloatRegister(8u8);
+pub let XMM9: FloatRegister = FloatRegister(9u8);
+pub let XMM10: FloatRegister = FloatRegister(10u8);
+pub let XMM11: FloatRegister = FloatRegister(11u8);
+pub let XMM12: FloatRegister = FloatRegister(12u8);
+pub let XMM13: FloatRegister = FloatRegister(13u8);
+pub let XMM14: FloatRegister = FloatRegister(14u8);
+pub let XMM15: FloatRegister = FloatRegister(15u8);
 
-impl XmmRegister {
-    fn lowBits(): Int32 { self.value & 0b111i32 }
-    fn needsRexBit(): Bool { self.value > 7i32 }
+impl FloatRegister {
+    fn lowBits(): Int32 { self.value.toInt32() & 0b111i32 }
+    fn needsRexBit(): Bool { self.value.toInt32() > 7i32 }
 }
 
 enum JumpDistance {
@@ -111,7 +113,7 @@ impl AssemblerX64 {
         self.emitModRmReg(src, dest);
     }
 
-    pub fn addss_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn addss_rr(dest: FloatRegister, src: FloatRegister) {
         self.emitByte(0xF3u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -119,7 +121,7 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    pub fn addsd_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn addsd_rr(dest: FloatRegister, src: FloatRegister) {
         self.emitByte(0xF2u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -133,7 +135,7 @@ impl AssemblerX64 {
         self.emitModRmReg(src, dest);
     }
 
-    pub fn andps_ra(dest: XmmRegister, src: Address) {
+    pub fn andps_ra(dest: FloatRegister, src: Address) {
         self.emitRexSseAddressOptional(dest, src);
         self.emitByte(0x0fu8);
         self.emitByte(0x54u8);
@@ -269,7 +271,7 @@ impl AssemblerX64 {
         self.emitByte(0x99u8);
     }
 
-    pub fn cvtsd2ss_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn cvtsd2ss_rr(dest: FloatRegister, src: FloatRegister) {
         self.emitByte(0xF2u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -277,7 +279,7 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    pub fn cvtsi2sdd_rr(dest: XmmRegister, src: Register) {
+    pub fn cvtsi2sdd_rr(dest: FloatRegister, src: Register) {
         self.emitByte(0xF2u8);
         self.emitRexOptional(false, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -285,7 +287,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, dest.lowBits(), src.lowBits());
     }
 
-    pub fn cvtsi2sdq_rr(dest: XmmRegister, src: Register) {
+    pub fn cvtsi2sdq_rr(dest: FloatRegister, src: Register) {
         self.emitByte(0xF2u8);
         self.emitRexOptional(true, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -293,7 +295,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, dest.lowBits(), src.lowBits());
     }
 
-    pub fn cvtsi2ssd_rr(dest: XmmRegister, src: Register) {
+    pub fn cvtsi2ssd_rr(dest: FloatRegister, src: Register) {
         self.emitByte(0xF3u8);
         self.emitRexOptional(false, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -301,7 +303,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, dest.lowBits(), src.lowBits());
     }
 
-    pub fn cvtsi2ssq_rr(dest: XmmRegister, src: Register) {
+    pub fn cvtsi2ssq_rr(dest: FloatRegister, src: Register) {
         self.emitByte(0xF3u8);
         self.emitRexOptional(true, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -309,7 +311,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, dest.lowBits(), src.lowBits());
     }
 
-    pub fn cvtss2sd_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn cvtss2sd_rr(dest: FloatRegister, src: FloatRegister) {
         self.emitByte(0xF3u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -317,7 +319,7 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    pub fn cvttsd2sid_rr(dest: Register, src: XmmRegister) {
+    pub fn cvttsd2sid_rr(dest: Register, src: FloatRegister) {
         self.emitByte(0xF2u8);
         self.emitRexOptional(false, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -325,7 +327,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, dest.lowBits(), src.lowBits());
     }
 
-    pub fn cvttsd2siq_rr(dest: Register, src: XmmRegister) {
+    pub fn cvttsd2siq_rr(dest: Register, src: FloatRegister) {
         self.emitByte(0xF2u8);
         self.emitRexOptional(true, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -333,7 +335,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, dest.lowBits(), src.lowBits());
     }
 
-    pub fn cvttss2sid_rr(dest: Register, src: XmmRegister) {
+    pub fn cvttss2sid_rr(dest: Register, src: FloatRegister) {
         self.emitByte(0xF3u8);
         self.emitRexOptional(false, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -341,7 +343,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, dest.lowBits(), src.lowBits());
     }
 
-    pub fn cvttss2siq_rr(dest: Register, src: XmmRegister) {
+    pub fn cvttss2siq_rr(dest: Register, src: FloatRegister) {
         self.emitByte(0xF3u8);
         self.emitRexOptional(true, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -349,7 +351,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, dest.lowBits(), src.lowBits());
     }
 
-    pub fn divss_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn divss_rr(dest: FloatRegister, src: FloatRegister) {
         self.emitByte(0xF3u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -357,7 +359,7 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    pub fn divsd_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn divsd_rr(dest: FloatRegister, src: FloatRegister) {
         self.emitByte(0xF2u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -545,7 +547,7 @@ impl AssemblerX64 {
         self.emitAddress(dest.lowBits(), src);
     }
 
-    pub fn movd_rx(dest: Register, src: XmmRegister) {
+    pub fn movd_rx(dest: Register, src: FloatRegister) {
         self.emitByte(0x66u8);
         self.emitRexOptional(false, src.needsRexBit(), false, dest.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -553,7 +555,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, src.lowBits(), dest.lowBits());
     }
 
-    pub fn movd_xr(dest: XmmRegister, src: Register) {
+    pub fn movd_xr(dest: FloatRegister, src: Register) {
         self.emitByte(0x66u8);
         self.emitRexOptional(false, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -633,7 +635,7 @@ impl AssemblerX64 {
         self.emitModRmReg(src, dest);
     }
 
-    pub fn movq_rx(dest: Register, src: XmmRegister) {
+    pub fn movq_rx(dest: Register, src: FloatRegister) {
         self.emitByte(0x66u8);
         self.emitRexOptional(true, src.needsRexBit(), false, dest.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -641,7 +643,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, src.lowBits(), dest.lowBits());
     }
 
-    pub fn movq_xr(dest: XmmRegister, src: Register) {
+    pub fn movq_xr(dest: FloatRegister, src: Register) {
         self.emitByte(0x66u8);
         self.emitRexOptional(true, dest.needsRexBit(), false, src.needsRexBit());
         self.emitByte(0x0Fu8);
@@ -649,7 +651,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, dest.lowBits(), src.lowBits());
     }
 
-    pub fn movsd_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn movsd_rr(dest: FloatRegister, src: FloatRegister) {
         self.emitByte(0xF2u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -657,7 +659,7 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    pub fn movsd_ra(dest: XmmRegister, src: Address) {
+    pub fn movsd_ra(dest: FloatRegister, src: Address) {
         self.emitByte(0xF2u8);
         self.emitRexSseAddressOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -665,7 +667,7 @@ impl AssemblerX64 {
         self.emitAddress(dest.lowBits(), src);
     }
 
-    pub fn movsd_ar(dest: Address, src: XmmRegister) {
+    pub fn movsd_ar(dest: Address, src: FloatRegister) {
         self.emitByte(0xF2u8);
         self.emitRexSseAddressOptional(src, dest);
         self.emitByte(0x0Fu8);
@@ -673,7 +675,7 @@ impl AssemblerX64 {
         self.emitAddress(src.lowBits(), dest);
     }
 
-    pub fn movss_ar(dest: Address, src: XmmRegister) {
+    pub fn movss_ar(dest: Address, src: FloatRegister) {
         self.emitByte(0xF3u8);
         self.emitRexSseAddressOptional(src, dest);
         self.emitByte(0x0Fu8);
@@ -681,7 +683,7 @@ impl AssemblerX64 {
         self.emitAddress(src.lowBits(), dest);
     }
 
-    pub fn movss_ra(dest: XmmRegister, src: Address) {
+    pub fn movss_ra(dest: FloatRegister, src: Address) {
         self.emitByte(0xF3u8);
         self.emitRexSseAddressOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -689,7 +691,7 @@ impl AssemblerX64 {
         self.emitAddress(dest.lowBits(), src);
     }
 
-    pub fn movss_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn movss_rr(dest: FloatRegister, src: FloatRegister) {
         self.emitByte(0xF3u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -745,7 +747,7 @@ impl AssemblerX64 {
         self.emitModRmReg(dest, src);
     }
 
-    pub fn mulss_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn mulss_rr(dest: FloatRegister, src: FloatRegister) {
         self.emitByte(0xF3u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -753,7 +755,7 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    pub fn mulsd_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn mulsd_rr(dest: FloatRegister, src: FloatRegister) {
         self.emitByte(0xF2u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -827,7 +829,7 @@ impl AssemblerX64 {
         self.emitByte((0x58i32 + reg.lowBits()).toUInt8());
     }
 
-    pub fn pxor_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn pxor_rr(dest: FloatRegister, src: FloatRegister) {
         self.emitByte(0x66u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -851,7 +853,7 @@ impl AssemblerX64 {
         self.emitModRmOpcode(0b000i32, reg);
     }
 
-    pub fn roundss_ri(dest: XmmRegister, src: XmmRegister, mode: UInt8) {
+    pub fn roundss_ri(dest: FloatRegister, src: FloatRegister, mode: UInt8) {
         self.emitByte(0x66u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0fu8);
@@ -861,7 +863,7 @@ impl AssemblerX64 {
         self.emitByte(mode);
     }
 
-    pub fn roundsd_ri(dest: XmmRegister, src: XmmRegister, mode: UInt8) {
+    pub fn roundsd_ri(dest: FloatRegister, src: FloatRegister, mode: UInt8) {
         self.emitByte(0x66u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0fu8);
@@ -977,7 +979,7 @@ impl AssemblerX64 {
         self.emitByte(rhs.toUInt8());
     }
 
-    pub fn sqrtsd_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn sqrtsd_rr(dest: FloatRegister, src: FloatRegister) {
         self.emitByte(0xF2u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -985,7 +987,7 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    pub fn sqrtss_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn sqrtss_rr(dest: FloatRegister, src: FloatRegister) {
         self.emitByte(0xF3u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -1009,7 +1011,7 @@ impl AssemblerX64 {
         self.emitModRmReg(src, dest);
     }
 
-    pub fn subsd_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn subsd_rr(dest: FloatRegister, src: FloatRegister) {
         self.emitByte(0xF2u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -1017,7 +1019,7 @@ impl AssemblerX64 {
         self.emitModRmSseRegisters(dest, src);
     }
 
-    pub fn subss_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn subss_rr(dest: FloatRegister, src: FloatRegister) {
         self.emitByte(0xF3u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -1106,14 +1108,14 @@ impl AssemblerX64 {
         self.emitModRmReg(dest, src);
     }
 
-    pub fn ucomiss_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn ucomiss_rr(dest: FloatRegister, src: FloatRegister) {
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
         self.emitByte(0x2Eu8);
         self.emitModRmSseRegisters(dest, src);
     }
 
-    pub fn ucomisd_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn ucomisd_rr(dest: FloatRegister, src: FloatRegister) {
         self.emitByte(0x66u8);
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -1163,7 +1165,7 @@ impl AssemblerX64 {
         self.emitModRmReg(src, dest);
     }
 
-    pub fn xorpd_ra(dest: XmmRegister, src: Address) {
+    pub fn xorpd_ra(dest: FloatRegister, src: Address) {
         self.emitByte(0x66u8);
         self.emitRexSseAddressOptional(dest, src);
         self.emitByte(0x0Fu8);
@@ -1171,14 +1173,14 @@ impl AssemblerX64 {
         self.emitAddress(dest.lowBits(), src);
     }
 
-    pub fn xorps_ra(dest: XmmRegister, src: Address) {
+    pub fn xorps_ra(dest: FloatRegister, src: Address) {
         self.emitRexSseAddressOptional(dest, src);
         self.emitByte(0x0Fu8);
         self.emitByte(0x57u8);
         self.emitAddress(dest.lowBits(), src);
     }
 
-    pub fn xorps_rr(dest: XmmRegister, src: XmmRegister) {
+    pub fn xorps_rr(dest: FloatRegister, src: FloatRegister) {
         self.emitRexSseModRmOptional(dest, src);
         self.emitByte(0x0Fu8);
         self.emitByte(0x57u8);
@@ -1290,13 +1292,13 @@ impl AssemblerX64 {
         self.emitRex(true, false, false, false);
     }
 
-    fn emitRexSseModRmOptional(reg: XmmRegister, rm: XmmRegister) {
+    fn emitRexSseModRmOptional(reg: FloatRegister, rm: FloatRegister) {
         if reg.needsRexBit() || rm.needsRexBit() {
             self.emitRex(false, reg.needsRexBit(), false, rm.needsRexBit());
         }
     }
 
-    fn emitRexSseAddressOptional(reg: XmmRegister, address: Address) {
+    fn emitRexSseAddressOptional(reg: FloatRegister, address: Address) {
         if reg.needsRexBit() || address.rex != 0u8 {
             let value = 0x40i32 | address.rex.toInt32() | if reg.needsRexBit() { 0x04i32 } else { 0i32 };
             self.emitByte(value.toUInt8());
@@ -1339,7 +1341,7 @@ impl AssemblerX64 {
         self.emitModRm(0b11i32, opcode, rm.lowBits());
     }
 
-    fn emitModRmSseRegisters(reg: XmmRegister, rm: XmmRegister) {
+    fn emitModRmSseRegisters(reg: FloatRegister, rm: FloatRegister) {
         self.emitModRm(0b11i32, reg.lowBits(), rm.lowBits());
     }
 

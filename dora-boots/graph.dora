@@ -3,10 +3,10 @@ use std::Equals;
 use std::Hash;
 use std::Stringable;
 
-use package::assembler::{Label, Register, RegMap};
+use package::assembler::{FloatRegister, Label, Register, RegMap};
 use package::bytecode::data::{BytecodeType, FctId, GlobalId};
 use package::dominator::buildDominatorTree;
-use package::regalloc::InstTracker;
+use package::regalloc::RegisterTracker;
 
 pub use package::graph::ty::Type;
 
@@ -197,6 +197,11 @@ impl ReversePostOrderIterator {
     }
 }
 
+pub struct RegisterTrackers {
+    pub general: RegisterTracker[Register],
+    pub float: RegisterTracker[FloatRegister],
+}
+
 struct BlockId(value: Int32)
 
 pub class Block {
@@ -211,8 +216,8 @@ pub class Block {
     dominatedBlocks: Vec[Block],
 
     liveIn: Option[BitVec],
-    trackerIn: Option[InstTracker],
-    trackerOut: Option[InstTracker],
+    trackerIn: Option[RegisterTrackers],
+    trackerOut: Option[RegisterTrackers],
 
     pub predecessors: Vec[Edge],
     pub successors: Vec[Edge],
@@ -232,8 +237,8 @@ impl Block {
             None[Block],
             Vec[Block]::new(),
             None[BitVec],
-            None[InstTracker],
-            None[InstTracker],
+            None[RegisterTrackers],
+            None[RegisterTrackers],
             Vec[Edge]::new(),
             Vec[Edge]::new(),
             None[LoopData],
@@ -374,21 +379,21 @@ impl Block {
         self.liveIn.getOrPanic()
     }
 
-    pub fn setTrackerIn(trackerIn: InstTracker) {
+    pub fn setTrackerIn(trackerIn: RegisterTrackers) {
         assert(self.trackerIn.isNone());
         self.trackerIn = Some(trackerIn);
     }
 
-    pub fn getTrackerIn(): InstTracker {
+    pub fn getTrackerIn(): RegisterTrackers {
         self.trackerIn.getOrPanic()
     }
 
-    pub fn setTrackerOut(trackerOut: InstTracker) {
+    pub fn setTrackerOut(trackerOut: RegisterTrackers) {
         assert(self.trackerOut.isNone());
         self.trackerOut = Some(trackerOut);
     }
 
-    pub fn getTrackerOut(): InstTracker {
+    pub fn getTrackerOut(): RegisterTrackers {
         self.trackerOut.getOrPanic()
     }
 
@@ -756,7 +761,7 @@ impl Inst {
         self.op().isConst()
     }
 
-    pub fn getType(): Type {
+    pub fn getValueType(): Type {
         match self.op() {
             Op::NullConst => Type::Ptr,
             Op::TrueConst => Type::Bool,
@@ -822,7 +827,7 @@ impl Inst {
             | Op::Less
             | Op::LessOrEqual
             | Op::ArraySet => self.ty,
-            _ => self.getType(),
+            _ => self.getValueType(),
         }
     }
 
@@ -1156,7 +1161,12 @@ impl LocationData {
 
     pub fn requireOutputFixedRegister(register: Register) {
         assert(self.output.isNone());
-        self.output = Some(Location::fixedRegister(register));
+        self.output = Some(Location::fixed(Operand::Reg(register)));
+    }
+
+    pub fn requireOutputFixedFloatRegister(register: FloatRegister) {
+        assert(self.output.isNone());
+        self.output = Some(Location::fixed(Operand::FloatReg(register)));
     }
 
     pub fn requireTempRegister() {
@@ -1164,7 +1174,7 @@ impl LocationData {
     }
 
     pub fn requireTempFixedRegister(register: Register) {
-        self.temps.push(Location::fixedRegister(register));
+        self.temps.push(Location::fixed(Operand::Reg(register)));
     }
 
     pub fn requireInputRegister(idx: Int64) {
@@ -1174,7 +1184,12 @@ impl LocationData {
 
     pub fn requireInputFixedRegister(idx: Int64, register: Register) {
         assert(self.inputs(idx).isNone());
-        self.inputs(idx) = Some[Location](Location::fixedRegister(register));
+        self.inputs(idx) = Some[Location](Location::fixed(Operand::Reg(register)));
+    }
+
+    pub fn requireInputFixedFloatRegister(idx: Int64, register: FloatRegister) {
+        assert(self.inputs(idx).isNone());
+        self.inputs(idx) = Some[Location](Location::fixed(Operand::FloatReg(register)));
     }
 
     pub fn hasOutput(): Bool {
@@ -1217,6 +1232,7 @@ impl LocationData {
 pub enum Operand {
     None,
     Reg(Register),
+    FloatReg(FloatRegister),
     Stack(Int32),
 }
 
@@ -1239,6 +1255,20 @@ impl Operand {
         match self {
             Operand::Reg(reg) => reg,
             _ => unreachable[Register](),
+        }
+    }
+
+    pub fn isFloatRegister(): Bool {
+        match self {
+            Operand::FloatReg(reg) => true,
+            _ => false,
+        }
+    }
+
+    pub fn getFloatRegister(): FloatRegister {
+        match self {
+            Operand::FloatReg(reg) => reg,
+            _ => unreachable[FloatRegister](),
         }
     }
 
@@ -1266,6 +1296,9 @@ impl Equals for Operand {
             Operand::Reg(reg) => {
                 other.isRegister() && reg == other.getRegister()
             },
+            Operand::FloatReg(reg) => {
+                other.isFloatRegister() && reg == other.getFloatRegister()
+            },
             Operand::Stack(slot) => {
                 other.isStack() && slot == other.getStack()
             },
@@ -1278,6 +1311,7 @@ impl Hash for Operand {
         match self {
             Operand::None => 1i32,
             Operand::Reg(reg) => reg.value.toInt32() << 1i32,
+            Operand::FloatReg(reg) => reg.value.toInt32() << 1i32,
             Operand::Stack(slot) => slot << 1i32 + 1i32,
         }
     }
@@ -1288,6 +1322,7 @@ impl Stringable for Operand {
         match self {
             Operand::None => "None",
             Operand::Reg(reg) => "Reg(${reg.value})",
+            Operand::FloatReg(reg) => "FloatReg(${reg.value})",
             Operand::Stack(slot) => "Stack(${slot})",
         }
     }
@@ -1302,10 +1337,9 @@ impl Location {
         Location(operand)
     }
 
-    pub static fn fixedRegister(register: Register): Location {
-        Location(
-            Operand::Reg(register),
-        )
+    pub static fn fixed(operand: Operand): Location {
+        assert(!operand.isNone());
+        Location(operand)
     }
 
     pub static fn someRegister(): Location {
@@ -1324,6 +1358,10 @@ impl Location {
         self.operand
     }
 
+    pub fn isNone(): Bool {
+        self.operand.isNone()
+    }
+
     pub fn hasRegister(): Bool {
         self.operand.isRegister()
     }
@@ -1335,6 +1373,19 @@ impl Location {
     pub fn setRegister(register: Register) {
         assert(self.operand.isNone());
         self.operand = Operand::Reg(register);
+    }
+
+    pub fn hasFloatRegister(): Bool {
+        self.operand.isFloatRegister()
+    }
+
+    pub fn getFloatRegister(): FloatRegister {
+        self.operand.getFloatRegister()
+    }
+
+    pub fn setFloatRegister(register: FloatRegister) {
+        assert(self.operand.isNone());
+        self.operand = Operand::FloatReg(register);
     }
 
     pub fn hasStack(): Bool {

@@ -675,7 +675,7 @@ impl SsaGen {
         let boundsCheckInst = createBoundsCheck(idxInst, arrayLengthInst);
         self.current().appendInst(boundsCheckInst);
 
-        let arraySetInst = createArraySet(arrInst, idxInst, srcInst, srcInst.getType());
+        let arraySetInst = createArraySet(arrInst, idxInst, srcInst, srcInst.getValueType());
         self.current().appendInst(arraySetInst);
     }
 
