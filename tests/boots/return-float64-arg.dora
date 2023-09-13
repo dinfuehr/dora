@@ -1,5 +1,4 @@
 //= boots
-//= ignore
 
 fn main() {
     let x = f(12.5);
