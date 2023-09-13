@@ -8,5 +8,5 @@ fn main() {
     assert(x == -100.25);
 }
 
-@optimizeImmediately fn f(): Int32 { 12.5 }
-@optimizeImmediately fn g(): Int32 { -100.25 }
+@optimizeImmediately fn f(): Float64 { 12.5 }
+@optimizeImmediately fn g(): Float64 { -100.25 }

@@ -237,12 +237,14 @@ impl GcPoint {
 
 pub class ConstPool {
     entries: Vec[ConstPoolEntry],
+    size: Int32,
 }
 
 impl ConstPool {
     pub static fn new(): ConstPool {
         ConstPool(
             Vec[ConstPoolEntry]::new(),
+            0i32,
         )
     }
 
@@ -250,10 +252,13 @@ impl ConstPool {
         self.entries.size()
     }
 
-    pub fn push(entry: ConstPoolEntry): ConstPoolId {
-        let id = ConstPoolId(self.entries.size().toInt32());
+    pub fn push(value: ConstPoolValue): ConstPoolEntry {
+        let entry_size = value.size();
+        let entry_alignment = entry_size;
+        let new_size = (self.size + (entry_alignment - 1i32)) & entry_alignment + entry_size;
+        let entry = ConstPoolEntry(new_size, value);
         self.entries.push(entry);
-        id
+        entry
     }
 
     pub fn makeIterator(): VecIter[ConstPoolEntry] {
@@ -261,9 +266,25 @@ impl ConstPool {
     }
 }
 
-pub enum ConstPoolEntry {
+pub struct ConstPoolEntry {
+    pub disp: Int32,
+    pub value: ConstPoolValue
+}
+
+pub enum ConstPoolValue {
     Address(Address),
     Float32(Float32),
     Float64(Float64),
     Int32(Int32),
+}
+
+impl ConstPoolValue {
+    fn size(): Int32 {
+        match self {
+            ConstPoolValue::Address(address) => 8i32,
+            ConstPoolValue::Float64(value) => 8i32,
+            ConstPoolValue::Int32(value) => 4i32,
+            ConstPoolValue::Float32(value) => 4i32,
+        }
+    }
 }

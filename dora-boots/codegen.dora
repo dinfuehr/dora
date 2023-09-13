@@ -137,7 +137,9 @@ pub fn setLocationConstraints(codegen: CodeGen, inst: Inst) {
         },
 
         Op::Int32Const
-        | Op::Int64Const => {
+        | Op::Int64Const
+        | Op::Float32Const
+        | Op::Float64Const => {
             loc.requireOutputRegister();
         },
 

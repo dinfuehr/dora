@@ -5,7 +5,7 @@ use package::assembler::x64::{XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7};
 use package::assembler::{FloatRegister, Label, Register, RegSet};
 use package::bytecode::data::{ConstPoolId, Location};
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen};
-use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, config, getFunctionAddress, LazyCompilationSite, LazyCompilationSiteDirect, TRAP_DIV0, TRAP_OVERFLOW};
+use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, LazyCompilationSite, LazyCompilationSiteDirect, TRAP_DIV0, TRAP_OVERFLOW};
 use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET};
 use package::graph::{Inst, Op, LocationData, Type};
 use package::{CodeDescriptor, CommentTable, GcPointTable, LazyCompilationData, LocationTable};
@@ -29,6 +29,10 @@ let ALLOCATABLE_REGS: RegSet[Register] = RegSet[Register]::new(
     R12, R13, R14,
     // R15 is REG_THREAD
 );
+
+fn msb(reg: FloatRegister): Bool {
+    ((reg.value.toInt64() >> 3i32) & 1) != 0
+}
 
 pub class CodeGenX64 {
     ci: CompilationInfo,
@@ -69,8 +73,8 @@ impl CodeGenX64 {
         self.locations.insert(self.asm.position(), loc);
     }
 
-    fn loadConstPool(dest: Register, id: ConstPoolId) {
-        let offset = -(self.asm.position() + 7i32 + (id.value + 1i32) * 8i32);
+    fn loadConstPool(dest: Register, entry: ConstPoolEntry) {
+        let offset = -(self.asm.position() + 7i32 + entry.disp);
         self.asm.movq_ra(dest, Mem::rip(offset));
     }
 
@@ -81,11 +85,17 @@ impl CodeGenX64 {
     }
 
     fn mov_imm_f32(dest: FloatRegister, value: Float32) {
-        unimplemented();
+        let entry = self.constPool.push(ConstPoolValue::Float32(value));
+        let inst_size = 8i32 + if msb(dest) { 1i32 } else { 0i32 };
+        let disp = self.asm.position() + entry.disp + inst_size;
+        self.asm.movss_ra(dest, Mem::rip(-disp));
     }
 
     fn mov_imm_f64(dest: FloatRegister, value: Float64) {
-        unimplemented();
+        let entry = self.constPool.push(ConstPoolValue::Float64(value));
+        let inst_size = 8i32 + if msb(dest) { 1i32 } else { 0i32 };
+        let disp = self.asm.position() + entry.disp + inst_size;
+        self.asm.movsd_ra(dest, Mem::rip(-disp));
     }
 
     fn emitCheckedDivModCommon(inst: Inst) {
@@ -518,15 +528,15 @@ impl CodeGen for CodeGenX64 {
 
     fn emitInvokeStatic(inst: Inst) {
         let address = getFunctionAddress(inst.getFctId(), inst.getTypeParams());
-        let cp_id = self.constPool.push(ConstPoolEntry::Address(address));
-        self.loadConstPool(REG_TEMP, cp_id);
+        let cp_entry = self.constPool.push(ConstPoolValue::Address(address));
+        self.loadConstPool(REG_TEMP, cp_entry);
         self.asm.call_r(REG_TEMP);
 
         let pos = self.asm.position();
         let site = LazyCompilationSiteDirect(
             inst.getFctId(),
             inst.getTypeParams(),
-            pos + (cp_id.value + 1i32) * 8i32,
+            pos + cp_entry.disp,
         );
         let location = self.ci.bc.getLocationAt(inst.bytecode_position());
 

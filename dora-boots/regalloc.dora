@@ -206,6 +206,7 @@ impl SimpleRegisterAllocator {
 
     fn allocateArbitraryRegisters(inst: Inst) {
         let loc = inst.getLocationData();
+        println("inst = ${inst.id()}");
 
         for input in inst.getInputs() {
             let idx = input.getIdx().toInt64();
@@ -229,38 +230,43 @@ impl SimpleRegisterAllocator {
     fn allocateOutputRegister(inst: Inst) {
         let loc = inst.getLocationData();
 
-        if loc.hasOutput() {
-            let output = loc.getOutput();
+        if !loc.hasOutput() {
+            return;
+        }
 
-            if output.hasRegister() {
-                let reg = loc.getOutput().getRegister();
+        let output = loc.getOutput();
 
-                if !self.registers().allocateFixedRegister(reg, inst) {
-                    self.yieldRegister(reg);
-                    self.registers().freeRegister(reg);
-                    assert(self.registers().allocateFixedRegister(reg, inst));
-                }
+        if output.hasRegister() {
+            let reg = loc.getOutput().getRegister();
 
-                self.registers().protect(reg);
-            } else if output.hasFloatRegister() {
-                let reg = loc.getOutput().getFloatRegister();
+            if !self.registers().allocateFixedRegister(reg, inst) {
+                self.yieldRegister(reg);
+                self.registers().freeRegister(reg);
+                assert(self.registers().allocateFixedRegister(reg, inst));
+            }
 
-                if !self.float_registers().allocateFixedRegister(reg, inst) {
-                    unimplemented();
-                }
+            self.registers().protect(reg);
+        } else if output.hasFloatRegister() {
+            let reg = loc.getOutput().getFloatRegister();
 
-                self.float_registers().protect(reg);
+            if !self.float_registers().allocateFixedRegister(reg, inst) {
+                unimplemented();
+            }
+
+            self.float_registers().protect(reg);
+        } else if inst.getValueType().isAnyFloat() {
+            let register = self.float_registers().allocateRegister(inst).getOrPanic();
+            output.setFloatRegister(register);
+        } else {
+            // pick a register
+            let register = self.registers().allocateRegister(inst);
+
+            if register.isSome() {
+                output.setRegister(register.getOrPanic());
             } else {
-                // pick a register
-                let register = self.registers().allocateRegister(inst);
-
-                if register.isSome() {
-                    output.setRegister(register.getOrPanic());
-                } else {
-                    let (register, instInReg) = self.registers().freeUnprotected();
-                    self.spill(instInReg);
-                    output.setRegister(register);
-                }
+                let (register, instInReg) = self.registers().freeUnprotected();
+                self.spill(instInReg);
+                output.setRegister(register);
             }
         }
     }

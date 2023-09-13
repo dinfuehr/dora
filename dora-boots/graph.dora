@@ -997,6 +997,7 @@ impl Inst {
 
         assert(
             op == Op::Int32Const ||
+            op == Op::Float32Const ||
             op == Op::LoadGlobal ||
             op == Op::StoreGlobal ||
             op == Op::Arg
@@ -1005,7 +1006,12 @@ impl Inst {
     }
 
     pub fn auxAsInt64(): Int64 {
-        assert(self.op() == Op::Int64Const);
+        let op = self.op();
+
+        assert(
+            op == Op::Int64Const ||
+            op == Op::Float64Const
+        );
         self.aux
     }
 
