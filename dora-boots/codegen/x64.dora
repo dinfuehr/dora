@@ -1,4 +1,4 @@
-use package::assembler::x64::{AssemblerX64, Address as Mem, Condition, Immediate, ScaleFactor, registerName};
+use package::assembler::x64::{AssemblerX64, Address as AsmAddress, Condition, Immediate, ScaleFactor, registerName};
 use package::assembler::x64::{RAX, RDI, RDX, RCX, RSI, RBP, RSP, RBX};
 use package::assembler::x64::{R8, R9, R10, R11, R12, R13, R14, R15};
 use package::assembler::x64::{XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7};
@@ -75,7 +75,7 @@ impl CodeGenX64 {
 
     fn loadConstPool(dest: Register, entry: ConstPoolEntry) {
         let offset = -(self.asm.position() + 7i32 + entry.disp);
-        self.asm.movq_ra(dest, Mem::rip(offset));
+        self.asm.movq_ra(dest, AsmAddress::rip(offset));
     }
 
     fn emitDeferredCode() {
@@ -88,14 +88,14 @@ impl CodeGenX64 {
         let entry = self.constPool.push(ConstPoolValue::Float32(value));
         let inst_size = 8i32 + if msb(dest) { 1i32 } else { 0i32 };
         let disp = self.asm.position() + entry.disp + inst_size;
-        self.asm.movss_ra(dest, Mem::rip(-disp));
+        self.asm.movss_ra(dest, AsmAddress::rip(-disp));
     }
 
     fn mov_imm_f64(dest: FloatRegister, value: Float64) {
         let entry = self.constPool.push(ConstPoolValue::Float64(value));
         let inst_size = 8i32 + if msb(dest) { 1i32 } else { 0i32 };
         let disp = self.asm.position() + entry.disp + inst_size;
-        self.asm.movsd_ra(dest, Mem::rip(-disp));
+        self.asm.movsd_ra(dest, AsmAddress::rip(-disp));
     }
 
     fn emitCheckedDivModCommon(inst: Inst) {
@@ -180,7 +180,7 @@ impl CodeGen for CodeGenX64 {
 
     fn emitStackLimitCheck() {
         let lbl_stack_overflow = self.asm.createLabel();
-        self.asm.cmpq_ar(Mem::offset(REG_THREAD, THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET), RSP);
+        self.asm.cmpq_ar(AsmAddress::offset(REG_THREAD, THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET), RSP);
         self.asm.jcc(Condition::Above, lbl_stack_overflow);
 
         self.deferred.push(|| {
@@ -192,7 +192,7 @@ impl CodeGen for CodeGenX64 {
 
     fn emitSafepointCheck() {
         let lbl_safepoint = self.asm.createLabel();
-        self.asm.cmpb_ai(Mem::offset(REG_THREAD, THREAD_LOCAL_DATA_STATE_OFFSET), Immediate(0));
+        self.asm.cmpb_ai(AsmAddress::offset(REG_THREAD, THREAD_LOCAL_DATA_STATE_OFFSET), Immediate(0));
         self.asm.jcc(Condition::NotEqual, lbl_safepoint);
 
         self.deferred.push(|| {
@@ -225,7 +225,7 @@ impl CodeGen for CodeGenX64 {
         let loc = inst.getLocationData();
         let reg = loc.getOutput().getRegister();
         let slot = loc.getSpillSlot();
-        self.asm.movq_ar(Mem::offset(RBP, slot), reg);
+        self.asm.movq_ar(AsmAddress::offset(RBP, slot), reg);
     }
 
     fn emitInt32Const(inst: Inst) {
@@ -480,27 +480,27 @@ impl CodeGen for CodeGenX64 {
                 // Reload
                 assert(src.isStack());
                 if ty == Type::Int64 || ty == Type::Ptr {
-                    self.asm.movq_ra(dest.getRegister(), Mem::offset(RBP, src.getStack()));
+                    self.asm.movq_ra(dest.getRegister(), AsmAddress::offset(RBP, src.getStack()));
                 } else if ty == Type::Int32 {
-                    self.asm.movl_ra(dest.getRegister(), Mem::offset(RBP, src.getStack()));
+                    self.asm.movl_ra(dest.getRegister(), AsmAddress::offset(RBP, src.getStack()));
                 } else {
                     assert(ty == Type::Bool);
-                    self.asm.movb_ra(dest.getRegister(), Mem::offset(RBP, src.getStack()));
+                    self.asm.movb_ra(dest.getRegister(), AsmAddress::offset(RBP, src.getStack()));
                 }
             }
         } else {
             // Spill
             assert(dest.isStack());
             assert(src.isRegister());
-            self.asm.movq_ar(Mem::offset(RBP, dest.getStack()), src.getRegister());
+            self.asm.movq_ar(AsmAddress::offset(RBP, dest.getStack()), src.getRegister());
 
             if ty == Type::Int64 || ty == Type::Ptr {
-                self.asm.movq_ar(Mem::offset(RBP, dest.getStack()), src.getRegister());
+                self.asm.movq_ar(AsmAddress::offset(RBP, dest.getStack()), src.getRegister());
             } else if ty == Type::Int32 {
-                self.asm.movl_ar(Mem::offset(RBP, dest.getStack()), src.getRegister());
+                self.asm.movl_ar(AsmAddress::offset(RBP, dest.getStack()), src.getRegister());
             } else {
                 assert(ty == Type::Bool);
-                self.asm.movb_ar(Mem::offset(RBP, dest.getStack()), src.getRegister());
+                self.asm.movb_ar(AsmAddress::offset(RBP, dest.getStack()), src.getRegister());
             }
         }
     }

@@ -206,7 +206,6 @@ impl SimpleRegisterAllocator {
 
     fn allocateArbitraryRegisters(inst: Inst) {
         let loc = inst.getLocationData();
-        println("inst = ${inst.id()}");
 
         for input in inst.getInputs() {
             let idx = input.getIdx().toInt64();

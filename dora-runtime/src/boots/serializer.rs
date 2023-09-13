@@ -169,7 +169,7 @@ fn encode_constpool_array(vm: &VM, fct: &BytecodeFunction, buffer: &mut ByteBuff
 fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut ByteBuffer) {
     match const_entry {
         ConstPoolEntry::String(ref value) => {
-            buffer.emit_u8(ConstPoolOpcode::Float32.into());
+            buffer.emit_u8(ConstPoolOpcode::String.into());
             buffer.emit_u32(value.len() as u32);
 
             for byte in value.bytes() {
@@ -181,7 +181,7 @@ fn encode_constpool_entry(vm: &VM, const_entry: &ConstPoolEntry, buffer: &mut By
             buffer.emit_u32(value.to_bits());
         }
         &ConstPoolEntry::Float64(value) => {
-            buffer.emit_u8(ConstPoolOpcode::Float32.into());
+            buffer.emit_u8(ConstPoolOpcode::Float64.into());
             buffer.emit_u64(value.to_bits());
         }
         &ConstPoolEntry::Int32(value) => {

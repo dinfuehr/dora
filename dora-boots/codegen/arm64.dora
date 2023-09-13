@@ -103,7 +103,7 @@ impl CodeGenArm64 {
         let entry = self.constPool.push(ConstPoolValue::Float64(value));
         let disp = self.asm.position() + entry.disp;
         self.asm.adr_imm(scratch, -disp);
-        self.asm.ldr_imm_s(dest, scratch, 0i32);
+        self.asm.ldr_imm_d(dest, scratch, 0i32);
     }
 
     fn loadConstPool(dest: Register, entry: ConstPoolEntry) {
