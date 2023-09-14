@@ -1,0 +1,284 @@
+use std::collections::{HashMap, HashSet};
+
+use package::assembler::{FloatRegister, Register, RegisterType};
+use package::codegen::CodeGen;
+use package::graph::{Block, createMoveInst, Edge, Graph, Inst, Operand, RegisterTrackers, Type};
+use package::regalloc::RegisterTracker;
+
+pub fn ssaDestruction(graph: Graph, codegen: CodeGen) {
+    for block in graph.insertionOrderIterator() {
+        let block_trackers = block.getTrackerIn();
+        
+        for predecessorEdge in block.predecessors {
+            let predecessor = predecessorEdge.source;
+            let moves = ParallelMoveResolver::new();
+
+            let predecessor_trackers = predecessor.getTrackerOut();
+
+            processLiveRegisters[Register](block_trackers.gp, predecessor_trackers.gp, moves);
+            processLiveRegisters[FloatRegister](block_trackers.fp, predecessor_trackers.fp, moves);
+
+            processPhis(block, predecessorEdge, predecessor_trackers, moves);
+
+            moves.resolve(codegen.getScratchRegister());
+            moves.emitMoves(predecessor);
+        }
+    }
+}
+
+fn processLiveRegisters[T: RegisterType](registers: RegisterTracker[T], predecessor_registers: RegisterTracker[T], moves: ParallelMoveResolver) {
+    for (reg, inst) in registers.data {
+        let instRegister = predecessor_registers.getRegister(inst);
+
+        let value = if instRegister.isSome() {
+            instRegister.getOrPanic().toOperand()
+        } else {
+            Operand::Stack(inst.getLocationData().getSpillSlot())
+        };
+
+        moves.add(inst.getValueType(), reg.toOperand(), value);
+    }
+}
+
+fn processPhis(block: Block, predecessorEdge: Edge, predecessor_registers: RegisterTrackers, moves: ParallelMoveResolver) {
+    for phi in block.phisIterator() {
+        // Critical edges should already be split.
+        assert(predecessorEdge.source.successors.size() == 1);
+
+        if phi.getValueType().isAnyFloat() {
+            processPhi[FloatRegister](phi, predecessorEdge, predecessor_registers.fp, moves);
+        } else {
+            processPhi[Register](phi, predecessorEdge, predecessor_registers.gp, moves);
+        }
+    }
+}
+
+fn processPhi[T: RegisterType](phi: Inst, predecessorEdge: Edge, predecessor_registers: RegisterTracker[T], moves: ParallelMoveResolver) {
+    let loc = phi.getLocationData();
+    let dest = if loc.hasSpillSlot() {
+        Operand::Stack(loc.getSpillSlot())
+    } else {
+        loc.getOutput().getOperand()
+    };
+
+    let value = phi.getInput(predecessorEdge.targetIdx).getValue();
+    let valueRegister = predecessor_registers.getRegister(value);
+
+    let value = if valueRegister.isSome() {
+        valueRegister.getOrPanic().toOperand()
+    } else {
+        Operand::Stack(value.getLocationData().getSpillSlot())
+    };
+
+    moves.add(phi.getValueType(), dest, value);
+}
+
+
+struct Move {
+    ty: Type,
+    dest: Operand,
+    src: Operand,
+}
+
+class ParallelMoveResolver {
+    parallelMoves: Vec[Move],
+    orderedMoves: Vec[Move],
+    types: HashMap[Operand, Type],
+    // All written registers.
+    directpreds: HashMap[Operand, Operand],
+    // All used variables and their current location.
+    locations: HashMap[Operand, Operand],
+    todo: HashSet[Operand],
+}
+
+impl ParallelMoveResolver {
+    static fn new(): ParallelMoveResolver {
+        ParallelMoveResolver(
+            Vec[Move]::new(),
+            Vec[Move]::new(),
+            HashMap[Operand, Type]::new(),
+            HashMap[Operand, Operand]::new(),
+            HashMap[Operand, Operand]::new(),
+            HashSet[Operand]::new(),
+        )
+    }
+
+    fn add(ty: Type, dest: Operand, src: Operand) {
+        if dest == src { return; }
+        self.parallelMoves.push(Move(ty, dest, src));
+    }
+
+    fn resolve(scratch: Register) {
+        for move in self.parallelMoves {
+            let ty = move.ty;
+            let dest = move.dest;
+            let src = move.src;
+
+            assert(!self.directpreds.contains(dest));
+            self.directpreds.insert(dest, src);
+            self.locations.insert(src, src);
+            self.types.insert(dest, ty);
+            assert(!self.todo.contains(dest));
+            self.todo.insert(dest);
+        }
+
+        for move in self.parallelMoves {
+            let ty = move.ty;
+            let dest = move.dest;
+            let src = move.src;
+
+            if !self.locations.contains(dest) {
+                assert(self.todo.contains(dest));
+                self.emitMoveChainAt(dest);
+            }
+        }
+
+        while !self.todo.isEmpty() {
+            let dest = self.todo.makeIterator().next().getOrPanic();
+            let ty = self.types.get(dest).getOrPanic();
+            assert(self.inCycle(dest));
+            let scratch = Operand::Reg(scratch);
+            self.emitOrderedMove(ty, scratch, dest);
+            self.locations.insert(dest, scratch);
+            self.emitMoveChainAt(dest);
+        }
+    }
+
+    fn inCycle(opnd: Operand): Bool {
+        let start = opnd;
+        let mut opnd = opnd;
+        assert(self.todo.contains(opnd));
+
+        while self.directpreds.contains(opnd) {
+            opnd = self.directpreds.get(opnd).getOrPanic();
+            assert(self.todo.contains(opnd));
+
+            if opnd == start {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    fn emitMoveChainAt(dest: Operand) {
+        let mut dest = dest;
+        let ty = self.types.get(dest).getOrPanic();
+        assert(self.todo.contains(dest));
+
+        while self.todo.contains(dest) {
+            let original_src = self.directpreds.get(dest).getOrPanic();
+            let actual_src = self.locations.get(original_src).getOrPanic();
+            self.emitOrderedMove(ty, dest, actual_src);
+            self.locations.insert(original_src, dest);
+            assert(self.todo.remove(dest));
+
+            if !self.directpreds.contains(original_src) {
+                return;
+            }
+
+            dest = original_src;
+        }
+    }
+
+    fn emitOrderedMove(ty: Type, dest: Operand, src: Operand) {
+        self.orderedMoves.push(Move(ty, dest, src));
+    }
+
+    fn emitMoves(block: Block) {
+        for move in self.orderedMoves {
+            let inst = createMoveInst(move.ty, move.dest, move.src);
+            let terminator = block.lastInst();
+            assert(terminator.isTerminator());
+            terminator.insertBefore(inst);
+        }
+    }
+}
+
+@Test
+fn testMovesWithoutDependencies() {
+    let moves = ParallelMoveResolver::new();
+    moves.add(Type::Int64, r(1), r(0));
+    moves.add(Type::Int64, r(3), r(2));
+    moves.resolve(Register(10u8));
+
+    expectMoves(moves, moves.parallelMoves.toArray());
+}
+
+@Test
+fn testRegisterMovesWithDependency() {
+    let moves = ParallelMoveResolver::new();
+    moves.add(Type::Int64, r(1), r(0));
+    moves.add(Type::Int64, r(2), r(1));
+    moves.resolve(Register(10u8));
+
+    expectMoves(moves, Array[Move]::new(
+        Move(Type::Int64, r(2), r(1)),
+        Move(Type::Int64, r(1), r(0)),
+    ));
+}
+
+@Test
+fn testMovesWithDependency() {
+    let moves = ParallelMoveResolver::new();
+    moves.add(Type::Int32, s(1), r(0));
+    moves.add(Type::Int32, r(2), s(1));
+    moves.resolve(Register(10u8));
+
+    expectMoves(moves, Array[Move]::new(
+        Move(Type::Int32, r(2), s(1)),
+        Move(Type::Int32, s(1), r(0)),
+    ));
+}
+
+@Test
+fn testRegisterMovesWithCycle() {
+    let moves = ParallelMoveResolver::new();
+    moves.add(Type::Int64, r(1), r(0));
+    moves.add(Type::Int64, r(2), r(1));
+    moves.add(Type::Int64, r(0), r(2));
+    moves.resolve(Register(100u8));
+
+    expectMoves(moves, Array[Move]::new(
+        Move(Type::Int64, r(100), r(2)),
+        Move(Type::Int64, r(2), r(1)),
+        Move(Type::Int64, r(1), r(0)),
+        Move(Type::Int64, r(0), r(100)),
+    ));
+}
+
+@Test
+fn testStackMovesWithCycle() {
+    let moves = ParallelMoveResolver::new();
+    moves.add(Type::Int64, s(1), s(0));
+    moves.add(Type::Int64, s(2), s(1));
+    moves.add(Type::Int64, s(0), s(2));
+    moves.resolve(Register(100u8));
+
+    expectMoves(moves, Array[Move]::new(
+        Move(Type::Int64, r(100), s(2)),
+        Move(Type::Int64, s(2), s(1)),
+        Move(Type::Int64, s(1), s(0)),
+        Move(Type::Int64, s(0), r(100)),
+    ));
+}
+
+fn expectMoves(moves: ParallelMoveResolver, expected: Array[Move]) {
+    let mut idx = 0;
+    assert(moves.orderedMoves.size() == expected.size());
+    for move in moves.orderedMoves {
+        let exp = expected(idx);
+        assert(move.ty == exp.ty);
+        assert(move.dest == exp.dest);
+        assert(move.src == exp.src);
+        idx = idx + 1;
+    }
+}
+
+fn r(value: Int64): Operand {
+    Operand::Reg(Register(value.toUInt8()))
+}
+
+fn s(value: Int64): Operand {
+    Operand::Stack(value.toInt32())
+}

@@ -1,6 +1,8 @@
 use std::Hash;
 use std::Equals;
 
+use package::graph::Operand;
+
 pub mod arm64;
 pub mod x64;
 
@@ -125,6 +127,7 @@ fn testAssemblerBufferEmitInt() {
 pub trait RegisterType {
     static fn fromInt32(value: Int32): Self;
     fn toInt32(): Int32;
+    fn toOperand(): Operand;
 }
 
 pub struct Register(pub value: UInt8)
@@ -154,11 +157,15 @@ impl RegisterType for Register {
     fn toInt32(): Int32 {
         self.value.toInt32()
     }
+
+    fn toOperand(): Operand {
+        Operand::Reg(self)
+    }
 }
 
 pub struct FloatRegister(pub value: UInt8)
 
-impl FloatRegister {
+impl Equals for FloatRegister {
     fn equals(rhs: FloatRegister): Bool {
         self.value == rhs.value
     }
@@ -178,6 +185,10 @@ impl RegisterType for FloatRegister {
 
     fn toInt32(): Int32 {
         self.value.toInt32()
+    }
+
+    fn toOperand(): Operand {
+        Operand::FloatReg(self)
     }
 }
 

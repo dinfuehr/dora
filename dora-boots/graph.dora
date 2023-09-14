@@ -198,8 +198,8 @@ impl ReversePostOrderIterator {
 }
 
 pub struct RegisterTrackers {
-    pub general: RegisterTracker[Register],
-    pub float: RegisterTracker[FloatRegister],
+    pub gp: RegisterTracker[Register],
+    pub fp: RegisterTracker[FloatRegister],
 }
 
 struct BlockId(value: Int32)
@@ -1362,6 +1362,12 @@ impl Location {
 
     pub fn getOperand(): Operand {
         self.operand
+    }
+
+    pub fn setOperand(opnd: Operand) {
+        assert(self.operand.isNone());
+        assert(!opnd.isNone());
+        self.operand = opnd;
     }
 
     pub fn isNone(): Bool {
