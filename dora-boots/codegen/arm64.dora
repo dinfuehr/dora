@@ -499,17 +499,46 @@ impl CodeGen for CodeGenArm64 {
                     self.asm.ldrb_imm(dest.getRegister(), REG_FP, src.getStack());
                 }
             }
+        } else if dest.isFloatRegister() {
+            if src.isFloatRegister() {
+                // Register-to-Register
+                if ty == Type::Float32 {
+                    self.asm.fmov_s(dest.getFloatRegister(), src.getFloatRegister());
+                } else {
+                    assert(ty == Type::Float64);
+                    self.asm.fmov_d(dest.getFloatRegister(), src.getFloatRegister());
+                }
+            } else {
+                // Reload
+                assert(src.isStack());
+                if ty == Type::Float32 {
+                    self.asm.ldr_imm_s(dest.getFloatRegister(), REG_FP, src.getStack());
+                } else {
+                    assert(ty == Type::Float64);
+                    self.asm.ldr_imm_d(dest.getFloatRegister(), REG_FP, src.getStack());
+                }
+            }
         } else {
             // Spill
             assert(dest.isStack());
-            assert(src.isRegister());
-            if ty == Type::Int64 || ty == Type::Ptr {
-                self.asm.stur(src.getRegister(), REG_FP, dest.getStack());
-            } else if ty == Type::Int32 {
-                self.asm.stur_w(src.getRegister(), REG_FP, dest.getStack());
+
+            if src.isFloatRegister() {
+                if ty == Type::Float32 {
+                    self.asm.str_imm_s(src.getFloatRegister(), REG_FP, dest.getStack());
+                } else {
+                    assert(ty == Type::Float64);
+                    self.asm.str_imm_d(src.getFloatRegister(), REG_FP, dest.getStack());
+                }
             } else {
-                assert(ty == Type::Bool);
-                self.asm.strb_imm(src.getRegister(), REG_FP, dest.getStack());
+                assert(src.isRegister());
+                if ty == Type::Int64 || ty == Type::Ptr {
+                    self.asm.stur(src.getRegister(), REG_FP, dest.getStack());
+                } else if ty == Type::Int32 {
+                    self.asm.stur_w(src.getRegister(), REG_FP, dest.getStack());
+                } else {
+                    assert(ty == Type::Bool);
+                    self.asm.strb_imm(src.getRegister(), REG_FP, dest.getStack());
+                }
             }
         }
     }

@@ -488,19 +488,48 @@ impl CodeGen for CodeGenX64 {
                     self.asm.movb_ra(dest.getRegister(), AsmAddress::offset(RBP, src.getStack()));
                 }
             }
+        } else if dest.isFloatRegister() {
+            if src.isFloatRegister() {
+                // Register-to-Register
+                if ty == Type::Float32 {
+                    self.asm.movss_rr(dest.getFloatRegister(), src.getFloatRegister());
+                } else {
+                    assert(ty == Type::Float64);
+                    self.asm.movsd_rr(dest.getFloatRegister(), src.getFloatRegister());
+                }
+            } else {
+                // Reload
+                assert(src.isStack());
+                if ty == Type::Float32 {
+                    self.asm.movss_ra(dest.getFloatRegister(), AsmAddress::offset(RBP, src.getStack()));
+                } else {
+                    assert(ty == Type::Float64);
+                    self.asm.movss_ra(dest.getFloatRegister(), AsmAddress::offset(RBP, src.getStack()));
+                }
+            }
         } else {
             // Spill
             assert(dest.isStack());
-            assert(src.isRegister());
-            self.asm.movq_ar(AsmAddress::offset(RBP, dest.getStack()), src.getRegister());
 
-            if ty == Type::Int64 || ty == Type::Ptr {
-                self.asm.movq_ar(AsmAddress::offset(RBP, dest.getStack()), src.getRegister());
-            } else if ty == Type::Int32 {
-                self.asm.movl_ar(AsmAddress::offset(RBP, dest.getStack()), src.getRegister());
+            if src.isFloatRegister() {
+                if ty == Type::Float32 {
+                    self.asm.movss_ar(AsmAddress::offset(RBP, src.getStack()), src.getFloatRegister());
+                } else {
+                    assert(ty == Type::Float64);
+                    self.asm.movsd_ar(AsmAddress::offset(RBP, src.getStack()), src.getFloatRegister());
+                }
             } else {
-                assert(ty == Type::Bool);
-                self.asm.movb_ar(AsmAddress::offset(RBP, dest.getStack()), src.getRegister());
+                assert(src.isRegister());
+                self.asm.movq_ar(AsmAddress::offset(RBP, dest.getStack()), src.getRegister());
+
+                if ty == Type::Int64 || ty == Type::Ptr {
+                    self.asm.movq_ar(AsmAddress::offset(RBP, dest.getStack()), src.getRegister());
+                } else if ty == Type::Int32 {
+                    self.asm.movl_ar(AsmAddress::offset(RBP, dest.getStack()), src.getRegister());
+                } else {
+                    assert(ty == Type::Bool);
+                    self.asm.movb_ar(AsmAddress::offset(RBP, dest.getStack()), src.getRegister());
+                }
             }
         }
     }

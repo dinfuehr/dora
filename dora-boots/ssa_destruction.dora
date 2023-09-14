@@ -196,10 +196,20 @@ impl ParallelMoveResolver {
 }
 
 @Test
-fn testMovesWithoutDependencies() {
+fn testRegisterMovesWithoutDependencies() {
     let moves = ParallelMoveResolver::new();
     moves.add(Type::Int64, r(1), r(0));
     moves.add(Type::Int64, r(3), r(2));
+    moves.resolve(Register(10u8));
+
+    expectMoves(moves, moves.parallelMoves.toArray());
+}
+
+@Test
+fn testFloatRegisterMovesWithoutDependencies() {
+    let moves = ParallelMoveResolver::new();
+    moves.add(Type::Float64, f(1), f(0));
+    moves.add(Type::Float64, f(3), f(2));
     moves.resolve(Register(10u8));
 
     expectMoves(moves, moves.parallelMoves.toArray());
@@ -277,6 +287,10 @@ fn expectMoves(moves: ParallelMoveResolver, expected: Array[Move]) {
 
 fn r(value: Int64): Operand {
     Operand::Reg(Register(value.toUInt8()))
+}
+
+fn f(value: Int64): Operand {
+    Operand::FloatReg(FloatRegister(value.toUInt8()))
 }
 
 fn s(value: Int64): Operand {
