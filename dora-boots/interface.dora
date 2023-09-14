@@ -62,6 +62,7 @@ pub class CompilationInfo(
     pub bc: BytecodeFunction,
     pub typeParams: Array[BytecodeType],
     pub loc: Location,
+    pub emitDebug: Bool,
     pub emitGraph: Bool,
     pub emitCodeComments: Bool,
 )
@@ -257,6 +258,7 @@ impl ConstPool {
         let entry_alignment = entry_size;
         let new_size = (self.size + (entry_alignment - 1i32)) & entry_alignment + entry_size;
         let entry = ConstPoolEntry(new_size, value);
+        self.size = new_size;
         self.entries.push(entry);
         entry
     }

@@ -19,10 +19,15 @@ pub fn createCodeGen(ci: CompilationInfo): CodeGen {
     }
 }
 
-pub fn generateCode(graph: Graph, codegen: CodeGen): CodeDescriptor {
+pub fn generateCode(graph: Graph, codegen: CodeGen, ci: CompilationInfo): CodeDescriptor {
     let stackSize = graph.getStackSize();
     assert(stackSize >= 0i32);
     assert(stackSize % STACK_FRAME_ALIGNMENT.toInt32() == 0i32);
+
+    if ci.emitDebug {
+        codegen.emitDebug();
+    }
+
     codegen.emitProlog(stackSize);
 
     codegen.emitComment("stack limit check");
@@ -65,6 +70,7 @@ pub trait CodeGen {
     fn getReturnRegister(): Register;
     fn getFloatReturnRegister(): FloatRegister;
 
+    fn emitDebug();
     fn emitProlog(stackSize: Int32);
     fn emitStackLimitCheck();
     fn emitSafepointCheck();

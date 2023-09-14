@@ -169,6 +169,10 @@ impl CodeGen for CodeGenX64 {
         XMM0
     }
 
+    fn emitDebug() {
+        self.asm.int3();
+    }
+
     fn emitProlog(stackSize: Int32) {
         self.asm.pushq_r(RBP);
         self.asm.movq_rr(RBP, RSP);

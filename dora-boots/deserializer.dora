@@ -21,9 +21,10 @@ pub fn decodeCompilationInfo(reader: ByteReader): CompilationInfo {
     let bc = decodeBytecodeFunction(reader);
     let typeParams = decodeTypeParams(reader);
     let loc = decodeLocation(reader);
+    let emitDebug = reader.readBool();
     let emitGraph = reader.readBool();
     let emitCodeComments = reader.readBool();
-    CompilationInfo(bc, typeParams, loc, emitGraph, emitCodeComments)
+    CompilationInfo(bc, typeParams, loc, emitDebug, emitGraph, emitCodeComments)
 }
 
 pub fn decodeBytecodeFunction(reader: ByteReader): BytecodeFunction {

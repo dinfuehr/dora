@@ -186,6 +186,10 @@ impl CodeGen for CodeGenArm64 {
         F0
     }
 
+    fn emitDebug() {
+        self.asm.brk(0i32);
+    }
+
     fn emitProlog(stackSize: Int32) {
         self.asm.stp_pre(REG_FP, REG_LR, REG_SP, -16i32);
         self.asm.mov(REG_FP, REG_SP);

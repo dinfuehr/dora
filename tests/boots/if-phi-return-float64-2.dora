@@ -1,0 +1,17 @@
+//= boots
+//= ignore
+
+fn main() {
+    assert(myf(true, 2) == 21.0);
+    assert(myf(false, 3) == 62.25);
+}
+
+@optimizeImmediately fn myf(x: Bool, multiplier: Float64): Float64 {
+    let result = if x {
+        10.5
+    } else {
+        20.75
+    };
+
+    result * multiplier
+}

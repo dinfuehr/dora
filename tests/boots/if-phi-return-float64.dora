@@ -1,0 +1,14 @@
+//= boots
+
+fn main() {
+    assert(myf(true) == 10.5);
+    assert(myf(false) == 20.75);
+}
+
+@optimizeImmediately fn myf(x: Bool): Float64 {
+    if x {
+        10.5
+    } else {
+        20.75
+    }
+}

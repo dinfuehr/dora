@@ -59,7 +59,7 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
         println(dumpGraph(graph, config.architecture));
     }
 
-    generateCode(graph, codegen)
+    generateCode(graph, codegen, ci)
 }
 
 fn splitCriticalEdges(graph: Graph) {

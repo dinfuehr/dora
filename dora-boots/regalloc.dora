@@ -145,11 +145,20 @@ impl SimpleRegisterAllocator {
     }
 
     fn allocatePhi(inst: Inst) {
-        let register = self.registers().allocateRegister(inst);
+        if inst.getValueType().isAnyFloat() {
+            self.allocatePhiGeneric[FloatRegister](self.float_registers(), inst);
+        } else {
+            self.allocatePhiGeneric[Register](self.registers(), inst);
+        }
+    }
+
+    fn allocatePhiGeneric[T: RegisterType](registers: RegisterTracker[T], inst: Inst) {
+        let register = registers.allocateRegister(inst);
 
         if register.isSome() {
             let loc = inst.getLocationData();
-            loc.getOutput().setRegister(register.getOrPanic());
+            let register = register.getOrPanic();
+            loc.getOutput().setOperand(register.toOperand());
         } else {
             self.spill(inst);
         }

@@ -34,6 +34,7 @@ fn encode_compilation_info(vm: &VM, compilation_data: &CompilationData, buffer: 
     encode_bytecode_function(vm, &compilation_data.bytecode_fct, buffer);
     encode_type_params(vm, &compilation_data.type_params, buffer);
     encode_location(&compilation_data.loc, buffer);
+    buffer.emit_bool(compilation_data.emit_debug);
     buffer.emit_bool(compilation_data.emit_graph);
     buffer.emit_bool(compilation_data.emit_code_comments);
 }
