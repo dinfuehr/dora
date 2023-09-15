@@ -1,7 +1,7 @@
 use package::assembler::x64::{AssemblerX64, Address as AsmAddress, Condition, Immediate, ScaleFactor, registerName};
 use package::assembler::x64::{RAX, RDI, RDX, RCX, RSI, RBP, RSP, RBX};
 use package::assembler::x64::{R8, R9, R10, R11, R12, R13, R14, R15};
-use package::assembler::x64::{XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7};
+use package::assembler::x64::{XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7, XMM15};
 use package::assembler::{FloatRegister, Label, Register, RegSet};
 use package::bytecode::data::{ConstPoolId, Location};
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen};
@@ -10,13 +10,14 @@ use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA
 use package::graph::{Inst, Op, LocationData, Type};
 use package::{CodeDescriptor, CommentTable, GcPointTable, LazyCompilationData, LocationTable};
 
-pub let REG_PARAMS: Array[Register] = Array[Register]::new(RDI, RSI, RDX, RCX, R8, R9);
+let REG_PARAMS: Array[Register] = Array[Register]::new(RDI, RSI, RDX, RCX, R8, R9);
 let FLOAT_REG_PARAMS: Array[FloatRegister] = Array[FloatRegister]::new(XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7);
 
-pub let CCALL_REG_PARAMS: Array[Register] = REG_PARAMS;
+let CCALL_REG_PARAMS: Array[Register] = REG_PARAMS;
 
 // Temporary registers that can be used within an instruction.
 let REG_TEMP: Register = R10;
+let FREG_TEMP: FloatRegister = XMM15;
 let REG_THREAD: Register = R15;
 
 let ALLOCATABLE_REGS: RegSet[Register] = RegSet[Register]::new(
@@ -29,6 +30,9 @@ let ALLOCATABLE_REGS: RegSet[Register] = RegSet[Register]::new(
     R12, R13, R14,
     // R15 is REG_THREAD
 );
+
+// The last register XMM15 is used as FREG_TEMP.
+let ALLOCATABLE_FREGS: RegSet[FloatRegister] = RegSet[FloatRegister]::firstN(15i32);
 
 fn msb(reg: FloatRegister): Bool {
     ((reg.value.toInt64() >> 3i32) & 1) != 0
@@ -142,7 +146,7 @@ impl CodeGen for CodeGenX64 {
     }
 
     fn allocatableFloatRegisters(): RegSet[FloatRegister] {
-        RegSet[FloatRegister]::firstN(16i32)
+        ALLOCATABLE_FREGS
     }
 
     fn argumentRegister(idx: Int64): Register {

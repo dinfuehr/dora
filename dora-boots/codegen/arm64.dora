@@ -2,7 +2,7 @@ use package::bytecode::{ConstPoolId, Location};
 use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, TRAP_DIV0, TRAP_OVERFLOW, getFunctionAddress};
 use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET};
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen};
-use package::assembler::arm64::{F0, F1, F2, F3, F4, F5, F6, F7};
+use package::assembler::arm64::{F0, F1, F2, F3, F4, F5, F6, F7, F31};
 use package::assembler::arm64::{AssemblerArm64, Cond, Extend, Shift, registerName};
 use package::assembler::arm64::{R0, R1, R2, R3, R4, R5, R6, R7};
 use package::assembler::arm64::{R8, R9, R10, R11, R12, R13, R14};
@@ -19,6 +19,7 @@ let FLOAT_REG_PARAMS: Array[FloatRegister] = Array[FloatRegister]::new(F0, F1, F
 let CCALL_REG_PARAMS: Array[Register] = REG_PARAMS;
 
 let REG_TEMP: Register = R16;
+let FREG_TEMP: FloatRegister = F31;
 let REG_THREAD: Register = R28;
 
 let ALLOCATABLE_REGS: RegSet[Register] = RegSet[Register]::new(
@@ -35,6 +36,9 @@ let ALLOCATABLE_REGS: RegSet[Register] = RegSet[Register]::new(
     // R29 is FP
     // R30 is LR
 );
+
+// The last register F31 is used as FREG_TEMP.
+let ALLOCATABLE_FREGS: RegSet[FloatRegister] = RegSet[FloatRegister]::firstN(31i32);
 
 pub class CodeGenArm64 {
     ci: CompilationInfo,
@@ -159,7 +163,7 @@ impl CodeGen for CodeGenArm64 {
     }
 
     fn allocatableFloatRegisters(): RegSet[FloatRegister] {
-        RegSet[FloatRegister]::firstN(32i32)
+        ALLOCATABLE_FREGS
     }
 
     fn argumentRegister(idx: Int64): Register {
