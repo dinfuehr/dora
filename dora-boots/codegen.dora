@@ -67,6 +67,8 @@ pub trait CodeGen {
     fn argumentFloatRegisters(): Array[FloatRegister];
 
     fn getScratchRegister(): Register;
+    fn getFloatScratchRegister(): FloatRegister;
+
     fn getReturnRegister(): Register;
     fn getFloatReturnRegister(): FloatRegister;
 

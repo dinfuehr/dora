@@ -20,7 +20,7 @@ pub fn ssaDestruction(graph: Graph, codegen: CodeGen) {
 
             processPhis(block, predecessorEdge, predecessor_trackers, moves);
 
-            moves.resolve(codegen.getScratchRegister());
+            moves.resolve(codegen.getScratchRegister(), codegen.getFloatScratchRegister());
             moves.emitMoves(predecessor);
         }
     }
@@ -108,7 +108,7 @@ impl ParallelMoveResolver {
         self.parallelMoves.push(Move(ty, dest, src));
     }
 
-    fn resolve(scratch: Register) {
+    fn resolve(scratch: Register, float_scratch: FloatRegister) {
         for move in self.parallelMoves {
             let ty = move.ty;
             let dest = move.dest;
@@ -200,7 +200,7 @@ fn testRegisterMovesWithoutDependencies() {
     let moves = ParallelMoveResolver::new();
     moves.add(Type::Int64, r(1), r(0));
     moves.add(Type::Int64, r(3), r(2));
-    moves.resolve(Register(10u8));
+    moves.resolve(Register(10u8), FloatRegister(100u8));
 
     expectMoves(moves, moves.parallelMoves.toArray());
 }
@@ -210,7 +210,7 @@ fn testFloatRegisterMovesWithoutDependencies() {
     let moves = ParallelMoveResolver::new();
     moves.add(Type::Float64, f(1), f(0));
     moves.add(Type::Float64, f(3), f(2));
-    moves.resolve(Register(10u8));
+    moves.resolve(Register(10u8), FloatRegister(100u8));
 
     expectMoves(moves, moves.parallelMoves.toArray());
 }
@@ -220,7 +220,7 @@ fn testRegisterMovesWithDependency() {
     let moves = ParallelMoveResolver::new();
     moves.add(Type::Int64, r(1), r(0));
     moves.add(Type::Int64, r(2), r(1));
-    moves.resolve(Register(10u8));
+    moves.resolve(Register(10u8), FloatRegister(100u8));
 
     expectMoves(moves, Array[Move]::new(
         Move(Type::Int64, r(2), r(1)),
@@ -233,7 +233,7 @@ fn testMovesWithDependency() {
     let moves = ParallelMoveResolver::new();
     moves.add(Type::Int32, s(1), r(0));
     moves.add(Type::Int32, r(2), s(1));
-    moves.resolve(Register(10u8));
+    moves.resolve(Register(10u8), FloatRegister(1u8));
 
     expectMoves(moves, Array[Move]::new(
         Move(Type::Int32, r(2), s(1)),
@@ -247,7 +247,7 @@ fn testRegisterMovesWithCycle() {
     moves.add(Type::Int64, r(1), r(0));
     moves.add(Type::Int64, r(2), r(1));
     moves.add(Type::Int64, r(0), r(2));
-    moves.resolve(Register(100u8));
+    moves.resolve(Register(100u8), FloatRegister(100u8));
 
     expectMoves(moves, Array[Move]::new(
         Move(Type::Int64, r(100), r(2)),
@@ -263,7 +263,7 @@ fn testStackMovesWithCycle() {
     moves.add(Type::Int64, s(1), s(0));
     moves.add(Type::Int64, s(2), s(1));
     moves.add(Type::Int64, s(0), s(2));
-    moves.resolve(Register(100u8));
+    moves.resolve(Register(100u8), FloatRegister(100u8));
 
     expectMoves(moves, Array[Move]::new(
         Move(Type::Int64, r(100), s(2)),

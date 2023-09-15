@@ -182,6 +182,10 @@ impl CodeGen for CodeGenArm64 {
         REG_TEMP
     }
 
+    fn getFloatScratchRegister(): FloatRegister {
+        FREG_TEMP
+    }
+
     fn getReturnRegister(): Register {
         R0
     }
