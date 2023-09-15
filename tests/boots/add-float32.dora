@@ -1,0 +1,11 @@
+//= boots
+//= ignore
+
+fn main() {
+    let x = f(1.5f32, 2.5f32);
+    assert(x == 4f32);
+    let x = f(100.25f32, 0.75f32);
+    assert(x == 101.0f32);
+}
+
+@optimizeImmediately fn f(a: Float32, b: Float32): Float32 { a+b }

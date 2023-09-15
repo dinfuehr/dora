@@ -276,6 +276,10 @@ impl CodeGen for CodeGenX64 {
         self.asm.movl_ri(register, Immediate(0));
     }
 
+    fn emitAdd(inst: Inst) {
+        unimplemented();
+    }
+
     fn emitCheckedAdd(inst: Inst) {
         let loc = inst.getLocationData();
         let lhs = loc.getInput(0).getRegister();

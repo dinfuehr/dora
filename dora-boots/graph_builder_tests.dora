@@ -108,7 +108,7 @@ fn test_add_float32_arguments() {
 @0:
   %0: Arg.Float32(0) [%2]
   %1: Arg.Float32(1) [%2]
-  %2: CheckedAdd.Float32 %0, %1 [%3]
+  %2: Add.Float32 %0, %1 [%3]
   %3: Ret.Float32 %2
 ");
 }

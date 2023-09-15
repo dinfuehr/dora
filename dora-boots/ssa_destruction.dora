@@ -137,7 +137,11 @@ impl ParallelMoveResolver {
             let dest = self.todo.makeIterator().next().getOrPanic();
             let ty = self.types.get(dest).getOrPanic();
             assert(self.inCycle(dest));
-            let scratch = Operand::Reg(scratch);
+            let scratch = if ty.isAnyFloat() {
+                float_scratch.toOperand()
+            } else {
+                scratch.toOperand()
+            };
             self.emitOrderedMove(ty, scratch, dest);
             self.locations.insert(dest, scratch);
             self.emitMoveChainAt(dest);
@@ -229,7 +233,20 @@ fn testRegisterMovesWithDependency() {
 }
 
 @Test
-fn testMovesWithDependency() {
+fn testFloatRegisterMovesWithDependency() {
+    let moves = ParallelMoveResolver::new();
+    moves.add(Type::Float64, f(1), f(0));
+    moves.add(Type::Float64, f(2), f(1));
+    moves.resolve(Register(10u8), FloatRegister(100u8));
+
+    expectMoves(moves, Array[Move]::new(
+        Move(Type::Float64, f(2), f(1)),
+        Move(Type::Float64, f(1), f(0)),
+    ));
+}
+
+@Test
+fn testStackMovesWithDependency() {
     let moves = ParallelMoveResolver::new();
     moves.add(Type::Int32, s(1), r(0));
     moves.add(Type::Int32, r(2), s(1));
@@ -258,6 +275,22 @@ fn testRegisterMovesWithCycle() {
 }
 
 @Test
+fn testFloatRegisterMovesWithCycle() {
+    let moves = ParallelMoveResolver::new();
+    moves.add(Type::Float64, f(1), f(0));
+    moves.add(Type::Float64, f(2), f(1));
+    moves.add(Type::Float64, f(0), f(2));
+    moves.resolve(Register(100u8), FloatRegister(5u8));
+
+    expectMoves(moves, Array[Move]::new(
+        Move(Type::Float64, f(5), f(2)),
+        Move(Type::Float64, f(2), f(1)),
+        Move(Type::Float64, f(1), f(0)),
+        Move(Type::Float64, f(0), f(5)),
+    ));
+}
+
+@Test
 fn testStackMovesWithCycle() {
     let moves = ParallelMoveResolver::new();
     moves.add(Type::Int64, s(1), s(0));
@@ -278,6 +311,13 @@ fn expectMoves(moves: ParallelMoveResolver, expected: Array[Move]) {
     assert(moves.orderedMoves.size() == expected.size());
     for move in moves.orderedMoves {
         let exp = expected(idx);
+
+        if move.ty != exp.ty || move.dest != exp.dest || move.src != exp.src {
+            println("index ${idx}");
+            println("move.dest=${move.dest} vs exp.dest=${exp.dest}");
+            println("move.src=${move.src} vs exp.src=${exp.src}");
+        }
+
         assert(move.ty == exp.ty);
         assert(move.dest == exp.dest);
         assert(move.src == exp.src);

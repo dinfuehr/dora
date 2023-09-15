@@ -96,6 +96,7 @@ pub trait CodeGen {
     fn emitInt64Const(inst: Inst);
     fn emitFloat32Const(inst: Inst);
     fn emitFloat64Const(inst: Inst);
+    fn emitAdd(inst: Inst);
     fn emitCheckedAdd(inst: Inst);
     fn emitCheckedSub(inst: Inst);
     fn emitCheckedMul(inst: Inst);
@@ -166,7 +167,8 @@ pub fn setLocationConstraints(codegen: CodeGen, inst: Inst) {
             loc.requireOutputRegister();
         },
 
-        Op::CheckedAdd
+        Op::Add
+        | Op::CheckedAdd
         | Op::CheckedSub
         | Op::CheckedMul => {
             loc.requireInputRegister(0);
@@ -253,6 +255,11 @@ pub fn emitInst(codegen: CodeGen, inst: Inst) {
         Op::Float64Const => {
             codegen.emitComment("Float64Const");
             codegen.emitFloat64Const(inst);
+        },
+
+        Op::Add => {
+            codegen.emitComment("Add");
+            codegen.emitAdd(inst);
         },
 
         Op::CheckedAdd => {

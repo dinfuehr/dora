@@ -188,6 +188,15 @@ pub enum BytecodeType {
     Lambda(Array[BytecodeType], BytecodeType),
 }
 
+impl BytecodeType {
+    pub fn isAnyFloat(): Bool {
+        match self {
+            BytecodeType::Float32 | BytecodeType::Float64 => true,
+            _ => false,
+        }
+    }
+}
+
 impl Stringable for BytecodeType {
     fn toString(): String {
         match self {

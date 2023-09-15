@@ -250,25 +250,53 @@ impl SsaGen {
         self.blockTerminated = false;
     }
 
+    fn getRegisterType(reg: BytecodeRegister): BytecodeType {
+        self.bc.registers(reg.value.toInt64())
+    }
+
     fn processInstruction(inst: BytecodeInstruction) {
        match inst {
             BytecodeInstruction::Add(dest, lhs, rhs) => {
-                self.emitBin(dest, lhs, rhs, Op::CheckedAdd);
+                if self.getRegisterType(dest).isAnyFloat() {
+                    self.emitBin(dest, lhs, rhs, Op::Add);
+                } else {
+                    self.emitBin(dest, lhs, rhs, Op::CheckedAdd);
+                }
             },
             BytecodeInstruction::Sub(dest, lhs, rhs) => {
-                self.emitBin(dest, lhs, rhs, Op::CheckedSub);
+                if self.getRegisterType(dest).isAnyFloat() {
+                    self.emitBin(dest, lhs, rhs, Op::Sub);
+                } else {
+                    self.emitBin(dest, lhs, rhs, Op::CheckedSub);
+                }
             },
             BytecodeInstruction::Neg(dest, src) => {
-                self.emitUn(dest, src, Op::CheckedNeg);
+                if self.getRegisterType(dest).isAnyFloat() {
+                    self.emitUn(dest, src, Op::Neg);
+                } else {
+                    self.emitUn(dest, src, Op::CheckedNeg);
+                }
             },
             BytecodeInstruction::Mul(dest, lhs, rhs) => {
-                self.emitBin(dest, lhs, rhs, Op::CheckedMul);
+                if self.getRegisterType(dest).isAnyFloat() {
+                    self.emitBin(dest, lhs, rhs, Op::Mul);
+                } else {
+                    self.emitBin(dest, lhs, rhs, Op::CheckedMul);
+                }
             },
             BytecodeInstruction::Div(dest, lhs, rhs) => {
-                self.emitDivMod(dest, lhs, rhs, Op::CheckedDiv);
+                if self.getRegisterType(dest).isAnyFloat() {
+                    self.emitDivMod(dest, lhs, rhs, Op::Div);
+                } else {
+                    self.emitDivMod(dest, lhs, rhs, Op::CheckedDiv);
+                }
             },
             BytecodeInstruction::Mod(dest, lhs, rhs) => {
-                self.emitDivMod(dest, lhs, rhs, Op::CheckedMod);
+                if self.getRegisterType(dest).isAnyFloat() {
+                    self.emitDivMod(dest, lhs, rhs, Op::Mod);
+                } else {
+                    self.emitDivMod(dest, lhs, rhs, Op::CheckedMod);
+                }
             },
             BytecodeInstruction::And(dest, lhs, rhs) => {
                 self.emitBin(dest, lhs, rhs, Op::And);
@@ -582,9 +610,13 @@ impl SsaGen {
         
         let lhsInst = self.readVariable(lhs, self.current());
         let rhsInst = self.readVariable(rhs, self.current());
-        let divZeroCheck = createDivZeroCheck(rhsInst);
-        divZeroCheck.set_bytecode_position(self.offset);
-        self.current().appendInst(divZeroCheck);
+
+        if !registerType.isAnyFloat() {
+            let divZeroCheck = createDivZeroCheck(rhsInst);
+            divZeroCheck.set_bytecode_position(self.offset);
+            self.current().appendInst(divZeroCheck);
+        }
+
         let destInst = createBinaryInst(op, ty, lhsInst, rhsInst);
         destInst.set_bytecode_position(self.offset);
         self.current().appendInst(destInst);

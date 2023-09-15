@@ -316,6 +316,22 @@ impl CodeGen for CodeGenArm64 {
         self.mov_imm_f64(register, REG_TEMP, inst.auxAsInt64().asFloat64());
     }
 
+    fn emitAdd(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getFloatRegister();
+        let rhs = loc.getInput(1).getFloatRegister();
+        let output = loc.getOutput().getFloatRegister();
+
+        let ty = inst.getValueType();
+
+        if ty == Type::Float32 {
+            self.asm.fadd_s(output, lhs, rhs);
+        } else {
+            assert(ty == Type::Float64);
+            self.asm.fadd_d(output, lhs, rhs);
+        }
+    }
+
     fn emitCheckedAdd(inst: Inst) {
         let loc = inst.getLocationData();
         let lhs = loc.getInput(0).getRegister();
