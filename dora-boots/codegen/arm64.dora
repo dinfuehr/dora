@@ -332,6 +332,69 @@ impl CodeGen for CodeGenArm64 {
         }
     }
 
+    fn emitSub(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getFloatRegister();
+        let rhs = loc.getInput(1).getFloatRegister();
+        let output = loc.getOutput().getFloatRegister();
+
+        let ty = inst.getValueType();
+
+        if ty == Type::Float32 {
+            self.asm.fsub_s(output, lhs, rhs);
+        } else {
+            assert(ty == Type::Float64);
+            self.asm.fsub_d(output, lhs, rhs);
+        }
+    }
+
+    fn emitMul(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getFloatRegister();
+        let rhs = loc.getInput(1).getFloatRegister();
+        let output = loc.getOutput().getFloatRegister();
+
+        let ty = inst.getValueType();
+
+        if ty == Type::Float32 {
+            self.asm.fmul_s(output, lhs, rhs);
+        } else {
+            assert(ty == Type::Float64);
+            self.asm.fmul_d(output, lhs, rhs);
+        }
+    }
+
+    fn emitDiv(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getFloatRegister();
+        let rhs = loc.getInput(1).getFloatRegister();
+        let output = loc.getOutput().getFloatRegister();
+
+        let ty = inst.getValueType();
+
+        if ty == Type::Float32 {
+            self.asm.fdiv_s(output, lhs, rhs);
+        } else {
+            assert(ty == Type::Float64);
+            self.asm.fdiv_d(output, lhs, rhs);
+        }
+    }
+
+    fn emitNeg(inst: Inst) {
+        let loc = inst.getLocationData();
+        let src = loc.getInput(0).getFloatRegister();
+        let dest = loc.getOutput().getFloatRegister();
+
+        let ty = inst.getValueType();
+
+        if ty == Type::Float32 {
+            self.asm.fneg_s(dest, src);
+        } else {
+            assert(ty == Type::Float64);
+            self.asm.fneg_d(dest, src);
+        }
+    }
+
     fn emitCheckedAdd(inst: Inst) {
         let loc = inst.getLocationData();
         let lhs = loc.getInput(0).getRegister();

@@ -36,9 +36,10 @@ fn encodeConstPoolValue(writer: ByteWriter, value: ConstPoolValue) {
             writer.emitInt64(value.asInt64());
         },
 
-        ConstPoolValue::Int32(value) => {
-            writer.emitByte(opc::CONST_POOL_ENTRY_KIND_INT32.toUInt8());
-            writer.emitInt32(value);
+        ConstPoolValue::Int128(lower, upper) => {
+            writer.emitByte(opc::CONST_POOL_ENTRY_KIND_INT128.toUInt8());
+            writer.emitInt64(lower);
+            writer.emitInt64(upper);
         },
     }
 }

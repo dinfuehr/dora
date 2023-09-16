@@ -1244,18 +1244,13 @@ impl MacroAssembler {
     }
 
     pub fn float_abs(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
-        let (fst, snd) = if mode == MachineMode::Float32 {
-            (0x7fffffff, 0)
+        let value = if mode == MachineMode::Float32 {
+            (1 << 31) - 1
         } else {
-            (-1, 0x7fffffff)
+            (1 << 63) - 1
         };
 
-        // align MMX data to 16 bytes
-        self.constpool.align(16);
-        self.constpool.add_i32(0);
-        self.constpool.add_i32(0);
-        self.constpool.add_i32(snd);
-        let disp = self.constpool.add_i32(fst);
+        let disp = self.constpool.add_i128(value);
 
         let pos = self.pos() as i32;
 
@@ -1277,18 +1272,13 @@ impl MacroAssembler {
     }
 
     pub fn float_neg(&mut self, mode: MachineMode, dest: FReg, src: FReg) {
-        let (fst, snd) = if mode == MachineMode::Float32 {
-            (1i32 << 31, 0)
+        let value = if mode == MachineMode::Float32 {
+            1 << 31
         } else {
-            (0, 1i32 << 31)
+            1 << 63
         };
 
-        // align MMX data to 16 bytes
-        self.constpool.align(16);
-        self.constpool.add_i32(0);
-        self.constpool.add_i32(0);
-        self.constpool.add_i32(snd);
-        let disp = self.constpool.add_i32(fst);
+        let disp = self.constpool.add_i128(value);
 
         let pos = self.pos() as i32;
 

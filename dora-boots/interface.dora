@@ -277,7 +277,7 @@ pub enum ConstPoolValue {
     Address(Address),
     Float32(Float32),
     Float64(Float64),
-    Int32(Int32),
+    Int128(Int64, Int64),
 }
 
 impl ConstPoolValue {
@@ -285,8 +285,8 @@ impl ConstPoolValue {
         match self {
             ConstPoolValue::Address(address) => 8i32,
             ConstPoolValue::Float64(value) => 8i32,
-            ConstPoolValue::Int32(value) => 4i32,
             ConstPoolValue::Float32(value) => 4i32,
+            ConstPoolValue::Int128(lower, upper) => 16i32,
         }
     }
 }

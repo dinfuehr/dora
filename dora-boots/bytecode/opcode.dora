@@ -109,7 +109,7 @@ pub const LAZY_COMPILATION_SITE_LAMBDA: Int32 = 2;
 pub const CONST_POOL_ENTRY_KIND_ADDRESS: Int32 = 0;
 pub const CONST_POOL_ENTRY_KIND_FLOAT32: Int32 = 1;
 pub const CONST_POOL_ENTRY_KIND_FLOAT64: Int32 = 2;
-pub const CONST_POOL_ENTRY_KIND_INT32: Int32 = 3;
+pub const CONST_POOL_ENTRY_KIND_INT128: Int32 = 3;
 
 pub fn bytecodeName(opcode: Int32): String {
   if opcode == BC_ADD { return "Add"; }

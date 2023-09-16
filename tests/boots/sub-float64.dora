@@ -1,0 +1,10 @@
+//= boots
+
+fn main() {
+    let x = f(2.5, 1.5);
+    assert(x == 1.0);
+    let x = f(100.25, 0.25);
+    assert(x == 100.0);
+}
+
+@optimizeImmediately fn f(a: Float64, b: Float64): Float64 { a-b }

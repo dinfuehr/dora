@@ -47,7 +47,7 @@ fn decode_const_pool_value(reader: &mut ByteReader) -> ConstPoolValue {
         ConstPoolEntryKind::Address => ConstPoolValue::Ptr(reader.read_address()),
         ConstPoolEntryKind::Float32 => ConstPoolValue::Float32(f32::from_bits(reader.read_u32())),
         ConstPoolEntryKind::Float64 => ConstPoolValue::Float64(f64::from_bits(reader.read_u64())),
-        ConstPoolEntryKind::Int32 => ConstPoolValue::Int32(reader.read_u32() as i32),
+        ConstPoolEntryKind::Int128 => ConstPoolValue::Int128(reader.read_u128() as i128),
     }
 }
 
@@ -264,6 +264,13 @@ impl ByteReader {
         let w2 = self.read_u32() as u64;
 
         (w2 << 32) | w1
+    }
+
+    pub fn read_u128(&mut self) -> u128 {
+        let w1 = self.read_u64() as u128;
+        let w2 = self.read_u64() as u128;
+
+        (w2 << 64) | w1
     }
 
     pub fn read_address(&mut self) -> Address {

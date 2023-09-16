@@ -277,7 +277,90 @@ impl CodeGen for CodeGenX64 {
     }
 
     fn emitAdd(inst: Inst) {
-        unimplemented();
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getFloatRegister();
+        let rhs = loc.getInput(1).getFloatRegister();
+        let output = loc.getOutput().getFloatRegister();
+
+        let ty = inst.getValueType();
+
+        if ty == Type::Float32 {
+            self.asm.movss_rr(output, lhs);
+            self.asm.addss_rr(output, rhs);
+        } else {
+            assert(ty == Type::Float64);
+            self.asm.movsd_rr(output, lhs);
+            self.asm.addsd_rr(output, rhs);
+        }
+    }
+
+    fn emitSub(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getFloatRegister();
+        let rhs = loc.getInput(1).getFloatRegister();
+        let output = loc.getOutput().getFloatRegister();
+
+        let ty = inst.getValueType();
+
+        if ty == Type::Float32 {
+            self.asm.movss_rr(output, lhs);
+            self.asm.subss_rr(output, rhs);
+        } else {
+            assert(ty == Type::Float64);
+            self.asm.movsd_rr(output, lhs);
+            self.asm.subsd_rr(output, rhs);
+        }
+    }
+
+    fn emitMul(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getFloatRegister();
+        let rhs = loc.getInput(1).getFloatRegister();
+        let output = loc.getOutput().getFloatRegister();
+
+        let ty = inst.getValueType();
+
+        if ty == Type::Float32 {
+            self.asm.movss_rr(output, lhs);
+            self.asm.mulss_rr(output, rhs);
+        } else {
+            assert(ty == Type::Float64);
+            self.asm.movsd_rr(output, lhs);
+            self.asm.mulsd_rr(output, rhs);
+        }
+    }
+
+    fn emitDiv(inst: Inst) {
+        let loc = inst.getLocationData();
+        let lhs = loc.getInput(0).getFloatRegister();
+        let rhs = loc.getInput(1).getFloatRegister();
+        let output = loc.getOutput().getFloatRegister();
+
+        let ty = inst.getValueType();
+
+        if ty == Type::Float32 {
+            self.asm.movss_rr(output, lhs);
+            self.asm.divss_rr(output, rhs);
+        } else {
+            assert(ty == Type::Float64);
+            self.asm.movsd_rr(output, lhs);
+            self.asm.divsd_rr(output, rhs);
+        }
+    }
+
+    fn emitNeg(inst: Inst) {
+        let loc = inst.getLocationData();
+        let src = loc.getInput(0).getRegister();
+        let dest = loc.getOutput().getRegister();
+
+        let ty = inst.getValueType();
+
+        if ty == Type::Float32 {
+            unimplemented();
+        } else {
+            assert(ty == Type::Float64);
+            unimplemented();
+        }
     }
 
     fn emitCheckedAdd(inst: Inst) {

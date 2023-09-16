@@ -97,6 +97,10 @@ pub trait CodeGen {
     fn emitFloat32Const(inst: Inst);
     fn emitFloat64Const(inst: Inst);
     fn emitAdd(inst: Inst);
+    fn emitSub(inst: Inst);
+    fn emitMul(inst: Inst);
+    fn emitDiv(inst: Inst);
+    fn emitNeg(inst: Inst);
     fn emitCheckedAdd(inst: Inst);
     fn emitCheckedSub(inst: Inst);
     fn emitCheckedMul(inst: Inst);
@@ -168,6 +172,9 @@ pub fn setLocationConstraints(codegen: CodeGen, inst: Inst) {
         },
 
         Op::Add
+        | Op::Sub
+        | Op::Mul
+        | Op::Div
         | Op::CheckedAdd
         | Op::CheckedSub
         | Op::CheckedMul => {
@@ -184,7 +191,7 @@ pub fn setLocationConstraints(codegen: CodeGen, inst: Inst) {
             codegen.setLocationConstraintsCheckedMod(inst, loc);
         },
 
-        Op::CheckedNeg => {
+        Op::Neg | Op::CheckedNeg => {
             loc.requireInputRegister(0);
             loc.requireOutputRegister();
         },
@@ -260,6 +267,26 @@ pub fn emitInst(codegen: CodeGen, inst: Inst) {
         Op::Add => {
             codegen.emitComment("Add");
             codegen.emitAdd(inst);
+        },
+
+        Op::Sub => {
+            codegen.emitComment("Sub");
+            codegen.emitSub(inst);
+        },
+
+        Op::Mul => {
+            codegen.emitComment("Mul");
+            codegen.emitMul(inst);
+        },
+
+        Op::Div => {
+            codegen.emitComment("Div");
+            codegen.emitDiv(inst);
+        },
+
+        Op::Neg => {
+            codegen.emitComment("Neg");
+            codegen.emitNeg(inst);
         },
 
         Op::CheckedAdd => {

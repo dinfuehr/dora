@@ -433,7 +433,7 @@ pub enum ConstPoolValue {
     Ptr(Address),
     Float32(f32),
     Float64(f64),
-    Int32(i32),
+    Int128(i128),
 }
 
 impl ConstPoolValue {
@@ -442,7 +442,7 @@ impl ConstPoolValue {
             &ConstPoolValue::Ptr(_) => mem::ptr_width(),
             &ConstPoolValue::Float32(_) => std::mem::size_of::<f32>() as i32,
             &ConstPoolValue::Float64(_) => std::mem::size_of::<f64>() as i32,
-            &ConstPoolValue::Int32(_) => std::mem::size_of::<i32>() as i32,
+            &ConstPoolValue::Int128(_) => std::mem::size_of::<i128>() as i32,
         }
     }
 }
@@ -479,8 +479,8 @@ impl ConstPool {
                         *(entry_ptr as *mut f64) = v;
                     }
 
-                    ConstPoolValue::Int32(v) => {
-                        *(entry_ptr as *mut i32) = v;
+                    ConstPoolValue::Int128(v) => {
+                        *(entry_ptr as *mut i128) = v;
                     }
                 }
             }
@@ -509,8 +509,8 @@ impl ConstPool {
         self.add_value(ConstPoolValue::Float64(value))
     }
 
-    pub fn add_i32(&mut self, value: i32) -> i32 {
-        self.add_value(ConstPoolValue::Int32(value))
+    pub fn add_i128(&mut self, value: i128) -> i32 {
+        self.add_value(ConstPoolValue::Int128(value))
     }
 
     pub fn add_value(&mut self, value: ConstPoolValue) -> i32 {

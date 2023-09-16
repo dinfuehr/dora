@@ -13,7 +13,7 @@ pub enum ConstPoolEntryKind {
     Address,
     Float32,
     Float64,
-    Int32,
+    Int128,
 }
 
 #[derive(TryFromPrimitive, IntoPrimitive)]
