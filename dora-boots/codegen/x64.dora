@@ -350,16 +350,39 @@ impl CodeGen for CodeGenX64 {
 
     fn emitNeg(inst: Inst) {
         let loc = inst.getLocationData();
-        let src = loc.getInput(0).getRegister();
-        let dest = loc.getOutput().getRegister();
+        let src = loc.getInput(0).getFloatRegister();
+        let dest = loc.getOutput().getFloatRegister();
 
         let ty = inst.getValueType();
 
-        if ty == Type::Float32 {
-            unimplemented();
+        let value = if ty == Type::Float32 {
+            1 << 31i32
         } else {
             assert(ty == Type::Float64);
-            unimplemented();
+            1 << 63i32
+        };
+
+        if ty == Type::Float32 {
+            self.asm.movss_rr(dest, src);
+        } else {
+            assert(ty == Type::Float64);
+            self.asm.movsd_rr(dest, src);
+        }
+
+        let disp = self.constPool.push(ConstPoolValue::Int128(value, 0)).disp;
+        let pos = self.asm.position();
+
+        let inst_size = 7i32
+            + if ty == Type::Float64 { 1i32 } else { 0i32 }
+            + if dest.needsRexBit() { 1i32 } else { 0i32 };
+
+        let address = AsmAddress::rip(-(disp + pos + inst_size));
+
+        if ty == Type::Float32 {
+            self.asm.xorps_ra(dest, address)
+        } else {
+            assert(ty == Type::Float64);
+            self.asm.xorpd_ra(dest, address)
         }
     }
 

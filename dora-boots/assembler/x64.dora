@@ -55,8 +55,8 @@ pub let XMM14: FloatRegister = FloatRegister(14u8);
 pub let XMM15: FloatRegister = FloatRegister(15u8);
 
 impl FloatRegister {
-    fn lowBits(): Int32 { self.value.toInt32() & 0b111i32 }
-    fn needsRexBit(): Bool { self.value.toInt32() > 7i32 }
+    pub fn lowBits(): Int32 { self.value.toInt32() & 0b111i32 }
+    pub fn needsRexBit(): Bool { self.value.toInt32() > 7i32 }
 }
 
 enum JumpDistance {
