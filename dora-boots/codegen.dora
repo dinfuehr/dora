@@ -161,16 +161,33 @@ fn setLocationConstraints(inst: Inst, codegen: CodeGen, ci: CompilationInfo, arg
 
         Op::InvokeStatic => {
             let mut idx = 0;
+            let mut gp_idx = 0;
+            let mut fp_idx = 0;
+
+            let gp_regs = codegen.argumentRegisters();
+            let fp_regs = codegen.argumentFloatRegisters();
 
             for input in inst.getInputs() {
-                let arg = codegen.argumentRegister(idx);
-                loc.requireInputFixedRegister(idx, arg);
+                if input.getValue().getValueType().isAnyFloat() {
+                    loc.requireInputFixedFloatRegister(idx, fp_regs(fp_idx));
+                    fp_idx = fp_idx + 1;
+                } else {
+                    loc.requireInputFixedRegister(idx, gp_regs(gp_idx));
+                    gp_idx = gp_idx + 1;
+                }
                 idx = idx + 1;
             }
 
-            if !inst.getValueType().isUnit() {
-                let reg = codegen.getReturnRegister();
-                loc.requireOutputFixedRegister(reg);
+            let ty = inst.getValueType();
+
+            if !ty.isUnit() {
+                if ty.isAnyFloat() {
+                    let reg = codegen.getFloatReturnRegister();
+                    loc.requireOutputFixedFloatRegister(reg);
+                } else {
+                    let reg = codegen.getReturnRegister();
+                    loc.requireOutputFixedRegister(reg);
+                }
             }
         },
 

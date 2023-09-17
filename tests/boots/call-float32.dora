@@ -1,0 +1,13 @@
+//= boots
+
+fn main() {
+    assert(f(2.5f32, 4i32) == 10.0f32);
+}
+
+@optimizeImmediately fn f(arg1: Float32, arg2: Int32): Float32 {
+    g(arg1, arg2)
+}
+
+fn g(arg1: Float32, arg2: Int32): Float32 {
+    arg1 * arg2.toFloat32()
+}

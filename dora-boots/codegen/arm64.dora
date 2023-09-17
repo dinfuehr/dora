@@ -253,9 +253,28 @@ impl CodeGen for CodeGenArm64 {
 
     fn spill(inst: Inst) {
         let loc = inst.getLocationData();
-        let reg = loc.getOutput().getRegister();
         let slot = loc.getSpillSlot();
-        self.asm.stur(reg, REG_FP, slot);
+        let ty = inst.getValueType();
+
+        if ty.isAnyFloat() {
+            let reg = loc.getOutput().getFloatRegister();
+
+            if ty == Type::Float32 {
+                self.asm.stur_s(reg, REG_FP, slot);
+            } else {
+                assert(ty == Type::Float64);
+                self.asm.stur_d(reg, REG_FP, slot);
+            }
+        } else {
+            let reg = loc.getOutput().getRegister();
+
+            if ty == Type::Int32 {
+                self.asm.stur_w(reg, REG_FP, slot);
+            } else {
+                assert(ty == Type::Int64);
+                self.asm.stur(reg, REG_FP, slot);
+            }
+        }
     }
 
     fn setLocationConstraintsCheckedDiv(inst: Inst, loc: LocationData) {

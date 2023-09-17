@@ -235,9 +235,28 @@ impl CodeGen for CodeGenX64 {
 
     fn spill(inst: Inst) {
         let loc = inst.getLocationData();
-        let reg = loc.getOutput().getRegister();
         let slot = loc.getSpillSlot();
-        self.asm.movq_ar(AsmAddress::offset(RBP, slot), reg);
+        let ty = inst.getValueType();
+
+        if ty.isAnyFloat() {
+            let reg = loc.getOutput().getFloatRegister();
+
+            if ty == Type::Float32 {
+                self.asm.movss_ar(AsmAddress::offset(RBP, slot), reg);
+            } else {
+                assert(ty == Type::Float64);
+                self.asm.movsd_ar(AsmAddress::offset(RBP, slot), reg);
+            }
+        } else {
+            let reg = loc.getOutput().getRegister();
+
+            if ty == Type::Int32 {
+                self.asm.movl_ar(AsmAddress::offset(RBP, slot), reg);
+            } else {
+                assert(ty == Type::Int64);
+                self.asm.movq_ar(AsmAddress::offset(RBP, slot), reg);
+            }
+        }
     }
 
     fn emitInt32Const(inst: Inst) {
