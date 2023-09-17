@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use package::assembler::{RegMap, RegSet, Register};
 use package::codegen::CodeGen;
-use package::codegen::{createCodeGen, emitInst, generateCode, setLocationConstraints};
+use package::codegen::{createCodeGen, emitInst, generateCode};
 use package::dominator::buildDominatorTree;
 use package::graph::{createGotoInst, Block, Edge, Graph, Inst, Location, LocationData, Op, opName};
 use package::graph::dump::dumpGraph;
@@ -52,7 +52,7 @@ pub fn compileFunction(ci: CompilationInfo): CodeDescriptor {
         println(dumpGraph(graph, config.architecture));
     }
 
-    performRegisterAllocation(graph, codegen);
+    performRegisterAllocation(graph, codegen, ci);
 
     if (ci.emitGraph) {
         println("after register allocation:");

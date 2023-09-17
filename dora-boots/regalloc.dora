@@ -2,29 +2,18 @@ use std::collections::{HashMap, HashSet};
 
 use package::assembler::{FloatRegister, RegMap, RegSet, Register, RegisterType};
 use package::codegen::CodeGen;
-use package::codegen::{emitInst, setLocationConstraints, STACK_FRAME_ALIGNMENT};
+use package::codegen::{emitInst, ensureLocationData, STACK_FRAME_ALIGNMENT};
+use package::interface::CompilationInfo;
 use package::graph::{createGotoInst, createMoveInst, Block, Edge, Graph, Inst, Location, LocationData, Op, Operand, opName, RegisterTrackers, Type};
 use package::ssa_destruction::ssaDestruction;
 
-pub fn performRegisterAllocation(graph: Graph, codegen: CodeGen) {
-    ensureLocationData(graph, codegen);
+pub fn performRegisterAllocation(graph: Graph, codegen: CodeGen, ci: CompilationInfo) {
+    ensureLocationData(graph, codegen, ci);
 
     let allocator = SimpleRegisterAllocator::new(graph, codegen);
     allocator.allocateRegisters();
 
     ssaDestruction(graph, codegen);
-}
-
-fn ensureLocationData(graph: Graph, codegen: CodeGen) {
-    for block in graph.insertionOrderIterator() {
-        for inst in block.phisIterator() {
-            setLocationConstraints(codegen, inst);
-        }
-
-        for inst in block.instructionsIterator() {
-            setLocationConstraints(codegen, inst);
-        }
-    }
 }
 
 class SimpleRegisterAllocator {

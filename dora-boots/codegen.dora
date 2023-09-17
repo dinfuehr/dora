@@ -3,7 +3,7 @@ use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
 use package::assembler::{FloatRegister, Label, Register, RegSet};
 use package::interface::{Address, Architecture, CompilationInfo, config};
-use package::graph::{Graph, Inst, LocationData, Op};
+use package::graph::{Graph, Inst, LocationData, Op, Operand, Type};
 use package::CodeDescriptor;
 
 pub mod arm64;
@@ -58,79 +58,33 @@ pub fn generateCode(graph: Graph, codegen: CodeGen, ci: CompilationInfo): CodeDe
     codegen.finalize()
 }
 
-pub trait CodeGen {
-    fn allocatableRegisters(): RegSet[Register];
-    fn allocatableFloatRegisters(): RegSet[FloatRegister];
+pub fn ensureLocationData(graph: Graph, codegen: CodeGen, ci: CompilationInfo) {
+    let argumentLocations = computeArgumentLocations(codegen, ci);
 
-    fn argumentRegister(idx: Int64): Register;
-    fn argumentRegisters(): Array[Register];
-    fn argumentFloatRegisters(): Array[FloatRegister];
+    for block in graph.insertionOrderIterator() {
+        for inst in block.phisIterator() {
+            setLocationConstraints(inst, codegen, ci, argumentLocations);
+        }
 
-    fn getScratchRegister(): Register;
-    fn getFloatScratchRegister(): FloatRegister;
-
-    fn getReturnRegister(): Register;
-    fn getFloatReturnRegister(): FloatRegister;
-
-    fn emitDebug();
-    fn emitProlog(stackSize: Int32);
-    fn emitStackLimitCheck();
-    fn emitSafepointCheck();
-
-    fn finalize(): CodeDescriptor;
-
-    fn registerName(register: Register): String;
-
-    fn createLabel(): Label;
-    fn bindLabel(label: Label);
-
-    fn spill(inst: Inst);
-
-    fn setLocationConstraintsCheckedDiv(inst: Inst, loc: LocationData);
-    fn setLocationConstraintsCheckedMod(inst: Inst, loc: LocationData);
-    fn setLocationConstraintsReturn(inst: Inst, loc: LocationData);
-
-    fn emitTrueConst(inst: Inst);
-    fn emitFalseConst(inst: Inst);
-    fn emitInt32Const(inst: Inst);
-    fn emitInt64Const(inst: Inst);
-    fn emitFloat32Const(inst: Inst);
-    fn emitFloat64Const(inst: Inst);
-    fn emitAdd(inst: Inst);
-    fn emitSub(inst: Inst);
-    fn emitMul(inst: Inst);
-    fn emitDiv(inst: Inst);
-    fn emitNeg(inst: Inst);
-    fn emitCheckedAdd(inst: Inst);
-    fn emitCheckedSub(inst: Inst);
-    fn emitCheckedMul(inst: Inst);
-    fn emitCheckedDiv(inst: Inst);
-    fn emitCheckedMod(inst: Inst);
-    fn emitDivZeroCheck(inst: Inst);
-    fn emitCheckedNeg(inst: Inst);
-    fn emitIf(inst: Inst);
-    fn emitGoto(inst: Inst);
-    fn emitReturn(inst: Inst);
-    fn emitMove(inst: Inst);
-    fn emitCompare(inst: Inst);
-    fn emitInvokeStatic(inst: Inst);
-
-    fn emitComment(comment: String);
+        for inst in block.instructionsIterator() {
+            setLocationConstraints(inst, codegen, ci, argumentLocations);
+        }
+    }
 }
 
-pub fn setLocationConstraints(codegen: CodeGen, inst: Inst) {
+fn setLocationConstraints(inst: Inst, codegen: CodeGen, ci: CompilationInfo, argumentLocations: Array[Operand]) {
     let loc = LocationData::new(inst);
 
     match inst.op() {
         Op::Arg => {
             let idx = inst.auxAsInt32().toInt64();
+            let location = argumentLocations(idx);
 
-            if inst.getValueType().isAnyFloat() {
-                let reg = codegen.argumentFloatRegisters().get(idx);
-                loc.requireOutputFixedFloatRegister(reg);
+            if location.isFloatRegister() {
+                loc.requireOutputFixedFloatRegister(location.getFloatRegister());
             } else {
-                let reg = codegen.argumentRegister(idx);
-                loc.requireOutputFixedRegister(reg);
+                assert(location.isRegister());
+                loc.requireOutputFixedRegister(location.getRegister());
             }
         },
 
@@ -364,4 +318,92 @@ pub fn emitInst(codegen: CodeGen, inst: Inst) {
             unreachable[()]();
         }
     }
+}
+
+fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo): Array[Operand] {
+    let arguments = ci.bc.arguments.toInt64();
+    let locations = Array[Operand]::fill(arguments, Operand::None);
+    let mut gp_idx = 0;
+    let mut fp_idx = 0;
+
+    let gp_argument_registers = codegen.argumentRegisters();
+    let fp_argument_registers = codegen.argumentFloatRegisters();
+
+    for idx in std::range(0, arguments) {
+        let ty = ci.bc.registers(idx);
+        let ty = Type::fromBytecodeType(ty);
+
+        if ty.isAnyFloat() {
+            assert(fp_idx < fp_argument_registers.size());
+            locations(idx) = fp_argument_registers(fp_idx).toOperand();
+            fp_idx = fp_idx + 1;
+        } else {
+            assert(gp_idx < gp_argument_registers.size());
+            locations(idx) = gp_argument_registers(gp_idx).toOperand();
+            gp_idx = gp_idx + 1;
+        }
+    }
+
+
+    locations
+}
+
+pub trait CodeGen {
+    fn allocatableRegisters(): RegSet[Register];
+    fn allocatableFloatRegisters(): RegSet[FloatRegister];
+
+    fn argumentRegister(idx: Int64): Register;
+    fn argumentRegisters(): Array[Register];
+    fn argumentFloatRegisters(): Array[FloatRegister];
+
+    fn getScratchRegister(): Register;
+    fn getFloatScratchRegister(): FloatRegister;
+
+    fn getReturnRegister(): Register;
+    fn getFloatReturnRegister(): FloatRegister;
+
+    fn emitDebug();
+    fn emitProlog(stackSize: Int32);
+    fn emitStackLimitCheck();
+    fn emitSafepointCheck();
+
+    fn finalize(): CodeDescriptor;
+
+    fn registerName(register: Register): String;
+
+    fn createLabel(): Label;
+    fn bindLabel(label: Label);
+
+    fn spill(inst: Inst);
+
+    fn setLocationConstraintsCheckedDiv(inst: Inst, loc: LocationData);
+    fn setLocationConstraintsCheckedMod(inst: Inst, loc: LocationData);
+    fn setLocationConstraintsReturn(inst: Inst, loc: LocationData);
+
+    fn emitTrueConst(inst: Inst);
+    fn emitFalseConst(inst: Inst);
+    fn emitInt32Const(inst: Inst);
+    fn emitInt64Const(inst: Inst);
+    fn emitFloat32Const(inst: Inst);
+    fn emitFloat64Const(inst: Inst);
+    fn emitAdd(inst: Inst);
+    fn emitSub(inst: Inst);
+    fn emitMul(inst: Inst);
+    fn emitDiv(inst: Inst);
+    fn emitNeg(inst: Inst);
+    fn emitCheckedAdd(inst: Inst);
+    fn emitCheckedSub(inst: Inst);
+    fn emitCheckedMul(inst: Inst);
+    fn emitCheckedDiv(inst: Inst);
+    fn emitCheckedMod(inst: Inst);
+    fn emitDivZeroCheck(inst: Inst);
+    fn emitCheckedNeg(inst: Inst);
+    fn emitIf(inst: Inst);
+    fn emitGoto(inst: Inst);
+    fn emitReturn(inst: Inst);
+    fn emitMove(inst: Inst);
+    fn emitCompare(inst: Inst);
+    fn emitInvokeStatic(inst: Inst);
+
+    fn emitComment(comment: String);
 }
