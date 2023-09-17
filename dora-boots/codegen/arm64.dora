@@ -295,25 +295,25 @@ impl CodeGen for CodeGenArm64 {
     fn emitInt32Const(inst: Inst) {
         let loc = inst.getLocationData();
         let register = loc.getOutput().getRegister();
-        self.mov_imm_w(register, inst.auxAsInt32());
+        self.mov_imm_w(register, inst.getValueAsInt32());
     }
 
     fn emitInt64Const(inst: Inst) {
         let loc = inst.getLocationData();
         let register = loc.getOutput().getRegister();
-        self.mov_imm(register, inst.auxAsInt64());
+        self.mov_imm(register, inst.getValueAsInt64());
     }
 
     fn emitFloat32Const(inst: Inst) {
         let loc = inst.getLocationData();
         let register = loc.getOutput().getFloatRegister();
-        self.mov_imm_f32(register, REG_TEMP, inst.auxAsInt32().asFloat32());
+        self.mov_imm_f32(register, REG_TEMP, inst.getValueAsFloat32());
     }
 
     fn emitFloat64Const(inst: Inst) {
         let loc = inst.getLocationData();
         let register = loc.getOutput().getFloatRegister();
-        self.mov_imm_f64(register, REG_TEMP, inst.auxAsInt64().asFloat64());
+        self.mov_imm_f64(register, REG_TEMP, inst.getValueAsFloat64());
     }
 
     fn emitAdd(inst: Inst) {
@@ -655,15 +655,16 @@ impl CodeGen for CodeGenArm64 {
     }
 
     fn emitInvokeStatic(inst: Inst) {
-        let address = getFunctionAddress(inst.getFctId(), inst.getTypeParams());
+        let fct_info = inst.getFunctionInfo();
+        let address = getFunctionAddress(fct_info.fct_id, fct_info.type_params);
         let cp_entry = self.constPool.push(ConstPoolValue::Address(address));
         self.loadConstPool(REG_TEMP, cp_entry);
         self.asm.bl_r(REG_TEMP);
 
         let pos = self.asm.position();
         let site = LazyCompilationSiteDirect(
-            inst.getFctId(),
-            inst.getTypeParams(),
+            fct_info.fct_id,
+            fct_info.type_params,
             pos + cp_entry.disp,
         );
         let location = self.ci.bc.getLocationAt(inst.bytecode_position());

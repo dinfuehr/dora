@@ -243,25 +243,25 @@ impl CodeGen for CodeGenX64 {
     fn emitInt32Const(inst: Inst) {
         let loc = inst.getLocationData();
         let register = loc.getOutput().getRegister();
-        self.asm.movl_ri(register, Immediate(inst.auxAsInt32().toInt64()));
+        self.asm.movl_ri(register, Immediate(inst.getValueAsInt32().toInt64()));
     }
 
     fn emitInt64Const(inst: Inst) {
         let loc = inst.getLocationData();
         let register = loc.getOutput().getRegister();
-        self.asm.movq_ri(register, Immediate(inst.auxAsInt64()));
+        self.asm.movq_ri(register, Immediate(inst.getValueAsInt64()));
     }
 
     fn emitFloat32Const(inst: Inst) {
         let loc = inst.getLocationData();
         let register = loc.getOutput().getFloatRegister();
-        self.mov_imm_f32(register, inst.auxAsInt32().asFloat32());
+        self.mov_imm_f32(register, inst.getValueAsFloat32());
     }
 
     fn emitFloat64Const(inst: Inst) {
         let loc = inst.getLocationData();
         let register = loc.getOutput().getFloatRegister();
-        self.mov_imm_f64(register, inst.auxAsInt64().asFloat64());
+        self.mov_imm_f64(register, inst.getValueAsFloat64());
     }
 
     fn emitTrueConst(inst: Inst) {
@@ -678,15 +678,16 @@ impl CodeGen for CodeGenX64 {
     }
 
     fn emitInvokeStatic(inst: Inst) {
-        let address = getFunctionAddress(inst.getFctId(), inst.getTypeParams());
+        let fct_info = inst.getFunctionInfo();
+        let address = getFunctionAddress(fct_info.fct_id, fct_info.type_params);
         let cp_entry = self.constPool.push(ConstPoolValue::Address(address));
         self.loadConstPool(REG_TEMP, cp_entry);
         self.asm.call_r(REG_TEMP);
 
         let pos = self.asm.position();
         let site = LazyCompilationSiteDirect(
-            inst.getFctId(),
-            inst.getTypeParams(),
+            fct_info.fct_id,
+            fct_info.type_params,
             pos + cp_entry.disp,
         );
         let location = self.ci.bc.getLocationAt(inst.bytecode_position());

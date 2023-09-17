@@ -4,7 +4,7 @@ use std::Hash;
 use std::Stringable;
 
 use package::assembler::{FloatRegister, Label, Register, RegMap};
-use package::bytecode::data::{BytecodeType, FctId, GlobalId};
+use package::bytecode::data::{BytecodeType, ClassId, FctId, FieldId, GlobalId};
 use package::dominator::buildDominatorTree;
 use package::regalloc::RegisterTracker;
 
@@ -581,8 +581,8 @@ pub enum Op {
     ArraySet,
     ArrayLength,
 
-    FieldGet,
-    FieldSet,
+    LoadField,
+    StoreField,
     Arg,
 
     Move,
@@ -664,8 +664,8 @@ pub fn opName(op: Op): String {
         Op::ArrayGet => "ArrayGet",
         Op::ArraySet => "ArraySet",
         Op::ArrayLength => "ArrayLength",
-        Op::FieldGet => "FieldGet",
-        Op::FieldSet => "FieldSet",
+        Op::LoadField => "LoadField",
+        Op::StoreField => "StoreField",
         Op::Arg => "Arg",
         Op::Move => "Move",
         Op::MoveImmediate => "MoveImmediate",
@@ -685,9 +685,7 @@ pub class Inst {
     next: Option[Inst],
 
     ty: Type,
-
-    fct_id: Option[FctId],
-    type_params: Option[Array[BytecodeType]],
+    extra: InstExtraData,
 
     location_data: Option[LocationData],
 
@@ -695,8 +693,6 @@ pub class Inst {
     useListTail: Option[Input],
 
     inputs: Vec[Input],
-    block1: Option[Block],
-    block2: Option[Block],
 }
 
 impl Inst {
@@ -710,14 +706,11 @@ impl Inst {
             None[Inst],
             None[Inst],
             Type::Unit,
-            None[FctId],
-            None[Array[BytecodeType]],
+            InstExtraData::None,
             None[LocationData],
             None[Input],
             None[Input],
             Vec[Input]::new(),
-            None[Block],
-            None[Block],
         )
     }
 
@@ -809,8 +802,8 @@ impl Inst {
             Op::ArrayGet => self.ty,
             Op::ArraySet => unreachable[Type](),
             Op::ArrayLength => Type::Int64,
-            Op::FieldGet => unreachable[Type](),
-            Op::FieldSet => unreachable[Type](),
+            Op::LoadField => unreachable[Type](),
+            Op::StoreField => unreachable[Type](),
             Op::Arg => self.ty,
             Op::Move => self.ty,
             Op::MoveImmediate => self.ty,
@@ -831,14 +824,11 @@ impl Inst {
         }
     }
 
-    pub fn getFctId(): FctId {
-        assert(self.op() == Op::InvokeStatic);
-        self.fct_id.getOrPanic()
-    }
-
-    pub fn getTypeParams(): Array[BytecodeType] {
-        assert(self.op() == Op::InvokeStatic);
-        self.type_params.getOrPanic()
+    pub fn getFunctionInfo(): FunctionInfo {
+        match self.extra {
+            InstExtraData::FunctionInfo(info) => info,
+            _ => unreachable[FunctionInfo](),
+        }
     }
 
     pub fn addInput(inst: Inst) {
@@ -992,62 +982,84 @@ impl Inst {
         }
     }
 
-    pub fn auxAsInt32(): Int32 {
-        let op = self.op();
-
-        assert(
-            op == Op::Int32Const ||
-            op == Op::Float32Const ||
-            op == Op::LoadGlobal ||
-            op == Op::StoreGlobal ||
-            op == Op::Arg
-        );
+    pub fn getIndex(): Int32 {
+        assert(self.op() == Op::Arg);
         self.aux.toInt32()
     }
 
-    pub fn auxAsInt64(): Int64 {
+    pub fn getGlobalId(): GlobalId {
         let op = self.op();
 
         assert(
-            op == Op::Int64Const ||
-            op == Op::Float64Const
+            op == Op::LoadGlobal ||
+            op == Op::StoreGlobal
         );
+
+        GlobalId(self.aux.toInt32())
+    }
+
+    pub fn getValueAsInt32(): Int32 {
+        assert(self.op() == Op::Int32Const);
+        self.aux.toInt32()
+    }
+
+    pub fn getValueAsInt64(): Int64 {
+        assert(self.op() == Op::Int64Const);
         self.aux
     }
 
-    pub fn auxAsFloat32(): Float32 {
+    pub fn getValueAsFloat32(): Float32 {
         assert(self.op() == Op::Float32Const);
         self.aux.toInt32().asFloat32()
     }
 
-    pub fn auxAsFloat64(): Float64 {
+    pub fn getValueAsFloat64(): Float64 {
         assert(self.op() == Op::Float64Const);
         self.aux.asFloat64()
     }
 
     pub fn getTargetBlock(): Block {
         assert(self.op() == Op::Goto);
-        self.block1.getOrPanic()
+        match self.extra {
+            InstExtraData::Goto(block) => block,
+            _ => unreachable[Block](),
+        }
     }
 
     pub fn getTrueBlock(): Block {
         assert(self.op() == Op::If);
-        self.block1.getOrPanic()
+        match self.extra {
+            InstExtraData::If(then_block, else_block) => then_block,
+            _ => unreachable[Block](),
+        }
     }
 
     pub fn setTrueBlock(block: Block) {
         assert(self.op() == Op::If);
-        self.block1 = Some(block);
+        match self.extra {
+            InstExtraData::If(then_block, else_block) => {
+                self.extra = InstExtraData::If(block, else_block);
+            },
+            _ => unreachable[()](),
+        }
     }
 
     pub fn getFalseBlock(): Block {
         assert(self.op() == Op::If);
-        self.block2.getOrPanic()
+        match self.extra {
+            InstExtraData::If(then_block, else_block) => else_block,
+            _ => unreachable[Block](),
+        }
     }
 
     pub fn setFalseBlock(block: Block) {
         assert(self.op() == Op::If);
-        self.block2 = Some(block);
+        match self.extra {
+            InstExtraData::If(then_block, else_block) => {
+                self.extra = InstExtraData::If(then_block, block);
+            },
+            _ => unreachable[()](),
+        }
     }
 
     pub fn setLocationData(data: LocationData) {
@@ -1110,8 +1122,8 @@ impl Inst {
             Op::ArrayGet => false,
             Op::ArraySet => true,
             Op::ArrayLength => false,
-            Op::FieldGet => false,
-            Op::FieldSet => true,
+            Op::LoadField => false,
+            Op::StoreField => true,
             Op::Arg => false,
             Op::Move => false,
             Op::MoveImmediate => false,
@@ -1129,6 +1141,14 @@ impl Equals for Inst {
     fn equals(other: Inst): Bool {
         self === other
     }
+}
+
+enum InstExtraData {
+    None,
+    FieldInfo(FieldInfo),
+    FunctionInfo(FunctionInfo),
+    If(Block, Block),
+    Goto(Block),
 }
 
 pub class LocationData {
@@ -1611,22 +1631,29 @@ pub fn createArrayLength(array: Inst): Inst {
     inst
 }
 
-class FieldInfo {
-    offset: Int32,
-    volatile: Bool
+pub class FieldInfo {
+    pub cls_id: ClassId,
+    pub type_params: Array[BytecodeType],
+    pub field_id: FieldId,
+    pub offset: Option[Int32],
 }
 
-pub fn createFieldGet(obj: Inst, field: FieldInfo, ty: Type): Inst {
+pub class FunctionInfo {
+    pub fct_id: FctId,
+    pub type_params: Array[BytecodeType],
+}
+
+pub fn createLoadFieldInst(obj: Inst, field: FieldInfo, ty: Type): Inst {
     let inst = Inst::new();
-    inst._op = Some(Op::FieldGet);
+    inst._op = Some(Op::LoadField);
     inst.ty = ty;
     inst.addInput(obj);
     inst
 }
 
-pub fn createFieldSet(obj: Inst, field: FieldInfo, value: Inst): Inst {
+pub fn createStoreFieldInst(obj: Inst, field: FieldInfo, value: Inst): Inst {
     let inst = Inst::new();
-    inst._op = Some(Op::FieldSet);
+    inst._op = Some(Op::StoreField);
     inst.addInput(obj);
     inst.addInput(value);
     inst
@@ -1658,8 +1685,7 @@ pub fn createReturnVoidInst(): Inst {
 pub fn createIfInst(cond: Inst, thenBlock: Block, elseBlock: Block): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::If);
-    inst.block1 = Some(thenBlock);
-    inst.block2 = Some(elseBlock);
+    inst.extra = InstExtraData::If(thenBlock, elseBlock);
     inst.addInput(cond);
     inst
 }
@@ -1667,15 +1693,14 @@ pub fn createIfInst(cond: Inst, thenBlock: Block, elseBlock: Block): Inst {
 pub fn createGotoInst(block: Block): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Goto);
-    inst.block1 = Some(block);
+    inst.extra = InstExtraData::Goto(block);
     inst
 }
 
-pub fn createInvokeStaticInst(fct_id: FctId, type_params: Array[BytecodeType], args: Vec[Inst], return_ty: Type): Inst {
+pub fn createInvokeStaticInst(info: FunctionInfo, args: Vec[Inst], return_ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::InvokeStatic);
-    inst.fct_id = Some(fct_id);
-    inst.type_params = Some(type_params);
+    inst.extra = InstExtraData::FunctionInfo(info);
     inst.ty = return_ty;
 
     for arg in args {

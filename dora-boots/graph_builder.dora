@@ -29,7 +29,8 @@ use package::graph::createUndefInst;
 use package::graph::createPhiInst;
 use package::graph::createArgInst;
 use package::graph::ty::Type;
-use package::bytecode::data::{BytecodeFunction, BytecodeRegister, BytecodeType, FctId};
+use package::graph::{FieldInfo, FunctionInfo};
+use package::bytecode::data::{BytecodeFunction, BytecodeRegister, BytecodeType, ClassId, FctId, FieldId};
 use package::bytecode::data::{ConstPoolId, ConstPoolEntry, GlobalId};
 use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::reader::BytecodeIterator;
@@ -339,7 +340,7 @@ impl SsaGen {
             },
 
             BytecodeInstruction::LoadField(dest, src, idx) => {
-                unimplemented();
+                self.emitLoadField(dest, src, idx);
             },
             BytecodeInstruction::StoreField(dest, src, idx) => {
                 unimplemented();
@@ -553,6 +554,29 @@ impl SsaGen {
         }
     }
 
+    fn emitLoadField(dest: BytecodeRegister, src: BytecodeRegister, idx: ConstPoolId) {
+        let srcInst = self.readVariable(src, self.current());
+        let destType = self.bc.registers(dest.value.toInt64());
+        let destType = Type::fromBytecodeType(destType);
+
+        let (cls_id, type_params, field_id) = match self.bc.constPool(idx) {
+            ConstPoolEntry::Field(cls_id, type_params, field_id) => (cls_id, type_params, field_id),
+            _ => unreachable[(ClassId, Array[BytecodeType], FieldId)](),
+        };
+
+        let fieldInfo = FieldInfo(
+            cls_id,
+            type_params,
+            field_id,
+            None[Int32]
+        );
+
+        let destInst = graph::createLoadFieldInst(srcInst, fieldInfo, destType);
+        destInst.set_bytecode_position(self.offset);
+        self.current().appendInst(destInst);
+        self.writeVariable(dest, self.current(), destInst);
+    }
+
     fn emitBin(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, op: Op) {
         let registerType = self.bc.registers(lhs.value.toInt64());
 
@@ -739,7 +763,9 @@ impl SsaGen {
             _ => unreachable[(FctId, Array[BytecodeType])](),
         };
 
-        let inst = graph::createInvokeStaticInst(fct_id, type_params, args, ty);
+        let info = FunctionInfo(fct_id, type_params);
+
+        let inst = graph::createInvokeStaticInst(info, args, ty);
         inst.set_bytecode_position(self.offset);
         self.current().appendInst(inst);
 

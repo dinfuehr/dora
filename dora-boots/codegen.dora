@@ -77,8 +77,7 @@ fn setLocationConstraints(inst: Inst, codegen: CodeGen, ci: CompilationInfo, arg
 
     match inst.op() {
         Op::Arg => {
-            let idx = inst.auxAsInt32().toInt64();
-            let location = argumentLocations(idx);
+            let location = argumentLocations(inst.getIndex().toInt64());
 
             if location.isFloatRegister() {
                 loc.requireOutputFixedFloatRegister(location.getFloatRegister());
