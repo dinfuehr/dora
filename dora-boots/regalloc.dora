@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use package::assembler::{FloatRegister, RegMap, RegSet, Register, RegisterType};
 use package::codegen::CodeGen;
-use package::codegen::{emitInst, ensureLocationData, STACK_FRAME_ALIGNMENT};
+use package::codegen::{ensureLocationData, STACK_FRAME_ALIGNMENT};
 use package::interface::CompilationInfo;
 use package::graph::{createGotoInst, createMoveInst, Block, Edge, Graph, Inst, Location, LocationData, Op, Operand, opName, RegisterTrackers, Type};
 use package::ssa_destruction::ssaDestruction;
