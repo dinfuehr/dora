@@ -277,7 +277,7 @@ impl CodeGen for CodeGenArm64 {
         }
     }
 
-    fn setLocationConstraintsAdd(inst: Inst, loc: LocationData) {
+    fn setLocationConstraintsCheckedAdd(inst: Inst, loc: LocationData) {
         loc.requireInputRegister(0);
         loc.requireInputRegister(1);
         loc.requireOutputRegister();

@@ -1155,7 +1155,6 @@ pub class LocationData {
     inputs: Array[Option[Location]],
     temps: Vec[Location],
     output: Option[Location],
-    sameAsFirstInput: Bool,
     spill_slot: Option[Int32],
 }
 
@@ -1167,7 +1166,6 @@ impl LocationData {
             inputs,
             Vec[Location]::new(),
             None[Location],
-            false,
             None[Int32],
         )
     }
@@ -1178,51 +1176,65 @@ impl LocationData {
             inputs,
             Vec[Location]::new(),
             None[Location],
-            false,
             None[Int32],
         )
     }
 
     pub fn requireOutputRegister() {
         assert(self.output.isNone());
-        self.output = Some(Location::someRegister());
+        self.output = Some(Location(Policy::AnyReg, Operand::None));
+    }
+
+    pub fn requireOutputFloatRegister() {
+        assert(self.output.isNone());
+        self.output = Some(Location(Policy::AnyFloatReg, Operand::None));
     }
 
     pub fn requireOutputFixedRegister(register: Register) {
         assert(self.output.isNone());
-        self.output = Some(Location::fixed(Operand::Reg(register)));
+        self.output = Some(Location(Policy::FixedReg, Operand::Reg(register)));
     }
 
     pub fn requireOutputFixedFloatRegister(register: FloatRegister) {
         assert(self.output.isNone());
-        self.output = Some(Location::fixed(Operand::FloatReg(register)));
+        self.output = Some(Location(Policy::FixedFloatReg, Operand::FloatReg(register)));
     }
 
     pub fn requireOutputSameAsFirstInput() {
-        self.sameAsFirstInput = true;
+        assert(self.output.isNone());
+        self.output = Some(Location(Policy::SameAsFirstInput, Operand::None));
     }
 
     pub fn requireTempRegister() {
-        self.temps.push(Location::someRegister());
+        self.temps.push(Location(Policy::AnyReg, Operand::None));
+    }
+
+    pub fn requireTempFloatRegister() {
+        self.temps.push(Location(Policy::AnyFloatReg, Operand::None));
     }
 
     pub fn requireTempFixedRegister(register: Register) {
-        self.temps.push(Location::fixed(Operand::Reg(register)));
+        self.temps.push(Location(Policy::FixedReg, Operand::Reg(register)));
     }
 
     pub fn requireInputRegister(idx: Int64) {
         assert(self.inputs(idx).isNone());
-        self.inputs(idx) = Some[Location](Location::someRegister());
+        self.inputs(idx) = Some[Location](Location(Policy::AnyReg, Operand::None));
+    }
+
+    pub fn requireInputFloatRegister(idx: Int64) {
+        assert(self.inputs(idx).isNone());
+        self.inputs(idx) = Some[Location](Location(Policy::AnyFloatReg, Operand::None));
     }
 
     pub fn requireInputFixedRegister(idx: Int64, register: Register) {
         assert(self.inputs(idx).isNone());
-        self.inputs(idx) = Some[Location](Location::fixed(Operand::Reg(register)));
+        self.inputs(idx) = Some[Location](Location(Policy::FixedReg, Operand::Reg(register)));
     }
 
     pub fn requireInputFixedFloatRegister(idx: Int64, register: FloatRegister) {
         assert(self.inputs(idx).isNone());
-        self.inputs(idx) = Some[Location](Location::fixed(Operand::FloatReg(register)));
+        self.inputs(idx) = Some[Location](Location(Policy::FixedFloatReg, Operand::FloatReg(register)));
     }
 
     pub fn hasOutput(): Bool {
@@ -1231,6 +1243,11 @@ impl LocationData {
 
     pub fn getOutput(): Location {
         self.output.getOrPanic()
+    }
+
+    pub fn initOutput(operand: Operand) {
+        assert(self.output.isNone());
+        self.output = Some(Location(Policy::None, operand));
     }
 
     pub fn getInput(idx: Int64): Location {
@@ -1361,30 +1378,53 @@ impl Stringable for Operand {
     }
 }
 
+pub enum Policy {
+    None,
+    SameAsFirstInput,
+    AnyReg,
+    FixedReg,
+    AnyFloatReg,
+    FixedFloatReg,
+}
+
+impl Policy {
+    fn isSameAsFirstInput(): Bool {
+        self == Policy::SameAsFirstInput
+    }
+
+    fn isAnyReg(): Bool {
+        self == Policy::AnyReg
+    }
+
+    fn isFixedReg(): Bool {
+        self == Policy::FixedReg
+    }
+
+    fn isAnyFloatReg(): Bool {
+        self == Policy::AnyFloatReg
+    }
+
+    fn isFixedFloatReg(): Bool {
+        self == Policy::FixedFloatReg
+    }
+
+    pub fn isAnyFixed(): Bool {
+        self == Policy::FixedReg || self == Policy::FixedFloatReg
+    }
+
+    pub fn isAnyArbitraryReg(): Bool {
+        self == Policy::AnyReg || self == Policy::AnyFloatReg
+    }
+}
+
 pub class Location {
+    policy: Policy,
     operand: Operand,
 }
 
 impl Location {
-    pub static fn operand(operand: Operand): Location {
-        Location(operand)
-    }
-
-    pub static fn fixed(operand: Operand): Location {
-        assert(!operand.isNone());
-        Location(operand)
-    }
-
-    pub static fn someRegister(): Location {
-        Location(
-            Operand::None,
-        )
-    }
-
-    pub static fn stack(slot: Int32): Location {
-        Location(
-            Operand::Stack(slot)
-        )
+    pub fn getPolicy(): Policy {
+        self.policy
     }
 
     pub fn getOperand(): Operand {
@@ -1488,8 +1528,8 @@ pub fn createMoveInst(ty: Type, dest: Operand, source: Operand): Inst {
     inst.ty = ty;
 
     let loc = LocationData::newWith(1);
-    loc.output = Some(Location::operand(dest));
-    loc.inputs(0) = Some[Location](Location::operand(source));
+    loc.output = Some(Location(Policy::None, dest));
+    loc.inputs(0) = Some[Location](Location(Policy::None, source));
     inst.setLocationData(loc);
 
     inst

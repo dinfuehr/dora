@@ -147,7 +147,7 @@ impl SimpleRegisterAllocator {
         if register.isSome() {
             let loc = inst.getLocationData();
             let register = register.getOrPanic();
-            loc.getOutput().setOperand(register.toOperand());
+            loc.initOutput(register.toOperand());
         } else {
             self.spill(inst);
         }
@@ -205,7 +205,9 @@ impl SimpleRegisterAllocator {
             let idx = input.getIdx().toInt64();
             let loc = loc_data.getInput(idx);
 
-            if loc.hasRegister() || loc.hasFloatRegister() {
+            assert(loc.getPolicy().isAnyFixed() == (loc.hasRegister() || loc.hasFloatRegister()));
+
+            if loc.getPolicy().isAnyFixed() {
                 let dest = loc.getOperand();
                 self.allocateFixedRegister(dest, input.getValue());
             } else {
@@ -214,7 +216,7 @@ impl SimpleRegisterAllocator {
         }
 
         for temp in loc_data.getTemps() {
-            if temp.hasRegister() || temp.hasFloatRegister() {
+            if temp.getPolicy().isAnyFixed() {
                 self.allocateFixedTempRegister(temp.getOperand());
             } else {
                 assert(temp.isNone());

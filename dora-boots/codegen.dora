@@ -199,7 +199,8 @@ pub fn ensureLocationData(graph: Graph, codegen: CodeGen, ci: CompilationInfo) {
 
     for block in graph.insertionOrderIterator() {
         for inst in block.phisIterator() {
-            setLocationConstraints(inst, codegen, ci, argumentLocations);
+            let loc_data = LocationData::new(inst);
+            inst.setLocationData(loc_data);
         }
 
         for inst in block.instructionsIterator() {
@@ -228,21 +229,14 @@ fn setLocationConstraints(inst: Inst, codegen: CodeGen, ci: CompilationInfo, arg
             loc.requireOutputRegister();
         },
 
-        Op::Phi => {
+        Op::Int32Const
+        | Op::Int64Const => {
             loc.requireOutputRegister();
-            let mut idx = 0;
-
-            for input in inst.getInputs() {
-                loc.requireInputRegister(idx);
-                idx = idx + 1;
-            }
         },
 
-        Op::Int32Const
-        | Op::Int64Const
-        | Op::Float32Const
+        Op::Float32Const
         | Op::Float64Const => {
-            loc.requireOutputRegister();
+            loc.requireOutputFloatRegister();
         },
 
         Op::DivZeroCheck => {
@@ -255,24 +249,36 @@ fn setLocationConstraints(inst: Inst, codegen: CodeGen, ci: CompilationInfo, arg
         | Op::LessOrEqual
         | Op::Equal
         | Op::NotEqual => {
-            loc.requireInputRegister(0);
-            loc.requireInputRegister(1);
+            if inst.getOperationType().isAnyFloat() {
+                loc.requireInputFloatRegister(0);
+                loc.requireInputFloatRegister(1);
+            } else {
+                loc.requireInputRegister(0);
+                loc.requireInputRegister(1);
+            }
+
             loc.requireOutputRegister();
         },
 
-        Op::Add => {
-            codegen.setLocationConstraintsAdd(inst, loc);
+        Op::CheckedAdd => {
+            codegen.setLocationConstraintsCheckedAdd(inst, loc);
         },
 
-        Op::Sub
+        Op::Add
+        | Op::Sub
         | Op::Mul
         | Op::Div
-        | Op::CheckedAdd
         | Op::CheckedSub
         | Op::CheckedMul => {
-            loc.requireInputRegister(0);
-            loc.requireInputRegister(1);
-            loc.requireOutputRegister();
+            if inst.getValueType().isAnyFloat() {
+                loc.requireInputFloatRegister(0);
+                loc.requireInputFloatRegister(1);
+                loc.requireOutputFloatRegister();
+            } else {
+                loc.requireInputRegister(0);
+                loc.requireInputRegister(1);
+                loc.requireOutputRegister();
+            }
         },
 
         Op::CheckedDiv => {
@@ -284,8 +290,13 @@ fn setLocationConstraints(inst: Inst, codegen: CodeGen, ci: CompilationInfo, arg
         },
 
         Op::Neg | Op::CheckedNeg => {
-            loc.requireInputRegister(0);
-            loc.requireOutputRegister();
+            if inst.getValueType().isAnyFloat() {
+                loc.requireInputFloatRegister(0);
+                loc.requireOutputFloatRegister();
+            } else {
+                loc.requireInputRegister(0);
+                loc.requireOutputRegister();
+            }
         },
 
         Op::If => {
@@ -399,7 +410,7 @@ pub trait CodeGen {
 
     fn spill(inst: Inst);
 
-    fn setLocationConstraintsAdd(inst: Inst, loc: LocationData);
+    fn setLocationConstraintsCheckedAdd(inst: Inst, loc: LocationData);
     fn setLocationConstraintsCheckedDiv(inst: Inst, loc: LocationData);
     fn setLocationConstraintsCheckedMod(inst: Inst, loc: LocationData);
     fn setLocationConstraintsReturn(inst: Inst, loc: LocationData);
