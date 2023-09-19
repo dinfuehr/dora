@@ -260,8 +260,11 @@ fn setLocationConstraints(inst: Inst, codegen: CodeGen, ci: CompilationInfo, arg
             loc.requireOutputRegister();
         },
 
-        Op::Add
-        | Op::Sub
+        Op::Add => {
+            codegen.setLocationConstraintsAdd(inst, loc);
+        },
+
+        Op::Sub
         | Op::Mul
         | Op::Div
         | Op::CheckedAdd
@@ -396,6 +399,7 @@ pub trait CodeGen {
 
     fn spill(inst: Inst);
 
+    fn setLocationConstraintsAdd(inst: Inst, loc: LocationData);
     fn setLocationConstraintsCheckedDiv(inst: Inst, loc: LocationData);
     fn setLocationConstraintsCheckedMod(inst: Inst, loc: LocationData);
     fn setLocationConstraintsReturn(inst: Inst, loc: LocationData);

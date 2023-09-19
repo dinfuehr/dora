@@ -1155,6 +1155,7 @@ pub class LocationData {
     inputs: Array[Option[Location]],
     temps: Vec[Location],
     output: Option[Location],
+    sameAsFirstInput: Bool,
     spill_slot: Option[Int32],
 }
 
@@ -1166,6 +1167,7 @@ impl LocationData {
             inputs,
             Vec[Location]::new(),
             None[Location],
+            false,
             None[Int32],
         )
     }
@@ -1176,6 +1178,7 @@ impl LocationData {
             inputs,
             Vec[Location]::new(),
             None[Location],
+            false,
             None[Int32],
         )
     }
@@ -1193,6 +1196,10 @@ impl LocationData {
     pub fn requireOutputFixedFloatRegister(register: FloatRegister) {
         assert(self.output.isNone());
         self.output = Some(Location::fixed(Operand::FloatReg(register)));
+    }
+
+    pub fn requireOutputSameAsFirstInput() {
+        self.sameAsFirstInput = true;
     }
 
     pub fn requireTempRegister() {
