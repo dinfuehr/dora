@@ -1388,23 +1388,23 @@ pub enum Policy {
 }
 
 impl Policy {
-    fn isSameAsFirstInput(): Bool {
+    pub fn isSameAsFirstInput(): Bool {
         self == Policy::SameAsFirstInput
     }
 
-    fn isAnyReg(): Bool {
+    pub fn isAnyReg(): Bool {
         self == Policy::AnyReg
     }
 
-    fn isFixedReg(): Bool {
+    pub fn isFixedReg(): Bool {
         self == Policy::FixedReg
     }
 
-    fn isAnyFloatReg(): Bool {
+    pub fn isAnyFloatReg(): Bool {
         self == Policy::AnyFloatReg
     }
 
-    fn isFixedFloatReg(): Bool {
+    pub fn isFixedFloatReg(): Bool {
         self == Policy::FixedFloatReg
     }
 

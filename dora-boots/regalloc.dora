@@ -4,7 +4,7 @@ use package::assembler::{FloatRegister, RegMap, RegSet, Register, RegisterType};
 use package::codegen::CodeGen;
 use package::codegen::{ensureLocationData, STACK_FRAME_ALIGNMENT};
 use package::interface::CompilationInfo;
-use package::graph::{createGotoInst, createMoveInst, Block, Edge, Graph, Inst, Location, LocationData, Op, Operand, opName, RegisterTrackers, Type};
+use package::graph::{createGotoInst, createMoveInst, Block, Edge, Graph, Inst, Location, LocationData, Op, Operand, opName, Policy, RegisterTrackers, Type};
 use package::ssa_destruction::ssaDestruction;
 
 pub fn performRegisterAllocation(graph: Graph, codegen: CodeGen, ci: CompilationInfo) {
@@ -205,21 +205,14 @@ impl SimpleRegisterAllocator {
             let idx = input.getIdx().toInt64();
             let loc = loc_data.getInput(idx);
 
-            assert(loc.getPolicy().isAnyFixed() == (loc.hasRegister() || loc.hasFloatRegister()));
-
             if loc.getPolicy().isAnyFixed() {
-                let dest = loc.getOperand();
-                self.allocateFixedRegister(dest, input.getValue());
-            } else {
-                assert(loc.isNone());
+                self.allocateFixedRegister(loc.getPolicy(), loc.getOperand(), input.getValue());
             }
         }
 
         for temp in loc_data.getTemps() {
             if temp.getPolicy().isAnyFixed() {
-                self.allocateFixedTempRegister(temp.getOperand());
-            } else {
-                assert(temp.isNone());
+                self.allocateFixedTempRegister(temp.getPolicy(), temp.getOperand());
             }
         }
     }
@@ -242,16 +235,17 @@ impl SimpleRegisterAllocator {
 
         for input in inst.getInputs() {
             let idx = input.getIdx().toInt64();
+            let input_loc = loc_data.getInput(idx);
 
-            if loc_data.getInput(idx).isNone() {
-                let register = self.allocateArbitraryRegister(input.getValue());
+            if input_loc.getPolicy().isAnyArbitraryReg() {
+                let register = self.allocateArbitraryRegister(input_loc.getPolicy(), input.getValue());
                 loc_data.getInput(idx).setOperand(register);
             }
         }
 
         for loc in loc_data.getTemps() {
-            if loc.isNone() {
-                let register = self.allocateArbitraryTempRegister();
+            if loc.getPolicy().isAnyArbitraryReg() {
+                let register = self.allocateArbitraryTempRegister(loc.getPolicy());
                 loc.setOperand(register);
             }
         }
@@ -266,15 +260,14 @@ impl SimpleRegisterAllocator {
 
         let output = loc_data.getOutput();
 
-        if output.isNone() {
+        if !output.getPolicy().isAnyFixed() {
             return;
         }
 
-        if output.hasRegister() {
+        if output.getPolicy().isFixedReg() {
             self.allocateFixedOutputRegisterGeneric[Register](output.getRegister(), self.registers(), inst);
         } else {
-            assert(output.hasFloatRegister());
-            assert(inst.getValueType().isAnyFloat());
+            assert(output.getPolicy().isFixedFloatReg());
             self.allocateFixedOutputRegisterGeneric[FloatRegister](output.getFloatRegister(), self.float_registers(), inst);
         }
     }
@@ -298,30 +291,28 @@ impl SimpleRegisterAllocator {
 
         let output = loc_data.getOutput();
 
-        if !output.isNone() {
+        if !output.getPolicy().isAnyArbitraryReg() {
             return;
         }
 
-        if inst.getValueType().isAnyFloat() {
-            let register = self.float_registers().allocateRegister(inst);
+        if output.getPolicy().isAnyFloatReg() {
+            self.allocateOutputRegisterGeneric[FloatRegister](self.float_registers(), inst, output);
+        } else if output.getPolicy().isAnyReg() {
+            self.allocateOutputRegisterGeneric[Register](self.registers(), inst, output);
+        } else if output.getPolicy().isSameAsFirstInput() {
+            unimplemented();
+        }
+    }
 
-            if register.isSome() {
-                output.setFloatRegister(register.getOrPanic());
-            } else {
-                let (register, instInReg) = self.float_registers().freeUnprotected();
-                self.spill(instInReg);
-                output.setFloatRegister(register);
-            }
+    fn allocateOutputRegisterGeneric[T: RegisterType](registers: RegisterTracker[T], inst: Inst, output: Location) {
+        let register = registers.allocateRegister(inst);
+
+        if register.isSome() {
+            output.setOperand(register.getOrPanic().toOperand());
         } else {
-            let register = self.registers().allocateRegister(inst);
-
-            if register.isSome() {
-                output.setRegister(register.getOrPanic());
-            } else {
-                let (register, instInReg) = self.registers().freeUnprotected();
-                self.spill(instInReg);
-                output.setRegister(register);
-            }
+            let (register, instInReg) = registers.freeUnprotected();
+            self.spill(instInReg);
+            output.setOperand(register.toOperand());
         }
     }
 
@@ -365,10 +356,11 @@ impl SimpleRegisterAllocator {
         }
     }
 
-    fn allocateArbitraryRegister(value: Inst): Operand {
-        if value.getValueType().isAnyFloat() {
+    fn allocateArbitraryRegister(policy: Policy, value: Inst): Operand {
+        if policy.isAnyFloatReg() {
             self.allocateArbitraryRegisterGeneric[FloatRegister](self.float_registers(), value)
         } else {
+            assert(policy.isAnyReg());
             self.allocateArbitraryRegisterGeneric[Register](self.registers(), value)
         }
     }
@@ -405,8 +397,13 @@ impl SimpleRegisterAllocator {
         self.currentInst.getOrPanic().insertBefore(inst);
     }
 
-    fn allocateArbitraryTempRegister(): Operand {
-        self.allocateArbitraryTempRegisterGeneric[Register](self.registers())
+    fn allocateArbitraryTempRegister(policy: Policy): Operand {
+        if policy.isAnyFloatReg() {
+            self.allocateArbitraryTempRegisterGeneric[FloatRegister](self.float_registers())
+        } else {
+            assert(policy.isAnyReg());
+            self.allocateArbitraryTempRegisterGeneric[Register](self.registers())
+        }
     }
 
     fn allocateArbitraryTempRegisterGeneric[T: RegisterType](registers: RegisterTracker[T]): Operand {
@@ -424,11 +421,11 @@ impl SimpleRegisterAllocator {
         register.toOperand()
     }
 
-    fn allocateFixedRegister(dest: Operand, inst: Inst) {
-        if dest.isRegister() {
+    fn allocateFixedRegister(policy: Policy, dest: Operand, inst: Inst) {
+        if policy.isFixedReg() {
             self.allocateFixedRegisterGeneric[Register](dest.getRegister(), self.registers(), inst);
         } else {
-            assert(dest.isFloatRegister());
+            assert(policy.isFixedFloatReg());
             self.allocateFixedRegisterGeneric[FloatRegister](dest.getFloatRegister(), self.float_registers(), inst);
         }
     }
@@ -459,11 +456,11 @@ impl SimpleRegisterAllocator {
         self.currentInst.getOrPanic().insertBefore(inst);
     }
 
-    fn allocateFixedTempRegister(reg: Operand) {
-        if reg.isRegister() {
+    fn allocateFixedTempRegister(policy: Policy, reg: Operand) {
+        if policy.isFixedReg() {
             self.allocateFixedTempRegisterGeneric[Register](reg.getRegister(), self.registers());
         } else {
-            assert(reg.isFloatRegister());
+            assert(policy.isFixedFloatReg());
             self.allocateFixedTempRegisterGeneric[FloatRegister](reg.getFloatRegister(), self.float_registers());
         }
     }
