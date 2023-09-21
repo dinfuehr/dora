@@ -496,6 +496,7 @@ pub class Input {
     usedBy: Inst,
     previousUse: Option[Input],
     nextUse: Option[Input],
+    kill: Bool,
 }
 
 impl Input {
@@ -506,6 +507,7 @@ impl Input {
             usedBy,
             None[Input],
             None[Input],
+            false,
         )
     }
 
@@ -519,6 +521,14 @@ impl Input {
 
     pub fn getUsedBy(): Inst {
         self.usedBy
+    }
+
+    pub fn markKill() {
+        self.kill = true;
+    }
+
+    pub fn isKill(): Bool {
+        self.kill
     }
 }
 

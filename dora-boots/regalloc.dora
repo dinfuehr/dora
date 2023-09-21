@@ -220,6 +220,7 @@ impl SimpleRegisterAllocator {
     fn yieldRegister[T: RegisterType](registers: RegisterTracker[T], reg: T) {
         let inst = registers.data.get(reg).getOrPanic();
         let newReg = registers.allocateRegister(inst);
+        registers.data.free(reg);
 
         if newReg.isSome() {
             let newReg = newReg.getOrPanic();
@@ -350,8 +351,29 @@ impl SimpleRegisterAllocator {
     fn freeDeadValues(inst: Inst) {
         let loc_data = inst.getLocationData();
 
+        for input in inst.getInputs() {
+            if input.isKill() {
+                let value = input.getValue();
+                self.registers().free(value);
+                self.float_registers().free(value);
+            }
+        }
+
+        if loc_data.hasOutput() && !inst.hasUses() {
+            self.freeRegisterInOperand(loc_data.getOutput().getOperand());
+        }
+
         for temp in loc_data.getTemps() {
-            self.registers().freeRegister(temp.getRegister());
+            self.freeRegisterInOperand(temp.getOperand());
+        }
+    }
+
+    fn freeRegisterInOperand(operand: Operand) {
+        match operand {
+            Operand::None => unreachable[()](),
+            Operand::Reg(reg) => self.registers().freeRegister(reg),
+            Operand::FloatReg(reg) => self.float_registers().freeRegister(reg),
+            Operand::Stack(slot) => unreachable[()](),
         }
     }
 
