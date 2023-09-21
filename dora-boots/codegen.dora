@@ -264,12 +264,18 @@ fn setLocationConstraints(inst: Inst, codegen: CodeGen, ci: CompilationInfo, arg
             codegen.setLocationConstraintsCheckedAdd(inst, loc);
         },
 
+        Op::CheckedSub => {
+            codegen.setLocationConstraintsCheckedSub(inst, loc);
+        },
+
+        Op::CheckedMul => {
+            codegen.setLocationConstraintsCheckedMul(inst, loc);
+        },
+
         Op::Add
         | Op::Sub
         | Op::Mul
-        | Op::Div
-        | Op::CheckedSub
-        | Op::CheckedMul => {
+        | Op::Div => {
             if inst.getValueType().isAnyFloat() {
                 loc.requireInputFloatRegister(0);
                 loc.requireInputFloatRegister(1);
@@ -411,6 +417,8 @@ pub trait CodeGen {
     fn spill(inst: Inst);
 
     fn setLocationConstraintsCheckedAdd(inst: Inst, loc: LocationData);
+    fn setLocationConstraintsCheckedSub(inst: Inst, loc: LocationData);
+    fn setLocationConstraintsCheckedMul(inst: Inst, loc: LocationData);
     fn setLocationConstraintsCheckedDiv(inst: Inst, loc: LocationData);
     fn setLocationConstraintsCheckedMod(inst: Inst, loc: LocationData);
     fn setLocationConstraintsReturn(inst: Inst, loc: LocationData);

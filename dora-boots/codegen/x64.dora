@@ -410,16 +410,16 @@ impl CodeGen for CodeGenX64 {
         let lhs = loc.getInput(0).getRegister();
         let rhs = loc.getInput(1).getRegister();
 
-        let output = loc.getOutput().getRegister();
+        let dest = loc.getOutput().getRegister();
         let lbl_overflow = self.asm.createLabel();
 
+        assert(dest == lhs);
+
         if inst.getValueType() == Type::Int32 {
-            self.asm.movl_rr(output, lhs);
-            self.asm.addl_rr(output, rhs);
+            self.asm.addl_rr(dest, rhs);
         } else {
             assert(inst.getValueType() == Type::Int64);
-            self.asm.movq_rr(output, lhs);
-            self.asm.addq_rr(output, rhs);
+            self.asm.addq_rr(dest, rhs);
         }
 
         self.asm.jcc(Condition::Overflow, lbl_overflow);
@@ -436,16 +436,16 @@ impl CodeGen for CodeGenX64 {
         let lhs = loc.getInput(0).getRegister();
         let rhs = loc.getInput(1).getRegister();
 
-        let output = loc.getOutput().getRegister();
+        let dest = loc.getOutput().getRegister();
         let lbl_overflow = self.asm.createLabel();
 
+        assert(dest == lhs);
+
         if inst.getValueType() == Type::Int32 {
-            self.asm.movl_rr(output, lhs);
-            self.asm.subl_rr(output, rhs);
+            self.asm.subl_rr(dest, rhs);
         } else {
             assert(inst.getValueType() == Type::Int64);
-            self.asm.movq_rr(output, lhs);
-            self.asm.subq_rr(output, rhs);
+            self.asm.subq_rr(dest, rhs);
         }
 
         self.asm.jcc(Condition::Overflow, lbl_overflow);
@@ -462,16 +462,16 @@ impl CodeGen for CodeGenX64 {
         let lhs = loc.getInput(0).getRegister();
         let rhs = loc.getInput(1).getRegister();
 
-        let output = loc.getOutput().getRegister();
+        let dest = loc.getOutput().getRegister();
         let lbl_overflow = self.asm.createLabel();
 
+        assert(dest == lhs);
+
         if inst.getValueType() == Type::Int32 {
-            self.asm.movl_rr(output, lhs);
-            self.asm.imull_rr(output, rhs);
+            self.asm.imull_rr(dest, rhs);
         } else {
             assert(inst.getValueType() == Type::Int64);
-            self.asm.movq_rr(output, lhs);
-            self.asm.imulq_rr(output, rhs);
+            self.asm.imulq_rr(dest, rhs);
         }
 
         self.asm.jcc(Condition::Overflow, lbl_overflow);
@@ -486,7 +486,19 @@ impl CodeGen for CodeGenX64 {
     fn setLocationConstraintsCheckedAdd(inst: Inst, loc: LocationData) {
         loc.requireInputRegister(0);
         loc.requireInputRegister(1);
-        loc.requireOutputRegister();
+        loc.requireOutputSameAsFirstInput();
+    }
+
+    fn setLocationConstraintsCheckedSub(inst: Inst, loc: LocationData) {
+        loc.requireInputRegister(0);
+        loc.requireInputRegister(1);
+        loc.requireOutputSameAsFirstInput();
+    }
+
+    fn setLocationConstraintsCheckedMul(inst: Inst, loc: LocationData) {
+        loc.requireInputRegister(0);
+        loc.requireInputRegister(1);
+        loc.requireOutputSameAsFirstInput();
     }
 
     fn setLocationConstraintsCheckedDiv(inst: Inst, loc: LocationData) {

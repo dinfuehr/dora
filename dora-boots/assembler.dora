@@ -163,6 +163,12 @@ impl RegisterType for Register {
     }
 }
 
+impl std::Stringable for Register {
+    fn toString(): String {
+        "Reg(${self.value})"
+    }
+}
+
 pub struct FloatRegister(pub value: UInt8)
 
 impl Equals for FloatRegister {
@@ -189,6 +195,13 @@ impl RegisterType for FloatRegister {
 
     fn toOperand(): Operand {
         Operand::FloatReg(self)
+    }
+}
+
+
+impl std::Stringable for FloatRegister {
+    fn toString(): String {
+        "FloatReg(${self.value})"
     }
 }
 

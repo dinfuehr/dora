@@ -291,16 +291,15 @@ impl SimpleRegisterAllocator {
 
         let output = loc_data.getOutput();
 
-        if !output.getPolicy().isAnyArbitraryReg() {
-            return;
-        }
-
         if output.getPolicy().isAnyFloatReg() {
             self.allocateOutputRegisterGeneric[FloatRegister](self.float_registers(), inst, output);
         } else if output.getPolicy().isAnyReg() {
             self.allocateOutputRegisterGeneric[Register](self.registers(), inst, output);
         } else if output.getPolicy().isSameAsFirstInput() {
-            unimplemented();
+            let dest = loc_data.getInput(0).getOperand().getRegister();
+            self.registers().unprotect(dest);
+            self.allocateFixedOutputRegisterGeneric[Register](dest, self.registers(), inst);
+            output.setRegister(dest);
         }
     }
 
@@ -508,6 +507,10 @@ impl[T: RegisterType] RegisterTracker[T] {
 
     fn protect(reg: T) {
         self.protected.add(reg);
+    }
+
+    fn unprotect(reg: T) {
+        self.protected.remove(reg);
     }
 
     fn allocateFixedRegister(reg: T, value: Inst): Bool {

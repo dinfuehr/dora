@@ -283,6 +283,18 @@ impl CodeGen for CodeGenArm64 {
         loc.requireOutputRegister();
     }
 
+    fn setLocationConstraintsCheckedSub(inst: Inst, loc: LocationData) {
+        loc.requireInputRegister(0);
+        loc.requireInputRegister(1);
+        loc.requireOutputRegister();
+    }
+
+    fn setLocationConstraintsCheckedMul(inst: Inst, loc: LocationData) {
+        loc.requireInputRegister(0);
+        loc.requireInputRegister(1);
+        loc.requireOutputRegister();
+    }
+
     fn setLocationConstraintsCheckedDiv(inst: Inst, loc: LocationData) {
         loc.requireInputRegister(0);
         loc.requireInputRegister(1);
