@@ -163,7 +163,7 @@ impl SimpleRegisterAllocator {
         self.allocateArbitraryRegisters(inst);
 
         if inst.isCall() {
-            self.spillAndResetLiveRegisters(inst);
+            self.spillLiveRegisters(inst);
         }
 
         self.allocateOutputRegister(inst);
@@ -175,7 +175,7 @@ impl SimpleRegisterAllocator {
         self.currentInst = None[Inst];
     }
 
-    fn spillAndResetLiveRegisters(call: Inst) {
+    fn spillLiveRegisters(call: Inst) {
         for (reg, inst) in self.registers().data {
             if call === inst {
                 // Do not spill output of call instruction.
@@ -297,11 +297,22 @@ impl SimpleRegisterAllocator {
         } else if output.getPolicy().isAnyReg() {
             self.allocateOutputRegisterGeneric[Register](self.registers(), inst, output);
         } else if output.getPolicy().isSameAsFirstInput() {
-            let dest = loc_data.getInput(0).getOperand().getRegister();
-            self.registers().unprotect(dest);
-            self.allocateFixedOutputRegisterGeneric[Register](dest, self.registers(), inst);
-            output.setRegister(dest);
+            self.allocateOutputRegisterSameAsFirstInput(inst, loc_data, output);
         }
+    }
+
+    fn allocateOutputRegisterSameAsFirstInput(inst: Inst, loc_data: LocationData, output: Location) {
+        let input_loc = loc_data.getInput(0);
+        let dest = input_loc.getOperand().getRegister();
+
+        if !inst.getInput(0).isKill() {
+            self.yieldRegister[Register](self.registers(), dest);
+        }
+
+        self.registers().freeRegisterRaw(dest);
+        assert(self.registers().allocateFixedRegister(dest, inst));
+        assert(self.registers().protected.contains(dest));
+        output.setRegister(dest);
     }
 
     fn allocateOutputRegisterGeneric[T: RegisterType](registers: RegisterTracker[T], inst: Inst, output: Location) {
