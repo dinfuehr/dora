@@ -24,6 +24,7 @@ mod graph_builder_tests;
 mod graph_builder;
 mod interface;
 mod liveness;
+mod location;
 mod regalloc;
 mod serializer;
 mod ssa_destruction;

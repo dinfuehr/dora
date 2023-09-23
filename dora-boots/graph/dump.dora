@@ -185,7 +185,7 @@ impl GraphDumper {
     }
 
     fn dumpLocation(loc: Operand) {
-        let name = match loc.getOperand() {
+        let name = match loc.getLocation() {
             Location::Reg(reg) => {
                 match self.architecture {
                     Architecture::Arm64 => registerNameOnArm64(reg),

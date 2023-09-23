@@ -11,6 +11,7 @@ use package::assembler::arm64::{R24, R25, R26, R27, R28};
 use package::assembler::arm64::{REG_FP, REG_SP, REG_LR, REG_ZERO};
 use package::assembler::{FloatRegister, Label, RegSet, Register};
 use package::graph::{Inst, Op, LocationData, Type};
+use package::location::{useInputFloatRegisterFixed, useInputRegister, useInputRegisterFixed, useOutputRegister};
 use package::{CodeDescriptor, CommentTable, GcPointTable, LazyCompilationData, LazyCompilationSite, LazyCompilationSiteDirect, LocationTable};
 
 let REG_PARAMS: Array[Register] = Array[Register]::new(R0, R1, R2, R3, R4, R5, R6, R7);
@@ -278,41 +279,41 @@ impl CodeGen for CodeGenArm64 {
     }
 
     fn setLocationConstraintsCheckedAdd(inst: Inst, loc: LocationData) {
-        loc.requireInputRegister(0);
-        loc.requireInputRegister(1);
-        loc.requireOutputRegister();
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst);
     }
 
     fn setLocationConstraintsCheckedSub(inst: Inst, loc: LocationData) {
-        loc.requireInputRegister(0);
-        loc.requireInputRegister(1);
-        loc.requireOutputRegister();
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst);
     }
 
     fn setLocationConstraintsCheckedMul(inst: Inst, loc: LocationData) {
-        loc.requireInputRegister(0);
-        loc.requireInputRegister(1);
-        loc.requireOutputRegister();
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst);
     }
 
     fn setLocationConstraintsCheckedDiv(inst: Inst, loc: LocationData) {
-        loc.requireInputRegister(0);
-        loc.requireInputRegister(1);
-        loc.requireOutputRegister();
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst);
     }
 
     fn setLocationConstraintsCheckedMod(inst: Inst, loc: LocationData) {
-        loc.requireInputRegister(0);
-        loc.requireInputRegister(1);
-        loc.requireOutputRegister();
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegister(inst);
     }
 
     fn setLocationConstraintsReturn(inst: Inst, loc: LocationData) {
         if inst.hasInput() {
             if inst.getOperationType().isAnyFloat() {
-                loc.requireInputFixedFloatRegister(0, F0);
+                useInputFloatRegisterFixed(inst, 0, F0);
             } else {
-                loc.requireInputFixedRegister(0, R0);
+                useInputRegisterFixed(inst, 0, R0);
             }
         }
     }
@@ -602,8 +603,8 @@ impl CodeGen for CodeGenArm64 {
 
     fn emitMove(inst: Inst) {
         let loc = inst.getLocationData();
-        let dest = loc.getOutput().getOperand();
-        let src = loc.getInput(0).getOperand();
+        let dest = loc.getOutput().getLocation();
+        let src = loc.getInput(0).getLocation();
         let ty = inst.getValueType();
 
         if dest.isRegister() {

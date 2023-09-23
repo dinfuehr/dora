@@ -1,0 +1,249 @@
+use package::assembler::{FloatRegister, Register};
+use package::codegen::CodeGen;
+use package::graph::{Graph, Inst, Location, LocationData, Op, Operand, Policy, Type};
+use package::interface::{config, CompilationInfo};
+
+pub fn ensureLocationData(graph: Graph, codegen: CodeGen, ci: CompilationInfo) {
+    let argumentLocations = computeArgumentLocations(codegen, ci);
+
+    for block in graph.insertionOrderIterator() {
+        for inst in block.phisIterator() {
+            let loc_data = LocationData::new(inst);
+            inst.setLocationData(loc_data);
+        }
+
+        for inst in block.instructionsIterator() {
+            setLocationConstraints(inst, codegen, ci, argumentLocations);
+        }
+    }
+}
+
+fn setLocationConstraints(inst: Inst, codegen: CodeGen, ci: CompilationInfo, argumentLocations: Array[Location]) {
+    let loc = LocationData::new(inst);
+    inst.setLocationData(loc);
+    let arch = config.architecture;
+
+    match inst.op() {
+        Op::Arg => {
+            let location = argumentLocations(inst.getIndex().toInt64());
+
+            if location.isFloatRegister() {
+                useOutputFloatRegisterFixed(inst, location.getFloatRegister());
+            } else {
+                assert(location.isRegister());
+                useOutputRegisterFixed(inst, location.getRegister());
+            }
+        },
+
+        Op::TrueConst |
+        Op::FalseConst => {
+            useOutputRegister(inst);
+        },
+
+        Op::Int32Const
+        | Op::Int64Const => {
+            useOutputRegister(inst);
+        },
+
+        Op::Float32Const
+        | Op::Float64Const => {
+            useOutputFloatRegister(inst);
+        },
+
+        Op::DivZeroCheck => {
+            useInputRegister(inst, 0);
+        },
+
+        Op::Greater
+        | Op::GreaterOrEqual
+        | Op::Less
+        | Op::LessOrEqual
+        | Op::Equal
+        | Op::NotEqual => {
+            if inst.getOperationType().isAnyFloat() {
+                useInputFloatRegister(inst, 0);
+                useInputFloatRegister(inst, 1);
+            } else {
+                useInputRegister(inst, 0);
+                useInputRegister(inst, 1);
+            }
+
+            useOutputRegister(inst);
+        },
+
+        Op::CheckedAdd => {
+            codegen.setLocationConstraintsCheckedAdd(inst, loc);
+        },
+
+        Op::CheckedSub => {
+            codegen.setLocationConstraintsCheckedSub(inst, loc);
+        },
+
+        Op::CheckedMul => {
+            codegen.setLocationConstraintsCheckedMul(inst, loc);
+        },
+
+        Op::Add
+        | Op::Sub
+        | Op::Mul
+        | Op::Div => {
+            if inst.getValueType().isAnyFloat() {
+                useInputFloatRegister(inst, 0);
+                useInputFloatRegister(inst, 1);
+                useOutputFloatRegister(inst);
+            } else {
+                useInputRegister(inst, 0);
+                useInputRegister(inst, 1);
+                useOutputRegister(inst);
+            }
+        },
+
+        Op::CheckedDiv => {
+            codegen.setLocationConstraintsCheckedDiv(inst, loc);
+        },
+
+        Op::CheckedMod => {
+            codegen.setLocationConstraintsCheckedMod(inst, loc);
+        },
+
+        Op::Neg | Op::CheckedNeg => {
+            if inst.getValueType().isAnyFloat() {
+                useInputFloatRegister(inst, 0);
+                useOutputFloatRegister(inst);
+            } else {
+                useInputRegister(inst, 0);
+                useOutputRegister(inst);
+            }
+        },
+
+        Op::If => {
+            useInputRegister(inst, 0);
+        },
+
+        Op::Goto => {},
+
+        Op::Return => {
+            codegen.setLocationConstraintsReturn(inst, loc);
+        },
+
+        Op::InvokeStatic => {
+            setLocationConstraintsInvokeStatic(inst, loc, codegen, ci);
+        },
+
+        _ => {
+            println("unsupported op ${inst.op().name()}");
+            unreachable[()]();
+        }
+    }
+
+}
+
+fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo): Array[Location] {
+    let arguments = ci.bc.arguments.toInt64();
+    let locations = Array[Location]::fill(arguments, Location::None);
+    let mut gp_idx = 0;
+    let mut fp_idx = 0;
+
+    let gp_argument_registers = codegen.argumentRegisters();
+    let fp_argument_registers = codegen.argumentFloatRegisters();
+
+    for idx in std::range(0, arguments) {
+        let ty = ci.bc.registers(idx);
+        let ty = Type::fromBytecodeType(ty);
+
+        if ty.isAnyFloat() {
+            assert(fp_idx < fp_argument_registers.size());
+            locations(idx) = fp_argument_registers(fp_idx).toLocation();
+            fp_idx = fp_idx + 1;
+        } else {
+            assert(gp_idx < gp_argument_registers.size());
+            locations(idx) = gp_argument_registers(gp_idx).toLocation();
+            gp_idx = gp_idx + 1;
+        }
+    }
+
+
+    locations
+}
+
+fn setLocationConstraintsInvokeStatic(inst: Inst, loc: LocationData, codegen: CodeGen, ci: CompilationInfo) {
+    let mut idx = 0;
+    let mut gp_idx = 0;
+    let mut fp_idx = 0;
+
+    let gp_regs = codegen.argumentRegisters();
+    let fp_regs = codegen.argumentFloatRegisters();
+
+    for input in inst.getInputs() {
+        if input.getValue().getValueType().isAnyFloat() {
+            useInputFloatRegisterFixed(inst, idx, fp_regs(fp_idx));
+            fp_idx = fp_idx + 1;
+        } else {
+            useInputRegisterFixed(inst, idx, gp_regs(gp_idx));
+            gp_idx = gp_idx + 1;
+        }
+        idx = idx + 1;
+    }
+
+    let ty = inst.getValueType();
+
+    if !ty.isUnit() {
+        if ty.isAnyFloat() {
+            let reg = codegen.getFloatReturnRegister();
+            useOutputFloatRegisterFixed(inst, reg);
+        } else {
+            let reg = codegen.getReturnRegister();
+            useOutputRegisterFixed(inst, reg);
+        }
+    }
+}
+
+pub fn useOutputRegister(inst: Inst) {
+    let loc = inst.getLocationData();
+    loc.setOutput(Operand::new(Policy::AnyReg, Location::None));
+}
+
+pub fn useOutputRegisterFixed(inst: Inst, reg: Register) {
+    let loc = inst.getLocationData();
+    loc.setOutput(Operand::new(Policy::FixedReg, Location::Reg(reg)));
+}
+
+pub fn useOutputFloatRegister(inst: Inst) {
+    let loc = inst.getLocationData();
+    loc.setOutput(Operand::new(Policy::AnyFloatReg, Location::None));
+}
+
+pub fn useOutputFloatRegisterFixed(inst: Inst, reg: FloatRegister) {
+    let loc = inst.getLocationData();
+    loc.setOutput(Operand::new(Policy::FixedFloatReg, Location::FloatReg(reg)));
+}
+
+pub fn useInputRegister(inst: Inst, idx: Int64) {
+    let loc = inst.getLocationData();
+    loc.setInput(idx, Operand::new(Policy::AnyReg, Location::None));
+}
+
+pub fn useInputRegisterFixed(inst: Inst, idx: Int64, reg: Register) {
+    let loc = inst.getLocationData();
+    loc.setInput(idx, Operand::new(Policy::FixedReg, Location::Reg(reg)));
+}
+
+pub fn useInputFloatRegister(inst: Inst, idx: Int64) {
+    let loc = inst.getLocationData();
+    loc.setInput(idx, Operand::new(Policy::AnyFloatReg, Location::None));
+}
+
+pub fn useInputFloatRegisterFixed(inst: Inst, idx: Int64, reg: FloatRegister) {
+    let loc = inst.getLocationData();
+    loc.setInput(idx, Operand::new(Policy::FixedFloatReg, Location::FloatReg(reg)));
+}
+
+pub fn useOutputSameAsFirstInput(inst: Inst) {
+    let loc = inst.getLocationData();
+    loc.setOutput(Operand::new(Policy::SameAsFirstInput, Location::None));
+}
+
+pub fn useTempRegisterFixed(inst: Inst, reg: Register) {
+    let loc = inst.getLocationData();
+    loc.setTemp(Operand::new(Policy::FixedReg, Location::Reg(reg)));
+}

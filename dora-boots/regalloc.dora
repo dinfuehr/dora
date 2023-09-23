@@ -2,9 +2,10 @@ use std::collections::{HashMap, HashSet};
 
 use package::assembler::{FloatRegister, RegMap, RegSet, Register, RegisterType};
 use package::codegen::CodeGen;
-use package::codegen::{ensureLocationData, STACK_FRAME_ALIGNMENT};
-use package::interface::CompilationInfo;
+use package::codegen::STACK_FRAME_ALIGNMENT;
 use package::graph::{createGotoInst, createMoveInst, Block, Edge, Graph, Inst, Operand, LocationData, Op, Location, opName, Policy, RegisterTrackers, Type};
+use package::interface::CompilationInfo;
+use package::location::ensureLocationData;
 use package::ssa_destruction::ssaDestruction;
 
 pub fn performRegisterAllocation(graph: Graph, codegen: CodeGen, ci: CompilationInfo) {
@@ -206,13 +207,13 @@ impl SimpleRegisterAllocator {
             let loc = loc_data.getInput(idx);
 
             if loc.getPolicy().isAnyFixed() {
-                self.allocateFixedRegister(loc.getPolicy(), loc.getOperand(), input.getValue());
+                self.allocateFixedRegister(loc.getPolicy(), loc.getLocation(), input.getValue());
             }
         }
 
         for temp in loc_data.getTemps() {
             if temp.getPolicy().isAnyFixed() {
-                self.allocateFixedTempRegister(temp.getPolicy(), temp.getOperand());
+                self.allocateFixedTempRegister(temp.getPolicy(), temp.getLocation());
             }
         }
     }
@@ -240,14 +241,14 @@ impl SimpleRegisterAllocator {
 
             if input_loc.getPolicy().isAnyArbitraryReg() {
                 let register = self.allocateArbitraryRegister(input_loc.getPolicy(), input.getValue());
-                loc_data.getInput(idx).setOperand(register);
+                loc_data.getInput(idx).setLocation(register);
             }
         }
 
         for loc in loc_data.getTemps() {
             if loc.getPolicy().isAnyArbitraryReg() {
                 let register = self.allocateArbitraryTempRegister(loc.getPolicy());
-                loc.setOperand(register);
+                loc.setLocation(register);
             }
         }
     }
@@ -303,7 +304,7 @@ impl SimpleRegisterAllocator {
 
     fn allocateOutputRegisterSameAsFirstInput(inst: Inst, loc_data: LocationData, output: Operand) {
         let input_loc = loc_data.getInput(0);
-        let dest = input_loc.getOperand().getRegister();
+        let dest = input_loc.getLocation().getRegister();
 
         if !inst.getInput(0).isKill() {
             self.yieldRegister[Register](self.registers(), dest);
@@ -319,11 +320,11 @@ impl SimpleRegisterAllocator {
         let register = registers.allocateRegister(inst);
 
         if register.isSome() {
-            output.setOperand(register.getOrPanic().toLocation());
+            output.setLocation(register.getOrPanic().toLocation());
         } else {
             let (register, instInReg) = registers.freeUnprotected();
             self.spill(instInReg);
-            output.setOperand(register.toLocation());
+            output.setLocation(register.toLocation());
         }
     }
 
@@ -371,11 +372,11 @@ impl SimpleRegisterAllocator {
         }
 
         if loc_data.hasOutput() && !inst.hasUses() {
-            self.freeRegisterInOperand(loc_data.getOutput().getOperand());
+            self.freeRegisterInOperand(loc_data.getOutput().getLocation());
         }
 
         for temp in loc_data.getTemps() {
-            self.freeRegisterInOperand(temp.getOperand());
+            self.freeRegisterInOperand(temp.getLocation());
         }
     }
 

@@ -7,6 +7,7 @@ use package::bytecode::data::{ConstPoolId, Location};
 use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen};
 use package::interface::{Address, Architecture, CompilationInfo, ConstPool, ConstPoolEntry, ConstPoolValue, config, getFunctionAddress, LazyCompilationSite, LazyCompilationSiteDirect, TRAP_DIV0, TRAP_OVERFLOW};
 use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET};
+use package::location::{useInputFloatRegisterFixed, useInputRegister, useInputRegisterFixed, useOutputRegisterFixed, useOutputSameAsFirstInput, useTempRegisterFixed};
 use package::graph::{Inst, Op, LocationData, Type};
 use package::{CodeDescriptor, CommentTable, GcPointTable, LazyCompilationData, LocationTable};
 
@@ -484,43 +485,43 @@ impl CodeGen for CodeGenX64 {
     }
 
     fn setLocationConstraintsCheckedAdd(inst: Inst, loc: LocationData) {
-        loc.requireInputRegister(0);
-        loc.requireInputRegister(1);
-        loc.requireOutputSameAsFirstInput();
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputSameAsFirstInput(inst);
     }
 
     fn setLocationConstraintsCheckedSub(inst: Inst, loc: LocationData) {
-        loc.requireInputRegister(0);
-        loc.requireInputRegister(1);
-        loc.requireOutputSameAsFirstInput();
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputSameAsFirstInput(inst);
     }
 
     fn setLocationConstraintsCheckedMul(inst: Inst, loc: LocationData) {
-        loc.requireInputRegister(0);
-        loc.requireInputRegister(1);
-        loc.requireOutputSameAsFirstInput();
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputSameAsFirstInput(inst);
     }
 
     fn setLocationConstraintsCheckedDiv(inst: Inst, loc: LocationData) {
-        loc.requireInputRegister(0);
-        loc.requireInputRegister(1);
-        loc.requireOutputFixedRegister(RAX);
-        loc.requireTempFixedRegister(RDX);
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegisterFixed(inst, RAX);
+        useTempRegisterFixed(inst, RDX);
     }
 
     fn setLocationConstraintsCheckedMod(inst: Inst, loc: LocationData) {
-        loc.requireInputRegister(0);
-        loc.requireInputRegister(1);
-        loc.requireOutputFixedRegister(RDX);
-        loc.requireTempFixedRegister(RAX);
+        useInputRegister(inst, 0);
+        useInputRegister(inst, 1);
+        useOutputRegisterFixed(inst, RDX);
+        useTempRegisterFixed(inst, RAX);
     }
 
     fn setLocationConstraintsReturn(inst: Inst, loc: LocationData) {
         if inst.hasInput() {
             if inst.getOperationType().isAnyFloat() {
-                loc.requireInputFixedFloatRegister(0, XMM0);
+                useInputFloatRegisterFixed(inst, 0, XMM0);
             } else {
-                loc.requireInputFixedRegister(0, RAX);
+                useInputRegisterFixed(inst, 0, RAX);
             }
         }
     }
@@ -622,8 +623,8 @@ impl CodeGen for CodeGenX64 {
 
     fn emitMove(inst: Inst) {
         let loc = inst.getLocationData();
-        let dest = loc.getOutput().getOperand();
-        let src = loc.getInput(0).getOperand();
+        let dest = loc.getOutput().getLocation();
+        let src = loc.getInput(0).getLocation();
         let ty = inst.getValueType();
 
         if dest.isRegister() {

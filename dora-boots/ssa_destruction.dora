@@ -58,7 +58,7 @@ fn processPhi[T: RegisterType](phi: Inst, predecessorEdge: Edge, predecessor_reg
     let dest = if loc.hasSpillSlot() {
         Location::Stack(loc.getSpillSlot())
     } else {
-        loc.getOutput().getOperand()
+        loc.getOutput().getLocation()
     };
 
     let value = phi.getInput(predecessorEdge.targetIdx).getValue();
