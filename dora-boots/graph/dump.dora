@@ -5,7 +5,7 @@ use package::assembler::arm64::registerName as registerNameOnArm64;
 use package::assembler::x64::registerName as registerNameOnX64;
 use package::assembler::arm64::floatRegisterName as floatRegisterNameOnArm64;
 use package::assembler::x64::floatRegisterName as floatRegisterNameOnX64;
-use package::graph::{Block, Edge, Graph, Input, Inst, Location, LocationData, Op, Operand};
+use package::graph::{Block, Edge, Graph, Input, Inst, Operand, LocationData, Op, Location};
 use package::interface::Architecture;
 
 pub fn dumpGraph(graph: Graph, architecture: Architecture): String {
@@ -184,23 +184,23 @@ impl GraphDumper {
         self.dumpLocation(loc.getInput(idx));
     }
 
-    fn dumpLocation(loc: Location) {
+    fn dumpLocation(loc: Operand) {
         let name = match loc.getOperand() {
-            Operand::Reg(reg) => {
+            Location::Reg(reg) => {
                 match self.architecture {
                     Architecture::Arm64 => registerNameOnArm64(reg),
                     Architecture::X64 => registerNameOnX64(reg),
                 }
             },
-            Operand::FloatReg(reg) => {
+            Location::FloatReg(reg) => {
                 match self.architecture {
                     Architecture::Arm64 => floatRegisterNameOnArm64(reg),
                     Architecture::X64 => floatRegisterNameOnX64(reg),
                 }
             },
 
-            Operand::Stack(slot) => "FP${slot}",
-            Operand::None => "NONE",
+            Location::Stack(slot) => "FP${slot}",
+            Location::None => "NONE",
         };
 
         self.buffer.append(name);

@@ -1,9 +1,9 @@
-use package::bytecode::data::{BytecodeType, FctId, Location};
+use package::bytecode::data::{BytecodeType, FctId};
 use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
 use package::assembler::{FloatRegister, Label, Register, RegSet};
 use package::interface::{Address, Architecture, CompilationInfo, config};
-use package::graph::{Graph, Inst, LocationData, Op, Operand, Type};
+use package::graph::{Graph, Inst, Location, LocationData, Op, Type};
 use package::CodeDescriptor;
 
 pub mod arm64;
@@ -209,7 +209,7 @@ pub fn ensureLocationData(graph: Graph, codegen: CodeGen, ci: CompilationInfo) {
     }
 }
 
-fn setLocationConstraints(inst: Inst, codegen: CodeGen, ci: CompilationInfo, argumentLocations: Array[Operand]) {
+fn setLocationConstraints(inst: Inst, codegen: CodeGen, ci: CompilationInfo, argumentLocations: Array[Location]) {
     let loc = LocationData::new(inst);
 
     match inst.op() {
@@ -328,9 +328,9 @@ fn setLocationConstraints(inst: Inst, codegen: CodeGen, ci: CompilationInfo, arg
     inst.setLocationData(loc);
 }
 
-fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo): Array[Operand] {
+fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo): Array[Location] {
     let arguments = ci.bc.arguments.toInt64();
-    let locations = Array[Operand]::fill(arguments, Operand::None);
+    let locations = Array[Location]::fill(arguments, Location::None);
     let mut gp_idx = 0;
     let mut fp_idx = 0;
 
@@ -343,11 +343,11 @@ fn computeArgumentLocations(codegen: CodeGen, ci: CompilationInfo): Array[Operan
 
         if ty.isAnyFloat() {
             assert(fp_idx < fp_argument_registers.size());
-            locations(idx) = fp_argument_registers(fp_idx).toOperand();
+            locations(idx) = fp_argument_registers(fp_idx).toLocation();
             fp_idx = fp_idx + 1;
         } else {
             assert(gp_idx < gp_argument_registers.size());
-            locations(idx) = gp_argument_registers(gp_idx).toOperand();
+            locations(idx) = gp_argument_registers(gp_idx).toLocation();
             gp_idx = gp_idx + 1;
         }
     }

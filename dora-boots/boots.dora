@@ -4,7 +4,7 @@ use package::assembler::{RegMap, RegSet, Register};
 use package::codegen::CodeGen;
 use package::codegen::{createCodeGen, generateCode};
 use package::dominator::buildDominatorTree;
-use package::graph::{createGotoInst, Block, Edge, Graph, Inst, Location, LocationData, Op, opName};
+use package::graph::{createGotoInst, Block, Edge, Graph, Inst, LocationData, Op, opName};
 use package::graph::dump::dumpGraph;
 use package::graph_builder::createGraph;
 use package::interface::{Architecture, CodeDescriptor, CommentTable, CompilationInfo, GcPointTable, GcPoint, LazyCompilationData, LazyCompilationSite, LazyCompilationSiteDirect, LazyCompilationSiteVirtual, LazyCompilationSiteLambda, LocationTable};

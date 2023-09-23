@@ -1162,117 +1162,117 @@ enum InstExtraData {
 }
 
 pub class LocationData {
-    inputs: Array[Option[Location]],
-    temps: Vec[Location],
-    output: Option[Location],
+    inputs: Array[Option[Operand]],
+    temps: Vec[Operand],
+    output: Option[Operand],
     spill_slot: Option[Int32],
 }
 
 impl LocationData {
     pub static fn new(inst: Inst): LocationData {
         let count = inst.getInputs().size();
-        let inputs = Array[Option[Location]]::fill(count, None[Location]);
+        let inputs = Array[Option[Operand]]::fill(count, None[Operand]);
         LocationData(
             inputs,
-            Vec[Location]::new(),
-            None[Location],
+            Vec[Operand]::new(),
+            None[Operand],
             None[Int32],
         )
     }
 
     pub static fn newWith(inputs: Int64): LocationData {
-        let inputs = Array[Option[Location]]::fill(inputs, None[Location]);
+        let inputs = Array[Option[Operand]]::fill(inputs, None[Operand]);
         LocationData(
             inputs,
-            Vec[Location]::new(),
-            None[Location],
+            Vec[Operand]::new(),
+            None[Operand],
             None[Int32],
         )
     }
 
     pub fn requireOutputRegister() {
         assert(self.output.isNone());
-        self.output = Some(Location(Policy::AnyReg, Operand::None));
+        self.output = Some(Operand(Policy::AnyReg, Location::None));
     }
 
     pub fn requireOutputFloatRegister() {
         assert(self.output.isNone());
-        self.output = Some(Location(Policy::AnyFloatReg, Operand::None));
+        self.output = Some(Operand(Policy::AnyFloatReg, Location::None));
     }
 
     pub fn requireOutputFixedRegister(register: Register) {
         assert(self.output.isNone());
-        self.output = Some(Location(Policy::FixedReg, Operand::Reg(register)));
+        self.output = Some(Operand(Policy::FixedReg, Location::Reg(register)));
     }
 
     pub fn requireOutputFixedFloatRegister(register: FloatRegister) {
         assert(self.output.isNone());
-        self.output = Some(Location(Policy::FixedFloatReg, Operand::FloatReg(register)));
+        self.output = Some(Operand(Policy::FixedFloatReg, Location::FloatReg(register)));
     }
 
     pub fn requireOutputSameAsFirstInput() {
         assert(self.output.isNone());
-        self.output = Some(Location(Policy::SameAsFirstInput, Operand::None));
+        self.output = Some(Operand(Policy::SameAsFirstInput, Location::None));
     }
 
     pub fn requireTempRegister() {
-        self.temps.push(Location(Policy::AnyReg, Operand::None));
+        self.temps.push(Operand(Policy::AnyReg, Location::None));
     }
 
     pub fn requireTempFloatRegister() {
-        self.temps.push(Location(Policy::AnyFloatReg, Operand::None));
+        self.temps.push(Operand(Policy::AnyFloatReg, Location::None));
     }
 
     pub fn requireTempFixedRegister(register: Register) {
-        self.temps.push(Location(Policy::FixedReg, Operand::Reg(register)));
+        self.temps.push(Operand(Policy::FixedReg, Location::Reg(register)));
     }
 
     pub fn requireInputRegister(idx: Int64) {
         assert(self.inputs(idx).isNone());
-        self.inputs(idx) = Some[Location](Location(Policy::AnyReg, Operand::None));
+        self.inputs(idx) = Some[Operand](Operand(Policy::AnyReg, Location::None));
     }
 
     pub fn requireInputFloatRegister(idx: Int64) {
         assert(self.inputs(idx).isNone());
-        self.inputs(idx) = Some[Location](Location(Policy::AnyFloatReg, Operand::None));
+        self.inputs(idx) = Some[Operand](Operand(Policy::AnyFloatReg, Location::None));
     }
 
     pub fn requireInputFixedRegister(idx: Int64, register: Register) {
         assert(self.inputs(idx).isNone());
-        self.inputs(idx) = Some[Location](Location(Policy::FixedReg, Operand::Reg(register)));
+        self.inputs(idx) = Some[Operand](Operand(Policy::FixedReg, Location::Reg(register)));
     }
 
     pub fn requireInputFixedFloatRegister(idx: Int64, register: FloatRegister) {
         assert(self.inputs(idx).isNone());
-        self.inputs(idx) = Some[Location](Location(Policy::FixedFloatReg, Operand::FloatReg(register)));
+        self.inputs(idx) = Some[Operand](Operand(Policy::FixedFloatReg, Location::FloatReg(register)));
     }
 
     pub fn hasOutput(): Bool {
         self.output.isSome()
     }
 
-    pub fn getOutput(): Location {
+    pub fn getOutput(): Operand {
         self.output.getOrPanic()
     }
 
-    pub fn initOutput(operand: Operand) {
+    pub fn initOutput(operand: Location) {
         assert(self.output.isNone());
-        self.output = Some(Location(Policy::None, operand));
+        self.output = Some(Operand(Policy::None, operand));
     }
 
-    pub fn getInput(idx: Int64): Location {
+    pub fn getInput(idx: Int64): Operand {
         self.inputs.get(idx).getOrPanic()
     }
 
-    pub fn getTemps(): Vec[Location] {
+    pub fn getTemps(): Vec[Operand] {
         self.temps
     }
 
-    pub fn getTemp(idx: Int64): Location {
+    pub fn getTemp(idx: Int64): Operand {
         self.temps.get(idx)
     }
 
-    pub fn addTemp(temp: Location) {
+    pub fn addTemp(temp: Operand) {
         self.temps.push(temp);
     }
 
@@ -1289,101 +1289,101 @@ impl LocationData {
     }
 }
 
-pub enum Operand {
+pub enum Location {
     None,
     Reg(Register),
     FloatReg(FloatRegister),
     Stack(Int32),
 }
 
-impl Operand {
+impl Location {
     pub fn isNone(): Bool {
         match self {
-            Operand::None => true,
+            Location::None => true,
             _ => false,
         }
     }
 
     pub fn isRegister(): Bool {
         match self {
-            Operand::Reg(reg) => true,
+            Location::Reg(reg) => true,
             _ => false,
         }
     }
 
     pub fn getRegister(): Register {
         match self {
-            Operand::Reg(reg) => reg,
+            Location::Reg(reg) => reg,
             _ => unreachable[Register](),
         }
     }
 
     pub fn isFloatRegister(): Bool {
         match self {
-            Operand::FloatReg(reg) => true,
+            Location::FloatReg(reg) => true,
             _ => false,
         }
     }
 
     pub fn getFloatRegister(): FloatRegister {
         match self {
-            Operand::FloatReg(reg) => reg,
+            Location::FloatReg(reg) => reg,
             _ => unreachable[FloatRegister](),
         }
     }
 
     pub fn isStack(): Bool {
         match self {
-            Operand::Stack(slot) => true,
+            Location::Stack(slot) => true,
             _ => false,
         }
     }
 
     pub fn getStack(): Int32 {
         match self {
-            Operand::Stack(slot) => slot,
+            Location::Stack(slot) => slot,
             _ => unreachable[Int32](),
         }
     }
 }
 
-impl Equals for Operand {
-    fn equals(other: Operand): Bool {
+impl Equals for Location {
+    fn equals(other: Location): Bool {
         match self {
-            Operand::None => {
+            Location::None => {
                 other.isNone()
             },
-            Operand::Reg(reg) => {
+            Location::Reg(reg) => {
                 other.isRegister() && reg == other.getRegister()
             },
-            Operand::FloatReg(reg) => {
+            Location::FloatReg(reg) => {
                 other.isFloatRegister() && reg == other.getFloatRegister()
             },
-            Operand::Stack(slot) => {
+            Location::Stack(slot) => {
                 other.isStack() && slot == other.getStack()
             },
         }
     }
 }
 
-impl Hash for Operand {
+impl Hash for Location {
     fn hash(): Int32 {
         match self {
-            Operand::None => 1i32,
-            Operand::Reg(reg) => reg.value.toInt32() << 1i32,
-            Operand::FloatReg(reg) => reg.value.toInt32() << 1i32,
-            Operand::Stack(slot) => slot << 1i32 + 1i32,
+            Location::None => 1i32,
+            Location::Reg(reg) => reg.value.toInt32() << 1i32,
+            Location::FloatReg(reg) => reg.value.toInt32() << 1i32,
+            Location::Stack(slot) => slot << 1i32 + 1i32,
         }
     }
 }
 
-impl Stringable for Operand {
+impl Stringable for Location {
     fn toString(): String {
         match self {
-            Operand::None => "None",
-            Operand::Reg(reg) => "Reg(${reg.value})",
-            Operand::FloatReg(reg) => "FloatReg(${reg.value})",
-            Operand::Stack(slot) => "Stack(${slot})",
+            Location::None => "None",
+            Location::Reg(reg) => "Reg(${reg.value})",
+            Location::FloatReg(reg) => "FloatReg(${reg.value})",
+            Location::Stack(slot) => "Stack(${slot})",
         }
     }
 }
@@ -1427,21 +1427,21 @@ impl Policy {
     }
 }
 
-pub class Location {
+pub class Operand {
     policy: Policy,
-    operand: Operand,
+    operand: Location,
 }
 
-impl Location {
+impl Operand {
     pub fn getPolicy(): Policy {
         self.policy
     }
 
-    pub fn getOperand(): Operand {
+    pub fn getOperand(): Location {
         self.operand
     }
 
-    pub fn setOperand(opnd: Operand) {
+    pub fn setOperand(opnd: Location) {
         assert(self.operand.isNone());
         assert(!opnd.isNone());
         self.operand = opnd;
@@ -1461,7 +1461,7 @@ impl Location {
 
     pub fn setRegister(register: Register) {
         assert(self.operand.isNone());
-        self.operand = Operand::Reg(register);
+        self.operand = Location::Reg(register);
     }
 
     pub fn hasFloatRegister(): Bool {
@@ -1474,7 +1474,7 @@ impl Location {
 
     pub fn setFloatRegister(register: FloatRegister) {
         assert(self.operand.isNone());
-        self.operand = Operand::FloatReg(register);
+        self.operand = Location::FloatReg(register);
     }
 
     pub fn hasStack(): Bool {
@@ -1487,7 +1487,7 @@ impl Location {
 
     pub fn setStack(slot: Int32) {
         assert(self.operand.isNone());
-        self.operand = Operand::Stack(slot);
+        self.operand = Location::Stack(slot);
     }
 }
 
@@ -1532,14 +1532,14 @@ fn removeUse(input: Input) {
     input.nextUse = None;
 }
 
-pub fn createMoveInst(ty: Type, dest: Operand, source: Operand): Inst {
+pub fn createMoveInst(ty: Type, dest: Location, source: Location): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Move);
     inst.ty = ty;
 
     let loc = LocationData::newWith(1);
-    loc.output = Some(Location(Policy::None, dest));
-    loc.inputs(0) = Some[Location](Location(Policy::None, source));
+    loc.output = Some(Operand(Policy::None, dest));
+    loc.inputs(0) = Some[Operand](Operand(Policy::None, source));
     inst.setLocationData(loc);
 
     inst

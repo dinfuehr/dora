@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use package::assembler::{FloatRegister, Register, RegisterType};
 use package::codegen::CodeGen;
-use package::graph::{Block, createMoveInst, Edge, Graph, Inst, Operand, RegisterTrackers, Type};
+use package::graph::{Block, createMoveInst, Edge, Graph, Inst, Location, RegisterTrackers, Type};
 use package::regalloc::RegisterTracker;
 
 pub fn ssaDestruction(graph: Graph, codegen: CodeGen) {
@@ -31,12 +31,12 @@ fn processLiveRegisters[T: RegisterType](registers: RegisterTracker[T], predeces
         let instRegister = predecessor_registers.getRegister(inst);
 
         let value = if instRegister.isSome() {
-            instRegister.getOrPanic().toOperand()
+            instRegister.getOrPanic().toLocation()
         } else {
-            Operand::Stack(inst.getLocationData().getSpillSlot())
+            Location::Stack(inst.getLocationData().getSpillSlot())
         };
 
-        moves.add(inst.getValueType(), reg.toOperand(), value);
+        moves.add(inst.getValueType(), reg.toLocation(), value);
     }
 }
 
@@ -56,7 +56,7 @@ fn processPhis(block: Block, predecessorEdge: Edge, predecessor_registers: Regis
 fn processPhi[T: RegisterType](phi: Inst, predecessorEdge: Edge, predecessor_registers: RegisterTracker[T], moves: ParallelMoveResolver) {
     let loc = phi.getLocationData();
     let dest = if loc.hasSpillSlot() {
-        Operand::Stack(loc.getSpillSlot())
+        Location::Stack(loc.getSpillSlot())
     } else {
         loc.getOutput().getOperand()
     };
@@ -65,9 +65,9 @@ fn processPhi[T: RegisterType](phi: Inst, predecessorEdge: Edge, predecessor_reg
     let valueRegister = predecessor_registers.getRegister(value);
 
     let value = if valueRegister.isSome() {
-        valueRegister.getOrPanic().toOperand()
+        valueRegister.getOrPanic().toLocation()
     } else {
-        Operand::Stack(value.getLocationData().getSpillSlot())
+        Location::Stack(value.getLocationData().getSpillSlot())
     };
 
     moves.add(phi.getValueType(), dest, value);
@@ -76,19 +76,19 @@ fn processPhi[T: RegisterType](phi: Inst, predecessorEdge: Edge, predecessor_reg
 
 struct Move {
     ty: Type,
-    dest: Operand,
-    src: Operand,
+    dest: Location,
+    src: Location,
 }
 
 class ParallelMoveResolver {
     parallelMoves: Vec[Move],
     orderedMoves: Vec[Move],
-    types: HashMap[Operand, Type],
+    types: HashMap[Location, Type],
     // All written registers.
-    directpreds: HashMap[Operand, Operand],
+    directpreds: HashMap[Location, Location],
     // All used variables and their current location.
-    locations: HashMap[Operand, Operand],
-    todo: HashSet[Operand],
+    locations: HashMap[Location, Location],
+    todo: HashSet[Location],
 }
 
 impl ParallelMoveResolver {
@@ -96,14 +96,14 @@ impl ParallelMoveResolver {
         ParallelMoveResolver(
             Vec[Move]::new(),
             Vec[Move]::new(),
-            HashMap[Operand, Type]::new(),
-            HashMap[Operand, Operand]::new(),
-            HashMap[Operand, Operand]::new(),
-            HashSet[Operand]::new(),
+            HashMap[Location, Type]::new(),
+            HashMap[Location, Location]::new(),
+            HashMap[Location, Location]::new(),
+            HashSet[Location]::new(),
         )
     }
 
-    fn add(ty: Type, dest: Operand, src: Operand) {
+    fn add(ty: Type, dest: Location, src: Location) {
         if dest == src { return; }
         self.parallelMoves.push(Move(ty, dest, src));
     }
@@ -138,9 +138,9 @@ impl ParallelMoveResolver {
             let ty = self.types.get(dest).getOrPanic();
             assert(self.inCycle(dest));
             let scratch = if ty.isAnyFloat() {
-                float_scratch.toOperand()
+                float_scratch.toLocation()
             } else {
-                scratch.toOperand()
+                scratch.toLocation()
             };
             self.emitOrderedMove(ty, scratch, dest);
             self.locations.insert(dest, scratch);
@@ -148,7 +148,7 @@ impl ParallelMoveResolver {
         }
     }
 
-    fn inCycle(opnd: Operand): Bool {
+    fn inCycle(opnd: Location): Bool {
         let start = opnd;
         let mut opnd = opnd;
         assert(self.todo.contains(opnd));
@@ -165,7 +165,7 @@ impl ParallelMoveResolver {
         false
     }
 
-    fn emitMoveChainAt(dest: Operand) {
+    fn emitMoveChainAt(dest: Location) {
         let mut dest = dest;
         let ty = self.types.get(dest).getOrPanic();
         assert(self.todo.contains(dest));
@@ -185,7 +185,7 @@ impl ParallelMoveResolver {
         }
     }
 
-    fn emitOrderedMove(ty: Type, dest: Operand, src: Operand) {
+    fn emitOrderedMove(ty: Type, dest: Location, src: Location) {
         self.orderedMoves.push(Move(ty, dest, src));
     }
 
@@ -325,14 +325,14 @@ fn expectMoves(moves: ParallelMoveResolver, expected: Array[Move]) {
     }
 }
 
-fn r(value: Int64): Operand {
-    Operand::Reg(Register(value.toUInt8()))
+fn r(value: Int64): Location {
+    Location::Reg(Register(value.toUInt8()))
 }
 
-fn f(value: Int64): Operand {
-    Operand::FloatReg(FloatRegister(value.toUInt8()))
+fn f(value: Int64): Location {
+    Location::FloatReg(FloatRegister(value.toUInt8()))
 }
 
-fn s(value: Int64): Operand {
-    Operand::Stack(value.toInt32())
+fn s(value: Int64): Location {
+    Location::Stack(value.toInt32())
 }
