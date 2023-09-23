@@ -268,7 +268,7 @@ fn dumpInstName(inst: Inst): String {
         Op::ArrayLength => "ArrayLength",
         Op::LoadField => "FieldGet.${inst.getValueType()}",
         Op::StoreField => "FieldSet",
-        Op::Arg => "Arg.${inst.getValueType()}(${inst.getIndex()})",
+        Op::Arg => "Arg.${inst.getValueType()}(${inst.getArgIndex()})",
         Op::Move => "Move.${inst.getValueType()}",
         Op::MoveImmediate => "MoveImmediate.${inst.getValueType()}",
     }

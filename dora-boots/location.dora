@@ -25,7 +25,7 @@ fn setLocationConstraints(inst: Inst, codegen: CodeGen, ci: CompilationInfo, arg
 
     match inst.op() {
         Op::Arg => {
-            let location = argumentLocations(inst.getIndex().toInt64());
+            let location = argumentLocations(inst.getArgIndex().toInt64());
 
             if location.isFloatRegister() {
                 useOutputFloatRegisterFixed(inst, location.getFloatRegister());
@@ -226,6 +226,7 @@ pub fn useInputRegister(inst: Inst, idx: Int64) {
 pub fn useInputRegisterFixed(inst: Inst, idx: Int64, reg: Register) {
     let loc = inst.getLocationData();
     loc.setInput(idx, Operand::new(Policy::FixedReg, Location::Reg(reg)));
+    applyHint(inst.getInput(idx).getValue(), Location::Reg(reg));
 }
 
 pub fn useInputFloatRegister(inst: Inst, idx: Int64) {
@@ -236,6 +237,7 @@ pub fn useInputFloatRegister(inst: Inst, idx: Int64) {
 pub fn useInputFloatRegisterFixed(inst: Inst, idx: Int64, reg: FloatRegister) {
     let loc = inst.getLocationData();
     loc.setInput(idx, Operand::new(Policy::FixedFloatReg, Location::FloatReg(reg)));
+    applyHint(inst.getInput(idx).getValue(), Location::FloatReg(reg));
 }
 
 pub fn useOutputSameAsFirstInput(inst: Inst) {
@@ -246,4 +248,14 @@ pub fn useOutputSameAsFirstInput(inst: Inst) {
 pub fn useTempRegisterFixed(inst: Inst, reg: Register) {
     let loc = inst.getLocationData();
     loc.setTemp(Operand::new(Policy::FixedReg, Location::Reg(reg)));
+}
+
+fn applyHint(inst: Inst, location: Location) {
+    let loc = inst.getLocationData();
+
+    if !loc.getHint().isNone() {
+        return;
+    }
+
+    loc.setHint(location);
 }

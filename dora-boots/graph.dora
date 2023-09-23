@@ -685,6 +685,7 @@ pub fn opName(op: Op): String {
 pub class Inst {
     _id: Option[Int32],
     block: Option[Block],
+    index: Option[Int32],
 
     _op: Option[Op],
     bytecode_position: Option[Int32],
@@ -710,6 +711,7 @@ impl Inst {
         Inst(
             None[Int32],
             None[Block],
+            None[Int32],
             None[Op],
             None[Int32],
             0,
@@ -730,6 +732,14 @@ impl Inst {
 
     pub fn op(): Op {
         self._op.getOrPanic()
+    }
+
+    pub fn getIndex(): Int32 {
+        self.index.getOrPanic()
+    }
+
+    pub fn setIndex(value: Int32) {
+        self.index = Some(value);
     }
 
     pub fn bytecode_position(): Int32 {
@@ -992,7 +1002,7 @@ impl Inst {
         }
     }
 
-    pub fn getIndex(): Int32 {
+    pub fn getArgIndex(): Int32 {
         assert(self.op() == Op::Arg);
         self.aux.toInt32()
     }
@@ -1165,6 +1175,7 @@ pub class LocationData {
     inputs: Array[Option[Operand]],
     temps: Vec[Operand],
     output: Option[Operand],
+    hint: Location,
     spill_slot: Option[Int32],
 }
 
@@ -1172,20 +1183,24 @@ impl LocationData {
     pub static fn new(inst: Inst): LocationData {
         let count = inst.getInputs().size();
         let inputs = Array[Option[Operand]]::fill(count, None[Operand]);
+
         LocationData(
             inputs,
             Vec[Operand]::new(),
             None[Operand],
+            Location::None,
             None[Int32],
         )
     }
 
     pub static fn newWith(inputs: Int64): LocationData {
         let inputs = Array[Option[Operand]]::fill(inputs, None[Operand]);
+
         LocationData(
             inputs,
             Vec[Operand]::new(),
             None[Operand],
+            Location::None,
             None[Int32],
         )
     }
@@ -1243,6 +1258,16 @@ impl LocationData {
 
     pub fn hasSpillSlot(): Bool {
         self.spill_slot.isSome()
+    }
+
+    pub fn setHint(location: Location) {
+        assert(self.hint.isNone());
+        assert(!location.isNone());
+        self.hint = location;
+    }
+
+    pub fn getHint(): Location {
+        self.hint
     }
 }
 

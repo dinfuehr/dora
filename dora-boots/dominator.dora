@@ -6,21 +6,22 @@ pub fn buildDominatorTree(graph: Graph) {
     let visited = findBackEdges(graph);
     removeUnreachableBlocks(graph, visited);
     computePostOrder(graph);
+    computeIndex(graph);
     computeDominators(graph);
     discoverLoopBlocks(graph);
 }
 
 fn findBackEdges(graph: Graph): BitSet {
-    // worklist contains current path in the graph
+    // Worklist contains current path in the graph.
     let worklist = Vec[Block]::new();
 
-    // number of successors visited per block
+    // Number of successors visited per block.
     let successorsVisited = Array[Int64]::zero(graph.blockCount().toInt64());
 
-    // all blocks that have been fully visited (including successors)
+    // All blocks that have been fully visited (including successors).
     let visited = BitSet::new(graph.blockCount().toInt64());
 
-    // all blocks in worklist
+    // All blocks in worklist.
     let visiting = BitSet::new(graph.blockCount().toInt64());
 
     worklist.push(graph.getEntryBlock());
@@ -40,10 +41,9 @@ fn findBackEdges(graph: Graph): BitSet {
             let successor = successorEdge.target;
 
             if visiting.contains(successor.id().toInt64()) {
-
                 foundBackEdge(successorEdge);
             } else if visited.contains(successor.id().toInt64()) {
-                // already visited
+                // Already visited.
             } else {
                 worklist.push(successor);
                 visiting.insert(successor.id().toInt64());
@@ -67,7 +67,7 @@ fn foundBackEdge(edge: Edge) {
 }
 
 fn removeUnreachableBlocks(graph: Graph, visited: BitSet) {
-    // Remove instructions as user from other instructions
+    // Remove instructions as user from other instructions.
     for block in graph.insertionOrderIterator() {
         if visited.contains(block.id().toInt64()) {
             continue;
@@ -82,7 +82,7 @@ fn removeUnreachableBlocks(graph: Graph, visited: BitSet) {
         }
     }
 
-    // Now remove unreachable blocks from graph
+    // Now remove unreachable blocks from graph.
     for block in graph.insertionOrderIterator() {
         if visited.contains(block.id().toInt64()) {
             continue;
@@ -102,13 +102,13 @@ fn computePostOrder(graph: Graph) {
     let postOrder = Vec[Block]::new();
     postOrder.reserve(graph.blockCount().toInt64());
 
-    // worklist contains current path in the graph
+    // Worklist contains current path in the graph.
     let worklist = Vec[Block]::new();
 
-    // number of successors visited per block
+    // Number of successors visited per block.
     let successorsVisited = Array[Int64]::newDefault(graph.blockCount().toInt64());
 
-    // all blocks that have been visited
+    // All blocks that have been visited.
     let visited = BitSet::new(graph.blockCount().toInt64());
 
     worklist.push(graph.getEntryBlock());
@@ -125,7 +125,7 @@ fn computePostOrder(graph: Graph) {
             let successor = block.successors(successorIndex).target;
 
             if visited.contains(successor.id().toInt64()) {
-                // block either already visited or back edge
+                // Block either already visited or back edge.
             } else {
                 worklist.push(successor);
                 visited.insert(successor.id().toInt64());
@@ -136,8 +136,19 @@ fn computePostOrder(graph: Graph) {
     graph.setPostOrder(postOrder);
 }
 
+fn computeIndex(graph: Graph) {
+    let mut idx = 1i32;
+
+    for block in graph.reversePostOrderIterator() {
+        for inst in block.instructionsIterator() {
+            inst.setIndex(idx);
+            idx = idx + 1i32;
+        }
+    }
+}
+
 fn computeDominators(graph: Graph) {
-    // Algorithm from paper "A Simple, Fast Dominance Algorithm"
+    // Algorithm from paper "A Simple, Fast Dominance Algorithm".
     for block in graph.reversePostOrderIterator() {
         if block.isEntryBlock() {
             continue;
@@ -163,7 +174,7 @@ fn computeDominators(graph: Graph) {
         block.setDominator(newIdom.getOrPanic());
     }
 
-    // assert that we have a reducible graph
+    // Assert that we have a reducible graph.
     for block in graph.insertionOrderIterator() {
         if block.isLoopHeader() {
             let loopHeaderBlock = block;
@@ -176,7 +187,7 @@ fn computeDominators(graph: Graph) {
         }
     }
 
-    // assert that dominators are stable
+    // Assert that dominators are stable.
     for block in graph.reversePostOrderIterator() {
         if block.isEntryBlock() {
             assert(block.getDominator().isNone());
