@@ -685,7 +685,7 @@ pub fn opName(op: Op): String {
 pub class Inst {
     _id: Option[Int32],
     block: Option[Block],
-    index: Option[Int32],
+    linear_index: Option[Int32],
 
     _op: Option[Op],
     bytecode_position: Option[Int32],
@@ -734,12 +734,12 @@ impl Inst {
         self._op.getOrPanic()
     }
 
-    pub fn getIndex(): Int32 {
-        self.index.getOrPanic()
+    pub fn getLinearIndex(): Int32 {
+        self.linear_index.getOrPanic()
     }
 
-    pub fn setIndex(value: Int32) {
-        self.index = Some(value);
+    pub fn setLinearIndex(value: Int32) {
+        self.linear_index = Some(value);
     }
 
     pub fn bytecode_position(): Int32 {

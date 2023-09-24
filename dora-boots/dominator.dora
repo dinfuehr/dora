@@ -141,7 +141,7 @@ fn computeIndex(graph: Graph) {
 
     for block in graph.reversePostOrderIterator() {
         for inst in block.instructionsIterator() {
-            inst.setIndex(idx);
+            inst.setLinearIndex(idx);
             idx = idx + 1i32;
         }
     }
