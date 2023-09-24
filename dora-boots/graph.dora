@@ -736,12 +736,20 @@ impl Inst {
         self._op.getOrPanic()
     }
 
+    pub fn hasLinearIndex(): Bool {
+        self.linear_index.isSome()
+    }
+
     pub fn getLinearIndex(): Int32 {
         self.linear_index.getOrPanic()
     }
 
     pub fn setLinearIndex(value: Int32) {
         self.linear_index = Some(value);
+    }
+
+    pub fn getLiveRange(): LiveRange {
+        self.live_range.getOrPanic()
     }
 
     pub fn bytecode_position(): Int32 {
@@ -860,6 +868,14 @@ impl Inst {
             let live_range = self.live_range.getOrPanic();
             assert(live_range.start == self.getLinearIndex());
             assert(live_range.end > inst.getLinearIndex());
+        }
+    }
+
+    pub fn usedInLoop(block: Block) {
+        let live_range = self.live_range.getOrPanic();
+        let idx = block.lastInst().getLinearIndex();
+        if idx > live_range.end {
+            live_range.end = idx;
         }
     }
 

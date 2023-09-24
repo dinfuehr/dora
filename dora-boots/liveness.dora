@@ -51,11 +51,19 @@ pub fn computeLiveness(graph: Graph) {
 
     for block in graph.reversePostOrderIterator() {
         if !block.isLoopHeader() {
-            return;
+            continue;
         }
 
         let loopData = block.getLoopData().getOrPanic();
         let liveLoop = block.getLiveIn();
+
+        for value_id in liveLoop {
+            let value = graph.getInstById(value_id.toInt32());
+
+            for backEdge in loopData.getBackEdges() {
+                value.usedInLoop(backEdge.source);
+            }
+        }
 
         for loopBlockId in loopData.blocks() {
             let loopBlock = graph.getBlockWithId(loopBlockId.toInt32());
