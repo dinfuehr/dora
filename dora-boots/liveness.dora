@@ -30,7 +30,7 @@ pub fn computeLiveness(graph: Graph) {
         for inst in block.reverseInstructionsIterator() {
             for input in inst.getInputs() {
                 let value = input.getValue();
-                // value.usedAt(inst);
+                value.usedAt(inst);
 
                 let id = value.id().toInt64();
                 if !live.contains(id) {

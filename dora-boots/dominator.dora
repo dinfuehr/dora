@@ -140,6 +140,10 @@ fn computeIndex(graph: Graph) {
     let mut idx = 1i32;
 
     for block in graph.reversePostOrderIterator() {
+        for phi in block.phisIterator() {
+            phi.setLinearIndex(idx);
+        }
+
         for inst in block.instructionsIterator() {
             inst.setLinearIndex(idx);
             idx = idx + 1i32;
