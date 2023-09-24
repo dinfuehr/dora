@@ -12,7 +12,9 @@ pub fn computeLiveness(graph: Graph) {
 
             for phi in successor.phisIterator() {
                 let input = phi.getInput(idx);
-                live.insert(input.getValue().id().toInt64());
+                let value = input.getValue();
+                live.insert(value.id().toInt64());
+                value.usedAt(block.lastInst());
             }
         }
 
@@ -27,7 +29,10 @@ pub fn computeLiveness(graph: Graph) {
 
         for inst in block.reverseInstructionsIterator() {
             for input in inst.getInputs() {
-                let id = input.getValue().id().toInt64();
+                let value = input.getValue();
+                // value.usedAt(inst);
+
+                let id = value.id().toInt64();
                 if !live.contains(id) {
                     input.markKill();
                 }

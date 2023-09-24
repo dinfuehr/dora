@@ -699,6 +699,7 @@ pub class Inst {
     extra: InstExtraData,
 
     location_data: Option[LocationData],
+    live_range: Option[LiveRange],
 
     useListHead: Option[Input],
     useListTail: Option[Input],
@@ -720,6 +721,7 @@ impl Inst {
             Type::Unit,
             InstExtraData::None,
             None[LocationData],
+            None[LiveRange],
             None[Input],
             None[Input],
             Vec[Input]::new(),
@@ -848,6 +850,16 @@ impl Inst {
         match self.extra {
             InstExtraData::FunctionInfo(info) => info,
             _ => unreachable[FunctionInfo](),
+        }
+    }
+
+    pub fn usedAt(inst: Inst) {
+        if self.live_range.isNone() {
+            self.live_range = Some(LiveRange(self.getLinearIndex(), inst.getLinearIndex()));
+        } else {
+            let live_range = self.live_range.getOrPanic();
+            assert(live_range.start == self.getLinearIndex());
+            assert(live_range.end > inst.getLinearIndex());
         }
     }
 
@@ -1169,6 +1181,11 @@ enum InstExtraData {
     FunctionInfo(FunctionInfo),
     If(Block, Block),
     Goto(Block),
+}
+
+pub class LiveRange {
+    start: Int32,
+    end: Int32,
 }
 
 pub class LocationData {
