@@ -112,7 +112,7 @@ impl GraphDumper {
         self.dumpOutputLocation(inst);
         self.buffer.append("${dumpInstName(inst)}");
 
-        if !inst.getInputs().isEmpty() && !inst.isPhi() {
+        if !inst.getInputs().isEmpty() {
             let mut idx = 0;
             self.buffer.append(" ");
 
@@ -191,6 +191,11 @@ impl GraphDumper {
         }
 
         let loc = inst.getLocationData();
+
+        if !loc.hasInput(idx) {
+            return;
+        }
+
         self.buffer.append(" in ");
         self.dumpOperand(loc.getInput(idx));
     }

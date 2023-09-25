@@ -1269,6 +1269,10 @@ impl LocationData {
         self.output = Some(Operand(Policy::None, operand));
     }
 
+    pub fn hasInput(idx: Int64): Bool {
+        self.inputs(idx).isSome()
+    }
+
     pub fn getInput(idx: Int64): Operand {
         self.inputs.get(idx).getOrPanic()
     }
