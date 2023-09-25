@@ -6,7 +6,6 @@ pub fn buildDominatorTree(graph: Graph) {
     let visited = findBackEdges(graph);
     removeUnreachableBlocks(graph, visited);
     computePostOrder(graph);
-    computeIndex(graph);
     computeDominators(graph);
     discoverLoopBlocks(graph);
 }
@@ -134,21 +133,6 @@ fn computePostOrder(graph: Graph) {
     }
 
     graph.setPostOrder(postOrder);
-}
-
-fn computeIndex(graph: Graph) {
-    let mut idx = 1i32;
-
-    for block in graph.reversePostOrderIterator() {
-        for phi in block.phisIterator() {
-            phi.setLinearIndex(idx);
-        }
-
-        for inst in block.instructionsIterator() {
-            inst.setLinearIndex(idx);
-            idx = idx + 1i32;
-        }
-    }
 }
 
 fn computeDominators(graph: Graph) {

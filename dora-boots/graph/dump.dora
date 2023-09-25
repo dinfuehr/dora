@@ -5,7 +5,7 @@ use package::assembler::arm64::registerName as registerNameOnArm64;
 use package::assembler::x64::registerName as registerNameOnX64;
 use package::assembler::arm64::floatRegisterName as floatRegisterNameOnArm64;
 use package::assembler::x64::floatRegisterName as floatRegisterNameOnX64;
-use package::graph::{Block, Edge, Graph, Input, Inst, Operand, LocationData, Op, Location};
+use package::graph::{Block, Edge, Graph, Input, Inst, Location, LocationData, Operand, Op, Policy};
 use package::interface::Architecture;
 
 pub fn dumpGraph(graph: Graph, architecture: Architecture): String {
@@ -102,11 +102,17 @@ impl GraphDumper {
     }
 
     fn dumpInst(inst: Inst) {
-        self.buffer.append("  %${inst.id()}: ");
+        self.buffer.append("  %${inst.id()}");
+
+        if inst.hasLinearOrderIndex() {
+            self.buffer.append("/#${inst.getLinearOrderIndex()}");
+        }
+
+        self.buffer.append(": ");
         self.dumpOutputLocation(inst);
         self.buffer.append("${dumpInstName(inst)}");
 
-        if !inst.getInputs().isEmpty() {
+        if !inst.getInputs().isEmpty() && !inst.isPhi() {
             let mut idx = 0;
             self.buffer.append(" ");
 
@@ -122,7 +128,7 @@ impl GraphDumper {
         } else if inst.op() == Op::Move {
             let loc = inst.getLocationData();
             self.buffer.append(" ");
-            self.dumpLocation(loc.getInput(0));
+            self.dumpOperand(loc.getInput(0));
         }
 
         if inst.hasLocationData() {
@@ -132,7 +138,7 @@ impl GraphDumper {
                 let mut first = true;
                 for temp in loc.getTemps() {
                     if !first { self.buffer.append(", "); }
-                    self.dumpLocation(temp);
+                    self.dumpOperand(temp);
                     first = false;
                 }
                 self.buffer.append(")");
@@ -155,6 +161,11 @@ impl GraphDumper {
             self.buffer.append("]");
         }
 
+        if inst.hasLiveRange() {
+            let range = inst.getLiveRange();
+            self.buffer.append(" (live: #${range.start}-#${range.end})");
+        }
+
         self.buffer.appendNewline();
     }
 
@@ -166,7 +177,7 @@ impl GraphDumper {
         let loc = inst.getLocationData();
 
         if loc.hasOutput() {
-            self.dumpLocation(loc.getOutput());
+            self.dumpOperand(loc.getOutput());
             if loc.hasSpillSlot() {
                 self.buffer.append(" / FP${loc.getSpillSlot()}");
             }
@@ -181,11 +192,20 @@ impl GraphDumper {
 
         let loc = inst.getLocationData();
         self.buffer.append(" in ");
-        self.dumpLocation(loc.getInput(idx));
+        self.dumpOperand(loc.getInput(idx));
     }
 
-    fn dumpLocation(loc: Operand) {
-        let name = match loc.getLocation() {
+    fn dumpOperand(operand: Operand) {
+        let policy = match operand.getPolicy() {
+            Policy::None => "NO",
+            Policy::AnyReg => "GP",
+            Policy::AnyFloatReg => "FP",
+            Policy::FixedReg => "FIX_GP",
+            Policy::FixedFloatReg => "FIX_FP",
+            Policy::SameAsFirstInput => "SAFI",
+        };
+
+        let name = match operand.getLocation() {
             Location::Reg(reg) => {
                 match self.architecture {
                     Architecture::Arm64 => registerNameOnArm64(reg),
@@ -203,7 +223,7 @@ impl GraphDumper {
             Location::None => "NONE",
         };
 
-        self.buffer.append(name);
+        self.buffer.append("${policy}:${name}");
     }
 }
 

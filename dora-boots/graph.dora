@@ -736,16 +736,20 @@ impl Inst {
         self._op.getOrPanic()
     }
 
-    pub fn hasLinearIndex(): Bool {
+    pub fn hasLinearOrderIndex(): Bool {
         self.linear_index.isSome()
     }
 
-    pub fn getLinearIndex(): Int32 {
+    pub fn getLinearOrderIndex(): Int32 {
         self.linear_index.getOrPanic()
     }
 
-    pub fn setLinearIndex(value: Int32) {
+    pub fn setLinearOrderIndex(value: Int32) {
         self.linear_index = Some(value);
+    }
+
+    pub fn hasLiveRange(): Bool {
+        self.live_range.isSome()
     }
 
     pub fn getLiveRange(): LiveRange {
@@ -863,17 +867,17 @@ impl Inst {
 
     pub fn usedAt(inst: Inst) {
         if self.live_range.isNone() {
-            self.live_range = Some(LiveRange(self.getLinearIndex(), inst.getLinearIndex()));
+            self.live_range = Some(LiveRange(self.getLinearOrderIndex(), inst.getLinearOrderIndex()));
         } else {
             let live_range = self.live_range.getOrPanic();
-            assert(live_range.start == self.getLinearIndex());
-            assert(live_range.end > inst.getLinearIndex());
+            assert(live_range.start == self.getLinearOrderIndex());
+            assert(live_range.end > inst.getLinearOrderIndex());
         }
     }
 
     pub fn usedInLoop(block: Block) {
         let live_range = self.live_range.getOrPanic();
-        let idx = block.lastInst().getLinearIndex();
+        let idx = block.lastInst().getLinearOrderIndex();
         if idx > live_range.end {
             live_range.end = idx;
         }

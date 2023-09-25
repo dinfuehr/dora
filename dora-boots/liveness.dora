@@ -3,6 +3,8 @@ use std::collections::BitVec;
 use package::graph::Graph;
 
 pub fn computeLiveness(graph: Graph) {
+    computeLinearOrderIndex(graph);
+
     for block in graph.postOrderIterator() {
         let live = BitVec::new();
 
@@ -57,17 +59,39 @@ pub fn computeLiveness(graph: Graph) {
         let loopData = block.getLoopData().getOrPanic();
         let liveLoop = block.getLiveIn();
 
+        // A value that is live-in in a loop header, needs to be
+        // live through the whole loop.
+
         for value_id in liveLoop {
             let value = graph.getInstById(value_id.toInt32());
 
+            // Extend live range for each live-in variable up to
+            // the last loop back edge.
             for backEdge in loopData.getBackEdges() {
                 value.usedInLoop(backEdge.source);
             }
         }
 
+        // A variable which is live-in in the loop header, is also live-in
+        // in all blocks of that loop.
         for loopBlockId in loopData.blocks() {
             let loopBlock = graph.getBlockWithId(loopBlockId.toInt32());
             loopBlock.getLiveIn().unionWith(liveLoop);
+        }
+    }
+}
+
+fn computeLinearOrderIndex(graph: Graph) {
+    let mut idx = 1i32;
+
+    for block in graph.reversePostOrderIterator() {
+        for phi in block.phisIterator() {
+            phi.setLinearOrderIndex(idx);
+        }
+
+        for inst in block.instructionsIterator() {
+            inst.setLinearOrderIndex(idx);
+            idx = idx + 1i32;
         }
     }
 }
