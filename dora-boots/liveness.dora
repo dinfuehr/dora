@@ -1,6 +1,7 @@
 use std::collections::BitVec;
+use std::collections::HashSet;
 
-use package::graph::Graph;
+use package::graph::{Graph, Input};
 
 pub fn computeLiveness(graph: Graph) {
     computeLinearOrderIndex(graph);
@@ -17,6 +18,7 @@ pub fn computeLiveness(graph: Graph) {
                 let value = input.getValue();
                 live.insert(value.id().toInt64());
                 value.usedAt(block.lastInst());
+                value.prependNextUse(input);
             }
         }
 
@@ -33,6 +35,7 @@ pub fn computeLiveness(graph: Graph) {
             for input in inst.getInputs() {
                 let value = input.getValue();
                 value.usedAt(inst);
+                value.prependNextUse(input);
 
                 let id = value.id().toInt64();
                 if !live.contains(id) {
@@ -77,6 +80,35 @@ pub fn computeLiveness(graph: Graph) {
         for loopBlockId in loopData.blocks() {
             let loopBlock = graph.getBlockWithId(loopBlockId.toInt32());
             loopBlock.getLiveIn().unionWith(liveLoop);
+        }
+    }
+
+    for block in graph.reversePostOrderIterator() {
+        for inst in block.instructionsIterator() {
+            if !inst.hasUses() {
+                assert(inst.currentNextUse().isNone());
+            } else {
+                let mut current = inst.currentNextUse();
+                let mut currentIdx = 0i32;
+                let inputs = Vec[Input]::new();
+
+                while current.isSome() {
+                    let input = current.getOrPanic();
+                    inputs.push(input);
+                    // Uses should be ordered by the linear order index.
+                    assert(currentIdx <= input.getUsedBy().getLinearOrderIndex());
+                    current = input.getNextUse();
+                    currentIdx = input.getUsedBy().getLinearOrderIndex();
+                }
+
+                let mut regularUseCount = 0;
+
+                for _ in inst.uses() {
+                    regularUseCount = regularUseCount + 1;
+                }
+
+                assert(inputs.size() == regularUseCount);
+            }
         }
     }
 }

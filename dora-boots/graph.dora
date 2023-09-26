@@ -515,6 +515,10 @@ impl Input {
         self.idx
     }
 
+    pub fn getNextUse(): Option[Input] {
+        self.nextUse
+    }
+
     pub fn getValue(): Inst {
         self.value
     }
@@ -695,6 +699,8 @@ pub class Inst {
     previous: Option[Inst],
     next: Option[Inst],
 
+    nextUse: Option[Input],
+
     ty: Type,
     extra: InstExtraData,
 
@@ -718,6 +724,7 @@ impl Inst {
             0,
             None[Inst],
             None[Inst],
+            None[Input],
             Type::Unit,
             InstExtraData::None,
             None[LocationData],
@@ -778,6 +785,15 @@ impl Inst {
 
     pub fn getInput(idx: Int64): Input {
         self.inputs(idx)
+    }
+
+    pub fn currentNextUse(): Option[Input] {
+        self.nextUse
+    }
+
+    pub fn prependNextUse(input: Input) {
+        input.nextUse = self.nextUse;
+        self.nextUse = Some(input);
     }
 
     pub fn isPhi(): Bool {
