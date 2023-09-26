@@ -6,6 +6,16 @@ use package::graph::{Graph, Input};
 pub fn computeLiveness(graph: Graph) {
     computeLinearOrderIndex(graph);
 
+    for block in graph.reversePostOrderIterator() {
+        for phi in block.phisIterator() {
+            phi.clearUses();
+        }
+
+        for inst in block.instructionsIterator() {
+            inst.clearUses();
+        }
+    }
+
     for block in graph.postOrderIterator() {
         let live = BitVec::new();
 
@@ -18,7 +28,7 @@ pub fn computeLiveness(graph: Graph) {
                 let value = input.getValue();
                 live.insert(value.id().toInt64());
                 value.usedAt(block.lastInst());
-                value.prependNextUse(input);
+                value.prependUse(input, block.lastInst());
             }
         }
 
@@ -35,7 +45,7 @@ pub fn computeLiveness(graph: Graph) {
             for input in inst.getInputs() {
                 let value = input.getValue();
                 value.usedAt(inst);
-                value.prependNextUse(input);
+                value.prependUse(input, inst);
 
                 let id = value.id().toInt64();
                 if !live.contains(id) {
@@ -85,29 +95,16 @@ pub fn computeLiveness(graph: Graph) {
 
     for block in graph.reversePostOrderIterator() {
         for inst in block.instructionsIterator() {
-            if !inst.hasUses() {
-                assert(inst.currentNextUse().isNone());
-            } else {
-                let mut current = inst.currentNextUse();
-                let mut currentIdx = 0i32;
-                let inputs = Vec[Input]::new();
+            let mut lastIdx = 0i32;
 
-                while current.isSome() {
-                    let input = current.getOrPanic();
-                    inputs.push(input);
-                    // Uses should be ordered by the linear order index.
-                    assert(currentIdx <= input.getUsedBy().getLinearOrderIndex());
-                    current = input.getNextUse();
-                    currentIdx = input.getUsedBy().getLinearOrderIndex();
-                }
+            for input in inst.uses() {
+                assert(input.getValue() === inst);
+                let user = input.getUsedBy();
+                let currentIdx = input.getLinearOrderIndexInActualUser();
 
-                let mut regularUseCount = 0;
-
-                for _ in inst.uses() {
-                    regularUseCount = regularUseCount + 1;
-                }
-
-                assert(inputs.size() == regularUseCount);
+                // Uses should be ordered by the linear order index.
+                assert(lastIdx <= currentIdx);
+                lastIdx = currentIdx;
             }
         }
     }

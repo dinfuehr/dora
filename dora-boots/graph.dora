@@ -496,6 +496,7 @@ pub class Input {
     usedBy: Inst,
     previousUse: Option[Input],
     nextUse: Option[Input],
+    linearOrderIdxInActualUser: Option[Int32],
     kill: Bool,
 }
 
@@ -507,12 +508,17 @@ impl Input {
             usedBy,
             None[Input],
             None[Input],
+            None[Int32],
             false,
         )
     }
 
     pub fn getIdx(): Int32 {
         self.idx
+    }
+
+    pub fn getLinearOrderIndexInActualUser(): Int32 {
+        self.linearOrderIdxInActualUser.getOrPanic()
     }
 
     pub fn getNextUse(): Option[Input] {
@@ -787,15 +793,6 @@ impl Inst {
         self.inputs(idx)
     }
 
-    pub fn currentNextUse(): Option[Input] {
-        self.nextUse
-    }
-
-    pub fn prependNextUse(input: Input) {
-        input.nextUse = self.nextUse;
-        self.nextUse = Some(input);
-    }
-
     pub fn isPhi(): Bool {
         self.op() == Op::Phi
     }
@@ -924,6 +921,42 @@ impl Inst {
             input.nextUse = None;
 
             self.useListTail = Some(input);
+        }
+    }
+
+    pub fn currentNextUse(): Option[Input] {
+        self.nextUse
+    }
+
+    pub fn clearUses() {
+        self.useListHead = None;
+        self.useListTail = None;
+    }
+
+    pub fn prependUse(input: Input, used_by: Inst) {
+        assert(input.value === self);
+        input.linearOrderIdxInActualUser = Some(used_by.getLinearOrderIndex());
+
+        if self.useListHead.isNone() {
+            assert(self.useListTail.isNone());
+            input.previousUse = None;
+            input.nextUse = None;
+
+            self.useListHead = Some(input);
+            self.useListTail = Some(input);
+        } else {
+            assert(self.useListHead.isSome());
+            assert(self.useListTail.isSome());
+
+            assert(self.useListHead.getOrPanic().previousUse.isNone());
+            assert(self.useListTail.getOrPanic().nextUse.isNone());
+
+            self.useListHead.getOrPanic().previousUse = Some(input);
+
+            input.previousUse = None;
+            input.nextUse = self.useListHead;
+
+            self.useListHead = Some(input);
         }
     }
 
