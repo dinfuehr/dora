@@ -306,7 +306,7 @@ impl SimpleRegisterAllocator {
         let input_loc = loc_data.getInput(0);
         let dest = input_loc.getLocation().getRegister();
 
-        if !inst.getInput(0).isKill() {
+        if !inst.getInput(0).isLastUse() {
             self.yieldRegister[Register](self.registers(), dest);
         }
 
@@ -364,7 +364,11 @@ impl SimpleRegisterAllocator {
         let loc_data = inst.getLocationData();
 
         for input in inst.getInputs() {
-            if input.isKill() {
+            let value = input.getValue();
+            assert(value.currentNextUse().getOrPanic() === input);
+            value.advanceToNextUse();
+
+            if input.isLastUse() {
                 let value = input.getValue();
                 self.registers().free(value);
                 self.float_registers().free(value);
@@ -372,16 +376,16 @@ impl SimpleRegisterAllocator {
         }
 
         if loc_data.hasOutput() && !inst.hasUses() {
-            self.freeRegisterInOperand(loc_data.getOutput().getLocation());
+            self.freeRegisterInLocation(loc_data.getOutput().getLocation());
         }
 
         for temp in loc_data.getTemps() {
-            self.freeRegisterInOperand(temp.getLocation());
+            self.freeRegisterInLocation(temp.getLocation());
         }
     }
 
-    fn freeRegisterInOperand(operand: Location) {
-        match operand {
+    fn freeRegisterInLocation(location: Location) {
+        match location {
             Location::None => unreachable[()](),
             Location::Reg(reg) => self.registers().freeRegister(reg),
             Location::FloatReg(reg) => self.float_registers().freeRegister(reg),

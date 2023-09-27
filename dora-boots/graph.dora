@@ -497,7 +497,7 @@ pub class Input {
     previousUse: Option[Input],
     nextUse: Option[Input],
     linearOrderIdxInActualUser: Option[Int32],
-    kill: Bool,
+    isLastUse: Bool,
 }
 
 impl Input {
@@ -533,12 +533,18 @@ impl Input {
         self.usedBy
     }
 
-    pub fn markKill() {
-        self.kill = true;
+    pub fn markLastUse() {
+        self.isLastUse = true;
     }
 
-    pub fn isKill(): Bool {
-        self.kill
+    pub fn isLastUse(): Bool {
+        self.isLastUse
+    }
+}
+
+impl Stringable for Input {
+    fn toString(): String {
+        "Input(user:%${self.getUsedBy().id()}, idx:${self.getIdx()}, value:%${self.getValue().id()})"
     }
 }
 
@@ -884,7 +890,7 @@ impl Inst {
         } else {
             let live_range = self.live_range.getOrPanic();
             assert(live_range.start == self.getLinearOrderIndex());
-            assert(live_range.end > inst.getLinearOrderIndex());
+            assert(live_range.end >= inst.getLinearOrderIndex());
         }
     }
 
@@ -928,14 +934,25 @@ impl Inst {
         self.nextUse
     }
 
+    pub fn hasNextUse(): Bool {
+        self.nextUse.isSome()
+    }
+
+    pub fn advanceToNextUse() {
+        assert(self.nextUse.isSome());
+        self.nextUse = self.nextUse.getOrPanic().getNextUse();
+    }
+
     pub fn clearUses() {
         self.useListHead = None;
         self.useListTail = None;
+        self.nextUse = None;
     }
 
     pub fn prependUse(input: Input, used_by: Inst) {
         assert(input.value === self);
         input.linearOrderIdxInActualUser = Some(used_by.getLinearOrderIndex());
+        self.nextUse = Some(input);
 
         if self.useListHead.isNone() {
             assert(self.useListTail.isNone());
@@ -1038,6 +1055,10 @@ impl Inst {
         }
 
         data.toArray()
+    }
+
+    pub fn firstUse(): Option[Input] {
+        self.useListHead
     }
 
     pub fn uses(): UseIterator {
@@ -1241,6 +1262,12 @@ impl Hash for Inst {
 impl Equals for Inst {
     fn equals(other: Inst): Bool {
         self === other
+    }
+}
+
+impl Stringable for Inst {
+    fn toString(): String {
+        "%${self.id()}"
     }
 }
 

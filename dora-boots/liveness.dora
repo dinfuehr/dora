@@ -42,14 +42,14 @@ pub fn computeLiveness(graph: Graph) {
         }
 
         for inst in block.reverseInstructionsIterator() {
-            for input in inst.getInputs() {
+            for input in inst.getInputs().makeReverseIterator() {
                 let value = input.getValue();
                 value.usedAt(inst);
                 value.prependUse(input, inst);
 
                 let id = value.id().toInt64();
                 if !live.contains(id) {
-                    input.markKill();
+                    input.markLastUse();
                 }
                 live.insert(id);
             }
@@ -96,6 +96,12 @@ pub fn computeLiveness(graph: Graph) {
     for block in graph.reversePostOrderIterator() {
         for inst in block.instructionsIterator() {
             let mut lastIdx = 0i32;
+
+            if inst.hasUses() {
+                assert(inst.currentNextUse().getOrPanic() === inst.firstUse().getOrPanic());
+            } else {
+                assert(inst.currentNextUse().isNone());
+            }
 
             for input in inst.uses() {
                 assert(input.getValue() === inst);

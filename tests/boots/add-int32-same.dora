@@ -1,0 +1,10 @@
+//= boots
+
+fn main() {
+    let x = f(1i32);
+    assert(x == 2i32);
+    let x = f(100i32);
+    assert(x == 200i32);
+}
+
+@optimizeImmediately fn f(a: Int32): Int32 { a+a }
