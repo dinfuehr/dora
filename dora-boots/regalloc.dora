@@ -177,24 +177,19 @@ impl SimpleRegisterAllocator {
     }
 
     fn spillLiveRegisters(call: Inst) {
-        for (reg, inst) in self.registers().data {
+        self.spillLiveRegistersGeneric[Register](self.registers(), call);
+        self.spillLiveRegistersGeneric[FloatRegister](self.float_registers(), call);
+    }
+
+    fn spillLiveRegistersGeneric[T: RegisterType](registers: RegisterTracker[T], call: Inst) {
+        for (reg, inst) in registers.data {
             if call === inst {
                 // Do not spill output of call instruction.
                 continue;
             }
 
             self.spill(inst);
-            self.registers().freeRegisterRaw(reg);
-        }
-
-        for (reg, inst) in self.float_registers().data {
-            if call === inst {
-                // Do not spill output of call instruction.
-                continue;
-            }
-
-            self.spill(inst);
-            self.float_registers().freeRegisterRaw(reg);
+            registers.freeRegisterRaw(reg);
         }
     }
 
