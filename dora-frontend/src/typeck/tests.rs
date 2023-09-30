@@ -1439,6 +1439,27 @@ fn test_template() {
         ErrorMessage::ExpectedStringable("Foo".into()),
     );
     ok("fn f[T: std::Stringable](x: T): String { return \"${x}\"; }");
+
+    ok("
+        class Foo
+        impl std::Stringable for Foo {
+            fn toString(): String { \"abc\" }
+        }
+        fn bar(x: Option[Foo]): String {
+            \"${x}\"
+        }
+    ");
+
+    err(
+        "
+        class Foo
+        fn bar(x: Option[Foo]): String {
+            \"${x}\"
+        }
+    ",
+        (4, 16),
+        ErrorMessage::ExpectedStringable("Option[Foo]".into()),
+    );
 }
 
 #[test]

@@ -575,8 +575,8 @@ impl[T: Equals] Option[T] {
   }
 }
 
-impl[T: Stringable] Option[T] {
-  pub fn toString(): String {
+impl[T: Stringable] Stringable for Option[T] {
+  fn toString(): String {
     match self {
       Some(value) => "Some(${value})",
       None => "None",
