@@ -584,6 +584,20 @@ impl[T: Stringable] Stringable for Option[T] {
   }
 }
 
+impl[T: Equals] Equals for Option[T] {
+  fn equals(other: Option[T]): Bool {
+    match self {
+      None => other.isNone(),
+      Some(lhs) => {
+        match other {
+          None => false,
+          Some(rhs) => lhs.equals(rhs),
+        }
+      }
+    }
+  }
+}
+
 pub enum Result[V, E] {
   Ok(V),
   Err(E),
@@ -654,8 +668,8 @@ impl[V: Equals, E] Result[V, E] {
   }
 }
 
-impl[V: Equals, E: Equals] Result[V, E] {
-  pub fn equals(rhs: Result[V, E]): Bool {
+impl[V: Equals, E: Equals] Equals for Result[V, E] {
+  fn equals(rhs: Result[V, E]): Bool {
     if self.isOk() {
       if rhs.isOk() {
         let lhs = self.getOrPanic();
