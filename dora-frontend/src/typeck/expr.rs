@@ -663,22 +663,21 @@ fn check_expr_template(
                 continue;
             }
 
-            if let SourceType::TypeParam(id) = part_expr {
-                if ck
-                    .type_param_defs
-                    .implements_trait(id, stringable_trait_ty.clone())
-                {
-                    continue;
-                }
-            } else {
-                let stringable_impl_id = find_impl(
-                    ck.sa,
-                    part_expr.clone(),
-                    &ck.type_param_defs,
-                    stringable_trait_ty.clone(),
-                );
+            if implements_trait(
+                ck.sa,
+                part_expr.clone(),
+                &ck.type_param_defs,
+                stringable_trait_ty.clone(),
+            ) {
+                if !part_expr.is_type_param() {
+                    let stringable_impl_id = find_impl(
+                        ck.sa,
+                        part_expr.clone(),
+                        &ck.type_param_defs,
+                        stringable_trait_ty.clone(),
+                    )
+                    .expect("missing impl");
 
-                if let Some(stringable_impl_id) = stringable_impl_id {
                     let impl_ = ck.sa.impls[stringable_impl_id].read();
                     let name = ck.sa.interner.intern("toString");
                     let to_string_id = impl_
@@ -688,16 +687,15 @@ fn check_expr_template(
                         .expect("method toString() not found");
 
                     ck.analysis.map_templates.insert(part.id(), to_string_id);
-                    continue;
                 }
+            } else {
+                let ty = ck.ty_name(&part_expr);
+                ck.sa.report(
+                    ck.file_id,
+                    part.span(),
+                    ErrorMessage::ExpectedStringable(ty),
+                );
             }
-
-            let ty = ck.ty_name(&part_expr);
-            ck.sa.report(
-                ck.file_id,
-                part.span(),
-                ErrorMessage::ExpectedStringable(ty),
-            );
         } else {
             match part.as_ref() {
                 ast::ExprData::LitStr(ref e) => {
