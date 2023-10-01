@@ -137,8 +137,7 @@ pub enum ErrorMessage {
     WrongNumberTypeParams(usize, usize),
     UnconstrainedTypeParam(String),
     ClassExpected,
-    ClassEnumStructExpected,
-    ClassExpectedAsTypeParam,
+    ExpectedImplType,
     BoundExpected,
     NoTypeParamsExpected,
     DuplicateTraitBound,
@@ -538,8 +537,7 @@ impl ErrorMessage {
                 format!("unconstrained type param `{}`.", name)
             }
             ErrorMessage::ClassExpected => "expected class.".into(),
-            ErrorMessage::ClassEnumStructExpected => "expected class, struct or enum.".into(),
-            ErrorMessage::ClassExpectedAsTypeParam => "class as type parameter expected.".into(),
+            ErrorMessage::ExpectedImplType => "type cannot be used in `impl` block.".into(),
             ErrorMessage::BoundExpected => "class or trait bound expected".into(),
             ErrorMessage::NoTypeParamsExpected => "no type params allowed".into(),
             ErrorMessage::DuplicateTraitBound => "duplicate trait bound".into(),

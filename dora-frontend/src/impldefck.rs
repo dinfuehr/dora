@@ -93,6 +93,7 @@ impl<'x> ImplCheck<'x> {
                 || class_ty.is_struct()
                 || class_ty.is_enum()
                 || class_ty.is_primitive()
+                || class_ty.is_tuple_or_unit()
             {
                 impl_.extended_ty = class_ty.clone();
 
@@ -107,7 +108,7 @@ impl<'x> ImplCheck<'x> {
                 self.sa.report(
                     self.file_id,
                     self.ast.extended_type.span(),
-                    ErrorMessage::ClassEnumStructExpected,
+                    ErrorMessage::ExpectedImplType,
                 );
             }
         }
@@ -202,7 +203,7 @@ mod tests {
         err(
             "trait Foo {} trait A {} impl Foo for A {}",
             (1, 38),
-            ErrorMessage::ClassEnumStructExpected,
+            ErrorMessage::ExpectedImplType,
         );
     }
 

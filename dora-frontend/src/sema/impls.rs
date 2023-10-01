@@ -165,10 +165,7 @@ pub fn implements_trait(
     }
 
     match check_ty {
-        SourceType::Tuple(_)
-        | SourceType::Unit
-        | SourceType::Trait(_, _)
-        | SourceType::Lambda(_, _) => false,
+        SourceType::Trait(_, _) | SourceType::Lambda(_, _) => false,
 
         SourceType::Bool
         | SourceType::UInt8
@@ -179,9 +176,9 @@ pub fn implements_trait(
         | SourceType::Float64
         | SourceType::Struct(_, _)
         | SourceType::Enum(_, _)
-        | SourceType::Class(_, _) => {
-            find_impl(sa, check_ty, check_type_param_defs, trait_ty).is_some()
-        }
+        | SourceType::Class(_, _)
+        | SourceType::Tuple(_)
+        | SourceType::Unit => find_impl(sa, check_ty, check_type_param_defs, trait_ty).is_some(),
 
         SourceType::TypeParam(tp_id) => check_type_param_defs.implements_trait(tp_id, trait_ty),
 

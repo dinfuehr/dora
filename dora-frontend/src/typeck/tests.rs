@@ -3881,3 +3881,27 @@ fn use_needs_pub() {
         ErrorMessage::UseNotAccessible,
     );
 }
+
+#[test]
+fn trait_for_tuple() {
+    ok("
+        trait Foo {}
+        impl Foo for (Int64, Int64) {}
+        fn f[T: Foo](x: T) {}
+        fn g() {
+            f[(Int64, Int64)]((1, 2));
+        }
+    ")
+}
+
+#[test]
+fn trait_for_unit() {
+    ok("
+        trait Foo {}
+        impl Foo for () {}
+        fn f[T: Foo](x: T) {}
+        fn g() {
+            f[()](());
+        }
+    ")
+}
