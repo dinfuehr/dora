@@ -559,20 +559,6 @@ impl[T: Equals] Option[T] {
       false
     }
   }
-
-  pub fn equals(rhs: Option[T]): Bool {
-    if self.isSome() {
-      if rhs.isSome() {
-        let lhs = self.getOrPanic();
-        let rhs = rhs.getOrPanic();
-        lhs.equals(rhs)
-      } else {
-        false
-      }
-    } else {
-      rhs.isNone()
-    }
-  }
 }
 
 impl[T: Stringable] Stringable for Option[T] {
