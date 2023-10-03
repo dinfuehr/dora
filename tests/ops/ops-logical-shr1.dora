@@ -1,0 +1,12 @@
+struct MyInt(x: Int64)
+
+impl std::traits::LogicalShr for MyInt {
+    fn lshr(shift: Int32): MyInt {
+        MyInt(self.x >>> shift)
+    }
+}
+
+fn main() {
+    let result = MyInt(3) >>> 1i32;
+    assert(result.x == 1);
+}

@@ -13,6 +13,7 @@ use crate::program_parser::ParsedModifierList;
 use crate::sema::{
     create_tuple, find_field_in_class, find_impl, implements_trait, AnalysisData, CallType,
     EnumDefinitionId, FctDefinition, FctParent, IdentType, ModuleDefinitionId, NestedVarId,
+    TraitDefinitionId,
 };
 use crate::specialize::replace_type_param;
 use crate::sym::SymbolKind;
@@ -792,21 +793,116 @@ pub(super) fn check_expr_bin(
     match e.op {
         ast::BinOp::Or | ast::BinOp::And => check_expr_bin_bool(ck, e, e.op, lhs_type, rhs_type),
         ast::BinOp::Cmp(cmp) => check_expr_bin_cmp(ck, e, cmp, lhs_type, rhs_type),
-        ast::BinOp::Add => check_expr_bin_method(ck, e, e.op, "plus", lhs_type, rhs_type),
-        ast::BinOp::Sub => check_expr_bin_method(ck, e, e.op, "minus", lhs_type, rhs_type),
-        ast::BinOp::Mul => check_expr_bin_method(ck, e, e.op, "times", lhs_type, rhs_type),
-        ast::BinOp::Div => check_expr_bin_method(ck, e, e.op, "div", lhs_type, rhs_type),
-        ast::BinOp::Mod => check_expr_bin_method(ck, e, e.op, "modulo", lhs_type, rhs_type),
-        ast::BinOp::BitOr => check_expr_bin_method(ck, e, e.op, "bitwiseOr", lhs_type, rhs_type),
-        ast::BinOp::BitAnd => check_expr_bin_method(ck, e, e.op, "bitwiseAnd", lhs_type, rhs_type),
-        ast::BinOp::BitXor => check_expr_bin_method(ck, e, e.op, "bitwiseXor", lhs_type, rhs_type),
-        ast::BinOp::ShiftL => check_expr_bin_method(ck, e, e.op, "shiftLeft", lhs_type, rhs_type),
-        ast::BinOp::ArithShiftR => {
-            check_expr_bin_method(ck, e, e.op, "shiftRightSigned", lhs_type, rhs_type)
-        }
-        ast::BinOp::LogicalShiftR => {
-            check_expr_bin_method(ck, e, e.op, "shiftRight", lhs_type, rhs_type)
-        }
+        ast::BinOp::Add => check_expr_bin_trait_or_method(
+            ck,
+            e,
+            e.op,
+            ck.sa.known.traits.add(),
+            "add",
+            "plus",
+            lhs_type,
+            rhs_type,
+        ),
+        ast::BinOp::Sub => check_expr_bin_trait_or_method(
+            ck,
+            e,
+            e.op,
+            ck.sa.known.traits.sub(),
+            "sub",
+            "minus",
+            lhs_type,
+            rhs_type,
+        ),
+        ast::BinOp::Mul => check_expr_bin_trait_or_method(
+            ck,
+            e,
+            e.op,
+            ck.sa.known.traits.mul(),
+            "mul",
+            "times",
+            lhs_type,
+            rhs_type,
+        ),
+        ast::BinOp::Div => check_expr_bin_trait_or_method(
+            ck,
+            e,
+            e.op,
+            ck.sa.known.traits.div(),
+            "div",
+            "div",
+            lhs_type,
+            rhs_type,
+        ),
+        ast::BinOp::Mod => check_expr_bin_trait_or_method(
+            ck,
+            e,
+            e.op,
+            ck.sa.known.traits.mod_(),
+            "modulo",
+            "modulo",
+            lhs_type,
+            rhs_type,
+        ),
+        ast::BinOp::BitOr => check_expr_bin_trait_or_method(
+            ck,
+            e,
+            e.op,
+            ck.sa.known.traits.bit_or(),
+            "bitor",
+            "bitwiseOr",
+            lhs_type,
+            rhs_type,
+        ),
+        ast::BinOp::BitAnd => check_expr_bin_trait_or_method(
+            ck,
+            e,
+            e.op,
+            ck.sa.known.traits.bit_and(),
+            "bitand",
+            "bitwiseAnd",
+            lhs_type,
+            rhs_type,
+        ),
+        ast::BinOp::BitXor => check_expr_bin_trait_or_method(
+            ck,
+            e,
+            e.op,
+            ck.sa.known.traits.bit_xor(),
+            "bitxor",
+            "bitwiseXor",
+            lhs_type,
+            rhs_type,
+        ),
+        ast::BinOp::ShiftL => check_expr_bin_trait_or_method(
+            ck,
+            e,
+            e.op,
+            ck.sa.known.traits.shl(),
+            "shl",
+            "shiftLeft",
+            lhs_type,
+            rhs_type,
+        ),
+        ast::BinOp::ArithShiftR => check_expr_bin_trait_or_method(
+            ck,
+            e,
+            e.op,
+            ck.sa.known.traits.arith_shr(),
+            "ashr",
+            "shiftRightSigned",
+            lhs_type,
+            rhs_type,
+        ),
+        ast::BinOp::LogicalShiftR => check_expr_bin_trait_or_method(
+            ck,
+            e,
+            e.op,
+            ck.sa.known.traits.logical_shr(),
+            "lshr",
+            "shiftRight",
+            lhs_type,
+            rhs_type,
+        ),
         ast::BinOp::Assign => unreachable!(),
     }
 }
@@ -822,6 +918,86 @@ fn check_expr_bin_bool(
     ck.analysis.set_ty(e.id, SourceType::Bool);
 
     SourceType::Bool
+}
+
+fn check_expr_bin_trait_or_method(
+    ck: &mut TypeCheck,
+    e: &ast::ExprBinType,
+    op: ast::BinOp,
+    trait_id: TraitDefinitionId,
+    trait_method_name: &str,
+    name: &str,
+    lhs_type: SourceType,
+    rhs_type: SourceType,
+) -> SourceType {
+    let name = ck.sa.interner.intern(name);
+    let call_types = [rhs_type.clone()];
+    let trait_ty = SourceType::new_trait(trait_id);
+
+    let impl_id = find_impl(ck.sa, lhs_type.clone(), &ck.type_param_defs, trait_ty);
+
+    if let Some(impl_id) = impl_id {
+        let impl_ = ck.sa.impls[impl_id].read();
+        let trait_method_name = ck.sa.interner.intern(trait_method_name);
+        let method_id = impl_
+            .instance_names
+            .get(&trait_method_name)
+            .cloned()
+            .expect("method not found");
+
+        let call_type = CallType::Method(lhs_type.clone(), method_id, SourceTypeArray::empty());
+        ck.analysis
+            .map_calls
+            .insert_or_replace(e.id, Arc::new(call_type));
+
+        let method = ck.sa.fcts.idx(method_id);
+        let method = method.read();
+
+        let params = method.params_without_self();
+
+        assert_eq!(params.len(), 1);
+
+        if !params[0].allows(ck.sa, rhs_type.clone()) {
+            let lhs_type = ck.ty_name(&lhs_type);
+            let rhs_type = ck.ty_name(&rhs_type);
+            let msg = ErrorMessage::BinOpType(op.as_str().into(), lhs_type, rhs_type);
+
+            ck.sa.report(ck.file_id, e.span, msg);
+        }
+
+        let return_type = method.return_type.clone();
+        ck.analysis.set_ty(e.id, return_type.clone());
+
+        return_type
+    } else if let Some(descriptor) = lookup_method(
+        ck.sa,
+        lhs_type.clone(),
+        ck.type_param_defs,
+        false,
+        name,
+        &call_types,
+        &SourceTypeArray::empty(),
+    ) {
+        let call_type =
+            CallType::Method(lhs_type.clone(), descriptor.fct_id, descriptor.type_params);
+        ck.analysis
+            .map_calls
+            .insert_or_replace(e.id, Arc::new(call_type));
+
+        ck.analysis.set_ty(e.id, descriptor.return_type.clone());
+
+        descriptor.return_type
+    } else {
+        let lhs_type = ck.ty_name(&lhs_type);
+        let rhs_type = ck.ty_name(&rhs_type);
+        let msg = ErrorMessage::BinOpType(op.as_str().into(), lhs_type, rhs_type);
+
+        ck.sa.report(ck.file_id, e.span, msg);
+
+        ck.analysis.set_ty(e.id, SourceType::Error);
+
+        SourceType::Error
+    }
 }
 
 fn check_expr_bin_method(

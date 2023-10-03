@@ -1,0 +1,12 @@
+struct MyInt(x: Int64)
+
+impl std::traits::Shl for MyInt {
+    fn shl(shift: Int32): MyInt {
+        MyInt(self.x << shift)
+    }
+}
+
+fn main() {
+    let result = MyInt(1) << 1i32;
+    assert(result.x == 2);
+}

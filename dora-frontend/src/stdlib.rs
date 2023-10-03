@@ -78,7 +78,18 @@ pub fn resolve_internal_classes(sa: &mut Sema) {
     sa.known.classes.stacktrace_element = Some(find_class(sa, stdlib_id, "StacktraceElement"));
     sa.known.classes.thread = Some(find_class(sa, stdlib_id, "thread::Thread"));
 
+    sa.known.traits.add = Some(find_trait(sa, stdlib_id, "traits::Add"));
+    sa.known.traits.arith_shr = Some(find_trait(sa, stdlib_id, "traits::ArithShr"));
+    sa.known.traits.bit_and = Some(find_trait(sa, stdlib_id, "traits::BitAnd"));
+    sa.known.traits.bit_or = Some(find_trait(sa, stdlib_id, "traits::BitOr"));
+    sa.known.traits.bit_xor = Some(find_trait(sa, stdlib_id, "traits::BitXor"));
+    sa.known.traits.div = Some(find_trait(sa, stdlib_id, "traits::Div"));
+    sa.known.traits.logical_shr = Some(find_trait(sa, stdlib_id, "traits::LogicalShr"));
+    sa.known.traits.mul = Some(find_trait(sa, stdlib_id, "traits::Mul"));
+    sa.known.traits.mod_ = Some(find_trait(sa, stdlib_id, "traits::Mod"));
+    sa.known.traits.shl = Some(find_trait(sa, stdlib_id, "traits::Shl"));
     sa.known.traits.stringable = Some(find_trait(sa, stdlib_id, "string::Stringable"));
+    sa.known.traits.sub = Some(find_trait(sa, stdlib_id, "traits::Sub"));
     sa.known.traits.zero = Some(find_trait(sa, stdlib_id, "traits::Zero"));
 
     sa.known.enums.option = Some(find_enum(sa, stdlib_id, "primitives::Option"));

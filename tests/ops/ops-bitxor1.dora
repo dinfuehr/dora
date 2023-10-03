@@ -1,0 +1,12 @@
+struct MyInt(x: Int64)
+
+impl std::traits::BitXor for MyInt {
+    fn bitxor(rhs: MyInt): MyInt {
+        MyInt(self.x ^ rhs.x)
+    }
+}
+
+fn main() {
+    let result = MyInt(4) ^ MyInt(7);
+    assert(result.x == 3);
+}

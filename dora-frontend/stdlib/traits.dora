@@ -246,3 +246,47 @@ impl Equals for Float64 {
 impl Equals for String {
   fn equals(other: String): Bool { self == other }
 }
+
+pub trait Add {
+  fn add(rhs: Self): Self;
+}
+
+pub trait Sub {
+  fn sub(rhs: Self): Self;
+}
+
+pub trait Mul {
+  fn mul(rhs: Self): Self;
+}
+
+pub trait Div {
+  fn div(rhs: Self): Self;
+}
+
+pub trait Mod {
+  fn modulo(rhs: Self): Self;
+}
+
+pub trait BitAnd {
+  fn bitand(rhs: Self): Self;
+}
+
+pub trait BitOr {
+  fn bitor(rhs: Self): Self;
+}
+
+pub trait BitXor {
+  fn bitxor(rhs: Self): Self;
+}
+
+pub trait Shl {
+  fn shl(rhs: Int32): Self;
+}
+
+pub trait LogicalShr {
+  fn lshr(rhs: Int32): Self;
+}
+
+pub trait ArithShr {
+  fn ashr(rhs: Int32): Self;
+}

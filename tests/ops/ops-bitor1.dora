@@ -1,0 +1,12 @@
+struct MyInt(x: Int64)
+
+impl std::traits::BitOr for MyInt {
+    fn bitor(rhs: MyInt): MyInt {
+        MyInt(self.x | rhs.x)
+    }
+}
+
+fn main() {
+    let result = MyInt(4) | MyInt(1);
+    assert(result.x == 5);
+}

@@ -159,32 +159,98 @@ impl KnownStructs {
 
 #[derive(Debug)]
 pub struct KnownTraits {
-    pub equals: Option<TraitDefinitionId>,
+    pub add: Option<TraitDefinitionId>,
+    pub arith_shr: Option<TraitDefinitionId>,
+    pub bit_and: Option<TraitDefinitionId>,
+    pub bit_or: Option<TraitDefinitionId>,
+    pub bit_xor: Option<TraitDefinitionId>,
     pub comparable: Option<TraitDefinitionId>,
+    pub div: Option<TraitDefinitionId>,
+    pub equals: Option<TraitDefinitionId>,
+    pub logical_shr: Option<TraitDefinitionId>,
+    pub mod_: Option<TraitDefinitionId>,
+    pub mul: Option<TraitDefinitionId>,
+    pub shl: Option<TraitDefinitionId>,
     pub stringable: Option<TraitDefinitionId>,
+    pub sub: Option<TraitDefinitionId>,
     pub zero: Option<TraitDefinitionId>,
 }
 
 impl KnownTraits {
     pub fn new() -> KnownTraits {
         KnownTraits {
-            equals: None,
+            add: None,
+            arith_shr: None,
+            bit_and: None,
+            bit_or: None,
+            bit_xor: None,
             comparable: None,
+            div: None,
+            equals: None,
+            logical_shr: None,
+            mod_: None,
+            mul: None,
+            shl: None,
             stringable: None,
+            sub: None,
             zero: None,
         }
     }
 
-    pub fn equals(&self) -> TraitDefinitionId {
-        self.equals.expect("uninitialized")
+    pub fn add(&self) -> TraitDefinitionId {
+        self.add.expect("uninitialized")
+    }
+
+    pub fn arith_shr(&self) -> TraitDefinitionId {
+        self.arith_shr.expect("uninitialized")
+    }
+
+    pub fn bit_and(&self) -> TraitDefinitionId {
+        self.bit_and.expect("uninitialized")
+    }
+
+    pub fn bit_or(&self) -> TraitDefinitionId {
+        self.bit_or.expect("uninitialized")
+    }
+
+    pub fn bit_xor(&self) -> TraitDefinitionId {
+        self.bit_xor.expect("uninitialized")
     }
 
     pub fn comparable(&self) -> TraitDefinitionId {
         self.comparable.expect("uninitialized")
     }
 
+    pub fn div(&self) -> TraitDefinitionId {
+        self.div.expect("uninitialized")
+    }
+
+    pub fn equals(&self) -> TraitDefinitionId {
+        self.equals.expect("uninitialized")
+    }
+
+    pub fn logical_shr(&self) -> TraitDefinitionId {
+        self.logical_shr.expect("uninitialized")
+    }
+
+    pub fn mod_(&self) -> TraitDefinitionId {
+        self.mod_.expect("uninitialized")
+    }
+
+    pub fn mul(&self) -> TraitDefinitionId {
+        self.mul.expect("uninitialized")
+    }
+
+    pub fn shl(&self) -> TraitDefinitionId {
+        self.shl.expect("uninitialized")
+    }
+
     pub fn stringable(&self) -> TraitDefinitionId {
         self.stringable.expect("uninitialized")
+    }
+
+    pub fn sub(&self) -> TraitDefinitionId {
+        self.sub.expect("uninitialized")
     }
 
     pub fn zero(&self) -> TraitDefinitionId {

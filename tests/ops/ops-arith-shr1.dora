@@ -1,0 +1,12 @@
+struct MyInt(x: Int64)
+
+impl std::traits::ArithShr for MyInt {
+    fn ashr(shift: Int32): MyInt {
+        MyInt(self.x >> shift)
+    }
+}
+
+fn main() {
+    let result = MyInt(-2) >> 1i32;
+    assert(result.x == -1);
+}
