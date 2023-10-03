@@ -123,34 +123,6 @@ pub fn impl_matches(
     )
 }
 
-pub fn find_trait_impl(
-    sa: &Sema,
-    fct_id: FctDefinitionId,
-    trait_ty: SourceType,
-    object_type: SourceType,
-) -> FctDefinitionId {
-    debug_assert!(object_type.is_concrete_type());
-    let impl_id = find_impl(
-        sa,
-        object_type,
-        &TypeParamDefinition::new(),
-        trait_ty.clone(),
-    )
-    .expect("no impl found for generic trait method call");
-
-    let impl_ = sa.impls[impl_id].read();
-    assert_eq!(
-        impl_.trait_id(),
-        trait_ty.trait_id().expect("trait expected")
-    );
-
-    impl_
-        .impl_for
-        .get(&fct_id)
-        .cloned()
-        .expect("no impl method found for generic trait call")
-}
-
 pub fn implements_trait(
     sa: &Sema,
     check_ty: SourceType,

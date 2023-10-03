@@ -28,7 +28,7 @@ pub use self::extensions::{
 pub use self::functions::{emit_as_bytecode_operation, FctDefinition, FctDefinitionId, FctParent};
 pub use self::globals::{GlobalDefinition, GlobalDefinitionId};
 pub use self::impls::{
-    find_impl, find_trait_impl, impl_matches, implements_trait, ImplDefinition, ImplDefinitionId,
+    find_impl, impl_matches, implements_trait, ImplDefinition, ImplDefinitionId,
 };
 pub use self::known::KnownElements;
 pub use self::modules::{module_package, module_path, ModuleDefinition, ModuleDefinitionId};
