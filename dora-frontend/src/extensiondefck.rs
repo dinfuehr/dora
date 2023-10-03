@@ -72,11 +72,6 @@ impl<'x> ExtensionCheck<'x> {
             self.extension_ty = extension_ty.clone();
 
             match extension_ty {
-                SourceType::Enum(enum_id, _) => {
-                    let mut enum_ = self.sa.enums[enum_id].write();
-                    enum_.extensions.push(self.extension_id);
-                }
-
                 SourceType::Bool
                 | SourceType::UInt8
                 | SourceType::Char
@@ -96,10 +91,36 @@ impl<'x> ExtensionCheck<'x> {
                     struct_.extensions.borrow_mut().push(self.extension_id);
                 }
 
-                _ => {
-                    let cls_id = extension_ty.cls_id().unwrap();
+                SourceType::Enum(enum_id, _) => {
+                    let mut enum_ = self.sa.enums[enum_id].write();
+                    enum_.extensions.push(self.extension_id);
+                }
+
+                SourceType::Class(cls_id, _) => {
                     let cls = &self.sa.classes[cls_id];
                     cls.extensions.borrow_mut().push(self.extension_id);
+                }
+
+                SourceType::Trait(..) => {
+                    unimplemented!();
+                }
+
+                SourceType::Tuple(..)
+                | SourceType::Unit
+                | SourceType::TypeParam(..)
+                | SourceType::Lambda(..) => {
+                    let extension = self.sa.extensions.idx(self.extension_id);
+                    let extension = extension.read();
+
+                    self.sa.report(
+                        self.file_id.into(),
+                        extension.span,
+                        ErrorMessage::ExpectedImplType,
+                    );
+                }
+
+                SourceType::Error | SourceType::Any | SourceType::This | SourceType::Ptr => {
+                    unreachable!()
                 }
             }
 
@@ -310,7 +331,13 @@ fn discover_type_params(sa: &Sema, ty: SourceType, used_type_params: &mut FixedB
                 discover_type_params(sa, subtype.clone(), used_type_params);
             }
         }
-        SourceType::Lambda(_, _) => unimplemented!(),
+        SourceType::Lambda(params, return_type) => {
+            for param in params.iter() {
+                discover_type_params(sa, param, used_type_params);
+            }
+
+            discover_type_params(sa, *return_type, used_type_params);
+        }
         SourceType::TypeParam(tp_id) => {
             used_type_params.insert(tp_id.to_usize());
         }
@@ -475,5 +502,49 @@ mod tests {
             impl foo::MyFoo { fn bar() {} }
             mod foo { pub class MyFoo }
         ");
+    }
+
+    #[test]
+    fn extension_for_trait() {
+        err(
+            "
+            impl (Int64, Int64) {}
+        ",
+            (2, 13),
+            ErrorMessage::ExpectedImplType,
+        );
+    }
+
+    #[test]
+    fn extension_for_unit() {
+        err(
+            "
+            impl () {}
+        ",
+            (2, 13),
+            ErrorMessage::ExpectedImplType,
+        );
+    }
+
+    #[test]
+    fn extension_for_lambda() {
+        err(
+            "
+            impl (Int64, Int64): Bool {}
+        ",
+            (2, 13),
+            ErrorMessage::ExpectedImplType,
+        );
+    }
+
+    #[test]
+    fn extension_for_type_param() {
+        err(
+            "
+            impl[T] T {}
+        ",
+            (2, 13),
+            ErrorMessage::ExpectedImplType,
+        );
     }
 }

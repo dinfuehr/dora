@@ -108,7 +108,7 @@ impl<'x> ImplCheck<'x> {
                 self.sa.report(
                     self.file_id,
                     self.ast.extended_type.span(),
-                    ErrorMessage::ExpectedImplType,
+                    ErrorMessage::ExpectedImplTraitType,
                 );
             }
         }
@@ -203,7 +203,7 @@ mod tests {
         err(
             "trait Foo {} trait A {} impl Foo for A {}",
             (1, 38),
-            ErrorMessage::ExpectedImplType,
+            ErrorMessage::ExpectedImplTraitType,
         );
     }
 
