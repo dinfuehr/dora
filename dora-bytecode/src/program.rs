@@ -352,7 +352,6 @@ pub enum Intrinsic {
     Int32Not,
     Int32Neg,
     Int32NegUnchecked,
-    Int32Plus,
 
     Int32CountZeroBits,
     Int32CountOneBits,
@@ -394,7 +393,6 @@ pub enum Intrinsic {
     Int64Not,
     Int64Neg,
     Int64NegUnchecked,
-    Int64Plus,
 
     Int64CountZeroBits,
     Int64CountOneBits,
@@ -416,7 +414,6 @@ pub enum Intrinsic {
     Float32Mul,
     Float32Div,
 
-    Float32Plus,
     Float32Neg,
     Float32Abs,
     Float32IsNan,
@@ -441,7 +438,6 @@ pub enum Intrinsic {
     Float64Mul,
     Float64Div,
 
-    Float64Plus,
     Float64Neg,
     Float64Abs,
     Float64IsNan,

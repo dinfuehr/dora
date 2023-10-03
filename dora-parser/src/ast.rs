@@ -946,7 +946,6 @@ pub struct ExprContinueType {
 
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub enum UnOp {
-    Plus,
     Neg,
     Not,
 }
@@ -954,7 +953,6 @@ pub enum UnOp {
 impl UnOp {
     pub fn as_str(&self) -> &'static str {
         match *self {
-            UnOp::Plus => "+",
             UnOp::Neg => "-",
             UnOp::Not => "!",
         }

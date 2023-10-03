@@ -1,7 +1,4 @@
 fn main() {
-    let x = 1i32.unaryPlus();
-    assert(x == (+1i32));
-
     let x = 1i32.unaryMinus();
     assert(x == (-1i32));
 

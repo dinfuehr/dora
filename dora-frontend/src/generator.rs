@@ -2156,16 +2156,6 @@ impl<'a> AstBytecodeGen<'a> {
     ) -> Register {
         let intrinsic = info.intrinsic;
 
-        match intrinsic {
-            Intrinsic::Int32Plus
-            | Intrinsic::Int64Plus
-            | Intrinsic::Float32Plus
-            | Intrinsic::Float64Plus => {
-                return gen_expr(self, opnd, dest);
-            }
-            _ => {}
-        }
-
         let fct = self.sa.fcts.idx(info.fct_id.expect("missing method"));
         let fct = fct.read();
         let ty = fct.return_type_bty();

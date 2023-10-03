@@ -1536,13 +1536,12 @@ impl Parser {
 
     fn parse_unary_expr(&mut self) -> Expr {
         match self.current() {
-            ADD | SUB | NOT => {
+            SUB | NOT => {
                 self.start_node();
                 self.builder.start_node();
                 let kind = self.current();
                 self.advance();
                 let op = match kind {
-                    ADD => UnOp::Plus,
                     SUB => UnOp::Neg,
                     NOT => UnOp::Not,
                     _ => unreachable!(),
@@ -2316,33 +2315,6 @@ mod tests {
     #[test]
     fn parse_neg_twice_without_parentheses() {
         err_expr("- -2", ParseError::ExpectedFactor, 1, 3);
-    }
-
-    #[test]
-    fn parse_unary_plus() {
-        let expr = parse_expr("+2");
-
-        let add = expr.to_un().unwrap();
-        assert_eq!(UnOp::Plus, add.op);
-
-        assert!(add.opnd.is_lit_int());
-    }
-
-    #[test]
-    fn parse_unary_plus_twice_without_parentheses() {
-        err_expr("+ +4", ParseError::ExpectedFactor, 1, 3);
-    }
-
-    #[test]
-    fn parse_unary_plus_twice() {
-        let expr = parse_expr("+(+9)");
-
-        let add1 = expr.to_un().unwrap();
-        assert_eq!(UnOp::Plus, add1.op);
-
-        let add2 = add1.opnd.to_paren().unwrap().expr.to_un().unwrap();
-        assert_eq!(UnOp::Plus, add2.op);
-        assert!(add2.opnd.is_lit_int());
     }
 
     #[test]

@@ -7,9 +7,6 @@ fn main() {
     let x = -5i32 + 4i32;
     assert(-1i32 == x);
 
-    assert(+1i32 != -1i32);
-    assert(+2i32 == 2i32);
-
     assert(!(-1i32) == 0i32);
     assert(!(-2i32) == 1i32);
     assert(-1i32 == !0i32);

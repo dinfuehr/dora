@@ -693,13 +693,6 @@ fn gen_expr_and() {
 }
 
 #[test]
-fn gen_expr_plus() {
-    let result = code("fn f(a: Int32): Int32 { return +a; }");
-    let expected = vec![Ret(r(0))];
-    assert_eq!(expected, result);
-}
-
-#[test]
 fn gen_expr_neg() {
     let result = code("fn f(a: Int32): Int32 { return -a; }");
     let expected = vec![Neg(r(1), r(0)), Ret(r(1))];

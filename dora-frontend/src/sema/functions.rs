@@ -314,7 +314,6 @@ pub fn emit_as_bytecode_operation(intrinsic: Intrinsic) -> bool {
         | Intrinsic::Int32Shr
         | Intrinsic::Int32Not
         | Intrinsic::Int32Neg
-        | Intrinsic::Int32Plus
         | Intrinsic::Int64Eq
         | Intrinsic::Int64Cmp
         | Intrinsic::Int64Add
@@ -330,14 +329,12 @@ pub fn emit_as_bytecode_operation(intrinsic: Intrinsic) -> bool {
         | Intrinsic::Int64Shr
         | Intrinsic::Int64Not
         | Intrinsic::Int64Neg
-        | Intrinsic::Int64Plus
         | Intrinsic::Float32Eq
         | Intrinsic::Float32Cmp
         | Intrinsic::Float32Add
         | Intrinsic::Float32Sub
         | Intrinsic::Float32Mul
         | Intrinsic::Float32Div
-        | Intrinsic::Float32Plus
         | Intrinsic::Float32Neg
         | Intrinsic::Float32IsNan
         | Intrinsic::Float64Eq
@@ -346,7 +343,6 @@ pub fn emit_as_bytecode_operation(intrinsic: Intrinsic) -> bool {
         | Intrinsic::Float64Sub
         | Intrinsic::Float64Mul
         | Intrinsic::Float64Div
-        | Intrinsic::Float64Plus
         | Intrinsic::Float64Neg
         | Intrinsic::Float64IsNan => true,
         _ => false,

@@ -66,7 +66,6 @@ impl Int32 {
   pub @internal fn rotateLeft(by: Int32): Int32;
   pub @internal fn rotateRight(by: Int32): Int32;
 
-  pub @internal fn unaryPlus(): Int32;
   pub @internal fn unaryMinus(): Int32;
   pub @internal fn not(): Int32;
   pub fn abs(): Int32 {
@@ -276,7 +275,6 @@ impl Int64 {
   pub @internal fn rotateLeft(by: Int32): Int64;
   pub @internal fn rotateRight(by: Int32): Int64;
 
-  pub @internal fn unaryPlus(): Int64;
   pub @internal fn unaryMinus(): Int64;
   pub @internal fn not(): Int64;
   pub fn abs(): Int64 {
@@ -368,7 +366,6 @@ impl Float32 {
   pub @internal fn times(rhs: Float32): Float32;
   pub @internal fn div(rhs: Float32): Float32;
 
-  pub @internal fn unaryPlus(): Float32;
   pub @internal fn unaryMinus(): Float32;
   pub @internal fn abs(): Float32;
 
@@ -422,7 +419,6 @@ impl Float64 {
   pub @internal fn times(rhs: Float64): Float64;
   pub @internal fn div(rhs: Float64): Float64;
 
-  pub @internal fn unaryPlus(): Float64;
   pub @internal fn unaryMinus(): Float64;
   pub @internal fn abs(): Float64;
 

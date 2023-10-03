@@ -728,7 +728,6 @@ pub(super) fn check_expr_un(
     let opnd = check_expr(ck, &e.opnd, SourceType::Any);
 
     match e.op {
-        ast::UnOp::Plus => check_expr_un_method(ck, e, e.op, "unaryPlus", opnd),
         ast::UnOp::Neg => check_expr_un_method(ck, e, e.op, "unaryMinus", opnd),
         ast::UnOp::Not => check_expr_un_method(ck, e, e.op, "not", opnd),
     }

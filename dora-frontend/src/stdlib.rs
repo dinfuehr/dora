@@ -858,13 +858,6 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         sa,
         stdlib_id,
         "primitives::Int32",
-        "unaryPlus",
-        Intrinsic::Int32Plus,
-    );
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "primitives::Int32",
         "unaryMinus",
         Intrinsic::Int32Neg,
     );
@@ -1106,13 +1099,6 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         sa,
         stdlib_id,
         "primitives::Int64",
-        "unaryPlus",
-        Intrinsic::Int64Plus,
-    );
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "primitives::Int64",
         "unaryMinus",
         Intrinsic::Int64Neg,
     );
@@ -1283,13 +1269,6 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         sa,
         stdlib_id,
         "primitives::Float32",
-        "unaryPlus",
-        Intrinsic::Float32Plus,
-    );
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "primitives::Float32",
         "unaryMinus",
         Intrinsic::Float32Neg,
     );
@@ -1420,13 +1399,6 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         Intrinsic::Float64Div,
     );
 
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "primitives::Float64",
-        "unaryPlus",
-        Intrinsic::Float64Plus,
-    );
     intrinsic_method(
         sa,
         stdlib_id,

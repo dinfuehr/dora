@@ -340,16 +340,11 @@ fn type_assign_lvalue() {
 
 #[test]
 fn type_un_op() {
-    ok("fn f(a: Int32) { !a; -a; +a; }");
+    ok("fn f(a: Int32) { !a; -a; }");
     err(
         "fn f(a: Bool) { -a; }",
         (1, 17),
         ErrorMessage::UnOpType("-".into(), "Bool".into()),
-    );
-    err(
-        "fn f(a: Bool) { +a; }",
-        (1, 17),
-        ErrorMessage::UnOpType("+".into(), "Bool".into()),
     );
 }
 
@@ -712,7 +707,6 @@ fn int64_operations() {
     ok("fn f(a: Int64, b: Int64): Bool { return a >= b; }");
     ok("fn f(a: Int64): Int64 { return !a; }");
     ok("fn f(a: Int64): Int64 { return -a; }");
-    ok("fn f(a: Int64): Int64 { return +a; }");
 }
 
 #[test]

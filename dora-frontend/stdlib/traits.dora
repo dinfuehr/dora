@@ -290,3 +290,11 @@ pub trait LogicalShr {
 pub trait ArithShr {
   fn ashr(rhs: Int32): Self;
 }
+
+pub trait Not {
+  fn not(): Self;
+}
+
+pub trait Neg {
+  fn neg(): Self;
+}
