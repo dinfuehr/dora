@@ -1,5 +1,5 @@
 fn main() {
-  let x = 1.0.unaryMinus();
+  let x = 1.0.neg();
   assert(x == -1.0);
 
   let x = 1.0.plus(2.0);

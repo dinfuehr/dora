@@ -6,7 +6,7 @@ fn main() {
 }
 
 fn float32() {
-  assert(Float32::notANumber().unaryMinus().abs() === Float32::notANumber());
+  assert(Float32::notANumber().neg().abs() === Float32::notANumber());
   assert(Float32::infinityNegative().abs() == Float32::infinityPositive());
   assert((-1.0f32).abs() == 1.0f32);
   assert(0.0f32.abs() == 0.0f32);
@@ -16,7 +16,7 @@ fn float32() {
 }
 
 fn float64() {
-  assert(Float64::notANumber().unaryMinus().abs() === Float64::notANumber());
+  assert(Float64::notANumber().neg().abs() === Float64::notANumber());
   assert(Float64::infinityNegative().abs() == Float64::infinityPositive());
   assert((-1.0).abs() == 1.0);
   assert(0.0.abs() == 0.0);

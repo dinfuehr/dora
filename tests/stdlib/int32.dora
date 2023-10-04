@@ -1,5 +1,5 @@
 fn main() {
-    let x = 1i32.unaryMinus();
+    let x = 1i32.neg();
     assert(x == (-1i32));
 
     let x = 1i32.plus(2i32);

@@ -728,18 +728,8 @@ pub(super) fn check_expr_un(
     let opnd = check_expr(ck, &e.opnd, SourceType::Any);
 
     match e.op {
-        ast::UnOp::Neg => check_expr_un_method(
-            ck,
-            e,
-            e.op,
-            ck.sa.known.traits.neg(),
-            "neg",
-            "unaryMinus",
-            opnd,
-        ),
-        ast::UnOp::Not => {
-            check_expr_un_method(ck, e, e.op, ck.sa.known.traits.not(), "not", "not", opnd)
-        }
+        ast::UnOp::Neg => check_expr_un_method(ck, e, e.op, ck.sa.known.traits.neg(), "neg", opnd),
+        ast::UnOp::Not => check_expr_un_method(ck, e, e.op, ck.sa.known.traits.not(), "not", opnd),
     }
 }
 
@@ -749,11 +739,8 @@ fn check_expr_un_method(
     op: ast::UnOp,
     trait_id: TraitDefinitionId,
     trait_method_name: &str,
-    name: &str,
     ty: SourceType,
 ) -> SourceType {
-    let name = ck.sa.interner.intern(name);
-    let call_types = [];
     let trait_ty = SourceType::new_trait(trait_id);
 
     let impl_id = find_impl(ck.sa, ty.clone(), &ck.type_param_defs, trait_ty);
@@ -780,29 +767,9 @@ fn check_expr_un_method(
 
         return_type
     } else {
-        if !ty.is_error() {
-            if let Some(descriptor) = lookup_method(
-                ck.sa,
-                ty.clone(),
-                ck.type_param_defs,
-                false,
-                name,
-                &call_types,
-                &SourceTypeArray::empty(),
-            ) {
-                let call_type =
-                    CallType::Method(ty.clone(), descriptor.fct_id, descriptor.type_params);
-                ck.analysis.map_calls.insert(e.id, Arc::new(call_type));
-
-                ck.analysis.set_ty(e.id, descriptor.return_type.clone());
-                return descriptor.return_type;
-            }
-
-            let ty = ck.ty_name(&ty);
-            let msg = ErrorMessage::UnOpType(op.as_str().into(), ty);
-
-            ck.sa.report(ck.file_id, e.span, msg);
-        }
+        let ty = ck.ty_name(&ty);
+        let msg = ErrorMessage::UnOpType(op.as_str().into(), ty);
+        ck.sa.report(ck.file_id, e.span, msg);
 
         ck.analysis.set_ty(e.id, SourceType::Error);
         SourceType::Error

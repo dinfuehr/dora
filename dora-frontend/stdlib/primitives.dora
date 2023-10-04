@@ -15,7 +15,10 @@ impl Bool {
   pub fn toStringHex(): String { if self { "1" } else { "0" } }
 
   pub @internal fn equals(rhs: Bool): Bool;
-  pub @internal fn not(): Bool;
+}
+
+impl std::traits::Not for Bool {
+  @internal fn not(): Bool;
 }
 
 pub @internal struct Int32
@@ -66,8 +69,6 @@ impl Int32 {
   pub @internal fn rotateLeft(by: Int32): Int32;
   pub @internal fn rotateRight(by: Int32): Int32;
 
-  pub @internal fn unaryMinus(): Int32;
-  pub @internal fn not(): Int32;
   pub fn abs(): Int32 {
     let s = self.shiftRightSigned(31i32);
     return self.bitwiseXor(s).wrappingSub(s);
@@ -120,6 +121,14 @@ impl Int32 {
 
   pub static fn min(lhs: Int32, rhs: Int32): Int32 { if lhs < rhs { lhs } else { rhs } }
   pub static fn max(lhs: Int32, rhs: Int32): Int32 { if lhs < rhs { rhs } else { lhs } }
+}
+
+impl std::traits::Neg for Int32 {
+  @internal fn neg(): Int32;
+}
+
+impl std::traits::Not for Int32 {
+  @internal fn not(): Int32;
 }
 
 pub class Int32Range(lower: Int32, upper: Int32)
@@ -275,7 +284,6 @@ impl Int64 {
   pub @internal fn rotateLeft(by: Int32): Int64;
   pub @internal fn rotateRight(by: Int32): Int64;
 
-  pub @internal fn not(): Int64;
   pub fn abs(): Int64 {
     let s = self.shiftRightSigned(63i32);
     return self.bitwiseXor(s).wrappingSub(s);
@@ -337,6 +345,10 @@ impl std::traits::Neg for Int64 {
   @internal fn neg(): Int64;
 }
 
+impl std::traits::Not for Int64 {
+  @internal fn not(): Int64;
+}
+
 pub @internal struct Float32
 
 impl Float32 {
@@ -369,7 +381,6 @@ impl Float32 {
   pub @internal fn times(rhs: Float32): Float32;
   pub @internal fn div(rhs: Float32): Float32;
 
-  pub @internal fn unaryMinus(): Float32;
   pub @internal fn abs(): Float32;
 
   pub @internal fn roundToZero(): Float32;
@@ -388,6 +399,10 @@ impl Float32 {
   pub static fn infinityPositive(): Float32 { 0x7f800000i32.asFloat32() }
   pub static fn infinityNegative(): Float32 { 0xff800000i32.asFloat32() }
   pub static fn notANumber(): Float32 { 0x7fC00000i32.asFloat32() }
+}
+
+impl std::traits::Neg for Float32 {
+  @internal fn neg(): Float32;
 }
 
 pub @internal struct Float64
@@ -422,7 +437,6 @@ impl Float64 {
   pub @internal fn times(rhs: Float64): Float64;
   pub @internal fn div(rhs: Float64): Float64;
 
-  pub @internal fn unaryMinus(): Float64;
   pub @internal fn abs(): Float64;
 
   pub @internal fn roundToZero(): Float64;
@@ -441,6 +455,10 @@ impl Float64 {
   pub static fn infinityPositive(): Float64 { 0x7ff0000000000000i64.asFloat64() }
   pub static fn infinityNegative(): Float64 { 0xfff0000000000000i64.asFloat64() }
   pub static fn notANumber(): Float64 { 0x7ff8000000000000i64.asFloat64() }
+}
+
+impl std::traits::Neg for Float64 {
+  @internal fn neg(): Float64;
 }
 
 pub @internal struct UInt8

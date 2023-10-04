@@ -856,11 +856,12 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         Intrinsic::Int32RotateRight,
     );
 
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Int32",
-        "unaryMinus",
+        sa.known.traits.neg(),
+        "neg",
         Intrinsic::Int32Neg,
     );
     intrinsic_method(
@@ -870,10 +871,11 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         "wrappingNeg",
         Intrinsic::Int32NegUnchecked,
     );
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Int32",
+        sa.known.traits.not(),
         "not",
         Intrinsic::Int32Not,
     );
@@ -1112,10 +1114,11 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         "wrappingNeg",
         Intrinsic::Int64NegUnchecked,
     );
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Int64",
+        sa.known.traits.not(),
         "not",
         Intrinsic::Int64Not,
     );
@@ -1184,7 +1187,14 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         "equals",
         Intrinsic::BoolEq,
     );
-    intrinsic_method(sa, stdlib_id, "primitives::Bool", "not", Intrinsic::BoolNot);
+    intrinsic_impl_method(
+        sa,
+        stdlib_id,
+        "primitives::Bool",
+        sa.known.traits.not(),
+        "not",
+        Intrinsic::BoolNot,
+    );
 
     intrinsic_method(sa, stdlib_id, "string::String", "size", Intrinsic::StrLen);
     intrinsic_method(
@@ -1268,11 +1278,12 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         Intrinsic::Float32Div,
     );
 
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Float32",
-        "unaryMinus",
+        sa.known.traits.neg(),
+        "neg",
         Intrinsic::Float32Neg,
     );
 
@@ -1402,11 +1413,12 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         Intrinsic::Float64Div,
     );
 
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Float64",
-        "unaryMinus",
+        sa.known.traits.neg(),
+        "neg",
         Intrinsic::Float64Neg,
     );
 
