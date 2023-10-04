@@ -2,19 +2,19 @@ fn main() {
   let x = 1.0f32.neg();
   assert(x == -1.0f32);
 
-  let x = 1.0f32.plus(2.0f32);
+  let x = 1.0f32.add(2.0f32);
   assert(x == 3.0f32);
 
   let x = 1.0f32 + 2.0f32;
   assert(x == 3.0f32);
 
-  let x = 5.0f32.minus(2.0f32);
+  let x = 5.0f32.sub(2.0f32);
   assert(x == 3.0f32);
 
   let x = 5.0f32 - 2.0f32;
   assert(x == 3.0f32);
 
-  let x = 3.0f32.times(4.0f32);
+  let x = 3.0f32.mul(4.0f32);
   assert(x == 12.0f32);
 
   let x = 3.0f32 * 4.0f32;

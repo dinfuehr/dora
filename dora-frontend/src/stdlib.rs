@@ -739,38 +739,43 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         Intrinsic::Int32Cmp,
     );
 
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Int32",
-        "plus",
+        sa.known.traits.add(),
+        "add",
         Intrinsic::Int32Add,
     );
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Int32",
-        "minus",
+        sa.known.traits.sub(),
+        "sub",
         Intrinsic::Int32Sub,
     );
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Int32",
-        "times",
+        sa.known.traits.mul(),
+        "mul",
         Intrinsic::Int32Mul,
     );
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Int32",
+        sa.known.traits.div(),
         "div",
         Intrinsic::Int32Div,
     );
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Int32",
+        sa.known.traits.mod_(),
         "modulo",
         Intrinsic::Int32Mod,
     );
@@ -982,38 +987,43 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         Intrinsic::Int64Cmp,
     );
 
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Int64",
-        "plus",
+        sa.known.traits.add(),
+        "add",
         Intrinsic::Int64Add,
     );
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Int64",
-        "minus",
+        sa.known.traits.sub(),
+        "sub",
         Intrinsic::Int64Sub,
     );
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Int64",
-        "times",
+        sa.known.traits.mul(),
+        "mul",
         Intrinsic::Int64Mul,
     );
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Int64",
+        sa.known.traits.div(),
         "div",
         Intrinsic::Int64Div,
     );
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Int64",
+        sa.known.traits.mod_(),
         "modulo",
         Intrinsic::Int64Mod,
     );
@@ -1249,31 +1259,35 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         Intrinsic::Float32Cmp,
     );
 
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Float32",
-        "plus",
+        sa.known.traits.add(),
+        "add",
         Intrinsic::Float32Add,
     );
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Float32",
-        "minus",
+        sa.known.traits.sub(),
+        "sub",
         Intrinsic::Float32Sub,
     );
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Float32",
-        "times",
+        sa.known.traits.mul(),
+        "mul",
         Intrinsic::Float32Mul,
     );
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Float32",
+        sa.known.traits.div(),
         "div",
         Intrinsic::Float32Div,
     );
@@ -1384,31 +1398,35 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         Intrinsic::Float64Cmp,
     );
 
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Float64",
-        "plus",
+        sa.known.traits.add(),
+        "add",
         Intrinsic::Float64Add,
     );
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Float64",
-        "minus",
+        sa.known.traits.sub(),
+        "sub",
         Intrinsic::Float64Sub,
     );
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Float64",
-        "times",
+        sa.known.traits.mul(),
+        "mul",
         Intrinsic::Float64Mul,
     );
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Float64",
+        sa.known.traits.div(),
         "div",
         Intrinsic::Float64Div,
     );

@@ -2,19 +2,19 @@ fn main() {
     let x = 1i64.neg();
     assert(x == -1i64);
 
-    let x = 1i64.plus(2i64);
+    let x = 1i64.add(2i64);
     assert(x == 3i64);
 
     let x = 1i64 + 2i64;
     assert(x == 3i64);
 
-    let x = 5i64.minus(2i64);
+    let x = 5i64.sub(2i64);
     assert(x == 3i64);
 
     let x = 5i64 - 2i64;
     assert(x == 3i64);
 
-    let x = 3i64.times(4i64);
+    let x = 3i64.mul(4i64);
     assert(x == 12i64);
 
     let x = 3i64 * 4i64;

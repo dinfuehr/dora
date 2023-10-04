@@ -2,19 +2,19 @@ fn main() {
   let x = 1.0.neg();
   assert(x == -1.0);
 
-  let x = 1.0.plus(2.0);
+  let x = 1.0.add(2.0);
   assert(x == 3.0);
 
   let x = 1.0 + 2.0;
   assert(x == 3.0);
 
-  let x = 5.0.minus(2.0);
+  let x = 5.0.sub(2.0);
   assert(x == 3.0);
 
   let x = 5.0 - 2.0;
   assert(x == 3.0);
 
-  let x = 3.0.times(4.0);
+  let x = 3.0.mul(4.0);
   assert(x == 12.0);
 
   let x = 3.0 * 4.0;

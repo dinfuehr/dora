@@ -47,12 +47,6 @@ impl Int32 {
   pub @internal fn equals(rhs: Int32): Bool;
   pub @internal fn compareTo(rhs: Int32): Int32;
 
-  pub @internal fn plus(rhs: Int32): Int32;
-  pub @internal fn minus(rhs: Int32): Int32;
-  pub @internal fn times(rhs: Int32): Int32;
-  pub @internal fn div(rhs: Int32): Int32;
-  pub @internal fn modulo(rhs: Int32): Int32;
-
   pub @internal fn wrappingAdd(rhs: Int32): Int32;
   pub @internal fn wrappingSub(rhs: Int32): Int32;
   pub @internal fn wrappingMul(rhs: Int32): Int32;
@@ -121,6 +115,26 @@ impl Int32 {
 
   pub static fn min(lhs: Int32, rhs: Int32): Int32 { if lhs < rhs { lhs } else { rhs } }
   pub static fn max(lhs: Int32, rhs: Int32): Int32 { if lhs < rhs { rhs } else { lhs } }
+}
+
+impl std::traits::Add for Int32 {
+  @internal fn add(rhs: Int32): Int32;
+}
+
+impl std::traits::Sub for Int32 {
+  @internal fn sub(rhs: Int32): Int32;
+}
+
+impl std::traits::Mul for Int32 {
+  @internal fn mul(rhs: Int32): Int32;
+}
+
+impl std::traits::Div for Int32 {
+  @internal fn div(rhs: Int32): Int32;
+}
+
+impl std::traits::Mod for Int32 {
+  @internal fn modulo(rhs: Int32): Int32;
 }
 
 impl std::traits::Neg for Int32 {
@@ -262,12 +276,6 @@ impl Int64 {
   pub @internal fn equals(rhs: Int64): Bool;
   pub @internal fn compareTo(rhs: Int64): Int32;
 
-  pub @internal fn plus(rhs: Int64): Int64;
-  pub @internal fn minus(rhs: Int64): Int64;
-  pub @internal fn times(rhs: Int64): Int64;
-  pub @internal fn div(rhs: Int64): Int64;
-  pub @internal fn modulo(rhs: Int64): Int64;
-
   pub @internal fn wrappingAdd(rhs: Int64): Int64;
   pub @internal fn wrappingSub(rhs: Int64): Int64;
   pub @internal fn wrappingMul(rhs: Int64): Int64;
@@ -341,6 +349,26 @@ impl Int64 {
   pub static fn max(lhs: Int64, rhs: Int64): Int64 { if lhs < rhs { rhs } else { lhs } }
 }
 
+impl std::traits::Add for Int64 {
+  @internal fn add(rhs: Int64): Int64;
+}
+
+impl std::traits::Sub for Int64 {
+  @internal fn sub(rhs: Int64): Int64;
+}
+
+impl std::traits::Mul for Int64 {
+  @internal fn mul(rhs: Int64): Int64;
+}
+
+impl std::traits::Div for Int64 {
+  @internal fn div(rhs: Int64): Int64;
+}
+
+impl std::traits::Mod for Int64 {
+  @internal fn modulo(rhs: Int64): Int64;
+}
+
 impl std::traits::Neg for Int64 {
   @internal fn neg(): Int64;
 }
@@ -376,11 +404,6 @@ impl Float32 {
     return 1i32;
   }
 
-  pub @internal fn plus(rhs: Float32): Float32;
-  pub @internal fn minus(rhs: Float32): Float32;
-  pub @internal fn times(rhs: Float32): Float32;
-  pub @internal fn div(rhs: Float32): Float32;
-
   pub @internal fn abs(): Float32;
 
   pub @internal fn roundToZero(): Float32;
@@ -399,6 +422,22 @@ impl Float32 {
   pub static fn infinityPositive(): Float32 { 0x7f800000i32.asFloat32() }
   pub static fn infinityNegative(): Float32 { 0xff800000i32.asFloat32() }
   pub static fn notANumber(): Float32 { 0x7fC00000i32.asFloat32() }
+}
+
+impl std::traits::Add for Float32 {
+  @internal fn add(rhs: Float32): Float32;
+}
+
+impl std::traits::Sub for Float32 {
+  @internal fn sub(rhs: Float32): Float32;
+}
+
+impl std::traits::Mul for Float32 {
+  @internal fn mul(rhs: Float32): Float32;
+}
+
+impl std::traits::Div for Float32 {
+  @internal fn div(rhs: Float32): Float32;
 }
 
 impl std::traits::Neg for Float32 {
@@ -432,11 +471,6 @@ impl Float64 {
     return 1i32;
   }
 
-  pub @internal fn plus(rhs: Float64): Float64;
-  pub @internal fn minus(rhs: Float64): Float64;
-  pub @internal fn times(rhs: Float64): Float64;
-  pub @internal fn div(rhs: Float64): Float64;
-
   pub @internal fn abs(): Float64;
 
   pub @internal fn roundToZero(): Float64;
@@ -455,6 +489,22 @@ impl Float64 {
   pub static fn infinityPositive(): Float64 { 0x7ff0000000000000i64.asFloat64() }
   pub static fn infinityNegative(): Float64 { 0xfff0000000000000i64.asFloat64() }
   pub static fn notANumber(): Float64 { 0x7ff8000000000000i64.asFloat64() }
+}
+
+impl std::traits::Add for Float64 {
+  @internal fn add(rhs: Float64): Float64;
+}
+
+impl std::traits::Sub for Float64 {
+  @internal fn sub(rhs: Float64): Float64;
+}
+
+impl std::traits::Mul for Float64 {
+  @internal fn mul(rhs: Float64): Float64;
+}
+
+impl std::traits::Div for Float64 {
+  @internal fn div(rhs: Float64): Float64;
 }
 
 impl std::traits::Neg for Float64 {
