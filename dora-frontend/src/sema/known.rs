@@ -170,6 +170,8 @@ pub struct KnownTraits {
     pub logical_shr: Option<TraitDefinitionId>,
     pub mod_: Option<TraitDefinitionId>,
     pub mul: Option<TraitDefinitionId>,
+    pub neg: Option<TraitDefinitionId>,
+    pub not: Option<TraitDefinitionId>,
     pub shl: Option<TraitDefinitionId>,
     pub stringable: Option<TraitDefinitionId>,
     pub sub: Option<TraitDefinitionId>,
@@ -190,6 +192,8 @@ impl KnownTraits {
             logical_shr: None,
             mod_: None,
             mul: None,
+            neg: None,
+            not: None,
             shl: None,
             stringable: None,
             sub: None,
@@ -239,6 +243,14 @@ impl KnownTraits {
 
     pub fn mul(&self) -> TraitDefinitionId {
         self.mul.expect("uninitialized")
+    }
+
+    pub fn neg(&self) -> TraitDefinitionId {
+        self.neg.expect("uninitialized")
+    }
+
+    pub fn not(&self) -> TraitDefinitionId {
+        self.not.expect("uninitialized")
     }
 
     pub fn shl(&self) -> TraitDefinitionId {

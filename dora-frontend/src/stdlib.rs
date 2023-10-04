@@ -87,6 +87,8 @@ pub fn resolve_internal_classes(sa: &mut Sema) {
     sa.known.traits.logical_shr = Some(find_trait(sa, stdlib_id, "traits::LogicalShr"));
     sa.known.traits.mul = Some(find_trait(sa, stdlib_id, "traits::Mul"));
     sa.known.traits.mod_ = Some(find_trait(sa, stdlib_id, "traits::Mod"));
+    sa.known.traits.neg = Some(find_trait(sa, stdlib_id, "traits::Neg"));
+    sa.known.traits.not = Some(find_trait(sa, stdlib_id, "traits::Not"));
     sa.known.traits.shl = Some(find_trait(sa, stdlib_id, "traits::Shl"));
     sa.known.traits.stringable = Some(find_trait(sa, stdlib_id, "string::Stringable"));
     sa.known.traits.sub = Some(find_trait(sa, stdlib_id, "traits::Sub"));

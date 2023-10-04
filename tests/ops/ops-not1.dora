@@ -1,0 +1,12 @@
+struct MyInt(x: Int64)
+
+impl std::traits::Not for MyInt {
+    fn not(): MyInt {
+        MyInt(!self.x)
+    }
+}
+
+fn main() {
+    let result = !MyInt(-2);
+    assert(result.x == 1);
+}

@@ -728,8 +728,18 @@ pub(super) fn check_expr_un(
     let opnd = check_expr(ck, &e.opnd, SourceType::Any);
 
     match e.op {
-        ast::UnOp::Neg => check_expr_un_method(ck, e, e.op, "unaryMinus", opnd),
-        ast::UnOp::Not => check_expr_un_method(ck, e, e.op, "not", opnd),
+        ast::UnOp::Neg => check_expr_un_method(
+            ck,
+            e,
+            e.op,
+            ck.sa.known.traits.neg(),
+            "neg",
+            "unaryMinus",
+            opnd,
+        ),
+        ast::UnOp::Not => {
+            check_expr_un_method(ck, e, e.op, ck.sa.known.traits.not(), "not", "not", opnd)
+        }
     }
 }
 
@@ -737,38 +747,66 @@ fn check_expr_un_method(
     ck: &mut TypeCheck,
     e: &ast::ExprUnType,
     op: ast::UnOp,
+    trait_id: TraitDefinitionId,
+    trait_method_name: &str,
     name: &str,
     ty: SourceType,
 ) -> SourceType {
     let name = ck.sa.interner.intern(name);
     let call_types = [];
+    let trait_ty = SourceType::new_trait(trait_id);
 
-    if !ty.is_error() {
-        if let Some(descriptor) = lookup_method(
-            ck.sa,
-            ty.clone(),
-            ck.type_param_defs,
-            false,
-            name,
-            &call_types,
-            &SourceTypeArray::empty(),
-        ) {
-            let call_type = CallType::Method(ty.clone(), descriptor.fct_id, descriptor.type_params);
-            ck.analysis.map_calls.insert(e.id, Arc::new(call_type));
+    let impl_id = find_impl(ck.sa, ty.clone(), &ck.type_param_defs, trait_ty);
 
-            ck.analysis.set_ty(e.id, descriptor.return_type.clone());
-            return descriptor.return_type;
+    if let Some(impl_id) = impl_id {
+        let impl_ = ck.sa.impls[impl_id].read();
+        let trait_method_name = ck.sa.interner.intern(trait_method_name);
+        let method_id = impl_
+            .instance_names
+            .get(&trait_method_name)
+            .cloned()
+            .expect("method not found");
+
+        let call_type = CallType::Method(ty.clone(), method_id, SourceTypeArray::empty());
+        ck.analysis
+            .map_calls
+            .insert_or_replace(e.id, Arc::new(call_type));
+
+        let method = ck.sa.fcts.idx(method_id);
+        let method = method.read();
+
+        let return_type = method.return_type.clone();
+        ck.analysis.set_ty(e.id, return_type.clone());
+
+        return_type
+    } else {
+        if !ty.is_error() {
+            if let Some(descriptor) = lookup_method(
+                ck.sa,
+                ty.clone(),
+                ck.type_param_defs,
+                false,
+                name,
+                &call_types,
+                &SourceTypeArray::empty(),
+            ) {
+                let call_type =
+                    CallType::Method(ty.clone(), descriptor.fct_id, descriptor.type_params);
+                ck.analysis.map_calls.insert(e.id, Arc::new(call_type));
+
+                ck.analysis.set_ty(e.id, descriptor.return_type.clone());
+                return descriptor.return_type;
+            }
+
+            let ty = ck.ty_name(&ty);
+            let msg = ErrorMessage::UnOpType(op.as_str().into(), ty);
+
+            ck.sa.report(ck.file_id, e.span, msg);
         }
 
-        let ty = ck.ty_name(&ty);
-        let msg = ErrorMessage::UnOpType(op.as_str().into(), ty);
-
-        ck.sa.report(ck.file_id, e.span, msg);
+        ck.analysis.set_ty(e.id, SourceType::Error);
+        SourceType::Error
     }
-
-    ck.analysis.set_ty(e.id, SourceType::Error);
-
-    SourceType::Error
 }
 
 pub(super) fn check_expr_bin(
