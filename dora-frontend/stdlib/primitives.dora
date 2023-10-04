@@ -275,7 +275,6 @@ impl Int64 {
   pub @internal fn rotateLeft(by: Int32): Int64;
   pub @internal fn rotateRight(by: Int32): Int64;
 
-  pub @internal fn unaryMinus(): Int64;
   pub @internal fn not(): Int64;
   pub fn abs(): Int64 {
     let s = self.shiftRightSigned(63i32);
@@ -332,6 +331,10 @@ impl Int64 {
 
   pub static fn min(lhs: Int64, rhs: Int64): Int64 { if lhs < rhs { lhs } else { rhs } }
   pub static fn max(lhs: Int64, rhs: Int64): Int64 { if lhs < rhs { rhs } else { lhs } }
+}
+
+impl std::traits::Neg for Int64 {
+  @internal fn neg(): Int64;
 }
 
 pub @internal struct Float32

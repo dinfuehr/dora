@@ -1097,11 +1097,12 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         Intrinsic::Int64RotateRight,
     );
 
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Int64",
-        "unaryMinus",
+        sa.known.traits.neg(),
+        "neg",
         Intrinsic::Int64Neg,
     );
     intrinsic_method(
@@ -1845,6 +1846,75 @@ fn internal_extension_method(
     }
 
     panic!("method {} not found!", name_as_string)
+}
+
+fn intrinsic_impl_method(
+    sa: &Sema,
+    module_id: ModuleDefinitionId,
+    container_name: &str,
+    trait_id: TraitDefinitionId,
+    method_name: &str,
+    intrinsic: Intrinsic,
+) -> FctDefinitionId {
+    internal_impl_method(
+        sa,
+        module_id,
+        container_name,
+        trait_id,
+        method_name,
+        FctImplementation::Intrinsic(intrinsic),
+    )
+}
+
+fn internal_impl_method(
+    sa: &Sema,
+    module_id: ModuleDefinitionId,
+    container_name: &str,
+    trait_id: TraitDefinitionId,
+    method_name: &str,
+    marker: FctImplementation,
+) -> FctDefinitionId {
+    let sym = resolve_name(sa, container_name, module_id);
+
+    let ty = match sym {
+        SymbolKind::Struct(struct_id) => {
+            let struct_ = &sa.structs[struct_id];
+            struct_.ty()
+        }
+
+        _ => panic!("unexpected type"),
+    };
+
+    let trait_ty = SourceType::new_trait(trait_id);
+
+    for impl_ in sa.impls.iter() {
+        let impl_ = impl_.read();
+
+        if impl_.trait_ty() == trait_ty && impl_.extended_ty == ty {
+            let method_name = sa.interner.intern(method_name);
+
+            let method_id = impl_
+                .instance_names
+                .get(&method_name)
+                .cloned()
+                .expect("method not found");
+
+            let fct = sa.fcts.idx(method_id);
+            let mut fct = fct.write();
+
+            match marker {
+                FctImplementation::Intrinsic(intrinsic) => fct.intrinsic = Some(intrinsic),
+                FctImplementation::Native(native_function) => {
+                    fct.native_function = Some(native_function)
+                }
+            }
+
+            fct.internal_resolved = true;
+            return method_id;
+        }
+    }
+
+    panic!("method {} not found!", method_name)
 }
 
 #[cfg(test)]

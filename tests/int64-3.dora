@@ -1,5 +1,5 @@
 fn main() {
-    let x = 1i64.unaryMinus();
+    let x = 1i64.neg();
     assert(x == -1i64);
 
     let x = 1i64.plus(2i64);
