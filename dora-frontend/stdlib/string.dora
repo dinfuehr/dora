@@ -198,7 +198,7 @@ impl String {
     let mut at = array.size();
     while data != 0i64 {
       array(at - 1i64) = ('0'.toInt64() + (data & 1i64)).toUInt8();
-      data = data.shiftRight(1i32);
+      data = data.lshr(1i32);
       at = at - 1i64;
     }
     return String::fromBytesPart(array, at, array.size() - at + 1i64).getOrPanic();
@@ -218,7 +218,7 @@ impl String {
         array(at - 1i64) = ('A'.toInt32() + digit - 10i32).toUInt8();
       }
 
-      data = data.shiftRight(4i32);
+      data = data.lshr(4i32);
       at = at - 1i64;
     }
     return String::fromBytesPart(array, at, array.size() - at + 1i64).getOrPanic();

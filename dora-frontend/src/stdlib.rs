@@ -828,25 +828,28 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         Intrinsic::Int32Xor,
     );
 
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Int32",
-        "shiftLeft",
+        sa.known.traits.shl(),
+        "shl",
         Intrinsic::Int32Shl,
     );
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Int32",
-        "shiftRight",
+        sa.known.traits.logical_shr(),
+        "lshr",
         Intrinsic::Int32Shr,
     );
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Int32",
-        "shiftRightSigned",
+        sa.known.traits.arith_shr(),
+        "ashr",
         Intrinsic::Int32Sar,
     );
 
@@ -1079,25 +1082,28 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         Intrinsic::Int64Xor,
     );
 
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Int64",
-        "shiftLeft",
+        sa.known.traits.shl(),
+        "shl",
         Intrinsic::Int64Shl,
     );
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Int64",
-        "shiftRight",
+        sa.known.traits.logical_shr(),
+        "lshr",
         Intrinsic::Int64Shr,
     );
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Int64",
-        "shiftRightSigned",
+        sa.known.traits.arith_shr(),
+        "ashr",
         Intrinsic::Int64Sar,
     );
 

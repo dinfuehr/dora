@@ -52,15 +52,11 @@ impl Int32 {
   pub @internal fn wrappingMul(rhs: Int32): Int32;
   pub @internal fn wrappingNeg(): Int32;
 
-  pub @internal fn shiftLeft(by: Int32): Int32;
-  pub @internal fn shiftRightSigned(by: Int32): Int32;
-  pub @internal fn shiftRight(by: Int32): Int32;
-
   pub @internal fn rotateLeft(by: Int32): Int32;
   pub @internal fn rotateRight(by: Int32): Int32;
 
   pub fn abs(): Int32 {
-    let s = self.shiftRightSigned(31i32);
+    let s = self.ashr(31i32);
     return self.bitxor(s).wrappingSub(s);
   }
 
@@ -78,10 +74,10 @@ impl Int32 {
     if self == 0i32 {
       return Int32::bits();
     }
-    let mut t = 1i32.shiftLeft(Int32::bits() - 1i32);
+    let mut t = 1i32.shl(Int32::bits() - 1i32);
     let mut r = 0i32;
     while self.bitand(t) == 0i32 {
-      t = t.shiftRight(1i32);
+      t = t.lshr(1i32);
       r = r + 1i32;
     }
     return r;
@@ -94,7 +90,7 @@ impl Int32 {
     let mut t = 1i32;
     let mut r = 0i32;
     while self.bitand(t) == 0i32 {
-      t = t.shiftLeft(1i32);
+      t = t.shl(1i32);
       r = r + 1i32;
     }
     return r;
@@ -151,6 +147,18 @@ impl std::traits::BitAnd for Int32 {
 
 impl std::traits::BitXor for Int32 {
   @internal fn bitxor(rhs: Int32): Int32;
+}
+
+impl std::traits::Shl for Int32 {
+  @internal fn shl(rhs: Int32): Int32;
+}
+
+impl std::traits::LogicalShr for Int32 {
+  @internal fn lshr(rhs: Int32): Int32;
+}
+
+impl std::traits::ArithShr for Int32 {
+  @internal fn ashr(rhs: Int32): Int32;
 }
 
 pub class Int32Range(lower: Int32, upper: Int32)
@@ -289,15 +297,11 @@ impl Int64 {
   pub @internal fn wrappingMul(rhs: Int64): Int64;
   pub @internal fn wrappingNeg(): Int64;
 
-  pub @internal fn shiftLeft(by: Int32): Int64;
-  pub @internal fn shiftRightSigned(by: Int32): Int64;
-  pub @internal fn shiftRight(by: Int32): Int64;
-
   pub @internal fn rotateLeft(by: Int32): Int64;
   pub @internal fn rotateRight(by: Int32): Int64;
 
   pub fn abs(): Int64 {
-    let s = self.shiftRightSigned(63i32);
+    let s = self.ashr(63i32);
     return self.bitxor(s).wrappingSub(s);
   }
 
@@ -315,10 +319,10 @@ impl Int64 {
     if self == 0i64 {
       return Int64::bits();
     }
-    let mut t = 1i64.shiftLeft(Int64::bits() - 1i32);
+    let mut t = 1i64.shl(Int64::bits() - 1i32);
     let mut r = 0i32;
     while (self.bitand(t)) == 0i64 {
-      t = t.shiftRight(1i32);
+      t = t.lshr(1i32);
       r = r + 1i32;
     }
     return r;
@@ -334,7 +338,7 @@ impl Int64 {
     let mut t = 1i64;
     let mut r = 0i32;
     while (self.bitand(t)) == 0i64 {
-      t = t.shiftLeft(1i32);
+      t = t.shl(1i32);
       r = r + 1i32
     }
     return r;
@@ -393,6 +397,18 @@ impl std::traits::BitXor for Int64 {
   @internal fn bitxor(rhs: Int64): Int64;
 }
 
+impl std::traits::Shl for Int64 {
+  @internal fn shl(rhs: Int32): Int64;
+}
+
+impl std::traits::LogicalShr for Int64 {
+  @internal fn lshr(rhs: Int32): Int64;
+}
+
+impl std::traits::ArithShr for Int64 {
+  @internal fn ashr(rhs: Int32): Int64;
+}
+
 pub @internal struct Float32
 
 impl Float32 {
@@ -409,8 +425,8 @@ impl Float32 {
     let mut ix = self.asInt32();
     let mut iy = rhs.asInt32();
 
-    let sx = ix.shiftRightSigned(31i32).shiftRight(1i32);
-    let sy = iy.shiftRightSigned(31i32).shiftRight(1i32);
+    let sx = ix.ashr(31i32).lshr(1i32);
+    let sy = iy.ashr(31i32).lshr(1i32);
 
     ix = ix.bitxor(sx);
     iy = iy.bitxor(sy);
@@ -476,8 +492,8 @@ impl Float64 {
     let mut ix = self.asInt64();
     let mut iy = rhs.asInt64();
 
-    let sx = ix.shiftRightSigned(63i32).shiftRight(1i32);
-    let sy = iy.shiftRightSigned(63i32).shiftRight(1i32);
+    let sx = ix.ashr(63i32).lshr(1i32);
+    let sy = iy.ashr(63i32).lshr(1i32);
 
     ix = ix.bitxor(sx);
     iy = iy.bitxor(sy);
