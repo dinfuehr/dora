@@ -52,10 +52,6 @@ impl Int32 {
   pub @internal fn wrappingMul(rhs: Int32): Int32;
   pub @internal fn wrappingNeg(): Int32;
 
-  pub @internal fn bitwiseOr(rhs: Int32): Int32;
-  pub @internal fn bitwiseAnd(rhs: Int32): Int32;
-  pub @internal fn bitwiseXor(rhs: Int32): Int32;
-
   pub @internal fn shiftLeft(by: Int32): Int32;
   pub @internal fn shiftRightSigned(by: Int32): Int32;
   pub @internal fn shiftRight(by: Int32): Int32;
@@ -65,7 +61,7 @@ impl Int32 {
 
   pub fn abs(): Int32 {
     let s = self.shiftRightSigned(31i32);
-    return self.bitwiseXor(s).wrappingSub(s);
+    return self.bitxor(s).wrappingSub(s);
   }
 
   pub @internal fn countZeroBits(): Int32 { self.not().countOneBits() }
@@ -74,7 +70,7 @@ impl Int32 {
     let mut c = 0i32;
     while (x != 0i32) {
       c = c + 1i32;
-      x = x.bitwiseAnd(x - 1i32);
+      x = x.bitand(x - 1i32);
     }
     return c;
   }
@@ -84,7 +80,7 @@ impl Int32 {
     }
     let mut t = 1i32.shiftLeft(Int32::bits() - 1i32);
     let mut r = 0i32;
-    while self.bitwiseAnd(t) == 0i32 {
+    while self.bitand(t) == 0i32 {
       t = t.shiftRight(1i32);
       r = r + 1i32;
     }
@@ -97,7 +93,7 @@ impl Int32 {
     }
     let mut t = 1i32;
     let mut r = 0i32;
-    while self.bitwiseAnd(t) == 0i32 {
+    while self.bitand(t) == 0i32 {
       t = t.shiftLeft(1i32);
       r = r + 1i32;
     }
@@ -143,6 +139,18 @@ impl std::traits::Neg for Int32 {
 
 impl std::traits::Not for Int32 {
   @internal fn not(): Int32;
+}
+
+impl std::traits::BitOr for Int32 {
+  @internal fn bitor(rhs: Int32): Int32;
+}
+
+impl std::traits::BitAnd for Int32 {
+  @internal fn bitand(rhs: Int32): Int32;
+}
+
+impl std::traits::BitXor for Int32 {
+  @internal fn bitxor(rhs: Int32): Int32;
 }
 
 pub class Int32Range(lower: Int32, upper: Int32)
@@ -281,10 +289,6 @@ impl Int64 {
   pub @internal fn wrappingMul(rhs: Int64): Int64;
   pub @internal fn wrappingNeg(): Int64;
 
-  pub @internal fn bitwiseOr(rhs: Int64): Int64;
-  pub @internal fn bitwiseAnd(rhs: Int64): Int64;
-  pub @internal fn bitwiseXor(rhs: Int64): Int64;
-
   pub @internal fn shiftLeft(by: Int32): Int64;
   pub @internal fn shiftRightSigned(by: Int32): Int64;
   pub @internal fn shiftRight(by: Int32): Int64;
@@ -294,7 +298,7 @@ impl Int64 {
 
   pub fn abs(): Int64 {
     let s = self.shiftRightSigned(63i32);
-    return self.bitwiseXor(s).wrappingSub(s);
+    return self.bitxor(s).wrappingSub(s);
   }
 
   pub @internal fn countZeroBits(): Int32 { self.not().countOneBits() }
@@ -303,7 +307,7 @@ impl Int64 {
     let mut c = 0i32;
     while (x != 0i64) {
       c = c + 1i32;
-      x = x.bitwiseAnd(x - 1i64);
+      x = x.bitand(x - 1i64);
     }
     return c;
   }
@@ -313,7 +317,7 @@ impl Int64 {
     }
     let mut t = 1i64.shiftLeft(Int64::bits() - 1i32);
     let mut r = 0i32;
-    while (self.bitwiseAnd(t)) == 0i64 {
+    while (self.bitand(t)) == 0i64 {
       t = t.shiftRight(1i32);
       r = r + 1i32;
     }
@@ -329,7 +333,7 @@ impl Int64 {
     }
     let mut t = 1i64;
     let mut r = 0i32;
-    while (self.bitwiseAnd(t)) == 0i64 {
+    while (self.bitand(t)) == 0i64 {
       t = t.shiftLeft(1i32);
       r = r + 1i32
     }
@@ -377,6 +381,18 @@ impl std::traits::Not for Int64 {
   @internal fn not(): Int64;
 }
 
+impl std::traits::BitOr for Int64 {
+  @internal fn bitor(rhs: Int64): Int64;
+}
+
+impl std::traits::BitAnd for Int64 {
+  @internal fn bitand(rhs: Int64): Int64;
+}
+
+impl std::traits::BitXor for Int64 {
+  @internal fn bitxor(rhs: Int64): Int64;
+}
+
 pub @internal struct Float32
 
 impl Float32 {
@@ -396,8 +412,8 @@ impl Float32 {
     let sx = ix.shiftRightSigned(31i32).shiftRight(1i32);
     let sy = iy.shiftRightSigned(31i32).shiftRight(1i32);
 
-    ix = ix.bitwiseXor(sx);
-    iy = iy.bitwiseXor(sy);
+    ix = ix.bitxor(sx);
+    iy = iy.bitxor(sy);
 
     if ix < iy { return -1i32; }
     if ix == iy { return 0i32; }
@@ -463,8 +479,8 @@ impl Float64 {
     let sx = ix.shiftRightSigned(63i32).shiftRight(1i32);
     let sy = iy.shiftRightSigned(63i32).shiftRight(1i32);
 
-    ix = ix.bitwiseXor(sx);
-    iy = iy.bitwiseXor(sy);
+    ix = ix.bitxor(sx);
+    iy = iy.bitxor(sy);
 
     if ix < iy { return -1i32; }
     if ix == iy { return 0i32; }

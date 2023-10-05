@@ -803,25 +803,28 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         Intrinsic::Int32MulUnchecked,
     );
 
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Int32",
-        "bitwiseOr",
+        sa.known.traits.bit_or(),
+        "bitor",
         Intrinsic::Int32Or,
     );
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Int32",
-        "bitwiseAnd",
+        sa.known.traits.bit_and(),
+        "bitand",
         Intrinsic::Int32And,
     );
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Int32",
-        "bitwiseXor",
+        sa.known.traits.bit_xor(),
+        "bitxor",
         Intrinsic::Int32Xor,
     );
 
@@ -1051,25 +1054,28 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         Intrinsic::Int64MulUnchecked,
     );
 
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Int64",
-        "bitwiseOr",
+        sa.known.traits.bit_or(),
+        "bitor",
         Intrinsic::Int64Or,
     );
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Int64",
-        "bitwiseAnd",
+        sa.known.traits.bit_and(),
+        "bitand",
         Intrinsic::Int64And,
     );
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Int64",
-        "bitwiseXor",
+        sa.known.traits.bit_xor(),
+        "bitxor",
         Intrinsic::Int64Xor,
     );
 

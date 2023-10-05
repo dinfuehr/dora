@@ -32,19 +32,19 @@ fn main() {
     let x = 10i64 % 8i64;
     assert(x == 2i64);
 
-    let x = 1i64.bitwiseOr(2i64);
+    let x = 1i64.bitor(2i64);
     assert(x == 3i64);
 
     let x = 1i64 | 2i64;
     assert(x == 3i64);
 
-    let x = 5i64.bitwiseAnd(6i64);
+    let x = 5i64.bitand(6i64);
     assert(x == 4i64);
 
     let x = 5i64 & 6i64;
     assert(x == 4i64);
 
-    let x = 1i64.bitwiseXor(3i64);
+    let x = 1i64.bitxor(3i64);
     assert(x == 2i64);
 
     let x = 1i64 ^ 3i64;
