@@ -6,7 +6,7 @@ use crate::sema::{
     TraitDefinitionId, TypeParamDefinition, Visibility,
 };
 use crate::sym::SymbolKind;
-use crate::ty::SourceType;
+use crate::ty::{SourceType, SourceTypeArray};
 
 use crate::interner::Name;
 use dora_bytecode::{Intrinsic, NativeFunction};
@@ -430,11 +430,12 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         "toFloat64OrZero",
         NativeFunction::StringToFloat64OrZero,
     );
-    native_method(
+    native_impl_method(
         sa,
         stdlib_id,
         "string::String",
-        "plus",
+        sa.known.traits.add(),
+        "add",
         NativeFunction::StringPlus,
     );
 
@@ -1896,6 +1897,24 @@ fn intrinsic_impl_method(
     )
 }
 
+fn native_impl_method(
+    sa: &Sema,
+    module_id: ModuleDefinitionId,
+    container_name: &str,
+    trait_id: TraitDefinitionId,
+    method_name: &str,
+    native: NativeFunction,
+) -> FctDefinitionId {
+    internal_impl_method(
+        sa,
+        module_id,
+        container_name,
+        trait_id,
+        method_name,
+        FctImplementation::Native(native),
+    )
+}
+
 fn internal_impl_method(
     sa: &Sema,
     module_id: ModuleDefinitionId,
@@ -1911,6 +1930,8 @@ fn internal_impl_method(
             let struct_ = &sa.structs[struct_id];
             struct_.ty()
         }
+
+        SymbolKind::Class(cls_id) => SourceType::Class(cls_id, SourceTypeArray::empty()),
 
         _ => panic!("unexpected type"),
     };

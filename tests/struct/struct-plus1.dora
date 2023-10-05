@@ -1,7 +1,7 @@
 struct Foo(value: Int32)
 
-impl Foo {
-    fn plus(other: Foo): Foo {
+impl std::traits::Add for Foo {
+    fn add(other: Foo): Foo {
         Foo(self.value + other.value)
     }
 }

@@ -803,7 +803,7 @@ pub(super) fn check_expr_bin(
             e.op,
             ck.sa.known.traits.add(),
             "add",
-            "plus",
+            None,
             lhs_type,
             rhs_type,
         ),
@@ -813,7 +813,7 @@ pub(super) fn check_expr_bin(
             e.op,
             ck.sa.known.traits.sub(),
             "sub",
-            "minus",
+            None,
             lhs_type,
             rhs_type,
         ),
@@ -823,7 +823,7 @@ pub(super) fn check_expr_bin(
             e.op,
             ck.sa.known.traits.mul(),
             "mul",
-            "times",
+            None,
             lhs_type,
             rhs_type,
         ),
@@ -833,7 +833,7 @@ pub(super) fn check_expr_bin(
             e.op,
             ck.sa.known.traits.div(),
             "div",
-            "div",
+            None,
             lhs_type,
             rhs_type,
         ),
@@ -843,7 +843,7 @@ pub(super) fn check_expr_bin(
             e.op,
             ck.sa.known.traits.mod_(),
             "modulo",
-            "modulo",
+            None,
             lhs_type,
             rhs_type,
         ),
@@ -853,7 +853,7 @@ pub(super) fn check_expr_bin(
             e.op,
             ck.sa.known.traits.bit_or(),
             "bitor",
-            "bitwiseOr",
+            Some("bitwiseOr"),
             lhs_type,
             rhs_type,
         ),
@@ -863,7 +863,7 @@ pub(super) fn check_expr_bin(
             e.op,
             ck.sa.known.traits.bit_and(),
             "bitand",
-            "bitwiseAnd",
+            Some("bitwiseAnd"),
             lhs_type,
             rhs_type,
         ),
@@ -873,7 +873,7 @@ pub(super) fn check_expr_bin(
             e.op,
             ck.sa.known.traits.bit_xor(),
             "bitxor",
-            "bitwiseXor",
+            Some("bitwiseXor"),
             lhs_type,
             rhs_type,
         ),
@@ -883,7 +883,7 @@ pub(super) fn check_expr_bin(
             e.op,
             ck.sa.known.traits.shl(),
             "shl",
-            "shiftLeft",
+            Some("shiftLeft"),
             lhs_type,
             rhs_type,
         ),
@@ -893,7 +893,7 @@ pub(super) fn check_expr_bin(
             e.op,
             ck.sa.known.traits.arith_shr(),
             "ashr",
-            "shiftRightSigned",
+            Some("shiftRightSigned"),
             lhs_type,
             rhs_type,
         ),
@@ -903,7 +903,7 @@ pub(super) fn check_expr_bin(
             e.op,
             ck.sa.known.traits.logical_shr(),
             "lshr",
-            "shiftRight",
+            Some("shiftRight"),
             lhs_type,
             rhs_type,
         ),
@@ -930,11 +930,10 @@ fn check_expr_bin_trait_or_method(
     op: ast::BinOp,
     trait_id: TraitDefinitionId,
     trait_method_name: &str,
-    name: &str,
+    name: Option<&str>,
     lhs_type: SourceType,
     rhs_type: SourceType,
 ) -> SourceType {
-    let name = ck.sa.interner.intern(name);
     let call_types = [rhs_type.clone()];
     let trait_ty = SourceType::new_trait(trait_id);
 
@@ -973,25 +972,31 @@ fn check_expr_bin_trait_or_method(
         ck.analysis.set_ty(e.id, return_type.clone());
 
         return_type
-    } else if let Some(descriptor) = lookup_method(
-        ck.sa,
-        lhs_type.clone(),
-        ck.type_param_defs,
-        false,
-        name,
-        &call_types,
-        &SourceTypeArray::empty(),
-    ) {
-        let call_type =
-            CallType::Method(lhs_type.clone(), descriptor.fct_id, descriptor.type_params);
-        ck.analysis
-            .map_calls
-            .insert_or_replace(e.id, Arc::new(call_type));
-
-        ck.analysis.set_ty(e.id, descriptor.return_type.clone());
-
-        descriptor.return_type
     } else {
+        if let Some(name) = name {
+            let name = ck.sa.interner.intern(name);
+
+            if let Some(descriptor) = lookup_method(
+                ck.sa,
+                lhs_type.clone(),
+                ck.type_param_defs,
+                false,
+                name,
+                &call_types,
+                &SourceTypeArray::empty(),
+            ) {
+                let call_type =
+                    CallType::Method(lhs_type.clone(), descriptor.fct_id, descriptor.type_params);
+                ck.analysis
+                    .map_calls
+                    .insert_or_replace(e.id, Arc::new(call_type));
+
+                ck.analysis.set_ty(e.id, descriptor.return_type.clone());
+
+                return descriptor.return_type;
+            }
+        }
+
         let lhs_type = ck.ty_name(&lhs_type);
         let rhs_type = ck.ty_name(&rhs_type);
         let msg = ErrorMessage::BinOpType(op.as_str().into(), lhs_type, rhs_type);

@@ -17,7 +17,7 @@ fn main() {
   let y = "hel" + "lo";
   assert(x == y);
 
-  let z = "h".plus("ello");
+  let z = "h".add("ello");
   assert(y == z);
 
   assert("a".compareTo("b") < 0i32);

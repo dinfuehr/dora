@@ -73,8 +73,6 @@ impl String {
     }
   }
 
-  pub @internal fn plus(rhs: String): String;
-
   pub @internal fn getByte(idx: Int64): UInt8;
 
   pub @internal fn clone(): String;
@@ -225,6 +223,10 @@ impl String {
     }
     return String::fromBytesPart(array, at, array.size() - at + 1i64).getOrPanic();
   }
+}
+
+impl std::traits::Add for String {
+  @internal fn add(rhs: String): String;
 }
 
 pub trait Stringable {

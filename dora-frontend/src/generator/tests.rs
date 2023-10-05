@@ -4,7 +4,8 @@ use std::mem;
 use self::Bytecode::*;
 use crate::generator::{bty_from_ty, generate_fct_id};
 use crate::sema::{
-    create_tuple, find_methods_in_class, find_methods_in_struct, FctDefinitionId, Sema,
+    create_tuple, find_impl, find_methods_in_class, find_methods_in_struct, FctDefinitionId, Sema,
+    TypeParamDefinition,
 };
 use crate::sema::{
     ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FieldId, GlobalDefinitionId,
@@ -3446,8 +3447,9 @@ fn gen_string_concat() {
     gen_fct(
         "fn f(a: String, b: String): String { a + b }",
         |sa, code, fct| {
-            let fct_id =
-                cls_method_by_name(sa, "String", "plus", false).expect("String::plus not found");
+            let cls_id = sa.known.classes.string();
+            let cls_ty = SourceType::Class(cls_id, SourceTypeArray::empty());
+            let fct_id = impl_method_id_by_name(sa, sa.known.traits.add(), "add", cls_ty);
             let expected = vec![
                 PushRegister(r(0)),
                 PushRegister(r(1)),
@@ -4179,6 +4181,26 @@ pub fn global_by_name(sa: &Sema, name: &str) -> GlobalDefinitionId {
         .expect("symbol not found")
         .to_global()
         .expect("global expecte")
+}
+
+pub fn impl_method_id_by_name(
+    sa: &Sema,
+    trait_id: TraitDefinitionId,
+    method_name: &str,
+    ty: SourceType,
+) -> FctDefinitionId {
+    let trait_ty = SourceType::new_trait(trait_id);
+    let impl_id = find_impl(sa, ty, &TypeParamDefinition::new(), trait_ty).expect("missing impl");
+
+    let impl_ = sa.impls.idx(impl_id);
+    let impl_ = impl_.read();
+
+    let name = sa.interner.intern(method_name);
+    impl_
+        .instance_names
+        .get(&name)
+        .cloned()
+        .expect("method not found")
 }
 
 fn r(val: usize) -> Register {

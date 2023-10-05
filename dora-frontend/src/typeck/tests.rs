@@ -589,84 +589,6 @@ fn lit_int64_as_default() {
 }
 
 #[test]
-fn overload_plus() {
-    ok("class A impl A { fn plus(rhs: A): Int32 { return 0; } }
-            fn f(): Int32 { return A() + A(); }");
-}
-
-#[test]
-fn overload_minus() {
-    ok("class A impl A { fn minus(rhs: A): Int32 { return 0; } }
-            fn f(): Int32 { return A() - A(); }");
-}
-
-#[test]
-fn overload_times() {
-    ok("class A impl A { fn times(rhs: A): Int32 { return 0; } }
-            fn f(): Int32 { return A() * A(); }");
-}
-
-#[test]
-fn overload_div() {
-    ok("class A impl A { fn div(rhs: A): Int32 { return 0; } }
-            fn f(): Int32 { return A() / A(); }");
-}
-
-#[test]
-fn overload_mod() {
-    ok("class A impl A { fn modulo(rhs: A): Int32 { return 0; } }
-            fn f(): Int32 { return A() % A(); }");
-}
-
-#[test]
-fn overload_bitwise_or() {
-    ok(
-        "class A impl A { fn bitwiseOr(rhs: A): Int32 { return 0; } }
-            fn f(): Int32 { return A() | A(); }",
-    );
-}
-
-#[test]
-fn overload_bitwise_and() {
-    ok(
-        "class A impl A { fn bitwiseAnd(rhs: A): Int32 { return 0i32; } }
-            fn f(): Int32 { return A() & A(); }",
-    );
-}
-
-#[test]
-fn overload_bitwise_xor() {
-    ok(
-        "class A impl A { fn bitwiseXor(rhs: A): Int32 { return 0i32; } }
-            fn f(): Int32 { return A() ^ A(); }",
-    );
-}
-
-#[test]
-fn overload_shl() {
-    ok(
-        "class A impl A { fn shiftLeft(rhs: A): Int32 { return 0i32; } }
-            fn f(): Int32 { return A() << A(); }",
-    );
-}
-
-#[test]
-fn overload_sar() {
-    ok(
-        "class A impl A { fn shiftRightSigned(rhs: A): Int32 { return 0i32; } }
-            fn f(): Int32 { return A() >> A(); }",
-    );
-}
-
-#[test]
-fn overload_shr() {
-    ok(
-        "class A impl A { fn shiftRight(rhs: A): Int32 { return 0i32; } }
-            fn f(): Int32 { return A() >>> A(); }",
-    );
-}
-
-#[test]
 fn overload_equals() {
     ok("class A impl A { fn equals(rhs: A): Bool { return true; } }
             fn f1(): Bool { return A() == A(); }
@@ -2535,21 +2457,6 @@ fn impl_struct_method_with_self() {
         struct Foo(value: Int32)
         trait AsInt32 { fn value(): Int32; }
         impl AsInt32 for Foo { fn value(): Int32 { self.value } }
-    ");
-}
-
-#[test]
-fn impl_struct_with_method_overload() {
-    ok("
-        struct Foo(value: Int32)
-        impl Foo {
-            fn plus(other: Foo): Foo {
-                Foo(self.value + other.value)
-            }
-        }
-        fn f(a: Foo, b: Foo): Foo {
-            a + b
-        }
     ");
 }
 
