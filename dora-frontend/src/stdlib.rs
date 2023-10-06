@@ -335,34 +335,38 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
 
     intrinsic_fct(sa, stdlib_id, "unsafeKillRefs", Intrinsic::UnsafeKillRefs);
 
-    native_method(
+    native_impl_method(
         sa,
         stdlib_id,
         "primitives::UInt8",
+        sa.known.traits.stringable(),
         "toString",
         NativeFunction::UInt8ToString,
     );
 
-    native_method(
+    native_impl_method(
         sa,
         stdlib_id,
         "primitives::Char",
+        sa.known.traits.stringable(),
         "toString",
         NativeFunction::CharToString,
     );
 
-    native_method(
+    native_impl_method(
         sa,
         stdlib_id,
         "primitives::Int32",
+        sa.known.traits.stringable(),
         "toString",
         NativeFunction::Int32ToString,
     );
 
-    native_method(
+    native_impl_method(
         sa,
         stdlib_id,
         "primitives::Int64",
+        sa.known.traits.stringable(),
         "toString",
         NativeFunction::Int64ToString,
     );
@@ -439,18 +443,20 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         NativeFunction::StringPlus,
     );
 
-    native_method(
+    native_impl_method(
         sa,
         stdlib_id,
         "primitives::Float32",
+        sa.known.traits.stringable(),
         "toString",
         NativeFunction::Float32ToString,
     );
 
-    native_method(
+    native_impl_method(
         sa,
         stdlib_id,
         "primitives::Float64",
+        sa.known.traits.stringable(),
         "toString",
         NativeFunction::Float64ToString,
     );

@@ -47,7 +47,6 @@ impl Int32 {
   }
   pub @internal fn toCharUnchecked(): Char;
   pub @internal fn toInt64(): Int64;
-  pub @internal fn toString(): String;
 
   pub fn toStringBinary(): String { String::binary(self.toInt64() & 0xFFFFFFFFi64) }
   pub fn toStringHex(): String { String::hex(self.toInt64() & 0xFFFFFFFFi64) }
@@ -183,9 +182,7 @@ impl std::traits::Equals for Int32 {
 }
 
 impl std::string::Stringable for Int32 {
-  fn toString(): String {
-    self.toString()
-  }
+  @internal fn toString(): String;
 }
 
 pub class Int32Range(lower: Int32, upper: Int32)
@@ -251,7 +248,6 @@ pub @internal struct Char
 impl Char {
   pub @internal fn toInt32(): Int32;
   pub @internal fn toInt64(): Int64;
-  pub @internal fn toString(): String;
 
   pub @internal fn equals(rhs: Char): Bool;
   pub @internal fn compareTo(rhs: Char): Int32;
@@ -294,9 +290,7 @@ impl Char {
 }
 
 impl std::string::Stringable for Char {
-  fn toString(): String {
-    self.toString()
-  }
+  @internal fn toString(): String;
 }
 
 pub @internal struct Int64
@@ -312,7 +306,6 @@ impl Int64 {
   }
   pub @internal fn toCharUnchecked(): Char;
   pub @internal fn toInt32(): Int32;
-  pub @internal fn toString(): String;
   pub fn toStringHex(): String { String::hex(self) }
 
   pub fn toStringBinary(): String { String::binary(self) }
@@ -451,9 +444,7 @@ impl std::traits::Equals for Int64 {
 }
 
 impl std::string::Stringable for Int64 {
-  fn toString(): String {
-    self.toString()
-  }
+  @internal fn toString(): String;
 }
 
 pub @internal struct Float32
@@ -462,7 +453,6 @@ impl Float32 {
   pub @internal fn toInt32(): Int32;
   pub @internal fn toInt64(): Int64;
   pub @internal fn toFloat64(): Float64;
-  pub @internal fn toString(): String;
 
   pub @internal fn asInt32(): Int32;
 
@@ -532,9 +522,7 @@ impl std::traits::Equals for Float32 {
 }
 
 impl std::string::Stringable for Float32 {
-  fn toString(): String {
-    self.toString()
-  }
+  @internal fn toString(): String;
 }
 
 pub @internal struct Float64
@@ -543,7 +531,6 @@ impl Float64 {
   pub @internal fn toInt32(): Int32;
   pub @internal fn toInt64(): Int64;
   pub @internal fn toFloat32(): Float32;
-  pub @internal fn toString(): String;
 
   pub @internal fn asInt64(): Int64;
 
@@ -613,9 +600,7 @@ impl std::traits::Equals for Float64 {
 }
 
 impl std::string::Stringable for Float64 {
-  fn toString(): String {
-    self.toString()
-  }
+  @internal fn toString(): String;
 }
 
 pub @internal struct UInt8
@@ -624,7 +609,6 @@ impl UInt8 {
   pub @internal fn toChar(): Char;
   pub @internal fn toInt32(): Int32;
   pub @internal fn toInt64(): Int64;
-  pub @internal fn toString(): String;
 
   pub fn toStringBinary(): String { String::binary(self.toInt64()) }
   pub fn toStringHex(): String { String::hex(self.toInt64()) }
@@ -650,9 +634,7 @@ impl std::traits::Equals for UInt8 {
 }
 
 impl std::string::Stringable for UInt8 {
-  fn toString(): String {
-    self.toString()
-  }
+  @internal fn toString(): String;
 }
 
 pub enum Option[T] {
