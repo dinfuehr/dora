@@ -178,73 +178,23 @@ pub trait Zero {
   static fn zero(): Self; // should be `let` instead of `fn`
 }
 
+pub enum Ordering {
+  Less,
+  Equal,
+  Greater,
+}
+
 /* partial order */
 pub trait Comparable {
   fn compareTo(other: Self): Int32;
-  // fn <  (other: Self): Int32;
-  // fn <= (other: Self): Int32;
-  // fn >  (other: Self): Int32;
-  // fn >= (other: Self): Int32;
 }
 
-impl Comparable for Bool {
-  fn compareTo(other: Bool): Int32 { self.compareTo(other) }
-}
-
-impl Comparable for UInt8 {
-  fn compareTo(other: UInt8): Int32 { self.compareTo(other) }
-}
-
-impl Comparable for Int32 {
-  fn compareTo(other: Int32): Int32 { self.compareTo(other) }
-}
-
-impl Comparable for Int64 {
-  fn compareTo(other: Int64): Int32 { self.compareTo(other) }
-}
-
-impl Comparable for Float32 {
-  fn compareTo(other: Float32): Int32 { self.compareTo(other) }
-}
-
-impl Comparable for Float64 {
-  fn compareTo(other: Float64): Int32 { self.compareTo(other) }
-}
-
-impl Comparable for String {
-  fn compareTo(other: String): Int32 { self.compareTo(other) }
+pub trait Comparable2 {
+  fn cmp(other: Self): Ordering;
 }
 
 pub trait Equals {
   fn equals(other: Self): Bool;
-}
-
-impl Equals for Bool {
-  fn equals(other: Bool): Bool { self == other }
-}
-
-impl Equals for UInt8 {
-  fn equals(other: UInt8): Bool { self == other }
-}
-
-impl Equals for Int32 {
-  fn equals(other: Int32): Bool { self == other }
-}
-
-impl Equals for Int64 {
-  fn equals(other: Int64): Bool { self == other }
-}
-
-impl Equals for Float32 {
-  fn equals(other: Float32): Bool { self == other }
-}
-
-impl Equals for Float64 {
-  fn equals(other: Float64): Bool { self == other }
-}
-
-impl Equals for String {
-  fn equals(other: String): Bool { self == other }
 }
 
 pub trait Add {

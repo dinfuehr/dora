@@ -23,8 +23,6 @@ impl String {
     return true;
   }
 
-  pub fn toString(): String { self }
-
   pub @internal fn compareTo(rhs: String): Int32;
 
   pub @internal fn size(): Int64;
@@ -229,55 +227,21 @@ impl std::traits::Add for String {
   @internal fn add(rhs: String): String;
 }
 
+impl std::traits::Comparable for String {
+  fn compareTo(other: String): Int32 { self.compareTo(other) }
+}
+
+impl std::traits::Equals for String {
+  fn equals(other: String): Bool { self == other }
+}
+
 pub trait Stringable {
   fn toString(): String;
 }
 
-impl Stringable for Bool {
-  fn toString(): String {
-    self.toString()
-  }
-}
-
-impl Stringable for UInt8 {
-  fn toString(): String {
-    self.toString()
-  }
-}
-
-impl Stringable for Int32 {
-  fn toString(): String {
-    self.toString()
-  }
-}
-
-impl Stringable for Int64 {
-  fn toString(): String {
-    self.toString()
-  }
-}
-
-impl Stringable for Float32 {
-  fn toString(): String {
-    self.toString()
-  }
-}
-
-impl Stringable for Float64 {
-  fn toString(): String {
-    self.toString()
-  }
-}
-
 impl Stringable for String {
   fn toString(): String {
-    self.toString()
-  }
-}
-
-impl Stringable for Char {
-  fn toString(): String {
-    self.toString()
+    self
   }
 }
 

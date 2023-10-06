@@ -10,7 +10,6 @@ impl Bool {
 
   pub fn hash(): Int32 { self.toInt32() }
 
-  pub fn toString(): String { if self { "true" } else { "false" } }
   pub fn toStringBinary(): String { if self { "1" } else { "0" } }
   pub fn toStringHex(): String { if self { "1" } else { "0" } }
 
@@ -19,6 +18,20 @@ impl Bool {
 
 impl std::traits::Not for Bool {
   @internal fn not(): Bool;
+}
+
+impl std::traits::Comparable for Bool {
+  fn compareTo(other: Bool): Int32 { self.compareTo(other) }
+}
+
+impl std::traits::Equals for Bool {
+  fn equals(other: Bool): Bool { self == other }
+}
+
+impl std::string::Stringable for Bool {
+  fn toString(): String {
+    if self { "true" } else { "false" }
+  }
 }
 
 pub @internal struct Int32
@@ -161,6 +174,20 @@ impl std::traits::ArithShr for Int32 {
   @internal fn ashr(rhs: Int32): Int32;
 }
 
+impl std::traits::Comparable for Int32 {
+  fn compareTo(other: Int32): Int32 { self.compareTo(other) }
+}
+
+impl std::traits::Equals for Int32 {
+  fn equals(other: Int32): Bool { self == other }
+}
+
+impl std::string::Stringable for Int32 {
+  fn toString(): String {
+    self.toString()
+  }
+}
+
 pub class Int32Range(lower: Int32, upper: Int32)
 
 impl Int32Range {
@@ -263,6 +290,12 @@ impl Char {
     } else {
       return 4i32;
     }
+  }
+}
+
+impl std::string::Stringable for Char {
+  fn toString(): String {
+    self.toString()
   }
 }
 
@@ -409,6 +442,20 @@ impl std::traits::ArithShr for Int64 {
   @internal fn ashr(rhs: Int32): Int64;
 }
 
+impl std::traits::Comparable for Int64 {
+  fn compareTo(other: Int64): Int32 { self.compareTo(other) }
+}
+
+impl std::traits::Equals for Int64 {
+  fn equals(other: Int64): Bool { self == other }
+}
+
+impl std::string::Stringable for Int64 {
+  fn toString(): String {
+    self.toString()
+  }
+}
+
 pub @internal struct Float32
 
 impl Float32 {
@@ -474,6 +521,20 @@ impl std::traits::Div for Float32 {
 
 impl std::traits::Neg for Float32 {
   @internal fn neg(): Float32;
+}
+
+impl std::traits::Comparable for Float32 {
+  fn compareTo(other: Float32): Int32 { self.compareTo(other) }
+}
+
+impl std::traits::Equals for Float32 {
+  fn equals(other: Float32): Bool { self == other }
+}
+
+impl std::string::Stringable for Float32 {
+  fn toString(): String {
+    self.toString()
+  }
 }
 
 pub @internal struct Float64
@@ -543,6 +604,20 @@ impl std::traits::Neg for Float64 {
   @internal fn neg(): Float64;
 }
 
+impl std::traits::Comparable for Float64 {
+  fn compareTo(other: Float64): Int32 { self.compareTo(other) }
+}
+
+impl std::traits::Equals for Float64 {
+  fn equals(other: Float64): Bool { self == other }
+}
+
+impl std::string::Stringable for Float64 {
+  fn toString(): String {
+    self.toString()
+  }
+}
+
 pub @internal struct UInt8
 
 impl UInt8 {
@@ -564,6 +639,20 @@ impl UInt8 {
 
   pub static fn maxValue(): UInt8 { 255u8 }
   pub static fn minValue(): UInt8 { 0u8 }
+}
+
+impl std::traits::Comparable for UInt8 {
+  fn compareTo(other: UInt8): Int32 { self.compareTo(other) }
+}
+
+impl std::traits::Equals for UInt8 {
+  fn equals(other: UInt8): Bool { self == other }
+}
+
+impl std::string::Stringable for UInt8 {
+  fn toString(): String {
+    self.toString()
+  }
 }
 
 pub enum Option[T] {
