@@ -34,6 +34,14 @@ impl std::string::Stringable for Bool {
   }
 }
 
+impl std::traits::Default for Bool {
+  static fn default(): Bool { false }
+}
+
+impl std::traits::Hash for Bool {
+  fn hash(): Int32 { self.hash() }
+}
+
 pub @internal struct Int32
 
 impl Int32 {
@@ -185,6 +193,14 @@ impl std::string::Stringable for Int32 {
   @internal fn toString(): String;
 }
 
+impl std::traits::Default for Int32 {
+  static fn default(): Int32 { 0 }
+}
+
+impl std::traits::Hash for Int32 {
+  fn hash(): Int32 { self.hash() }
+}
+
 pub class Int32Range(lower: Int32, upper: Int32)
 
 impl Int32Range {
@@ -291,6 +307,10 @@ impl Char {
 
 impl std::string::Stringable for Char {
   @internal fn toString(): String;
+}
+
+impl std::traits::Default for Char {
+  static fn default(): Char { '\0' }
 }
 
 pub @internal struct Int64
@@ -447,6 +467,14 @@ impl std::string::Stringable for Int64 {
   @internal fn toString(): String;
 }
 
+impl std::traits::Hash for Int64 {
+  fn hash(): Int32 { self.hash() }
+}
+
+impl std::traits::Default for Int64 {
+  static fn default(): Int64 { 0i64 }
+}
+
 pub @internal struct Float32
 
 impl Float32 {
@@ -523,6 +551,14 @@ impl std::traits::Equals for Float32 {
 
 impl std::string::Stringable for Float32 {
   @internal fn toString(): String;
+}
+
+impl std::traits::Default for Float32 {
+  static fn default(): Float32 { 0.0f32 }
+}
+
+impl std::traits::Hash for Float32 {
+  fn hash(): Int32 { self.hash() }
 }
 
 pub @internal struct Float64
@@ -603,6 +639,14 @@ impl std::string::Stringable for Float64 {
   @internal fn toString(): String;
 }
 
+impl std::traits::Default for Float64 {
+  static fn default(): Float64 { 0.0 }
+}
+
+impl std::traits::Hash for Float64 {
+  fn hash(): Int32 { self.hash() }
+}
+
 pub @internal struct UInt8
 
 impl UInt8 {
@@ -635,6 +679,14 @@ impl std::traits::Equals for UInt8 {
 
 impl std::string::Stringable for UInt8 {
   @internal fn toString(): String;
+}
+
+impl std::traits::Default for UInt8 {
+  static fn default(): UInt8 { 0u8 }
+}
+
+impl std::traits::Hash for UInt8 {
+  fn hash(): Int32 { self.hash() }
 }
 
 pub enum Option[T] {

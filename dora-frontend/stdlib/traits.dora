@@ -2,65 +2,8 @@ pub trait Default {
   static fn default(): Self;
 }
 
-impl Default for Bool {
-  static fn default(): Bool { false }
-}
-
-impl Default for UInt8 {
-  static fn default(): UInt8 { 0u8 }
-}
-
-impl Default for Char {
-  static fn default(): Char { '\0' }
-}
-
-impl Default for Int32 {
-  static fn default(): Int32 { 0 }
-}
-
-impl Default for Int64 {
-  static fn default(): Int64 { 0i64 }
-}
-
-impl Default for Float32 {
-  static fn default(): Float32 { 0.0f32 }
-}
-
-impl Default for Float64 {
-  static fn default(): Float64 { 0.0 }
-}
-
-impl Default for String {
-  static fn default(): String { "" }
-}
-
 pub trait Hash {
   fn hash(): Int32;
-  // fn hashTo(hasher: Hasher);
-}
-
-impl Hash for Bool {
-  fn hash(): Int32 { self.hash() }
-}
-
-impl Hash for UInt8 {
-  fn hash(): Int32 { self.hash() }
-}
-
-impl Hash for Int32 {
-  fn hash(): Int32 { self.hash() }
-}
-
-impl Hash for Int64 {
-  fn hash(): Int32 { self.hash() }
-}
-
-impl Hash for Float32 {
-  fn hash(): Int32 { self.hash() }
-}
-
-impl Hash for Float64 {
-  fn hash(): Int32 { self.hash() }
 }
 
 pub trait Identity {

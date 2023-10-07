@@ -235,6 +235,10 @@ impl std::traits::Equals for String {
   fn equals(other: String): Bool { self == other }
 }
 
+impl std::traits::Default for String {
+  static fn default(): String { "" }
+}
+
 pub trait Stringable {
   fn toString(): String;
 }
