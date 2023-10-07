@@ -1,4 +1,4 @@
-use std::traits::{Hash, Equals, Default, Zero, Sortable, Identity};
+use std::traits::{Comparable, Hash, Equals, Default, Zero, Identity};
 use std::string::{Stringable, StringBuffer};
 use std::{fatalError, unsafeKillRefs};
 
@@ -114,15 +114,14 @@ impl[T] ArrayEnumerator[T] {
   }
 }
 
-impl[T: Sortable] Array[T] {
+impl[T: Comparable] Array[T] {
   // a stable in-place sort, currently implemented by insertion sort
-  pub static
-  fn sortStable(array: Array[T]) {
+  pub static fn sortStable(array: Array[T]) {
     let mut i = 1i64;
     while i < array.size() {
       let mut temp: T = array.get(i);
       let mut j = i;
-      while j > 0i64 && array(j - 1i64).sortsAfter(temp) {
+      while j > 0i64 && array(j - 1i64).compareTo(temp) > 0i32 {
         array(j) = array(j - 1i64);
         j = j - 1i64;
       }

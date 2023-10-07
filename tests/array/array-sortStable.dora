@@ -17,27 +17,7 @@ fn int64() {
 }
 
 fn float64() {
-  // as x86 returns a negative NaN for 0.0/0.0, but Arm&RiscV return a positive NaN,
-  // we need to make extra efforts to ensure the NaNs we are using have the desired signs.
-
-  // expected order
-  let nNaN = -(0.0/0.0).abs();
-  let nInf = -1.0/0.0;
-  let nOne = -1.0;
-  let nZero = -0.0;
-  let pZero = 0.0;
-  let pOne = 1.0;
-  let pInf= 1.0/0.0;
-  let pNaN = (0.0/0.0).abs();
-
-  let x = Array[Float64]::new(pOne, pInf, nInf, pNaN, nNaN, nZero, pZero, nOne);
+  let x = Array[Float64]::new(5.0, 1.0, 4.0, 2.0, -8.0);
   Array[Float64]::sortStable(x);
-  assert(x(0i64) === nNaN);
-  assert(x(1i64) === nInf);
-  assert(x(2i64) === nOne);
-  assert(x(3i64) === nZero);
-  assert(x(4i64) === pZero);
-  assert(x(5i64) === pOne);
-  assert(x(6i64) === pInf);
-  assert(x(7i64) === pNaN);
+  assert(x == Array[Float64]::new(-8.0, 1.0, 2.0, 4.0, 5.0));
 }

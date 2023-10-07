@@ -240,8 +240,6 @@ impl<'a> ParallelMinorCollector<'a> {
                 let terminator = &terminator;
                 let young_region = young_region.clone();
                 let young_top = &young_top;
-                let promoted_size = promoted_size.clone();
-                let promotion_failed = promotion_failed.clone();
 
                 scoped.execute(move || {
                     let mut task = CopyTask {
