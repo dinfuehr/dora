@@ -1,0 +1,28 @@
+fn main() {
+    assert(mul[Int64](6, 2) == 12);
+    assert(mul[Int64](-4, 4) == -16);
+
+    assert(mul[Wrapper](Wrapper(6), Wrapper(2)).value == 12);
+    assert(mul[Wrapper](Wrapper(-4), Wrapper(4)).value == -16);
+
+    assert(mul[Int32](6i32, 2i32) == 12i32);
+    assert(mul[Int32](-4i32, 4i32) == -16i32);
+
+    assert(mul[Float32](2.0f32, 4.0f32) == 8.0f32);
+    assert(mul[Float32](-4.0f32, 4.0f32) == -16.0f32);
+
+    assert(mul[Float64](6.0f64, 2.0f64) == 12.0f64);
+    assert(mul[Float64](-4.0f64, 4.0f64) == -16.0f64);
+}
+
+fn mul[T: std::traits::Mul](lhs: T, rhs: T): T {
+    lhs * rhs
+}
+
+struct Wrapper(value: Int64)
+
+impl std::traits::Mul for Wrapper {
+    fn mul(rhs: Wrapper): Wrapper {
+        Wrapper(self.value * rhs.value)
+    }
+}

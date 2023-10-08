@@ -1,0 +1,28 @@
+fn main() {
+    assert(sub[Int64](6, 2) == 4);
+    assert(sub[Int64](-4, 4) == -8);
+
+    assert(sub[Wrapper](Wrapper(6), Wrapper(2)).value == 4);
+    assert(sub[Wrapper](Wrapper(-4), Wrapper(4)).value == -8);
+
+    assert(sub[Int32](6i32, 2i32) == 4i32);
+    assert(sub[Int32](-4i32, 4i32) == -8i32);
+
+    assert(sub[Float32](2.0f32, 4.0f32) == -2.0f32);
+    assert(sub[Float32](-4.0f32, 4.0f32) == -8.0f32);
+
+    assert(sub[Float64](6.0f64, 2.0f64) == 4.0f64);
+    assert(sub[Float64](-4.0f64, 4.0f64) == -8.0f64);
+}
+
+fn sub[T: std::traits::Sub](lhs: T, rhs: T): T {
+    lhs - rhs
+}
+
+struct Wrapper(value: Int64)
+
+impl std::traits::Sub for Wrapper {
+    fn sub(rhs: Wrapper): Wrapper {
+        Wrapper(self.value - rhs.value)
+    }
+}
