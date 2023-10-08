@@ -84,6 +84,7 @@ pub fn resolve_internal_classes(sa: &mut Sema) {
     sa.known.traits.bit_or = Some(find_trait(sa, stdlib_id, "traits::BitOr"));
     sa.known.traits.bit_xor = Some(find_trait(sa, stdlib_id, "traits::BitXor"));
     sa.known.traits.div = Some(find_trait(sa, stdlib_id, "traits::Div"));
+    sa.known.traits.equals = Some(find_trait(sa, stdlib_id, "traits::Equals"));
     sa.known.traits.logical_shr = Some(find_trait(sa, stdlib_id, "traits::LogicalShr"));
     sa.known.traits.mul = Some(find_trait(sa, stdlib_id, "traits::Mul"));
     sa.known.traits.mod_ = Some(find_trait(sa, stdlib_id, "traits::Mod"));
@@ -644,10 +645,11 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         "toChar",
         Intrinsic::ByteToChar,
     );
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::UInt8",
+        sa.known.traits.equals(),
         "equals",
         Intrinsic::ByteEq,
     );
@@ -672,10 +674,11 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         "toInt32",
         Intrinsic::CharToInt32,
     );
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Char",
+        sa.known.traits.equals(),
         "equals",
         Intrinsic::CharEq,
     );
@@ -731,10 +734,11 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         Intrinsic::ReinterpretInt32AsFloat32,
     );
 
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Int32",
+        sa.known.traits.equals(),
         "equals",
         Intrinsic::Int32Eq,
     );
@@ -985,10 +989,11 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         Intrinsic::ReinterpretInt64AsFloat64,
     );
 
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Int64",
+        sa.known.traits.equals(),
         "equals",
         Intrinsic::Int64Eq,
     );
@@ -1209,10 +1214,11 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         "toInt64",
         Intrinsic::BoolToInt64,
     );
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Bool",
+        sa.known.traits.equals(),
         "equals",
         Intrinsic::BoolEq,
     );
@@ -1263,10 +1269,11 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         Intrinsic::ReinterpretFloat32AsInt32,
     );
 
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Float32",
+        sa.known.traits.equals(),
         "equals",
         Intrinsic::Float32Eq,
     );
@@ -1402,10 +1409,11 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         Intrinsic::ReinterpretFloat64AsInt64,
     );
 
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Float64",
+        sa.known.traits.equals(),
         "equals",
         Intrinsic::Float64Eq,
     );

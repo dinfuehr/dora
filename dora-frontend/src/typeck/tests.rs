@@ -3806,3 +3806,12 @@ fn trait_for_unit() {
         }
     ")
 }
+
+#[test]
+fn option_equals() {
+    ok("
+        fn ck(lhs: Option[Int64], rhs: Option[Int64]): Bool {
+            lhs == rhs
+        }
+    ")
+}

@@ -3,26 +3,6 @@ use std::fatalError;
 pub @internal class String
 
 impl String {
-  pub fn equals(rhs: String): Bool {
-    let mut i = 0i64;
-
-    if self.size() != rhs.size() {
-        return false;
-    }
-
-    let len = self.size();
-
-    while i < len {
-        if self.getByte(i) != rhs.getByte(i) {
-            return false;
-        }
-
-        i = i + 1i64;
-    }
-
-    return true;
-  }
-
   pub @internal fn compareTo(rhs: String): Int32;
 
   pub @internal fn size(): Int64;
@@ -232,7 +212,25 @@ impl std::traits::Comparable for String {
 }
 
 impl std::traits::Equals for String {
-  fn equals(other: String): Bool { self == other }
+  fn equals(rhs: String): Bool {
+    let mut i = 0i64;
+
+    if self.size() != rhs.size() {
+        return false;
+    }
+
+    let len = self.size();
+
+    while i < len {
+        if self.getByte(i) != rhs.getByte(i) {
+            return false;
+        }
+
+        i = i + 1i64;
+    }
+
+    return true;
+  }
 }
 
 impl std::traits::Default for String {

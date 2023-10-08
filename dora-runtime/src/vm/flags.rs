@@ -10,6 +10,7 @@ pub struct Flags {
     pub emit_asm: Option<String>,
     pub emit_asm_file: bool,
     pub emit_asm_boots: bool,
+    pub emit_bytecode_compiler: Option<String>,
     pub emit_compiler: bool,
     pub emit_graph: Option<String>,
     pub emit_stubs: bool,

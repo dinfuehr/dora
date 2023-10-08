@@ -19,6 +19,7 @@ Options:
     --emit-asm-boots        Emits assembly code for all boots compilations.
     --emit-graph=<fct>      Emits graph for function.
     --emit-bytecode=<fct>   Emits bytecode to stdout.
+    --emit-bytecode-compiler=<fct> Emits bytecode before compilation.
     --emit-stubs            Emits generated stubs.
     --emit-debug=<fct>      Emits debug instruction at beginning of functions.
     --emit-debug-native     Emits debug instruction at beginning of native stub.
@@ -69,6 +70,7 @@ pub struct Args {
     pub emit_asm_file: bool,
     pub emit_graph: Option<String>,
     pub emit_bytecode: Option<String>,
+    pub emit_bytecode_compiler: Option<String>,
     pub emit_compiler: bool,
     pub emit_stubs: bool,
     pub enable_perf: bool,
@@ -121,6 +123,7 @@ impl Default for Args {
             emit_asm_file: false,
             emit_graph: None,
             emit_bytecode: None,
+            emit_bytecode_compiler: None,
             emit_compiler: false,
             emit_stubs: false,
             emit_debug: None,
@@ -223,6 +226,10 @@ pub fn parse_arguments() -> Result<Args, String> {
             args.emit_graph = Some(argument_value(arg).into());
         } else if arg.starts_with("--emit-bytecode=") {
             args.emit_bytecode = Some(argument_value(arg).into());
+        } else if arg.starts_with("--emit-bytecode-compiler") {
+            args.emit_bytecode_compiler = Some("all".into());
+        } else if arg.starts_with("--emit-bytecode-compiler=") {
+            args.emit_bytecode_compiler = Some(argument_value(arg).into());
         } else if arg == "--emit-stubs" {
             args.emit_stubs = true;
         } else if arg.starts_with("--emit-debug=") {
@@ -404,6 +411,7 @@ pub fn create_vm_args(args: &Args) -> VmArgs {
         emit_asm: args.emit_asm.clone(),
         emit_asm_boots: args.emit_asm_boots,
         emit_asm_file: args.emit_asm_file,
+        emit_bytecode_compiler: args.emit_bytecode_compiler.clone(),
         emit_compiler: args.emit_compiler,
         emit_graph: args.emit_graph.clone(),
         emit_stubs: args.emit_stubs,

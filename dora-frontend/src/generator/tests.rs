@@ -3470,8 +3470,9 @@ fn gen_string_equals() {
     gen_fct(
         "fn f(a: String, b: String): Bool { a != b }",
         |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "String", "equals", false)
-                .expect("String::equals not found");
+            let cls_id = sa.known.classes.string();
+            let cls_ty = SourceType::Class(cls_id, SourceTypeArray::empty());
+            let fct_id = impl_method_id_by_name(sa, sa.known.traits.equals(), "equals", cls_ty);
             let expected = vec![
                 PushRegister(r(0)),
                 PushRegister(r(1)),

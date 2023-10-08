@@ -9,7 +9,9 @@ use crate::gc::Address;
 use crate::os;
 use crate::vm::CompilerName;
 use crate::vm::{display_fct, install_code, CodeDescriptor, CodeKind, VM};
-use dora_bytecode::{BytecodeFunction, BytecodeType, BytecodeTypeArray, FunctionId, Location};
+use dora_bytecode::{
+    dump_stdout, BytecodeFunction, BytecodeType, BytecodeTypeArray, FunctionId, Location,
+};
 
 pub fn generate_fct(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray) -> Address {
     debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
@@ -30,6 +32,12 @@ pub fn generate_fct(vm: &VM, fct_id: FunctionId, type_params: &BytecodeTypeArray
     };
 
     let bytecode_fct = program_fct.bytecode.as_ref().expect("bytecode missing");
+
+    let emit_bytecode = should_emit_bytecode(vm, fct_id, compiler);
+
+    if emit_bytecode {
+        dump_stdout(&vm.program, program_fct, &bytecode_fct);
+    }
 
     let emit_debug = should_emit_debug(vm, fct_id);
     let emit_asm = should_emit_asm(vm, fct_id, compiler);
@@ -196,6 +204,18 @@ pub fn generate_bytecode(vm: &VM, compilation_data: CompilationData) -> CodeDesc
 
 pub fn should_emit_debug(vm: &VM, fct_id: FunctionId) -> bool {
     if let Some(ref dbg_names) = vm.flags.emit_debug {
+        fct_pattern_match(vm, fct_id, dbg_names)
+    } else {
+        false
+    }
+}
+
+pub fn should_emit_bytecode(vm: &VM, fct_id: FunctionId, _compiler: CompilerName) -> bool {
+    if !disassembler::supported() {
+        return false;
+    }
+
+    if let Some(ref dbg_names) = vm.flags.emit_bytecode_compiler {
         fct_pattern_match(vm, fct_id, dbg_names)
     } else {
         false

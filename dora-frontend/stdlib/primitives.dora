@@ -12,8 +12,6 @@ impl Bool {
 
   pub fn toStringBinary(): String { if self { "1" } else { "0" } }
   pub fn toStringHex(): String { if self { "1" } else { "0" } }
-
-  pub @internal fn equals(rhs: Bool): Bool;
 }
 
 impl std::traits::Not for Bool {
@@ -25,7 +23,7 @@ impl std::traits::Comparable for Bool {
 }
 
 impl std::traits::Equals for Bool {
-  fn equals(other: Bool): Bool { self == other }
+  @internal fn equals(other: Bool): Bool;
 }
 
 impl std::string::Stringable for Bool {
@@ -64,7 +62,6 @@ impl Int32 {
 
   pub @internal fn asFloat32(): Float32;
 
-  pub @internal fn equals(rhs: Int32): Bool;
   pub @internal fn compareTo(rhs: Int32): Int32;
 
   pub @internal fn wrappingAdd(rhs: Int32): Int32;
@@ -186,7 +183,7 @@ impl std::traits::Comparable for Int32 {
 }
 
 impl std::traits::Equals for Int32 {
-  fn equals(other: Int32): Bool { self == other }
+  @internal fn equals(other: Int32): Bool;
 }
 
 impl std::string::Stringable for Int32 {
@@ -265,7 +262,6 @@ impl Char {
   pub @internal fn toInt32(): Int32;
   pub @internal fn toInt64(): Int64;
 
-  pub @internal fn equals(rhs: Char): Bool;
   pub @internal fn compareTo(rhs: Char): Int32;
 
   pub fn hash(): Int32 { self.toInt32() }
@@ -313,6 +309,10 @@ impl std::traits::Default for Char {
   static fn default(): Char { '\0' }
 }
 
+impl std::traits::Equals for Char {
+  @internal fn equals(rhs: Char): Bool;
+}
+
 pub @internal struct Int64
 
 impl Int64 {
@@ -335,7 +335,6 @@ impl Int64 {
 
   pub @internal fn asFloat64(): Float64;
 
-  pub @internal fn equals(rhs: Int64): Bool;
   pub @internal fn compareTo(rhs: Int64): Int32;
 
   pub @internal fn wrappingAdd(rhs: Int64): Int64;
@@ -460,7 +459,7 @@ impl std::traits::Comparable for Int64 {
 }
 
 impl std::traits::Equals for Int64 {
-  fn equals(other: Int64): Bool { self == other }
+  @internal fn equals(other: Int64): Bool;
 }
 
 impl std::string::Stringable for Int64 {
@@ -484,7 +483,6 @@ impl Float32 {
 
   pub @internal fn asInt32(): Int32;
 
-  pub @internal fn equals(rhs: Float32): Bool;
   pub @internal fn compareTo(rhs: Float32): Int32;
   pub fn sortsAs(rhs: Float32): Int32 {
     let mut ix = self.asInt32();
@@ -546,7 +544,7 @@ impl std::traits::Comparable for Float32 {
 }
 
 impl std::traits::Equals for Float32 {
-  fn equals(other: Float32): Bool { self == other }
+  @internal fn equals(other: Float32): Bool;
 }
 
 impl std::string::Stringable for Float32 {
@@ -570,7 +568,6 @@ impl Float64 {
 
   pub @internal fn asInt64(): Int64;
 
-  pub @internal fn equals(rhs: Float64): Bool;
   pub @internal fn compareTo(rhs: Float64): Int32;
   pub fn sortsAs(rhs: Float64): Int32 {
     let mut ix = self.asInt64();
@@ -632,7 +629,7 @@ impl std::traits::Comparable for Float64 {
 }
 
 impl std::traits::Equals for Float64 {
-  fn equals(other: Float64): Bool { self == other }
+  @internal fn equals(other: Float64): Bool;
 }
 
 impl std::string::Stringable for Float64 {
@@ -657,7 +654,6 @@ impl UInt8 {
   pub fn toStringBinary(): String { String::binary(self.toInt64()) }
   pub fn toStringHex(): String { String::hex(self.toInt64()) }
 
-  pub @internal fn equals(rhs: UInt8): Bool;
   pub @internal fn compareTo(rhs: UInt8): Int32;
 
   pub fn hash(): Int32 { self.toInt32() }
@@ -674,7 +670,7 @@ impl std::traits::Comparable for UInt8 {
 }
 
 impl std::traits::Equals for UInt8 {
-  fn equals(other: UInt8): Bool { self == other }
+  @internal fn equals(other: UInt8): Bool;
 }
 
 impl std::string::Stringable for UInt8 {
