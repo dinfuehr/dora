@@ -3820,3 +3820,81 @@ fn option_equals() {
         }
     ")
 }
+
+#[test]
+fn equals_operator_on_type_param() {
+    ok("
+        fn eq[T: std::traits::Equals](lhs: T, rhs: T): Bool {
+            lhs == rhs
+        }
+    ");
+
+    err(
+        "
+        fn eq[T](lhs: T, rhs: T): Bool {
+            lhs == rhs
+        }
+    ",
+        (3, 13),
+        ErrorMessage::BinOpType("==".into(), "T".into(), "T".into()),
+    );
+
+    err(
+        "
+        fn eq[T: std::traits::Equals](lhs: T, rhs: T): T {
+            lhs == rhs
+        }
+    ",
+        (2, 58),
+        ErrorMessage::ReturnType("T".into(), "Bool".into()),
+    );
+
+    err(
+        "
+        fn eq[T: std::traits::Equals](lhs: T, rhs: Int64): Bool {
+            lhs == rhs
+        }
+    ",
+        (3, 13),
+        ErrorMessage::BinOpType("==".into(), "T".into(), "Int64".into()),
+    );
+}
+
+#[test]
+fn add_operator_on_type_param() {
+    ok("
+        fn plus[T: std::traits::Add](lhs: T, rhs: T): T {
+            lhs + rhs
+        }
+    ");
+
+    err(
+        "
+        fn plus[T](lhs: T, rhs: T): Bool {
+            lhs + rhs
+        }
+    ",
+        (3, 13),
+        ErrorMessage::BinOpType("+".into(), "T".into(), "T".into()),
+    );
+
+    err(
+        "
+        fn plus[T: std::traits::Add](lhs: T, rhs: T): Bool {
+            lhs + rhs
+        }
+    ",
+        (2, 60),
+        ErrorMessage::ReturnType("Bool".into(), "T".into()),
+    );
+
+    err(
+        "
+        fn plus[T: std::traits::Add](lhs: T, rhs: Int64): T {
+            lhs + rhs
+        }
+    ",
+        (3, 13),
+        ErrorMessage::BinOpType("+".into(), "T".into(), "Int64".into()),
+    );
+}

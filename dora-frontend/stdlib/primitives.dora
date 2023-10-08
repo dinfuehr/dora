@@ -772,7 +772,7 @@ impl[T: Equals] Option[T] {
   pub fn contains(rhs: T): Bool {
     if self.isSome() {
       let lhs = self.getOrPanic();
-      lhs.equals(rhs)
+      lhs == rhs
     } else {
       false
     }
@@ -795,7 +795,7 @@ impl[T: Equals] Equals for Option[T] {
       Some(lhs) => {
         match other {
           None => false,
-          Some(rhs) => lhs.equals(rhs),
+          Some(rhs) => lhs == rhs,
         }
       }
     }
@@ -865,7 +865,7 @@ impl[V: Equals, E] Result[V, E] {
   pub fn contains(rhs: V): Bool {
     if self.isOk() {
       let lhs = self.getOrPanic();
-      lhs.equals(rhs)
+      lhs == rhs
     } else {
       false
     }
@@ -878,7 +878,7 @@ impl[V: Equals, E: Equals] Equals for Result[V, E] {
       if rhs.isOk() {
         let lhs = self.getOrPanic();
         let rhs = rhs.getOrPanic();
-        lhs.equals(rhs)
+        lhs == rhs
       } else {
         false
       }
@@ -886,7 +886,7 @@ impl[V: Equals, E: Equals] Equals for Result[V, E] {
       if rhs.isErr() {
         let lhs = self.getErrOrPanic();
         let rhs = rhs.getErrOrPanic();
-        lhs.equals(rhs)
+        lhs == rhs
       } else {
         false
       }

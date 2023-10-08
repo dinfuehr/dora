@@ -330,6 +330,13 @@ impl CallType {
         }
     }
 
+    pub fn is_generic_method(&self) -> bool {
+        match *self {
+            CallType::GenericMethod(_, _, _) => true,
+            _ => false,
+        }
+    }
+
     pub fn is_expr(&self) -> bool {
         match *self {
             CallType::Expr(_, _, _) => true,

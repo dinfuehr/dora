@@ -138,7 +138,7 @@ impl[T: Equals] Equals for Array[T] {
     }
     let mut i = 0i64;
     while i < self.size() {
-      if self(i).equals(other(i)).not() {
+      if self(i) != other(i) {
         return false;
       }
       i = i + 1i64;
@@ -153,7 +153,7 @@ impl[T: Equals] Array[T] {
 
     while i < self.size() {
       let x = self.get(i);
-      if x.equals(value) {
+      if x == value {
         return true;
       }
       i = i + 1i64;
@@ -175,7 +175,7 @@ impl[T: Equals] Array[T] {
     let mut i = 0i64;
 
     while i < len {
-      if a(aPos+i).equals(b(bPos+i)).not() {
+      if a(aPos+i) != b(bPos+i) {
         return false;
       }
       i = i + 1i64;
@@ -547,7 +547,7 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
             if self.isLive(idx) {
                 let current_key = self.keys.get(idx);
 
-                if current_key.hash() == hash && current_key.equals(key) {
+                if current_key.hash() == hash && current_key == key {
                     let old_value = self.values.get(idx);
                     self.values.set(idx, value);
                     return Some[V](old_value);
@@ -599,7 +599,7 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
             if self.isLive(idx) {
                 let current_key = self.keys.get(idx);
 
-                if current_key.hash() == hash && current_key.equals(key) {
+                if current_key.hash() == hash && current_key == key {
                     return true;
                 }
             } else if self.isDeleted(idx) {
@@ -630,7 +630,7 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
             if self.isLive(idx) {
                 let current_key = self.keys.get(idx);
 
-                if current_key.hash() == hash && current_key.equals(key) {
+                if current_key.hash() == hash && current_key == key {
                     return Option[V]::Some(self.values.get(idx));
                 }
             } else if self.isDeleted(idx) {
@@ -657,7 +657,7 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
             if self.isLive(idx) {
                 let current_key = self.keys.get(idx);
 
-                if current_key.hash() == hash && current_key.equals(key) {
+                if current_key.hash() == hash && current_key == key {
                     let value = self.values.get(idx);
                     self.inserted_and_deleted.insert(2i64 * idx + 1i64);
 
@@ -1183,7 +1183,7 @@ impl[T: Equals] Equals for Vec[T] {
     }
     let mut i = 0i64;
     while i < self.size() {
-      if self(i).equals(other(i)).not() {
+      if self(i) != other(i) {
         return false;
       }
       i = i + 1i64;
@@ -1198,7 +1198,7 @@ impl[T: Equals] Vec[T] {
 
     while i < self.size() {
       let x = self.get(i);
-      if x.equals(value) {
+      if x == value {
         return true;
       }
       i = i + 1i64;
@@ -1211,7 +1211,7 @@ impl[T: Equals] Vec[T] {
     let mut i = 0i64;
 
     while i < self.size() {
-      if self(i).equals(elem) {
+      if self(i) == elem {
         self.removeAt(i);
       } else {
         i = i + 1i64;

@@ -1921,12 +1921,21 @@ impl<'a> AstBytecodeGen<'a> {
         self.builder.emit_push_register(lhs);
         self.builder.emit_push_register(rhs);
 
-        self.emit_invoke_direct(
-            function_return_type,
-            result,
-            callee_idx,
-            self.loc(expr.span),
-        );
+        if call_type.is_generic_method() {
+            self.emit_invoke_generic_direct(
+                function_return_type,
+                result,
+                callee_idx,
+                self.loc(expr.span),
+            );
+        } else {
+            self.emit_invoke_direct(
+                function_return_type,
+                result,
+                callee_idx,
+                self.loc(expr.span),
+            );
+        }
 
         self.free_if_temp(lhs);
         self.free_if_temp(rhs);

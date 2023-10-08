@@ -1,0 +1,28 @@
+fn main() {
+    assert(plus[Int64](2, 4) == 6);
+    assert(plus[Int64](-4, 4) == 0);
+
+    assert(plus[Wrapper](Wrapper(2), Wrapper(4)).value == 6);
+    assert(plus[Wrapper](Wrapper(-4), Wrapper(4)).value == 0);
+
+    assert(plus[Int32](2i32, 4i32) == 6i32);
+    assert(plus[Int32](-4i32, 4i32) == 0i32);
+
+    assert(plus[Float32](2.0f32, 4.0f32) == 6.0f32);
+    assert(plus[Float32](-4.0f32, 4.0f32) == 0.0f32);
+
+    assert(plus[Float64](2.0f64, 4.0f64) == 6.0f64);
+    assert(plus[Float64](-4.0f64, 4.0f64) == 0.0f64);
+}
+
+fn plus[T: std::traits::Add](lhs: T, rhs: T): T {
+    lhs + rhs
+}
+
+struct Wrapper(value: Int64)
+
+impl std::traits::Add for Wrapper {
+    fn add(rhs: Wrapper): Wrapper {
+        Wrapper(self.value + rhs.value)
+    }
+}
