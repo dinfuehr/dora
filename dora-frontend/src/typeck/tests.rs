@@ -590,9 +590,14 @@ fn lit_int64_as_default() {
 
 #[test]
 fn overload_equals() {
-    ok("class A impl A { fn equals(rhs: A): Bool { return true; } }
-            fn f1(): Bool { return A() == A(); }
-            fn f2(): Bool { return A() != A(); }");
+    ok("
+        class A
+        impl std::traits::Equals for A {
+            fn equals(rhs: A): Bool { return true; }
+        }
+        fn f1(): Bool { return A() == A(); }
+        fn f2(): Bool { return A() != A(); }
+    ");
 }
 
 #[test]

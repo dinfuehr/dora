@@ -977,6 +977,7 @@ fn check_expr_bin_trait(
     }
 }
 
+#[allow(unused)]
 fn check_expr_bin_trait_or_method(
     ck: &mut TypeCheck,
     e: &ast::ExprBinType,
@@ -1141,12 +1142,11 @@ fn check_expr_bin_cmp(
             if is_simple_enum(ck.sa, lhs_type.clone()) {
                 check_expr_cmp_enum(ck, e, cmp, lhs_type, rhs_type)
             } else {
-                check_expr_bin_trait_or_method(
+                check_expr_bin_trait(
                     ck,
                     e,
                     e.op,
                     ck.sa.known.traits.equals(),
-                    "equals",
                     "equals",
                     lhs_type,
                     rhs_type,
