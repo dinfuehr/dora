@@ -1,21 +1,21 @@
 fn main() {
-    assert(mul[Int64](6, 2) == 3);
-    assert(mul[Int64](-4, 4) == -1);
+    assert(div[Int64](6, 2) == 3);
+    assert(div[Int64](-4, 4) == -1);
 
-    assert(mul[Wrapper](Wrapper(6), Wrapper(2)).value == 3);
-    assert(mul[Wrapper](Wrapper(-4), Wrapper(4)).value == -1);
+    assert(div[Wrapper](Wrapper(6), Wrapper(2)).value == 3);
+    assert(div[Wrapper](Wrapper(-4), Wrapper(4)).value == -1);
 
-    assert(mul[Int32](6i32, 2i32) == 3i32);
-    assert(mul[Int32](-4i32, 4i32) == -1i32);
+    assert(div[Int32](6i32, 2i32) == 3i32);
+    assert(div[Int32](-4i32, 4i32) == -1i32);
 
-    assert(mul[Float32](6.0f32, 2.0f32) == 3.0f32);
-    assert(mul[Float32](-4.0f32, 4.0f32) == -1.0f32);
+    assert(div[Float32](6.0f32, 2.0f32) == 3.0f32);
+    assert(div[Float32](-4.0f32, 4.0f32) == -1.0f32);
 
-    assert(mul[Float64](6.0f64, 2.0f64) == 3.0f64);
-    assert(mul[Float64](-4.0f64, 4.0f64) == -1.0f64);
+    assert(div[Float64](6.0f64, 2.0f64) == 3.0f64);
+    assert(div[Float64](-4.0f64, 4.0f64) == -1.0f64);
 }
 
-fn mul[T: std::traits::Div](lhs: T, rhs: T): T {
+fn div[T: std::traits::Div](lhs: T, rhs: T): T {
     lhs / rhs
 }
 

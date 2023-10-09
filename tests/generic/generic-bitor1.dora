@@ -1,0 +1,22 @@
+fn main() {
+    assert(bitor[Int64](6, 2) == 6);
+    assert(bitor[Int64](4, 3) == 7);
+
+    assert(bitor[Wrapper](Wrapper(6), Wrapper(2)).value == 6);
+    assert(bitor[Wrapper](Wrapper(4), Wrapper(3)).value == 7);
+
+    assert(bitor[Int32](6i32, 2i32) == 6i32);
+    assert(bitor[Int32](4i32, 3i32) == 7i32);
+}
+
+fn bitor[T: std::traits::BitOr](lhs: T, rhs: T): T {
+    lhs | rhs
+}
+
+struct Wrapper(value: Int64)
+
+impl std::traits::BitOr for Wrapper {
+    fn bitor(rhs: Wrapper): Wrapper {
+        Wrapper(self.value | rhs.value)
+    }
+}

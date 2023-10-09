@@ -777,7 +777,7 @@ impl<'a> CannonCodeGen<'a> {
             self.bytecode.register_type(dest)
         );
 
-        let bytecode_type = self.bytecode.register_type(dest);
+        let bytecode_type = self.specialize_register_type(dest);
         assert!(bytecode_type == BytecodeType::Int32 || bytecode_type == BytecodeType::Int64);
 
         self.emit_load_register(lhs, REG_RESULT.into());
@@ -806,7 +806,7 @@ impl<'a> CannonCodeGen<'a> {
             self.bytecode.register_type(dest)
         );
 
-        let bytecode_type = self.bytecode.register_type(dest);
+        let bytecode_type = self.specialize_register_type(dest);
         assert!(bytecode_type == BytecodeType::Int32 || bytecode_type == BytecodeType::Int64);
 
         self.emit_load_register(lhs, REG_RESULT.into());
@@ -832,7 +832,7 @@ impl<'a> CannonCodeGen<'a> {
             self.bytecode.register_type(dest)
         );
 
-        let bytecode_type = self.bytecode.register_type(dest);
+        let bytecode_type = self.specialize_register_type(dest);
         assert!(bytecode_type == BytecodeType::Int32 || bytecode_type == BytecodeType::Int64);
 
         self.emit_load_register(lhs, REG_RESULT.into());
@@ -3222,7 +3222,10 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_store_register(REG_RESULT.into(), dest);
             }
 
-            Intrinsic::Int32Cmp | Intrinsic::Int64Cmp | Intrinsic::ByteCmp | Intrinsic::CharCmp => {
+            Intrinsic::Int32Cmp
+            | Intrinsic::Int64Cmp
+            | Intrinsic::UInt8Cmp
+            | Intrinsic::CharCmp => {
                 assert_eq!(arguments.len(), 2);
                 let lhs_reg = arguments[0];
                 let rhs_reg = arguments[1];
@@ -3233,7 +3236,7 @@ impl<'a> CannonCodeGen<'a> {
                 let mode = match intrinsic {
                     Intrinsic::Int64Cmp => MachineMode::Int64,
                     Intrinsic::Int32Cmp | Intrinsic::CharCmp => MachineMode::Int32,
-                    Intrinsic::ByteCmp => MachineMode::Int8,
+                    Intrinsic::UInt8Cmp => MachineMode::Int8,
                     _ => unreachable!(),
                 };
 
@@ -3557,7 +3560,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_store_register(REG_RESULT.into(), dest);
             }
 
-            Intrinsic::ByteToChar | Intrinsic::ByteToInt32 => {
+            Intrinsic::UInt8ToChar | Intrinsic::UInt8ToInt32 => {
                 assert_eq!(arguments.len(), 1);
 
                 let src_reg = arguments[0];
@@ -3565,7 +3568,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_extend_uint8(dest, src_reg, MachineMode::Int32);
             }
 
-            Intrinsic::ByteToInt64 => {
+            Intrinsic::UInt8ToInt64 => {
                 assert_eq!(arguments.len(), 1);
 
                 let src_reg = arguments[0];
@@ -3607,7 +3610,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_shrink(dest, MachineMode::Int32, src_reg, MachineMode::Int64);
             }
 
-            Intrinsic::Int64ToByte => {
+            Intrinsic::Int64ToUInt8 => {
                 assert_eq!(arguments.len(), 1);
                 let src_reg = arguments[0];
                 self.emit_shrink(dest, MachineMode::Int8, src_reg, MachineMode::Int64);
@@ -3619,7 +3622,7 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_shrink(dest, MachineMode::Int32, src_reg, MachineMode::Int32);
             }
 
-            Intrinsic::Int32ToByte => {
+            Intrinsic::Int32ToUInt8 => {
                 assert_eq!(arguments.len(), 1);
                 let src_reg = arguments[0];
                 self.emit_shrink(dest, MachineMode::Int8, src_reg, MachineMode::Int32);
@@ -3657,7 +3660,7 @@ impl<'a> CannonCodeGen<'a> {
             | Intrinsic::Float32Eq
             | Intrinsic::Float64Eq
             | Intrinsic::CharEq
-            | Intrinsic::ByteEq => {
+            | Intrinsic::UInt8Eq => {
                 assert_eq!(arguments.len(), 2);
                 let lhs_reg = arguments[0];
                 let rhs_reg = arguments[1];
@@ -3702,6 +3705,27 @@ impl<'a> CannonCodeGen<'a> {
                 let lhs_reg = arguments[0];
                 let rhs_reg = arguments[1];
                 self.emit_div(dest, lhs_reg, rhs_reg);
+            }
+
+            Intrinsic::Int32Mod | Intrinsic::Int64Mod => {
+                assert_eq!(arguments.len(), 2);
+                let lhs_reg = arguments[0];
+                let rhs_reg = arguments[1];
+                self.emit_mod(dest, lhs_reg, rhs_reg);
+            }
+
+            Intrinsic::Int32And | Intrinsic::Int64And => {
+                assert_eq!(arguments.len(), 2);
+                let lhs_reg = arguments[0];
+                let rhs_reg = arguments[1];
+                self.emit_and(dest, lhs_reg, rhs_reg);
+            }
+
+            Intrinsic::Int32Or | Intrinsic::Int64Or => {
+                assert_eq!(arguments.len(), 2);
+                let lhs_reg = arguments[0];
+                let rhs_reg = arguments[1];
+                self.emit_or(dest, lhs_reg, rhs_reg);
             }
 
             _ => panic!("unimplemented intrinsic {:?}", intrinsic),

@@ -629,21 +629,21 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         stdlib_id,
         "primitives::UInt8",
         "toInt64",
-        Intrinsic::ByteToInt64,
+        Intrinsic::UInt8ToInt64,
     );
     intrinsic_method(
         sa,
         stdlib_id,
         "primitives::UInt8",
         "toInt32",
-        Intrinsic::ByteToInt32,
+        Intrinsic::UInt8ToInt32,
     );
     intrinsic_method(
         sa,
         stdlib_id,
         "primitives::UInt8",
         "toChar",
-        Intrinsic::ByteToChar,
+        Intrinsic::UInt8ToChar,
     );
     intrinsic_impl_method(
         sa,
@@ -651,14 +651,14 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         "primitives::UInt8",
         sa.known.traits.equals(),
         "equals",
-        Intrinsic::ByteEq,
+        Intrinsic::UInt8Eq,
     );
     intrinsic_method(
         sa,
         stdlib_id,
         "primitives::UInt8",
         "compareTo",
-        Intrinsic::ByteCmp,
+        Intrinsic::UInt8Cmp,
     );
     intrinsic_method(
         sa,
@@ -694,7 +694,7 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         stdlib_id,
         "primitives::Int32",
         "toUInt8",
-        Intrinsic::Int32ToByte,
+        Intrinsic::Int32ToUInt8,
     );
     intrinsic_method(
         sa,
@@ -963,7 +963,7 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         stdlib_id,
         "primitives::Int64",
         "toUInt8",
-        Intrinsic::Int64ToByte,
+        Intrinsic::Int64ToUInt8,
     );
 
     intrinsic_method(

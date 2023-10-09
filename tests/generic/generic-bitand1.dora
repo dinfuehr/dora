@@ -1,0 +1,22 @@
+fn main() {
+    assert(bitand[Int64](6, 2) == 2);
+    assert(bitand[Int64](4, 3) == 0);
+
+    assert(bitand[Wrapper](Wrapper(6), Wrapper(2)).value == 2);
+    assert(bitand[Wrapper](Wrapper(4), Wrapper(3)).value == 0);
+
+    assert(bitand[Int32](6i32, 2i32) == 2i32);
+    assert(bitand[Int32](4i32, 3i32) == 0i32);
+}
+
+fn bitand[T: std::traits::BitAnd](lhs: T, rhs: T): T {
+    lhs & rhs
+}
+
+struct Wrapper(value: Int64)
+
+impl std::traits::BitAnd for Wrapper {
+    fn bitand(rhs: Wrapper): Wrapper {
+        Wrapper(self.value & rhs.value)
+    }
+}

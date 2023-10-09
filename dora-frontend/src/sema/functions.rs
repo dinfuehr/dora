@@ -292,8 +292,8 @@ pub fn emit_as_bytecode_operation(intrinsic: Intrinsic) -> bool {
         | Intrinsic::BoolEq
         | Intrinsic::BoolNot
         | Intrinsic::BoolToInt64
-        | Intrinsic::ByteEq
-        | Intrinsic::ByteCmp
+        | Intrinsic::UInt8Eq
+        | Intrinsic::UInt8Cmp
         | Intrinsic::CharEq
         | Intrinsic::CharCmp
         | Intrinsic::Int32ToInt32

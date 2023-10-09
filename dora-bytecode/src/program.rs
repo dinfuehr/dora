@@ -303,11 +303,11 @@ pub enum Intrinsic {
     BoolToInt32,
     BoolToInt64,
 
-    ByteEq,
-    ByteCmp,
-    ByteToChar,
-    ByteToInt32,
-    ByteToInt64,
+    UInt8Eq,
+    UInt8Cmp,
+    UInt8ToChar,
+    UInt8ToInt32,
+    UInt8ToInt64,
 
     CharEq,
     CharCmp,
@@ -316,7 +316,7 @@ pub enum Intrinsic {
 
     Int32ToInt32,
 
-    Int32ToByte,
+    Int32ToUInt8,
     Int32ToChar,
     Int32ToInt64,
     Int32ToFloat32,
@@ -362,7 +362,7 @@ pub enum Intrinsic {
 
     Int64ToInt32,
     Int64ToChar,
-    Int64ToByte,
+    Int64ToUInt8,
     Int64ToFloat32,
     Int64ToFloat64,
     ReinterpretInt64AsFloat64,

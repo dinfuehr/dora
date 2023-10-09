@@ -1,0 +1,22 @@
+fn main() {
+    assert(modulo[Int64](6, 2) == 0);
+    assert(modulo[Int64](4, 3) == 1);
+
+    assert(modulo[Wrapper](Wrapper(6), Wrapper(2)).value == 0);
+    assert(modulo[Wrapper](Wrapper(4), Wrapper(3)).value == 1);
+
+    assert(modulo[Int32](6i32, 2i32) == 0i32);
+    assert(modulo[Int32](4i32, 3i32) == 1i32);
+}
+
+fn modulo[T: std::traits::Mod](lhs: T, rhs: T): T {
+    lhs % rhs
+}
+
+struct Wrapper(value: Int64)
+
+impl std::traits::Mod for Wrapper {
+    fn modulo(rhs: Wrapper): Wrapper {
+        Wrapper(self.value % rhs.value)
+    }
+}

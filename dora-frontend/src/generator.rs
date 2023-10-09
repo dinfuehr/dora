@@ -2242,7 +2242,7 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         let result_type = match intrinsic {
-            Intrinsic::ByteCmp
+            Intrinsic::UInt8Cmp
             | Intrinsic::CharCmp
             | Intrinsic::Int32Cmp
             | Intrinsic::Int64Cmp
@@ -2281,7 +2281,7 @@ impl<'a> AstBytecodeGen<'a> {
                 }
                 _ => unreachable!(),
             },
-            Intrinsic::ByteEq => match op {
+            Intrinsic::UInt8Eq => match op {
                 Some(ast::BinOp::Cmp(ast::CmpOp::Eq)) => {
                     self.builder.emit_test_eq(dest, lhs_reg, rhs_reg)
                 }
@@ -2290,7 +2290,7 @@ impl<'a> AstBytecodeGen<'a> {
                 }
                 _ => unreachable!(),
             },
-            Intrinsic::ByteCmp => match op {
+            Intrinsic::UInt8Cmp => match op {
                 Some(ast::BinOp::Cmp(ast::CmpOp::Lt)) => {
                     self.builder.emit_test_lt(dest, lhs_reg, rhs_reg)
                 }
