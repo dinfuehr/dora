@@ -734,13 +734,12 @@ impl<'a> CannonCodeGen<'a> {
             self.bytecode.register_type(dest)
         );
 
-        let bytecode_type = self.bytecode.register_type(dest);
+        let bytecode_type = self.specialize_register_type(dest);
 
         if bytecode_type.is_any_float() {
             self.emit_load_register(lhs, FREG_RESULT.into());
             self.emit_load_register(rhs, FREG_TMP1.into());
 
-            let bytecode_type = self.bytecode.register_type(dest);
             self.asm.float_div(
                 mode(self.vm, bytecode_type),
                 FREG_RESULT,
@@ -3693,6 +3692,16 @@ impl<'a> CannonCodeGen<'a> {
                 let lhs_reg = arguments[0];
                 let rhs_reg = arguments[1];
                 self.emit_mul(dest, lhs_reg, rhs_reg);
+            }
+
+            Intrinsic::Int32Div
+            | Intrinsic::Int64Div
+            | Intrinsic::Float32Div
+            | Intrinsic::Float64Div => {
+                assert_eq!(arguments.len(), 2);
+                let lhs_reg = arguments[0];
+                let rhs_reg = arguments[1];
+                self.emit_div(dest, lhs_reg, rhs_reg);
             }
 
             _ => panic!("unimplemented intrinsic {:?}", intrinsic),
