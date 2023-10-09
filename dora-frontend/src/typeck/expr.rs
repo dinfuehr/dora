@@ -742,12 +742,12 @@ fn check_expr_un_method(
     ty: SourceType,
 ) -> SourceType {
     let trait_ty = SourceType::new_trait(trait_id);
+    let trait_method_name = ck.sa.interner.intern(trait_method_name);
 
-    let impl_id = find_impl(ck.sa, ty.clone(), &ck.type_param_defs, trait_ty);
+    let impl_id = find_impl(ck.sa, ty.clone(), &ck.type_param_defs, trait_ty.clone());
 
     if let Some(impl_id) = impl_id {
         let impl_ = ck.sa.impls[impl_id].read();
-        let trait_method_name = ck.sa.interner.intern(trait_method_name);
         let method_id = impl_
             .instance_names
             .get(&trait_method_name)
@@ -763,6 +763,41 @@ fn check_expr_un_method(
         let method = method.read();
 
         let return_type = method.return_type.clone();
+        ck.analysis.set_ty(e.id, return_type.clone());
+
+        return_type
+    } else if ty.is_type_param()
+        && implements_trait(ck.sa, ty.clone(), ck.type_param_defs, trait_ty)
+    {
+        let trait_ = ck.sa.traits.idx(trait_id);
+        let trait_ = trait_.read();
+
+        let method_id = trait_
+            .instance_names
+            .get(&trait_method_name)
+            .cloned()
+            .expect("method not found");
+
+        let method = ck.sa.fcts.idx(method_id);
+        let method = method.read();
+
+        let call_type = CallType::GenericMethod(
+            ty.type_param_id().expect("type param expected"),
+            trait_id,
+            method_id,
+        );
+        ck.analysis
+            .map_calls
+            .insert_or_replace(e.id, Arc::new(call_type));
+
+        let return_type = method.return_type.clone();
+        let return_type = replace_type_param(
+            ck.sa,
+            return_type,
+            &SourceTypeArray::empty(),
+            Some(ty.clone()),
+        );
+
         ck.analysis.set_ty(e.id, return_type.clone());
 
         return_type

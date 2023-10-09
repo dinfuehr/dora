@@ -1,0 +1,25 @@
+fn main() {
+    assert(!not[Bool](true));
+    assert(not[Bool](false));
+
+    assert(not[Int64](-1) == 0);
+    assert(not[Int64](-5) == 4);
+
+    assert(not[Wrapper](Wrapper(-1)).value == 0);
+    assert(not[Wrapper](Wrapper(-5)).value == 4);
+
+    assert(not[Int32](-1i32) == 0i32);
+    assert(not[Int32](-5i32) == 4i32);
+}
+
+fn not[T: std::traits::Not](op: T): T {
+    !op
+}
+
+struct Wrapper(value: Int64)
+
+impl std::traits::Not for Wrapper {
+    fn not(): Wrapper {
+        Wrapper(!self.value)
+    }
+}

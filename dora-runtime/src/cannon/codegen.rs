@@ -858,7 +858,7 @@ impl<'a> CannonCodeGen<'a> {
             self.bytecode.register_type(dest)
         );
 
-        let bytecode_type = self.bytecode.register_type(dest);
+        let bytecode_type = self.specialize_register_type(dest);
         assert!(bytecode_type == BytecodeType::Int32 || bytecode_type == BytecodeType::Int64);
 
         self.emit_load_register(lhs, REG_RESULT.into());
@@ -880,7 +880,7 @@ impl<'a> CannonCodeGen<'a> {
             self.bytecode.register_type(dest)
         );
 
-        let bytecode_type = self.bytecode.register_type(dest);
+        let bytecode_type = self.specialize_register_type(dest);
         assert!(
             bytecode_type == BytecodeType::Int32
                 || bytecode_type == BytecodeType::Int64
@@ -894,7 +894,6 @@ impl<'a> CannonCodeGen<'a> {
         } else {
             self.emit_load_register(src, REG_RESULT.into());
 
-            let bytecode_type = self.bytecode.register_type(dest);
             self.asm
                 .int_not(mode(self.vm, bytecode_type), REG_RESULT, REG_RESULT);
 
@@ -3726,6 +3725,19 @@ impl<'a> CannonCodeGen<'a> {
                 let lhs_reg = arguments[0];
                 let rhs_reg = arguments[1];
                 self.emit_or(dest, lhs_reg, rhs_reg);
+            }
+
+            Intrinsic::Int32Xor | Intrinsic::Int64Xor => {
+                assert_eq!(arguments.len(), 2);
+                let lhs_reg = arguments[0];
+                let rhs_reg = arguments[1];
+                self.emit_xor(dest, lhs_reg, rhs_reg);
+            }
+
+            Intrinsic::BoolNot | Intrinsic::Int32Not | Intrinsic::Int64Not => {
+                assert_eq!(arguments.len(), 1);
+                let src_reg = arguments[0];
+                self.emit_not(dest, src_reg);
             }
 
             _ => panic!("unimplemented intrinsic {:?}", intrinsic),

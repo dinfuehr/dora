@@ -308,6 +308,32 @@ fn gen_stmt_var_init() {
 }
 
 #[test]
+fn gen_generic_not() {
+    gen_fct(
+        "fn f[T: std::traits::Not](value: T): T { !value }",
+        |sa, code, fct| {
+            let trait_id = sa.known.traits.not();
+            let fct_id = method_in_trait_by_name(sa, trait_id, "not");
+            let expected = vec![
+                PushRegister(r(0)),
+                InvokeGenericDirect(r(1), ConstPoolIdx(0)),
+                Ret(r(1)),
+            ];
+            assert_eq!(expected, code);
+
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Generic(
+                    0,
+                    FunctionId(fct_id.0 as u32),
+                    BytecodeTypeArray::empty()
+                )
+            );
+        },
+    );
+}
+
+#[test]
 fn gen_stmt_let_tuple() {
     gen_fct(
         "fn f(value: (Int32, Int32)): Int32 { let (x, y) = value; x+y }",
@@ -4160,6 +4186,22 @@ pub fn trait_by_name(sa: &Sema, name: &str) -> TraitDefinitionId {
         .expect("symbol not found")
         .to_trait()
         .expect("trait expected")
+}
+
+pub fn method_in_trait_by_name(
+    sa: &Sema,
+    trait_id: TraitDefinitionId,
+    method_name: &str,
+) -> FctDefinitionId {
+    let method_name = sa.interner.intern(method_name);
+
+    let trait_ = sa.traits[trait_id].read();
+
+    trait_
+        .instance_names
+        .get(&method_name)
+        .cloned()
+        .expect("method not found")
 }
 
 pub fn trait_method_by_name(sa: &Sema, trait_name: &str, method_name: &str) -> FctDefinitionId {

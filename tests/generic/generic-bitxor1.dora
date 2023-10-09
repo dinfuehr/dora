@@ -1,0 +1,22 @@
+fn main() {
+    assert(bitxor[Int64](6, 2) == 4);
+    assert(bitxor[Int64](4, 3) == 7);
+
+    assert(bitxor[Wrapper](Wrapper(6), Wrapper(2)).value == 4);
+    assert(bitxor[Wrapper](Wrapper(4), Wrapper(3)).value == 7);
+
+    assert(bitxor[Int32](6i32, 2i32) == 4i32);
+    assert(bitxor[Int32](4i32, 3i32) == 7i32);
+}
+
+fn bitxor[T: std::traits::BitXor](lhs: T, rhs: T): T {
+    lhs ^ rhs
+}
+
+struct Wrapper(value: Int64)
+
+impl std::traits::BitXor for Wrapper {
+    fn bitxor(rhs: Wrapper): Wrapper {
+        Wrapper(self.value ^ rhs.value)
+    }
+}

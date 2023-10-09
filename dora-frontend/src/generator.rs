@@ -1852,7 +1852,17 @@ impl<'a> AstBytecodeGen<'a> {
         let dest = self.ensure_register(dest, function_return_type_bc);
 
         self.builder.emit_push_register(opnd);
-        self.emit_invoke_direct(function_return_type, dest, callee_idx, self.loc(expr.span));
+
+        if call_type.is_generic_method() {
+            self.emit_invoke_generic_direct(
+                function_return_type,
+                dest,
+                callee_idx,
+                self.loc(expr.span),
+            );
+        } else {
+            self.emit_invoke_direct(function_return_type, dest, callee_idx, self.loc(expr.span));
+        }
 
         self.free_if_temp(opnd);
 
