@@ -2193,7 +2193,6 @@ impl<'a> AstBytecodeGen<'a> {
             Intrinsic::BoolNot | Intrinsic::Int32Not | Intrinsic::Int64Not => {
                 self.builder.emit_not(dest, src)
             }
-            Intrinsic::Int32ToInt32 => self.builder.emit_mov(dest, src),
             Intrinsic::Float32IsNan => self.builder.emit_test_ne(dest, src, src),
             Intrinsic::Float64IsNan => self.builder.emit_test_ne(dest, src, src),
             _ => {

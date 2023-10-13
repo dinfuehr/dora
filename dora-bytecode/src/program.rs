@@ -296,7 +296,6 @@ pub enum Intrinsic {
 
     StrLen,
     StrGet,
-    StrSet,
 
     BoolEq,
     BoolNot,
@@ -313,8 +312,6 @@ pub enum Intrinsic {
     CharCmp,
     CharToInt32,
     CharToInt64,
-
-    Int32ToInt32,
 
     Int32ToUInt8,
     Int32ToChar,

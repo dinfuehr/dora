@@ -288,7 +288,6 @@ pub fn emit_as_bytecode_operation(intrinsic: Intrinsic) -> bool {
         | Intrinsic::Assert
         | Intrinsic::StrLen
         | Intrinsic::StrGet
-        | Intrinsic::StrSet
         | Intrinsic::BoolEq
         | Intrinsic::BoolNot
         | Intrinsic::BoolToInt64
@@ -296,7 +295,6 @@ pub fn emit_as_bytecode_operation(intrinsic: Intrinsic) -> bool {
         | Intrinsic::UInt8Cmp
         | Intrinsic::CharEq
         | Intrinsic::CharCmp
-        | Intrinsic::Int32ToInt32
         | Intrinsic::EnumEq
         | Intrinsic::EnumNe
         | Intrinsic::Int32Eq

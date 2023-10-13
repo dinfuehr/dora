@@ -3748,7 +3748,25 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_neg(dest, src_reg);
             }
 
-            _ => panic!("unimplemented intrinsic {:?}", intrinsic),
+            Intrinsic::ArrayNewOfSize
+            | Intrinsic::ArrayWithValues
+            | Intrinsic::ArrayLen
+            | Intrinsic::ArrayGet
+            | Intrinsic::ArraySet
+            | Intrinsic::StrLen
+            | Intrinsic::StrGet
+            | Intrinsic::EnumEq
+            | Intrinsic::EnumNe
+            | Intrinsic::Int32Shl
+            | Intrinsic::Int32Sar
+            | Intrinsic::Int32Shr
+            | Intrinsic::Int64Shl
+            | Intrinsic::Int64Sar
+            | Intrinsic::Int64Shr
+            | Intrinsic::Float32IsNan
+            | Intrinsic::Float64IsNan => {
+                panic!("unimplemented intrinsic {:?}", intrinsic);
+            }
         }
     }
 
