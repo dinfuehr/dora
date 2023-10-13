@@ -643,12 +643,11 @@ impl<'a> CannonCodeGen<'a> {
             self.bytecode.register_type(dest)
         );
 
-        let bytecode_type = self.bytecode.register_type(dest);
+        let bytecode_type = self.specialize_register_type(dest);
 
         if bytecode_type.is_any_float() {
             self.emit_load_register(src, FREG_RESULT.into());
 
-            let bytecode_type = self.bytecode.register_type(dest);
             self.asm
                 .float_neg(mode(self.vm, bytecode_type), FREG_RESULT, FREG_RESULT);
 
@@ -3738,6 +3737,15 @@ impl<'a> CannonCodeGen<'a> {
                 assert_eq!(arguments.len(), 1);
                 let src_reg = arguments[0];
                 self.emit_not(dest, src_reg);
+            }
+
+            Intrinsic::Int32Neg
+            | Intrinsic::Int64Neg
+            | Intrinsic::Float32Neg
+            | Intrinsic::Float64Neg => {
+                assert_eq!(arguments.len(), 1);
+                let src_reg = arguments[0];
+                self.emit_neg(dest, src_reg);
             }
 
             _ => panic!("unimplemented intrinsic {:?}", intrinsic),

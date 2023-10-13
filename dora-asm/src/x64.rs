@@ -1707,6 +1707,7 @@ impl Address {
 
         address.set_modrm(mode, RSP);
         assert_ne!(index, RSP);
+        assert_ne!(index, R12);
 
         address.set_sib(factor, index, base);
 
