@@ -79,13 +79,13 @@ pub fn resolve_internal_classes(sa: &mut Sema) {
     sa.known.classes.thread = Some(find_class(sa, stdlib_id, "thread::Thread"));
 
     sa.known.traits.add = Some(find_trait(sa, stdlib_id, "traits::Add"));
-    sa.known.traits.arith_shr = Some(find_trait(sa, stdlib_id, "traits::ArithShr"));
+    sa.known.traits.sar = Some(find_trait(sa, stdlib_id, "traits::Sar"));
     sa.known.traits.bit_and = Some(find_trait(sa, stdlib_id, "traits::BitAnd"));
     sa.known.traits.bit_or = Some(find_trait(sa, stdlib_id, "traits::BitOr"));
     sa.known.traits.bit_xor = Some(find_trait(sa, stdlib_id, "traits::BitXor"));
     sa.known.traits.div = Some(find_trait(sa, stdlib_id, "traits::Div"));
     sa.known.traits.equals = Some(find_trait(sa, stdlib_id, "traits::Equals"));
-    sa.known.traits.logical_shr = Some(find_trait(sa, stdlib_id, "traits::LogicalShr"));
+    sa.known.traits.shr = Some(find_trait(sa, stdlib_id, "traits::Shr"));
     sa.known.traits.mul = Some(find_trait(sa, stdlib_id, "traits::Mul"));
     sa.known.traits.mod_ = Some(find_trait(sa, stdlib_id, "traits::Mod"));
     sa.known.traits.neg = Some(find_trait(sa, stdlib_id, "traits::Neg"));
@@ -850,16 +850,16 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         sa,
         stdlib_id,
         "primitives::Int32",
-        sa.known.traits.logical_shr(),
-        "lshr",
+        sa.known.traits.shr(),
+        "shr",
         Intrinsic::Int32Shr,
     );
     intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Int32",
-        sa.known.traits.arith_shr(),
-        "ashr",
+        sa.known.traits.sar(),
+        "sar",
         Intrinsic::Int32Sar,
     );
 
@@ -1105,16 +1105,16 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         sa,
         stdlib_id,
         "primitives::Int64",
-        sa.known.traits.logical_shr(),
-        "lshr",
+        sa.known.traits.shr(),
+        "shr",
         Intrinsic::Int64Shr,
     );
     intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Int64",
-        sa.known.traits.arith_shr(),
-        "ashr",
+        sa.known.traits.sar(),
+        "sar",
         Intrinsic::Int64Sar,
     );
 

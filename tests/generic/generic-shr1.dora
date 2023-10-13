@@ -1,0 +1,22 @@
+fn main() {
+    assert(shr[Int64](-1, 1i32) == Int64::maxValue());
+    assert(shr[Int64](4, 2i32) == 1);
+
+    assert(shr[Wrapper](Wrapper(-1), 1i32).value == Int64::maxValue());
+    assert(shr[Wrapper](Wrapper(4), 2i32).value == 1);
+
+    assert(shr[Int32](-1i32, 1i32) == Int32::maxValue());
+    assert(shr[Int32](4i32, 2i32) == 1i32);
+}
+
+fn shr[T: std::traits::Shr](lhs: T, by: Int32): T {
+    lhs >>> by
+}
+
+struct Wrapper(value: Int64)
+
+impl std::traits::Shr for Wrapper {
+    fn shr(by: Int32): Wrapper {
+        Wrapper(self.value >>> by)
+    }
+}

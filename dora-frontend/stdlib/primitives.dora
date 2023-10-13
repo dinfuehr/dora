@@ -73,7 +73,7 @@ impl Int32 {
   pub @internal fn rotateRight(by: Int32): Int32;
 
   pub fn abs(): Int32 {
-    let s = self.ashr(31i32);
+    let s = self.sar(31i32);
     return self.bitxor(s).wrappingSub(s);
   }
 
@@ -94,7 +94,7 @@ impl Int32 {
     let mut t = 1i32.shl(Int32::bits() - 1i32);
     let mut r = 0i32;
     while self.bitand(t) == 0i32 {
-      t = t.lshr(1i32);
+      t = t.shr(1i32);
       r = r + 1i32;
     }
     return r;
@@ -170,12 +170,12 @@ impl std::traits::Shl for Int32 {
   @internal fn shl(rhs: Int32): Int32;
 }
 
-impl std::traits::LogicalShr for Int32 {
-  @internal fn lshr(rhs: Int32): Int32;
+impl std::traits::Shr for Int32 {
+  @internal fn shr(rhs: Int32): Int32;
 }
 
-impl std::traits::ArithShr for Int32 {
-  @internal fn ashr(rhs: Int32): Int32;
+impl std::traits::Sar for Int32 {
+  @internal fn sar(rhs: Int32): Int32;
 }
 
 impl std::traits::Comparable for Int32 {
@@ -346,7 +346,7 @@ impl Int64 {
   pub @internal fn rotateRight(by: Int32): Int64;
 
   pub fn abs(): Int64 {
-    let s = self.ashr(63i32);
+    let s = self.sar(63i32);
     return self.bitxor(s).wrappingSub(s);
   }
 
@@ -367,7 +367,7 @@ impl Int64 {
     let mut t = 1i64.shl(Int64::bits() - 1i32);
     let mut r = 0i32;
     while (self.bitand(t)) == 0i64 {
-      t = t.lshr(1i32);
+      t = t.shr(1i32);
       r = r + 1i32;
     }
     return r;
@@ -446,12 +446,12 @@ impl std::traits::Shl for Int64 {
   @internal fn shl(rhs: Int32): Int64;
 }
 
-impl std::traits::LogicalShr for Int64 {
-  @internal fn lshr(rhs: Int32): Int64;
+impl std::traits::Shr for Int64 {
+  @internal fn shr(rhs: Int32): Int64;
 }
 
-impl std::traits::ArithShr for Int64 {
-  @internal fn ashr(rhs: Int32): Int64;
+impl std::traits::Sar for Int64 {
+  @internal fn sar(rhs: Int32): Int64;
 }
 
 impl std::traits::Comparable for Int64 {
@@ -488,8 +488,8 @@ impl Float32 {
     let mut ix = self.asInt32();
     let mut iy = rhs.asInt32();
 
-    let sx = ix.ashr(31i32).lshr(1i32);
-    let sy = iy.ashr(31i32).lshr(1i32);
+    let sx = ix.sar(31i32).shr(1i32);
+    let sy = iy.sar(31i32).shr(1i32);
 
     ix = ix.bitxor(sx);
     iy = iy.bitxor(sy);
@@ -573,8 +573,8 @@ impl Float64 {
     let mut ix = self.asInt64();
     let mut iy = rhs.asInt64();
 
-    let sx = ix.ashr(63i32).lshr(1i32);
-    let sy = iy.ashr(63i32).lshr(1i32);
+    let sx = ix.sar(63i32).shr(1i32);
+    let sy = iy.sar(63i32).shr(1i32);
 
     ix = ix.bitxor(sx);
     iy = iy.bitxor(sy);

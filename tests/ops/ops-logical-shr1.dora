@@ -1,7 +1,7 @@
 struct MyInt(x: Int64)
 
-impl std::traits::LogicalShr for MyInt {
-    fn lshr(shift: Int32): MyInt {
+impl std::traits::Shr for MyInt {
+    fn shr(shift: Int32): MyInt {
         MyInt(self.x >>> shift)
     }
 }

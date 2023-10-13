@@ -5,13 +5,13 @@ fn main() {
     let x = 1i32 << 1i32;
     assert(x == 2i32);
 
-    let x = 6i32.ashr(1i32);
+    let x = 6i32.sar(1i32);
     assert(x == 3i32);
 
     let x = 6i32 >> 1i32;
     assert(x == 3i32);
 
-    let x = 12i32.lshr(2i32);
+    let x = 12i32.shr(2i32);
     assert(x == 3i32);
 
     let x = 12i32 >> 2i32;

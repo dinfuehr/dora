@@ -117,12 +117,12 @@ pub trait Shl {
   fn shl(rhs: Int32): Self;
 }
 
-pub trait LogicalShr {
-  fn lshr(rhs: Int32): Self;
+pub trait Shr {
+  fn shr(rhs: Int32): Self;
 }
 
-pub trait ArithShr {
-  fn ashr(rhs: Int32): Self;
+pub trait Sar {
+  fn sar(rhs: Int32): Self;
 }
 
 pub trait Not {

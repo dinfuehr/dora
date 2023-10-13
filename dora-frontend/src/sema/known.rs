@@ -160,14 +160,14 @@ impl KnownStructs {
 #[derive(Debug)]
 pub struct KnownTraits {
     pub add: Option<TraitDefinitionId>,
-    pub arith_shr: Option<TraitDefinitionId>,
+    pub sar: Option<TraitDefinitionId>,
     pub bit_and: Option<TraitDefinitionId>,
     pub bit_or: Option<TraitDefinitionId>,
     pub bit_xor: Option<TraitDefinitionId>,
     pub comparable: Option<TraitDefinitionId>,
     pub div: Option<TraitDefinitionId>,
     pub equals: Option<TraitDefinitionId>,
-    pub logical_shr: Option<TraitDefinitionId>,
+    pub shr: Option<TraitDefinitionId>,
     pub mod_: Option<TraitDefinitionId>,
     pub mul: Option<TraitDefinitionId>,
     pub neg: Option<TraitDefinitionId>,
@@ -182,14 +182,14 @@ impl KnownTraits {
     pub fn new() -> KnownTraits {
         KnownTraits {
             add: None,
-            arith_shr: None,
+            sar: None,
             bit_and: None,
             bit_or: None,
             bit_xor: None,
             comparable: None,
             div: None,
             equals: None,
-            logical_shr: None,
+            shr: None,
             mod_: None,
             mul: None,
             neg: None,
@@ -205,8 +205,8 @@ impl KnownTraits {
         self.add.expect("uninitialized")
     }
 
-    pub fn arith_shr(&self) -> TraitDefinitionId {
-        self.arith_shr.expect("uninitialized")
+    pub fn sar(&self) -> TraitDefinitionId {
+        self.sar.expect("uninitialized")
     }
 
     pub fn bit_and(&self) -> TraitDefinitionId {
@@ -233,8 +233,8 @@ impl KnownTraits {
         self.equals.expect("uninitialized")
     }
 
-    pub fn logical_shr(&self) -> TraitDefinitionId {
-        self.logical_shr.expect("uninitialized")
+    pub fn shr(&self) -> TraitDefinitionId {
+        self.shr.expect("uninitialized")
     }
 
     pub fn mod_(&self) -> TraitDefinitionId {

@@ -1,0 +1,22 @@
+fn main() {
+    assert(shl[Int64](6, 2i32) == 24);
+    assert(shl[Int64](4, 3i32) == 32);
+
+    assert(shl[Wrapper](Wrapper(6), 2i32).value == 24);
+    assert(shl[Wrapper](Wrapper(4), 3i32).value == 32);
+
+    assert(shl[Int32](6i32, 2i32) == 24i32);
+    assert(shl[Int32](4i32, 3i32) == 32i32);
+}
+
+fn shl[T: std::traits::Shl](lhs: T, by: Int32): T {
+    lhs << by
+}
+
+struct Wrapper(value: Int64)
+
+impl std::traits::Shl for Wrapper {
+    fn shl(by: Int32): Wrapper {
+        Wrapper(self.value << by)
+    }
+}

@@ -1,7 +1,7 @@
 struct MyInt(x: Int64)
 
-impl std::traits::ArithShr for MyInt {
-    fn ashr(shift: Int32): MyInt {
+impl std::traits::Sar for MyInt {
+    fn sar(shift: Int32): MyInt {
         MyInt(self.x >> shift)
     }
 }

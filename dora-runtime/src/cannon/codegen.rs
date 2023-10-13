@@ -901,14 +901,15 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn emit_shl(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert_eq!(BytecodeType::Int32, self.bytecode.register_type(rhs));
+        let bytecode_type = self.specialize_register_type(dest);
+        assert!(bytecode_type == BytecodeType::Int32 || bytecode_type == BytecodeType::Int64);
+
         assert_eq!(
             self.bytecode.register_type(lhs),
             self.bytecode.register_type(dest)
         );
 
-        let bytecode_type = self.bytecode.register_type(dest);
-        assert!(bytecode_type == BytecodeType::Int32 || bytecode_type == BytecodeType::Int64);
+        assert_eq!(BytecodeType::Int32, self.bytecode.register_type(rhs));
 
         self.emit_load_register(lhs, REG_RESULT.into());
         self.emit_load_register(rhs, REG_TMP1.into());
@@ -924,14 +925,15 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn emit_shr(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert_eq!(BytecodeType::Int32, self.bytecode.register_type(rhs));
+        let bytecode_type = self.specialize_register_type(dest);
+        assert!(bytecode_type == BytecodeType::Int32 || bytecode_type == BytecodeType::Int64);
+
         assert_eq!(
             self.bytecode.register_type(lhs),
             self.bytecode.register_type(dest)
         );
 
-        let bytecode_type = self.bytecode.register_type(dest);
-        assert!(bytecode_type == BytecodeType::Int32 || bytecode_type == BytecodeType::Int64);
+        assert_eq!(BytecodeType::Int32, self.bytecode.register_type(rhs));
 
         self.emit_load_register(lhs, REG_RESULT.into());
         self.emit_load_register(rhs, REG_TMP1.into());
@@ -947,14 +949,15 @@ impl<'a> CannonCodeGen<'a> {
     }
 
     fn emit_sar(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert_eq!(BytecodeType::Int32, self.bytecode.register_type(rhs));
+        let bytecode_type = self.specialize_register_type(dest);
+        assert!(bytecode_type == BytecodeType::Int32 || bytecode_type == BytecodeType::Int64);
+
         assert_eq!(
             self.bytecode.register_type(lhs),
             self.bytecode.register_type(dest)
         );
 
-        let bytecode_type = self.bytecode.register_type(dest);
-        assert!(bytecode_type == BytecodeType::Int32 || bytecode_type == BytecodeType::Int64);
+        assert_eq!(BytecodeType::Int32, self.bytecode.register_type(rhs));
 
         self.emit_load_register(lhs, REG_RESULT.into());
         self.emit_load_register(rhs, REG_TMP1.into());
@@ -3748,6 +3751,27 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_neg(dest, src_reg);
             }
 
+            Intrinsic::Int32Shl | Intrinsic::Int64Shl => {
+                assert_eq!(arguments.len(), 2);
+                let lhs_reg = arguments[0];
+                let rhs_reg = arguments[1];
+                self.emit_shl(dest, lhs_reg, rhs_reg);
+            }
+
+            Intrinsic::Int32Shr | Intrinsic::Int64Shr => {
+                assert_eq!(arguments.len(), 2);
+                let lhs_reg = arguments[0];
+                let rhs_reg = arguments[1];
+                self.emit_shr(dest, lhs_reg, rhs_reg);
+            }
+
+            Intrinsic::Int32Sar | Intrinsic::Int64Sar => {
+                assert_eq!(arguments.len(), 2);
+                let lhs_reg = arguments[0];
+                let rhs_reg = arguments[1];
+                self.emit_sar(dest, lhs_reg, rhs_reg);
+            }
+
             Intrinsic::ArrayNewOfSize
             | Intrinsic::ArrayWithValues
             | Intrinsic::ArrayLen
@@ -3757,12 +3781,6 @@ impl<'a> CannonCodeGen<'a> {
             | Intrinsic::StrGet
             | Intrinsic::EnumEq
             | Intrinsic::EnumNe
-            | Intrinsic::Int32Shl
-            | Intrinsic::Int32Sar
-            | Intrinsic::Int32Shr
-            | Intrinsic::Int64Shl
-            | Intrinsic::Int64Sar
-            | Intrinsic::Int64Shr
             | Intrinsic::Float32IsNan
             | Intrinsic::Float64IsNan => {
                 panic!("unimplemented intrinsic {:?}", intrinsic);
