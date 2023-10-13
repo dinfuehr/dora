@@ -728,12 +728,12 @@ pub(super) fn check_expr_un(
     let opnd = check_expr(ck, &e.opnd, SourceType::Any);
 
     match e.op {
-        ast::UnOp::Neg => check_expr_un_method(ck, e, e.op, ck.sa.known.traits.neg(), "neg", opnd),
-        ast::UnOp::Not => check_expr_un_method(ck, e, e.op, ck.sa.known.traits.not(), "not", opnd),
+        ast::UnOp::Neg => check_expr_un_trait(ck, e, e.op, ck.sa.known.traits.neg(), "neg", opnd),
+        ast::UnOp::Not => check_expr_un_trait(ck, e, e.op, ck.sa.known.traits.not(), "not", opnd),
     }
 }
 
-fn check_expr_un_method(
+fn check_expr_un_trait(
     ck: &mut TypeCheck,
     e: &ast::ExprUnType,
     op: ast::UnOp,
@@ -1247,7 +1247,7 @@ fn check_expr_bin_cmp(
             }
         }
 
-        _ => {
+        ast::CmpOp::Ge | ast::CmpOp::Gt | ast::CmpOp::Le | ast::CmpOp::Lt => {
             check_expr_bin_method(ck, e, e.op, "compareTo", lhs_type, rhs_type);
         }
     }
