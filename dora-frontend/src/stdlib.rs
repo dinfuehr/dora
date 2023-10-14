@@ -83,6 +83,7 @@ pub fn resolve_internal_classes(sa: &mut Sema) {
     sa.known.traits.bit_and = Some(find_trait(sa, stdlib_id, "traits::BitAnd"));
     sa.known.traits.bit_or = Some(find_trait(sa, stdlib_id, "traits::BitOr"));
     sa.known.traits.bit_xor = Some(find_trait(sa, stdlib_id, "traits::BitXor"));
+    sa.known.traits.comparable = Some(find_trait(sa, stdlib_id, "traits::Comparable2"));
     sa.known.traits.div = Some(find_trait(sa, stdlib_id, "traits::Div"));
     sa.known.traits.equals = Some(find_trait(sa, stdlib_id, "traits::Equals"));
     sa.known.traits.shr = Some(find_trait(sa, stdlib_id, "traits::Shr"));
@@ -96,6 +97,7 @@ pub fn resolve_internal_classes(sa: &mut Sema) {
     sa.known.traits.zero = Some(find_trait(sa, stdlib_id, "traits::Zero"));
 
     sa.known.enums.option = Some(find_enum(sa, stdlib_id, "primitives::Option"));
+    sa.known.enums.ordering = Some(find_enum(sa, stdlib_id, "traits::Ordering"));
 }
 
 pub fn fill_prelude(sa: &mut Sema) {

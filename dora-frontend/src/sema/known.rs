@@ -27,15 +27,23 @@ impl KnownElements {
 #[derive(Debug)]
 pub struct KnownEnums {
     pub option: Option<EnumDefinitionId>,
+    pub ordering: Option<EnumDefinitionId>,
 }
 
 impl KnownEnums {
     pub fn new() -> KnownEnums {
-        KnownEnums { option: None }
+        KnownEnums {
+            option: None,
+            ordering: None,
+        }
     }
 
     pub fn option(&self) -> EnumDefinitionId {
         self.option.expect("uninitialized")
+    }
+
+    pub fn ordering(&self) -> EnumDefinitionId {
+        self.ordering.expect("uninitialized")
     }
 }
 
