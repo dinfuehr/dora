@@ -1,0 +1,27 @@
+use std::Ordering;
+
+fn main() {
+    assert(Ordering::Less.is_lt());
+    assert(!Ordering::Equal.is_lt());
+    assert(!Ordering::Greater.is_lt());
+
+    assert(Ordering::Less.is_le());
+    assert(Ordering::Equal.is_le());
+    assert(!Ordering::Greater.is_le());
+
+    assert(!Ordering::Less.is_eq());
+    assert(Ordering::Equal.is_eq());
+    assert(!Ordering::Greater.is_eq());
+
+    assert(Ordering::Less.is_ne());
+    assert(!Ordering::Equal.is_ne());
+    assert(Ordering::Greater.is_ne());
+
+    assert(!Ordering::Less.is_ge());
+    assert(Ordering::Equal.is_ge());
+    assert(Ordering::Greater.is_ge());
+
+    assert(!Ordering::Less.is_gt());
+    assert(!Ordering::Equal.is_gt());
+    assert(Ordering::Greater.is_gt());
+}

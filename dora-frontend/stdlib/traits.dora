@@ -69,6 +69,50 @@ pub enum Ordering {
   Greater,
 }
 
+impl Ordering {
+  pub fn is_lt(): Bool {
+    match self {
+      Ordering::Less => true,
+      Ordering::Equal | Ordering::Greater => false,
+    }
+  }
+
+  pub fn is_le(): Bool {
+    match self {
+      Ordering::Less | Ordering::Equal => true,
+      Ordering::Greater => false,
+    }
+  }
+
+  pub fn is_eq(): Bool {
+    match self {
+      Ordering::Equal => true,
+      Ordering::Less | Ordering::Greater => false,
+    }
+  }
+
+  pub fn is_ne(): Bool {
+    match self {
+      Ordering::Less | Ordering::Greater => true,
+      Ordering::Equal => false,
+    }
+  }
+
+  pub fn is_gt(): Bool {
+    match self {
+      Ordering::Greater => true,
+      Ordering::Less | Ordering::Equal => false,
+    }
+  }
+
+  pub fn is_ge(): Bool {
+    match self {
+      Ordering::Greater | Ordering::Equal => true,
+      Ordering::Less => false,
+    }
+  }
+}
+
 pub trait Comparable {
   fn compareTo(other: Self): Int32;
 }
