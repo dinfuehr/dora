@@ -27,7 +27,7 @@ mod readty;
 mod returnck;
 pub mod sema;
 mod specialize;
-mod stdlib;
+mod stdlib_lookup;
 mod structdefck;
 pub mod sym;
 #[cfg(test)]
@@ -57,27 +57,27 @@ pub fn check_program(sa: &mut Sema) -> bool {
     program_parser::parse(sa);
     return_on_error!(sa);
 
-    // define internal classes
-    stdlib::resolve_internal_classes(sa);
+    // Define internal types.
+    stdlib_lookup::resolve_internal_types(sa);
 
-    // discover all enum variants
+    // Discover all enum variants.
     enumck::check_variants(sa);
 
-    // fill prelude with important types and functions
-    stdlib::fill_prelude(sa);
+    // Fill prelude with important types and functions.
+    stdlib_lookup::setup_prelude(sa);
 
-    // discover all types
+    // Discover all types.
     useck::check(sa);
     return_on_error!(sa);
 
     type_params::check(sa);
     return_on_error!(sa);
 
-    // find all trait implementations for classes
+    // Find all trait implementations for types.
     impldefck::check(sa);
     return_on_error!(sa);
 
-    // checks class/struct/trait/enum definitions
+    // Checks class/struct/trait/enum definitions.
     clsdefck::check(sa);
     structdefck::check(sa);
     traitdefck::check(sa);
@@ -89,24 +89,24 @@ pub fn check_program(sa: &mut Sema) -> bool {
     extensiondefck::check(sa);
     return_on_error!(sa);
 
-    // check type definitions of params and return types in functions
+    // Check type definitions of params and return types in functions.
     fctdefck::check(sa);
     return_on_error!(sa);
 
-    // check impl methods against trait definition
+    // Check impl methods against trait definition.
     implck::check(sa);
     return_on_error!(sa);
 
-    // define internal functions & methods
-    stdlib::resolve_internal_functions(sa);
-    stdlib::discover_known_methods(sa);
-    stdlib::create_lambda_class(sa);
+    // Define internal functions & methods.
+    stdlib_lookup::resolve_internal_functions(sa);
+    stdlib_lookup::discover_known_methods(sa);
+    stdlib_lookup::create_lambda_class(sa);
 
-    // check for internal functions or classes
+    // Check for internal functions, methods or types.
     internalck(sa);
     return_on_error!(sa);
 
-    // check function body
+    // Check function body.
     typeck::check(sa);
     return_on_error!(sa);
 

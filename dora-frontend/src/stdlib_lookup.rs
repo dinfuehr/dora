@@ -11,7 +11,7 @@ use crate::ty::{SourceType, SourceTypeArray};
 use crate::interner::Name;
 use dora_bytecode::{Intrinsic, NativeFunction};
 
-pub fn resolve_internal_classes(sa: &mut Sema) {
+pub fn resolve_internal_types(sa: &mut Sema) {
     let stdlib_id = sa.stdlib_module_id();
 
     sa.known.structs.bool = Some(internal_struct(
@@ -100,7 +100,7 @@ pub fn resolve_internal_classes(sa: &mut Sema) {
     sa.known.enums.ordering = Some(find_enum(sa, stdlib_id, "traits::Ordering"));
 }
 
-pub fn fill_prelude(sa: &mut Sema) {
+pub fn setup_prelude(sa: &mut Sema) {
     let stdlib_id = sa.stdlib_module_id();
 
     let symbols = [
@@ -1579,6 +1579,15 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
     );
     sa.known.functions.option_unwrap = Some(fct_id);
 
+    sa.known.functions.ordering_is_ge =
+        Some(find_instance_method(sa, stdlib_id, "Ordering", "is_ge"));
+    sa.known.functions.ordering_is_gt =
+        Some(find_instance_method(sa, stdlib_id, "Ordering", "is_gt"));
+    sa.known.functions.ordering_is_le =
+        Some(find_instance_method(sa, stdlib_id, "Ordering", "is_le"));
+    sa.known.functions.ordering_is_lt =
+        Some(find_instance_method(sa, stdlib_id, "Ordering", "is_lt"));
+
     intrinsic_method(
         sa,
         stdlib_id,
@@ -1674,7 +1683,7 @@ fn find_instance_method(
     container_name: &str,
     name: &str,
 ) -> FctDefinitionId {
-    find_class_method(sa, module_id, container_name, name, false)
+    find_method(sa, module_id, container_name, name, false)
 }
 
 fn find_function(sa: &Sema, module_id: ModuleDefinitionId, name: &str) -> FctDefinitionId {
@@ -1691,24 +1700,50 @@ fn find_static_method(
     container_name: &str,
     name: &str,
 ) -> FctDefinitionId {
-    find_class_method(sa, module_id, container_name, name, true)
+    find_method(sa, module_id, container_name, name, true)
 }
 
-fn find_class_method(
+fn find_method(
     sa: &Sema,
     module_id: ModuleDefinitionId,
     container_name: &str,
     name: &str,
     is_static: bool,
 ) -> FctDefinitionId {
-    let cls_id = resolve_name(sa, container_name, module_id)
-        .to_class()
-        .expect("class not found");
+    let sym = resolve_name(sa, container_name, module_id);
 
-    let cls = &sa.classes[cls_id];
-    let extensions = cls.extensions.borrow();
-    let intern_name = sa.interner.intern(name);
+    match sym {
+        SymbolKind::Enum(enum_id) => {
+            let enum_ = sa.enums.idx(enum_id);
+            let enum_ = enum_.read();
+            let extensions = &enum_.extensions;
+            find_method_in_extensions(sa, extensions, sa.interner.intern(name), is_static)
+        }
 
+        SymbolKind::Class(cls_id) => {
+            let class = &sa.classes[cls_id];
+            let extensions = &class.extensions;
+            let extensions = extensions.borrow();
+            find_method_in_extensions(sa, &*extensions, sa.interner.intern(name), is_static)
+        }
+
+        SymbolKind::Struct(struct_id) => {
+            let struct_ = &sa.structs[struct_id];
+            let extensions = &struct_.extensions;
+            let extensions = extensions.borrow();
+            find_method_in_extensions(sa, &*extensions, sa.interner.intern(name), is_static)
+        }
+
+        _ => panic!("unknown symbol {}::{}", container_name, name),
+    }
+}
+
+fn find_method_in_extensions(
+    sa: &Sema,
+    extensions: &[ExtensionDefinitionId],
+    name: Name,
+    is_static: bool,
+) -> FctDefinitionId {
     for &extension_id in extensions.iter() {
         let extension = sa.extensions.idx(extension_id);
         let extension = extension.read();
@@ -1717,13 +1752,13 @@ fn find_class_method(
             let mtd = sa.fcts.idx(mid);
             let mtd = mtd.read();
 
-            if mtd.name == intern_name && mtd.is_static == is_static {
+            if mtd.name == name && mtd.is_static == is_static {
                 return mid;
             }
         }
     }
 
-    panic!("cannot find class method `{}`", name)
+    panic!("cannot find method `{}`", sa.interner.str(name))
 }
 
 fn intrinsic_fct(

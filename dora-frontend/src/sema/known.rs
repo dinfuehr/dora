@@ -287,6 +287,10 @@ pub struct KnownFunctions {
     pub option_is_some: Option<FctDefinitionId>,
     pub option_is_none: Option<FctDefinitionId>,
     pub option_unwrap: Option<FctDefinitionId>,
+    pub ordering_is_ge: Option<FctDefinitionId>,
+    pub ordering_is_gt: Option<FctDefinitionId>,
+    pub ordering_is_le: Option<FctDefinitionId>,
+    pub ordering_is_lt: Option<FctDefinitionId>,
     pub stacktrace_retrieve: Option<FctDefinitionId>,
     pub compile: Option<FctDefinitionId>,
 }
@@ -301,6 +305,10 @@ impl KnownFunctions {
             option_is_none: None,
             option_is_some: None,
             option_unwrap: None,
+            ordering_is_ge: None,
+            ordering_is_gt: None,
+            ordering_is_le: None,
+            ordering_is_lt: None,
             stacktrace_retrieve: None,
             compile: None,
         }
@@ -332,6 +340,22 @@ impl KnownFunctions {
 
     pub fn option_unwrap(&self) -> FctDefinitionId {
         self.option_unwrap.expect("uninitialized")
+    }
+
+    pub fn ordering_is_ge(&self) -> FctDefinitionId {
+        self.ordering_is_ge.expect("uninitialized")
+    }
+
+    pub fn ordering_is_gt(&self) -> FctDefinitionId {
+        self.ordering_is_gt.expect("uninitialized")
+    }
+
+    pub fn ordering_is_le(&self) -> FctDefinitionId {
+        self.ordering_is_le.expect("uninitialized")
+    }
+
+    pub fn ordering_is_lt(&self) -> FctDefinitionId {
+        self.ordering_is_lt.expect("uninitialized")
     }
 
     pub fn stacktrace_retrieve(&self) -> FctDefinitionId {
