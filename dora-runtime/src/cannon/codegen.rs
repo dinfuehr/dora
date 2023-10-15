@@ -3772,6 +3772,15 @@ impl<'a> CannonCodeGen<'a> {
                 self.emit_sar(dest, lhs_reg, rhs_reg);
             }
 
+            Intrinsic::UInt8CmpNew
+            | Intrinsic::CharCmpNew
+            | Intrinsic::Int32CmpNew
+            | Intrinsic::Int64CmpNew
+            | Intrinsic::Float32CmpNew
+            | Intrinsic::Float64CmpNew => {
+                unimplemented!()
+            }
+
             Intrinsic::ArrayNewOfSize
             | Intrinsic::ArrayWithValues
             | Intrinsic::ArrayLen

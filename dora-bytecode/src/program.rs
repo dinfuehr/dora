@@ -304,12 +304,14 @@ pub enum Intrinsic {
 
     UInt8Eq,
     UInt8Cmp,
+    UInt8CmpNew,
     UInt8ToChar,
     UInt8ToInt32,
     UInt8ToInt64,
 
     CharEq,
     CharCmp,
+    CharCmpNew,
     CharToInt32,
     CharToInt64,
 
@@ -325,6 +327,7 @@ pub enum Intrinsic {
 
     Int32Eq,
     Int32Cmp,
+    Int32CmpNew,
 
     Int32Add,
     Int32AddUnchecked,
@@ -366,6 +369,7 @@ pub enum Intrinsic {
 
     Int64Eq,
     Int64Cmp,
+    Int64CmpNew,
 
     Int64Add,
     Int64AddUnchecked,
@@ -405,6 +409,7 @@ pub enum Intrinsic {
 
     Float32Eq,
     Float32Cmp,
+    Float32CmpNew,
 
     Float32Add,
     Float32Sub,
@@ -429,6 +434,7 @@ pub enum Intrinsic {
 
     Float64Eq,
     Float64Cmp,
+    Float64CmpNew,
 
     Float64Add,
     Float64Sub,

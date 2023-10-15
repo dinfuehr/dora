@@ -1070,7 +1070,6 @@ fn check_expr_bin_trait(
     }
 }
 
-#[allow(unused)]
 fn check_expr_bin_trait_or_method(
     ck: &mut TypeCheck,
     e: &ast::ExprBinType,
@@ -1164,48 +1163,6 @@ fn check_expr_bin_trait_or_method(
     }
 }
 
-fn check_expr_bin_method(
-    ck: &mut TypeCheck,
-    e: &ast::ExprBinType,
-    op: ast::BinOp,
-    name: &str,
-    lhs_type: SourceType,
-    rhs_type: SourceType,
-) -> SourceType {
-    let name = ck.sa.interner.intern(name);
-    let call_types = [rhs_type.clone()];
-
-    if let Some(descriptor) = lookup_method(
-        ck.sa,
-        lhs_type.clone(),
-        ck.type_param_defs,
-        false,
-        name,
-        &call_types,
-        &SourceTypeArray::empty(),
-    ) {
-        let call_type =
-            CallType::Method(lhs_type.clone(), descriptor.fct_id, descriptor.type_params);
-        ck.analysis
-            .map_calls
-            .insert_or_replace(e.id, Arc::new(call_type));
-
-        ck.analysis.set_ty(e.id, descriptor.return_type.clone());
-
-        descriptor.return_type
-    } else {
-        let lhs_type = ck.ty_name(&lhs_type);
-        let rhs_type = ck.ty_name(&rhs_type);
-        let msg = ErrorMessage::BinOpType(op.as_str().into(), lhs_type, rhs_type);
-
-        ck.sa.report(ck.file_id, e.span, msg);
-
-        ck.analysis.set_ty(e.id, SourceType::Error);
-
-        SourceType::Error
-    }
-}
-
 fn check_expr_bin_cmp(
     ck: &mut TypeCheck,
     e: &ast::ExprBinType,
@@ -1248,7 +1205,16 @@ fn check_expr_bin_cmp(
         }
 
         ast::CmpOp::Ge | ast::CmpOp::Gt | ast::CmpOp::Le | ast::CmpOp::Lt => {
-            check_expr_bin_method(ck, e, e.op, "compareTo", lhs_type, rhs_type);
+            check_expr_bin_trait_or_method(
+                ck,
+                e,
+                e.op,
+                ck.sa.known.traits.comparable(),
+                "cmp",
+                "compareTo",
+                lhs_type,
+                rhs_type,
+            );
         }
     }
 

@@ -2299,66 +2299,12 @@ impl<'a> AstBytecodeGen<'a> {
                 }
                 _ => unreachable!(),
             },
-            Intrinsic::UInt8Cmp => match op {
-                Some(ast::BinOp::Cmp(ast::CmpOp::Lt)) => {
-                    self.builder.emit_test_lt(dest, lhs_reg, rhs_reg)
-                }
-                Some(ast::BinOp::Cmp(ast::CmpOp::Le)) => {
-                    self.builder.emit_test_le(dest, lhs_reg, rhs_reg)
-                }
-                Some(ast::BinOp::Cmp(ast::CmpOp::Gt)) => {
-                    self.builder.emit_test_gt(dest, lhs_reg, rhs_reg)
-                }
-                Some(ast::BinOp::Cmp(ast::CmpOp::Ge)) => {
-                    self.builder.emit_test_ge(dest, lhs_reg, rhs_reg)
-                }
-                None => {
-                    let fct_id = info.fct_id.expect("fct_id missing");
-                    let ty = self.ty(lhs.id());
-                    let type_params = ty.type_params();
-                    let idx = self.builder.add_const_fct_types(
-                        FunctionId(fct_id.0 as u32),
-                        bty_array_from_ty(&type_params),
-                    );
-                    self.builder.emit_push_register(lhs_reg);
-                    self.builder.emit_push_register(rhs_reg);
-                    self.builder.emit_invoke_direct(dest, idx, location);
-                }
-                _ => unreachable!(),
-            },
             Intrinsic::CharEq => match op {
                 Some(ast::BinOp::Cmp(ast::CmpOp::Eq)) => {
                     self.builder.emit_test_eq(dest, lhs_reg, rhs_reg)
                 }
                 Some(ast::BinOp::Cmp(ast::CmpOp::Ne)) => {
                     self.builder.emit_test_ne(dest, lhs_reg, rhs_reg)
-                }
-                _ => unreachable!(),
-            },
-            Intrinsic::CharCmp => match op {
-                Some(ast::BinOp::Cmp(ast::CmpOp::Lt)) => {
-                    self.builder.emit_test_lt(dest, lhs_reg, rhs_reg)
-                }
-                Some(ast::BinOp::Cmp(ast::CmpOp::Le)) => {
-                    self.builder.emit_test_le(dest, lhs_reg, rhs_reg)
-                }
-                Some(ast::BinOp::Cmp(ast::CmpOp::Gt)) => {
-                    self.builder.emit_test_gt(dest, lhs_reg, rhs_reg)
-                }
-                Some(ast::BinOp::Cmp(ast::CmpOp::Ge)) => {
-                    self.builder.emit_test_ge(dest, lhs_reg, rhs_reg)
-                }
-                None => {
-                    let fct_id = info.fct_id.expect("fct_id missing");
-                    let ty = self.ty(lhs.id());
-                    let type_params = ty.type_params();
-                    let idx = self.builder.add_const_fct_types(
-                        FunctionId(fct_id.0 as u32),
-                        bty_array_from_ty(&type_params),
-                    );
-                    self.builder.emit_push_register(lhs_reg);
-                    self.builder.emit_push_register(rhs_reg);
-                    self.builder.emit_invoke_direct(dest, idx, location);
                 }
                 _ => unreachable!(),
             },
@@ -2374,33 +2320,6 @@ impl<'a> AstBytecodeGen<'a> {
                 None => self.builder.emit_test_eq(dest, lhs_reg, rhs_reg),
                 _ => unreachable!(),
             },
-            Intrinsic::Int32Cmp => match op {
-                Some(ast::BinOp::Cmp(ast::CmpOp::Lt)) => {
-                    self.builder.emit_test_lt(dest, lhs_reg, rhs_reg)
-                }
-                Some(ast::BinOp::Cmp(ast::CmpOp::Le)) => {
-                    self.builder.emit_test_le(dest, lhs_reg, rhs_reg)
-                }
-                Some(ast::BinOp::Cmp(ast::CmpOp::Gt)) => {
-                    self.builder.emit_test_gt(dest, lhs_reg, rhs_reg)
-                }
-                Some(ast::BinOp::Cmp(ast::CmpOp::Ge)) => {
-                    self.builder.emit_test_ge(dest, lhs_reg, rhs_reg)
-                }
-                Some(_) => unreachable!(),
-                None => {
-                    let fct_id = info.fct_id.expect("fct_id missing");
-                    let ty = self.ty(lhs.id());
-                    let type_params = ty.type_params();
-                    let idx = self.builder.add_const_fct_types(
-                        FunctionId(fct_id.0 as u32),
-                        bty_array_from_ty(&type_params),
-                    );
-                    self.builder.emit_push_register(lhs_reg);
-                    self.builder.emit_push_register(rhs_reg);
-                    self.builder.emit_invoke_direct(dest, idx, location);
-                }
-            },
             Intrinsic::Int64Eq => match op {
                 Some(ast::BinOp::Cmp(ast::CmpOp::Eq)) => {
                     self.builder.emit_test_eq(dest, lhs_reg, rhs_reg)
@@ -2411,33 +2330,6 @@ impl<'a> AstBytecodeGen<'a> {
                 None => self.builder.emit_test_eq(dest, lhs_reg, rhs_reg),
                 _ => unreachable!(),
             },
-            Intrinsic::Int64Cmp => match op {
-                Some(ast::BinOp::Cmp(ast::CmpOp::Lt)) => {
-                    self.builder.emit_test_lt(dest, lhs_reg, rhs_reg)
-                }
-                Some(ast::BinOp::Cmp(ast::CmpOp::Le)) => {
-                    self.builder.emit_test_le(dest, lhs_reg, rhs_reg)
-                }
-                Some(ast::BinOp::Cmp(ast::CmpOp::Gt)) => {
-                    self.builder.emit_test_gt(dest, lhs_reg, rhs_reg)
-                }
-                Some(ast::BinOp::Cmp(ast::CmpOp::Ge)) => {
-                    self.builder.emit_test_ge(dest, lhs_reg, rhs_reg)
-                }
-                Some(_) => unreachable!(),
-                None => {
-                    let fct_id = info.fct_id.expect("fct_id missing");
-                    let ty = self.ty(lhs.id());
-                    let type_params = ty.type_params();
-                    let idx = self.builder.add_const_fct_types(
-                        FunctionId(fct_id.0 as u32),
-                        bty_array_from_ty(&type_params),
-                    );
-                    self.builder.emit_push_register(lhs_reg);
-                    self.builder.emit_push_register(rhs_reg);
-                    self.builder.emit_invoke_direct(dest, idx, location);
-                }
-            },
             Intrinsic::Float32Eq => match op {
                 Some(ast::BinOp::Cmp(ast::CmpOp::Eq)) => {
                     self.builder.emit_test_eq(dest, lhs_reg, rhs_reg)
@@ -2446,33 +2338,6 @@ impl<'a> AstBytecodeGen<'a> {
                     self.builder.emit_test_ne(dest, lhs_reg, rhs_reg)
                 }
                 None => self.builder.emit_test_eq(dest, lhs_reg, rhs_reg),
-                _ => unreachable!(),
-            },
-            Intrinsic::Float32Cmp => match op {
-                Some(ast::BinOp::Cmp(ast::CmpOp::Lt)) => {
-                    self.builder.emit_test_lt(dest, lhs_reg, rhs_reg)
-                }
-                Some(ast::BinOp::Cmp(ast::CmpOp::Le)) => {
-                    self.builder.emit_test_le(dest, lhs_reg, rhs_reg)
-                }
-                Some(ast::BinOp::Cmp(ast::CmpOp::Gt)) => {
-                    self.builder.emit_test_gt(dest, lhs_reg, rhs_reg)
-                }
-                Some(ast::BinOp::Cmp(ast::CmpOp::Ge)) => {
-                    self.builder.emit_test_ge(dest, lhs_reg, rhs_reg)
-                }
-                None => {
-                    let fct_id = info.fct_id.expect("fct_id missing");
-                    let ty = self.ty(lhs.id());
-                    let type_params = ty.type_params();
-                    let idx = self.builder.add_const_fct_types(
-                        FunctionId(fct_id.0 as u32),
-                        bty_array_from_ty(&type_params),
-                    );
-                    self.builder.emit_push_register(lhs_reg);
-                    self.builder.emit_push_register(rhs_reg);
-                    self.builder.emit_invoke_direct(dest, idx, location)
-                }
                 _ => unreachable!(),
             },
             Intrinsic::Float64Eq => match op {
@@ -2485,7 +2350,12 @@ impl<'a> AstBytecodeGen<'a> {
                 None => self.builder.emit_test_eq(dest, lhs_reg, rhs_reg),
                 _ => unreachable!(),
             },
-            Intrinsic::Float64Cmp => match op {
+            Intrinsic::UInt8Cmp
+            | Intrinsic::CharCmp
+            | Intrinsic::Int32Cmp
+            | Intrinsic::Int64Cmp
+            | Intrinsic::Float32Cmp
+            | Intrinsic::Float64Cmp => match op {
                 Some(ast::BinOp::Cmp(ast::CmpOp::Lt)) => {
                     self.builder.emit_test_lt(dest, lhs_reg, rhs_reg)
                 }
