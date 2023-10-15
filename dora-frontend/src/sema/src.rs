@@ -272,16 +272,8 @@ pub enum CallType {
     // Direct or virtual method calls, e.g. obj.method(<args>)
     Method(SourceType, FctDefinitionId, SourceTypeArray),
 
-    // Module method call, e.g. Module::method(<args>)
-    ModuleMethod(SourceType, FctDefinitionId, SourceTypeArray),
-
-    // Constructor call Class(<args>)
-    Ctor(SourceType, FctDefinitionId),
-    // Call to parent constructor, i.e. class Foo() : Bar()
-    CtorParent(SourceType, FctDefinitionId),
-
     // Class constructor of new class syntax, i.e. ClassName(<args>).
-    Class2Ctor(ClassDefinitionId, SourceTypeArray),
+    ClassCtor(ClassDefinitionId, SourceTypeArray),
 
     // Invoke on expression, e.g. <expr>(<args>)
     Expr(SourceType, FctDefinitionId, SourceTypeArray),
@@ -309,20 +301,6 @@ pub enum CallType {
 }
 
 impl CallType {
-    pub fn is_ctor_new(&self) -> bool {
-        match *self {
-            CallType::Ctor(_, _) => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_ctor(&self) -> bool {
-        match *self {
-            CallType::CtorParent(_, _) => true,
-            _ => false,
-        }
-    }
-
     pub fn is_method(&self) -> bool {
         match *self {
             CallType::Method(_, _, _) => true,
@@ -333,13 +311,6 @@ impl CallType {
     pub fn is_generic_method(&self) -> bool {
         match *self {
             CallType::GenericMethod(_, _, _) => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_expr(&self) -> bool {
-        match *self {
-            CallType::Expr(_, _, _) => true,
             _ => false,
         }
     }
@@ -362,9 +333,6 @@ impl CallType {
         match *self {
             CallType::Fct(fctid, _) => Some(fctid),
             CallType::Method(_, fctid, _) => Some(fctid),
-            CallType::ModuleMethod(_, fctid, _) => Some(fctid),
-            CallType::Ctor(_, fctid) => Some(fctid),
-            CallType::CtorParent(_, fctid) => Some(fctid),
             CallType::Expr(_, fctid, _) => Some(fctid),
             CallType::TraitObjectMethod(_, fctid) => Some(fctid),
             CallType::GenericMethod(_, _, fctid) => Some(fctid),
@@ -373,7 +341,7 @@ impl CallType {
             CallType::Enum(_, _) => None,
             CallType::Struct(_, _) => None,
             CallType::Lambda(_, _) => None,
-            CallType::Class2Ctor(_, _) => None,
+            CallType::ClassCtor(_, _) => None,
         }
     }
 }

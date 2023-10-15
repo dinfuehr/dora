@@ -1078,7 +1078,7 @@ impl<'a> AstBytecodeGen<'a> {
                 return self.visit_expr_call_struct(expr, struct_id, type_params, dest);
             }
 
-            CallType::Class2Ctor(cls_id, ref type_params) => {
+            CallType::ClassCtor(cls_id, ref type_params) => {
                 return self.visit_expr_call_class(expr, cls_id, type_params, dest);
             }
 
@@ -1091,7 +1091,14 @@ impl<'a> AstBytecodeGen<'a> {
                 );
             }
 
-            _ => {}
+            CallType::Expr(..)
+            | CallType::Method(..)
+            | CallType::GenericMethod(..)
+            | CallType::GenericStaticMethod(..)
+            | CallType::TraitObjectMethod(..)
+            | CallType::Fct(..) => {}
+
+            _ => panic!("unknown call type = {:?}", call_type),
         }
 
         // Find method that is called
@@ -1119,9 +1126,6 @@ impl<'a> AstBytecodeGen<'a> {
         // Evaluate function arguments
         let arguments = self.emit_call_arguments(expr, &*callee, &call_type, &arg_types);
 
-        // Allocate object for constructor calls
-        self.emit_call_allocate(self.loc(expr.span), &call_type, &arg_types, object_argument);
-
         if let Some(obj_reg) = object_argument {
             self.builder.emit_push_register(obj_reg);
         }
@@ -1139,10 +1143,8 @@ impl<'a> AstBytecodeGen<'a> {
         );
 
         // Store result
-        let result_reg = self.emit_call_result(&call_type, dest, return_reg, object_argument);
-
         if let Some(obj_reg) = object_argument {
-            if obj_reg != result_reg {
+            if obj_reg != return_reg {
                 self.free_if_temp(obj_reg);
             }
         }
@@ -1151,7 +1153,7 @@ impl<'a> AstBytecodeGen<'a> {
             self.free_if_temp(arg_reg);
         }
 
-        result_reg
+        return_reg
     }
 
     fn visit_expr_call_enum(
@@ -1359,11 +1361,6 @@ impl<'a> AstBytecodeGen<'a> {
                 Some(reg)
             }
             CallType::Expr(_, _, _) => Some(gen_expr(self, &expr.callee, DataDest::Alloc)),
-            CallType::Ctor(_, _) => {
-                // Need to use new register for allocated object.
-                // Otherwise code like `x = SomeClass(x)` would break.
-                Some(self.alloc_temp(BytecodeType::Ptr))
-            }
             _ => None,
         }
     }
@@ -1379,8 +1376,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         // self was already emitted, needs to be ignored here.
         let arg_start_offset = match *call_type {
-            CallType::Ctor(_, _)
-            | CallType::Expr(_, _, _)
+            CallType::Expr(_, _, _)
             | CallType::Method(_, _, _)
             | CallType::GenericMethod(_, _, _) => 1,
             _ => 0,
@@ -1466,31 +1462,6 @@ impl<'a> AstBytecodeGen<'a> {
         array_reg
     }
 
-    fn emit_call_allocate(
-        &mut self,
-        location: Location,
-        call_type: &CallType,
-        arg_types: &[SourceType],
-        object_reg: Option<Register>,
-    ) {
-        match *call_type {
-            CallType::Ctor(_, _) => {
-                let ty = arg_types.first().cloned().unwrap();
-
-                let cls_id = ty.cls_id().expect("should be class");
-                let type_params = ty.type_params();
-
-                let idx = self.builder.add_const_cls_types(
-                    ClassId(cls_id.index().try_into().expect("overflow")),
-                    bty_array_from_ty(&type_params),
-                );
-                self.builder
-                    .emit_new_object(object_reg.expect("reg missing"), idx, location);
-            }
-            _ => {}
-        }
-    }
-
     fn emit_call_inst(
         &mut self,
         call_type: &CallType,
@@ -1500,16 +1471,10 @@ impl<'a> AstBytecodeGen<'a> {
         return_reg: Register,
     ) {
         match *call_type {
-            CallType::CtorParent(_, _) | CallType::Ctor(_, _) => {
-                let dest_reg = self.ensure_unit_register();
-                self.builder
-                    .emit_invoke_direct(dest_reg, callee_idx, location);
-            }
-
             CallType::Method(_, _, _) => {
                 self.emit_invoke_direct(return_type, return_reg, callee_idx, location);
             }
-            CallType::ModuleMethod(_, _, _) | CallType::Fct(_, _) => {
+            CallType::Fct(_, _) => {
                 self.emit_invoke_static(return_type, return_reg, callee_idx, location);
             }
             CallType::Expr(_, _, _) => {
@@ -1528,33 +1493,7 @@ impl<'a> AstBytecodeGen<'a> {
             CallType::Intrinsic(_) => unreachable!(),
             CallType::Struct(_, _) => unreachable!(),
             CallType::Lambda(_, _) => unreachable!(),
-            CallType::Class2Ctor(_, _) => unreachable!(),
-        }
-    }
-
-    fn emit_call_result(
-        &mut self,
-        call_type: &CallType,
-        dest: DataDest,
-        return_reg: Register,
-        obj_reg: Option<Register>,
-    ) -> Register {
-        if call_type.is_ctor_new() {
-            let obj_reg = obj_reg.unwrap();
-            match dest {
-                DataDest::Effect => {
-                    self.free_if_temp(obj_reg);
-                    Register::invalid()
-                }
-                DataDest::Alloc => obj_reg,
-                DataDest::Reg(dest_reg) => {
-                    self.builder.emit_mov(dest_reg, obj_reg);
-                    self.free_if_temp(obj_reg);
-                    dest_reg
-                }
-            }
-        } else {
-            return_reg
+            CallType::ClassCtor(_, _) => unreachable!(),
         }
     }
 
@@ -2920,15 +2859,7 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn determine_call_type_params(&self, call_type: &CallType) -> SourceTypeArray {
         match call_type {
-            CallType::CtorParent(ty, _) | CallType::Ctor(ty, _) => ty.type_params(),
-
             CallType::Method(_, _, ref type_params) => type_params.clone(),
-
-            CallType::ModuleMethod(ty, _, ref fct_type_params) => {
-                let cls_type_params = ty.type_params();
-                assert!(cls_type_params.is_empty());
-                fct_type_params.clone()
-            }
 
             CallType::Fct(_, ref type_params) => type_params.clone(),
 
@@ -2942,7 +2873,7 @@ impl<'a> AstBytecodeGen<'a> {
             CallType::Intrinsic(_) => unreachable!(),
             CallType::Struct(_, _) => unreachable!(),
             CallType::Lambda(_, _) => unreachable!(),
-            CallType::Class2Ctor(_, _) => unreachable!(),
+            CallType::ClassCtor(_, _) => unreachable!(),
         }
     }
 
@@ -2978,17 +2909,6 @@ impl<'a> AstBytecodeGen<'a> {
 
             CallType::Method(_, _, ref type_params) => specialize_type(self.sa, ty, type_params),
 
-            CallType::ModuleMethod(cls_ty, _, ref fct_type_params) => {
-                let cls_type_params = cls_ty.type_params();
-                let type_params = cls_type_params.connect(fct_type_params);
-                specialize_type(self.sa, ty, &type_params)
-            }
-
-            CallType::CtorParent(cls_ty, _) | CallType::Ctor(cls_ty, _) => {
-                let cls_type_params = cls_ty.type_params();
-                specialize_type(self.sa, ty, &cls_type_params)
-            }
-
             CallType::Expr(_, _, ref type_params) => specialize_type(self.sa, ty, type_params),
 
             CallType::TraitObjectMethod(trait_ty, _) => {
@@ -3008,7 +2928,7 @@ impl<'a> AstBytecodeGen<'a> {
             CallType::Intrinsic(_) => unreachable!(),
             CallType::Struct(_, _) => unreachable!(),
             CallType::Lambda(_, _) => unreachable!(),
-            CallType::Class2Ctor(_, _) => unreachable!(),
+            CallType::ClassCtor(_, _) => unreachable!(),
         }
     }
 

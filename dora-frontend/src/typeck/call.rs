@@ -631,7 +631,7 @@ fn check_expr_call_class(
 
     ck.analysis
         .map_calls
-        .insert(e.id, Arc::new(CallType::Class2Ctor(cls.id(), type_params)));
+        .insert(e.id, Arc::new(CallType::ClassCtor(cls.id(), type_params)));
 
     ck.analysis.set_ty(e.id, cls_ty.clone());
     cls_ty
