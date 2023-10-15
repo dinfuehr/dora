@@ -266,16 +266,13 @@ pub struct ForTypeInfo {
 
 #[derive(Debug, Clone)]
 pub enum CallType {
-    // Function calls, e.g. fct(<args>) or Class::static_fct(<args>)
+    // Function calls, e.g. fct(<args>) or Class::static_fct(<args>).
     Fct(FctDefinitionId, SourceTypeArray),
 
-    // Direct or virtual method calls, e.g. obj.method(<args>)
+    // Direct or virtual method calls, e.g. obj.method(<args>).
     Method(SourceType, FctDefinitionId, SourceTypeArray),
 
-    // Class constructor of new class syntax, i.e. ClassName(<args>).
-    ClassCtor(ClassDefinitionId, SourceTypeArray),
-
-    // Invoke on expression, e.g. <expr>(<args>)
+    // Invoke on expression, e.g. <expr>(<args>). Used for array loads/stores.
     Expr(SourceType, FctDefinitionId, SourceTypeArray),
 
     // Invoke method on trait object
@@ -287,13 +284,16 @@ pub enum CallType {
     // Invoke static trait method on type param, e.g. T::method()
     GenericStaticMethod(TypeParamId, TraitDefinitionId, FctDefinitionId),
 
+    // Class constructor of new class syntax, i.e. ClassName(<args>).
+    NewClass(ClassDefinitionId, SourceTypeArray),
+
     // Construct enum value
-    Enum(SourceType, u32),
+    NewEnum(SourceType, u32),
 
     // Struct constructor call Struct(<args>)
-    Struct(StructDefinitionId, SourceTypeArray),
+    NewStruct(StructDefinitionId, SourceTypeArray),
 
-    // Used for *internal* functions (those are not exposed to Dora as Fct)
+    // Used for internal functions (those are not exposed to Dora as Fct). Used for enum comparisons.
     Intrinsic(Intrinsic),
 
     // Call to lambda,
@@ -324,7 +324,7 @@ impl CallType {
 
     pub fn is_enum(&self) -> bool {
         match *self {
-            CallType::Enum(_, _) => true,
+            CallType::NewEnum(_, _) => true,
             _ => false,
         }
     }
@@ -337,11 +337,12 @@ impl CallType {
             CallType::TraitObjectMethod(_, fctid) => Some(fctid),
             CallType::GenericMethod(_, _, fctid) => Some(fctid),
             CallType::GenericStaticMethod(_, _, fctid) => Some(fctid),
-            CallType::Intrinsic(_) => None,
-            CallType::Enum(_, _) => None,
-            CallType::Struct(_, _) => None,
-            CallType::Lambda(_, _) => None,
-            CallType::ClassCtor(_, _) => None,
+
+            CallType::NewClass(..)
+            | CallType::NewStruct(..)
+            | CallType::NewEnum(..)
+            | CallType::Lambda(..)
+            | CallType::Intrinsic(..) => None,
         }
     }
 }

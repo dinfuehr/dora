@@ -526,7 +526,7 @@ fn check_expr_call_struct(
 
     ck.analysis
         .map_calls
-        .insert(e.id, Arc::new(CallType::Struct(struct_id, type_params)));
+        .insert(e.id, Arc::new(CallType::NewStruct(struct_id, type_params)));
 
     ck.analysis.set_ty(e.id, ty.clone());
     ty
@@ -631,7 +631,7 @@ fn check_expr_call_class(
 
     ck.analysis
         .map_calls
-        .insert(e.id, Arc::new(CallType::ClassCtor(cls.id(), type_params)));
+        .insert(e.id, Arc::new(CallType::NewClass(cls.id(), type_params)));
 
     ck.analysis.set_ty(e.id, cls_ty.clone());
     cls_ty

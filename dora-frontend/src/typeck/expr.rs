@@ -1399,7 +1399,7 @@ pub(super) fn check_enum_value_with_args(
 
     ck.analysis
         .map_calls
-        .insert(e.id, Arc::new(CallType::Enum(ty.clone(), variant_idx)));
+        .insert(e.id, Arc::new(CallType::NewEnum(ty.clone(), variant_idx)));
 
     ck.analysis.set_ty(e.id, ty.clone());
     ty

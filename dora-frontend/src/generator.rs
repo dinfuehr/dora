@@ -1070,15 +1070,15 @@ impl<'a> AstBytecodeGen<'a> {
         let call_type = self.analysis.map_calls.get(expr.id).unwrap().clone();
 
         match *call_type {
-            CallType::Enum(ref enum_ty, variant_idx) => {
+            CallType::NewEnum(ref enum_ty, variant_idx) => {
                 return self.visit_expr_call_enum(expr, enum_ty.clone(), variant_idx, dest);
             }
 
-            CallType::Struct(struct_id, ref type_params) => {
+            CallType::NewStruct(struct_id, ref type_params) => {
                 return self.visit_expr_call_struct(expr, struct_id, type_params, dest);
             }
 
-            CallType::ClassCtor(cls_id, ref type_params) => {
+            CallType::NewClass(cls_id, ref type_params) => {
                 return self.visit_expr_call_class(expr, cls_id, type_params, dest);
             }
 
@@ -1102,13 +1102,12 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         // Find method that is called
-        let callee_id = self.determine_callee(&call_type);
+        let callee_id = call_type.fct_id().expect("FctId missing");
 
         let callee = self.sa.fcts.idx(callee_id);
         let callee = callee.read();
 
-        // Create FctDefId for this Fct
-        let callee_idx = self.specialize_call(&callee, &call_type);
+        let callee_idx = self.add_const_pool_entry_for_call(&callee, &call_type);
 
         // Determine types for arguments and return values
         let (arg_types, _, return_type) = self.determine_callee_types(&call_type, &*callee);
@@ -1142,11 +1141,8 @@ impl<'a> AstBytecodeGen<'a> {
             return_reg,
         );
 
-        // Store result
         if let Some(obj_reg) = object_argument {
-            if obj_reg != return_reg {
-                self.free_if_temp(obj_reg);
-            }
+            self.free_if_temp(obj_reg);
         }
 
         for arg_reg in arguments {
@@ -1303,10 +1299,6 @@ impl<'a> AstBytecodeGen<'a> {
         dest_reg
     }
 
-    fn determine_callee(&mut self, call_type: &CallType) -> FctDefinitionId {
-        call_type.fct_id().expect("FctId missing")
-    }
-
     fn determine_callee_types(
         &mut self,
         call_type: &CallType,
@@ -1361,7 +1353,8 @@ impl<'a> AstBytecodeGen<'a> {
                 Some(reg)
             }
             CallType::Expr(_, _, _) => Some(gen_expr(self, &expr.callee, DataDest::Alloc)),
-            _ => None,
+            CallType::GenericStaticMethod(..) | CallType::Fct(..) => None,
+            _ => panic!("unexpected call type {:?}", call_type),
         }
     }
 
@@ -1489,11 +1482,11 @@ impl<'a> AstBytecodeGen<'a> {
             CallType::GenericStaticMethod(_, _, _) => {
                 self.emit_invoke_generic_static(return_type, return_reg, callee_idx, location);
             }
-            CallType::Enum(_, _) => unreachable!(),
-            CallType::Intrinsic(_) => unreachable!(),
-            CallType::Struct(_, _) => unreachable!(),
-            CallType::Lambda(_, _) => unreachable!(),
-            CallType::ClassCtor(_, _) => unreachable!(),
+            CallType::NewClass(..)
+            | CallType::NewStruct(..)
+            | CallType::NewEnum(..)
+            | CallType::Intrinsic(..)
+            | CallType::Lambda(..) => unreachable!(),
         }
     }
 
@@ -1775,13 +1768,12 @@ impl<'a> AstBytecodeGen<'a> {
         let opnd = gen_expr(self, &expr.opnd, DataDest::Alloc);
 
         let call_type = self.analysis.map_calls.get(expr.id).unwrap();
-        let callee_id = self.determine_callee(call_type);
+        let callee_id = call_type.fct_id().expect("FctId missing");
 
         let callee = self.sa.fcts.idx(callee_id);
         let callee = callee.read();
 
-        // Create FctDefId for this callee
-        let callee_idx = self.specialize_call(&callee, &call_type);
+        let callee_idx = self.add_const_pool_entry_for_call(&callee, &call_type);
 
         let function_return_type: SourceType =
             self.specialize_type_for_call(call_type, callee.return_type.clone());
@@ -1838,13 +1830,12 @@ impl<'a> AstBytecodeGen<'a> {
         let rhs = gen_expr(self, &expr.rhs, DataDest::Alloc);
 
         let call_type = self.analysis.map_calls.get(expr.id).unwrap();
-        let callee_id = self.determine_callee(call_type);
+        let callee_id = call_type.fct_id().expect("FctId missing");
 
         let callee = self.sa.fcts.idx(callee_id);
         let callee = callee.read();
 
-        // Create FctDefId for this callee
-        let callee_idx = self.specialize_call(&callee, &call_type);
+        let callee_idx = self.add_const_pool_entry_for_call(&callee, &call_type);
 
         let function_return_type: SourceType =
             self.specialize_type_for_call(call_type, callee.return_type.clone());
@@ -2869,15 +2860,19 @@ impl<'a> AstBytecodeGen<'a> {
             CallType::GenericMethod(_, _, _) => SourceTypeArray::empty(),
             CallType::GenericStaticMethod(_, _, _) => SourceTypeArray::empty(),
 
-            CallType::Enum(_, _) => unreachable!(),
-            CallType::Intrinsic(_) => unreachable!(),
-            CallType::Struct(_, _) => unreachable!(),
-            CallType::Lambda(_, _) => unreachable!(),
-            CallType::ClassCtor(_, _) => unreachable!(),
+            CallType::NewClass(..)
+            | CallType::NewStruct(..)
+            | CallType::NewEnum(..)
+            | CallType::Intrinsic(..)
+            | CallType::Lambda(..) => unreachable!(),
         }
     }
 
-    fn specialize_call(&mut self, fct: &FctDefinition, call_type: &CallType) -> ConstPoolIdx {
+    fn add_const_pool_entry_for_call(
+        &mut self,
+        fct: &FctDefinition,
+        call_type: &CallType,
+    ) -> ConstPoolIdx {
         let type_params = self.determine_call_type_params(call_type);
         assert_eq!(fct.type_params.len(), type_params.len());
 
@@ -2896,20 +2891,23 @@ impl<'a> AstBytecodeGen<'a> {
                     bty_array_from_ty(&type_params),
                 ))
             }
-            _ => self.builder.add_const_fct_types(
-                FunctionId(fct.id().0 as u32),
-                bty_array_from_ty(&type_params),
-            ),
+
+            CallType::Method(..) | CallType::Expr(..) | CallType::Fct(..) => {
+                self.builder.add_const_fct_types(
+                    FunctionId(fct.id().0 as u32),
+                    bty_array_from_ty(&type_params),
+                )
+            }
+
+            _ => panic!("unexpected call type {:?}", call_type),
         }
     }
 
     fn specialize_type_for_call(&self, call_type: &CallType, ty: SourceType) -> SourceType {
         match call_type {
-            CallType::Fct(_, ref type_params) => specialize_type(self.sa, ty, type_params),
-
-            CallType::Method(_, _, ref type_params) => specialize_type(self.sa, ty, type_params),
-
-            CallType::Expr(_, _, ref type_params) => specialize_type(self.sa, ty, type_params),
+            CallType::Fct(_, ref type_params)
+            | CallType::Expr(_, _, ref type_params)
+            | CallType::Method(_, _, ref type_params) => specialize_type(self.sa, ty, type_params),
 
             CallType::TraitObjectMethod(trait_ty, _) => {
                 let container_type_params = trait_ty.type_params();
@@ -2924,11 +2922,13 @@ impl<'a> AstBytecodeGen<'a> {
                 }
             }
 
-            CallType::Enum(_, _) => unreachable!(),
-            CallType::Intrinsic(_) => unreachable!(),
-            CallType::Struct(_, _) => unreachable!(),
-            CallType::Lambda(_, _) => unreachable!(),
-            CallType::ClassCtor(_, _) => unreachable!(),
+            CallType::Lambda(..)
+            | CallType::NewClass(..)
+            | CallType::NewStruct(..)
+            | CallType::NewEnum(..)
+            | CallType::Intrinsic(..) => {
+                unreachable!()
+            }
         }
     }
 
