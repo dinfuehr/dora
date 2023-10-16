@@ -1180,10 +1180,10 @@ fn gen_fct_call_void_with_1_arg() {
         |sa, code, fct| {
             let fct_id = fct_by_name(sa, "g");
             let expected = vec![
-                ConstInt32(r(0), 1),
-                PushRegister(r(0)),
-                InvokeStatic(r(1), ConstPoolIdx(0)),
-                Ret(r(1)),
+                ConstInt32(r(1), 1),
+                PushRegister(r(1)),
+                InvokeStatic(r(0), ConstPoolIdx(0)),
+                Ret(r(0)),
             ];
             assert_eq!(expected, code);
             assert_eq!(
@@ -1204,14 +1204,14 @@ fn gen_fct_call_void_with_3_args() {
         |sa, code, fct| {
             let fct_id = fct_by_name(sa, "g");
             let expected = vec![
-                ConstInt32(r(0), 1),
-                ConstInt32(r(1), 2),
-                ConstInt32(r(2), 3),
-                PushRegister(r(0)),
+                ConstInt32(r(1), 1),
+                ConstInt32(r(2), 2),
+                ConstInt32(r(3), 3),
                 PushRegister(r(1)),
                 PushRegister(r(2)),
-                InvokeStatic(r(3), ConstPoolIdx(0)),
-                Ret(r(3)),
+                PushRegister(r(3)),
+                InvokeStatic(r(0), ConstPoolIdx(0)),
+                Ret(r(0)),
             ];
             assert_eq!(expected, code);
             assert_eq!(
@@ -1339,11 +1339,11 @@ fn gen_method_call_void_with_1_arg() {
         |sa, code, fct| {
             let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
             let expected = vec![
-                ConstInt32(r(1), 1),
+                ConstInt32(r(2), 1),
                 PushRegister(r(0)),
-                PushRegister(r(1)),
-                InvokeDirect(r(2), ConstPoolIdx(0)),
-                Ret(r(2)),
+                PushRegister(r(2)),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
+                Ret(r(1)),
             ];
             assert_eq!(expected, code);
             assert_eq!(
@@ -1367,15 +1367,15 @@ fn gen_method_call_void_with_3_args() {
         |sa, code, fct| {
             let fct_id = cls_method_by_name(sa, "Foo", "g", false).expect("g not found");
             let expected = vec![
-                ConstInt32(r(1), 1),
-                ConstInt32(r(2), 2),
-                ConstInt32(r(3), 3),
+                ConstInt32(r(2), 1),
+                ConstInt32(r(3), 2),
+                ConstInt32(r(4), 3),
                 PushRegister(r(0)),
-                PushRegister(r(1)),
                 PushRegister(r(2)),
                 PushRegister(r(3)),
-                InvokeDirect(r(4), ConstPoolIdx(0)),
-                Ret(r(4)),
+                PushRegister(r(4)),
+                InvokeDirect(r(1), ConstPoolIdx(0)),
+                Ret(r(1)),
             ];
             assert_eq!(expected, code);
             assert_eq!(

@@ -1113,11 +1113,7 @@ impl<'a> AstBytecodeGen<'a> {
         let (arg_types, _, return_type) = self.determine_callee_types(&call_type, &*callee);
 
         // Allocate register for result
-        let return_reg = if return_type.is_unit() {
-            Register::invalid()
-        } else {
-            self.ensure_register(dest, register_bty_from_ty(return_type.clone()))
-        };
+        let return_reg = self.ensure_register(dest, register_bty_from_ty(return_type.clone()));
 
         // Evaluate object/self argument
         let object_argument = self.emit_call_object_argument(expr, &call_type);
