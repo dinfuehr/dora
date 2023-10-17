@@ -923,11 +923,12 @@ impl<'a> CopyTask<'a> {
         }
     }
 
-    fn undo_alloc_young(&mut self, size: usize) {
+    fn undo_alloc_young(&mut self, copy_addr: Address, size: usize) {
         if size < CLAB_OBJECT_SIZE {
             self.young_lab.undo_alloc(size)
         } else {
-            // can't undo mid-sized objects
+            // Can't undo mid-sized objects. Need to make the heap iterable.
+            fill_region(self.vm, copy_addr, copy_addr.offset(size));
         }
     }
 
@@ -977,11 +978,12 @@ impl<'a> CopyTask<'a> {
         }
     }
 
-    fn undo_alloc_old(&mut self, size: usize) {
+    fn undo_alloc_old(&mut self, copy_addr: Address, size: usize) {
         if size < CLAB_OBJECT_SIZE {
             self.old_lab.undo_alloc(size);
         } else {
-            // can't undo mid-sized objects
+            // Can't undo mid-sized objects. Need to make the heap iterable.
+            fill_region(self.vm, copy_addr, copy_addr.offset(size));
         }
     }
 
@@ -1065,7 +1067,7 @@ impl<'a> CopyTask<'a> {
             }
 
             Err(fwdptr) => {
-                self.undo_alloc_young(obj_size);
+                self.undo_alloc_young(copy_addr, obj_size);
                 fwdptr
             }
         }
@@ -1099,7 +1101,7 @@ impl<'a> CopyTask<'a> {
             }
 
             Err(fwdptr) => {
-                self.undo_alloc_old(obj_size);
+                self.undo_alloc_old(copy_addr, obj_size);
 
                 fwdptr
             }
