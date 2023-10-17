@@ -870,10 +870,11 @@ impl<'a> AstBytecodeGen<'a> {
         let ty = self.ty(expr.id);
 
         if let Some(ref else_block) = expr.else_block {
-            let dest = if ty.is_unit() {
-                Register::invalid()
-            } else {
-                self.ensure_register(dest, register_bty_from_ty(ty))
+            let dest = match dest {
+                DataDest::Effect => DataDest::Effect,
+                DataDest::Alloc | DataDest::Reg(..) => {
+                    DataDest::Reg(self.ensure_register(dest, register_bty_from_ty(ty)))
+                }
             };
 
             let else_lbl = self.builder.create_label();
@@ -883,17 +884,21 @@ impl<'a> AstBytecodeGen<'a> {
             self.builder.emit_jump_if_false(cond_reg, else_lbl);
             self.free_if_temp(cond_reg);
 
-            gen_expr(self, &expr.then_block, DataDest::Reg(dest));
+            gen_expr(self, &expr.then_block, dest);
 
             if !expr_always_returns(&expr.then_block) {
                 self.builder.emit_jump(end_lbl);
             }
 
             self.builder.bind_label(else_lbl);
-            gen_expr(self, else_block, DataDest::Reg(dest));
+            gen_expr(self, else_block, dest);
             self.builder.bind_label(end_lbl);
 
-            dest
+            match dest {
+                DataDest::Effect => Register::invalid(),
+                DataDest::Reg(reg) => reg,
+                DataDest::Alloc => unreachable!(),
+            }
         } else {
             // Without else-branch there can't be return value
             assert!(ty.is_unit());
@@ -1110,7 +1115,7 @@ impl<'a> AstBytecodeGen<'a> {
         let callee_idx = self.add_const_pool_entry_for_call(&callee, &call_type);
 
         // Determine types for arguments and return values
-        let (arg_types, _, return_type) = self.determine_callee_types(&call_type, &*callee);
+        let (arg_types, return_type) = self.determine_callee_types(&call_type, &*callee);
 
         // Allocate register for result
         let return_reg = self.ensure_register(dest, register_bty_from_ty(return_type.clone()));
@@ -1129,13 +1134,7 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         // Emit the actual Invoke(Direct|Static|Virtual)XXX instruction
-        self.emit_call_inst(
-            &call_type,
-            return_type,
-            self.loc(expr.span),
-            callee_idx,
-            return_reg,
-        );
+        self.emit_call_inst(return_reg, callee_idx, &call_type, self.loc(expr.span));
 
         if let Some(obj_reg) = object_argument {
             self.free_if_temp(obj_reg);
@@ -1299,7 +1298,7 @@ impl<'a> AstBytecodeGen<'a> {
         &mut self,
         call_type: &CallType,
         fct: &FctDefinition,
-    ) -> (Vec<SourceType>, Vec<BytecodeType>, SourceType) {
+    ) -> (Vec<SourceType>, SourceType) {
         let return_type = self.specialize_type_for_call(&call_type, fct.return_type.clone());
 
         let mut arg_types = Vec::with_capacity(fct.params_with_self().len());
@@ -1325,13 +1324,7 @@ impl<'a> AstBytecodeGen<'a> {
             arg_types.push(arg);
         }
 
-        let arg_bytecode_types = arg_types
-            .iter()
-            .filter(|ty| !ty.is_unit())
-            .map(|ty| bty_from_ty(ty.clone()))
-            .collect::<Vec<BytecodeType>>();
-
-        (arg_types, arg_bytecode_types, return_type)
+        (arg_types, return_type)
     }
 
     fn emit_call_object_argument(
@@ -1453,30 +1446,35 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn emit_call_inst(
         &mut self,
-        call_type: &CallType,
-        return_type: SourceType,
-        location: Location,
-        callee_idx: ConstPoolIdx,
         return_reg: Register,
+        callee_idx: ConstPoolIdx,
+        call_type: &CallType,
+        location: Location,
     ) {
         match *call_type {
             CallType::Method(_, _, _) => {
-                self.emit_invoke_direct(return_type, return_reg, callee_idx, location);
+                self.builder
+                    .emit_invoke_direct(return_reg, callee_idx, location);
             }
             CallType::Fct(_, _) => {
-                self.emit_invoke_static(return_type, return_reg, callee_idx, location);
+                self.builder
+                    .emit_invoke_static(return_reg, callee_idx, location);
             }
             CallType::Expr(_, _, _) => {
-                self.emit_invoke_direct(return_type, return_reg, callee_idx, location);
+                self.builder
+                    .emit_invoke_direct(return_reg, callee_idx, location);
             }
             CallType::TraitObjectMethod(_, _) => {
-                self.emit_invoke_virtual(return_type, return_reg, callee_idx, location);
+                self.builder
+                    .emit_invoke_virtual(return_reg, callee_idx, location);
             }
             CallType::GenericMethod(_, _, _) => {
-                self.emit_invoke_generic_direct(return_type, return_reg, callee_idx, location);
+                self.builder
+                    .emit_invoke_generic_direct(return_reg, callee_idx, location);
             }
             CallType::GenericStaticMethod(_, _, _) => {
-                self.emit_invoke_generic_static(return_type, return_reg, callee_idx, location);
+                self.builder
+                    .emit_invoke_generic_static(return_reg, callee_idx, location);
             }
             CallType::NewClass(..)
             | CallType::NewStruct(..)
@@ -1489,22 +1487,6 @@ impl<'a> AstBytecodeGen<'a> {
     fn emit_mov(&mut self, dest: Register, src: Register) {
         if dest != src {
             self.builder.emit_mov(dest, src);
-        }
-    }
-
-    fn emit_invoke_virtual(
-        &mut self,
-        return_type: SourceType,
-        return_reg: Register,
-        callee_id: ConstPoolIdx,
-        location: Location,
-    ) {
-        if return_type.is_unit() {
-            let reg = self.ensure_unit_register();
-            self.builder.emit_invoke_virtual(reg, callee_id, location);
-        } else {
-            self.builder
-                .emit_invoke_virtual(return_reg, callee_id, location);
         }
     }
 
@@ -1521,39 +1503,6 @@ impl<'a> AstBytecodeGen<'a> {
         } else {
             self.builder
                 .emit_invoke_direct(return_reg, callee_id, location);
-        }
-    }
-
-    fn emit_invoke_static(
-        &mut self,
-        return_type: SourceType,
-        return_reg: Register,
-        callee_id: ConstPoolIdx,
-        location: Location,
-    ) {
-        if return_type.is_unit() {
-            let reg = self.ensure_unit_register();
-            self.builder.emit_invoke_static(reg, callee_id, location);
-        } else {
-            self.builder
-                .emit_invoke_static(return_reg, callee_id, location);
-        }
-    }
-
-    fn emit_invoke_generic_static(
-        &mut self,
-        return_type: SourceType,
-        return_reg: Register,
-        callee_id: ConstPoolIdx,
-        location: Location,
-    ) {
-        if return_type.is_unit() {
-            let dest = self.ensure_unit_register();
-            self.builder
-                .emit_invoke_generic_static(dest, callee_id, location);
-        } else {
-            self.builder
-                .emit_invoke_generic_static(return_reg, callee_id, location);
         }
     }
 
