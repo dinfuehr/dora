@@ -17,13 +17,13 @@ fn main() {
     assert(le[Float32](10.0f32, 12.0f32));
 }
 
-fn le[T: std::traits::Comparable2](lhs: T, rhs: T): Bool {
+fn le[T: std::traits::Comparable](lhs: T, rhs: T): Bool {
     lhs <= rhs
 }
 
 struct Wrapper(value: Int64)
 
-impl std::traits::Comparable2 for Wrapper {
+impl std::traits::Comparable for Wrapper {
     fn cmp(rhs: Wrapper): std::traits::Ordering {
         self.value.cmp(rhs.value)
     }

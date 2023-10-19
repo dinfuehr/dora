@@ -4056,9 +4056,9 @@ fn gen_invoke_lambda() {
 fn gen_comparable_trait() {
     gen_fct(
         "
-        use std::traits::{Comparable2, Ordering};
+        use std::traits::{Comparable, Ordering};
         class X
-        impl Comparable2 for X {
+        impl Comparable for X {
             fn cmp(rhs: X): Ordering { Ordering::Less }
         }
         fn f(a: X, b: X): Bool {
@@ -4104,7 +4104,7 @@ fn gen_comparable_trait() {
 fn gen_comparable_trait_generic() {
     gen_fct(
         "
-        fn f[T: std::traits::Comparable2](a: T, b: T): Bool {
+        fn f[T: std::traits::Comparable](a: T, b: T): Bool {
             a < b
         }
     ",
@@ -4144,46 +4144,6 @@ fn gen_comparable_trait_generic() {
                     FunctionId(sa.known.functions.ordering_is_lt().0 as u32),
                     BytecodeTypeArray::empty()
                 )
-            );
-        },
-    );
-}
-
-#[test]
-fn gen_comparable_trait_old() {
-    gen_fct(
-        "
-        use std::traits::{Comparable, Ordering};
-        class X
-        impl Comparable for X {
-            fn compareTo(rhs: X): Int32 { 0i32 }
-        }
-        fn f(a: X, b: X): Bool {
-            a < b
-        }
-    ",
-        |sa, code, fct| {
-            let expected = vec![
-                PushRegister(r(0)),
-                PushRegister(r(1)),
-                InvokeDirect(r(3), ConstPoolIdx(0)),
-                ConstInt32(r(4), 0),
-                TestLt(r(2), r(3), r(4)),
-                Ret(r(2)),
-            ];
-            assert_eq!(expected, code);
-
-            let cls_id = cls_by_name(sa, "X");
-            let cmp_fct_id = impl_method_id_by_name(
-                sa,
-                sa.known.traits.comparable_old(),
-                "compareTo",
-                SourceType::Class(cls_id, SourceTypeArray::empty()),
-            );
-
-            assert_eq!(
-                fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(cmp_fct_id.0 as u32), BytecodeTypeArray::empty())
             );
         },
     );

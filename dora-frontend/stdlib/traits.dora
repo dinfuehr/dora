@@ -114,10 +114,6 @@ impl Ordering {
 }
 
 pub trait Comparable {
-  fn compareTo(other: Self): Int32;
-}
-
-pub trait Comparable2 {
   fn cmp(other: Self): Ordering;
 }
 

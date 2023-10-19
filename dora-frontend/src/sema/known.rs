@@ -173,7 +173,6 @@ pub struct KnownTraits {
     pub bit_or: Option<TraitDefinitionId>,
     pub bit_xor: Option<TraitDefinitionId>,
     pub comparable: Option<TraitDefinitionId>,
-    pub comparable_old: Option<TraitDefinitionId>,
     pub div: Option<TraitDefinitionId>,
     pub equals: Option<TraitDefinitionId>,
     pub shr: Option<TraitDefinitionId>,
@@ -196,7 +195,6 @@ impl KnownTraits {
             bit_or: None,
             bit_xor: None,
             comparable: None,
-            comparable_old: None,
             div: None,
             equals: None,
             shr: None,
@@ -233,10 +231,6 @@ impl KnownTraits {
 
     pub fn comparable(&self) -> TraitDefinitionId {
         self.comparable.expect("uninitialized")
-    }
-
-    pub fn comparable_old(&self) -> TraitDefinitionId {
-        self.comparable_old.expect("uninitialized")
     }
 
     pub fn div(&self) -> TraitDefinitionId {

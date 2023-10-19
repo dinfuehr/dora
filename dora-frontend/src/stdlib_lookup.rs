@@ -83,8 +83,7 @@ pub fn resolve_internal_types(sa: &mut Sema) {
     sa.known.traits.bit_and = Some(find_trait(sa, stdlib_id, "traits::BitAnd"));
     sa.known.traits.bit_or = Some(find_trait(sa, stdlib_id, "traits::BitOr"));
     sa.known.traits.bit_xor = Some(find_trait(sa, stdlib_id, "traits::BitXor"));
-    sa.known.traits.comparable = Some(find_trait(sa, stdlib_id, "traits::Comparable2"));
-    sa.known.traits.comparable_old = Some(find_trait(sa, stdlib_id, "traits::Comparable"));
+    sa.known.traits.comparable = Some(find_trait(sa, stdlib_id, "traits::Comparable"));
     sa.known.traits.div = Some(find_trait(sa, stdlib_id, "traits::Div"));
     sa.known.traits.equals = Some(find_trait(sa, stdlib_id, "traits::Equals"));
     sa.known.traits.shr = Some(find_trait(sa, stdlib_id, "traits::Shr"));
