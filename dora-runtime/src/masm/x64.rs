@@ -233,16 +233,19 @@ impl MacroAssembler {
     pub fn float_cmp_ordering(&mut self, mode: MachineMode, dest: Reg, lhs: FReg, rhs: FReg) {
         self.asm.xorl_rr(dest.into(), dest.into());
         match mode {
-            MachineMode::Float64 => self.asm.ucomisd_rr(lhs.into(), rhs.into()),
-            MachineMode::Float32 => self.asm.ucomiss_rr(lhs.into(), rhs.into()),
+            MachineMode::Float64 => self.asm.ucomisd_rr(rhs.into(), lhs.into()),
+            MachineMode::Float32 => self.asm.ucomiss_rr(rhs.into(), lhs.into()),
             _ => unreachable!(),
         }
-        self.asm.setcc_r(Condition::Below, dest.into());
         let lbl_done = self.asm.create_label();
-        self.asm.jcc(Condition::Less, lbl_done);
-        self.asm.setcc_r(Condition::Parity, dest.into());
-        self.asm.movzxb_rr(dest.into(), dest.into());
+        self.asm.jcc(Condition::Above, lbl_done);
+        let lbl_greater = self.asm.create_label();
+        self.asm.jcc(Condition::Parity, lbl_greater);
+        self.asm.jcc(Condition::NotEqual, lbl_greater);
         self.asm.addl_ri(dest.into(), Immediate(1));
+        self.asm.jmp(lbl_done);
+        self.asm.bind_label(lbl_greater);
+        self.asm.addl_ri(dest.into(), Immediate(2));
         self.asm.bind_label(lbl_done);
     }
 

@@ -852,7 +852,7 @@ impl MacroAssembler {
     }
 
     pub fn float_cmp_ordering(&mut self, mode: MachineMode, dest: Reg, lhs: FReg, rhs: FReg) {
-        self.asm.movk_w(dest.into(), 0, 0);
+        self.asm.movz_w(dest.into(), 0, 0);
         match mode {
             MachineMode::Float32 => self.asm.fcmp_s(lhs.into(), rhs.into()),
             MachineMode::Float64 => self.asm.fcmp_d(lhs.into(), rhs.into()),

@@ -1,0 +1,28 @@
+fn main() {
+    assert(ge[Int64](10, 10));
+    assert(ge[Int64](12, 10));
+
+    assert(ge[Int32](10i32, 10i32));
+    assert(ge[Int32](12i32, 10i32));
+
+    assert(ge[Wrapper](Wrapper(10), Wrapper(10)));
+    assert(ge[Wrapper](Wrapper(12), Wrapper(10)));
+
+    assert(ge[Float64](10.0f64, 10.0f64));
+    assert(ge[Float64](12.0f64, 10.0f64));
+
+    assert(ge[Float32](10.0f32, 10.0f32));
+    assert(ge[Float32](12.0f32, 10.0f32));
+}
+
+fn ge[T: std::traits::Comparable2](lhs: T, rhs: T): Bool {
+    lhs >= rhs
+}
+
+struct Wrapper(value: Int64)
+
+impl std::traits::Comparable2 for Wrapper {
+    fn cmp(rhs: Wrapper): std::traits::Ordering {
+        self.value.cmp(rhs.value)
+    }
+}
