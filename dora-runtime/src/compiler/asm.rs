@@ -345,6 +345,10 @@ impl<'a> BaselineAssembler<'a> {
         self.masm.cmp_int(mode, dest, lhs, rhs);
     }
 
+    pub fn cmp_ordering(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        self.masm.cmp_ordering(mode, dest, lhs, rhs);
+    }
+
     pub fn cmp_reg(&mut self, mode: MachineMode, lhs: Reg, rhs: Reg) {
         self.masm.cmp_reg(mode, lhs, rhs);
     }
@@ -544,6 +548,10 @@ impl<'a> BaselineAssembler<'a> {
 
     pub fn float_cmp_int(&mut self, mode: MachineMode, dest: Reg, lhs: FReg, rhs: FReg) {
         self.masm.float_cmp_int(mode, dest, lhs, rhs);
+    }
+
+    pub fn float_cmp_ordering(&mut self, mode: MachineMode, dest: Reg, lhs: FReg, rhs: FReg) {
+        self.masm.float_cmp_ordering(mode, dest, lhs, rhs);
     }
 
     pub fn float_cmp(

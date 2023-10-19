@@ -1,0 +1,30 @@
+//= ignore
+
+fn main() {
+    assert(le[Int64](10, 10));
+    assert(!le[Int64](10, 12));
+
+    assert(le[Int32](10i32, 10i32));
+    assert(!le[Int32](10i32, 12i32));
+
+    assert(le[Wrapper](Wrapper(10), Wrapper(10)));
+    assert(!le[Wrapper](Wrapper(10), Wrapper(12)));
+
+    // assert(le[Float64](10.0f64, 10.0f64));
+    // assert(!le[Float64](10.0f64, 12.0f64));
+
+    // assert(le[Float32](10.0f32, 10.0f32));
+    // assert(!le[Float32](10.0f32, 12.0f32));
+}
+
+fn le[T: std::traits::Comparable2](lhs: T, rhs: T): Bool {
+    lhs <= rhs
+}
+
+struct Wrapper(value: Int64)
+
+impl std::traits::Comparable2 for Wrapper {
+    fn cmp(rhs: Wrapper): std::traits::Ordering {
+        self.value.cmp(rhs.value)
+    }
+}

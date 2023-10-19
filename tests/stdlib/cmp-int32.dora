@@ -1,0 +1,14 @@
+use std::traits::Ordering;
+
+fn main() {
+    assert(0i32.cmp(1i32) == Ordering::Less);
+    assert(0i32.cmp(-1i32) == Ordering::Greater);
+    assert(1i32.cmp(0i32) == Ordering::Greater);
+    assert((-1i32).cmp(0i32) == Ordering::Less);
+    assert(0i32.cmp(0i32) == Ordering::Equal);
+
+    assert((-2i32).cmp(2i32) == Ordering::Less);
+    assert((2i32).cmp(-2i32) == Ordering::Greater);
+    assert((-2i32).cmp(-2i32) == Ordering::Equal);
+    assert((2i32).cmp(2i32) == Ordering::Equal);
+}

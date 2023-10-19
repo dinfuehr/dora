@@ -1107,13 +1107,6 @@ fn gen_store_global() {
 }
 
 #[test]
-fn gen_side_effect() {
-    let result = code("fn f(a: Int32) { 1; 2; 3i32 * a; \"foo\"; 1.0f32; 1.0f64; a; }");
-    let expected = vec![Ret(r(1))];
-    assert_eq!(expected, result);
-}
-
-#[test]
 fn gen_fct_call_void_with_0_args() {
     gen_fct(
         "
@@ -3538,14 +3531,15 @@ fn gen_cmp_strings() {
     gen_fct(
         "fn f(a: String, b: String): Bool { a < b }",
         |sa, code, fct| {
-            let fct_id = cls_method_by_name(sa, "String", "compareTo", false)
-                .expect("String::compareTo not found");
+            let cls_id = sa.known.classes.string();
+            let cls_ty = SourceType::Class(cls_id, SourceTypeArray::empty());
+            let fct_id = impl_method_id_by_name(sa, sa.known.traits.comparable(), "cmp", cls_ty);
             let expected = vec![
                 PushRegister(r(0)),
                 PushRegister(r(1)),
                 InvokeDirect(r(3), ConstPoolIdx(0)),
-                ConstInt32(r(4), 0),
-                TestLt(r(2), r(3), r(4)),
+                PushRegister(r(3)),
+                InvokeDirect(r(2), ConstPoolIdx(1)),
                 Ret(r(2)),
             ];
             assert_eq!(expected, code);
@@ -4054,6 +4048,143 @@ fn gen_invoke_lambda() {
                 Ret(r(1)),
             ];
             assert_eq!(expected, code);
+        },
+    );
+}
+
+#[test]
+fn gen_comparable_trait() {
+    gen_fct(
+        "
+        use std::traits::{Comparable2, Ordering};
+        class X
+        impl Comparable2 for X {
+            fn cmp(rhs: X): Ordering { Ordering::Less }
+        }
+        fn f(a: X, b: X): Bool {
+            a > b
+        }
+    ",
+        |sa, code, fct| {
+            let expected = vec![
+                PushRegister(r(0)),
+                PushRegister(r(1)),
+                InvokeDirect(r(3), ConstPoolIdx(0)),
+                PushRegister(r(3)),
+                InvokeDirect(r(2), ConstPoolIdx(1)),
+                Ret(r(2)),
+            ];
+            assert_eq!(expected, code);
+
+            let cls_id = cls_by_name(sa, "X");
+            let cmp_fct_id = impl_method_id_by_name(
+                sa,
+                sa.known.traits.comparable(),
+                "cmp",
+                SourceType::Class(cls_id, SourceTypeArray::empty()),
+            );
+
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(FunctionId(cmp_fct_id.0 as u32), BytecodeTypeArray::empty())
+            );
+
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(1)),
+                &ConstPoolEntry::Fct(
+                    FunctionId(sa.known.functions.ordering_is_gt().0 as u32),
+                    BytecodeTypeArray::empty()
+                )
+            );
+        },
+    );
+}
+
+#[test]
+fn gen_comparable_trait_generic() {
+    gen_fct(
+        "
+        fn f[T: std::traits::Comparable2](a: T, b: T): Bool {
+            a < b
+        }
+    ",
+        |sa, code, fct| {
+            let expected = vec![
+                PushRegister(r(0)),
+                PushRegister(r(1)),
+                InvokeGenericDirect(r(3), ConstPoolIdx(0)),
+                PushRegister(r(3)),
+                InvokeDirect(r(2), ConstPoolIdx(1)),
+                Ret(r(2)),
+            ];
+            assert_eq!(expected, code);
+
+            let trait_id = sa.known.traits.comparable();
+            let trait_ = sa.traits.idx(trait_id);
+            let trait_ = trait_.read();
+            let name = sa.interner.intern("cmp");
+            let cmp_fct_id = trait_
+                .instance_names
+                .get(&name)
+                .expect("missing fct")
+                .clone();
+
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Generic(
+                    0,
+                    FunctionId(cmp_fct_id.0 as u32),
+                    BytecodeTypeArray::empty()
+                )
+            );
+
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(1)),
+                &ConstPoolEntry::Fct(
+                    FunctionId(sa.known.functions.ordering_is_lt().0 as u32),
+                    BytecodeTypeArray::empty()
+                )
+            );
+        },
+    );
+}
+
+#[test]
+fn gen_comparable_trait_old() {
+    gen_fct(
+        "
+        use std::traits::{Comparable, Ordering};
+        class X
+        impl Comparable for X {
+            fn compareTo(rhs: X): Int32 { 0i32 }
+        }
+        fn f(a: X, b: X): Bool {
+            a < b
+        }
+    ",
+        |sa, code, fct| {
+            let expected = vec![
+                PushRegister(r(0)),
+                PushRegister(r(1)),
+                InvokeDirect(r(3), ConstPoolIdx(0)),
+                ConstInt32(r(4), 0),
+                TestLt(r(2), r(3), r(4)),
+                Ret(r(2)),
+            ];
+            assert_eq!(expected, code);
+
+            let cls_id = cls_by_name(sa, "X");
+            let cmp_fct_id = impl_method_id_by_name(
+                sa,
+                sa.known.traits.comparable_old(),
+                "compareTo",
+                SourceType::Class(cls_id, SourceTypeArray::empty()),
+            );
+
+            assert_eq!(
+                fct.const_pool(ConstPoolIdx(0)),
+                &ConstPoolEntry::Fct(FunctionId(cmp_fct_id.0 as u32), BytecodeTypeArray::empty())
+            );
         },
     );
 }

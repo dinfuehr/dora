@@ -1,4 +1,4 @@
-use std::traits::{Default, Equals, Zero};
+use std::traits::{Default, Equals, Zero, Ordering};
 use std::string::Stringable;
 use std::fatalError;
 
@@ -20,6 +20,10 @@ impl std::traits::Not for Bool {
 
 impl std::traits::Comparable for Bool {
   fn compareTo(other: Bool): Int32 { self.compareTo(other) }
+}
+
+impl std::traits::Comparable2 for Bool {
+  @internal fn cmp(other: Bool): Ordering;
 }
 
 impl std::traits::Equals for Bool {
@@ -180,6 +184,10 @@ impl std::traits::Sar for Int32 {
 
 impl std::traits::Comparable for Int32 {
   fn compareTo(other: Int32): Int32 { self.compareTo(other) }
+}
+
+impl std::traits::Comparable2 for Int32 {
+  @internal fn cmp(other: Int32): Ordering;
 }
 
 impl std::traits::Equals for Int32 {
@@ -458,6 +466,10 @@ impl std::traits::Comparable for Int64 {
   fn compareTo(other: Int64): Int32 { self.compareTo(other) }
 }
 
+impl std::traits::Comparable2 for Int64 {
+  @internal fn cmp(other: Int64): Ordering;
+}
+
 impl std::traits::Equals for Int64 {
   @internal fn equals(other: Int64): Bool;
 }
@@ -541,6 +553,10 @@ impl std::traits::Neg for Float32 {
 
 impl std::traits::Comparable for Float32 {
   fn compareTo(other: Float32): Int32 { self.compareTo(other) }
+}
+
+impl std::traits::Comparable2 for Float32 {
+  @internal fn cmp(other: Float32): Ordering;
 }
 
 impl std::traits::Equals for Float32 {
@@ -628,6 +644,10 @@ impl std::traits::Comparable for Float64 {
   fn compareTo(other: Float64): Int32 { self.compareTo(other) }
 }
 
+impl std::traits::Comparable2 for Float64 {
+  @internal fn cmp(other: Float64): Ordering;
+}
+
 impl std::traits::Equals for Float64 {
   @internal fn equals(other: Float64): Bool;
 }
@@ -667,6 +687,10 @@ impl UInt8 {
 
 impl std::traits::Comparable for UInt8 {
   fn compareTo(other: UInt8): Int32 { self.compareTo(other) }
+}
+
+impl std::traits::Comparable2 for UInt8 {
+  @internal fn cmp(other: UInt8): Ordering;
 }
 
 impl std::traits::Equals for UInt8 {

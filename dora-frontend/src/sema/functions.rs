@@ -263,6 +263,13 @@ impl FctParent {
         }
     }
 
+    pub fn is_impl(&self) -> bool {
+        match self {
+            &FctParent::Impl(..) => true,
+            _ => false,
+        }
+    }
+
     pub fn is_trait(&self) -> bool {
         match self {
             &FctParent::Trait(_) => true,
@@ -292,13 +299,10 @@ pub fn emit_as_bytecode_operation(intrinsic: Intrinsic) -> bool {
         | Intrinsic::BoolNot
         | Intrinsic::BoolToInt64
         | Intrinsic::UInt8Eq
-        | Intrinsic::UInt8Cmp
         | Intrinsic::CharEq
-        | Intrinsic::CharCmp
         | Intrinsic::EnumEq
         | Intrinsic::EnumNe
         | Intrinsic::Int32Eq
-        | Intrinsic::Int32Cmp
         | Intrinsic::Int32Add
         | Intrinsic::Int32Sub
         | Intrinsic::Int32Mul
@@ -313,7 +317,6 @@ pub fn emit_as_bytecode_operation(intrinsic: Intrinsic) -> bool {
         | Intrinsic::Int32Not
         | Intrinsic::Int32Neg
         | Intrinsic::Int64Eq
-        | Intrinsic::Int64Cmp
         | Intrinsic::Int64Add
         | Intrinsic::Int64Sub
         | Intrinsic::Int64Mul
@@ -328,7 +331,6 @@ pub fn emit_as_bytecode_operation(intrinsic: Intrinsic) -> bool {
         | Intrinsic::Int64Not
         | Intrinsic::Int64Neg
         | Intrinsic::Float32Eq
-        | Intrinsic::Float32Cmp
         | Intrinsic::Float32Add
         | Intrinsic::Float32Sub
         | Intrinsic::Float32Mul
@@ -336,7 +338,6 @@ pub fn emit_as_bytecode_operation(intrinsic: Intrinsic) -> bool {
         | Intrinsic::Float32Neg
         | Intrinsic::Float32IsNan
         | Intrinsic::Float64Eq
-        | Intrinsic::Float64Cmp
         | Intrinsic::Float64Add
         | Intrinsic::Float64Sub
         | Intrinsic::Float64Mul

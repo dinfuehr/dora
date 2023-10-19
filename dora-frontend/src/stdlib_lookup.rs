@@ -84,6 +84,7 @@ pub fn resolve_internal_types(sa: &mut Sema) {
     sa.known.traits.bit_or = Some(find_trait(sa, stdlib_id, "traits::BitOr"));
     sa.known.traits.bit_xor = Some(find_trait(sa, stdlib_id, "traits::BitXor"));
     sa.known.traits.comparable = Some(find_trait(sa, stdlib_id, "traits::Comparable2"));
+    sa.known.traits.comparable_old = Some(find_trait(sa, stdlib_id, "traits::Comparable"));
     sa.known.traits.div = Some(find_trait(sa, stdlib_id, "traits::Div"));
     sa.known.traits.equals = Some(find_trait(sa, stdlib_id, "traits::Equals"));
     sa.known.traits.shr = Some(find_trait(sa, stdlib_id, "traits::Shr"));
@@ -662,6 +663,14 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         "compareTo",
         Intrinsic::UInt8Cmp,
     );
+    intrinsic_impl_method(
+        sa,
+        stdlib_id,
+        "primitives::UInt8",
+        sa.known.traits.comparable(),
+        "cmp",
+        Intrinsic::UInt8CmpNew,
+    );
     intrinsic_method(
         sa,
         stdlib_id,
@@ -750,6 +759,14 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         "primitives::Int32",
         "compareTo",
         Intrinsic::Int32Cmp,
+    );
+    intrinsic_impl_method(
+        sa,
+        stdlib_id,
+        "primitives::Int32",
+        sa.known.traits.comparable(),
+        "cmp",
+        Intrinsic::Int32CmpNew,
     );
 
     intrinsic_impl_method(
@@ -1005,6 +1022,14 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         "primitives::Int64",
         "compareTo",
         Intrinsic::Int64Cmp,
+    );
+    intrinsic_impl_method(
+        sa,
+        stdlib_id,
+        "primitives::Int64",
+        sa.known.traits.comparable(),
+        "cmp",
+        Intrinsic::Int64CmpNew,
     );
 
     intrinsic_impl_method(
@@ -1286,6 +1311,14 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         "compareTo",
         Intrinsic::Float32Cmp,
     );
+    intrinsic_impl_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
+        sa.known.traits.comparable(),
+        "cmp",
+        Intrinsic::Float32CmpNew,
+    );
 
     intrinsic_impl_method(
         sa,
@@ -1425,6 +1458,14 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         "primitives::Float64",
         "compareTo",
         Intrinsic::Float64Cmp,
+    );
+    intrinsic_impl_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
+        sa.known.traits.comparable(),
+        "cmp",
+        Intrinsic::Float64CmpNew,
     );
 
     intrinsic_impl_method(

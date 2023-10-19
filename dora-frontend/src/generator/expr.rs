@@ -1,8 +1,10 @@
-use dora_bytecode::{BytecodeType, EnumId, Label, Register};
-use dora_parser::ast;
+use dora_bytecode::{
+    BytecodeType, BytecodeTypeArray, EnumId, FunctionId, Intrinsic, Label, Register,
+};
+use dora_parser::ast::{self, CmpOp};
 
 use crate::generator::{bty_array_from_ty, register_bty_from_ty, AstBytecodeGen, DataDest};
-use crate::sema::{EnumDefinitionId, IdentType};
+use crate::sema::{EnumDefinitionId, FctDefinition, FctParent, IdentType, Sema};
 use crate::ty::SourceType;
 
 pub(super) fn gen_expr(g: &mut AstBytecodeGen, expr: &ast::ExprData, dest: DataDest) -> Register {
@@ -35,6 +37,207 @@ pub(super) fn gen_expr(g: &mut AstBytecodeGen, expr: &ast::ExprData, dest: DataD
         ast::ExprData::Return(ref ret) => g.visit_expr_return(ret, dest),
         ast::ExprData::Error { .. } => unreachable!(),
     }
+}
+
+pub(super) fn gen_expr_bin_cmp(
+    g: &mut AstBytecodeGen,
+    node: &ast::ExprBinType,
+    cmp_op: CmpOp,
+    dest: DataDest,
+) -> Register {
+    let lhs = gen_expr(g, &node.lhs, DataDest::Alloc);
+    let rhs = gen_expr(g, &node.rhs, DataDest::Alloc);
+
+    let result = if let Some(info) = g.get_intrinsic(node.id) {
+        gen_expr_bin_cmp_as_intrinsic(g, cmp_op, info.intrinsic, dest, lhs, rhs)
+    } else {
+        gen_expr_bin_cmp_as_method(g, node, cmp_op, dest, lhs, rhs)
+    };
+
+    g.free_if_temp(lhs);
+    g.free_if_temp(rhs);
+
+    result
+}
+
+fn gen_expr_bin_cmp_as_intrinsic(
+    g: &mut AstBytecodeGen,
+    cmp_op: CmpOp,
+    intrinsic: Intrinsic,
+    dest: DataDest,
+    lhs: Register,
+    rhs: Register,
+) -> Register {
+    let dest = g.ensure_register(dest, BytecodeType::Bool);
+
+    match intrinsic {
+        Intrinsic::BoolEq
+        | Intrinsic::UInt8Eq
+        | Intrinsic::CharEq
+        | Intrinsic::EnumEq
+        | Intrinsic::EnumNe
+        | Intrinsic::Int32Eq
+        | Intrinsic::Int64Eq
+        | Intrinsic::Float32Eq
+        | Intrinsic::Float64Eq => match cmp_op {
+            CmpOp::Eq => g.builder.emit_test_eq(dest, lhs, rhs),
+            CmpOp::Ne => g.builder.emit_test_ne(dest, lhs, rhs),
+            _ => unreachable!(),
+        },
+        Intrinsic::UInt8Cmp
+        | Intrinsic::CharCmp
+        | Intrinsic::Int32Cmp
+        | Intrinsic::Int64Cmp
+        | Intrinsic::Float32Cmp
+        | Intrinsic::Float64Cmp
+        | Intrinsic::UInt8CmpNew
+        | Intrinsic::CharCmpNew
+        | Intrinsic::Int32CmpNew
+        | Intrinsic::Int64CmpNew
+        | Intrinsic::Float32CmpNew
+        | Intrinsic::Float64CmpNew => match cmp_op {
+            CmpOp::Lt => g.builder.emit_test_lt(dest, lhs, rhs),
+            CmpOp::Le => g.builder.emit_test_le(dest, lhs, rhs),
+            CmpOp::Ge => g.builder.emit_test_ge(dest, lhs, rhs),
+            CmpOp::Gt => g.builder.emit_test_gt(dest, lhs, rhs),
+            _ => unreachable!(),
+        },
+
+        _ => unreachable!(),
+    }
+
+    dest
+}
+
+fn gen_expr_bin_cmp_as_method(
+    g: &mut AstBytecodeGen,
+    node: &ast::ExprBinType,
+    cmp_op: CmpOp,
+    dest: DataDest,
+    lhs: Register,
+    rhs: Register,
+) -> Register {
+    let call_type = g.analysis.map_calls.get(node.id).unwrap();
+    let callee_id = call_type.fct_id().expect("FctId missing");
+
+    let callee = g.sa.fcts.idx(callee_id);
+    let callee = callee.read();
+
+    let callee_idx = g.add_const_pool_entry_for_call(&callee, &call_type);
+
+    let function_return_type: SourceType =
+        g.specialize_type_for_call(call_type, callee.return_type.clone());
+
+    let function_return_type_bc: BytecodeType = register_bty_from_ty(function_return_type.clone());
+
+    let return_type = BytecodeType::Bool;
+
+    let dest = g.ensure_register(dest, return_type.clone());
+
+    let result = if function_return_type_bc == return_type {
+        dest
+    } else {
+        let function_result_register_ty: BytecodeType =
+            register_bty_from_ty(function_return_type.clone());
+        g.alloc_temp(function_result_register_ty)
+    };
+
+    g.builder.emit_push_register(lhs);
+    g.builder.emit_push_register(rhs);
+
+    if call_type.is_generic_method() {
+        g.emit_invoke_generic_direct(function_return_type, result, callee_idx, g.loc(node.span));
+    } else {
+        g.emit_invoke_direct(function_return_type, result, callee_idx, g.loc(node.span));
+    }
+
+    match cmp_op {
+        CmpOp::Eq => assert_eq!(result, dest),
+
+        CmpOp::Ne => {
+            assert_eq!(result, dest);
+            g.builder.emit_not(dest, dest);
+        }
+
+        CmpOp::Ge | CmpOp::Gt | CmpOp::Le | CmpOp::Lt => {
+            assert_ne!(result, dest);
+
+            if is_comparable_method(g.sa, &*callee) {
+                convert_ordering_to_bool(g, node, cmp_op, result, dest);
+            } else {
+                convert_int_cmp_to_bool(g, cmp_op, result, dest);
+            }
+        }
+
+        CmpOp::Is | CmpOp::IsNot => unreachable!(),
+    }
+
+    if dest != result {
+        g.free_temp(result);
+    }
+
+    dest
+}
+
+fn is_comparable_method(sa: &Sema, fct: &FctDefinition) -> bool {
+    match fct.parent {
+        FctParent::Impl(impl_id) => {
+            let impl_ = sa.impls.idx(impl_id);
+            let impl_ = impl_.read();
+
+            impl_.trait_id() == sa.known.traits.comparable()
+        }
+
+        FctParent::Trait(trait_id) => trait_id == sa.known.traits.comparable(),
+
+        _ => false,
+    }
+}
+
+fn convert_ordering_to_bool(
+    g: &mut AstBytecodeGen,
+    node: &ast::ExprBinType,
+    cmp_op: CmpOp,
+    result: Register,
+    dest: Register,
+) {
+    let fct_id = match cmp_op {
+        CmpOp::Lt => g.sa.known.functions.ordering_is_lt(),
+        CmpOp::Le => g.sa.known.functions.ordering_is_le(),
+        CmpOp::Gt => g.sa.known.functions.ordering_is_gt(),
+        CmpOp::Ge => g.sa.known.functions.ordering_is_ge(),
+        ast::CmpOp::Eq | ast::CmpOp::Ne | ast::CmpOp::Is | ast::CmpOp::IsNot => {
+            unreachable!()
+        }
+    };
+
+    g.builder.emit_push_register(result);
+    let idx = g
+        .builder
+        .add_const_fct_types(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty());
+    g.builder.emit_invoke_direct(dest, idx, g.loc(node.span));
+}
+
+fn convert_int_cmp_to_bool(
+    g: &mut AstBytecodeGen,
+    cmp_op: CmpOp,
+    result: Register,
+    dest: Register,
+) {
+    let zero = g.alloc_temp(BytecodeType::Int32);
+    g.builder.emit_const_int32(zero, 0);
+
+    match cmp_op {
+        CmpOp::Lt => g.builder.emit_test_lt(dest, result, zero),
+        CmpOp::Le => g.builder.emit_test_le(dest, result, zero),
+        CmpOp::Gt => g.builder.emit_test_gt(dest, result, zero),
+        CmpOp::Ge => g.builder.emit_test_ge(dest, result, zero),
+        ast::CmpOp::Eq | ast::CmpOp::Ne | ast::CmpOp::Is | ast::CmpOp::IsNot => {
+            unreachable!()
+        }
+    }
+
+    g.free_temp(zero);
 }
 
 pub(super) fn gen_match(

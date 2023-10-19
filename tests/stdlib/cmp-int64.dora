@@ -1,0 +1,20 @@
+use std::traits::Ordering;
+
+fn main() {
+    assert(0.cmp(1) == Ordering::Less);
+    assert(0.cmp(-1) == Ordering::Greater);
+    assert(1.cmp(0) == Ordering::Greater);
+    assert((-1).cmp(0) == Ordering::Less);
+    assert(0.cmp(0) == Ordering::Equal);
+
+    assert((-2).cmp(2) == Ordering::Less);
+    assert((2).cmp(-2) == Ordering::Greater);
+    assert((-2).cmp(-2) == Ordering::Equal);
+    assert((2).cmp(2) == Ordering::Equal);
+
+    assert(5.cmp(7) == Ordering::Less);
+    assert(7.cmp(5) == Ordering::Greater);
+
+    assert((-7).cmp(-5) == Ordering::Less);
+    assert((-5).cmp(-7) == Ordering::Greater);
+}

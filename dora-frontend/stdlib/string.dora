@@ -1,4 +1,5 @@
 use std::fatalError;
+use std::traits::Ordering;
 
 pub @internal class String
 
@@ -209,6 +210,19 @@ impl std::traits::Add for String {
 
 impl std::traits::Comparable for String {
   fn compareTo(other: String): Int32 { self.compareTo(other) }
+}
+
+impl std::traits::Comparable2 for String {
+  fn cmp(other: String): Ordering {
+    let result = self.compareTo(other);
+    if result < 0i32 {
+      Ordering::Less
+    } else if result == 0i32 {
+      Ordering::Equal
+    } else {
+      Ordering::Greater
+    }
+  }
 }
 
 impl std::traits::Equals for String {

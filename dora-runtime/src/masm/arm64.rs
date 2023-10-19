@@ -799,6 +799,26 @@ impl MacroAssembler {
         }
     }
 
+    pub fn cmp_ordering(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
+        self.asm.movz_w(dest.into(), 0, 0);
+        match mode {
+            MachineMode::Int8 | MachineMode::Int32 => {
+                self.asm.cmp_w(lhs.into(), rhs.into());
+            }
+
+            MachineMode::Int64 => {
+                self.asm.cmp(lhs.into(), rhs.into());
+            }
+
+            _ => unreachable!(),
+        }
+        let lbl_done = self.asm.create_label();
+        self.asm.bc(Cond::MI, lbl_done);
+        self.asm.cset(dest.into(), Cond::NE);
+        self.asm.add_imm(dest.into(), dest.into(), 1);
+        self.asm.bind_label(lbl_done);
+    }
+
     pub fn cmp_int(&mut self, mode: MachineMode, dest: Reg, lhs: Reg, rhs: Reg) {
         match mode {
             MachineMode::Int8 | MachineMode::Int32 => {
@@ -829,6 +849,20 @@ impl MacroAssembler {
         self.asm.movn_w((*scratch).into(), 0, 0);
         self.asm
             .csel_w(dest.into(), (*scratch).into(), dest.into(), Cond::MI);
+    }
+
+    pub fn float_cmp_ordering(&mut self, mode: MachineMode, dest: Reg, lhs: FReg, rhs: FReg) {
+        self.asm.movk_w(dest.into(), 0, 0);
+        match mode {
+            MachineMode::Float32 => self.asm.fcmp_s(lhs.into(), rhs.into()),
+            MachineMode::Float64 => self.asm.fcmp_d(lhs.into(), rhs.into()),
+            _ => unimplemented!(),
+        }
+        let lbl_done = self.asm.create_label();
+        self.asm.bc(Cond::LT, lbl_done);
+        self.asm.cset(dest.into(), Cond::NE);
+        self.asm.add_imm(dest.into(), dest.into(), 1);
+        self.asm.bind_label(lbl_done);
     }
 
     pub fn float_cmp(

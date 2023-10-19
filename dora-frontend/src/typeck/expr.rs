@@ -1087,13 +1087,13 @@ fn check_expr_bin_trait_or_method(
         &ck.type_param_defs,
         trait_ty.clone(),
     );
+    let trait_method_name = ck.sa.interner.intern(trait_method_name);
 
     if let Some(impl_id) = impl_id {
         let type_params = impl_matches(ck.sa, lhs_type.clone(), ck.type_param_defs, impl_id)
             .expect("impl does not match");
 
         let impl_ = ck.sa.impls[impl_id].read();
-        let trait_method_name = ck.sa.interner.intern(trait_method_name);
         let method_id = impl_
             .instance_names
             .get(&trait_method_name)
@@ -1124,6 +1124,59 @@ fn check_expr_bin_trait_or_method(
         }
 
         let return_type = method.return_type.clone();
+        ck.analysis.set_ty(e.id, return_type.clone());
+
+        return_type
+    } else if lhs_type.is_type_param()
+        && implements_trait(ck.sa, lhs_type.clone(), ck.type_param_defs, trait_ty)
+    {
+        let trait_ = ck.sa.traits.idx(trait_id);
+        let trait_ = trait_.read();
+
+        let method_id = trait_
+            .instance_names
+            .get(&trait_method_name)
+            .cloned()
+            .expect("method not found");
+
+        let method = ck.sa.fcts.idx(method_id);
+        let method = method.read();
+
+        let params = method.params_without_self();
+
+        let call_type = CallType::GenericMethod(
+            lhs_type.type_param_id().expect("type param expected"),
+            trait_id,
+            method_id,
+        );
+        ck.analysis
+            .map_calls
+            .insert_or_replace(e.id, Arc::new(call_type));
+
+        let param = params[0].clone();
+        let param = replace_type_param(
+            ck.sa,
+            param,
+            &SourceTypeArray::empty(),
+            Some(lhs_type.clone()),
+        );
+
+        if !param.allows(ck.sa, rhs_type.clone()) {
+            let lhs_type = ck.ty_name(&lhs_type);
+            let rhs_type = ck.ty_name(&rhs_type);
+            let msg = ErrorMessage::BinOpType(op.as_str().into(), lhs_type, rhs_type);
+
+            ck.sa.report(ck.file_id, e.span, msg);
+        }
+
+        let return_type = method.return_type.clone();
+        let return_type = replace_type_param(
+            ck.sa,
+            return_type,
+            &SourceTypeArray::empty(),
+            Some(lhs_type.clone()),
+        );
+
         ck.analysis.set_ty(e.id, return_type.clone());
 
         return_type
