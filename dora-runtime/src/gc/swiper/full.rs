@@ -1,4 +1,3 @@
-use std::cmp;
 use std::sync::Arc;
 
 use parking_lot::MutexGuard;
@@ -35,7 +34,7 @@ pub struct FullCollector<'a> {
     old_top: Address,
     old_limit: Address,
     old_committed: Region,
-    init_old_top: Vec<Address>,
+    init_old_top: Address,
 
     reason: GcReason,
 
@@ -79,7 +78,7 @@ impl<'a> FullCollector<'a> {
             old_top: old_total.start,
             old_limit: old_total.end,
             old_committed: Default::default(),
-            init_old_top: Vec::new(),
+            init_old_top: Address::null(),
 
             reason,
 
@@ -97,7 +96,13 @@ impl<'a> FullCollector<'a> {
     pub fn collect(&mut self) {
         let dev_verbose = self.vm.flags.gc_dev_verbose;
         let stats = self.vm.flags.gc_stats;
-        self.init_old_top = self.old_protected.regions.iter().map(|r| r.top()).collect();
+        assert_eq!(self.old_protected.regions.len(), 1);
+        self.init_old_top = self
+            .old_protected
+            .regions
+            .last()
+            .expect("missing region")
+            .top();
 
         let mut timer = Timer::new(stats);
 
@@ -288,17 +293,8 @@ impl<'a> FullCollector<'a> {
     }
 
     fn reset_cards(&mut self) {
-        let regions = self
-            .old_protected
-            .regions
-            .iter()
-            .map(|r| (r.start(), r.top()))
-            .collect::<Vec<_>>();
-
-        for ((start, top), init_top) in regions.into_iter().zip(&self.init_old_top) {
-            let top = cmp::max(top, *init_top);
-            self.card_table.reset_region(start, top);
-        }
+        self.card_table
+            .reset_region(self.old.total_start(), self.init_old_top);
     }
 
     fn forward_reference(&mut self, slot: Slot) {
