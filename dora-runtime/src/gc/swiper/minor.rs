@@ -24,7 +24,7 @@ use rand::distributions::{Distribution, Uniform};
 use rand::thread_rng;
 use scoped_threadpool::Pool;
 
-pub struct ParallelMinorCollector<'a> {
+pub struct MinorCollector<'a> {
     vm: &'a VM,
 
     young: &'a YoungGen,
@@ -57,7 +57,7 @@ pub struct ParallelMinorCollector<'a> {
     phases: MinorCollectorPhases,
 }
 
-impl<'a> ParallelMinorCollector<'a> {
+impl<'a> MinorCollector<'a> {
     pub fn new(
         vm: &'a VM,
         young: &'a YoungGen,
@@ -72,8 +72,8 @@ impl<'a> ParallelMinorCollector<'a> {
         max_heap_size: usize,
         threadpool: &'a mut Pool,
         config: &'a SharedHeapConfig,
-    ) -> ParallelMinorCollector<'a> {
-        ParallelMinorCollector {
+    ) -> MinorCollector<'a> {
+        MinorCollector {
             vm,
             young,
             old,

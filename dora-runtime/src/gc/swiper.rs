@@ -10,9 +10,9 @@ use crate::gc::swiper::compact::FullCollector;
 use crate::gc::swiper::controller::{HeapConfig, SharedHeapConfig};
 use crate::gc::swiper::crossing::CrossingMap;
 use crate::gc::swiper::large::LargeSpace;
+use crate::gc::swiper::minor::MinorCollector;
 use crate::gc::swiper::old::OldGen;
 use crate::gc::swiper::pcompact::ParallelFullCollector;
-use crate::gc::swiper::pminor::ParallelMinorCollector;
 use crate::gc::swiper::verify::{Verifier, VerifierPhase};
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::tlab;
@@ -31,9 +31,9 @@ mod compact;
 mod controller;
 mod crossing;
 mod large;
+mod minor;
 pub mod old;
 mod pcompact;
-mod pminor;
 mod verify;
 pub mod young;
 
@@ -277,7 +277,7 @@ impl Swiper {
 
         let promotion_failed = {
             let mut pool = self.threadpool.lock();
-            let mut collector = ParallelMinorCollector::new(
+            let mut collector = MinorCollector::new(
                 vm,
                 &self.young,
                 &self.old,
