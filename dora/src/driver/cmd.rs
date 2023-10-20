@@ -33,9 +33,6 @@ Options:
     --gc-events             Dump GC events.
     --gc-stress             Collect garbage at every allocation.
     --gc-stress-minor       Minor collection at every allocation.
-    --gc-parallel-full      Enable parallel full collection.
-    --gc-parallel-minor     Enable parallel minor collection.
-    --gc-parallel           Enable both parallel minor and full collection.
     --gc-stats              Print GC statistics.
     --gc-verbose            Verbose GC.
     --gc-dev-verbose        Verbose GC for developers.
@@ -85,8 +82,6 @@ pub struct Args {
     pub gc_stress: bool,
     pub gc_stress_in_lazy_compile: bool,
     pub gc_stress_minor: bool,
-    gc_parallel_full: bool,
-    gc_parallel: bool,
     pub gc_stats: bool,
     pub gc_verbose: bool,
     pub gc_dev_verbose: bool,
@@ -137,8 +132,6 @@ impl Default for Args {
             gc_stress: false,
             gc_stress_in_lazy_compile: false,
             gc_stress_minor: false,
-            gc_parallel_full: false,
-            gc_parallel: false,
             gc_stats: false,
             gc_verbose: false,
             gc_dev_verbose: false,
@@ -252,10 +245,6 @@ pub fn parse_arguments() -> Result<Args, String> {
             args.gc_stress_in_lazy_compile = true;
         } else if arg == "--gc-stress-minor" {
             args.gc_stress_minor = true;
-        } else if arg == "--gc-parallel-full" {
-            args.gc_parallel_full = true;
-        } else if arg == "--gc-parallel" {
-            args.gc_parallel = true;
         } else if arg == "--gc-stats" {
             args.gc_stats = true;
         } else if arg == "--gc-verbose" {
@@ -421,8 +410,6 @@ pub fn create_vm_args(args: &Args) -> VmArgs {
         gc_stress: args.gc_stress,
         gc_stress_in_lazy_compile: args.gc_stress_in_lazy_compile,
         gc_stress_minor: args.gc_stress_minor,
-        gc_parallel_full: args.gc_parallel_full,
-        gc_parallel: args.gc_parallel,
         gc_stats: args.gc_stats,
         gc_verbose: args.gc_verbose,
         gc_dev_verbose: args.gc_dev_verbose,

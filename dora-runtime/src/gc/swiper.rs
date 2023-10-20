@@ -12,7 +12,6 @@ use crate::gc::swiper::crossing::CrossingMap;
 use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::minor::MinorCollector;
 use crate::gc::swiper::old::OldGen;
-use crate::gc::swiper::pcompact::ParallelFullCollector;
 use crate::gc::swiper::verify::{Verifier, VerifierPhase};
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::tlab;
@@ -33,7 +32,6 @@ mod crossing;
 mod large;
 mod minor;
 pub mod old;
-mod pcompact;
 mod verify;
 pub mod young;
 
@@ -333,31 +331,7 @@ impl Swiper {
             Vec::new(),
         );
 
-        if vm.flags.parallel_full() {
-            let mut pool = self.threadpool.lock();
-            let mut collector = ParallelFullCollector::new(
-                vm,
-                self.heap.clone(),
-                &self.young,
-                &self.old,
-                &self.large,
-                &self.card_table,
-                &self.crossing_map,
-                &vm.gc.readonly_space,
-                rootset,
-                threads,
-                reason,
-                pool.thread_count() as usize,
-                self.min_heap_size,
-                self.max_heap_size,
-            );
-            collector.collect(&mut pool);
-
-            if vm.flags.gc_stats {
-                let mut config = self.config.lock();
-                config.add_full(collector.phases());
-            }
-        } else {
+        {
             let mut collector = FullCollector::new(
                 vm,
                 self.heap.clone(),

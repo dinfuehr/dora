@@ -9,7 +9,6 @@ use crate::gc::swiper::controller::FullCollectorPhases;
 use crate::gc::swiper::crossing::CrossingMap;
 use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::old::{OldGen, OldGenProtected};
-use crate::gc::swiper::pcompact::verify_marking;
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{forward_full, walk_region, walk_region_and_skip_garbage};
 use crate::gc::{iterate_strong_roots, iterate_weak_roots, marking, Slot};
@@ -403,5 +402,50 @@ impl<'a> FullCollector<'a> {
         }
 
         panic!("FAIL: Not enough space for objects in old generation.");
+    }
+}
+
+pub fn verify_marking(
+    young: &YoungGen,
+    old_protected: &OldGenProtected,
+    large: &LargeSpace,
+    heap: Region,
+) {
+    for region in &old_protected.regions {
+        let active = region.active_region();
+        verify_marking_region(active, heap);
+    }
+
+    let eden = young.eden_active();
+    verify_marking_region(eden, heap);
+
+    let from = young.from_active();
+    verify_marking_region(from, heap);
+
+    let to = young.to_active();
+    verify_marking_region(to, heap);
+
+    large.visit_objects(|obj_address| {
+        verify_marking_object(obj_address, heap);
+    });
+}
+
+fn verify_marking_region(region: Region, heap: Region) {
+    walk_region(region, |_obj, obj_address, _size| {
+        verify_marking_object(obj_address, heap);
+    });
+}
+
+fn verify_marking_object(obj_address: Address, heap: Region) {
+    let obj = obj_address.to_mut_obj();
+
+    if obj.header().is_marked_non_atomic() {
+        obj.visit_reference_fields(|field| {
+            let object_addr = field.get();
+
+            if heap.contains(object_addr) {
+                assert!(object_addr.to_obj().header().is_marked_non_atomic());
+            }
+        });
     }
 }
