@@ -1,4 +1,4 @@
-//= vm-args "--gc-parallel-minor --gc-worker=2 --gc-verify"
+//= vm-args "--gc-worker=2 --gc-verify"
 
 fn main() {
     let x = Foo(Some[Foo](Foo(None[Foo])));

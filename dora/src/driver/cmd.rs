@@ -86,7 +86,6 @@ pub struct Args {
     pub gc_stress_in_lazy_compile: bool,
     pub gc_stress_minor: bool,
     gc_parallel_full: bool,
-    gc_parallel_minor: bool,
     gc_parallel: bool,
     pub gc_stats: bool,
     pub gc_verbose: bool,
@@ -139,7 +138,6 @@ impl Default for Args {
             gc_stress_in_lazy_compile: false,
             gc_stress_minor: false,
             gc_parallel_full: false,
-            gc_parallel_minor: false,
             gc_parallel: false,
             gc_stats: false,
             gc_verbose: false,
@@ -256,8 +254,6 @@ pub fn parse_arguments() -> Result<Args, String> {
             args.gc_stress_minor = true;
         } else if arg == "--gc-parallel-full" {
             args.gc_parallel_full = true;
-        } else if arg == "--gc-parallel-minor" {
-            args.gc_parallel_minor = true;
         } else if arg == "--gc-parallel" {
             args.gc_parallel = true;
         } else if arg == "--gc-stats" {
@@ -426,7 +422,6 @@ pub fn create_vm_args(args: &Args) -> VmArgs {
         gc_stress_in_lazy_compile: args.gc_stress_in_lazy_compile,
         gc_stress_minor: args.gc_stress_minor,
         gc_parallel_full: args.gc_parallel_full,
-        gc_parallel_minor: args.gc_parallel_minor,
         gc_parallel: args.gc_parallel,
         gc_stats: args.gc_stats,
         gc_verbose: args.gc_verbose,

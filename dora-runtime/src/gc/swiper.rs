@@ -10,7 +10,6 @@ use crate::gc::swiper::compact::FullCollector;
 use crate::gc::swiper::controller::{HeapConfig, SharedHeapConfig};
 use crate::gc::swiper::crossing::CrossingMap;
 use crate::gc::swiper::large::LargeSpace;
-use crate::gc::swiper::minor::MinorCollector;
 use crate::gc::swiper::old::OldGen;
 use crate::gc::swiper::pcompact::ParallelFullCollector;
 use crate::gc::swiper::pminor::ParallelMinorCollector;
@@ -18,7 +17,7 @@ use crate::gc::swiper::verify::{Verifier, VerifierPhase};
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::tlab;
 use crate::gc::Collector;
-use crate::gc::{align_gen, fill_region, formatted_size, Address, Region, K};
+use crate::gc::{align_gen, fill_region, formatted_size, Address, Region, K, M};
 use crate::gc::{GcReason, GEN_SIZE};
 use crate::mem;
 use crate::object::Obj;
@@ -32,7 +31,6 @@ mod compact;
 mod controller;
 mod crossing;
 mod large;
-mod minor;
 pub mod old;
 mod pcompact;
 mod pminor;
@@ -51,6 +49,7 @@ pub const CARD_SIZE_BITS: usize = 9;
 pub const CARD_REFS: usize = CARD_SIZE / size_of::<usize>();
 
 pub const LARGE_OBJECT_SIZE: usize = 16 * K;
+pub const REGION_SIZE: usize = 1 * M;
 
 pub struct Swiper {
     // contiguous memory for young/old generation and large space
@@ -73,7 +72,7 @@ pub struct Swiper {
     min_heap_size: usize,
     max_heap_size: usize,
 
-    threadpool: Option<Mutex<Pool>>,
+    threadpool: Mutex<Pool>,
     config: SharedHeapConfig,
 
     reservation: Reservation,
@@ -176,11 +175,7 @@ impl Swiper {
 
         let emit_write_barrier = !args.disable_barrier;
 
-        let threadpool = if args.parallel_minor() || args.parallel_full() {
-            Some(Mutex::new(Pool::new(nworkers as u32)))
-        } else {
-            None
-        };
+        let threadpool = Mutex::new(Pool::new(nworkers as u32));
 
         Swiper {
             heap: Region::new(heap_start, heap_end),
@@ -280,9 +275,8 @@ impl Swiper {
             .map(|r| r.top())
             .collect::<Vec<_>>();
 
-        let promotion_failed = if vm.flags.parallel_minor() {
-            let pool = self.threadpool.as_ref().unwrap();
-            let mut pool = pool.lock();
+        let promotion_failed = {
+            let mut pool = self.threadpool.lock();
             let mut collector = ParallelMinorCollector::new(
                 vm,
                 &self.young,
@@ -296,30 +290,6 @@ impl Swiper {
                 self.min_heap_size,
                 self.max_heap_size,
                 &mut pool,
-                &self.config,
-            );
-
-            let promotion_failed = collector.collect();
-
-            if vm.flags.gc_stats {
-                let mut config = self.config.lock();
-                config.add_minor(collector.phases());
-            }
-
-            promotion_failed
-        } else {
-            let mut collector = MinorCollector::new(
-                vm,
-                &self.young,
-                &self.old,
-                &self.large,
-                &self.card_table,
-                &self.crossing_map,
-                rootset,
-                threads,
-                reason,
-                self.min_heap_size,
-                self.max_heap_size,
                 &self.config,
             );
 
@@ -364,8 +334,7 @@ impl Swiper {
         );
 
         if vm.flags.parallel_full() {
-            let pool = self.threadpool.as_ref().unwrap();
-            let mut pool = pool.lock();
+            let mut pool = self.threadpool.lock();
             let mut collector = ParallelFullCollector::new(
                 vm,
                 self.heap.clone(),

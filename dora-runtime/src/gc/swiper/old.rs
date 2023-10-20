@@ -6,7 +6,8 @@ use crate::gc::swiper::card::CardTable;
 use crate::gc::swiper::controller::SharedHeapConfig;
 use crate::gc::swiper::crossing::CrossingMap;
 use crate::gc::swiper::CommonOldGen;
-use crate::gc::{Address, Region, GEN_SIZE};
+use crate::gc::swiper::REGION_SIZE;
+use crate::gc::{Address, Region};
 use crate::os::{self, MemoryPermission};
 
 pub struct OldGen {
@@ -282,12 +283,12 @@ impl OldGenProtected {
         {
             let mut config = config.lock();
 
-            if !config.grow_old(GEN_SIZE) {
+            if !config.grow_old(REGION_SIZE) {
                 return Address::null();
             }
         }
 
-        if !self.extend(GEN_SIZE) {
+        if !self.extend(REGION_SIZE) {
             return Address::null();
         }
 

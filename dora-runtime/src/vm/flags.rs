@@ -25,7 +25,6 @@ pub struct Flags {
     pub gc_stress_minor: bool,
     pub gc_stress_in_lazy_compile: bool,
     pub gc_parallel_full: bool,
-    pub gc_parallel_minor: bool,
     pub gc_parallel: bool,
     pub gc_stats: bool,
     pub gc_verbose: bool,
@@ -84,10 +83,6 @@ impl Flags {
 
     pub fn young_appel(&self) -> bool {
         self.gc_young_size.is_none()
-    }
-
-    pub fn parallel_minor(&self) -> bool {
-        self.gc_parallel_minor || self.gc_parallel
     }
 
     pub fn parallel_full(&self) -> bool {
