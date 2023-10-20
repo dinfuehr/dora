@@ -88,7 +88,7 @@ pub struct Verifier<'a> {
     from_active: Region,
     to_active: Region,
     reserved_area: Region,
-    init_old_top: Vec<Address>,
+    init_old_top: Address,
 
     phase: VerifierPhase,
     promotion_failed: bool,
@@ -106,7 +106,7 @@ impl<'a> Verifier<'a> {
         reserved_area: Region,
         phase: VerifierPhase,
         promotion_failed: bool,
-        init_old_top: Vec<Address>,
+        init_old_top: Address,
     ) -> Verifier<'a> {
         let old_protected = old.protected();
 
@@ -159,15 +159,7 @@ impl<'a> Verifier<'a> {
 
     fn verify_old(&mut self) {
         self.in_old = true;
-        let old_regions = self.old_protected.regions.clone();
-        let mut last = self.old.total().start;
-        for old_region in old_regions {
-            let region_total = old_region.total_region();
-            assert_eq!(region_total.start, last);
-            self.verify_objects(old_region.active_region(), "old gen");
-            last = region_total.end;
-        }
-        assert_eq!(self.old.total().end, last);
+        self.verify_objects(self.old_protected.active_region(), "old gen");
         self.in_old = false;
     }
 
@@ -315,11 +307,9 @@ impl<'a> Verifier<'a> {
             && expected_card_entry.is_clean()
             && actual_card_entry.is_dirty()
         {
-            for &init_old_top in &self.init_old_top {
-                if curr_card == self.card_table.card_idx(init_old_top) {
-                    self.refs_to_young_gen = 0;
-                    return;
-                }
+            if curr_card == self.card_table.card_idx(self.init_old_top) {
+                self.refs_to_young_gen = 0;
+                return;
             }
         }
 
@@ -391,7 +381,7 @@ impl<'a> Verifier<'a> {
             return;
         }
 
-        if self.old_protected.contains_slow(reference)
+        if self.old_protected.contains(reference)
             || self.eden_active.contains(reference)
             || self.to_active.contains(reference)
             || self.readonly_space.contains(reference)
@@ -464,7 +454,7 @@ impl<'a> Verifier<'a> {
         let perm_region = self.readonly_space.used_region();
 
         println!(
-            "PRM: {}; active: {} (size 0x{:x})",
+            " RO: {}; active: {} (size 0x{:x})",
             self.readonly_space.total(),
             perm_region,
             perm_region.size(),
@@ -487,21 +477,12 @@ impl<'a> Verifier<'a> {
             self.to_active,
             self.to_active.size(),
         );
-        {
-            println!(
-                "OLD total: {} (size 0x{:x})",
-                self.old.total(),
-                self.old.total().size()
-            );
-            for old_region in &self.old_protected.regions {
-                println!(
-                    "OLD region: {}; active: {} (size 0x{:x})",
-                    old_region.committed_region(),
-                    old_region.active_region(),
-                    old_region.active_size(),
-                );
-            }
-        }
+        println!(
+            "OLD total: {}; active: {} (size 0x{:x})",
+            self.old.total(),
+            self.old_protected.active_region(),
+            self.old.total().size()
+        );
 
         println!(
             "LRG: {}-{}",

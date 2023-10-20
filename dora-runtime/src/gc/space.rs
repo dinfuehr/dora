@@ -12,7 +12,7 @@ pub struct SpaceConfig {
     pub executable: bool,
     pub chunk: usize,
     pub limit: usize,
-    pub align: usize,
+    pub object_alignment: usize,
 }
 
 fn adapt_to_page_size(config: SpaceConfig) -> SpaceConfig {
@@ -20,7 +20,7 @@ fn adapt_to_page_size(config: SpaceConfig) -> SpaceConfig {
         executable: config.executable,
         chunk: mem::page_align(config.chunk),
         limit: mem::page_align(config.limit),
-        align: config.align,
+        object_alignment: config.object_alignment,
     }
 }
 
@@ -43,7 +43,7 @@ impl Space {
     pub fn new(config: SpaceConfig, name: &'static str) -> Space {
         let config = adapt_to_page_size(config);
 
-        let reservation = os::reserve_align(config.limit, 0, false);
+        let reservation = os::reserve_align(config.limit, config.chunk, false);
         let space_start = reservation.start();
         let space_end = space_start.offset(config.limit);
 
@@ -74,7 +74,7 @@ impl Space {
     /// Doesn't use a freelist right now so memory at the end of a chunk
     /// is probably lost.
     pub fn alloc(&self, size: usize) -> Address {
-        let size = mem::align_usize(size, self.config.align);
+        let size = mem::align_usize(size, self.config.object_alignment);
 
         loop {
             let ptr = self.raw_alloc(size);

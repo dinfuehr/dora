@@ -14,7 +14,7 @@ use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{forward_minor, CardIdx, CARD_SIZE, LARGE_OBJECT_SIZE};
 use crate::gc::tlab::{TLAB_OBJECT_SIZE, TLAB_SIZE};
 use crate::gc::{fill_region, iterate_weak_roots, Address, GcReason, Region};
-use crate::object::{offset_of_array_data, Obj};
+use crate::object::Obj;
 use crate::threads::DoraThread;
 use crate::timer::Timer;
 use crate::vm::VM;
@@ -39,7 +39,7 @@ pub struct MinorCollector<'a> {
 
     young_top: Address,
     young_limit: Address,
-    init_old_top: Vec<Address>,
+    old_active_region: Option<Region>,
 
     promotion_failed: bool,
     promoted_size: usize,
@@ -85,7 +85,7 @@ impl<'a> MinorCollector<'a> {
 
             young_top: Address::null(),
             young_limit: Address::null(),
-            init_old_top: Vec::new(),
+            old_active_region: None,
 
             promotion_failed: false,
             promoted_size: 0,
@@ -112,10 +112,7 @@ impl<'a> MinorCollector<'a> {
     }
 
     pub fn collect(&mut self) -> bool {
-        self.init_old_top = {
-            let protected = self.old.protected();
-            protected.regions.iter().map(|r| r.top()).collect()
-        };
+        self.old_active_region = Some(self.old.protected().active_region());
 
         self.young.unprotect_from();
         self.young.swap_semi();
@@ -194,16 +191,7 @@ impl<'a> MinorCollector<'a> {
         let young = self.young;
         let old = self.old;
         let rootset = self.rootset;
-        let init_old_top = &self.init_old_top;
-        let old_region_start = {
-            let protected = self.old.protected();
-            protected
-                .regions
-                .iter()
-                .map(|r| r.start())
-                .collect::<Vec<_>>()
-        };
-        let old_region_start = &old_region_start;
+        let old_active_region = self.old_active_region.clone().expect("missing region");
         let barrier = Barrier::new(self.number_workers);
         let barrier = &barrier;
 
@@ -255,8 +243,7 @@ impl<'a> MinorCollector<'a> {
                         card_table,
                         crossing_map,
                         rootset,
-                        init_old_top,
-                        old_region_start,
+                        old_active_region,
                         barrier,
 
                         from_active: young.from_active(),
@@ -412,8 +399,7 @@ struct CopyTask<'a> {
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
     rootset: &'a [Slot],
-    init_old_top: &'a [Address],
-    old_region_start: &'a [Address],
+    old_active_region: Region,
     barrier: &'a Barrier,
 
     next_root_stride: &'a AtomicUsize,
@@ -512,22 +498,17 @@ impl<'a> CopyTask<'a> {
     }
 
     fn visit_dirty_cards_in_stride(&mut self, stride: usize) {
-        assert_eq!(self.old_region_start.len(), self.init_old_top.len());
+        let region = self.old_active_region.clone();
+        let (start_card_idx, end_card_idx) = self.card_table.card_indices(region.start, region.end);
+        let cards_in_stride = (start_card_idx..end_card_idx)
+            .skip(stride)
+            .step_by(self.strides);
 
-        for (&region_start, &region_end) in self.old_region_start.iter().zip(self.init_old_top) {
-            let region = Region::new(region_start, region_end);
-            let (start_card_idx, end_card_idx) =
-                self.card_table.card_indices(region.start, region.end);
-            let cards_in_stride = (start_card_idx..end_card_idx)
-                .skip(stride)
-                .step_by(self.strides);
+        for card_idx in cards_in_stride {
+            let card_idx: CardIdx = card_idx.into();
 
-            for card_idx in cards_in_stride {
-                let card_idx: CardIdx = card_idx.into();
-
-                if self.card_table.get(card_idx).is_dirty() {
-                    self.visit_dirty_card(card_idx, region);
-                }
+            if self.card_table.get(card_idx).is_dirty() {
+                self.visit_dirty_card(card_idx, region);
             }
         }
     }
@@ -557,30 +538,6 @@ impl<'a> CopyTask<'a> {
         *next_large = large_alloc.next;
 
         Some(object)
-    }
-
-    fn visit_large_object_array(&mut self, object: &mut Obj, object_start: Address) {
-        let object_end = object_start.offset(object.size() as usize);
-        let (start_card_idx, end_card_idx) = self.card_table.card_indices(object_start, object_end);
-
-        for card_idx in start_card_idx..end_card_idx {
-            let card_idx = card_idx.into();
-
-            if self.card_table.get(card_idx).is_clean() {
-                continue;
-            }
-
-            let card_start = self.card_table.to_address(card_idx);
-            let card_end = card_start.offset(CARD_SIZE);
-
-            let ref_start = object_start.offset(offset_of_array_data() as usize);
-            let ref_start = cmp::max(ref_start, card_start);
-            let ref_end = cmp::min(card_end, object_end);
-
-            let mut ref_to_young_gen = false;
-            self.copy_refs(ref_start, ref_end, &mut ref_to_young_gen);
-            self.clean_card_if_no_young_refs(card_idx, ref_to_young_gen);
-        }
     }
 
     fn visit_large_object(&mut self, object: &mut Obj, object_start: Address) {

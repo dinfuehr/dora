@@ -16,8 +16,8 @@ use crate::gc::swiper::verify::{Verifier, VerifierPhase};
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::tlab;
 use crate::gc::Collector;
-use crate::gc::{align_gen, fill_region, formatted_size, Address, Region, K, M};
-use crate::gc::{GcReason, GEN_SIZE};
+use crate::gc::GcReason;
+use crate::gc::{align_region_up, fill_region, formatted_size, Address, Region, K, M};
 use crate::mem;
 use crate::object::Obj;
 use crate::os::{self, MemoryPermission, Reservation};
@@ -78,8 +78,8 @@ pub struct Swiper {
 
 impl Swiper {
     pub fn new(args: &Flags) -> Swiper {
-        let max_heap_size = align_gen(args.max_heap_size());
-        let min_heap_size = align_gen(args.min_heap_size());
+        let max_heap_size = align_region_up(args.max_heap_size());
+        let min_heap_size = align_region_up(args.min_heap_size());
 
         let mut config = HeapConfig::new(min_heap_size, max_heap_size);
 
@@ -95,7 +95,7 @@ impl Swiper {
         let reserve_size = max_heap_size * 4 + card_size + crossing_size;
 
         // reserve full memory
-        let reservation = os::reserve_align(reserve_size, GEN_SIZE, false);
+        let reservation = os::reserve_align(reserve_size, REGION_SIZE, false);
         let heap_start = reservation.start();
         assert!(heap_start.is_gen_aligned());
 
@@ -262,16 +262,10 @@ impl Swiper {
             "pre-minor",
             &rootset,
             false,
-            Vec::new(),
+            Address::null(),
         );
 
-        let init_old_top = self
-            .old
-            .protected()
-            .regions
-            .iter()
-            .map(|r| r.top())
-            .collect::<Vec<_>>();
+        let init_old_top = self.old.protected().top;
 
         let promotion_failed = {
             let mut pool = self.threadpool.lock();
@@ -328,7 +322,7 @@ impl Swiper {
             "pre-full",
             &rootset,
             reason == GcReason::PromotionFailure,
-            Vec::new(),
+            Address::null(),
         );
 
         {
@@ -362,7 +356,7 @@ impl Swiper {
             "post-full",
             &rootset,
             false,
-            Vec::new(),
+            Address::null(),
         );
     }
 
@@ -374,7 +368,7 @@ impl Swiper {
         name: &str,
         rootset: &[Slot],
         promotion_failed: bool,
-        init_old_top: Vec<Address>,
+        init_old_top: Address,
     ) {
         if vm.flags.gc_verify {
             if vm.flags.gc_dev_verbose {

@@ -96,13 +96,7 @@ impl<'a> FullCollector<'a> {
     pub fn collect(&mut self) {
         let dev_verbose = self.vm.flags.gc_dev_verbose;
         let stats = self.vm.flags.gc_stats;
-        assert_eq!(self.old_protected.regions.len(), 1);
-        self.init_old_top = self
-            .old_protected
-            .regions
-            .last()
-            .expect("missing region")
-            .top();
+        self.init_old_top = self.old_protected.top;
 
         let mut timer = Timer::new(stats);
 
@@ -207,7 +201,8 @@ impl<'a> FullCollector<'a> {
             stdlib::trap(Trap::OOM.int());
         }
 
-        self.old_protected.commit_single_region(self.old_top);
+        self.old_protected
+            .commit_single_region(self.old_top, self.init_old_top);
         self.old_committed = Region::new(self.old.total_start(), self.old_top);
     }
 
@@ -320,18 +315,9 @@ impl<'a> FullCollector<'a> {
     where
         F: FnMut(&mut FullCollector, &mut Obj, Address, usize),
     {
-        let old_regions = self
-            .old_protected
-            .regions
-            .iter()
-            .map(|r| r.active_region())
-            .collect::<Vec<_>>();
-
-        for old_region in old_regions {
-            walk_region(old_region, |obj, addr, size| {
-                fct(self, obj, addr, size);
-            });
-        }
+        walk_region(self.old_protected.active_region(), |obj, addr, size| {
+            fct(self, obj, addr, size);
+        });
 
         let used_region = self.young.eden_active();
         walk_region(used_region, |obj, addr, size| {
@@ -355,20 +341,11 @@ impl<'a> FullCollector<'a> {
     where
         F: FnMut(&mut FullCollector, &mut Obj, Address, usize) -> bool,
     {
-        let old_regions = self
-            .old_protected
-            .regions
-            .iter()
-            .map(|r| r.active_region())
-            .collect::<Vec<_>>();
-
         let vm = self.vm;
 
-        for old_region in old_regions {
-            walk_region_and_skip_garbage(vm, old_region, |obj, addr, size| {
-                fct(self, obj, addr, size)
-            });
-        }
+        walk_region_and_skip_garbage(vm, self.old_protected.active_region(), |obj, addr, size| {
+            fct(self, obj, addr, size)
+        });
 
         let used_region = self.young.eden_active();
         walk_region_and_skip_garbage(vm, used_region, |obj, addr, size| {
@@ -407,10 +384,7 @@ pub fn verify_marking(
     large: &LargeSpace,
     heap: Region,
 ) {
-    for region in &old_protected.regions {
-        let active = region.active_region();
-        verify_marking_region(active, heap);
-    }
+    verify_marking_region(old_protected.active_region(), heap);
 
     let eden = young.eden_active();
     verify_marking_region(eden, heap);
