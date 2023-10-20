@@ -6,9 +6,9 @@ use std::sync::Arc;
 
 use crate::gc::root::{determine_strong_roots, Slot};
 use crate::gc::swiper::card::CardTable;
-use crate::gc::swiper::compact::FullCollector;
 use crate::gc::swiper::controller::{HeapConfig, SharedHeapConfig};
 use crate::gc::swiper::crossing::CrossingMap;
+use crate::gc::swiper::full::FullCollector;
 use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::minor::MinorCollector;
 use crate::gc::swiper::old::OldGen;
@@ -26,9 +26,9 @@ use crate::threads::DoraThread;
 use crate::vm::{Flags, VM};
 
 pub mod card;
-mod compact;
 mod controller;
 mod crossing;
+mod full;
 mod large;
 mod minor;
 pub mod old;
