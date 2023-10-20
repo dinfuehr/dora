@@ -1,3 +1,5 @@
+use std::traits::Ordering;
+
 fn main() {
   let x = "hello";
   assert(x === x);
@@ -20,9 +22,9 @@ fn main() {
   let z = "h".add("ello");
   assert(y == z);
 
-  assert("a".compareTo("b") < 0i32);
-  assert("b".compareTo("b") == 0i32);
-  assert("b".compareTo("a") > 0i32);
+  assert("a".cmp("b") == Ordering::Less);
+  assert("b".cmp("b") == Ordering::Equal);
+  assert("b".cmp("a") == Ordering::Greater);
 
   assert(!"a".equals("b"));
   assert("a".equals("a"));

@@ -1,0 +1,9 @@
+//= ignore
+
+use std::traits::Ordering;
+
+fn main() {
+    assert('a'.cmp('b') == Ordering::Less);
+    assert('b'.cmp('a') == Ordering::Greater);
+    assert('a'.cmp('a') == Ordering::Equal);
+}

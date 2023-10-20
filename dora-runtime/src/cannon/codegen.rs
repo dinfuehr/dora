@@ -3241,29 +3241,6 @@ impl<'a> CannonCodeGen<'a> {
                     _ => unreachable!(),
                 };
 
-                self.asm.cmp_int(mode, REG_RESULT, REG_TMP1, REG_TMP2);
-
-                self.emit_store_register(REG_RESULT.into(), dest);
-            }
-
-            Intrinsic::Int32CmpNew
-            | Intrinsic::Int64CmpNew
-            | Intrinsic::UInt8CmpNew
-            | Intrinsic::CharCmpNew => {
-                assert_eq!(arguments.len(), 2);
-                let lhs_reg = arguments[0];
-                let rhs_reg = arguments[1];
-
-                self.emit_load_register(lhs_reg, REG_TMP1.into());
-                self.emit_load_register(rhs_reg, REG_TMP2.into());
-
-                let mode = match intrinsic {
-                    Intrinsic::Int64CmpNew => MachineMode::Int64,
-                    Intrinsic::Int32CmpNew | Intrinsic::CharCmpNew => MachineMode::Int32,
-                    Intrinsic::UInt8CmpNew => MachineMode::Int8,
-                    _ => unreachable!(),
-                };
-
                 self.asm.cmp_ordering(mode, REG_RESULT, REG_TMP1, REG_TMP2);
 
                 self.emit_store_register(REG_RESULT.into(), dest);
@@ -3280,25 +3257,6 @@ impl<'a> CannonCodeGen<'a> {
                 let mode = match intrinsic {
                     Intrinsic::Float64Cmp => MachineMode::Float64,
                     Intrinsic::Float32Cmp => MachineMode::Float32,
-                    _ => unreachable!(),
-                };
-
-                self.asm
-                    .float_cmp_int(mode, REG_RESULT, FREG_RESULT, FREG_TMP1);
-                self.emit_store_register(REG_RESULT.into(), dest);
-            }
-
-            Intrinsic::Float32CmpNew | Intrinsic::Float64CmpNew => {
-                assert_eq!(arguments.len(), 2);
-                let lhs_reg = arguments[0];
-                let rhs_reg = arguments[1];
-
-                self.emit_load_register(lhs_reg, FREG_RESULT.into());
-                self.emit_load_register(rhs_reg, FREG_TMP1.into());
-
-                let mode = match intrinsic {
-                    Intrinsic::Float64CmpNew => MachineMode::Float64,
-                    Intrinsic::Float32CmpNew => MachineMode::Float32,
                     _ => unreachable!(),
                 };
 

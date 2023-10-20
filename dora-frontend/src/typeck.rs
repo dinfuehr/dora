@@ -1,6 +1,6 @@
 use crate::sema::{AnalysisData, FctDefinitionId, GlobalDefinitionId, Sema, TypeParamDefinition};
 use crate::sym::ModuleSymTable;
-use crate::typeck::call::{check_expr_call, check_expr_call_enum_args, find_method, lookup_method};
+use crate::typeck::call::{check_expr_call, check_expr_call_enum_args, find_method};
 use crate::typeck::constck::ConstCheck;
 use crate::typeck::control::{
     check_expr_break_and_continue, check_expr_for, check_expr_if, check_expr_match,

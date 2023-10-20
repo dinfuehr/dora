@@ -89,13 +89,7 @@ fn gen_expr_bin_cmp_as_intrinsic(
         | Intrinsic::Int32Cmp
         | Intrinsic::Int64Cmp
         | Intrinsic::Float32Cmp
-        | Intrinsic::Float64Cmp
-        | Intrinsic::UInt8CmpNew
-        | Intrinsic::CharCmpNew
-        | Intrinsic::Int32CmpNew
-        | Intrinsic::Int64CmpNew
-        | Intrinsic::Float32CmpNew
-        | Intrinsic::Float64CmpNew => match cmp_op {
+        | Intrinsic::Float64Cmp => match cmp_op {
             CmpOp::Lt => g.builder.emit_test_lt(dest, lhs, rhs),
             CmpOp::Le => g.builder.emit_test_le(dest, lhs, rhs),
             CmpOp::Ge => g.builder.emit_test_ge(dest, lhs, rhs),

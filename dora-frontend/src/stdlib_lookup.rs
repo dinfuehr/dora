@@ -655,20 +655,13 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         "equals",
         Intrinsic::UInt8Eq,
     );
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "primitives::UInt8",
-        "compareTo",
-        Intrinsic::UInt8Cmp,
-    );
     intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::UInt8",
         sa.known.traits.comparable(),
         "cmp",
-        Intrinsic::UInt8CmpNew,
+        Intrinsic::UInt8Cmp,
     );
     intrinsic_method(
         sa,
@@ -692,11 +685,12 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         "equals",
         Intrinsic::CharEq,
     );
-    intrinsic_method(
+    intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Char",
-        "compareTo",
+        sa.known.traits.comparable(),
+        "cmp",
         Intrinsic::CharCmp,
     );
     intrinsic_method(
@@ -752,20 +746,13 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         "equals",
         Intrinsic::Int32Eq,
     );
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "primitives::Int32",
-        "compareTo",
-        Intrinsic::Int32Cmp,
-    );
     intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Int32",
         sa.known.traits.comparable(),
         "cmp",
-        Intrinsic::Int32CmpNew,
+        Intrinsic::Int32Cmp,
     );
 
     intrinsic_impl_method(
@@ -1015,20 +1002,13 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         "equals",
         Intrinsic::Int64Eq,
     );
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "primitives::Int64",
-        "compareTo",
-        Intrinsic::Int64Cmp,
-    );
     intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Int64",
         sa.known.traits.comparable(),
         "cmp",
-        Intrinsic::Int64CmpNew,
+        Intrinsic::Int64Cmp,
     );
 
     intrinsic_impl_method(
@@ -1303,20 +1283,13 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         "equals",
         Intrinsic::Float32Eq,
     );
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "primitives::Float32",
-        "compareTo",
-        Intrinsic::Float32Cmp,
-    );
     intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Float32",
         sa.known.traits.comparable(),
         "cmp",
-        Intrinsic::Float32CmpNew,
+        Intrinsic::Float32Cmp,
     );
 
     intrinsic_impl_method(
@@ -1451,20 +1424,13 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         "equals",
         Intrinsic::Float64Eq,
     );
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "primitives::Float64",
-        "compareTo",
-        Intrinsic::Float64Cmp,
-    );
     intrinsic_impl_method(
         sa,
         stdlib_id,
         "primitives::Float64",
         sa.known.traits.comparable(),
         "cmp",
-        Intrinsic::Float64CmpNew,
+        Intrinsic::Float64Cmp,
     );
 
     intrinsic_impl_method(

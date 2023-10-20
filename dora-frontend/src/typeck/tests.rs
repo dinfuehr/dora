@@ -602,13 +602,15 @@ fn overload_equals() {
 
 #[test]
 fn overload_compare_to() {
-    ok(
-        "class A impl A { fn compareTo(rhs: A): Int32 { return 0; } }
+    ok("class A
+            use std::traits::{Comparable, Ordering};
+            impl Comparable for A {
+                fn cmp(rhs: A): Ordering { Ordering::Less }
+            }
             fn f1(): Bool { return A() < A(); }
             fn f2(): Bool { return A() <= A(); }
             fn f3(): Bool { return A() > A(); }
-            fn f4(): Bool { return A() >= A(); }",
-    );
+            fn f4(): Bool { return A() >= A(); }");
 }
 
 #[test]

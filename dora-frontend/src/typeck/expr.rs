@@ -22,7 +22,7 @@ use crate::typeck::{
     check_expr_break_and_continue, check_expr_call, check_expr_call_enum_args, check_expr_for,
     check_expr_if, check_expr_match, check_expr_return, check_expr_while, check_lit_char,
     check_lit_float, check_lit_int, check_lit_str, check_stmt, find_method, is_simple_enum,
-    lookup_method, TypeCheck,
+    TypeCheck,
 };
 use crate::typeparamck::{self, ErrorReporting};
 
@@ -1070,152 +1070,6 @@ fn check_expr_bin_trait(
     }
 }
 
-fn check_expr_bin_trait_or_method(
-    ck: &mut TypeCheck,
-    e: &ast::ExprBinType,
-    op: ast::BinOp,
-    trait_id: TraitDefinitionId,
-    trait_method_name: &str,
-    name: &str,
-    lhs_type: SourceType,
-    rhs_type: SourceType,
-) -> SourceType {
-    let trait_ty = SourceType::new_trait(trait_id);
-    let impl_id = find_impl(
-        ck.sa,
-        lhs_type.clone(),
-        &ck.type_param_defs,
-        trait_ty.clone(),
-    );
-    let trait_method_name = ck.sa.interner.intern(trait_method_name);
-
-    if let Some(impl_id) = impl_id {
-        let type_params = impl_matches(ck.sa, lhs_type.clone(), ck.type_param_defs, impl_id)
-            .expect("impl does not match");
-
-        let impl_ = ck.sa.impls[impl_id].read();
-        let method_id = impl_
-            .instance_names
-            .get(&trait_method_name)
-            .cloned()
-            .expect("method not found");
-
-        let call_type = CallType::Method(lhs_type.clone(), method_id, type_params.clone());
-        ck.analysis
-            .map_calls
-            .insert_or_replace(e.id, Arc::new(call_type));
-
-        let method = ck.sa.fcts.idx(method_id);
-        let method = method.read();
-
-        let params = method.params_without_self();
-
-        assert_eq!(params.len(), 1);
-
-        let param = params[0].clone();
-        let param = replace_type_param(ck.sa, param, &type_params, None);
-
-        if !param.allows(ck.sa, rhs_type.clone()) {
-            let lhs_type = ck.ty_name(&lhs_type);
-            let rhs_type = ck.ty_name(&rhs_type);
-            let msg = ErrorMessage::BinOpType(op.as_str().into(), lhs_type, rhs_type);
-
-            ck.sa.report(ck.file_id, e.span, msg);
-        }
-
-        let return_type = method.return_type.clone();
-        ck.analysis.set_ty(e.id, return_type.clone());
-
-        return_type
-    } else if lhs_type.is_type_param()
-        && implements_trait(ck.sa, lhs_type.clone(), ck.type_param_defs, trait_ty)
-    {
-        let trait_ = ck.sa.traits.idx(trait_id);
-        let trait_ = trait_.read();
-
-        let method_id = trait_
-            .instance_names
-            .get(&trait_method_name)
-            .cloned()
-            .expect("method not found");
-
-        let method = ck.sa.fcts.idx(method_id);
-        let method = method.read();
-
-        let params = method.params_without_self();
-
-        let call_type = CallType::GenericMethod(
-            lhs_type.type_param_id().expect("type param expected"),
-            trait_id,
-            method_id,
-        );
-        ck.analysis
-            .map_calls
-            .insert_or_replace(e.id, Arc::new(call_type));
-
-        let param = params[0].clone();
-        let param = replace_type_param(
-            ck.sa,
-            param,
-            &SourceTypeArray::empty(),
-            Some(lhs_type.clone()),
-        );
-
-        if !param.allows(ck.sa, rhs_type.clone()) {
-            let lhs_type = ck.ty_name(&lhs_type);
-            let rhs_type = ck.ty_name(&rhs_type);
-            let msg = ErrorMessage::BinOpType(op.as_str().into(), lhs_type, rhs_type);
-
-            ck.sa.report(ck.file_id, e.span, msg);
-        }
-
-        let return_type = method.return_type.clone();
-        let return_type = replace_type_param(
-            ck.sa,
-            return_type,
-            &SourceTypeArray::empty(),
-            Some(lhs_type.clone()),
-        );
-
-        ck.analysis.set_ty(e.id, return_type.clone());
-
-        return_type
-    } else {
-        let name = ck.sa.interner.intern(name);
-        let call_types = [rhs_type.clone()];
-
-        if let Some(descriptor) = lookup_method(
-            ck.sa,
-            lhs_type.clone(),
-            ck.type_param_defs,
-            false,
-            name,
-            &call_types,
-            &SourceTypeArray::empty(),
-        ) {
-            let call_type =
-                CallType::Method(lhs_type.clone(), descriptor.fct_id, descriptor.type_params);
-            ck.analysis
-                .map_calls
-                .insert_or_replace(e.id, Arc::new(call_type));
-
-            ck.analysis.set_ty(e.id, descriptor.return_type.clone());
-
-            return descriptor.return_type;
-        }
-
-        let lhs_type = ck.ty_name(&lhs_type);
-        let rhs_type = ck.ty_name(&rhs_type);
-        let msg = ErrorMessage::BinOpType(op.as_str().into(), lhs_type, rhs_type);
-
-        ck.sa.report(ck.file_id, e.span, msg);
-
-        ck.analysis.set_ty(e.id, SourceType::Error);
-
-        SourceType::Error
-    }
-}
-
 fn check_expr_bin_cmp(
     ck: &mut TypeCheck,
     e: &ast::ExprBinType,
@@ -1258,13 +1112,12 @@ fn check_expr_bin_cmp(
         }
 
         ast::CmpOp::Ge | ast::CmpOp::Gt | ast::CmpOp::Le | ast::CmpOp::Lt => {
-            check_expr_bin_trait_or_method(
+            check_expr_bin_trait(
                 ck,
                 e,
                 e.op,
                 ck.sa.known.traits.comparable(),
                 "cmp",
-                "compareTo",
                 lhs_type,
                 rhs_type,
             );

@@ -62,8 +62,6 @@ impl Int32 {
 
   pub @internal fn asFloat32(): Float32;
 
-  pub @internal fn compareTo(rhs: Int32): Int32;
-
   pub @internal fn wrappingAdd(rhs: Int32): Int32;
   pub @internal fn wrappingSub(rhs: Int32): Int32;
   pub @internal fn wrappingMul(rhs: Int32): Int32;
@@ -262,8 +260,6 @@ impl Char {
   pub @internal fn toInt32(): Int32;
   pub @internal fn toInt64(): Int64;
 
-  pub @internal fn compareTo(rhs: Char): Int32;
-
   pub fn hash(): Int32 { self.toInt32() }
 
   pub fn encodeUtf8(bytes: Array[UInt8], offset: Int64) {
@@ -313,6 +309,10 @@ impl std::traits::Equals for Char {
   @internal fn equals(rhs: Char): Bool;
 }
 
+impl std::traits::Comparable for Char {
+  @internal fn cmp(rhs: Char): Ordering;
+}
+
 pub @internal struct Int64
 
 impl Int64 {
@@ -334,8 +334,6 @@ impl Int64 {
   pub @internal fn toFloat64(): Float64;
 
   pub @internal fn asFloat64(): Float64;
-
-  pub @internal fn compareTo(rhs: Int64): Int32;
 
   pub @internal fn wrappingAdd(rhs: Int64): Int64;
   pub @internal fn wrappingSub(rhs: Int64): Int64;
@@ -483,7 +481,6 @@ impl Float32 {
 
   pub @internal fn asInt32(): Int32;
 
-  pub @internal fn compareTo(rhs: Float32): Int32;
   pub fn sortsAs(rhs: Float32): Int32 {
     let mut ix = self.asInt32();
     let mut iy = rhs.asInt32();
@@ -568,7 +565,6 @@ impl Float64 {
 
   pub @internal fn asInt64(): Int64;
 
-  pub @internal fn compareTo(rhs: Float64): Int32;
   pub fn sortsAs(rhs: Float64): Int32 {
     let mut ix = self.asInt64();
     let mut iy = rhs.asInt64();
@@ -653,8 +649,6 @@ impl UInt8 {
 
   pub fn toStringBinary(): String { String::binary(self.toInt64()) }
   pub fn toStringHex(): String { String::hex(self.toInt64()) }
-
-  pub @internal fn compareTo(rhs: UInt8): Int32;
 
   pub fn hash(): Int32 { self.toInt32() }
 

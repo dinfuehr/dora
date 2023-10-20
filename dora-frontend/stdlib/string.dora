@@ -4,7 +4,7 @@ use std::traits::Ordering;
 pub @internal class String
 
 impl String {
-  pub @internal fn compareTo(rhs: String): Int32;
+  @internal fn compareTo(rhs: String): Int32;
 
   pub @internal fn size(): Int64;
 
