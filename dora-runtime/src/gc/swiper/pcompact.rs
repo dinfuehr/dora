@@ -11,9 +11,7 @@ use crate::gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use crate::gc::swiper::large::{LargeAlloc, LargeSpace};
 use crate::gc::swiper::old::{OldGen, OldGenProtected, OldGenRegion};
 use crate::gc::swiper::young::YoungGen;
-use crate::gc::swiper::{
-    forward_full, walk_region, walk_region_and_skip_garbage, CardIdx, CARD_REFS,
-};
+use crate::gc::swiper::{forward_full, walk_region, walk_region_and_skip_garbage, CardIdx};
 use crate::gc::{iterate_weak_roots, pmarking};
 use crate::gc::{Address, GcReason, Region, K, M};
 use crate::os;
@@ -353,22 +351,10 @@ impl<'a> ParallelFullCollector<'a> {
 
             match crossing_entry {
                 CrossingEntry::NoRefs => {}
-                CrossingEntry::LeadingRefs(refs) => {
-                    if (refs as usize) < CARD_REFS {
-                        return card_start.add_ptr(refs as usize);
-                    }
-                }
 
                 CrossingEntry::FirstObject(offset) => {
                     return card_start.add_ptr(offset as usize);
                 }
-
-                CrossingEntry::ArrayStart(offset) => {
-                    return card_start.sub_ptr(offset as usize);
-                }
-
-                CrossingEntry::PreviousObjectWords(_) => unimplemented!(),
-                CrossingEntry::PreviousObjectCards(_) => unimplemented!(),
             }
         }
 
@@ -673,12 +659,7 @@ impl<'a> ParallelFullCollector<'a> {
 
                         // reset cards for object, also do this for dead objects
                         // to reset card entries to clean.
-                        if object.is_array_ref() {
-                            let object_end = object_start.offset(object.size());
-                            card_table.reset_region(object_start, object_end);
-                        } else {
-                            card_table.reset_addr(object_start);
-                        }
+                        card_table.reset_addr(object_start);
 
                         addr = next(next_large);
 
@@ -845,8 +826,7 @@ impl<'a> ParallelFullCollector<'a> {
             let dest_obj = dest.to_mut_obj();
             dest_obj.header_mut().unmark_non_atomic();
 
-            self.old
-                .update_crossing(dest, next_dest, dest_obj.is_array_ref());
+            self.old.update_crossing(dest, next_dest);
         }
     }
 }

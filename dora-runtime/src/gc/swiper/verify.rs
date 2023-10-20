@@ -9,11 +9,11 @@ use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::old::{OldGen, OldGenProtected};
 use crate::gc::swiper::on_different_cards;
 use crate::gc::swiper::young::YoungGen;
-use crate::gc::swiper::{CARD_REFS, CARD_SIZE};
+use crate::gc::swiper::CARD_SIZE;
 use crate::gc::{Address, Region};
 
 use crate::mem;
-use crate::object::{offset_of_array_data, Obj};
+use crate::object::Obj;
 
 #[derive(Copy, Clone)]
 pub enum VerifierPhase {
@@ -210,7 +210,7 @@ impl<'a> Verifier<'a> {
 
                 if self.in_old && on_different_cards(curr, next) {
                     self.verify_card(curr, region);
-                    self.verify_crossing(curr, next, false);
+                    self.verify_crossing(curr, next);
                 }
 
                 assert!(
@@ -225,11 +225,7 @@ impl<'a> Verifier<'a> {
                 last_null = false;
             }
 
-            if object.is_array_ref() {
-                self.verify_array_ref(object, curr, region, name);
-            } else {
-                self.verify_object(object, curr, region, name);
-            }
+            self.verify_object(object, curr, region, name);
 
             curr = curr.offset(object.size());
         }
@@ -242,35 +238,6 @@ impl<'a> Verifier<'a> {
 
         if self.in_old || self.in_large {
             assert!(self.refs_to_young_gen == 0, "variable should be cleared");
-        }
-    }
-
-    fn verify_array_ref(
-        &mut self,
-        object: &mut Obj,
-        object_address: Address,
-        region: Region,
-        name: &str,
-    ) {
-        let mut curr = object_address;
-
-        object.visit_reference_fields(|element| {
-            if (self.in_old || self.in_large) && on_different_cards(curr, element.address()) {
-                self.verify_card(curr, region);
-                curr = element.address();
-            }
-
-            self.verify_reference(element, object_address, name);
-        });
-
-        let next = object_address.offset(object.size());
-
-        if (self.in_old || self.in_large) && on_different_cards(curr, next) {
-            self.verify_card(curr, region);
-        }
-
-        if self.in_old && on_different_cards(object_address, next) {
-            self.verify_crossing(object_address, next, true);
         }
     }
 
@@ -292,7 +259,7 @@ impl<'a> Verifier<'a> {
         }
 
         if self.in_old && on_different_cards(object_address, next) {
-            self.verify_crossing(object_address, next, false);
+            self.verify_crossing(object_address, next);
         }
     }
 
@@ -388,7 +355,7 @@ impl<'a> Verifier<'a> {
         self.refs_to_young_gen = 0;
     }
 
-    fn verify_crossing(&mut self, old: Address, new: Address, array_ref: bool) {
+    fn verify_crossing(&mut self, old: Address, new: Address) {
         let new_card_idx = self.card_table.card_idx(new);
         let old_card_idx = self.card_table.card_idx(old);
 
@@ -397,52 +364,21 @@ impl<'a> Verifier<'a> {
         }
 
         let new_card_start = self.card_table.to_address(new_card_idx);
-        let old_card_end = self.card_table.to_address(old_card_idx).offset(CARD_SIZE);
 
         let offset = new.offset_from(new_card_start);
         let offset_words = (offset / mem::ptr_width_usize()) as u8;
 
-        let crossing_middle;
-        let middle_start;
+        let middle_start = old_card_idx.to_usize() + 1;
 
-        if array_ref {
-            crossing_middle = CrossingEntry::LeadingRefs(CARD_REFS as u8);
-
-            if old.offset(offset_of_array_data() as usize) > old_card_end {
-                let old_next = old_card_idx.to_usize() + 1;
-                let crossing = self.crossing_map.get(old_next.into());
-                let diff_words = old_card_end.offset_from(old) / mem::ptr_width_usize();
-                assert!(
-                    crossing == CrossingEntry::ArrayStart(diff_words as u8),
-                    "array start crossing not correct."
-                );
-
-                middle_start = old_card_idx.to_usize() + 2;
-            } else {
-                middle_start = old_card_idx.to_usize() + 1;
-            }
-
-            if new_card_idx.to_usize() >= middle_start {
-                let crossing = self.crossing_map.get(new_card_idx);
-                let expected = if offset_words > 0 {
-                    CrossingEntry::LeadingRefs(offset_words)
-                } else {
-                    CrossingEntry::FirstObject(0)
-                };
-                assert!(crossing == expected, "array crossing at end not correct.");
-            }
-        } else {
-            crossing_middle = CrossingEntry::NoRefs;
-            middle_start = old_card_idx.to_usize() + 1;
-
-            let crossing = self.crossing_map.get(new_card_idx);
-            let expected = CrossingEntry::FirstObject(offset_words);
-            assert!(crossing == expected, "crossing at end not correct.");
-        }
+        assert_eq!(
+            self.crossing_map.get(new_card_idx),
+            CrossingEntry::FirstObject(offset_words),
+            "crossing at end not correct."
+        );
 
         for c in middle_start..new_card_idx.to_usize() {
             assert!(
-                self.crossing_map.get(c.into()) == crossing_middle,
+                self.crossing_map.get(c.into()) == CrossingEntry::NoRefs,
                 "middle crossing not correct."
             );
         }

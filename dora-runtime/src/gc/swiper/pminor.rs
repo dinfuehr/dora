@@ -10,7 +10,6 @@ use crate::gc::swiper::controller::{MinorCollectorPhases, SharedHeapConfig};
 use crate::gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use crate::gc::swiper::large::{LargeAlloc, LargeSpace};
 use crate::gc::swiper::old::OldGen;
-use crate::gc::swiper::on_different_cards;
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{forward_minor, CardIdx, CARD_SIZE, LARGE_OBJECT_SIZE};
 use crate::gc::tlab::{TLAB_OBJECT_SIZE, TLAB_SIZE};
@@ -19,7 +18,6 @@ use crate::object::{offset_of_array_data, Obj};
 use crate::threads::DoraThread;
 use crate::timer::Timer;
 use crate::vm::VM;
-use crate::vtable::VTable;
 
 use crossbeam_deque::{Injector, Steal, Stealer, Worker};
 use rand::distributions::{Distribution, Uniform};
@@ -370,7 +368,7 @@ impl Lab {
     fn make_iterable_old(&mut self, vm: &VM, old: &OldGen) {
         fill_region(vm, self.top, self.limit);
         if self.limit.is_non_null() {
-            old.update_crossing(self.top, self.limit, false);
+            old.update_crossing(self.top, self.limit);
         }
 
         self.top = Address::null();
@@ -539,11 +537,7 @@ impl<'a> CopyTask<'a> {
             if let Some(addr) = self.next_large() {
                 let object = addr.to_mut_obj();
 
-                if object.is_array_ref() {
-                    self.visit_large_object_array(object, addr);
-                } else {
-                    self.visit_large_object(object, addr);
-                }
+                self.visit_large_object(object, addr);
             } else {
                 break;
             }
@@ -626,31 +620,9 @@ impl<'a> CopyTask<'a> {
 
         match crossing_entry {
             CrossingEntry::NoRefs => panic!("card dirty without any refs"),
-            CrossingEntry::LeadingRefs(refs) => {
-                let mut ref_to_young_gen = false;
-                let first_object = card_start.add_ptr(refs as usize);
-
-                // copy references at start of card
-                let ref_start = cmp::max(card_start, region.start);
-                let ref_end = cmp::min(first_object, region.end);
-                self.copy_refs(ref_start, ref_end, &mut ref_to_young_gen);
-
-                // copy all objects from this card
-                self.copy_old_card(card_idx, first_object, region, ref_to_young_gen);
-            }
 
             CrossingEntry::FirstObject(offset) => {
                 let first_object = card_start.add_ptr(offset as usize);
-
-                // copy all objects from this card
-                self.copy_old_card(card_idx, first_object, region, false);
-            }
-
-            CrossingEntry::PreviousObjectWords(_) => unimplemented!(),
-            CrossingEntry::PreviousObjectCards(_) => unimplemented!(),
-
-            CrossingEntry::ArrayStart(offset) => {
-                let first_object = card_start.sub_ptr(offset as usize);
 
                 // copy all objects from this card
                 self.copy_old_card(card_idx, first_object, region, false);
@@ -729,8 +701,7 @@ impl<'a> CopyTask<'a> {
                 continue;
             }
 
-            let range = Region::new(ptr, end);
-            object.visit_reference_fields_within(range, |field| {
+            object.visit_reference_fields(|field| {
                 let field_ptr = field.get();
 
                 if self.young.contains(field_ptr) {
@@ -798,55 +769,24 @@ impl<'a> CopyTask<'a> {
     fn trace_old_object(&mut self, object_addr: Address) {
         let object = object_addr.to_mut_obj();
 
-        if object.is_array_ref() {
-            let mut ref_to_young_gen = false;
-            let mut last = object_addr;
+        let mut ref_to_young_gen = false;
 
-            object.visit_reference_fields(|slot| {
-                let field_ptr = slot.get();
+        object.visit_reference_fields(|slot| {
+            let field_ptr = slot.get();
 
-                if on_different_cards(last, slot.address()) && ref_to_young_gen {
-                    let card_idx = self.card_table.card_idx(last);
-                    self.card_table.set(card_idx, CardEntry::Dirty);
-                    ref_to_young_gen = false;
+            if self.young.contains(field_ptr) {
+                let copied_addr = self.copy(field_ptr);
+                slot.set(copied_addr);
+
+                if self.young.contains(copied_addr) {
+                    ref_to_young_gen = true;
                 }
-
-                if self.young.contains(field_ptr) {
-                    let copied_addr = self.copy(field_ptr);
-                    slot.set(copied_addr);
-
-                    if self.young.contains(copied_addr) {
-                        ref_to_young_gen = true;
-                    }
-                }
-
-                last = slot.address();
-            });
-
-            if ref_to_young_gen {
-                let card_idx = self.card_table.card_idx(last);
-                self.card_table.set(card_idx, CardEntry::Dirty);
             }
-        } else {
-            let mut ref_to_young_gen = false;
+        });
 
-            object.visit_reference_fields(|slot| {
-                let field_ptr = slot.get();
-
-                if self.young.contains(field_ptr) {
-                    let copied_addr = self.copy(field_ptr);
-                    slot.set(copied_addr);
-
-                    if self.young.contains(copied_addr) {
-                        ref_to_young_gen = true;
-                    }
-                }
-            });
-
-            if ref_to_young_gen {
-                let card_idx = self.card_table.card_idx(object_addr);
-                self.card_table.set(card_idx, CardEntry::Dirty);
-            }
+        if ref_to_young_gen {
+            let card_idx = self.card_table.card_idx(object_addr);
+            self.card_table.set(card_idx, CardEntry::Dirty);
         }
     }
 
@@ -932,17 +872,17 @@ impl<'a> CopyTask<'a> {
         }
     }
 
-    fn alloc_old(&mut self, size: usize, array_ref: bool) -> Address {
+    fn alloc_old(&mut self, size: usize) -> Address {
         if size < CLAB_OBJECT_SIZE {
-            self.alloc_old_small(size, array_ref)
+            self.alloc_old_small(size)
         } else {
-            self.alloc_old_medium(size, array_ref)
+            self.alloc_old_medium(size)
         }
     }
 
-    fn alloc_old_small(&mut self, size: usize, array_ref: bool) -> Address {
+    fn alloc_old_small(&mut self, size: usize) -> Address {
         debug_assert!(size < CLAB_OBJECT_SIZE);
-        let object_start = self.alloc_object_in_old_lab(size, array_ref);
+        let object_start = self.alloc_object_in_old_lab(size);
 
         if object_start.is_non_null() {
             return object_start;
@@ -955,10 +895,10 @@ impl<'a> CopyTask<'a> {
             return Address::null();
         }
 
-        self.alloc_object_in_old_lab(size, array_ref)
+        self.alloc_object_in_old_lab(size)
     }
 
-    fn alloc_old_medium(&mut self, size: usize, array_ref: bool) -> Address {
+    fn alloc_old_medium(&mut self, size: usize) -> Address {
         debug_assert!(CLAB_OBJECT_SIZE <= size && size < LARGE_OBJECT_SIZE);
 
         if self.promotion_failed {
@@ -970,7 +910,7 @@ impl<'a> CopyTask<'a> {
         if object_start.is_non_null() {
             let old = object_start;
             let new = old.offset(size);
-            self.old.update_crossing(old, new, array_ref);
+            self.old.update_crossing(old, new);
             object_start
         } else {
             self.promotion_failed = true;
@@ -1006,13 +946,13 @@ impl<'a> CopyTask<'a> {
         }
     }
 
-    fn alloc_object_in_old_lab(&mut self, size: usize, array_ref: bool) -> Address {
+    fn alloc_object_in_old_lab(&mut self, size: usize) -> Address {
         let object_start = self.old_lab.alloc(size);
 
         if object_start.is_non_null() {
             let old = object_start;
             let new = old.offset(size);
-            self.old.update_crossing(old, new, array_ref);
+            self.old.update_crossing(old, new);
             object_start
         } else {
             Address::null()
@@ -1074,8 +1014,7 @@ impl<'a> CopyTask<'a> {
     }
 
     fn promote_object(&mut self, vtblptr: Address, obj: &mut Obj, obj_size: usize) -> Address {
-        let array_ref = unsafe { &*vtblptr.to_mut_ptr::<VTable>() }.is_array_ref();
-        let copy_addr = self.alloc_old(obj_size, array_ref);
+        let copy_addr = self.alloc_old(obj_size);
 
         // if there isn't enough space in old gen keep it in the
         // young generation for now. A full collection will be forced later and

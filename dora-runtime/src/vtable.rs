@@ -4,7 +4,6 @@ use std::mem::align_of;
 use std::ops::{Deref, DerefMut};
 use std::{self, fmt, ptr, slice};
 
-use crate::size::InstanceSize;
 use crate::vm::ClassInstance;
 
 pub struct VTableBox(*mut VTable);
@@ -117,14 +116,5 @@ impl VTable {
 
     pub fn offset_of_method_table() -> i32 {
         offset_of!(VTable, table) as i32
-    }
-
-    pub fn is_array_ref(&self) -> bool {
-        let cls = self.class_instance();
-
-        match cls.size {
-            InstanceSize::ObjArray => true,
-            _ => false,
-        }
     }
 }

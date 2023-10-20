@@ -59,9 +59,9 @@ impl OldGen {
         protected.contains_slow(addr)
     }
 
-    pub fn update_crossing(&self, object_start: Address, object_end: Address, array_ref: bool) {
+    pub fn update_crossing(&self, object_start: Address, object_end: Address) {
         self.crossing_map
-            .update(self.total.clone(), object_start, object_end, array_ref);
+            .update(self.total.clone(), object_start, object_end);
     }
 
     pub fn protected(&self) -> MutexGuard<OldGenProtected> {

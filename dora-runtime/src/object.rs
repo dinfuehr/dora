@@ -263,10 +263,6 @@ impl Obj {
         &self.data as *const u8
     }
 
-    pub fn is_array_ref(&self) -> bool {
-        self.header().vtbl().is_array_ref()
-    }
-
     pub fn size_for_vtblptr(&self, vtblptr: Address) -> usize {
         let vtbl = unsafe { &*vtblptr.to_mut_ptr::<VTable>() };
         let instance_size = vtbl.instance_size;

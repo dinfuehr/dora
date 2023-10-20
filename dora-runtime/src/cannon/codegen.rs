@@ -1376,10 +1376,10 @@ impl<'a> CannonCodeGen<'a> {
         let bytecode_type = self.specialize_register_type(src);
         assert_eq!(bytecode_type, register_ty(field.ty.clone()));
 
-        self.emit_store_field_raw(obj_reg, field.offset, src);
+        self.emit_store_field_raw(obj, obj_reg, field.offset, src);
     }
 
-    fn emit_store_field_raw(&mut self, obj_reg: Reg, offset: i32, value: Register) {
+    fn emit_store_field_raw(&mut self, obj: Register, obj_reg: Reg, offset: i32, value: Register) {
         let ty = self.specialize_register_type(value);
         let needs_write_barrier;
 
@@ -1467,8 +1467,9 @@ impl<'a> CannonCodeGen<'a> {
         }
 
         if self.vm.gc.needs_write_barrier() && needs_write_barrier {
+            self.emit_load_register(obj, REG_RESULT.into());
             let card_table_offset = self.vm.gc.card_table_offset();
-            self.asm.emit_barrier(obj_reg, card_table_offset);
+            self.asm.emit_barrier(REG_RESULT, card_table_offset);
         }
     }
 
@@ -1982,7 +1983,7 @@ impl<'a> CannonCodeGen<'a> {
             // Reinitialize obj_reg for each field since write barrier overwrites it on x64.
             self.asm.copy_reg(MachineMode::Ptr, obj_reg, *scratch_reg);
 
-            self.emit_store_field_raw(obj_reg, field.offset, argument);
+            self.emit_store_field_raw(dest, obj_reg, field.offset, argument);
         }
     }
 
@@ -2562,13 +2563,9 @@ impl<'a> CannonCodeGen<'a> {
                 let needs_write_barrier = mode == MachineMode::Ptr;
 
                 if self.vm.gc.needs_write_barrier() && needs_write_barrier {
+                    self.emit_load_register(arr, REG_RESULT.into());
                     let card_table_offset = self.vm.gc.card_table_offset();
-                    let scratch = self.asm.get_scratch();
-                    self.asm.lea(
-                        *scratch,
-                        Mem::Index(REG_RESULT, REG_TMP1, mode.size(), offset_of_array_data()),
-                    );
-                    self.asm.emit_barrier(*scratch, card_table_offset);
+                    self.asm.emit_barrier(REG_RESULT, card_table_offset);
                 }
             }
 
@@ -2611,18 +2608,9 @@ impl<'a> CannonCodeGen<'a> {
                 let needs_write_barrier = src_type.is_ptr();
 
                 if self.vm.gc.needs_write_barrier() && needs_write_barrier {
+                    self.emit_load_register(arr, REG_RESULT.into());
                     let card_table_offset = self.vm.gc.card_table_offset();
-                    let scratch = self.asm.get_scratch();
-                    self.asm.lea(
-                        *scratch,
-                        Mem::Index(
-                            REG_RESULT,
-                            REG_TMP1,
-                            mode(self.vm, src_type).size(),
-                            offset_of_array_data(),
-                        ),
-                    );
-                    self.asm.emit_barrier(*scratch, card_table_offset);
+                    self.asm.emit_barrier(REG_RESULT, card_table_offset);
                 }
             }
         }

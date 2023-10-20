@@ -243,12 +243,7 @@ impl<'a> FullCollector<'a> {
 
             // reset cards for object, also do this for dead objects
             // to reset card entries to clean.
-            if object.is_array_ref() {
-                let object_end = object_start.offset(object.size());
-                self.card_table.reset_region(object_start, object_end);
-            } else {
-                self.card_table.reset_addr(object_start);
-            }
+            self.card_table.reset_addr(object_start);
 
             if object.header().is_marked_non_atomic() {
                 object.visit_reference_fields(|field| {
@@ -288,8 +283,7 @@ impl<'a> FullCollector<'a> {
                 let dest_obj = dest.to_mut_obj();
                 dest_obj.header_mut().unmark_non_atomic();
 
-                full.old
-                    .update_crossing(dest, next_dest, dest_obj.is_array_ref());
+                full.old.update_crossing(dest, next_dest);
             }
         });
     }
