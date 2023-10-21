@@ -11,7 +11,7 @@ use crate::ty::{SourceType, SourceTypeArray};
 use crate::interner::Name;
 use dora_bytecode::{Intrinsic, NativeFunction};
 
-pub fn resolve_internal_types(sa: &mut Sema) {
+pub fn lookup_known_fundamental_types(sa: &mut Sema) {
     let stdlib_id = sa.stdlib_module_id();
 
     sa.known.structs.bool = Some(internal_struct(
@@ -178,7 +178,7 @@ fn final_path_name(sa: &mut Sema, path: &str) -> Name {
     sa.interner.intern(name)
 }
 
-pub fn discover_known_methods(sa: &mut Sema) {
+pub fn lookup_known_methods(sa: &mut Sema) {
     let stdlib_id = sa.stdlib_module_id();
 
     sa.known.functions.string_buffer_empty = Some(find_static_method(
@@ -314,6 +314,46 @@ fn find_enum(sa: &mut Sema, module_id: ModuleDefinitionId, name: &str) -> EnumDe
 pub fn resolve_internal_functions(sa: &mut Sema) {
     let stdlib_id = sa.stdlib_module_id();
 
+    resolve_freestanding_stdlib(sa, stdlib_id);
+
+    resolve_string(sa, stdlib_id);
+    resolve_stacktrace(sa, stdlib_id);
+    resolve_uint8(sa, stdlib_id);
+    resolve_bool(sa, stdlib_id);
+    resolve_char(sa, stdlib_id);
+    resolve_int32(sa, stdlib_id);
+    resolve_int64(sa, stdlib_id);
+    resolve_float32(sa, stdlib_id);
+    resolve_float64(sa, stdlib_id);
+
+    resolve_array(sa, stdlib_id);
+    resolve_option(sa, stdlib_id);
+
+    resolve_thread(sa, stdlib_id);
+    resolve_mutex(sa, stdlib_id);
+    resolve_condition(sa, stdlib_id);
+
+    resolve_io(sa, stdlib_id);
+
+    resolve_atomic_int32(sa, stdlib_id);
+    resolve_atomic_int64(sa, stdlib_id);
+    resolve_boots(sa);
+
+    lookup_ordering(sa, stdlib_id);
+}
+
+fn lookup_ordering(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {
+    sa.known.functions.ordering_is_ge =
+        Some(find_instance_method(sa, stdlib_id, "Ordering", "is_ge"));
+    sa.known.functions.ordering_is_gt =
+        Some(find_instance_method(sa, stdlib_id, "Ordering", "is_gt"));
+    sa.known.functions.ordering_is_le =
+        Some(find_instance_method(sa, stdlib_id, "Ordering", "is_le"));
+    sa.known.functions.ordering_is_lt =
+        Some(find_instance_method(sa, stdlib_id, "Ordering", "is_lt"));
+}
+
+fn resolve_freestanding_stdlib(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {
     native_fct(sa, stdlib_id, "fatalError", NativeFunction::FatalError);
     native_fct(sa, stdlib_id, "abort", NativeFunction::Abort);
     native_fct(sa, stdlib_id, "exit", NativeFunction::Exit);
@@ -337,43 +377,129 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
     native_fct(sa, stdlib_id, "sleep", NativeFunction::Sleep);
 
     intrinsic_fct(sa, stdlib_id, "unsafeKillRefs", Intrinsic::UnsafeKillRefs);
+    intrinsic_fct(sa, stdlib_id, "unreachable", Intrinsic::Unreachable);
 
-    native_impl_method(
+    let fid = intrinsic_fct(sa, stdlib_id, "assert", Intrinsic::Assert);
+    sa.known.functions.assert = Some(fid);
+    intrinsic_fct(sa, stdlib_id, "debug", Intrinsic::Debug);
+    intrinsic_fct(sa, stdlib_id, "unsafeKillRefs", Intrinsic::UnsafeKillRefs);
+}
+
+fn resolve_atomic_int32(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {
+    intrinsic_method(
         sa,
         stdlib_id,
-        "primitives::UInt8",
-        sa.known.traits.stringable(),
-        "toString",
-        NativeFunction::UInt8ToString,
+        "thread::AtomicInt32",
+        "get",
+        Intrinsic::AtomicInt32Get,
     );
-
-    native_impl_method(
+    intrinsic_method(
         sa,
         stdlib_id,
-        "primitives::Char",
-        sa.known.traits.stringable(),
-        "toString",
-        NativeFunction::CharToString,
+        "thread::AtomicInt32",
+        "set",
+        Intrinsic::AtomicInt32Set,
     );
-
-    native_impl_method(
+    intrinsic_method(
         sa,
         stdlib_id,
-        "primitives::Int32",
-        sa.known.traits.stringable(),
-        "toString",
-        NativeFunction::Int32ToString,
+        "thread::AtomicInt32",
+        "exchange",
+        Intrinsic::AtomicInt32Exchange,
     );
-
-    native_impl_method(
+    intrinsic_method(
         sa,
         stdlib_id,
-        "primitives::Int64",
-        sa.known.traits.stringable(),
-        "toString",
-        NativeFunction::Int64ToString,
+        "thread::AtomicInt32",
+        "compareExchange",
+        Intrinsic::AtomicInt32CompareExchange,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "thread::AtomicInt32",
+        "fetchAdd",
+        Intrinsic::AtomicInt32FetchAdd,
+    );
+}
+
+fn resolve_atomic_int64(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "thread::AtomicInt64",
+        "get",
+        Intrinsic::AtomicInt64Get,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "thread::AtomicInt64",
+        "set",
+        Intrinsic::AtomicInt64Set,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "thread::AtomicInt64",
+        "exchange",
+        Intrinsic::AtomicInt64Exchange,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "thread::AtomicInt64",
+        "compareExchange",
+        Intrinsic::AtomicInt64CompareExchange,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "thread::AtomicInt64",
+        "fetchAdd",
+        Intrinsic::AtomicInt64FetchAdd,
+    );
+}
+
+fn resolve_boots(sa: &mut Sema) {
+    if sa.has_boots_package() {
+        let boots_module_id = sa.boots_module_id();
+        native_fct(
+            sa,
+            boots_module_id,
+            "getSystemConfig",
+            NativeFunction::BootsGetSystemConfig,
+        );
+        native_fct(
+            sa,
+            boots_module_id,
+            "getFunctionAddressRaw",
+            NativeFunction::BootsGetFunctionAddress,
+        );
+    }
+}
+
+fn resolve_thread(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {
+    native_fct(sa, stdlib_id, "thread::spawn", NativeFunction::SpawnThread);
+
+    native_method(
+        sa,
+        stdlib_id,
+        "thread::Thread",
+        "join",
+        NativeFunction::ThreadJoin,
     );
 
+    intrinsic_static(
+        sa,
+        stdlib_id,
+        "thread::Thread",
+        "current",
+        Intrinsic::ThreadCurrent,
+    );
+}
+
+fn resolve_string(sa: &Sema, stdlib_id: ModuleDefinitionId) {
     native_method(
         sa,
         stdlib_id,
@@ -446,24 +572,6 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         NativeFunction::StringPlus,
     );
 
-    native_impl_method(
-        sa,
-        stdlib_id,
-        "primitives::Float32",
-        sa.known.traits.stringable(),
-        "toString",
-        NativeFunction::Float32ToString,
-    );
-
-    native_impl_method(
-        sa,
-        stdlib_id,
-        "primitives::Float64",
-        sa.known.traits.stringable(),
-        "toString",
-        NativeFunction::Float64ToString,
-    );
-
     native_static(
         sa,
         stdlib_id,
@@ -482,6 +590,25 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
     native_method(
         sa,
         stdlib_id,
+        "string::String",
+        "clone",
+        NativeFunction::StringClone,
+    );
+
+    intrinsic_method(sa, stdlib_id, "string::String", "size", Intrinsic::StrLen);
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "string::String",
+        "getByte",
+        Intrinsic::StrGet,
+    );
+}
+
+fn resolve_stacktrace(sa: &Sema, stdlib_id: ModuleDefinitionId) {
+    native_method(
+        sa,
+        stdlib_id,
         "Stacktrace",
         "retrieveStacktrace",
         NativeFunction::RetrieveStacktrace,
@@ -493,65 +620,9 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         "getStacktraceElement",
         NativeFunction::GetStackTraceElement,
     );
+}
 
-    native_fct(sa, stdlib_id, "thread::spawn", NativeFunction::SpawnThread);
-
-    native_method(
-        sa,
-        stdlib_id,
-        "thread::Thread",
-        "join",
-        NativeFunction::ThreadJoin,
-    );
-
-    native_method(
-        sa,
-        stdlib_id,
-        "thread::Mutex",
-        "wait",
-        NativeFunction::MutexWait,
-    );
-
-    native_method(
-        sa,
-        stdlib_id,
-        "thread::Mutex",
-        "notify",
-        NativeFunction::MutexNotify,
-    );
-
-    native_method(
-        sa,
-        stdlib_id,
-        "thread::Condition",
-        "enqueue",
-        NativeFunction::ConditionEnqueue,
-    );
-
-    native_method(
-        sa,
-        stdlib_id,
-        "thread::Condition",
-        "block",
-        NativeFunction::ConditionBlock,
-    );
-
-    native_method(
-        sa,
-        stdlib_id,
-        "thread::Condition",
-        "wakeupOne",
-        NativeFunction::ConditionWakupOne,
-    );
-
-    native_method(
-        sa,
-        stdlib_id,
-        "thread::Condition",
-        "wakeupAll",
-        NativeFunction::ConditionWakupAll,
-    );
-
+fn resolve_io(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {
     native_fct(
         sa,
         stdlib_id,
@@ -611,21 +682,61 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         "io::socketAccept",
         NativeFunction::SocketAccept,
     );
+}
+
+fn resolve_condition(sa: &Sema, stdlib_id: ModuleDefinitionId) {
+    native_method(
+        sa,
+        stdlib_id,
+        "thread::Condition",
+        "enqueue",
+        NativeFunction::ConditionEnqueue,
+    );
 
     native_method(
         sa,
         stdlib_id,
-        "string::String",
-        "clone",
-        NativeFunction::StringClone,
+        "thread::Condition",
+        "block",
+        NativeFunction::ConditionBlock,
     );
 
-    intrinsic_fct(sa, stdlib_id, "unreachable", Intrinsic::Unreachable);
+    native_method(
+        sa,
+        stdlib_id,
+        "thread::Condition",
+        "wakeupOne",
+        NativeFunction::ConditionWakupOne,
+    );
 
-    let fid = intrinsic_fct(sa, stdlib_id, "assert", Intrinsic::Assert);
-    sa.known.functions.assert = Some(fid);
-    intrinsic_fct(sa, stdlib_id, "debug", Intrinsic::Debug);
-    intrinsic_fct(sa, stdlib_id, "unsafeKillRefs", Intrinsic::UnsafeKillRefs);
+    native_method(
+        sa,
+        stdlib_id,
+        "thread::Condition",
+        "wakeupAll",
+        NativeFunction::ConditionWakupAll,
+    );
+}
+
+fn resolve_mutex(sa: &Sema, stdlib_id: ModuleDefinitionId) {
+    native_method(
+        sa,
+        stdlib_id,
+        "thread::Mutex",
+        "wait",
+        NativeFunction::MutexWait,
+    );
+
+    native_method(
+        sa,
+        stdlib_id,
+        "thread::Mutex",
+        "notify",
+        NativeFunction::MutexNotify,
+    );
+}
+
+fn resolve_uint8(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {
     intrinsic_method(
         sa,
         stdlib_id,
@@ -663,6 +774,50 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         "cmp",
         Intrinsic::UInt8Cmp,
     );
+    native_impl_method(
+        sa,
+        stdlib_id,
+        "primitives::UInt8",
+        sa.known.traits.stringable(),
+        "toString",
+        NativeFunction::UInt8ToString,
+    );
+}
+
+fn resolve_bool(sa: &Sema, stdlib_id: ModuleDefinitionId) {
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Bool",
+        "toInt32",
+        Intrinsic::BoolToInt32,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Bool",
+        "toInt64",
+        Intrinsic::BoolToInt64,
+    );
+    intrinsic_impl_method(
+        sa,
+        stdlib_id,
+        "primitives::Bool",
+        sa.known.traits.equals(),
+        "equals",
+        Intrinsic::BoolEq,
+    );
+    intrinsic_impl_method(
+        sa,
+        stdlib_id,
+        "primitives::Bool",
+        sa.known.traits.not(),
+        "not",
+        Intrinsic::BoolNot,
+    );
+}
+
+fn resolve_char(sa: &Sema, stdlib_id: ModuleDefinitionId) {
     intrinsic_method(
         sa,
         stdlib_id,
@@ -693,6 +848,18 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         "cmp",
         Intrinsic::CharCmp,
     );
+
+    native_impl_method(
+        sa,
+        stdlib_id,
+        "primitives::Char",
+        sa.known.traits.stringable(),
+        "toString",
+        NativeFunction::CharToString,
+    );
+}
+
+fn resolve_int32(sa: &Sema, stdlib_id: ModuleDefinitionId) {
     intrinsic_method(
         sa,
         stdlib_id,
@@ -949,6 +1116,323 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         "countOneBitsTrailing",
         Intrinsic::Int32CountOneBitsTrailing,
     );
+
+    native_impl_method(
+        sa,
+        stdlib_id,
+        "primitives::Int32",
+        sa.known.traits.stringable(),
+        "toString",
+        NativeFunction::Int32ToString,
+    );
+}
+
+fn resolve_float32(sa: &Sema, stdlib_id: ModuleDefinitionId) {
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
+        "toInt32",
+        Intrinsic::Float32ToInt32,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
+        "toInt64",
+        Intrinsic::Float32ToInt64,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
+        "toFloat64",
+        Intrinsic::PromoteFloat32ToFloat64,
+    );
+
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
+        "asInt32",
+        Intrinsic::ReinterpretFloat32AsInt32,
+    );
+
+    intrinsic_impl_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
+        sa.known.traits.equals(),
+        "equals",
+        Intrinsic::Float32Eq,
+    );
+    intrinsic_impl_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
+        sa.known.traits.comparable(),
+        "cmp",
+        Intrinsic::Float32Cmp,
+    );
+
+    intrinsic_impl_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
+        sa.known.traits.add(),
+        "add",
+        Intrinsic::Float32Add,
+    );
+    intrinsic_impl_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
+        sa.known.traits.sub(),
+        "sub",
+        Intrinsic::Float32Sub,
+    );
+    intrinsic_impl_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
+        sa.known.traits.mul(),
+        "mul",
+        Intrinsic::Float32Mul,
+    );
+    intrinsic_impl_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
+        sa.known.traits.div(),
+        "div",
+        Intrinsic::Float32Div,
+    );
+
+    intrinsic_impl_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
+        sa.known.traits.neg(),
+        "neg",
+        Intrinsic::Float32Neg,
+    );
+
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
+        "isNan",
+        Intrinsic::Float32IsNan,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
+        "abs",
+        Intrinsic::Float32Abs,
+    );
+
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
+        "roundToZero",
+        Intrinsic::Float32RoundToZero,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
+        "roundUp",
+        Intrinsic::Float32RoundUp,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
+        "roundDown",
+        Intrinsic::Float32RoundDown,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
+        "roundHalfEven",
+        Intrinsic::Float32RoundHalfEven,
+    );
+
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
+        "sqrt",
+        Intrinsic::Float32Sqrt,
+    );
+
+    native_impl_method(
+        sa,
+        stdlib_id,
+        "primitives::Float32",
+        sa.known.traits.stringable(),
+        "toString",
+        NativeFunction::Float32ToString,
+    );
+}
+
+fn resolve_float64(sa: &Sema, stdlib_id: ModuleDefinitionId) {
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
+        "toInt32",
+        Intrinsic::Float64ToInt32,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
+        "toInt64",
+        Intrinsic::Float64ToInt64,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
+        "toFloat32",
+        Intrinsic::DemoteFloat64ToFloat32,
+    );
+
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
+        "asInt64",
+        Intrinsic::ReinterpretFloat64AsInt64,
+    );
+
+    intrinsic_impl_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
+        sa.known.traits.equals(),
+        "equals",
+        Intrinsic::Float64Eq,
+    );
+    intrinsic_impl_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
+        sa.known.traits.comparable(),
+        "cmp",
+        Intrinsic::Float64Cmp,
+    );
+
+    intrinsic_impl_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
+        sa.known.traits.add(),
+        "add",
+        Intrinsic::Float64Add,
+    );
+    intrinsic_impl_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
+        sa.known.traits.sub(),
+        "sub",
+        Intrinsic::Float64Sub,
+    );
+    intrinsic_impl_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
+        sa.known.traits.mul(),
+        "mul",
+        Intrinsic::Float64Mul,
+    );
+    intrinsic_impl_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
+        sa.known.traits.div(),
+        "div",
+        Intrinsic::Float64Div,
+    );
+
+    intrinsic_impl_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
+        sa.known.traits.neg(),
+        "neg",
+        Intrinsic::Float64Neg,
+    );
+
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
+        "isNan",
+        Intrinsic::Float64IsNan,
+    );
+
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
+        "abs",
+        Intrinsic::Float64Abs,
+    );
+
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
+        "roundToZero",
+        Intrinsic::Float64RoundToZero,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
+        "roundUp",
+        Intrinsic::Float64RoundUp,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
+        "roundDown",
+        Intrinsic::Float64RoundDown,
+    );
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
+        "roundHalfEven",
+        Intrinsic::Float64RoundHalfEven,
+    );
+
+    intrinsic_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
+        "sqrt",
+        Intrinsic::Float64Sqrt,
+    );
+
+    native_impl_method(
+        sa,
+        stdlib_id,
+        "primitives::Float64",
+        sa.known.traits.stringable(),
+        "toString",
+        NativeFunction::Float64ToString,
+    );
+}
+
+fn resolve_int64(sa: &Sema, stdlib_id: ModuleDefinitionId) {
     intrinsic_method(
         sa,
         stdlib_id,
@@ -1205,328 +1689,17 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         "countOneBitsTrailing",
         Intrinsic::Int64CountOneBitsTrailing,
     );
+    native_impl_method(
+        sa,
+        stdlib_id,
+        "primitives::Int64",
+        sa.known.traits.stringable(),
+        "toString",
+        NativeFunction::Int64ToString,
+    );
+}
 
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "primitives::Bool",
-        "toInt32",
-        Intrinsic::BoolToInt32,
-    );
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "primitives::Bool",
-        "toInt64",
-        Intrinsic::BoolToInt64,
-    );
-    intrinsic_impl_method(
-        sa,
-        stdlib_id,
-        "primitives::Bool",
-        sa.known.traits.equals(),
-        "equals",
-        Intrinsic::BoolEq,
-    );
-    intrinsic_impl_method(
-        sa,
-        stdlib_id,
-        "primitives::Bool",
-        sa.known.traits.not(),
-        "not",
-        Intrinsic::BoolNot,
-    );
-
-    intrinsic_method(sa, stdlib_id, "string::String", "size", Intrinsic::StrLen);
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "string::String",
-        "getByte",
-        Intrinsic::StrGet,
-    );
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "primitives::Float32",
-        "toInt32",
-        Intrinsic::Float32ToInt32,
-    );
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "primitives::Float32",
-        "toInt64",
-        Intrinsic::Float32ToInt64,
-    );
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "primitives::Float32",
-        "toFloat64",
-        Intrinsic::PromoteFloat32ToFloat64,
-    );
-
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "primitives::Float32",
-        "asInt32",
-        Intrinsic::ReinterpretFloat32AsInt32,
-    );
-
-    intrinsic_impl_method(
-        sa,
-        stdlib_id,
-        "primitives::Float32",
-        sa.known.traits.equals(),
-        "equals",
-        Intrinsic::Float32Eq,
-    );
-    intrinsic_impl_method(
-        sa,
-        stdlib_id,
-        "primitives::Float32",
-        sa.known.traits.comparable(),
-        "cmp",
-        Intrinsic::Float32Cmp,
-    );
-
-    intrinsic_impl_method(
-        sa,
-        stdlib_id,
-        "primitives::Float32",
-        sa.known.traits.add(),
-        "add",
-        Intrinsic::Float32Add,
-    );
-    intrinsic_impl_method(
-        sa,
-        stdlib_id,
-        "primitives::Float32",
-        sa.known.traits.sub(),
-        "sub",
-        Intrinsic::Float32Sub,
-    );
-    intrinsic_impl_method(
-        sa,
-        stdlib_id,
-        "primitives::Float32",
-        sa.known.traits.mul(),
-        "mul",
-        Intrinsic::Float32Mul,
-    );
-    intrinsic_impl_method(
-        sa,
-        stdlib_id,
-        "primitives::Float32",
-        sa.known.traits.div(),
-        "div",
-        Intrinsic::Float32Div,
-    );
-
-    intrinsic_impl_method(
-        sa,
-        stdlib_id,
-        "primitives::Float32",
-        sa.known.traits.neg(),
-        "neg",
-        Intrinsic::Float32Neg,
-    );
-
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "primitives::Float32",
-        "isNan",
-        Intrinsic::Float32IsNan,
-    );
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "primitives::Float32",
-        "abs",
-        Intrinsic::Float32Abs,
-    );
-
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "primitives::Float32",
-        "roundToZero",
-        Intrinsic::Float32RoundToZero,
-    );
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "primitives::Float32",
-        "roundUp",
-        Intrinsic::Float32RoundUp,
-    );
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "primitives::Float32",
-        "roundDown",
-        Intrinsic::Float32RoundDown,
-    );
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "primitives::Float32",
-        "roundHalfEven",
-        Intrinsic::Float32RoundHalfEven,
-    );
-
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "primitives::Float32",
-        "sqrt",
-        Intrinsic::Float32Sqrt,
-    );
-
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "primitives::Float64",
-        "toInt32",
-        Intrinsic::Float64ToInt32,
-    );
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "primitives::Float64",
-        "toInt64",
-        Intrinsic::Float64ToInt64,
-    );
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "primitives::Float64",
-        "toFloat32",
-        Intrinsic::DemoteFloat64ToFloat32,
-    );
-
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "primitives::Float64",
-        "asInt64",
-        Intrinsic::ReinterpretFloat64AsInt64,
-    );
-
-    intrinsic_impl_method(
-        sa,
-        stdlib_id,
-        "primitives::Float64",
-        sa.known.traits.equals(),
-        "equals",
-        Intrinsic::Float64Eq,
-    );
-    intrinsic_impl_method(
-        sa,
-        stdlib_id,
-        "primitives::Float64",
-        sa.known.traits.comparable(),
-        "cmp",
-        Intrinsic::Float64Cmp,
-    );
-
-    intrinsic_impl_method(
-        sa,
-        stdlib_id,
-        "primitives::Float64",
-        sa.known.traits.add(),
-        "add",
-        Intrinsic::Float64Add,
-    );
-    intrinsic_impl_method(
-        sa,
-        stdlib_id,
-        "primitives::Float64",
-        sa.known.traits.sub(),
-        "sub",
-        Intrinsic::Float64Sub,
-    );
-    intrinsic_impl_method(
-        sa,
-        stdlib_id,
-        "primitives::Float64",
-        sa.known.traits.mul(),
-        "mul",
-        Intrinsic::Float64Mul,
-    );
-    intrinsic_impl_method(
-        sa,
-        stdlib_id,
-        "primitives::Float64",
-        sa.known.traits.div(),
-        "div",
-        Intrinsic::Float64Div,
-    );
-
-    intrinsic_impl_method(
-        sa,
-        stdlib_id,
-        "primitives::Float64",
-        sa.known.traits.neg(),
-        "neg",
-        Intrinsic::Float64Neg,
-    );
-
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "primitives::Float64",
-        "isNan",
-        Intrinsic::Float64IsNan,
-    );
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "primitives::Float64",
-        "abs",
-        Intrinsic::Float64Abs,
-    );
-
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "primitives::Float64",
-        "roundToZero",
-        Intrinsic::Float64RoundToZero,
-    );
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "primitives::Float64",
-        "roundUp",
-        Intrinsic::Float64RoundUp,
-    );
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "primitives::Float64",
-        "roundDown",
-        Intrinsic::Float64RoundDown,
-    );
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "primitives::Float64",
-        "roundHalfEven",
-        Intrinsic::Float64RoundHalfEven,
-    );
-
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "primitives::Float64",
-        "sqrt",
-        Intrinsic::Float64Sqrt,
-    );
-
+fn resolve_array(sa: &Sema, stdlib_id: ModuleDefinitionId) {
     intrinsic_method(
         sa,
         stdlib_id,
@@ -1563,15 +1736,9 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         "new",
         Intrinsic::ArrayWithValues,
     );
+}
 
-    intrinsic_static(
-        sa,
-        stdlib_id,
-        "thread::Thread",
-        "current",
-        Intrinsic::ThreadCurrent,
-    );
-
+fn resolve_option(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {
     let fct_id = intrinsic_method(sa, stdlib_id, "Option", "isNone", Intrinsic::OptionIsNone);
     sa.known.functions.option_is_none = Some(fct_id);
     let fct_id = intrinsic_method(sa, stdlib_id, "Option", "isSome", Intrinsic::OptionIsSome);
@@ -1584,103 +1751,6 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
         Intrinsic::OptionGetOrPanic,
     );
     sa.known.functions.option_unwrap = Some(fct_id);
-
-    sa.known.functions.ordering_is_ge =
-        Some(find_instance_method(sa, stdlib_id, "Ordering", "is_ge"));
-    sa.known.functions.ordering_is_gt =
-        Some(find_instance_method(sa, stdlib_id, "Ordering", "is_gt"));
-    sa.known.functions.ordering_is_le =
-        Some(find_instance_method(sa, stdlib_id, "Ordering", "is_le"));
-    sa.known.functions.ordering_is_lt =
-        Some(find_instance_method(sa, stdlib_id, "Ordering", "is_lt"));
-
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "thread::AtomicInt32",
-        "get",
-        Intrinsic::AtomicInt32Get,
-    );
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "thread::AtomicInt32",
-        "set",
-        Intrinsic::AtomicInt32Set,
-    );
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "thread::AtomicInt32",
-        "exchange",
-        Intrinsic::AtomicInt32Exchange,
-    );
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "thread::AtomicInt32",
-        "compareExchange",
-        Intrinsic::AtomicInt32CompareExchange,
-    );
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "thread::AtomicInt32",
-        "fetchAdd",
-        Intrinsic::AtomicInt32FetchAdd,
-    );
-
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "thread::AtomicInt64",
-        "get",
-        Intrinsic::AtomicInt64Get,
-    );
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "thread::AtomicInt64",
-        "set",
-        Intrinsic::AtomicInt64Set,
-    );
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "thread::AtomicInt64",
-        "exchange",
-        Intrinsic::AtomicInt64Exchange,
-    );
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "thread::AtomicInt64",
-        "compareExchange",
-        Intrinsic::AtomicInt64CompareExchange,
-    );
-    intrinsic_method(
-        sa,
-        stdlib_id,
-        "thread::AtomicInt64",
-        "fetchAdd",
-        Intrinsic::AtomicInt64FetchAdd,
-    );
-
-    if sa.has_boots_package() {
-        let boots_module_id = sa.boots_module_id();
-        native_fct(
-            sa,
-            boots_module_id,
-            "getSystemConfig",
-            NativeFunction::BootsGetSystemConfig,
-        );
-        native_fct(
-            sa,
-            boots_module_id,
-            "getFunctionAddressRaw",
-            NativeFunction::BootsGetFunctionAddress,
-        );
-    }
 }
 
 fn find_instance_method(

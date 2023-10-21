@@ -58,7 +58,7 @@ pub fn check_program(sa: &mut Sema) -> bool {
     return_on_error!(sa);
 
     // Define internal types.
-    stdlib_lookup::resolve_internal_types(sa);
+    stdlib_lookup::lookup_known_fundamental_types(sa);
 
     // Discover all enum variants.
     enumck::check_variants(sa);
@@ -99,7 +99,7 @@ pub fn check_program(sa: &mut Sema) -> bool {
 
     // Define internal functions & methods.
     stdlib_lookup::resolve_internal_functions(sa);
-    stdlib_lookup::discover_known_methods(sa);
+    stdlib_lookup::lookup_known_methods(sa);
     stdlib_lookup::create_lambda_class(sa);
 
     // Check for internal functions, methods or types.
