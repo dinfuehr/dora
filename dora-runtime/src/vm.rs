@@ -251,7 +251,7 @@ impl VM {
     }
 
     pub fn byte_array(&self) -> ClassInstanceId {
-        let mut byte_array_def = self.known.byte_array_class_instance.lock();
+        let mut byte_array_def = self.known.byte_array_class_instance_id.lock();
 
         if let Some(cls_id) = *byte_array_def {
             cls_id
@@ -264,7 +264,7 @@ impl VM {
     }
 
     pub fn int_array(&self) -> ClassInstanceId {
-        let mut int_array_def = self.known.int_array_class_instance.lock();
+        let mut int_array_def = self.known.int_array_class_instance_id.lock();
 
         if let Some(cls_id) = *int_array_def {
             cls_id
@@ -277,7 +277,7 @@ impl VM {
     }
 
     pub fn str(&self) -> ClassInstanceId {
-        let mut str_class_def = self.known.str_class_instance.lock();
+        let mut str_class_def = self.known.string_class_instance_id.lock();
 
         if let Some(cls_id) = *str_class_def {
             cls_id
@@ -293,7 +293,7 @@ impl VM {
     }
 
     pub fn stack_trace_element(&self) -> ClassInstanceId {
-        let mut ste_class_def = self.known.ste_class_instance.lock();
+        let mut ste_class_def = self.known.ste_class_instance_id.lock();
 
         if let Some(cls_id) = *ste_class_def {
             cls_id

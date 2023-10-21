@@ -107,6 +107,7 @@ pub enum ElemData {
     Module(Arc<Module>),
     Use(Arc<Use>),
     Extern(Arc<ExternPackage>),
+    AssociatedType(Arc<AssociatedType>),
     Error { id: NodeId, span: Span },
 }
 
@@ -125,6 +126,7 @@ impl ElemData {
             ElemData::Module(ref node) => node.span,
             ElemData::Use(ref node) => node.span,
             ElemData::Extern(ref node) => node.span,
+            ElemData::AssociatedType(ref node) => node.span,
             ElemData::Error { span, .. } => span.clone(),
         }
     }
@@ -607,6 +609,16 @@ pub struct Trait {
     pub type_params: Option<TypeParams>,
     pub span: Span,
     pub methods: Vec<Elem>,
+}
+
+#[derive(Clone, Debug)]
+pub struct AssociatedType {
+    pub id: NodeId,
+    pub name: Option<Ident>,
+    pub green: GreenNode,
+
+    pub modifiers: Option<ModifierList>,
+    pub span: Span,
 }
 
 #[derive(Clone, Debug)]

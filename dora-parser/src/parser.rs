@@ -8,7 +8,7 @@ use crate::green::GreenTreeBuilder;
 use crate::token::{
     ELEM_FIRST, EMPTY, ENUM_VARIANT_ARGUMENT_RS, ENUM_VARIANT_RS, EXPRESSION_FIRST, FIELD_FIRST,
     LET_PATTERN_FIRST, LET_PATTERN_RS, MATCH_PATTERN_FIRST, MATCH_PATTERN_RS, MODIFIER_FIRST,
-    PARAM_LIST_RS, TYPE_PARAM_RS, USE_PATH_ATOM_FIRST, USE_PATH_FIRST,
+    PARAM_LIST_RS, TRAIT_ELEM_FIRST, TYPE_PARAM_RS, USE_PATH_ATOM_FIRST, USE_PATH_FIRST,
 };
 use crate::TokenKind::*;
 use crate::{lex, Span, TokenKind, TokenSet};
@@ -534,7 +534,7 @@ impl Parser {
         let mut methods = Vec::new();
 
         while !self.is(R_BRACE) && !self.is_eof() {
-            methods.push(self.parse_element());
+            methods.push(self.parse_trait_element());
         }
 
         self.expect(R_BRACE);
@@ -548,6 +548,52 @@ impl Parser {
             type_params,
             span: self.finish_node(),
             methods,
+        })
+    }
+
+    fn parse_trait_element(&mut self) -> Elem {
+        self.builder.start_node();
+        let modifiers = self.parse_modifiers();
+        match self.current() {
+            FN_KW => {
+                let fct = self.parse_function(modifiers);
+                Arc::new(ElemData::Function(fct))
+            }
+
+            TYPE_KW => {
+                let associated_type = self.parse_associated_type(modifiers);
+                Arc::new(ElemData::AssociatedType(associated_type))
+            }
+
+            _ => {
+                assert!(!TRAIT_ELEM_FIRST.contains(self.current()));
+                let span = self.current_span();
+                self.report_error_at(ParseError::ExpectedElement, span);
+                self.advance();
+                self.builder.finish_node(ERROR);
+
+                Arc::new(ElemData::Error {
+                    id: self.new_node_id(),
+                    span,
+                })
+            }
+        }
+    }
+
+    fn parse_associated_type(&mut self, modifiers: Option<ModifierList>) -> Arc<AssociatedType> {
+        self.start_node();
+        self.assert(TYPE_KW);
+        let name = self.expect_identifier();
+        self.expect(SEMICOLON);
+
+        let green = self.builder.finish_node(ASSOCIATED_TYPE);
+
+        Arc::new(AssociatedType {
+            id: self.new_node_id(),
+            name,
+            green,
+            modifiers,
+            span: self.finish_node(),
         })
     }
 

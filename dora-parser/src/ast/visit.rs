@@ -84,6 +84,10 @@ pub trait Visitor: Sized {
     fn visit_expr(&mut self, e: &ExprData) {
         walk_expr(self, e);
     }
+
+    fn visit_associated_type(&mut self, e: &Arc<AssociatedType>) {
+        walk_associated_type(self, e);
+    }
 }
 
 pub fn walk_file<V: Visitor>(v: &mut V, f: &File) {
@@ -106,6 +110,7 @@ pub fn walk_elem<V: Visitor>(v: &mut V, e: &ElemData) {
         ElemData::Module(ref e) => v.visit_module(e),
         ElemData::Use(ref i) => v.visit_use(i),
         ElemData::Extern(ref stmt) => v.visit_extern(stmt),
+        ElemData::AssociatedType(ref node) => v.visit_associated_type(node),
         ElemData::Error { .. } => {}
     }
 }
@@ -162,6 +167,10 @@ pub fn walk_use<V: Visitor>(_v: &mut V, _use: &Arc<Use>) {
 }
 
 pub fn walk_extern<V: Visitor>(_v: &mut V, _use: &Arc<ExternPackage>) {
+    // nothing to do
+}
+
+pub fn walk_associated_type<V: Visitor>(_v: &mut V, _node: &Arc<AssociatedType>) {
     // nothing to do
 }
 

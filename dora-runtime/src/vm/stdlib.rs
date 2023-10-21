@@ -9,7 +9,7 @@ use dora_bytecode::program::InternalClass;
 use dora_bytecode::program::InternalFunction;
 use dora_bytecode::{ClassId, FunctionId, NativeFunction};
 
-pub fn resolve_native_functions(vm: &mut VM) {
+pub fn connect_native_functions_to_implementation(vm: &mut VM) {
     let mut mappings: HashMap<NativeFunction, *const u8> = HashMap::from([
         (NativeFunction::Abort, stdlib::abort as *const u8),
         (NativeFunction::Exit, stdlib::exit as *const u8),
@@ -203,7 +203,7 @@ pub fn resolve_native_functions(vm: &mut VM) {
     assert!(mappings.is_empty());
 }
 
-pub fn resolve_internal_classes(vm: &mut VM) {
+pub fn lookup_known_classes(vm: &mut VM) {
     for (cls_id, cls) in vm.program.classes.iter().enumerate() {
         let cls_id = ClassId(cls_id as u32);
 
@@ -220,7 +220,7 @@ pub fn resolve_internal_classes(vm: &mut VM) {
     }
 }
 
-pub fn resolve_internal_functions(vm: &mut VM) {
+pub fn lookup_known_functions(vm: &mut VM) {
     for (fct_id, fct) in vm.program.functions.iter().enumerate() {
         let fct_id = FunctionId(fct_id as u32);
 

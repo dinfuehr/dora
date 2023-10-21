@@ -572,7 +572,6 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     // casting
     keywords.insert("as", AS);
 
-    // unused
     keywords.insert("type", TYPE_KW);
     keywords.insert("alias", ALIAS_KW);
     keywords.insert("Self", UPCASE_SELF_KW);

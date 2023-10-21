@@ -11,6 +11,7 @@ pub enum ParseError {
 
     // Parser errors
     ExpectedElement,
+    ExpectedTraitElement,
     ExpectedToken(String),
     ExpectedType,
     ExpectedTypeParam,
@@ -42,6 +43,9 @@ impl ParseError {
             // Parser errors
             ParseError::ExpectedElement => {
                 format!("expected top-level declaration.")
+            }
+            ParseError::ExpectedTraitElement => {
+                format!("expected trait element.")
             }
             ParseError::ExpectedToken(ref exp) => {
                 format!("expected `{}`.", exp)

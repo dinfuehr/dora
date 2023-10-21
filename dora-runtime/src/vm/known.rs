@@ -5,16 +5,14 @@ use dora_bytecode::{ClassId, FunctionId, TraitId};
 
 #[derive(Debug)]
 pub struct KnownElements {
-    pub byte_array_class_instance: Mutex<Option<ClassInstanceId>>,
-    pub int_array_class_instance: Mutex<Option<ClassInstanceId>>,
-    pub str_class_instance: Mutex<Option<ClassInstanceId>>,
-    pub obj_class_instance: Mutex<Option<ClassInstanceId>>,
-    pub ste_class_instance: Mutex<Option<ClassInstanceId>>,
-    pub ex_class_instance: Mutex<Option<ClassInstanceId>>,
+    pub byte_array_class_instance_id: Mutex<Option<ClassInstanceId>>,
+    pub int_array_class_instance_id: Mutex<Option<ClassInstanceId>>,
+    pub string_class_instance_id: Mutex<Option<ClassInstanceId>>,
+    pub ste_class_instance_id: Mutex<Option<ClassInstanceId>>,
 
-    pub free_object_class_instance: Option<ClassInstanceId>,
-    pub free_array_class_instance: Option<ClassInstanceId>,
-    pub code_class_instance: Option<ClassInstanceId>,
+    pub free_object_class_instance_id: Option<ClassInstanceId>,
+    pub free_array_class_instance_id: Option<ClassInstanceId>,
+    pub code_class_instance_id: Option<ClassInstanceId>,
 
     pub zero_trait_id: Option<TraitId>,
     pub array_class_id: Option<ClassId>,
@@ -28,16 +26,14 @@ pub struct KnownElements {
 impl KnownElements {
     pub fn new() -> KnownElements {
         KnownElements {
-            byte_array_class_instance: Mutex::new(None),
-            int_array_class_instance: Mutex::new(None),
-            str_class_instance: Mutex::new(None),
-            obj_class_instance: Mutex::new(None),
-            ste_class_instance: Mutex::new(None),
-            ex_class_instance: Mutex::new(None),
+            byte_array_class_instance_id: Mutex::new(None),
+            int_array_class_instance_id: Mutex::new(None),
+            string_class_instance_id: Mutex::new(None),
+            ste_class_instance_id: Mutex::new(None),
 
-            free_object_class_instance: None,
-            free_array_class_instance: None,
-            code_class_instance: None,
+            free_object_class_instance_id: None,
+            free_array_class_instance_id: None,
+            code_class_instance_id: None,
 
             zero_trait_id: None,
             array_class_id: None,
@@ -50,15 +46,15 @@ impl KnownElements {
     }
 
     pub fn free_object_class_instance(&self) -> ClassInstanceId {
-        self.free_object_class_instance.expect("uninitialized")
+        self.free_object_class_instance_id.expect("uninitialized")
     }
 
     pub fn free_array_class_instance(&self) -> ClassInstanceId {
-        self.free_array_class_instance.expect("uninitialized")
+        self.free_array_class_instance_id.expect("uninitialized")
     }
 
     pub fn code_class_instance(&self) -> ClassInstanceId {
-        self.code_class_instance.expect("uninitialized")
+        self.code_class_instance_id.expect("uninitialized")
     }
 
     pub fn zero_trait_id(&self) -> TraitId {
