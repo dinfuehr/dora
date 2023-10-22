@@ -760,9 +760,8 @@ fn check_expr_un_trait(
             .insert_or_replace(e.id, Arc::new(call_type));
 
         let method = ck.sa.fcts.idx(method_id);
-        let method = method.read();
 
-        let return_type = method.return_type.clone();
+        let return_type = method.return_type();
         ck.analysis.set_ty(e.id, return_type.clone());
 
         return_type
@@ -779,7 +778,6 @@ fn check_expr_un_trait(
             .expect("method not found");
 
         let method = ck.sa.fcts.idx(method_id);
-        let method = method.read();
 
         let call_type = CallType::GenericMethod(
             ty.type_param_id().expect("type param expected"),
@@ -790,7 +788,7 @@ fn check_expr_un_trait(
             .map_calls
             .insert_or_replace(e.id, Arc::new(call_type));
 
-        let return_type = method.return_type.clone();
+        let return_type = method.return_type();
         let return_type = replace_type_param(
             ck.sa,
             return_type,
@@ -983,8 +981,6 @@ fn check_expr_bin_trait(
             .insert_or_replace(e.id, Arc::new(call_type));
 
         let method = ck.sa.fcts.idx(method_id);
-        let method = method.read();
-
         let params = method.params_without_self();
 
         assert_eq!(params.len(), 1);
@@ -1000,7 +996,7 @@ fn check_expr_bin_trait(
             ck.sa.report(ck.file_id, e.span, msg);
         }
 
-        let return_type = method.return_type.clone();
+        let return_type = method.return_type();
         ck.analysis.set_ty(e.id, return_type.clone());
 
         return_type
@@ -1017,8 +1013,6 @@ fn check_expr_bin_trait(
             .expect("method not found");
 
         let method = ck.sa.fcts.idx(method_id);
-        let method = method.read();
-
         let params = method.params_without_self();
 
         let call_type = CallType::GenericMethod(
@@ -1046,7 +1040,7 @@ fn check_expr_bin_trait(
             ck.sa.report(ck.file_id, e.span, msg);
         }
 
-        let return_type = method.return_type.clone();
+        let return_type = method.return_type();
         let return_type = replace_type_param(
             ck.sa,
             return_type,
@@ -1185,7 +1179,7 @@ fn check_expr_lambda(
 
     let name = ck.sa.interner.intern("<closure>");
 
-    let mut lambda = FctDefinition::new(
+    let lambda = FctDefinition::new(
         ck.package_id,
         ck.module_id,
         ck.file_id,
@@ -1194,9 +1188,9 @@ fn check_expr_lambda(
         name,
         FctParent::Function,
     );
-    lambda.param_types = params_with_ctxt;
-    lambda.return_type = ret;
-    lambda.type_params = ck.type_param_defs.clone();
+    assert!(lambda.param_types.set(params_with_ctxt).is_ok());
+    assert!(lambda.return_type.set(ret).is_ok());
+    assert!(lambda.type_params.set(ck.type_param_defs.clone()).is_ok());
     let lambda_fct_id = ck.sa.add_fct(lambda);
     ck.analysis.map_lambdas.insert(node.id, lambda_fct_id);
 
@@ -1207,11 +1201,9 @@ fn check_expr_lambda(
         analysis.outer_context_infos = ck.outer_context_classes.clone();
 
         {
-            let lambda = lambda.read();
-
             let mut typeck = TypeCheck {
                 sa: ck.sa,
-                type_param_defs: &lambda.type_params,
+                type_param_defs: lambda.type_params(),
                 package_id: ck.package_id,
                 module_id: ck.module_id,
                 file_id: ck.file_id,
@@ -1219,8 +1211,8 @@ fn check_expr_lambda(
                 symtable: &mut ck.symtable,
                 in_loop: false,
                 is_lambda: true,
-                param_types: lambda.param_types.clone(),
-                return_type: Some(lambda.return_type.clone()),
+                param_types: lambda.params_with_self().to_vec(),
+                return_type: Some(lambda.return_type()),
                 has_hidden_self_argument: true,
                 is_self_available: ck.is_self_available,
                 vars: ck.vars,
@@ -1237,7 +1229,7 @@ fn check_expr_lambda(
             ck.outer_context_access_from_lambda = true
         }
 
-        lambda.write().analysis = Some(analysis);
+        assert!(lambda.analysis.set(analysis).is_ok());
     }
 
     ck.analysis.set_ty(node.id, ty.clone());

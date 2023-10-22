@@ -1,3 +1,4 @@
+use std::cell::{Cell, OnceCell};
 use std::sync::Arc;
 
 use crate::interner::Name;
@@ -59,20 +60,19 @@ pub struct FctDefinition {
     pub visibility: Visibility,
     pub is_test: bool,
     pub is_internal: bool,
-    pub internal_resolved: bool,
-    pub param_types: Vec<SourceType>,
-    pub return_type: SourceType,
-    pub is_variadic: bool,
+    pub param_types: OnceCell<Vec<SourceType>>,
+    pub return_type: OnceCell<SourceType>,
+    pub is_variadic: Cell<bool>,
 
-    pub vtable_index: Option<u32>,
-    pub initialized: bool,
-    pub analysis: Option<AnalysisData>,
+    pub vtable_index: OnceCell<u32>,
+    pub initialized: Cell<bool>,
+    pub analysis: OnceCell<AnalysisData>,
 
-    pub type_params: TypeParamDefinition,
-    pub container_type_params: usize,
-    pub bytecode: Option<BytecodeFunction>,
-    pub intrinsic: Option<Intrinsic>,
-    pub native_function: Option<NativeFunction>,
+    pub type_params: OnceCell<TypeParamDefinition>,
+    pub container_type_params: OnceCell<usize>,
+    pub bytecode: OnceCell<BytecodeFunction>,
+    pub intrinsic: OnceCell<Intrinsic>,
+    pub native_function: OnceCell<NativeFunction>,
 }
 
 impl FctDefinition {
@@ -93,29 +93,39 @@ impl FctDefinition {
             span: ast.span,
             ast: ast.clone(),
             name,
-            param_types: Vec::new(),
-            return_type: SourceType::Error,
+            param_types: OnceCell::new(),
+            return_type: OnceCell::new(),
             parent,
             is_optimize_immediately: modifiers.is_optimize_immediately,
             visibility: modifiers.visibility(),
             is_static: modifiers.is_static,
             is_test: modifiers.is_test,
             is_internal: modifiers.is_internal,
-            internal_resolved: false,
-            vtable_index: None,
-            initialized: false,
-            is_variadic: false,
-            analysis: None,
-            type_params: TypeParamDefinition::new(),
-            container_type_params: 0,
-            bytecode: None,
-            intrinsic: None,
-            native_function: None,
+            vtable_index: OnceCell::new(),
+            initialized: Cell::new(false),
+            is_variadic: Cell::new(false),
+            analysis: OnceCell::new(),
+            type_params: OnceCell::new(),
+            container_type_params: OnceCell::new(),
+            bytecode: OnceCell::new(),
+            intrinsic: OnceCell::new(),
+            native_function: OnceCell::new(),
         }
     }
 
     pub fn id(&self) -> FctDefinitionId {
         self.id.expect("id missing")
+    }
+
+    pub fn type_params(&self) -> &TypeParamDefinition {
+        self.type_params.get().expect("uninitialized type params")
+    }
+
+    pub fn container_type_params(&self) -> usize {
+        self.container_type_params
+            .get()
+            .cloned()
+            .expect("missing type params")
     }
 
     pub fn has_parent(&self) -> bool {
@@ -187,7 +197,7 @@ impl FctDefinition {
     }
 
     pub fn analysis(&self) -> &AnalysisData {
-        self.analysis.as_ref().unwrap()
+        self.analysis.get().expect("uninitialized")
     }
 
     pub fn has_hidden_self_argument(&self) -> bool {
@@ -199,14 +209,14 @@ impl FctDefinition {
     }
 
     pub fn params_with_self(&self) -> &[SourceType] {
-        &self.param_types
+        self.param_types.get().expect("missing params")
     }
 
     pub fn params_without_self(&self) -> &[SourceType] {
         if self.has_hidden_self_argument() {
-            &self.param_types[1..]
+            &self.params_with_self()[1..]
         } else {
-            &self.param_types
+            self.params_with_self()
         }
     }
 
@@ -219,8 +229,15 @@ impl FctDefinition {
         BytecodeTypeArray::new(params)
     }
 
+    pub fn return_type(&self) -> SourceType {
+        self.return_type
+            .get()
+            .cloned()
+            .expect("missing return type")
+    }
+
     pub fn return_type_bty(&self) -> BytecodeType {
-        bty_from_ty(self.return_type.clone())
+        bty_from_ty(self.return_type())
     }
 }
 

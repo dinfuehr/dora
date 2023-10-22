@@ -138,7 +138,6 @@ fn check_expr_call_generic_static_method(
 
     let (trait_id, fct_id) = fcts[0];
     let fct = ck.sa.fcts.idx(fct_id);
-    let fct = fct.read();
 
     let tp = SourceType::TypeParam(tp_id);
 
@@ -164,7 +163,7 @@ fn check_expr_call_generic_static_method(
 
     let return_type = replace_type_param(
         ck.sa,
-        fct.return_type.clone(),
+        fct.return_type(),
         &SourceTypeArray::empty(),
         Some(tp),
     );
@@ -258,7 +257,6 @@ fn check_expr_call_fct(
 ) -> SourceType {
     if !fct_accessible_from(ck.sa, fct_id, ck.module_id) {
         let fct = ck.sa.fcts.idx(fct_id);
-        let fct = fct.read();
         let msg = ErrorMessage::NotAccessible(fct.display_name(ck.sa));
         ck.sa.report(ck.file_id, e.span, msg);
     }
@@ -311,7 +309,6 @@ fn check_expr_call_static_method(
 
         if !method_accessible_from(ck.sa, fct_id, ck.module_id) {
             let fct = ck.sa.fcts.idx(fct_id);
-            let fct = fct.read();
 
             let name = fct.display_name(ck.sa);
             let msg = ErrorMessage::NotAccessible(name);
@@ -377,7 +374,6 @@ fn check_expr_call_method(
 
         if !method_accessible_from(ck.sa, fct_id, ck.module_id) {
             let fct = ck.sa.fcts.idx(fct_id);
-            let fct = fct.read();
 
             let name = fct.display_name(ck.sa);
             let msg = ErrorMessage::NotAccessible(name);
@@ -672,8 +668,7 @@ fn check_expr_call_generic_type_param(
         let fid = found_fcts[0];
 
         let fct = ck.sa.fcts.idx(fid);
-        let fct = fct.read();
-        let return_type = fct.return_type.clone();
+        let return_type = fct.return_type();
 
         ck.analysis.set_ty(e.id, return_type.clone());
 
@@ -987,13 +982,12 @@ pub(super) fn lookup_method(
     if candidates.len() == 1 {
         let method_id = candidates[0].fct_id;
         let method = sa.fcts.idx(method_id);
-        let method = method.read();
 
         let container_type_params = &candidates[0].container_type_params;
         let type_params = container_type_params.connect(fct_type_params);
 
         if args_compatible_fct(sa, &*method, args, &type_params, None) {
-            let cmp_type = replace_type_param(sa, method.return_type.clone(), &type_params, None);
+            let cmp_type = replace_type_param(sa, method.return_type(), &type_params, None);
 
             return Some(MethodDescriptor {
                 fct_id: method_id,

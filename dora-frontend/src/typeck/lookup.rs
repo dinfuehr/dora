@@ -207,7 +207,6 @@ impl<'a> MethodLookup<'a> {
         };
 
         let fct = self.sa.fcts.idx(fct_id);
-        let fct = fct.read();
 
         let container_tps = match kind {
             LookupKind::Method(_) | LookupKind::Static(_) => {
@@ -224,7 +223,7 @@ impl<'a> MethodLookup<'a> {
 
         let type_params = container_tps.connect(&fct_tps);
 
-        if !self.check_tps(&fct.type_params, &type_params) {
+        if !self.check_tps(fct.type_params(), &type_params) {
             return result;
         }
 
@@ -251,7 +250,7 @@ impl<'a> MethodLookup<'a> {
 
         let cmp_type = {
             let type_list = container_tps.connect(&fct_tps);
-            replace_type_param(self.sa, fct.return_type.clone(), &type_list, None)
+            replace_type_param(self.sa, fct.return_type(), &type_list, None)
         };
 
         if self.ret.is_none() || self.ret.clone().unwrap() == cmp_type {

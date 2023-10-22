@@ -122,7 +122,6 @@ fn create_functions(sa: &Sema, e: &mut Emitter) -> Vec<FunctionData> {
     let mut result = Vec::new();
 
     for fct in sa.fcts.iter() {
-        let fct = fct.read();
         let name = sa.interner.str(fct.name).to_string();
 
         let internal_function = if Some(fct.id()) == sa.known.functions.compile {
@@ -148,7 +147,7 @@ fn create_functions(sa: &Sema, e: &mut Emitter) -> Vec<FunctionData> {
             file_id: convert_source_file_id(fct.file_id),
             package_id: convert_package_id(fct.package_id),
             module_id: convert_module_id(fct.module_id),
-            type_params: create_type_params(sa, &fct.type_params),
+            type_params: create_type_params(sa, fct.type_params()),
             source_file_id: Some(convert_source_file_id(fct.file_id)),
             params: fct
                 .params_with_self()
@@ -156,14 +155,14 @@ fn create_functions(sa: &Sema, e: &mut Emitter) -> Vec<FunctionData> {
                 .map(|ty| bty_from_ty(ty.clone()))
                 .collect(),
             return_type: fct.return_type_bty(),
-            native: fct.native_function.clone(),
-            intrinsic: fct.intrinsic,
+            native: fct.native_function.get().cloned(),
+            intrinsic: fct.intrinsic.get().cloned(),
             internal: internal_function,
             is_test: fct.is_test,
-            vtable_index: fct.vtable_index,
+            vtable_index: fct.vtable_index.get().cloned(),
             is_optimize_immediately: fct.is_optimize_immediately,
-            is_variadic: fct.is_variadic,
-            bytecode: fct.bytecode.clone(),
+            is_variadic: fct.is_variadic.get(),
+            bytecode: fct.bytecode.get().cloned(),
         })
     }
 
@@ -423,12 +422,11 @@ fn find_main_fct_id(sa: &Sema) -> Option<FunctionId> {
     let fct_id = sym.kind().to_fct().unwrap();
 
     let fct = sa.fcts.idx(fct_id);
-    let fct = fct.read();
-    let ret = fct.return_type.clone();
+    let ret = fct.return_type();
 
     if (!ret.is_unit() && !ret.is_int32())
         || !fct.params_without_self().is_empty()
-        || !fct.type_params.is_empty()
+        || !fct.type_params().is_empty()
     {
         None
     } else {

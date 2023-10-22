@@ -236,7 +236,7 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn add_type_params(&mut self, fct: &FctDefinition) {
-        for (id, name) in fct.type_params.names() {
+        for (id, name) in fct.type_params().names() {
             self.symtable.insert(name, SymbolKind::TypeParam(id));
         }
     }
@@ -348,7 +348,7 @@ pub(super) fn args_compatible_fct(
     self_ty: Option<SourceType>,
 ) -> bool {
     let arg_types = callee.params_without_self();
-    let variadic_arguments = callee.is_variadic;
+    let variadic_arguments = callee.is_variadic.get();
     args_compatible(
         sa,
         arg_types,

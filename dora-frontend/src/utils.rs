@@ -41,8 +41,8 @@ impl<T> GrowableVec<T> {
     }
 }
 
-impl<T: Id> GrowableVec<RwLock<T>> {
-    pub fn idx(&self, idx: T::IdType) -> Arc<RwLock<T>> {
+impl<T: Id> GrowableVec<T> {
+    pub fn idx(&self, idx: T::IdType) -> Arc<T> {
         self.idx_usize(T::id_to_usize(idx))
     }
 }

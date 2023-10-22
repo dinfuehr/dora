@@ -115,7 +115,6 @@ impl TraitDefinition {
     pub fn find_method(&self, sa: &Sema, name: Name, is_static: bool) -> Option<FctDefinitionId> {
         for &method in &self.methods {
             let method = sa.fcts.idx(method);
-            let method = method.read();
 
             if method.name == name && method.is_static == is_static {
                 return Some(method.id());
@@ -135,7 +134,6 @@ impl TraitDefinition {
     ) -> Option<FctDefinitionId> {
         for &method in &self.methods {
             let method = sa.fcts.idx(method);
-            let method = method.read();
 
             if method.name == name
                 && method.is_static == is_static

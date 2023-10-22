@@ -69,7 +69,6 @@ pub fn method_accessible_from(
     module_id: ModuleDefinitionId,
 ) -> bool {
     let fct = sa.fcts.idx(fct_id);
-    let fct = fct.read();
 
     let element_visibility = match fct.parent {
         FctParent::Extension(_) => fct.visibility,
@@ -90,7 +89,6 @@ pub fn fct_accessible_from(
     module_id: ModuleDefinitionId,
 ) -> bool {
     let fct = sa.fcts.idx(fct_id);
-    let fct = fct.read();
 
     accessible_from(sa, fct.module_id, fct.visibility, module_id)
 }

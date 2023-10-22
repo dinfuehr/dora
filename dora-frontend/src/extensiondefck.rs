@@ -146,7 +146,6 @@ impl<'x> ExtensionCheck<'x> {
 
     fn visit_method(&mut self, fct_id: FctDefinitionId) {
         let fct = self.sa.fcts.idx(fct_id);
-        let fct = fct.read();
 
         if fct.ast.block.is_none() && !fct.is_internal {
             self.sa
@@ -190,7 +189,7 @@ impl<'x> ExtensionCheck<'x> {
             &extension.instance_names
         };
 
-        let mut table = table.write();
+        let mut table = table.borrow_mut();
 
         if !table.contains_key(&fct.name) {
             table.insert(fct.name, fct_id);
@@ -264,9 +263,8 @@ impl<'x> ExtensionCheck<'x> {
             .interner
             .intern(&f.name.as_ref().expect("missing name").name_as_string);
 
-        if let Some(&method_id) = table.read().get(&name) {
+        if let Some(&method_id) = table.borrow().get(&name) {
             let method = self.sa.fcts.idx(method_id);
-            let method = method.read();
             let method_name = self.sa.interner.str(method.name).to_string();
             let msg = ErrorMessage::MethodExists(method_name, method.span);
             self.sa.report(self.file_id.into(), f.span, msg);

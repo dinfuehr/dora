@@ -1,64 +1,68 @@
 use std::collections::HashSet;
 
 use crate::error::msg::ErrorMessage;
-use crate::sema::{FctDefinition, FctDefinitionId, FctParent, Sema, TypeParamId};
+use crate::sema::{
+    FctDefinition, FctDefinitionId, FctParent, Sema, TypeParamDefinition, TypeParamId,
+};
 use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::ty::SourceType;
-use crate::{read_type_context, AllowSelf, TypeParamContext};
+use crate::{read_type, read_type_context, AllowSelf, TypeParamContext};
 
 pub fn check(sa: &Sema) {
     for fct in sa.fcts.iter() {
-        let mut fct = fct.write();
         let ast = fct.ast.clone();
 
         let mut sym_table = ModuleSymTable::new(sa, fct.module_id);
         sym_table.push_level();
 
+        let mut type_params = TypeParamDefinition::new();
+        let mut param_types = Vec::new();
+
         match fct.parent {
             FctParent::Impl(impl_id) => {
                 let impl_ = sa.impls[impl_id].read();
-                fct.type_params.append(impl_.type_params());
+                type_params.append(impl_.type_params());
 
                 if fct.has_hidden_self_argument() {
-                    fct.param_types.push(impl_.extended_ty.clone());
+                    param_types.push(impl_.extended_ty.clone());
                 }
             }
 
             FctParent::Extension(extension_id) => {
                 let extension = &sa.extensions[extension_id];
-                fct.type_params.append(extension.type_params());
+                type_params.append(extension.type_params());
 
                 if fct.has_hidden_self_argument() {
-                    fct.param_types.push(extension.ty().clone());
+                    param_types.push(extension.ty().clone());
                 }
             }
 
             FctParent::Trait(trait_id) => {
                 let trait_ = sa.traits[trait_id].read();
-                fct.type_params.append(&trait_.type_params());
+                type_params.append(&trait_.type_params());
 
                 if fct.has_hidden_self_argument() {
-                    fct.param_types.push(SourceType::This);
+                    param_types.push(SourceType::This);
                 }
             }
 
             FctParent::None => {}
 
-            FctParent::Function => unimplemented!(),
+            FctParent::Function => unreachable!(),
         }
 
-        for (id, name) in fct.type_params.names() {
+        for (id, name) in type_params.names() {
             sym_table.insert(name, SymbolKind::TypeParam(id));
         }
 
-        let container_type_params = fct.type_params.len();
-        fct.container_type_params = container_type_params;
+        let container_type_params = type_params.len();
+        assert!(fct.container_type_params.set(container_type_params).is_ok());
 
-        if let Some(ref type_params) = ast.type_params {
-            if type_params.params.len() > 0 {
+        if let Some(ref ast_type_params) = ast.type_params {
+            if ast_type_params.params.len() > 0 {
                 let mut names = HashSet::new();
 
-                for (type_param_id, type_param) in type_params.params.iter().enumerate() {
+                for (type_param_id, type_param) in ast_type_params.params.iter().enumerate() {
                     let name = sa.interner.intern(
                         &type_param
                             .name
@@ -73,21 +77,21 @@ pub fn check(sa: &Sema) {
                         sa.report(fct.file_id, type_param.span, msg);
                     }
 
-                    fct.type_params.add_type_param(name);
+                    type_params.add_type_param(name);
 
                     for bound in &type_param.bounds {
-                        let ty = read_type_context(
+                        let ty = read_type(
                             sa,
                             &sym_table,
                             fct.file_id,
                             bound,
-                            TypeParamContext::Fct(&*fct),
+                            &type_params,
                             AllowSelf::No,
                         );
 
                         if let Some(ty) = ty {
                             if ty.is_trait() {
-                                if !fct.type_params.add_bound(
+                                if !type_params.add_bound(
                                     TypeParamId(container_type_params + type_param_id),
                                     ty,
                                 ) {
@@ -113,8 +117,10 @@ pub fn check(sa: &Sema) {
             }
         }
 
+        assert!(fct.type_params.set(type_params).is_ok());
+
         for p in &ast.params {
-            if fct.is_variadic {
+            if fct.is_variadic.get() {
                 sa.report(
                     fct.file_id,
                     p.span,
@@ -136,14 +142,16 @@ pub fn check(sa: &Sema) {
             )
             .unwrap_or(SourceType::Error);
 
-            fct.param_types.push(ty);
+            param_types.push(ty);
 
             if p.variadic {
-                fct.is_variadic = true;
+                fct.is_variadic.set(true);
             }
         }
 
-        if let Some(ret) = ast.return_type.as_ref() {
+        assert!(fct.param_types.set(param_types).is_ok());
+
+        let return_type = if let Some(ret) = ast.return_type.as_ref() {
             let ty = read_type_context(
                 sa,
                 &sym_table,
@@ -158,12 +166,13 @@ pub fn check(sa: &Sema) {
             )
             .unwrap_or(SourceType::Error);
 
-            fct.return_type = ty;
+            ty
         } else {
-            fct.return_type = SourceType::Unit;
-        }
+            SourceType::Unit
+        };
 
-        fct.initialized = true;
+        assert!(fct.return_type.set(return_type).is_ok());
+        fct.initialized.set(true);
 
         check_test(sa, &*fct);
 
@@ -184,16 +193,16 @@ pub fn check(sa: &Sema) {
 }
 
 fn check_test(sa: &Sema, fct: &FctDefinition) {
-    debug_assert!(fct.initialized);
+    assert!(fct.initialized.get());
 
     if !fct.is_test {
         return;
     }
 
     if !fct.parent.is_none()
-        || !fct.type_params.is_empty()
-        || !fct.param_types.is_empty()
-        || (!fct.return_type.is_unit() && !fct.return_type.is_error())
+        || !fct.type_params().is_empty()
+        || !fct.params_with_self().is_empty()
+        || (!fct.return_type().is_unit() && !fct.return_type().is_error())
     {
         let msg = ErrorMessage::InvalidTestAnnotationUsage;
         sa.report(fct.file_id, fct.span, msg);
@@ -207,9 +216,9 @@ fn check_against_methods(sa: &Sema, fct: &FctDefinition, methods: &[FctDefinitio
         }
 
         let method = sa.fcts.idx(method);
-        let method = method.read();
 
-        if method.initialized && method.name == fct.name && method.is_static == fct.is_static {
+        if method.initialized.get() && method.name == fct.name && method.is_static == fct.is_static
+        {
             let method_name = sa.interner.str(method.name).to_string();
 
             let msg = ErrorMessage::MethodExists(method_name, method.span);

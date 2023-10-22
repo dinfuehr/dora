@@ -90,7 +90,7 @@ pub struct Sema {
     pub classes: Arena<ClassDefinition>, // stores all class source definitions
     pub extensions: Arena<ExtensionDefinition>, // stores all extension definitions
     pub modules: Arena<ModuleDefinition>, // stores all module definitions
-    pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
+    pub fcts: GrowableVec<FctDefinition>, // stores all function source definitions
     pub enums: MutableVec<EnumDefinition>, // stores all enum source definitions
     pub traits: MutableVec<TraitDefinition>, // stores all trait definitions
     pub impls: MutableVec<ImplDefinition>, // stores all impl definitions
@@ -194,7 +194,7 @@ impl Sema {
 
         fct.id = Some(fctid);
 
-        fcts.push(Arc::new(RwLock::new(fct)));
+        fcts.push(Arc::new(fct));
 
         fctid
     }

@@ -57,8 +57,6 @@ fn check_function(sa: &mut Sema, id: FctDefinitionId) {
     let fct = sa.fcts.idx(id);
 
     let analysis = {
-        let fct = fct.read();
-
         if !fct.has_body() {
             return;
         }
@@ -75,14 +73,14 @@ fn check_function(sa: &mut Sema, id: FctDefinitionId) {
 
         let mut typeck = TypeCheck {
             sa,
-            type_param_defs: &fct.type_params,
+            type_param_defs: fct.type_params(),
             package_id: fct.package_id,
             module_id: fct.module_id,
             file_id: fct.file_id,
             analysis: &mut analysis,
             symtable: &mut symtable,
             param_types: fct.params_with_self().to_owned(),
-            return_type: Some(fct.return_type.clone()),
+            return_type: Some(fct.return_type()),
             in_loop: false,
             has_hidden_self_argument: fct.has_hidden_self_argument(),
             is_self_available: fct.has_hidden_self_argument(),
@@ -99,7 +97,7 @@ fn check_function(sa: &mut Sema, id: FctDefinitionId) {
         analysis
     };
 
-    fct.write().analysis = Some(analysis);
+    assert!(fct.analysis.set(analysis).is_ok());
 }
 
 fn check_global(sa: &mut Sema, id: GlobalDefinitionId) {

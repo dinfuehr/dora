@@ -1,9 +1,6 @@
-use parking_lot::RwLock;
-
-use std::cell::OnceCell;
+use std::cell::{OnceCell, RefCell};
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::sync::OnceLock;
 
 use crate::interner::Name;
 use crate::sema::{
@@ -26,11 +23,11 @@ pub struct ExtensionDefinition {
     pub file_id: SourceFileId,
     pub ast: Arc<ast::Impl>,
     pub span: Span,
-    pub type_params: OnceLock<TypeParamDefinition>,
-    pub ty: OnceLock<SourceType>,
-    pub methods: OnceLock<Vec<FctDefinitionId>>,
-    pub instance_names: RwLock<HashMap<Name, FctDefinitionId>>,
-    pub static_names: RwLock<HashMap<Name, FctDefinitionId>>,
+    pub type_params: OnceCell<TypeParamDefinition>,
+    pub ty: OnceCell<SourceType>,
+    pub methods: OnceCell<Vec<FctDefinitionId>>,
+    pub instance_names: RefCell<HashMap<Name, FctDefinitionId>>,
+    pub static_names: RefCell<HashMap<Name, FctDefinitionId>>,
 }
 
 impl ExtensionDefinition {
@@ -47,11 +44,11 @@ impl ExtensionDefinition {
             file_id,
             ast: node.clone(),
             span: node.span,
-            type_params: OnceLock::new(),
-            ty: OnceLock::new(),
-            methods: OnceLock::new(),
-            instance_names: RwLock::new(HashMap::new()),
-            static_names: RwLock::new(HashMap::new()),
+            type_params: OnceCell::new(),
+            ty: OnceCell::new(),
+            methods: OnceCell::new(),
+            instance_names: RefCell::new(HashMap::new()),
+            static_names: RefCell::new(HashMap::new()),
         }
     }
 

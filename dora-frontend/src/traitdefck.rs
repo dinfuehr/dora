@@ -31,9 +31,8 @@ impl<'x> TraitCheck<'x> {
 
     fn visit_method(&mut self, fct_id: FctDefinitionId) {
         let fct = self.sa.fcts.idx(fct_id);
-        let mut fct = fct.write();
 
-        fct.vtable_index = Some(self.vtable_index);
+        assert!(fct.vtable_index.set(self.vtable_index).is_ok());
         self.vtable_index += 1;
 
         let table = if fct.is_static {

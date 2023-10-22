@@ -115,7 +115,6 @@ pub fn check_program(sa: &mut Sema) -> bool {
 
 pub fn emit_ast(sa: &Sema, filter: &str) {
     for fct in sa.fcts.iter() {
-        let fct = fct.read();
         let fct_name = fct.display_name(sa);
 
         if fct_pattern_match(&fct_name, filter) {
@@ -127,8 +126,6 @@ pub fn emit_ast(sa: &Sema, filter: &str) {
 pub fn generate_bytecode(sa: &Sema) {
     for fct in sa.fcts.iter() {
         let bc = {
-            let fct = fct.read();
-
             if !fct.has_body() {
                 continue;
             }
@@ -137,7 +134,7 @@ pub fn generate_bytecode(sa: &Sema) {
             generator::generate_fct(sa, &*fct, analysis)
         };
 
-        fct.write().bytecode = Some(bc);
+        assert!(fct.bytecode.set(bc).is_ok());
     }
 
     for global in sa.globals.iter() {
@@ -182,8 +179,6 @@ fn fct_pattern_match(name: &str, pattern: &str) -> bool {
 
 fn internalck(sa: &Sema) {
     for fct in sa.fcts.iter() {
-        let fct = fct.read();
-
         if !fct.has_body() && !fct.in_trait() && !fct.is_internal {
             sa.report(fct.file_id, fct.span, ErrorMessage::MissingFctBody);
         }

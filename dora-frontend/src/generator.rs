@@ -37,7 +37,6 @@ impl LoopLabels {
 
 pub fn generate_fct_id(sa: &Sema, id: FctDefinitionId) -> BytecodeFunction {
     let fct = sa.fcts.idx(id);
-    let fct = fct.read();
     let analysis = fct.analysis();
 
     generate_fct(sa, &fct, analysis)
@@ -46,9 +45,9 @@ pub fn generate_fct_id(sa: &Sema, id: FctDefinitionId) -> BytecodeFunction {
 pub fn generate_fct(sa: &Sema, fct: &FctDefinition, src: &AnalysisData) -> BytecodeFunction {
     let ast_bytecode_generator = AstBytecodeGen {
         sa,
-        type_params_len: fct.type_params.len(),
+        type_params_len: fct.type_params().len(),
         is_lambda: fct.is_lambda(),
-        return_type: Some(fct.return_type.clone()),
+        return_type: Some(fct.return_type()),
         file_id: fct.file_id,
         span: fct.span,
         analysis: src,
@@ -850,7 +849,6 @@ impl<'a> AstBytecodeGen<'a> {
             .expect("missing lambda id");
 
         let lambda_fct = self.sa.fcts.idx(lambda_fct_id);
-        let lambda_fct = lambda_fct.read();
         let lambda_analysis = lambda_fct.analysis();
 
         if lambda_analysis.outer_context_access() {
@@ -1109,9 +1107,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         // Find method that is called
         let callee_id = call_type.fct_id().expect("FctId missing");
-
         let callee = self.sa.fcts.idx(callee_id);
-        let callee = callee.read();
 
         let callee_idx = self.add_const_pool_entry_for_call(&callee, &call_type);
 
@@ -1300,7 +1296,7 @@ impl<'a> AstBytecodeGen<'a> {
         call_type: &CallType,
         fct: &FctDefinition,
     ) -> (Vec<SourceType>, SourceType) {
-        let return_type = self.specialize_type_for_call(&call_type, fct.return_type.clone());
+        let return_type = self.specialize_type_for_call(&call_type, fct.return_type());
 
         let mut arg_types = Vec::with_capacity(fct.params_with_self().len());
 
@@ -1366,7 +1362,7 @@ impl<'a> AstBytecodeGen<'a> {
         };
 
         // Calculate number of non-variadic arguments
-        let non_variadic_arguments = if callee.is_variadic {
+        let non_variadic_arguments = if callee.is_variadic.get() {
             arg_types.len() - arg_start_offset - 1
         } else {
             arg_types.len()
@@ -1378,7 +1374,7 @@ impl<'a> AstBytecodeGen<'a> {
             registers.push(reg);
         }
 
-        if callee.is_variadic {
+        if callee.is_variadic.get() {
             let array_reg = self.emit_array_with_variadic_arguments(
                 expr,
                 arg_types,
@@ -1717,12 +1713,11 @@ impl<'a> AstBytecodeGen<'a> {
         let callee_id = call_type.fct_id().expect("FctId missing");
 
         let callee = self.sa.fcts.idx(callee_id);
-        let callee = callee.read();
 
         let callee_idx = self.add_const_pool_entry_for_call(&callee, &call_type);
 
         let function_return_type: SourceType =
-            self.specialize_type_for_call(call_type, callee.return_type.clone());
+            self.specialize_type_for_call(call_type, callee.return_type());
 
         let function_return_type_bc: BytecodeType =
             register_bty_from_ty(function_return_type.clone());
@@ -1774,12 +1769,11 @@ impl<'a> AstBytecodeGen<'a> {
         let callee_id = call_type.fct_id().expect("FctId missing");
 
         let callee = self.sa.fcts.idx(callee_id);
-        let callee = callee.read();
 
         let callee_idx = self.add_const_pool_entry_for_call(&callee, &call_type);
 
         let function_return_type: SourceType =
-            self.specialize_type_for_call(call_type, callee.return_type.clone());
+            self.specialize_type_for_call(call_type, callee.return_type());
 
         let function_return_type_bc: BytecodeType =
             register_bty_from_ty(function_return_type.clone());
@@ -2041,7 +2035,6 @@ impl<'a> AstBytecodeGen<'a> {
         let intrinsic = info.intrinsic;
 
         let fct = self.sa.fcts.idx(info.fct_id.expect("missing method"));
-        let fct = fct.read();
         let ty = fct.return_type_bty();
         let dest = self.ensure_register(dest, ty);
 
@@ -2110,7 +2103,6 @@ impl<'a> AstBytecodeGen<'a> {
 
         let fct_id = info.fct_id.expect("missing function");
         let fct = self.sa.fcts.idx(fct_id);
-        let fct = fct.read();
 
         let result_type = fct.return_type_bty();
 
@@ -2688,7 +2680,7 @@ impl<'a> AstBytecodeGen<'a> {
         call_type: &CallType,
     ) -> ConstPoolIdx {
         let type_params = self.determine_call_type_params(call_type);
-        assert_eq!(fct.type_params.len(), type_params.len());
+        assert_eq!(fct.type_params().len(), type_params.len());
 
         match *call_type {
             CallType::GenericStaticMethod(id, _, _) | CallType::GenericMethod(id, _, _) => {
@@ -2768,9 +2760,8 @@ impl<'a> AstBytecodeGen<'a> {
         };
 
         let fct = self.sa.fcts.idx(fid);
-        let fct = fct.read();
 
-        if let Some(intrinsic) = fct.intrinsic {
+        if let Some(intrinsic) = fct.intrinsic.get().cloned() {
             return Some(IntrinsicInfo::with_fct(intrinsic, fid));
         }
 

@@ -124,7 +124,6 @@ impl<'x> ImplCheck<'x> {
 
     fn visit_method(&mut self, impl_: &mut ImplDefinition, fct_id: FctDefinitionId) {
         let method = self.sa.fcts.idx(fct_id);
-        let method = method.read();
 
         if method.ast.block.is_none() && !method.is_internal {
             self.sa.report(

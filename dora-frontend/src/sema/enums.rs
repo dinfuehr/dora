@@ -135,7 +135,7 @@ pub fn find_methods_in_enum(
                 &extension.instance_names
             };
 
-            if let Some(&fct_id) = table.read().get(&name) {
+            if let Some(&fct_id) = table.borrow().get(&name) {
                 return vec![Candidate {
                     object_type: object_type.clone(),
                     container_type_params: bindings,

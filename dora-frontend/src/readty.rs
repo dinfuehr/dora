@@ -627,7 +627,7 @@ where
             callback(&trait_.type_params())
         }
 
-        TypeParamContext::Fct(fct) => callback(&fct.type_params),
+        TypeParamContext::Fct(fct) => callback(fct.type_params()),
         TypeParamContext::None => callback(&TypeParamDefinition::new()),
     }
 }

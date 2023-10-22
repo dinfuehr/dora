@@ -15,7 +15,6 @@ pub fn check(sa: &mut Sema) {
 
             for &method_id in &impl_.methods {
                 let method = sa.fcts.idx(method_id);
-                let method = method.read();
 
                 if let Some(fid) = trait_.find_method_with_replace(
                     sa,
@@ -28,19 +27,18 @@ pub fn check(sa: &mut Sema) {
                     impl_for.insert(fid, method_id);
 
                     let trait_method = sa.fcts.idx(fid);
-                    let trait_method = trait_method.read();
 
-                    let return_type_valid = method.return_type
-                        == if trait_method.return_type.is_self() {
+                    let return_type_valid = method.return_type()
+                        == if trait_method.return_type().is_self() {
                             impl_.extended_ty.clone()
                         } else {
-                            trait_method.return_type.clone()
+                            trait_method.return_type()
                         };
 
                     if !return_type_valid {
-                        let impl_return_type = method.return_type.name_fct(sa, &*method);
+                        let impl_return_type = method.return_type().name_fct(sa, &*method);
                         let trait_return_type =
-                            trait_method.return_type.name_fct(sa, &*trait_method);
+                            trait_method.return_type().name_fct(sa, &*trait_method);
 
                         let msg =
                             ErrorMessage::ReturnTypeMismatch(impl_return_type, trait_return_type);
@@ -67,7 +65,6 @@ pub fn check(sa: &mut Sema) {
 
             for &method_id in all.difference(&defined) {
                 let method = sa.fcts.idx(method_id);
-                let method = method.read();
 
                 if method.has_body() {
                     // method has a default implementation, use that one

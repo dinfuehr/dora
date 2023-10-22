@@ -374,13 +374,6 @@ fn resolve_freestanding_stdlib(sa: &mut Sema, stdlib_id: ModuleDefinitionId) {
         NativeFunction::ForceMinorCollect,
     );
     native_fct(sa, stdlib_id, "sleep", NativeFunction::Sleep);
-
-    intrinsic_fct(sa, stdlib_id, "unsafeKillRefs", Intrinsic::UnsafeKillRefs);
-    intrinsic_fct(sa, stdlib_id, "unreachable", Intrinsic::Unreachable);
-
-    let fid = intrinsic_fct(sa, stdlib_id, "assert", Intrinsic::Assert);
-    sa.known.functions.assert = Some(fid);
-    intrinsic_fct(sa, stdlib_id, "debug", Intrinsic::Debug);
     intrinsic_fct(sa, stdlib_id, "unsafeKillRefs", Intrinsic::UnsafeKillRefs);
 }
 
@@ -1824,7 +1817,6 @@ fn find_method_in_extensions(
 
         for &mid in extension.methods.get().expect("missing methods") {
             let mtd = sa.fcts.idx(mid);
-            let mtd = mtd.read();
 
             if mtd.name == name && mtd.is_static == is_static {
                 return mid;
@@ -1864,14 +1856,14 @@ fn common_fct(
         .expect("function expected");
 
     let fct = sa.fcts.idx(fct_id);
-    let mut fct = fct.write();
 
     match marker {
-        FctImplementation::Intrinsic(intrinsic) => fct.intrinsic = Some(intrinsic),
-        FctImplementation::Native(native_function) => fct.native_function = Some(native_function),
+        FctImplementation::Intrinsic(intrinsic) => assert!(fct.intrinsic.set(intrinsic).is_ok()),
+        FctImplementation::Native(native_function) => {
+            assert!(fct.native_function.set(native_function).is_ok())
+        }
     }
 
-    fct.internal_resolved = true;
     fct_id
 }
 
@@ -1997,18 +1989,18 @@ fn internal_extension_method(
             &extension.instance_names
         };
 
-        if let Some(&method_id) = table.read().get(&name) {
+        if let Some(&method_id) = table.borrow().get(&name) {
             let fct = sa.fcts.idx(method_id);
-            let mut fct = fct.write();
 
             match marker {
-                FctImplementation::Intrinsic(intrinsic) => fct.intrinsic = Some(intrinsic),
+                FctImplementation::Intrinsic(intrinsic) => {
+                    assert!(fct.intrinsic.set(intrinsic).is_ok());
+                }
                 FctImplementation::Native(native_function) => {
-                    fct.native_function = Some(native_function)
+                    assert!(fct.native_function.set(native_function).is_ok());
                 }
             }
 
-            fct.internal_resolved = true;
             return method_id;
         }
     }
@@ -2088,16 +2080,16 @@ fn internal_impl_method(
                 .expect("method not found");
 
             let fct = sa.fcts.idx(method_id);
-            let mut fct = fct.write();
 
             match marker {
-                FctImplementation::Intrinsic(intrinsic) => fct.intrinsic = Some(intrinsic),
+                FctImplementation::Intrinsic(intrinsic) => {
+                    assert!(fct.intrinsic.set(intrinsic).is_ok());
+                }
                 FctImplementation::Native(native_function) => {
-                    fct.native_function = Some(native_function)
+                    assert!(fct.native_function.set(native_function).is_ok());
                 }
             }
 
-            fct.internal_resolved = true;
             return method_id;
         }
     }
