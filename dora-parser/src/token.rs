@@ -72,8 +72,6 @@ pub const ELEM_FIRST: TokenSet = TokenSet::new(&[
     USE_KW, EXTERN_KW,
 ]);
 
-pub const TRAIT_ELEM_FIRST: TokenSet = TokenSet::new(&[FN_KW, TYPE_KW]);
-
 pub const EMPTY: TokenSet = TokenSet::new(&[]);
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Copy, Clone)]
@@ -226,7 +224,7 @@ pub enum TokenKind {
     TYPE_LIST,
     ARG_LIST,
     PATTERN_LIST,
-    ASSOCIATED_TYPE,
+    TYPE_ALIAS,
 
     PARAM_LIST,
 

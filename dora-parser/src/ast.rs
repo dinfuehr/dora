@@ -107,7 +107,7 @@ pub enum ElemData {
     Module(Arc<Module>),
     Use(Arc<Use>),
     Extern(Arc<ExternPackage>),
-    AssociatedType(Arc<AssociatedType>),
+    TypeAlias(Arc<TypeAlias>),
     Error { id: NodeId, span: Span },
 }
 
@@ -126,7 +126,7 @@ impl ElemData {
             ElemData::Module(ref node) => node.span,
             ElemData::Use(ref node) => node.span,
             ElemData::Extern(ref node) => node.span,
-            ElemData::AssociatedType(ref node) => node.span,
+            ElemData::TypeAlias(ref node) => node.span,
             ElemData::Error { span, .. } => span.clone(),
         }
     }
@@ -612,13 +612,14 @@ pub struct Trait {
 }
 
 #[derive(Clone, Debug)]
-pub struct AssociatedType {
+pub struct TypeAlias {
     pub id: NodeId,
-    pub name: Option<Ident>,
+    pub span: Span,
     pub green: GreenNode,
 
     pub modifiers: Option<ModifierList>,
-    pub span: Span,
+    pub name: Option<Ident>,
+    pub ty: Option<Type>,
 }
 
 #[derive(Clone, Debug)]
