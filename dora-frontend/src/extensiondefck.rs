@@ -89,8 +89,8 @@ impl<'x> ExtensionCheck<'x> {
                 }
 
                 SourceType::Enum(enum_id, _) => {
-                    let mut enum_ = self.sa.enums[enum_id].write();
-                    enum_.extensions.push(self.extension_id);
+                    let enum_ = &self.sa.enums[enum_id];
+                    enum_.extensions.borrow_mut().push(self.extension_id);
                 }
 
                 SourceType::Class(cls_id, _) => {
@@ -197,9 +197,10 @@ impl<'x> ExtensionCheck<'x> {
     }
 
     fn check_in_enum(&self, f: &ast::Function, is_static: bool, enum_id: EnumDefinitionId) -> bool {
-        let enum_ = self.sa.enums[enum_id].read();
+        let enum_ = &self.sa.enums[enum_id];
+        let extensions = enum_.extensions.borrow();
 
-        for &extension_id in &enum_.extensions {
+        for &extension_id in extensions.iter() {
             if !self.check_extension(f, is_static, extension_id) {
                 return false;
             }

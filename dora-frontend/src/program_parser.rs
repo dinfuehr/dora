@@ -688,7 +688,8 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             modifiers,
             ensure_name(self.sa, &node.name),
         );
-        let id = self.sa.enums.push(enum_);
+        let id = self.sa.enums.alloc(enum_);
+        self.sa.enums[id].id = Some(id);
 
         let sym = SymbolKind::Enum(id);
         if let Some((name, sym)) = self.insert_optional(&node.name, sym) {

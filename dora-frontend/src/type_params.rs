@@ -101,11 +101,10 @@ fn check_classes(sa: &Sema) {
 }
 
 fn check_enums(sa: &Sema) {
-    for enum_ in sa.enums.iter() {
+    for (_id, enum_) in sa.enums.iter() {
         let type_param_definition;
 
         {
-            let enum_ = enum_.read();
             let mut symtable = ModuleSymTable::new(sa, enum_.module_id);
             symtable.push_level();
 
@@ -120,7 +119,7 @@ fn check_enums(sa: &Sema) {
             symtable.pop_level();
         }
 
-        enum_.write().type_params = Some(type_param_definition);
+        assert!(enum_.type_params.set(type_param_definition).is_ok());
     }
 }
 

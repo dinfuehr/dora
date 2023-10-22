@@ -288,10 +288,10 @@ fn process_component(
         }
 
         SymbolKind::Enum(enum_id) => {
-            let enum_ = sa.enums[enum_id].read();
+            let enum_ = &sa.enums[enum_id];
             let name = sa.interner.intern(&component_name.name_as_string);
 
-            if let Some(&variant_idx) = enum_.name_to_value.get(&name) {
+            if let Some(&variant_idx) = enum_.name_to_value().get(&name) {
                 Ok(SymbolKind::EnumVariant(enum_id, variant_idx))
             } else {
                 let name = component_name.name_as_string.clone();

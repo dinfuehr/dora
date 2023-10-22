@@ -255,9 +255,10 @@ pub(super) fn gen_match(
     let expr_reg = gen_expr(g, &node.expr, DataDest::Alloc);
 
     let variant_reg = g.alloc_temp(BytecodeType::Int32);
-    let idx = g
-        .builder
-        .add_const_enum(EnumId(enum_id.0), bty_array_from_ty(&enum_ty.type_params()));
+    let idx = g.builder.add_const_enum(
+        EnumId(enum_id.index().try_into().expect("overflow")),
+        bty_array_from_ty(&enum_ty.type_params()),
+    );
     g.builder
         .emit_load_enum_variant(variant_reg, expr_reg, idx, g.loc(node.span));
 
@@ -352,7 +353,7 @@ fn match_case_body(
             for (subtype_idx, param) in params.iter().enumerate() {
                 if let Some(_) = param.name {
                     let idx = g.builder.add_const_enum_element(
-                        EnumId(enum_id.0),
+                        EnumId(enum_id.index().try_into().expect("overflow")),
                         bty_array_from_ty(&enum_ty.type_params()),
                         variant_idx,
                         subtype_idx as u32,

@@ -244,7 +244,6 @@ impl FctDefinition {
 fn path_for_type(sa: &Sema, ty: SourceType) -> String {
     if let Some(enum_id) = ty.enum_id() {
         let enum_ = &sa.enums[enum_id];
-        let enum_ = enum_.read();
         enum_.name(sa)
     } else if let Some(cls_id) = ty.cls_id() {
         let cls = &sa.classes[cls_id];

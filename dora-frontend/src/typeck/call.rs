@@ -78,20 +78,20 @@ pub(super) fn check_expr_call(
 }
 
 pub(super) fn check_expr_call_enum_args(
-    ck: &mut TypeCheck,
+    sa: &Sema,
     _enum_id: EnumDefinitionId,
     type_params: SourceTypeArray,
     variant: &EnumVariant,
     arg_types: &[SourceType],
 ) -> bool {
-    if variant.types.len() != arg_types.len() {
+    if variant.types().len() != arg_types.len() {
         return false;
     }
 
-    for (def_ty, arg_ty) in variant.types.iter().zip(arg_types) {
-        let def_ty = replace_type_param(ck.sa, def_ty.clone(), &type_params, None);
+    for (def_ty, arg_ty) in variant.types().iter().zip(arg_types) {
+        let def_ty = replace_type_param(sa, def_ty.clone(), &type_params, None);
 
-        if !def_ty.allows(ck.sa, arg_ty.clone()) {
+        if !def_ty.allows(sa, arg_ty.clone()) {
             return false;
         }
     }
@@ -791,10 +791,9 @@ fn check_expr_call_path(
         }
 
         Some(SymbolKind::Enum(enum_id)) => {
-            let enum_ = ck.sa.enums.idx(enum_id);
-            let enum_ = enum_.read();
+            let enum_ = &ck.sa.enums[enum_id];
 
-            if let Some(&variant_idx) = enum_.name_to_value.get(&interned_method_name) {
+            if let Some(&variant_idx) = enum_.name_to_value().get(&interned_method_name) {
                 if !container_type_params.is_empty() && !type_params.is_empty() {
                     let msg = ErrorMessage::NoTypeParamsExpected;
                     ck.sa.report(ck.file_id, callee_as_path.lhs.span(), msg);

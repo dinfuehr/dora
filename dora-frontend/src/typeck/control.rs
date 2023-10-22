@@ -10,7 +10,7 @@ use crate::sema::{EnumDefinitionId, FctDefinitionId, ForTypeInfo, IdentType};
 use crate::specialize::replace_type_param;
 use crate::sym::SymbolKind;
 use crate::ty::{SourceType, SourceTypeArray};
-use crate::typeck::{check_expr, check_let_pattern, read_path, MethodLookup, TypeCheck};
+use crate::typeck::{add_local, check_expr, check_let_pattern, read_path, MethodLookup, TypeCheck};
 
 pub(super) fn check_expr_while(
     ck: &mut TypeCheck,
@@ -263,8 +263,7 @@ pub(super) fn check_expr_match(
     let expr_type_params = expr_type.type_params();
 
     let enum_variants = if let Some(expr_enum_id) = expr_enum_id {
-        let enum_ = ck.sa.enums[expr_enum_id].read();
-        enum_.variants.len()
+        ck.sa.enums[expr_enum_id].variants().len()
     } else {
         0
     };
@@ -420,9 +419,8 @@ fn check_expr_match_pattern_enum_variant(
         IdentType::EnumValue(enum_id, expr_type_params.clone(), variant_idx),
     );
 
-    let enum_ = ck.sa.enums.idx(enum_id);
-    let enum_ = enum_.read();
-    let variant = &enum_.variants[variant_idx as usize];
+    let enum_ = &ck.sa.enums[enum_id];
+    let variant = &enum_.variants()[variant_idx as usize];
 
     let given_params = if let Some(ref params) = ident.params {
         params.len()
@@ -435,7 +433,7 @@ fn check_expr_match_pattern_enum_variant(
         ck.sa.report(ck.file_id, case.span, msg);
     }
 
-    let expected_params = variant.types.len();
+    let expected_params = variant.types().len();
 
     if given_params != expected_params {
         let msg = ErrorMessage::MatchPatternWrongNumberOfParams(given_params, expected_params);
@@ -447,8 +445,8 @@ fn check_expr_match_pattern_enum_variant(
     if let Some(ref params) = ident.params {
         for (idx, param) in params.iter().enumerate() {
             if let Some(ident) = &param.name {
-                let ty = if idx < variant.types.len() {
-                    variant.types[idx].clone()
+                let ty = if idx < variant.types().len() {
+                    variant.types()[idx].clone()
                 } else {
                     SourceType::Error
                 };
@@ -463,7 +461,7 @@ fn check_expr_match_pattern_enum_variant(
                 }
 
                 let var_id = ck.vars.add_var(iname, ty, param.mutable);
-                ck.add_local(var_id, param.span);
+                add_local(ck.sa, ck.symtable, ck.vars, var_id, ck.file_id, param.span);
                 ck.analysis
                     .map_vars
                     .insert(param.id, ck.vars.local_var_id(var_id));

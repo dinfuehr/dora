@@ -8,8 +8,8 @@ use crate::typeck::control::{
 };
 use crate::typeck::expr::{check_enum_value_with_args, check_expr, read_path, read_path_expr};
 use crate::typeck::function::{
-    args_compatible, args_compatible_fct, check_lit_char, check_lit_float, check_lit_int,
-    check_lit_str, is_simple_enum, TypeCheck, VarManager,
+    add_local, args_compatible, args_compatible_fct, check_lit_char, check_lit_float,
+    check_lit_int, check_lit_str, is_simple_enum, TypeCheck, VarManager,
 };
 use crate::typeck::lookup::MethodLookup;
 use crate::typeck::stmt::{check_let_pattern, check_stmt};

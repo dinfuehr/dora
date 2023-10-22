@@ -296,17 +296,6 @@ impl<'a> TypeCheck<'a> {
         self.vars.add_var(name, self_ty, false);
     }
 
-    pub(super) fn add_local(&mut self, id: NestedVarId, span: Span) {
-        let name = self.vars.get_var(id).name;
-        let existing_symbol = self.symtable.insert(name, SymbolKind::Var(id));
-
-        if let Some(existing_symbol) = existing_symbol {
-            if !existing_symbol.kind().is_var() {
-                report_sym_shadow_span(self.sa, name, self.file_id, span, existing_symbol)
-            }
-        }
-    }
-
     pub(super) fn read_type(&mut self, t: &ast::TypeData) -> SourceType {
         read_type(
             self.sa,
@@ -337,6 +326,24 @@ impl<'a> TypeCheck<'a> {
 
     pub(super) fn ty_name(&self, ty: &SourceType) -> String {
         ty.name_with_type_params(self.sa, self.type_param_defs)
+    }
+}
+
+pub(super) fn add_local(
+    sa: &Sema,
+    symtable: &mut ModuleSymTable,
+    vars: &VarManager,
+    id: NestedVarId,
+    file_id: SourceFileId,
+    span: Span,
+) {
+    let name = vars.get_var(id).name;
+    let existing_symbol = symtable.insert(name, SymbolKind::Var(id));
+
+    if let Some(existing_symbol) = existing_symbol {
+        if !existing_symbol.kind().is_var() {
+            report_sym_shadow_span(sa, name, file_id, span, existing_symbol)
+        }
     }
 }
 
@@ -790,8 +797,8 @@ fn parse_lit_float(mut value: &str) -> (u32, String, String) {
 pub(super) fn is_simple_enum(sa: &Sema, ty: SourceType) -> bool {
     match ty {
         SourceType::Enum(enum_id, _) => {
-            let enum_ = sa.enums[enum_id].read();
-            enum_.simple_enumeration
+            let enum_ = &sa.enums[enum_id];
+            enum_.is_simple_enum()
         }
 
         _ => false,

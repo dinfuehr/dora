@@ -804,7 +804,7 @@ impl<'a> AstBytecodeGen<'a> {
         dest: DataDest,
     ) -> Register {
         let type_params = bty_array_from_ty(&type_params);
-        let enum_id = EnumId(enum_id.0);
+        let enum_id = EnumId(enum_id.index().try_into().expect("overflow"));
         let bty = BytecodeType::Enum(enum_id, type_params.clone());
         let dest = self.ensure_register(dest, bty);
         let idx = self
@@ -1165,7 +1165,7 @@ impl<'a> AstBytecodeGen<'a> {
         let type_params = enum_ty.type_params();
 
         let idx = self.builder.add_const_enum_variant(
-            EnumId(enum_id.0),
+            EnumId(enum_id.index().try_into().expect("overflow")),
             bty_array_from_ty(&type_params),
             variant_idx,
         );
@@ -2911,9 +2911,10 @@ pub fn bty_from_ty(ty: SourceType) -> BytecodeType {
         SourceType::Trait(trait_id, type_params) => {
             BytecodeType::Trait(TraitId(trait_id.0), bty_array_from_ty(&type_params))
         }
-        SourceType::Enum(enum_id, type_params) => {
-            BytecodeType::Enum(EnumId(enum_id.0), bty_array_from_ty(&type_params))
-        }
+        SourceType::Enum(enum_id, type_params) => BytecodeType::Enum(
+            EnumId(enum_id.index().try_into().expect("overflow")),
+            bty_array_from_ty(&type_params),
+        ),
         SourceType::Struct(struct_id, type_params) => BytecodeType::Struct(
             StructId(struct_id.index().try_into().expect("overflow")),
             bty_array_from_ty(&type_params),
@@ -2944,9 +2945,10 @@ pub fn register_bty_from_ty(ty: SourceType) -> BytecodeType {
         SourceType::Trait(trait_id, type_params) => {
             BytecodeType::Trait(TraitId(trait_id.0), bty_array_from_ty(&type_params))
         }
-        SourceType::Enum(enum_id, type_params) => {
-            BytecodeType::Enum(EnumId(enum_id.0), bty_array_from_ty(&type_params))
-        }
+        SourceType::Enum(enum_id, type_params) => BytecodeType::Enum(
+            EnumId(enum_id.index().try_into().expect("overflow")),
+            bty_array_from_ty(&type_params),
+        ),
         SourceType::Struct(struct_id, type_params) => BytecodeType::Struct(
             StructId(struct_id.index().try_into().expect("overflow")),
             bty_array_from_ty(&type_params),

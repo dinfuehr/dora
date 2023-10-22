@@ -1246,9 +1246,8 @@ pub(super) fn check_enum_value_with_args(
     variant_idx: u32,
     arg_types: &[SourceType],
 ) -> SourceType {
-    let enum_ = ck.sa.enums.idx(enum_id);
-    let enum_ = enum_.read();
-    let variant = &enum_.variants[variant_idx as usize];
+    let enum_ = &ck.sa.enums[enum_id];
+    let variant = &enum_.variants()[variant_idx as usize];
 
     if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
         let msg = ErrorMessage::NotAccessible(enum_.name(ck.sa));
@@ -1274,11 +1273,11 @@ pub(super) fn check_enum_value_with_args(
         return SourceType::Error;
     }
 
-    if !check_expr_call_enum_args(ck, enum_id, type_params.clone(), variant, arg_types) {
+    if !check_expr_call_enum_args(ck.sa, enum_id, type_params.clone(), variant, arg_types) {
         let enum_name = ck.sa.interner.str(enum_.name).to_string();
         let variant_name = ck.sa.interner.str(variant.name).to_string();
         let variant_types = variant
-            .types
+            .types()
             .iter()
             .map(|a| a.name_enum(ck.sa, &*enum_))
             .collect::<Vec<_>>();
@@ -1286,7 +1285,7 @@ pub(super) fn check_enum_value_with_args(
         let msg =
             ErrorMessage::EnumArgsIncompatible(enum_name, variant_name, variant_types, arg_types);
         ck.sa.report(ck.file_id, e.span, msg);
-    } else if variant.types.is_empty() {
+    } else if variant.types().is_empty() {
         let enum_name = ck.sa.interner.str(enum_.name).to_string();
         let variant_name = ck.sa.interner.str(variant.name).to_string();
         let msg = ErrorMessage::EnumArgsNoParens(enum_name, variant_name);
@@ -1414,7 +1413,7 @@ fn check_enum_value_without_args(
     type_params: SourceTypeArray,
     name: String,
 ) -> SourceType {
-    let enum_ = ck.sa.enums[enum_id].read();
+    let enum_ = &ck.sa.enums[enum_id];
 
     if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
         let msg = ErrorMessage::NotAccessible(enum_.name(ck.sa));
@@ -1431,14 +1430,14 @@ fn check_enum_value_without_args(
 
     let interned_name = ck.sa.interner.intern(&name);
 
-    if let Some(&value) = enum_.name_to_value.get(&interned_name) {
-        let variant = &enum_.variants[value as usize];
+    if let Some(&value) = enum_.name_to_value().get(&interned_name) {
+        let variant = &enum_.variants()[value as usize];
 
-        if !variant.types.is_empty() {
+        if !variant.types().is_empty() {
             let enum_name = ck.sa.interner.str(enum_.name).to_string();
             let variant_name = ck.sa.interner.str(variant.name).to_string();
             let variant_types = variant
-                .types
+                .types()
                 .iter()
                 .map(|a| a.name_enum(ck.sa, &*enum_))
                 .collect::<Vec<_>>();
@@ -1566,7 +1565,7 @@ pub(super) fn check_enum_value_without_args_id(
     type_params: SourceTypeArray,
     variant_idx: u32,
 ) -> SourceType {
-    let enum_ = ck.sa.enums[enum_id].read();
+    let enum_ = &ck.sa.enums[enum_id];
 
     if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
         let msg = ErrorMessage::NotAccessible(enum_.name(ck.sa));
@@ -1587,13 +1586,13 @@ pub(super) fn check_enum_value_without_args_id(
         ErrorReporting::Yes(ck.file_id, expr_span),
     );
 
-    let variant = &enum_.variants[variant_idx as usize];
+    let variant = &enum_.variants()[variant_idx as usize];
 
-    if !variant.types.is_empty() {
+    if !variant.types().is_empty() {
         let enum_name = ck.sa.interner.str(enum_.name).to_string();
         let variant_name = ck.sa.interner.str(variant.name).to_string();
         let variant_types = variant
-            .types
+            .types()
             .iter()
             .map(|a| a.name_enum(ck.sa, &*enum_))
             .collect::<Vec<_>>();
@@ -1737,7 +1736,7 @@ pub(super) fn read_path(ck: &mut TypeCheck, path: &ast::PathData) -> Result<Symb
             }
 
             Some(SymbolKind::Enum(enum_id)) => {
-                let enum_ = ck.sa.enums[enum_id].read();
+                let enum_ = &ck.sa.enums[enum_id];
 
                 if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible(enum_.name(ck.sa));
@@ -1746,7 +1745,7 @@ pub(super) fn read_path(ck: &mut TypeCheck, path: &ast::PathData) -> Result<Symb
 
                 let iname = ck.sa.interner.intern(&ident.name_as_string);
 
-                if let Some(&variant_idx) = enum_.name_to_value.get(&iname) {
+                if let Some(&variant_idx) = enum_.name_to_value().get(&iname) {
                     sym = Some(SymbolKind::EnumVariant(enum_id, variant_idx));
                 } else {
                     let name = ident.name_as_string.clone();

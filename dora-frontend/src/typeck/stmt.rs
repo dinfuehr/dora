@@ -2,7 +2,7 @@ use dora_parser::ast;
 
 use crate::error::msg::ErrorMessage;
 use crate::ty::SourceType;
-use crate::typeck::{check_expr, TypeCheck};
+use crate::typeck::{add_local, check_expr, TypeCheck};
 
 pub(super) fn check_stmt(ck: &mut TypeCheck, s: &ast::StmtData) {
     match *s {
@@ -72,7 +72,7 @@ pub(super) fn check_let_pattern(ck: &mut TypeCheck, pattern: &ast::LetPattern, t
                 .intern(&ident.name.as_ref().expect("missing name").name_as_string);
             let var_id = ck.vars.add_var(name, ty, ident.mutable);
 
-            ck.add_local(var_id, ident.span);
+            add_local(ck.sa, ck.symtable, ck.vars, var_id, ck.file_id, ident.span);
             ck.analysis
                 .map_vars
                 .insert(ident.id, ck.vars.local_var_id(var_id));

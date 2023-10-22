@@ -1,5 +1,5 @@
-use std::collections::hash_map::HashMap;
-use std::convert::TryInto;
+use std::cell::{OnceCell, RefCell};
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::interner::Name;
@@ -7,37 +7,15 @@ use crate::program_parser::ParsedModifierList;
 use dora_parser::ast;
 use dora_parser::Span;
 
+use id_arena::Id;
+
 use crate::sema::{
     extension_matches, impl_matches, module_path, Candidate, ExtensionDefinitionId,
     ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Visibility,
 };
 use crate::ty::{SourceType, SourceTypeArray};
-use crate::Id;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct EnumDefinitionId(pub u32);
-
-impl EnumDefinitionId {
-    pub fn to_usize(self) -> usize {
-        self.0 as usize
-    }
-}
-
-impl Id for EnumDefinition {
-    type IdType = EnumDefinitionId;
-
-    fn id_to_usize(id: EnumDefinitionId) -> usize {
-        id.0 as usize
-    }
-
-    fn usize_to_id(value: usize) -> EnumDefinitionId {
-        EnumDefinitionId(value.try_into().unwrap())
-    }
-
-    fn store_id(value: &mut EnumDefinition, id: EnumDefinitionId) {
-        value.id = Some(id);
-    }
-}
+pub type EnumDefinitionId = Id<EnumDefinition>;
 
 #[derive(Debug)]
 pub struct EnumDefinition {
@@ -49,11 +27,11 @@ pub struct EnumDefinition {
     pub span: Span,
     pub name: Name,
     pub visibility: Visibility,
-    pub type_params: Option<TypeParamDefinition>,
-    pub variants: Vec<EnumVariant>,
-    pub name_to_value: HashMap<Name, u32>,
-    pub extensions: Vec<ExtensionDefinitionId>,
-    pub simple_enumeration: bool,
+    pub type_params: OnceCell<TypeParamDefinition>,
+    pub variants: OnceCell<Vec<EnumVariant>>,
+    pub extensions: RefCell<Vec<ExtensionDefinitionId>>,
+    pub simple_enumeration: OnceCell<bool>,
+    pub name_to_value: OnceCell<HashMap<Name, u32>>,
 }
 
 impl EnumDefinition {
@@ -73,12 +51,12 @@ impl EnumDefinition {
             ast: node.clone(),
             span: node.span,
             name,
-            type_params: None,
+            type_params: OnceCell::new(),
             visibility: modifiers.visibility(),
-            variants: Vec::new(),
-            name_to_value: HashMap::new(),
-            extensions: Vec::new(),
-            simple_enumeration: false,
+            variants: OnceCell::new(),
+            extensions: RefCell::new(Vec::new()),
+            simple_enumeration: OnceCell::new(),
+            name_to_value: OnceCell::new(),
         }
     }
 
@@ -87,7 +65,18 @@ impl EnumDefinition {
     }
 
     pub fn type_params(&self) -> &TypeParamDefinition {
-        self.type_params.as_ref().expect("uninitialized")
+        self.type_params.get().expect("uninitialized")
+    }
+
+    pub fn name_to_value(&self) -> &HashMap<Name, u32> {
+        self.name_to_value.get().expect("uninitialized")
+    }
+
+    pub fn is_simple_enum(&self) -> bool {
+        self.simple_enumeration
+            .get()
+            .expect("uninitialized")
+            .clone()
     }
 
     pub fn name(&self, sa: &Sema) -> String {
@@ -109,13 +98,23 @@ impl EnumDefinition {
             name.to_string()
         }
     }
+
+    pub fn variants(&self) -> &[EnumVariant] {
+        self.variants.get().expect("missing variants")
+    }
 }
 
 #[derive(Debug)]
 pub struct EnumVariant {
     pub id: u32,
     pub name: Name,
-    pub types: Vec<SourceType>,
+    pub types: OnceCell<Vec<SourceType>>,
+}
+
+impl EnumVariant {
+    pub fn types(&self) -> &[SourceType] {
+        self.types.get().expect("missing types")
+    }
 }
 
 pub fn find_methods_in_enum(

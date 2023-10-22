@@ -98,7 +98,7 @@ pub fn enum_accessible_from(
     enum_id: EnumDefinitionId,
     module_id: ModuleDefinitionId,
 ) -> bool {
-    let enum_ = sa.enums[enum_id].read();
+    let enum_ = &sa.enums[enum_id];
 
     accessible_from(sa, enum_.module_id, enum_.visibility, module_id)
 }

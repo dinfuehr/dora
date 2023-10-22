@@ -330,8 +330,7 @@ fn verify_type_basic(
         }
 
         SourceType::Enum(enum_id, type_params) => {
-            let enum_ = sa.enums.idx(enum_id);
-            let enum_ = enum_.read();
+            let enum_ = &sa.enums[enum_id];
 
             if !enum_accessible_from(sa, enum_id, module_id) {
                 let msg = ErrorMessage::NotAccessible(enum_.name(sa));
@@ -603,8 +602,6 @@ where
 
         TypeParamContext::Enum(enum_id) => {
             let enum_ = &sa.enums[enum_id];
-            let enum_ = enum_.read();
-
             callback(enum_.type_params())
         }
 

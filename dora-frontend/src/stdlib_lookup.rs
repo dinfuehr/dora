@@ -144,9 +144,8 @@ pub fn setup_prelude(sa: &mut Sema) {
             .expect("enum expected");
 
         let enum_ = &sa.enums[enum_id];
-        let enum_ = enum_.read();
 
-        for variant in &enum_.variants {
+        for variant in enum_.variants() {
             let old_sym =
                 prelude.insert(variant.name, SymbolKind::EnumVariant(enum_id, variant.id));
             assert!(old_sym.is_none());
@@ -160,9 +159,8 @@ pub fn setup_prelude(sa: &mut Sema) {
             .expect("enum expected");
 
         let enum_ = &sa.enums[enum_id];
-        let enum_ = enum_.read();
 
-        for variant in &enum_.variants {
+        for variant in enum_.variants() {
             let old_sym =
                 prelude.insert(variant.name, SymbolKind::EnumVariant(enum_id, variant.id));
             assert!(old_sym.is_none());
@@ -1782,23 +1780,20 @@ fn find_method(
 
     match sym {
         SymbolKind::Enum(enum_id) => {
-            let enum_ = sa.enums.idx(enum_id);
-            let enum_ = enum_.read();
-            let extensions = &enum_.extensions;
-            find_method_in_extensions(sa, extensions, sa.interner.intern(name), is_static)
+            let enum_ = &sa.enums[enum_id];
+            let extensions = enum_.extensions.borrow();
+            find_method_in_extensions(sa, &*extensions, sa.interner.intern(name), is_static)
         }
 
         SymbolKind::Class(cls_id) => {
             let class = &sa.classes[cls_id];
-            let extensions = &class.extensions;
-            let extensions = extensions.borrow();
+            let extensions = class.extensions.borrow();
             find_method_in_extensions(sa, &*extensions, sa.interner.intern(name), is_static)
         }
 
         SymbolKind::Struct(struct_id) => {
             let struct_ = &sa.structs[struct_id];
-            let extensions = &struct_.extensions;
-            let extensions = extensions.borrow();
+            let extensions = struct_.extensions.borrow();
             find_method_in_extensions(sa, &*extensions, sa.interner.intern(name), is_static)
         }
 
@@ -1963,8 +1958,9 @@ fn common_method(
             internal_extension_method(sa, &extensions, method_name, is_static, marker)
         }
         SymbolKind::Enum(enum_id) => {
-            let enum_ = &sa.enums[enum_id].read();
-            internal_extension_method(sa, &enum_.extensions, method_name, is_static, marker)
+            let enum_ = &sa.enums[enum_id];
+            let extensions = enum_.extensions.borrow();
+            internal_extension_method(sa, &extensions, method_name, is_static, marker)
         }
 
         _ => panic!("unexpected type"),

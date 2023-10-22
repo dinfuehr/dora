@@ -336,8 +336,7 @@ fn create_struct_fields(sa: &Sema, struct_: &StructDefinition) -> Vec<StructFiel
 fn create_enums(sa: &Sema) -> Vec<EnumData> {
     let mut result = Vec::new();
 
-    for enum_ in sa.enums.iter() {
-        let enum_ = enum_.read();
+    for (_id, enum_) in sa.enums.iter() {
         let name = sa.interner.str(enum_.name).to_string();
 
         result.push(EnumData {
@@ -354,9 +353,9 @@ fn create_enums(sa: &Sema) -> Vec<EnumData> {
 fn create_enum_variants(sa: &Sema, enum_: &sa::EnumDefinition) -> Vec<EnumVariant> {
     let mut result = Vec::new();
 
-    for variant in &enum_.variants {
+    for variant in enum_.variants() {
         let arguments = variant
-            .types
+            .types()
             .iter()
             .map(|ty| bty_from_ty(ty.clone()))
             .collect();

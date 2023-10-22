@@ -21,7 +21,6 @@ pub fn check_enum(
     error: ErrorReporting,
 ) -> bool {
     let enum_ = &sa.enums[enum_id];
-    let enum_ = enum_.read();
 
     let checker = TypeParamCheck {
         sa,

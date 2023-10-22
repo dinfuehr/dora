@@ -91,7 +91,7 @@ pub struct Sema {
     pub extensions: Arena<ExtensionDefinition>, // stores all extension definitions
     pub modules: Arena<ModuleDefinition>, // stores all module definitions
     pub fcts: GrowableVec<FctDefinition>, // stores all function source definitions
-    pub enums: MutableVec<EnumDefinition>, // stores all enum source definitions
+    pub enums: Arena<EnumDefinition>,   // stores all enum source definitions
     pub traits: MutableVec<TraitDefinition>, // stores all trait definitions
     pub impls: MutableVec<ImplDefinition>, // stores all impl definitions
     pub globals: MutableVec<GlobalDefinition>, // stores all global variables
@@ -131,7 +131,7 @@ impl Sema {
             classes: Arena::new(),
             extensions: Arena::new(),
             modules: Arena::new(),
-            enums: MutableVec::new(),
+            enums: Arena::new(),
             traits: MutableVec::new(),
             impls: MutableVec::new(),
             globals: MutableVec::new(),

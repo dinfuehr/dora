@@ -2426,7 +2426,11 @@ fn gen_new_enum() {
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(1)),
-                &ConstPoolEntry::EnumVariant(EnumId(enum_id.0), BytecodeTypeArray::empty(), 0)
+                &ConstPoolEntry::EnumVariant(
+                    EnumId(enum_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty(),
+                    0
+                )
             );
         },
     );
@@ -2449,7 +2453,7 @@ fn gen_new_enum() {
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(1)),
                 &ConstPoolEntry::EnumVariant(
-                    EnumId(enum_id.0),
+                    EnumId(enum_id.index().try_into().expect("overflow")),
                     BytecodeTypeArray::one(BytecodeType::Int32),
                     0
                 )
@@ -2469,7 +2473,11 @@ fn gen_new_enum() {
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::EnumVariant(EnumId(enum_id.0), BytecodeTypeArray::empty(), 1)
+                &ConstPoolEntry::EnumVariant(
+                    EnumId(enum_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty(),
+                    1
+                )
             );
         },
     );
@@ -2487,7 +2495,7 @@ fn gen_new_enum() {
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::EnumVariant(
-                    EnumId(enum_id.0),
+                    EnumId(enum_id.index().try_into().expect("overflow")),
                     BytecodeTypeArray::one(BytecodeType::Int32),
                     1
                 )
@@ -2508,7 +2516,7 @@ fn gen_new_enum() {
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::EnumVariant(
-                    EnumId(enum_id.0),
+                    EnumId(enum_id.index().try_into().expect("overflow")),
                     BytecodeTypeArray::one(BytecodeType::Int32),
                     1
                 )
@@ -3369,7 +3377,11 @@ fn gen_enum_value() {
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::EnumVariant(EnumId(enum_id.0), BytecodeTypeArray::empty(), 0)
+                &ConstPoolEntry::EnumVariant(
+                    EnumId(enum_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty(),
+                    0
+                )
             )
         },
     );

@@ -1,6 +1,6 @@
+use std::cell::OnceCell;
+use std::collections::HashMap;
 use std::sync::Arc;
-
-use parking_lot::RwLock;
 
 use dora_parser::ast;
 
@@ -11,14 +11,14 @@ use crate::ty::SourceType;
 use crate::{read_type_context, AllowSelf, TypeParamContext};
 
 pub fn check(sa: &Sema) {
-    for enum_ in sa.enums.iter() {
-        let ast = enum_.read().ast.clone();
+    for (_id, enum_) in sa.enums.iter() {
+        let ast = enum_.ast.clone();
 
         let mut enumck = EnumCheck {
             sa,
-            file_id: enum_.read().file_id,
+            file_id: enum_.file_id,
             ast: &ast,
-            enum_: &enum_,
+            enum_,
         };
 
         enumck.check();
@@ -29,19 +29,17 @@ struct EnumCheck<'x> {
     sa: &'x Sema,
     file_id: SourceFileId,
     ast: &'x Arc<ast::Enum>,
-    enum_: &'x RwLock<EnumDefinition>,
+    enum_: &'x EnumDefinition,
 }
 
 impl<'x> EnumCheck<'x> {
     fn check(&mut self) {
-        let mut symtable = ModuleSymTable::new(self.sa, self.enum_.read().module_id);
+        let mut symtable = ModuleSymTable::new(self.sa, self.enum_.module_id);
 
         symtable.push_level();
 
         {
-            let enum_ = self.enum_.read();
-
-            for (id, name) in enum_.type_params().names() {
+            for (id, name) in self.enum_.type_params().names() {
                 symtable.insert(name, SymbolKind::TypeParam(id));
             }
         }
@@ -59,7 +57,7 @@ impl<'x> EnumCheck<'x> {
                         &symtable,
                         self.file_id.into(),
                         ty,
-                        TypeParamContext::Enum(self.enum_.read().id()),
+                        TypeParamContext::Enum(self.enum_.id()),
                         AllowSelf::No,
                     )
                     .unwrap_or(SourceType::Error);
@@ -71,25 +69,28 @@ impl<'x> EnumCheck<'x> {
                 simple_enumeration = false;
             }
 
-            self.enum_.write().variants[variant_idx].types = types;
+            assert!(self.enum_.variants()[variant_idx].types.set(types).is_ok());
             variant_idx += 1;
         }
 
-        self.enum_.write().simple_enumeration = simple_enumeration;
+        assert!(self
+            .enum_
+            .simple_enumeration
+            .set(simple_enumeration)
+            .is_ok());
 
         symtable.pop_level();
     }
 }
 
 pub fn check_variants(sa: &Sema) {
-    for enum_ in sa.enums.iter() {
-        let mut enum_ = enum_.write();
+    for (_id, enum_) in sa.enums.iter() {
         let ast = enum_.ast.clone();
 
         let mut enumck = EnumCheckVariants {
             sa,
             ast: &ast,
-            enum_: &mut *enum_,
+            enum_,
         };
 
         enumck.check();
@@ -99,12 +100,14 @@ pub fn check_variants(sa: &Sema) {
 struct EnumCheckVariants<'x> {
     sa: &'x Sema,
     ast: &'x Arc<ast::Enum>,
-    enum_: &'x mut EnumDefinition,
+    enum_: &'x EnumDefinition,
 }
 
 impl<'x> EnumCheckVariants<'x> {
     fn check(&mut self) {
         let mut next_variant_id: u32 = 0;
+        let mut variants = Vec::new();
+        let mut name_to_value = HashMap::new();
 
         for value in &self.ast.variants {
             if value.name.is_none() {
@@ -119,13 +122,12 @@ impl<'x> EnumCheckVariants<'x> {
             let variant = EnumVariant {
                 id: next_variant_id,
                 name: name,
-                types: Vec::new(),
+                types: OnceCell::new(),
             };
 
-            self.enum_.variants.push(variant);
-            let result = self.enum_.name_to_value.insert(name, next_variant_id);
+            variants.push(variant);
 
-            if result.is_some() {
+            if name_to_value.insert(name, next_variant_id).is_some() {
                 let name = self.sa.interner.str(name).to_string();
                 self.sa.report(
                     self.enum_.file_id,
@@ -136,6 +138,9 @@ impl<'x> EnumCheckVariants<'x> {
 
             next_variant_id += 1;
         }
+
+        assert!(self.enum_.variants.set(variants).is_ok());
+        assert!(self.enum_.name_to_value.set(name_to_value).is_ok());
 
         if self.ast.variants.is_empty() {
             self.sa.report(

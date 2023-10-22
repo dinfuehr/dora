@@ -716,7 +716,7 @@ impl<'a> SourceTypePrinter<'a> {
                 }
             }
             SourceType::Enum(id, type_params) => {
-                let enum_ = self.sa.enums[id].read();
+                let enum_ = &self.sa.enums[id];
                 let name = self.sa.interner.str(enum_.name).to_string();
 
                 if type_params.len() == 0 {
