@@ -152,7 +152,7 @@ impl FctDefinition {
     pub fn display_name(&self, sa: &Sema) -> String {
         let mut repr = match self.parent {
             FctParent::Trait(trait_id) => {
-                let trait_ = sa.traits[trait_id].read();
+                let trait_ = &sa.traits[trait_id];
                 trait_.name(sa)
             }
 

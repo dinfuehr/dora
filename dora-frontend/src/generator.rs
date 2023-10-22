@@ -718,7 +718,7 @@ impl<'a> AstBytecodeGen<'a> {
                     // build toString() call
                     let name = self.sa.interner.intern("toString");
                     let trait_id = self.sa.known.traits.stringable();
-                    let trait_ = self.sa.traits[trait_id].read();
+                    let trait_ = &self.sa.traits[trait_id];
                     let to_string_id = trait_
                         .find_method(self.sa, name, false)
                         .expect("Stringable::toString() not found");
@@ -823,7 +823,7 @@ impl<'a> AstBytecodeGen<'a> {
             _ => unreachable!(),
         };
 
-        let trait_id = TraitId(trait_id.0);
+        let trait_id = TraitId(trait_id.index().try_into().expect("overflow"));
 
         let object = gen_expr(self, &expr.object, DataDest::Alloc);
         let idx = self.builder.add_const_trait(
@@ -2908,9 +2908,10 @@ pub fn bty_from_ty(ty: SourceType) -> BytecodeType {
             ClassId(class_id.index().try_into().expect("overflow")),
             bty_array_from_ty(&type_params),
         ),
-        SourceType::Trait(trait_id, type_params) => {
-            BytecodeType::Trait(TraitId(trait_id.0), bty_array_from_ty(&type_params))
-        }
+        SourceType::Trait(trait_id, type_params) => BytecodeType::Trait(
+            TraitId(trait_id.index().try_into().expect("overflow")),
+            bty_array_from_ty(&type_params),
+        ),
         SourceType::Enum(enum_id, type_params) => BytecodeType::Enum(
             EnumId(enum_id.index().try_into().expect("overflow")),
             bty_array_from_ty(&type_params),
@@ -2942,9 +2943,10 @@ pub fn register_bty_from_ty(ty: SourceType) -> BytecodeType {
         SourceType::Float32 => BytecodeType::Float32,
         SourceType::Float64 => BytecodeType::Float64,
         SourceType::Class(_, _) => BytecodeType::Ptr,
-        SourceType::Trait(trait_id, type_params) => {
-            BytecodeType::Trait(TraitId(trait_id.0), bty_array_from_ty(&type_params))
-        }
+        SourceType::Trait(trait_id, type_params) => BytecodeType::Trait(
+            TraitId(trait_id.index().try_into().expect("overflow")),
+            bty_array_from_ty(&type_params),
+        ),
         SourceType::Enum(enum_id, type_params) => BytecodeType::Enum(
             EnumId(enum_id.index().try_into().expect("overflow")),
             bty_array_from_ty(&type_params),

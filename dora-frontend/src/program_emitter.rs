@@ -93,11 +93,10 @@ fn create_impls(sa: &Sema) -> Vec<ImplData> {
         let mut methods = Vec::new();
 
         let trait_id = impl_.trait_id();
-        let trait_ = sa.traits.idx(trait_id);
-        let trait_ = trait_.read();
+        let trait_ = &sa.traits[trait_id];
 
         // The methods array for impl should have the exact same order as for the trait.
-        for method_id in &trait_.methods {
+        for method_id in trait_.methods() {
             let target_method_id = *impl_
                 .impl_for
                 .get(&method_id)
@@ -371,8 +370,7 @@ fn create_enum_variants(sa: &Sema, enum_: &sa::EnumDefinition) -> Vec<EnumVarian
 fn create_traits(sa: &Sema) -> Vec<TraitData> {
     let mut result = Vec::new();
 
-    for trait_ in sa.traits.iter() {
-        let trait_ = trait_.read();
+    for (_id, trait_) in sa.traits.iter() {
         let name = sa.interner.str(trait_.name).to_string();
 
         result.push(TraitData {
@@ -380,7 +378,7 @@ fn create_traits(sa: &Sema) -> Vec<TraitData> {
             name,
             type_params: create_type_params(sa, &trait_.type_params()),
             methods: trait_
-                .methods
+                .methods()
                 .iter()
                 .map(|f| convert_function_id(*f))
                 .collect(),
@@ -454,5 +452,5 @@ fn convert_impl_id(id: ImplDefinitionId) -> ImplId {
 }
 
 fn convert_trait_id(id: TraitDefinitionId) -> TraitId {
-    TraitId(id.to_usize().try_into().expect("failure"))
+    TraitId(id.index().try_into().expect("failure"))
 }

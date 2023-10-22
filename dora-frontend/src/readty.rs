@@ -419,8 +419,7 @@ fn verify_type_basic(
         }
 
         SourceType::Trait(trait_id, type_params) => {
-            let trait_ = sa.traits.idx(trait_id);
-            let trait_ = trait_.read();
+            let trait_ = &sa.traits[trait_id];
 
             if !trait_accessible_from(sa, trait_id, module_id) {
                 let msg = ErrorMessage::NotAccessible(trait_.name(sa));
@@ -619,8 +618,6 @@ where
 
         TypeParamContext::Trait(trait_id) => {
             let trait_ = &sa.traits[trait_id];
-            let trait_ = trait_.read();
-
             callback(&trait_.type_params())
         }
 

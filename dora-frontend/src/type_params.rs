@@ -19,11 +19,10 @@ pub fn check(sa: &Sema) {
 }
 
 fn check_traits(sa: &Sema) {
-    for trait_ in sa.traits.iter() {
+    for (_id, trait_) in sa.traits.iter() {
         let type_param_definition;
 
         {
-            let trait_ = trait_.read();
             let mut symtable = ModuleSymTable::new(sa, trait_.module_id);
             symtable.push_level();
 
@@ -38,7 +37,7 @@ fn check_traits(sa: &Sema) {
             symtable.pop_level();
         }
 
-        trait_.write().type_params = Some(type_param_definition);
+        assert!(trait_.type_params.set(type_param_definition).is_ok());
     }
 }
 

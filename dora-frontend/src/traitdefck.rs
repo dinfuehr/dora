@@ -1,12 +1,10 @@
 use crate::sema::{FctDefinitionId, Sema, TraitDefinition};
 
 pub fn check(sa: &Sema) {
-    for trait_ in sa.traits.iter() {
-        let mut trait_ = trait_.write();
-
+    for (_id, trait_) in sa.traits.iter() {
         let mut traitck = TraitCheck {
             sa,
-            trait_: &mut *trait_,
+            trait_,
             vtable_index: 0,
         };
 
@@ -16,15 +14,13 @@ pub fn check(sa: &Sema) {
 
 struct TraitCheck<'x> {
     sa: &'x Sema,
-    trait_: &'x mut TraitDefinition,
+    trait_: &'x TraitDefinition,
     vtable_index: u32,
 }
 
 impl<'x> TraitCheck<'x> {
     fn check(&mut self) {
-        let methods = self.trait_.methods.clone();
-
-        for method_id in methods {
+        for &method_id in self.trait_.methods() {
             self.visit_method(method_id);
         }
     }
@@ -36,10 +32,12 @@ impl<'x> TraitCheck<'x> {
         self.vtable_index += 1;
 
         let table = if fct.is_static {
-            &mut self.trait_.static_names
+            &self.trait_.static_names
         } else {
-            &mut self.trait_.instance_names
+            &self.trait_.instance_names
         };
+
+        let mut table = table.borrow_mut();
 
         if !table.contains_key(&fct.name) {
             table.insert(fct.name, fct_id);

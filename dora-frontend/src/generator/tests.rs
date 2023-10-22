@@ -3829,7 +3829,7 @@ fn gen_trait_object() {
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::Trait(
-                    TraitId(trait_id.0),
+                    TraitId(trait_id.index().try_into().expect("overflow")),
                     BytecodeTypeArray::empty(),
                     bty_from_ty(object_ty)
                 )
@@ -3873,7 +3873,10 @@ fn gen_trait_object_method_call() {
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::TraitObjectMethod(
-                    BytecodeType::Trait(TraitId(trait_id.0 as u32), BytecodeTypeArray::empty()),
+                    BytecodeType::Trait(
+                        TraitId(trait_id.index().try_into().expect("overflow")),
+                        BytecodeTypeArray::empty()
+                    ),
                     FunctionId(fct_id.0 as u32),
                     BytecodeTypeArray::empty()
                 )
@@ -4053,11 +4056,11 @@ fn gen_comparable_trait_generic() {
             assert_eq!(expected, code);
 
             let trait_id = sa.known.traits.comparable();
-            let trait_ = sa.traits.idx(trait_id);
-            let trait_ = trait_.read();
+            let trait_ = &sa.traits[trait_id];
             let name = sa.interner.intern("cmp");
             let cmp_fct_id = trait_
                 .instance_names
+                .borrow()
                 .get(&name)
                 .expect("missing fct")
                 .clone();
@@ -4219,10 +4222,11 @@ pub fn method_in_trait_by_name(
 ) -> FctDefinitionId {
     let method_name = sa.interner.intern(method_name);
 
-    let trait_ = sa.traits[trait_id].read();
+    let trait_ = &sa.traits[trait_id];
 
     trait_
         .instance_names
+        .borrow()
         .get(&method_name)
         .cloned()
         .expect("method not found")
@@ -4232,10 +4236,11 @@ pub fn trait_method_by_name(sa: &Sema, trait_name: &str, method_name: &str) -> F
     let trait_id = trait_by_name(sa, trait_name);
     let method_name = sa.interner.intern(method_name);
 
-    let trait_ = sa.traits[trait_id].read();
+    let trait_ = &sa.traits[trait_id];
 
     trait_
         .instance_names
+        .borrow()
         .get(&method_name)
         .cloned()
         .expect("method not found")

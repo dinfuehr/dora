@@ -146,7 +146,7 @@ pub fn trait_accessible_from(
     trait_id: TraitDefinitionId,
     module_id: ModuleDefinitionId,
 ) -> bool {
-    let trait_ = sa.traits[trait_id].read();
+    let trait_ = &sa.traits[trait_id];
 
     accessible_from(sa, trait_.module_id, trait_.visibility, module_id)
 }

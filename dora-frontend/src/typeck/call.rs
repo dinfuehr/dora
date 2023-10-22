@@ -111,7 +111,7 @@ fn check_expr_call_generic_static_method(
 
     for trait_ty in ck.type_param_defs.bounds_for_type_param(tp_id) {
         let trait_id = trait_ty.trait_id().expect("trait expected");
-        let trait_ = ck.sa.traits[trait_id].read();
+        let trait_ = &ck.sa.traits[trait_id];
 
         if let Some(fct_id) = trait_.find_method(ck.sa, interned_name, true) {
             fcts.push((trait_id, fct_id));
@@ -656,7 +656,7 @@ fn check_expr_call_generic_type_param(
 
     for trait_ty in ck.type_param_defs.bounds_for_type_param(id) {
         let trait_id = trait_ty.trait_id().expect("trait expected");
-        let trait_ = ck.sa.traits[trait_id].read();
+        let trait_ = &ck.sa.traits[trait_id];
 
         if let Some(fid) = trait_.find_method_with_replace(ck.sa, false, interned_name, None, args)
         {

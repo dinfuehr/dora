@@ -1,15 +1,15 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::error::msg::ErrorMessage;
-use crate::sema::Sema;
+use crate::sema::{FctDefinitionId, Sema};
 
 pub fn check(sa: &mut Sema) {
     for impl_ in sa.impls.iter() {
         let impl_for = {
             let impl_ = impl_.read();
-            let trait_ = sa.traits[impl_.trait_id()].read();
+            let trait_ = &sa.traits[impl_.trait_id()];
 
-            let all: HashSet<_> = trait_.methods.iter().cloned().collect();
+            let all: HashSet<FctDefinitionId> = trait_.methods().iter().cloned().collect();
             let mut defined = HashSet::new();
             let mut impl_for = HashMap::new();
 

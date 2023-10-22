@@ -465,7 +465,8 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             modifiers,
             ensure_name(self.sa, &node.name),
         );
-        let trait_id = self.sa.traits.push(trait_);
+        let trait_id = self.sa.traits.alloc(trait_);
+        self.sa.traits[trait_id].id = Some(trait_id);
 
         find_methods_in_trait(self.sa, trait_id, node);
 
@@ -698,9 +699,9 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     }
 }
 
-fn find_methods_in_trait(sa: &mut Sema, trait_id: TraitDefinitionId, node: &Arc<ast::Trait>) {
-    let trait_ = sa.traits.idx(trait_id);
-    let mut trait_ = trait_.write();
+fn find_methods_in_trait(sa: &Sema, trait_id: TraitDefinitionId, node: &Arc<ast::Trait>) {
+    let trait_ = &sa.traits[trait_id];
+    let mut methods = Vec::new();
 
     for child in &node.methods {
         match child.as_ref() {
@@ -723,7 +724,7 @@ fn find_methods_in_trait(sa: &mut Sema, trait_id: TraitDefinitionId, node: &Arc<
                 );
 
                 let fct_id = sa.add_fct(fct);
-                trait_.methods.push(fct_id);
+                methods.push(fct_id);
             }
 
             ast::ElemData::Error { .. } => {
@@ -733,6 +734,8 @@ fn find_methods_in_trait(sa: &mut Sema, trait_id: TraitDefinitionId, node: &Arc<
             _ => sa.report(trait_.file_id, child.span(), ErrorMessage::ExpectedMethod),
         }
     }
+
+    assert!(trait_.methods.set(methods).is_ok());
 }
 
 fn find_methods_in_impl(sa: &mut Sema, impl_id: ImplDefinitionId, node: &Arc<ast::Impl>) {
@@ -824,7 +827,7 @@ fn find_methods_in_extension(
     assert!(extension.methods.set(methods).is_ok());
 }
 
-fn ensure_name(sa: &mut Sema, ident: &Option<ast::Ident>) -> Name {
+fn ensure_name(sa: &Sema, ident: &Option<ast::Ident>) -> Name {
     if let Some(ident) = ident {
         sa.interner.intern(&ident.name_as_string)
     } else {

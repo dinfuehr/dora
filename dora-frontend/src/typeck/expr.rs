@@ -768,11 +768,11 @@ fn check_expr_un_trait(
     } else if ty.is_type_param()
         && implements_trait(ck.sa, ty.clone(), ck.type_param_defs, trait_ty)
     {
-        let trait_ = ck.sa.traits.idx(trait_id);
-        let trait_ = trait_.read();
+        let trait_ = &ck.sa.traits[trait_id];
 
         let method_id = trait_
             .instance_names
+            .borrow()
             .get(&trait_method_name)
             .cloned()
             .expect("method not found");
@@ -1003,11 +1003,11 @@ fn check_expr_bin_trait(
     } else if lhs_type.is_type_param()
         && implements_trait(ck.sa, lhs_type.clone(), ck.type_param_defs, trait_ty)
     {
-        let trait_ = ck.sa.traits.idx(trait_id);
-        let trait_ = trait_.read();
+        let trait_ = &ck.sa.traits[trait_id];
 
         let method_id = trait_
             .instance_names
+            .borrow()
             .get(&trait_method_name)
             .cloned()
             .expect("method not found");

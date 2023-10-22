@@ -700,7 +700,7 @@ impl<'a> SourceTypePrinter<'a> {
                 }
             }
             SourceType::Trait(tid, type_params) => {
-                let trait_ = self.sa.traits[tid].read();
+                let trait_ = &self.sa.traits[tid];
                 let name = self.sa.interner.str(trait_.name).to_string();
 
                 if type_params.len() == 0 {

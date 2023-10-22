@@ -1,7 +1,5 @@
-use parking_lot::RwLock;
+use std::cell::{OnceCell, RefCell};
 use std::collections::HashMap;
-use std::convert::TryInto;
-use std::ops::Index;
 use std::sync::Arc;
 
 use crate::interner::Name;
@@ -14,32 +12,9 @@ use crate::sema::{
     TypeParamDefinition, Visibility,
 };
 use crate::ty::{SourceType, SourceTypeArray};
-use crate::Id;
+use id_arena::Id;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct TraitDefinitionId(pub u32);
-
-impl TraitDefinitionId {
-    pub fn to_usize(self) -> usize {
-        self.0 as usize
-    }
-}
-
-impl Id for TraitDefinition {
-    type IdType = TraitDefinitionId;
-
-    fn id_to_usize(id: TraitDefinitionId) -> usize {
-        id.0 as usize
-    }
-
-    fn usize_to_id(value: usize) -> TraitDefinitionId {
-        TraitDefinitionId(value.try_into().unwrap())
-    }
-
-    fn store_id(value: &mut TraitDefinition, id: TraitDefinitionId) {
-        value.id = Some(id);
-    }
-}
+pub type TraitDefinitionId = Id<TraitDefinition>;
 
 #[derive(Debug)]
 pub struct TraitDefinition {
@@ -52,10 +27,10 @@ pub struct TraitDefinition {
     pub span: Span,
     pub name: Name,
     pub is_trait_object: bool,
-    pub type_params: Option<TypeParamDefinition>,
-    pub methods: Vec<FctDefinitionId>,
-    pub instance_names: HashMap<Name, FctDefinitionId>,
-    pub static_names: HashMap<Name, FctDefinitionId>,
+    pub type_params: OnceCell<TypeParamDefinition>,
+    pub methods: OnceCell<Vec<FctDefinitionId>>,
+    pub instance_names: RefCell<HashMap<Name, FctDefinitionId>>,
+    pub static_names: RefCell<HashMap<Name, FctDefinitionId>>,
 }
 
 impl TraitDefinition {
@@ -77,10 +52,10 @@ impl TraitDefinition {
             span: node.span,
             name,
             is_trait_object: false,
-            type_params: None,
-            methods: Vec::new(),
-            instance_names: HashMap::new(),
-            static_names: HashMap::new(),
+            type_params: OnceCell::new(),
+            methods: OnceCell::new(),
+            instance_names: RefCell::new(HashMap::new()),
+            static_names: RefCell::new(HashMap::new()),
         }
     }
 
@@ -89,7 +64,11 @@ impl TraitDefinition {
     }
 
     pub fn type_params(&self) -> &TypeParamDefinition {
-        self.type_params.as_ref().expect("uninitialized")
+        self.type_params.get().expect("uninitialized")
+    }
+
+    pub fn methods(&self) -> &[FctDefinitionId] {
+        self.methods.get().expect("uninitialized")
     }
 
     pub fn name(&self, sa: &Sema) -> String {
@@ -113,7 +92,7 @@ impl TraitDefinition {
     }
 
     pub fn find_method(&self, sa: &Sema, name: Name, is_static: bool) -> Option<FctDefinitionId> {
-        for &method in &self.methods {
+        for &method in self.methods() {
             let method = sa.fcts.idx(method);
 
             if method.name == name && method.is_static == is_static {
@@ -132,7 +111,7 @@ impl TraitDefinition {
         replace: Option<SourceType>,
         args: &[SourceType],
     ) -> Option<FctDefinitionId> {
-        for &method in &self.methods {
+        for &method in self.methods() {
             let method = sa.fcts.idx(method);
 
             if method.name == name
@@ -172,12 +151,4 @@ fn params_match(
     }
 
     true
-}
-
-impl Index<TraitDefinitionId> for Vec<RwLock<TraitDefinition>> {
-    type Output = RwLock<TraitDefinition>;
-
-    fn index(&self, index: TraitDefinitionId) -> &RwLock<TraitDefinition> {
-        &self[index.0 as usize]
-    }
 }

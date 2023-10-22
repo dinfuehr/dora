@@ -38,7 +38,7 @@ pub fn check(sa: &Sema) {
             }
 
             FctParent::Trait(trait_id) => {
-                let trait_ = sa.traits[trait_id].read();
+                let trait_ = &sa.traits[trait_id];
                 type_params.append(&trait_.type_params());
 
                 if fct.has_hidden_self_argument() {
@@ -178,8 +178,8 @@ pub fn check(sa: &Sema) {
 
         match fct.parent {
             FctParent::Trait(traitid) => {
-                let trait_ = sa.traits[traitid].read();
-                check_against_methods(sa, &*fct, &trait_.methods);
+                let trait_ = &sa.traits[traitid];
+                check_against_methods(sa, &*fct, trait_.methods());
             }
 
             FctParent::Impl(implid) => {
