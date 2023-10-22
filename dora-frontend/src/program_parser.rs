@@ -222,8 +222,7 @@ impl<'a> ProgramParser<'a> {
         module_path: Option<PathBuf>,
         file_lookup: FileLookup,
     ) {
-        let module = self.sa.modules[module_id].clone();
-        let module = module.read();
+        let module = &self.sa.modules[module_id];
         let node = module.ast.clone().unwrap();
         let file_id = module.file_id.expect("missing file_id");
 
@@ -437,7 +436,8 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             modifiers,
             name,
         );
-        let id = self.sa.modules.push(module);
+        let id = self.sa.modules.alloc(module);
+        self.sa.modules[id].id = Some(id);
         let sym = SymbolKind::Module(id);
 
         if let Some((name, sym)) = self.insert_optional(&node.name, sym) {

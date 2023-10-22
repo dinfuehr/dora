@@ -190,7 +190,7 @@ fn initial_module(
                 Ok((1, SymbolKind::Module(module_package(sa, use_module_id))))
             }
             UsePathComponentValue::Super => {
-                let module = &sa.modules[use_module_id].read();
+                let module = &sa.modules[use_module_id];
                 if let Some(module_id) = module.parent_module_id {
                     Ok((1, SymbolKind::Module(module_id)))
                 } else {
@@ -244,8 +244,7 @@ fn process_component(
 
     match previous_sym {
         SymbolKind::Module(module_id) => {
-            let module = sa.modules.idx(module_id);
-            let module = module.read();
+            let module = &sa.modules[module_id];
             let symtable = module.table.clone();
             let symtable = symtable.read();
 
@@ -266,7 +265,7 @@ fn process_component(
                 if sym_accessible_from(sa, current_sym.kind().to_owned(), use_module_id) {
                     Ok(current_sym.kind().to_owned())
                 } else {
-                    let module = &sa.modules[module_id].read();
+                    let module = &sa.modules[module_id];
                     let name = component_name.name_as_string.clone();
                     let msg = ErrorMessage::NotAccessibleInModule(module.name(sa), name);
                     assert!(processed_uses.insert((use_file_id, use_declaration.id)));
@@ -276,8 +275,7 @@ fn process_component(
             } else if ignore_unknown_symbols {
                 Err(())
             } else {
-                let module = sa.modules.idx(module_id);
-                let module = module.read();
+                let module = &sa.modules[module_id];
                 let name = component_name.name_as_string.clone();
                 let module_name = module.name(sa);
                 sa.report(
@@ -319,8 +317,7 @@ fn define_use_target(
     ident: Ident,
     sym: SymbolKind,
 ) -> Result<(), ()> {
-    let module = sa.modules.idx(module_id);
-    let module = module.read();
+    let module = &sa.modules[module_id];
 
     let table = module.table.clone();
     let mut table = table.write();

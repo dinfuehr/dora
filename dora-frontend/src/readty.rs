@@ -546,7 +546,7 @@ fn table_for_module(
     sym: Option<SymbolKind>,
 ) -> Result<Arc<RwLock<SymTable>>, ()> {
     match sym {
-        Some(SymbolKind::Module(module_id)) => Ok(sa.modules[module_id].read().table.clone()),
+        Some(SymbolKind::Module(module_id)) => Ok(sa.modules[module_id].table.clone()),
 
         _ => {
             let msg = ErrorMessage::ExpectedModule;

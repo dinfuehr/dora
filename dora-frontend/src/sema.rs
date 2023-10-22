@@ -89,7 +89,7 @@ pub struct Sema {
     pub structs: Arena<StructDefinition>, // stores all struct source definitions
     pub classes: Arena<ClassDefinition>, // stores all class source definitions
     pub extensions: Arena<ExtensionDefinition>, // stores all extension definitions
-    pub modules: MutableVec<ModuleDefinition>, // stores all module definitions
+    pub modules: Arena<ModuleDefinition>, // stores all module definitions
     pub fcts: GrowableVec<RwLock<FctDefinition>>, // stores all function source definitions
     pub enums: MutableVec<EnumDefinition>, // stores all enum source definitions
     pub traits: MutableVec<TraitDefinition>, // stores all trait definitions
@@ -130,7 +130,7 @@ impl Sema {
             structs: Arena::new(),
             classes: Arena::new(),
             extensions: Arena::new(),
-            modules: MutableVec::new(),
+            modules: Arena::new(),
             enums: MutableVec::new(),
             traits: MutableVec::new(),
             impls: MutableVec::new(),
@@ -221,15 +221,15 @@ impl Sema {
     }
 
     pub fn module_table(&self, module_id: ModuleDefinitionId) -> Arc<RwLock<SymTable>> {
-        self.modules[module_id].read().table.clone()
+        self.modules[module_id].table.clone()
     }
 
     pub fn stdlib_module(&self) -> Arc<RwLock<SymTable>> {
-        self.modules[self.stdlib_module_id()].read().table.clone()
+        self.modules[self.stdlib_module_id()].table.clone()
     }
 
     pub fn prelude_module(&self) -> Arc<RwLock<SymTable>> {
-        self.modules[self.prelude_module_id()].read().table.clone()
+        self.modules[self.prelude_module_id()].table.clone()
     }
 
     pub fn set_prelude_module_id(&mut self, module_id: ModuleDefinitionId) {
@@ -277,13 +277,13 @@ impl Sema {
         module_name: Option<Name>,
     ) -> (PackageDefinitionId, ModuleDefinitionId) {
         let module = ModuleDefinition::new_top_level(module_name);
-        let module_id = self.modules.push(module);
+        let module_id = self.modules.alloc(module);
 
         let package = PackageDefinition::new(package_name, module_id);
         let package_id = PackageDefinitionId(self.packages.len());
         self.packages.push(package);
 
-        self.modules.idx(module_id).write().package_id = Some(package_id);
+        self.modules[module_id].package_id = Some(package_id);
 
         (package_id, module_id)
     }

@@ -124,7 +124,7 @@ pub fn setup_prelude(sa: &mut Sema) {
     ];
 
     let module = ModuleDefinition::new_top_level(None);
-    let module_id = sa.modules.push(module);
+    let module_id = sa.modules.alloc(module);
     sa.set_prelude_module_id(module_id);
 
     let prelude = sa.prelude_module();
@@ -282,7 +282,7 @@ fn resolve_name(sa: &Sema, name: &str, module_id: ModuleDefinitionId) -> SymbolK
 
     for name in path {
         let module_id = sym.to_module().expect("module expected");
-        let table = sa.modules.idx(module_id).read().table.clone();
+        let table = sa.modules[module_id].table.clone();
         let table = table.read();
 
         let interned_name = sa.interner.intern(name);
@@ -290,8 +290,7 @@ fn resolve_name(sa: &Sema, name: &str, module_id: ModuleDefinitionId) -> SymbolK
         if let Some(current_sym) = table.get(interned_name) {
             sym = current_sym;
         } else {
-            let module = sa.modules.idx(module_id);
-            let module = module.read();
+            let module = &sa.modules[module_id];
             panic!("{} not found in module {}.", name, module.name(sa));
         }
     }

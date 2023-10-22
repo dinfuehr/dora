@@ -205,14 +205,11 @@ fn accessible_from(
     // Find the common parent of both modules.
     let common_parent_id = common_parent(sa, target_module_id, user_module_id);
 
-    let target_module = &sa.modules[target_module_id].read();
+    let target_module = &sa.modules[target_module_id];
 
     {
-        let target_module = sa.modules.idx(target_module_id);
-        let target_module = target_module.read();
-
-        let user_module = sa.modules.idx(user_module_id);
-        let user_module = user_module.read();
+        let target_module = &sa.modules[target_module_id];
+        let user_module = &sa.modules[user_module_id];
 
         if target_module.package_id == user_module.package_id {
             assert!(common_parent_id.is_some());
@@ -222,7 +219,7 @@ fn accessible_from(
     }
 
     if let Some(common_parent_id) = common_parent_id {
-        let common_parent_depth = sa.modules[common_parent_id].read().depth;
+        let common_parent_depth = sa.modules[common_parent_id].depth;
 
         // The common parent module is an ancestor of the user module, which means
         // the user module has access to everything along that path including the
@@ -232,8 +229,7 @@ fn accessible_from(
         } else {
             let start_depth = common_parent_depth + 2;
             for &ns_id in &target_module.parents[start_depth..] {
-                let ns = &sa.modules[ns_id].read();
-                if !ns.visibility.is_public() {
+                if !sa.modules[ns_id].visibility.is_public() {
                     return false;
                 }
             }
@@ -245,7 +241,7 @@ fn accessible_from(
         // the whole path needs to be public
 
         for &ns_id in &target_module.parents {
-            let ns = &sa.modules[ns_id].read();
+            let ns = &sa.modules[ns_id];
             if !ns.visibility.is_public() {
                 return false;
             }
@@ -264,8 +260,8 @@ fn common_parent(
         return Some(lhs_id);
     }
 
-    let lhs = &sa.modules[lhs_id].read();
-    let rhs = &sa.modules[rhs_id].read();
+    let lhs = &sa.modules[lhs_id];
+    let rhs = &sa.modules[rhs_id];
 
     if lhs.depth > rhs.depth {
         if lhs.parents[rhs.depth] == rhs_id {
@@ -301,6 +297,6 @@ pub fn module_contains(
         return true;
     }
 
-    let module = &sa.modules[child_id].read();
+    let module = &sa.modules[child_id];
     module.parents.contains(&parent_id)
 }

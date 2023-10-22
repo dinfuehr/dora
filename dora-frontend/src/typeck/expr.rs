@@ -1389,7 +1389,7 @@ pub(super) fn read_path_expr(
 
         match sym {
             Some(SymbolKind::Module(module_id)) => {
-                let module = &ck.sa.modules[module_id].read();
+                let module = &ck.sa.modules[module_id];
                 let symtable = module.table.read();
                 let sym = symtable.get(interned_element_name);
 
@@ -1634,13 +1634,10 @@ fn check_expr_path_module(
     module_id: ModuleDefinitionId,
     element_name: String,
 ) -> SourceType {
-    let module = &ck.sa.modules.idx(module_id);
-    let module = module.read();
-    let table = module.table.read();
-
     let interned_element_name = ck.sa.interner.intern(&element_name);
 
-    let sym = table.get(interned_element_name);
+    let table = ck.sa.module_table(module_id);
+    let sym = table.read().get(interned_element_name);
 
     match sym {
         Some(SymbolKind::Global(global_id)) => {
@@ -1690,7 +1687,7 @@ fn check_expr_path_module(
         ),
 
         None => {
-            let module = module.name(ck.sa);
+            let module = ck.sa.modules[module_id].name(ck.sa);
             ck.sa.report(
                 ck.file_id,
                 e.span,
@@ -1735,14 +1732,14 @@ pub(super) fn read_path(ck: &mut TypeCheck, path: &ast::PathData) -> Result<Symb
         match sym {
             Some(SymbolKind::Module(module_id)) => {
                 if !module_accessible_from(ck.sa, module_id, ck.module_id) {
-                    let module = &ck.sa.modules[module_id].read();
+                    let module = &ck.sa.modules[module_id];
                     let msg = ErrorMessage::NotAccessible(module.name(ck.sa));
                     ck.sa.report(ck.file_id, path.span, msg);
                 }
 
                 let iname = ck.sa.interner.intern(&ident.name_as_string);
 
-                let module = &ck.sa.modules[module_id].read();
+                let module = &ck.sa.modules[module_id];
                 let symtable = module.table.read();
                 sym = symtable.get(iname);
             }

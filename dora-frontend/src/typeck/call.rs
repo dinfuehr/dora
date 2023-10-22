@@ -860,7 +860,7 @@ fn check_expr_call_path(
             }
 
             let sym = {
-                let module = &ck.sa.modules[module_id].read();
+                let module = &ck.sa.modules[module_id];
                 let table = module.table.read();
 
                 table.get(interned_method_name)

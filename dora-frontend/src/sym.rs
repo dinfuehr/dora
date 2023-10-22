@@ -22,13 +22,12 @@ pub struct ModuleSymTable {
 
 impl ModuleSymTable {
     pub fn new(sa: &Sema, module_id: ModuleDefinitionId) -> ModuleSymTable {
-        let module = sa.modules.idx(module_id);
-        let module = module.read();
+        let module = &sa.modules[module_id];
         let outer = module.table.clone();
 
         let dependencies = sa.packages[module.package_id()].table.clone();
 
-        let prelude = sa.modules[sa.prelude_module_id()].read().table.clone();
+        let prelude = sa.modules[sa.prelude_module_id()].table.clone();
 
         ModuleSymTable {
             module_id,

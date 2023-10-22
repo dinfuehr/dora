@@ -68,9 +68,7 @@ fn create_packages(sa: &Sema) -> Vec<PackageData> {
 fn create_modules(sa: &Sema) -> Vec<ModuleData> {
     let mut result = Vec::new();
 
-    for module in sa.modules.iter() {
-        let module = module.read();
-
+    for (_id, module) in sa.modules.iter() {
         let name = if let Some(name) = module.name {
             sa.interner.str(name).to_string()
         } else {
@@ -443,7 +441,7 @@ fn convert_package_id(id: PackageDefinitionId) -> PackageId {
 }
 
 fn convert_module_id(id: ModuleDefinitionId) -> ModuleId {
-    ModuleId(id.to_usize().try_into().expect("failure"))
+    ModuleId(id.index().try_into().expect("failure"))
 }
 
 fn convert_function_id(id: FctDefinitionId) -> FunctionId {

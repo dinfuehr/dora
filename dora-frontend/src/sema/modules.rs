@@ -4,36 +4,13 @@ use std::sync::Arc;
 use crate::program_parser::ParsedModifierList;
 use crate::sema::{PackageDefinitionId, Sema, Visibility};
 use crate::sym::SymTable;
-use crate::Id;
 use crate::SourceFileId;
 
 use crate::interner::Name;
 use dora_parser::ast;
+use id_arena::Id;
 
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub struct ModuleDefinitionId(pub usize);
-
-impl ModuleDefinitionId {
-    pub fn to_usize(self) -> usize {
-        self.0
-    }
-}
-
-impl Id for ModuleDefinition {
-    type IdType = ModuleDefinitionId;
-
-    fn id_to_usize(id: ModuleDefinitionId) -> usize {
-        id.0
-    }
-
-    fn usize_to_id(value: usize) -> ModuleDefinitionId {
-        ModuleDefinitionId(value)
-    }
-
-    fn store_id(value: &mut ModuleDefinition, id: ModuleDefinitionId) {
-        value.id = Some(id);
-    }
-}
+pub type ModuleDefinitionId = Id<ModuleDefinition>;
 
 #[derive(Debug)]
 pub struct ModuleDefinition {
@@ -74,7 +51,7 @@ impl ModuleDefinition {
         modifiers: ParsedModifierList,
         name: Name,
     ) -> ModuleDefinition {
-        let parent = &sa.modules[parent_id].read();
+        let parent = &sa.modules[parent_id];
         let mut parents = parent.parents.clone();
         parents.push(parent_id);
 
@@ -106,7 +83,7 @@ impl ModuleDefinition {
         let mut path = String::new();
 
         for &module_id in &self.parents {
-            let module = &sa.modules[module_id].read();
+            let module = &sa.modules[module_id];
 
             if let Some(name) = module.name {
                 if !path.is_empty() {
@@ -130,7 +107,7 @@ impl ModuleDefinition {
 }
 
 pub fn module_package(sa: &Sema, module_id: ModuleDefinitionId) -> ModuleDefinitionId {
-    let module = &sa.modules[module_id].read();
+    let module = &sa.modules[module_id];
 
     if let Some(&global_id) = module.parents.first() {
         global_id
@@ -140,7 +117,7 @@ pub fn module_package(sa: &Sema, module_id: ModuleDefinitionId) -> ModuleDefinit
 }
 
 pub fn module_path(sa: &Sema, module_id: ModuleDefinitionId, name: Name) -> String {
-    let module = &sa.modules[module_id].read();
+    let module = &sa.modules[module_id];
     let mut result = module.name(sa);
 
     if !result.is_empty() {
