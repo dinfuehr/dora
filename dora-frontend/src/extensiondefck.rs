@@ -12,10 +12,8 @@ use dora_parser::Span;
 use fixedbitset::FixedBitSet;
 
 pub fn check(sa: &Sema) {
-    for extension in sa.extensions.iter() {
+    for (_id, extension) in sa.extensions.iter() {
         let (extension_id, file_id, module_id, ast) = {
-            let extension = extension.read();
-
             (
                 extension.id(),
                 extension.file_id,
@@ -53,8 +51,7 @@ impl<'x> ExtensionCheck<'x> {
         self.sym.push_level();
 
         {
-            let extension = self.sa.extensions.idx(self.extension_id);
-            let extension = extension.read();
+            let extension = &self.sa.extensions[self.extension_id];
 
             for (id, name) in extension.type_params().names() {
                 self.sym.insert(name, SymbolKind::TypeParam(id));
@@ -109,8 +106,7 @@ impl<'x> ExtensionCheck<'x> {
                 | SourceType::Unit
                 | SourceType::TypeParam(..)
                 | SourceType::Lambda(..) => {
-                    let extension = self.sa.extensions.idx(self.extension_id);
-                    let extension = extension.read();
+                    let extension = &self.sa.extensions[self.extension_id];
 
                     self.sa.report(
                         self.file_id.into(),
@@ -124,7 +120,7 @@ impl<'x> ExtensionCheck<'x> {
                 }
             }
 
-            let mut extension = self.sa.extensions[self.extension_id].write();
+            let extension = &self.sa.extensions[self.extension_id];
 
             check_for_unconstrained_type_params(
                 self.sa,
@@ -134,18 +130,14 @@ impl<'x> ExtensionCheck<'x> {
                 self.ast.span,
             );
 
-            extension.ty = extension_ty;
+            assert!(extension.ty.set(extension_ty).is_ok());
         }
 
-        let methods = self
-            .sa
-            .extensions
-            .idx(self.extension_id)
-            .read()
+        for &method_id in self.sa.extensions[self.extension_id]
             .methods
-            .clone();
-
-        for method_id in methods {
+            .get()
+            .expect("missing method")
+        {
             self.visit_method(method_id);
         }
 
@@ -190,14 +182,15 @@ impl<'x> ExtensionCheck<'x> {
             return;
         }
 
-        let extension = self.sa.extensions.idx(self.extension_id);
-        let mut extension = extension.write();
+        let extension = &self.sa.extensions[self.extension_id];
 
         let table = if fct.is_static {
-            &mut extension.static_names
+            &extension.static_names
         } else {
-            &mut extension.instance_names
+            &extension.instance_names
         };
+
+        let mut table = table.write();
 
         if !table.contains_key(&fct.name) {
             table.insert(fct.name, fct_id);
@@ -254,9 +247,9 @@ impl<'x> ExtensionCheck<'x> {
         is_static: bool,
         extension_id: ExtensionDefinitionId,
     ) -> bool {
-        let extension = self.sa.extensions[extension_id].read();
+        let extension = &self.sa.extensions[extension_id];
 
-        if extension.ty.type_params() != self.extension_ty.type_params() {
+        if extension.ty().type_params() != self.extension_ty.type_params() {
             return true;
         }
 
@@ -271,7 +264,7 @@ impl<'x> ExtensionCheck<'x> {
             .interner
             .intern(&f.name.as_ref().expect("missing name").name_as_string);
 
-        if let Some(&method_id) = table.get(&name) {
+        if let Some(&method_id) = table.read().get(&name) {
             let method = self.sa.fcts.idx(method_id);
             let method = method.read();
             let method_name = self.sa.interner.str(method.name).to_string();

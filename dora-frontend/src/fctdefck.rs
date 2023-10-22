@@ -25,11 +25,11 @@ pub fn check(sa: &Sema) {
             }
 
             FctParent::Extension(extension_id) => {
-                let extension = sa.extensions[extension_id].read();
+                let extension = &sa.extensions[extension_id];
                 fct.type_params.append(extension.type_params());
 
                 if fct.has_hidden_self_argument() {
-                    fct.param_types.push(extension.ty.clone());
+                    fct.param_types.push(extension.ty().clone());
                 }
             }
 

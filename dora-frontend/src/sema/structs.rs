@@ -172,9 +172,7 @@ pub fn find_methods_in_struct(
     name: Name,
     is_static: bool,
 ) -> Vec<Candidate> {
-    for extension in sa.extensions.iter() {
-        let extension = extension.read();
-
+    for (_id, extension) in sa.extensions.iter() {
         if let Some(bindings) =
             extension_matches(sa, object_type.clone(), type_param_defs, extension.id())
         {
@@ -184,7 +182,7 @@ pub fn find_methods_in_struct(
                 &extension.instance_names
             };
 
-            if let Some(&fct_id) = table.get(&name) {
+            if let Some(&fct_id) = table.read().get(&name) {
                 return vec![Candidate {
                     object_type: object_type.clone(),
                     container_type_params: bindings,

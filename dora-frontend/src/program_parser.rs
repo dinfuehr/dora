@@ -518,7 +518,11 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         } else {
             let extension =
                 ExtensionDefinition::new(self.package_id, self.module_id, self.file_id, node);
-            let extension_id = self.sa.extensions.push(extension);
+            let extension_id = self.sa.extensions.alloc(extension);
+            assert!(self.sa.extensions[extension_id]
+                .id
+                .set(extension_id)
+                .is_ok());
 
             find_methods_in_extension(self.sa, extension_id, node);
         }
@@ -772,12 +776,13 @@ fn find_methods_in_extension(
     extension_id: ExtensionDefinitionId,
     node: &Arc<ast::Impl>,
 ) {
-    let extension = sa.extensions.idx(extension_id);
-    let mut extension = extension.write();
+    let mut methods = Vec::new();
 
     for child in &node.methods {
         match child.as_ref() {
             ast::ElemData::Function(ref method_node) => {
+                let name = ensure_name(sa, &method_node.name);
+                let extension = &sa.extensions[extension_id];
                 let modifiers = check_modifiers(
                     sa,
                     extension.file_id,
@@ -791,25 +796,31 @@ fn find_methods_in_extension(
                     extension.file_id,
                     method_node,
                     modifiers,
-                    ensure_name(sa, &method_node.name),
+                    name,
                     FctParent::Extension(extension_id),
                 );
 
                 let fct_id = sa.add_fct(fct);
-                extension.methods.push(fct_id);
+                methods.push(fct_id);
             }
 
             ast::ElemData::Error { .. } => {
                 // ignore
             }
 
-            _ => sa.report(
-                extension.file_id,
-                child.span(),
-                ErrorMessage::ExpectedMethod,
-            ),
+            _ => {
+                let extension = &sa.extensions[extension_id];
+                sa.report(
+                    extension.file_id,
+                    child.span(),
+                    ErrorMessage::ExpectedMethod,
+                );
+            }
         }
     }
+
+    let extension = &sa.extensions[extension_id];
+    assert!(extension.methods.set(methods).is_ok());
 }
 
 fn ensure_name(sa: &mut Sema, ident: &Option<ast::Ident>) -> Name {

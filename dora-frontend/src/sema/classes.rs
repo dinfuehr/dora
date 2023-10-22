@@ -272,12 +272,11 @@ pub fn find_methods_in_class(
     let mut candidates = Vec::new();
 
     // Find extension methods
-    for extension in sa.extensions.iter() {
-        let extension = extension.read();
+    for (_id, extension) in sa.extensions.iter() {
         if let Some(bindings) =
             extension_matches(sa, object_type.clone(), type_param_defs, extension.id())
         {
-            let extension = sa.extensions[extension.id()].read();
+            let extension = &sa.extensions[extension.id()];
 
             let table = if is_static {
                 &extension.static_names
@@ -285,7 +284,7 @@ pub fn find_methods_in_class(
                 &extension.instance_names
             };
 
-            if let Some(&fct_id) = table.get(&name) {
+            if let Some(&fct_id) = table.read().get(&name) {
                 return vec![Candidate {
                     object_type,
                     container_type_params: bindings,

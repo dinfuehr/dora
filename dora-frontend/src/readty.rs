@@ -617,8 +617,6 @@ where
 
         TypeParamContext::Extension(extension_id) => {
             let extension = &sa.extensions[extension_id];
-            let extension = extension.read();
-
             callback(extension.type_params())
         }
 

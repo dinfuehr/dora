@@ -1821,10 +1821,9 @@ fn find_method_in_extensions(
     is_static: bool,
 ) -> FctDefinitionId {
     for &extension_id in extensions.iter() {
-        let extension = sa.extensions.idx(extension_id);
-        let extension = extension.read();
+        let extension = &sa.extensions[extension_id];
 
-        for &mid in &extension.methods {
+        for &mid in extension.methods.get().expect("missing methods") {
             let mtd = sa.fcts.idx(mid);
             let mtd = mtd.read();
 
@@ -1991,7 +1990,7 @@ fn internal_extension_method(
     let name = sa.interner.intern(name_as_string);
 
     for &extension_id in extensions {
-        let extension = sa.extensions[extension_id].read();
+        let extension = &sa.extensions[extension_id];
 
         let table = if is_static {
             &extension.static_names
@@ -1999,7 +1998,7 @@ fn internal_extension_method(
             &extension.instance_names
         };
 
-        if let Some(&method_id) = table.get(&name) {
+        if let Some(&method_id) = table.read().get(&name) {
             let fct = sa.fcts.idx(method_id);
             let mut fct = fct.write();
 

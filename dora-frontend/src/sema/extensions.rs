@@ -1,59 +1,36 @@
 use parking_lot::RwLock;
 
+use std::cell::OnceCell;
 use std::collections::HashMap;
-use std::convert::TryInto;
-use std::ops::Index;
 use std::sync::Arc;
+use std::sync::OnceLock;
 
 use crate::interner::Name;
 use crate::sema::{
     FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, SourceFileId, TypeParamDefinition,
 };
 use crate::ty::SourceType;
-use crate::Id;
+use id_arena::Id;
 
 pub use self::matching::{extension_matches, extension_matches_ty};
 use dora_parser::ast;
 use dora_parser::Span;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct ExtensionDefinitionId(u32);
-
-impl ExtensionDefinitionId {
-    pub fn to_usize(self) -> usize {
-        self.0 as usize
-    }
-}
-
-impl Id for ExtensionDefinition {
-    type IdType = ExtensionDefinitionId;
-
-    fn id_to_usize(id: ExtensionDefinitionId) -> usize {
-        id.0 as usize
-    }
-
-    fn usize_to_id(value: usize) -> ExtensionDefinitionId {
-        ExtensionDefinitionId(value.try_into().unwrap())
-    }
-
-    fn store_id(value: &mut ExtensionDefinition, id: ExtensionDefinitionId) {
-        value.id = Some(id);
-    }
-}
+pub type ExtensionDefinitionId = Id<ExtensionDefinition>;
 
 #[derive(Debug)]
 pub struct ExtensionDefinition {
-    pub id: Option<ExtensionDefinitionId>,
+    pub id: OnceCell<ExtensionDefinitionId>,
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
     pub ast: Arc<ast::Impl>,
     pub span: Span,
-    pub type_params: Option<TypeParamDefinition>,
-    pub ty: SourceType,
-    pub methods: Vec<FctDefinitionId>,
-    pub instance_names: HashMap<Name, FctDefinitionId>,
-    pub static_names: HashMap<Name, FctDefinitionId>,
+    pub type_params: OnceLock<TypeParamDefinition>,
+    pub ty: OnceLock<SourceType>,
+    pub methods: OnceLock<Vec<FctDefinitionId>>,
+    pub instance_names: RwLock<HashMap<Name, FctDefinitionId>>,
+    pub static_names: RwLock<HashMap<Name, FctDefinitionId>>,
 }
 
 impl ExtensionDefinition {
@@ -64,34 +41,30 @@ impl ExtensionDefinition {
         node: &Arc<ast::Impl>,
     ) -> ExtensionDefinition {
         ExtensionDefinition {
-            id: None,
+            id: OnceCell::new(),
             package_id,
             module_id,
             file_id,
             ast: node.clone(),
             span: node.span,
-            type_params: None,
-            ty: SourceType::Error,
-            methods: Vec::new(),
-            instance_names: HashMap::new(),
-            static_names: HashMap::new(),
+            type_params: OnceLock::new(),
+            ty: OnceLock::new(),
+            methods: OnceLock::new(),
+            instance_names: RwLock::new(HashMap::new()),
+            static_names: RwLock::new(HashMap::new()),
         }
     }
 
     pub fn id(&self) -> ExtensionDefinitionId {
-        self.id.expect("id missing")
+        self.id.get().cloned().expect("id missing")
     }
 
     pub fn type_params(&self) -> &TypeParamDefinition {
-        self.type_params.as_ref().expect("uninitialized")
+        self.type_params.get().expect("uninitialized")
     }
-}
 
-impl Index<ExtensionDefinitionId> for Vec<RwLock<ExtensionDefinition>> {
-    type Output = RwLock<ExtensionDefinition>;
-
-    fn index(&self, index: ExtensionDefinitionId) -> &RwLock<ExtensionDefinition> {
-        &self[index.to_usize()]
+    pub fn ty(&self) -> &SourceType {
+        self.ty.get().expect("missing type")
     }
 }
 
@@ -105,12 +78,12 @@ mod matching {
         check_type_param_defs: &TypeParamDefinition,
         extension_id: ExtensionDefinitionId,
     ) -> Option<SourceTypeArray> {
-        let extension = sa.extensions[extension_id].read();
+        let extension = &sa.extensions[extension_id];
         extension_matches_ty(
             sa,
             check_ty,
             check_type_param_defs,
-            extension.ty.clone(),
+            extension.ty().clone(),
             extension.type_params(),
         )
     }

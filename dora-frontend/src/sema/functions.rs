@@ -148,8 +148,7 @@ impl FctDefinition {
 
             FctParent::Extension(extension_id) => {
                 let extension = &sa.extensions[extension_id];
-                let extension = extension.read();
-                path_for_type(sa, extension.ty.clone())
+                path_for_type(sa, extension.ty().clone())
             }
 
             FctParent::Impl(impl_id) => {

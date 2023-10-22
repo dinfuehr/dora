@@ -151,11 +151,10 @@ fn check_structs(sa: &Sema) {
 }
 
 fn check_extensions(sa: &Sema) {
-    for extension in sa.extensions.iter() {
+    for (_id, extension) in sa.extensions.iter() {
         let type_param_definition;
 
         {
-            let extension = extension.read();
             let mut symtable = ModuleSymTable::new(sa, extension.module_id);
             symtable.push_level();
 
@@ -170,7 +169,7 @@ fn check_extensions(sa: &Sema) {
             symtable.pop_level();
         }
 
-        extension.write().type_params = Some(type_param_definition);
+        assert!(extension.type_params.set(type_param_definition).is_ok());
     }
 }
 
