@@ -1200,7 +1200,7 @@ fn check_expr_lambda(
         let lambda = ck.sa.fcts.idx(lambda_fct_id);
 
         let mut analysis = AnalysisData::new();
-        analysis.outer_context_infos = ck.outer_context_classes.clone();
+        analysis.outer_context_classes = ck.outer_context_classes.clone();
 
         {
             let mut typeck = TypeCheck {
@@ -1219,6 +1219,7 @@ fn check_expr_lambda(
                 is_self_available: ck.is_self_available,
                 vars: ck.vars,
                 contains_lambda: false,
+                lazy_context_class_creation: ck.lazy_context_class_creation,
                 outer_context_classes: ck.outer_context_classes,
                 outer_context_access_in_function: false,
                 outer_context_access_from_lambda: false,

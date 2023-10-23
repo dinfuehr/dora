@@ -1,4 +1,7 @@
-use crate::sema::{AnalysisData, FctDefinitionId, GlobalDefinitionId, Sema, TypeParamDefinition};
+use crate::sema::{
+    AnalysisData, ClassDefinition, FctDefinitionId, GlobalDefinitionId, LazyContextClass, Sema,
+    TypeParamDefinition,
+};
 use crate::sym::ModuleSymTable;
 use crate::typeck::call::{check_expr_call, check_expr_call_enum_args, find_method};
 use crate::typeck::constck::ConstCheck;
@@ -55,6 +58,7 @@ pub fn check(sa: &mut Sema) {
 
 fn check_function(sa: &mut Sema, id: FctDefinitionId) {
     let fct = sa.fcts.idx(id);
+    let mut lazy_context_class_creation = Vec::new();
 
     let analysis = {
         if !fct.has_body() {
@@ -87,6 +91,7 @@ fn check_function(sa: &mut Sema, id: FctDefinitionId) {
             is_lambda: false,
             vars: &mut vars,
             contains_lambda: false,
+            lazy_context_class_creation: &mut lazy_context_class_creation,
             outer_context_classes: &mut outer_context_classes,
             outer_context_access_in_function: false,
             outer_context_access_from_lambda: false,
@@ -97,11 +102,13 @@ fn check_function(sa: &mut Sema, id: FctDefinitionId) {
         analysis
     };
 
+    create_context_classes(sa, lazy_context_class_creation);
     assert!(fct.analysis.set(analysis).is_ok());
 }
 
 fn check_global(sa: &mut Sema, id: GlobalDefinitionId) {
     let global = sa.globals.idx(id);
+    let mut lazy_context_class_creation = Vec::new();
 
     let analysis = {
         if !global.has_initial_value() {
@@ -129,6 +136,7 @@ fn check_global(sa: &mut Sema, id: GlobalDefinitionId) {
             is_self_available: false,
             vars: &mut vars,
             contains_lambda: false,
+            lazy_context_class_creation: &mut lazy_context_class_creation,
             outer_context_classes: &mut outer_context_classes,
             outer_context_access_in_function: false,
             outer_context_access_from_lambda: false,
@@ -138,6 +146,14 @@ fn check_global(sa: &mut Sema, id: GlobalDefinitionId) {
 
         analysis
     };
-
+    create_context_classes(sa, lazy_context_class_creation);
     assert!(global.analysis.set(analysis).is_ok());
+}
+
+fn create_context_classes(sa: &mut Sema, lazy_class: Vec<(LazyContextClass, ClassDefinition)>) {
+    for (lazy_context_class, class_definition) in lazy_class {
+        let class_id = sa.classes.alloc(class_definition);
+        sa.classes[class_id].id = Some(class_id);
+        lazy_context_class.set_context_cls_id(class_id);
+    }
 }

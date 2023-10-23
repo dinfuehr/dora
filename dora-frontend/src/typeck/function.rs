@@ -6,10 +6,9 @@ use once_cell::unsync::OnceCell;
 use crate::error::msg::ErrorMessage;
 use crate::report_sym_shadow_span;
 use crate::sema::{
-    AnalysisData, ClassDefinition, ContextIdx, ContextInfo, FctDefinition, Field, FieldId,
-    GlobalDefinition, IdentType, ModuleDefinitionId, NestedVarId, OuterContextResolver,
-    PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Var, VarAccess, VarId,
-    VarLocation, Visibility,
+    AnalysisData, ClassDefinition, ContextIdx, FctDefinition, Field, FieldId, GlobalDefinition,
+    IdentType, LazyContextClass, ModuleDefinitionId, NestedVarId, PackageDefinitionId, Sema,
+    SourceFileId, TypeParamDefinition, Var, VarAccess, VarId, VarLocation, Visibility,
 };
 use crate::specialize::replace_type_param;
 use crate::sym::{ModuleSymTable, SymbolKind};
@@ -22,7 +21,7 @@ use dora_parser::ast;
 use dora_parser::Span;
 
 pub struct TypeCheck<'a> {
-    pub sa: &'a mut Sema,
+    pub sa: &'a Sema,
     pub type_param_defs: &'a TypeParamDefinition,
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
@@ -37,7 +36,8 @@ pub struct TypeCheck<'a> {
     pub is_self_available: bool,
     pub vars: &'a mut VarManager,
     pub contains_lambda: bool,
-    pub outer_context_classes: &'a mut Vec<OuterContextResolver>,
+    pub lazy_context_class_creation: &'a mut Vec<(LazyContextClass, ClassDefinition)>,
+    pub outer_context_classes: &'a mut Vec<LazyContextClass>,
     pub outer_context_access_in_function: bool,
     pub outer_context_access_from_lambda: bool,
 }
@@ -75,7 +75,7 @@ impl<'a> TypeCheck<'a> {
     where
         F: FnOnce(&mut TypeCheck<'a>),
     {
-        self.outer_context_classes.push(OuterContextResolver::new());
+        self.outer_context_classes.push(LazyContextClass::new());
         let start_level = self.symtable.levels();
         self.symtable.push_level();
         self.vars.enter_function();
@@ -218,17 +218,23 @@ impl<'a> TypeCheck<'a> {
             .type_params
             .set(self.type_param_defs.clone())
             .expect("already initialized");
-        let class_id = self.sa.classes.alloc(class);
-        self.sa.classes[class_id].id = Some(class_id);
-        self.analysis.context_cls_id = Some(class_id);
-        self.analysis.context_has_outer_context_slot = Some(needs_outer_context_slot);
-        self.outer_context_classes
+
+        let context_class_resolver = self
+            .outer_context_classes
             .last()
-            .expect("missing outer context")
-            .set(ContextInfo {
-                has_outer_context_slot: needs_outer_context_slot,
-                context_cls_id: class_id,
-            });
+            .cloned()
+            .expect("missing outer context");
+
+        context_class_resolver.set_has_outer_context_slot(needs_outer_context_slot);
+
+        self.lazy_context_class_creation
+            .push((context_class_resolver.clone(), class));
+
+        assert!(self
+            .analysis
+            .lazy_context_class
+            .set(context_class_resolver)
+            .is_ok());
     }
 
     fn add_type_params(&mut self, fct: &FctDefinition) {

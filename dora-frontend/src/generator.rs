@@ -238,7 +238,7 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn create_context(&mut self) {
-        if let Some(cls_id) = self.analysis.context_cls_id {
+        if let Some(cls_id) = self.analysis.context_cls_id() {
             let context_register = self.builder.alloc_global(BytecodeType::Ptr);
             let idx = self.builder.add_const_cls_types(
                 ClassId(cls_id.index().try_into().expect("overflow")),
@@ -2280,10 +2280,10 @@ impl<'a> AstBytecodeGen<'a> {
         assert!(distance >= 1);
 
         let mut distance_left = distance;
-        let mut outer_cls_idx = self.analysis.outer_context_infos.len() - 1;
+        let mut outer_cls_idx = self.analysis.outer_context_classes.len() - 1;
 
         while distance_left > 1 {
-            let outer_cls_id = self.analysis.outer_context_infos[outer_cls_idx].context_cls_id();
+            let outer_cls_id = self.analysis.outer_context_classes[outer_cls_idx].context_cls_id();
 
             let idx = self.builder.add_const_field_types(
                 ClassId(outer_cls_id.index().try_into().expect("overflow")),
@@ -2304,14 +2304,14 @@ impl<'a> AstBytecodeGen<'a> {
         assert_eq!(distance_left, 1);
 
         // Store value in context field
-        let outer_context_info = self.analysis.outer_context_infos[outer_cls_idx].context_info();
+        let outer_context_info = self.analysis.outer_context_classes[outer_cls_idx].clone();
 
         let field_id =
-            field_id_from_context_idx(context_idx, outer_context_info.has_outer_context_slot);
+            field_id_from_context_idx(context_idx, outer_context_info.has_outer_context_slot());
         let idx = self.builder.add_const_field_types(
             ClassId(
                 outer_context_info
-                    .context_cls_id
+                    .context_cls_id()
                     .index()
                     .try_into()
                     .expect("overflow"),
@@ -2420,11 +2420,11 @@ impl<'a> AstBytecodeGen<'a> {
 
         assert!(distance >= 1);
 
-        let mut outer_cls_idx = self.analysis.outer_context_infos.len() - 1;
+        let mut outer_cls_idx = self.analysis.outer_context_classes.len() - 1;
         let mut distance_left = distance;
 
         while distance_left > 1 {
-            let outer_cls_id = self.analysis.outer_context_infos[outer_cls_idx].context_cls_id();
+            let outer_cls_id = self.analysis.outer_context_classes[outer_cls_idx].context_cls_id();
             let idx = self.builder.add_const_field_types(
                 ClassId(outer_cls_id.index().try_into().expect("overflow")),
                 bty_array_from_ty(&self.identity_type_params()),
@@ -2439,12 +2439,12 @@ impl<'a> AstBytecodeGen<'a> {
 
         assert_eq!(distance_left, 1);
 
-        let outer_context_info = self.analysis.outer_context_infos[outer_cls_idx].context_info();
-        let outer_cls_id = outer_context_info.context_cls_id;
+        let outer_context_info = self.analysis.outer_context_classes[outer_cls_idx].clone();
+        let outer_cls_id = outer_context_info.context_cls_id();
 
         let outer_cls = &self.sa.classes[outer_cls_id];
         let field_id =
-            field_id_from_context_idx(context_idx, outer_context_info.has_outer_context_slot);
+            field_id_from_context_idx(context_idx, outer_context_info.has_outer_context_slot());
         let field = &outer_cls.fields[field_id];
 
         let ty: BytecodeType = register_bty_from_ty(field.ty());
@@ -2585,7 +2585,7 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn store_in_context(&mut self, src: Register, context_idx: ContextIdx, location: Location) {
         let context_register = self.context_register.expect("context register missing");
-        let cls_id = self.analysis.context_cls_id.expect("class missing");
+        let cls_id = self.analysis.context_cls_id().expect("class missing");
         let field_id =
             field_id_from_context_idx(context_idx, self.analysis.context_has_outer_context_slot());
         let field_idx = self.builder.add_const_field_types(
@@ -2600,7 +2600,7 @@ impl<'a> AstBytecodeGen<'a> {
     fn load_from_context(&mut self, dest: Register, context_idx: ContextIdx, location: Location) {
         // Load context object.
         let context_register = self.context_register.expect("context register missing");
-        let cls_id = self.analysis.context_cls_id.expect("class missing");
+        let cls_id = self.analysis.context_cls_id().expect("class missing");
         let field_id =
             field_id_from_context_idx(context_idx, self.analysis.context_has_outer_context_slot());
         let field_idx = self.builder.add_const_field_types(

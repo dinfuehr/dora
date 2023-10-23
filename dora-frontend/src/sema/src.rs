@@ -29,9 +29,8 @@ pub struct AnalysisData {
     pub map_fors: NodeMap<ForTypeInfo>,
     pub map_lambdas: NodeMap<FctDefinitionId>,
     pub vars: VarAccess, // variables in functions
-    pub context_cls_id: Option<ClassDefinitionId>,
-    pub outer_context_infos: Vec<OuterContextResolver>,
-    pub context_has_outer_context_slot: Option<bool>,
+    pub lazy_context_class: OnceCell<LazyContextClass>,
+    pub outer_context_classes: Vec<LazyContextClass>,
     pub outer_context_access: Option<bool>,
 }
 
@@ -52,9 +51,8 @@ impl AnalysisData {
             map_string_literals: NodeMap::new(),
 
             vars: VarAccess::empty(),
-            context_cls_id: None,
-            outer_context_infos: Vec::new(),
-            context_has_outer_context_slot: None,
+            lazy_context_class: OnceCell::new(),
+            outer_context_classes: Vec::new(),
             outer_context_access: None,
         }
     }
@@ -106,11 +104,18 @@ impl AnalysisData {
     }
 
     pub fn has_context_class(&self) -> bool {
-        self.context_cls_id.is_some()
+        self.lazy_context_class.get().is_some()
+    }
+
+    pub fn context_cls_id(&self) -> Option<ClassDefinitionId> {
+        self.lazy_context_class.get().map(|cr| cr.context_cls_id())
     }
 
     pub fn context_has_outer_context_slot(&self) -> bool {
-        self.context_has_outer_context_slot.expect("missing")
+        self.lazy_context_class
+            .get()
+            .map(|cr| cr.has_outer_context_slot())
+            .expect("missing context")
     }
 
     pub fn outer_context_access(&self) -> bool {
@@ -119,34 +124,45 @@ impl AnalysisData {
 }
 
 #[derive(Clone, Debug)]
-pub struct OuterContextResolver(Rc<OnceCell<ContextInfo>>);
+pub struct LazyContextClass(Rc<ContextInfo>);
 
-impl OuterContextResolver {
-    pub fn new() -> OuterContextResolver {
-        OuterContextResolver(Rc::new(OnceCell::new()))
+impl LazyContextClass {
+    pub fn new() -> LazyContextClass {
+        LazyContextClass(Rc::new(ContextInfo {
+            has_outer_context_slot: OnceCell::new(),
+            context_cls_id: OnceCell::new(),
+        }))
     }
 
-    pub fn set(&self, context_info: ContextInfo) {
-        assert!(self.0.set(context_info).is_ok());
-    }
-
-    pub fn context_info(&self) -> &ContextInfo {
-        self.0.get().expect("missing context info")
+    pub fn set_has_outer_context_slot(&self, value: bool) {
+        assert!(self.0.has_outer_context_slot.set(value).is_ok());
     }
 
     pub fn has_outer_context_slot(&self) -> bool {
-        self.context_info().has_outer_context_slot
+        self.0
+            .has_outer_context_slot
+            .get()
+            .cloned()
+            .expect("missing value")
+    }
+
+    pub fn set_context_cls_id(&self, id: ClassDefinitionId) {
+        assert!(self.0.context_cls_id.set(id).is_ok());
     }
 
     pub fn context_cls_id(&self) -> ClassDefinitionId {
-        self.context_info().context_cls_id
+        self.0
+            .context_cls_id
+            .get()
+            .cloned()
+            .expect("missing class id")
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct ContextInfo {
-    pub has_outer_context_slot: bool,
-    pub context_cls_id: ClassDefinitionId,
+    pub has_outer_context_slot: OnceCell<bool>,
+    pub context_cls_id: OnceCell<ClassDefinitionId>,
 }
 
 #[derive(Clone, Debug)]
