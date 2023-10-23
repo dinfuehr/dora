@@ -4,23 +4,22 @@ use crate::error::msg::ErrorMessage;
 use crate::sema::{FctDefinitionId, Sema};
 
 pub fn check(sa: &mut Sema) {
-    for impl_ in sa.impls.iter() {
+    for (_id, impl_) in sa.impls.iter() {
         let impl_for = {
-            let impl_ = impl_.read();
             let trait_ = &sa.traits[impl_.trait_id()];
 
             let all: HashSet<FctDefinitionId> = trait_.methods().iter().cloned().collect();
             let mut defined = HashSet::new();
             let mut impl_for = HashMap::new();
 
-            for &method_id in &impl_.methods {
+            for &method_id in impl_.methods() {
                 let method = sa.fcts.idx(method_id);
 
                 if let Some(fid) = trait_.find_method_with_replace(
                     sa,
                     method.is_static,
                     method.name,
-                    Some(impl_.extended_ty.clone()),
+                    Some(impl_.extended_ty()),
                     method.params_without_self(),
                 ) {
                     defined.insert(fid);
@@ -30,7 +29,7 @@ pub fn check(sa: &mut Sema) {
 
                     let return_type_valid = method.return_type()
                         == if trait_method.return_type().is_self() {
-                            impl_.extended_ty.clone()
+                            impl_.extended_ty()
                         } else {
                             trait_method.return_type()
                         };
@@ -92,7 +91,7 @@ pub fn check(sa: &mut Sema) {
             impl_for
         };
 
-        impl_.write().impl_for = impl_for;
+        assert!(impl_.impl_for.set(impl_for).is_ok());
     }
 }
 

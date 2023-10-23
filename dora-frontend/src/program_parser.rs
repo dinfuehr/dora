@@ -513,7 +513,8 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
 
         if node.trait_type.is_some() {
             let impl_ = ImplDefinition::new(self.package_id, self.module_id, self.file_id, node);
-            let impl_id = self.sa.impls.push(impl_);
+            let impl_id = self.sa.impls.alloc(impl_);
+            assert!(self.sa.impls[impl_id].id.set(impl_id).is_ok());
 
             find_methods_in_impl(self.sa, impl_id, node);
         } else {
@@ -738,9 +739,9 @@ fn find_methods_in_trait(sa: &Sema, trait_id: TraitDefinitionId, node: &Arc<ast:
     assert!(trait_.methods.set(methods).is_ok());
 }
 
-fn find_methods_in_impl(sa: &mut Sema, impl_id: ImplDefinitionId, node: &Arc<ast::Impl>) {
-    let impl_ = sa.impls.idx(impl_id);
-    let mut impl_ = impl_.write();
+fn find_methods_in_impl(sa: &Sema, impl_id: ImplDefinitionId, node: &Arc<ast::Impl>) {
+    let impl_ = &sa.impls[impl_id];
+    let mut methods = Vec::new();
 
     for child in &node.methods {
         match child.as_ref() {
@@ -763,7 +764,7 @@ fn find_methods_in_impl(sa: &mut Sema, impl_id: ImplDefinitionId, node: &Arc<ast
                 );
 
                 let fct_id = sa.add_fct(fct);
-                impl_.methods.push(fct_id);
+                methods.push(fct_id);
             }
 
             ast::ElemData::Error { .. } => {
@@ -773,6 +774,8 @@ fn find_methods_in_impl(sa: &mut Sema, impl_id: ImplDefinitionId, node: &Arc<ast
             _ => sa.report(impl_.file_id, child.span(), ErrorMessage::ExpectedMethod),
         }
     }
+
+    assert!(impl_.methods.set(methods).is_ok());
 }
 
 fn find_methods_in_extension(

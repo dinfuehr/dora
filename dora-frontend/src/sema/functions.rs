@@ -163,8 +163,7 @@ impl FctDefinition {
 
             FctParent::Impl(impl_id) => {
                 let impl_ = &sa.impls[impl_id];
-                let impl_ = impl_.read();
-                path_for_type(sa, impl_.extended_ty.clone())
+                path_for_type(sa, impl_.extended_ty())
             }
 
             FctParent::None => {

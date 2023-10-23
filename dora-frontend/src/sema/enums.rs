@@ -146,15 +146,15 @@ pub fn find_methods_in_enum(
 
     let mut candidates = Vec::new();
 
-    for impl_ in sa.impls.iter() {
-        let impl_ = impl_.read();
-
+    for (_id, impl_) in sa.impls.iter() {
         if let Some(bindings) = impl_matches(sa, object_type.clone(), type_param_defs, impl_.id()) {
             let table = if is_static {
                 &impl_.static_names
             } else {
                 &impl_.instance_names
             };
+
+            let table = table.borrow();
 
             if let Some(&method_id) = table.get(&name) {
                 candidates.push(Candidate {

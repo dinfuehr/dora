@@ -4264,12 +4264,12 @@ pub fn impl_method_id_by_name(
     let trait_ty = SourceType::new_trait(trait_id);
     let impl_id = find_impl(sa, ty, &TypeParamDefinition::new(), trait_ty).expect("missing impl");
 
-    let impl_ = sa.impls.idx(impl_id);
-    let impl_ = impl_.read();
+    let impl_ = &sa.impls[impl_id];
 
     let name = sa.interner.intern(method_name);
     impl_
         .instance_names
+        .borrow()
         .get(&name)
         .cloned()
         .expect("method not found")

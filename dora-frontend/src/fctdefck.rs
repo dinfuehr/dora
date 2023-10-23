@@ -16,15 +16,15 @@ pub fn check(sa: &Sema) {
         sym_table.push_level();
 
         let mut type_params = TypeParamDefinition::new();
-        let mut param_types = Vec::new();
+        let mut param_types: Vec<SourceType> = Vec::new();
 
         match fct.parent {
             FctParent::Impl(impl_id) => {
-                let impl_ = sa.impls[impl_id].read();
+                let impl_ = &sa.impls[impl_id];
                 type_params.append(impl_.type_params());
 
                 if fct.has_hidden_self_argument() {
-                    param_types.push(impl_.extended_ty.clone());
+                    param_types.push(impl_.extended_ty());
                 }
             }
 
@@ -183,8 +183,8 @@ pub fn check(sa: &Sema) {
             }
 
             FctParent::Impl(implid) => {
-                let impl_ = sa.impls[implid].read();
-                check_against_methods(sa, &*fct, &impl_.methods);
+                let impl_ = &sa.impls[implid];
+                check_against_methods(sa, &*fct, impl_.methods());
             }
 
             _ => {}

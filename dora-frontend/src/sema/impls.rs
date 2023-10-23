@@ -1,8 +1,5 @@
-use parking_lot::RwLock;
-
+use std::cell::{OnceCell, RefCell};
 use std::collections::HashMap;
-use std::convert::TryInto;
-use std::ops::Index;
 use std::sync::Arc;
 
 use crate::interner::Name;
@@ -14,48 +11,25 @@ use crate::sema::{
     SourceFileId, TraitDefinitionId, TypeParamDefinition,
 };
 use crate::ty::{SourceType, SourceTypeArray};
-use crate::Id;
+use id_arena::Id;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct ImplDefinitionId(pub u32);
-
-impl ImplDefinitionId {
-    pub fn to_usize(self) -> usize {
-        self.0 as usize
-    }
-}
-
-impl Id for ImplDefinition {
-    type IdType = ImplDefinitionId;
-
-    fn id_to_usize(id: ImplDefinitionId) -> usize {
-        id.0 as usize
-    }
-
-    fn usize_to_id(value: usize) -> ImplDefinitionId {
-        ImplDefinitionId(value.try_into().unwrap())
-    }
-
-    fn store_id(value: &mut ImplDefinition, id: ImplDefinitionId) {
-        value.id = Some(id);
-    }
-}
+pub type ImplDefinitionId = Id<ImplDefinition>;
 
 #[derive(Debug)]
 pub struct ImplDefinition {
-    pub id: Option<ImplDefinitionId>,
+    pub id: OnceCell<ImplDefinitionId>,
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
     pub ast: Arc<ast::Impl>,
     pub span: Span,
-    pub type_params: Option<TypeParamDefinition>,
-    pub trait_ty: SourceType,
-    pub extended_ty: SourceType,
-    pub methods: Vec<FctDefinitionId>,
-    pub instance_names: HashMap<Name, FctDefinitionId>,
-    pub static_names: HashMap<Name, FctDefinitionId>,
-    pub impl_for: HashMap<FctDefinitionId, FctDefinitionId>,
+    pub type_params: OnceCell<TypeParamDefinition>,
+    pub trait_ty: OnceCell<SourceType>,
+    pub extended_ty: OnceCell<SourceType>,
+    pub methods: OnceCell<Vec<FctDefinitionId>>,
+    pub instance_names: RefCell<HashMap<Name, FctDefinitionId>>,
+    pub static_names: RefCell<HashMap<Name, FctDefinitionId>>,
+    pub impl_for: OnceCell<HashMap<FctDefinitionId, FctDefinitionId>>,
 }
 
 impl ImplDefinition {
@@ -66,44 +40,48 @@ impl ImplDefinition {
         node: &Arc<ast::Impl>,
     ) -> ImplDefinition {
         ImplDefinition {
-            id: None,
+            id: OnceCell::new(),
             package_id,
             module_id,
             file_id,
             ast: node.clone(),
-            type_params: None,
+            type_params: OnceCell::new(),
             span: node.span,
-            trait_ty: SourceType::Error,
-            extended_ty: SourceType::Error,
-            methods: Vec::new(),
-            instance_names: HashMap::new(),
-            static_names: HashMap::new(),
-            impl_for: HashMap::new(),
+            trait_ty: OnceCell::new(),
+            extended_ty: OnceCell::new(),
+            methods: OnceCell::new(),
+            instance_names: RefCell::new(HashMap::new()),
+            static_names: RefCell::new(HashMap::new()),
+            impl_for: OnceCell::new(),
         }
     }
 
     pub fn id(&self) -> ImplDefinitionId {
-        self.id.expect("id missing")
+        self.id.get().expect("id missing").clone()
     }
 
     pub fn type_params(&self) -> &TypeParamDefinition {
-        self.type_params.as_ref().expect("uninitialized")
+        self.type_params.get().expect("uninitialized")
     }
 
     pub fn trait_id(&self) -> TraitDefinitionId {
-        self.trait_ty.trait_id().expect("trait expected")
+        self.trait_ty().trait_id().expect("trait expected")
     }
 
     pub fn trait_ty(&self) -> SourceType {
-        self.trait_ty.clone()
+        self.trait_ty.get().expect("missing trait type").clone()
     }
-}
 
-impl Index<ImplDefinitionId> for Vec<RwLock<ImplDefinition>> {
-    type Output = RwLock<ImplDefinition>;
+    pub fn extended_ty(&self) -> SourceType {
+        self.extended_ty.get().expect("missing trait type").clone()
+    }
 
-    fn index(&self, index: ImplDefinitionId) -> &RwLock<ImplDefinition> {
-        &self[index.0 as usize]
+    pub fn impl_for(&self) -> &HashMap<FctDefinitionId, FctDefinitionId> {
+        self.impl_for.get().expect("missing impl")
+    }
+
+    pub fn methods(&self) -> &[FctDefinitionId] {
+        self.methods.get().expect("missing methods")
     }
 }
 
@@ -113,12 +91,12 @@ pub fn impl_matches(
     check_type_param_defs: &TypeParamDefinition,
     impl_id: ImplDefinitionId,
 ) -> Option<SourceTypeArray> {
-    let impl_ = sa.impls[impl_id].read();
+    let impl_ = &sa.impls[impl_id];
     extension_matches_ty(
         sa,
         check_ty,
         check_type_param_defs,
-        impl_.extended_ty.clone(),
+        impl_.extended_ty(),
         impl_.type_params(),
     )
 }
@@ -164,9 +142,7 @@ pub fn find_impl(
     check_type_param_defs: &TypeParamDefinition,
     trait_ty: SourceType,
 ) -> Option<ImplDefinitionId> {
-    for impl_ in sa.impls.iter() {
-        let impl_ = impl_.read();
-
+    for (_id, impl_) in sa.impls.iter() {
         assert!(impl_.trait_ty().is_concrete_type());
 
         if impl_.trait_ty() != trait_ty {

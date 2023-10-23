@@ -87,9 +87,7 @@ fn create_modules(sa: &Sema) -> Vec<ModuleData> {
 fn create_impls(sa: &Sema) -> Vec<ImplData> {
     let mut result = Vec::new();
 
-    for impl_ in sa.impls.iter() {
-        let impl_ = impl_.read();
-
+    for (_id, impl_) in sa.impls.iter() {
         let mut methods = Vec::new();
 
         let trait_id = impl_.trait_id();
@@ -98,7 +96,7 @@ fn create_impls(sa: &Sema) -> Vec<ImplData> {
         // The methods array for impl should have the exact same order as for the trait.
         for method_id in trait_.methods() {
             let target_method_id = *impl_
-                .impl_for
+                .impl_for()
                 .get(&method_id)
                 .expect("missing impl for trait methdo");
 
@@ -108,8 +106,8 @@ fn create_impls(sa: &Sema) -> Vec<ImplData> {
         result.push(ImplData {
             module_id: convert_module_id(impl_.module_id),
             type_params: create_type_params(sa, impl_.type_params()),
-            trait_ty: bty_from_ty(impl_.trait_ty.clone()),
-            extended_ty: bty_from_ty(impl_.extended_ty.clone()),
+            trait_ty: bty_from_ty(impl_.trait_ty()),
+            extended_ty: bty_from_ty(impl_.extended_ty()),
             methods,
         });
     }
@@ -448,7 +446,7 @@ fn convert_source_file_id(id: sa::SourceFileId) -> SourceFileId {
 }
 
 fn convert_impl_id(id: ImplDefinitionId) -> ImplId {
-    ImplId(id.to_usize().try_into().expect("failure"))
+    ImplId(id.index().try_into().expect("failure"))
 }
 
 fn convert_trait_id(id: TraitDefinitionId) -> TraitId {

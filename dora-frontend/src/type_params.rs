@@ -42,28 +42,23 @@ fn check_traits(sa: &Sema) {
 }
 
 fn check_impls(sa: &Sema) {
-    for impl_ in sa.impls.iter() {
-        let type_param_definition;
+    for (_id, impl_) in sa.impls.iter() {
+        let mut symtable = ModuleSymTable::new(sa, impl_.module_id);
+        symtable.push_level();
 
-        {
-            let impl_ = impl_.read();
-            let mut symtable = ModuleSymTable::new(sa, impl_.module_id);
-            symtable.push_level();
+        let type_param_definition = read_type_param_definition(
+            sa,
+            impl_.ast.type_params.as_ref(),
+            &mut symtable,
+            impl_.file_id,
+            impl_.span,
+        );
 
-            type_param_definition = read_type_param_definition(
-                sa,
-                impl_.ast.type_params.as_ref(),
-                &mut symtable,
-                impl_.file_id,
-                impl_.span,
-            );
+        read_type_unchecked(sa, &symtable, impl_.file_id, &impl_.ast.extended_type);
 
-            read_type_unchecked(sa, &symtable, impl_.file_id, &impl_.ast.extended_type);
+        symtable.pop_level();
 
-            symtable.pop_level();
-        }
-
-        impl_.write().type_params = Some(type_param_definition);
+        assert!(impl_.type_params.set(type_param_definition).is_ok());
     }
 }
 

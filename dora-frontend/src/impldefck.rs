@@ -10,10 +10,8 @@ use dora_parser::ast;
 use super::sema::ImplDefinition;
 
 pub fn check(sa: &Sema) {
-    for impl_ in sa.impls.iter() {
+    for (_id, impl_) in sa.impls.iter() {
         let (impl_id, file_id, module_id, ast) = {
-            let impl_ = impl_.read();
-
             (
                 impl_.id(),
                 impl_.file_id,
@@ -49,19 +47,18 @@ impl<'x> ImplCheck<'x> {
         self.sym.push_level();
 
         {
-            let impl_ = self.sa.impls.idx(self.impl_id);
-            let impl_ = impl_.read();
+            let impl_ = &self.sa.impls[self.impl_id];
 
             for (id, name) in impl_.type_params().names() {
                 self.sym.insert(name, SymbolKind::TypeParam(id));
             }
         }
 
-        let mut impl_ = self.sa.impls[self.impl_id].write();
+        let impl_ = &self.sa.impls[self.impl_id];
 
         let ast_trait_type = self.ast.trait_type.as_ref().unwrap();
 
-        if let Some(trait_ty) = read_type_context(
+        let trait_ty = if let Some(trait_ty) = read_type_context(
             self.sa,
             &self.sym,
             self.file_id.into(),
@@ -71,17 +68,22 @@ impl<'x> ImplCheck<'x> {
         ) {
             match trait_ty {
                 SourceType::Trait(trait_id, type_params) => {
-                    impl_.trait_ty = SourceType::Trait(trait_id, type_params);
+                    SourceType::Trait(trait_id, type_params)
                 }
 
                 _ => {
                     self.sa
                         .report(self.file_id, self.ast.span, ErrorMessage::ExpectedTrait);
+                    SourceType::Error
                 }
             }
-        }
+        } else {
+            SourceType::Error
+        };
 
-        if let Some(class_ty) = read_type_context(
+        assert!(impl_.trait_ty.set(trait_ty).is_ok());
+
+        let extended_ty = if let Some(class_ty) = read_type_context(
             self.sa,
             &self.sym,
             self.file_id.into(),
@@ -95,8 +97,6 @@ impl<'x> ImplCheck<'x> {
                 || class_ty.is_primitive()
                 || class_ty.is_tuple_or_unit()
             {
-                impl_.extended_ty = class_ty.clone();
-
                 check_for_unconstrained_type_params(
                     self.sa,
                     class_ty.clone(),
@@ -104,25 +104,31 @@ impl<'x> ImplCheck<'x> {
                     self.file_id,
                     self.ast.span,
                 );
+
+                class_ty
             } else {
                 self.sa.report(
                     self.file_id,
                     self.ast.extended_type.span(),
                     ErrorMessage::ExpectedImplTraitType,
                 );
+
+                SourceType::Error
             }
-        }
+        } else {
+            SourceType::Error
+        };
+
+        assert!(impl_.extended_ty.set(extended_ty).is_ok());
 
         self.sym.pop_level();
 
-        let methods = impl_.methods.clone();
-
-        for method_id in methods {
-            self.visit_method(&mut *impl_, method_id);
+        for &method_id in impl_.methods() {
+            self.visit_method(impl_, method_id);
         }
     }
 
-    fn visit_method(&mut self, impl_: &mut ImplDefinition, fct_id: FctDefinitionId) {
+    fn visit_method(&mut self, impl_: &ImplDefinition, fct_id: FctDefinitionId) {
         let method = self.sa.fcts.idx(fct_id);
 
         if method.ast.block.is_none() && !method.is_internal {
@@ -134,10 +140,12 @@ impl<'x> ImplCheck<'x> {
         }
 
         let table = if method.is_static {
-            &mut impl_.static_names
+            &impl_.static_names
         } else {
-            &mut impl_.instance_names
+            &impl_.instance_names
         };
+
+        let mut table = table.borrow_mut();
 
         if !table.contains_key(&method.name) {
             table.insert(method.name, fct_id);

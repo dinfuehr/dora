@@ -2063,14 +2063,13 @@ fn internal_impl_method(
 
     let trait_ty = SourceType::new_trait(trait_id);
 
-    for impl_ in sa.impls.iter() {
-        let impl_ = impl_.read();
-
-        if impl_.trait_ty() == trait_ty && impl_.extended_ty == ty {
+    for (_id, impl_) in sa.impls.iter() {
+        if impl_.trait_ty() == trait_ty && impl_.extended_ty() == ty {
             let method_name = sa.interner.intern(method_name);
 
             let method_id = impl_
                 .instance_names
+                .borrow()
                 .get(&method_name)
                 .cloned()
                 .expect("method not found");
