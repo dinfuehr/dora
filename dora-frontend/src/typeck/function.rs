@@ -1,9 +1,7 @@
 use std::str::Chars;
-use std::sync::Arc;
 use std::{f32, f64};
 
 use once_cell::unsync::OnceCell;
-use parking_lot::RwLock;
 
 use crate::error::msg::ErrorMessage;
 use crate::report_sym_shadow_span;
@@ -77,7 +75,7 @@ impl<'a> TypeCheck<'a> {
     where
         F: FnOnce(&mut TypeCheck<'a>),
     {
-        self.outer_context_classes.push(Arc::new(RwLock::new(None)));
+        self.outer_context_classes.push(OuterContextResolver::new());
         let start_level = self.symtable.levels();
         self.symtable.push_level();
         self.vars.enter_function();
@@ -224,15 +222,13 @@ impl<'a> TypeCheck<'a> {
         self.sa.classes[class_id].id = Some(class_id);
         self.analysis.context_cls_id = Some(class_id);
         self.analysis.context_has_outer_context_slot = Some(needs_outer_context_slot);
-        let mut context_info = self
-            .outer_context_classes
+        self.outer_context_classes
             .last()
-            .expect("missing entry")
-            .write();
-        *context_info = Some(ContextInfo {
-            has_outer_context_slot: needs_outer_context_slot,
-            context_cls_id: class_id,
-        });
+            .expect("missing outer context")
+            .set(ContextInfo {
+                has_outer_context_slot: needs_outer_context_slot,
+                context_cls_id: class_id,
+            });
     }
 
     fn add_type_params(&mut self, fct: &FctDefinition) {

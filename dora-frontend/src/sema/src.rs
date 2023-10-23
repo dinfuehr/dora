@@ -1,8 +1,8 @@
+use std::cell::OnceCell;
 use std::collections::hash_map::{HashMap, Iter};
 use std::ops::{Index, IndexMut};
+use std::rc::Rc;
 use std::sync::Arc;
-
-use parking_lot::RwLock;
 
 use dora_bytecode::Intrinsic;
 use dora_parser::ast;
@@ -118,7 +118,30 @@ impl AnalysisData {
     }
 }
 
-pub type OuterContextResolver = Arc<RwLock<Option<ContextInfo>>>;
+#[derive(Clone, Debug)]
+pub struct OuterContextResolver(Rc<OnceCell<ContextInfo>>);
+
+impl OuterContextResolver {
+    pub fn new() -> OuterContextResolver {
+        OuterContextResolver(Rc::new(OnceCell::new()))
+    }
+
+    pub fn set(&self, context_info: ContextInfo) {
+        assert!(self.0.set(context_info).is_ok());
+    }
+
+    pub fn context_info(&self) -> &ContextInfo {
+        self.0.get().expect("missing context info")
+    }
+
+    pub fn has_outer_context_slot(&self) -> bool {
+        self.context_info().has_outer_context_slot
+    }
+
+    pub fn context_cls_id(&self) -> ClassDefinitionId {
+        self.context_info().context_cls_id
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct ContextInfo {
