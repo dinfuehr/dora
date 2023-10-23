@@ -1,5 +1,5 @@
 use crate::sema::{
-    AnalysisData, ClassDefinition, FctDefinitionId, GlobalDefinitionId, LazyContextClass, Sema,
+    AnalysisData, ClassDefinition, FctDefinitionId, GlobalDefinition, LazyContextClass, Sema,
     TypeParamDefinition,
 };
 use crate::sym::ModuleSymTable;
@@ -29,9 +29,10 @@ mod tests;
 
 pub fn check(sa: &mut Sema) {
     let mut idx = 0;
+    let mut lazy_context_class_creation = Vec::new();
 
     while idx < sa.fcts.len() {
-        check_function(sa, FctDefinitionId(idx));
+        check_function(sa, FctDefinitionId(idx), &mut lazy_context_class_creation);
         idx += 1;
     }
 
@@ -48,17 +49,18 @@ pub fn check(sa: &mut Sema) {
         const_.value.set(value).expect("already initialized");
     }
 
-    let mut idx: u32 = 0;
-
-    while idx < sa.globals.len() as u32 {
-        check_global(sa, GlobalDefinitionId(idx));
-        idx += 1;
+    for (_id, global) in sa.globals.iter() {
+        check_global(sa, global, &mut lazy_context_class_creation);
     }
+    create_context_classes(sa, lazy_context_class_creation);
 }
 
-fn check_function(sa: &mut Sema, id: FctDefinitionId) {
+fn check_function(
+    sa: &Sema,
+    id: FctDefinitionId,
+    lazy_context_class_creation: &mut Vec<(LazyContextClass, ClassDefinition)>,
+) {
     let fct = sa.fcts.idx(id);
-    let mut lazy_context_class_creation = Vec::new();
 
     let analysis = {
         if !fct.has_body() {
@@ -91,7 +93,7 @@ fn check_function(sa: &mut Sema, id: FctDefinitionId) {
             is_lambda: false,
             vars: &mut vars,
             contains_lambda: false,
-            lazy_context_class_creation: &mut lazy_context_class_creation,
+            lazy_context_class_creation: lazy_context_class_creation,
             outer_context_classes: &mut outer_context_classes,
             outer_context_access_in_function: false,
             outer_context_access_from_lambda: false,
@@ -102,14 +104,14 @@ fn check_function(sa: &mut Sema, id: FctDefinitionId) {
         analysis
     };
 
-    create_context_classes(sa, lazy_context_class_creation);
     assert!(fct.analysis.set(analysis).is_ok());
 }
 
-fn check_global(sa: &mut Sema, id: GlobalDefinitionId) {
-    let global = sa.globals.idx(id);
-    let mut lazy_context_class_creation = Vec::new();
-
+fn check_global(
+    sa: &Sema,
+    global: &GlobalDefinition,
+    lazy_context_class_creation: &mut Vec<(LazyContextClass, ClassDefinition)>,
+) {
     let analysis = {
         if !global.has_initial_value() {
             return;
@@ -136,7 +138,7 @@ fn check_global(sa: &mut Sema, id: GlobalDefinitionId) {
             is_self_available: false,
             vars: &mut vars,
             contains_lambda: false,
-            lazy_context_class_creation: &mut lazy_context_class_creation,
+            lazy_context_class_creation: lazy_context_class_creation,
             outer_context_classes: &mut outer_context_classes,
             outer_context_access_in_function: false,
             outer_context_access_from_lambda: false,
@@ -146,7 +148,6 @@ fn check_global(sa: &mut Sema, id: GlobalDefinitionId) {
 
         analysis
     };
-    create_context_classes(sa, lazy_context_class_creation);
     assert!(global.analysis.set(analysis).is_ok());
 }
 

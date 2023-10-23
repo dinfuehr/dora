@@ -500,7 +500,8 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             modifiers,
             ensure_name(self.sa, &node.name),
         );
-        let global_id = self.sa.globals.push(global);
+        let global_id = self.sa.globals.alloc(global);
+        self.sa.globals[global_id].id = Some(global_id);
 
         let sym = SymbolKind::Global(global_id);
         if let Some((name, sym)) = self.insert_optional(&node.name, sym) {

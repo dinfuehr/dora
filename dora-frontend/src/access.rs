@@ -27,7 +27,7 @@ pub fn global_accessible_from(
     global_id: GlobalDefinitionId,
     module_id: ModuleDefinitionId,
 ) -> bool {
-    let global = sa.globals.idx(global_id);
+    let global = &sa.globals[global_id];
     accessible_from(sa, global.module_id, global.visibility, module_id)
 }
 

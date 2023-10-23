@@ -42,7 +42,7 @@ pub mod utils;
 
 pub const STDLIB: &[(&str, &str)] = &include!(concat!(env!("OUT_DIR"), "/dora_stdlib_bundle.rs"));
 
-pub use utils::{GrowableVec, Id, MutableVec};
+pub use utils::{GrowableVec, Id};
 
 macro_rules! return_on_error {
     ($vm: ident) => {{
@@ -137,13 +137,13 @@ pub fn generate_bytecode(sa: &Sema) {
         assert!(fct.bytecode.set(bc).is_ok());
     }
 
-    for global in sa.globals.iter() {
+    for (_id, global) in sa.globals.iter() {
         if !global.has_initial_value() {
             continue;
         }
 
         let analysis = global.analysis();
-        let bc = generator::generate_global_initializer(sa, &*global, analysis);
+        let bc = generator::generate_global_initializer(sa, global, analysis);
 
         assert!(global.bytecode.set(bc).is_ok());
     }

@@ -1088,7 +1088,10 @@ fn gen_load_global() {
         "let a: Int32 = 0i32; fn f(): Int32 { return a; }",
         |sa, code| {
             let gid = global_by_name(sa, "a");
-            let expected = vec![LoadGlobal(r(0), GlobalId(gid.0)), Ret(r(0))];
+            let expected = vec![
+                LoadGlobal(r(0), GlobalId(gid.index().try_into().expect("overflow"))),
+                Ret(r(0)),
+            ];
             assert_eq!(expected, code);
         },
     );
@@ -1100,7 +1103,10 @@ fn gen_store_global() {
         "let mut a: Bool = false; fn f(x: Bool) { a = x; }",
         |sa, code| {
             let gid = global_by_name(sa, "a");
-            let expected = vec![StoreGlobal(r(0), GlobalId(gid.0)), Ret(r(1))];
+            let expected = vec![
+                StoreGlobal(r(0), GlobalId(gid.index().try_into().expect("overflow"))),
+                Ret(r(1)),
+            ];
             assert_eq!(expected, code);
         },
     );

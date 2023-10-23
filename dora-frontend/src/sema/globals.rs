@@ -1,5 +1,4 @@
 use std::cell::OnceCell;
-use std::convert::TryInto;
 use std::sync::Arc;
 
 use crate::interner::Name;
@@ -9,35 +8,12 @@ use crate::sema::{
     SourceFileId, Visibility,
 };
 use crate::ty::SourceType;
-use crate::Id;
 use dora_bytecode::BytecodeFunction;
 use dora_parser::ast;
 use dora_parser::Span;
+use id_arena::Id;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct GlobalDefinitionId(pub u32);
-
-impl Id for GlobalDefinition {
-    type IdType = GlobalDefinitionId;
-
-    fn id_to_usize(id: GlobalDefinitionId) -> usize {
-        id.0 as usize
-    }
-
-    fn usize_to_id(value: usize) -> GlobalDefinitionId {
-        GlobalDefinitionId(value.try_into().unwrap())
-    }
-
-    fn store_id(value: &mut GlobalDefinition, id: GlobalDefinitionId) {
-        value.id = Some(id);
-    }
-}
-
-impl GlobalDefinitionId {
-    pub fn to_usize(self) -> usize {
-        self.0 as usize
-    }
-}
+pub type GlobalDefinitionId = Id<GlobalDefinition>;
 
 #[derive(Debug)]
 pub struct GlobalDefinition {

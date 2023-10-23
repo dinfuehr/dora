@@ -1,6 +1,5 @@
 use parking_lot::{Mutex, MutexGuard};
 
-use std::ops::Index;
 use std::sync::Arc;
 
 pub struct GrowableVec<T> {
@@ -80,48 +79,6 @@ pub trait Id {
 }
 
 type ElementType<T> = Arc<T>;
-
-pub struct MutableVec<T: Id> {
-    elements: Vec<Arc<T>>,
-}
-
-impl<T: Id> MutableVec<T> {
-    pub fn new() -> MutableVec<T> {
-        MutableVec {
-            elements: Vec::new(),
-        }
-    }
-
-    pub fn push(&mut self, mut value: T) -> T::IdType {
-        let id = T::usize_to_id(self.elements.len());
-        T::store_id(&mut value, id);
-        self.elements.push(Arc::new(value));
-        id
-    }
-
-    pub fn len(&self) -> usize {
-        self.elements.len()
-    }
-
-    pub fn idx(&self, idx: T::IdType) -> ElementType<T> {
-        self.elements[T::id_to_usize(idx)].clone()
-    }
-
-    pub fn iter(&self) -> SharedVecIter<T> {
-        SharedVecIter {
-            vec: &self.elements,
-            idx: 0,
-            len: self.elements.len(),
-        }
-    }
-}
-
-impl<T: Id> Index<T::IdType> for MutableVec<T> {
-    type Output = ElementType<T>;
-    fn index(&self, index: T::IdType) -> &ElementType<T> {
-        &self.elements[T::id_to_usize(index)]
-    }
-}
 
 pub struct SharedVecIter<'a, T>
 where

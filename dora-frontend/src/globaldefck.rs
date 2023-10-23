@@ -6,23 +6,14 @@ use crate::{read_type_context, AllowSelf, TypeParamContext};
 use dora_parser::ast;
 
 pub fn check<'a>(sa: &Sema) {
-    for global in sa.globals.iter() {
-        let (global_id, file_id, ast, module_id) = {
-            (
-                global.id(),
-                global.file_id,
-                global.ast.clone(),
-                global.module_id,
-            )
-        };
-
-        let symtable = ModuleSymTable::new(sa, module_id);
+    for (id, global) in sa.globals.iter() {
+        let symtable = ModuleSymTable::new(sa, global.module_id);
 
         let mut checker = GlobalDefCheck {
             sa,
-            file_id,
-            ast: &ast,
-            global_id,
+            file_id: global.file_id,
+            ast: &global.ast,
+            global_id: id,
             symtable,
         };
 
@@ -50,7 +41,7 @@ impl<'a> GlobalDefCheck<'a> {
         )
         .unwrap_or(SourceType::Error);
 
-        let global_var = self.sa.globals.idx(self.global_id);
+        let global_var = &self.sa.globals[self.global_id];
         assert!(global_var.ty.set(ty).is_ok());
 
         if !global_var.has_initial_value() {

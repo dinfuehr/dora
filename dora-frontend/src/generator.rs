@@ -2350,7 +2350,7 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn visit_expr_assign_global(&mut self, expr: &ast::ExprBinType, gid: GlobalDefinitionId) {
-        let global_var = self.sa.globals.idx(gid);
+        let global_var = &self.sa.globals[gid];
 
         let dest = if global_var.ty().is_unit() {
             DataDest::Effect
@@ -2361,7 +2361,8 @@ impl<'a> AstBytecodeGen<'a> {
         let src = gen_expr(self, &expr.rhs, dest);
 
         if !global_var.ty().is_unit() {
-            self.builder.emit_store_global(src, GlobalId(gid.0));
+            self.builder
+                .emit_store_global(src, GlobalId(gid.index().try_into().expect("overflow")));
         }
 
         self.free_if_temp(src);
@@ -2527,7 +2528,7 @@ impl<'a> AstBytecodeGen<'a> {
             return Register::invalid();
         }
 
-        let global_var = self.sa.globals.idx(gid);
+        let global_var = &self.sa.globals[gid];
 
         if global_var.ty().is_unit() {
             assert!(dest.is_alloc());
@@ -2537,8 +2538,11 @@ impl<'a> AstBytecodeGen<'a> {
         let ty: BytecodeType = register_bty_from_ty(global_var.ty());
         let dest = self.ensure_register(dest, ty);
 
-        self.builder
-            .emit_load_global(dest, GlobalId(gid.0), location);
+        self.builder.emit_load_global(
+            dest,
+            GlobalId(gid.index().try_into().expect("overflow")),
+            location,
+        );
 
         dest
     }

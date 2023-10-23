@@ -14,7 +14,7 @@ use dora_parser::{compute_line_column, compute_line_starts, Span};
 use crate::error::diag::Diagnostic;
 use crate::error::msg::ErrorMessage;
 use crate::sym::SymTable;
-use crate::{GrowableVec, MutableVec};
+use crate::GrowableVec;
 
 pub use self::classes::{
     find_field_in_class, find_methods_in_class, Bound, Candidate, ClassDefinition,
@@ -94,7 +94,7 @@ pub struct Sema {
     pub enums: Arena<EnumDefinition>,   // stores all enum source definitions
     pub traits: Arena<TraitDefinition>, // stores all trait definitions
     pub impls: Arena<ImplDefinition>,   // stores all impl definitions
-    pub globals: MutableVec<GlobalDefinition>, // stores all global variables
+    pub globals: Arena<GlobalDefinition>, // stores all global variables
     pub uses: Vec<UseDefinition>,       // stores all uses
     pub packages: Vec<PackageDefinition>,
     pub package_names: HashMap<String, PackageDefinitionId>,
@@ -134,7 +134,7 @@ impl Sema {
             enums: Arena::new(),
             traits: Arena::new(),
             impls: Arena::new(),
-            globals: MutableVec::new(),
+            globals: Arena::new(),
             uses: Vec::new(),
             interner: Interner::new(),
             known: KnownElements::new(),
