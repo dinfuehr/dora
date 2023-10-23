@@ -104,8 +104,6 @@ fn check_global(sa: &mut Sema, id: GlobalDefinitionId) {
     let global = sa.globals.idx(id);
 
     let analysis = {
-        let global = global.read();
-
         if !global.has_initial_value() {
             return;
         }
@@ -141,5 +139,5 @@ fn check_global(sa: &mut Sema, id: GlobalDefinitionId) {
         analysis
     };
 
-    assert!(global.read().analysis.set(analysis).is_ok());
+    assert!(global.analysis.set(analysis).is_ok());
 }

@@ -164,8 +164,6 @@ fn create_functions(sa: &Sema, e: &mut Emitter) -> Vec<FunctionData> {
     }
 
     for global in sa.globals.iter() {
-        let global = global.read();
-
         if !global.has_initial_value() {
             continue;
         }
@@ -204,7 +202,6 @@ fn create_globals(sa: &Sema, e: &Emitter) -> Vec<GlobalData> {
     let mut result = Vec::new();
 
     for global in sa.globals.iter() {
-        let global = global.read();
         let name = sa.interner.str(global.name).to_string();
 
         result.push(GlobalData {

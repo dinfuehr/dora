@@ -144,7 +144,7 @@ pub(super) fn check_expr_ident(
 
         Some(SymbolKind::Global(globalid)) => {
             let global_var = ck.sa.globals.idx(globalid);
-            let ty = global_var.read().ty();
+            let ty = global_var.ty();
             ck.analysis.set_ty(e.id, ty.clone());
 
             ck.analysis
@@ -232,7 +232,6 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, e: &ast::ExprBinType) {
 
         Some(SymbolKind::Global(global_id)) => {
             let global_var = ck.sa.globals.idx(global_id);
-            let global_var = global_var.read();
 
             if !e.initializer && !global_var.mutable {
                 ck.sa
@@ -1637,13 +1636,12 @@ fn check_expr_path_module(
         Some(SymbolKind::Global(global_id)) => {
             if !global_accessible_from(ck.sa, global_id, ck.module_id) {
                 let global = &ck.sa.globals.idx(global_id);
-                let global = global.read();
                 let msg = ErrorMessage::NotAccessible(global.name(ck.sa));
                 ck.sa.report(ck.file_id, e.op_span, msg);
             }
 
             let global_var = ck.sa.globals.idx(global_id);
-            let ty = global_var.read().ty();
+            let ty = global_var.ty();
             ck.analysis.set_ty(e.id, ty.clone());
 
             ck.analysis

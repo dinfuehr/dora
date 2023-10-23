@@ -2359,7 +2359,6 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_expr_assign_global(&mut self, expr: &ast::ExprBinType, gid: GlobalDefinitionId) {
         let global_var = self.sa.globals.idx(gid);
-        let global_var = global_var.read();
 
         let dest = if global_var.ty().is_unit() {
             DataDest::Effect
@@ -2545,7 +2544,6 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         let global_var = self.sa.globals.idx(gid);
-        let global_var = global_var.read();
 
         if global_var.ty().is_unit() {
             assert!(dest.is_alloc());

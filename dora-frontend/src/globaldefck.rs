@@ -8,7 +8,6 @@ use dora_parser::ast;
 pub fn check<'a>(sa: &Sema) {
     for global in sa.globals.iter() {
         let (global_id, file_id, ast, module_id) = {
-            let global = global.read();
             (
                 global.id(),
                 global.file_id,
@@ -52,7 +51,6 @@ impl<'a> GlobalDefCheck<'a> {
         .unwrap_or(SourceType::Error);
 
         let global_var = self.sa.globals.idx(self.global_id);
-        let global_var = global_var.read();
         assert!(global_var.ty.set(ty).is_ok());
 
         if !global_var.has_initial_value() {

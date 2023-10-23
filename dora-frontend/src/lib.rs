@@ -138,18 +138,14 @@ pub fn generate_bytecode(sa: &Sema) {
     }
 
     for global in sa.globals.iter() {
-        let bc = {
-            let global = global.read();
+        if !global.has_initial_value() {
+            continue;
+        }
 
-            if !global.has_initial_value() {
-                continue;
-            }
+        let analysis = global.analysis();
+        let bc = generator::generate_global_initializer(sa, &*global, analysis);
 
-            let analysis = global.analysis();
-            generator::generate_global_initializer(sa, &*global, analysis)
-        };
-
-        assert!(global.read().bytecode.set(bc).is_ok());
+        assert!(global.bytecode.set(bc).is_ok());
     }
 }
 

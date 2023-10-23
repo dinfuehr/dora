@@ -1,4 +1,4 @@
-use parking_lot::{Mutex, MutexGuard, RwLock};
+use parking_lot::{Mutex, MutexGuard};
 
 use std::ops::Index;
 use std::sync::Arc;
@@ -79,10 +79,10 @@ pub trait Id {
     fn store_id(value: &mut Self, id: Self::IdType);
 }
 
-type ElementType<T> = Arc<RwLock<T>>;
+type ElementType<T> = Arc<T>;
 
 pub struct MutableVec<T: Id> {
-    elements: Vec<Arc<RwLock<T>>>,
+    elements: Vec<Arc<T>>,
 }
 
 impl<T: Id> MutableVec<T> {
@@ -95,7 +95,7 @@ impl<T: Id> MutableVec<T> {
     pub fn push(&mut self, mut value: T) -> T::IdType {
         let id = T::usize_to_id(self.elements.len());
         T::store_id(&mut value, id);
-        self.elements.push(Arc::new(RwLock::new(value)));
+        self.elements.push(Arc::new(value));
         id
     }
 

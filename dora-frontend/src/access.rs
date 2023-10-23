@@ -28,8 +28,6 @@ pub fn global_accessible_from(
     module_id: ModuleDefinitionId,
 ) -> bool {
     let global = sa.globals.idx(global_id);
-    let global = global.read();
-
     accessible_from(sa, global.module_id, global.visibility, module_id)
 }
 
