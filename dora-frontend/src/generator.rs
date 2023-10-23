@@ -70,7 +70,7 @@ pub fn generate_global_initializer(
         sa,
         type_params_len: 0,
         is_lambda: false,
-        return_type: Some(global.ty.clone()),
+        return_type: Some(global.ty()),
         file_id: global.file_id,
         span: global.span,
         analysis: src,
@@ -81,12 +81,8 @@ pub fn generate_global_initializer(
         unit_register: None,
         context_register: None,
     };
-    let expr = global
-        .ast
-        .initial_value
-        .as_ref()
-        .expect("missing initializer");
-    ast_bytecode_generator.generate_global_initializer(expr)
+
+    ast_bytecode_generator.generate_global_initializer(global.initial_value_expr())
 }
 
 const SELF_VAR_ID: VarId = VarId(0);
@@ -2365,7 +2361,7 @@ impl<'a> AstBytecodeGen<'a> {
         let global_var = self.sa.globals.idx(gid);
         let global_var = global_var.read();
 
-        let dest = if global_var.ty.is_unit() {
+        let dest = if global_var.ty().is_unit() {
             DataDest::Effect
         } else {
             DataDest::Alloc
@@ -2373,7 +2369,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         let src = gen_expr(self, &expr.rhs, dest);
 
-        if !global_var.ty.is_unit() {
+        if !global_var.ty().is_unit() {
             self.builder.emit_store_global(src, GlobalId(gid.0));
         }
 
@@ -2551,12 +2547,12 @@ impl<'a> AstBytecodeGen<'a> {
         let global_var = self.sa.globals.idx(gid);
         let global_var = global_var.read();
 
-        if global_var.ty.is_unit() {
+        if global_var.ty().is_unit() {
             assert!(dest.is_alloc());
             return Register::invalid();
         }
 
-        let ty: BytecodeType = register_bty_from_ty(global_var.ty.clone());
+        let ty: BytecodeType = register_bty_from_ty(global_var.ty());
         let dest = self.ensure_register(dest, ty);
 
         self.builder

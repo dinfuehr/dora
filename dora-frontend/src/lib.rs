@@ -141,15 +141,15 @@ pub fn generate_bytecode(sa: &Sema) {
         let bc = {
             let global = global.read();
 
-            if global.ast.initial_value.is_none() {
+            if !global.has_initial_value() {
                 continue;
             }
 
-            let analysis = global.analysis.as_ref().expect("missing analysis");
+            let analysis = global.analysis();
             generator::generate_global_initializer(sa, &*global, analysis)
         };
 
-        global.write().bytecode = Some(bc);
+        assert!(global.read().bytecode.set(bc).is_ok());
     }
 }
 

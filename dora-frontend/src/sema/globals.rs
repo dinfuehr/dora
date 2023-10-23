@@ -1,3 +1,4 @@
+use std::cell::OnceCell;
 use std::convert::TryInto;
 use std::sync::Arc;
 
@@ -47,12 +48,12 @@ pub struct GlobalDefinition {
     pub ast: Arc<ast::Global>,
     pub span: Span,
     pub visibility: Visibility,
-    pub ty: SourceType,
+    pub ty: OnceCell<SourceType>,
     pub mutable: bool,
     pub name: Name,
-    pub initializer: Option<FctDefinitionId>,
-    pub analysis: Option<AnalysisData>,
-    pub bytecode: Option<BytecodeFunction>,
+    pub initializer: OnceCell<FctDefinitionId>,
+    pub analysis: OnceCell<AnalysisData>,
+    pub bytecode: OnceCell<BytecodeFunction>,
 }
 
 impl GlobalDefinition {
@@ -73,11 +74,11 @@ impl GlobalDefinition {
             span: node.span,
             name,
             visibility: modifiers.visibility(),
-            ty: SourceType::Unit,
+            ty: OnceCell::new(),
             mutable: node.mutable,
-            initializer: None,
-            analysis: None,
-            bytecode: None,
+            initializer: OnceCell::new(),
+            analysis: OnceCell::new(),
+            bytecode: OnceCell::new(),
         }
     }
 
@@ -85,11 +86,27 @@ impl GlobalDefinition {
         self.id.expect("id missing")
     }
 
-    pub fn has_initializer(&self) -> bool {
-        self.initializer.is_some()
+    pub fn has_initial_value(&self) -> bool {
+        self.ast.initial_value.is_some()
+    }
+
+    pub fn initial_value_expr(&self) -> &ast::Expr {
+        self.ast.initial_value.as_ref().expect("missing expr")
     }
 
     pub fn name(&self, sa: &Sema) -> String {
         module_path(sa, self.module_id, self.name)
+    }
+
+    pub fn ty(&self) -> SourceType {
+        self.ty.get().expect("missing type").clone()
+    }
+
+    pub fn analysis(&self) -> &AnalysisData {
+        self.analysis.get().expect("missing analysis")
+    }
+
+    pub fn bytecode(&self) -> &BytecodeFunction {
+        self.bytecode.get().expect("missing bytecode")
     }
 }

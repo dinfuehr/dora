@@ -52,10 +52,10 @@ impl<'a> GlobalDefCheck<'a> {
         .unwrap_or(SourceType::Error);
 
         let global_var = self.sa.globals.idx(self.global_id);
-        let mut global_var = global_var.write();
-        global_var.ty = ty;
+        let global_var = global_var.read();
+        assert!(global_var.ty.set(ty).is_ok());
 
-        if global_var.ast.initial_value.is_none() {
+        if !global_var.has_initial_value() {
             let msg = ErrorMessage::LetMissingInitialization;
             self.sa.report(self.file_id, self.ast.span, msg);
         }

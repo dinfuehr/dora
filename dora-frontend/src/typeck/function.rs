@@ -58,14 +58,14 @@ impl<'a> TypeCheck<'a> {
         self.analysis.set_has_self(false);
 
         self.check_common(|self_| {
-            let expr_ty = check_expr(self_, expr, global.ty.clone());
+            let expr_ty = check_expr(self_, expr, global.ty());
 
-            if !global.ty.is_error()
+            if !global.ty().is_error()
                 && !expr_ty.is_error()
-                && !global.ty.allows(self_.sa, expr_ty.clone())
+                && !global.ty().allows(self_.sa, expr_ty.clone())
             {
                 let name = self_.sa.interner.str(global.name).to_string();
-                let global_ty = self_.ty_name(&global.ty);
+                let global_ty = self_.ty_name(&global.ty());
                 let expr_ty = self_.ty_name(&expr_ty);
                 let msg = ErrorMessage::AssignType(name, global_ty, expr_ty);
                 self_.sa.report(self_.file_id, global.span, msg);

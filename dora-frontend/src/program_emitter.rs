@@ -166,7 +166,7 @@ fn create_functions(sa: &Sema, e: &mut Emitter) -> Vec<FunctionData> {
     for global in sa.globals.iter() {
         let global = global.read();
 
-        if global.ast.initial_value.is_none() {
+        if !global.has_initial_value() {
             continue;
         }
 
@@ -183,7 +183,7 @@ fn create_functions(sa: &Sema, e: &mut Emitter) -> Vec<FunctionData> {
             type_params: create_type_params(sa, &TypeParamDefinition::new()),
             source_file_id: Some(convert_source_file_id(global.file_id)),
             params: Vec::new(),
-            return_type: bty_from_ty(global.ty.clone()),
+            return_type: bty_from_ty(global.ty()),
             native: None,
             intrinsic: None,
             internal: None,
@@ -191,7 +191,7 @@ fn create_functions(sa: &Sema, e: &mut Emitter) -> Vec<FunctionData> {
             vtable_index: None,
             is_optimize_immediately: false,
             is_variadic: false,
-            bytecode: Some(global.bytecode.as_ref().expect("missing bytecode").clone()),
+            bytecode: Some(global.bytecode().clone()),
         });
 
         e.global_initializer.insert(global.id(), fct_id);
@@ -209,7 +209,7 @@ fn create_globals(sa: &Sema, e: &Emitter) -> Vec<GlobalData> {
 
         result.push(GlobalData {
             module_id: convert_module_id(global.module_id),
-            ty: bty_from_ty(global.ty.clone()),
+            ty: bty_from_ty(global.ty()),
             mutable: global.mutable,
             name,
             initial_value: global_initializer_function_id(sa, &*global, e),

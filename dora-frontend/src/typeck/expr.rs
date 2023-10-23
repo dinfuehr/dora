@@ -144,7 +144,7 @@ pub(super) fn check_expr_ident(
 
         Some(SymbolKind::Global(globalid)) => {
             let global_var = ck.sa.globals.idx(globalid);
-            let ty = global_var.read().ty.clone();
+            let ty = global_var.read().ty();
             ck.analysis.set_ty(e.id, ty.clone());
 
             ck.analysis
@@ -242,7 +242,7 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, e: &ast::ExprBinType) {
             ck.analysis
                 .map_idents
                 .insert(e.lhs.id(), IdentType::Global(global_id));
-            global_var.ty.clone()
+            global_var.ty()
         }
 
         None => {
@@ -1643,7 +1643,7 @@ fn check_expr_path_module(
             }
 
             let global_var = ck.sa.globals.idx(global_id);
-            let ty = global_var.read().ty.clone();
+            let ty = global_var.read().ty();
             ck.analysis.set_ty(e.id, ty.clone());
 
             ck.analysis

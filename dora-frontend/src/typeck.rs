@@ -106,7 +106,7 @@ fn check_global(sa: &mut Sema, id: GlobalDefinitionId) {
     let analysis = {
         let global = global.read();
 
-        if global.ast.initial_value.is_none() {
+        if !global.has_initial_value() {
             return;
         }
 
@@ -136,13 +136,10 @@ fn check_global(sa: &mut Sema, id: GlobalDefinitionId) {
             outer_context_access_from_lambda: false,
         };
 
-        typeck.check_initializer(
-            &*global,
-            global.ast.initial_value.as_ref().expect("missing expr"),
-        );
+        typeck.check_initializer(&*global, global.initial_value_expr());
 
         analysis
     };
 
-    global.write().analysis = Some(analysis);
+    assert!(global.read().analysis.set(analysis).is_ok());
 }
