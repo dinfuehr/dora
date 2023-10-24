@@ -12,8 +12,8 @@ use crate::interner::Name;
 use crate::program_parser::ParsedModifierList;
 use crate::sema::{
     create_tuple, find_field_in_class, find_impl, impl_matches, implements_trait, AnalysisData,
-    CallType, EnumDefinitionId, FctDefinition, FctParent, IdentType, ModuleDefinitionId,
-    NestedVarId, TraitDefinitionId,
+    CallType, EnumDefinitionId, FctDefinition, FctParent, IdentType, LazyLambdaId,
+    ModuleDefinitionId, NestedVarId, TraitDefinitionId,
 };
 use crate::specialize::replace_type_param;
 use crate::sym::SymbolKind;
@@ -1160,7 +1160,7 @@ fn check_expr_lambda(
     node: &Arc<ast::Function>,
     _expected_ty: SourceType,
 ) -> SourceType {
-    let ret = if let Some(ref ret_type) = node.return_type {
+    let lambda_return_type = if let Some(ref ret_type) = node.return_type {
         ck.read_type(ret_type)
     } else {
         SourceType::Unit
@@ -1174,10 +1174,51 @@ fn check_expr_lambda(
         params.push(ck.read_type(&param.data_type));
     }
 
-    let ty = SourceType::Lambda(SourceTypeArray::with(params.clone()), Box::new(ret.clone()));
+    let ty = SourceType::Lambda(
+        SourceTypeArray::with(params.clone()),
+        Box::new(lambda_return_type.clone()),
+    );
 
-    let mut params_with_ctxt = vec![SourceType::Ptr];
-    params_with_ctxt.append(&mut params);
+    let mut lambda_params = vec![SourceType::Ptr];
+    lambda_params.append(&mut params);
+
+    let analysis = {
+        let mut analysis = AnalysisData::new();
+        analysis.outer_context_classes = ck.outer_context_classes.clone();
+
+        {
+            let mut typeck = TypeCheck {
+                sa: ck.sa,
+                type_param_defs: ck.type_param_defs,
+                package_id: ck.package_id,
+                module_id: ck.module_id,
+                file_id: ck.file_id,
+                analysis: &mut analysis,
+                symtable: &mut ck.symtable,
+                in_loop: false,
+                is_lambda: true,
+                param_types: lambda_params.clone(),
+                return_type: Some(lambda_return_type.clone()),
+                has_hidden_self_argument: true,
+                is_self_available: ck.is_self_available,
+                vars: ck.vars,
+                contains_lambda: false,
+                lazy_context_class_creation: ck.lazy_context_class_creation,
+                lazy_lambda_creation: ck.lazy_lambda_creation,
+                outer_context_classes: ck.outer_context_classes,
+                outer_context_access_in_function: false,
+                outer_context_access_from_lambda: false,
+            };
+
+            typeck.check_fct(&node);
+        }
+
+        if analysis.outer_context_access() {
+            ck.outer_context_access_from_lambda = true
+        }
+
+        analysis
+    };
 
     let name = ck.sa.interner.intern("<closure>");
 
@@ -1190,50 +1231,15 @@ fn check_expr_lambda(
         name,
         FctParent::Function,
     );
-    assert!(lambda.param_types.set(params_with_ctxt).is_ok());
-    assert!(lambda.return_type.set(ret).is_ok());
+    assert!(lambda.param_types.set(lambda_params).is_ok());
+    assert!(lambda.return_type.set(lambda_return_type).is_ok());
     assert!(lambda.type_params.set(ck.type_param_defs.clone()).is_ok());
-    let lambda_fct_id = ck.sa.add_fct(lambda);
-    ck.analysis.map_lambdas.insert(node.id, lambda_fct_id);
+    assert!(lambda.analysis.set(analysis).is_ok());
 
-    {
-        let lambda = ck.sa.fcts.idx(lambda_fct_id);
+    let lambda_id = LazyLambdaId::new();
 
-        let mut analysis = AnalysisData::new();
-        analysis.outer_context_classes = ck.outer_context_classes.clone();
-
-        {
-            let mut typeck = TypeCheck {
-                sa: ck.sa,
-                type_param_defs: lambda.type_params(),
-                package_id: ck.package_id,
-                module_id: ck.module_id,
-                file_id: ck.file_id,
-                analysis: &mut analysis,
-                symtable: &mut ck.symtable,
-                in_loop: false,
-                is_lambda: true,
-                param_types: lambda.params_with_self().to_vec(),
-                return_type: Some(lambda.return_type()),
-                has_hidden_self_argument: true,
-                is_self_available: ck.is_self_available,
-                vars: ck.vars,
-                contains_lambda: false,
-                lazy_context_class_creation: ck.lazy_context_class_creation,
-                outer_context_classes: ck.outer_context_classes,
-                outer_context_access_in_function: false,
-                outer_context_access_from_lambda: false,
-            };
-
-            typeck.check_fct(&*lambda, &node);
-        }
-
-        if analysis.outer_context_access() {
-            ck.outer_context_access_from_lambda = true
-        }
-
-        assert!(lambda.analysis.set(analysis).is_ok());
-    }
+    ck.lazy_lambda_creation.push((lambda_id.clone(), lambda));
+    ck.analysis.map_lambdas.insert(node.id, lambda_id);
 
     ck.analysis.set_ty(node.id, ty.clone());
 

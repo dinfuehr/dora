@@ -1,6 +1,6 @@
 use crate::sema::{
-    AnalysisData, ClassDefinition, FctDefinitionId, GlobalDefinition, LazyContextClass, Sema,
-    TypeParamDefinition,
+    AnalysisData, ClassDefinition, FctDefinition, FctDefinitionId, GlobalDefinition,
+    LazyContextClass, LazyLambdaId, Sema, TypeParamDefinition,
 };
 use crate::sym::ModuleSymTable;
 use crate::typeck::call::{check_expr_call, check_expr_call_enum_args, find_method};
@@ -30,9 +30,15 @@ mod tests;
 pub fn check(sa: &mut Sema) {
     let mut idx = 0;
     let mut lazy_context_class_creation = Vec::new();
+    let mut lazy_lambda_creation = Vec::new();
 
     while idx < sa.fcts.len() {
-        check_function(sa, FctDefinitionId(idx), &mut lazy_context_class_creation);
+        check_function(
+            sa,
+            FctDefinitionId(idx),
+            &mut lazy_context_class_creation,
+            &mut lazy_lambda_creation,
+        );
         idx += 1;
     }
 
@@ -50,15 +56,22 @@ pub fn check(sa: &mut Sema) {
     }
 
     for (_id, global) in sa.globals.iter() {
-        check_global(sa, global, &mut lazy_context_class_creation);
+        check_global(
+            sa,
+            global,
+            &mut lazy_context_class_creation,
+            &mut lazy_lambda_creation,
+        );
     }
     create_context_classes(sa, lazy_context_class_creation);
+    create_lambda_functions(sa, lazy_lambda_creation);
 }
 
 fn check_function(
     sa: &Sema,
     id: FctDefinitionId,
     lazy_context_class_creation: &mut Vec<(LazyContextClass, ClassDefinition)>,
+    lazy_lambda_creation: &mut Vec<(LazyLambdaId, FctDefinition)>,
 ) {
     let fct = sa.fcts.idx(id);
 
@@ -93,13 +106,14 @@ fn check_function(
             is_lambda: false,
             vars: &mut vars,
             contains_lambda: false,
-            lazy_context_class_creation: lazy_context_class_creation,
+            lazy_context_class_creation,
+            lazy_lambda_creation,
             outer_context_classes: &mut outer_context_classes,
             outer_context_access_in_function: false,
             outer_context_access_from_lambda: false,
         };
 
-        typeck.check_fct(&*fct, &fct.ast);
+        typeck.check_fct(&fct.ast);
 
         analysis
     };
@@ -111,6 +125,7 @@ fn check_global(
     sa: &Sema,
     global: &GlobalDefinition,
     lazy_context_class_creation: &mut Vec<(LazyContextClass, ClassDefinition)>,
+    lazy_lambda_creation: &mut Vec<(LazyLambdaId, FctDefinition)>,
 ) {
     let analysis = {
         if !global.has_initial_value() {
@@ -138,7 +153,8 @@ fn check_global(
             is_self_available: false,
             vars: &mut vars,
             contains_lambda: false,
-            lazy_context_class_creation: lazy_context_class_creation,
+            lazy_context_class_creation,
+            lazy_lambda_creation,
             outer_context_classes: &mut outer_context_classes,
             outer_context_access_in_function: false,
             outer_context_access_from_lambda: false,
@@ -156,5 +172,12 @@ fn create_context_classes(sa: &mut Sema, lazy_class: Vec<(LazyContextClass, Clas
         let class_id = sa.classes.alloc(class_definition);
         sa.classes[class_id].id = Some(class_id);
         lazy_context_class.set_context_cls_id(class_id);
+    }
+}
+
+fn create_lambda_functions(sa: &mut Sema, lambdas: Vec<(LazyLambdaId, FctDefinition)>) {
+    for (lamda_id, fct) in lambdas {
+        let fct_id = sa.add_fct(fct);
+        lamda_id.set_fct_id(fct_id);
     }
 }

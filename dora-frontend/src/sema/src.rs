@@ -27,7 +27,7 @@ pub struct AnalysisData {
     pub map_string_literals: NodeMap<String>,
     pub map_cls: NodeMap<ClassDefinitionId>,
     pub map_fors: NodeMap<ForTypeInfo>,
-    pub map_lambdas: NodeMap<FctDefinitionId>,
+    pub map_lambdas: NodeMap<LazyLambdaId>,
     pub vars: VarAccess, // variables in functions
     pub lazy_context_class: OnceCell<LazyContextClass>,
     pub outer_context_classes: Vec<LazyContextClass>,
@@ -120,6 +120,23 @@ impl AnalysisData {
 
     pub fn outer_context_access(&self) -> bool {
         self.outer_context_access.expect("missing")
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct LazyLambdaId(Rc<OnceCell<FctDefinitionId>>);
+
+impl LazyLambdaId {
+    pub fn new() -> LazyLambdaId {
+        LazyLambdaId(Rc::new(OnceCell::new()))
+    }
+
+    pub fn fct_id(&self) -> FctDefinitionId {
+        self.0.get().cloned().expect("uninitialized")
+    }
+
+    pub fn set_fct_id(&self, fct_id: FctDefinitionId) {
+        assert!(self.0.set(fct_id).is_ok());
     }
 }
 

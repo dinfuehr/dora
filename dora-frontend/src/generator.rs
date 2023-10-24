@@ -838,11 +838,12 @@ impl<'a> AstBytecodeGen<'a> {
     fn visit_expr_lambda(&mut self, node: &ast::Function, dest: DataDest) -> Register {
         let dest = self.ensure_register(dest, BytecodeType::Ptr);
 
-        let lambda_fct_id = *self
+        let lambda_fct_id = self
             .analysis
             .map_lambdas
             .get(node.id)
-            .expect("missing lambda id");
+            .expect("missing lambda id")
+            .fct_id();
 
         let lambda_fct = self.sa.fcts.idx(lambda_fct_id);
         let lambda_analysis = lambda_fct.analysis();

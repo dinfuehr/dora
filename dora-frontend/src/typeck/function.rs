@@ -7,8 +7,9 @@ use crate::error::msg::ErrorMessage;
 use crate::report_sym_shadow_span;
 use crate::sema::{
     AnalysisData, ClassDefinition, ContextIdx, FctDefinition, Field, FieldId, GlobalDefinition,
-    IdentType, LazyContextClass, ModuleDefinitionId, NestedVarId, PackageDefinitionId, Sema,
-    SourceFileId, TypeParamDefinition, Var, VarAccess, VarId, VarLocation, Visibility,
+    IdentType, LazyContextClass, LazyLambdaId, ModuleDefinitionId, NestedVarId,
+    PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Var, VarAccess, VarId,
+    VarLocation, Visibility,
 };
 use crate::specialize::replace_type_param;
 use crate::sym::{ModuleSymTable, SymbolKind};
@@ -37,15 +38,16 @@ pub struct TypeCheck<'a> {
     pub vars: &'a mut VarManager,
     pub contains_lambda: bool,
     pub lazy_context_class_creation: &'a mut Vec<(LazyContextClass, ClassDefinition)>,
+    pub lazy_lambda_creation: &'a mut Vec<(LazyLambdaId, FctDefinition)>,
     pub outer_context_classes: &'a mut Vec<LazyContextClass>,
     pub outer_context_access_in_function: bool,
     pub outer_context_access_from_lambda: bool,
 }
 
 impl<'a> TypeCheck<'a> {
-    pub fn check_fct(&mut self, fct: &FctDefinition, ast: &ast::Function) {
+    pub fn check_fct(&mut self, ast: &ast::Function) {
         self.check_common(|self_| {
-            self_.add_type_params(fct);
+            self_.add_type_params();
             self_.add_params(ast);
             self_.check_body(ast);
         })
@@ -237,8 +239,8 @@ impl<'a> TypeCheck<'a> {
             .is_ok());
     }
 
-    fn add_type_params(&mut self, fct: &FctDefinition) {
-        for (id, name) in fct.type_params().names() {
+    fn add_type_params(&mut self) {
+        for (id, name) in self.type_param_defs.names() {
             self.symtable.insert(name, SymbolKind::TypeParam(id));
         }
     }
