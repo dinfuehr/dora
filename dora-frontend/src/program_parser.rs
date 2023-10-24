@@ -4,6 +4,8 @@ use std::io::{Error, Read};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use parking_lot::RwLock;
+
 use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
 use crate::report_sym_shadow_span;
@@ -14,7 +16,7 @@ use crate::sema::{
     StructDefinition, StructDefinitionField, StructDefinitionFieldId, TraitDefinition,
     TraitDefinitionId, UseDefinition, Visibility,
 };
-use crate::sym::{Symbol, SymbolKind};
+use crate::sym::{SymTable, Symbol, SymbolKind};
 use crate::STDLIB;
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit, ModifierList};
@@ -193,18 +195,21 @@ impl<'a> ProgramParser<'a> {
         file_lookup: FileLookup,
         ast: &ast::File,
     ) {
-        let mut gdef = TopLevelDeclaration {
+        let module_table = Arc::new(RwLock::new(SymTable::new()));
+
+        let mut decl_discovery = TopLevelDeclaration {
             sa: self.sa,
             package_id,
             module_id,
             file_id,
             external_modules: Vec::new(),
+            module_table: module_table.clone(),
         };
 
-        gdef.visit_file(ast);
+        decl_discovery.visit_file(ast);
 
-        if !gdef.external_modules.is_empty() {
-            for external_module_id in gdef.external_modules {
+        if !decl_discovery.external_modules.is_empty() {
+            for external_module_id in decl_discovery.external_modules {
                 self.add_module_files(
                     package_id,
                     external_module_id,
@@ -213,6 +218,8 @@ impl<'a> ProgramParser<'a> {
                 );
             }
         }
+
+        assert!(self.sa.modules[module_id].table.set(module_table).is_ok());
     }
 
     fn add_module_files(
@@ -391,6 +398,7 @@ struct TopLevelDeclaration<'x> {
     file_id: SourceFileId,
     module_id: ModuleDefinitionId,
     external_modules: Vec<ModuleDefinitionId>,
+    module_table: Arc<RwLock<SymTable>>,
 }
 
 impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
@@ -447,10 +455,17 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         if node.elements.is_none() {
             self.external_modules.push(id);
         } else {
+            let module_table = Arc::new(RwLock::new(SymTable::new()));
             let saved_module_id = self.module_id;
+
+            let saved_module_table =
+                std::mem::replace(&mut self.module_table, module_table.clone());
             self.module_id = id;
             visit::walk_module(self, node);
             self.module_id = saved_module_id;
+            self.module_table = saved_module_table;
+
+            assert!(self.sa.modules[id].table.set(module_table).is_ok());
         }
     }
 
@@ -983,9 +998,7 @@ fn check_modifier(
 
 impl<'x> TopLevelDeclaration<'x> {
     fn insert(&mut self, name: Name, sym: SymbolKind) -> Option<Symbol> {
-        let level = self.sa.module_table(self.module_id);
-        let mut level = level.write();
-        level.insert(name, sym)
+        self.module_table.write().insert(name, sym)
     }
 
     fn insert_optional(

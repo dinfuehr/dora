@@ -1390,7 +1390,8 @@ pub(super) fn read_path_expr(
         match sym {
             Some(SymbolKind::Module(module_id)) => {
                 let module = &ck.sa.modules[module_id];
-                let symtable = module.table.read();
+                let symtable = module.table();
+                let symtable = symtable.read();
                 let sym = symtable.get(interned_element_name);
 
                 Ok(sym)
@@ -1739,7 +1740,8 @@ pub(super) fn read_path(ck: &mut TypeCheck, path: &ast::PathData) -> Result<Symb
                 let iname = ck.sa.interner.intern(&ident.name_as_string);
 
                 let module = &ck.sa.modules[module_id];
-                let symtable = module.table.read();
+                let symtable = module.table();
+                let symtable = symtable.read();
                 sym = symtable.get(iname);
             }
 

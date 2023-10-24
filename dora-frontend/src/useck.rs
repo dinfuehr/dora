@@ -245,7 +245,7 @@ fn process_component(
     match previous_sym {
         SymbolKind::Module(module_id) => {
             let module = &sa.modules[module_id];
-            let symtable = module.table.clone();
+            let symtable = module.table();
             let symtable = symtable.read();
 
             let name = sa.interner.intern(&component_name.name_as_string);
@@ -319,7 +319,7 @@ fn define_use_target(
 ) -> Result<(), ()> {
     let module = &sa.modules[module_id];
 
-    let table = module.table.clone();
+    let table = module.table();
     let mut table = table.write();
 
     let name = sa.interner.intern(&ident.name_as_string);

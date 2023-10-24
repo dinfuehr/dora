@@ -1,11 +1,13 @@
 use once_cell::unsync::OnceCell;
+use parking_lot::RwLock;
+use std::sync::Arc;
 
 use crate::sema::{
     ClassDefinition, ClassDefinitionId, EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId,
     Field, FieldId, ModuleDefinition, ModuleDefinitionId, Sema, StructDefinitionId,
     TraitDefinitionId, TypeParamDefinition, Visibility,
 };
-use crate::sym::SymbolKind;
+use crate::sym::{SymTable, SymbolKind};
 use crate::ty::{SourceType, SourceTypeArray};
 
 use crate::interner::Name;
@@ -123,17 +125,12 @@ pub fn setup_prelude(sa: &mut Sema) {
         "primitives::Result",
     ];
 
-    let module = ModuleDefinition::new_top_level(None);
-    let module_id = sa.modules.alloc(module);
-    sa.set_prelude_module_id(module_id);
-
-    let prelude = sa.prelude_module();
-    let mut prelude = prelude.write();
+    let mut prelude_table = SymTable::new();
 
     for name in &symbols {
         let sym = resolve_name(sa, name, stdlib_id);
         let name = final_path_name(sa, name);
-        let old_sym = prelude.insert(name, sym);
+        let old_sym = prelude_table.insert(name, sym);
         assert!(old_sym.is_none());
     }
 
@@ -147,7 +144,7 @@ pub fn setup_prelude(sa: &mut Sema) {
 
         for variant in enum_.variants() {
             let old_sym =
-                prelude.insert(variant.name, SymbolKind::EnumVariant(enum_id, variant.id));
+                prelude_table.insert(variant.name, SymbolKind::EnumVariant(enum_id, variant.id));
             assert!(old_sym.is_none());
         }
     }
@@ -162,13 +159,21 @@ pub fn setup_prelude(sa: &mut Sema) {
 
         for variant in enum_.variants() {
             let old_sym =
-                prelude.insert(variant.name, SymbolKind::EnumVariant(enum_id, variant.id));
+                prelude_table.insert(variant.name, SymbolKind::EnumVariant(enum_id, variant.id));
             assert!(old_sym.is_none());
         }
     }
 
     let stdlib_name = sa.interner.intern("std");
-    prelude.insert(stdlib_name, SymbolKind::Module(stdlib_id));
+    prelude_table.insert(stdlib_name, SymbolKind::Module(stdlib_id));
+
+    let module = ModuleDefinition::new_top_level(None);
+    assert!(module
+        .table
+        .set(Arc::new(RwLock::new(prelude_table)))
+        .is_ok());
+    let module_id = sa.modules.alloc(module);
+    sa.set_prelude_module_id(module_id);
 }
 
 fn final_path_name(sa: &mut Sema, path: &str) -> Name {
@@ -280,7 +285,7 @@ fn resolve_name(sa: &Sema, name: &str, module_id: ModuleDefinitionId) -> SymbolK
 
     for name in path {
         let module_id = sym.to_module().expect("module expected");
-        let table = sa.modules[module_id].table.clone();
+        let table = sa.modules[module_id].table();
         let table = table.read();
 
         let interned_name = sa.interner.intern(name);

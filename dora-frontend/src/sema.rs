@@ -194,15 +194,15 @@ impl Sema {
     }
 
     pub fn module_table(&self, module_id: ModuleDefinitionId) -> Arc<RwLock<SymTable>> {
-        self.modules[module_id].table.clone()
+        self.modules[module_id].table()
     }
 
     pub fn stdlib_module(&self) -> Arc<RwLock<SymTable>> {
-        self.modules[self.stdlib_module_id()].table.clone()
+        self.modules[self.stdlib_module_id()].table()
     }
 
     pub fn prelude_module(&self) -> Arc<RwLock<SymTable>> {
-        self.modules[self.prelude_module_id()].table.clone()
+        self.modules[self.prelude_module_id()].table()
     }
 
     pub fn set_prelude_module_id(&mut self, module_id: ModuleDefinitionId) {
