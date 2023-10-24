@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 pub struct GrowableVec<T> {
-    elements: Vec<Arc<T>>,
+    elements: Vec<T>,
 }
 
 impl<T> GrowableVec<T> {
@@ -13,7 +13,7 @@ impl<T> GrowableVec<T> {
 
     pub fn push(&mut self, val: T) -> usize {
         let idx = self.elements.len();
-        self.elements.push(Arc::new(val));
+        self.elements.push(val);
 
         idx
     }
@@ -26,13 +26,13 @@ impl<T> GrowableVec<T> {
         GrowableVecIter { vec: self, idx: 0 }
     }
 
-    pub fn idx_usize(&self, idx: usize) -> Arc<T> {
-        self.elements[idx].clone()
+    pub fn idx_usize(&self, idx: usize) -> &T {
+        &self.elements[idx]
     }
 }
 
 impl<T: Id> GrowableVec<T> {
-    pub fn idx(&self, idx: T::IdType) -> Arc<T> {
+    pub fn idx(&self, idx: T::IdType) -> &T {
         self.idx_usize(T::id_to_usize(idx))
     }
 }
@@ -46,9 +46,9 @@ where
 }
 
 impl<'a, T> Iterator for GrowableVecIter<'a, T> {
-    type Item = Arc<T>;
+    type Item = &'a T;
 
-    fn next(&mut self) -> Option<Arc<T>> {
+    fn next(&mut self) -> Option<&'a T> {
         let length = self.vec.len();
 
         if self.idx < length {
