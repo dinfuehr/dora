@@ -1,33 +1,25 @@
-use parking_lot::{Mutex, MutexGuard};
-
 use std::sync::Arc;
 
 pub struct GrowableVec<T> {
-    elements: Mutex<Vec<Arc<T>>>,
+    elements: Vec<Arc<T>>,
 }
 
 impl<T> GrowableVec<T> {
     pub fn new() -> GrowableVec<T> {
         GrowableVec {
-            elements: Mutex::new(Vec::new()),
+            elements: Vec::new(),
         }
     }
 
-    pub fn lock(&self) -> MutexGuard<Vec<Arc<T>>> {
-        self.elements.lock()
-    }
-
-    pub fn push(&self, val: T) -> usize {
-        let mut elements = self.elements.lock();
-        let idx = elements.len();
-        elements.push(Arc::new(val));
+    pub fn push(&mut self, val: T) -> usize {
+        let idx = self.elements.len();
+        self.elements.push(Arc::new(val));
 
         idx
     }
 
     pub fn len(&self) -> usize {
-        let elements = self.elements.lock();
-        elements.len()
+        self.elements.len()
     }
 
     pub fn iter(&self) -> GrowableVecIter<T> {
@@ -35,8 +27,7 @@ impl<T> GrowableVec<T> {
     }
 
     pub fn idx_usize(&self, idx: usize) -> Arc<T> {
-        let elements = self.elements.lock();
-        elements[idx].clone()
+        self.elements[idx].clone()
     }
 }
 
@@ -101,24 +92,4 @@ impl<'a, T> Iterator for SharedVecIter<'a, T> {
             None
         }
     }
-}
-
-#[test]
-fn test_push() {
-    let vec: GrowableVec<Mutex<i32>> = GrowableVec::new();
-
-    {
-        vec.push(Mutex::new(1));
-        vec.push(Mutex::new(2));
-
-        let elem = vec.idx_usize(1);
-        let mut elem = elem.lock();
-
-        *elem = 10;
-        for i in 3..8 {
-            vec.push(Mutex::new(i));
-        }
-    }
-
-    assert_eq!(7, vec.len());
 }

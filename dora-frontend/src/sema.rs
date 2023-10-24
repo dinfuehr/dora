@@ -188,15 +188,12 @@ impl Sema {
         &mut self.source_files[idx.to_usize()]
     }
 
-    pub fn add_fct(&self, mut fct: FctDefinition) -> FctDefinitionId {
-        let mut fcts = self.fcts.lock();
-        let fctid = FctDefinitionId(fcts.len());
+    pub fn add_fct(&mut self, mut fct: FctDefinition) -> FctDefinitionId {
+        let fct_id = FctDefinitionId(self.fcts.len());
+        fct.id = Some(fct_id);
+        self.fcts.push(fct);
 
-        fct.id = Some(fctid);
-
-        fcts.push(Arc::new(fct));
-
-        fctid
+        fct_id
     }
 
     pub fn add_source_file(

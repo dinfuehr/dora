@@ -701,13 +701,14 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     }
 }
 
-fn find_methods_in_trait(sa: &Sema, trait_id: TraitDefinitionId, node: &Arc<ast::Trait>) {
-    let trait_ = &sa.traits[trait_id];
+fn find_methods_in_trait(sa: &mut Sema, trait_id: TraitDefinitionId, node: &Arc<ast::Trait>) {
     let mut methods = Vec::new();
 
     for child in &node.methods {
         match child.as_ref() {
             ast::ElemData::Function(ref method_node) => {
+                let trait_ = &sa.traits[trait_id];
+
                 let modifiers = check_modifiers(
                     sa,
                     trait_.file_id,
@@ -733,20 +734,25 @@ fn find_methods_in_trait(sa: &Sema, trait_id: TraitDefinitionId, node: &Arc<ast:
                 // ignore
             }
 
-            _ => sa.report(trait_.file_id, child.span(), ErrorMessage::ExpectedMethod),
+            _ => sa.report(
+                sa.traits[trait_id].file_id,
+                child.span(),
+                ErrorMessage::ExpectedMethod,
+            ),
         }
     }
 
+    let trait_ = &sa.traits[trait_id];
     assert!(trait_.methods.set(methods).is_ok());
 }
 
-fn find_methods_in_impl(sa: &Sema, impl_id: ImplDefinitionId, node: &Arc<ast::Impl>) {
-    let impl_ = &sa.impls[impl_id];
+fn find_methods_in_impl(sa: &mut Sema, impl_id: ImplDefinitionId, node: &Arc<ast::Impl>) {
     let mut methods = Vec::new();
 
     for child in &node.methods {
         match child.as_ref() {
             ast::ElemData::Function(ref method_node) => {
+                let impl_ = &sa.impls[impl_id];
                 let modifiers = check_modifiers(
                     sa,
                     impl_.file_id,
@@ -772,10 +778,15 @@ fn find_methods_in_impl(sa: &Sema, impl_id: ImplDefinitionId, node: &Arc<ast::Im
                 // ignore
             }
 
-            _ => sa.report(impl_.file_id, child.span(), ErrorMessage::ExpectedMethod),
+            _ => sa.report(
+                sa.impls[impl_id].file_id,
+                child.span(),
+                ErrorMessage::ExpectedMethod,
+            ),
         }
     }
 
+    let impl_ = &sa.impls[impl_id];
     assert!(impl_.methods.set(methods).is_ok());
 }
 
@@ -817,9 +828,8 @@ fn find_methods_in_extension(
             }
 
             _ => {
-                let extension = &sa.extensions[extension_id];
                 sa.report(
-                    extension.file_id,
+                    sa.extensions[extension_id].file_id,
                     child.span(),
                     ErrorMessage::ExpectedMethod,
                 );
