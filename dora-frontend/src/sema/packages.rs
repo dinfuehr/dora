@@ -7,32 +7,9 @@ use parking_lot::RwLock;
 
 use crate::sema::ModuleDefinitionId;
 use crate::sym::{SymTable, SymbolKind};
-use crate::Id;
+use id_arena::Id;
 
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub struct PackageDefinitionId(pub usize);
-
-impl PackageDefinitionId {
-    pub fn to_usize(self) -> usize {
-        self.0
-    }
-}
-
-impl Id for PackageDefinition {
-    type IdType = PackageDefinitionId;
-
-    fn id_to_usize(id: PackageDefinitionId) -> usize {
-        id.0
-    }
-
-    fn usize_to_id(value: usize) -> PackageDefinitionId {
-        PackageDefinitionId(value)
-    }
-
-    fn store_id(value: &mut PackageDefinition, id: PackageDefinitionId) {
-        value.id = Some(id);
-    }
-}
+pub type PackageDefinitionId = Id<PackageDefinition>;
 
 #[derive(Debug)]
 pub struct PackageDefinition {

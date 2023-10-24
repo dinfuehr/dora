@@ -1,6 +1,5 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::ops::{Index, IndexMut};
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -14,7 +13,6 @@ use dora_parser::{compute_line_column, compute_line_starts, Span};
 use crate::error::diag::Diagnostic;
 use crate::error::msg::ErrorMessage;
 use crate::sym::SymTable;
-use crate::GrowableVec;
 
 pub use self::classes::{
     find_field_in_class, find_methods_in_class, Bound, Candidate, ClassDefinition,
@@ -90,13 +88,13 @@ pub struct Sema {
     pub classes: Arena<ClassDefinition>, // stores all class source definitions
     pub extensions: Arena<ExtensionDefinition>, // stores all extension definitions
     pub modules: Arena<ModuleDefinition>, // stores all module definitions
-    pub fcts: GrowableVec<FctDefinition>, // stores all function source definitions
+    pub fcts: Arena<FctDefinition>,     // stores all function source definitions
     pub enums: Arena<EnumDefinition>,   // stores all enum source definitions
     pub traits: Arena<TraitDefinition>, // stores all trait definitions
     pub impls: Arena<ImplDefinition>,   // stores all impl definitions
     pub globals: Arena<GlobalDefinition>, // stores all global variables
     pub uses: Vec<UseDefinition>,       // stores all uses
-    pub packages: Vec<PackageDefinition>,
+    pub packages: Arena<PackageDefinition>,
     pub package_names: HashMap<String, PackageDefinitionId>,
     pub prelude_module_id: Option<ModuleDefinitionId>,
     pub stdlib_module_id: Option<ModuleDefinitionId>,
@@ -105,20 +103,6 @@ pub struct Sema {
     pub stdlib_package_id: Option<PackageDefinitionId>,
     pub program_package_id: Option<PackageDefinitionId>,
     pub boots_package_id: Option<PackageDefinitionId>,
-}
-
-impl Index<PackageDefinitionId> for Vec<PackageDefinition> {
-    type Output = PackageDefinition;
-
-    fn index(&self, index: PackageDefinitionId) -> &Self::Output {
-        &self[index.0]
-    }
-}
-
-impl IndexMut<PackageDefinitionId> for Vec<PackageDefinition> {
-    fn index_mut(&mut self, index: PackageDefinitionId) -> &mut Self::Output {
-        &mut self[index.0]
-    }
 }
 
 impl Sema {
@@ -139,8 +123,8 @@ impl Sema {
             interner: Interner::new(),
             known: KnownElements::new(),
             diag: RefCell::new(Diagnostic::new()),
-            fcts: GrowableVec::new(),
-            packages: Vec::new(),
+            fcts: Arena::new(),
+            packages: Arena::new(),
             package_names: HashMap::new(),
             prelude_module_id: None,
             stdlib_module_id: None,
@@ -186,14 +170,6 @@ impl Sema {
 
     pub fn source_file_mut(&mut self, idx: SourceFileId) -> &mut SourceFile {
         &mut self.source_files[idx.to_usize()]
-    }
-
-    pub fn add_fct(&mut self, mut fct: FctDefinition) -> FctDefinitionId {
-        let fct_id = FctDefinitionId(self.fcts.len());
-        fct.id = Some(fct_id);
-        self.fcts.push(fct);
-
-        fct_id
     }
 
     pub fn add_source_file(
@@ -277,8 +253,7 @@ impl Sema {
         let module_id = self.modules.alloc(module);
 
         let package = PackageDefinition::new(package_name, module_id);
-        let package_id = PackageDefinitionId(self.packages.len());
-        self.packages.push(package);
+        let package_id = self.packages.alloc(package);
 
         self.modules[module_id].package_id = Some(package_id);
 

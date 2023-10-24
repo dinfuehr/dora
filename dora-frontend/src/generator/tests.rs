@@ -325,7 +325,7 @@ fn gen_generic_not() {
                 fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::Generic(
                     0,
-                    FunctionId(fct_id.0 as u32),
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
                     BytecodeTypeArray::empty()
                 )
             );
@@ -1125,7 +1125,10 @@ fn gen_fct_call_void_with_0_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -1144,7 +1147,10 @@ fn gen_fct_call_int_with_0_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -1163,7 +1169,10 @@ fn gen_fct_call_int_with_0_args_and_unused_result() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -1187,7 +1196,10 @@ fn gen_fct_call_void_with_1_arg() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -1215,7 +1227,10 @@ fn gen_fct_call_void_with_3_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -1239,7 +1254,10 @@ fn gen_fct_call_int_with_1_arg() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -1267,7 +1285,10 @@ fn gen_fct_call_int_with_3_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -1293,7 +1314,10 @@ fn gen_method_call_void_check_correct_self() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -1319,7 +1343,10 @@ fn gen_method_call_void_with_0_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -1347,7 +1374,10 @@ fn gen_method_call_void_with_1_arg() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -1379,7 +1409,10 @@ fn gen_method_call_void_with_3_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -1405,7 +1438,10 @@ fn gen_method_call_bool_with_0_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -1431,7 +1467,10 @@ fn gen_method_call_bool_with_0_args_and_unused_result() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -1459,7 +1498,10 @@ fn gen_method_call_bool_with_1_arg() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -1491,7 +1533,10 @@ fn gen_method_call_bool_with_3_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -1517,7 +1562,10 @@ fn gen_method_call_byte_with_0_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -1543,7 +1591,10 @@ fn gen_method_call_byte_with_0_args_and_unused_result() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -1571,7 +1622,10 @@ fn gen_method_call_byte_with_1_arg() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -1603,7 +1657,10 @@ fn gen_method_call_byte_with_3_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -1629,7 +1686,10 @@ fn gen_method_call_char_with_0_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -1655,7 +1715,10 @@ fn gen_method_call_char_with_0_args_and_unused_result() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -1683,7 +1746,10 @@ fn gen_method_call_char_with_1_arg() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -1715,7 +1781,10 @@ fn gen_method_call_char_with_3_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -1741,7 +1810,10 @@ fn gen_method_call_int_with_0_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -1767,7 +1839,10 @@ fn gen_method_call_int_with_0_args_and_unused_result() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -1795,7 +1870,10 @@ fn gen_method_call_int_with_1_arg() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -1827,7 +1905,10 @@ fn gen_method_call_int_with_3_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -1853,7 +1934,10 @@ fn gen_method_call_int64_with_0_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -1879,7 +1963,10 @@ fn gen_method_call_int64_with_0_args_and_unused_result() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -1907,7 +1994,10 @@ fn gen_method_call_int64_with_1_arg() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -1939,7 +2029,10 @@ fn gen_method_call_int64_with_3_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -1965,7 +2058,10 @@ fn gen_method_call_float32_with_0_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -1991,7 +2087,10 @@ fn gen_method_call_float32_with_0_args_and_unused_result() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -2019,7 +2118,10 @@ fn gen_method_call_float32_with_1_arg() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -2051,7 +2153,10 @@ fn gen_method_call_float32_with_3_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -2077,7 +2182,10 @@ fn gen_method_call_float64_with_0_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -2103,7 +2211,10 @@ fn gen_method_call_float64_with_0_args_and_unused_result() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -2131,7 +2242,10 @@ fn gen_method_call_float64_with_1_arg() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -2163,7 +2277,10 @@ fn gen_method_call_float64_with_3_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -2189,7 +2306,10 @@ fn gen_method_call_ptr_with_0_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -2215,7 +2335,10 @@ fn gen_method_call_ptr_with_0_args_and_unused_result() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -2243,7 +2366,10 @@ fn gen_method_call_ptr_with_1_arg() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -2275,7 +2401,10 @@ fn gen_method_call_ptr_with_3_args() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -3110,7 +3239,10 @@ fn gen_reinterpret_float32_as_int32() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -3130,7 +3262,10 @@ fn gen_reinterpret_int32_as_float32() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -3150,7 +3285,10 @@ fn gen_reinterpret_float64_as_int64() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -3170,7 +3308,10 @@ fn gen_reinterpret_int64_as_float64() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -3226,7 +3367,10 @@ fn gen_convert_int32_to_float32() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -3246,7 +3390,10 @@ fn gen_convert_int32_to_float64() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -3266,7 +3413,10 @@ fn gen_convert_int64_to_float32() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -3286,7 +3436,10 @@ fn gen_convert_int64_to_float64() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -3306,7 +3459,10 @@ fn gen_truncate_float32_to_int32() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -3326,7 +3482,10 @@ fn gen_truncate_float32_to_int64() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -3346,7 +3505,10 @@ fn gen_truncate_float64_to_int32() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -3366,7 +3528,10 @@ fn gen_truncate_float64_to_int64() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -3415,7 +3580,7 @@ fn gen_unreachable() {
         assert_eq!(
             fct.const_pool(ConstPoolIdx(0)),
             &ConstPoolEntry::Fct(
-                FunctionId(fct_id.0 as u32),
+                FunctionId(fct_id.index().try_into().expect("overflow")),
                 BytecodeTypeArray::one(BytecodeType::Int32)
             )
         );
@@ -3496,7 +3661,10 @@ fn gen_string_concat() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -3520,7 +3688,10 @@ fn gen_string_equals() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -3539,7 +3710,10 @@ fn gen_bool_to_string() {
         assert_eq!(expected, code);
         assert_eq!(
             fct.const_pool(ConstPoolIdx(0)),
-            &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+            &ConstPoolEntry::Fct(
+                FunctionId(fct_id.index().try_into().expect("overflow")),
+                BytecodeTypeArray::empty()
+            )
         );
     });
 }
@@ -3563,7 +3737,10 @@ fn gen_cmp_strings() {
             assert_eq!(expected, code);
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
         },
     );
@@ -3700,7 +3877,7 @@ fn gen_vec_load() {
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.0 as u32),
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
                     BytecodeTypeArray::one(BytecodeType::Int32)
                 )
             );
@@ -3725,7 +3902,7 @@ fn gen_vec_store() {
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::Fct(
-                    FunctionId(fct_id.0 as u32),
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
                     BytecodeTypeArray::one(BytecodeType::Int32)
                 )
             );
@@ -3883,7 +4060,7 @@ fn gen_trait_object_method_call() {
                         TraitId(trait_id.index().try_into().expect("overflow")),
                         BytecodeTypeArray::empty()
                     ),
-                    FunctionId(fct_id.0 as u32),
+                    FunctionId(fct_id.index().try_into().expect("overflow")),
                     BytecodeTypeArray::empty()
                 )
             );
@@ -3931,29 +4108,6 @@ fn gen_context_allocated_var() {
                 NewLambda(r(2), ConstPoolIdx(6)),
                 Ret(r(2)),
             ];
-            assert_eq!(expected, code);
-        },
-    );
-}
-
-#[test]
-fn gen_access_lambda_args() {
-    gen_fct(
-        "
-        fn f(): (Int32, Int32): Int32 {
-            |a: Int32, b: Int32|: Int32 { a + b }
-        }
-    ",
-        |sa, _code, fct| {
-            let lambda_id = match fct.const_pool(ConstPoolIdx(0)) {
-                ConstPoolEntry::Fct(fct_id, _) => *fct_id,
-                _ => unreachable!(),
-            };
-
-            let lambda = generate_fct_id(sa, FctDefinitionId(lambda_id.0 as usize));
-            let code = build(&lambda);
-
-            let expected = vec![Add(r(3), r(1), r(2)), Ret(r(3))];
             assert_eq!(expected, code);
         },
     );
@@ -4028,13 +4182,23 @@ fn gen_comparable_trait() {
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
-                &ConstPoolEntry::Fct(FunctionId(cmp_fct_id.0 as u32), BytecodeTypeArray::empty())
+                &ConstPoolEntry::Fct(
+                    FunctionId(cmp_fct_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty()
+                )
             );
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(1)),
                 &ConstPoolEntry::Fct(
-                    FunctionId(sa.known.functions.ordering_is_gt().0 as u32),
+                    FunctionId(
+                        sa.known
+                            .functions
+                            .ordering_is_gt()
+                            .index()
+                            .try_into()
+                            .expect("overflow")
+                    ),
                     BytecodeTypeArray::empty()
                 )
             );
@@ -4075,7 +4239,7 @@ fn gen_comparable_trait_generic() {
                 fct.const_pool(ConstPoolIdx(0)),
                 &ConstPoolEntry::Generic(
                     0,
-                    FunctionId(cmp_fct_id.0 as u32),
+                    FunctionId(cmp_fct_id.index().try_into().expect("overflow")),
                     BytecodeTypeArray::empty()
                 )
             );
@@ -4083,7 +4247,14 @@ fn gen_comparable_trait_generic() {
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(1)),
                 &ConstPoolEntry::Fct(
-                    FunctionId(sa.known.functions.ordering_is_lt().0 as u32),
+                    FunctionId(
+                        sa.known
+                            .functions
+                            .ordering_is_lt()
+                            .index()
+                            .try_into()
+                            .expect("overflow")
+                    ),
                     BytecodeTypeArray::empty()
                 )
             );

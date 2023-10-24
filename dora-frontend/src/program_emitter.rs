@@ -48,7 +48,7 @@ pub fn emit_program(sa: Sema) -> Program {
 fn create_packages(sa: &Sema) -> Vec<PackageData> {
     let mut result = Vec::new();
 
-    for pkg in sa.packages.iter() {
+    for (_id, pkg) in sa.packages.iter() {
         let name = match pkg.name {
             PackageName::Boots => "boots".into(),
             PackageName::Stdlib => "stdlib".into(),
@@ -118,7 +118,7 @@ fn create_impls(sa: &Sema) -> Vec<ImplData> {
 fn create_functions(sa: &Sema, e: &mut Emitter) -> Vec<FunctionData> {
     let mut result = Vec::new();
 
-    for fct in sa.fcts.iter() {
+    for (_id, fct) in sa.fcts.iter() {
         let name = sa.interner.str(fct.name).to_string();
 
         let internal_function = if Some(fct.id()) == sa.known.functions.compile {
@@ -413,7 +413,7 @@ fn find_main_fct_id(sa: &Sema) -> Option<FunctionId> {
 
     let fct_id = sym.kind().to_fct().unwrap();
 
-    let fct = sa.fcts.idx(fct_id);
+    let fct = &sa.fcts[fct_id];
     let ret = fct.return_type();
 
     if (!ret.is_unit() && !ret.is_int32())
@@ -427,7 +427,7 @@ fn find_main_fct_id(sa: &Sema) -> Option<FunctionId> {
 }
 
 fn convert_package_id(id: PackageDefinitionId) -> PackageId {
-    PackageId(id.to_usize().try_into().expect("failure"))
+    PackageId(id.index().try_into().expect("failure"))
 }
 
 fn convert_module_id(id: ModuleDefinitionId) -> ModuleId {
@@ -435,7 +435,7 @@ fn convert_module_id(id: ModuleDefinitionId) -> ModuleId {
 }
 
 fn convert_function_id(id: FctDefinitionId) -> FunctionId {
-    FunctionId(id.to_usize().try_into().expect("failure"))
+    FunctionId(id.index().try_into().expect("failure"))
 }
 
 fn convert_source_file_id(id: sa::SourceFileId) -> SourceFileId {

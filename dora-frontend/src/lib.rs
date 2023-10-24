@@ -38,11 +38,8 @@ mod type_params;
 mod typeck;
 mod typeparamck;
 mod useck;
-pub mod utils;
 
 pub const STDLIB: &[(&str, &str)] = &include!(concat!(env!("OUT_DIR"), "/dora_stdlib_bundle.rs"));
-
-pub use utils::{GrowableVec, Id};
 
 macro_rules! return_on_error {
     ($vm: ident) => {{
@@ -114,7 +111,7 @@ pub fn check_program(sa: &mut Sema) -> bool {
 }
 
 pub fn emit_ast(sa: &Sema, filter: &str) {
-    for fct in sa.fcts.iter() {
+    for (_id, fct) in sa.fcts.iter() {
         let fct_name = fct.display_name(sa);
 
         if fct_pattern_match(&fct_name, filter) {
@@ -124,7 +121,7 @@ pub fn emit_ast(sa: &Sema, filter: &str) {
 }
 
 pub fn generate_bytecode(sa: &Sema) {
-    for fct in sa.fcts.iter() {
+    for (_id, fct) in sa.fcts.iter() {
         let bc = {
             if !fct.has_body() {
                 continue;
@@ -174,7 +171,7 @@ fn fct_pattern_match(name: &str, pattern: &str) -> bool {
 }
 
 fn internalck(sa: &Sema) {
-    for fct in sa.fcts.iter() {
+    for (_id, fct) in sa.fcts.iter() {
         if !fct.has_body() && !fct.in_trait() && !fct.is_internal {
             sa.report(fct.file_id, fct.span, ErrorMessage::MissingFctBody);
         }

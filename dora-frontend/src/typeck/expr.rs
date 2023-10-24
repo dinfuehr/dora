@@ -760,7 +760,7 @@ fn check_expr_un_trait(
             .map_calls
             .insert_or_replace(e.id, Arc::new(call_type));
 
-        let method = ck.sa.fcts.idx(method_id);
+        let method = &ck.sa.fcts[method_id];
 
         let return_type = method.return_type();
         ck.analysis.set_ty(e.id, return_type.clone());
@@ -778,7 +778,7 @@ fn check_expr_un_trait(
             .cloned()
             .expect("method not found");
 
-        let method = ck.sa.fcts.idx(method_id);
+        let method = &ck.sa.fcts[method_id];
 
         let call_type = CallType::GenericMethod(
             ty.type_param_id().expect("type param expected"),
@@ -982,7 +982,7 @@ fn check_expr_bin_trait(
             .map_calls
             .insert_or_replace(e.id, Arc::new(call_type));
 
-        let method = ck.sa.fcts.idx(method_id);
+        let method = &ck.sa.fcts[method_id];
         let params = method.params_without_self();
 
         assert_eq!(params.len(), 1);
@@ -1014,7 +1014,7 @@ fn check_expr_bin_trait(
             .cloned()
             .expect("method not found");
 
-        let method = ck.sa.fcts.idx(method_id);
+        let method = &ck.sa.fcts[method_id];
         let params = method.params_without_self();
 
         let call_type = CallType::GenericMethod(

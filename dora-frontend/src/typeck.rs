@@ -1,6 +1,6 @@
 use crate::sema::{
-    AnalysisData, ClassDefinition, FctDefinition, FctDefinitionId, GlobalDefinition,
-    LazyContextClass, LazyLambdaId, Sema, TypeParamDefinition,
+    AnalysisData, ClassDefinition, FctDefinition, GlobalDefinition, LazyContextClass, LazyLambdaId,
+    Sema, TypeParamDefinition,
 };
 use crate::sym::ModuleSymTable;
 use crate::typeck::call::{check_expr_call, check_expr_call_enum_args, find_method};
@@ -28,18 +28,16 @@ mod stmt;
 mod tests;
 
 pub fn check(sa: &mut Sema) {
-    let mut idx = 0;
     let mut lazy_context_class_creation = Vec::new();
     let mut lazy_lambda_creation = Vec::new();
 
-    while idx < sa.fcts.len() {
+    for (_id, fct) in sa.fcts.iter() {
         check_function(
             sa,
-            FctDefinitionId(idx),
+            fct,
             &mut lazy_context_class_creation,
             &mut lazy_lambda_creation,
         );
-        idx += 1;
     }
 
     for (_const_id, const_) in sa.consts.iter() {
@@ -63,18 +61,17 @@ pub fn check(sa: &mut Sema) {
             &mut lazy_lambda_creation,
         );
     }
+
     create_context_classes(sa, lazy_context_class_creation);
     create_lambda_functions(sa, lazy_lambda_creation);
 }
 
 fn check_function(
     sa: &Sema,
-    id: FctDefinitionId,
+    fct: &FctDefinition,
     lazy_context_class_creation: &mut Vec<(LazyContextClass, ClassDefinition)>,
     lazy_lambda_creation: &mut Vec<(LazyLambdaId, FctDefinition)>,
 ) {
-    let fct = sa.fcts.idx(id);
-
     let analysis = {
         if !fct.has_body() {
             return;
@@ -177,7 +174,8 @@ fn create_context_classes(sa: &mut Sema, lazy_class: Vec<(LazyContextClass, Clas
 
 fn create_lambda_functions(sa: &mut Sema, lambdas: Vec<(LazyLambdaId, FctDefinition)>) {
     for (lamda_id, fct) in lambdas {
-        let fct_id = sa.add_fct(fct);
+        let fct_id = sa.fcts.alloc(fct);
+        sa.fcts[fct_id].id = Some(fct_id);
         lamda_id.set_fct_id(fct_id);
     }
 }

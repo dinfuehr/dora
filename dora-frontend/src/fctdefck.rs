@@ -9,7 +9,7 @@ use crate::ty::SourceType;
 use crate::{read_type, read_type_context, AllowSelf, TypeParamContext};
 
 pub fn check(sa: &Sema) {
-    for fct in sa.fcts.iter() {
+    for (_id, fct) in sa.fcts.iter() {
         let ast = fct.ast.clone();
 
         let mut sym_table = ModuleSymTable::new(sa, fct.module_id);
@@ -215,7 +215,7 @@ fn check_against_methods(sa: &Sema, fct: &FctDefinition, methods: &[FctDefinitio
             continue;
         }
 
-        let method = sa.fcts.idx(method);
+        let method = &sa.fcts[method];
 
         if method.initialized.get() && method.name == fct.name && method.is_static == fct.is_static
         {

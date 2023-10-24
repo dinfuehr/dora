@@ -1811,7 +1811,7 @@ fn find_method_in_extensions(
         let extension = &sa.extensions[extension_id];
 
         for &mid in extension.methods.get().expect("missing methods") {
-            let mtd = sa.fcts.idx(mid);
+            let mtd = &sa.fcts[mid];
 
             if mtd.name == name && mtd.is_static == is_static {
                 return mid;
@@ -1850,7 +1850,7 @@ fn common_fct(
         .to_fct()
         .expect("function expected");
 
-    let fct = sa.fcts.idx(fct_id);
+    let fct = &sa.fcts[fct_id];
 
     match marker {
         FctImplementation::Intrinsic(intrinsic) => assert!(fct.intrinsic.set(intrinsic).is_ok()),
@@ -1986,7 +1986,7 @@ fn internal_extension_method(
         };
 
         if let Some(&method_id) = table.borrow().get(&name) {
-            let fct = sa.fcts.idx(method_id);
+            let fct = &sa.fcts[method_id];
 
             match marker {
                 FctImplementation::Intrinsic(intrinsic) => {
@@ -2074,7 +2074,7 @@ fn internal_impl_method(
                 .cloned()
                 .expect("method not found");
 
-            let fct = sa.fcts.idx(method_id);
+            let fct = &sa.fcts[method_id];
 
             match marker {
                 FctImplementation::Intrinsic(intrinsic) => {

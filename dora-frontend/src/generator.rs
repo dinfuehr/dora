@@ -36,7 +36,7 @@ impl LoopLabels {
 }
 
 pub fn generate_fct_id(sa: &Sema, id: FctDefinitionId) -> BytecodeFunction {
-    let fct = sa.fcts.idx(id);
+    let fct = &sa.fcts[id];
     let analysis = fct.analysis();
 
     generate_fct(sa, &fct, analysis)
@@ -424,9 +424,10 @@ impl<'a> AstBytecodeGen<'a> {
             // Emit: <iterator> = <obj>.makeIterator();
             let iterator_reg = self.alloc_var(BytecodeType::Ptr);
             self.builder.emit_push_register(object_reg);
-            let fct_idx = self
-                .builder
-                .add_const_fct_types(FunctionId(make_iterator.0 as u32), object_type_params);
+            let fct_idx = self.builder.add_const_fct_types(
+                FunctionId(make_iterator.index().try_into().expect("overflow")),
+                object_type_params,
+            );
             self.builder
                 .emit_invoke_direct(iterator_reg, fct_idx, self.loc(stmt.expr.span()));
             iterator_reg
@@ -453,7 +454,7 @@ impl<'a> AstBytecodeGen<'a> {
         let next_result_reg = self.alloc_temp(next_result_ty);
 
         let fct_idx = self.builder.add_const_fct_types(
-            FunctionId(for_type_info.next.0 as u32),
+            FunctionId(for_type_info.next.index().try_into().expect("overflow")),
             iterator_type_params,
         );
 
@@ -468,7 +469,15 @@ impl<'a> AstBytecodeGen<'a> {
         // Emit: if <next-result>.isNone() then goto lbl_end
         let cond_reg = self.alloc_temp(BytecodeType::Bool);
         let fct_idx = self.builder.add_const_fct_types(
-            FunctionId(self.sa.known.functions.option_is_none().0 as u32),
+            FunctionId(
+                self.sa
+                    .known
+                    .functions
+                    .option_is_none()
+                    .index()
+                    .try_into()
+                    .expect("overflow"),
+            ),
             bty_array_from_ty(&option_type_params),
         );
         self.builder.emit_push_register(next_result_reg);
@@ -484,7 +493,15 @@ impl<'a> AstBytecodeGen<'a> {
             let value_ty = register_bty_from_ty(value_ty);
             let value_reg = self.alloc_var(value_ty);
             let fct_idx = self.builder.add_const_fct_types(
-                FunctionId(self.sa.known.functions.option_unwrap().0 as u32),
+                FunctionId(
+                    self.sa
+                        .known
+                        .functions
+                        .option_unwrap()
+                        .index()
+                        .try_into()
+                        .expect("overflow"),
+                ),
                 bty_array_from_ty(&option_type_params),
             );
             self.builder.emit_push_register(next_result_reg);
@@ -687,7 +704,9 @@ impl<'a> AstBytecodeGen<'a> {
 
         // build StringBuffer::empty() call
         let fct_id = self.sa.known.functions.string_buffer_empty();
-        let fct_idx = self.builder.add_const_fct(FunctionId(fct_id.0 as u32));
+        let fct_idx = self
+            .builder
+            .add_const_fct(FunctionId(fct_id.index().try_into().expect("overflow")));
         self.builder
             .emit_invoke_static(buffer_register, fct_idx, self.loc(expr.span));
 
@@ -721,7 +740,7 @@ impl<'a> AstBytecodeGen<'a> {
 
                     let fct_idx = self.builder.add_const_generic(
                         type_list_id.0 as u32,
-                        FunctionId(to_string_id.0 as u32),
+                        FunctionId(to_string_id.index().try_into().expect("overflow")),
                         BytecodeTypeArray::empty(),
                     );
 
@@ -743,9 +762,9 @@ impl<'a> AstBytecodeGen<'a> {
                         .get(part.id())
                         .expect("missing toString id");
 
-                    let fct_idx = self
-                        .builder
-                        .add_const_fct(FunctionId(to_string_id.0 as u32));
+                    let fct_idx = self.builder.add_const_fct(FunctionId(
+                        to_string_id.index().try_into().expect("overflow"),
+                    ));
                     self.builder
                         .emit_invoke_direct(part_register, fct_idx, self.loc(part.span()));
 
@@ -755,7 +774,9 @@ impl<'a> AstBytecodeGen<'a> {
 
             // build StringBuffer::append() call
             let fct_id = self.sa.known.functions.string_buffer_append();
-            let fct_idx = self.builder.add_const_fct(FunctionId(fct_id.0 as u32));
+            let fct_idx = self
+                .builder
+                .add_const_fct(FunctionId(fct_id.index().try_into().expect("overflow")));
             self.builder.emit_push_register(buffer_register);
             self.builder.emit_push_register(part_register);
             let dest_reg = self.ensure_unit_register();
@@ -767,7 +788,9 @@ impl<'a> AstBytecodeGen<'a> {
 
         // build StringBuffer::toString() call
         let fct_id = self.sa.known.functions.string_buffer_to_string();
-        let fct_idx = self.builder.add_const_fct(FunctionId(fct_id.0 as u32));
+        let fct_idx = self
+            .builder
+            .add_const_fct(FunctionId(fct_id.index().try_into().expect("overflow")));
         self.builder.emit_push_register(buffer_register);
         self.builder
             .emit_invoke_direct(buffer_register, fct_idx, self.loc(expr.span));
@@ -845,7 +868,7 @@ impl<'a> AstBytecodeGen<'a> {
             .expect("missing lambda id")
             .fct_id();
 
-        let lambda_fct = self.sa.fcts.idx(lambda_fct_id);
+        let lambda_fct = &self.sa.fcts[lambda_fct_id];
         let lambda_analysis = lambda_fct.analysis();
 
         if lambda_analysis.outer_context_access() {
@@ -854,7 +877,7 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         let idx = self.builder.add_const_fct_types(
-            FunctionId(lambda_fct_id.0 as u32),
+            FunctionId(lambda_fct_id.index().try_into().expect("overflow")),
             bty_array_from_ty(&self.identity_type_params()),
         );
         self.builder.emit_new_lambda(dest, idx, self.loc(node.span));
@@ -1054,7 +1077,9 @@ impl<'a> AstBytecodeGen<'a> {
         let assert_reg = gen_expr(self, &*expr.args[0], DataDest::Alloc);
         self.builder.emit_push_register(assert_reg);
         let fid = self.sa.known.functions.assert();
-        let idx = self.builder.add_const_fct(FunctionId(fid.0 as u32));
+        let idx = self
+            .builder
+            .add_const_fct(FunctionId(fid.index().try_into().expect("overflow")));
         let dest = self.ensure_unit_register();
         self.builder
             .emit_invoke_static(dest, idx, self.loc(expr.span));
@@ -1104,7 +1129,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         // Find method that is called
         let callee_id = call_type.fct_id().expect("FctId missing");
-        let callee = self.sa.fcts.idx(callee_id);
+        let callee = &self.sa.fcts[callee_id];
 
         let callee_idx = self.add_const_pool_entry_for_call(&callee, &call_type);
 
@@ -1709,7 +1734,7 @@ impl<'a> AstBytecodeGen<'a> {
         let call_type = self.analysis.map_calls.get(expr.id).unwrap();
         let callee_id = call_type.fct_id().expect("FctId missing");
 
-        let callee = self.sa.fcts.idx(callee_id);
+        let callee = &self.sa.fcts[callee_id];
 
         let callee_idx = self.add_const_pool_entry_for_call(&callee, &call_type);
 
@@ -1765,7 +1790,7 @@ impl<'a> AstBytecodeGen<'a> {
         let call_type = self.analysis.map_calls.get(expr.id).unwrap();
         let callee_id = call_type.fct_id().expect("FctId missing");
 
-        let callee = self.sa.fcts.idx(callee_id);
+        let callee = &self.sa.fcts[callee_id];
 
         let callee_idx = self.add_const_pool_entry_for_call(&callee, &call_type);
 
@@ -2031,7 +2056,7 @@ impl<'a> AstBytecodeGen<'a> {
     ) -> Register {
         let intrinsic = info.intrinsic;
 
-        let fct = self.sa.fcts.idx(info.fct_id.expect("missing method"));
+        let fct = &self.sa.fcts[info.fct_id.expect("missing method")];
         let ty = fct.return_type_bty();
         let dest = self.ensure_register(dest, ty);
 
@@ -2099,7 +2124,7 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         let fct_id = info.fct_id.expect("missing function");
-        let fct = self.sa.fcts.idx(fct_id);
+        let fct = &self.sa.fcts[fct_id];
 
         let result_type = fct.return_type_bty();
 
@@ -2217,9 +2242,10 @@ impl<'a> AstBytecodeGen<'a> {
 
             let type_params = obj_ty.type_params();
 
-            let callee_idx = self
-                .builder
-                .add_const_fct_types(FunctionId(fct_id.0 as u32), bty_array_from_ty(&type_params));
+            let callee_idx = self.builder.add_const_fct_types(
+                FunctionId(fct_id.index().try_into().expect("overflow")),
+                bty_array_from_ty(&type_params),
+            );
             let dest = self.ensure_unit_register();
             self.builder
                 .emit_invoke_direct(dest, callee_idx, self.loc(expr.span));
@@ -2669,21 +2695,21 @@ impl<'a> AstBytecodeGen<'a> {
             CallType::GenericStaticMethod(id, _, _) | CallType::GenericMethod(id, _, _) => {
                 self.builder.add_const_generic(
                     id.0 as u32,
-                    FunctionId(fct.id().0 as u32),
+                    FunctionId(fct.id().index().try_into().expect("overflow")),
                     bty_array_from_ty(&type_params),
                 )
             }
             CallType::TraitObjectMethod(ref trait_object_ty, _) => {
                 self.builder.add_const(ConstPoolEntry::TraitObjectMethod(
                     bty_from_ty(trait_object_ty.clone()),
-                    FunctionId(fct.id().0 as u32),
+                    FunctionId(fct.id().index().try_into().expect("overflow")),
                     bty_array_from_ty(&type_params),
                 ))
             }
 
             CallType::Method(..) | CallType::Expr(..) | CallType::Fct(..) => {
                 self.builder.add_const_fct_types(
-                    FunctionId(fct.id().0 as u32),
+                    FunctionId(fct.id().index().try_into().expect("overflow")),
                     bty_array_from_ty(&type_params),
                 )
             }
@@ -2742,7 +2768,7 @@ impl<'a> AstBytecodeGen<'a> {
             return None;
         };
 
-        let fct = self.sa.fcts.idx(fid);
+        let fct = &self.sa.fcts[fid];
 
         if let Some(intrinsic) = fct.intrinsic.get().cloned() {
             return Some(IntrinsicInfo::with_fct(intrinsic, fid));

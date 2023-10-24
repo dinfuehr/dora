@@ -26,7 +26,7 @@ impl<'x> TraitCheck<'x> {
     }
 
     fn visit_method(&mut self, fct_id: FctDefinitionId) {
-        let fct = self.sa.fcts.idx(fct_id);
+        let fct = &self.sa.fcts[fct_id];
 
         assert!(fct.vtable_index.set(self.vtable_index).is_ok());
         self.vtable_index += 1;

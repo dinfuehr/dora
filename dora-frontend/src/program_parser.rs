@@ -674,8 +674,9 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             ensure_name(self.sa, &node.name),
             FctParent::None,
         );
-        let fctid = self.sa.add_fct(fct);
-        let sym = SymbolKind::Fct(fctid);
+        let fct_id = self.sa.fcts.alloc(fct);
+        self.sa.fcts[fct_id].id = Some(fct_id);
+        let sym = SymbolKind::Fct(fct_id);
         if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
@@ -726,7 +727,8 @@ fn find_methods_in_trait(sa: &mut Sema, trait_id: TraitDefinitionId, node: &Arc<
                     FctParent::Trait(trait_id),
                 );
 
-                let fct_id = sa.add_fct(fct);
+                let fct_id = sa.fcts.alloc(fct);
+                sa.fcts[fct_id].id = Some(fct_id);
                 methods.push(fct_id);
             }
 
@@ -770,7 +772,8 @@ fn find_methods_in_impl(sa: &mut Sema, impl_id: ImplDefinitionId, node: &Arc<ast
                     FctParent::Impl(impl_id),
                 );
 
-                let fct_id = sa.add_fct(fct);
+                let fct_id = sa.fcts.alloc(fct);
+                sa.fcts[fct_id].id = Some(fct_id);
                 methods.push(fct_id);
             }
 
@@ -819,7 +822,8 @@ fn find_methods_in_extension(
                     FctParent::Extension(extension_id),
                 );
 
-                let fct_id = sa.add_fct(fct);
+                let fct_id = sa.fcts.alloc(fct);
+                sa.fcts[fct_id].id = Some(fct_id);
                 methods.push(fct_id);
             }
 

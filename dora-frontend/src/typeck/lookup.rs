@@ -205,7 +205,7 @@ impl<'a> MethodLookup<'a> {
             return result;
         };
 
-        let fct = self.sa.fcts.idx(fct_id);
+        let fct = &self.sa.fcts[fct_id];
 
         let container_tps = match kind {
             LookupKind::Method(_) | LookupKind::Static(_) => {

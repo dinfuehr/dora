@@ -3,9 +3,9 @@ use std::sync::Arc;
 
 use crate::interner::Name;
 use crate::program_parser::ParsedModifierList;
-use crate::Id;
 use dora_parser::ast;
 use dora_parser::Span;
+use id_arena::Id;
 
 use crate::generator::bty_from_ty;
 use crate::sema::{
@@ -15,36 +15,7 @@ use crate::sema::{
 use crate::ty::SourceType;
 use dora_bytecode::{BytecodeFunction, BytecodeType, BytecodeTypeArray, Intrinsic, NativeFunction};
 
-#[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
-pub struct FctDefinitionId(pub usize);
-
-impl FctDefinitionId {
-    pub fn to_usize(self) -> usize {
-        self.0
-    }
-}
-
-impl Id for FctDefinition {
-    type IdType = FctDefinitionId;
-
-    fn id_to_usize(id: FctDefinitionId) -> usize {
-        id.0 as usize
-    }
-
-    fn usize_to_id(value: usize) -> FctDefinitionId {
-        FctDefinitionId(value.try_into().unwrap())
-    }
-
-    fn store_id(value: &mut FctDefinition, id: FctDefinitionId) {
-        value.id = Some(id);
-    }
-}
-
-impl From<usize> for FctDefinitionId {
-    fn from(id: usize) -> FctDefinitionId {
-        FctDefinitionId(id)
-    }
-}
+pub type FctDefinitionId = Id<FctDefinition>;
 
 pub struct FctDefinition {
     pub id: Option<FctDefinitionId>,

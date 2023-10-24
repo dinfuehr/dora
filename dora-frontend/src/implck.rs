@@ -13,7 +13,7 @@ pub fn check(sa: &mut Sema) {
             let mut impl_for = HashMap::new();
 
             for &method_id in impl_.methods() {
-                let method = sa.fcts.idx(method_id);
+                let method = &sa.fcts[method_id];
 
                 if let Some(fid) = trait_.find_method_with_replace(
                     sa,
@@ -25,7 +25,7 @@ pub fn check(sa: &mut Sema) {
                     defined.insert(fid);
                     impl_for.insert(fid, method_id);
 
-                    let trait_method = sa.fcts.idx(fid);
+                    let trait_method = &sa.fcts[fid];
 
                     let return_type_valid = method.return_type()
                         == if trait_method.return_type().is_self() {
@@ -63,7 +63,7 @@ pub fn check(sa: &mut Sema) {
             }
 
             for &method_id in all.difference(&defined) {
-                let method = sa.fcts.idx(method_id);
+                let method = &sa.fcts[method_id];
 
                 if method.has_body() {
                     // method has a default implementation, use that one
