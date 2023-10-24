@@ -1,10 +1,10 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::rc::Rc;
 use std::sync::Arc;
 
 use id_arena::Arena;
-use parking_lot::RwLock;
 
 use crate::interner::{Interner, Name};
 use dora_bytecode::Location;
@@ -193,15 +193,15 @@ impl Sema {
         file_id
     }
 
-    pub fn module_table(&self, module_id: ModuleDefinitionId) -> Arc<RwLock<SymTable>> {
+    pub fn module_table(&self, module_id: ModuleDefinitionId) -> Rc<SymTable> {
         self.modules[module_id].table()
     }
 
-    pub fn stdlib_module(&self) -> Arc<RwLock<SymTable>> {
+    pub fn stdlib_module(&self) -> Rc<SymTable> {
         self.modules[self.stdlib_module_id()].table()
     }
 
-    pub fn prelude_module(&self) -> Arc<RwLock<SymTable>> {
+    pub fn prelude_module(&self) -> Rc<SymTable> {
         self.modules[self.prelude_module_id()].table()
     }
 

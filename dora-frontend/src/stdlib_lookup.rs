@@ -1,6 +1,5 @@
 use once_cell::unsync::OnceCell;
-use parking_lot::RwLock;
-use std::sync::Arc;
+use std::rc::Rc;
 
 use crate::sema::{
     ClassDefinition, ClassDefinitionId, EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId,
@@ -168,10 +167,7 @@ pub fn setup_prelude(sa: &mut Sema) {
     prelude_table.insert(stdlib_name, SymbolKind::Module(stdlib_id));
 
     let module = ModuleDefinition::new_top_level(None);
-    assert!(module
-        .table
-        .set(Arc::new(RwLock::new(prelude_table)))
-        .is_ok());
+    assert!(module.table.set(Rc::new(prelude_table)).is_ok());
     let module_id = sa.modules.alloc(module);
     sa.set_prelude_module_id(module_id);
 }
@@ -286,7 +282,6 @@ fn resolve_name(sa: &Sema, name: &str, module_id: ModuleDefinitionId) -> SymbolK
     for name in path {
         let module_id = sym.to_module().expect("module expected");
         let table = sa.modules[module_id].table();
-        let table = table.read();
 
         let interned_name = sa.interner.intern(name);
 

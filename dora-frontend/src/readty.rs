@@ -1,6 +1,3 @@
-use parking_lot::RwLock;
-use std::sync::Arc;
-
 use crate::access::{
     class_accessible_from, enum_accessible_from, struct_accessible_from, trait_accessible_from,
 };
@@ -13,6 +10,7 @@ use crate::sema::{
 use crate::specialize::specialize_type;
 use crate::sym::{ModuleSymTable, SymTable, SymbolKind};
 use crate::ty::{SourceType, SourceTypeArray};
+use std::rc::Rc;
 
 use dora_parser::ast::{self, TypeBasicType, TypeLambdaType, TypeTupleType};
 use dora_parser::Span;
@@ -525,11 +523,11 @@ fn read_type_path(
 
         for ident in &names[1..names.len() - 1] {
             let name = sa.interner.intern(&ident.name_as_string);
-            let sym = module_table.read().get(name);
+            let sym = module_table.get(name);
             module_table = table_for_module(sa, file_id, basic, sym)?;
         }
 
-        let sym = module_table.read().get(last_name);
+        let sym = module_table.get(last_name);
         Ok(sym)
     } else {
         let name = &names.last().cloned().unwrap().name_as_string;
@@ -542,7 +540,7 @@ fn table_for_module(
     file_id: SourceFileId,
     basic: &TypeBasicType,
     sym: Option<SymbolKind>,
-) -> Result<Arc<RwLock<SymTable>>, ()> {
+) -> Result<Rc<SymTable>, ()> {
     match sym {
         Some(SymbolKind::Module(module_id)) => Ok(sa.modules[module_id].table()),
 

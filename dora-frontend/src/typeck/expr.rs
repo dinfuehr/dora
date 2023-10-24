@@ -1391,7 +1391,6 @@ pub(super) fn read_path_expr(
             Some(SymbolKind::Module(module_id)) => {
                 let module = &ck.sa.modules[module_id];
                 let symtable = module.table();
-                let symtable = symtable.read();
                 let sym = symtable.get(interned_element_name);
 
                 Ok(sym)
@@ -1638,7 +1637,7 @@ fn check_expr_path_module(
     let interned_element_name = ck.sa.interner.intern(&element_name);
 
     let table = ck.sa.module_table(module_id);
-    let sym = table.read().get(interned_element_name);
+    let sym = table.get(interned_element_name);
 
     match sym {
         Some(SymbolKind::Global(global_id)) => {
@@ -1738,11 +1737,7 @@ pub(super) fn read_path(ck: &mut TypeCheck, path: &ast::PathData) -> Result<Symb
                 }
 
                 let iname = ck.sa.interner.intern(&ident.name_as_string);
-
-                let module = &ck.sa.modules[module_id];
-                let symtable = module.table();
-                let symtable = symtable.read();
-                sym = symtable.get(iname);
+                sym = ck.sa.module_table(module_id).get(iname);
             }
 
             Some(SymbolKind::Enum(enum_id)) => {

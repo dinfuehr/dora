@@ -1,17 +1,18 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
+use std::rc::Rc;
 
 use crate::access::{sym_accessible_from, use_accessible_from};
 use crate::error::msg::ErrorMessage;
 use crate::report_sym_shadow_span;
 use crate::sema::{module_package, ModuleDefinitionId, Sema, Visibility};
-use crate::sym::SymbolKind;
+use crate::sym::{SymTable, SymbolKind};
 
 use dora_parser::ast::{self, Ident, NodeId, UseAtom, UsePathComponentValue, UsePathDescriptor};
 use dora_parser::Span;
 
 use super::sema::SourceFileId;
 
-pub fn check<'a>(sa: &Sema) {
+pub fn check<'a>(sa: &Sema, mut module_symtables: HashMap<ModuleDefinitionId, SymTable>) {
     let mut processed_uses = HashSet::<(SourceFileId, NodeId)>::new();
 
     while {
@@ -20,6 +21,7 @@ pub fn check<'a>(sa: &Sema) {
         for use_elem in &sa.uses {
             let _ = check_use(
                 sa,
+                &mut module_symtables,
                 &use_elem.ast,
                 use_elem.module_id,
                 use_elem.file_id,
@@ -37,6 +39,7 @@ pub fn check<'a>(sa: &Sema) {
     for use_elem in &sa.uses {
         let _ = check_use(
             sa,
+            &mut module_symtables,
             &use_elem.ast,
             use_elem.module_id,
             use_elem.file_id,
@@ -47,10 +50,15 @@ pub fn check<'a>(sa: &Sema) {
             &mut false,
         );
     }
+
+    for (module_id, table) in module_symtables {
+        assert!(sa.modules[module_id].table.set(Rc::new(table)).is_ok());
+    }
 }
 
 fn check_use(
     sa: &Sema,
+    module_symtables: &mut HashMap<ModuleDefinitionId, SymTable>,
     use_declaration: &ast::UsePath,
     use_module_id: ModuleDefinitionId,
     use_file_id: SourceFileId,
@@ -83,6 +91,7 @@ fn check_use(
 
         previous_sym = process_component(
             sa,
+            module_symtables,
             use_declaration,
             use_module_id,
             use_file_id,
@@ -113,6 +122,7 @@ fn check_use(
 
             define_use_target(
                 sa,
+                module_symtables,
                 use_file_id,
                 last_component.span,
                 use_visibility,
@@ -130,6 +140,7 @@ fn check_use(
 
                 define_use_target(
                     sa,
+                    module_symtables,
                     use_file_id,
                     last_component.span,
                     use_visibility,
@@ -151,6 +162,7 @@ fn check_use(
                 // for `a` does not affect `b` or `c`.
                 let _ = check_use(
                     sa,
+                    module_symtables,
                     nested_use,
                     use_module_id,
                     use_file_id,
@@ -222,6 +234,7 @@ fn initial_module(
 
 fn process_component(
     sa: &Sema,
+    module_symtables: &mut HashMap<ModuleDefinitionId, SymTable>,
     use_declaration: &ast::UsePath,
     use_module_id: ModuleDefinitionId,
     use_file_id: SourceFileId,
@@ -244,9 +257,7 @@ fn process_component(
 
     match previous_sym {
         SymbolKind::Module(module_id) => {
-            let module = &sa.modules[module_id];
-            let symtable = module.table();
-            let symtable = symtable.read();
+            let symtable = module_symtables.get(&module_id).expect("missing symtable");
 
             let name = sa.interner.intern(&component_name.name_as_string);
 
@@ -310,6 +321,7 @@ fn process_component(
 
 fn define_use_target(
     sa: &Sema,
+    module_symtables: &mut HashMap<ModuleDefinitionId, SymTable>,
     use_file_id: SourceFileId,
     use_span: Span,
     visibility: Visibility,
@@ -317,14 +329,12 @@ fn define_use_target(
     ident: Ident,
     sym: SymbolKind,
 ) -> Result<(), ()> {
-    let module = &sa.modules[module_id];
-
-    let table = module.table();
-    let mut table = table.write();
-
+    let module_symtable = module_symtables
+        .get_mut(&module_id)
+        .expect("missing tabble");
     let name = sa.interner.intern(&ident.name_as_string);
 
-    if let Some(old_sym) = table.insert_use(name, visibility, sym) {
+    if let Some(old_sym) = module_symtable.insert_use(name, visibility, sym) {
         report_sym_shadow_span(sa, name, use_file_id, use_span, old_sym);
         Err(())
     } else {

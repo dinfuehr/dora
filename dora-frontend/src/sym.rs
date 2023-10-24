@@ -1,6 +1,7 @@
 use parking_lot::RwLock;
 
 use std::collections::HashMap;
+use std::rc::Rc;
 use std::sync::Arc;
 
 use self::SymbolKind::*;
@@ -15,9 +16,9 @@ use crate::sema::{
 pub struct ModuleSymTable {
     module_id: ModuleDefinitionId,
     levels: Vec<SymTable>,
-    outer: Arc<RwLock<SymTable>>,
+    outer: Rc<SymTable>,
     dependencies: Arc<RwLock<SymTable>>,
-    prelude: Arc<RwLock<SymTable>>,
+    prelude: Rc<SymTable>,
 }
 
 impl ModuleSymTable {
@@ -65,7 +66,7 @@ impl ModuleSymTable {
             }
         }
 
-        if let Some(sym) = self.outer.read().get(name) {
+        if let Some(sym) = self.outer.get(name) {
             return Some(sym.clone());
         }
 
@@ -73,7 +74,7 @@ impl ModuleSymTable {
             return Some(sym.clone());
         }
 
-        if let Some(sym) = self.prelude.read().get(name) {
+        if let Some(sym) = self.prelude.get(name) {
             return Some(sym.clone());
         }
 

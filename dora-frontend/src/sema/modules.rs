@@ -1,5 +1,5 @@
-use parking_lot::RwLock;
 use std::cell::OnceCell;
+use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::program_parser::ParsedModifierList;
@@ -21,7 +21,7 @@ pub struct ModuleDefinition {
     pub file_id: Option<SourceFileId>,
     pub ast: Option<Arc<ast::Module>>,
     pub name: Option<Name>,
-    pub table: OnceCell<Arc<RwLock<SymTable>>>,
+    pub table: OnceCell<Rc<SymTable>>,
     pub visibility: Visibility,
     pub parents: Vec<ModuleDefinitionId>,
     pub depth: usize,
@@ -80,7 +80,7 @@ impl ModuleDefinition {
         self.package_id.expect("uninitialized package_id")
     }
 
-    pub fn table(&self) -> Arc<RwLock<SymTable>> {
+    pub fn table(&self) -> Rc<SymTable> {
         self.table.get().cloned().expect("missing table")
     }
 

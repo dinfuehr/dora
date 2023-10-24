@@ -51,21 +51,21 @@ macro_rules! return_on_error {
 
 pub fn check_program(sa: &mut Sema) -> bool {
     // This phase loads and parses all files. Also creates top-level-elements.
-    program_parser::parse(sa);
+    let module_symtables = program_parser::parse(sa);
     return_on_error!(sa);
-
-    // Define internal types.
-    stdlib_lookup::lookup_known_fundamental_types(sa);
 
     // Discover all enum variants.
     enumck::check_variants(sa);
 
+    // Discover all types.
+    useck::check(sa, module_symtables);
+    return_on_error!(sa);
+
     // Fill prelude with important types and functions.
     stdlib_lookup::setup_prelude(sa);
 
-    // Discover all types.
-    useck::check(sa);
-    return_on_error!(sa);
+    // Define internal types.
+    stdlib_lookup::lookup_known_fundamental_types(sa);
 
     type_params::check(sa);
     return_on_error!(sa);

@@ -4,8 +4,6 @@ use std::io::{Error, Read};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use parking_lot::RwLock;
-
 use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
 use crate::report_sym_shadow_span;
@@ -24,9 +22,10 @@ use dora_parser::parser::Parser;
 use dora_parser::Span;
 use once_cell::unsync::OnceCell;
 
-pub fn parse(sa: &mut Sema) {
+pub fn parse(sa: &mut Sema) -> HashMap<ModuleDefinitionId, SymTable> {
     let mut discoverer = ProgramParser::new(sa);
     discoverer.parse_all();
+    discoverer.module_symtables
 }
 
 #[derive(Copy, Clone)]
@@ -39,6 +38,7 @@ struct ProgramParser<'a> {
     sa: &'a mut Sema,
     files_to_parse: VecDeque<(SourceFileId, FileLookup, Option<PathBuf>)>,
     packages: HashMap<String, PathBuf>,
+    module_symtables: HashMap<ModuleDefinitionId, SymTable>,
 }
 
 impl<'a> ProgramParser<'a> {
@@ -47,6 +47,7 @@ impl<'a> ProgramParser<'a> {
             sa,
             files_to_parse: VecDeque::new(),
             packages: HashMap::new(),
+            module_symtables: HashMap::new(),
         }
     }
 
@@ -195,31 +196,39 @@ impl<'a> ProgramParser<'a> {
         file_lookup: FileLookup,
         ast: &ast::File,
     ) {
-        let module_table = Arc::new(RwLock::new(SymTable::new()));
+        let module_table = {
+            let mut decl_discovery = TopLevelDeclaration {
+                sa: self.sa,
+                package_id,
+                module_id,
+                file_id,
+                external_modules: Vec::new(),
+                module_table: SymTable::new(),
+                module_symtables: &mut self.module_symtables,
+            };
 
-        let mut decl_discovery = TopLevelDeclaration {
-            sa: self.sa,
-            package_id,
-            module_id,
-            file_id,
-            external_modules: Vec::new(),
-            module_table: module_table.clone(),
+            decl_discovery.visit_file(ast);
+
+            let module_table = decl_discovery.module_table;
+
+            if !decl_discovery.external_modules.is_empty() {
+                for external_module_id in decl_discovery.external_modules {
+                    self.add_module_files(
+                        package_id,
+                        external_module_id,
+                        module_path.clone(),
+                        file_lookup,
+                    );
+                }
+            }
+
+            module_table
         };
 
-        decl_discovery.visit_file(ast);
-
-        if !decl_discovery.external_modules.is_empty() {
-            for external_module_id in decl_discovery.external_modules {
-                self.add_module_files(
-                    package_id,
-                    external_module_id,
-                    module_path.clone(),
-                    file_lookup,
-                );
-            }
-        }
-
-        assert!(self.sa.modules[module_id].table.set(module_table).is_ok());
+        assert!(self
+            .module_symtables
+            .insert(module_id, module_table)
+            .is_none());
     }
 
     fn add_module_files(
@@ -398,7 +407,8 @@ struct TopLevelDeclaration<'x> {
     file_id: SourceFileId,
     module_id: ModuleDefinitionId,
     external_modules: Vec<ModuleDefinitionId>,
-    module_table: Arc<RwLock<SymTable>>,
+    module_table: SymTable,
+    module_symtables: &'x mut HashMap<ModuleDefinitionId, SymTable>,
 }
 
 impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
@@ -455,17 +465,16 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         if node.elements.is_none() {
             self.external_modules.push(id);
         } else {
-            let module_table = Arc::new(RwLock::new(SymTable::new()));
+            let module_table = SymTable::new();
             let saved_module_id = self.module_id;
 
-            let saved_module_table =
-                std::mem::replace(&mut self.module_table, module_table.clone());
+            let saved_module_table = std::mem::replace(&mut self.module_table, module_table);
             self.module_id = id;
             visit::walk_module(self, node);
             self.module_id = saved_module_id;
-            self.module_table = saved_module_table;
+            let module_table = std::mem::replace(&mut self.module_table, saved_module_table);
 
-            assert!(self.sa.modules[id].table.set(module_table).is_ok());
+            assert!(self.module_symtables.insert(id, module_table).is_none());
         }
     }
 
@@ -998,7 +1007,7 @@ fn check_modifier(
 
 impl<'x> TopLevelDeclaration<'x> {
     fn insert(&mut self, name: Name, sym: SymbolKind) -> Option<Symbol> {
-        self.module_table.write().insert(name, sym)
+        self.module_table.insert(name, sym)
     }
 
     fn insert_optional(
