@@ -660,8 +660,7 @@ impl ErrorDescriptor {
 
     pub fn line_column(&self, sa: &Sema) -> Option<(u32, u32)> {
         if let Some(file) = self.file {
-            let file = sa.source_file(file);
-
+            let file = &sa.source_files[file];
             let span = self.span.expect("missing location");
             Some(compute_line_column(&file.line_starts, span.start()))
         } else {
@@ -671,7 +670,7 @@ impl ErrorDescriptor {
 
     pub fn message(&self, sa: &Sema) -> String {
         if let Some(file) = self.file {
-            let file = sa.source_file(file);
+            let file = &sa.source_files[file];
             let (line, column) = self.line_column(sa).expect("missing location");
 
             format!(

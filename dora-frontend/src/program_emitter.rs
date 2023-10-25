@@ -386,7 +386,7 @@ fn create_traits(sa: &Sema) -> Vec<TraitData> {
 fn create_source_files(sa: &Sema) -> Vec<SourceFileData> {
     let mut result = Vec::new();
 
-    for file in sa.source_files.iter() {
+    for (_id, file) in sa.source_files.iter() {
         result.push(SourceFileData {
             path: file.path.to_string_lossy().to_string(),
         })
@@ -438,7 +438,7 @@ fn convert_function_id(id: FctDefinitionId) -> FunctionId {
 }
 
 fn convert_source_file_id(id: sa::SourceFileId) -> SourceFileId {
-    SourceFileId(id.to_usize().try_into().expect("failure"))
+    SourceFileId(id.index().try_into().expect("failure"))
 }
 
 fn convert_impl_id(id: ImplDefinitionId) -> ImplId {

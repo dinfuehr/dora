@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::cell::{OnceCell, RefCell};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -80,7 +80,7 @@ impl SemaArgs {
 pub struct Sema {
     pub args: SemaArgs,
     pub interner: Interner,
-    pub source_files: Vec<SourceFile>,
+    pub source_files: Arena<SourceFile>,
     pub diag: RefCell<Diagnostic>,
     pub known: KnownElements,
     pub consts: Arena<ConstDefinition>, // stores all const definitions
@@ -109,7 +109,7 @@ impl Sema {
     pub fn new(args: SemaArgs) -> Sema {
         Sema {
             args,
-            source_files: Vec::new(),
+            source_files: Arena::new(),
             consts: Arena::new(),
             structs: Arena::new(),
             classes: Arena::new(),
@@ -164,14 +164,6 @@ impl Sema {
         self.program_package_id.expect("uninitialized package id")
     }
 
-    pub fn source_file(&self, idx: SourceFileId) -> &SourceFile {
-        &self.source_files[idx.to_usize()]
-    }
-
-    pub fn source_file_mut(&mut self, idx: SourceFileId) -> &mut SourceFile {
-        &mut self.source_files[idx.to_usize()]
-    }
-
     pub fn add_source_file(
         &mut self,
         package_id: PackageDefinitionId,
@@ -179,17 +171,17 @@ impl Sema {
         path: PathBuf,
         content: Arc<String>,
     ) -> SourceFileId {
-        let file_id = SourceFileId(self.source_files.len());
         let line_starts = compute_line_starts(&content);
-        self.source_files.push(SourceFile {
-            id: file_id,
+        let file_id = self.source_files.alloc(SourceFile {
+            id: OnceCell::new(),
             package_id,
             path,
             content,
             module_id,
             line_starts,
-            ast: None,
+            ast: OnceCell::new(),
         });
+        assert!(self.source_files[file_id].id.set(file_id).is_ok());
         file_id
     }
 
@@ -266,7 +258,7 @@ impl Sema {
     }
 
     pub fn compute_line_column(&self, file_id: SourceFileId, span: Span) -> (u32, u32) {
-        let file = self.source_file(file_id);
+        let file = &self.source_files[file_id];
         compute_line_column(&file.line_starts, span.start())
     }
 

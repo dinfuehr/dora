@@ -1,24 +1,19 @@
+use std::cell::OnceCell;
 use std::path::PathBuf;
 use std::sync::Arc;
 
 use crate::sema::{ModuleDefinitionId, PackageDefinitionId};
 use dora_parser::ast;
+use id_arena::Id;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct SourceFileId(pub usize);
-
-impl SourceFileId {
-    pub fn to_usize(self) -> usize {
-        self.0
-    }
-}
+pub type SourceFileId = Id<SourceFile>;
 
 pub struct SourceFile {
-    pub id: SourceFileId,
+    pub id: OnceCell<SourceFileId>,
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub path: PathBuf,
     pub content: Arc<String>,
     pub line_starts: Vec<u32>,
-    pub ast: Option<Arc<ast::File>>,
+    pub ast: OnceCell<Arc<ast::File>>,
 }

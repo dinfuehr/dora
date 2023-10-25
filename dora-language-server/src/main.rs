@@ -328,7 +328,7 @@ fn compile_project(project: ProjectConfig, sender: Sender<MainLoopTask>) {
     for error in sa.diag.borrow().errors() {
         if let Some(file_id) = error.file {
             let span = error.span.expect("missing location");
-            let source_file = sa.source_file(file_id);
+            let source_file = &sa.source_files[file_id];
             let line_starts = &source_file.line_starts;
 
             let (line, column) = compute_line_column(&line_starts, span.start());

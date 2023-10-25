@@ -363,7 +363,7 @@ impl<'a> ProgramParser<'a> {
         let content;
 
         {
-            let file = self.sa.source_file(file_id);
+            let file = &self.sa.source_files[file_id];
             package_id = file.package_id;
             module_id = file.module_id;
             content = file.content.clone();
@@ -381,7 +381,7 @@ impl<'a> ProgramParser<'a> {
             );
         }
 
-        self.sa.source_file_mut(file_id).ast = Some(ast.clone());
+        assert!(self.sa.source_files[file_id].ast.set(ast.clone()).is_ok());
 
         self.scan_file(
             package_id,
