@@ -1,4 +1,7 @@
-use crate::sema::{FctDefinitionId, Sema, TraitDefinition};
+use std::collections::HashMap;
+
+use crate::interner::Name;
+use crate::sema::{AliasDefinitionId, FctDefinitionId, Sema, TraitDefinition};
 
 pub fn check(sa: &Sema) {
     for (_id, trait_) in sa.traits.iter() {
@@ -6,9 +9,14 @@ pub fn check(sa: &Sema) {
             sa,
             trait_,
             vtable_index: 0,
+            instance_names: HashMap::new(),
+            static_names: HashMap::new(),
         };
 
         traitck.check();
+
+        assert!(trait_.instance_names.set(traitck.instance_names).is_ok());
+        assert!(trait_.static_names.set(traitck.static_names).is_ok());
     }
 }
 
@@ -16,12 +24,18 @@ struct TraitCheck<'x> {
     sa: &'x Sema,
     trait_: &'x TraitDefinition,
     vtable_index: u32,
+    instance_names: HashMap<Name, FctDefinitionId>,
+    static_names: HashMap<Name, FctDefinitionId>,
 }
 
 impl<'x> TraitCheck<'x> {
     fn check(&mut self) {
         for &method_id in self.trait_.methods() {
             self.visit_method(method_id);
+        }
+
+        for &alias_id in self.trait_.aliases() {
+            self.visit_alias(alias_id);
         }
     }
 
@@ -32,16 +46,18 @@ impl<'x> TraitCheck<'x> {
         self.vtable_index += 1;
 
         let table = if fct.is_static {
-            &self.trait_.static_names
+            &mut self.static_names
         } else {
-            &self.trait_.instance_names
+            &mut self.instance_names
         };
-
-        let mut table = table.borrow_mut();
 
         if !table.contains_key(&fct.name) {
             table.insert(fct.name, fct_id);
         }
+    }
+
+    fn visit_alias(&mut self, _alias_id: AliasDefinitionId) {
+        unimplemented!()
     }
 }
 

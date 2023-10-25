@@ -8,8 +8,8 @@ use self::SymbolKind::*;
 
 use crate::interner::Name;
 use crate::sema::{
-    ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId,
-    GlobalDefinitionId, ModuleDefinitionId, NestedVarId, Sema, StructDefinitionId,
+    AliasDefinitionId, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId,
+    FieldId, GlobalDefinitionId, ModuleDefinitionId, NestedVarId, Sema, StructDefinitionId,
     TraitDefinitionId, TypeParamId, Visibility,
 };
 
@@ -165,6 +165,7 @@ pub enum SymbolKind {
     Const(ConstDefinitionId),
     Module(ModuleDefinitionId),
     EnumVariant(EnumDefinitionId, u32),
+    TypeAlias(AliasDefinitionId),
 }
 
 impl SymbolKind {

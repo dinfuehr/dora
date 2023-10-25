@@ -4229,8 +4229,7 @@ fn gen_comparable_trait_generic() {
             let trait_ = &sa.traits[trait_id];
             let name = sa.interner.intern("cmp");
             let cmp_fct_id = trait_
-                .instance_names
-                .borrow()
+                .instance_names()
                 .get(&name)
                 .expect("missing fct")
                 .clone();
@@ -4402,8 +4401,7 @@ pub fn method_in_trait_by_name(
     let trait_ = &sa.traits[trait_id];
 
     trait_
-        .instance_names
-        .borrow()
+        .instance_names()
         .get(&method_name)
         .cloned()
         .expect("method not found")
@@ -4416,8 +4414,7 @@ pub fn trait_method_by_name(sa: &Sema, trait_name: &str, method_name: &str) -> F
     let trait_ = &sa.traits[trait_id];
 
     trait_
-        .instance_names
-        .borrow()
+        .instance_names()
         .get(&method_name)
         .cloned()
         .expect("method not found")

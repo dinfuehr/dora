@@ -14,6 +14,7 @@ use crate::error::diag::Diagnostic;
 use crate::error::msg::ErrorMessage;
 use crate::sym::SymTable;
 
+pub use self::aliases::{AliasDefinition, AliasDefinitionId};
 pub use self::classes::{
     find_field_in_class, find_methods_in_class, Bound, Candidate, ClassDefinition,
     ClassDefinitionId, Field, FieldId, TypeParamDefinition, TypeParamId, Visibility,
@@ -44,6 +45,7 @@ pub use self::traits::{TraitDefinition, TraitDefinitionId};
 pub use self::tuples::create_tuple;
 pub use self::uses::{UseDefinition, UseDefinitionId};
 
+mod aliases;
 mod classes;
 mod consts;
 mod enums;
@@ -83,17 +85,18 @@ pub struct Sema {
     pub source_files: Arena<SourceFile>,
     pub diag: RefCell<Diagnostic>,
     pub known: KnownElements,
-    pub consts: Arena<ConstDefinition>, // stores all const definitions
+    pub aliases: Arena<AliasDefinition>, // stores all alias definitions
+    pub consts: Arena<ConstDefinition>,  // stores all const definitions
     pub structs: Arena<StructDefinition>, // stores all struct source definitions
     pub classes: Arena<ClassDefinition>, // stores all class source definitions
     pub extensions: Arena<ExtensionDefinition>, // stores all extension definitions
     pub modules: Arena<ModuleDefinition>, // stores all module definitions
-    pub fcts: Arena<FctDefinition>,     // stores all function source definitions
-    pub enums: Arena<EnumDefinition>,   // stores all enum source definitions
-    pub traits: Arena<TraitDefinition>, // stores all trait definitions
-    pub impls: Arena<ImplDefinition>,   // stores all impl definitions
+    pub fcts: Arena<FctDefinition>,      // stores all function source definitions
+    pub enums: Arena<EnumDefinition>,    // stores all enum source definitions
+    pub traits: Arena<TraitDefinition>,  // stores all trait definitions
+    pub impls: Arena<ImplDefinition>,    // stores all impl definitions
     pub globals: Arena<GlobalDefinition>, // stores all global variables
-    pub uses: Arena<UseDefinition>,     // stores all uses
+    pub uses: Arena<UseDefinition>,      // stores all uses
     pub packages: Arena<PackageDefinition>,
     pub package_names: HashMap<String, PackageDefinitionId>,
     pub prelude_module_id: Option<ModuleDefinitionId>,
@@ -110,6 +113,7 @@ impl Sema {
         Sema {
             args,
             source_files: Arena::new(),
+            aliases: Arena::new(),
             consts: Arena::new(),
             structs: Arena::new(),
             classes: Arena::new(),

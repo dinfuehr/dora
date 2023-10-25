@@ -1,4 +1,4 @@
-use std::cell::{OnceCell, RefCell};
+use std::cell::OnceCell;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -8,8 +8,8 @@ use dora_parser::ast;
 use dora_parser::Span;
 
 use crate::sema::{
-    module_path, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId,
-    TypeParamDefinition, Visibility,
+    module_path, AliasDefinitionId, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
+    SourceFileId, TypeParamDefinition, Visibility,
 };
 use crate::ty::{SourceType, SourceTypeArray};
 use id_arena::Id;
@@ -29,8 +29,9 @@ pub struct TraitDefinition {
     pub is_trait_object: bool,
     pub type_params: OnceCell<TypeParamDefinition>,
     pub methods: OnceCell<Vec<FctDefinitionId>>,
-    pub instance_names: RefCell<HashMap<Name, FctDefinitionId>>,
-    pub static_names: RefCell<HashMap<Name, FctDefinitionId>>,
+    pub aliases: OnceCell<Vec<AliasDefinitionId>>,
+    pub instance_names: OnceCell<HashMap<Name, FctDefinitionId>>,
+    pub static_names: OnceCell<HashMap<Name, FctDefinitionId>>,
 }
 
 impl TraitDefinition {
@@ -54,8 +55,9 @@ impl TraitDefinition {
             is_trait_object: false,
             type_params: OnceCell::new(),
             methods: OnceCell::new(),
-            instance_names: RefCell::new(HashMap::new()),
-            static_names: RefCell::new(HashMap::new()),
+            aliases: OnceCell::new(),
+            instance_names: OnceCell::new(),
+            static_names: OnceCell::new(),
         }
     }
 
@@ -69,6 +71,18 @@ impl TraitDefinition {
 
     pub fn methods(&self) -> &[FctDefinitionId] {
         self.methods.get().expect("uninitialized")
+    }
+
+    pub fn aliases(&self) -> &[AliasDefinitionId] {
+        self.aliases.get().expect("uninitialized")
+    }
+
+    pub fn instance_names(&self) -> &HashMap<Name, FctDefinitionId> {
+        self.instance_names.get().expect("uninitialized")
+    }
+
+    pub fn static_names(&self) -> &HashMap<Name, FctDefinitionId> {
+        self.static_names.get().expect("uninitialized")
     }
 
     pub fn name(&self, sa: &Sema) -> String {

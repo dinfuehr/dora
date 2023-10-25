@@ -772,8 +772,7 @@ fn check_expr_un_trait(
         let trait_ = &ck.sa.traits[trait_id];
 
         let method_id = trait_
-            .instance_names
-            .borrow()
+            .instance_names()
             .get(&trait_method_name)
             .cloned()
             .expect("method not found");
@@ -1008,8 +1007,7 @@ fn check_expr_bin_trait(
         let trait_ = &ck.sa.traits[trait_id];
 
         let method_id = trait_
-            .instance_names
-            .borrow()
+            .instance_names()
             .get(&trait_method_name)
             .cloned()
             .expect("method not found");

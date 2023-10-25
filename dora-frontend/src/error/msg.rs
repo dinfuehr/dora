@@ -122,6 +122,7 @@ pub enum ErrorMessage {
     NoSuperDelegationWithPrimaryCtor(String),
     NoSuperClass(String),
     NotAccessible(String),
+    NoTypeExpected,
     StructConstructorNotAccessible(String),
     StructFieldImmutable,
     ClassConstructorNotAccessible(String),
@@ -233,6 +234,7 @@ impl ErrorMessage {
                 let args = args.join(", ");
                 format!("no static method `{}::{}({})`.", cls, name, args)
             }
+            ErrorMessage::NoTypeExpected => "no type expected.".into(),
             ErrorMessage::UnknownCtor => "class does not have constructor.".into(),
             ErrorMessage::MethodExists(ref name, pos) => format!(
                 "method with name `{}` already exists at line {}.",

@@ -8,11 +8,11 @@ use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
 use crate::report_sym_shadow_span;
 use crate::sema::{
-    ClassDefinition, ConstDefinition, EnumDefinition, ExtensionDefinition, ExtensionDefinitionId,
-    FctDefinition, FctParent, Field, FieldId, GlobalDefinition, ImplDefinition, ImplDefinitionId,
-    ModuleDefinition, ModuleDefinitionId, PackageDefinitionId, PackageName, Sema, SourceFileId,
-    StructDefinition, StructDefinitionField, StructDefinitionFieldId, TraitDefinition,
-    TraitDefinitionId, UseDefinition, Visibility,
+    AliasDefinition, ClassDefinition, ConstDefinition, EnumDefinition, ExtensionDefinition,
+    ExtensionDefinitionId, FctDefinition, FctParent, Field, FieldId, GlobalDefinition,
+    ImplDefinition, ImplDefinitionId, ModuleDefinition, ModuleDefinitionId, PackageDefinitionId,
+    PackageName, Sema, SourceFileId, StructDefinition, StructDefinitionField,
+    StructDefinitionFieldId, TraitDefinition, TraitDefinitionId, UseDefinition, Visibility,
 };
 use crate::sym::{SymTable, Symbol, SymbolKind};
 use crate::STDLIB;
@@ -492,7 +492,14 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         let trait_id = self.sa.traits.alloc(trait_);
         self.sa.traits[trait_id].id = Some(trait_id);
 
-        find_methods_in_trait(self.sa, trait_id, node);
+        find_elements_in_trait(
+            self.sa,
+            self.package_id,
+            self.module_id,
+            self.file_id,
+            trait_id,
+            node,
+        );
 
         let sym = SymbolKind::Trait(trait_id);
 
@@ -725,10 +732,37 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
         }
     }
+
+    fn visit_typealias(&mut self, node: &Arc<ast::TypeAlias>) {
+        let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
+        let alias = AliasDefinition::new(
+            self.package_id,
+            self.module_id,
+            self.file_id,
+            node,
+            modifiers,
+            ensure_name(self.sa, &node.name),
+        );
+        let id = self.sa.aliases.alloc(alias);
+        assert!(self.sa.aliases[id].id.set(id).is_ok());
+
+        let sym = SymbolKind::TypeAlias(id);
+        if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
+            report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
+        }
+    }
 }
 
-fn find_methods_in_trait(sa: &mut Sema, trait_id: TraitDefinitionId, node: &Arc<ast::Trait>) {
+fn find_elements_in_trait(
+    sa: &mut Sema,
+    package_id: PackageDefinitionId,
+    module_id: ModuleDefinitionId,
+    file_id: SourceFileId,
+    trait_id: TraitDefinitionId,
+    node: &Arc<ast::Trait>,
+) {
     let mut methods = Vec::new();
+    let mut aliases = Vec::new();
 
     for child in &node.methods {
         match child.as_ref() {
@@ -757,6 +791,27 @@ fn find_methods_in_trait(sa: &mut Sema, trait_id: TraitDefinitionId, node: &Arc<
                 methods.push(fct_id);
             }
 
+            ast::ElemData::TypeAlias(ref alias) => {
+                let modifiers = check_modifiers(sa, file_id, &alias.modifiers, &[]);
+
+                let name = ensure_name(sa, &alias.name);
+
+                if let Some(ref ty) = alias.ty {
+                    sa.report(
+                        sa.traits[trait_id].file_id,
+                        ty.span(),
+                        ErrorMessage::NoTypeExpected,
+                    )
+                }
+
+                let id = sa.aliases.alloc(AliasDefinition::new(
+                    package_id, module_id, file_id, alias, modifiers, name,
+                ));
+                assert!(sa.aliases[id].id.set(id).is_ok());
+
+                aliases.push(id);
+            }
+
             ast::ElemData::Error { .. } => {
                 // ignore
             }
@@ -771,6 +826,7 @@ fn find_methods_in_trait(sa: &mut Sema, trait_id: TraitDefinitionId, node: &Arc<
 
     let trait_ = &sa.traits[trait_id];
     assert!(trait_.methods.set(methods).is_ok());
+    assert!(trait_.aliases.set(aliases).is_ok());
 }
 
 fn find_methods_in_impl(sa: &mut Sema, impl_id: ImplDefinitionId, node: &Arc<ast::Impl>) {
@@ -879,7 +935,7 @@ fn ensure_name(sa: &Sema, ident: &Option<ast::Ident>) -> Name {
 }
 
 #[derive(Default)]
-pub(crate) struct ParsedModifierList {
+pub struct ParsedModifierList {
     pub is_pub: bool,
     pub is_static: bool,
     pub is_test: bool,
