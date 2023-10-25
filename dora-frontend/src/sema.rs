@@ -42,7 +42,7 @@ pub use self::structs::{
 };
 pub use self::traits::{TraitDefinition, TraitDefinitionId};
 pub use self::tuples::create_tuple;
-pub use self::uses::UseDefinition;
+pub use self::uses::{UseDefinition, UseDefinitionId};
 
 mod classes;
 mod consts;
@@ -93,7 +93,7 @@ pub struct Sema {
     pub traits: Arena<TraitDefinition>, // stores all trait definitions
     pub impls: Arena<ImplDefinition>,   // stores all impl definitions
     pub globals: Arena<GlobalDefinition>, // stores all global variables
-    pub uses: Vec<UseDefinition>,       // stores all uses
+    pub uses: Arena<UseDefinition>,     // stores all uses
     pub packages: Arena<PackageDefinition>,
     pub package_names: HashMap<String, PackageDefinitionId>,
     pub prelude_module_id: Option<ModuleDefinitionId>,
@@ -119,7 +119,7 @@ impl Sema {
             traits: Arena::new(),
             impls: Arena::new(),
             globals: Arena::new(),
-            uses: Vec::new(),
+            uses: Arena::new(),
             interner: Interner::new(),
             known: KnownElements::new(),
             diag: RefCell::new(Diagnostic::new()),

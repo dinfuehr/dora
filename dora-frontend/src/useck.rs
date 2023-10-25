@@ -18,14 +18,14 @@ pub fn check<'a>(sa: &Sema, mut module_symtables: HashMap<ModuleDefinitionId, Sy
     while {
         let mut did_resolve_symbol = false;
 
-        for use_elem in &sa.uses {
+        for (_id, use_definition) in &sa.uses {
             let _ = check_use(
                 sa,
                 &mut module_symtables,
-                &use_elem.ast,
-                use_elem.module_id,
-                use_elem.file_id,
-                use_elem.visibility,
+                &use_definition.ast,
+                use_definition.module_id,
+                use_definition.file_id,
+                use_definition.visibility,
                 None,
                 true,
                 &mut processed_uses,
@@ -36,14 +36,14 @@ pub fn check<'a>(sa: &Sema, mut module_symtables: HashMap<ModuleDefinitionId, Sy
         did_resolve_symbol
     } {}
 
-    for use_elem in &sa.uses {
+    for (_id, use_definition) in &sa.uses {
         let _ = check_use(
             sa,
             &mut module_symtables,
-            &use_elem.ast,
-            use_elem.module_id,
-            use_elem.file_id,
-            use_elem.visibility,
+            &use_definition.ast,
+            use_definition.module_id,
+            use_definition.file_id,
+            use_definition.visibility,
             None,
             false,
             &mut processed_uses,
@@ -59,7 +59,7 @@ pub fn check<'a>(sa: &Sema, mut module_symtables: HashMap<ModuleDefinitionId, Sy
 fn check_use(
     sa: &Sema,
     module_symtables: &mut HashMap<ModuleDefinitionId, SymTable>,
-    use_declaration: &ast::UsePath,
+    use_path: &ast::UsePath,
     use_module_id: ModuleDefinitionId,
     use_file_id: SourceFileId,
     use_visibility: Visibility,
@@ -68,31 +68,31 @@ fn check_use(
     processed_uses: &mut HashSet<(SourceFileId, NodeId)>,
     did_resolve_symbol: &mut bool,
 ) -> Result<(), ()> {
-    if processed_uses.contains(&(use_file_id, use_declaration.id)) {
+    if processed_uses.contains(&(use_file_id, use_path.id)) {
         return Ok(());
     }
 
     let (start_idx, mut previous_sym) = initial_module(
         sa,
-        use_declaration,
+        use_path,
         use_module_id,
         use_file_id,
         previous_sym,
         processed_uses,
     )?;
 
-    for (idx, component) in use_declaration.path.iter().enumerate().skip(start_idx) {
+    for (idx, component) in use_path.path.iter().enumerate().skip(start_idx) {
         if !previous_sym.is_enum() && !previous_sym.is_module() {
             let msg = ErrorMessage::ExpectedPath;
-            sa.report(use_file_id, use_declaration.path[idx - 1].span, msg);
-            assert!(processed_uses.insert((use_file_id, use_declaration.id)));
+            sa.report(use_file_id, use_path.path[idx - 1].span, msg);
+            assert!(processed_uses.insert((use_file_id, use_path.id)));
             return Err(());
         }
 
         previous_sym = process_component(
             sa,
             module_symtables,
-            use_declaration,
+            use_path,
             use_module_id,
             use_file_id,
             previous_sym,
@@ -102,10 +102,10 @@ fn check_use(
         )?;
     }
 
-    match &use_declaration.target {
+    match &use_path.target {
         UsePathDescriptor::Default => {
-            let last_component = use_declaration.path.last().expect("no component");
-            assert!(processed_uses.insert((use_file_id, use_declaration.id)));
+            let last_component = use_path.path.last().expect("no component");
+            assert!(processed_uses.insert((use_file_id, use_path.id)));
 
             let name = match last_component.value {
                 UsePathComponentValue::Name(ref name) => name.clone(),
@@ -132,8 +132,8 @@ fn check_use(
             )?;
         }
         UsePathDescriptor::As(target) => {
-            let last_component = use_declaration.path.last().expect("no component");
-            assert!(processed_uses.insert((use_file_id, use_declaration.id)));
+            let last_component = use_path.path.last().expect("no component");
+            assert!(processed_uses.insert((use_file_id, use_path.id)));
 
             if let Some(ident) = &target.name {
                 *did_resolve_symbol = true;
@@ -153,7 +153,7 @@ fn check_use(
         UsePathDescriptor::Group(ref group) => {
             if group.targets.is_empty() {
                 sa.report(use_file_id, group.span, ErrorMessage::ExpectedPath);
-                assert!(processed_uses.insert((use_file_id, use_declaration.id)));
+                assert!(processed_uses.insert((use_file_id, use_path.id)));
                 return Err(());
             }
 
@@ -176,7 +176,7 @@ fn check_use(
         }
 
         UsePathDescriptor::Error => {
-            assert!(processed_uses.insert((use_file_id, use_declaration.id)));
+            assert!(processed_uses.insert((use_file_id, use_path.id)));
         }
     }
 
@@ -185,7 +185,7 @@ fn check_use(
 
 fn initial_module(
     sa: &Sema,
-    use_declaration: &ast::UsePath,
+    use_path: &ast::UsePath,
     use_module_id: ModuleDefinitionId,
     use_file_id: SourceFileId,
     previous_sym: Option<SymbolKind>,
@@ -195,7 +195,7 @@ fn initial_module(
         return Ok((0, namespace));
     }
 
-    if let Some(first_component) = use_declaration.path.first() {
+    if let Some(first_component) = use_path.path.first() {
         match first_component.value {
             UsePathComponentValue::This => Ok((1, SymbolKind::Module(use_module_id))),
             UsePathComponentValue::Package => {
@@ -211,7 +211,7 @@ fn initial_module(
                         first_component.span,
                         ErrorMessage::NoSuperModule,
                     );
-                    assert!(processed_uses.insert((use_file_id, use_declaration.id)));
+                    assert!(processed_uses.insert((use_file_id, use_path.id)));
                     Err(())
                 }
             }
@@ -235,7 +235,7 @@ fn initial_module(
 fn process_component(
     sa: &Sema,
     module_symtables: &mut HashMap<ModuleDefinitionId, SymTable>,
-    use_declaration: &ast::UsePath,
+    use_path: &ast::UsePath,
     use_module_id: ModuleDefinitionId,
     use_file_id: SourceFileId,
     previous_sym: SymbolKind,
@@ -250,7 +250,7 @@ fn process_component(
         | UsePathComponentValue::This
         | UsePathComponentValue::Error => {
             sa.report(use_file_id, component.span, ErrorMessage::ExpectedPath);
-            assert!(processed_uses.insert((use_file_id, use_declaration.id)));
+            assert!(processed_uses.insert((use_file_id, use_path.id)));
             return Err(());
         }
     };
@@ -268,7 +268,7 @@ fn process_component(
                     if !use_accessible_from(sa, module_id, visibility.to_owned(), use_module_id) {
                         let msg = ErrorMessage::UseNotAccessible;
                         sa.report(use_file_id, component.span, msg);
-                        assert!(processed_uses.insert((use_file_id, use_declaration.id)));
+                        assert!(processed_uses.insert((use_file_id, use_path.id)));
                         return Err(());
                     }
                 }
@@ -279,7 +279,7 @@ fn process_component(
                     let module = &sa.modules[module_id];
                     let name = component_name.name_as_string.clone();
                     let msg = ErrorMessage::NotAccessibleInModule(module.name(sa), name);
-                    assert!(processed_uses.insert((use_file_id, use_declaration.id)));
+                    assert!(processed_uses.insert((use_file_id, use_path.id)));
                     sa.report(use_file_id, component.span, msg);
                     Err(())
                 }

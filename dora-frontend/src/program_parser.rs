@@ -510,7 +510,8 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             &node.path,
             modifiers,
         );
-        self.sa.uses.push(use_def);
+        let use_id = self.sa.uses.alloc(use_def);
+        assert!(self.sa.uses[use_id].id.set(use_id).is_ok());
     }
 
     fn visit_global(&mut self, node: &Arc<ast::Global>) {
