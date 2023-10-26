@@ -1,0 +1,6 @@
+//= ignore
+
+fn main() {
+    assert(Int::maxValue() == Int64::maxValue());
+    assert(Int::minValue() == Int64::minValue());
+}

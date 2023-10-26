@@ -92,12 +92,21 @@ fn read_type_basic_unchecked(
         }
         Some(SymbolKind::Enum(enum_id)) => SourceType::Enum(enum_id, type_params),
         Some(SymbolKind::TypeParam(type_param_id)) => {
-            if node.params.len() > 0 {
+            if !node.params.is_empty() {
                 let msg = ErrorMessage::NoTypeParamsExpected;
                 sa.report(file_id, node.span, msg);
             }
 
             SourceType::TypeParam(type_param_id)
+        }
+
+        Some(SymbolKind::TypeAlias(alias_id)) => {
+            if !node.params.is_empty() {
+                let msg = ErrorMessage::NoTypeParamsExpected;
+                sa.report(file_id, node.span, msg);
+            }
+
+            sa.aliases[alias_id].ty()
         }
 
         Some(_) => {

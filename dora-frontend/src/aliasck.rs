@@ -1,17 +1,30 @@
-use crate::error::msg::ErrorMessage;
-use crate::sema::AliasParent;
-use crate::Sema;
+use crate::sema::{AliasParent, TypeParamDefinition};
+use crate::{read_type, AllowSelf, ErrorMessage, ModuleSymTable, Sema, SourceType};
 
 pub fn check(sa: &Sema) {
     for (_id, alias) in sa.aliases.iter() {
         match alias.parent {
             AliasParent::None | AliasParent::Impl(..) => {
-                if alias.node.ty.is_none() {
+                if let Some(ref ty_node) = alias.node.ty {
+                    let table = ModuleSymTable::new(sa, alias.module_id);
+                    let ty = read_type(
+                        sa,
+                        &table,
+                        alias.file_id,
+                        ty_node,
+                        &TypeParamDefinition::new(),
+                        AllowSelf::No,
+                    )
+                    .unwrap_or(SourceType::Error);
+
+                    assert!(alias.ty.set(ty).is_ok());
+                } else {
                     sa.report(
                         alias.file_id,
                         alias.node.span,
                         ErrorMessage::TypeAliasMissingType,
-                    )
+                    );
+                    assert!(alias.ty.set(SourceType::Error).is_ok());
                 }
             }
             AliasParent::Trait(..) => {
@@ -36,6 +49,14 @@ mod tests {
     fn type_alias() {
         ok("type Foo = Int64;");
         err("type Foo;", (1, 1), ErrorMessage::TypeAliasMissingType);
+    }
+
+    #[test]
+    fn use_type_alias() {
+        ok("
+            type Foo = Int64;
+            fn foo(x: Foo) {}
+        ");
     }
 
     #[test]

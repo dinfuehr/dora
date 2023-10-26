@@ -1,12 +1,10 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::interner::Name;
-
 use parking_lot::RwLock;
 
 use crate::sema::ModuleDefinitionId;
-use crate::sym::{SymTable, SymbolKind};
+use crate::{Name, SymTable, SymbolKind};
 use id_arena::Id;
 
 pub type PackageDefinitionId = Id<PackageDefinition>;

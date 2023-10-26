@@ -1,4 +1,4 @@
-use crate::{interner::Name, program_parser::ParsedModifierList};
+use crate::{interner::Name, program_parser::ParsedModifierList, ty::SourceType};
 use std::cell::OnceCell;
 use std::sync::Arc;
 
@@ -26,6 +26,7 @@ pub struct AliasDefinition {
     pub node: Arc<ast::TypeAlias>,
     pub modifiers: ParsedModifierList,
     pub name: Name,
+    pub ty: OnceCell<SourceType>,
 }
 
 impl AliasDefinition {
@@ -47,6 +48,11 @@ impl AliasDefinition {
             node: node.clone(),
             modifiers,
             name,
+            ty: OnceCell::new(),
         }
+    }
+
+    pub fn ty(&self) -> SourceType {
+        self.ty.get().cloned().expect("missing ty")
     }
 }

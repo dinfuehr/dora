@@ -1,11 +1,11 @@
-use crate::error::msg::ErrorMessage;
 use crate::sema::{
     EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId, Sema, SourceFileId,
     StructDefinitionId, TypeParamDefinition, TypeParamId,
 };
-use crate::sym::{ModuleSymTable, SymbolKind};
-use crate::ty::SourceType;
-use crate::{read_type_context, AllowSelf, TypeParamContext};
+use crate::{
+    read_type_context, AllowSelf, ErrorMessage, ModuleSymTable, SourceType, SymbolKind,
+    TypeParamContext,
+};
 
 use dora_parser::ast;
 use dora_parser::Span;

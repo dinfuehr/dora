@@ -1,7 +1,8 @@
-use crate::error::msg::ErrorMessage;
+pub use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
 use crate::sema::{Sema, SourceFileId};
-use crate::sym::{Symbol, SymbolKind};
+use crate::sym::{ModuleSymTable, SymTable, Symbol, SymbolKind};
+use crate::ty::{SourceType, SourceTypeArray};
 use dora_bytecode::{dump_stdout, Program};
 use dora_parser::ast;
 use dora_parser::Span;

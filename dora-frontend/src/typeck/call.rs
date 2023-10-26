@@ -6,7 +6,6 @@ use crate::access::{
     class_accessible_from, class_field_accessible_from, fct_accessible_from, is_default_accessible,
     method_accessible_from, struct_accessible_from, struct_field_accessible_from,
 };
-use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
 use crate::sema::{
     find_field_in_class, find_methods_in_class, find_methods_in_enum, find_methods_in_struct,
@@ -15,12 +14,12 @@ use crate::sema::{
 };
 use crate::specialize::replace_type_param;
 use crate::sym::SymbolKind;
-use crate::ty::{SourceType, SourceTypeArray};
 use crate::typeck::{
     args_compatible, args_compatible_fct, check_enum_value_with_args, check_expr, read_path_expr,
     MethodLookup, TypeCheck,
 };
 use crate::typeparamck::{self, ErrorReporting};
+use crate::{ErrorMessage, SourceType, SourceTypeArray};
 
 pub(super) fn check_expr_call(
     ck: &mut TypeCheck,

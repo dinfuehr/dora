@@ -315,6 +315,8 @@ impl std::traits::Comparable for Char {
 
 pub @internal struct Int64
 
+pub type Int = Int64;
+
 impl Int64 {
   pub @internal fn toUInt8(): UInt8;
   pub fn toChar(): Option[Char] {
