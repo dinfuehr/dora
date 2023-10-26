@@ -69,6 +69,8 @@ impl Threads {
         assert!(thread.is_parked());
         parked_scope(|| {
             let mut threads = self.threads.lock();
+            let idx = threads.len();
+            thread.set_index_in_thread_list(idx);
             threads.push(thread);
         });
     }
@@ -77,6 +79,7 @@ impl Threads {
         assert!(thread.is_running());
         let mut threads = self.threads.lock();
         assert!(threads.is_empty());
+        thread.set_index_in_thread_list(0);
         threads.push(thread);
     }
 
@@ -96,7 +99,13 @@ impl Threads {
         thread.park(vm);
 
         let mut threads = self.threads.lock();
-        threads.retain(|elem| Arc::as_ptr(elem) != thread as *const _);
+        let idx = thread.index_in_thread_list.load(Ordering::Relaxed);
+        assert!(Arc::as_ptr(&threads[idx]) == thread as *const _);
+        let last = threads.pop().expect("missing thread");
+        if idx != threads.len() {
+            last.set_index_in_thread_list(idx);
+            threads[idx] = last;
+        }
         self.cv_join.notify_all();
     }
 
@@ -136,6 +145,7 @@ pub struct DoraThread {
     pub tld: ThreadLocalData,
     join_data: JoinData,
     blocking_data: BlockingData,
+    index_in_thread_list: AtomicUsize,
 }
 
 unsafe impl Sync for DoraThread {}
@@ -153,6 +163,7 @@ impl DoraThread {
             tld: ThreadLocalData::new(initial_state),
             join_data: JoinData::new(),
             blocking_data: BlockingData::new(),
+            index_in_thread_list: AtomicUsize::new(usize::MAX),
         })
     }
 
@@ -166,6 +177,10 @@ impl DoraThread {
 
     pub fn set_dtn(&self, ptr: *const DoraToNativeInfo) {
         self.tld.dtn.store(ptr as usize, Ordering::Relaxed);
+    }
+
+    pub fn set_index_in_thread_list(&self, idx: usize) {
+        self.index_in_thread_list.store(idx, Ordering::Relaxed);
     }
 
     pub fn use_dtn<F, R>(&self, dtn: &mut DoraToNativeInfo, fct: F) -> R
