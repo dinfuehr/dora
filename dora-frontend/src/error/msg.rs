@@ -83,6 +83,7 @@ pub enum ErrorMessage {
     MethodNotOverridable(String),
     TypesIncompatible(String, String),
     ReturnTypeMismatch(String, String),
+    ImplMethodTypeMismatch,
     OverrideMismatch,
     UnresolvedInternal,
     UnclosedComment,
@@ -132,8 +133,8 @@ pub enum ErrorMessage {
     TypeParamsExpected,
     TypeParamNameNotUnique(String),
     StaticMethodNotInTrait(String, String, Vec<String>),
-    MethodNotInTrait(String, String, Vec<String>),
-    StaticMethodMissingFromTrait(String, String, Vec<String>),
+    ElementNotInTrait,
+    ElementNotInImpl(String),
     MethodMissingFromTrait(String, String, Vec<String>),
     WrongNumberTypeParams(usize, usize),
     UnconstrainedTypeParam(String),
@@ -510,22 +511,8 @@ impl ErrorMessage {
                     trait_name, mtd_name, args
                 )
             }
-            ErrorMessage::MethodNotInTrait(ref trait_name, ref mtd_name, ref args) => {
-                let args = args.join(", ");
-
-                format!(
-                    "trait `{}` does not define method `{}({})`.",
-                    trait_name, mtd_name, args
-                )
-            }
-            ErrorMessage::StaticMethodMissingFromTrait(ref trait_name, ref mtd_name, ref args) => {
-                let args = args.join(", ");
-
-                format!(
-                    "trait `{}` defines static method `{}({})` but is missing in `impl`.",
-                    trait_name, mtd_name, args
-                )
-            }
+            ErrorMessage::ElementNotInTrait => "element not found in trait.".into(),
+            ErrorMessage::ElementNotInImpl(ref name) => format!("`{}` not found in impl.", name),
             ErrorMessage::MethodMissingFromTrait(ref trait_name, ref mtd_name, ref args) => {
                 let args = args.join(", ");
 
@@ -636,6 +623,9 @@ impl ErrorMessage {
             }
             ErrorMessage::UseNotAccessible => format!("`use` not accessible."),
             ErrorMessage::TypeAliasMissingType => "type alias needs type assignment.".into(),
+            ErrorMessage::ImplMethodTypeMismatch => {
+                "impl method does not match definition in trait.".into()
+            }
         }
     }
 }

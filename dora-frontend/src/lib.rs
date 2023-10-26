@@ -20,7 +20,6 @@ mod extensiondefck;
 mod fctdefck;
 pub mod generator;
 mod globaldefck;
-mod implck;
 mod impldefck;
 mod interner;
 pub mod program_emitter;
@@ -73,7 +72,7 @@ pub fn check_program(sa: &mut Sema) -> bool {
     return_on_error!(sa);
 
     // Find all trait implementations for types.
-    impldefck::check(sa);
+    impldefck::check_definition(sa);
     return_on_error!(sa);
 
     // Checks class/struct/trait/enum definitions.
@@ -94,7 +93,7 @@ pub fn check_program(sa: &mut Sema) -> bool {
     return_on_error!(sa);
 
     // Check impl methods against trait definition.
-    implck::check(sa);
+    impldefck::check_body(sa);
     return_on_error!(sa);
 
     // Define internal functions & methods.

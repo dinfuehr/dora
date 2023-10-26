@@ -140,7 +140,7 @@ impl TraitDefinition {
     }
 }
 
-fn params_match(
+pub fn params_match(
     replace: Option<SourceType>,
     trait_args: &[SourceType],
     args: &[SourceType],

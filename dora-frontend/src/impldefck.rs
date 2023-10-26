@@ -1,15 +1,18 @@
-use crate::error::msg::ErrorMessage;
+use std::collections::{HashMap, HashSet};
+
 use crate::extensiondefck::check_for_unconstrained_type_params;
-use crate::sema::{FctDefinitionId, ImplDefinitionId, Sema, SourceFileId};
-use crate::sym::{ModuleSymTable, SymbolKind};
-use crate::ty::SourceType;
-use crate::{read_type_context, AllowSelf, TypeParamContext};
+use crate::sema::{
+    params_match, FctDefinition, FctDefinitionId, ImplDefinition, ImplDefinitionId, Sema,
+    SourceFileId, TraitDefinition,
+};
+use crate::{
+    read_type_context, AllowSelf, ErrorMessage, ModuleSymTable, Name, SourceType, SymbolKind,
+    TypeParamContext,
+};
 
 use dora_parser::ast;
 
-use super::sema::ImplDefinition;
-
-pub fn check(sa: &Sema) {
+pub fn check_definition(sa: &Sema) {
     for (_id, impl_) in sa.impls.iter() {
         let (impl_id, file_id, module_id, ast) = {
             (
@@ -26,9 +29,14 @@ pub fn check(sa: &Sema) {
             file_id,
             sym: ModuleSymTable::new(sa, module_id),
             ast: &ast,
+            instance_names: HashMap::new(),
+            static_names: HashMap::new(),
         };
 
         implck.check();
+
+        assert!(impl_.instance_names.set(implck.instance_names).is_ok());
+        assert!(impl_.static_names.set(implck.static_names).is_ok());
     }
 }
 
@@ -38,6 +46,8 @@ struct ImplCheck<'x> {
     impl_id: ImplDefinitionId,
     sym: ModuleSymTable,
     ast: &'x ast::Impl,
+    instance_names: HashMap<Name, FctDefinitionId>,
+    static_names: HashMap<Name, FctDefinitionId>,
 }
 
 impl<'x> ImplCheck<'x> {
@@ -124,12 +134,12 @@ impl<'x> ImplCheck<'x> {
         self.sym.pop_level();
 
         for &method_id in impl_.methods() {
-            self.visit_method(impl_, method_id);
+            self.visit_method(method_id);
         }
     }
 
-    fn visit_method(&mut self, impl_: &ImplDefinition, fct_id: FctDefinitionId) {
-        let method = &self.sa.fcts[fct_id];
+    fn visit_method(&mut self, method_id: FctDefinitionId) {
+        let method = &self.sa.fcts[method_id];
 
         if method.ast.block.is_none() && !method.is_internal {
             self.sa.report(
@@ -140,16 +150,123 @@ impl<'x> ImplCheck<'x> {
         }
 
         let table = if method.is_static {
-            &impl_.static_names
+            &mut self.static_names
         } else {
-            &impl_.instance_names
+            &mut self.instance_names
         };
 
-        let mut table = table.borrow_mut();
+        if let Some(&existing_id) = table.get(&method.name) {
+            let existing_fct = &self.sa.fcts[existing_id];
+            let method_name = self.sa.interner.str(method.name).to_string();
 
-        if !table.contains_key(&method.name) {
-            table.insert(method.name, fct_id);
+            self.sa.report(
+                method.file_id,
+                method.ast.span,
+                ErrorMessage::MethodExists(method_name, existing_fct.span),
+            );
+        } else {
+            assert!(table.insert(method.name, method_id).is_none());
         }
+    }
+}
+
+pub fn check_body(sa: &Sema) {
+    for (_id, impl_) in sa.impls.iter() {
+        check_impl_body(sa, impl_);
+    }
+}
+
+fn check_impl_body(sa: &Sema, impl_: &ImplDefinition) {
+    let trait_ = &sa.traits[impl_.trait_id()];
+
+    let mut remaining_trait_methods: HashSet<FctDefinitionId> =
+        trait_.methods().iter().cloned().collect();
+    let mut trait_to_impl_method_map = HashMap::new();
+
+    for &impl_method_id in impl_.methods() {
+        let impl_method = &sa.fcts[impl_method_id];
+
+        if let Some(trait_method_id) =
+            trait_.find_method(sa, impl_method.name, impl_method.is_static)
+        {
+            trait_to_impl_method_map.insert(trait_method_id, impl_method_id);
+            remaining_trait_methods.remove(&trait_method_id);
+
+            check_impl_method(sa, impl_, impl_method, trait_method_id);
+        } else {
+            sa.report(
+                impl_.file_id,
+                impl_method.span,
+                ErrorMessage::ElementNotInTrait,
+            )
+        }
+    }
+
+    let mut missing_methods = HashSet::new();
+
+    for method_id in remaining_trait_methods {
+        let method = &sa.fcts[method_id];
+
+        if method.has_body() {
+            // method has a default implementation, use that one
+            trait_to_impl_method_map.insert(method_id, method_id);
+        } else {
+            missing_methods.insert(method_id);
+        }
+    }
+
+    if !missing_methods.is_empty() {
+        report_missing_methods(sa, impl_, trait_, missing_methods);
+    }
+
+    assert!(impl_
+        .trait_to_impl_method_map
+        .set(trait_to_impl_method_map)
+        .is_ok());
+}
+
+fn check_impl_method(
+    sa: &Sema,
+    impl_: &ImplDefinition,
+    impl_method: &FctDefinition,
+    trait_method_id: FctDefinitionId,
+) {
+    let trait_method = &sa.fcts[trait_method_id];
+
+    let params_match = params_match(
+        Some(impl_.extended_ty().clone()),
+        trait_method.params_without_self(),
+        impl_method.params_without_self(),
+    );
+
+    let return_type_valid = impl_method.return_type()
+        == if trait_method.return_type().is_self() {
+            impl_.extended_ty()
+        } else {
+            trait_method.return_type()
+        };
+
+    if !return_type_valid || !params_match {
+        let msg = ErrorMessage::ImplMethodTypeMismatch;
+        sa.report(impl_.file_id, impl_method.span, msg);
+    }
+}
+
+fn report_missing_methods(
+    sa: &Sema,
+    impl_: &ImplDefinition,
+    _trait: &TraitDefinition,
+    missing_methods: HashSet<FctDefinitionId>,
+) {
+    for method_id in missing_methods {
+        let method = &sa.fcts[method_id];
+        let mtd_name = sa.interner.str(method.name).to_string();
+
+        sa.report(
+            impl_.file_id,
+            impl_.span,
+            ErrorMessage::ElementNotInImpl(mtd_name),
+        )
     }
 }
 
@@ -313,5 +430,120 @@ mod tests {
                 }
             }
         ")
+    }
+
+    #[test]
+    fn method_not_in_trait() {
+        err(
+            "
+            trait Foo {}
+            class A
+            impl Foo for A {
+                fn bar() {}
+            }",
+            (5, 17),
+            ErrorMessage::ElementNotInTrait,
+        );
+    }
+
+    #[test]
+    fn method_missing_in_impl() {
+        err(
+            "
+            trait Foo {
+                fn bar();
+            }
+            class A
+            impl Foo for A {}",
+            (6, 13),
+            ErrorMessage::ElementNotInImpl("bar".into()),
+        );
+    }
+
+    #[test]
+    fn method_returning_self() {
+        ok("trait Foo {
+                fn foo(): Self;
+            }
+
+            class A
+
+            impl Foo for A {
+                fn foo(): A { return A(); }
+            }");
+    }
+
+    #[test]
+    fn static_method_not_in_trait() {
+        err(
+            "
+            trait Foo {}
+            class A
+            impl Foo for A {
+                static fn bar() {}
+            }",
+            (5, 24),
+            ErrorMessage::ElementNotInTrait,
+        );
+    }
+
+    #[test]
+    fn static_method_missing_in_impl() {
+        err(
+            "
+            trait Foo {
+                static fn bar();
+            }
+            class A
+            impl Foo for A {}",
+            (6, 13),
+            ErrorMessage::ElementNotInImpl("bar".into()),
+        );
+    }
+
+    #[test]
+    fn method_return_type_check() {
+        err(
+            "trait X {
+                fn m(): Bool;
+                fn n(): Bool;
+              }
+
+              class CX
+
+              impl X for CX {
+                fn m(): Int32 { 0 }
+                fn n(): Bool { true }
+              }",
+            (9, 17),
+            ErrorMessage::ImplMethodTypeMismatch,
+        );
+    }
+
+    #[test]
+    fn method_params_type_check() {
+        err(
+            "trait X {
+                fn f(a: Int64, b: Int64): Bool;
+              }
+
+              class CX
+
+              impl X for CX {
+                fn f(a: Int64, b: Int32): Bool { true }
+              }",
+            (8, 17),
+            ErrorMessage::ImplMethodTypeMismatch,
+        );
+    }
+
+    #[test]
+    fn impl_method_with_default_body() {
+        ok("
+            trait Foo {
+                fn foo(): Int32 { 1 }
+            }
+            class Bar {}
+            impl Foo for Bar {}");
     }
 }

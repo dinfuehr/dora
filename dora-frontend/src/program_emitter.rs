@@ -96,7 +96,7 @@ fn create_impls(sa: &Sema) -> Vec<ImplData> {
         // The methods array for impl should have the exact same order as for the trait.
         for method_id in trait_.methods() {
             let target_method_id = *impl_
-                .impl_for()
+                .trait_to_impl_method_map()
                 .get(&method_id)
                 .expect("missing impl for trait methdo");
 

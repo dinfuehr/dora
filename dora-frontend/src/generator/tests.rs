@@ -4442,8 +4442,7 @@ pub fn impl_method_id_by_name(
 
     let name = sa.interner.intern(method_name);
     impl_
-        .instance_names
-        .borrow()
+        .instance_names()
         .get(&name)
         .cloned()
         .expect("method not found")

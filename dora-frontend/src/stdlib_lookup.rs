@@ -2069,8 +2069,7 @@ fn internal_impl_method(
             let method_name = sa.interner.intern(method_name);
 
             let method_id = impl_
-                .instance_names
-                .borrow()
+                .instance_names()
                 .get(&method_name)
                 .cloned()
                 .expect("method not found");

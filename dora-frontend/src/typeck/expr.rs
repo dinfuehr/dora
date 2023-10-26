@@ -681,8 +681,7 @@ fn check_expr_template(
                     let impl_ = &ck.sa.impls[stringable_impl_id];
                     let name = ck.sa.interner.intern("toString");
                     let to_string_id = impl_
-                        .instance_names
-                        .borrow()
+                        .instance_names()
                         .get(&name)
                         .cloned()
                         .expect("method toString() not found");
@@ -749,8 +748,7 @@ fn check_expr_un_trait(
     if let Some(impl_id) = impl_id {
         let impl_ = &ck.sa.impls[impl_id];
         let method_id = impl_
-            .instance_names
-            .borrow()
+            .instance_names()
             .get(&trait_method_name)
             .cloned()
             .expect("method not found");
@@ -970,8 +968,7 @@ fn check_expr_bin_trait(
 
         let impl_ = &ck.sa.impls[impl_id];
         let method_id = impl_
-            .instance_names
-            .borrow()
+            .instance_names()
             .get(&trait_method_name)
             .cloned()
             .expect("method not found");

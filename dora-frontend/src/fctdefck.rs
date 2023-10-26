@@ -1,12 +1,10 @@
 use std::collections::HashSet;
 
-use crate::error::msg::ErrorMessage;
-use crate::sema::{
-    FctDefinition, FctDefinitionId, FctParent, Sema, TypeParamDefinition, TypeParamId,
+use crate::sema::{FctDefinition, FctParent, Sema, TypeParamDefinition, TypeParamId};
+use crate::{
+    read_type, read_type_context, AllowSelf, ErrorMessage, ModuleSymTable, SourceType, SymbolKind,
+    TypeParamContext,
 };
-use crate::sym::{ModuleSymTable, SymbolKind};
-use crate::ty::SourceType;
-use crate::{read_type, read_type_context, AllowSelf, TypeParamContext};
 
 pub fn check(sa: &Sema) {
     for (_id, fct) in sa.fcts.iter() {
@@ -175,15 +173,6 @@ pub fn check(sa: &Sema) {
         fct.initialized.set(true);
 
         check_test(sa, &*fct);
-
-        match fct.parent {
-            FctParent::Impl(implid) => {
-                let impl_ = &sa.impls[implid];
-                check_against_methods(sa, &*fct, impl_.methods());
-            }
-
-            _ => {}
-        }
     }
 }
 
@@ -201,25 +190,6 @@ fn check_test(sa: &Sema, fct: &FctDefinition) {
     {
         let msg = ErrorMessage::InvalidTestAnnotationUsage;
         sa.report(fct.file_id, fct.span, msg);
-    }
-}
-
-fn check_against_methods(sa: &Sema, fct: &FctDefinition, methods: &[FctDefinitionId]) {
-    for &method in methods {
-        if method == fct.id() {
-            continue;
-        }
-
-        let method = &sa.fcts[method];
-
-        if method.initialized.get() && method.name == fct.name && method.is_static == fct.is_static
-        {
-            let method_name = sa.interner.str(method.name).to_string();
-
-            let msg = ErrorMessage::MethodExists(method_name, method.span);
-            sa.report(fct.file_id, fct.ast.span, msg);
-            return;
-        }
     }
 }
 
