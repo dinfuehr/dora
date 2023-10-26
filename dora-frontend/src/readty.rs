@@ -63,8 +63,6 @@ fn read_type_basic_unchecked(
 
     let sym = sym.unwrap();
 
-    if sym.is_none() {}
-
     let mut type_params = Vec::new();
 
     for param in &node.params {

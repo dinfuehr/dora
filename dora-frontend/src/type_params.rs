@@ -20,23 +20,18 @@ pub fn check(sa: &Sema) {
 
 fn check_traits(sa: &Sema) {
     for (_id, trait_) in sa.traits.iter() {
-        let type_param_definition;
+        let mut symtable = ModuleSymTable::new(sa, trait_.module_id);
+        symtable.push_level();
 
-        {
-            let mut symtable = ModuleSymTable::new(sa, trait_.module_id);
-            symtable.push_level();
+        let type_param_definition = read_type_param_definition(
+            sa,
+            trait_.ast.type_params.as_ref(),
+            &mut symtable,
+            trait_.file_id,
+            trait_.span,
+        );
 
-            type_param_definition = read_type_param_definition(
-                sa,
-                trait_.ast.type_params.as_ref(),
-                &mut symtable,
-                trait_.file_id,
-                trait_.span,
-            );
-
-            symtable.pop_level();
-        }
-
+        symtable.pop_level();
         assert!(trait_.type_params.set(type_param_definition).is_ok());
     }
 }
@@ -64,22 +59,18 @@ fn check_impls(sa: &Sema) {
 
 fn check_classes(sa: &Sema) {
     for (cls_id, cls) in sa.classes.iter() {
-        let type_param_definition;
+        let mut symtable = ModuleSymTable::new(sa, cls.module_id);
+        symtable.push_level();
 
-        {
-            let mut symtable = ModuleSymTable::new(sa, cls.module_id);
-            symtable.push_level();
+        let type_param_definition = read_type_param_definition(
+            sa,
+            cls.ast().type_params.as_ref(),
+            &mut symtable,
+            cls.file_id(),
+            cls.span(),
+        );
 
-            type_param_definition = read_type_param_definition(
-                sa,
-                cls.ast().type_params.as_ref(),
-                &mut symtable,
-                cls.file_id(),
-                cls.span(),
-            );
-
-            symtable.pop_level();
-        }
+        symtable.pop_level();
 
         let number_type_params = type_param_definition.len();
         cls.type_params
@@ -96,22 +87,18 @@ fn check_classes(sa: &Sema) {
 
 fn check_enums(sa: &Sema) {
     for (_id, enum_) in sa.enums.iter() {
-        let type_param_definition;
+        let mut symtable = ModuleSymTable::new(sa, enum_.module_id);
+        symtable.push_level();
 
-        {
-            let mut symtable = ModuleSymTable::new(sa, enum_.module_id);
-            symtable.push_level();
+        let type_param_definition = read_type_param_definition(
+            sa,
+            enum_.ast.type_params.as_ref(),
+            &mut symtable,
+            enum_.file_id,
+            enum_.span,
+        );
 
-            type_param_definition = read_type_param_definition(
-                sa,
-                enum_.ast.type_params.as_ref(),
-                &mut symtable,
-                enum_.file_id,
-                enum_.span,
-            );
-
-            symtable.pop_level();
-        }
+        symtable.pop_level();
 
         assert!(enum_.type_params.set(type_param_definition).is_ok());
     }
@@ -145,22 +132,18 @@ fn check_structs(sa: &Sema) {
 
 fn check_extensions(sa: &Sema) {
     for (_id, extension) in sa.extensions.iter() {
-        let type_param_definition;
+        let mut symtable = ModuleSymTable::new(sa, extension.module_id);
+        symtable.push_level();
 
-        {
-            let mut symtable = ModuleSymTable::new(sa, extension.module_id);
-            symtable.push_level();
+        let type_param_definition = read_type_param_definition(
+            sa,
+            extension.ast.type_params.as_ref(),
+            &mut symtable,
+            extension.file_id,
+            extension.span,
+        );
 
-            type_param_definition = read_type_param_definition(
-                sa,
-                extension.ast.type_params.as_ref(),
-                &mut symtable,
-                extension.file_id,
-                extension.span,
-            );
-
-            symtable.pop_level();
-        }
+        symtable.pop_level();
 
         assert!(extension.type_params.set(type_param_definition).is_ok());
     }

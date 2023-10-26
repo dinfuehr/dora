@@ -7,8 +7,8 @@ use dora_parser::ast;
 use dora_parser::Span;
 
 use crate::sema::{
-    extension_matches_ty, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
-    SourceFileId, TraitDefinitionId, TypeParamDefinition,
+    extension_matches_ty, AliasDefinitionId, FctDefinitionId, ModuleDefinitionId,
+    PackageDefinitionId, Sema, SourceFileId, TraitDefinitionId, TypeParamDefinition,
 };
 use crate::ty::{SourceType, SourceTypeArray};
 use id_arena::Id;
@@ -27,6 +27,7 @@ pub struct ImplDefinition {
     pub trait_ty: OnceCell<SourceType>,
     pub extended_ty: OnceCell<SourceType>,
     pub methods: OnceCell<Vec<FctDefinitionId>>,
+    pub aliases: OnceCell<Vec<AliasDefinitionId>>,
     pub instance_names: RefCell<HashMap<Name, FctDefinitionId>>,
     pub static_names: RefCell<HashMap<Name, FctDefinitionId>>,
     pub impl_for: OnceCell<HashMap<FctDefinitionId, FctDefinitionId>>,
@@ -50,6 +51,7 @@ impl ImplDefinition {
             trait_ty: OnceCell::new(),
             extended_ty: OnceCell::new(),
             methods: OnceCell::new(),
+            aliases: OnceCell::new(),
             instance_names: RefCell::new(HashMap::new()),
             static_names: RefCell::new(HashMap::new()),
             impl_for: OnceCell::new(),

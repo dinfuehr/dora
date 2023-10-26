@@ -8,10 +8,10 @@ use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
 use crate::report_sym_shadow_span;
 use crate::sema::{
-    AliasDefinition, ClassDefinition, ConstDefinition, EnumDefinition, ExtensionDefinition,
-    ExtensionDefinitionId, FctDefinition, FctParent, Field, FieldId, GlobalDefinition,
-    ImplDefinition, ImplDefinitionId, ModuleDefinition, ModuleDefinitionId, PackageDefinitionId,
-    PackageName, Sema, SourceFileId, StructDefinition, StructDefinitionField,
+    AliasDefinition, AliasParent, ClassDefinition, ConstDefinition, EnumDefinition,
+    ExtensionDefinition, ExtensionDefinitionId, FctDefinition, FctParent, Field, FieldId,
+    GlobalDefinition, ImplDefinition, ImplDefinitionId, ModuleDefinition, ModuleDefinitionId,
+    PackageDefinitionId, PackageName, Sema, SourceFileId, StructDefinition, StructDefinitionField,
     StructDefinitionFieldId, TraitDefinition, TraitDefinitionId, UseDefinition, Visibility,
 };
 use crate::sym::{SymTable, Symbol, SymbolKind};
@@ -549,7 +549,14 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             let impl_id = self.sa.impls.alloc(impl_);
             assert!(self.sa.impls[impl_id].id.set(impl_id).is_ok());
 
-            find_methods_in_impl(self.sa, impl_id, node);
+            find_methods_in_impl(
+                self.sa,
+                self.package_id,
+                self.module_id,
+                self.file_id,
+                impl_id,
+                node,
+            );
         } else {
             let extension =
                 ExtensionDefinition::new(self.package_id, self.module_id, self.file_id, node);
@@ -739,6 +746,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             self.package_id,
             self.module_id,
             self.file_id,
+            AliasParent::None,
             node,
             modifiers,
             ensure_name(self.sa, &node.name),
@@ -804,9 +812,17 @@ fn find_elements_in_trait(
                     )
                 }
 
-                let id = sa.aliases.alloc(AliasDefinition::new(
-                    package_id, module_id, file_id, alias, modifiers, name,
-                ));
+                let alias = AliasDefinition::new(
+                    package_id,
+                    module_id,
+                    file_id,
+                    AliasParent::Trait(trait_id),
+                    alias,
+                    modifiers,
+                    name,
+                );
+
+                let id = sa.aliases.alloc(alias);
                 assert!(sa.aliases[id].id.set(id).is_ok());
 
                 aliases.push(id);
@@ -829,8 +845,16 @@ fn find_elements_in_trait(
     assert!(trait_.aliases.set(aliases).is_ok());
 }
 
-fn find_methods_in_impl(sa: &mut Sema, impl_id: ImplDefinitionId, node: &Arc<ast::Impl>) {
+fn find_methods_in_impl(
+    sa: &mut Sema,
+    package_id: PackageDefinitionId,
+    module_id: ModuleDefinitionId,
+    file_id: SourceFileId,
+    impl_id: ImplDefinitionId,
+    node: &Arc<ast::Impl>,
+) {
     let mut methods = Vec::new();
+    let mut aliases = Vec::new();
 
     for child in &node.methods {
         match child.as_ref() {
@@ -858,6 +882,31 @@ fn find_methods_in_impl(sa: &mut Sema, impl_id: ImplDefinitionId, node: &Arc<ast
                 methods.push(fct_id);
             }
 
+            ast::ElemData::TypeAlias(ref alias) => {
+                let modifiers = check_modifiers(sa, file_id, &alias.modifiers, &[]);
+
+                let name = ensure_name(sa, &alias.name);
+
+                if let Some(ref ty) = alias.ty {
+                    sa.report(file_id, ty.span(), ErrorMessage::NoTypeExpected)
+                }
+
+                let alias = AliasDefinition::new(
+                    package_id,
+                    module_id,
+                    file_id,
+                    AliasParent::Impl(impl_id),
+                    alias,
+                    modifiers,
+                    name,
+                );
+
+                let id = sa.aliases.alloc(alias);
+                assert!(sa.aliases[id].id.set(id).is_ok());
+
+                aliases.push(id);
+            }
+
             ast::ElemData::Error { .. } => {
                 // ignore
             }
@@ -872,6 +921,7 @@ fn find_methods_in_impl(sa: &mut Sema, impl_id: ImplDefinitionId, node: &Arc<ast
 
     let impl_ = &sa.impls[impl_id];
     assert!(impl_.methods.set(methods).is_ok());
+    assert!(impl_.aliases.set(aliases).is_ok());
 }
 
 fn find_methods_in_extension(

@@ -10,6 +10,7 @@ pub use program_emitter::emit_program;
 pub use readty::{read_type, read_type_context, read_type_unchecked, AllowSelf, TypeParamContext};
 
 pub(crate) mod access;
+mod aliasck;
 mod clsdefck;
 mod constdefck;
 mod enumck;
@@ -79,6 +80,7 @@ pub fn check_program(sa: &mut Sema) -> bool {
     structdefck::check(sa);
     traitdefck::check(sa);
     enumck::check(sa);
+    aliasck::check(sa);
     return_on_error!(sa);
 
     globaldefck::check(sa);
