@@ -122,7 +122,7 @@ pub enum ErrorMessage {
     NoSuperDelegationWithPrimaryCtor(String),
     NoSuperClass(String),
     NotAccessible(String),
-    NoTypeExpected,
+    UnexpectedTypeAliasAssignment,
     StructConstructorNotAccessible(String),
     StructFieldImmutable,
     ClassConstructorNotAccessible(String),
@@ -178,6 +178,7 @@ pub enum ErrorMessage {
     InvalidReturn,
     MatchMultiplePatternsWithParamsNotSupported,
     UseNotAccessible,
+    TypeAliasMissingType,
 }
 
 impl ErrorMessage {
@@ -234,7 +235,7 @@ impl ErrorMessage {
                 let args = args.join(", ");
                 format!("no static method `{}::{}({})`.", cls, name, args)
             }
-            ErrorMessage::NoTypeExpected => "no type expected.".into(),
+            ErrorMessage::UnexpectedTypeAliasAssignment => "no type expected.".into(),
             ErrorMessage::UnknownCtor => "class does not have constructor.".into(),
             ErrorMessage::MethodExists(ref name, pos) => format!(
                 "method with name `{}` already exists at line {}.",
@@ -632,6 +633,7 @@ impl ErrorMessage {
                 format!("Multiple patterns with arguments in a `match` arm are currently not supported.")
             }
             ErrorMessage::UseNotAccessible => format!("`use` not accessible."),
+            ErrorMessage::TypeAliasMissingType => "type alias needs type assignment.".into(),
         }
     }
 }

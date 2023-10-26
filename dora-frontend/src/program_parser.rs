@@ -549,7 +549,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             let impl_id = self.sa.impls.alloc(impl_);
             assert!(self.sa.impls[impl_id].id.set(impl_id).is_ok());
 
-            find_methods_in_impl(
+            find_elements_in_impl(
                 self.sa,
                 self.package_id,
                 self.module_id,
@@ -804,14 +804,6 @@ fn find_elements_in_trait(
 
                 let name = ensure_name(sa, &alias.name);
 
-                if let Some(ref ty) = alias.ty {
-                    sa.report(
-                        sa.traits[trait_id].file_id,
-                        ty.span(),
-                        ErrorMessage::NoTypeExpected,
-                    )
-                }
-
                 let alias = AliasDefinition::new(
                     package_id,
                     module_id,
@@ -845,7 +837,7 @@ fn find_elements_in_trait(
     assert!(trait_.aliases.set(aliases).is_ok());
 }
 
-fn find_methods_in_impl(
+fn find_elements_in_impl(
     sa: &mut Sema,
     package_id: PackageDefinitionId,
     module_id: ModuleDefinitionId,
@@ -886,10 +878,6 @@ fn find_methods_in_impl(
                 let modifiers = check_modifiers(sa, file_id, &alias.modifiers, &[]);
 
                 let name = ensure_name(sa, &alias.name);
-
-                if let Some(ref ty) = alias.ty {
-                    sa.report(file_id, ty.span(), ErrorMessage::NoTypeExpected)
-                }
 
                 let alias = AliasDefinition::new(
                     package_id,

@@ -11,6 +11,7 @@ pub fn check(sa: &Sema) {
             vtable_index: 0,
             instance_names: HashMap::new(),
             static_names: HashMap::new(),
+            alias_names: HashMap::new(),
         };
 
         traitck.check();
@@ -26,6 +27,7 @@ struct TraitCheck<'x> {
     vtable_index: u32,
     instance_names: HashMap<Name, FctDefinitionId>,
     static_names: HashMap<Name, FctDefinitionId>,
+    alias_names: HashMap<Name, AliasDefinitionId>,
 }
 
 impl<'x> TraitCheck<'x> {
@@ -56,8 +58,9 @@ impl<'x> TraitCheck<'x> {
         }
     }
 
-    fn visit_alias(&mut self, _alias_id: AliasDefinitionId) {
-        unimplemented!()
+    fn visit_alias(&mut self, alias_id: AliasDefinitionId) {
+        let alias = &self.sa.aliases[alias_id];
+        self.alias_names.insert(alias.name, alias_id);
     }
 }
 
