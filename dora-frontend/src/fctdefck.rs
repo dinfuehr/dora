@@ -177,11 +177,6 @@ pub fn check(sa: &Sema) {
         check_test(sa, &*fct);
 
         match fct.parent {
-            FctParent::Trait(traitid) => {
-                let trait_ = &sa.traits[traitid];
-                check_against_methods(sa, &*fct, trait_.methods());
-            }
-
             FctParent::Impl(implid) => {
                 let impl_ = &sa.impls[implid];
                 check_against_methods(sa, &*fct, impl_.methods());

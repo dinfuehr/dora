@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use crate::interner::Name;
 use crate::sema::{AliasDefinitionId, FctDefinitionId, Sema, TraitDefinition};
+use crate::{ErrorMessage, Name};
 
 pub fn check(sa: &Sema) {
     for (_id, trait_) in sa.traits.iter() {
@@ -53,8 +53,17 @@ impl<'x> TraitCheck<'x> {
             &mut self.instance_names
         };
 
-        if !table.contains_key(&fct.name) {
-            table.insert(fct.name, fct_id);
+        if let Some(&existing_id) = table.get(&fct.name) {
+            let existing_fct = &self.sa.fcts[existing_id];
+            let method_name = self.sa.interner.str(fct.name).to_string();
+
+            self.sa.report(
+                fct.file_id,
+                fct.ast.span,
+                ErrorMessage::MethodExists(method_name, existing_fct.span),
+            );
+        } else {
+            assert!(table.insert(fct.name, fct_id).is_none());
         }
     }
 
