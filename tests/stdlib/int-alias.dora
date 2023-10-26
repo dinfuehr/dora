@@ -3,4 +3,7 @@
 fn main() {
     assert(Int::maxValue() == Int64::maxValue());
     assert(Int::minValue() == Int64::minValue());
+
+    let x: Int = -10;
+    assert(x.abs() == 10);
 }

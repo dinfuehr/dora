@@ -862,8 +862,18 @@ fn check_expr_call_path(
             check_expr_call_sym(ck, e, expected_ty, callee, sym, type_params, arg_types)
         }
 
+        Some(SymbolKind::TypeAlias(alias_id)) => {
+            if !container_type_params.is_empty() {
+                let msg = ErrorMessage::NoTypeParamsExpected;
+                ck.sa.report(ck.file_id, callee_as_path.lhs.span(), msg);
+            }
+
+            let alias_ty = ck.sa.aliases[alias_id].ty();
+            check_expr_call_static_method(ck, e, alias_ty, method_name, type_params, arg_types)
+        }
+
         _ => {
-            let msg = ErrorMessage::ClassExpected;
+            let msg = ErrorMessage::StaticMethodCallTargetExpected;
             ck.sa.report(ck.file_id, e.span, msg);
 
             ck.analysis.set_ty(e.id, SourceType::Error);

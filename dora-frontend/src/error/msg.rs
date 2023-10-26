@@ -137,7 +137,7 @@ pub enum ErrorMessage {
     MethodMissingFromTrait(String, String, Vec<String>),
     WrongNumberTypeParams(usize, usize),
     UnconstrainedTypeParam(String),
-    ClassExpected,
+    StaticMethodCallTargetExpected,
     ExpectedImplTraitType,
     ExpectedImplType,
     BoundExpected,
@@ -540,7 +540,9 @@ impl ErrorMessage {
             ErrorMessage::UnconstrainedTypeParam(ref name) => {
                 format!("unconstrained type param `{}`.", name)
             }
-            ErrorMessage::ClassExpected => "expected class.".into(),
+            ErrorMessage::StaticMethodCallTargetExpected => {
+                "expected static method call target.".into()
+            }
             ErrorMessage::ExpectedImplTraitType => "cannot implement trait for this type.".into(),
             ErrorMessage::ExpectedImplType => "cannot use this type in `impl` block".into(),
             ErrorMessage::BoundExpected => "class or trait bound expected".into(),

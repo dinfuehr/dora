@@ -110,6 +110,7 @@ pub fn setup_prelude(sa: &mut Sema) {
         "primitives::Char",
         "primitives::Int32",
         "primitives::Int64",
+        "primitives::Int",
         "primitives::Float32",
         "primitives::Float64",
         "string::String",
