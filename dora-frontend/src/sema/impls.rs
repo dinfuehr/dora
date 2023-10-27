@@ -2,7 +2,6 @@ use std::cell::OnceCell;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::interner::Name;
 use dora_parser::ast;
 use dora_parser::Span;
 
@@ -28,9 +27,7 @@ pub struct ImplDefinition {
     pub extended_ty: OnceCell<SourceType>,
     pub methods: OnceCell<Vec<FctDefinitionId>>,
     pub aliases: OnceCell<Vec<AliasDefinitionId>>,
-    pub instance_names: OnceCell<HashMap<Name, FctDefinitionId>>,
-    pub static_names: OnceCell<HashMap<Name, FctDefinitionId>>,
-    pub trait_to_impl_method_map: OnceCell<HashMap<FctDefinitionId, FctDefinitionId>>,
+    pub trait_method_map: OnceCell<HashMap<FctDefinitionId, FctDefinitionId>>,
 }
 
 impl ImplDefinition {
@@ -52,9 +49,7 @@ impl ImplDefinition {
             extended_ty: OnceCell::new(),
             methods: OnceCell::new(),
             aliases: OnceCell::new(),
-            instance_names: OnceCell::new(),
-            static_names: OnceCell::new(),
-            trait_to_impl_method_map: OnceCell::new(),
+            trait_method_map: OnceCell::new(),
         }
     }
 
@@ -78,20 +73,19 @@ impl ImplDefinition {
         self.extended_ty.get().expect("missing trait type").clone()
     }
 
-    pub fn trait_to_impl_method_map(&self) -> &HashMap<FctDefinitionId, FctDefinitionId> {
-        self.trait_to_impl_method_map.get().expect("missing impl")
+    pub fn trait_method_map(&self) -> &HashMap<FctDefinitionId, FctDefinitionId> {
+        self.trait_method_map.get().expect("missing impl")
+    }
+
+    pub fn get_method_for_trait_method_id(
+        &self,
+        trait_method_id: FctDefinitionId,
+    ) -> Option<FctDefinitionId> {
+        self.trait_method_map().get(&trait_method_id).cloned()
     }
 
     pub fn methods(&self) -> &[FctDefinitionId] {
         self.methods.get().expect("missing methods")
-    }
-
-    pub fn instance_names(&self) -> &HashMap<Name, FctDefinitionId> {
-        self.instance_names.get().expect("uninitialized")
-    }
-
-    pub fn static_names(&self) -> &HashMap<Name, FctDefinitionId> {
-        self.static_names.get().expect("uninitialized")
     }
 }
 

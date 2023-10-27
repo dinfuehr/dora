@@ -735,7 +735,7 @@ impl<'a> AstBytecodeGen<'a> {
                     let trait_id = self.sa.known.traits.stringable();
                     let trait_ = &self.sa.traits[trait_id];
                     let to_string_id = trait_
-                        .find_method(self.sa, name, false)
+                        .get_method(name, false)
                         .expect("Stringable::toString() not found");
 
                     let fct_idx = self.builder.add_const_generic(

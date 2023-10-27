@@ -301,7 +301,7 @@ impl<'a> MethodLookup<'a> {
         is_static: bool,
     ) -> Option<FctDefinitionId> {
         let trait_ = &self.sa.traits[trait_id];
-        trait_.find_method(self.sa, name, is_static)
+        trait_.get_method(name, is_static)
     }
 
     fn check_tps(&self, specified_tps: &TypeParamDefinition, tps: &SourceTypeArray) -> bool {

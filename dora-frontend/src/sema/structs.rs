@@ -196,17 +196,15 @@ pub fn find_methods_in_struct(
 
     for (_id, impl_) in sa.impls.iter() {
         if let Some(bindings) = impl_matches(sa, object_type.clone(), type_param_defs, impl_.id()) {
-            let table = if is_static {
-                impl_.static_names()
-            } else {
-                impl_.instance_names()
-            };
+            let trait_ = &sa.traits[impl_.trait_id()];
 
-            if let Some(&method_id) = table.get(&name) {
+            if let Some(trait_method_id) = trait_.get_method(name, is_static) {
                 candidates.push(Candidate {
                     object_type: object_type.clone(),
                     container_type_params: bindings.clone(),
-                    fct_id: method_id,
+                    fct_id: impl_
+                        .get_method_for_trait_method_id(trait_method_id)
+                        .expect("missing method"),
                 });
             }
         }

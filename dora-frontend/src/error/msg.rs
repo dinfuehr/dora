@@ -17,8 +17,8 @@ pub enum ErrorMessage {
     UnknownSuffix,
     MultipleCandidatesForMethod(String, String, Vec<String>),
     VariadicParameterNeedsToBeLast,
-    UnknownMethodForTypeParam(String, String, Vec<String>),
-    MultipleCandidatesForTypeParam(String, String, Vec<String>),
+    UnknownMethodForTypeParam,
+    MultipleCandidatesForTypeParam,
     MultipleCandidatesForStaticMethodWithTypeParam,
     UnknownStaticMethodWithTypeParam,
     UnknownStaticMethod(String, String, Vec<String>),
@@ -212,19 +212,11 @@ impl ErrorMessage {
             ErrorMessage::VariadicParameterNeedsToBeLast => {
                 "variadic parameter needs to be last.".into()
             }
-            ErrorMessage::UnknownMethodForTypeParam(ref tp, ref name, ref args) => {
-                let args = args.join(", ");
-                format!(
-                    "no method with definition `{}({})` found for type param `{}`.",
-                    name, args, tp
-                )
+            ErrorMessage::UnknownMethodForTypeParam => {
+                "no method with this name found for type param.".into()
             }
-            ErrorMessage::MultipleCandidatesForTypeParam(ref tp, ref name, ref args) => {
-                let args = args.join(", ");
-                format!(
-                    "multiple candidates with definition `{}({})` found for type param `{}`.",
-                    name, args, tp
-                )
+            ErrorMessage::MultipleCandidatesForTypeParam => {
+                "multiple methods with this name found for type param.".into()
             }
             ErrorMessage::MultipleCandidatesForStaticMethodWithTypeParam => {
                 "multiple candidates for static method call found.".into()

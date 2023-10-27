@@ -34,9 +34,6 @@ pub fn check_definition(sa: &Sema) {
         };
 
         implck.check();
-
-        assert!(impl_.instance_names.set(implck.instance_names).is_ok());
-        assert!(impl_.static_names.set(implck.static_names).is_ok());
     }
 }
 
@@ -186,9 +183,7 @@ fn check_impl_body(sa: &Sema, impl_: &ImplDefinition) {
     for &impl_method_id in impl_.methods() {
         let impl_method = &sa.fcts[impl_method_id];
 
-        if let Some(trait_method_id) =
-            trait_.find_method(sa, impl_method.name, impl_method.is_static)
-        {
+        if let Some(trait_method_id) = trait_.get_method(impl_method.name, impl_method.is_static) {
             trait_to_impl_method_map.insert(trait_method_id, impl_method_id);
             remaining_trait_methods.remove(&trait_method_id);
 
@@ -219,10 +214,7 @@ fn check_impl_body(sa: &Sema, impl_: &ImplDefinition) {
         report_missing_methods(sa, impl_, trait_, missing_methods);
     }
 
-    assert!(impl_
-        .trait_to_impl_method_map
-        .set(trait_to_impl_method_map)
-        .is_ok());
+    assert!(impl_.trait_method_map.set(trait_to_impl_method_map).is_ok());
 }
 
 fn check_impl_method(

@@ -1298,7 +1298,7 @@ fn test_new_call_method_generic_error() {
     err(
         "fn f[T](t: T) { t.hash(); }",
         (1, 17),
-        ErrorMessage::UnknownMethodForTypeParam("T".into(), "hash".into(), Vec::new()),
+        ErrorMessage::UnknownMethodForTypeParam,
     );
 }
 
@@ -1310,7 +1310,7 @@ fn test_new_call_method_generic_error_multiple() {
             trait TraitB { fn id(); }
             fn f[T: TraitA + TraitB](t: T) { t.id(); }",
         (4, 46),
-        ErrorMessage::MultipleCandidatesForTypeParam("T".into(), "id".into(), Vec::new()),
+        ErrorMessage::MultipleCandidatesForTypeParam,
     );
 }
 
@@ -3898,5 +3898,44 @@ fn add_operator_on_type_param() {
     ",
         (3, 13),
         ErrorMessage::BinOpType("+".into(), "T".into(), "Int64".into()),
+    );
+}
+
+#[test]
+fn test_generic_trait_method_call() {
+    ok("
+        trait Foo { fn foo(x: Int64); }
+        fn f[T: Foo](t: T) {
+            t.foo(1);
+        }
+    ");
+
+    ok("
+        trait Foo { fn foo(): Self; }
+        fn f[T: Foo](t: T): T {
+            t.foo()
+        }
+    ");
+
+    ok("
+        trait Foo { fn foo(rhs: Self): Self; }
+        fn f[T: Foo](t: T, rhs: T): T {
+            t.foo(rhs)
+        }
+    ");
+
+    err(
+        "
+        trait Foo { fn foo(x: Int64); }
+        fn f[T: Foo](t: T) {
+            t.foo(1, 2);
+        }
+    ",
+        (4, 13),
+        ErrorMessage::ParamTypesIncompatible(
+            "foo".into(),
+            vec!["Int64".into()],
+            vec!["Int64".into(), "Int64".into()],
+        ),
     );
 }

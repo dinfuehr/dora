@@ -4228,11 +4228,7 @@ fn gen_comparable_trait_generic() {
             let trait_id = sa.known.traits.comparable();
             let trait_ = &sa.traits[trait_id];
             let name = sa.interner.intern("cmp");
-            let cmp_fct_id = trait_
-                .instance_names()
-                .get(&name)
-                .expect("missing fct")
-                .clone();
+            let cmp_fct_id = trait_.get_method(name, false).expect("missing fct");
 
             assert_eq!(
                 fct.const_pool(ConstPoolIdx(0)),
@@ -4401,9 +4397,7 @@ pub fn method_in_trait_by_name(
     let trait_ = &sa.traits[trait_id];
 
     trait_
-        .instance_names()
-        .get(&method_name)
-        .cloned()
+        .get_method(method_name, false)
         .expect("method not found")
 }
 
@@ -4414,9 +4408,7 @@ pub fn trait_method_by_name(sa: &Sema, trait_name: &str, method_name: &str) -> F
     let trait_ = &sa.traits[trait_id];
 
     trait_
-        .instance_names()
-        .get(&method_name)
-        .cloned()
+        .get_method(method_name, false)
         .expect("method not found")
 }
 
@@ -4436,16 +4428,16 @@ pub fn impl_method_id_by_name(
     ty: SourceType,
 ) -> FctDefinitionId {
     let trait_ty = SourceType::new_trait(trait_id);
+    let trait_ = &sa.traits[trait_id];
+    let name = sa.interner.intern(method_name);
+    let trait_method_id = trait_.get_method(name, false).expect("missing method");
     let impl_id = find_impl(sa, ty, &TypeParamDefinition::new(), trait_ty).expect("missing impl");
 
     let impl_ = &sa.impls[impl_id];
 
-    let name = sa.interner.intern(method_name);
     impl_
-        .instance_names()
-        .get(&name)
-        .cloned()
-        .expect("method not found")
+        .get_method_for_trait_method_id(trait_method_id)
+        .expect("missing method")
 }
 
 fn r(val: usize) -> Register {

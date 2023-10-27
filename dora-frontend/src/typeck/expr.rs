@@ -652,8 +652,8 @@ fn check_expr_template(
     e: &ast::ExprTemplateType,
     expected_ty: SourceType,
 ) -> SourceType {
-    let stringable_trait = ck.sa.known.traits.stringable();
-    let stringable_trait_ty = SourceType::new_trait(stringable_trait);
+    let stringable_trait_id = ck.sa.known.traits.stringable();
+    let stringable_trait_ty = SourceType::new_trait(stringable_trait_id);
 
     for (idx, part) in e.parts.iter().enumerate() {
         if idx % 2 != 0 {
@@ -678,13 +678,15 @@ fn check_expr_template(
                     )
                     .expect("missing impl");
 
-                    let impl_ = &ck.sa.impls[stringable_impl_id];
                     let name = ck.sa.interner.intern("toString");
-                    let to_string_id = impl_
-                        .instance_names()
-                        .get(&name)
-                        .cloned()
-                        .expect("method toString() not found");
+                    let stringable_trait = &ck.sa.traits[stringable_trait_id];
+                    let trait_to_string_id = stringable_trait
+                        .get_method(name, false)
+                        .expect("missing method");
+
+                    let to_string_id = ck.sa.impls[stringable_impl_id]
+                        .get_method_for_trait_method_id(trait_to_string_id)
+                        .expect("missing method");
 
                     ck.analysis.map_templates.insert(part.id(), to_string_id);
                 }
@@ -746,11 +748,12 @@ fn check_expr_un_trait(
     let impl_id = find_impl(ck.sa, ty.clone(), &ck.type_param_defs, trait_ty.clone());
 
     if let Some(impl_id) = impl_id {
-        let impl_ = &ck.sa.impls[impl_id];
-        let method_id = impl_
-            .instance_names()
-            .get(&trait_method_name)
-            .cloned()
+        let trait_ = &ck.sa.traits[trait_id];
+        let trait_method_id = trait_
+            .get_method(trait_method_name, false)
+            .expect("missing method");
+        let method_id = ck.sa.impls[impl_id]
+            .get_method_for_trait_method_id(trait_method_id)
             .expect("method not found");
 
         let call_type = CallType::Method(ty.clone(), method_id, SourceTypeArray::empty());
@@ -770,9 +773,7 @@ fn check_expr_un_trait(
         let trait_ = &ck.sa.traits[trait_id];
 
         let method_id = trait_
-            .instance_names()
-            .get(&trait_method_name)
-            .cloned()
+            .get_method(trait_method_name, false)
             .expect("method not found");
 
         let method = &ck.sa.fcts[method_id];
@@ -966,11 +967,12 @@ fn check_expr_bin_trait(
         let type_params = impl_matches(ck.sa, lhs_type.clone(), ck.type_param_defs, impl_id)
             .expect("impl does not match");
 
-        let impl_ = &ck.sa.impls[impl_id];
-        let method_id = impl_
-            .instance_names()
-            .get(&trait_method_name)
-            .cloned()
+        let trait_ = &ck.sa.traits[trait_id];
+        let trait_method_id = trait_
+            .get_method(trait_method_name, false)
+            .expect("missing method");
+        let method_id = ck.sa.impls[impl_id]
+            .get_method_for_trait_method_id(trait_method_id)
             .expect("method not found");
 
         let call_type = CallType::Method(lhs_type.clone(), method_id, type_params.clone());
@@ -1004,9 +1006,7 @@ fn check_expr_bin_trait(
         let trait_ = &ck.sa.traits[trait_id];
 
         let method_id = trait_
-            .instance_names()
-            .get(&trait_method_name)
-            .cloned()
+            .get_method(trait_method_name, false)
             .expect("method not found");
 
         let method = &ck.sa.fcts[method_id];

@@ -105,38 +105,14 @@ impl TraitDefinition {
         }
     }
 
-    pub fn find_method(&self, sa: &Sema, name: Name, is_static: bool) -> Option<FctDefinitionId> {
-        for &method in self.methods() {
-            let method = &sa.fcts[method];
+    pub fn get_method(&self, name: Name, is_static: bool) -> Option<FctDefinitionId> {
+        let table = if is_static {
+            self.static_names()
+        } else {
+            self.instance_names()
+        };
 
-            if method.name == name && method.is_static == is_static {
-                return Some(method.id());
-            }
-        }
-
-        None
-    }
-
-    pub fn find_method_with_replace(
-        &self,
-        sa: &Sema,
-        is_static: bool,
-        name: Name,
-        replace: Option<SourceType>,
-        args: &[SourceType],
-    ) -> Option<FctDefinitionId> {
-        for &method in self.methods() {
-            let method = &sa.fcts[method];
-
-            if method.name == name
-                && method.is_static == is_static
-                && params_match(replace.clone(), method.params_without_self(), args)
-            {
-                return Some(method.id());
-            }
-        }
-
-        None
+        table.get(&name).cloned()
     }
 }
 

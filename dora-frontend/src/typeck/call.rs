@@ -9,8 +9,9 @@ use crate::access::{
 use crate::interner::Name;
 use crate::sema::{
     find_field_in_class, find_methods_in_class, find_methods_in_enum, find_methods_in_struct,
-    CallType, ClassDefinition, ClassDefinitionId, EnumDefinitionId, EnumVariant, FctDefinitionId,
-    IdentType, Sema, StructDefinition, StructDefinitionId, TypeParamDefinition, TypeParamId,
+    params_match, CallType, ClassDefinition, ClassDefinitionId, EnumDefinitionId, EnumVariant,
+    FctDefinitionId, IdentType, Sema, StructDefinition, StructDefinitionId, TypeParamDefinition,
+    TypeParamId,
 };
 use crate::specialize::replace_type_param;
 use crate::sym::SymbolKind;
@@ -112,7 +113,7 @@ fn check_expr_call_generic_static_method(
         let trait_id = trait_ty.trait_id().expect("trait expected");
         let trait_ = &ck.sa.traits[trait_id];
 
-        if let Some(fct_id) = trait_.find_method(ck.sa, interned_name, true) {
+        if let Some(fct_id) = trait_.get_method(interned_name, true) {
             fcts.push((trait_id, fct_id));
         }
     }
@@ -650,6 +651,7 @@ fn check_expr_call_generic_type_param(
     name: String,
     args: &[SourceType],
 ) -> SourceType {
+    assert!(object_type.is_type_param());
     let mut found_fcts = Vec::new();
     let interned_name = ck.sa.interner.intern(&name);
 
@@ -657,31 +659,49 @@ fn check_expr_call_generic_type_param(
         let trait_id = trait_ty.trait_id().expect("trait expected");
         let trait_ = &ck.sa.traits[trait_id];
 
-        if let Some(fid) = trait_.find_method_with_replace(ck.sa, false, interned_name, None, args)
-        {
+        if let Some(fid) = trait_.get_method(interned_name, false) {
             found_fcts.push(fid);
         }
     }
 
     if found_fcts.len() == 1 {
-        let fid = found_fcts[0];
+        let trait_method_id = found_fcts[0];
 
-        let fct = &ck.sa.fcts[fid];
-        let return_type = fct.return_type();
+        let trait_method = &ck.sa.fcts[trait_method_id];
+        let return_type = trait_method.return_type();
+
+        let return_type = if return_type.is_self() {
+            object_type.clone()
+        } else {
+            return_type
+        };
 
         ck.analysis.set_ty(e.id, return_type.clone());
 
-        let call_type = CallType::GenericMethod(id, fct.trait_id(), fid);
+        let call_type = CallType::GenericMethod(id, trait_method.trait_id(), trait_method_id);
         ck.analysis.map_calls.insert(e.id, Arc::new(call_type));
+
+        if !params_match(
+            Some(object_type.clone()),
+            trait_method.params_without_self(),
+            args,
+        ) {
+            let trait_params = trait_method
+                .params_without_self()
+                .iter()
+                .map(|a| ck.ty_name(a))
+                .collect::<Vec<String>>();
+            let param_names = args.iter().map(|a| ck.ty_name(a)).collect::<Vec<String>>();
+            let msg = ErrorMessage::ParamTypesIncompatible(name, trait_params, param_names);
+            ck.sa.report(ck.file_id, e.span, msg);
+        }
 
         return_type
     } else {
-        let type_name = ck.ty_name(&object_type);
-        let param_names = args.iter().map(|a| ck.ty_name(a)).collect::<Vec<String>>();
         let msg = if found_fcts.len() == 0 {
-            ErrorMessage::UnknownMethodForTypeParam(type_name, name, param_names)
+            ErrorMessage::UnknownMethodForTypeParam
         } else {
-            ErrorMessage::MultipleCandidatesForTypeParam(type_name, name, param_names)
+            ErrorMessage::MultipleCandidatesForTypeParam
         };
 
         ck.sa.report(ck.file_id, e.span, msg);

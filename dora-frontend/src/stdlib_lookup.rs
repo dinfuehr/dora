@@ -2067,12 +2067,15 @@ fn internal_impl_method(
     for (_id, impl_) in sa.impls.iter() {
         if impl_.trait_ty() == trait_ty && impl_.extended_ty() == ty {
             let method_name = sa.interner.intern(method_name);
+            let trait_ = &sa.traits[impl_.trait_id()];
+
+            let trait_method_id = trait_
+                .get_method(method_name, false)
+                .expect("method not found");
 
             let method_id = impl_
-                .instance_names()
-                .get(&method_name)
-                .cloned()
-                .expect("method not found");
+                .get_method_for_trait_method_id(trait_method_id)
+                .expect("missing method");
 
             let fct = &sa.fcts[method_id];
 
