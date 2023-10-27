@@ -32,6 +32,7 @@ pub struct TraitDefinition {
     pub aliases: OnceCell<Vec<AliasDefinitionId>>,
     pub instance_names: OnceCell<HashMap<Name, FctDefinitionId>>,
     pub static_names: OnceCell<HashMap<Name, FctDefinitionId>>,
+    pub alias_names: OnceCell<HashMap<Name, AliasDefinitionId>>,
 }
 
 impl TraitDefinition {
@@ -58,6 +59,7 @@ impl TraitDefinition {
             aliases: OnceCell::new(),
             instance_names: OnceCell::new(),
             static_names: OnceCell::new(),
+            alias_names: OnceCell::new(),
         }
     }
 

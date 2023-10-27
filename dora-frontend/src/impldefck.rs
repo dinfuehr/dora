@@ -6,31 +6,20 @@ use crate::sema::{
     SourceFileId, TraitDefinition,
 };
 use crate::{
-    read_type_context, AllowSelf, ErrorMessage, ModuleSymTable, Name, SourceType, SymbolKind,
+    read_type_context, AllowSelf, ErrorMessage, ModuleSymTable, SourceType, SymbolKind,
     TypeParamContext,
 };
 
 use dora_parser::ast;
 
 pub fn check_definition(sa: &Sema) {
-    for (_id, impl_) in sa.impls.iter() {
-        let (impl_id, file_id, module_id, ast) = {
-            (
-                impl_.id(),
-                impl_.file_id,
-                impl_.module_id,
-                impl_.ast.clone(),
-            )
-        };
-
+    for (id, impl_) in sa.impls.iter() {
         let mut implck = ImplCheck {
             sa,
-            impl_id,
-            file_id,
-            sym: ModuleSymTable::new(sa, module_id),
-            ast: &ast,
-            instance_names: HashMap::new(),
-            static_names: HashMap::new(),
+            file_id: impl_.file_id,
+            impl_id: id,
+            sym: ModuleSymTable::new(sa, impl_.module_id),
+            ast: &impl_.ast,
         };
 
         implck.check();
@@ -43,8 +32,6 @@ struct ImplCheck<'x> {
     impl_id: ImplDefinitionId,
     sym: ModuleSymTable,
     ast: &'x ast::Impl,
-    instance_names: HashMap<Name, FctDefinitionId>,
-    static_names: HashMap<Name, FctDefinitionId>,
 }
 
 impl<'x> ImplCheck<'x> {
@@ -129,41 +116,6 @@ impl<'x> ImplCheck<'x> {
         assert!(impl_.extended_ty.set(extended_ty).is_ok());
 
         self.sym.pop_level();
-
-        for &method_id in impl_.methods() {
-            self.visit_method(method_id);
-        }
-    }
-
-    fn visit_method(&mut self, method_id: FctDefinitionId) {
-        let method = &self.sa.fcts[method_id];
-
-        if method.ast.block.is_none() && !method.is_internal {
-            self.sa.report(
-                self.file_id.into(),
-                method.span,
-                ErrorMessage::MissingFctBody,
-            );
-        }
-
-        let table = if method.is_static {
-            &mut self.static_names
-        } else {
-            &mut self.instance_names
-        };
-
-        if let Some(&existing_id) = table.get(&method.name) {
-            let existing_fct = &self.sa.fcts[existing_id];
-            let method_name = self.sa.interner.str(method.name).to_string();
-
-            self.sa.report(
-                method.file_id,
-                method.ast.span,
-                ErrorMessage::MethodExists(method_name, existing_fct.span),
-            );
-        } else {
-            assert!(table.insert(method.name, method_id).is_none());
-        }
     }
 }
 
@@ -178,13 +130,31 @@ fn check_impl_body(sa: &Sema, impl_: &ImplDefinition) {
 
     let mut remaining_trait_methods: HashSet<FctDefinitionId> =
         trait_.methods().iter().cloned().collect();
-    let mut trait_to_impl_method_map = HashMap::new();
+    let mut trait_to_method_map = HashMap::new();
 
     for &impl_method_id in impl_.methods() {
         let impl_method = &sa.fcts[impl_method_id];
 
+        if impl_method.ast.block.is_none() && !impl_method.is_internal {
+            sa.report(
+                impl_method.file_id.into(),
+                impl_method.span,
+                ErrorMessage::MissingFctBody,
+            );
+        }
+
         if let Some(trait_method_id) = trait_.get_method(impl_method.name, impl_method.is_static) {
-            trait_to_impl_method_map.insert(trait_method_id, impl_method_id);
+            if let Some(existing_id) = trait_to_method_map.insert(trait_method_id, impl_method_id) {
+                let existing_fct = &sa.fcts[existing_id];
+                let method_name = sa.interner.str(existing_fct.name).to_string();
+
+                sa.report(
+                    impl_method.file_id,
+                    impl_method.ast.span,
+                    ErrorMessage::MethodExists(method_name, existing_fct.span),
+                );
+            }
+
             remaining_trait_methods.remove(&trait_method_id);
 
             check_impl_method(sa, impl_, impl_method, trait_method_id);
@@ -197,24 +167,11 @@ fn check_impl_body(sa: &Sema, impl_: &ImplDefinition) {
         }
     }
 
-    let mut missing_methods = HashSet::new();
-
-    for method_id in remaining_trait_methods {
-        let method = &sa.fcts[method_id];
-
-        if method.has_body() {
-            // method has a default implementation, use that one
-            trait_to_impl_method_map.insert(method_id, method_id);
-        } else {
-            missing_methods.insert(method_id);
-        }
+    if !remaining_trait_methods.is_empty() {
+        report_missing_methods(sa, impl_, trait_, remaining_trait_methods);
     }
 
-    if !missing_methods.is_empty() {
-        report_missing_methods(sa, impl_, trait_, missing_methods);
-    }
-
-    assert!(impl_.trait_method_map.set(trait_to_impl_method_map).is_ok());
+    assert!(impl_.trait_method_map.set(trait_to_method_map).is_ok());
 }
 
 fn check_impl_method(
@@ -527,15 +484,5 @@ mod tests {
             (8, 17),
             ErrorMessage::ImplMethodTypeMismatch,
         );
-    }
-
-    #[test]
-    fn impl_method_with_default_body() {
-        ok("
-            trait Foo {
-                fn foo(): Int32 { 1 }
-            }
-            class Bar {}
-            impl Foo for Bar {}");
     }
 }

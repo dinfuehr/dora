@@ -698,7 +698,7 @@ fn check_expr_call_generic_type_param(
 
         return_type
     } else {
-        let msg = if found_fcts.len() == 0 {
+        let msg = if found_fcts.is_empty() {
             ErrorMessage::UnknownMethodForTypeParam
         } else {
             ErrorMessage::MultipleCandidatesForTypeParam

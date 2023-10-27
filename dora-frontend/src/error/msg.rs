@@ -24,6 +24,7 @@ pub enum ErrorMessage {
     UnknownStaticMethod(String, String, Vec<String>),
     UnknownCtor,
     MethodExists(String, Span),
+    TypeExists(String, Span),
     IncompatibleWithNil(String),
     IdentifierExists(String),
     ShadowFunction(String),
@@ -231,6 +232,10 @@ impl ErrorMessage {
             ErrorMessage::UnexpectedTypeAliasAssignment => "no type expected.".into(),
             ErrorMessage::UnknownCtor => "class does not have constructor.".into(),
             ErrorMessage::MethodExists(ref name, pos) => format!(
+                "method with name `{}` already exists at line {}.",
+                name, pos
+            ),
+            ErrorMessage::TypeExists(ref name, pos) => format!(
                 "method with name `{}` already exists at line {}.",
                 name, pos
             ),

@@ -18,6 +18,7 @@ pub fn check(sa: &Sema) {
 
         assert!(trait_.instance_names.set(traitck.instance_names).is_ok());
         assert!(trait_.static_names.set(traitck.static_names).is_ok());
+        assert!(trait_.alias_names.set(traitck.alias_names).is_ok());
     }
 }
 
@@ -69,7 +70,19 @@ impl<'x> TraitCheck<'x> {
 
     fn visit_alias(&mut self, alias_id: AliasDefinitionId) {
         let alias = &self.sa.aliases[alias_id];
-        self.alias_names.insert(alias.name, alias_id);
+
+        if let Some(&existing_id) = self.alias_names.get(&alias.name) {
+            let existing_alias = &self.sa.aliases[existing_id];
+            let method_name = self.sa.interner.str(alias.name).to_string();
+
+            self.sa.report(
+                alias.file_id,
+                alias.node.span,
+                ErrorMessage::TypeExists(method_name, existing_alias.node.span),
+            );
+        } else {
+            self.alias_names.insert(alias.name, alias_id);
+        }
     }
 }
 
@@ -132,6 +145,27 @@ mod tests {
         }",
             (3, 13),
             ErrorMessage::MethodExists("foo".into(), Span::new(24, 16)),
+        );
+    }
+
+    #[test]
+    fn trait_with_multiple_types() {
+        ok("
+            trait Foo {
+                type a;
+                type b;
+            }
+        ");
+
+        err(
+            "
+            trait Foo {
+                type a;
+                type a;
+            }
+        ",
+            (4, 17),
+            ErrorMessage::TypeExists("a".into(), Span::new(41, 7)),
         );
     }
 }
