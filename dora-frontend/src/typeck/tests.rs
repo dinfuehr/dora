@@ -3939,3 +3939,17 @@ fn test_generic_trait_method_call() {
         ),
     );
 }
+
+#[test]
+fn test_trait_with_type_params() {
+    ok("
+        trait Foo[A, B] {
+            fn geta(): A;
+            fn getb(): B;
+        }
+        fn f[T: Foo[Bool, Int64]](t: T) {
+            let _: Bool = t.geta();
+            let _: Int64 = t.getb();
+        }
+    ");
+}

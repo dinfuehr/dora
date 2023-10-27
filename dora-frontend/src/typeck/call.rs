@@ -652,29 +652,30 @@ fn check_expr_call_generic_type_param(
     args: &[SourceType],
 ) -> SourceType {
     assert!(object_type.is_type_param());
-    let mut found_fcts = Vec::new();
+    let mut matched_methods = Vec::new();
     let interned_name = ck.sa.interner.intern(&name);
 
     for trait_ty in ck.type_param_defs.bounds_for_type_param(id) {
         let trait_id = trait_ty.trait_id().expect("trait expected");
         let trait_ = &ck.sa.traits[trait_id];
 
-        if let Some(fid) = trait_.get_method(interned_name, false) {
-            found_fcts.push(fid);
+        if let Some(trait_method_id) = trait_.get_method(interned_name, false) {
+            matched_methods.push((trait_method_id, trait_ty));
         }
     }
 
-    if found_fcts.len() == 1 {
-        let trait_method_id = found_fcts[0];
+    if matched_methods.len() == 1 {
+        let (trait_method_id, trait_ty) = matched_methods.pop().expect("missing element");
 
         let trait_method = &ck.sa.fcts[trait_method_id];
         let return_type = trait_method.return_type();
 
-        let return_type = if return_type.is_self() {
-            object_type.clone()
-        } else {
-            return_type
-        };
+        let return_type = replace_type_param(
+            ck.sa,
+            return_type,
+            &trait_ty.type_params(),
+            Some(object_type.clone()),
+        );
 
         ck.analysis.set_ty(e.id, return_type.clone());
 
@@ -698,7 +699,7 @@ fn check_expr_call_generic_type_param(
 
         return_type
     } else {
-        let msg = if found_fcts.is_empty() {
+        let msg = if matched_methods.is_empty() {
             ErrorMessage::UnknownMethodForTypeParam
         } else {
             ErrorMessage::MultipleCandidatesForTypeParam
