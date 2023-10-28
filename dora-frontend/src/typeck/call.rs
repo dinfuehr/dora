@@ -9,9 +9,8 @@ use crate::access::{
 use crate::interner::Name;
 use crate::sema::{
     find_field_in_class, find_methods_in_class, find_methods_in_enum, find_methods_in_struct,
-    params_match, CallType, ClassDefinition, ClassDefinitionId, EnumDefinitionId, EnumVariant,
-    FctDefinitionId, IdentType, Sema, StructDefinition, StructDefinitionId, TypeParamDefinition,
-    TypeParamId,
+    CallType, ClassDefinition, ClassDefinitionId, EnumDefinitionId, EnumVariant, FctDefinitionId,
+    IdentType, Sema, StructDefinition, StructDefinitionId, TypeParamDefinition, TypeParamId,
 };
 use crate::specialize::replace_type_param;
 use crate::sym::SymbolKind;
@@ -688,10 +687,12 @@ fn check_expr_call_generic_type_param(
         );
         ck.analysis.map_calls.insert(e.id, Arc::new(call_type));
 
-        if !params_match(
-            Some(object_type.clone()),
-            trait_method.params_without_self(),
+        if !args_compatible_fct(
+            ck.sa,
+            trait_method,
             args,
+            &trait_ty.type_params(),
+            Some(object_type.clone()),
         ) {
             let trait_params = trait_method
                 .params_without_self()

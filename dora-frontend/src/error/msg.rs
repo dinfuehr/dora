@@ -84,7 +84,7 @@ pub enum ErrorMessage {
     MethodNotOverridable(String),
     TypesIncompatible(String, String),
     ReturnTypeMismatch(String, String),
-    ImplMethodTypeMismatch,
+    ImplMethodDefinitionMismatch,
     OverrideMismatch,
     UnresolvedInternal,
     UnclosedComment,
@@ -620,7 +620,7 @@ impl ErrorMessage {
             }
             ErrorMessage::UseNotAccessible => format!("`use` not accessible."),
             ErrorMessage::TypeAliasMissingType => "type alias needs type assignment.".into(),
-            ErrorMessage::ImplMethodTypeMismatch => {
+            ErrorMessage::ImplMethodDefinitionMismatch => {
                 "impl method does not match definition in trait.".into()
             }
         }

@@ -496,12 +496,7 @@ fn arg_allows(sa: &Sema, def: SourceType, arg: SourceType, self_ty: Option<Sourc
             _ => false,
         },
 
-        SourceType::Lambda(_, _) => {
-            // for now expect the exact same params and return types
-            // possible improvement: allow super classes for params,
-            //                             sub class for return type
-            def == arg
-        }
+        SourceType::Lambda(_, _) => def == arg,
     }
 }
 

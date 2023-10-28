@@ -41,7 +41,7 @@ pub use self::structs::{
     find_methods_in_struct, StructDefinition, StructDefinitionField, StructDefinitionFieldId,
     StructDefinitionId,
 };
-pub use self::traits::{params_match, TraitDefinition, TraitDefinitionId};
+pub use self::traits::{TraitDefinition, TraitDefinitionId};
 pub use self::tuples::create_tuple;
 pub use self::uses::{UseDefinition, UseDefinitionId};
 

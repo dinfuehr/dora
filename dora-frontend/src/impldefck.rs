@@ -2,8 +2,8 @@ use std::collections::{HashMap, HashSet};
 
 use crate::extensiondefck::check_for_unconstrained_type_params;
 use crate::sema::{
-    params_match, AliasDefinitionId, FctDefinition, FctDefinitionId, ImplDefinition,
-    ImplDefinitionId, Sema, SourceFileId, TraitDefinition,
+    AliasDefinitionId, FctDefinition, FctDefinitionId, ImplDefinition, ImplDefinitionId, Sema,
+    SourceFileId, TraitDefinition,
 };
 use crate::{
     read_type_context, AllowSelf, ErrorMessage, ModuleSymTable, SourceType, SymbolKind,
@@ -162,7 +162,16 @@ fn check_impl_methods(sa: &Sema, impl_: &ImplDefinition, trait_: &TraitDefinitio
 
             remaining_trait_methods.remove(&trait_method_id);
 
-            check_impl_method(sa, impl_, impl_method, trait_method_id);
+            let trait_method = &sa.fcts[trait_method_id];
+
+            if !method_definitions_compatible(
+                trait_method,
+                impl_method,
+                impl_.extended_ty().clone(),
+            ) {
+                let msg = ErrorMessage::ImplMethodDefinitionMismatch;
+                sa.report(impl_.file_id, impl_method.span, msg);
+            }
         } else {
             sa.report(
                 impl_.file_id,
@@ -179,30 +188,40 @@ fn check_impl_methods(sa: &Sema, impl_: &ImplDefinition, trait_: &TraitDefinitio
     assert!(impl_.trait_method_map.set(trait_method_map).is_ok());
 }
 
-fn check_impl_method(
-    sa: &Sema,
-    impl_: &ImplDefinition,
+fn method_definitions_compatible(
+    trait_method: &FctDefinition,
     impl_method: &FctDefinition,
-    trait_method_id: FctDefinitionId,
-) {
-    let trait_method = &sa.fcts[trait_method_id];
+    self_ty: SourceType,
+) -> bool {
+    let trait_params = trait_method.params_without_self();
+    let impl_params = impl_method.params_without_self();
 
-    let params_match = params_match(
-        Some(impl_.extended_ty().clone()),
-        trait_method.params_without_self(),
-        impl_method.params_without_self(),
-    );
+    if trait_params.len() != impl_params.len() {
+        return false;
+    }
 
-    let return_type_valid = impl_method.return_type()
-        == if trait_method.return_type().is_self() {
-            impl_.extended_ty()
-        } else {
-            trait_method.return_type()
-        };
+    for (trait_arg_ty, impl_arg_ty) in trait_params.iter().zip(impl_params.iter()) {
+        if !param_matches(trait_arg_ty, impl_arg_ty, &self_ty) {
+            return false;
+        }
+    }
 
-    if !return_type_valid || !params_match {
-        let msg = ErrorMessage::ImplMethodTypeMismatch;
-        sa.report(impl_.file_id, impl_method.span, msg);
+    param_matches(
+        &trait_method.return_type(),
+        &impl_method.return_type(),
+        &self_ty,
+    )
+}
+
+fn param_matches(
+    trait_arg_ty: &SourceType,
+    impl_arg_ty: &SourceType,
+    self_ty: &SourceType,
+) -> bool {
+    if trait_arg_ty.is_self() {
+        self_ty == impl_arg_ty
+    } else {
+        trait_arg_ty == impl_arg_ty
     }
 }
 
@@ -534,7 +553,7 @@ mod tests {
                 fn n(): Bool { true }
               }",
             (9, 17),
-            ErrorMessage::ImplMethodTypeMismatch,
+            ErrorMessage::ImplMethodDefinitionMismatch,
         );
     }
 
@@ -551,7 +570,16 @@ mod tests {
                 fn f(a: Int64, b: Int32): Bool { true }
               }",
             (8, 17),
-            ErrorMessage::ImplMethodTypeMismatch,
+            ErrorMessage::ImplMethodDefinitionMismatch,
         );
+    }
+
+    #[test]
+    fn self_in_impl() {
+        ok("
+            trait X { fn f(a: Self); }
+            class CX
+            impl X for CX { fn f(a: CX) {} }
+        ");
     }
 }

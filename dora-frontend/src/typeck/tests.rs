@@ -3952,4 +3952,13 @@ fn test_trait_with_type_params() {
             let _: Int64 = t.getb();
         }
     ");
+
+    ok("
+        trait Foo[A, B] {
+            fn f(a: A, b: B);
+        }
+        fn f[T: Foo[Bool, Int64]](t: T) {
+            t.f(true, 12);
+        }
+    ");
 }

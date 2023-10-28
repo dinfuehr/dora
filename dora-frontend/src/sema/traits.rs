@@ -11,7 +11,7 @@ use crate::sema::{
     module_path, AliasDefinitionId, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
     SourceFileId, TypeParamDefinition, Visibility,
 };
-use crate::ty::{SourceType, SourceTypeArray};
+use crate::SourceTypeArray;
 use id_arena::Id;
 
 pub type TraitDefinitionId = Id<TraitDefinition>;
@@ -120,31 +120,4 @@ impl TraitDefinition {
 
         table.get(&name).cloned()
     }
-}
-
-pub fn params_match(
-    replace: Option<SourceType>,
-    trait_args: &[SourceType],
-    args: &[SourceType],
-) -> bool {
-    if trait_args.len() != args.len() {
-        return false;
-    }
-
-    for (ind, ty) in trait_args.iter().enumerate() {
-        let ty = ty.clone();
-        let other = args[ind].clone();
-
-        let found = if ty.is_self() {
-            replace.is_none() || replace.clone().unwrap() == other
-        } else {
-            ty == other
-        };
-
-        if !found {
-            return false;
-        }
-    }
-
-    true
 }
