@@ -28,6 +28,7 @@ pub struct ImplDefinition {
     pub methods: OnceCell<Vec<FctDefinitionId>>,
     pub aliases: OnceCell<Vec<AliasDefinitionId>>,
     pub trait_method_map: OnceCell<HashMap<FctDefinitionId, FctDefinitionId>>,
+    pub trait_alias_map: OnceCell<HashMap<AliasDefinitionId, AliasDefinitionId>>,
 }
 
 impl ImplDefinition {
@@ -50,6 +51,7 @@ impl ImplDefinition {
             methods: OnceCell::new(),
             aliases: OnceCell::new(),
             trait_method_map: OnceCell::new(),
+            trait_alias_map: OnceCell::new(),
         }
     }
 
@@ -77,6 +79,10 @@ impl ImplDefinition {
         self.trait_method_map.get().expect("missing impl")
     }
 
+    pub fn trait_alias_map(&self) -> &HashMap<AliasDefinitionId, AliasDefinitionId> {
+        self.trait_alias_map.get().expect("missing impl")
+    }
+
     pub fn get_method_for_trait_method_id(
         &self,
         trait_method_id: FctDefinitionId,
@@ -86,6 +92,10 @@ impl ImplDefinition {
 
     pub fn methods(&self) -> &[FctDefinitionId] {
         self.methods.get().expect("missing methods")
+    }
+
+    pub fn aliases(&self) -> &[AliasDefinitionId] {
+        self.aliases.get().expect("missing methods")
     }
 }
 

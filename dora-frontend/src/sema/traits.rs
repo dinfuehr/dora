@@ -87,6 +87,10 @@ impl TraitDefinition {
         self.static_names.get().expect("uninitialized")
     }
 
+    pub fn alias_names(&self) -> &HashMap<Name, AliasDefinitionId> {
+        self.alias_names.get().expect("uninitialized")
+    }
+
     pub fn name(&self, sa: &Sema) -> String {
         module_path(sa, self.module_id, self.name)
     }

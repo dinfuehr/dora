@@ -267,7 +267,7 @@ impl<'x> ExtensionCheck<'x> {
         if let Some(&method_id) = table.borrow().get(&name) {
             let method = &self.sa.fcts[method_id];
             let method_name = self.sa.interner.str(method.name).to_string();
-            let msg = ErrorMessage::MethodExists(method_name, method.span);
+            let msg = ErrorMessage::AliasExists(method_name, method.span);
             self.sa.report(self.file_id.into(), f.span, msg);
             false
         } else {
@@ -366,7 +366,7 @@ mod tests {
         err(
             "class A impl A { fn foo() {} fn foo() {} }",
             (1, 30),
-            ErrorMessage::MethodExists("foo".into(), Span::new(17, 11)),
+            ErrorMessage::AliasExists("foo".into(), Span::new(17, 11)),
         );
     }
 
@@ -377,7 +377,7 @@ mod tests {
             impl A { fn foo() {} }
             impl A { fn foo() {} }",
             (3, 22),
-            ErrorMessage::MethodExists("foo".into(), Span::new(29, 11)),
+            ErrorMessage::AliasExists("foo".into(), Span::new(29, 11)),
         );
     }
 
@@ -388,7 +388,7 @@ mod tests {
             impl Foo[Int32] { fn foo() {} }
             impl Foo[Int32] { fn foo() {} }",
             (3, 31),
-            ErrorMessage::MethodExists("foo".into(), Span::new(43, 11)),
+            ErrorMessage::AliasExists("foo".into(), Span::new(43, 11)),
         );
 
         ok("class Foo[T]
@@ -417,7 +417,7 @@ mod tests {
         err(
             "enum MyEnum { A, B } impl MyEnum { fn foo() {} fn foo() {} }",
             (1, 48),
-            ErrorMessage::MethodExists("foo".into(), Span::new(35, 11)),
+            ErrorMessage::AliasExists("foo".into(), Span::new(35, 11)),
         );
     }
 

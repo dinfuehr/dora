@@ -61,7 +61,7 @@ impl<'x> TraitCheck<'x> {
             self.sa.report(
                 fct.file_id,
                 fct.ast.span,
-                ErrorMessage::MethodExists(method_name, existing_fct.span),
+                ErrorMessage::AliasExists(method_name, existing_fct.span),
             );
         } else {
             assert!(table.insert(fct.name, fct_id).is_none());
@@ -126,13 +126,13 @@ mod tests {
         err(
             "trait Foo { fn foo(); fn foo(): Int32; }",
             (1, 23),
-            ErrorMessage::MethodExists("foo".into(), Span::new(12, 9)),
+            ErrorMessage::AliasExists("foo".into(), Span::new(12, 9)),
         );
 
         err(
             "trait Foo { fn foo(); fn foo(); }",
             (1, 23),
-            ErrorMessage::MethodExists("foo".into(), Span::new(12, 9)),
+            ErrorMessage::AliasExists("foo".into(), Span::new(12, 9)),
         );
     }
 
@@ -144,7 +144,7 @@ mod tests {
             fn foo(): Self;
         }",
             (3, 13),
-            ErrorMessage::MethodExists("foo".into(), Span::new(24, 16)),
+            ErrorMessage::AliasExists("foo".into(), Span::new(24, 16)),
         );
     }
 

@@ -155,7 +155,7 @@ mod tests {
             class X
             impl X { static fn foo() {} static fn foo(a: String) {} }",
             (3, 48),
-            ErrorMessage::MethodExists("foo".into(), Span::new(49, 11)),
+            ErrorMessage::AliasExists("foo".into(), Span::new(49, 11)),
         );
     }
 }

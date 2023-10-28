@@ -96,7 +96,7 @@ fn type_method_defined_twice() {
                  fn bar() {}
              }",
         (4, 18),
-        ErrorMessage::MethodExists("bar".into(), Span::new(46, 11)),
+        ErrorMessage::AliasExists("bar".into(), Span::new(46, 11)),
     );
 
     err(
@@ -106,7 +106,7 @@ fn type_method_defined_twice() {
                  fn bar(): Int32 {}
              }",
         (4, 18),
-        ErrorMessage::MethodExists("bar".into(), Span::new(45, 11)),
+        ErrorMessage::AliasExists("bar".into(), Span::new(45, 11)),
     );
 
     err(
@@ -116,7 +116,7 @@ fn type_method_defined_twice() {
                  fn bar(a: Int32): Int32 {}
              }",
         (4, 18),
-        ErrorMessage::MethodExists("bar".into(), Span::new(46, 19)),
+        ErrorMessage::AliasExists("bar".into(), Span::new(46, 19)),
     );
 
     err(
@@ -126,7 +126,7 @@ fn type_method_defined_twice() {
                 fn bar(a: String) {}
             }",
         (4, 17),
-        ErrorMessage::MethodExists("bar".into(), Span::new(45, 19)),
+        ErrorMessage::AliasExists("bar".into(), Span::new(45, 19)),
     );
 }
 

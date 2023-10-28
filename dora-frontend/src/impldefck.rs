@@ -2,8 +2,8 @@ use std::collections::{HashMap, HashSet};
 
 use crate::extensiondefck::check_for_unconstrained_type_params;
 use crate::sema::{
-    params_match, FctDefinition, FctDefinitionId, ImplDefinition, ImplDefinitionId, Sema,
-    SourceFileId, TraitDefinition,
+    params_match, AliasDefinitionId, FctDefinition, FctDefinitionId, ImplDefinition,
+    ImplDefinitionId, Sema, SourceFileId, TraitDefinition,
 };
 use crate::{
     read_type_context, AllowSelf, ErrorMessage, ModuleSymTable, SourceType, SymbolKind,
@@ -128,9 +128,14 @@ pub fn check_body(sa: &Sema) {
 fn check_impl_body(sa: &Sema, impl_: &ImplDefinition) {
     let trait_ = &sa.traits[impl_.trait_id()];
 
+    check_impl_methods(sa, impl_, trait_);
+    check_impl_types(sa, impl_, trait_);
+}
+
+fn check_impl_methods(sa: &Sema, impl_: &ImplDefinition, trait_: &TraitDefinition) {
     let mut remaining_trait_methods: HashSet<FctDefinitionId> =
         trait_.methods().iter().cloned().collect();
-    let mut trait_to_method_map = HashMap::new();
+    let mut trait_method_map = HashMap::new();
 
     for &impl_method_id in impl_.methods() {
         let impl_method = &sa.fcts[impl_method_id];
@@ -144,14 +149,14 @@ fn check_impl_body(sa: &Sema, impl_: &ImplDefinition) {
         }
 
         if let Some(trait_method_id) = trait_.get_method(impl_method.name, impl_method.is_static) {
-            if let Some(existing_id) = trait_to_method_map.insert(trait_method_id, impl_method_id) {
+            if let Some(existing_id) = trait_method_map.insert(trait_method_id, impl_method_id) {
                 let existing_fct = &sa.fcts[existing_id];
                 let method_name = sa.interner.str(existing_fct.name).to_string();
 
                 sa.report(
                     impl_method.file_id,
                     impl_method.ast.span,
-                    ErrorMessage::MethodExists(method_name, existing_fct.span),
+                    ErrorMessage::AliasExists(method_name, existing_fct.span),
                 );
             }
 
@@ -171,7 +176,7 @@ fn check_impl_body(sa: &Sema, impl_: &ImplDefinition) {
         report_missing_methods(sa, impl_, trait_, remaining_trait_methods);
     }
 
-    assert!(impl_.trait_method_map.set(trait_to_method_map).is_ok());
+    assert!(impl_.trait_method_map.set(trait_method_map).is_ok());
 }
 
 fn check_impl_method(
@@ -219,6 +224,39 @@ fn report_missing_methods(
     }
 }
 
+fn check_impl_types(sa: &Sema, impl_: &ImplDefinition, trait_: &TraitDefinition) {
+    let mut remaining_aliases: HashSet<AliasDefinitionId> =
+        trait_.aliases().iter().cloned().collect();
+    let mut trait_alias_map = HashMap::new();
+
+    for &impl_alias_id in impl_.aliases() {
+        let impl_alias = &sa.aliases[impl_alias_id];
+
+        if let Some(&trait_alias_id) = trait_.alias_names().get(&impl_alias.name) {
+            if let Some(existing_id) = trait_alias_map.insert(trait_alias_id, trait_alias_id) {
+                let existing_alias = &sa.aliases[existing_id];
+                let method_name = sa.interner.str(existing_alias.name).to_string();
+
+                sa.report(
+                    impl_alias.file_id,
+                    impl_alias.node.span,
+                    ErrorMessage::AliasExists(method_name, existing_alias.node.span),
+                );
+            }
+
+            remaining_aliases.remove(&trait_alias_id);
+        } else {
+            sa.report(
+                impl_.file_id,
+                impl_alias.node.span,
+                ErrorMessage::ElementNotInTrait,
+            )
+        }
+    }
+
+    assert!(impl_.trait_alias_map.set(trait_alias_map).is_ok());
+}
+
 #[cfg(test)]
 mod tests {
     use crate::error::msg::ErrorMessage;
@@ -252,7 +290,7 @@ mod tests {
                 fn foo(): Int32 { return 1; }
             }",
             (8, 17),
-            ErrorMessage::MethodExists("foo".into(), Span::new(141, 29)),
+            ErrorMessage::AliasExists("foo".into(), Span::new(141, 29)),
         );
     }
 
@@ -392,6 +430,37 @@ mod tests {
             }",
             (5, 17),
             ErrorMessage::ElementNotInTrait,
+        );
+    }
+
+    #[test]
+    fn alias_not_in_trait() {
+        err(
+            "
+            trait Foo {}
+            class A
+            impl Foo for A {
+                type X = Int64;
+            }",
+            (5, 17),
+            ErrorMessage::ElementNotInTrait,
+        );
+    }
+
+    #[test]
+    fn alias_in_impl_multiple_times() {
+        err(
+            "
+            trait Foo {
+                type X;
+            }
+            class A
+            impl Foo for A {
+                type X = Int64;
+                type X = Bool;
+            }",
+            (8, 17),
+            ErrorMessage::AliasExists("X".into(), Span::new(41, 7)),
         );
     }
 
