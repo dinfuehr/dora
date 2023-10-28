@@ -158,7 +158,8 @@ fn check_expr_call_generic_static_method(
         ck.sa.report(ck.file_id, e.span, msg);
     }
 
-    let call_type = CallType::GenericStaticMethod(tp_id, trait_id, fct_id);
+    let call_type =
+        CallType::GenericStaticMethod(tp_id, trait_id, fct_id, SourceTypeArray::empty());
     ck.analysis.map_calls.insert(e.id, Arc::new(call_type));
 
     let return_type = replace_type_param(
@@ -679,7 +680,12 @@ fn check_expr_call_generic_type_param(
 
         ck.analysis.set_ty(e.id, return_type.clone());
 
-        let call_type = CallType::GenericMethod(id, trait_method.trait_id(), trait_method_id);
+        let call_type = CallType::GenericMethod(
+            id,
+            trait_method.trait_id(),
+            trait_method_id,
+            trait_ty.type_params(),
+        );
         ck.analysis.map_calls.insert(e.id, Arc::new(call_type));
 
         if !params_match(

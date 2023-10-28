@@ -335,10 +335,20 @@ pub enum CallType {
     TraitObjectMethod(SourceType, FctDefinitionId),
 
     // Invoke trait method on type param, e.g. (T: SomeTrait).method()
-    GenericMethod(TypeParamId, TraitDefinitionId, FctDefinitionId),
+    GenericMethod(
+        TypeParamId,
+        TraitDefinitionId,
+        FctDefinitionId,
+        SourceTypeArray,
+    ),
 
     // Invoke static trait method on type param, e.g. T::method()
-    GenericStaticMethod(TypeParamId, TraitDefinitionId, FctDefinitionId),
+    GenericStaticMethod(
+        TypeParamId,
+        TraitDefinitionId,
+        FctDefinitionId,
+        SourceTypeArray,
+    ),
 
     // Class constructor of new class syntax, i.e. ClassName(<args>).
     NewClass(ClassDefinitionId, SourceTypeArray),
@@ -366,7 +376,7 @@ impl CallType {
 
     pub fn is_generic_method(&self) -> bool {
         match *self {
-            CallType::GenericMethod(_, _, _) => true,
+            CallType::GenericMethod(..) => true,
             _ => false,
         }
     }
@@ -391,8 +401,8 @@ impl CallType {
             CallType::Method(_, fctid, _) => Some(fctid),
             CallType::Expr(_, fctid, _) => Some(fctid),
             CallType::TraitObjectMethod(_, fctid) => Some(fctid),
-            CallType::GenericMethod(_, _, fctid) => Some(fctid),
-            CallType::GenericStaticMethod(_, _, fctid) => Some(fctid),
+            CallType::GenericMethod(_, _, fctid, _) => Some(fctid),
+            CallType::GenericStaticMethod(_, _, fctid, _) => Some(fctid),
 
             CallType::NewClass(..)
             | CallType::NewStruct(..)

@@ -1352,9 +1352,9 @@ impl<'a> AstBytecodeGen<'a> {
         call_type: &CallType,
     ) -> Option<Register> {
         match *call_type {
-            CallType::Method(_, _, _)
-            | CallType::GenericMethod(_, _, _)
-            | CallType::TraitObjectMethod(_, _) => {
+            CallType::Method(..)
+            | CallType::GenericMethod(..)
+            | CallType::TraitObjectMethod(..) => {
                 let obj_expr = expr.object().expect("method target required");
                 let reg = gen_expr(self, obj_expr, DataDest::Alloc);
 
@@ -1377,9 +1377,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         // self was already emitted, needs to be ignored here.
         let arg_start_offset = match *call_type {
-            CallType::Expr(_, _, _)
-            | CallType::Method(_, _, _)
-            | CallType::GenericMethod(_, _, _) => 1,
+            CallType::Expr(..) | CallType::Method(..) | CallType::GenericMethod(..) => 1,
             _ => 0,
         };
 
@@ -1471,27 +1469,27 @@ impl<'a> AstBytecodeGen<'a> {
         location: Location,
     ) {
         match *call_type {
-            CallType::Method(_, _, _) => {
+            CallType::Method(..) => {
                 self.builder
                     .emit_invoke_direct(return_reg, callee_idx, location);
             }
-            CallType::Fct(_, _) => {
+            CallType::Fct(..) => {
                 self.builder
                     .emit_invoke_static(return_reg, callee_idx, location);
             }
-            CallType::Expr(_, _, _) => {
+            CallType::Expr(..) => {
                 self.builder
                     .emit_invoke_direct(return_reg, callee_idx, location);
             }
-            CallType::TraitObjectMethod(_, _) => {
+            CallType::TraitObjectMethod(..) => {
                 self.builder
                     .emit_invoke_virtual(return_reg, callee_idx, location);
             }
-            CallType::GenericMethod(_, _, _) => {
+            CallType::GenericMethod(..) => {
                 self.builder
                     .emit_invoke_generic_direct(return_reg, callee_idx, location);
             }
-            CallType::GenericStaticMethod(_, _, _) => {
+            CallType::GenericStaticMethod(..) => {
                 self.builder
                     .emit_invoke_generic_static(return_reg, callee_idx, location);
             }
@@ -2671,9 +2669,9 @@ impl<'a> AstBytecodeGen<'a> {
 
             CallType::Expr(_, _, ref type_params) => type_params.clone(),
 
-            CallType::TraitObjectMethod(_, _) => SourceTypeArray::empty(),
-            CallType::GenericMethod(_, _, _) => SourceTypeArray::empty(),
-            CallType::GenericStaticMethod(_, _, _) => SourceTypeArray::empty(),
+            CallType::TraitObjectMethod(..) => SourceTypeArray::empty(),
+            CallType::GenericMethod(_, _, _, ref type_params) => type_params.clone(),
+            CallType::GenericStaticMethod(_, _, _, ref type_params) => type_params.clone(),
 
             CallType::NewClass(..)
             | CallType::NewStruct(..)
@@ -2692,7 +2690,7 @@ impl<'a> AstBytecodeGen<'a> {
         assert_eq!(fct.type_params().len(), type_params.len());
 
         match *call_type {
-            CallType::GenericStaticMethod(id, _, _) | CallType::GenericMethod(id, _, _) => {
+            CallType::GenericStaticMethod(id, ..) | CallType::GenericMethod(id, ..) => {
                 self.builder.add_const_generic(
                     id.0 as u32,
                     FunctionId(fct.id().index().try_into().expect("overflow")),
@@ -2728,7 +2726,7 @@ impl<'a> AstBytecodeGen<'a> {
                 let container_type_params = trait_ty.type_params();
                 specialize_type(self.sa, ty, &container_type_params)
             }
-            CallType::GenericMethod(id, _, _) | CallType::GenericStaticMethod(id, _, _) => {
+            CallType::GenericMethod(id, ..) | CallType::GenericStaticMethod(id, ..) => {
                 debug_assert!(ty.is_concrete_type() || ty.is_self());
                 if ty.is_self() {
                     SourceType::TypeParam(*id)
