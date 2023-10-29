@@ -97,7 +97,7 @@ pub fn replace_type_param(
         | SourceType::Float64
         | SourceType::Error => ty,
 
-        SourceType::Any | SourceType::Ptr => {
+        SourceType::Any | SourceType::Ptr | SourceType::TypeAlias(..) => {
             panic!("unexpected type = {:?}", ty);
             // unreachable!()
         }

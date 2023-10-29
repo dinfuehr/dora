@@ -497,6 +497,8 @@ fn arg_allows(sa: &Sema, def: SourceType, arg: SourceType, self_ty: Option<Sourc
         },
 
         SourceType::Lambda(_, _) => def == arg,
+
+        SourceType::TypeAlias(..) => unreachable!(),
     }
 }
 

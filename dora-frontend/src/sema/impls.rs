@@ -146,6 +146,8 @@ pub fn implements_trait(
 
         SourceType::TypeParam(tp_id) => check_type_param_defs.implements_trait(tp_id, trait_ty),
 
+        SourceType::TypeAlias(..) => unreachable!(),
+
         SourceType::Error | SourceType::Ptr | SourceType::This | SourceType::Any => unreachable!(),
     }
 }

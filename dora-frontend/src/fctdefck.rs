@@ -42,6 +42,11 @@ pub fn check(sa: &Sema) {
                 if fct.has_hidden_self_argument() {
                     param_types.push(SourceType::This);
                 }
+
+                for &alias_id in trait_.aliases() {
+                    let alias = &sa.aliases[alias_id];
+                    sym_table.insert(alias.name, SymbolKind::TypeAlias(alias_id));
+                }
             }
 
             FctParent::None => {}

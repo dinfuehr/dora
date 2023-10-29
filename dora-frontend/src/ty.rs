@@ -2,8 +2,9 @@ use std::ops::Index;
 use std::sync::Arc;
 
 use crate::sema::{
-    ClassDefinition, ClassDefinitionId, EnumDefinition, EnumDefinitionId, FctDefinition, Sema,
-    StructDefinition, StructDefinitionId, TraitDefinitionId, TypeParamDefinition, TypeParamId,
+    AliasDefinitionId, ClassDefinition, ClassDefinitionId, EnumDefinition, EnumDefinitionId,
+    FctDefinition, Sema, StructDefinition, StructDefinitionId, TraitDefinitionId,
+    TypeParamDefinition, TypeParamId,
 };
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -46,6 +47,9 @@ pub enum SourceType {
 
     // some type variable
     TypeParam(TypeParamId),
+
+    // Type alias.
+    TypeAlias(AliasDefinitionId),
 
     // some lambda
     Lambda(SourceTypeArray, Box<SourceType>),
@@ -360,7 +364,7 @@ impl SourceType {
                 *self == other
             }
             SourceType::Ptr => panic!("ptr does not allow any other types"),
-            SourceType::This => unreachable!(),
+            SourceType::This | SourceType::TypeAlias(..) => unreachable!(),
             SourceType::Class(self_cls_id, self_list) => {
                 if *self == other {
                     return true;
@@ -423,6 +427,7 @@ impl SourceType {
             | SourceType::Trait(_, _)
             | SourceType::Lambda(_, _)
             | SourceType::TypeParam(_) => true,
+            SourceType::TypeAlias(..) => unreachable!(),
             SourceType::Enum(_, params)
             | SourceType::Class(_, params)
             | SourceType::Struct(_, params) => {
@@ -458,6 +463,7 @@ impl SourceType {
             | SourceType::Float32
             | SourceType::Float64
             | SourceType::Ptr => true,
+            SourceType::TypeAlias(..) => unreachable!(),
             SourceType::Class(_, params)
             | SourceType::Enum(_, params)
             | SourceType::Struct(_, params)
@@ -760,6 +766,8 @@ impl<'a> SourceTypePrinter<'a> {
 
                 format!("({})", types)
             }
+
+            SourceType::TypeAlias(..) => unreachable!(),
         }
     }
 }

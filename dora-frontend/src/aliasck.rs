@@ -91,4 +91,14 @@ mod tests {
             ErrorMessage::UnexpectedTypeAliasAssignment,
         );
     }
+
+    #[test]
+    fn use_alias_type_in_trait() {
+        ok("
+            trait Foo {
+                type Bar;
+                fn f(): Bar;
+            }
+        ")
+    }
 }

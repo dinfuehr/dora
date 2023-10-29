@@ -106,7 +106,7 @@ fn read_type_basic_unchecked(
                 sa.report(file_id, node.span, msg);
             }
 
-            sa.aliases[alias_id].ty()
+            SourceType::TypeAlias(alias_id)
         }
 
         Some(_) => {
@@ -456,6 +456,10 @@ fn verify_type_basic(
             ) {
                 return false;
             }
+        }
+
+        SourceType::TypeAlias(..) => {
+            // The actual type is verified in the alias definition.
         }
 
         SourceType::Error => {
