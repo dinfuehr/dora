@@ -1,5 +1,5 @@
 use id_arena::Id;
-use once_cell::sync::OnceCell;
+use std::cell::OnceCell;
 use std::sync::Arc;
 
 use crate::interner::Name;

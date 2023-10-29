@@ -1,7 +1,6 @@
+use std::cell::OnceCell;
 use std::str::Chars;
 use std::{f32, f64};
-
-use once_cell::unsync::OnceCell;
 
 use crate::error::msg::ErrorMessage;
 use crate::report_sym_shadow_span;
@@ -166,14 +165,16 @@ impl<'a> TypeCheck<'a> {
 
         if needs_outer_context_slot {
             let name = self.sa.interner.intern("outer_context");
-
-            fields.push(Field {
+            let field = Field {
                 id: FieldId(0),
                 name,
-                ty: OnceCell::with_value(SourceType::Ptr),
+                ty: OnceCell::new(),
                 mutable: true,
                 visibility: Visibility::Module,
-            });
+            };
+            assert!(field.ty.set(SourceType::Ptr).is_ok());
+
+            fields.push(field);
         }
 
         for var in self.vars.vars.iter().skip(start_index) {
@@ -195,14 +196,16 @@ impl<'a> TypeCheck<'a> {
             let var = self.vars.get_var(var_id);
 
             let id = FieldId(fields.len());
-
-            fields.push(Field {
+            let field = Field {
                 id,
                 name: var.name,
-                ty: OnceCell::with_value(var.ty.clone()),
+                ty: OnceCell::new(),
                 mutable: true,
                 visibility: Visibility::Module,
-            });
+            };
+            assert!(field.ty.set(var.ty.clone()).is_ok());
+
+            fields.push(field);
         }
 
         let name = self.sa.interner.intern("$Context");

@@ -1,9 +1,8 @@
-use std::cell::RefCell;
+use std::cell::{OnceCell, RefCell};
 use std::ops::{Index, IndexMut};
 use std::sync::Arc;
 
 use id_arena::Id;
-use once_cell::unsync::OnceCell;
 
 use crate::interner::Name;
 use crate::program_parser::ParsedModifierList;

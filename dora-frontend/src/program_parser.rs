@@ -1,3 +1,4 @@
+use std::cell::OnceCell;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs;
 use std::io::{Error, Read};
@@ -11,16 +12,16 @@ use crate::sema::{
     AliasDefinition, AliasParent, ClassDefinition, ConstDefinition, EnumDefinition,
     ExtensionDefinition, ExtensionDefinitionId, FctDefinition, FctParent, Field, FieldId,
     GlobalDefinition, ImplDefinition, ImplDefinitionId, ModuleDefinition, ModuleDefinitionId,
-    PackageDefinitionId, PackageName, Sema, SourceFileId, StructDefinition, StructDefinitionField,
-    StructDefinitionFieldId, TraitDefinition, TraitDefinitionId, UseDefinition, Visibility,
+    PackageDefinition, PackageDefinitionId, PackageName, Sema, SourceFile, SourceFileId,
+    StructDefinition, StructDefinitionField, StructDefinitionFieldId, TraitDefinition,
+    TraitDefinitionId, UseDefinition, Visibility,
 };
 use crate::sym::{SymTable, Symbol, SymbolKind};
 use crate::STDLIB;
 use dora_parser::ast::visit::Visitor;
 use dora_parser::ast::{self, visit, ModifierList};
 use dora_parser::parser::Parser;
-use dora_parser::Span;
-use once_cell::unsync::OnceCell;
+use dora_parser::{compute_line_starts, Span};
 
 pub fn parse(sa: &mut Sema) -> HashMap<ModuleDefinitionId, SymTable> {
     let mut discoverer = ProgramParser::new(sa);
@@ -82,7 +83,7 @@ impl<'a> ProgramParser<'a> {
     fn add_stdlib_package(&mut self) {
         let stdlib_name = "std";
         let stdlib_iname = self.sa.interner.intern(stdlib_name);
-        let (package_id, module_id) = self.sa.add_package(PackageName::Stdlib, Some(stdlib_iname));
+        let (package_id, module_id) = add_package(self.sa, PackageName::Stdlib, Some(stdlib_iname));
         self.sa
             .package_names
             .insert(stdlib_name.to_string(), package_id);
@@ -134,9 +135,8 @@ impl<'a> ProgramParser<'a> {
         let boots_name: String = "boots".into();
         if let Some(boots_path) = self.packages.remove(&boots_name) {
             let interned_boots_name = self.sa.interner.intern(&boots_name);
-            let (package_id, module_id) = self
-                .sa
-                .add_package(PackageName::Boots, Some(interned_boots_name));
+            let (package_id, module_id) =
+                add_package(self.sa, PackageName::Boots, Some(interned_boots_name));
             self.sa
                 .package_names
                 .insert(String::from(boots_name), package_id);
@@ -147,7 +147,7 @@ impl<'a> ProgramParser<'a> {
     }
 
     fn add_program_package(&mut self) {
-        let (package_id, module_id) = self.sa.add_package(PackageName::Program, None);
+        let (package_id, module_id) = add_package(self.sa, PackageName::Program, None);
         self.sa.set_program_module_id(module_id);
         self.sa.set_program_package_id(package_id);
 
@@ -180,7 +180,7 @@ impl<'a> ProgramParser<'a> {
         for (name, path) in packages {
             let iname = self.sa.interner.intern(&name);
             let package_name = PackageName::External(name.clone());
-            let (package_id, module_id) = self.sa.add_package(package_name, Some(iname));
+            let (package_id, module_id) = add_package(self.sa, package_name, Some(iname));
             self.sa.package_names.insert(name, package_id);
 
             self.add_file_from_filesystem(package_id, module_id, path);
@@ -345,9 +345,7 @@ impl<'a> ProgramParser<'a> {
         module_path: Option<PathBuf>,
         file_lookup: FileLookup,
     ) {
-        let file_id = self
-            .sa
-            .add_source_file(package_id, module_id, file_path, Arc::new(content));
+        let file_id = add_source_file(self.sa, package_id, module_id, file_path, Arc::new(content));
         self.files_to_parse
             .push_back((file_id, file_lookup, module_path));
     }
@@ -1130,6 +1128,43 @@ fn check_if_symbol_exists(
         let name = sa.interner.str(name).to_string();
         sa.report(file_id, span, ErrorMessage::ShadowField(name));
     }
+}
+
+pub fn add_source_file(
+    sa: &mut Sema,
+    package_id: PackageDefinitionId,
+    module_id: ModuleDefinitionId,
+    path: PathBuf,
+    content: Arc<String>,
+) -> SourceFileId {
+    let line_starts = compute_line_starts(&content);
+    let file_id = sa.source_files.alloc(SourceFile {
+        id: OnceCell::new(),
+        package_id,
+        path,
+        content,
+        module_id,
+        line_starts,
+        ast: OnceCell::new(),
+    });
+    assert!(sa.source_files[file_id].id.set(file_id).is_ok());
+    file_id
+}
+
+fn add_package(
+    sa: &mut Sema,
+    package_name: PackageName,
+    module_name: Option<Name>,
+) -> (PackageDefinitionId, ModuleDefinitionId) {
+    let module = ModuleDefinition::new_top_level(module_name);
+    let module_id = sa.modules.alloc(module);
+
+    let package = PackageDefinition::new(package_name, module_id);
+    let package_id = sa.packages.alloc(package);
+
+    sa.modules[module_id].package_id = Some(package_id);
+
+    (package_id, module_id)
 }
 
 #[cfg(test)]

@@ -1,4 +1,4 @@
-use once_cell::unsync::OnceCell;
+use std::cell::OnceCell;
 use std::rc::Rc;
 
 use crate::sema::{
@@ -216,13 +216,16 @@ pub fn create_lambda_class(sa: &mut Sema) {
     let class_name = sa.interner.intern("$Lambda");
     let context_name = sa.interner.intern("context");
 
-    let fields = vec![Field {
+    let field = Field {
         id: FieldId(0),
         name: context_name,
-        ty: OnceCell::with_value(SourceType::Ptr),
+        ty: OnceCell::new(),
         mutable: false,
         visibility: Visibility::Public,
-    }];
+    };
+    assert!(field.ty.set(SourceType::Ptr).is_ok());
+
+    let fields = vec![field];
 
     let class = ClassDefinition::new_without_source(
         sa.stdlib_package_id(),

@@ -1,14 +1,13 @@
-use std::cell::{OnceCell, RefCell};
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::Rc;
-use std::sync::Arc;
 
 use id_arena::Arena;
 
-use crate::interner::{Interner, Name};
+use crate::interner::Interner;
 use dora_bytecode::Location;
-use dora_parser::{compute_line_column, compute_line_starts, Span};
+use dora_parser::{compute_line_column, Span};
 
 use crate::error::diag::Diagnostic;
 use crate::error::msg::ErrorMessage;
@@ -168,27 +167,6 @@ impl Sema {
         self.program_package_id.expect("uninitialized package id")
     }
 
-    pub fn add_source_file(
-        &mut self,
-        package_id: PackageDefinitionId,
-        module_id: ModuleDefinitionId,
-        path: PathBuf,
-        content: Arc<String>,
-    ) -> SourceFileId {
-        let line_starts = compute_line_starts(&content);
-        let file_id = self.source_files.alloc(SourceFile {
-            id: OnceCell::new(),
-            package_id,
-            path,
-            content,
-            module_id,
-            line_starts,
-            ast: OnceCell::new(),
-        });
-        assert!(self.source_files[file_id].id.set(file_id).is_ok());
-        file_id
-    }
-
     pub fn module_table(&self, module_id: ModuleDefinitionId) -> Rc<SymTable> {
         self.modules[module_id].table()
     }
@@ -240,30 +218,10 @@ impl Sema {
         self.boots_package_id.is_some()
     }
 
-    pub fn add_package(
-        &mut self,
-        package_name: PackageName,
-        module_name: Option<Name>,
-    ) -> (PackageDefinitionId, ModuleDefinitionId) {
-        let module = ModuleDefinition::new_top_level(module_name);
-        let module_id = self.modules.alloc(module);
-
-        let package = PackageDefinition::new(package_name, module_id);
-        let package_id = self.packages.alloc(package);
-
-        self.modules[module_id].package_id = Some(package_id);
-
-        (package_id, module_id)
-    }
-
     pub fn compute_loc(&self, file_id: SourceFileId, span: Span) -> Location {
-        let (line, column) = self.compute_line_column(file_id, span);
-        Location::new(line, column)
-    }
-
-    pub fn compute_line_column(&self, file_id: SourceFileId, span: Span) -> (u32, u32) {
         let file = &self.source_files[file_id];
-        compute_line_column(&file.line_starts, span.start())
+        let (line, column) = compute_line_column(&file.line_starts, span.start());
+        Location::new(line, column)
     }
 
     pub fn report(&self, file: SourceFileId, span: Span, msg: ErrorMessage) {
