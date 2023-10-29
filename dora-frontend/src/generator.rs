@@ -11,7 +11,7 @@ use crate::sema::{
     GlobalDefinitionId, IdentType, Sema, SourceFileId, StructDefinitionId, TypeParamId, VarId,
     VarLocation,
 };
-use crate::specialize::specialize_type;
+use crate::specialize::{replace_type_param, specialize_type};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::{expr_always_returns, expr_block_always_returns};
 use dora_bytecode::{
@@ -2726,13 +2726,9 @@ impl<'a> AstBytecodeGen<'a> {
                 let container_type_params = trait_ty.type_params();
                 specialize_type(self.sa, ty, &container_type_params)
             }
-            CallType::GenericMethod(id, ..) | CallType::GenericStaticMethod(id, ..) => {
-                debug_assert!(ty.is_concrete_type() || ty.is_self());
-                if ty.is_self() {
-                    SourceType::TypeParam(*id)
-                } else {
-                    ty
-                }
+            CallType::GenericMethod(id, _trait_id, _method_id, type_params)
+            | CallType::GenericStaticMethod(id, _trait_id, _method_id, type_params) => {
+                replace_type_param(self.sa, ty, type_params, Some(SourceType::TypeParam(*id)))
             }
 
             CallType::Lambda(..)

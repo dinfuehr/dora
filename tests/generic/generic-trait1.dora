@@ -1,0 +1,20 @@
+fn main() {
+    f[X](X());
+}
+
+fn f[T: Foo[Bool, Int64]](t: T) {
+    t.f(true, 12);
+}
+
+trait Foo[A, B] {
+    fn f(a: A, b: B);
+}
+
+class X
+
+impl Foo[Bool, Int64] for X {
+    fn f(a: Bool, b: Int64) {
+        assert(a);
+        assert(b == 12);
+    }
+}

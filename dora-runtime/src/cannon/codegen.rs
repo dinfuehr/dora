@@ -3039,7 +3039,7 @@ impl<'a> CannonCodeGen<'a> {
             FunctionKind::Trait(trait_id) => trait_id,
             _ => unreachable!(),
         };
-        let trait_ty = BytecodeType::Trait(trait_id, BytecodeTypeArray::empty());
+        let trait_ty = BytecodeType::Trait(trait_id, type_params.clone());
 
         let ty = self.type_params[id as usize].clone();
         let callee_id = find_trait_impl(self.vm, trait_fct_id, trait_ty, ty);

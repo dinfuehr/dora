@@ -47,10 +47,6 @@ fn find_impl(
 
         assert!(impl_.trait_ty.is_concrete_type());
 
-        if impl_.extended_ty != check_ty {
-            continue;
-        }
-
         if impl_.trait_ty != trait_ty {
             continue;
         }

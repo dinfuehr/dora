@@ -5,9 +5,10 @@ use crate::sema::{
     AliasDefinitionId, FctDefinition, FctDefinitionId, ImplDefinition, ImplDefinitionId, Sema,
     SourceFileId, TraitDefinition,
 };
+use crate::specialize::replace_type_param;
 use crate::{
-    read_type_context, AllowSelf, ErrorMessage, ModuleSymTable, SourceType, SymbolKind,
-    TypeParamContext,
+    read_type_context, AllowSelf, ErrorMessage, ModuleSymTable, SourceType, SourceTypeArray,
+    SymbolKind, TypeParamContext,
 };
 
 use dora_parser::ast;
@@ -165,7 +166,9 @@ fn check_impl_methods(sa: &Sema, impl_: &ImplDefinition, trait_: &TraitDefinitio
             let trait_method = &sa.fcts[trait_method_id];
 
             if !method_definitions_compatible(
+                sa,
                 trait_method,
+                impl_.trait_ty().type_params(),
                 impl_method,
                 impl_.extended_ty().clone(),
             ) {
@@ -189,7 +192,9 @@ fn check_impl_methods(sa: &Sema, impl_: &ImplDefinition, trait_: &TraitDefinitio
 }
 
 fn method_definitions_compatible(
+    sa: &Sema,
     trait_method: &FctDefinition,
+    trait_type_params: SourceTypeArray,
     impl_method: &FctDefinition,
     self_ty: SourceType,
 ) -> bool {
@@ -201,28 +206,23 @@ fn method_definitions_compatible(
     }
 
     for (trait_arg_ty, impl_arg_ty) in trait_params.iter().zip(impl_params.iter()) {
-        if !param_matches(trait_arg_ty, impl_arg_ty, &self_ty) {
+        if replace_type_param(
+            sa,
+            trait_arg_ty.clone(),
+            &trait_type_params,
+            Some(self_ty.clone()),
+        ) != impl_arg_ty.clone()
+        {
             return false;
         }
     }
 
-    param_matches(
-        &trait_method.return_type(),
-        &impl_method.return_type(),
-        &self_ty,
-    )
-}
-
-fn param_matches(
-    trait_arg_ty: &SourceType,
-    impl_arg_ty: &SourceType,
-    self_ty: &SourceType,
-) -> bool {
-    if trait_arg_ty.is_self() {
-        self_ty == impl_arg_ty
-    } else {
-        trait_arg_ty == impl_arg_ty
-    }
+    replace_type_param(
+        sa,
+        trait_method.return_type(),
+        &trait_type_params,
+        Some(self_ty),
+    ) == impl_method.return_type()
 }
 
 fn report_missing_methods(
