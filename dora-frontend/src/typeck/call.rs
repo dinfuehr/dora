@@ -103,22 +103,22 @@ fn check_expr_call_generic_static_method(
     e: &ast::ExprCallType,
     tp_id: TypeParamId,
     name: String,
-    arg_types: &[SourceType],
+    args: &[SourceType],
 ) -> SourceType {
-    let mut fcts = Vec::new();
+    let mut matched_methods = Vec::new();
     let interned_name = ck.sa.interner.intern(&name);
 
     for trait_ty in ck.type_param_defs.bounds_for_type_param(tp_id) {
         let trait_id = trait_ty.trait_id().expect("trait expected");
         let trait_ = &ck.sa.traits[trait_id];
 
-        if let Some(fct_id) = trait_.get_method(interned_name, true) {
-            fcts.push((trait_id, fct_id));
+        if let Some(trait_method_id) = trait_.get_method(interned_name, true) {
+            matched_methods.push((trait_method_id, trait_ty));
         }
     }
 
-    if fcts.len() != 1 {
-        let msg = if fcts.len() > 1 {
+    if matched_methods.len() != 1 {
+        let msg = if matched_methods.len() > 1 {
             ErrorMessage::MultipleCandidatesForStaticMethodWithTypeParam
         } else {
             ErrorMessage::UnknownStaticMethodWithTypeParam
@@ -130,41 +130,45 @@ fn check_expr_call_generic_static_method(
         return SourceType::Error;
     }
 
-    if arg_types.contains(&SourceType::Error) {
+    if args.contains(&SourceType::Error) {
         ck.analysis.set_ty(e.id, SourceType::Error);
         return SourceType::Error;
     }
 
-    let (trait_id, fct_id) = fcts[0];
-    let fct = &ck.sa.fcts[fct_id];
+    let (trait_method_id, trait_ty) = matched_methods.pop().expect("missing method");
+    let trait_method = &ck.sa.fcts[trait_method_id];
 
     let tp = SourceType::TypeParam(tp_id);
 
     if !args_compatible_fct(
         ck.sa,
-        fct,
-        arg_types,
-        &SourceTypeArray::empty(),
+        trait_method,
+        args,
+        &trait_ty.type_params(),
         Some(tp.clone()),
     ) {
-        let fct_params = fct
+        let fct_params = trait_method
             .params_without_self()
             .iter()
             .map(|a| ck.ty_name(a))
             .collect::<Vec<_>>();
-        let arg_types = arg_types.iter().map(|a| ck.ty_name(a)).collect::<Vec<_>>();
+        let arg_types = args.iter().map(|a| ck.ty_name(a)).collect::<Vec<_>>();
         let msg = ErrorMessage::ParamTypesIncompatible(name, fct_params, arg_types);
         ck.sa.report(ck.file_id, e.span, msg);
     }
 
-    let call_type =
-        CallType::GenericStaticMethod(tp_id, trait_id, fct_id, SourceTypeArray::empty());
+    let call_type = CallType::GenericStaticMethod(
+        tp_id,
+        trait_ty.trait_id().expect("trait expected"),
+        trait_method_id,
+        trait_ty.type_params(),
+    );
     ck.analysis.map_calls.insert(e.id, Arc::new(call_type));
 
     let return_type = replace_type_param(
         ck.sa,
-        fct.return_type(),
-        &SourceTypeArray::empty(),
+        trait_method.return_type(),
+        &trait_ty.type_params(),
         Some(tp),
     );
 

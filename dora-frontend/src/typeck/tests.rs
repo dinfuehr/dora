@@ -3961,4 +3961,13 @@ fn test_trait_with_type_params() {
             t.f(true, 12);
         }
     ");
+
+    ok("
+        trait Foo[A, B] {
+            static fn f(a: A, b: B);
+        }
+        fn f[T: Foo[Bool, Int64]]() {
+            T::f(true, 12);
+        }
+    ");
 }

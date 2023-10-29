@@ -1,0 +1,21 @@
+fn main() {
+    assert(f[X]() == 47);
+}
+
+fn f[T: Foo[Bool, Int64]](): Int64 {
+    T::f(true, 12)
+}
+
+trait Foo[A, B] {
+    static fn f(a: A, b: B): Int64;
+}
+
+class X
+
+impl Foo[Bool, Int64] for X {
+    static fn f(a: Bool, b: Int64): Int64 {
+        assert(a);
+        assert(b == 12);
+        47
+    }
+}
