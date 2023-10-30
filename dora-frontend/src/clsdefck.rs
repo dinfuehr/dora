@@ -40,12 +40,10 @@ impl<'x> ClsDefCheck<'x> {
     fn check(&mut self) {
         self.sym.push_level();
 
-        {
-            let cls = &self.sa.classes[self.cls_id];
+        let cls = self.sa.class(self.cls_id);
 
-            for (id, name) in cls.type_params().names() {
-                self.sym.insert(name, SymbolKind::TypeParam(id));
-            }
+        for (id, name) in cls.type_params().names() {
+            self.sym.insert(name, SymbolKind::TypeParam(id));
         }
 
         for (idx, field) in self.ast.fields.iter().enumerate() {
@@ -66,7 +64,7 @@ impl<'x> ClsDefCheck<'x> {
         )
         .unwrap_or(SourceType::Error);
 
-        let cls = &self.sa.classes[self.cls_id];
+        let cls = self.sa.class(self.cls_id);
         cls.fields[idx].ty.set(ty).expect("already initialized");
     }
 }

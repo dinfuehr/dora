@@ -238,7 +238,7 @@ pub fn find_field_in_class(
     }
 
     let cls_id = class.cls_id().expect("no class");
-    let cls = &sa.classes[cls_id];
+    let cls = sa.class(cls_id);
 
     let type_list = class.type_params();
 
@@ -275,7 +275,7 @@ pub fn find_methods_in_class(
         if let Some(bindings) =
             extension_matches(sa, object_type.clone(), type_param_defs, extension.id())
         {
-            let extension = &sa.extensions[extension.id()];
+            let extension = sa.extension(extension.id());
 
             let table = if is_static {
                 &extension.static_names
@@ -295,8 +295,8 @@ pub fn find_methods_in_class(
 
     for (_id, impl_) in sa.impls.iter() {
         if let Some(bindings) = impl_matches(sa, object_type.clone(), type_param_defs, impl_.id()) {
-            let impl_ = &sa.impls[impl_.id()];
-            let trait_ = &sa.traits[impl_.trait_id()];
+            let impl_ = &sa.impl_(impl_.id());
+            let trait_ = &sa.trait_(impl_.trait_id());
 
             if let Some(trait_method_id) = trait_.get_method(name, is_static) {
                 candidates.push(Candidate {

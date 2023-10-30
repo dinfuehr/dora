@@ -52,7 +52,7 @@ pub fn check<'a>(sa: &Sema, mut module_symtables: HashMap<ModuleDefinitionId, Sy
     }
 
     for (module_id, table) in module_symtables {
-        assert!(sa.modules[module_id].table.set(Rc::new(table)).is_ok());
+        assert!(sa.module(module_id).table.set(Rc::new(table)).is_ok());
     }
 }
 
@@ -202,7 +202,7 @@ fn initial_module(
                 Ok((1, SymbolKind::Module(module_package(sa, use_module_id))))
             }
             UsePathComponentValue::Super => {
-                let module = &sa.modules[use_module_id];
+                let module = sa.module(use_module_id);
                 if let Some(module_id) = module.parent_module_id {
                     Ok((1, SymbolKind::Module(module_id)))
                 } else {
@@ -276,7 +276,7 @@ fn process_component(
                 if sym_accessible_from(sa, current_sym.kind().to_owned(), use_module_id) {
                     Ok(current_sym.kind().to_owned())
                 } else {
-                    let module = &sa.modules[module_id];
+                    let module = sa.module(module_id);
                     let name = component_name.name_as_string.clone();
                     let msg = ErrorMessage::NotAccessibleInModule(module.name(sa), name);
                     assert!(processed_uses.insert((use_file_id, use_path.id)));
@@ -286,7 +286,7 @@ fn process_component(
             } else if ignore_unknown_symbols {
                 Err(())
             } else {
-                let module = &sa.modules[module_id];
+                let module = sa.module(module_id);
                 let name = component_name.name_as_string.clone();
                 let module_name = module.name(sa);
                 sa.report(
@@ -299,7 +299,7 @@ fn process_component(
         }
 
         SymbolKind::Enum(enum_id) => {
-            let enum_ = &sa.enums[enum_id];
+            let enum_ = sa.enum_(enum_id);
             let name = sa.interner.intern(&component_name.name_as_string);
 
             if let Some(&variant_idx) = enum_.name_to_value().get(&name) {

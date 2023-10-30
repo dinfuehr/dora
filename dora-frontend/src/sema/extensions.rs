@@ -75,7 +75,7 @@ mod matching {
         check_type_param_defs: &TypeParamDefinition,
         extension_id: ExtensionDefinitionId,
     ) -> Option<SourceTypeArray> {
-        let extension = &sa.extensions[extension_id];
+        let extension = sa.extension(extension_id);
         extension_matches_ty(
             sa,
             check_ty,

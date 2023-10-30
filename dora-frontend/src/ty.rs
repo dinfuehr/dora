@@ -673,7 +673,7 @@ impl<'a> SourceTypePrinter<'a> {
             SourceType::Ptr => panic!("type Ptr only for internal use."),
             SourceType::This => "Self".into(),
             SourceType::Class(id, type_params) => {
-                let cls = &self.sa.classes[id];
+                let cls = self.sa.class(id);
                 let base = self.sa.interner.str(cls.name);
 
                 if type_params.len() == 0 {
@@ -689,7 +689,7 @@ impl<'a> SourceTypePrinter<'a> {
                 }
             }
             SourceType::Struct(sid, type_params) => {
-                let struct_ = &self.sa.structs[sid];
+                let struct_ = self.sa.struct_(sid);
                 let name = struct_.name;
                 let name = self.sa.interner.str(name).to_string();
 
@@ -705,8 +705,8 @@ impl<'a> SourceTypePrinter<'a> {
                     format!("{}[{}]", name, params)
                 }
             }
-            SourceType::Trait(tid, type_params) => {
-                let trait_ = &self.sa.traits[tid];
+            SourceType::Trait(trait_id, type_params) => {
+                let trait_ = self.sa.trait_(trait_id);
                 let name = self.sa.interner.str(trait_.name).to_string();
 
                 if type_params.len() == 0 {
@@ -722,7 +722,7 @@ impl<'a> SourceTypePrinter<'a> {
                 }
             }
             SourceType::Enum(id, type_params) => {
-                let enum_ = &self.sa.enums[id];
+                let enum_ = self.sa.enum_(id);
                 let name = self.sa.interner.str(enum_.name).to_string();
 
                 if type_params.len() == 0 {

@@ -188,7 +188,7 @@ impl<'a> MethodLookup<'a> {
                 }
 
                 LookupKind::Trait(trait_id) => {
-                    let trait_ = &self.sa.traits[trait_id];
+                    let trait_ = self.sa.trait_(trait_id);
                     let type_name = self.sa.interner.str(trait_.name).to_string();
                     ErrorMessage::UnknownMethod(type_name, name, param_names)
                 }
@@ -300,7 +300,7 @@ impl<'a> MethodLookup<'a> {
         name: Name,
         is_static: bool,
     ) -> Option<FctDefinitionId> {
-        let trait_ = &self.sa.traits[trait_id];
+        let trait_ = self.sa.trait_(trait_id);
         trait_.get_method(name, is_static)
     }
 

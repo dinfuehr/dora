@@ -175,7 +175,7 @@ fn gen_expr_bin_cmp_as_method(
 fn is_comparable_method(sa: &Sema, fct: &FctDefinition) -> bool {
     match fct.parent {
         FctParent::Impl(impl_id) => {
-            let impl_ = &sa.impls[impl_id];
+            let impl_ = &sa.impl_(impl_id);
             impl_.trait_id() == sa.known.traits.comparable()
         }
 

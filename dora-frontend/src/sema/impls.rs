@@ -105,7 +105,7 @@ pub fn impl_matches(
     check_type_param_defs: &TypeParamDefinition,
     impl_id: ImplDefinitionId,
 ) -> Option<SourceTypeArray> {
-    let impl_ = &sa.impls[impl_id];
+    let impl_ = sa.impl_(impl_id);
     extension_matches_ty(
         sa,
         check_ty,

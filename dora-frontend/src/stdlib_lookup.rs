@@ -140,7 +140,7 @@ pub fn setup_prelude(sa: &mut Sema) {
             .to_enum()
             .expect("enum expected");
 
-        let enum_ = &sa.enums[enum_id];
+        let enum_ = sa.enum_(enum_id);
 
         for variant in enum_.variants() {
             let old_sym =
@@ -155,7 +155,7 @@ pub fn setup_prelude(sa: &mut Sema) {
             .to_enum()
             .expect("enum expected");
 
-        let enum_ = &sa.enums[enum_id];
+        let enum_ = sa.enum_(enum_id);
 
         for variant in enum_.variants() {
             let old_sym =
@@ -285,14 +285,14 @@ fn resolve_name(sa: &Sema, name: &str, module_id: ModuleDefinitionId) -> SymbolK
 
     for name in path {
         let module_id = sym.to_module().expect("module expected");
-        let table = sa.modules[module_id].table();
+        let table = sa.module(module_id).table();
 
         let interned_name = sa.interner.intern(name);
 
         if let Some(current_sym) = table.get(interned_name) {
             sym = current_sym;
         } else {
-            let module = &sa.modules[module_id];
+            let module = sa.module(module_id);
             panic!("{} not found in module {}.", name, module.name(sa));
         }
     }
@@ -1784,19 +1784,19 @@ fn find_method(
 
     match sym {
         SymbolKind::Enum(enum_id) => {
-            let enum_ = &sa.enums[enum_id];
+            let enum_ = &sa.enum_(enum_id);
             let extensions = enum_.extensions.borrow();
             find_method_in_extensions(sa, &*extensions, sa.interner.intern(name), is_static)
         }
 
         SymbolKind::Class(cls_id) => {
-            let class = &sa.classes[cls_id];
+            let class = sa.class(cls_id);
             let extensions = class.extensions.borrow();
             find_method_in_extensions(sa, &*extensions, sa.interner.intern(name), is_static)
         }
 
         SymbolKind::Struct(struct_id) => {
-            let struct_ = &sa.structs[struct_id];
+            let struct_ = sa.struct_(struct_id);
             let extensions = struct_.extensions.borrow();
             find_method_in_extensions(sa, &*extensions, sa.interner.intern(name), is_static)
         }
@@ -1812,7 +1812,7 @@ fn find_method_in_extensions(
     is_static: bool,
 ) -> FctDefinitionId {
     for &extension_id in extensions.iter() {
-        let extension = &sa.extensions[extension_id];
+        let extension = sa.extension(extension_id);
 
         for &mid in extension.methods.get().expect("missing methods") {
             let mtd = &sa.fcts[mid];
@@ -1951,18 +1951,18 @@ fn common_method(
 
     match sym {
         SymbolKind::Class(cls_id) => {
-            let cls = &sa.classes[cls_id];
+            let cls = sa.class(cls_id);
             let extensions = cls.extensions.borrow();
             internal_extension_method(sa, &extensions, method_name, is_static, marker)
         }
 
         SymbolKind::Struct(struct_id) => {
-            let struct_ = &sa.structs[struct_id];
+            let struct_ = sa.struct_(struct_id);
             let extensions = struct_.extensions.borrow();
             internal_extension_method(sa, &extensions, method_name, is_static, marker)
         }
         SymbolKind::Enum(enum_id) => {
-            let enum_ = &sa.enums[enum_id];
+            let enum_ = sa.enum_(enum_id);
             let extensions = enum_.extensions.borrow();
             internal_extension_method(sa, &extensions, method_name, is_static, marker)
         }
@@ -1981,7 +1981,7 @@ fn internal_extension_method(
     let name = sa.interner.intern(name_as_string);
 
     for &extension_id in extensions {
-        let extension = &sa.extensions[extension_id];
+        let extension = sa.extension(extension_id);
 
         let table = if is_static {
             &extension.static_names
@@ -2055,10 +2055,7 @@ fn internal_impl_method(
     let sym = resolve_name(sa, container_name, module_id);
 
     let ty = match sym {
-        SymbolKind::Struct(struct_id) => {
-            let struct_ = &sa.structs[struct_id];
-            struct_.ty()
-        }
+        SymbolKind::Struct(struct_id) => sa.struct_(struct_id).ty(),
 
         SymbolKind::Class(cls_id) => SourceType::Class(cls_id, SourceTypeArray::empty()),
 
@@ -2070,7 +2067,7 @@ fn internal_impl_method(
     for (_id, impl_) in sa.impls.iter() {
         if impl_.trait_ty() == trait_ty && impl_.extended_ty() == ty {
             let method_name = sa.interner.intern(method_name);
-            let trait_ = &sa.traits[impl_.trait_id()];
+            let trait_ = &sa.trait_(impl_.trait_id());
 
             let trait_method_id = trait_
                 .get_method(method_name, false)

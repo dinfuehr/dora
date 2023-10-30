@@ -155,8 +155,7 @@ pub(super) fn check_expr_ident(
         }
 
         Some(SymbolKind::Const(const_id)) => {
-            let const_ = &ck.sa.consts[const_id];
-
+            let const_ = ck.sa.const_(const_id);
             ck.analysis.set_ty(e.id, const_.ty());
 
             ck.analysis
@@ -335,7 +334,7 @@ fn check_expr_assign_field(ck: &mut TypeCheck, e: &ast::ExprBinType) {
                 .map_idents
                 .insert_or_replace(e.lhs.id(), ident_type);
 
-            let cls = &ck.sa.classes[cls_ty.cls_id().expect("no class")];
+            let cls = ck.sa.class(cls_ty.cls_id().expect("no class"));
             let field = &cls.fields[field_id];
 
             let class_type_params = cls_ty.type_params();
@@ -413,7 +412,7 @@ pub(super) fn check_expr_dot(
     let interned_name = ck.sa.interner.intern(&name);
 
     if let Some(struct_id) = object_type.struct_id() {
-        let struct_ = &ck.sa.structs[struct_id];
+        let struct_ = ck.sa.struct_(struct_id);
         if let Some(&field_id) = struct_.field_names.get(&interned_name) {
             let ident_type = IdentType::StructField(object_type.clone(), field_id);
             ck.analysis.map_idents.insert_or_replace(e.id, ident_type);
@@ -441,7 +440,7 @@ pub(super) fn check_expr_dot(
             ck.analysis.map_idents.insert_or_replace(e.id, ident_type);
 
             let cls_id = cls_ty.cls_id().expect("no class");
-            let cls = &ck.sa.classes[cls_id];
+            let cls = ck.sa.class(cls_id);
             let field = &cls.fields[field_id];
             let class_type_params = cls_ty.type_params();
             let fty = replace_type_param(ck.sa, field.ty(), &class_type_params, None);
@@ -679,12 +678,14 @@ fn check_expr_template(
                     .expect("missing impl");
 
                     let name = ck.sa.interner.intern("toString");
-                    let stringable_trait = &ck.sa.traits[stringable_trait_id];
+                    let stringable_trait = &ck.sa.trait_(stringable_trait_id);
                     let trait_to_string_id = stringable_trait
                         .get_method(name, false)
                         .expect("missing method");
 
-                    let to_string_id = ck.sa.impls[stringable_impl_id]
+                    let to_string_id = ck
+                        .sa
+                        .impl_(stringable_impl_id)
                         .get_method_for_trait_method_id(trait_to_string_id)
                         .expect("missing method");
 
@@ -748,11 +749,13 @@ fn check_expr_un_trait(
     let impl_id = find_impl(ck.sa, ty.clone(), &ck.type_param_defs, trait_ty.clone());
 
     if let Some(impl_id) = impl_id {
-        let trait_ = &ck.sa.traits[trait_id];
+        let trait_ = ck.sa.trait_(trait_id);
         let trait_method_id = trait_
             .get_method(trait_method_name, false)
             .expect("missing method");
-        let method_id = ck.sa.impls[impl_id]
+        let method_id = ck
+            .sa
+            .impl_(impl_id)
             .get_method_for_trait_method_id(trait_method_id)
             .expect("method not found");
 
@@ -770,7 +773,7 @@ fn check_expr_un_trait(
     } else if ty.is_type_param()
         && implements_trait(ck.sa, ty.clone(), ck.type_param_defs, trait_ty)
     {
-        let trait_ = &ck.sa.traits[trait_id];
+        let trait_ = &ck.sa.trait_(trait_id);
 
         let method_id = trait_
             .get_method(trait_method_name, false)
@@ -968,11 +971,13 @@ fn check_expr_bin_trait(
         let type_params = impl_matches(ck.sa, lhs_type.clone(), ck.type_param_defs, impl_id)
             .expect("impl does not match");
 
-        let trait_ = &ck.sa.traits[trait_id];
+        let trait_ = &ck.sa.trait_(trait_id);
         let trait_method_id = trait_
             .get_method(trait_method_name, false)
             .expect("missing method");
-        let method_id = ck.sa.impls[impl_id]
+        let method_id = ck
+            .sa
+            .impl_(impl_id)
             .get_method_for_trait_method_id(trait_method_id)
             .expect("method not found");
 
@@ -1004,7 +1009,7 @@ fn check_expr_bin_trait(
     } else if lhs_type.is_type_param()
         && implements_trait(ck.sa, lhs_type.clone(), ck.type_param_defs, trait_ty)
     {
-        let trait_ = &ck.sa.traits[trait_id];
+        let trait_ = ck.sa.trait_(trait_id);
 
         let method_id = trait_
             .get_method(trait_method_name, false)
@@ -1252,7 +1257,7 @@ pub(super) fn check_enum_value_with_args(
     variant_idx: u32,
     arg_types: &[SourceType],
 ) -> SourceType {
-    let enum_ = &ck.sa.enums[enum_id];
+    let enum_ = ck.sa.enum_(enum_id);
     let variant = &enum_.variants()[variant_idx as usize];
 
     if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
@@ -1386,7 +1391,7 @@ pub(super) fn read_path_expr(
 
         match sym {
             Some(SymbolKind::Module(module_id)) => {
-                let module = &ck.sa.modules[module_id];
+                let module = ck.sa.module(module_id);
                 let symtable = module.table();
                 let sym = symtable.get(interned_element_name);
 
@@ -1419,7 +1424,7 @@ fn check_enum_value_without_args(
     type_params: SourceTypeArray,
     name: String,
 ) -> SourceType {
-    let enum_ = &ck.sa.enums[enum_id];
+    let enum_ = ck.sa.enum_(enum_id);
 
     if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
         let msg = ErrorMessage::NotAccessible(enum_.name(ck.sa));
@@ -1571,7 +1576,7 @@ pub(super) fn check_enum_value_without_args_id(
     type_params: SourceTypeArray,
     variant_idx: u32,
 ) -> SourceType {
-    let enum_ = &ck.sa.enums[enum_id];
+    let enum_ = ck.sa.enum_(enum_id);
 
     if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
         let msg = ErrorMessage::NotAccessible(enum_.name(ck.sa));
@@ -1657,12 +1662,12 @@ fn check_expr_path_module(
 
         Some(SymbolKind::Const(const_id)) => {
             if !const_accessible_from(ck.sa, const_id, ck.module_id) {
-                let const_ = &ck.sa.consts[const_id];
+                let const_ = ck.sa.const_(const_id);
                 let msg = ErrorMessage::NotAccessible(const_.name(ck.sa));
                 ck.sa.report(ck.file_id, e.op_span, msg);
             }
 
-            let const_ = &ck.sa.consts[const_id];
+            let const_ = ck.sa.const_(const_id);
             ck.analysis.set_ty(e.id, const_.ty());
 
             ck.analysis
@@ -1683,7 +1688,7 @@ fn check_expr_path_module(
         ),
 
         None => {
-            let module = ck.sa.modules[module_id].name(ck.sa);
+            let module = ck.sa.module(module_id).name(ck.sa);
             ck.sa.report(
                 ck.file_id,
                 e.span,
@@ -1728,7 +1733,7 @@ pub(super) fn read_path(ck: &mut TypeCheck, path: &ast::PathData) -> Result<Symb
         match sym {
             Some(SymbolKind::Module(module_id)) => {
                 if !module_accessible_from(ck.sa, module_id, ck.module_id) {
-                    let module = &ck.sa.modules[module_id];
+                    let module = ck.sa.module(module_id);
                     let msg = ErrorMessage::NotAccessible(module.name(ck.sa));
                     ck.sa.report(ck.file_id, path.span, msg);
                 }
@@ -1738,7 +1743,7 @@ pub(super) fn read_path(ck: &mut TypeCheck, path: &ast::PathData) -> Result<Symb
             }
 
             Some(SymbolKind::Enum(enum_id)) => {
-                let enum_ = &ck.sa.enums[enum_id];
+                let enum_ = ck.sa.enum_(enum_id);
 
                 if !enum_accessible_from(ck.sa, enum_id, ck.module_id) {
                     let msg = ErrorMessage::NotAccessible(enum_.name(ck.sa));

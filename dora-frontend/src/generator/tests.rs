@@ -4226,7 +4226,7 @@ fn gen_comparable_trait_generic() {
             assert_eq!(expected, code);
 
             let trait_id = sa.known.traits.comparable();
-            let trait_ = &sa.traits[trait_id];
+            let trait_ = sa.trait_(trait_id);
             let name = sa.interner.intern("cmp");
             let cmp_fct_id = trait_.get_method(name, false).expect("missing fct");
 
@@ -4333,7 +4333,7 @@ pub fn struct_method_by_name(
         .expect("struct not found")
         .to_struct()
         .expect("struct expected");
-    let struct_ = &sa.structs[struct_id];
+    let struct_ = sa.struct_(struct_id);
 
     let candidates = find_methods_in_struct(
         sa,
@@ -4393,8 +4393,7 @@ pub fn method_in_trait_by_name(
     method_name: &str,
 ) -> FctDefinitionId {
     let method_name = sa.interner.intern(method_name);
-
-    let trait_ = &sa.traits[trait_id];
+    let trait_ = sa.trait_(trait_id);
 
     trait_
         .get_method(method_name, false)
@@ -4405,7 +4404,7 @@ pub fn trait_method_by_name(sa: &Sema, trait_name: &str, method_name: &str) -> F
     let trait_id = trait_by_name(sa, trait_name);
     let method_name = sa.interner.intern(method_name);
 
-    let trait_ = &sa.traits[trait_id];
+    let trait_ = &sa.trait_(trait_id);
 
     trait_
         .get_method(method_name, false)
@@ -4428,14 +4427,12 @@ pub fn impl_method_id_by_name(
     ty: SourceType,
 ) -> FctDefinitionId {
     let trait_ty = SourceType::new_trait(trait_id);
-    let trait_ = &sa.traits[trait_id];
+    let trait_ = sa.trait_(trait_id);
     let name = sa.interner.intern(method_name);
     let trait_method_id = trait_.get_method(name, false).expect("missing method");
     let impl_id = find_impl(sa, ty, &TypeParamDefinition::new(), trait_ty).expect("missing impl");
 
-    let impl_ = &sa.impls[impl_id];
-
-    impl_
+    sa.impl_(impl_id)
         .get_method_for_trait_method_id(trait_method_id)
         .expect("missing method")
 }

@@ -801,7 +801,7 @@ fn parse_lit_float(mut value: &str) -> (u32, String, String) {
 pub(super) fn is_simple_enum(sa: &Sema, ty: SourceType) -> bool {
     match ty {
         SourceType::Enum(enum_id, _) => {
-            let enum_ = &sa.enums[enum_id];
+            let enum_ = &sa.enum_(enum_id);
             enum_.is_simple_enum()
         }
 

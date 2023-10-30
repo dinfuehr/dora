@@ -52,7 +52,7 @@ impl ModuleDefinition {
         modifiers: ParsedModifierList,
         name: Name,
     ) -> ModuleDefinition {
-        let parent = &sa.modules[parent_id];
+        let parent = sa.module(parent_id);
         let mut parents = parent.parents.clone();
         parents.push(parent_id);
 
@@ -88,7 +88,7 @@ impl ModuleDefinition {
         let mut path = String::new();
 
         for &module_id in &self.parents {
-            let module = &sa.modules[module_id];
+            let module = sa.module(module_id);
 
             if let Some(name) = module.name {
                 if !path.is_empty() {
@@ -112,7 +112,7 @@ impl ModuleDefinition {
 }
 
 pub fn module_package(sa: &Sema, module_id: ModuleDefinitionId) -> ModuleDefinitionId {
-    let module = &sa.modules[module_id];
+    let module = sa.module(module_id);
 
     if let Some(&global_id) = module.parents.first() {
         global_id
@@ -122,7 +122,7 @@ pub fn module_package(sa: &Sema, module_id: ModuleDefinitionId) -> ModuleDefinit
 }
 
 pub fn module_path(sa: &Sema, module_id: ModuleDefinitionId, name: Name) -> String {
-    let module = &sa.modules[module_id];
+    let module = sa.module(module_id);
     let mut result = module.name(sa);
 
     if !result.is_empty() {

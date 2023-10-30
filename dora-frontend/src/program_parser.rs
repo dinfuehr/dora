@@ -238,7 +238,7 @@ impl<'a> ProgramParser<'a> {
         module_path: Option<PathBuf>,
         file_lookup: FileLookup,
     ) {
-        let module = &self.sa.modules[module_id];
+        let module = self.sa.module(module_id);
         let node = module.ast.clone().unwrap();
         let file_id = module.file_id.expect("missing file_id");
 
@@ -356,16 +356,10 @@ impl<'a> ProgramParser<'a> {
         file_lookup: FileLookup,
         module_path: Option<PathBuf>,
     ) {
-        let package_id;
-        let module_id;
-        let content;
-
-        {
-            let file = &self.sa.source_files[file_id];
-            package_id = file.package_id;
-            module_id = file.module_id;
-            content = file.content.clone();
-        }
+        let file = self.sa.file(file_id);
+        let package_id = file.package_id;
+        let module_id = file.module_id;
+        let content = file.content.clone();
 
         let parser = Parser::from_shared_string(content);
 
@@ -379,7 +373,7 @@ impl<'a> ProgramParser<'a> {
             );
         }
 
-        assert!(self.sa.source_files[file_id].ast.set(ast.clone()).is_ok());
+        assert!(self.sa.file(file_id).ast.set(ast.clone()).is_ok());
 
         self.scan_file(
             package_id,
@@ -750,7 +744,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             ensure_name(self.sa, &node.name),
         );
         let id = self.sa.aliases.alloc(alias);
-        assert!(self.sa.aliases[id].id.set(id).is_ok());
+        assert!(self.sa.alias(id).id.set(id).is_ok());
 
         let sym = SymbolKind::TypeAlias(id);
         if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
@@ -773,7 +767,7 @@ fn find_elements_in_trait(
     for child in &node.methods {
         match child.as_ref() {
             ast::ElemData::Function(ref method_node) => {
-                let trait_ = &sa.traits[trait_id];
+                let trait_ = sa.trait_(trait_id);
 
                 let modifiers = check_modifiers(
                     sa,
@@ -813,7 +807,7 @@ fn find_elements_in_trait(
                 );
 
                 let id = sa.aliases.alloc(alias);
-                assert!(sa.aliases[id].id.set(id).is_ok());
+                assert!(sa.alias(id).id.set(id).is_ok());
 
                 aliases.push(id);
             }
@@ -823,14 +817,14 @@ fn find_elements_in_trait(
             }
 
             _ => sa.report(
-                sa.traits[trait_id].file_id,
+                sa.trait_(trait_id).file_id,
                 child.span(),
                 ErrorMessage::ExpectedMethod,
             ),
         }
     }
 
-    let trait_ = &sa.traits[trait_id];
+    let trait_ = sa.trait_(trait_id);
     assert!(trait_.methods.set(methods).is_ok());
     assert!(trait_.aliases.set(aliases).is_ok());
 }
@@ -849,7 +843,7 @@ fn find_elements_in_impl(
     for child in &node.methods {
         match child.as_ref() {
             ast::ElemData::Function(ref method_node) => {
-                let impl_ = &sa.impls[impl_id];
+                let impl_ = &sa.impl_(impl_id);
                 let modifiers = check_modifiers(
                     sa,
                     impl_.file_id,
@@ -888,7 +882,7 @@ fn find_elements_in_impl(
                 );
 
                 let id = sa.aliases.alloc(alias);
-                assert!(sa.aliases[id].id.set(id).is_ok());
+                assert!(sa.alias(id).id.set(id).is_ok());
 
                 aliases.push(id);
             }
@@ -898,7 +892,7 @@ fn find_elements_in_impl(
             }
 
             _ => sa.report(
-                sa.impls[impl_id].file_id,
+                sa.impl_(impl_id).file_id,
                 child.span(),
                 ErrorMessage::ExpectedMethod,
             ),
@@ -921,7 +915,7 @@ fn find_methods_in_extension(
         match child.as_ref() {
             ast::ElemData::Function(ref method_node) => {
                 let name = ensure_name(sa, &method_node.name);
-                let extension = &sa.extensions[extension_id];
+                let extension = sa.extension(extension_id);
                 let modifiers = check_modifiers(
                     sa,
                     extension.file_id,
@@ -958,7 +952,7 @@ fn find_methods_in_extension(
         }
     }
 
-    let extension = &sa.extensions[extension_id];
+    let extension = sa.extension(extension_id);
     assert!(extension.methods.set(methods).is_ok());
 }
 
@@ -1147,7 +1141,7 @@ pub fn add_source_file(
         line_starts,
         ast: OnceCell::new(),
     });
-    assert!(sa.source_files[file_id].id.set(file_id).is_ok());
+    assert!(sa.file(file_id).id.set(file_id).is_ok());
     file_id
 }
 

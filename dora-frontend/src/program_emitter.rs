@@ -91,7 +91,7 @@ fn create_impls(sa: &Sema) -> Vec<ImplData> {
         let mut methods = Vec::new();
 
         let trait_id = impl_.trait_id();
-        let trait_ = &sa.traits[trait_id];
+        let trait_ = sa.trait_(trait_id);
 
         // The methods array for impl should have the exact same order as for the trait.
         for method_id in trait_.methods() {

@@ -862,44 +862,37 @@ fn test_const_values() {
         |sa| {
             {
                 let id = const_by_name(sa, "yes");
-                let const_ = &sa.consts[id];
-                assert_eq!(&ConstValue::Bool(true), const_.value());
+                assert_eq!(&ConstValue::Bool(true), sa.const_(id).value());
             }
 
             {
                 let id = const_by_name(sa, "x");
-                let const_ = &sa.consts[id];
-                assert_eq!(&ConstValue::Int(255), const_.value());
+                assert_eq!(&ConstValue::Int(255), sa.const_(id).value());
             }
 
             {
                 let id = const_by_name(sa, "a");
-                let const_ = &sa.consts[id];
-                assert_eq!(&ConstValue::Int(100), const_.value());
+                assert_eq!(&ConstValue::Int(100), sa.const_(id).value());
             }
 
             {
                 let id = const_by_name(sa, "b");
-                let const_ = &sa.consts[id];
-                assert_eq!(&ConstValue::Int(200), const_.value());
+                assert_eq!(&ConstValue::Int(200), sa.const_(id).value());
             }
 
             {
                 let id = const_by_name(sa, "c");
-                let const_ = &sa.consts[id];
-                assert_eq!(&ConstValue::Char('A'), const_.value());
+                assert_eq!(&ConstValue::Char('A'), sa.const_(id).value());
             }
 
             {
                 let id = const_by_name(sa, "d");
-                let const_ = &sa.consts[id];
-                assert_eq!(&ConstValue::Float(3.0), const_.value());
+                assert_eq!(&ConstValue::Float(3.0), sa.const_(id).value());
             }
 
             {
                 let id = const_by_name(sa, "e");
-                let const_ = &sa.consts[id];
-                assert_eq!(&ConstValue::Float(6.0), const_.value());
+                assert_eq!(&ConstValue::Float(6.0), sa.const_(id).value());
             }
         },
     );

@@ -629,7 +629,7 @@ impl ErrorMessage {
 
 #[derive(Clone, Debug)]
 pub struct ErrorDescriptor {
-    pub file: Option<SourceFileId>,
+    pub file_id: Option<SourceFileId>,
     pub span: Option<Span>,
     pub msg: ErrorMessage,
 }
@@ -637,7 +637,7 @@ pub struct ErrorDescriptor {
 impl ErrorDescriptor {
     pub fn new(file: SourceFileId, span: Span, msg: ErrorMessage) -> ErrorDescriptor {
         ErrorDescriptor {
-            file: Some(file),
+            file_id: Some(file),
             span: Some(span),
             msg,
         }
@@ -645,15 +645,15 @@ impl ErrorDescriptor {
 
     pub fn new_without_location(msg: ErrorMessage) -> ErrorDescriptor {
         ErrorDescriptor {
-            file: None,
+            file_id: None,
             span: None,
             msg,
         }
     }
 
     pub fn line_column(&self, sa: &Sema) -> Option<(u32, u32)> {
-        if let Some(file) = self.file {
-            let file = &sa.source_files[file];
+        if let Some(file_id) = self.file_id {
+            let file = sa.file(file_id);
             let span = self.span.expect("missing location");
             Some(compute_line_column(&file.line_starts, span.start()))
         } else {
@@ -662,8 +662,8 @@ impl ErrorDescriptor {
     }
 
     pub fn message(&self, sa: &Sema) -> String {
-        if let Some(file) = self.file {
-            let file = &sa.source_files[file];
+        if let Some(file) = self.file_id {
+            let file = sa.file(file);
             let (line, column) = self.line_column(sa).expect("missing location");
 
             format!(

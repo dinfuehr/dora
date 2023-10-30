@@ -139,6 +139,54 @@ impl Sema {
         }
     }
 
+    pub fn file(&self, id: SourceFileId) -> &SourceFile {
+        &self.source_files[id]
+    }
+
+    pub fn alias(&self, id: AliasDefinitionId) -> &AliasDefinition {
+        &self.aliases[id]
+    }
+
+    pub fn const_(&self, id: ConstDefinitionId) -> &ConstDefinition {
+        &self.consts[id]
+    }
+
+    pub fn struct_(&self, id: StructDefinitionId) -> &StructDefinition {
+        &self.structs[id]
+    }
+
+    pub fn class(&self, id: ClassDefinitionId) -> &ClassDefinition {
+        &self.classes[id]
+    }
+
+    pub fn extension(&self, id: ExtensionDefinitionId) -> &ExtensionDefinition {
+        &self.extensions[id]
+    }
+
+    pub fn module(&self, id: ModuleDefinitionId) -> &ModuleDefinition {
+        &self.modules[id]
+    }
+
+    pub fn enum_(&self, id: EnumDefinitionId) -> &EnumDefinition {
+        &self.enums[id]
+    }
+
+    pub fn trait_(&self, id: TraitDefinitionId) -> &TraitDefinition {
+        &self.traits[id]
+    }
+
+    pub fn impl_(&self, id: ImplDefinitionId) -> &ImplDefinition {
+        &self.impls[id]
+    }
+
+    pub fn global(&self, id: GlobalDefinitionId) -> &GlobalDefinition {
+        &self.globals[id]
+    }
+
+    pub fn fct(&self, id: FctDefinitionId) -> &FctDefinition {
+        &self.fcts[id]
+    }
+
     pub fn prelude_module_id(&self) -> ModuleDefinitionId {
         self.prelude_module_id.expect("uninitialized module id")
     }
@@ -168,15 +216,15 @@ impl Sema {
     }
 
     pub fn module_table(&self, module_id: ModuleDefinitionId) -> Rc<SymTable> {
-        self.modules[module_id].table()
+        self.module(module_id).table()
     }
 
     pub fn stdlib_module(&self) -> Rc<SymTable> {
-        self.modules[self.stdlib_module_id()].table()
+        self.module_table(self.stdlib_module_id())
     }
 
     pub fn prelude_module(&self) -> Rc<SymTable> {
-        self.modules[self.prelude_module_id()].table()
+        self.module_table(self.prelude_module_id())
     }
 
     pub fn set_prelude_module_id(&mut self, module_id: ModuleDefinitionId) {
@@ -219,7 +267,7 @@ impl Sema {
     }
 
     pub fn compute_loc(&self, file_id: SourceFileId, span: Span) -> Location {
-        let file = &self.source_files[file_id];
+        let file = self.file(file_id);
         let (line, column) = compute_line_column(&file.line_starts, span.start());
         Location::new(line, column)
     }

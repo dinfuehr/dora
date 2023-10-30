@@ -41,7 +41,7 @@ impl<'x> StructCheck<'x> {
         self.symtable.push_level();
 
         {
-            let struct_ = &self.sa.structs[self.struct_id];
+            let struct_ = self.sa.struct_(self.struct_id);
 
             for (id, name) in struct_.type_params().names() {
                 self.symtable.insert(name, SymbolKind::TypeParam(id));
@@ -66,7 +66,7 @@ impl<'x> StructCheck<'x> {
         )
         .unwrap_or(SourceType::Error);
 
-        let struct_ = &self.sa.structs[self.struct_id];
+        let struct_ = self.sa.struct_(self.struct_id);
         struct_.fields[idx].ty.set(ty).expect("already initialized");
     }
 }

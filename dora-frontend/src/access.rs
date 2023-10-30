@@ -37,7 +37,7 @@ pub fn class_accessible_from(
     cls_id: ClassDefinitionId,
     module_id: ModuleDefinitionId,
 ) -> bool {
-    let cls = &sa.classes[cls_id];
+    let cls = sa.class(cls_id);
     accessible_from(sa, cls.module_id, cls.visibility, module_id)
 }
 
@@ -47,7 +47,7 @@ pub fn class_field_accessible_from(
     field_id: FieldId,
     module_id: ModuleDefinitionId,
 ) -> bool {
-    let cls = &sa.classes[cls_id];
+    let cls = sa.class(cls_id);
     let field = &cls.fields[field_id];
 
     accessible_from(
@@ -97,7 +97,7 @@ pub fn enum_accessible_from(
     enum_id: EnumDefinitionId,
     module_id: ModuleDefinitionId,
 ) -> bool {
-    let enum_ = &sa.enums[enum_id];
+    let enum_ = sa.enum_(enum_id);
 
     accessible_from(sa, enum_.module_id, enum_.visibility, module_id)
 }
@@ -107,7 +107,7 @@ pub fn struct_accessible_from(
     struct_id: StructDefinitionId,
     module_id: ModuleDefinitionId,
 ) -> bool {
-    let struct_ = &sa.structs[struct_id];
+    let struct_ = sa.struct_(struct_id);
     accessible_from(sa, struct_.module_id, struct_.visibility, module_id)
 }
 
@@ -117,7 +117,7 @@ pub fn struct_field_accessible_from(
     field_id: StructDefinitionFieldId,
     module_id: ModuleDefinitionId,
 ) -> bool {
-    let struct_ = &sa.structs[struct_id];
+    let struct_ = sa.struct_(struct_id);
     let field = &struct_.fields[field_id.to_usize()];
 
     accessible_from(
@@ -145,8 +145,7 @@ pub fn trait_accessible_from(
     trait_id: TraitDefinitionId,
     module_id: ModuleDefinitionId,
 ) -> bool {
-    let trait_ = &sa.traits[trait_id];
-
+    let trait_ = sa.trait_(trait_id);
     accessible_from(sa, trait_.module_id, trait_.visibility, module_id)
 }
 
@@ -155,8 +154,7 @@ pub fn const_accessible_from(
     const_id: ConstDefinitionId,
     module_id: ModuleDefinitionId,
 ) -> bool {
-    let const_ = &sa.consts[const_id];
-
+    let const_ = sa.const_(const_id);
     accessible_from(sa, const_.module_id, const_.visibility, module_id)
 }
 
@@ -202,11 +200,11 @@ fn accessible_from(
     // Find the common parent of both modules.
     let common_parent_id = common_parent(sa, target_module_id, user_module_id);
 
-    let target_module = &sa.modules[target_module_id];
+    let target_module = sa.module(target_module_id);
 
     {
-        let target_module = &sa.modules[target_module_id];
-        let user_module = &sa.modules[user_module_id];
+        let target_module = sa.module(target_module_id);
+        let user_module = sa.module(user_module_id);
 
         if target_module.package_id == user_module.package_id {
             assert!(common_parent_id.is_some());
@@ -238,7 +236,7 @@ fn accessible_from(
         // the whole path needs to be public
 
         for &ns_id in &target_module.parents {
-            let ns = &sa.modules[ns_id];
+            let ns = sa.module(ns_id);
             if !ns.visibility.is_public() {
                 return false;
             }
@@ -257,8 +255,8 @@ fn common_parent(
         return Some(lhs_id);
     }
 
-    let lhs = &sa.modules[lhs_id];
-    let rhs = &sa.modules[rhs_id];
+    let lhs = sa.module(lhs_id);
+    let rhs = sa.module(rhs_id);
 
     if lhs.depth > rhs.depth {
         if lhs.parents[rhs.depth] == rhs_id {
@@ -294,6 +292,6 @@ pub fn module_contains(
         return true;
     }
 
-    let module = &sa.modules[child_id];
+    let module = sa.module(child_id);
     module.parents.contains(&parent_id)
 }

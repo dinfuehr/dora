@@ -48,8 +48,11 @@ impl<'x> ConstCheck<'x> {
         )
         .unwrap_or(SourceType::Error);
 
-        let const_ = &self.sa.consts[self.const_id];
-        const_.ty.set(ty).expect("already initialized");
+        self.sa
+            .const_(self.const_id)
+            .ty
+            .set(ty)
+            .expect("already initialized");
     }
 }
 

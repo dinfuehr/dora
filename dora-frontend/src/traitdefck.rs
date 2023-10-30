@@ -69,10 +69,10 @@ impl<'x> TraitCheck<'x> {
     }
 
     fn visit_alias(&mut self, alias_id: AliasDefinitionId) {
-        let alias = &self.sa.aliases[alias_id];
+        let alias = self.sa.alias(alias_id);
 
         if let Some(&existing_id) = self.alias_names.get(&alias.name) {
-            let existing_alias = &self.sa.aliases[existing_id];
+            let existing_alias = self.sa.alias(existing_id);
             let method_name = self.sa.interner.str(alias.name).to_string();
 
             self.sa.report(

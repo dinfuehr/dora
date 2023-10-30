@@ -20,7 +20,7 @@ pub fn check_enum(
     type_params: &SourceTypeArray,
     error: ErrorReporting,
 ) -> bool {
-    let enum_ = &sa.enums[enum_id];
+    let enum_ = sa.enum_(enum_id);
 
     let checker = TypeParamCheck {
         sa,
@@ -39,7 +39,7 @@ pub fn check_struct(
     type_params: &SourceTypeArray,
     error: ErrorReporting,
 ) -> bool {
-    let struct_ = &sa.structs[struct_id];
+    let struct_ = sa.struct_(struct_id);
 
     let checker = TypeParamCheck {
         sa,
@@ -58,7 +58,7 @@ pub fn check_class(
     type_params: &SourceTypeArray,
     error: ErrorReporting,
 ) -> bool {
-    let cls = &sa.classes[cls_id];
+    let cls = sa.class(cls_id);
 
     let checker = TypeParamCheck {
         sa,

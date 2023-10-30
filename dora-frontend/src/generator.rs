@@ -733,7 +733,7 @@ impl<'a> AstBytecodeGen<'a> {
                     // build toString() call
                     let name = self.sa.interner.intern("toString");
                     let trait_id = self.sa.known.traits.stringable();
-                    let trait_ = &self.sa.traits[trait_id];
+                    let trait_ = self.sa.trait_(trait_id);
                     let to_string_id = trait_
                         .get_method(name, false)
                         .expect("Stringable::toString() not found");
@@ -982,7 +982,7 @@ impl<'a> AstBytecodeGen<'a> {
         );
 
         let field_ty = {
-            let cls = &self.sa.classes[cls_id];
+            let cls = self.sa.class(cls_id);
             let field = &cls.fields[field_id.to_usize()];
             field.ty()
         };
@@ -1016,7 +1016,7 @@ impl<'a> AstBytecodeGen<'a> {
             _ => unreachable!(),
         };
 
-        let struct_ = &self.sa.structs[struct_id];
+        let struct_ = self.sa.struct_(struct_id);
         let field = &struct_.fields[field_idx.to_usize()];
         let ty = specialize_type(self.sa, field.ty(), &type_params);
 
@@ -2468,7 +2468,7 @@ impl<'a> AstBytecodeGen<'a> {
         let outer_context_info = self.analysis.outer_context_classes[outer_cls_idx].clone();
         let outer_cls_id = outer_context_info.context_cls_id();
 
-        let outer_cls = &self.sa.classes[outer_cls_id];
+        let outer_cls = self.sa.class(outer_cls_id);
         let field_id =
             field_id_from_context_idx(context_idx, outer_context_info.has_outer_context_slot());
         let field = &outer_cls.fields[field_id];
@@ -2494,7 +2494,7 @@ impl<'a> AstBytecodeGen<'a> {
             return Register::invalid();
         }
 
-        let const_ = &self.sa.consts[const_id];
+        let const_ = self.sa.const_(const_id);
         let ty = const_.ty();
 
         let bytecode_ty = register_bty_from_ty(ty.clone());

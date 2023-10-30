@@ -51,7 +51,7 @@ impl<'x> ExtensionCheck<'x> {
         self.sym.push_level();
 
         {
-            let extension = &self.sa.extensions[self.extension_id];
+            let extension = self.sa.extension(self.extension_id);
 
             for (id, name) in extension.type_params().names() {
                 self.sym.insert(name, SymbolKind::TypeParam(id));
@@ -79,22 +79,22 @@ impl<'x> ExtensionCheck<'x> {
                     let struct_id = extension_ty
                         .primitive_struct_id(self.sa)
                         .expect("primitive expected");
-                    let struct_ = &self.sa.structs[struct_id];
+                    let struct_ = self.sa.struct_(struct_id);
                     struct_.extensions.borrow_mut().push(self.extension_id);
                 }
 
                 SourceType::Struct(struct_id, _) => {
-                    let struct_ = &self.sa.structs[struct_id];
+                    let struct_ = self.sa.struct_(struct_id);
                     struct_.extensions.borrow_mut().push(self.extension_id);
                 }
 
                 SourceType::Enum(enum_id, _) => {
-                    let enum_ = &self.sa.enums[enum_id];
+                    let enum_ = self.sa.enum_(enum_id);
                     enum_.extensions.borrow_mut().push(self.extension_id);
                 }
 
                 SourceType::Class(cls_id, _) => {
-                    let cls = &self.sa.classes[cls_id];
+                    let cls = self.sa.class(cls_id);
                     cls.extensions.borrow_mut().push(self.extension_id);
                 }
 
@@ -106,7 +106,7 @@ impl<'x> ExtensionCheck<'x> {
                 | SourceType::Unit
                 | SourceType::TypeParam(..)
                 | SourceType::Lambda(..) => {
-                    let extension = &self.sa.extensions[self.extension_id];
+                    let extension = self.sa.extension(self.extension_id);
 
                     self.sa.report(
                         self.file_id.into(),
@@ -124,7 +124,7 @@ impl<'x> ExtensionCheck<'x> {
                 }
             }
 
-            let extension = &self.sa.extensions[self.extension_id];
+            let extension = self.sa.extension(self.extension_id);
 
             check_for_unconstrained_type_params(
                 self.sa,
@@ -137,7 +137,9 @@ impl<'x> ExtensionCheck<'x> {
             assert!(extension.ty.set(extension_ty).is_ok());
         }
 
-        for &method_id in self.sa.extensions[self.extension_id]
+        for &method_id in self
+            .sa
+            .extension(self.extension_id)
             .methods
             .get()
             .expect("missing method")
@@ -185,7 +187,7 @@ impl<'x> ExtensionCheck<'x> {
             return;
         }
 
-        let extension = &self.sa.extensions[self.extension_id];
+        let extension = self.sa.extension(self.extension_id);
 
         let table = if fct.is_static {
             &extension.static_names
@@ -201,7 +203,7 @@ impl<'x> ExtensionCheck<'x> {
     }
 
     fn check_in_enum(&self, f: &ast::Function, is_static: bool, enum_id: EnumDefinitionId) -> bool {
-        let enum_ = &self.sa.enums[enum_id];
+        let enum_ = self.sa.enum_(enum_id);
         let extensions = enum_.extensions.borrow();
 
         for &extension_id in extensions.iter() {
@@ -219,7 +221,7 @@ impl<'x> ExtensionCheck<'x> {
         is_static: bool,
         struct_id: StructDefinitionId,
     ) -> bool {
-        let struct_ = &self.sa.structs[struct_id];
+        let struct_ = self.sa.struct_(struct_id);
         let extensions = struct_.extensions.borrow();
 
         for &extension_id in extensions.iter() {
@@ -233,7 +235,7 @@ impl<'x> ExtensionCheck<'x> {
 
     fn check_in_class(&self, f: &ast::Function, is_static: bool) -> bool {
         let cls_id = self.extension_ty.cls_id().unwrap();
-        let cls = &self.sa.classes[cls_id];
+        let cls = self.sa.class(cls_id);
         let extensions = cls.extensions.borrow();
 
         for &extension_id in extensions.iter() {
@@ -251,7 +253,7 @@ impl<'x> ExtensionCheck<'x> {
         is_static: bool,
         extension_id: ExtensionDefinitionId,
     ) -> bool {
-        let extension = &self.sa.extensions[extension_id];
+        let extension = self.sa.extension(extension_id);
 
         if extension.ty().type_params() != self.extension_ty.type_params() {
             return true;
@@ -338,7 +340,7 @@ fn discover_type_params(sa: &Sema, ty: SourceType, used_type_params: &mut FixedB
             used_type_params.insert(tp_id.to_usize());
         }
         SourceType::TypeAlias(alias_id) => {
-            discover_type_params(sa, sa.aliases[alias_id].ty(), used_type_params);
+            discover_type_params(sa, sa.alias(alias_id).ty(), used_type_params);
         }
     }
 }

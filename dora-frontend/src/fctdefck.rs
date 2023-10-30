@@ -18,7 +18,7 @@ pub fn check(sa: &Sema) {
 
         match fct.parent {
             FctParent::Impl(impl_id) => {
-                let impl_ = &sa.impls[impl_id];
+                let impl_ = sa.impl_(impl_id);
                 type_params.append(impl_.type_params());
 
                 if fct.has_hidden_self_argument() {
@@ -26,13 +26,13 @@ pub fn check(sa: &Sema) {
                 }
 
                 for &alias_id in impl_.aliases() {
-                    let alias = &sa.aliases[alias_id];
+                    let alias = sa.alias(alias_id);
                     sym_table.insert(alias.name, SymbolKind::TypeAlias(alias_id));
                 }
             }
 
             FctParent::Extension(extension_id) => {
-                let extension = &sa.extensions[extension_id];
+                let extension = sa.extension(extension_id);
                 type_params.append(extension.type_params());
 
                 if fct.has_hidden_self_argument() {
@@ -41,7 +41,7 @@ pub fn check(sa: &Sema) {
             }
 
             FctParent::Trait(trait_id) => {
-                let trait_ = &sa.traits[trait_id];
+                let trait_ = sa.trait_(trait_id);
                 type_params.append(&trait_.type_params());
 
                 if fct.has_hidden_self_argument() {
@@ -49,7 +49,7 @@ pub fn check(sa: &Sema) {
                 }
 
                 for &alias_id in trait_.aliases() {
-                    let alias = &sa.aliases[alias_id];
+                    let alias = sa.alias(alias_id);
                     sym_table.insert(alias.name, SymbolKind::TypeAlias(alias_id));
                 }
             }

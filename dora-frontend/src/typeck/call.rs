@@ -110,7 +110,7 @@ fn check_expr_call_generic_static_method(
 
     for trait_ty in ck.type_param_defs.bounds_for_type_param(tp_id) {
         let trait_id = trait_ty.trait_id().expect("trait expected");
-        let trait_ = &ck.sa.traits[trait_id];
+        let trait_ = ck.sa.trait_(trait_id);
 
         if let Some(trait_method_id) = trait_.get_method(interned_name, true) {
             matched_methods.push((trait_method_id, trait_ty));
@@ -426,7 +426,7 @@ fn check_expr_call_field(
         let cls_id = object_type.cls_id().expect("class expected");
 
         if !class_field_accessible_from(ck.sa, cls_id, field_id, ck.module_id) {
-            let cls = &ck.sa.classes[cls_id];
+            let cls = ck.sa.class(cls_id);
             let field = &cls.fields[field_id];
 
             let name = ck.sa.interner.str(field.name).to_string();
@@ -438,7 +438,7 @@ fn check_expr_call_field(
     }
 
     if let Some(struct_id) = object_type.struct_id() {
-        let struct_ = &ck.sa.structs[struct_id];
+        let struct_ = ck.sa.struct_(struct_id);
         if let Some(&field_id) = struct_.field_names.get(&interned_method_name) {
             let ident_type = IdentType::StructField(object_type.clone(), field_id);
             ck.analysis.map_idents.insert_or_replace(e.id, ident_type);
@@ -483,12 +483,12 @@ fn check_expr_call_struct(
     let is_struct_accessible = struct_accessible_from(ck.sa, struct_id, ck.module_id);
 
     if !is_struct_accessible {
-        let struct_ = &ck.sa.structs[struct_id];
+        let struct_ = ck.sa.struct_(struct_id);
         let msg = ErrorMessage::NotAccessible(struct_.name(ck.sa));
         ck.sa.report(ck.file_id, e.span, msg);
     }
 
-    let struct_ = &ck.sa.structs[struct_id];
+    let struct_ = ck.sa.struct_(struct_id);
 
     if !is_default_accessible(ck.sa, struct_.module_id, ck.module_id)
         && !struct_.all_fields_are_public()
@@ -585,7 +585,7 @@ fn check_expr_call_class(
     let is_class_accessible = class_accessible_from(ck.sa, cls_id, ck.module_id);
 
     if !is_class_accessible {
-        let cls = &ck.sa.classes[cls_id];
+        let cls = ck.sa.class(cls_id);
         let msg = ErrorMessage::NotAccessible(cls.name(ck.sa));
         ck.sa.report(ck.file_id, e.span, msg);
     }
@@ -606,7 +606,7 @@ fn check_expr_call_class(
         return SourceType::Error;
     };
 
-    let cls = &ck.sa.classes[cls_id];
+    let cls = ck.sa.class(cls_id);
     let cls_ty = SourceType::Class(cls_id, type_params.clone());
 
     if !is_default_accessible(ck.sa, cls.module_id, ck.module_id)
@@ -661,7 +661,7 @@ fn check_expr_call_generic_type_param(
 
     for trait_ty in ck.type_param_defs.bounds_for_type_param(id) {
         let trait_id = trait_ty.trait_id().expect("trait expected");
-        let trait_ = &ck.sa.traits[trait_id];
+        let trait_ = ck.sa.trait_(trait_id);
 
         if let Some(trait_method_id) = trait_.get_method(interned_name, false) {
             matched_methods.push((trait_method_id, trait_ty));
@@ -792,7 +792,7 @@ fn check_expr_call_path(
         }
 
         Some(SymbolKind::Struct(struct_id)) => {
-            let struct_ = &ck.sa.structs[struct_id];
+            let struct_ = ck.sa.struct_(struct_id);
 
             if typeparamck::check_struct(
                 ck.sa,
@@ -822,7 +822,7 @@ fn check_expr_call_path(
         }
 
         Some(SymbolKind::Enum(enum_id)) => {
-            let enum_ = &ck.sa.enums[enum_id];
+            let enum_ = ck.sa.enum_(enum_id);
 
             if let Some(&variant_idx) = enum_.name_to_value().get(&interned_method_name) {
                 if !container_type_params.is_empty() && !type_params.is_empty() {
@@ -885,7 +885,7 @@ fn check_expr_call_path(
             }
 
             let sym = {
-                let module = &ck.sa.modules[module_id];
+                let module = ck.sa.module(module_id);
                 let table = module.table();
 
                 table.get(interned_method_name)
@@ -900,7 +900,7 @@ fn check_expr_call_path(
                 ck.sa.report(ck.file_id, callee_as_path.lhs.span(), msg);
             }
 
-            let alias_ty = ck.sa.aliases[alias_id].ty();
+            let alias_ty = ck.sa.alias(alias_id).ty();
             check_expr_call_static_method(ck, e, alias_ty, method_name, type_params, arg_types)
         }
 

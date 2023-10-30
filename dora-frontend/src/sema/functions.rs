@@ -123,17 +123,17 @@ impl FctDefinition {
     pub fn display_name(&self, sa: &Sema) -> String {
         let mut repr = match self.parent {
             FctParent::Trait(trait_id) => {
-                let trait_ = &sa.traits[trait_id];
+                let trait_ = sa.trait_(trait_id);
                 trait_.name(sa)
             }
 
             FctParent::Extension(extension_id) => {
-                let extension = &sa.extensions[extension_id];
+                let extension = sa.extension(extension_id);
                 path_for_type(sa, extension.ty().clone())
             }
 
             FctParent::Impl(impl_id) => {
-                let impl_ = &sa.impls[impl_id];
+                let impl_ = sa.impl_(impl_id);
                 path_for_type(sa, impl_.extended_ty())
             }
 
@@ -213,16 +213,16 @@ impl FctDefinition {
 
 fn path_for_type(sa: &Sema, ty: SourceType) -> String {
     if let Some(enum_id) = ty.enum_id() {
-        let enum_ = &sa.enums[enum_id];
+        let enum_ = sa.enum_(enum_id);
         enum_.name(sa)
     } else if let Some(cls_id) = ty.cls_id() {
-        let cls = &sa.classes[cls_id];
+        let cls = sa.class(cls_id);
         cls.name(sa)
     } else if let Some(struct_id) = ty.struct_id() {
-        let struct_ = &sa.structs[struct_id];
+        let struct_ = sa.struct_(struct_id);
         struct_.name(sa)
     } else if let Some(struct_id) = ty.primitive_struct_id(sa) {
-        let struct_ = &sa.structs[struct_id];
+        let struct_ = sa.struct_(struct_id);
         struct_.name(sa)
     } else if ty.is_tuple_or_unit() {
         unimplemented!()

@@ -263,7 +263,7 @@ pub(super) fn check_expr_match(
     let expr_type_params = expr_type.type_params();
 
     let enum_variants = if let Some(expr_enum_id) = expr_enum_id {
-        ck.sa.enums[expr_enum_id].variants().len()
+        ck.sa.enum_(expr_enum_id).variants().len()
     } else {
         0
     };
@@ -419,7 +419,7 @@ fn check_expr_match_pattern_enum_variant(
         IdentType::EnumValue(enum_id, expr_type_params.clone(), variant_idx),
     );
 
-    let enum_ = &ck.sa.enums[enum_id];
+    let enum_ = ck.sa.enum_(enum_id);
     let variant = &enum_.variants()[variant_idx as usize];
 
     let given_params = if let Some(ref params) = ident.params {

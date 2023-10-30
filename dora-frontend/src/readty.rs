@@ -76,7 +76,7 @@ fn read_type_basic_unchecked(
         Some(SymbolKind::Class(class_id)) => SourceType::Class(class_id, type_params),
         Some(SymbolKind::Trait(trait_id)) => SourceType::Trait(trait_id, type_params),
         Some(SymbolKind::Struct(struct_id)) => {
-            let struct_ = &sa.structs[struct_id];
+            let struct_ = sa.struct_(struct_id);
 
             if let Some(ref primitive_ty) = struct_.primitive_ty {
                 if type_params.is_empty() {
@@ -300,7 +300,7 @@ fn verify_type_basic(
         SourceType::TypeParam(_) => {}
 
         SourceType::Class(cls_id, type_params) => {
-            let cls = &sa.classes[cls_id];
+            let cls = sa.class(cls_id);
 
             if !class_accessible_from(sa, cls_id, module_id) {
                 let msg = ErrorMessage::NotAccessible(cls.name(sa));
@@ -335,7 +335,7 @@ fn verify_type_basic(
         }
 
         SourceType::Enum(enum_id, type_params) => {
-            let enum_ = &sa.enums[enum_id];
+            let enum_ = sa.enum_(enum_id);
 
             if !enum_accessible_from(sa, enum_id, module_id) {
                 let msg = ErrorMessage::NotAccessible(enum_.name(sa));
@@ -381,7 +381,7 @@ fn verify_type_basic(
                 .expect("primitive struct expected");
 
             if !struct_accessible_from(sa, struct_id, module_id) {
-                let struct_ = &sa.structs[struct_id];
+                let struct_ = sa.struct_(struct_id);
                 let msg = ErrorMessage::NotAccessible(struct_.name(sa));
                 sa.report(file_id, node.span, msg);
                 return false;
@@ -389,7 +389,7 @@ fn verify_type_basic(
         }
 
         SourceType::Struct(struct_id, type_params) => {
-            let struct_ = &sa.structs[struct_id];
+            let struct_ = sa.struct_(struct_id);
 
             if !struct_accessible_from(sa, struct_id, module_id) {
                 let msg = ErrorMessage::NotAccessible(struct_.name(sa));
@@ -424,7 +424,7 @@ fn verify_type_basic(
         }
 
         SourceType::Trait(trait_id, type_params) => {
-            let trait_ = &sa.traits[trait_id];
+            let trait_ = &sa.trait_(trait_id);
 
             if !trait_accessible_from(sa, trait_id, module_id) {
                 let msg = ErrorMessage::NotAccessible(trait_.name(sa));
@@ -553,7 +553,7 @@ fn table_for_module(
     sym: Option<SymbolKind>,
 ) -> Result<Rc<SymTable>, ()> {
     match sym {
-        Some(SymbolKind::Module(module_id)) => Ok(sa.modules[module_id].table()),
+        Some(SymbolKind::Module(module_id)) => Ok(sa.module(module_id).table()),
 
         _ => {
             let msg = ErrorMessage::ExpectedModule;
@@ -604,29 +604,29 @@ where
 {
     match ctxt {
         TypeParamContext::Class(cls_id) => {
-            let cls = &sa.classes[cls_id];
+            let cls = sa.class(cls_id);
             callback(cls.type_params())
         }
 
         TypeParamContext::Enum(enum_id) => {
-            let enum_ = &sa.enums[enum_id];
+            let enum_ = sa.enum_(enum_id);
             callback(enum_.type_params())
         }
 
         TypeParamContext::Struct(struct_id) => {
-            let struct_ = &sa.structs[struct_id];
+            let struct_ = sa.struct_(struct_id);
             callback(struct_.type_params())
         }
 
         TypeParamContext::Impl(impl_) => callback(impl_.type_params()),
 
         TypeParamContext::Extension(extension_id) => {
-            let extension = &sa.extensions[extension_id];
+            let extension = sa.extension(extension_id);
             callback(extension.type_params())
         }
 
         TypeParamContext::Trait(trait_id) => {
-            let trait_ = &sa.traits[trait_id];
+            let trait_ = sa.trait_(trait_id);
             callback(&trait_.type_params())
         }
 

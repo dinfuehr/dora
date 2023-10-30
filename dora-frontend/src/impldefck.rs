@@ -41,7 +41,7 @@ impl<'x> ImplCheck<'x> {
 
         self.sym.push_level();
 
-        let impl_ = &self.sa.impls[self.impl_id];
+        let impl_ = &self.sa.impl_(self.impl_id);
 
         for (id, name) in impl_.type_params().names() {
             self.sym.insert(name, SymbolKind::TypeParam(id));
@@ -123,7 +123,7 @@ pub fn check_body(sa: &Sema) {
 }
 
 fn check_impl_body(sa: &Sema, impl_: &ImplDefinition) {
-    let trait_ = &sa.traits[impl_.trait_id()];
+    let trait_ = &sa.trait_(impl_.trait_id());
 
     check_impl_types(sa, impl_, trait_);
     check_impl_methods(sa, impl_, trait_);
@@ -261,11 +261,11 @@ fn check_impl_types(sa: &Sema, impl_: &ImplDefinition, trait_: &TraitDefinition)
     let mut trait_alias_map = HashMap::new();
 
     for &impl_alias_id in impl_.aliases() {
-        let impl_alias = &sa.aliases[impl_alias_id];
+        let impl_alias = sa.alias(impl_alias_id);
 
         if let Some(&trait_alias_id) = trait_.alias_names().get(&impl_alias.name) {
             if let Some(existing_id) = trait_alias_map.insert(trait_alias_id, trait_alias_id) {
-                let existing_alias = &sa.aliases[existing_id];
+                let existing_alias = sa.alias(existing_id);
                 let method_name = sa.interner.str(existing_alias.name).to_string();
 
                 sa.report(

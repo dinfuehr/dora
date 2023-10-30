@@ -195,7 +195,7 @@ pub fn find_methods_in_struct(
 
     for (_id, impl_) in sa.impls.iter() {
         if let Some(bindings) = impl_matches(sa, object_type.clone(), type_param_defs, impl_.id()) {
-            let trait_ = &sa.traits[impl_.trait_id()];
+            let trait_ = sa.trait_(impl_.trait_id());
 
             if let Some(trait_method_id) = trait_.get_method(name, is_static) {
                 candidates.push(Candidate {
