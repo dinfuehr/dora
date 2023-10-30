@@ -24,6 +24,11 @@ pub fn check(sa: &Sema) {
                 if fct.has_hidden_self_argument() {
                     param_types.push(impl_.extended_ty());
                 }
+
+                for &alias_id in impl_.aliases() {
+                    let alias = &sa.aliases[alias_id];
+                    sym_table.insert(alias.name, SymbolKind::TypeAlias(alias_id));
+                }
             }
 
             FctParent::Extension(extension_id) => {

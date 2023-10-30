@@ -41,15 +41,11 @@ impl<'x> ImplCheck<'x> {
 
         self.sym.push_level();
 
-        {
-            let impl_ = &self.sa.impls[self.impl_id];
-
-            for (id, name) in impl_.type_params().names() {
-                self.sym.insert(name, SymbolKind::TypeParam(id));
-            }
-        }
-
         let impl_ = &self.sa.impls[self.impl_id];
+
+        for (id, name) in impl_.type_params().names() {
+            self.sym.insert(name, SymbolKind::TypeParam(id));
+        }
 
         let ast_trait_type = self.ast.trait_type.as_ref().unwrap();
 
@@ -129,8 +125,8 @@ pub fn check_body(sa: &Sema) {
 fn check_impl_body(sa: &Sema, impl_: &ImplDefinition) {
     let trait_ = &sa.traits[impl_.trait_id()];
 
-    check_impl_methods(sa, impl_, trait_);
     check_impl_types(sa, impl_, trait_);
+    check_impl_methods(sa, impl_, trait_);
 }
 
 fn check_impl_methods(sa: &Sema, impl_: &ImplDefinition, trait_: &TraitDefinition) {
@@ -206,23 +202,39 @@ fn method_definitions_compatible(
     }
 
     for (trait_arg_ty, impl_arg_ty) in trait_params.iter().zip(impl_params.iter()) {
-        if replace_type_param(
+        if !trait_and_impl_arg_ty_compatible(
             sa,
             trait_arg_ty.clone(),
-            &trait_type_params,
-            Some(self_ty.clone()),
-        ) != impl_arg_ty.clone()
-        {
+            trait_type_params.clone(),
+            impl_arg_ty.clone(),
+            self_ty.clone(),
+        ) {
             return false;
         }
     }
 
-    replace_type_param(
+    trait_and_impl_arg_ty_compatible(
         sa,
         trait_method.return_type(),
+        trait_type_params,
+        impl_method.return_type(),
+        self_ty,
+    )
+}
+
+fn trait_and_impl_arg_ty_compatible(
+    sa: &Sema,
+    trait_arg_ty: SourceType,
+    trait_type_params: SourceTypeArray,
+    impl_arg_ty: SourceType,
+    self_ty: SourceType,
+) -> bool {
+    replace_type_param(
+        sa,
+        trait_arg_ty.clone(),
         &trait_type_params,
-        Some(self_ty),
-    ) == impl_method.return_type()
+        Some(self_ty.clone()),
+    ) == impl_arg_ty.clone()
 }
 
 fn report_missing_methods(
@@ -580,6 +592,38 @@ mod tests {
             trait X { fn f(a: Self); }
             class CX
             impl X for CX { fn f(a: CX) {} }
+        ");
+    }
+
+    #[test]
+    #[ignore]
+    fn alias_use_in_impl() {
+        ok("
+            trait MyTrait {
+                type X;
+                fn next(): Option[X];
+            }
+            class CX
+            impl MyTrait for CX {
+                type X = Int64;
+                fn next(): Option[Int64] {
+                    None
+                }
+            }
+        ");
+
+        ok("
+            trait MyTrait {
+                type X;
+                fn next(): Option[X];
+            }
+            class CX
+            impl MyTrait for CX {
+                type X = Int64;
+                fn next(): Option[X] {
+                    None
+                }
+            }
         ");
     }
 }
