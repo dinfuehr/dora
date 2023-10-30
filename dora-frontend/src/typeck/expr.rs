@@ -143,7 +143,7 @@ pub(super) fn check_expr_ident(
         }
 
         Some(SymbolKind::Global(globalid)) => {
-            let global_var = &ck.sa.globals[globalid];
+            let global_var = ck.sa.global(globalid);
             let ty = global_var.ty();
             ck.analysis.set_ty(e.id, ty.clone());
 
@@ -230,7 +230,7 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, e: &ast::ExprBinType) {
         }
 
         Some(SymbolKind::Global(global_id)) => {
-            let global_var = &ck.sa.globals[global_id];
+            let global_var = ck.sa.global(global_id);
 
             if !e.initializer && !global_var.mutable {
                 ck.sa
@@ -764,7 +764,7 @@ fn check_expr_un_trait(
             .map_calls
             .insert_or_replace(e.id, Arc::new(call_type));
 
-        let method = &ck.sa.fcts[method_id];
+        let method = ck.sa.fct(method_id);
 
         let return_type = method.return_type();
         ck.analysis.set_ty(e.id, return_type.clone());
@@ -779,7 +779,7 @@ fn check_expr_un_trait(
             .get_method(trait_method_name, false)
             .expect("method not found");
 
-        let method = &ck.sa.fcts[method_id];
+        let method = ck.sa.fct(method_id);
 
         let call_type = CallType::GenericMethod(
             ty.type_param_id().expect("type param expected"),
@@ -986,7 +986,7 @@ fn check_expr_bin_trait(
             .map_calls
             .insert_or_replace(e.id, Arc::new(call_type));
 
-        let method = &ck.sa.fcts[method_id];
+        let method = ck.sa.fct(method_id);
         let params = method.params_without_self();
 
         assert_eq!(params.len(), 1);
@@ -1015,7 +1015,7 @@ fn check_expr_bin_trait(
             .get_method(trait_method_name, false)
             .expect("method not found");
 
-        let method = &ck.sa.fcts[method_id];
+        let method = ck.sa.fct(method_id);
         let params = method.params_without_self();
 
         let call_type = CallType::GenericMethod(
@@ -1644,12 +1644,12 @@ fn check_expr_path_module(
     match sym {
         Some(SymbolKind::Global(global_id)) => {
             if !global_accessible_from(ck.sa, global_id, ck.module_id) {
-                let global = &ck.sa.globals[global_id];
+                let global = ck.sa.global(global_id);
                 let msg = ErrorMessage::NotAccessible(global.name(ck.sa));
                 ck.sa.report(ck.file_id, e.op_span, msg);
             }
 
-            let global_var = &ck.sa.globals[global_id];
+            let global_var = ck.sa.global(global_id);
             let ty = global_var.ty();
             ck.analysis.set_ty(e.id, ty.clone());
 

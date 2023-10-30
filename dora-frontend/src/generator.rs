@@ -36,7 +36,7 @@ impl LoopLabels {
 }
 
 pub fn generate_fct_id(sa: &Sema, id: FctDefinitionId) -> BytecodeFunction {
-    let fct = &sa.fcts[id];
+    let fct = sa.fct(id);
     let analysis = fct.analysis();
 
     generate_fct(sa, &fct, analysis)
@@ -868,7 +868,7 @@ impl<'a> AstBytecodeGen<'a> {
             .expect("missing lambda id")
             .fct_id();
 
-        let lambda_fct = &self.sa.fcts[lambda_fct_id];
+        let lambda_fct = self.sa.fct(lambda_fct_id);
         let lambda_analysis = lambda_fct.analysis();
 
         if lambda_analysis.outer_context_access() {
@@ -1129,7 +1129,7 @@ impl<'a> AstBytecodeGen<'a> {
 
         // Find method that is called
         let callee_id = call_type.fct_id().expect("FctId missing");
-        let callee = &self.sa.fcts[callee_id];
+        let callee = self.sa.fct(callee_id);
 
         let callee_idx = self.add_const_pool_entry_for_call(&callee, &call_type);
 
@@ -1732,7 +1732,7 @@ impl<'a> AstBytecodeGen<'a> {
         let call_type = self.analysis.map_calls.get(expr.id).unwrap();
         let callee_id = call_type.fct_id().expect("FctId missing");
 
-        let callee = &self.sa.fcts[callee_id];
+        let callee = self.sa.fct(callee_id);
 
         let callee_idx = self.add_const_pool_entry_for_call(&callee, &call_type);
 
@@ -1788,7 +1788,7 @@ impl<'a> AstBytecodeGen<'a> {
         let call_type = self.analysis.map_calls.get(expr.id).unwrap();
         let callee_id = call_type.fct_id().expect("FctId missing");
 
-        let callee = &self.sa.fcts[callee_id];
+        let callee = self.sa.fct(callee_id);
 
         let callee_idx = self.add_const_pool_entry_for_call(&callee, &call_type);
 
@@ -2054,7 +2054,7 @@ impl<'a> AstBytecodeGen<'a> {
     ) -> Register {
         let intrinsic = info.intrinsic;
 
-        let fct = &self.sa.fcts[info.fct_id.expect("missing method")];
+        let fct = self.sa.fct(info.fct_id.expect("missing method"));
         let ty = fct.return_type_bty();
         let dest = self.ensure_register(dest, ty);
 
@@ -2122,7 +2122,7 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         let fct_id = info.fct_id.expect("missing function");
-        let fct = &self.sa.fcts[fct_id];
+        let fct = self.sa.fct(fct_id);
 
         let result_type = fct.return_type_bty();
 
@@ -2375,7 +2375,7 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn visit_expr_assign_global(&mut self, expr: &ast::ExprBinType, gid: GlobalDefinitionId) {
-        let global_var = &self.sa.globals[gid];
+        let global_var = self.sa.global(gid);
 
         let dest = if global_var.ty().is_unit() {
             DataDest::Effect
@@ -2553,7 +2553,7 @@ impl<'a> AstBytecodeGen<'a> {
             return Register::invalid();
         }
 
-        let global_var = &self.sa.globals[gid];
+        let global_var = self.sa.global(gid);
 
         if global_var.ty().is_unit() {
             assert!(dest.is_alloc());
@@ -2762,7 +2762,7 @@ impl<'a> AstBytecodeGen<'a> {
             return None;
         };
 
-        let fct = &self.sa.fcts[fid];
+        let fct = self.sa.fct(fid);
 
         if let Some(intrinsic) = fct.intrinsic.get().cloned() {
             return Some(IntrinsicInfo::with_fct(intrinsic, fid));

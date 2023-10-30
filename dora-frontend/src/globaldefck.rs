@@ -41,7 +41,7 @@ impl<'a> GlobalDefCheck<'a> {
         )
         .unwrap_or(SourceType::Error);
 
-        let global_var = &self.sa.globals[self.global_id];
+        let global_var = self.sa.global(self.global_id);
         assert!(global_var.ty.set(ty).is_ok());
 
         if !global_var.has_initial_value() {

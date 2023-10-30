@@ -412,7 +412,7 @@ fn find_main_fct_id(sa: &Sema) -> Option<FunctionId> {
 
     let fct_id = sym.kind().to_fct().unwrap();
 
-    let fct = &sa.fcts[fct_id];
+    let fct = sa.fct(fct_id);
     let ret = fct.return_type();
 
     if (!ret.is_unit() && !ret.is_int32())

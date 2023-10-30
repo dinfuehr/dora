@@ -28,7 +28,7 @@ pub fn global_accessible_from(
     global_id: GlobalDefinitionId,
     module_id: ModuleDefinitionId,
 ) -> bool {
-    let global = &sa.globals[global_id];
+    let global = sa.global(global_id);
     accessible_from(sa, global.module_id, global.visibility, module_id)
 }
 
@@ -67,7 +67,7 @@ pub fn method_accessible_from(
     fct_id: FctDefinitionId,
     module_id: ModuleDefinitionId,
 ) -> bool {
-    let fct = &sa.fcts[fct_id];
+    let fct = sa.fct(fct_id);
 
     let element_visibility = match fct.parent {
         FctParent::Extension(_) => fct.visibility,
@@ -87,7 +87,7 @@ pub fn fct_accessible_from(
     fct_id: FctDefinitionId,
     module_id: ModuleDefinitionId,
 ) -> bool {
-    let fct = &sa.fcts[fct_id];
+    let fct = sa.fct(fct_id);
 
     accessible_from(sa, fct.module_id, fct.visibility, module_id)
 }

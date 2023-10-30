@@ -135,7 +135,7 @@ fn check_impl_methods(sa: &Sema, impl_: &ImplDefinition, trait_: &TraitDefinitio
     let mut trait_method_map = HashMap::new();
 
     for &impl_method_id in impl_.methods() {
-        let impl_method = &sa.fcts[impl_method_id];
+        let impl_method = &sa.fct(impl_method_id);
 
         if impl_method.ast.block.is_none() && !impl_method.is_internal {
             sa.report(
@@ -147,7 +147,7 @@ fn check_impl_methods(sa: &Sema, impl_: &ImplDefinition, trait_: &TraitDefinitio
 
         if let Some(trait_method_id) = trait_.get_method(impl_method.name, impl_method.is_static) {
             if let Some(existing_id) = trait_method_map.insert(trait_method_id, impl_method_id) {
-                let existing_fct = &sa.fcts[existing_id];
+                let existing_fct = sa.fct(existing_id);
                 let method_name = sa.interner.str(existing_fct.name).to_string();
 
                 sa.report(
@@ -159,7 +159,7 @@ fn check_impl_methods(sa: &Sema, impl_: &ImplDefinition, trait_: &TraitDefinitio
 
             remaining_trait_methods.remove(&trait_method_id);
 
-            let trait_method = &sa.fcts[trait_method_id];
+            let trait_method = sa.fct(trait_method_id);
 
             if !method_definitions_compatible(
                 sa,
@@ -244,7 +244,7 @@ fn report_missing_methods(
     missing_methods: HashSet<FctDefinitionId>,
 ) {
     for method_id in missing_methods {
-        let method = &sa.fcts[method_id];
+        let method = sa.fct(method_id);
         let mtd_name = sa.interner.str(method.name).to_string();
 
         sa.report(

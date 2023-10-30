@@ -114,7 +114,7 @@ fn gen_expr_bin_cmp_as_method(
     let call_type = g.analysis.map_calls.get(node.id).unwrap();
     let callee_id = call_type.fct_id().expect("FctId missing");
 
-    let callee = &g.sa.fcts[callee_id];
+    let callee = g.sa.fct(callee_id);
 
     let callee_idx = g.add_const_pool_entry_for_call(&callee, &call_type);
 

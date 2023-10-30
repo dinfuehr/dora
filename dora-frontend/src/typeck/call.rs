@@ -136,7 +136,7 @@ fn check_expr_call_generic_static_method(
     }
 
     let (trait_method_id, trait_ty) = matched_methods.pop().expect("missing method");
-    let trait_method = &ck.sa.fcts[trait_method_id];
+    let trait_method = ck.sa.fct(trait_method_id);
 
     let tp = SourceType::TypeParam(tp_id);
 
@@ -260,7 +260,7 @@ fn check_expr_call_fct(
     arg_types: &[SourceType],
 ) -> SourceType {
     if !fct_accessible_from(ck.sa, fct_id, ck.module_id) {
-        let fct = &ck.sa.fcts[fct_id];
+        let fct = ck.sa.fct(fct_id);
         let msg = ErrorMessage::NotAccessible(fct.display_name(ck.sa));
         ck.sa.report(ck.file_id, e.span, msg);
     }
@@ -312,7 +312,7 @@ fn check_expr_call_static_method(
         ck.analysis.map_calls.insert(e.id, call_type.clone());
 
         if !method_accessible_from(ck.sa, fct_id, ck.module_id) {
-            let fct = &ck.sa.fcts[fct_id];
+            let fct = ck.sa.fct(fct_id);
 
             let name = fct.display_name(ck.sa);
             let msg = ErrorMessage::NotAccessible(name);
@@ -377,7 +377,7 @@ fn check_expr_call_method(
         ck.analysis.set_ty(e.id, return_type.clone());
 
         if !method_accessible_from(ck.sa, fct_id, ck.module_id) {
-            let fct = &ck.sa.fcts[fct_id];
+            let fct = ck.sa.fct(fct_id);
 
             let name = fct.display_name(ck.sa);
             let msg = ErrorMessage::NotAccessible(name);
@@ -671,7 +671,7 @@ fn check_expr_call_generic_type_param(
     if matched_methods.len() == 1 {
         let (trait_method_id, trait_ty) = matched_methods.pop().expect("missing element");
 
-        let trait_method = &ck.sa.fcts[trait_method_id];
+        let trait_method = ck.sa.fct(trait_method_id);
         let return_type = trait_method.return_type();
 
         let return_type = replace_type_param(
@@ -1021,7 +1021,7 @@ pub(super) fn lookup_method(
 
     if candidates.len() == 1 {
         let method_id = candidates[0].fct_id;
-        let method = &sa.fcts[method_id];
+        let method = sa.fct(method_id);
 
         let container_type_params = &candidates[0].container_type_params;
         let type_params = container_type_params.connect(fct_type_params);

@@ -43,7 +43,7 @@ impl<'x> TraitCheck<'x> {
     }
 
     fn visit_method(&mut self, fct_id: FctDefinitionId) {
-        let fct = &self.sa.fcts[fct_id];
+        let fct = self.sa.fct(fct_id);
 
         assert!(fct.vtable_index.set(self.vtable_index).is_ok());
         self.vtable_index += 1;
@@ -55,7 +55,7 @@ impl<'x> TraitCheck<'x> {
         };
 
         if let Some(&existing_id) = table.get(&fct.name) {
-            let existing_fct = &self.sa.fcts[existing_id];
+            let existing_fct = self.sa.fct(existing_id);
             let method_name = self.sa.interner.str(fct.name).to_string();
 
             self.sa.report(
