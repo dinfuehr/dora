@@ -1,0 +1,32 @@
+//= ignore
+
+fn main() {
+    let cx = CX(0, 3);
+    assert(cx.next().getOrPanic() == 0);
+    assert(cx.next().getOrPanic() == 1);
+    assert(cx.next().getOrPanic() == 2);
+    assert(cx.next().isNone());
+}
+
+trait MyTrait {
+    type X;
+    fn next(): Option[X];
+}
+
+class CX {
+    curr: Int64,
+    max: Int64
+}
+
+impl MyTrait for CX {
+    type X = Int64;
+    fn next(): Option[X] {
+        if self.curr == max {
+            None
+        } else {
+            let result = Some(self.curr);
+            self.curr = self.curr + 1;
+            result
+        }
+    }
+}

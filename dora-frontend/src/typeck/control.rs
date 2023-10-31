@@ -7,7 +7,7 @@ use crate::error::msg::ErrorMessage;
 use crate::expr_always_returns;
 use crate::interner::Name;
 use crate::sema::{EnumDefinitionId, FctDefinitionId, ForTypeInfo, IdentType};
-use crate::specialize::replace_type_param;
+use crate::specialize::replace_type;
 use crate::sym::SymbolKind;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::typeck::{add_local, check_expr, check_let_pattern, read_path, MethodLookup, TypeCheck};
@@ -451,7 +451,7 @@ fn check_expr_match_pattern_enum_variant(
                     SourceType::Error
                 };
 
-                let ty = replace_type_param(ck.sa, ty, &expr_type_params, None);
+                let ty = replace_type(ck.sa, ty, Some(&expr_type_params), None, None);
 
                 let iname = ck.sa.interner.intern(&ident.name_as_string);
 

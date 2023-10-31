@@ -10,7 +10,7 @@ use crate::sema::{
     PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Var, VarAccess, VarId,
     VarLocation, Visibility,
 };
-use crate::specialize::replace_type_param;
+use crate::specialize::replace_type;
 use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::typeck::{check_expr, check_stmt};
@@ -401,7 +401,13 @@ pub(super) fn args_compatible(
     };
 
     for (ind, def_arg) in def.iter().enumerate() {
-        let def_arg = replace_type_param(sa, def_arg.clone(), &type_params, self_ty.clone());
+        let def_arg = replace_type(
+            sa,
+            def_arg.clone(),
+            Some(&type_params),
+            self_ty.clone(),
+            None,
+        );
 
         if !arg_allows(sa, def_arg, args[ind].clone(), self_ty.clone()) {
             return false;
@@ -410,7 +416,7 @@ pub(super) fn args_compatible(
 
     if let Some(rest_ty) = rest_ty {
         let ind = def.len();
-        let rest_ty = replace_type_param(sa, rest_ty, &type_params, self_ty.clone());
+        let rest_ty = replace_type(sa, rest_ty, Some(&type_params), self_ty.clone(), None);
 
         for expr_ty in &args[ind..] {
             if !arg_allows(sa, rest_ty.clone(), expr_ty.clone(), self_ty.clone()) {

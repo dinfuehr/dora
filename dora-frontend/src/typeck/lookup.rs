@@ -4,7 +4,7 @@ use crate::sema::{
     find_methods_in_class, find_methods_in_enum, find_methods_in_struct, FctDefinitionId, Sema,
     SourceFileId, TraitDefinitionId, TypeParamDefinition,
 };
-use crate::specialize::replace_type_param;
+use crate::specialize::replace_type;
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::typeck::function::args_compatible_fct;
 use crate::typeparamck::{self, ErrorReporting};
@@ -249,7 +249,7 @@ impl<'a> MethodLookup<'a> {
 
         let cmp_type = {
             let type_list = container_tps.connect(&fct_tps);
-            replace_type_param(self.sa, fct.return_type(), &type_list, None)
+            replace_type(self.sa, fct.return_type(), Some(&type_list), None, None)
         };
 
         if self.ret.is_none() || self.ret.clone().unwrap() == cmp_type {

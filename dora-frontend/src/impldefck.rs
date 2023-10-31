@@ -5,7 +5,7 @@ use crate::sema::{
     AliasDefinitionId, FctDefinition, FctDefinitionId, ImplDefinition, ImplDefinitionId, Sema,
     SourceFileId, TraitDefinition,
 };
-use crate::specialize::replace_type_param;
+use crate::specialize::replace_type;
 use crate::{
     read_type_context, AllowSelf, ErrorMessage, ModuleSymTable, SourceType, SourceTypeArray,
     SymbolKind, TypeParamContext,
@@ -134,6 +134,14 @@ fn check_impl_methods(sa: &Sema, impl_: &ImplDefinition, trait_: &TraitDefinitio
         trait_.methods().iter().cloned().collect();
     let mut trait_method_map = HashMap::new();
 
+    let trait_alias_map: HashMap<AliasDefinitionId, SourceType> = impl_
+        .trait_alias_map()
+        .iter()
+        .map(|(trait_alias_id, impl_alias_id)| {
+            (*trait_alias_id, SourceType::TypeAlias(*impl_alias_id))
+        })
+        .collect();
+
     for &impl_method_id in impl_.methods() {
         let impl_method = &sa.fct(impl_method_id);
 
@@ -165,6 +173,7 @@ fn check_impl_methods(sa: &Sema, impl_: &ImplDefinition, trait_: &TraitDefinitio
                 sa,
                 trait_method,
                 impl_.trait_ty().type_params(),
+                &trait_alias_map,
                 impl_method,
                 impl_.extended_ty().clone(),
             ) {
@@ -191,6 +200,7 @@ fn method_definitions_compatible(
     sa: &Sema,
     trait_method: &FctDefinition,
     trait_type_params: SourceTypeArray,
+    trait_alias_map: &HashMap<AliasDefinitionId, SourceType>,
     impl_method: &FctDefinition,
     self_ty: SourceType,
 ) -> bool {
@@ -206,6 +216,7 @@ fn method_definitions_compatible(
             sa,
             trait_arg_ty.clone(),
             trait_type_params.clone(),
+            trait_alias_map,
             impl_arg_ty.clone(),
             self_ty.clone(),
         ) {
@@ -216,9 +227,10 @@ fn method_definitions_compatible(
     trait_and_impl_arg_ty_compatible(
         sa,
         trait_method.return_type(),
-        trait_type_params,
+        trait_type_params.clone(),
+        trait_alias_map,
         impl_method.return_type(),
-        self_ty,
+        self_ty.clone(),
     )
 }
 
@@ -226,14 +238,16 @@ fn trait_and_impl_arg_ty_compatible(
     sa: &Sema,
     trait_arg_ty: SourceType,
     trait_type_params: SourceTypeArray,
+    trait_alias_map: &HashMap<AliasDefinitionId, SourceType>,
     impl_arg_ty: SourceType,
     self_ty: SourceType,
 ) -> bool {
-    replace_type_param(
+    replace_type(
         sa,
         trait_arg_ty.clone(),
-        &trait_type_params,
+        Some(&trait_type_params),
         Some(self_ty.clone()),
+        Some(trait_alias_map),
     ) == impl_arg_ty.clone()
 }
 
@@ -264,7 +278,7 @@ fn check_impl_types(sa: &Sema, impl_: &ImplDefinition, trait_: &TraitDefinition)
         let impl_alias = sa.alias(impl_alias_id);
 
         if let Some(&trait_alias_id) = trait_.alias_names().get(&impl_alias.name) {
-            if let Some(existing_id) = trait_alias_map.insert(trait_alias_id, trait_alias_id) {
+            if let Some(existing_id) = trait_alias_map.insert(trait_alias_id, impl_alias_id) {
                 let existing_alias = sa.alias(existing_id);
                 let method_name = sa.interner.str(existing_alias.name).to_string();
 
@@ -491,7 +505,7 @@ mod tests {
                 type X = Bool;
             }",
             (8, 17),
-            ErrorMessage::AliasExists("X".into(), Span::new(41, 7)),
+            ErrorMessage::AliasExists("X".into(), Span::new(128, 15)),
         );
     }
 
@@ -596,7 +610,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn alias_use_in_impl() {
         ok("
             trait MyTrait {
@@ -606,12 +619,16 @@ mod tests {
             class CX
             impl MyTrait for CX {
                 type X = Int64;
-                fn next(): Option[Int64] {
+                fn next(): Option[X] {
                     None
                 }
             }
         ");
+    }
 
+    #[test]
+    #[ignore]
+    fn alias_value_use_in_impl() {
         ok("
             trait MyTrait {
                 type X;
@@ -620,7 +637,7 @@ mod tests {
             class CX
             impl MyTrait for CX {
                 type X = Int64;
-                fn next(): Option[X] {
+                fn next(): Option[Int64] {
                     None
                 }
             }

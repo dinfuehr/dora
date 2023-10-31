@@ -11,7 +11,7 @@ use crate::sema::{
     GlobalDefinitionId, IdentType, Sema, SourceFileId, StructDefinitionId, TypeParamId, VarId,
     VarLocation,
 };
-use crate::specialize::{replace_type_param, specialize_type};
+use crate::specialize::{replace_type, specialize_type};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::{expr_always_returns, expr_block_always_returns};
 use dora_bytecode::{
@@ -2728,7 +2728,13 @@ impl<'a> AstBytecodeGen<'a> {
             }
             CallType::GenericMethod(id, _trait_id, _method_id, type_params)
             | CallType::GenericStaticMethod(id, _trait_id, _method_id, type_params) => {
-                replace_type_param(self.sa, ty, type_params, Some(SourceType::TypeParam(*id)))
+                replace_type(
+                    self.sa,
+                    ty,
+                    Some(type_params),
+                    Some(SourceType::TypeParam(*id)),
+                    None,
+                )
             }
 
             CallType::Lambda(..)

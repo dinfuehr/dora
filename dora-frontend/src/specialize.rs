@@ -1,24 +1,32 @@
-use crate::sema::{create_tuple, Sema};
-use crate::ty::{SourceType, SourceTypeArray};
+use std::collections::HashMap;
+
+use crate::sema::{create_tuple, AliasDefinitionId, Sema};
+use crate::{SourceType, SourceTypeArray};
 
 pub fn specialize_type(sa: &Sema, ty: SourceType, type_params: &SourceTypeArray) -> SourceType {
-    replace_type_param(sa, ty, type_params, None)
+    replace_type(sa, ty, Some(type_params), None, None)
 }
 
-pub fn replace_type_param(
+pub fn replace_type(
     sa: &Sema,
     ty: SourceType,
-    type_params: &SourceTypeArray,
+    type_params: Option<&SourceTypeArray>,
     self_ty: Option<SourceType>,
+    alias_map: Option<&HashMap<AliasDefinitionId, SourceType>>,
 ) -> SourceType {
     match ty {
-        SourceType::TypeParam(tpid) => type_params[tpid.to_usize()].clone(),
-
+        SourceType::TypeParam(tpid) => {
+            if let Some(type_params) = type_params {
+                type_params[tpid.to_usize()].clone()
+            } else {
+                ty
+            }
+        }
         SourceType::Class(cls_id, params) => {
             let params = SourceTypeArray::with(
                 params
                     .iter()
-                    .map(|p| replace_type_param(sa, p, type_params, self_ty.clone()))
+                    .map(|p| replace_type(sa, p, type_params, self_ty.clone(), alias_map))
                     .collect::<Vec<_>>(),
             );
 
@@ -29,7 +37,7 @@ pub fn replace_type_param(
             let new_type_params = SourceTypeArray::with(
                 old_type_params
                     .iter()
-                    .map(|p| replace_type_param(sa, p, type_params, self_ty.clone()))
+                    .map(|p| replace_type(sa, p, type_params, self_ty.clone(), alias_map))
                     .collect::<Vec<_>>(),
             );
 
@@ -40,7 +48,7 @@ pub fn replace_type_param(
             let new_type_params = SourceTypeArray::with(
                 old_type_params
                     .iter()
-                    .map(|p| replace_type_param(sa, p, type_params, self_ty.clone()))
+                    .map(|p| replace_type(sa, p, type_params, self_ty.clone(), alias_map))
                     .collect::<Vec<_>>(),
             );
 
@@ -51,28 +59,35 @@ pub fn replace_type_param(
             let new_type_params = SourceTypeArray::with(
                 old_type_params
                     .iter()
-                    .map(|p| replace_type_param(sa, p, type_params, self_ty.clone()))
+                    .map(|p| replace_type(sa, p, type_params, self_ty.clone(), alias_map))
                     .collect::<Vec<_>>(),
             );
 
             SourceType::Enum(enum_id, new_type_params)
         }
 
-        SourceType::This => self_ty.expect("no type for Self given"),
+        SourceType::This => {
+            if let Some(self_ty) = self_ty {
+                self_ty
+            } else {
+                ty
+            }
+        }
 
         SourceType::Lambda(params, return_type) => {
             let new_params = SourceTypeArray::with(
                 params
                     .iter()
-                    .map(|p| replace_type_param(sa, p, type_params, self_ty.clone()))
+                    .map(|p| replace_type(sa, p, type_params, self_ty.clone(), alias_map))
                     .collect::<Vec<_>>(),
             );
 
-            let return_type = replace_type_param(
+            let return_type = replace_type(
                 sa,
                 return_type.as_ref().clone(),
                 type_params,
                 self_ty.clone(),
+                alias_map,
             );
 
             SourceType::Lambda(new_params, Box::new(return_type))
@@ -81,10 +96,18 @@ pub fn replace_type_param(
         SourceType::Tuple(subtypes) => {
             let new_subtypes = subtypes
                 .iter()
-                .map(|t| replace_type_param(sa, t.clone(), type_params, self_ty.clone()))
+                .map(|t| replace_type(sa, t.clone(), type_params, self_ty.clone(), alias_map))
                 .collect::<Vec<_>>();
 
             create_tuple(sa, new_subtypes)
+        }
+
+        SourceType::TypeAlias(alias_id) => {
+            if let Some(alias_map) = alias_map {
+                alias_map.get(&alias_id).cloned().expect("missing alias")
+            } else {
+                ty
+            }
         }
 
         SourceType::Unit
@@ -97,7 +120,7 @@ pub fn replace_type_param(
         | SourceType::Float64
         | SourceType::Error => ty,
 
-        SourceType::Any | SourceType::Ptr | SourceType::TypeAlias(..) => {
+        SourceType::Any | SourceType::Ptr => {
             panic!("unexpected type = {:?}", ty);
             // unreachable!()
         }
