@@ -2,11 +2,7 @@ use crate::access::{
     class_accessible_from, enum_accessible_from, struct_accessible_from, trait_accessible_from,
 };
 use crate::error::msg::ErrorMessage;
-use crate::sema::{
-    implements_trait, ClassDefinitionId, EnumDefinitionId, ExtensionDefinitionId, FctDefinition,
-    ImplDefinition, ModuleDefinitionId, Sema, SourceFileId, StructDefinitionId, TraitDefinitionId,
-    TypeParamDefinition,
-};
+use crate::sema::{implements_trait, ModuleDefinitionId, Sema, SourceFileId, TypeParamDefinition};
 use crate::specialize::specialize_type;
 use crate::sym::{ModuleSymTable, SymTable, SymbolKind};
 use crate::ty::{SourceType, SourceTypeArray};
@@ -15,25 +11,13 @@ use std::rc::Rc;
 use dora_parser::ast::{self, TypeBasicType, TypeLambdaType, TypeTupleType};
 use dora_parser::Span;
 
-#[derive(Copy, Clone)]
-pub enum TypeParamContext<'a> {
-    Class(ClassDefinitionId),
-    Enum(EnumDefinitionId),
-    Struct(StructDefinitionId),
-    Fct(&'a FctDefinition),
-    Trait(TraitDefinitionId),
-    Impl(&'a ImplDefinition),
-    Extension(ExtensionDefinitionId),
-    None,
-}
-
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum AllowSelf {
     Yes,
     No,
 }
 
-pub fn read_type_no_verify(
+pub fn read_type_raw(
     sa: &Sema,
     table: &ModuleSymTable,
     file_id: SourceFileId,
@@ -66,7 +50,7 @@ fn read_type_basic_unchecked(
     let mut type_params = Vec::new();
 
     for param in &node.params {
-        let ty = read_type_no_verify(sa, table, file_id, param);
+        let ty = read_type_raw(sa, table, file_id, param);
         type_params.push(ty);
     }
 
@@ -148,14 +132,14 @@ fn read_type_lambda_unchecked(
     let mut params = vec![];
 
     for param in &node.params {
-        let ty = read_type_no_verify(sa, table, file_id, param);
+        let ty = read_type_raw(sa, table, file_id, param);
         params.push(ty);
     }
 
     let params = SourceTypeArray::with(params);
 
     let return_type = if let Some(ref ret) = node.ret {
-        read_type_no_verify(sa, table, file_id, ret)
+        read_type_raw(sa, table, file_id, ret)
     } else {
         SourceType::Unit
     };
@@ -176,7 +160,7 @@ fn read_type_tuple_unchecked(
     let mut subtypes = Vec::new();
 
     for subtype in &node.subtypes {
-        let ty = read_type_no_verify(sa, table, file_id, subtype);
+        let ty = read_type_raw(sa, table, file_id, subtype);
         subtypes.push(ty);
     }
 
@@ -483,7 +467,7 @@ pub fn read_type(
     type_param_defs: &TypeParamDefinition,
     allow_self: AllowSelf,
 ) -> Option<SourceType> {
-    let ty = read_type_no_verify(sa, table, file_id, t);
+    let ty = read_type_raw(sa, table, file_id, t);
 
     let is_good = verify_type(
         sa,

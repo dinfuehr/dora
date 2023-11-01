@@ -8,7 +8,7 @@ use dora_parser::ast;
 use dora_parser::Span;
 
 pub use program_emitter::emit_program;
-pub use readty::{read_type, read_type_no_verify, AllowSelf, TypeParamContext};
+pub use readty::{read_type, read_type_raw, AllowSelf};
 pub use specialize::{replace_type, specialize_type, AliasReplacement};
 
 pub(crate) mod access;
