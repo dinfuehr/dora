@@ -3964,3 +3964,12 @@ fn test_trait_with_type_params() {
         }
     ");
 }
+
+#[test]
+fn alias_as_argument() {
+    ok("
+        type MyInt = Int64;
+        fn x(v: MyInt) {}
+        fn f() { x(6); }
+    ")
+}

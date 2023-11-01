@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::Sema;
-use dora_bytecode::program::{ClassLayout, ImplData, InternalClass, InternalFunction};
+use dora_bytecode::program::{AliasData, ClassLayout, ImplData, InternalClass, InternalFunction};
 use dora_bytecode::{
     ClassData, ClassField, EnumData, EnumVariant, FunctionData, FunctionId, FunctionKind,
     GlobalData, ImplId, ModuleData, ModuleId, PackageData, PackageId, Program, SourceFileData,
@@ -37,6 +37,7 @@ pub fn emit_program(sa: Sema) -> Program {
         enums: create_enums(&sa),
         traits: create_traits(&sa),
         impls: create_impls(&sa),
+        aliases: create_aliases(&sa),
         source_files: create_source_files(&sa),
         stdlib_package_id: convert_package_id(sa.stdlib_package_id()),
         program_package_id: convert_package_id(sa.program_package_id()),
@@ -110,6 +111,19 @@ fn create_impls(sa: &Sema) -> Vec<ImplData> {
             extended_ty: bty_from_ty(impl_.extended_ty()),
             methods,
         });
+    }
+
+    result
+}
+
+fn create_aliases(sa: &Sema) -> Vec<AliasData> {
+    let mut result = Vec::new();
+
+    for (_id, alias) in sa.aliases.iter() {
+        result.push(AliasData {
+            name: sa.interner.str(alias.name).to_string(),
+            ty: None,
+        })
     }
 
     result

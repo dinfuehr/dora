@@ -1,9 +1,12 @@
 use std::collections::HashSet;
+use std::sync::Arc;
+
+use dora_parser::ast;
 
 use crate::sema::{FctDefinition, FctParent, Sema, TypeParamDefinition, TypeParamId};
 use crate::{
-    read_type, read_type_context, AllowSelf, ErrorMessage, ModuleSymTable, SourceType, SymbolKind,
-    TypeParamContext,
+    read_type, replace_type, AliasReplacement, AllowSelf, ErrorMessage, ModuleSymTable, SourceType,
+    SymbolKind,
 };
 
 pub fn check(sa: &Sema) {
@@ -111,7 +114,7 @@ pub fn check(sa: &Sema) {
                                 sa.report(fct.file_id, bound.span(), msg);
                             }
                         } else {
-                            // unknown type, error is already thrown
+                            // unknown type, error is already reported.
                         }
                     }
 
@@ -136,19 +139,7 @@ pub fn check(sa: &Sema) {
                 );
             }
 
-            let ty = read_type_context(
-                sa,
-                &sym_table,
-                fct.file_id,
-                &p.data_type,
-                TypeParamContext::Fct(&*fct),
-                if fct.in_trait() {
-                    AllowSelf::Yes
-                } else {
-                    AllowSelf::No
-                },
-            )
-            .unwrap_or(SourceType::Error);
+            let ty = process_type(sa, fct, &sym_table, &p.data_type);
 
             param_types.push(ty);
 
@@ -160,21 +151,7 @@ pub fn check(sa: &Sema) {
         assert!(fct.param_types.set(param_types).is_ok());
 
         let return_type = if let Some(ret) = ast.return_type.as_ref() {
-            let ty = read_type_context(
-                sa,
-                &sym_table,
-                fct.file_id,
-                ret,
-                TypeParamContext::Fct(&*fct),
-                if fct.in_trait() {
-                    AllowSelf::Yes
-                } else {
-                    AllowSelf::No
-                },
-            )
-            .unwrap_or(SourceType::Error);
-
-            ty
+            process_type(sa, fct, &sym_table, ret)
         } else {
             SourceType::Unit
         };
@@ -183,6 +160,46 @@ pub fn check(sa: &Sema) {
         fct.initialized.set(true);
 
         check_test(sa, &*fct);
+    }
+}
+
+fn process_type(
+    sa: &Sema,
+    fct: &FctDefinition,
+    sym_table: &ModuleSymTable,
+    ast: &Arc<ast::TypeData>,
+) -> SourceType {
+    let allow_self = if fct.in_trait() {
+        AllowSelf::Yes
+    } else {
+        AllowSelf::No
+    };
+
+    let ty = read_type(
+        sa,
+        &sym_table,
+        fct.file_id,
+        ast,
+        fct.type_params(),
+        allow_self,
+    )
+    .unwrap_or(SourceType::Error);
+
+    match fct.parent {
+        FctParent::Impl(id) => {
+            let impl_ = sa.impl_(id);
+            replace_type(
+                sa,
+                ty,
+                None,
+                Some(impl_.extended_ty()),
+                AliasReplacement::ReplaceWithActualType,
+            )
+        }
+
+        FctParent::Extension(..) | FctParent::None | FctParent::Trait(..) => ty,
+
+        FctParent::Function => unreachable!(),
     }
 }
 

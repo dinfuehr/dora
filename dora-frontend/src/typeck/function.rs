@@ -10,11 +10,11 @@ use crate::sema::{
     PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Var, VarAccess, VarId,
     VarLocation, Visibility,
 };
-use crate::specialize::replace_type;
-use crate::sym::{ModuleSymTable, SymbolKind};
-use crate::ty::{SourceType, SourceTypeArray};
 use crate::typeck::{check_expr, check_stmt};
-use crate::{always_returns, expr_always_returns, read_type, AllowSelf};
+use crate::{
+    always_returns, expr_always_returns, read_type, replace_type, AliasReplacement, AllowSelf,
+    ModuleSymTable, SourceType, SourceTypeArray, SymbolKind,
+};
 
 use crate::interner::Name;
 use dora_parser::ast;
@@ -406,7 +406,7 @@ pub(super) fn args_compatible(
             def_arg.clone(),
             Some(&type_params),
             self_ty.clone(),
-            None,
+            AliasReplacement::None,
         );
 
         if !arg_allows(sa, def_arg, args[ind].clone(), self_ty.clone()) {
@@ -416,7 +416,13 @@ pub(super) fn args_compatible(
 
     if let Some(rest_ty) = rest_ty {
         let ind = def.len();
-        let rest_ty = replace_type(sa, rest_ty, Some(&type_params), self_ty.clone(), None);
+        let rest_ty = replace_type(
+            sa,
+            rest_ty,
+            Some(&type_params),
+            self_ty.clone(),
+            AliasReplacement::None,
+        );
 
         for expr_ty in &args[ind..] {
             if !arg_allows(sa, rest_ty.clone(), expr_ty.clone(), self_ty.clone()) {
@@ -507,7 +513,7 @@ fn arg_allows(sa: &Sema, def: SourceType, arg: SourceType, self_ty: Option<Sourc
 
         SourceType::Lambda(_, _) => def == arg,
 
-        SourceType::TypeAlias(..) => unreachable!(),
+        SourceType::TypeAlias(id) => arg_allows(sa, sa.alias(id).ty(), arg, self_ty.clone()),
     }
 }
 

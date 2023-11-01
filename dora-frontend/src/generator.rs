@@ -13,7 +13,7 @@ use crate::sema::{
 };
 use crate::specialize::{replace_type, specialize_type};
 use crate::ty::{SourceType, SourceTypeArray};
-use crate::{expr_always_returns, expr_block_always_returns};
+use crate::{expr_always_returns, expr_block_always_returns, AliasReplacement};
 use dora_bytecode::{
     BytecodeBuilder, BytecodeFunction, BytecodeType, BytecodeTypeArray, ClassId, ConstPoolEntry,
     ConstPoolIdx, EnumId, FunctionId, GlobalId, Intrinsic, Label, Location, Register, StructId,
@@ -2733,7 +2733,7 @@ impl<'a> AstBytecodeGen<'a> {
                     ty,
                     Some(type_params),
                     Some(SourceType::TypeParam(*id)),
-                    None,
+                    AliasReplacement::None,
                 )
             }
 

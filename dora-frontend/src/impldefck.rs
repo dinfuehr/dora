@@ -2,131 +2,99 @@ use std::collections::{HashMap, HashSet};
 
 use crate::extensiondefck::check_for_unconstrained_type_params;
 use crate::sema::{
-    AliasDefinitionId, FctDefinition, FctDefinitionId, ImplDefinition, ImplDefinitionId, Sema,
-    SourceFileId, TraitDefinition,
+    AliasDefinitionId, FctDefinition, FctDefinitionId, ImplDefinition, Sema, TraitDefinition,
 };
 use crate::specialize::replace_type;
 use crate::{
-    read_type_context, AllowSelf, ErrorMessage, ModuleSymTable, SourceType, SourceTypeArray,
-    SymbolKind, TypeParamContext,
+    read_type_context, AliasReplacement, AllowSelf, ErrorMessage, ModuleSymTable, SourceType,
+    SourceTypeArray, SymbolKind, TypeParamContext,
 };
 
-use dora_parser::ast;
-
 pub fn check_definition(sa: &Sema) {
-    for (id, impl_) in sa.impls.iter() {
-        let mut implck = ImplCheck {
-            sa,
-            file_id: impl_.file_id,
-            impl_id: id,
-            sym: ModuleSymTable::new(sa, impl_.module_id),
-            ast: &impl_.ast,
-        };
-
-        implck.check();
+    for (_id, impl_) in sa.impls.iter() {
+        check_impl_definition(sa, impl_);
     }
 }
 
-struct ImplCheck<'x> {
-    sa: &'x Sema,
-    file_id: SourceFileId,
-    impl_id: ImplDefinitionId,
-    sym: ModuleSymTable,
-    ast: &'x ast::Impl,
-}
+fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
+    assert!(impl_.ast.trait_type.is_some());
+    let mut sym = ModuleSymTable::new(sa, impl_.module_id);
+    sym.push_level();
 
-impl<'x> ImplCheck<'x> {
-    fn check(&mut self) {
-        assert!(self.ast.trait_type.is_some());
+    for (id, name) in impl_.type_params().names() {
+        sym.insert(name, SymbolKind::TypeParam(id));
+    }
 
-        self.sym.push_level();
+    let ast_trait_type = impl_.ast.trait_type.as_ref().unwrap();
 
-        let impl_ = &self.sa.impl_(self.impl_id);
+    let trait_ty = if let Some(trait_ty) = read_type_context(
+        sa,
+        &sym,
+        impl_.file_id,
+        ast_trait_type,
+        TypeParamContext::Impl(&*impl_),
+        AllowSelf::No,
+    ) {
+        match trait_ty {
+            SourceType::Trait(trait_id, type_params) => SourceType::Trait(trait_id, type_params),
 
-        for (id, name) in impl_.type_params().names() {
-            self.sym.insert(name, SymbolKind::TypeParam(id));
-        }
-
-        let ast_trait_type = self.ast.trait_type.as_ref().unwrap();
-
-        let trait_ty = if let Some(trait_ty) = read_type_context(
-            self.sa,
-            &self.sym,
-            self.file_id.into(),
-            ast_trait_type,
-            TypeParamContext::Impl(&*impl_),
-            AllowSelf::No,
-        ) {
-            match trait_ty {
-                SourceType::Trait(trait_id, type_params) => {
-                    SourceType::Trait(trait_id, type_params)
-                }
-
-                _ => {
-                    self.sa
-                        .report(self.file_id, self.ast.span, ErrorMessage::ExpectedTrait);
-                    SourceType::Error
-                }
-            }
-        } else {
-            SourceType::Error
-        };
-
-        assert!(impl_.trait_ty.set(trait_ty).is_ok());
-
-        let extended_ty = if let Some(class_ty) = read_type_context(
-            self.sa,
-            &self.sym,
-            self.file_id.into(),
-            &self.ast.extended_type,
-            TypeParamContext::Impl(&*impl_),
-            AllowSelf::No,
-        ) {
-            if class_ty.is_cls()
-                || class_ty.is_struct()
-                || class_ty.is_enum()
-                || class_ty.is_primitive()
-                || class_ty.is_tuple_or_unit()
-            {
-                check_for_unconstrained_type_params(
-                    self.sa,
-                    class_ty.clone(),
-                    impl_.type_params(),
-                    self.file_id,
-                    self.ast.span,
-                );
-
-                class_ty
-            } else {
-                self.sa.report(
-                    self.file_id,
-                    self.ast.extended_type.span(),
-                    ErrorMessage::ExpectedImplTraitType,
-                );
-
+            _ => {
+                sa.report(impl_.file_id, impl_.ast.span, ErrorMessage::ExpectedTrait);
                 SourceType::Error
             }
+        }
+    } else {
+        SourceType::Error
+    };
+
+    assert!(impl_.trait_ty.set(trait_ty).is_ok());
+
+    let extended_ty = if let Some(class_ty) = read_type_context(
+        sa,
+        &sym,
+        impl_.file_id.into(),
+        &impl_.ast.extended_type,
+        TypeParamContext::Impl(&*impl_),
+        AllowSelf::No,
+    ) {
+        if class_ty.is_cls()
+            || class_ty.is_struct()
+            || class_ty.is_enum()
+            || class_ty.is_primitive()
+            || class_ty.is_tuple_or_unit()
+        {
+            check_for_unconstrained_type_params(
+                sa,
+                class_ty.clone(),
+                impl_.type_params(),
+                impl_.file_id,
+                impl_.ast.span,
+            );
+
+            class_ty
         } else {
+            sa.report(
+                impl_.file_id,
+                impl_.ast.extended_type.span(),
+                ErrorMessage::ExpectedImplTraitType,
+            );
+
             SourceType::Error
-        };
+        }
+    } else {
+        SourceType::Error
+    };
 
-        assert!(impl_.extended_ty.set(extended_ty).is_ok());
+    assert!(impl_.extended_ty.set(extended_ty).is_ok());
 
-        self.sym.pop_level();
-    }
+    sym.pop_level();
 }
 
-pub fn check_body(sa: &Sema) {
+pub fn check_definition_against_trait(sa: &Sema) {
     for (_id, impl_) in sa.impls.iter() {
-        check_impl_body(sa, impl_);
+        let trait_ = &sa.trait_(impl_.trait_id());
+        check_impl_methods(sa, impl_, trait_);
     }
-}
-
-fn check_impl_body(sa: &Sema, impl_: &ImplDefinition) {
-    let trait_ = &sa.trait_(impl_.trait_id());
-
-    check_impl_types(sa, impl_, trait_);
-    check_impl_methods(sa, impl_, trait_);
 }
 
 fn check_impl_methods(sa: &Sema, impl_: &ImplDefinition, trait_: &TraitDefinition) {
@@ -134,13 +102,11 @@ fn check_impl_methods(sa: &Sema, impl_: &ImplDefinition, trait_: &TraitDefinitio
         trait_.methods().iter().cloned().collect();
     let mut trait_method_map = HashMap::new();
 
-    let trait_alias_map: HashMap<AliasDefinitionId, SourceType> = impl_
-        .trait_alias_map()
-        .iter()
-        .map(|(trait_alias_id, impl_alias_id)| {
-            (*trait_alias_id, SourceType::TypeAlias(*impl_alias_id))
-        })
-        .collect();
+    let mut trait_alias_map: HashMap<AliasDefinitionId, SourceType> = HashMap::new();
+
+    for (&trait_alias_id, &impl_alias_id) in impl_.trait_alias_map() {
+        trait_alias_map.insert(trait_alias_id, sa.alias(impl_alias_id).ty());
+    }
 
     for &impl_method_id in impl_.methods() {
         let impl_method = &sa.fct(impl_method_id);
@@ -247,7 +213,7 @@ fn trait_and_impl_arg_ty_compatible(
         trait_arg_ty.clone(),
         Some(&trait_type_params),
         Some(self_ty.clone()),
-        Some(trait_alias_map),
+        AliasReplacement::Map(trait_alias_map),
     ) == impl_arg_ty.clone()
 }
 
@@ -266,6 +232,13 @@ fn report_missing_methods(
             impl_.span,
             ErrorMessage::ElementNotInImpl(mtd_name),
         )
+    }
+}
+
+pub fn check_type_aliases(sa: &Sema) {
+    for (_id, impl_) in sa.impls.iter() {
+        let trait_ = &sa.trait_(impl_.trait_id());
+        check_impl_types(sa, impl_, trait_);
     }
 }
 
@@ -627,7 +600,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn alias_value_use_in_impl() {
         ok("
             trait MyTrait {

@@ -9,6 +9,7 @@ use dora_parser::Span;
 
 pub use program_emitter::emit_program;
 pub use readty::{read_type, read_type_context, read_type_unchecked, AllowSelf, TypeParamContext};
+pub use specialize::{replace_type, specialize_type, AliasReplacement};
 
 pub(crate) mod access;
 mod aliasck;
@@ -81,6 +82,7 @@ pub fn check_program(sa: &mut Sema) -> bool {
     traitdefck::check(sa);
     enumck::check(sa);
     aliasck::check(sa);
+    impldefck::check_type_aliases(sa);
     return_on_error!(sa);
 
     globaldefck::check(sa);
@@ -93,7 +95,7 @@ pub fn check_program(sa: &mut Sema) -> bool {
     return_on_error!(sa);
 
     // Check impl methods against trait definition.
-    impldefck::check_body(sa);
+    impldefck::check_definition_against_trait(sa);
     return_on_error!(sa);
 
     // Define internal functions & methods.

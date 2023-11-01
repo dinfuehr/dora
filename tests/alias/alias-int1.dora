@@ -1,0 +1,9 @@
+//= ignore
+
+fn main() {
+    expect(6);
+}
+
+fn expect(value: Int) {
+    assert(value == 6);
+}

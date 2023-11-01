@@ -191,6 +191,15 @@ pub struct ImplData {
     pub methods: Vec<FunctionId>,
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
+pub struct AliasId(pub u32);
+
+#[derive(Debug, Decode, Encode)]
+pub struct AliasData {
+    pub name: String,
+    pub ty: Option<BytecodeType>,
+}
+
 #[derive(Debug, Decode, Encode)]
 pub struct Program {
     pub packages: Vec<PackageData>,
@@ -202,6 +211,7 @@ pub struct Program {
     pub enums: Vec<EnumData>,
     pub traits: Vec<TraitData>,
     pub impls: Vec<ImplData>,
+    pub aliases: Vec<AliasData>,
     pub source_files: Vec<SourceFileData>,
     pub stdlib_package_id: PackageId,
     pub program_package_id: PackageId,
