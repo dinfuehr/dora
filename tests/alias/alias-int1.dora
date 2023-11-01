@@ -1,9 +1,16 @@
-//= ignore
-
 fn main() {
     expect(6);
+    X().expect(8);
 }
 
 fn expect(value: Int) {
     assert(value == 6);
+}
+
+class X
+
+impl X {
+    fn expect(value: Int) {
+        assert(value == 8);
+    }
 }

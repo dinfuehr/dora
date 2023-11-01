@@ -1,27 +1,18 @@
-use crate::sema::{ClassDefinitionId, Sema, SourceFileId};
+use crate::sema::{ClassDefinition, Sema, SourceFileId};
 use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::ty::SourceType;
-use crate::{read_type_context, AllowSelf, TypeParamContext};
+use crate::{read_type, AllowSelf};
 
 use dora_parser::ast;
 
 pub fn check(sa: &Sema) {
-    for (_cls_id, cls) in sa.classes.iter() {
-        let (cls_id, file_id, ast, module_id) = {
-            (
-                cls.id(),
-                cls.file_id(),
-                cls.ast.as_ref().expect("missing ast").clone(),
-                cls.module_id,
-            )
-        };
-
+    for (_id, cls) in sa.classes.iter() {
         let mut clsck = ClsDefCheck {
             sa,
-            cls_id,
-            file_id,
-            ast: &ast,
-            sym: ModuleSymTable::new(sa, module_id),
+            cls,
+            file_id: cls.file_id(),
+            ast: cls.ast(),
+            sym: ModuleSymTable::new(sa, cls.module_id),
         };
 
         clsck.check();
@@ -30,7 +21,7 @@ pub fn check(sa: &Sema) {
 
 struct ClsDefCheck<'x> {
     sa: &'x Sema,
-    cls_id: ClassDefinitionId,
+    cls: &'x ClassDefinition,
     file_id: SourceFileId,
     ast: &'x ast::Class,
     sym: ModuleSymTable,
@@ -40,9 +31,7 @@ impl<'x> ClsDefCheck<'x> {
     fn check(&mut self) {
         self.sym.push_level();
 
-        let cls = self.sa.class(self.cls_id);
-
-        for (id, name) in cls.type_params().names() {
+        for (id, name) in self.cls.type_params().names() {
             self.sym.insert(name, SymbolKind::TypeParam(id));
         }
 
@@ -54,18 +43,20 @@ impl<'x> ClsDefCheck<'x> {
     }
 
     fn visit_field(&mut self, idx: usize, f: &ast::Field) {
-        let ty = read_type_context(
+        let ty = read_type(
             self.sa,
             &self.sym,
             self.file_id.into(),
             &f.data_type,
-            TypeParamContext::Class(self.cls_id),
+            self.cls.type_params(),
             AllowSelf::No,
         )
         .unwrap_or(SourceType::Error);
 
-        let cls = self.sa.class(self.cls_id);
-        cls.fields[idx].ty.set(ty).expect("already initialized");
+        self.cls.fields[idx]
+            .ty
+            .set(ty)
+            .expect("already initialized");
     }
 }
 

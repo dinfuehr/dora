@@ -6,8 +6,8 @@ use crate::sema::{
 };
 use crate::specialize::replace_type;
 use crate::{
-    read_type_context, AliasReplacement, AllowSelf, ErrorMessage, ModuleSymTable, SourceType,
-    SourceTypeArray, SymbolKind, TypeParamContext,
+    read_type, AliasReplacement, AllowSelf, ErrorMessage, ModuleSymTable, SourceType,
+    SourceTypeArray, SymbolKind,
 };
 
 pub fn check_definition(sa: &Sema) {
@@ -27,12 +27,12 @@ fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
 
     let ast_trait_type = impl_.ast.trait_type.as_ref().unwrap();
 
-    let trait_ty = if let Some(trait_ty) = read_type_context(
+    let trait_ty = if let Some(trait_ty) = read_type(
         sa,
         &sym,
         impl_.file_id,
         ast_trait_type,
-        TypeParamContext::Impl(&*impl_),
+        impl_.type_params(),
         AllowSelf::No,
     ) {
         match trait_ty {
@@ -49,12 +49,12 @@ fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
 
     assert!(impl_.trait_ty.set(trait_ty).is_ok());
 
-    let extended_ty = if let Some(class_ty) = read_type_context(
+    let extended_ty = if let Some(class_ty) = read_type(
         sa,
         &sym,
         impl_.file_id.into(),
         &impl_.ast.extended_type,
-        TypeParamContext::Impl(&*impl_),
+        impl_.type_params(),
         AllowSelf::No,
     ) {
         if class_ty.is_cls()

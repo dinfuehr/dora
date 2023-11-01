@@ -197,7 +197,11 @@ fn process_type(
             )
         }
 
-        FctParent::Extension(..) | FctParent::None | FctParent::Trait(..) => ty,
+        FctParent::Extension(..) | FctParent::None => {
+            replace_type(sa, ty, None, None, AliasReplacement::ReplaceWithActualType)
+        }
+
+        FctParent::Trait(..) => ty,
 
         FctParent::Function => unreachable!(),
     }

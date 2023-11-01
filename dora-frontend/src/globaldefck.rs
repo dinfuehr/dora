@@ -1,8 +1,8 @@
 use crate::error::msg::ErrorMessage;
-use crate::sema::{GlobalDefinitionId, Sema, SourceFileId};
+use crate::sema::{GlobalDefinitionId, Sema, SourceFileId, TypeParamDefinition};
 use crate::sym::ModuleSymTable;
 use crate::ty::SourceType;
-use crate::{read_type_context, AllowSelf, TypeParamContext};
+use crate::{read_type, AllowSelf};
 use dora_parser::ast;
 
 pub fn check<'a>(sa: &Sema) {
@@ -31,17 +31,18 @@ struct GlobalDefCheck<'a> {
 
 impl<'a> GlobalDefCheck<'a> {
     fn check(&mut self) {
-        let ty = read_type_context(
+        let ty = read_type(
             self.sa,
             &self.symtable,
             self.file_id,
             &self.ast.data_type,
-            TypeParamContext::None,
+            &TypeParamDefinition::new(),
             AllowSelf::No,
         )
         .unwrap_or(SourceType::Error);
 
         let global_var = self.sa.global(self.global_id);
+
         assert!(global_var.ty.set(ty).is_ok());
 
         if !global_var.has_initial_value() {

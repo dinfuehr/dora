@@ -1,7 +1,7 @@
 use crate::sema::{Sema, SourceFileId, StructDefinitionId};
 use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::ty::SourceType;
-use crate::{read_type_context, AllowSelf, TypeParamContext};
+use crate::{read_type, AllowSelf};
 
 use dora_parser::ast;
 
@@ -56,17 +56,18 @@ impl<'x> StructCheck<'x> {
     }
 
     fn visit_struct_field(&mut self, idx: usize, f: &ast::StructField) {
-        let ty = read_type_context(
+        let struct_ = self.sa.struct_(self.struct_id);
+
+        let ty = read_type(
             self.sa,
             &self.symtable,
             self.file_id,
             &f.data_type,
-            TypeParamContext::Struct(self.struct_id),
+            struct_.type_params(),
             AllowSelf::No,
         )
         .unwrap_or(SourceType::Error);
 
-        let struct_ = self.sa.struct_(self.struct_id);
         struct_.fields[idx].ty.set(ty).expect("already initialized");
     }
 }

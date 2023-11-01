@@ -2,10 +2,7 @@ use crate::sema::{
     EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId, Sema, SourceFileId,
     StructDefinitionId, TypeParamDefinition, TypeParamId,
 };
-use crate::{
-    read_type_context, AllowSelf, ErrorMessage, ModuleSymTable, SourceType, SymbolKind,
-    TypeParamContext,
-};
+use crate::{read_type, AllowSelf, ErrorMessage, ModuleSymTable, SourceType, SymbolKind};
 
 use dora_parser::ast;
 use dora_parser::Span;
@@ -50,20 +47,18 @@ impl<'x> ExtensionCheck<'x> {
 
         self.sym.push_level();
 
-        {
-            let extension = self.sa.extension(self.extension_id);
+        let extension = self.sa.extension(self.extension_id);
 
-            for (id, name) in extension.type_params().names() {
-                self.sym.insert(name, SymbolKind::TypeParam(id));
-            }
+        for (id, name) in extension.type_params().names() {
+            self.sym.insert(name, SymbolKind::TypeParam(id));
         }
 
-        if let Some(extension_ty) = read_type_context(
+        if let Some(extension_ty) = read_type(
             self.sa,
             &self.sym,
             self.file_id.into(),
             &self.ast.extended_type,
-            TypeParamContext::Extension(self.extension_id),
+            extension.type_params(),
             AllowSelf::No,
         ) {
             self.extension_ty = extension_ty.clone();

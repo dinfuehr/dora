@@ -1,7 +1,7 @@
-use crate::sema::{ConstDefinitionId, Sema, SourceFileId};
+use crate::sema::{ConstDefinitionId, Sema, SourceFileId, TypeParamDefinition};
 use crate::sym::ModuleSymTable;
 use crate::ty::SourceType;
-use crate::{read_type_context, AllowSelf, TypeParamContext};
+use crate::{read_type, AllowSelf};
 
 use dora_parser::ast;
 
@@ -38,12 +38,12 @@ struct ConstCheck<'x> {
 
 impl<'x> ConstCheck<'x> {
     fn check(&mut self) {
-        let ty = read_type_context(
+        let ty = read_type(
             self.sa,
             &self.symtable,
             self.file_id,
             &self.ast.data_type,
-            TypeParamContext::None,
+            &TypeParamDefinition::new(),
             AllowSelf::No,
         )
         .unwrap_or(SourceType::Error);

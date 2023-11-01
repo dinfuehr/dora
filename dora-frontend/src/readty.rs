@@ -33,7 +33,7 @@ pub enum AllowSelf {
     No,
 }
 
-pub fn read_type_unchecked(
+pub fn read_type_no_verify(
     sa: &Sema,
     table: &ModuleSymTable,
     file_id: SourceFileId,
@@ -66,7 +66,7 @@ fn read_type_basic_unchecked(
     let mut type_params = Vec::new();
 
     for param in &node.params {
-        let ty = read_type_unchecked(sa, table, file_id, param);
+        let ty = read_type_no_verify(sa, table, file_id, param);
         type_params.push(ty);
     }
 
@@ -148,14 +148,14 @@ fn read_type_lambda_unchecked(
     let mut params = vec![];
 
     for param in &node.params {
-        let ty = read_type_unchecked(sa, table, file_id, param);
+        let ty = read_type_no_verify(sa, table, file_id, param);
         params.push(ty);
     }
 
     let params = SourceTypeArray::with(params);
 
     let return_type = if let Some(ref ret) = node.ret {
-        read_type_unchecked(sa, table, file_id, ret)
+        read_type_no_verify(sa, table, file_id, ret)
     } else {
         SourceType::Unit
     };
@@ -176,7 +176,7 @@ fn read_type_tuple_unchecked(
     let mut subtypes = Vec::new();
 
     for subtype in &node.subtypes {
-        let ty = read_type_unchecked(sa, table, file_id, subtype);
+        let ty = read_type_no_verify(sa, table, file_id, subtype);
         subtypes.push(ty);
     }
 
@@ -475,19 +475,6 @@ fn verify_type_basic(
     true
 }
 
-pub fn read_type_context(
-    sa: &Sema,
-    table: &ModuleSymTable,
-    file_id: SourceFileId,
-    t: &ast::TypeData,
-    ctxt: TypeParamContext,
-    allow_self: AllowSelf,
-) -> Option<SourceType> {
-    use_type_params(sa, ctxt, |type_param_defs| {
-        read_type(sa, table, file_id, t, type_param_defs, allow_self)
-    })
-}
-
 pub fn read_type(
     sa: &Sema,
     table: &ModuleSymTable,
@@ -496,7 +483,7 @@ pub fn read_type(
     type_param_defs: &TypeParamDefinition,
     allow_self: AllowSelf,
 ) -> Option<SourceType> {
-    let ty = read_type_unchecked(sa, table, file_id, t);
+    let ty = read_type_no_verify(sa, table, file_id, t);
 
     let is_good = verify_type(
         sa,
@@ -596,43 +583,6 @@ fn check_type_params(
     }
 
     success
-}
-
-fn use_type_params<F, R>(sa: &Sema, ctxt: TypeParamContext, callback: F) -> R
-where
-    F: FnOnce(&TypeParamDefinition) -> R,
-{
-    match ctxt {
-        TypeParamContext::Class(cls_id) => {
-            let cls = sa.class(cls_id);
-            callback(cls.type_params())
-        }
-
-        TypeParamContext::Enum(enum_id) => {
-            let enum_ = sa.enum_(enum_id);
-            callback(enum_.type_params())
-        }
-
-        TypeParamContext::Struct(struct_id) => {
-            let struct_ = sa.struct_(struct_id);
-            callback(struct_.type_params())
-        }
-
-        TypeParamContext::Impl(impl_) => callback(impl_.type_params()),
-
-        TypeParamContext::Extension(extension_id) => {
-            let extension = sa.extension(extension_id);
-            callback(extension.type_params())
-        }
-
-        TypeParamContext::Trait(trait_id) => {
-            let trait_ = sa.trait_(trait_id);
-            callback(&trait_.type_params())
-        }
-
-        TypeParamContext::Fct(fct) => callback(fct.type_params()),
-        TypeParamContext::None => callback(&TypeParamDefinition::new()),
-    }
 }
 
 #[cfg(test)]
