@@ -27,24 +27,23 @@ fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
 
     let ast_trait_type = impl_.ast.trait_type.as_ref().unwrap();
 
-    let trait_ty = if let Some(trait_ty) = read_type(
+    let trait_ty = read_type(
         sa,
         &sym,
         impl_.file_id,
         ast_trait_type,
         impl_.type_params(),
         AllowSelf::No,
-    ) {
-        match trait_ty {
-            SourceType::Trait(trait_id, type_params) => SourceType::Trait(trait_id, type_params),
+    )
+    .unwrap_or(SourceType::Error);
 
-            _ => {
-                sa.report(impl_.file_id, impl_.ast.span, ErrorMessage::ExpectedTrait);
-                SourceType::Error
-            }
-        }
-    } else {
+    let trait_ty = if trait_ty.is_trait() {
+        trait_ty
+    } else if !trait_ty.is_error() {
+        sa.report(impl_.file_id, impl_.ast.span, ErrorMessage::ExpectedTrait);
         SourceType::Error
+    } else {
+        trait_ty
     };
 
     assert!(impl_.trait_ty.set(trait_ty).is_ok());

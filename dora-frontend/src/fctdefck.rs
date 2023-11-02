@@ -98,23 +98,19 @@ pub fn check(sa: &Sema) {
                             bound,
                             &type_params,
                             AllowSelf::No,
-                        );
+                        )
+                        .unwrap_or(SourceType::Error);
 
-                        if let Some(ty) = ty {
-                            if ty.is_trait() {
-                                if !type_params.add_bound(
-                                    TypeParamId(container_type_params + type_param_id),
-                                    ty,
-                                ) {
-                                    let msg = ErrorMessage::DuplicateTraitBound;
-                                    sa.report(fct.file_id, type_param.span, msg);
-                                }
-                            } else {
-                                let msg = ErrorMessage::BoundExpected;
-                                sa.report(fct.file_id, bound.span(), msg);
+                        if ty.is_trait() {
+                            if !type_params
+                                .add_bound(TypeParamId(container_type_params + type_param_id), ty)
+                            {
+                                let msg = ErrorMessage::DuplicateTraitBound;
+                                sa.report(fct.file_id, type_param.span, msg);
                             }
-                        } else {
-                            // unknown type, error is already reported.
+                        } else if !ty.is_error() {
+                            let msg = ErrorMessage::BoundExpected;
+                            sa.report(fct.file_id, bound.span(), msg);
                         }
                     }
 
