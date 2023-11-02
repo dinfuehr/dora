@@ -2,7 +2,7 @@ use crate::sema::{
     EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId, Sema, SourceFileId,
     StructDefinitionId, TypeParamDefinition, TypeParamId,
 };
-use crate::{read_type, AllowSelf, ErrorMessage, ModuleSymTable, SourceType, SymbolKind};
+use crate::{expand_type, AllowSelf, ErrorMessage, ModuleSymTable, SourceType, SymbolKind};
 
 use dora_parser::ast;
 use dora_parser::Span;
@@ -53,84 +53,82 @@ impl<'x> ExtensionCheck<'x> {
             self.sym.insert(name, SymbolKind::TypeParam(id));
         }
 
-        if let Some(extension_ty) = read_type(
+        let extension_ty = expand_type(
             self.sa,
             &self.sym,
             self.file_id.into(),
             &self.ast.extended_type,
             extension.type_params(),
             AllowSelf::No,
-        ) {
-            self.extension_ty = extension_ty.clone();
+        );
 
-            match extension_ty {
-                SourceType::Bool
-                | SourceType::UInt8
-                | SourceType::Char
-                | SourceType::Int32
-                | SourceType::Int64
-                | SourceType::Float32
-                | SourceType::Float64 => {
-                    let struct_id = extension_ty
-                        .primitive_struct_id(self.sa)
-                        .expect("primitive expected");
-                    let struct_ = self.sa.struct_(struct_id);
-                    struct_.extensions.borrow_mut().push(self.extension_id);
-                }
+        self.extension_ty = extension_ty.clone();
 
-                SourceType::Struct(struct_id, _) => {
-                    let struct_ = self.sa.struct_(struct_id);
-                    struct_.extensions.borrow_mut().push(self.extension_id);
-                }
-
-                SourceType::Enum(enum_id, _) => {
-                    let enum_ = self.sa.enum_(enum_id);
-                    enum_.extensions.borrow_mut().push(self.extension_id);
-                }
-
-                SourceType::Class(cls_id, _) => {
-                    let cls = self.sa.class(cls_id);
-                    cls.extensions.borrow_mut().push(self.extension_id);
-                }
-
-                SourceType::Trait(..) => {
-                    unimplemented!();
-                }
-
-                SourceType::Tuple(..)
-                | SourceType::Unit
-                | SourceType::TypeParam(..)
-                | SourceType::Lambda(..) => {
-                    let extension = self.sa.extension(self.extension_id);
-
-                    self.sa.report(
-                        self.file_id.into(),
-                        extension.span,
-                        ErrorMessage::ExpectedImplType,
-                    );
-                }
-
-                SourceType::Error
-                | SourceType::Any
-                | SourceType::This
-                | SourceType::Ptr
-                | SourceType::TypeAlias(..) => {
-                    unreachable!()
-                }
+        match extension_ty {
+            SourceType::Bool
+            | SourceType::UInt8
+            | SourceType::Char
+            | SourceType::Int32
+            | SourceType::Int64
+            | SourceType::Float32
+            | SourceType::Float64 => {
+                let struct_id = extension_ty
+                    .primitive_struct_id(self.sa)
+                    .expect("primitive expected");
+                let struct_ = self.sa.struct_(struct_id);
+                struct_.extensions.borrow_mut().push(self.extension_id);
             }
 
-            let extension = self.sa.extension(self.extension_id);
+            SourceType::Struct(struct_id, _) => {
+                let struct_ = self.sa.struct_(struct_id);
+                struct_.extensions.borrow_mut().push(self.extension_id);
+            }
 
-            check_for_unconstrained_type_params(
-                self.sa,
-                extension_ty.clone(),
-                extension.type_params(),
-                self.file_id,
-                self.ast.span,
-            );
+            SourceType::Enum(enum_id, _) => {
+                let enum_ = self.sa.enum_(enum_id);
+                enum_.extensions.borrow_mut().push(self.extension_id);
+            }
 
-            assert!(extension.ty.set(extension_ty).is_ok());
+            SourceType::Class(cls_id, _) => {
+                let cls = self.sa.class(cls_id);
+                cls.extensions.borrow_mut().push(self.extension_id);
+            }
+
+            SourceType::Trait(..) => {
+                unimplemented!();
+            }
+
+            SourceType::Tuple(..)
+            | SourceType::Unit
+            | SourceType::TypeParam(..)
+            | SourceType::Lambda(..) => {
+                let extension = self.sa.extension(self.extension_id);
+
+                self.sa.report(
+                    self.file_id.into(),
+                    extension.span,
+                    ErrorMessage::ExpectedImplType,
+                );
+            }
+
+            SourceType::Error => {}
+
+            SourceType::Any | SourceType::This | SourceType::Ptr | SourceType::TypeAlias(..) => {
+                unreachable!()
+            }
         }
+
+        let extension = self.sa.extension(self.extension_id);
+
+        check_for_unconstrained_type_params(
+            self.sa,
+            extension_ty.clone(),
+            extension.type_params(),
+            self.file_id,
+            self.ast.span,
+        );
+
+        assert!(extension.ty.set(extension_ty).is_ok());
 
         for &method_id in self
             .sa
@@ -542,5 +540,17 @@ mod tests {
             (2, 13),
             ErrorMessage::ExpectedImplType,
         );
+    }
+
+    #[test]
+    fn extension_for_alias() {
+        ok("
+            class X
+            type Y = X;
+            impl Y {
+                fn testme() {}
+            }
+            fn f(x: X) { x.testme(); }
+        ");
     }
 }

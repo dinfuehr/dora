@@ -1,27 +1,17 @@
 use crate::sema::{Sema, SourceFileId, StructDefinitionId};
 use crate::sym::{ModuleSymTable, SymbolKind};
-use crate::ty::SourceType;
-use crate::{read_type, AllowSelf};
+use crate::{expand_type, AllowSelf};
 
 use dora_parser::ast;
 
 pub fn check(sa: &Sema) {
-    for (_struct_id, struct_) in sa.structs.iter() {
-        let (struct_id, file_id, ast, module_id) = {
-            (
-                struct_.id(),
-                struct_.file_id,
-                struct_.ast.clone(),
-                struct_.module_id,
-            )
-        };
-
+    for (id, struct_) in sa.structs.iter() {
         let mut clsck = StructCheck {
             sa,
-            struct_id,
-            file_id,
-            ast: &ast,
-            symtable: ModuleSymTable::new(sa, module_id),
+            struct_id: id,
+            file_id: struct_.file_id,
+            ast: &struct_.ast,
+            symtable: ModuleSymTable::new(sa, struct_.module_id),
         };
 
         clsck.check();
@@ -58,15 +48,14 @@ impl<'x> StructCheck<'x> {
     fn visit_struct_field(&mut self, idx: usize, f: &ast::StructField) {
         let struct_ = self.sa.struct_(self.struct_id);
 
-        let ty = read_type(
+        let ty = expand_type(
             self.sa,
             &self.symtable,
             self.file_id,
             &f.data_type,
             struct_.type_params(),
             AllowSelf::No,
-        )
-        .unwrap_or(SourceType::Error);
+        );
 
         struct_.fields[idx].ty.set(ty).expect("already initialized");
     }
@@ -99,6 +88,17 @@ mod tests {
     fn structs_generic() {
         ok("
             struct Foo[T] { f1: T, f2: Int32 }
+        ");
+    }
+
+    #[test]
+    fn alias_type_as_struct_field() {
+        ok("
+            type MyInt = Int64;
+            struct Foo(x: MyInt)
+            fn f(v: Int64): Foo {
+                Foo(v)
+            }
         ");
     }
 

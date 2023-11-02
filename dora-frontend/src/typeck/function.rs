@@ -3,7 +3,6 @@ use std::str::Chars;
 use std::{f32, f64};
 
 use crate::error::msg::ErrorMessage;
-use crate::report_sym_shadow_span;
 use crate::sema::{
     AnalysisData, ClassDefinition, ContextIdx, FctDefinition, Field, FieldId, GlobalDefinition,
     IdentType, LazyContextClass, LazyLambdaId, ModuleDefinitionId, NestedVarId,
@@ -12,8 +11,8 @@ use crate::sema::{
 };
 use crate::typeck::{check_expr, check_stmt};
 use crate::{
-    always_returns, expr_always_returns, read_type, replace_type, AliasReplacement, AllowSelf,
-    ModuleSymTable, SourceType, SourceTypeArray, SymbolKind,
+    always_returns, expand_type, expr_always_returns, replace_type, report_sym_shadow_span,
+    AliasReplacement, AllowSelf, ModuleSymTable, SourceType, SourceTypeArray, SymbolKind,
 };
 
 use crate::interner::Name;
@@ -304,7 +303,7 @@ impl<'a> TypeCheck<'a> {
     }
 
     pub(super) fn read_type(&mut self, t: &ast::TypeData) -> SourceType {
-        read_type(
+        expand_type(
             self.sa,
             &self.symtable,
             self.file_id,
@@ -312,7 +311,6 @@ impl<'a> TypeCheck<'a> {
             self.type_param_defs,
             AllowSelf::No,
         )
-        .unwrap_or(SourceType::Error)
     }
 
     pub(super) fn check_fct_return_type(

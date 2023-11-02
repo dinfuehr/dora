@@ -49,41 +49,36 @@ fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
 
     assert!(impl_.trait_ty.set(trait_ty).is_ok());
 
-    let extended_ty = if let Some(class_ty) = read_type(
+    let extended_ty = read_type(
         sa,
         &sym,
         impl_.file_id.into(),
         &impl_.ast.extended_type,
         impl_.type_params(),
         AllowSelf::No,
-    ) {
-        if class_ty.is_cls()
-            || class_ty.is_struct()
-            || class_ty.is_enum()
-            || class_ty.is_primitive()
-            || class_ty.is_tuple_or_unit()
-        {
-            check_for_unconstrained_type_params(
-                sa,
-                class_ty.clone(),
-                impl_.type_params(),
-                impl_.file_id,
-                impl_.ast.span,
-            );
+    )
+    .unwrap_or(SourceType::Error);
 
-            class_ty
-        } else {
-            sa.report(
-                impl_.file_id,
-                impl_.ast.extended_type.span(),
-                ErrorMessage::ExpectedImplTraitType,
-            );
-
-            SourceType::Error
-        }
-    } else {
-        SourceType::Error
-    };
+    if extended_ty.is_cls()
+        || extended_ty.is_struct()
+        || extended_ty.is_enum()
+        || extended_ty.is_primitive()
+        || extended_ty.is_tuple_or_unit()
+    {
+        check_for_unconstrained_type_params(
+            sa,
+            extended_ty.clone(),
+            impl_.type_params(),
+            impl_.file_id,
+            impl_.ast.span,
+        );
+    } else if !extended_ty.is_error() {
+        sa.report(
+            impl_.file_id,
+            impl_.ast.extended_type.span(),
+            ErrorMessage::ExpectedImplTraitType,
+        );
+    }
 
     assert!(impl_.extended_ty.set(extended_ty).is_ok());
 
@@ -612,6 +607,22 @@ mod tests {
                 fn next(): Option[Int64] {
                     None
                 }
+            }
+        ");
+    }
+
+    #[test]
+    fn use_regular_alias_in_impl() {
+        ok("
+            type A = Int64;
+            trait MyTrait {
+                type X;
+                fn f(a: A, x: X);
+            }
+            class CX
+            impl MyTrait for CX {
+                type X = Int64;
+                fn f(a: Int64, x: X) {}
             }
         ");
     }

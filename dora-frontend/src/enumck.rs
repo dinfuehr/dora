@@ -8,7 +8,7 @@ use crate::error::msg::ErrorMessage;
 use crate::sema::{EnumDefinition, EnumVariant, Sema, SourceFileId};
 use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::ty::SourceType;
-use crate::{read_type, AllowSelf};
+use crate::{expand_type, AllowSelf};
 
 pub fn check(sa: &Sema) {
     for (_id, enum_) in sa.enums.iter() {
@@ -52,15 +52,14 @@ impl<'x> EnumCheck<'x> {
 
             if let Some(ref variant_types) = value.types {
                 for ty in variant_types {
-                    let variant_ty = read_type(
+                    let variant_ty = expand_type(
                         self.sa,
                         &symtable,
                         self.file_id.into(),
                         ty,
                         self.enum_.type_params(),
                         AllowSelf::No,
-                    )
-                    .unwrap_or(SourceType::Error);
+                    );
                     types.push(variant_ty);
                 }
             }
@@ -382,6 +381,17 @@ mod tests {
     fn enum_nested() {
         ok("
             enum Foo { A(Foo), B }
+        ");
+    }
+
+    #[test]
+    fn alias_type_as_enum_field() {
+        ok("
+            type MyInt = Int64;
+            enum Foo { A(MyInt), B }
+            fn f(v: Int64): Foo {
+                Foo::A(v)
+            }
         ");
     }
 }

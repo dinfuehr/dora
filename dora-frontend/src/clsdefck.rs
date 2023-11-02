@@ -1,7 +1,6 @@
 use crate::sema::{ClassDefinition, Sema, SourceFileId};
 use crate::sym::{ModuleSymTable, SymbolKind};
-use crate::ty::SourceType;
-use crate::{read_type, AllowSelf};
+use crate::{expand_type, AllowSelf};
 
 use dora_parser::ast;
 
@@ -43,15 +42,14 @@ impl<'x> ClsDefCheck<'x> {
     }
 
     fn visit_field(&mut self, idx: usize, f: &ast::Field) {
-        let ty = read_type(
+        let ty = expand_type(
             self.sa,
             &self.sym,
             self.file_id.into(),
             &f.data_type,
             self.cls.type_params(),
             AllowSelf::No,
-        )
-        .unwrap_or(SourceType::Error);
+        );
 
         self.cls.fields[idx]
             .ty
@@ -146,5 +144,16 @@ mod tests {
             (3, 48),
             ErrorMessage::AliasExists("foo".into(), Span::new(49, 11)),
         );
+    }
+
+    #[test]
+    fn alias_type_as_class_field() {
+        ok("
+            type MyInt = Int64;
+            class Foo(x: MyInt)
+            fn f(v: Int64): Foo {
+                Foo(v)
+            }
+        ");
     }
 }

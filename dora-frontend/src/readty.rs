@@ -2,10 +2,11 @@ use crate::access::{
     class_accessible_from, enum_accessible_from, struct_accessible_from, trait_accessible_from,
 };
 use crate::error::msg::ErrorMessage;
+use crate::replace_type;
 use crate::sema::{implements_trait, ModuleDefinitionId, Sema, SourceFileId, TypeParamDefinition};
 use crate::specialize::specialize_type;
 use crate::sym::{ModuleSymTable, SymTable, SymbolKind};
-use crate::ty::{SourceType, SourceTypeArray};
+use crate::{AliasReplacement, SourceType, SourceTypeArray};
 use std::rc::Rc;
 
 use dora_parser::ast::{self, TypeBasicType, TypeLambdaType, TypeTupleType};
@@ -567,6 +568,33 @@ fn check_type_params(
     }
 
     success
+}
+
+pub fn expand_type(
+    sa: &Sema,
+    table: &ModuleSymTable,
+    file_id: SourceFileId,
+    t: &ast::TypeData,
+    type_param_defs: &TypeParamDefinition,
+    allow_self: AllowSelf,
+) -> SourceType {
+    let ty = read_type_raw(sa, table, file_id, t);
+
+    let is_good = verify_type(
+        sa,
+        table.module_id(),
+        file_id,
+        t,
+        ty.clone(),
+        type_param_defs,
+        allow_self,
+    );
+
+    if is_good {
+        replace_type(sa, ty, None, None, AliasReplacement::ReplaceWithActualType)
+    } else {
+        SourceType::Error
+    }
 }
 
 #[cfg(test)]

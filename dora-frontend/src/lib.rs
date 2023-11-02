@@ -8,7 +8,7 @@ use dora_parser::ast;
 use dora_parser::Span;
 
 pub use program_emitter::emit_program;
-pub use readty::{read_type, read_type_raw, AllowSelf};
+pub use readty::{expand_type, read_type, read_type_raw, AllowSelf};
 pub use specialize::{replace_type, specialize_type, AliasReplacement};
 
 pub(crate) mod access;
@@ -77,11 +77,11 @@ pub fn check_program(sa: &mut Sema) -> bool {
     return_on_error!(sa);
 
     // Checks class/struct/trait/enum definitions.
+    aliasck::check(sa);
     clsdefck::check(sa);
     structdefck::check(sa);
     traitdefck::check(sa);
     enumck::check(sa);
-    aliasck::check(sa);
     impldefck::check_type_aliases(sa);
     return_on_error!(sa);
 

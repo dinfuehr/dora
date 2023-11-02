@@ -201,7 +201,13 @@ fn process_type(
             replace_type(sa, ty, None, None, AliasReplacement::ReplaceWithActualType)
         }
 
-        FctParent::Trait(..) => ty,
+        FctParent::Trait(trait_id) => replace_type(
+            sa,
+            ty,
+            None,
+            None,
+            AliasReplacement::ReplaceWithActualTypeKeepTrait(trait_id),
+        ),
 
         FctParent::Function => unreachable!(),
     }

@@ -1,8 +1,7 @@
 use crate::error::msg::ErrorMessage;
 use crate::sema::{GlobalDefinitionId, Sema, SourceFileId, TypeParamDefinition};
 use crate::sym::ModuleSymTable;
-use crate::ty::SourceType;
-use crate::{read_type, AllowSelf};
+use crate::{expand_type, AllowSelf};
 use dora_parser::ast;
 
 pub fn check<'a>(sa: &Sema) {
@@ -31,15 +30,14 @@ struct GlobalDefCheck<'a> {
 
 impl<'a> GlobalDefCheck<'a> {
     fn check(&mut self) {
-        let ty = read_type(
+        let ty = expand_type(
             self.sa,
             &self.symtable,
             self.file_id,
             &self.ast.data_type,
             &TypeParamDefinition::new(),
             AllowSelf::No,
-        )
-        .unwrap_or(SourceType::Error);
+        );
 
         let global_var = self.sa.global(self.global_id);
 
@@ -75,5 +73,13 @@ mod tests {
             (1, 12),
             ErrorMessage::UnknownIdentifier("Foo".into()),
         );
+    }
+
+    #[test]
+    fn alias_in_global() {
+        ok("
+            type MyInt = Int64;
+            let mut x: MyInt = 10;
+        ");
     }
 }

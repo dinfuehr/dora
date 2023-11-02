@@ -3973,3 +3973,14 @@ fn alias_as_argument() {
         fn f() { x(6); }
     ")
 }
+
+#[test]
+fn alias_in_local_type() {
+    ok("
+        type MyInt = Int64;
+        fn f(y: Int64): Bool {
+            let x: MyInt = 8;
+            x == y
+        }
+    ")
+}

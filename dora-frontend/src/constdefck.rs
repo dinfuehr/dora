@@ -1,58 +1,21 @@
-use crate::sema::{ConstDefinitionId, Sema, SourceFileId, TypeParamDefinition};
+use crate::sema::{Sema, TypeParamDefinition};
 use crate::sym::ModuleSymTable;
-use crate::ty::SourceType;
-use crate::{read_type, AllowSelf};
-
-use dora_parser::ast;
+use crate::{expand_type, AllowSelf};
 
 pub fn check(sa: &Sema) {
-    for (_const_id, const_) in sa.consts.iter() {
-        let (const_id, file_id, ast, module_id) = {
-            (
-                const_.id(),
-                const_.file_id,
-                const_.ast.clone(),
-                const_.module_id,
-            )
-        };
+    for (id, const_) in sa.consts.iter() {
+        let symtable = ModuleSymTable::new(sa, const_.module_id);
 
-        let mut clsck = ConstCheck {
+        let ty = expand_type(
             sa,
-            const_id,
-            file_id,
-            ast: &ast,
-            symtable: ModuleSymTable::new(sa, module_id),
-        };
-
-        clsck.check();
-    }
-}
-
-struct ConstCheck<'x> {
-    sa: &'x Sema,
-    const_id: ConstDefinitionId,
-    file_id: SourceFileId,
-    ast: &'x ast::Const,
-    symtable: ModuleSymTable,
-}
-
-impl<'x> ConstCheck<'x> {
-    fn check(&mut self) {
-        let ty = read_type(
-            self.sa,
-            &self.symtable,
-            self.file_id,
-            &self.ast.data_type,
+            &symtable,
+            const_.file_id,
+            &const_.ast.data_type,
             &TypeParamDefinition::new(),
             AllowSelf::No,
-        )
-        .unwrap_or(SourceType::Error);
+        );
 
-        self.sa
-            .const_(self.const_id)
-            .ty
-            .set(ty)
-            .expect("already initialized");
+        sa.const_(id).ty.set(ty).expect("already initialized");
     }
 }
 
@@ -70,5 +33,13 @@ mod tests {
         );
 
         ok("const x: Int32 = 0i32;");
+    }
+
+    #[test]
+    fn const_with_alias_type() {
+        ok("
+            type MyInt = Int64;
+            const x: MyInt = 10;
+        ")
     }
 }
