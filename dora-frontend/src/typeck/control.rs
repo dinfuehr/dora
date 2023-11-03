@@ -9,7 +9,7 @@ use crate::interner::Name;
 use crate::sema::{find_impl, EnumDefinitionId, FctDefinitionId, ForTypeInfo, IdentType};
 use crate::sym::SymbolKind;
 use crate::typeck::{add_local, check_expr, check_let_pattern, read_path, MethodLookup, TypeCheck};
-use crate::{replace_type, AliasReplacement, SourceType, SourceTypeArray};
+use crate::{replace_type, specialize_type, AliasReplacement, SourceType, SourceTypeArray};
 
 pub(super) fn check_expr_while(
     ck: &mut TypeCheck,
@@ -61,24 +61,11 @@ pub(super) fn check_expr_for(
         return SourceType::Unit;
     }
 
-    if let Some((for_type_info, ret_type)) =
-        type_supports_iterator_protocol(ck, object_type.clone())
-    {
-        ck.symtable.push_level();
-        // set variable type to return type of next
-        check_let_pattern(ck, &stmt.pattern, ret_type);
-        // store fct ids for code generation
-        ck.analysis.map_fors.insert(stmt.id, for_type_info);
-        check_loop_body(ck, &stmt.block);
-        ck.symtable.pop_level();
-        return SourceType::Unit;
-    }
-
     if let Some((make_iterator, iterator_type)) =
         type_supports_make_iterator(ck, object_type.clone())
     {
         if let Some((mut for_type_info, ret_type)) =
-            type_supports_iterator_protocol(ck, iterator_type.clone())
+            type_supports_iterator_trait(ck, iterator_type.clone())
         {
             ck.symtable.push_level();
 
@@ -152,14 +139,14 @@ fn type_supports_iterator_trait(
 
     let trait_ty = SourceType::new_trait(iterator_trait_id);
 
-    let impl_id = find_impl(
+    let impl_result = find_impl(
         ck.sa,
         object_type.clone(),
         &ck.type_param_defs,
         trait_ty.clone(),
     );
 
-    if let Some(impl_id) = impl_id {
+    if let Some((impl_id, binding)) = impl_result {
         let impl_ = ck.sa.impl_(impl_id);
 
         let next_impl_fct_id = impl_
@@ -177,14 +164,16 @@ fn type_supports_iterator_trait(
             .expect("missing impl alias");
 
         let impl_alias = ck.sa.alias(item_impl_alias_id);
-        let value_type = impl_alias.ty();
+
+        let value_type = specialize_type(ck.sa, impl_alias.ty(), &binding);
+        let next_type = specialize_type(ck.sa, next_impl_fct.return_type(), &binding);
 
         Some((
             ForTypeInfo {
                 make_iterator: None,
                 next: next_impl_fct_id,
                 iterator_type: object_type,
-                next_type: next_impl_fct.return_type(),
+                next_type,
                 value_type: value_type.clone(),
             },
             value_type,
@@ -192,48 +181,6 @@ fn type_supports_iterator_trait(
     } else {
         None
     }
-}
-
-fn type_supports_iterator_protocol(
-    ck: &mut TypeCheck,
-    object_type: SourceType,
-) -> Option<(ForTypeInfo, SourceType)> {
-    let next_name = ck.sa.interner.intern("next");
-
-    let lookup_next = MethodLookup::new(ck.sa, ck.file_id, ck.type_param_defs)
-        .no_error_reporting()
-        .method(object_type.clone())
-        .name(next_name)
-        .args(&[])
-        .find();
-
-    if !lookup_next.find() {
-        return None;
-    }
-
-    let next_result_type = lookup_next.found_ret().unwrap();
-
-    let value_type = if let SourceType::Enum(enum_id, type_params) = next_result_type.clone() {
-        if enum_id == ck.sa.known.enums.option() {
-            assert_eq!(type_params.len(), 1);
-            type_params[0].clone()
-        } else {
-            return None;
-        }
-    } else {
-        return None;
-    };
-
-    Some((
-        ForTypeInfo {
-            make_iterator: None,
-            next: lookup_next.found_fct_id().expect("fct_id missing"),
-            iterator_type: object_type,
-            next_type: next_result_type,
-            value_type: value_type.clone(),
-        },
-        value_type,
-    ))
 }
 
 pub(super) fn check_expr_return(

@@ -120,7 +120,7 @@ pub fn replace_type(
 
         SourceType::TypeAlias(id) => match alias_map {
             AliasReplacement::None => ty,
-            AliasReplacement::Map(map) => map.get(&id).cloned().expect("missing alias"),
+            AliasReplacement::Map(map) => map.get(&id).cloned().unwrap_or(SourceType::Error),
             AliasReplacement::ReplaceWithActualType => sa.alias(id).ty(),
             AliasReplacement::ReplaceWithActualTypeKeepTrait(trait_id) => {
                 let alias = sa.alias(id);

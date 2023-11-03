@@ -1,0 +1,14 @@
+//= ignore
+
+fn main() {
+    let arr = Array[Int64]::new(1, 2, 3);
+    f[std::collections::ArrayIter[Int64]](arr.makeIterator());
+}
+
+fn f[T: std::traits::Iterator](t: T) {
+    let mut idx = 0;
+    for _ in t {
+        println("${idx}");
+        idx = idx + 1;
+    }
+}

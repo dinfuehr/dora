@@ -217,6 +217,10 @@ mod matching {
         ext_type_param_defs: &TypeParamDefinition,
         bindings: &mut [Option<SourceType>],
     ) -> bool {
+        if check_ty.is_error() || ext_ty.is_error() {
+            return true;
+        }
+
         match check_ty {
             SourceType::Unit
             | SourceType::Bool

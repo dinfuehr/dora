@@ -1,10 +1,10 @@
 use crate::sema::{AliasParent, TypeParamDefinition};
-use crate::{read_type, AllowSelf, ErrorMessage, ModuleSymTable, Sema, SourceType};
+use crate::{read_type, AllowSelf, ErrorMessage, ModuleSymTable, Sema, SourceType, SymbolKind};
 
 pub fn check(sa: &Sema) {
     for (_id, alias) in sa.aliases.iter() {
         match alias.parent {
-            AliasParent::None | AliasParent::Impl(..) => {
+            AliasParent::None => {
                 if let Some(ref ty_node) = alias.node.ty {
                     let table = ModuleSymTable::new(sa, alias.module_id);
                     let ty = read_type(
@@ -27,6 +27,40 @@ pub fn check(sa: &Sema) {
                     assert!(alias.ty.set(SourceType::Error).is_ok());
                 }
             }
+
+            AliasParent::Impl(impl_id) => {
+                if let Some(ref ty_node) = alias.node.ty {
+                    let impl_ = sa.impl_(impl_id);
+                    let mut table = ModuleSymTable::new(sa, alias.module_id);
+                    table.push_level();
+
+                    for (id, name) in impl_.type_params().names() {
+                        table.insert(name, SymbolKind::TypeParam(id));
+                    }
+
+                    let ty = read_type(
+                        sa,
+                        &table,
+                        alias.file_id,
+                        ty_node,
+                        &TypeParamDefinition::new(),
+                        AllowSelf::No,
+                    )
+                    .unwrap_or(SourceType::Error);
+
+                    table.pop_level();
+
+                    assert!(alias.ty.set(ty).is_ok());
+                } else {
+                    sa.report(
+                        alias.file_id,
+                        alias.node.span,
+                        ErrorMessage::TypeAliasMissingType,
+                    );
+                    assert!(alias.ty.set(SourceType::Error).is_ok());
+                }
+            }
+
             AliasParent::Trait(..) => {
                 if alias.node.ty.is_some() {
                     sa.report(

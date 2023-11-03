@@ -1,3 +1,5 @@
+use std::traits::Iterator;
+
 use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::data::BytecodeRegister;
 use package::bytecode::data::GlobalId;
@@ -23,14 +25,6 @@ pub class BytecodeIterator {
 impl BytecodeIterator {
     pub static fn new(data: Array[UInt8]): BytecodeIterator {
         BytecodeIterator(data, 0, data.size())
-    }
-
-    pub fn next(): Option[BytecodeInstructionInfo] {
-        if self.pos < self.length {
-            Some[BytecodeInstructionInfo](self.readInstruction())
-        } else {
-            None[BytecodeInstructionInfo]
-        }
     }
 
     fn readInstruction(): BytecodeInstructionInfo {
@@ -344,6 +338,18 @@ impl BytecodeIterator {
         let by4 = self.readByte();
 
         (by4 << 24i32) | (by3 << 16i32) | (by2 << 8i32) | by1
+    }
+}
+
+impl Iterator for BytecodeIterator {
+    type Item = BytecodeInstructionInfo;
+
+    fn next(): Option[BytecodeInstructionInfo] {
+        if self.pos < self.length {
+            Some[BytecodeInstructionInfo](self.readInstruction())
+        } else {
+            None[BytecodeInstructionInfo]
+        }
     }
 }
 

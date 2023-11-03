@@ -1,5 +1,6 @@
 use std::Hash;
 use std::Equals;
+use std::traits::Iterator;
 
 use package::graph::Location;
 
@@ -298,7 +299,9 @@ pub class RegMapIterator[T: RegisterType, V] {
     idx: Int64,
 }
 
-impl[T: RegisterType, V] RegMapIterator[T, V] {
+impl[T: RegisterType, V] Iterator for RegMapIterator[T, V] {
+    type Item = (T, V);
+
     fn next(): Option[(T, V)] {
         while self.idx < self.map.data.size() {
             let value = self.map.data(self.idx);

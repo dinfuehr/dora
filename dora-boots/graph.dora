@@ -2,6 +2,7 @@ use std::BitVec;
 use std::Equals;
 use std::Hash;
 use std::Stringable;
+use std::traits::Iterator;
 
 use package::assembler::{FloatRegister, Label, Register, RegMap};
 use package::bytecode::data::{BytecodeType, ClassId, FctId, FieldId, GlobalId};
@@ -130,18 +131,6 @@ impl InsertionOrderIterator {
         InsertionOrderIterator(blocks, 0)
     }
 
-    fn next(): Option[Block] {
-        self.findNextBlock();
-
-        if self.idx < self.blocks.size() {
-            let block = self.blocks(self.idx).getOrPanic();
-            self.idx = self.idx + 1i64;
-            Some[Block](block)
-        } else {
-            None[Block]
-        }
-    }
-
     fn findNextBlock() {
         while self.idx < self.blocks.size() {
             let block = self.blocks(self.idx);
@@ -155,6 +144,22 @@ impl InsertionOrderIterator {
     }
 }
 
+impl Iterator for InsertionOrderIterator {
+    type Item = Block;
+
+    fn next(): Option[Block] {
+        self.findNextBlock();
+
+        if self.idx < self.blocks.size() {
+            let block = self.blocks(self.idx).getOrPanic();
+            self.idx = self.idx + 1i64;
+            Some[Block](block)
+        } else {
+            None[Block]
+        }
+    }
+}
+
 class PostOrderIterator {
     postOrder: Array[Block],
     idx: Int64,
@@ -164,6 +169,10 @@ impl PostOrderIterator {
     static pub fn new(postOrder: Array[Block]): PostOrderIterator {
         PostOrderIterator(postOrder, 0)
     }
+}
+
+impl Iterator for PostOrderIterator {
+    type Item = Block;
 
     fn next(): Option[Block] {
         if self.idx < self.postOrder.size() {
@@ -185,6 +194,10 @@ impl ReversePostOrderIterator {
     static pub fn new(postOrder: Array[Block]): ReversePostOrderIterator {
         ReversePostOrderIterator(postOrder, postOrder.size() - 1)
     }
+}
+
+impl Iterator for ReversePostOrderIterator {
+    type Item = Block;
 
     fn next(): Option[Block] {
         if self.idx != -1 {
@@ -1601,7 +1614,11 @@ class UseIterator {
 impl UseIterator {
     static fn new(inst: Inst): UseIterator {
         UseIterator(inst.useListHead)
-    } 
+    }
+}
+
+impl Iterator for UseIterator {
+    type Item = Input;
 
     fn next(): Option[Input] {
         if self.current.isSome() {
@@ -1950,6 +1967,10 @@ impl InstIterator {
     static fn new(block: Block): InstIterator {
         InstIterator(block.instructions.first)
     }
+}
+
+impl Iterator for InstIterator {
+    type Item = Inst;
 
     fn next(): Option[Inst] {
         if self.current.isSome() {
@@ -1970,6 +1991,10 @@ impl PhiInstIterator {
     static fn new(block: Block): PhiInstIterator {
         PhiInstIterator(block.phis.first)
     }
+}
+
+impl Iterator for PhiInstIterator {
+    type Item = Inst;
 
     fn next(): Option[Inst] {
         if self.current.isSome() {
@@ -1990,6 +2015,10 @@ impl BackwardInstIterator {
     static fn new(block: Block): BackwardInstIterator {
         BackwardInstIterator(block.instructions.last)
     }
+}
+
+impl Iterator for BackwardInstIterator {
+    type Item = Inst;
 
     fn next(): Option[Inst] {
         if self.current.isSome() {

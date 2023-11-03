@@ -1097,11 +1097,21 @@ fn test_for_supports_make_iterator() {
     ok("
             class Foo
             impl Foo { fn makeIterator(): FooIter { return FooIter(); } }
+
             class FooIter
-            impl FooIter {
+
+            impl std::traits::Iterator for FooIter {
+                type Item = Int32;
                 fn next(): Option[Int32] { Some[Int32](0i32) }
             }
-            fn f(): Int32 { for i in Foo() { return i; } return 0i32; }");
+
+            fn f(): Int32 {
+                for i in Foo() {
+                    return i;
+                }
+                return 0i32;
+            }
+    ");
 }
 
 #[test]
@@ -3983,4 +3993,17 @@ fn alias_in_local_type() {
             x == y
         }
     ")
+}
+
+#[test]
+fn for_iterator_trait() {
+    ok("
+        fn f() {
+            let it = Array[Int64]::new(1, 2, 3).makeIterator();
+            let mut sum = 0;
+            for x in it {
+                sum = sum + x;
+            }
+        }
+    ");
 }

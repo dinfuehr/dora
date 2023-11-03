@@ -1,4 +1,4 @@
-use std::traits::{Default, Equals, Zero, Ordering};
+use std::traits::{Default, Equals, Iterator, Zero, Ordering};
 use std::string::Stringable;
 use std::fatalError;
 
@@ -213,7 +213,9 @@ class Int32RangeIter {
   value: Int32,
 }
 
-impl Int32RangeIter {
+impl Iterator for Int32RangeIter {
+  type Item = Int32;
+
   fn next(): Option[Int32] {
     if self.value < self.range.upper {
       let cur = self.value;
@@ -242,8 +244,10 @@ class Int64RangeIter {
   limit: Int64,
 }
 
-impl Int64RangeIter {
-  pub fn next(): Option[Int64] {
+impl Iterator for Int64RangeIter {
+  type Item = Int64;
+
+  fn next(): Option[Int64] {
     if self.next < self.limit {
       let cur = self.next;
       self.next = cur + 1;
