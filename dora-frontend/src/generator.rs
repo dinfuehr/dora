@@ -15,9 +15,9 @@ use crate::specialize::{replace_type, specialize_type};
 use crate::ty::{SourceType, SourceTypeArray};
 use crate::{expr_always_returns, expr_block_always_returns, AliasReplacement};
 use dora_bytecode::{
-    BytecodeBuilder, BytecodeFunction, BytecodeType, BytecodeTypeArray, ClassId, ConstPoolEntry,
-    ConstPoolIdx, EnumId, FunctionId, GlobalId, Intrinsic, Label, Location, Register, StructId,
-    TraitId,
+    AliasId, BytecodeBuilder, BytecodeFunction, BytecodeType, BytecodeTypeArray, ClassId,
+    ConstPoolEntry, ConstPoolIdx, EnumId, FunctionId, GlobalId, Intrinsic, Label, Location,
+    Register, StructId, TraitId,
 };
 
 mod expr;
@@ -2937,6 +2937,9 @@ pub fn bty_from_ty(ty: SourceType) -> BytecodeType {
         ),
         SourceType::Ptr => BytecodeType::Ptr,
         SourceType::This => BytecodeType::This,
+        SourceType::TypeAlias(id) => {
+            BytecodeType::TypeAlias(AliasId(id.index().try_into().expect("overflow")))
+        }
         _ => panic!("SourceType {:?} cannot be converted to BytecodeType", ty),
     }
 }

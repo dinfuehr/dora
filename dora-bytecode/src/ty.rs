@@ -2,7 +2,7 @@ use bincode::{Decode, Encode};
 use std::ops::Index;
 use std::sync::Arc;
 
-use crate::{BytecodeTypeKind, ClassId, EnumId, StructId, TraitId};
+use crate::{program::AliasId, BytecodeTypeKind, ClassId, EnumId, StructId, TraitId};
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Decode, Encode)]
 pub enum BytecodeType {
@@ -23,6 +23,7 @@ pub enum BytecodeType {
     Class(ClassId, BytecodeTypeArray),
     Trait(TraitId, BytecodeTypeArray),
     Lambda(BytecodeTypeArray, Box<BytecodeType>),
+    TypeAlias(AliasId),
 }
 
 impl BytecodeType {
@@ -37,13 +38,14 @@ impl BytecodeType {
             BytecodeType::Float32 => BytecodeTypeKind::Float32,
             BytecodeType::Float64 => BytecodeTypeKind::Float64,
             BytecodeType::Ptr => BytecodeTypeKind::Ptr,
-            BytecodeType::Tuple(_) => BytecodeTypeKind::Tuple,
-            BytecodeType::TypeParam(_) => BytecodeTypeKind::TypeParam,
-            BytecodeType::Enum(_, _) => BytecodeTypeKind::Enum,
-            BytecodeType::Struct(_, _) => BytecodeTypeKind::Struct,
-            BytecodeType::Class(_, _) => BytecodeTypeKind::Class,
-            BytecodeType::Trait(_, _) => BytecodeTypeKind::Trait,
-            BytecodeType::Lambda(_, _) => BytecodeTypeKind::Lambda,
+            BytecodeType::Tuple(..) => BytecodeTypeKind::Tuple,
+            BytecodeType::TypeParam(..) => BytecodeTypeKind::TypeParam,
+            BytecodeType::Enum(..) => BytecodeTypeKind::Enum,
+            BytecodeType::Struct(..) => BytecodeTypeKind::Struct,
+            BytecodeType::Class(..) => BytecodeTypeKind::Class,
+            BytecodeType::Trait(..) => BytecodeTypeKind::Trait,
+            BytecodeType::Lambda(..) => BytecodeTypeKind::Lambda,
+            BytecodeType::TypeAlias(..) => BytecodeTypeKind::TypeAlias,
             BytecodeType::This => unreachable!(),
         }
     }
@@ -161,7 +163,7 @@ impl BytecodeType {
                 return_type.is_concrete_type()
             }
             BytecodeType::TypeParam(_) => false,
-            BytecodeType::This => unreachable!(),
+            BytecodeType::TypeAlias(..) | BytecodeType::This => unreachable!(),
         }
     }
 

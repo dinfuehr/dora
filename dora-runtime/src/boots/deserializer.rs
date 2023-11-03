@@ -186,6 +186,8 @@ fn decode_bytecode_type(reader: &mut ByteReader) -> BytecodeType {
             let return_ty = decode_bytecode_type(reader);
             BytecodeType::Lambda(params, Box::new(return_ty))
         }
+
+        BytecodeTypeKind::TypeAlias => unreachable!(),
     }
 }
 

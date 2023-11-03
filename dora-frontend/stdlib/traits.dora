@@ -172,3 +172,8 @@ pub trait Not {
 pub trait Neg {
   fn neg(): Self;
 }
+
+pub trait Iterator {
+  type Item;
+  fn next(): Option[Item];
+}

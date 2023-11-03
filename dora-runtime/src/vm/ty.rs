@@ -42,6 +42,7 @@ impl BytecodeTypeExt for BytecodeType {
             | &BytecodeType::Int64
             | &BytecodeType::Float32
             | &BytecodeType::Float64 => true,
+            BytecodeType::TypeAlias(..) => unreachable!(),
             &BytecodeType::Unit
             | &BytecodeType::Tuple(..)
             | &BytecodeType::Enum(..)
@@ -61,6 +62,7 @@ impl BytecodeTypeExt for BytecodeType {
             | BytecodeType::Enum(_, params)
             | BytecodeType::Struct(_, params)
             | BytecodeType::Trait(_, params) => params.clone(),
+            BytecodeType::TypeAlias(..) => unreachable!(),
             &BytecodeType::Bool
             | &BytecodeType::UInt8
             | &BytecodeType::Char
@@ -130,6 +132,8 @@ impl<'a> BytecodeTypePrinter<'a> {
             }
 
             BytecodeType::This => write!(fmt, "Self"),
+
+            BytecodeType::TypeAlias(..) => unimplemented!(),
 
             BytecodeType::Lambda(params, return_type) => {
                 write!(fmt, "(")?;

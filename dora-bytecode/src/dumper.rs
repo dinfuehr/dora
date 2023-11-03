@@ -316,6 +316,15 @@ impl<'a> Display for BytecodeTypePrinter<'a> {
                     fmt_ty(self.prog, return_ty)
                 )
             }
+            BytecodeType::TypeAlias(alias_id) => {
+                let alias = &self.prog.aliases[alias_id.0 as usize];
+                write!(f, "{}", alias.name)?;
+                if let Some(ref ty) = alias.ty {
+                    write!(f, "{}", fmt_ty(self.prog, ty))
+                } else {
+                    Ok(())
+                }
+            }
         }
     }
 }

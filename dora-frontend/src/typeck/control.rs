@@ -6,7 +6,7 @@ use fixedbitset::FixedBitSet;
 use crate::error::msg::ErrorMessage;
 use crate::expr_always_returns;
 use crate::interner::Name;
-use crate::sema::{EnumDefinitionId, FctDefinitionId, ForTypeInfo, IdentType};
+use crate::sema::{find_impl, EnumDefinitionId, FctDefinitionId, ForTypeInfo, IdentType};
 use crate::sym::SymbolKind;
 use crate::typeck::{add_local, check_expr, check_let_pattern, read_path, MethodLookup, TypeCheck};
 use crate::{replace_type, AliasReplacement, SourceType, SourceTypeArray};
@@ -46,6 +46,17 @@ pub(super) fn check_expr_for(
         ck.symtable.push_level();
         check_let_pattern(ck, &stmt.pattern, SourceType::Error);
         check_expr(ck, &stmt.block, SourceType::Any);
+        ck.symtable.pop_level();
+        return SourceType::Unit;
+    }
+
+    if let Some((for_type_info, ret_type)) = type_supports_iterator_trait(ck, object_type.clone()) {
+        ck.symtable.push_level();
+        // set variable type to return type of next
+        check_let_pattern(ck, &stmt.pattern, ret_type);
+        // store fct ids for code generation
+        ck.analysis.map_fors.insert(stmt.id, for_type_info);
+        check_loop_body(ck, &stmt.block);
         ck.symtable.pop_level();
         return SourceType::Unit;
     }
@@ -114,6 +125,70 @@ fn type_supports_make_iterator(
         let make_iterator_ret = lookup.found_ret().unwrap();
 
         Some((make_iterator_id, make_iterator_ret))
+    } else {
+        None
+    }
+}
+
+fn type_supports_iterator_trait(
+    ck: &mut TypeCheck,
+    object_type: SourceType,
+) -> Option<(ForTypeInfo, SourceType)> {
+    let iterator_trait_id = ck.sa.known.traits.iterator();
+    let iterator_trait = ck.sa.trait_(iterator_trait_id);
+
+    let next_name = ck.sa.interner.intern("next");
+    let item_name = ck.sa.interner.intern("Item");
+
+    let next_trait_fct_id = iterator_trait
+        .get_method(next_name, false)
+        .expect("missing next() in trait");
+
+    let item_trait_alias_id = iterator_trait
+        .alias_names()
+        .get(&item_name)
+        .cloned()
+        .expect("missing Item alias");
+
+    let trait_ty = SourceType::new_trait(iterator_trait_id);
+
+    let impl_id = find_impl(
+        ck.sa,
+        object_type.clone(),
+        &ck.type_param_defs,
+        trait_ty.clone(),
+    );
+
+    if let Some(impl_id) = impl_id {
+        let impl_ = ck.sa.impl_(impl_id);
+
+        let next_impl_fct_id = impl_
+            .trait_method_map()
+            .get(&next_trait_fct_id)
+            .cloned()
+            .expect("missing impl next() method");
+
+        let next_impl_fct = ck.sa.fct(next_impl_fct_id);
+
+        let item_impl_alias_id = impl_
+            .trait_alias_map()
+            .get(&item_trait_alias_id)
+            .cloned()
+            .expect("missing impl alias");
+
+        let impl_alias = ck.sa.alias(item_impl_alias_id);
+        let value_type = impl_alias.ty();
+
+        Some((
+            ForTypeInfo {
+                make_iterator: None,
+                next: next_impl_fct_id,
+                iterator_type: object_type,
+                next_type: next_impl_fct.return_type(),
+                value_type: value_type.clone(),
+            },
+            value_type,
+        ))
     } else {
         None
     }

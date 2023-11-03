@@ -1,0 +1,27 @@
+fn main() {
+    let cx = CX(0, 3);
+    assert(cx.next().getOrPanic() == 0);
+    assert(cx.next().getOrPanic() == 1);
+    assert(cx.next().getOrPanic() == 2);
+    assert(cx.next().isNone());
+}
+
+trait MyIterator {
+    type Item;
+    fn next(): Option[Item];
+}
+
+class CX(current: Int64, limit: Int64)
+
+impl MyIterator for CX {
+    type Item = Int64;
+    fn next(): Option[Int64] {
+        if self.current < self.limit {
+            let result = self.current;
+            self.current = self.current + 1;
+            Some[Int64](result)
+        } else {
+            None[Int64]
+        }
+    }
+}

@@ -91,7 +91,7 @@ pub fn check(sa: &Sema) {
                     type_params.add_type_param(name);
 
                     for bound in &type_param.bounds {
-                        let ty = read_type(
+                        let trait_bound_ty = read_type(
                             sa,
                             &sym_table,
                             fct.file_id,
@@ -101,14 +101,15 @@ pub fn check(sa: &Sema) {
                         )
                         .unwrap_or(SourceType::Error);
 
-                        if ty.is_trait() {
-                            if !type_params
-                                .add_bound(TypeParamId(container_type_params + type_param_id), ty)
-                            {
+                        if trait_bound_ty.is_trait() {
+                            if !type_params.add_bound(
+                                TypeParamId(container_type_params + type_param_id),
+                                trait_bound_ty,
+                            ) {
                                 let msg = ErrorMessage::DuplicateTraitBound;
                                 sa.report(fct.file_id, type_param.span, msg);
                             }
-                        } else if !ty.is_error() {
+                        } else if !trait_bound_ty.is_error() {
                             let msg = ErrorMessage::BoundExpected;
                             sa.report(fct.file_id, bound.span(), msg);
                         }

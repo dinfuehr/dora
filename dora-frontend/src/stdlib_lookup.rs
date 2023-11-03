@@ -80,19 +80,20 @@ pub fn lookup_known_fundamental_types(sa: &mut Sema) {
     sa.known.classes.thread = Some(find_class(sa, stdlib_id, "thread::Thread"));
 
     sa.known.traits.add = Some(find_trait(sa, stdlib_id, "traits::Add"));
-    sa.known.traits.sar = Some(find_trait(sa, stdlib_id, "traits::Sar"));
     sa.known.traits.bit_and = Some(find_trait(sa, stdlib_id, "traits::BitAnd"));
     sa.known.traits.bit_or = Some(find_trait(sa, stdlib_id, "traits::BitOr"));
     sa.known.traits.bit_xor = Some(find_trait(sa, stdlib_id, "traits::BitXor"));
     sa.known.traits.comparable = Some(find_trait(sa, stdlib_id, "traits::Comparable"));
     sa.known.traits.div = Some(find_trait(sa, stdlib_id, "traits::Div"));
     sa.known.traits.equals = Some(find_trait(sa, stdlib_id, "traits::Equals"));
-    sa.known.traits.shr = Some(find_trait(sa, stdlib_id, "traits::Shr"));
+    sa.known.traits.iterator = Some(find_trait(sa, stdlib_id, "traits::Iterator"));
     sa.known.traits.mul = Some(find_trait(sa, stdlib_id, "traits::Mul"));
     sa.known.traits.mod_ = Some(find_trait(sa, stdlib_id, "traits::Mod"));
     sa.known.traits.neg = Some(find_trait(sa, stdlib_id, "traits::Neg"));
     sa.known.traits.not = Some(find_trait(sa, stdlib_id, "traits::Not"));
+    sa.known.traits.sar = Some(find_trait(sa, stdlib_id, "traits::Sar"));
     sa.known.traits.shl = Some(find_trait(sa, stdlib_id, "traits::Shl"));
+    sa.known.traits.shr = Some(find_trait(sa, stdlib_id, "traits::Shr"));
     sa.known.traits.stringable = Some(find_trait(sa, stdlib_id, "string::Stringable"));
     sa.known.traits.sub = Some(find_trait(sa, stdlib_id, "traits::Sub"));
     sa.known.traits.zero = Some(find_trait(sa, stdlib_id, "traits::Zero"));

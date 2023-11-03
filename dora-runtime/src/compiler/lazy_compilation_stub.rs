@@ -281,7 +281,10 @@ pub fn iterate_roots<F>(
                 reg_offset_pointer(&mut reg_idx, fp, &mut stack_address, &mut callback);
             }
 
-            BytecodeType::TypeParam(_) | BytecodeType::Unit | BytecodeType::This => {
+            BytecodeType::TypeAlias(..)
+            | BytecodeType::TypeParam(_)
+            | BytecodeType::Unit
+            | BytecodeType::This => {
                 unreachable!()
             }
         }

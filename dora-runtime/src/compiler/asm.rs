@@ -164,7 +164,9 @@ impl<'a> BaselineAssembler<'a> {
                 self.copy_struct(struct_id, type_params, dest, src);
             }
 
-            BytecodeType::TypeParam(_) | BytecodeType::This => unreachable!(),
+            BytecodeType::TypeAlias(..) | BytecodeType::TypeParam(_) | BytecodeType::This => {
+                unreachable!()
+            }
 
             BytecodeType::Ptr
             | BytecodeType::Trait(_, _)
@@ -1017,7 +1019,7 @@ impl<'a> BaselineAssembler<'a> {
                 self.store_zero(mode, dest.mem());
             }
 
-            BytecodeType::TypeParam(_) | BytecodeType::This => {
+            BytecodeType::TypeAlias(..) | BytecodeType::TypeParam(_) | BytecodeType::This => {
                 unreachable!()
             }
         }

@@ -418,8 +418,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
-    fn impl_trait_with_type_params() {
+    fn impl_generic_trait() {
         ok("
             trait MyEquals[T] { fn equals(val: T): Bool; }
             class Foo(x: Int64)
@@ -608,6 +607,24 @@ mod tests {
                 }
             }
         ");
+
+        err(
+            "
+            trait MyTrait {
+                type X;
+                fn next(): Option[X];
+            }
+            class CX
+            impl MyTrait for CX {
+                type X = Int64;
+                fn next(): Option[String] {
+                    None
+                }
+            }
+        ",
+            (9, 17),
+            ErrorMessage::ImplMethodDefinitionMismatch,
+        );
     }
 
     #[test]
