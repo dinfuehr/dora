@@ -152,12 +152,17 @@ pub fn implements_trait(
     }
 }
 
+pub struct ImplMatch {
+    pub id: ImplDefinitionId,
+    pub binding: SourceTypeArray,
+}
+
 pub fn find_impl(
     sa: &Sema,
     check_ty: SourceType,
     check_type_param_defs: &TypeParamDefinition,
     trait_ty: SourceType,
-) -> Option<(ImplDefinitionId, SourceTypeArray)> {
+) -> Option<ImplMatch> {
     for (_id, impl_) in sa.impls.iter() {
         assert!(impl_.trait_ty().is_concrete_type());
 
@@ -167,7 +172,10 @@ pub fn find_impl(
 
         if let Some(binding) = impl_matches(sa, check_ty.clone(), check_type_param_defs, impl_.id())
         {
-            return Some((impl_.id(), binding));
+            return Some(ImplMatch {
+                id: impl_.id(),
+                binding,
+            });
         }
     }
 

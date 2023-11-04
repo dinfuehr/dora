@@ -692,7 +692,7 @@ fn check_expr_template(
                         stringable_trait_ty.clone(),
                     )
                     .expect("missing impl")
-                    .0;
+                    .id;
 
                     let name = ck.sa.interner.intern("toString");
                     let stringable_trait = &ck.sa.trait_(stringable_trait_id);
@@ -763,16 +763,16 @@ fn check_expr_un_trait(
     let trait_ty = SourceType::new_trait(trait_id);
     let trait_method_name = ck.sa.interner.intern(trait_method_name);
 
-    let impl_id = find_impl(ck.sa, ty.clone(), &ck.type_param_defs, trait_ty.clone());
+    let impl_match = find_impl(ck.sa, ty.clone(), &ck.type_param_defs, trait_ty.clone());
 
-    if let Some((impl_id, _binding)) = impl_id {
+    if let Some(impl_match) = impl_match {
         let trait_ = ck.sa.trait_(trait_id);
         let trait_method_id = trait_
             .get_method(trait_method_name, false)
             .expect("missing method");
         let method_id = ck
             .sa
-            .impl_(impl_id)
+            .impl_(impl_match.id)
             .get_method_for_trait_method_id(trait_method_id)
             .expect("method not found");
 
@@ -978,7 +978,7 @@ fn check_expr_bin_trait(
 ) -> SourceType {
     let trait_ty = SourceType::new_trait(trait_id);
 
-    let impl_result = find_impl(
+    let impl_match = find_impl(
         ck.sa,
         lhs_type.clone(),
         &ck.type_param_defs,
@@ -986,8 +986,8 @@ fn check_expr_bin_trait(
     );
     let trait_method_name = ck.sa.interner.intern(trait_method_name);
 
-    if let Some((impl_id, _binding)) = impl_result {
-        let type_params = impl_matches(ck.sa, lhs_type.clone(), ck.type_param_defs, impl_id)
+    if let Some(impl_match) = impl_match {
+        let type_params = impl_matches(ck.sa, lhs_type.clone(), ck.type_param_defs, impl_match.id)
             .expect("impl does not match");
 
         let trait_ = &ck.sa.trait_(trait_id);
@@ -996,7 +996,7 @@ fn check_expr_bin_trait(
             .expect("missing method");
         let method_id = ck
             .sa
-            .impl_(impl_id)
+            .impl_(impl_match.id)
             .get_method_for_trait_method_id(trait_method_id)
             .expect("method not found");
 

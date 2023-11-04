@@ -139,15 +139,15 @@ fn type_supports_iterator_trait(
 
     let trait_ty = SourceType::new_trait(iterator_trait_id);
 
-    let impl_result = find_impl(
+    let impl_match = find_impl(
         ck.sa,
         object_type.clone(),
         &ck.type_param_defs,
         trait_ty.clone(),
     );
 
-    if let Some((impl_id, binding)) = impl_result {
-        let impl_ = ck.sa.impl_(impl_id);
+    if let Some(impl_match) = impl_match {
+        let impl_ = ck.sa.impl_(impl_match.id);
 
         let next_impl_fct_id = impl_
             .trait_method_map()
@@ -165,8 +165,8 @@ fn type_supports_iterator_trait(
 
         let impl_alias = ck.sa.alias(item_impl_alias_id);
 
-        let value_type = specialize_type(ck.sa, impl_alias.ty(), &binding);
-        let next_type = specialize_type(ck.sa, next_impl_fct.return_type(), &binding);
+        let value_type = specialize_type(ck.sa, impl_alias.ty(), &impl_match.binding);
+        let next_type = specialize_type(ck.sa, next_impl_fct.return_type(), &impl_match.binding);
 
         Some((
             ForTypeInfo {
