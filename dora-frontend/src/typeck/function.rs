@@ -11,7 +11,7 @@ use crate::sema::{
 };
 use crate::typeck::{check_expr, check_stmt};
 use crate::{
-    always_returns, expand_type, expr_always_returns, replace_type, report_sym_shadow_span,
+    always_returns, check_type, expr_always_returns, replace_type, report_sym_shadow_span,
     AliasReplacement, AllowSelf, ModuleSymTable, SourceType, SourceTypeArray, SymbolKind,
 };
 
@@ -33,6 +33,7 @@ pub struct TypeCheck<'a> {
     pub is_lambda: bool,
     pub has_hidden_self_argument: bool,
     pub is_self_available: bool,
+    pub self_ty: Option<SourceType>,
     pub vars: &'a mut VarManager,
     pub contains_lambda: bool,
     pub lazy_context_class_creation: &'a mut Vec<(LazyContextClass, ClassDefinition)>,
@@ -303,13 +304,27 @@ impl<'a> TypeCheck<'a> {
     }
 
     pub(super) fn read_type(&mut self, t: &ast::TypeData) -> SourceType {
-        expand_type(
+        let allow_self = if self.self_ty.is_some() {
+            AllowSelf::Yes
+        } else {
+            AllowSelf::No
+        };
+
+        let ty = check_type(
             self.sa,
             &self.symtable,
             self.file_id,
             t,
             self.type_param_defs,
-            AllowSelf::No,
+            allow_self,
+        );
+
+        replace_type(
+            self.sa,
+            ty,
+            None,
+            self.self_ty.clone(),
+            AliasReplacement::ReplaceWithActualType,
         )
     }
 

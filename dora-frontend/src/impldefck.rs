@@ -6,7 +6,7 @@ use crate::sema::{
 };
 use crate::specialize::replace_type;
 use crate::{
-    read_type, AliasReplacement, AllowSelf, ErrorMessage, ModuleSymTable, SourceType,
+    check_type, AliasReplacement, AllowSelf, ErrorMessage, ModuleSymTable, SourceType,
     SourceTypeArray, SymbolKind,
 };
 
@@ -27,15 +27,14 @@ fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
 
     let ast_trait_type = impl_.ast.trait_type.as_ref().unwrap();
 
-    let trait_ty = read_type(
+    let trait_ty = check_type(
         sa,
         &sym,
         impl_.file_id,
         ast_trait_type,
         impl_.type_params(),
         AllowSelf::No,
-    )
-    .unwrap_or(SourceType::Error);
+    );
 
     let trait_ty = if trait_ty.is_trait() {
         trait_ty
@@ -48,15 +47,14 @@ fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
 
     assert!(impl_.trait_ty.set(trait_ty).is_ok());
 
-    let extended_ty = read_type(
+    let extended_ty = check_type(
         sa,
         &sym,
         impl_.file_id.into(),
         &impl_.ast.extended_type,
         impl_.type_params(),
         AllowSelf::No,
-    )
-    .unwrap_or(SourceType::Error);
+    );
 
     if extended_ty.is_cls()
         || extended_ty.is_struct()

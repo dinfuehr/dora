@@ -4,7 +4,7 @@ use dora_parser::ast;
 use dora_parser::Span;
 
 use crate::error::msg::ErrorMessage;
-use crate::readty::read_type_raw;
+use crate::readty::parse_type;
 use crate::sema::{Sema, SourceFileId, TypeParamDefinition, TypeParamId};
 use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::ty::{SourceType, SourceTypeArray};
@@ -49,7 +49,7 @@ fn check_impls(sa: &Sema) {
             impl_.span,
         );
 
-        read_type_raw(sa, &symtable, impl_.file_id, &impl_.ast.extended_type);
+        parse_type(sa, &symtable, impl_.file_id, &impl_.ast.extended_type);
 
         symtable.pop_level();
 
@@ -209,7 +209,7 @@ fn read_type_param_definition(
         let id = TypeParamId(id);
 
         for bound in &type_param.bounds {
-            let ty = read_type_raw(sa, &symtable, file_id, bound);
+            let ty = parse_type(sa, &symtable, file_id, bound);
 
             if ty.is_trait() {
                 if !result_type_params.add_bound(id, ty) {

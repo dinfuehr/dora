@@ -1,6 +1,6 @@
 use crate::sema::{
-    AnalysisData, ClassDefinition, FctDefinition, GlobalDefinition, LazyContextClass, LazyLambdaId,
-    Sema, TypeParamDefinition,
+    AnalysisData, ClassDefinition, FctDefinition, FctParent, GlobalDefinition, LazyContextClass,
+    LazyLambdaId, Sema, TypeParamDefinition,
 };
 use crate::sym::ModuleSymTable;
 use crate::typeck::call::{check_expr_call, check_expr_call_enum_args, find_method};
@@ -16,6 +16,7 @@ use crate::typeck::function::{
 };
 use crate::typeck::lookup::MethodLookup;
 use crate::typeck::stmt::{check_let_pattern, check_stmt};
+use crate::SourceType;
 
 mod call;
 mod constck;
@@ -32,12 +33,14 @@ pub fn check(sa: &mut Sema) {
     let mut lazy_lambda_creation = Vec::new();
 
     for (_id, fct) in sa.fcts.iter() {
-        check_function(
-            sa,
-            fct,
-            &mut lazy_context_class_creation,
-            &mut lazy_lambda_creation,
-        );
+        if fct.has_body() {
+            check_function(
+                sa,
+                fct,
+                &mut lazy_context_class_creation,
+                &mut lazy_lambda_creation,
+            );
+        }
     }
 
     for (_const_id, const_) in sa.consts.iter() {
@@ -72,48 +75,44 @@ fn check_function(
     lazy_context_class_creation: &mut Vec<(LazyContextClass, ClassDefinition)>,
     lazy_lambda_creation: &mut Vec<(LazyLambdaId, FctDefinition)>,
 ) {
-    let analysis = {
-        if !fct.has_body() {
-            return;
-        }
+    let mut analysis = AnalysisData::new();
+    let mut symtable = ModuleSymTable::new(sa, fct.module_id);
+    let mut vars = VarManager::new();
+    let mut outer_context_classes = Vec::new();
 
-        if fct.is_lambda() {
-            // Lambdas will be type-checked by their parent.
-            return;
-        }
-
-        let mut analysis = AnalysisData::new();
-        let mut symtable = ModuleSymTable::new(sa, fct.module_id);
-        let mut vars = VarManager::new();
-        let mut outer_context_classes = Vec::new();
-
-        let mut typeck = TypeCheck {
-            sa,
-            type_param_defs: fct.type_params(),
-            package_id: fct.package_id,
-            module_id: fct.module_id,
-            file_id: fct.file_id,
-            analysis: &mut analysis,
-            symtable: &mut symtable,
-            param_types: fct.params_with_self().to_owned(),
-            return_type: Some(fct.return_type()),
-            in_loop: false,
-            has_hidden_self_argument: fct.has_hidden_self_argument(),
-            is_self_available: fct.has_hidden_self_argument(),
-            is_lambda: false,
-            vars: &mut vars,
-            contains_lambda: false,
-            lazy_context_class_creation,
-            lazy_lambda_creation,
-            outer_context_classes: &mut outer_context_classes,
-            outer_context_access_in_function: false,
-            outer_context_access_from_lambda: false,
-        };
-
-        typeck.check_fct(&fct.ast);
-
-        analysis
+    let self_ty = match fct.parent {
+        FctParent::None => None,
+        FctParent::Extension(id) => Some(sa.extension(id).ty().clone()),
+        FctParent::Impl(id) => Some(sa.impl_(id).extended_ty()),
+        FctParent::Trait(..) => Some(SourceType::This),
+        FctParent::Function => unreachable!(),
     };
+
+    let mut typeck = TypeCheck {
+        sa,
+        type_param_defs: fct.type_params(),
+        package_id: fct.package_id,
+        module_id: fct.module_id,
+        file_id: fct.file_id,
+        analysis: &mut analysis,
+        symtable: &mut symtable,
+        param_types: fct.params_with_self().to_owned(),
+        return_type: Some(fct.return_type()),
+        in_loop: false,
+        has_hidden_self_argument: fct.has_hidden_self_argument(),
+        is_self_available: fct.has_hidden_self_argument(),
+        self_ty,
+        is_lambda: false,
+        vars: &mut vars,
+        contains_lambda: false,
+        lazy_context_class_creation,
+        lazy_lambda_creation,
+        outer_context_classes: &mut outer_context_classes,
+        outer_context_access_in_function: false,
+        outer_context_access_from_lambda: false,
+    };
+
+    typeck.check_fct(&fct.ast);
 
     assert!(fct.analysis.set(analysis).is_ok());
 }
@@ -148,6 +147,7 @@ fn check_global(
             return_type: None,
             has_hidden_self_argument: false,
             is_self_available: false,
+            self_ty: None,
             vars: &mut vars,
             contains_lambda: false,
             lazy_context_class_creation,

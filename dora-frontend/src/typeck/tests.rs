@@ -4007,3 +4007,30 @@ fn for_iterator_trait() {
         }
     ");
 }
+
+#[test]
+fn self_in_extension_method() {
+    ok("
+        class X
+        impl X {
+            fn f(x: X) {
+                let tmp: Self = x;
+            }
+        }
+    ");
+}
+
+#[test]
+fn self_in_impl_method() {
+    ok("
+        class X
+        trait MyTrait {
+            fn f(x: Self) {}
+        }
+        impl MyTrait for X {
+            fn f(x: X) {
+                let tmp: Self = x;
+            }
+        }
+    ");
+}

@@ -1,5 +1,5 @@
 use crate::sema::{AliasParent, TypeParamDefinition};
-use crate::{read_type, AllowSelf, ErrorMessage, ModuleSymTable, Sema, SourceType, SymbolKind};
+use crate::{check_type, AllowSelf, ErrorMessage, ModuleSymTable, Sema, SourceType, SymbolKind};
 
 pub fn check(sa: &Sema) {
     for (_id, alias) in sa.aliases.iter() {
@@ -7,15 +7,14 @@ pub fn check(sa: &Sema) {
             AliasParent::None => {
                 if let Some(ref ty_node) = alias.node.ty {
                     let table = ModuleSymTable::new(sa, alias.module_id);
-                    let ty = read_type(
+                    let ty = check_type(
                         sa,
                         &table,
                         alias.file_id,
                         ty_node,
                         &TypeParamDefinition::new(),
                         AllowSelf::No,
-                    )
-                    .unwrap_or(SourceType::Error);
+                    );
 
                     assert!(alias.ty.set(ty).is_ok());
                 } else {
@@ -38,15 +37,14 @@ pub fn check(sa: &Sema) {
                         table.insert(name, SymbolKind::TypeParam(id));
                     }
 
-                    let ty = read_type(
+                    let ty = check_type(
                         sa,
                         &table,
                         alias.file_id,
                         ty_node,
                         &TypeParamDefinition::new(),
                         AllowSelf::No,
-                    )
-                    .unwrap_or(SourceType::Error);
+                    );
 
                     table.pop_level();
 

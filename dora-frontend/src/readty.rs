@@ -18,7 +18,7 @@ pub enum AllowSelf {
     No,
 }
 
-pub fn read_type_raw(
+pub fn parse_type(
     sa: &Sema,
     table: &ModuleSymTable,
     file_id: SourceFileId,
@@ -51,7 +51,7 @@ fn read_type_basic_unchecked(
     let mut type_params = Vec::new();
 
     for param in &node.params {
-        let ty = read_type_raw(sa, table, file_id, param);
+        let ty = parse_type(sa, table, file_id, param);
         type_params.push(ty);
     }
 
@@ -133,14 +133,14 @@ fn read_type_lambda_unchecked(
     let mut params = vec![];
 
     for param in &node.params {
-        let ty = read_type_raw(sa, table, file_id, param);
+        let ty = parse_type(sa, table, file_id, param);
         params.push(ty);
     }
 
     let params = SourceTypeArray::with(params);
 
     let return_type = if let Some(ref ret) = node.ret {
-        read_type_raw(sa, table, file_id, ret)
+        parse_type(sa, table, file_id, ret)
     } else {
         SourceType::Unit
     };
@@ -161,7 +161,7 @@ fn read_type_tuple_unchecked(
     let mut subtypes = Vec::new();
 
     for subtype in &node.subtypes {
-        let ty = read_type_raw(sa, table, file_id, subtype);
+        let ty = parse_type(sa, table, file_id, subtype);
         subtypes.push(ty);
     }
 
@@ -460,15 +460,15 @@ fn verify_type_basic(
     true
 }
 
-pub fn read_type(
+pub fn check_type(
     sa: &Sema,
     table: &ModuleSymTable,
     file_id: SourceFileId,
     t: &ast::TypeData,
     type_param_defs: &TypeParamDefinition,
     allow_self: AllowSelf,
-) -> Option<SourceType> {
-    let ty = read_type_raw(sa, table, file_id, t);
+) -> SourceType {
+    let ty = parse_type(sa, table, file_id, t);
 
     let is_good = verify_type(
         sa,
@@ -481,9 +481,9 @@ pub fn read_type(
     );
 
     if is_good {
-        Some(ty)
+        ty
     } else {
-        None
+        SourceType::Error
     }
 }
 
@@ -578,7 +578,7 @@ pub fn expand_type(
     type_param_defs: &TypeParamDefinition,
     allow_self: AllowSelf,
 ) -> SourceType {
-    let ty = read_type_raw(sa, table, file_id, t);
+    let ty = parse_type(sa, table, file_id, t);
 
     let is_good = verify_type(
         sa,

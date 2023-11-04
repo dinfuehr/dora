@@ -1230,6 +1230,7 @@ fn check_expr_lambda(
                 return_type: Some(lambda_return_type.clone()),
                 has_hidden_self_argument: true,
                 is_self_available: ck.is_self_available,
+                self_ty: ck.self_ty.clone(),
                 vars: ck.vars,
                 contains_lambda: false,
                 lazy_context_class_creation: ck.lazy_context_class_creation,

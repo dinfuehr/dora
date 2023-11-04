@@ -5,8 +5,8 @@ use dora_parser::ast;
 
 use crate::sema::{FctDefinition, FctParent, Sema, TypeParamDefinition, TypeParamId};
 use crate::{
-    read_type, replace_type, AliasReplacement, AllowSelf, ErrorMessage, ModuleSymTable, SourceType,
-    SymbolKind,
+    check_type, replace_type, AliasReplacement, AllowSelf, ErrorMessage, ModuleSymTable,
+    SourceType, SymbolKind,
 };
 
 pub fn check(sa: &Sema) {
@@ -91,15 +91,14 @@ pub fn check(sa: &Sema) {
                     type_params.add_type_param(name);
 
                     for bound in &type_param.bounds {
-                        let trait_bound_ty = read_type(
+                        let trait_bound_ty = check_type(
                             sa,
                             &sym_table,
                             fct.file_id,
                             bound,
                             &type_params,
                             AllowSelf::No,
-                        )
-                        .unwrap_or(SourceType::Error);
+                        );
 
                         if trait_bound_ty.is_trait() {
                             if !type_params.add_bound(
@@ -172,15 +171,14 @@ fn process_type(
         AllowSelf::No
     };
 
-    let ty = read_type(
+    let ty = check_type(
         sa,
         &sym_table,
         fct.file_id,
         ast,
         fct.type_params(),
         allow_self,
-    )
-    .unwrap_or(SourceType::Error);
+    );
 
     match fct.parent {
         FctParent::Impl(id) => {
