@@ -113,6 +113,14 @@ impl FctDefinition {
         }
     }
 
+    pub fn is_self_allowed(&self) -> bool {
+        match self.parent {
+            FctParent::Impl(..) | FctParent::Trait(..) | FctParent::Extension(..) => true,
+            FctParent::None => false,
+            FctParent::Function => unreachable!(),
+        }
+    }
+
     pub fn trait_id(&self) -> TraitDefinitionId {
         match self.parent {
             FctParent::Trait(traitid) => traitid,

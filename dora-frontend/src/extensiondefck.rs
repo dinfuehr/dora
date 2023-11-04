@@ -553,4 +553,19 @@ mod tests {
             fn f(x: X) { x.testme(); }
         ");
     }
+
+    #[test]
+    fn use_self_in_extension() {
+        ok("
+            class X
+
+            impl X {
+                fn take(x: Self) {}
+            }
+
+            fn f(x: X, y: X) {
+                x.take(y);
+            }
+        ");
+    }
 }

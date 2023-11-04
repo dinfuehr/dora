@@ -642,4 +642,40 @@ mod tests {
             }
         ");
     }
+
+    #[test]
+    fn use_second_alias_type_in_impl() {
+        err(
+            "
+            trait MyTrait {
+                type A;
+                type B;
+            }
+
+            impl MyTrait for Int32 {
+                type A = B;
+                type B = Int64;
+            }
+        ",
+            (8, 26),
+            ErrorMessage::UnknownIdentifier("B".into()),
+        );
+    }
+
+    #[test]
+    fn use_self_in_impl() {
+        ok("
+            trait MyTrait {
+                fn take(x: Self);
+            }
+
+            impl MyTrait for Int32 {
+                fn take(x: Self) {}
+            }
+
+            fn f(x: Int32, y: Int32) {
+                x.take(y);
+            }
+        ");
+    }
 }

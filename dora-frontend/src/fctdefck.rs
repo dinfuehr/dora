@@ -166,7 +166,7 @@ fn process_type(
     sym_table: &ModuleSymTable,
     ast: &Arc<ast::TypeData>,
 ) -> SourceType {
-    let allow_self = if fct.in_trait() {
+    let allow_self = if fct.is_self_allowed() {
         AllowSelf::Yes
     } else {
         AllowSelf::No
@@ -194,8 +194,19 @@ fn process_type(
             )
         }
 
-        FctParent::Extension(..) | FctParent::None => {
+        FctParent::None => {
             replace_type(sa, ty, None, None, AliasReplacement::ReplaceWithActualType)
+        }
+
+        FctParent::Extension(id) => {
+            let ext = sa.extension(id);
+            replace_type(
+                sa,
+                ty,
+                None,
+                Some(ext.ty().clone()),
+                AliasReplacement::ReplaceWithActualType,
+            )
         }
 
         FctParent::Trait(trait_id) => replace_type(
