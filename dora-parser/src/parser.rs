@@ -1105,7 +1105,6 @@ impl Parser {
     fn parse_path(&mut self) -> Path {
         self.start_node();
         let mut names = Vec::new();
-        assert_eq!(self.current(), IDENTIFIER);
         let name = self.expect_identifier();
         if let Some(name) = name {
             names.push(name);
@@ -1147,7 +1146,6 @@ impl Parser {
     }
 
     fn parse_let_pattern(&mut self) -> Box<LetPattern> {
-        assert!(self.is_set(LET_PATTERN_FIRST));
         self.start_node();
         if self.is(L_PAREN) {
             let parts = self.parse_list(

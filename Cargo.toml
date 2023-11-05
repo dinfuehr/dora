@@ -7,8 +7,18 @@ members = [
   "dora-bytecode",
   "dora-runtime",
   "dora-language-server",
+  "dora-sema-fuzzer",
 ]
 resolver = "2"
+default-members = [
+  "dora",
+  "dora-asm",
+  "dora-parser",
+  "dora-frontend",
+  "dora-bytecode",
+  "dora-runtime",
+  "dora-language-server"
+]
 
 [profile.release]
 panic = "abort"

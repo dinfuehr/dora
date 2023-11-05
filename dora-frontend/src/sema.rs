@@ -65,7 +65,7 @@ mod uses;
 pub struct SemaArgs {
     pub packages: Vec<(String, PathBuf)>,
     pub arg_file: Option<String>,
-    pub test_file_as_string: Option<&'static str>,
+    pub test_file_as_string: Option<String>,
 }
 
 impl SemaArgs {
@@ -73,7 +73,7 @@ impl SemaArgs {
         SemaArgs {
             packages: Vec::new(),
             arg_file: None,
-            test_file_as_string: Some(input),
+            test_file_as_string: Some(input.into()),
         }
     }
 }

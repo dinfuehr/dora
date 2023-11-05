@@ -152,7 +152,7 @@ impl<'a> ProgramParser<'a> {
         self.sa.set_program_package_id(package_id);
 
         if self.sa.args.arg_file.is_none() {
-            if let Some(content) = self.sa.args.test_file_as_string {
+            if let Some(ref content) = self.sa.args.test_file_as_string {
                 self.add_file_from_string(
                     package_id,
                     module_id,
@@ -596,10 +596,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             let modifiers =
                 check_modifiers(self.sa, self.file_id, &field.modifiers, &[Annotation::Pub]);
 
-            let name = self
-                .sa
-                .interner
-                .intern(&field.name.as_ref().expect("missing name").name_as_string);
+            let name = ensure_name(self.sa, &field.name);
 
             check_if_symbol_exists(self.sa, self.file_id, &mut used_names, name, field.span);
 
@@ -649,10 +646,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             let modifiers =
                 check_modifiers(self.sa, self.file_id, &field.modifiers, &[Annotation::Pub]);
 
-            let name = self
-                .sa
-                .interner
-                .intern(&field.name.as_ref().expect("missing name").name_as_string);
+            let name = ensure_name(self.sa, &field.name);
 
             check_if_symbol_exists(self.sa, self.file_id, &mut used_names, name, field.span);
 
