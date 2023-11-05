@@ -449,7 +449,8 @@ pub(super) fn args_compatible(
 
 fn arg_allows(sa: &Sema, def: SourceType, arg: SourceType, self_ty: Option<SourceType>) -> bool {
     match def {
-        SourceType::Error | SourceType::Any => unreachable!(),
+        SourceType::Error => true,
+        SourceType::Any => unreachable!(),
         SourceType::Unit
         | SourceType::Bool
         | SourceType::UInt8

@@ -1108,6 +1108,9 @@ impl Parser {
         let name = self.expect_identifier();
         if let Some(name) = name {
             names.push(name);
+        } else {
+            // Advance by token to avoid infinite loop in `parse_match`.
+            self.advance();
         }
 
         while self.eat(COLON_COLON) {
