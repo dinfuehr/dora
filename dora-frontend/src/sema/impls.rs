@@ -148,7 +148,9 @@ pub fn implements_trait(
 
         SourceType::TypeAlias(..) => unreachable!(),
 
-        SourceType::Error | SourceType::Ptr | SourceType::This | SourceType::Any => unreachable!(),
+        SourceType::Error => false,
+
+        SourceType::Ptr | SourceType::This | SourceType::Any => unreachable!(),
     }
 }
 
