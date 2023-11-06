@@ -1799,6 +1799,10 @@ impl Parser {
                     break;
                 }
 
+                if !self.is_set(EXPRESSION_FIRST) {
+                    break;
+                }
+
                 let expr = self.parse_expression();
                 values.push(expr);
 

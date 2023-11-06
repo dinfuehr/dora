@@ -52,7 +52,7 @@ pub enum ErrorMessage {
     EnumVariantExpected,
     MatchUncoveredVariant,
     MatchUnreachablePattern,
-    VarNeedsTypeInfo(String),
+    VarNeedsTypeOrExpression,
     ParamTypesIncompatible(String, Vec<String>, Vec<String>),
     LambdaParamTypesIncompatible(Vec<String>, Vec<String>),
     WhileCondType(String),
@@ -313,10 +313,9 @@ impl ErrorMessage {
             ErrorMessage::EnumVariantExpected => format!("enum variant expected."),
             ErrorMessage::MatchUncoveredVariant => "not all variants are covered.".into(),
             ErrorMessage::MatchUnreachablePattern => "unreachable pattern.".into(),
-            ErrorMessage::VarNeedsTypeInfo(ref name) => format!(
-                "variable `{}` needs either type declaration or expression.",
-                name
-            ),
+            ErrorMessage::VarNeedsTypeOrExpression => {
+                format!("variable needs either type declaration or expression.")
+            }
             ErrorMessage::ParamTypesIncompatible(ref name, ref def, ref expr) => {
                 let def = def.join(", ");
                 let expr = expr.join(", ");

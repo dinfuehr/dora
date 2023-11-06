@@ -34,9 +34,8 @@ fn check_stmt_let(ck: &mut TypeCheck, s: &ast::StmtLetType) {
     };
 
     if !defined_type.is_error() && !defined_type.is_defined_type(ck.sa) {
-        let tyname = s.pattern.to_name().unwrap();
         ck.sa
-            .report(ck.file_id, s.span, ErrorMessage::VarNeedsTypeInfo(tyname));
+            .report(ck.file_id, s.span, ErrorMessage::VarNeedsTypeOrExpression);
 
         return;
     }

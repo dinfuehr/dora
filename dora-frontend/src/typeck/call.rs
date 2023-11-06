@@ -19,7 +19,7 @@ use crate::typeck::{
     MethodLookup, TypeCheck,
 };
 use crate::typeparamck::{self, ErrorReporting};
-use crate::{AliasReplacement, ErrorMessage, SourceType, SourceTypeArray};
+use crate::{specialize_type, AliasReplacement, ErrorMessage, SourceType, SourceTypeArray};
 
 pub(super) fn check_expr_call(
     ck: &mut TypeCheck,
@@ -709,11 +709,13 @@ fn check_expr_call_generic_type_param(
 
         ck.analysis.set_ty(e.id, return_type.clone());
 
+        let trait_type_params = trait_ty.type_params();
+
         let call_type = CallType::GenericMethod(
             id,
             trait_method.trait_id(),
             trait_method_id,
-            trait_ty.type_params(),
+            trait_type_params.clone(),
         );
         ck.analysis.map_calls.insert(e.id, Arc::new(call_type));
 
@@ -721,13 +723,14 @@ fn check_expr_call_generic_type_param(
             ck.sa,
             trait_method,
             args,
-            &trait_ty.type_params(),
+            &trait_type_params,
             Some(object_type.clone()),
         ) {
             let trait_params = trait_method
                 .params_without_self()
                 .iter()
-                .map(|a| ck.ty_name(a))
+                .map(|a| specialize_type(ck.sa, a.clone(), &trait_type_params))
+                .map(|a| ck.ty_name(&a))
                 .collect::<Vec<String>>();
             let param_names = args.iter().map(|a| ck.ty_name(a)).collect::<Vec<String>>();
             let msg = ErrorMessage::ParamTypesIncompatible(name, trait_params, param_names);
