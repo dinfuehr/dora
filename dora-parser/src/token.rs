@@ -231,6 +231,9 @@ pub enum TokenKind {
     MODIFIERS,
     MODIFIER,
 
+    WHERE_CLAUSES,
+    WHERE_CLAUSE,
+
     // Types
     SELF_TYPE,
     REGULAR_TYPE,

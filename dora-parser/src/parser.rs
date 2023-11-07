@@ -334,6 +334,7 @@ impl Parser {
         self.assert(ENUM_KW);
         let name = self.expect_identifier();
         let type_params = self.parse_type_params();
+        let where_bounds = self.parse_where();
 
         let variants = if self.is(L_BRACE) {
             self.parse_list(
@@ -365,6 +366,7 @@ impl Parser {
             name,
             type_params,
             variants,
+            where_bounds,
         })
     }
 
@@ -467,6 +469,8 @@ impl Parser {
             (type_name, None)
         };
 
+        let where_bounds = self.parse_where();
+
         self.expect(L_BRACE);
 
         let mut methods = Vec::new();
@@ -487,6 +491,7 @@ impl Parser {
             type_params,
             trait_type,
             extended_type: class_type,
+            where_bounds,
             methods,
         })
     }
@@ -528,6 +533,7 @@ impl Parser {
         self.assert(TRAIT_KW);
         let name = self.expect_identifier();
         let type_params = self.parse_type_params();
+        let where_bounds = self.parse_where();
 
         self.expect(L_BRACE);
 
@@ -546,6 +552,7 @@ impl Parser {
             green,
             modifiers: modifiers.clone(),
             type_params,
+            where_bounds,
             span: self.finish_node(),
             methods,
         })
@@ -579,6 +586,7 @@ impl Parser {
         self.assert(STRUCT_KW);
         let ident = self.expect_identifier();
         let type_params = self.parse_type_params();
+        let where_bounds = self.parse_where();
 
         let fields = if self.is(L_PAREN) {
             self.parse_list(
@@ -626,6 +634,7 @@ impl Parser {
             span: self.finish_node(),
             fields,
             type_params,
+            where_bounds,
         })
     }
 
@@ -658,6 +667,7 @@ impl Parser {
 
         let name = self.expect_identifier();
         let type_params = self.parse_type_params();
+        let where_bounds = self.parse_where();
 
         let fields = if self.is(L_PAREN) {
             self.parse_list(
@@ -705,6 +715,7 @@ impl Parser {
             name,
             fields,
             type_params,
+            where_bounds,
         })
     }
 
@@ -849,6 +860,7 @@ impl Parser {
         let type_params = self.parse_type_params();
         let params = self.parse_function_params();
         let return_type = self.parse_function_type();
+        let where_bounds = self.parse_where();
         let block = self.parse_function_block();
 
         let green = self.builder.finish_node(FN);
@@ -863,6 +875,7 @@ impl Parser {
             return_type,
             block,
             type_params,
+            where_bounds,
             green,
         })
     }
@@ -971,6 +984,60 @@ impl Parser {
         } else {
             None
         }
+    }
+
+    fn parse_where(&mut self) -> Option<Where> {
+        if self.eat(WHERE_KW) {
+            self.start_node();
+            self.builder.start_node();
+
+            let mut clauses = Vec::new();
+
+            loop {
+                clauses.push(self.parse_where_clause());
+
+                if !self.eat(COMMA) {
+                    break;
+                }
+            }
+
+            let green = self.builder.finish_node(WHERE_CLAUSES);
+
+            Some(Arc::new(WhereData {
+                id: self.new_node_id(),
+                span: self.finish_node(),
+                green,
+                clauses,
+            }))
+        } else {
+            None
+        }
+    }
+
+    fn parse_where_clause(&mut self) -> WhereClause {
+        self.start_node();
+        self.builder.start_node();
+        let ty = self.parse_type();
+        self.expect(COLON);
+        let mut bounds = Vec::new();
+
+        loop {
+            bounds.push(self.parse_type());
+
+            if !self.eat(ADD) {
+                break;
+            }
+        }
+
+        let green = self.builder.finish_node(WHERE_CLAUSE);
+
+        Arc::new(WhereBoundData {
+            id: self.new_node_id(),
+            span: self.finish_node(),
+            green,
+            ty,
+            bounds,
+        })
     }
 
     fn parse_function_block(&mut self) -> Option<Expr> {
@@ -1984,6 +2051,7 @@ impl Parser {
             return_type,
             block: Some(block),
             type_params: None,
+            where_bounds: None,
             green,
         });
 
@@ -3491,6 +3559,20 @@ mod tests {
             "trait Foo {
             type MY_TYPE;
         }",
+        );
+    }
+
+    #[test]
+    fn parse_where_clauses() {
+        parse(
+            "
+            fn f() where A: B {}
+            struct F where A: B, C: D {}
+            class F where A: B + C, D: E {}
+            impl F for X where A: B + C + D, E: F {}
+            trait F where A: B {}
+            enum F where A: B + C { A, B }
+        ",
         );
     }
 }
