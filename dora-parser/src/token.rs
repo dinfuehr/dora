@@ -68,8 +68,8 @@ pub const MATCH_PATTERN_FIRST: TokenSet = TokenSet::new(&[UNDERSCORE, MUT_KW, ID
 pub const MATCH_PATTERN_RS: TokenSet = TokenSet::new(&[DOUBLE_ARROW]);
 
 pub const ELEM_FIRST: TokenSet = TokenSet::new(&[
-    FN_KW, CLASS_KW, STRUCT_KW, TRAIT_KW, IMPL_KW, ALIAS_KW, LET_KW, CONST_KW, ENUM_KW, MOD_KW,
-    USE_KW, EXTERN_KW,
+    FN_KW, CLASS_KW, STRUCT_KW, TRAIT_KW, IMPL_KW, LET_KW, CONST_KW, ENUM_KW, MOD_KW, USE_KW,
+    EXTERN_KW,
 ]);
 
 pub const EMPTY: TokenSet = TokenSet::new(&[]);
@@ -176,9 +176,9 @@ pub enum TokenKind {
     L_BRACE,
     R_BRACE,
 
-    // unused
+    // types
     TYPE_KW,
-    ALIAS_KW,
+    WHERE_KW,
     UPCASE_SELF_KW,
     UNDERSCORE,
 

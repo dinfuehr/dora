@@ -573,7 +573,7 @@ fn keywords_in_map() -> HashMap<&'static str, TokenKind> {
     keywords.insert("as", AS);
 
     keywords.insert("type", TYPE_KW);
-    keywords.insert("alias", ALIAS_KW);
+    keywords.insert("where", WHERE_KW);
     keywords.insert("Self", UPCASE_SELF_KW);
 
     keywords
@@ -939,7 +939,7 @@ mod tests {
             ]
         );
 
-        let tokens = lex_success("type struct enum alias trait const");
+        let tokens = lex_success("type struct enum trait const");
         assert_eq!(
             tokens,
             vec![
@@ -948,8 +948,6 @@ mod tests {
                 (STRUCT_KW, 6),
                 (WHITESPACE, 1),
                 (ENUM_KW, 4),
-                (WHITESPACE, 1),
-                (ALIAS_KW, 5),
                 (WHITESPACE, 1),
                 (TRAIT_KW, 5),
                 (WHITESPACE, 1),

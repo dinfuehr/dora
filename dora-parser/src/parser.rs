@@ -114,11 +114,6 @@ impl Parser {
                 Arc::new(ElemData::Impl(impl_))
             }
 
-            ALIAS_KW => {
-                let alias = self.parse_alias(modifiers);
-                Arc::new(ElemData::Alias(alias))
-            }
-
             LET_KW => {
                 let global = self.parse_global(modifiers);
                 Arc::new(ElemData::Global(global))
@@ -737,26 +732,6 @@ impl Parser {
             expr: None,
             mutable: true,
         }
-    }
-
-    fn parse_alias(&mut self, modifiers: Option<ModifierList>) -> Arc<Alias> {
-        self.start_node();
-        self.assert(ALIAS_KW);
-        let name = self.expect_identifier();
-        self.expect(EQ);
-        let ty = self.parse_type();
-        self.expect(SEMICOLON);
-
-        let green = self.builder.finish_node(ALIAS);
-
-        Arc::new(Alias {
-            id: self.new_node_id(),
-            name,
-            green,
-            modifiers: modifiers.clone(),
-            span: self.finish_node(),
-            ty,
-        })
     }
 
     fn parse_type_params(&mut self) -> Option<TypeParams> {
@@ -3484,12 +3459,6 @@ mod tests {
         assert_eq!(enum_.variants.len(), 2);
         assert!(enum_.variants[0].types.is_none());
         assert_eq!(enum_.variants[1].types.as_ref().unwrap().len(), 1);
-    }
-
-    #[test]
-    fn parse_alias() {
-        let prog = parse("alias NewType = Int;");
-        let _alias = prog.alias0();
     }
 
     #[test]

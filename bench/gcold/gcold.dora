@@ -20,7 +20,7 @@ let mut mutatorSum: Int64 = 0i64;
 let mut aexport: Array[Int64] = Array[Int64]::new();
 
 let mut trees: Array[TreeNode] = Array[TreeNode]::new();
-let mut where: Int32 = 0i32;
+let mut where_: Int32 = 0i32;
 let mut rnd: std::Random = std::Random::new(0i64);
 
 let mut size: Int32 = 0i32;
@@ -164,11 +164,11 @@ fn oldGenAlloc(n: Int64) {
 
     let mut i = 0i64;
     while i < full {
-        trees(where.toInt64()) = makeTree(treeHeight);
-        where = where + 1i32;
+        trees(where_.toInt64()) = makeTree(treeHeight);
+        where_ = where_ + 1i32;
 
-        if where.toInt64() == trees.size() {
-            where = 0i32;
+        if where_.toInt64() == trees.size() {
+            where_ = 0i32;
         }
 
         i = i + 1i64;
@@ -177,11 +177,11 @@ fn oldGenAlloc(n: Int64) {
     while partial > INSIGNIFICANT {
         let h = bytesToHeight(partial);
         let newTree = makeTree(h);
-        replaceTree(trees(where.toInt64()), newTree);
-        where = where + 1i32;
+        replaceTree(trees(where_.toInt64()), newTree);
+        where_ = where_ + 1i32;
 
-        if where.toInt64() == trees.size() {
-            where = 0i32;
+        if where_.toInt64() == trees.size() {
+            where_ = 0i32;
         }
 
         partial = partial - heightToBytes(h);
