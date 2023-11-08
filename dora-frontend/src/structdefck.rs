@@ -136,4 +136,34 @@ mod tests {
             ErrorMessage::UnknownIdentifier("NonExistingTrait".into()),
         );
     }
+
+    #[test]
+    fn struct_with_where_bounds() {
+        ok("
+            trait MyTrait {}
+            struct Foo[T] where T: MyTrait
+        ");
+
+        ok("
+            trait MyTrait {}
+            struct Foo[T] where Option[T]: MyTrait
+        ");
+
+        err(
+            "
+            trait MyTrait {}
+            struct Foo[T] where F: MyTrait
+        ",
+            (3, 33),
+            ErrorMessage::UnknownIdentifier("F".into()),
+        );
+
+        err(
+            "
+            struct Foo[T] where T: Int64
+        ",
+            (2, 36),
+            ErrorMessage::BoundExpected,
+        );
+    }
 }

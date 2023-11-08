@@ -365,6 +365,11 @@ impl TypeParamDefinition {
         }
     }
 
+    pub fn add_where_bound(&mut self, ty: SourceType, trait_ty: SourceType) {
+        assert!(trait_ty.is_trait());
+        self.bounds.push(Bound { ty, trait_ty });
+    }
+
     pub fn implements_trait(&self, id: TypeParamId, trait_ty: SourceType) -> bool {
         self.bounds.contains(&Bound {
             ty: SourceType::TypeParam(id),

@@ -676,4 +676,42 @@ mod tests {
             }
         ");
     }
+
+    #[test]
+    fn impl_with_where_bounds() {
+        ok("
+            trait MyTrait {}
+            trait Foo {}
+            class Bar[T]
+            impl[T] Foo for Bar[T] where T: MyTrait {}
+        ");
+
+        ok("
+            trait MyTrait {}
+            trait Foo {}
+            class Bar[T]
+            impl[T] Foo for Bar[T] where Option[T]: MyTrait {}
+        ");
+
+        err(
+            "
+            trait MyTrait {}
+            trait Foo {}
+            class Bar[T]
+            impl[T] Foo for Bar[T] where F: MyTrait {}
+        ",
+            (5, 42),
+            ErrorMessage::UnknownIdentifier("F".into()),
+        );
+
+        err(
+            "
+            trait Foo {}
+            class Bar[T]
+            impl[T] Foo for Bar[T] where T: Int64 {}
+        ",
+            (4, 45),
+            ErrorMessage::BoundExpected,
+        );
+    }
 }

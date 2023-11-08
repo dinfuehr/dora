@@ -394,4 +394,34 @@ mod tests {
             }
         ");
     }
+
+    #[test]
+    fn enum_with_where_bounds() {
+        ok("
+            trait MyTrait {}
+            enum Foo[T] where T: MyTrait { A, B }
+        ");
+
+        ok("
+            trait MyTrait {}
+            enum Foo[T] where Option[T]: MyTrait { A, B }
+        ");
+
+        err(
+            "
+            trait MyTrait {}
+            enum Foo[T] where F: MyTrait { A, B }
+        ",
+            (3, 31),
+            ErrorMessage::UnknownIdentifier("F".into()),
+        );
+
+        err(
+            "
+            enum Foo[T] where T: Int64 { A, B }
+        ",
+            (2, 34),
+            ErrorMessage::BoundExpected,
+        );
+    }
 }

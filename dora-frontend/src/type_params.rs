@@ -5,7 +5,7 @@ use dora_parser::Span;
 
 use crate::error::msg::ErrorMessage;
 use crate::readty::parse_type;
-use crate::sema::{Sema, SourceFileId, TypeParamDefinition, TypeParamId};
+use crate::sema::{FctParent, Sema, SourceFileId, TypeParamDefinition, TypeParamId};
 use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::ty::{SourceType, SourceTypeArray};
 
@@ -16,6 +16,8 @@ pub fn check(sa: &Sema) {
     check_enums(sa);
     check_structs(sa);
     check_extensions(sa);
+
+    check_fct(sa);
 }
 
 fn check_traits(sa: &Sema) {
@@ -23,9 +25,13 @@ fn check_traits(sa: &Sema) {
         let mut symtable = ModuleSymTable::new(sa, trait_.module_id);
         symtable.push_level();
 
-        let type_param_definition = read_type_param_definition(
+        let mut type_param_definition = TypeParamDefinition::new();
+
+        read_type_param_definition(
             sa,
+            &mut type_param_definition,
             trait_.ast.type_params.as_ref(),
+            trait_.ast.where_bounds.as_ref(),
             &mut symtable,
             trait_.file_id,
             trait_.span,
@@ -41,9 +47,13 @@ fn check_impls(sa: &Sema) {
         let mut symtable = ModuleSymTable::new(sa, impl_.module_id);
         symtable.push_level();
 
-        let type_param_definition = read_type_param_definition(
+        let mut type_param_definition = TypeParamDefinition::new();
+
+        read_type_param_definition(
             sa,
+            &mut type_param_definition,
             impl_.ast.type_params.as_ref(),
+            impl_.ast.where_bounds.as_ref(),
             &mut symtable,
             impl_.file_id,
             impl_.span,
@@ -62,9 +72,13 @@ fn check_classes(sa: &Sema) {
         let mut symtable = ModuleSymTable::new(sa, cls.module_id);
         symtable.push_level();
 
-        let type_param_definition = read_type_param_definition(
+        let mut type_param_definition = TypeParamDefinition::new();
+
+        read_type_param_definition(
             sa,
+            &mut type_param_definition,
             cls.ast().type_params.as_ref(),
+            cls.ast().where_bounds.as_ref(),
             &mut symtable,
             cls.file_id(),
             cls.span(),
@@ -90,9 +104,13 @@ fn check_enums(sa: &Sema) {
         let mut symtable = ModuleSymTable::new(sa, enum_.module_id);
         symtable.push_level();
 
-        let type_param_definition = read_type_param_definition(
+        let mut type_param_definition = TypeParamDefinition::new();
+
+        read_type_param_definition(
             sa,
+            &mut type_param_definition,
             enum_.ast.type_params.as_ref(),
+            enum_.ast.where_bounds.as_ref(),
             &mut symtable,
             enum_.file_id,
             enum_.span,
@@ -106,22 +124,22 @@ fn check_enums(sa: &Sema) {
 
 fn check_structs(sa: &Sema) {
     for (_struct_id, struct_) in sa.structs.iter() {
-        let type_param_definition;
+        let mut symtable = ModuleSymTable::new(sa, struct_.module_id);
+        symtable.push_level();
 
-        {
-            let mut symtable = ModuleSymTable::new(sa, struct_.module_id);
-            symtable.push_level();
+        let mut type_param_definition = TypeParamDefinition::new();
 
-            type_param_definition = read_type_param_definition(
-                sa,
-                struct_.ast.type_params.as_ref(),
-                &mut symtable,
-                struct_.file_id,
-                struct_.span,
-            );
+        read_type_param_definition(
+            sa,
+            &mut type_param_definition,
+            struct_.ast.type_params.as_ref(),
+            struct_.ast.where_bounds.as_ref(),
+            &mut symtable,
+            struct_.file_id,
+            struct_.span,
+        );
 
-            symtable.pop_level();
-        }
+        symtable.pop_level();
 
         struct_
             .type_params
@@ -135,9 +153,13 @@ fn check_extensions(sa: &Sema) {
         let mut symtable = ModuleSymTable::new(sa, extension.module_id);
         symtable.push_level();
 
-        let type_param_definition = read_type_param_definition(
+        let mut type_param_definition = TypeParamDefinition::new();
+
+        read_type_param_definition(
             sa,
+            &mut type_param_definition,
             extension.ast.type_params.as_ref(),
+            extension.ast.where_bounds.as_ref(),
             &mut symtable,
             extension.file_id,
             extension.span,
@@ -146,6 +168,63 @@ fn check_extensions(sa: &Sema) {
         symtable.pop_level();
 
         assert!(extension.type_params.set(type_param_definition).is_ok());
+    }
+}
+
+fn check_fct(sa: &Sema) {
+    for (_id, fct) in sa.fcts.iter() {
+        let mut sym_table = ModuleSymTable::new(sa, fct.module_id);
+        sym_table.push_level();
+
+        let mut type_param_definition = TypeParamDefinition::new();
+
+        match fct.parent {
+            FctParent::Impl(impl_id) => {
+                let impl_ = sa.impl_(impl_id);
+                type_param_definition.append(impl_.type_params());
+
+                for &alias_id in impl_.aliases() {
+                    let alias = sa.alias(alias_id);
+                    sym_table.insert(alias.name, SymbolKind::TypeAlias(alias_id));
+                }
+            }
+
+            FctParent::Extension(extension_id) => {
+                let extension = sa.extension(extension_id);
+                type_param_definition.append(extension.type_params());
+            }
+
+            FctParent::Trait(trait_id) => {
+                let trait_ = sa.trait_(trait_id);
+                type_param_definition.append(&trait_.type_params());
+
+                for &alias_id in trait_.aliases() {
+                    let alias = sa.alias(alias_id);
+                    sym_table.insert(alias.name, SymbolKind::TypeAlias(alias_id));
+                }
+            }
+
+            FctParent::None => {}
+
+            FctParent::Function => unreachable!(),
+        }
+
+        let container_type_params = type_param_definition.len();
+        assert!(fct.container_type_params.set(container_type_params).is_ok());
+
+        read_type_param_definition(
+            sa,
+            &mut type_param_definition,
+            fct.ast.type_params.as_ref(),
+            fct.ast.where_bounds.as_ref(),
+            &mut sym_table,
+            fct.file_id,
+            fct.span,
+        );
+
+        sym_table.pop_level();
+
+        assert!(fct.type_params.set(type_param_definition).is_ok());
     }
 }
 
@@ -159,13 +238,15 @@ fn build_type_params(number_type_params: usize) -> SourceTypeArray {
 
 fn read_type_param_definition(
     sa: &Sema,
+    type_param_definition: &mut TypeParamDefinition,
     ast_type_params: Option<&ast::TypeParams>,
+    _where_bounds: Option<&ast::Where>,
     symtable: &mut ModuleSymTable,
     file_id: SourceFileId,
     span: Span,
-) -> TypeParamDefinition {
+) {
     if ast_type_params.is_none() {
-        return TypeParamDefinition::new();
+        return;
     }
 
     let ast_type_params = ast_type_params.expect("type params expected");
@@ -173,17 +254,15 @@ fn read_type_param_definition(
     if ast_type_params.params.len() == 0 {
         let msg = ErrorMessage::TypeParamsExpected;
         sa.report(file_id, span, msg);
-
-        return TypeParamDefinition::new();
+        return;
     }
 
     let mut names = HashSet::new();
-    let mut result_type_params = TypeParamDefinition::new();
+    let container_type_params = type_param_definition.len();
 
     // 1) Discover all type parameters.
 
-    for (id, type_param) in ast_type_params.params.iter().enumerate() {
-        let id = TypeParamId(id);
+    for type_param in ast_type_params.params.iter() {
         if let Some(ref ident) = type_param.name {
             let iname = sa.interner.intern(&ident.name_as_string);
 
@@ -193,26 +272,31 @@ fn read_type_param_definition(
                 sa.report(file_id, type_param.span, msg);
             }
 
+            let id = type_param_definition.add_type_param(iname);
+
             let sym = SymbolKind::TypeParam(id);
             symtable.insert(iname, sym);
-
-            result_type_params.add_type_param(iname);
         } else {
             let name = sa.interner.intern("<missing name>");
-            result_type_params.add_type_param(name);
+            type_param_definition.add_type_param(name);
         }
     }
+
+    assert_eq!(
+        type_param_definition.len(),
+        ast_type_params.params.len() + container_type_params
+    );
 
     // 2) Read bounds for type parameters.
 
     for (id, type_param) in ast_type_params.params.iter().enumerate() {
-        let id = TypeParamId(id);
+        let id = TypeParamId(container_type_params + id);
 
         for bound in &type_param.bounds {
             let ty = parse_type(sa, &symtable, file_id, bound);
 
             if ty.is_trait() {
-                if !result_type_params.add_bound(id, ty) {
+                if !type_param_definition.add_bound(id, ty) {
                     let msg = ErrorMessage::DuplicateTraitBound;
                     sa.report(file_id, type_param.span, msg);
                 }
@@ -223,5 +307,22 @@ fn read_type_param_definition(
         }
     }
 
-    result_type_params
+    // 3) Read bounds in where clauses.
+
+    if let Some(where_bounds) = _where_bounds {
+        for clause in where_bounds.clauses.iter() {
+            let ty = parse_type(sa, &symtable, file_id, &clause.ty);
+
+            for bound in &clause.bounds {
+                let bound_ty = parse_type(sa, &symtable, file_id, bound);
+
+                if bound_ty.is_trait() {
+                    type_param_definition.add_where_bound(ty.clone(), bound_ty);
+                } else if !bound_ty.is_error() {
+                    let msg = ErrorMessage::BoundExpected;
+                    sa.report(file_id, bound.span(), msg);
+                }
+            }
+        }
+    }
 }

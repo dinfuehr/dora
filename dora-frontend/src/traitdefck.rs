@@ -168,4 +168,34 @@ mod tests {
             ErrorMessage::TypeExists("a".into(), Span::new(41, 7)),
         );
     }
+
+    #[test]
+    fn trait_with_where_bounds() {
+        ok("
+            trait MyTrait {}
+            trait Foo[T] where T: MyTrait {}
+        ");
+
+        ok("
+            trait MyTrait {}
+            trait Foo[T] where Option[T]: MyTrait {}
+        ");
+
+        err(
+            "
+            trait MyTrait {}
+            trait Foo[T] where F: MyTrait {}
+        ",
+            (3, 32),
+            ErrorMessage::UnknownIdentifier("F".into()),
+        );
+
+        err(
+            "
+            trait Foo[T] where T: Int64 {}
+        ",
+            (2, 35),
+            ErrorMessage::BoundExpected,
+        );
+    }
 }

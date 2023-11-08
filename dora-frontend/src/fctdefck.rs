@@ -1,9 +1,8 @@
-use std::collections::HashSet;
 use std::sync::Arc;
 
 use dora_parser::ast;
 
-use crate::sema::{FctDefinition, FctParent, Sema, TypeParamDefinition, TypeParamId};
+use crate::sema::{FctDefinition, FctParent, Sema};
 use crate::{
     check_type, replace_type, AliasReplacement, AllowSelf, ErrorMessage, ModuleSymTable,
     SourceType, SymbolKind,
@@ -16,13 +15,15 @@ pub fn check(sa: &Sema) {
         let mut sym_table = ModuleSymTable::new(sa, fct.module_id);
         sym_table.push_level();
 
-        let mut type_params = TypeParamDefinition::new();
         let mut param_types: Vec<SourceType> = Vec::new();
+
+        for (id, name) in fct.type_params().names() {
+            sym_table.insert(name, SymbolKind::TypeParam(id));
+        }
 
         match fct.parent {
             FctParent::Impl(impl_id) => {
                 let impl_ = sa.impl_(impl_id);
-                type_params.append(impl_.type_params());
 
                 if fct.has_hidden_self_argument() {
                     param_types.push(impl_.extended_ty());
@@ -36,7 +37,6 @@ pub fn check(sa: &Sema) {
 
             FctParent::Extension(extension_id) => {
                 let extension = sa.extension(extension_id);
-                type_params.append(extension.type_params());
 
                 if fct.has_hidden_self_argument() {
                     param_types.push(extension.ty().clone());
@@ -45,7 +45,6 @@ pub fn check(sa: &Sema) {
 
             FctParent::Trait(trait_id) => {
                 let trait_ = sa.trait_(trait_id);
-                type_params.append(&trait_.type_params());
 
                 if fct.has_hidden_self_argument() {
                     param_types.push(SourceType::This);
@@ -61,70 +60,6 @@ pub fn check(sa: &Sema) {
 
             FctParent::Function => unreachable!(),
         }
-
-        for (id, name) in type_params.names() {
-            sym_table.insert(name, SymbolKind::TypeParam(id));
-        }
-
-        let container_type_params = type_params.len();
-        assert!(fct.container_type_params.set(container_type_params).is_ok());
-
-        if let Some(ref ast_type_params) = ast.type_params {
-            if ast_type_params.params.len() > 0 {
-                let mut names = HashSet::new();
-
-                for (type_param_id, type_param) in ast_type_params.params.iter().enumerate() {
-                    let name = sa.interner.intern(
-                        &type_param
-                            .name
-                            .as_ref()
-                            .expect("missing name")
-                            .name_as_string,
-                    );
-
-                    if !names.insert(name) {
-                        let name = sa.interner.str(name).to_string();
-                        let msg = ErrorMessage::TypeParamNameNotUnique(name);
-                        sa.report(fct.file_id, type_param.span, msg);
-                    }
-
-                    type_params.add_type_param(name);
-
-                    for bound in &type_param.bounds {
-                        let trait_bound_ty = check_type(
-                            sa,
-                            &sym_table,
-                            fct.file_id,
-                            bound,
-                            &type_params,
-                            AllowSelf::No,
-                        );
-
-                        if trait_bound_ty.is_trait() {
-                            if !type_params.add_bound(
-                                TypeParamId(container_type_params + type_param_id),
-                                trait_bound_ty,
-                            ) {
-                                let msg = ErrorMessage::DuplicateTraitBound;
-                                sa.report(fct.file_id, type_param.span, msg);
-                            }
-                        } else if !trait_bound_ty.is_error() {
-                            let msg = ErrorMessage::BoundExpected;
-                            sa.report(fct.file_id, bound.span(), msg);
-                        }
-                    }
-
-                    let sym =
-                        SymbolKind::TypeParam(TypeParamId(container_type_params + type_param_id));
-                    sym_table.insert(name, sym);
-                }
-            } else {
-                let msg = ErrorMessage::TypeParamsExpected;
-                sa.report(fct.file_id, fct.span, msg);
-            }
-        }
-
-        assert!(fct.type_params.set(type_params).is_ok());
 
         for p in &ast.params {
             if fct.is_variadic.get() {
@@ -332,6 +267,36 @@ mod tests {
             "fn f(a: T) {}",
             (1, 9),
             ErrorMessage::UnknownIdentifier("T".into()),
+        );
+    }
+
+    #[test]
+    fn fct_with_where_bounds() {
+        ok("
+            trait MyTrait {}
+            fn f[T]() where T: MyTrait {}
+        ");
+
+        ok("
+            trait MyTrait {}
+            fn f[T]() where Option[T]: MyTrait {}
+        ");
+
+        err(
+            "
+            trait MyTrait {}
+            fn f[T]() where F: MyTrait {}
+        ",
+            (3, 29),
+            ErrorMessage::UnknownIdentifier("F".into()),
+        );
+
+        err(
+            "
+            fn f[T]() where T: Int64 {}
+        ",
+            (2, 32),
+            ErrorMessage::BoundExpected,
         );
     }
 }

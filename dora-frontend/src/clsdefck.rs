@@ -156,4 +156,34 @@ mod tests {
             }
         ");
     }
+
+    #[test]
+    fn class_with_where_bounds() {
+        ok("
+            trait MyTrait {}
+            class Foo[T] where T: MyTrait
+        ");
+
+        ok("
+            trait MyTrait {}
+            class Foo[T] where Option[T]: MyTrait
+        ");
+
+        err(
+            "
+            trait MyTrait {}
+            class Foo[T] where F: MyTrait
+        ",
+            (3, 32),
+            ErrorMessage::UnknownIdentifier("F".into()),
+        );
+
+        err(
+            "
+            class Foo[T] where T: Int64
+        ",
+            (2, 35),
+            ErrorMessage::BoundExpected,
+        );
+    }
 }
