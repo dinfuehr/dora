@@ -24,7 +24,7 @@ use crate::vtable::VTable;
 
 pub use crate::gc::root::{iterate_strong_roots, iterate_weak_roots, Slot};
 
-use self::swiper::REGION_SIZE;
+use self::swiper::PAGE_SIZE;
 
 pub mod allocator;
 pub mod bump;
@@ -46,7 +46,7 @@ pub const M: usize = K * K;
 
 const CHUNK_SIZE: usize = 8 * K;
 pub const DEFAULT_CODE_SPACE_LIMIT: usize = 2 * M;
-pub const DEFAULT_READONLY_SPACE_LIMIT: usize = REGION_SIZE;
+pub const DEFAULT_READONLY_SPACE_LIMIT: usize = PAGE_SIZE;
 
 // young/old gen are aligned to at least this size
 const GEN_ALIGNMENT_BITS: usize = 17;
@@ -67,7 +67,7 @@ impl Gc {
     pub fn new(args: &Flags) -> Gc {
         let readonly_config = SpaceConfig {
             executable: false,
-            chunk: REGION_SIZE,
+            chunk: PAGE_SIZE,
             limit: args.readonly_size(),
             object_alignment: mem::ptr_width_usize(),
         };
@@ -339,12 +339,12 @@ impl Address {
 
     #[inline(always)]
     pub fn align_region_up(self) -> Address {
-        align_region_up(self.to_usize()).into()
+        align_page_up(self.to_usize()).into()
     }
 
     #[inline(always)]
     pub fn align_region_down(self) -> Address {
-        align_region_down(self.to_usize()).into()
+        align_page_down(self.to_usize()).into()
     }
 
     #[inline(always)]
@@ -527,17 +527,17 @@ pub fn gen_aligned(size: usize) -> bool {
 }
 
 /// round the given value up to the nearest multiple of a generation
-pub fn align_region_up(value: usize) -> usize {
-    (value + REGION_SIZE - 1) & !(REGION_SIZE - 1)
+pub fn align_page_up(value: usize) -> usize {
+    (value + PAGE_SIZE - 1) & !(PAGE_SIZE - 1)
 }
 
-pub fn align_region_down(value: usize) -> usize {
-    value & !(REGION_SIZE - 1)
+pub fn align_page_down(value: usize) -> usize {
+    value & !(PAGE_SIZE - 1)
 }
 
 /// returns true if given size is gen aligned
 pub fn is_region_aligned(size: usize) -> bool {
-    (size & (REGION_SIZE - 1)) == 0
+    (size & (PAGE_SIZE - 1)) == 0
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]

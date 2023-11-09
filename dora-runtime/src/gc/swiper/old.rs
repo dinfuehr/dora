@@ -4,7 +4,7 @@ use crate::gc::swiper::card::CardTable;
 use crate::gc::swiper::controller::SharedHeapConfig;
 use crate::gc::swiper::crossing::CrossingMap;
 use crate::gc::swiper::CommonOldGen;
-use crate::gc::swiper::REGION_SIZE;
+use crate::gc::swiper::PAGE_SIZE;
 use crate::gc::{Address, GenerationAllocator, Region};
 use crate::os::{self, MemoryPermission};
 
@@ -60,11 +60,6 @@ impl OldGen {
     pub fn protected(&self) -> MutexGuard<OldGenProtected> {
         self.protected.lock()
     }
-
-    pub fn dump_regions(&self) {
-        let protected = self.protected.lock();
-        protected.dump_regions();
-    }
 }
 
 impl CommonOldGen for OldGen {
@@ -84,6 +79,7 @@ pub struct OldGenProtected {
     pub size: usize,
     pub top: Address,
     pub current_limit: Address,
+    pub pages: Vec<Address>,
 }
 
 impl OldGenProtected {
@@ -93,6 +89,7 @@ impl OldGenProtected {
             size: 0,
             top: total.start(),
             current_limit: total.start(),
+            pages: Vec::new(),
         }
     }
 
@@ -123,7 +120,7 @@ impl OldGenProtected {
         self.top.offset_from(self.total.start())
     }
 
-    pub fn alloc(&mut self, config: &SharedHeapConfig, size: usize) -> Option<Address> {
+    fn alloc(&mut self, config: &SharedHeapConfig, size: usize) -> Option<Address> {
         assert!(self.top <= self.current_limit);
 
         if let Some(address) = self.raw_alloc(size) {
@@ -133,12 +130,12 @@ impl OldGenProtected {
         {
             let mut config = config.lock();
 
-            if !config.grow_old(REGION_SIZE) {
+            if !config.grow_old(PAGE_SIZE) {
                 return None;
             }
         }
 
-        if !self.extend(REGION_SIZE) {
+        if !self.add_page() {
             return None;
         }
 
@@ -157,20 +154,18 @@ impl OldGenProtected {
         }
     }
 
-    fn extend(&mut self, size: usize) -> bool {
-        let new_limit = self.current_limit.offset(size);
+    fn add_page(&mut self) -> bool {
+        let page_start = self.current_limit;
+        let page_end = page_start.offset(PAGE_SIZE);
 
-        if new_limit > self.total.end() {
+        if page_end > self.total.end() {
             return false;
         }
 
-        os::commit_at(self.current_limit, size, MemoryPermission::ReadWrite);
-        self.current_limit = new_limit;
+        os::commit_at(self.current_limit, PAGE_SIZE, MemoryPermission::ReadWrite);
+        self.current_limit = page_end;
+        self.pages.push(page_start);
         true
-    }
-
-    pub fn dump_regions(&self) {
-        println!("OLD gen: {}-{}", self.total, self.top);
     }
 }
 

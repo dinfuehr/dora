@@ -17,7 +17,7 @@ use crate::gc::swiper::young::YoungGen;
 use crate::gc::tlab;
 use crate::gc::Collector;
 use crate::gc::GcReason;
-use crate::gc::{align_region_up, fill_region, formatted_size, Address, Region, K};
+use crate::gc::{align_page_up, fill_region, formatted_size, Address, Region, K};
 use crate::mem;
 use crate::object::Obj;
 use crate::os::{self, MemoryPermission, Reservation};
@@ -46,8 +46,8 @@ pub const CARD_SIZE: usize = 512;
 pub const CARD_SIZE_BITS: usize = 9;
 pub const CARD_REFS: usize = CARD_SIZE / size_of::<usize>();
 
-pub const LARGE_OBJECT_SIZE: usize = 16 * K;
-pub const REGION_SIZE: usize = 128 * K;
+pub const LARGE_OBJECT_SIZE: usize = 64 * K;
+pub const PAGE_SIZE: usize = 128 * K;
 
 pub struct Swiper {
     // contiguous memory for young/old generation and large space
@@ -78,8 +78,8 @@ pub struct Swiper {
 
 impl Swiper {
     pub fn new(args: &Flags) -> Swiper {
-        let max_heap_size = align_region_up(args.max_heap_size());
-        let min_heap_size = align_region_up(args.min_heap_size());
+        let max_heap_size = align_page_up(args.max_heap_size());
+        let min_heap_size = align_page_up(args.min_heap_size());
 
         let mut config = HeapConfig::new(min_heap_size, max_heap_size);
 
@@ -95,7 +95,7 @@ impl Swiper {
         let reserve_size = max_heap_size * 4 + card_size + crossing_size;
 
         // reserve full memory
-        let reservation = os::reserve_align(reserve_size, REGION_SIZE, false);
+        let reservation = os::reserve_align(reserve_size, PAGE_SIZE, false);
         let heap_start = reservation.start();
         assert!(heap_start.is_gen_aligned());
 

@@ -7,7 +7,7 @@ use std::time::Instant;
 
 use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::young::YoungGen;
-use crate::gc::swiper::{CollectionKind, CommonOldGen, REGION_SIZE};
+use crate::gc::swiper::{CollectionKind, CommonOldGen, PAGE_SIZE};
 use crate::gc::{align_gen, align_gen_down, formatted_size, AllNumbers, GcReason, M};
 use crate::mem;
 use crate::stdlib;
@@ -20,7 +20,7 @@ pub fn init(config: &mut HeapConfig, args: &Flags) {
     assert!(config.min_heap_size <= config.max_heap_size);
 
     let young_size = if let Some(young_size) = args.young_size() {
-        min(align_gen(young_size), config.max_heap_size - REGION_SIZE)
+        min(align_gen(young_size), config.max_heap_size - PAGE_SIZE)
     } else if args.young_appel() {
         let max_heap_size = (config.max_heap_size as f64 * 0.9) as usize;
         align_gen(max_heap_size / 2)
@@ -28,7 +28,7 @@ pub fn init(config: &mut HeapConfig, args: &Flags) {
         unreachable!();
     };
 
-    let young_size = max(young_size, REGION_SIZE);
+    let young_size = max(young_size, PAGE_SIZE);
     let (eden_size, semi_size) = calculate_young_size(args, young_size, 0);
 
     config.eden_size = eden_size;
@@ -58,7 +58,7 @@ fn calculate_young_size(args: &Flags, young_size: usize, min_semi_size: usize) -
     };
 
     let semi_size = max(semi_size, min_semi_size);
-    let semi_size = max(semi_size, REGION_SIZE);
+    let semi_size = max(semi_size, PAGE_SIZE);
     let eden_size = young_size - semi_size;
 
     (eden_size, semi_size)
@@ -119,7 +119,7 @@ pub fn stop(
     let rest = config.max_heap_size - config.old_size;
     let target_young_size = align_gen_down(rest / 2);
     let target_young_size = min(target_young_size, max_young_size);
-    let target_young_size = max(target_young_size, REGION_SIZE);
+    let target_young_size = max(target_young_size, PAGE_SIZE);
 
     let to_size = young.to_active().size();
     let min_semi_size = align_gen(mem::page_align(to_size) * 2);
