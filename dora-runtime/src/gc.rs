@@ -9,7 +9,6 @@ use crate::gc::allocator::GenerationAllocator;
 use crate::gc::code::CodeSpace;
 use crate::gc::compact::MarkCompactCollector;
 use crate::gc::copy::CopyCollector;
-use crate::gc::region::RegionCollector;
 use crate::gc::space::{Space, SpaceConfig};
 use crate::gc::sweep::SweepCollector;
 use crate::gc::swiper::{Swiper, CARD_SIZE};
@@ -35,7 +34,6 @@ pub mod copy;
 pub mod freelist;
 pub mod marking;
 pub mod pmarking;
-pub mod region;
 pub mod root;
 pub mod space;
 pub mod sweep;
@@ -82,7 +80,6 @@ impl Gc {
             CollectorName::Copy => Box::new(CopyCollector::new(args)),
             CollectorName::Sweep => Box::new(SweepCollector::new(args)),
             CollectorName::Swiper => Box::new(Swiper::new(args)),
-            CollectorName::Region => Box::new(RegionCollector::new(args)),
         };
 
         let supports_tlab = !args.disable_tlab && collector.supports_tlab();

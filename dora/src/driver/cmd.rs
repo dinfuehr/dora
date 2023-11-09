@@ -263,7 +263,6 @@ pub fn parse_arguments() -> Result<Args, String> {
                 "copy" => CollectorName::Copy,
                 "sweep" => CollectorName::Sweep,
                 "swiper" => CollectorName::Swiper,
-                "region" => CollectorName::Region,
                 _ => return Err(format!("--gc: unknown collector '{}'", value)),
             };
             args.gc = Some(value);

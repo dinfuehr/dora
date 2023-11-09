@@ -1,5 +1,4 @@
 //= vm-args "--gc-young-size=64M --max-heap-size=128M"
-//= config region
 
 fn main() {
     let mut i = 0i32;

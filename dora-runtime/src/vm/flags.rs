@@ -95,7 +95,6 @@ pub enum CollectorName {
     Copy,
     Sweep,
     Swiper,
-    Region,
 }
 
 #[derive(Copy, Clone, Debug)]
