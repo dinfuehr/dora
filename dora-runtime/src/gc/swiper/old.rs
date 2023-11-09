@@ -1,12 +1,11 @@
 use parking_lot::{Mutex, MutexGuard};
-use std::cmp::min;
 
 use crate::gc::swiper::card::CardTable;
 use crate::gc::swiper::controller::SharedHeapConfig;
 use crate::gc::swiper::crossing::CrossingMap;
 use crate::gc::swiper::CommonOldGen;
 use crate::gc::swiper::REGION_SIZE;
-use crate::gc::{Address, Region};
+use crate::gc::{Address, GenerationAllocator, Region};
 use crate::os::{self, MemoryPermission};
 
 pub struct OldGen {
@@ -46,11 +45,6 @@ impl OldGen {
 
     pub fn total_start(&self) -> Address {
         self.total.start
-    }
-
-    pub fn alloc(&self, size: usize) -> Address {
-        let mut protected = self.protected.lock();
-        protected.alloc(&self.config, size)
     }
 
     pub fn contains_slow(&self, addr: Address) -> bool {
@@ -129,38 +123,37 @@ impl OldGenProtected {
         self.top.offset_from(self.total.start())
     }
 
-    pub fn alloc(&mut self, config: &SharedHeapConfig, size: usize) -> Address {
+    pub fn alloc(&mut self, config: &SharedHeapConfig, size: usize) -> Option<Address> {
         assert!(self.top <= self.current_limit);
-        let ptr = self.pure_alloc(size);
 
-        if ptr.is_non_null() {
-            return ptr;
+        if let Some(address) = self.raw_alloc(size) {
+            return Some(address);
         }
 
         {
             let mut config = config.lock();
 
             if !config.grow_old(REGION_SIZE) {
-                return Address::null();
+                return None;
             }
         }
 
         if !self.extend(REGION_SIZE) {
-            return Address::null();
+            return None;
         }
 
-        self.pure_alloc(size)
+        self.raw_alloc(size)
     }
 
-    fn pure_alloc(&mut self, size: usize) -> Address {
+    fn raw_alloc(&mut self, size: usize) -> Option<Address> {
         let next = self.top.offset(size);
 
         if next <= self.current_limit {
             let result = self.top;
             self.top = next;
-            result
+            Some(result)
         } else {
-            Address::null()
+            None
         }
     }
 
@@ -181,116 +174,13 @@ impl OldGenProtected {
     }
 }
 
-#[derive(Clone)]
-pub struct OldGenRegion {
-    // Region boundaries. NOT necessarily page aligned!
-    total: Region,
-
-    // Maximum boundaries of mappings. Page aligned.
-    total_mapping: Region,
-
-    // Next object in this region is allocated here.
-    top: Address,
-
-    // Memory is mapped until here
-    mapping_top: Address,
-}
-
-impl OldGenRegion {
-    fn single(region: Region) -> OldGenRegion {
-        assert!(region.start.is_page_aligned());
-
-        OldGenRegion {
-            total: region.clone(),
-            top: region.start,
-            total_mapping: region.clone(),
-            mapping_top: region.start,
-        }
+impl GenerationAllocator for OldGen {
+    fn allocate(&self, size: usize) -> Option<Address> {
+        let mut protected = self.protected.lock();
+        protected.alloc(&self.config, size)
     }
 
-    pub fn new(
-        total: Region,
-        top: Address,
-        total_mapping: Region,
-        mapping_top: Address,
-    ) -> OldGenRegion {
-        assert!(total.valid_top(top));
-        assert!(total_mapping.valid_top(mapping_top));
-
-        OldGenRegion {
-            total,
-            total_mapping,
-            top,
-            mapping_top,
-        }
-    }
-
-    pub fn start(&self) -> Address {
-        self.total.start
-    }
-
-    pub fn top(&self) -> Address {
-        self.top
-    }
-
-    #[allow(dead_code)]
-    pub fn size(&self) -> usize {
-        self.total.size()
-    }
-
-    pub fn active_size(&self) -> usize {
-        self.top.offset_from(self.total.start)
-    }
-
-    pub fn active_region(&self) -> Region {
-        Region::new(self.total.start, self.top)
-    }
-
-    pub fn total_region(&self) -> Region {
-        self.total.clone()
-    }
-
-    pub fn committed_region(&self) -> Region {
-        Region::new(self.mapping_start(), self.mapping_end())
-    }
-
-    fn mapping_start(&self) -> Address {
-        self.total_mapping.start
-    }
-
-    fn mapping_end(&self) -> Address {
-        self.mapping_top
-    }
-
-    #[allow(dead_code)]
-    fn mapping_size(&self) -> usize {
-        self.mapping_end().offset_from(self.mapping_start())
-    }
-
-    fn pure_alloc(&mut self, size: usize) -> Option<Address> {
-        let new_top = self.top.offset(size);
-        debug_assert!(self.top <= self.mapping_top);
-        debug_assert!(self.top <= self.total.end);
-
-        if new_top <= min(self.mapping_top, self.total.end) {
-            let addr = self.top;
-            self.top = new_top;
-            return Some(addr);
-        }
-
-        None
-    }
-
-    fn extend(&mut self, size: usize) -> bool {
-        let new_mapping_top = self.mapping_top.offset(size);
-
-        if new_mapping_top <= self.total_mapping.end {
-            os::commit_at(self.mapping_top, size, MemoryPermission::ReadWrite);
-            self.mapping_top = new_mapping_top;
-
-            true
-        } else {
-            false
-        }
+    fn free(&self, _region: Region) {
+        // No free list yet, so simply ignore this.
     }
 }

@@ -5,6 +5,7 @@ use std::fmt;
 use std::sync::atomic::{AtomicUsize, Ordering as AtomicOrdering};
 use std::sync::Arc;
 
+use crate::gc::allocator::GenerationAllocator;
 use crate::gc::code::CodeSpace;
 use crate::gc::compact::MarkCompactCollector;
 use crate::gc::copy::CopyCollector;
@@ -26,6 +27,7 @@ pub use crate::gc::root::{iterate_strong_roots, iterate_weak_roots, Slot};
 
 use self::swiper::REGION_SIZE;
 
+pub mod allocator;
 pub mod bump;
 pub mod code;
 pub mod compact;

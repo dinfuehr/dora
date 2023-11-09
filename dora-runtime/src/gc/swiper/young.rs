@@ -9,24 +9,15 @@ pub struct YoungGen {
     // bounds of eden & semi-spaces
     total: Region,
 
-    // eden space
-    eden: Eden,
-
     // from/to-space
     semi: SemiSpace,
 }
 
 impl YoungGen {
-    pub fn new(total: Region, eden_size: usize, semi_size: usize, protect: bool) -> YoungGen {
-        let eden_total_size = total.size() / 2;
-
-        let eden_total = total.start.region_start(eden_total_size);
-        let semi_total = Region::new(eden_total.end, total.end);
-
+    pub fn new(total: Region, semi_size: usize, protect: bool) -> YoungGen {
         let young = YoungGen {
             total,
-            eden: Eden::new(eden_total, eden_size),
-            semi: SemiSpace::new(semi_total, semi_size, protect),
+            semi: SemiSpace::new(total, semi_size, protect),
         };
 
         young.commit();
@@ -36,21 +27,7 @@ impl YoungGen {
     }
 
     fn commit(&self) {
-        self.eden.commit();
         self.semi.commit();
-    }
-
-    pub fn eden_active(&self) -> Region {
-        self.eden.active()
-    }
-
-    #[allow(dead_code)]
-    pub fn eden_committed(&self) -> Region {
-        self.eden.committed()
-    }
-
-    pub fn eden_total(&self) -> Region {
-        self.eden.total()
     }
 
     pub fn from_active(&self) -> Region {
@@ -87,7 +64,6 @@ impl YoungGen {
     }
 
     pub fn clear(&self) {
-        self.eden.reset_top();
         self.semi.clear_from();
         self.semi.clear_to();
 
@@ -96,7 +72,7 @@ impl YoungGen {
     }
 
     pub fn active_size(&self) -> usize {
-        self.eden.active().size() + self.semi.from_block().active().size()
+        self.semi.from_block().active().size()
     }
 
     pub fn unprotect_from(&self) {
@@ -116,7 +92,6 @@ impl YoungGen {
     }
 
     pub fn minor_success(&self, top: Address) {
-        self.eden.reset_top();
         self.semi.clear_from();
         self.semi.protect_from();
         self.semi.to_block().set_top(top);
@@ -134,69 +109,17 @@ impl YoungGen {
     }
 
     pub fn bump_alloc(&self, size: usize) -> Address {
-        let eden_ptr = self.eden.bump_alloc(size);
-
-        if eden_ptr.is_non_null() {
-            return eden_ptr;
-        }
-
         return self.semi.bump_alloc(size);
     }
 
     pub fn set_limit(&self, eden_size: usize, semi_size: usize) {
         assert!(gen_aligned(eden_size));
         assert!(gen_aligned(semi_size));
-
-        self.eden.set_limit(eden_size);
         self.semi.set_limit(semi_size);
     }
 
-    pub fn committed_size(&self) -> (usize, usize) {
-        (self.eden.committed_size(), self.semi.committed_size())
-    }
-}
-
-struct Eden {
-    block: Block,
-}
-
-impl Eden {
-    fn new(total: Region, committed_size: usize) -> Eden {
-        Eden {
-            block: Block::new(total.clone(), committed_size),
-        }
-    }
-
-    fn commit(&self) {
-        self.block.commit();
-    }
-
-    fn total(&self) -> Region {
-        self.block.total()
-    }
-
-    fn committed(&self) -> Region {
-        self.block.committed()
-    }
-
-    fn committed_size(&self) -> usize {
-        self.block.committed_size()
-    }
-
-    fn active(&self) -> Region {
-        self.block.active()
-    }
-
-    fn reset_top(&self) {
-        self.block.reset_top();
-    }
-
-    fn bump_alloc(&self, size: usize) -> Address {
-        self.block.bump_alloc(size)
-    }
-
-    fn set_limit(&self, size: usize) {
-        self.block.set_limit(size);
+    pub fn committed_size(&self) -> usize {
+        self.semi.committed_size()
     }
 }
 

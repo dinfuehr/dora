@@ -207,8 +207,7 @@ impl<'a> FullCollector<'a> {
     }
 
     fn fits_into_heap(&mut self) -> bool {
-        let (eden_size, semi_size) = self.young.committed_size();
-        let young_size = eden_size + semi_size;
+        let young_size = self.young.committed_size();
         let old_size = self.old_top.align_gen().offset_from(self.old.total_start());
         let large_size = self.large_space.committed_size();
 
@@ -319,11 +318,6 @@ impl<'a> FullCollector<'a> {
             fct(self, obj, addr, size);
         });
 
-        let used_region = self.young.eden_active();
-        walk_region(used_region, |obj, addr, size| {
-            fct(self, obj, addr, size);
-        });
-
         // This is a bit strange at first: from-space might not be empty,
         // after too many survivors in the minor GC of the young gen.
         let used_region = self.young.from_active();
@@ -344,11 +338,6 @@ impl<'a> FullCollector<'a> {
         let vm = self.vm;
 
         walk_region_and_skip_garbage(vm, self.old_protected.active_region(), |obj, addr, size| {
-            fct(self, obj, addr, size)
-        });
-
-        let used_region = self.young.eden_active();
-        walk_region_and_skip_garbage(vm, used_region, |obj, addr, size| {
             fct(self, obj, addr, size)
         });
 
@@ -385,9 +374,6 @@ pub fn verify_marking(
     heap: Region,
 ) {
     verify_marking_region(old_protected.active_region(), heap);
-
-    let eden = young.eden_active();
-    verify_marking_region(eden, heap);
 
     let from = young.from_active();
     verify_marking_region(from, heap);

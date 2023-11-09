@@ -84,7 +84,6 @@ pub struct Verifier<'a> {
     in_large: bool,
 
     young_total: Region,
-    eden_active: Region,
     from_active: Region,
     to_active: Region,
     reserved_area: Region,
@@ -124,7 +123,6 @@ impl<'a> Verifier<'a> {
             in_old: false,
             in_large: false,
 
-            eden_active: young.eden_active(),
             from_active: young.from_active(),
             to_active: young.to_active(),
             young_total: young.total(),
@@ -144,9 +142,6 @@ impl<'a> Verifier<'a> {
     }
 
     fn verify_young(&mut self) {
-        let region = self.young.eden_active();
-        self.verify_objects(region, "young gen (eden)");
-
         let region = self.from_active.clone();
         if !self.promotion_failed {
             assert!(region.empty(), "from-space should be empty.");
@@ -382,7 +377,6 @@ impl<'a> Verifier<'a> {
         }
 
         if self.old_protected.contains(reference)
-            || self.eden_active.contains(reference)
             || self.to_active.contains(reference)
             || self.readonly_space.contains(reference)
             || self.large.contains(reference)
@@ -421,15 +415,8 @@ impl<'a> Verifier<'a> {
             println!("\tsource object of {:?} (size={})", cls.kind, size);
         }
 
-        if self.young.contains(reference)
-            && !self.to_active.contains(reference)
-            && !self.eden_active.contains(reference)
-        {
+        if self.young.contains(reference) && !self.to_active.contains(reference) {
             println!("reference points into young generation but not into the active semi-space.");
-
-            if self.young.eden_total().contains(reference) {
-                println!("\treference points into eden-space");
-            }
 
             if self.young.from_total().contains(reference) {
                 println!("\treference points into from-space");
@@ -458,12 +445,6 @@ impl<'a> Verifier<'a> {
             self.readonly_space.total(),
             perm_region,
             perm_region.size(),
-        );
-        println!(
-            "EDN: {}; active: {} (size 0x{:x})",
-            self.young.eden_total(),
-            self.eden_active,
-            self.eden_active.size(),
         );
         println!(
             "FRM: {}; active: {} (size 0x{:x})",

@@ -69,8 +69,7 @@ pub fn choose_collection_kind(
     _args: &Flags,
     young: &YoungGen,
 ) -> CollectionKind {
-    let (eden_size, semi_size) = young.committed_size();
-    let young_size = eden_size + semi_size;
+    let young_size = young.committed_size();
 
     return if young_size <= M {
         CollectionKind::Full
@@ -106,7 +105,6 @@ pub fn stop(
     let duration = config.gc_start.expect("not started").elapsed();
     config.gc_duration = duration.as_secs_f32() / 1000f32;
 
-    assert!(young.eden_active().empty());
     assert!(young.from_active().empty());
 
     let old_size = old.committed_size() + large.committed_size();
@@ -205,10 +203,7 @@ fn object_size(young: &YoungGen, old: &dyn CommonOldGen, large: &LargeSpace) -> 
 }
 
 fn memory_size(young: &YoungGen, old: &dyn CommonOldGen, large: &LargeSpace) -> usize {
-    let (eden_size, semi_size) = young.committed_size();
-    let young_size = eden_size + semi_size;
-
-    young_size + old.committed_size() + large.committed_size()
+    young.committed_size() + old.committed_size() + large.committed_size()
 }
 
 pub struct HeapConfig {

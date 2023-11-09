@@ -13,7 +13,7 @@ use crate::gc::swiper::old::OldGen;
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{forward_minor, CardIdx, CARD_SIZE, LARGE_OBJECT_SIZE};
 use crate::gc::tlab::{TLAB_OBJECT_SIZE, TLAB_SIZE};
-use crate::gc::{fill_region, iterate_weak_roots, Address, GcReason, Region};
+use crate::gc::{fill_region, iterate_weak_roots, Address, GcReason, GenerationAllocator, Region};
 use crate::object::Obj;
 use crate::threads::DoraThread;
 use crate::timer::Timer;
@@ -45,7 +45,6 @@ pub struct MinorCollector<'a> {
     promoted_size: usize,
 
     from_active: Region,
-    eden_active: Region,
 
     _min_heap_size: usize,
     _max_heap_size: usize,
@@ -91,7 +90,6 @@ impl<'a> MinorCollector<'a> {
             promoted_size: 0,
 
             from_active: Default::default(),
-            eden_active: young.eden_active(),
 
             _reason: reason,
 
@@ -147,7 +145,6 @@ impl<'a> MinorCollector<'a> {
 
         self.young.minor_success(self.young_top);
 
-        assert!(self.young.eden_active().empty());
         assert!(self.young.from_active().empty());
 
         let mut config = self.config.lock();
@@ -247,7 +244,6 @@ impl<'a> MinorCollector<'a> {
                         barrier,
 
                         from_active: young.from_active(),
-                        eden_active: young.eden_active(),
 
                         next_card_stride,
                         next_root_stride,
@@ -295,9 +291,6 @@ impl<'a> MinorCollector<'a> {
     }
 
     fn remove_forwarding_pointers(&mut self) {
-        let region = self.eden_active.clone();
-        self.remove_forwarding_pointers_in_region(region);
-
         let region = self.from_active.clone();
         self.remove_forwarding_pointers_in_region(region);
     }
@@ -362,15 +355,15 @@ impl Lab {
         self.limit = Address::null();
     }
 
-    fn alloc(&mut self, size: usize) -> Address {
+    fn allocate(&mut self, size: usize) -> Option<Address> {
         let object_start = self.top;
         let object_end = object_start.offset(size);
 
         if object_end <= self.limit {
             self.top = object_end;
-            object_start
+            Some(object_start)
         } else {
-            Address::null()
+            None
         }
     }
 
@@ -381,7 +374,7 @@ impl Lab {
 }
 
 const CLAB_SIZE: usize = TLAB_SIZE;
-const CLAB_OBJECT_SIZE: usize = TLAB_OBJECT_SIZE;
+const LAB_OBJECT_SIZE: usize = TLAB_OBJECT_SIZE;
 
 const LOCAL_MAXIMUM: usize = 64;
 
@@ -409,7 +402,6 @@ struct CopyTask<'a> {
 
     young_region: Region,
     from_active: Region,
-    eden_active: Region,
 
     promoted_size: usize,
     traced: usize,
@@ -748,7 +740,7 @@ impl<'a> CopyTask<'a> {
     }
 
     fn alloc_young(&mut self, size: usize) -> Address {
-        if size < CLAB_OBJECT_SIZE {
+        if size < LAB_OBJECT_SIZE {
             self.alloc_young_small(size)
         } else {
             self.alloc_young_medium(size)
@@ -756,10 +748,9 @@ impl<'a> CopyTask<'a> {
     }
 
     fn alloc_young_small(&mut self, size: usize) -> Address {
-        debug_assert!(size < CLAB_OBJECT_SIZE);
-        let object_start = self.young_lab.alloc(size);
+        debug_assert!(size < LAB_OBJECT_SIZE);
 
-        if object_start.is_non_null() {
+        if let Some(object_start) = self.young_lab.allocate(size) {
             return object_start;
         } else if self.copy_failed {
             return Address::null();
@@ -771,11 +762,11 @@ impl<'a> CopyTask<'a> {
             return Address::null();
         }
 
-        self.young_lab.alloc(size)
+        self.young_lab.allocate(size).unwrap_or(Address::null())
     }
 
     fn alloc_young_medium(&mut self, size: usize) -> Address {
-        debug_assert!(CLAB_OBJECT_SIZE <= size && size < LARGE_OBJECT_SIZE);
+        debug_assert!(LAB_OBJECT_SIZE <= size && size < LARGE_OBJECT_SIZE);
 
         if self.copy_failed {
             return Address::null();
@@ -821,7 +812,7 @@ impl<'a> CopyTask<'a> {
     }
 
     fn undo_alloc_young(&mut self, copy_addr: Address, size: usize) {
-        if size < CLAB_OBJECT_SIZE {
+        if size < LAB_OBJECT_SIZE {
             self.young_lab.undo_alloc(size)
         } else {
             // Can't undo mid-sized objects. Need to make the heap iterable.
@@ -830,7 +821,7 @@ impl<'a> CopyTask<'a> {
     }
 
     fn alloc_old(&mut self, size: usize) -> Address {
-        if size < CLAB_OBJECT_SIZE {
+        if size < LAB_OBJECT_SIZE {
             self.alloc_old_small(size)
         } else {
             self.alloc_old_medium(size)
@@ -838,10 +829,10 @@ impl<'a> CopyTask<'a> {
     }
 
     fn alloc_old_small(&mut self, size: usize) -> Address {
-        debug_assert!(size < CLAB_OBJECT_SIZE);
+        debug_assert!(size < LAB_OBJECT_SIZE);
         let object_start = self.alloc_object_in_old_lab(size);
 
-        if object_start.is_non_null() {
+        if let Some(object_start) = object_start {
             return object_start;
         } else if self.promotion_failed {
             return Address::null();
@@ -853,18 +844,17 @@ impl<'a> CopyTask<'a> {
         }
 
         self.alloc_object_in_old_lab(size)
+            .unwrap_or(Address::null())
     }
 
     fn alloc_old_medium(&mut self, size: usize) -> Address {
-        debug_assert!(CLAB_OBJECT_SIZE <= size && size < LARGE_OBJECT_SIZE);
+        debug_assert!(LAB_OBJECT_SIZE <= size && size < LARGE_OBJECT_SIZE);
 
         if self.promotion_failed {
             return Address::null();
         }
 
-        let object_start = self.old.alloc(size);
-
-        if object_start.is_non_null() {
+        if let Some(object_start) = self.old.allocate(size) {
             let old = object_start;
             let new = old.offset(size);
             self.old.update_crossing(old, new);
@@ -876,7 +866,7 @@ impl<'a> CopyTask<'a> {
     }
 
     fn undo_alloc_old(&mut self, copy_addr: Address, size: usize) {
-        if size < CLAB_OBJECT_SIZE {
+        if size < LAB_OBJECT_SIZE {
             self.old_lab.undo_alloc(size);
         } else {
             // Can't undo mid-sized objects. Need to make the heap iterable.
@@ -889,9 +879,7 @@ impl<'a> CopyTask<'a> {
             return false;
         }
 
-        let lab_start = self.old.alloc(CLAB_SIZE);
-
-        if lab_start.is_non_null() {
+        if let Some(lab_start) = self.old.allocate(CLAB_SIZE) {
             let lab_end = lab_start.offset(CLAB_SIZE);
             self.old_lab.reset(lab_start, lab_end);
 
@@ -903,16 +891,16 @@ impl<'a> CopyTask<'a> {
         }
     }
 
-    fn alloc_object_in_old_lab(&mut self, size: usize) -> Address {
-        let object_start = self.old_lab.alloc(size);
+    fn alloc_object_in_old_lab(&mut self, size: usize) -> Option<Address> {
+        let object_start = self.old_lab.allocate(size);
 
-        if object_start.is_non_null() {
+        if let Some(object_start) = object_start {
             let old = object_start;
             let new = old.offset(size);
             self.old.update_crossing(old, new);
-            object_start
+            Some(object_start)
         } else {
-            Address::null()
+            None
         }
     }
 
@@ -936,7 +924,7 @@ impl<'a> CopyTask<'a> {
         let obj_size = obj.size_for_vtblptr(vtblptr);
 
         debug_assert!(
-            self.from_active.contains(obj_addr) || self.eden_active.contains(obj_addr),
+            self.from_active.contains(obj_addr),
             "copy objects only from from-space."
         );
 

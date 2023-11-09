@@ -17,7 +17,7 @@ use crate::gc::swiper::young::YoungGen;
 use crate::gc::tlab;
 use crate::gc::Collector;
 use crate::gc::GcReason;
-use crate::gc::{align_region_up, fill_region, formatted_size, Address, Region, K, M};
+use crate::gc::{align_region_up, fill_region, formatted_size, Address, Region, K};
 use crate::mem;
 use crate::object::Obj;
 use crate::os::{self, MemoryPermission, Reservation};
@@ -47,7 +47,7 @@ pub const CARD_SIZE_BITS: usize = 9;
 pub const CARD_REFS: usize = CARD_SIZE / size_of::<usize>();
 
 pub const LARGE_OBJECT_SIZE: usize = 16 * K;
-pub const REGION_SIZE: usize = 1 * M;
+pub const REGION_SIZE: usize = 128 * K;
 
 pub struct Swiper {
     // contiguous memory for young/old generation and large space
@@ -145,7 +145,7 @@ impl Swiper {
             max_heap_size,
         );
         let crossing_map = CrossingMap::new(crossing_start, crossing_end, max_heap_size);
-        let young = YoungGen::new(young, eden_size, semi_size, args.gc_verify);
+        let young = YoungGen::new(young, semi_size, args.gc_verify);
 
         let config = Arc::new(Mutex::new(config));
         let old = OldGen::new(
@@ -551,8 +551,7 @@ impl Collector for Swiper {
     }
 
     fn verify_ref(&self, vm: &VM, reference: Address) {
-        let found = self.young.eden_active().contains(reference)
-            || self.young.to_active().contains(reference)
+        let found = self.young.to_active().contains(reference)
             || vm.gc.readonly_space.contains(reference)
             || self.large.contains(reference)
             || (self.old.total().contains(reference) && self.old.contains_slow(reference));
