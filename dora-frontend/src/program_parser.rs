@@ -9,7 +9,7 @@ use crate::error::msg::ErrorMessage;
 use crate::interner::Name;
 use crate::report_sym_shadow_span;
 use crate::sema::{
-    AliasDefinition, AliasParent, ClassDefinition, ConstDefinition, EnumDefinition,
+    AliasDefinition, AliasParent, ClassDefinition, ConstDefinition, EnumDefinition, EnumVariant,
     ExtensionDefinition, ExtensionDefinitionId, FctDefinition, FctParent, Field, FieldId,
     GlobalDefinition, ImplDefinition, ImplDefinitionId, ModuleDefinition, ModuleDefinitionId,
     PackageDefinition, PackageDefinitionId, PackageName, Sema, SourceFile, SourceFileId,
@@ -708,6 +708,45 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
     }
 
     fn visit_enum(&mut self, node: &Arc<ast::Enum>) {
+        let mut next_variant_id: u32 = 0;
+        let mut variants = Vec::new();
+        let mut name_to_value = HashMap::new();
+
+        for value in &node.variants {
+            if value.name.is_none() {
+                continue;
+            }
+
+            let name = self
+                .sa
+                .interner
+                .intern(&value.name.as_ref().expect("missing name").name_as_string);
+
+            let variant = EnumVariant {
+                id: next_variant_id,
+                name: name,
+                types: OnceCell::new(),
+            };
+
+            variants.push(variant);
+
+            if name_to_value.insert(name, next_variant_id).is_some() {
+                let name = self.sa.interner.str(name).to_string();
+                self.sa.report(
+                    self.file_id,
+                    value.span,
+                    ErrorMessage::ShadowEnumVariant(name),
+                );
+            }
+
+            next_variant_id += 1;
+        }
+
+        if node.variants.is_empty() {
+            self.sa
+                .report(self.file_id, node.span, ErrorMessage::NoEnumVariant);
+        }
+
         let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
         let enum_ = EnumDefinition::new(
             self.package_id,
@@ -716,6 +755,8 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
             node,
             modifiers,
             ensure_name(self.sa, &node.name),
+            variants,
+            name_to_value,
         );
         let id = self.sa.enums.alloc(enum_);
         self.sa.enums[id].id = Some(id);
@@ -739,6 +780,11 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         );
         let id = self.sa.aliases.alloc(alias);
         assert!(self.sa.alias(id).id.set(id).is_ok());
+
+        if node.ty.is_none() {
+            self.sa
+                .report(self.file_id, node.span, ErrorMessage::TypeAliasMissingType);
+        }
 
         let sym = SymbolKind::TypeAlias(id);
         if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
@@ -785,23 +831,31 @@ fn find_elements_in_trait(
                 methods.push(fct_id);
             }
 
-            ast::ElemData::TypeAlias(ref alias) => {
-                let modifiers = check_modifiers(sa, file_id, &alias.modifiers, &[]);
+            ast::ElemData::TypeAlias(ref node) => {
+                let modifiers = check_modifiers(sa, file_id, &node.modifiers, &[]);
 
-                let name = ensure_name(sa, &alias.name);
+                let name = ensure_name(sa, &node.name);
 
                 let alias = AliasDefinition::new(
                     package_id,
                     module_id,
                     file_id,
                     AliasParent::Trait(trait_id),
-                    alias,
+                    node,
                     modifiers,
                     name,
                 );
 
                 let id = sa.aliases.alloc(alias);
                 assert!(sa.alias(id).id.set(id).is_ok());
+
+                if node.ty.is_some() {
+                    sa.report(
+                        file_id,
+                        node.span,
+                        ErrorMessage::UnexpectedTypeAliasAssignment,
+                    )
+                }
 
                 aliases.push(id);
             }
@@ -860,23 +914,27 @@ fn find_elements_in_impl(
                 methods.push(fct_id);
             }
 
-            ast::ElemData::TypeAlias(ref alias) => {
-                let modifiers = check_modifiers(sa, file_id, &alias.modifiers, &[]);
+            ast::ElemData::TypeAlias(ref node) => {
+                let modifiers = check_modifiers(sa, file_id, &node.modifiers, &[]);
 
-                let name = ensure_name(sa, &alias.name);
+                let name = ensure_name(sa, &node.name);
 
                 let alias = AliasDefinition::new(
                     package_id,
                     module_id,
                     file_id,
                     AliasParent::Impl(impl_id),
-                    alias,
+                    node,
                     modifiers,
                     name,
                 );
 
                 let id = sa.aliases.alloc(alias);
                 assert!(sa.alias(id).id.set(id).is_ok());
+
+                if node.ty.is_none() {
+                    sa.report(file_id, node.span, ErrorMessage::TypeAliasMissingType);
+                }
 
                 aliases.push(id);
             }

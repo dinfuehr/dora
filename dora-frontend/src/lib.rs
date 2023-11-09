@@ -56,10 +56,7 @@ pub fn check_program(sa: &mut Sema) -> bool {
     let module_symtables = program_parser::parse(sa);
     return_on_error!(sa);
 
-    // Discover all enum variants.
-    enumck::check_variants(sa);
-
-    // Discover all types.
+    // Discover all imported types.
     useck::check(sa, module_symtables);
     return_on_error!(sa);
 
@@ -69,6 +66,7 @@ pub fn check_program(sa: &mut Sema) -> bool {
     // Define internal types.
     stdlib_lookup::lookup_known_fundamental_types(sa);
 
+    // Now all types are known and we can start parsing types.
     type_params::check(sa);
     return_on_error!(sa);
 

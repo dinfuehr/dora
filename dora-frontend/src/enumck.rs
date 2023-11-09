@@ -1,11 +1,8 @@
-use std::cell::OnceCell;
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use dora_parser::ast;
 
-use crate::error::msg::ErrorMessage;
-use crate::sema::{EnumDefinition, EnumVariant, Sema, SourceFileId};
+use crate::sema::{EnumDefinition, Sema, SourceFileId};
 use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::ty::SourceType;
 use crate::{expand_type, AllowSelf};
@@ -79,75 +76,6 @@ impl<'x> EnumCheck<'x> {
             .is_ok());
 
         symtable.pop_level();
-    }
-}
-
-pub fn check_variants(sa: &Sema) {
-    for (_id, enum_) in sa.enums.iter() {
-        let ast = enum_.ast.clone();
-
-        let mut enumck = EnumCheckVariants {
-            sa,
-            ast: &ast,
-            enum_,
-        };
-
-        enumck.check();
-    }
-}
-
-struct EnumCheckVariants<'x> {
-    sa: &'x Sema,
-    ast: &'x Arc<ast::Enum>,
-    enum_: &'x EnumDefinition,
-}
-
-impl<'x> EnumCheckVariants<'x> {
-    fn check(&mut self) {
-        let mut next_variant_id: u32 = 0;
-        let mut variants = Vec::new();
-        let mut name_to_value = HashMap::new();
-
-        for value in &self.ast.variants {
-            if value.name.is_none() {
-                continue;
-            }
-
-            let name = self
-                .sa
-                .interner
-                .intern(&value.name.as_ref().expect("missing name").name_as_string);
-
-            let variant = EnumVariant {
-                id: next_variant_id,
-                name: name,
-                types: OnceCell::new(),
-            };
-
-            variants.push(variant);
-
-            if name_to_value.insert(name, next_variant_id).is_some() {
-                let name = self.sa.interner.str(name).to_string();
-                self.sa.report(
-                    self.enum_.file_id,
-                    value.span,
-                    ErrorMessage::ShadowEnumVariant(name),
-                );
-            }
-
-            next_variant_id += 1;
-        }
-
-        assert!(self.enum_.variants.set(variants).is_ok());
-        assert!(self.enum_.name_to_value.set(name_to_value).is_ok());
-
-        if self.ast.variants.is_empty() {
-            self.sa.report(
-                self.enum_.file_id,
-                self.ast.span,
-                ErrorMessage::NoEnumVariant,
-            );
-        }
     }
 }
 

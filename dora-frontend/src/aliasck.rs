@@ -1,5 +1,5 @@
 use crate::sema::{AliasParent, TypeParamDefinition};
-use crate::{check_type, AllowSelf, ErrorMessage, ModuleSymTable, Sema, SourceType, SymbolKind};
+use crate::{check_type, AllowSelf, ModuleSymTable, Sema, SourceType, SymbolKind};
 
 pub fn check(sa: &Sema) {
     for (_id, alias) in sa.aliases.iter() {
@@ -18,11 +18,6 @@ pub fn check(sa: &Sema) {
 
                     assert!(alias.ty.set(ty).is_ok());
                 } else {
-                    sa.report(
-                        alias.file_id,
-                        alias.node.span,
-                        ErrorMessage::TypeAliasMissingType,
-                    );
                     assert!(alias.ty.set(SourceType::Error).is_ok());
                 }
             }
@@ -50,24 +45,11 @@ pub fn check(sa: &Sema) {
 
                     assert!(alias.ty.set(ty).is_ok());
                 } else {
-                    sa.report(
-                        alias.file_id,
-                        alias.node.span,
-                        ErrorMessage::TypeAliasMissingType,
-                    );
                     assert!(alias.ty.set(SourceType::Error).is_ok());
                 }
             }
 
-            AliasParent::Trait(..) => {
-                if alias.node.ty.is_some() {
-                    sa.report(
-                        alias.file_id,
-                        alias.node.span,
-                        ErrorMessage::UnexpectedTypeAliasAssignment,
-                    )
-                }
-            }
+            AliasParent::Trait(..) => {}
         }
     }
 }
