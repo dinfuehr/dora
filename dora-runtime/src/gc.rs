@@ -348,8 +348,8 @@ impl Address {
     }
 
     #[inline(always)]
-    pub fn is_region_aligned(self) -> bool {
-        is_region_aligned(self.to_usize())
+    pub fn is_page_aligned(self) -> bool {
+        is_page_aligned(self.to_usize())
     }
 
     #[inline(always)]
@@ -363,8 +363,8 @@ impl Address {
     }
 
     #[inline(always)]
-    pub fn is_page_aligned(self) -> bool {
-        mem::is_page_aligned(self.to_usize())
+    pub fn is_os_page_aligned(self) -> bool {
+        mem::is_os_page_aligned(self.to_usize())
     }
 
     #[inline(always)]
@@ -536,7 +536,7 @@ pub fn align_page_down(value: usize) -> usize {
 }
 
 /// returns true if given size is gen aligned
-pub fn is_region_aligned(size: usize) -> bool {
+pub fn is_page_aligned(size: usize) -> bool {
     (size & (PAGE_SIZE - 1)) == 0
 }
 

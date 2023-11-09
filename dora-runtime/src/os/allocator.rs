@@ -6,7 +6,7 @@ use crate::os::page_size;
 
 #[cfg(target_family = "unix")]
 fn reserve(size: usize, jitting: bool) -> Address {
-    debug_assert!(mem::is_page_aligned(size));
+    debug_assert!(mem::is_os_page_aligned(size));
 
     let mut flags = libc::MAP_PRIVATE | libc::MAP_ANON;
 
@@ -37,7 +37,7 @@ fn map_jit_flag() -> i32 {
 
 #[cfg(target_family = "windows")]
 fn reserve(size: usize, _jitting: bool) -> Address {
-    debug_assert!(mem::is_page_aligned(size));
+    debug_assert!(mem::is_os_page_aligned(size));
 
     use winapi::um::memoryapi::VirtualAlloc;
     use winapi::um::winnt::{MEM_RESERVE, PAGE_NOACCESS};
@@ -53,8 +53,8 @@ fn reserve(size: usize, _jitting: bool) -> Address {
 
 #[cfg(target_family = "unix")]
 pub fn free(ptr: Address, size: usize) {
-    debug_assert!(ptr.is_page_aligned());
-    debug_assert!(mem::is_page_aligned(size));
+    debug_assert!(ptr.is_os_page_aligned());
+    debug_assert!(mem::is_os_page_aligned(size));
 
     let result = unsafe { libc::munmap(ptr.to_mut_ptr(), size) };
 
@@ -66,7 +66,7 @@ pub fn free(ptr: Address, size: usize) {
 #[cfg(target_family = "windows")]
 pub fn free(ptr: Address, size: usize) {
     debug_assert!(ptr.is_page_aligned());
-    debug_assert!(mem::is_page_aligned(size));
+    debug_assert!(mem::is_os_page_aligned(size));
 
     use winapi::um::memoryapi::VirtualFree;
     use winapi::um::winnt::MEM_RELEASE;
@@ -103,8 +103,8 @@ impl Drop for Reservation {
 }
 
 pub fn reserve_align(size: usize, align: usize, jitting: bool) -> Reservation {
-    debug_assert!(mem::is_page_aligned(size));
-    debug_assert!(mem::is_page_aligned(align));
+    debug_assert!(mem::is_os_page_aligned(size));
+    debug_assert!(mem::is_os_page_aligned(align));
 
     let align = if align == 0 { page_size() } else { align };
     let unaligned_size = size + align - page_size();
@@ -143,8 +143,8 @@ pub fn reserve_align(size: usize, align: usize, jitting: bool) -> Reservation {
 }
 
 pub fn commit_align(size: usize, align: usize, jitting: bool) -> Reservation {
-    debug_assert!(mem::is_page_aligned(size));
-    debug_assert!(mem::is_page_aligned(align));
+    debug_assert!(mem::is_os_page_aligned(size));
+    debug_assert!(mem::is_os_page_aligned(align));
 
     let align = if align == 0 { page_size() } else { align };
     let unaligned_size = size + align - page_size();
@@ -184,7 +184,7 @@ pub fn commit_align(size: usize, align: usize, jitting: bool) -> Reservation {
 
 #[cfg(target_family = "unix")]
 pub fn commit(size: usize, executable: bool) -> Address {
-    debug_assert!(mem::is_page_aligned(size));
+    debug_assert!(mem::is_os_page_aligned(size));
 
     let mut prot = libc::PROT_READ | libc::PROT_WRITE;
 
@@ -212,7 +212,7 @@ pub fn commit(size: usize, executable: bool) -> Address {
 
 #[cfg(target_family = "windows")]
 pub fn commit(size: usize, executable: bool) -> Address {
-    debug_assert!(mem::is_page_aligned(size));
+    debug_assert!(mem::is_os_page_aligned(size));
 
     use winapi::um::memoryapi::VirtualAlloc;
     use winapi::um::winnt::{MEM_COMMIT, MEM_RESERVE, PAGE_EXECUTE_READWRITE, PAGE_READWRITE};
@@ -234,8 +234,8 @@ pub fn commit(size: usize, executable: bool) -> Address {
 
 #[cfg(target_family = "unix")]
 pub fn commit_at(ptr: Address, size: usize, permissions: MemoryPermission) {
-    debug_assert!(ptr.is_page_aligned());
-    debug_assert!(mem::is_page_aligned(size));
+    debug_assert!(ptr.is_os_page_aligned());
+    debug_assert!(mem::is_os_page_aligned(size));
 
     let protection = match permissions {
         MemoryPermission::None => libc::PROT_NONE,
@@ -264,7 +264,7 @@ pub fn commit_at(ptr: Address, size: usize, permissions: MemoryPermission) {
 #[cfg(target_family = "windows")]
 pub fn commit_at(ptr: Address, size: usize, permissions: MemoryPermission) {
     debug_assert!(ptr.is_page_aligned());
-    debug_assert!(mem::is_page_aligned(size));
+    debug_assert!(mem::is_os_page_aligned(size));
 
     use winapi::um::memoryapi::VirtualAlloc;
     use winapi::um::winnt::{
@@ -321,8 +321,8 @@ pub fn jit_executable() {
 
 #[cfg(target_family = "unix")]
 fn uncommit(ptr: Address, size: usize) {
-    debug_assert!(ptr.is_page_aligned());
-    debug_assert!(mem::is_page_aligned(size));
+    debug_assert!(ptr.is_os_page_aligned());
+    debug_assert!(mem::is_os_page_aligned(size));
 
     let result = unsafe { libc::munmap(ptr.to_mut_ptr(), size) };
 
@@ -334,7 +334,7 @@ fn uncommit(ptr: Address, size: usize) {
 #[cfg(target_family = "windows")]
 fn uncommit(ptr: Address, size: usize) {
     debug_assert!(ptr.is_page_aligned());
-    debug_assert!(mem::is_page_aligned(size));
+    debug_assert!(mem::is_os_page_aligned(size));
 
     use winapi::um::memoryapi::VirtualFree;
     use winapi::um::winnt::MEM_DECOMMIT;
@@ -348,8 +348,8 @@ fn uncommit(ptr: Address, size: usize) {
 
 #[cfg(target_family = "unix")]
 pub fn discard(ptr: Address, size: usize) {
-    debug_assert!(ptr.is_page_aligned());
-    debug_assert!(mem::is_page_aligned(size));
+    debug_assert!(ptr.is_os_page_aligned());
+    debug_assert!(mem::is_os_page_aligned(size));
 
     let res = unsafe { libc::madvise(ptr.to_mut_ptr(), size, libc::MADV_DONTNEED) };
 
@@ -367,7 +367,7 @@ pub fn discard(ptr: Address, size: usize) {
 #[cfg(target_family = "windows")]
 pub fn discard(ptr: Address, size: usize) {
     debug_assert!(ptr.is_page_aligned());
-    debug_assert!(mem::is_page_aligned(size));
+    debug_assert!(mem::is_os_page_aligned(size));
 
     use winapi::um::memoryapi::VirtualFree;
     use winapi::um::winnt::MEM_DECOMMIT;
@@ -381,8 +381,8 @@ pub fn discard(ptr: Address, size: usize) {
 
 #[cfg(target_family = "unix")]
 pub fn protect(start: Address, size: usize, permission: MemoryPermission) {
-    debug_assert!(start.is_page_aligned());
-    debug_assert!(mem::is_page_aligned(size));
+    debug_assert!(start.is_os_page_aligned());
+    debug_assert!(mem::is_os_page_aligned(size));
 
     if permission == MemoryPermission::None {
         discard(start, size);
@@ -407,7 +407,7 @@ pub fn protect(start: Address, size: usize, permission: MemoryPermission) {
 #[cfg(target_family = "windows")]
 pub fn protect(start: Address, size: usize, access: MemoryPermission) {
     debug_assert!(start.is_page_aligned());
-    debug_assert!(mem::is_page_aligned(size));
+    debug_assert!(mem::is_os_page_aligned(size));
 
     use winapi::um::memoryapi::VirtualAlloc;
     use winapi::um::winnt::{

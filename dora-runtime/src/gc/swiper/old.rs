@@ -127,12 +127,8 @@ impl OldGenProtected {
             return Some(address);
         }
 
-        {
-            let mut config = config.lock();
-
-            if !config.grow_old(PAGE_SIZE) {
-                return None;
-            }
+        if !self.can_add_page(config) {
+            return None;
         }
 
         if !self.add_page() {
@@ -156,16 +152,23 @@ impl OldGenProtected {
 
     fn add_page(&mut self) -> bool {
         let page_start = self.current_limit;
+        assert!(self.current_limit.is_page_aligned());
         let page_end = page_start.offset(PAGE_SIZE);
 
         if page_end > self.total.end() {
             return false;
         }
 
-        os::commit_at(self.current_limit, PAGE_SIZE, MemoryPermission::ReadWrite);
+        os::commit_at(page_start, PAGE_SIZE, MemoryPermission::ReadWrite);
         self.current_limit = page_end;
         self.pages.push(page_start);
         true
+    }
+
+    fn can_add_page(&self, config: &SharedHeapConfig) -> bool {
+        let mut config = config.lock();
+
+        config.grow_old(PAGE_SIZE)
     }
 }
 

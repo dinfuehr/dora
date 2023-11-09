@@ -335,7 +335,7 @@ impl Block {
     }
 
     fn set_limit(&self, new_size: usize) {
-        assert!(mem::is_page_aligned(new_size));
+        assert!(mem::is_os_page_aligned(new_size));
 
         let old_committed = self.committed.load(Ordering::Relaxed);
         let new_committed = self.start.offset(new_size).to_usize();

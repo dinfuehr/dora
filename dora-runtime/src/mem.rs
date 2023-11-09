@@ -16,7 +16,7 @@ pub const fn ptr_width_usize() -> usize {
 }
 
 /// returns true if given value is a multiple of a page size.
-pub fn is_page_aligned(val: usize) -> bool {
+pub fn is_os_page_aligned(val: usize) -> bool {
     let alignment = os::page_size_bits();
     is_power_of_2_aligned(val, alignment)
 }
@@ -26,15 +26,15 @@ pub fn is_power_of_2_aligned(val: usize, aligned_bits: usize) -> bool {
 }
 
 #[test]
-fn test_is_page_aligned() {
+fn test_is_os_page_aligned() {
     let p = os::page_size();
 
-    assert_eq!(false, is_page_aligned(1));
-    assert_eq!(false, is_page_aligned(2));
-    assert_eq!(false, is_page_aligned(64));
-    assert_eq!(true, is_page_aligned(p));
-    assert_eq!(true, is_page_aligned(2 * p));
-    assert_eq!(true, is_page_aligned(3 * p));
+    assert_eq!(false, is_os_page_aligned(1));
+    assert_eq!(false, is_os_page_aligned(2));
+    assert_eq!(false, is_os_page_aligned(64));
+    assert_eq!(true, is_os_page_aligned(p));
+    assert_eq!(true, is_os_page_aligned(2 * p));
+    assert_eq!(true, is_os_page_aligned(3 * p));
 }
 
 /// round the given value up to the nearest multiple of a page

@@ -147,7 +147,7 @@ impl LargeSpaceProtected {
     }
 
     fn alloc(&mut self, size: usize) -> Address {
-        debug_assert!(mem::is_page_aligned(size));
+        debug_assert!(mem::is_os_page_aligned(size));
         let len = self.elements.len();
 
         for i in 0..len {
@@ -173,7 +173,7 @@ impl LargeSpaceProtected {
     }
 
     fn free(&mut self, ptr: Address, size: usize) {
-        debug_assert!(mem::is_page_aligned(size));
+        debug_assert!(mem::is_os_page_aligned(size));
         os::discard(ptr, size);
         self.elements.push(ptr.region_start(size));
         self.committed_size -= size;
