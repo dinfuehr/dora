@@ -1,8 +1,15 @@
-use crate::sema::{AliasParent, TypeParamDefinition};
-use crate::{check_type, AllowSelf, ModuleSymTable, Sema, SourceType, SymbolKind};
+use std::collections::{HashMap, HashSet};
+
+use crate::sema::{AliasDefinitionId, AliasParent, TypeParamDefinition};
+use crate::{
+    check_type, AllowSelf, ErrorMessage, ModuleSymTable, Sema, SourceType, SourceTypeArray,
+    SymbolKind,
+};
 
 pub fn check(sa: &Sema) {
-    for (_id, alias) in sa.aliases.iter() {
+    let mut alias_types: HashMap<AliasDefinitionId, SourceType> = HashMap::new();
+
+    for (id, alias) in sa.aliases.iter() {
         match alias.parent {
             AliasParent::None => {
                 if let Some(ref ty_node) = alias.node.ty {
@@ -16,9 +23,9 @@ pub fn check(sa: &Sema) {
                         AllowSelf::No,
                     );
 
-                    assert!(alias.ty.set(ty).is_ok());
+                    assert!(alias_types.insert(id, ty).is_none());
                 } else {
-                    assert!(alias.ty.set(SourceType::Error).is_ok());
+                    assert!(alias_types.insert(id, SourceType::Error).is_none());
                 }
             }
 
@@ -43,13 +50,150 @@ pub fn check(sa: &Sema) {
 
                     table.pop_level();
 
-                    assert!(alias.ty.set(ty).is_ok());
+                    assert!(alias_types.insert(id, ty).is_none());
                 } else {
-                    assert!(alias.ty.set(SourceType::Error).is_ok());
+                    assert!(alias_types.insert(id, SourceType::Error).is_none());
                 }
             }
 
             AliasParent::Trait(..) => {}
+        }
+    }
+
+    expand_aliases(sa, alias_types);
+}
+
+pub fn expand_aliases(sa: &Sema, alias_types: HashMap<AliasDefinitionId, SourceType>) {
+    for (id, alias) in sa.aliases.iter() {
+        match alias.parent {
+            AliasParent::None | AliasParent::Impl(..) => {
+                let mut visiting = HashSet::new();
+                expand_alias(sa, &alias_types, &mut visiting, id);
+                assert!(visiting.is_empty());
+                assert!(alias.ty.get().is_some());
+            }
+            AliasParent::Trait(..) => {}
+        }
+    }
+}
+
+fn expand_alias(
+    sa: &Sema,
+    alias_types: &HashMap<AliasDefinitionId, SourceType>,
+    visiting: &mut HashSet<AliasDefinitionId>,
+    id: AliasDefinitionId,
+) -> SourceType {
+    let alias = sa.alias(id);
+
+    if let Some(ty) = alias.ty.get() {
+        return ty.clone();
+    }
+
+    if visiting.contains(&id) {
+        sa.report(alias.file_id, alias.node.span, ErrorMessage::AliasCycle);
+        return SourceType::Error;
+    }
+
+    assert!(visiting.insert(id));
+    let ty = alias_types.get(&id).cloned().expect("missing type");
+    let ty = expand_type(sa, alias_types, visiting, ty);
+    assert!(visiting.remove(&id));
+
+    assert!(alias.ty.set(ty.clone()).is_ok());
+
+    ty
+}
+
+fn expand_type(
+    sa: &Sema,
+    alias_types: &HashMap<AliasDefinitionId, SourceType>,
+    visiting: &mut HashSet<AliasDefinitionId>,
+    ty: SourceType,
+) -> SourceType {
+    match ty {
+        SourceType::TypeParam(..) => ty,
+        SourceType::Class(cls_id, params) => {
+            let params = SourceTypeArray::with(
+                params
+                    .iter()
+                    .map(|p| expand_type(sa, alias_types, visiting, p))
+                    .collect::<Vec<_>>(),
+            );
+
+            SourceType::Class(cls_id, params)
+        }
+
+        SourceType::Trait(trait_id, old_type_params) => {
+            let new_type_params = SourceTypeArray::with(
+                old_type_params
+                    .iter()
+                    .map(|p| expand_type(sa, alias_types, visiting, p))
+                    .collect::<Vec<_>>(),
+            );
+
+            SourceType::Trait(trait_id, new_type_params)
+        }
+
+        SourceType::Struct(struct_id, old_type_params) => {
+            let new_type_params = SourceTypeArray::with(
+                old_type_params
+                    .iter()
+                    .map(|p| expand_type(sa, alias_types, visiting, p))
+                    .collect::<Vec<_>>(),
+            );
+
+            SourceType::Struct(struct_id, new_type_params)
+        }
+
+        SourceType::Enum(enum_id, old_type_params) => {
+            let new_type_params = SourceTypeArray::with(
+                old_type_params
+                    .iter()
+                    .map(|p| expand_type(sa, alias_types, visiting, p))
+                    .collect::<Vec<_>>(),
+            );
+
+            SourceType::Enum(enum_id, new_type_params)
+        }
+
+        SourceType::This => ty,
+
+        SourceType::Lambda(params, return_type) => {
+            let new_params = SourceTypeArray::with(
+                params
+                    .iter()
+                    .map(|p| expand_type(sa, alias_types, visiting, p))
+                    .collect::<Vec<_>>(),
+            );
+
+            let return_type = expand_type(sa, alias_types, visiting, return_type.as_ref().clone());
+
+            SourceType::Lambda(new_params, Box::new(return_type))
+        }
+
+        SourceType::Tuple(subtypes) => {
+            let new_subtypes = subtypes
+                .iter()
+                .map(|t| expand_type(sa, alias_types, visiting, t.clone()))
+                .collect::<Vec<_>>();
+
+            SourceType::Tuple(SourceTypeArray::with(new_subtypes))
+        }
+
+        SourceType::TypeAlias(id) => expand_alias(sa, alias_types, visiting, id),
+
+        SourceType::Unit
+        | SourceType::UInt8
+        | SourceType::Bool
+        | SourceType::Char
+        | SourceType::Int32
+        | SourceType::Int64
+        | SourceType::Float32
+        | SourceType::Float64
+        | SourceType::Error => ty,
+
+        SourceType::Any | SourceType::Ptr => {
+            panic!("unexpected type = {:?}", ty);
         }
     }
 }
@@ -114,5 +258,30 @@ mod tests {
                 fn f(): Bar;
             }
         ")
+    }
+
+    #[test]
+    fn alias_using_other_alias() {
+        ok("
+            type A = B;
+            type B = C;
+            type C = Int64;
+
+            fn f(a: A) {}
+            fn g() { f(12); }
+        ");
+    }
+
+    #[test]
+    fn alias_cycle() {
+        err(
+            "
+            type A = B;
+            type B = C;
+            type C = A;
+        ",
+            (2, 13),
+            ErrorMessage::AliasCycle,
+        );
     }
 }

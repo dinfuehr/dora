@@ -181,6 +181,7 @@ pub enum ErrorMessage {
     MatchMultiplePatternsWithParamsNotSupported,
     UseNotAccessible,
     TypeAliasMissingType,
+    AliasCycle,
 }
 
 impl ErrorMessage {
@@ -622,6 +623,7 @@ impl ErrorMessage {
             ErrorMessage::ImplMethodDefinitionMismatch => {
                 "impl method does not match definition in trait.".into()
             }
+            ErrorMessage::AliasCycle => "Alias cycle detected.".into(),
         }
     }
 }

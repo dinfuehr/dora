@@ -177,3 +177,8 @@ pub trait Iterator {
   type Item;
   fn next(): Option[Item];
 }
+
+pub trait IntoIterator {
+  type IteratorType;
+  fn iter(): IteratorType;
+}
