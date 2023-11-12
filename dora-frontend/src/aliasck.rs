@@ -284,4 +284,42 @@ mod tests {
             ErrorMessage::AliasCycle,
         );
     }
+
+    #[test]
+    fn regular_alias_with_type_bounds() {
+        err(
+            "
+            trait Foo {}
+            type A: Foo = Int64;
+        ",
+            (3, 13),
+            ErrorMessage::UnexpectedTypeBounds,
+        );
+    }
+
+    #[test]
+    fn alias_in_trait_with_type_bounds() {
+        ok("
+            trait Foo {}
+            trait Bar {
+                type Ty: Foo;
+            }
+        ");
+    }
+
+    #[test]
+    fn alias_in_impl_with_type_bounds() {
+        err(
+            "
+            trait Foo {
+                type Ty;
+            }
+            impl Foo for Int64 {
+                type Ty: Foo = Int64;
+            }
+        ",
+            (6, 17),
+            ErrorMessage::UnexpectedTypeBounds,
+        );
+    }
 }

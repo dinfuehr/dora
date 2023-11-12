@@ -182,6 +182,7 @@ pub enum ErrorMessage {
     UseNotAccessible,
     TypeAliasMissingType,
     AliasCycle,
+    UnexpectedTypeBounds,
 }
 
 impl ErrorMessage {
@@ -624,6 +625,7 @@ impl ErrorMessage {
                 "impl method does not match definition in trait.".into()
             }
             ErrorMessage::AliasCycle => "Alias cycle detected.".into(),
+            ErrorMessage::UnexpectedTypeBounds => "unexepcted type bounds.".into(),
         }
     }
 }

@@ -786,6 +786,11 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
                 .report(self.file_id, node.span, ErrorMessage::TypeAliasMissingType);
         }
 
+        if !node.bounds.is_empty() {
+            self.sa
+                .report(self.file_id, node.span, ErrorMessage::UnexpectedTypeBounds);
+        }
+
         let sym = SymbolKind::TypeAlias(id);
         if let Some((name, sym)) = self.insert_optional(&node.name, sym) {
             report_sym_shadow_span(self.sa, name, self.file_id, node.span, sym);
@@ -934,6 +939,10 @@ fn find_elements_in_impl(
 
                 if node.ty.is_none() {
                     sa.report(file_id, node.span, ErrorMessage::TypeAliasMissingType);
+                }
+
+                if !node.bounds.is_empty() {
+                    sa.report(file_id, node.span, ErrorMessage::UnexpectedTypeBounds);
                 }
 
                 aliases.push(id);
