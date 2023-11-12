@@ -645,6 +645,7 @@ pub struct TypeAlias {
 
     pub modifiers: Option<ModifierList>,
     pub name: Option<Ident>,
+    pub bounds: Vec<Type>,
     pub ty: Option<Type>,
 }
 

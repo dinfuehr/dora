@@ -767,7 +767,7 @@ impl<'x> visit::Visitor for TopLevelDeclaration<'x> {
         }
     }
 
-    fn visit_typealias(&mut self, node: &Arc<ast::TypeAlias>) {
+    fn visit_type_alias(&mut self, node: &Arc<ast::TypeAlias>) {
         let modifiers = check_modifiers(self.sa, self.file_id, &node.modifiers, &[Annotation::Pub]);
         let alias = AliasDefinition::new(
             self.package_id,

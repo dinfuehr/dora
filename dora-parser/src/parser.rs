@@ -145,8 +145,8 @@ impl Parser {
             }
 
             TYPE_KW => {
-                let typealias = self.parse_typealias(modifiers);
-                Arc::new(ElemData::TypeAlias(typealias))
+                let type_alias = self.parse_type_alias(modifiers);
+                Arc::new(ElemData::TypeAlias(type_alias))
             }
 
             _ => {
@@ -558,10 +558,15 @@ impl Parser {
         })
     }
 
-    fn parse_typealias(&mut self, modifiers: Option<ModifierList>) -> Arc<TypeAlias> {
+    fn parse_type_alias(&mut self, modifiers: Option<ModifierList>) -> Arc<TypeAlias> {
         self.start_node();
         self.assert(TYPE_KW);
         let name = self.expect_identifier();
+        let bounds = if self.eat(COLON) {
+            self.parse_type_bounds()
+        } else {
+            Vec::new()
+        };
         let ty = if self.eat(EQ) {
             Some(self.parse_type())
         } else {
@@ -577,6 +582,7 @@ impl Parser {
             span: self.finish_node(),
             modifiers,
             name,
+            bounds,
             ty,
         })
     }
@@ -783,17 +789,7 @@ impl Parser {
         let name = self.expect_identifier();
 
         let bounds = if self.eat(COLON) {
-            let mut bounds = Vec::new();
-
-            loop {
-                bounds.push(self.parse_type());
-
-                if !self.eat(ADD) {
-                    break;
-                }
-            }
-
-            bounds
+            self.parse_type_bounds()
         } else {
             Vec::new()
         };
@@ -805,6 +801,20 @@ impl Parser {
             span: self.finish_node(),
             bounds,
         }
+    }
+
+    fn parse_type_bounds(&mut self) -> Vec<Type> {
+        let mut bounds = Vec::new();
+
+        loop {
+            bounds.push(self.parse_type());
+
+            if !self.eat(ADD) {
+                break;
+            }
+        }
+
+        bounds
     }
 
     fn parse_modifiers(&mut self) -> Option<ModifierList> {
@@ -3554,7 +3564,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_typealias_in_trait() {
+    fn parse_type_alias_in_trait() {
         parse(
             "trait Foo {
             type MY_TYPE;
