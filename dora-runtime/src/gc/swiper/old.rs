@@ -1,5 +1,6 @@
 use parking_lot::{Mutex, MutexGuard};
 
+use crate::gc::fill_region;
 use crate::gc::swiper::card::CardTable;
 use crate::gc::swiper::controller::SharedHeapConfig;
 use crate::gc::swiper::crossing::CrossingMap;
@@ -7,6 +8,7 @@ use crate::gc::swiper::CommonOldGen;
 use crate::gc::swiper::PAGE_SIZE;
 use crate::gc::{Address, GenerationAllocator, Region};
 use crate::os::{self, MemoryPermission};
+use crate::vm::get_vm;
 
 pub struct OldGen {
     total: Region,
@@ -60,6 +62,23 @@ impl OldGen {
     pub fn protected(&self) -> MutexGuard<OldGenProtected> {
         self.protected.lock()
     }
+
+    fn can_add_page(&self) -> bool {
+        let mut config = self.config.lock();
+        config.grow_old(PAGE_SIZE)
+    }
+
+    fn add_page(&self, page_start: Address) -> Option<Region> {
+        assert!(page_start.is_page_aligned());
+        let page_end = page_start.offset(PAGE_SIZE);
+
+        if page_end > self.total.end() {
+            return None;
+        }
+
+        os::commit_at(page_start, PAGE_SIZE, MemoryPermission::ReadWrite);
+        Some(Region::new(page_start, page_end))
+    }
 }
 
 impl CommonOldGen for OldGen {
@@ -71,6 +90,35 @@ impl CommonOldGen for OldGen {
     fn committed_size(&self) -> usize {
         let protected = self.protected.lock();
         protected.size
+    }
+}
+
+impl GenerationAllocator for OldGen {
+    fn allocate(&self, size: usize) -> Option<Address> {
+        let mut protected = self.protected.lock();
+
+        if let Some(address) = protected.raw_alloc(size) {
+            return Some(address);
+        }
+
+        fill_region(get_vm(), protected.top, protected.current_limit);
+        self.update_crossing(protected.top, protected.current_limit);
+
+        if !self.can_add_page() {
+            return None;
+        }
+
+        if let Some(page_boundaries) = self.add_page(protected.current_limit) {
+            protected.top = page_boundaries.start();
+            protected.current_limit = page_boundaries.end();
+            protected.raw_alloc(size)
+        } else {
+            None
+        }
+    }
+
+    fn free(&self, _region: Region) {
+        // No free list yet, so simply ignore this.
     }
 }
 
@@ -120,24 +168,6 @@ impl OldGenProtected {
         self.top.offset_from(self.total.start())
     }
 
-    fn alloc(&mut self, config: &SharedHeapConfig, size: usize) -> Option<Address> {
-        assert!(self.top <= self.current_limit);
-
-        if let Some(address) = self.raw_alloc(size) {
-            return Some(address);
-        }
-
-        if !self.can_add_page(config) {
-            return None;
-        }
-
-        if !self.add_page() {
-            return None;
-        }
-
-        self.raw_alloc(size)
-    }
-
     fn raw_alloc(&mut self, size: usize) -> Option<Address> {
         let next = self.top.offset(size);
 
@@ -148,37 +178,5 @@ impl OldGenProtected {
         } else {
             None
         }
-    }
-
-    fn add_page(&mut self) -> bool {
-        let page_start = self.current_limit;
-        assert!(self.current_limit.is_page_aligned());
-        let page_end = page_start.offset(PAGE_SIZE);
-
-        if page_end > self.total.end() {
-            return false;
-        }
-
-        os::commit_at(page_start, PAGE_SIZE, MemoryPermission::ReadWrite);
-        self.current_limit = page_end;
-        self.pages.push(page_start);
-        true
-    }
-
-    fn can_add_page(&self, config: &SharedHeapConfig) -> bool {
-        let mut config = config.lock();
-
-        config.grow_old(PAGE_SIZE)
-    }
-}
-
-impl GenerationAllocator for OldGen {
-    fn allocate(&self, size: usize) -> Option<Address> {
-        let mut protected = self.protected.lock();
-        protected.alloc(&self.config, size)
-    }
-
-    fn free(&self, _region: Region) {
-        // No free list yet, so simply ignore this.
     }
 }

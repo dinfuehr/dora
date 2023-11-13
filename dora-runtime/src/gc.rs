@@ -328,11 +328,6 @@ impl Address {
     }
 
     #[inline(always)]
-    pub fn align_gen(self) -> Address {
-        align_gen(self.to_usize()).into()
-    }
-
-    #[inline(always)]
     pub fn is_gen_aligned(self) -> bool {
         gen_aligned(self.to_usize())
     }
