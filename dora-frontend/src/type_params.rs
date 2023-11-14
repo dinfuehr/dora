@@ -9,7 +9,7 @@ use crate::{
     SymbolKind,
 };
 
-pub fn check(sa: &Sema) {
+pub fn parse_definitions(sa: &Sema) {
     check_traits(sa);
     check_impls(sa);
     check_classes(sa);
@@ -58,8 +58,6 @@ fn check_impls(sa: &Sema) {
             impl_.file_id,
             impl_.span,
         );
-
-        parse_type(sa, &symtable, impl_.file_id, &impl_.ast.extended_type);
 
         symtable.pop_level();
 
@@ -240,7 +238,7 @@ fn read_type_param_definition(
     sa: &Sema,
     type_param_definition: &mut TypeParamDefinition,
     ast_type_params: Option<&ast::TypeParams>,
-    _where_bounds: Option<&ast::Where>,
+    where_bounds: Option<&ast::Where>,
     symtable: &mut ModuleSymTable,
     file_id: SourceFileId,
     span: Span,
@@ -307,7 +305,7 @@ fn read_type_param_definition(
 
     // 3) Read bounds in where clauses.
 
-    if let Some(where_bounds) = _where_bounds {
+    if let Some(where_bounds) = where_bounds {
         for clause in where_bounds.clauses.iter() {
             let ty = parse_type(sa, &symtable, file_id, &clause.ty);
 

@@ -54,7 +54,6 @@ macro_rules! return_on_error {
 pub fn check_program(sa: &mut Sema) -> bool {
     // This phase loads and parses all files. Also creates top-level-elements.
     let module_symtables = program_parser::parse(sa);
-    return_on_error!(sa);
 
     // Discover all imported types.
     useck::check(sa, module_symtables);
@@ -66,10 +65,8 @@ pub fn check_program(sa: &mut Sema) -> bool {
     // Define internal types.
     stdlib_lookup::lookup_known_fundamental_types(sa);
 
-    // Now all types are known and we can start parsing types.
-    type_params::check(sa);
-    return_on_error!(sa);
-
+    // Now all types are known and we can start parsing types/type bounds.
+    type_params::parse_definitions(sa);
     // Find all trait implementations for types.
     impldefck::check_definition(sa);
     return_on_error!(sa);
