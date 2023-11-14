@@ -3,11 +3,11 @@ use std::collections::HashSet;
 use dora_parser::ast;
 use dora_parser::Span;
 
-use crate::error::msg::ErrorMessage;
-use crate::readty::parse_type;
 use crate::sema::{FctParent, Sema, SourceFileId, TypeParamDefinition, TypeParamId};
-use crate::sym::{ModuleSymTable, SymbolKind};
-use crate::ty::{SourceType, SourceTypeArray};
+use crate::{
+    parse_type, parse_type_bound, ErrorMessage, ModuleSymTable, SourceType, SourceTypeArray,
+    SymbolKind,
+};
 
 pub fn check(sa: &Sema) {
     check_traits(sa);
@@ -293,16 +293,14 @@ fn read_type_param_definition(
         let id = TypeParamId(container_type_params + id);
 
         for bound in &type_param.bounds {
-            let ty = parse_type(sa, &symtable, file_id, bound);
+            let ty = parse_type_bound(sa, &symtable, file_id, bound);
 
-            if ty.is_trait() {
+            if !ty.is_error() {
+                assert!(ty.is_trait());
                 if !type_param_definition.add_bound(id, ty) {
                     let msg = ErrorMessage::DuplicateTraitBound;
                     sa.report(file_id, type_param.span, msg);
                 }
-            } else if !ty.is_error() {
-                let msg = ErrorMessage::BoundExpected;
-                sa.report(file_id, bound.span(), msg);
             }
         }
     }
@@ -314,13 +312,11 @@ fn read_type_param_definition(
             let ty = parse_type(sa, &symtable, file_id, &clause.ty);
 
             for bound in &clause.bounds {
-                let bound_ty = parse_type(sa, &symtable, file_id, bound);
+                let bound_ty = parse_type_bound(sa, &symtable, file_id, bound);
 
-                if bound_ty.is_trait() {
+                if !bound_ty.is_error() {
+                    assert!(bound_ty.is_trait());
                     type_param_definition.add_where_bound(ty.clone(), bound_ty);
-                } else if !bound_ty.is_error() {
-                    let msg = ErrorMessage::BoundExpected;
-                    sa.report(file_id, bound.span(), msg);
                 }
             }
         }

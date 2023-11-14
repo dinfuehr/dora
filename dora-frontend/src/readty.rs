@@ -570,6 +570,25 @@ fn check_type_params(
     success
 }
 
+pub fn parse_type_bound(
+    sa: &Sema,
+    symtable: &ModuleSymTable,
+    file_id: SourceFileId,
+    bound: &ast::TypeData,
+) -> SourceType {
+    let ty = parse_type(sa, &symtable, file_id, bound);
+
+    if ty.is_trait() {
+        ty
+    } else if !ty.is_error() {
+        let msg = ErrorMessage::BoundExpected;
+        sa.report(file_id, bound.span(), msg);
+        SourceType::Error
+    } else {
+        SourceType::Error
+    }
+}
+
 pub fn expand_type(
     sa: &Sema,
     table: &ModuleSymTable,
