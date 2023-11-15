@@ -27,6 +27,7 @@ pub struct AliasDefinition {
     pub modifiers: ParsedModifierList,
     pub name: Name,
     pub ty: OnceCell<SourceType>,
+    pub bounds: OnceCell<Vec<SourceType>>,
 }
 
 impl AliasDefinition {
@@ -49,10 +50,15 @@ impl AliasDefinition {
             modifiers,
             name,
             ty: OnceCell::new(),
+            bounds: OnceCell::new(),
         }
     }
 
     pub fn ty(&self) -> SourceType {
         self.ty.get().cloned().expect("missing ty")
+    }
+
+    pub fn bounds(&self) -> &[SourceType] {
+        self.bounds.get().expect("missing bounds")
     }
 }

@@ -1,4 +1,4 @@
-use std::traits::{Comparable, Hash, Equals, Default, Zero, Identity, Iterator};
+use std::traits::{Comparable, Hash, Equals, Default, Zero, Identity, IntoIterator, Iterator};
 use std::string::{Stringable, StringBuffer};
 use std::{fatalError, unsafeKillRefs};
 
@@ -69,6 +69,14 @@ impl[T: Default] Array[T] {
 impl[T: Zero] Array[T] {
   pub static fn zero(len: Int64): Array[T] {
     Array[T]::unsafeNew(len)
+  }
+}
+
+impl[T] IntoIterator for Array[T] {
+  type IteratorType = ArrayIter[T];
+
+  fn iter(): ArrayIter[T] {
+    ArrayIter[T]::new(self)
   }
 }
 
@@ -1128,6 +1136,14 @@ impl[T] Vec[T] {
 
   pub fn enumerate(): VecEnumerator[T] {
     VecEnumerator[T]::new(self)
+  }
+}
+
+impl[T] IntoIterator for Vec[T] {
+  type IteratorType = VecIter[T];
+
+  fn iter(): VecIter[T] {
+    VecIter[T]::new(self)
   }
 }
 

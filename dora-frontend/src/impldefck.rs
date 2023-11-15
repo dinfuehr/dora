@@ -2,7 +2,8 @@ use std::collections::{HashMap, HashSet};
 
 use crate::extensiondefck::check_for_unconstrained_type_params;
 use crate::sema::{
-    AliasDefinitionId, FctDefinition, FctDefinitionId, ImplDefinition, Sema, TraitDefinition,
+    implements_trait, AliasDefinitionId, FctDefinition, FctDefinitionId, ImplDefinition, Sema,
+    TraitDefinition,
 };
 use crate::specialize::replace_type;
 use crate::{
@@ -252,6 +253,19 @@ fn check_impl_types(sa: &Sema, impl_: &ImplDefinition, trait_: &TraitDefinition)
                     impl_alias.node.span,
                     ErrorMessage::AliasExists(method_name, existing_alias.node.span),
                 );
+            }
+
+            let trait_alias = sa.alias(trait_alias_id);
+
+            for bound in trait_alias.bounds() {
+                if !implements_trait(sa, impl_alias.ty(), impl_.type_params(), bound.clone()) {
+                    let name = impl_alias
+                        .ty()
+                        .name_with_type_params(sa, impl_.type_params());
+                    let trait_name = bound.name_with_type_params(sa, trait_.type_params());
+                    let msg = ErrorMessage::TypeNotImplementingTrait(name, trait_name);
+                    sa.report(impl_.file_id, impl_alias.node.span, msg);
+                }
             }
 
             remaining_aliases.remove(&trait_alias_id);
@@ -712,6 +726,23 @@ mod tests {
         ",
             (4, 45),
             ErrorMessage::BoundExpected,
+        );
+    }
+
+    #[test]
+    fn impl_alias_with_bounds() {
+        err(
+            "
+            trait Foo {
+                type Ty: Bar;
+            }
+            trait Bar {}
+            impl Foo for Int64 {
+                type Ty = String;
+            }
+        ",
+            (7, 17),
+            ErrorMessage::TypeNotImplementingTrait("String".into(), "Bar".into()),
         );
     }
 }

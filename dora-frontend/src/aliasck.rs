@@ -2,8 +2,8 @@ use std::collections::{HashMap, HashSet};
 
 use crate::sema::{AliasDefinitionId, AliasParent, TypeParamDefinition};
 use crate::{
-    check_type, AllowSelf, ErrorMessage, ModuleSymTable, Sema, SourceType, SourceTypeArray,
-    SymbolKind,
+    check_type, parse_type_bound, AllowSelf, ErrorMessage, ModuleSymTable, Sema, SourceType,
+    SourceTypeArray, SymbolKind,
 };
 
 pub fn check(sa: &Sema) {
@@ -56,7 +56,25 @@ pub fn check(sa: &Sema) {
                 }
             }
 
-            AliasParent::Trait(..) => {}
+            AliasParent::Trait(id) => {
+                let trait_ = sa.trait_(id);
+
+                let mut bounds = Vec::with_capacity(alias.node.bounds.len());
+                let mut table = ModuleSymTable::new(sa, alias.module_id);
+                table.push_level();
+
+                for (id, name) in trait_.type_params().names() {
+                    table.insert(name, SymbolKind::TypeParam(id));
+                }
+
+                for bound in &alias.node.bounds {
+                    let ty = parse_type_bound(sa, &table, alias.file_id, bound);
+                    bounds.push(ty);
+                }
+
+                table.pop_level();
+                assert!(alias.bounds.set(bounds).is_ok());
+            }
         }
     }
 
@@ -320,6 +338,26 @@ mod tests {
         ",
             (6, 17),
             ErrorMessage::UnexpectedTypeBounds,
+        );
+    }
+
+    #[test]
+    fn use_alias_type_bound_in_trait() {
+        ok("
+            trait Foo {
+                type Ty: Bar;
+            }
+            trait Bar {}
+        ");
+
+        err(
+            "
+            trait Foo {
+                type Ty: Bar;
+            }
+        ",
+            (3, 26),
+            ErrorMessage::UnknownIdentifier("Bar".into()),
         );
     }
 }

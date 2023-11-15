@@ -179,6 +179,6 @@ pub trait Iterator {
 }
 
 pub trait IntoIterator {
-  type IteratorType;
+  type IteratorType: Iterator;
   fn iter(): IteratorType;
 }
