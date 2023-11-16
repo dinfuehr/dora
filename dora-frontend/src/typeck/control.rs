@@ -82,6 +82,26 @@ pub(super) fn check_expr_for(
         }
     }
 
+    if let Some((iter_fct_id, iterator_type)) =
+        type_supports_into_iterator_trait(ck, object_type.clone())
+    {
+        let (mut for_type_info, ret_type) = type_supports_iterator_trait(ck, iterator_type.clone())
+            .expect("type not implementing iterator trait");
+
+        ck.symtable.push_level();
+
+        // set variable type to return type of next
+        check_let_pattern(ck, &stmt.pattern, ret_type);
+
+        // store fct ids for code generation
+        for_type_info.make_iterator = Some(iter_fct_id);
+        ck.analysis.map_fors.insert(stmt.id, for_type_info);
+
+        check_loop_body(ck, &stmt.block);
+        ck.symtable.pop_level();
+        return SourceType::Unit;
+    }
+
     let name = ck.ty_name(&object_type);
     let msg = ErrorMessage::TypeNotUsableInForIn(name);
     ck.sa.report(ck.file_id, stmt.expr.span(), msg);
@@ -92,6 +112,61 @@ pub(super) fn check_expr_for(
     check_loop_body(ck, &stmt.block);
     ck.symtable.pop_level();
     SourceType::Unit
+}
+
+fn type_supports_into_iterator_trait(
+    ck: &mut TypeCheck,
+    object_type: SourceType,
+) -> Option<(FctDefinitionId, SourceType)> {
+    let into_iterator_trait_id = ck.sa.known.traits.into_iterator();
+    let into_iterator_trait = ck.sa.trait_(into_iterator_trait_id);
+
+    let iter_name = ck.sa.interner.intern("iter");
+    let iterator_type_name = ck.sa.interner.intern("IteratorType");
+
+    let iter_trait_fct_id = into_iterator_trait
+        .get_method(iter_name, false)
+        .expect("missing next() in trait");
+
+    let iterator_type_trait_alias_id = into_iterator_trait
+        .alias_names()
+        .get(&iterator_type_name)
+        .cloned()
+        .expect("missing Item alias");
+
+    let trait_ty = SourceType::new_trait(into_iterator_trait_id);
+
+    let impl_match = find_impl(
+        ck.sa,
+        object_type.clone(),
+        &ck.type_param_defs,
+        trait_ty.clone(),
+    );
+
+    if let Some(impl_match) = impl_match {
+        let impl_ = ck.sa.impl_(impl_match.id);
+
+        let iter_impl_fct_id = impl_
+            .trait_method_map()
+            .get(&iter_trait_fct_id)
+            .cloned()
+            .expect("missing impl next() method");
+
+        let iterator_type_impl_alias_id = impl_
+            .trait_alias_map()
+            .get(&iterator_type_trait_alias_id)
+            .cloned()
+            .expect("missing impl alias");
+
+        let iterator_type_impl_alias = ck.sa.alias(iterator_type_impl_alias_id);
+
+        let iterator_type =
+            specialize_type(ck.sa, iterator_type_impl_alias.ty(), &impl_match.binding);
+
+        Some((iter_impl_fct_id, iterator_type))
+    } else {
+        None
+    }
 }
 
 fn type_supports_make_iterator(

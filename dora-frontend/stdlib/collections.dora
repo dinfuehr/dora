@@ -13,10 +13,6 @@ impl[T] Array[T] {
 
   pub fn isEmpty(): Bool { self.size() == 0i64 }
 
-  pub fn makeIterator(): ArrayIter[T] {
-    ArrayIter[T]::new(self)
-  }
-
   pub fn enumerate(): ArrayEnumerator[T] {
     ArrayEnumerator[T]::new(self)
   }
@@ -1124,10 +1120,6 @@ impl[T] Vec[T] {
   pub fn clear() {
     self.len = 0;
     self.array = Array[T]::new();
-  }
-
-  pub fn makeIterator(): VecIter[T] {
-    VecIter[T]::new(self)
   }
 
   pub fn makeReverseIterator(): ReverseVecIter[T] {

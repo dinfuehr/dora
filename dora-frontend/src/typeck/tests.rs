@@ -2600,7 +2600,7 @@ fn for_with_array() {
 fn for_with_vec() {
     ok("fn f(x: Vec[Int32]): Int32 {
         let mut result = 0i32;
-        for i in x.makeIterator() {
+        for i in x.iter() {
             result = result + i;
         }
         result
@@ -3999,7 +3999,7 @@ fn alias_in_local_type() {
 fn for_iterator_trait() {
     ok("
         fn f() {
-            let it = Array[Int64]::new(1, 2, 3).makeIterator();
+            let it = Array[Int64]::new(1, 2, 3).iter();
             let mut sum = 0;
             for x in it {
                 sum = sum + x;

@@ -112,9 +112,13 @@ impl CommentTable {
     pub fn size(): Int64 {
         self.entries.size()
     }
+}
 
-    pub fn makeIterator(): VecIter[(Int32, String)] {
-        self.entries.makeIterator()
+impl std::traits::IntoIterator for CommentTable {
+    type IteratorType = VecIter[(Int32, String)];
+
+    fn iter(): VecIter[(Int32, String)] {
+        self.entries.iter()
     }
 }
 
@@ -141,9 +145,12 @@ impl LocationTable {
     pub fn size(): Int64 {
         self.entries.size()
     }
+}
 
-    pub fn makeIterator(): VecIter[(Int32, Location)] {
-        self.entries.makeIterator()
+impl std::traits::IntoIterator for LocationTable {
+    type IteratorType = VecIter[(Int32, Location)];
+    fn iter(): IteratorType {
+        self.entries.iter()
     }
 }
 
@@ -170,9 +177,12 @@ impl LazyCompilationData {
     pub fn size(): Int64 {
         self.entries.size()
     }
+}
 
-    pub fn makeIterator(): VecIter[(Int32, LazyCompilationSite)] {
-        self.entries.makeIterator()
+impl std::traits::IntoIterator for LazyCompilationData {
+    type IteratorType = VecIter[(Int32, LazyCompilationSite)];
+    fn iter(): IteratorType {
+        self.entries.iter()
     }
 }
 
@@ -216,9 +226,12 @@ impl GcPointTable {
     pub fn size(): Int64 {
         self.entries.size()
     }
+}
 
-    pub fn makeIterator(): VecIter[(Int32, GcPoint)] {
-        self.entries.makeIterator()
+impl std::traits::IntoIterator for GcPointTable {
+    type IteratorType = VecIter[(Int32, GcPoint)];
+    fn iter(): IteratorType {
+        self.entries.iter()
     }
 }
 
@@ -230,9 +243,12 @@ impl GcPoint {
     pub fn size(): Int64 {
         self.offsets.size()
     }
+}
 
-    pub fn makeIterator(): VecIter[Int32] {
-        self.offsets.makeIterator()
+impl std::traits::IntoIterator for GcPoint {
+    type IteratorType = VecIter[Int32];
+    fn iter(): IteratorType {
+        self.offsets.iter()
     }
 }
 
@@ -262,9 +278,13 @@ impl ConstPool {
         self.entries.push(entry);
         entry
     }
+}
 
-    pub fn makeIterator(): VecIter[ConstPoolEntry] {
-        self.entries.makeIterator()
+impl std::traits::IntoIterator for ConstPool {
+    type IteratorType = VecIter[ConstPoolEntry];
+
+    fn iter(): VecIter[ConstPoolEntry] {
+        self.entries.iter()
     }
 }
 
