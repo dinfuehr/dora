@@ -1094,7 +1094,7 @@ fn test_for_supports_into_iterator() {
                 }
             }
         ",
-        (4, 22),
+        (4, 26),
         ErrorMessage::TypeNotUsableInForIn("Foo".into()),
     );
 
