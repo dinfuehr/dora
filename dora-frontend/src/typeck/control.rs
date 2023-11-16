@@ -73,7 +73,7 @@ pub(super) fn check_expr_for(
         check_let_pattern(ck, &stmt.pattern, ret_type);
 
         // store fct ids for code generation
-        for_type_info.make_iterator = Some(iter_fct_id);
+        for_type_info.iter = Some(iter_fct_id);
         ck.analysis.map_fors.insert(stmt.id, for_type_info);
 
         check_loop_body(ck, &stmt.block);
@@ -201,7 +201,7 @@ fn type_supports_iterator_trait(
 
         Some((
             ForTypeInfo {
-                make_iterator: None,
+                iter: None,
                 next: next_impl_fct_id,
                 iterator_type: object_type,
                 next_type,

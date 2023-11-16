@@ -313,7 +313,7 @@ pub struct ContextIdx(pub usize);
 
 #[derive(Debug, Clone)]
 pub struct ForTypeInfo {
-    pub make_iterator: Option<FctDefinitionId>,
+    pub iter: Option<FctDefinitionId>,
     pub next: FctDefinitionId,
     pub iterator_type: SourceType,
     pub next_type: SourceType,

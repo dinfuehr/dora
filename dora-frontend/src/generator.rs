@@ -417,7 +417,7 @@ impl<'a> AstBytecodeGen<'a> {
         // Emit: <obj> = <expr> (for <var> in <expr> { ... })
         let object_reg = gen_expr(self, &stmt.expr, DataDest::Alloc);
 
-        let iterator_reg = if let Some(make_iterator) = for_type_info.make_iterator {
+        let iterator_reg = if let Some(iter) = for_type_info.iter {
             let object_type = self.ty(stmt.expr.id());
             let object_type_params = bty_array_from_ty(&object_type.type_params());
 
@@ -425,7 +425,7 @@ impl<'a> AstBytecodeGen<'a> {
             let iterator_reg = self.alloc_var(BytecodeType::Ptr);
             self.builder.emit_push_register(object_reg);
             let fct_idx = self.builder.add_const_fct_types(
-                FunctionId(make_iterator.index().try_into().expect("overflow")),
+                FunctionId(iter.index().try_into().expect("overflow")),
                 object_type_params,
             );
             self.builder

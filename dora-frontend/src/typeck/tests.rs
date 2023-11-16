@@ -1078,11 +1078,24 @@ fn test_generic_argument_with_trait_bound() {
 }
 
 #[test]
-fn test_for_supports_make_iterator() {
+fn test_for_supports_into_iterator() {
     err(
         "fn f() { for i in 1i32 {} }",
         (1, 19),
         ErrorMessage::TypeNotUsableInForIn("Int32".into()),
+    );
+
+    err(
+        "
+            class Foo
+            fn bar(x: Foo) {
+                for i in x {
+                    let x: Foo = i;
+                }
+            }
+        ",
+        (4, 22),
+        ErrorMessage::TypeNotUsableInForIn("Foo".into()),
     );
 
     ok("
@@ -2137,22 +2150,6 @@ fn test_tuple_element() {
     ",
         (3, 13),
         ErrorMessage::ReturnType("String".into(), "Bool".into()),
-    );
-}
-
-#[test]
-fn test_type_without_make_iterator() {
-    err(
-        "
-        class Foo
-        fn bar(x: Foo) {
-            for i in x {
-                let x: Foo = i;
-            }
-        }
-    ",
-        (4, 22),
-        ErrorMessage::TypeNotUsableInForIn("Foo".into()),
     );
 }
 
