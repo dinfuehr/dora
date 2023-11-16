@@ -1,5 +1,5 @@
 fn main() {
-    let x = std::range(0, 5).makeIterator();
+    let x = std::range(0, 5).iter();
 
     assert(x.next().getOrPanic() == 0);
     assert(x.next().getOrPanic() == 1);

@@ -421,7 +421,7 @@ impl<'a> AstBytecodeGen<'a> {
             let object_type = self.ty(stmt.expr.id());
             let object_type_params = bty_array_from_ty(&object_type.type_params());
 
-            // Emit: <iterator> = <obj>.makeIterator();
+            // Emit: <iterator> = <obj>.iter();
             let iterator_reg = self.alloc_var(BytecodeType::Ptr);
             self.builder.emit_push_register(object_reg);
             let fct_idx = self.builder.add_const_fct_types(

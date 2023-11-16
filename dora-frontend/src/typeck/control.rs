@@ -8,7 +8,7 @@ use crate::expr_always_returns;
 use crate::interner::Name;
 use crate::sema::{find_impl, EnumDefinitionId, FctDefinitionId, ForTypeInfo, IdentType};
 use crate::sym::SymbolKind;
-use crate::typeck::{add_local, check_expr, check_let_pattern, read_path, MethodLookup, TypeCheck};
+use crate::typeck::{add_local, check_expr, check_let_pattern, read_path, TypeCheck};
 use crate::{replace_type, specialize_type, AliasReplacement, SourceType, SourceTypeArray};
 
 pub(super) fn check_expr_while(
@@ -59,27 +59,6 @@ pub(super) fn check_expr_for(
         check_loop_body(ck, &stmt.block);
         ck.symtable.pop_level();
         return SourceType::Unit;
-    }
-
-    if let Some((make_iterator, iterator_type)) =
-        type_supports_make_iterator(ck, object_type.clone())
-    {
-        if let Some((mut for_type_info, ret_type)) =
-            type_supports_iterator_trait(ck, iterator_type.clone())
-        {
-            ck.symtable.push_level();
-
-            // set variable type to return type of next
-            check_let_pattern(ck, &stmt.pattern, ret_type);
-
-            // store fct ids for code generation
-            for_type_info.make_iterator = Some(make_iterator);
-            ck.analysis.map_fors.insert(stmt.id, for_type_info);
-
-            check_loop_body(ck, &stmt.block);
-            ck.symtable.pop_level();
-            return SourceType::Unit;
-        }
     }
 
     if let Some((iter_fct_id, iterator_type)) =
@@ -164,29 +143,6 @@ fn type_supports_into_iterator_trait(
             specialize_type(ck.sa, iterator_type_impl_alias.ty(), &impl_match.binding);
 
         Some((iter_impl_fct_id, iterator_type))
-    } else {
-        None
-    }
-}
-
-fn type_supports_make_iterator(
-    ck: &mut TypeCheck,
-    object_type: SourceType,
-) -> Option<(FctDefinitionId, SourceType)> {
-    let make_iterator_name = ck.sa.interner.intern("makeIterator");
-
-    let lookup = MethodLookup::new(ck.sa, ck.file_id, ck.type_param_defs)
-        .no_error_reporting()
-        .method(object_type)
-        .name(make_iterator_name)
-        .args(&[])
-        .find();
-
-    if lookup.find() {
-        let make_iterator_id = lookup.found_fct_id().unwrap();
-        let make_iterator_ret = lookup.found_ret().unwrap();
-
-        Some((make_iterator_id, make_iterator_ret))
     } else {
         None
     }

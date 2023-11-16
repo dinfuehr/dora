@@ -288,8 +288,11 @@ impl[T: RegisterType, V] RegMap[T, V] {
         self.data(value.toInt64()) = None[V];
         result
     }
+}
 
-    pub fn makeIterator(): RegMapIterator[T, V] {
+impl[T: RegisterType, V] std::traits::IntoIterator for RegMap[T, V] {
+    type IteratorType = RegMapIterator[T, V];
+    fn iter(): IteratorType {
         RegMapIterator(self, 0)
     }
 }

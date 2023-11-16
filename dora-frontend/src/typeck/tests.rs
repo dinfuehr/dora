@@ -1085,18 +1085,12 @@ fn test_for_supports_make_iterator() {
         ErrorMessage::TypeNotUsableInForIn("Int32".into()),
     );
 
-    err(
-        "
-            class Foo
-            impl Foo { fn makeIterator(): Bool { return true; } }
-            fn f() { for i in Foo() {} }",
-        (4, 31),
-        ErrorMessage::TypeNotUsableInForIn("Foo".into()),
-    );
-
     ok("
             class Foo
-            impl Foo { fn makeIterator(): FooIter { return FooIter(); } }
+            impl std::traits::IntoIterator for Foo {
+                type IteratorType = FooIter;
+                fn iter(): FooIter { return FooIter(); }
+            }
 
             class FooIter
 
@@ -2158,25 +2152,6 @@ fn test_type_without_make_iterator() {
         }
     ",
         (4, 22),
-        ErrorMessage::TypeNotUsableInForIn("Foo".into()),
-    );
-}
-
-#[test]
-fn test_type_make_iterator_not_implementing_iterator() {
-    err(
-        "
-        class Foo
-        impl Foo {
-            fn makeIterator(): Int32 { 0i32 }
-        }
-        fn bar(x: Foo) {
-            for i in x {
-                let x: Foo = i;
-            }
-        }
-    ",
-        (7, 22),
         ErrorMessage::TypeNotUsableInForIn("Foo".into()),
     );
 }

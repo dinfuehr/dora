@@ -406,8 +406,12 @@ impl BitVec {
       idx = idx + 1;
     }
   }
+}
 
-  pub fn makeIterator(): BitVecIter {
+impl std::traits::IntoIterator for BitVec {
+  type IteratorType = BitVecIter;
+
+  fn iter(): IteratorType {
     BitVecIter(self, 0, !0i32)
   }
 }
@@ -789,8 +793,12 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
     pub fn capacity(): Int64 {
         return self.cap;
     }
+}
 
-    pub fn makeIterator(): HashMapIter[K, V] {
+impl[K: Hash + Equals, V] IntoIterator for HashMap[K, V] {
+    type IteratorType = HashMapIter[K, V];
+
+    fn iter(): IteratorType {
         HashMapIter[K, V]::new(self)
     }
 }
@@ -863,8 +871,12 @@ impl[K: Hash + Equals] HashSet[K] {
   pub fn capacity(): Int64 {
     self.map.capacity()
   }
+}
 
-  pub fn makeIterator(): HashSetIter[K] {
+impl[K: Hash + Equals] std::traits::IntoIterator for HashSet[K] {
+  type IteratorType = HashSetIter[K];
+
+  fn iter(): IteratorType {
     HashSetIter[K](self.map, 0)
   }
 }

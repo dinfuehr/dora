@@ -134,7 +134,7 @@ impl ParallelMoveResolver {
         }
 
         while !self.todo.isEmpty() {
-            let dest = self.todo.makeIterator().next().getOrPanic();
+            let dest = self.todo.iter().next().getOrPanic();
             let ty = self.types.get(dest).getOrPanic();
             assert(self.inCycle(dest));
             let scratch = if ty.isAnyFloat() {

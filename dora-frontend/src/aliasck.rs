@@ -44,7 +44,7 @@ pub fn check(sa: &Sema) {
                         &table,
                         alias.file_id,
                         ty_node,
-                        &TypeParamDefinition::new(),
+                        impl_.type_params(),
                         AllowSelf::No,
                     );
 

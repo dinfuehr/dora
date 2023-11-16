@@ -55,7 +55,7 @@ fn main() {
 }
 
 fn assertBitVec(bitvec: std::BitVec, entries: Int64...) {
-    let it = bitvec.makeIterator();
+    let it = bitvec.iter();
 
     for entry in entries {
         assert(it.next().getOrPanic() == entry);

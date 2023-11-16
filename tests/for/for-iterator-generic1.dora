@@ -2,7 +2,7 @@
 
 fn main() {
     let arr = Array[Int64]::new(1, 2, 3);
-    f[std::collections::ArrayIter[Int64]](arr.makeIterator());
+    f[std::collections::ArrayIter[Int64]](arr.iter());
 }
 
 fn f[T: std::traits::Iterator](t: T) {
