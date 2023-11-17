@@ -1,6 +1,6 @@
 pub use collections::{Array, BitSet, BitVec, HashMap, HashSet, Queue, Vec};
 pub use traits::{Comparable, Default, Equals, Hash, Ordering, Zero};
-pub use primitives::{Bool, Char, Float32, Float64, Int32, Int64, Option, range32, range, Result};
+pub use primitives::{Bool, Char, Float32, Float64, Int32, Int64, Option, range, range2, Result};
 pub use rand::Random;
 pub use string::{CodepointIterator, String, StringBuffer, Stringable};
 pub use thread::{AtomicInt32, AtomicInt64, Condition, Mutex, Thread};
