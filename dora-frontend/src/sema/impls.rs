@@ -166,7 +166,7 @@ pub fn find_impl(
     trait_ty: SourceType,
 ) -> Option<ImplMatch> {
     for (_id, impl_) in sa.impls.iter() {
-        assert!(impl_.trait_ty().is_concrete_type());
+        assert!(impl_.trait_ty().is_error() || impl_.trait_ty().is_concrete_type());
 
         if impl_.trait_ty() != trait_ty {
             continue;

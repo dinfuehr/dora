@@ -7,35 +7,32 @@ use crate::sema::{
 };
 use crate::specialize::replace_type;
 use crate::{
-    check_type, AliasReplacement, AllowSelf, ErrorMessage, ModuleSymTable, SourceType,
+    parse_type, verify_type, AliasReplacement, AllowSelf, ErrorMessage, ModuleSymTable, SourceType,
     SourceTypeArray, SymbolKind,
 };
 
 pub fn check_definition(sa: &Sema) {
     for (_id, impl_) in sa.impls.iter() {
+        parse_impl_definition(sa, impl_);
+    }
+
+    for (_id, impl_) in sa.impls.iter() {
         check_impl_definition(sa, impl_);
     }
 }
 
-fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
+fn parse_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
     assert!(impl_.ast.trait_type.is_some());
-    let mut sym = ModuleSymTable::new(sa, impl_.module_id);
-    sym.push_level();
+    let mut table = ModuleSymTable::new(sa, impl_.module_id);
+    table.push_level();
 
     for (id, name) in impl_.type_params().names() {
-        sym.insert(name, SymbolKind::TypeParam(id));
+        table.insert(name, SymbolKind::TypeParam(id));
     }
 
     let ast_trait_type = impl_.ast.trait_type.as_ref().unwrap();
 
-    let trait_ty = check_type(
-        sa,
-        &sym,
-        impl_.file_id,
-        ast_trait_type,
-        impl_.type_params(),
-        AllowSelf::No,
-    );
+    let trait_ty = parse_type(sa, &table, impl_.file_id, ast_trait_type);
 
     let trait_ty = if trait_ty.is_trait() {
         trait_ty
@@ -48,39 +45,61 @@ fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
 
     assert!(impl_.trait_ty.set(trait_ty).is_ok());
 
-    let extended_ty = check_type(
-        sa,
-        &sym,
-        impl_.file_id.into(),
-        &impl_.ast.extended_type,
-        impl_.type_params(),
-        AllowSelf::No,
-    );
+    let extended_ty = parse_type(sa, &table, impl_.file_id.into(), &impl_.ast.extended_type);
 
-    if extended_ty.is_cls()
+    let extended_ty = if extended_ty.is_cls()
         || extended_ty.is_struct()
         || extended_ty.is_enum()
         || extended_ty.is_primitive()
         || extended_ty.is_tuple_or_unit()
     {
-        check_for_unconstrained_type_params(
-            sa,
-            extended_ty.clone(),
-            impl_.type_params(),
-            impl_.file_id,
-            impl_.ast.span,
-        );
+        extended_ty
     } else if !extended_ty.is_error() {
         sa.report(
             impl_.file_id,
             impl_.ast.extended_type.span(),
             ErrorMessage::ExpectedImplTraitType,
         );
-    }
+        SourceType::Error
+    } else {
+        SourceType::Error
+    };
 
     assert!(impl_.extended_ty.set(extended_ty).is_ok());
 
-    sym.pop_level();
+    table.pop_level();
+}
+
+fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
+    let ast_trait_type = impl_.ast.trait_type.as_ref().expect("missing trait type");
+
+    verify_type(
+        sa,
+        impl_.module_id,
+        impl_.file_id,
+        ast_trait_type,
+        impl_.trait_ty(),
+        impl_.type_params(),
+        AllowSelf::No,
+    );
+
+    verify_type(
+        sa,
+        impl_.module_id,
+        impl_.file_id,
+        &impl_.ast.extended_type,
+        impl_.extended_ty(),
+        impl_.type_params(),
+        AllowSelf::No,
+    );
+
+    check_for_unconstrained_type_params(
+        sa,
+        impl_.extended_ty(),
+        impl_.type_params(),
+        impl_.file_id,
+        impl_.ast.span,
+    );
 }
 
 pub fn check_definition_against_trait(sa: &Sema) {
