@@ -328,6 +328,88 @@ fn read_type_param_definition(
 }
 
 pub fn check_type_bounds(sa: &Sema) {
+    check_trait_type_bounds(sa);
+    check_impl_type_bounds(sa);
+    check_struct_type_bounds(sa);
+    check_class_type_bounds(sa);
+    check_enum_type_bounds(sa);
+    check_extension_type_bounds(sa);
+    check_fct_type_bounds(sa);
+}
+
+fn check_trait_type_bounds(sa: &Sema) {
+    for (_id, trait_) in sa.traits.iter() {
+        check_type_param_bounds(
+            sa,
+            trait_.module_id,
+            trait_.file_id,
+            trait_.type_params(),
+            AllowSelf::Yes,
+        );
+    }
+}
+
+fn check_struct_type_bounds(sa: &Sema) {
+    for (_id, struct_) in sa.structs.iter() {
+        check_type_param_bounds(
+            sa,
+            struct_.module_id,
+            struct_.file_id,
+            struct_.type_params(),
+            AllowSelf::No,
+        );
+    }
+}
+
+fn check_class_type_bounds(sa: &Sema) {
+    for (_id, class) in sa.classes.iter() {
+        check_type_param_bounds(
+            sa,
+            class.module_id,
+            class.file_id(),
+            class.type_params(),
+            AllowSelf::No,
+        );
+    }
+}
+
+fn check_enum_type_bounds(sa: &Sema) {
+    for (_id, enum_) in sa.enums.iter() {
+        check_type_param_bounds(
+            sa,
+            enum_.module_id,
+            enum_.file_id,
+            enum_.type_params(),
+            AllowSelf::No,
+        );
+    }
+}
+
+fn check_impl_type_bounds(sa: &Sema) {
+    for (_id, impl_) in sa.impls.iter() {
+        check_type_param_bounds(
+            sa,
+            impl_.module_id,
+            impl_.file_id,
+            impl_.type_params(),
+            AllowSelf::Yes,
+        );
+    }
+}
+
+fn check_extension_type_bounds(sa: &Sema) {
+    for (_id, extension) in sa.extensions.iter() {
+        check_type_param_bounds(
+            sa,
+            extension.module_id,
+            extension.file_id,
+            extension.type_params(),
+            AllowSelf::No,
+        );
+    }
+}
+
+fn check_fct_type_bounds(sa: &Sema) {
     for (_id, fct) in sa.fcts.iter() {
         let allow_self = if fct.is_self_allowed() {
             AllowSelf::Yes
@@ -373,6 +455,109 @@ fn check_type_param_bounds(
             bound.trait_ty(),
             type_params,
             allow_self,
+        );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::error::msg::ErrorMessage;
+    use crate::tests::*;
+
+    #[test]
+    fn fct_with_invalid_type_bound() {
+        err(
+            "
+            trait Foo {}
+            trait Bar[T: Foo] { fn testme(); }
+            fn f[X: Bar[Int64]](x: X) {
+                x.testme();
+            }
+        ",
+            (4, 21),
+            ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo".into()),
+        );
+    }
+
+    #[test]
+    fn struct_with_invalid_type_bound() {
+        err(
+            "
+            trait Foo {}
+            trait Bar[T: Foo] { fn testme(); }
+            struct MyType[X: Bar[Int64]] {
+                field: X,
+            }
+        ",
+            (4, 30),
+            ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo".into()),
+        );
+    }
+
+    #[test]
+    fn trait_with_invalid_type_bound() {
+        err(
+            "
+            trait Foo {}
+            trait Bar[T: Foo] { fn testme(); }
+            trait Baz[X: Bar[Int64]] {}
+        ",
+            (4, 26),
+            ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo".into()),
+        );
+    }
+
+    #[test]
+    fn class_with_invalid_type_bound() {
+        err(
+            "
+            trait Foo {}
+            trait Bar[T: Foo] { fn testme(); }
+            class Baz[X: Bar[Int64]] {}
+        ",
+            (4, 26),
+            ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo".into()),
+        );
+    }
+
+    #[test]
+    fn enum_with_invalid_type_bound() {
+        err(
+            "
+            trait Foo {}
+            trait Bar[T: Foo] { fn testme(); }
+            enum Baz[X: Bar[Int64]] { A(X), B }
+        ",
+            (4, 25),
+            ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo".into()),
+        );
+    }
+
+    #[test]
+    fn extension_with_invalid_type_bound() {
+        err(
+            "
+            trait Foo {}
+            trait Bar[T: Foo] { fn testme(); }
+            class Baz[T]
+            impl[T: Bar[Int64]] Baz[T] {}
+        ",
+            (5, 21),
+            ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo".into()),
+        );
+    }
+
+    #[test]
+    fn impl_with_invalid_type_bound() {
+        err(
+            "
+            trait Foo {}
+            trait Bar[T: Foo] { fn testme(); }
+            class Baz[T]
+            impl[T: Bar[Int64]] Foo for Baz[T] {}
+        ",
+            (5, 21),
+            ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo".into()),
         );
     }
 }
