@@ -309,7 +309,7 @@ pub struct Enum {
     pub name: Option<Ident>,
     pub type_params: Option<TypeParams>,
     pub variants: Vec<EnumVariant>,
-    pub where_bounds: Option<Where>,
+    pub where_bounds: Option<WhereBounds>,
 }
 
 #[derive(Clone, Debug)]
@@ -340,7 +340,7 @@ pub struct Struct {
     pub name: Option<Ident>,
     pub fields: Vec<StructField>,
     pub type_params: Option<TypeParams>,
-    pub where_bounds: Option<Where>,
+    pub where_bounds: Option<WhereBounds>,
 }
 
 #[derive(Clone, Debug)]
@@ -353,10 +353,10 @@ pub struct StructField {
     pub data_type: Type,
 }
 
-pub type Where = Arc<WhereData>;
+pub type WhereBounds = Arc<WhereBoundsData>;
 
 #[derive(Clone, Debug)]
-pub struct WhereData {
+pub struct WhereBoundsData {
     pub id: NodeId,
     pub span: Span,
     pub green: GreenNode,
@@ -620,7 +620,7 @@ pub struct Impl {
     pub type_params: Option<TypeParams>,
     pub trait_type: Option<Type>,
     pub extended_type: Type,
-    pub where_bounds: Option<Where>,
+    pub where_bounds: Option<WhereBounds>,
 
     pub methods: Vec<Elem>,
 }
@@ -632,7 +632,7 @@ pub struct Trait {
     pub green: GreenNode,
     pub modifiers: Option<ModifierList>,
     pub type_params: Option<TypeParams>,
-    pub where_bounds: Option<Where>,
+    pub where_bounds: Option<WhereBounds>,
     pub span: Span,
     pub methods: Vec<Elem>,
 }
@@ -659,7 +659,7 @@ pub struct Class {
 
     pub fields: Vec<Field>,
     pub type_params: Option<TypeParams>,
-    pub where_bounds: Option<Where>,
+    pub where_bounds: Option<WhereBounds>,
 }
 
 #[derive(Clone, Debug)]
@@ -725,7 +725,7 @@ pub struct Function {
     pub type_params: Option<TypeParams>,
     pub params: Vec<Param>,
     pub return_type: Option<Type>,
-    pub where_bounds: Option<Where>,
+    pub where_bounds: Option<WhereBounds>,
     pub block: Option<Expr>,
 }
 

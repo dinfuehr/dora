@@ -346,35 +346,52 @@ impl TypeParamDefinition {
         id
     }
 
-    pub fn add_bound(&mut self, id: TypeParamId, trait_ty: SourceType) -> bool {
+    pub fn add_bound(
+        &mut self,
+        id: TypeParamId,
+        trait_ty: SourceType,
+        type_bound_ast: ast::Type,
+    ) -> bool {
         assert!(trait_ty.is_trait());
 
-        let bound = Bound {
-            ty: SourceType::TypeParam(id),
-            trait_ty: trait_ty.clone(),
-        };
-
-        let contains = self.bounds.contains(&bound);
-
-        if contains {
-            false
-        } else {
-            self.bounds.push(bound);
-
-            true
+        for bound in &self.bounds {
+            if bound.ty() == SourceType::TypeParam(id) && bound.trait_ty() == trait_ty {
+                return false;
+            }
         }
+
+        self.bounds.push(Bound {
+            ty: SourceType::TypeParam(id),
+            ty_ast: None,
+            trait_ty: trait_ty.clone(),
+            type_bound_ast,
+        });
+        true
     }
 
-    pub fn add_where_bound(&mut self, ty: SourceType, trait_ty: SourceType) {
+    pub fn add_where_bound(
+        &mut self,
+        ty: SourceType,
+        ty_ast: ast::Type,
+        trait_ty: SourceType,
+        type_bound_ast: ast::Type,
+    ) {
         assert!(trait_ty.is_trait());
-        self.bounds.push(Bound { ty, trait_ty });
+        self.bounds.push(Bound {
+            ty,
+            ty_ast: Some(ty_ast),
+            trait_ty,
+            type_bound_ast,
+        });
     }
 
     pub fn implements_trait(&self, id: TypeParamId, trait_ty: SourceType) -> bool {
-        self.bounds.contains(&Bound {
-            ty: SourceType::TypeParam(id),
-            trait_ty,
-        })
+        for bound in &self.bounds {
+            if bound.ty() == SourceType::TypeParam(id) && bound.trait_ty() == trait_ty {
+                return true;
+            }
+        }
+        false
     }
 
     pub fn bounds(&self) -> &[Bound] {
@@ -409,10 +426,12 @@ impl TypeParamDefinition {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug)]
 pub struct Bound {
     pub ty: SourceType,
+    pub ty_ast: Option<ast::Type>,
     pub trait_ty: SourceType,
+    pub type_bound_ast: ast::Type,
 }
 
 impl Bound {

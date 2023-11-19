@@ -3,24 +3,25 @@ use std::collections::HashSet;
 use dora_parser::ast;
 use dora_parser::Span;
 
+use crate::sema::ModuleDefinitionId;
 use crate::sema::{FctParent, Sema, SourceFileId, TypeParamDefinition, TypeParamId};
+use crate::verify_type;
 use crate::{
-    parse_type, parse_type_bound, ErrorMessage, ModuleSymTable, SourceType, SourceTypeArray,
-    SymbolKind,
+    parse_type, parse_type_bound, AllowSelf, ErrorMessage, ModuleSymTable, SourceType,
+    SourceTypeArray, SymbolKind,
 };
 
-pub fn parse_definitions(sa: &Sema) {
-    check_traits(sa);
-    check_impls(sa);
-    check_classes(sa);
-    check_enums(sa);
-    check_structs(sa);
-    check_extensions(sa);
-
-    check_fct(sa);
+pub fn parse_type_params(sa: &Sema) {
+    parse_trait_type_params(sa);
+    parse_impl_type_params(sa);
+    parse_class_type_params(sa);
+    parse_enum_type_params(sa);
+    parse_struct_type_params(sa);
+    parse_extension_type_params(sa);
+    parse_fct_type_params(sa);
 }
 
-fn check_traits(sa: &Sema) {
+fn parse_trait_type_params(sa: &Sema) {
     for (_id, trait_) in sa.traits.iter() {
         let mut symtable = ModuleSymTable::new(sa, trait_.module_id);
         symtable.push_level();
@@ -42,7 +43,7 @@ fn check_traits(sa: &Sema) {
     }
 }
 
-fn check_impls(sa: &Sema) {
+fn parse_impl_type_params(sa: &Sema) {
     for (_id, impl_) in sa.impls.iter() {
         let mut symtable = ModuleSymTable::new(sa, impl_.module_id);
         symtable.push_level();
@@ -65,7 +66,7 @@ fn check_impls(sa: &Sema) {
     }
 }
 
-fn check_classes(sa: &Sema) {
+fn parse_class_type_params(sa: &Sema) {
     for (cls_id, cls) in sa.classes.iter() {
         let mut symtable = ModuleSymTable::new(sa, cls.module_id);
         symtable.push_level();
@@ -97,7 +98,7 @@ fn check_classes(sa: &Sema) {
     }
 }
 
-fn check_enums(sa: &Sema) {
+fn parse_enum_type_params(sa: &Sema) {
     for (_id, enum_) in sa.enums.iter() {
         let mut symtable = ModuleSymTable::new(sa, enum_.module_id);
         symtable.push_level();
@@ -120,7 +121,7 @@ fn check_enums(sa: &Sema) {
     }
 }
 
-fn check_structs(sa: &Sema) {
+fn parse_struct_type_params(sa: &Sema) {
     for (_struct_id, struct_) in sa.structs.iter() {
         let mut symtable = ModuleSymTable::new(sa, struct_.module_id);
         symtable.push_level();
@@ -146,7 +147,7 @@ fn check_structs(sa: &Sema) {
     }
 }
 
-fn check_extensions(sa: &Sema) {
+fn parse_extension_type_params(sa: &Sema) {
     for (_id, extension) in sa.extensions.iter() {
         let mut symtable = ModuleSymTable::new(sa, extension.module_id);
         symtable.push_level();
@@ -169,7 +170,7 @@ fn check_extensions(sa: &Sema) {
     }
 }
 
-fn check_fct(sa: &Sema) {
+fn parse_fct_type_params(sa: &Sema) {
     for (_id, fct) in sa.fcts.iter() {
         let mut sym_table = ModuleSymTable::new(sa, fct.module_id);
         sym_table.push_level();
@@ -238,7 +239,7 @@ fn read_type_param_definition(
     sa: &Sema,
     type_param_definition: &mut TypeParamDefinition,
     ast_type_params: Option<&ast::TypeParams>,
-    where_bounds: Option<&ast::Where>,
+    where_bounds: Option<&ast::WhereBounds>,
     symtable: &mut ModuleSymTable,
     file_id: SourceFileId,
     span: Span,
@@ -295,7 +296,7 @@ fn read_type_param_definition(
 
             if !ty.is_error() {
                 assert!(ty.is_trait());
-                if !type_param_definition.add_bound(id, ty) {
+                if !type_param_definition.add_bound(id, ty, bound.clone()) {
                     let msg = ErrorMessage::DuplicateTraitBound;
                     sa.report(file_id, type_param.span, msg);
                 }
@@ -314,9 +315,64 @@ fn read_type_param_definition(
 
                 if !bound_ty.is_error() {
                     assert!(bound_ty.is_trait());
-                    type_param_definition.add_where_bound(ty.clone(), bound_ty);
+                    type_param_definition.add_where_bound(
+                        ty.clone(),
+                        clause.ty.clone(),
+                        bound_ty,
+                        bound.clone(),
+                    );
                 }
             }
         }
+    }
+}
+
+pub fn check_type_bounds(sa: &Sema) {
+    for (_id, fct) in sa.fcts.iter() {
+        let allow_self = if fct.is_self_allowed() {
+            AllowSelf::Yes
+        } else {
+            AllowSelf::No
+        };
+
+        check_type_param_bounds(
+            sa,
+            fct.module_id,
+            fct.file_id,
+            fct.type_params(),
+            allow_self,
+        );
+    }
+}
+
+fn check_type_param_bounds(
+    sa: &Sema,
+    module_id: ModuleDefinitionId,
+    file_id: SourceFileId,
+    type_params: &TypeParamDefinition,
+    allow_self: AllowSelf,
+) {
+    for bound in type_params.bounds() {
+        if let Some(ref ty_ast) = bound.ty_ast {
+            verify_type(
+                sa,
+                module_id,
+                file_id,
+                ty_ast,
+                bound.ty(),
+                type_params,
+                allow_self,
+            );
+        }
+
+        verify_type(
+            sa,
+            module_id,
+            file_id,
+            &bound.type_bound_ast,
+            bound.trait_ty(),
+            type_params,
+            allow_self,
+        );
     }
 }

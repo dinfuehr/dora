@@ -66,9 +66,11 @@ pub fn check_program(sa: &mut Sema) -> bool {
     stdlib_lookup::lookup_known_fundamental_types(sa);
 
     // Now all types are known and we can start parsing types/type bounds.
-    type_params::parse_definitions(sa);
+    type_params::parse_type_params(sa);
     // Find all trait implementations for types.
     impldefck::check_definition(sa);
+    // Check types/type bounds for type params.
+    type_params::check_type_bounds(sa);
     return_on_error!(sa);
 
     // Checks class/struct/trait/enum definitions.

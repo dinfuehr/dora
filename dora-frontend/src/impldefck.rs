@@ -764,4 +764,19 @@ mod tests {
             ErrorMessage::TypeNotImplementingTrait("String".into(), "Bar".into()),
         );
     }
+
+    #[test]
+    fn trait_with_generic_type_param_and_bound() {
+        err(
+            "
+            trait Foo {}
+            trait Bar[T: Foo] { fn testme(); }
+            fn f[X: Bar[Int64]](x: X) {
+                x.testme();
+            }
+        ",
+            (4, 21),
+            ErrorMessage::TypeNotImplementingTrait("Int64".into(), "Foo".into()),
+        );
+    }
 }

@@ -996,7 +996,7 @@ impl Parser {
         }
     }
 
-    fn parse_where(&mut self) -> Option<Where> {
+    fn parse_where(&mut self) -> Option<WhereBounds> {
         if self.eat(WHERE_KW) {
             self.start_node();
             self.builder.start_node();
@@ -1013,7 +1013,7 @@ impl Parser {
 
             let green = self.builder.finish_node(WHERE_CLAUSES);
 
-            Some(Arc::new(WhereData {
+            Some(Arc::new(WhereBoundsData {
                 id: self.new_node_id(),
                 span: self.finish_node(),
                 green,
