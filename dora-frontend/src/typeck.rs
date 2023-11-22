@@ -1,5 +1,5 @@
 use crate::sema::{
-    AnalysisData, ClassDefinition, FctDefinition, FctParent, GlobalDefinition, LazyContextClass,
+    AnalysisData, ClassDefinition, FctDefinition, FctParent, GlobalDefinition, LazyContextData,
     LazyLambdaId, Sema, TypeParamDefinition,
 };
 use crate::sym::ModuleSymTable;
@@ -72,7 +72,7 @@ pub fn check(sa: &mut Sema) {
 fn check_function(
     sa: &Sema,
     fct: &FctDefinition,
-    lazy_context_class_creation: &mut Vec<(LazyContextClass, ClassDefinition)>,
+    lazy_context_class_creation: &mut Vec<(LazyContextData, ClassDefinition)>,
     lazy_lambda_creation: &mut Vec<(LazyLambdaId, FctDefinition)>,
 ) {
     let mut analysis = AnalysisData::new();
@@ -119,7 +119,7 @@ fn check_function(
 fn check_global(
     sa: &Sema,
     global: &GlobalDefinition,
-    lazy_context_class_creation: &mut Vec<(LazyContextClass, ClassDefinition)>,
+    lazy_context_class_creation: &mut Vec<(LazyContextData, ClassDefinition)>,
     lazy_lambda_creation: &mut Vec<(LazyLambdaId, FctDefinition)>,
 ) {
     let analysis = {
@@ -162,11 +162,11 @@ fn check_global(
     assert!(global.analysis.set(analysis).is_ok());
 }
 
-fn create_context_classes(sa: &mut Sema, lazy_class: Vec<(LazyContextClass, ClassDefinition)>) {
+fn create_context_classes(sa: &mut Sema, lazy_class: Vec<(LazyContextData, ClassDefinition)>) {
     for (lazy_context_class, class_definition) in lazy_class {
         let class_id = sa.classes.alloc(class_definition);
         sa.classes[class_id].id = Some(class_id);
-        lazy_context_class.set_context_cls_id(class_id);
+        lazy_context_class.set_class_id(class_id);
     }
 }
 

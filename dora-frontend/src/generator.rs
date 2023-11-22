@@ -880,6 +880,7 @@ impl<'a> AstBytecodeGen<'a> {
                 // This lambda doesn't have a context object on its own, simply
                 // pass down the parent context (the context in the lambda object).
                 assert!(self.is_lambda);
+                assert!(self.analysis.has_outer_context_access());
                 outer_context_reg = Some(self.alloc_temp(BytecodeType::Ptr));
                 let lambda_cls_id = self.sa.known.classes.lambda();
                 let idx = self.builder.add_const_field_types(
@@ -2331,13 +2332,13 @@ impl<'a> AstBytecodeGen<'a> {
         assert!(distance >= 1);
 
         let mut distance_left = distance;
-        let mut outer_cls_idx = self.analysis.outer_context_classes.len() - 1;
+        let mut outer_cls_idx = self.analysis.outer_contexts.len() - 1;
 
         while distance_left > 1 {
-            let outer_context_class = &self.analysis.outer_context_classes[outer_cls_idx];
+            let outer_context_class = &self.analysis.outer_contexts[outer_cls_idx];
 
-            if outer_context_class.has_context_class() {
-                let outer_cls_id = outer_context_class.context_cls_id();
+            if outer_context_class.has_class_id() {
+                let outer_cls_id = outer_context_class.class_id();
 
                 let idx = self.builder.add_const_field_types(
                     ClassId(outer_cls_id.index().try_into().expect("overflow")),
@@ -2359,14 +2360,14 @@ impl<'a> AstBytecodeGen<'a> {
         assert_eq!(distance_left, 1);
 
         // Store value in context field
-        let outer_context_info = self.analysis.outer_context_classes[outer_cls_idx].clone();
+        let outer_context_info = self.analysis.outer_contexts[outer_cls_idx].clone();
 
         let field_id =
-            field_id_from_context_idx(context_idx, outer_context_info.has_outer_context_slot());
+            field_id_from_context_idx(context_idx, outer_context_info.has_parent_context_slot());
         let idx = self.builder.add_const_field_types(
             ClassId(
                 outer_context_info
-                    .context_cls_id()
+                    .class_id()
                     .index()
                     .try_into()
                     .expect("overflow"),
@@ -2476,15 +2477,14 @@ impl<'a> AstBytecodeGen<'a> {
 
         assert!(distance >= 1);
 
-        let mut outer_cls_idx = self.analysis.outer_context_classes.len() - 1;
+        let mut outer_cls_idx = self.analysis.outer_contexts.len() - 1;
         let mut distance_left = distance;
 
         while distance_left > 1 {
-            let outer_context_class = &self.analysis.outer_context_classes[outer_cls_idx];
+            let outer_context_class = &self.analysis.outer_contexts[outer_cls_idx];
 
-            if outer_context_class.has_context_class() {
-                let outer_cls_id =
-                    self.analysis.outer_context_classes[outer_cls_idx].context_cls_id();
+            if outer_context_class.has_class_id() {
+                let outer_cls_id = self.analysis.outer_contexts[outer_cls_idx].class_id();
                 let idx = self.builder.add_const_field_types(
                     ClassId(outer_cls_id.index().try_into().expect("overflow")),
                     bty_array_from_ty(&self.identity_type_params()),
@@ -2500,12 +2500,12 @@ impl<'a> AstBytecodeGen<'a> {
 
         assert_eq!(distance_left, 1);
 
-        let outer_context_info = self.analysis.outer_context_classes[outer_cls_idx].clone();
-        let outer_cls_id = outer_context_info.context_cls_id();
+        let outer_context_info = self.analysis.outer_contexts[outer_cls_idx].clone();
+        let outer_cls_id = outer_context_info.class_id();
 
         let outer_cls = self.sa.class(outer_cls_id);
         let field_id =
-            field_id_from_context_idx(context_idx, outer_context_info.has_outer_context_slot());
+            field_id_from_context_idx(context_idx, outer_context_info.has_parent_context_slot());
         let field = &outer_cls.fields[field_id];
 
         let ty: BytecodeType = register_bty_from_ty(field.ty());

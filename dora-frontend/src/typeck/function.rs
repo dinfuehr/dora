@@ -5,9 +5,8 @@ use std::{f32, f64};
 use crate::error::msg::ErrorMessage;
 use crate::sema::{
     AnalysisData, ClassDefinition, ContextIdx, FctDefinition, Field, FieldId, GlobalDefinition,
-    IdentType, LazyContextClass, LazyLambdaId, ModuleDefinitionId, NestedVarId,
-    PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Var, VarAccess, VarId,
-    VarLocation, Visibility,
+    IdentType, LazyContextData, LazyLambdaId, ModuleDefinitionId, NestedVarId, PackageDefinitionId,
+    Sema, SourceFileId, TypeParamDefinition, Var, VarAccess, VarId, VarLocation, Visibility,
 };
 use crate::typeck::{check_expr, check_stmt};
 use crate::{
@@ -36,9 +35,9 @@ pub struct TypeCheck<'a> {
     pub self_ty: Option<SourceType>,
     pub vars: &'a mut VarManager,
     pub contains_lambda: bool,
-    pub lazy_context_class_creation: &'a mut Vec<(LazyContextClass, ClassDefinition)>,
+    pub lazy_context_class_creation: &'a mut Vec<(LazyContextData, ClassDefinition)>,
     pub lazy_lambda_creation: &'a mut Vec<(LazyLambdaId, FctDefinition)>,
-    pub outer_context_classes: &'a mut Vec<LazyContextClass>,
+    pub outer_context_classes: &'a mut Vec<LazyContextData>,
     pub has_outer_context_access: bool,
 }
 
@@ -75,7 +74,7 @@ impl<'a> TypeCheck<'a> {
     where
         F: FnOnce(&mut TypeCheck<'a>),
     {
-        self.outer_context_classes.push(LazyContextClass::new());
+        self.outer_context_classes.push(LazyContextData::new());
         let start_level = self.symtable.levels();
         self.enter_function_scope();
         self.symtable.push_level();
@@ -223,14 +222,14 @@ impl<'a> TypeCheck<'a> {
             .cloned()
             .expect("missing outer context");
 
-        context_class_resolver.set_has_outer_context_slot(needs_outer_context_slot);
+        context_class_resolver.set_has_parent_context_slot(needs_outer_context_slot);
 
         self.lazy_context_class_creation
             .push((context_class_resolver.clone(), class));
 
         assert!(self
             .analysis
-            .lazy_context_class
+            .function_context_data
             .set(context_class_resolver)
             .is_ok());
     }

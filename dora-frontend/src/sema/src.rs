@@ -28,9 +28,13 @@ pub struct AnalysisData {
     pub map_cls: NodeMap<ClassDefinitionId>,
     pub map_fors: NodeMap<ForTypeInfo>,
     pub map_lambdas: NodeMap<LazyLambdaId>,
-    pub vars: VarAccess, // variables in functions
-    pub lazy_context_class: OnceCell<LazyContextClass>,
-    pub outer_context_classes: Vec<LazyContextClass>,
+
+    // All variables defined in this function (including
+    // context allocated ones).
+    pub vars: VarAccess,
+
+    pub function_context_data: OnceCell<LazyContextData>,
+    pub outer_contexts: Vec<LazyContextData>,
     pub has_outer_context_access: OnceCell<bool>,
 }
 
@@ -51,8 +55,8 @@ impl AnalysisData {
             map_string_literals: NodeMap::new(),
 
             vars: VarAccess::empty(),
-            lazy_context_class: OnceCell::new(),
-            outer_context_classes: Vec::new(),
+            function_context_data: OnceCell::new(),
+            outer_contexts: Vec::new(),
             has_outer_context_access: OnceCell::new(),
         }
     }
@@ -104,17 +108,17 @@ impl AnalysisData {
     }
 
     pub fn has_context_class(&self) -> bool {
-        self.lazy_context_class.get().is_some()
+        self.function_context_data.get().is_some()
     }
 
     pub fn context_cls_id(&self) -> Option<ClassDefinitionId> {
-        self.lazy_context_class.get().map(|cr| cr.context_cls_id())
+        self.function_context_data.get().map(|cr| cr.class_id())
     }
 
     pub fn context_has_outer_context_slot(&self) -> bool {
-        self.lazy_context_class
+        self.function_context_data
             .get()
-            .map(|cr| cr.has_outer_context_slot())
+            .map(|cr| cr.has_parent_context_slot())
             .expect("missing context")
     }
 
@@ -144,21 +148,21 @@ impl LazyLambdaId {
 }
 
 #[derive(Clone, Debug)]
-pub struct LazyContextClass(Rc<ContextInfo>);
+pub struct LazyContextData(Rc<ContextInfo>);
 
-impl LazyContextClass {
-    pub fn new() -> LazyContextClass {
-        LazyContextClass(Rc::new(ContextInfo {
+impl LazyContextData {
+    pub fn new() -> LazyContextData {
+        LazyContextData(Rc::new(ContextInfo {
             has_outer_context_slot: OnceCell::new(),
             context_cls_id: OnceCell::new(),
         }))
     }
 
-    pub fn set_has_outer_context_slot(&self, value: bool) {
+    pub fn set_has_parent_context_slot(&self, value: bool) {
         assert!(self.0.has_outer_context_slot.set(value).is_ok());
     }
 
-    pub fn has_outer_context_slot(&self) -> bool {
+    pub fn has_parent_context_slot(&self) -> bool {
         self.0
             .has_outer_context_slot
             .get()
@@ -166,15 +170,15 @@ impl LazyContextClass {
             .expect("missing value")
     }
 
-    pub fn set_context_cls_id(&self, id: ClassDefinitionId) {
+    pub fn set_class_id(&self, id: ClassDefinitionId) {
         assert!(self.0.context_cls_id.set(id).is_ok());
     }
 
-    pub fn has_context_class(&self) -> bool {
+    pub fn has_class_id(&self) -> bool {
         self.0.context_cls_id.get().is_some()
     }
 
-    pub fn context_cls_id(&self) -> ClassDefinitionId {
+    pub fn class_id(&self) -> ClassDefinitionId {
         self.0
             .context_cls_id
             .get()

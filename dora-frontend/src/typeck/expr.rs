@@ -1213,7 +1213,7 @@ fn check_expr_lambda(
 
     let analysis = {
         let mut analysis = AnalysisData::new();
-        analysis.outer_context_classes = ck.outer_context_classes.clone();
+        analysis.outer_contexts = ck.outer_context_classes.clone();
 
         {
             let mut typeck = TypeCheck {
