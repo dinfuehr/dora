@@ -31,7 +31,7 @@ pub struct AnalysisData {
     pub vars: VarAccess, // variables in functions
     pub lazy_context_class: OnceCell<LazyContextClass>,
     pub outer_context_classes: Vec<LazyContextClass>,
-    pub has_outer_context_access: Option<bool>,
+    pub has_outer_context_access: OnceCell<bool>,
 }
 
 impl AnalysisData {
@@ -53,7 +53,7 @@ impl AnalysisData {
             vars: VarAccess::empty(),
             lazy_context_class: OnceCell::new(),
             outer_context_classes: Vec::new(),
-            has_outer_context_access: None,
+            has_outer_context_access: OnceCell::new(),
         }
     }
 
@@ -119,7 +119,10 @@ impl AnalysisData {
     }
 
     pub fn has_outer_context_access(&self) -> bool {
-        self.has_outer_context_access.expect("missing")
+        self.has_outer_context_access
+            .get()
+            .cloned()
+            .expect("missing")
     }
 }
 

@@ -108,8 +108,7 @@ fn check_function(
         lazy_context_class_creation,
         lazy_lambda_creation,
         outer_context_classes: &mut outer_context_classes,
-        outer_context_access_in_function: false,
-        outer_context_access_from_lambda: false,
+        has_outer_context_access: false,
     };
 
     typeck.check_fct(&fct.ast);
@@ -153,8 +152,7 @@ fn check_global(
             lazy_context_class_creation,
             lazy_lambda_creation,
             outer_context_classes: &mut outer_context_classes,
-            outer_context_access_in_function: false,
-            outer_context_access_from_lambda: false,
+            has_outer_context_access: false,
         };
 
         typeck.check_initializer(&*global, global.initial_value_expr());

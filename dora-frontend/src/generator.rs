@@ -871,9 +871,31 @@ impl<'a> AstBytecodeGen<'a> {
         let lambda_fct = self.sa.fct(lambda_fct_id);
         let lambda_analysis = lambda_fct.analysis();
 
+        let mut outer_context_reg: Option<Register> = None;
+
         if lambda_analysis.has_outer_context_access() {
-            self.builder
-                .emit_push_register(self.context_register.expect("missing context"));
+            if let Some(context_register) = self.context_register {
+                self.builder.emit_push_register(context_register);
+            } else {
+                // This lambda doesn't have a context object on its own, simply
+                // pass down the parent context (the context in the lambda object).
+                assert!(self.is_lambda);
+                outer_context_reg = Some(self.alloc_temp(BytecodeType::Ptr));
+                let lambda_cls_id = self.sa.known.classes.lambda();
+                let idx = self.builder.add_const_field_types(
+                    ClassId(lambda_cls_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty(),
+                    0,
+                );
+                self.builder.emit_load_field(
+                    outer_context_reg.expect("missing reg"),
+                    self.var_reg(SELF_VAR_ID),
+                    idx,
+                    self.loc(node.span),
+                );
+                self.builder
+                    .emit_push_register(outer_context_reg.expect("missing reg"));
+            }
         }
 
         let idx = self.builder.add_const_fct_types(
@@ -881,6 +903,10 @@ impl<'a> AstBytecodeGen<'a> {
             bty_array_from_ty(&self.identity_type_params()),
         );
         self.builder.emit_new_lambda(dest, idx, self.loc(node.span));
+
+        if let Some(outer_context_reg) = outer_context_reg {
+            self.free_if_temp(outer_context_reg);
+        }
 
         dest
     }

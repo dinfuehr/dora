@@ -39,8 +39,7 @@ pub struct TypeCheck<'a> {
     pub lazy_context_class_creation: &'a mut Vec<(LazyContextClass, ClassDefinition)>,
     pub lazy_lambda_creation: &'a mut Vec<(LazyLambdaId, FctDefinition)>,
     pub outer_context_classes: &'a mut Vec<LazyContextClass>,
-    pub outer_context_access_in_function: bool,
-    pub outer_context_access_from_lambda: bool,
+    pub has_outer_context_access: bool,
 }
 
 impl<'a> TypeCheck<'a> {
@@ -134,28 +133,18 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn leave_function_scope(&mut self) {
-        if self.needs_context() {
+        if self.vars.has_context_vars() {
             self.setup_context_class();
         }
 
         // Store var definitions for all local and context vars defined in this function.
         self.analysis.vars = self.vars.leave_scope();
 
-        self.analysis.has_outer_context_access =
-            Some(self.outer_context_access_in_function || self.outer_context_access_from_lambda);
-    }
-
-    fn needs_context(&self) -> bool {
-        // As soon as this function has context variables,
-        // it definitely needs a Context object.
-        if self.vars.has_context_vars() {
-            return true;
-        }
-
-        // We also need a Context object, when any lambda
-        // defined in this function, accesses some outside
-        // context variables.
-        self.outer_context_access_from_lambda
+        assert!(self
+            .analysis
+            .has_outer_context_access
+            .set(self.has_outer_context_access)
+            .is_ok());
     }
 
     fn setup_context_class(&mut self) {
@@ -165,8 +154,7 @@ impl<'a> TypeCheck<'a> {
         let mut fields = Vec::with_capacity(number_fields);
         let mut map: Vec<Option<NestedVarId>> = vec![None; number_fields];
 
-        let needs_outer_context_slot = self.is_lambda
-            && (self.outer_context_access_in_function || self.outer_context_access_from_lambda);
+        let needs_outer_context_slot = self.has_outer_context_access;
 
         if needs_outer_context_slot {
             let name = self.sa.interner.intern("outer_context");
