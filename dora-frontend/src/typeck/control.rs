@@ -43,21 +43,14 @@ pub(super) fn check_expr_for(
     let object_type = check_expr(ck, &stmt.expr, SourceType::Any);
 
     if object_type.is_error() {
-        ck.symtable.push_level();
-        check_let_pattern(ck, &stmt.pattern, SourceType::Error);
-        check_expr(ck, &stmt.block, SourceType::Any);
-        ck.symtable.pop_level();
+        check_for_body(ck, stmt, SourceType::Error);
         return SourceType::Unit;
     }
 
     if let Some((for_type_info, ret_type)) = type_supports_iterator_trait(ck, object_type.clone()) {
-        ck.symtable.push_level();
-        // set variable type to return type of next
-        check_let_pattern(ck, &stmt.pattern, ret_type);
         // store fct ids for code generation
         ck.analysis.map_fors.insert(stmt.id, for_type_info);
-        check_loop_body(ck, &stmt.block);
-        ck.symtable.pop_level();
+        check_for_body(ck, stmt, ret_type);
         return SourceType::Unit;
     }
 
@@ -67,17 +60,11 @@ pub(super) fn check_expr_for(
         let (mut for_type_info, ret_type) = type_supports_iterator_trait(ck, iterator_type.clone())
             .expect("type not implementing iterator trait");
 
-        ck.symtable.push_level();
-
-        // set variable type to return type of next
-        check_let_pattern(ck, &stmt.pattern, ret_type);
-
         // store fct ids for code generation
         for_type_info.iter = Some(iter_fct_id);
         ck.analysis.map_fors.insert(stmt.id, for_type_info);
 
-        check_loop_body(ck, &stmt.block);
-        ck.symtable.pop_level();
+        check_for_body(ck, stmt, ret_type);
         return SourceType::Unit;
     }
 
@@ -86,11 +73,15 @@ pub(super) fn check_expr_for(
     ck.sa.report(ck.file_id, stmt.expr.span(), msg);
 
     // set invalid error type
+    check_for_body(ck, stmt, SourceType::Error);
+    SourceType::Unit
+}
+
+fn check_for_body(ck: &mut TypeCheck, stmt: &ast::ExprForType, ty: SourceType) {
     ck.symtable.push_level();
-    check_let_pattern(ck, &stmt.pattern, SourceType::Error);
+    check_let_pattern(ck, &stmt.pattern, ty);
     check_loop_body(ck, &stmt.block);
     ck.symtable.pop_level();
-    SourceType::Unit
 }
 
 fn type_supports_into_iterator_trait(

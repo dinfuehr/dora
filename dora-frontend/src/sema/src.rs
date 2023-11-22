@@ -31,7 +31,7 @@ pub struct AnalysisData {
     pub vars: VarAccess, // variables in functions
     pub lazy_context_class: OnceCell<LazyContextClass>,
     pub outer_context_classes: Vec<LazyContextClass>,
-    pub outer_context_access: Option<bool>,
+    pub has_outer_context_access: Option<bool>,
 }
 
 impl AnalysisData {
@@ -53,7 +53,7 @@ impl AnalysisData {
             vars: VarAccess::empty(),
             lazy_context_class: OnceCell::new(),
             outer_context_classes: Vec::new(),
-            outer_context_access: None,
+            has_outer_context_access: None,
         }
     }
 
@@ -118,8 +118,8 @@ impl AnalysisData {
             .expect("missing context")
     }
 
-    pub fn outer_context_access(&self) -> bool {
-        self.outer_context_access.expect("missing")
+    pub fn has_outer_context_access(&self) -> bool {
+        self.has_outer_context_access.expect("missing")
     }
 }
 
@@ -165,6 +165,10 @@ impl LazyContextClass {
 
     pub fn set_context_cls_id(&self, id: ClassDefinitionId) {
         assert!(self.0.context_cls_id.set(id).is_ok());
+    }
+
+    pub fn has_context_class(&self) -> bool {
+        self.0.context_cls_id.get().is_some()
     }
 
     pub fn context_cls_id(&self) -> ClassDefinitionId {

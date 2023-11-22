@@ -134,7 +134,7 @@ pub(super) fn check_expr_ident(
             // Variable may have to be context-allocated.
             let ident = ck
                 .vars
-                .check_context_allocated(var_id, &mut ck.outer_context_access_in_function);
+                .maybe_allocate_in_context(var_id, &mut ck.outer_context_access_in_function);
             ck.analysis.map_idents.insert(e.id, ident);
 
             ty
@@ -221,7 +221,7 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, e: &ast::ExprBinType) {
             // Variable may have to be context-allocated.
             let ident = ck
                 .vars
-                .check_context_allocated(var_id, &mut ck.outer_context_access_in_function);
+                .maybe_allocate_in_context(var_id, &mut ck.outer_context_access_in_function);
             ck.analysis.map_idents.insert(e.lhs.id(), ident);
 
             ck.vars.get_var(var_id).ty.clone()
@@ -545,7 +545,7 @@ pub(super) fn check_expr_this(
     let var_id = NestedVarId(0);
     let ident = ck
         .vars
-        .check_context_allocated(var_id, &mut ck.outer_context_access_in_function);
+        .maybe_allocate_in_context(var_id, &mut ck.outer_context_access_in_function);
     ck.analysis.map_idents.insert(e.id, ident);
 
     let var = ck.vars.get_var(var_id);
@@ -1243,7 +1243,7 @@ fn check_expr_lambda(
             typeck.check_fct(&node);
         }
 
-        if analysis.outer_context_access() {
+        if analysis.has_outer_context_access() {
             ck.outer_context_access_from_lambda = true
         }
 

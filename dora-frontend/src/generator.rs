@@ -871,7 +871,7 @@ impl<'a> AstBytecodeGen<'a> {
         let lambda_fct = self.sa.fct(lambda_fct_id);
         let lambda_analysis = lambda_fct.analysis();
 
-        if lambda_analysis.outer_context_access() {
+        if lambda_analysis.has_outer_context_access() {
             self.builder
                 .emit_push_register(self.context_register.expect("missing context"));
         }
@@ -2308,19 +2308,23 @@ impl<'a> AstBytecodeGen<'a> {
         let mut outer_cls_idx = self.analysis.outer_context_classes.len() - 1;
 
         while distance_left > 1 {
-            let outer_cls_id = self.analysis.outer_context_classes[outer_cls_idx].context_cls_id();
+            let outer_context_class = &self.analysis.outer_context_classes[outer_cls_idx];
 
-            let idx = self.builder.add_const_field_types(
-                ClassId(outer_cls_id.index().try_into().expect("overflow")),
-                bty_array_from_ty(&self.identity_type_params()),
-                0,
-            );
-            self.builder.emit_load_field(
-                outer_context_reg,
-                outer_context_reg,
-                idx,
-                self.loc(expr.span),
-            );
+            if outer_context_class.has_context_class() {
+                let outer_cls_id = outer_context_class.context_cls_id();
+
+                let idx = self.builder.add_const_field_types(
+                    ClassId(outer_cls_id.index().try_into().expect("overflow")),
+                    bty_array_from_ty(&self.identity_type_params()),
+                    0,
+                );
+                self.builder.emit_load_field(
+                    outer_context_reg,
+                    outer_context_reg,
+                    idx,
+                    self.loc(expr.span),
+                );
+            }
 
             distance_left -= 1;
             outer_cls_idx -= 1;
@@ -2450,14 +2454,19 @@ impl<'a> AstBytecodeGen<'a> {
         let mut distance_left = distance;
 
         while distance_left > 1 {
-            let outer_cls_id = self.analysis.outer_context_classes[outer_cls_idx].context_cls_id();
-            let idx = self.builder.add_const_field_types(
-                ClassId(outer_cls_id.index().try_into().expect("overflow")),
-                bty_array_from_ty(&self.identity_type_params()),
-                0,
-            );
-            self.builder
-                .emit_load_field(outer_context_reg, outer_context_reg, idx, location);
+            let outer_context_class = &self.analysis.outer_context_classes[outer_cls_idx];
+
+            if outer_context_class.has_context_class() {
+                let outer_cls_id =
+                    self.analysis.outer_context_classes[outer_cls_idx].context_cls_id();
+                let idx = self.builder.add_const_field_types(
+                    ClassId(outer_cls_id.index().try_into().expect("overflow")),
+                    bty_array_from_ty(&self.identity_type_params()),
+                    0,
+                );
+                self.builder
+                    .emit_load_field(outer_context_reg, outer_context_reg, idx, location);
+            }
 
             distance_left -= 1;
             outer_cls_idx -= 1;

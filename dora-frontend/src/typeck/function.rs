@@ -78,14 +78,15 @@ impl<'a> TypeCheck<'a> {
     {
         self.outer_context_classes.push(LazyContextClass::new());
         let start_level = self.symtable.levels();
+        self.enter_function_scope();
         self.symtable.push_level();
-        self.vars.enter_function();
 
         fct(self);
+
         self.symtable.pop_level();
         assert_eq!(self.symtable.levels(), start_level);
 
-        self.prepare_local_and_context_vars();
+        self.leave_function_scope();
         self.outer_context_classes
             .pop()
             .expect("missing context class");
@@ -128,15 +129,19 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn prepare_local_and_context_vars(&mut self) {
+    fn enter_function_scope(&mut self) {
+        self.vars.enter_scope();
+    }
+
+    fn leave_function_scope(&mut self) {
         if self.needs_context() {
             self.setup_context_class();
         }
 
         // Store var definitions for all local and context vars defined in this function.
-        self.analysis.vars = self.vars.leave_function();
+        self.analysis.vars = self.vars.leave_scope();
 
-        self.analysis.outer_context_access =
+        self.analysis.has_outer_context_access =
             Some(self.outer_context_access_in_function || self.outer_context_access_from_lambda);
     }
 
@@ -154,7 +159,7 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn setup_context_class(&mut self) {
-        let function = self.vars.current_function();
+        let function = self.vars.current_scope();
         let start_index = function.start_idx;
         let number_fields = function.next_context_id;
         let mut fields = Vec::with_capacity(number_fields);
@@ -299,7 +304,7 @@ impl<'a> TypeCheck<'a> {
         let self_ty = self.param_types[0].clone();
         let name = self.sa.interner.intern("self");
 
-        assert!(!self.vars.has_local_vars());
+        assert!(!self.vars.has_vars());
         self.vars.add_var(name, self_ty, false);
     }
 
@@ -835,39 +840,43 @@ pub(super) fn is_simple_enum(sa: &Sema, ty: SourceType) -> bool {
     }
 }
 
-struct VarAccessPerFunction {
+struct VarAccessPerScope {
     level: usize,
     start_idx: usize,
     next_context_id: usize,
 }
 
 pub struct VarManager {
+    // Stack of variables of all nested functions.
     vars: Vec<VarDefinition>,
-    functions: Vec<VarAccessPerFunction>,
+
+    // Stack of all nested scopes. Mostly functions but also
+    // loop bodies have scopes.
+    scopes: Vec<VarAccessPerScope>,
 }
 
 impl VarManager {
     pub fn new() -> VarManager {
         VarManager {
             vars: Vec::new(),
-            functions: Vec::new(),
+            scopes: Vec::new(),
         }
     }
 
-    pub fn has_local_vars(&self) -> bool {
-        self.vars.len() > self.current_function().start_idx
+    pub fn has_vars(&self) -> bool {
+        self.vars.len() > self.current_scope().start_idx
     }
 
     pub fn has_context_vars(&self) -> bool {
-        self.current_function().next_context_id > 0
+        self.current_scope().next_context_id > 0
     }
 
-    fn current_function(&self) -> &VarAccessPerFunction {
-        self.functions.last().expect("no function entered")
+    fn current_scope(&self) -> &VarAccessPerScope {
+        self.scopes.last().expect("no scope entered")
     }
 
-    fn function_for_var(&mut self, var_id: NestedVarId) -> &mut VarAccessPerFunction {
-        for function in self.functions.iter_mut().rev() {
+    fn scope_for_var(&mut self, var_id: NestedVarId) -> &mut VarAccessPerScope {
+        for function in self.scopes.iter_mut().rev() {
             if var_id.0 >= function.start_idx {
                 return function;
             }
@@ -877,20 +886,20 @@ impl VarManager {
     }
 
     pub(super) fn local_var_id(&self, var_id: NestedVarId) -> VarId {
-        assert!(var_id.0 >= self.current_function().start_idx);
-        VarId(var_id.0 - self.current_function().start_idx)
+        assert!(var_id.0 >= self.current_scope().start_idx);
+        VarId(var_id.0 - self.current_scope().start_idx)
     }
 
-    pub(super) fn check_context_allocated(
+    pub(super) fn maybe_allocate_in_context(
         &mut self,
         var_id: NestedVarId,
         outer_context_access: &mut bool,
     ) -> IdentType {
-        let in_outer_function = var_id.0 < self.current_function().start_idx;
+        let in_outer_function = var_id.0 < self.current_scope().start_idx;
 
         if in_outer_function {
             let field_id = self.ensure_context_allocated(var_id);
-            let distance = self.current_function().level - self.function_for_var(var_id).level;
+            let distance = self.current_scope().level - self.scope_for_var(var_id).level;
             *outer_context_access = true;
             IdentType::Context(distance, field_id)
         } else {
@@ -905,9 +914,9 @@ impl VarManager {
         }
 
         // Allocate slot in context class.
-        let function = self.function_for_var(var_id);
-        let context_idx = ContextIdx(function.next_context_id);
-        function.next_context_id += 1;
+        let scope = self.scope_for_var(var_id);
+        let context_idx = ContextIdx(scope.next_context_id);
+        scope.next_context_id += 1;
         self.vars[var_id.0].location = VarLocation::Context(context_idx);
 
         context_idx
@@ -933,20 +942,20 @@ impl VarManager {
         &self.vars[idx.0]
     }
 
-    fn enter_function(&mut self) {
-        self.functions.push(VarAccessPerFunction {
-            level: self.functions.len(),
+    fn enter_scope(&mut self) {
+        self.scopes.push(VarAccessPerScope {
+            level: self.scopes.len(),
             start_idx: self.vars.len(),
             next_context_id: 0,
         });
     }
 
-    fn leave_function(&mut self) -> VarAccess {
-        let function = self.functions.pop().expect("missing function");
+    fn leave_scope(&mut self) -> VarAccess {
+        let scope = self.scopes.pop().expect("missing function");
 
         let vars = self
             .vars
-            .drain(function.start_idx..)
+            .drain(scope.start_idx..)
             .map(|vd| Var {
                 ty: vd.ty.clone(),
                 location: vd.location,
