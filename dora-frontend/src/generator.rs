@@ -8,8 +8,8 @@ use self::expr::{gen_expr, gen_expr_bin_cmp};
 use crate::sema::{
     emit_as_bytecode_operation, AnalysisData, CallType, ClassDefinitionId, ConstDefinitionId,
     ContextIdx, EnumDefinitionId, FctDefinition, FctDefinitionId, FieldId, GlobalDefinition,
-    GlobalDefinitionId, IdentType, Sema, SourceFileId, StructDefinitionId, TypeParamId, VarId,
-    VarLocation,
+    GlobalDefinitionId, IdentType, OuterContextIdx, Sema, SourceFileId, StructDefinitionId,
+    TypeParamId, VarId, VarLocation,
 };
 use crate::specialize::{replace_type, specialize_type};
 use crate::ty::{SourceType, SourceTypeArray};
@@ -873,14 +873,14 @@ impl<'a> AstBytecodeGen<'a> {
 
         let mut outer_context_reg: Option<Register> = None;
 
-        if lambda_analysis.has_outer_context_access() {
+        if lambda_analysis.needs_parent_context() {
             if let Some(context_register) = self.context_register {
                 self.builder.emit_push_register(context_register);
             } else {
                 // This lambda doesn't have a context object on its own, simply
                 // pass down the parent context (the context in the lambda object).
                 assert!(self.is_lambda);
-                assert!(self.analysis.has_outer_context_access());
+                assert!(self.analysis.needs_parent_context());
                 outer_context_reg = Some(self.alloc_temp(BytecodeType::Ptr));
                 let lambda_cls_id = self.sa.known.classes.lambda();
                 let idx = self.builder.add_const_field_types(
@@ -1578,11 +1578,11 @@ impl<'a> AstBytecodeGen<'a> {
                 .map_idents
                 .get(expr.id)
                 .expect("missing ident");
-            let (distance, context_idx) = match ident {
-                IdentType::Context(distance, context_idx) => (*distance, *context_idx),
+            let (level, context_idx) = match ident {
+                IdentType::Context(level, context_idx) => (*level, *context_idx),
                 _ => unreachable!(),
             };
-            self.visit_expr_ident_context(distance, context_idx, dest, self.loc(expr.span))
+            self.visit_expr_ident_context(level, context_idx, dest, self.loc(expr.span))
         } else {
             let var_reg = self.var_reg(SELF_VAR_ID);
 
@@ -2216,8 +2216,8 @@ impl<'a> AstBytecodeGen<'a> {
             let ident_type = self.analysis.map_idents.get(expr.lhs.id()).unwrap();
             match ident_type {
                 &IdentType::Var(var_id) => self.visit_expr_assign_var(expr, var_id),
-                &IdentType::Context(distance, field_id) => {
-                    self.visit_expr_assign_context(expr, distance, field_id)
+                &IdentType::Context(level, field_id) => {
+                    self.visit_expr_assign_context(expr, level, field_id)
                 }
                 &IdentType::Global(gid) => self.visit_expr_assign_global(expr, gid),
                 _ => unreachable!(),
@@ -2311,7 +2311,7 @@ impl<'a> AstBytecodeGen<'a> {
     fn visit_expr_assign_context(
         &mut self,
         expr: &ast::ExprBinType,
-        distance: usize,
+        level: OuterContextIdx,
         context_idx: ContextIdx,
     ) {
         let value_reg = gen_expr(self, &expr.rhs, DataDest::Alloc);
@@ -2329,14 +2329,9 @@ impl<'a> AstBytecodeGen<'a> {
         self.builder
             .emit_load_field(outer_context_reg, self_reg, idx, self.loc(expr.span));
 
-        assert!(distance >= 1);
+        assert!(level.0 < self.analysis.outer_contexts.len());
 
-        let mut distance_left = distance;
-        let mut outer_cls_idx = self.analysis.outer_contexts.len() - 1;
-
-        while distance_left > 1 {
-            let outer_context_class = &self.analysis.outer_contexts[outer_cls_idx];
-
+        for outer_context_class in self.analysis.outer_contexts.iter().skip(level.0 + 1).rev() {
             if outer_context_class.has_class_id() {
                 let outer_cls_id = outer_context_class.class_id();
 
@@ -2352,15 +2347,10 @@ impl<'a> AstBytecodeGen<'a> {
                     self.loc(expr.span),
                 );
             }
-
-            distance_left -= 1;
-            outer_cls_idx -= 1;
         }
 
-        assert_eq!(distance_left, 1);
-
         // Store value in context field
-        let outer_context_info = self.analysis.outer_contexts[outer_cls_idx].clone();
+        let outer_context_info = self.analysis.outer_contexts[level.0].clone();
 
         let field_id =
             field_id_from_context_idx(context_idx, outer_context_info.has_parent_context_slot());
@@ -2431,8 +2421,8 @@ impl<'a> AstBytecodeGen<'a> {
             &IdentType::Var(var_id) => {
                 self.visit_expr_ident_var(var_id, dest, self.loc(ident.span))
             }
-            &IdentType::Context(distance, field_id) => {
-                self.visit_expr_ident_context(distance, field_id, dest, self.loc(ident.span))
+            &IdentType::Context(level, field_id) => {
+                self.visit_expr_ident_context(level, field_id, dest, self.loc(ident.span))
             }
             &IdentType::Global(gid) => {
                 self.visit_expr_ident_global(gid, dest, self.loc(ident.span))
@@ -2457,7 +2447,7 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_expr_ident_context(
         &mut self,
-        distance: usize,
+        level: OuterContextIdx,
         context_idx: ContextIdx,
         dest: DataDest,
         location: Location,
@@ -2475,16 +2465,11 @@ impl<'a> AstBytecodeGen<'a> {
         self.builder
             .emit_load_field(outer_context_reg, self_reg, idx, location);
 
-        assert!(distance >= 1);
+        assert!(level.0 < self.analysis.outer_contexts.len());
 
-        let mut outer_cls_idx = self.analysis.outer_contexts.len() - 1;
-        let mut distance_left = distance;
-
-        while distance_left > 1 {
-            let outer_context_class = &self.analysis.outer_contexts[outer_cls_idx];
-
+        for outer_context_class in self.analysis.outer_contexts.iter().skip(level.0 + 1).rev() {
             if outer_context_class.has_class_id() {
-                let outer_cls_id = self.analysis.outer_contexts[outer_cls_idx].class_id();
+                let outer_cls_id = outer_context_class.class_id();
                 let idx = self.builder.add_const_field_types(
                     ClassId(outer_cls_id.index().try_into().expect("overflow")),
                     bty_array_from_ty(&self.identity_type_params()),
@@ -2493,14 +2478,9 @@ impl<'a> AstBytecodeGen<'a> {
                 self.builder
                     .emit_load_field(outer_context_reg, outer_context_reg, idx, location);
             }
-
-            distance_left -= 1;
-            outer_cls_idx -= 1;
         }
 
-        assert_eq!(distance_left, 1);
-
-        let outer_context_info = self.analysis.outer_contexts[outer_cls_idx].clone();
+        let outer_context_info = self.analysis.outer_contexts[level.0].clone();
         let outer_cls_id = outer_context_info.class_id();
 
         let outer_cls = self.sa.class(outer_cls_id);

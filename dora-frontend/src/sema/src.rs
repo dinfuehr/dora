@@ -35,7 +35,7 @@ pub struct AnalysisData {
 
     pub function_context_data: OnceCell<LazyContextData>,
     pub outer_contexts: Vec<LazyContextData>,
-    pub has_outer_context_access: OnceCell<bool>,
+    pub needs_parent_context: OnceCell<bool>,
 }
 
 impl AnalysisData {
@@ -57,7 +57,7 @@ impl AnalysisData {
             vars: VarAccess::empty(),
             function_context_data: OnceCell::new(),
             outer_contexts: Vec::new(),
-            has_outer_context_access: OnceCell::new(),
+            needs_parent_context: OnceCell::new(),
         }
     }
 
@@ -122,11 +122,8 @@ impl AnalysisData {
             .expect("missing context")
     }
 
-    pub fn has_outer_context_access(&self) -> bool {
-        self.has_outer_context_access
-            .get()
-            .cloned()
-            .expect("missing")
+    pub fn needs_parent_context(&self) -> bool {
+        self.needs_parent_context.get().cloned().expect("missing")
     }
 }
 
@@ -242,13 +239,16 @@ where
     }
 }
 
+#[derive(Debug, Copy, Clone)]
+pub struct OuterContextIdx(pub usize);
+
 #[derive(Debug, Clone)]
 pub enum IdentType {
     /// name of local variable
     Var(VarId),
 
     // context variable
-    Context(usize, ContextIdx),
+    Context(OuterContextIdx, ContextIdx),
 
     /// name of a global variable
     Global(GlobalDefinitionId),

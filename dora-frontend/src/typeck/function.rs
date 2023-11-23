@@ -5,8 +5,9 @@ use std::{f32, f64};
 use crate::error::msg::ErrorMessage;
 use crate::sema::{
     AnalysisData, ClassDefinition, ContextIdx, FctDefinition, Field, FieldId, GlobalDefinition,
-    IdentType, LazyContextData, LazyLambdaId, ModuleDefinitionId, NestedVarId, PackageDefinitionId,
-    Sema, SourceFileId, TypeParamDefinition, Var, VarAccess, VarId, VarLocation, Visibility,
+    IdentType, LazyContextData, LazyLambdaId, ModuleDefinitionId, NestedVarId, OuterContextIdx,
+    PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Var, VarAccess, VarId,
+    VarLocation, Visibility,
 };
 use crate::typeck::{check_expr, check_stmt};
 use crate::{
@@ -34,11 +35,10 @@ pub struct TypeCheck<'a> {
     pub is_self_available: bool,
     pub self_ty: Option<SourceType>,
     pub vars: &'a mut VarManager,
-    pub contains_lambda: bool,
     pub lazy_context_class_creation: &'a mut Vec<(LazyContextData, ClassDefinition)>,
     pub lazy_lambda_creation: &'a mut Vec<(LazyLambdaId, FctDefinition)>,
     pub outer_context_classes: &'a mut Vec<LazyContextData>,
-    pub has_outer_context_access: bool,
+    pub needs_parent_context: bool,
 }
 
 impl<'a> TypeCheck<'a> {
@@ -127,8 +127,23 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
+    pub(super) fn maybe_allocate_in_context(&mut self, var_id: NestedVarId) -> IdentType {
+        let ident_type = self.vars.maybe_allocate_in_context(var_id);
+
+        match ident_type {
+            IdentType::Context(..) => {
+                self.needs_parent_context = true;
+                ident_type
+            }
+
+            IdentType::Var(..) => ident_type,
+
+            _ => unreachable!(),
+        }
+    }
+
     fn enter_function_scope(&mut self) {
-        self.vars.enter_scope();
+        self.vars.enter_function_scope();
     }
 
     fn leave_function_scope(&mut self) {
@@ -137,12 +152,12 @@ impl<'a> TypeCheck<'a> {
         }
 
         // Store var definitions for all local and context vars defined in this function.
-        self.analysis.vars = self.vars.leave_scope();
+        self.analysis.vars = self.vars.leave_function_scope();
 
         assert!(self
             .analysis
-            .has_outer_context_access
-            .set(self.has_outer_context_access)
+            .needs_parent_context
+            .set(self.needs_parent_context)
             .is_ok());
     }
 
@@ -153,10 +168,11 @@ impl<'a> TypeCheck<'a> {
         let mut fields = Vec::with_capacity(number_fields);
         let mut map: Vec<Option<NestedVarId>> = vec![None; number_fields];
 
-        let needs_outer_context_slot = self.has_outer_context_access;
-
-        if needs_outer_context_slot {
-            let name = self.sa.interner.intern("outer_context");
+        // As soon as a lambda needs a context object, this also means that some
+        // lambda in it accessed parent scope variables. This also means we need
+        // a slot for the parent context as well.
+        if self.is_lambda {
+            let name = self.sa.interner.intern("parent_context");
             let field = Field {
                 id: FieldId(0),
                 name,
@@ -222,7 +238,7 @@ impl<'a> TypeCheck<'a> {
             .cloned()
             .expect("missing outer context");
 
-        context_class_resolver.set_has_parent_context_slot(needs_outer_context_slot);
+        context_class_resolver.set_has_parent_context_slot(self.is_lambda);
 
         self.lazy_context_class_creation
             .push((context_class_resolver.clone(), class));
@@ -840,6 +856,9 @@ pub struct VarManager {
     // Stack of all nested scopes. Mostly functions but also
     // loop bodies have scopes.
     scopes: Vec<VarAccessPerScope>,
+
+    // Start of functions.
+    functions: Vec<usize>,
 }
 
 impl VarManager {
@@ -847,6 +866,7 @@ impl VarManager {
         VarManager {
             vars: Vec::new(),
             scopes: Vec::new(),
+            functions: Vec::new(),
         }
     }
 
@@ -860,6 +880,10 @@ impl VarManager {
 
     fn current_scope(&self) -> &VarAccessPerScope {
         self.scopes.last().expect("no scope entered")
+    }
+
+    fn current_function(&self) -> usize {
+        self.functions.last().cloned().expect("missing function")
     }
 
     fn scope_for_var(&mut self, var_id: NestedVarId) -> &mut VarAccessPerScope {
@@ -877,18 +901,11 @@ impl VarManager {
         VarId(var_id.0 - self.current_scope().start_idx)
     }
 
-    pub(super) fn maybe_allocate_in_context(
-        &mut self,
-        var_id: NestedVarId,
-        outer_context_access: &mut bool,
-    ) -> IdentType {
-        let in_outer_function = var_id.0 < self.current_scope().start_idx;
-
-        if in_outer_function {
+    pub(super) fn maybe_allocate_in_context(&mut self, var_id: NestedVarId) -> IdentType {
+        if var_id.0 < self.current_function() {
             let field_id = self.ensure_context_allocated(var_id);
-            let distance = self.current_scope().level - self.scope_for_var(var_id).level;
-            *outer_context_access = true;
-            IdentType::Context(distance, field_id)
+            let level = self.scope_for_var(var_id).level;
+            IdentType::Context(OuterContextIdx(level), field_id)
         } else {
             IdentType::Var(self.local_var_id(var_id))
         }
@@ -929,16 +946,19 @@ impl VarManager {
         &self.vars[idx.0]
     }
 
-    fn enter_scope(&mut self) {
+    fn enter_function_scope(&mut self) {
         self.scopes.push(VarAccessPerScope {
             level: self.scopes.len(),
             start_idx: self.vars.len(),
             next_context_id: 0,
         });
+        self.functions.push(self.vars.len());
     }
 
-    fn leave_scope(&mut self) -> VarAccess {
-        let scope = self.scopes.pop().expect("missing function");
+    fn leave_function_scope(&mut self) -> VarAccess {
+        let scope = self.scopes.pop().expect("missing scope");
+        let function_start = self.functions.pop().expect("missing function");
+        assert_eq!(scope.start_idx, function_start);
 
         let vars = self
             .vars

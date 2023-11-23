@@ -132,9 +132,7 @@ pub(super) fn check_expr_ident(
             ck.analysis.set_ty(e.id, ty.clone());
 
             // Variable may have to be context-allocated.
-            let ident = ck
-                .vars
-                .maybe_allocate_in_context(var_id, &mut ck.has_outer_context_access);
+            let ident = ck.maybe_allocate_in_context(var_id);
             ck.analysis.map_idents.insert(e.id, ident);
 
             ty
@@ -219,9 +217,7 @@ fn check_expr_assign_ident(ck: &mut TypeCheck, e: &ast::ExprBinType) {
             }
 
             // Variable may have to be context-allocated.
-            let ident = ck
-                .vars
-                .maybe_allocate_in_context(var_id, &mut ck.has_outer_context_access);
+            let ident = ck.maybe_allocate_in_context(var_id);
             ck.analysis.map_idents.insert(e.lhs.id(), ident);
 
             ck.vars.get_var(var_id).ty.clone()
@@ -543,9 +539,7 @@ pub(super) fn check_expr_this(
 
     assert!(ck.is_self_available);
     let var_id = NestedVarId(0);
-    let ident = ck
-        .vars
-        .maybe_allocate_in_context(var_id, &mut ck.has_outer_context_access);
+    let ident = ck.maybe_allocate_in_context(var_id);
     ck.analysis.map_idents.insert(e.id, ident);
 
     let var = ck.vars.get_var(var_id);
@@ -1195,8 +1189,6 @@ fn check_expr_lambda(
         SourceType::Unit
     };
 
-    ck.contains_lambda = true;
-
     let mut params = Vec::new();
 
     for param in &node.params {
@@ -1232,18 +1224,17 @@ fn check_expr_lambda(
                 is_self_available: ck.is_self_available,
                 self_ty: ck.self_ty.clone(),
                 vars: ck.vars,
-                contains_lambda: false,
                 lazy_context_class_creation: ck.lazy_context_class_creation,
                 lazy_lambda_creation: ck.lazy_lambda_creation,
                 outer_context_classes: ck.outer_context_classes,
-                has_outer_context_access: false,
+                needs_parent_context: false,
             };
 
             typeck.check_fct(&node);
         }
 
-        if ck.is_lambda && analysis.has_outer_context_access() {
-            ck.has_outer_context_access = true
+        if ck.is_lambda && analysis.needs_parent_context() {
+            ck.needs_parent_context = true
         }
 
         analysis

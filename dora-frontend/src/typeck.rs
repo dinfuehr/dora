@@ -104,11 +104,10 @@ fn check_function(
         self_ty,
         is_lambda: false,
         vars: &mut vars,
-        contains_lambda: false,
         lazy_context_class_creation,
         lazy_lambda_creation,
         outer_context_classes: &mut outer_context_classes,
-        has_outer_context_access: false,
+        needs_parent_context: false,
     };
 
     typeck.check_fct(&fct.ast);
@@ -148,11 +147,10 @@ fn check_global(
             is_self_available: false,
             self_ty: None,
             vars: &mut vars,
-            contains_lambda: false,
             lazy_context_class_creation,
             lazy_lambda_creation,
             outer_context_classes: &mut outer_context_classes,
-            has_outer_context_access: false,
+            needs_parent_context: false,
         };
 
         typeck.check_initializer(&*global, global.initial_value_expr());
