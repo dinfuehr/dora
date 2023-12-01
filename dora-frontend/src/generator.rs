@@ -8,8 +8,8 @@ use self::expr::{gen_expr, gen_expr_bin_cmp};
 use crate::sema::{
     emit_as_bytecode_operation, AnalysisData, CallType, ClassDefinitionId, ConstDefinitionId,
     ContextIdx, EnumDefinitionId, FctDefinition, FctDefinitionId, FieldId, GlobalDefinition,
-    GlobalDefinitionId, IdentType, OuterContextIdx, Sema, SourceFileId, StructDefinitionId,
-    TypeParamId, VarId, VarLocation,
+    GlobalDefinitionId, IdentType, LazyContextData, OuterContextIdx, Sema, SourceFileId,
+    StructDefinitionId, TypeParamId, VarId, VarLocation,
 };
 use crate::specialize::{replace_type, specialize_type};
 use crate::ty::{SourceType, SourceTypeArray};
@@ -56,7 +56,7 @@ pub fn generate_fct(sa: &Sema, fct: &FctDefinition, src: &AnalysisData) -> Bytec
         loops: Vec::new(),
         var_registers: HashMap::new(),
         unit_register: None,
-        context_register: None,
+        context_registers: Vec::new(),
     };
     ast_bytecode_generator.generate_fct(&fct.ast)
 }
@@ -79,7 +79,7 @@ pub fn generate_global_initializer(
         loops: Vec::new(),
         var_registers: HashMap::new(),
         unit_register: None,
-        context_register: None,
+        context_registers: Vec::new(),
     };
 
     ast_bytecode_generator.generate_global_initializer(global.initial_value_expr())
@@ -99,7 +99,7 @@ struct AstBytecodeGen<'a> {
     builder: BytecodeBuilder,
     loops: Vec<LoopLabels>,
     var_registers: HashMap<VarId, Register>,
-    context_register: Option<Register>,
+    context_registers: Vec<Register>,
     unit_register: Option<Register>,
 }
 
@@ -111,9 +111,10 @@ impl<'a> AstBytecodeGen<'a> {
     fn generate_fct(mut self, ast: &ast::Function) -> BytecodeFunction {
         self.push_scope();
         self.create_params(ast);
-        self.create_context();
+        self.enter_function_context();
         self.initialize_params(ast);
         self.emit_function_body(ast);
+        self.leave_function_context();
         self.pop_scope();
         self.builder.generate()
     }
@@ -121,8 +122,9 @@ impl<'a> AstBytecodeGen<'a> {
     fn generate_global_initializer(mut self, expr: &ast::ExprData) -> BytecodeFunction {
         self.push_scope();
         self.builder.set_params(Vec::new());
-        self.create_context();
+        self.enter_function_context();
         self.emit_global_initializer(expr);
+        self.leave_function_context();
         self.pop_scope();
         self.builder.generate()
     }
@@ -237,46 +239,60 @@ impl<'a> AstBytecodeGen<'a> {
         self.free_if_temp(result);
     }
 
-    fn create_context(&mut self) {
-        if let Some(cls_id) = self.analysis.context_cls_id() {
-            let context_register = self.builder.alloc_global(BytecodeType::Ptr);
-            let idx = self.builder.add_const_cls_types(
-                ClassId(cls_id.index().try_into().expect("overflow")),
-                bty_array_from_ty(&self.identity_type_params()),
+    fn enter_function_context(&mut self) {
+        let context_data = self.analysis.function_context_data();
+        if context_data.has_class_id() {
+            self.create_context(context_data);
+        }
+    }
+
+    fn leave_function_context(&mut self) {
+        let context_data = self.analysis.function_context_data();
+        if context_data.has_class_id() {
+            self.context_registers.pop().expect("missing register");
+        }
+    }
+
+    fn create_context(&mut self, context_data: LazyContextData) {
+        let class_id = context_data.class_id();
+
+        let context_register = self.builder.alloc_global(BytecodeType::Ptr);
+        let idx = self.builder.add_const_cls_types(
+            ClassId(class_id.index().try_into().expect("overflow")),
+            bty_array_from_ty(&self.identity_type_params()),
+        );
+        self.builder
+            .emit_new_object(context_register, idx, self.loc(self.span));
+        self.context_registers.push(context_register);
+
+        if context_data.has_parent_context_slot() {
+            let self_reg = self.var_reg(SELF_VAR_ID);
+
+            // Load context field of lambda object in self.
+            let outer_context_reg = self.alloc_temp(BytecodeType::Ptr);
+            let lambda_cls_id = self.sa.known.classes.lambda();
+            let idx = self.builder.add_const_field_types(
+                ClassId(lambda_cls_id.index().try_into().expect("overflow")),
+                BytecodeTypeArray::empty(),
+                0,
             );
             self.builder
-                .emit_new_object(context_register, idx, self.loc(self.span));
-            self.context_register = Some(context_register);
+                .emit_load_field(outer_context_reg, self_reg, idx, self.loc(self.span));
 
-            if self.analysis.context_has_outer_context_slot() {
-                let self_reg = self.var_reg(SELF_VAR_ID);
+            // Store value in outer_context field of context object.
+            let idx = self.builder.add_const_field_types(
+                ClassId(class_id.index().try_into().expect("overflow")),
+                bty_array_from_ty(&self.identity_type_params()),
+                0,
+            );
+            self.builder.emit_store_field(
+                outer_context_reg,
+                context_register,
+                idx,
+                self.loc(self.span),
+            );
 
-                // Load context field of lambda object in self.
-                let outer_context_reg = self.alloc_temp(BytecodeType::Ptr);
-                let lambda_cls_id = self.sa.known.classes.lambda();
-                let idx = self.builder.add_const_field_types(
-                    ClassId(lambda_cls_id.index().try_into().expect("overflow")),
-                    BytecodeTypeArray::empty(),
-                    0,
-                );
-                self.builder
-                    .emit_load_field(outer_context_reg, self_reg, idx, self.loc(self.span));
-
-                // Store value in outer_context field of context object.
-                let idx = self.builder.add_const_field_types(
-                    ClassId(cls_id.index().try_into().expect("overflow")),
-                    bty_array_from_ty(&self.identity_type_params()),
-                    0,
-                );
-                self.builder.emit_store_field(
-                    outer_context_reg,
-                    context_register,
-                    idx,
-                    self.loc(self.span),
-                );
-
-                self.free_temp(outer_context_reg);
-            }
+            self.free_temp(outer_context_reg);
         }
     }
 
@@ -874,7 +890,7 @@ impl<'a> AstBytecodeGen<'a> {
         let mut outer_context_reg: Option<Register> = None;
 
         if lambda_analysis.needs_parent_context() {
-            if let Some(context_register) = self.context_register {
+            if let Some(&context_register) = self.context_registers.last() {
                 self.builder.emit_push_register(context_register);
             } else {
                 // This lambda doesn't have a context object on its own, simply
@@ -2627,8 +2643,15 @@ impl<'a> AstBytecodeGen<'a> {
         }
     }
 
+    fn current_context_register(&self) -> Register {
+        self.context_registers
+            .last()
+            .cloned()
+            .expect("context register missing")
+    }
+
     fn store_in_context(&mut self, src: Register, context_idx: ContextIdx, location: Location) {
-        let context_register = self.context_register.expect("context register missing");
+        let context_register = self.current_context_register();
         let cls_id = self.analysis.context_cls_id().expect("class missing");
         let field_id =
             field_id_from_context_idx(context_idx, self.analysis.context_has_outer_context_slot());
@@ -2643,7 +2666,7 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn load_from_context(&mut self, dest: Register, context_idx: ContextIdx, location: Location) {
         // Load context object.
-        let context_register = self.context_register.expect("context register missing");
+        let context_register = self.current_context_register();
         let cls_id = self.analysis.context_cls_id().expect("class missing");
         let field_id =
             field_id_from_context_idx(context_idx, self.analysis.context_has_outer_context_slot());

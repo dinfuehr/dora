@@ -151,6 +151,18 @@ impl<'a> TypeCheck<'a> {
             self.setup_context_class();
         }
 
+        let lazy_context_data = self
+            .outer_context_classes
+            .last()
+            .cloned()
+            .expect("missing outer context");
+
+        assert!(self
+            .analysis
+            .function_context_data
+            .set(lazy_context_data)
+            .is_ok());
+
         // Store var definitions for all local and context vars defined in this function.
         self.analysis.vars = self.vars.leave_function_scope();
 
@@ -232,22 +244,16 @@ impl<'a> TypeCheck<'a> {
             .set(self.type_param_defs.clone())
             .expect("already initialized");
 
-        let context_class_resolver = self
+        let lazy_context_data = self
             .outer_context_classes
             .last()
             .cloned()
             .expect("missing outer context");
 
-        context_class_resolver.set_has_parent_context_slot(self.is_lambda);
+        lazy_context_data.set_has_parent_context_slot(self.is_lambda);
 
         self.lazy_context_class_creation
-            .push((context_class_resolver.clone(), class));
-
-        assert!(self
-            .analysis
-            .function_context_data
-            .set(context_class_resolver)
-            .is_ok());
+            .push((lazy_context_data.clone(), class));
     }
 
     fn add_type_params(&mut self) {

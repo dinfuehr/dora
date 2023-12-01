@@ -111,6 +111,13 @@ impl AnalysisData {
         self.function_context_data.get().is_some()
     }
 
+    pub fn function_context_data(&self) -> LazyContextData {
+        self.function_context_data
+            .get()
+            .cloned()
+            .expect("missing context")
+    }
+
     pub fn context_cls_id(&self) -> Option<ClassDefinitionId> {
         self.function_context_data.get().map(|cr| cr.class_id())
     }
