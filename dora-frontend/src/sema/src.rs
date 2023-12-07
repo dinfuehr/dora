@@ -8,11 +8,13 @@ use dora_bytecode::Intrinsic;
 use dora_parser::ast;
 
 use crate::sema::{
-    ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId, FieldId,
-    GlobalDefinitionId, StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId,
+    ClassDefinition, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId,
+    FieldId, GlobalDefinitionId, StructDefinitionFieldId, StructDefinitionId, TraitDefinitionId,
     TypeParamId,
 };
 use crate::ty::{SourceType, SourceTypeArray};
+
+use super::FctDefinition;
 
 #[derive(Debug)]
 pub struct AnalysisData {
@@ -136,24 +138,34 @@ impl LazyLambdaId {
     }
 }
 
+pub struct LazyContextClassCreationData {
+    pub context: LazyContextData,
+    pub class_definition: ClassDefinition,
+}
+
+pub struct LazyLambdaCreationData {
+    pub id: LazyLambdaId,
+    pub fct_definition: FctDefinition,
+}
+
 #[derive(Clone, Debug)]
-pub struct LazyContextData(Rc<ContextInfo>);
+pub struct LazyContextData(Rc<ContextData>);
 
 impl LazyContextData {
     pub fn new() -> LazyContextData {
-        LazyContextData(Rc::new(ContextInfo {
-            has_outer_context_slot: OnceCell::new(),
+        LazyContextData(Rc::new(ContextData {
+            has_parent_context_slot: OnceCell::new(),
             context_cls_id: OnceCell::new(),
         }))
     }
 
     pub fn set_has_parent_context_slot(&self, value: bool) {
-        assert!(self.0.has_outer_context_slot.set(value).is_ok());
+        assert!(self.0.has_parent_context_slot.set(value).is_ok());
     }
 
     pub fn has_parent_context_slot(&self) -> bool {
         self.0
-            .has_outer_context_slot
+            .has_parent_context_slot
             .get()
             .cloned()
             .expect("missing value")
@@ -177,8 +189,8 @@ impl LazyContextData {
 }
 
 #[derive(Clone, Debug)]
-pub struct ContextInfo {
-    pub has_outer_context_slot: OnceCell<bool>,
+pub struct ContextData {
+    pub has_parent_context_slot: OnceCell<bool>,
     pub context_cls_id: OnceCell<ClassDefinitionId>,
 }
 

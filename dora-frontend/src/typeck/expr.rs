@@ -12,8 +12,8 @@ use crate::interner::Name;
 use crate::program_parser::ParsedModifierList;
 use crate::sema::{
     create_tuple, find_field_in_class, find_impl, impl_matches, implements_trait, AnalysisData,
-    CallType, EnumDefinitionId, FctDefinition, FctParent, IdentType, LazyLambdaId,
-    ModuleDefinitionId, NestedVarId, TraitDefinitionId,
+    CallType, EnumDefinitionId, FctDefinition, FctParent, IdentType, LazyLambdaCreationData,
+    LazyLambdaId, ModuleDefinitionId, NestedVarId, TraitDefinitionId,
 };
 use crate::typeck::{
     check_expr_break_and_continue, check_expr_call, check_expr_call_enum_args, check_expr_for,
@@ -1258,7 +1258,10 @@ fn check_expr_lambda(
 
     let lambda_id = LazyLambdaId::new();
 
-    ck.lazy_lambda_creation.push((lambda_id.clone(), lambda));
+    ck.lazy_lambda_creation.push(LazyLambdaCreationData {
+        id: lambda_id.clone(),
+        fct_definition: lambda,
+    });
     ck.analysis.map_lambdas.insert(node.id, lambda_id);
 
     ck.analysis.set_ty(node.id, ty.clone());

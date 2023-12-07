@@ -33,9 +33,9 @@ pub use self::modules::{module_package, module_path, ModuleDefinition, ModuleDef
 pub use self::packages::{PackageDefinition, PackageDefinitionId, PackageName};
 pub use self::source_files::{SourceFile, SourceFileId};
 pub use self::src::{
-    AnalysisData, CallType, ContextFieldId, ContextId, ContextInfo, ForTypeInfo, IdentType,
-    LazyContextData, LazyLambdaId, NestedVarId, NodeMap, OuterContextIdx, Var, VarAccess, VarId,
-    VarLocation,
+    AnalysisData, CallType, ContextData, ContextFieldId, ContextId, ForTypeInfo, IdentType,
+    LazyContextClassCreationData, LazyContextData, LazyLambdaCreationData, LazyLambdaId,
+    NestedVarId, NodeMap, OuterContextIdx, Var, VarAccess, VarId, VarLocation,
 };
 pub use self::structs::{
     find_methods_in_struct, StructDefinition, StructDefinitionField, StructDefinitionFieldId,

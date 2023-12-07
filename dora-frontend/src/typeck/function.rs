@@ -5,9 +5,9 @@ use std::{f32, f64};
 use crate::error::msg::ErrorMessage;
 use crate::sema::{
     AnalysisData, ClassDefinition, ContextFieldId, ContextId, FctDefinition, Field, FieldId,
-    GlobalDefinition, IdentType, LazyContextData, LazyLambdaId, ModuleDefinitionId, NestedVarId,
-    OuterContextIdx, PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Var, VarAccess,
-    VarId, VarLocation, Visibility,
+    GlobalDefinition, IdentType, LazyContextClassCreationData, LazyContextData,
+    LazyLambdaCreationData, ModuleDefinitionId, NestedVarId, OuterContextIdx, PackageDefinitionId,
+    Sema, SourceFileId, TypeParamDefinition, Var, VarAccess, VarId, VarLocation, Visibility,
 };
 use crate::typeck::{check_expr, check_stmt};
 use crate::{
@@ -35,8 +35,8 @@ pub struct TypeCheck<'a> {
     pub is_self_available: bool,
     pub self_ty: Option<SourceType>,
     pub vars: &'a mut VarManager,
-    pub lazy_context_class_creation: &'a mut Vec<(LazyContextData, ClassDefinition)>,
-    pub lazy_lambda_creation: &'a mut Vec<(LazyLambdaId, FctDefinition)>,
+    pub lazy_context_class_creation: &'a mut Vec<LazyContextClassCreationData>,
+    pub lazy_lambda_creation: &'a mut Vec<LazyLambdaCreationData>,
     pub outer_context_classes: &'a mut Vec<LazyContextData>,
     pub needs_parent_context: bool,
 }
@@ -253,7 +253,10 @@ impl<'a> TypeCheck<'a> {
         lazy_context_data.set_has_parent_context_slot(self.is_lambda);
 
         self.lazy_context_class_creation
-            .push((lazy_context_data.clone(), class));
+            .push(LazyContextClassCreationData {
+                context: lazy_context_data.clone(),
+                class_definition: class,
+            });
     }
 
     fn add_type_params(&mut self) {
