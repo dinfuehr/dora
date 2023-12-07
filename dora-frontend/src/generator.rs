@@ -7,7 +7,7 @@ use dora_parser::{ast, Span};
 use self::expr::{gen_expr, gen_expr_bin_cmp};
 use crate::sema::{
     emit_as_bytecode_operation, AnalysisData, CallType, ClassDefinitionId, ConstDefinitionId,
-    ContextIdx, EnumDefinitionId, FctDefinition, FctDefinitionId, FieldId, GlobalDefinition,
+    ContextFieldId, EnumDefinitionId, FctDefinition, FctDefinitionId, FieldId, GlobalDefinition,
     GlobalDefinitionId, IdentType, LazyContextData, OuterContextIdx, Sema, SourceFileId,
     StructDefinitionId, TypeParamId, VarId, VarLocation,
 };
@@ -163,8 +163,8 @@ impl<'a> AstBytecodeGen<'a> {
             let reg = Register(0);
 
             match var_self.location {
-                VarLocation::Context(context_idx) => {
-                    self.store_in_context(reg, context_idx, self.loc(self.span));
+                VarLocation::Context(_context_id, field_idx) => {
+                    self.store_in_context(reg, field_idx, self.loc(self.span));
                 }
 
                 VarLocation::Stack => {
@@ -183,8 +183,8 @@ impl<'a> AstBytecodeGen<'a> {
             let reg = Register(next_register_idx + param_idx);
 
             match var.location {
-                VarLocation::Context(context_idx) => {
-                    self.store_in_context(reg, context_idx, self.loc(self.span));
+                VarLocation::Context(_context_id, field_idx) => {
+                    self.store_in_context(reg, field_idx, self.loc(self.span));
                 }
 
                 VarLocation::Stack => {
@@ -318,7 +318,7 @@ impl<'a> AstBytecodeGen<'a> {
                     let bty: BytecodeType = register_bty_from_ty(var.ty.clone());
 
                     match var.location {
-                        VarLocation::Context(_) => {
+                        VarLocation::Context(..) => {
                             // Nothing to do here.
                         }
 
@@ -353,8 +353,8 @@ impl<'a> AstBytecodeGen<'a> {
 
                 if !var.ty.is_unit() {
                     match var.location {
-                        VarLocation::Context(context_idx) => {
-                            self.store_in_context(next_reg, context_idx, self.loc(ident.span));
+                        VarLocation::Context(_context_id, field_idx) => {
+                            self.store_in_context(next_reg, field_idx, self.loc(ident.span));
                         }
 
                         VarLocation::Stack => {
@@ -568,10 +568,10 @@ impl<'a> AstBytecodeGen<'a> {
         let ty: BytecodeType = register_bty_from_ty(var.ty.clone());
 
         match var.location {
-            VarLocation::Context(context_idx) => {
+            VarLocation::Context(_context_id, field_idx) => {
                 if let Some(ref expr) = stmt.expr {
                     let value_reg = gen_expr(self, expr, DataDest::Alloc);
-                    self.store_in_context(value_reg, context_idx, self.loc(ident.span));
+                    self.store_in_context(value_reg, field_idx, self.loc(ident.span));
                     self.free_if_temp(value_reg);
                 }
             }
@@ -2328,7 +2328,7 @@ impl<'a> AstBytecodeGen<'a> {
         &mut self,
         expr: &ast::ExprBinType,
         level: OuterContextIdx,
-        context_idx: ContextIdx,
+        context_idx: ContextFieldId,
     ) {
         let value_reg = gen_expr(self, &expr.rhs, DataDest::Alloc);
 
@@ -2392,9 +2392,9 @@ impl<'a> AstBytecodeGen<'a> {
         let var = self.analysis.vars.get_var(var_id);
 
         match var.location {
-            VarLocation::Context(context_idx) => {
+            VarLocation::Context(_context_id, field_idx) => {
                 let value_reg = gen_expr(self, &expr.rhs, DataDest::Alloc);
-                self.store_in_context(value_reg, context_idx, self.loc(expr.span));
+                self.store_in_context(value_reg, field_idx, self.loc(expr.span));
                 self.free_if_temp(value_reg);
             }
 
@@ -2464,7 +2464,7 @@ impl<'a> AstBytecodeGen<'a> {
     fn visit_expr_ident_context(
         &mut self,
         level: OuterContextIdx,
-        context_idx: ContextIdx,
+        context_idx: ContextFieldId,
         dest: DataDest,
         location: Location,
     ) -> Register {
@@ -2621,10 +2621,10 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         match var.location {
-            VarLocation::Context(context_idx) => {
+            VarLocation::Context(_context_id, field_idx) => {
                 let ty = register_bty_from_ty(var.ty.clone());
                 let dest_reg = self.ensure_register(dest, ty);
-                self.load_from_context(dest_reg, context_idx, location);
+                self.load_from_context(dest_reg, field_idx, location);
                 dest_reg
             }
 
@@ -2650,11 +2650,11 @@ impl<'a> AstBytecodeGen<'a> {
             .expect("context register missing")
     }
 
-    fn store_in_context(&mut self, src: Register, context_idx: ContextIdx, location: Location) {
+    fn store_in_context(&mut self, src: Register, field_idx: ContextFieldId, location: Location) {
         let context_register = self.current_context_register();
-        let cls_id = self.analysis.context_cls_id().expect("class missing");
-        let field_id =
-            field_id_from_context_idx(context_idx, self.analysis.context_has_outer_context_slot());
+        let context_data = self.analysis.function_context_data();
+        let cls_id = context_data.class_id();
+        let field_id = field_id_from_context_idx(field_idx, context_data.has_parent_context_slot());
         let field_idx = self.builder.add_const_field_types(
             ClassId(cls_id.index().try_into().expect("overflow")),
             bty_array_from_ty(&self.identity_type_params()),
@@ -2664,12 +2664,18 @@ impl<'a> AstBytecodeGen<'a> {
             .emit_store_field(src, context_register, field_idx, location);
     }
 
-    fn load_from_context(&mut self, dest: Register, context_idx: ContextIdx, location: Location) {
+    fn load_from_context(
+        &mut self,
+        dest: Register,
+        context_idx: ContextFieldId,
+        location: Location,
+    ) {
         // Load context object.
         let context_register = self.current_context_register();
-        let cls_id = self.analysis.context_cls_id().expect("class missing");
+        let context_data = self.analysis.function_context_data();
+        let cls_id = context_data.class_id();
         let field_id =
-            field_id_from_context_idx(context_idx, self.analysis.context_has_outer_context_slot());
+            field_id_from_context_idx(context_idx, context_data.has_parent_context_slot());
         let field_idx = self.builder.add_const_field_types(
             ClassId(cls_id.index().try_into().expect("overflow")),
             bty_array_from_ty(&self.identity_type_params()),
@@ -3013,8 +3019,8 @@ pub fn register_bty_from_ty(ty: SourceType) -> BytecodeType {
     }
 }
 
-fn field_id_from_context_idx(context_idx: ContextIdx, has_outer_context_slot: bool) -> FieldId {
+fn field_id_from_context_idx(context_idx: ContextFieldId, has_outer_context_slot: bool) -> FieldId {
     let start_idx = if has_outer_context_slot { 1 } else { 0 };
-    let ContextIdx(context_idx) = context_idx;
+    let ContextFieldId(context_idx) = context_idx;
     FieldId(start_idx + context_idx)
 }

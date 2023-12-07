@@ -4,10 +4,10 @@ use std::{f32, f64};
 
 use crate::error::msg::ErrorMessage;
 use crate::sema::{
-    AnalysisData, ClassDefinition, ContextIdx, FctDefinition, Field, FieldId, GlobalDefinition,
-    IdentType, LazyContextData, LazyLambdaId, ModuleDefinitionId, NestedVarId, OuterContextIdx,
-    PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Var, VarAccess, VarId,
-    VarLocation, Visibility,
+    AnalysisData, ClassDefinition, ContextFieldId, ContextId, FctDefinition, Field, FieldId,
+    GlobalDefinition, IdentType, LazyContextData, LazyLambdaId, ModuleDefinitionId, NestedVarId,
+    OuterContextIdx, PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, Var, VarAccess,
+    VarId, VarLocation, Visibility,
 };
 use crate::typeck::{check_expr, check_stmt};
 use crate::{
@@ -176,7 +176,7 @@ impl<'a> TypeCheck<'a> {
     fn setup_context_class(&mut self) {
         let function = self.vars.current_scope();
         let start_index = function.start_idx;
-        let number_fields = function.next_context_id;
+        let number_fields = function.next_field_id;
         let mut fields = Vec::with_capacity(number_fields);
         let mut map: Vec<Option<NestedVarId>> = vec![None; number_fields];
 
@@ -203,8 +203,8 @@ impl<'a> TypeCheck<'a> {
             }
 
             match var.location {
-                VarLocation::Context(field_id) => {
-                    let ContextIdx(field_id) = field_id;
+                VarLocation::Context(_context_id, field_idx) => {
+                    let ContextFieldId(field_id) = field_idx;
                     map[field_id] = Some(var.id);
                 }
                 VarLocation::Stack => {}
@@ -852,7 +852,7 @@ pub(super) fn is_simple_enum(sa: &Sema, ty: SourceType) -> bool {
 struct VarAccessPerScope {
     level: usize,
     start_idx: usize,
-    next_context_id: usize,
+    next_field_id: usize,
 }
 
 pub struct VarManager {
@@ -881,7 +881,7 @@ impl VarManager {
     }
 
     pub fn has_context_vars(&self) -> bool {
-        self.current_scope().next_context_id > 0
+        self.current_scope().next_field_id > 0
     }
 
     fn current_scope(&self) -> &VarAccessPerScope {
@@ -917,19 +917,19 @@ impl VarManager {
         }
     }
 
-    fn ensure_context_allocated(&mut self, var_id: NestedVarId) -> ContextIdx {
+    fn ensure_context_allocated(&mut self, var_id: NestedVarId) -> ContextFieldId {
         match self.vars[var_id.0].location {
-            VarLocation::Context(field_id) => return field_id,
+            VarLocation::Context(_context_id, field_id) => return field_id,
             VarLocation::Stack => {}
         }
 
         // Allocate slot in context class.
         let scope = self.scope_for_var(var_id);
-        let context_idx = ContextIdx(scope.next_context_id);
-        scope.next_context_id += 1;
-        self.vars[var_id.0].location = VarLocation::Context(context_idx);
+        let field_idx = ContextFieldId(scope.next_field_id);
+        scope.next_field_id += 1;
+        self.vars[var_id.0].location = VarLocation::Context(ContextId(0), field_idx);
 
-        context_idx
+        field_idx
     }
 
     pub(super) fn add_var(&mut self, name: Name, ty: SourceType, mutable: bool) -> NestedVarId {
@@ -956,7 +956,7 @@ impl VarManager {
         self.scopes.push(VarAccessPerScope {
             level: self.scopes.len(),
             start_idx: self.vars.len(),
-            next_context_id: 0,
+            next_field_id: 0,
         });
         self.functions.push(self.vars.len());
     }

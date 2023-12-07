@@ -107,25 +107,10 @@ impl AnalysisData {
         self.map_tys.get(id).expect("no type found").clone()
     }
 
-    pub fn has_context_class(&self) -> bool {
-        self.function_context_data.get().is_some()
-    }
-
     pub fn function_context_data(&self) -> LazyContextData {
         self.function_context_data
             .get()
             .cloned()
-            .expect("missing context")
-    }
-
-    pub fn context_cls_id(&self) -> Option<ClassDefinitionId> {
-        self.function_context_data.get().map(|cr| cr.class_id())
-    }
-
-    pub fn context_has_outer_context_slot(&self) -> bool {
-        self.function_context_data
-            .get()
-            .map(|cr| cr.has_parent_context_slot())
             .expect("missing context")
     }
 
@@ -255,7 +240,7 @@ pub enum IdentType {
     Var(VarId),
 
     // context variable
-    Context(OuterContextIdx, ContextIdx),
+    Context(OuterContextIdx, ContextFieldId),
 
     /// name of a global variable
     Global(GlobalDefinitionId),
@@ -327,7 +312,10 @@ impl IdentType {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct ContextIdx(pub usize);
+pub struct ContextId(pub usize);
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct ContextFieldId(pub usize);
 
 #[derive(Debug, Clone)]
 pub struct ForTypeInfo {
@@ -460,20 +448,20 @@ impl IndexMut<NestedVarId> for Vec<Var> {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum VarLocation {
     Stack,
-    Context(ContextIdx),
+    Context(ContextId, ContextFieldId),
 }
 
 impl VarLocation {
     pub fn is_stack(&self) -> bool {
         match self {
             VarLocation::Stack => true,
-            VarLocation::Context(_) => false,
+            VarLocation::Context(..) => false,
         }
     }
 
     pub fn is_context(&self) -> bool {
         match self {
-            VarLocation::Context(_) => true,
+            VarLocation::Context(..) => true,
             VarLocation::Stack => false,
         }
     }
