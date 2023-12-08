@@ -79,8 +79,10 @@ pub(super) fn check_expr_for(
 
 fn check_for_body(ck: &mut TypeCheck, stmt: &ast::ExprForType, ty: SourceType) {
     ck.symtable.push_level();
+    ck.enter_block_scope();
     check_let_pattern(ck, &stmt.pattern, ty);
     check_loop_body(ck, &stmt.block);
+    ck.leave_block_scope(stmt.id);
     ck.symtable.pop_level();
 }
 

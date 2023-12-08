@@ -106,7 +106,7 @@ fn check_function(
         vars: &mut vars,
         lazy_context_class_creation,
         lazy_lambda_creation,
-        outer_context_classes: &mut outer_context_classes,
+        context_classes: &mut outer_context_classes,
         needs_parent_context: false,
     };
 
@@ -149,7 +149,7 @@ fn check_global(
             vars: &mut vars,
             lazy_context_class_creation,
             lazy_lambda_creation,
-            outer_context_classes: &mut outer_context_classes,
+            context_classes: &mut outer_context_classes,
             needs_parent_context: false,
         };
 

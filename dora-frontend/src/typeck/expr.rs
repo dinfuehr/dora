@@ -1205,7 +1205,7 @@ fn check_expr_lambda(
 
     let analysis = {
         let mut analysis = AnalysisData::new();
-        analysis.outer_contexts = ck.outer_context_classes.clone();
+        analysis.outer_contexts = ck.context_classes.clone();
 
         {
             let mut typeck = TypeCheck {
@@ -1226,7 +1226,7 @@ fn check_expr_lambda(
                 vars: ck.vars,
                 lazy_context_class_creation: ck.lazy_context_class_creation,
                 lazy_lambda_creation: ck.lazy_lambda_creation,
-                outer_context_classes: ck.outer_context_classes,
+                context_classes: ck.context_classes,
                 needs_parent_context: false,
             };
 

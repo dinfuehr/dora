@@ -30,6 +30,7 @@ pub struct AnalysisData {
     pub map_cls: NodeMap<ClassDefinitionId>,
     pub map_fors: NodeMap<ForTypeInfo>,
     pub map_lambdas: NodeMap<LazyLambdaId>,
+    pub map_block_contexts: NodeMap<LazyContextData>,
 
     // All variables defined in this function (including
     // context allocated ones).
@@ -55,6 +56,7 @@ impl AnalysisData {
             map_literals: NodeMap::new(),
             map_char_literals: NodeMap::new(),
             map_string_literals: NodeMap::new(),
+            map_block_contexts: NodeMap::new(),
 
             vars: VarAccess::empty(),
             function_context_data: OnceCell::new(),

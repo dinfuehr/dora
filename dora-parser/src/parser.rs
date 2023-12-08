@@ -4,7 +4,7 @@ use crate::ast;
 use crate::ast::*;
 use crate::error::{ParseError, ParseErrorWithLocation};
 
-use crate::green::GreenTreeBuilder;
+use crate::green::{GreenTreeBuilder, Marker};
 use crate::token::{
     ELEM_FIRST, EMPTY, ENUM_VARIANT_ARGUMENT_RS, ENUM_VARIANT_RS, EXPRESSION_FIRST, FIELD_FIRST,
     LET_PATTERN_FIRST, LET_PATTERN_RS, MATCH_PATTERN_FIRST, MATCH_PATTERN_RS, MODIFIER_FIRST,
@@ -1668,29 +1668,7 @@ impl Parser {
                     ))
                 }
 
-                L_PAREN => {
-                    let args = self.parse_list(
-                        L_PAREN,
-                        COMMA,
-                        R_PAREN,
-                        EMPTY,
-                        ParseError::ExpectedExpression,
-                        ARG_LIST,
-                        |p| {
-                            if p.is_set(EXPRESSION_FIRST) {
-                                Some(p.parse_expression())
-                            } else {
-                                None
-                            }
-                        },
-                    );
-                    let span = self.span_from(start);
-
-                    self.builder
-                        .finish_node_starting_at(POSTFIX_EXPR, marker.clone());
-
-                    Arc::new(ExprData::create_call(self.new_node_id(), span, left, args))
-                }
+                L_PAREN => self.parse_call(start, marker.clone(), left),
 
                 L_BRACKET => {
                     let op_span = self.current_span();
@@ -1740,6 +1718,30 @@ impl Parser {
                 }
             }
         }
+    }
+
+    fn parse_call(&mut self, start: u32, marker: Marker, left: Expr) -> Expr {
+        let args = self.parse_list(
+            L_PAREN,
+            COMMA,
+            R_PAREN,
+            EMPTY,
+            ParseError::ExpectedExpression,
+            ARG_LIST,
+            |p| {
+                if p.is_set(EXPRESSION_FIRST) {
+                    Some(p.parse_expression())
+                } else {
+                    None
+                }
+            },
+        );
+        let span = self.span_from(start);
+
+        self.builder
+            .finish_node_starting_at(POSTFIX_EXPR, marker.clone());
+
+        Arc::new(ExprData::create_call(self.new_node_id(), span, left, args))
     }
 
     fn create_binary(&mut self, kind: TokenKind, start: u32, left: Expr, right: Expr) -> Expr {

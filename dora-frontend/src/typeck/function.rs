@@ -16,8 +16,8 @@ use crate::{
 };
 
 use crate::interner::Name;
-use dora_parser::ast;
 use dora_parser::Span;
+use dora_parser::{ast, NodeId};
 
 pub struct TypeCheck<'a> {
     pub sa: &'a Sema,
@@ -35,10 +35,17 @@ pub struct TypeCheck<'a> {
     pub is_self_available: bool,
     pub self_ty: Option<SourceType>,
     pub vars: &'a mut VarManager,
+    // All nested contexts. There will be entries for all nested function/lambda
+    // and block scopes even when we eventually learn that we don't need
+    // a context class for some of them.
+    pub context_classes: &'a mut Vec<LazyContextData>,
+    // Starts out as false and can only become true for lambdas (as there is no
+    // parent for a regular function). This value will be used to decide whether
+    // to store a context in the lambda object.
+    pub needs_parent_context: bool,
+    // Lazily create contexts and lambdas discovered while checking functions.
     pub lazy_context_class_creation: &'a mut Vec<LazyContextClassCreationData>,
     pub lazy_lambda_creation: &'a mut Vec<LazyLambdaCreationData>,
-    pub outer_context_classes: &'a mut Vec<LazyContextData>,
-    pub needs_parent_context: bool,
 }
 
 impl<'a> TypeCheck<'a> {
@@ -74,7 +81,6 @@ impl<'a> TypeCheck<'a> {
     where
         F: FnOnce(&mut TypeCheck<'a>),
     {
-        self.outer_context_classes.push(LazyContextData::new());
         let start_level = self.symtable.levels();
         self.enter_function_scope();
         self.symtable.push_level();
@@ -85,9 +91,6 @@ impl<'a> TypeCheck<'a> {
         assert_eq!(self.symtable.levels(), start_level);
 
         self.leave_function_scope();
-        self.outer_context_classes
-            .pop()
-            .expect("missing context class");
     }
 
     fn check_body(&mut self, ast: &ast::Function) {
@@ -143,19 +146,21 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn enter_function_scope(&mut self) {
+        self.context_classes.push(LazyContextData::new());
         self.vars.enter_function_scope();
     }
 
-    fn leave_function_scope(&mut self) {
-        if self.vars.has_context_vars() {
-            self.setup_context_class();
-        }
+    pub fn enter_block_scope(&mut self) {
+        self.context_classes.push(LazyContextData::new());
+        self.vars.enter_block_scope();
+    }
 
-        let lazy_context_data = self
-            .outer_context_classes
-            .last()
-            .cloned()
-            .expect("missing outer context");
+    fn leave_function_scope(&mut self) {
+        let lazy_context_data = self.context_classes.pop().expect("missing context class");
+
+        if self.vars.has_context_vars() {
+            self.setup_context_class(lazy_context_data.clone());
+        }
 
         assert!(self
             .analysis
@@ -173,10 +178,24 @@ impl<'a> TypeCheck<'a> {
             .is_ok());
     }
 
-    fn setup_context_class(&mut self) {
-        let function = self.vars.current_scope();
-        let start_index = function.start_idx;
-        let number_fields = function.next_field_id;
+    pub fn leave_block_scope(&mut self, id: NodeId) {
+        let lazy_context_data = self.context_classes.pop().expect("missing context class");
+
+        if self.vars.has_context_vars() {
+            self.setup_context_class(lazy_context_data.clone());
+        }
+
+        self.analysis
+            .map_block_contexts
+            .insert(id, lazy_context_data);
+
+        self.vars.leave_block_scope();
+    }
+
+    fn setup_context_class(&mut self, lazy_context_data: LazyContextData) {
+        let scope = self.vars.current_scope();
+        let start_index = scope.start_idx;
+        let number_fields = scope.next_field_id;
         let mut fields = Vec::with_capacity(number_fields);
         let mut map: Vec<Option<NestedVarId>> = vec![None; number_fields];
 
@@ -198,10 +217,6 @@ impl<'a> TypeCheck<'a> {
         }
 
         for var in self.vars.vars.iter().skip(start_index) {
-            if !var.location.is_context() {
-                continue;
-            }
-
             match var.location {
                 VarLocation::Context(_context_id, field_idx) => {
                     let ContextFieldId(field_id) = field_idx;
@@ -243,12 +258,6 @@ impl<'a> TypeCheck<'a> {
             .type_params
             .set(self.type_param_defs.clone())
             .expect("already initialized");
-
-        let lazy_context_data = self
-            .outer_context_classes
-            .last()
-            .cloned()
-            .expect("missing outer context");
 
         lazy_context_data.set_has_parent_context_slot(self.is_lambda);
 
@@ -906,8 +915,8 @@ impl VarManager {
     }
 
     pub(super) fn local_var_id(&self, var_id: NestedVarId) -> VarId {
-        assert!(var_id.0 >= self.current_scope().start_idx);
-        VarId(var_id.0 - self.current_scope().start_idx)
+        assert!(var_id.0 >= self.current_function());
+        VarId(var_id.0 - self.current_function())
     }
 
     pub(super) fn maybe_allocate_in_context(&mut self, var_id: NestedVarId) -> IdentType {
@@ -964,6 +973,14 @@ impl VarManager {
         self.functions.push(self.vars.len());
     }
 
+    fn enter_block_scope(&mut self) {
+        self.scopes.push(VarAccessPerScope {
+            level: self.scopes.len(),
+            start_idx: self.vars.len(),
+            next_field_id: 0,
+        });
+    }
+
     fn leave_function_scope(&mut self) -> VarAccess {
         let scope = self.scopes.pop().expect("missing scope");
         let function_start = self.functions.pop().expect("missing function");
@@ -979,6 +996,10 @@ impl VarManager {
             .collect();
 
         VarAccess::new(vars)
+    }
+
+    fn leave_block_scope(&mut self) {
+        self.scopes.pop().expect("missing scope");
     }
 }
 
