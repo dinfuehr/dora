@@ -163,7 +163,7 @@ impl<'a> AstBytecodeGen<'a> {
             let reg = Register(0);
 
             match var_self.location {
-                VarLocation::Context(_context_id, field_idx) => {
+                VarLocation::Context(field_idx) => {
                     self.store_in_context(reg, field_idx, self.loc(self.span));
                 }
 
@@ -183,7 +183,7 @@ impl<'a> AstBytecodeGen<'a> {
             let reg = Register(next_register_idx + param_idx);
 
             match var.location {
-                VarLocation::Context(_context_id, field_idx) => {
+                VarLocation::Context(field_idx) => {
                     self.store_in_context(reg, field_idx, self.loc(self.span));
                 }
 
@@ -353,7 +353,7 @@ impl<'a> AstBytecodeGen<'a> {
 
                 if !var.ty.is_unit() {
                     match var.location {
-                        VarLocation::Context(_context_id, field_idx) => {
+                        VarLocation::Context(field_idx) => {
                             self.store_in_context(next_reg, field_idx, self.loc(ident.span));
                         }
 
@@ -568,7 +568,7 @@ impl<'a> AstBytecodeGen<'a> {
         let ty: BytecodeType = register_bty_from_ty(var.ty.clone());
 
         match var.location {
-            VarLocation::Context(_context_id, field_idx) => {
+            VarLocation::Context(field_idx) => {
                 if let Some(ref expr) = stmt.expr {
                     let value_reg = gen_expr(self, expr, DataDest::Alloc);
                     self.store_in_context(value_reg, field_idx, self.loc(ident.span));
@@ -2392,7 +2392,7 @@ impl<'a> AstBytecodeGen<'a> {
         let var = self.analysis.vars.get_var(var_id);
 
         match var.location {
-            VarLocation::Context(_context_id, field_idx) => {
+            VarLocation::Context(field_idx) => {
                 let value_reg = gen_expr(self, &expr.rhs, DataDest::Alloc);
                 self.store_in_context(value_reg, field_idx, self.loc(expr.span));
                 self.free_if_temp(value_reg);
@@ -2621,7 +2621,7 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         match var.location {
-            VarLocation::Context(_context_id, field_idx) => {
+            VarLocation::Context(field_idx) => {
                 let ty = register_bty_from_ty(var.ty.clone());
                 let dest_reg = self.ensure_register(dest, ty);
                 self.load_from_context(dest_reg, field_idx, location);

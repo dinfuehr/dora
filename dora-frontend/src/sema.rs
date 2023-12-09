@@ -33,7 +33,7 @@ pub use self::modules::{module_package, module_path, ModuleDefinition, ModuleDef
 pub use self::packages::{PackageDefinition, PackageDefinitionId, PackageName};
 pub use self::source_files::{SourceFile, SourceFileId};
 pub use self::src::{
-    AnalysisData, CallType, ContextData, ContextFieldId, ContextId, ForTypeInfo, IdentType,
+    AnalysisData, CallType, ContextData, ContextFieldId, ForTypeInfo, IdentType, InnerContextId,
     LazyContextClassCreationData, LazyContextData, LazyLambdaCreationData, LazyLambdaId,
     NestedVarId, NodeMap, OuterContextIdx, Var, VarAccess, VarId, VarLocation,
 };

@@ -326,7 +326,7 @@ impl IdentType {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct ContextId(pub usize);
+pub struct InnerContextId(pub usize);
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ContextFieldId(pub usize);
@@ -462,7 +462,7 @@ impl IndexMut<NestedVarId> for Vec<Var> {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum VarLocation {
     Stack,
-    Context(ContextId, ContextFieldId),
+    Context(ContextFieldId),
 }
 
 impl VarLocation {

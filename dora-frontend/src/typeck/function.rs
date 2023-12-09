@@ -4,8 +4,8 @@ use std::{f32, f64};
 
 use crate::error::msg::ErrorMessage;
 use crate::sema::{
-    AnalysisData, ClassDefinition, ContextFieldId, ContextId, FctDefinition, Field, FieldId,
-    GlobalDefinition, IdentType, LazyContextClassCreationData, LazyContextData,
+    AnalysisData, ClassDefinition, ContextFieldId, FctDefinition, Field, FieldId, GlobalDefinition,
+    IdentType, InnerContextId, LazyContextClassCreationData, LazyContextData,
     LazyLambdaCreationData, ModuleDefinitionId, NestedVarId, OuterContextIdx, PackageDefinitionId,
     Sema, SourceFileId, TypeParamDefinition, Var, VarAccess, VarId, VarLocation, Visibility,
 };
@@ -178,7 +178,7 @@ impl<'a> TypeCheck<'a> {
             .is_ok());
     }
 
-    pub fn leave_block_scope(&mut self, id: NodeId) {
+    pub fn leave_block_scope(&mut self, id: NodeId) -> LazyContextData {
         let lazy_context_data = self.context_classes.pop().expect("missing context class");
 
         if self.vars.has_context_vars() {
@@ -187,14 +187,16 @@ impl<'a> TypeCheck<'a> {
 
         self.analysis
             .map_block_contexts
-            .insert(id, lazy_context_data);
+            .insert(id, lazy_context_data.clone());
 
         self.vars.leave_block_scope();
+
+        lazy_context_data
     }
 
     fn setup_context_class(&mut self, lazy_context_data: LazyContextData) {
         let scope = self.vars.current_scope();
-        let start_index = scope.start_idx;
+        let start_index = scope.start_var_id;
         let number_fields = scope.next_field_id;
         let mut fields = Vec::with_capacity(number_fields);
         let mut map: Vec<Option<NestedVarId>> = vec![None; number_fields];
@@ -218,7 +220,7 @@ impl<'a> TypeCheck<'a> {
 
         for var in self.vars.vars.iter().skip(start_index) {
             match var.location {
-                VarLocation::Context(_context_id, field_idx) => {
+                VarLocation::Context(field_idx) => {
                     let ContextFieldId(field_id) = field_idx;
                     map[field_id] = Some(var.id);
                 }
@@ -862,9 +864,14 @@ pub(super) fn is_simple_enum(sa: &Sema, ty: SourceType) -> bool {
 }
 
 struct VarAccessPerScope {
-    level: usize,
-    start_idx: usize,
+    id: usize,
+    start_var_id: usize,
     next_field_id: usize,
+}
+
+struct VarAccessPerFunction {
+    start_scope_id: usize,
+    start_var_id: usize,
 }
 
 pub struct VarManager {
@@ -876,7 +883,7 @@ pub struct VarManager {
     scopes: Vec<VarAccessPerScope>,
 
     // Start of functions.
-    functions: Vec<usize>,
+    functions: Vec<VarAccessPerFunction>,
 }
 
 impl VarManager {
@@ -889,7 +896,7 @@ impl VarManager {
     }
 
     pub fn has_vars(&self) -> bool {
-        self.vars.len() > self.current_scope().start_idx
+        self.vars.len() > self.current_scope().start_var_id
     }
 
     pub fn has_context_vars(&self) -> bool {
@@ -900,13 +907,13 @@ impl VarManager {
         self.scopes.last().expect("no scope entered")
     }
 
-    fn current_function(&self) -> usize {
-        self.functions.last().cloned().expect("missing function")
+    fn current_function(&self) -> &VarAccessPerFunction {
+        self.functions.last().expect("missing function")
     }
 
     fn scope_for_var(&mut self, var_id: NestedVarId) -> &mut VarAccessPerScope {
         for function in self.scopes.iter_mut().rev() {
-            if var_id.0 >= function.start_idx {
+            if var_id.0 >= function.start_var_id {
                 return function;
             }
         }
@@ -915,14 +922,14 @@ impl VarManager {
     }
 
     pub(super) fn local_var_id(&self, var_id: NestedVarId) -> VarId {
-        assert!(var_id.0 >= self.current_function());
-        VarId(var_id.0 - self.current_function())
+        assert!(var_id.0 >= self.current_function().start_var_id);
+        VarId(var_id.0 - self.current_function().start_var_id)
     }
 
     pub(super) fn maybe_allocate_in_context(&mut self, var_id: NestedVarId) -> IdentType {
-        if var_id.0 < self.current_function() {
+        if var_id.0 < self.current_function().start_var_id {
             let field_id = self.ensure_context_allocated(var_id);
-            let level = self.scope_for_var(var_id).level;
+            let level = self.scope_for_var(var_id).id;
             IdentType::Context(OuterContextIdx(level), field_id)
         } else {
             IdentType::Var(self.local_var_id(var_id))
@@ -931,7 +938,7 @@ impl VarManager {
 
     fn ensure_context_allocated(&mut self, var_id: NestedVarId) -> ContextFieldId {
         match self.vars[var_id.0].location {
-            VarLocation::Context(_context_id, field_id) => return field_id,
+            VarLocation::Context(field_id) => return field_id,
             VarLocation::Stack => {}
         }
 
@@ -939,16 +946,19 @@ impl VarManager {
         let scope = self.scope_for_var(var_id);
         let field_idx = ContextFieldId(scope.next_field_id);
         scope.next_field_id += 1;
-        self.vars[var_id.0].location = VarLocation::Context(ContextId(0), field_idx);
+        self.vars[var_id.0].location = VarLocation::Context(field_idx);
 
         field_idx
     }
 
     pub(super) fn add_var(&mut self, name: Name, ty: SourceType, mutable: bool) -> NestedVarId {
         let id = NestedVarId(self.vars.len());
+        let context_id = self.scopes.len() - self.current_function().start_scope_id;
+        let context_id = InnerContextId(context_id);
 
         let var = VarDefinition {
             id,
+            context_id,
             name,
             ty,
             mutable,
@@ -965,30 +975,35 @@ impl VarManager {
     }
 
     fn enter_function_scope(&mut self) {
+        let scope_id = self.scopes.len();
+
         self.scopes.push(VarAccessPerScope {
-            level: self.scopes.len(),
-            start_idx: self.vars.len(),
+            id: scope_id,
+            start_var_id: self.vars.len(),
             next_field_id: 0,
         });
-        self.functions.push(self.vars.len());
+        self.functions.push(VarAccessPerFunction {
+            start_scope_id: scope_id,
+            start_var_id: self.vars.len(),
+        });
     }
 
     fn enter_block_scope(&mut self) {
         self.scopes.push(VarAccessPerScope {
-            level: self.scopes.len(),
-            start_idx: self.vars.len(),
+            id: self.scopes.len(),
+            start_var_id: self.vars.len(),
             next_field_id: 0,
         });
     }
 
     fn leave_function_scope(&mut self) -> VarAccess {
         let scope = self.scopes.pop().expect("missing scope");
-        let function_start = self.functions.pop().expect("missing function");
-        assert_eq!(scope.start_idx, function_start);
+        let function = self.functions.pop().expect("missing function");
+        assert_eq!(scope.start_var_id, function.start_var_id);
 
         let vars = self
             .vars
-            .drain(scope.start_idx..)
+            .drain(scope.start_var_id..)
             .map(|vd| Var {
                 ty: vd.ty.clone(),
                 location: vd.location,
@@ -1006,6 +1021,7 @@ impl VarManager {
 #[derive(Clone, Debug)]
 pub struct VarDefinition {
     pub id: NestedVarId,
+    pub context_id: InnerContextId,
     pub name: Name,
     pub ty: SourceType,
     pub mutable: bool,
