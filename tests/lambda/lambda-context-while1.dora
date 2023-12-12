@@ -2,9 +2,12 @@ fn main() {
     let list = Array[Int64]::new(10, 20, 30, 40, 50);
     let lambdas = Vec[(): Int64]::new();
 
-    for el in list {
+    let mut idx = 0;
+    while idx < list.size() {
         // Each loop iteration has a separate context object.
+        let el = list(idx);
         lambdas.push(||: Int64 { el });
+        idx = idx + 1;
     }
 
     // Each lambda gets their own context instance with the correct value.

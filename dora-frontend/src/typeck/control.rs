@@ -16,6 +16,7 @@ pub(super) fn check_expr_while(
     stmt: &ast::ExprWhileType,
     _expected_ty: SourceType,
 ) -> SourceType {
+    ck.enter_block_scope();
     let expr_type = check_expr(ck, &stmt.cond, SourceType::Bool);
 
     if !expr_type.is_error() && !expr_type.is_bool() {
@@ -25,6 +26,7 @@ pub(super) fn check_expr_while(
     }
 
     check_loop_body(ck, &stmt.block);
+    ck.leave_block_scope(stmt.id);
     SourceType::Unit
 }
 
