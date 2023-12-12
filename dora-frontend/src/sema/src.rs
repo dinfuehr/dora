@@ -434,6 +434,9 @@ impl CallType {
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
+pub struct ScopeId(pub usize);
+
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub struct NestedVarId(pub usize);
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]

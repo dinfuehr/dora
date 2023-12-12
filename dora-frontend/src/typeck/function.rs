@@ -7,7 +7,8 @@ use crate::sema::{
     AnalysisData, ClassDefinition, ContextFieldId, FctDefinition, Field, FieldId, GlobalDefinition,
     IdentType, InnerContextId, LazyContextClassCreationData, LazyContextData,
     LazyLambdaCreationData, ModuleDefinitionId, NestedVarId, OuterContextIdx, PackageDefinitionId,
-    Sema, SourceFileId, TypeParamDefinition, Var, VarAccess, VarId, VarLocation, Visibility,
+    ScopeId, Sema, SourceFileId, TypeParamDefinition, Var, VarAccess, VarId, VarLocation,
+    Visibility,
 };
 use crate::typeck::{check_expr, check_stmt};
 use crate::{
@@ -196,7 +197,6 @@ impl<'a> TypeCheck<'a> {
 
     fn setup_context_class(&mut self, lazy_context_data: LazyContextData) {
         let scope = self.vars.current_scope();
-        let start_index = scope.start_var_id;
         let number_fields = scope.next_field_id;
         let mut fields = Vec::with_capacity(number_fields);
         let mut map: Vec<Option<NestedVarId>> = vec![None; number_fields];
@@ -218,7 +218,8 @@ impl<'a> TypeCheck<'a> {
             fields.push(field);
         }
 
-        for var in self.vars.vars.iter().skip(start_index) {
+        for &var_id in &scope.vars {
+            let var = self.vars.get_var(var_id);
             match var.location {
                 VarLocation::Context(field_idx) => {
                     let ContextFieldId(field_id) = field_idx;
@@ -864,9 +865,10 @@ pub(super) fn is_simple_enum(sa: &Sema, ty: SourceType) -> bool {
 }
 
 struct VarAccessPerScope {
-    id: usize,
+    id: ScopeId,
     start_var_id: usize,
     next_field_id: usize,
+    vars: Vec<NestedVarId>,
 }
 
 struct VarAccessPerFunction {
@@ -907,18 +909,17 @@ impl VarManager {
         self.scopes.last().expect("no scope entered")
     }
 
+    fn current_scope_mut(&mut self) -> &mut VarAccessPerScope {
+        self.scopes.last_mut().expect("no scope entered")
+    }
+
     fn current_function(&self) -> &VarAccessPerFunction {
         self.functions.last().expect("missing function")
     }
 
     fn scope_for_var(&mut self, var_id: NestedVarId) -> &mut VarAccessPerScope {
-        for function in self.scopes.iter_mut().rev() {
-            if var_id.0 >= function.start_var_id {
-                return function;
-            }
-        }
-
-        panic!("function not found")
+        let ScopeId(idx) = self.get_var(var_id).scope_id;
+        &mut self.scopes[idx]
     }
 
     pub(super) fn local_var_id(&self, var_id: NestedVarId) -> VarId {
@@ -929,7 +930,7 @@ impl VarManager {
     pub(super) fn maybe_allocate_in_context(&mut self, var_id: NestedVarId) -> IdentType {
         if var_id.0 < self.current_function().start_var_id {
             let field_id = self.ensure_context_allocated(var_id);
-            let level = self.scope_for_var(var_id).id;
+            let ScopeId(level) = self.scope_for_var(var_id).id;
             IdentType::Context(OuterContextIdx(level), field_id)
         } else {
             IdentType::Var(self.local_var_id(var_id))
@@ -963,9 +964,11 @@ impl VarManager {
             ty,
             mutable,
             location: VarLocation::Stack,
+            scope_id: self.current_scope().id,
         };
 
         self.vars.push(var);
+        self.current_scope_mut().vars.push(id);
 
         id
     }
@@ -978,9 +981,10 @@ impl VarManager {
         let scope_id = self.scopes.len();
 
         self.scopes.push(VarAccessPerScope {
-            id: scope_id,
+            id: ScopeId(scope_id),
             start_var_id: self.vars.len(),
             next_field_id: 0,
+            vars: Vec::new(),
         });
         self.functions.push(VarAccessPerFunction {
             start_scope_id: scope_id,
@@ -990,9 +994,10 @@ impl VarManager {
 
     fn enter_block_scope(&mut self) {
         self.scopes.push(VarAccessPerScope {
-            id: self.scopes.len(),
+            id: ScopeId(self.scopes.len()),
             start_var_id: self.vars.len(),
             next_field_id: 0,
+            vars: Vec::new(),
         });
     }
 
@@ -1026,4 +1031,5 @@ pub struct VarDefinition {
     pub ty: SourceType,
     pub mutable: bool,
     pub location: VarLocation,
+    pub scope_id: ScopeId,
 }
