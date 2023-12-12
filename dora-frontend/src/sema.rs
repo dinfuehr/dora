@@ -35,7 +35,8 @@ pub use self::source_files::{SourceFile, SourceFileId};
 pub use self::src::{
     AnalysisData, CallType, ContextData, ContextFieldId, ForTypeInfo, IdentType, InnerContextId,
     LazyContextClassCreationData, LazyContextData, LazyLambdaCreationData, LazyLambdaId,
-    NestedVarId, NodeMap, OuterContextIdx, ScopeId, Var, VarAccess, VarId, VarLocation,
+    NestedScopeId, NestedVarId, NodeMap, OuterContextIdx, ScopeId, Var, VarAccess, VarId,
+    VarLocation,
 };
 pub use self::structs::{
     find_methods_in_struct, StructDefinition, StructDefinitionField, StructDefinitionFieldId,

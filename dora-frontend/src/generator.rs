@@ -8,7 +8,7 @@ use self::expr::{gen_expr, gen_expr_bin_cmp};
 use crate::sema::{
     emit_as_bytecode_operation, AnalysisData, CallType, ClassDefinitionId, ConstDefinitionId,
     ContextFieldId, EnumDefinitionId, FctDefinition, FctDefinitionId, FieldId, GlobalDefinition,
-    GlobalDefinitionId, IdentType, LazyContextData, OuterContextIdx, Sema, SourceFileId,
+    GlobalDefinitionId, IdentType, LazyContextData, OuterContextIdx, ScopeId, Sema, SourceFileId,
     StructDefinitionId, TypeParamId, VarId, VarLocation,
 };
 use crate::specialize::{replace_type, specialize_type};
@@ -99,7 +99,7 @@ struct AstBytecodeGen<'a> {
     builder: BytecodeBuilder,
     loops: Vec<LoopLabels>,
     var_registers: HashMap<VarId, Register>,
-    context_registers: Vec<Register>,
+    context_registers: Vec<Option<Register>>,
     unit_register: Option<Register>,
 }
 
@@ -163,8 +163,8 @@ impl<'a> AstBytecodeGen<'a> {
             let reg = Register(0);
 
             match var_self.location {
-                VarLocation::Context(field_idx) => {
-                    self.store_in_context(reg, field_idx, self.loc(self.span));
+                VarLocation::Context(scope_id, field_idx) => {
+                    self.store_in_context(reg, scope_id, field_idx, self.loc(self.span));
                 }
 
                 VarLocation::Stack => {
@@ -183,8 +183,8 @@ impl<'a> AstBytecodeGen<'a> {
             let reg = Register(next_register_idx + param_idx);
 
             match var.location {
-                VarLocation::Context(field_idx) => {
-                    self.store_in_context(reg, field_idx, self.loc(self.span));
+                VarLocation::Context(scope_id, field_idx) => {
+                    self.store_in_context(reg, scope_id, field_idx, self.loc(self.span));
                 }
 
                 VarLocation::Stack => {
@@ -241,6 +241,20 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn enter_function_context(&mut self) {
         let context_data = self.analysis.function_context_data();
+        self.enter_context(context_data);
+    }
+
+    fn enter_block_context(&mut self, id: ast::NodeId) {
+        let context_data = self
+            .analysis
+            .map_block_contexts
+            .get(id)
+            .cloned()
+            .expect("missing context");
+        self.enter_context(context_data);
+    }
+
+    fn enter_context(&mut self, context_data: LazyContextData) {
         if context_data.has_class_id() {
             self.create_context(context_data);
         }
@@ -248,8 +262,22 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn leave_function_context(&mut self) {
         let context_data = self.analysis.function_context_data();
+        self.leave_context(context_data);
+    }
+
+    fn leave_block_context(&mut self, id: ast::NodeId) {
+        let context_data = self
+            .analysis
+            .map_block_contexts
+            .get(id)
+            .cloned()
+            .expect("missing context");
+        self.leave_context(context_data);
+    }
+
+    fn leave_context(&mut self, context_data: LazyContextData) {
         if context_data.has_class_id() {
-            self.context_registers.pop().expect("missing register");
+            self.context_registers.pop().expect("missing context");
         }
     }
 
@@ -263,7 +291,7 @@ impl<'a> AstBytecodeGen<'a> {
         );
         self.builder
             .emit_new_object(context_register, idx, self.loc(self.span));
-        self.context_registers.push(context_register);
+        self.context_registers.push(Some(context_register));
 
         if context_data.has_parent_context_slot() {
             let self_reg = self.var_reg(SELF_VAR_ID);
@@ -304,7 +332,9 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn visit_expr_for(&mut self, expr: &ast::ExprForType, _dest: DataDest) -> Register {
+        self.enter_block_context(expr.id);
         self.visit_expr_for_iterator(expr);
+        self.leave_block_context(expr.id);
         self.ensure_unit_register()
     }
 
@@ -353,8 +383,13 @@ impl<'a> AstBytecodeGen<'a> {
 
                 if !var.ty.is_unit() {
                     match var.location {
-                        VarLocation::Context(field_idx) => {
-                            self.store_in_context(next_reg, field_idx, self.loc(ident.span));
+                        VarLocation::Context(scope_id, field_idx) => {
+                            self.store_in_context(
+                                next_reg,
+                                scope_id,
+                                field_idx,
+                                self.loc(ident.span),
+                            );
                         }
 
                         VarLocation::Stack => {
@@ -568,10 +603,10 @@ impl<'a> AstBytecodeGen<'a> {
         let ty: BytecodeType = register_bty_from_ty(var.ty.clone());
 
         match var.location {
-            VarLocation::Context(field_idx) => {
+            VarLocation::Context(scope_id, field_idx) => {
                 if let Some(ref expr) = stmt.expr {
                     let value_reg = gen_expr(self, expr, DataDest::Alloc);
-                    self.store_in_context(value_reg, field_idx, self.loc(ident.span));
+                    self.store_in_context(value_reg, scope_id, field_idx, self.loc(ident.span));
                     self.free_if_temp(value_reg);
                 }
             }
@@ -890,8 +925,8 @@ impl<'a> AstBytecodeGen<'a> {
         let mut outer_context_reg: Option<Register> = None;
 
         if lambda_analysis.needs_parent_context() {
-            if let Some(&context_register) = self.context_registers.last() {
-                self.builder.emit_push_register(context_register);
+            if let Some(Some(context_register)) = self.context_registers.last() {
+                self.builder.emit_push_register(context_register.clone());
             } else {
                 // This lambda doesn't have a context object on its own, simply
                 // pass down the parent context (the context in the lambda object).
@@ -2392,9 +2427,9 @@ impl<'a> AstBytecodeGen<'a> {
         let var = self.analysis.vars.get_var(var_id);
 
         match var.location {
-            VarLocation::Context(field_idx) => {
+            VarLocation::Context(scope_id, field_idx) => {
                 let value_reg = gen_expr(self, &expr.rhs, DataDest::Alloc);
-                self.store_in_context(value_reg, field_idx, self.loc(expr.span));
+                self.store_in_context(value_reg, scope_id, field_idx, self.loc(expr.span));
                 self.free_if_temp(value_reg);
             }
 
@@ -2621,10 +2656,10 @@ impl<'a> AstBytecodeGen<'a> {
         }
 
         match var.location {
-            VarLocation::Context(field_idx) => {
+            VarLocation::Context(scope_id, field_idx) => {
                 let ty = register_bty_from_ty(var.ty.clone());
                 let dest_reg = self.ensure_register(dest, ty);
-                self.load_from_context(dest_reg, field_idx, location);
+                self.load_from_context(dest_reg, scope_id, field_idx, location);
                 dest_reg
             }
 
@@ -2643,15 +2678,14 @@ impl<'a> AstBytecodeGen<'a> {
         }
     }
 
-    fn current_context_register(&self) -> Register {
-        self.context_registers
-            .last()
-            .cloned()
-            .expect("context register missing")
-    }
-
-    fn store_in_context(&mut self, src: Register, field_idx: ContextFieldId, location: Location) {
-        let context_register = self.current_context_register();
+    fn store_in_context(
+        &mut self,
+        src: Register,
+        scope_id: ScopeId,
+        field_idx: ContextFieldId,
+        location: Location,
+    ) {
+        let context_register = self.context_registers[scope_id.0].expect("missing register");
         let context_data = self.analysis.function_context_data();
         let cls_id = context_data.class_id();
         let field_id = field_id_from_context_idx(field_idx, context_data.has_parent_context_slot());
@@ -2667,11 +2701,12 @@ impl<'a> AstBytecodeGen<'a> {
     fn load_from_context(
         &mut self,
         dest: Register,
+        scope_id: ScopeId,
         context_idx: ContextFieldId,
         location: Location,
     ) {
         // Load context object.
-        let context_register = self.current_context_register();
+        let context_register = self.context_registers[scope_id.0].expect("missing register");
         let context_data = self.analysis.function_context_data();
         let cls_id = context_data.class_id();
         let field_id =

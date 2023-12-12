@@ -434,6 +434,9 @@ impl CallType {
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
+pub struct NestedScopeId(pub usize);
+
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub struct ScopeId(pub usize);
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
@@ -465,7 +468,7 @@ impl IndexMut<NestedVarId> for Vec<Var> {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum VarLocation {
     Stack,
-    Context(ContextFieldId),
+    Context(ScopeId, ContextFieldId),
 }
 
 impl VarLocation {
