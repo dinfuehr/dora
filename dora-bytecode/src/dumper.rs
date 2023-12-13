@@ -261,7 +261,7 @@ impl<'a> Display for NameWithTypeParamsPrinter<'a> {
                 write!(f, "{}", fmt_ty(self.prog, &tp))?;
                 first = false;
             }
-            write!(f, "[")
+            write!(f, "]")
         } else {
             Ok(())
         }

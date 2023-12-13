@@ -309,33 +309,46 @@ impl<'a> AstBytecodeGen<'a> {
             .emit_new_object(context_register, idx, self.loc(self.span));
 
         if context_data.has_parent_context_slot() {
-            let self_reg = self.var_reg(SELF_VAR_ID);
-
             // Load context field of lambda object in self.
-            let outer_context_reg = self.alloc_temp(BytecodeType::Ptr);
-            let lambda_cls_id = self.sa.known.classes.lambda();
-            let idx = self.builder.add_const_field_types(
-                ClassId(lambda_cls_id.index().try_into().expect("overflow")),
-                BytecodeTypeArray::empty(),
-                0,
-            );
-            self.builder
-                .emit_load_field(outer_context_reg, self_reg, idx, self.loc(self.span));
+            let temp_parent_context_reg = self.alloc_temp(BytecodeType::Ptr);
 
-            // Store value in outer_context field of context object.
+            let parent_context_reg = if let Some(parent_context_reg) = self.last_context_register()
+            {
+                parent_context_reg
+            } else {
+                let self_reg = self.var_reg(SELF_VAR_ID);
+
+                let lambda_cls_id = self.sa.known.classes.lambda();
+                let idx = self.builder.add_const_field_types(
+                    ClassId(lambda_cls_id.index().try_into().expect("overflow")),
+                    BytecodeTypeArray::empty(),
+                    0,
+                );
+                self.builder.emit_load_field(
+                    temp_parent_context_reg,
+                    self_reg,
+                    idx,
+                    self.loc(self.span),
+                );
+
+                temp_parent_context_reg
+            };
+
+            // Store value in parent field of context object.
+            assert!(context_data.has_parent_context_slot());
             let idx = self.builder.add_const_field_types(
                 ClassId(class_id.index().try_into().expect("overflow")),
                 bty_array_from_ty(&self.identity_type_params()),
                 0,
             );
             self.builder.emit_store_field(
-                outer_context_reg,
+                parent_context_reg,
                 context_register,
                 idx,
                 self.loc(self.span),
             );
 
-            self.free_temp(outer_context_reg);
+            self.free_temp(temp_parent_context_reg);
         }
 
         context_register
@@ -2549,6 +2562,7 @@ impl<'a> AstBytecodeGen<'a> {
                     bty_array_from_ty(&self.identity_type_params()),
                     0,
                 );
+                assert!(outer_context_class.has_parent_context_slot());
                 self.builder
                     .emit_load_field(outer_context_reg, outer_context_reg, idx, location);
             }

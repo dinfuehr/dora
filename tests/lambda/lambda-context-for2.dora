@@ -1,0 +1,22 @@
+//= ignore
+
+fn main() {
+    let list = Array[Int64]::new(10, 20, 30, 40, 50);
+    let lambdas = Vec[(): Int64]::new();
+
+    for el in list {
+        // Each loop iteration has a separate context object.
+        for idx in std::range(0, 5) {
+            lambdas.push(||: Int64 {
+                el + idx
+            });
+        }
+    }
+
+    // Each lambda gets their own context instance with the correct value.
+    let mut idx = 0;
+    for lambda in lambdas {
+        assert(lambda() == list(idx/5) + idx % 5);
+        idx = idx + 1;
+    }
+}
