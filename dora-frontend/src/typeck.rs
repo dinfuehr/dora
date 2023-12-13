@@ -78,7 +78,7 @@ fn check_function(
     let mut analysis = AnalysisData::new();
     let mut symtable = ModuleSymTable::new(sa, fct.module_id);
     let mut vars = VarManager::new();
-    let mut outer_context_classes = Vec::new();
+    let mut context_classes = Vec::new();
 
     let self_ty = match fct.parent {
         FctParent::None => None,
@@ -106,8 +106,8 @@ fn check_function(
         vars: &mut vars,
         lazy_context_class_creation,
         lazy_lambda_creation,
-        context_classes: &mut outer_context_classes,
-        needs_parent_context: false,
+        context_classes: &mut context_classes,
+        start_context_id: 0,
     };
 
     typeck.check_fct(&fct.ast);
@@ -150,7 +150,7 @@ fn check_global(
             lazy_context_class_creation,
             lazy_lambda_creation,
             context_classes: &mut outer_context_classes,
-            needs_parent_context: false,
+            start_context_id: 0,
         };
 
         typeck.check_initializer(&*global, global.initial_value_expr());

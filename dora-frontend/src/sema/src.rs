@@ -1,4 +1,4 @@
-use std::cell::OnceCell;
+use std::cell::{Cell, OnceCell};
 use std::collections::hash_map::{HashMap, Iter};
 use std::ops::{Index, IndexMut};
 use std::rc::Rc;
@@ -38,7 +38,6 @@ pub struct AnalysisData {
 
     pub function_context_data: OnceCell<LazyContextData>,
     pub outer_contexts: Vec<LazyContextData>,
-    pub needs_parent_context: OnceCell<bool>,
 }
 
 impl AnalysisData {
@@ -61,7 +60,6 @@ impl AnalysisData {
             vars: VarAccess::empty(),
             function_context_data: OnceCell::new(),
             outer_contexts: Vec::new(),
-            needs_parent_context: OnceCell::new(),
         }
     }
 
@@ -119,7 +117,7 @@ impl AnalysisData {
     }
 
     pub fn needs_parent_context(&self) -> bool {
-        self.needs_parent_context.get().cloned().expect("missing")
+        self.function_context_data().has_parent_slot()
     }
 }
 
@@ -156,44 +154,40 @@ pub struct LazyContextData(Rc<ContextData>);
 impl LazyContextData {
     pub fn new() -> LazyContextData {
         LazyContextData(Rc::new(ContextData {
-            has_parent_context_slot: OnceCell::new(),
-            context_cls_id: OnceCell::new(),
+            has_parent_slot: Cell::new(false),
+            class_id: OnceCell::new(),
         }))
     }
 
-    pub fn set_has_parent_context_slot(&self, value: bool) {
-        assert!(self.0.has_parent_context_slot.set(value).is_ok());
+    pub fn require_parent_slot(&self) {
+        assert!(!self.has_class_id());
+
+        if !self.has_parent_slot() {
+            self.0.has_parent_slot.set(true);
+        }
     }
 
-    pub fn has_parent_context_slot(&self) -> bool {
-        self.0
-            .has_parent_context_slot
-            .get()
-            .cloned()
-            .expect("missing value")
+    pub fn has_parent_slot(&self) -> bool {
+        self.0.has_parent_slot.get()
     }
 
     pub fn set_class_id(&self, id: ClassDefinitionId) {
-        assert!(self.0.context_cls_id.set(id).is_ok());
+        assert!(self.0.class_id.set(id).is_ok());
     }
 
     pub fn has_class_id(&self) -> bool {
-        self.0.context_cls_id.get().is_some()
+        self.0.class_id.get().is_some()
     }
 
     pub fn class_id(&self) -> ClassDefinitionId {
-        self.0
-            .context_cls_id
-            .get()
-            .cloned()
-            .expect("missing class id")
+        self.0.class_id.get().cloned().expect("missing class id")
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct ContextData {
-    pub has_parent_context_slot: OnceCell<bool>,
-    pub context_cls_id: OnceCell<ClassDefinitionId>,
+    pub has_parent_slot: Cell<bool>,
+    pub class_id: OnceCell<ClassDefinitionId>,
 }
 
 #[derive(Clone, Debug)]

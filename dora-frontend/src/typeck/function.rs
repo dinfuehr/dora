@@ -40,10 +40,7 @@ pub struct TypeCheck<'a> {
     // and block scopes even when we eventually learn that we don't need
     // a context class for some of them.
     pub context_classes: &'a mut Vec<LazyContextData>,
-    // Starts out as false and can only become true for lambdas (as there is no
-    // parent for a regular function). This value will be used to decide whether
-    // to store a context in the lambda object.
-    pub needs_parent_context: bool,
+    pub start_context_id: usize,
     // Lazily create contexts and lambdas discovered while checking functions.
     pub lazy_context_class_creation: &'a mut Vec<LazyContextClassCreationData>,
     pub lazy_lambda_creation: &'a mut Vec<LazyLambdaCreationData>,
@@ -135,8 +132,16 @@ impl<'a> TypeCheck<'a> {
         let ident_type = self.vars.maybe_allocate_in_context(var_id);
 
         match ident_type {
-            IdentType::Context(..) => {
-                self.needs_parent_context = true;
+            IdentType::Context(context_id, _field_id) => {
+                // We need parent slots from the context of the variable up to the first context
+                // of this function. The first context of this function needs to be included
+                // because we use this context to decide whether to store the current context
+                // in a new lambda.
+                for context_class in
+                    &self.context_classes[context_id.0 + 1..self.start_context_id + 1]
+                {
+                    context_class.require_parent_slot();
+                }
                 ident_type
             }
 
@@ -147,6 +152,7 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn enter_function_scope(&mut self) {
+        self.start_context_id = self.context_classes.len();
         self.context_classes.push(LazyContextData::new());
         self.vars.enter_function_scope();
     }
@@ -181,12 +187,6 @@ impl<'a> TypeCheck<'a> {
             .collect();
 
         self.analysis.vars = VarAccess::new(vars);
-
-        assert!(self
-            .analysis
-            .needs_parent_context
-            .set(self.needs_parent_context)
-            .is_ok());
     }
 
     pub fn leave_block_scope(&mut self, id: NodeId) -> LazyContextData {
@@ -211,10 +211,7 @@ impl<'a> TypeCheck<'a> {
         let mut fields = Vec::with_capacity(number_fields);
         let map: Vec<OnceCell<NestedVarId>> = vec![OnceCell::new(); number_fields];
 
-        // As soon as a lambda needs a context object, this also means that some
-        // lambda in it accessed parent scope variables. This also means we need
-        // a slot for the parent context as well.
-        if self.is_lambda {
+        if lazy_context_data.has_parent_slot() {
             let name = self.sa.interner.intern("parent_context");
             let field = Field {
                 id: FieldId(0),
@@ -271,8 +268,6 @@ impl<'a> TypeCheck<'a> {
             .type_params
             .set(self.type_param_defs.clone())
             .expect("already initialized");
-
-        lazy_context_data.set_has_parent_context_slot(self.is_lambda);
 
         self.lazy_context_class_creation
             .push(LazyContextClassCreationData {

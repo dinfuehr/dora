@@ -308,7 +308,7 @@ impl<'a> AstBytecodeGen<'a> {
         self.builder
             .emit_new_object(context_register, idx, self.loc(self.span));
 
-        if context_data.has_parent_context_slot() {
+        if context_data.has_parent_slot() {
             // Load context field of lambda object in self.
             let temp_parent_context_reg = self.alloc_temp(BytecodeType::Ptr);
 
@@ -335,7 +335,7 @@ impl<'a> AstBytecodeGen<'a> {
             };
 
             // Store value in parent field of context object.
-            assert!(context_data.has_parent_context_slot());
+            assert!(context_data.has_parent_slot());
             let idx = self.builder.add_const_field_types(
                 ClassId(class_id.index().try_into().expect("overflow")),
                 bty_array_from_ty(&self.identity_type_params()),
@@ -2439,8 +2439,7 @@ impl<'a> AstBytecodeGen<'a> {
         // Store value in context field
         let outer_context_info = self.analysis.outer_contexts[level.0].clone();
 
-        let field_id =
-            field_id_from_context_idx(context_idx, outer_context_info.has_parent_context_slot());
+        let field_id = field_id_from_context_idx(context_idx, outer_context_info.has_parent_slot());
         let idx = self.builder.add_const_field_types(
             ClassId(
                 outer_context_info
@@ -2534,11 +2533,12 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn visit_expr_ident_context(
         &mut self,
-        level: OuterContextIdx,
-        context_idx: ContextFieldId,
+        context_id: OuterContextIdx,
+        field_id: ContextFieldId,
         dest: DataDest,
         location: Location,
     ) -> Register {
+        assert!(self.is_lambda);
         let self_reg = self.var_reg(SELF_VAR_ID);
 
         // Load context field of lambda object (in self register).
@@ -2552,9 +2552,15 @@ impl<'a> AstBytecodeGen<'a> {
         self.builder
             .emit_load_field(outer_context_reg, self_reg, idx, location);
 
-        assert!(level.0 < self.analysis.outer_contexts.len());
+        assert!(context_id.0 < self.analysis.outer_contexts.len());
 
-        for outer_context_class in self.analysis.outer_contexts.iter().skip(level.0 + 1).rev() {
+        for outer_context_class in self
+            .analysis
+            .outer_contexts
+            .iter()
+            .skip(context_id.0 + 1)
+            .rev()
+        {
             if outer_context_class.has_class_id() {
                 let outer_cls_id = outer_context_class.class_id();
                 let idx = self.builder.add_const_field_types(
@@ -2562,18 +2568,17 @@ impl<'a> AstBytecodeGen<'a> {
                     bty_array_from_ty(&self.identity_type_params()),
                     0,
                 );
-                assert!(outer_context_class.has_parent_context_slot());
+                assert!(outer_context_class.has_parent_slot());
                 self.builder
                     .emit_load_field(outer_context_reg, outer_context_reg, idx, location);
             }
         }
 
-        let outer_context_info = self.analysis.outer_contexts[level.0].clone();
+        let outer_context_info = self.analysis.outer_contexts[context_id.0].clone();
         let outer_cls_id = outer_context_info.class_id();
 
         let outer_cls = self.sa.class(outer_cls_id);
-        let field_id =
-            field_id_from_context_idx(context_idx, outer_context_info.has_parent_context_slot());
+        let field_id = field_id_from_context_idx(field_id, outer_context_info.has_parent_slot());
         let field = &outer_cls.fields[field_id];
 
         let ty: BytecodeType = register_bty_from_ty(field.ty());
@@ -2726,7 +2731,7 @@ impl<'a> AstBytecodeGen<'a> {
         let context_register = entered_context.register.expect("missing register");
         let context_data = entered_context.context_data.clone();
         let cls_id = context_data.class_id();
-        let field_id = field_id_from_context_idx(field_id, context_data.has_parent_context_slot());
+        let field_id = field_id_from_context_idx(field_id, context_data.has_parent_slot());
         let field_idx = self.builder.add_const_field_types(
             ClassId(cls_id.index().try_into().expect("overflow")),
             bty_array_from_ty(&self.identity_type_params()),
@@ -2748,7 +2753,7 @@ impl<'a> AstBytecodeGen<'a> {
         let context_register = entered_context.register.expect("missing register");
         let context_data = entered_context.context_data.clone();
         let cls_id = context_data.class_id();
-        let field_id = field_id_from_context_idx(field_id, context_data.has_parent_context_slot());
+        let field_id = field_id_from_context_idx(field_id, context_data.has_parent_slot());
         let field_idx = self.builder.add_const_field_types(
             ClassId(cls_id.index().try_into().expect("overflow")),
             bty_array_from_ty(&self.identity_type_params()),

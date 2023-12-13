@@ -1227,14 +1227,10 @@ fn check_expr_lambda(
                 lazy_context_class_creation: ck.lazy_context_class_creation,
                 lazy_lambda_creation: ck.lazy_lambda_creation,
                 context_classes: ck.context_classes,
-                needs_parent_context: false,
+                start_context_id: 0,
             };
 
             typeck.check_fct(&node);
-        }
-
-        if ck.is_lambda && analysis.needs_parent_context() {
-            ck.needs_parent_context = true
         }
 
         analysis

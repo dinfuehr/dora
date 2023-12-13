@@ -13,6 +13,8 @@ fn main() {
         }
     }
 
+    assert(lambdas.size() == list.size() * 5);
+
     // Each lambda gets their own context instance with the correct value.
     let mut idx = 0;
     for lambda in lambdas {
