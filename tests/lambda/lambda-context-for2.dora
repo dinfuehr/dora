@@ -1,5 +1,3 @@
-//= ignore
-
 fn main() {
     let list = Array[Int64]::new(10, 20, 30, 40, 50);
     let lambdas = Vec[(): Int64]::new();
