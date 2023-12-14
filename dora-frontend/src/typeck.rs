@@ -108,6 +108,7 @@ fn check_function(
         lazy_lambda_creation,
         context_classes: &mut context_classes,
         start_context_id: 0,
+        needs_context_slot_in_lambda_object: false,
     };
 
     typeck.check_fct(&fct.ast);
@@ -151,6 +152,7 @@ fn check_global(
             lazy_lambda_creation,
             context_classes: &mut outer_context_classes,
             start_context_id: 0,
+            needs_context_slot_in_lambda_object: false,
         };
 
         typeck.check_initializer(&*global, global.initial_value_expr());

@@ -1228,6 +1228,7 @@ fn check_expr_lambda(
                 lazy_lambda_creation: ck.lazy_lambda_creation,
                 context_classes: ck.context_classes,
                 start_context_id: 0,
+                needs_context_slot_in_lambda_object: false,
             };
 
             typeck.check_fct(&node);

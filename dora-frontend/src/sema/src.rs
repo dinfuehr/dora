@@ -37,6 +37,7 @@ pub struct AnalysisData {
     pub vars: VarAccess,
 
     pub function_context_data: OnceCell<LazyContextData>,
+    pub needs_context_slot_in_lambda_object: OnceCell<bool>,
     pub outer_contexts: Vec<LazyContextData>,
 }
 
@@ -59,6 +60,7 @@ impl AnalysisData {
 
             vars: VarAccess::empty(),
             function_context_data: OnceCell::new(),
+            needs_context_slot_in_lambda_object: OnceCell::new(),
             outer_contexts: Vec::new(),
         }
     }
@@ -116,8 +118,11 @@ impl AnalysisData {
             .expect("missing context")
     }
 
-    pub fn needs_parent_context(&self) -> bool {
-        self.function_context_data().has_parent_slot()
+    pub fn needs_context_slot_in_lambda_object(&self) -> bool {
+        self.needs_context_slot_in_lambda_object
+            .get()
+            .cloned()
+            .expect("missing value")
     }
 }
 

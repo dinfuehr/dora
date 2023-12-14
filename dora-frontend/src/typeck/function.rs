@@ -41,6 +41,7 @@ pub struct TypeCheck<'a> {
     // a context class for some of them.
     pub context_classes: &'a mut Vec<LazyContextData>,
     pub start_context_id: usize,
+    pub needs_context_slot_in_lambda_object: bool,
     // Lazily create contexts and lambdas discovered while checking functions.
     pub lazy_context_class_creation: &'a mut Vec<LazyContextClassCreationData>,
     pub lazy_lambda_creation: &'a mut Vec<LazyLambdaCreationData>,
@@ -133,15 +134,18 @@ impl<'a> TypeCheck<'a> {
 
         match ident_type {
             IdentType::Context(context_id, _field_id) => {
-                // We need parent slots from the context of the variable up to the first context
-                // of this function. The first context of this function needs to be included
-                // because we use this context to decide whether to store the current context
-                // in a new lambda.
-                for context_class in
-                    &self.context_classes[context_id.0 + 1..self.start_context_id + 1]
-                {
+                // We need parent slots from the context of the variable up to (not including)
+                // the first context of this function.
+                // There is no need for parent slots for contexts within this function because
+                // we can always load that context out of the lambda object which is passed as
+                // the first argument.
+                let range = &self.context_classes[context_id.0 + 1..self.start_context_id];
+                for context_class in range {
                     context_class.require_parent_slot();
                 }
+                // This lambda needs the caller context.
+                assert!(self.is_lambda);
+                self.needs_context_slot_in_lambda_object = true;
                 ident_type
             }
 
@@ -168,6 +172,19 @@ impl<'a> TypeCheck<'a> {
         if self.vars.has_context_vars() {
             self.setup_context_class(lazy_context_data.clone());
         }
+
+        let needs_context_slot_in_lambda_object =
+            self.needs_context_slot_in_lambda_object || lazy_context_data.has_parent_slot();
+
+        if needs_context_slot_in_lambda_object {
+            assert!(self.is_lambda);
+        }
+
+        assert!(self
+            .analysis
+            .needs_context_slot_in_lambda_object
+            .set(needs_context_slot_in_lambda_object)
+            .is_ok());
 
         assert!(self
             .analysis

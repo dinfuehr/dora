@@ -960,14 +960,14 @@ impl<'a> AstBytecodeGen<'a> {
 
         let mut outer_context_reg: Option<Register> = None;
 
-        if lambda_analysis.needs_parent_context() {
+        if lambda_analysis.needs_context_slot_in_lambda_object() {
             if let Some(context_register) = self.last_context_register() {
                 self.builder.emit_push_register(context_register.clone());
             } else {
                 // This lambda doesn't have a context object on its own, simply
                 // pass down the parent context (the context in the lambda object).
                 assert!(self.is_lambda);
-                assert!(self.analysis.needs_parent_context());
+                assert!(self.analysis.needs_context_slot_in_lambda_object());
                 outer_context_reg = Some(self.alloc_temp(BytecodeType::Ptr));
                 let lambda_cls_id = self.sa.known.classes.lambda();
                 let idx = self.builder.add_const_field_types(
