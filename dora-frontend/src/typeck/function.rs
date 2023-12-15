@@ -139,7 +139,8 @@ impl<'a> TypeCheck<'a> {
                 // There is no need for parent slots for contexts within this function because
                 // we can always load that context out of the lambda object which is passed as
                 // the first argument.
-                let range = &self.context_classes[context_id.0 + 1..self.start_context_id];
+                let indices = context_id.0 + 1..self.start_context_id;
+                let range = &self.context_classes[indices];
                 for context_class in range {
                     context_class.require_parent_slot();
                 }
