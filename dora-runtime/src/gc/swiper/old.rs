@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use parking_lot::{Mutex, MutexGuard};
 
 use crate::gc::fill_region;
@@ -6,7 +8,7 @@ use crate::gc::swiper::controller::SharedHeapConfig;
 use crate::gc::swiper::crossing::CrossingMap;
 use crate::gc::swiper::CommonOldGen;
 use crate::gc::swiper::PAGE_SIZE;
-use crate::gc::{Address, GenerationAllocator, Region};
+use crate::gc::{Address, GenerationAllocator, Region, K};
 use crate::os::{self, MemoryPermission};
 use crate::vm::get_vm;
 
@@ -68,7 +70,7 @@ impl OldGen {
         config.grow_old(PAGE_SIZE)
     }
 
-    fn add_page(&self, page_start: Address) -> Option<Region> {
+    fn add_page(&self, page_start: Address) -> Option<Page> {
         assert!(page_start.is_page_aligned());
         let page_end = page_start.offset(PAGE_SIZE);
 
@@ -77,7 +79,7 @@ impl OldGen {
         }
 
         os::commit_at(page_start, PAGE_SIZE, MemoryPermission::ReadWrite);
-        Some(Region::new(page_start, page_end))
+        Some(Page::new(page_start))
     }
 }
 
@@ -108,9 +110,14 @@ impl GenerationAllocator for OldGen {
             return None;
         }
 
-        if let Some(page_boundaries) = self.add_page(protected.current_limit) {
-            protected.top = page_boundaries.start();
-            protected.current_limit = page_boundaries.end();
+        if let Some(page) = self.add_page(protected.current_limit) {
+            protected.pages.push(page);
+
+            fill_region(get_vm(), page.start(), page.object_area_start());
+            self.update_crossing(page.start(), page.object_area_start());
+
+            protected.top = page.object_area_start();
+            protected.current_limit = page.end();
             protected.raw_alloc(size)
         } else {
             None
@@ -127,7 +134,7 @@ pub struct OldGenProtected {
     pub size: usize,
     pub top: Address,
     pub current_limit: Address,
-    pub pages: Vec<Address>,
+    pub pages: Vec<Page>,
 }
 
 impl OldGenProtected {
@@ -149,7 +156,10 @@ impl OldGenProtected {
         Region::new(self.total.start(), self.top)
     }
 
-    pub fn commit_single_region(&mut self, top: Address, old_top: Address) {
+    pub fn commit_pages(&mut self, pages: Vec<Page>, top: Address, old_top: Address) {
+        let previous_pages = std::mem::replace(&mut self.pages, pages);
+        let _previous_page_set: HashSet<Page> = HashSet::from_iter(previous_pages.into_iter());
+
         let top_aligned = top.align_region_up();
         let old_top_aligned = old_top.align_region_up();
 
@@ -178,5 +188,34 @@ impl OldGenProtected {
         } else {
             None
         }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Page(Address);
+
+impl Page {
+    pub fn new(start: Address) -> Page {
+        Page(start)
+    }
+
+    pub fn start(&self) -> Address {
+        self.0
+    }
+
+    pub fn end(&self) -> Address {
+        self.start().offset(PAGE_SIZE)
+    }
+
+    pub fn size(&self) -> usize {
+        PAGE_SIZE
+    }
+
+    pub fn object_area_start(&self) -> Address {
+        self.start().offset(64 * K)
+    }
+
+    pub fn object_area_end(&self) -> Address {
+        self.end()
     }
 }

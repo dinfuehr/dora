@@ -7,10 +7,10 @@ use crate::gc::swiper::card::CardTable;
 use crate::gc::swiper::controller::FullCollectorPhases;
 use crate::gc::swiper::crossing::CrossingMap;
 use crate::gc::swiper::large::LargeSpace;
-use crate::gc::swiper::old::{OldGen, OldGenProtected};
+use crate::gc::swiper::old::{OldGen, OldGenProtected, Page};
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{forward_full, walk_region, walk_region_and_skip_garbage};
-use crate::gc::{iterate_strong_roots, iterate_weak_roots, marking, Slot};
+use crate::gc::{fill_region, iterate_strong_roots, iterate_weak_roots, marking, Slot};
 use crate::gc::{Address, GcReason, Region};
 use crate::object::Obj;
 use crate::stdlib;
@@ -31,9 +31,10 @@ pub struct FullCollector<'a> {
     crossing_map: &'a CrossingMap,
     readonly_space: &'a Space,
 
-    old_top: Address,
-    old_limit: Address,
-    old_committed: Region,
+    top: Address,
+    current_limit: Address,
+    pages: Vec<Page>,
+
     init_old_top: Address,
 
     reason: GcReason,
@@ -68,6 +69,7 @@ impl<'a> FullCollector<'a> {
             young,
             old,
             old_protected: old.protected(),
+            pages: Vec::new(),
             large_space,
             rootset,
             threads,
@@ -75,9 +77,8 @@ impl<'a> FullCollector<'a> {
             crossing_map,
             readonly_space,
 
-            old_top: old_total.start,
-            old_limit: old_total.end,
-            old_committed: Default::default(),
+            top: old_total.start(),
+            current_limit: old_total.start(),
             init_old_top: Address::null(),
 
             reason,
@@ -179,7 +180,7 @@ impl<'a> FullCollector<'a> {
         self.young.clear();
         self.young.protect_from();
 
-        self.old_protected.update_single_region(self.old_top);
+        self.old_protected.update_single_region(self.top);
     }
 
     fn mark_live(&mut self) {
@@ -201,17 +202,14 @@ impl<'a> FullCollector<'a> {
             stdlib::trap(Trap::OOM.int());
         }
 
+        let pages = std::mem::replace(&mut self.pages, Vec::new());
         self.old_protected
-            .commit_single_region(self.old_top, self.init_old_top);
-        self.old_committed = Region::new(self.old.total_start(), self.old_top);
+            .commit_pages(pages, self.top, self.init_old_top);
     }
 
     fn fits_into_heap(&mut self) -> bool {
         let young_size = self.young.committed_size();
-        let old_size = self
-            .old_top
-            .align_page()
-            .offset_from(self.old.total_start());
+        let old_size = self.top.align_page().offset_from(self.old.total_start());
         let large_size = self.large_space.committed_size();
 
         (young_size + old_size + large_size) <= self.max_heap_size
@@ -265,16 +263,22 @@ impl<'a> FullCollector<'a> {
 
     fn relocate(&mut self) {
         self.crossing_map.set_first_object(0.into(), 0);
+        let mut previous_end = self.old.total_start();
 
         self.walk_old_and_young(|full, object, address, object_size| {
             if object.header().is_marked_non_atomic() {
-                // get new location
+                // find new location
                 let dest = object.header().fwdptr_non_atomic();
-                debug_assert!(full.old_committed.contains(dest));
+
+                if previous_end != dest {
+                    fill_region(self.vm, previous_end, dest);
+                    full.old.update_crossing(previous_end, dest);
+                }
+
+                previous_end = dest.offset(object_size);
 
                 // determine location after relocated object
                 let next_dest = dest.offset(object_size);
-                debug_assert!(full.old_committed.valid_top(next_dest));
 
                 if address != dest {
                     object.copy_to(dest, object_size);
@@ -358,15 +362,29 @@ impl<'a> FullCollector<'a> {
     }
 
     fn allocate(&mut self, object_size: usize) -> Address {
-        let addr = self.old_top;
-        let next = self.old_top.offset(object_size);
+        let addr = self.top;
+        let next = self.top.offset(object_size);
 
-        if next <= self.old_limit {
-            self.old_top = next;
+        if next <= self.current_limit {
+            self.top = next;
             return addr;
         }
 
-        panic!("FAIL: Not enough space for objects in old generation.");
+        let page = Page::new(self.current_limit);
+
+        if page.end() <= self.old.total().end() {
+            self.pages.push(page);
+
+            self.top = page.object_area_start();
+            self.current_limit = page.object_area_end();
+
+            let addr = self.top;
+            self.top = self.top.offset(object_size);
+
+            addr
+        } else {
+            panic!("FAIL: Not enough space for objects in old generation.");
+        }
     }
 }
 
