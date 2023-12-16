@@ -157,6 +157,9 @@ impl<'a> FullCollector<'a> {
 
         self.relocate();
 
+        self.old_protected
+            .update_single_region(self.top, self.current_limit);
+
         if stats {
             let duration = timer.stop();
             self.phases.relocate = duration;
@@ -179,8 +182,6 @@ impl<'a> FullCollector<'a> {
 
         self.young.clear();
         self.young.protect_from();
-
-        self.old_protected.update_single_region(self.top);
     }
 
     fn mark_live(&mut self) {
@@ -204,7 +205,7 @@ impl<'a> FullCollector<'a> {
 
         let pages = std::mem::replace(&mut self.pages, Vec::new());
         self.old_protected
-            .commit_pages(pages, self.top, self.init_old_top);
+            .commit_pages(pages, self.top, self.current_limit, self.init_old_top);
     }
 
     fn fits_into_heap(&mut self) -> bool {
@@ -216,13 +217,16 @@ impl<'a> FullCollector<'a> {
     }
 
     fn update_references(&mut self) {
-        self.walk_old_and_young(|full, object, _address, _| {
-            if object.header().is_marked_non_atomic() {
-                object.visit_reference_fields(|field| {
-                    full.forward_reference(field);
-                });
-            }
-        });
+        self.walk_old_and_young(
+            self.old_protected.active_region(),
+            |full, object, _address, _| {
+                if object.header().is_marked_non_atomic() {
+                    object.visit_reference_fields(|field| {
+                        full.forward_reference(field);
+                    });
+                }
+            },
+        );
 
         iterate_strong_roots(self.vm, self.threads, |slot| {
             self.forward_reference(slot);
@@ -265,7 +269,9 @@ impl<'a> FullCollector<'a> {
         self.crossing_map.set_first_object(0.into(), 0);
         let mut previous_end = self.old.total_start();
 
-        self.walk_old_and_young(|full, object, address, object_size| {
+        let old_region = Region::new(self.old.total_start(), self.init_old_top);
+
+        self.walk_old_and_young(old_region, |full, object, address, object_size| {
             if object.header().is_marked_non_atomic() {
                 // find new location
                 let dest = object.header().fwdptr_non_atomic();
@@ -317,11 +323,11 @@ impl<'a> FullCollector<'a> {
         }
     }
 
-    fn walk_old_and_young<F>(&mut self, mut fct: F)
+    fn walk_old_and_young<F>(&mut self, old_region: Region, mut fct: F)
     where
         F: FnMut(&mut FullCollector, &mut Obj, Address, usize),
     {
-        walk_region(self.old_protected.active_region(), |obj, addr, size| {
+        walk_region(old_region, |obj, addr, size| {
             fct(self, obj, addr, size);
         });
 

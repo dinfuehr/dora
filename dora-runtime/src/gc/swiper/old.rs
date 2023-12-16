@@ -156,7 +156,13 @@ impl OldGenProtected {
         Region::new(self.total.start(), self.top)
     }
 
-    pub fn commit_pages(&mut self, pages: Vec<Page>, top: Address, old_top: Address) {
+    pub fn commit_pages(
+        &mut self,
+        pages: Vec<Page>,
+        top: Address,
+        _current_limit: Address,
+        old_top: Address,
+    ) {
         let previous_pages = std::mem::replace(&mut self.pages, pages);
         let _previous_page_set: HashSet<Page> = HashSet::from_iter(previous_pages.into_iter());
 
@@ -169,9 +175,9 @@ impl OldGenProtected {
         }
     }
 
-    pub fn update_single_region(&mut self, top: Address) {
+    pub fn update_single_region(&mut self, top: Address, current_limit: Address) {
         self.top = top;
-        self.current_limit = top.align_region_up();
+        self.current_limit = current_limit;
     }
 
     pub fn active_size(&self) -> usize {
@@ -209,6 +215,10 @@ impl Page {
 
     pub fn size(&self) -> usize {
         PAGE_SIZE
+    }
+
+    pub fn object_area(&self) -> Region {
+        Region::new(self.object_area_start(), self.object_area_end())
     }
 
     pub fn object_area_start(&self) -> Address {
