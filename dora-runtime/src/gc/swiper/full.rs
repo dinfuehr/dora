@@ -157,8 +157,9 @@ impl<'a> FullCollector<'a> {
 
         self.relocate();
 
+        let pages = std::mem::replace(&mut self.pages, Vec::new());
         self.old_protected
-            .update_single_region(self.top, self.current_limit);
+            .reset_after_gc(pages, self.top, self.current_limit);
 
         if stats {
             let duration = timer.stop();
@@ -203,9 +204,12 @@ impl<'a> FullCollector<'a> {
             stdlib::trap(Trap::OOM.int());
         }
 
-        let pages = std::mem::replace(&mut self.pages, Vec::new());
-        self.old_protected
-            .commit_pages(pages, self.top, self.current_limit, self.init_old_top);
+        self.old_protected.commit_pages(
+            &self.pages,
+            self.top,
+            self.current_limit,
+            self.init_old_top,
+        );
     }
 
     fn fits_into_heap(&mut self) -> bool {

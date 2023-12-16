@@ -158,13 +158,18 @@ impl OldGenProtected {
 
     pub fn commit_pages(
         &mut self,
-        pages: Vec<Page>,
+        pages: &[Page],
         top: Address,
         _current_limit: Address,
         old_top: Address,
     ) {
-        let previous_pages = std::mem::replace(&mut self.pages, pages);
-        let _previous_page_set: HashSet<Page> = HashSet::from_iter(previous_pages.into_iter());
+        let previous_page_set: HashSet<Page> = HashSet::from_iter(self.pages.iter().cloned());
+
+        for page in pages {
+            if !previous_page_set.contains(page) {
+                os::commit_at(page.start(), page.size(), MemoryPermission::ReadWrite);
+            }
+        }
 
         let top_aligned = top.align_region_up();
         let old_top_aligned = old_top.align_region_up();
@@ -175,7 +180,16 @@ impl OldGenProtected {
         }
     }
 
-    pub fn update_single_region(&mut self, top: Address, current_limit: Address) {
+    pub fn reset_after_gc(&mut self, pages: Vec<Page>, top: Address, current_limit: Address) {
+        let previous_pages = std::mem::replace(&mut self.pages, pages);
+        let page_set: HashSet<Page> = HashSet::from_iter(self.pages.iter().cloned());
+
+        for page in previous_pages {
+            if !page_set.contains(&page) {
+                os::discard(page.start(), page.size());
+            }
+        }
+
         self.top = top;
         self.current_limit = current_limit;
     }
@@ -203,6 +217,10 @@ pub struct Page(Address);
 impl Page {
     pub fn new(start: Address) -> Page {
         Page(start)
+    }
+
+    pub fn area(&self) -> Region {
+        Region::new(self.start(), self.end())
     }
 
     pub fn start(&self) -> Address {
