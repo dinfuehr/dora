@@ -281,8 +281,17 @@ impl<'a> FullCollector<'a> {
                 let dest = object.header().fwdptr_non_atomic();
 
                 if previous_end != dest {
-                    fill_region(self.vm, previous_end, dest);
-                    full.old.update_crossing(previous_end, dest);
+                    let page = Page::from_address(dest);
+                    assert_eq!(dest, page.object_area_start());
+
+                    // Fill tail of current page.
+                    fill_region(self.vm, previous_end, page.start());
+                    full.old.update_crossing(previous_end, page.start());
+
+                    // Now fill header of new page.
+                    fill_region(self.vm, page.start(), page.object_area_start());
+                    full.old
+                        .update_crossing(page.start(), page.object_area_start());
                 }
 
                 previous_end = dest.offset(object_size);

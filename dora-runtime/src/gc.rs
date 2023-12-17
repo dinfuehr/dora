@@ -598,6 +598,15 @@ pub fn fill_region(vm: &VM, start: Address, end: Address) {
             *start.to_mut_ptr::<usize>() = Address::from_ptr(vtable).to_usize();
             *start.offset(mem::ptr_width_usize()).to_mut_ptr::<usize>() = 0;
             *start.offset(Header::size() as usize).to_mut_ptr::<usize>() = length;
+
+            if cfg!(debug) {
+                for idx in 0..length {
+                    *start
+                        .offset(Header::size() as usize)
+                        .add_ptr(idx + 1)
+                        .to_mut_ptr::<usize>() = 0xBADDCAFE;
+                }
+            }
         }
     }
 }

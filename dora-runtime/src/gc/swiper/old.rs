@@ -113,6 +113,7 @@ impl GenerationAllocator for OldGen {
         if let Some(page) = self.add_page(protected.current_limit) {
             protected.pages.push(page);
 
+            // Make page header iterable.
             fill_region(get_vm(), page.start(), page.object_area_start());
             self.update_crossing(page.start(), page.object_area_start());
 
