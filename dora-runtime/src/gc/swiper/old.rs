@@ -117,8 +117,11 @@ impl GenerationAllocator for OldGen {
             self.update_crossing(page.start(), page.object_area_start());
 
             protected.top = page.object_area_start();
-            protected.current_limit = page.end();
-            protected.raw_alloc(size)
+            protected.current_limit = page.object_area_end();
+            let result = protected.raw_alloc(size);
+            assert!(result.is_some());
+
+            result
         } else {
             None
         }
@@ -217,6 +220,11 @@ pub struct Page(Address);
 impl Page {
     pub fn new(start: Address) -> Page {
         Page(start)
+    }
+
+    pub fn from_address(value: Address) -> Page {
+        let page_start = value.to_usize() & !(PAGE_SIZE - 1);
+        Page::new(page_start.into())
     }
 
     pub fn area(&self) -> Region {

@@ -301,6 +301,9 @@ impl<'a> FullCollector<'a> {
                 full.old.update_crossing(dest, next_dest);
             }
         });
+
+        fill_region(self.vm, self.top, self.current_limit);
+        self.old.update_crossing(self.top, self.current_limit);
     }
 
     fn reset_cards(&mut self) {

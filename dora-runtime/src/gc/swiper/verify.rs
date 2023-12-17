@@ -6,7 +6,7 @@ use crate::gc::space::Space;
 use crate::gc::swiper::card::{CardEntry, CardTable};
 use crate::gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use crate::gc::swiper::large::LargeSpace;
-use crate::gc::swiper::old::{OldGen, OldGenProtected};
+use crate::gc::swiper::old::{OldGen, OldGenProtected, Page};
 use crate::gc::swiper::on_different_cards;
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::CARD_SIZE;
@@ -214,7 +214,15 @@ impl<'a> Verifier<'a> {
 
             self.verify_object(object, curr, region, name);
 
-            curr = curr.offset(object.size());
+            let object_end = curr.offset(object.size());
+
+            if self.in_old {
+                // Object is not supposed to cross page boundary.
+                let page = Page::from_address(curr);
+                assert!(object_end <= page.end());
+            }
+
+            curr = object_end;
         }
 
         assert!(curr == region.end, "object doesn't end at region end");
