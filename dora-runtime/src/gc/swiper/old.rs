@@ -100,6 +100,8 @@ impl GenerationAllocator for OldGen {
         let mut protected = self.protected.lock();
 
         if let Some(address) = protected.raw_alloc(size) {
+            fill_region(get_vm(), protected.top, protected.current_limit);
+            self.update_crossing(protected.top, protected.current_limit);
             return Some(address);
         }
 
@@ -121,6 +123,10 @@ impl GenerationAllocator for OldGen {
             protected.current_limit = page.object_area_end();
             let result = protected.raw_alloc(size);
             assert!(result.is_some());
+
+            // Make rest of page iterable.
+            fill_region(get_vm(), protected.top, protected.current_limit);
+            self.update_crossing(protected.top, protected.current_limit);
 
             result
         } else {

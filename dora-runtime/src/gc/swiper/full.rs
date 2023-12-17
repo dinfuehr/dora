@@ -9,7 +9,7 @@ use crate::gc::swiper::crossing::CrossingMap;
 use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::old::{OldGen, OldGenProtected, Page};
 use crate::gc::swiper::young::YoungGen;
-use crate::gc::swiper::{forward_full, walk_region, walk_region_and_skip_garbage};
+use crate::gc::swiper::{forward_full, walk_region};
 use crate::gc::{fill_region, iterate_strong_roots, iterate_weak_roots, marking, Slot};
 use crate::gc::{Address, GcReason, Region};
 use crate::object::Obj;
@@ -194,9 +194,6 @@ impl<'a> FullCollector<'a> {
             if object.header().is_marked_non_atomic() {
                 let fwd = full.allocate(object_size);
                 object.header_mut().set_fwdptr_non_atomic(fwd);
-                true
-            } else {
-                false
             }
         });
 
@@ -362,38 +359,29 @@ impl<'a> FullCollector<'a> {
 
     fn walk_old_and_young_and_skip_garbage<F>(&mut self, mut fct: F)
     where
-        F: FnMut(&mut FullCollector, &mut Obj, Address, usize) -> bool,
+        F: FnMut(&mut FullCollector, &mut Obj, Address, usize),
     {
-        let vm = self.vm;
-
         let pages = self.old_protected.pages.clone();
         let mut last = self.old.total_start();
 
         for page in pages {
             assert_eq!(last, page.start());
-
-            let region = if page.end() == self.old_protected.current_limit {
-                Region::new(page.start(), self.old_protected.top)
-            } else {
-                page.area()
-            };
-
-            walk_region_and_skip_garbage(vm, region, |obj, addr, size| fct(self, obj, addr, size));
-            last = region.end();
+            walk_region(page.area(), |obj, addr, size| {
+                fct(self, obj, addr, size);
+            });
+            last = page.end();
         }
-
-        assert_eq!(self.old_protected.active_region().end(), last);
 
         // This is a bit strange at first: from-space might not be empty,
         // after too many survivors in the minor GC of the young gen.
         let used_region = self.young.from_active();
-        walk_region_and_skip_garbage(vm, used_region, |obj, addr, size| {
-            fct(self, obj, addr, size)
+        walk_region(used_region, |obj, addr, size| {
+            fct(self, obj, addr, size);
         });
 
         let used_region = self.young.to_active();
-        walk_region_and_skip_garbage(vm, used_region, |obj, addr, size| {
-            fct(self, obj, addr, size)
+        walk_region(used_region, |obj, addr, size| {
+            fct(self, obj, addr, size);
         });
     }
 

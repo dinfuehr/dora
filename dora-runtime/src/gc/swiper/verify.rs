@@ -160,15 +160,8 @@ impl<'a> Verifier<'a> {
 
         for page in pages {
             assert_eq!(last, page.start());
-
-            let region = if page.end() == self.old_protected.current_limit {
-                Region::new(page.start(), self.old_protected.top)
-            } else {
-                page.area()
-            };
-
-            self.verify_objects(region, "old gen");
-            last = region.end();
+            self.verify_objects(page.area(), "old gen");
+            last = page.end();
         }
 
         self.in_old = false;

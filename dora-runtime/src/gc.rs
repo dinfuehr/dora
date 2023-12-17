@@ -599,7 +599,7 @@ pub fn fill_region(vm: &VM, start: Address, end: Address) {
             *start.offset(mem::ptr_width_usize()).to_mut_ptr::<usize>() = 0;
             *start.offset(Header::size() as usize).to_mut_ptr::<usize>() = length;
 
-            if cfg!(debug) {
+            if cfg!(debug_assertions) {
                 for idx in 0..length {
                     *start
                         .offset(Header::size() as usize)
