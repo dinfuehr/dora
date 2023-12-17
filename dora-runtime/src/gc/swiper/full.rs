@@ -357,9 +357,23 @@ impl<'a> FullCollector<'a> {
     {
         let vm = self.vm;
 
-        walk_region_and_skip_garbage(vm, self.old_protected.active_region(), |obj, addr, size| {
-            fct(self, obj, addr, size)
-        });
+        let pages = self.old_protected.pages.clone();
+        let mut last = self.old.total_start();
+
+        for page in pages {
+            assert_eq!(last, page.start());
+
+            let region = if page.end() == self.old_protected.current_limit {
+                Region::new(page.start(), self.old_protected.top)
+            } else {
+                page.area()
+            };
+
+            walk_region_and_skip_garbage(vm, region, |obj, addr, size| fct(self, obj, addr, size));
+            last = region.end();
+        }
+
+        assert_eq!(self.old_protected.active_region().end(), last);
 
         // This is a bit strange at first: from-space might not be empty,
         // after too many survivors in the minor GC of the young gen.
