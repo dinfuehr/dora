@@ -162,10 +162,6 @@ impl OldGenProtected {
         self.total.start <= addr && addr < self.top
     }
 
-    pub fn active_region(&self) -> Region {
-        Region::new(self.total.start(), self.top)
-    }
-
     pub fn commit_pages(&mut self, pages: &[Page]) {
         let previous_page_set: HashSet<Page> = HashSet::from_iter(self.pages.iter().cloned());
 

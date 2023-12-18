@@ -9,7 +9,7 @@ use crate::gc::swiper::card::{CardEntry, CardTable};
 use crate::gc::swiper::controller::{MinorCollectorPhases, SharedHeapConfig};
 use crate::gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use crate::gc::swiper::large::{LargeAlloc, LargeSpace};
-use crate::gc::swiper::old::OldGen;
+use crate::gc::swiper::old::{OldGen, Page};
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{forward_minor, CardIdx, CARD_SIZE, LARGE_OBJECT_SIZE};
 use crate::gc::tlab::{TLAB_OBJECT_SIZE, TLAB_SIZE};
@@ -39,7 +39,6 @@ pub struct MinorCollector<'a> {
 
     young_top: Address,
     young_limit: Address,
-    old_active_region: Option<Region>,
 
     promotion_failed: bool,
     promoted_size: usize,
@@ -84,7 +83,6 @@ impl<'a> MinorCollector<'a> {
 
             young_top: Address::null(),
             young_limit: Address::null(),
-            old_active_region: None,
 
             promotion_failed: false,
             promoted_size: 0,
@@ -110,8 +108,6 @@ impl<'a> MinorCollector<'a> {
     }
 
     pub fn collect(&mut self) -> bool {
-        self.old_active_region = Some(self.old.protected().active_region());
-
         self.young.unprotect_from();
         self.young.swap_semi();
 
@@ -188,7 +184,6 @@ impl<'a> MinorCollector<'a> {
         let young = self.young;
         let old = self.old;
         let rootset = self.rootset;
-        let old_active_region = self.old_active_region.clone().expect("missing region");
         let barrier = Barrier::new(self.number_workers);
         let barrier = &barrier;
 
@@ -201,9 +196,12 @@ impl<'a> MinorCollector<'a> {
         let next_root_stride = AtomicUsize::new(0);
         let next_root_stride = &next_root_stride;
 
-        let next_card_stride = AtomicUsize::new(0);
-        let next_card_stride = &next_card_stride;
         let strides = 4 * self.number_workers;
+
+        let next_old_page_idx = AtomicUsize::new(0);
+        let next_old_page_idx = &next_old_page_idx;
+        let old_pages = self.old.protected().pages.clone();
+        let old_pages = &old_pages;
 
         let head = self.large.head();
         let next_large = Mutex::new(head);
@@ -240,15 +238,16 @@ impl<'a> MinorCollector<'a> {
                         card_table,
                         crossing_map,
                         rootset,
-                        old_active_region,
                         barrier,
 
                         from_active: young.from_active(),
 
-                        next_card_stride,
                         next_root_stride,
                         strides,
                         next_large,
+
+                        next_old_page_idx,
+                        old_pages,
 
                         promoted_size: 0,
                         traced: 0,
@@ -392,13 +391,14 @@ struct CopyTask<'a> {
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
     rootset: &'a [Slot],
-    old_active_region: Region,
     barrier: &'a Barrier,
 
     next_root_stride: &'a AtomicUsize,
-    next_card_stride: &'a AtomicUsize,
     strides: usize,
     next_large: &'a Mutex<Address>,
+
+    old_pages: &'a [Page],
+    next_old_page_idx: &'a AtomicUsize,
 
     young_region: Region,
     from_active: Region,
@@ -474,29 +474,21 @@ impl<'a> CopyTask<'a> {
     }
 
     fn visit_dirty_cards_in_old(&mut self) {
-        while let Some(stride) = self.next_card_stride() {
-            self.visit_dirty_cards_in_stride(stride);
+        while let Some(page) = self.next_old_page() {
+            self.visit_dirty_cards_in_old_page(page);
         }
     }
 
-    fn next_card_stride(&mut self) -> Option<usize> {
-        let stride = self.next_card_stride.fetch_add(1, Ordering::SeqCst);
-
-        if stride < self.strides {
-            Some(stride)
-        } else {
-            None
-        }
+    fn next_old_page(&mut self) -> Option<Page> {
+        let page_idx = self.next_old_page_idx.fetch_add(1, Ordering::Relaxed);
+        self.old_pages.get(page_idx).cloned()
     }
 
-    fn visit_dirty_cards_in_stride(&mut self, stride: usize) {
-        let region = self.old_active_region.clone();
+    fn visit_dirty_cards_in_old_page(&mut self, page: Page) {
+        let region = page.area();
         let (start_card_idx, end_card_idx) = self.card_table.card_indices(region.start, region.end);
-        let cards_in_stride = (start_card_idx..end_card_idx)
-            .skip(stride)
-            .step_by(self.strides);
 
-        for card_idx in cards_in_stride {
+        for card_idx in start_card_idx..end_card_idx {
             let card_idx: CardIdx = card_idx.into();
 
             if self.card_table.get(card_idx).is_dirty() {
