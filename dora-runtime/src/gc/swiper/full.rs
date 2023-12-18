@@ -183,6 +183,21 @@ impl<'a> FullCollector<'a> {
 
     fn mark_live(&mut self) {
         marking::start(self.rootset, self.heap, self.readonly_space.total());
+
+        iterate_weak_roots(self.vm, |object_address| {
+            if self.heap.contains(object_address) {
+                let obj = object_address.to_mut_obj();
+
+                if obj.header().is_marked_non_atomic() {
+                    Some(object_address)
+                } else {
+                    None
+                }
+            } else {
+                assert!(self.readonly_space.contains(object_address));
+                Some(object_address)
+            }
+        });
     }
 
     fn compute_forward(&mut self) {
@@ -221,9 +236,9 @@ impl<'a> FullCollector<'a> {
             self.forward_reference(slot);
         });
 
-        iterate_weak_roots(self.vm, |current_address| {
+        iterate_weak_roots(self.vm, |object_address| {
             forward_full(
-                current_address,
+                object_address,
                 self.heap,
                 self.readonly_space.total(),
                 self.large_space.total(),
