@@ -48,6 +48,7 @@ pub const CARD_REFS: usize = CARD_SIZE / size_of::<usize>();
 
 pub const LARGE_OBJECT_SIZE: usize = 64 * K;
 pub const PAGE_SIZE: usize = 128 * K;
+pub const PAGE_HEADER_SIZE: usize = 64 * K;
 
 pub struct Swiper {
     // contiguous memory for young/old generation and large space

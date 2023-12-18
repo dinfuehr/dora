@@ -271,10 +271,7 @@ impl<'a> FullCollector<'a> {
                     fill_region(self.vm, previous_end, page.start());
                     full.old.update_crossing(previous_end, page.start());
 
-                    // Now fill header of new page.
-                    fill_region(self.vm, page.start(), page.object_area_start());
-                    full.old
-                        .update_crossing(page.start(), page.object_area_start());
+                    page.initialize_header();
                 }
 
                 previous_end = dest.offset(object_size);
@@ -331,7 +328,7 @@ impl<'a> FullCollector<'a> {
 
         for page in pages {
             assert_eq!(last, page.start());
-            walk_region(page.area(), |obj, addr, size| {
+            walk_region(page.object_area(), |obj, addr, size| {
                 fct(self, obj, addr, size);
             });
             last = page.end();
@@ -384,7 +381,7 @@ pub fn verify_marking(
     heap: Region,
 ) {
     for page in &old_protected.pages {
-        verify_marking_region(page.area(), heap);
+        verify_marking_region(page.object_area(), heap);
     }
 
     let from = young.from_active();

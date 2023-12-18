@@ -160,7 +160,7 @@ impl<'a> Verifier<'a> {
 
         for page in pages {
             assert_eq!(last, page.start());
-            self.verify_objects(page.area(), "old gen");
+            self.verify_objects(page.object_area(), "old gen");
             last = page.end();
         }
 

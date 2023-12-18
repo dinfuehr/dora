@@ -7,8 +7,9 @@ use crate::gc::swiper::card::CardTable;
 use crate::gc::swiper::controller::SharedHeapConfig;
 use crate::gc::swiper::crossing::CrossingMap;
 use crate::gc::swiper::CommonOldGen;
-use crate::gc::swiper::PAGE_SIZE;
-use crate::gc::{Address, GenerationAllocator, Region, K};
+use crate::gc::swiper::{PAGE_HEADER_SIZE, PAGE_SIZE};
+use crate::gc::{Address, GenerationAllocator, Region};
+use crate::mem::ptr_width_usize;
 use crate::os::{self, MemoryPermission};
 use crate::vm::get_vm;
 
@@ -115,9 +116,7 @@ impl GenerationAllocator for OldGen {
         if let Some(page) = self.add_page(protected.current_limit) {
             protected.pages.push(page);
 
-            // Make page header iterable.
-            fill_region(get_vm(), page.start(), page.object_area_start());
-            self.update_crossing(page.start(), page.object_area_start());
+            page.initialize_header();
 
             protected.top = page.object_area_start();
             protected.current_limit = page.object_area_end();
@@ -216,6 +215,17 @@ impl Page {
         Page::new(page_start.into())
     }
 
+    pub fn initialize_header(&self) {
+        unsafe {
+            let header = std::slice::from_raw_parts_mut(
+                self.start().to_mut_ptr::<usize>(),
+                PAGE_HEADER_SIZE / ptr_width_usize(),
+            );
+
+            header.fill(0xDEAD2BAD);
+        }
+    }
+
     pub fn area(&self) -> Region {
         Region::new(self.start(), self.end())
     }
@@ -237,7 +247,7 @@ impl Page {
     }
 
     pub fn object_area_start(&self) -> Address {
-        self.start().offset(64 * K)
+        self.start().offset(PAGE_HEADER_SIZE)
     }
 
     pub fn object_area_end(&self) -> Address {

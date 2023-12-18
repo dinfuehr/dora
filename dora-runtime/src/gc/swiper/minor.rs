@@ -485,7 +485,7 @@ impl<'a> CopyTask<'a> {
     }
 
     fn visit_dirty_cards_in_old_page(&mut self, page: Page) {
-        let region = page.area();
+        let region = page.object_area();
         let (start_card_idx, end_card_idx) = self.card_table.card_indices(region.start, region.end);
 
         for card_idx in start_card_idx..end_card_idx {
