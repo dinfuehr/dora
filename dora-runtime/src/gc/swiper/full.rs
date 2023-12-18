@@ -35,8 +35,6 @@ pub struct FullCollector<'a> {
     current_limit: Address,
     pages: Vec<Page>,
 
-    init_old_top: Address,
-
     reason: GcReason,
 
     min_heap_size: usize,
@@ -79,7 +77,6 @@ impl<'a> FullCollector<'a> {
 
             top: old_total.start(),
             current_limit: old_total.start(),
-            init_old_top: Address::null(),
 
             reason,
 
@@ -97,7 +94,6 @@ impl<'a> FullCollector<'a> {
     pub fn collect(&mut self) {
         let dev_verbose = self.vm.flags.gc_dev_verbose;
         let stats = self.vm.flags.gc_stats;
-        self.init_old_top = self.old_protected.top;
 
         let mut timer = Timer::new(stats);
 
@@ -157,10 +153,6 @@ impl<'a> FullCollector<'a> {
 
         self.relocate();
 
-        let pages = std::mem::replace(&mut self.pages, Vec::new());
-        self.old_protected
-            .reset_after_gc(pages, self.top, self.current_limit);
-
         if stats {
             let duration = timer.stop();
             self.phases.relocate = duration;
@@ -183,6 +175,10 @@ impl<'a> FullCollector<'a> {
 
         self.young.clear();
         self.young.protect_from();
+
+        let pages = std::mem::replace(&mut self.pages, Vec::new());
+        self.old_protected
+            .reset_after_gc(pages, self.top, self.current_limit);
     }
 
     fn mark_live(&mut self) {
@@ -190,7 +186,7 @@ impl<'a> FullCollector<'a> {
     }
 
     fn compute_forward(&mut self) {
-        self.walk_old_and_young_and_skip_garbage(|full, object, _address, object_size| {
+        self.walk_old_and_young(|full, object, _address, object_size| {
             if object.header().is_marked_non_atomic() {
                 let fwd = full.allocate(object_size);
                 object.header_mut().set_fwdptr_non_atomic(fwd);
@@ -201,12 +197,7 @@ impl<'a> FullCollector<'a> {
             stdlib::trap(Trap::OOM.int());
         }
 
-        self.old_protected.commit_pages(
-            &self.pages,
-            self.top,
-            self.current_limit,
-            self.init_old_top,
-        );
+        self.old_protected.commit_pages(&self.pages);
     }
 
     fn fits_into_heap(&mut self) -> bool {
@@ -218,16 +209,13 @@ impl<'a> FullCollector<'a> {
     }
 
     fn update_references(&mut self) {
-        self.walk_old_and_young(
-            self.old_protected.active_region(),
-            |full, object, _address, _| {
-                if object.header().is_marked_non_atomic() {
-                    object.visit_reference_fields(|field| {
-                        full.forward_reference(field);
-                    });
-                }
-            },
-        );
+        self.walk_old_and_young(|full, object, _address, _| {
+            if object.header().is_marked_non_atomic() {
+                object.visit_reference_fields(|field| {
+                    full.forward_reference(field);
+                });
+            }
+        });
 
         iterate_strong_roots(self.vm, self.threads, |slot| {
             self.forward_reference(slot);
@@ -270,9 +258,7 @@ impl<'a> FullCollector<'a> {
         self.crossing_map.set_first_object(0.into(), 0);
         let mut previous_end = self.old.total_start();
 
-        let old_region = Region::new(self.old.total_start(), self.init_old_top);
-
-        self.walk_old_and_young(old_region, |full, object, address, object_size| {
+        self.walk_old_and_young(|full, object, address, object_size| {
             if object.header().is_marked_non_atomic() {
                 // find new location
                 let dest = object.header().fwdptr_non_atomic();
@@ -314,7 +300,7 @@ impl<'a> FullCollector<'a> {
 
     fn reset_cards(&mut self) {
         self.card_table
-            .reset_region(self.old.total_start(), self.init_old_top);
+            .reset_region(self.old.total_start(), self.old_protected.top);
     }
 
     fn forward_reference(&mut self, slot: Slot) {
@@ -336,28 +322,7 @@ impl<'a> FullCollector<'a> {
         }
     }
 
-    fn walk_old_and_young<F>(&mut self, old_region: Region, mut fct: F)
-    where
-        F: FnMut(&mut FullCollector, &mut Obj, Address, usize),
-    {
-        walk_region(old_region, |obj, addr, size| {
-            fct(self, obj, addr, size);
-        });
-
-        // This is a bit strange at first: from-space might not be empty,
-        // after too many survivors in the minor GC of the young gen.
-        let used_region = self.young.from_active();
-        walk_region(used_region, |obj, addr, size| {
-            fct(self, obj, addr, size);
-        });
-
-        let used_region = self.young.to_active();
-        walk_region(used_region, |obj, addr, size| {
-            fct(self, obj, addr, size);
-        });
-    }
-
-    fn walk_old_and_young_and_skip_garbage<F>(&mut self, mut fct: F)
+    fn walk_old_and_young<F>(&mut self, mut fct: F)
     where
         F: FnMut(&mut FullCollector, &mut Obj, Address, usize),
     {
@@ -418,7 +383,9 @@ pub fn verify_marking(
     large: &LargeSpace,
     heap: Region,
 ) {
-    verify_marking_region(old_protected.active_region(), heap);
+    for page in &old_protected.pages {
+        verify_marking_region(page.area(), heap);
+    }
 
     let from = young.from_active();
     verify_marking_region(from, heap);

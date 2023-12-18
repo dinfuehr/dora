@@ -166,27 +166,13 @@ impl OldGenProtected {
         Region::new(self.total.start(), self.top)
     }
 
-    pub fn commit_pages(
-        &mut self,
-        pages: &[Page],
-        top: Address,
-        _current_limit: Address,
-        old_top: Address,
-    ) {
+    pub fn commit_pages(&mut self, pages: &[Page]) {
         let previous_page_set: HashSet<Page> = HashSet::from_iter(self.pages.iter().cloned());
 
         for page in pages {
             if !previous_page_set.contains(page) {
                 os::commit_at(page.start(), page.size(), MemoryPermission::ReadWrite);
             }
-        }
-
-        let top_aligned = top.align_region_up();
-        let old_top_aligned = old_top.align_region_up();
-
-        if top_aligned > old_top_aligned {
-            let size = top_aligned.offset_from(old_top_aligned);
-            os::commit_at(old_top_aligned, size, MemoryPermission::ReadWrite);
         }
     }
 

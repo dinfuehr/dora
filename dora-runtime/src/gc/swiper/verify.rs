@@ -476,9 +476,8 @@ impl<'a> Verifier<'a> {
             self.to_active.size(),
         );
         println!(
-            "OLD total: {}; active: {} (size 0x{:x})",
+            "OLD total: {}; (size 0x{:x})",
             self.old.total(),
-            self.old_protected.active_region(),
             self.old.total().size()
         );
 
