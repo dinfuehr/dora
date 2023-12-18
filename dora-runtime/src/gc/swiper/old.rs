@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use parking_lot::{Mutex, MutexGuard};
 
 use crate::gc::fill_region;
+use crate::gc::freelist::FreeList;
 use crate::gc::swiper::card::CardTable;
 use crate::gc::swiper::controller::SharedHeapConfig;
 use crate::gc::swiper::crossing::CrossingMap;
@@ -144,6 +145,7 @@ pub struct OldGenProtected {
     pub top: Address,
     pub current_limit: Address,
     pub pages: Vec<Page>,
+    pub freelist: FreeList,
 }
 
 impl OldGenProtected {
@@ -154,6 +156,7 @@ impl OldGenProtected {
             top: total.start(),
             current_limit: total.start(),
             pages: Vec::new(),
+            freelist: FreeList::new(),
         }
     }
 
