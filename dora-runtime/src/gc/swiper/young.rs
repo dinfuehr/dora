@@ -3,10 +3,9 @@ use parking_lot::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::gc::bump::BumpAllocator;
-use crate::gc::{fill_region, gen_aligned, Address, GenerationAllocator, Region};
+use crate::gc::{gen_aligned, Address, GenerationAllocator, Region};
 use crate::mem;
 use crate::os::{self, MemoryPermission};
-use crate::vm::get_vm;
 
 pub struct YoungGen {
     // bounds of eden & semi-spaces
@@ -125,6 +124,8 @@ impl YoungGen {
         self.semi.protect_from();
         self.semi.to_block().set_top(top);
         self.semi.set_age_marker(top);
+        let mut protected = self.protected.lock();
+        protected.top = top;
     }
 
     pub fn should_be_promoted(&self, addr: Address) -> bool {
@@ -138,12 +139,20 @@ impl YoungGen {
     }
 
     pub fn bump_alloc(&self, size: usize) -> Address {
-        let protected = self.protected.lock();
+        let mut protected = self.protected.lock();
         assert_eq!(
             protected.current_limit,
             self.semi.to_block().committed().end()
         );
-        return self.semi.bump_alloc(size);
+        assert_eq!(protected.top, self.semi.to_block().alloc.top());
+        if let Some(alloc) = protected.raw_alloc(size) {
+            assert!(alloc.is_non_null());
+            let bump_alloc = self.semi.bump_alloc(size);
+            assert_eq!(bump_alloc, alloc);
+            alloc
+        } else {
+            Address::null()
+        }
     }
 
     pub fn set_limit(&self, semi_size: usize) {
@@ -420,16 +429,7 @@ impl Block {
 impl GenerationAllocator for YoungGen {
     fn allocate(&self, size: usize) -> Option<Address> {
         let mut protected = self.protected.lock();
-        let next = protected.top.offset(size);
-
-        if next <= protected.current_limit {
-            let result = protected.top;
-            fill_region(get_vm(), next, protected.current_limit);
-            protected.top = next;
-            Some(result)
-        } else {
-            None
-        }
+        protected.raw_alloc(size)
     }
 
     fn free(&self, _region: Region) {
@@ -442,4 +442,18 @@ struct YoungGenProtected {
     current_limit: Address,
 
     from_index: usize,
+}
+
+impl YoungGenProtected {
+    fn raw_alloc(&mut self, size: usize) -> Option<Address> {
+        let next = self.top.offset(size);
+
+        if next <= self.current_limit {
+            let result = self.top;
+            self.top = next;
+            Some(result)
+        } else {
+            None
+        }
+    }
 }
