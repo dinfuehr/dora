@@ -29,7 +29,7 @@ pub fn init(config: &mut HeapConfig, args: &Flags) {
     };
 
     let young_size = max(young_size, PAGE_SIZE);
-    let semi_size = calculate_young_size(args, young_size, 0);
+    let semi_size = calculate_semi_size(args, young_size, 0);
 
     config.semi_size = semi_size;
 
@@ -48,7 +48,7 @@ pub fn init(config: &mut HeapConfig, args: &Flags) {
     config.old_limit = old_limit;
 }
 
-fn calculate_young_size(args: &Flags, young_size: usize, min_semi_size: usize) -> usize {
+fn calculate_semi_size(args: &Flags, young_size: usize, min_semi_size: usize) -> usize {
     let semi_ratio = args.gc_semi_ratio.unwrap_or(INIT_SEMI_RATIO);
     let semi_size = if semi_ratio == 0 {
         0
@@ -122,21 +122,20 @@ pub fn stop(
     let to_size = young.to_active().size();
     let min_semi_size = align_gen(mem::page_align(to_size) * 2);
 
-    let semi_size = calculate_young_size(args, target_young_size, min_semi_size);
-    let young_size = semi_size;
+    let semi_size = calculate_semi_size(args, target_young_size, min_semi_size);
 
-    if old_size + young_size > config.max_heap_size {
+    if old_size + semi_size > config.max_heap_size {
         stdlib::trap(Trap::OOM.int());
     }
 
     young.set_limit(semi_size);
-    config.old_limit = config.max_heap_size - young_size;
+    config.old_limit = config.max_heap_size - semi_size;
     assert!(config.old_limit >= old_size);
 
     config.end_object_size = object_size(young, old, large);
     config.end_memory_size = memory_size(young, old, large);
 
-    assert!(young_size + config.old_limit <= config.max_heap_size);
+    assert!(semi_size + config.old_limit <= config.max_heap_size);
 
     match kind {
         CollectionKind::Minor => {

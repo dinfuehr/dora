@@ -3,13 +3,17 @@ use parking_lot::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::gc::bump::BumpAllocator;
-use crate::gc::{gen_aligned, Address, Region};
+use crate::gc::{fill_region, gen_aligned, Address, GenerationAllocator, Region};
 use crate::mem;
 use crate::os::{self, MemoryPermission};
+use crate::vm::get_vm;
 
 pub struct YoungGen {
     // bounds of eden & semi-spaces
     total: Region,
+
+    first_region: Region,
+    second_region: Region,
 
     // from/to-space
     semi: SemiSpace,
@@ -19,12 +23,17 @@ pub struct YoungGen {
 
 impl YoungGen {
     pub fn new(total: Region, semi_size: usize, protect: bool) -> YoungGen {
+        let semi = SemiSpace::new(total, semi_size, protect);
+        let to_committed = semi.to_committed();
+
         let young = YoungGen {
             total,
-            semi: SemiSpace::new(total, semi_size, protect),
+            first_region: semi.first.total(),
+            second_region: semi.second.total(),
+            semi,
             protected: Mutex::new(YoungGenProtected {
-                top: Address::null(),
-                current_limit: Address::null(),
+                top: to_committed.start(),
+                current_limit: to_committed.end(),
                 from_index: 0,
             }),
         };
@@ -76,8 +85,12 @@ impl YoungGen {
         self.semi.clear_from();
         self.semi.clear_to();
 
-        let to_block = self.semi.to_block();
-        self.semi.set_age_marker(to_block.start);
+        let alloc_region = self.semi.to_committed();
+        self.semi.set_age_marker(alloc_region.start());
+
+        let mut protected = self.protected.lock();
+        protected.top = alloc_region.start();
+        protected.current_limit = alloc_region.end();
     }
 
     pub fn active_size(&self) -> usize {
@@ -95,8 +108,12 @@ impl YoungGen {
     pub fn swap_semi(&self) {
         self.semi.swap();
 
-        let from_index = self.semi.from_index.load(Ordering::Relaxed);
-        self.protected.lock().from_index = from_index;
+        let mut protected = self.protected.lock();
+        protected.from_index = (protected.from_index + 1) % 2;
+
+        let to_block = self.semi.to_block();
+        protected.top = to_block.start;
+        protected.current_limit = self.semi.to_block().committed().end();
     }
 
     pub fn minor_fail(&self, top: Address) {
@@ -121,12 +138,20 @@ impl YoungGen {
     }
 
     pub fn bump_alloc(&self, size: usize) -> Address {
+        let protected = self.protected.lock();
+        assert_eq!(
+            protected.current_limit,
+            self.semi.to_block().committed().end()
+        );
         return self.semi.bump_alloc(size);
     }
 
     pub fn set_limit(&self, semi_size: usize) {
         assert!(gen_aligned(semi_size));
         self.semi.set_limit(semi_size);
+
+        let mut protected = self.protected.lock();
+        protected.current_limit = self.semi.to_committed().end();
     }
 
     pub fn committed_size(&self) -> usize {
@@ -392,8 +417,29 @@ impl Block {
     }
 }
 
+impl GenerationAllocator for YoungGen {
+    fn allocate(&self, size: usize) -> Option<Address> {
+        let mut protected = self.protected.lock();
+        let next = protected.top.offset(size);
+
+        if next <= protected.current_limit {
+            let result = protected.top;
+            fill_region(get_vm(), next, protected.current_limit);
+            protected.top = next;
+            Some(result)
+        } else {
+            None
+        }
+    }
+
+    fn free(&self, _region: Region) {
+        // No free list yet, so simply ignore this.
+    }
+}
+
 struct YoungGenProtected {
     top: Address,
     current_limit: Address,
+
     from_index: usize,
 }
