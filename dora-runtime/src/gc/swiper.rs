@@ -131,7 +131,6 @@ impl Swiper {
         let old_start = young_end;
         let old_end = old_start.offset(max_heap_size);
 
-        let eden_size = config.eden_size;
         let semi_size = config.semi_size;
 
         // determine large object space
@@ -160,9 +159,8 @@ impl Swiper {
 
         if args.gc_verbose {
             println!(
-                "GC: heap info: {}, eden {}, semi {}, card {}, crossing {} (region {})",
+                "GC: heap info: {}, semi {}, card {}, crossing {} (region {})",
                 formatted_size(max_heap_size),
-                formatted_size(eden_size),
                 formatted_size(semi_size),
                 formatted_size(card_size),
                 formatted_size(crossing_size),

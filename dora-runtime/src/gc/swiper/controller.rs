@@ -29,9 +29,8 @@ pub fn init(config: &mut HeapConfig, args: &Flags) {
     };
 
     let young_size = max(young_size, PAGE_SIZE);
-    let (eden_size, semi_size) = calculate_young_size(args, young_size, 0);
+    let semi_size = calculate_young_size(args, young_size, 0);
 
-    config.eden_size = eden_size;
     config.semi_size = semi_size;
 
     let max_old_limit = config.max_heap_size - young_size;
@@ -49,7 +48,7 @@ pub fn init(config: &mut HeapConfig, args: &Flags) {
     config.old_limit = old_limit;
 }
 
-fn calculate_young_size(args: &Flags, young_size: usize, min_semi_size: usize) -> (usize, usize) {
+fn calculate_young_size(args: &Flags, young_size: usize, min_semi_size: usize) -> usize {
     let semi_ratio = args.gc_semi_ratio.unwrap_or(INIT_SEMI_RATIO);
     let semi_size = if semi_ratio == 0 {
         0
@@ -59,9 +58,8 @@ fn calculate_young_size(args: &Flags, young_size: usize, min_semi_size: usize) -
 
     let semi_size = max(semi_size, min_semi_size);
     let semi_size = max(semi_size, PAGE_SIZE);
-    let eden_size = young_size - semi_size;
 
-    (eden_size, semi_size)
+    semi_size
 }
 
 pub fn choose_collection_kind(
@@ -124,14 +122,14 @@ pub fn stop(
     let to_size = young.to_active().size();
     let min_semi_size = align_gen(mem::page_align(to_size) * 2);
 
-    let (eden_size, semi_size) = calculate_young_size(args, target_young_size, min_semi_size);
-    let young_size = eden_size + semi_size;
+    let semi_size = calculate_young_size(args, target_young_size, min_semi_size);
+    let young_size = semi_size;
 
     if old_size + young_size > config.max_heap_size {
         stdlib::trap(Trap::OOM.int());
     }
 
-    young.set_limit(eden_size, semi_size);
+    young.set_limit(semi_size);
     config.old_limit = config.max_heap_size - young_size;
     assert!(config.old_limit >= old_size);
 
@@ -210,7 +208,6 @@ pub struct HeapConfig {
     min_heap_size: usize,
     max_heap_size: usize,
 
-    pub eden_size: usize,
     pub semi_size: usize,
     pub old_size: usize,
     pub old_limit: usize,
@@ -244,7 +241,6 @@ impl HeapConfig {
             min_heap_size,
             max_heap_size,
 
-            eden_size: 0,
             semi_size: 0,
             old_size: 0,
             old_limit: 0,

@@ -1,3 +1,5 @@
+use parking_lot::Mutex;
+
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::gc::bump::BumpAllocator;
@@ -11,6 +13,8 @@ pub struct YoungGen {
 
     // from/to-space
     semi: SemiSpace,
+
+    protected: Mutex<YoungGenProtected>,
 }
 
 impl YoungGen {
@@ -18,6 +22,11 @@ impl YoungGen {
         let young = YoungGen {
             total,
             semi: SemiSpace::new(total, semi_size, protect),
+            protected: Mutex::new(YoungGenProtected {
+                top: Address::null(),
+                current_limit: Address::null(),
+                from_index: 0,
+            }),
         };
 
         young.commit();
@@ -85,6 +94,9 @@ impl YoungGen {
 
     pub fn swap_semi(&self) {
         self.semi.swap();
+
+        let from_index = self.semi.from_index.load(Ordering::Relaxed);
+        self.protected.lock().from_index = from_index;
     }
 
     pub fn minor_fail(&self, top: Address) {
@@ -112,8 +124,7 @@ impl YoungGen {
         return self.semi.bump_alloc(size);
     }
 
-    pub fn set_limit(&self, eden_size: usize, semi_size: usize) {
-        assert!(gen_aligned(eden_size));
+    pub fn set_limit(&self, semi_size: usize) {
         assert!(gen_aligned(semi_size));
         self.semi.set_limit(semi_size);
     }
@@ -379,4 +390,10 @@ impl Block {
     fn bump_alloc(&self, size: usize) -> Address {
         self.alloc.bump_alloc(size)
     }
+}
+
+struct YoungGenProtected {
+    top: Address,
+    current_limit: Address,
+    from_index: usize,
 }
