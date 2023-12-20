@@ -91,8 +91,11 @@ impl YoungGen {
         self.semi.clear_from();
         self.semi.clear_to();
 
+        let from_committed = self.semi.to_committed();
         let to_committed = self.semi.to_committed();
-        fill_region(get_vm(), to_committed.start(), to_committed.end());
+        let vm = get_vm();
+        fill_region(vm, from_committed.start(), from_committed.end());
+        fill_region(vm, to_committed.start(), to_committed.end());
 
         self.semi.set_age_marker(to_committed.start());
 
@@ -129,12 +132,18 @@ impl YoungGen {
     }
 
     pub fn minor_success(&self, top: Address) {
+        let vm = get_vm();
         self.semi.clear_from();
+        let from_committed = self.semi.from_committed();
+        fill_region(vm, from_committed.start(), from_committed.end());
         self.semi.protect_from();
+
         self.semi.to_block().set_top(top);
+
         self.semi.set_age_marker(top);
         let mut protected = self.protected.lock();
         protected.top = top;
+        fill_region(vm, top, protected.current_limit);
     }
 
     pub fn should_be_promoted(&self, addr: Address) -> bool {
@@ -165,13 +174,20 @@ impl YoungGen {
         }
     }
 
-    pub fn set_limit(&self, semi_size: usize) {
+    pub fn resize_after_gc(&self, semi_size: usize) {
         assert!(gen_aligned(semi_size));
         self.semi.set_limit(semi_size);
+
+        let vm = get_vm();
+        self.unprotect_from();
+        let from_committed = self.semi.from_committed();
+        fill_region(vm, from_committed.start(), from_committed.end());
+        self.protect_from();
 
         let mut protected = self.protected.lock();
         protected.current_limit = self.semi.to_committed().end();
         protected.current_committed_size = semi_size / 2;
+        fill_region(vm, protected.top, protected.current_limit);
     }
 
     pub fn committed_size(&self) -> usize {

@@ -126,7 +126,7 @@ pub fn stop(
         stdlib::trap(Trap::OOM.int());
     }
 
-    young.set_limit(semi_size);
+    young.resize_after_gc(semi_size);
     config.old_limit = config.max_heap_size - semi_size;
     assert!(config.old_limit >= old_size);
 

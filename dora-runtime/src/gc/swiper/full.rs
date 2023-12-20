@@ -95,6 +95,8 @@ impl<'a> FullCollector<'a> {
         let dev_verbose = self.vm.flags.gc_dev_verbose;
         let stats = self.vm.flags.gc_stats;
 
+        self.young.unprotect_from();
+
         let mut timer = Timer::new(stats);
 
         if dev_verbose {
@@ -399,10 +401,10 @@ pub fn verify_marking(
         verify_marking_region(page.object_area(), heap);
     }
 
-    let from = young.from_active();
+    let from = young.from_committed();
     verify_marking_region(from, heap);
 
-    let to = young.to_active();
+    let to = young.to_committed();
     verify_marking_region(to, heap);
 
     large.visit_objects(|obj_address| {
