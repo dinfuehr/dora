@@ -13,7 +13,10 @@ use crate::gc::swiper::old::{OldGen, Page};
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{forward_minor, CardIdx, CARD_SIZE, LARGE_OBJECT_SIZE};
 use crate::gc::tlab::{TLAB_OBJECT_SIZE, TLAB_SIZE};
-use crate::gc::{fill_region, iterate_weak_roots, Address, GcReason, GenerationAllocator, Region};
+use crate::gc::{
+    fill_region, fill_region_with, iterate_weak_roots, Address, GcReason, GenerationAllocator,
+    Region,
+};
 use crate::object::Obj;
 use crate::threads::DoraThread;
 use crate::timer::Timer;
@@ -802,6 +805,7 @@ impl<'a> CopyTask<'a> {
 
         if lab_end <= self.young_limit {
             *top = lab_end;
+            fill_region_with(self.vm, lab_end, self.young_limit, false);
             self.young_lab.reset(lab_start, lab_end);
 
             true

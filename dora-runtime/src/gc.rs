@@ -98,6 +98,10 @@ impl Gc {
         }
     }
 
+    pub fn setup(&self, vm: &VM) {
+        self.collector.setup(vm);
+    }
+
     pub fn add_finalizer(&self, object: Address, thread: Arc<DoraThread>) {
         let mut finalizers = self.finalizers.lock();
         finalizers.push((object, thread));
@@ -222,6 +226,11 @@ trait Collector {
     // verify reference
     fn verify_ref(&self, _vm: &VM, _addr: Address) {
         // do nothing
+    }
+
+    // Invoked once right after VM was created.
+    fn setup(&self, _vm: &VM) {
+        // Do nothing.
     }
 }
 

@@ -3,10 +3,10 @@ use parking_lot::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::gc::bump::BumpAllocator;
-use crate::gc::{fill_region_with, gen_aligned, Address, GenerationAllocator, Region};
+use crate::gc::{fill_region, fill_region_with, gen_aligned, Address, GenerationAllocator, Region};
 use crate::mem;
 use crate::os::{self, MemoryPermission};
-use crate::vm::get_vm;
+use crate::vm::{get_vm, VM};
 
 pub struct YoungGen {
     // bounds of eden & semi-spaces
@@ -43,6 +43,11 @@ impl YoungGen {
         young.protect_from();
 
         young
+    }
+
+    pub(super) fn setup(&self, vm: &VM) {
+        let to_committed = self.to_committed();
+        fill_region(vm, to_committed.start(), to_committed.end());
     }
 
     fn commit(&self) {

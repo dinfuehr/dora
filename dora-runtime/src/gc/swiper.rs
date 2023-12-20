@@ -557,6 +557,10 @@ impl Collector for Swiper {
 
         assert!(found, "write barrier found invalid reference");
     }
+
+    fn setup(&self, vm: &VM) {
+        self.young.setup(vm);
+    }
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]

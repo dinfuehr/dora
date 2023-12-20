@@ -196,6 +196,8 @@ impl VM {
         initialize::setup(self);
 
         globals::init_global_addresses(self);
+
+        self.gc.setup(self);
     }
 
     pub fn gc_epoch(&self) -> usize {
