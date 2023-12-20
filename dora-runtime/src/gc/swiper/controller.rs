@@ -103,8 +103,6 @@ pub fn stop(
     let duration = config.gc_start.expect("not started").elapsed();
     config.gc_duration = duration.as_secs_f32() / 1000f32;
 
-    assert!(young.from_active().empty());
-
     let old_size = old.committed_size() + large.committed_size();
     config.old_size = old_size;
 

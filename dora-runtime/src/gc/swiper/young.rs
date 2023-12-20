@@ -3,16 +3,16 @@ use parking_lot::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::gc::bump::BumpAllocator;
-use crate::gc::{gen_aligned, Address, GenerationAllocator, Region};
+use crate::gc::{fill_region_with, gen_aligned, Address, GenerationAllocator, Region};
 use crate::mem;
 use crate::os::{self, MemoryPermission};
+use crate::vm::get_vm;
 
 pub struct YoungGen {
     // bounds of eden & semi-spaces
     total: Region,
 
-    first_region: Region,
-    second_region: Region,
+    semispaces: [Region; 2],
 
     // from/to-space
     semi: SemiSpace,
@@ -25,15 +25,17 @@ impl YoungGen {
         let semi = SemiSpace::new(total, semi_size, protect);
         let to_committed = semi.to_committed();
 
+        let semispaces = [semi.first.total(), semi.second.total()];
+
         let young = YoungGen {
             total,
-            first_region: semi.first.total(),
-            second_region: semi.second.total(),
+            semispaces,
             semi,
             protected: Mutex::new(YoungGenProtected {
                 top: to_committed.start(),
                 current_limit: to_committed.end(),
                 from_index: 0,
+                current_committed_size: semi_size / 2,
             }),
         };
 
@@ -149,6 +151,7 @@ impl YoungGen {
             assert!(alloc.is_non_null());
             let bump_alloc = self.semi.bump_alloc(size);
             assert_eq!(bump_alloc, alloc);
+            fill_region_with(get_vm(), protected.top, protected.current_limit, false);
             alloc
         } else {
             Address::null()
@@ -161,6 +164,7 @@ impl YoungGen {
 
         let mut protected = self.protected.lock();
         protected.current_limit = self.semi.to_committed().end();
+        protected.current_committed_size = semi_size / 2;
     }
 
     pub fn committed_size(&self) -> usize {
@@ -442,6 +446,7 @@ struct YoungGenProtected {
     current_limit: Address,
 
     from_index: usize,
+    current_committed_size: usize,
 }
 
 impl YoungGenProtected {

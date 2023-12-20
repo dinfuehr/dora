@@ -145,8 +145,6 @@ impl<'a> MinorCollector<'a> {
 
         self.young.minor_success(self.young_top);
 
-        assert!(self.young.from_active().empty());
-
         let mut config = self.config.lock();
         config.minor_promoted = self.promoted_size;
         config.minor_copied = self.young.from_active().size();
