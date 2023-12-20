@@ -173,7 +173,7 @@ impl<'a> FullCollector<'a> {
             println!("Full GC: Phase 5 (reset cards)");
         }
 
-        self.young.clear();
+        self.young.reset_after_full_gc();
         self.young.protect_from();
 
         let pages = std::mem::replace(&mut self.pages, Vec::new());

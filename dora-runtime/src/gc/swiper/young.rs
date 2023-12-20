@@ -87,16 +87,18 @@ impl YoungGen {
         self.total.contains(addr)
     }
 
-    pub fn clear(&self) {
+    pub fn reset_after_full_gc(&self) {
         self.semi.clear_from();
         self.semi.clear_to();
 
-        let alloc_region = self.semi.to_committed();
-        self.semi.set_age_marker(alloc_region.start());
+        let to_committed = self.semi.to_committed();
+        fill_region(get_vm(), to_committed.start(), to_committed.end());
+
+        self.semi.set_age_marker(to_committed.start());
 
         let mut protected = self.protected.lock();
-        protected.top = alloc_region.start();
-        protected.current_limit = alloc_region.end();
+        protected.top = to_committed.start();
+        protected.current_limit = to_committed.end();
     }
 
     pub fn active_size(&self) -> usize {
