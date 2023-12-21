@@ -108,7 +108,7 @@ pub fn install_code(vm: &VM, code_descriptor: CodeDescriptor, kind: CodeKind) ->
     code_header
         .object_header
         .set_vtblptr(Address::from_ptr(vtable as *const VTable));
-    code_header.object_header.clear_fwdptr();
+    code_header.object_header.initialize_metadata();
     code_header.length = array_length;
     code_header.native_code_object = Address::null();
 

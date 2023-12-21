@@ -22,26 +22,77 @@ pub struct Header {
 
     // forwarding ptr
     // (used during mark-compact)
-    fwdptr: AtomicUsize,
+    metadata: MetadataWord,
 }
 
-const MARK_BITS: usize = 2;
-const MARK_MASK: usize = (2 << MARK_BITS) - 1;
-const FWD_MASK: usize = !0 & !MARK_MASK;
+const GC_BITS: usize = 3;
+const GC_BITS_MASK: usize = (1 << GC_BITS) - 1;
+const FWDPTR_MASK: usize = !GC_BITS_MASK;
+
+const MARK_BIT: usize = 1;
+
+struct MetadataWord(AtomicUsize);
+
+impl MetadataWord {
+    fn new() -> MetadataWord {
+        MetadataWord(AtomicUsize::new(0))
+    }
+
+    fn raw(&self) -> usize {
+        self.0.load(Ordering::Relaxed)
+    }
+
+    fn set_raw(&self, value: usize) {
+        self.0.store(value, Ordering::Relaxed);
+    }
+
+    fn fwdptr(&self) -> Address {
+        (self.raw() & FWDPTR_MASK).into()
+    }
+
+    fn set_fwdptr(&self, value: Address) {
+        debug_assert_eq!(value.to_usize() & GC_BITS_MASK, 0);
+        let current = self.raw();
+        self.set_raw((current & !FWDPTR_MASK) | value.to_usize());
+    }
+
+    fn mark(&self) {
+        let value = self.raw();
+        self.set_raw(value | MARK_BIT);
+    }
+
+    fn unmark(&self) {
+        let value = self.raw();
+        self.set_raw(value & !MARK_BIT);
+    }
+
+    fn try_mark(&self) -> bool {
+        let value = self.raw();
+        if value & MARK_BIT != 0 {
+            return false;
+        }
+        self.set_raw(value | MARK_BIT);
+        true
+    }
+
+    fn is_marked(&self) -> bool {
+        (self.raw() & MARK_BIT) != 0
+    }
+}
 
 impl Header {
     #[cfg(test)]
     fn new() -> Header {
         Header {
             vtable: AtomicUsize::new(0),
-            fwdptr: AtomicUsize::new(0),
+            metadata: MetadataWord::new(),
         }
     }
 
     pub fn zero() -> Header {
         Header {
             vtable: AtomicUsize::new(0),
-            fwdptr: AtomicUsize::new(0),
+            metadata: MetadataWord::new(),
         }
     }
 
@@ -178,60 +229,38 @@ impl Header {
     }
 
     #[inline(always)]
-    pub fn clear_fwdptr(&self) {
-        self.fwdptr.store(0, Ordering::Relaxed);
+    pub fn initialize_metadata(&self) {
+        self.metadata.set_raw(0);
     }
 
     #[inline(always)]
-    pub fn fwdptr_non_atomic(&self) -> Address {
-        let fwdptr = self.fwdptr.load(Ordering::Relaxed);
-        (fwdptr & FWD_MASK).into()
+    pub fn fwdptr(&self) -> Address {
+        self.metadata.fwdptr()
     }
 
     #[inline(always)]
-    pub fn set_fwdptr_non_atomic(&mut self, addr: Address) {
-        debug_assert!((addr.to_usize() & MARK_MASK) == 0);
-        let fwdptr = self.fwdptr.load(Ordering::Relaxed);
-        self.fwdptr
-            .store(addr.to_usize() | (fwdptr & MARK_MASK), Ordering::Relaxed);
+    pub fn set_fwdptr(&mut self, addr: Address) {
+        self.metadata.set_fwdptr(addr);
     }
 
     #[inline(always)]
-    pub fn mark_non_atomic(&mut self) {
-        let fwdptr = self.fwdptr.load(Ordering::Relaxed);
-        self.fwdptr.store(fwdptr | 1, Ordering::Relaxed);
+    pub fn mark(&mut self) {
+        self.metadata.mark();
     }
 
     #[inline(always)]
-    pub fn unmark_non_atomic(&mut self) {
-        let fwdptr = self.fwdptr.load(Ordering::Relaxed);
-        self.fwdptr.store(fwdptr & FWD_MASK, Ordering::Relaxed);
+    pub fn unmark(&mut self) {
+        self.metadata.unmark();
     }
 
     #[inline(always)]
-    pub fn is_marked_non_atomic(&self) -> bool {
-        let fwdptr = self.fwdptr.load(Ordering::Relaxed);
-        (fwdptr & MARK_MASK) != 0
-    }
-
-    #[inline(always)]
-    pub fn try_mark_non_atomic(&self) -> bool {
-        let fwdptr = self.fwdptr.load(Ordering::Relaxed);
-
-        if (fwdptr & MARK_MASK) != 0 {
-            return false;
-        }
-
-        self.fwdptr.store(fwdptr | 1, Ordering::Relaxed);
-        true
+    pub fn is_marked(&self) -> bool {
+        self.metadata.is_marked()
     }
 
     #[inline(always)]
     pub fn try_mark(&self) -> bool {
-        let old = self.fwdptr.load(Ordering::Relaxed);
-        self.fwdptr
-            .compare_exchange(old, old | 1, Ordering::SeqCst, Ordering::Relaxed)
-            .is_ok()
+        self.metadata.try_mark()
     }
 }
 
@@ -639,7 +668,7 @@ fn byte_array_alloc_heap(vm: &VM, len: usize) -> Ref<UInt8Array> {
     handle
         .header_mut()
         .set_vtblptr(Address::from_ptr(vtable as *const VTable));
-    handle.header_mut().clear_fwdptr();
+    handle.header_mut().initialize_metadata();
     handle.length = len;
 
     handle
@@ -776,7 +805,7 @@ where
         handle
             .header_mut()
             .set_vtblptr(Address::from_ptr(vtable as *const VTable));
-        handle.header_mut().clear_fwdptr();
+        handle.header_mut().initialize_metadata();
         handle.length = len;
 
         for i in 0..handle.len() {
@@ -816,7 +845,7 @@ pub fn alloc(vm: &VM, clsid: ClassInstanceId) -> Ref<Obj> {
     let vtable: &VTable = vtable.as_ref().unwrap();
     let mut handle: Ref<Obj> = ptr.into();
     handle.header_mut().set_vtblptr(Address::from_ptr(vtable));
-    handle.header_mut().clear_fwdptr();
+    handle.header_mut().initialize_metadata();
 
     handle
 }
@@ -840,17 +869,17 @@ mod tests {
     #[test]
     fn header_markbit() {
         let mut h = Header::new();
-        h.set_fwdptr_non_atomic(8.into());
-        assert_eq!(false, h.is_marked_non_atomic());
-        assert_eq!(8, h.fwdptr_non_atomic().to_usize());
-        h.mark_non_atomic();
-        assert_eq!(true, h.is_marked_non_atomic());
-        assert_eq!(8, h.fwdptr_non_atomic().to_usize());
-        h.set_fwdptr_non_atomic(16.into());
-        assert_eq!(true, h.is_marked_non_atomic());
-        assert_eq!(16, h.fwdptr_non_atomic().to_usize());
-        h.unmark_non_atomic();
-        assert_eq!(false, h.is_marked_non_atomic());
-        assert_eq!(16, h.fwdptr_non_atomic().to_usize());
+        h.set_fwdptr(8.into());
+        assert_eq!(false, h.is_marked());
+        assert_eq!(8, h.fwdptr().to_usize());
+        h.mark();
+        assert_eq!(true, h.is_marked());
+        assert_eq!(8, h.fwdptr().to_usize());
+        h.set_fwdptr(16.into());
+        assert_eq!(true, h.is_marked());
+        assert_eq!(16, h.fwdptr().to_usize());
+        h.unmark();
+        assert_eq!(false, h.is_marked());
+        assert_eq!(16, h.fwdptr().to_usize());
     }
 }

@@ -10,9 +10,9 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region) {
         if heap.contains(root_ptr) {
             let root_obj = root_ptr.to_mut_obj();
 
-            if !root_obj.header().is_marked_non_atomic() {
+            if !root_obj.header().is_marked() {
                 marking_stack.push(root_ptr);
-                root_obj.header_mut().mark_non_atomic();
+                root_obj.header_mut().mark();
             }
         } else {
             debug_assert!(root_ptr.is_null() || perm.contains(root_ptr));
@@ -29,9 +29,9 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region) {
             if heap.contains(field_addr) {
                 let field_obj = field_addr.to_mut_obj();
 
-                if !field_obj.header().is_marked_non_atomic() {
+                if !field_obj.header().is_marked() {
                     marking_stack.push(field_addr);
-                    field_obj.header_mut().mark_non_atomic();
+                    field_obj.header_mut().mark();
                 }
             } else {
                 debug_assert!(field_addr.is_null() || perm.contains(field_addr));

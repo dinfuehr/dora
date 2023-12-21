@@ -190,7 +190,7 @@ impl<'a> FullCollector<'a> {
             if self.heap.contains(object_address) {
                 let obj = object_address.to_mut_obj();
 
-                if obj.header().is_marked_non_atomic() {
+                if obj.header().is_marked() {
                     Some(object_address)
                 } else {
                     None
@@ -204,9 +204,9 @@ impl<'a> FullCollector<'a> {
 
     fn compute_forward(&mut self) {
         self.walk_old_and_young(|full, object, _address, object_size| {
-            if object.header().is_marked_non_atomic() {
+            if object.header().is_marked() {
                 let fwd = full.allocate(object_size);
-                object.header_mut().set_fwdptr_non_atomic(fwd);
+                object.header_mut().set_fwdptr(fwd);
             }
         });
 
@@ -227,7 +227,7 @@ impl<'a> FullCollector<'a> {
 
     fn update_references(&mut self) {
         self.walk_old_and_young(|full, object, _address, _| {
-            if object.header().is_marked_non_atomic() {
+            if object.header().is_marked() {
                 object.visit_reference_fields(|field| {
                     full.forward_reference(field);
                 });
@@ -254,13 +254,13 @@ impl<'a> FullCollector<'a> {
             // to reset card entries to clean.
             self.card_table.reset_addr(object_start);
 
-            if object.header().is_marked_non_atomic() {
+            if object.header().is_marked() {
                 object.visit_reference_fields(|field| {
                     self.forward_reference(field);
                 });
 
                 // unmark object for next collection
-                object.header_mut().unmark_non_atomic();
+                object.header_mut().unmark();
 
                 // keep object
                 false
@@ -276,9 +276,9 @@ impl<'a> FullCollector<'a> {
         let mut previous_end = self.old.total_start();
 
         self.walk_old_and_young(|full, object, address, object_size| {
-            if object.header().is_marked_non_atomic() {
+            if object.header().is_marked() {
                 // find new location
-                let dest = object.header().fwdptr_non_atomic();
+                let dest = object.header().fwdptr();
 
                 if previous_end != dest {
                     let page = Page::from_address(dest);
@@ -302,7 +302,7 @@ impl<'a> FullCollector<'a> {
 
                 // unmark object for next collection
                 let dest_obj = dest.to_mut_obj();
-                dest_obj.header_mut().unmark_non_atomic();
+                dest_obj.header_mut().unmark();
 
                 full.old.update_crossing(dest, next_dest);
             }
@@ -321,14 +321,14 @@ impl<'a> FullCollector<'a> {
         let object_addr = slot.get();
 
         if self.heap.contains(object_addr) {
-            debug_assert!(object_addr.to_obj().header().is_marked_non_atomic());
+            debug_assert!(object_addr.to_obj().header().is_marked());
 
             if self.large_space.contains(object_addr) {
                 // large objects do not move in memory
                 return;
             }
 
-            let fwd_addr = object_addr.to_obj().header().fwdptr_non_atomic();
+            let fwd_addr = object_addr.to_obj().header().fwdptr();
             debug_assert!(self.heap.contains(fwd_addr));
             slot.set(fwd_addr);
         } else {
@@ -421,12 +421,12 @@ fn verify_marking_region(region: Region, heap: Region) {
 fn verify_marking_object(obj_address: Address, heap: Region) {
     let obj = obj_address.to_mut_obj();
 
-    if obj.header().is_marked_non_atomic() {
+    if obj.header().is_marked() {
         obj.visit_reference_fields(|field| {
             let object_addr = field.get();
 
             if heap.contains(object_addr) {
-                assert!(object_addr.to_obj().header().is_marked_non_atomic());
+                assert!(object_addr.to_obj().header().is_marked());
             }
         });
     }

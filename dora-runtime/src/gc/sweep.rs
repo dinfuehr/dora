@@ -195,7 +195,7 @@ impl<'a> MarkSweep<'a> {
         iterate_weak_roots(self.vm, |current_address| {
             let obj = current_address.to_mut_obj();
 
-            if obj.header().is_marked_non_atomic() {
+            if obj.header().is_marked() {
                 Some(current_address)
             } else {
                 None
@@ -220,10 +220,10 @@ impl<'a> MarkSweep<'a> {
 
             let object_size = object.size();
 
-            if object.header().is_marked_non_atomic() {
+            if object.header().is_marked() {
                 self.add_freelist(garbage_start, scan);
                 garbage_start = Address::null();
-                object.header_mut().unmark_non_atomic();
+                object.header_mut().unmark();
             } else if garbage_start.is_non_null() {
                 // more garbage, do nothing
             } else {

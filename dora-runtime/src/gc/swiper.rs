@@ -650,11 +650,11 @@ fn forward_full(object: Address, heap: Region, perm: Region, large: Region) -> O
     if heap.contains(object) {
         let obj = object.to_mut_obj();
 
-        if obj.header().is_marked_non_atomic() {
+        if obj.header().is_marked() {
             if large.contains(object) {
                 Some(object)
             } else {
-                let new_address = obj.header().fwdptr_non_atomic();
+                let new_address = obj.header().fwdptr();
                 Some(new_address)
             }
         } else {

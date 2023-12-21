@@ -173,9 +173,9 @@ impl<'a> MarkCompact<'a> {
 
     fn compute_forward(&mut self) {
         self.walk_heap(|mc, object, _addr, object_size| {
-            if object.header().is_marked_non_atomic() {
+            if object.header().is_marked() {
                 let fwd = mc.allocate(object_size);
-                object.header_mut().set_fwdptr_non_atomic(fwd);
+                object.header_mut().set_fwdptr(fwd);
             }
         });
     }
@@ -194,7 +194,7 @@ impl<'a> MarkCompact<'a> {
 
     fn update_references(&mut self) {
         self.walk_heap(|mc, object, _addr, _object_size| {
-            if object.header().is_marked_non_atomic() {
+            if object.header().is_marked() {
                 object.visit_reference_fields(|field| {
                     mc.forward_reference(field);
                 });
@@ -204,8 +204,8 @@ impl<'a> MarkCompact<'a> {
         iterate_weak_roots(self.vm, |current_address| {
             let obj = current_address.to_mut_obj();
 
-            if obj.header().is_marked_non_atomic() {
-                let new_address = obj.header().fwdptr_non_atomic();
+            if obj.header().is_marked() {
+                let new_address = obj.header().fwdptr();
                 Some(new_address)
             } else {
                 None
@@ -221,8 +221,8 @@ impl<'a> MarkCompact<'a> {
         let object_addr = slot.get();
 
         if self.heap.contains(object_addr) {
-            debug_assert!(object_addr.to_obj().header().is_marked_non_atomic());
-            let fwd_addr = object_addr.to_obj().header().fwdptr_non_atomic();
+            debug_assert!(object_addr.to_obj().header().is_marked());
+            let fwd_addr = object_addr.to_obj().header().fwdptr();
             debug_assert!(self.heap.contains(fwd_addr));
             slot.set(fwd_addr);
         } else {
@@ -232,9 +232,9 @@ impl<'a> MarkCompact<'a> {
 
     fn relocate(&mut self) {
         self.walk_heap(|mc, object, address, object_size| {
-            if object.header().is_marked_non_atomic() {
+            if object.header().is_marked() {
                 // get new location
-                let dest = object.header().fwdptr_non_atomic();
+                let dest = object.header().fwdptr();
                 debug_assert!(mc.heap.contains(dest));
 
                 // determine location after relocated object
@@ -247,7 +247,7 @@ impl<'a> MarkCompact<'a> {
 
                 // unmark object for next collection
                 let dest_obj = dest.to_mut_obj();
-                dest_obj.header_mut().unmark_non_atomic();
+                dest_obj.header_mut().unmark();
             }
         });
     }
