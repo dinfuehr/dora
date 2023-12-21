@@ -46,6 +46,7 @@ pub struct MinorCollector<'a> {
 
     promotion_failed: bool,
     promoted_size: usize,
+    copied_size: usize,
 
     from_active: Region,
 
@@ -93,6 +94,7 @@ impl<'a> MinorCollector<'a> {
 
             promotion_failed: false,
             promoted_size: 0,
+            copied_size: 0,
 
             from_active: Default::default(),
 
@@ -150,7 +152,7 @@ impl<'a> MinorCollector<'a> {
 
         let mut config = self.config.lock();
         config.minor_promoted = self.promoted_size;
-        config.minor_copied = self.young.from_active().size();
+        config.minor_copied = self.copied_size;
 
         self.promotion_failed
     }
@@ -195,6 +197,9 @@ impl<'a> MinorCollector<'a> {
 
         let promoted_size = AtomicUsize::new(self.promoted_size);
         let promoted_size = &promoted_size;
+
+        let copied_size = AtomicUsize::new(self.copied_size);
+        let copied_size = &copied_size;
 
         let promotion_failed = AtomicBool::new(self.promotion_failed);
         let promotion_failed = &promotion_failed;
@@ -257,6 +262,7 @@ impl<'a> MinorCollector<'a> {
                         old_pages,
 
                         promoted_size: 0,
+                        copied_size: 0,
                         traced: 0,
 
                         old_lab: Lab::new(),
@@ -273,7 +279,7 @@ impl<'a> MinorCollector<'a> {
                     task.run();
 
                     if task.promoted_size > 0 {
-                        promoted_size.fetch_add(task.promoted_size, Ordering::SeqCst);
+                        promoted_size.fetch_add(task.promoted_size, Ordering::Relaxed);
                     }
 
                     if task.promotion_failed() {
@@ -292,8 +298,9 @@ impl<'a> MinorCollector<'a> {
 
         self.young_top = *young_top.lock();
 
-        self.promoted_size = promoted_size.load(Ordering::SeqCst);
-        self.promotion_failed = promotion_failed.load(Ordering::SeqCst);
+        self.promoted_size = promoted_size.load(Ordering::Relaxed);
+        self.copied_size = copied_size.load(Ordering::Relaxed);
+        self.promotion_failed = promotion_failed.load(Ordering::Relaxed);
     }
 
     fn remove_forwarding_pointers(&mut self) {
@@ -412,6 +419,7 @@ struct CopyTask<'a> {
     from_active: Region,
 
     promoted_size: usize,
+    copied_size: usize,
     traced: usize,
 
     old_lab: Lab,
@@ -470,7 +478,7 @@ impl<'a> CopyTask<'a> {
             let object_address = root.get();
 
             if self.young.contains(object_address) {
-                let dest = self.copy(object_address);
+                let dest = self.copy_object(object_address);
                 root.set(dest);
             }
         }
@@ -549,7 +557,7 @@ impl<'a> CopyTask<'a> {
             let field_ptr = field.get();
 
             if self.young.contains(field_ptr) {
-                let copied_addr = self.copy(field_ptr);
+                let copied_addr = self.copy_object(field_ptr);
                 field.set(copied_addr);
 
                 if self.young.contains(copied_addr) {
@@ -592,7 +600,7 @@ impl<'a> CopyTask<'a> {
             let obj = slot.get();
 
             if self.young.contains(obj) {
-                let copied_obj = self.copy(obj);
+                let copied_obj = self.copy_object(obj);
                 slot.set(copied_obj);
 
                 if self.young.contains(copied_obj) {
@@ -659,7 +667,7 @@ impl<'a> CopyTask<'a> {
                 let field_ptr = field.get();
 
                 if self.young.contains(field_ptr) {
-                    let copied_obj = self.copy(field_ptr);
+                    let copied_obj = self.copy_object(field_ptr);
                     field.set(copied_obj);
 
                     // determine if copied object is still in young generation
@@ -715,7 +723,7 @@ impl<'a> CopyTask<'a> {
             let object_addr = slot.get();
 
             if self.young_region.contains(object_addr) {
-                slot.set(self.copy(object_addr));
+                slot.set(self.copy_object(object_addr));
             }
         });
     }
@@ -729,7 +737,7 @@ impl<'a> CopyTask<'a> {
             let field_ptr = slot.get();
 
             if self.young.contains(field_ptr) {
-                let copied_addr = self.copy(field_ptr);
+                let copied_addr = self.copy_object(field_ptr);
                 slot.set(copied_addr);
 
                 if self.young.contains(copied_addr) {
@@ -910,7 +918,7 @@ impl<'a> CopyTask<'a> {
         }
     }
 
-    fn copy(&mut self, obj_addr: Address) -> Address {
+    fn copy_object(&mut self, obj_addr: Address) -> Address {
         let obj = obj_addr.to_mut_obj();
 
         // Check if object was already copied
@@ -936,7 +944,11 @@ impl<'a> CopyTask<'a> {
 
         // If object is old enough we copy it into the old generation
         if self.copy_failed || self.young.should_be_promoted(obj_addr) {
-            return self.promote_object(vtblptr, obj, obj_size);
+            let result = self.promote_object(vtblptr, obj, obj_size);
+
+            if result.is_non_null() {
+                return result;
+            }
         }
 
         // Try to allocate memory in to-space.
@@ -953,6 +965,7 @@ impl<'a> CopyTask<'a> {
 
         match res {
             Ok(copy_addr) => {
+                self.copied_size += obj_size;
                 self.push(copy_addr);
                 copy_addr
             }
