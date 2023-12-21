@@ -23,9 +23,10 @@ pub struct YoungGen {
 }
 
 impl YoungGen {
-    pub fn new(total: Region, semi_size: usize, protect: bool) -> YoungGen {
-        let semi = SemiSpace::new(total, semi_size);
+    pub fn new(total: Region, young_size: usize, protect: bool) -> YoungGen {
+        let semi = SemiSpace::new(total, young_size);
         let to_committed = semi.to_committed();
+        let semi_size = young_size / 2;
 
         let semispaces = [semi.first.total(), semi.second.total()];
 
@@ -39,12 +40,12 @@ impl YoungGen {
                 top: to_committed.start(),
                 current_limit: to_committed.end(),
                 from_index: 0,
-                current_committed_size: semi_size / 2,
+                current_semi_size: semi_size,
                 age_marker: to_committed.start(),
             }),
         };
 
-        young.commit();
+        young.commit(semi_size);
         young.protect_from();
 
         young
@@ -55,12 +56,41 @@ impl YoungGen {
         fill_region(vm, to_committed.start(), to_committed.end());
     }
 
-    fn commit(&self) {
-        self.semi.commit();
+    fn commit(&self, semi_size: usize) {
+        self.commit_semi_space(self.semispaces[0], 0, semi_size);
+        self.commit_semi_space(self.semispaces[1], 0, semi_size);
     }
 
     pub fn from_committed(&self) -> Region {
-        self.semi.from_committed()
+        let size = self.current_semi_size();
+        self.from_region().start().region_start(size)
+    }
+
+    fn from_index(&self) -> usize {
+        self.from_index.load(Ordering::Relaxed)
+    }
+
+    fn swap_indices(&self) {
+        let from_index = self.from_index();
+        self.from_index
+            .store((from_index + 1) % 2, Ordering::Relaxed);
+    }
+
+    fn from_region(&self) -> Region {
+        self.semispaces[self.from_index()]
+    }
+
+    fn to_index(&self) -> usize {
+        self.from_index() ^ 1
+    }
+
+    fn to_region(&self) -> Region {
+        self.semispaces[self.to_index()]
+    }
+
+    fn current_semi_size(&self) -> usize {
+        let protected = self.protected.lock();
+        protected.current_semi_size
     }
 
     pub fn from_total(&self) -> Region {
@@ -74,7 +104,8 @@ impl YoungGen {
     }
 
     pub fn to_committed(&self) -> Region {
-        self.semi.to_committed()
+        let size = self.current_semi_size();
+        self.to_region().start().region_start(size)
     }
 
     pub fn to_total(&self) -> Region {
@@ -121,13 +152,15 @@ impl YoungGen {
 
     pub fn swap_semi(&self) {
         self.semi.swap();
+        self.swap_indices();
+
+        assert_eq!(self.semi.from_total(), self.from_region());
+        assert_eq!(self.semi.to_total(), self.to_region());
 
         let mut protected = self.protected.lock();
-        protected.from_index = (protected.from_index + 1) % 2;
-
-        let to_block = self.semi.to_block();
-        protected.top = to_block.start;
-        protected.current_limit = self.semi.to_block().committed().end();
+        let to_block = self.semi.to_block().committed();
+        protected.top = to_block.start();
+        protected.current_limit = to_block.end();
     }
 
     pub fn reset_after_minor_gc(&self, top: Address) {
@@ -157,9 +190,15 @@ impl YoungGen {
         }
     }
 
-    pub fn resize_after_gc(&self, semi_size: usize) {
-        assert!(gen_aligned(semi_size));
-        self.semi.set_limit(semi_size);
+    pub fn resize_after_gc(&self, young_size: usize) {
+        assert!(gen_aligned(young_size));
+        let mut protected = self.protected.lock();
+        let new_semi_size = young_size;
+        let old_semi_size = protected.current_semi_size;
+        self.semi.set_limit(young_size);
+
+        self.commit_semi_space(self.semispaces[0], old_semi_size, new_semi_size);
+        self.commit_semi_space(self.semispaces[1], old_semi_size, new_semi_size);
 
         let vm = get_vm();
         self.unprotect_from();
@@ -167,16 +206,34 @@ impl YoungGen {
         fill_region(vm, from_committed.start(), from_committed.end());
         self.protect_from();
 
-        let mut protected = self.protected.lock();
         protected.current_limit = self.semi.to_committed().end();
-        protected.current_committed_size = semi_size / 2;
+        protected.current_semi_size = young_size / 2;
         fill_region(vm, protected.top, protected.current_limit);
+    }
+
+    fn commit_semi_space(&self, block: Region, old_size: usize, new_size: usize) {
+        assert!(mem::is_os_page_aligned(new_size));
+
+        if old_size == new_size {
+            return;
+        }
+
+        if old_size < new_size {
+            let size = new_size - old_size;
+            let start = block.start().offset(old_size);
+            os::commit_at(start, size, MemoryPermission::ReadWrite);
+        } else {
+            assert!(new_size < old_size);
+            let size = old_size - new_size;
+            let start = block.start().offset(new_size);
+            os::discard(start, size);
+        }
     }
 
     pub fn committed_size(&self) -> usize {
         let protected = self.protected.lock();
         let semi_result = self.semi.committed_size();
-        let new_result = protected.current_committed_size * 2;
+        let new_result = protected.current_semi_size * 2;
         assert_eq!(semi_result, new_result);
         new_result
     }
@@ -204,13 +261,8 @@ impl SemiSpace {
             first: Block::new(first.clone(), committed_semi_size / 2),
             second: Block::new(second, committed_semi_size / 2),
 
-            from_index: AtomicUsize::new(2),
+            from_index: AtomicUsize::new(1),
         }
-    }
-
-    fn commit(&self) {
-        self.from_block().commit();
-        self.to_block().commit();
     }
 
     fn from_block(&self) -> &Block {
@@ -290,8 +342,8 @@ impl SemiSpace {
     }
 
     fn set_limit(&self, size: usize) {
-        self.from_block().set_limit(size / 2);
-        self.to_block().set_limit(size / 2);
+        self.from_block().set_committed(size / 2);
+        self.to_block().set_committed(size / 2);
     }
 
     fn committed_size(&self) -> usize {
@@ -303,7 +355,6 @@ struct Block {
     start: Address,
     end: Address,
     committed: AtomicUsize,
-    limit: AtomicUsize,
 }
 
 impl Block {
@@ -315,15 +366,6 @@ impl Block {
             start: region.start,
             end: region.end,
             committed: AtomicUsize::new(committed.to_usize()),
-            limit: AtomicUsize::new(committed.to_usize()),
-        }
-    }
-
-    fn commit(&self) {
-        let size = self.committed_size();
-
-        if size > 0 {
-            os::commit_at(self.start, size, MemoryPermission::ReadWrite);
         }
     }
 
@@ -341,28 +383,10 @@ impl Block {
         committed - self.start.to_usize()
     }
 
-    fn set_limit(&self, new_size: usize) {
+    fn set_committed(&self, new_size: usize) {
         assert!(mem::is_os_page_aligned(new_size));
-
-        let old_committed = self.committed.load(Ordering::Relaxed);
         let new_committed = self.start.offset(new_size).to_usize();
-        assert!(new_committed <= self.end.to_usize());
-
-        if old_committed == new_committed {
-            return;
-        }
-
-        let updated = self.committed.swap(new_committed, Ordering::Relaxed);
-        assert!(updated == old_committed);
-        self.limit.store(new_committed, Ordering::Relaxed);
-
-        if old_committed < new_committed {
-            let size = new_committed - old_committed;
-            os::commit_at(old_committed.into(), size, MemoryPermission::ReadWrite);
-        } else if old_committed > new_committed {
-            let size = old_committed - new_committed;
-            os::discard(new_committed.into(), size);
-        }
+        self.committed.store(new_committed, Ordering::Relaxed);
     }
 }
 
@@ -382,7 +406,7 @@ struct YoungGenProtected {
     current_limit: Address,
 
     from_index: usize,
-    current_committed_size: usize,
+    current_semi_size: usize,
     age_marker: Address,
 }
 

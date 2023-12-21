@@ -402,7 +402,7 @@ impl From<usize> for Address {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct Region {
     pub start: Address,
     pub end: Address,
