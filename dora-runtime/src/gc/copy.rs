@@ -9,7 +9,7 @@ use crate::gc::{
     GcReason, Region,
 };
 use crate::mem;
-use crate::object::{Obj, VtblptrKind};
+use crate::object::{Obj, VtblptrWordKind};
 use crate::os::{self, MemoryPermission};
 use crate::safepoint;
 use crate::threads::DoraThread;
@@ -213,7 +213,7 @@ impl CopyCollector {
             debug_assert!(self.from_space().contains(current_address));
             let obj = current_address.to_obj();
 
-            if let VtblptrKind::Forwarded(new_address) = obj.header().vtblptr() {
+            if let VtblptrWordKind::Fwdptr(new_address) = obj.header().vtblptr() {
                 debug_assert!(self.to_space().contains(new_address));
                 Some(new_address)
             } else {
@@ -225,7 +225,7 @@ impl CopyCollector {
     fn copy(&self, obj_addr: Address, top: &mut Address) -> Address {
         let obj = obj_addr.to_obj();
 
-        if let VtblptrKind::Forwarded(fwd) = obj.header().vtblptr() {
+        if let VtblptrWordKind::Fwdptr(fwd) = obj.header().vtblptr() {
             return fwd;
         }
 

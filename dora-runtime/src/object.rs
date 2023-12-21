@@ -101,13 +101,13 @@ impl VtblptrWord {
         self.set_raw(value.to_usize() | FWDPTR_BIT);
     }
 
-    pub fn load(&self) -> VtblptrKind {
+    pub fn load(&self) -> VtblptrWordKind {
         let value = self.raw();
 
         if (value & FWDPTR_BIT) != 0 {
-            VtblptrKind::Forwarded((value & !FWDPTR_BIT).into())
+            VtblptrWordKind::Fwdptr((value & !FWDPTR_BIT).into())
         } else {
-            VtblptrKind::Vtblptr(value.into())
+            VtblptrWordKind::Vtblptr(value.into())
         }
     }
 
@@ -149,9 +149,9 @@ pub enum ForwardResult {
     AlreadyForwarded(Address),
 }
 
-pub enum VtblptrKind {
+pub enum VtblptrWordKind {
     Vtblptr(Address),
-    Forwarded(Address),
+    Fwdptr(Address),
 }
 
 impl Header {
@@ -201,7 +201,7 @@ impl Header {
     }
 
     #[inline(always)]
-    pub fn vtblptr(&self) -> VtblptrKind {
+    pub fn vtblptr(&self) -> VtblptrWordKind {
         self.vtable.load()
     }
 

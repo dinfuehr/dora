@@ -17,7 +17,7 @@ use crate::gc::{
     fill_region, fill_region_with, iterate_weak_roots, Address, GcReason, GenerationAllocator,
     Region,
 };
-use crate::object::{ForwardResult, Obj, VtblptrKind};
+use crate::object::{ForwardResult, Obj, VtblptrWordKind};
 use crate::threads::DoraThread;
 use crate::timer::Timer;
 use crate::vm::VM;
@@ -865,11 +865,11 @@ impl<'a> CopyTask<'a> {
 
         // Check if object was already copied
         let vtblptr = match obj.header().vtblptr() {
-            VtblptrKind::Forwarded(fwd_addr) => {
+            VtblptrWordKind::Fwdptr(fwd_addr) => {
                 return fwd_addr;
             }
 
-            VtblptrKind::Vtblptr(vtblptr) => vtblptr,
+            VtblptrWordKind::Vtblptr(vtblptr) => vtblptr,
         };
 
         let obj_size = obj.size_for_vtblptr(vtblptr);

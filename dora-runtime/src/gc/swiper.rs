@@ -19,7 +19,7 @@ use crate::gc::Collector;
 use crate::gc::GcReason;
 use crate::gc::{align_page_up, formatted_size, Address, Region, K};
 use crate::mem;
-use crate::object::{Obj, VtblptrKind};
+use crate::object::{Obj, VtblptrWordKind};
 use crate::os::{self, MemoryPermission, Reservation};
 use crate::safepoint;
 use crate::threads::DoraThread;
@@ -653,7 +653,7 @@ fn forward_minor(object: Address, young: Region) -> Option<Address> {
     if young.contains(object) {
         let obj = object.to_obj();
 
-        if let VtblptrKind::Forwarded(fwdptr) = obj.header().vtblptr() {
+        if let VtblptrWordKind::Fwdptr(fwdptr) = obj.header().vtblptr() {
             Some(fwdptr)
         } else {
             None
