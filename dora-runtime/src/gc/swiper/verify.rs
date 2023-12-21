@@ -84,8 +84,7 @@ pub struct Verifier<'a> {
     in_large: bool,
 
     young_total: Region,
-    from_active: Region,
-    to_active: Region,
+    to_committed: Region,
     reserved_area: Region,
     init_old_top: Address,
 
@@ -121,8 +120,7 @@ impl<'a> Verifier<'a> {
             in_old: false,
             in_large: false,
 
-            from_active: young.from_active(),
-            to_active: young.to_active(),
+            to_committed: young.to_committed(),
             young_total: young.total(),
             reserved_area,
 
@@ -139,7 +137,7 @@ impl<'a> Verifier<'a> {
     }
 
     fn verify_young(&mut self) {
-        let region = self.to_active.clone();
+        let region = self.to_committed.clone();
         self.verify_objects(region, "young gen (to)");
     }
 
@@ -379,7 +377,7 @@ impl<'a> Verifier<'a> {
         }
 
         if self.old_protected.contains(reference)
-            || self.to_active.contains(reference)
+            || self.to_committed.contains(reference)
             || self.readonly_space.contains(reference)
             || self.large.contains(reference)
         {
@@ -416,7 +414,7 @@ impl<'a> Verifier<'a> {
             println!("\tsource object of {:?} (size={})", cls.kind, size);
         }
 
-        if self.young.contains(reference) && !self.to_active.contains(reference) {
+        if self.young.contains(reference) && !self.to_committed.contains(reference) {
             println!("reference points into young generation but not into the active semi-space.");
 
             if self.young.from_total().contains(reference) {
@@ -448,16 +446,10 @@ impl<'a> Verifier<'a> {
             perm_region.size(),
         );
         println!(
-            "FRM: {}; active: {} (size 0x{:x})",
-            self.young.from_total(),
-            self.from_active,
-            self.from_active.size(),
-        );
-        println!(
             " TO: {}; active: {} (size 0x{:x})",
             self.young.to_total(),
-            self.to_active,
-            self.to_active.size(),
+            self.to_committed,
+            self.to_committed.size(),
         );
         println!(
             "OLD total: {}; (size 0x{:x})",
