@@ -123,7 +123,7 @@ impl Gc {
         self.readonly_space.alloc(size)
     }
 
-    pub fn alloc(&self, vm: &VM, size: usize, array_ref: bool) -> Address {
+    pub fn alloc(&self, vm: &VM, size: usize) -> Address {
         if vm.flags.gc_stress_minor {
             self.minor_collect(vm, GcReason::StressMinor);
         }
@@ -133,13 +133,13 @@ impl Gc {
         }
 
         if size < TLAB_OBJECT_SIZE && self.supports_tlab {
-            self.alloc_tlab(vm, size, array_ref)
+            self.alloc_tlab(vm, size)
         } else {
-            self.collector.alloc(vm, size, array_ref)
+            self.collector.alloc(vm, size)
         }
     }
 
-    fn alloc_tlab(&self, vm: &VM, size: usize, _array_ref: bool) -> Address {
+    fn alloc_tlab(&self, vm: &VM, size: usize) -> Address {
         // try to allocate in current tlab
         if let Some(addr) = tlab::allocate(size) {
             return addr;
@@ -197,7 +197,7 @@ impl Gc {
 trait Collector {
     // allocate object of given size
     fn alloc_tlab_area(&self, vm: &VM, size: usize) -> Option<Region>;
-    fn alloc(&self, vm: &VM, size: usize, array_ref: bool) -> Address;
+    fn alloc(&self, vm: &VM, size: usize) -> Address;
 
     // collect garbage
     fn collect(&self, vm: &VM, reason: GcReason);

@@ -1883,7 +1883,7 @@ impl<'a> CannonCodeGen<'a> {
         let gcpoint = self.create_gcpoint();
         let position = self.bytecode.offset_location(self.current_offset.to_u32());
         self.asm
-            .allocate(REG_RESULT.into(), alloc_size, position, false, gcpoint);
+            .allocate(REG_RESULT.into(), alloc_size, position, gcpoint);
 
         // store gc object in temporary storage
         self.emit_store_register(REG_RESULT.into(), dest);
@@ -1944,7 +1944,7 @@ impl<'a> CannonCodeGen<'a> {
         let gcpoint = self.create_gcpoint();
         let position = self.bytecode.offset_location(self.current_offset.to_u32());
         self.asm
-            .allocate(REG_RESULT.into(), alloc_size, position, false, gcpoint);
+            .allocate(REG_RESULT.into(), alloc_size, position, gcpoint);
 
         // store gc object in temporary storage
         self.emit_store_register(REG_RESULT.into(), dest);
@@ -2033,15 +2033,10 @@ impl<'a> CannonCodeGen<'a> {
             ),
         };
 
-        let array_ref = match class_instance.size {
-            InstanceSize::ObjArray => true,
-            _ => false,
-        };
-
         let gcpoint = self.create_gcpoint();
         let position = self.bytecode.offset_location(self.current_offset.to_u32());
         self.asm
-            .allocate(REG_RESULT.into(), alloc_size, position, array_ref, gcpoint);
+            .allocate(REG_RESULT.into(), alloc_size, position, gcpoint);
 
         // store gc object in temporary storage
         self.emit_store_register(REG_RESULT.into(), dest);
@@ -2196,7 +2191,6 @@ impl<'a> CannonCodeGen<'a> {
                     REG_TMP1.into(),
                     AllocationSize::Fixed(alloc_size),
                     position,
-                    false,
                     gcpoint,
                 );
 
@@ -2330,7 +2324,6 @@ impl<'a> CannonCodeGen<'a> {
             REG_TMP1.into(),
             AllocationSize::Fixed(alloc_size),
             position,
-            false,
             gcpoint,
         );
 
@@ -2411,7 +2404,6 @@ impl<'a> CannonCodeGen<'a> {
             object_reg,
             AllocationSize::Fixed(alloc_size),
             position,
-            false,
             gcpoint,
         );
 

@@ -783,7 +783,6 @@ impl<'a> BaselineAssembler<'a> {
         dest: Reg,
         size: AllocationSize,
         location: Location,
-        array_ref: bool,
         gcpoint: GcPoint,
     ) {
         match size {
@@ -796,12 +795,6 @@ impl<'a> BaselineAssembler<'a> {
                 self.masm.copy_reg(MachineMode::Ptr, REG_PARAMS[0], reg);
             }
         }
-
-        self.masm.load_int_const(
-            MachineMode::Int8,
-            REG_PARAMS[1],
-            if array_ref { 1 } else { 0 },
-        );
 
         let internal_fct = NativeFct {
             fctptr: Address::from_ptr(stdlib::gc_alloc as *const u8),
@@ -819,7 +812,6 @@ impl<'a> BaselineAssembler<'a> {
         dest: Reg,
         size: AllocationSize,
         location: Location,
-        array_ref: bool,
         gcpoint: GcPoint,
     ) {
         let lbl_slow_path = self.masm.create_label();
@@ -895,7 +887,6 @@ impl<'a> BaselineAssembler<'a> {
             dest,
             size,
             location,
-            array_ref,
             gcpoint,
         ));
     }
@@ -905,25 +896,24 @@ impl<'a> BaselineAssembler<'a> {
         dest: Reg,
         size: AllocationSize,
         location: Location,
-        array_ref: bool,
         gcpoint: GcPoint,
     ) {
         if self.vm.flags.disable_tlab {
-            self.gc_allocate(dest, size, location, array_ref, gcpoint);
+            self.gc_allocate(dest, size, location, gcpoint);
             return;
         }
 
         match size {
             AllocationSize::Fixed(fixed_size) => {
                 if fixed_size < TLAB_OBJECT_SIZE {
-                    self.tlab_allocate(dest, size, location, array_ref, gcpoint);
+                    self.tlab_allocate(dest, size, location, gcpoint);
                 } else {
-                    self.gc_allocate(dest, size, location, array_ref, gcpoint);
+                    self.gc_allocate(dest, size, location, gcpoint);
                 }
             }
 
             AllocationSize::Dynamic(_) => {
-                self.tlab_allocate(dest, size, location, array_ref, gcpoint);
+                self.tlab_allocate(dest, size, location, gcpoint);
             }
         }
     }
@@ -1038,11 +1028,10 @@ impl<'a> BaselineAssembler<'a> {
                     dest,
                     size,
                     pos,
-                    array_ref,
                     gcpoint,
                 ) => {
                     self.slow_path_tlab_allocation_failure(
-                        lbl_start, lbl_return, dest, size, pos, array_ref, gcpoint,
+                        lbl_start, lbl_return, dest, size, pos, gcpoint,
                     );
                 }
 
@@ -1085,12 +1074,11 @@ impl<'a> BaselineAssembler<'a> {
         dest: Reg,
         size: AllocationSize,
         location: Location,
-        array_ref: bool,
         gcpoint: GcPoint,
     ) {
         self.masm.bind_label(lbl_start);
         self.masm.emit_comment("slow path tlab allocation".into());
-        self.gc_allocate(dest, size, location, array_ref, gcpoint);
+        self.gc_allocate(dest, size, location, gcpoint);
         self.masm.jump(lbl_return);
     }
 
@@ -1213,7 +1201,7 @@ impl<'a> BaselineAssembler<'a> {
 }
 
 enum SlowPathKind {
-    TlabAllocationFailure(Label, Label, Reg, AllocationSize, Location, bool, GcPoint),
+    TlabAllocationFailure(Label, Label, Reg, AllocationSize, Location, GcPoint),
     StackOverflow(Label, Label, Location, GcPoint),
     Safepoint(Label, Label, Location, GcPoint),
     Assert(Label, Location),

@@ -142,7 +142,7 @@ impl YoungGen {
         fill_region(vm, top, protected.current_limit);
     }
 
-    pub fn bump_alloc(&self, size: usize) -> Address {
+    pub fn bump_alloc(&self, size: usize) -> Option<Address> {
         let mut protected = self.protected.lock();
         assert_eq!(
             protected.current_limit,
@@ -151,9 +151,9 @@ impl YoungGen {
         if let Some(alloc) = protected.raw_alloc(size) {
             assert!(alloc.is_non_null());
             fill_region_with(get_vm(), protected.top, protected.current_limit, false);
-            alloc
+            Some(alloc)
         } else {
-            Address::null()
+            None
         }
     }
 

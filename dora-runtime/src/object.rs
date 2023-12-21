@@ -299,16 +299,6 @@ impl Obj {
         visit_refs(self.address(), cls, None, f);
     }
 
-    pub fn visit_reference_fields_within<F>(&mut self, range: Region, f: F)
-    where
-        F: FnMut(Slot),
-    {
-        let classptr = self.header().vtbl().class_instance_ptr;
-        let cls = unsafe { &*classptr };
-
-        visit_refs(self.address(), cls, Some(range), f);
-    }
-
     // TODO: Remove this inline-annotation. It is only required to silence a
     // ASAN failure.
     #[inline(never)]
@@ -640,7 +630,7 @@ fn byte_array_alloc_heap(vm: &VM, len: usize) -> Ref<UInt8Array> {
                 + len; // array content
 
     let size = mem::align_usize(size, mem::ptr_width() as usize);
-    let ptr = vm.gc.alloc(vm, size, false);
+    let ptr = vm.gc.alloc(vm, size);
 
     let clsid = vm.byte_array();
     let cls = vm.class_instances.idx(clsid);
@@ -657,7 +647,7 @@ fn byte_array_alloc_heap(vm: &VM, len: usize) -> Ref<UInt8Array> {
 }
 
 fn str_alloc_heap(vm: &VM, len: usize) -> Ref<Str> {
-    str_alloc(vm, len, |vm, size| vm.gc.alloc(vm, size, false))
+    str_alloc(vm, len, |vm, size| vm.gc.alloc(vm, size))
 }
 
 fn str_alloc_perm(vm: &VM, len: usize) -> Ref<Str> {
@@ -779,7 +769,7 @@ where
                    + mem::ptr_width() as usize    // length field
                    + len * std::mem::size_of::<T>(); // array content
 
-        let ptr = vm.gc.alloc(vm, size, T::REF).to_usize();
+        let ptr = vm.gc.alloc(vm, size).to_usize();
         let cls = vm.class_instances.idx(clsid);
         let vtable = cls.vtable.read();
         let vtable: &VTable = vtable.as_ref().unwrap();
@@ -822,7 +812,7 @@ pub fn alloc(vm: &VM, clsid: ClassInstanceId) -> Ref<Obj> {
 
     let size = mem::align_usize(size, mem::ptr_width() as usize);
 
-    let ptr = vm.gc.alloc(vm, size, false).to_usize();
+    let ptr = vm.gc.alloc(vm, size).to_usize();
     let vtable = cls_def.vtable.read();
     let vtable: &VTable = vtable.as_ref().unwrap();
     let object: Ref<Obj> = ptr.into();

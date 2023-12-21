@@ -380,19 +380,17 @@ impl Swiper {
         }
     }
 
-    fn alloc_normal(&self, vm: &VM, size: usize, _array_ref: bool) -> Address {
-        let ptr = self.young.bump_alloc(size);
-
-        if !ptr.is_null() {
-            return ptr;
+    fn alloc_normal(&self, vm: &VM, size: usize) -> Address {
+        if let Some(address) = self.young.bump_alloc(size) {
+            return address;
         }
 
         self.perform_collection_and_choose(vm, GcReason::AllocationFailure);
 
-        self.young.bump_alloc(size)
+        self.young.bump_alloc(size).unwrap_or(Address::null())
     }
 
-    fn alloc_large(&self, vm: &VM, size: usize, _: bool) -> Address {
+    fn alloc_large(&self, vm: &VM, size: usize) -> Address {
         let ptr = self.large.alloc(size);
 
         if !ptr.is_null() {
@@ -411,35 +409,30 @@ impl Collector for Swiper {
     }
 
     fn alloc_tlab_area(&self, vm: &VM, size: usize) -> Option<Region> {
-        let ptr = self.young.bump_alloc(size);
-
-        if !ptr.is_null() {
-            return Some(ptr.region_start(size));
+        if let Some(address) = self.young.bump_alloc(size) {
+            return Some(address.region_start(size));
         }
 
         self.perform_collection_and_choose(vm, GcReason::AllocationFailure);
 
-        let ptr = self.young.bump_alloc(size);
-
-        if !ptr.is_null() {
-            return Some(ptr.region_start(size));
+        if let Some(address) = self.young.bump_alloc(size) {
+            return Some(address.region_start(size));
         }
 
         self.perform_collection(vm, CollectionKind::Full, GcReason::AllocationFailure);
-        let ptr = self.young.bump_alloc(size);
 
-        return if ptr.is_null() {
-            None
-        } else {
-            Some(ptr.region_start(size))
-        };
+        if let Some(address) = self.young.bump_alloc(size) {
+            return Some(address.region_start(size));
+        }
+
+        None
     }
 
-    fn alloc(&self, vm: &VM, size: usize, array_ref: bool) -> Address {
+    fn alloc(&self, vm: &VM, size: usize) -> Address {
         if size < LARGE_OBJECT_SIZE {
-            self.alloc_normal(vm, size, array_ref)
+            self.alloc_normal(vm, size)
         } else {
-            self.alloc_large(vm, size, array_ref)
+            self.alloc_large(vm, size)
         }
     }
 

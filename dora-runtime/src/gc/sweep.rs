@@ -67,7 +67,7 @@ impl Collector for SweepCollector {
         }
     }
 
-    fn alloc(&self, vm: &VM, size: usize, _array_ref: bool) -> Address {
+    fn alloc(&self, vm: &VM, size: usize) -> Address {
         let ptr = self.inner_alloc(vm, size);
 
         if ptr.is_non_null() {
