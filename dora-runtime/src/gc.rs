@@ -282,11 +282,6 @@ impl Address {
     }
 
     #[inline(always)]
-    pub fn to_mut_obj(self) -> &'static mut Obj {
-        unsafe { &mut *self.to_mut_ptr::<Obj>() }
-    }
-
-    #[inline(always)]
     pub fn to_obj(self) -> &'static Obj {
         unsafe { &*self.to_mut_ptr::<Obj>() }
     }

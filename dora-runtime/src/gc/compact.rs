@@ -175,7 +175,7 @@ impl<'a> MarkCompact<'a> {
         self.walk_heap(|mc, object, _addr, object_size| {
             if object.header().is_marked() {
                 let fwd = mc.allocate(object_size);
-                object.header_mut().set_fwdptr(fwd);
+                object.header().set_fwdptr(fwd);
             }
         });
     }
@@ -202,7 +202,7 @@ impl<'a> MarkCompact<'a> {
         });
 
         iterate_weak_roots(self.vm, |current_address| {
-            let obj = current_address.to_mut_obj();
+            let obj = current_address.to_obj();
 
             if obj.header().is_marked() {
                 let new_address = obj.header().fwdptr();
@@ -246,15 +246,15 @@ impl<'a> MarkCompact<'a> {
                 }
 
                 // unmark object for next collection
-                let dest_obj = dest.to_mut_obj();
-                dest_obj.header_mut().unmark();
+                let dest_obj = dest.to_obj();
+                dest_obj.header().unmark();
             }
         });
     }
 
     fn walk_heap<F>(&mut self, mut fct: F)
     where
-        F: FnMut(&mut MarkCompact, &mut Obj, Address, usize),
+        F: FnMut(&mut MarkCompact, &Obj, Address, usize),
     {
         let start = self.heap.start;
         let end = self.init_top;
@@ -262,9 +262,9 @@ impl<'a> MarkCompact<'a> {
         let mut scan = start;
 
         while scan < end {
-            let object = scan.to_mut_obj();
+            let object = scan.to_obj();
 
-            if object.header().vtblptr().is_null() {
+            if object.header().raw_vtblptr().is_null() {
                 scan = scan.add_ptr(1);
                 continue;
             }

@@ -27,10 +27,10 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region, threadpool: &mut Pool
         let root_ptr = root.get();
 
         if heap.contains(root_ptr) {
-            let root_obj = root_ptr.to_mut_obj();
+            let root_obj = root_ptr.to_obj();
 
             if !root_obj.header().is_marked() {
-                root_obj.header_mut().mark();
+                root_obj.header().mark();
                 injector.push(root_ptr);
             }
         } else {
@@ -215,7 +215,7 @@ impl<'a> MarkingTask<'a> {
                 continue;
             };
 
-            let object = object_addr.to_mut_obj();
+            let object = object_addr.to_obj();
 
             object.visit_reference_fields(|field| {
                 self.trace(field);
@@ -227,7 +227,7 @@ impl<'a> MarkingTask<'a> {
         let field_addr = slot.get();
 
         if self.heap_region.contains(field_addr) {
-            let field_obj = field_addr.to_mut_obj();
+            let field_obj = field_addr.to_obj();
 
             if field_obj.header().try_mark() {
                 if self.local.has_capacity() {

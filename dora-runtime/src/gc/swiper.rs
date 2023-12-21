@@ -19,7 +19,7 @@ use crate::gc::Collector;
 use crate::gc::GcReason;
 use crate::gc::{align_page_up, formatted_size, Address, Region, K};
 use crate::mem;
-use crate::object::Obj;
+use crate::object::{Obj, VtblptrKind};
 use crate::os::{self, MemoryPermission, Reservation};
 use crate::safepoint;
 use crate::threads::DoraThread;
@@ -604,14 +604,14 @@ impl fmt::Display for CollectionKind {
 
 pub fn walk_region<F>(region: Region, mut fct: F)
 where
-    F: FnMut(&mut Obj, Address, usize),
+    F: FnMut(&Obj, Address, usize),
 {
     let mut scan = region.start;
 
     while scan < region.end {
-        let object = scan.to_mut_obj();
+        let object = scan.to_obj();
 
-        if object.header().vtblptr().is_null() {
+        if object.header().raw_vtblptr().is_null() {
             scan = scan.add_ptr(1);
             continue;
         }
@@ -631,7 +631,7 @@ pub trait CommonOldGen {
 
 fn forward_full(object: Address, heap: Region, perm: Region, large: Region) -> Option<Address> {
     if heap.contains(object) {
-        let obj = object.to_mut_obj();
+        let obj = object.to_obj();
 
         if obj.header().is_marked() {
             if large.contains(object) {
@@ -651,10 +651,10 @@ fn forward_full(object: Address, heap: Region, perm: Region, large: Region) -> O
 
 fn forward_minor(object: Address, young: Region) -> Option<Address> {
     if young.contains(object) {
-        let obj = object.to_mut_obj();
+        let obj = object.to_obj();
 
-        if let Some(new_address) = obj.header().vtblptr_forwarded() {
-            Some(new_address)
+        if let VtblptrKind::Forwarded(fwdptr) = obj.header().vtblptr() {
+            Some(fwdptr)
         } else {
             None
         }

@@ -84,7 +84,7 @@ impl CodeSpace {
             let code_header = unsafe { &mut *code_header };
             code_header.drop_native_code_object();
 
-            let object = current.to_mut_obj();
+            let object = current.to_obj();
             current = current.offset(object.size())
         }
 

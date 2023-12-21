@@ -188,7 +188,7 @@ impl<'a> FullCollector<'a> {
 
         iterate_weak_roots(self.vm, |object_address| {
             if self.heap.contains(object_address) {
-                let obj = object_address.to_mut_obj();
+                let obj = object_address.to_obj();
 
                 if obj.header().is_marked() {
                     Some(object_address)
@@ -206,7 +206,7 @@ impl<'a> FullCollector<'a> {
         self.walk_old_and_young(|full, object, _address, object_size| {
             if object.header().is_marked() {
                 let fwd = full.allocate(object_size);
-                object.header_mut().set_fwdptr(fwd);
+                object.header().set_fwdptr(fwd);
             }
         });
 
@@ -248,7 +248,7 @@ impl<'a> FullCollector<'a> {
         });
 
         self.large_space.remove_objects(|object_start| {
-            let object = object_start.to_mut_obj();
+            let object = object_start.to_obj();
 
             // reset cards for object, also do this for dead objects
             // to reset card entries to clean.
@@ -260,7 +260,7 @@ impl<'a> FullCollector<'a> {
                 });
 
                 // unmark object for next collection
-                object.header_mut().unmark();
+                object.header().unmark();
 
                 // keep object
                 false
@@ -301,8 +301,8 @@ impl<'a> FullCollector<'a> {
                 }
 
                 // unmark object for next collection
-                let dest_obj = dest.to_mut_obj();
-                dest_obj.header_mut().unmark();
+                let dest_obj = dest.to_obj();
+                dest_obj.header().unmark();
 
                 full.old.update_crossing(dest, next_dest);
             }
@@ -338,7 +338,7 @@ impl<'a> FullCollector<'a> {
 
     fn walk_old_and_young<F>(&mut self, mut fct: F)
     where
-        F: FnMut(&mut FullCollector, &mut Obj, Address, usize),
+        F: FnMut(&mut FullCollector, &Obj, Address, usize),
     {
         let pages = self.old_protected.pages.clone();
         let mut last = self.old.total_start();
@@ -419,7 +419,7 @@ fn verify_marking_region(region: Region, heap: Region) {
 }
 
 fn verify_marking_object(obj_address: Address, heap: Region) {
-    let obj = obj_address.to_mut_obj();
+    let obj = obj_address.to_obj();
 
     if obj.header().is_marked() {
         obj.visit_reference_fields(|field| {

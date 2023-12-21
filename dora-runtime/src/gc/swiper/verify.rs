@@ -180,9 +180,9 @@ impl<'a> Verifier<'a> {
         self.refs_to_young_gen = 0;
 
         while curr < region.end {
-            let object = curr.to_mut_obj();
+            let object = curr.to_obj();
 
-            if object.header().vtblptr().is_null() {
+            if object.header().raw_vtblptr().is_null() {
                 assert!(
                     !self.in_large,
                     "large object space should not have null filler"
@@ -236,13 +236,7 @@ impl<'a> Verifier<'a> {
         }
     }
 
-    fn verify_object(
-        &mut self,
-        object: &mut Obj,
-        object_address: Address,
-        region: Region,
-        name: &str,
-    ) {
+    fn verify_object(&mut self, object: &Obj, object_address: Address, region: Region, name: &str) {
         object.visit_reference_fields(|child| {
             self.verify_reference(child, object_address, name);
         });

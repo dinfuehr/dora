@@ -18,7 +18,7 @@ use crate::vtable::VTable;
 #[repr(C)]
 pub struct Header {
     // ptr to class
-    vtable: AtomicUsize,
+    vtable: VtblptrWord,
 
     // forwarding ptr
     // (used during mark-compact)
@@ -80,18 +80,92 @@ impl MetadataWord {
     }
 }
 
+const FWDPTR_BIT: usize = 1;
+
+struct VtblptrWord(AtomicUsize);
+
+impl VtblptrWord {
+    fn new() -> VtblptrWord {
+        VtblptrWord(AtomicUsize::new(0))
+    }
+
+    pub fn raw(&self) -> usize {
+        self.0.load(Ordering::Relaxed)
+    }
+
+    pub fn set_raw(&self, value: usize) {
+        self.0.store(value, Ordering::Relaxed);
+    }
+
+    pub fn install_fwdptr(&self, value: Address) {
+        self.set_raw(value.to_usize() | FWDPTR_BIT);
+    }
+
+    pub fn load(&self) -> VtblptrKind {
+        let value = self.raw();
+
+        if (value & FWDPTR_BIT) != 0 {
+            VtblptrKind::Forwarded((value & !FWDPTR_BIT).into())
+        } else {
+            VtblptrKind::Vtblptr(value.into())
+        }
+    }
+
+    pub fn try_install_fwdptr(
+        &self,
+        expected_vtblptr: Address,
+        new_address: Address,
+    ) -> ForwardResult {
+        let fwd = new_address.to_usize() | 1;
+        let result = self.0.compare_exchange(
+            expected_vtblptr.to_usize(),
+            fwd,
+            Ordering::Relaxed,
+            Ordering::Relaxed,
+        );
+
+        match result {
+            Ok(value) => {
+                assert_eq!(value, expected_vtblptr.to_usize());
+                ForwardResult::Forwarded
+            }
+
+            Err(forwarding_ptr) => {
+                // If update fails, this needs to be a forwarding pointer
+                debug_assert!((forwarding_ptr | 1) != 0);
+
+                if (forwarding_ptr & 3) == 3 {
+                    ForwardResult::AlreadyForwarded(Address::from_ptr(self as *const _))
+                } else {
+                    ForwardResult::AlreadyForwarded((forwarding_ptr & !1).into())
+                }
+            }
+        }
+    }
+}
+
+pub enum ForwardResult {
+    Forwarded,
+    AlreadyForwarded(Address),
+}
+
+pub enum VtblptrKind {
+    Vtblptr(Address),
+    Forwarded(Address),
+}
+
 impl Header {
     #[cfg(test)]
     fn new() -> Header {
         Header {
-            vtable: AtomicUsize::new(0),
+            vtable: VtblptrWord::new(),
             metadata: MetadataWord::new(),
         }
     }
 
     pub fn zero() -> Header {
         Header {
-            vtable: AtomicUsize::new(0),
+            vtable: VtblptrWord::new(),
             metadata: MetadataWord::new(),
         }
     }
@@ -108,124 +182,37 @@ impl Header {
 
     #[inline(always)]
     pub fn vtbl(&self) -> &mut VTable {
-        unsafe { &mut *self.vtblptr().to_mut_ptr::<VTable>() }
+        unsafe { &mut *self.raw_vtblptr().to_mut_ptr::<VTable>() }
     }
 
     #[inline(always)]
-    pub fn vtblptr(&self) -> Address {
-        self.vtable.load(Ordering::Relaxed).into()
+    pub fn raw_vtblptr(&self) -> Address {
+        self.vtable.raw().into()
     }
 
     #[inline(always)]
-    pub fn set_vtblptr(&mut self, addr: Address) {
-        self.vtable.store(addr.to_usize(), Ordering::Relaxed);
+    pub fn set_vtblptr(&self, addr: Address) {
+        self.vtable.set_raw(addr.to_usize());
     }
 
     #[inline(always)]
-    pub fn vtblptr_forward(&mut self, address: Address) {
-        self.vtable.store(address.to_usize() | 1, Ordering::Relaxed);
+    pub fn install_fwdptr(&self, address: Address) {
+        self.vtable.install_fwdptr(address);
     }
 
     #[inline(always)]
-    pub fn vtblptr_forwarded(&self) -> Option<Address> {
-        let addr = self.vtable.load(Ordering::Relaxed);
-
-        if (addr & 1) == 1 {
-            Some((addr & !1).into())
-        } else {
-            None
-        }
-    }
-
-    pub fn vtblptr_repair(&mut self) {
-        let addr = self.vtable.load(Ordering::Relaxed);
-
-        if (addr & 3) == 3 {
-            // forwarding failed
-            let vtblptr = (addr & !3).into();
-            self.set_vtblptr(vtblptr);
-        } else if (addr & 1) == 1 {
-            // object was forwarded
-            let fwd: Address = (addr & !1).into();
-            let fwd = fwd.to_obj();
-            let vtblptr = fwd.header().vtblptr();
-
-            self.set_vtblptr(vtblptr);
-        } else {
-            // nothing to do
-        }
+    pub fn vtblptr(&self) -> VtblptrKind {
+        self.vtable.load()
     }
 
     #[inline(always)]
-    pub fn has_forwarding_pointer(&self) -> Result<Address, Address> {
-        let addr = self.vtable.load(Ordering::Relaxed);
-
-        if (addr & 3) == 3 {
-            Ok(Address::from_ptr(self as *const _))
-        } else if (addr & 1) == 1 {
-            Ok((addr & !1).into())
-        } else {
-            Err(addr.into())
-        }
-    }
-
-    #[inline(always)]
-    pub fn forward_synchronized(
-        &mut self,
+    pub fn try_install_fwdptr(
+        &self,
         expected_vtblptr: Address,
         new_address: Address,
-    ) -> Result<Address, Address> {
-        let fwd = new_address.to_usize() | 1;
-        let result = self.vtable.compare_exchange(
-            expected_vtblptr.to_usize(),
-            fwd,
-            Ordering::Relaxed,
-            Ordering::Relaxed,
-        );
-
-        match result {
-            Ok(value) => {
-                assert_eq!(value, expected_vtblptr.to_usize());
-                Ok(new_address)
-            }
-
-            Err(forwarding_ptr) => {
-                // If update fails, this needs to be a forwarding pointer
-                debug_assert!((forwarding_ptr | 1) != 0);
-
-                if (forwarding_ptr & 3) == 3 {
-                    Err(Address::from_ptr(self as *const _))
-                } else {
-                    Err((forwarding_ptr & !1).into())
-                }
-            }
-        }
-    }
-
-    #[inline(always)]
-    pub fn forwarding_failed(&mut self, expected_vtblptr: Address) -> Result<(), Address> {
-        let fwd = expected_vtblptr.to_usize() | 3;
-        let result = self.vtable.compare_exchange(
-            expected_vtblptr.to_usize(),
-            fwd,
-            Ordering::Relaxed,
-            Ordering::Relaxed,
-        );
-
-        match result {
-            Ok(_) => Ok(()),
-
-            Err(forwarding_ptr) => {
-                // If update fails, this needs to be a forwarding pointer
-                debug_assert!((forwarding_ptr | 1) != 0);
-
-                if (forwarding_ptr & 3) == 3 {
-                    Err(Address::from_ptr(self as *const _))
-                } else {
-                    Err((forwarding_ptr & !1).into())
-                }
-            }
-        }
+    ) -> ForwardResult {
+        self.vtable
+            .try_install_fwdptr(expected_vtblptr, new_address)
     }
 
     #[inline(always)]
@@ -239,17 +226,17 @@ impl Header {
     }
 
     #[inline(always)]
-    pub fn set_fwdptr(&mut self, addr: Address) {
+    pub fn set_fwdptr(&self, addr: Address) {
         self.metadata.set_fwdptr(addr);
     }
 
     #[inline(always)]
-    pub fn mark(&mut self) {
+    pub fn mark(&self) {
         self.metadata.mark();
     }
 
     #[inline(always)]
-    pub fn unmark(&mut self) {
+    pub fn unmark(&self) {
         self.metadata.unmark();
     }
 
@@ -283,11 +270,6 @@ impl Obj {
     }
 
     #[inline(always)]
-    pub fn header_mut(&mut self) -> &mut Header {
-        &mut self.header
-    }
-
-    #[inline(always)]
     pub fn data(&self) -> *const u8 {
         &self.data as *const u8
     }
@@ -304,10 +286,10 @@ impl Obj {
     }
 
     pub fn size(&self) -> usize {
-        self.size_for_vtblptr(self.header().vtblptr())
+        self.size_for_vtblptr(self.header().raw_vtblptr())
     }
 
-    pub fn visit_reference_fields<F>(&mut self, f: F)
+    pub fn visit_reference_fields<F>(&self, f: F)
     where
         F: FnMut(Slot),
     {
@@ -843,11 +825,11 @@ pub fn alloc(vm: &VM, clsid: ClassInstanceId) -> Ref<Obj> {
     let ptr = vm.gc.alloc(vm, size, false).to_usize();
     let vtable = cls_def.vtable.read();
     let vtable: &VTable = vtable.as_ref().unwrap();
-    let mut handle: Ref<Obj> = ptr.into();
-    handle.header_mut().set_vtblptr(Address::from_ptr(vtable));
-    handle.header_mut().initialize_metadata();
+    let object: Ref<Obj> = ptr.into();
+    object.header().set_vtblptr(Address::from_ptr(vtable));
+    object.header().initialize_metadata();
 
-    handle
+    object
 }
 
 pub struct Stacktrace {
@@ -868,7 +850,7 @@ mod tests {
 
     #[test]
     fn header_markbit() {
-        let mut h = Header::new();
+        let h = Header::new();
         h.set_fwdptr(8.into());
         assert_eq!(false, h.is_marked());
         assert_eq!(8, h.fwdptr().to_usize());

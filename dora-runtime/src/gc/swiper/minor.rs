@@ -17,7 +17,7 @@ use crate::gc::{
     fill_region, fill_region_with, iterate_weak_roots, Address, GcReason, GenerationAllocator,
     Region,
 };
-use crate::object::Obj;
+use crate::object::{ForwardResult, Obj, VtblptrKind};
 use crate::threads::DoraThread;
 use crate::timer::Timer;
 use crate::vm::VM;
@@ -286,29 +286,6 @@ impl<'a> MinorCollector<'a> {
         self.copied_size = copied_size.load(Ordering::Relaxed);
     }
 
-    fn remove_forwarding_pointers(&mut self) {
-        let region = self.from_active.clone();
-        self.remove_forwarding_pointers_in_region(region);
-    }
-
-    fn remove_forwarding_pointers_in_region(&mut self, region: Region) {
-        let mut scan = region.start;
-
-        while scan < region.end {
-            let obj = scan.to_mut_obj();
-
-            if obj.header().vtblptr().is_null() {
-                scan = scan.add_ptr(1);
-                continue;
-            }
-
-            obj.header_mut().vtblptr_repair();
-            scan = scan.offset(obj.size());
-        }
-
-        assert!(scan == region.end);
-    }
-
     fn iterate_weak_refs(&mut self) {
         iterate_weak_roots(self.vm, |current_address| {
             forward_minor(current_address, self.young.total())
@@ -503,7 +480,7 @@ impl<'a> CopyTask<'a> {
     fn visit_dirty_cards_in_large(&mut self) {
         loop {
             if let Some(addr) = self.next_large() {
-                let object = addr.to_mut_obj();
+                let object = addr.to_obj();
 
                 self.visit_large_object(object, addr);
             } else {
@@ -527,7 +504,7 @@ impl<'a> CopyTask<'a> {
         Some(object)
     }
 
-    fn visit_large_object(&mut self, object: &mut Obj, object_start: Address) {
+    fn visit_large_object(&mut self, object: &Obj, object_start: Address) {
         let card_idx = self.card_table.card_idx(object_start);
         let mut ref_to_young_gen = false;
 
@@ -638,9 +615,9 @@ impl<'a> CopyTask<'a> {
         ref_to_young_gen: &mut bool,
     ) -> Address {
         while ptr < end {
-            let object = ptr.to_mut_obj();
+            let object = ptr.to_obj();
 
-            if object.header().vtblptr().is_null() {
+            if object.header().raw_vtblptr().is_null() {
                 ptr = ptr.add_ptr(1);
                 continue;
             }
@@ -695,7 +672,7 @@ impl<'a> CopyTask<'a> {
     }
 
     fn trace_young_object(&mut self, object_addr: Address) {
-        let object = object_addr.to_mut_obj();
+        let object = object_addr.to_obj();
 
         object.visit_reference_fields(|slot| {
             let object_addr = slot.get();
@@ -707,7 +684,7 @@ impl<'a> CopyTask<'a> {
     }
 
     fn trace_old_object(&mut self, object_addr: Address) {
-        let object = object_addr.to_mut_obj();
+        let object = object_addr.to_obj();
 
         let mut ref_to_young_gen = false;
 
@@ -884,15 +861,15 @@ impl<'a> CopyTask<'a> {
     }
 
     fn copy_object(&mut self, obj_addr: Address) -> Address {
-        let obj = obj_addr.to_mut_obj();
+        let obj = obj_addr.to_obj();
 
         // Check if object was already copied
-        let vtblptr = match obj.header().has_forwarding_pointer() {
-            Ok(fwd_addr) => {
+        let vtblptr = match obj.header().vtblptr() {
+            VtblptrKind::Forwarded(fwd_addr) => {
                 return fwd_addr;
             }
 
-            Err(vtblptr) => vtblptr,
+            VtblptrKind::Vtblptr(vtblptr) => vtblptr,
         };
 
         let obj_size = obj.size_for_vtblptr(vtblptr);
@@ -923,28 +900,23 @@ impl<'a> CopyTask<'a> {
         }
 
         obj.copy_to(copy_addr, obj_size);
-        let res = obj.header_mut().forward_synchronized(vtblptr, copy_addr);
+        let res = obj.header().try_install_fwdptr(vtblptr, copy_addr);
 
         match res {
-            Ok(copy_addr) => {
+            ForwardResult::Forwarded => {
                 self.copied_size += obj_size;
                 self.push(copy_addr);
                 copy_addr
             }
 
-            Err(fwdptr) => {
+            ForwardResult::AlreadyForwarded(actual_new_address) => {
                 self.undo_alloc_young(copy_addr, obj_size);
-                fwdptr
+                actual_new_address
             }
         }
     }
 
-    fn promote_object(
-        &mut self,
-        vtblptr: Address,
-        obj: &mut Obj,
-        obj_size: usize,
-    ) -> Option<Address> {
+    fn promote_object(&mut self, vtblptr: Address, obj: &Obj, obj_size: usize) -> Option<Address> {
         let copy_addr = self.alloc_old(obj_size);
 
         // if there isn't enough space in old gen keep it in the
@@ -955,20 +927,20 @@ impl<'a> CopyTask<'a> {
         }
 
         obj.copy_to(copy_addr, obj_size);
-        let res = obj.header_mut().forward_synchronized(vtblptr, copy_addr);
+        let res = obj.header().try_install_fwdptr(vtblptr, copy_addr);
 
         match res {
-            Ok(copy_addr) => {
+            ForwardResult::Forwarded => {
                 self.promoted_size += obj_size;
                 self.push(copy_addr);
 
                 Some(copy_addr)
             }
 
-            Err(fwdptr) => {
+            ForwardResult::AlreadyForwarded(actual_new_address) => {
                 self.undo_alloc_old(copy_addr, obj_size);
 
-                Some(fwdptr)
+                Some(actual_new_address)
             }
         }
     }

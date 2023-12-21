@@ -193,7 +193,7 @@ impl<'a> MarkSweep<'a> {
 
     fn iterate_weak_refs(&mut self) {
         iterate_weak_roots(self.vm, |current_address| {
-            let obj = current_address.to_mut_obj();
+            let obj = current_address.to_obj();
 
             if obj.header().is_marked() {
                 Some(current_address)
@@ -211,9 +211,9 @@ impl<'a> MarkSweep<'a> {
         let mut garbage_start = Address::null();
 
         while scan < end {
-            let object = scan.to_mut_obj();
+            let object = scan.to_obj();
 
-            if object.header().vtblptr().is_null() {
+            if object.header().raw_vtblptr().is_null() {
                 scan = scan.add_ptr(1);
                 continue;
             }
@@ -223,7 +223,7 @@ impl<'a> MarkSweep<'a> {
             if object.header().is_marked() {
                 self.add_freelist(garbage_start, scan);
                 garbage_start = Address::null();
-                object.header_mut().unmark();
+                object.header().unmark();
             } else if garbage_start.is_non_null() {
                 // more garbage, do nothing
             } else {

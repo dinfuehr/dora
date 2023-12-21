@@ -8,11 +8,11 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region) {
         let root_ptr = root.get();
 
         if heap.contains(root_ptr) {
-            let root_obj = root_ptr.to_mut_obj();
+            let root_obj = root_ptr.to_obj();
 
             if !root_obj.header().is_marked() {
                 marking_stack.push(root_ptr);
-                root_obj.header_mut().mark();
+                root_obj.header().mark();
             }
         } else {
             debug_assert!(root_ptr.is_null() || perm.contains(root_ptr));
@@ -21,17 +21,17 @@ pub fn start(rootset: &[Slot], heap: Region, perm: Region) {
 
     while marking_stack.len() > 0 {
         let object_addr = marking_stack.pop().expect("stack already empty");
-        let object = object_addr.to_mut_obj();
+        let object = object_addr.to_obj();
 
         object.visit_reference_fields(|field| {
             let field_addr = field.get();
 
             if heap.contains(field_addr) {
-                let field_obj = field_addr.to_mut_obj();
+                let field_obj = field_addr.to_obj();
 
                 if !field_obj.header().is_marked() {
                     marking_stack.push(field_addr);
-                    field_obj.header_mut().mark();
+                    field_obj.header().mark();
                 }
             } else {
                 debug_assert!(field_addr.is_null() || perm.contains(field_addr));

@@ -9,7 +9,7 @@ use crate::gc::{
     GcReason, Region,
 };
 use crate::mem;
-use crate::object::Obj;
+use crate::object::{Obj, VtblptrKind};
 use crate::os::{self, MemoryPermission};
 use crate::safepoint;
 use crate::threads::DoraThread;
@@ -164,7 +164,7 @@ impl CopyCollector {
         });
 
         while scan < top {
-            let object: &mut Obj = scan.to_mut_obj();
+            let object: &Obj = scan.to_obj();
 
             object.visit_reference_fields(|field| {
                 let field_ptr = field.get();
@@ -211,9 +211,9 @@ impl CopyCollector {
     fn iterate_weak_roots(&self, vm: &VM) {
         iterate_weak_roots(vm, |current_address| {
             debug_assert!(self.from_space().contains(current_address));
-            let obj = current_address.to_mut_obj();
+            let obj = current_address.to_obj();
 
-            if let Some(new_address) = obj.header().vtblptr_forwarded() {
+            if let VtblptrKind::Forwarded(new_address) = obj.header().vtblptr() {
                 debug_assert!(self.to_space().contains(new_address));
                 Some(new_address)
             } else {
@@ -223,9 +223,9 @@ impl CopyCollector {
     }
 
     fn copy(&self, obj_addr: Address, top: &mut Address) -> Address {
-        let obj = obj_addr.to_mut_obj();
+        let obj = obj_addr.to_obj();
 
-        if let Some(fwd) = obj.header().vtblptr_forwarded() {
+        if let VtblptrKind::Forwarded(fwd) = obj.header().vtblptr() {
             return fwd;
         }
 
@@ -235,7 +235,7 @@ impl CopyCollector {
         obj.copy_to(addr, obj_size);
         *top = top.offset(obj_size);
 
-        obj.header_mut().vtblptr_forward(addr);
+        obj.header().install_fwdptr(addr);
 
         addr
     }
