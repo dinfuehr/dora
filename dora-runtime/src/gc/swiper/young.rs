@@ -134,15 +134,10 @@ impl YoungGen {
     }
 
     pub fn reset_after_minor_gc(&self, top: Address) {
-        let vm = get_vm();
-        let from_committed = self.from_committed();
-        fill_region(vm, from_committed.start(), from_committed.end());
-        self.protect_from();
-
         let mut protected = self.protected.lock();
         protected.top = top;
         protected.age_marker = top;
-        fill_region(vm, top, protected.current_limit);
+        fill_region(get_vm(), top, protected.current_limit);
     }
 
     pub fn bump_alloc(&self, size: usize) -> Option<Address> {

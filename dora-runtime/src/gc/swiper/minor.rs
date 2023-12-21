@@ -133,6 +133,7 @@ impl<'a> MinorCollector<'a> {
         self.iterate_weak_refs();
 
         self.young.reset_after_minor_gc(self.young_top);
+        self.young.protect_from();
 
         let mut config = self.config.lock();
         config.minor_promoted = self.promoted_size;
