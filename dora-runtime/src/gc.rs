@@ -586,20 +586,15 @@ pub fn fill_region_with(vm: &VM, start: Address, end: Address, clear: bool) {
         }
     } else if end.offset_from(start) == Header::size() as usize {
         // fill with object
-        let cls_id = vm.known.free_object_class_instance();
-        let cls = vm.class_instances.idx(cls_id);
-        let vtable = cls.vtable.read();
-        let vtable: &VTable = vtable.as_ref().unwrap();
+        let vtable = vm.known.free_object_class_address();
 
         unsafe {
-            *start.to_mut_ptr::<usize>() = Address::from_ptr(vtable).to_usize();
+            *start.to_mut_ptr::<usize>() = vtable.to_usize();
+            *start.add_ptr(1).to_mut_ptr::<usize>() = 0;
         }
     } else {
         // fill with free array
-        let cls_id = vm.known.free_array_class_instance();
-        let cls = vm.class_instances.idx(cls_id);
-        let vtable = cls.vtable.read();
-        let vtable: &VTable = vtable.as_ref().unwrap();
+        let vtable = vm.known.free_array_class_address();
 
         // determine of header+length in bytes
         let header_size = Header::size() as usize + mem::ptr_width_usize();
@@ -608,7 +603,7 @@ pub fn fill_region_with(vm: &VM, start: Address, end: Address, clear: bool) {
         let length: usize = end.offset_from(start.offset(header_size)) / mem::ptr_width_usize();
 
         unsafe {
-            *start.to_mut_ptr::<usize>() = Address::from_ptr(vtable).to_usize();
+            *start.to_mut_ptr::<usize>() = vtable.to_usize();
             *start.offset(mem::ptr_width_usize()).to_mut_ptr::<usize>() = 0;
             *start.offset(Header::size() as usize).to_mut_ptr::<usize>() = length;
 

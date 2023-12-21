@@ -1,5 +1,6 @@
 use parking_lot::Mutex;
 
+use crate::gc::Address;
 use crate::vm::ClassInstanceId;
 use dora_bytecode::{ClassId, FunctionId, TraitId};
 
@@ -13,6 +14,9 @@ pub struct KnownElements {
     pub free_object_class_instance_id: Option<ClassInstanceId>,
     pub free_array_class_instance_id: Option<ClassInstanceId>,
     pub code_class_instance_id: Option<ClassInstanceId>,
+
+    pub free_object_class_address: Address,
+    pub free_array_class_address: Address,
 
     pub zero_trait_id: Option<TraitId>,
     pub array_class_id: Option<ClassId>,
@@ -35,6 +39,9 @@ impl KnownElements {
             free_array_class_instance_id: None,
             code_class_instance_id: None,
 
+            free_array_class_address: Address::null(),
+            free_object_class_address: Address::null(),
+
             zero_trait_id: None,
             array_class_id: None,
             string_class_id: None,
@@ -49,8 +56,16 @@ impl KnownElements {
         self.free_object_class_instance_id.expect("uninitialized")
     }
 
+    pub fn free_object_class_address(&self) -> Address {
+        self.free_object_class_address
+    }
+
     pub fn free_array_class_instance(&self) -> ClassInstanceId {
         self.free_array_class_instance_id.expect("uninitialized")
+    }
+
+    pub fn free_array_class_address(&self) -> Address {
+        self.free_array_class_address
     }
 
     pub fn code_class_instance(&self) -> ClassInstanceId {
