@@ -206,7 +206,7 @@ impl Swiper {
         &self,
         vm: &VM,
         kind: CollectionKind,
-        mut reason: GcReason,
+        reason: GcReason,
     ) -> CollectionKind {
         safepoint::stop_the_world(vm, |threads| {
             controller::start(&self.config, &self.young, &self.old, &self.large);
@@ -216,15 +216,8 @@ impl Swiper {
 
             let kind = match kind {
                 CollectionKind::Minor => {
-                    let promotion_failed = self.minor_collect(vm, reason, &rootset, threads);
-
-                    if promotion_failed {
-                        reason = GcReason::PromotionFailure;
-                        self.full_collect(vm, reason, threads, &rootset);
-                        CollectionKind::Full
-                    } else {
-                        CollectionKind::Minor
-                    }
+                    self.minor_collect(vm, reason, &rootset, threads);
+                    CollectionKind::Minor
                 }
 
                 CollectionKind::Full => {
@@ -253,20 +246,19 @@ impl Swiper {
         reason: GcReason,
         rootset: &[Slot],
         threads: &[Arc<DoraThread>],
-    ) -> bool {
+    ) {
         self.verify(
             vm,
             VerifierPhase::PreMinor,
             CollectionKind::Minor,
             "pre-minor",
             &rootset,
-            false,
             Address::null(),
         );
 
         let init_old_top = self.old.protected().top;
 
-        let promotion_failed = {
+        {
             let mut pool = self.threadpool.lock();
             let mut collector = MinorCollector::new(
                 vm,
@@ -284,15 +276,13 @@ impl Swiper {
                 &self.config,
             );
 
-            let promotion_failed = collector.collect();
+            collector.collect();
 
             if vm.flags.gc_stats {
                 let mut config = self.config.lock();
                 config.add_minor(collector.phases());
             }
-
-            promotion_failed
-        };
+        }
 
         self.verify(
             vm,
@@ -300,11 +290,8 @@ impl Swiper {
             CollectionKind::Minor,
             "post-minor",
             &rootset,
-            promotion_failed,
             init_old_top,
         );
-
-        promotion_failed
     }
 
     fn full_collect(
@@ -320,7 +307,6 @@ impl Swiper {
             CollectionKind::Full,
             "pre-full",
             &rootset,
-            reason == GcReason::PromotionFailure,
             Address::null(),
         );
 
@@ -354,7 +340,6 @@ impl Swiper {
             CollectionKind::Full,
             "post-full",
             &rootset,
-            false,
             Address::null(),
         );
     }
@@ -366,7 +351,6 @@ impl Swiper {
         _kind: CollectionKind,
         name: &str,
         rootset: &[Slot],
-        promotion_failed: bool,
         init_old_top: Address,
     ) {
         if vm.flags.gc_verify {
@@ -386,7 +370,6 @@ impl Swiper {
                 &*readonly_space,
                 self.reserved_area.clone(),
                 phase,
-                promotion_failed,
                 init_old_top,
             );
             verifier.verify();

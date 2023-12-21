@@ -1,6 +1,6 @@
 use parking_lot::Mutex;
 use std::cmp;
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Barrier};
 
 use crate::gc::pmarking::Terminator;
@@ -44,7 +44,6 @@ pub struct MinorCollector<'a> {
     young_top: Address,
     young_limit: Address,
 
-    promotion_failed: bool,
     promoted_size: usize,
     copied_size: usize,
 
@@ -92,7 +91,6 @@ impl<'a> MinorCollector<'a> {
             young_top: Address::null(),
             young_limit: Address::null(),
 
-            promotion_failed: false,
             promoted_size: 0,
             copied_size: 0,
 
@@ -116,7 +114,7 @@ impl<'a> MinorCollector<'a> {
         self.phases.clone()
     }
 
-    pub fn collect(&mut self) -> bool {
+    pub fn collect(&mut self) {
         self.young.unprotect_from();
         self.young.swap_semi();
 
@@ -140,21 +138,11 @@ impl<'a> MinorCollector<'a> {
 
         self.iterate_weak_refs();
 
-        if self.promotion_failed {
-            // oh no: promotion failed, we need a subsequent full GC
-            self.remove_forwarding_pointers();
-            self.young.minor_fail(self.young_top);
-
-            return true;
-        }
-
         self.young.minor_success(self.young_top);
 
         let mut config = self.config.lock();
         config.minor_promoted = self.promoted_size;
         config.minor_copied = self.copied_size;
-
-        self.promotion_failed
     }
 
     fn run_threads(&mut self) {
@@ -200,9 +188,6 @@ impl<'a> MinorCollector<'a> {
 
         let copied_size = AtomicUsize::new(self.copied_size);
         let copied_size = &copied_size;
-
-        let promotion_failed = AtomicBool::new(self.promotion_failed);
-        let promotion_failed = &promotion_failed;
 
         let next_root_stride = AtomicUsize::new(0);
         let next_root_stride = &next_root_stride;
@@ -266,7 +251,6 @@ impl<'a> MinorCollector<'a> {
                         traced: 0,
 
                         old_lab: Lab::new(),
-                        promotion_failed: false,
 
                         young_lab: Lab::new(),
                         young_top,
@@ -282,8 +266,8 @@ impl<'a> MinorCollector<'a> {
                         promoted_size.fetch_add(task.promoted_size, Ordering::Relaxed);
                     }
 
-                    if task.promotion_failed() {
-                        promotion_failed.store(true, Ordering::SeqCst);
+                    if task.copied_size > 0 {
+                        copied_size.fetch_add(task.copied_size, Ordering::Relaxed);
                     }
                 });
             }
@@ -300,7 +284,6 @@ impl<'a> MinorCollector<'a> {
 
         self.promoted_size = promoted_size.load(Ordering::Relaxed);
         self.copied_size = copied_size.load(Ordering::Relaxed);
-        self.promotion_failed = promotion_failed.load(Ordering::Relaxed);
     }
 
     fn remove_forwarding_pointers(&mut self) {
@@ -423,7 +406,6 @@ struct CopyTask<'a> {
     traced: usize,
 
     old_lab: Lab,
-    promotion_failed: bool,
 
     young_lab: Lab,
     young_top: &'a Mutex<Address>,
@@ -712,10 +694,6 @@ impl<'a> CopyTask<'a> {
         self.old_lab.make_iterable_old(self.vm, self.old);
     }
 
-    fn promotion_failed(&self) -> bool {
-        self.promotion_failed
-    }
-
     fn trace_young_object(&mut self, object_addr: Address) {
         let object = object_addr.to_mut_obj();
 
@@ -848,8 +826,6 @@ impl<'a> CopyTask<'a> {
 
         if let Some(object_start) = object_start {
             return object_start;
-        } else if self.promotion_failed {
-            return Address::null();
         }
 
         self.old_lab.make_iterable_old(self.vm, self.old);
@@ -864,17 +840,12 @@ impl<'a> CopyTask<'a> {
     fn alloc_old_medium(&mut self, size: usize) -> Address {
         debug_assert!(LAB_OBJECT_SIZE <= size && size < LARGE_OBJECT_SIZE);
 
-        if self.promotion_failed {
-            return Address::null();
-        }
-
         if let Some(object_start) = self.old.allocate(size) {
             let old = object_start;
             let new = old.offset(size);
             self.old.update_crossing(old, new);
             object_start
         } else {
-            self.promotion_failed = true;
             Address::null()
         }
     }
@@ -889,18 +860,12 @@ impl<'a> CopyTask<'a> {
     }
 
     fn alloc_old_lab(&mut self) -> bool {
-        if self.promotion_failed {
-            return false;
-        }
-
         if let Some(lab_start) = self.old.allocate(CLAB_SIZE) {
             let lab_end = lab_start.offset(CLAB_SIZE);
             self.old_lab.reset(lab_start, lab_end);
 
             true
         } else {
-            self.promotion_failed = true;
-
             false
         }
     }
@@ -930,11 +895,6 @@ impl<'a> CopyTask<'a> {
             Err(vtblptr) => vtblptr,
         };
 
-        // As soon as promotion of an object failed, objects are not copied anymore.
-        if self.promotion_failed {
-            return obj_addr;
-        }
-
         let obj_size = obj.size_for_vtblptr(vtblptr);
 
         debug_assert!(
@@ -944,10 +904,8 @@ impl<'a> CopyTask<'a> {
 
         // If object is old enough we copy it into the old generation
         if self.copy_failed || self.young.should_be_promoted(obj_addr) {
-            let result = self.promote_object(vtblptr, obj, obj_size);
-
-            if result.is_non_null() {
-                return result;
+            if let Some(address) = self.promote_object(vtblptr, obj, obj_size) {
+                return address;
             }
         }
 
@@ -957,7 +915,11 @@ impl<'a> CopyTask<'a> {
         // Couldn't allocate object in young generation, try to promote
         // object into old generation instead.
         if copy_addr.is_null() {
-            return self.promote_object(vtblptr, obj, obj_size);
+            if let Some(address) = self.promote_object(vtblptr, obj, obj_size) {
+                return address;
+            } else {
+                panic!("FAIL: Not enough space for evacuation during scavenge.");
+            }
         }
 
         obj.copy_to(copy_addr, obj_size);
@@ -977,19 +939,19 @@ impl<'a> CopyTask<'a> {
         }
     }
 
-    fn promote_object(&mut self, vtblptr: Address, obj: &mut Obj, obj_size: usize) -> Address {
+    fn promote_object(
+        &mut self,
+        vtblptr: Address,
+        obj: &mut Obj,
+        obj_size: usize,
+    ) -> Option<Address> {
         let copy_addr = self.alloc_old(obj_size);
 
         // if there isn't enough space in old gen keep it in the
         // young generation for now. A full collection will be forced later and
         // cleans this up.
         if copy_addr.is_null() {
-            let res = obj.header_mut().forwarding_failed(vtblptr);
-
-            return match res {
-                Ok(()) => obj.address(),
-                Err(fwdptr) => fwdptr,
-            };
+            return None;
         }
 
         obj.copy_to(copy_addr, obj_size);
@@ -1000,13 +962,13 @@ impl<'a> CopyTask<'a> {
                 self.promoted_size += obj_size;
                 self.push(copy_addr);
 
-                copy_addr
+                Some(copy_addr)
             }
 
             Err(fwdptr) => {
                 self.undo_alloc_old(copy_addr, obj_size);
 
-                fwdptr
+                Some(fwdptr)
             }
         }
     }

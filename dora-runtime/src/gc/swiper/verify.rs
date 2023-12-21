@@ -90,7 +90,6 @@ pub struct Verifier<'a> {
     init_old_top: Address,
 
     phase: VerifierPhase,
-    promotion_failed: bool,
 }
 
 impl<'a> Verifier<'a> {
@@ -104,7 +103,6 @@ impl<'a> Verifier<'a> {
         readonly_space: &'a Space,
         reserved_area: Region,
         phase: VerifierPhase,
-        promotion_failed: bool,
         init_old_top: Address,
     ) -> Verifier<'a> {
         let old_protected = old.protected();
@@ -129,7 +127,6 @@ impl<'a> Verifier<'a> {
             reserved_area,
 
             phase,
-            promotion_failed,
             init_old_top,
         }
     }
@@ -142,12 +139,6 @@ impl<'a> Verifier<'a> {
     }
 
     fn verify_young(&mut self) {
-        let region = self.from_active.clone();
-        if !self.promotion_failed {
-            assert!(region.empty(), "from-space should be empty.");
-        }
-        self.verify_objects(region, "young gen (from)");
-
         let region = self.to_active.clone();
         self.verify_objects(region, "young gen (to)");
     }
@@ -397,7 +388,6 @@ impl<'a> Verifier<'a> {
             || self.to_active.contains(reference)
             || self.readonly_space.contains(reference)
             || self.large.contains(reference)
-            || (self.from_active.contains(reference) && self.promotion_failed)
         {
             let object = reference.to_obj();
 
