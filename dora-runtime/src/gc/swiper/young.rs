@@ -134,7 +134,7 @@ impl YoungGen {
         let vm = get_vm();
         let from_committed = self.semi.from_committed();
         fill_region(vm, from_committed.start(), from_committed.end());
-        self.semi.protect_from();
+        self.protect_from();
 
         let mut protected = self.protected.lock();
         protected.top = top;
