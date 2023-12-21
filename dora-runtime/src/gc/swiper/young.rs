@@ -8,12 +8,11 @@ use crate::os::{self, MemoryPermission};
 use crate::vm::{get_vm, VM};
 
 pub struct YoungGen {
-    // bounds of eden & semi-spaces
     total: Region,
 
     semispaces: [Region; 2],
     from_index: AtomicUsize,
-    current_semi_size: AtomicUsize,
+    current_size: AtomicUsize,
 
     protect: bool,
 
@@ -40,7 +39,7 @@ impl YoungGen {
             total,
             semispaces,
             from_index: AtomicUsize::new(from_region),
-            current_semi_size: AtomicUsize::new(semi_size),
+            current_size: AtomicUsize::new(semi_size),
             protect,
             protected: Mutex::new(YoungGenProtected {
                 top: to_region.start(),
@@ -63,38 +62,6 @@ impl YoungGen {
     fn commit(&self, semi_size: usize) {
         self.commit_semi_space(self.semispaces[0], 0, semi_size);
         self.commit_semi_space(self.semispaces[1], 0, semi_size);
-    }
-
-    pub fn from_committed(&self) -> Region {
-        let size = self.current_semi_size();
-        self.from_total().start().region_start(size)
-    }
-
-    pub fn from_total(&self) -> Region {
-        self.semispaces[self.from_index()]
-    }
-
-    fn from_index(&self) -> usize {
-        self.from_index.load(Ordering::Relaxed)
-    }
-
-    pub fn to_committed(&self) -> Region {
-        let size = self.current_semi_size();
-        self.to_total().start().region_start(size)
-    }
-
-    pub fn to_total(&self) -> Region {
-        self.semispaces[self.to_index()]
-    }
-
-    fn to_index(&self) -> usize {
-        self.from_index() ^ 1
-    }
-
-    fn swap_indices(&self) {
-        let from_index = self.from_index();
-        self.from_index
-            .store((from_index + 1) % 2, Ordering::Relaxed);
     }
 
     pub fn object_size(&self) -> usize {
@@ -136,13 +103,13 @@ impl YoungGen {
         }
     }
 
-    fn current_semi_size(&self) -> usize {
-        self.current_semi_size.load(Ordering::Relaxed)
+    fn current_size(&self) -> usize {
+        self.current_size.load(Ordering::Relaxed)
     }
 
-    fn set_current_semi_size(&self, size: usize) {
+    fn set_current_size(&self, size: usize) {
         assert!(mem::is_os_page_aligned(size));
-        self.current_semi_size.store(size, Ordering::Relaxed);
+        self.current_size.store(size, Ordering::Relaxed);
     }
 
     pub fn protect_from(&self) {
@@ -191,25 +158,19 @@ impl YoungGen {
 
     pub fn resize_after_gc(&self, young_size: usize) {
         assert!(gen_aligned(young_size));
-        let mut protected = self.protected.lock();
         let new_semi_size = young_size / 2;
-        let old_semi_size = self.current_semi_size();
-        self.set_current_semi_size(new_semi_size);
+        let old_semi_size = self.current_size();
+        self.set_current_size(new_semi_size);
 
         self.commit_semi_space(self.semispaces[0], old_semi_size, new_semi_size);
         self.commit_semi_space(self.semispaces[1], old_semi_size, new_semi_size);
 
-        let vm = get_vm();
-        self.unprotect_from();
-        let from_committed = self.from_committed();
-        fill_region(vm, from_committed.start(), from_committed.end());
-        self.protect_from();
-
+        let mut protected = self.protected.lock();
         protected.current_limit = self.to_committed().end();
-        fill_region(vm, protected.top, protected.current_limit);
+        fill_region(get_vm(), protected.top, protected.current_limit);
     }
 
-    fn commit_semi_space(&self, block: Region, old_size: usize, new_size: usize) {
+    fn commit_semi_space(&self, space: Region, old_size: usize, new_size: usize) {
         assert!(mem::is_os_page_aligned(new_size));
 
         if old_size == new_size {
@@ -218,18 +179,49 @@ impl YoungGen {
 
         if old_size < new_size {
             let size = new_size - old_size;
-            let start = block.start().offset(old_size);
+            let start = space.start().offset(old_size);
             os::commit_at(start, size, MemoryPermission::ReadWrite);
         } else {
             assert!(new_size < old_size);
             let size = old_size - new_size;
-            let start = block.start().offset(new_size);
+            let start = space.start().offset(new_size);
             os::discard(start, size);
         }
     }
 
+    pub fn from_committed(&self) -> Region {
+        let size = self.current_size();
+        self.from_total().start().region_start(size)
+    }
+
+    pub fn from_total(&self) -> Region {
+        self.semispaces[self.from_index()]
+    }
+
+    fn from_index(&self) -> usize {
+        self.from_index.load(Ordering::Relaxed)
+    }
+
+    pub fn to_committed(&self) -> Region {
+        let size = self.current_size();
+        self.to_total().start().region_start(size)
+    }
+
+    pub fn to_total(&self) -> Region {
+        self.semispaces[self.to_index()]
+    }
+
+    fn to_index(&self) -> usize {
+        self.from_index() ^ 1
+    }
+
+    fn swap_indices(&self) {
+        let from_index = self.from_index();
+        self.from_index.store(from_index ^ 1, Ordering::Relaxed);
+    }
+
     pub fn committed_size(&self) -> usize {
-        self.current_semi_size() * 2
+        self.current_size() * 2
     }
 }
 
