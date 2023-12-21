@@ -351,13 +351,6 @@ impl<'a> FullCollector<'a> {
             last = page.end();
         }
 
-        // This is a bit strange at first: from-space might not be empty,
-        // after too many survivors in the minor GC of the young gen.
-        let used_region = self.young.from_active();
-        walk_region(used_region, |obj, addr, size| {
-            fct(self, obj, addr, size);
-        });
-
         let used_region = self.young.to_active();
         walk_region(used_region, |obj, addr, size| {
             fct(self, obj, addr, size);
