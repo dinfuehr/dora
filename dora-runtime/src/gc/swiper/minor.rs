@@ -47,8 +47,6 @@ pub struct MinorCollector<'a> {
     promoted_size: usize,
     copied_size: usize,
 
-    from_active: Region,
-
     _min_heap_size: usize,
     _max_heap_size: usize,
 
@@ -94,8 +92,6 @@ impl<'a> MinorCollector<'a> {
             promoted_size: 0,
             copied_size: 0,
 
-            from_active: Default::default(),
-
             _reason: reason,
 
             _min_heap_size: min_heap_size,
@@ -122,8 +118,6 @@ impl<'a> MinorCollector<'a> {
         self.young_top = to_committed.start;
         self.young_limit = to_committed.end;
 
-        self.from_active = self.young.from_active();
-
         let dev_verbose = self.vm.flags.gc_dev_verbose;
 
         if dev_verbose {
@@ -138,7 +132,7 @@ impl<'a> MinorCollector<'a> {
 
         self.iterate_weak_refs();
 
-        self.young.minor_success(self.young_top);
+        self.young.reset_after_minor_gc(self.young_top);
 
         let mut config = self.config.lock();
         config.minor_promoted = self.promoted_size;
@@ -237,7 +231,7 @@ impl<'a> MinorCollector<'a> {
                         rootset,
                         barrier,
 
-                        from_active: young.from_active(),
+                        from_committed: young.from_committed(),
 
                         next_root_stride,
                         strides,
@@ -376,7 +370,7 @@ struct CopyTask<'a> {
     next_old_page_idx: &'a AtomicUsize,
 
     young_region: Region,
-    from_active: Region,
+    from_committed: Region,
 
     promoted_size: usize,
     copied_size: usize,
@@ -875,7 +869,7 @@ impl<'a> CopyTask<'a> {
         let obj_size = obj.size_for_vtblptr(vtblptr);
 
         debug_assert!(
-            self.from_active.contains(obj_addr),
+            self.from_committed.contains(obj_addr),
             "copy objects only from from-space."
         );
 

@@ -533,7 +533,7 @@ impl Collector for Swiper {
     }
 
     fn verify_ref(&self, vm: &VM, reference: Address) {
-        let found = self.young.to_active().contains(reference)
+        let found = self.young.to_committed().contains(reference)
             || vm.gc.readonly_space.contains(reference)
             || self.large.contains(reference)
             || (self.old.total().contains(reference) && self.old.contains_slow(reference));

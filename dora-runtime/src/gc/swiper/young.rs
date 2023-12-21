@@ -54,11 +54,6 @@ impl YoungGen {
         self.semi.commit();
     }
 
-    pub fn from_active(&self) -> Region {
-        self.semi.from_active()
-    }
-
-    #[allow(dead_code)]
     pub fn from_committed(&self) -> Region {
         self.semi.from_committed()
     }
@@ -67,8 +62,10 @@ impl YoungGen {
         self.semi.from_total()
     }
 
-    pub fn to_active(&self) -> Region {
-        self.semi.to_active()
+    pub fn object_size(&self) -> usize {
+        let protected = self.protected.lock();
+        let start = self.to_total().start();
+        protected.top.offset_from(start)
     }
 
     pub fn to_committed(&self) -> Region {
@@ -104,10 +101,6 @@ impl YoungGen {
         protected.current_limit = to_committed.end();
     }
 
-    pub fn active_size(&self) -> usize {
-        self.semi.from_block().active().size()
-    }
-
     pub fn unprotect_from(&self) {
         self.semi.unprotect_from();
     }
@@ -127,11 +120,7 @@ impl YoungGen {
         protected.current_limit = self.semi.to_block().committed().end();
     }
 
-    pub fn minor_fail(&self, top: Address) {
-        self.semi.to_block().set_top(top);
-    }
-
-    pub fn minor_success(&self, top: Address) {
+    pub fn reset_after_minor_gc(&self, top: Address) {
         let vm = get_vm();
         self.semi.clear_from();
         let from_committed = self.semi.from_committed();

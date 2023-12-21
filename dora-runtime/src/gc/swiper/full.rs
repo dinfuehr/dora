@@ -351,7 +351,7 @@ impl<'a> FullCollector<'a> {
             last = page.end();
         }
 
-        let used_region = self.young.to_active();
+        let used_region = self.young.to_committed();
         walk_region(used_region, |obj, addr, size| {
             fct(self, obj, addr, size);
         });

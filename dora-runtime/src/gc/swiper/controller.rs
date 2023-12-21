@@ -117,7 +117,7 @@ pub fn stop(
     let target_young_size = min(target_young_size, max_young_size);
     let target_young_size = max(target_young_size, PAGE_SIZE);
 
-    let to_size = young.to_active().size();
+    let to_size = young.object_size();
     let min_semi_size = align_gen(mem::page_align(to_size) * 2);
 
     let semi_size = calculate_semi_size(args, target_young_size, min_semi_size);
@@ -194,7 +194,7 @@ fn print(config: &HeapConfig, kind: CollectionKind, reason: GcReason) {
 }
 
 fn object_size(young: &YoungGen, old: &dyn CommonOldGen, large: &LargeSpace) -> usize {
-    young.active_size() + old.active_size() + large.committed_size()
+    young.object_size() + old.active_size() + large.committed_size()
 }
 
 fn memory_size(young: &YoungGen, old: &dyn CommonOldGen, large: &LargeSpace) -> usize {
