@@ -167,6 +167,8 @@ impl<'a> MinorCollector<'a> {
         // align old generation to card boundary
         let young_top = Mutex::new(self.young_top);
         let young_limit = self.young_limit;
+        let age_marker = self.young.age_marker();
+        assert!(self.young.from_committed().valid_top(age_marker));
 
         let card_table = self.card_table;
         let crossing_map = self.crossing_map;
@@ -223,6 +225,7 @@ impl<'a> MinorCollector<'a> {
 
                         vm,
                         young,
+                        age_marker,
                         old,
                         init_old_top,
                         young_region,
@@ -355,6 +358,7 @@ struct CopyTask<'a> {
 
     vm: &'a VM,
     young: &'a YoungGen,
+    age_marker: Address,
     old: &'a OldGen,
     init_old_top: Address,
     card_table: &'a CardTable,
@@ -874,7 +878,7 @@ impl<'a> CopyTask<'a> {
         );
 
         // If object is old enough we copy it into the old generation
-        if self.copy_failed || self.young.should_be_promoted(obj_addr) {
+        if self.should_be_promoted(obj_addr) {
             if let Some(address) = self.promote_object(vtblptr, obj, obj_size) {
                 return address;
             }
@@ -908,6 +912,11 @@ impl<'a> CopyTask<'a> {
                 actual_new_address
             }
         }
+    }
+
+    fn should_be_promoted(&self, addr: Address) -> bool {
+        debug_assert!(self.from_committed.contains(addr));
+        addr < self.age_marker
     }
 
     fn promote_object(&mut self, vtblptr: Address, obj: &Obj, obj_size: usize) -> Option<Address> {

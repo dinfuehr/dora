@@ -2,7 +2,6 @@ use parking_lot::Mutex;
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use crate::gc::bump::BumpAllocator;
 use crate::gc::{fill_region, fill_region_with, gen_aligned, Address, GenerationAllocator, Region};
 use crate::mem;
 use crate::os::{self, MemoryPermission};
@@ -13,16 +12,19 @@ pub struct YoungGen {
     total: Region,
 
     semispaces: [Region; 2],
+    from_index: AtomicUsize,
 
     // from/to-space
     semi: SemiSpace,
+
+    protect: bool,
 
     protected: Mutex<YoungGenProtected>,
 }
 
 impl YoungGen {
     pub fn new(total: Region, semi_size: usize, protect: bool) -> YoungGen {
-        let semi = SemiSpace::new(total, semi_size, protect);
+        let semi = SemiSpace::new(total, semi_size);
         let to_committed = semi.to_committed();
 
         let semispaces = [semi.first.total(), semi.second.total()];
@@ -30,12 +32,15 @@ impl YoungGen {
         let young = YoungGen {
             total,
             semispaces,
+            from_index: AtomicUsize::new(0),
             semi,
+            protect,
             protected: Mutex::new(YoungGenProtected {
                 top: to_committed.start(),
                 current_limit: to_committed.end(),
                 from_index: 0,
                 current_committed_size: semi_size / 2,
+                age_marker: to_committed.start(),
             }),
         };
 
@@ -85,28 +90,33 @@ impl YoungGen {
     }
 
     pub fn reset_after_full_gc(&self) {
-        self.semi.clear_from();
-        self.semi.clear_to();
-
         let from_committed = self.semi.to_committed();
         let to_committed = self.semi.to_committed();
         let vm = get_vm();
         fill_region(vm, from_committed.start(), from_committed.end());
         fill_region(vm, to_committed.start(), to_committed.end());
 
-        self.semi.set_age_marker(to_committed.start());
-
         let mut protected = self.protected.lock();
         protected.top = to_committed.start();
         protected.current_limit = to_committed.end();
+        protected.age_marker = to_committed.start();
     }
 
     pub fn unprotect_from(&self) {
-        self.semi.unprotect_from();
+        if cfg!(debug_assertions) || self.protect {
+            self.semi.unprotect_from();
+        }
     }
 
     pub fn protect_from(&self) {
-        self.semi.protect_from();
+        if cfg!(debug_assertions) || self.protect {
+            self.semi.protect_from();
+        }
+    }
+
+    pub fn age_marker(&self) -> Address {
+        let protected = self.protected.lock();
+        protected.age_marker
     }
 
     pub fn swap_semi(&self) {
@@ -122,27 +132,14 @@ impl YoungGen {
 
     pub fn reset_after_minor_gc(&self, top: Address) {
         let vm = get_vm();
-        self.semi.clear_from();
         let from_committed = self.semi.from_committed();
         fill_region(vm, from_committed.start(), from_committed.end());
         self.semi.protect_from();
 
-        self.semi.to_block().set_top(top);
-
-        self.semi.set_age_marker(top);
         let mut protected = self.protected.lock();
         protected.top = top;
+        protected.age_marker = top;
         fill_region(vm, top, protected.current_limit);
-    }
-
-    pub fn should_be_promoted(&self, addr: Address) -> bool {
-        debug_assert!(self.total.contains(addr));
-
-        if addr < self.semi.total.start {
-            return false;
-        }
-
-        self.semi.should_be_promoted(addr)
     }
 
     pub fn bump_alloc(&self, size: usize) -> Address {
@@ -151,11 +148,8 @@ impl YoungGen {
             protected.current_limit,
             self.semi.to_block().committed().end()
         );
-        assert_eq!(protected.top, self.semi.to_block().alloc.top());
         if let Some(alloc) = protected.raw_alloc(size) {
             assert!(alloc.is_non_null());
-            let bump_alloc = self.semi.bump_alloc(size);
-            assert_eq!(bump_alloc, alloc);
             fill_region_with(get_vm(), protected.top, protected.current_limit, false);
             alloc
         } else {
@@ -180,25 +174,24 @@ impl YoungGen {
     }
 
     pub fn committed_size(&self) -> usize {
-        self.semi.committed_size()
+        let protected = self.protected.lock();
+        let semi_result = self.semi.committed_size();
+        let new_result = protected.current_committed_size * 2;
+        assert_eq!(semi_result, new_result);
+        new_result
     }
 }
 
 struct SemiSpace {
-    total: Region,
-
     first: Block,
     second: Block,
 
     // decides whether first or second is the from-space (value 1=first or 2=second)
     from_index: AtomicUsize,
-
-    protect: bool,
-    age_marker: AtomicUsize,
 }
 
 impl SemiSpace {
-    fn new(total: Region, committed_semi_size: usize, protect: bool) -> SemiSpace {
+    fn new(total: Region, committed_semi_size: usize) -> SemiSpace {
         let total_semi_size = total.size() / 2;
         assert!(committed_semi_size <= total_semi_size);
         assert!(gen_aligned(committed_semi_size));
@@ -208,14 +201,10 @@ impl SemiSpace {
         assert!(first.size() == second.size());
 
         SemiSpace {
-            total: total.clone(),
-
             first: Block::new(first.clone(), committed_semi_size / 2),
             second: Block::new(second, committed_semi_size / 2),
 
             from_index: AtomicUsize::new(2),
-            protect,
-            age_marker: AtomicUsize::new(first.start.to_usize()),
         }
     }
 
@@ -252,10 +241,6 @@ impl SemiSpace {
         self.from_block().committed()
     }
 
-    fn from_active(&self) -> Region {
-        self.from_block().active()
-    }
-
     fn to_total(&self) -> Region {
         self.to_block().total()
     }
@@ -264,57 +249,31 @@ impl SemiSpace {
         self.to_block().committed()
     }
 
-    fn to_active(&self) -> Region {
-        self.to_block().active()
-    }
-
     // Make from-space writable.
     fn unprotect_from(&self) {
         // make memory writable again, so that we
         // can copy objects to the from-space.
         // Since this has some overhead, do it only in debug builds.
-        if cfg!(debug_assertions) || self.protect {
-            let from_space = self.from_committed();
+        let from_space = self.from_committed();
 
-            os::protect(
-                from_space.start,
-                from_space.size(),
-                MemoryPermission::ReadWrite,
-            );
-        }
+        os::protect(
+            from_space.start,
+            from_space.size(),
+            MemoryPermission::ReadWrite,
+        );
     }
 
     // Make from-space inaccessible.
     fn protect_from(&self) {
         // Make from-space unaccessible both from read/write.
         // Since this has some overhead, do it only in debug builds.
-        if cfg!(debug_assertions) || self.protect {
-            let from_space = self.from_committed();
-            os::protect(from_space.start, from_space.size(), MemoryPermission::None);
-        }
-    }
-
-    // Free all objects in from-semi-space.
-    fn clear_from(&self) {
-        self.from_block().reset_top();
-    }
-
-    // Free all objects in to-semi-space.
-    fn clear_to(&self) {
-        self.to_block().reset_top();
+        let from_space = self.from_committed();
+        os::protect(from_space.start, from_space.size(), MemoryPermission::None);
     }
 
     // Switch from- & to-semi-space.
     fn swap(&self) {
         self.swap_from_index();
-    }
-
-    fn set_age_marker(&self, top: Address) {
-        self.age_marker.store(top.to_usize(), Ordering::Relaxed);
-    }
-
-    fn age_marker(&self) -> Address {
-        self.age_marker.load(Ordering::Relaxed).into()
     }
 
     fn swap_from_index(&self) {
@@ -328,17 +287,6 @@ impl SemiSpace {
         };
 
         self.from_index.store(updated_from_index, Ordering::Relaxed);
-    }
-
-    fn should_be_promoted(&self, addr: Address) -> bool {
-        let age_marker = self.age_marker();
-        debug_assert!(self.from_active().contains(addr));
-        debug_assert!(self.from_active().valid_top(age_marker));
-        return addr < age_marker;
-    }
-
-    fn bump_alloc(&self, size: usize) -> Address {
-        self.to_block().bump_alloc(size)
     }
 
     fn set_limit(&self, size: usize) {
@@ -356,7 +304,6 @@ struct Block {
     end: Address,
     committed: AtomicUsize,
     limit: AtomicUsize,
-    alloc: BumpAllocator,
 }
 
 impl Block {
@@ -369,7 +316,6 @@ impl Block {
             end: region.end,
             committed: AtomicUsize::new(committed.to_usize()),
             limit: AtomicUsize::new(committed.to_usize()),
-            alloc: BumpAllocator::new(region.start, committed),
         }
     }
 
@@ -401,7 +347,6 @@ impl Block {
         let old_committed = self.committed.load(Ordering::Relaxed);
         let new_committed = self.start.offset(new_size).to_usize();
         assert!(new_committed <= self.end.to_usize());
-        assert!(self.alloc.top().to_usize() <= new_committed);
 
         if old_committed == new_committed {
             return;
@@ -418,27 +363,6 @@ impl Block {
             let size = old_committed - new_committed;
             os::discard(new_committed.into(), size);
         }
-
-        self.alloc.reset_limit(new_committed.into());
-    }
-
-    fn active(&self) -> Region {
-        Region::new(self.start, self.alloc.top())
-    }
-
-    fn reset_top(&self) {
-        let committed = self.committed.load(Ordering::Relaxed);
-        self.alloc.reset(self.start, committed.into());
-    }
-
-    fn set_top(&self, addr: Address) {
-        let committed = self.committed.load(Ordering::Relaxed);
-        assert!(self.start <= addr && addr <= committed.into());
-        self.alloc.reset(addr, committed.into())
-    }
-
-    fn bump_alloc(&self, size: usize) -> Address {
-        self.alloc.bump_alloc(size)
     }
 }
 
@@ -459,6 +383,7 @@ struct YoungGenProtected {
 
     from_index: usize,
     current_committed_size: usize,
+    age_marker: Address,
 }
 
 impl YoungGenProtected {
