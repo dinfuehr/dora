@@ -345,14 +345,14 @@ impl Lab {
     }
 
     fn make_iterable_young(&mut self, vm: &VM) {
-        fill_region(vm, self.top, self.limit);
+        fill_region_with(vm, self.top, self.limit, false);
 
         self.top = Address::null();
         self.limit = Address::null();
     }
 
     fn make_iterable_old(&mut self, vm: &VM, old: &OldGen) {
-        fill_region(vm, self.top, self.limit);
+        fill_region_with(vm, self.top, self.limit, false);
         if self.limit.is_non_null() {
             old.update_crossing(self.top, self.limit);
         }

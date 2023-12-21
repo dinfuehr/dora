@@ -2,13 +2,13 @@ use std::collections::HashSet;
 
 use parking_lot::{Mutex, MutexGuard};
 
-use crate::gc::fill_region;
 use crate::gc::freelist::FreeList;
 use crate::gc::swiper::card::CardTable;
 use crate::gc::swiper::controller::SharedHeapConfig;
 use crate::gc::swiper::crossing::CrossingMap;
 use crate::gc::swiper::CommonOldGen;
 use crate::gc::swiper::{PAGE_HEADER_SIZE, PAGE_SIZE};
+use crate::gc::{fill_region, fill_region_with};
 use crate::gc::{Address, GenerationAllocator, Region};
 use crate::mem::ptr_width_usize;
 use crate::os::{self, MemoryPermission};
@@ -102,12 +102,12 @@ impl GenerationAllocator for OldGen {
         let mut protected = self.protected.lock();
 
         if let Some(address) = protected.raw_alloc(size) {
-            fill_region(get_vm(), protected.top, protected.current_limit);
+            fill_region_with(get_vm(), protected.top, protected.current_limit, false);
             self.update_crossing(protected.top, protected.current_limit);
             return Some(address);
         }
 
-        fill_region(get_vm(), protected.top, protected.current_limit);
+        fill_region_with(get_vm(), protected.top, protected.current_limit, false);
         self.update_crossing(protected.top, protected.current_limit);
 
         if !self.can_add_page() {
