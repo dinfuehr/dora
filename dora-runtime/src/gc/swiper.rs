@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use crate::gc::root::{determine_strong_roots, Slot};
 use crate::gc::swiper::card::CardTable;
-use crate::gc::swiper::controller::{HeapConfig, SharedHeapConfig};
+use crate::gc::swiper::controller::{HeapController, SharedHeapConfig};
 use crate::gc::swiper::crossing::CrossingMap;
 use crate::gc::swiper::full::FullCollector;
 use crate::gc::swiper::large::LargeSpace;
@@ -82,7 +82,7 @@ impl Swiper {
         let max_heap_size = align_page_up(args.max_heap_size());
         let min_heap_size = align_page_up(args.min_heap_size());
 
-        let mut config = HeapConfig::new(min_heap_size, max_heap_size);
+        let mut config = HeapController::new(min_heap_size, max_heap_size);
 
         controller::init(&mut config, args);
 

@@ -15,7 +15,7 @@ use crate::vm::{Flags, Trap};
 const INIT_HEAP_SIZE_RATIO: usize = 2;
 const INIT_SEMI_RATIO: usize = 3;
 
-pub fn init(config: &mut HeapConfig, args: &Flags) {
+pub fn init(config: &mut HeapController, args: &Flags) {
     assert!(config.min_heap_size <= config.max_heap_size);
 
     let young_size = if let Some(young_size) = args.young_size() {
@@ -85,8 +85,8 @@ pub fn stop(
 ) {
     let mut config = config.lock();
 
-    let duration = config.gc_start.expect("not started").elapsed();
-    config.gc_duration = duration.as_secs_f32() / 1000f32;
+    let gc_duration = config.gc_start.expect("not started").elapsed();
+    let gc_duration_ms = gc_duration.as_secs_f32() / 1000.0f32;
 
     let old_size = old.committed_size() + large.committed_size();
     config.old_size = old_size;
@@ -119,29 +119,29 @@ pub fn stop(
     match kind {
         CollectionKind::Minor => {
             config.total_minor_collections += 1;
-            config.total_minor_pause += config.gc_duration;
+            config.total_minor_pause += gc_duration_ms;
 
             if args.gc_stats {
-                config.minor_phases.last_mut().unwrap().total = config.gc_duration;
+                config.minor_phases.last_mut().unwrap().total = gc_duration_ms;
             }
         }
 
         CollectionKind::Full => {
             config.total_full_collections += 1;
-            config.total_full_pause += config.gc_duration;
+            config.total_full_pause += gc_duration_ms;
 
             if args.gc_stats {
-                config.full_phases.last_mut().unwrap().total = config.gc_duration;
+                config.full_phases.last_mut().unwrap().total = gc_duration_ms;
             }
         }
     }
 
     if args.gc_verbose {
-        print(&*config, kind, reason);
+        print(&*config, kind, reason, gc_duration_ms);
     }
 }
 
-fn print(config: &HeapConfig, kind: CollectionKind, reason: GcReason) {
+fn print(config: &HeapController, kind: CollectionKind, reason: GcReason, gc_duration: f32) {
     match kind {
         CollectionKind::Minor => {
             println!(
@@ -152,7 +152,7 @@ fn print(config: &HeapConfig, kind: CollectionKind, reason: GcReason) {
                 formatted_size(config.start_memory_size),
                 formatted_size(config.end_object_size),
                 formatted_size(config.end_memory_size),
-                config.gc_duration,
+                gc_duration,
                 formatted_size(config.minor_promoted),
                 formatted_size(config.minor_copied),
                 formatted_size(config.minor_dead),
@@ -168,7 +168,7 @@ fn print(config: &HeapConfig, kind: CollectionKind, reason: GcReason) {
                 formatted_size(config.start_memory_size),
                 formatted_size(config.end_object_size),
                 formatted_size(config.end_memory_size),
-                config.gc_duration,
+                gc_duration,
             );
         }
     }
@@ -182,7 +182,7 @@ fn memory_size(young: &YoungGen, old: &dyn CommonOldGen, large: &LargeSpace) -> 
     young.committed_size() + old.committed_size() + large.committed_size()
 }
 
-pub struct HeapConfig {
+pub struct HeapController {
     min_heap_size: usize,
     max_heap_size: usize,
 
@@ -191,7 +191,6 @@ pub struct HeapConfig {
     pub old_limit: usize,
 
     gc_start: Option<Instant>,
-    gc_duration: f32,
 
     start_object_size: usize,
     start_memory_size: usize,
@@ -211,11 +210,11 @@ pub struct HeapConfig {
     minor_phases: Vec<MinorCollectorPhases>,
 }
 
-impl HeapConfig {
-    pub fn new(min_heap_size: usize, max_heap_size: usize) -> HeapConfig {
+impl HeapController {
+    pub fn new(min_heap_size: usize, max_heap_size: usize) -> HeapController {
         assert!(min_heap_size <= max_heap_size);
 
-        HeapConfig {
+        HeapController {
             min_heap_size,
             max_heap_size,
 
@@ -224,7 +223,6 @@ impl HeapConfig {
             old_limit: 0,
 
             gc_start: None,
-            gc_duration: 0f32,
 
             start_object_size: 0,
             start_memory_size: 0,
@@ -397,7 +395,7 @@ fn calculate_numbers(data: &[f32]) -> Numbers {
     }
 }
 
-pub type SharedHeapConfig = Arc<Mutex<HeapConfig>>;
+pub type SharedHeapConfig = Arc<Mutex<HeapController>>;
 
 #[derive(Clone)]
 pub struct FullCollectorPhases {
