@@ -95,8 +95,6 @@ impl<'a> FullCollector<'a> {
         let dev_verbose = self.vm.flags.gc_dev_verbose;
         let stats = self.vm.flags.gc_stats;
 
-        self.young.unprotect_from();
-
         let mut timer = Timer::new(stats);
 
         if dev_verbose {
@@ -176,7 +174,6 @@ impl<'a> FullCollector<'a> {
         }
 
         self.young.reset_after_full_gc();
-        self.young.protect_from();
 
         let pages = std::mem::replace(&mut self.pages, Vec::new());
         self.old_protected

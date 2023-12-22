@@ -79,11 +79,8 @@ impl YoungGen {
     }
 
     pub fn reset_after_full_gc(&self) {
-        let from_committed = self.from_committed();
         let to_committed = self.to_committed();
-        let vm = get_vm();
-        fill_region(vm, from_committed.start(), from_committed.end());
-        fill_region(vm, to_committed.start(), to_committed.end());
+        fill_region(get_vm(), to_committed.start(), to_committed.end());
 
         let mut protected = self.protected.lock();
         protected.top = to_committed.start();
