@@ -79,13 +79,12 @@ impl YoungGen {
     }
 
     pub fn reset_after_full_gc(&self) {
-        let to_committed = self.to_committed();
-        fill_region(get_vm(), to_committed.start(), to_committed.end());
+        self.unprotect_from();
+        self.swap_semi();
+        self.protect_from();
 
         let mut protected = self.protected.lock();
-        protected.top = to_committed.start();
-        protected.current_limit = to_committed.end();
-        protected.age_marker = to_committed.start();
+        protected.age_marker = protected.top;
     }
 
     pub fn unprotect_from(&self) {
@@ -124,10 +123,12 @@ impl YoungGen {
     pub fn swap_semi(&self) {
         self.swap_indices();
 
+        let to_committed = self.to_committed();
+        fill_region(get_vm(), to_committed.start(), to_committed.end());
+
         let mut protected = self.protected.lock();
-        let to_block = self.to_committed();
-        protected.top = to_block.start();
-        protected.current_limit = to_block.end();
+        protected.top = to_committed.start();
+        protected.current_limit = to_committed.end();
     }
 
     pub fn reset_after_minor_gc(&self, top: Address) {
