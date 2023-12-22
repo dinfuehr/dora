@@ -8,8 +8,7 @@ use std::time::Instant;
 use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{CollectionKind, CommonOldGen, PAGE_SIZE};
-use crate::gc::{align_gen, align_gen_down, formatted_size, AllNumbers, GcReason, M};
-use crate::mem;
+use crate::gc::{align_page_down, align_page_up, formatted_size, AllNumbers, GcReason, M};
 use crate::stdlib;
 use crate::vm::{Flags, Trap};
 
@@ -20,18 +19,18 @@ pub fn init(config: &mut HeapConfig, args: &Flags) {
     assert!(config.min_heap_size <= config.max_heap_size);
 
     let young_size = if let Some(young_size) = args.young_size() {
-        min(align_gen(young_size), config.max_heap_size - PAGE_SIZE)
+        min(align_page_up(young_size), config.max_heap_size - PAGE_SIZE)
     } else if args.young_appel() {
         let max_heap_size = (config.max_heap_size as f64 * 0.9) as usize;
-        align_gen(max_heap_size / 2)
+        align_page_down(max_heap_size / 2)
     } else {
         unreachable!();
     };
 
-    let young_size = max(young_size, PAGE_SIZE);
-    let semi_size = calculate_semi_size(args, young_size, 0);
+    let young_size = max(young_size, 2 * PAGE_SIZE);
+    let young_size = align_page_up(young_size / 2) * 2;
 
-    config.semi_size = semi_size;
+    config.semi_size = young_size;
 
     let max_old_limit = config.max_heap_size - young_size;
     let min_old_limit = if config.min_heap_size > young_size {
@@ -40,26 +39,12 @@ pub fn init(config: &mut HeapConfig, args: &Flags) {
         0
     };
 
-    let old_limit = align_gen(config.max_heap_size / INIT_HEAP_SIZE_RATIO);
+    let old_limit = align_page_up(config.max_heap_size / INIT_HEAP_SIZE_RATIO);
     let old_limit = min(old_limit, max_old_limit);
     let old_limit = max(old_limit, min_old_limit);
 
     config.old_size = 0;
     config.old_limit = old_limit;
-}
-
-fn calculate_semi_size(args: &Flags, young_size: usize, min_semi_size: usize) -> usize {
-    let semi_ratio = args.gc_semi_ratio.unwrap_or(INIT_SEMI_RATIO);
-    let semi_size = if semi_ratio == 0 {
-        0
-    } else {
-        align_gen(young_size / semi_ratio)
-    };
-
-    let semi_size = max(semi_size, min_semi_size);
-    let semi_size = max(semi_size, PAGE_SIZE);
-
-    semi_size
 }
 
 pub fn choose_collection_kind(
@@ -107,33 +92,29 @@ pub fn stop(
     config.old_size = old_size;
 
     let max_young_size = if let Some(young_size) = args.young_size() {
-        align_gen(young_size)
+        align_page_up(young_size)
     } else {
         std::usize::MAX
     };
 
     let rest = config.max_heap_size - config.old_size;
-    let target_young_size = align_gen_down(rest / 2);
+    let target_young_size = rest / 2;
     let target_young_size = min(target_young_size, max_young_size);
-    let target_young_size = max(target_young_size, PAGE_SIZE);
+    let target_young_size = max(target_young_size, 2 * PAGE_SIZE);
+    let young_size = align_page_down(target_young_size / 2) * 2;
 
-    let to_size = young.object_size();
-    let min_semi_size = align_gen(mem::page_align(to_size) * 2);
-
-    let semi_size = calculate_semi_size(args, target_young_size, min_semi_size);
-
-    if old_size + semi_size > config.max_heap_size {
+    if old_size + young_size > config.max_heap_size {
         stdlib::trap(Trap::OOM.int());
     }
 
-    young.resize_after_gc(semi_size);
-    config.old_limit = config.max_heap_size - semi_size;
+    young.resize_after_gc(young_size);
+    config.old_limit = config.max_heap_size - young_size;
     assert!(config.old_limit >= old_size);
 
     config.end_object_size = object_size(young, old, large);
     config.end_memory_size = memory_size(young, old, large);
 
-    assert!(semi_size + config.old_limit <= config.max_heap_size);
+    assert!(young_size + config.old_limit <= config.max_heap_size);
 
     match kind {
         CollectionKind::Minor => {

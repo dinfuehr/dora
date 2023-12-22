@@ -48,10 +48,6 @@ const CHUNK_SIZE: usize = 8 * K;
 pub const DEFAULT_CODE_SPACE_LIMIT: usize = 2 * M;
 pub const DEFAULT_READONLY_SPACE_LIMIT: usize = PAGE_SIZE;
 
-// young/old gen are aligned to at least this size
-const GEN_ALIGNMENT_BITS: usize = 17;
-const GEN_SIZE: usize = 1 << GEN_ALIGNMENT_BITS;
-
 pub struct Gc {
     collector: Box<dyn Collector + Sync>,
     supports_tlab: bool,
@@ -332,11 +328,6 @@ impl Address {
     }
 
     #[inline(always)]
-    pub fn is_gen_aligned(self) -> bool {
-        gen_aligned(self.to_usize())
-    }
-
-    #[inline(always)]
     pub fn align_region_up(self) -> Address {
         align_page_up(self.to_usize()).into()
     }
@@ -506,23 +497,6 @@ impl fmt::Display for FormattedSize {
 
 fn formatted_size(size: usize) -> FormattedSize {
     FormattedSize { size }
-}
-
-/// round the given value up to the nearest multiple of a generation
-pub fn align_gen(value: usize) -> usize {
-    let align = GEN_ALIGNMENT_BITS;
-    // we know that page size is power of 2, hence
-    // we can use shifts instead of expensive division
-    ((value + (1 << align) - 1) >> align) << align
-}
-
-pub fn align_gen_down(value: usize) -> usize {
-    value & !(GEN_SIZE - 1)
-}
-
-/// returns true if given size is gen aligned
-pub fn gen_aligned(size: usize) -> bool {
-    (size & (GEN_SIZE - 1)) == 0
 }
 
 /// round the given value up to the nearest multiple of a generation

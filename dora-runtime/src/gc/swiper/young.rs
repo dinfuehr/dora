@@ -2,7 +2,8 @@ use parking_lot::Mutex;
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use crate::gc::{fill_region, fill_region_with, gen_aligned, Address, GenerationAllocator, Region};
+use crate::gc::swiper::PAGE_SIZE;
+use crate::gc::{fill_region, fill_region_with, Address, GenerationAllocator, Region};
 use crate::mem;
 use crate::os::{self, MemoryPermission};
 use crate::vm::{get_vm, VM};
@@ -22,6 +23,7 @@ pub struct YoungGen {
 impl YoungGen {
     pub fn new(total: Region, young_size: usize, protect: bool) -> YoungGen {
         let semi_size = young_size / 2;
+        assert_eq!(semi_size % PAGE_SIZE, 0);
 
         let total_semi_size = total.size() / 2;
         assert!(semi_size <= total_semi_size);
@@ -144,8 +146,8 @@ impl YoungGen {
     }
 
     pub fn resize_after_gc(&self, young_size: usize) {
-        assert!(gen_aligned(young_size));
         let new_semi_size = young_size / 2;
+        assert_eq!(new_semi_size % PAGE_SIZE, 0);
         let old_semi_size = self.current_size();
         self.set_current_size(new_semi_size);
 

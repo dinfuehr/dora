@@ -86,54 +86,53 @@ impl Swiper {
 
         controller::init(&mut config, args);
 
-        // determine size for card table
+        // Determine size for card table.
         let card_size = mem::page_align((4 * max_heap_size) >> CARD_SIZE_BITS);
 
-        // determine size for crossing map
+        // Determine size for crossing map.
         let crossing_size = mem::page_align(max_heap_size >> CARD_SIZE_BITS);
 
-        // determine full memory size
+        // Determine full reservation size.
         let reserve_size = max_heap_size * 4 + card_size + crossing_size;
 
-        // reserve full memory
+        // Reserve all memory.
         let reservation = os::reserve_align(reserve_size, PAGE_SIZE, false);
         let heap_start = reservation.start();
-        assert!(heap_start.is_gen_aligned());
 
-        // heap is young/old generation & large space
+        // Heap is young, old generation & large space.
         let heap_end = heap_start.offset(4 * max_heap_size);
 
-        // reserved area also contains card table & crossing map
+        // Reserved area contains everything.
         let reserved_area = heap_start.region_start(reserve_size);
 
-        // determine offset to card table (card table starts right after heap)
+        // Determine offset to card table (card table starts right after heap).
         // offset = card_table_start - (heap_start >> CARD_SIZE_BITS)
         let card_table_offset = heap_end.to_usize() - (heap_start.to_usize() >> CARD_SIZE_BITS);
 
-        // determine boundaries for card table
+        // Determine boundaries for card table.
         let card_start = heap_end;
         let card_end = card_start.offset(card_size);
 
         os::commit_at(card_start, card_size, MemoryPermission::ReadWrite);
 
-        // determine boundaries for crossing map
+        // Determine boundaries for crossing map.
         let crossing_start = card_end;
         let crossing_end = crossing_start.offset(crossing_size);
 
         os::commit_at(crossing_start, crossing_size, MemoryPermission::ReadWrite);
 
-        // determine boundaries of young generation
+        // Determine boundaries of young generation.
         let young_start = heap_start;
         let young_end = young_start.offset(max_heap_size);
         let young = Region::new(young_start, young_end);
 
-        // determine boundaries of old generation
+        // Determine boundaries of old generation.
         let old_start = young_end;
         let old_end = old_start.offset(max_heap_size);
 
         let semi_size = config.semi_size;
 
-        // determine large object space
+        // Determine large object space.
         let large_start = old_end;
         let large_end = large_start.offset(2 * max_heap_size);
 
