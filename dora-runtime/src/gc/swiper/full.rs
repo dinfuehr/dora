@@ -394,9 +394,6 @@ pub fn verify_marking(
         verify_marking_region(page.object_area(), heap);
     }
 
-    let from = young.from_committed();
-    verify_marking_region(from, heap);
-
     let to = young.to_committed();
     verify_marking_region(to, heap);
 
