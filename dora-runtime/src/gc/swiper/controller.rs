@@ -12,9 +12,6 @@ use crate::gc::{align_page_down, align_page_up, formatted_size, AllNumbers, GcRe
 use crate::stdlib;
 use crate::vm::{Flags, Trap};
 
-const INIT_HEAP_SIZE_RATIO: usize = 2;
-const INIT_SEMI_RATIO: usize = 3;
-
 pub fn init(config: &mut HeapController, args: &Flags) {
     assert!(config.min_heap_size <= config.max_heap_size);
 
@@ -39,7 +36,7 @@ pub fn init(config: &mut HeapController, args: &Flags) {
         0
     };
 
-    let old_limit = align_page_up(config.max_heap_size / INIT_HEAP_SIZE_RATIO);
+    let old_limit = align_page_down(config.max_heap_size - young_size);
     let old_limit = min(old_limit, max_old_limit);
     let old_limit = max(old_limit, min_old_limit);
 
