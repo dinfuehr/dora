@@ -42,8 +42,10 @@ impl YoungGen {
             current_size: AtomicUsize::new(semi_size),
             protect,
             protected: Mutex::new(YoungGenProtected {
+                start: to_region.start(),
                 top: to_region.start(),
                 current_limit: to_region.start().offset(semi_size),
+                limit: to_region.start().offset(semi_size),
                 age_marker: to_region.start(),
             }),
         };
@@ -127,26 +129,18 @@ impl YoungGen {
         fill_region(get_vm(), to_committed.start(), to_committed.end());
 
         let mut protected = self.protected.lock();
-        protected.top = to_committed.start();
-        protected.current_limit = to_committed.end();
+        protected.reset_alloc(to_committed);
     }
 
     pub fn reset_after_minor_gc(&self, top: Address) {
         let mut protected = self.protected.lock();
-        protected.top = top;
-        protected.age_marker = top;
+        protected.set_top_after_minor(top);
         fill_region(get_vm(), top, protected.current_limit);
     }
 
     pub fn bump_alloc(&self, size: usize) -> Option<Address> {
         let mut protected = self.protected.lock();
-        if let Some(alloc) = protected.raw_alloc(size) {
-            assert!(alloc.is_non_null());
-            fill_region_with(get_vm(), protected.top, protected.current_limit, false);
-            Some(alloc)
-        } else {
-            None
-        }
+        protected.raw_alloc(get_vm(), self, size)
     }
 
     pub fn resize_after_gc(&self, young_size: usize) {
@@ -159,8 +153,10 @@ impl YoungGen {
         self.commit_semi_space(self.semispaces[1], old_semi_size, new_semi_size);
 
         let mut protected = self.protected.lock();
+        assert!(protected.top <= protected.current_limit);
         protected.current_limit = self.to_committed().end();
-        fill_region(get_vm(), protected.top, protected.current_limit);
+        protected.limit = self.to_committed().end();
+        fill_region(get_vm(), protected.top, protected.limit);
     }
 
     fn commit_semi_space(&self, space: Region, old_size: usize, new_size: usize) {
@@ -221,7 +217,7 @@ impl YoungGen {
 impl GenerationAllocator for YoungGen {
     fn allocate(&self, size: usize) -> Option<Address> {
         let mut protected = self.protected.lock();
-        protected.raw_alloc(size)
+        protected.raw_alloc(get_vm(), self, size)
     }
 
     fn free(&self, _region: Region) {
@@ -230,21 +226,38 @@ impl GenerationAllocator for YoungGen {
 }
 
 struct YoungGenProtected {
+    start: Address,
     top: Address,
     current_limit: Address,
+    limit: Address,
     age_marker: Address,
 }
 
 impl YoungGenProtected {
-    fn raw_alloc(&mut self, size: usize) -> Option<Address> {
+    fn raw_alloc(&mut self, vm: &VM, _young: &YoungGen, size: usize) -> Option<Address> {
         let next = self.top.offset(size);
 
         if next <= self.current_limit {
             let result = self.top;
             self.top = next;
+            fill_region_with(vm, self.top, self.current_limit, false);
             Some(result)
         } else {
             None
         }
+    }
+
+    fn reset_alloc(&mut self, region: Region) {
+        self.start = region.start();
+        self.top = region.start();
+        self.current_limit = region.end();
+        self.limit = region.end();
+    }
+
+    fn set_top_after_minor(&mut self, top: Address) {
+        assert!(self.start <= top);
+        assert!(top <= self.current_limit);
+        self.top = top;
+        self.age_marker = top;
     }
 }
