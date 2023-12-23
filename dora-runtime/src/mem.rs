@@ -68,7 +68,7 @@ pub const fn align_i32(value: i32, align: i32) -> i32 {
 
 /// rounds the given value `val` up to the nearest multiple
 /// of `align`.
-pub fn align_usize(value: usize, align: usize) -> usize {
+pub fn align_usize_up(value: usize, align: usize) -> usize {
     if align == 0 {
         return value;
     }

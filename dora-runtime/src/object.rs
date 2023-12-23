@@ -419,7 +419,7 @@ fn determine_array_size(obj: &Obj, element_size: usize) -> usize {
     let calc =
         Header::size() as usize + mem::ptr_width_usize() + element_size * handle.len() as usize;
 
-    mem::align_usize(calc, mem::ptr_width_usize())
+    mem::align_usize_up(calc, mem::ptr_width_usize())
 }
 
 #[repr(C)]
@@ -629,7 +629,7 @@ fn byte_array_alloc_heap(vm: &VM, len: usize) -> Ref<UInt8Array> {
                 + mem::ptr_width() as usize // length field
                 + len; // array content
 
-    let size = mem::align_usize(size, mem::ptr_width() as usize);
+    let size = mem::align_usize_up(size, mem::ptr_width() as usize);
     let ptr = vm.gc.alloc(vm, size);
 
     let clsid = vm.byte_array();
@@ -662,7 +662,7 @@ where
                 + mem::ptr_width() as usize // length field
                 + len; // string content
 
-    let size = mem::align_usize(size, mem::ptr_width() as usize);
+    let size = mem::align_usize_up(size, mem::ptr_width() as usize);
     let ptr = alloc(vm, size);
 
     let clsid = vm.str();
@@ -810,7 +810,7 @@ pub fn alloc(vm: &VM, clsid: ClassInstanceId) -> Ref<Obj> {
         _ => panic!("alloc only supports fix-sized types"),
     };
 
-    let size = mem::align_usize(size, mem::ptr_width() as usize);
+    let size = mem::align_usize_up(size, mem::ptr_width() as usize);
 
     let ptr = vm.gc.alloc(vm, size).to_usize();
     let vtable = cls_def.vtable.read();

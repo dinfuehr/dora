@@ -74,7 +74,7 @@ impl Space {
     /// Doesn't use a freelist right now so memory at the end of a chunk
     /// is probably lost.
     pub fn alloc(&self, size: usize) -> Address {
-        let size = mem::align_usize(size, self.config.object_alignment);
+        let size = mem::align_usize_up(size, self.config.object_alignment);
 
         loop {
             let ptr = self.raw_alloc(size);
@@ -123,7 +123,7 @@ impl Space {
         }
 
         let size = size - (end - top);
-        let size = mem::align_usize(size, self.config.chunk);
+        let size = mem::align_usize_up(size, self.config.chunk);
 
         let new_end = end + size;
 

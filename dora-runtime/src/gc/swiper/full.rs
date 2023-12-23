@@ -216,7 +216,7 @@ impl<'a> FullCollector<'a> {
 
     fn fits_into_heap(&mut self) -> bool {
         let young_size = self.young.committed_size();
-        let old_size = self.top.align_page().offset_from(self.old.total_start());
+        let old_size = self.top.align_page_up().offset_from(self.old.total_start());
         let large_size = self.large_space.committed_size();
 
         (young_size + old_size + large_size) <= self.max_heap_size

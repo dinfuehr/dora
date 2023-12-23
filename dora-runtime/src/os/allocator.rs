@@ -110,7 +110,7 @@ pub fn reserve_align(size: usize, align: usize, jitting: bool) -> Reservation {
     let unaligned_size = size + align - page_size();
 
     let unaligned_start = reserve(unaligned_size, jitting);
-    let aligned_start: Address = mem::align_usize(unaligned_start.to_usize(), align).into();
+    let aligned_start: Address = mem::align_usize_up(unaligned_start.to_usize(), align).into();
 
     let gap_start = aligned_start.offset_from(unaligned_start);
     let gap_end = unaligned_size - size - gap_start;
@@ -150,7 +150,7 @@ pub fn commit_align(size: usize, align: usize, jitting: bool) -> Reservation {
     let unaligned_size = size + align - page_size();
 
     let unaligned_start = commit(unaligned_size, jitting);
-    let aligned_start: Address = mem::align_usize(unaligned_start.to_usize(), align).into();
+    let aligned_start: Address = mem::align_usize_up(unaligned_start.to_usize(), align).into();
 
     let gap_start = aligned_start.offset_from(unaligned_start);
     let gap_end = unaligned_size - size - gap_start;

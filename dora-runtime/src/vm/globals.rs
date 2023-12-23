@@ -27,7 +27,7 @@ pub fn init_global_addresses(vm: &mut VM) {
         let ty_size = size(vm, ty.clone()) as usize;
         let ty_align = align(vm, ty.clone()) as usize;
 
-        let value_offset = mem::align_usize(backing_memory_size, ty_align);
+        let value_offset = mem::align_usize_up(backing_memory_size, ty_align);
         add_ref_fields(vm, &mut references, value_offset as i32, ty);
         offsets.push((initialized_offset, value_offset));
         backing_memory_size = value_offset + ty_size as usize;

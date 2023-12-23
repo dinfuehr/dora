@@ -27,7 +27,7 @@ pub struct CopyCollector {
 impl CopyCollector {
     pub fn new(args: &Flags) -> CopyCollector {
         let alignment = 2 * os::page_size();
-        let heap_size = mem::align_usize(args.max_heap_size(), alignment);
+        let heap_size = mem::align_usize_up(args.max_heap_size(), alignment);
         let heap_start = os::commit(heap_size, false);
 
         if heap_start.is_null() {

@@ -44,10 +44,10 @@ impl CodeSpace {
         debug_assert!(size > 0);
 
         let mut data = self.mutex.lock();
-        let aligned_size = mem::align_usize(size, CODE_ALIGNMENT);
+        let aligned_size = mem::align_usize_up(size, CODE_ALIGNMENT);
 
         if data.top.offset(aligned_size) > data.limit {
-            let size = mem::align_usize(
+            let size = mem::align_usize_up(
                 aligned_size - data.limit.offset_from(data.top),
                 self.chunk_size,
             );

@@ -3,7 +3,9 @@ use parking_lot::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::gc::swiper::PAGE_SIZE;
-use crate::gc::{fill_region, fill_region_with, Address, GenerationAllocator, Region};
+use crate::gc::{
+    fill_region, fill_region_with, is_page_aligned, Address, GenerationAllocator, Region,
+};
 use crate::mem;
 use crate::os::{self, MemoryPermission};
 use crate::vm::{get_vm, VM};
@@ -22,7 +24,11 @@ pub struct YoungGen {
 
 impl YoungGen {
     pub fn new(total: Region, young_size: usize, protect: bool) -> YoungGen {
+        assert!(total.start().is_page_aligned());
+        assert!(is_page_aligned(total.size()));
+
         let semi_size = young_size / 2;
+        assert!(semi_size > 0);
         assert_eq!(semi_size % PAGE_SIZE, 0);
 
         let total_semi_size = total.size() / 2;
@@ -142,7 +148,7 @@ impl YoungGen {
 
     pub fn bump_alloc(&self, size: usize) -> Option<Address> {
         let mut protected = self.protected.lock();
-        protected.raw_alloc(get_vm(), self, size)
+        protected.alloc(get_vm(), self, size)
     }
 
     pub fn resize_after_gc(&self, young_size: usize) {
@@ -219,7 +225,7 @@ impl YoungGen {
 impl GenerationAllocator for YoungGen {
     fn allocate(&self, size: usize) -> Option<Address> {
         let mut protected = self.protected.lock();
-        protected.raw_alloc(get_vm(), self, size)
+        protected.alloc(get_vm(), self, size)
     }
 
     fn free(&self, _region: Region) {
@@ -236,6 +242,22 @@ struct YoungGenProtected {
 }
 
 impl YoungGenProtected {
+    fn alloc(&mut self, vm: &VM, young: &YoungGen, size: usize) -> Option<Address> {
+        if let Some(address) = self.raw_alloc(vm, young, size) {
+            return Some(address);
+        }
+
+        if self.current_limit < self.limit {
+            fill_region_with(vm, self.top, self.current_limit, false);
+            self.top = self.current_limit;
+            self.current_limit = self.current_limit.offset(PAGE_SIZE);
+            assert!(self.current_limit <= self.limit);
+            self.raw_alloc(vm, young, size)
+        } else {
+            None
+        }
+    }
+
     fn raw_alloc(&mut self, vm: &VM, _young: &YoungGen, size: usize) -> Option<Address> {
         let next = self.top.offset(size);
 

@@ -16,7 +16,6 @@ use crate::gc::tlab::TLAB_OBJECT_SIZE;
 use crate::gc::zero::ZeroCollector;
 use crate::mem;
 use crate::object::{Header, Obj};
-use crate::os;
 use crate::threads::DoraThread;
 use crate::vm::VM;
 use crate::vm::{CollectorName, Flags};
@@ -324,17 +323,7 @@ impl Address {
 
     #[inline(always)]
     pub fn align_card(self) -> Address {
-        mem::align_usize(self.to_usize(), CARD_SIZE).into()
-    }
-
-    #[inline(always)]
-    pub fn align_region_up(self) -> Address {
-        align_page_up(self.to_usize()).into()
-    }
-
-    #[inline(always)]
-    pub fn align_region_down(self) -> Address {
-        align_page_down(self.to_usize()).into()
+        mem::align_usize_up(self.to_usize(), CARD_SIZE).into()
     }
 
     #[inline(always)]
@@ -343,13 +332,8 @@ impl Address {
     }
 
     #[inline(always)]
-    pub fn align_page(self) -> Address {
-        mem::page_align(self.to_usize()).into()
-    }
-
-    #[inline(always)]
-    pub fn align_page_down(self) -> Address {
-        Address(self.0 & !(os::page_size() - 1))
+    pub fn align_page_up(self) -> Address {
+        align_page_up(self.to_usize()).into()
     }
 
     #[inline(always)]
