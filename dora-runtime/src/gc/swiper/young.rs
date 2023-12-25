@@ -43,6 +43,8 @@ impl YoungGen {
         let to_region = 1;
         let to_region = semispaces[to_region];
 
+        assert!(to_region.start().offset(PAGE_SIZE) <= to_region.end());
+
         let young = YoungGen {
             total,
             semispaces,
@@ -52,7 +54,7 @@ impl YoungGen {
             protected: Mutex::new(YoungGenProtected {
                 start: to_region.start(),
                 top: to_region.start(),
-                current_limit: to_region.start().offset(semi_size),
+                current_limit: to_region.start().offset(PAGE_SIZE),
                 limit: to_region.start().offset(semi_size),
                 age_marker: to_region.start(),
             }),
@@ -65,8 +67,9 @@ impl YoungGen {
     }
 
     pub(super) fn setup(&self, vm: &VM) {
-        let to_committed = self.to_committed();
-        fill_region(vm, to_committed.start(), to_committed.end());
+        let protected = self.protected.lock();
+        fill_region_with(vm, protected.start, protected.current_limit, true);
+        fill_region_with(vm, protected.current_limit, protected.limit, true);
     }
 
     fn commit(&self, semi_size: usize) {
@@ -168,7 +171,7 @@ impl YoungGen {
     }
 
     fn commit_semi_space(&self, space: Region, old_size: usize, new_size: usize) {
-        assert!(mem::is_os_page_aligned(new_size));
+        assert!(is_page_aligned(new_size));
 
         if old_size == new_size {
             return;
@@ -252,6 +255,7 @@ impl YoungGenProtected {
             self.top = self.current_limit;
             self.current_limit = self.current_limit.offset(PAGE_SIZE);
             assert!(self.current_limit <= self.limit);
+            fill_region_with(vm, self.current_limit, self.limit, false);
             self.raw_alloc(vm, young, size)
         } else {
             None
