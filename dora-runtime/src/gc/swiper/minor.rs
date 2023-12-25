@@ -166,7 +166,10 @@ impl<'a> MinorCollector<'a> {
         let vm = self.vm;
 
         // align old generation to card boundary
-        let young_top = Mutex::new(self.young_top);
+        let young_top = Mutex::new(YoungAlloc {
+            top: self.young_top,
+            limit: self.young_limit,
+        });
         let young_limit = self.young_limit;
         let age_marker = self.young.age_marker();
         assert!(self.young.from_committed().valid_top(age_marker));
@@ -251,7 +254,7 @@ impl<'a> MinorCollector<'a> {
                         old_lab: Lab::new(),
 
                         young_lab: Lab::new(),
-                        young_top,
+                        young_alloc: young_top,
                         young_limit,
                         copy_failed: false,
 
@@ -278,7 +281,7 @@ impl<'a> MinorCollector<'a> {
             self.phases.tracing = timer.stop();
         }
 
-        self.young_top = *young_top.lock();
+        self.young_top = young_top.lock().top;
 
         self.promoted_size = promoted_size.load(Ordering::Relaxed);
         self.copied_size = copied_size.load(Ordering::Relaxed);
@@ -384,7 +387,7 @@ struct CopyTask<'a> {
     old_lab: Lab,
 
     young_lab: Lab,
-    young_top: &'a Mutex<Address>,
+    young_alloc: &'a Mutex<YoungAlloc>,
     young_limit: Address,
     copy_failed: bool,
 
@@ -739,13 +742,13 @@ impl<'a> CopyTask<'a> {
             return Address::null();
         }
 
-        let mut top = self.young_top.lock();
+        let mut young_alloc = self.young_alloc.lock();
 
-        let lab_start = *top;
+        let lab_start = young_alloc.top;
         let lab_end = lab_start.offset(size);
 
         if lab_end <= self.young_limit {
-            *top = lab_end;
+            young_alloc.top = lab_end;
 
             lab_start
         } else {
@@ -760,13 +763,13 @@ impl<'a> CopyTask<'a> {
             return false;
         }
 
-        let mut top = self.young_top.lock();
+        let mut young_alloc = self.young_alloc.lock();
 
-        let lab_start = *top;
+        let lab_start = young_alloc.top;
         let lab_end = lab_start.offset(CLAB_SIZE);
 
         if lab_end <= self.young_limit {
-            *top = lab_end;
+            young_alloc.top = lab_end;
             fill_region_with(self.vm, lab_end, self.young_limit, false);
             self.young_lab.reset(lab_start, lab_end);
 
@@ -1037,4 +1040,9 @@ impl<'a> CopyTask<'a> {
 
         None
     }
+}
+
+struct YoungAlloc {
+    top: Address,
+    limit: Address,
 }
