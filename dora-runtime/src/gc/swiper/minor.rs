@@ -42,6 +42,7 @@ pub struct MinorCollector<'a> {
     _reason: GcReason,
 
     young_top: Address,
+    young_current_limit: Address,
     young_limit: Address,
 
     promoted_size: usize,
@@ -87,6 +88,7 @@ impl<'a> MinorCollector<'a> {
             crossing_map,
 
             young_top: Address::null(),
+            young_current_limit: Address::null(),
             young_limit: Address::null(),
 
             promoted_size: 0,
@@ -132,7 +134,8 @@ impl<'a> MinorCollector<'a> {
 
         self.iterate_weak_refs();
 
-        self.young.reset_after_minor_gc(self.young_top);
+        self.young
+            .reset_after_minor_gc(self.young_top, self.young_current_limit);
         self.young.protect_from();
 
         let mut config = self.config.lock();
@@ -278,7 +281,9 @@ impl<'a> MinorCollector<'a> {
             self.phases.tracing = timer.stop();
         }
 
-        self.young_top = young_alloc.top();
+        let (young_top, young_current_limit) = young_alloc.top_and_limit();
+        self.young_top = young_top;
+        self.young_current_limit = young_current_limit;
 
         self.promoted_size = promoted_size.load(Ordering::Relaxed);
         self.copied_size = copied_size.load(Ordering::Relaxed);
@@ -1049,8 +1054,9 @@ impl YoungAlloc {
         protected.alloc(vm, size)
     }
 
-    fn top(self) -> Address {
-        self.protected.into_inner().top
+    fn top_and_limit(self) -> (Address, Address) {
+        let data = self.protected.into_inner();
+        (data.top, data.limit)
     }
 }
 

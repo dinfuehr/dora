@@ -380,13 +380,13 @@ impl Swiper {
     }
 
     fn alloc_normal(&self, vm: &VM, size: usize) -> Address {
-        if let Some(address) = self.young.bump_alloc(size) {
+        if let Some(address) = self.young.bump_alloc(vm, size) {
             return address;
         }
 
         self.perform_collection_and_choose(vm, GcReason::AllocationFailure);
 
-        self.young.bump_alloc(size).unwrap_or(Address::null())
+        self.young.bump_alloc(vm, size).unwrap_or(Address::null())
     }
 
     fn alloc_large(&self, vm: &VM, size: usize) -> Address {
@@ -408,19 +408,19 @@ impl Collector for Swiper {
     }
 
     fn alloc_tlab_area(&self, vm: &VM, size: usize) -> Option<Region> {
-        if let Some(address) = self.young.bump_alloc(size) {
+        if let Some(address) = self.young.bump_alloc(vm, size) {
             return Some(address.region_start(size));
         }
 
         self.perform_collection_and_choose(vm, GcReason::AllocationFailure);
 
-        if let Some(address) = self.young.bump_alloc(size) {
+        if let Some(address) = self.young.bump_alloc(vm, size) {
             return Some(address.region_start(size));
         }
 
         self.perform_collection(vm, CollectionKind::Full, GcReason::AllocationFailure);
 
-        if let Some(address) = self.young.bump_alloc(size) {
+        if let Some(address) = self.young.bump_alloc(vm, size) {
             return Some(address.region_start(size));
         }
 

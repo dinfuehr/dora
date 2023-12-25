@@ -143,15 +143,14 @@ impl YoungGen {
         protected.reset_alloc(to_committed);
     }
 
-    pub fn reset_after_minor_gc(&self, top: Address) {
+    pub fn reset_after_minor_gc(&self, top: Address, current_limit: Address) {
         let mut protected = self.protected.lock();
-        protected.set_top_after_minor(top);
-        fill_region(get_vm(), top, protected.current_limit);
+        protected.set_top_after_minor(top, current_limit);
     }
 
-    pub fn bump_alloc(&self, size: usize) -> Option<Address> {
+    pub fn bump_alloc(&self, vm: &VM, size: usize) -> Option<Address> {
         let mut protected = self.protected.lock();
-        protected.alloc(get_vm(), self, size)
+        protected.alloc(vm, self, size)
     }
 
     pub fn resize_after_gc(&self, young_size: usize) {
@@ -282,10 +281,13 @@ impl YoungGenProtected {
         self.limit = region.end();
     }
 
-    fn set_top_after_minor(&mut self, top: Address) {
+    fn set_top_after_minor(&mut self, top: Address, current_limit: Address) {
         assert!(self.start <= top);
-        assert!(top <= self.current_limit);
+        assert!(top <= current_limit);
+        assert!(current_limit <= self.limit);
+        assert!(current_limit.is_page_aligned());
         self.top = top;
+        self.current_limit = current_limit;
         self.age_marker = top;
     }
 }
