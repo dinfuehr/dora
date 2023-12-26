@@ -177,9 +177,10 @@ impl YoungGen {
         self.commit_semi_space(vm, self.semispaces[1], old_semi_size, new_semi_size);
 
         let mut protected = self.protected.lock();
-        assert!(protected.top <= protected.current_limit);
-        protected.current_limit = self.to_committed().end();
         protected.limit = self.to_committed().end();
+        assert!(protected.top <= protected.current_limit);
+        assert_eq!(protected.top.align_page_up(), protected.current_limit);
+        assert!(protected.current_limit <= protected.limit);
     }
 
     fn commit_semi_space(&self, vm: &VM, space: Region, old_size: usize, new_size: usize) {
@@ -197,9 +198,10 @@ impl YoungGen {
 
             let mut curr = start;
             while curr < end {
-                let next = curr.offset(PAGE_SIZE);
-                fill_region(vm, curr, next);
-                curr = next;
+                let page = Page::from_address(curr);
+                page.initialize_iterable_header(vm);
+                fill_region(vm, page.object_area_start(), page.object_area_end());
+                curr = page.end();
             }
         } else {
             assert!(new_size < old_size);
@@ -302,7 +304,7 @@ impl YoungGenProtected {
     fn reset_alloc(&mut self, region: Region) {
         self.start = region.start();
         self.top = region.start();
-        self.current_limit = region.end();
+        self.current_limit = region.start();
         self.limit = region.end();
     }
 
