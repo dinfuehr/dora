@@ -1043,7 +1043,7 @@ impl YoungAlloc {
         YoungAlloc {
             protected: Mutex::new(YoungAllocProtected {
                 top: region.start(),
-                current_limit: region.end(),
+                current_limit: region.start(),
                 limit: region.end(),
             }),
         }
@@ -1056,7 +1056,7 @@ impl YoungAlloc {
 
     fn top_and_limit(self) -> (Address, Address) {
         let data = self.protected.into_inner();
-        (data.top, data.limit)
+        (data.top, data.current_limit)
     }
 }
 
