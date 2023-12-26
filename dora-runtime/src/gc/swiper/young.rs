@@ -54,7 +54,7 @@ impl YoungGen {
             protected: Mutex::new(YoungGenProtected {
                 start: to_region.start(),
                 top: to_region.start(),
-                current_limit: to_region.start().offset(PAGE_SIZE),
+                current_limit: to_region.start(),
                 limit: to_region.start().offset(semi_size),
                 age_marker: to_region.start(),
             }),
