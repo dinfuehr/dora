@@ -348,10 +348,16 @@ impl<'a> FullCollector<'a> {
             last = page.end();
         }
 
-        let used_region = self.young.to_committed();
-        walk_region(used_region, |obj, addr, size| {
-            fct(self, obj, addr, size);
-        });
+        let to_committed = self.young.to_committed();
+        let mut curr = to_committed.start();
+        while curr < to_committed.end() {
+            let page = Page::from_address(curr);
+            walk_region(page.object_area(), |obj, addr, size| {
+                fct(self, obj, addr, size);
+            });
+            curr = page.end();
+        }
+        assert_eq!(curr, to_committed.end());
     }
 
     fn allocate(&mut self, object_size: usize) -> Address {

@@ -1075,7 +1075,7 @@ impl YoungAllocProtected {
         if self.current_limit < self.limit {
             fill_region_with(vm, self.top, self.current_limit, false);
             let page = Page::from_address(self.current_limit);
-            page.initialize_iterable_header(vm);
+            page.initialize_header();
             self.top = page.object_area_start();
             self.current_limit = page.object_area_end();
             assert!(self.current_limit <= self.limit);

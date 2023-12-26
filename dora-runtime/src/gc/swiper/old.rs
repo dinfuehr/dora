@@ -12,7 +12,7 @@ use crate::gc::{fill_region, fill_region_with};
 use crate::gc::{Address, GenerationAllocator, Region};
 use crate::mem::ptr_width_usize;
 use crate::os::{self, MemoryPermission};
-use crate::vm::{get_vm, VM};
+use crate::vm::get_vm;
 
 pub struct OldGen {
     total: Region,
@@ -227,10 +227,6 @@ impl Page {
 
             header.fill(0xDEAD2BAD);
         }
-    }
-
-    pub fn initialize_iterable_header(&self, vm: &VM) {
-        fill_region_with(vm, self.start(), self.object_area_start(), false);
     }
 
     pub fn area(&self) -> Region {
