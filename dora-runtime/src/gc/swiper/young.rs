@@ -67,9 +67,21 @@ impl YoungGen {
     }
 
     pub(super) fn setup(&self, vm: &VM) {
-        let protected = self.protected.lock();
-        fill_region_with(vm, protected.start, protected.current_limit, true);
-        fill_region_with(vm, protected.current_limit, protected.limit, true);
+        let to_committed = self.to_committed();
+        self.make_pages_iterable(vm, to_committed.start());
+    }
+
+    fn make_pages_iterable(&self, vm: &VM, start: Address) {
+        let to_committed = self.to_committed();
+        assert!(to_committed.valid_top(start));
+        let mut curr = start;
+
+        while curr < to_committed.end() {
+            let page = Page::from_address(curr);
+            page.initialize_iterable_header(vm);
+            fill_region_with(vm, page.object_area_start(), page.object_area_end(), true);
+            curr = page.end();
+        }
     }
 
     fn commit(&self, semi_size: usize) {
@@ -91,10 +103,12 @@ impl YoungGen {
         self.total.contains(addr)
     }
 
-    pub fn reset_after_full_gc(&self) {
+    pub fn reset_after_full_gc(&self, vm: &VM) {
         self.unprotect_from();
         self.swap_semi();
         self.protect_from();
+
+        self.make_pages_iterable(vm, self.to_committed().start());
 
         let mut protected = self.protected.lock();
         protected.age_marker = protected.top;
@@ -143,7 +157,9 @@ impl YoungGen {
         protected.reset_alloc(to_committed);
     }
 
-    pub fn reset_after_minor_gc(&self, top: Address, current_limit: Address) {
+    pub fn reset_after_minor_gc(&self, vm: &VM, top: Address, current_limit: Address) {
+        self.make_pages_iterable(vm, current_limit);
+
         let mut protected = self.protected.lock();
         protected.set_top_after_minor(top, current_limit);
     }
@@ -252,13 +268,15 @@ impl YoungGenProtected {
         if self.current_limit < self.limit {
             fill_region_with(vm, self.top, self.current_limit, false);
             let page = Page::from_address(self.current_limit);
-            page.initialize_iterable_header();
+            page.initialize_iterable_header(vm);
             self.top = page.object_area_start();
             self.current_limit = page.object_area_end();
             assert!(self.current_limit <= self.limit);
             fill_region_with(vm, self.top, self.current_limit, false);
             fill_region_with(vm, self.current_limit, self.limit, false);
-            self.raw_alloc(vm, young, size)
+            let result = self.raw_alloc(vm, young, size);
+            assert!(result.is_some());
+            result
         } else {
             None
         }

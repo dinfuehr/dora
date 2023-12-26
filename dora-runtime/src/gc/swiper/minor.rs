@@ -135,7 +135,7 @@ impl<'a> MinorCollector<'a> {
         self.iterate_weak_refs();
 
         self.young
-            .reset_after_minor_gc(self.young_top, self.young_current_limit);
+            .reset_after_minor_gc(self.vm, self.young_top, self.young_current_limit);
         self.young.protect_from();
 
         let mut config = self.config.lock();
@@ -1075,13 +1075,15 @@ impl YoungAllocProtected {
         if self.current_limit < self.limit {
             fill_region_with(vm, self.top, self.current_limit, false);
             let page = Page::from_address(self.current_limit);
-            page.initialize_iterable_header();
+            page.initialize_iterable_header(vm);
             self.top = page.object_area_start();
             self.current_limit = page.object_area_end();
             assert!(self.current_limit <= self.limit);
             fill_region_with(vm, self.top, self.current_limit, false);
             fill_region_with(vm, self.current_limit, self.limit, false);
-            self.raw_alloc(vm, size)
+            let result = self.raw_alloc(vm, size);
+            assert!(result.is_some());
+            result
         } else {
             None
         }
