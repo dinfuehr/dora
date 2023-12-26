@@ -1080,7 +1080,6 @@ impl YoungAllocProtected {
             self.current_limit = page.object_area_end();
             assert!(self.current_limit <= self.limit);
             fill_region_with(vm, self.top, self.current_limit, false);
-            fill_region_with(vm, self.current_limit, self.limit, false);
             let result = self.raw_alloc(vm, size);
             assert!(result.is_some());
             result
