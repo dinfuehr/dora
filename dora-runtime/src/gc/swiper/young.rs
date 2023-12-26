@@ -45,7 +45,7 @@ impl YoungGen {
 
         assert!(to_region.start().offset(PAGE_SIZE) <= to_region.end());
 
-        let young = YoungGen {
+        YoungGen {
             total,
             semispaces,
             from_index: AtomicUsize::new(from_region),
@@ -58,15 +58,13 @@ impl YoungGen {
                 limit: to_region.start().offset(semi_size),
                 age_marker: to_region.start(),
             }),
-        };
-
-        young.commit(semi_size);
-        young.protect_from();
-
-        young
+        }
     }
 
     pub(super) fn setup(&self, vm: &VM) {
+        self.commit(vm, self.current_size());
+        self.protect_from();
+
         let to_committed = self.to_committed();
         self.make_pages_iterable(vm, to_committed.start());
     }
@@ -84,9 +82,9 @@ impl YoungGen {
         }
     }
 
-    fn commit(&self, semi_size: usize) {
-        self.commit_semi_space(self.semispaces[0], 0, semi_size);
-        self.commit_semi_space(self.semispaces[1], 0, semi_size);
+    fn commit(&self, vm: &VM, semi_size: usize) {
+        self.commit_semi_space(vm, self.semispaces[0], 0, semi_size);
+        self.commit_semi_space(vm, self.semispaces[1], 0, semi_size);
     }
 
     pub fn object_size(&self) -> usize {
@@ -169,14 +167,14 @@ impl YoungGen {
         protected.alloc(vm, self, size)
     }
 
-    pub fn resize_after_gc(&self, young_size: usize) {
+    pub fn resize_after_gc(&self, vm: &VM, young_size: usize) {
         let new_semi_size = young_size / 2;
         assert_eq!(new_semi_size % PAGE_SIZE, 0);
         let old_semi_size = self.current_size();
         self.set_current_size(new_semi_size);
 
-        self.commit_semi_space(self.semispaces[0], old_semi_size, new_semi_size);
-        self.commit_semi_space(self.semispaces[1], old_semi_size, new_semi_size);
+        self.commit_semi_space(vm, self.semispaces[0], old_semi_size, new_semi_size);
+        self.commit_semi_space(vm, self.semispaces[1], old_semi_size, new_semi_size);
 
         let mut protected = self.protected.lock();
         assert!(protected.top <= protected.current_limit);
@@ -185,7 +183,7 @@ impl YoungGen {
         fill_region(get_vm(), protected.top, protected.limit);
     }
 
-    fn commit_semi_space(&self, space: Region, old_size: usize, new_size: usize) {
+    fn commit_semi_space(&self, vm: &VM, space: Region, old_size: usize, new_size: usize) {
         assert!(is_page_aligned(new_size));
 
         if old_size == new_size {
@@ -195,7 +193,15 @@ impl YoungGen {
         if old_size < new_size {
             let size = new_size - old_size;
             let start = space.start().offset(old_size);
+            let end = start.offset(size);
             os::commit_at(start, size, MemoryPermission::ReadWrite);
+
+            let mut curr = start;
+            while curr < end {
+                let next = curr.offset(PAGE_SIZE);
+                fill_region(vm, curr, next);
+                curr = next;
+            }
         } else {
             assert!(new_size < old_size);
             let size = old_size - new_size;

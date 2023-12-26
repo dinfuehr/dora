@@ -228,6 +228,7 @@ impl Swiper {
             };
 
             controller::stop(
+                vm,
                 &self.config,
                 kind,
                 &self.young,

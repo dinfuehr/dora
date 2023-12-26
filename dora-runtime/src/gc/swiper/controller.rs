@@ -10,7 +10,7 @@ use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{CollectionKind, CommonOldGen, PAGE_SIZE};
 use crate::gc::{align_page_down, align_page_up, formatted_size, AllNumbers, GcReason, M};
 use crate::stdlib;
-use crate::vm::{Flags, Trap};
+use crate::vm::{Flags, Trap, VM};
 
 pub fn init(config: &mut HeapController, args: &Flags) {
     assert!(config.min_heap_size <= config.max_heap_size);
@@ -72,6 +72,7 @@ pub fn start(
 }
 
 pub fn stop(
+    vm: &VM,
     config: &SharedHeapConfig,
     kind: CollectionKind,
     young: &YoungGen,
@@ -104,7 +105,7 @@ pub fn stop(
         stdlib::trap(Trap::OOM.int());
     }
 
-    young.resize_after_gc(young_size);
+    young.resize_after_gc(vm, young_size);
     config.old_limit = config.max_heap_size - young_size;
     assert!(config.old_limit >= old_size);
 
