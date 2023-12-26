@@ -19,7 +19,7 @@ pub struct YoungGen {
 
     protect: bool,
 
-    protected: Mutex<YoungGenProtected>,
+    alloc: YoungAlloc,
     age_marker: Mutex<Address>,
 }
 
@@ -46,17 +46,15 @@ impl YoungGen {
 
         assert!(to_region.start().offset(PAGE_SIZE) <= to_region.end());
 
+        let committed_region = to_region.start().region_start(semi_size);
+
         YoungGen {
             total,
             semispaces,
             from_index: AtomicUsize::new(from_region),
             current_size: AtomicUsize::new(semi_size),
             protect,
-            protected: Mutex::new(YoungGenProtected {
-                top: to_region.start(),
-                current_limit: to_region.start(),
-                limit: to_region.start().offset(semi_size),
-            }),
+            alloc: YoungAlloc::new(committed_region),
             age_marker: Mutex::new(to_region.start()),
         }
     }
@@ -88,7 +86,7 @@ impl YoungGen {
     }
 
     pub fn object_size(&self) -> usize {
-        let protected = self.protected.lock();
+        let protected = self.alloc.protected.lock();
         let start = self.to_total().start();
         protected.top.offset_from(start)
     }
@@ -149,22 +147,20 @@ impl YoungGen {
         let to_committed = self.to_committed();
         self.make_pages_iterable(vm, to_committed.start());
 
-        let mut protected = self.protected.lock();
-        protected.reset_alloc(to_committed);
+        self.alloc.reset(to_committed);
     }
 
-    pub fn reset_after_minor_gc(&self, vm: &VM, top: Address, current_limit: Address) {
-        self.make_pages_iterable(vm, current_limit);
+    pub fn reset_after_minor_gc(&self, vm: &VM, young_alloc: YoungAlloc) {
+        let from_gc = young_alloc.protected.into_inner();
+        self.make_pages_iterable(vm, from_gc.current_limit);
 
-        let mut protected = self.protected.lock();
-        protected.set_top_after_minor(top, current_limit);
+        *self.age_marker.lock() = from_gc.top;
 
-        *self.age_marker.lock() = top;
+        self.alloc.reuse(from_gc);
     }
 
     pub fn bump_alloc(&self, vm: &VM, size: usize) -> Option<Address> {
-        let mut protected = self.protected.lock();
-        protected.alloc(vm, self, size)
+        self.alloc.alloc(vm, size)
     }
 
     pub fn resize_after_gc(&self, vm: &VM, young_size: usize) {
@@ -176,11 +172,7 @@ impl YoungGen {
         self.commit_semi_space(vm, self.semispaces[0], old_semi_size, new_semi_size);
         self.commit_semi_space(vm, self.semispaces[1], old_semi_size, new_semi_size);
 
-        let mut protected = self.protected.lock();
-        protected.limit = self.to_committed().end();
-        assert!(protected.top <= protected.current_limit);
-        assert_eq!(protected.top.align_page_up(), protected.current_limit);
-        assert!(protected.current_limit <= protected.limit);
+        self.alloc.resize(self.to_committed().end());
     }
 
     fn commit_semi_space(&self, vm: &VM, space: Region, old_size: usize, new_size: usize) {
@@ -249,8 +241,7 @@ impl YoungGen {
 
 impl GenerationAllocator for YoungGen {
     fn allocate(&self, size: usize) -> Option<Address> {
-        let mut protected = self.protected.lock();
-        protected.alloc(get_vm(), self, size)
+        self.alloc.alloc(get_vm(), size)
     }
 
     fn free(&self, _region: Region) {
@@ -258,15 +249,61 @@ impl GenerationAllocator for YoungGen {
     }
 }
 
-struct YoungGenProtected {
+pub struct YoungAlloc {
+    protected: Mutex<YoungAllocProtected>,
+}
+
+impl YoungAlloc {
+    pub fn new(region: Region) -> YoungAlloc {
+        assert!(region.size() > 0);
+        assert_eq!(region.size() % PAGE_SIZE, 0);
+        assert!(region.start().is_page_aligned());
+        assert!(region.end().is_page_aligned());
+
+        YoungAlloc {
+            protected: Mutex::new(YoungAllocProtected {
+                top: region.start(),
+                current_limit: region.start(),
+                limit: region.end(),
+            }),
+        }
+    }
+
+    pub fn alloc(&self, vm: &VM, size: usize) -> Option<Address> {
+        let mut protected = self.protected.lock();
+        protected.alloc(vm, size)
+    }
+
+    fn reset(&self, region: Region) {
+        let mut protected = self.protected.lock();
+        protected.top = region.start();
+        protected.current_limit = region.start();
+        protected.limit = region.end();
+    }
+
+    fn reuse(&self, alloc: YoungAllocProtected) {
+        let mut protected = self.protected.lock();
+        *protected = alloc;
+    }
+
+    fn resize(&self, new_limit: Address) {
+        let mut protected = self.protected.lock();
+        protected.limit = new_limit;
+        assert!(protected.top <= protected.current_limit);
+        assert_eq!(protected.top.align_page_up(), protected.current_limit);
+        assert!(protected.current_limit <= protected.limit);
+    }
+}
+
+struct YoungAllocProtected {
     top: Address,
     current_limit: Address,
     limit: Address,
 }
 
-impl YoungGenProtected {
-    fn alloc(&mut self, vm: &VM, young: &YoungGen, size: usize) -> Option<Address> {
-        if let Some(address) = self.raw_alloc(vm, young, size) {
+impl YoungAllocProtected {
+    fn alloc(&mut self, vm: &VM, size: usize) -> Option<Address> {
+        if let Some(address) = self.raw_alloc(vm, size) {
             return Some(address);
         }
 
@@ -278,7 +315,7 @@ impl YoungGenProtected {
             self.current_limit = page.object_area_end();
             assert!(self.current_limit <= self.limit);
             fill_region_with(vm, self.top, self.current_limit, false);
-            let result = self.raw_alloc(vm, young, size);
+            let result = self.raw_alloc(vm, size);
             assert!(result.is_some());
             result
         } else {
@@ -286,7 +323,7 @@ impl YoungGenProtected {
         }
     }
 
-    fn raw_alloc(&mut self, vm: &VM, _young: &YoungGen, size: usize) -> Option<Address> {
+    fn raw_alloc(&mut self, vm: &VM, size: usize) -> Option<Address> {
         let next = self.top.offset(size);
 
         if next <= self.current_limit {
@@ -297,20 +334,5 @@ impl YoungGenProtected {
         } else {
             None
         }
-    }
-
-    fn reset_alloc(&mut self, region: Region) {
-        self.top = region.start();
-        self.current_limit = region.start();
-        self.limit = region.end();
-    }
-
-    fn set_top_after_minor(&mut self, top: Address, current_limit: Address) {
-        assert!(top <= current_limit);
-        assert!(current_limit <= self.limit);
-        assert!(current_limit.is_page_aligned());
-        assert_eq!(top.align_page_up(), current_limit);
-        self.top = top;
-        self.current_limit = current_limit;
     }
 }

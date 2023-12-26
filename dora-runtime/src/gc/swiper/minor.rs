@@ -11,7 +11,7 @@ use crate::gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use crate::gc::swiper::large::{LargeAlloc, LargeSpace};
 use crate::gc::swiper::old::{OldGen, Page};
 use crate::gc::swiper::young::YoungGen;
-use crate::gc::swiper::{forward_minor, CardIdx, CARD_SIZE, LARGE_OBJECT_SIZE, PAGE_SIZE};
+use crate::gc::swiper::{forward_minor, CardIdx, YoungAlloc, CARD_SIZE, LARGE_OBJECT_SIZE};
 use crate::gc::tlab::{TLAB_OBJECT_SIZE, TLAB_SIZE};
 use crate::gc::{
     fill_region, fill_region_with, iterate_weak_roots, Address, GcReason, GenerationAllocator,
@@ -41,9 +41,7 @@ pub struct MinorCollector<'a> {
     _threads: &'a [Arc<DoraThread>],
     _reason: GcReason,
 
-    young_top: Address,
-    young_current_limit: Address,
-    young_limit: Address,
+    young_alloc: Option<YoungAlloc>,
 
     promoted_size: usize,
     copied_size: usize,
@@ -87,9 +85,7 @@ impl<'a> MinorCollector<'a> {
             card_table,
             crossing_map,
 
-            young_top: Address::null(),
-            young_current_limit: Address::null(),
-            young_limit: Address::null(),
+            young_alloc: None,
 
             promoted_size: 0,
             copied_size: 0,
@@ -117,8 +113,7 @@ impl<'a> MinorCollector<'a> {
         self.young.swap_semi(self.vm);
 
         let to_committed = self.young.to_committed();
-        self.young_top = to_committed.start;
-        self.young_limit = to_committed.end;
+        self.young_alloc = Some(YoungAlloc::new(to_committed));
 
         let dev_verbose = self.vm.flags.gc_dev_verbose;
 
@@ -134,8 +129,8 @@ impl<'a> MinorCollector<'a> {
 
         self.iterate_weak_refs();
 
-        self.young
-            .reset_after_minor_gc(self.vm, self.young_top, self.young_current_limit);
+        let young_alloc = std::mem::replace(&mut self.young_alloc, None).expect("missing value");
+        self.young.reset_after_minor_gc(self.vm, young_alloc);
         self.young.protect_from();
 
         let mut config = self.config.lock();
@@ -169,8 +164,7 @@ impl<'a> MinorCollector<'a> {
         let vm = self.vm;
 
         // align old generation to card boundary
-        let young_alloc = YoungAlloc::new(Region::new(self.young_top, self.young_limit));
-        let young_limit = self.young_limit;
+        let young_alloc = self.young_alloc.as_ref().expect("missing value");
         let age_marker = self.young.age_marker();
         assert!(self.young.from_committed().valid_top(age_marker));
 
@@ -255,7 +249,6 @@ impl<'a> MinorCollector<'a> {
 
                         young_lab: Lab::new(),
                         young_alloc,
-                        young_limit,
                         copy_failed: false,
 
                         timer: prot_timer,
@@ -280,10 +273,6 @@ impl<'a> MinorCollector<'a> {
             self.phases.roots = duration_roots;
             self.phases.tracing = timer.stop();
         }
-
-        let (young_top, young_current_limit) = young_alloc.top_and_limit();
-        self.young_top = young_top;
-        self.young_current_limit = young_current_limit;
 
         self.promoted_size = promoted_size.load(Ordering::Relaxed);
         self.copied_size = copied_size.load(Ordering::Relaxed);
@@ -390,7 +379,6 @@ struct CopyTask<'a> {
 
     young_lab: Lab,
     young_alloc: &'a YoungAlloc,
-    young_limit: Address,
     copy_failed: bool,
 
     timer: &'a Option<Mutex<(Timer, f32)>>,
@@ -1026,78 +1014,5 @@ impl<'a> CopyTask<'a> {
         }
 
         None
-    }
-}
-
-struct YoungAlloc {
-    protected: Mutex<YoungAllocProtected>,
-}
-
-impl YoungAlloc {
-    fn new(region: Region) -> YoungAlloc {
-        assert!(region.size() > 0);
-        assert_eq!(region.size() % PAGE_SIZE, 0);
-        assert!(region.start().is_page_aligned());
-        assert!(region.end().is_page_aligned());
-
-        YoungAlloc {
-            protected: Mutex::new(YoungAllocProtected {
-                top: region.start(),
-                current_limit: region.start(),
-                limit: region.end(),
-            }),
-        }
-    }
-
-    fn alloc(&self, vm: &VM, size: usize) -> Option<Address> {
-        let mut protected = self.protected.lock();
-        protected.alloc(vm, size)
-    }
-
-    fn top_and_limit(self) -> (Address, Address) {
-        let data = self.protected.into_inner();
-        (data.top, data.current_limit)
-    }
-}
-
-struct YoungAllocProtected {
-    top: Address,
-    current_limit: Address,
-    limit: Address,
-}
-
-impl YoungAllocProtected {
-    fn alloc(&mut self, vm: &VM, size: usize) -> Option<Address> {
-        if let Some(address) = self.raw_alloc(vm, size) {
-            return Some(address);
-        }
-
-        if self.current_limit < self.limit {
-            fill_region_with(vm, self.top, self.current_limit, false);
-            let page = Page::from_address(self.current_limit);
-            page.initialize_header();
-            self.top = page.object_area_start();
-            self.current_limit = page.object_area_end();
-            assert!(self.current_limit <= self.limit);
-            fill_region_with(vm, self.top, self.current_limit, false);
-            let result = self.raw_alloc(vm, size);
-            assert!(result.is_some());
-            result
-        } else {
-            None
-        }
-    }
-
-    fn raw_alloc(&mut self, vm: &VM, size: usize) -> Option<Address> {
-        let next = self.top.offset(size);
-
-        if next <= self.current_limit {
-            let result = self.top;
-            self.top = next;
-            fill_region_with(vm, self.top, self.current_limit, false);
-            Some(result)
-        } else {
-            None
-        }
     }
 }
