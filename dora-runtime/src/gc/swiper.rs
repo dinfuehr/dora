@@ -4,6 +4,8 @@ use std::fmt;
 use std::mem::size_of;
 use std::sync::Arc;
 
+pub use crate::gc::swiper::old::Page;
+
 use crate::gc::root::{determine_strong_roots, Slot};
 use crate::gc::swiper::card::CardTable;
 use crate::gc::swiper::controller::{HeapController, SharedHeapConfig};

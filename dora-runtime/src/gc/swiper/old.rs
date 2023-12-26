@@ -229,6 +229,10 @@ impl Page {
         }
     }
 
+    pub fn initialize_iterable_header(&self) {
+        fill_region_with(get_vm(), self.start(), self.object_area_start(), false);
+    }
+
     pub fn area(&self) -> Region {
         Region::new(self.start(), self.end())
     }

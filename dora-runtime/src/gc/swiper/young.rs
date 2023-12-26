@@ -2,7 +2,7 @@ use parking_lot::Mutex;
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use crate::gc::swiper::PAGE_SIZE;
+use crate::gc::swiper::{Page, PAGE_SIZE};
 use crate::gc::{
     fill_region, fill_region_with, is_page_aligned, Address, GenerationAllocator, Region,
 };
@@ -251,9 +251,12 @@ impl YoungGenProtected {
 
         if self.current_limit < self.limit {
             fill_region_with(vm, self.top, self.current_limit, false);
-            self.top = self.current_limit;
-            self.current_limit = self.current_limit.offset(PAGE_SIZE);
+            let page = Page::from_address(self.current_limit);
+            page.initialize_iterable_header();
+            self.top = page.object_area_start();
+            self.current_limit = page.object_area_end();
             assert!(self.current_limit <= self.limit);
+            fill_region_with(vm, self.top, self.current_limit, false);
             fill_region_with(vm, self.current_limit, self.limit, false);
             self.raw_alloc(vm, young, size)
         } else {
