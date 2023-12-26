@@ -20,6 +20,7 @@ pub struct YoungGen {
     protect: bool,
 
     protected: Mutex<YoungGenProtected>,
+    age_marker: Mutex<Address>,
 }
 
 impl YoungGen {
@@ -52,12 +53,11 @@ impl YoungGen {
             current_size: AtomicUsize::new(semi_size),
             protect,
             protected: Mutex::new(YoungGenProtected {
-                start: to_region.start(),
                 top: to_region.start(),
                 current_limit: to_region.start(),
                 limit: to_region.start().offset(semi_size),
-                age_marker: to_region.start(),
             }),
+            age_marker: Mutex::new(to_region.start()),
         }
     }
 
@@ -108,8 +108,7 @@ impl YoungGen {
 
         self.make_pages_iterable(vm, self.to_committed().start());
 
-        let mut protected = self.protected.lock();
-        protected.age_marker = protected.top;
+        *self.age_marker.lock() = self.to_committed().start();
     }
 
     pub fn unprotect_from(&self) {
@@ -141,8 +140,7 @@ impl YoungGen {
     }
 
     pub fn age_marker(&self) -> Address {
-        let protected = self.protected.lock();
-        protected.age_marker
+        *self.age_marker.lock()
     }
 
     pub fn swap_semi(&self, vm: &VM) {
@@ -160,6 +158,8 @@ impl YoungGen {
 
         let mut protected = self.protected.lock();
         protected.set_top_after_minor(top, current_limit);
+
+        *self.age_marker.lock() = top;
     }
 
     pub fn bump_alloc(&self, vm: &VM, size: usize) -> Option<Address> {
@@ -259,11 +259,9 @@ impl GenerationAllocator for YoungGen {
 }
 
 struct YoungGenProtected {
-    start: Address,
     top: Address,
     current_limit: Address,
     limit: Address,
-    age_marker: Address,
 }
 
 impl YoungGenProtected {
@@ -302,20 +300,17 @@ impl YoungGenProtected {
     }
 
     fn reset_alloc(&mut self, region: Region) {
-        self.start = region.start();
         self.top = region.start();
         self.current_limit = region.start();
         self.limit = region.end();
     }
 
     fn set_top_after_minor(&mut self, top: Address, current_limit: Address) {
-        assert!(self.start <= top);
         assert!(top <= current_limit);
         assert!(current_limit <= self.limit);
         assert!(current_limit.is_page_aligned());
         assert_eq!(top.align_page_up(), current_limit);
         self.top = top;
         self.current_limit = current_limit;
-        self.age_marker = top;
     }
 }
