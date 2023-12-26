@@ -137,8 +137,13 @@ impl<'a> Verifier<'a> {
     }
 
     fn verify_young(&mut self) {
-        let region = self.to_committed.clone();
-        self.verify_objects(region, "young gen (to)");
+        let mut curr = self.to_committed.start();
+        while curr < self.to_committed.end() {
+            let page = Page::from_address(curr);
+            self.verify_objects(page.object_area(), "young gen");
+            curr = page.end();
+        }
+        assert_eq!(curr, self.to_committed.end());
     }
 
     fn verify_old(&mut self) {

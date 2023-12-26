@@ -391,8 +391,14 @@ pub fn verify_marking(
         verify_marking_region(page.object_area(), heap);
     }
 
-    let to = young.to_committed();
-    verify_marking_region(to, heap);
+    let to_committed = young.to_committed();
+    let mut curr = to_committed.start();
+    while curr < to_committed.end() {
+        let page = Page::from_address(curr);
+        verify_marking_region(page.object_area(), heap);
+        curr = page.end();
+    }
+    assert_eq!(curr, to_committed.end());
 
     large.visit_objects(|obj_address| {
         verify_marking_object(obj_address, heap);
