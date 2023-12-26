@@ -180,7 +180,6 @@ impl YoungGen {
         assert!(protected.top <= protected.current_limit);
         protected.current_limit = self.to_committed().end();
         protected.limit = self.to_committed().end();
-        fill_region(get_vm(), protected.top, protected.limit);
     }
 
     fn commit_semi_space(&self, vm: &VM, space: Region, old_size: usize, new_size: usize) {
