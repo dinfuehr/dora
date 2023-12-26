@@ -103,7 +103,7 @@ impl YoungGen {
 
     pub fn reset_after_full_gc(&self, vm: &VM) {
         self.unprotect_from();
-        self.swap_semi();
+        self.swap_semi(vm);
         self.protect_from();
 
         self.make_pages_iterable(vm, self.to_committed().start());
@@ -145,11 +145,11 @@ impl YoungGen {
         protected.age_marker
     }
 
-    pub fn swap_semi(&self) {
+    pub fn swap_semi(&self, vm: &VM) {
         self.swap_indices();
 
         let to_committed = self.to_committed();
-        fill_region(get_vm(), to_committed.start(), to_committed.end());
+        self.make_pages_iterable(vm, to_committed.start());
 
         let mut protected = self.protected.lock();
         protected.reset_alloc(to_committed);
@@ -311,6 +311,7 @@ impl YoungGenProtected {
         assert!(top <= current_limit);
         assert!(current_limit <= self.limit);
         assert!(current_limit.is_page_aligned());
+        assert_eq!(top.align_page_up(), current_limit);
         self.top = top;
         self.current_limit = current_limit;
         self.age_marker = top;

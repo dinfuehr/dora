@@ -114,7 +114,7 @@ impl<'a> MinorCollector<'a> {
 
     pub fn collect(&mut self) {
         self.young.unprotect_from();
-        self.young.swap_semi();
+        self.young.swap_semi(self.vm);
 
         let to_committed = self.young.to_committed();
         self.young_top = to_committed.start;
