@@ -640,7 +640,7 @@ fn forward_full(object: Address, heap: Region, perm: Region, large: Region) -> O
             if large.contains(object) {
                 Some(object)
             } else {
-                let new_address = obj.header().fwdptr();
+                let new_address = obj.header().metadata_fwdptr();
                 Some(new_address)
             }
         } else {

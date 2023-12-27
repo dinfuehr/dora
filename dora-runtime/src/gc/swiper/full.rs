@@ -9,7 +9,7 @@ use crate::gc::swiper::crossing::CrossingMap;
 use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::old::{OldGen, OldGenProtected, Page};
 use crate::gc::swiper::young::YoungGen;
-use crate::gc::swiper::{forward_full, walk_region};
+use crate::gc::swiper::{forward_full, walk_region, INITIAL_METADATA_OLD};
 use crate::gc::{fill_region, iterate_strong_roots, iterate_weak_roots, marking, Slot};
 use crate::gc::{Address, GcReason, Region};
 use crate::object::Obj;
@@ -203,7 +203,7 @@ impl<'a> FullCollector<'a> {
         self.walk_old_and_young(|full, object, _address, object_size| {
             if object.header().is_marked() {
                 let fwd = full.allocate(object_size);
-                object.header().set_fwdptr(fwd);
+                object.header().set_metadata_fwdptr(fwd);
             }
         });
 
@@ -275,7 +275,7 @@ impl<'a> FullCollector<'a> {
         self.walk_old_and_young(|full, object, address, object_size| {
             if object.header().is_marked() {
                 // find new location
-                let dest = object.header().fwdptr();
+                let dest = object.header().metadata_fwdptr();
 
                 if previous_end != dest {
                     let page = Page::from_address(dest);
@@ -297,9 +297,9 @@ impl<'a> FullCollector<'a> {
                     object.copy_to(dest, object_size);
                 }
 
-                // unmark object for next collection
+                // Clear metadata word.
                 let dest_obj = dest.to_obj();
-                dest_obj.header().unmark();
+                dest_obj.header().set_metadata_raw(INITIAL_METADATA_OLD);
 
                 full.old.update_crossing(dest, next_dest);
             }
@@ -325,7 +325,7 @@ impl<'a> FullCollector<'a> {
                 return;
             }
 
-            let fwd_addr = object_addr.to_obj().header().fwdptr();
+            let fwd_addr = object_addr.to_obj().header().metadata_fwdptr();
             debug_assert!(self.heap.contains(fwd_addr));
             slot.set(fwd_addr);
         } else {

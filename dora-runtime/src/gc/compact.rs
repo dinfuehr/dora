@@ -175,7 +175,7 @@ impl<'a> MarkCompact<'a> {
         self.walk_heap(|mc, object, _addr, object_size| {
             if object.header().is_marked() {
                 let fwd = mc.allocate(object_size);
-                object.header().set_fwdptr(fwd);
+                object.header().set_metadata_fwdptr(fwd);
             }
         });
     }
@@ -205,7 +205,7 @@ impl<'a> MarkCompact<'a> {
             let obj = current_address.to_obj();
 
             if obj.header().is_marked() {
-                let new_address = obj.header().fwdptr();
+                let new_address = obj.header().metadata_fwdptr();
                 Some(new_address)
             } else {
                 None
@@ -222,7 +222,7 @@ impl<'a> MarkCompact<'a> {
 
         if self.heap.contains(object_addr) {
             debug_assert!(object_addr.to_obj().header().is_marked());
-            let fwd_addr = object_addr.to_obj().header().fwdptr();
+            let fwd_addr = object_addr.to_obj().header().metadata_fwdptr();
             debug_assert!(self.heap.contains(fwd_addr));
             slot.set(fwd_addr);
         } else {
@@ -234,7 +234,7 @@ impl<'a> MarkCompact<'a> {
         self.walk_heap(|mc, object, address, object_size| {
             if object.header().is_marked() {
                 // get new location
-                let dest = object.header().fwdptr();
+                let dest = object.header().metadata_fwdptr();
                 debug_assert!(mc.heap.contains(dest));
 
                 // determine location after relocated object

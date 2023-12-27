@@ -208,12 +208,12 @@ impl Header {
     }
 
     #[inline(always)]
-    pub fn fwdptr(&self) -> Address {
+    pub fn metadata_fwdptr(&self) -> Address {
         self.metadata.fwdptr()
     }
 
     #[inline(always)]
-    pub fn set_fwdptr(&self, addr: Address) {
+    pub fn set_metadata_fwdptr(&self, addr: Address) {
         self.metadata.set_fwdptr(addr);
     }
 
@@ -839,17 +839,17 @@ mod tests {
             vtable: VtblptrWord(AtomicUsize::new(0)),
             metadata: MetadataWord(AtomicUsize::new(0)),
         };
-        h.set_fwdptr(16.into());
+        h.set_metadata_fwdptr(16.into());
         assert_eq!(false, h.is_marked());
-        assert_eq!(16, h.fwdptr().to_usize());
+        assert_eq!(16, h.metadata_fwdptr().to_usize());
         h.mark();
         assert_eq!(true, h.is_marked());
-        assert_eq!(16, h.fwdptr().to_usize());
-        h.set_fwdptr(32.into());
+        assert_eq!(16, h.metadata_fwdptr().to_usize());
+        h.set_metadata_fwdptr(32.into());
         assert_eq!(true, h.is_marked());
-        assert_eq!(32, h.fwdptr().to_usize());
+        assert_eq!(32, h.metadata_fwdptr().to_usize());
         h.unmark();
         assert_eq!(false, h.is_marked());
-        assert_eq!(32, h.fwdptr().to_usize());
+        assert_eq!(32, h.metadata_fwdptr().to_usize());
     }
 }
