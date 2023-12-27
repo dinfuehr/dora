@@ -261,6 +261,7 @@ impl<'a> Verifier<'a> {
 
     fn verify_object(&mut self, object: &Obj, object_address: Address, region: Region, name: &str) {
         assert!(object.header().metadata_fwdptr().is_null());
+        assert_eq!(object.header().is_old(), self.in_old);
         assert!(!object.header().is_marked());
 
         object.visit_reference_fields(|child| {

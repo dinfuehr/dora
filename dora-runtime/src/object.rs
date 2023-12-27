@@ -236,6 +236,11 @@ impl Header {
     pub fn try_mark(&self) -> bool {
         self.metadata.try_mark()
     }
+
+    #[inline(always)]
+    pub fn is_old(&self) -> bool {
+        self.metadata.is_old()
+    }
 }
 
 // is used to reference any object

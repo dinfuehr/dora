@@ -11,7 +11,9 @@ use crate::gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use crate::gc::swiper::large::{LargeAlloc, LargeSpace};
 use crate::gc::swiper::old::{OldGen, Page};
 use crate::gc::swiper::young::YoungGen;
-use crate::gc::swiper::{forward_minor, CardIdx, YoungAlloc, CARD_SIZE, LARGE_OBJECT_SIZE};
+use crate::gc::swiper::{
+    forward_minor, CardIdx, YoungAlloc, CARD_SIZE, INITIAL_METADATA_OLD, LARGE_OBJECT_SIZE,
+};
 use crate::gc::tlab::{TLAB_OBJECT_SIZE, TLAB_SIZE};
 use crate::gc::{
     fill_region, fill_region_with, iterate_weak_roots, Address, GcReason, GenerationAllocator,
@@ -909,6 +911,10 @@ impl<'a> CopyTask<'a> {
         }
 
         obj.copy_to(copy_addr, obj_size);
+        copy_addr
+            .to_obj()
+            .header()
+            .set_metadata_raw(INITIAL_METADATA_OLD);
         let res = obj.header().try_install_fwdptr(vtblptr, copy_addr);
 
         match res {
