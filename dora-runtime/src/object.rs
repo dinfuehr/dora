@@ -29,15 +29,16 @@ const GC_BITS: usize = 3;
 const GC_BITS_MASK: usize = (1 << GC_BITS) - 1;
 const FWDPTR_MASK: usize = !GC_BITS_MASK;
 
-const MARK_BIT: usize = 1;
+const MARK_BIT: usize = 1 << 0;
+const REMEMBERED_BIT: usize = 1 << 1;
+const OLD_BIT: usize = 1 << 2;
+
+pub const INITIAL_METADATA_YOUNG: usize = REMEMBERED_BIT;
+pub const INITIAL_METADATA_OLD: usize = OLD_BIT;
 
 struct MetadataWord(AtomicUsize);
 
 impl MetadataWord {
-    fn new() -> MetadataWord {
-        MetadataWord(AtomicUsize::new(0))
-    }
-
     fn raw(&self) -> usize {
         self.0.load(Ordering::Relaxed)
     }
@@ -78,6 +79,14 @@ impl MetadataWord {
     fn is_marked(&self) -> bool {
         (self.raw() & MARK_BIT) != 0
     }
+
+    fn is_remembered(&self) -> bool {
+        (self.raw() & REMEMBERED_BIT) != 0
+    }
+
+    fn is_old(&self) -> bool {
+        (self.raw() & OLD_BIT) != 0
+    }
 }
 
 const FWDPTR_BIT: usize = 1;
@@ -85,10 +94,6 @@ const FWDPTR_BIT: usize = 1;
 struct VtblptrWord(AtomicUsize);
 
 impl VtblptrWord {
-    fn new() -> VtblptrWord {
-        VtblptrWord(AtomicUsize::new(0))
-    }
-
     pub fn raw(&self) -> usize {
         self.0.load(Ordering::Relaxed)
     }
@@ -155,21 +160,6 @@ pub enum VtblptrWordKind {
 }
 
 impl Header {
-    #[cfg(test)]
-    fn new() -> Header {
-        Header {
-            vtable: VtblptrWord::new(),
-            metadata: MetadataWord::new(),
-        }
-    }
-
-    pub fn zero() -> Header {
-        Header {
-            vtable: VtblptrWord::new(),
-            metadata: MetadataWord::new(),
-        }
-    }
-
     #[inline(always)]
     pub fn size() -> i32 {
         std::mem::size_of::<Header>() as i32
@@ -836,22 +826,27 @@ pub struct StacktraceElement {
 
 #[cfg(test)]
 mod tests {
-    use crate::object::Header;
+    use std::sync::atomic::AtomicUsize;
+
+    use crate::object::{Header, MetadataWord, VtblptrWord};
 
     #[test]
     fn header_markbit() {
-        let h = Header::new();
-        h.set_fwdptr(8.into());
+        let h = Header {
+            vtable: VtblptrWord(AtomicUsize::new(0)),
+            metadata: MetadataWord(AtomicUsize::new(0)),
+        };
+        h.set_fwdptr(16.into());
         assert_eq!(false, h.is_marked());
-        assert_eq!(8, h.fwdptr().to_usize());
+        assert_eq!(16, h.fwdptr().to_usize());
         h.mark();
         assert_eq!(true, h.is_marked());
-        assert_eq!(8, h.fwdptr().to_usize());
-        h.set_fwdptr(16.into());
-        assert_eq!(true, h.is_marked());
         assert_eq!(16, h.fwdptr().to_usize());
+        h.set_fwdptr(32.into());
+        assert_eq!(true, h.is_marked());
+        assert_eq!(32, h.fwdptr().to_usize());
         h.unmark();
         assert_eq!(false, h.is_marked());
-        assert_eq!(16, h.fwdptr().to_usize());
+        assert_eq!(32, h.fwdptr().to_usize());
     }
 }

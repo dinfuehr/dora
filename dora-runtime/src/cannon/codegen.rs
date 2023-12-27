@@ -13,7 +13,7 @@ use crate::gc::Address;
 use crate::masm::{CondCode, Label, Mem};
 use crate::mem::{self, align_i32};
 use crate::mode::MachineMode;
-use crate::object::{offset_of_array_data, Header, Str};
+use crate::object::{offset_of_array_data, Header, Str, INITIAL_METADATA_YOUNG};
 use crate::size::InstanceSize;
 use crate::stdlib;
 use crate::vm::{
@@ -1900,7 +1900,8 @@ impl<'a> CannonCodeGen<'a> {
 
         // clear mark/fwdptr word in header
         assert!(Header::size() == 2 * mem::ptr_width());
-        self.asm.load_int_const(MachineMode::Ptr, REG_TMP1, 0);
+        self.asm
+            .load_int_const(MachineMode::Ptr, REG_TMP1, INITIAL_METADATA_YOUNG as i64);
         self.asm.store_mem(
             MachineMode::Ptr,
             Mem::Base(REG_RESULT, mem::ptr_width()),
