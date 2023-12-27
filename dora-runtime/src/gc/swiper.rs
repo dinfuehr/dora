@@ -367,6 +367,7 @@ impl Swiper {
             let readonly_space = &vm.gc.readonly_space;
 
             let mut verifier = Verifier::new(
+                vm,
                 &self.young,
                 &self.old,
                 &self.card_table,

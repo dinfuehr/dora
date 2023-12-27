@@ -14,6 +14,7 @@ use crate::gc::{Address, Region};
 
 use crate::mem;
 use crate::object::Obj;
+use crate::vm::VM;
 
 #[derive(Copy, Clone)]
 pub enum VerifierPhase {
@@ -70,6 +71,7 @@ impl fmt::Display for VerifierPhase {
 }
 
 pub struct Verifier<'a> {
+    vm: &'a VM,
     young: &'a YoungGen,
     old: &'a OldGen,
     old_protected: MutexGuard<'a, OldGenProtected>,
@@ -93,6 +95,7 @@ pub struct Verifier<'a> {
 
 impl<'a> Verifier<'a> {
     pub fn new(
+        vm: &'a VM,
         young: &'a YoungGen,
         old: &'a OldGen,
         card_table: &'a CardTable,
@@ -107,6 +110,7 @@ impl<'a> Verifier<'a> {
         let old_protected = old.protected();
 
         Verifier {
+            vm,
             young,
             old,
             old_protected,
@@ -184,8 +188,24 @@ impl<'a> Verifier<'a> {
 
         while curr < region.end {
             let object = curr.to_obj();
+            let vtblptr = object.header().raw_vtblptr();
 
-            if object.header().raw_vtblptr().is_null() {
+            if vtblptr == self.vm.known.free_object_class_address()
+                || vtblptr == self.vm.known.free_array_class_address()
+            {
+                let next = curr.offset(object.size());
+
+                if self.in_old && on_different_cards(curr, next) {
+                    self.verify_card(curr, region);
+                    self.verify_crossing(curr, next);
+                }
+
+                curr = next;
+                last_null = false;
+                continue;
+            }
+
+            if vtblptr.is_null() {
                 assert!(
                     !self.in_large,
                     "large object space should not have null filler"
