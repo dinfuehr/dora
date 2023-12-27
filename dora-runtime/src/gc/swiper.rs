@@ -22,7 +22,7 @@ use crate::gc::Collector;
 use crate::gc::GcReason;
 use crate::gc::{align_page_up, formatted_size, Address, Region, K};
 use crate::mem;
-use crate::object::{Obj, VtblptrWordKind};
+use crate::object::{Obj, VtblptrWordKind, OLD_BIT, REMEMBERED_BIT};
 use crate::os::{self, MemoryPermission, Reservation};
 use crate::safepoint;
 use crate::threads::DoraThread;
@@ -52,6 +52,9 @@ pub const CARD_REFS: usize = CARD_SIZE / size_of::<usize>();
 pub const LARGE_OBJECT_SIZE: usize = 64 * K;
 pub const PAGE_SIZE: usize = 128 * K;
 pub const PAGE_HEADER_SIZE: usize = 64 * K;
+
+pub const INITIAL_METADATA_YOUNG: usize = REMEMBERED_BIT;
+pub const INITIAL_METADATA_OLD: usize = OLD_BIT;
 
 pub struct Swiper {
     // contiguous memory for young/old generation and large space
@@ -449,6 +452,10 @@ impl Collector for Swiper {
 
     fn needs_write_barrier(&self) -> bool {
         self.emit_write_barrier
+    }
+
+    fn initial_metadata_value(&self) -> usize {
+        INITIAL_METADATA_YOUNG
     }
 
     fn card_table_offset(&self) -> usize {

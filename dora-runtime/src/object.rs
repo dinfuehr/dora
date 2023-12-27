@@ -29,12 +29,9 @@ const GC_BITS: usize = 3;
 const GC_BITS_MASK: usize = (1 << GC_BITS) - 1;
 const FWDPTR_MASK: usize = !GC_BITS_MASK;
 
-const MARK_BIT: usize = 1 << 0;
-const REMEMBERED_BIT: usize = 1 << 1;
-const OLD_BIT: usize = 1 << 2;
-
-pub const INITIAL_METADATA_YOUNG: usize = REMEMBERED_BIT;
-pub const INITIAL_METADATA_OLD: usize = OLD_BIT;
+pub const MARK_BIT: usize = 1 << 0;
+pub const REMEMBERED_BIT: usize = 1 << 1;
+pub const OLD_BIT: usize = 1 << 2;
 
 struct MetadataWord(AtomicUsize);
 
@@ -206,8 +203,8 @@ impl Header {
     }
 
     #[inline(always)]
-    pub fn initialize_metadata(&self) {
-        self.metadata.set_raw(0);
+    pub fn set_metadata_raw(&self, value: usize) {
+        self.metadata.set_raw(value);
     }
 
     #[inline(always)]
@@ -630,7 +627,9 @@ fn byte_array_alloc_heap(vm: &VM, len: usize) -> Ref<UInt8Array> {
     handle
         .header_mut()
         .set_vtblptr(Address::from_ptr(vtable as *const VTable));
-    handle.header_mut().initialize_metadata();
+    handle
+        .header_mut()
+        .set_metadata_raw(vm.gc.initial_metadata_value());
     handle.length = len;
 
     handle
@@ -767,7 +766,9 @@ where
         handle
             .header_mut()
             .set_vtblptr(Address::from_ptr(vtable as *const VTable));
-        handle.header_mut().initialize_metadata();
+        handle
+            .header_mut()
+            .set_metadata_raw(vm.gc.initial_metadata_value());
         handle.length = len;
 
         for i in 0..handle.len() {
@@ -807,7 +808,9 @@ pub fn alloc(vm: &VM, clsid: ClassInstanceId) -> Ref<Obj> {
     let vtable: &VTable = vtable.as_ref().unwrap();
     let object: Ref<Obj> = ptr.into();
     object.header().set_vtblptr(Address::from_ptr(vtable));
-    object.header().initialize_metadata();
+    object
+        .header()
+        .set_metadata_raw(vm.gc.initial_metadata_value());
 
     object
 }

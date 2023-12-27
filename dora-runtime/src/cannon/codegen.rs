@@ -13,7 +13,7 @@ use crate::gc::Address;
 use crate::masm::{CondCode, Label, Mem};
 use crate::mem::{self, align_i32};
 use crate::mode::MachineMode;
-use crate::object::{offset_of_array_data, Header, Str, INITIAL_METADATA_YOUNG};
+use crate::object::{offset_of_array_data, Header, Str};
 use crate::size::InstanceSize;
 use crate::stdlib;
 use crate::vm::{
@@ -1898,10 +1898,13 @@ impl<'a> CannonCodeGen<'a> {
         self.asm
             .store_mem(MachineMode::Ptr, Mem::Base(REG_RESULT, 0), REG_TMP1.into());
 
-        // clear mark/fwdptr word in header
+        // Set metadata word.
         assert!(Header::size() == 2 * mem::ptr_width());
-        self.asm
-            .load_int_const(MachineMode::Ptr, REG_TMP1, INITIAL_METADATA_YOUNG as i64);
+        self.asm.load_int_const(
+            MachineMode::Ptr,
+            REG_TMP1,
+            self.vm.gc.initial_metadata_value() as i64,
+        );
         self.asm.store_mem(
             MachineMode::Ptr,
             Mem::Base(REG_RESULT, mem::ptr_width()),
@@ -1960,9 +1963,13 @@ impl<'a> CannonCodeGen<'a> {
         self.asm
             .store_mem(MachineMode::Ptr, Mem::Base(REG_RESULT, 0), REG_TMP1.into());
 
-        // clear mark/fwdptr word in header
+        // Set metadata word.
         assert!(Header::size() == 2 * mem::ptr_width());
-        self.asm.load_int_const(MachineMode::Ptr, REG_TMP1, 0);
+        self.asm.load_int_const(
+            MachineMode::Ptr,
+            REG_TMP1,
+            self.vm.gc.initial_metadata_value() as i64,
+        );
         self.asm.store_mem(
             MachineMode::Ptr,
             Mem::Base(REG_RESULT, mem::ptr_width()),
@@ -2052,9 +2059,13 @@ impl<'a> CannonCodeGen<'a> {
         self.asm
             .store_mem(MachineMode::Ptr, Mem::Base(REG_RESULT, 0), REG_TMP1.into());
 
-        // clear mark/fwdptr word in header
+        // Set metadata word in header
         assert!(Header::size() == 2 * mem::ptr_width());
-        self.asm.load_int_const(MachineMode::Ptr, REG_TMP1, 0);
+        self.asm.load_int_const(
+            MachineMode::Ptr,
+            REG_TMP1,
+            self.vm.gc.initial_metadata_value() as i64,
+        );
         self.asm.store_mem(
             MachineMode::Ptr,
             Mem::Base(REG_RESULT, mem::ptr_width()),
@@ -2213,9 +2224,13 @@ impl<'a> CannonCodeGen<'a> {
                 self.asm
                     .store_mem(MachineMode::Ptr, Mem::Base(REG_TMP1, 0), REG_RESULT.into());
 
-                // clear mark/fwdptr word in header
+                // Set metadata word in header
                 assert!(Header::size() == 2 * mem::ptr_width());
-                self.asm.load_int_const(MachineMode::Ptr, REG_RESULT, 0);
+                self.asm.load_int_const(
+                    MachineMode::Ptr,
+                    REG_RESULT,
+                    self.vm.gc.initial_metadata_value() as i64,
+                );
                 self.asm.store_mem(
                     MachineMode::Ptr,
                     Mem::Base(REG_TMP1, mem::ptr_width()),
@@ -2346,9 +2361,13 @@ impl<'a> CannonCodeGen<'a> {
         self.asm
             .store_mem(MachineMode::Ptr, Mem::Base(REG_TMP1, 0), REG_RESULT.into());
 
-        // clear mark/fwdptr word in header
+        // Set metadata word in header.
         assert!(Header::size() == 2 * mem::ptr_width());
-        self.asm.load_int_const(MachineMode::Ptr, REG_RESULT, 0);
+        self.asm.load_int_const(
+            MachineMode::Ptr,
+            REG_RESULT,
+            self.vm.gc.initial_metadata_value() as i64,
+        );
         self.asm.store_mem(
             MachineMode::Ptr,
             Mem::Base(REG_TMP1, mem::ptr_width()),
@@ -2429,9 +2448,13 @@ impl<'a> CannonCodeGen<'a> {
             REG_RESULT.into(),
         );
 
-        // clear mark/fwdptr word in header
+        // Set metadata word in header.
         assert!(Header::size() == 2 * mem::ptr_width());
-        self.asm.load_int_const(MachineMode::Ptr, REG_RESULT, 0);
+        self.asm.load_int_const(
+            MachineMode::Ptr,
+            REG_RESULT,
+            self.vm.gc.initial_metadata_value() as i64,
+        );
         self.asm.store_mem(
             MachineMode::Ptr,
             Mem::Base(object_reg, mem::ptr_width()),

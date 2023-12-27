@@ -187,6 +187,10 @@ impl Gc {
     pub fn drop_all_native_code_objects(&mut self) {
         self.code_space.drop_all_native_code_objects();
     }
+
+    pub fn initial_metadata_value(&self) -> usize {
+        self.collector.initial_metadata_value()
+    }
 }
 
 trait Collector {
@@ -205,6 +209,10 @@ trait Collector {
     // generational GC to write into card table
     fn needs_write_barrier(&self) -> bool {
         false
+    }
+
+    fn initial_metadata_value(&self) -> usize {
+        0
     }
 
     // gives true when collector supports tlab allocation.
