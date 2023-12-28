@@ -114,6 +114,7 @@ impl<'a> FullCollector<'a> {
 
         if self.vm.flags.gc_verify {
             verify_marking(
+                self.vm,
                 self.young,
                 &*self.old_protected,
                 self.large_space,
@@ -342,7 +343,7 @@ impl<'a> FullCollector<'a> {
 
         for page in pages {
             assert_eq!(last, page.start());
-            walk_region(page.object_area(), |obj, addr, size| {
+            walk_region(self.vm, page.object_area(), |obj, addr, size| {
                 fct(self, obj, addr, size);
             });
             last = page.end();
@@ -352,7 +353,7 @@ impl<'a> FullCollector<'a> {
         let mut curr = to_committed.start();
         while curr < to_committed.end() {
             let page = Page::from_address(curr);
-            walk_region(page.object_area(), |obj, addr, size| {
+            walk_region(self.vm, page.object_area(), |obj, addr, size| {
                 fct(self, obj, addr, size);
             });
             curr = page.end();
@@ -388,20 +389,21 @@ impl<'a> FullCollector<'a> {
 }
 
 pub fn verify_marking(
+    vm: &VM,
     young: &YoungGen,
     old_protected: &OldGenProtected,
     large: &LargeSpace,
     heap: Region,
 ) {
     for page in &old_protected.pages {
-        verify_marking_region(page.object_area(), heap);
+        verify_marking_region(vm, page.object_area(), heap);
     }
 
     let to_committed = young.to_committed();
     let mut curr = to_committed.start();
     while curr < to_committed.end() {
         let page = Page::from_address(curr);
-        verify_marking_region(page.object_area(), heap);
+        verify_marking_region(vm, page.object_area(), heap);
         curr = page.end();
     }
     assert_eq!(curr, to_committed.end());
@@ -411,8 +413,8 @@ pub fn verify_marking(
     });
 }
 
-fn verify_marking_region(region: Region, heap: Region) {
-    walk_region(region, |_obj, obj_address, _size| {
+fn verify_marking_region(vm: &VM, region: Region, heap: Region) {
+    walk_region(vm, region, |_obj, obj_address, _size| {
         verify_marking_object(obj_address, heap);
     });
 }

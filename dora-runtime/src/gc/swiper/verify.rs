@@ -183,54 +183,29 @@ impl<'a> Verifier<'a> {
 
     fn verify_region(&mut self, region: Region, name: &str) {
         let mut curr = region.start;
-        let mut last_null = false;
         self.refs_to_young_gen = 0;
 
         while curr < region.end {
             let object = curr.to_obj();
             let vtblptr = object.header().raw_vtblptr();
 
-            if vtblptr.is_non_null() && object.is_filler(self.vm) {
-                let next = curr.offset(object.size());
+            if object.is_filler(self.vm) {
+                assert!(!self.in_large, "large object space should not have fillers");
 
-                if self.in_old && on_different_cards(curr, next) {
+                let size = if vtblptr.is_null() {
+                    mem::ptr_width_usize()
+                } else {
+                    object.size()
+                };
+                let object_end = curr.offset(size);
+
+                if self.in_old && on_different_cards(curr, object_end) {
                     self.verify_card(curr, region);
-                    self.verify_crossing(curr, next);
+                    self.verify_crossing(curr, object_end);
                 }
 
-                curr = next;
-                last_null = false;
+                curr = object_end;
                 continue;
-            }
-
-            if vtblptr.is_null() {
-                assert!(
-                    !self.in_large,
-                    "large object space should not have null filler"
-                );
-
-                assert!(
-                    !self.phase.is_post_full(),
-                    "there should not be null fillers after full collection"
-                );
-
-                let next = curr.add_ptr(1);
-
-                if self.in_old && on_different_cards(curr, next) {
-                    self.verify_card(curr, region);
-                    self.verify_crossing(curr, next);
-                }
-
-                assert!(
-                    !last_null,
-                    "there should not be nulls directly after each other"
-                );
-
-                curr = next;
-                last_null = true;
-                continue;
-            } else {
-                last_null = false;
             }
 
             self.verify_object(object, curr, region, name);

@@ -326,10 +326,9 @@ where
             visit_struct_array_refs(object, cls, element_size as usize, None, f);
         }
 
-        InstanceSize::UnitArray
-        | InstanceSize::PrimitiveArray(_)
-        | InstanceSize::Str
-        | InstanceSize::FreeArray => {}
+        InstanceSize::UnitArray | InstanceSize::PrimitiveArray(_) | InstanceSize::Str => {}
+
+        InstanceSize::FreeArray => unreachable!(),
 
         InstanceSize::Fixed(_) => {
             visit_fixed_object(object, cls, f);

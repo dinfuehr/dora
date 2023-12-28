@@ -19,6 +19,7 @@ use crate::gc::{
     fill_region, fill_region_with, iterate_weak_roots, Address, GcReason, GenerationAllocator,
     Region,
 };
+use crate::mem;
 use crate::object::{ForwardResult, Obj, VtblptrWordKind};
 use crate::threads::DoraThread;
 use crate::timer::Timer;
@@ -611,26 +612,31 @@ impl<'a> CopyTask<'a> {
         while ptr < end {
             let object = ptr.to_obj();
 
-            if object.header().raw_vtblptr().is_null() {
-                ptr = ptr.add_ptr(1);
-                continue;
-            }
+            if object.is_filler(self.vm) {
+                let size = if object.header().raw_vtblptr().is_null() {
+                    mem::ptr_width_usize()
+                } else {
+                    object.size()
+                };
 
-            object.visit_reference_fields(|field| {
-                let field_ptr = field.get();
+                ptr = ptr.offset(size);
+            } else {
+                object.visit_reference_fields(|field| {
+                    let field_ptr = field.get();
 
-                if self.young.contains(field_ptr) {
-                    let copied_obj = self.copy_object(field_ptr);
-                    field.set(copied_obj);
+                    if self.young.contains(field_ptr) {
+                        let copied_obj = self.copy_object(field_ptr);
+                        field.set(copied_obj);
 
-                    // determine if copied object is still in young generation
-                    if self.young.contains(copied_obj) {
-                        *ref_to_young_gen = true;
+                        // determine if copied object is still in young generation
+                        if self.young.contains(copied_obj) {
+                            *ref_to_young_gen = true;
+                        }
                     }
-                }
-            });
+                });
 
-            ptr = ptr.offset(object.size());
+                ptr = ptr.offset(object.size());
+            }
         }
 
         end

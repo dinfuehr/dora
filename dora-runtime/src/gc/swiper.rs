@@ -606,7 +606,7 @@ impl fmt::Display for CollectionKind {
     }
 }
 
-pub fn walk_region<F>(region: Region, mut fct: F)
+pub fn walk_region<F>(vm: &VM, region: Region, mut fct: F)
 where
     F: FnMut(&Obj, Address, usize),
 {
@@ -615,14 +615,18 @@ where
     while scan < region.end {
         let object = scan.to_obj();
 
-        if object.header().raw_vtblptr().is_null() {
-            scan = scan.add_ptr(1);
-            continue;
+        if object.is_filler(vm) {
+            let size = if object.header().raw_vtblptr().is_null() {
+                mem::ptr_width_usize()
+            } else {
+                object.size()
+            };
+            scan = scan.offset(size);
+        } else {
+            let object_size = object.size();
+            fct(object, scan, object_size);
+            scan = scan.offset(object_size);
         }
-
-        let object_size = object.size();
-        fct(object, scan, object_size);
-        scan = scan.offset(object_size);
     }
 
     assert_eq!(scan, region.end);
