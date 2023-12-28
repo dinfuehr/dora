@@ -144,7 +144,7 @@ impl<'a> Verifier<'a> {
         let mut curr = self.to_committed.start();
         while curr < self.to_committed.end() {
             let page = Page::from_address(curr);
-            self.verify_objects(page.object_area(), "young gen");
+            self.verify_region(page.object_area(), "young gen");
             curr = page.end();
         }
         assert_eq!(curr, self.to_committed.end());
@@ -158,7 +158,7 @@ impl<'a> Verifier<'a> {
 
         for page in pages {
             assert_eq!(last, page.start());
-            self.verify_objects(page.object_area(), "old gen");
+            self.verify_region(page.object_area(), "old gen");
             last = page.end();
         }
 
@@ -170,7 +170,7 @@ impl<'a> Verifier<'a> {
         self.large.visit_objects(|addr| {
             let object = addr.to_obj();
             let region = Region::new(addr, addr.offset(object.size()));
-            self.verify_objects(region, "large space");
+            self.verify_region(region, "large space");
         });
         self.in_large = false;
     }
@@ -181,7 +181,7 @@ impl<'a> Verifier<'a> {
         }
     }
 
-    fn verify_objects(&mut self, region: Region, name: &str) {
+    fn verify_region(&mut self, region: Region, name: &str) {
         let mut curr = region.start;
         let mut last_null = false;
         self.refs_to_young_gen = 0;
@@ -190,9 +190,7 @@ impl<'a> Verifier<'a> {
             let object = curr.to_obj();
             let vtblptr = object.header().raw_vtblptr();
 
-            if vtblptr == self.vm.known.free_object_class_address()
-                || vtblptr == self.vm.known.free_array_class_address()
-            {
+            if vtblptr.is_non_null() && object.is_filler(self.vm) {
                 let next = curr.offset(object.size());
 
                 if self.in_old && on_different_cards(curr, next) {
