@@ -237,7 +237,7 @@ impl<'a> Verifier<'a> {
 
             let object_end = curr.offset(object.size());
 
-            if self.in_old {
+            if !self.in_large {
                 // Object is not supposed to cross page boundary.
                 let page = Page::from_address(curr);
                 assert!(object_end <= page.end());
