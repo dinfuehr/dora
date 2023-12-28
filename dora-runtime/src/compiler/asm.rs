@@ -11,12 +11,15 @@ use crate::gc::tlab::TLAB_OBJECT_SIZE;
 use crate::gc::Address;
 use crate::masm::{CondCode, Label, MacroAssembler, Mem, ScratchReg};
 use crate::mode::MachineMode;
+use crate::object::Header;
+use crate::size::InstanceSize;
 use crate::stdlib;
 use crate::threads::ThreadLocalData;
 use crate::vm::{
-    create_enum_instance, create_struct_instance, get_concrete_tuple_bty_array, CodeDescriptor,
-    EnumLayout, GcPoint, LazyCompilationSite, Trap, INITIALIZED, VM,
+    create_enum_instance, create_struct_instance, get_concrete_tuple_bty_array, ClassInstance,
+    CodeDescriptor, EnumLayout, GcPoint, LazyCompilationSite, Trap, INITIALIZED, VM,
 };
+use crate::vtable::VTable;
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, FunctionId, GlobalId, Location, StructId};
 
 pub struct BaselineAssembler<'a> {
@@ -889,6 +892,40 @@ impl<'a> BaselineAssembler<'a> {
             location,
             gcpoint,
         ));
+    }
+
+    pub fn initialize_object(&mut self, obj: Reg, class_instance: &ClassInstance) {
+        let size = match class_instance.size {
+            InstanceSize::Fixed(size) => size,
+            _ => unreachable!(),
+        };
+
+        let tmp_reg = if obj == REG_TMP1 { REG_TMP2 } else { REG_TMP1 };
+
+        // Store classptr/vtable in object.
+        let vtable = class_instance.vtable.read();
+        let vtable: &VTable = vtable.as_ref().unwrap();
+        let disp = self.add_addr(Address::from_ptr(vtable as *const _));
+        let pos = self.pos() as i32;
+
+        self.load_constpool(tmp_reg.into(), disp + pos);
+        self.store_mem(MachineMode::Ptr, Mem::Base(obj, 0), tmp_reg.into());
+
+        // Set metadata word.
+        assert!(Header::size() == 2 * crate::mem::ptr_width());
+        self.load_int_const(
+            MachineMode::Ptr,
+            tmp_reg,
+            self.vm.gc.initial_metadata_value() as i64,
+        );
+        self.store_mem(
+            MachineMode::Ptr,
+            Mem::Base(obj, crate::mem::ptr_width()),
+            tmp_reg.into(),
+        );
+
+        // Reset object body to zero.
+        self.fill_zero(obj, false, size as usize);
     }
 
     pub fn allocate(

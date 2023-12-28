@@ -1888,35 +1888,7 @@ impl<'a> CannonCodeGen<'a> {
         // store gc object in temporary storage
         self.emit_store_register(REG_RESULT.into(), dest);
 
-        // store classptr in object
-        let vtable = class_instance.vtable.read();
-        let vtable: &VTable = vtable.as_ref().unwrap();
-        let disp = self.asm.add_addr(Address::from_ptr(vtable as *const _));
-        let pos = self.asm.pos() as i32;
-
-        self.asm.load_constpool(REG_TMP1.into(), disp + pos);
-        self.asm
-            .store_mem(MachineMode::Ptr, Mem::Base(REG_RESULT, 0), REG_TMP1.into());
-
-        // Set metadata word.
-        assert!(Header::size() == 2 * mem::ptr_width());
-        self.asm.load_int_const(
-            MachineMode::Ptr,
-            REG_TMP1,
-            self.vm.gc.initial_metadata_value() as i64,
-        );
-        self.asm.store_mem(
-            MachineMode::Ptr,
-            Mem::Base(REG_RESULT, mem::ptr_width()),
-            REG_TMP1.into(),
-        );
-
-        match class_instance.size {
-            InstanceSize::Fixed(size) => {
-                self.asm.fill_zero(REG_RESULT, false, size as usize);
-            }
-            _ => unreachable!(),
-        }
+        self.asm.initialize_object(REG_RESULT, &*class_instance);
     }
 
     fn emit_new_object_initialized(&mut self, dest: Register, idx: ConstPoolIdx) {
@@ -1953,36 +1925,7 @@ impl<'a> CannonCodeGen<'a> {
         // store gc object in temporary storage
         self.emit_store_register(REG_RESULT.into(), dest);
 
-        // store classptr in object
-        let vtable = class_instance.vtable.read();
-        let vtable: &VTable = vtable.as_ref().unwrap();
-        let disp = self.asm.add_addr(Address::from_ptr(vtable as *const _));
-        let pos = self.asm.pos() as i32;
-
-        self.asm.load_constpool(REG_TMP1.into(), disp + pos);
-        self.asm
-            .store_mem(MachineMode::Ptr, Mem::Base(REG_RESULT, 0), REG_TMP1.into());
-
-        // Set metadata word.
-        assert!(Header::size() == 2 * mem::ptr_width());
-        self.asm.load_int_const(
-            MachineMode::Ptr,
-            REG_TMP1,
-            self.vm.gc.initial_metadata_value() as i64,
-        );
-        self.asm.store_mem(
-            MachineMode::Ptr,
-            Mem::Base(REG_RESULT, mem::ptr_width()),
-            REG_TMP1.into(),
-        );
-
-        // Clear object content first.
-        match class_instance.size {
-            InstanceSize::Fixed(size) => {
-                self.asm.fill_zero(REG_RESULT, false, size as usize);
-            }
-            _ => unreachable!(),
-        }
+        self.asm.initialize_object(REG_RESULT, &*class_instance);
 
         let obj_reg = REG_TMP1;
         self.emit_load_register(dest, obj_reg.into());
@@ -2213,33 +2156,8 @@ impl<'a> CannonCodeGen<'a> {
                 );
                 self.emit_store_register_as(REG_TMP1.into(), dest, MachineMode::Ptr);
 
-                // store classptr in object
-                comment!(self, format!("NewEnum: initialize object header"));
-                let vtable = cls.vtable.read();
-                let vtable: &VTable = vtable.as_ref().unwrap();
-                let disp = self.asm.add_addr(Address::from_ptr(vtable as *const _));
-                let pos = self.asm.pos() as i32;
-
-                self.asm.load_constpool(REG_RESULT.into(), disp + pos);
-                self.asm
-                    .store_mem(MachineMode::Ptr, Mem::Base(REG_TMP1, 0), REG_RESULT.into());
-
-                // Set metadata word in header
-                assert!(Header::size() == 2 * mem::ptr_width());
-                self.asm.load_int_const(
-                    MachineMode::Ptr,
-                    REG_RESULT,
-                    self.vm.gc.initial_metadata_value() as i64,
-                );
-                self.asm.store_mem(
-                    MachineMode::Ptr,
-                    Mem::Base(REG_TMP1, mem::ptr_width()),
-                    REG_RESULT.into(),
-                );
-
-                // clear the whole object even if we are going to initialize fields right afterwards
-                // This ensures gaps are all zero.
-                self.asm.fill_zero(REG_TMP1, false, alloc_size as usize);
+                comment!(self, format!("NewEnum: initialize object"));
+                self.asm.initialize_object(REG_TMP1, &*cls);
 
                 // store variant_idx
                 comment!(self, format!("NewEnum: store variant_idx {}", variant_idx));
@@ -2350,33 +2268,8 @@ impl<'a> CannonCodeGen<'a> {
         );
         self.emit_store_register_as(REG_TMP1.into(), dest, MachineMode::Ptr);
 
-        // store classptr in object
-        comment!(self, format!("NewTraitObject: initialize object header"));
-        let vtable = cls.vtable.read();
-        let vtable: &VTable = vtable.as_ref().unwrap();
-        let disp = self.asm.add_addr(Address::from_ptr(vtable as *const _));
-        let pos = self.asm.pos() as i32;
-
-        self.asm.load_constpool(REG_RESULT.into(), disp + pos);
-        self.asm
-            .store_mem(MachineMode::Ptr, Mem::Base(REG_TMP1, 0), REG_RESULT.into());
-
-        // Set metadata word in header.
-        assert!(Header::size() == 2 * mem::ptr_width());
-        self.asm.load_int_const(
-            MachineMode::Ptr,
-            REG_RESULT,
-            self.vm.gc.initial_metadata_value() as i64,
-        );
-        self.asm.store_mem(
-            MachineMode::Ptr,
-            Mem::Base(REG_TMP1, mem::ptr_width()),
-            REG_RESULT.into(),
-        );
-
-        // clear the whole object even if we are going to initialize fields right afterwards
-        // This ensures gaps are all zero.
-        self.asm.fill_zero(REG_TMP1, false, alloc_size as usize);
+        comment!(self, format!("NewTraitObject: initialize object"));
+        self.asm.initialize_object(REG_TMP1, &*cls);
 
         assert_eq!(cls.fields.len(), 1);
         let field = &cls.fields[0];
@@ -2434,32 +2327,8 @@ impl<'a> CannonCodeGen<'a> {
         );
         self.emit_store_register_as(REG_TMP1.into(), dest, MachineMode::Ptr);
 
-        // store classptr in object
-        comment!(self, format!("NewLambda: initialize object header"));
-        let vtable = cls.vtable.read();
-        let vtable: &VTable = vtable.as_ref().unwrap();
-        let disp = self.asm.add_addr(Address::from_ptr(vtable as *const _));
-        let pos = self.asm.pos() as i32;
-
-        self.asm.load_constpool(REG_RESULT.into(), disp + pos);
-        self.asm.store_mem(
-            MachineMode::Ptr,
-            Mem::Base(object_reg, 0),
-            REG_RESULT.into(),
-        );
-
-        // Set metadata word in header.
-        assert!(Header::size() == 2 * mem::ptr_width());
-        self.asm.load_int_const(
-            MachineMode::Ptr,
-            REG_RESULT,
-            self.vm.gc.initial_metadata_value() as i64,
-        );
-        self.asm.store_mem(
-            MachineMode::Ptr,
-            Mem::Base(object_reg, mem::ptr_width()),
-            REG_RESULT.into(),
-        );
+        comment!(self, format!("NewLambda: initialize object"));
+        self.asm.initialize_object(object_reg, &*cls);
 
         // Store context pointer.
         if arguments.is_empty() {
