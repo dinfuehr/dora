@@ -307,8 +307,7 @@ impl Obj {
     pub fn is_filler(&self, vm: &VM) -> bool {
         let vtblptr = self.header().raw_vtblptr();
 
-        vtblptr.is_null()
-            || vtblptr == vm.known.free_word_class_address()
+        vtblptr == vm.known.free_word_class_address()
             || vtblptr == vm.known.free_array_class_address()
             || vtblptr == vm.known.free_object_class_address()
     }

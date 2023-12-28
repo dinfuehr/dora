@@ -187,16 +187,11 @@ impl<'a> Verifier<'a> {
 
         while curr < region.end {
             let object = curr.to_obj();
-            let vtblptr = object.header().raw_vtblptr();
 
             if object.is_filler(self.vm) {
                 assert!(!self.in_large, "large object space should not have fillers");
 
-                let size = if vtblptr.is_null() {
-                    mem::ptr_width_usize()
-                } else {
-                    object.size()
-                };
+                let size = object.size();
                 let object_end = curr.offset(size);
 
                 if self.in_old && on_different_cards(curr, object_end) {

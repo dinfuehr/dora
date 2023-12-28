@@ -19,7 +19,6 @@ use crate::gc::{
     fill_region, fill_region_with, iterate_weak_roots, Address, GcReason, GenerationAllocator,
     Region,
 };
-use crate::mem;
 use crate::object::{ForwardResult, Obj, VtblptrWordKind};
 use crate::threads::DoraThread;
 use crate::timer::Timer;
@@ -613,13 +612,7 @@ impl<'a> CopyTask<'a> {
             let object = ptr.to_obj();
 
             if object.is_filler(self.vm) {
-                let size = if object.header().raw_vtblptr().is_null() {
-                    mem::ptr_width_usize()
-                } else {
-                    object.size()
-                };
-
-                ptr = ptr.offset(size);
+                ptr = ptr.offset(object.size());
             } else {
                 object.visit_reference_fields(|field| {
                     let field_ptr = field.get();

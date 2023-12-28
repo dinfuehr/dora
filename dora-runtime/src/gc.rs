@@ -543,7 +543,7 @@ pub fn fill_region_with(vm: &VM, start: Address, end: Address, clear: bool) {
         // nothing to do
     } else if end.offset_from(start) == mem::ptr_width_usize() {
         unsafe {
-            *start.to_mut_ptr::<usize>() = 0;
+            *start.to_mut_ptr::<usize>() = vm.known.free_word_class_address().to_usize();
         }
     } else if end.offset_from(start) == Header::size() as usize {
         // fill with object

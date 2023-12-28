@@ -616,12 +616,7 @@ where
         let object = scan.to_obj();
 
         if object.is_filler(vm) {
-            let size = if object.header().raw_vtblptr().is_null() {
-                mem::ptr_width_usize()
-            } else {
-                object.size()
-            };
-            scan = scan.offset(size);
+            scan = scan.offset(object.size());
         } else {
             let object_size = object.size();
             fct(object, scan, object_size);
