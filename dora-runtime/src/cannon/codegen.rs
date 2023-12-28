@@ -23,7 +23,6 @@ use crate::vm::{
     get_concrete_tuple_bty_array, specialize_bty, specialize_bty_array, CodeDescriptor, EnumLayout,
     GcPoint, LazyCompilationSite, Trap, INITIALIZED, VM,
 };
-use crate::vtable::VTable;
 use dora_bytecode::{
     read, BytecodeFunction, BytecodeOffset, BytecodeType, BytecodeTypeArray, BytecodeVisitor,
     ConstPoolEntry, ConstPoolIdx, FunctionId, FunctionKind, GlobalId, Intrinsic, Location,
@@ -1992,36 +1991,11 @@ impl<'a> CannonCodeGen<'a> {
         // store gc object in temporary storage
         self.emit_store_register(REG_RESULT.into(), dest);
 
-        // store classptr in object
-        let vtable = class_instance.vtable.read();
-        let vtable: &VTable = vtable.as_ref().unwrap();
-        let disp = self.asm.add_addr(Address::from_ptr(vtable as *const _));
-        let pos = self.asm.pos() as i32;
-
-        self.asm.load_constpool(REG_TMP1.into(), disp + pos);
-        self.asm
-            .store_mem(MachineMode::Ptr, Mem::Base(REG_RESULT, 0), REG_TMP1.into());
-
-        // Set metadata word in header
-        assert!(Header::size() == 2 * mem::ptr_width());
-        self.asm.load_int_const(
-            MachineMode::Ptr,
-            REG_TMP1,
-            self.vm.gc.initial_metadata_value() as i64,
-        );
-        self.asm.store_mem(
-            MachineMode::Ptr,
-            Mem::Base(REG_RESULT, mem::ptr_width()),
-            REG_TMP1.into(),
-        );
-
         // store length in object
         self.emit_load_register(length, REG_TMP1.into());
-        self.asm.store_mem(
-            MachineMode::Ptr,
-            Mem::Base(REG_RESULT, Header::size()),
-            REG_TMP1.into(),
-        );
+
+        self.asm
+            .initialize_array_header(REG_RESULT, &*class_instance, REG_TMP1);
 
         match class_instance.size {
             InstanceSize::PrimitiveArray(size) | InstanceSize::StructArray(size) => {

@@ -308,6 +308,7 @@ impl Obj {
         let vtblptr = self.header().raw_vtblptr();
 
         vtblptr.is_null()
+            || vtblptr == vm.known.free_word_class_address()
             || vtblptr == vm.known.free_array_class_address()
             || vtblptr == vm.known.free_object_class_address()
     }
@@ -328,7 +329,9 @@ where
 
         InstanceSize::UnitArray | InstanceSize::PrimitiveArray(_) | InstanceSize::Str => {}
 
-        InstanceSize::FreeArray => unreachable!(),
+        InstanceSize::FreeWord | InstanceSize::FreeObject | InstanceSize::FreeArray => {
+            unreachable!()
+        }
 
         InstanceSize::Fixed(_) => {
             visit_fixed_object(object, cls, f);

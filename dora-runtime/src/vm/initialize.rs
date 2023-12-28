@@ -1,5 +1,4 @@
 use crate::gc::Address;
-use crate::object::Header;
 use crate::size::InstanceSize;
 use crate::vm::{
     create_class_instance_with_vtable, setup_builtin_natives, stdlib, ClassInstanceId, ShapeKind,
@@ -16,10 +15,20 @@ pub(super) fn setup(vm: &mut VM) {
 }
 
 fn create_special_classes(vm: &mut VM) {
+    let free_word_class_id = create_class_instance_with_vtable(
+        vm,
+        ShapeKind::Builtin,
+        InstanceSize::FreeWord,
+        Vec::new(),
+        0,
+    );
+    vm.known.free_word_class_instance_id = Some(free_word_class_id);
+    vm.known.free_word_class_address = address_from_class_instance_id(vm, free_word_class_id);
+
     let free_object_class_id = create_class_instance_with_vtable(
         vm,
         ShapeKind::Builtin,
-        InstanceSize::Fixed(Header::size()),
+        InstanceSize::FreeObject,
         Vec::new(),
         0,
     );

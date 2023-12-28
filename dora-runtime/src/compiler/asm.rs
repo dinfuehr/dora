@@ -912,7 +912,6 @@ impl<'a> BaselineAssembler<'a> {
         self.store_mem(MachineMode::Ptr, Mem::Base(obj, 0), tmp_reg.into());
 
         // Set metadata word.
-        assert!(Header::size() == 2 * crate::mem::ptr_width());
         self.load_int_const(
             MachineMode::Ptr,
             tmp_reg,
@@ -926,6 +925,43 @@ impl<'a> BaselineAssembler<'a> {
 
         // Reset object body to zero.
         self.fill_zero(obj, false, size as usize);
+    }
+
+    pub fn initialize_array_header(
+        &mut self,
+        obj: Reg,
+        class_instance: &ClassInstance,
+        length: Reg,
+    ) {
+        let tmp_reg = REG_TMP2;
+        assert!(obj != length && length != tmp_reg && obj != tmp_reg);
+
+        // store classptr in object
+        let vtable = class_instance.vtable.read();
+        let vtable: &VTable = vtable.as_ref().unwrap();
+        let disp = self.add_addr(Address::from_ptr(vtable as *const _));
+        let pos = self.pos() as i32;
+
+        self.load_constpool(tmp_reg.into(), disp + pos);
+        self.store_mem(MachineMode::Ptr, Mem::Base(obj, 0), tmp_reg.into());
+
+        // Set metadata word in header.
+        self.load_int_const(
+            MachineMode::Ptr,
+            tmp_reg,
+            self.vm.gc.initial_metadata_value() as i64,
+        );
+        self.store_mem(
+            MachineMode::Ptr,
+            Mem::Base(obj, crate::mem::ptr_width()),
+            tmp_reg.into(),
+        );
+
+        self.store_mem(
+            MachineMode::Ptr,
+            Mem::Base(obj, Header::size()),
+            length.into(),
+        );
     }
 
     pub fn allocate(
