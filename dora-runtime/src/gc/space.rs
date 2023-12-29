@@ -18,8 +18,8 @@ pub struct SpaceConfig {
 fn adapt_to_page_size(config: SpaceConfig) -> SpaceConfig {
     SpaceConfig {
         executable: config.executable,
-        chunk: mem::page_align(config.chunk),
-        limit: mem::page_align(config.limit),
+        chunk: mem::os_page_align_up(config.chunk),
+        limit: mem::os_page_align_up(config.limit),
         object_alignment: config.object_alignment,
     }
 }

@@ -35,7 +35,7 @@ impl CodeSpace {
         CodeSpace {
             total: Region::new(space_start, space_end),
             mutex: Mutex::new(alloc_data),
-            chunk_size: mem::page_align(CHUNK_SIZE),
+            chunk_size: mem::os_page_align_up(CHUNK_SIZE),
             reservation,
         }
     }

@@ -33,7 +33,7 @@ pub fn init_global_addresses(vm: &mut VM) {
         backing_memory_size = value_offset + ty_size as usize;
     }
 
-    let size = mem::page_align(backing_memory_size);
+    let size = mem::os_page_align_up(backing_memory_size);
     let start = if backing_memory_size > 0 {
         os::commit(size, false)
     } else {

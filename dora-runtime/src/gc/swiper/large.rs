@@ -3,7 +3,7 @@ use std::mem::size_of;
 
 use crate::gc::swiper::controller::SharedHeapConfig;
 use crate::gc::swiper::LARGE_OBJECT_SIZE;
-use crate::gc::{Address, Region};
+use crate::gc::{align_page_up, is_page_aligned, Address, Region};
 use crate::mem;
 use crate::os::{self, MemoryPermission};
 
@@ -15,8 +15,13 @@ pub struct LargeSpace {
 
 impl LargeSpace {
     pub fn new(start: Address, end: Address, config: SharedHeapConfig) -> LargeSpace {
+        let total = Region::new(start, end);
+        assert!(is_page_aligned(total.size()));
+        assert!(start.is_page_aligned());
+        assert!(end.is_page_aligned());
+
         LargeSpace {
-            total: Region::new(start, end),
+            total,
             space: Mutex::new(LargeSpaceProtected::new(start, end)),
             config,
         }
@@ -24,16 +29,16 @@ impl LargeSpace {
 
     pub fn alloc(&self, size: usize) -> Address {
         debug_assert!(size >= LARGE_OBJECT_SIZE);
-        let size = mem::page_align(size_of::<LargeAlloc>() + size);
+        let committed_size = mem::os_page_align_up(size_of::<LargeAlloc>() + size);
 
         let mut space = self.space.lock();
         let mut config = self.config.lock();
 
-        if !config.grow_old(size) {
+        if !config.grow_old(committed_size) {
             return Address::null();
         }
 
-        space.alloc(size)
+        space.alloc(committed_size)
     }
 
     pub fn total(&self) -> Region {
@@ -146,24 +151,26 @@ impl LargeSpaceProtected {
         self.committed_size
     }
 
-    fn alloc(&mut self, size: usize) -> Address {
-        debug_assert!(mem::is_os_page_aligned(size));
+    fn alloc(&mut self, committed_size: usize) -> Address {
+        assert!(mem::is_os_page_aligned(committed_size));
+        let reserved_size = align_page_up(committed_size);
         let len = self.elements.len();
 
         for i in 0..len {
-            if self.elements[i].size() >= size {
+            if self.elements[i].size() >= reserved_size {
                 let range = self.elements[i];
                 let addr = range.start;
 
-                if range.size() == size {
+                if range.size() == reserved_size {
                     self.elements.remove(i);
                 } else {
-                    self.elements[i] = Region::new(range.start.offset(size), range.end);
+                    self.elements[i] = Region::new(range.start.offset(reserved_size), range.end);
                 }
 
-                os::commit_at(addr, size, MemoryPermission::ReadWrite);
-                self.append_large_alloc(addr, size);
-                self.committed_size += size;
+                os::commit_at(addr, committed_size, MemoryPermission::ReadWrite);
+                self.append_large_alloc(addr, committed_size);
+                self.committed_size += committed_size;
+                assert!(addr.is_page_aligned());
 
                 return addr.offset(size_of::<LargeAlloc>());
             }
@@ -172,11 +179,12 @@ impl LargeSpaceProtected {
         Address::null()
     }
 
-    fn free(&mut self, ptr: Address, size: usize) {
-        debug_assert!(mem::is_os_page_aligned(size));
-        os::discard(ptr, size);
-        self.elements.push(ptr.region_start(size));
-        self.committed_size -= size;
+    fn free(&mut self, ptr: Address, committed_size: usize) {
+        assert!(mem::is_os_page_aligned(committed_size));
+        let reserved_size = align_page_up(committed_size);
+        os::discard(ptr, committed_size);
+        self.elements.push(ptr.region_start(reserved_size));
+        self.committed_size -= committed_size;
     }
 
     fn merge(&mut self) {

@@ -93,10 +93,10 @@ impl Swiper {
         controller::init(&mut config, args);
 
         // Determine size for card table.
-        let card_size = mem::page_align((4 * max_heap_size) >> CARD_SIZE_BITS);
+        let card_size = mem::os_page_align_up((4 * max_heap_size) >> CARD_SIZE_BITS);
 
         // Determine size for crossing map.
-        let crossing_size = mem::page_align(max_heap_size >> CARD_SIZE_BITS);
+        let crossing_size = mem::os_page_align_up(max_heap_size >> CARD_SIZE_BITS);
 
         // Determine full reservation size.
         let reserve_size = max_heap_size * 4 + card_size + crossing_size;

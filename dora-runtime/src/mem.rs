@@ -38,7 +38,7 @@ fn test_is_os_page_aligned() {
 }
 
 /// round the given value up to the nearest multiple of a page
-pub fn page_align(val: usize) -> usize {
+pub fn os_page_align_up(val: usize) -> usize {
     let align = os::page_size_bits();
 
     // we know that page size is power of 2, hence
@@ -50,10 +50,10 @@ pub fn page_align(val: usize) -> usize {
 fn test_page_align() {
     let p = os::page_size();
 
-    assert_eq!(p, page_align(1));
-    assert_eq!(p, page_align(p - 1));
-    assert_eq!(p, page_align(p));
-    assert_eq!(2 * p, page_align(p + 1));
+    assert_eq!(p, os_page_align_up(1));
+    assert_eq!(p, os_page_align_up(p - 1));
+    assert_eq!(p, os_page_align_up(p));
+    assert_eq!(2 * p, os_page_align_up(p + 1));
 }
 
 /// rounds the given value `val` up to the nearest multiple
