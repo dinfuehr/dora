@@ -54,38 +54,6 @@ impl LargeSpace {
         space.head
     }
 
-    pub fn remove_head(&self) -> Address {
-        let mut space = self.space.lock();
-        let head = space.head;
-        space.head = Address::null();
-        head
-    }
-
-    pub fn append_chain(
-        &self,
-        head: Address,
-        tail: Address,
-        freed: usize,
-        mut free_regions: Vec<Region>,
-    ) {
-        let mut space = self.space.lock();
-
-        let old_head = space.head;
-        space.head = head;
-
-        if old_head.is_non_null() {
-            let old_head = LargeAlloc::from_address(old_head);
-            old_head.prev = tail;
-
-            let tail = LargeAlloc::from_address(tail);
-            tail.next = old_head.address();
-        }
-
-        space.committed_size -= freed;
-        space.elements.append(&mut free_regions);
-        space.merge();
-    }
-
     pub fn visit_objects<F>(&self, f: F)
     where
         F: FnMut(Address),
