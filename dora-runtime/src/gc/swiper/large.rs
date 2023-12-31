@@ -27,7 +27,7 @@ impl LargeSpace {
         }
     }
 
-    pub fn alloc(&self, size: usize) -> Address {
+    pub fn alloc(&self, size: usize) -> Option<Address> {
         debug_assert!(size >= LARGE_OBJECT_SIZE);
         let committed_size = mem::os_page_align_up(size_of::<LargeAlloc>() + size);
 
@@ -35,7 +35,7 @@ impl LargeSpace {
         let mut config = self.config.lock();
 
         if !config.grow_old(committed_size) {
-            return Address::null();
+            return None;
         }
 
         space.alloc(committed_size)
@@ -119,32 +119,43 @@ impl LargeSpaceProtected {
         self.committed_size
     }
 
-    fn alloc(&mut self, committed_size: usize) -> Address {
+    fn alloc(&mut self, committed_size: usize) -> Option<Address> {
         assert!(mem::is_os_page_aligned(committed_size));
         let reserved_size = align_page_up(committed_size);
+
+        if let Some(address) = self.alloc_pages(reserved_size) {
+            assert!(address.is_page_aligned());
+            os::commit_at(address, committed_size, MemoryPermission::ReadWrite);
+            self.append_large_alloc(address, committed_size);
+            self.committed_size += committed_size;
+            Some(address.offset(size_of::<LargeAlloc>()))
+        } else {
+            None
+        }
+    }
+
+    fn alloc_pages(&mut self, size: usize) -> Option<Address> {
+        assert!(is_page_aligned(size));
         let len = self.elements.len();
 
         for i in 0..len {
-            if self.elements[i].size() >= reserved_size {
-                let range = self.elements[i];
-                let addr = range.start;
-
-                if range.size() == reserved_size {
-                    self.elements.remove(i);
-                } else {
-                    self.elements[i] = Region::new(range.start.offset(reserved_size), range.end);
-                }
-
-                os::commit_at(addr, committed_size, MemoryPermission::ReadWrite);
-                self.append_large_alloc(addr, committed_size);
-                self.committed_size += committed_size;
-                assert!(addr.is_page_aligned());
-
-                return addr.offset(size_of::<LargeAlloc>());
+            if self.elements[i].size() < size {
+                continue;
             }
+
+            let range = self.elements[i];
+            let addr = range.start;
+
+            if range.size() == size {
+                self.elements.remove(i);
+            } else {
+                self.elements[i] = Region::new(range.start.offset(size), range.end);
+            }
+
+            return Some(addr);
         }
 
-        Address::null()
+        None
     }
 
     fn free(&mut self, ptr: Address, committed_size: usize) {

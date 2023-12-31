@@ -398,15 +398,13 @@ impl Swiper {
     }
 
     fn alloc_large(&self, vm: &VM, size: usize) -> Address {
-        let ptr = self.large.alloc(size);
-
-        if !ptr.is_null() {
-            return ptr;
+        if let Some(address) = self.large.alloc(size) {
+            return address;
         }
 
         self.perform_collection(vm, CollectionKind::Full, GcReason::AllocationFailure);
 
-        self.large.alloc(size)
+        self.large.alloc(size).unwrap_or(Address::null())
     }
 }
 
