@@ -311,8 +311,9 @@ impl<'a> FullCollector<'a> {
     }
 
     fn reset_cards(&mut self) {
-        self.card_table
-            .reset_region(self.old.total_start(), self.old_protected.top);
+        for page in self.old_protected.pages() {
+            self.card_table.reset_page(page);
+        }
     }
 
     fn forward_reference(&mut self, slot: Slot) {

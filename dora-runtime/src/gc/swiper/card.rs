@@ -1,7 +1,7 @@
 use std::ptr;
 
 use crate::gc::swiper::CardIdx;
-use crate::gc::swiper::{CARD_SIZE, CARD_SIZE_BITS};
+use crate::gc::swiper::{Page, CARD_SIZE, CARD_SIZE_BITS};
 use crate::gc::{Address, Region};
 
 #[derive(Clone)]
@@ -70,6 +70,10 @@ impl CardTable {
         unsafe {
             ptr::write_bytes(start.to_mut_ptr::<u8>(), 1, size);
         }
+    }
+
+    pub fn reset_page(&self, page: Page) {
+        self.reset_region(page.start(), page.end());
     }
 
     // reset cards for address to 1 (not dirty)
