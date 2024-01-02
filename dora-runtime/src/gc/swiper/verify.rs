@@ -88,7 +88,6 @@ pub struct Verifier<'a> {
     young_total: Region,
     to_committed: Region,
     reserved_area: Region,
-    init_old_top: Address,
 
     phase: VerifierPhase,
 }
@@ -105,7 +104,6 @@ impl<'a> Verifier<'a> {
         readonly_space: &'a Space,
         reserved_area: Region,
         phase: VerifierPhase,
-        init_old_top: Address,
     ) -> Verifier<'a> {
         let old_protected = old.protected();
 
@@ -129,34 +127,25 @@ impl<'a> Verifier<'a> {
             reserved_area,
 
             phase,
-            init_old_top,
         }
     }
 
     pub fn verify(&mut self) {
         self.verify_roots();
-        self.verify_young();
-        self.verify_old();
-        self.verify_large();
+        self.verify_heap();
     }
 
-    fn verify_young(&mut self) {
+    fn verify_heap(&mut self) {
         for page in self.young.pages() {
             self.verify_region(page.object_area(), "young gen");
         }
-    }
 
-    fn verify_old(&mut self) {
         self.in_old = true;
-
         for page in self.old_protected.pages() {
             self.verify_region(page.object_area(), "old gen");
         }
-
         self.in_old = false;
-    }
 
-    fn verify_large(&mut self) {
         self.in_large = true;
         self.large.visit_objects(|addr| {
             let object = addr.to_obj();
@@ -262,40 +251,6 @@ impl<'a> Verifier<'a> {
             return;
         }
 
-        // The first card in an old region can't be cleaned if it is not card aligned.
-        // Therefore this card could be dirty when it should actually be clean, but this is
-        // allowed. Nevertheless it shouldn't be clean when it actually contains references
-        // into the young generation.
-        if curr_card == self.card_table.card_idx(region.start)
-            && !region.start.is_card_aligned()
-            && expected_card_entry.is_clean()
-        {
-            self.refs_to_young_gen = 0;
-            return;
-        }
-
-        // The last card in an old region can't be cleaned as well.
-        // Therefore this card could be dirty when it should actually be clean.
-        // However, it shouldn't be clean when it actually contains references into
-        // the young generation.
-        if curr_card == self.card_table.card_idx(region.end) && expected_card_entry.is_clean() {
-            assert!(!region.end.is_card_aligned());
-            self.refs_to_young_gen = 0;
-            return;
-        }
-
-        // The last card of a region is not cleared, promoting objects during the minor
-        // collection phase can move this card back in the heap.
-        if self.phase.is_post_minor()
-            && expected_card_entry.is_clean()
-            && actual_card_entry.is_dirty()
-        {
-            if curr_card == self.card_table.card_idx(self.init_old_top) {
-                self.refs_to_young_gen = 0;
-                return;
-            }
-        }
-
         if actual_card_entry != expected_card_entry {
             let card_text = match actual_card_entry {
                 CardEntry::Dirty => "dirty",
@@ -323,7 +278,7 @@ impl<'a> Verifier<'a> {
             panic!("card table entry wrong.");
         }
 
-        assert!(actual_card_entry == expected_card_entry);
+        assert_eq!(actual_card_entry, expected_card_entry);
 
         self.refs_to_young_gen = 0;
     }

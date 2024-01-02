@@ -259,10 +259,7 @@ impl Swiper {
             CollectionKind::Minor,
             "pre-minor",
             &rootset,
-            Address::null(),
         );
-
-        let init_old_top = self.old.protected().top;
 
         {
             let mut pool = self.threadpool.lock();
@@ -296,7 +293,6 @@ impl Swiper {
             CollectionKind::Minor,
             "post-minor",
             &rootset,
-            init_old_top,
         );
     }
 
@@ -313,7 +309,6 @@ impl Swiper {
             CollectionKind::Full,
             "pre-full",
             &rootset,
-            Address::null(),
         );
 
         {
@@ -346,7 +341,6 @@ impl Swiper {
             CollectionKind::Full,
             "post-full",
             &rootset,
-            Address::null(),
         );
     }
 
@@ -357,7 +351,6 @@ impl Swiper {
         _kind: CollectionKind,
         name: &str,
         rootset: &[Slot],
-        init_old_top: Address,
     ) {
         if vm.flags.gc_verify {
             if vm.flags.gc_dev_verbose {
@@ -377,7 +370,6 @@ impl Swiper {
                 &*readonly_space,
                 self.reserved_area.clone(),
                 phase,
-                init_old_top,
             );
             verifier.verify();
 
