@@ -19,7 +19,7 @@ pub struct OldGen {
     protected: Mutex<OldGenProtected>,
 
     crossing_map: CrossingMap,
-    _card_table: CardTable,
+    card_table: CardTable,
     config: SharedHeapConfig,
 }
 
@@ -38,7 +38,7 @@ impl OldGen {
             protected: Mutex::new(OldGenProtected::new(total)),
 
             crossing_map,
-            _card_table: card_table,
+            card_table,
             config,
         };
 
@@ -70,6 +70,11 @@ impl OldGen {
     fn can_add_page(&self) -> bool {
         let mut config = self.config.lock();
         config.grow_old(PAGE_SIZE)
+    }
+
+    pub fn fill_alloc_page(&self) {
+        let mut protected = self.protected.lock();
+        protected.top = protected.current_limit;
     }
 
     fn add_page(&self, page_start: Address) -> Option<Page> {
@@ -142,7 +147,7 @@ impl GenerationAllocator for OldGen {
 pub struct OldGenProtected {
     total: Region,
     size: usize,
-    pub top: Address,
+    top: Address,
     current_limit: Address,
     pages: Vec<Page>,
     freelist: FreeList,

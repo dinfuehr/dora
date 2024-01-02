@@ -34,7 +34,6 @@ pub struct MinorCollector<'a> {
 
     young: &'a YoungGen,
     old: &'a OldGen,
-    init_old_top: Address,
     large: &'a LargeSpace,
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
@@ -74,13 +73,10 @@ impl<'a> MinorCollector<'a> {
         threadpool: &'a mut Pool,
         config: &'a SharedHeapConfig,
     ) -> MinorCollector<'a> {
-        let init_old_top = old.protected().top;
-
         MinorCollector {
             vm,
             young,
             old,
-            init_old_top,
             large,
             rootset,
             _threads: threads,
@@ -113,6 +109,8 @@ impl<'a> MinorCollector<'a> {
     pub fn collect(&mut self) {
         self.young.unprotect_from();
         self.young.swap_semi(self.vm);
+
+        self.old.fill_alloc_page();
 
         let to_committed = self.young.to_committed();
         self.young_alloc = Some(YoungAlloc::new(to_committed));
@@ -174,7 +172,6 @@ impl<'a> MinorCollector<'a> {
         let crossing_map = self.crossing_map;
         let young = self.young;
         let old = self.old;
-        let init_old_top = self.init_old_top;
         let rootset = self.rootset;
         let barrier = Barrier::new(self.number_workers);
         let barrier = &barrier;
@@ -227,7 +224,6 @@ impl<'a> MinorCollector<'a> {
                         young,
                         age_marker,
                         old,
-                        init_old_top,
                         young_region,
                         card_table,
                         crossing_map,
@@ -357,7 +353,6 @@ struct CopyTask<'a> {
     young: &'a YoungGen,
     age_marker: Address,
     old: &'a OldGen,
-    init_old_top: Address,
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
     rootset: &'a [Slot],
@@ -454,12 +449,7 @@ impl<'a> CopyTask<'a> {
     }
 
     fn visit_dirty_cards_in_old_page(&mut self, page: Page) {
-        let region = if page.object_area().valid_top(self.init_old_top) {
-            Region::new(page.object_area_start(), self.init_old_top)
-        } else {
-            page.object_area()
-        };
-
+        let region = page.object_area();
         let (start_card_idx, end_card_idx) = self.card_table.card_indices(region.start, region.end);
 
         for card_idx in start_card_idx..end_card_idx {
