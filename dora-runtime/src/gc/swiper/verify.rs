@@ -141,25 +141,16 @@ impl<'a> Verifier<'a> {
     }
 
     fn verify_young(&mut self) {
-        let mut curr = self.to_committed.start();
-        while curr < self.to_committed.end() {
-            let page = Page::from_address(curr);
+        for page in self.young.pages() {
             self.verify_region(page.object_area(), "young gen");
-            curr = page.end();
         }
-        assert_eq!(curr, self.to_committed.end());
     }
 
     fn verify_old(&mut self) {
         self.in_old = true;
 
-        let pages = self.old_protected.pages.clone();
-        let mut last = self.old.total_start();
-
-        for page in pages {
-            assert_eq!(last, page.start());
+        for page in self.old_protected.pages() {
             self.verify_region(page.object_area(), "old gen");
-            last = page.end();
         }
 
         self.in_old = false;

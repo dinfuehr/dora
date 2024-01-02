@@ -338,27 +338,17 @@ impl<'a> FullCollector<'a> {
     where
         F: FnMut(&mut FullCollector, &Obj, Address, usize),
     {
-        let pages = self.old_protected.pages.clone();
-        let mut last = self.old.total_start();
-
-        for page in pages {
-            assert_eq!(last, page.start());
+        for page in self.old_protected.pages() {
             walk_region(self.vm, page.object_area(), |obj, addr, size| {
                 fct(self, obj, addr, size);
             });
-            last = page.end();
         }
 
-        let to_committed = self.young.to_committed();
-        let mut curr = to_committed.start();
-        while curr < to_committed.end() {
-            let page = Page::from_address(curr);
+        for page in self.young.pages() {
             walk_region(self.vm, page.object_area(), |obj, addr, size| {
                 fct(self, obj, addr, size);
             });
-            curr = page.end();
         }
-        assert_eq!(curr, to_committed.end());
     }
 
     fn allocate(&mut self, object_size: usize) -> Address {
@@ -395,18 +385,13 @@ pub fn verify_marking(
     large: &LargeSpace,
     heap: Region,
 ) {
-    for page in &old_protected.pages {
+    for page in old_protected.pages() {
         verify_marking_region(vm, page.object_area(), heap);
     }
 
-    let to_committed = young.to_committed();
-    let mut curr = to_committed.start();
-    while curr < to_committed.end() {
-        let page = Page::from_address(curr);
+    for page in young.pages() {
         verify_marking_region(vm, page.object_area(), heap);
-        curr = page.end();
     }
-    assert_eq!(curr, to_committed.end());
 
     large.visit_objects(|obj_address| {
         verify_marking_object(obj_address, heap);

@@ -192,7 +192,7 @@ impl<'a> MinorCollector<'a> {
 
         let next_old_page_idx = AtomicUsize::new(0);
         let next_old_page_idx = &next_old_page_idx;
-        let old_pages = self.old.protected().pages.clone();
+        let old_pages = self.old.protected().pages();
         let old_pages = &old_pages;
 
         let head = self.large.head();

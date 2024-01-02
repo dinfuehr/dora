@@ -140,12 +140,12 @@ impl GenerationAllocator for OldGen {
 }
 
 pub struct OldGenProtected {
-    pub total: Region,
-    pub size: usize,
+    total: Region,
+    size: usize,
     pub top: Address,
-    pub current_limit: Address,
-    pub pages: Vec<Page>,
-    pub freelist: FreeList,
+    current_limit: Address,
+    pages: Vec<Page>,
+    freelist: FreeList,
 }
 
 impl OldGenProtected {
@@ -158,6 +158,10 @@ impl OldGenProtected {
             pages: Vec::new(),
             freelist: FreeList::new(),
         }
+    }
+
+    pub fn pages(&self) -> Vec<Page> {
+        self.pages.clone()
     }
 
     pub fn contains(&self, addr: Address) -> bool {
