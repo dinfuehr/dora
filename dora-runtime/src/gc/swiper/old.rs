@@ -13,7 +13,7 @@ use crate::gc::{fill_region, fill_region_with, is_page_aligned};
 use crate::gc::{Address, GenerationAllocator, Region};
 use crate::mem::ptr_width_usize;
 use crate::os::{self, MemoryPermission};
-use crate::vm::{get_vm, VM};
+use crate::vm::VM;
 
 pub struct OldGen {
     total: Region,
@@ -96,19 +96,19 @@ impl GenerationAllocator for OldGen {
         let mut protected = self.protected.lock();
 
         if let Some(address) = protected.raw_alloc(size) {
-            fill_region_with(get_vm(), protected.top, protected.current_limit, false);
+            fill_region_with(vm, protected.top, protected.current_limit, false);
             self.update_crossing(protected.top, protected.current_limit);
             return Some(address);
         }
 
-        fill_region_with(get_vm(), protected.top, protected.current_limit, false);
+        fill_region_with(vm, protected.top, protected.current_limit, false);
         self.update_crossing(protected.top, protected.current_limit);
 
         if !self.can_add_page() {
             return None;
         }
 
-        if let Some(page) = protected.commit_page(vm) {
+        if let Some(page) = protected.allocate_page(vm) {
             protected.pages.push(page);
 
             protected.top = page.object_area_start();
@@ -117,7 +117,7 @@ impl GenerationAllocator for OldGen {
             assert!(result.is_some());
 
             // Make rest of page iterable.
-            fill_region(get_vm(), protected.top, protected.current_limit);
+            fill_region(vm, protected.top, protected.current_limit);
             self.update_crossing(protected.top, protected.current_limit);
 
             result
@@ -206,9 +206,10 @@ impl OldGenProtected {
         self.top.offset_from(self.total.start())
     }
 
-    fn commit_page(&mut self, vm: &VM) -> Option<Page> {
-        if let Some(page) = self.allocate_page() {
-            let page_idx = page.start().offset_from(self.total.start()) / PAGE_SIZE;
+    fn allocate_page(&mut self, vm: &VM) -> Option<Page> {
+        if let Some(page_idx) = self.select_free_page() {
+            let page_start = self.total.start().offset(page_idx * PAGE_SIZE);
+            let page = Page::from_address(page_start);
             assert!(self.free_pages.contains(page_idx));
             self.free_pages.set(page_idx, false);
             os::commit_at(page.start(), PAGE_SIZE, MemoryPermission::ReadWrite);
@@ -220,16 +221,11 @@ impl OldGenProtected {
         }
     }
 
-    fn allocate_page(&mut self) -> Option<Page> {
-        let page_start = self.current_limit;
-        assert!(page_start.is_page_aligned());
-        let page_end = page_start.offset(PAGE_SIZE);
-
-        if page_end > self.total.end() {
-            assert_eq!(self.free_pages.count_ones(..), 0);
-            None
+    fn select_free_page(&mut self) -> Option<usize> {
+        if let Some(first_page) = self.free_pages.ones().next() {
+            Some(first_page)
         } else {
-            Some(Page::from_address(page_start))
+            None
         }
     }
 
