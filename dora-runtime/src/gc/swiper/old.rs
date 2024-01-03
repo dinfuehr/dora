@@ -13,7 +13,7 @@ use crate::gc::{fill_region, fill_region_with, is_page_aligned};
 use crate::gc::{Address, GenerationAllocator, Region};
 use crate::mem::ptr_width_usize;
 use crate::os::{self, MemoryPermission};
-use crate::vm::get_vm;
+use crate::vm::{get_vm, VM};
 
 pub struct OldGen {
     total: Region,
@@ -92,7 +92,7 @@ impl CommonOldGen for OldGen {
 }
 
 impl GenerationAllocator for OldGen {
-    fn allocate(&self, size: usize) -> Option<Address> {
+    fn allocate(&self, vm: &VM, size: usize) -> Option<Address> {
         let mut protected = self.protected.lock();
 
         if let Some(address) = protected.raw_alloc(size) {
@@ -108,10 +108,8 @@ impl GenerationAllocator for OldGen {
             return None;
         }
 
-        if let Some(page) = protected.allocate_page() {
+        if let Some(page) = protected.commit_page(vm) {
             protected.pages.push(page);
-
-            page.initialize_header();
 
             protected.top = page.object_area_start();
             protected.current_limit = page.object_area_end();
@@ -139,7 +137,7 @@ pub struct OldGenProtected {
     top: Address,
     current_limit: Address,
     pages: Vec<Page>,
-    used_pages: FixedBitSet,
+    free_pages: FixedBitSet,
     num_pages: usize,
     freelist: FreeList,
 }
@@ -148,7 +146,8 @@ impl OldGenProtected {
     fn new(total: Region) -> OldGenProtected {
         assert!(is_page_aligned(total.size()));
         let num_pages = total.size() / PAGE_SIZE;
-        let used_pages = FixedBitSet::with_capacity(num_pages);
+        let mut free_pages = FixedBitSet::with_capacity(num_pages);
+        free_pages.set_range(.., true);
 
         OldGenProtected {
             total: total.clone(),
@@ -156,7 +155,7 @@ impl OldGenProtected {
             top: total.start(),
             current_limit: total.start(),
             pages: Vec::new(),
-            used_pages,
+            free_pages,
             num_pages,
             freelist: FreeList::new(),
         }
@@ -181,14 +180,16 @@ impl OldGenProtected {
     }
 
     pub fn reset_after_gc(&mut self, pages: Vec<Page>, top: Address, current_limit: Address) {
-        self.used_pages.clear();
+        self.free_pages.set_range(.., true);
 
         let previous_pages = std::mem::replace(&mut self.pages, pages);
         let page_set: HashSet<Page> = HashSet::from_iter(self.pages.iter().cloned());
 
         for page in &self.pages {
             let page_idx = page.start().offset_from(self.total.start()) / PAGE_SIZE;
-            self.used_pages.insert(page_idx);
+            assert!(self.free_pages.contains(page_idx));
+            self.free_pages.set(page_idx, false);
+            assert!(!self.free_pages.contains(page_idx));
         }
 
         for page in previous_pages {
@@ -205,19 +206,31 @@ impl OldGenProtected {
         self.top.offset_from(self.total.start())
     }
 
+    fn commit_page(&mut self, vm: &VM) -> Option<Page> {
+        if let Some(page) = self.allocate_page() {
+            let page_idx = page.start().offset_from(self.total.start()) / PAGE_SIZE;
+            assert!(self.free_pages.contains(page_idx));
+            self.free_pages.set(page_idx, false);
+            os::commit_at(page.start(), PAGE_SIZE, MemoryPermission::ReadWrite);
+            page.initialize_header();
+            fill_region(vm, page.object_area_start(), page.object_area_end());
+            Some(page)
+        } else {
+            None
+        }
+    }
+
     fn allocate_page(&mut self) -> Option<Page> {
         let page_start = self.current_limit;
         assert!(page_start.is_page_aligned());
         let page_end = page_start.offset(PAGE_SIZE);
 
         if page_end > self.total.end() {
-            return None;
+            assert_eq!(self.free_pages.count_ones(..), 0);
+            None
+        } else {
+            Some(Page::from_address(page_start))
         }
-
-        let page_idx = page_start.offset_from(self.total.start()) / PAGE_SIZE;
-        self.used_pages.insert(page_idx);
-        os::commit_at(page_start, PAGE_SIZE, MemoryPermission::ReadWrite);
-        Some(Page::new(page_start))
     }
 
     fn raw_alloc(&mut self, size: usize) -> Option<Address> {

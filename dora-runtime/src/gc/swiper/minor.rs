@@ -785,7 +785,7 @@ impl<'a> CopyTask<'a> {
     fn alloc_old_medium(&mut self, size: usize) -> Address {
         debug_assert!(LAB_OBJECT_SIZE <= size && size < LARGE_OBJECT_SIZE);
 
-        if let Some(object_start) = self.old.allocate(size) {
+        if let Some(object_start) = self.old.allocate(self.vm, size) {
             let old = object_start;
             let new = old.offset(size);
             self.old.update_crossing(old, new);
@@ -805,7 +805,7 @@ impl<'a> CopyTask<'a> {
     }
 
     fn alloc_old_lab(&mut self) -> bool {
-        if let Some(lab_start) = self.old.allocate(CLAB_SIZE) {
+        if let Some(lab_start) = self.old.allocate(self.vm, CLAB_SIZE) {
             let lab_end = lab_start.offset(CLAB_SIZE);
             self.old_lab.reset(lab_start, lab_end);
 

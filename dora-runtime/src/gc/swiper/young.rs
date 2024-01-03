@@ -8,7 +8,7 @@ use crate::gc::{
 };
 use crate::mem;
 use crate::os::{self, MemoryPermission};
-use crate::vm::{get_vm, VM};
+use crate::vm::VM;
 
 pub struct YoungGen {
     total: Region,
@@ -253,8 +253,8 @@ impl YoungGen {
 }
 
 impl GenerationAllocator for YoungGen {
-    fn allocate(&self, size: usize) -> Option<Address> {
-        self.alloc.alloc(get_vm(), size)
+    fn allocate(&self, vm: &VM, size: usize) -> Option<Address> {
+        self.alloc.alloc(vm, size)
     }
 
     fn free(&self, _region: Region) {
