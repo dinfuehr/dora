@@ -177,8 +177,10 @@ impl<'a> Verifier<'a> {
                 let object_end = curr.offset(size);
 
                 if self.in_old && on_different_cards(curr, object_end) {
-                    self.verify_card(curr, region);
-                    self.verify_crossing(curr, object_end);
+                    self.verify_card(curr);
+                    if object_end < region.end {
+                        self.verify_crossing(curr, object_end);
+                    }
                 }
 
                 curr = object_end;
@@ -201,7 +203,7 @@ impl<'a> Verifier<'a> {
         assert!(curr == region.end, "object doesn't end at region end");
 
         if (self.in_old || self.in_large) && !self.card_table.is_aligned(curr) {
-            self.verify_card(curr, region);
+            self.verify_card(curr);
         }
 
         if self.in_old || self.in_large {
@@ -221,15 +223,15 @@ impl<'a> Verifier<'a> {
         let next = object_address.offset(object.size());
 
         if (self.in_old || self.in_large) && on_different_cards(object_address, next) {
-            self.verify_card(object_address, region);
+            self.verify_card(object_address);
         }
 
-        if self.in_old && on_different_cards(object_address, next) {
+        if self.in_old && on_different_cards(object_address, next) && next < region.end {
             self.verify_crossing(object_address, next);
         }
     }
 
-    fn verify_card(&mut self, curr: Address, region: Region) {
+    fn verify_card(&mut self, curr: Address) {
         let curr_card = self.card_table.card_idx(curr);
 
         let expected_card_entry = if self.refs_to_young_gen > 0 {
@@ -271,9 +273,6 @@ impl<'a> Verifier<'a> {
                 self.refs_to_young_gen,
                 self.phase,
             );
-
-            println!("CARD is in region {}", region);
-            println!("");
 
             self.dump_spaces();
 
