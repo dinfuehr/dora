@@ -160,6 +160,7 @@ impl<'a> Verifier<'a> {
         let region = page.object_area();
         let mut curr = region.start;
         let mut refs_to_young_gen = 0;
+        assert!(region.start.is_card_aligned());
         assert!(region.end.is_page_aligned());
 
         while curr < region.end {
@@ -175,19 +176,23 @@ impl<'a> Verifier<'a> {
                 self.verify_object(curr, &mut refs_to_young_gen);
             }
 
-            if self.in_old && on_different_cards(curr, object_end) {
-                self.verify_card(curr, refs_to_young_gen);
-                refs_to_young_gen = 0;
+            if on_different_cards(curr, object_end) {
+                if self.in_old {
+                    self.verify_card(curr, refs_to_young_gen);
 
-                if object_end < region.end {
-                    self.verify_crossing(curr, object_end);
+                    if object_end < region.end {
+                        self.verify_crossing(curr, object_end);
+                    }
                 }
+
+                refs_to_young_gen = 0;
             }
 
             curr = object_end;
         }
 
         assert!(curr == region.end, "object doesn't end at region end");
+        assert_eq!(refs_to_young_gen, 0);
     }
 
     fn verify_large_page(&mut self, object_address: Address) {
