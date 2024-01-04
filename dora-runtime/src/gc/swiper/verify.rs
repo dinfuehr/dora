@@ -138,97 +138,83 @@ impl<'a> Verifier<'a> {
     }
 
     fn verify_heap(&mut self) {
+        assert!(!self.in_old);
         for page in self.young.pages() {
-            self.verify_region(page.object_area(), "young gen");
+            self.verify_page(page);
         }
 
         self.in_old = true;
         for page in self.old_protected.pages() {
-            self.verify_region(page.object_area(), "old gen");
+            self.verify_page(page);
         }
         self.in_old = false;
 
         self.in_large = true;
-        self.large.visit_objects(|addr| {
-            let object = addr.to_obj();
-            let region = Region::new(addr, addr.offset(object.size()));
-            self.verify_region(region, "large space");
+        self.large.visit_objects(|object_address| {
+            self.verify_large_page(object_address);
         });
         self.in_large = false;
     }
 
     fn verify_roots(&mut self) {
         for root in self.rootset {
-            self.verify_reference(*root, Address::null(), "root set");
+            self.verify_reference(*root, Address::null());
         }
     }
 
-    fn verify_region(&mut self, region: Region, name: &str) {
+    fn verify_page(&mut self, page: Page) {
+        let region = page.object_area();
         let mut curr = region.start;
         self.refs_to_young_gen = 0;
 
         while curr < region.end {
             let object = curr.to_obj();
+            let size = object.size();
+            let object_end = curr.offset(size);
 
-            if object.is_filler(self.vm) {
-                assert!(!self.in_large, "large object space should not have fillers");
+            // Object is not supposed to cross page boundary.
+            let page = Page::from_address(curr);
+            assert!(object_end <= page.end());
 
-                let size = object.size();
-                let object_end = curr.offset(size);
-
-                if self.in_old && on_different_cards(curr, object_end) {
-                    self.verify_card(curr);
-                    if object_end < region.end {
-                        self.verify_crossing(curr, object_end);
-                    }
-                }
-
-                curr = object_end;
-                continue;
+            if !object.is_filler(self.vm) {
+                self.verify_object(object, curr);
             }
 
-            self.verify_object(object, curr, region, name);
+            if self.in_old && on_different_cards(curr, object_end) {
+                self.verify_card(curr);
 
-            let object_end = curr.offset(object.size());
-
-            if !self.in_large {
-                // Object is not supposed to cross page boundary.
-                let page = Page::from_address(curr);
-                assert!(object_end <= page.end());
+                if object_end < region.end {
+                    self.verify_crossing(curr, object_end);
+                }
             }
 
             curr = object_end;
         }
 
+        if !self.in_old {
+            self.refs_to_young_gen = 0;
+        }
+
         assert!(curr == region.end, "object doesn't end at region end");
-
-        if (self.in_old || self.in_large) && !self.card_table.is_aligned(curr) {
-            self.verify_card(curr);
-        }
-
-        if self.in_old || self.in_large {
-            assert!(self.refs_to_young_gen == 0, "variable should be cleared");
-        }
+        assert!(region.end.is_page_aligned());
+        assert!(self.refs_to_young_gen == 0, "variable should be cleared");
     }
 
-    fn verify_object(&mut self, object: &Obj, object_address: Address, region: Region, name: &str) {
+    fn verify_large_page(&mut self, object_address: Address) {
+        self.refs_to_young_gen = 0;
+        let object = object_address.to_obj();
+        self.verify_object(object, object_address);
+        self.verify_card(object_address);
+    }
+
+    fn verify_object(&mut self, object: &Obj, object_address: Address) {
         assert!(object.header().metadata_fwdptr().is_null());
         assert_eq!(object.header().is_old(), self.in_old);
         assert!(!object.header().is_marked());
 
         object.visit_reference_fields(|child| {
-            self.verify_reference(child, object_address, name);
+            self.verify_reference(child, object_address);
         });
-
-        let next = object_address.offset(object.size());
-
-        if (self.in_old || self.in_large) && on_different_cards(object_address, next) {
-            self.verify_card(object_address);
-        }
-
-        if self.in_old && on_different_cards(object_address, next) && next < region.end {
-            self.verify_crossing(object_address, next);
-        }
     }
 
     fn verify_card(&mut self, curr: Address) {
@@ -316,7 +302,7 @@ impl<'a> Verifier<'a> {
         }
     }
 
-    fn verify_reference(&mut self, slot: Slot, container_obj: Address, name: &str) {
+    fn verify_reference(&mut self, slot: Slot, container_obj: Address) {
         let reference = slot.get();
 
         if reference.is_null() {
@@ -346,9 +332,8 @@ impl<'a> Verifier<'a> {
         self.dump_spaces();
 
         println!(
-            "found invalid reference to {} in {} (at {}, in object {}) during {} phase.",
+            "found invalid reference to {}§ (at {}, in object {}) during {} phase.",
             reference,
-            name,
             slot.address(),
             container_obj,
             self.phase,
