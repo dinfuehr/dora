@@ -13,7 +13,6 @@ use crate::gc::swiper::CARD_SIZE;
 use crate::gc::{Address, Region};
 
 use crate::mem;
-use crate::object::Obj;
 use crate::vm::VM;
 
 #[derive(Copy, Clone)]
@@ -81,9 +80,7 @@ pub struct Verifier<'a> {
     large: &'a LargeSpace,
     readonly_space: &'a Space,
 
-    refs_to_young_gen: usize,
     in_old: bool,
-    in_large: bool,
 
     old_total: Region,
     young_total: Region,
@@ -119,9 +116,7 @@ impl<'a> Verifier<'a> {
             readonly_space,
             large,
 
-            refs_to_young_gen: 0,
             in_old: false,
-            in_large: false,
 
             old_total: old.total(),
             to_committed: young.to_committed(),
@@ -149,23 +144,23 @@ impl<'a> Verifier<'a> {
         }
         self.in_old = false;
 
-        self.in_large = true;
         self.large.visit_objects(|object_address| {
             self.verify_large_page(object_address);
         });
-        self.in_large = false;
     }
 
     fn verify_roots(&mut self) {
+        let mut refs_to_young_gen = 0;
         for root in self.rootset {
-            self.verify_reference(*root, Address::null());
+            self.verify_reference(*root, Address::null(), &mut refs_to_young_gen);
         }
     }
 
     fn verify_page(&mut self, page: Page) {
         let region = page.object_area();
         let mut curr = region.start;
-        self.refs_to_young_gen = 0;
+        let mut refs_to_young_gen = 0;
+        assert!(region.end.is_page_aligned());
 
         while curr < region.end {
             let object = curr.to_obj();
@@ -177,11 +172,12 @@ impl<'a> Verifier<'a> {
             assert!(object_end <= page.end());
 
             if !object.is_filler(self.vm) {
-                self.verify_object(object, curr);
+                self.verify_object(curr, &mut refs_to_young_gen);
             }
 
             if self.in_old && on_different_cards(curr, object_end) {
-                self.verify_card(curr);
+                self.verify_card(curr, refs_to_young_gen);
+                refs_to_young_gen = 0;
 
                 if object_end < region.end {
                     self.verify_crossing(curr, object_end);
@@ -191,36 +187,30 @@ impl<'a> Verifier<'a> {
             curr = object_end;
         }
 
-        if !self.in_old {
-            self.refs_to_young_gen = 0;
-        }
-
         assert!(curr == region.end, "object doesn't end at region end");
-        assert!(region.end.is_page_aligned());
-        assert!(self.refs_to_young_gen == 0, "variable should be cleared");
     }
 
     fn verify_large_page(&mut self, object_address: Address) {
-        self.refs_to_young_gen = 0;
-        let object = object_address.to_obj();
-        self.verify_object(object, object_address);
-        self.verify_card(object_address);
+        let mut refs_to_young_gen = 0;
+        self.verify_object(object_address, &mut refs_to_young_gen);
+        self.verify_card(object_address, refs_to_young_gen);
     }
 
-    fn verify_object(&mut self, object: &Obj, object_address: Address) {
+    fn verify_object(&mut self, object_address: Address, refs_to_young_gen: &mut usize) {
+        let object = object_address.to_obj();
         assert!(object.header().metadata_fwdptr().is_null());
         assert_eq!(object.header().is_old(), self.in_old);
         assert!(!object.header().is_marked());
 
         object.visit_reference_fields(|child| {
-            self.verify_reference(child, object_address);
+            self.verify_reference(child, object_address, refs_to_young_gen);
         });
     }
 
-    fn verify_card(&mut self, curr: Address) {
+    fn verify_card(&mut self, curr: Address, refs_to_young_gen: usize) {
         let curr_card = self.card_table.card_idx(curr);
 
-        let expected_card_entry = if self.refs_to_young_gen > 0 {
+        let expected_card_entry = if refs_to_young_gen > 0 {
             // full collections promote everything into old gen
             // young gen should be empty!
             assert!(!self.phase.is_post_full());
@@ -237,7 +227,6 @@ impl<'a> Verifier<'a> {
         // actually contain any references into the young generation. But it should never
         // be clean when there are actual references into the young generation.
         if self.phase.is_pre() && expected_card_entry.is_clean() {
-            self.refs_to_young_gen = 0;
             return;
         }
 
@@ -256,7 +245,7 @@ impl<'a> Verifier<'a> {
                 card_start,
                 card_end,
                 card_text,
-                self.refs_to_young_gen,
+                refs_to_young_gen,
                 self.phase,
             );
 
@@ -266,8 +255,6 @@ impl<'a> Verifier<'a> {
         }
 
         assert_eq!(actual_card_entry, expected_card_entry);
-
-        self.refs_to_young_gen = 0;
     }
 
     fn verify_crossing(&mut self, old: Address, new: Address) {
@@ -302,7 +289,12 @@ impl<'a> Verifier<'a> {
         }
     }
 
-    fn verify_reference(&mut self, slot: Slot, container_obj: Address) {
+    fn verify_reference(
+        &mut self,
+        slot: Slot,
+        container_obj: Address,
+        refs_to_young_gen: &mut usize,
+    ) {
         let reference = slot.get();
 
         if reference.is_null() {
@@ -323,7 +315,7 @@ impl<'a> Verifier<'a> {
             assert!(object.size() != 1, "object size shouldn't be 1");
 
             if self.young_total.contains(reference) {
-                self.refs_to_young_gen += 1;
+                *refs_to_young_gen += 1;
             }
 
             return;
