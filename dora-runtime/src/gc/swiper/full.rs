@@ -365,14 +365,13 @@ impl<'a> FullCollector<'a> {
     }
 
     fn evacuate_page(&mut self, page: Page) {
-        walk_region(self.vm, page.object_area(), |object, address, size| {
+        walk_region(self.vm, page.object_area(), |object, _address, size| {
             if !object.header().is_marked() {
                 return;
             }
 
             if let Some(new_address) = self.old_protected.allocate(self.vm, self.old, size) {
-                // determine location after relocated object
-                let object_end = address.offset(size);
+                let object_end = new_address.offset(size);
 
                 object.header().set_metadata_fwdptr(new_address);
                 object.copy_to(new_address, size);
