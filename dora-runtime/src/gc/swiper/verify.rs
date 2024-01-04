@@ -85,6 +85,7 @@ pub struct Verifier<'a> {
     in_old: bool,
     in_large: bool,
 
+    old_total: Region,
     young_total: Region,
     to_committed: Region,
     reserved_area: Region,
@@ -122,6 +123,7 @@ impl<'a> Verifier<'a> {
             in_old: false,
             in_large: false,
 
+            old_total: old.total(),
             to_committed: young.to_committed(),
             young_total: young.total(),
             reserved_area,
@@ -297,12 +299,15 @@ impl<'a> Verifier<'a> {
         let offset_words = (offset / mem::ptr_width_usize()) as u8;
 
         let middle_start = old_card_idx.to_usize() + 1;
+        let actual = self.crossing_map.get(new_card_idx);
+        let expected = CrossingEntry::FirstObject(offset_words);
 
-        assert_eq!(
-            self.crossing_map.get(new_card_idx),
-            CrossingEntry::FirstObject(offset_words),
-            "crossing at end not correct."
-        );
+        if actual != expected {
+            println!("actual = {:?}", actual);
+            println!("expected = {:?}", expected);
+        }
+
+        assert_eq!(expected, actual, "crossing at end not correct.");
 
         for c in middle_start..new_card_idx.to_usize() {
             assert!(
@@ -319,7 +324,7 @@ impl<'a> Verifier<'a> {
             return;
         }
 
-        if self.old_protected.contains(reference)
+        if self.old_total.contains(reference)
             || self.to_committed.contains(reference)
             || self.readonly_space.contains(reference)
             || self.large.contains(reference)

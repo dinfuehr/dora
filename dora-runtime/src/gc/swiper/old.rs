@@ -2,6 +2,7 @@ use std::collections::HashSet;
 
 use fixedbitset::FixedBitSet;
 use parking_lot::{Mutex, MutexGuard};
+use rand::Rng;
 
 use crate::gc::freelist::FreeList;
 use crate::gc::swiper::card::CardTable;
@@ -110,6 +111,7 @@ impl GenerationAllocator for OldGen {
 
         if let Some(page) = protected.allocate_page(vm) {
             protected.pages.push(page);
+            protected.pages.sort();
 
             protected.top = page.object_area_start();
             protected.current_limit = page.object_area_end();
@@ -209,6 +211,7 @@ impl OldGenProtected {
     fn allocate_page(&mut self, vm: &VM) -> Option<Page> {
         if let Some(page_idx) = self.select_free_page() {
             let page_start = self.total.start().offset(page_idx * PAGE_SIZE);
+            assert!(self.total.contains(page_start));
             let page = Page::from_address(page_start);
             assert!(self.free_pages.contains(page_idx));
             self.free_pages.set(page_idx, false);
@@ -222,6 +225,16 @@ impl OldGenProtected {
     }
 
     fn select_free_page(&mut self) -> Option<usize> {
+        let mut rng = rand::thread_rng();
+
+        for _ in 0..3 {
+            let page_idx = rng.gen_range(0..self.num_pages);
+
+            if self.free_pages.contains(page_idx) {
+                return Some(page_idx);
+            }
+        }
+
         if let Some(first_page) = self.free_pages.ones().next() {
             Some(first_page)
         } else {
@@ -242,7 +255,7 @@ impl OldGenProtected {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Page(Address);
 
 impl Page {
