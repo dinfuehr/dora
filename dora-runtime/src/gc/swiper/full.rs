@@ -30,6 +30,9 @@ pub struct FullCollector<'a> {
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
     readonly_space: &'a Space,
+    use_evacuation: bool,
+    young_evacuated_pages: Vec<(Page, usize)>,
+    old_evacuated_pages: Vec<(Page, usize)>,
 
     top: Address,
     current_limit: Address,
@@ -74,6 +77,9 @@ impl<'a> FullCollector<'a> {
             card_table,
             crossing_map,
             readonly_space,
+            use_evacuation: false,
+            young_evacuated_pages: Vec::new(),
+            old_evacuated_pages: Vec::new(),
 
             top: old_total.start(),
             current_limit: old_total.start(),
@@ -130,37 +136,43 @@ impl<'a> FullCollector<'a> {
             }
         }
 
-        self.compute_forward();
+        if !self.use_evacuation {
+            self.compute_forward();
 
-        if stats {
-            let duration = timer.stop();
-            self.phases.compute_forward = duration;
-        }
+            if stats {
+                let duration = timer.stop();
+                self.phases.compute_forward = duration;
+            }
 
-        if dev_verbose {
-            println!("Full GC: Phase 2 (compute forward)");
-        }
+            if dev_verbose {
+                println!("Full GC: Phase 2 (compute forward)");
+            }
 
-        self.update_references();
+            self.update_references();
 
-        if stats {
-            let duration = timer.stop();
-            self.phases.update_refs = duration;
-        }
+            if stats {
+                let duration = timer.stop();
+                self.phases.update_refs = duration;
+            }
 
-        if dev_verbose {
-            println!("Full GC: Phase 3 (update refs)");
-        }
+            if dev_verbose {
+                println!("Full GC: Phase 3 (update refs)");
+            }
 
-        self.relocate();
+            self.relocate();
 
-        if stats {
-            let duration = timer.stop();
-            self.phases.relocate = duration;
-        }
+            if stats {
+                let duration = timer.stop();
+                self.phases.relocate = duration;
+            }
 
-        if dev_verbose {
-            println!("Full GC: Phase 4 (relocate)");
+            if dev_verbose {
+                println!("Full GC: Phase 4 (relocate)");
+            }
+        } else {
+            self.evacuate();
+            self.update_references();
+            self.free_pages();
         }
 
         self.reset_cards();
@@ -176,9 +188,11 @@ impl<'a> FullCollector<'a> {
 
         self.young.reset_after_full_gc(self.vm);
 
-        let pages = std::mem::replace(&mut self.pages, Vec::new());
-        self.old_protected
-            .reset_after_gc(pages, self.top, self.current_limit);
+        if !self.use_evacuation {
+            let pages = std::mem::replace(&mut self.pages, Vec::new());
+            self.old_protected
+                .reset_after_gc(pages, self.top, self.current_limit);
+        }
     }
 
     fn mark_live(&mut self) {
@@ -198,6 +212,36 @@ impl<'a> FullCollector<'a> {
                 Some(object_address)
             }
         });
+
+        for page in self.young.pages() {
+            let live = self.compute_live_on_page(page);
+
+            if live > 0 {
+                self.young_evacuated_pages.push((page, live));
+            }
+        }
+
+        let mut old_evacuated_pages = Vec::new();
+
+        for page in self.old_protected.pages() {
+            let live = self.compute_live_on_page(page);
+            old_evacuated_pages.push((page, live));
+        }
+
+        old_evacuated_pages.sort_by(|a, b| a.1.cmp(&b.1));
+        old_evacuated_pages.truncate(10);
+
+        let _ = std::mem::replace(&mut self.old_evacuated_pages, old_evacuated_pages);
+    }
+
+    fn compute_live_on_page(&self, page: Page) -> usize {
+        let mut live = 0;
+        walk_region(self.vm, page.object_area(), |obj, _addr, size| {
+            if obj.header().is_marked() {
+                live += size;
+            }
+        });
+        live
     }
 
     fn compute_forward(&mut self) {
@@ -310,6 +354,46 @@ impl<'a> FullCollector<'a> {
         self.old.update_crossing(self.top, self.current_limit);
     }
 
+    fn evacuate(&mut self) {
+        for (page, _) in self.young_evacuated_pages.clone() {
+            self.evacuate_page(page);
+        }
+
+        for (page, _) in self.old_evacuated_pages.clone() {
+            self.evacuate_page(page);
+        }
+    }
+
+    fn evacuate_page(&mut self, page: Page) {
+        walk_region(self.vm, page.object_area(), |object, address, size| {
+            if !object.header().is_marked() {
+                return;
+            }
+
+            if let Some(new_address) = self.old_protected.allocate(self.vm, self.old, size) {
+                // determine location after relocated object
+                let object_end = address.offset(size);
+
+                object.header().set_metadata_fwdptr(new_address);
+                object.copy_to(new_address, size);
+
+                // Clear metadata word.
+                let new_obj = new_address.to_obj();
+                new_obj.header().set_metadata_raw(INITIAL_METADATA_OLD);
+
+                self.old.update_crossing(new_address, object_end);
+            } else {
+                panic!("FAIL: Not enough space for objects in old generation.");
+            }
+        });
+    }
+
+    fn free_pages(&mut self) {
+        for (page, _) in self.old_evacuated_pages.clone() {
+            self.old_protected.free_page(page);
+        }
+    }
+
     fn reset_cards(&mut self) {
         for page in self.old_protected.pages() {
             self.card_table.reset_page(page);
@@ -317,21 +401,24 @@ impl<'a> FullCollector<'a> {
     }
 
     fn forward_reference(&mut self, slot: Slot) {
-        let object_addr = slot.get();
+        let object_address = slot.get();
 
-        if self.heap.contains(object_addr) {
-            debug_assert!(object_addr.to_obj().header().is_marked());
+        if object_address.is_null() {
+            return;
+        }
 
-            if self.large_space.contains(object_addr) {
-                // large objects do not move in memory
-                return;
+        if self.heap.contains(object_address) {
+            let object = object_address.to_obj();
+            debug_assert!(object.header().is_marked());
+
+            let fwd_addr = object.header().metadata_fwdptr();
+
+            if fwd_addr.is_non_null() {
+                debug_assert!(self.heap.contains(fwd_addr));
+                slot.set(fwd_addr);
             }
-
-            let fwd_addr = object_addr.to_obj().header().metadata_fwdptr();
-            debug_assert!(self.heap.contains(fwd_addr));
-            slot.set(fwd_addr);
         } else {
-            debug_assert!(object_addr.is_null() || self.readonly_space.contains(object_addr));
+            debug_assert!(self.readonly_space.contains(object_address));
         }
     }
 

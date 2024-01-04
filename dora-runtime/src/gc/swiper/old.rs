@@ -95,37 +95,7 @@ impl CommonOldGen for OldGen {
 impl GenerationAllocator for OldGen {
     fn allocate(&self, vm: &VM, size: usize) -> Option<Address> {
         let mut protected = self.protected.lock();
-
-        if let Some(address) = protected.raw_alloc(size) {
-            fill_region_with(vm, protected.top, protected.current_limit, false);
-            self.update_crossing(protected.top, protected.current_limit);
-            return Some(address);
-        }
-
-        fill_region_with(vm, protected.top, protected.current_limit, false);
-        self.update_crossing(protected.top, protected.current_limit);
-
-        if !self.can_add_page() {
-            return None;
-        }
-
-        if let Some(page) = protected.allocate_page(vm) {
-            protected.pages.push(page);
-            protected.pages.sort();
-
-            protected.top = page.object_area_start();
-            protected.current_limit = page.object_area_end();
-            let result = protected.raw_alloc(size);
-            assert!(result.is_some());
-
-            // Make rest of page iterable.
-            fill_region(vm, protected.top, protected.current_limit);
-            self.update_crossing(protected.top, protected.current_limit);
-
-            result
-        } else {
-            None
-        }
+        protected.allocate(vm, self, size)
     }
 
     fn free(&self, _region: Region) {
@@ -171,6 +141,39 @@ impl OldGenProtected {
         self.total.start <= addr && addr < self.top
     }
 
+    pub fn allocate(&mut self, vm: &VM, old: &OldGen, size: usize) -> Option<Address> {
+        if let Some(address) = self.raw_alloc(size) {
+            fill_region_with(vm, self.top, self.current_limit, false);
+            old.update_crossing(self.top, self.current_limit);
+            return Some(address);
+        }
+
+        fill_region_with(vm, self.top, self.current_limit, false);
+        old.update_crossing(self.top, self.current_limit);
+
+        if !old.can_add_page() {
+            return None;
+        }
+
+        if let Some(page) = self.allocate_page(vm) {
+            self.pages.push(page);
+            self.pages.sort();
+
+            self.top = page.object_area_start();
+            self.current_limit = page.object_area_end();
+            let result = self.raw_alloc(size);
+            assert!(result.is_some());
+
+            // Make rest of page iterable.
+            fill_region(vm, self.top, self.current_limit);
+            old.update_crossing(self.top, self.current_limit);
+
+            result
+        } else {
+            None
+        }
+    }
+
     pub fn commit_pages(&mut self, pages: &[Page]) {
         let previous_page_set: HashSet<Page> = HashSet::from_iter(self.pages.iter().cloned());
 
@@ -202,6 +205,16 @@ impl OldGenProtected {
 
         self.top = top;
         self.current_limit = current_limit;
+    }
+
+    pub fn free_page(&mut self, page: Page) {
+        let idx = self
+            .pages
+            .iter()
+            .position(|&p| p == page)
+            .expect("missing page");
+        self.pages.swap_remove(idx);
+        os::discard(page.start(), page.size());
     }
 
     pub fn active_size(&self) -> usize {
