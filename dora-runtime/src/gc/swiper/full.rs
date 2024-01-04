@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use parking_lot::MutexGuard;
@@ -171,7 +172,8 @@ impl<'a> FullCollector<'a> {
             }
         } else {
             self.evacuate();
-            self.update_references();
+            self.update_references_after_evacuation();
+            self.clear_markbits();
             self.free_pages();
         }
 
@@ -281,12 +283,7 @@ impl<'a> FullCollector<'a> {
         });
 
         iterate_weak_roots(self.vm, |object_address| {
-            forward_full(
-                object_address,
-                self.heap,
-                self.readonly_space.total(),
-                self.large_space.total(),
-            )
+            forward_full(object_address, self.heap, self.readonly_space.total())
         });
 
         self.large_space.remove_objects(|object_start| {
@@ -310,6 +307,81 @@ impl<'a> FullCollector<'a> {
                 // object is unmarked -> free it
                 true
             }
+        });
+    }
+
+    fn update_references_after_evacuation(&mut self) {
+        let old_evacuated_set: HashSet<Page> =
+            HashSet::from_iter(self.old_evacuated_pages.iter().map(|pair| pair.0));
+
+        for page in self.old_protected.pages() {
+            if old_evacuated_set.contains(&page) {
+                continue;
+            }
+
+            walk_region(self.vm, page.object_area(), |object, _addr, _size| {
+                if object.header().is_marked() {
+                    object.visit_reference_fields(|field| {
+                        self.forward_reference(field);
+                    });
+                }
+            });
+        }
+
+        iterate_strong_roots(self.vm, self.threads, |slot| {
+            self.forward_reference(slot);
+        });
+
+        iterate_weak_roots(self.vm, |object_address| {
+            forward_full(object_address, self.heap, self.readonly_space.total())
+        });
+
+        self.large_space.remove_objects(|object_start| {
+            let object = object_start.to_obj();
+
+            // reset cards for object, also do this for dead objects
+            // to reset card entries to clean.
+            self.card_table.reset_addr(object_start);
+
+            if object.header().is_marked() {
+                object.visit_reference_fields(|field| {
+                    self.forward_reference(field);
+                });
+
+                // keep object
+                false
+            } else {
+                // object is unmarked -> free it
+                true
+            }
+        });
+    }
+
+    fn clear_markbits(&mut self) {
+        let old_evacuated_set: HashSet<Page> =
+            HashSet::from_iter(self.old_evacuated_pages.iter().map(|pair| pair.0));
+
+        for page in self.old_protected.pages() {
+            if old_evacuated_set.contains(&page) {
+                continue;
+            }
+
+            walk_region(self.vm, page.object_area(), |object, _addr, _size| {
+                if object.header().is_marked() {
+                    object.header().unmark();
+                }
+            });
+        }
+
+        self.large_space.remove_objects(|object_start| {
+            let object = object_start.to_obj();
+            assert!(object.header().is_marked());
+
+            // unmark object for next collection
+            object.header().unmark();
+
+            // keep object
+            false
         });
     }
 

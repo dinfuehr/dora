@@ -76,7 +76,7 @@ impl OldGen {
 
     pub fn fill_alloc_page(&self) {
         let mut protected = self.protected.lock();
-        protected.top = protected.current_limit;
+        protected.fill_alloc_page();
     }
 }
 
@@ -139,6 +139,10 @@ impl OldGenProtected {
 
     pub fn contains(&self, addr: Address) -> bool {
         self.total.start <= addr && addr < self.top
+    }
+
+    pub fn fill_alloc_page(&mut self) {
+        self.top = self.current_limit;
     }
 
     pub fn allocate(&mut self, vm: &VM, old: &OldGen, size: usize) -> Option<Address> {

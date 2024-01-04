@@ -622,16 +622,17 @@ pub trait CommonOldGen {
     fn committed_size(&self) -> usize;
 }
 
-fn forward_full(object: Address, heap: Region, perm: Region, large: Region) -> Option<Address> {
+fn forward_full(object: Address, heap: Region, perm: Region) -> Option<Address> {
     if heap.contains(object) {
         let obj = object.to_obj();
 
         if obj.header().is_marked() {
-            if large.contains(object) {
-                Some(object)
-            } else {
-                let new_address = obj.header().metadata_fwdptr();
+            let new_address = obj.header().metadata_fwdptr();
+
+            if new_address.is_non_null() {
                 Some(new_address)
+            } else {
+                Some(object)
             }
         } else {
             None

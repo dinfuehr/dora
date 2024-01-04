@@ -329,7 +329,7 @@ impl<'a> Verifier<'a> {
         self.dump_spaces();
 
         println!(
-            "found invalid reference to {}§ (at {}, in object {}) during {} phase.",
+            "found invalid reference to {} (at {}, in object {}) during {} phase.",
             reference,
             slot.address(),
             container_obj,
