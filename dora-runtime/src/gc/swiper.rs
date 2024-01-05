@@ -382,14 +382,15 @@ impl Swiper {
     }
 
     fn alloc_normal(&self, vm: &VM, size: usize) -> Address {
-        if let Some(address) = self.young.allocate(vm, size, size) {
-            return address;
+        if let Some(region) = self.young.allocate(vm, size, size) {
+            return region.start();
         }
 
         self.perform_collection_and_choose(vm, GcReason::AllocationFailure);
 
         self.young
             .allocate(vm, size, size)
+            .map(|r| r.start())
             .unwrap_or(Address::null())
     }
 
@@ -409,21 +410,21 @@ impl Collector for Swiper {
         true
     }
 
-    fn alloc_tlab_area(&self, vm: &VM, size: usize) -> Option<Region> {
-        if let Some(address) = self.young.allocate(vm, MIN_TLAB_SIZE, MAX_TLAB_SIZE) {
-            return Some(address.region_start(size));
+    fn alloc_tlab_area(&self, vm: &VM, _size: usize) -> Option<Region> {
+        if let Some(region) = self.young.allocate(vm, MIN_TLAB_SIZE, MAX_TLAB_SIZE) {
+            return Some(region);
         }
 
         self.perform_collection_and_choose(vm, GcReason::AllocationFailure);
 
-        if let Some(address) = self.young.allocate(vm, MIN_TLAB_SIZE, MAX_TLAB_SIZE) {
-            return Some(address.region_start(size));
+        if let Some(region) = self.young.allocate(vm, MIN_TLAB_SIZE, MAX_TLAB_SIZE) {
+            return Some(region);
         }
 
         self.perform_collection(vm, CollectionKind::Full, GcReason::AllocationFailure);
 
-        if let Some(address) = self.young.allocate(vm, MIN_TLAB_SIZE, MAX_TLAB_SIZE) {
-            return Some(address.region_start(size));
+        if let Some(region) = self.young.allocate(vm, MIN_TLAB_SIZE, MAX_TLAB_SIZE) {
+            return Some(region);
         }
 
         None

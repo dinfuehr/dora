@@ -361,7 +361,8 @@ impl<'a> FullCollector<'a> {
                 return;
             }
 
-            if let Some(new_address) = self.old_protected.allocate(self.vm, self.old, size, size) {
+            if let Some(new_region) = self.old_protected.allocate(self.vm, self.old, size, size) {
+                let new_address = new_region.start();
                 let object_end = new_address.offset(size);
 
                 object.copy_to(new_address, size);

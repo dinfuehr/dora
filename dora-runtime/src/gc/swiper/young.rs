@@ -249,7 +249,7 @@ impl YoungGen {
 }
 
 impl GenerationAllocator for YoungGen {
-    fn allocate(&self, vm: &VM, min_size: usize, max_size: usize) -> Option<Address> {
+    fn allocate(&self, vm: &VM, min_size: usize, max_size: usize) -> Option<Region> {
         self.alloc.alloc(vm, min_size, max_size)
     }
 
@@ -278,7 +278,7 @@ impl YoungAlloc {
         }
     }
 
-    pub fn alloc(&self, vm: &VM, min_size: usize, max_size: usize) -> Option<Address> {
+    pub fn alloc(&self, vm: &VM, min_size: usize, max_size: usize) -> Option<Region> {
         let mut protected = self.protected.lock();
         protected.alloc(vm, min_size, max_size)
     }
@@ -311,9 +311,9 @@ struct YoungAllocProtected {
 }
 
 impl YoungAllocProtected {
-    fn alloc(&mut self, vm: &VM, min_size: usize, max_size: usize) -> Option<Address> {
-        if let Some(address) = self.raw_alloc(vm, min_size, max_size) {
-            return Some(address);
+    fn alloc(&mut self, vm: &VM, min_size: usize, max_size: usize) -> Option<Region> {
+        if let Some(region) = self.raw_alloc(vm, min_size, max_size) {
+            return Some(region);
         }
 
         if self.current_limit < self.limit {
@@ -332,14 +332,15 @@ impl YoungAllocProtected {
         }
     }
 
-    fn raw_alloc(&mut self, vm: &VM, _min_size: usize, max_size: usize) -> Option<Address> {
-        let next = self.top.offset(max_size);
-
-        if next <= self.current_limit {
-            let result = self.top;
-            self.top = next;
+    fn raw_alloc(&mut self, vm: &VM, min_size: usize, max_size: usize) -> Option<Region> {
+        if self.top.offset(min_size) <= self.current_limit {
+            let alloc_start = self.top;
+            let alloc_end = alloc_start.offset(max_size).min(self.current_limit);
+            let alloc = Region::new(alloc_start, alloc_end);
+            debug_assert!(alloc.size() >= min_size);
+            self.top = alloc_end;
             fill_region_with(vm, self.top, self.current_limit, false);
-            Some(result)
+            Some(alloc)
         } else {
             None
         }
