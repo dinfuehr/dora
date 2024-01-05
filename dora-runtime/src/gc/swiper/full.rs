@@ -13,7 +13,7 @@ use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{forward_full, walk_region, INITIAL_METADATA_OLD};
 use crate::gc::{fill_region_with, iterate_strong_roots, iterate_weak_roots, marking, Slot};
 use crate::gc::{Address, GcReason, Region};
-use crate::object::Obj;
+use crate::object::{Obj, VtblptrWordKind};
 use crate::stdlib;
 use crate::threads::DoraThread;
 use crate::timer::Timer;
@@ -363,8 +363,8 @@ impl<'a> FullCollector<'a> {
             if let Some(new_address) = self.old_protected.allocate(self.vm, self.old, size) {
                 let object_end = new_address.offset(size);
 
-                object.header().set_metadata_fwdptr(new_address);
                 object.copy_to(new_address, size);
+                object.header().install_fwdptr(new_address);
 
                 // Clear metadata word.
                 let new_obj = new_address.to_obj();
@@ -386,11 +386,11 @@ impl<'a> FullCollector<'a> {
 
         if self.heap.contains(object_address) {
             let object = object_address.to_obj();
-            let fwd_addr = object.header().metadata_fwdptr();
+            let vtblptr = object.header().vtblptr();
 
-            if fwd_addr.is_non_null() {
-                debug_assert!(self.heap.contains(fwd_addr));
-                slot.set(fwd_addr);
+            if let VtblptrWordKind::Fwdptr(address) = vtblptr {
+                debug_assert!(self.heap.contains(address));
+                slot.set(address);
             }
         } else {
             debug_assert!(self.readonly_space.contains(object_address));

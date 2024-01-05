@@ -627,9 +627,9 @@ fn forward_full(object: Address, heap: Region, perm: Region) -> Option<Address> 
         let obj = object.to_obj();
 
         if obj.header().is_marked() {
-            let new_address = obj.header().metadata_fwdptr();
+            let vtblptr = obj.header().vtblptr();
 
-            if new_address.is_non_null() {
+            if let VtblptrWordKind::Fwdptr(new_address) = vtblptr {
                 Some(new_address)
             } else {
                 Some(object)
