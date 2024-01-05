@@ -9,12 +9,12 @@ use crate::gc::swiper::card::{CardEntry, CardTable};
 use crate::gc::swiper::controller::{MinorCollectorPhases, SharedHeapConfig};
 use crate::gc::swiper::crossing::{CrossingEntry, CrossingMap};
 use crate::gc::swiper::large::{LargeAlloc, LargeSpace};
-use crate::gc::swiper::old::{OldGen, Page};
+use crate::gc::swiper::old::OldGen;
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{
-    forward_minor, CardIdx, YoungAlloc, CARD_SIZE, INITIAL_METADATA_OLD, LARGE_OBJECT_SIZE,
+    forward_minor, CardIdx, Page, YoungAlloc, CARD_SIZE, INITIAL_METADATA_OLD, LARGE_OBJECT_SIZE,
 };
-use crate::gc::tlab::{TLAB_OBJECT_SIZE, TLAB_SIZE};
+use crate::gc::tlab::{MAX_TLAB_OBJECT_SIZE, MAX_TLAB_SIZE, MIN_TLAB_SIZE};
 use crate::gc::{
     fill_region, fill_region_with, iterate_weak_roots, Address, GcReason, GenerationAllocator,
     Region,
@@ -247,7 +247,6 @@ impl<'a> MinorCollector<'a> {
 
                         young_lab: Lab::new(),
                         young_alloc,
-                        copy_failed: false,
 
                         timer: prot_timer,
                     };
@@ -332,12 +331,13 @@ impl Lab {
 
     fn undo_alloc(&mut self, size: usize) {
         self.top = (self.top.to_usize() - size).into();
-        debug_assert!(self.limit.offset_from(self.top) <= CLAB_SIZE);
+        debug_assert!(self.limit.offset_from(self.top) <= MAX_LAB_SIZE);
     }
 }
 
-const CLAB_SIZE: usize = TLAB_SIZE;
-const LAB_OBJECT_SIZE: usize = TLAB_OBJECT_SIZE;
+const MIN_LAB_SIZE: usize = MIN_TLAB_SIZE;
+const MAX_LAB_SIZE: usize = MAX_TLAB_SIZE;
+const MAX_LAB_OBJECT_SIZE: usize = MAX_TLAB_OBJECT_SIZE;
 
 const LOCAL_MAXIMUM: usize = 64;
 
@@ -376,7 +376,6 @@ struct CopyTask<'a> {
 
     young_lab: Lab,
     young_alloc: &'a YoungAlloc,
-    copy_failed: bool,
 
     timer: &'a Option<Mutex<(Timer, f32)>>,
 }
@@ -691,7 +690,7 @@ impl<'a> CopyTask<'a> {
     }
 
     fn alloc_young(&mut self, size: usize) -> Address {
-        if size < LAB_OBJECT_SIZE {
+        if size < MAX_LAB_OBJECT_SIZE {
             self.alloc_young_small(size)
         } else {
             self.alloc_young_medium(size)
@@ -699,15 +698,13 @@ impl<'a> CopyTask<'a> {
     }
 
     fn alloc_young_small(&mut self, size: usize) -> Address {
-        debug_assert!(size < LAB_OBJECT_SIZE);
+        debug_assert!(size < MAX_LAB_OBJECT_SIZE);
 
         if let Some(object_start) = self.young_lab.allocate(size) {
             return object_start;
-        } else if self.copy_failed {
-            return Address::null();
         }
 
-        debug_assert!(size <= CLAB_SIZE);
+        debug_assert!(size <= MAX_LAB_SIZE);
         self.young_lab.make_iterable_young(self.vm);
         if !self.alloc_young_lab() {
             return Address::null();
@@ -717,39 +714,28 @@ impl<'a> CopyTask<'a> {
     }
 
     fn alloc_young_medium(&mut self, size: usize) -> Address {
-        debug_assert!(LAB_OBJECT_SIZE <= size && size < LARGE_OBJECT_SIZE);
+        debug_assert!(MAX_LAB_OBJECT_SIZE <= size && size < LARGE_OBJECT_SIZE);
 
-        if self.copy_failed {
-            return Address::null();
-        }
-
-        if let Some(result) = self.young_alloc.alloc(self.vm, size) {
+        if let Some(result) = self.young_alloc.alloc(self.vm, size, size) {
             result
         } else {
-            self.copy_failed = true;
-
             Address::null()
         }
     }
 
     fn alloc_young_lab(&mut self) -> bool {
-        if self.copy_failed {
-            return false;
-        }
-
-        if let Some(lab_start) = self.young_alloc.alloc(self.vm, CLAB_SIZE) {
-            let lab_end = lab_start.offset(CLAB_SIZE);
+        if let Some(lab_start) = self.young_alloc.alloc(self.vm, MIN_LAB_SIZE, MAX_LAB_SIZE) {
+            let lab_end = lab_start.offset(MAX_LAB_SIZE);
             self.young_lab.reset(lab_start, lab_end);
             true
         } else {
-            self.copy_failed = true;
             self.young_lab.reset(Address::null(), Address::null());
             false
         }
     }
 
     fn undo_alloc_young(&mut self, copy_addr: Address, size: usize) {
-        if size < LAB_OBJECT_SIZE {
+        if size < MAX_LAB_OBJECT_SIZE {
             self.young_lab.undo_alloc(size)
         } else {
             // Can't undo mid-sized objects. Need to make the heap iterable.
@@ -758,7 +744,7 @@ impl<'a> CopyTask<'a> {
     }
 
     fn alloc_old(&mut self, size: usize) -> Address {
-        if size < LAB_OBJECT_SIZE {
+        if size < MAX_LAB_OBJECT_SIZE {
             self.alloc_old_small(size)
         } else {
             self.alloc_old_medium(size)
@@ -766,7 +752,7 @@ impl<'a> CopyTask<'a> {
     }
 
     fn alloc_old_small(&mut self, size: usize) -> Address {
-        debug_assert!(size < LAB_OBJECT_SIZE);
+        debug_assert!(size < MAX_LAB_OBJECT_SIZE);
         let object_start = self.alloc_object_in_old_lab(size);
 
         if let Some(object_start) = object_start {
@@ -783,9 +769,9 @@ impl<'a> CopyTask<'a> {
     }
 
     fn alloc_old_medium(&mut self, size: usize) -> Address {
-        debug_assert!(LAB_OBJECT_SIZE <= size && size < LARGE_OBJECT_SIZE);
+        debug_assert!(MAX_LAB_OBJECT_SIZE <= size && size < LARGE_OBJECT_SIZE);
 
-        if let Some(object_start) = self.old.allocate(self.vm, size) {
+        if let Some(object_start) = self.old.allocate(self.vm, size, size) {
             let old = object_start;
             let new = old.offset(size);
             self.old.update_crossing(old, new);
@@ -796,7 +782,7 @@ impl<'a> CopyTask<'a> {
     }
 
     fn undo_alloc_old(&mut self, copy_addr: Address, size: usize) {
-        if size < LAB_OBJECT_SIZE {
+        if size < MAX_LAB_OBJECT_SIZE {
             self.old_lab.undo_alloc(size);
         } else {
             // Can't undo mid-sized objects. Need to make the heap iterable.
@@ -805,8 +791,8 @@ impl<'a> CopyTask<'a> {
     }
 
     fn alloc_old_lab(&mut self) -> bool {
-        if let Some(lab_start) = self.old.allocate(self.vm, CLAB_SIZE) {
-            let lab_end = lab_start.offset(CLAB_SIZE);
+        if let Some(lab_start) = self.old.allocate(self.vm, MIN_LAB_SIZE, MAX_LAB_SIZE) {
+            let lab_end = lab_start.offset(MAX_LAB_SIZE);
             self.old_lab.reset(lab_start, lab_end);
 
             true

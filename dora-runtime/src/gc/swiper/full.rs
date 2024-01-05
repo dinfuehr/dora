@@ -8,8 +8,9 @@ use crate::gc::swiper::card::CardTable;
 use crate::gc::swiper::controller::FullCollectorPhases;
 use crate::gc::swiper::crossing::CrossingMap;
 use crate::gc::swiper::large::LargeSpace;
-use crate::gc::swiper::old::{OldGen, OldGenProtected, Page};
+use crate::gc::swiper::old::{OldGen, OldGenProtected};
 use crate::gc::swiper::young::YoungGen;
+use crate::gc::swiper::Page;
 use crate::gc::swiper::{walk_region, INITIAL_METADATA_OLD};
 use crate::gc::{fill_region_with, iterate_strong_roots, iterate_weak_roots, marking, Slot};
 use crate::gc::{Address, GcReason, Region};
@@ -360,7 +361,7 @@ impl<'a> FullCollector<'a> {
                 return;
             }
 
-            if let Some(new_address) = self.old_protected.allocate(self.vm, self.old, size) {
+            if let Some(new_address) = self.old_protected.allocate(self.vm, self.old, size, size) {
                 let object_end = new_address.offset(size);
 
                 object.copy_to(new_address, size);

@@ -4,9 +4,9 @@ use std::fmt;
 use std::mem::size_of;
 use std::sync::Arc;
 
-pub use crate::gc::swiper::old::Page;
 pub use crate::gc::swiper::young::YoungAlloc;
 
+use crate::gc::allocator::GenerationAllocator;
 use crate::gc::root::{determine_strong_roots, Slot};
 use crate::gc::swiper::card::CardTable;
 use crate::gc::swiper::controller::{HeapController, SharedHeapConfig};
@@ -45,11 +45,11 @@ const YOUNG_RATIO: usize = 2;
 // heap is divided into cards of size CARD_SIZE.
 // card entry determines whether this part of the heap was modified
 // in minor collections those parts of the heap need to be analyzed
-pub const CARD_SIZE: usize = 512;
 pub const CARD_SIZE_BITS: usize = 9;
+pub const CARD_SIZE: usize = 1 << CARD_SIZE_BITS;
 pub const CARD_REFS: usize = CARD_SIZE / size_of::<usize>();
 
-pub const LARGE_OBJECT_SIZE: usize = 64 * K;
+pub const LARGE_OBJECT_SIZE: usize = 32 * K;
 pub const PAGE_SIZE: usize = 128 * K;
 pub const PAGE_HEADER_SIZE: usize = 64 * K;
 
@@ -380,13 +380,15 @@ impl Swiper {
     }
 
     fn alloc_normal(&self, vm: &VM, size: usize) -> Address {
-        if let Some(address) = self.young.bump_alloc(vm, size) {
+        if let Some(address) = self.young.allocate(vm, size, size) {
             return address;
         }
 
         self.perform_collection_and_choose(vm, GcReason::AllocationFailure);
 
-        self.young.bump_alloc(vm, size).unwrap_or(Address::null())
+        self.young
+            .allocate(vm, size, size)
+            .unwrap_or(Address::null())
     }
 
     fn alloc_large(&self, vm: &VM, size: usize) -> Address {
@@ -406,19 +408,19 @@ impl Collector for Swiper {
     }
 
     fn alloc_tlab_area(&self, vm: &VM, size: usize) -> Option<Region> {
-        if let Some(address) = self.young.bump_alloc(vm, size) {
+        if let Some(address) = self.young.allocate(vm, size, size) {
             return Some(address.region_start(size));
         }
 
         self.perform_collection_and_choose(vm, GcReason::AllocationFailure);
 
-        if let Some(address) = self.young.bump_alloc(vm, size) {
+        if let Some(address) = self.young.allocate(vm, size, size) {
             return Some(address.region_start(size));
         }
 
         self.perform_collection(vm, CollectionKind::Full, GcReason::AllocationFailure);
 
-        if let Some(address) = self.young.bump_alloc(vm, size) {
+        if let Some(address) = self.young.allocate(vm, size, size) {
             return Some(address.region_start(size));
         }
 
@@ -633,5 +635,58 @@ fn forward_minor(object: Address, young: Region) -> Option<Address> {
         }
     } else {
         Some(object)
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Page(Address);
+
+impl Page {
+    pub fn new(start: Address) -> Page {
+        Page(start)
+    }
+
+    pub fn from_address(value: Address) -> Page {
+        let page_start = value.to_usize() & !(PAGE_SIZE - 1);
+        Page::new(page_start.into())
+    }
+
+    pub fn initialize_header(&self) {
+        unsafe {
+            let header = std::slice::from_raw_parts_mut(
+                self.start().to_mut_ptr::<usize>(),
+                PAGE_HEADER_SIZE / mem::ptr_width_usize(),
+            );
+
+            header.fill(0xDEAD2BAD);
+        }
+    }
+
+    pub fn area(&self) -> Region {
+        Region::new(self.start(), self.end())
+    }
+
+    pub fn start(&self) -> Address {
+        self.0
+    }
+
+    pub fn end(&self) -> Address {
+        self.start().offset(PAGE_SIZE)
+    }
+
+    pub fn size(&self) -> usize {
+        PAGE_SIZE
+    }
+
+    pub fn object_area(&self) -> Region {
+        Region::new(self.object_area_start(), self.object_area_end())
+    }
+
+    pub fn object_area_start(&self) -> Address {
+        self.start().offset(PAGE_HEADER_SIZE)
+    }
+
+    pub fn object_area_end(&self) -> Address {
+        self.end()
     }
 }

@@ -7,7 +7,7 @@ use crate::cpu::{
     FReg, Reg, FREG_RESULT, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1, REG_TMP2,
     STACK_FRAME_ALIGNMENT,
 };
-use crate::gc::tlab::TLAB_OBJECT_SIZE;
+use crate::gc::tlab::MAX_TLAB_OBJECT_SIZE;
 use crate::gc::Address;
 use crate::masm::{CondCode, Label, MacroAssembler, Mem, ScratchReg};
 use crate::mode::MachineMode;
@@ -822,12 +822,12 @@ impl<'a> BaselineAssembler<'a> {
         match size {
             AllocationSize::Dynamic(reg_size) => {
                 self.masm
-                    .cmp_reg_imm(MachineMode::Ptr, reg_size, TLAB_OBJECT_SIZE as i32);
+                    .cmp_reg_imm(MachineMode::Ptr, reg_size, MAX_TLAB_OBJECT_SIZE as i32);
                 self.masm.jump_if(CondCode::GreaterEq, lbl_slow_path);
             }
 
             AllocationSize::Fixed(size) => {
-                assert!(size < TLAB_OBJECT_SIZE);
+                assert!(size < MAX_TLAB_OBJECT_SIZE);
             }
         }
 
@@ -978,7 +978,7 @@ impl<'a> BaselineAssembler<'a> {
 
         match size {
             AllocationSize::Fixed(fixed_size) => {
-                if fixed_size < TLAB_OBJECT_SIZE {
+                if fixed_size < MAX_TLAB_OBJECT_SIZE {
                     self.tlab_allocate(dest, size, location, gcpoint);
                 } else {
                     self.gc_allocate(dest, size, location, gcpoint);

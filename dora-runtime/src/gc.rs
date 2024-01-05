@@ -12,7 +12,7 @@ use crate::gc::copy::CopyCollector;
 use crate::gc::space::{Space, SpaceConfig};
 use crate::gc::sweep::SweepCollector;
 use crate::gc::swiper::{Swiper, CARD_SIZE};
-use crate::gc::tlab::TLAB_OBJECT_SIZE;
+use crate::gc::tlab::MAX_TLAB_OBJECT_SIZE;
 use crate::gc::zero::ZeroCollector;
 use crate::mem;
 use crate::object::{Header, Obj};
@@ -127,7 +127,7 @@ impl Gc {
             self.collect(vm, GcReason::Stress);
         }
 
-        if size < TLAB_OBJECT_SIZE && self.supports_tlab {
+        if size < MAX_TLAB_OBJECT_SIZE && self.supports_tlab {
             self.alloc_tlab(vm, size)
         } else {
             self.collector.alloc(vm, size)

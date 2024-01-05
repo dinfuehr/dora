@@ -4,19 +4,20 @@ use crate::gc::{fill_region, Address, Region, K};
 use crate::threads::{current_thread, DoraThread};
 use crate::vm::VM;
 
-pub const TLAB_SIZE: usize = 32 * K;
-pub const TLAB_OBJECT_SIZE: usize = 8 * K;
+pub const MIN_TLAB_SIZE: usize = 8 * K;
+pub const MAX_TLAB_SIZE: usize = 32 * K;
+pub const MAX_TLAB_OBJECT_SIZE: usize = 8 * K;
 
 pub fn initialize(tlab: Region) {
     current_thread().tld.tlab_initialize(tlab.start, tlab.end);
 }
 
 pub fn calculate_size() -> usize {
-    TLAB_SIZE
+    MAX_TLAB_SIZE
 }
 
 pub fn allocate(size: usize) -> Option<Address> {
-    assert!(size < TLAB_OBJECT_SIZE);
+    assert!(size < MAX_TLAB_OBJECT_SIZE);
 
     let thread = current_thread();
     let tlab = thread.tld.tlab_region();

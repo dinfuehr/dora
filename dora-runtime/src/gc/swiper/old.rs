@@ -6,11 +6,9 @@ use crate::gc::freelist::FreeList;
 use crate::gc::swiper::card::CardTable;
 use crate::gc::swiper::controller::SharedHeapConfig;
 use crate::gc::swiper::crossing::CrossingMap;
-use crate::gc::swiper::CommonOldGen;
-use crate::gc::swiper::{PAGE_HEADER_SIZE, PAGE_SIZE};
+use crate::gc::swiper::{CommonOldGen, Page, PAGE_SIZE};
 use crate::gc::{fill_region, fill_region_with, is_page_aligned};
 use crate::gc::{Address, GenerationAllocator, Region};
-use crate::mem::ptr_width_usize;
 use crate::os::{self, MemoryPermission};
 use crate::vm::VM;
 
@@ -91,9 +89,9 @@ impl CommonOldGen for OldGen {
 }
 
 impl GenerationAllocator for OldGen {
-    fn allocate(&self, vm: &VM, size: usize) -> Option<Address> {
+    fn allocate(&self, vm: &VM, min_size: usize, max_size: usize) -> Option<Address> {
         let mut protected = self.protected.lock();
-        protected.allocate(vm, self, size)
+        protected.allocate(vm, self, min_size, max_size)
     }
 
     fn free(&self, _region: Region) {
@@ -151,8 +149,14 @@ impl OldGenProtected {
         self.freelist.add(vm, start, size);
     }
 
-    pub fn allocate(&mut self, vm: &VM, old: &OldGen, size: usize) -> Option<Address> {
-        if let Some(address) = self.raw_alloc(size) {
+    pub fn allocate(
+        &mut self,
+        vm: &VM,
+        old: &OldGen,
+        min_size: usize,
+        max_size: usize,
+    ) -> Option<Address> {
+        if let Some(address) = self.raw_alloc(min_size, max_size) {
             fill_region_with(vm, self.top, self.current_limit, false);
             old.update_crossing(self.top, self.current_limit);
             return Some(address);
@@ -161,13 +165,15 @@ impl OldGenProtected {
         fill_region_with(vm, self.top, self.current_limit, false);
         old.update_crossing(self.top, self.current_limit);
 
-        let free_space = self.freelist.alloc(size);
+        let free_space = self.freelist.alloc(min_size);
 
         if free_space.is_non_null() {
             self.top = free_space.addr();
             self.current_limit = self.top.offset(free_space.size());
 
-            let address = self.raw_alloc(size).expect("allocation failed");
+            let address = self
+                .raw_alloc(min_size, max_size)
+                .expect("allocation failed");
 
             fill_region_with(vm, self.top, self.current_limit, false);
             old.update_crossing(self.top, self.current_limit);
@@ -184,7 +190,7 @@ impl OldGenProtected {
 
             self.top = page.object_area_start();
             self.current_limit = page.object_area_end();
-            let result = self.raw_alloc(size);
+            let result = self.raw_alloc(min_size, max_size);
             assert!(result.is_some());
 
             // Make rest of page iterable.
@@ -245,8 +251,8 @@ impl OldGenProtected {
         }
     }
 
-    fn raw_alloc(&mut self, size: usize) -> Option<Address> {
-        let next = self.top.offset(size);
+    fn raw_alloc(&mut self, _min_size: usize, max_size: usize) -> Option<Address> {
+        let next = self.top.offset(max_size);
 
         if next <= self.current_limit {
             let result = self.top;
@@ -255,58 +261,5 @@ impl OldGenProtected {
         } else {
             None
         }
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Page(Address);
-
-impl Page {
-    pub fn new(start: Address) -> Page {
-        Page(start)
-    }
-
-    pub fn from_address(value: Address) -> Page {
-        let page_start = value.to_usize() & !(PAGE_SIZE - 1);
-        Page::new(page_start.into())
-    }
-
-    pub fn initialize_header(&self) {
-        unsafe {
-            let header = std::slice::from_raw_parts_mut(
-                self.start().to_mut_ptr::<usize>(),
-                PAGE_HEADER_SIZE / ptr_width_usize(),
-            );
-
-            header.fill(0xDEAD2BAD);
-        }
-    }
-
-    pub fn area(&self) -> Region {
-        Region::new(self.start(), self.end())
-    }
-
-    pub fn start(&self) -> Address {
-        self.0
-    }
-
-    pub fn end(&self) -> Address {
-        self.start().offset(PAGE_SIZE)
-    }
-
-    pub fn size(&self) -> usize {
-        PAGE_SIZE
-    }
-
-    pub fn object_area(&self) -> Region {
-        Region::new(self.object_area_start(), self.object_area_end())
-    }
-
-    pub fn object_area_start(&self) -> Address {
-        self.start().offset(PAGE_HEADER_SIZE)
-    }
-
-    pub fn object_area_end(&self) -> Address {
-        self.end()
     }
 }

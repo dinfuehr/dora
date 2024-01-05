@@ -159,10 +159,6 @@ impl YoungGen {
         self.alloc.reuse(from_gc);
     }
 
-    pub fn bump_alloc(&self, vm: &VM, size: usize) -> Option<Address> {
-        self.alloc.alloc(vm, size)
-    }
-
     pub fn resize_after_gc(&self, vm: &VM, young_size: usize) {
         let new_semi_size = young_size / 2;
         assert_eq!(new_semi_size % PAGE_SIZE, 0);
@@ -253,8 +249,8 @@ impl YoungGen {
 }
 
 impl GenerationAllocator for YoungGen {
-    fn allocate(&self, vm: &VM, size: usize) -> Option<Address> {
-        self.alloc.alloc(vm, size)
+    fn allocate(&self, vm: &VM, min_size: usize, max_size: usize) -> Option<Address> {
+        self.alloc.alloc(vm, min_size, max_size)
     }
 
     fn free(&self, _region: Region) {
@@ -282,9 +278,9 @@ impl YoungAlloc {
         }
     }
 
-    pub fn alloc(&self, vm: &VM, size: usize) -> Option<Address> {
+    pub fn alloc(&self, vm: &VM, min_size: usize, max_size: usize) -> Option<Address> {
         let mut protected = self.protected.lock();
-        protected.alloc(vm, size)
+        protected.alloc(vm, min_size, max_size)
     }
 
     fn reset(&self, region: Region) {
@@ -315,8 +311,8 @@ struct YoungAllocProtected {
 }
 
 impl YoungAllocProtected {
-    fn alloc(&mut self, vm: &VM, size: usize) -> Option<Address> {
-        if let Some(address) = self.raw_alloc(vm, size) {
+    fn alloc(&mut self, vm: &VM, min_size: usize, max_size: usize) -> Option<Address> {
+        if let Some(address) = self.raw_alloc(vm, min_size, max_size) {
             return Some(address);
         }
 
@@ -328,7 +324,7 @@ impl YoungAllocProtected {
             self.current_limit = page.object_area_end();
             assert!(self.current_limit <= self.limit);
             fill_region_with(vm, self.top, self.current_limit, false);
-            let result = self.raw_alloc(vm, size);
+            let result = self.raw_alloc(vm, min_size, max_size);
             assert!(result.is_some());
             result
         } else {
@@ -336,8 +332,8 @@ impl YoungAllocProtected {
         }
     }
 
-    fn raw_alloc(&mut self, vm: &VM, size: usize) -> Option<Address> {
-        let next = self.top.offset(size);
+    fn raw_alloc(&mut self, vm: &VM, _min_size: usize, max_size: usize) -> Option<Address> {
+        let next = self.top.offset(max_size);
 
         if next <= self.current_limit {
             let result = self.top;
