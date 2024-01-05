@@ -11,7 +11,7 @@ use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::old::{OldGen, OldGenProtected, Page};
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{forward_full, walk_region, INITIAL_METADATA_OLD};
-use crate::gc::{fill_region, iterate_strong_roots, iterate_weak_roots, marking, Slot};
+use crate::gc::{iterate_strong_roots, iterate_weak_roots, marking, Slot};
 use crate::gc::{Address, GcReason, Region};
 use crate::object::{Obj, MARK_BIT};
 use crate::stdlib;
@@ -31,7 +31,6 @@ pub struct FullCollector<'a> {
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
     readonly_space: &'a Space,
-    use_evacuation: bool,
     young_evacuated_pages: Vec<(Page, usize)>,
     old_evacuated_pages: Vec<(Page, usize)>,
 
@@ -78,7 +77,6 @@ impl<'a> FullCollector<'a> {
             card_table,
             crossing_map,
             readonly_space,
-            use_evacuation: true,
             young_evacuated_pages: Vec::new(),
             old_evacuated_pages: Vec::new(),
 
@@ -137,45 +135,11 @@ impl<'a> FullCollector<'a> {
             }
         }
 
-        if !self.use_evacuation {
-            self.compute_forward();
-
-            if stats {
-                let duration = timer.stop();
-                self.phases.compute_forward = duration;
-            }
-
-            if dev_verbose {
-                println!("Full GC: Phase 2 (compute forward)");
-            }
-
-            self.update_references();
-
-            if stats {
-                let duration = timer.stop();
-                self.phases.update_refs = duration;
-            }
-
-            if dev_verbose {
-                println!("Full GC: Phase 3 (update refs)");
-            }
-
-            self.relocate();
-
-            if stats {
-                let duration = timer.stop();
-                self.phases.relocate = duration;
-            }
-
-            if dev_verbose {
-                println!("Full GC: Phase 4 (relocate)");
-            }
-        } else {
-            self.evacuate();
-            self.update_references_after_evacuation();
-            self.clear_markbits();
-            self.free_pages();
-        }
+        self.select_evacuated_pages();
+        self.evacuate();
+        self.update_references();
+        self.clear_markbits();
+        self.free_pages();
 
         self.reset_cards();
 
@@ -189,12 +153,6 @@ impl<'a> FullCollector<'a> {
         }
 
         self.young.reset_after_full_gc(self.vm);
-
-        if !self.use_evacuation {
-            let pages = std::mem::replace(&mut self.pages, Vec::new());
-            self.old_protected
-                .reset_after_gc(pages, self.top, self.current_limit);
-        }
     }
 
     fn mark_live(&mut self) {
@@ -214,7 +172,9 @@ impl<'a> FullCollector<'a> {
                 Some(object_address)
             }
         });
+    }
 
+    fn select_evacuated_pages(&mut self) {
         for page in self.young.pages() {
             let live = self.compute_live_on_page(page);
 
@@ -251,71 +211,7 @@ impl<'a> FullCollector<'a> {
         live
     }
 
-    fn compute_forward(&mut self) {
-        self.walk_old_and_young(|full, object, _address, object_size| {
-            if object.header().is_marked() {
-                let fwd = full.allocate(object_size);
-                object.header().set_metadata_fwdptr(fwd);
-            }
-        });
-
-        if !self.fits_into_heap() {
-            stdlib::trap(Trap::OOM.int());
-        }
-
-        self.old_protected.commit_pages(&self.pages);
-    }
-
-    fn fits_into_heap(&mut self) -> bool {
-        let young_size = self.young.committed_size();
-        let old_size = self.top.align_page_up().offset_from(self.old.total_start());
-        let large_size = self.large_space.committed_size();
-
-        (young_size + old_size + large_size) <= self.max_heap_size
-    }
-
     fn update_references(&mut self) {
-        self.walk_old_and_young(|full, object, _address, _| {
-            if object.header().is_marked() {
-                object.visit_reference_fields(|field| {
-                    full.forward_reference(field);
-                });
-            }
-        });
-
-        iterate_strong_roots(self.vm, self.threads, |slot| {
-            self.forward_reference(slot);
-        });
-
-        iterate_weak_roots(self.vm, |object_address| {
-            forward_full(object_address, self.heap, self.readonly_space.total())
-        });
-
-        self.large_space.remove_objects(|object_start| {
-            let object = object_start.to_obj();
-
-            // reset cards for object, also do this for dead objects
-            // to reset card entries to clean.
-            self.card_table.reset_addr(object_start);
-
-            if object.header().is_marked() {
-                object.visit_reference_fields(|field| {
-                    self.forward_reference(field);
-                });
-
-                // unmark object for next collection
-                object.header().unmark();
-
-                // keep object
-                false
-            } else {
-                // object is unmarked -> free it
-                true
-            }
-        });
-    }
-
-    fn update_references_after_evacuation(&mut self) {
         let old_evacuated_set: HashSet<Page> =
             HashSet::from_iter(self.old_evacuated_pages.iter().map(|pair| pair.0));
 
@@ -388,47 +284,6 @@ impl<'a> FullCollector<'a> {
             // keep object
             false
         });
-    }
-
-    fn relocate(&mut self) {
-        self.crossing_map.set_first_object(0.into(), 0);
-        let mut previous_end = self.old.total_start();
-
-        self.walk_old_and_young(|full, object, address, object_size| {
-            if object.header().is_marked() {
-                // find new location
-                let dest = object.header().metadata_fwdptr();
-
-                if previous_end != dest {
-                    let page = Page::from_address(dest);
-                    assert_eq!(dest, page.object_area_start());
-
-                    // Fill tail of current page.
-                    fill_region(self.vm, previous_end, page.start());
-                    full.old.update_crossing(previous_end, page.start());
-
-                    page.initialize_header();
-                }
-
-                previous_end = dest.offset(object_size);
-
-                // determine location after relocated object
-                let next_dest = dest.offset(object_size);
-
-                if address != dest {
-                    object.copy_to(dest, object_size);
-                }
-
-                // Clear metadata word.
-                let dest_obj = dest.to_obj();
-                dest_obj.header().set_metadata_raw(INITIAL_METADATA_OLD);
-
-                full.old.update_crossing(dest, next_dest);
-            }
-        });
-
-        fill_region(self.vm, self.top, self.current_limit);
-        self.old.update_crossing(self.top, self.current_limit);
     }
 
     fn evacuate(&mut self) {
@@ -516,32 +371,6 @@ impl<'a> FullCollector<'a> {
             walk_region(self.vm, page.object_area(), |obj, addr, size| {
                 fct(self, obj, addr, size);
             });
-        }
-    }
-
-    fn allocate(&mut self, object_size: usize) -> Address {
-        let addr = self.top;
-        let next = self.top.offset(object_size);
-
-        if next <= self.current_limit {
-            self.top = next;
-            return addr;
-        }
-
-        let page = Page::new(self.current_limit);
-
-        if page.end() <= self.old.total().end() {
-            self.pages.push(page);
-
-            self.top = page.object_area_start();
-            self.current_limit = page.object_area_end();
-
-            let addr = self.top;
-            self.top = self.top.offset(object_size);
-
-            addr
-        } else {
-            panic!("FAIL: Not enough space for objects in old generation.");
         }
     }
 }

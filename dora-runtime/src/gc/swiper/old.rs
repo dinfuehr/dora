@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use fixedbitset::FixedBitSet;
 use parking_lot::{Mutex, MutexGuard};
 use rand::Rng;
@@ -176,39 +174,6 @@ impl OldGenProtected {
         } else {
             None
         }
-    }
-
-    pub fn commit_pages(&mut self, pages: &[Page]) {
-        let previous_page_set: HashSet<Page> = HashSet::from_iter(self.pages.iter().cloned());
-
-        for page in pages {
-            if !previous_page_set.contains(page) {
-                os::commit_at(page.start(), page.size(), MemoryPermission::ReadWrite);
-            }
-        }
-    }
-
-    pub fn reset_after_gc(&mut self, pages: Vec<Page>, top: Address, current_limit: Address) {
-        self.free_pages.set_range(.., true);
-
-        let previous_pages = std::mem::replace(&mut self.pages, pages);
-        let page_set: HashSet<Page> = HashSet::from_iter(self.pages.iter().cloned());
-
-        for page in &self.pages {
-            let page_idx = page.start().offset_from(self.total.start()) / PAGE_SIZE;
-            assert!(self.free_pages.contains(page_idx));
-            self.free_pages.set(page_idx, false);
-            assert!(!self.free_pages.contains(page_idx));
-        }
-
-        for page in previous_pages {
-            if !page_set.contains(&page) {
-                os::discard(page.start(), page.size());
-            }
-        }
-
-        self.top = top;
-        self.current_limit = current_limit;
     }
 
     pub fn free_page(&mut self, page: Page) {
