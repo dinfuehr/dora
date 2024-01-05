@@ -78,7 +78,7 @@ impl<'a> FullCollector<'a> {
             card_table,
             crossing_map,
             readonly_space,
-            use_evacuation: false,
+            use_evacuation: true,
             young_evacuated_pages: Vec::new(),
             old_evacuated_pages: Vec::new(),
 
@@ -227,7 +227,12 @@ impl<'a> FullCollector<'a> {
 
         for page in self.old_protected.pages() {
             let live = self.compute_live_on_page(page);
-            old_evacuated_pages.push((page, live));
+
+            if live == 0 {
+                self.old_protected.free_page(page);
+            } else {
+                old_evacuated_pages.push((page, live));
+            }
         }
 
         old_evacuated_pages.sort_by(|a, b| a.1.cmp(&b.1));
