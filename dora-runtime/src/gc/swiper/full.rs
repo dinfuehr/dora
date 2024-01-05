@@ -13,7 +13,7 @@ use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{forward_full, walk_region, INITIAL_METADATA_OLD};
 use crate::gc::{fill_region, iterate_strong_roots, iterate_weak_roots, marking, Slot};
 use crate::gc::{Address, GcReason, Region};
-use crate::object::Obj;
+use crate::object::{Obj, MARK_BIT};
 use crate::stdlib;
 use crate::threads::DoraThread;
 use crate::timer::Timer;
@@ -427,6 +427,8 @@ impl<'a> FullCollector<'a> {
     }
 
     fn evacuate(&mut self) {
+        self.old_protected.fill_alloc_page();
+
         for (page, _) in self.young_evacuated_pages.clone() {
             self.evacuate_page(page);
         }
@@ -450,11 +452,13 @@ impl<'a> FullCollector<'a> {
 
                 // Clear metadata word.
                 let new_obj = new_address.to_obj();
-                new_obj.header().set_metadata_raw(INITIAL_METADATA_OLD);
+                new_obj
+                    .header()
+                    .set_metadata_raw(INITIAL_METADATA_OLD | MARK_BIT);
 
                 self.old.update_crossing(new_address, object_end);
             } else {
-                panic!("FAIL: Not enough space for objects in old generation.");
+                stdlib::trap(Trap::OOM.int());
             }
         });
     }
