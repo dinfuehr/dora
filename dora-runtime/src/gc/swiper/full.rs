@@ -189,6 +189,7 @@ impl<'a> FullCollector<'a> {
             let live = self.compute_live_on_page(page);
 
             if live == 0 {
+                self.card_table.reset_page(page);
                 self.old_protected.free_page(page);
             } else {
                 old_evacuated_pages.push((page, live));

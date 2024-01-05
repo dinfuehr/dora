@@ -163,6 +163,14 @@ impl<'a> Verifier<'a> {
         assert!(region.start.is_card_aligned());
         assert!(region.end.is_page_aligned());
 
+        if self.in_old {
+            let card_idx = self.card_table.card_idx(region.start);
+            assert_eq!(
+                self.crossing_map.get(card_idx),
+                CrossingEntry::FirstObject(0),
+            );
+        }
+
         while curr < region.end {
             let object = curr.to_obj();
             let size = object.size();
