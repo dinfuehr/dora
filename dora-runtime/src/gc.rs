@@ -128,13 +128,13 @@ impl Gc {
         }
 
         if size < MAX_TLAB_OBJECT_SIZE && self.supports_tlab {
-            self.alloc_tlab(vm, size)
+            self.alloc_in_lab(vm, size)
         } else {
             self.collector.alloc(vm, size)
         }
     }
 
-    fn alloc_tlab(&self, vm: &VM, size: usize) -> Address {
+    fn alloc_in_lab(&self, vm: &VM, size: usize) -> Address {
         // try to allocate in current tlab
         if let Some(addr) = tlab::allocate(size) {
             return addr;

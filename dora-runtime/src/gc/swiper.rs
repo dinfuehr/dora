@@ -28,6 +28,8 @@ use crate::safepoint;
 use crate::threads::DoraThread;
 use crate::vm::{Flags, VM};
 
+use super::tlab::{MAX_TLAB_SIZE, MIN_TLAB_SIZE};
+
 pub mod card;
 mod controller;
 mod crossing;
@@ -408,19 +410,19 @@ impl Collector for Swiper {
     }
 
     fn alloc_tlab_area(&self, vm: &VM, size: usize) -> Option<Region> {
-        if let Some(address) = self.young.allocate(vm, size, size) {
+        if let Some(address) = self.young.allocate(vm, MIN_TLAB_SIZE, MAX_TLAB_SIZE) {
             return Some(address.region_start(size));
         }
 
         self.perform_collection_and_choose(vm, GcReason::AllocationFailure);
 
-        if let Some(address) = self.young.allocate(vm, size, size) {
+        if let Some(address) = self.young.allocate(vm, MIN_TLAB_SIZE, MAX_TLAB_SIZE) {
             return Some(address.region_start(size));
         }
 
         self.perform_collection(vm, CollectionKind::Full, GcReason::AllocationFailure);
 
-        if let Some(address) = self.young.allocate(vm, size, size) {
+        if let Some(address) = self.young.allocate(vm, MIN_TLAB_SIZE, MAX_TLAB_SIZE) {
             return Some(address.region_start(size));
         }
 
