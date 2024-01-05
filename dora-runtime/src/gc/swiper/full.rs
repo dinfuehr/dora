@@ -186,10 +186,7 @@ impl<'a> FullCollector<'a> {
         for page in self.old_protected.pages() {
             let live = self.compute_live_on_page(page);
 
-            if live == 0 {
-                self.card_table.reset_page(page);
-                self.old_protected.free_page(page);
-            } else {
+            if live > 0 {
                 old_evacuated_pages.push((page, live));
             }
         }
@@ -247,6 +244,8 @@ impl<'a> FullCollector<'a> {
     }
 
     fn sweep(&mut self) {
+        self.old_protected.clear_freelist();
+
         let old_evacuated_set: HashSet<Page> =
             HashSet::from_iter(self.old_evacuated_pages.iter().map(|pair| pair.0));
 
@@ -257,7 +256,21 @@ impl<'a> FullCollector<'a> {
                 continue;
             }
 
-            self.sweep_page(page);
+            let (live, free_regions) = self.sweep_page(page);
+
+            if live == 0 {
+                self.old_protected.free_page(page);
+            } else {
+                for free_region in free_regions {
+                    fill_region_with(self.vm, free_region.start, free_region.end, true);
+
+                    self.old_protected.add_to_freelist(
+                        self.vm,
+                        free_region.start,
+                        free_region.size(),
+                    );
+                }
+            }
         }
 
         self.large_space.remove_objects(|object_start| {
@@ -280,10 +293,12 @@ impl<'a> FullCollector<'a> {
         });
     }
 
-    fn sweep_page(&mut self, page: Page) {
+    fn sweep_page(&mut self, page: Page) -> (usize, Vec<Region>) {
         let region = page.object_area();
         let mut scan = region.start;
         let mut free_start = region.start;
+        let mut live = 0;
+        let mut free_regions = Vec::new();
 
         while scan < region.end {
             let object = scan.to_obj();
@@ -295,21 +310,30 @@ impl<'a> FullCollector<'a> {
                 let object_end = scan.offset(object_size);
 
                 if object.header().is_marked() {
-                    self.handle_free_region(free_start, scan);
+                    self.handle_free_region(&mut free_regions, free_start, scan);
                     object.header().unmark();
                     free_start = object_end;
+                    live += object_size;
                 }
 
                 scan = object_end
             }
         }
 
-        self.handle_free_region(free_start, scan);
+        self.handle_free_region(&mut free_regions, free_start, scan);
         assert_eq!(scan, region.end);
+
+        (live, free_regions)
     }
 
-    fn handle_free_region(&mut self, start: Address, end: Address) {
-        fill_region_with(self.vm, start, end, true);
+    fn handle_free_region(&mut self, free_regions: &mut Vec<Region>, start: Address, end: Address) {
+        assert!(start <= end);
+
+        if start == end {
+            return;
+        }
+
+        free_regions.push(Region::new(start, end));
     }
 
     fn release_evacuated_pages(&mut self) {

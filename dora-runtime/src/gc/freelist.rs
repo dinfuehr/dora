@@ -110,6 +110,12 @@ impl FreeList {
 
         self.classes[SIZE_CLASS_HUGE.idx()].find(size)
     }
+
+    pub fn clear(&mut self) {
+        for cls in &mut self.classes {
+            cls.head = FreeSpace::null();
+        }
+    }
 }
 
 struct FreeListClass {

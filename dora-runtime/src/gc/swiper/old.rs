@@ -143,6 +143,14 @@ impl OldGenProtected {
         self.top = self.current_limit;
     }
 
+    pub fn clear_freelist(&mut self) {
+        self.freelist.clear();
+    }
+
+    pub fn add_to_freelist(&mut self, vm: &VM, start: Address, size: usize) {
+        self.freelist.add(vm, start, size);
+    }
+
     pub fn allocate(&mut self, vm: &VM, old: &OldGen, size: usize) -> Option<Address> {
         if let Some(address) = self.raw_alloc(size) {
             fill_region_with(vm, self.top, self.current_limit, false);
@@ -152,6 +160,19 @@ impl OldGenProtected {
 
         fill_region_with(vm, self.top, self.current_limit, false);
         old.update_crossing(self.top, self.current_limit);
+
+        let free_space = self.freelist.alloc(size);
+
+        if free_space.is_non_null() {
+            self.top = free_space.addr();
+            self.current_limit = self.top.offset(free_space.size());
+
+            let address = self.raw_alloc(size).expect("allocation failed");
+
+            fill_region_with(vm, self.top, self.current_limit, false);
+            old.update_crossing(self.top, self.current_limit);
+            return Some(address);
+        }
 
         if !old.can_add_page() {
             return None;
