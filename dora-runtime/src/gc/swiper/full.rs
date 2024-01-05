@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::sync::Arc;
 
 use parking_lot::MutexGuard;
@@ -33,7 +32,6 @@ pub struct FullCollector<'a> {
     crossing_map: &'a CrossingMap,
     readonly_space: &'a Space,
     young_evacuated_pages: Vec<(Page, usize)>,
-    old_evacuated_pages: Vec<(Page, usize)>,
 
     top: Address,
     current_limit: Address,
@@ -79,7 +77,6 @@ impl<'a> FullCollector<'a> {
             crossing_map,
             readonly_space,
             young_evacuated_pages: Vec::new(),
-            old_evacuated_pages: Vec::new(),
 
             top: old_total.start(),
             current_limit: old_total.start(),
@@ -140,7 +137,6 @@ impl<'a> FullCollector<'a> {
         self.sweep();
         self.evacuate();
         self.update_references();
-        self.release_evacuated_pages();
 
         if stats {
             let duration = timer.stop();
@@ -181,21 +177,6 @@ impl<'a> FullCollector<'a> {
                 self.young_evacuated_pages.push((page, live));
             }
         }
-
-        let mut old_evacuated_pages = Vec::new();
-
-        for page in self.old_protected.pages() {
-            let live = self.compute_live_on_page(page);
-
-            if live > 0 {
-                old_evacuated_pages.push((page, live));
-            }
-        }
-
-        old_evacuated_pages.sort_by(|a, b| a.1.cmp(&b.1));
-        old_evacuated_pages.truncate(10);
-
-        let _ = std::mem::replace(&mut self.old_evacuated_pages, old_evacuated_pages);
     }
 
     fn compute_live_on_page(&self, page: Page) -> usize {
@@ -209,14 +190,7 @@ impl<'a> FullCollector<'a> {
     }
 
     fn update_references(&mut self) {
-        let old_evacuated_set: HashSet<Page> =
-            HashSet::from_iter(self.old_evacuated_pages.iter().map(|pair| pair.0));
-
         for page in self.old_protected.pages() {
-            if old_evacuated_set.contains(&page) {
-                continue;
-            }
-
             walk_region(self.vm, page.object_area(), |object, _addr, _size| {
                 object.visit_reference_fields(|field| {
                     self.forward_reference(field);
@@ -247,15 +221,8 @@ impl<'a> FullCollector<'a> {
     fn sweep(&mut self) {
         self.old_protected.clear_freelist();
 
-        let old_evacuated_set: HashSet<Page> =
-            HashSet::from_iter(self.old_evacuated_pages.iter().map(|pair| pair.0));
-
         for page in self.old_protected.pages() {
             self.card_table.reset_page(page);
-
-            if old_evacuated_set.contains(&page) {
-                continue;
-            }
 
             let (live, free_regions) = self.sweep_page(page);
 
@@ -337,20 +304,10 @@ impl<'a> FullCollector<'a> {
         free_regions.push(Region::new(start, end));
     }
 
-    fn release_evacuated_pages(&mut self) {
-        for (page, _) in &self.old_evacuated_pages {
-            self.old_protected.free_page(*page);
-        }
-    }
-
     fn evacuate(&mut self) {
         self.old_protected.fill_alloc_page();
 
         for (page, _) in self.young_evacuated_pages.clone() {
-            self.evacuate_page(page);
-        }
-
-        for (page, _) in self.old_evacuated_pages.clone() {
             self.evacuate_page(page);
         }
     }
