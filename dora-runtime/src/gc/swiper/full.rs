@@ -11,7 +11,7 @@ use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::old::{OldGen, OldGenProtected, Page};
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{forward_full, walk_region, INITIAL_METADATA_OLD};
-use crate::gc::{iterate_strong_roots, iterate_weak_roots, marking, Slot};
+use crate::gc::{fill_region_with, iterate_strong_roots, iterate_weak_roots, marking, Slot};
 use crate::gc::{Address, GcReason, Region};
 use crate::object::{Obj, MARK_BIT};
 use crate::stdlib;
@@ -284,11 +284,35 @@ impl<'a> FullCollector<'a> {
     }
 
     fn sweep_page(&mut self, page: Page) {
-        walk_region(self.vm, page.object_area(), |object, _addr, _size| {
-            if object.header().is_marked() {
-                object.header().unmark();
+        let region = page.object_area();
+        let mut scan = region.start;
+        let mut free_start = region.start;
+
+        while scan < region.end {
+            let object = scan.to_obj();
+
+            if object.is_filler(self.vm) {
+                scan = scan.offset(object.size());
+            } else {
+                let object_size = object.size();
+                let object_end = scan.offset(object_size);
+
+                if object.header().is_marked() {
+                    self.handle_free_region(free_start, scan);
+                    object.header().unmark();
+                    free_start = object_end;
+                }
+
+                scan = object_end
             }
-        });
+        }
+
+        self.handle_free_region(free_start, scan);
+        assert_eq!(scan, region.end);
+    }
+
+    fn handle_free_region(&mut self, start: Address, end: Address) {
+        fill_region_with(self.vm, start, end, true);
     }
 
     fn release_evacuated_pages(&mut self) {
