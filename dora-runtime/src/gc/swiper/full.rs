@@ -138,8 +138,8 @@ impl<'a> FullCollector<'a> {
         self.select_evacuated_pages();
         self.evacuate();
         self.update_references();
-        self.clear_markbits();
-        self.free_pages();
+        self.sweep();
+        self.release_evacuated_pages();
 
         self.reset_cards();
 
@@ -259,7 +259,7 @@ impl<'a> FullCollector<'a> {
         });
     }
 
-    fn clear_markbits(&mut self) {
+    fn sweep(&mut self) {
         let old_evacuated_set: HashSet<Page> =
             HashSet::from_iter(self.old_evacuated_pages.iter().map(|pair| pair.0));
 
@@ -268,11 +268,7 @@ impl<'a> FullCollector<'a> {
                 continue;
             }
 
-            walk_region(self.vm, page.object_area(), |object, _addr, _size| {
-                if object.header().is_marked() {
-                    object.header().unmark();
-                }
-            });
+            self.sweep_page(page);
         }
 
         self.large_space.remove_objects(|object_start| {
@@ -285,6 +281,20 @@ impl<'a> FullCollector<'a> {
             // keep object
             false
         });
+    }
+
+    fn sweep_page(&mut self, page: Page) {
+        walk_region(self.vm, page.object_area(), |object, _addr, _size| {
+            if object.header().is_marked() {
+                object.header().unmark();
+            }
+        });
+    }
+
+    fn release_evacuated_pages(&mut self) {
+        for (page, _) in &self.old_evacuated_pages {
+            self.old_protected.free_page(*page);
+        }
     }
 
     fn evacuate(&mut self) {
@@ -322,12 +332,6 @@ impl<'a> FullCollector<'a> {
                 stdlib::trap(Trap::OOM.int());
             }
         });
-    }
-
-    fn free_pages(&mut self) {
-        for (page, _) in self.old_evacuated_pages.clone() {
-            self.old_protected.free_page(page);
-        }
     }
 
     fn reset_cards(&mut self) {
