@@ -10,7 +10,7 @@ use crate::gc::swiper::crossing::CrossingMap;
 use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::old::{OldGen, OldGenProtected, Page};
 use crate::gc::swiper::young::YoungGen;
-use crate::gc::swiper::{forward_full, walk_region, INITIAL_METADATA_OLD};
+use crate::gc::swiper::{walk_region, INITIAL_METADATA_OLD};
 use crate::gc::{fill_region_with, iterate_strong_roots, iterate_weak_roots, marking, Slot};
 use crate::gc::{Address, GcReason, Region};
 use crate::object::{Obj, VtblptrWordKind};
@@ -228,7 +228,7 @@ impl<'a> FullCollector<'a> {
         });
 
         iterate_weak_roots(self.vm, |object_address| {
-            forward_full(object_address, self.heap, self.readonly_space.total())
+            self.forward_object(object_address).or(Some(object_address))
         });
 
         self.large_space.remove_objects(|object_start| {
@@ -384,16 +384,24 @@ impl<'a> FullCollector<'a> {
             return;
         }
 
+        if let Some(forwarded) = self.forward_object(object_address) {
+            debug_assert!(self.heap.contains(forwarded));
+            slot.set(forwarded);
+        }
+    }
+
+    fn forward_object(&mut self, object_address: Address) -> Option<Address> {
         if self.heap.contains(object_address) {
             let object = object_address.to_obj();
             let vtblptr = object.header().vtblptr();
 
             if let VtblptrWordKind::Fwdptr(address) = vtblptr {
-                debug_assert!(self.heap.contains(address));
-                slot.set(address);
+                Some(address)
+            } else {
+                None
             }
         } else {
-            debug_assert!(self.readonly_space.contains(object_address));
+            None
         }
     }
 

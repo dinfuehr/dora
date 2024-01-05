@@ -223,9 +223,9 @@ where
     lazy_compilation_stub::iterate_roots(vm, frame.fp, &params, is_variadic, return_type, callback)
 }
 
-pub fn iterate_weak_roots<F>(vm: &VM, object_updater: F)
+pub fn iterate_weak_roots<F>(vm: &VM, mut object_updater: F)
 where
-    F: Fn(Address) -> Option<Address>,
+    F: FnMut(Address) -> Option<Address>,
 {
     let mut finalizers = vm.gc.finalizers.lock();
     let mut deleted = false;

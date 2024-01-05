@@ -622,27 +622,6 @@ pub trait CommonOldGen {
     fn committed_size(&self) -> usize;
 }
 
-fn forward_full(object: Address, heap: Region, perm: Region) -> Option<Address> {
-    if heap.contains(object) {
-        let obj = object.to_obj();
-
-        if obj.header().is_marked() {
-            let vtblptr = obj.header().vtblptr();
-
-            if let VtblptrWordKind::Fwdptr(new_address) = vtblptr {
-                Some(new_address)
-            } else {
-                Some(object)
-            }
-        } else {
-            None
-        }
-    } else {
-        debug_assert!(perm.contains(object));
-        Some(object)
-    }
-}
-
 fn forward_minor(object: Address, young: Region) -> Option<Address> {
     if young.contains(object) {
         let obj = object.to_obj();
