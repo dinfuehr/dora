@@ -13,7 +13,7 @@ use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{forward_full, walk_region, INITIAL_METADATA_OLD};
 use crate::gc::{fill_region_with, iterate_strong_roots, iterate_weak_roots, marking, Slot};
 use crate::gc::{Address, GcReason, Region};
-use crate::object::{Obj, MARK_BIT};
+use crate::object::Obj;
 use crate::stdlib;
 use crate::threads::DoraThread;
 use crate::timer::Timer;
@@ -136,12 +136,10 @@ impl<'a> FullCollector<'a> {
         }
 
         self.select_evacuated_pages();
+        self.sweep();
         self.evacuate();
         self.update_references();
-        self.sweep();
         self.release_evacuated_pages();
-
-        self.reset_cards();
 
         if stats {
             let duration = timer.stop();
@@ -222,11 +220,9 @@ impl<'a> FullCollector<'a> {
             }
 
             walk_region(self.vm, page.object_area(), |object, _addr, _size| {
-                if object.header().is_marked() {
-                    object.visit_reference_fields(|field| {
-                        self.forward_reference(field);
-                    });
-                }
+                object.visit_reference_fields(|field| {
+                    self.forward_reference(field);
+                });
             });
         }
 
@@ -241,21 +237,12 @@ impl<'a> FullCollector<'a> {
         self.large_space.remove_objects(|object_start| {
             let object = object_start.to_obj();
 
-            // reset cards for object, also do this for dead objects
-            // to reset card entries to clean.
-            self.card_table.reset_addr(object_start);
+            object.visit_reference_fields(|field| {
+                self.forward_reference(field);
+            });
 
-            if object.header().is_marked() {
-                object.visit_reference_fields(|field| {
-                    self.forward_reference(field);
-                });
-
-                // keep object
-                false
-            } else {
-                // object is unmarked -> free it
-                true
-            }
+            // keep object
+            false
         });
     }
 
@@ -264,6 +251,8 @@ impl<'a> FullCollector<'a> {
             HashSet::from_iter(self.old_evacuated_pages.iter().map(|pair| pair.0));
 
         for page in self.old_protected.pages() {
+            self.card_table.reset_page(page);
+
             if old_evacuated_set.contains(&page) {
                 continue;
             }
@@ -273,13 +262,21 @@ impl<'a> FullCollector<'a> {
 
         self.large_space.remove_objects(|object_start| {
             let object = object_start.to_obj();
-            assert!(object.header().is_marked());
 
-            // unmark object for next collection
-            object.header().unmark();
+            // reset cards for object, also do this for dead objects
+            // to reset card entries to clean.
+            self.card_table.reset_addr(object_start);
 
-            // keep object
-            false
+            if object.header().is_marked() {
+                // unmark object for next collection
+                object.header().unmark();
+
+                // keep object
+                false
+            } else {
+                // Drop  unmarked large object.
+                true
+            }
         });
     }
 
@@ -347,21 +344,13 @@ impl<'a> FullCollector<'a> {
 
                 // Clear metadata word.
                 let new_obj = new_address.to_obj();
-                new_obj
-                    .header()
-                    .set_metadata_raw(INITIAL_METADATA_OLD | MARK_BIT);
+                new_obj.header().set_metadata_raw(INITIAL_METADATA_OLD);
 
                 self.old.update_crossing(new_address, object_end);
             } else {
                 stdlib::trap(Trap::OOM.int());
             }
         });
-    }
-
-    fn reset_cards(&mut self) {
-        for page in self.old_protected.pages() {
-            self.card_table.reset_page(page);
-        }
     }
 
     fn forward_reference(&mut self, slot: Slot) {
@@ -373,8 +362,6 @@ impl<'a> FullCollector<'a> {
 
         if self.heap.contains(object_address) {
             let object = object_address.to_obj();
-            debug_assert!(object.header().is_marked());
-
             let fwd_addr = object.header().metadata_fwdptr();
 
             if fwd_addr.is_non_null() {
