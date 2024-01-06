@@ -1,5 +1,4 @@
 use parking_lot::Mutex;
-use std::cmp;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Barrier};
 
@@ -455,7 +454,7 @@ impl<'a> CopyTask<'a> {
             let card_idx: CardIdx = card_idx.into();
 
             if self.card_table.get(card_idx).is_dirty() {
-                self.visit_dirty_card(card_idx, region);
+                self.visit_dirty_card(card_idx);
             }
         }
     }
@@ -511,16 +510,10 @@ impl<'a> CopyTask<'a> {
         self.clean_card_if_no_young_refs(card_idx, ref_to_young_gen);
     }
 
-    fn visit_dirty_card(&mut self, card_idx: CardIdx, region: Region) {
-        if card_idx == self.card_table.card_idx(region.start) {
-            let first_object = region.start;
-            let ref_to_young_gen = false;
-            self.copy_old_card(card_idx, first_object, region, ref_to_young_gen);
-            return;
-        }
-
+    fn visit_dirty_card(&mut self, card_idx: CardIdx) {
         let crossing_entry = self.crossing_map.get(card_idx);
         let card_start = self.card_table.to_address(card_idx);
+        let card_end = card_start.offset(CARD_SIZE);
 
         match crossing_entry {
             CrossingEntry::NoRefs => panic!("card dirty without any refs"),
@@ -528,66 +521,11 @@ impl<'a> CopyTask<'a> {
             CrossingEntry::FirstObject(offset) => {
                 let first_object = card_start.add_ptr(offset as usize);
 
-                // copy all objects from this card
-                self.copy_old_card(card_idx, first_object, region, false);
+                let mut ref_to_young_gen = false;
+                self.copy_range(first_object, card_end, &mut ref_to_young_gen);
+
+                self.clean_card_if_no_young_refs(card_idx, ref_to_young_gen);
             }
-        }
-    }
-
-    fn copy_refs(&mut self, start: Address, end: Address, ref_to_young_gen: &mut bool) {
-        let mut ptr = start;
-
-        while ptr < end {
-            let slot = Slot::at(ptr);
-            let obj = slot.get();
-
-            if self.young.contains(obj) {
-                let copied_obj = self.copy_object(obj);
-                slot.set(copied_obj);
-
-                if self.young.contains(copied_obj) {
-                    *ref_to_young_gen = true;
-                }
-            }
-
-            ptr = ptr.add_ptr(1);
-        }
-    }
-
-    fn copy_old_card(
-        &mut self,
-        card: CardIdx,
-        first_object: Address,
-        region: Region,
-        mut ref_to_young_gen: bool,
-    ) {
-        let card_start = self.card_table.to_address(card);
-        let card_end = card_start.offset(CARD_SIZE);
-
-        let range_start = cmp::max(first_object, region.start);
-        let range_end = cmp::min(card_end, region.end);
-
-        self.copy_range(range_start, range_end, &mut ref_to_young_gen);
-
-        if self.is_card_cleaning_allowed(card, region) {
-            self.clean_card_if_no_young_refs(card, ref_to_young_gen);
-        }
-    }
-
-    fn is_card_cleaning_allowed(&self, card: CardIdx, region: Region) -> bool {
-        // no cleaning for first card in region
-        if card == self.card_table.card_idx(region.start) {
-            // unless the first region is card aligned
-            region.start.is_card_aligned()
-
-        // no cleaning for last card in region
-        } else if card == self.card_table.card_idx(region.end) {
-            // if region.end is card aligned, we shouldn't encounter
-            // this card for the current region.
-            assert!(!region.end.is_card_aligned());
-            false
-        } else {
-            true
         }
     }
 
