@@ -95,10 +95,12 @@ pub fn stop(
         std::usize::MAX
     };
 
+    let min_semi_size = young.allocated_size();
+
     let rest = config.max_heap_size - config.old_size;
     let target_young_size = rest / 2;
     let target_young_size = min(target_young_size, max_young_size);
-    let target_young_size = max(target_young_size, 2 * PAGE_SIZE);
+    let target_young_size = max(target_young_size, 2 * min_semi_size);
     let young_size = align_page_down(target_young_size / 2) * 2;
 
     if old_size + young_size > config.max_heap_size {

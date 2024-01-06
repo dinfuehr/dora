@@ -187,6 +187,7 @@ impl OldGenProtected {
         if let Some(page) = self.allocate_page(vm) {
             self.pages.push(page);
             self.pages.sort();
+            self.size += PAGE_SIZE;
 
             self.top = page.object_area_start();
             self.current_limit = page.object_area_end();
@@ -210,6 +211,7 @@ impl OldGenProtected {
             .position(|&p| p == page)
             .expect("missing page");
         self.pages.swap_remove(idx);
+        self.size -= PAGE_SIZE;
         os::discard(page.start(), page.size());
     }
 

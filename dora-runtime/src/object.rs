@@ -672,10 +672,11 @@ where
     let cls = vm.class_instances.idx(clsid);
     let vtable = cls.vtable.read();
     let vtable: &VTable = vtable.as_ref().unwrap();
-    let mut handle: Ref<Str> = ptr.into();
+    let handle: Ref<Str> = ptr.into();
     handle
-        .header_mut()
+        .header()
         .set_vtblptr(Address::from_ptr(vtable as *const VTable));
+    handle.header().set_metadata_raw(0);
 
     handle
 }

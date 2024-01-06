@@ -130,6 +130,12 @@ impl YoungGen {
         self.current_size.store(size, Ordering::Relaxed);
     }
 
+    pub fn allocated_size(&self) -> usize {
+        let protected = self.alloc.protected.lock();
+        let to_committed = self.to_committed();
+        protected.current_limit.offset_from(to_committed.start())
+    }
+
     pub fn protect_from(&self) {
         if cfg!(debug_assertions) || self.protect {
             let from_space = self.from_committed();
