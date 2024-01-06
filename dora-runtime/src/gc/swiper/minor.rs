@@ -51,7 +51,6 @@ pub struct MinorCollector<'a> {
 
     threadpool: &'a mut Pool,
     number_workers: usize,
-    worklist: Vec<Address>,
     config: &'a SharedHeapConfig,
     phases: MinorCollectorPhases,
 }
@@ -95,7 +94,6 @@ impl<'a> MinorCollector<'a> {
             number_workers: threadpool.thread_count() as usize,
             threadpool,
 
-            worklist: Vec::new(),
             config,
             phases: MinorCollectorPhases::new(),
         }
@@ -140,7 +138,7 @@ impl<'a> MinorCollector<'a> {
     fn run_threads(&mut self) {
         let mut workers = Vec::with_capacity(self.number_workers);
         let mut stealers = Vec::with_capacity(self.number_workers);
-        let injector = Injector::new();
+        let injector: Injector<WorkItem> = Injector::new();
 
         let stats = self.vm.flags.gc_stats;
         let timer = Timer::new(stats);
@@ -150,12 +148,6 @@ impl<'a> MinorCollector<'a> {
             let s = w.stealer();
             workers.push(w);
             stealers.push(s);
-        }
-
-        let worklist = std::mem::replace(&mut self.worklist, Vec::new());
-
-        for object in worklist {
-            injector.push(object);
         }
 
         let terminator = Terminator::new(self.number_workers);
@@ -340,12 +332,36 @@ const MAX_LAB_OBJECT_SIZE: usize = MAX_TLAB_OBJECT_SIZE;
 
 const LOCAL_MAXIMUM: usize = 64;
 
+struct WorkItem(Address);
+
+impl WorkItem {
+    fn slot(slot: Slot) -> WorkItem {
+        let value = slot.address().to_usize();
+        WorkItem(Address(value | 1))
+    }
+
+    fn object(object: Address) -> WorkItem {
+        debug_assert_eq!(object.to_usize() % 2, 0);
+        WorkItem(object)
+    }
+
+    fn to_slot(&self) -> Option<Slot> {
+        let value = self.0.to_usize();
+        if value & 1 != 0 {
+            let address: Address = (value & !1).into();
+            Some(Slot::at(address))
+        } else {
+            None
+        }
+    }
+}
+
 struct CopyTask<'a> {
     task_id: usize,
-    local: Vec<Address>,
-    worker: Worker<Address>,
-    injector: &'a Injector<Address>,
-    stealers: &'a [Stealer<Address>],
+    local: Vec<WorkItem>,
+    worker: Worker<WorkItem>,
+    injector: &'a Injector<WorkItem>,
+    stealers: &'a [Stealer<WorkItem>],
     terminator: &'a Terminator,
 
     vm: &'a VM,
@@ -420,12 +436,11 @@ impl<'a> CopyTask<'a> {
     fn visit_roots_in_stride(&mut self, stride: usize) {
         let roots_in_stride = self.rootset.iter().skip(stride).step_by(self.strides);
 
-        for root in roots_in_stride {
+        for &root in roots_in_stride {
             let object_address = root.get();
 
             if self.young.contains(object_address) {
-                let dest = self.copy_object(object_address);
-                root.set(dest);
+                self.push_slot(root);
             }
         }
     }
@@ -494,16 +509,12 @@ impl<'a> CopyTask<'a> {
             return;
         }
 
-        object.visit_reference_fields(|field| {
-            let field_ptr = field.get();
+        object.visit_reference_fields(|slot| {
+            let pointer = slot.get();
 
-            if self.young.contains(field_ptr) {
-                let copied_addr = self.copy_object(field_ptr);
-                field.set(copied_addr);
-
-                if self.young.contains(copied_addr) {
-                    ref_to_young_gen = true;
-                }
+            if self.young.contains(pointer) {
+                self.push_slot(slot);
+                ref_to_young_gen = true;
             }
         });
 
@@ -520,38 +531,26 @@ impl<'a> CopyTask<'a> {
 
             CrossingEntry::FirstObject(offset) => {
                 let first_object = card_start.add_ptr(offset as usize);
-
-                let mut ref_to_young_gen = false;
-                self.copy_range(first_object, card_end, &mut ref_to_young_gen);
-
-                self.clean_card_if_no_young_refs(card_idx, ref_to_young_gen);
+                self.process_card(card_idx, first_object, card_end);
             }
         }
     }
 
-    fn copy_range(
-        &mut self,
-        mut ptr: Address,
-        end: Address,
-        ref_to_young_gen: &mut bool,
-    ) -> Address {
+    fn process_card(&mut self, card_idx: CardIdx, mut ptr: Address, end: Address) {
+        let mut ref_to_young_gen = false;
+
         while ptr < end {
             let object = ptr.to_obj();
 
             if object.is_filler(self.vm) {
                 ptr = ptr.offset(object.size());
             } else {
-                object.visit_reference_fields(|field| {
-                    let field_ptr = field.get();
+                object.visit_reference_fields(|slot| {
+                    let pointer = slot.get();
 
-                    if self.young.contains(field_ptr) {
-                        let copied_obj = self.copy_object(field_ptr);
-                        field.set(copied_obj);
-
-                        // determine if copied object is still in young generation
-                        if self.young.contains(copied_obj) {
-                            *ref_to_young_gen = true;
-                        }
+                    if self.young.contains(pointer) {
+                        self.push_slot(slot);
+                        ref_to_young_gen = true;
                     }
                 });
 
@@ -559,7 +558,7 @@ impl<'a> CopyTask<'a> {
             }
         }
 
-        end
+        self.clean_card_if_no_young_refs(card_idx, ref_to_young_gen);
     }
 
     fn clean_card_if_no_young_refs(&mut self, card_idx: CardIdx, ref_to_young_gen: bool) {
@@ -572,18 +571,23 @@ impl<'a> CopyTask<'a> {
 
     fn trace_gray_objects(&mut self) {
         loop {
-            let object_addr = if let Some(object_addr) = self.pop() {
-                object_addr
+            if let Some(item) = self.pop() {
+                if let Some(slot) = item.to_slot() {
+                    let copied_obj = self.evacuate_object(slot.get());
+                    slot.set(copied_obj);
+                } else {
+                    let object = item.0;
+
+                    if self.young_region.contains(object) {
+                        self.trace_young_object(object);
+                    } else {
+                        self.trace_old_object(object);
+                    }
+                }
             } else if self.terminator.try_terminate() {
                 break;
             } else {
                 continue;
-            };
-
-            if self.young_region.contains(object_addr) {
-                self.trace_young_object(object_addr);
-            } else {
-                self.trace_old_object(object_addr);
             }
         }
 
@@ -598,7 +602,7 @@ impl<'a> CopyTask<'a> {
             let object_addr = slot.get();
 
             if self.young_region.contains(object_addr) {
-                slot.set(self.copy_object(object_addr));
+                slot.set(self.evacuate_object(object_addr));
             }
         });
     }
@@ -612,7 +616,7 @@ impl<'a> CopyTask<'a> {
             let field_ptr = slot.get();
 
             if self.young.contains(field_ptr) {
-                let copied_addr = self.copy_object(field_ptr);
+                let copied_addr = self.evacuate_object(field_ptr);
                 slot.set(copied_addr);
 
                 if self.young.contains(copied_addr) {
@@ -751,7 +755,7 @@ impl<'a> CopyTask<'a> {
         }
     }
 
-    fn copy_object(&mut self, obj_addr: Address) -> Address {
+    fn evacuate_object(&mut self, obj_addr: Address) -> Address {
         let obj = obj_addr.to_obj();
 
         // Check if object was already copied
@@ -845,12 +849,20 @@ impl<'a> CopyTask<'a> {
         }
     }
 
+    fn push_slot(&mut self, slot: Slot) {
+        self.push_item(WorkItem::slot(slot));
+    }
+
     fn push(&mut self, addr: Address) {
+        self.push_item(WorkItem::object(addr));
+    }
+
+    fn push_item(&mut self, item: WorkItem) {
         if self.local.len() < LOCAL_MAXIMUM {
-            self.local.push(addr);
+            self.local.push(item);
             self.defensive_push();
         } else {
-            self.worker.push(addr);
+            self.worker.push(item);
         }
     }
 
@@ -871,27 +883,22 @@ impl<'a> CopyTask<'a> {
         }
     }
 
-    fn pop(&mut self) -> Option<Address> {
+    fn pop(&mut self) -> Option<WorkItem> {
         self.pop_local()
             .or_else(|| self.pop_worker())
             .or_else(|| self.pop_global())
             .or_else(|| self.steal())
     }
 
-    fn pop_local(&mut self) -> Option<Address> {
-        if self.local.is_empty() {
-            return None;
-        }
-
-        let obj = self.local.pop().expect("should be non-empty");
-        Some(obj)
+    fn pop_local(&mut self) -> Option<WorkItem> {
+        self.local.pop()
     }
 
-    fn pop_worker(&mut self) -> Option<Address> {
+    fn pop_worker(&mut self) -> Option<WorkItem> {
         self.worker.pop()
     }
 
-    fn pop_global(&mut self) -> Option<Address> {
+    fn pop_global(&mut self) -> Option<WorkItem> {
         loop {
             let result = self.injector.steal_batch_and_pop(&mut self.worker);
 
@@ -905,7 +912,7 @@ impl<'a> CopyTask<'a> {
         None
     }
 
-    fn steal(&self) -> Option<Address> {
+    fn steal(&self) -> Option<WorkItem> {
         if self.stealers.len() == 1 {
             return None;
         }

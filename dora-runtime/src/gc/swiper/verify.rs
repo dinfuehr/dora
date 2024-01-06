@@ -240,7 +240,7 @@ impl<'a> Verifier<'a> {
         // guaranteed to be exact. It could be `dirty` although this card doesn't
         // actually contain any references into the young generation. But it should never
         // be clean when there are actual references into the young generation.
-        if self.phase.is_pre() && expected_card_entry.is_clean() {
+        if (self.phase.is_pre() || self.phase.is_post_minor()) && expected_card_entry.is_clean() {
             return;
         }
 
