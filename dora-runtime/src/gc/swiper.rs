@@ -20,7 +20,7 @@ use crate::gc::swiper::young::YoungGen;
 use crate::gc::tlab;
 use crate::gc::Collector;
 use crate::gc::GcReason;
-use crate::gc::{align_page_up, formatted_size, Address, Region, K};
+use crate::gc::{align_page_up, Address, Region, K};
 use crate::mem;
 use crate::object::{Obj, VtblptrWordKind, OLD_BIT, REMEMBERED_BIT};
 use crate::os::{self, MemoryPermission, Reservation};
@@ -163,17 +163,6 @@ impl Swiper {
             config.clone(),
         );
         let large = LargeSpace::new(large_start, large_end, config.clone());
-
-        if args.gc_verbose {
-            println!(
-                "GC: heap info: {}, semi {}, card {}, crossing {} (region {})",
-                formatted_size(max_heap_size),
-                formatted_size(semi_size),
-                formatted_size(card_size),
-                formatted_size(crossing_size),
-                Region::new(heap_start, heap_end),
-            );
-        }
 
         let nworkers = args.gc_workers();
 

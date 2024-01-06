@@ -67,7 +67,6 @@ pub fn start(
     let mut config = config.lock();
 
     config.gc_start = Some(Instant::now());
-    config.start_object_size = object_size(young, old, large);
     config.start_memory_size = memory_size(young, old, large);
 }
 
@@ -84,7 +83,7 @@ pub fn stop(
     let mut config = config.lock();
 
     let gc_duration = config.gc_start.expect("not started").elapsed();
-    let gc_duration_ms = gc_duration.as_secs_f32() / 1000.0f32;
+    let gc_duration_ms = gc_duration.as_secs_f32() * 1000.0f32;
 
     let old_size = old.committed_size() + large.committed_size();
     config.old_size = old_size;
@@ -111,7 +110,6 @@ pub fn stop(
     config.old_limit = config.max_heap_size - young_size;
     assert!(config.old_limit >= old_size);
 
-    config.end_object_size = object_size(young, old, large);
     config.end_memory_size = memory_size(young, old, large);
 
     assert!(young_size + config.old_limit <= config.max_heap_size);
@@ -145,12 +143,10 @@ fn print(config: &HeapController, kind: CollectionKind, reason: GcReason, gc_dur
     match kind {
         CollectionKind::Minor => {
             println!(
-                "GC: {} ({}) {}/{} -> {}/{}; {:.2} ms; {} promoted; {} copied; {} garbage",
+                "GC: {} ({}) {} -> {}; {:.2} ms; {} promoted; {} copied; {} garbage",
                 kind,
                 reason,
-                formatted_size(config.start_object_size),
                 formatted_size(config.start_memory_size),
-                formatted_size(config.end_object_size),
                 formatted_size(config.end_memory_size),
                 gc_duration,
                 formatted_size(config.minor_promoted),
@@ -161,12 +157,10 @@ fn print(config: &HeapController, kind: CollectionKind, reason: GcReason, gc_dur
 
         CollectionKind::Full => {
             println!(
-                "GC: {} ({}) {}/{} -> {}/{}; {:.2} ms",
+                "GC: {} ({}) {} -> {}; {:.2} ms",
                 kind,
                 reason,
-                formatted_size(config.start_object_size),
                 formatted_size(config.start_memory_size),
-                formatted_size(config.end_object_size),
                 formatted_size(config.end_memory_size),
                 gc_duration,
             );
@@ -174,12 +168,8 @@ fn print(config: &HeapController, kind: CollectionKind, reason: GcReason, gc_dur
     }
 }
 
-fn object_size(young: &YoungGen, old: &dyn CommonOldGen, large: &LargeSpace) -> usize {
-    young.object_size() + old.active_size() + large.committed_size()
-}
-
 fn memory_size(young: &YoungGen, old: &dyn CommonOldGen, large: &LargeSpace) -> usize {
-    young.committed_size() + old.committed_size() + large.committed_size()
+    young.allocated_size() + old.committed_size() + large.committed_size()
 }
 
 pub struct HeapController {
@@ -192,9 +182,7 @@ pub struct HeapController {
 
     gc_start: Option<Instant>,
 
-    start_object_size: usize,
     start_memory_size: usize,
-    end_object_size: usize,
     end_memory_size: usize,
 
     pub minor_promoted: usize,
@@ -224,9 +212,7 @@ impl HeapController {
 
             gc_start: None,
 
-            start_object_size: 0,
             start_memory_size: 0,
-            end_object_size: 0,
             end_memory_size: 0,
 
             minor_promoted: 0,

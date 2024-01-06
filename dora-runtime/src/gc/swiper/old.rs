@@ -91,7 +91,7 @@ impl CommonOldGen for OldGen {
 impl GenerationAllocator for OldGen {
     fn allocate(&self, vm: &VM, min_size: usize, max_size: usize) -> Option<Region> {
         let mut protected = self.protected.lock();
-        protected.allocate(vm, self, min_size, max_size)
+        protected.allocate(vm, self, false, min_size, max_size)
     }
 
     fn free(&self, _region: Region) {
@@ -153,6 +153,7 @@ impl OldGenProtected {
         &mut self,
         vm: &VM,
         old: &OldGen,
+        is_gc: bool,
         min_size: usize,
         max_size: usize,
     ) -> Option<Region> {
@@ -180,7 +181,7 @@ impl OldGenProtected {
             return Some(region);
         }
 
-        if !old.can_add_page() {
+        if !is_gc && !old.can_add_page() {
             return None;
         }
 
@@ -212,6 +213,8 @@ impl OldGenProtected {
             .expect("missing page");
         self.pages.swap_remove(idx);
         self.size -= PAGE_SIZE;
+        let page_idx = page.start().offset_from(self.total.start()) / PAGE_SIZE;
+        self.free_pages.insert(page_idx);
         os::discard(page.start(), page.size());
     }
 
