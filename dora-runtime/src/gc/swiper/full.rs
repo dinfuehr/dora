@@ -231,6 +231,8 @@ impl<'a> FullCollector<'a> {
             } else {
                 for free_region in free_regions {
                     fill_region_with(self.vm, free_region.start, free_region.end, true);
+                    self.old
+                        .update_crossing(free_region.start(), free_region.end());
 
                     self.old_protected.add_to_freelist(
                         self.vm,

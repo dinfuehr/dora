@@ -641,7 +641,7 @@ fn forward_minor(object: Address, young: Region) -> Option<Address> {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Page(Address);
 
 impl Page {

@@ -177,7 +177,8 @@ impl<'a> Verifier<'a> {
             let object_end = curr.offset(size);
 
             // Object is not supposed to cross page boundary.
-            let page = Page::from_address(curr);
+            let page_for_object = Page::from_address(curr);
+            assert_eq!(page, page_for_object);
             assert!(object_end <= page.end());
 
             if !object.is_filler(self.vm) {
