@@ -31,7 +31,6 @@ pub struct FullCollector<'a> {
     card_table: &'a CardTable,
     crossing_map: &'a CrossingMap,
     readonly_space: &'a Space,
-    young_evacuated_pages: Vec<(Page, usize)>,
 
     top: Address,
     current_limit: Address,
@@ -76,7 +75,6 @@ impl<'a> FullCollector<'a> {
             card_table,
             crossing_map,
             readonly_space,
-            young_evacuated_pages: Vec::new(),
 
             top: old_total.start(),
             current_limit: old_total.start(),
@@ -133,7 +131,6 @@ impl<'a> FullCollector<'a> {
             }
         }
 
-        self.select_evacuated_pages();
         self.sweep();
         self.evacuate();
         self.update_references();
@@ -167,26 +164,6 @@ impl<'a> FullCollector<'a> {
                 Some(object_address)
             }
         });
-    }
-
-    fn select_evacuated_pages(&mut self) {
-        for page in self.young.pages() {
-            let live = self.compute_live_on_page(page);
-
-            if live > 0 {
-                self.young_evacuated_pages.push((page, live));
-            }
-        }
-    }
-
-    fn compute_live_on_page(&self, page: Page) -> usize {
-        let mut live = 0;
-        walk_region(self.vm, page.object_area(), |obj, _addr, size| {
-            if obj.header().is_marked() {
-                live += size;
-            }
-        });
-        live
     }
 
     fn update_references(&mut self) {
@@ -309,7 +286,7 @@ impl<'a> FullCollector<'a> {
     fn evacuate(&mut self) {
         self.old_protected.fill_alloc_page();
 
-        for (page, _) in self.young_evacuated_pages.clone() {
+        for page in self.young.pages() {
             self.evacuate_page(page);
         }
     }
