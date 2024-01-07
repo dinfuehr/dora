@@ -246,12 +246,12 @@ impl HeapController {
         AllNumbers(self.full_phases.iter().map(|x| x.marking).collect())
     }
 
-    pub fn full_compute_forward(&self) -> Numbers {
+    pub fn full_sweep(&self) -> Numbers {
         let values: Vec<_> = self.full_phases.iter().map(|x| x.sweep).collect();
         calculate_numbers(&values)
     }
 
-    pub fn full_compute_forward_all(&self) -> AllNumbers {
+    pub fn full_sweep_all(&self) -> AllNumbers {
         AllNumbers(self.full_phases.iter().map(|x| x.sweep).collect())
     }
 
@@ -271,15 +271,6 @@ impl HeapController {
 
     pub fn full_relocate_all(&self) -> AllNumbers {
         AllNumbers(self.full_phases.iter().map(|x| x.evacuate).collect())
-    }
-
-    pub fn full_reset_cards(&self) -> Numbers {
-        let values: Vec<_> = self.full_phases.iter().map(|x| x.reset_cards).collect();
-        calculate_numbers(&values)
-    }
-
-    pub fn full_reset_cards_all(&self) -> AllNumbers {
-        AllNumbers(self.full_phases.iter().map(|x| x.reset_cards).collect())
     }
 
     pub fn full_total(&self) -> Numbers {

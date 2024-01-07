@@ -167,24 +167,10 @@ struct MarkSweep<'a> {
 
 impl<'a> MarkSweep<'a> {
     fn collect(&mut self) {
-        let dev_verbose = self.vm.flags.gc_dev_verbose;
-
-        if dev_verbose {
-            println!("Sweep GC: Phase 1 (marking)");
-        }
-
         self.mark();
         self.iterate_weak_refs();
 
-        if dev_verbose {
-            println!("Sweep GC: Phase 2 (sweep)");
-        }
-
         self.sweep();
-
-        if dev_verbose {
-            println!("Sweep GC: Stop");
-        }
     }
 
     fn mark(&mut self) {

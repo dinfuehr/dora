@@ -112,17 +112,7 @@ impl<'a> MinorCollector<'a> {
         let to_committed = self.young.to_committed();
         self.young_alloc = Some(YoungAlloc::new(to_committed));
 
-        let dev_verbose = self.vm.flags.gc_dev_verbose;
-
-        if dev_verbose {
-            println!("Minor GC: Worker threads started");
-        }
-
         self.run_threads();
-
-        if dev_verbose {
-            println!("Minor GC: Worker threads finished");
-        }
 
         self.iterate_weak_refs();
 

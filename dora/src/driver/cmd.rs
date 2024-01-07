@@ -35,7 +35,6 @@ Options:
     --gc-stress-minor       Minor collection at every allocation.
     --gc-stats              Print GC statistics.
     --gc-verbose            Verbose GC.
-    --gc-dev-verbose        Verbose GC for developers.
     --gc-verify             Verify heap before and after collections.
     --gc-worker=<num>       Number of GC worker threads.
     --gc=<name>             Switch GC. Possible values: zero, copy, swiper (default).
@@ -84,7 +83,6 @@ pub struct Args {
     pub gc_stress_minor: bool,
     pub gc_stats: bool,
     pub gc_verbose: bool,
-    pub gc_dev_verbose: bool,
     pub gc_verify: bool,
     pub gc_worker: usize,
     gc_young_size: Option<MemSize>,
@@ -134,7 +132,6 @@ impl Default for Args {
             gc_stress_minor: false,
             gc_stats: false,
             gc_verbose: false,
-            gc_dev_verbose: false,
             gc_verify: false,
             gc_worker: 0,
             gc_young_size: None,
@@ -249,8 +246,6 @@ pub fn parse_arguments() -> Result<Args, String> {
             args.gc_stats = true;
         } else if arg == "--gc-verbose" {
             args.gc_verbose = true;
-        } else if arg == "--gc-dev-verbose" {
-            args.gc_dev_verbose = true;
         } else if arg == "--gc-verify" {
             args.gc_verify = true;
         } else if arg.starts_with("--gc-worker=") {
@@ -411,7 +406,6 @@ pub fn create_vm_args(args: &Args) -> VmArgs {
         gc_stress_minor: args.gc_stress_minor,
         gc_stats: args.gc_stats,
         gc_verbose: args.gc_verbose,
-        gc_dev_verbose: args.gc_dev_verbose,
         gc_verify: args.gc_verify,
         gc_worker: args.gc_worker,
         gc_young_size: args.gc_young_size,

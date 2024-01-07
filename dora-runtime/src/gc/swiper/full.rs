@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::time::Instant;
 
 use parking_lot::MutexGuard;
 
@@ -16,7 +17,6 @@ use crate::gc::{Address, GcReason, Region};
 use crate::object::{Obj, VtblptrWordKind};
 use crate::stdlib;
 use crate::threads::DoraThread;
-use crate::timer::Timer;
 use crate::vm::{Trap, VM};
 
 pub struct FullCollector<'a> {
@@ -93,25 +93,9 @@ impl<'a> FullCollector<'a> {
     }
 
     pub fn collect(&mut self) {
-        let dev_verbose = self.vm.flags.gc_dev_verbose;
-        let stats = self.vm.flags.gc_stats;
-
-        let mut timer = Timer::new(stats);
-
-        if dev_verbose {
-            println!("Full GC: Start");
-        }
-
-        self.mark_live();
-
-        if stats {
-            let duration = timer.stop();
-            self.phases.marking = duration;
-        }
-
-        if dev_verbose {
-            println!("Full GC: Phase 1 (marking)");
-        }
+        self.phases.marking = measure(self.vm, || {
+            self.mark_live();
+        });
 
         if self.vm.flags.gc_verify {
             verify_marking(
@@ -121,28 +105,19 @@ impl<'a> FullCollector<'a> {
                 self.large_space,
                 self.heap,
             );
-
-            if stats {
-                timer.stop();
-            }
-
-            if dev_verbose {
-                println!("Full GC: Phase 1b (verify marking)");
-            }
         }
 
-        self.sweep();
-        self.evacuate();
-        self.update_references();
+        self.phases.sweep = measure(self.vm, || {
+            self.sweep();
+        });
 
-        if stats {
-            let duration = timer.stop();
-            self.phases.reset_cards = duration;
-        }
+        self.phases.evacuate = measure(self.vm, || {
+            self.evacuate();
+        });
 
-        if dev_verbose {
-            println!("Full GC: Phase 5 (reset cards)");
-        }
+        self.phases.update_refs = measure(self.vm, || {
+            self.update_references();
+        });
 
         self.young.reset_after_full_gc(self.vm);
     }
@@ -401,5 +376,20 @@ fn verify_marking_object(obj_address: Address, heap: Region) {
                 assert!(object_addr.to_obj().header().is_marked());
             }
         });
+    }
+}
+
+fn measure<F>(vm: &VM, fct: F) -> f32
+where
+    F: FnOnce(),
+{
+    if vm.flags.gc_stats {
+        let start = Instant::now();
+        fct();
+        let duration = start.elapsed();
+        duration.as_secs_f32() * 1000f32
+    } else {
+        fct();
+        0.0f32
     }
 }

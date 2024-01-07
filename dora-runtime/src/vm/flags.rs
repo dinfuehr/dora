@@ -26,7 +26,6 @@ pub struct Flags {
     pub gc_stress_in_lazy_compile: bool,
     pub gc_stats: bool,
     pub gc_verbose: bool,
-    pub gc_dev_verbose: bool,
     pub gc_verify: bool,
     pub gc_worker: usize,
     pub gc_young_size: Option<MemSize>,

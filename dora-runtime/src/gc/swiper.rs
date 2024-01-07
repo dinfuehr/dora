@@ -244,13 +244,7 @@ impl Swiper {
         rootset: &[Slot],
         threads: &[Arc<DoraThread>],
     ) {
-        self.verify(
-            vm,
-            VerifierPhase::PreMinor,
-            CollectionKind::Minor,
-            "pre-minor",
-            &rootset,
-        );
+        self.verify(vm, VerifierPhase::PreMinor, CollectionKind::Minor, &rootset);
 
         {
             let mut pool = self.threadpool.lock();
@@ -282,7 +276,6 @@ impl Swiper {
             vm,
             VerifierPhase::PostMinor,
             CollectionKind::Minor,
-            "post-minor",
             &rootset,
         );
     }
@@ -294,13 +287,7 @@ impl Swiper {
         threads: &[Arc<DoraThread>],
         rootset: &[Slot],
     ) {
-        self.verify(
-            vm,
-            VerifierPhase::PreFull,
-            CollectionKind::Full,
-            "pre-full",
-            &rootset,
-        );
+        self.verify(vm, VerifierPhase::PreFull, CollectionKind::Full, &rootset);
 
         {
             let mut collector = FullCollector::new(
@@ -326,28 +313,11 @@ impl Swiper {
             }
         }
 
-        self.verify(
-            vm,
-            VerifierPhase::PostFull,
-            CollectionKind::Full,
-            "post-full",
-            &rootset,
-        );
+        self.verify(vm, VerifierPhase::PostFull, CollectionKind::Full, &rootset);
     }
 
-    fn verify(
-        &self,
-        vm: &VM,
-        phase: VerifierPhase,
-        _kind: CollectionKind,
-        name: &str,
-        rootset: &[Slot],
-    ) {
+    fn verify(&self, vm: &VM, phase: VerifierPhase, _kind: CollectionKind, rootset: &[Slot]) {
         if vm.flags.gc_verify {
-            if vm.flags.gc_dev_verbose {
-                println!("GC: Verify {}", name);
-            }
-
             let readonly_space = &vm.gc.readonly_space;
 
             let mut verifier = Verifier::new(
@@ -363,10 +333,6 @@ impl Swiper {
                 phase,
             );
             verifier.verify();
-
-            if vm.flags.gc_dev_verbose {
-                println!("GC: Verify {} finished", name);
-            }
         }
     }
 
@@ -467,19 +433,12 @@ impl Collector for Swiper {
         );
         println!("GC stats: full-total={}", config.full_total_all());
         println!("GC stats: full-marking={}", config.full_marking_all());
-        println!(
-            "GC stats: full-compute-forward={}",
-            config.full_compute_forward_all()
-        );
+        println!("GC stats: full-sweep={}", config.full_sweep_all());
         println!(
             "GC stats: full-update-refs={}",
             config.full_update_refs_all()
         );
-        println!("GC stats: full-relocate={}", config.full_relocate_all());
-        println!(
-            "GC stats: full-reset-cards={}",
-            config.full_reset_cards_all()
-        );
+        println!("GC stats: full-evacuate={}", config.full_relocate_all());
         println!("");
         println!(
             "GC stats: minor-collections={:.1}",
@@ -511,10 +470,9 @@ impl Collector for Swiper {
         println!("\nFull:");
 
         println!("\tMarking:\t{}", config.full_marking());
-        println!("\tCompute Fwd:\t{}", config.full_compute_forward());
+        println!("\tSweep:\t\t{}", config.full_sweep());
         println!("\tUpdate Refs:\t{}", config.full_update_refs());
-        println!("\tRelocate:\t{}", config.full_relocate());
-        println!("\tReset Cards:\t{}", config.full_reset_cards());
+        println!("\tEvacuate:\t{}", config.full_relocate());
         println!("\tTotal:\t\t{}", config.full_total());
 
         println!("");
