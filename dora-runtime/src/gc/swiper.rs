@@ -2,6 +2,7 @@ use parking_lot::Mutex;
 use scoped_threadpool::Pool;
 use std::fmt;
 use std::mem::size_of;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 pub use crate::gc::swiper::young::YoungAlloc;
@@ -52,8 +53,8 @@ pub const CARD_SIZE: usize = 1 << CARD_SIZE_BITS;
 pub const CARD_REFS: usize = CARD_SIZE / size_of::<usize>();
 
 pub const LARGE_OBJECT_SIZE: usize = 32 * K;
-pub const PAGE_SIZE: usize = 128 * K;
-pub const PAGE_HEADER_SIZE: usize = 64 * K;
+pub const PAGE_SIZE: usize = 64 * K;
+pub const PAGE_HEADER_SIZE: usize = CARD_SIZE;
 
 pub const INITIAL_METADATA_YOUNG: usize = REMEMBERED_BIT;
 pub const INITIAL_METADATA_OLD: usize = OLD_BIT;
@@ -601,11 +602,21 @@ impl Page {
         Page::new(page_start.into())
     }
 
-    pub fn initialize_header(&self) {
+    pub fn initialize_header(&self, is_young: bool) {
+        let flags = if is_young { YOUNG_BIT } else { 0 };
+        self.header().flags.store(flags, Ordering::Relaxed);
+
+        let uninit_start = self.start().offset(std::mem::size_of::<PageHeader>());
+        debug_assert_eq!(uninit_start.to_usize() % mem::ptr_width_usize(), 0);
+        let uninit_end = self.start().offset(PAGE_HEADER_SIZE);
+        debug_assert_eq!(uninit_end.to_usize() % mem::ptr_width_usize(), 0);
+        let length = uninit_end.offset_from(uninit_start);
+        debug_assert_eq!(length % mem::ptr_width_usize(), 0);
+
         unsafe {
             let header = std::slice::from_raw_parts_mut(
-                self.start().to_mut_ptr::<usize>(),
-                PAGE_HEADER_SIZE / mem::ptr_width_usize(),
+                uninit_start.to_mut_ptr::<usize>(),
+                length / mem::ptr_width_usize(),
             );
 
             header.fill(0xDEAD2BAD);
@@ -639,4 +650,23 @@ impl Page {
     pub fn object_area_end(&self) -> Address {
         self.end()
     }
+
+    pub fn raw_flags(&self) -> usize {
+        self.header().flags.load(Ordering::Relaxed)
+    }
+
+    pub fn is_young(&self) -> bool {
+        (self.raw_flags() & YOUNG_BIT) != 0
+    }
+
+    fn header(&self) -> &PageHeader {
+        unsafe { &*self.0.to_ptr::<PageHeader>() }
+    }
+}
+
+const YOUNG_BIT: usize = 1;
+
+#[repr(C)]
+struct PageHeader {
+    flags: AtomicUsize,
 }

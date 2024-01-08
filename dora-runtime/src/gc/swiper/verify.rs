@@ -162,6 +162,7 @@ impl<'a> Verifier<'a> {
         let mut refs_to_young_gen = 0;
         assert!(region.start.is_card_aligned());
         assert!(region.end.is_page_aligned());
+        assert_eq!(page.is_young(), !self.in_old);
 
         if self.in_old {
             let card_idx = self.card_table.card_idx(region.start);
