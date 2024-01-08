@@ -593,8 +593,17 @@ impl Page {
         Page::new(page_start.into())
     }
 
-    pub fn initialize_header(&self, is_young: bool) {
-        let flags = if is_young { YOUNG_BIT } else { 0 };
+    pub fn initialize_header(&self, is_young: bool, is_large: bool) {
+        let mut flags = 0;
+
+        if is_young {
+            flags |= YOUNG_BIT
+        };
+
+        if is_large {
+            flags |= LARGE_BIT
+        };
+
         self.header().flags.store(flags, Ordering::Relaxed);
 
         let uninit_start = self.start().offset(std::mem::size_of::<PageHeader>());
@@ -650,12 +659,17 @@ impl Page {
         (self.raw_flags() & YOUNG_BIT) != 0
     }
 
+    pub fn is_large(&self) -> bool {
+        (self.raw_flags() & LARGE_BIT) != 0
+    }
+
     fn header(&self) -> &PageHeader {
         unsafe { &*self.0.to_ptr::<PageHeader>() }
     }
 }
 
 const YOUNG_BIT: usize = 1;
+const LARGE_BIT: usize = 1 << 1;
 
 #[repr(C)]
 struct PageHeader {

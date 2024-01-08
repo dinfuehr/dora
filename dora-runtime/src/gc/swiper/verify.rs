@@ -140,8 +140,8 @@ impl<'a> Verifier<'a> {
         }
         self.in_old = false;
 
-        self.large.visit_objects(|object_address| {
-            self.verify_large_page(object_address);
+        self.large.visit_objects(|page, object_address| {
+            self.verify_large_page(page, object_address);
         });
     }
 
@@ -159,6 +159,7 @@ impl<'a> Verifier<'a> {
         assert!(region.start.is_card_aligned());
         assert!(region.end.is_page_aligned());
         assert_eq!(page.is_young(), !self.in_old);
+        assert!(!page.is_large());
 
         if self.in_old {
             let card_idx = self.card_table.card_idx(region.start);
@@ -201,7 +202,9 @@ impl<'a> Verifier<'a> {
         assert_eq!(refs_to_young_gen, 0);
     }
 
-    fn verify_large_page(&mut self, object_address: Address) {
+    fn verify_large_page(&mut self, page: Page, object_address: Address) {
+        assert!(!page.is_young());
+        assert!(page.is_large());
         let mut refs_to_young_gen = 0;
         self.verify_object(object_address, &mut refs_to_young_gen);
         self.verify_card(object_address, refs_to_young_gen);

@@ -230,7 +230,7 @@ impl OldGenProtected {
             assert!(self.free_pages.contains(page_idx));
             self.free_pages.set(page_idx, false);
             os::commit_at(page.start(), PAGE_SIZE, MemoryPermission::ReadWrite);
-            page.initialize_header(false);
+            page.initialize_header(false, false);
             fill_region(vm, page.object_area_start(), page.object_area_end());
             Some(page)
         } else {

@@ -74,7 +74,7 @@ impl YoungGen {
 
         while curr < to_committed.end() {
             let page = Page::from_address(curr);
-            page.initialize_header(true);
+            page.initialize_header(true, false);
             fill_region_with(vm, page.object_area_start(), page.object_area_end(), true);
             curr = page.end();
         }
@@ -193,7 +193,7 @@ impl YoungGen {
             let mut curr = start;
             while curr < end {
                 let page = Page::from_address(curr);
-                page.initialize_header(true);
+                page.initialize_header(true, false);
                 fill_region(vm, page.object_area_start(), page.object_area_end());
                 curr = page.end();
             }
@@ -325,7 +325,7 @@ impl YoungAllocProtected {
         if self.current_limit < self.limit {
             fill_region_with(vm, self.top, self.current_limit, false);
             let page = Page::from_address(self.current_limit);
-            page.initialize_header(true);
+            page.initialize_header(true, false);
             self.top = page.object_area_start();
             self.current_limit = page.object_area_end();
             assert!(self.current_limit <= self.limit);

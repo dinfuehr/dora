@@ -354,7 +354,7 @@ pub fn verify_marking(
         verify_marking_region(vm, page.object_area(), heap);
     }
 
-    large.visit_objects(|obj_address| {
+    large.visit_objects(|_page, obj_address| {
         verify_marking_object(obj_address, heap);
     });
 }
