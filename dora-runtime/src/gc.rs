@@ -176,14 +176,6 @@ impl Gc {
         self.collector.dump_summary(runtime);
     }
 
-    pub fn verify_ref(&self, vm: &VM, reference: Address) {
-        if reference.is_null() {
-            return;
-        }
-
-        self.collector.verify_ref(vm, reference);
-    }
-
     pub fn drop_all_native_code_objects(&mut self) {
         self.code_space.drop_all_native_code_objects();
     }

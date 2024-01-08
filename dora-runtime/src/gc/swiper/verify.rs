@@ -82,10 +82,8 @@ pub struct Verifier<'a> {
 
     in_old: bool,
 
-    old_total: Region,
+    heap: Region,
     young_total: Region,
-    to_committed: Region,
-    reserved_area: Region,
 
     phase: VerifierPhase,
 }
@@ -93,6 +91,7 @@ pub struct Verifier<'a> {
 impl<'a> Verifier<'a> {
     pub fn new(
         vm: &'a VM,
+        heap: Region,
         young: &'a YoungGen,
         old: &'a OldGen,
         card_table: &'a CardTable,
@@ -100,7 +99,6 @@ impl<'a> Verifier<'a> {
         rootset: &'a [Slot],
         large: &'a LargeSpace,
         readonly_space: &'a Space,
-        reserved_area: Region,
         phase: VerifierPhase,
     ) -> Verifier<'a> {
         let old_protected = old.protected();
@@ -118,10 +116,8 @@ impl<'a> Verifier<'a> {
 
             in_old: false,
 
-            old_total: old.total(),
-            to_committed: young.to_committed(),
             young_total: young.total(),
-            reserved_area,
+            heap,
 
             phase,
         }
@@ -264,8 +260,6 @@ impl<'a> Verifier<'a> {
                 self.phase,
             );
 
-            self.dump_spaces();
-
             panic!("card table entry wrong.");
         }
 
@@ -316,11 +310,7 @@ impl<'a> Verifier<'a> {
             return;
         }
 
-        if self.old_total.contains(reference)
-            || self.to_committed.contains(reference)
-            || self.readonly_space.contains(reference)
-            || self.large.contains(reference)
-        {
+        if self.heap.contains(reference) || self.readonly_space.contains(reference) {
             let object = reference.to_obj();
 
             // Verify that the address is the start of an object,
@@ -335,8 +325,6 @@ impl<'a> Verifier<'a> {
 
             return;
         }
-
-        self.dump_spaces();
 
         println!(
             "found invalid reference to {} (at {}, in object {}) during {} phase.",
@@ -353,18 +341,6 @@ impl<'a> Verifier<'a> {
             println!("\tsource object of {:?} (size={})", cls.kind, size);
         }
 
-        if self.young.contains(reference) && !self.to_committed.contains(reference) {
-            println!("reference points into young generation but not into the active semi-space.");
-
-            if self.young.from_total().contains(reference) {
-                println!("\treference points into from-space");
-            }
-
-            if self.young.to_total().contains(reference) {
-                println!("\treference points into to-space");
-            }
-        }
-
         println!("try print target object size and class:");
 
         let object = reference.to_obj();
@@ -373,37 +349,5 @@ impl<'a> Verifier<'a> {
         println!("\tclass {:?}", cls.kind);
 
         panic!("reference neither pointing into young nor old generation.");
-    }
-
-    fn dump_spaces(&self) {
-        let perm_region = self.readonly_space.used_region();
-
-        println!(
-            " RO: {}; active: {} (size 0x{:x})",
-            self.readonly_space.total(),
-            perm_region,
-            perm_region.size(),
-        );
-        println!(
-            " TO: {}; active: {} (size 0x{:x})",
-            self.young.to_total(),
-            self.to_committed,
-            self.to_committed.size(),
-        );
-        println!(
-            "OLD total: {}; (size 0x{:x})",
-            self.old.total(),
-            self.old.total().size()
-        );
-
-        println!(
-            "LRG: {}-{}",
-            self.large.total().start,
-            self.large.total().end
-        );
-        println!(
-            "TTL: {}-{}",
-            self.reserved_area.start, self.reserved_area.end
-        );
     }
 }

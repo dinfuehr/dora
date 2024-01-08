@@ -589,10 +589,10 @@ impl<'a> CopyTask<'a> {
         let object = object_addr.to_obj();
 
         object.visit_reference_fields(|slot| {
-            let object_addr = slot.get();
+            let pointer = slot.get();
 
-            if self.young_region.contains(object_addr) {
-                slot.set(self.evacuate_object(object_addr));
+            if self.young_region.contains(pointer) {
+                slot.set(self.evacuate_object(pointer));
             }
         });
     }

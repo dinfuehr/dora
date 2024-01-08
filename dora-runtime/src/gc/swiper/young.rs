@@ -223,7 +223,7 @@ impl YoungGen {
         self.to_total().start().region_start(size)
     }
 
-    pub fn to_total(&self) -> Region {
+    fn to_total(&self) -> Region {
         self.semispaces[self.to_index()]
     }
 

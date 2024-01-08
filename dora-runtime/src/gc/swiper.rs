@@ -323,6 +323,7 @@ impl Swiper {
 
             let mut verifier = Verifier::new(
                 vm,
+                self.heap,
                 &self.young,
                 &self.old,
                 &self.card_table,
@@ -330,7 +331,6 @@ impl Swiper {
                 rootset,
                 &self.large,
                 &*readonly_space,
-                self.reserved_area.clone(),
                 phase,
             );
             verifier.verify();
@@ -477,15 +477,6 @@ impl Collector for Swiper {
         println!("\tTotal:\t\t{}", config.full_total());
 
         println!("");
-    }
-
-    fn verify_ref(&self, vm: &VM, reference: Address) {
-        let found = self.young.to_committed().contains(reference)
-            || vm.gc.readonly_space.contains(reference)
-            || self.large.contains(reference)
-            || (self.old.total().contains(reference) && self.old.contains_slow(reference));
-
-        assert!(found, "write barrier found invalid reference");
     }
 
     fn setup(&self, vm: &VM) {
