@@ -14,7 +14,7 @@ impl Timer {
     pub fn stop(&mut self) -> f32 {
         let duration = self.start.expect("not started").elapsed();
 
-        duration.as_secs_f32() / 1000f32
+        duration.as_secs_f32() * 1000f32
     }
 
     pub fn stop_with<F>(&self, f: F)
@@ -24,7 +24,7 @@ impl Timer {
         if let Some(start) = self.start {
             let duration = start.elapsed();
 
-            f(duration.as_secs_f32() / 1000f32);
+            f(duration.as_secs_f32() * 1000f32);
         }
     }
 }

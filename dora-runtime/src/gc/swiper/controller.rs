@@ -104,7 +104,7 @@ pub fn stop(
     let mut config = config.lock();
 
     let duration = config.gc_start.expect("not started").elapsed();
-    config.gc_duration = duration.as_secs_f32() / 1000f32;
+    config.gc_duration = duration.as_secs_f32() * 1000f32;
 
     assert!(young.eden_active().empty());
     assert!(young.from_active().empty());
