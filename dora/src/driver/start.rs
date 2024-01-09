@@ -98,7 +98,7 @@ pub fn start() -> i32 {
 
     if vm.flags.gc_stats {
         let duration = timer.expect("missing timer").elapsed();
-        vm.dump_gc_summary(duration.as_secs_f32() / 1000f32);
+        vm.dump_gc_summary(duration.as_secs_f32() * 1000f32);
     }
 
     clear_vm();
