@@ -29,6 +29,8 @@ use crate::safepoint;
 use crate::threads::DoraThread;
 use crate::vm::{Flags, VM};
 
+use self::large::LargeAlloc;
+
 use super::tlab::{MAX_TLAB_SIZE, MIN_TLAB_SIZE};
 
 pub mod card;
@@ -651,16 +653,16 @@ impl Page {
         self.end()
     }
 
-    pub fn raw_flags(&self) -> usize {
-        self.header().flags.load(Ordering::Relaxed)
-    }
-
     pub fn is_young(&self) -> bool {
         (self.raw_flags() & YOUNG_BIT) != 0
     }
 
     pub fn is_large(&self) -> bool {
         (self.raw_flags() & LARGE_BIT) != 0
+    }
+
+    fn raw_flags(&self) -> usize {
+        self.header().flags.load(Ordering::Relaxed)
     }
 
     fn header(&self) -> &PageHeader {
@@ -674,4 +676,52 @@ const LARGE_BIT: usize = 1 << 1;
 #[repr(C)]
 struct PageHeader {
     flags: AtomicUsize,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct LargePage(Address);
+
+impl LargePage {
+    pub fn new(start: Address) -> LargePage {
+        LargePage(start)
+    }
+
+    pub fn from_address(value: Address) -> LargePage {
+        let page_start = value.to_usize() & !(PAGE_SIZE - 1);
+        LargePage::new(page_start.into())
+    }
+
+    pub fn initialize_header(&self) {
+        Page::new(self.start()).initialize_header(false, true);
+    }
+
+    pub fn start(&self) -> Address {
+        self.0
+    }
+
+    pub fn is_young(&self) -> bool {
+        (self.raw_flags() & YOUNG_BIT) != 0
+    }
+
+    pub fn is_large(&self) -> bool {
+        (self.raw_flags() & LARGE_BIT) != 0
+    }
+
+    pub fn object_address(&self) -> Address {
+        self.start()
+            .offset(PAGE_HEADER_SIZE)
+            .offset(std::mem::size_of::<LargeAlloc>())
+    }
+
+    pub fn large_alloc_address(&self) -> Address {
+        self.start().offset(PAGE_HEADER_SIZE)
+    }
+
+    fn raw_flags(&self) -> usize {
+        self.header().flags.load(Ordering::Relaxed)
+    }
+
+    fn header(&self) -> &PageHeader {
+        unsafe { &*self.0.to_ptr::<PageHeader>() }
+    }
 }

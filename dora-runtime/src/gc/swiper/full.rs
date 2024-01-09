@@ -158,15 +158,12 @@ impl<'a> FullCollector<'a> {
             self.forward_object(object_address).or(Some(object_address))
         });
 
-        self.large_space.remove_objects(|object_start| {
+        self.large_space.iterate_pages(|_page, object_start| {
             let object = object_start.to_obj();
 
             object.visit_reference_fields(|field| {
                 self.forward_reference(field);
             });
-
-            // keep object
-            false
         });
     }
 
@@ -195,7 +192,7 @@ impl<'a> FullCollector<'a> {
             }
         }
 
-        self.large_space.remove_objects(|object_start| {
+        self.large_space.remove_pages(|_page, object_start| {
             let object = object_start.to_obj();
 
             // reset cards for object, also do this for dead objects
@@ -354,7 +351,7 @@ pub fn verify_marking(
         verify_marking_region(vm, page.object_area(), heap);
     }
 
-    large.visit_objects(|_page, obj_address| {
+    large.iterate_pages(|_page, obj_address| {
         verify_marking_object(obj_address, heap);
     });
 }

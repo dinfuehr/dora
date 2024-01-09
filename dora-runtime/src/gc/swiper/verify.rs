@@ -9,7 +9,7 @@ use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::old::{OldGen, OldGenProtected};
 use crate::gc::swiper::on_different_cards;
 use crate::gc::swiper::young::YoungGen;
-use crate::gc::swiper::{Page, CARD_SIZE};
+use crate::gc::swiper::{LargePage, Page, CARD_SIZE};
 use crate::gc::{Address, Region};
 
 use crate::mem;
@@ -140,8 +140,8 @@ impl<'a> Verifier<'a> {
         }
         self.in_old = false;
 
-        self.large.visit_objects(|page, object_address| {
-            self.verify_large_page(page, object_address);
+        self.large.iterate_pages(|page, _object_address| {
+            self.verify_large_page(page);
         });
     }
 
@@ -202,12 +202,12 @@ impl<'a> Verifier<'a> {
         assert_eq!(refs_to_young_gen, 0);
     }
 
-    fn verify_large_page(&mut self, page: Page, object_address: Address) {
+    fn verify_large_page(&mut self, page: LargePage) {
         assert!(!page.is_young());
         assert!(page.is_large());
         let mut refs_to_young_gen = 0;
-        self.verify_object(object_address, &mut refs_to_young_gen);
-        self.verify_card(object_address, refs_to_young_gen);
+        self.verify_object(page.object_address(), &mut refs_to_young_gen);
+        self.verify_card(page.object_address(), refs_to_young_gen);
     }
 
     fn verify_object(&mut self, object_address: Address, refs_to_young_gen: &mut usize) {
