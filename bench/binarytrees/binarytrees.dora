@@ -36,7 +36,9 @@ fn loops(iterations: Int32, depth: Int32) {
   let mut item = 0i32;
 
   while item < iterations {
-    check = check + checkTree(createTree(depth));
+    let mut tree = TreeNode(0i32, None[TreeNode], None[TreeNode]);
+    tree = createTree(depth);
+    check = check + checkTree(tree);
     item = item + 1i32;
   }
 
