@@ -2,7 +2,7 @@ use parking_lot::Mutex;
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use crate::gc::swiper::{Page, PAGE_SIZE};
+use crate::gc::swiper::{RegularPage, PAGE_SIZE};
 use crate::gc::{
     fill_region, fill_region_with, is_page_aligned, Address, GenerationAllocator, Region,
 };
@@ -73,8 +73,7 @@ impl YoungGen {
         let mut curr = start;
 
         while curr < to_committed.end() {
-            let page = Page::from_address(curr);
-            page.initialize_header(true, false);
+            let page = RegularPage::setup(curr, true);
             fill_region_with(vm, page.object_area_start(), page.object_area_end(), true);
             curr = page.end();
         }
@@ -192,8 +191,7 @@ impl YoungGen {
 
             let mut curr = start;
             while curr < end {
-                let page = Page::from_address(curr);
-                page.initialize_header(true, false);
+                let page = RegularPage::setup(curr, true);
                 fill_region(vm, page.object_area_start(), page.object_area_end());
                 curr = page.end();
             }
@@ -240,12 +238,12 @@ impl YoungGen {
         self.current_size() * 2
     }
 
-    pub fn pages(&self) -> Vec<Page> {
+    pub fn pages(&self) -> Vec<RegularPage> {
         let to_committed = self.to_committed();
         let mut pages = Vec::new();
         let mut curr = to_committed.start();
         while curr < to_committed.end() {
-            let page = Page::from_address(curr);
+            let page = RegularPage::from_address(curr);
             pages.push(page);
             curr = page.end();
         }
@@ -324,8 +322,7 @@ impl YoungAllocProtected {
 
         if self.current_limit < self.limit {
             fill_region_with(vm, self.top, self.current_limit, false);
-            let page = Page::from_address(self.current_limit);
-            page.initialize_header(true, false);
+            let page = RegularPage::setup(self.current_limit, true);
             self.top = page.object_area_start();
             self.current_limit = page.object_area_end();
             assert!(self.current_limit <= self.limit);

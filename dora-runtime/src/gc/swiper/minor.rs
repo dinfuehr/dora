@@ -7,11 +7,12 @@ use crate::gc::root::Slot;
 use crate::gc::swiper::card::{CardEntry, CardTable};
 use crate::gc::swiper::controller::{MinorCollectorPhases, SharedHeapConfig};
 use crate::gc::swiper::crossing::{CrossingEntry, CrossingMap};
-use crate::gc::swiper::large::{LargeAlloc, LargeSpace};
+use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::old::OldGen;
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{
-    forward_minor, CardIdx, Page, YoungAlloc, CARD_SIZE, INITIAL_METADATA_OLD, LARGE_OBJECT_SIZE,
+    forward_minor, CardIdx, LargePage, RegularPage, YoungAlloc, CARD_SIZE, INITIAL_METADATA_OLD,
+    LARGE_OBJECT_SIZE,
 };
 use crate::gc::tlab::{MAX_TLAB_OBJECT_SIZE, MAX_TLAB_SIZE, MIN_TLAB_SIZE};
 use crate::gc::{
@@ -365,9 +366,9 @@ struct CopyTask<'a> {
 
     next_root_stride: &'a AtomicUsize,
     strides: usize,
-    next_large: &'a Mutex<Address>,
+    next_large: &'a Mutex<Option<LargePage>>,
 
-    old_pages: &'a [Page],
+    old_pages: &'a [RegularPage],
     next_old_page_idx: &'a AtomicUsize,
 
     young_region: Region,
@@ -446,12 +447,12 @@ impl<'a> CopyTask<'a> {
         }
     }
 
-    fn next_old_page(&mut self) -> Option<Page> {
+    fn next_old_page(&mut self) -> Option<RegularPage> {
         let page_idx = self.next_old_page_idx.fetch_add(1, Ordering::Relaxed);
         self.old_pages.get(page_idx).cloned()
     }
 
-    fn visit_dirty_cards_in_old_page(&mut self, page: Page) {
+    fn visit_dirty_cards_in_old_page(&mut self, page: RegularPage) {
         let region = page.object_area();
         let (start_card_idx, end_card_idx) = self.card_table.card_indices(region.start, region.end);
 
@@ -466,32 +467,27 @@ impl<'a> CopyTask<'a> {
 
     fn visit_dirty_cards_in_large(&mut self) {
         loop {
-            if let Some(addr) = self.next_large() {
-                let object = addr.to_obj();
-
-                self.visit_large_object(object, addr);
+            if let Some(page) = self.next_large() {
+                self.visit_large_object(page);
             } else {
                 break;
             }
         }
     }
 
-    fn next_large(&mut self) -> Option<Address> {
+    fn next_large(&mut self) -> Option<LargePage> {
         let mut next_large = self.next_large.lock();
 
-        if next_large.is_null() {
-            return None;
+        if let Some(large_page) = *next_large {
+            *next_large = large_page.next_page();
+            Some(large_page)
+        } else {
+            None
         }
-
-        let large_alloc = LargeAlloc::from_address(*next_large);
-        let object = large_alloc.object_address();
-
-        *next_large = large_alloc.next;
-
-        Some(object)
     }
 
-    fn visit_large_object(&mut self, object: &Obj, object_start: Address) {
+    fn visit_large_object(&mut self, page: LargePage) {
+        let object_start = page.object_address();
         let card_idx = self.card_table.card_idx(object_start);
         let mut ref_to_young_gen = false;
 
@@ -499,7 +495,7 @@ impl<'a> CopyTask<'a> {
             return;
         }
 
-        object.visit_reference_fields(|slot| {
+        object_start.to_obj().visit_reference_fields(|slot| {
             let pointer = slot.get();
 
             if self.young.contains(pointer) {

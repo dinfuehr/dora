@@ -6,7 +6,7 @@ use crate::gc::freelist::FreeList;
 use crate::gc::swiper::card::CardTable;
 use crate::gc::swiper::controller::SharedHeapConfig;
 use crate::gc::swiper::crossing::CrossingMap;
-use crate::gc::swiper::{CommonOldGen, Page, PAGE_SIZE};
+use crate::gc::swiper::{CommonOldGen, RegularPage, PAGE_SIZE};
 use crate::gc::{fill_region, fill_region_with, is_page_aligned};
 use crate::gc::{Address, GenerationAllocator, Region};
 use crate::os::{self, MemoryPermission};
@@ -104,7 +104,7 @@ pub struct OldGenProtected {
     size: usize,
     top: Address,
     current_limit: Address,
-    pages: Vec<Page>,
+    pages: Vec<RegularPage>,
     free_pages: FixedBitSet,
     num_pages: usize,
     freelist: FreeList,
@@ -129,7 +129,7 @@ impl OldGenProtected {
         }
     }
 
-    pub fn pages(&self) -> Vec<Page> {
+    pub fn pages(&self) -> Vec<RegularPage> {
         self.pages.clone()
     }
 
@@ -205,7 +205,7 @@ impl OldGenProtected {
         }
     }
 
-    pub fn free_page(&mut self, page: Page) {
+    pub fn free_page(&mut self, page: RegularPage) {
         let idx = self
             .pages
             .iter()
@@ -213,24 +213,23 @@ impl OldGenProtected {
             .expect("missing page");
         self.pages.swap_remove(idx);
         self.size -= PAGE_SIZE;
-        let page_idx = page.start().offset_from(self.total.start()) / PAGE_SIZE;
+        let page_idx = page.address().offset_from(self.total.start()) / PAGE_SIZE;
         self.free_pages.insert(page_idx);
-        os::discard(page.start(), page.size());
+        os::discard(page.address(), page.size());
     }
 
     pub fn active_size(&self) -> usize {
         self.top.offset_from(self.total.start())
     }
 
-    fn allocate_page(&mut self, vm: &VM) -> Option<Page> {
+    fn allocate_page(&mut self, vm: &VM) -> Option<RegularPage> {
         if let Some(page_idx) = self.select_free_page() {
             let page_start = self.total.start().offset(page_idx * PAGE_SIZE);
             assert!(self.total.contains(page_start));
-            let page = Page::from_address(page_start);
             assert!(self.free_pages.contains(page_idx));
             self.free_pages.set(page_idx, false);
-            os::commit_at(page.start(), PAGE_SIZE, MemoryPermission::ReadWrite);
-            page.initialize_header(false, false);
+            os::commit_at(page_start, PAGE_SIZE, MemoryPermission::ReadWrite);
+            let page = RegularPage::setup(page_start, false);
             fill_region(vm, page.object_area_start(), page.object_area_end());
             Some(page)
         } else {

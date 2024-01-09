@@ -1,8 +1,7 @@
 use parking_lot::Mutex;
-use std::mem::size_of;
 
 use crate::gc::swiper::controller::SharedHeapConfig;
-use crate::gc::swiper::{LargePage, LARGE_OBJECT_SIZE, PAGE_HEADER_SIZE};
+use crate::gc::swiper::LargePage;
 use crate::gc::{align_page_up, is_page_aligned, Address, Region};
 use crate::mem;
 use crate::os::{self, MemoryPermission};
@@ -28,9 +27,7 @@ impl LargeSpace {
     }
 
     pub fn alloc(&self, object_size: usize) -> Option<Address> {
-        debug_assert!(object_size >= LARGE_OBJECT_SIZE);
-        let committed_size =
-            mem::os_page_align_up(PAGE_HEADER_SIZE + size_of::<LargeAlloc>() + object_size);
+        let (committed_size, _) = LargePage::compute_sizes(object_size);
 
         let mut space = self.space.lock();
         let mut config = self.config.lock();
@@ -39,7 +36,7 @@ impl LargeSpace {
             return None;
         }
 
-        space.alloc(committed_size)
+        space.allocate_object(object_size)
     }
 
     pub fn total(&self) -> Region {
@@ -50,14 +47,14 @@ impl LargeSpace {
         self.total.contains(addr)
     }
 
-    pub fn head(&self) -> Address {
+    pub fn head(&self) -> Option<LargePage> {
         let space = self.space.lock();
         space.head
     }
 
     pub fn iterate_pages<F>(&self, f: F)
     where
-        F: FnMut(LargePage, Address),
+        F: FnMut(LargePage),
     {
         let mut space = self.space.lock();
         space.visit_pages(f);
@@ -65,7 +62,7 @@ impl LargeSpace {
 
     pub fn remove_pages<F>(&self, f: F)
     where
-        F: FnMut(LargePage, Address) -> bool,
+        F: FnMut(LargePage) -> bool,
     {
         let mut space = self.space.lock();
         space.remove_pages(f);
@@ -77,33 +74,9 @@ impl LargeSpace {
     }
 }
 
-pub struct LargeAlloc {
-    pub prev: Address,
-    pub next: Address,
-    pub size: usize,
-}
-
-impl LargeAlloc {
-    #[inline(always)]
-    pub fn from_address(addr: Address) -> &'static mut LargeAlloc {
-        unsafe { &mut *addr.to_mut_ptr::<LargeAlloc>() }
-    }
-
-    #[inline(always)]
-    pub fn address(&self) -> Address {
-        Address::from_ptr(self as *const _)
-    }
-
-    #[inline(always)]
-    pub fn object_address(&self) -> Address {
-        let addr = Address::from_ptr(self as *const _);
-        addr.offset(size_of::<LargeAlloc>())
-    }
-}
-
 struct LargeSpaceProtected {
     elements: Vec<Region>,
-    head: Address,
+    head: Option<LargePage>,
     committed_size: usize,
 }
 
@@ -111,7 +84,7 @@ impl LargeSpaceProtected {
     fn new(start: Address, end: Address) -> LargeSpaceProtected {
         LargeSpaceProtected {
             elements: vec![Region::new(start, end)],
-            head: Address::null(),
+            head: None,
             committed_size: 0,
         }
     }
@@ -120,15 +93,13 @@ impl LargeSpaceProtected {
         self.committed_size
     }
 
-    fn alloc(&mut self, committed_size: usize) -> Option<Address> {
-        assert!(mem::is_os_page_aligned(committed_size));
-        let reserved_size = align_page_up(committed_size);
+    fn allocate_object(&mut self, object_size: usize) -> Option<Address> {
+        let (committed_size, reserved_size) = LargePage::compute_sizes(object_size);
 
-        if let Some(page) = self.alloc_pages(reserved_size) {
-            assert!(page.start().is_page_aligned());
-            os::commit_at(page.start(), committed_size, MemoryPermission::ReadWrite);
-            page.initialize_header();
-            self.append_large_alloc(page.large_alloc_address(), committed_size);
+        if let Some(region) = self.alloc_pages(reserved_size) {
+            os::commit_at(region.start(), committed_size, MemoryPermission::ReadWrite);
+            let page = LargePage::setup(region.start(), committed_size);
+            self.append_page(page);
             self.committed_size += committed_size;
             Some(page.object_address())
         } else {
@@ -136,7 +107,7 @@ impl LargeSpaceProtected {
         }
     }
 
-    fn alloc_pages(&mut self, size: usize) -> Option<LargePage> {
+    fn alloc_pages(&mut self, size: usize) -> Option<Region> {
         assert!(is_page_aligned(size));
         let len = self.elements.len();
 
@@ -154,22 +125,23 @@ impl LargeSpaceProtected {
                 self.elements[i] = Region::new(range.start.offset(size), range.end);
             }
 
-            return Some(LargePage::new(addr));
+            return Some(addr.region_start(size));
         }
 
         None
     }
 
-    fn free(&mut self, ptr: Address, committed_size: usize) {
+    fn free_page(&mut self, page: LargePage) {
+        let committed_size = page.committed_size();
         assert!(mem::is_os_page_aligned(committed_size));
         let reserved_size = align_page_up(committed_size);
-        let page = LargePage::from_address(ptr);
-        os::discard(page.start(), committed_size);
-        self.elements.push(ptr.region_start(reserved_size));
+        os::discard(page.address(), committed_size);
+        self.elements
+            .push(page.address().region_start(reserved_size));
         self.committed_size -= committed_size;
     }
 
-    fn merge(&mut self) {
+    fn merge_free_regions(&mut self) {
         self.elements
             .sort_unstable_by(|lhs, rhs| lhs.start.to_usize().cmp(&rhs.start.to_usize()));
 
@@ -188,80 +160,70 @@ impl LargeSpaceProtected {
         self.elements.truncate(last_element + 1);
     }
 
-    fn append_large_alloc(&mut self, addr: Address, size: usize) {
-        if !self.head.is_null() {
-            let old_head = LargeAlloc::from_address(self.head);
-            old_head.prev = addr;
+    fn append_page(&mut self, page: LargePage) {
+        if let Some(old_head) = self.head {
+            old_head.set_prev_page(Some(page));
         }
 
-        let new_head = LargeAlloc::from_address(addr);
-        new_head.next = self.head;
-        new_head.prev = Address::null();
-        new_head.size = size;
+        page.set_next_page(self.head);
+        page.set_prev_page(None);
 
-        self.head = addr;
+        self.head = Some(page);
     }
 
     fn visit_pages<F>(&mut self, mut f: F)
     where
-        F: FnMut(LargePage, Address),
+        F: FnMut(LargePage),
     {
-        let mut addr = self.head;
+        let mut current_page_iter = self.head;
 
-        while !addr.is_null() {
-            let large_alloc = LargeAlloc::from_address(addr);
-            let page = LargePage::from_address(addr);
-            f(page, large_alloc.object_address());
-            addr = large_alloc.next;
+        while current_page_iter.is_some() {
+            let page = current_page_iter.expect("missing page");
+            f(page);
+            current_page_iter = page.next_page();
         }
     }
 
     fn remove_pages<F>(&mut self, mut f: F)
     where
-        F: FnMut(LargePage, Address) -> bool,
+        F: FnMut(LargePage) -> bool,
     {
-        let mut addr = self.head;
-        let mut prev = Address::null();
+        let mut current_page_iter = self.head;
+        let mut prev: Option<LargePage> = None;
         let mut freed = false;
 
-        while !addr.is_null() {
-            let large_alloc = LargeAlloc::from_address(addr);
-            let page = LargePage::from_address(addr);
-            let next = large_alloc.next;
-            let remove = f(page, large_alloc.object_address());
+        while current_page_iter.is_some() {
+            let page = current_page_iter.expect("missing page");
+            let next = page.next_page();
+            let remove = f(page);
 
             if remove {
                 freed = true;
-                let committed_size = large_alloc.size;
-                self.free(addr, committed_size);
+                self.free_page(page);
             } else {
-                if prev.is_null() {
-                    // Our new head
-                    self.head = addr;
+                if let Some(prev) = prev {
+                    prev.set_next_page(Some(page));
                 } else {
-                    // Change predecessor
-                    let prev_large_alloc = LargeAlloc::from_address(prev);
-                    prev_large_alloc.next = addr;
+                    // Our new head.
+                    self.head = current_page_iter;
                 }
 
-                large_alloc.prev = prev;
-                prev = addr;
+                page.set_prev_page(prev);
+                prev = Some(page);
             }
 
-            addr = next;
+            current_page_iter = next;
         }
 
-        if prev.is_null() {
-            // No large objects left
-            self.head = Address::null();
+        if let Some(prev) = prev {
+            prev.set_next_page(None);
         } else {
-            // Set next to null for last allocation
-            let prev_large_alloc = LargeAlloc::from_address(prev);
-            prev_large_alloc.next = Address::null();
+            // No large objects left.
+            self.head = None;
         }
 
         if freed {
-            self.merge();
+            self.merge_free_regions();
         }
     }
 }

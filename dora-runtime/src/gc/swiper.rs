@@ -29,8 +29,6 @@ use crate::safepoint;
 use crate::threads::DoraThread;
 use crate::vm::{Flags, VM};
 
-use self::large::LargeAlloc;
-
 use super::tlab::{MAX_TLAB_SIZE, MIN_TLAB_SIZE};
 
 pub mod card;
@@ -583,34 +581,25 @@ fn forward_minor(object: Address, young: Region) -> Option<Address> {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Page(Address);
+pub struct RegularPage(Address);
 
-impl Page {
-    pub fn new(start: Address) -> Page {
-        Page(start)
-    }
-
-    pub fn from_address(value: Address) -> Page {
+impl RegularPage {
+    pub fn from_address(value: Address) -> RegularPage {
         let page_start = value.to_usize() & !(PAGE_SIZE - 1);
-        Page::new(page_start.into())
+        let page = RegularPage(page_start.into());
+        debug_assert!(!page.is_large());
+        page
     }
 
-    pub fn initialize_header(&self, is_young: bool, is_large: bool) {
-        let mut flags = 0;
+    pub fn setup(address: Address, is_young: bool) -> RegularPage {
+        assert!(address.is_page_aligned());
 
-        if is_young {
-            flags |= YOUNG_BIT
-        };
+        let page = RegularPage(address);
+        page.header().setup(is_young, false);
 
-        if is_large {
-            flags |= LARGE_BIT
-        };
-
-        self.header().flags.store(flags, Ordering::Relaxed);
-
-        let uninit_start = self.start().offset(std::mem::size_of::<PageHeader>());
+        let uninit_start = page.address().offset(std::mem::size_of::<PageHeader>());
         debug_assert_eq!(uninit_start.to_usize() % mem::ptr_width_usize(), 0);
-        let uninit_end = self.start().offset(PAGE_HEADER_SIZE);
+        let uninit_end = page.address().offset(PAGE_HEADER_SIZE);
         debug_assert_eq!(uninit_end.to_usize() % mem::ptr_width_usize(), 0);
         let length = uninit_end.offset_from(uninit_start);
         debug_assert_eq!(length % mem::ptr_width_usize(), 0);
@@ -623,18 +612,20 @@ impl Page {
 
             header.fill(0xDEAD2BAD);
         }
+
+        page
     }
 
     pub fn area(&self) -> Region {
-        Region::new(self.start(), self.end())
+        Region::new(self.address(), self.end())
     }
 
-    pub fn start(&self) -> Address {
+    pub fn address(&self) -> Address {
         self.0
     }
 
     pub fn end(&self) -> Address {
-        self.start().offset(PAGE_SIZE)
+        self.address().offset(PAGE_SIZE)
     }
 
     pub fn size(&self) -> usize {
@@ -646,7 +637,7 @@ impl Page {
     }
 
     pub fn object_area_start(&self) -> Address {
-        self.start().offset(PAGE_HEADER_SIZE)
+        self.address().offset(PAGE_HEADER_SIZE)
     }
 
     pub fn object_area_end(&self) -> Address {
@@ -654,15 +645,15 @@ impl Page {
     }
 
     pub fn is_young(&self) -> bool {
-        (self.raw_flags() & YOUNG_BIT) != 0
+        self.header().is_young()
     }
 
     pub fn is_large(&self) -> bool {
-        (self.raw_flags() & LARGE_BIT) != 0
+        self.header().is_large()
     }
 
     fn raw_flags(&self) -> usize {
-        self.header().flags.load(Ordering::Relaxed)
+        self.header().raw_flags()
     }
 
     fn header(&self) -> &PageHeader {
@@ -678,43 +669,105 @@ struct PageHeader {
     flags: AtomicUsize,
 }
 
+impl PageHeader {
+    fn is_young(&self) -> bool {
+        (self.raw_flags() & YOUNG_BIT) != 0
+    }
+
+    fn is_large(&self) -> bool {
+        (self.raw_flags() & LARGE_BIT) != 0
+    }
+
+    fn raw_flags(&self) -> usize {
+        self.flags.load(Ordering::Relaxed)
+    }
+
+    fn setup(&self, is_young: bool, is_large: bool) {
+        let mut flags = 0;
+
+        if is_young {
+            flags |= YOUNG_BIT
+        }
+
+        if is_large {
+            flags |= LARGE_BIT
+        }
+
+        self.set_raw_flags(flags);
+    }
+
+    fn set_raw_flags(&self, flags: usize) {
+        self.flags.store(flags, Ordering::Relaxed)
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct LargePage(Address);
 
 impl LargePage {
-    pub fn new(start: Address) -> LargePage {
-        LargePage(start)
+    pub fn compute_sizes(object_size: usize) -> (usize, usize) {
+        assert!(object_size >= LARGE_OBJECT_SIZE);
+
+        let committed_size = mem::os_page_align_up(LargePage::object_offset() + object_size);
+        let reserved_size = align_page_up(committed_size);
+
+        (committed_size, reserved_size)
     }
 
-    pub fn from_address(value: Address) -> LargePage {
-        let page_start = value.to_usize() & !(PAGE_SIZE - 1);
-        LargePage::new(page_start.into())
+    pub fn setup(address: Address, committed_size: usize) -> LargePage {
+        assert!(address.is_page_aligned());
+
+        let page = LargePage(address);
+        page.header().setup(false, true);
+        page.large_page_header().setup(committed_size);
+
+        page
     }
 
-    pub fn initialize_header(&self) {
-        Page::new(self.start()).initialize_header(false, true);
-    }
-
-    pub fn start(&self) -> Address {
+    pub fn address(&self) -> Address {
         self.0
     }
 
     pub fn is_young(&self) -> bool {
-        (self.raw_flags() & YOUNG_BIT) != 0
+        self.header().is_young()
     }
 
     pub fn is_large(&self) -> bool {
-        (self.raw_flags() & LARGE_BIT) != 0
+        self.header().is_large()
     }
 
     pub fn object_address(&self) -> Address {
-        self.start()
-            .offset(PAGE_HEADER_SIZE)
-            .offset(std::mem::size_of::<LargeAlloc>())
+        self.address().offset(LargePage::object_offset())
     }
 
-    pub fn large_alloc_address(&self) -> Address {
-        self.start().offset(PAGE_HEADER_SIZE)
+    const fn object_offset() -> usize {
+        std::mem::size_of::<PageHeader>() + std::mem::size_of::<LargePageHeader>()
+    }
+
+    pub fn next_page(&self) -> Option<LargePage> {
+        let next = self.next_page_address();
+
+        if next.is_null() {
+            None
+        } else {
+            Some(LargePage(next))
+        }
+    }
+
+    fn next_page_address(&self) -> Address {
+        self.large_page_header().next
+    }
+
+    pub fn set_next_page(&self, page: Option<LargePage>) {
+        self.large_page_header().next = page.map(|p| p.address()).unwrap_or(Address::null())
+    }
+
+    pub fn set_prev_page(&self, page: Option<LargePage>) {
+        self.large_page_header().prev = page.map(|p| p.address()).unwrap_or(Address::null())
+    }
+
+    pub fn committed_size(&self) -> usize {
+        self.large_page_header().size
     }
 
     fn raw_flags(&self) -> usize {
@@ -722,6 +775,29 @@ impl LargePage {
     }
 
     fn header(&self) -> &PageHeader {
-        unsafe { &*self.0.to_ptr::<PageHeader>() }
+        unsafe { &*self.address().to_ptr::<PageHeader>() }
+    }
+
+    fn large_page_header(&self) -> &mut LargePageHeader {
+        unsafe {
+            &mut *self
+                .address()
+                .offset(std::mem::size_of::<PageHeader>())
+                .to_mut_ptr::<LargePageHeader>()
+        }
+    }
+}
+
+struct LargePageHeader {
+    prev: Address,
+    next: Address,
+    size: usize,
+}
+
+impl LargePageHeader {
+    fn setup(&mut self, committed_size: usize) {
+        self.prev = Address::null();
+        self.next = Address::null();
+        self.size = committed_size;
     }
 }

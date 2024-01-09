@@ -10,7 +10,7 @@ use crate::gc::swiper::crossing::CrossingMap;
 use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::old::{OldGen, OldGenProtected};
 use crate::gc::swiper::young::YoungGen;
-use crate::gc::swiper::Page;
+use crate::gc::swiper::RegularPage;
 use crate::gc::swiper::{walk_region, INITIAL_METADATA_OLD};
 use crate::gc::{fill_region_with, iterate_strong_roots, iterate_weak_roots, marking, Slot};
 use crate::gc::{Address, GcReason, Region};
@@ -34,7 +34,7 @@ pub struct FullCollector<'a> {
 
     top: Address,
     current_limit: Address,
-    pages: Vec<Page>,
+    pages: Vec<RegularPage>,
 
     reason: GcReason,
 
@@ -158,8 +158,8 @@ impl<'a> FullCollector<'a> {
             self.forward_object(object_address).or(Some(object_address))
         });
 
-        self.large_space.iterate_pages(|_page, object_start| {
-            let object = object_start.to_obj();
+        self.large_space.iterate_pages(|page| {
+            let object = page.object_address().to_obj();
 
             object.visit_reference_fields(|field| {
                 self.forward_reference(field);
@@ -192,12 +192,12 @@ impl<'a> FullCollector<'a> {
             }
         }
 
-        self.large_space.remove_pages(|_page, object_start| {
-            let object = object_start.to_obj();
+        self.large_space.remove_pages(|page| {
+            let object = page.object_address().to_obj();
 
             // reset cards for object, also do this for dead objects
             // to reset card entries to clean.
-            self.card_table.reset_addr(object_start);
+            self.card_table.reset_addr(page.object_address());
 
             if object.header().is_marked() {
                 // unmark object for next collection
@@ -212,7 +212,7 @@ impl<'a> FullCollector<'a> {
         });
     }
 
-    fn sweep_page(&mut self, page: Page) -> (usize, Vec<Region>) {
+    fn sweep_page(&mut self, page: RegularPage) -> (usize, Vec<Region>) {
         let region = page.object_area();
         let mut scan = region.start;
         let mut free_start = region.start;
@@ -263,7 +263,7 @@ impl<'a> FullCollector<'a> {
         }
     }
 
-    fn evacuate_page(&mut self, page: Page) {
+    fn evacuate_page(&mut self, page: RegularPage) {
         walk_region(self.vm, page.object_area(), |object, _address, size| {
             if !object.header().is_marked() {
                 return;
@@ -351,8 +351,8 @@ pub fn verify_marking(
         verify_marking_region(vm, page.object_area(), heap);
     }
 
-    large.iterate_pages(|_page, obj_address| {
-        verify_marking_object(obj_address, heap);
+    large.iterate_pages(|page| {
+        verify_marking_object(page.object_address(), heap);
     });
 }
 

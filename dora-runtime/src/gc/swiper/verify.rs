@@ -9,7 +9,7 @@ use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::old::{OldGen, OldGenProtected};
 use crate::gc::swiper::on_different_cards;
 use crate::gc::swiper::young::YoungGen;
-use crate::gc::swiper::{LargePage, Page, CARD_SIZE};
+use crate::gc::swiper::{LargePage, RegularPage, CARD_SIZE};
 use crate::gc::{Address, Region};
 
 use crate::mem;
@@ -140,19 +140,19 @@ impl<'a> Verifier<'a> {
         }
         self.in_old = false;
 
-        self.large.iterate_pages(|page, _object_address| {
+        self.large.iterate_pages(|page| {
             self.verify_large_page(page);
         });
     }
 
-    fn verify_roots(&mut self) {
+    fn verify_roots(&self) {
         let mut refs_to_young_gen = 0;
         for root in self.rootset {
             self.verify_reference(*root, Address::null(), &mut refs_to_young_gen);
         }
     }
 
-    fn verify_page(&mut self, page: Page) {
+    fn verify_page(&self, page: RegularPage) {
         let region = page.object_area();
         let mut curr = region.start;
         let mut refs_to_young_gen = 0;
@@ -175,7 +175,7 @@ impl<'a> Verifier<'a> {
             let object_end = curr.offset(size);
 
             // Object is not supposed to cross page boundary.
-            let page_for_object = Page::from_address(curr);
+            let page_for_object = RegularPage::from_address(curr);
             assert_eq!(page, page_for_object);
             assert!(object_end <= page.end());
 
@@ -202,7 +202,7 @@ impl<'a> Verifier<'a> {
         assert_eq!(refs_to_young_gen, 0);
     }
 
-    fn verify_large_page(&mut self, page: LargePage) {
+    fn verify_large_page(&self, page: LargePage) {
         assert!(!page.is_young());
         assert!(page.is_large());
         let mut refs_to_young_gen = 0;
@@ -210,7 +210,7 @@ impl<'a> Verifier<'a> {
         self.verify_card(page.object_address(), refs_to_young_gen);
     }
 
-    fn verify_object(&mut self, object_address: Address, refs_to_young_gen: &mut usize) {
+    fn verify_object(&self, object_address: Address, refs_to_young_gen: &mut usize) {
         let object = object_address.to_obj();
         assert!(object.header().metadata_fwdptr().is_null());
         assert_eq!(object.header().is_old(), self.in_old);
@@ -221,7 +221,7 @@ impl<'a> Verifier<'a> {
         });
     }
 
-    fn verify_card(&mut self, curr: Address, refs_to_young_gen: usize) {
+    fn verify_card(&self, curr: Address, refs_to_young_gen: usize) {
         let curr_card = self.card_table.card_idx(curr);
 
         let expected_card_entry = if refs_to_young_gen > 0 {
@@ -269,7 +269,7 @@ impl<'a> Verifier<'a> {
         assert_eq!(actual_card_entry, expected_card_entry);
     }
 
-    fn verify_crossing(&mut self, old: Address, new: Address) {
+    fn verify_crossing(&self, old: Address, new: Address) {
         let new_card_idx = self.card_table.card_idx(new);
         let old_card_idx = self.card_table.card_idx(old);
 
@@ -301,12 +301,7 @@ impl<'a> Verifier<'a> {
         }
     }
 
-    fn verify_reference(
-        &mut self,
-        slot: Slot,
-        container_obj: Address,
-        refs_to_young_gen: &mut usize,
-    ) {
+    fn verify_reference(&self, slot: Slot, container_obj: Address, refs_to_young_gen: &mut usize) {
         let reference = slot.get();
 
         if reference.is_null() {
